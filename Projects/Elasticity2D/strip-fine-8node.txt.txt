@@ -1,0 +1,2909 @@
+ENTITIES
+POINT
+Num: 1 HigherEntity: 2 conditions: 0 material: 0
+LAYER: Layer0
+Coord: 0.0 0.0 0.0
+END POINT
+POINT
+Num: 2 HigherEntity: 3 conditions: 0 material: 0
+LAYER: Layer0
+Coord: 500.0 0.0 0.0
+END POINT
+POINT
+Num: 3 HigherEntity: 2 conditions: 0 material: 0
+LAYER: Layer0
+Coord: 500.0 500.0 0.0
+END POINT
+POINT
+Num: 4 HigherEntity: 2 conditions: 0 material: 0
+LAYER: Layer0
+Coord: 0.0 500.0 0.0
+END POINT
+POINT
+Num: 27 HigherEntity: 3 conditions: 0 material: 0
+LAYER: Layer0
+Coord: 250.0 500.0 0.0
+END POINT
+POINT
+Num: 29 HigherEntity: 3 conditions: 0 material: 0
+LAYER: Layer0
+Coord: 150.0 500.0 0.0
+END POINT
+POINT
+Num: 30 HigherEntity: 3 conditions: 0 material: 0
+LAYER: Layer0
+Coord: 100.0 500.0 0.0
+END POINT
+POINT
+Num: 33 HigherEntity: 3 conditions: 0 material: 0
+LAYER: Layer0
+Coord: 0.0 400.0 0.0
+END POINT
+POINT
+Num: 34 HigherEntity: 3 conditions: 0 material: 0
+LAYER: Layer0
+Coord: 0.0 350.0 0.0
+END POINT
+POINT
+Num: 36 HigherEntity: 3 conditions: 0 material: 0
+LAYER: Layer0
+Coord: 0.0 250.0 0.0
+END POINT
+POINT
+Num: 41 HigherEntity: 3 conditions: 0 material: 0
+LAYER: Layer0
+Coord: 99.99999999999999 400.0 0.0
+END POINT
+POINT
+Num: 42 HigherEntity: 4 conditions: 0 material: 0
+LAYER: Layer0
+Coord: 150.0 350.0 0.0
+END POINT
+POINT
+Num: 43 HigherEntity: 4 conditions: 0 material: 0
+LAYER: Layer0
+Coord: 250.0 250.0 0.0
+END POINT
+POINT
+Num: 44 HigherEntity: 2 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=28,NOE=1) Elemtype=0 IsStructured=0 Meshing=Default size=1
+Coord: 50.0 500.0 0.0
+END POINT
+POINT
+Num: 45 HigherEntity: 2 conditions: 0 material: 0
+LAYER: Layer0
+Coord: 0.0 450.0 0.0
+END POINT
+STLINE
+Num: 32 HigherEntity: 1 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=22,NOE=1) Elemtype=0 IsStructured=1 Meshing=Default size=1
+Points: 29 30
+END STLINE
+STLINE
+Num: 37 HigherEntity: 1 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=25,NOE=1) Elemtype=0 IsStructured=1 Meshing=Default size=1
+Points: 33 34
+END STLINE
+STLINE
+Num: 87 HigherEntity: 2 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=26,NOE=1) Elemtype=0 IsStructured=1 Meshing=Default size=2
+Points: 2 43
+END STLINE
+STLINE
+Num: 88 HigherEntity: 2 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=27,NOE=1) Elemtype=0 IsStructured=1 Meshing=Default size=1
+Points: 43 42
+END STLINE
+STLINE
+Num: 89 HigherEntity: 2 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=21,NOE=1) Elemtype=0 IsStructured=1 Meshing=Default size=1
+Points: 42 41
+END STLINE
+NURBLINE
+Num: 187 HigherEntity: 1 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=24,NOE=1) Elemtype=0 IsStructured=1 Meshing=Default size=2
+Points: 36 1
+Number of Control Points= 2 Degree= 1
+Point 1 coords:0.0,250.0,0.0
+Point 2 coords:0.0,0.0,0.0
+Number of knots= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Non rational
+TotalLength= 250.0
+END NURBLINE
+NURBLINE
+Num: 209 HigherEntity: 1 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=23,NOE=1) Elemtype=0 IsStructured=1 Meshing=Default size=2
+Points: 3 27
+Number of Control Points= 2 Degree= 1
+Point 1 coords:500.0,500.0,0.0
+Point 2 coords:250.0,500.0,0.0
+Number of knots= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Non rational
+TotalLength= 250.0
+END NURBLINE
+NURBLINE
+Num: 219 HigherEntity: 1 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=19,NOE=1) Elemtype=0 IsStructured=1 Meshing=Default size=1
+Points: 34 36
+Number of Control Points= 2 Degree= 1
+Point 1 coords:0.0,350.0,0.0
+Point 2 coords:0.0,250.0,0.0
+Number of knots= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Non rational
+TotalLength= 100.0
+END NURBLINE
+NURBLINE
+Num: 229 HigherEntity: 1 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=20,NOE=1) Elemtype=0 IsStructured=1 Meshing=Default size=1
+Points: 27 29
+Number of Control Points= 2 Degree= 1
+Point 1 coords:250.0,500.0,0.0
+Point 2 coords:150.0,500.0,0.0
+Number of knots= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Non rational
+TotalLength= 100.0
+END NURBLINE
+NURBLINE
+Num: 467 HigherEntity: 2 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=5,NOE=1) Elemtype=0 IsStructured=1 Meshing=Default size=10
+Points: 34 42
+Number of Control Points= 2 Degree= 1
+Point 1 coords:0.0,350.0,0.0
+Point 2 coords:150.0,350.0,0.0
+Number of knots= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Non rational
+TotalLength= 150.0
+END NURBLINE
+NURBLINE
+Num: 471 HigherEntity: 2 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=7,NOE=1) Elemtype=0 IsStructured=1 Meshing=Default size=10
+Points: 36 43
+Number of Control Points= 2 Degree= 1
+Point 1 coords:0.0,250.0,0.0
+Point 2 coords:250.0,250.0,0.0
+Number of knots= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Non rational
+TotalLength= 250.0
+END NURBLINE
+NURBLINE
+Num: 475 HigherEntity: 1 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=9,NOE=1) Elemtype=0 IsStructured=1 Meshing=Default size=10
+Points: 1 2
+Number of Control Points= 2 Degree= 1
+Point 1 coords:0.0,0.0,0.0
+Point 2 coords:500.0,0.0,0.0
+Number of knots= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Non rational
+TotalLength= 500.0
+END NURBLINE
+NURBLINE
+Num: 479 HigherEntity: 2 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=6,NOE=1) Elemtype=0 IsStructured=1 Meshing=Default size=10
+Points: 29 42
+Number of Control Points= 2 Degree= 1
+Point 1 coords:150.0,500.0,0.0
+Point 2 coords:150.0,350.0,0.0
+Number of knots= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Non rational
+TotalLength= 150.0
+END NURBLINE
+NURBLINE
+Num: 483 HigherEntity: 2 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=8,NOE=1) Elemtype=0 IsStructured=1 Meshing=Default size=10
+Points: 27 43
+Number of Control Points= 2 Degree= 1
+Point 1 coords:250.0,500.0,0.0
+Point 2 coords:250.0,250.0,0.0
+Number of knots= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Non rational
+TotalLength= 250.0
+END NURBLINE
+NURBLINE
+Num: 487 HigherEntity: 1 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=10,NOE=1) Elemtype=0 IsStructured=1 Meshing=Default size=10
+Points: 2 3
+Number of Control Points= 2 Degree= 1
+Point 1 coords:500.0,0.0,0.0
+Point 2 coords:500.0,500.0,0.0
+Number of knots= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Non rational
+TotalLength= 500.0
+END NURBLINE
+NURBLINE
+Num: 498 HigherEntity: 2 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=3,NOE=1) Elemtype=0 IsStructured=1 Meshing=Default size=10
+Points: 33 41
+Number of Control Points= 2 Degree= 1
+Point 1 coords:0.0,400.0,0.0
+Point 2 coords:99.99999999999999,400.0,0.0
+Number of knots= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Non rational
+TotalLength= 99.99999999999999
+END NURBLINE
+NURBLINE
+Num: 499 HigherEntity: 2 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=4,NOE=1) Elemtype=0 IsStructured=1 Meshing=Default size=10
+Points: 30 41
+Number of Control Points= 2 Degree= 1
+Point 1 coords:100.0,500.0,0.0
+Point 2 coords:99.99999999999999,400.0,0.0
+Number of knots= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Non rational
+TotalLength= 100.0
+END NURBLINE
+NURBLINE
+Num: 500 HigherEntity: 1 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=1,NOE=2) Elemtype=0 IsStructured=1 Meshing=Default size=10
+Points: 30 44
+Number of Control Points= 2 Degree= 1
+Point 1 coords:100.0,500.0,0.0
+Point 2 coords:50.0,500.0,0.0
+Number of knots= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Non rational
+TotalLength= 50.0
+END NURBLINE
+NURBLINE
+Num: 501 HigherEntity: 1 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=1,NOE=2) Elemtype=0 IsStructured=1 Meshing=Default size=10
+Points: 44 4
+Number of Control Points= 2 Degree= 1
+Point 1 coords:50.0,500.0,0.0
+Point 2 coords:0.0,500.0,0.0
+Number of knots= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Non rational
+TotalLength= 50.0
+END NURBLINE
+NURBLINE
+Num: 502 HigherEntity: 1 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=2,NOE=2) Elemtype=0 IsStructured=1 Meshing=Default size=10
+Points: 4 45
+Number of Control Points= 2 Degree= 1
+Point 1 coords:0.0,500.0,0.0
+Point 2 coords:0.0,450.0,0.0
+Number of knots= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Non rational
+TotalLength= 50.0
+END NURBLINE
+NURBLINE
+Num: 503 HigherEntity: 1 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=2,NOE=2) Elemtype=0 IsStructured=1 Meshing=Default size=10
+Points: 45 33
+Number of Control Points= 2 Degree= 1
+Point 1 coords:0.0,450.0,0.0
+Point 2 coords:0.0,400.0,0.0
+Number of knots= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Non rational
+TotalLength= 50.0
+END NURBLINE
+NURBSURFACE
+Num: 2 HigherEntity: 0 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=12,NOE=1) Elemtype=3 IsStructured=1 Meshing=Default size=0 weight=0
+NumLines: 4
+Line: 88 Orientation: SAME1ST
+Line: 467 Orientation: DIFF1ST
+Line: 219 Orientation: SAME1ST
+Line: 471 Orientation: SAME1ST
+Number of Control Points= 2 2 Degree= 1 1
+Point 1,1 coords:-68.9375,245.0,0.0
+Point 1,2 coords:265.1875,245.0,0.0
+Point 2,1 coords:-68.9375,355.0,0.0
+Point 2,2 coords:265.1875,355.0,0.0
+Number of knots in U= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Number of knots in V= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Non rational
+IsTrimmed: 1
+Center: 99.99999999999079 300.00000000000006 0.0
+Normal: 0.0 0.0 1.0
+END NURBSURFACE
+NURBSURFACE
+Num: 3 HigherEntity: 0 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=13,NOE=1) Elemtype=3 IsStructured=1 Meshing=Default size=0 weight=0
+NumLines: 4
+Line: 483 Orientation: DIFF1ST
+Line: 229 Orientation: SAME1ST
+Line: 479 Orientation: SAME1ST
+Line: 88 Orientation: DIFF1ST
+Number of Control Points= 2 2 Degree= 1 1
+Point 1,1 coords:144.875,234.8125,0.0
+Point 1,2 coords:257.625,234.8125,0.0
+Point 2,1 coords:144.875,568.9375,0.0
+Point 2,2 coords:257.625,568.9375,0.0
+Number of knots in U= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Number of knots in V= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Non rational
+IsTrimmed: 1
+Center: 199.99999999999613 399.99999999999477 0.0
+Normal: 0.0 0.0 1.0
+END NURBSURFACE
+NURBSURFACE
+Num: 4 HigherEntity: 0 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=14,NOE=1) Elemtype=3 IsStructured=1 Meshing=Default size=0 weight=0
+NumLines: 4
+Line: 37 Orientation: SAME1ST
+Line: 467 Orientation: SAME1ST
+Line: 89 Orientation: SAME1ST
+Line: 498 Orientation: DIFF1ST
+Number of Control Points= 2 2 Degree= 1 1
+Point 1,1 coords:-52.73076923076925,345.7692307692308,0.0
+Point 1,2 coords:159.65384615384616,345.7692307692308,0.0
+Point 2,1 coords:-52.73076923076925,438.84615384615387,0.0
+Point 2,2 coords:159.65384615384616,438.84615384615387,0.0
+Number of knots in U= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Number of knots in V= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Non rational
+IsTrimmed: 1
+Center: 53.84615384615384 392.3076923076923 0.0
+Normal: 0.0 0.0 1.0
+END NURBSURFACE
+NURBSURFACE
+Num: 5 HigherEntity: 0 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=15,NOE=1) Elemtype=3 IsStructured=1 Meshing=Default size=0 weight=0
+NumLines: 4
+Line: 32 Orientation: SAME1ST
+Line: 499 Orientation: SAME1ST
+Line: 89 Orientation: DIFF1ST
+Line: 479 Orientation: DIFF1ST
+Number of Control Points= 2 2 Degree= 1 1
+Point 1,1 coords:61.55769230769231,340.3461538461538,0.0
+Point 1,2 coords:154.21153846153845,340.3461538461538,0.0
+Point 2,1 coords:61.55769230769231,552.7307692307693,0.0
+Point 2,2 coords:154.21153846153845,552.7307692307693,0.0
+Number of knots in U= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Number of knots in V= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Non rational
+IsTrimmed: 1
+Center: 107.69230769230771 446.1538461538462 0.0
+Normal: 0.0 0.0 1.0
+END NURBSURFACE
+NURBSURFACE
+Num: 6 HigherEntity: 0 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=16,NOE=1) Elemtype=3 IsStructured=1 Meshing=Default size=0 weight=0
+NumLines: 4
+Line: 487 Orientation: SAME1ST
+Line: 209 Orientation: SAME1ST
+Line: 483 Orientation: SAME1ST
+Line: 87 Orientation: DIFF1ST
+Number of Control Points= 2 2 Degree= 1 1
+Point 1,1 coords:237.1875,-30.9375,0.0
+Point 1,2 coords:519.0625,-30.9375,0.0
+Point 2,1 coords:237.1875,649.6875,0.0
+Point 2,2 coords:519.0625,649.6875,0.0
+Number of knots in U= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Number of knots in V= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Non rational
+IsTrimmed: 1
+Center: 374.9999999999926 312.4999999999992 0.0
+Normal: 0.0 0.0 1.0
+END NURBSURFACE
+NURBSURFACE
+Num: 7 HigherEntity: 0 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=17,NOE=1) Elemtype=3 IsStructured=1 Meshing=Default size=0 weight=0
+NumLines: 4
+Line: 87 Orientation: SAME1ST
+Line: 471 Orientation: DIFF1ST
+Line: 187 Orientation: SAME1ST
+Line: 475 Orientation: SAME1ST
+Number of Control Points= 2 2 Degree= 1 1
+Point 1,1 coords:-162.8125,-12.5,0.0
+Point 1,2 coords:531.5625,-12.5,0.0
+Point 2,1 coords:-162.8125,262.5,0.0
+Point 2,2 coords:531.5625,262.5,0.0
+Number of knots in U= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Number of knots in V= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Non rational
+IsTrimmed: 1
+Center: 187.49999999999977 125.0000000000039 0.0
+Normal: 0.0 0.0 1.0
+END NURBSURFACE
+NURBSURFACE
+Num: 8 HigherEntity: 0 conditions: 0 material: 0
+LAYER: Layer0
+Meshing Info: (num=18,NOE=1) Elemtype=3 IsStructured=1 Meshing=Default size=0 weight=0
+NumLines: 6
+Line: 500 Orientation: SAME1ST
+Line: 501 Orientation: SAME1ST
+Line: 502 Orientation: SAME1ST
+Line: 503 Orientation: SAME1ST
+Line: 498 Orientation: SAME1ST
+Line: 499 Orientation: DIFF1ST
+Number of Control Points= 2 2 Degree= 1 1
+Point 1,1 coords:-5.833333333333336,379.25,0.0
+Point 1,2 coords:122.5,379.25,0.0
+Point 2,1 coords:-5.833333333333336,505.75,0.0
+Point 2,2 coords:122.5,505.75,0.0
+Number of knots in U= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Number of knots in V= 4
+knot 1 value=0.0
+knot 2 value=0.0
+knot 3 value=1.0
+knot 4 value=1.0
+Non rational
+IsTrimmed: 1
+Center: 58.333333333333314 441.66666666666663 0.0
+Normal: 0.0 0.0 1.0
+END NURBSURFACE
+END ENTITIES
+MESH dimension 3 ElemType Quadrilateral Nnode 8
+Coordinates
+    1             500               0               0
+    2             500            12.5               0
+    3           487.5               0               0
+    4             500              25               0
+    5             475               0               0
+    6           462.5               0               0
+    7             500            37.5               0
+    8             450               0               0
+    9             500              50               0
+   10           437.5               0               0
+   11             500            62.5               0
+   12             500              75               0
+   13             425               0               0
+   14             500            87.5               0
+   15           412.5               0               0
+   16           437.5            62.5               0
+   17             500             100               0
+   18             400               0               0
+   19           437.5      85.3769531               0
+   20      414.623047            62.5               0
+   21             500           112.5               0
+   22           387.5               0               0
+   23           437.5        107.9375               0
+   24        392.0625            62.5               0
+   25             375               0               0
+   26             500             125               0
+   27             500           137.5               0
+   28           362.5               0               0
+   29           437.5      130.216797               0
+   30      369.783203            62.5               0
+   31             350               0               0
+   32             500             150               0
+   33             500           162.5               0
+   34           337.5               0               0
+   35           437.5          152.25               0
+   36          347.75            62.5               0
+   37             325               0               0
+   38             500             175               0
+   39             375             125               0
+   40             375         134.375               0
+   41         365.625             125               0
+   42           437.5      174.072266               0
+   43      325.927734            62.5               0
+   44           312.5               0               0
+   45             500           187.5               0
+   46          356.25             125               0
+   47             375          143.75               0
+   48             375         153.125               0
+   49         346.875             125               0
+   50             300               0               0
+   51             500             200               0
+   52           337.5             125               0
+   53             375           162.5               0
+   54           437.5       195.71875               0
+   55       304.28125            62.5               0
+   56           287.5               0               0
+   57             500           212.5               0
+   58             375         171.875               0
+   59         328.125             125               0
+   60             375          181.25               0
+   61          318.75             125               0
+   62             275               0               0
+   63             500             225               0
+   64           437.5      217.224609               0
+   65      282.775391            62.5               0
+   66         309.375             125               0
+   67             375         190.625               0
+   68             375             200               0
+   69             300             125               0
+   70             500           237.5               0
+   71           262.5               0               0
+   72         290.625             125               0
+   73             375         209.375               0
+   74         261.375            62.5               0
+   75           437.5         238.625               0
+   76             250               0               0
+   77             500             250               0
+   78          281.25             125               0
+   79             375          218.75               0
+   80             375         228.125               0
+   81         271.875             125               0
+   82             500           262.5               0
+   83           237.5               0               0
+   84           312.5           187.5               0
+   85           437.5      259.955078               0
+   86      240.044922            62.5               0
+   87           262.5             125               0
+   88             375           237.5               0
+   89             500             275               0
+   90             225               0               0
+   91           312.5      202.123047               0
+   92      297.876953           187.5               0
+   93         253.125             125               0
+   94             375         246.875               0
+   95          243.75             125               0
+   96             375          256.25               0
+   97           312.5        217.0625               0
+   98        282.9375           187.5               0
+   99           212.5               0               0
+  100             500           287.5               0
+  101           437.5          281.25               0
+  102          218.75            62.5               0
+  103         234.375             125               0
+  104             375         265.625               0
+  105           312.5      232.283203               0
+  106      267.716797           187.5               0
+  107             200               0               0
+  108             500             300               0
+  109             375             275               0
+  110             225             125               0
+  111           437.5      302.544922               0
+  112      197.455078            62.5               0
+  113             375         284.375               0
+  114         215.625             125               0
+  115           312.5          247.75               0
+  116          252.25           187.5               0
+  117           187.5               0               0
+  118             500           312.5               0
+  119          206.25             125               0
+  120             375          293.75               0
+  121           312.5      263.427734               0
+  122      236.572266           187.5               0
+  123             500             325               0
+  124             175               0               0
+  125             375         303.125               0
+  126         196.875             125               0
+  127         176.125            62.5               0
+  128           437.5         323.875               0
+  129       220.71875           187.5               0
+  130           312.5       279.28125               0
+  131             375           312.5               0
+  132           187.5             125               0
+  133           162.5               0               0
+  134             500           337.5               0
+  135         178.125             125               0
+  136             375         321.875               0
+  137      204.724609           187.5               0
+  138           312.5      295.275391               0
+  139             500             350               0
+  140             150               0               0
+  141           437.5      345.275391               0
+  142      154.724609            62.5               0
+  143             250             250               0
+  144          168.75             125               0
+  145             375          331.25               0
+  146          243.75             250               0
+  147             250          256.25               0
+  148             250           262.5               0
+  149           237.5             250               0
+  150             500           362.5               0
+  151           137.5               0               0
+  152         159.375             125               0
+  153             375         340.625               0
+  154         188.625           187.5               0
+  155           312.5         311.375               0
+  156          231.25             250               0
+  157             250          268.75               0
+  158             375             350               0
+  159             225             250               0
+  160             250             275               0
+  161             150             125               0
+  162       133.21875            62.5               0
+  163           437.5       366.78125               0
+  164             125               0               0
+  165             500             375               0
+  166          218.75             250               0
+  167             250          281.25               0
+  168           312.5      327.544922               0
+  169      172.455078           187.5               0
+  170         140.625             125               0
+  171             375         359.375               0
+  172             250           287.5               0
+  173           212.5             250               0
+  174          206.25             250               0
+  175             250          293.75               0
+  176             500           387.5               0
+  177           112.5               0               0
+  178             375          368.75               0
+  179          131.25             125               0
+  180             200             250               0
+  181             250             300               0
+  182           312.5          343.75               0
+  183          156.25           187.5               0
+  184      111.572266            62.5               0
+  185           437.5      388.427734               0
+  186             250          306.25               0
+  187          193.75             250               0
+  188             375         378.125               0
+  189         121.875             125               0
+  190             100               0               0
+  191             500             400               0
+  192             250           312.5               0
+  193           187.5             250               0
+  194          181.25             250               0
+  195             250          318.75               0
+  196      140.044922           187.5               0
+  197           312.5      359.955078               0
+  198           112.5             125               0
+  199             375           387.5               0
+  200             175             250               0
+  201             250             325               0
+  202            87.5               0               0
+  203             500           412.5               0
+  204           437.5          410.25               0
+  205           89.75            62.5               0
+  206          168.75             250               0
+  207             250          331.25               0
+  208         103.125             125               0
+  209             375         396.875               0
+  210           162.5             250               0
+  211             250           337.5               0
+  212           312.5         376.125               0
+  213         123.875           187.5               0
+  214             200             300               0
+  215             500             425               0
+  216              75               0               0
+  217           93.75             125               0
+  218             375          406.25               0
+  219          156.25             250               0
+  220             250          343.75               0
+  221             150             250               0
+  222             250             350               0
+  223             200             310               0
+  224             190             300               0
+  225             375         415.625               0
+  226          84.375             125               0
+  227           312.5      392.224609               0
+  228      107.775391           187.5               0
+  229          143.75             250               0
+  230             250          356.25               0
+  231           437.5      432.283203               0
+  232      67.7167969            62.5               0
+  233             500           437.5               0
+  234            62.5               0               0
+  235             180             300               0
+  236             200             320               0
+  237           137.5             250               0
+  238             250           362.5               0
+  239             375             425               0
+  240              75             125               0
+  241             250          368.75               0
+  242          131.25             250               0
+  243             200             330               0
+  244             170             300               0
+  245           312.5       408.21875               0
+  246        91.78125           187.5               0
+  247              50               0               0
+  248             500             450               0
+  249             125             250               0
+  250             250             375               0
+  251          65.625             125               0
+  252             375         434.375               0
+  253             160             300               0
+  254             200             340               0
+  255             250          381.25               0
+  256          118.75             250               0
+  257           437.5        454.5625               0
+  258         45.4375            62.5               0
+  259             200             350               0
+  260             150             300               0
+  261           56.25             125               0
+  262             375          443.75               0
+  263           112.5             250               0
+  264             250           387.5               0
+  265            37.5               0               0
+  266             500           462.5               0
+  267           312.5      424.072266               0
+  268      75.9277344           187.5               0
+  269             250          393.75               0
+  270          106.25             250               0
+  271             200             360               0
+  272             140             300               0
+  273          46.875             125               0
+  274             375         453.125               0
+  275             100             250               0
+  276             250             400               0
+  277              25               0               0
+  278             500             475               0
+  279             200             370               0
+  280             130             300               0
+  281           93.75             250               0
+  282             250          406.25               0
+  283           312.5          439.75               0
+  284           60.25           187.5               0
+  285             375           462.5               0
+  286            37.5             125               0
+  287           437.5      477.123047               0
+  288      22.8769531            62.5               0
+  289             250           412.5               0
+  290            87.5             250               0
+  291             120             300               0
+  292             200             380               0
+  293             500           487.5               0
+  294            12.5               0               0
+  295             250          418.75               0
+  296           81.25             250               0
+  297             375         471.875               0
+  298          28.125             125               0
+  299             200             390               0
+  300             110             300               0
+  301           312.5      455.216797               0
+  302      44.7832031           187.5               0
+  303              75             250               0
+  304             250             425               0
+  305             150             350               0
+  306           18.75             125               0
+  307             375          481.25               0
+  308          146.25             350               0
+  309             150          353.75               0
+  310             250          431.25               0
+  311           68.75             250               0
+  312             200             400               0
+  313             500             500               0
+  314               0               0               0
+  315             100             300               0
+  316           142.5             350               0
+  317             150           357.5               0
+  318             150          361.25               0
+  319          138.75             350               0
+  320           437.5             500               0
+  321            62.5             250               0
+  322               0            62.5               0
+  323             250           437.5               0
+  324             135             350               0
+  325             150             365               0
+  326           9.375             125               0
+  327             375         490.625               0
+  328         29.5625           187.5               0
+  329           312.5        470.4375               0
+  330             200             410               0
+  331              90             300               0
+  332             150          368.75               0
+  333          131.25             350               0
+  334           56.25             250               0
+  335             250          443.75               0
+  336           127.5             350               0
+  337             150           372.5               0
+  338          123.75             350               0
+  339             150          376.25               0
+  340             250             450               0
+  341              50             250               0
+  342             375             500               0
+  343               0             125               0
+  344             200             420               0
+  345              80             300               0
+  346             150             380               0
+  347             120             350               0
+  348          116.25             350               0
+  349             150          383.75               0
+  350             250          456.25               0
+  351           43.75             250               0
+  352           312.5      485.376953               0
+  353      14.6230469           187.5               0
+  354             150           387.5               0
+  355           112.5             350               0
+  356              70             300               0
+  357             200             430               0
+  358          108.75             350               0
+  359             150          391.25               0
+  360             250           462.5               0
+  361            37.5             250               0
+  362             150             395               0
+  363             105             350               0
+  364             125             375               0
+  365          101.25             350               0
+  366             150          398.75               0
+  367             250          468.75               0
+  368           31.25             250               0
+  369             200             440               0
+  370              60             300               0
+  371            97.5             350               0
+  372             150           402.5               0
+  373               0           187.5               0
+  374           312.5             500               0
+  375             125          381.25               0
+  376          118.75             375               0
+  377             150          406.25               0
+  378           93.75             350               0
+  379              25             250               0
+  380             250             475               0
+  381             150             410               0
+  382              90             350               0
+  383           112.5             375               0
+  384             125           387.5               0
+  385             200             450               0
+  386              50             300               0
+  387           86.25             350               0
+  388             150          413.75               0
+  389             250          481.25               0
+  390           18.75             250               0
+  391          106.25             375               0
+  392             125          393.75               0
+  393             150           417.5               0
+  394            82.5             350               0
+  395             150          421.25               0
+  396           78.75             350               0
+  397            12.5             250               0
+  398             250           487.5               0
+  399             100             375               0
+  400             125             400               0
+  401             200             460               0
+  402              40             300               0
+  403              75             350               0
+  404             150             425               0
+  405           93.75             375               0
+  406             125          406.25               0
+  407            6.25             250               0
+  408             250          493.75               0
+  409           71.25             350               0
+  410             150          428.75               0
+  411             150           432.5               0
+  412            67.5             350               0
+  413             125           412.5               0
+  414            87.5             375               0
+  415             200             470               0
+  416              30             300               0
+  417               0             250               0
+  418             250             500               0
+  419             150          436.25               0
+  420           63.75             350               0
+  421           81.25             375               0
+  422             125          418.75               0
+  423             150             440               0
+  424              60             350               0
+  425             150          443.75               0
+  426           56.25             350               0
+  427             100             400               0
+  428             200             480               0
+  429              20             300               0
+  430             125             425               0
+  431              75             375               0
+  432            97.5             400               0
+  433             100           402.5               0
+  434            52.5             350               0
+  435             150           447.5               0
+  436             100             405               0
+  437              95             400               0
+  438              95           402.5               0
+  439            97.5             405               0
+  440             100           407.5               0
+  441            92.5             400               0
+  442             150          451.25               0
+  443           48.75             350               0
+  444           68.75             375               0
+  445             125          431.25               0
+  446              95             405               0
+  447              90             400               0
+  448             100             410               0
+  449              45             350               0
+  450             150             455               0
+  451              95           407.5               0
+  452            92.5             405               0
+  453              10             300               0
+  454             200             490               0
+  455              90           402.5               0
+  456            97.5             410               0
+  457             100           412.5               0
+  458            87.5             400               0
+  459             125           437.5               0
+  460            62.5             375               0
+  461              90             405               0
+  462              95             410               0
+  463             100             415               0
+  464              85             400               0
+  465           41.25             350               0
+  466             150          458.75               0
+  467            92.5             410               0
+  468              90           407.5               0
+  469              95           412.5               0
+  470            87.5             405               0
+  471              85           402.5               0
+  472            97.5             415               0
+  473             100           417.5               0
+  474            82.5             400               0
+  475              90             410               0
+  476              95             415               0
+  477              85             405               0
+  478              80             400               0
+  479             100             420               0
+  480             150           462.5               0
+  481            37.5             350               0
+  482           56.25             375               0
+  483             125          443.75               0
+  484              90           412.5               0
+  485            87.5             410               0
+  486            92.5             415               0
+  487              85           407.5               0
+  488              95           417.5               0
+  489            82.5             405               0
+  490              80           402.5               0
+  491            97.5             420               0
+  492             100           422.5               0
+  493            77.5             400               0
+  494           33.75             350               0
+  495             150          466.25               0
+  496               0             300               0
+  497             200             500               0
+  498              90             415               0
+  499              85             410               0
+  500              95             420               0
+  501              80             405               0
+  502              75             400               0
+  503             100             425               0
+  504            87.5             415               0
+  505              85           412.5               0
+  506              90           417.5               0
+  507            82.5             410               0
+  508            92.5             420               0
+  509              80           407.5               0
+  510            77.5             405               0
+  511              95           422.5               0
+  512              75           402.5               0
+  513            97.5             425               0
+  514             100           427.5               0
+  515            72.5             400               0
+  516             125             450               0
+  517              50             375               0
+  518              30             350               0
+  519             150             470               0
+  520              85             415               0
+  521              80             410               0
+  522              90             420               0
+  523              95             425               0
+  524              75             405               0
+  525              70             400               0
+  526             100             430               0
+  527              85           417.5               0
+  528            82.5             415               0
+  529              80           412.5               0
+  530            87.5             420               0
+  531              90           422.5               0
+  532            77.5             410               0
+  533            92.5             425               0
+  534              75           407.5               0
+  535              95           427.5               0
+  536            72.5             405               0
+  537              70           402.5               0
+  538            97.5             430               0
+  539           26.25             350               0
+  540             150          473.75               0
+  541            67.5             400               0
+  542             100           432.5               0
+  543              80             415               0
+  544              85             420               0
+  545              75             410               0
+  546              90             425               0
+  547             125          456.25               0
+  548           43.75             375               0
+  549              95             430               0
+  550              70             405               0
+  551              65             400               0
+  552             100             435               0
+  553            22.5             350               0
+  554             150           477.5               0
+  555              80           417.5               0
+  556            82.5             420               0
+  557            77.5             415               0
+  558              85           422.5               0
+  559              75           412.5               0
+  560            87.5             425               0
+  561              90           427.5               0
+  562            72.5             410               0
+  563              70           407.5               0
+  564            92.5             430               0
+  565              95           432.5               0
+  566            67.5             405               0
+  567            97.5             435               0
+  568              65           402.5               0
+  569             100           437.5               0
+  570            62.5             400               0
+  571              80             420               0
+  572              75             415               0
+  573              85             425               0
+  574              90             430               0
+  575              70             410               0
+  576              95             435               0
+  577              65             405               0
+  578              60             400               0
+  579             100             440               0
+  580           18.75             350               0
+  581             150          481.25               0
+  582             125           462.5               0
+  583            37.5             375               0
+  584            77.5             420               0
+  585              80           422.5               0
+  586            82.5             425               0
+  587              75           417.5               0
+  588              85           427.5               0
+  589            72.5             415               0
+  590            87.5             430               0
+  591              70           412.5               0
+  592              90           432.5               0
+  593            67.5             410               0
+  594              65           407.5               0
+  595            92.5             435               0
+  596              95           437.5               0
+  597            62.5             405               0
+  598              60           402.5               0
+  599            97.5             440               0
+  600             100           442.5               0
+  601            57.5             400               0
+  602              80             425               0
+  603              75             420               0
+  604              85             430               0
+  605              70             415               0
+  606              90             435               0
+  607              65             410               0
+  608              95             440               0
+  609              60             405               0
+  610             150             485               0
+  611              15             350               0
+  612             100             445               0
+  613              55             400               0
+  614            77.5             425               0
+  615              75           422.5               0
+  616              80           427.5               0
+  617            72.5             420               0
+  618              70           417.5               0
+  619            82.5             430               0
+  620              85           432.5               0
+  621            67.5             415               0
+  622              65           412.5               0
+  623            87.5             435               0
+  624            62.5             410               0
+  625              90           437.5               0
+  626              60           407.5               0
+  627            92.5             440               0
+  628            57.5             405               0
+  629              95           442.5               0
+  630              55           402.5               0
+  631            97.5             445               0
+  632             100           447.5               0
+  633            52.5             400               0
+  634             125          468.75               0
+  635           31.25             375               0
+  636              75             425               0
+  637              80             430               0
+  638              70             420               0
+  639             150          488.75               0
+  640           11.25             350               0
+  641              65             415               0
+  642              85             435               0
+  643              90             440               0
+  644              60             410               0
+  645              55             405               0
+  646              95             445               0
+  647             100             450               0
+  648              50             400               0
+  649              75           427.5               0
+  650            72.5             425               0
+  651            77.5             430               0
+  652              70           422.5               0
+  653            67.5             420               0
+  654              80           432.5               0
+  655              65           417.5               0
+  656            82.5             435               0
+  657            62.5             415               0
+  658              85           437.5               0
+  659            87.5             440               0
+  660              60           412.5               0
+  661            57.5             410               0
+  662              90           442.5               0
+  663              55           407.5               0
+  664            92.5             445               0
+  665            52.5             405               0
+  666              95           447.5               0
+  667              50           402.5               0
+  668            97.5             450               0
+  669            47.5             400               0
+  670             100           452.5               0
+  671             150           492.5               0
+  672             7.5             350               0
+  673              75             430               0
+  674              70             425               0
+  675              65             420               0
+  676              80             435               0
+  677              60             415               0
+  678              85             440               0
+  679              55             410               0
+  680              90             445               0
+  681              25             375               0
+  682             125             475               0
+  683              50             405               0
+  684              95             450               0
+  685              45             400               0
+  686             100             455               0
+  687              70           427.5               0
+  688            72.5             430               0
+  689            67.5             425               0
+  690              75           432.5               0
+  691              65           422.5               0
+  692            77.5             435               0
+  693              80           437.5               0
+  694            62.5             420               0
+  695              60           417.5               0
+  696            82.5             440               0
+  697            57.5             415               0
+  698              85           442.5               0
+  699              55           412.5               0
+  700            87.5             445               0
+  701            52.5             410               0
+  702              90           447.5               0
+  703              50           407.5               0
+  704            92.5             450               0
+  705            3.75             350               0
+  706             150          496.25               0
+  707            47.5             405               0
+  708              95           452.5               0
+  709              45           402.5               0
+  710            97.5             455               0
+  711             100           457.5               0
+  712            42.5             400               0
+  713              70             430               0
+  714              65             425               0
+  715              75             435               0
+  716              60             420               0
+  717              80             440               0
+  718              55             415               0
+  719              85             445               0
+  720              90             450               0
+  721              50             410               0
+  722              95             455               0
+  723              45             405               0
+  724             100             460               0
+  725              40             400               0
+  726            67.5             430               0
+  727              70           432.5               0
+  728            72.5             435               0
+  729              65           427.5               0
+  730            62.5             425               0
+  731              75           437.5               0
+  732            77.5             440               0
+  733              60           422.5               0
+  734            57.5             420               0
+  735              80           442.5               0
+  736           18.75             375               0
+  737             125          481.25               0
+  738              55           417.5               0
+  739            82.5             445               0
+  740            52.5             415               0
+  741              85           447.5               0
+  742             150             500               0
+  743               0             350               0
+  744            87.5             450               0
+  745              50           412.5               0
+  746              90           452.5               0
+  747            47.5             410               0
+  748            92.5             455               0
+  749              45           407.5               0
+  750            42.5             405               0
+  751              95           457.5               0
+  752            97.5             460               0
+  753              40           402.5               0
+  754            37.5             400               0
+  755             100           462.5               0
+  756              65             430               0
+  757              70             435               0
+  758              60             425               0
+  759              75             440               0
+  760              55             420               0
+  761              80             445               0
+  762              85             450               0
+  763              50             415               0
+  764              45             410               0
+  765              90             455               0
+  766              40             405               0
+  767              95             460               0
+  768              35             400               0
+  769             100             465               0
+  770            67.5             435               0
+  771              65           432.5               0
+  772            62.5             430               0
+  773              70           437.5               0
+  774              60           427.5               0
+  775            72.5             440               0
+  776            57.5             425               0
+  777              75           442.5               0
+  778              55           422.5               0
+  779            77.5             445               0
+  780            52.5             420               0
+  781              80           447.5               0
+  782            82.5             450               0
+  783              50           417.5               0
+  784            47.5             415               0
+  785              85           452.5               0
+  786              45           412.5               0
+  787            87.5             455               0
+  788              90           457.5               0
+  789            42.5             410               0
+  790            92.5             460               0
+  791              40           407.5               0
+  792              95           462.5               0
+  793            37.5             405               0
+  794              35           402.5               0
+  795            97.5             465               0
+  796            12.5             375               0
+  797             125           487.5               0
+  798              65             435               0
+  799              60             430               0
+  800              70             440               0
+  801            32.5             400               0
+  802             100           467.5               0
+  803              55             425               0
+  804              75             445               0
+  805              50             420               0
+  806              80             450               0
+  807              45             415               0
+  808              85             455               0
+  809              40             410               0
+  810              90             460               0
+  811              95             465               0
+  812              35             405               0
+  813            62.5             435               0
+  814              65           437.5               0
+  815            67.5             440               0
+  816              60           432.5               0
+  817              70           442.5               0
+  818            57.5             430               0
+  819              55           427.5               0
+  820            72.5             445               0
+  821            52.5             425               0
+  822              75           447.5               0
+  823              30             400               0
+  824             100             470               0
+  825            77.5             450               0
+  826              50           422.5               0
+  827            47.5             420               0
+  828              80           452.5               0
+  829            82.5             455               0
+  830              45           417.5               0
+  831              85           457.5               0
+  832            42.5             415               0
+  833            87.5             460               0
+  834              40           412.5               0
+  835            37.5             410               0
+  836              90           462.5               0
+  837            92.5             465               0
+  838              35           407.5               0
+  839            32.5             405               0
+  840              95           467.5               0
+  841              60             435               0
+  842              65             440               0
+  843            97.5             470               0
+  844              30           402.5               0
+  845              70             445               0
+  846              55             430               0
+  847              75             450               0
+  848              50             425               0
+  849            27.5             400               0
+  850             100           472.5               0
+  851              45             420               0
+  852              80             455               0
+  853              85             460               0
+  854              40             415               0
+  855              35             410               0
+  856              90             465               0
+  857            6.25             375               0
+  858             125          493.75               0
+  859              30             405               0
+  860              95             470               0
+  861            62.5             440               0
+  862              60           437.5               0
+  863              65           442.5               0
+  864            57.5             435               0
+  865              55           432.5               0
+  866            67.5             445               0
+  867            52.5             430               0
+  868              70           447.5               0
+  869            72.5             450               0
+  870              50           427.5               0
+  871            47.5             425               0
+  872              75           452.5               0
+  873            77.5             455               0
+  874              45           422.5               0
+  875             100             475               0
+  876              25             400               0
+  877            42.5             420               0
+  878              80           457.5               0
+  879            82.5             460               0
+  880              40           417.5               0
+  881            37.5             415               0
+  882              85           462.5               0
+  883            87.5             465               0
+  884              35           412.5               0
+  885              90           467.5               0
+  886            32.5             410               0
+  887            92.5             470               0
+  888              30           407.5               0
+  889              60             440               0
+  890              65             445               0
+  891              55             435               0
+  892            27.5             405               0
+  893              95           472.5               0
+  894              70             450               0
+  895              50             430               0
+  896              25           402.5               0
+  897            97.5             475               0
+  898              45             425               0
+  899              75             455               0
+  900              40             420               0
+  901              80             460               0
+  902             100           477.5               0
+  903            22.5             400               0
+  904              85             465               0
+  905              35             415               0
+  906              90             470               0
+  907              30             410               0
+  908            57.5             440               0
+  909              60           442.5               0
+  910              55           437.5               0
+  911            62.5             445               0
+  912            52.5             435               0
+  913              65           447.5               0
+  914            67.5             450               0
+  915              50           432.5               0
+  916              25             405               0
+  917              95             475               0
+  918            47.5             430               0
+  919              70           452.5               0
+  920            72.5             455               0
+  921              45           427.5               0
+  922            42.5             425               0
+  923              75           457.5               0
+  924            77.5             460               0
+  925              40           422.5               0
+  926            37.5             420               0
+  927              80           462.5               0
+  928              20             400               0
+  929             100             480               0
+  930              35           417.5               0
+  931            82.5             465               0
+  932               0             375               0
+  933             125             500               0
+  934              85           467.5               0
+  935            32.5             415               0
+  936            87.5             470               0
+  937              30           412.5               0
+  938              90           472.5               0
+  939            27.5             410               0
+  940              55             440               0
+  941              60             445               0
+  942            92.5             475               0
+  943              25           407.5               0
+  944              65             450               0
+  945              50             435               0
+  946              45             430               0
+  947              70             455               0
+  948            22.5             405               0
+  949              95           477.5               0
+  950              40             425               0
+  951              75             460               0
+  952              20           402.5               0
+  953            97.5             480               0
+  954              35             420               0
+  955              80             465               0
+  956             100           482.5               0
+  957            17.5             400               0
+  958              85             470               0
+  959              30             415               0
+  960              90             475               0
+  961              25             410               0
+  962              55           442.5               0
+  963            57.5             445               0
+  964            52.5             440               0
+  965              60           447.5               0
+  966            62.5             450               0
+  967              50           437.5               0
+  968              65           452.5               0
+  969            47.5             435               0
+  970              45           432.5               0
+  971            67.5             455               0
+  972            42.5             430               0
+  973              70           457.5               0
+  974              40           427.5               0
+  975            72.5             460               0
+  976              20             405               0
+  977              95             480               0
+  978              75           462.5               0
+  979            37.5             425               0
+  980              35           422.5               0
+  981            77.5             465               0
+  982            32.5             420               0
+  983              80           467.5               0
+  984            82.5             470               0
+  985              30           417.5               0
+  986              15             400               0
+  987             100             485               0
+  988              85           472.5               0
+  989            27.5             415               0
+  990              25           412.5               0
+  991            87.5             475               0
+  992              55             445               0
+  993              60             450               0
+  994              50             440               0
+  995            22.5             410               0
+  996              90           477.5               0
+  997              65             455               0
+  998              45             435               0
+  999            92.5             480               0
+ 1000              20           407.5               0
+ 1001              70             460               0
+ 1002              40             430               0
+ 1003            17.5             405               0
+ 1004              95           482.5               0
+ 1005              35             425               0
+ 1006              75             465               0
+ 1007            97.5             485               0
+ 1008              15           402.5               0
+ 1009              30             420               0
+ 1010              80             470               0
+ 1011            12.5             400               0
+ 1012             100           487.5               0
+ 1013              85             475               0
+ 1014              25             415               0
+ 1015            52.5             445               0
+ 1016              55           447.5               0
+ 1017            57.5             450               0
+ 1018              50           442.5               0
+ 1019            47.5             440               0
+ 1020              60           452.5               0
+ 1021              45           437.5               0
+ 1022            62.5             455               0
+ 1023              20             410               0
+ 1024              90             480               0
+ 1025            42.5             435               0
+ 1026              65           457.5               0
+ 1027            67.5             460               0
+ 1028              40           432.5               0
+ 1029            37.5             430               0
+ 1030              70           462.5               0
+ 1031            72.5             465               0
+ 1032              35           427.5               0
+ 1033            32.5             425               0
+ 1034              75           467.5               0
+ 1035              15             405               0
+ 1036              95             485               0
+ 1037            77.5             470               0
+ 1038              30           422.5               0
+ 1039            27.5             420               0
+ 1040              80           472.5               0
+ 1041            82.5             475               0
+ 1042              25           417.5               0
+ 1043             100             490               0
+ 1044              10             400               0
+ 1045              85           477.5               0
+ 1046            22.5             415               0
+ 1047              55             450               0
+ 1048              50             445               0
+ 1049              20           412.5               0
+ 1050            87.5             480               0
+ 1051              45             440               0
+ 1052              60             455               0
+ 1053              65             460               0
+ 1054              40             435               0
+ 1055              90           482.5               0
+ 1056            17.5             410               0
+ 1057              35             430               0
+ 1058              70             465               0
+ 1059            92.5             485               0
+ 1060              15           407.5               0
+ 1061              75             470               0
+ 1062              30             425               0
+ 1063              95           487.5               0
+ 1064            12.5             405               0
+ 1065              25             420               0
+ 1066              80             475               0
+ 1067            97.5             490               0
+ 1068              10           402.5               0
+ 1069             7.5             400               0
+ 1070             100           492.5               0
+ 1071              20             415               0
+ 1072              85             480               0
+ 1073            52.5             450               0
+ 1074              50           447.5               0
+ 1075            47.5             445               0
+ 1076              55           452.5               0
+ 1077              45           442.5               0
+ 1078            57.5             455               0
+ 1079              60           457.5               0
+ 1080            42.5             440               0
+ 1081            62.5             460               0
+ 1082              40           437.5               0
+ 1083              65           462.5               0
+ 1084            37.5             435               0
+ 1085            67.5             465               0
+ 1086              35           432.5               0
+ 1087              90             485               0
+ 1088              15             410               0
+ 1089            32.5             430               0
+ 1090              70           467.5               0
+ 1091              30           427.5               0
+ 1092            72.5             470               0
+ 1093            27.5             425               0
+ 1094              75           472.5               0
+ 1095              95             490               0
+ 1096              10             405               0
+ 1097            77.5             475               0
+ 1098              25           422.5               0
+ 1099            22.5             420               0
+ 1100              80           477.5               0
+ 1101              20           417.5               0
+ 1102            82.5             480               0
+ 1103              50             450               0
+ 1104             100             495               0
+ 1105               5             400               0
+ 1106              85           482.5               0
+ 1107            17.5             415               0
+ 1108              45             445               0
+ 1109              55             455               0
+ 1110              40             440               0
+ 1111              60             460               0
+ 1112              15           412.5               0
+ 1113            87.5             485               0
+ 1114              65             465               0
+ 1115              35             435               0
+ 1116              90           487.5               0
+ 1117            12.5             410               0
+ 1118              30             430               0
+ 1119              70             470               0
+ 1120              10           407.5               0
+ 1121            92.5             490               0
+ 1122              25             425               0
+ 1123              75             475               0
+ 1124             7.5             405               0
+ 1125              95           492.5               0
+ 1126              20             420               0
+ 1127              80             480               0
+ 1128            97.5             495               0
+ 1129               5           402.5               0
+ 1130            47.5             450               0
+ 1131              50           452.5               0
+ 1132            52.5             455               0
+ 1133              45           447.5               0
+ 1134            42.5             445               0
+ 1135              55           457.5               0
+ 1136            57.5             460               0
+ 1137              40           442.5               0
+ 1138              15             415               0
+ 1139              85             485               0
+ 1140              60           462.5               0
+ 1141            37.5             440               0
+ 1142             100           497.5               0
+ 1143             2.5             400               0
+ 1144            62.5             465               0
+ 1145              35           437.5               0
+ 1146              65           467.5               0
+ 1147            32.5             435               0
+ 1148            67.5             470               0
+ 1149              30           432.5               0
+ 1150              70           472.5               0
+ 1151            27.5             430               0
+ 1152              10             410               0
+ 1153              90             490               0
+ 1154            72.5             475               0
+ 1155              25           427.5               0
+ 1156            22.5             425               0
+ 1157              75           477.5               0
+ 1158              20           422.5               0
+ 1159            77.5             480               0
+ 1160               5             405               0
+ 1161              95             495               0
+ 1162            17.5             420               0
+ 1163              80           482.5               0
+ 1164              45             450               0
+ 1165              50             455               0
+ 1166            82.5             485               0
+ 1167              15           417.5               0
+ 1168              40             445               0
+ 1169              55             460               0
+ 1170              60             465               0
+ 1171              35             440               0
+ 1172              85           487.5               0
+ 1173            12.5             415               0
+ 1174             100             500               0
+ 1175               0             400               0
+ 1176              65             470               0
+ 1177              30             435               0
+ 1178              10           412.5               0
+ 1179            87.5             490               0
+ 1180              70             475               0
+ 1181              25             430               0
+ 1182              90           492.5               0
+ 1183             7.5             410               0
+ 1184              75             480               0
+ 1185              20             425               0
+ 1186            92.5             495               0
+ 1187               5           407.5               0
+ 1188              95           497.5               0
+ 1189             2.5             405               0
+ 1190              15             420               0
+ 1191              80             485               0
+ 1192              45           452.5               0
+ 1193            47.5             455               0
+ 1194              50           457.5               0
+ 1195            42.5             450               0
+ 1196              40           447.5               0
+ 1197            52.5             460               0
+ 1198            37.5             445               0
+ 1199              55           462.5               0
+ 1200            97.5             500               0
+ 1201               0           402.5               0
+ 1202              35           442.5               0
+ 1203            57.5             465               0
+ 1204            32.5             440               0
+ 1205              60           467.5               0
+ 1206            62.5             470               0
+ 1207              30           437.5               0
+ 1208              85             490               0
+ 1209              10             415               0
+ 1210            27.5             435               0
+ 1211              65           472.5               0
+ 1212            67.5             475               0
+ 1213              25           432.5               0
+ 1214            22.5             430               0
+ 1215              70           477.5               0
+ 1216              90             495               0
+ 1217               5             410               0
+ 1218            72.5             480               0
+ 1219              20           427.5               0
+ 1220            17.5             425               0
+ 1221              75           482.5               0
+ 1222            77.5             485               0
+ 1223              15           422.5               0
+ 1224               0             405               0
+ 1225              95             500               0
+ 1226              45             455               0
+ 1227            12.5             420               0
+ 1228              80           487.5               0
+ 1229              40             450               0
+ 1230              50             460               0
+ 1231              55             465               0
+ 1232              35             445               0
+ 1233            82.5             490               0
+ 1234              10           417.5               0
+ 1235              60             470               0
+ 1236              30             440               0
+ 1237              85           492.5               0
+ 1238             7.5             415               0
+ 1239              25             435               0
+ 1240              65             475               0
+ 1241            87.5             495               0
+ 1242               5           412.5               0
+ 1243              20             430               0
+ 1244              70             480               0
+ 1245              90           497.5               0
+ 1246             2.5             410               0
+ 1247              15             425               0
+ 1248              75             485               0
+ 1249               0           407.5               0
+ 1250            92.5             500               0
+ 1251              45           457.5               0
+ 1252            42.5             455               0
+ 1253            47.5             460               0
+ 1254              40           452.5               0
+ 1255              50           462.5               0
+ 1256            37.5             450               0
+ 1257            52.5             465               0
+ 1258              35           447.5               0
+ 1259              10             420               0
+ 1260              80             490               0
+ 1261            32.5             445               0
+ 1262              55           467.5               0
+ 1263              30           442.5               0
+ 1264            57.5             470               0
+ 1265            27.5             440               0
+ 1266              60           472.5               0
+ 1267            62.5             475               0
+ 1268              25           437.5               0
+ 1269              65           477.5               0
+ 1270            22.5             435               0
+ 1271              85             495               0
+ 1272               5             415               0
+ 1273            67.5             480               0
+ 1274              20           432.5               0
+ 1275            17.5             430               0
+ 1276              70           482.5               0
+ 1277            72.5             485               0
+ 1278              15           427.5               0
+ 1279               0             410               0
+ 1280              90             500               0
+ 1281            12.5             425               0
+ 1282              75           487.5               0
+ 1283            77.5             490               0
+ 1284              10           422.5               0
+ 1285              45             460               0
+ 1286              40             455               0
+ 1287              35             450               0
+ 1288              50             465               0
+ 1289              30             445               0
+ 1290              55             470               0
+ 1291             7.5             420               0
+ 1292              80           492.5               0
+ 1293              25             440               0
+ 1294              60             475               0
+ 1295            82.5             495               0
+ 1296               5           417.5               0
+ 1297              65             480               0
+ 1298              20             435               0
+ 1299              85           497.5               0
+ 1300             2.5             415               0
+ 1301              15             430               0
+ 1302              70             485               0
+ 1303               0           412.5               0
+ 1304            87.5             500               0
+ 1305              75             490               0
+ 1306              10             425               0
+ 1307              40           457.5               0
+ 1308            42.5             460               0
+ 1309              45           462.5               0
+ 1310            37.5             455               0
+ 1311            47.5             465               0
+ 1312              35           452.5               0
+ 1313            32.5             450               0
+ 1314              50           467.5               0
+ 1315            52.5             470               0
+ 1316              30           447.5               0
+ 1317              55           472.5               0
+ 1318            27.5             445               0
+ 1319               5             420               0
+ 1320              80             495               0
+ 1321            57.5             475               0
+ 1322              25           442.5               0
+ 1323            22.5             440               0
+ 1324              60           477.5               0
+ 1325            62.5             480               0
+ 1326              20           437.5               0
+ 1327            17.5             435               0
+ 1328              65           482.5               0
+ 1329              85             500               0
+ 1330               0             415               0
+ 1331            67.5             485               0
+ 1332              15           432.5               0
+ 1333            12.5             430               0
+ 1334              70           487.5               0
+ 1335            72.5             490               0
+ 1336              10           427.5               0
+ 1337             7.5             425               0
+ 1338              75           492.5               0
+ 1339              40             460               0
+ 1340              45             465               0
+ 1341              35             455               0
+ 1342              30             450               0
+ 1343              50             470               0
+ 1344            77.5             495               0
+ 1345               5           422.5               0
+ 1346              55             475               0
+ 1347              25             445               0
+ 1348             2.5             420               0
+ 1349              80           497.5               0
+ 1350              20             440               0
+ 1351              60             480               0
+ 1352            82.5             500               0
+ 1353               0           417.5               0
+ 1354              15             435               0
+ 1355              65             485               0
+ 1356              10             430               0
+ 1357              70             490               0
+ 1358              40           462.5               0
+ 1359            37.5             460               0
+ 1360              35           457.5               0
+ 1361            42.5             465               0
+ 1362              45           467.5               0
+ 1363            32.5             455               0
+ 1364              75             495               0
+ 1365               5             425               0
+ 1366            47.5             470               0
+ 1367              30           452.5               0
+ 1368            27.5             450               0
+ 1369              50           472.5               0
+ 1370              25           447.5               0
+ 1371            52.5             475               0
+ 1372              55           477.5               0
+ 1373            22.5             445               0
+ 1374            57.5             480               0
+ 1375              20           442.5               0
+ 1376               0             420               0
+ 1377              80             500               0
+ 1378            17.5             440               0
+ 1379              60           482.5               0
+ 1380            62.5             485               0
+ 1381              15           437.5               0
+ 1382            12.5             435               0
+ 1383              65           487.5               0
+ 1384            67.5             490               0
+ 1385              10           432.5               0
+ 1386             7.5             430               0
+ 1387              70           492.5               0
+ 1388            72.5             495               0
+ 1389               5           427.5               0
+ 1390              40             465               0
+ 1391              35             460               0
+ 1392              45             470               0
+ 1393              30             455               0
+ 1394              25             450               0
+ 1395              50             475               0
+ 1396             2.5             425               0
+ 1397              75           497.5               0
+ 1398              20             445               0
+ 1399              55             480               0
+ 1400            77.5             500               0
+ 1401               0           422.5               0
+ 1402              15             440               0
+ 1403              60             485               0
+ 1404              65             490               0
+ 1405              10             435               0
+ 1406               5             430               0
+ 1407              70             495               0
+ 1408            37.5             465               0
+ 1409              35           462.5               0
+ 1410            32.5             460               0
+ 1411              40           467.5               0
+ 1412            42.5             470               0
+ 1413              30           457.5               0
+ 1414              45           472.5               0
+ 1415            27.5             455               0
+ 1416            47.5             475               0
+ 1417              25           452.5               0
+ 1418            22.5             450               0
+ 1419              50           477.5               0
+ 1420              75             500               0
+ 1421               0             425               0
+ 1422            52.5             480               0
+ 1423              20           447.5               0
+ 1424            17.5             445               0
+ 1425              55           482.5               0
+ 1426              15           442.5               0
+ 1427            57.5             485               0
+ 1428              60           487.5               0
+ 1429            12.5             440               0
+ 1430            62.5             490               0
+ 1431              10           437.5               0
+ 1432             7.5             435               0
+ 1433              65           492.5               0
+ 1434            67.5             495               0
+ 1435               5           432.5               0
+ 1436             2.5             430               0
+ 1437              70           497.5               0
+ 1438              35             465               0
+ 1439              40             470               0
+ 1440              30             460               0
+ 1441              45             475               0
+ 1442              25             455               0
+ 1443               0           427.5               0
+ 1444            72.5             500               0
+ 1445              20             450               0
+ 1446              50             480               0
+ 1447              15             445               0
+ 1448              55             485               0
+ 1449              10             440               0
+ 1450              60             490               0
+ 1451              65             495               0
+ 1452               5             435               0
+ 1453            32.5             465               0
+ 1454              35           467.5               0
+ 1455              30           462.5               0
+ 1456            37.5             470               0
+ 1457              40           472.5               0
+ 1458            27.5             460               0
+ 1459              70             500               0
+ 1460               0             430               0
+ 1461              25           457.5               0
+ 1462            42.5             475               0
+ 1463              45           477.5               0
+ 1464            22.5             455               0
+ 1465            47.5             480               0
+ 1466              20           452.5               0
+ 1467            17.5             450               0
+ 1468              50           482.5               0
+ 1469              15           447.5               0
+ 1470            52.5             485               0
+ 1471              55           487.5               0
+ 1472            12.5             445               0
+ 1473              10           442.5               0
+ 1474            57.5             490               0
+ 1475              60           492.5               0
+ 1476             7.5             440               0
+ 1477            62.5             495               0
+ 1478               5           437.5               0
+ 1479              65           497.5               0
+ 1480             2.5             435               0
+ 1481            67.5             500               0
+ 1482               0           432.5               0
+ 1483              30             465               0
+ 1484              35             470               0
+ 1485              40             475               0
+ 1486              25             460               0
+ 1487              45             480               0
+ 1488              20             455               0
+ 1489              15             450               0
+ 1490              50             485               0
+ 1491              55             490               0
+ 1492              10             445               0
+ 1493               5             440               0
+ 1494              60             495               0
+ 1495              65             500               0
+ 1496               0             435               0
+ 1497            32.5             470               0
+ 1498              30           467.5               0
+ 1499            27.5             465               0
+ 1500              35           472.5               0
+ 1501              25           462.5               0
+ 1502            37.5             475               0
+ 1503            22.5             460               0
+ 1504              40           477.5               0
+ 1505            42.5             480               0
+ 1506              20           457.5               0
+ 1507              45           482.5               0
+ 1508            17.5             455               0
+ 1509            47.5             485               0
+ 1510              15           452.5               0
+ 1511              50           487.5               0
+ 1512            12.5             450               0
+ 1513              10           447.5               0
+ 1514            52.5             490               0
+ 1515              55           492.5               0
+ 1516             7.5             445               0
+ 1517               5           442.5               0
+ 1518            57.5             495               0
+ 1519              60           497.5               0
+ 1520             2.5             440               0
+ 1521            62.5             500               0
+ 1522               0           437.5               0
+ 1523              30             470               0
+ 1524              35             475               0
+ 1525              25             465               0
+ 1526              40             480               0
+ 1527              20             460               0
+ 1528              45             485               0
+ 1529              15             455               0
+ 1530              10             450               0
+ 1531              50             490               0
+ 1532               5             445               0
+ 1533              55             495               0
+ 1534               0             440               0
+ 1535              60             500               0
+ 1536            27.5             470               0
+ 1537              30           472.5               0
+ 1538              25           467.5               0
+ 1539            32.5             475               0
+ 1540            22.5             465               0
+ 1541              35           477.5               0
+ 1542              20           462.5               0
+ 1543            37.5             480               0
+ 1544              40           482.5               0
+ 1545            17.5             460               0
+ 1546              15           457.5               0
+ 1547            42.5             485               0
+ 1548              45           487.5               0
+ 1549            12.5             455               0
+ 1550            47.5             490               0
+ 1551              10           452.5               0
+ 1552             7.5             450               0
+ 1553              50           492.5               0
+ 1554               5           447.5               0
+ 1555            52.5             495               0
+ 1556             2.5             445               0
+ 1557              55           497.5               0
+ 1558            57.5             500               0
+ 1559               0           442.5               0
+ 1560              25             470               0
+ 1561              30             475               0
+ 1562              35             480               0
+ 1563              20             465               0
+ 1564              15             460               0
+ 1565              40             485               0
+ 1566              45             490               0
+ 1567              10             455               0
+ 1568               5             450               0
+ 1569              50             495               0
+ 1570              55             500               0
+ 1571               0             445               0
+ 1572            27.5             475               0
+ 1573              25           472.5               0
+ 1574              30           477.5               0
+ 1575            22.5             470               0
+ 1576            32.5             480               0
+ 1577              20           467.5               0
+ 1578              35           482.5               0
+ 1579            17.5             465               0
+ 1580              15           462.5               0
+ 1581            37.5             485               0
+ 1582              40           487.5               0
+ 1583            12.5             460               0
+ 1584            42.5             490               0
+ 1585              10           457.5               0
+ 1586              45           492.5               0
+ 1587             7.5             455               0
+ 1588            47.5             495               0
+ 1589               5           452.5               0
+ 1590             2.5             450               0
+ 1591              50           497.5               0
+ 1592            52.5             500               0
+ 1593               0           447.5               0
+ 1594              25             475               0
+ 1595              20             470               0
+ 1596              30             480               0
+ 1597              15             465               0
+ 1598              35             485               0
+ 1599              40             490               0
+ 1600              10             460               0
+ 1601              45             495               0
+ 1602               5             455               0
+ 1603              50             500               0
+ 1604               0             450               0
+ 1605            22.5             475               0
+ 1606              25           477.5               0
+ 1607            27.5             480               0
+ 1608              20           472.5               0
+ 1609              30           482.5               0
+ 1610            17.5             470               0
+ 1611              15           467.5               0
+ 1612            32.5             485               0
+ 1613              35           487.5               0
+ 1614            12.5             465               0
+ 1615            37.5             490               0
+ 1616              10           462.5               0
+ 1617              40           492.5               0
+ 1618             7.5             460               0
+ 1619               5           457.5               0
+ 1620            42.5             495               0
+ 1621              45           497.5               0
+ 1622             2.5             455               0
+ 1623            47.5             500               0
+ 1624               0           452.5               0
+ 1625              25             480               0
+ 1626              20             475               0
+ 1627              15             470               0
+ 1628              30             485               0
+ 1629              10             465               0
+ 1630              35             490               0
+ 1631               5             460               0
+ 1632              40             495               0
+ 1633              45             500               0
+ 1634               0             455               0
+ 1635              20           477.5               0
+ 1636            22.5             480               0
+ 1637              25           482.5               0
+ 1638            17.5             475               0
+ 1639              15           472.5               0
+ 1640            27.5             485               0
+ 1641              30           487.5               0
+ 1642            12.5             470               0
+ 1643              10           467.5               0
+ 1644            32.5             490               0
+ 1645              35           492.5               0
+ 1646             7.5             465               0
+ 1647               5           462.5               0
+ 1648            37.5             495               0
+ 1649             2.5             460               0
+ 1650              40           497.5               0
+ 1651            42.5             500               0
+ 1652               0           457.5               0
+ 1653              20             480               0
+ 1654              15             475               0
+ 1655              25             485               0
+ 1656              10             470               0
+ 1657              30             490               0
+ 1658              35             495               0
+ 1659               5             465               0
+ 1660               0             460               0
+ 1661              40             500               0
+ 1662            17.5             480               0
+ 1663              20           482.5               0
+ 1664              15           477.5               0
+ 1665            22.5             485               0
+ 1666            12.5             475               0
+ 1667              25           487.5               0
+ 1668              10           472.5               0
+ 1669            27.5             490               0
+ 1670             7.5             470               0
+ 1671              30           492.5               0
+ 1672               5           467.5               0
+ 1673            32.5             495               0
+ 1674             2.5             465               0
+ 1675              35           497.5               0
+ 1676            37.5             500               0
+ 1677               0           462.5               0
+ 1678              15             480               0
+ 1679              20             485               0
+ 1680              10             475               0
+ 1681              25             490               0
+ 1682               5             470               0
+ 1683              30             495               0
+ 1684              35             500               0
+ 1685               0             465               0
+ 1686              15           482.5               0
+ 1687            17.5             485               0
+ 1688              20           487.5               0
+ 1689            12.5             480               0
+ 1690            22.5             490               0
+ 1691              10           477.5               0
+ 1692              25           492.5               0
+ 1693             7.5             475               0
+ 1694               5           472.5               0
+ 1695            27.5             495               0
+ 1696             2.5             470               0
+ 1697              30           497.5               0
+ 1698            32.5             500               0
+ 1699               0           467.5               0
+ 1700              15             485               0
+ 1701              10             480               0
+ 1702              20             490               0
+ 1703               5             475               0
+ 1704              25             495               0
+ 1705               0             470               0
+ 1706              30             500               0
+ 1707              15           487.5               0
+ 1708            12.5             485               0
+ 1709              10           482.5               0
+ 1710            17.5             490               0
+ 1711             7.5             480               0
+ 1712              20           492.5               0
+ 1713               5           477.5               0
+ 1714            22.5             495               0
+ 1715              25           497.5               0
+ 1716             2.5             475               0
+ 1717            27.5             500               0
+ 1718               0           472.5               0
+ 1719              15             490               0
+ 1720              10             485               0
+ 1721               5             480               0
+ 1722              20             495               0
+ 1723              25             500               0
+ 1724               0             475               0
+ 1725              10           487.5               0
+ 1726            12.5             490               0
+ 1727              15           492.5               0
+ 1728             7.5             485               0
+ 1729               5           482.5               0
+ 1730            17.5             495               0
+ 1731             2.5             480               0
+ 1732              20           497.5               0
+ 1733            22.5             500               0
+ 1734               0           477.5               0
+ 1735              10             490               0
+ 1736              15             495               0
+ 1737               5             485               0
+ 1738               0             480               0
+ 1739              20             500               0
+ 1740              10           492.5               0
+ 1741             7.5             490               0
+ 1742               5           487.5               0
+ 1743            12.5             495               0
+ 1744              15           497.5               0
+ 1745             2.5             485               0
+ 1746            17.5             500               0
+ 1747               0           482.5               0
+ 1748               5             490               0
+ 1749              10             495               0
+ 1750              15             500               0
+ 1751               0             485               0
+ 1752               5           492.5               0
+ 1753             7.5             495               0
+ 1754              10           497.5               0
+ 1755             2.5             490               0
+ 1756               0           487.5               0
+ 1757            12.5             500               0
+ 1758               5             495               0
+ 1759              10             500               0
+ 1760               0             490               0
+ 1761               5           497.5               0
+ 1762             2.5             495               0
+ 1763             7.5             500               0
+ 1764               0           492.5               0
+ 1765               0             495               0
+ 1766               5             500               0
+ 1767               0           497.5               0
+ 1768             2.5             500               0
+ 1769               0             500               0
+End Coordinates
+
+Elements
+1 305 316 149 143 308 224 146 214
+2 316 324 159 149 319 235 156 224
+3 324 336 173 159 333 244 166 235
+4 336 347 180 173 338 253 174 244
+5 347 355 193 180 348 260 187 253
+6 355 363 200 193 358 272 194 260
+7 363 371 210 200 365 280 206 272
+8 371 382 221 210 378 291 219 280
+9 382 394 237 221 387 300 229 291
+10 394 403 249 237 396 315 242 300
+11 403 412 263 249 409 331 256 315
+12 412 424 275 263 420 345 270 331
+13 424 434 290 275 426 356 281 345
+14 434 449 303 290 443 370 296 356
+15 449 481 321 303 465 386 311 370
+16 481 518 341 321 494 402 334 386
+17 518 553 361 341 539 416 351 402
+18 553 611 379 361 580 429 368 416
+19 611 672 397 379 640 453 390 429
+20 672 743 417 397 705 496 407 453
+21 148 317 305 143 223 309 214 147
+22 160 325 317 148 236 318 223 157
+23 172 337 325 160 243 332 236 167
+24 181 346 337 172 254 339 243 175
+25 192 354 346 181 259 349 254 186
+26 201 362 354 192 271 359 259 195
+27 211 372 362 201 279 366 271 207
+28 222 381 372 211 292 377 279 220
+29 238 393 381 222 299 388 292 230
+30 250 404 393 238 312 395 299 241
+31 264 411 404 250 330 410 312 255
+32 276 423 411 264 344 419 330 269
+33 289 435 423 276 357 425 344 282
+34 304 450 435 289 369 442 357 295
+35 323 480 450 304 385 466 369 310
+36 340 519 480 323 401 495 385 335
+37 360 554 519 340 415 540 401 350
+38 380 610 554 360 428 581 415 367
+39 398 671 610 380 454 639 428 389
+40 418 742 671 398 497 706 454 408
+41 743 672 1105 1175 705 857 1143 932
+42 672 611 1044 1105 640 796 1069 857
+43 611 553 986 1044 580 736 1011 796
+44 553 518 928 986 539 681 957 736
+45 518 481 876 928 494 635 903 681
+46 481 449 823 876 465 583 849 635
+47 449 434 768 823 443 548 801 583
+48 434 424 725 768 426 517 754 548
+49 424 412 685 725 420 482 712 517
+50 412 403 648 685 409 460 669 482
+51 403 394 613 648 396 444 633 460
+52 394 382 578 613 387 431 601 444
+53 382 371 551 578 378 421 570 431
+54 371 363 525 551 365 414 541 421
+55 363 355 502 525 358 405 515 414
+56 355 347 478 502 348 399 493 405
+57 347 336 464 478 338 391 474 399
+58 336 324 447 464 333 383 458 391
+59 324 316 437 447 319 376 441 383
+60 316 305 427 437 308 364 432 376
+61 1174 1104 671 742 1142 858 706 933
+62 1104 1043 610 671 1070 797 639 858
+63 1043 987 554 610 1012 737 581 797
+64 987 929 519 554 956 682 540 737
+65 929 875 480 519 902 634 495 682
+66 875 824 450 480 850 582 466 634
+67 824 769 435 450 802 547 442 582
+68 769 724 423 435 755 516 425 547
+69 724 686 411 423 711 483 419 516
+70 686 647 404 411 670 459 410 483
+71 647 612 393 404 632 445 395 459
+72 612 579 381 393 600 430 388 445
+73 579 552 372 381 569 422 377 430
+74 552 526 362 372 542 413 366 422
+75 526 503 354 362 514 406 359 413
+76 503 479 346 354 492 400 349 406
+77 479 463 337 346 473 392 339 400
+78 463 448 325 337 457 384 332 392
+79 448 436 317 325 440 375 318 384
+80 436 427 305 317 433 364 309 375
+81 4 47 39 1 19 40 16 2
+82 9 53 47 4 23 48 19 7
+83 12 60 53 9 29 58 23 11
+84 17 68 60 12 35 67 29 14
+85 26 79 68 17 42 73 35 21
+86 32 88 79 26 54 80 42 27
+87 38 96 88 32 64 94 54 33
+88 51 109 96 38 75 104 64 45
+89 63 120 109 51 85 113 75 57
+90 77 131 120 63 101 125 85 70
+91 89 145 131 77 111 136 101 82
+92 108 158 145 89 128 153 111 100
+93 123 178 158 108 141 171 128 118
+94 139 199 178 123 163 188 141 134
+95 165 218 199 139 185 209 163 150
+96 191 239 218 165 204 225 185 176
+97 215 262 239 191 231 252 204 203
+98 248 285 262 215 257 274 231 233
+99 278 307 285 248 287 297 257 266
+100 313 342 307 278 320 327 287 293
+101 47 148 143 39 91 147 84 40
+102 53 160 148 47 97 157 91 48
+103 60 172 160 53 105 167 97 58
+104 68 181 172 60 115 175 105 67
+105 79 192 181 68 121 186 115 73
+106 88 201 192 79 130 195 121 80
+107 96 211 201 88 138 207 130 94
+108 109 222 211 96 155 220 138 104
+109 120 238 222 109 168 230 155 113
+110 131 250 238 120 182 241 168 125
+111 145 264 250 131 197 255 182 136
+112 158 276 264 145 212 269 197 153
+113 178 289 276 158 227 282 212 171
+114 199 304 289 178 245 295 227 188
+115 218 323 304 199 267 310 245 209
+116 239 340 323 218 283 335 267 225
+117 262 360 340 239 301 350 283 252
+118 285 380 360 262 329 367 301 274
+119 307 398 380 285 352 389 329 297
+120 342 418 398 307 374 408 352 327
+121 39 46 5 1 41 20 3 16
+122 143 149 46 39 146 92 41 84
+123 46 52 8 5 49 24 6 20
+124 149 159 52 46 156 98 49 92
+125 52 61 13 8 59 30 10 24
+126 159 173 61 52 166 106 59 98
+127 61 69 18 13 66 36 15 30
+128 173 180 69 61 174 116 66 106
+129 69 78 25 18 72 43 22 36
+130 180 193 78 69 187 122 72 116
+131 78 87 31 25 81 55 28 43
+132 193 200 87 78 194 129 81 122
+133 87 95 37 31 93 65 34 55
+134 200 210 95 87 206 137 93 129
+135 95 110 50 37 103 74 44 65
+136 210 221 110 95 219 154 103 137
+137 110 119 62 50 114 86 56 74
+138 221 237 119 110 229 169 114 154
+139 119 132 76 62 126 102 71 86
+140 237 249 132 119 242 183 126 169
+141 132 144 90 76 135 112 83 102
+142 249 263 144 132 256 196 135 183
+143 144 161 107 90 152 127 99 112
+144 263 275 161 144 270 213 152 196
+145 161 179 124 107 170 142 117 127
+146 275 290 179 161 281 228 170 213
+147 179 198 140 124 189 162 133 142
+148 290 303 198 179 296 246 189 228
+149 198 217 164 140 208 184 151 162
+150 303 321 217 198 311 268 208 246
+151 217 240 190 164 226 205 177 184
+152 321 341 240 217 334 284 226 268
+153 240 261 216 190 251 232 202 205
+154 341 361 261 240 351 302 251 284
+155 261 286 247 216 273 258 234 232
+156 361 379 286 261 368 328 273 302
+157 286 306 277 247 298 288 265 258
+158 379 397 306 286 390 353 298 328
+159 306 343 314 277 326 322 294 288
+160 397 417 343 306 407 373 326 353
+161 1225 1161 1104 1174 1188 1128 1142 1200
+162 1280 1216 1161 1225 1245 1186 1188 1250
+163 1329 1271 1216 1280 1299 1241 1245 1304
+164 1377 1320 1271 1329 1349 1295 1299 1352
+165 1420 1364 1320 1377 1397 1344 1349 1400
+166 1459 1407 1364 1420 1437 1388 1397 1444
+167 1495 1451 1407 1459 1479 1434 1437 1481
+168 1535 1494 1451 1495 1519 1477 1479 1521
+169 1570 1533 1494 1535 1557 1518 1519 1558
+170 1603 1569 1533 1570 1591 1555 1557 1592
+171 1633 1601 1569 1603 1621 1588 1591 1623
+172 1661 1632 1601 1633 1650 1620 1621 1651
+173 1684 1658 1632 1661 1675 1648 1650 1676
+174 1706 1683 1658 1684 1697 1673 1675 1698
+175 1723 1704 1683 1706 1715 1695 1697 1717
+176 1739 1722 1704 1723 1732 1714 1715 1733
+177 1750 1736 1722 1739 1744 1730 1732 1746
+178 1759 1749 1736 1750 1754 1743 1744 1757
+179 1766 1758 1749 1759 1761 1753 1754 1763
+180 1769 1765 1758 1766 1767 1762 1761 1768
+181 1161 1095 1043 1104 1125 1067 1070 1128
+182 1216 1153 1095 1161 1182 1121 1125 1186
+183 1271 1208 1153 1216 1237 1179 1182 1241
+184 1320 1260 1208 1271 1292 1233 1237 1295
+185 1364 1305 1260 1320 1338 1283 1292 1344
+186 1407 1357 1305 1364 1387 1335 1338 1388
+187 1451 1404 1357 1407 1433 1384 1387 1434
+188 1494 1450 1404 1451 1475 1430 1433 1477
+189 1533 1491 1450 1494 1515 1474 1475 1518
+190 1569 1531 1491 1533 1553 1514 1515 1555
+191 1601 1566 1531 1569 1586 1550 1553 1588
+192 1632 1599 1566 1601 1617 1584 1586 1620
+193 1658 1630 1599 1632 1645 1615 1617 1648
+194 1683 1657 1630 1658 1671 1644 1645 1673
+195 1704 1681 1657 1683 1692 1669 1671 1695
+196 1722 1702 1681 1704 1712 1690 1692 1714
+197 1736 1719 1702 1722 1727 1710 1712 1730
+198 1749 1735 1719 1736 1740 1726 1727 1743
+199 1758 1748 1735 1749 1752 1741 1740 1753
+200 1765 1760 1748 1758 1764 1755 1752 1762
+201 1095 1036 987 1043 1063 1007 1012 1067
+202 1153 1087 1036 1095 1116 1059 1063 1121
+203 1208 1139 1087 1153 1172 1113 1116 1179
+204 1260 1191 1139 1208 1228 1166 1172 1233
+205 1305 1248 1191 1260 1282 1222 1228 1283
+206 1357 1302 1248 1305 1334 1277 1282 1335
+207 1404 1355 1302 1357 1383 1331 1334 1384
+208 1450 1403 1355 1404 1428 1380 1383 1430
+209 1491 1448 1403 1450 1471 1427 1428 1474
+210 1531 1490 1448 1491 1511 1470 1471 1514
+211 1566 1528 1490 1531 1548 1509 1511 1550
+212 1599 1565 1528 1566 1582 1547 1548 1584
+213 1630 1598 1565 1599 1613 1581 1582 1615
+214 1657 1628 1598 1630 1641 1612 1613 1644
+215 1681 1655 1628 1657 1667 1640 1641 1669
+216 1702 1679 1655 1681 1688 1665 1667 1690
+217 1719 1700 1679 1702 1707 1687 1688 1710
+218 1735 1720 1700 1719 1725 1708 1707 1726
+219 1748 1737 1720 1735 1742 1728 1725 1741
+220 1760 1751 1737 1748 1756 1745 1742 1755
+221 1036 977 929 987 1004 953 956 1007
+222 1087 1024 977 1036 1055 999 1004 1059
+223 1139 1072 1024 1087 1106 1050 1055 1113
+224 1191 1127 1072 1139 1163 1102 1106 1166
+225 1248 1184 1127 1191 1221 1159 1163 1222
+226 1302 1244 1184 1248 1276 1218 1221 1277
+227 1355 1297 1244 1302 1328 1273 1276 1331
+228 1403 1351 1297 1355 1379 1325 1328 1380
+229 1448 1399 1351 1403 1425 1374 1379 1427
+230 1490 1446 1399 1448 1468 1422 1425 1470
+231 1528 1487 1446 1490 1507 1465 1468 1509
+232 1565 1526 1487 1528 1544 1505 1507 1547
+233 1598 1562 1526 1565 1578 1543 1544 1581
+234 1628 1596 1562 1598 1609 1576 1578 1612
+235 1655 1625 1596 1628 1637 1607 1609 1640
+236 1679 1653 1625 1655 1663 1636 1637 1665
+237 1700 1678 1653 1679 1686 1662 1663 1687
+238 1720 1701 1678 1700 1709 1689 1686 1708
+239 1737 1721 1701 1720 1729 1711 1709 1728
+240 1751 1738 1721 1737 1747 1731 1729 1745
+241 977 917 875 929 949 897 902 953
+242 1024 960 917 977 996 942 949 999
+243 1072 1013 960 1024 1045 991 996 1050
+244 1127 1066 1013 1072 1100 1041 1045 1102
+245 1184 1123 1066 1127 1157 1097 1100 1159
+246 1244 1180 1123 1184 1215 1154 1157 1218
+247 1297 1240 1180 1244 1269 1212 1215 1273
+248 1351 1294 1240 1297 1324 1267 1269 1325
+249 1399 1346 1294 1351 1372 1321 1324 1374
+250 1446 1395 1346 1399 1419 1371 1372 1422
+251 1487 1441 1395 1446 1463 1416 1419 1465
+252 1526 1485 1441 1487 1504 1462 1463 1505
+253 1562 1524 1485 1526 1541 1502 1504 1543
+254 1596 1561 1524 1562 1574 1539 1541 1576
+255 1625 1594 1561 1596 1606 1572 1574 1607
+256 1653 1626 1594 1625 1635 1605 1606 1636
+257 1678 1654 1626 1653 1664 1638 1635 1662
+258 1701 1680 1654 1678 1691 1666 1664 1689
+259 1721 1703 1680 1701 1713 1693 1691 1711
+260 1738 1724 1703 1721 1734 1716 1713 1731
+261 917 860 824 875 893 843 850 897
+262 960 906 860 917 938 887 893 942
+263 1013 958 906 960 988 936 938 991
+264 1066 1010 958 1013 1040 984 988 1041
+265 1123 1061 1010 1066 1094 1037 1040 1097
+266 1180 1119 1061 1123 1150 1092 1094 1154
+267 1240 1176 1119 1180 1211 1148 1150 1212
+268 1294 1235 1176 1240 1266 1206 1211 1267
+269 1346 1290 1235 1294 1317 1264 1266 1321
+270 1395 1343 1290 1346 1369 1315 1317 1371
+271 1441 1392 1343 1395 1414 1366 1369 1416
+272 1485 1439 1392 1441 1457 1412 1414 1462
+273 1524 1484 1439 1485 1500 1456 1457 1502
+274 1561 1523 1484 1524 1537 1497 1500 1539
+275 1594 1560 1523 1561 1573 1536 1537 1572
+276 1626 1595 1560 1594 1608 1575 1573 1605
+277 1654 1627 1595 1626 1639 1610 1608 1638
+278 1680 1656 1627 1654 1668 1642 1639 1666
+279 1703 1682 1656 1680 1694 1670 1668 1693
+280 1724 1705 1682 1703 1718 1696 1694 1716
+281 860 811 769 824 840 795 802 843
+282 906 856 811 860 885 837 840 887
+283 958 904 856 906 934 883 885 936
+284 1010 955 904 958 983 931 934 984
+285 1061 1006 955 1010 1034 981 983 1037
+286 1119 1058 1006 1061 1090 1031 1034 1092
+287 1176 1114 1058 1119 1146 1085 1090 1148
+288 1235 1170 1114 1176 1205 1144 1146 1206
+289 1290 1231 1170 1235 1262 1203 1205 1264
+290 1343 1288 1231 1290 1314 1257 1262 1315
+291 1392 1340 1288 1343 1362 1311 1314 1366
+292 1439 1390 1340 1392 1411 1361 1362 1412
+293 1484 1438 1390 1439 1454 1408 1411 1456
+294 1523 1483 1438 1484 1498 1453 1454 1497
+295 1560 1525 1483 1523 1538 1499 1498 1536
+296 1595 1563 1525 1560 1577 1540 1538 1575
+297 1627 1597 1563 1595 1611 1579 1577 1610
+298 1656 1629 1597 1627 1643 1614 1611 1642
+299 1682 1659 1629 1656 1672 1646 1643 1670
+300 1705 1685 1659 1682 1699 1674 1672 1696
+301 811 767 724 769 792 752 755 795
+302 856 810 767 811 836 790 792 837
+303 904 853 810 856 882 833 836 883
+304 955 901 853 904 927 879 882 931
+305 1006 951 901 955 978 924 927 981
+306 1058 1001 951 1006 1030 975 978 1031
+307 1114 1053 1001 1058 1083 1027 1030 1085
+308 1170 1111 1053 1114 1140 1081 1083 1144
+309 1231 1169 1111 1170 1199 1136 1140 1203
+310 1288 1230 1169 1231 1255 1197 1199 1257
+311 1340 1285 1230 1288 1309 1253 1255 1311
+312 1390 1339 1285 1340 1358 1308 1309 1361
+313 1438 1391 1339 1390 1409 1359 1358 1408
+314 1483 1440 1391 1438 1455 1410 1409 1453
+315 1525 1486 1440 1483 1501 1458 1455 1499
+316 1563 1527 1486 1525 1542 1503 1501 1540
+317 1597 1564 1527 1563 1580 1545 1542 1579
+318 1629 1600 1564 1597 1616 1583 1580 1614
+319 1659 1631 1600 1629 1647 1618 1616 1646
+320 1685 1660 1631 1659 1677 1649 1647 1674
+321 767 722 686 724 751 710 711 752
+322 810 765 722 767 788 748 751 790
+323 853 808 765 810 831 787 788 833
+324 901 852 808 853 878 829 831 879
+325 951 899 852 901 923 873 878 924
+326 1001 947 899 951 973 920 923 975
+327 1053 997 947 1001 1026 971 973 1027
+328 1111 1052 997 1053 1079 1022 1026 1081
+329 1169 1109 1052 1111 1135 1078 1079 1136
+330 1230 1165 1109 1169 1194 1132 1135 1197
+331 1285 1226 1165 1230 1251 1193 1194 1253
+332 1339 1286 1226 1285 1307 1252 1251 1308
+333 1391 1341 1286 1339 1360 1310 1307 1359
+334 1440 1393 1341 1391 1413 1363 1360 1410
+335 1486 1442 1393 1440 1461 1415 1413 1458
+336 1527 1488 1442 1486 1506 1464 1461 1503
+337 1564 1529 1488 1527 1546 1508 1506 1545
+338 1600 1567 1529 1564 1585 1549 1546 1583
+339 1631 1602 1567 1600 1619 1587 1585 1618
+340 1660 1634 1602 1631 1652 1622 1619 1649
+341 722 684 647 686 708 668 670 710
+342 765 720 684 722 746 704 708 748
+343 808 762 720 765 785 744 746 787
+344 852 806 762 808 828 782 785 829
+345 899 847 806 852 872 825 828 873
+346 947 894 847 899 919 869 872 920
+347 997 944 894 947 968 914 919 971
+348 1052 993 944 997 1020 966 968 1022
+349 1109 1047 993 1052 1076 1017 1020 1078
+350 1165 1103 1047 1109 1131 1073 1076 1132
+351 1226 1164 1103 1165 1192 1130 1131 1193
+352 1286 1229 1164 1226 1254 1195 1192 1252
+353 1341 1287 1229 1286 1312 1256 1254 1310
+354 1393 1342 1287 1341 1367 1313 1312 1363
+355 1442 1394 1342 1393 1417 1368 1367 1415
+356 1488 1445 1394 1442 1466 1418 1417 1464
+357 1529 1489 1445 1488 1510 1467 1466 1508
+358 1567 1530 1489 1529 1551 1512 1510 1549
+359 1602 1568 1530 1567 1589 1552 1551 1587
+360 1634 1604 1568 1602 1624 1590 1589 1622
+361 684 646 612 647 666 631 632 668
+362 720 680 646 684 702 664 666 704
+363 762 719 680 720 741 700 702 744
+364 806 761 719 762 781 739 741 782
+365 847 804 761 806 822 779 781 825
+366 894 845 804 847 868 820 822 869
+367 944 890 845 894 913 866 868 914
+368 993 941 890 944 965 911 913 966
+369 1047 992 941 993 1016 963 965 1017
+370 1103 1048 992 1047 1074 1015 1016 1073
+371 1164 1108 1048 1103 1133 1075 1074 1130
+372 1229 1168 1108 1164 1196 1134 1133 1195
+373 1287 1232 1168 1229 1258 1198 1196 1256
+374 1342 1289 1232 1287 1316 1261 1258 1313
+375 1394 1347 1289 1342 1370 1318 1316 1368
+376 1445 1398 1347 1394 1423 1373 1370 1418
+377 1489 1447 1398 1445 1469 1424 1423 1467
+378 1530 1492 1447 1489 1513 1472 1469 1512
+379 1568 1532 1492 1530 1554 1516 1513 1552
+380 1604 1571 1532 1568 1593 1556 1554 1590
+381 646 608 579 612 629 599 600 631
+382 680 643 608 646 662 627 629 664
+383 719 678 643 680 698 659 662 700
+384 761 717 678 719 735 696 698 739
+385 804 759 717 761 777 732 735 779
+386 845 800 759 804 817 775 777 820
+387 890 842 800 845 863 815 817 866
+388 941 889 842 890 909 861 863 911
+389 992 940 889 941 962 908 909 963
+390 1048 994 940 992 1018 964 962 1015
+391 1108 1051 994 1048 1077 1019 1018 1075
+392 1168 1110 1051 1108 1137 1080 1077 1134
+393 1232 1171 1110 1168 1202 1141 1137 1198
+394 1289 1236 1171 1232 1263 1204 1202 1261
+395 1347 1293 1236 1289 1322 1265 1263 1318
+396 1398 1350 1293 1347 1375 1323 1322 1373
+397 1447 1402 1350 1398 1426 1378 1375 1424
+398 1492 1449 1402 1447 1473 1429 1426 1472
+399 1532 1493 1449 1492 1517 1476 1473 1516
+400 1571 1534 1493 1532 1559 1520 1517 1556
+401 608 576 552 579 596 567 569 599
+402 643 606 576 608 625 595 596 627
+403 678 642 606 643 658 623 625 659
+404 717 676 642 678 693 656 658 696
+405 759 715 676 717 731 692 693 732
+406 800 757 715 759 773 728 731 775
+407 842 798 757 800 814 770 773 815
+408 889 841 798 842 862 813 814 861
+409 940 891 841 889 910 864 862 908
+410 994 945 891 940 967 912 910 964
+411 1051 998 945 994 1021 969 967 1019
+412 1110 1054 998 1051 1082 1025 1021 1080
+413 1171 1115 1054 1110 1145 1084 1082 1141
+414 1236 1177 1115 1171 1207 1147 1145 1204
+415 1293 1239 1177 1236 1268 1210 1207 1265
+416 1350 1298 1239 1293 1326 1270 1268 1323
+417 1402 1354 1298 1350 1381 1327 1326 1378
+418 1449 1405 1354 1402 1431 1382 1381 1429
+419 1493 1452 1405 1449 1478 1432 1431 1476
+420 1534 1496 1452 1493 1522 1480 1478 1520
+421 576 549 526 552 565 538 542 567
+422 606 574 549 576 592 564 565 595
+423 642 604 574 606 620 590 592 623
+424 676 637 604 642 654 619 620 656
+425 715 673 637 676 690 651 654 692
+426 757 713 673 715 727 688 690 728
+427 798 756 713 757 771 726 727 770
+428 841 799 756 798 816 772 771 813
+429 891 846 799 841 865 818 816 864
+430 945 895 846 891 915 867 865 912
+431 998 946 895 945 970 918 915 969
+432 1054 1002 946 998 1028 972 970 1025
+433 1115 1057 1002 1054 1086 1029 1028 1084
+434 1177 1118 1057 1115 1149 1089 1086 1147
+435 1239 1181 1118 1177 1213 1151 1149 1210
+436 1298 1243 1181 1239 1274 1214 1213 1270
+437 1354 1301 1243 1298 1332 1275 1274 1327
+438 1405 1356 1301 1354 1385 1333 1332 1382
+439 1452 1406 1356 1405 1435 1386 1385 1432
+440 1496 1460 1406 1452 1482 1436 1435 1480
+441 549 523 503 526 535 513 514 538
+442 574 546 523 549 561 533 535 564
+443 604 573 546 574 588 560 561 590
+444 637 602 573 604 616 586 588 619
+445 673 636 602 637 649 614 616 651
+446 713 674 636 673 687 650 649 688
+447 756 714 674 713 729 689 687 726
+448 799 758 714 756 774 730 729 772
+449 846 803 758 799 819 776 774 818
+450 895 848 803 846 870 821 819 867
+451 946 898 848 895 921 871 870 918
+452 1002 950 898 946 974 922 921 972
+453 1057 1005 950 1002 1032 979 974 1029
+454 1118 1062 1005 1057 1091 1033 1032 1089
+455 1181 1122 1062 1118 1155 1093 1091 1151
+456 1243 1185 1122 1181 1219 1156 1155 1214
+457 1301 1247 1185 1243 1278 1220 1219 1275
+458 1356 1306 1247 1301 1336 1281 1278 1333
+459 1406 1365 1306 1356 1389 1337 1336 1386
+460 1460 1421 1365 1406 1443 1396 1389 1436
+461 523 500 479 503 511 491 492 513
+462 546 522 500 523 531 508 511 533
+463 573 544 522 546 558 530 531 560
+464 602 571 544 573 585 556 558 586
+465 636 603 571 602 615 584 585 614
+466 674 638 603 636 652 617 615 650
+467 714 675 638 674 691 653 652 689
+468 758 716 675 714 733 694 691 730
+469 803 760 716 758 778 734 733 776
+470 848 805 760 803 826 780 778 821
+471 898 851 805 848 874 827 826 871
+472 950 900 851 898 925 877 874 922
+473 1005 954 900 950 980 926 925 979
+474 1062 1009 954 1005 1038 982 980 1033
+475 1122 1065 1009 1062 1098 1039 1038 1093
+476 1185 1126 1065 1122 1158 1099 1098 1156
+477 1247 1190 1126 1185 1223 1162 1158 1220
+478 1306 1259 1190 1247 1284 1227 1223 1281
+479 1365 1319 1259 1306 1345 1291 1284 1337
+480 1421 1376 1319 1365 1401 1348 1345 1396
+481 500 476 463 479 488 472 473 491
+482 522 498 476 500 506 486 488 508
+483 544 520 498 522 527 504 506 530
+484 571 543 520 544 555 528 527 556
+485 603 572 543 571 587 557 555 584
+486 638 605 572 603 618 589 587 617
+487 675 641 605 638 655 621 618 653
+488 716 677 641 675 695 657 655 694
+489 760 718 677 716 738 697 695 734
+490 805 763 718 760 783 740 738 780
+491 851 807 763 805 830 784 783 827
+492 900 854 807 851 880 832 830 877
+493 954 905 854 900 930 881 880 926
+494 1009 959 905 954 985 935 930 982
+495 1065 1014 959 1009 1042 989 985 1039
+496 1126 1071 1014 1065 1101 1046 1042 1099
+497 1190 1138 1071 1126 1167 1107 1101 1162
+498 1259 1209 1138 1190 1234 1173 1167 1227
+499 1319 1272 1209 1259 1296 1238 1234 1291
+500 1376 1330 1272 1319 1353 1300 1296 1348
+501 476 462 448 463 469 456 457 472
+502 498 475 462 476 484 467 469 486
+503 520 499 475 498 505 485 484 504
+504 543 521 499 520 529 507 505 528
+505 572 545 521 543 559 532 529 557
+506 605 575 545 572 591 562 559 589
+507 641 607 575 605 622 593 591 621
+508 677 644 607 641 660 624 622 657
+509 718 679 644 677 699 661 660 697
+510 763 721 679 718 745 701 699 740
+511 807 764 721 763 786 747 745 784
+512 854 809 764 807 834 789 786 832
+513 905 855 809 854 884 835 834 881
+514 959 907 855 905 937 886 884 935
+515 1014 961 907 959 990 939 937 989
+516 1071 1023 961 1014 1049 995 990 1046
+517 1138 1088 1023 1071 1112 1056 1049 1107
+518 1209 1152 1088 1138 1178 1117 1112 1173
+519 1272 1217 1152 1209 1242 1183 1178 1238
+520 1330 1279 1217 1272 1303 1246 1242 1300
+521 462 446 436 448 451 439 440 456
+522 475 461 446 462 468 452 451 467
+523 499 477 461 475 487 470 468 485
+524 521 501 477 499 509 489 487 507
+525 545 524 501 521 534 510 509 532
+526 575 550 524 545 563 536 534 562
+527 607 577 550 575 594 566 563 593
+528 644 609 577 607 626 597 594 624
+529 679 645 609 644 663 628 626 661
+530 721 683 645 679 703 665 663 701
+531 764 723 683 721 749 707 703 747
+532 809 766 723 764 791 750 749 789
+533 855 812 766 809 838 793 791 835
+534 907 859 812 855 888 839 838 886
+535 961 916 859 907 943 892 888 939
+536 1023 976 916 961 1000 948 943 995
+537 1088 1035 976 1023 1060 1003 1000 1056
+538 1152 1096 1035 1088 1120 1064 1060 1117
+539 1217 1160 1096 1152 1187 1124 1120 1183
+540 1279 1224 1160 1217 1249 1189 1187 1246
+541 446 437 427 436 438 432 433 439
+542 461 447 437 446 455 441 438 452
+543 477 464 447 461 471 458 455 470
+544 501 478 464 477 490 474 471 489
+545 524 502 478 501 512 493 490 510
+546 550 525 502 524 537 515 512 536
+547 577 551 525 550 568 541 537 566
+548 609 578 551 577 598 570 568 597
+549 645 613 578 609 630 601 598 628
+550 683 648 613 645 667 633 630 665
+551 723 685 648 683 709 669 667 707
+552 766 725 685 723 753 712 709 750
+553 812 768 725 766 794 754 753 793
+554 859 823 768 812 844 801 794 839
+555 916 876 823 859 896 849 844 892
+556 976 928 876 916 952 903 896 948
+557 1035 986 928 976 1008 957 952 1003
+558 1096 1044 986 1035 1068 1011 1008 1064
+559 1160 1105 1044 1096 1129 1069 1068 1124
+560 1224 1175 1105 1160 1201 1143 1129 1189
+End Elements
+PROBLEM DATA
+END PROBLEM DATA
+INTERVAL NUMBER: 1
+INTERVAL DATA
+END INTERVAL DATA

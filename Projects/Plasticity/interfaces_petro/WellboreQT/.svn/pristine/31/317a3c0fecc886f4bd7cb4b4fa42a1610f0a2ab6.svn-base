@@ -1,0 +1,22 @@
+#ifndef GEOMETRYPARAMSDW_H
+#define GEOMETRYPARAMSDW_H
+
+#include <QDockWidget>
+
+namespace Ui {
+class geometryparamsDW;
+}
+
+class geometryparamsDW : public QDockWidget
+{
+    Q_OBJECT
+    
+public:
+    explicit geometryparamsDW(QWidget *parent = 0);
+    ~geometryparamsDW();
+    
+//private:
+    Ui::geometryparamsDW *ui;
+};
+
+#endif // GEOMETRYPARAMSDW_H
