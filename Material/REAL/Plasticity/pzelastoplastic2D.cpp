@@ -21,7 +21,7 @@
 #include "TPZLadeKim.h"
 #include "TPZSandlerDimaggio.h"
 #include "TPZYCDruckerPrager.h"
-#include "TPZYCVonMises.h"
+//#include "TPZYCVonMises.h"
 #include "TPZThermoForceA.h"
 #include "TPZElasticResponse.h"
 #include "TPZElasticCriteria.h"
@@ -839,7 +839,7 @@ void TPZMatElastoPlastic2D<T,TMEM>::Print(std::ostream &out)
 #include "TPZDruckerPrager.h"
 #include "TPZYCWillamWarnke.h"
 #include "TPZWillamWarnke.h"
-#include "TPZVonMises.h"
+//#include "TPZVonMises.h"
 #include "TPZYCVonMises.h"
 #include "TPZYCModifiedMohrCoulomb.h"
 //#include "TPZModifiedMohrCoulomb.h"
@@ -863,7 +863,7 @@ template class TPZMatElastoPlastic2D<TPZPlasticStep<TPZYCMohrCoulomb, TPZThermoF
 template class TPZMatElastoPlastic2D<TPZMohrCoulomb>;
 
 //template class TPZMatElastoPlastic2D<TPZPlasticStep<TPZYCVonMises, TPZThermoForceA, TPZElasticResponse>, TPZElastoPlasticMem>;
-template class TPZMatElastoPlastic2D<TPZVonMises>;
+//template class TPZMatElastoPlastic2D<TPZVonMises>;
 
 
 template class TPZMatElastoPlastic2D<TPZLadeKim, TPZPoroElastoPlasticMem>;

@@ -54,7 +54,7 @@ int main() {
 
 	char expression[260];
     // First rectangular mesh
-    TPZAutoPointer<TPZGeoMesh> gmesh = new TPZGeoMesh;
+    TPZGeoMesh * gmesh = new TPZGeoMesh;
 
 	//TPZManVector<int> nx(6,2);   // subdivisions in X and in Y -> Then all the intervals are of  the 0.1 cm.
 	TPZManVector<int> nx(2,1);   // subdivisions in X and in Y -> Then all the intervals are of  the 0.3 cm in X and 0.2 cm in Y.
@@ -72,7 +72,7 @@ int main() {
 	gen.Print(expression,saida);
 	
 	// Second rectangular domain - subdividions and corners of the second rectangular mesh
-    TPZAutoPointer<TPZGeoMesh> gmesh2 = new TPZGeoMesh;
+    TPZGeoMesh * gmesh2 = new TPZGeoMesh;
 	nx[0] = 10;   // subdivision x in 30 intervals
 	nx[1] = 4;    // subdivision y in 8 intervals -> Then all the intervals are of the 0.1 cm. 
 	x0[1] = .2;
@@ -82,8 +82,9 @@ int main() {
 	TPZGenGrid gen2(nx,x0,x1);   // second mesh generator
 	gen2.SetElementType(EQuadrilateral);      // type = 0 means rectangular elements, type = 1 means triangular elements
 	// generating gmesh2 on data of the gen2 and merge gmesh into the gmesh2
-	gen2.ReadAndMergeGeoMesh(gmesh2,gmesh);
-	
+	//gen2.ReadAndMergeGeoMesh(gmesh2,gmesh);
+	//METODO ACIMA COMENTADO
+	DebugStop();
 	// setting bc condition -1 [no flux - is wall] from (0.,0.) until (2.,1.)
 	x0[1] = 0.;
 	x1[1] = .2;

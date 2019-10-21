@@ -51,7 +51,7 @@ int main_pre() {
 	// Initializing uniform refinements for reference elements
 	gRefDBase.InitializeAllUniformRefPatterns();
     // First rectangular mesh
-    TPZAutoPointer<TPZGeoMesh> gmesh = new TPZGeoMesh;
+    TPZGeoMesh *gmesh = new TPZGeoMesh;
 
 	TPZManVector<int> nx(2,2);   // subdivisions in X and in Y
 	TPZManVector<REAL> x0(3,0.), x1(3,1.);  // Corners of the rectangular mesh
@@ -68,7 +68,7 @@ int main_pre() {
 //	gmesh->Print(saida);
 	
 	// Second rectangular domain - subdividions and corners of the second rectangular mesh
-    TPZAutoPointer<TPZGeoMesh> gmesh2 = new TPZGeoMesh;
+    TPZGeoMesh * gmesh2 = new TPZGeoMesh;
 	nx[0] = nx[1] = 4;
 	x0[1] = 1.;
 	x1[0] = 2.;
@@ -78,7 +78,9 @@ int main_pre() {
 	gen2.SetElementType(EQuadrilateral);
 
 	// generating gmesh2 on data of the gen2 and merge gmesh into the gmesh2
-	gen2.ReadAndMergeGeoMesh(gmesh2,gmesh);
+	//gen2.ReadAndMergeGeoMesh(gmesh2,gmesh);
+	//METODODO ACIMA FOI COMENTADO
+	DebugStop();
 	x0[1] = 0.;
 	x1[1] = 1.;
 	// setting bc condition -1 [no flux - is wall] from (0.,0.) until (2.,1.)
@@ -105,7 +107,7 @@ int main_pre() {
 	gmesh2->Print(saida);
 
     std::ofstream graphfile("output.vtk");
-	TPZVTKGeoMesh::PrintGMeshVTK(gmesh2.operator->(), graphfile);
+	TPZVTKGeoMesh::PrintGMeshVTK(gmesh2, graphfile);
 	graphfile.close();
 
 	saida.close();

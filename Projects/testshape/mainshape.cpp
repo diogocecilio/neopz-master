@@ -251,7 +251,7 @@ TPZCompMesh *InitialMesh(int order,int nsubdiv,int dim,MElementType type) {
     if(dim != 3)
         dim = 2;
     
-    TPZAutoPointer<TPZGeoMesh> g = new TPZGeoMesh;
+    TPZGeoMesh * g = new TPZGeoMesh;
     TPZGeoMesh *g_extended = 0;
     TPZVec<int> nx(3);
     TPZVec<REAL> X0(3);
@@ -270,7 +270,7 @@ TPZCompMesh *InitialMesh(int order,int nsubdiv,int dim,MElementType type) {
         g_extended = genext.ExtendedMesh();
     }
     else
-        g_extended = g.operator->();
+        g_extended = g;
     TPZCompMesh *c = new TPZCompMesh(g_extended);
     TPZVec<STATE> sol(1,0.);
     TPZMaterial * material = new TPZL2Projection(1,2,1,sol);

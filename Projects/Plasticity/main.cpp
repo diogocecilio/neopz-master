@@ -17,8 +17,8 @@
 #include "pzcompelpostproc.h"
 #include "pzpostprocmat.h"
 #include "pzpostprocanalysis.h"
-#include "TPZYCVonMises.h"
-#include "TPZVonMises.h"
+//#include "TPZYCVonMises.h"
+//#include "TPZVonMises.h"
 #include "pzfstrmatrix.h"
 #include "pzbndmat.h"
 #include "pzgeoquad.h"
@@ -31,8 +31,8 @@
 #include "TPZTensor.h"
 #include "TPZYCMohrCoulomb.h"
 #include "TPZMohrCoulomb.h"
-#include "TPZVonMises.h"
-#include "TPZYCVonMises.h"
+//#include "TPZVonMises.h"
+//#include "TPZYCVonMises.h"
 #include "TPZDruckerPrager.h"
 #include "GeoMeshClass.h"
 #include "pzelastoplastic2D.h"
@@ -1896,15 +1896,15 @@ TPZCompMesh *CreateCompMesh(TPZGeoMesh *geomesh)
 	//TPZMatElastoPlasticSest2D<TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> > *PlasticVM = new TPZMatElastoPlasticSest2D< TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> >(materialid, planestrain);
 	//TPZMatElastoPlasticSest2D<TPZPlasticStepPV<TPZYCVonMises, TPZElasticResponse> > *PlasticVM = new TPZMatElastoPlasticSest2D< TPZPlasticStepPV<TPZYCVonMises,  TPZElasticResponse> >(materialid, planestrain);
 
-//	REAL elast = 200000.;
-//	REAL poisson = 0.3;
-//	REAL angle = 20 * M_PI / 180.;
-//	REAL cohesion = 200.;
-//	TPZElasticResponse ER;
-//	ER.SetUp(elast, poisson);
-//	TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> VM;
-//	MC.fYC.SetUp(angle, angle, cohesion, ER);
-//	MC.fER.SetUp(elast, poisson);
+	REAL elast = 200000.;
+	REAL poisson = 0.3;
+	REAL angle = 20 * M_PI / 180.;
+	REAL cohesion = 200.;
+	TPZElasticResponse ER;
+	ER.SetUp(elast, poisson);
+	TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> VM;
+	VM.fYC.SetUp(angle, angle, cohesion, ER);
+	VM.fER.SetUp(elast, poisson);
 
 	TPZMatElastoPlasticSest2D<TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> > *PlasticVM = new TPZMatElastoPlasticSest2D< TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> >(materialid, planestrain);
 	//PlasticMC->SetBiot(biotcoef);
@@ -1912,10 +1912,10 @@ TPZCompMesh *CreateCompMesh(TPZGeoMesh *geomesh)
 
 	//TPZMaterial * mat = new TPZMatElastoPlastic2D<;
 
-	TPZPlasticStepPV<TPZYCVonMises,  TPZElasticResponse> VM;
-	REAL elast = 200000.;
-	REAL poisson = 0.3;
-	VM.fER.SetUp(elast, poisson);
+	//TPZPlasticStepPV<TPZYCVonMises,  TPZElasticResponse> VM;
+	//REAL elast = 200000.;
+	//REAL poisson = 0.3;
+	//VM.fER.SetUp(elast, poisson);
 
 
 //	PlasticVM->SetPlasticity(VM);

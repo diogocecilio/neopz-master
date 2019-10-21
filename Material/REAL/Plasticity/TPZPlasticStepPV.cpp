@@ -553,10 +553,10 @@ void TPZPlasticStepPV<YC_t, ER_t>::SetElasticResponse(TPZElasticResponse &ER)
     fER = ER;
     fYC.SetElasticResponse(ER);
 }
-#include "TPZYCVonMises.h"
+//#include "TPZYCVonMises.h"
 template class TPZPlasticStepPV<TPZSandlerExtended, TPZElasticResponse>;
 template class TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>;
-template class TPZPlasticStepPV<TPZYCVonMises, TPZElasticResponse>;
+//template class TPZPlasticStepPV<TPZYCVonMises, TPZElasticResponse>;
 /*
  // Correcao do giro rigido
  for (int i = 0; i < 2; i++) {
