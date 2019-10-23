@@ -482,6 +482,10 @@ public:
      */
     void S(TPZTensor<T> &s) const;
 
+
+	
+	void ProdT(TPZTensor<T> t2, TPZFMatrix<STATE> &sol);
+
     /**
      * Return the 3rd invariant of deviatoric tensor
      */
@@ -916,6 +920,19 @@ T TPZTensor<T>::J3() const
     S(s);
     return s.Det();
 }
+
+
+template <class T>
+void TPZTensor<T>::ProdT( TPZTensor<T> t2, TPZFMatrix<STATE> &sol) {
+	TPZFMatrix<STATE> mat(6, 6, 0.);
+	for (int i = 0; i < 6; i++) {
+		for (int j = 0; j < 6; j++) {
+			mat(i, j) = this->fData[i] * t2.fData[j];
+		}
+	}
+	sol = mat;
+}
+
 
 /**
  * The derivative of the  3rd invariant of deviatoric tensor

@@ -209,8 +209,10 @@ public:
 	 * @brief Calculates the value of phi based on eps
 	 */
   void Phi(TPZVec<STATE> sigvec,STATE alpha,TPZVec<STATE> &phi)const;
-  void ComputeDep(TPZTensor<REAL>::TPZDecomposed DecompSig, TPZTensor<REAL>::TPZDecomposed  DecompEps, TPZManVector<REAL, 3> sigprvec, TPZFMatrix<REAL> &Dep);
-
+  //void ComputeDep(TPZTensor<REAL>::TPZDecomposed DecompSig, TPZTensor<REAL>::TPZDecomposed  DecompEps, TPZManVector<REAL, 3> sigprvec, TPZFMatrix<REAL> &Dep);
+  void ComputeDep(TPZTensor<REAL>::TPZDecomposed DecompSig, TPZTensor<REAL>::TPZDecomposed  DecompEps, TPZTensor<REAL> sigprojvoigt, TPZFMatrix<REAL> &Dep);
+  void N(TPZTensor<STATE> sigma, TPZTensor<STATE> &asol);
+  void dadsig(TPZTensor<STATE> sigma, TPZFMatrix<STATE> &dadsigmat);
   STATE Phi() { return fPhi; }
   STATE Psi() { return fPsi; }
   STATE Cohesion() { return fc; }

@@ -97,26 +97,37 @@ void TPZPlasticStepPV<YC_t, ER_t>::ApplyStrainComputeDep(const TPZTensor<REAL> &
     //fYC.ProjectSigmaDep(sigtrvec, fN.fAlpha, sigprvec, nextalpha, dSigDe);
 	fYC.ProjectSigmaDep(sigtrvec, fN.fAlpha, sigprvec, nextalpha, GradSigma);
 
-
-    //GradSigma.Print("Grad");
     fN.fAlpha = nextalpha;
+	DecompSig.fEigenvalues = sigprvec; // CHANGING THE EIGENVALUES FOR THE ONES OF SIGMAPR
+	sigma = TPZTensor<REAL>(DecompSig);
+	fER.ComputeDeformation(sigma, epsElaNp1);
 
-#ifdef LOG4CXX
-    if (logger->isDebugEnabled()) {
-        std::stringstream sout;
-        sout << "Sig Trial " << sigtrvec << "\nSig Project " << sigprvec << std::endl;
-        GradSigma.Print("GradSigma", sout, EMathematicaInput);
-        LOGPZ_DEBUG(logger, sout.str())
-    }
-#endif
+	//TANGENT MATRIX
 	TPZFNMatrix<36> dSigDe(6, 6, 0.);
-	fYC.ComputeDep(DecompSig, DecompEps, sigprvec,dSigDe);
+	TPZTensor<REAL> asol, diff;
+	fYC.N(sigma, asol);
+	diff = epsTr;
+	diff -= epsElaNp1;
+	STATE norm = diff.Norm();
+	STATE gamma = norm / asol.Norm();
+	TPZFMatrix<STATE> dadsigmat;
+	fYC.dadsig(sigma, dadsigmat);
+	
 
-    // Reconstruction of sigmaprTensor
-    DecompSig.fEigenvalues = sigprvec; // CHANGING THE EIGENVALUES FOR THE ONES OF SIGMAPR
-    sigma = TPZTensor<REAL>(DecompSig);
 
-    fER.ComputeDeformation(sigma, epsElaNp1);
+	//	(*dadsigg = dadsigmax[sigma]//.subst2;
+	//		CT = Ce.((IdentityMatrix[6] - (Outer[Times, asol, asol].Ce) / (asol.Ce.asol)));
+	//	T = (IdentityMatrix[6] - gamma dadsigg.Ce);
+	//	Dep = CT.T; *)
+
+	//		dadsigg = dadsigmax[sigprojvoigth] //. subst2;
+	//		Q = (IdentityMatrix[6] + gamma Ce.dadsigg);
+	//	invQ = Inverse[Q];
+	//	R = invQ.Ce;
+	//	Dep = R - 1 / (asol.R.asol) Outer[Times, R.asol, R.asol];
+
+
+    
     fN.fEpsT = epsTotal;
     epsPN = epsTotal;
     epsPN -= epsElaNp1; // Transforma epsPN em epsPNp1

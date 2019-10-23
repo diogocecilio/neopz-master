@@ -99,6 +99,34 @@ void TPZYCVonMises::GetRotMatrix(TPZFMatrix<STATE> &Rot) {
 	Rot(2, 2) = -1. / sqrt(2.);
 }
 
+//void TPZYCVonMises::GetPMatrix(TPZFMatrix<STATE> &P) {
+//	P.Resize(6, 6);
+//	P(0, 0) = 2. / 3.; P(0, 1) = -1. / 3; P(0, 2) = -1. / 3; P(0, 3) = 0.; P(0, 4) = 0.; P(0, 5) = 0.;
+//	P(1, 0) = -1. / 3.; P(1, 1) = 2. / 3; P(1, 2) = -1. / 3; P(1, 3) = 0.; P(1, 4) = 0.; P(1, 5) = 0.;
+//	P(2, 0) = -1. / 3.; P(2, 1) = -1. / 3; P(2, 2) = 2. / 3; P(2, 3) = 0.; P(2, 4) = 0.; P(2, 5) = 0.;
+//	P(3, 0) = 0.; P(3, 1) = 0.; P(3, 2) = 0.; P(3, 3) = 2.; P(3, 4) = 0.; P(3, 5) = 0.;
+//	P(4, 0) = 0.; P(4, 1) = 0.; P(4, 2) = 0.; P(4, 3) = 0.; P(4, 4) = 2.; P(4, 5) = 0.;
+//	P(5, 0) = 0.; P(5, 1) = 0.; P(5, 2) = 0.; P(5, 3) = 0.; P(5, 4) = 0.; P(5, 5) = 2.;
+//
+//}
+
+void TPZYCVonMises::GetPMatrix(TPZFMatrix<STATE> &P) {
+	P.Resize(6, 6);
+	P(0, 0) = 2. / 3.; P(0, 1) = 0.; P(0, 2) = 0.; P(0, 3) = -1. / 3.; P(0, 4) = 0.; P(0, 5) = -1. / 3.;
+	P(1, 0) = 0.; P(1, 1) = 2.; P(1, 2) = 0.; P(1 ,3) = 0.; P(1, 4) = 0.; P(1, 5) =0.;//XY
+	P(2, 0) = 0.; P(2, 1) = 0.; P(2, 2) = 2.; P(2, 3) = 0.; P(2, 4) = 0.; P(2, 5) = 0.;//XZ
+	P(3, 0) = -1. / 3.; P(3, 1) = 0.; P(3, 2) = 0.; P(3, 3) = 2./3.; P(3, 4) =0.; P(3, 5) = -1. / 3.;
+	P(4, 0) = 0.; P(4, 1) = 0.; P(4, 2) = 2.; P(4, 3) = 0.; P(4, 4) = 0.; P(4, 5) = 0.;//YZ
+	P(5, 0) = -1. / 3.; P(5, 1) = 0.; P(5, 2) = 0; P(5, 3) = -1. / 3.; P(5, 4) = 0.; P(5, 5) = 2. / 3.;
+	
+	//#define _XX_ 0
+	//#define _XY_ 1
+	//#define _XZ_ 2
+	//#define _YY_ 3
+	//#define _YZ_ 4
+	//#define _ZZ_ 5
+}
+
 void TPZYCVonMises::ComputeI1(TPZVec<STATE> stress, STATE &I1)const {
 	STATE sig1, sig2, sig3;
 	sig1 = stress[0];
@@ -218,21 +246,55 @@ void TPZYCVonMises::ProjectSigmaDep(const TPZVec<STATE> &sigtrial, STATE kprev, 
 	//	R = invQ.Ce;
 	//	Dep = R - 1 / (asol.R.asol) Outer[Times, R.asol, R.asol];
 }
-void TPZYCVonMises::ComputeDep(TPZTensor<REAL>::TPZDecomposed DecompSig, TPZTensor<REAL>::TPZDecomposed  DecompEps, TPZManVector<REAL, 3> sigprvec, TPZFMatrix<REAL> &Dep)
+
+void TPZYCVonMises::N(TPZTensor<STATE> sigma, TPZTensor<STATE> &asol)
 {
-	TPZFMatrix<REAL> sigprojvoigth(3, 3, 0.),temp(3,3,0.),N(3,3,0.);
-	
-	for (int i = 0; i < 3; i++)
-	{
-		temp = ProdT(DecompSig.fEigenvectors[i], DecompSig.fEigenvectors[i]);
-		temp *= sigprvec[i];
-		sigprojvoigth += temp;
-	}
-	TPZTensor<REAL> sigprojvoigth2(sigprojvoigth),S;
-	sigprojvoigth2.S(S);
-	STATE J2 = sigprojvoigth2.J2();
-	N = S;
-	S *= sqrt(3.) / (2.*sqrt(J2));
+	sigma.S(asol);
+	STATE J2 = sigma.J2();
+	asol *= sqrt(3.) / (2.*sqrt(J2));
+	asol.XY() *= 2.; asol.XZ() *= 2.; asol.YZ() *= 2.;
+}
+
+void TPZYCVonMises::dadsig(TPZTensor<STATE> sigma, TPZFMatrix<STATE> &dadsigmat)
+{
+	STATE J2 = sigma.J2();
+	TPZFMatrix<STATE> P,temp;
+	TPZTensor<STATE> Sdev;
+	sigma.S(Sdev);
+	Sdev.XY() *= 2.; Sdev.XZ() *= 2.; Sdev.YZ() *= 2.;
+	Sdev.Print(std::cout);
+
+	Sdev.ProdT(Sdev, temp);
+	temp.Print(std::cout);
+
+	GetPMatrix(P);
+	P *= sqrt(3.) / (2.*sqrt(J2));
+	//TPZFMatrix<REAL> TPZTensor<T>::ProdT( TPZTensor<T> t2)
+
+	temp *= sqrt(3.) / (4.*pow(J2, 3. / 2.));
+	P -= temp;
+	dadsigmat = P;
+	dadsigmat.Print(std::cout);
+	//dadsigmax[sigma_] : =
+		//P Sqrt[3] / (2 Sqrt[ComputeJ2[sigma]]) -
+		//Sqrt[3] / (4 ComputeJ2[sigma] ^ (3 / 2)) Outer[Times, ComputeS[sigma],
+		//ComputeS[sigma]]
+
+}
+
+void TPZYCVonMises::ComputeDep(TPZTensor<REAL>::TPZDecomposed DecompSig, TPZTensor<REAL>::TPZDecomposed  DecompEps, TPZTensor<REAL> sigprojvoigt, TPZFMatrix<REAL> &Dep)
+{
+
+	TPZTensor<REAL> asol,strainproj,straintrial,diff;//Flow vector
+	sigprojvoigt.S(asol);
+	STATE J2 = sigprojvoigt.J2();
+	asol *= sqrt(3.) / (2.*sqrt(J2));
+	asol.XY() *=  2.;asol.XZ() *= 2.;asol.YZ() *= 2.;
+	diff = straintrial ;
+	diff -= strainproj;
+	STATE norm = diff.Norm();
+	STATE gamma = norm / asol.Norm();
+
 }
 /**
 * @brief It computes z = beta * y + alpha * opt(this)*x but z and x can not overlap in memory.

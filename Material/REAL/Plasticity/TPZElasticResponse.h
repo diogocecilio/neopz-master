@@ -103,6 +103,9 @@ public:
     sigma.Identity();
     sigma.Multiply(trace,fLambda);
     sigma.Add(epsilon,2.*fMu);
+	sigma.XY() *= 1. / 2.;//WARNING 1/2
+	sigma.XZ() *= 1. / 2.;//WARNING 1/2
+	sigma.YZ() *= 1. / 2.;//WARNING 1/2
     }
 	
     /**

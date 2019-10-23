@@ -591,16 +591,17 @@ void TPZYCMohrCoulombPV::ProjectSigmaDep(const TPZVec<STATE> &sigma_trial, STATE
 	}
 }
 
-
-void TPZYCMohrCoulombPV::ComputeDep(TPZTensor<REAL>::TPZDecomposed DecompSig, TPZTensor<REAL>::TPZDecomposed  DecompEps, TPZManVector<REAL, 3> sigprvec, TPZFMatrix<REAL> &Dep)
+void TPZYCMohrCoulombPV::ComputeDep(TPZTensor<REAL>::TPZDecomposed DecompSig, TPZTensor<REAL>::TPZDecomposed  DecompEps, TPZTensor<REAL> sigprojvoigt, TPZFMatrix<REAL> &Dep)
 {
 	// Aqui calculo minha matriz tangente ------------------------------------
 	TPZFNMatrix<9> GradSigma(3, 3, 0.);
+	TPZVec<STATE> sigprvec(DecompSig.fEigenvalues);
 	//Montando a matriz tangente
 	int kival[] = { 0, 0, 0, 1, 1, 2 };
 	int kjval[] = { 0, 1, 2, 1, 2, 2 };
-	REAL G = fER.G();
-	REAL lambda = fER.Lambda();
+	REAL G;//BUG NOT INITIALIZED
+	REAL lambda;//BUG NOT INITIALIZED
+	DebugStop();
 	// Coluna da matriz tangente
 	for (unsigned int k = 0; k < 6; ++k) {
 		const unsigned int ki = kival[k];
@@ -637,7 +638,7 @@ void TPZYCMohrCoulombPV::ComputeDep(TPZTensor<REAL>::TPZDecomposed DecompSig, TP
 				factor = deigensig / deigeneps;
 			}
 			else {
-				factor = fER.G() * (GradSigma(i, i) - GradSigma(i, j) - GradSigma(j, i) + GradSigma(j, j));
+				factor = G * (GradSigma(i, i) - GradSigma(i, j) - GradSigma(j, i) + GradSigma(j, j));
 			}
 			tempMat = ProdT(DecompEps.fEigenvectors[i], DecompEps.fEigenvectors[j]) + ProdT(DecompEps.fEigenvectors[j], DecompEps.fEigenvectors[i]);
 			for (unsigned int k = 0; k < 6; ++k) {
@@ -672,7 +673,14 @@ void TPZYCMohrCoulombPV::ComputeDep(TPZTensor<REAL>::TPZDecomposed DecompSig, TP
 #endif
 	Dep += RotCorrection;
 }
+void TPZYCMohrCoulombPV::N(TPZTensor<STATE> sigma, TPZTensor<STATE> &asol)
+{
 
+}
+void TPZYCMohrCoulombPV::dadsig(TPZTensor<STATE> sigma, TPZFMatrix<STATE> &dadsigmat)
+{
+
+}
 template void TPZYCMohrCoulombPV::PlasticityFunction<REAL>(const REAL epsp, REAL &sigmay, REAL &H) const;
 template void TPZYCMohrCoulombPV::PlasticityFunction<fadtype>(const fadtype epsp, fadtype &sigmay, fadtype &H) const;
 

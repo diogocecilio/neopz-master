@@ -65,6 +65,12 @@ public:
 
 	void Phi(TPZVec<STATE> sigvec, STATE alpha, TPZVec<STATE> &phi)const;
 
+	void N(TPZTensor<STATE> sigma, TPZTensor<STATE> &asol);
+
+	void GetPMatrix(TPZFMatrix<STATE> &P);
+
+	void dadsig(TPZTensor<STATE> sigma, TPZFMatrix<STATE> &dadsigmat);
+
 	void Read(TPZStream &buf);
 
 	void Write(TPZStream &buf) const;
@@ -88,6 +94,9 @@ private:
 	/// Transform from HW Cylindrical coordinates to eigenvalues
 	static void FromHWCylToPrincipal(const TPZVec<STATE> &HWCylCoords, TPZVec<STATE> &PrincipalCoords);
 
+	
+
+
 public:
 
 //	void Phi(TPZVec<REAL> sigma, STATE alpha, TPZVec<STATE> &phi)const;
@@ -105,7 +114,8 @@ public:
 
 	void ProjectSigmaDep(const TPZVec<STATE> &sigmatrial, STATE kprev, TPZVec<STATE> &sigmaproj, STATE &kproj, TPZFMatrix<STATE> &GradSigma) const;
 
-	void ComputeDep(TPZTensor<REAL>::TPZDecomposed DecompSig, TPZTensor<REAL>::TPZDecomposed  DecompEps, TPZManVector<REAL, 3> sigprvec, TPZFMatrix<REAL> &Dep);
+	void ComputeDep(TPZTensor<REAL>::TPZDecomposed DecompSig, TPZTensor<REAL>::TPZDecomposed  DecompEps, TPZTensor<REAL> sigprojvoigt, TPZFMatrix<REAL> &Dep);
+
 public:
 
 

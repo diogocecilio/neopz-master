@@ -206,6 +206,15 @@ public:
 
 	void ComputeDep(TPZTensor<REAL>::TPZDecomposed DecompSig, TPZTensor<REAL>::TPZDecomposed  DecompEps, TPZManVector<REAL, 3> sigprvec,TPZFMatrix<REAL> &Dep);
 
+	void F1HWCylVonMises();
+
+	//void SetUp(REAL Phi, REAL Psi, REAL c, TPZElasticResponse &ER) {
+	//	fPhi = Phi;
+	//	fPsi = Psi;
+	//	fc = c;
+	//	fER = ER;
+	//}
+
 	void SetResidualTolerance(STATE tol)
 	{
         fResTol = tol;
