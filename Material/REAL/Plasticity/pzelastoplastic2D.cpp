@@ -878,7 +878,7 @@ template class TPZRestoreClass< TPZMatElastoPlastic2D<TPZSandlerDimaggio<SANDLER
 
 template class TPZMatElastoPlastic2D<TPZPlasticStepPV<TPZYCMohrCoulombPV,TPZElasticResponse> , TPZElastoPlasticMem>;
 template class TPZMatElastoPlastic2D<TPZPlasticStepPV<TPZSandlerExtended,TPZElasticResponse> , TPZElastoPlasticMem>;
-//template class TPZMatElastoPlastic2D<TPZPlasticStepPV<TPZYCVonMises, TPZElasticResponse>, TPZElastoPlasticMem>;
+template class TPZMatElastoPlastic2D<TPZPlasticStepPV<TPZYCVonMises, TPZElasticResponse>, TPZElastoPlasticMem>;
 
 template class TPZRestoreClass< TPZMatElastoPlastic2D<TPZPlasticStepPV<TPZYCMohrCoulombPV,TPZElasticResponse> , TPZElastoPlasticMem>, TPZMOHRCOULOMBPV_ID + NUMPLASTICMODELS >;
 template class TPZRestoreClass< TPZMatElastoPlastic2D<TPZPlasticStepPV<TPZSandlerExtended,TPZElasticResponse>, TPZElastoPlasticMem>,TPZSANDLERDIMAGGIOPV_ID + NUMPLASTICMODELS>;

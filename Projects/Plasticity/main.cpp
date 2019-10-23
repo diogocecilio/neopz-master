@@ -17,7 +17,7 @@
 #include "pzcompelpostproc.h"
 #include "pzpostprocmat.h"
 #include "pzpostprocanalysis.h"
-//#include "TPZYCVonMises.h"
+#include "TPZYCVonMises.h"
 //#include "TPZVonMises.h"
 #include "pzfstrmatrix.h"
 #include "pzbndmat.h"
@@ -1885,7 +1885,7 @@ TPZCompMesh *CreateCompMesh(TPZGeoMesh *geomesh)
 {
 	// Criacao da malha computacional
 	TPZCompMesh *comp = new TPZCompMesh(geomesh);
-	comp->SetDefaultOrder(3);
+	comp->SetDefaultOrder(2);
 	TPZElastoPlasticAnalysis::SetAllCreateFunctionsWithMem(comp);
 	// Criar e inserir os materiais na malha
 	//TPZMaterial * mat = new TPZElasticityMaterial(1, 200000, 0.3, 0, 0);
@@ -1896,29 +1896,40 @@ TPZCompMesh *CreateCompMesh(TPZGeoMesh *geomesh)
 	//TPZMatElastoPlasticSest2D<TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> > *PlasticVM = new TPZMatElastoPlasticSest2D< TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> >(materialid, planestrain);
 	//TPZMatElastoPlasticSest2D<TPZPlasticStepPV<TPZYCVonMises, TPZElasticResponse> > *PlasticVM = new TPZMatElastoPlasticSest2D< TPZPlasticStepPV<TPZYCVonMises,  TPZElasticResponse> >(materialid, planestrain);
 
-	REAL elast = 200000.;
+	REAL elast = 210.;
 	REAL poisson = 0.3;
-	REAL angle = 20 * M_PI / 180.;
-	REAL cohesion = 200.;
+	REAL K = elast / (3. * (1. -2.* poisson));
+	REAL G = elast / (2. * (1. + poisson));
+	REAL sigy = 0.24;
 	TPZElasticResponse ER;
 	ER.SetUp(elast, poisson);
-	TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> VM;
-	VM.fYC.SetUp(angle, angle, cohesion, ER);
+	TPZPlasticStepPV<TPZYCVonMises, TPZElasticResponse> VM;
+	VM.fYC.SetUp(K,G,sigy);
 	VM.fER.SetUp(elast, poisson);
+	//void TPZYCVonMises::ProjectSigmaDep(const TPZVec<STATE> &sigtrial, STATE kprev, TPZVec<STATE> &sigproj, STATE &kproj, TPZFMatrix<STATE> &GradSigma) const
+	TPZVec<REAL> pttrial(3, 0.),ptproj;
+	TPZFMatrix<STATE> Dep;
+	REAL sigyn1;
+	pttrial[0] = 13.1582;
+	pttrial[1] = 6.02444;
+	pttrial[2] = 5.75481;
+	VM.fYC.ProjectSigmaDep(pttrial,sigy,ptproj,sigyn1, Dep);
+	std::cout << ptproj[0] << std::endl;
+	std::cout << ptproj[1] << std::endl;
+	std::cout << ptproj[2] << std::endl;
 
-	TPZMatElastoPlasticSest2D<TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> > *PlasticVM = new TPZMatElastoPlasticSest2D< TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> >(materialid, planestrain);
-	//PlasticMC->SetBiot(biotcoef);
+	TPZTensor<REAL> epst,sigma;
+	epst.XX() = 0.0025;
+	epst.YY() = 0.045;
+	epst.XY() = -0.012;
+	TPZFMatrix<REAL> dep(6, 6, 0.);
+	VM.ApplyStrainComputeDep(epst, sigma, dep);
+	
+
+	TPZMatElastoPlasticSest2D<TPZPlasticStepPV<TPZYCVonMises, TPZElasticResponse> > *PlasticVM = new TPZMatElastoPlasticSest2D< TPZPlasticStepPV<TPZYCVonMises, TPZElasticResponse> >(materialid, planestrain);
 
 
-	//TPZMaterial * mat = new TPZMatElastoPlastic2D<;
-
-	//TPZPlasticStepPV<TPZYCVonMises,  TPZElasticResponse> VM;
-	//REAL elast = 200000.;
-	//REAL poisson = 0.3;
-	//VM.fER.SetUp(elast, poisson);
-
-
-//	PlasticVM->SetPlasticity(VM);
+	PlasticVM->SetPlasticity(VM);
 
 	comp->InsertMaterialObject(PlasticVM);
 

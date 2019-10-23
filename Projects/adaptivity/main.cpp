@@ -182,7 +182,7 @@ int main() {
     int nref = 30;
 	int p = 2;
     int dim;
-    int opt = 15;
+    int opt = 14;
 
 	// Output files
     std::ofstream convergence("conv3d.txt");

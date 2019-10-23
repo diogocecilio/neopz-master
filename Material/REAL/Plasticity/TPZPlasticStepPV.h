@@ -137,6 +137,9 @@ public:
      */
     virtual void ApplyStrainComputeDep(const TPZTensor<REAL> &epsTotal, TPZTensor<REAL> &sigma, TPZFMatrix<REAL> &Dep);
 
+
+
+
     /**
      * Attempts to compute an epsTotal value in order to reach an imposed stress state sigma.
      * This method should be used only for test purposes because it isn't fully robust. Some
@@ -200,6 +203,8 @@ public:
 
 
 public:
+
+	void ComputeDep(TPZTensor<REAL>::TPZDecomposed DecompSig, TPZTensor<REAL>::TPZDecomposed  DecompEps, TPZManVector<REAL, 3> sigprvec,TPZFMatrix<REAL> &Dep);
 
 	void SetResidualTolerance(STATE tol)
 	{

@@ -39,7 +39,10 @@ TPZElasticResponse TPZYCVonMises::GetElasticResponse() {
 	return fElasticResponse;
 }
 
-
+void TPZYCVonMises::Phi(TPZVec<STATE> sigvec, STATE alpha, TPZVec<STATE> &phi)const
+{
+	DebugStop();
+}
 
 void TPZYCVonMises::FromHWCylToPrincipal(const TPZVec<STATE> &HWCylCoords, TPZVec<STATE> &HWCart) {
 
@@ -110,9 +113,10 @@ void TPZYCVonMises::ComputeJ2(TPZVec<STATE> stress, STATE &J2)const {
 	sig1 = stress[0];
 	sig2 = stress[1];
 	sig3 = stress[2];
-	J2 = (2. * sig1 * sig2 + pow(sig1 + (-sig1 - sig2 - sig3) / 3., 2.) +
-		pow(sig2 + (-sig1 - sig2 - sig3) / 3., 2.) + 2 * sig1 * sig3 + 2. * sig2 * sig3 +
-		pow((-sig1 - sig2 - sig3) / 3. + sig3, 2.)) / 2.;
+	//J2 = (2. * sig1 * sig2 + pow(sig1 + (-sig1 - sig2 - sig3) / 3., 2.) +
+	//	pow(sig2 + (-sig1 - sig2 - sig3) / 3., 2.) + 2 * sig1 * sig3 + 2. * sig2 * sig3 +
+	//	pow((-sig1 - sig2 - sig3) / 3. + sig3, 2.)) / 2.;
+	J2 = (pow(sig1, 2) + pow(sig2, 2) - sig2*sig3 + pow(sig3, 2) - sig1*(sig2 + sig3)) / 3.;
 }
 
 void TPZYCVonMises::ApplyStrainComputeElasticStress(TPZVec<STATE> &strain, TPZVec<STATE> &stress)const {
@@ -164,5 +168,91 @@ void TPZYCVonMises::ProjectSigma(const TPZVec<STATE> &sigtrial, STATE kprev, TPZ
 
 
 void TPZYCVonMises::ProjectSigmaDep(const TPZVec<STATE> &sigtrial, STATE kprev, TPZVec<STATE> &sigproj, STATE &kproj, TPZFMatrix<STATE> &GradSigma) const {
+
+
+
+	STATE I1, J2;
+	ComputeI1(sigtrial, I1);
+	ComputeJ2(sigtrial, J2);
+	STATE xitrial = I1 / sqrt(3.);
+	STATE rhotrial = sqrt(2.* J2);
+
+	STATE xisol = xitrial;
+
+	STATE rhosol = sqrt(2. / 3.)*fsigy;
+	STATE betasol;
+	STATE denom = (-2.*sigtrial[0] + sigtrial[1] + sigtrial[2]);
+	if (fabs(denom) < 1.e-6){
+		 betasol = 0.;
+	}
+	else {
+		 betasol = atan((sqrt(3.)*(-sigtrial[1] + sigtrial[2])) / denom);
+	}
+
 	
+
+	TPZVec<STATE> sigprojcyl(3,0.);
+
+	sigprojcyl[0] = xisol;
+	sigprojcyl[1] = rhosol;
+	sigprojcyl[2] = betasol;
+	sigproj.resize(3);
+	FromHWCylToPrincipal(sigprojcyl, sigproj);
+	//proj = HW[F1HWCylVonMises[{xisol, rho, betasol}]] //. subst2;
+	//		sigprojvoigth =
+	//		FromCartToVoigt[
+	//			Sum[proj[[i]] Outer[Times, vec[[i]], vec[[i]]], { i, 1, 3 }]];
+	//	asol = ax[sigprojvoigth] //. subst2;
+	//		(*dadsigg = dadsigmax[sigprojvoigth]//.subst2;*)
+	//			epse = invCe.sigprojvoigth;
+	//	gamma = Norm[epsetrial - epse] / Norm[asol];
+
+	//	(*dadsigg = dadsigmax[sigma]//.subst2;
+	//		CT = Ce.((IdentityMatrix[6] - (Outer[Times, asol, asol].Ce) / (asol.Ce.asol)));
+	//	T = (IdentityMatrix[6] - gamma dadsigg.Ce);
+	//	Dep = CT.T; *)
+
+	//		dadsigg = dadsigmax[sigprojvoigth] //. subst2;
+	//		Q = (IdentityMatrix[6] + gamma Ce.dadsigg);
+	//	invQ = Inverse[Q];
+	//	R = invQ.Ce;
+	//	Dep = R - 1 / (asol.R.asol) Outer[Times, R.asol, R.asol];
 }
+void TPZYCVonMises::ComputeDep(TPZTensor<REAL>::TPZDecomposed DecompSig, TPZTensor<REAL>::TPZDecomposed  DecompEps, TPZManVector<REAL, 3> sigprvec, TPZFMatrix<REAL> &Dep)
+{
+	TPZFMatrix<REAL> sigprojvoigth(3, 3, 0.),temp(3,3,0.),N(3,3,0.);
+	
+	for (int i = 0; i < 3; i++)
+	{
+		temp = ProdT(DecompSig.fEigenvectors[i], DecompSig.fEigenvectors[i]);
+		temp *= sigprvec[i];
+		sigprojvoigth += temp;
+	}
+	TPZTensor<REAL> sigprojvoigth2(sigprojvoigth),S;
+	sigprojvoigth2.S(S);
+	STATE J2 = sigprojvoigth2.J2();
+	N = S;
+	S *= sqrt(3.) / (2.*sqrt(J2));
+}
+/**
+* @brief It computes z = beta * y + alpha * opt(this)*x but z and x can not overlap in memory.
+* @param x Is x on the above operation
+* @param y Is y on the above operation
+* @param z Is z on the above operation
+* @param alpha Is alpha on the above operation
+* @param beta Is beta on the above operation
+* @param opt Indicates if is Transpose or not
+*/
+//template <class TVar>
+//void TPZFMatrix<TVar>::MultAdd(const TPZFMatrix<TVar> &x, const TPZFMatrix<TVar> &y, TPZFMatrix<TVar> &z,
+//	const TVar alpha, const TVar beta, const int opt) const {
+//ax[sigma_] := Sqrt[3]/(2 Sqrt[ComputeJ2[sigma]]) ComputeS[sigma]
+//dadsigmax[sigma_] : = P Sqrt[3] / (2 Sqrt[ComputeJ2[sigma]]) -
+// - Sqrt[3] / (4 ComputeJ2[sigma] ^ (3 / 2)) Outer[Times, ComputeS[sigma], ComputeS[sigma]]
+//#define _XX_ 0
+//#define _XY_ 1
+//#define _XZ_ 2
+//#define _YY_ 3
+//#define _YZ_ 4
+//#define _ZZ_ 5
+

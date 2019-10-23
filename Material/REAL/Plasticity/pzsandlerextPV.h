@@ -13,7 +13,7 @@
 #include "TPZTensor.h"
 #include "TPZElasticResponse.h"
 #include "TPZPlasticState.h"
-
+#include "TPZPlasticStepPV.h"
 class TPZSandlerExtended {
 public:
 
@@ -251,6 +251,8 @@ public:
     static void ConvergenceRate(TPZVec<STATE> &xnorm, TPZVec<STATE> &errnorm, TPZVec<STATE> &convergence);
 
     static void CheckCoordinateTransformation(TPZVec<STATE> &cart);
+
+	void ComputeDep(TPZTensor<REAL>::TPZDecomposed DecompSig, TPZTensor<REAL>::TPZDecomposed  DecompEps, TPZManVector<REAL, 3> sigprvec, TPZFMatrix<REAL> &Dep);
 
 public:
     void SetUp(STATE A, STATE B, STATE C, STATE D, STATE K, STATE G, STATE W, STATE R, STATE Phi, STATE N, STATE Psi);

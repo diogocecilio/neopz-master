@@ -1263,7 +1263,7 @@ void TPZMatElastoPlastic<T,TMEM>::FillBoundaryConditionDataRequirement(int type,
 #include "TPZYCWillamWarnke.h"
 #include "TPZWillamWarnke.h"
 //#include "TPZVonMises.h"
-//#include "TPZYCVonMises.h"
+#include "TPZYCVonMises.h"
 #include "TPZYCModifiedMohrCoulomb.h"
 #include "pzsandlerextPV.h"
 #include "TPZPlasticStepPV.h"
@@ -1306,8 +1306,8 @@ template class TPZMatElastoPlastic<TPZPlasticStep<TPZYCDruckerPrager, TPZThermoF
 
 template class TPZMatElastoPlastic<TPZPlasticStepPV<TPZSandlerExtended,TPZElasticResponse> , TPZElastoPlasticMem>;
 template class TPZMatElastoPlastic<TPZPlasticStepPV<TPZYCMohrCoulombPV,TPZElasticResponse> , TPZElastoPlasticMem>;
-//template class TPZMatElastoPlastic<TPZPlasticStepPV<TPZYCVonMises, TPZElasticResponse>, TPZElastoPlasticMem>;
-
+template class TPZMatElastoPlastic<TPZPlasticStepPV<TPZYCVonMises, TPZElasticResponse>, TPZElastoPlasticMem>;
+//template class TPZMatElastoPlastic2D<TPZPlasticStepPV<TPZYCCamClayPV, TPZElasticResponse>, TPZElastoPlasticMem>;
 template class TPZMatElastoPlastic<TPZElasticCriteria , TPZElastoPlasticMem>;
 
 

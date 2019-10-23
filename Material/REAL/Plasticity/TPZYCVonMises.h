@@ -14,7 +14,7 @@
 #include "TPZTensor.h"
 #include "TPZElasticResponse.h"
 #include "TPZPlasticState.h"
-
+#include "TPZPlasticStepPV.h"
 /**
  * @brief Implementa  a plastificacao do criterio de Von Mises
  */
@@ -54,9 +54,16 @@ public:
 
 	void SetElasticResponse(TPZElasticResponse &ER);
 
+
+	void SetUp( REAL K, REAL G,REAL sigy) {
+		fsigy = sigy;
+		fK= K;
+		fG = G;
+	}
+
 	virtual TPZElasticResponse GetElasticResponse() const;
 
-	void YieldFunction(const TPZVec<STATE> &sigma, STATE kprev, TPZVec<STATE> &yield) const;
+	void Phi(TPZVec<STATE> sigvec, STATE alpha, TPZVec<STATE> &phi)const;
 
 	void Read(TPZStream &buf);
 
@@ -83,7 +90,7 @@ private:
 
 public:
 
-	void Phi(TPZVec<REAL> sigma, STATE alpha, TPZVec<STATE> &phi)const;
+//	void Phi(TPZVec<REAL> sigma, STATE alpha, TPZVec<STATE> &phi)const;
 	
 	//    void ApplyStrainComputeSigma(const TPZVec<STATE> &eps, STATE kprev, TPZVec<STATE> &sigma,STATE &kproj) const;
 	void ApplyStrainComputeSigma(TPZVec<STATE> &epst, TPZVec<STATE> &epsp, STATE & kprev, TPZVec<STATE> &epspnext, TPZVec<STATE> &stressnext, STATE & knext) const;
@@ -98,12 +105,12 @@ public:
 
 	void ProjectSigmaDep(const TPZVec<STATE> &sigmatrial, STATE kprev, TPZVec<STATE> &sigmaproj, STATE &kproj, TPZFMatrix<STATE> &GradSigma) const;
 
-
+	void ComputeDep(TPZTensor<REAL>::TPZDecomposed DecompSig, TPZTensor<REAL>::TPZDecomposed  DecompEps, TPZManVector<REAL, 3> sigprvec, TPZFMatrix<REAL> &Dep);
 public:
 
 
 private:
-	STATE fE, fnu,fK,fG; //,fk0;
+	STATE fE, fnu,fK,fG,fsigy; //,fk0;
 
 																   //    bool fIsonCap;
 	TPZElasticResponse fElasticResponse;
