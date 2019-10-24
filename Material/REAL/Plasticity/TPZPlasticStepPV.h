@@ -35,6 +35,102 @@ TPZFNMatrix <6> FromMatToVoight(TPZFNMatrix <9> mat);
  };
  */
 
+class TPZYCBase
+{
+public:
+
+	virtual	~TPZYCBase() {};
+
+
+	virtual TPZElasticResponse GetElasticResponse()=0;
+	virtual void SetElasticResponse(TPZElasticResponse &ER) = 0;
+	virtual void SetUp(REAL K, REAL G, REAL sigy) = 0;
+	virtual TPZElasticResponse GetElasticResponse() const = 0;
+	virtual void Phi(TPZVec<STATE> sigvec, STATE alpha, TPZVec<STATE> &phi)const = 0;
+	virtual void N(TPZTensor<STATE> sigma, TPZTensor<STATE> &asol) = 0;
+	virtual void dadsig(TPZTensor<STATE> sigma, TPZFMatrix<STATE> &dadsigmat) = 0;
+	virtual void Read(TPZStream &buf) = 0;
+	virtual void Write(TPZStream &buf) const = 0;
+	virtual virtual void Print(std::ostream & out) = 0;
+
+	virtual void ApplyStrainComputeSigma(TPZVec<STATE> &epst, TPZVec<STATE> &epsp, STATE & kprev, TPZVec<STATE> &epspnext, TPZVec<STATE> &stressnext, STATE & knext) const = 0;
+	virtual void ComputeI1(TPZVec<STATE> stress, STATE &I1)const = 0;
+	virtual void ComputeJ2(TPZVec<STATE> stress, STATE &J2)const = 0;
+	virtual void ApplyStrainComputeElasticStress(TPZVec<STATE> &strain, TPZVec<STATE> &stress)const = 0;
+	virtual void ApplyStressComputeElasticStrain(TPZVec<STATE> &stress, TPZVec<STATE> &strain)const = 0;
+	virtual void ProjectSigma(const TPZVec<STATE> &sigmatrial, STATE kprev, TPZVec<STATE> &sigmaproj, STATE &kproj) const = 0;
+	virtual void ProjectSigmaDep(const TPZVec<STATE> &sigmatrial, STATE kprev, TPZVec<STATE> &sigmaproj, STATE &kproj, TPZFMatrix<STATE> &GradSigma) const = 0;
+	virtual void ComputeDep(TPZTensor<REAL>::TPZDecomposed DecompSig, TPZTensor<REAL>::TPZDecomposed  DecompEps, TPZTensor<REAL> sigprojvoigt, TPZFMatrix<REAL> &Dep) = 0;
+
+
+	/// The function which defines the plastic surface
+	inline static void GetPMatrix(TPZFMatrix<STATE> &P) {
+		P.Resize(6, 6);
+		P(0, 0) = 2. / 3.; P(0, 1) = 0.; P(0, 2) = 0.; P(0, 3) = -1. / 3.; P(0, 4) = 0.; P(0, 5) = -1. / 3.;//XX
+		P(1, 0) = 0.; P(1, 1) = 2.; P(1, 2) = 0.; P(1, 3) = 0.; P(1, 4) = 0.; P(1, 5) = 0.;//XY
+		P(2, 0) = 0.; P(2, 1) = 0.; P(2, 2) = 2.; P(2, 3) = 0.; P(2, 4) = 0.; P(2, 5) = 0.;//XZ
+		P(3, 0) = -1. / 3.; P(3, 1) = 0.; P(3, 2) = 0.; P(3, 3) = 2. / 3.; P(3, 4) = 0.; P(3, 5) = -1. / 3.;//YY
+		P(4, 0) = 0.; P(4, 1) = 0.; P(4, 2) = 2.; P(4, 3) = 0.; P(4, 4) = 0.; P(4, 5) = 0.;//YZ
+		P(5, 0) = -1. / 3.; P(5, 1) = 0.; P(5, 2) = 0; P(5, 3) = -1. / 3.; P(5, 4) = 0.; P(5, 5) = 2. / 3.;//ZZ
+
+	}
+
+
+	/// The function which defines the plastic surface
+	inline static void GetRotMatrix(TPZFMatrix<STATE> &Rot) {
+		Rot.Resize(3, 3);
+		Rot(0, 0) = 1. / sqrt(3.);
+		Rot(0, 1) = 1. / sqrt(3.);
+		Rot(0, 2) = 1. / sqrt(3.);
+		Rot(1, 0) = sqrt(2. / 3.);
+		Rot(1, 1) = -1. / sqrt(6.);
+		Rot(1, 2) = -1. / sqrt(6.);
+		Rot(2, 0) = 0;
+		Rot(2, 1) = 1. / sqrt(2.);
+		Rot(2, 2) = -1. / sqrt(2.);
+	}
+	/// Transform from Haigh Westergaard cylindrical coordinates to Haigh Westergaard cartesian coordinates
+	inline static void FromHWCylToHWCart(const TPZVec<STATE> &HWCylCoords, TPZVec<STATE> &cart) {
+		cart[0] = HWCylCoords[0];
+		cart[1] = HWCylCoords[1] * cos(HWCylCoords[2]);
+		cart[2] = HWCylCoords[1] * sin(HWCylCoords[2]);
+	}
+	//TPZManVector<STATE> FromHWCartToHWCyl(TPZManVector<STATE>&HWCartCoords);
+	/// Transform from eigenvalues to HW Cylindrical coordinates
+	inline static void FromPrincipalToHWCyl(const TPZVec<STATE> &PrincipalCoords, TPZVec<STATE> &HWCyl) {
+		TPZFNMatrix<9, STATE> Rot(3, 3, 0.), temp(3, 1, 0.), cart(3, 1, 0.);
+		temp(0, 0) = PrincipalCoords[0];
+		temp(1, 0) = PrincipalCoords[1];
+		temp(2, 0) = PrincipalCoords[2];
+		GetRotMatrix(Rot);
+		Rot.Multiply(temp, cart);
+		HWCyl[0] = cart(0, 0);
+		HWCyl[1] = sqrt(cart(1, 0) * cart(1, 0) + cart(2, 0) * cart(2, 0));
+		HWCyl[2] = atan2(cart(2, 0), cart(1, 0));
+	}
+	/// Transform from eigenvalues to HW cartesian coordinates
+	inline static void FromPrincipalToHWCart(const TPZVec<STATE> &PrincipalCoords, TPZVec<STATE> &HWCart) {
+		TPZFNMatrix<9, STATE> Rot(3, 3, 0.), temp(3, 1, 0.), cart(3, 1, 0.);
+		HWCart.Resize(3, 0.);
+		temp(0, 0) = PrincipalCoords[0];
+		temp(1, 0) = PrincipalCoords[1];
+		temp(2, 0) = PrincipalCoords[2];
+		GetRotMatrix(Rot);
+		Rot.Multiply(temp, cart);
+		HWCart[0] = cart(0, 0);
+		HWCart[1] = cart(1, 0);
+		HWCart[2] = cart(2, 0);
+	}
+	/// Transform from HW Cylindrical coordinates to eigenvalues
+	inline static void  FromHWCylToPrincipal(const TPZVec<STATE> &HWCylCoords, TPZVec<STATE> &HWCart) {
+		HWCart[0] = (1. / sqrt(3.)) * HWCylCoords[0] + sqrt(2. / 3.) * HWCylCoords[1] * cos(HWCylCoords[2]);
+		HWCart[1] = (1. / sqrt(3.)) * HWCylCoords[0] + sqrt(2. / 3.) * HWCylCoords[1] * cos(HWCylCoords[2] - (2. * M_PI / 3.));
+		HWCart[2] = (1. / sqrt(3.)) * HWCylCoords[0] + sqrt(2. / 3.) * HWCylCoords[1] * cos(HWCylCoords[2] + (2. * M_PI / 3.));
+	}
+
+};
+
+
 /**
  * @brief Classe que efetua avanco de um passo de plastificacao utilizando o metodo de Newton
  */

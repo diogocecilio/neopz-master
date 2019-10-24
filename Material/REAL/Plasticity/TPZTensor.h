@@ -486,6 +486,11 @@ public:
 	
 	void ProdT(TPZTensor<T> t2, TPZFMatrix<STATE> &sol);
 
+	TPZFMatrix<T> ProdT2(TPZTensor<T> v1);
+
+	TPZFMatrix<T> FromTensorToStandardOrder();
+
+	TPZTensor<T> FromStandardToTensor(TPZFMatrix<T> mat);
     /**
      * Return the 3rd invariant of deviatoric tensor
      */
@@ -931,6 +936,47 @@ void TPZTensor<T>::ProdT( TPZTensor<T> t2, TPZFMatrix<STATE> &sol) {
 		}
 	}
 	sol = mat;
+}
+
+template <class T>
+TPZFMatrix<T> TPZTensor<T>::ProdT2(TPZTensor<T> v1) {
+	TPZFMatrix<T> a = this->FromTensorToStandardOrder();
+	TPZFMatrix<T> b = v1.FromTensorToStandardOrder();
+	int sz = a.Rows();
+	TPZFMatrix<REAL> mat(sz, sz, 0.);
+	for (int i = 0; i < sz; i++) {
+		for (int j = 0; j < sz; j++) {
+			mat(i, j) = a(i, 0) * b(j, 0);
+		}
+	}
+	return mat;
+}
+
+template <class T>
+TPZFMatrix<T> TPZTensor<T>::FromTensorToStandardOrder()
+{
+	TPZTensor<T> mat = *this;
+	TPZFMatrix<T>  b(6, 1, 0.);
+	b(0, 0) = mat.XX();
+	b(1, 0) = mat.YY();
+	b(2, 0) = mat.ZZ();
+	b(3, 0) = mat.XZ();
+	b(4, 0) = mat.YZ();
+	b(5, 0) = mat.XY();
+	return b;
+}
+
+template <class T>
+TPZTensor<T> TPZTensor<T>::FromStandardToTensor(TPZFMatrix<T> mat)
+{
+	TPZTensor<T>  b;
+	b.XX() = mat(0,0);
+	b.YY() = mat(1,0);
+	b.ZZ() = mat(2,0);
+	b.XZ() = mat(3,0);
+	b.YZ() = mat(4,0);
+	b.XY() = mat(5,0);
+	return b;
 }
 
 

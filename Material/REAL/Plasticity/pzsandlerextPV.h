@@ -254,6 +254,8 @@ public:
 
 	void ComputeDep(TPZTensor<REAL>::TPZDecomposed DecompSig, TPZTensor<REAL>::TPZDecomposed  DecompEps, TPZManVector<REAL, 3> sigprvec, TPZFMatrix<REAL> &Dep);
 	void ComputeDep(TPZTensor<REAL>::TPZDecomposed DecompSig, TPZTensor<REAL>::TPZDecomposed  DecompEps, TPZTensor<REAL> sigprojvoigt, TPZFMatrix<REAL> &Dep);
+	void ComputeDep(TPZTensor<STATE> sigma, TPZTensor<STATE> epsTr, TPZTensor<STATE> epsElaNp1, TPZFMatrix<REAL> &Dep);
+
 	void N(TPZTensor<STATE> sigma, TPZTensor<STATE> &asol);
 	void dadsig(TPZTensor<STATE> sigma, TPZFMatrix<STATE> &dadsigmat);
 public:

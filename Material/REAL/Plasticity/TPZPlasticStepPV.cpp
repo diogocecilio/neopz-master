@@ -81,20 +81,11 @@ void TPZPlasticStepPV<YC_t, ER_t>::ApplyStrainComputeDep(const TPZTensor<REAL> &
 
     TPZManVector<REAL, 3> sigtrvec(DecompSig.fEigenvalues), sigprvec(3, 0.);
 
-#ifdef LOG4CXX
-    if (logger->isDebugEnabled()) {
-        std::stringstream sout;
-        DecompSig.Print(sout);
-        LOGPZ_DEBUG(logger, sout.str())
-    }
-#endif
 
     // ReturnMap in the principal values
     STATE nextalpha = -6378.;
     STATE printPlastic = fN.Alpha();
     TPZFNMatrix<9> GradSigma(3, 3, 0.);
-	//void ProjectSigmaDep(const TPZVec<STATE> &sigmatrial, STATE kprev, TPZVec<STATE> &sigmaproj, STATE &kproj, TPZFMatrix<STATE> &tang);
-    //fYC.ProjectSigmaDep(sigtrvec, fN.fAlpha, sigprvec, nextalpha, dSigDe);
 	fYC.ProjectSigmaDep(sigtrvec, fN.fAlpha, sigprvec, nextalpha, GradSigma);
 
     fN.fAlpha = nextalpha;
@@ -102,67 +93,16 @@ void TPZPlasticStepPV<YC_t, ER_t>::ApplyStrainComputeDep(const TPZTensor<REAL> &
 	sigma = TPZTensor<REAL>(DecompSig);
 	fER.ComputeDeformation(sigma, epsElaNp1);
 
+
 	//TANGENT MATRIX
 	TPZFNMatrix<36> dSigDe(6, 6, 0.);
-	TPZTensor<REAL> asol, diff;
-	fYC.N(sigma, asol);
-	diff = epsTr;
-	diff -= epsElaNp1;
-	STATE norm = diff.Norm();
-	STATE gamma = norm / asol.Norm();
-	TPZFMatrix<STATE> dadsigmat;
-	fYC.dadsig(sigma, dadsigmat);
-	
+	fYC.ComputeDep(sigma, epsTr, epsElaNp1, dSigDe);
 
-
-	//	(*dadsigg = dadsigmax[sigma]//.subst2;
-	//		CT = Ce.((IdentityMatrix[6] - (Outer[Times, asol, asol].Ce) / (asol.Ce.asol)));
-	//	T = (IdentityMatrix[6] - gamma dadsigg.Ce);
-	//	Dep = CT.T; *)
-
-	//		dadsigg = dadsigmax[sigprojvoigth] //. subst2;
-	//		Q = (IdentityMatrix[6] + gamma Ce.dadsigg);
-	//	invQ = Inverse[Q];
-	//	R = invQ.Ce;
-	//	Dep = R - 1 / (asol.R.asol) Outer[Times, R.asol, R.asol];
-
-
-    
     fN.fEpsT = epsTotal;
     epsPN = epsTotal;
     epsPN -= epsElaNp1; // Transforma epsPN em epsPNp1
     fN.fEpsP = epsPN;
     Dep = dSigDe;
-
-
-#ifdef LOG4CXX
-    if (logger2->isDebugEnabled()) {
-        if (fabs(printPlastic - fN.fAlpha) > 1.e-4) {
-            std::stringstream sout;
-            TPZVec<STATE> phi;
-            TPZTensor<STATE> epsElastic(fN.fEpsT);
-            epsElastic -= fN.fEpsP;
-            Phi(epsElastic, phi);
-            sout << " \n phi = [";
-            for (int i = 0; i < phi.size(); i++) {
-                sout << phi[i] << " ";
-            }
-
-            sout << " ] " << endl;
-
-            sout << " \n eigenvalues Sigma = [";
-            for (int i = 0; i < 3; i++) {
-                sout << DecompSig.fEigenvalues[i] << " ";
-            }
-
-            sout << " ] " << endl;
-
-
-
-            LOGPZ_DEBUG(logger2, sout.str())
-        }
-    }
-#endif
 }
 
 
@@ -313,6 +253,35 @@ TPZFMatrix<REAL> ProdT(TPZManVector<REAL,3> &v1, TPZManVector<REAL,3> &v2) {
         }
     }
     return mat;
+}
+
+
+TPZFMatrix<REAL> ProdT2(TPZFMatrix<STATE> v1, TPZFMatrix<STATE> v2) {
+	int sz = v1.Rows();
+	if (v1.Cols() > 1) {
+		std::cout << "tensor product must be two vectors " << std::endl;
+		DebugStop();
+	}
+	TPZFMatrix<REAL> mat(sz, sz, 0.);
+	for (int i = 0; i < sz; i++) {
+		for (int j = 0; j < sz; j++) {
+			mat(i, j) = v1(i, 0) * v2(i, 0);
+		}
+	}
+	return mat;
+}
+
+TPZFMatrix<STATE> FromTensorToStandardOrder(TPZTensor<STATE> mat)
+{
+	TPZFMatrix<STATE>  b(6,1,0.);
+	b(0, 0) = mat.XX();
+	b(1, 0) = mat.YY();
+	b(2, 0) = mat.ZZ();
+	b(3, 0) = mat.XZ();
+	b(4, 0) = mat.YZ();
+	b(5, 0) = mat.XY();
+
+	return b;
 }
 
 TPZFNMatrix <6> FromMatToVoight(TPZFNMatrix <9> mat)

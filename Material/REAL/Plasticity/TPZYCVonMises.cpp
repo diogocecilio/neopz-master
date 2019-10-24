@@ -99,32 +99,58 @@ void TPZYCVonMises::GetRotMatrix(TPZFMatrix<STATE> &Rot) {
 	Rot(2, 2) = -1. / sqrt(2.);
 }
 
-//void TPZYCVonMises::GetPMatrix(TPZFMatrix<STATE> &P) {
-//	P.Resize(6, 6);
-//	P(0, 0) = 2. / 3.; P(0, 1) = -1. / 3; P(0, 2) = -1. / 3; P(0, 3) = 0.; P(0, 4) = 0.; P(0, 5) = 0.;
-//	P(1, 0) = -1. / 3.; P(1, 1) = 2. / 3; P(1, 2) = -1. / 3; P(1, 3) = 0.; P(1, 4) = 0.; P(1, 5) = 0.;
-//	P(2, 0) = -1. / 3.; P(2, 1) = -1. / 3; P(2, 2) = 2. / 3; P(2, 3) = 0.; P(2, 4) = 0.; P(2, 5) = 0.;
-//	P(3, 0) = 0.; P(3, 1) = 0.; P(3, 2) = 0.; P(3, 3) = 2.; P(3, 4) = 0.; P(3, 5) = 0.;
-//	P(4, 0) = 0.; P(4, 1) = 0.; P(4, 2) = 0.; P(4, 3) = 0.; P(4, 4) = 2.; P(4, 5) = 0.;
-//	P(5, 0) = 0.; P(5, 1) = 0.; P(5, 2) = 0.; P(5, 3) = 0.; P(5, 4) = 0.; P(5, 5) = 2.;
-//
-//}
-
 void TPZYCVonMises::GetPMatrix(TPZFMatrix<STATE> &P) {
 	P.Resize(6, 6);
-	P(0, 0) = 2. / 3.; P(0, 1) = 0.; P(0, 2) = 0.; P(0, 3) = -1. / 3.; P(0, 4) = 0.; P(0, 5) = -1. / 3.;
-	P(1, 0) = 0.; P(1, 1) = 2.; P(1, 2) = 0.; P(1 ,3) = 0.; P(1, 4) = 0.; P(1, 5) =0.;//XY
-	P(2, 0) = 0.; P(2, 1) = 0.; P(2, 2) = 2.; P(2, 3) = 0.; P(2, 4) = 0.; P(2, 5) = 0.;//XZ
-	P(3, 0) = -1. / 3.; P(3, 1) = 0.; P(3, 2) = 0.; P(3, 3) = 2./3.; P(3, 4) =0.; P(3, 5) = -1. / 3.;
-	P(4, 0) = 0.; P(4, 1) = 0.; P(4, 2) = 2.; P(4, 3) = 0.; P(4, 4) = 0.; P(4, 5) = 0.;//YZ
-	P(5, 0) = -1. / 3.; P(5, 1) = 0.; P(5, 2) = 0; P(5, 3) = -1. / 3.; P(5, 4) = 0.; P(5, 5) = 2. / 3.;
-	
-	//#define _XX_ 0
-	//#define _XY_ 1
-	//#define _XZ_ 2
-	//#define _YY_ 3
-	//#define _YZ_ 4
-	//#define _ZZ_ 5
+	P(0, 0) = 2. / 3.; P(0, 1) = -1. / 3; P(0, 2) = -1. / 3; P(0, 3) = 0.; P(0, 4) = 0.; P(0, 5) = 0.;
+	P(1, 0) = -1. / 3.; P(1, 1) = 2. / 3; P(1, 2) = -1. / 3; P(1, 3) = 0.; P(1, 4) = 0.; P(1, 5) = 0.;
+	P(2, 0) = -1. / 3.; P(2, 1) = -1. / 3; P(2, 2) = 2. / 3; P(2, 3) = 0.; P(2, 4) = 0.; P(2, 5) = 0.;
+	P(3, 0) = 0.; P(3, 1) = 0.; P(3, 2) = 0.; P(3, 3) = 2.; P(3, 4) = 0.; P(3, 5) = 0.;
+	P(4, 0) = 0.; P(4, 1) = 0.; P(4, 2) = 0.; P(4, 3) = 0.; P(4, 4) = 2.; P(4, 5) = 0.;
+	P(5, 0) = 0.; P(5, 1) = 0.; P(5, 2) = 0.; P(5, 3) = 0.; P(5, 4) = 0.; P(5, 5) = 2.;
+
+}
+
+//void TPZYCVonMises::GetPMatrix(TPZFMatrix<STATE> &P) {
+//	P.Resize(6, 6);
+//	P(0, 0) = 2. / 3.; P(0, 1) = 0.; P(0, 2) = 0.; P(0, 3) = -1. / 3.; P(0, 4) = 0.; P(0, 5) = -1. / 3.;
+//	P(1, 0) = 0.; P(1, 1) = 2.; P(1, 2) = 0.; P(1 ,3) = 0.; P(1, 4) = 0.; P(1, 5) =0.;//XY
+//	P(2, 0) = 0.; P(2, 1) = 0.; P(2, 2) = 2.; P(2, 3) = 0.; P(2, 4) = 0.; P(2, 5) = 0.;//XZ
+//	P(3, 0) = -1. / 3.; P(3, 1) = 0.; P(3, 2) = 0.; P(3, 3) = 2./3.; P(3, 4) =0.; P(3, 5) = -1. / 3.;
+//	P(4, 0) = 0.; P(4, 1) = 0.; P(4, 2) = 2.; P(4, 3) = 0.; P(4, 4) = 0.; P(4, 5) = 0.;//YZ
+//	P(5, 0) = -1. / 3.; P(5, 1) = 0.; P(5, 2) = 0; P(5, 3) = -1. / 3.; P(5, 4) = 0.; P(5, 5) = 2. / 3.;
+//	
+//	//#define _XX_ 0
+//	//#define _XY_ 1
+//	//#define _XZ_ 2
+//	//#define _YY_ 3
+//	//#define _YZ_ 4
+//	//#define _ZZ_ 5
+//}
+
+//void TPZYCVonMises::GetCMatrix(TPZFMatrix<STATE> &C) {
+//	C.Resize(6, 6);
+//	STATE val1 = 4. * fG / 3. + fK;
+//	STATE val2 = -2. * fG / 3. + fK;
+//	STATE val3 = fG;
+//	C(0, 0) = val1; C(0, 1) =   0.; C(0, 2) =  0.; C(0, 3) =val2; C(0, 4) =  0.; C(0, 5) = val2;//XX
+//	C(1, 0) =   0.; C(1, 1) = val3; C(1, 2) =  0.; C(1, 3) =   0.; C(1, 4) = 0.; C(1, 5) =   0.;//XY
+//	C(2, 0) =   0.; C(2, 1) =   0.; C(2, 2) =val3; C(2, 3) =   0.; C(2, 4) = 0.; C(2, 5) =   0.;//XZ
+//	C(3, 0) = val2; C(3, 1) =   0.; C(3, 2) =  0.; C(3, 3) = val1; C(3, 4) = 0.; C(3, 5) = val2;//YY
+//	C(4, 0) =   0.; C(4, 1) =   0.; C(4, 2) =  0.; C(4, 3) =   0.; C(4, 4) = val3; C(4, 5) =   0.;//YZ
+//	C(5, 0) = val2; C(5, 1) =   0.; C(5, 2) =  0.; C(5, 3) = val2; C(5, 4) = 0.; C(5, 5) = val3;//ZZ
+//}
+
+void TPZYCVonMises::GetCMatrix(TPZFMatrix<STATE> &C) {
+	C.Resize(6, 6);
+	STATE val1 = 4. * fG / 3. + fK;
+	STATE val2 = -2. * fG / 3. + fK;
+	STATE val3 = fG;
+	C(0, 0) = val1; C(0, 1) = val2; C(0, 2) = val2; C(0, 3) = 0.; C(0, 4) = 0.; C(0, 5) = 0.;//XX
+	C(1, 0) = val2; C(1, 1) = val1; C(1, 2) = val2; C(1, 3) = 0.; C(1, 4) = 0.; C(1, 5) = 0.;//XY
+	C(2, 0) = val2; C(2, 1) = val2; C(2, 2) = val1; C(2, 3) = 0.; C(2, 4) = 0.; C(2, 5) = 0.;//XZ
+	C(3, 0) = 0.; C(3, 1) = 0.; C(3, 2) = 0.; C(3, 3) = val3; C(3, 4) = 0.; C(3, 5) = 0.;//YY
+	C(4, 0) = 0.; C(4, 1) = 0.; C(4, 2) = 0.; C(4, 3) = 0.; C(4, 4) = val3; C(4, 5) = 0.;//YZ
+	C(5, 0) = 0.; C(5, 1) = 0.; C(5, 2) = 0.; C(5, 3) = 0.; C(5, 4) = 0.; C(5, 5) = val3;//ZZ
 }
 
 void TPZYCVonMises::ComputeI1(TPZVec<STATE> stress, STATE &I1)const {
@@ -262,9 +288,12 @@ void TPZYCVonMises::dadsig(TPZTensor<STATE> sigma, TPZFMatrix<STATE> &dadsigmat)
 	TPZTensor<STATE> Sdev;
 	sigma.S(Sdev);
 	Sdev.XY() *= 2.; Sdev.XZ() *= 2.; Sdev.YZ() *= 2.;
-	Sdev.Print(std::cout);
+	//Sdev.Print(std::cout);
+	temp = Sdev.ProdT2(Sdev);
 
-	Sdev.ProdT(Sdev, temp);
+	//Sdev.ProdT(Sdev, temp);
+	Sdev.Print(std::cout);
+	std::cout << " - - S(X)S - - " << std::endl;
 	temp.Print(std::cout);
 
 	GetPMatrix(P);
@@ -274,6 +303,7 @@ void TPZYCVonMises::dadsig(TPZTensor<STATE> sigma, TPZFMatrix<STATE> &dadsigmat)
 	temp *= sqrt(3.) / (4.*pow(J2, 3. / 2.));
 	P -= temp;
 	dadsigmat = P;
+	std::cout << " - - dadsigmat - - " << std::endl;
 	dadsigmat.Print(std::cout);
 	//dadsigmax[sigma_] : =
 		//P Sqrt[3] / (2 Sqrt[ComputeJ2[sigma]]) -
@@ -282,18 +312,71 @@ void TPZYCVonMises::dadsig(TPZTensor<STATE> sigma, TPZFMatrix<STATE> &dadsigmat)
 
 }
 
-void TPZYCVonMises::ComputeDep(TPZTensor<REAL>::TPZDecomposed DecompSig, TPZTensor<REAL>::TPZDecomposed  DecompEps, TPZTensor<REAL> sigprojvoigt, TPZFMatrix<REAL> &Dep)
+void TPZYCVonMises::ComputeDep(TPZTensor<STATE> sigma, TPZTensor<STATE> epsTr, TPZTensor<STATE> epsElaNp1, TPZFMatrix<REAL> &Dep)
 {
 
-	TPZTensor<REAL> asol,strainproj,straintrial,diff;//Flow vector
-	sigprojvoigt.S(asol);
-	STATE J2 = sigprojvoigt.J2();
-	asol *= sqrt(3.) / (2.*sqrt(J2));
-	asol.XY() *=  2.;asol.XZ() *= 2.;asol.YZ() *= 2.;
-	diff = straintrial ;
-	diff -= strainproj;
+	//TPZTensor<REAL> asol,strainproj,straintrial,diff;//Flow vector
+	//sigprojvoigt.S(asol);
+	//STATE J2 = sigprojvoigt.J2();
+	//asol *= sqrt(3.) / (2.*sqrt(J2));
+	//asol.XY() *=  2.;asol.XZ() *= 2.;asol.YZ() *= 2.;
+	//diff = straintrial ;
+	//diff -= strainproj;
+	//STATE norm = diff.Norm();
+	//STATE gamma = norm / asol.Norm();
+
+	//TANGENT MATRIX
+	TPZFNMatrix<36> dSigDe(6, 6, 0.);
+	TPZTensor<REAL> asol, diff;
+	N(sigma, asol);
+	diff = epsTr;
+	diff -= epsElaNp1;
 	STATE norm = diff.Norm();
 	STATE gamma = norm / asol.Norm();
+	TPZFMatrix<STATE> dadsigmat,Q,C,I(6,6,0.),temp,invQ,R;
+	dadsig(sigma, dadsigmat);
+	GetCMatrix(C);
+	std::cout << " - - C - - " << std::endl;
+	C.Print(std::cout);
+	C.Multiply(dadsigmat,temp);
+	temp *= gamma;
+	I.Identity();
+	I += temp;
+	Q = I;
+	std::cout << " - - Q - - " << std::endl;
+	Q.Print(std::cout);
+	Q.Inverse(invQ, ELU);
+	std::cout << " - - Q^-1 - - " << std::endl;
+	invQ.Print(std::cout);
+	invQ.Multiply(C, R);
+	std::cout << " - - R - - " << std::endl;
+	R.Print(std::cout);
+	TPZFMatrix<STATE> asolcopy = asol.FromTensorToStandardOrder();
+	temp.Zero();
+	std::cout << " - - asolcopy - - " << std::endl;
+	asolcopy.Print(std::cout);
+	R.Multiply(asolcopy, temp);
+	std::cout << " - - R.asol - - " << std::endl;
+	temp.Print(std::cout);
+	STATE tempscalar = 1./Dot(asolcopy, temp);
+	//void TPZTensor<T>::ProdT(TPZTensor<T> t2, TPZFMatrix<STATE> &sol)
+	TPZFMatrix<STATE> T;
+	TPZTensor<STATE> temptensor;
+	temptensor = temptensor.FromStandardToTensor(temp);
+	T = temptensor.ProdT2(temptensor);
+	std::cout << " - - R.asol(X)R.asol - - " << std::endl;
+	T.Print(std::cout);
+	//temptensor.ProdT(temptensor, T);
+	T *= tempscalar;
+	Dep = R;
+	Dep -= T;
+	std::cout << " - - Dep - - " << std::endl;
+	Dep.Print(std::cout);
+	//Q = (IdentityMatrix[6] + gamma Ce.dadsigg);
+	//invQ = Inverse[Q];
+	//R = invQ.Ce;
+	//Dep = R - 1 / (asol.R.asol) Outer[Times, R.asol, R.asol];
+
 
 }
 /**

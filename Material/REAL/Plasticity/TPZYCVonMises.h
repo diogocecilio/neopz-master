@@ -18,7 +18,7 @@
 /**
  * @brief Implementa  a plastificacao do criterio de Von Mises
  */
-class TPZYCVonMises {
+class TPZYCVonMises  {
     
 
 
@@ -69,6 +69,8 @@ public:
 
 	void GetPMatrix(TPZFMatrix<STATE> &P);
 
+	void GetCMatrix(TPZFMatrix<STATE> &C);
+
 	void dadsig(TPZTensor<STATE> sigma, TPZFMatrix<STATE> &dadsigmat);
 
 	void Read(TPZStream &buf);
@@ -114,7 +116,7 @@ public:
 
 	void ProjectSigmaDep(const TPZVec<STATE> &sigmatrial, STATE kprev, TPZVec<STATE> &sigmaproj, STATE &kproj, TPZFMatrix<STATE> &GradSigma) const;
 
-	void ComputeDep(TPZTensor<REAL>::TPZDecomposed DecompSig, TPZTensor<REAL>::TPZDecomposed  DecompEps, TPZTensor<REAL> sigprojvoigt, TPZFMatrix<REAL> &Dep);
+	void ComputeDep(TPZTensor<STATE> sigma, TPZTensor<STATE> epsTr, TPZTensor<STATE> epsElaNp1, TPZFMatrix<REAL> &Dep);
 
 public:
 
