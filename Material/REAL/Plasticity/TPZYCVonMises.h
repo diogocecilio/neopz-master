@@ -42,6 +42,9 @@ public:
 		fE = source.fE;
 		fnu = source.fnu;
 		fElasticResponse = source.fElasticResponse;
+		fsigy = source.fsigy;
+		fK = source.fK;
+		fG = source.fG;
 
 		return *this;
 	}
@@ -55,7 +58,7 @@ public:
 	void SetElasticResponse(TPZElasticResponse &ER);
 
 
-	void SetUp( REAL K, REAL G,REAL sigy) {
+	void SetUp( REAL K, REAL G,REAL sigy)  {
 		fsigy = sigy;
 		fK= K;
 		fG = G;
@@ -118,10 +121,11 @@ public:
 
 	void ComputeDep(TPZTensor<STATE> sigma, TPZTensor<STATE> epsTr, TPZTensor<STATE> epsElaNp1, TPZFMatrix<REAL> &Dep);
 
+	void TransForm(TPZFMatrix<REAL> &Dep1, TPZFMatrix<REAL> &Dep2);
 public:
 
 
-private:
+protected:
 	STATE fE, fnu,fK,fG,fsigy; //,fk0;
 
 																   //    bool fIsonCap;

@@ -22,7 +22,9 @@
 // Metodos para deixar o prog mais "encapsulado"
 REAL NormVecOfMat(TPZFNMatrix <9> mat);
 REAL InnerVecOfMat(TPZFMatrix<REAL> &m1, TPZFMatrix<REAL> &m2);
-TPZFMatrix<REAL> ProdT(TPZManVector<REAL,3> &v1, TPZManVector<REAL,3> &v2);
+//TPZFMatrix<REAL> ProdT(TPZManVector<REAL,3> &v1, TPZManVector<REAL,3> &v2);
+TPZFMatrix<REAL> ProdT(TPZManVector<REAL, 3> &v1, TPZManVector<REAL, 3> &v2);
+void ProdT(TPZManVector<REAL, 3> &v1, TPZManVector<REAL, 3> &v2, TPZFMatrix<REAL> & mat);
 TPZFNMatrix <6> FromMatToVoight(TPZFNMatrix <9> mat);
 
 /*
@@ -331,6 +333,10 @@ public:
 
     /** @brief Object representing the elastic response */
     ER_t fER;
+
+	/** @brief Compute the tangent opreator */
+	/** An improved numerical integration algorithm for elastoplastic constitutive equations. Appendix C  */
+	void TangentOperator(TPZFMatrix<REAL> & gradient, TPZTensor<REAL>::TPZDecomposed & eps_eigen_system, TPZTensor<REAL>::TPZDecomposed & sig_eigen_system, TPZFMatrix<REAL> & Tangent);
 
 protected:
 

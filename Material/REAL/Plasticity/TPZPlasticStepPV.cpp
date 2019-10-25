@@ -463,33 +463,103 @@ void TPZPlasticStepPV<YC_t, ER_t>::SetElasticResponse(TPZElasticResponse &ER)
     fER = ER;
     fYC.SetElasticResponse(ER);
 }
+
+
+template <class YC_t, class ER_t>
+void TPZPlasticStepPV<YC_t, ER_t>::TangentOperator(TPZFMatrix<REAL> & gradient, TPZTensor<REAL>::TPZDecomposed & eps_eigen_system, TPZTensor<REAL>::TPZDecomposed & sig_eigen_system, TPZFMatrix<REAL> & Tangent) {
+
+
+	//Montando a matriz tangente
+	unsigned int kival[] = { 0, 0, 0, 1, 1, 2 };
+	unsigned int kjval[] = { 0, 1, 2, 1, 2, 2 };
+	REAL G = fER.G();
+	REAL lambda = fER.Lambda();
+
+	// Coluna da matriz tangente
+	for (unsigned int k = 0; k < 6; ++k) {
+		const unsigned int ki = kival[k];
+		const unsigned int kj = kjval[k];
+		for (unsigned int i = 0; i < 3; ++i) {
+			for (unsigned int j = 0; j < 3; ++j) {
+				REAL temp = 2 * G * eps_eigen_system.fEigenvectors[j][kj] * eps_eigen_system.fEigenvectors[j][ki];
+				if (ki == kj) {
+					temp += lambda;
+				}
+				else {
+					temp *= 2.;
+				}
+				for (int l = 0; l < 6; ++l) {
+					const unsigned int li = kival[l];
+					const unsigned int lj = kjval[l];
+					Tangent(l, k) += temp * gradient(i, j) * eps_eigen_system.fEigenvectors[i][li] * eps_eigen_system.fEigenvectors[i][lj];
+				}/// l
+			}///j
+		}///i
+	}///k
+
+	REAL deigensig = 0., deigeneps = 0.;
+	TPZFNMatrix<9, REAL> tempMat(3, 3, 0.);
+	TPZFNMatrix<9, REAL> temp_mat(3, 3, 0.);
+	//    TPZFNMatrix<9> ColCorr(3, 3, 0.);
+	TPZFNMatrix<6> ColCorrV(6, 1, 0.);
+
+	// Correction of the eigenvectors variation
+	for (unsigned int i = 0; i < 2; ++i) {
+		for (unsigned int j = i + 1; j < 3; ++j) {
+			deigeneps = eps_eigen_system.fEigenvalues[i] - eps_eigen_system.fEigenvalues[j];
+			deigensig = sig_eigen_system.fEigenvalues[i] - sig_eigen_system.fEigenvalues[j];
+
+			REAL factor = 0.;
+			if (!IsZero(deigeneps)) {
+				factor = deigensig / deigeneps;
+			}
+			else {
+				factor = fER.G() * (gradient(i, i) - gradient(i, j) - gradient(j, i) + gradient(j, j)); // expression C.20
+			}
+
+			ProdT(eps_eigen_system.fEigenvectors[i], eps_eigen_system.fEigenvectors[j], temp_mat);
+			for (unsigned int it = 0; it < 3; ++it) {
+				for (unsigned int jt = 0; jt < 3; ++jt) {
+					tempMat(it, jt) += temp_mat(it, jt);
+				}
+			}
+
+			ProdT(eps_eigen_system.fEigenvectors[j], eps_eigen_system.fEigenvectors[i], temp_mat);
+			for (unsigned int it = 0; it < 3; ++it) {
+				for (unsigned int jt = 0; jt < 3; ++jt) {
+					tempMat(it, jt) += temp_mat(it, jt);
+				}
+			}
+
+			// expression C.14
+			for (unsigned int k = 0; k < 6; ++k) {
+				const unsigned int ki = kival[k];
+				const unsigned int kj = kjval[k];
+				if (ki == kj) {
+					temp_mat = (eps_eigen_system.fEigenvectors[j][ki] * eps_eigen_system.fEigenvectors[i][kj]) * factor * tempMat;
+				}
+				else {
+					temp_mat = (eps_eigen_system.fEigenvectors[j][ki] * eps_eigen_system.fEigenvectors[i][kj] + eps_eigen_system.fEigenvectors[j][kj] * eps_eigen_system.fEigenvectors[i][ki]) * factor * tempMat;
+				}
+				ColCorrV = FromMatToVoight(temp_mat);
+				for (int l = 0; l < 6; l++) {
+					Tangent(l, k) += ColCorrV(l, 0);
+				}
+			}
+		} // j
+	} // i
+
+}
+
+void ProdT(TPZManVector<REAL, 3> &v1, TPZManVector<REAL, 3> &v2, TPZFMatrix<REAL> & mat) {
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+			mat(i, j) = v1[i] * v2[j];
+		}
+	}
+}
+
 #include "TPZYCVonMises.h"
 template class TPZPlasticStepPV<TPZSandlerExtended, TPZElasticResponse>;
 template class TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>;
 template class TPZPlasticStepPV<TPZYCVonMises, TPZElasticResponse>;
-/*
- // Correcao do giro rigido
- for (int i = 0; i < 2; i++) {
- for (int j = i+1; j<3 ; j++) {
- deigeneps = DecompEps.fEigenvalues[i]  - DecompEps.fEigenvalues[j];
- deigensig = sigprvec[i] - sigprvec[j];
- TPZFNMatrix<9,REAL> tempMat(3,1,0.);
- depsMat.Multiply(epsegveFromProj[i], tempMat);
- REAL deij = InnerVecOfMat(tempMat,epsegveFromProj[j]);
- REAL factor = 0.;
- if (!IsZero(deigeneps)) {
- factor = deigensig * deij / deigeneps;
- }
- else {
- factor = fER.G() * ( GradSigma(i,i) - GradSigma(i,j) - GradSigma(j,i) + GradSigma(j,j) ) * deij;
- }
- std::cout << "factor = " << factor << std::endl;
- std::cout << "G = " << fER.G() << std::endl;
- GradSigma.Print("GradSigma");
- tempMat.Redim(3, 3);
- tempMat = ProdT(epsegveFromProj[i],epsegveFromProj[j]) + ProdT(epsegveFromProj[j],epsegveFromProj[i]);
- factorMat += tempMat * factor;
- 
- }
- }
- */

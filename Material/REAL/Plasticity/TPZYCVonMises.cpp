@@ -15,12 +15,12 @@ TPZYCVonMises::~TPZYCVonMises()
 
 TPZYCVonMises::TPZYCVonMises(const TPZYCVonMises & copy)
 {
-	
+	TPZYCVonMises::operator=(copy);
 }
 
 
 void TPZYCVonMises::SetElasticResponse(TPZElasticResponse &ER) {
-
+	fElasticResponse = ER;
 }
 
 TPZElasticResponse TPZYCVonMises::GetElasticResponse() const {
@@ -33,10 +33,6 @@ void TPZYCVonMises::Read(TPZStream &buf) {
 
 void TPZYCVonMises::Write(TPZStream &buf) const {
 
-}
-
-TPZElasticResponse TPZYCVonMises::GetElasticResponse() {
-	return fElasticResponse;
 }
 
 void TPZYCVonMises::Phi(TPZVec<STATE> sigvec, STATE alpha, TPZVec<STATE> &phi)const
@@ -217,25 +213,65 @@ void TPZYCVonMises::ApplyStrainComputeSigma(TPZVec<STATE> &epst, TPZVec<STATE> &
 
 void TPZYCVonMises::ProjectSigma(const TPZVec<STATE> &sigtrial, STATE kprev, TPZVec<STATE> &sigproj, STATE &kproj) const {
 	
-
-}
-
-
-void TPZYCVonMises::ProjectSigmaDep(const TPZVec<STATE> &sigtrial, STATE kprev, TPZVec<STATE> &sigproj, STATE &kproj, TPZFMatrix<STATE> &GradSigma) const {
-
-
-
 	STATE I1, J2;
+
 	ComputeI1(sigtrial, I1);
+
 	ComputeJ2(sigtrial, J2);
+
 	STATE xitrial = I1 / sqrt(3.);
+
 	STATE rhotrial = sqrt(2.* J2);
 
 	STATE xisol = xitrial;
 
 	STATE rhosol = sqrt(2. / 3.)*fsigy;
+
 	STATE betasol;
+
 	STATE denom = (-2.*sigtrial[0] + sigtrial[1] + sigtrial[2]);
+
+	if (fabs(denom) < 1.e-6) {
+		betasol = 0.;
+	}
+	else {
+		betasol = atan((sqrt(3.)*(-sigtrial[1] + sigtrial[2])) / denom);
+	}
+
+	TPZVec<STATE> sigprojcyl(3, 0.);
+
+	sigprojcyl[0] = xisol;
+
+	sigprojcyl[1] = rhosol;
+
+	sigprojcyl[2] = betasol;
+
+	sigproj.resize(3);
+
+	FromHWCylToPrincipal(sigprojcyl, sigproj);
+}
+
+
+void TPZYCVonMises::ProjectSigmaDep(const TPZVec<STATE> &sigtrial, STATE kprev, TPZVec<STATE> &sigproj, STATE &kproj, TPZFMatrix<STATE> &GradSigma) const {
+
+	STATE I1, J2;
+
+	ComputeI1(sigtrial, I1);
+
+	ComputeJ2(sigtrial, J2);
+
+	STATE xitrial = I1 / sqrt(3.);
+
+	STATE rhotrial = sqrt(2.* J2);
+
+	STATE xisol = xitrial;
+
+	STATE rhosol = sqrt(2. / 3.)*fsigy;
+
+	STATE betasol;
+
+	STATE denom = (-2.*sigtrial[0] + sigtrial[1] + sigtrial[2]);
+
 	if (fabs(denom) < 1.e-6){
 		 betasol = 0.;
 	}
@@ -243,161 +279,195 @@ void TPZYCVonMises::ProjectSigmaDep(const TPZVec<STATE> &sigtrial, STATE kprev, 
 		 betasol = atan((sqrt(3.)*(-sigtrial[1] + sigtrial[2])) / denom);
 	}
 
-	
-
 	TPZVec<STATE> sigprojcyl(3,0.);
 
 	sigprojcyl[0] = xisol;
+
 	sigprojcyl[1] = rhosol;
+
 	sigprojcyl[2] = betasol;
+
 	sigproj.resize(3);
+
 	FromHWCylToPrincipal(sigprojcyl, sigproj);
-	//proj = HW[F1HWCylVonMises[{xisol, rho, betasol}]] //. subst2;
-	//		sigprojvoigth =
-	//		FromCartToVoigt[
-	//			Sum[proj[[i]] Outer[Times, vec[[i]], vec[[i]]], { i, 1, 3 }]];
-	//	asol = ax[sigprojvoigth] //. subst2;
-	//		(*dadsigg = dadsigmax[sigprojvoigth]//.subst2;*)
-	//			epse = invCe.sigprojvoigth;
-	//	gamma = Norm[epsetrial - epse] / Norm[asol];
-
-	//	(*dadsigg = dadsigmax[sigma]//.subst2;
-	//		CT = Ce.((IdentityMatrix[6] - (Outer[Times, asol, asol].Ce) / (asol.Ce.asol)));
-	//	T = (IdentityMatrix[6] - gamma dadsigg.Ce);
-	//	Dep = CT.T; *)
-
-	//		dadsigg = dadsigmax[sigprojvoigth] //. subst2;
-	//		Q = (IdentityMatrix[6] + gamma Ce.dadsigg);
-	//	invQ = Inverse[Q];
-	//	R = invQ.Ce;
-	//	Dep = R - 1 / (asol.R.asol) Outer[Times, R.asol, R.asol];
 }
 
 void TPZYCVonMises::N(TPZTensor<STATE> sigma, TPZTensor<STATE> &asol)
 {
 	sigma.S(asol);
 	STATE J2 = sigma.J2();
-	asol *= sqrt(3.) / (2.*sqrt(J2));
+	if (fabs(J2) < 1.e-6) {
+		asol = 0.;
+	}
+	else {
+		asol *= sqrt(3.) / (2.*sqrt(J2));
+	}
+	
 	asol.XY() *= 2.; asol.XZ() *= 2.; asol.YZ() *= 2.;
 }
 
 void TPZYCVonMises::dadsig(TPZTensor<STATE> sigma, TPZFMatrix<STATE> &dadsigmat)
 {
 	STATE J2 = sigma.J2();
+
 	TPZFMatrix<STATE> P,temp;
+
 	TPZTensor<STATE> Sdev;
+
 	sigma.S(Sdev);
+
 	Sdev.XY() *= 2.; Sdev.XZ() *= 2.; Sdev.YZ() *= 2.;
-	//Sdev.Print(std::cout);
+
 	temp = Sdev.ProdT2(Sdev);
 
-	//Sdev.ProdT(Sdev, temp);
-	Sdev.Print(std::cout);
-	std::cout << " - - S(X)S - - " << std::endl;
-	temp.Print(std::cout);
-
 	GetPMatrix(P);
+
 	P *= sqrt(3.) / (2.*sqrt(J2));
-	//TPZFMatrix<REAL> TPZTensor<T>::ProdT( TPZTensor<T> t2)
 
 	temp *= sqrt(3.) / (4.*pow(J2, 3. / 2.));
+
 	P -= temp;
+
 	dadsigmat = P;
-	std::cout << " - - dadsigmat - - " << std::endl;
-	dadsigmat.Print(std::cout);
-	//dadsigmax[sigma_] : =
-		//P Sqrt[3] / (2 Sqrt[ComputeJ2[sigma]]) -
-		//Sqrt[3] / (4 ComputeJ2[sigma] ^ (3 / 2)) Outer[Times, ComputeS[sigma],
-		//ComputeS[sigma]]
 
 }
 
 void TPZYCVonMises::ComputeDep(TPZTensor<STATE> sigma, TPZTensor<STATE> epsTr, TPZTensor<STATE> epsElaNp1, TPZFMatrix<REAL> &Dep)
 {
 
-	//TPZTensor<REAL> asol,strainproj,straintrial,diff;//Flow vector
-	//sigprojvoigt.S(asol);
-	//STATE J2 = sigprojvoigt.J2();
-	//asol *= sqrt(3.) / (2.*sqrt(J2));
-	//asol.XY() *=  2.;asol.XZ() *= 2.;asol.YZ() *= 2.;
-	//diff = straintrial ;
-	//diff -= strainproj;
-	//STATE norm = diff.Norm();
-	//STATE gamma = norm / asol.Norm();
-
-	//TANGENT MATRIX
 	TPZFNMatrix<36> dSigDe(6, 6, 0.);
+
 	TPZTensor<REAL> asol, diff;
+
 	N(sigma, asol);
+
 	diff = epsTr;
+
 	diff -= epsElaNp1;
+
 	STATE norm = diff.Norm();
-	STATE gamma = norm / asol.Norm();
+
+	STATE gamma;
+	if (fabs(asol.Norm()) < 1.e-6) {
+		 gamma = 0.;
+	}
+	else {
+		 gamma = norm / asol.Norm();
+	}
+
+
+
 	TPZFMatrix<STATE> dadsigmat,Q,C,I(6,6,0.),temp,invQ,R;
+
 	dadsig(sigma, dadsigmat);
+
 	GetCMatrix(C);
-	std::cout << " - - C - - " << std::endl;
-	C.Print(std::cout);
+
 	C.Multiply(dadsigmat,temp);
+
 	temp *= gamma;
+
 	I.Identity();
+
 	I += temp;
+
 	Q = I;
-	std::cout << " - - Q - - " << std::endl;
-	Q.Print(std::cout);
+
 	Q.Inverse(invQ, ELU);
-	std::cout << " - - Q^-1 - - " << std::endl;
-	invQ.Print(std::cout);
+
 	invQ.Multiply(C, R);
-	std::cout << " - - R - - " << std::endl;
-	R.Print(std::cout);
+
 	TPZFMatrix<STATE> asolcopy = asol.FromTensorToStandardOrder();
+
 	temp.Zero();
-	std::cout << " - - asolcopy - - " << std::endl;
-	asolcopy.Print(std::cout);
+
 	R.Multiply(asolcopy, temp);
-	std::cout << " - - R.asol - - " << std::endl;
-	temp.Print(std::cout);
+
 	STATE tempscalar = 1./Dot(asolcopy, temp);
-	//void TPZTensor<T>::ProdT(TPZTensor<T> t2, TPZFMatrix<STATE> &sol)
+
 	TPZFMatrix<STATE> T;
+
 	TPZTensor<STATE> temptensor;
+
 	temptensor = temptensor.FromStandardToTensor(temp);
+
 	T = temptensor.ProdT2(temptensor);
-	std::cout << " - - R.asol(X)R.asol - - " << std::endl;
-	T.Print(std::cout);
-	//temptensor.ProdT(temptensor, T);
+
 	T *= tempscalar;
-	Dep = R;
-	Dep -= T;
-	std::cout << " - - Dep - - " << std::endl;
-	Dep.Print(std::cout);
-	//Q = (IdentityMatrix[6] + gamma Ce.dadsigg);
-	//invQ = Inverse[Q];
-	//R = invQ.Ce;
-	//Dep = R - 1 / (asol.R.asol) Outer[Times, R.asol, R.asol];
+
+	dSigDe = R;
+
+	dSigDe -= T;
+
+	TransForm(dSigDe, Dep);
+
+	//std::cout << " - - C - - " << std::endl;
+	//C.Print(std::cout);
+	//std::cout << " - - Q - - " << std::endl;
+	//Q.Print(std::cout);
+	//std::cout << " - - Q^-1 - - " << std::endl;
+	//invQ.Print(std::cout);
+	//std::cout << " - - R - - " << std::endl;
+	//R.Print(std::cout);
+	//std::cout << " - - asolcopy - - " << std::endl;
+	//asolcopy.Print(std::cout);
+	//std::cout << " - - R.asol - - " << std::endl;
+	//temp.Print(std::cout);
+	//std::cout << " - - R.asol(X)R.asol - - " << std::endl;
+	//T.Print(std::cout);
+	//std::cout << " - - Dep - - " << std::endl;
+	//Dep.Print(std::cout);
 
 
 }
-/**
-* @brief It computes z = beta * y + alpha * opt(this)*x but z and x can not overlap in memory.
-* @param x Is x on the above operation
-* @param y Is y on the above operation
-* @param z Is z on the above operation
-* @param alpha Is alpha on the above operation
-* @param beta Is beta on the above operation
-* @param opt Indicates if is Transpose or not
-*/
-//template <class TVar>
-//void TPZFMatrix<TVar>::MultAdd(const TPZFMatrix<TVar> &x, const TPZFMatrix<TVar> &y, TPZFMatrix<TVar> &z,
-//	const TVar alpha, const TVar beta, const int opt) const {
-//ax[sigma_] := Sqrt[3]/(2 Sqrt[ComputeJ2[sigma]]) ComputeS[sigma]
-//dadsigmax[sigma_] : = P Sqrt[3] / (2 Sqrt[ComputeJ2[sigma]]) -
-// - Sqrt[3] / (4 ComputeJ2[sigma] ^ (3 / 2)) Outer[Times, ComputeS[sigma], ComputeS[sigma]]
-//#define _XX_ 0
-//#define _XY_ 1
-//#define _XZ_ 2
-//#define _YY_ 3
-//#define _YZ_ 4
-//#define _ZZ_ 5
+void TPZYCVonMises::TransForm(TPZFMatrix<REAL> &A, TPZFMatrix<REAL> &B)
+{
+	B.Resize(6, 6);
+	int xxa=0, yya=1, zza=2,  xza=3, yza=4, xya = 5;
+	int xxb=0, yyb=3, zzb=5,  xyb=1, xzb=2, yzb = 4;
+	B(xxb, xxb) = A(xxa, xxa);
+	B(xxb, yyb) = A(xxa, yya);
+	B(xxb, zzb) = A(xxa, zza);
+	B(xxb, xyb) = A(xxa, xya);
+	B(xxb, xzb) = A(xxa, xza);
+	B(xxb, yzb) = A(xxa, yza);
 
+	B(yyb, xxb) = A(yya, xxa);
+	B(yyb, yyb) = A(yya, yya);
+	B(yyb, zzb) = A(yya, zza);
+	B(yyb, xyb) = A(yya, xya);
+	B(yyb, xzb) = A(yya, xza);
+	B(yyb, yzb) = A(yya, yza);
+
+
+	B(zzb, xxb) = A(zza, xxa);
+	B(zzb, yyb) = A(zza, yya);
+	B(zzb, zzb) = A(zza, zza);
+	B(zzb, xyb) = A(zza, xya);
+	B(zzb, xzb) = A(zza, xza);
+	B(zzb, yzb) = A(zza, yza);
+
+
+	B(xyb, xxb) = A(xya, xxa);
+	B(xyb, yyb) = A(xya, yya);
+	B(xyb, zzb) = A(xya, zza);
+	B(xyb, xyb) = A(xya, xya);
+	B(xyb, xzb) = A(xya, xza);
+	B(xyb, yzb) = A(xya, yza);
+
+
+	B(xzb, xxb) = A(xza, xxa);
+	B(xzb, yyb) = A(xza, yya);
+	B(xzb, zzb) = A(xza, zza);
+	B(xzb, xyb) = A(xza, xya);
+	B(xzb, xzb) = A(xza, xza);
+	B(xzb, yzb) = A(xza, yza);
+
+	B(yzb, xxb) = A(yza, xxa);
+	B(yzb, yyb) = A(yza, yya);
+	B(yzb, zzb) = A(yza, zza);
+	B(yzb, xyb) = A(yza, xya);
+	B(yzb, xzb) = A(yza, xza);
+	B(yzb, yzb) = A(yza, yza);
+
+}
