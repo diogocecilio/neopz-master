@@ -6,7 +6,7 @@
 #ifndef TPZSLOAN_H
 #define TPZSLOAN_H
 
-#include "pzrenumbering.h"
+#include "TPZRenumbering.h"
 
 #ifndef BORLAND
 #include "sloan.h"
@@ -21,7 +21,7 @@
 class TPZSloan : public TPZRenumbering {
  public:
 
-	virtual void Resequence(TPZVec<long> &perm, TPZVec<long> &iperm);
+	virtual void Resequence(TPZVec<int64_t> &perm, TPZVec<int64_t> &iperm) override;
   
  private:
 

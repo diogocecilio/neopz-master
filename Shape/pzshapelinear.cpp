@@ -15,16 +15,21 @@ namespace pzshape {
 	void TPZShapeLinear::Chebyshev(REAL x,int num,TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi){
 		// Quadratic or higher shape functions
 		if(num <= 0) return;
+        phi.Zero();
+        dphi.Zero();
 		phi.Put(0,0,1.0);
 		dphi.Put(0,0, 0.0);
 		if(num == 1) return;
 		phi.Put(1,0, x);
 		dphi.Put(0,1, 1.0);
 		int ord;
+       // dphi.Print("DphisAntes = ",std::cout,EMathematicaInput);
+    
 		for(ord = 2;ord<num;ord++) {
 			phi.Put(ord,0, 2.0*x*phi(ord-1,0) - phi(ord-2,0));
 			dphi.Put(0,ord, 2.0*x*dphi(0,ord-1) + 2.0*phi(ord-1,0) - dphi(0,ord-2));
 		}
+       // dphi.Print("DphisDepois = ",std::cout,EMathematicaInput);
 	}
 	
     void TPZShapeLinear::Expo(REAL x,int num,TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi){
@@ -187,15 +192,15 @@ namespace pzshape {
 	} //end of method
 	
 	// Setting Chebyshev polynomials as orthogonal sequence generating shape functions
-	void (*TPZShapeLinear::fOrthogonal)(REAL, int, TPZFMatrix<REAL> &, TPZFMatrix<REAL> &) = TPZShapeLinear::Expo;
+	void (*TPZShapeLinear::fOrthogonal)(REAL, int, TPZFMatrix<REAL> &, TPZFMatrix<REAL> &) = TPZShapeLinear::Chebyshev;
 	
 	/**
-	 * Computes the generating shape functions for a quadrilateral element
+	 * Computes the generating shape functions for a linear element
 	 * @param pt (input) point where the shape function is computed
 	 * @param phi (input/output) value of the  shape functions
 	 * @param dphi (input/output) value of the derivatives of the shape functions holding the derivatives in a column
 	 */
-	void TPZShapeLinear::ShapeGenerating(TPZVec<REAL> &pt, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi)
+	void TPZShapeLinear::ShapeGenerating(const TPZVec<REAL> &pt, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi)
 	{
 		
 		phi(2,0) = phi(0,0)*phi(1,0);
@@ -206,11 +211,11 @@ namespace pzshape {
 		
 	}
 	
-	void TPZShapeLinear::Shape(TPZVec<REAL> &x,TPZVec<long> &id, TPZVec<int> &order,TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi) {
+	void TPZShapeLinear::Shape(TPZVec<REAL> &x,TPZVec<int64_t> &id, TPZVec<int> &order,TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi) {
 		//	num = number of functions to compute
-#ifndef NODEBUG
+#ifndef PZNODEBUG
 		if ( order[0] < 0 ) {
-			PZError << "Compelbas::shape --> Invalid dimension for arguments: order = " << order[0]
+			PZError << "TPZShapeLinear::shape --> Invalid dimension for arguments: order = " << order[0]
 			<< " phi.Rows = " << (int) phi.Rows() << " dphi.Cols = " << (int) dphi.Cols() << "\n";
 			return;
 		}
@@ -261,8 +266,13 @@ namespace pzshape {
 			phi(ord,0) = phiint(ord-2,0)*phiblend(2,0);
 		}
 	}
-	
-	void TPZShapeLinear::SideShape(int side, TPZVec<REAL> &pt, TPZVec<long> &id, TPZVec<int> &order,TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi) {
+    void TPZShapeLinear::ShapeCorner(const TPZVec<REAL> &pt,TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi){
+        phi(0,0) = (1-pt[0])/2.;
+        phi(1,0) = (1+pt[0])/2.;
+        dphi(0,0) = -0.5;
+        dphi(0,1)= 0.5;
+    }
+	void TPZShapeLinear::SideShape(int side, TPZVec<REAL> &pt, TPZVec<int64_t> &id, TPZVec<int> &order,TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi) {
 		switch(side) {
 			case 0:
 			case 1:
@@ -274,31 +284,71 @@ namespace pzshape {
 		}
 	}
 	
-    void TPZShapeLinear::ShapeOrder(TPZVec<long> &id, TPZVec<int> &order, TPZGenMatrix<int> &shapeorders)//, TPZVec<long> &sides
+    void TPZShapeLinear::ShapeOrder(const TPZVec<int64_t> &id, const TPZVec<int> &order, TPZGenMatrix<int> &shapeorders)//, TPZVec<int64_t> &sides
     {
-        DebugStop();
+        int nshape = 2+(order[0]-1);
+        if (shapeorders.Rows() != nshape) {
+            DebugStop();
+        }
+        shapeorders(0,0) = 1;
+        shapeorders(1,0) = 1;
+        for (int i=2; i<nshape; i++) {
+            shapeorders(i,0) = i;
+        }
     }
     
     
-    void TPZShapeLinear::SideShapeOrder(int side,  TPZVec<long> &id, int order, TPZGenMatrix<int> &shapeorders)
+    void TPZShapeLinear::SideShapeOrder(const int side,  const TPZVec<int64_t> &id, const int order, TPZGenMatrix<int> &shapeorders)
     {
         DebugStop();
     }
-    
-	void TPZShapeLinear::ShapeInternal(TPZVec<REAL>  &x, int ord,TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi,int transformation_index){
+    //versao nova-> o ponto vem transformado
+	void TPZShapeLinear::ShapeInternal(TPZVec<REAL>  &x, int ord,TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi){
 		// Quadratic or higher shape functions
 		int num = ord-1;
 		if(num <= 0) return;
 		REAL y;
-		TransformPoint1d(transformation_index,x[0],y);
-		fOrthogonal(y,num,phi,dphi);
-		TransformDerivative1d(transformation_index,num,dphi);
+		fOrthogonal(x[0],num,phi,dphi);
 	}
-	
+    
+    //versao antiga-> o ponto precisa ser transformado
+    void TPZShapeLinear::ShapeInternal(TPZVec<REAL>  &x, int ord,TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi,int transformation_index){
+        // Quadratic or higher shape functions
+        int num = ord-1;
+        if(num <= 0) return;
+        REAL y;
+        TransformPoint1d(transformation_index, x[0], y);
+        fOrthogonal(y,num,phi,dphi);
+        TransformDerivative1d(transformation_index, num, dphi);
+    }
+    
+    
+    
+    void TPZShapeLinear::ShapeInternal(int side, TPZVec<REAL> &x, int order,TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi){
+        if (side != 2) {
+            return;
+        }
+        ShapeInternal(x, order, phi, dphi);
+    }
+    
 	void TPZShapeLinear::TransformPoint1d(int transid,REAL in,REAL &out) {
 		if (!transid) out =  in;
 		else          out = -in;
 	}
+    TPZTransform<REAL> TPZShapeLinear::ParametricTransform(int transid) {
+        TPZTransform<REAL> trans(1,1);
+        if (!transid) trans.Mult()(0,0) =  1;
+        else          trans.Mult()(0,0) = -1;
+        return trans;
+    }
+    
+    
+    void TPZShapeLinear::TransformPoint1d(int transid,double &val) {
+        
+        if (!transid) val =  1.0;
+        else          val = -1.0;
+    }
+    
 	
 	void TPZShapeLinear::TransformDerivative1d(int transid,int num,TPZFMatrix<REAL> &in) {
 		
@@ -307,7 +357,7 @@ namespace pzshape {
 		for(i=0;i<num;i++) in(0,i) = -in(0,i);
 	}
 	
-	int TPZShapeLinear::GetTransformId1d(TPZVec<long> &id) {
+	int TPZShapeLinear::GetTransformId1d(TPZVec<int64_t> &id) {
 		if (id[1] < id[0]) return 1;
 		else               return 0;
 	}
@@ -319,13 +369,12 @@ namespace pzshape {
 		return 0;
 	}
 	
-	int TPZShapeLinear::NShapeF(TPZVec<int> &order) {
+	int TPZShapeLinear::NShapeF(const TPZVec<int> &order) {
 		int in,res=NCornerNodes;
 		for(in=NCornerNodes;in<NSides;in++) res += NConnectShapeF(in,order[in-NCornerNodes]);
 		return res;
 	}
 	
-#ifdef _AUTODIFF
 	void TPZShapeLinear::ShapeInternal(FADREAL & x,int num,TPZVec<FADREAL> & phi,int transformation_index){
 		// Quadratic or higher shape functions
 		if(num <= 0) return;
@@ -363,6 +412,5 @@ namespace pzshape {
 	
 	void (*TPZShapeLinear::FADfOrthogonal)(FADREAL&,int ,TPZVec<FADREAL> &) =  TPZShapeLinear::Chebyshev/*(FADREAL&, int, TPZVec<FADREAL>&)*/;//Chebyshev;
 
-#endif
-	
+
 };

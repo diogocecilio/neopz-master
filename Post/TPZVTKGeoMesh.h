@@ -23,25 +23,36 @@ class TPZVTKGeoMesh
 	
 public:
 	/** @brief Default constructor for graphical mesh with VTK format */
-	TPZVTKGeoMesh();
+//    TPZVTKGeoMesh();
 	/** @brief Default destructor */
-	~TPZVTKGeoMesh();
+//    ~TPZVTKGeoMesh();
 	
 	/** @brief Generate an output of all geomesh to VTK */
-	static void PrintGMeshVTK(TPZGeoMesh *gmesh, std::ofstream &file, bool matColor = true);
+	static void PrintGMeshVTK(TPZGeoMesh *gmesh, std::ofstream &file, bool matColor = true, bool dimension = false);
 	
 	/** @brief Generate an output of all geomesh to VTK */
-	static void PrintGMeshVTK(TPZAutoPointer<TPZGeoMesh> gmesh, std::ofstream &file, bool matColor = false)
+	static void PrintGMeshVTK(TPZAutoPointer<TPZGeoMesh> gmesh, std::ofstream &file, bool matColor = true, bool dimension = false)
     {
-        PrintGMeshVTK(gmesh.operator->(), file, matColor );
+        PrintGMeshVTK(gmesh.operator->(), file, matColor, dimension);
     }
 	
 	/** @brief Generate an output of all geometric elements that have a computational counterpart to VTK */
 	static void PrintCMeshVTK(TPZCompMesh *cmesh, std::ofstream &file, bool matColor = true);
 	
+    /** @brief Generate an output of all geometric elements that have a computational counterpart to VTK */
+    static void PrintCMeshVTK(TPZGeoMesh *gmesh, std::ofstream &file, bool matColor = true);
+    
 	/** @brief Generate an output of all geomesh to VTK, associating to each one the given data */
 	static void PrintGMeshVTK(TPZGeoMesh *gmesh, std::ofstream &file, TPZVec<int> &elData);
 	
+    /** @brief Generate an output of all geomesh to VTK, associating to each one the given data */
+    static void PrintGMeshVTK(TPZGeoMesh *gmesh, std::ofstream &file, TPZVec<int64_t> &elData)
+    {
+        TPZVec<int> eldata2(elData.size());
+        for(int64_t el=0; el<elData.size(); el++) eldata2[el] = elData[el];
+        PrintGMeshVTK(gmesh, file, eldata2);
+    }
+    
 	/** @brief Generate an output of all geomesh to VTK, associating to each one the given data */
 	static void PrintGMeshVTK(TPZGeoMesh *gmesh, std::ofstream &file, TPZVec<REAL> &elData);
 
@@ -64,15 +75,15 @@ public:
 	static void PrintGMeshVTKneighbour_material(TPZGeoMesh *gmesh, std::ofstream &file, int neighMaterial, bool matColor = false);
     
     /** @brief Print the elements that surround a givel geoel */
-    static void PrintGMeshVTKneighbourhood(TPZGeoMesh * gmesh, long elIndex, std::ofstream &file);
+    static void PrintGMeshVTKneighbourhood(TPZGeoMesh * gmesh, int64_t elIndex, std::ofstream &file);
     
     /** @brief Print the given elements */
-    static void PrintGMeshVTK(TPZGeoMesh * gmesh, std::set<long> & elIndex, std::ofstream &file);
+    static void PrintGMeshVTK(TPZGeoMesh * gmesh, std::set<int64_t> & elIndex, std::ofstream &file);
     
     static void SetMaterialVTK(TPZGeoEl * gel, int mat);
 	
 	/** @brief Based on a given geomesh, just the elements that have the given material id will be exported to an VTK file */
-	static void PrintGMeshVTKmy_material(TPZGeoMesh *gmesh, std::ofstream &file, std::set<int> myMaterial, bool matColor = true);
+	static void PrintGMeshVTKmy_material(TPZGeoMesh *gmesh, std::ofstream &file, std::set<int> myMaterial, bool matColor = true, bool dimension = false);
 	
 	/** @brief Get type of the geometric element */
 	static int GetVTK_ElType(TPZGeoEl *gel);

@@ -92,7 +92,7 @@ void Hdiv2dPaper201504::Run(ApproximationSpace problem, Eltype element, TPZVec<i
                     gmesh->SetDimension(fDim);
                     TPZCompMesh *cmeshH1 = this->CMeshH1(gmesh, ordemP, fDim);
                     //condensar
-                    for (long iel=0; iel<cmeshH1->NElements(); iel++) {
+                    for (int64_t iel=0; iel<cmeshH1->NElements(); iel++) {
                         TPZCompEl *cel = cmeshH1->Element(iel);
                         if(!cel) continue;
                         new TPZCondensedCompEl(cel);
@@ -101,7 +101,7 @@ void Hdiv2dPaper201504::Run(ApproximationSpace problem, Eltype element, TPZVec<i
                     cmeshH1->ExpandSolution();
                     cmeshH1->CleanUpUnconnectedNodes();
                     
-                    TPZAnalysis anh1(cmeshH1, true);
+                    TPZLinearAnalysis anh1(cmeshH1, true);
                     
                     SolveSyst(anh1, cmeshH1);
                     
@@ -132,7 +132,7 @@ void Hdiv2dPaper201504::Run(ApproximationSpace problem, Eltype element, TPZVec<i
                     
                     TPZCompMesh * mphysics = CMeshMixed(gmesh,meshvec);
                     
-                    TPZAnalysis an(mphysics, true);
+                    TPZLinearAnalysis an(mphysics, true);
                     
                     SolveSyst(an, mphysics);
                     
@@ -164,7 +164,7 @@ void Hdiv2dPaper201504::Run(ApproximationSpace problem, Eltype element, TPZVec<i
                     
                     TPZCompMesh * mphysics = CMeshMixed(gmesh,meshvec);
                     
-                    TPZAnalysis an(mphysics, true);
+                    TPZLinearAnalysis an(mphysics, true);
                     
                     SolveSyst(an, mphysics);
                     
@@ -250,7 +250,7 @@ void Hdiv2dPaper201504::PrintErrors(ApproximationSpace problem, Eltype element, 
                     int dofTotal = cmeshH1->NEquations();
                     
                     //condensar
-                    for (long iel=0; iel<cmeshH1->NElements(); iel++) {
+                    for (int64_t iel=0; iel<cmeshH1->NElements(); iel++) {
                         TPZCompEl *cel = cmeshH1->Element(iel);
                         if(!cel) continue;
                         new TPZCondensedCompEl(cel);
@@ -261,7 +261,7 @@ void Hdiv2dPaper201504::PrintErrors(ApproximationSpace problem, Eltype element, 
                     
                     int dofCondensed = cmeshH1->NEquations();
                     
-                    TPZAnalysis anh1(cmeshH1, true);
+                    TPZLinearAnalysis anh1(cmeshH1, true);
                     
                     SolveSyst(anh1, cmeshH1);
                     
@@ -296,7 +296,7 @@ void Hdiv2dPaper201504::PrintErrors(ApproximationSpace problem, Eltype element, 
                     
                     DofCond = mphysics->NEquations();
                     
-                    TPZAnalysis an(mphysics, true);
+                    TPZLinearAnalysis an(mphysics, true);
                     
                     SolveSyst(an, mphysics);
                     
@@ -335,7 +335,7 @@ void Hdiv2dPaper201504::PrintErrors(ApproximationSpace problem, Eltype element, 
                     
                     DofCond = mphysics->NEquations();
                     
-                    TPZAnalysis an(mphysics, true);
+                    TPZLinearAnalysis an(mphysics, true);
                     
                     SolveSyst(an, mphysics);
                     
@@ -385,12 +385,12 @@ TPZGeoMesh *Hdiv2dPaper201504::GMesh(int dim, bool ftriang, int ndiv)
     
     gmesh->SetDimension(dim);
     
-    TPZVec <long> TopolQuad(4);
-    TPZVec <long> TopolTriang(3);
-    TPZVec <long> TopolLine(2);
+    TPZVec <int64_t> TopolQuad(4);
+    TPZVec <int64_t> TopolTriang(3);
+    TPZVec <int64_t> TopolLine(2);
     
     //indice dos nos
-    long id = 0;
+    int64_t id = 0;
 
     TPZManVector<REAL,3> coord(2,0.);
     int in = 0;
@@ -634,11 +634,11 @@ TPZCompMesh *Hdiv2dPaper201504::CMeshH1(TPZGeoMesh *gmesh, int pOrder, int dim)
     
     //    //solucao exata
     TPZAutoPointer<TPZFunction<STATE> > solexata;
-    solexata = new TPZDummyFunction<STATE>(SolExataH1);
-    material->SetForcingFunctionExact(solexata);
+    solexata = new TPZDummyFunction<STATE>(SolExataH1, 5);
+    material->SetExactSol(solexata);
     
     //funcao do lado direito da equacao do problema
-    TPZDummyFunction<STATE> *dum = new TPZDummyFunction<STATE>(ForcingH1);
+    TPZDummyFunction<STATE> *dum = new TPZDummyFunction<STATE>(ForcingH1,5);
     TPZAutoPointer<TPZFunction<STATE> > forcef;
     dum->SetPolynomialOrder(20);
     forcef = dum;
@@ -850,11 +850,11 @@ TPZCompMesh *Hdiv2dPaper201504::CMeshMixed(TPZGeoMesh * gmesh, TPZVec<TPZCompMes
     //solucao exata
     TPZAutoPointer<TPZFunction<STATE> > solexata;
     
-    solexata = new TPZDummyFunction<STATE>(SolExata);
-    material->SetForcingFunctionExact(solexata);
+    solexata = new TPZDummyFunction<STATE>(SolExata,5);
+    material->SetExactSol(solexata);
     mphysics->SetDimModel(dim);
     //funcao do lado direito da equacao do problema
-    TPZDummyFunction<STATE> *dum = new TPZDummyFunction<STATE>(Forcing);
+    TPZDummyFunction<STATE> *dum = new TPZDummyFunction<STATE>(Forcing,5);
     TPZAutoPointer<TPZFunction<STATE> > forcef;
     dum->SetPolynomialOrder(10);
     forcef = dum;
@@ -877,25 +877,25 @@ TPZCompMesh *Hdiv2dPaper201504::CMeshMixed(TPZGeoMesh * gmesh, TPZVec<TPZCompMes
     
     val2(0,0) = 0.0;
     val2(1,0) = 0.0;
-    TPZAutoPointer<TPZFunction<STATE> > FBCond1 = new TPZDummyFunction<STATE>(ForcingBC1D);
+    TPZAutoPointer<TPZFunction<STATE> > FBCond1 = new TPZDummyFunction<STATE>(ForcingBC1D, 5);
     BCond1 = material->CreateBC(mat, fbc1,fdirichlet, val1, val2);
     BCond1->SetForcingFunction(FBCond1);
     
     val2(0,0) = 0.0;
     val2(1,0) = 0.0;
-    TPZAutoPointer<TPZFunction<STATE> > FBCond2 = new TPZDummyFunction<STATE>(ForcingBC2D);
+    TPZAutoPointer<TPZFunction<STATE> > FBCond2 = new TPZDummyFunction<STATE>(ForcingBC2D, 5);
     BCond2 = material->CreateBC(mat, fbc2,fdirichlet, val1, val2);
     BCond2->SetForcingFunction(FBCond2);
     
     val2(0,0) = 0.0;
     val2(1,0) = 0.0;
-    TPZAutoPointer<TPZFunction<STATE> > FBCond3 = new TPZDummyFunction<STATE>(ForcingBC3D);
+    TPZAutoPointer<TPZFunction<STATE> > FBCond3 = new TPZDummyFunction<STATE>(ForcingBC3D, 5);
     BCond3 = material->CreateBC(mat, fbc3,fdirichlet, val1, val2);
     BCond3->SetForcingFunction(FBCond3);
     
     val2(0,0) = 0.0;
     val2(1,0) = 0.0;
-    TPZAutoPointer<TPZFunction<STATE> > FBCond4 = new TPZDummyFunction<STATE>(ForcingBC4D);
+    TPZAutoPointer<TPZFunction<STATE> > FBCond4 = new TPZDummyFunction<STATE>(ForcingBC4D, 5);
     BCond4 = material->CreateBC(mat, fbc4,fdirichlet, val1, val2);
     BCond4->SetForcingFunction(FBCond4);
 
@@ -919,10 +919,10 @@ TPZCompMesh *Hdiv2dPaper201504::CMeshMixed(TPZGeoMesh * gmesh, TPZVec<TPZCompMes
     mphysics->Reference()->ResetReference();
     mphysics->LoadReferences();
     
-    long nel = mphysics->ElementVec().NElements();
+    int64_t nel = mphysics->ElementVec().NElements();
     
-    std::map<long, long> bctoel, eltowrap;
-    for (long el=0; el<nel; el++) {
+    std::map<int64_t, int64_t> bctoel, eltowrap;
+    for (int64_t el=0; el<nel; el++) {
         TPZCompEl *cel = mphysics->Element(el);
         TPZGeoEl *gel = cel->Reference();
         int matid = gel->MaterialId();
@@ -944,15 +944,15 @@ TPZCompMesh *Hdiv2dPaper201504::CMeshMixed(TPZGeoMesh * gmesh, TPZVec<TPZCompMes
     }
     
     TPZStack< TPZStack< TPZMultiphysicsElement *,7> > wrapEl;
-    for(long el = 0; el < nel; el++)
+    for(int64_t el = 0; el < nel; el++)
     {
         TPZMultiphysicsElement *mfcel = dynamic_cast<TPZMultiphysicsElement *>(mphysics->Element(el));
         if(mfcel->Dimension()==dim) TPZBuildMultiphysicsMesh::AddWrap(mfcel, fmatId, wrapEl);//criei elementos com o mesmo matId interno, portanto nao preciso criar elemento de contorno ou outro material do tipo TPZLagrangeMultiplier
     }
     
-    for (long el =0; el < wrapEl.size(); el++) {
+    for (int64_t el =0; el < wrapEl.size(); el++) {
         TPZCompEl *cel = wrapEl[el][0];
-        long index = cel->Index();
+        int64_t index = cel->Index();
         eltowrap[index] = el;
     }
     
@@ -960,14 +960,14 @@ TPZCompMesh *Hdiv2dPaper201504::CMeshMixed(TPZGeoMesh * gmesh, TPZVec<TPZCompMes
     TPZBuildMultiphysicsMesh::AddConnects(meshvec,mphysics);
     TPZBuildMultiphysicsMesh::TransferFromMeshes(meshvec, mphysics);
     
-    std::map<long, long>::iterator it;
+    std::map<int64_t, int64_t>::iterator it;
     for (it = bctoel.begin(); it != bctoel.end(); it++) {
-        long bcindex = it->first;
-        long elindex = it->second;
+        int64_t bcindex = it->first;
+        int64_t elindex = it->second;
         if (eltowrap.find(elindex) == eltowrap.end()) {
             DebugStop();
         }
-        long wrapindex = eltowrap[elindex];
+        int64_t wrapindex = eltowrap[elindex];
         TPZCompEl *bcel = mphysics->Element(bcindex);
         TPZMultiphysicsElement *bcmf = dynamic_cast<TPZMultiphysicsElement *>(bcel);
         if (!bcmf) {
@@ -978,10 +978,10 @@ TPZCompMesh *Hdiv2dPaper201504::CMeshMixed(TPZGeoMesh * gmesh, TPZVec<TPZCompMes
     }
     
     //------- Create and add group elements -------
-    long index, nenvel;
+    int64_t index, nenvel;
     nenvel = wrapEl.NElements();
     TPZStack<TPZElementGroup *> elgroups;
-    for(long ienv=0; ienv<nenvel; ienv++){
+    for(int64_t ienv=0; ienv<nenvel; ienv++){
         TPZElementGroup *elgr = new TPZElementGroup(*wrapEl[ienv][0]->Mesh(),index);
         elgroups.Push(elgr);
         nel = wrapEl[ienv].NElements();
@@ -993,7 +993,7 @@ TPZCompMesh *Hdiv2dPaper201504::CMeshMixed(TPZGeoMesh * gmesh, TPZVec<TPZCompMes
     mphysics->ComputeNodElCon();
     // create condensed elements
     // increase the NumElConnected of one pressure connects in order to prevent condensation
-    for (long ienv=0; ienv<nenvel; ienv++) {
+    for (int64_t ienv=0; ienv<nenvel; ienv++) {
         TPZElementGroup *elgr = elgroups[ienv];
         int nc = elgr->NConnects();
         for (int ic=0; ic<nc; ic++) {
@@ -1017,10 +1017,10 @@ TPZCompMesh *Hdiv2dPaper201504::CMeshMixed(TPZGeoMesh * gmesh, TPZVec<TPZCompMes
 void Hdiv2dPaper201504::ErrorH1(TPZCompMesh *l2mesh, int p, int ndiv, int pos,  TPZFMatrix< REAL > &errors)
 {
     
-    long nel = l2mesh->NElements();
+    int64_t nel = l2mesh->NElements();
     int dim = l2mesh->Dimension();
     TPZManVector<REAL,10> globalerrors(10,0.);
-    for (long el=0; el<nel; el++) {
+    for (int64_t el=0; el<nel; el++) {
         TPZCompEl *cel = l2mesh->ElementVec()[el];
         if (!cel) {
             continue;
@@ -1031,7 +1031,7 @@ void Hdiv2dPaper201504::ErrorH1(TPZCompMesh *l2mesh, int p, int ndiv, int pos,  
         }
         TPZManVector<REAL,10> elerror(10,0.);
         elerror.Fill(0.);
-        cel->EvaluateError(SolExataH1, elerror, NULL);
+        cel->EvaluateError(elerror, 0);
         
         int nerr = elerror.size();
         globalerrors.resize(nerr);
@@ -1052,10 +1052,10 @@ void Hdiv2dPaper201504::ErrorH1(TPZCompMesh *l2mesh, int p, int ndiv, int pos,  
 void Hdiv2dPaper201504::ErrorH1(TPZCompMesh *l2mesh, int p, int ndiv, std::ostream &out, int DoFT, int DofCond)
 {
     
-    long nel = l2mesh->NElements();
+    int64_t nel = l2mesh->NElements();
     int dim = l2mesh->Dimension();
     TPZManVector<STATE,10> globalerrors(10,0.);
-    for (long el=0; el<nel; el++) {
+    for (int64_t el=0; el<nel; el++) {
         TPZCompEl *cel = l2mesh->ElementVec()[el];
         if (!cel) {
             continue;
@@ -1066,7 +1066,7 @@ void Hdiv2dPaper201504::ErrorH1(TPZCompMesh *l2mesh, int p, int ndiv, std::ostre
         }
         TPZManVector<REAL,10> elerror(10,0.);
         elerror.Fill(0.);
-        cel->EvaluateError(SolExataH1, elerror, NULL);
+        cel->EvaluateError(elerror, 0);
         
         int nerr = elerror.size();
         globalerrors.resize(nerr);
@@ -1083,15 +1083,15 @@ void Hdiv2dPaper201504::ErrorH1(TPZCompMesh *l2mesh, int p, int ndiv, std::ostre
 
 void Hdiv2dPaper201504::ErrorPrimalDual(TPZCompMesh *l2mesh, TPZCompMesh *hdivmesh,  int p, int ndiv, int pos, TPZFMatrix< REAL > &errors)
 {
-    long nel = hdivmesh->NElements();
+    int64_t nel = hdivmesh->NElements();
     int dim = hdivmesh->Dimension();
     TPZManVector<REAL,10> globalerrorsDual(10,0.);
-    for (long el=0; el<nel; el++) {
+    for (int64_t el=0; el<nel; el++) {
         TPZCompEl *cel = hdivmesh->ElementVec()[el];
         if(cel->Reference()->Dimension()!=dim) continue;
         TPZManVector<REAL,10> elerror(10,0.);
         elerror.Fill(0.);
-        cel->EvaluateError(SolExata, elerror, NULL);
+        cel->EvaluateError(elerror, 0);
         int nerr = elerror.size();
         for (int i=0; i<nerr; i++) {
             globalerrorsDual[i] += elerror[i]*elerror[i];
@@ -1104,10 +1104,10 @@ void Hdiv2dPaper201504::ErrorPrimalDual(TPZCompMesh *l2mesh, TPZCompMesh *hdivme
     nel = l2mesh->NElements();
     
     TPZManVector<REAL,10> globalerrorsPrimal(10,0.);
-    for (long el=0; el<nel; el++) {
+    for (int64_t el=0; el<nel; el++) {
         TPZCompEl *cel = l2mesh->ElementVec()[el];
         TPZManVector<REAL,10> elerror(10,0.);
-        cel->EvaluateError(SolExata, elerror, NULL);
+        cel->EvaluateError(elerror, 0);
         int nerr = elerror.size();
         globalerrorsPrimal.resize(nerr);
         
@@ -1128,15 +1128,15 @@ void Hdiv2dPaper201504::ErrorPrimalDual(TPZCompMesh *l2mesh, TPZCompMesh *hdivme
 
 void Hdiv2dPaper201504::ErrorPrimalDual(TPZCompMesh *l2mesh, TPZCompMesh *hdivmesh,  int p, int ndiv, std::ostream &out, int DoFT, int DofCond)
 {
-    long nel = hdivmesh->NElements();
+    int64_t nel = hdivmesh->NElements();
     int dim = hdivmesh->Dimension();
     TPZManVector<STATE,10> globalerrorsDual(10,0.);
-    for (long el=0; el<nel; el++) {
+    for (int64_t el=0; el<nel; el++) {
         TPZCompEl *cel = hdivmesh->ElementVec()[el];
         if(cel->Reference()->Dimension()!=dim) continue;
         TPZManVector<REAL,10> elerror(10,0.);
         elerror.Fill(0.);
-        cel->EvaluateError(SolExata, elerror, NULL);
+        cel->EvaluateError(elerror, 0);
         int nerr = elerror.size();
         for (int i=0; i<nerr; i++) {
             globalerrorsDual[i] += elerror[i]*elerror[i];
@@ -1149,10 +1149,10 @@ void Hdiv2dPaper201504::ErrorPrimalDual(TPZCompMesh *l2mesh, TPZCompMesh *hdivme
     nel = l2mesh->NElements();
 
     TPZManVector<STATE,10> globalerrorsPrimal(10,0.);
-    for (long el=0; el<nel; el++) {
+    for (int64_t el=0; el<nel; el++) {
         TPZCompEl *cel = l2mesh->ElementVec()[el];
         TPZManVector<REAL,10> elerror(10,0.);
-        cel->EvaluateError(SolExata, elerror, NULL);
+        cel->EvaluateError(elerror, 0);
         int nerr = elerror.size();
         globalerrorsPrimal.resize(nerr);
         
@@ -1197,9 +1197,9 @@ void Hdiv2dPaper201504::ChangeExternalOrderConnects(TPZCompMesh *mesh){
     mesh->CleanUpUnconnectedNodes();
 }
 
+#include "TPZFrontSym.h"
 
-
-void Hdiv2dPaper201504::SolveSyst(TPZAnalysis &an, TPZCompMesh *fCmesh)
+void Hdiv2dPaper201504::SolveSyst(TPZLinearAnalysis &an, TPZCompMesh *fCmesh)
 {
     std::cout <<"Numero de equacoes "<< fCmesh->NEquations()<< std::endl;
     
@@ -1224,7 +1224,7 @@ void Hdiv2dPaper201504::SolveSyst(TPZAnalysis &an, TPZCompMesh *fCmesh)
             else
             {
                 //TPZBandStructMatrix full(fCmesh);
-                TPZSkylineStructMatrix skylstr(fCmesh); //caso simetrico
+                TPZSkylineStructMatrix<STATE> skylstr(fCmesh); //caso simetrico
                 //    TPZSkylineNSymStructMatrix full(fCmesh);
                 an.SetStructuralMatrix(skylstr);
             }
@@ -1237,7 +1237,7 @@ void Hdiv2dPaper201504::SolveSyst(TPZAnalysis &an, TPZCompMesh *fCmesh)
         }
         else
         {
-            TPZBandStructMatrix full(fCmesh);
+            TPZBandStructMatrix<STATE> full(fCmesh);
             an.SetStructuralMatrix(full);
             TPZStepSolver<STATE> step;
             step.SetDirect(ELU);
@@ -1248,7 +1248,7 @@ void Hdiv2dPaper201504::SolveSyst(TPZAnalysis &an, TPZCompMesh *fCmesh)
     }
     else
     {
-        TPZSkylineStructMatrix skylstr(fCmesh); //caso simetrico
+        TPZSkylineStructMatrix<STATE> skylstr(fCmesh); //caso simetrico
         skylstr.SetNumThreads(10);
         an.SetStructuralMatrix(skylstr);
         

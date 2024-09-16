@@ -17,10 +17,13 @@
 class TPZMHMixedMeshControl : public TPZMHMeshControl
 {
     
-    
+protected:
     /// computational mesh to contain the pressure elements
     // this mesh is the same as fCMesh if there are no lagrange multipliers assocated with the average pressure
     TPZAutoPointer<TPZCompMesh> fFluxMesh;
+    
+    /// computational mesh to contain the rotation elements
+    TPZAutoPointer<TPZCompMesh> fRotationMesh;
     
 
 public:
@@ -30,9 +33,12 @@ public:
         
     }
     
-    TPZMHMixedMeshControl(TPZAutoPointer<TPZGeoMesh> gmesh, std::set<long> &coarseindices);
+    TPZMHMixedMeshControl(int dimension);
+    //    TPZMHMixedMeshControl(TPZAutoPointer<TPZGeoMesh> gmesh, std::set<int64_t> &coarseindices);
     
-    TPZMHMixedMeshControl(TPZAutoPointer<TPZGeoMesh> gmesh, TPZVec<long> &coarseindices);
+    TPZMHMixedMeshControl(TPZAutoPointer<TPZGeoMesh> gmesh, TPZVec<int64_t> &coarseindices);
+    
+    TPZMHMixedMeshControl(TPZAutoPointer<TPZGeoMesh> gmesh);
     
     
     TPZMHMixedMeshControl(const TPZMHMixedMeshControl &copy) : TPZMHMeshControl(copy)
@@ -47,8 +53,21 @@ public:
         return *this;
     }
     
+    virtual ~TPZMHMixedMeshControl();
+    /// Insert Boundary condition objects that do not perform any actual computation
+    virtual void InsertPeriferalMaterialObjects() override;
+    
+    /// Insert the necessary H(div) material objects to create the flux mesh
+    virtual void InsertPeriferalHdivMaterialObjects();
+    
+    /// Insert the necessary Pressure material objects to create the flux mesh
+    virtual void InsertPeriferalPressureMaterialObjects();
+    
+    /// Insert the necessary Rotation material objects to create the flux mesh
+    virtual void InsertPeriferalRotationMaterialObjects();
+    
     /// Create all data structures for the computational mesh
-    void BuildComputationalMesh(bool usersubstructure);
+    virtual void BuildComputationalMesh(bool usersubstructure) override;
     
     TPZAutoPointer<TPZCompMesh> FluxMesh()
     {
@@ -63,6 +82,11 @@ public:
         }
     }
     
+    /// Set the hybridization to true
+    virtual void Hybridize(bool flag)
+    {
+        DebugStop();
+    }
 
     /// Put the pointers to the meshes in a vector
     void GetMeshVec(TPZVec<TPZCompMesh *> &meshvec)
@@ -81,35 +105,64 @@ public:
     }
     
 
-    
     /// print the data structure
     void Print(std::ostream &out);
 
+    /// print in a user friendly manner
+    virtual void PrintFriendly(std::ostream &out)
+    {
+        
+    }
+    
 protected:
     
-    TPZCompMesh *CreateHDivMHMMesh();
+   
+
+    /// Create the mesh of the flux approximation space
+    void CreateHDivMHMMesh();
     
-    TPZCompMesh * CreatePressureMHMMesh();
+    /// Create the pressure mesh which is dual to the flux mesh
+    virtual void CreatePressureMHMMesh();
+    
+    /// Create the rotation mesh to elasticity problem
+    virtual void CreateRotationMesh();
     
     // create the elements domain per domain with approximation spaces disconnected from each other
-    void CreateInternalElements();
+    virtual void CreateInternalFluxElements();
     
     // create the approximation space associated with the skeleton and restrain the connects
-    void CreateSkeleton();
+    virtual void CreateSkeleton();
     
-    void DuplicateNeighbouringConnects();
 
-    TPZCompMesh * CreateHDivPressureMHMMesh();
+    /// Create the multiphysics mesh
+    void CreateHDivPressureMHMMesh();
+    
+    /// build the multi physics mesh (not at the finest geometric mesh level
+    void BuildMultiPhysicsMesh();
 
+    /// Create the interfaces between the pressure elements of dimension dim
+    virtual void CreateMultiPhysicsInterfaceElements(int dim);
+    
+    /// Create the multiphysics interface elements between elements of specified material id
+    virtual void CreateMultiPhysicsInterfaceElements(int dim, int pressmatid, std::pair<int,int> skelmatid);
+    
+    /// put the elements in TPZSubCompMesh, group the elements and condense locally
     void HideTheElements();
 
-    // create primal variable interface between the macro elements
-    void Hybridize();
+    /// hybridize the flux elements with the given material id - each flux element creates
+    /// a pressure element
+    virtual void HybridizeSkeleton(int skeletonmatid, int pressurematid) override;
     
     /// switch the elements pointed to by the interface by lower dimensional elements
     void OptimizeInterfaceElements();
     
+    /// group and condense the elements
+    virtual void GroupandCondenseElements();
+    
+    /// delete the pressure elements leaving the geometric mesh without pointing to the computational mesh
+    void DeletePressureElements();
 
+    void AdjustBoundaryElements();
 };
 
 #endif /* TPZMHMixedMeshControl_hpp */

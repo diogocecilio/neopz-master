@@ -6,13 +6,12 @@
 #include "pzsmanal.h"
 #include "pzsubcmesh.h"
 #include "pzfmatrix.h"
-#include "pzstrmatrix.h"
-#include "pzsolve.h"
+#include "TPZMatrixSolver.h"
 
 #include "pzlog.h"
 
-#ifdef LOG4CXX
-static LoggerPtr logger(Logger::getLogger("pz.analysis.pzsmanalysis"));
+#ifdef PZ_LOG
+static TPZLogger logger("pz.analysis.pzsmanalysis");
 
 #endif
 
@@ -20,7 +19,8 @@ using namespace std;
 
 // Construction/Destruction
 
-TPZSubMeshAnalysis::TPZSubMeshAnalysis(TPZSubCompMesh *mesh) : TPZAnalysis(mesh,true), fReducableStiff(0){
+TPZSubMeshAnalysis::TPZSubMeshAnalysis(TPZSubCompMesh *mesh) : TPZRegisterClassId(&TPZSubMeshAnalysis::ClassId),
+TPZLinearAnalysis(mesh,true), fReducableStiff(0){
 	fMesh = mesh;
     if (fMesh)
     {
@@ -44,56 +44,59 @@ void TPZSubMeshAnalysis::SetCompMesh(TPZCompMesh * mesh, bool mustOptimizeBandwi
     {
         DebugStop();
     }
-    TPZAnalysis::SetCompMesh(mesh, mustOptimizeBandwidth);
+    TPZLinearAnalysis::SetCompMesh(mesh, mustOptimizeBandwidth);
     if (fCompMesh) {
         fReferenceSolution.Redim(fCompMesh->NEquations(), 1);
     }
 }
 
 
-
-void TPZSubMeshAnalysis::Assemble(){
-	
-
+template<class TVar>
+void TPZSubMeshAnalysis::AssembleInternal()
+{
     TPZCompMesh *mesh = Mesh();
+    auto &mySolver = MatrixSolver<TVar>();
     TPZSubCompMesh *submesh = dynamic_cast<TPZSubCompMesh *>(mesh);
     if (!submesh) {
         DebugStop();
     }
     TPZCompMesh *fathermesh = submesh->Mesh();
-    if (fathermesh->NElements() < 50)
-    {
-        std::cout << "Assembling the SubCompMesh index " << fMesh->Index() << std::endl;
-    }
+
 	int numeq = fCompMesh->NEquations();
 	int numinternal = fMesh->NumInternalEquations();
 	fReferenceSolution.Redim(numeq,1);
 	fRhs.Redim(numeq,1);
     if(!fReducableStiff) 
     {
-        fReducableStiff = new TPZMatRed<STATE, TPZFMatrix<STATE> > ();
+        fReducableStiff = new TPZMatRed<TVar, TPZFMatrix<TVar> > ();
     }
 	fReducableStiff->Redim(numeq,numinternal);
-	TPZMatRed<STATE, TPZFMatrix<STATE> > *matred = dynamic_cast<TPZMatRed<STATE, TPZFMatrix<STATE> > *> (fReducableStiff.operator->());
-    if(!fSolver->Matrix())
+	TPZMatRed<TVar, TPZFMatrix<TVar> > *matred = dynamic_cast<TPZMatRed<TVar, TPZFMatrix<TVar> > *> (fReducableStiff.operator->());
+    if(!mySolver.Matrix())
     {
         if (fStructMatrix->HasRange()) {
             DebugStop();
         }
         fStructMatrix->SetEquationRange(0, numinternal);
-        fSolver->SetMatrix(fStructMatrix->Create());	
+        mySolver.SetMatrix(fStructMatrix->Create());	
         fStructMatrix->EquationFilter().Reset();
     }
     matred->SetMaxNumberRigidBodyModes(fMesh->NumberRigidBodyModes());
 	//	fReducableStiff.SetK00(fSolver->Matrix());
 	// this will initialize fK00 too
-	matred->SetSolver(dynamic_cast<TPZMatrixSolver<STATE> *>(fSolver->Clone()));
+	matred->SetSolver(dynamic_cast<TPZMatrixSolver<STATE> *>(mySolver.Clone()));
 	//	TPZStructMatrix::Assemble(fReducableStiff,fRhs, *fMesh);
 //	time_t before = time (NULL);
 	fStructMatrix->Assemble(fReducableStiff,fRhs,fGuiInterface);
+    
+    matred->SetF(fRhs);
 //	time_t after = time(NULL);
 //	double diff = difftime(after, before);
 //	std::cout << __PRETTY_FUNCTION__ << " tempo " << diff << std::endl;
+}
+void TPZSubMeshAnalysis::Assemble(){
+	//TODOCOMPLEX
+    return AssembleInternal<STATE>();
 }
 
 void TPZSubMeshAnalysis::Run(std::ostream &out){
@@ -110,7 +113,10 @@ void TPZSubMeshAnalysis::Run(std::ostream &out){
         DebugStop();
     }
 	TPZMatRed<STATE, TPZFMatrix<STATE> > *matred = dynamic_cast<TPZMatRed<STATE, TPZFMatrix<STATE> > *> (fReducableStiff.operator->());
-	matred->SetF(fRhs);
+    if(!matred)
+    {
+        DebugStop();
+    }
 }
 void TPZSubMeshAnalysis::CondensedSolution(TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef){
 //	time_t tempo = time(NULL);
@@ -118,8 +124,8 @@ void TPZSubMeshAnalysis::CondensedSolution(TPZFMatrix<STATE> &ek, TPZFMatrix<STA
         DebugStop();
     }
 	TPZMatRed<STATE, TPZFMatrix<STATE> > *matred = dynamic_cast<TPZMatRed<STATE, TPZFMatrix<STATE> > *> (fReducableStiff.operator->());
-#ifdef LOG4CXX
-    if(logger->isDebugEnabled())
+#ifdef PZ_LOG
+    if(logger.isDebugEnabled())
     {
         std::stringstream sout;
         matred->Print("Before = ",sout,EMathematicaInput);
@@ -134,6 +140,27 @@ void TPZSubMeshAnalysis::CondensedSolution(TPZFMatrix<STATE> &ek, TPZFMatrix<STA
 //	std::cout << "Tempo para inversao " << elapsedtime << std::endl;
 	
 }
+
+/** @brief compute the reduced right hand side using the current stiffness. Abort if there is no stiffness computed */
+void TPZSubMeshAnalysis::ReducedRightHandSide(TPZFMatrix<STATE> &rhs)
+{
+    if (!fReducableStiff) {
+        DebugStop();
+    }
+    TPZMatRed<STATE, TPZFMatrix<STATE> > *matred = dynamic_cast<TPZMatRed<STATE, TPZFMatrix<STATE> > *> (fReducableStiff.operator->());
+#ifdef PZ_LOG
+    if(logger.isDebugEnabled())
+    {
+        std::stringstream sout;
+        matred->Print("Before = ",sout,EMathematicaInput);
+        LOGPZ_DEBUG(logger, sout.str())
+    }
+#endif
+    matred->SetF(fRhs);
+    matred->F1Red(rhs);
+    
+}
+
 
 void TPZSubMeshAnalysis::LoadSolution(const TPZFMatrix<STATE> &sol)
 {
@@ -153,8 +180,8 @@ void TPZSubMeshAnalysis::LoadSolution(const TPZFMatrix<STATE> &sol)
         matred->UGlobal(soltemp,uglobal);        
         fSolution = fReferenceSolution + uglobal;
     }
-#ifdef LOG4CXX
-    if (logger->isDebugEnabled()) {
+#ifdef PZ_LOG
+    if (logger.isDebugEnabled()) {
         std::stringstream sout;
         soltemp.Print("External DOF Solution",sout);
         uglobal.Print("Expanded solution",sout);
@@ -162,5 +189,9 @@ void TPZSubMeshAnalysis::LoadSolution(const TPZFMatrix<STATE> &sol)
         LOGPZ_DEBUG(logger, sout.str())
     }
 #endif
-	TPZAnalysis::LoadSolution();
+	TPZLinearAnalysis::LoadSolution();
+}
+
+int TPZSubMeshAnalysis::ClassId() const{
+    return Hash("TPZSubMeshAnalysis") ^ TPZLinearAnalysis::ClassId() << 1;
 }

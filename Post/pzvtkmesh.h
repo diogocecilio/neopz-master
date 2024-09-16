@@ -9,7 +9,6 @@
 #include "pzgraphmesh.h"
 #include "pzvec.h"
 
-template<class TVar>
 class TPZBlock;
 
 /**
@@ -20,20 +19,20 @@ class TPZVTKGraphMesh : public TPZGraphMesh {
 	
 public:
 	
-	/** @brief Constructor for graphical mesh using VTK format */
-	TPZVTKGraphMesh(TPZCompMesh *cmesh, int dimension, TPZMaterial * mat, const TPZVec<std::string> &scalnames, const TPZVec<std::string> &vecnames);
+    /** @brief Constructor for graphical mesh using VTK format with tensor variables */
+    TPZVTKGraphMesh(TPZCompMesh *cmesh, int dimension, const std::set<int> & matids, const TPZVec<std::string> &scalnames, const TPZVec<std::string> &vecnames, const TPZVec<std::string> &tensnames);
 	/** @brief Copy constructor for graphical mesh using VTK format */
-	TPZVTKGraphMesh(TPZCompMesh *cmesh,int dim,TPZVTKGraphMesh *graph,TPZMaterial * mat);
+	TPZVTKGraphMesh(TPZCompMesh *cmesh,int dim,TPZVTKGraphMesh *graph);
 	
-	virtual void DrawMesh(int numcases);
-	virtual void DrawNodes();
-	virtual void DrawConnectivity(MElementType type);
-	virtual void DrawSolution(int step, REAL time);
-	virtual void DrawSolution(TPZBlock<REAL> &Sol);
+	virtual void DrawMesh(int numcases) override;
+	virtual void DrawNodes() override;
+	virtual void DrawConnectivity(MElementType type) override;
+	virtual void DrawSolution(int step, REAL time) override;
+	virtual void DrawSolution(TPZBlock &Sol);
 	virtual void DrawSolution(char *var = 0);
 	
 protected:
-	virtual void SequenceNodes();
+	virtual void SequenceNodes() override;
 	int fNumCases;
 	int fNumSteps;
 	

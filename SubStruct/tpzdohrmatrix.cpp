@@ -8,17 +8,43 @@
 #include "tpzdohrassembly.h"
 #include "pzlog.h"
 
-#include "TPZfTime.h"
+#include "TPZSimpleTimer.h"
 #include "TPZTimeTemp.h"
 
-#include "pz_pthread.h"
+#include <thread>
 
 #include "tpzparallelenviroment.h"
 
-#ifdef LOG4CXX
-static LoggerPtr logger(Logger::getLogger("substruct.dohrsubstruct"));
+#ifdef PZ_LOG
+static TPZLogger logger("substruct.dohrsubstruct");
 #endif
 
+
+template<class TVar, class TSubStruct>
+int64_t TPZDohrMatrix<TVar,TSubStruct>::Size() const
+{
+  PZError<<__PRETTY_FUNCTION__;
+  PZError<<"ERROR:Should not be called\n.Aborting...\n";
+  DebugStop();
+	return -1;
+}
+template<class TVar, class TSubStruct>
+TVar* &TPZDohrMatrix<TVar,TSubStruct>::Elem()
+{
+  PZError<<__PRETTY_FUNCTION__;
+  PZError<<"ERROR:Should not be called\n.Aborting...\n";
+  DebugStop();
+	static TVar* t{nullptr};
+  return t;
+}
+template<class TVar, class TSubStruct>
+const TVar* TPZDohrMatrix<TVar,TSubStruct>::Elem() const
+{
+  PZError<<__PRETTY_FUNCTION__;
+  PZError<<"ERROR:Should not be called\n.Aborting...\n";
+  DebugStop();
+	return nullptr;
+}
 
 template<class TVar, class TSubStruct>
 TPZDohrMatrix<TVar,TSubStruct>::TPZDohrMatrix(TPZAutoPointer<TPZDohrAssembly<TVar> > assembly)
@@ -53,8 +79,6 @@ private:
 	const TPZFMatrix<TVar> *fInput;
 	/** @brief Scalar multiplication factor */
 	TVar fAlpha;
-	/** @brief Mutex which will enable the access protection of the list */
-	pthread_mutex_t fAccessLock;
 	/** @brief The data structure which defines the assemble destinations */
 	TPZAutoPointer<TPZDohrAssembly<TVar> > fAssembly;
 	/** @brief The list of data objects which need to treated by the threads */
@@ -130,17 +154,13 @@ void TPZDohrMatrix<TVar,TSubStruct>::MultAddTBB(const TPZFMatrix<TVar> &x,const 
         
         multwork.addWorkItem(data);
     }
-    TPZVec<pthread_t> AllThreads(1);
-    
+
     multwork.run_parallel_for(pzenviroment.fSubstructurePartitioner);
-    
-    PZ_PTHREAD_CREATE(&AllThreads[0], 0, TPZDohrAssembleList<TVar>::Assemble, 
-                      assemblelist.operator->(), __FUNCTION__);
-    
-    void *result;
-    PZ_PTHREAD_JOIN(AllThreads[0], &result, __FUNCTION__);
-#endif    
-    
+
+    std::thread t(TPZDohrAssembleList<TVar>::Assemble, assemblelist.operator->());
+    t.join();
+#endif
+
 }
 
 
@@ -154,7 +174,7 @@ void TPZDohrMatrix<TVar,TSubStruct>::MultAdd(const TPZFMatrix<TVar> &x,const TPZ
         return;
 #endif
         
-	TPZfTime mult;
+	TPZSimpleTimer mult;
 	if ((!opt && this->Cols() != x.Rows()) || this->Rows() != x.Rows())
 		this->Error( "Operator* <matrixs with incompatible dimensions>" );
 	if(x.Cols() != y.Cols() || x.Cols() != z.Cols() || x.Rows() != y.Rows() || x.Rows() != z.Rows()) {
@@ -168,12 +188,12 @@ void TPZDohrMatrix<TVar,TSubStruct>::MultAdd(const TPZFMatrix<TVar> &x,const TPZ
 		for (iter=fGlobal.begin();iter!=fGlobal.end();iter++,isub++) {
             if(0)
             {
-                TPZFileStream out;
-                out.OpenWrite("dohr.txt");
-                fAssembly->Write(out);
-                x.Write(out,1);
+                TPZPersistenceManager::OpenWrite("dohr.txt");
+                TPZPersistenceManager::WriteToFile(fAssembly.operator ->());
+                TPZPersistenceManager::WriteToFile(&x);
                 TPZAutoPointer<TSubStruct> point(*iter);
-                point->Write(out,1);
+                TPZPersistenceManager::WriteToFile(point.operator ->());
+                TPZPersistenceManager::CloseWrite();
                 
             }
 			TPZFMatrix<TVar> xlocal,zlocal;
@@ -196,20 +216,16 @@ void TPZDohrMatrix<TVar,TSubStruct>::MultAdd(const TPZFMatrix<TVar> &x,const TPZ
             
             multwork.AddItem(data);
 		}
-		TPZVec<pthread_t> AllThreads(fNumThreads+1);
-		int i;
-		for (i=0; i<fNumThreads; i++) {
-            PZ_PTHREAD_CREATE(&AllThreads[i+1], 0, (TPZDohrThreadMultList<TVar,TSubStruct>::ThreadWork), 
-                              &multwork, __FUNCTION__);
-		}
-        //sleep(1);
-		PZ_PTHREAD_CREATE(&AllThreads[0], 0, TPZDohrAssembleList<TVar>::Assemble, 
-                          assemblelist.operator->(), __FUNCTION__);
-		
-		for (i=0; i<fNumThreads+1; i++) {
-            void *result;
-            PZ_PTHREAD_JOIN(AllThreads[i], &result, __FUNCTION__);
-		}
+		std::vector<std::thread> listThreads(fNumThreads);
+        int i;
+        for (i = 0; i < fNumThreads; i++) {
+              listThreads[i] = std::thread(TPZDohrThreadMultList<TVar,TSubStruct>::ThreadWork, &multwork);
+        }
+        std::thread assembleThread(TPZDohrAssembleList<TVar>::Assemble, assemblelist.operator->());
+        assembleThread.join();
+        for (i = 0; i < fNumThreads; i++) {
+          listThreads[i].join();
+        }
 	}
 	tempo.fMultiply.Push(mult.ReturnTimeDouble());
 }
@@ -227,9 +243,15 @@ void TPZDohrMatrix<TVar,TSubStruct>::Initialize()
         //(*iter)->Initialize();
 		TPZFMatrix<TVar> diaglocal;
         (*iter)->ContributeDiagonalLocal(diaglocal);
-		LOGPZ_DEBUG(logger,"Before assemble diagonal")
+#ifdef PZ_LOG
+        if(logger.isDebugEnabled())
+        {
+            LOGPZ_DEBUG(logger,"Before assemble diagonal")
+        }
+#endif
 		this->fAssembly->Assemble(isub,diaglocal,diag);
-#ifdef LOG4CXX
+#ifdef PZ_LOG
+        if(logger.isDebugEnabled())
 		{
 			std::stringstream sout;
 			sout << "Substructure " << isub << " ";
@@ -240,7 +262,8 @@ void TPZDohrMatrix<TVar,TSubStruct>::Initialize()
         std::cout << '*';
         std::cout.flush();
 	}
-#ifdef LOG4CXX
+#ifdef PZ_LOG
+    if(logger.isDebugEnabled())
 	{
 		std::stringstream sout;
 		diag.Print("Global Diagonal matrix",sout);
@@ -297,40 +320,6 @@ void *TPZDohrThreadMultList<TVar,TSubStruct>::ThreadWork(void *ptr)
 	return ptr;
 }
 
-template <>
-int TPZDohrMatrix<float, TPZDohrSubstructCondense<float> >::ClassId() const {
-    return TPZDOHRMATRIXSUBSTRUCTCONDENSEFLOAT;
-}
-template <>
-int TPZDohrMatrix<double, TPZDohrSubstructCondense<double> >::ClassId() const {
-    return TPZDOHRMATRIXSUBSTRUCTCONDENSEDOUBLE;
-}
-template <>
-int TPZDohrMatrix<long double, TPZDohrSubstructCondense<long double> >::ClassId() const {
-    return TPZDOHRMATRIXSUBSTRUCTCONDENSELONGDOUBLE;
-}
-template <>
-int TPZDohrMatrix<std::complex<double>, TPZDohrSubstructCondense<std::complex<double> > >::ClassId() const {
-    return TPZDOHRMATRIXSUBSTRUCTCONDENSECOMPLEXDOUBLE;
-}
-
-template <>
-int TPZDohrMatrix<float, TPZDohrSubstruct<float> >::ClassId() const {
-    return TPZDOHRMATRIXSUBSTRUCTFLOAT;
-}
-template <>
-int TPZDohrMatrix<double, TPZDohrSubstruct<double> >::ClassId() const {
-    return TPZDOHRMATRIXSUBSTRUCTDOUBLE;
-}
-template <>
-int TPZDohrMatrix<long double, TPZDohrSubstruct<long double> >::ClassId() const {
-    return TPZDOHRMATRIXSUBSTRUCTLONGDOUBLE;
-}
-template <>
-int TPZDohrMatrix<std::complex<double>, TPZDohrSubstruct<std::complex<double> > >::ClassId() const {
-    return TPZDOHRMATRIXSUBSTRUCTCOMPLEXDOUBLE;
-}
-
 /**
  * @brief Unpacks the object structure from a stream of bytes
  * @param buf The buffer containing the object in a packed form
@@ -341,9 +330,8 @@ void TPZDohrMatrix<TVar, TSubStruct >::Read(TPZStream &buf, void *context )
 {
     SAVEABLE_SKIP_NOTE(buf);
     TPZMatrix<TVar>::Read(buf, context);
-    fAssembly = new TPZDohrAssembly<TVar>;
     SAVEABLE_SKIP_NOTE(buf);
-    fAssembly->Read(buf);
+    fAssembly = TPZAutoPointerDynamicCast<TPZDohrAssembly<TVar>>(TPZPersistenceManager::GetAutoPointer(&buf));
     SAVEABLE_SKIP_NOTE(buf);
     buf.Read(&fNumCoarse);
     SAVEABLE_SKIP_NOTE(buf);
@@ -370,21 +358,20 @@ void TPZDohrMatrix<TVar, TSubStruct >::Read(TPZStream &buf, void *context )
  * @param withclassid
  */
 template <class TVar, class TSubStruct>
-void TPZDohrMatrix<TVar,TSubStruct >::Write( TPZStream &buf, int withclassid )
+void TPZDohrMatrix<TVar,TSubStruct >::Write( TPZStream &buf, int withclassid ) const
 {
     SAVEABLE_STR_NOTE(buf,"TPZMatrix<TVar>::Write ()");
     TPZMatrix<TVar>::Write(buf, withclassid);
     SAVEABLE_STR_NOTE(buf,"fAssembly->Write");
-    fAssembly->Write(buf);
+    TPZPersistenceManager::WritePointer(fAssembly.operator ->(), &buf);
     SAVEABLE_STR_NOTE(buf,"fNumCoarse");
     buf.Write(&fNumCoarse);
     SAVEABLE_STR_NOTE(buf,"fNumThreads");
     buf.Write(&fNumThreads);
-    typename SubsList::iterator it;
     int size = fGlobal.size();
     SAVEABLE_STR_NOTE(buf,"fGlobal.size()");
     buf.Write(&size);
-    for (it=fGlobal.begin(); it != fGlobal.end(); it++) {
+    for (auto it=fGlobal.begin(); it != fGlobal.end(); it++) {
         SAVEABLE_STR_NOTE(buf,"fGlobal[...]");
         (*it)->Write(buf,0);
     }
@@ -416,22 +403,22 @@ void TPZDohrMatrix<long double, TPZDohrSubstruct<long double> >::Read(TPZStream 
 }
 
 template <>
-void TPZDohrMatrix<long double,TPZDohrSubstructCondense<long double> >::Write( TPZStream &buf, int withclassid )
+void TPZDohrMatrix<long double,TPZDohrSubstructCondense<long double> >::Write( TPZStream &buf, int withclassid ) const
 {
     DebugStop();
 }
 template <>
-void TPZDohrMatrix<float, TPZDohrSubstruct<float> >::Write( TPZStream &buf, int withclassid )
+void TPZDohrMatrix<float, TPZDohrSubstruct<float> >::Write( TPZStream &buf, int withclassid ) const
 {
     DebugStop();
 }
 template <>
-void TPZDohrMatrix<double, TPZDohrSubstruct<double> >::Write( TPZStream &buf, int withclassid )
+void TPZDohrMatrix<double, TPZDohrSubstruct<double> >::Write( TPZStream &buf, int withclassid ) const
 {
     DebugStop();
 }
 template <>
-void TPZDohrMatrix<long double, TPZDohrSubstruct<long double> >::Write( TPZStream &buf, int withclassid )
+void TPZDohrMatrix<long double, TPZDohrSubstruct<long double> >::Write( TPZStream &buf, int withclassid ) const
 {
     DebugStop();
 }
@@ -454,8 +441,8 @@ template class TPZDohrMatrix<std::complex<double>, TPZDohrSubstructCondense<std:
 //template class TPZDohrMatrix<std::complex<long double>, TPZDohrSubstructCondense<std::complex<long double> > >;
 
 #ifndef BORLAND
-template class TPZRestoreClass< TPZDohrMatrix<double, TPZDohrSubstructCondense<double> > , TPZDOHRMATRIXSUBSTRUCTCONDENSEDOUBLE>;
-template class TPZRestoreClass< TPZDohrMatrix<double, TPZDohrSubstruct<double> > , TPZDOHRMATRIXSUBSTRUCTDOUBLE>;
-template class TPZRestoreClass< TPZDohrMatrix<float, TPZDohrSubstructCondense<float> > , TPZDOHRMATRIXSUBSTRUCTCONDENSEFLOAT>;
-template class TPZRestoreClass< TPZDohrMatrix<float, TPZDohrSubstruct<float> > , TPZDOHRMATRIXSUBSTRUCTFLOAT>;
+template class TPZRestoreClass< TPZDohrMatrix<double, TPZDohrSubstructCondense<double> > >;
+template class TPZRestoreClass< TPZDohrMatrix<double, TPZDohrSubstruct<double> > >;
+template class TPZRestoreClass< TPZDohrMatrix<float, TPZDohrSubstructCondense<float> > >;
+template class TPZRestoreClass< TPZDohrMatrix<float, TPZDohrSubstruct<float> > >;
 #endif

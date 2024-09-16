@@ -1,5 +1,5 @@
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include <pz_config.h>
 #endif
 
 #include "pzvec.h"
@@ -21,18 +21,17 @@
 #include "tpzcompmeshreferred.h"
 #include "tpzautopointer.h"
 #include "pzbndcond.h"
-#include "pzanalysis.h"
+#include "TPZLinearAnalysis.h"
 
-#include "TPZParSkylineStructMatrix.h"
 #include "pzstepsolver.h"
 #include "pzstrmatrix.h"
 #include "pzfstrmatrix.h"
 #include "TPZFrontNonSym.h"
 #include "TPZFrontSym.h"
-#include "TPBSpStructMatrix.h"
+#include "TPZBSpStructMatrix.h"
 #include "TPZSpStructMatrix.h"
 #include "pzbstrmatrix.h"
-
+#include "pzskylstrmatrix.h"
 #include "pzpoisson3d.h"
 //#include "pzhybridpoisson.h"
 #include "pzpoisson3dreferred.h"
@@ -54,12 +53,12 @@
 #include "pzlog.h"
 
 #include "TPZVTKGeoMesh.h"
-#include "pzgengrid.h"
+#include "TPZGenGrid2D.h"
 #include "TPZExtendGridDimension.h"
 #include "pzcheckgeom.h"
 
 #include "TPZMHMeshControl.h"
-
+#include "pzintel.h"
 #include <iostream>
 #include <string>
 
@@ -79,19 +78,16 @@ void RefinamentoUniforme(TPZAutoPointer<TPZGeoMesh> gmesh, int nref,TPZVec<int> 
 
 TPZAutoPointer<TPZCompMesh> CreatePressureMesh(TPZAutoPointer<TPZGeoMesh> gmesh, int porder);
 
-#ifdef LOG4CXX
-static LoggerPtr logger(Logger::getLogger("pz.mainskeleton"));
+#ifdef PZ_LOG
+static TPZLogger logger("pz.mainskeleton");
 #endif
 
 enum MRegular {EUniform,EUnbalanced};
 
-TPZAutoPointer<TPZCompMesh> CreateCompMesh(int dimension, int porder, long nelem, MRegular regular);
+TPZAutoPointer<TPZCompMesh> CreateCompMesh(int dimension, int porder, int64_t nelem, MRegular regular);
 
 int main(int argc, char *argv[])
 {
-#ifdef LOG4CXX
-    InitializePZLOG();
-#endif
     
     int porder = 1;
     int dimension = 2;
@@ -112,7 +108,7 @@ int main(int argc, char *argv[])
     std::cout << "Number of elements " << cmesh->NElements() << std::endl;
     
     //calculo solution
-    TPZAnalysis *an = new TPZAnalysis(cmesh,false);
+    TPZLinearAnalysis *an = new TPZLinearAnalysis(cmesh,false);
 
     TPZSkylineStructMatrix strmat(cmesh);
     
@@ -178,7 +174,7 @@ TPZAutoPointer<TPZGeoMesh> MalhaGeom(int dim, TPZVec<int> &nblocks, int nref)
     x1[1] = ly;
     x1[2] = 0.;
     TPZManVector<int,3> nx(nblocks);
-    TPZGenGrid gengrid(nx,x0,x1);
+    TPZGenGrid2D gengrid(nx,x0,x1);
     TPZAutoPointer<TPZGeoMesh> meshresult2d = new TPZGeoMesh;
     gengrid.SetRefpatternElements(false);
     gengrid.Read(meshresult2d);
@@ -228,7 +224,7 @@ TPZAutoPointer<TPZCompMesh> CreatePressureMesh(TPZAutoPointer<TPZGeoMesh> gmesh,
     return cmeshPressure;
 }
 
-TPZAutoPointer<TPZCompMesh> CreateCompMesh(int dimension, int porder, long nelem, MRegular regular)
+TPZAutoPointer<TPZCompMesh> CreateCompMesh(int dimension, int porder, int64_t nelem, MRegular regular)
 {
     TPZAutoPointer<TPZCompMesh> result;
     int pincr = 4;
@@ -259,7 +255,7 @@ TPZAutoPointer<TPZCompMesh> CreateCompMesh(int dimension, int porder, long nelem
         DebugStop();
     }
     if (regular == EUnbalanced) {
-        for (long el =0; el < result->NElements(); el += result->NElements()/10) {
+        for (int64_t el =0; el < result->NElements(); el += result->NElements()/10) {
             TPZCompEl *cel = result->Element(el);
             TPZInterpolatedElement *intel = dynamic_cast<TPZInterpolatedElement *>(cel);
             if (!intel) {

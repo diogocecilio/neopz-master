@@ -18,9 +18,9 @@
 #include <set>
 
 #include "pzgeoel.h"
-#include "TPZRefPattern.h"
 #include "tpzintpoints.h"
 
+class TPZRefPattern;
 /**
  * @ingroup refine
  * @brief Defines tools of pattern. \ref refine "Refine"
@@ -105,7 +105,7 @@ public:
 	 */
 	static bool CompareTopologies(TPZAutoPointer<TPZRefPattern> refA,
                                   TPZAutoPointer<TPZRefPattern> refB,
-                                  TPZTransform &fromAtoB,
+                                  TPZTransform<> &fromAtoB,
                                   std::map<int, int> &pairNodes);
 	
 	/**
@@ -121,7 +121,7 @@ public:
 	 */
 	static void PairMeshesCornerNodesMatchingCoordinates(TPZGeoMesh &meshA,
                                                          TPZGeoMesh &meshB,
-                                                         TPZTransform &fromAtoB,
+                                                         TPZTransform<> &fromAtoB,
                                                          std::map<int, int> &pairedNodes);
 	
 	/**
@@ -135,7 +135,7 @@ public:
 	 */
 	static void PairMeshesNodesMatchingCoordinates(TPZGeoMesh &meshA,
                                                    TPZGeoMesh &meshB,
-                                                   TPZTransform &fromAtoB,
+                                                   TPZTransform<> &fromAtoB,
                                                    std::map<int, int> &pairedNodes);
 	
 	/** @brief Returns the the name of refpattern model. */
@@ -157,6 +157,10 @@ public:
 	/** @brief Refines the element if it touches an element with a material id included in matids */
 	static void RefineDirectional(TPZGeoEl *gel, std::set<int> &matids);
 	static void RefineDirectional(TPZGeoEl *gel, std::set<int> &matids, int gelMat);
+    
+    static void RefineDirectional(TPZGeoMesh *gmesh, std::set<int> &matids);
+    static void RefineDirectional(TPZGeoMesh *gmesh, std::set<int> &matids, int gelmat);
+    
 	
 	static void RefineUniformIfNeighMat(TPZGeoEl *gel, std::set<int> &matids);
 	

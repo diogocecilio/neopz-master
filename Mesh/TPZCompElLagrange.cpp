@@ -7,8 +7,9 @@
 //
 
 #include "TPZCompElLagrange.h"
-#include "pzmaterial.h"
-#include "pzelmat.h"
+#include "TPZMaterial.h"
+#include "TPZMatLoadCases.h"
+#include "TPZElementMatrixT.h"
 
 TPZCompElLagrange::~TPZCompElLagrange()
 {
@@ -27,14 +28,14 @@ TPZCompElLagrange::~TPZCompElLagrange()
  * from the both meshes - original and patch
  */
 TPZCompEl *TPZCompElLagrange::ClonePatchEl(TPZCompMesh &mesh,
-                                std::map<long,long> & gl2lcConMap,
-                                std::map<long,long> & gl2lcElMap) const
+                                std::map<int64_t,int64_t> & gl2lcConMap,
+                                std::map<int64_t,int64_t> & gl2lcElMap) const
 {
     TPZCompElLagrange *newel = new TPZCompElLagrange(mesh,*this,gl2lcElMap);
-    for (long l=0; l<fDef.size(); l++) {
+    for (int64_t l=0; l<fDef.size(); l++) {
         for (int i=0; i<2; i++) {
             newel->fDef[l].fIdf[i] = fDef[l].fIdf[i];
-            std::map<long,long>::iterator it = gl2lcConMap.find(fDef[l].fConnect[i]);
+            std::map<int64_t,int64_t>::iterator it = gl2lcConMap.find(fDef[l].fConnect[i]);
             if (it != gl2lcConMap.end()) {
                 newel->fDef[l].fConnect[i] = it->second;
             }
@@ -52,7 +53,8 @@ TPZCompEl *TPZCompElLagrange::ClonePatchEl(TPZCompMesh &mesh,
  * @param ek element stiffness matrix
  * @param ef element load vector
  */
-void TPZCompElLagrange::CalcStiff(TPZElementMatrix &ek,TPZElementMatrix &ef)
+template<class TVar>
+void TPZCompElLagrange::CalcStiffInternal(TPZElementMatrixT<TVar> &ek,TPZElementMatrixT<TVar> &ef)
 {
     InitializeElementMatrix(ek, ef);
 #ifdef PZDEBUG
@@ -60,9 +62,9 @@ void TPZCompElLagrange::CalcStiff(TPZElementMatrix &ek,TPZElementMatrix &ef)
         DebugStop();
     }
 #endif
-    long nlagrange = fDef.size();
-    long count = 0;
-    for (long l=0; l<nlagrange; l++)
+    int64_t nlagrange = fDef.size();
+    int64_t count = 0;
+    for (int64_t l=0; l<nlagrange; l++)
     {
         TPZConnect &c0 = Connect(2*l);
         int blsize0 = c0.NShape()*c0.NState();
@@ -72,8 +74,11 @@ void TPZCompElLagrange::CalcStiff(TPZElementMatrix &ek,TPZElementMatrix &ef)
         ek.fMat(count+fDef[l].fIdf[0],count+blsize0+fDef[l].fIdf[1]) = -1.;
         ek.fMat(count+blsize0+fDef[l].fIdf[1],count+fDef[l].fIdf[0]) = -1.;
         ek.fMat(count+blsize0+fDef[l].fIdf[1],count+blsize0+fDef[l].fIdf[1]) = 1.;
-        const TPZBlock<STATE> &bl = Mesh()->Block();
-        STATE diff = bl(c0.SequenceNumber(),0,fDef[l].fIdf[0],0)-bl(c1.SequenceNumber(),0,fDef[l].fIdf[1],0);
+        const TPZBlock &bl = Mesh()->Block();
+        TPZFMatrix<TVar> &sol = Mesh()->Solution();
+        int64_t pos0 = bl.Index(c0.SequenceNumber(), fDef[l].fIdf[0]);
+        int64_t pos1 = bl.Index(c1.SequenceNumber(), fDef[l].fIdf[1]);
+        TVar diff = sol(pos0,0)-sol(pos1,0);
         ef.fMat(count+fDef[l].fIdf[0],0) = -diff;
         ef.fMat(count+blsize0+fDef[l].fIdf[1],0) = diff;
         count += blsize0+blsize1;
@@ -90,13 +95,15 @@ void TPZCompElLagrange::CalcStiff(TPZElementMatrix &ek,TPZElementMatrix &ef)
 //}
 
 void TPZCompElLagrange::InitializeElementMatrix(TPZElementMatrix &ek, TPZElementMatrix &ef){
-    int numloadcases = 1;
 	int numdof = 1;
     TPZMaterial *mat = this->Material();
-    if (mat)
-    {
-        numloadcases = mat->NumLoadCases();
-    }
+    const int numloadcases = [mat](){
+        if (auto *tmp = dynamic_cast<TPZMatLoadCasesBase*>(mat); tmp){
+            return tmp->NumLoadCases();
+        }else{
+            return 1;
+        }
+    }();
 	const int ncon = this->NConnects();
     
     ek.fMesh = Mesh();
@@ -104,10 +111,8 @@ void TPZCompElLagrange::InitializeElementMatrix(TPZElementMatrix &ek, TPZElement
     ef.fMesh = Mesh();
     ef.fType = TPZElementMatrix::EF;
     
-	ek.fBlock.SetNBlocks(ncon);
-	ef.fBlock.SetNBlocks(ncon);
-	ek.fNumStateVars = numdof;
-	ef.fNumStateVars = numdof;
+	ek.Block().SetNBlocks(ncon);
+	ef.Block().SetNBlocks(ncon);
 	int i;
     int numeq=0;
 	for(i=0; i<ncon; i++){
@@ -115,12 +120,12 @@ void TPZCompElLagrange::InitializeElementMatrix(TPZElementMatrix &ek, TPZElement
         int nshape = c.NShape();
         int nstate = c.NState();
         
-		ek.fBlock.Set(i,nshape*nstate);
-		ef.fBlock.Set(i,nshape*nstate);
+		ek.Block().Set(i,nshape*nstate);
+		ef.Block().Set(i,nshape*nstate);
         numeq += nshape*nstate;
 	}
-	ek.fMat.Redim(numeq,numeq);
-	ef.fMat.Redim(numeq,numloadcases);
+	ek.Matrix().Redim(numeq,numeq);
+	ef.Matrix().Redim(numeq,numloadcases);
 	ek.fConnect.Resize(ncon);
 	ef.fConnect.Resize(ncon);
 	for(i=0; i<ncon; i++){
@@ -131,3 +136,6 @@ void TPZCompElLagrange::InitializeElementMatrix(TPZElementMatrix &ek, TPZElement
 
 
 
+int TPZCompElLagrange::ClassId() const{
+    return Hash("TPZCompElLagrange") ^ TPZCompEl::ClassId() << 1;
+}

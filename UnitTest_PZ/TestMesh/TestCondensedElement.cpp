@@ -10,7 +10,7 @@
 
 #include "pzmanvector.h"
 #include "pztrnsform.h"
-#include "pzgengrid.h"
+#include "TPZGenGrid2D.h"
 #include "tpzautopointer.h"
 #include "pzpoisson3d.h"
 #include "pzbndcond.h"
@@ -23,35 +23,25 @@
 #include "pzintel.h"
 #include "pzstepsolver.h"
 
-#include "pzanalysis.h"
+#include "TPZLinearAnalysis.h"
 #include "pzskylstrmatrix.h"
 
 #include "pzcondensedcompel.h"
 
-#include "pzlog.h"
 
-#ifdef LOG4CXX
-static LoggerPtr logger(Logger::getLogger("pz.mesh.testmesh"));
+#ifdef PZ_LOG
+static TPZLogger logger("pz.mesh.testmesh");
 #endif
 
-#ifdef USING_BOOST
-
-#ifndef WIN32
-#define BOOST_TEST_DYN_LINK
-#endif
-#define BOOST_TEST_MAIN pz mesh tests
-
-#include <boost/test/unit_test.hpp>
+#include <catch2/catch.hpp>
 
 static TPZAutoPointer<TPZCompMesh> GenerateMesh(int type);
 
 
 // Tests for the 'voidflux' class.
-BOOST_AUTO_TEST_SUITE(meshcondensetests)
 
-BOOST_AUTO_TEST_CASE(verifystiff)
+TEST_CASE("verifystiff","[mesh_condense_tests]")
 {
-    InitializePZLOG();
     std::cout << "Verifying creating and undoing condensed elements\n";
     TPZAutoPointer<TPZCompMesh> cmesh = GenerateMesh(0);
     cmesh->ComputeNodElCon();
@@ -67,14 +57,13 @@ BOOST_AUTO_TEST_CASE(verifystiff)
     cmesh->Print(out);
 }
 
-BOOST_AUTO_TEST_CASE(globalcompute)
+TEST_CASE("globalcompute","[mesh_condense_tests]")
 {
-    InitializePZLOG();
     TPZAutoPointer<TPZCompMesh> cmesh = GenerateMesh(0);
     cmesh->ComputeNodElCon();
     TPZCreateApproximationSpace::CondenseLocalEquations(cmesh);
     cmesh->CleanUpUnconnectedNodes();
-    TPZAnalysis an(cmesh);
+    TPZLinearAnalysis an(cmesh);
     TPZSkylineStructMatrix skylstr(cmesh);
     an.SetStructuralMatrix(skylstr);
     TPZStepSolver<STATE> step;
@@ -90,14 +79,12 @@ BOOST_AUTO_TEST_CASE(globalcompute)
 //    force[0] = x[0];
 //}
 
-BOOST_AUTO_TEST_SUITE_END()
-
 static TPZAutoPointer<TPZCompMesh> GenerateMesh(int type)
 {
     TPZManVector<int,3> nx(2,3);
     TPZManVector<REAL,3> x0(3,0.),x1(3,3.);
     x1[2] = 0.;
-    TPZGenGrid grid(nx,x0,x1);
+    TPZGenGrid2D grid(nx,x0,x1);
     TPZAutoPointer<TPZGeoMesh> gmesh = new TPZGeoMesh;
     grid.Read(gmesh.operator->());
     grid.SetBC(gmesh, 0, -1);
@@ -116,7 +103,7 @@ static TPZAutoPointer<TPZCompMesh> GenerateMesh(int type)
     cmesh->SetDefaultOrder(2);
     cmesh->SetDimModel(2);
     cmesh->AutoBuild();
-#ifdef LOG4CXX
+#ifdef PZ_LOG
     {
         std::stringstream sout;
         cmesh->Print(sout);
@@ -127,6 +114,3 @@ static TPZAutoPointer<TPZCompMesh> GenerateMesh(int type)
 }
 
 // @TODO include tests with condensed elements and different type of solvers, substructed meshes etc. Verify the time gain of condensed elements
-
-
-#endif

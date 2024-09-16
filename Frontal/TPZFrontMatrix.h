@@ -35,13 +35,19 @@ public:
 	{
 	}
 	
-	TPZAbstractFrontMatrix(long ieq, long jeq) : TPZMatrix<TVar>(ieq,jeq)
+	TPZAbstractFrontMatrix(int64_t ieq, int64_t jeq) : TPZMatrix<TVar>(ieq,jeq)
 	{
 	}
 	
 	virtual TPZFront<TVar> & GetFront() = 0;
 	
+int ClassId() const override;
 };
+
+template<class TVar>
+int TPZAbstractFrontMatrix<TVar>::ClassId() const{
+    return Hash("TPZAbstractFrontMatrix") ^ TPZMatrix<TVar>::ClassId() << 1;
+}
 
 /**
  * @brief Responsible for the frontal method as a whole. \ref frontal "Frontal"
@@ -66,43 +72,45 @@ public:
 	void ReOpen();
 	
 	/** @brief Reinitialize the structure of the frontal matrix */
-	virtual int Zero();
+	virtual int Zero() override;
     /** @brief Allocates data for the FrontMatrix */
 	void AllocData();
 	
 	/** @brief returns a pointer to the front matrix */
-	TPZFront<TVar> &GetFront() { return fFront;}
+	TPZFront<TVar> &GetFront() override { return fFront;}
     /** @brief Checks if FrontMatrix needs a compression,
 	 if so calls Compress method */
 	void CheckCompress();
     /** Static main for testing */
 	static void main();
     /** @brief Prints a FrontMatrix object */
-	void Print(const char * name, std::ostream & out ,const MatrixOutputFormat form = EFormatted) const;
-    /** @brief Simple Destructor */
-    ~TPZFrontMatrix();
-    /** @brief Simple Constructor */
-    TPZFrontMatrix();
-    /** 
+	void Print(const char * name, std::ostream & out ,const MatrixOutputFormat form = EFormatted) const override;
+  /** @brief Simple Destructor */
+  ~TPZFrontMatrix();
+  int ClassId() const override;
+  /** @brief Simple Constructor */
+  TPZFrontMatrix();
+  /** 
 	 * @brief Constructor with a globalsize parameter 
 	 * @param globalsize Indicates initial global size
 	 */
-	TPZFrontMatrix(long globalsize);
+  TPZFrontMatrix(int64_t globalsize);
 	
-	TPZFrontMatrix(const TPZFrontMatrix &cp) : TPZAbstractFrontMatrix<TVar>(cp), fStorage(cp.fStorage),
+	TPZFrontMatrix(const TPZFrontMatrix &cp) : TPZRegisterClassId(&TPZFrontMatrix::ClassId),TPZAbstractFrontMatrix<TVar>(cp), fStorage(cp.fStorage),
 	fFront(cp.fFront),fNumEq(cp.fNumEq),fLastDecomposed(cp.fLastDecomposed), fNumElConnected(cp.fNumElConnected),fNumElConnectedBackup(cp.fNumElConnectedBackup)
     {
     }
     
   //  CLONEDEF(TPZFrontMatrix)
-	virtual TPZMatrix<TVar>*Clone() const { return new TPZFrontMatrix(*this); }
+  inline TPZFrontMatrix*NewMatrix() const override {return new TPZFrontMatrix{};}
+	virtual TPZMatrix<TVar>*Clone() const  override { return new TPZFrontMatrix(*this); }
     /** 
 	 * @brief Sends a message to decompose equations from lower_eq to upper_eq, according to destination index
 	 * @param destinationindex Contains destination indexes of equations
 	 * @param lower_eq Starting index
 	 * @param upper_eq Finishing index
 	 */
-    void EquationsToDecompose(TPZVec<long> &destinationindex, long &lower_eq, long &upper_eq);
+    void EquationsToDecompose(TPZVec<int64_t> &destinationindex, int64_t &lower_eq, int64_t &upper_eq);
 	
 	
     /** Add a matrix to the frontal matrix */
@@ -119,13 +127,13 @@ public:
 	 * @param elmat Indicates number of elements connected to that equation
 	 * @param destinationindex Positioning of such members on global stiffness matrix
 	 */
-	virtual void AddKel(TPZFMatrix<TVar> & elmat, TPZVec < long > & destinationindex);
+	virtual void AddKel(TPZFMatrix<TVar> & elmat, TPZVec < int64_t > & destinationindex) override;
 	
     /** 
 	 * @brief Add a contribution of a stiffness matrix using the indexes to compute the frontwidth. It does it symbolicaly
 	 * @param destinationindex Array containing destination indexes.
 	 */
-    void SymbolicAddKel(TPZVec < long > & destinationindex);
+    void SymbolicAddKel(TPZVec < int64_t > & destinationindex);
 	
     /** 
 	 * @brief Add a contribution of a stiffness matrix 
@@ -133,20 +141,20 @@ public:
 	 * @param sourceindex Source position of values on member stiffness matrix
 	 * @param destinationindex Positioning of such members on global stiffness matrix
 	 */
-    virtual void AddKel(TPZFMatrix<TVar> & elmat, TPZVec < long > & sourceindex, TPZVec < long > & destinationindex);
+    virtual void AddKel(TPZFMatrix<TVar> & elmat, TPZVec < int64_t > & sourceindex, TPZVec < int64_t > & destinationindex) override ;
 	
-    virtual int SolveDirect( TPZFMatrix<TVar> &B , DecomposeType dt, std::list<long> &singular);
+    virtual int SolveDirect(TPZFMatrix<TVar> &B ,const DecomposeType dt, std::list<int64_t> &singular) override;
     /**
 	 * @brief Forward substitution and result is on b
 	 * @param b Result of the substitution
 	 */
-	int Subst_Forward(TPZFMatrix<TVar> *b) const;
+	int Subst_Forward(TPZFMatrix<TVar> *b) const override;
 	
     /** @brief Backward substitution and result is on b*/
-	int Subst_Backward(TPZFMatrix<TVar> *b) const;
+	int Subst_Backward(TPZFMatrix<TVar> *b) const override;
     /** @brief Executes a substitution on a TPZFMatrix<REAL> object
 	 applies both forward and backward substitution automaticaly */
-	int Substitution(TPZFMatrix<TVar> *) const;
+	int Substitution(TPZFMatrix<TVar> *) const override;
     /*
 	 void SetFileName(
 	 const char *name = SetTempFileName() //! Name of the file
@@ -159,12 +167,29 @@ public:
 	 * @param name Name of the file
 	 */
     void SetFileName(char option, const char *name);
-	
+
+  void CopyFrom(const TPZMatrix<TVar> *  mat) override        
+  {                                                           
+    auto *from = dynamic_cast<const TPZFrontMatrix<TVar,store,front> *>(mat);                
+    if (from) {                                               
+      *this = *from;                                          
+    }                                                         
+    else                                                      
+      {                                                       
+        PZError<<__PRETTY_FUNCTION__;                         
+        PZError<<"\nERROR: Called with incompatible type\n."; 
+        PZError<<"Aborting...\n";                             
+        DebugStop();                                          
+      }                                                       
+  }
 protected:
+  int64_t Size() const override;
+  TVar* &Elem() override;
+  const TVar* Elem() const override;
     /** @brief Indicates number of equations */
-	long fNumEq;
+	int64_t fNumEq;
     /** @brief Indicates last decomposed equation */
-	long fLastDecomposed;
+	int64_t fLastDecomposed;
 	
     /** \ link aggregationByValue */
 	//    TPZFront fFront;

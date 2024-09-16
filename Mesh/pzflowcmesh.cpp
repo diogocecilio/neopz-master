@@ -4,16 +4,19 @@
  */
 
 #include "pzflowcmesh.h"
+#include "ConsLaw/TPZConsLaw.h"
+#include "TPZMaterialDataT.h"
 #include "TPZCompElDisc.h"
 #include "pzintel.h"
 
-using namespace std;
 
-TPZFlowCompMesh::TPZFlowCompMesh(TPZGeoMesh* gr) : TPZCompMesh(gr) {
+TPZFlowCompMesh::TPZFlowCompMesh(TPZGeoMesh* gr) : TPZRegisterClassId(&TPZFlowCompMesh::ClassId),
+TPZCompMesh(gr) {
 	
 }
 
-TPZFlowCompMesh::TPZFlowCompMesh() : TPZCompMesh() {
+TPZFlowCompMesh::TPZFlowCompMesh() : TPZRegisterClassId(&TPZFlowCompMesh::ClassId),
+TPZCompMesh() {
 	
 }
 
@@ -25,15 +28,14 @@ REAL TPZFlowCompMesh::MaxVelocityOfMesh(){
 	REAL maxvel = 0.0, veloc, sound, gamma;
 	STATE press;
 	TPZVec<REAL> param(3,0.);
-	TPZSolVec sol;
-    TPZGradSolVec dsol;
     TPZFNMatrix<9,REAL> axes;
 	// loop over all elements, computing the velocity for
 	// the non-interface elements.	
 	i = 0;
 	for(i=0;i<nel;i++){
 		
-		TPZCompEl *pElComp = ElementVec()[i];
+		TPZInterpolationSpace *pElComp =
+			dynamic_cast<TPZInterpolationSpace *>(ElementVec()[i]);
 		if(!pElComp)
 			continue;
 		
@@ -45,7 +47,9 @@ REAL TPZFlowCompMesh::MaxVelocityOfMesh(){
 		
 		dim = mat->Dimension();
 		elDim = pElGeo->Dimension();
-		
+
+		TPZMaterialDataT<STATE> elCompData;
+		pElComp->InitMaterialData(elCompData);
 		if(elDim == dim /*&& pElDisc*/){ // if the dimension of the material fits the
 			// dimension of the element and if the element is discontinuous.
 			
@@ -62,10 +66,9 @@ REAL TPZFlowCompMesh::MaxVelocityOfMesh(){
 			
 			// Getting the velocity answers
 			pElComp->Solution(param,6,velocity);
-			// getting the whole vector of solutions
-			sol.Resize(nstate);
-            pElComp->ComputeSolution(param, sol, dsol, axes);
-			
+			constexpr bool hasPhi{false};
+			pElComp->ComputeSolution(param, elCompData, hasPhi);
+			TPZSolVec<STATE> &sol = elCompData.sol;
 			press = law->Pressure(sol[0]);
 			
 #ifndef STATE_COMPLEX
@@ -167,7 +170,7 @@ void TPZFlowCompMesh::ScaleCFL(REAL scale)
 	{
 		REAL newCFL = FL(matit)->CFL()*scale;
 		if(newCFL > MAXCFL) newCFL = MAXCFL;
-		cout << "CFL = " << newCFL << endl;
+		std::cout << "CFL = " << newCFL << std::endl;
 		FL(matit)->SetCFL(newCFL);
 	}
 }
@@ -182,12 +185,12 @@ void TPZFlowCompMesh::SetContributionTime(TPZContributeTime time)
 	}
 }
 
-void TPZFlowCompMesh::SetFlowforcingFunction(TPZAutoPointer<TPZFunction<STATE> > fp)
+void TPZFlowCompMesh::SetFlowForcingFunction(ForcingFunctionType<STATE> fp, const int pOrder)
 {
 	std::map<int, TPZMaterial * >::iterator matit;
 	for(matit=fFluidMaterial.begin(); matit!=fFluidMaterial.end(); matit++)
 	{
-		FL(matit)->SetForcingFunction(fp);
+		FL(matit)->SetForcingFunction(fp,pOrder);
 	}
 }
 
@@ -225,30 +228,34 @@ void TPZFlowCompMesh::SetResidualType(TPZResidualType type)
 	}
 }
 
-int TPZFlowCompMesh::ClassId() const 
-{
-	return TPZFLOWCOMPMESHID;
+int TPZFlowCompMesh::ClassId() const{
+    return Hash("TPZFlowCompMesh") ^ TPZCompMesh::ClassId() << 1;
 }
 
 #ifndef BORLAND
 template class
-TPZRestoreClass< TPZFlowCompMesh, TPZFLOWCOMPMESHID>;
+TPZRestoreClass< TPZFlowCompMesh>;
 #endif
 
-void TPZFlowCompMesh::Write(TPZStream &buf, int withclassid)
+void TPZFlowCompMesh::Write(TPZStream &buf, int withclassid) const
 {
-	TPZSaveable::Write(buf,withclassid);
 	TPZCompMesh::Write(buf,0);
 }
 
 void TPZFlowCompMesh::Read(TPZStream &buf, void *context)
 {
-	TPZSaveable::Read(buf, context);
 	TPZCompMesh::Read(buf, context);
 	CollectFluidMaterials();
 }
 
 void TPZFlowCompMesh::ExpandSolution2()
+{
+	//TODOCOMPLEX
+	ExpandSolution2Internal<STATE>(fSolution);
+}
+
+template<class TVar>
+void TPZFlowCompMesh::ExpandSolution2Internal(TPZFMatrix<TVar>& mysol)
 {
 	int nFluid = fFluidMaterial.size();
 	
@@ -272,14 +279,14 @@ void TPZFlowCompMesh::ExpandSolution2()
 			//REAL temp;
 			STATE temp;
 			for(ieq=0; ieq<nstate; ieq++) {
-				temp = fSolution(position+ieq,ic);
-				fSolution(position+ieq,ic) = fSolution(lastStatePos+ieq,ic);
-				fSolution(lastStatePos+ieq,ic) = temp;
+				temp = mysol(position+ieq,ic);
+				mysol(position+ieq,ic) = mysol(lastStatePos+ieq,ic);
+				mysol(lastStatePos+ieq,ic) = temp;
 			}
 		}
 	}
 	
-	TPZCompMesh::ExpandSolution();
+	TPZCompMesh::ExpandSolutionInternal(mysol);
 	
 	for(ic=0; ic<cols; ic++) {
 		for(ibl = 0;ibl<nblocks;ibl++) {
@@ -290,9 +297,9 @@ void TPZFlowCompMesh::ExpandSolution2()
 			//REAL temp;
 			STATE temp;
 			for(ieq=0; ieq<nstate; ieq++) {
-				temp = fSolution(position+ieq,ic);
-				fSolution(position+ieq,ic) = fSolution(lastStatePos+ieq,ic);
-				fSolution(lastStatePos+ieq,ic) = temp;
+				temp = mysol(position+ieq,ic);
+				mysol(position+ieq,ic) = mysol(lastStatePos+ieq,ic);
+				mysol(lastStatePos+ieq,ic) = temp;
 			}
 		}
 	}

@@ -19,7 +19,6 @@
 
 #include "tpzdohrassemblelist.h"
 
-#include "pz_pthread.h"
 
 /**
  * @brief Implements a matrix divided into substructures. \ref matrix "Matrix" \ref substructure "Sub structure"
@@ -39,6 +38,10 @@ private:
 	
 	/** @brief Number of threads that will be used during the matrix vector multiplication */
 	int fNumThreads;
+
+	int64_t Size() const override;
+  TVar* &Elem() override;
+  const TVar* Elem() const override;
 	
 public:
 	
@@ -57,10 +60,25 @@ public:
 	}
 	
 	//	CLONEDEF(TPZDohrMatrix)
-	virtual TPZMatrix<TVar>*Clone() const { return new TPZDohrMatrix(*this); }
+	inline TPZDohrMatrix*NewMatrix() const override {return new TPZDohrMatrix{};}
+	virtual TPZMatrix<TVar>*Clone() const  override { return new TPZDohrMatrix(*this); }
 	
 	~TPZDohrMatrix();
-	
+
+	void CopyFrom(const TPZMatrix<TVar> *  mat) override        
+  {                                                           
+    auto *from = dynamic_cast<const TPZDohrMatrix<TVar,TSubStruct> *>(mat);                
+    if (from) {                                               
+      *this = *from;                                          
+    }                                                         
+    else                                                      
+      {                                                       
+        PZError<<__PRETTY_FUNCTION__;                         
+        PZError<<"\nERROR: Called with incompatible type\n."; 
+        PZError<<"Aborting...\n";                             
+        DebugStop();                                          
+      }                                                       
+  }
 	const SubsList &SubStructures() const
 	{
 		return fGlobal;
@@ -86,7 +104,7 @@ public:
 		return (*fGlobal.begin());
 	}
 	/** @brief Just a method for tests */
-	void Print(const char *name, std::ostream& out,const MatrixOutputFormat form = EFormatted) const
+	void Print(const char *name, std::ostream& out,const MatrixOutputFormat form = EFormatted) const override
 	{
 		out << __PRETTY_FUNCTION__ << std::endl;
 		out << name << std::endl;
@@ -123,7 +141,7 @@ public:
 	virtual void MultAddTBB(const TPZFMatrix<TVar> &x,const TPZFMatrix<TVar> &y, TPZFMatrix<TVar> &z,const TVar alpha,const TVar beta,const int opt) const;
     
 	/** The only method any matrix class needs to implement */
-	virtual void MultAdd(const TPZFMatrix<TVar> &x,const TPZFMatrix<TVar> &y, TPZFMatrix<TVar> &z,const TVar alpha,const TVar beta,const int opt) const;
+	virtual void MultAdd(const TPZFMatrix<TVar> &x,const TPZFMatrix<TVar> &y, TPZFMatrix<TVar> &z,const TVar alpha,const TVar beta,const int opt) const override;
 	
 	/** @brief Adjust the residual to zero the residual of the internal connects */
 	void AdjustResidual(TPZFMatrix<TVar> &res);
@@ -132,8 +150,8 @@ public:
 	void AddInternalSolution(TPZFMatrix<TVar> &solution);
     
 	/**
-	 * @name TPZSaveable
-	 * Methods which would make TPZMatrix<TVar>compliant with TPZSaveable
+	 * @name TPZSavable
+	 * Methods which would make TPZMatrix<TVar>compliant with TPZSavable
 	 */
 	//@{
 	/**
@@ -141,17 +159,24 @@ public:
 	 * @param buf The buffer containing the object in a packed form
 	 * @param context
 	 */
-	virtual void  Read(TPZStream &buf, void *context );
+	void Read(TPZStream &buf, void *context) override;
 	/**
 	 * @brief Packs the object structure in a stream of bytes
 	 * @param buf Buffer which will receive the bytes
 	 * @param withclassid
 	 */
-	virtual void Write( TPZStream &buf, int withclassid );
+	void Write(TPZStream &buf, int withclassid) const override;
     
     /** @brief Routines to send and receive messages */
-	virtual int ClassId() const;
+	public:
+int ClassId() const override;
+
 };
+
+template <class TVar, class TSubStruct>
+int TPZDohrMatrix<TVar, TSubStruct>::ClassId() const{
+    return Hash("TPZDohrMatrix") ^ TPZMatrix<TVar>::ClassId() << 1 ^ TSubStruct().ClassId() << 2;
+}
 
 /**
  * @ingroup substructure
@@ -199,7 +224,7 @@ struct TPZDohrThreadMultList
 	/** @brief Scalar multiplication factor */
 	TVar fAlpha;
 	/** @brief Mutex which will enable the access protection of the list */
-	pthread_mutex_t fAccessLock;
+	std::mutex fAccessLock;
 	/** @brief The data structure which defines the assemble destinations */
 	TPZAutoPointer<TPZDohrAssembly<TVar> > fAssembly;
 	/** @brief The list of data objects which need to treated by the threads */
@@ -208,13 +233,11 @@ struct TPZDohrThreadMultList
 	TPZAutoPointer<TPZDohrAssembleList<TVar> > fAssemblyStructure;
 	
 	TPZDohrThreadMultList(const TPZFMatrix<TVar> &x, TVar alpha, TPZAutoPointer<TPZDohrAssembly<TVar> > assembly, TPZAutoPointer<TPZDohrAssembleList<TVar> > &assemblestruct) : fInput(&x), fAlpha(alpha),
-	fAssembly(assembly), fAssemblyStructure(assemblestruct)
+	fAssembly(assembly), fAssemblyStructure(assemblestruct), fAccessLock()
 	{
-        PZ_PTHREAD_MUTEX_INIT(&fAccessLock, 0, "TPZDohrThreadMultList::TPZDohrThreadMultList(...)");
 	}
 	~TPZDohrThreadMultList()
 	{
-        PZ_PTHREAD_MUTEX_DESTROY(&fAccessLock, "TPZDohrThreadMultList::TPZDohrThreadMultList()");
 	}
 	
 	/** @brief The procedure which executes the lengthy process */
@@ -222,20 +245,18 @@ struct TPZDohrThreadMultList
 	/** @brief Interface to add items in a thread safe way */
 	void AddItem(TPZDohrThreadMultData<TSubStruct> &data)
 	{
-        PZ_PTHREAD_MUTEX_LOCK(&fAccessLock, "TPZDohrThreadMultList::AddItem()");
+    std::scoped_lock<std::mutex> lock(fAccessLock);
 		fWork.push_back(data);
-        PZ_PTHREAD_MUTEX_UNLOCK(&fAccessLock, "TPZDohrThreadMultList::AddItem()");
 	}
 	/** @brief Interface to pop an item in a thread safe way */
 	TPZDohrThreadMultData<TSubStruct> PopItem()
 	{
 		TPZDohrThreadMultData<TSubStruct> result;
-        PZ_PTHREAD_MUTEX_LOCK(&fAccessLock, "TPZDohrThreadMultList::PopItem()");
+    std::scoped_lock<std::mutex> lock(fAccessLock);
 		if (fWork.size()) {
 			result = *fWork.begin();
 			fWork.pop_front();
 		}
-        PZ_PTHREAD_MUTEX_UNLOCK(&fAccessLock, "TPZDohrThreadMultList::PopItem()");
 		return result;
 	}
 };

@@ -10,15 +10,14 @@
 #include "pzgraphel.h"
 #include "pztrigraph.h"
 #include "pzgraphnode.h"
-#include "pzmaterial.h"
+#include "TPZMaterial.h"
 #include "pzfmatrix.h"
 #include "pzgeoel.h"
 
 using namespace std;
 
-TPZDXGraphMesh::TPZDXGraphMesh(TPZCompMesh *cmesh, int dimension, TPZMaterial * mat, const TPZVec<std::string> &scalarnames, const TPZVec<std::string> &vecnames) :
-TPZGraphMesh(cmesh,dimension,mat) {
-	SetNames(scalarnames,vecnames);
+TPZDXGraphMesh::TPZDXGraphMesh(TPZCompMesh *cmesh, int dimension, const std::set<int> & matids, const TPZVec<std::string> &scalarnames, const TPZVec<std::string> &vecnames) :
+TPZGraphMesh(cmesh,dimension,matids,scalarnames,vecnames) {
 	fNextDataField = 1;
 	fStyle = EDXStyle;
 	//	int index = 0;
@@ -49,9 +48,8 @@ TPZGraphMesh(cmesh,dimension,mat) {
 	
 }
 
-TPZDXGraphMesh::TPZDXGraphMesh(TPZCompMesh *cmesh,int dim,TPZDXGraphMesh *graph,TPZMaterial * mat) :
-TPZGraphMesh(cmesh,dim,mat) {
-	if(!mat) fMaterial = graph->fMaterial;
+TPZDXGraphMesh::TPZDXGraphMesh(TPZCompMesh *cmesh,int dim,TPZDXGraphMesh *graph) :
+TPZGraphMesh(cmesh,dim,graph->fMaterialIds,graph->ScalarNames(),graph->VecNames()) {
 	fNextDataField = graph->fNextDataField;
 	fStyle = EDXStyle;
 	fElementType = "noname";
@@ -94,7 +92,14 @@ std::string TPZDXGraphMesh::ElementName() {
 
 void TPZDXGraphMesh::DrawMesh(int numcases) {
 	
-	int dim = Material()->Dimension();
+    std::set<int> matids = MaterialIds(); /// partial solution
+    if(matids.size() == 0) {
+        cout << "TPZMVGraphMesh no material found\n";
+        return;
+    }
+    set<int>::iterator iter = matids.begin();
+    TPZMaterial * matp = fCompMesh->FindMaterial(*iter);
+	int dim = matp->Dimension();
 	int dim1 = dim-1;
 	MElementType eltypes[] = {ENoType, EOned, EQuadrilateral, ETriangle,ECube};
 	int firsttype[4] = {1,2,4,0}, lasttype[4] = {2,4,5,0};
@@ -102,7 +107,7 @@ void TPZDXGraphMesh::DrawMesh(int numcases) {
 	std::string elname[] = {"noname","lines","quads","triangles","cubes"};
 	int object = fNextDataField;
 	fNodePosObject[dim1] = object;
-	long nn = NPoints();
+	int64_t nn = NPoints();
 	
 	//field nodes / positions
 	(fOutFile) <<  "object " << object << " class array type float rank 1 shape 3 items "
@@ -118,7 +123,7 @@ void TPZDXGraphMesh::DrawMesh(int numcases) {
 	int it;
 	for(it=firsttype[dim1]; it<lasttype[dim1]; it++) {
 		MElementType type = eltypes[it];
-		long nel = NElements(type);
+		int64_t nel = NElements(type);
 		if(nel) {
 			
 			fElConnectivityObject[type] = object;
@@ -143,8 +148,14 @@ void TPZDXGraphMesh::DrawMesh(int numcases) {
 
 void TPZDXGraphMesh::DrawSolution(int step, REAL time) {
 	
-	TPZMaterial * matp = Material();
-	long i,nel;
+    std::set<int> matids = MaterialIds(); /// partial solution
+    if(matids.size() == 0) {
+        cout << "TPZMVGraphMesh no material found\n";
+        return;
+    }
+    set<int>::iterator iter = matids.begin();
+    TPZMaterial * matp = fCompMesh->FindMaterial(*iter);
+	int64_t i,nel;
 	if(!matp) return;
 	int dim = matp->Dimension();
 	int dim1 = dim-1;
@@ -167,7 +178,7 @@ void TPZDXGraphMesh::DrawSolution(int step, REAL time) {
 	fFirstFieldValues[dim1].Push(fNextDataField+1);
 	fTimes.Push(time);
 	cout << "TPZDXGraphMesh.DrawSolution step = " << step << " time = " << time << endl;
-	long numpoints = NPoints();
+	int64_t numpoints = NPoints();
 	TPZVec<int> scal(1);
 	for(n=0; n<numscal; n++) {
 		(fOutFile) << "object " << fNextDataField << " class array type float rank 0 items "
@@ -296,7 +307,7 @@ void TPZDXGraphMesh::Close() {
 		for(ist =0; ist<fNumCases; ist++) {
 			int icon;
 			for(icon=0; icon< fNumConnectObjects[dim1]; icon++) {
-				long FVRval = FVR[ist]+icon;
+				int64_t FVRval = FVR[ist]+icon;
 				(fOutFile) << "member " << ist << " position " << (fTimes)[ist]
 				<< " value " << FVRval << endl;
 			}
@@ -309,7 +320,7 @@ void TPZDXGraphMesh::Close() {
 		for(ist =0; ist<fNumCases; ist++) {
 			int icon;
 			for(icon=0; icon< fNumConnectObjects[dim1]; icon++) {
-				long FVRval = FVR[ist]+icon;
+				int64_t FVRval = FVR[ist]+icon;
 				(fOutFile) << "member " << ist << " position " << (fTimes)[ist]
 				<< " value " << FVRval << endl;
 			}
@@ -341,14 +352,20 @@ void TPZDXGraphMesh::Close() {
 
 void TPZDXGraphMesh::DrawSolution(char * var)
 {
-	TPZMaterial * matp = Material();
-    long i,varind;
+    std::set<int> matids = MaterialIds(); /// partial solution
+    if(matids.size() == 0) {
+        cout << "TPZMVGraphMesh no material found\n";
+        return;
+    }
+    set<int>::iterator iter = matids.begin();
+    TPZMaterial * matp = fCompMesh->FindMaterial(*iter);
+    int64_t i,varind;
     varind = matp->VariableIndex(var);
     TPZVec<int> vec(1);
     (fOutFile) << "object " << fNextDataField << " class array type float rank 1 shape " <<
 	matp->NSolutionVariables(varind) << " items " << NPoints() << " data follows " << endl;
     vec[0] = varind;
-    long nel = fCompMesh->ConnectVec().NElements();
+    int64_t nel = fCompMesh->ConnectVec().NElements();
     for(i=0;i<nel;i++) {
 		TPZGraphNode n = fNodeMap[i];
 		n.DrawSolution(vec,fStyle);
@@ -364,7 +381,7 @@ void TPZDXGraphMesh::DrawSolution(char * var)
 	
 }
 
-void TPZDXGraphMesh::DrawSolution(TPZBlock<REAL> &/*bl*/)
+void TPZDXGraphMesh::DrawSolution(TPZBlock &/*bl*/)
 {
 	/*
 	 Pix i = fCompMesh->MaterialVec().first();

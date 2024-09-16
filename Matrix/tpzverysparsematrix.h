@@ -5,13 +5,12 @@
 #ifndef TPZVERYSPARSEMATRIX_H
 #define TPZVERYSPARSEMATRIX_H
 
+#include "pzmatrix.h"
 #include <iostream>
 #include <map>
-
-#include "pzmatrix.h"
+#include "Hash/TPZHash.h"
 
 /** @ingroup matrix */
-#define TPZVERYSPARSEMATRIX_ID 28291001;
 
 template <class TVar>
 class TPZFMatrix;
@@ -33,11 +32,13 @@ public:
 	
 	TPZVerySparseMatrix();
 	
-	TPZVerySparseMatrix(long rows, long cols) :
+	TPZVerySparseMatrix(int64_t rows, int64_t cols) :
+    TPZRegisterClassId(&TPZVerySparseMatrix::ClassId),
     TPZMatrix<TVar>(rows, cols)
 	{
 	}
-	TPZVerySparseMatrix(long rows, long cols, TVar val) :
+	TPZVerySparseMatrix(int64_t rows, int64_t cols, TVar val) :
+    TPZRegisterClassId(&TPZVerySparseMatrix::ClassId),
     TPZMatrix<TVar>(rows, cols)
 	{
 	}
@@ -45,6 +46,7 @@ public:
 	virtual ~TPZVerySparseMatrix();
 	
 	TPZVerySparseMatrix(const TPZVerySparseMatrix<TVar> &copy) :
+    TPZRegisterClassId(&TPZVerySparseMatrix::ClassId),
     TPZMatrix<TVar>(copy), fExtraSparseData(copy.fExtraSparseData)
 	{
 	}
@@ -52,20 +54,20 @@ public:
 	TPZVerySparseMatrix(const TPZFMatrix<TVar> &cp);
 	
 	/** @brief Simetrizes copies the data of the matrix to make its data simetric */
-	void Simetrize();
+	void Simetrize() override;
     
 	/** @brief Put values checking bounds */
-	int PutVal(const long row, const long col, const TVar &val);
+	int PutVal(const int64_t row, const int64_t col, const TVar &val) override;
 	
 	/** @brief Get values checking bounds */
-	virtual const TVar &GetVal(const long row, const long col) const;
+	virtual const TVar GetVal(const int64_t row, const int64_t col) const override;
 	
 	/**
 	 * @brief The operators check on the bounds if the DEBUG variable is defined
 	 * @param row Row number.
 	 * @param col Column number.
 	 */
-	virtual TVar &s(const long row, const long col)
+	virtual TVar &s(const int64_t row, const int64_t col) override
 	{
 #ifdef PZDEBUG
 		if(row >= this->Rows() || row<0 || col >= this->Cols() || col<0)
@@ -74,11 +76,27 @@ public:
 			DebugStop();
 		}
 #endif
-		return fExtraSparseData[std::pair<long, long>(row, col)];
+		return fExtraSparseData[std::pair<int64_t, int64_t>(row, col)];
 	}
-	
+	inline TPZVerySparseMatrix<TVar>*NewMatrix() const override
+  {return new TPZVerySparseMatrix<TVar>{};}
 	CLONEDEF(TPZVerySparseMatrix)
-	
+
+	/** @brief Creates a copy from another TPZVerySparseMatrix*/
+  void CopyFrom(const TPZMatrix<TVar> *  mat) override
+  {                                                           
+    auto *from = dynamic_cast<const TPZVerySparseMatrix<TVar> *>(mat);                
+    if (from) {                                               
+      *this = *from;                                          
+    }                                                         
+    else                                                      
+      {                                                       
+        PZError<<__PRETTY_FUNCTION__;                         
+        PZError<<"\nERROR: Called with incompatible type\n."; 
+        PZError<<"Aborting...\n";                             
+        DebugStop();                                          
+      }                                                       
+  }
 	/**
 	 * @brief It computes z = beta * y + alpha * opt(this)*x but z and x can not overlap in memory.
 	 * @param x Is x on the above operation
@@ -90,38 +108,43 @@ public:
 	 */
 	virtual void MultAdd(const TPZFMatrix<TVar> & x, const TPZFMatrix<TVar> & y,
 						 TPZFMatrix<TVar> & z, const TVar alpha = 1, const TVar beta = 0,
-						 const int opt = 0) const;
+						 const int opt = 0) const override;
 	
 	/** @brief It makes *T the transpose of current matrix. */
 	virtual void Transpose(TPZVerySparseMatrix<TVar>* T) const;
-	virtual void Transpose(TPZMatrix<TVar>*const T) const {
+	virtual void Transpose(TPZMatrix<TVar>*const T) const  override {
         TPZMatrix<TVar>::Transpose(T);
     }
     
 	/** @brief Saveable methods */
-	int ClassId() const
-	{
-		return TPZVERYSPARSEMATRIX_ID;
-	}
-	virtual void Write(TPZStream &buf, int withclassid);
-	virtual void Read(TPZStream &buf, void *context);
+	public:
+int ClassId() const override;
 
-	typename std::map <std::pair<long, long>, TVar>::const_iterator MapBegin() const { return fExtraSparseData.begin(); }
-	typename std::map <std::pair<long, long>, TVar>::const_iterator MapEnd() const { return fExtraSparseData.end(); }
+	void Write(TPZStream &buf, int withclassid) const override;
+	void Read(TPZStream &buf, void *context) override;
+
+	typename std::map <std::pair<int64_t, int64_t>, TVar>::const_iterator MapBegin() const { return fExtraSparseData.begin(); }
+	typename std::map <std::pair<int64_t, int64_t>, TVar>::const_iterator MapEnd() const { return fExtraSparseData.end(); }
 	
 private:
 	/** @brief Auxiliary functions only reading and writing a map as the third paremeter */
-	void WriteMap(TPZStream &buf, int withclassid, std::map<std::pair<long, long>, TVar> & TheMap);
-	void ReadMap(TPZStream &buf, void *context, std::map<std::pair<long, long>, TVar> & TheMap);
+	void WriteMap(TPZStream &buf, int withclassid, const std::map<std::pair<int64_t, int64_t>, TVar> & TheMap) const;
+	void ReadMap(TPZStream &buf, void *context, std::map<std::pair<int64_t, int64_t>, TVar> & TheMap);
 	
 protected:
-    
+	TVar *&Elem() override;
+  const TVar *Elem() const override;
+	inline int64_t Size() const override{
+		return fExtraSparseData.size();
+	}
     /** @brief Save elements different from zero, of Sparse matrix */
-	std::map<std::pair<long, long>, TVar> fExtraSparseData;
+	std::map<std::pair<int64_t, int64_t>, TVar> fExtraSparseData;
     
 };
 
-//#include "pzfmatrix.h"
-//#include "pzysmp.h"
+template<class TVar>
+int TPZVerySparseMatrix<TVar>::ClassId() const{
+    return Hash("TPZVerySparseMatrix") ^ TPZMatrix<TVar>::ClassId() << 1;
+}
 
 #endif

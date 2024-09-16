@@ -13,10 +13,11 @@
 #include "TPZGuiInterface.h"
 #include "pzelmat.h"
 #include "TPZSemaphore.h"
-#include "pzstrmatrix.h"
-
+#include "TPZStructMatrix.h"
 //class TPZStructMatrix;
 
+
+//TODO: NEEDS REVIEW
 /**
  * @ingroup substructure
  * @brief .. . \ref substructure "Sub Structure"
@@ -24,10 +25,11 @@
 class TPZPairStructMatrix
 {
 	TPZVec<int> fPermuteScatter;
-    TPZStructMatrix fStrMatrix;
+	
+    TPZAutoPointer<TPZStructMatrix>fStrMatrix;
 	
 	void PermuteScatter(TPZVec<int> &index);
-	void PermuteScatter(TPZVec<long> &index);
+	void PermuteScatter(TPZVec<int64_t> &index);
 	
 public:
 	
@@ -42,7 +44,7 @@ public:
 	
 	void SetNumThreads(int numthreads)
 	{
-		fStrMatrix.SetNumThreads(numthreads);
+		fStrMatrix->SetNumThreads(numthreads);
 	}
 	
 	/** @brief Set the set of material ids which will be considered when assembling the system */
@@ -66,7 +68,7 @@ public:
 		/** @brief Current structmatrix object */
 		TPZStructMatrix *fStrMatrix;
 		/** @brief Mutexes (to choose which element is next) */
-		pthread_mutex_t fAccessElement;
+		std::mutex fAccessElement;
 		/** @brief Semaphore (to wake up the first assembly thread) */
 		TPZSemaphore fAssembly1;
 		/** @brief Semaphore (to wake up the second assembly thread) */
@@ -92,7 +94,7 @@ public:
 		/** @brief Look for an element index which needs to be computed and put it on the stack */
 		int NextElement();
 		/** @brief Put the computed element matrices in the map */
-		void ComputedElementMatrix(int iel, TPZAutoPointer<TPZElementMatrix> &ek, TPZAutoPointer<TPZElementMatrix> &ef);
+		void ComputedElementMatrix(int iel, TPZAutoPointer<TPZElementMatrixT<STATE>> &ek, TPZAutoPointer<TPZElementMatrixT<STATE>> &ef);
 		/** @brief The function which will compute the matrices */
 		static void *ThreadWork(void *threaddata);
 		/** @brief The function which will compute the assembly */
@@ -106,7 +108,7 @@ public:
             return fStrMatrix->ShouldCompute(matid);
 		}
 		void PermuteScatter(TPZVec<int> &index);
-		void PermuteScatter(TPZVec<long> &index);
+		void PermuteScatter(TPZVec<int64_t> &index);
 		
 	};
 	

@@ -1,29 +1,32 @@
-/**
- * @file
- * @brief Contains the implementation of the TPZGeoElRefLess methods.
- */
+
+/// @brief Contains the implementation of the TPZGeoElRefLess methods.
+
 
 #ifndef PZGEOELREFLESS_H_H
 #define PZGEOELREFLESS_H_H
 
 #include "pzgeoelrefless.h"
 #include "tpzpyramid.h"
+#include "pzgnode.h"
+#include "pzgeom_utility.h"
+#include "pzgmesh.h"
 
 #include <sstream>
 
 #include "pzlog.h" // test 
-#ifdef LOG4CXX
-static LoggerPtr loggerrefless(Logger::getLogger("pz.mesh.tpzgeoelrefless"));
-#endif
+
+#include "fadType.h"
 
 template<class TGeo>
-TPZGeoElRefLess<TGeo>::TPZGeoElRefLess():TPZGeoEl(){
+TPZGeoElRefLess<TGeo>::TPZGeoElRefLess():TPZRegisterClassId(&TPZGeoElRefLess<TGeo>::ClassId),
+TPZGeoEl(){
 	int i;
 	for(i=0;i<TGeo::NSides;i++)fNeighbours[i] = TPZGeoElSideIndex();
 }
 
 template<class TGeo>
-TPZGeoElRefLess<TGeo>::TPZGeoElRefLess(const TPZGeoElRefLess<TGeo>  &gel):TPZGeoEl(gel), fGeo(gel.fGeo){
+TPZGeoElRefLess<TGeo>::TPZGeoElRefLess(const TPZGeoElRefLess<TGeo>  &gel)
+:TPZRegisterClassId(&TPZGeoElRefLess<TGeo>::ClassId), TPZGeoEl(gel), fGeo(gel.fGeo){
 	int i;
 	for(i=0;i<TGeo::NSides;i++){
 		TPZGeoElSide thisside(this->fNeighbours[i], this->Mesh());
@@ -40,8 +43,8 @@ TPZGeoElRefLess<TGeo>::~TPZGeoElRefLess(){
 }
 
 template<class TGeo>
-TPZGeoElRefLess<TGeo>::TPZGeoElRefLess(TPZVec<long> &nodeindices,int matind,TPZGeoMesh &mesh) :
-TPZGeoEl(matind,mesh), fGeo(nodeindices) {
+TPZGeoElRefLess<TGeo>::TPZGeoElRefLess(TPZVec<int64_t> &nodeindices,int matind,TPZGeoMesh &mesh) :
+TPZRegisterClassId(&TPZGeoElRefLess<TGeo>::ClassId), TPZGeoEl(matind,mesh), fGeo(nodeindices) {
 	
 	int i;
 	for(i=0;i<TGeo::NSides;i++)fNeighbours[i] = TPZGeoElSideIndex();
@@ -50,15 +53,15 @@ TPZGeoEl(matind,mesh), fGeo(nodeindices) {
 
 template<class TGeo>
 TPZGeoElRefLess<TGeo>::TPZGeoElRefLess(TGeo &geo,int matind,TPZGeoMesh &mesh) :
-TPZGeoEl(matind,mesh), fGeo(geo) {
+TPZRegisterClassId(&TPZGeoElRefLess<TGeo>::ClassId), TPZGeoEl(matind,mesh), fGeo(geo) {
 	int i;
 	for(i=0;i<TGeo::NSides;i++)fNeighbours[i] = TPZGeoElSideIndex();
     fGeo.Initialize(this);
 }
 
 template<class TGeo>
-TPZGeoElRefLess<TGeo>::TPZGeoElRefLess(TPZVec<long> &nodeindices,int matind,TPZGeoMesh &mesh, long &index) :
-TPZGeoEl(matind,mesh,index) , fGeo(nodeindices) 
+TPZGeoElRefLess<TGeo>::TPZGeoElRefLess(TPZVec<int64_t> &nodeindices,int matind,TPZGeoMesh &mesh, int64_t &index) 
+: TPZRegisterClassId(&TPZGeoElRefLess<TGeo>::ClassId), TPZGeoEl(matind,mesh,index) , fGeo(nodeindices) 
 {
 	int i;
 	for(i=0;i<TGeo::NSides;i++)fNeighbours[i] = TPZGeoElSideIndex();
@@ -66,22 +69,36 @@ TPZGeoEl(matind,mesh,index) , fGeo(nodeindices)
 }
 
 template<class TGeo>
-TPZGeoElRefLess<TGeo>::TPZGeoElRefLess(long id,TPZVec<long> &nodeindexes,int matind,TPZGeoMesh &mesh) :
-TPZGeoEl(id,matind,mesh) , fGeo(nodeindexes) {
+TPZGeoElRefLess<TGeo>::TPZGeoElRefLess(int64_t id,TPZVec<int64_t> &nodeindexes,int matind,TPZGeoMesh &mesh) :
+TPZRegisterClassId(&TPZGeoElRefLess<TGeo>::ClassId), TPZGeoEl(id,matind,mesh) , fGeo(nodeindexes) {
 	int i;
 	for(i=0;i<TGeo::NSides;i++)fNeighbours[i] = TPZGeoElSideIndex();
     fGeo.Initialize(this);
 }
 
 template<class TGeo>
-long
+inline int64_t
 TPZGeoElRefLess<TGeo>::NodeIndex(int node) const {
+#ifdef PZDEBUG
 	if(node<0 || node>=fGeo.NNodes) return -1;
+#endif
 	return fGeo.fNodeIndexes[node];
 }
 
+/** @brief Gets the corner node coordinates in coord */
 template<class TGeo>
-long
+inline void TPZGeoElRefLess<TGeo>::CornerCoordinates(TPZFMatrix<REAL> &coord) const
+{
+    for(int i=0;i<TGeo::NNodes;i++) {
+        auto &np = fMesh->NodeVec()[fGeo.fNodeIndexes[i]];
+        for(int j=0;j<3;j++) {
+            coord(j,i) = np.Coord(j);
+        }
+    }
+}
+
+template<class TGeo>
+int64_t
 TPZGeoElRefLess<TGeo>::SideNodeIndex(int side,int node) const {
 	if(side<0 || side>(TGeo::NSides - 1) || node<0) {
 		PZError << "TPZGeoElRefLess::SideNodeIndex. Bad parameter side.\n";
@@ -135,6 +152,20 @@ TPZGeoElRefLess<TGeo>::NSides() const{
 
 template<class TGeo>
 int
+TPZGeoElRefLess<TGeo>::NSides(int dim) const{
+    return TGeo::NumSides(dim);
+}
+
+template<class TGeo>
+int
+TPZGeoElRefLess<TGeo>::FirstSide(int dim) const{
+    int firstside = 0;
+    for(int i=0; i<dim; i++) firstside += TGeo::NumSides(i);
+    return firstside;
+}
+
+template<class TGeo>
+int
 TPZGeoElRefLess<TGeo>::SideNodeLocId(int side, int node) const {
 	return TGeo::SideNodeLocId(side,node);
 }
@@ -153,7 +184,7 @@ TPZGeoElRefLess<TGeo>::NSideNodes(int side) const{
 
 template<class TGeo>
 void
-TPZGeoElRefLess<TGeo>::MidSideNodeIndex(int side,long &index) const{
+TPZGeoElRefLess<TGeo>::MidSideNodeIndex(int side,int64_t &index) const{
 	//TRef::MidSideNodeIndex(this,side,index);
 	index = -1;
 	if(side<0 || side>NSides()-1) {
@@ -190,27 +221,209 @@ TPZGeoElRefLess<TGeo>::NSideSubElements(int side) const {
 }
 
 
+
 template<class TGeo>
 TPZGeoEl *
 TPZGeoElRefLess<TGeo>::CreateBCGeoEl(int side, int bc){
-	TPZGeoEl * result = fGeo.CreateBCGeoEl(this,side,bc);
-//    result->BuildBlendConnectivity();
-	result->Initialize();
-	return result;  
+	// Consistency check
+	int nsides = TGeo::NSides;
+	if(side<0 || side >= nsides){
+		std::cout << "\n ("<<TGeo::Type()<<")::CreateBCGeoEl unexpected side = " << side << "\n";
+		return 0;
+	}
+	if(fGeo.Dimension == 3 && side == nsides-1){
+		std::cout <<"\nCreateBCGeoEl not implemented for tridimensional sides \n";
+		return 0;
+	}
+    
+    // the side orientation will be +1 if the side is oriented counterclockwise
+    // -1 if the side is clockwise
+    
+    
+    int faceSide = 0;
+    if (fGeo.Dimension == 2){
+        faceSide = side - TGeo::NCornerNodes;
+    } else if (fGeo.Dimension == 3){
+        faceSide = side - TGeo::NCornerNodes - TGeo::NumSides(1);
+    }
+
+    int sideorient = 1;
+    switch (TGeo::Type())
+    {
+    case ETriangle:
+        sideorient = pztopology::TPZTriangle::GetSideOrient(faceSide);
+        break;
+    case EQuadrilateral:
+        sideorient = pztopology::TPZQuadrilateral::GetSideOrient(faceSide);
+        break;
+    case ETetraedro:
+        sideorient = pztopology::TPZTetrahedron::GetSideOrient(faceSide);
+        break;
+    case ECube:
+        sideorient = pztopology::TPZCube::GetSideOrient(faceSide);
+        break;
+    case EPrisma:
+        sideorient = pztopology::TPZPrism::GetSideOrient(faceSide);
+        break;
+    
+    default:
+        break;
+    }
+    
+    
+    // Build vector with node indices of element to be created
+    MElementType sidetype = TGeo::Type(side);
+    int sidennodes = TGeo::NSideNodes(side);
+    int sizeMap = 0;
+    switch (sidetype){
+    case EPoint:
+        sizeMap = 1;
+        break;
+    case EOned:
+        sizeMap = 3;
+        break;
+    case ETriangle:
+        sizeMap = 7;
+        break;
+    case EQuadrilateral:
+        sizeMap = 9;
+        break;
+    default:
+        DebugStop();
+    }
+
+    TPZManVector<int,27> mapside(sizeMap,0);
+    for(int i=0; i<sizeMap; i++) mapside[i] = i;
+    
+    if(sideorient == -1)
+    {
+        switch(sidetype){
+            case EOned:
+                mapside = {1,0,2};
+                break;
+            case ETriangle:
+                mapside = {0,2,1,5,4,3,6};
+                break;
+            case EQuadrilateral:
+                mapside = {0,3,2,1,7,6,5,4,8};
+            default:
+                break;
+        }
+    }
+
+	// Is side straight?
+	TPZStack<int> LowAllSides;
+	TGeo::LowerDimensionSides(side,LowAllSides);
+    LowAllSides.Push(side);
+	bool straight = true;
+    if(fGeo.IsLinearMapping(side) == false) straight = false;
+	for(int lowside = 0; lowside < LowAllSides.NElements(); lowside++)
+	{
+		int lside = LowAllSides[lowside]; 
+		if(lside < TGeo::NNodes) continue;
+		if(fGeo.IsLinearMapping(lside) == false) straight = false;
+		if(straight == false) break;
+	}
+	if(straight == false)
+	{
+		TPZGeoEl *BCGeoEl = CreateBCGeoBlendEl(side,bc,mapside);
+		return BCGeoEl;
+	}
+	
+	// else
+
+	TPZManVector<int64_t,4> nodeindices(sidennodes);
+	for(int inode = 0; inode < sidennodes; inode++){
+        int orientednode = inode;
+        if(sideorient == -1) orientednode = mapside[inode];
+		nodeindices[orientednode] = this->SideNodeIndex(side,inode);
+	}
+
+	// Create GeoElement
+	int64_t index;
+	MElementType BCtype = TGeo::Type(side);
+	TPZGeoEl *BCGeoEl = this->Mesh()->CreateGeoElement(BCtype, nodeindices, bc, index);
+
+    TPZGeoElSide BCGelside(BCGeoEl);
+    TPZGeoElSide thisside(this,side);
+    BCGelside.InsertConnectivity(thisside,mapside);
+    /*
+	// Set Connectivity
+	int sidensides = TGeo::NContainedSides(side);
+	for(int iside=0; iside < sidensides-1; iside++){
+		TPZGeoElSide(BCGeoEl,mapside[iside]).SetConnectivity(TPZGeoElSide(this,TGeo::ContainedSideLocId(side,iside)));
+	}
+	TPZGeoElSide(BCGeoEl, sidensides-1).SetConnectivity(TPZGeoElSide(this,side));
+*/
+	// Return pointer to new element
+	BCGeoEl->Initialize();
+	return BCGeoEl;  
 }
+
+
+template <class TGeo>
+TPZGeoEl *TPZGeoElRefLess<TGeo>::CreateBCGeoBlendEl(int side,int bc)
+{
+	int sidennodes = TGeo::NSideNodes(side);
+	TPZManVector<int64_t> nodeindices(sidennodes);
+	int inode;
+	for(inode=0; inode<sidennodes; inode++){
+		nodeindices[inode] = this->SideNodeIndex(side,inode);
+	}
+	int64_t index;
+	
+	TPZGeoMesh *mesh = this->Mesh();
+	MElementType BCtype = TGeo::Type(side);
+	
+	TPZGeoEl *newel = mesh->CreateGeoBlendElement(BCtype, nodeindices, bc, index);
+	TPZGeoElSide me(this,side);
+	TPZGeoElSide newelside(newel,newel->NSides()-1);
+	
+	newelside.InsertConnectivity(me);
+	newel->Initialize();
+	
+	return newel;
+}
+
+template <class TGeo>
+TPZGeoEl *TPZGeoElRefLess<TGeo>::CreateBCGeoBlendEl(int side,int bc, const TPZVec<int> &mapside)
+{
+    int sidennodes = TGeo::NSideNodes(side);
+    TPZManVector<int64_t> nodeindices(sidennodes);
+    int inode;
+    for(inode=0; inode<sidennodes; inode++){
+        nodeindices[mapside[inode]] = this->SideNodeIndex(side,inode);
+    }
+    int64_t index;
+    
+    TPZGeoMesh *mesh = this->Mesh();
+    MElementType BCtype = TGeo::Type(side);
+    
+    TPZGeoEl *newel = mesh->CreateGeoBlendElement(BCtype, nodeindices, bc, index);
+    TPZGeoElSide me(this,side);
+    TPZGeoElSide newelside(newel,newel->NSides()-1);
+    
+    newelside.InsertConnectivity(me,mapside);
+    newel->Initialize();
+    
+    return newel;
+}
+
+
 
 template<class TGeo>
 TPZGeoEl * TPZGeoElRefLess<TGeo>::CreateGeoElement(MElementType type,
-												   TPZVec<long>& nodeindexes,
+												   TPZVec<int64_t>& nodeindexes,
 												   int matid,
-												   long& index)
+												   int64_t& index)
 {
-	return fGeo.CreateGeoElement(*Mesh(),type,nodeindexes,matid,index);
+	if(this->IsLinearMapping(NSides()-1)) return this->Mesh()->CreateGeoElement(type,nodeindexes,matid,index);
+	else    return this->Mesh()->CreateGeoElementMapped(type,nodeindexes,matid,index);
 }
 
 template<class TGeo>
 void
-TPZGeoElRefLess<TGeo>::SetNodeIndex(int i,long nodeindex){
+TPZGeoElRefLess<TGeo>::SetNodeIndex(int i,int64_t nodeindex){
 	if(i<0 || i>(TGeo::NNodes - 1)){
 		std::cout << "TPZGeoElRefLess::SetNodeIndex index error i = " << i << std::endl;
 		return;
@@ -219,7 +432,7 @@ TPZGeoElRefLess<TGeo>::SetNodeIndex(int i,long nodeindex){
 }
 
 template<class TGeo>
-TPZTransform
+TPZTransform<>
 TPZGeoElRefLess<TGeo>::SideToSideTransform(int sidefrom,int sideto){
 	return TGeo::SideToSideTransform(sidefrom,sideto);
 }
@@ -274,75 +487,52 @@ TPZGeoElRefLess<TGeo>::LowerDimensionSides(int side,TPZStack<int> &smallsides) c
 
 template<class TGeo>
 void
-TPZGeoElRefLess<TGeo>::BuildTransform(int side, TPZGeoEl *father,TPZTransform &t){
+TPZGeoElRefLess<TGeo>::BuildTransform(int side, TPZGeoEl *father,TPZTransform<> &t){
 	BuildTransform2(side,father,t);
 }
 
-template<class TGeo>
-void
-TPZGeoElRefLess<TGeo>::Jacobian(TPZVec<REAL> &par,TPZFMatrix<REAL> &jac,TPZFMatrix<REAL> &axes,REAL &detjac,TPZFMatrix<REAL> &jacinv) const {
-	fGeo.Jacobian(*this,par,jac,axes,detjac,jacinv);
-	
-    
-#ifdef PZDEBUG
-    TPZManVector<REAL,3> minx(3,0.),maxx(3,0.);
-    int ncorners = NNodes();
-    TPZFNMatrix<54,REAL> cornerco(3,ncorners);
-    fGeo.CornerCoordinates(*this,cornerco);
-    long spacedim = cornerco.Rows();
-    
-    for (long j=0; j<spacedim; j++) {
-        minx[j] = cornerco(j,0);
-        maxx[j] = cornerco(j,0);
-    }
-    for (int i=0; i<ncorners; i++) {
-        for (int d=0; d<spacedim; d++) {
-            minx[d] = minx[d] < cornerco(d,i) ? minx[d] : cornerco(d,i);
-            maxx[d] = maxx[d] > cornerco(d,i) ? maxx[d] : cornerco(d,i);
-        }
-    }
-    REAL delx=0.;
-    for (int i=0; i<ncorners; i++) {
-        for (long d=0; d<spacedim; d++) {
-            delx = delx < maxx[d]-minx[d] ? maxx[d]-minx[d] : delx;
-        }
-    }
-
-	if(TGeo::Dimension != 0 && (IsZero(delx) || IsZero(detjac/(delx*delx)))){
-		std::stringstream sout;
-		sout << "Jacobiano nulo\n";
-		LOGPZ_ERROR(loggerrefless,sout.str())
-		detjac = ZeroTolerance();
-	}
-#endif
-}
-#ifdef _AUTODIFF
 /** @brief Return the Gradient of the transformation at the point */
 template<class TGeo>
 void
-TPZGeoElRefLess<TGeo>::GradXFad(TPZVec<REAL> &par, TPZFMatrix<Fad<REAL> > &gradx) const
+TPZGeoElRefLess<TGeo>::GradX(TPZVec<Fad<REAL> > &par, TPZFMatrix<Fad<REAL> > &gradx) const
 {
-    TPZManVector<Fad<REAL>,3> parfad(par.size());
-    int sz = par.size();
-    for (int i=0; i<par.size(); i++) {
-        parfad[i] = Fad<REAL>(sz,i,par[i]);
-    }
-    fGeo.GradX(*this,parfad,gradx);
+    gradx.Resize(3,fGeo.Dimension);
+    TPZFNMatrix<54,REAL> cornerco(3,fGeo.NNodes);
+    CornerCoordinates(cornerco);
+    fGeo.GradX(cornerco,par,gradx);
 }
-#endif
+
 /** @brief Return the gradient of the transformation at the point */
 template<class TGeo>
 void
 TPZGeoElRefLess<TGeo>::GradX(TPZVec<REAL> &par, TPZFMatrix<REAL> &gradx) const
 {
-    fGeo.GradX(*this,par,gradx);
+    gradx.Resize(3,fGeo.Dimension);
+    TPZFNMatrix<54,REAL> cornerco(3,fGeo.NNodes);
+    CornerCoordinates(cornerco);
+    fGeo.GradX(cornerco,par,gradx);
 }
 
 /** @brief Return the gradient of the transformation at the point */
 template<class TGeo>
 void
 TPZGeoElRefLess<TGeo>::X(TPZVec<REAL> &coordinate,TPZVec<REAL> &result) const {
-	fGeo.X(*this,coordinate,result);
+#ifdef PZDEBUG
+    if(result.size() != 3) DebugStop();
+#endif
+    TPZFNMatrix<54,REAL> cornerco(3,fGeo.NNodes);
+    CornerCoordinates(cornerco);
+	fGeo.X(cornerco,coordinate,result);
+}
+
+/** @brief Return the gradient of the transformation at the point */
+template<class TGeo>
+void
+TPZGeoElRefLess<TGeo>::X(TPZVec<Fad<REAL> > &coordinate,TPZVec<Fad<REAL> > &result) const {
+    result.Resize(3);
+    TPZFNMatrix<54,REAL> cornerco(3,fGeo.NNodes);
+    CornerCoordinates(cornerco);
+    fGeo.X(cornerco,coordinate,result);
 }
 
 template<class TGeo>
@@ -356,20 +546,24 @@ bool TPZGeoElRefLess<TGeo>::IsGeoBlendEl() const
 { 
 	return fGeo.IsGeoBlendEl();
 }
+template<class TGeo>
+bool TPZGeoElRefLess<TGeo>::ResetBlendConnectivity(const int64_t &side, const int64_t &index){
+    return fGeo.ResetBlendConnectivity(side,index);
+}
 
 template<class TGeo>
-TPZTransform
-TPZGeoElRefLess<TGeo>::BuildTransform2(int side, TPZGeoEl * father, TPZTransform &t)
+TPZTransform<>
+TPZGeoElRefLess<TGeo>::BuildTransform2(int side, TPZGeoEl * father, TPZTransform<> &t)
 {
 	if(this == father) return t;
 	TPZGeoEl *myfather = Father();
 	if(side<0 || side>(TGeo::NSides-1) || !myfather){
 		PZError << "TPZGeoElRefLess::BuildTransform2 side out of range or father null\n";
-		return TPZTransform(0,0);
+		return TPZTransform<>(0,0);
 	}
 	TPZGeoElSide fathloc = Father2(side);
 	int son = WhichSubel();
-	TPZTransform trans=myfather->GetTransform(side,son);
+	TPZTransform<> trans=myfather->GetTransform(side,son);
 	trans = trans.Multiply(t);
 	if(fathloc.Element() == father) return trans;
 	trans = myfather->BuildTransform2(fathloc.Side(),father,trans);
@@ -377,10 +571,10 @@ TPZGeoElRefLess<TGeo>::BuildTransform2(int side, TPZGeoEl * father, TPZTransform
 }
 
 template<class TGeo>
-TPZTransform
+TPZTransform<>
 TPZGeoElRefLess<TGeo>::GetTransform(int /*side*/,int /*son*/){
     PZError << "TPZGeoElRefLess<TGeo>::GetTransform::Never should be called\n";
-    return TPZTransform(0,0);
+    return TPZTransform<>(0,0);
 }
 
 template<class TGeo>
@@ -410,42 +604,25 @@ TPZGeoElRefLess<TGeo>::GetSubElements2(int side, TPZStack<TPZGeoElSide> &subel) 
 
 template<class TGeo>
 void TPZGeoElRefLess<TGeo>::Read(TPZStream &buf, void *context){
-	TPZGeoEl::Read(buf,context);
+    TPZGeoEl::Read(buf,context);
     fGeo.Read(buf,context);
-#ifdef PZDEBUG
-    long NNodes = Mesh()->NodeVec().NElements();
-    for (int i=0; i< TGeo::NNodes; i++) {
-        if (fGeo.fNodeIndexes[i]<0 || fGeo.fNodeIndexes[i] > NNodes) {
-            DebugStop();
-        }
+    for (unsigned int i = 0; i < TGeo::NSides; ++i) {
+        this->fNeighbours[i].Read(buf, context);
     }
-#endif
-    
-	int i, n = TGeo::NSides;
-	for(i = 0; i < n; i++){
-		this->fNeighbours[i].Read(buf);
-#ifdef PZDEBUG
-        int nel = Mesh()->NElements();
-        if (this->fNeighbours[i].ElementIndex() < 0 || this->fNeighbours[i].Side() < 0 || this->fNeighbours[i].Side() >=27
-            || this->fNeighbours[i].ElementIndex() >= nel) {
-            DebugStop();
-        }
-#endif
-	}
-}//Read
+}
 
 template<class TGeo>
-void TPZGeoElRefLess<TGeo>::Write(TPZStream &buf, int withclassid){
-	TPZGeoEl::Write(buf,withclassid);
-    fGeo.Write(buf);
-	int i, n = TGeo::NSides;
-	for(i = 0; i < n; i++){
-		this->fNeighbours[i].Write(buf);
-	}
+void TPZGeoElRefLess<TGeo>::Write(TPZStream &buf, int withclassid) const {
+    TPZGeoEl::Write(buf, withclassid);
+    fGeo.Write(buf, withclassid);
+    for (unsigned int i = 0; i < TGeo::NSides; ++i) {
+        this->fNeighbours[i].Write(buf, withclassid);
+    }
 }//Write
 
 template<class TGeo>
-TPZGeoElRefLess<TGeo>::TPZGeoElRefLess(TPZGeoMesh &DestMesh, const TPZGeoElRefLess &cp):TPZGeoEl(DestMesh, cp), fGeo(cp.fGeo) {
+TPZGeoElRefLess<TGeo>::TPZGeoElRefLess(TPZGeoMesh &DestMesh, const TPZGeoElRefLess &cp):
+TPZRegisterClassId(&TPZGeoElRefLess<TGeo>::ClassId),TPZGeoEl(DestMesh, cp), fGeo(cp.fGeo,DestMesh) {
 	int i;
 	const int n = TGeo::NSides;
 	for(i = 0; i < n; i++){
@@ -457,9 +634,9 @@ TPZGeoElRefLess<TGeo>::TPZGeoElRefLess(TPZGeoMesh &DestMesh, const TPZGeoElRefLe
 template<class TGeo>
 TPZGeoElRefLess<TGeo>::TPZGeoElRefLess( TPZGeoMesh &DestMesh,
 									   const TPZGeoElRefLess &cp,
-									   std::map<long,long> & gl2lcNdMap,
-									   std::map<long,long> & gl2lcElMap ) :
-TPZGeoEl(DestMesh, cp, gl2lcElMap), fGeo(cp.fGeo, gl2lcNdMap)
+									   std::map<int64_t,int64_t> & gl2lcNdMap,
+									   std::map<int64_t,int64_t> & gl2lcElMap ) :
+TPZRegisterClassId(&TPZGeoElRefLess<TGeo>::ClassId),TPZGeoEl(DestMesh, cp, gl2lcElMap), fGeo(cp.fGeo, gl2lcNdMap)
 {
 	int i;
 	const int n = TGeo::NSides;
@@ -467,7 +644,7 @@ TPZGeoEl(DestMesh, cp, gl2lcElMap), fGeo(cp.fGeo, gl2lcNdMap)
 	for(i = 0; i < n; i++)
 	{
 		TPZGeoElSide neigh (cp.fNeighbours[i],cp.Mesh());
-		long neighIdx = neigh.Element()->Index();
+		int64_t neighIdx = neigh.Element()->Index();
 		int side = neigh.Side();
 		
 		while (gl2lcElMap.find(neighIdx)==gl2lcElMap.end())
@@ -480,64 +657,83 @@ TPZGeoEl(DestMesh, cp, gl2lcElMap), fGeo(cp.fGeo, gl2lcNdMap)
 	}
 }
 
+//template<class TGeo>
+//void TPZGeoElRefLess<TGeo>::Directions(int side, TPZVec<REAL> &pt, TPZFMatrix<REAL> &directions, TPZVec<int> &sidevectors)
+//{
+//    TPZFNMatrix<9,REAL> jac(TGeo::Dimension,TGeo::Dimension), jacinv(TGeo::Dimension,TGeo::Dimension), axes(TGeo::Dimension,3), gradx(3,TGeo::Dimension,0.);
+//    REAL detjac;
+//
+//    this->Jacobian(pt,jac,axes,detjac,jacinv);
+//
+//    //  gradX =  ( AxesˆT * jac )
+//    TPZFNMatrix<9> gradxt(TGeo::Dimension,3,0.);
+//    for (int il=0; il<TGeo::Dimension; il++)
+//    {
+//        for (int jc=0; jc<3; jc++)
+//        {
+//            for (int i = 0 ; i<TGeo::Dimension; i++)
+//            {
+//                gradx(jc,il) +=  axes(i,jc) * jac(i,il);    //  gradX =  ( AxesˆT * jac )
+//            }
+//        }
+//    }
+////    gradxt.Transpose(&gradx);
+//    TGeo::ComputeDirections(side, gradx, directions, sidevectors);
+//
+////    TPZStack<int> lowdim;
+////    LowerDimensionSides(side,lowdim);
+////    lowdim.Push(side);
+////
+////    TGeo::GetSideHDivPermutation(side);
+//
+//}
+
 template<class TGeo>
-void TPZGeoElRefLess<TGeo>::Directions(int side, TPZVec<REAL> &pt, TPZFMatrix<REAL> &directions, TPZVec<int> &sidevectors)
+void TPZGeoElRefLess<TGeo>::HDivDirectionsMaster(TPZFMatrix<REAL> &directions)
+{
+    TPZFNMatrix<9,REAL> gradx(3,TGeo::Dimension,0.);
+    for (int i = 0; i < TGeo::Dimension; i++) {
+        gradx(i,i) = 1.;
+    }
+    TGeo::ComputeHDivDirections(gradx, directions);
+}
+
+
+template<class TGeo>
+void TPZGeoElRefLess<TGeo>::HDivDirections(TPZVec<REAL> &pt, TPZFMatrix<REAL> &directions)
 {
     TPZFNMatrix<9,REAL> jac(TGeo::Dimension,TGeo::Dimension), jacinv(TGeo::Dimension,TGeo::Dimension), axes(TGeo::Dimension,3), gradx(3,TGeo::Dimension,0.);
-    REAL detjac;
+  
+    this->GradX(pt, gradx);
 
-    this->Jacobian(pt,jac,axes,detjac,jacinv);
-    
-    //  gradX =  ( AxesˆT * jac )
-    TPZFNMatrix<9> gradxt(TGeo::Dimension,3,0.);
-    for (int il=0; il<TGeo::Dimension; il++)
-    {
-        for (int jc=0; jc<3; jc++)
-        {
-            for (int i = 0 ; i<TGeo::Dimension; i++)
-            {
-                gradx(jc,il) +=  axes(i,jc) * jac(i,il);    //  gradX =  ( AxesˆT * jac )
-            }
-        }
-    }
-//    gradxt.Transpose(&gradx);
-    TGeo::ComputeDirections(side, gradx, directions, sidevectors);
-    
-//    TPZStack<int> lowdim;
-//	LowerDimensionSides(side,lowdim);
-//	lowdim.Push(side);
-//
-//    TGeo::GetSideHDivPermutation(side);
+    TGeo::ComputeHDivDirections(gradx, directions);
     
 }
 
 template<class TGeo>
-void TPZGeoElRefLess<TGeo>::Directions(TPZVec<REAL> &pt, TPZFMatrix<REAL> &directions, int ConstrainedFace)
+void TPZGeoElRefLess<TGeo>::HDivDirections(TPZVec<REAL> &pt, TPZFMatrix<Fad<REAL>> &directions)
 {
-    TPZFNMatrix<9,REAL> jac(TGeo::Dimension,TGeo::Dimension), jacinv(TGeo::Dimension,TGeo::Dimension), axes(TGeo::Dimension,3), gradx(3,TGeo::Dimension,0.);
-    REAL detjac;
+    TPZFNMatrix<9,REAL> gradx(3,TGeo::Dimension,0.),gradxinv(TGeo::Dimension,TGeo::Dimension,0.);
     
-    this->Jacobian(pt,jac,axes,detjac,jacinv);
+    this->GradX(pt, gradx);
+    gradx.Resize(TGeo::Dimension,TGeo::Dimension);
+    gradx.Inverse(gradxinv, ENoDecompose);
+    
+    TPZManVector<Fad<REAL>> qsiFad(TGeo::Dimension,0.);
+    
+    for(int i=0;i<TGeo::Dimension;i++){
+        qsiFad[i] = Fad<REAL>(TGeo::Dimension,pt[i]);
 
-    // ou eh isso?   grad =  (jac  * axes)ˆT
-    TPZFNMatrix<9> gradxt(TGeo::Dimension,3,0.);
-    for (int il=0; il<TGeo::Dimension; il++)
-    {
-        for (int jc=0; jc<3; jc++)
-        {
-            for (int i = 0 ; i<TGeo::Dimension; i++)
-            {
-                gradx(jc,il) += jac(i,il) * axes(i,jc);
-            }
+        for(int j=0;j<TGeo::Dimension;j++){
+            qsiFad[i].fastAccessDx(j)=gradxinv(i,j);
         }
     }
-    //    gradxt.Transpose(&gradx);
-    TGeo::ComputeDirections(gradx, detjac, directions);
-    
-    if (TGeo::Type() == EPiramide) {
-        pztopology::TPZPyramid::AdjustTopDirections(ConstrainedFace-13, gradx, detjac, directions);
-    }
-    
+    //std::cout<<qsiFad<<std::endl;
+    TPZFNMatrix<9,Fad<REAL>> gradxFad(3,TGeo::Dimension);
+    this->GradX(qsiFad, gradxFad);
+    //gradxFad.Print(std::cout);
+    TGeo::ComputeHDivDirections(gradxFad, directions);
+   
 }
 
 
@@ -552,14 +748,16 @@ inline void TPZGeoElRefLess<pzgeom::TPZGeoQuad>::HDivPermutation(int side, TPZVe
 	{
 		std::stringstream sout;
 		sout << __PRETTY_FUNCTION__ << " called with wrong side parameter " << side;
-#ifdef LOG4CXX
+#ifdef PZ_LOG
+        TPZLogger loggerrefless ("pz.mesh.tpzgeoelrefless");
 		LOGPZ_ERROR(loggerrefless,sout.str())
 #endif
+        DebugStop();
         std::cout << sout.str() << std::endl;
 	}
 	permutegather.Resize(3);
-	long id1 = NodePtr(SideNodeLocIndex(side,0))->Id();
-	long id2 = NodePtr(SideNodeLocIndex(side,1))->Id();
+	int64_t id1 = NodePtr(SideNodeLocIndex(side,0))->Id();
+	int64_t id2 = NodePtr(SideNodeLocIndex(side,1))->Id();
 	if(id1<id2)
 	{
 		permutegather[0] = 0;
@@ -585,14 +783,15 @@ inline void TPZGeoElRefLess<pzgeom::TPZGeoTriangle>::HDivPermutation(int side, T
 	{
 		std::stringstream sout;
 		sout << __PRETTY_FUNCTION__ << " called with wrong side parameter " << side;
-#ifdef LOG4CXX
+#ifdef PZ_LOG
+        TPZLogger loggerrefless ("pz.mesh.tpzgeoelrefless");
 		LOGPZ_ERROR(loggerrefless,sout.str())
 #endif
         std::cout << sout.str() << std::endl;
 	}
 	permutegather.Resize(3);
-	long id1 = NodePtr(SideNodeLocIndex(side,0))->Id();
-	long id2 = NodePtr(SideNodeLocIndex(side,1))->Id();
+	int64_t id1 = NodePtr(SideNodeLocIndex(side,0))->Id();
+	int64_t id2 = NodePtr(SideNodeLocIndex(side,1))->Id();
 	if(id1<id2)
 	{
 		permutegather[0] = 0;
@@ -614,34 +813,35 @@ inline void TPZGeoElRefLess<TGeo>::HDivPermutation(int side, TPZVec<int> &permut
 {
 	int dimension = TGeo::Dimension;
 	int sidedimension = TGeo::SideDimension(side);
-	
+
 	if(dimension != sidedimension+1)
 	{
 		std::stringstream sout;
 		sout << "HDivPermutation called with wrong side parameter " << side;
-#ifdef LOG4CXX
+#ifdef PZ_LOG
+        TPZLogger loggerrefless ("pz.mesh.tpzgeoelrefless");
 		LOGPZ_ERROR(loggerrefless,sout.str())
 #endif
 	}
     
     // Douglas -- teste em 2014 09 04
     // conta o numero de lados da face
-    const long nsidenodes = TGeo::NSideNodes(side);
-    TPZManVector<long,4> id(nsidenodes);  // 
+    const int64_t nsidenodes = TGeo::NSideNodes(side);
+    TPZManVector<int64_t,4> id(nsidenodes);  // 
     
 	for(int inode=0; inode<nsidenodes; inode++)
     {
         // esta parte pega os indices locais dos nos apenas da face em questao
-        long nodeindex = SideNodeLocId(side, inode);
+        int64_t nodeindex = SideNodeLocId(side, inode);
         // com base nestes indices locais, pegamos os indices globais para determinar a permutacao
         id[inode] = NodePtr(nodeindex)->Id();
     }
     
-    // Esse bloco parece pegar todo os vertices do cubo para fazer a permutacao, deveria ser da face
-//    TPZManVector<long,TGeo::NCornerNodes> id(TGeo::NCornerNodes);
+    // Esse bloco parece pegar todos os vertices do cubo para fazer a permutacao, deveria ser da face
+//    TPZManVector<int64_t,TGeo::NCornerNodes> id(TGeo::NCornerNodes);
 //	for(int i=0; i<TGeo::NCornerNodes; i++)
 //    {
-//        long nodeindex = fGeo.fNodeIndexes[i];
+//        int64_t nodeindex = fGeo.fNodeIndexes[i];
 //        id[i] = Mesh()->NodeVec()[nodeindex].Id();
 //    }
     
@@ -660,12 +860,17 @@ inline void TPZGeoElRefLess<TGeo>::HDivPermutation(int side, TPZVec<int> &permut
             transformid = pztopology::TPZTriangle::GetTransformId(id);
             pztopology::TPZTriangle::GetSideHDivPermutation(transformid, permutegather);
             break;
+        case EPoint:
+            transformid = 0;
+            permutegather[0] = 0;
+            break;
         default:
             DebugStop();
             break;
     }
-#ifdef LOG4CXX
-    if (loggerrefless->isDebugEnabled()) {
+#ifdef PZ_LOG
+    TPZLogger loggerrefless ("pz.mesh.tpzgeoelrefless");
+    if (loggerrefless.isDebugEnabled()) {
         std::stringstream sout;
         sout << "side = " << side << " transform id " << transformid << " permutegather " << permutegather;
         LOGPZ_DEBUG(loggerrefless, sout.str())
@@ -673,24 +878,17 @@ inline void TPZGeoElRefLess<TGeo>::HDivPermutation(int side, TPZVec<int> &permut
 #endif
 }
 
-//HDiv
-template<>
-inline void TPZGeoElRefLess<pzgeom::TPZGeoQuad>::VecHdiv(TPZFMatrix<REAL> &normalvec,TPZVec<int> &sidevector )
-{
-    fGeo.VecHdiv(*this,normalvec,sidevector);
+#include "TPZTopologyUtils.h"
+
+template <class Geom>
+int TPZGeoElRefLess<Geom>::NPermutations() const{
+    return Geom::Top::NPermutations;
 }
 
-template<>
-inline void TPZGeoElRefLess<pzgeom::TPZGeoTriangle>::VecHdiv(TPZFMatrix<REAL> &normalvec,TPZVec<int> &sidevector )
-{
-	fGeo.VecHdiv(*this,normalvec,sidevector);
+template <class Geom>
+void TPZGeoElRefLess<Geom>::GetPermutation(const int& i, TPZVec<int> &permutation) const{
+    return pztopology::GetPermutation<typename Geom::Top>(i,permutation);
 }
 
-
-template<class TGeo>
-inline void TPZGeoElRefLess<TGeo>::VecHdiv(TPZFMatrix<REAL> &normalvec,TPZVec<int> &sidevector )
-{
-    PZError << __PRETTY_FUNCTION__ << " nao esta implementado\n";
-}
 
 #endif

@@ -23,14 +23,13 @@
 #include "pzstepsolver.h"
 
 #include "pzquad.h"
-#include "pzmaterial.h"
+#include "TPZMaterial.h"
 #include "pztransfer.h"
 
 using namespace std;
 
-TPZMGAnalysis::TPZMGAnalysis(TPZCompMesh *cmesh) : TPZAnalysis(cmesh) {
+TPZMGAnalysis::TPZMGAnalysis(TPZCompMesh *cmesh) : TPZLinearAnalysis(cmesh) {
 	fMeshes.Push(cmesh);
-	fExact = 0;
 }
 
 TPZMGAnalysis::~TPZMGAnalysis() {
@@ -51,17 +50,18 @@ void TPZMGAnalysis::AppendMesh(TPZCompMesh * mesh){
 	
 	fCompMesh = mesh;
 	OptimizeBandwidth();
-	TPZSkylineStructMatrix skstr(mesh);
+	TPZSkylineStructMatrix<STATE> skstr(mesh);
 	SetStructuralMatrix(skstr);
 	int nmeshes = fSolvers.NElements();
 	TPZTransfer<STATE> *tr = new TPZTransfer<STATE>;
-	TPZAutoPointer<TPZTransfer<STATE> > trauto(tr);
+	TPZAutoPointer<TPZMatrix<STATE> > trauto(tr);
 	mesh->BuildTransferMatrix(*coarse,*tr);
 	TPZFMatrix<STATE> sol(mesh->NEquations(),1);
 	tr->TransferSolution(fSolution,sol);
 	fSolution = sol;
+	//TODOCOMPLEX
 	mesh->LoadSolution(fSolution);
-	TPZBlockDiagonalStructMatrix bdstr(mesh);
+	TPZBlockDiagonalStructMatrix<STATE> bdstr(mesh);
 	TPZBlockDiagonal<STATE> *bd = (TPZBlockDiagonal<STATE> *) bdstr.Create();
 	bdstr.AssembleBlockDiagonal(*bd);
 	TPZAutoPointer<TPZMatrix<STATE> > bdauto(bd);
@@ -73,7 +73,8 @@ void TPZMGAnalysis::AppendMesh(TPZCompMesh * mesh){
 	prec = fPrecondition[nmeshes-1];
 	if(!prec) prec = fSolvers[nmeshes-1];
 	TPZAutoPointer<TPZGuiInterface> guiInterface = new TPZGuiInterface;
-	TPZAutoPointer<TPZMatrix<STATE> > skauto = skstr.CreateAssemble(fRhs, guiInterface);
+	TPZAutoPointer<TPZMatrix<STATE> > skauto =
+		dynamic_cast<TPZMatrix<STATE>*>(skstr.CreateAssemble(fRhs, guiInterface));
 	TPZMGSolver<STATE> s2(trauto,*prec,nvar,skauto);
 	TPZSequenceSolver<STATE> s3;
 	s3.ShareMatrix(s2);
@@ -137,7 +138,7 @@ void TPZMGAnalysis::MeshError(TPZCompMesh *fine, TPZCompMesh *coarse, TPZVec<REA
 		TPZCompElSide cellargeside = gellarge.Reference();
 		TPZCompEl *cellarge = cellargeside.Element();
 		TPZInterpolatedElement *cintlarge = (TPZInterpolatedElement *) cellarge;
-		TPZTransform transform(gelside.Dimension(),gellarge.Dimension());
+		TPZTransform<> transform(gelside.Dimension(),gellarge.Dimension());
 		gelside.SideTransform3(gellarge,transform);
 		int index = cellarge->Index();
 		REAL truerror = 0.;
@@ -147,7 +148,7 @@ void TPZMGAnalysis::MeshError(TPZCompMesh *fine, TPZCompMesh *coarse, TPZVec<REA
 }
 
 
-REAL TPZMGAnalysis::ElementError(TPZInterpolatedElement *fine, TPZInterpolatedElement *coarse, TPZTransform &tr,
+REAL TPZMGAnalysis::ElementError(TPZInterpolatedElement *fine, TPZInterpolatedElement *coarse, TPZTransform<> &tr,
 								 void (*f)(const TPZVec<REAL> &loc, TPZVec<STATE> &val, TPZFMatrix<STATE> &deriv),REAL &truerror){
 	// accumulates the transfer coefficients between the current element and the
 	// coarse element into the transfer matrix, using the transformation t
@@ -165,10 +166,10 @@ REAL TPZMGAnalysis::ElementError(TPZInterpolatedElement *fine, TPZInterpolatedEl
 	TPZAutoPointer<TPZIntPoints> intrule = fine->GetIntegrationRule().Clone();
 	int dimension = fine->Dimension();
 	int numdof = fine->Material()->NStateVariables();
-	TPZBlock<STATE> &locblock = fine->Mesh()->Block();
+	TPZBlock &locblock = fine->Mesh()->Block();
 	TPZFMatrix<STATE> &locsolmesh = fine->Mesh()->Solution();
 	
-	TPZBlock<STATE> &corblock = coarse->Mesh()->Block();
+	TPZBlock &corblock = coarse->Mesh()->Block();
 	TPZFMatrix<STATE> &corsolmesh = coarse->Mesh()->Solution();
 	
 	TPZVec<STATE> locsol(numdof);
@@ -353,17 +354,20 @@ REAL TPZMGAnalysis::ElementError(TPZInterpolatedElement *fine, TPZInterpolatedEl
 	return error;
 }
 
-void TPZMGAnalysis::Solve() {
-	if(fMeshes.NElements() == 1) {
-		TPZAnalysis::Solve();
+
+template<class TVar>
+void TPZMGAnalysis::SolveInternal()
+{
+  if(fMeshes.NElements() == 1) {
+		TPZLinearAnalysis::Solve();
 		if(fSolvers.NElements() == 0) {
-			fSolvers.Push((TPZMatrixSolver<STATE> *) fSolver->Clone());
+			fSolvers.Push((TPZMatrixSolver<TVar> *) fSolver->Clone());
 		}
 		if(fPrecondition.NElements() == 0) {
 			fPrecondition.Push(0);
 		}
 		if(fSolutions.NElements() == 0) {
-			fSolutions.Push(new TPZFMatrix<STATE>(fSolution));
+			fSolutions.Push(new TPZSolutionMatrix(fSolution));
 		} else {
 			int nsol = fSolutions.NElements();
 			*(fSolutions[nsol-1]) = fSolution;
@@ -374,9 +378,9 @@ void TPZMGAnalysis::Solve() {
 	if(fRhs.Rows() != numeq ) return;
 	int nsolvers = fSolvers.NElements();
 	
-	TPZFMatrix<STATE> residual(fRhs);
-	TPZFMatrix<STATE> delu(numeq,1,0.);
-	TPZMatrixSolver<STATE> *solve = dynamic_cast<TPZMatrixSolver<STATE> *> (fSolvers[nsolvers-1]);
+	TPZFMatrix<TVar> residual(fRhs);
+	TPZFMatrix<TVar> delu(numeq,1,0.);
+	TPZMatrixSolver<TVar> *solve = dynamic_cast<TPZMatrixSolver<TVar> *> (fSolvers[nsolvers-1]);
 	if(fSolution.Rows() != numeq) {
 		fSolution.Redim(numeq,1);
 	} else {
@@ -388,7 +392,7 @@ void TPZMGAnalysis::Solve() {
 	if(normrhs*1.e-6 >= normres) {
 		cout << "TPZMGAnalysis::Solve no need for iterations normrhs = " << normrhs << " normres = " << normres << endl;
 		if(fSolutions.NElements() < fMeshes.NElements()) {
-			fSolutions.Push(new TPZFMatrix<STATE>(fSolution));
+			fSolutions.Push(new TPZSolutionMatrix(fSolution));
 		} else {
 			int nsol = fSolutions.NElements();
 			*(fSolutions[nsol-1]) = fSolution;
@@ -396,19 +400,23 @@ void TPZMGAnalysis::Solve() {
 		return ;
 	}
 	
-	TPZStepSolver<STATE> *stepsolve = dynamic_cast<TPZStepSolver<STATE> *> (solve);
+	TPZStepSolver<TVar> *stepsolve = dynamic_cast<TPZStepSolver<TVar> *> (solve);
 	if(stepsolve) stepsolve->SetTolerance(1.e-6*normrhs/normres);
 	cout << "TPZMGAnalysis::Run res : " << Norm(residual) << " neq " << numeq << endl;
 	solve->Solve(residual, delu);
-	fSolution += delu;
-	
+	TPZFMatrix<TVar> &mysol = fSolution;
+	mysol += delu;
+
 	fCompMesh->LoadSolution(fSolution);
 	if(fSolutions.NElements() < fMeshes.NElements()) {
-		fSolutions.Push(new TPZFMatrix<STATE>(fSolution));
+		fSolutions.Push(new TPZSolutionMatrix(fSolution));
 	} else {
 		int nsol = fSolutions.NElements();
 		*(fSolutions[nsol-1]) = fSolution;
 	}
+}
+void TPZMGAnalysis::Solve() {
+	return SolveInternal<STATE>();
 }
 
 TPZCompMesh  *TPZMGAnalysis::UniformlyRefineMesh(TPZCompMesh *mesh, bool withP) {
@@ -443,10 +451,9 @@ TPZCompMesh  *TPZMGAnalysis::UniformlyRefineMesh(TPZCompMesh *mesh, bool withP) 
 		gel->Divide(sub);
 		int nsub = sub.NElements();
 		int isub;
-		long celindex;
 		for(isub=0; isub<nsub; isub++) {
 			TPZInterpolatedElement *csint;
-			csint = (TPZInterpolatedElement *) cmesh->CreateCompEl(sub[isub],celindex);
+			csint = (TPZInterpolatedElement *) cmesh->CreateCompEl(sub[isub]);
 			if(withP) csint->PRefine(porder+1);
 			else csint->PRefine(porder);
 		}

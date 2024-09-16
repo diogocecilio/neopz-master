@@ -6,13 +6,14 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include <pz_config.h>
 #endif
 
 #include <iostream>
 #include <cstdlib>
-
-#include "pzbfilestream.h" // TPZBFileStream, TPZFileStream
+#include <thread>
+#include "TPZFileStream.h"
+#include "TPZBFileStream.h" // TPZBFileStream, TPZFileStream
 #include "pzmd5stream.h"
 
 #include <fstream>
@@ -23,9 +24,9 @@
 
 #include "pzlog.h"
 
-#ifdef LOG4CXX
-static LoggerPtr loggerconverge(Logger::getLogger("pz.converge"));
-static LoggerPtr logger(Logger::getLogger("main"));
+#ifdef PZ_LOG
+static TPZLogger loggerconverge("pz.converge");
+static TPZLogger logger("main");
 #endif
 
 #include "pzskylmat.h"
@@ -261,7 +262,7 @@ void set_affinity(int af, int tidx)
 
 void* compute_decompose(void* m)
 {
-    long idx = (long) m;
+    int64_t idx = (int64_t) m;
     
     //  cpu_set_t mask;
     //  CPU_ZERO(&mask);
@@ -280,7 +281,6 @@ void* compute_decompose(void* m)
     
     if (verbose >= 2) {
         int cpuid = sched_getcpu();
-        //int tid = pthread_self();
         cout << "Thread " << idx << " at cpu " << cpuid << endl;
     }
     
@@ -359,7 +359,7 @@ int main(int argc, char *argv[])
         matrix.Resize(maxcol.get_value(),0);
     
     int nthreads = nmats.get_value();
-    std::vector<pthread_t> threads(nthreads);
+    std::vector<std::thread> threads;
     
     /* Duplicate matrices. */
     VERBOSE(1, "Copying matrices" << endl);
@@ -401,8 +401,7 @@ int main(int argc, char *argv[])
     total_rst.start();
     
     for(int t=1; t<nthreads; t++) {
-        PZ_PTHREAD_CREATE(&threads[t], NULL, compute_decompose,
-                          (void*) t, __FUNCTION__);
+      threads.push_back(std::thread(compute_decompose,t));
     }
     
     // Perform thread 0 at the main thread
@@ -411,7 +410,7 @@ int main(int argc, char *argv[])
     /* Sync. */
     if (nthreads>0) {
         for(int t=0; t<nthreads; t++) {
-            PZ_PTHREAD_JOIN(threads[t], NULL, __FUNCTION__);
+          threads[t].join();
         }
     }
     total_rst.stop();
@@ -419,8 +418,8 @@ int main(int argc, char *argv[])
     
     if (mstats.get_value() > 0) {
         unsigned n = matrix.Dim();
-        unsigned long long n_sky_items = 0;
-        unsigned long long max_height = 0;
+        uint64_t n_sky_items = 0;
+        uint64_t max_height = 0;
         for (unsigned i=0; i<n; i++) {
             unsigned height = matrix.SkyHeight(i);
             if (mstats.get_value() > 1) {
@@ -429,7 +428,7 @@ int main(int argc, char *argv[])
             n_sky_items += height;
             if (height > max_height) max_height = height;
         }
-        unsigned long long n2 = n * n;
+        uint64_t n2 = n * n;
         double av_height = (double) n_sky_items / (double) n;
         cout << "N         = " << n << endl;
         cout << "N^2       = " << n2 << endl;

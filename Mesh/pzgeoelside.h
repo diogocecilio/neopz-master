@@ -8,24 +8,29 @@
 
 /*******       TPZGeoElSide       *******/
 
+
 #include "pzvec.h"
 #include "pzstack.h"
-#include "pzgmesh.h"
 #include "pzfmatrix.h"
+#include "pztrnsform.h"
+#include "tpzintpoints.h"
 #include <set>
 
-class TPZTransform;
+#include "fadType.h"
+
 class TPZCompElSide;
 
 class TPZGeoElSide;
+class TPZGeoMesh;
+class TPZGeoEl;
 
 /**
  * @ingroup geometry
  * @brief Utility class which represents an element index with its side. \ref geometry "Geometry"
  */
-class TPZGeoElSideIndex{
+class TPZGeoElSideIndex : public TPZSavable{
 private:
-	long fGeoElIndex;
+	int64_t fGeoElIndex;
 	int fSide;
 	
 public:
@@ -36,7 +41,7 @@ public:
 	/** @brief Constructor with geometric element referenced and corresponding side. */
 	TPZGeoElSideIndex(TPZGeoEl *gel,int side);
 	
-	TPZGeoElSideIndex(long gelindex,int side);
+	TPZGeoElSideIndex(int64_t gelindex,int side);
 	
 	TPZGeoElSideIndex(const TPZGeoElSide &side);
 	
@@ -52,6 +57,11 @@ public:
         return fGeoElIndex == -1 || fSide == -1;
     }
     
+    bool operator==(const TPZGeoElSideIndex &copy)
+    {
+        return (fGeoElIndex == copy.fGeoElIndex && fSide == copy.fSide);
+    }
+    
 	int Side() const;
 	
 	void SetSide(int side);
@@ -60,12 +70,12 @@ public:
 	
 	void SetElement(TPZGeoEl* geoel);
 	
-	long ElementIndex() const;
+	int64_t ElementIndex() const;
 	
-	void SetElementIndex(long i);
-	
-	void Read(TPZStream &buf);
-	void Write(TPZStream &buf);
+	void SetElementIndex(int64_t i);
+	        int ClassId() const override;
+        void Read(TPZStream &buf, void *context) override;
+        void Write(TPZStream &buf, int withclassid) const override;
 };
 
 /**
@@ -73,7 +83,7 @@ public:
  * @ingroup geometry
  */
 /** This class is often used to manipulate neighbouring information between elements */
-class TPZGeoElSide {
+class TPZGeoElSide : public TPZSavable {
 	
 	TPZGeoEl *fGeoEl;
 	int fSide;
@@ -86,7 +96,7 @@ public:
 	void GetSubElements2(TPZStack<TPZGeoElSide> &subelements);
     
     /// returns the father/side pair which contains this/side and is strictly larger than this/side
-	TPZGeoElSide StrictFather();
+	TPZGeoElSide StrictFather() const;
     
     /// returns the father/side pair which contains the set of points associated with this/side
 	TPZGeoElSide Father2() const;
@@ -95,24 +105,54 @@ public:
 	TPZCompElSide LowerLevelCompElementList2(int onlyinterpolated);
 	
 	/** @brief Checks whether other is a relative (son or ancestor) of this */
-	bool IsRelative(TPZGeoElSide other);
+	bool IsRelative(const TPZGeoElSide &other) const;
 	
 	/** @brief Checks whether other is an ancestor of this */
-	bool IsAncestor(TPZGeoElSide other);
-	
+	bool IsAncestor(const TPZGeoElSide &other) const;
+    
+    /** @brief Checks whether other is a neighbour of the current element */
+    bool IsNeighbour(const TPZGeoElSide &other) const
+    {
+        return NeighbourExists(other);
+    }
+    
     /** @brief X coordinate of a point loc of the side */
 	void X(TPZVec< REAL > &loc, TPZVec< REAL > &result) const;
+    
+    /** @brief Parametric coordinate of a point loc of the side and return parametric element point */
+    void QsiElement(TPZVec< REAL > &qsi_side, TPZVec< REAL > &qsi_element) const;
+    
+    /** @brief X coordinate of a point loc of the side */
+    void GradX(TPZVec<REAL> &loc, TPZFMatrix<REAL> &gradx) const;
+
+    bool ResetBlendConnectivity(const int64_t &index);
 	
-	/** @brief Jacobian associated with the side of the element */
+    /** @brief X coordinate of a point loc of the side */
+    void X(TPZVec< Fad<REAL> > &loc, TPZVec< Fad<REAL> > &result) const;
+    
+    /** @brief X coordinate of a point loc of the side */
+    void GradX(TPZVec< Fad<REAL> > &loc, TPZFMatrix< Fad<REAL> > &gradx) const;
+
+    /** @brief Jacobian associated with the side of the element */
 	void Jacobian(TPZVec<REAL> &param,TPZFMatrix<REAL> &jacobian,TPZFMatrix<REAL> &axes,REAL &detjac,TPZFMatrix<REAL> &jacinv) const;
     
     /** @brief Area associated with the side */
-    REAL Area();
+    REAL Area() const;
 	
-	int NNeighbours();
+	/** @returns Total number of neighbours through this side*/
+	int NNeighbours() const;
+
+	/** @brief Get number of neighbours of a given dimension */
+	int NNeighbours(int dimfilter) const;
+
+	/** @brief Get number of neighbours filtered by dimension and/or material id
+	 * @param dimfilter: only return elements of this dimension. Ignore filter if set to < 0;
+	 * @param matids: only return elements of a material id contained in this set. Ignore filter if passing empty set;
+	*/
+	int NNeighbours(int dimfilter, const std::set<int>& matids) const;
 	
 	/** @brief Returns the number of neighbours, excluding the given element (thisElem) */
-	int NNeighboursButThisElem(TPZGeoEl *thisElem);
+	int NNeighboursButThisElem(TPZGeoEl *thisElem) const;
 	
 	TPZGeoElSide(){ fGeoEl = 0; fSide  = -1;}
 	
@@ -120,17 +160,23 @@ public:
 	
 	/** @brief This constructor set an TPZGeoElSide based in the cornerNodes of an side of gel */
 	/** If the cornerNodes are not consistent, the TPZGeoElSide created is NULL */
-	TPZGeoElSide(TPZGeoEl *gel, std::set<long> &sideCornerNodes);
+	TPZGeoElSide(TPZGeoEl *gel, std::set<int64_t> &sideCornerNodes);
 	
 	TPZGeoElSide(const TPZGeoElSideIndex &index, const TPZGeoMesh * mesh){
 		this->fSide = index.Side();
 		this->fGeoEl = index.Element(mesh);
+		if(fGeoEl == 0 && index.ElementIndex() != -1)
+        {
+		    DebugStop();
+        }
 	}
     
     TPZGeoElSide(int zero) : fGeoEl(0), fSide(-1)
     {
         
     }
+    
+    TPZGeoElSide(TPZGeoEl *gel);
 	
 	TPZGeoEl *Element()const{return fGeoEl;}
 	
@@ -156,6 +202,9 @@ public:
     /** @brief compute the normal to the point from left to right neighbour */
     void Normal(TPZVec<REAL> &point, TPZGeoEl *left, TPZGeoEl *right, TPZVec<REAL> &normal) const;
     
+    /** @brief compute the normal to the point */
+    void Normal(TPZVec<REAL> &point, TPZVec<REAL> &normal) const;
+    
     /** @brief Returns the number of sides in which the current side can be decomposed */
     int NSides() const;
 	
@@ -167,7 +216,7 @@ public:
 	/** @brief Returns the set of neighbours as computed by the intersection of neighbours along vertices */
 	void ComputeNeighbours(TPZStack<TPZGeoElSide> &compneigh);
 	
-	long Id();
+	int64_t Id();
     
     /** @brief the dimension associated with the element/side */
 	int Dimension() const;
@@ -186,6 +235,18 @@ public:
 	int operator>(const TPZGeoElSide &other) const {
 		return (fGeoEl > other.fGeoEl || (fGeoEl == other.fGeoEl && fSide > other.fSide));
 	}
+
+	/** @brief Next neighbour operator as post-increment */
+	TPZGeoElSide operator++(int){
+		TPZGeoElSide pre = *this;
+		*this = this->Neighbour();
+		return pre;
+	}
+	/** @brief Next neighbour operator as pre-increment */
+	TPZGeoElSide& operator++(){
+		*this = this->Neighbour();
+		return *this;
+	}
     
     /** @brief The conversion to bool indicates whether the object has an associated element */
     operator bool() const
@@ -195,13 +256,19 @@ public:
 	
 	/** @brief Accumulates the transformations from the current element/side to the neighbour/side
 	 * @note Third improved version */
-	void SideTransform3(TPZGeoElSide neighbour,TPZTransform &t);
+	void SideTransform3(TPZGeoElSide neighbour,TPZTransform<> &t);
 	
 	void SetConnectivity(const TPZGeoElSide &neighbour) const;
     
 	/** @brief This method inserts the element/side and all lowerdimension sides into the connectivity loop */
 	void InsertConnectivity(TPZGeoElSide &neighbour);
 	
+    /** @brief This method inserts the element/side and all lowerdimension sides into the connectivity loop
+                neighbour : permuted element neighbour
+                mapsides : indicates the permutation of sides between neighbours
+     */
+    void InsertConnectivity(TPZGeoElSide &neighbour, const TPZVec<int> &mapsides);
+
     /// Remove the element from the connectivity loop
 	void RemoveConnectivity();
 	
@@ -210,21 +277,29 @@ public:
 	/** @brief Fill in the data structure for the neighbouring information*/
 	void SetNeighbour(const TPZGeoElSide &neighbour) const;
 	
-	TPZTransform NeighbourSideTransform(TPZGeoElSide &neighbour);
+	TPZTransform<REAL> NeighbourSideTransform(const TPZGeoElSide &neighbour);
 	
 	/** 
 	 * @brief Compute the transformation between the master element space of one side
 	 * of an element to the master element space of a higher dimension side
 	 */
-	TPZTransform SideToSideTransform(TPZGeoElSide &higherdimensionside);
+	TPZTransform<REAL> SideToSideTransform(TPZGeoElSide &higherdimensionside);
     
+    /// return the lowest level direct ancestor
     TPZGeoElSide LowestFatherSide();
     
+    /// return the TPZGeoElSide element that contains the current element/side
+    TPZGeoElSide LowerLevelSide() const;
+    
     /**
-     * @brief This method will return all siblings from the element. The siblings have no subelements
+     * @brief [deprecated] use YoungestChildren
      */
     virtual void GetAllSiblings(TPZStack<TPZGeoElSide> &unrefinedSons);
-		
+    /**
+     * @brief This method will return all children at the bottom of the refinement tree of the element. i.e. all children that have no subelements
+     */
+    virtual void YoungestChildren(TPZStack<TPZGeoElSide> &unrefinedSons);
+
 	/** @brief Returns a pointer to the elementside referenced by the geometric elementside*/
 	TPZCompElSide Reference() const;
 	/** @brief Return 1 if the element has subelements along side*/
@@ -234,15 +309,30 @@ public:
 	int NSideNodes() const;
 	
 	/** @brief Returns the index of the nodenum node of side*/
-	long SideNodeIndex(int nodenum) const;
+	int64_t SideNodeIndex(int nodenum) const;
 	
 	/** @brief Returns the index of the local nodenum node of side*/
-	long SideNodeLocIndex(int nodenum) const;
+	int64_t SideNodeLocIndex(int nodenum) const;
     
 	
 	/** @brief Returns 1 if neighbour is a neighbour of the element along side*/
 	int NeighbourExists(const TPZGeoElSide &neighbour) const;
-	
+    
+    /**
+      *      verify if a neighbour with the given material id exists
+     */
+    TPZGeoElSide HasNeighbour(int materialid) const;
+
+    /**
+     *      verify if a neighbour with the given material id exists
+    */
+    TPZGeoElSide HasNeighbour(std::set<int> matIDs) const;
+    
+    /** verifiy if a larger (lower level) neighbour exists with the given material id
+     */
+    TPZGeoElSide HasLowerLevelNeighbour(int materialid) const;
+    
+    
     /** @brief Will return all elements of equal or higher level than than the current element */
 	void EqualorHigherCompElementList2(TPZStack<TPZCompElSide> &celside, int onlyinterpolated, int removeduplicates);
     
@@ -282,11 +372,15 @@ public:
      * if onlymultiphysicelement == 1 only elements TPZMultiphysicsElement will be put on the stack \n
      * if removeduplicates == 1 no elements which are direct neighbours will be put on the stack*/
 	void HigherLevelCompElementList3(TPZStack<TPZCompElSide> &elsidevec, int onlymultiphysicelement, int removeduplicates);
-    
+
+
+    /* @brief Creates an integration rule for the topology of this side */
+	TPZIntPoints * CreateIntegrationRule(int order);
+
     int GelLocIndex(int index) const;
-    
-    void Read(TPZStream &buf);
-    void Write(TPZStream &buf);
+    int ClassId() const override;
+    void Read(TPZStream &buf, void *context) override;
+    void Write(TPZStream &buf, int withclassid) const override;
 };
 
 /** @brief Overload operator << to print geometric element side data */
@@ -294,7 +388,7 @@ std::ostream  &operator << (std::ostream & out,const TPZGeoElSide &geoside);
 
 inline void TPZGeoElSide::AllNeighbours(TPZStack<TPZGeoElSide> &allneigh) {
 	TPZGeoElSide neigh = Neighbour();
-#ifndef NODEBUG
+#ifndef PZNODEBUG
 	if(! Exists() || ! neigh.Exists()) 
     {
 		std::cout << "TPZGeoElSide AllNeighbours inconsistent\n";
@@ -320,7 +414,7 @@ inline TPZGeoElSideIndex::TPZGeoElSideIndex(){
     this->fGeoElIndex = -1;
 }
 
-inline TPZGeoElSideIndex::TPZGeoElSideIndex(long gelindex,int side){  
+inline TPZGeoElSideIndex::TPZGeoElSideIndex(int64_t gelindex,int side){  
     this->fGeoElIndex = gelindex;
     this->fSide = side;
 }
@@ -350,35 +444,12 @@ inline void TPZGeoElSideIndex::SetSide(int side){
     this->fSide = side;
 }  
 
-inline TPZGeoEl *TPZGeoElSideIndex::Element(const TPZGeoMesh *mesh) const{
-    if (this->fSide == -1 || this->fGeoElIndex == -1){
-		return NULL;
-    }
-    return mesh->ElementVec()[this->fGeoElIndex];
-}
-
-inline long TPZGeoElSideIndex::ElementIndex() const{
+inline int64_t TPZGeoElSideIndex::ElementIndex() const{
     return this->fGeoElIndex;
 }
 
-inline void TPZGeoElSideIndex::SetElementIndex(long i){
+inline void TPZGeoElSideIndex::SetElementIndex(int64_t i){
     this->fGeoElIndex = i;
-}
-
-inline void TPZGeoElSideIndex::Read(TPZStream &buf){
-    int side;
-    long index;
-    buf.Read(&side, 1);
-    buf.Read(&index, 1);
-    this->fSide = side;
-    this->fGeoElIndex = index;
-}
-
-inline void TPZGeoElSideIndex::Write(TPZStream &buf){
-    int side = this->fSide;
-    long index = this->fGeoElIndex;
-    buf.Write(&side, 1);
-    buf.Write(&index, 1);
 }
 
 #endif

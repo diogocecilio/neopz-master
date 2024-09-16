@@ -24,31 +24,58 @@ namespace pzgeom
 	class TPZEllipse3D : public pzgeom::TPZNodeRep<2,pztopology::TPZLine> {
 		
 	public:
+        typedef pztopology::TPZLine Top;
 		/** @brief Number of nodes (connects) */
 		enum {NNodes = 2};
 		/** @brief It is not linear mapping */
+                
+                public:
+int ClassId() const override;
+
         
-        virtual void ParametricDomainNodeCoord(long node, TPZVec<REAL> &nodeCoord);
+        virtual void ParametricDomainNodeCoord(int64_t node, TPZVec<REAL> &nodeCoord);
         
 		/** @brief Constructor */
-		TPZEllipse3D(const TPZEllipse3D &cp,std::map<long,long> & gl2lcNdMap) : pzgeom::TPZNodeRep<NNodes,pztopology::TPZLine>(cp,gl2lcNdMap){
+		TPZEllipse3D(const TPZEllipse3D &cp,std::map<int64_t,int64_t> & gl2lcNdMap) : TPZRegisterClassId(&TPZEllipse3D::ClassId),pzgeom::TPZNodeRep<NNodes,pztopology::TPZLine>(cp,gl2lcNdMap),
+            fsAxeX(cp.fsAxeX), fsAxeY(cp.fsAxeY), fAxes(cp.fAxes), fOrigin(cp.fOrigin), fAngleIni(cp.fAngleIni), fAngleFinal(cp.fAngleFinal)
+        {
 		}
 		/** @brief Default constructor */
-		TPZEllipse3D() : pzgeom::TPZNodeRep<NNodes,pztopology::TPZLine>(){
+		TPZEllipse3D() : TPZRegisterClassId(&TPZEllipse3D::ClassId),pzgeom::TPZNodeRep<NNodes,pztopology::TPZLine>(),
+        fsAxeX(0.), fsAxeY(0.), fAxes(), fOrigin(),fAngleIni(0.), fAngleFinal(0.)
+        {
 		}
 		/** @brief Destructor */
 		virtual ~TPZEllipse3D()
 		{
 		}
 		/** @brief Copy constructor */
-		TPZEllipse3D(const TPZEllipse3D &cp) : pzgeom::TPZNodeRep<NNodes,pztopology::TPZLine>(cp){
+		TPZEllipse3D(const TPZEllipse3D &cp) : TPZRegisterClassId(&TPZEllipse3D::ClassId),pzgeom::TPZNodeRep<NNodes,pztopology::TPZLine>(cp),
+        fsAxeX(cp.fsAxeX), fsAxeY(cp.fsAxeY), fAxes(cp.fAxes), fOrigin(cp.fOrigin), fAngleIni(cp.fAngleIni), fAngleFinal(cp.fAngleFinal)
+        {
 		}
 		/** @brief Copy constructor */		
-		TPZEllipse3D(const TPZEllipse3D &cp, TPZGeoMesh &) : pzgeom::TPZNodeRep<NNodes, pztopology::TPZLine>(cp){
+		TPZEllipse3D(const TPZEllipse3D &cp, TPZGeoMesh &) : TPZRegisterClassId(&TPZEllipse3D::ClassId),pzgeom::TPZNodeRep<NNodes, pztopology::TPZLine>(cp),
+        fsAxeX(cp.fsAxeX), fsAxeY(cp.fsAxeY), fAxes(cp.fAxes), fOrigin(cp.fOrigin), fAngleIni(cp.fAngleIni), fAngleFinal(cp.fAngleFinal)
+        {
 		}
 		/** @brief Constructor with node indexes given */
-		TPZEllipse3D(TPZVec<long> &nodeindexes) : pzgeom::TPZNodeRep<NNodes,pztopology::TPZLine>(nodeindexes){
+		TPZEllipse3D(TPZVec<int64_t> &nodeindexes) : TPZRegisterClassId(&TPZEllipse3D::ClassId),pzgeom::TPZNodeRep<NNodes,pztopology::TPZLine>(nodeindexes),
+        fsAxeX(0.), fsAxeY(0.), fAxes(), fOrigin(),fAngleIni(0.), fAngleFinal(0.)
+        {
 		}
+        
+        TPZEllipse3D &operator=(const TPZEllipse3D &cp)
+        {
+            pzgeom::TPZNodeRep<NNodes,pztopology::TPZLine>::operator=(cp);
+            fsAxeX = cp.fsAxeX;
+            fsAxeY = cp.fsAxeY;
+            fAxes = cp.fAxes;
+            fOrigin = cp.fOrigin;
+            fAngleIni = cp.fAngleIni;
+            fAngleFinal = cp.fAngleFinal;
+            return *this;
+        }
 		
 		/**
 		 * @brief Adjust node coordinates in case of does not belong to the
@@ -62,68 +89,51 @@ namespace pzgeom
 		 * @param SemiAxeX is the vector that defines the direction of X axes of ellipse, whose value is its norm.
 		 * @param SemiAxeY is the vector that defines the direction of Y axes of ellipse, whose value is its norm.
 		 */
-		void SetAxes(TPZVec<REAL> Origin, TPZVec<REAL> SemiAxeX, TPZVec<REAL> SemiAxeY);
+		void SetAxes(TPZVec<REAL> Origin, TPZVec<REAL> SemiAxeX, TPZVec<REAL> SemiAxeY, TPZGeoMesh &gmesh);
 		
 		/* brief compute the coordinate of a point given in parameter space */
-        void X(const TPZGeoEl &gel,TPZVec<REAL> &loc,TPZVec<REAL> &result) const
-        {
-            TPZFNMatrix<3*NNodes> coord(3,NNodes);
-            CornerCoordinates(gel, coord);
-            X(coord,loc,result);
-        }
-        
+//        template<class T>
+//        void X(const TPZGeoEl &gel,TPZVec<T> &loc,TPZVec<T> &result) const
+//        {
+//            TPZFNMatrix<3*NNodes> coord(3,NNodes);
+//            CornerCoordinates(gel, coord);
+//            X(coord,loc,result);
+//        }
+//
         template<class T>
-        void GradX(const TPZGeoEl &gel, TPZVec<T> &par, TPZFMatrix<T> &gradx) const
-        {
-            DebugStop();
-        }
-		
-        /* @brief compute the jacobian of the map between the master element and deformed element */
-		void Jacobian(const TPZGeoEl &gel,TPZVec<REAL> &param,TPZFMatrix<REAL> &jacobian,TPZFMatrix<REAL> &axes,REAL &detjac,TPZFMatrix<REAL> &jacinv) const
-        {
-            TPZFNMatrix<3*NNodes> coord(3,NNodes);
-            CornerCoordinates(gel, coord);
-            Jacobian(coord, param, jacobian, axes, detjac, jacinv);
-        }
+        void GradX(TPZFMatrix<REAL> &cornerco, TPZVec<T> &par, TPZFMatrix<T> &gradx) const;
+    
         
 		/**
 		 * Este metodo estabelece o mapeamento de um elemento linear de dominio [-1,1]
 		 * para o arco de elipse definido pelos nohs inicial e final, os quais devem pertencer ao lugar geometrico da elipse,
 		 * ========> SEGUINDO A REGRA DA MAO DIREITA (sentido anti-horario em relacao ao sistema local definido pelos vetores dos semi-eixos X e Y).
 		 */
-		void X(TPZFMatrix<REAL> &nodeCoord,TPZVec<REAL> &qsi,TPZVec<REAL> &x) const;
+        template<class T>
+		void X(TPZFMatrix<REAL> &nodeCoord,TPZVec<T> &qsi,TPZVec<T> &x) const;
 		
-		/** @brief Computes the jacobian matrix to X mapping */
-		void Jacobian(TPZFMatrix<REAL> &nodeCoord, TPZVec<REAL> &qsi, TPZFMatrix<REAL> &jac, TPZFMatrix<REAL> &axes, REAL &detjac, TPZFMatrix<REAL> &jacinv) const;
 		
         static bool IsLinearMapping(int side)
         {
             return false;
         }
         
-		static std::string TypeName() { return "Linear";}
-		static TPZGeoEl * CreateBCGeoEl(TPZGeoEl *orig, int side,int bc);
+		static std::string TypeName() { return "Ellipse3d";}
+		// static TPZGeoEl * CreateBCGeoEl(TPZGeoEl *orig, int side,int bc);
 		
 		/** @brief Creates a geometric element according to the type of the father element */
-		static TPZGeoEl *CreateGeoElement(TPZGeoMesh &mesh, MElementType type,
-										  TPZVec<long>& nodeindexes,
-										  int matid,
-										  long& index);
+		// static TPZGeoEl *CreateGeoElement(TPZGeoMesh &mesh, MElementType type,
+		// 								  TPZVec<int64_t>& nodeindexes,
+		// 								  int matid,
+		// 								  int64_t& index);
 		
 		void GetNodesCoords(TPZGeoMesh &mesh, TPZFMatrix<REAL> &nodes);
+        
 		void SetNodesCoords(TPZGeoMesh &mesh, TPZFMatrix<REAL> &nodes);
 		
-		TPZVec<REAL> SemiAxeX()
-		{
-			return this->fSemiAxeX;
-		}
 		double sAxeX()
 		{
 			return this->fsAxeX;
-		}
-		TPZVec<REAL> SemiAxeY()
-		{
-			return this->fSemiAxeY;
 		}
 		double sAxeY()
 		{
@@ -134,36 +144,30 @@ namespace pzgeom
 			return this->fOrigin;
 		}
 		
+        static void InsertExampleElement(TPZGeoMesh &gmesh, int matid, TPZVec<REAL> &lowercorner, TPZVec<REAL> &size);
+        
+
 	private:
 		
-		/**
-		 * Este metodo retorna o angulo[ang(vini),ang(vfin)] que corresponde a um qsi[-1,1]
-		 * @brief Returns the angle corresponding to qsi
-		 */
-		double Angle(double qsi, TPZFMatrix<REAL> &vini, TPZFMatrix<REAL> &vfin) const;
 		
-		/** @brief Returns the derivate of the angle with respect to qsi */
-		double DAngleDqsi(TPZFMatrix<REAL> &vini, TPZFMatrix<REAL> &vfin) const;
+        /// Compute the angle of a coordinate as a function of the axes
+        double ComputeAngle(TPZVec<REAL> &co) const;
+        
 		
-		/** @brief Compute de equation of the elipse as function of the angle */
-		TPZFMatrix<REAL> EllipseR2equation(double ang) const;
-		
-		/**
-		 * Derivada da equacao em R2 da elipse em funcao com respeito ao angulo
-		 */
-		TPZFMatrix<REAL> DEllipseR2equationDang(double ang) const;
-		
-		/**
-		 * fSemiAxeX @param - Half of Ellipse Axe in X direction
-		 * fSemiAxeY @param - Half of Ellipse Axe in Y direction
-		 */
-		TPZVec<REAL> fSemiAxeX;
 		double fsAxeX;//norma de fSemiAxeX
 		
-		TPZVec<REAL> fSemiAxeY;
 		double fsAxeY;//norma de fSemiAxeY
+        
+        /// Rotation matrix where the axes correspond to rows of the matrix
+        // for any point on the 3D ellips with coordinate co:
+        // fAxes*(co-fOrigin) = coordinates in the local system (the third coordinate should be zero)
+        TPZFNMatrix<9,REAL> fAxes;
 		
-		TPZVec<REAL> fOrigin;
+		TPZManVector<REAL,3> fOrigin;
+        
+        double fAngleIni = 0.;
+        double fAngleFinal = 0.;
+        
 	};
 	
 };

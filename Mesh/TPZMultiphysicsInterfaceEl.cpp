@@ -6,12 +6,15 @@
  */
 
 #include "TPZMultiphysicsInterfaceEl.h"
-#include "pzelmat.h"
+#include "TPZElementMatrixT.h"
 #include "pzinterpolationspace.h"
-#include "pzmaterial.h"
+#include "TPZMaterial.h"
+#include "TPZMatLoadCases.h"
+#include "TPZMatInterfaceCombinedSpaces.h"
+#include "TPZMatInterfaceSingleSpace.h"
 #include "pzmultiphysicselement.h"
 #include "tpzintpoints.h"
-#include "pzdiscgal.h"
+
 #include "pzmultiphysicscompel.h"
 #include "pzgeoel.h"
 
@@ -27,43 +30,82 @@
 #include "tpzgraphelpyramidmapped.h"
 #include "tpzgraphelt3d.h"
 #include "pzgraphel.h"
+#include "pzgraphmesh.h"
+#include "TPZMultiphysicsCompMesh.h"
 
 
-
-TPZMultiphysicsInterfaceElement::TPZMultiphysicsInterfaceElement() : TPZCompEl(),fLeftElSide(0), fRightElSide(0)
+TPZMultiphysicsInterfaceElement::TPZMultiphysicsInterfaceElement() : TPZRegisterClassId(&TPZMultiphysicsInterfaceElement::ClassId),
+TPZCompEl(),fLeftElSide(0), fRightElSide(0)
 {
 }
 
-TPZMultiphysicsInterfaceElement::TPZMultiphysicsInterfaceElement(TPZCompMesh &mesh, TPZGeoEl *ref, long &index,
-                                                                    TPZCompElSide leftside, TPZCompElSide rightside) : TPZCompEl(mesh, ref, index)
+TPZMultiphysicsInterfaceElement::TPZMultiphysicsInterfaceElement(TPZCompMesh &mesh, TPZGeoEl *ref) :
+TPZRegisterClassId(&TPZMultiphysicsInterfaceElement::ClassId),TPZCompEl(mesh, ref),fLeftElSide(0), fRightElSide(0)
+{
+    
+    ref->SetReference(this);
+#ifdef PZDEBUG
+    TPZMaterial *mat = mesh.FindMaterial(ref->MaterialId());
+    if (!mat) {
+        DebugStop();
+    }
+#endif
+    ref->IncrementNumInterfaces();
+}
+
+TPZMultiphysicsInterfaceElement::TPZMultiphysicsInterfaceElement(TPZCompMesh &mesh, TPZGeoEl *ref,
+                                                                    TPZCompElSide leftside, TPZCompElSide rightside) : 
+TPZRegisterClassId(&TPZMultiphysicsInterfaceElement::ClassId),TPZCompEl(mesh, ref)
 {
 	
 	ref->SetReference(this);
+#ifdef PZDEBUG
+    TPZMaterial *mat = mesh.FindMaterial(ref->MaterialId());
+    if (!mat) {
+        DebugStop();
+    }
+#endif
 	ref->IncrementNumInterfaces();
-//	
-//	if (fLeftElSide.Side() == -1 || fRightElSide.Side() == -1){
-//		PZError << "Error at " << __PRETTY_FUNCTION__ << " at line " << __LINE__ << " Side should not be -1\n";
-//		DebugStop();
-//	}
-//	
-	this->SetLeftRightElement(leftside, rightside);
-	
-	this->IncrementElConnected();
     
+    TPZMultiphysicsElement * mp_left = dynamic_cast<TPZMultiphysicsElement * >(leftside.Element());
+    TPZMultiphysicsElement * mp_right = dynamic_cast<TPZMultiphysicsElement * >(rightside.Element());
+    
+#ifdef PZDEBUG
+    if (!mp_left || !mp_right) {
+        DebugStop();
+    }
+#endif
+    
+    int left_n_meshes = mp_left->NMeshes();
+    int right_n_meshes = mp_right->NMeshes();
+    
+    fLeftElIndices.Resize(left_n_meshes);
+    fRightElIndices.Resize(right_n_meshes);
+    
+    for (int iref = 0; iref < left_n_meshes; iref++) {
+        fLeftElIndices[iref] = iref;
+    }
+
+    for (int iref = 0; iref < right_n_meshes; iref++) {
+        fRightElIndices[iref] = iref;
+    }
+    
+	this->SetLeftRightElement(leftside, rightside);
+	this->IncrementElConnected();
     this->CreateIntegrationRule();
-	
 }
 
 void TPZMultiphysicsInterfaceElement::IncrementElConnected(){
 	const int ncon = this->NConnects();
 	for(int i = 0; i < ncon; i++){
-		long index = this->ConnectIndex(i);
+		int64_t index = this->ConnectIndex(i);
 		fMesh->ConnectVec()[index].IncrementElConnected();
 	}
 }
 
 /** @brief create a copy of the given element */
-TPZMultiphysicsInterfaceElement::TPZMultiphysicsInterfaceElement(TPZCompMesh &mesh, const TPZMultiphysicsInterfaceElement &copy) : TPZCompEl(mesh,copy)
+TPZMultiphysicsInterfaceElement::TPZMultiphysicsInterfaceElement(TPZCompMesh &mesh, const TPZMultiphysicsInterfaceElement &copy) : 
+TPZRegisterClassId(&TPZMultiphysicsInterfaceElement::ClassId),TPZCompEl(mesh,copy)
 {
     TPZCompElSide left = copy.Left();
     TPZCompElSide right = copy.Right();
@@ -72,8 +114,8 @@ TPZMultiphysicsInterfaceElement::TPZMultiphysicsInterfaceElement(TPZCompMesh &me
     }
     int leftside = left.Side();
     int rightside = right.Side();
-    long leftindex = left.Element()->Index();
-    long rightindex = right.Element()->Index();
+    int64_t leftindex = left.Element()->Index();
+    int64_t rightindex = right.Element()->Index();
     TPZCompEl *leftel = mesh.ElementVec()[leftindex];
     TPZCompEl *rightel = mesh.ElementVec()[rightindex];
     if (!leftel || !rightel) {
@@ -85,8 +127,9 @@ TPZMultiphysicsInterfaceElement::TPZMultiphysicsInterfaceElement(TPZCompMesh &me
 }
 
 /** @brief create a copy of the given element using index mapping */
-TPZMultiphysicsInterfaceElement::TPZMultiphysicsInterfaceElement(TPZCompMesh &mesh, const TPZMultiphysicsInterfaceElement &copy, std::map<long,long> & gl2lcConMap,
-                                                                 std::map<long,long> & gl2lcElMap) : TPZCompEl(mesh,copy,gl2lcElMap)
+TPZMultiphysicsInterfaceElement::TPZMultiphysicsInterfaceElement(TPZCompMesh &mesh, const TPZMultiphysicsInterfaceElement &copy, std::map<int64_t,int64_t> & gl2lcConMap,
+                                                                 std::map<int64_t,int64_t> & gl2lcElMap) : 
+TPZRegisterClassId(&TPZMultiphysicsInterfaceElement::ClassId),TPZCompEl(mesh,copy,gl2lcElMap)
 {
     /// constructor not implemented right
     DebugStop();
@@ -97,8 +140,8 @@ TPZMultiphysicsInterfaceElement::TPZMultiphysicsInterfaceElement(TPZCompMesh &me
     }
     int leftside = left.Side();
     int rightside = right.Side();
-    long leftindex = left.Element()->Index();
-    long rightindex = right.Element()->Index();
+    int64_t leftindex = left.Element()->Index();
+    int64_t rightindex = right.Element()->Index();
     if (gl2lcElMap.find(leftindex) == gl2lcElMap.end() || gl2lcElMap.find(rightindex) == gl2lcElMap.end()) {
         DebugStop();
     }
@@ -120,19 +163,19 @@ TPZMultiphysicsInterfaceElement::~TPZMultiphysicsInterfaceElement(){
     }
 }
 
-void TPZMultiphysicsInterfaceElement::ComputeSideTransform(TPZManVector<TPZCompElSide> &Neighbor, TPZManVector<TPZTransform> &transf)
+void TPZMultiphysicsInterfaceElement::ComputeSideTransform(TPZManVector<TPZCompElSide> &Neighbor, TPZManVector<TPZTransform<> > &transf)
 {
     TPZGeoEl *gel = Reference();
     int side = gel->NSides()-1;
     TPZGeoElSide thisside(gel,side);
-    long numneigh = Neighbor.size();
-    for (long in=0; in<numneigh; in++) {
+    int64_t numneigh = Neighbor.size();
+    for (int64_t in=0; in<numneigh; in++) {
         TPZGeoElSide gelside = Neighbor[in].Reference();
         if(! thisside.NeighbourExists(gelside))
         {
             DebugStop();
         }
-        TPZTransform tr(thisside.Dimension());
+        TPZTransform<> tr(thisside.Dimension());
         thisside.SideTransform3(gelside, tr);
         transf[in] = tr;
     }
@@ -145,16 +188,112 @@ void TPZMultiphysicsInterfaceElement::SetLeftRightElement(const TPZCompElSide &l
 {
     fLeftElSide = leftel;
     fRightElSide = rightel;
-    int ncl = leftel.Element()->NConnects();
-    int ncr = rightel.Element()->NConnects();
-    fConnectIndexes.Resize(ncl+ncr);
-    for (int ic=0; ic<ncl; ic++) {
-        fConnectIndexes[ic] = leftel.Element()->ConnectIndex(ic);
+    this->SetLeftRightElementIndices(fLeftElIndices, fRightElIndices);
+}
+
+/**
+ * Set indices to the list of left and right elements
+ */
+void TPZMultiphysicsInterfaceElement::SetLeftRightElementIndices(const TPZVec<int64_t> &leftindices, const TPZVec<int64_t> &rightindices)
+{
+    if(! fLeftElSide || ! fRightElSide){
+        DebugStop();
+    };
+    
+    fLeftElIndices=leftindices;
+    fRightElIndices=rightindices;
+    TPZMultiphysicsElement *LeftEl = dynamic_cast<TPZMultiphysicsElement*>(fLeftElSide.Element());
+    TPZMultiphysicsElement *RightEl = dynamic_cast<TPZMultiphysicsElement*>(fRightElSide.Element());
+
+    int64_t nleftmeshes = LeftEl->NMeshes();
+    int64_t nrightmeshes = RightEl->NMeshes();
+
+    int64_t nleftindices = leftindices.size();
+    int64_t nrightindices = rightindices.size();
+
+    //Number of connects in each element
+    TPZManVector<int64_t,5> nclvec(nleftmeshes,0);
+    TPZManVector<int64_t,5> ncrvec(nrightmeshes,0);
+    TPZManVector<int64_t,5> first_left_c_index(nleftmeshes + 1,0);
+    TPZManVector<int64_t,5> first_right_c_index(nrightmeshes + 1,0);
+
+    int64_t ncl=0, ncr=0;
+    
+    //left side
+    for (int64_t iref = 0; iref<nleftmeshes; iref++) {
+        TPZCompEl *Left = LeftEl->Element(iref);
+        if(Left){
+            nclvec[iref] = Left->NConnects();
+            bool is_active = LeftEl->IsActiveApproxSpaces(iref);
+            if (is_active) {
+                first_left_c_index[iref+1] = first_left_c_index[iref] + nclvec[iref];
+            }
+        }
     }
-    for (int ic=0; ic<ncr; ic++) {
-        fConnectIndexes[ic+ncl] = rightel.Element()->ConnectIndex(ic);
+    
+    //right side
+    for (int64_t iref = 0; iref<nrightmeshes; iref++) {
+        TPZCompEl *Right = RightEl->Element(iref);
+        if(Right){
+            ncrvec[iref] = Right->NConnects();
+            bool is_active = RightEl->IsActiveApproxSpaces(iref);
+            if (is_active) {
+                first_right_c_index[iref+1] = first_right_c_index[iref] + ncrvec[iref];
+            }
+        }
+    }
+    
+    //left side
+    for(int64_t i = 0; i < nleftindices; i++){
+        int iref = leftindices[i];
+        TPZCompEl *Left = LeftEl->Element(iref);
+        if(Left){
+            if (LeftEl->IsActiveApproxSpaces(iref)) {
+                ncl += nclvec[iref];
+            }
+        }
+    }
+    
+    //right side
+    for(int64_t i = 0; i < nrightindices; i++){
+        int iref = rightindices[i];
+        TPZCompEl *Right = RightEl->Element(iref);
+        if(Right){
+            if (RightEl->IsActiveApproxSpaces(iref)) {
+                ncr += ncrvec[iref];
+            }
+        }
+    }
+    
+    /// Considering active elements
+    fConnectIndexes.Resize(ncl+ncr);
+    int64_t count = 0;
+    for(int64_t i = 0; i < nleftindices; i++){
+        int iref = leftindices[i];
+        bool is_active = LeftEl->IsActiveApproxSpaces(iref);
+        if (is_active) {
+            for (int ic=0; ic < nclvec[iref]; ic++) {
+                fConnectIndexes[count++] = LeftEl->ConnectIndex(first_left_c_index[iref]+ic);
+            }
+        }
+    }
+    
+    for(int64_t i = 0; i < nrightindices; i++){
+        int iref = rightindices[i];
+        bool is_active = RightEl->IsActiveApproxSpaces(iref);
+        if (is_active) {
+            for (int ic=0; ic < ncrvec[iref]; ic++) {
+                fConnectIndexes[count++] = RightEl->ConnectIndex(first_right_c_index[iref]+ic);
+            }
+        }
+    }
+    
+    if (count != fConnectIndexes.size() ) {
+        DebugStop();
     }
 }
+
+
 
 /**
  * Get left and right elements
@@ -175,7 +314,7 @@ int TPZMultiphysicsInterfaceElement::NConnects() const
  * @brief Returns the index of the ith connectivity of the element
  * @param i connectivity index who want knows
  */
-long TPZMultiphysicsInterfaceElement::ConnectIndex(int i) const
+int64_t TPZMultiphysicsInterfaceElement::ConnectIndex(int i) const
 {
 
 #ifdef PZDEBUG
@@ -188,15 +327,20 @@ long TPZMultiphysicsInterfaceElement::ConnectIndex(int i) const
 
 
 #include "pzmultiphysicscompel.h"
-void TPZMultiphysicsInterfaceElement::CalcStiff(TPZElementMatrix &ek, TPZElementMatrix &ef)
+template<class TVar>
+void TPZMultiphysicsInterfaceElement::CalcStiffT(TPZElementMatrixT<TVar> &ek,
+                                                        TPZElementMatrixT<TVar> &ef)
 {
-	TPZDiscontinuousGalerkin  * material = dynamic_cast<TPZDiscontinuousGalerkin *> (this->Material());
-	if(!material){
+   TPZMaterial *material = this->Material();
+   auto *matInterface =
+       dynamic_cast<TPZMatInterfaceCombinedSpaces<TVar>*>(material);
+	if(!material || !matInterface){
 		PZError << "Error at " << __PRETTY_FUNCTION__ << " this->Material() == NULL\n";
 		ek.Reset();
 		ef.Reset();
 		return;
 	}
+    
 	
 	InitializeElementMatrix(ek,ef);
 	
@@ -210,32 +354,39 @@ void TPZMultiphysicsInterfaceElement::CalcStiff(TPZElementMatrix &ek, TPZElement
         DebugStop();
     }
 #endif
-       
-    TPZManVector<TPZMaterialData,6> datavecleft,datavecright;
-    TPZMaterialData data;
-    InitMaterialData(datavecleft, leftel);
-    InitMaterialData(datavecright, rightel);
+    std::map<int,TPZMaterialDataT<TVar>> datavecleft;
+    std::map<int,TPZMaterialDataT<TVar>> datavecright;
+    TPZMaterialDataT<TVar> data;
+    InitMaterialData(data, datavecleft, datavecright);
     
-    TPZManVector<TPZTransform,6> leftcomptr, rightcomptr;
+    TPZManVector<TPZTransform<REAL>,6> leftcomptr, rightcomptr;
     leftel->AffineTransform(leftcomptr);
     rightel->AffineTransform(rightcomptr);
-       
-    InitMaterialData(data);
-    int nmesh =datavecleft.size();
-    for(int id = 0; id<nmesh; id++){
-        datavecleft[id].fNeedsNormal=data.fNeedsNormal;
-        datavecleft[id].p = 0;
+
+    for(auto &it : datavecleft){
+        it.second.p = 0;
+        int id = it.first;
         TPZInterpolationSpace *msp  = dynamic_cast <TPZInterpolationSpace *>(leftel->Element(id));
         if (msp)
         {
             datavecleft[id].p =msp->MaxOrder();
         }
     }
-//    data.fNeedsHSize=true;
-    
-    int intleftorder = leftel->IntegrationOrder();
-    int intrightorder = rightel->IntegrationOrder();
-    int integrationorder = MAX(intleftorder, intrightorder);
+//    for(auto &it : datavecright){
+//        it.second.p = 0;
+//        int id = it.first;
+//        TPZInterpolationSpace *msp  = dynamic_cast <TPZInterpolationSpace *>(rightel->Element(id));
+//        if (msp)
+//        {
+//            datavecright[id].p = msp->MaxOrder();
+//        }
+//    }
+
+    TPZManVector<int> intleftorder;
+    leftel->PolynomialOrder(intleftorder);
+    TPZManVector<int> intrightorder;
+    rightel->PolynomialOrder(intrightorder);
+    int integrationorder = matInterface->GetIntegrationOrder(intleftorder, intrightorder);
     TPZGeoEl *gel = Reference();
     int dimension = gel->Dimension();
     int thisside = gel->NSides()-1;
@@ -244,14 +395,100 @@ void TPZMultiphysicsInterfaceElement::CalcStiff(TPZElementMatrix &ek, TPZElement
     TPZAutoPointer<TPZIntPoints> intrule = gel->CreateSideIntegrationRule(thisside, integrationorder);
     TPZManVector<REAL,3> Point(dimension), leftPoint(leftel->Dimension()), rightPoint(rightel->Dimension());
     TPZGeoElSide neighleft(fLeftElSide.Reference()), neighright(fRightElSide.Reference());
-    TPZTransform trleft(dimension),trright(dimension);
+    TPZTransform<> trleft(dimension),trright(dimension);
     TPZGeoElSide gelside(this->Reference(),thisside);
     // compute the transformation between neighbours
     gelside.SideTransform3(neighleft, trleft);
     gelside.SideTransform3(neighright, trright);
     
-    TPZTransform leftloctr = leftgel->SideToSideTransform(neighleft.Side(), leftgel->NSides()-1);
-    TPZTransform rightloctr = rightgel->SideToSideTransform(neighright.Side(), rightgel->NSides()-1);
+    TPZTransform<> leftloctr = leftgel->SideToSideTransform(neighleft.Side(), leftgel->NSides()-1);
+    TPZTransform<> rightloctr = rightgel->SideToSideTransform(neighright.Side(), rightgel->NSides()-1);
+    // transform from the element to the interior of the neighbours
+    trleft = leftloctr.Multiply(trleft);
+    trright = rightloctr.Multiply(trright);
+    
+    
+    int nintpoints = intrule->NPoints();
+    for (int ip =0; ip<nintpoints; ip++) {
+        REAL weight;
+        data.intLocPtIndex = ip;
+        intrule->Point(ip, Point, weight);
+        ComputeRequiredData(data, Point);
+        weight *= fabs(data.detjac);
+        trleft.Apply(Point, leftPoint);
+        leftel->ComputeRequiredData(leftPoint, leftcomptr, datavecleft);
+        trright.Apply(Point, rightPoint);
+        rightel->ComputeRequiredData(rightPoint, rightcomptr, datavecright);
+        
+        data.x = datavecleft.begin()->second.x;
+        matInterface->ContributeInterface(data, datavecleft, datavecright, weight, ek.fMat, ef.fMat);
+    }	
+	
+}//CalcStiff
+
+template<class TVar>
+void TPZMultiphysicsInterfaceElement::CalcStiffT(TPZElementMatrixT<TVar> &ef)
+{
+    TPZMaterial  * material = this->Material();
+    auto *matInterface =
+       dynamic_cast<TPZMatInterfaceCombinedSpaces<TVar>*>(material);
+    if(!material || !matInterface){
+        PZError << "Error at " << __PRETTY_FUNCTION__ << " this->Material() == NULL\n";
+        ef.Reset();
+        return;
+    }
+    
+    InitializeElementMatrix(ef);
+    
+    if (this->NConnects() == 0) return;//boundary discontinuous elements have this characteristic
+    TPZMultiphysicsElement *leftel = dynamic_cast<TPZMultiphysicsElement *> (fLeftElSide.Element());
+    TPZMultiphysicsElement *rightel = dynamic_cast<TPZMultiphysicsElement *>(fRightElSide.Element());
+    TPZGeoEl *leftgel = leftel->Reference();
+    TPZGeoEl *rightgel = rightel->Reference();
+#ifdef PZDEBUG
+    if (!leftel || !rightel) {
+        DebugStop();
+    }
+#endif
+    
+    std::map<int,TPZMaterialDataT<TVar>> datavecleft,datavecright;
+    TPZMaterialDataT<TVar> data;
+    InitMaterialData(data, datavecleft, datavecright);
+    
+    TPZManVector<TPZTransform<> > leftcomptr, rightcomptr;
+    leftel->AffineTransform(leftcomptr);
+    rightel->AffineTransform(rightcomptr);
+    
+    InitMaterialData(data);
+    int nmesh =datavecleft.size();
+    for(int id = 0; id<nmesh; id++){
+        datavecleft[id].fNeedsNormal=true;
+        TPZInterpolationSpace *msp  = dynamic_cast <TPZInterpolationSpace *>(leftel->Element(id));
+        datavecleft[id].p =msp->MaxOrder();
+    }
+    data.fNeedsHSize=true;
+    
+    TPZManVector<int> intleftorder;
+    leftel->PolynomialOrder(intleftorder);
+    TPZManVector<int> intrightorder;
+    rightel->PolynomialOrder(intrightorder);
+    int integrationorder = matInterface->GetIntegrationOrder(intleftorder, intrightorder);
+    TPZGeoEl *gel = Reference();
+    int dimension = gel->Dimension();
+    int thisside = gel->NSides()-1;
+    TPZFNMatrix<9,REAL> jac(dimension,dimension),axes(dimension,3), jacInv(dimension,dimension);
+    
+    TPZAutoPointer<TPZIntPoints> intrule = gel->CreateSideIntegrationRule(thisside, integrationorder);
+    TPZManVector<REAL,3> Point(dimension), leftPoint(leftel->Dimension()), rightPoint(rightel->Dimension());
+    TPZGeoElSide neighleft(fLeftElSide.Reference()), neighright(fRightElSide.Reference());
+    TPZTransform<> trleft(dimension),trright(dimension);
+    TPZGeoElSide gelside(this->Reference(),thisside);
+    // compute the transformation between neighbours
+    gelside.SideTransform3(neighleft, trleft);
+    gelside.SideTransform3(neighright, trright);
+    
+    TPZTransform<> leftloctr = leftgel->SideToSideTransform(neighleft.Side(), leftgel->NSides()-1);
+    TPZTransform<> rightloctr = rightgel->SideToSideTransform(neighright.Side(), rightgel->NSides()-1);
     // transform from the element to the interior of the neighbours
     trleft = leftloctr.Multiply(trleft);
     trright = rightloctr.Multiply(trright);
@@ -270,17 +507,31 @@ void TPZMultiphysicsInterfaceElement::CalcStiff(TPZElementMatrix &ek, TPZElement
         rightel->ComputeRequiredData(rightPoint, rightcomptr, datavecright);
         
         data.x = datavecleft[0].x;
-        material->ContributeInterface(data, datavecleft, datavecright, weight, ek.fMat, ef.fMat);
+        matInterface->ContributeInterface(data, datavecleft, datavecright, weight, ef.fMat);
     }	
-	
+    
 }//CalcStiff
 
-const TPZIntPoints & TPZMultiphysicsInterfaceElement::GetIntegrationRule()
+const TPZIntPoints & TPZMultiphysicsInterfaceElement::GetIntegrationRule() const
 {
     if (!fIntegrationRule) {
         DebugStop();
     }
     return *fIntegrationRule;
+}
+
+
+int TPZMultiphysicsInterfaceElement::ComputeIntegrationOrder() const {
+
+    TPZMultiphysicsElement *left = dynamic_cast<TPZMultiphysicsElement *> (fLeftElSide.Element());
+    TPZMultiphysicsElement *right = dynamic_cast<TPZMultiphysicsElement *>(fRightElSide.Element());
+    if (!left || !right) return -1;
+    
+    int left_order = left->ComputeIntegrationOrder();
+    int right_order = right->ComputeIntegrationOrder();
+    int int_order = MAX(left_order, right_order);
+    
+    return int_order;
 }
 
 
@@ -290,7 +541,7 @@ void TPZMultiphysicsInterfaceElement::CreateIntegrationRule()
         delete fIntegrationRule;
     }
     
-    TPZDiscontinuousGalerkin  * material = dynamic_cast<TPZDiscontinuousGalerkin *> (this->Material());
+    TPZMaterial  * material = this->Material();
     if(!material){
         PZError << "Error at " << __PRETTY_FUNCTION__ << " this->Material() == NULL\n";
         DebugStop();
@@ -306,19 +557,27 @@ void TPZMultiphysicsInterfaceElement::CreateIntegrationRule()
     }
 #endif
     
-    int intleftorder = leftel->IntegrationOrder();
-    int intrightorder = rightel->IntegrationOrder();
-    int integrationorder = MAX(intleftorder, intrightorder);
+    TPZManVector<int> intleftorder;
+    leftel->PolynomialOrder(intleftorder);
+    TPZManVector<int> intrightorder;
+    rightel->PolynomialOrder(intrightorder);
+    const int integrationorder = [material,
+                            &intleftorder = std::as_const(intleftorder),
+                            &intrightorder = std::as_const(intrightorder)](){
+        auto *matreal =
+            dynamic_cast<TPZMatInterfaceCombinedSpaces<STATE>*>(material);
+        if(matreal) return matreal->GetIntegrationOrder(intleftorder, intrightorder);
+        auto *matcplx =
+            dynamic_cast<TPZMatInterfaceCombinedSpaces<CSTATE>*>(material);
+        if(matcplx) return matcplx->GetIntegrationOrder(intleftorder, intrightorder);
+        DebugStop();
+        return -1;
+    }();
     TPZGeoEl *gel = Reference();
     int thisside = gel->NSides()-1;
     
     fIntegrationRule = gel->CreateSideIntegrationRule(thisside, integrationorder);
 }
-
-void TPZMultiphysicsInterfaceElement::ComputeRequiredData(TPZVec<REAL> &intpointtemp, TPZVec<TPZTransform> &trvec, TPZVec<TPZMaterialData> &datavec)
-{
-    DebugStop();
-}//ComputeRequiredData
 
 void TPZMultiphysicsInterfaceElement::InitializeElementMatrix(TPZElementMatrix &ek, TPZElementMatrix &ef)
 {
@@ -327,7 +586,7 @@ void TPZMultiphysicsInterfaceElement::InitializeElementMatrix(TPZElementMatrix &
     ek.fType = TPZElementMatrix::EK;
     ef.fType = TPZElementMatrix::EF;
 	const int ncon = this->NConnects();
-	long numeq = 0;
+	int64_t numeq = 0;
 	int ic;
 	
 	for(ic=0; ic<ncon; ic++)
@@ -341,22 +600,24 @@ void TPZMultiphysicsInterfaceElement::InitializeElementMatrix(TPZElementMatrix &
     if (! mfcel_left || !mfcel_right) {
         DebugStop();
     }
-	//nstate=1;
-    int numloadcases = 1;
     TPZMultiphysicsElement *msp  = dynamic_cast <TPZMultiphysicsElement *>(fLeftElSide.Element());
     if (!msp) {
         DebugStop();
     }
     TPZMaterial *mat = msp->Material();
     int nstate = mat->NStateVariables();
-    numloadcases = mat->NumLoadCases();        
+    const int numloadcases = [mat](){
+        if (auto *tmp = dynamic_cast<TPZMatLoadCasesBase*>(mat); tmp){
+            return tmp->NumLoadCases();
+        }else{
+            return 1;
+        }
+    }();
 	
-	ek.fMat.Redim(numeq,numeq);
-	ef.fMat.Redim(numeq,numloadcases);
-	ek.fBlock.SetNBlocks(ncon);
-	ef.fBlock.SetNBlocks(ncon);
-	ek.fNumStateVars = nstate;
-	ef.fNumStateVars = nstate;
+	ek.Matrix().Redim(numeq,numeq);
+	ef.Matrix().Redim(numeq,numloadcases);
+	ek.Block().SetNBlocks(ncon);
+	ef.Block().SetNBlocks(ncon);
 	
 	int i;
 	for(i=0; i<ncon; i++)
@@ -368,8 +629,8 @@ void TPZMultiphysicsInterfaceElement::InitializeElementMatrix(TPZElementMatrix &
             DebugStop();
         }
 #endif
-		ek.fBlock.Set(i,ndof);
-		ef.fBlock.Set(i,ndof);
+		ek.Block().Set(i,ndof);
+		ef.Block().Set(i,ndof);
 	}
 	ek.fConnect.Resize(ncon);
 	ef.fConnect.Resize(ncon);
@@ -378,6 +639,62 @@ void TPZMultiphysicsInterfaceElement::InitializeElementMatrix(TPZElementMatrix &
 		(ef.fConnect)[i] = ConnectIndex(i);
 	}
 	
+}//void
+
+void TPZMultiphysicsInterfaceElement::InitializeElementMatrix(TPZElementMatrix &ef)
+{
+
+    ef.fMesh = Mesh();
+    ef.fType = TPZElementMatrix::EF;
+    const int ncon = this->NConnects();
+    int64_t numeq = 0;
+    int ic;
+    
+    for(ic=0; ic<ncon; ic++)
+    {
+        TPZConnect &c = Connect(ic);
+        numeq += c.NShape()*c.NState();
+    }
+    
+    TPZMultiphysicsElement *mfcel_left = dynamic_cast<TPZMultiphysicsElement *>(fLeftElSide.Element());
+    TPZMultiphysicsElement *mfcel_right = dynamic_cast<TPZMultiphysicsElement *>(fRightElSide.Element());
+    if (! mfcel_left || !mfcel_right) {
+        DebugStop();
+    }
+    TPZMultiphysicsElement *msp  = dynamic_cast <TPZMultiphysicsElement *>(fLeftElSide.Element());
+    if (!msp) {
+        DebugStop();
+    }
+    TPZMaterial *mat = msp->Material();
+    int nstate = mat->NStateVariables();
+    const int numloadcases = [mat](){
+        if (auto *tmp = dynamic_cast<TPZMatLoadCasesBase*>(mat); tmp){
+            return tmp->NumLoadCases();
+        }else{
+            return 1;
+        }
+    }();
+    
+    ef.Matrix().Redim(numeq,numloadcases);
+    ef.Block().SetNBlocks(ncon);
+    
+    int i;
+    for(i=0; i<ncon; i++)
+    {
+        TPZConnect &c = Connect(i);
+        int ndof = Connect(i).NShape()*c.NState();
+#ifdef PZDEBUG
+        if (c.NDof(*Mesh()) != ndof) {
+            DebugStop();
+        }
+#endif
+        ef.Block().Set(i,ndof);
+    }
+    ef.fConnect.Resize(ncon);
+    for(i=0; i<ncon; i++){
+        (ef.fConnect)[i] = ConnectIndex(i);
+    }
+    
 }//void
 
 void TPZMultiphysicsInterfaceElement::ComputeCenterNormal(TPZVec<REAL> &normal) const{
@@ -397,6 +714,7 @@ void TPZMultiphysicsInterfaceElement::Print(std::ostream &out) const {
 	out << "\nInterface element : \n";
 	if(!LeftElement() || !LeftElement()->Reference()) out << "\tNULL LeftElement - this is inconsistent\n";
 	else{
+                out << "\tLeft Computational Index: " << LeftElement()->Index() << std::endl;
 		out << "\tLeft Geometric Index: " << LeftElement()->Reference()->Index() << std::endl;
 		out << "\tLeft Geometric Id: " << LeftElement()->Reference()->Id() << std::endl;
 		out << "\tElement Dimension " << LeftElement()->Reference()->Dimension() << std::endl;
@@ -404,31 +722,51 @@ void TPZMultiphysicsInterfaceElement::Print(std::ostream &out) const {
 	
 	if(!RightElement() || !RightElement()->Reference()) out << "\tNULL RightElement - this is inconsistent";
 	else{
+                out << "\tRight Computational Index: " << RightElement()->Index() << std::endl;
 		out << "\tRight Geometric Index: " << RightElement()->Reference()->Index() << std::endl;
 		out << "\tRight Geometric Id: " << RightElement()->Reference()->Id() << std::endl;
 		out << "\tElement Dimension " << RightElement()->Reference()->Dimension() << std::endl;
 	}
 	
 	out << "\tMaterial id : " << Reference()->MaterialId() << std::endl;
-	
-    TPZMaterial *mat = Material();
-    TPZMaterialData data;
-    mat->FillDataRequirements(data);
-    if (mat && data.fNeedsNormal)
-    {
-        TPZVec<REAL> center_normal;
-        ComputeCenterNormal(center_normal);
-        out << "\tNormal vector (at center point): ";
-        out << "(" << center_normal[0] << "," << center_normal[1] << "," << center_normal[2] << ")\n";
-        
-    }
 }
 
-/** @brief Initialize the material data for the neighbouring element */
-void TPZMultiphysicsInterfaceElement::InitMaterialData(TPZVec<TPZMaterialData> &data, TPZMultiphysicsElement *mfcel)
+///** @brief Initialize the material data for the neighbouring element */
+//void TPZMultiphysicsInterfaceElement::InitMaterialData(TPZVec<TPZMaterialData> &data, TPZMultiphysicsElement *mfcel,TPZVec<int64_t> *indices)
+//{
+//    data.resize(mfcel->NMeshes());
+//    mfcel->InitMaterialData(data,indices);
+//}
+
+/** @brief Initialize the material data structures */
+template<class TVar>
+void TPZMultiphysicsInterfaceElement::InitMaterialDataT(
+    TPZMaterialDataT<TVar> &center_data,
+    std::map<int,TPZMaterialDataT<TVar>> &data_left,
+    std::map<int,TPZMaterialDataT<TVar>> &data_right)
 {
-	data.resize(mfcel->NMeshes());
-	mfcel->InitMaterialData(data);
+
+    TPZMultiphysicsElement *leftel = dynamic_cast<TPZMultiphysicsElement *> (fLeftElSide.Element());
+    TPZMultiphysicsElement *rightel = dynamic_cast<TPZMultiphysicsElement *>(fRightElSide.Element());
+  //  TPZMultiphysicsCompMesh * mp_cmesh = dynamic_cast<TPZMultiphysicsCompMesh * >(Mesh());
+    int n_meshes = leftel->NMeshes();
+    
+    TPZVec<int64_t> *leftindices(0), *rightindices(0);
+    if (fLeftElIndices.size()) {
+        leftindices = &fLeftElIndices;
+    }
+    if (fRightElIndices.size()) {
+        rightindices = &fRightElIndices;
+    }
+    
+    leftel->InitMaterialData(data_left,leftindices);
+    rightel->InitMaterialData(data_right,rightindices);
+        
+    auto *matInterface =
+        dynamic_cast<TPZMatInterfaceCombinedSpaces<TVar>*>(this->Material());
+    matInterface->FillDataRequirementsInterface(center_data, data_left, data_right);
+    
+    
 }
 
 /** @brief initialize the material data for the geometric data */
@@ -436,16 +774,12 @@ void TPZMultiphysicsInterfaceElement::InitMaterialData(TPZMaterialData &data)
 {
     TPZGeoEl *gel = Reference();
     int dim = gel->Dimension();
-    int nsides = gel->NSides();
-    TPZManVector<REAL> center(dim);
-    gel->CenterPoint(nsides-1 , center);
-    TPZGeoElSide gelside(gel,nsides-1);
-    TPZMaterial *mat = Material();
-    if (mat) {
-        mat->FillDataRequirements(data);
-    }
     if (data.fNeedsNormal)
     {
+        int nsides = gel->NSides();
+        TPZManVector<REAL> center(dim);
+        gel->CenterPoint(nsides-1 , center);
+        TPZGeoElSide gelside(gel,nsides-1);
         gelside.Normal(center, fLeftElSide.Element()->Reference(), fRightElSide.Element()->Reference(), data.normal);
     }
     data.axes.Redim(dim,3);
@@ -455,25 +789,38 @@ void TPZMultiphysicsInterfaceElement::InitMaterialData(TPZMaterialData &data)
 }
 
 /** @brief Compute the data needed to compute the stiffness matrix at the integration point */
-void TPZMultiphysicsInterfaceElement::ComputeRequiredData(TPZMaterialData &data, TPZVec<REAL> &point)
+template<class TVar>
+void TPZMultiphysicsInterfaceElement::ComputeRequiredDataT(TPZMaterialDataT<TVar> &data, TPZVec<REAL> &point)
 {
     data.intGlobPtIndex = -1;
     TPZGeoEl *gel = Reference();
     TPZGeoElSide gelside(gel,gel->NSides()-1);
     gel->Jacobian(point, data.jacobian, data.axes, data.detjac, data.jacinv);
-    //ComputeRequiredData(Point,data);
-//    data.fNeedsNormal = true;
+    
+    TPZMaterial *mat = Material();
+    auto *matInterface =
+       dynamic_cast<TPZMatInterfaceCombinedSpaces<TVar>*>(mat);
+    if (!matInterface) {
+        PZError<<__PRETTY_FUNCTION__;
+        PZError<<" requires an interface material.\nAborting...\n";
+        DebugStop();
+    }
     if (data.fNeedsNormal)
     {
-        gelside.Normal(point, fLeftElSide.Element()->Reference(), fRightElSide.Element()->Reference(), data.normal);
+        
+        if (gelside.Dimension() == gelside.Element()->Dimension()-1) {
+            gelside.Normal(point, data.normal);
+        }else{
+            gelside.Normal(point, fLeftElSide.Element()->Reference(), fRightElSide.Element()->Reference(), data.normal);
+        }
     }
     
     if (data.fNeedsHSize){
 		const int dim = this->Dimension();
 		REAL faceSize;
 		if (dim == 0){//it means I am a point
-            DebugStop();
-            faceSize = 1.;
+//            DebugStop();
+            faceSize = 0.;
 		}
 		else{
 			faceSize = 2.*this->Reference()->ElementRadius();//Igor Mozolevski's suggestion. It works well for elements with small aspect ratio
@@ -481,13 +828,6 @@ void TPZMultiphysicsInterfaceElement::ComputeRequiredData(TPZMaterialData &data,
 		data.HSize = faceSize;
 	}
 
-}
-
-/** @brief Compute the required data from the neighbouring elements */
-void TPZMultiphysicsInterfaceElement::ComputeRequiredData(TPZVec<REAL> &point, TPZVec<TPZTransform> &trvec, TPZMultiphysicsElement *Neighbour, TPZVec<TPZMaterialData> &data)
-{
-    DebugStop();
-    //Neighbour->ComputeR
 }
 
 void TPZMultiphysicsInterfaceElement::CreateGraphicalElement(TPZGraphMesh &grmesh, int dimension)
@@ -498,10 +838,25 @@ void TPZMultiphysicsInterfaceElement::CreateGraphicalElement(TPZGraphMesh &grmes
 	}
 	
 	TPZMaterial * material = Material();
-	int mat = material->Id();
+    
+    TPZManVector<std::string,4> scalarnames, vecnames;
+    scalarnames = grmesh.ScalarNames();
+    vecnames = grmesh.VecNames();
+    for (int i=0; i<scalarnames.size(); i++) {
+        if (material->VariableIndex(scalarnames[i]) == -1) {
+            return;
+        }
+    }
+    for (int i=0; i<vecnames.size(); i++) {
+        if (material->VariableIndex(vecnames[i]) == -1) {
+            return;
+        }
+    }
+	int matid = material->Id();
 	int nsides = ref->NSides();
-	
-	if(dimension == 2 && mat > 0){
+	bool to_postpro = grmesh.Material_Is_PostProcessed(matid);
+    
+	if(dimension == 2 && to_postpro){
 		if(nsides == 9){
 			new TPZGraphElQ2dd(this,&grmesh);
 			return;
@@ -512,7 +867,7 @@ void TPZMultiphysicsInterfaceElement::CreateGraphicalElement(TPZGraphMesh &grmes
 		}
 	}//2d
 	
-	if(dimension == 3 && mat > 0){
+	if(dimension == 3 && to_postpro){
 		if(nsides == 27){
 			new TPZGraphElQ3dd(this,&grmesh);
 			return;
@@ -531,13 +886,14 @@ void TPZMultiphysicsInterfaceElement::CreateGraphicalElement(TPZGraphMesh &grmes
 		}//pyram
 	}//3d
 	
-	if(dimension == 1 && mat > 0){
+	if(dimension == 1 && to_postpro){
 		new TPZGraphEl1dd(this,&grmesh);
 	}//1d
 	
 }
 
-void TPZMultiphysicsInterfaceElement::Solution(TPZVec<REAL> &qsi, int var,TPZVec<STATE> &sol)
+template<class TVar>
+void TPZMultiphysicsInterfaceElement::SolutionT(TPZVec<REAL> &qsi, int var,TPZVec<TVar> &sol)
 {
 	
 	if(var >= 100) {
@@ -546,7 +902,9 @@ void TPZMultiphysicsInterfaceElement::Solution(TPZVec<REAL> &qsi, int var,TPZVec
 	}
 	
 	TPZMaterial * material = this->Material();
-	if(!material){
+    auto *matInterface =
+       dynamic_cast<TPZMatInterfaceCombinedSpaces<TVar>*>(material);
+	if(!material || !matInterface){
 		sol.Resize(0);
 		return;
 	}
@@ -560,39 +918,16 @@ void TPZMultiphysicsInterfaceElement::Solution(TPZVec<REAL> &qsi, int var,TPZVec
     TPZMultiphysicsElement *leftel = dynamic_cast<TPZMultiphysicsElement *> (LeftSide.Element());
     TPZMultiphysicsElement *rightel = dynamic_cast<TPZMultiphysicsElement *>(RightSide.Element());
 		
-    TPZManVector<TPZMaterialData,6> datavecleft,datavecright;
-    TPZMaterialData data;
-    InitMaterialData(datavecleft, leftel);
-    InitMaterialData(datavecright, rightel);
-
-	int nrefl = datavecleft.size();
-	for(int i = 0; i<nrefl; i++)
-		
-	{
-		datavecleft[i].SetAllRequirements(false);
-        datavecleft[i].fNeedsSol = true;
-		datavecleft[i].fNeedsNeighborSol = false;
-		datavecleft[i].fNeedsNeighborCenter = false;
-		datavecleft[i].fNeedsNormal = false;
-	}
+    std::map<int,TPZMaterialDataT<TVar>> datavecleft,datavecright;
+    TPZMaterialDataT<TVar> data;
+    InitMaterialData(data, datavecleft, datavecright);
 	
-	int nrefr = datavecright.size();
-	for(int i = 0; i<nrefr; i++)
-		
-	{
-		datavecright[i].SetAllRequirements(false);
-        datavecright[i].fNeedsSol = true;
-		datavecright[i].fNeedsNeighborSol = false;
-		datavecright[i].fNeedsNeighborCenter = false;
-		datavecright[i].fNeedsNormal = false;
-	}
-	
-    TPZManVector<TPZTransform> leftcomptr, rightcomptr;
+    TPZManVector<TPZTransform<> > leftcomptr, rightcomptr;
     leftel->AffineTransform(leftcomptr);
     rightel->AffineTransform(rightcomptr);
     InitMaterialData(data);	
-	TPZTransform lefttr;
-	TPZTransform righttr;	
+	TPZTransform<> lefttr;
+	TPZTransform<> righttr;	
 	
 	//		Integration points in left and right elements: making transformations to neighbour elements
 	this->ComputeSideTransform(LeftSide, lefttr);
@@ -606,13 +941,13 @@ void TPZMultiphysicsInterfaceElement::Solution(TPZVec<REAL> &qsi, int var,TPZVec
 	leftel->ComputeRequiredData(myqsi, leftcomptr, datavecleft);
 	rightel->ComputeRequiredData(myqsi, rightcomptr, datavecright);
 		
-	material->Solution(data,datavecleft,datavecright,var, sol,LeftSide.Element(),RightSide.Element());
+	matInterface->SolutionInterface(data,datavecleft,datavecright,var, sol,LeftSide.Element(),RightSide.Element());
 }
 
-void TPZMultiphysicsInterfaceElement::ComputeSideTransform(TPZCompElSide &Neighbor, TPZTransform &transf){
+void TPZMultiphysicsInterfaceElement::ComputeSideTransform(TPZCompElSide &Neighbor, TPZTransform<> &transf){
 	TPZGeoEl * neighel = Neighbor.Element()->Reference();
 	const int dim = this->Dimension();
-	TPZTransform LocalTransf(dim);
+	TPZTransform<> LocalTransf(dim);
 	TPZGeoElSide thisgeoside(this->Reference(), this->Reference()->NSides()-1);
 	TPZGeoElSide neighgeoside(neighel, Neighbor.Side());
 	thisgeoside.SideTransform3(neighgeoside, LocalTransf);
@@ -622,3 +957,6 @@ void TPZMultiphysicsInterfaceElement::ComputeSideTransform(TPZCompElSide &Neighb
 }//ComputeSideTransform
 
 
+int TPZMultiphysicsInterfaceElement::ClassId() const{
+    return Hash("TPZMultiphysicsInterfaceElement") ^ TPZCompEl::ClassId() << 1;
+}

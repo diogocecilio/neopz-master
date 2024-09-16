@@ -5,7 +5,8 @@
 
 #include "TPZAgglomerateEl.h"
 #include "TPZInterfaceEl.h"
-#include "pzdiscgal.h"
+#include "TPZMatSingleSpace.h"
+#include "TPZMatLoadCases.h"
 #include "pzcompel.h"
 #include "pzgeoel.h"
 #include "pzgeoelside.h"
@@ -14,7 +15,7 @@
 #include "pzmanvector.h"
 #include "pzadmchunk.h"
 #include "pzquad.h"
-#include "pzelmat.h"
+#include "TPZElementMatrixT.h"
 #include "pzgraphel.h"
 #include "pzgraphelq2dd.h"
 #include "pzgraphelq3dd.h"
@@ -24,13 +25,13 @@
 #include "pztrigraph.h"
 #include "pzgraphel.h"
 #include "pzerror.h"
-#include "pzmeshid.h"
 #include "tpzagglomeratemesh.h"
+#include "pzgraphmesh.h"
 
 using namespace std;
 
-TPZAgglomerateElement::TPZAgglomerateElement(int nummat,long &index,TPZCompMesh &aggcmesh,TPZCompMesh *finemesh) :
-TPZCompElDisc(aggcmesh,index) {
+TPZAgglomerateElement::TPZAgglomerateElement(int nummat,TPZCompMesh &aggcmesh,TPZCompMesh *finemesh) :
+TPZRegisterClassId(&TPZAgglomerateElement::ClassId),TPZCompElDisc(aggcmesh) {
 	
 	/**
 	 * o algomerado aponta para nulo mas o elemento computacional
@@ -41,7 +42,7 @@ TPZCompElDisc(aggcmesh,index) {
 	fMotherMesh = finemesh;
 	
 	//<!> Initialized as bignumber because I expect the radius will be lesser than that.
-	fInnerRadius = TPZMaterial::gBigNumber;
+	fInnerRadius = std::numeric_limits<REAL>::max() * 1e-2;
 	
 	//<!>It is set up as zero. It must be initialized after.
 	fNFaces = 0;
@@ -50,12 +51,12 @@ TPZCompElDisc(aggcmesh,index) {
 	CreateMidSideConnect();
 }
 
-TPZAgglomerateElement::TPZAgglomerateElement() : TPZCompElDisc(), fIndexes(),
+TPZAgglomerateElement::TPZAgglomerateElement() : TPZRegisterClassId(&TPZAgglomerateElement::ClassId),TPZCompElDisc(), fIndexes(),
 fMotherMesh(0),fInnerRadius(-1.),fNFaces(-1),fMaterialId(999)
 {
 }
 
-void TPZAgglomerateElement::AddSubElementIndex(TPZCompMesh *aggcmesh,long subel,long father){
+void TPZAgglomerateElement::AddSubElementIndex(TPZCompMesh *aggcmesh,int64_t subel,int64_t father){
 	
 	TPZAgglomerateElement *agg = dynamic_cast<TPZAgglomerateElement *>(aggcmesh->ElementVec()[father]);
 	if(!agg){
@@ -106,7 +107,7 @@ void TPZAgglomerateElement::InitializeElement() {
 
 void TPZAgglomerateElement::AccumulateIntegrationRule(int degree, TPZStack<REAL> &point, TPZStack<REAL> &weight){
 	//acumula as regras de integra�o dos elementos aglomerados (descont�uos)
-	long nsubs = NIndexes(),i;
+	int64_t nsubs = NIndexes(),i;
 	for(i=0; i<nsubs; i++){
 		TPZCompElDisc *disc = dynamic_cast<TPZCompElDisc *>(SubElement(i));
 		if(!disc){
@@ -120,7 +121,7 @@ void TPZAgglomerateElement::AccumulateIntegrationRule(int degree, TPZStack<REAL>
 
 void TPZAgglomerateElement::CenterPoint(){
 	
-	long indsize = NIndexes(),i;
+	int64_t indsize = NIndexes(),i;
 	TPZVec<REAL> volumes(indsize);
 	for(i=0;i<indsize;i++){
 		//    TPZCompEl *cel = FineElement(i);
@@ -160,7 +161,7 @@ REAL TPZAgglomerateElement::VolumeOfEl(){
 	 * ou de sub-elementos descont�uos n� aglomerados
 	 */
 	REAL volume = 0.0;
-	long nindex = NIndexes(),i;
+	int64_t nindex = NIndexes(),i;
 	for(i=0;i<nindex;i++){
 		TPZCompEl *cel = dynamic_cast<TPZCompElDisc *>(SubElement(i));
 		if(!cel) continue;
@@ -172,11 +173,11 @@ REAL TPZAgglomerateElement::VolumeOfEl(){
 
 void TPZAgglomerateElement::CalcResidual(TPZFMatrix<REAL> &Rhs,TPZCompElDisc *el){
 	
-	PZError << "TPZAgglomerateElement::CalcResidual DEVE SER IMPLEMENTADO";
+	PZError << "TPZAgglomerateElement::CalcResidual must be implemented\n";
 }
 
-void TPZAgglomerateElement::CalcStiff(TPZElementMatrix &ek, TPZElementMatrix &ef){
-	
+template<class TVar>
+void TPZAgglomerateElement::CalcStiffT(TPZElementMatrixT<TVar> &ek, TPZElementMatrixT<TVar> &ef){	
 	if(Reference()) return TPZCompElDisc::CalcStiff(ek,ef);
 	
 	if(!Material()){
@@ -190,11 +191,17 @@ void TPZAgglomerateElement::CalcStiff(TPZElementMatrix &ek, TPZElementMatrix &ef
     TPZMaterial *mat = Material();
 	int nstate = mat->NStateVariables();
 	int nshape = NShapeF();
-	TPZBlock<STATE> &block = Mesh()->Block();
+	TPZBlock &block = Mesh()->Block();
 	TPZFMatrix<STATE> &MeshSol = Mesh()->Solution();
-    long numbersol = MeshSol.Cols();
+    int64_t numbersol = MeshSol.Cols();
 	int numeq = nshape * nstate;
-    int numloadcases = mat->NumLoadCases();
+	const int numloadcases = [mat](){
+        if (auto *tmp = dynamic_cast<TPZMatLoadCasesBase*>(mat); tmp){
+            return tmp->NumLoadCases();
+        }else{
+            return 1;
+        }
+    }();
 	
 	
 	ek.fMat.Redim(numeq,numeq);
@@ -219,7 +226,7 @@ void TPZAgglomerateElement::CalcStiff(TPZElementMatrix &ek, TPZElementMatrix &ef
 	AccumulateIntegrationRule(integ,points,weights);//integra fi*fj
 	int ip,npoints = weights.NElements();
 	
-	TPZMaterialData data;
+	TPZMaterialDataT<TVar> data;
 	this->InitMaterialData(data);
 	for(ip=0;ip<npoints;ip++){
 		data.x[0] = points[3*ip];
@@ -228,33 +235,40 @@ void TPZAgglomerateElement::CalcStiff(TPZElementMatrix &ek, TPZElementMatrix &ef
 		weight = weights[ip];
 		ShapeX(data.x,data.phi,data.dphix);
 		//solucao da iteracao anterior
-        for (long is=0; is<numbersol; is++) {
+        for (int64_t is=0; is<numbersol; is++) {
             data.sol[is].Fill(0.);
             data.dsol[is].Zero();
         }
 		for(int in=0; in<ncon; in++) {
 			TPZConnect *df = &Connect(in);
-			long dfseq = df->SequenceNumber();
+			int64_t dfseq = df->SequenceNumber();
 			int dfvar = block.Size(dfseq);
-			long pos = block.Position(dfseq);
-			long iv = 0;
-			for(long jn=0; jn<dfvar; jn++) {
-                for (long is=0; is<numbersol; is++) {
+			int64_t pos = block.Position(dfseq);
+			int64_t iv = 0;
+			for(int64_t jn=0; jn<dfvar; jn++) {
+                for (int64_t is=0; is<numbersol; is++) {
                     data.sol[is][iv%nstate] += (STATE)data.phi(iv/nstate,0)*MeshSol(pos+jn,is);
                     for(int d=0; d<dim; d++) data.dsol[is](d,iv%nstate) += (STATE)data.dphix(d,iv/nstate)*MeshSol(pos+jn,is);
                 }
 				iv++;
 			}
 		}
-		Material()->Contribute(data,weight,ek.fMat,ef.fMat);
+		auto *mat =
+			dynamic_cast<TPZMatSingleSpaceT<TVar>*>(Material());
+		if(!mat){
+			PZError<<__PRETTY_FUNCTION__;
+			PZError<<" could not access material. Aborting...\n";
+			DebugStop();
+		}
+		mat->Contribute(data,weight,ek.fMat,ef.fMat);
 	}
 }
 
 
-TPZCompEl *TPZAgglomerateElement::SubElement(long sub) const{
+TPZCompEl *TPZAgglomerateElement::SubElement(int64_t sub) const{
 
 #ifdef PZDEBUG
-	long nsubs = NIndexes();
+	int64_t nsubs = NIndexes();
 	if(sub < 0  || sub > nsubs){
 		PZError << "TPZAgglomerateElement::SubElement sub-element out of range\n";
 		return NULL;
@@ -268,7 +282,7 @@ TPZCompEl *TPZAgglomerateElement::SubElement(long sub) const{
 REAL TPZAgglomerateElement::NormalizeConst() {
 	//maior distancia entre o ponto interior e os v�tices do elemento
 	REAL maxsub,maxall = -1.0;
-	long nindex = NIndexes(),i;
+	int64_t nindex = NIndexes(),i;
 	for(i=0;i<nindex;i++){
 		TPZCompElDisc *cel = dynamic_cast<TPZCompElDisc *>(SubElement(i));
 		if(!cel) continue;
@@ -279,7 +293,7 @@ REAL TPZAgglomerateElement::NormalizeConst() {
 }
 
 
-long TPZAgglomerateElement::CreateMidSideConnect() {	
+int64_t TPZAgglomerateElement::CreateMidSideConnect() {	
 	if(!Material())
 	{
 		PZError << "\nTPZCompElDisc::CreateMidSideConnect Material nulo\n";
@@ -298,10 +312,10 @@ long TPZAgglomerateElement::CreateMidSideConnect() {
 		int nvar = Material()->NStateVariables();
         int nshape = NShapeF();
         int order = 0;
-		long newnodeindex = Mesh()->AllocateNewConnect(nshape, nvar, order);
+		int64_t newnodeindex = Mesh()->AllocateNewConnect(nshape, nvar, order);
 		SetConnectIndex(0,newnodeindex);
 		TPZConnect &newnod = Mesh()->ConnectVec()[newnodeindex];
-		long seqnum = newnod.SequenceNumber();
+		int64_t seqnum = newnod.SequenceNumber();
 		Mesh()->Block().Set(seqnum,nvar*nshape);
 		Mesh()->ConnectVec()[ConnectIndex()].IncrementElConnected();
 	}
@@ -318,7 +332,7 @@ void TPZAgglomerateElement::Print(std::ostream &out) const {
 	out << "\nTPZAgglomerateElement element : \n";
 	out << "\tComputational mesh : " << fMotherMesh << endl;
 	out << "\tAgglomerate elements indexes : ";
-	long naggel = NIndexes(),i;
+	int64_t naggel = NIndexes(),i;
 	for(i=0;i<naggel;i++) out << fIndexes[i] << " ";
 	out << "\n\tMaterial id : " << fMotherMesh->ElementVec()[fIndexes[0]]->Material()->Id() << endl
 	<< "\tDegrau of interpolation : " <<  Degree() << endl
@@ -331,10 +345,10 @@ void TPZAgglomerateElement::Print(std::ostream &out) const {
 
 void TPZAgglomerateElement::CreateGraphicalElement(TPZGraphMesh &grmesh, int dimension) {
 	if(!Reference()) return;
-	int mat = Material()->Id();
+	int matid = Material()->Id();
 	int nsides = NSides();
-	
-	if(dimension == 2 && mat > 0){
+    bool to_postpro = grmesh.Material_Is_PostProcessed(matid);
+	if(dimension == 2 && to_postpro){
 		if(nsides == 9){
 			new TPZGraphElQ2dd(this,&grmesh);
 			return;
@@ -344,10 +358,10 @@ void TPZAgglomerateElement::CreateGraphicalElement(TPZGraphMesh &grmesh, int dim
 			return;
 		}
 	}
-	if(dimension == 3 && mat > 0){
+	if(dimension == 3 && to_postpro){
 		new TPZGraphElQ3dd(this,&grmesh);
 	}
-	if(dimension == 1 && mat > 0){
+	if(dimension == 1 && to_postpro){
 		new TPZGraphEl1dd(this,&grmesh);
 	}
 }
@@ -361,7 +375,7 @@ int TPZAgglomerateElement::NSides(){
 void TPZAgglomerateElement::ListOfDiscEl(TPZStack<TPZCompEl *> &elvec){
 	//agrupa na lista todos os elementos discontinuos
 	//agrupados no elemento aglomerado atual
-	long indsize = NIndexes(),i;
+	int64_t indsize = NIndexes(),i;
 	for(i=0;i<indsize;i++){
 		//    TPZCompEl *cel = FineElement(i);
 		TPZCompElDisc *cel = dynamic_cast<TPZCompElDisc *>(SubElement(i));
@@ -377,10 +391,10 @@ void TPZAgglomerateElement::ListOfDiscEl(TPZStack<TPZCompEl *> &elvec){
 }
 
 //#warning "TPZAgglomerateElement::IndexesDiscSubEls is inconsistent"
-void TPZAgglomerateElement::IndexesDiscSubEls(TPZStack<long> &elvec){
+void TPZAgglomerateElement::IndexesDiscSubEls(TPZStack<int64_t> &elvec){
 	//agrupa na lista todos os indexes dos elementos discontinuos
 	//agrupados no elemento aglomerado atual
-	long indsize = NIndexes(),i;
+	int64_t indsize = NIndexes(),i;
 	for(i=0;i<indsize;i++){
 		//    TPZCompEl *cel = FineElement(i);
 		TPZCompEl *cel = SubElement(i);
@@ -394,137 +408,16 @@ void TPZAgglomerateElement::IndexesDiscSubEls(TPZStack<long> &elvec){
 	}
 }
 
-/*
- void TPZAgglomerateElement::CreateMaterialCopy(TPZCompMesh &aggcmesh){
- 
- //criando copias dos materiais
- int nmats = fMotherMesh->MaterialVec().NElements(),i;
- for(i=0;i<nmats;i++){//achando material de volume
- TPZMaterial *mat = fMotherMesh->MaterialVec()[i];
- if(!mat) continue;
- if(mat->Id() > 0){
- //       if( !strcmp(mat->Name(),"TPZEulerConsLaw") ){
- // 	TPZEulerConsLaw *euler = dynamic_cast<TPZEulerConsLaw *>(mat);
- // 	mat = euler->NewMaterial();//mat = new TPZEulerConsLaw(*euler);//copia
- // 	aggcmesh.InsertMaterialObject(mat);
- //       }
- TPZDiscontinuousGalerkin * consmat = dynamic_cast<TPZDiscontinuousGalerkin *>(mat);
- if ( consmat ){
- mat = consmat->NewMaterial();
- aggcmesh.InsertMaterialObject(mat);
- } else {
- PZError << "TPZAgglomerateElement::CreateMaterialCopy material not defined, implement now (Tiago)!\n";
- }
- }
- }
- for(i=0;i<nmats;i++){//achando material de CC
- TPZMaterial *mat = fMotherMesh->MaterialVec()[i];
- if(!mat) continue;
- if(mat->Id() < 0){//CC: id < 0
- TPZBndCond *bc = dynamic_cast<TPZBndCond *>(mat);
- if(!bc) PZError << "TPZCompElDisc::CreateAgglomerateMesh null bc material\n";
- int nummat = bc->Material()->Id();//mat. vol.
- TPZMaterial *material = aggcmesh.FindMaterial(nummat);
- if(!material) PZError << "TPZCompElDisc::CreateAgglomerateMesh volume material not exists"
- << " (implement Tiago)\n";
- TPZBndCond *copy = new TPZBndCond(*bc,material);
- aggcmesh.InsertMaterialObject(copy);
- }
- }
- }
- */
 
-/*
- TPZGeoEl *TPZAgglomerateElement::CalculateReference(){
- 
- //return TPZCompElDisc::Reference();
- //porenquanto interfaces n� s� aglomeradas
- //if(Dimension() == gInterfaceDimension) return NULL;
- 
- TPZStack<TPZCompEl *> elvec;
- ListOfDiscEl(elvec);
- int size = elvec.NElements(),i,nlevels = 1;
- TPZGeoEl *ref0 = elvec[0]->Reference();
- if(size == 1) return ref0;
- 
- TPZGeoEl *fat = FatherN(ref0,nlevels);
- while(fat){
- for(i=1;i<size;i++){
- TPZGeoEl *ref = elvec[i]->Reference();
- if( FatherN(ref,nlevels) != fat ) break;
- }
- if( i < size ){
- nlevels++;
- fat = FatherN(ref0,nlevels);
- } else {
- break;//o pai maior foi achado
- }
- }
- if( fat && size == NSubCompEl(fat) ) return fat;
- return NULL;
- }
- 
- int TPZAgglomerateElement::NSubsOfLevels(TPZGeoEl *father,int nlevels){
- 
- //quantos sub-elementos father cont� at�nlevels n�eis abaixo dele
- if(!father) return 0;
- if(nlevels == 1) return father->NSubElements();
- int numberels = 0,i,lev = 1;
- while(lev < nlevels){
- int nsubs = father->NSubElements();
- numberels = nsubs;
- for(i=0;i<nsubs;i++){
- TPZGeoEl *sub = father->SubElement(i);
- if(!sub->Reference()) NSubsOfLevels(sub,lev);//s�computacionais
- numberels += NSubsOfLevels(sub,nlevels-1);
- }
- lev++;
- }
- return numberels;
- }
- 
- int TPZAgglomerateElement::NSubCompEl(TPZGeoEl *father){
- 
- //quantos sub-elementos computacionais father aglomera
- if(!father) return 0;
- int numberels = 0,i,nsubs = father->NSubElements();
- for(i=0;i<nsubs;i++){
- TPZGeoEl *sub = father->SubElement(i);
- if(!sub) return 0;
- if(!sub->Reference()){
- numberels += NSubCompEl(sub);//s�computacionais
- } else {
- numberels++;
- }
- }
- return numberels;
- }
- 
- TPZGeoEl *TPZAgglomerateElement::FatherN(TPZGeoEl *sub,int n){
- 
- //procura-se o ancestral n n�eis acima de sub
- if(!sub) return NULL;
- if(n == 0) return sub;
- int niv = 1;
- TPZGeoEl *fat;
- while( niv < (n+1) ){
- fat = sub->Father();
- if(!fat) return NULL;
- sub = fat;
- niv++;
- }
- return fat;
- }
- */
 
 //int Level(TPZGeoEl *gel);
-void TPZAgglomerateElement::ListOfGroupings(TPZCompMesh *finemesh,TPZVec<long> &accumlist,
-											int nivel,long &numaggl,int dim){
+void TPZAgglomerateElement::ListOfGroupings(TPZCompMesh *finemesh,TPZVec<int64_t> &accumlist,
+											int nivel,int64_t &numaggl,int dim){
 	//todo elemento de volume deve ser agrupado nem que for para um s�elemento
 	finemesh->SetDimModel(dim);
 	cout << "\nTPZAgglomerateElement::ListOfGroupings para malha 2D\n";
 	cout << "Este metodo somente funciona para agrupar elementos descontinuos \n";
-	long nel = finemesh->NElements(),i;
+	int64_t nel = finemesh->NElements(),i;
 	//n� todo index �sub-elemento
 	accumlist.Resize(nel,-1);
 	int mdim = finemesh->Dimension();
@@ -546,12 +439,12 @@ void TPZAgglomerateElement::ListOfGroupings(TPZCompMesh *finemesh,TPZVec<long> &
 		while(father && father->Level() != nivel) father = father->Father();//nova
 		if (!father) continue;//nova
 		//if(Level(father) != nivel) continue;//antiga
-		long fatid = father->Id();
+		int64_t fatid = father->Id();
 		accumlist[i] = fatid;
 	}
 	//reordena a lista por ordem crescente do pai
-	TPZVec<long> list(accumlist);
-	long j;
+	TPZVec<int64_t> list(accumlist);
+	int64_t j;
 	for(i=0;i<nel;i++){
 		for(j=i+1;j<nel;j++){
 			if(list[i] > list[j]){
@@ -565,10 +458,10 @@ void TPZAgglomerateElement::ListOfGroupings(TPZCompMesh *finemesh,TPZVec<long> &
 	numaggl = 0;
 	int act2 = -1;
 	for(i=0;i<nel;i++){
-		long act = list[i];
+		int64_t act = list[i];
 		if(act == act2) continue;
 		for(j=i+1;j<nel;j++){
-			long next = list[j];
+			int64_t next = list[j];
 			if(next != act2){
 				numaggl++;
 				j = nel;
@@ -577,15 +470,15 @@ void TPZAgglomerateElement::ListOfGroupings(TPZCompMesh *finemesh,TPZVec<long> &
 		}
 	}
 	//reformula o index do pai de 0 a nmax
-	TPZVec<long> newlist(accumlist);
-	long newfat = 0;
+	TPZVec<int64_t> newlist(accumlist);
+	int64_t newfat = 0;
 	for(i=0;i<nel;i++){
-		long fatid1 = newlist[i];
+		int64_t fatid1 = newlist[i];
 		if(fatid1 < 0) continue;
 		accumlist[i] = newfat;
 		newlist[i] = -1;
 		for(j=i+1;j<nel;j++){
-			long fatid2 = newlist[j];
+			int64_t fatid2 = newlist[j];
 			if(fatid2 == fatid1){
 				accumlist[j] = newfat;
 				newlist[j] = -1;
@@ -597,11 +490,11 @@ void TPZAgglomerateElement::ListOfGroupings(TPZCompMesh *finemesh,TPZVec<long> &
 	if(!newfat && !numaggl) cout << "TPZAgglomerateElement::ListOfGroupings lista de elementos aglomerados vacia\n";
 }
 
-void TPZAgglomerateElement::Print(TPZStack<long> &listindex){
+void TPZAgglomerateElement::Print(TPZStack<int64_t> &listindex){
 	
 	cout << "TPZAgglomerateElement::Print agrupamento de indexes: saida AGRUPAMENTO.out\n";
 	ofstream out("AGRUPAMENTO.out");
-	long size = listindex.NElements(),i,father = 0;
+	int64_t size = listindex.NElements(),i,father = 0;
 	out << "\n\t\t\t* * * AGRUPAMENTO DE INDEXES * * *\n\n";
 	int exists = 0;
 	for(i=0;i<size;i++){
@@ -633,7 +526,8 @@ void TPZAgglomerateElement::Print(TPZStack<long> &listindex){
  }
  */
 
-void TPZAgglomerateElement::ProjectSolution(TPZFMatrix<STATE> &projectsol){
+template<class TVar>
+void TPZAgglomerateElement::ProjectSolution(TPZFMatrix<TVar> &projectsol){
 	
 	//projeta a solu�o dos elementos contidos na aglomera�o
 	//no elemento por eles aglomerado
@@ -641,10 +535,10 @@ void TPZAgglomerateElement::ProjectSolution(TPZFMatrix<STATE> &projectsol){
 	int dimension = Dimension();
 	int aggmatsize = NShapeF();
 	int nvar = Material()->NStateVariables();
-	TPZFMatrix<STATE> aggmat(aggmatsize,aggmatsize,0.);
-	TPZFMatrix<STATE> loadvec(aggmatsize,nvar,0.);
+	TPZFMatrix<TVar> aggmat(aggmatsize,aggmatsize,0.);
+	TPZFMatrix<TVar> loadvec(aggmatsize,nvar,0.);
 	//verificar que o grau do grande �<= que o grau de cada um dos pequenos ???
-	long size = NIndexes(),i;
+	int64_t size = NIndexes(),i;
 	int mindegree = 1000,coarsedeg = Degree(),maxdegree = 0;
 	for(i=0;i<size;i++){
 		TPZCompElDisc *disc =
@@ -673,16 +567,16 @@ void TPZAgglomerateElement::ProjectSolution(TPZFMatrix<STATE> &projectsol){
 	TPZFMatrix<REAL> jacobian(dimension,dimension),jacinv(dimension,dimension);
 	TPZFMatrix<REAL> axes(3,3,0.);
 	TPZManVector<REAL,3> x(3,0.);
-	TPZVec<STATE> uh(nvar);
+	TPZVec<TVar> uh(nvar);
 	REAL weight;
-	long in,jn,kn,ip,ind;
+	int64_t in,jn,kn,ip,ind;
 	TPZCompElDisc *finedisc;
 	
 	for(ind=0;ind<size;ind++){
 		//    finedisc = dynamic_cast<TPZCompElDisc *>(FineElement(ind));
 		finedisc = dynamic_cast<TPZCompElDisc *>(SubElement(ind));
 		finedisc->AccumulateIntegrationRule(maxdegree+coarsedeg,accintpoint,accweight);
-		long npoints = accweight.NElements();
+		int64_t npoints = accweight.NElements();
 		
 		for(ip=0;ip<npoints;ip++){
 			for(in=0; in<3; in++) x[in] = accintpoint[3*ip+in];
@@ -700,7 +594,7 @@ void TPZAgglomerateElement::ProjectSolution(TPZFMatrix<STATE> &projectsol){
 				}
 				//a soma das regras dos pequenos cobre a geometria do grande
 				for(kn=0; kn<nvar; kn++) {
-					loadvec(in,kn) += (STATE)weight*(STATE)aggphix(in,0)*uh[kn];
+					loadvec(in,kn) += (TVar)weight*(TVar)aggphix(in,0)*uh[kn];
 				}
 			}
 		}//fim for ip
@@ -708,12 +602,12 @@ void TPZAgglomerateElement::ProjectSolution(TPZFMatrix<STATE> &projectsol){
 	//achando a solu�o restringida
 	aggmat.SolveDirect(loadvec,ELDLt);//ELU
 	//transferindo a solu�o obtida por restri�o
-	long iv=0;
-	TPZBlock<STATE> &block = Mesh()->Block();
+	int64_t iv=0;
+	TPZBlock &block = Mesh()->Block();
 	TPZConnect *df = &Connect(0);
-	long dfseq = df->SequenceNumber();
+	int64_t dfseq = df->SequenceNumber();
 	int dfvar = block.Size(dfseq);
-	long pos   = block.Position(dfseq);
+	int64_t pos   = block.Position(dfseq);
 	for(int d=0; d<dfvar; d++) {
 		//block(dfseq,0,d,0) = loadvec(iv/nvar,iv%nvar);
 		projectsol(pos+d,0) = loadvec(iv/nvar,iv%nvar);
@@ -724,7 +618,7 @@ void TPZAgglomerateElement::ProjectSolution(TPZFMatrix<STATE> &projectsol){
 REAL TPZAgglomerateElement::LesserEdgeOfEl(){
 	
 	
-	long j,l,nvertices;
+	int64_t j,l,nvertices;
 	TPZVec<REAL> point0(3),point1(3);
 	//TPZGeoNode *node0,*node1;
 	//procura-se a maior distancia entre dois nodos do conjunto de elementos
@@ -785,8 +679,8 @@ REAL TPZAgglomerateElement::LesserEdgeOfEl(){
 
 
 void TPZAgglomerateElement::AccumulateVertices(TPZStack<TPZGeoNode *> &nodes) {
-	long nsubs = fIndexes.NElements();
-	long in;
+	int64_t nsubs = fIndexes.NElements();
+	int64_t in;
 	for(in=0; in<nsubs; in++) {
 		TPZCompEl *cel = fMotherMesh->ElementVec()[fIndexes[in]];
 		if(!cel) continue;
@@ -798,7 +692,7 @@ void TPZAgglomerateElement::AccumulateVertices(TPZStack<TPZGeoNode *> &nodes) {
 
 
 
-TPZAgglomerateMesh *TPZAgglomerateElement::CreateAgglomerateMesh(TPZCompMesh *finemesh, TPZVec<long> &accumlist,long numaggl){
+TPZAgglomerateMesh *TPZAgglomerateElement::CreateAgglomerateMesh(TPZCompMesh *finemesh, TPZVec<int64_t> &accumlist,int64_t numaggl){
 	
 	/**
 	 * somente s� aglomerados elementos de volume
@@ -813,7 +707,7 @@ TPZAgglomerateMesh *TPZAgglomerateElement::CreateAgglomerateMesh(TPZCompMesh *fi
 	 * aglomerado, assim si accumlist[8] = 4 ent� o elemento computacional
 	 * de index 8 ser�agrupado para formar o elemento aglomerado de index 4
 	 */
-	long nlist = accumlist.NElements();
+	int64_t nlist = accumlist.NElements();
 	if(numaggl < 1 || nlist < 2){
 		PZError << "TPZCompElDisc::CreateAgglomerateMesh number agglomerate elements"
 		<< " out of range\nMALHA AGGLOMERADA N� CRIADA\n";
@@ -821,18 +715,18 @@ TPZAgglomerateMesh *TPZAgglomerateElement::CreateAgglomerateMesh(TPZCompMesh *fi
 		return 0;
 	}
 	//TPZFlowCompMesh aggmesh(finemesh->Reference());
-	long index,nel = finemesh->NElements(),nummat,size = accumlist.NElements(),i;
+	int64_t index,nel = finemesh->NElements(),nummat,size = accumlist.NElements(),i;
 	TPZAgglomerateMesh *aggmesh = new TPZAgglomerateMesh(finemesh);
 	//copiando materiais para nova malha
 	//finemesh->fMaterials eh copiado para aggmesh
 	finemesh->CopyMaterials(*aggmesh);
 	
-	TPZVec<long> IdElNewMesh(accumlist.NElements());
+	TPZVec<int64_t> IdElNewMesh(accumlist.NElements());
 	IdElNewMesh.Fill(-1);
 	
 	//criando agrupamentos iniciais
 	for(i=0;i<numaggl;i++){
-		long k = 0;
+		int64_t k = 0;
 		//o elemento de index k tal que accumlist[k] == i vai aglomerar no elemento de index/id i
 		while( accumlist[k] != i && k < size) k++;
 		
@@ -845,13 +739,14 @@ TPZAgglomerateMesh *TPZAgglomerateElement::CreateAgglomerateMesh(TPZCompMesh *fi
 		
 		nummat = finemesh->ElementVec()[k]->Material()->Id();
 		//criando elemento de index/id i e inserindo na malha aggmesh
-		new TPZAgglomerateElement(nummat,index,*aggmesh,finemesh);
+		TPZCompEl* cel = new TPZAgglomerateElement(nummat,*aggmesh,finemesh);
+        index = cel->Index();
 		IdElNewMesh[k] = index;
 	}
 	
 	//inicializando os aglomerados e clonando elementos BC
 	int meshdim = finemesh->Dimension(),type,eldim;
-	long father;
+	int64_t father;
 	int surfacedim = meshdim-1;
 	for(i=0;i<nel;i++){
 		TPZCompEl *cel = finemesh->ElementVec()[i];
@@ -872,7 +767,7 @@ TPZAgglomerateMesh *TPZAgglomerateElement::CreateAgglomerateMesh(TPZCompMesh *fi
 				IdElNewMesh[i] = father;
 			} else if(eldim == surfacedim){
 				//clonando o elemento descont�uo BC, o clone existira na malha aglomerada
-				TPZCompEl * AggCell = dynamic_cast<TPZCompElDisc *>(cel)->Clone(*aggmesh,index);
+				TPZCompEl * AggCell = dynamic_cast<TPZCompElDisc *>(cel)->Clone(*aggmesh);
 				IdElNewMesh[i] = AggCell->Index();
 			}
 		}
@@ -886,22 +781,21 @@ TPZAgglomerateMesh *TPZAgglomerateElement::CreateAgglomerateMesh(TPZCompMesh *fi
 		if(cel->Type() == EInterface){//elemento interface
 			TPZInterfaceElement *interf = dynamic_cast<TPZInterfaceElement *>(cel);
 			TPZCompEl *leftel = interf->LeftElement(),*rightel = interf->RightElement();
-			long indleft = leftel->Index();
-			long indright = rightel->Index();
+			int64_t indleft = leftel->Index();
+			int64_t indright = rightel->Index();
 			if(accumlist[indleft] == -1 && accumlist[indright] == -1){
 				//no m�imo um elemento pode ser BC
 				PZError << "TPZCompElDisc::CreateAgglomerateMesh data error\n";
 				if(aggmesh) delete aggmesh;
 				return 0;
 			}
-			long index;
 			//interfaces com esquerdo e direito iguais n� s� clonadas
 			if(accumlist[indleft] == accumlist[indright]) continue;
 			
 			//clonando o elemento interface: a interface existir�na malha aglomerada
 			//leftel and rightel
-			long leftid = interf->LeftElement()->Index();
-			long leftside = interf->LeftElementSide().Side();
+			int64_t leftid = interf->LeftElement()->Index();
+			int64_t leftside = interf->LeftElementSide().Side();
 			leftid = IdElNewMesh[leftid];
 #ifdef PZDEBUG
 			if (leftid == -1){
@@ -910,8 +804,8 @@ TPZAgglomerateMesh *TPZAgglomerateElement::CreateAgglomerateMesh(TPZCompMesh *fi
 #endif
 			TPZCompElDisc * leftagg = dynamic_cast<TPZCompElDisc*> (aggmesh->ElementVec()[leftid]) ;
 			
-			long rightid = interf->RightElement()->Index();
-			long rightside = interf->RightElementSide().Side();
+			int64_t rightid = interf->RightElement()->Index();
+			int64_t rightside = interf->RightElementSide().Side();
 			rightid = IdElNewMesh[rightid];
 #ifdef PZDEBUG
 			if (rightid == -1){
@@ -921,7 +815,7 @@ TPZAgglomerateMesh *TPZAgglomerateElement::CreateAgglomerateMesh(TPZCompMesh *fi
 			TPZCompElDisc * rightagg = dynamic_cast<TPZCompElDisc*> (aggmesh->ElementVec()[rightid]) ;
 			
 			TPZCompElSide leftcompelside(leftagg, leftside), rightcompelside(rightagg, rightside);
-			interf->CloneInterface(*aggmesh,index, /*leftagg*/leftcompelside, /*rightagg*/rightcompelside);
+			interf->CloneInterface(*aggmesh, /*leftagg*/leftcompelside, /*rightagg*/rightcompelside);
 			
 		}
 	}
@@ -1010,8 +904,8 @@ TPZAgglomerateMesh *TPZAgglomerateElement::CreateAgglomerateMesh(TPZCompMesh *fi
 
 void TPZAgglomerateElement::ComputeNeighbours(TPZCompMesh *mesh, map<TPZCompElDisc *,set<TPZCompElDisc *> > &neighbour) {
 	
-	long nelem = mesh->NElements();
-	long iel;
+	int64_t nelem = mesh->NElements();
+	int64_t iel;
 	//  int meshdim = mesh->Dimension();
 	for(iel=0; iel<nelem; iel++) {
 		TPZCompEl *cel = mesh->ElementVec()[iel];
@@ -1030,18 +924,17 @@ void TPZAgglomerateElement::ComputeNeighbours(TPZCompMesh *mesh, map<TPZCompElDi
 /**
  * returns the unique identifier for reading/writing objects to streams
  */
-int TPZAgglomerateElement::ClassId() const
-{
-	return TPZAGGLOMERATEELID;
+int TPZAgglomerateElement::ClassId() const{
+    return Hash("TPZAgglomerateElement") ^ TPZCompElDisc::ClassId() << 1;
 }
 
 #ifndef BORLAND
-template class TPZRestoreClass< TPZAgglomerateElement, TPZAGGLOMERATEELID>;
+template class TPZRestoreClass< TPZAgglomerateElement>;
 #endif
 /**
  Save the element data to a stream
  */
-void TPZAgglomerateElement::Write(TPZStream &buf, int withclassid)
+void TPZAgglomerateElement::Write(TPZStream &buf, int withclassid) const
 {
 	TPZCompElDisc::Write(buf,withclassid);
 	TPZAgglomerateMesh *mesh = dynamic_cast<TPZAgglomerateMesh *> (Mesh());
@@ -1049,7 +942,7 @@ void TPZAgglomerateElement::Write(TPZStream &buf, int withclassid)
 	{
 		cout << "TPZAgglomerateEl::Write built from non agglomeratemesh at " << __FILE__ << ":" << __LINE__ << endl;
 	}
-	WriteObjects(buf,fIndexes);
+	buf.Write(fIndexes);
 	buf.Write(&fInnerRadius,1);
 	buf.Write(&fNFaces,1);
 }
@@ -1068,8 +961,12 @@ void TPZAgglomerateElement::Read(TPZStream &buf, void *context)
 	} else {
 		fMotherMesh = mesh->FineMesh();
 	}
-	ReadObjects(buf,fIndexes);
+	buf.Read(fIndexes);
 	buf.Read(&fInnerRadius,1);
 	buf.Read(&fNFaces,1);
 }
 
+template
+void TPZAgglomerateElement::ProjectSolution<STATE>(TPZFMatrix<STATE> &projectsol);
+template
+void TPZAgglomerateElement::ProjectSolution<CSTATE>(TPZFMatrix<CSTATE> &projectsol);

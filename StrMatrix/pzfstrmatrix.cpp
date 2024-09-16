@@ -5,51 +5,56 @@
 
 #include "pzfstrmatrix.h"
 #include "pzfmatrix.h"
-#include "pzcmesh.h"
 #include "pzsubcmesh.h"
 #include <sstream>
 #include "pzlog.h"
 
-#ifdef LOG4CXX
-static LoggerPtr logger(Logger::getLogger("pz.strmatrix.tpzfstructmatrix"));
-static LoggerPtr loggerel(Logger::getLogger("pz.strmatrix.element"));
+#ifdef PZ_LOG
+static TPZLogger logger("pz.strmatrix.tpzfstructmatrix");
+static TPZLogger loggerel("pz.strmatrix.element");
 #endif
 
 
 using namespace std;
-
-TPZMatrix<STATE> * TPZFStructMatrix::CreateAssemble(TPZFMatrix<STATE> &rhs,TPZAutoPointer<TPZGuiInterface> guiInterface){
-	TPZMatrix<STATE> *stiff = Create();
-	long neq = this->fMesh->NEquations();
-	rhs.Redim(neq,1);
-	Assemble(*stiff,rhs,guiInterface);
-	
-#ifdef LOG4CXX
-	if(loggerel->isDebugEnabled())
-	{
-		std::stringstream sout;
-		stiff->Print("Stiffness matrix",sout);
-		rhs.Print("Right hand side", sout);
-		LOGPZ_DEBUG(loggerel,sout.str())
-	}
-#endif
-    return stiff;
-}
-
-TPZMatrix<STATE> * TPZFStructMatrix::Create(){
-	long neq = fEquationFilter.NActiveEquations();
+template<class TVar, class TPar>
+TPZMatrix<TVar> * TPZFStructMatrix<TVar,TPar>::Create(){
+	int64_t neq = this->fEquationFilter.NActiveEquations();
     
-	return new TPZFMatrix<STATE>(neq,neq,0.);
+	return new TPZFMatrix<TVar>(neq,neq,0.);
 }
 
-TPZFStructMatrix::TPZFStructMatrix(TPZCompMesh *mesh) : TPZStructMatrix(mesh)
-{
-}
-
-TPZFStructMatrix::TPZFStructMatrix(TPZAutoPointer<TPZCompMesh> mesh) : TPZStructMatrix(mesh)
-{
-}
-
-TPZStructMatrix * TPZFStructMatrix::Clone(){
+template<class TVar, class TPar>
+TPZStructMatrix * TPZFStructMatrix<TVar,TPar>::Clone(){
     return new TPZFStructMatrix(*this);
 }
+
+
+template<class TVar, class TPar>
+int TPZFStructMatrix<TVar,TPar>::ClassId() const{
+    return Hash("TPZFStructMatrix") ^
+        TPZStructMatrixT<TVar>::ClassId() << 1 ^
+        TPar::ClassId() << 2;
+}
+
+template<class TVar, class TPar>
+void TPZFStructMatrix<TVar,TPar>::Read(TPZStream& buf, void* context){
+    TPZStructMatrix::Read(buf,context);
+    TPar::Read(buf,context);
+}
+
+template<class TVar, class TPar>
+void TPZFStructMatrix<TVar,TPar>::Write(TPZStream& buf, int withclassid) const{
+    TPZStructMatrix::Write(buf,withclassid);
+    TPar::Write(buf,withclassid);
+}
+
+#include "pzstrmatrixot.h"
+#include "pzstrmatrixflowtbb.h"
+
+template class TPZFStructMatrix<STATE,TPZStructMatrixOR<STATE>>;
+template class TPZFStructMatrix<STATE,TPZStructMatrixOT<STATE>>;
+template class TPZFStructMatrix<STATE,TPZStructMatrixTBBFlow<STATE>>;
+
+template class TPZFStructMatrix<CSTATE,TPZStructMatrixOR<CSTATE>>;
+template class TPZFStructMatrix<CSTATE,TPZStructMatrixOT<CSTATE>>;
+template class TPZFStructMatrix<CSTATE,TPZStructMatrixTBBFlow<CSTATE>>;

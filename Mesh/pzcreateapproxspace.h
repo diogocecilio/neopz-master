@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief Contains the functions to create different computational elements (one- two- three-dimensional).
+ * @brief Contains the functions to create different computational elements (one- two- three-dimensional). The creation of SBFem elements depends on the NeoPZ library configuration USING_MKL=ON.
  */
 
 #ifndef CREATECONTINUOUSHPP
@@ -12,19 +12,21 @@ class TPZGeoEl;
 class TPZCompEl;
 class TPZCompMesh;
 #include <set>
+#include <functional>
 #include "pzvec.h"
+#include "TPZSavable.h"
+#include "TPZEnumApproxFamily.h"
 
-typedef TPZCompEl *(*TCreateFunction)(TPZGeoEl *el,TPZCompMesh &mesh,long &index);
+typedef std::function<TPZCompEl* (TPZGeoEl* el, TPZCompMesh &mesh)> TCreateFunction;
 /*
  * @brief Administer the creation of approximation spaces
  * @author Philippe Devloo
  * @since 2009
  * @ingroup interpolation
  */
-class TPZCreateApproximationSpace
-{
+class TPZCreateApproximationSpace : public TPZSavable {
     /** @brief Function pointer which determines what type of computational element will be created */
-    TPZCompEl *(*fp[8])(TPZGeoEl *el,TPZCompMesh &mesh,long &index);
+    TCreateFunction fp[8];
     
     /// @brief boolean indicating if each element should be created disconnected from the others
     /**
@@ -37,8 +39,21 @@ class TPZCreateApproximationSpace
     
     /// flag indicating that the elements need to be created with memory
     bool fCreateWithMemory;
+    
+    /// flags indicating "flavor" ofthe approximation space
+    HDivFamily fhdivfam = DefaultFamily::fHDivDefaultValue;
+    H1Family fh1fam = DefaultFamily::fH1DefaultValue;
+    HCurlFamily fhcurlfam = DefaultFamily::fHCurlDefaultValue;
+    
+public:
+    
+    enum MApproximationStyle {ENone,EContinuous,EDiscontinuous,EHDiv,EHCurl, EMultiphysics, EMultiphysicsSBFem, ESBFem, ECustom};
+private:
+    /// approximation space style last used
+    MApproximationStyle fStyle = ENone;
 
 public:
+    
     
     TPZCreateApproximationSpace() : fCreateHybridMesh(false), fCreateLagrangeMultiplier(false), fCreateWithMemory(false)
     {
@@ -63,25 +78,51 @@ public:
         fCreateWithMemory = copy.fCreateWithMemory;
         return *this;
     }
+        int ClassId() const override;
+    
+    void Read(TPZStream &buf, void *context) override;
+    
+    void Write(TPZStream &buf, int withclassid) const override;
     
     void SetCreateLagrange(bool flag)
     {
         fCreateLagrangeMultiplier = flag;
     }
     
+    void CreateWithMemory(bool flag)
+    {
+        fCreateWithMemory = flag;
+    }
+
+    // Get set methods for space families
+    const HDivFamily &HDivFam() const {return fhdivfam;}
+    const HDivFamily &HDivFam() {return fhdivfam;}
+    const void SetHDivFamily(HDivFamily fam){fhdivfam = fam;}
+
+    const H1Family &H1Fam() const {return fh1fam;}
+    const H1Family &H1Fam() {return fh1fam;}
+    const void SetH1Family(H1Family fam){fh1fam = fam;}
+
+    const HCurlFamily &HCurlFam() const {return fhcurlfam;}
+    const HCurlFamily &HCurlFam() {return fhcurlfam;}
+    const void SetHCurlFamily(HCurlFamily fam){fhcurlfam = fam;}
+    
     /** @brief Create discontinuous approximation spaces */
     void SetAllCreateFunctionsDiscontinuous();
     /** @brief Create continuous approximation spaces */
 	void SetAllCreateFunctionsContinuous();
-    /** @brief Create a discontinuous approximation space with referred elements */
-	void SetAllCreateFunctionsDiscontinuousReferred();
-    /** @brief Create a continuous approximation space with referred elements */
-	void SetAllCreateFunctionsContinuousReferred();
     /** @brief Create an approximation space with HDiv elements */
 	void SetAllCreateFunctionsHDiv(int meshdim);
+    /** @brief Create an approximation space with HCurl elements */
+    void SetAllCreateFunctionsHCurl(int meshdim);
 	/** @brief Create an approximation space with HDiv elements and full basis for quadrilateral element */
-	void SetAllCreateFunctionsHDivFull(int meshdim);
-	
+//    void SetAllCreateFunctionsHDivFull(int meshdim);
+    
+    /** @brief Create SBFem approximation space. Depends on MKL. */
+    void SetAllCreateFunctionsSBFem(int meshdim);
+    /** @brief Create an approximation space based on SBFem multiphysics elements */
+    void SetAllCreateFunctionsSBFemMultiphysics(int meshdim);
+
 #ifndef STATE_COMPLEX
     /** @brief Create an approximation space with HDivxL2 elements */
 	void SetAllCreateFunctionsHDivPressure(int meshdim);
@@ -99,9 +140,19 @@ public:
     
     /** @brief Set custom function pointers */
     void SetCreateFunctions(TPZVec<TCreateFunction> &createfuncs);
+
+    MApproximationStyle& Style()
+    {
+        return fStyle;
+    }
+
+    const MApproximationStyle& Style() const
+    {
+        return fStyle;
+    }
     
     /** @brief Create a computational element using the function pointer for the topology */
-    TPZCompEl *CreateCompEl(TPZGeoEl *gel, TPZCompMesh &mesh, long &index) const;
+    TPZCompEl *CreateCompEl(TPZGeoEl *gel, TPZCompMesh &mesh) const;
     
 	/** @brief Creates the computational elements, and the degree of freedom nodes */ 
 	/** Only element of material id in the set<int> will be created */
@@ -110,7 +161,10 @@ public:
 	/** @brief Creates the computational elements, and the degree of freedom nodes */
 	void BuildMesh(TPZCompMesh &cmesh) const;
     
-    /** @brief Creates the interface elements */ 
+    /** @brief Creates the computational elements, and the degree of freedom nodes */
+    void BuildMesh(TPZCompMesh &cmesh, const TPZVec<int64_t> &gelindexes) const;
+    
+    /** @brief Creates the interface elements */
 	/** Only element of material id in the set<int> will be created */
 	static void CreateInterfaces(TPZCompMesh &cmesh, const std::set<int> &MaterialIDs);
 	

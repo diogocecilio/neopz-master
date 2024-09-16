@@ -14,8 +14,8 @@ extern "C" {
 
 #include "pzlog.h"
 
-#ifdef LOG4CXX
-static LoggerPtr logger(Logger::getLogger("pz.metis"));
+#ifdef PZ_LOG
+static TPZLogger logger("pz.metis");
 #endif
 
 #include <iostream>
@@ -23,6 +23,10 @@ using namespace std;
 
 TPZMetis::TPZMetis() : TPZRenumbering()
 {
+    PZError<<"TPZMetis depends on the Metis library\n";
+    PZError<<"Please reconfigure NeoPZ library using:\n";
+    PZError<<"USING_METIS=ON"<<std::endl;
+    DebugStop();
 }
 
 void TPZMetis::Print(std::ostream &out,char * title) {
@@ -40,7 +44,7 @@ void TPZMetis::Print(std::ostream &out,char * title) {
 		}
 		out << endl;
 	}
-	TPZVec<long> nodegraph(0),nodegraphindex(0);
+	TPZManVector<int64_t> nodegraph(0),nodegraphindex(0);
 	ConvertGraph(fElementGraph,fElementGraphIndex,nodegraph,nodegraphindex);
 	int numelnodegraph = nodegraphindex[fNNodes];
 	if (numelnodegraph == nodegraph.NElements() ) {
@@ -75,7 +79,7 @@ void TPZMetis::Print(std::ostream &out) {
 	 }
 	 out << endl;
 	 } */
-	TPZVec<long> nodegraph(0),nodegraphindex(0);
+	TPZManVector<int64_t> nodegraph(0),nodegraphindex(0);
 	ConvertGraph(fElementGraph,fElementGraphIndex,nodegraph,nodegraphindex);
 	int numelnodegraph = nodegraphindex[fNNodes];
 	if (numelnodegraph == nodegraph.NElements() ) {
@@ -94,15 +98,15 @@ void TPZMetis::Print(std::ostream &out) {
 	}
 }
 
-void TPZMetis::Resequence(TPZVec<long> &perm, TPZVec<long> &inverseperm) {
-	TPZVec<long> nodegraph(0),nodegraphindex(0);
+void TPZMetis::Resequence(TPZVec<int64_t> &perm, TPZVec<int64_t> &inverseperm) {
+	TPZManVector<int64_t> nodegraph(0),nodegraphindex(0);
 	ConvertGraph(fElementGraph,fElementGraphIndex,nodegraph,nodegraphindex);
-	long numelnodegraph = nodegraphindex[fNNodes];
+	int64_t numelnodegraph = nodegraphindex[fNNodes];
 	if (numelnodegraph == nodegraph.NElements() )
 	{
 		nodegraph.Resize(numelnodegraph+1);
 	}
-	long nod;
+	int64_t nod;
 	for (nod = numelnodegraph; nod>0; nod--) nodegraph[nod] = nodegraph[nod-1];
 	perm.Resize(fNNodes);
 	inverseperm.Resize(fNNodes);
@@ -114,7 +118,7 @@ void TPZMetis::Resequence(TPZVec<long> &perm, TPZVec<long> &inverseperm) {
 #ifdef USING_METIS
 	TPZVec<int> nodegraphInt(0),nodegraphindexInt(0);
 	int NNodes = (int) fNNodes;
-	long n, sz = nodegraph.NElements();
+	int64_t n, sz = nodegraph.NElements();
 	nodegraph.Resize(sz);
 	for(n=0;n<sz;n++)
 		nodegraphInt[n] = (int)nodegraph[n];
@@ -133,7 +137,7 @@ void TPZMetis::Resequence(TPZVec<long> &perm, TPZVec<long> &inverseperm) {
         std::cout << "TPZMetis::Resequence memory is not enough.\n";
         return;
     }
-    long i;
+    int64_t i;
     for(i=0L;i<nperms;i++)
         permint[i] = (int)perm[i];
     for(i=0L;i<nperms;i++)
@@ -141,31 +145,34 @@ void TPZMetis::Resequence(TPZVec<long> &perm, TPZVec<long> &inverseperm) {
     
 //	METIS_NodeND(&fNNodes,&nodegraphindex[0],&nodegraph[1],&numflag,&options,&perm[0],&inverseperm[0]);
     METIS_NodeND(&NNodes,&nodegraphindexInt[0],&nodegraphInt[1],&numflag,&options,permint,inversepermint);
-	fNNodes = (long)NNodes;
+	fNNodes = (int64_t)NNodes;
 #endif
 }
 
 void TPZMetis::Subdivide(int nParts, TPZVec < int > & Domains)
 {
-	TPZManVector<long> Adjacency,AdjacencyIndex;
+	TPZManVector<int64_t> Adjacency,AdjacencyIndex;
 	TPZManVector<int> AdjacencyWeight;
 	ConvertToElementoToElementGraph(fElementGraph,fElementGraphIndex,Adjacency,AdjacencyWeight,AdjacencyIndex);
 	
-#ifdef LOG4CXX
+#ifdef PZ_LOG
 	{
 		std::stringstream sout;
 		TPZRenumbering::Print(Adjacency,AdjacencyIndex,"Element to element graph",sout);
-		LOGPZ_DEBUG(logger,sout.str())
+		if (logger.isDebugEnabled())
+		{
+			LOGPZ_DEBUG(logger, sout.str())
+		}
 	}
 #endif
 	
 #ifdef USING_METIS
 	TPZManVector<int> AdjacencyInt,AdjacencyIndexInt;
-	long n, nVertices = AdjacencyIndex.NElements();
+	int64_t n, nVertices = AdjacencyIndex.NElements();
 	AdjacencyIndexInt.Resize(nVertices,0);
 	for(n=0;n<nVertices;n++)
 		AdjacencyIndexInt[n] = (int)AdjacencyIndex[n];
-	long nEdges = Adjacency.NElements();
+	int64_t nEdges = Adjacency.NElements();
 	AdjacencyInt.Resize(nEdges,0);
 	for(n=0;n<nEdges;n++)
 		AdjacencyInt[n] = (int)Adjacency[n];

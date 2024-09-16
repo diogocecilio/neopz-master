@@ -12,8 +12,7 @@
 #include "pzcmesh.h"
 #include "pzerror.h"
 #include "pzconnect.h"
-#include "pzmaterial.h"
-#include "pzbndcond.h"
+#include "TPZMaterial.h"
 #include "pzmanvector.h"
 #include "TPZShapeDisc.h"
 #include "TPZCompElDisc.h"
@@ -30,23 +29,25 @@
 #include "tpzgraphelpyramidmapped.h"
 #include "tpzgraphelt3d.h"
 #include "pzgraphel.h"
-#include "pzmeshid.h"
-#include <algorithm>
+#include "pzgraphmesh.h"
+
 #include <sstream>
 #include <cmath>
+#include <algorithm>
 
 #include "time.h"
 #include "pzgeoel.h"
 #include "pzcompel.h"
 #include <math.h>
 #include <stdio.h>
-#include "pzmaterialdata.h"
+#include "TPZMaterialDataT.h"
+#include "TPZMatSingleSpace.h"
 #include "tpzautopointer.h"
 
 #include "pzlog.h"
 
-#ifdef LOG4CXX
-static LoggerPtr logger(Logger::getLogger("pz.mesh.tpzcompeldisc"));
+#ifdef PZ_LOG
+static TPZLogger logger("pz.mesh.tpzcompeldisc");
 #endif
 
 
@@ -75,8 +76,8 @@ void TPZCompElDisc::SetTotalOrderShapeFull(){
 
 void TPZCompElDisc::SetTensorialShape(TPZCompMesh * cmesh){
 	if(!cmesh) return;
-	long nel = cmesh->NElements();
-	for(long iel = 0; iel < nel; iel++){
+	int64_t nel = cmesh->NElements();
+	for(int64_t iel = 0; iel < nel; iel++){
 		TPZCompEl * cel = cmesh->ElementVec()[iel];
 		if(!cel) continue;
 		TPZCompElDisc * disc = dynamic_cast<TPZCompElDisc*>(cel);
@@ -87,8 +88,8 @@ void TPZCompElDisc::SetTensorialShape(TPZCompMesh * cmesh){
 
 void TPZCompElDisc::SetTotalOrderShape(TPZCompMesh * cmesh){
 	if(!cmesh) return;
-	long nel = cmesh->NElements();
-	for(long iel = 0; iel < nel; iel++){
+	int64_t nel = cmesh->NElements();
+	for(int64_t iel = 0; iel < nel; iel++){
 		TPZCompEl * cel = cmesh->ElementVec()[iel];
 		if(!cel) continue;
 		TPZCompElDisc * disc = dynamic_cast<TPZCompElDisc*>(cel);
@@ -104,7 +105,8 @@ TPZCompElDisc::~TPZCompElDisc() {
 	}//if (ref)
 }
 
-TPZCompElDisc::TPZCompElDisc() : TPZInterpolationSpace(), fConnectIndex(-1), fExternalShape(), fCenterPoint(3,0.)
+TPZCompElDisc::TPZCompElDisc() : TPZRegisterClassId(&TPZCompElDisc::ClassId),
+TPZInterpolationSpace(), fConnectIndex(-1), fExternalShape(), fCenterPoint(3,0.)
 {
 	this->fShapefunctionType = pzshape::TPZShapeDisc::ETensorial;
 	this->fIntRule = NULL;
@@ -113,8 +115,8 @@ TPZCompElDisc::TPZCompElDisc() : TPZInterpolationSpace(), fConnectIndex(-1), fEx
 
 }
 
-TPZCompElDisc::TPZCompElDisc(TPZCompMesh &mesh,long &index) :
-TPZInterpolationSpace(mesh,0,index), fConnectIndex(-1), fExternalShape(), fCenterPoint(3,0.)
+TPZCompElDisc::TPZCompElDisc(TPZCompMesh &mesh) :
+TPZRegisterClassId(&TPZCompElDisc::ClassId),TPZInterpolationSpace(mesh,0), fConnectIndex(-1), fExternalShape(), fCenterPoint(3,0.)
 {
 	this->fShapefunctionType = pzshape::TPZShapeDisc::ETensorial;  
 	this->fIntRule = this->CreateIntegrationRule();
@@ -122,28 +124,35 @@ TPZInterpolationSpace(mesh,0,index), fConnectIndex(-1), fExternalShape(), fCente
 }
 
 TPZCompElDisc::TPZCompElDisc(TPZCompMesh &mesh, const TPZCompElDisc &copy) :
-TPZInterpolationSpace(mesh,copy), fConnectIndex(copy.fConnectIndex), fConstC(copy.fConstC), fCenterPoint(copy.fCenterPoint) {
-	fShapefunctionType = copy.fShapefunctionType;
-	//TPZMaterial * mat = copy.Material();
-	if (copy.fIntRule){
-		this->fIntRule = copy.GetIntegrationRule().Clone();
-	}
-	else{
-		this->fIntRule = NULL;
-	}
-	
-	this->SetExternalShapeFunction(copy.fExternalShape);
+TPZRegisterClassId(&TPZCompElDisc::ClassId),
+TPZInterpolationSpace(mesh,copy), fConnectIndex(copy.fIndex), fCenterPoint(copy.fCenterPoint) {
+    fShapefunctionType = copy.fShapefunctionType;
+    //criando nova malha computacional
+    Reference()->SetReference(this);
+    //TPZMaterial * mat = copy.Material();
+    fConstC = copy.fConstC;
+    CreateMidSideConnect();
+    this->SetDegree( copy.Degree() );
+    //as interfaces foram clonadas
+    if (copy.fIntRule){
+        this->fIntRule = copy.GetIntegrationRule().Clone();
+    }
+    else{
+        this->fIntRule = NULL;
+    }
+    this->SetExternalShapeFunction(copy.fExternalShape);
     fUseQsiEta = copy.fUseQsiEta;
 }
 
 TPZCompElDisc::TPZCompElDisc(TPZCompMesh &mesh,
                              const TPZCompElDisc &copy,
-                             std::map<long,long> &gl2lcConMap,
-                             std::map<long,long> &gl2lcElMap) : TPZInterpolationSpace(mesh,copy), fConnectIndex(-1), fCenterPoint(copy.fCenterPoint)
+                             std::map<int64_t,int64_t> &gl2lcConMap,
+                             std::map<int64_t,int64_t> &gl2lcElMap) : 
+TPZRegisterClassId(&TPZCompElDisc::ClassId),TPZInterpolationSpace(mesh,copy), fConnectIndex(-1), fCenterPoint(copy.fCenterPoint)
 {
 	fShapefunctionType = copy.fShapefunctionType;
 	//TPZMaterial * mat = copy.Material();
-	gl2lcElMap[copy.fIndex] = this->fIndex;
+	gl2lcElMap[this->fIndex] = copy.fIndex;
 	
 	if (copy.fIntRule){
 		this->fIntRule = copy.GetIntegrationRule().Clone();
@@ -156,28 +165,8 @@ TPZCompElDisc::TPZCompElDisc(TPZCompMesh &mesh,
     fUseQsiEta = copy.fUseQsiEta;
 }
 
-TPZCompElDisc::TPZCompElDisc(TPZCompMesh &mesh, const TPZCompElDisc &copy,long &index) :
-TPZInterpolationSpace(mesh,copy,index), fConnectIndex(-1), fCenterPoint(copy.fCenterPoint) {
-	fShapefunctionType = copy.fShapefunctionType;
-	//criando nova malha computacional
-	Reference()->SetReference(this);
-	//TPZMaterial * mat = copy.Material();
-	fConstC = copy.fConstC;
-	CreateMidSideConnect();
-	this->SetDegree( copy.Degree() );
-	//as interfaces foram clonadas
-	if (copy.fIntRule){
-		this->fIntRule = copy.GetIntegrationRule().Clone();
-	}
-	else{
-		this->fIntRule = NULL;
-	}
-	this->SetExternalShapeFunction(copy.fExternalShape);
-    fUseQsiEta = copy.fUseQsiEta;
-}
-
-TPZCompElDisc::TPZCompElDisc(TPZCompMesh &mesh,TPZGeoEl *ref,long &index) :
-TPZInterpolationSpace(mesh,ref,index), fConnectIndex(-1), fExternalShape(), fCenterPoint(3,0.)
+TPZCompElDisc::TPZCompElDisc(TPZCompMesh &mesh,TPZGeoEl *ref) :
+TPZRegisterClassId(&TPZCompElDisc::ClassId),TPZInterpolationSpace(mesh,ref), fConnectIndex(-1), fExternalShape(), fCenterPoint(this->Dimension(),0.)
 {
 	this->fShapefunctionType = pzshape::TPZShapeDisc::ETensorial;  
 	ref->SetReference(this);
@@ -200,7 +189,7 @@ REAL TPZCompElDisc::NormalizeConst()
 	int nnodes = ref->NNodes(),i;
 	if(nnodes == 1) return 1.0;//point element
 	REAL maxdist,dist;
-	long inode = ref->NodeIndex(0);//first node of the element
+	int64_t inode = ref->NodeIndex(0);//first node of the element
 	TPZGeoNode node = ref->Mesh()->NodeVec()[inode];
 	maxdist = pow(node.Coord(0)-fCenterPoint[0],(REAL)2.)+pow(node.Coord(1)-fCenterPoint[1],(REAL)2.);   // I do casting because the developer use double exponent (2.) - I think better using int (2) - Jorge
 	maxdist += pow(node.Coord(2)-fCenterPoint[2],(REAL)2.);
@@ -216,6 +205,16 @@ REAL TPZCompElDisc::NormalizeConst()
 	return maxdist;
 }
 
+/**
+ * @brief Initialize a material data and its attributes based on element dimension, number
+ * of state variables and material definitions
+ */
+void TPZCompElDisc::InitMaterialData(TPZMaterialData &data)
+{
+    TPZInterpolationSpace::InitMaterialData(data);
+    data.XCenter = fCenterPoint;
+}
+
 void TPZCompElDisc::ComputeShape(TPZVec<REAL> &intpoint, TPZVec<REAL> &X,
                                  TPZFMatrix<REAL> &jacobian, TPZFMatrix<REAL> &axes,
                                  REAL &detjac, TPZFMatrix<REAL> &jacinv,
@@ -225,14 +224,18 @@ void TPZCompElDisc::ComputeShape(TPZVec<REAL> &intpoint, TPZVec<REAL> &X,
 		PZError << "\nERROR AT " << __PRETTY_FUNCTION__ << " - this->Reference() == NULL\n";
 		return;
 	}//if
-	ref->Jacobian( intpoint, jacobian, axes, detjac , jacinv);
-	
     if(fUseQsiEta==true){
+        ref->Jacobian( intpoint, jacobian, axes, detjac , jacinv);
         this->Shape(intpoint,phi,dphi);
         this->Convert2Axes(dphi,jacinv,dphix);
         ref->X(intpoint, X);
     }else{
         dphi.Zero();
+        if(Degree() == 0 && !fExternalShape)
+        {
+            phi(0,0) = 1.;
+            return;
+        }
         ref->X(intpoint, X);
         this->ShapeX(X,phi,dphix);
         //axes is identity in discontinuous elements
@@ -244,7 +247,7 @@ void TPZCompElDisc::ComputeShape(TPZVec<REAL> &intpoint, TPZVec<REAL> &X,
 }
 
 void TPZCompElDisc::ComputeShape(TPZVec<REAL> &intpoint,TPZMaterialData &data){
-    this->ComputeShape(intpoint, data.x, data.jacobian, data.axes,data.detjac, data.jacinv, data.phi, data.dphi, data.dphix);
+    this->ComputeShape(intpoint, data.x, data.jacobian, data.axes,data.detjac, data.jacinv, data.phi, data.fDPhi, data.dphix);
 }
 
 
@@ -322,15 +325,15 @@ void TPZCompElDisc::AppendExternalShapeFunctions(TPZVec<REAL> &X, TPZFMatrix<REA
 		ThisDPhi = dphi;
 		const int ndiscdphi = TPZShapeDisc::NShapeF(this->Degree(),this->Dimension(),fShapefunctionType);
 		const int nextdphi = this->fExternalShape->NFunctions();
-		const long nderiv = ThisDPhi.Rows();
+		const int64_t nderiv = ThisDPhi.Rows();
 		dphi.Resize(nderiv, ndiscdphi+nextdphi);
 		dphi.Zero();
-		for(long i = 0; i < nderiv; i++){
+		for(int64_t i = 0; i < nderiv; i++){
 			for(int j = 0; j < ndiscdphi; j++){
 				dphi(i,j) = ThisDPhi(i,j);
 			}
 		}
-		for(long i = 0; i < nderiv; i++){
+		for(int64_t i = 0; i < nderiv; i++){
 			for(int j = 0; j < nextdphi; j++){
 #ifdef STATE_COMPLEX
 				dphi(i,j+ndiscdphi) = extDPhi(i,j).real();
@@ -350,13 +353,14 @@ void TPZCompElDisc::Print(std::ostream &out) const{
 	out << "\tMaterial id : " << Reference()->MaterialId() << endl
 	<< "\tDegree of interpolation : " <<  this->Degree() << endl
 	<< "\tConnect index : " << fConnectIndex << endl
+    << "\tUsing qsieta : " << (int)fUseQsiEta << endl
 	<< "\tNormalizing constant : " << fConstC << endl
 	<< "\tCenter point of the element : ";
     if(fUseQsiEta == false)
     {
         int size = fCenterPoint.NElements(),i;
         for(i=0;i<size-1;i++) out << fCenterPoint[i] << " , ";
-        out << fCenterPoint[i] << endl;
+        out << "stored xy : " << fCenterPoint[i] << endl;
     }
     else
     {
@@ -364,13 +368,13 @@ void TPZCompElDisc::Print(std::ostream &out) const{
         if (Ref) {
             TPZManVector<REAL,3> xcenter(3),loccenter(fCenterPoint);
             Ref->X(loccenter, xcenter);
-            out << xcenter << std::endl;
+            out << "stored qsieta " << fCenterPoint << " computed xy " << xcenter << std::endl;
         }
     }
 	out << "\tDimension : " << this->Dimension() << endl;
 }
 
-long TPZCompElDisc::ConnectIndex(int side) const{
+int64_t TPZCompElDisc::ConnectIndex(int side) const{
 	return fConnectIndex;
 }
 
@@ -378,7 +382,7 @@ int TPZCompElDisc::NConnects() const{
 	return (fConnectIndex !=-1);
 }
 
-long TPZCompElDisc::CreateMidSideConnect(){
+int64_t TPZCompElDisc::CreateMidSideConnect(){
 	// primeiro sao criados os elementos de volume depois os elementos BC associados aos seus lados
 	// num estagio inicial o elemento BC eh acoplado ao elemento ELV de volume de tal forma
 	// que ambos sao vizinhos
@@ -403,11 +407,11 @@ long TPZCompElDisc::CreateMidSideConnect(){
 		//este eh um elemento de volume
 		//procura-se elemento superposto
 		TPZCompElSide(this,nsides-1).EqualLevelElementList(list,0,0);
-		long size = list.NElements(), i;
+		int64_t size = list.NElements(), i;
 		for(i=0;i<size;i++){
 			int dimel = list[i].Element()->Reference()->Dimension();
 			if(dimel == dimgrid){
-				long connectindex = list[i].Element()->ConnectIndex(0);
+				int64_t connectindex = list[i].Element()->ConnectIndex(0);
 				list[i].Element()->SetConnectIndex(0,connectindex);
 				existsconnect = 1;
 				break;
@@ -425,11 +429,15 @@ long TPZCompElDisc::CreateMidSideConnect(){
 		//o atual eh um elemento de volume e
 		//nao achou-se um elemento superposto
 		int nvar = Material()->NStateVariables();
-		const int nshape = this->NShapeF();
-		long newnodeindex = Mesh()->AllocateNewConnect(nshape,nvar,0);
+		int nshape = 1; /// if the CompelDisc has no connect NShapeF() return -1
+        /// therefore nshape is initialize to 1
+		int64_t newnodeindex = Mesh()->AllocateNewConnect(nshape,nvar,0);
 		SetConnectIndex(0,newnodeindex);
 		TPZConnect &newnod = Mesh()->ConnectVec()[newnodeindex];
-		long seqnum = newnod.SequenceNumber();
+        newnod.IncrementElConnected();
+        nshape = this->NShapeF();
+        newnod.SetNShape(nshape);
+		int64_t seqnum = newnod.SequenceNumber();
 		Mesh()->Block().Set(seqnum,nvar*nshape);
 		Mesh()->ConnectVec()[fConnectIndex].IncrementElConnected();
 	}
@@ -442,7 +450,7 @@ int TPZCompElDisc::NShapeF() const {
 	//deve ter pelo menos um connect
 	
 	int nExtShape = 0;
-	if(fExternalShape.operator ->()) nExtShape = fExternalShape->NFunctions();
+	if(fExternalShape) nExtShape = fExternalShape->NFunctions();
 	
 	int dim = Dimension();
 	const int discShape = TPZShapeDisc::NShapeF(this->Degree(),dim,fShapefunctionType);
@@ -496,7 +504,7 @@ REAL TPZCompElDisc::SizeOfElement()
 	return 0.;
 }
 
-void TPZCompElDisc::Divide(long index,TPZVec<long> &subindex,int interpolatesolution){
+void TPZCompElDisc::Divide(int64_t index,TPZVec<int64_t> &subindex,int interpolatesolution){
 	
 	Mesh()->SetAllCreateFunctions(*this);
 	
@@ -546,7 +554,8 @@ void TPZCompElDisc::Divide(long index,TPZVec<long> &subindex,int interpolatesolu
 	deg = this->Degree();
 	
 	for (i=0;i<nsubs;i++){
-		Mesh()->CreateCompEl(geosubs[i],subindex[i]);//aqui
+		TPZCompEl* cel = Mesh()->CreateCompEl(geosubs[i]);//aqui
+        subindex[i] = cel->Index();
 		//new TPZCompElDisc(*Mesh(),geosubs[i],subindex[i]);
 		discel = dynamic_cast<TPZCompElDisc *> (Mesh()->ElementVec()[subindex[i]]);
 		if (!discel){
@@ -577,23 +586,24 @@ void TPZCompElDisc::Divide(long index,TPZVec<long> &subindex,int interpolatesolu
 	delete this;
 }
 
-void TPZCompElDisc::SolutionX(TPZVec<REAL> &x, TPZVec<STATE> &uh){
+template<class TVar>
+void TPZCompElDisc::SolutionXInternal(TPZVec<REAL> &x, TPZVec<TVar> &uh){
 	TPZCompMesh *finemesh = Mesh();
-	TPZBlock<STATE> &fineblock = finemesh->Block();
+	TPZBlock &fineblock = finemesh->Block();
 	int nstate = Material()->NStateVariables();
-	TPZFMatrix<STATE> &FineMeshSol = finemesh->Solution();
+	TPZFMatrix<TVar> &FineMeshSol = finemesh->Solution();
 	int matsize = NShapeF(),dim = Dimension();
 	TPZFMatrix<REAL> phix(matsize,1,0.);
 	TPZFMatrix<REAL> dphix(dim,matsize,0.);
 	ShapeX(x,phix,dphix);
 	TPZConnect *df = &Connect(0);
-	long dfseq = df->SequenceNumber();
+	int64_t dfseq = df->SequenceNumber();
 	int dfvar = fineblock.Size(dfseq);
-	long pos   = fineblock.Position(dfseq);
+	int64_t pos   = fineblock.Position(dfseq);
 	int iv = 0,d;
 	uh.Fill(0.);
 	for(d=0; d<dfvar; d++) {
-		uh[iv%nstate] += (STATE)phix(iv/nstate,0)*FineMeshSol(pos+d,0);
+		uh[iv%nstate] += (TVar)phix(iv/nstate,0)*FineMeshSol(pos+d,0);
 		iv++;
 	}
 }
@@ -601,10 +611,10 @@ void TPZCompElDisc::SolutionX(TPZVec<REAL> &x, TPZVec<STATE> &uh){
 void TPZCompElDisc::CreateGraphicalElement(TPZGraphMesh &grmesh, int dimension)
 {
 	TPZGeoEl *ref = Reference();
-	int mat = Material()->Id();
+	int matid = Material()->Id();
 	int nsides = ref->NSides();
-	
-	if(dimension == 2 && mat > 0){
+    bool to_postpro = grmesh.Material_Is_PostProcessed(matid);
+	if(dimension == 2 && to_postpro){
 		if(nsides == 9){
 			new TPZGraphElQ2dd(this,&grmesh);
 			return;
@@ -615,7 +625,7 @@ void TPZCompElDisc::CreateGraphicalElement(TPZGraphMesh &grmesh, int dimension)
 		}
 	}//2d
 	
-	if(dimension == 3 && mat > 0){
+	if(dimension == 3 && to_postpro){
 		if(nsides == 27){
 			new TPZGraphElQ3dd(this,&grmesh);
 			return;
@@ -806,7 +816,7 @@ void TPZCompElDisc::BuildTransferMatrix(TPZCompElDisc &coarsel, TPZTransfer<STAT
 	loclocmat.SolveDirect(loccormat,ELDLt);
 	
 	
-	long locblockseq = Connect(0).SequenceNumber();
+	int64_t locblockseq = Connect(0).SequenceNumber();
 	TPZStack<int> globblockvec;
 	int numnonzero = 0;
 	int cind = coarsel.ConnectIndex(0);
@@ -854,7 +864,7 @@ void TPZCompElDisc::SetDegree(int degree) {
 	if (fConnectIndex < 0) return;
 	TPZConnect &c = Mesh()->ConnectVec()[fConnectIndex];
 	c.SetOrder(degree,fConnectIndex);
-	long seqnum = c.SequenceNumber();
+	int64_t seqnum = c.SequenceNumber();
 	int nvar = 1;
 	TPZMaterial * mat = Material();
 	if(mat) nvar = mat->NStateVariables();
@@ -869,7 +879,7 @@ void TPZCompElDisc::SetExternalShapeFunction(TPZAutoPointer<TPZFunction<STATE> >
 	//in order of ajust block size because NShapeF may have changed
 	if (fConnectIndex < 0) return;
 	TPZConnect &c = Mesh()->ConnectVec()[fConnectIndex];
-	long seqnum = c.SequenceNumber();
+	int64_t seqnum = c.SequenceNumber();
 	int nvar = 1;
 	TPZMaterial * mat = Material();
 	if(mat) nvar = mat->NStateVariables();
@@ -886,23 +896,22 @@ bool TPZCompElDisc::HasExternalShapeFunction(){
 /**
  * returns the unique identifier for reading/writing objects to streams
  */
-int TPZCompElDisc::ClassId() const
-{
-	return TPZCOMPELDISCID;
+int TPZCompElDisc::ClassId() const{
+    return Hash("TPZCompElDisc") ^ TPZInterpolationSpace::ClassId() << 1;
 }
 
 #ifndef BORLAND
 template class
-TPZRestoreClass< TPZCompElDisc, TPZCOMPELDISCID>;
+TPZRestoreClass< TPZCompElDisc>;
 #endif
 
 /**
  Save the element data to a stream
  */
-void TPZCompElDisc::Write(TPZStream &buf, int withclassid)
+void TPZCompElDisc::Write(TPZStream &buf, int withclassid) const
 {
 	TPZInterpolationSpace::Write(buf,withclassid);
-	WriteObjects(buf,fCenterPoint);
+	buf.Write(fCenterPoint);
 	buf.Write(&fConnectIndex,1);
 	buf.Write(&fConstC,1);
 	int matid = Material()->Id();
@@ -918,16 +927,18 @@ void TPZCompElDisc::Write(TPZStream &buf, int withclassid)
 		int zero = 0;
 		buf.Write(&zero,1);
 	}
-	if( this->fIntRule ){
-		int HasIntRule = 1;
-		buf.Write(&HasIntRule,1);
+	int hasIntRule = this->fIntRule ? 1 : 0;
+    buf.Write(&hasIntRule,1);
+	if( this->fIntRule){
 		TPZManVector<int> pOrder(3);
 		this->fIntRule->GetOrder(pOrder);
-		TPZSaveable::WriteObjects(buf,pOrder);
-	}
-	else{
-		int HasIntRule = 0;
-		buf.Write(&HasIntRule,1);
+		buf.Write(pOrder);
+		TPZGeoEl *gel = this->Reference();
+		int hasAssociatedGel = gel ? 1 : 0;
+		buf.Write(&hasAssociatedGel);
+		if(gel){
+            TPZPersistenceManager::WritePointer(gel, &buf);
+		}
 	}
 }
 
@@ -937,7 +948,7 @@ void TPZCompElDisc::Write(TPZStream &buf, int withclassid)
 void TPZCompElDisc::Read(TPZStream &buf, void *context)
 {
 	TPZInterpolationSpace::Read(buf,context);
-	ReadObjects<3>(buf,fCenterPoint);
+	buf.Read<3>(fCenterPoint);
 	buf.Read(&fConnectIndex,1);
 	buf.Read(&fConstC,1);
 	int matid;
@@ -951,114 +962,34 @@ void TPZCompElDisc::Read(TPZStream &buf, void *context)
 	if(hasExternalShape == 1){
 // #warning Como faz?
 // #warning    this->fExternalShape->
-	}
-	
-	int HasIntRule;
-	buf.Read(&HasIntRule,1);
-	if( HasIntRule ){
+	}	
+	int hasIntRule;
+	buf.Read(&hasIntRule,1);
+	if( hasIntRule ){
 		TPZManVector<int> pOrder(3);
-		TPZSaveable::ReadObjects(buf,pOrder);
-		
-		TPZGeoEl* gel = this->Reference();
-		if(gel){
+		buf.Read(pOrder);
+		int hasAssociatedGel;
+		buf.Read(&hasAssociatedGel,1);
+		if(hasAssociatedGel){
+            TPZGeoEl *gel = dynamic_cast<TPZGeoEl *>(TPZPersistenceManager::GetInstance(&buf));
 			TPZAutoPointer<TPZIntPoints> result = gel->CreateSideIntegrationRule(gel->NSides()-1, 0);
 			result->SetOrder(pOrder);
+			this->fIntRule = result;
 		}
 		else{
-			this->fIntRule = NULL;
+			this->fIntRule = nullptr;
 		}
 	}
 	else{
-		this->fIntRule = NULL;
+		this->fIntRule = nullptr;
 	}
 	
 }
-
-
-void TPZCompElDisc::ComputeSolution(TPZVec<REAL> &qsi, TPZMaterialData &data){
-    
-//    this->InitMaterialData(data);
-//    this->ComputeShape(qsi, data);
-    this->ComputeSolution(qsi, data.phi, data.dphix, data.axes, data.sol, data.dsol);
-}
-
-void TPZCompElDisc::ComputeSolution(TPZVec<REAL> &qsi, TPZSolVec &sol, TPZGradSolVec &dsol,TPZFMatrix<REAL> & axes){
-	TPZGeoEl * ref = this->Reference();
-	const int nshape = this->NShapeF();
-	const int dim = ref->Dimension();
-    
-    TPZMaterialData data;
-    data.phi.Resize(nshape, 1);
-    data.dphix.Resize(dim, nshape);
-    data.jacobian.Resize(dim, dim);
-    data.jacinv.Resize(dim, dim);
-    data.x.Resize(3, 0.);
-    
-	//this->ComputeShape(qsi,x,jacobian,axes,detjac,jacinv,phix,dphix);
-	//this->ComputeSolution(qsi, phix, dphix, axes, sol, dsol);
-    
-    this->ComputeShape(qsi, data);
-    this->ComputeSolution(qsi, data.phi, data.dphix, data.axes, data.sol, data.dsol);
-    
-}//method
-
-void TPZCompElDisc::ComputeSolution(TPZVec<REAL> &qsi, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphix,
-                                    const TPZFMatrix<REAL> &axes, TPZSolVec &sol, TPZGradSolVec &dsol){
-	
-	const int nstate = this->Material()->NStateVariables();
-	const int ncon = this->NConnects();
-	TPZBlock<STATE> &block = Mesh()->Block();
-	TPZFMatrix<STATE> &MeshSol = Mesh()->Solution();
-    long numbersol = MeshSol.Cols();
-	
-	int solVecSize = nstate;
-	if(!ncon) solVecSize = 0;
-	
-    sol.resize(numbersol);
-    dsol.resize(numbersol);
-    for (int is = 0; is<numbersol; is++) {
-        sol[is].Resize(solVecSize);
-        sol[is].Fill(0.);
-        dsol[is].Redim(dphix.Rows(), solVecSize);
-        dsol[is].Zero();
-    }	
-	long iv = 0, d;
-	for(int in=0; in<ncon; in++) {
-		TPZConnect *df = &Connect(in);
-		long dfseq = df->SequenceNumber();
-		int dfvar = block.Size(dfseq);
-		long pos = block.Position(dfseq);
-		for(int jn=0; jn<dfvar; jn++) {
-            for (long is=0; is<numbersol; is++) {
-                sol[is][iv%nstate] += (STATE)phi(iv/nstate,0)*MeshSol(pos+jn,is);
-                for(d=0; d<dphix.Rows(); d++){
-                    dsol[is](d,iv%nstate) += (STATE)dphix(d,iv/nstate)*MeshSol(pos+jn,is);
-                }
-            }
-			iv++;
-		}
-	}
-	
-}//method
-
-void TPZCompElDisc::ComputeSolution(TPZVec<REAL> &qsi,
-                                    TPZVec<REAL> &normal,
-                                    TPZSolVec &leftsol, TPZGradSolVec &dleftsol,TPZFMatrix<REAL> &leftaxes,
-                                    TPZSolVec &rightsol, TPZGradSolVec &drightsol,TPZFMatrix<REAL> &rightaxes){
-	//TPZCompElDisc has no left/right elements. Only interface elements have it.
-	leftsol.resize(0);
-	dleftsol.resize(0);
-	leftaxes.Zero();
-	rightsol.Resize(0);
-	drightsol.Resize(0);
-	rightaxes.Zero();
-	normal.Resize(0);
-}//method
 
 TPZAutoPointer<TPZIntPoints> TPZCompElDisc::CreateIntegrationRule() const{
 	TPZGeoEl * gel = this->Reference();
 	if(gel){
-		const int integ = max( 2 * this->Degree()+1, 0);
+		const int integ = Max( 2 * this->Degree()+1, 0);
 		TPZAutoPointer<TPZIntPoints> result = gel->CreateSideIntegrationRule(gel->NSides()-1,integ);
 		return result;
 	}
@@ -1107,103 +1038,27 @@ int TPZCompElDisc::MaxOrder(){
 	return result;
 }
 
-REAL TPZCompElDisc::EvaluateSquareResidual2D(TPZInterpolationSpace *cel){
-	
-	if (cel->NConnects() == 0) return 0.;//boundary discontinuous elements have this characteristic
-	
-	cel->LoadElementReference();
-	
-	//creating discontinuous element
-	TPZCompMesh tempMesh(cel->Mesh()->Reference());
-	tempMesh.InsertMaterialObject( cel->Material() );
-	
-	long index;
-	TPZCompElDisc * disc = new TPZCompElDisc(tempMesh, cel->Reference(), index);
-	disc->SetTensorialShapeFull();
-	disc->SetDegree(2*cel->MaxOrder());
-	TPZCompElDisc * celdisc = dynamic_cast<TPZCompElDisc*>(cel);
-	if(celdisc){
-		disc->fExternalShape = celdisc->fExternalShape;
-	}
-	tempMesh.InitializeBlock();
-	
-	//interpolating solution
-	disc->InterpolateSolution(*cel);
-	
-	//integrating residual
-	TPZMaterial * material = disc->Material();
-	if(!material){
-		PZError << "Error at " << __PRETTY_FUNCTION__ << " this->Material() == NULL\n";
-		DebugStop();
-		return -1.;
-	}
-	
-	TPZMaterialData data;
-	disc->InitMaterialData(data);
-	data.p = disc->MaxOrder();
-	const int dim = disc->Dimension();
-	
-	TPZAutoPointer<TPZIntPoints> intrule = cel->GetIntegrationRule().Clone();
-    int intorder = material->IntegrationRuleOrder(data.p);
-    if(material->HasForcingFunction())
-    {
-        intorder = intrule->GetMaxOrder();
-    }
-    TPZManVector<int,3> order(dim,intorder);
-    intrule->SetOrder(order);
-	//  material->SetIntegrationRule(intrule, data.p, dim);
-	
-	TPZManVector<REAL,3> intpoint(dim,0.);
-	REAL weight = 0.; 
-	
-	REAL SquareResidual = 0.;
-	int intrulepoints = intrule->NPoints();
-	for(int int_ind = 0; int_ind < intrulepoints; ++int_ind){
-		intrule->Point(int_ind,intpoint,weight);
-		//disc->ComputeShape(intpoint,data.x,data.jacobian,data.axes,data.detjac,data.jacinv,data.phi,data.dphix);
-        disc->ComputeShape(intpoint, data);
-		disc->ComputeSolution(intpoint,data.phi,data.dphix,data.axes,data.sol,data.dsol);    
-		weight *= fabs(data.detjac);
-		SquareResidual += material->ComputeSquareResidual(data.x,data.sol[0],data.dsol[0]) * weight;
-	}//loop over integration points  
-	
-	delete disc;
-	cel->LoadElementReference();
-	cel->Mesh()->LoadReferences();
-	
-	return SquareResidual;
-	
-}
-
-void TPZCompElDisc::EvaluateSquareResidual2D(TPZCompMesh &cmesh, TPZVec<REAL> &error, bool verbose){
-	
-	const long nel = cmesh.NElements();
-	error.Resize(nel);
-	error.Fill(-1.);
-	double elerror;
-	for(long iel = 0; iel < nel; iel++){
-		if(verbose){
-			std::cout << "Evaluating square residual of element " << iel << "\n";
-			std::cout.flush();
-		}
-		TPZCompEl * cel = cmesh.ElementVec()[iel];
-		if(!cel) continue;
-		TPZInterpolationSpace * sp = dynamic_cast< TPZInterpolationSpace * > (cel);
-		if(!sp) continue;
-		if(sp->Reference()->Dimension() != 2) continue;
-		elerror = TPZCompElDisc::EvaluateSquareResidual2D(sp);
-		error[iel] = elerror;
-	}//for
-	
-	if(verbose){
-		std::cout << "Evaluation of square residual completed." << "\n";
-		std::cout.flush();
-	}
-	
-}
-
 /** @brief adds the connect indexes associated with base shape functions to the set */
-void TPZCompElDisc::BuildCornerConnectList(std::set<long> &connectindexes) const
+void TPZCompElDisc::BuildCornerConnectList(std::set<int64_t> &connectindexes) const
 {
     connectindexes.insert(ConnectIndex(0));
 }
+
+void TPZCompElDisc::SetCreateFunctions(TPZCompMesh* mesh) {
+    mesh->SetAllCreateFunctionsDiscontinuous();
+}
+
+int TPZCompElDisc::Degree() const {
+    if (fConnectIndex < 0) {
+        return -1;
+    }
+    return this->Connect(0).Order();
+}
+
+#define INSTANTIATE_METHODS(TVar) \
+template \
+ void TPZCompElDisc::SolutionXInternal<TVar>(TPZVec<REAL> &x, TPZVec<TVar> &uh);
+
+INSTANTIATE_METHODS(STATE)
+INSTANTIATE_METHODS(CSTATE)
+#undef INSTANTIATE_METHODS

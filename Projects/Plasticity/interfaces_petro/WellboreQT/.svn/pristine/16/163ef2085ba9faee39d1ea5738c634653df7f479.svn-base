@@ -1,9 +1,0 @@
-<RCC>
-    <qresource prefix="/imgs">
-        <file>LogoLabMec.png</file>
-        <file>LogoPetro.png</file>
-    </qresource>
-    <qresource prefix="/units">
-        <file alias="definitions.units">externallibs/units-2.11/definitions.units</file>
-    </qresource>
-</RCC>

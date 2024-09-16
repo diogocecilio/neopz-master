@@ -10,13 +10,15 @@
 
 #include "pzcompel.h"
 #include "pzmultiphysicselement.h"
-class TPZAnalysis;
+class TPZLinearAnalysis;
 
 /**
  * @brief This class has methods to build the mesh multiphysics
  * @author Agnaldo
  * @since 10/31/2011
  */
+
+typedef std::pair<TPZCompMesh *, int64_t> atomic_index;
 
 class TPZBuildMultiphysicsMesh {
 	
@@ -92,7 +94,7 @@ public:
     /**
      * @brief Show shape functions associated with connects of a multiphysics mesh
      */
-    static void ShowShape(TPZVec<TPZCompMesh *> &cmeshVec, TPZCompMesh *MFMesh, TPZAnalysis &analysis, const std::string &filename, TPZVec<long> &equationindices);
+    static void ShowShape(TPZVec<TPZCompMesh *> &cmeshVec, TPZCompMesh *MFMesh, TPZLinearAnalysis &analysis, const std::string &filename, TPZVec<int64_t> &equationindices);
 	/**
 	 * @brief Creating computational mesh with interface elements
 	 * @param cmesh [in]: computational mesh
@@ -114,7 +116,7 @@ public:
 	 * @param cMesh [in] : computational mesh
 	 * @param indexEl [in]: index of the element
 	 */
-	static void UniformRefineCompEl(TPZCompMesh  *cMesh, long indexEl, bool isLagrMult);
+	static void UniformRefineCompEl(TPZCompMesh  *cMesh, int64_t indexEl, bool isLagrMult);
     
     /**
      *@brief Create skeleton elements of the wrap of me.
@@ -124,6 +126,16 @@ public:
      */
     static void AddWrap(TPZMultiphysicsElement *mfcel, int matskeleton, TPZStack< TPZStack<TPZMultiphysicsElement *,7> > &ListGroupEl);
     
+    /**
+     * Compute the correspondence between the connect index in the multiphysics
+     * mesh and the connect indexes in the atomic meshes
+     */
+    static void ComputeAtomicIndexes(TPZCompMesh *mesh, TPZVec<atomic_index> &indexes);
+protected:
+    template<class TVar>
+    static void TransferFromMeshesT(TPZVec<TPZCompMesh *> &cmeshVec, TPZCompMesh *MFMesh);
+    template<class TVar>
+    static void TransferFromMultiPhysicsT(TPZVec<TPZCompMesh *> &cmeshVec, TPZCompMesh *MFMesh);
 };
 
 #endif

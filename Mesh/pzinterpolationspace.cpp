@@ -4,9 +4,13 @@
  */
 
 #include "pzinterpolationspace.h"
-#include "pzmaterialdata.h"
-#include "pzbndcond.h"
-#include "pzelmat.h"
+#include "TPZMaterial.h"
+#include "TPZMatSingleSpace.h"
+#include "TPZMatErrorSingleSpace.h"
+#include "TPZMatLoadCases.h"
+#include "TPZMaterialDataT.h"
+#include "TPZBndCond.h"
+#include "TPZElementMatrixT.h"
 #include "pzquad.h"
 #include "TPZCompElDisc.h"
 #include "TPZInterfaceEl.h"
@@ -15,8 +19,8 @@
 
 #include "pzlog.h"
 
-#ifdef LOG4CXX
-static LoggerPtr logger(Logger::getLogger("pz.mesh.TPZInterpolationSpace"));
+#ifdef PZ_LOG
+static TPZLogger logger("pz.mesh.TPZInterpolationSpace");
 #endif
 
 TPZInterpolationSpace::TPZInterpolationSpace()
@@ -31,20 +35,14 @@ TPZInterpolationSpace::TPZInterpolationSpace(TPZCompMesh &mesh, const TPZInterpo
 	fPreferredOrder = copy.fPreferredOrder;
 }
 
-TPZInterpolationSpace::TPZInterpolationSpace(TPZCompMesh &mesh, const TPZInterpolationSpace &copy, std::map<long,long> &gl2lcElMap)
+TPZInterpolationSpace::TPZInterpolationSpace(TPZCompMesh &mesh, const TPZInterpolationSpace &copy, std::map<int64_t,int64_t> &gl2lcElMap)
 : TPZCompEl(mesh, copy, gl2lcElMap)
 {
 	fPreferredOrder = copy.fPreferredOrder;
 }
 
-TPZInterpolationSpace::TPZInterpolationSpace(TPZCompMesh &mesh, const TPZInterpolationSpace &copy, long &index)
-: TPZCompEl(mesh, copy, index)
-{
-	fPreferredOrder = copy.fPreferredOrder;
-}
-
-TPZInterpolationSpace::TPZInterpolationSpace(TPZCompMesh &mesh, TPZGeoEl *gel, long &index)
-: TPZCompEl(mesh,gel,index)
+TPZInterpolationSpace::TPZInterpolationSpace(TPZCompMesh &mesh, TPZGeoEl *gel)
+: TPZCompEl(mesh,gel)
 {
 	fPreferredOrder = mesh.GetDefaultOrder();
 }
@@ -72,7 +70,9 @@ void TPZInterpolationSpace::AdjustIntegrationRule()
 {
     int order = MaxOrder();
     int integrationruleorder = 0;
-    TPZMaterial * mat = this->Material();
+    auto *mat =
+        dynamic_cast<TPZMatSingleSpace*>(this->Material());
+
     if (mat) {
         integrationruleorder = mat->IntegrationRuleOrder(order);
     }else
@@ -82,6 +82,10 @@ void TPZInterpolationSpace::AdjustIntegrationRule()
     SetIntegrationRule(integrationruleorder);
 }
 
+int TPZInterpolationSpace::ComputeIntegrationOrder() const {
+    DebugStop();
+	return 0;
+}
 
 void TPZInterpolationSpace::Print(std::ostream &out) const {
     out << __PRETTY_FUNCTION__ << std::endl;
@@ -89,26 +93,105 @@ void TPZInterpolationSpace::Print(std::ostream &out) const {
     out << "PreferredSideOrder " << fPreferredOrder << std::endl;
 }
 
+void TPZInterpolationSpace::ShortPrint(std::ostream &out) const {
+    out << __PRETTY_FUNCTION__ << std::endl;
+    out << "PreferredSideOrder " << fPreferredOrder << std::endl;
+}
+
+
+void TPZInterpolationSpace::ComputeSolution(TPZVec<REAL> &qsi,
+									TPZMaterialDataT<STATE> &data,
+									bool hasPhi){
+	if(hasPhi){
+		this->ReallyComputeSolution(data);
+	}else{
+		this->InitMaterialData(data);
+		data.fNeedsSol=true;
+		this->ComputeRequiredData(data,qsi);
+	}
+}
+
+void TPZInterpolationSpace::ReallyComputeSolution(TPZMaterialDataT<STATE> &data){
+    this->ReallyComputeSolutionT(data);
+}
+
+void TPZInterpolationSpace::ComputeSolution(TPZVec<REAL> &qsi,
+									TPZMaterialDataT<CSTATE> &data,
+									bool hasPhi){
+	if(hasPhi){
+		this->ReallyComputeSolution(data);
+	}else{
+		this->InitMaterialData(data);
+		data.fNeedsSol=true;
+		this->ComputeRequiredData(data,qsi);
+	}
+}
+
+void TPZInterpolationSpace::ReallyComputeSolution(TPZMaterialDataT<CSTATE> &data){
+    this->ReallyComputeSolutionT(data);
+}
+
+template<class TVar>
+void TPZInterpolationSpace::ReallyComputeSolutionT(TPZMaterialDataT<TVar>& data){
+    const TPZFMatrix<REAL> &phi = data.phi;
+    const TPZFMatrix<REAL> &dphix = data.dphix;
+    const TPZFMatrix<REAL> &axes = data.axes;
+    TPZSolVec<TVar> &sol = data.sol;
+    TPZGradSolVec<TVar> &dsol = data.dsol;
+	const int nstate = this->Material()->NStateVariables();
+	const int ncon = this->NConnects();
+	TPZBlock &block = Mesh()->Block();
+	TPZFMatrix<TVar> &MeshSol = Mesh()->Solution();
+    const int64_t numbersol = MeshSol.Cols();
+	
+	const int solVecSize = ncon? nstate : 0;
+	
+    sol.resize(numbersol);
+    dsol.resize(numbersol);
+    for (int is = 0; is<numbersol; is++) {
+        sol[is].Resize(solVecSize);
+        sol[is].Fill(0.);
+        dsol[is].Redim(dphix.Rows(), solVecSize);
+        dsol[is].Zero();
+    }	
+	int64_t iv = 0;
+	for(int in=0; in<ncon; in++) {
+		TPZConnect *df = &Connect(in);
+		const int64_t dfseq = df->SequenceNumber();
+		const int dfvar = block.Size(dfseq);
+		const int64_t pos = block.Position(dfseq);
+		for(int jn=0; jn<dfvar; jn++) {
+            for (int64_t is=0; is<numbersol; is++) {
+                sol[is][iv%nstate] +=
+                    (TVar)phi.Get(iv/nstate,0)*MeshSol(pos+jn,is);
+                for(auto d=0; d<dphix.Rows(); d++){
+                    dsol[is](d,iv%nstate) +=
+                        (TVar)dphix.Get(d,iv/nstate)*MeshSol(pos+jn,is);
+                }
+            }
+			iv++;
+		}
+	}
+	
+}//method
+
+
+
 void TPZInterpolationSpace::ComputeShape(TPZVec<REAL> &intpoint, TPZVec<REAL> &X,
                                          TPZFMatrix<REAL> &jacobian, TPZFMatrix<REAL> &axes,
                                          REAL &detjac, TPZFMatrix<REAL> &jacinv,
                                          TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi, TPZFMatrix<REAL> &dphidx){
-	TPZGeoEl * ref = this->Reference();
-	if (!ref){
-		PZError << "\nERROR AT " << __PRETTY_FUNCTION__ << " - this->Reference() == NULL\n";
-		return;
-	}//if
-
-	ref->Jacobian( intpoint, jacobian, axes, detjac , jacinv);
-	this->Shape(intpoint,phi,dphi);
-    this->Convert2Axes(dphi, jacinv, dphidx);
     
+	this->Shape(intpoint,phi,dphi);
+    // THIS IS WRONG!!
+    DebugStop();
+  this->Convert2Axes(dphi, jacinv, dphidx);
 }
 
 void TPZInterpolationSpace::ComputeShape(TPZVec<REAL> &intpoint, TPZMaterialData &data){
     
-	
-    this->ComputeShape(intpoint,data.x,data.jacobian,data.axes,data.detjac,data.jacinv,data.phi,data.dphi,data.dphix);
+    
+    this->ComputeShape(intpoint,data.x,data.jacobian,data.axes,data.detjac,data.jacinv,data.phi,data.fDPhi,data.dphix);
     
 }
 
@@ -122,11 +205,12 @@ REAL TPZInterpolationSpace::InnerRadius(){
 
 void TPZInterpolationSpace::InitMaterialData(TPZMaterialData &data){
   data.gelElId = this->Reference()->Id();
-    TPZMaterial *mat = Material();
+    TPZMaterial *locmat = this->Material();
+    auto *mat =
+        dynamic_cast<TPZMatSingleSpace*>(locmat);
 #ifdef PZDEBUG
     if(!mat)
     {
-        mat= Material();
         DebugStop();
     }
 #endif
@@ -134,64 +218,82 @@ void TPZInterpolationSpace::InitMaterialData(TPZMaterialData &data){
 	const int dim = this->Dimension();
 	const int nshape = this->NShapeF();
 	const int nstate = this->Material()->NStateVariables();
+    data.fShapeType = TPZMaterialData::EScalarShape;
 	data.phi.Redim(nshape,1);
-	data.dphi.Redim(dim,nshape);
+	data.fDPhi.Redim(dim,nshape);
 	data.dphix.Redim(dim,nshape);
 	data.axes.Redim(dim,3);
 	data.jacobian.Redim(dim,dim);
 	data.jacinv.Redim(dim,dim);
 	data.x.Resize(3);
 	if (data.fNeedsSol){
-        long nsol = data.sol.size();
-        for (long is=0; is<nsol; is++) {
-            data.sol[is].Resize(nstate);
-            data.dsol[is].Redim(dim,nstate);            
-        }
+        uint64_t ulen,durow,ducol;
+        mat->GetSolDimensions(ulen,durow,ducol);
+        data.SetSolSizes(nstate, ulen, durow, ducol);
 	}
-}//void
-
-void TPZInterpolationSpace::ComputeRequiredData(TPZMaterialData &data,
-                                                TPZVec<REAL> &qsi){
-    data.intGlobPtIndex = -1;
-    this->ComputeShape(qsi, data);
-    
-    if (data.fNeedsSol){
-        if (data.phi.Rows()){//if shape functions are available
-            this->ComputeSolution(qsi, data);
-        }
-        else{//if shape functions are not available
-            this->ComputeSolution(qsi, data.sol, data.dsol, data.axes);
-        }
-    }//fNeedsSol
-	
-    data.x.Resize(3., 0.0);
-    Reference()->X(qsi, data.x);
-
-    TPZManVector<REAL,3> x_center(3,0.0);
-    TPZVec<REAL> center_qsi(3,0.0);
-    
-    if (Reference()->Type() == EQuadrilateral && Reference()->Dimension() == 2)
-    {
-        center_qsi[0] = 0.0;
-        center_qsi[1] = 0.0;
-    }
-    
-    if (Reference()->Type() == ETriangle && Reference()->Dimension() == 2)
-    {
-        center_qsi[0] = 0.25;
-        center_qsi[1] = 0.25;
-    }
-
+    //Completing for three dimensional elements
+	TPZManVector<REAL,3> x_center(3,0.0);
+	TPZVec<REAL> center_qsi(dim,0.0);
+	if (dim == 2) {
+		if (Reference()->Type() == ETriangle) {
+			center_qsi[0] = 0.25;
+			center_qsi[1] = 0.25;
+		}
+	}
+	else if (dim == 3) {
+		if (Reference()->Type() == EPrisma) {
+			center_qsi[0] = 1./3.;
+			center_qsi[1] = 1./3.;
+			center_qsi[2] = 0.0;
+		}
+		else if (Reference()->Type() == ETetraedro) {
+			center_qsi[0] = 0.25;
+			center_qsi[1] = 0.25;
+			center_qsi[2] = 0.25;
+		}
+		else if (Reference()->Type() == EPiramide) {
+			center_qsi[0] = 0.0;
+			center_qsi[1] = 0.0;
+			center_qsi[2] = 1./5.;
+		}
+	}
     Reference()->X(center_qsi, x_center);
     data.XCenter = x_center;
     
-    if (data.fNeedsHSize){
-        data.HSize = 2.*this->InnerRadius();
-    }//fNeedHSize
+}//void
+
+template<class TVar>
+void TPZInterpolationSpace::ComputeRequiredDataT(TPZMaterialDataT<TVar> &data,
+                                                TPZVec<REAL> &qsi){
+  ///compute geometric mapping info
+  TPZGeoEl * ref = this->Reference();
+  if (!ref){
+    PZError << "\nERROR AT " << __PRETTY_FUNCTION__ << " - this->Reference() == NULL\n";
+    return;
+  }
+  ref->Jacobian(qsi, data.jacobian, data.axes, data.detjac , data.jacinv);
+
+    data.detjac = std::abs(data.detjac);
     
-    if (data.fNeedsNormal){
-        this->ComputeNormal(data);
-    }//fNeedsNormal
+  Reference()->X(qsi, data.x);
+  data.xParametric = qsi;
+  
+  //compute functions on deformed element
+  this->ComputeShape(qsi, data);
+  //compute solution
+  if (data.fNeedsSol){
+    this->ReallyComputeSolution(data);
+  }//fNeedsSol
+
+  //other attributions
+  if (data.fNeedsHSize){
+    data.HSize = 2.*this->InnerRadius();
+  }//fNeedHSize
+    
+  if (data.fNeedsNormal){
+    this->ComputeNormal(data);
+  }//fNeedsNormal
+    
 }//void
 
 
@@ -201,18 +303,25 @@ void TPZInterpolationSpace::ComputeNormal(TPZMaterialData & data)
 	
 	int thisFace, neighbourFace, i, dim;
 	TPZGeoEl * thisGeoEl, * neighbourGeoEl;
-	TPZManVector<REAL,3> thisCenter(3,0.), neighbourCenter(3,0.), thisXVol(3,0.), neighbourXVol(3,0.), vec(3), axes1(3), axes2(3);
-	
+
 	thisGeoEl = this->Reference();
-	thisFace = thisGeoEl->NSides() - 1;
+    int thiseldim = thisGeoEl->Dimension();
+    TPZManVector<REAL,3> thisCenter(thiseldim,0.), thisXVol(3,0.), neighbourXVol(3,0.), vec(3), axes1(3), axes2(3);
+
+    thisFace = thisGeoEl->NSides() - 1;
     TPZGeoElSide thisside(thisGeoEl,thisFace);
     TPZCompMesh *cmesh = this->Mesh();
+
 	
 	TPZGeoElSide neighbourGeoElSide = thisGeoEl->Neighbour(thisFace);
     int matid = neighbourGeoElSide.Element()->MaterialId();
-    while (!cmesh->FindMaterial(matid) && neighbourGeoElSide != thisside) {
-        neighbourGeoElSide = neighbourGeoElSide.Neighbour();
+    while (neighbourGeoElSide != thisside) {
         matid = neighbourGeoElSide.Element()->MaterialId();
+        if(cmesh->FindMaterial(matid) && neighbourGeoElSide.Element()->Dimension() > thiseldim)
+        {
+            break;
+        }
+        neighbourGeoElSide = neighbourGeoElSide.Neighbour();
     }
 	neighbourGeoEl = neighbourGeoElSide.Element();
 	neighbourFace = neighbourGeoEl->NSides() - 1;
@@ -220,14 +329,15 @@ void TPZInterpolationSpace::ComputeNormal(TPZMaterialData & data)
     
 	if(neighbourGeoEl == thisGeoEl)
 	{
-		// normal evaluation makes no sense since the internal element side doesn't present a neighbour.
+		// normal evaluation makes no sense since the internal element side doesn't have a neighbour.
 		return; // place a breakpoint here if this is an issue
 	}
+    int neightdim = neighbourGeoEl->Dimension();
+    TPZManVector<REAL,3> neighbourCenter(neightdim,0.);
     
 	thisGeoEl->CenterPoint(thisFace, thisCenter);
 	neighbourGeoEl->CenterPoint(neighbourFace, neighbourCenter);
     
-	
 	thisGeoEl->X(thisCenter,thisXVol);
 	neighbourGeoEl->X(neighbourCenter,neighbourXVol);
 	
@@ -290,9 +400,10 @@ void TPZInterpolationSpace::VectorialProd(TPZVec<REAL> & ivec, TPZVec<REAL> & jv
 	}
 }
 
-void TPZInterpolationSpace::CalcStiff(TPZElementMatrix &ek, TPZElementMatrix &ef){
-    
-    TPZMaterial * material = Material();
+template<class TVar>
+void TPZInterpolationSpace::CalcStiffInternal(TPZElementMatrixT<TVar> &ek, TPZElementMatrixT<TVar> &ef){
+    auto* material =
+        dynamic_cast<TPZMatSingleSpaceT<TVar> *>(this->Material());
     if(!material){
         PZError << "Error at " << __PRETTY_FUNCTION__ << " this->Material() == NULL\n";
         int matid = Reference()->MaterialId();
@@ -302,11 +413,11 @@ void TPZInterpolationSpace::CalcStiff(TPZElementMatrix &ek, TPZElementMatrix &ef
         return;
     }
     
-#ifdef LOG4CXX
-    if (logger->isDebugEnabled())
+#ifdef PZ_LOG
+    if (logger.isDebugEnabled())
     {
         std::stringstream sout;
-        sout << __PRETTY_FUNCTION__ << " material id " << material->Id();
+        sout << __PRETTY_FUNCTION__ << " material id " << this->Material()->Id();
         LOGPZ_DEBUG(logger,sout.str());
     }
 #endif
@@ -314,9 +425,7 @@ void TPZInterpolationSpace::CalcStiff(TPZElementMatrix &ek, TPZElementMatrix &ef
     
     if (this->NConnects() == 0) return;//boundary discontinuous elements have this characteristic
     
-    
-    TPZMaterialData data;
-    //data.p = this->MaxOrder();
+    TPZMaterialDataT<TVar> data;
     this->InitMaterialData(data);
     data.p = this->MaxOrder();
     
@@ -329,14 +438,14 @@ void TPZInterpolationSpace::CalcStiff(TPZElementMatrix &ek, TPZElementMatrix &ef
 //#ifdef PZDEBUG
 //    {
 
-        TPZManVector<int,3> intorder(dim,this->MaxOrder()*2);
-        TPZAutoPointer<TPZIntPoints> intrule_clone = intrule->Clone();
-        intrule_clone->SetOrder(intorder);
-    
-        if(intrule_clone->NPoints() > intrule->NPoints()){
-            std::cout << "Element " << fIndex << " Bad integration rule points needed = " << intrule_clone->NPoints() << "; points obtained  = " <<  intrule->NPoints() << std::endl;
-            intrule = intrule_clone;
-        }
+//        TPZManVector<int,3> intorder(dim,this->MaxOrder()*2);
+//        TPZAutoPointer<TPZIntPoints> intrule_clone = intrule->Clone();
+//        intrule_clone->SetOrder(intorder);
+//
+//        if(intrule_clone->NPoints() > intrule->NPoints()){
+//            std::cout << "Element " << fIndex << " Bad integration rule points needed = " << intrule_clone->NPoints() << "; points obtained  = " <<  intrule->NPoints() << std::endl;
+//            intrule = intrule_clone;
+//        }
     
 //    }
 //#endif
@@ -363,9 +472,11 @@ void TPZInterpolationSpace::CalcStiff(TPZElementMatrix &ek, TPZElementMatrix &ef
     
 }//CalcStiff
 
-void TPZInterpolationSpace::CalcResidual(TPZElementMatrix &ef){
+template<class TVar>
+void TPZInterpolationSpace::CalcResidualInternal(TPZElementMatrixT<TVar> &ef){
 	
-	TPZMaterial * material = Material();
+	auto* material =
+        dynamic_cast<TPZMatSingleSpaceT<TVar> *>(this->Material());
 	if(!material){
 		PZError << "Error at " << __PRETTY_FUNCTION__ << " this->Material() == NULL\n";
 		ef.Reset();
@@ -376,7 +487,7 @@ void TPZInterpolationSpace::CalcResidual(TPZElementMatrix &ef){
 	
 	if (this->NConnects() == 0) return; //boundary discontinuous elements have this characteristic
 	
-	TPZMaterialData data;
+	TPZMaterialDataT<TVar> data;
 	this->InitMaterialData(data);
 	data.p = this->MaxOrder();
 	
@@ -415,115 +526,53 @@ void TPZInterpolationSpace::CalcResidual(TPZElementMatrix &ef){
 	
 }//CalcResidual
 
-void TPZInterpolationSpace::InitializeElementMatrix(TPZElementMatrix &ek, TPZElementMatrix &ef){
-    TPZMaterial *mat = this->Material();
-	const int numdof = mat->NStateVariables();
-	const int nshape = this->NShapeF();
-	const int ncon = this->NConnects();
-    const int numloadcases = mat->NumLoadCases();
-    
-    ek.fMesh = Mesh();
-    ek.fType = TPZElementMatrix::EK;
-    ef.fMesh = Mesh();
-    ef.fType = TPZElementMatrix::EF;
-    
-	ek.fBlock.SetNBlocks(ncon);
-	ef.fBlock.SetNBlocks(ncon);
-	ek.fNumStateVars = numdof;
-	ef.fNumStateVars = numdof;
-	int i;
-    int numeq=0;
-	for(i=0; i<ncon; i++){
-        TPZConnect &c = Connect(i);
-        int nshape = c.NShape();
-#ifdef PZDEBUG
-        if (nshape != NConnectShapeF(i,c.Order())) {
-            DebugStop();
-        }
-#endif
-        int nstate = c.NState();
-        
-#ifdef PZDEBUG
-        if(nstate != numdof)
-        {
-            DebugStop();
-        }
-#endif
-		ek.fBlock.Set(i,nshape*nstate);
-		ef.fBlock.Set(i,nshape*nstate);
-        numeq += nshape*nstate;
-	}
-	ek.fMat.Redim(numeq,numeq);
-	ef.fMat.Redim(numeq,numloadcases);
-	ek.fConnect.Resize(ncon);
-	ef.fConnect.Resize(ncon);
-	for(i=0; i<ncon; i++){
-		(ef.fConnect)[i] = ConnectIndex(i);
-		(ek.fConnect)[i] = ConnectIndex(i);
-	}
-}//void
-
-void TPZInterpolationSpace::InitializeElementMatrix(TPZElementMatrix &ef){
-    TPZMaterial *mat = this->Material();
-	const int numdof = mat->NStateVariables();
-	const int ncon = this->NConnects();
-	const int nshape = this->NShapeF();
-	const int numeq = nshape*numdof;
-    const int numloadcases = mat->NumLoadCases();
-    ef.fMesh = Mesh();
-    ef.fType = TPZElementMatrix::EF;
-	ef.fMat.Redim(numeq,numloadcases);
-	ef.fBlock.SetNBlocks(ncon);
-	ef.fNumStateVars = numdof;
-	int i;
-	for(i=0; i<ncon; i++){
-        TPZConnect &c = Connect(i);
-        unsigned int nshapec = c.NShape();
-#ifdef PZDEBUG
-        if (NConnectShapeF(i, c.Order()) != nshapec || c.NState() != numdof) {
-            DebugStop();
-        }
-#endif
-		ef.fBlock.Set(i,nshapec*numdof);
-	}
-	ef.fConnect.Resize(ncon);
-	for(i=0; i<ncon; i++){
-		(ef.fConnect)[i] = ConnectIndex(i);
-	}
-}//void
-
-void TPZInterpolationSpace::Solution(TPZVec<REAL> &qsi,int var,TPZVec<STATE> &sol) {
+template<class TVar>
+void TPZInterpolationSpace::SolutionInternal(TPZVec<REAL> &qsi,int var,
+                                             TPZVec<TVar> &sol) {
+  //TODOCOMPLEX
 	if(var >= 100) {
 		TPZCompEl::Solution(qsi,var,sol);
 		return;
 	}
 	if(var == 99) {
 		sol[0] = GetPreferredOrder();
-        //        if (sol[0] != 2) {
-        //            std::cout << __PRETTY_FUNCTION__ << " preferred order " << sol[0] << std::endl;
-        //        }
+    //        if (sol[0] != 2) {
+    //            std::cout << __PRETTY_FUNCTION__ << " preferred order " << sol[0] << std::endl;
+    //        }
 		return;
 	}
 	
-	TPZMaterial * material = this->Material();
+	auto* material = 
+    dynamic_cast<TPZMatSingleSpaceT<TVar> *>(this->Material());
 	if(!material) {
 		sol.Resize(0);
 		return;
 	}
-	
-    TPZMaterialData data;
-    this->InitMaterialData(data);
-    data.p = this->MaxOrder();
-    this->ComputeShape(qsi, data);
-	this->ComputeSolution(qsi,data);
+	//TODOCOMPLEX
+  TPZMaterialDataT<TVar> data;
+  this->InitMaterialData(data);
+
+  ///compute geometric mapping info
+  TPZGeoEl * ref = this->Reference();
+  if (!ref){
+    PZError << "\nERROR AT " << __PRETTY_FUNCTION__ << " - this->Reference() == NULL\n";
+    return;
+  }
+  ref->Jacobian(qsi, data.jacobian, data.axes, data.detjac , data.jacinv);
+
+  data.x.Resize(3, 0.0);
+  Reference()->X(qsi, data.x);
+  data.xParametric = qsi;
+    
+  data.p = this->MaxOrder();
+  this->ComputeShape(qsi, data);
+  constexpr bool hasPhi{true};
+	this->ComputeSolution(qsi,data,hasPhi);
     
 	data.x.Resize(3);
-    for (int i=0; i<qsi.size(); i++) {
-        qsi[i] *= 0.999;
-    }
 	this->Reference()->X(qsi, data.x);
 	
-	int solSize = material->NSolutionVariables(var);
+	int solSize = this->Material()->NSolutionVariables(var);
 	sol.Resize(solSize);
 	sol.Fill(0.);
 	material->Solution(data, var, sol);
@@ -538,7 +587,7 @@ void TPZInterpolationSpace::InterpolateSolution(TPZInterpolationSpace &coarsel){
 		return;
 	}
 	
-	TPZTransform t(Dimension());
+	TPZTransform<> t(Dimension());
 	TPZGeoEl *ref = Reference();
 	
 	//Cedric 16/03/99
@@ -589,10 +638,11 @@ void TPZInterpolationSpace::InterpolateSolution(TPZInterpolationSpace &coarsel){
 	REAL zero = 0.;
 	TPZManVector<REAL,3> x(3,zero);
 	//TPZManVector<TPZManVector<REAL,10>, 10> u(1);
-	TPZSolVec u(1);
+    //TODOCOMPLEX
+	TPZSolVec<STATE> u(1);
     u[0].resize(nvar);
 	//TPZManVector<TPZFNMatrix<30>, 10> du(1);
-	TPZGradSolVec du(1);
+	TPZGradSolVec<STATE> du(1);
     du[0].Redim(dimension,nvar);
 	
 	int numintpoints = intrule->NPoints();
@@ -603,12 +653,15 @@ void TPZInterpolationSpace::InterpolateSolution(TPZInterpolationSpace &coarsel){
 	
 	for(int int_ind = 0; int_ind < numintpoints; ++int_ind) {
 		intrule->Point(int_ind,int_point,weight);
+		t.Apply(int_point,coarse_int_point);
+        TPZMaterialDataT<STATE> coarsedata;    
+        coarsedata.fNeedsSol=true;
+        constexpr bool hasPhi{false};
+        coarsel.ComputeSolution(coarse_int_point,coarsedata,hasPhi);
+        
 		REAL jac_det = 1.;
 		this->ComputeShape(int_point, x, jacobian, axes, jac_det, jacinv, locphi, locdphi, locdphidx);
 		weight *= jac_det;
-		t.Apply(int_point,coarse_int_point);
-		coarsel.ComputeSolution(coarse_int_point, u, du, coarseaxes);
-		
 		for(lin=0; lin<locmatsize; lin++) {
 			for(ljn=0; ljn<locmatsize; ljn++) {
 				loclocmat(lin,ljn) += weight*locphi(lin,0)*locphi(ljn,0);
@@ -631,14 +684,15 @@ void TPZInterpolationSpace::InterpolateSolution(TPZInterpolationSpace &coarsel){
 	
 	loclocmat.SolveDirect(projectmat,ELU);
 	// identify the non-zero blocks for each row
-	TPZBlock<STATE> &fineblock = Mesh()->Block();
+	TPZBlock &fineblock = Mesh()->Block();
+    TPZFMatrix<STATE> &finesol = Mesh()->Solution();
 	int iv=0,in;
 	for(in=0; in<locnod; in++) {
 		df = &Connect(in);
-		long dfseq = df->SequenceNumber();
+		int64_t dfseq = df->SequenceNumber();
 		int dfvar = fineblock.Size(dfseq);
 		for(ljn=0; ljn<dfvar; ljn++) {
-			fineblock(dfseq,0,ljn,0) = projectmat(iv/nvar,iv%nvar);
+			finesol.at(fineblock.at(dfseq,0,ljn,0)) = projectmat(iv/nvar,iv%nvar);
 			iv++;
 		}
 	}
@@ -669,8 +723,8 @@ void TPZInterpolationSpace::CreateInterfaces(bool BetweenContinuous) {
 		if(!highlist.NElements()) {
 			this->CreateInterface(side, BetweenContinuous);//s�tem iguais ou grande => pode criar a interface
 		} else {
-			long ns = highlist.NElements();
-			long is;
+			int64_t ns = highlist.NElements();
+			int64_t is;
 			for(is=0; is<ns; is++) {//existem pequenos ligados ao lado atual
 				const int higheldim = highlist[is].Reference().Dimension();
 				if(higheldim != InterfaceDimension) continue;
@@ -711,7 +765,7 @@ TPZInterfaceElement * TPZInterpolationSpace::CreateInterface(int side, bool Betw
 	TPZStack<TPZCompElSide> list;
 	list.Resize(0);
 	thisside.EqualLevelElementList(list,0,1);//retorna distinto ao atual ou nulo
-	const long size = list.NElements();
+	const int64_t size = list.NElements();
     
     if (size > 1) {
         DebugStop();
@@ -721,7 +775,6 @@ TPZInterfaceElement * TPZInterpolationSpace::CreateInterface(int side, bool Betw
 	if(size){
 		//Interface has the same material of the neighbour with lesser dimension.
 		//It makes the interface have the same material of boundary conditions (TPZCompElDisc with interface dimension)
-		long index;
 		
 		TPZCompEl *list0 = list[0].Element();
 		int list0side = list[0].Side();
@@ -744,8 +797,8 @@ TPZInterfaceElement * TPZInterpolationSpace::CreateInterface(int side, bool Betw
             TPZGeoEl *gel = ref->CreateBCGeoEl(side,matid); //isto acertou as vizinhanas da interface geometrica com o atual
             if(!gel) 
             {
-#ifdef LOG4CXX
-                if (logger->isDebugEnabled())
+#ifdef PZ_LOG
+                if (logger.isDebugEnabled())
                 {
                     std::stringstream sout;
                     sout << "CreateBCGeoEl devolveu zero!@@@@";
@@ -756,8 +809,7 @@ TPZInterfaceElement * TPZInterpolationSpace::CreateInterface(int side, bool Betw
             }
             TPZCompElSide thiscompelside(this, thisside);
             TPZCompElSide neighcompelside(list0, neighside);
-            long index;
-            newcreatedinterface = new TPZInterfaceElement(*fMesh,gel,index,thiscompelside,neighcompelside);
+            newcreatedinterface = new TPZInterfaceElement(*fMesh,gel,thiscompelside,neighcompelside);
             
         } else 
         {
@@ -774,7 +826,7 @@ TPZInterfaceElement * TPZInterpolationSpace::CreateInterface(int side, bool Betw
                 //a normal aponta para fora do contorno
                 TPZCompElSide thiscompelside(this, thisside);
                 TPZCompElSide neighcompelside(list0, neighside);
-                newcreatedinterface = new TPZInterfaceElement(*fMesh,gel,index,thiscompelside,neighcompelside);
+                newcreatedinterface = new TPZInterfaceElement(*fMesh,gel,thiscompelside,neighcompelside);
             } else {
                 const int matid = this->Material()->Id();
                 TPZGeoEl *gel = ref->CreateBCGeoEl(side,matid); //isto acertou as vizinhanas da interface geometrica com o atual
@@ -782,7 +834,7 @@ TPZInterfaceElement * TPZInterpolationSpace::CreateInterface(int side, bool Betw
                 //caso contrario ou caso ambos sejam de volume
                 TPZCompElSide thiscompelside(this, thisside);
                 TPZCompElSide neighcompelside(list0, neighside);
-                newcreatedinterface = new TPZInterfaceElement(*fMesh,gel,index,neighcompelside,thiscompelside);
+                newcreatedinterface = new TPZInterfaceElement(*fMesh,gel,neighcompelside,thiscompelside);
             }
 		}
 		
@@ -798,7 +850,7 @@ TPZInterfaceElement * TPZInterpolationSpace::CreateInterface(int side, bool Betw
 			if(!leftIsLinear && !rightIsLinear){
 				if(faceGel->IsGeoBlendEl() == false){
 					std::cout << "\nError at " << __PRETTY_FUNCTION__ << "\n";
-#ifdef LOG4CXX
+#ifdef PZ_LOG
 					{
 						std::stringstream sout;
 						sout << "\nError at " << __PRETTY_FUNCTION__ << "\n";
@@ -865,9 +917,7 @@ TPZInterfaceElement * TPZInterpolationSpace::CreateInterface(int side, bool Betw
 			}
 		}
         TPZInterfaceElement * newcreatedinterface = NULL;
-        
-		long index;
-		
+        		
         if(Dimension() == lowcel->Dimension()){///faces internas
             
             const int matid = this->Mesh()->Reference()->InterfaceMaterial(lowcel->Material()->Id(), this->Material()->Id() );
@@ -876,8 +926,7 @@ TPZInterfaceElement * TPZInterpolationSpace::CreateInterface(int side, bool Betw
             
             TPZCompElSide lowcelcompelside(lowcel, neighside);
             TPZCompElSide thiscompelside(this, thisside);
-            long index;
-            newcreatedinterface = new TPZInterfaceElement(*fMesh,gel,index,lowcelcompelside,thiscompelside);
+            newcreatedinterface = new TPZInterfaceElement(*fMesh,gel,lowcelcompelside,thiscompelside);
         }
         else{
             
@@ -891,7 +940,7 @@ TPZInterfaceElement * TPZInterpolationSpace::CreateInterface(int side, bool Betw
                 //para que o elemento esquerdo seja de volume
                 TPZCompElSide thiscompelside(this, thisside);
                 TPZCompElSide lowcelcompelside(lowcel, neighside);
-                newcreatedinterface = new TPZInterfaceElement(*fMesh,gel,index,thiscompelside,lowcelcompelside);
+                newcreatedinterface = new TPZInterfaceElement(*fMesh,gel,thiscompelside,lowcelcompelside);
             } else {
                 const int matid = this->Material()->Id();
                 TPZGeoEl *gel = ref->CreateBCGeoEl(side,matid);
@@ -900,8 +949,8 @@ TPZInterfaceElement * TPZInterpolationSpace::CreateInterface(int side, bool Betw
                 }
                 TPZCompElSide thiscompelside(this, thisside);
                 TPZCompElSide lowcelcompelside(lowcel, neighside);
-#ifdef LOG4CXX_KEEP
-                if (logger->isDebugEnabled())
+#ifdef PZ_LOG_KEEP
+                if (logger.isDebugEnabled())
                 {
                     std::stringstream sout;
                     sout << __PRETTY_FUNCTION__ << " left element";
@@ -913,7 +962,7 @@ TPZInterfaceElement * TPZInterpolationSpace::CreateInterface(int side, bool Betw
                     LOGPZ_DEBUG(logger,sout.str())
                 }
 #endif
-                newcreatedinterface = new TPZInterfaceElement(*fMesh,gel,index,lowcelcompelside,thiscompelside);
+                newcreatedinterface = new TPZInterfaceElement(*fMesh,gel,lowcelcompelside,thiscompelside);
             }
         }		
 		/** GeoBlend verifications ***/
@@ -927,7 +976,7 @@ TPZInterfaceElement * TPZInterpolationSpace::CreateInterface(int side, bool Betw
 			if(!leftIsLinear && !rightIsLinear){
 				if(faceGel->IsGeoBlendEl() == false){
 					std::cout << "\nError at " << __PRETTY_FUNCTION__ << "\n";
-#ifdef LOG4CXX
+#ifdef PZ_LOG
 					{
 						std::stringstream sout;
 						sout << "\nError at " << __PRETTY_FUNCTION__ << "\n";
@@ -985,11 +1034,13 @@ void TPZInterpolationSpace::RemoveInterfaces(){
 		//thisside.EqualLevelElementList(list,0,0);// monta a lista de elementos iguais
 		RemoveInterface(is);// chame remove interface do elemento atual (para o side atual)
 		thisside.HigherLevelElementList(list,0,0);// procurar na lista de elementos menores (todos)
-		long size = list.NElements(), i;            // 'isto pode incluir elementos interfaces'
+		int64_t size = list.NElements(), i;            // 'isto pode incluir elementos interfaces'
 		//tirando os elementos de interface da lista
 		for(i=0;i<size;i++){
 			if(list[i].Element()->Type() == EInterface) {
+#ifdef PZ_LOG
 				LOGPZ_DEBUG(logger, "Removing interface element from the list of higher level elements");
+#endif
 				//This need to be done because otherwise list could be invalidated when an interface is removed.
 				list[i] = TPZCompElSide();//tirando interface
 			}
@@ -1001,7 +1052,7 @@ void TPZInterpolationSpace::RemoveInterfaces(){
 			equal.Resize(0);// para cada elemento menor e' preciso verificar a dimensao,
 			list[i].EqualLevelElementList(equal,0,0);//montar a lista de elementos iguais (todos)
 			equal.Push(list[i]);//n� �incorporado no m�odo anterior
-			long neq = equal.NElements(),k=-1;
+			int64_t neq = equal.NElements(),k=-1;
 			while(++k < neq) if(equal[k].Element()->Type() != EInterface) break;//procurando elemento descont�uo cujo
 			if(!neq || k == neq){                               //lado faz parte da parti� do lado side do this
 				LOGPZ_FATAL(logger, " Inconsistency of data");
@@ -1025,11 +1076,11 @@ void TPZInterpolationSpace::RemoveInterface(int side) {
 	list.Resize(0);
 	TPZCompElSide thisside(this,side);
 	thisside.EqualLevelElementList(list,0,0);// monta a lista de elementos iguais
-	long size = list.NElements(),i=-1;
+	int64_t size = list.NElements(),i=-1;
 	while(++i < size) if(list[i].Element()->Type() == EInterface) break;// procura aquele que e derivado de TPZInterfaceEl
 	if(!size || i == size){
-#ifdef LOG4CXX_keep
-        if (logger->isDebugEnabled())
+#ifdef PZ_LOG_keep
+        if (logger.isDebugEnabled())
 		{
 			std::stringstream sout;
 			sout << __PRETTY_FUNCTION__ << " no interface element found\n";
@@ -1041,9 +1092,9 @@ void TPZInterpolationSpace::RemoveInterface(int side) {
 	}
 	// aqui existe a interface
 	TPZCompEl *cel = list[i].Element();
-#ifdef LOG4CXX
+#ifdef PZ_LOG
 	TPZGeoEl *gel = cel->Reference();
-    if (logger->isDebugEnabled())
+    if (logger.isDebugEnabled())
 	{
 		std::stringstream sout;
 		sout << __PRETTY_FUNCTION__ << " element index " << Index() << " side " << std::endl;
@@ -1054,149 +1105,112 @@ void TPZInterpolationSpace::RemoveInterface(int side) {
 	delete cel;
 }
 
-void TPZInterpolationSpace::EvaluateError(  void (*fp)(const TPZVec<REAL> &loc,TPZVec<STATE> &val,TPZFMatrix<STATE> &deriv),
-										  TPZVec<REAL> &errors,TPZBlock<REAL> * /*flux */){
-	int NErrors = this->Material()->NEvalErrors();
+void TPZInterpolationSpace::EvaluateError(TPZVec<REAL> &errors,bool store_error){
+    errors.Fill(0.);
+    //TODOCOMPLEX
+    auto *material = this->Material();
+	auto* materror =
+        dynamic_cast<TPZMatErrorSingleSpace<STATE> *>(this->Material());
+	//TPZMaterial * matptr = material.operator->();
+	if (!material) {
+		PZError << __PRETTY_FUNCTION__;
+        PZError << " Element wihtout material.\n";
+        PZError << "Aborting...\n";
+        DebugStop();
+		return;
+	}
+	if (dynamic_cast<TPZBndCond *>(material)) {
+#ifdef PZ_LOG
+		LOGPZ_INFO(logger, "Exiting EvaluateError - null error - boundary condition material.");
+#endif
+		return;
+	}
+    if (!materror->HasExactSol()) {
+		PZError << __PRETTY_FUNCTION__;
+        PZError << " Material has no associated solution.\n";
+        PZError << "Aborting...\n";
+        DebugStop();
+		return;
+	}
+	const auto NErrors = materror->NEvalErrors();
 	errors.Resize(NErrors);
 	errors.Fill(0.);
-	TPZMaterial * material = Material();
-	//TPZMaterial * matptr = material.operator->();
-	if(!material){
-		PZError << "TPZInterpolatedElement::EvaluateError : no material for this element\n";
-		Print(PZError);
-		return;
-	}
-	if(dynamic_cast<TPZBndCond *>(material)) {
-		LOGPZ_INFO(logger,"Exiting EvaluateError - null error - boundary condition material.");
-		return;
-	}
-	int problemdimension = Mesh()->Dimension();
-	if(Reference()->Dimension() < problemdimension) return;
+    const TPZGeoEl *ref = this->Reference();
+	const auto problemdimension = Mesh()->Dimension();
+    const auto dim = ref->Dimension();
+	if(dim < problemdimension) return;
 	
 	// Adjust the order of the integration rule
-	//Cesar 2007-06-27 ==>> Begin
-	//this->MaxOrder is usefull to evaluate polynomial function of the aproximation space.
-	//fp can be any function and max order of the integration rule could produce best results
-	int dim = Dimension();
+	
 	TPZAutoPointer<TPZIntPoints> intrule = this->GetIntegrationRule().Clone();
-	int maxIntOrder = intrule->GetMaxOrder();
-    TPZManVector<int,3> prevorder(dim), maxorder(dim, maxIntOrder);
-    //end
-    intrule->GetOrder(prevorder);
-    const int order_limit = 8;
-    if(maxIntOrder > order_limit)
-    {
-        if (prevorder[0] > order_limit) {
-            maxIntOrder = prevorder[0];
+    TPZManVector<int,3> prevOrder(dim);
+	const int maxIntOrder = [&](){
+        int max_int_order = intrule->GetMaxOrder();
+        
+        intrule->GetOrder(prevOrder);
+        const int order_limit =
+            materror->PolynomialOrderExact();        
+        if(max_int_order > order_limit){
+            if (prevOrder[0] > order_limit) {
+                max_int_order = prevOrder[0];
+            }
+            else{
+                max_int_order = order_limit;
+            }
         }
-        else
-        {
-            maxIntOrder = order_limit;
-        }
-    }
-
-	
+        return max_int_order;
+    }();
+	TPZManVector<int,3> maxorder(dim, maxIntOrder);
 	intrule->SetOrder(maxorder);
-	
-	int ndof = material->NStateVariables();
-	int nflux = material->NFluxes();
-	TPZManVector<STATE,10> u_exact(ndof);
-	TPZFNMatrix<9,STATE> du_exact(dim+1,ndof);
 	TPZManVector<REAL,10> intpoint(problemdimension), values(NErrors);
-	values.Fill(0.0);
 	REAL weight;
-	TPZManVector<STATE,9> flux_el(nflux,0.);
 	
-	TPZMaterialData data;
+	TPZMaterialDataT<STATE> data;
 	this->InitMaterialData(data);
-	int nintpoints = intrule->NPoints();
+	const int nintpoints = intrule->NPoints();
 	
 	for(int nint = 0; nint < nintpoints; nint++) {
 		
+        values.Fill(0.0);
 		intrule->Point(nint,intpoint,weight);
         
         //in the case of the hdiv functions
         TPZMaterialData::MShapeFunctionType shapetype = data.fShapeType;
-        if(shapetype==data.EVecShape){
-            this->ComputeRequiredData(data, intpoint);
-        }
-        else
-        {
-            this->ComputeShape(intpoint, data.x, data.jacobian, data.axes, data.detjac, data.jacinv, data.phi, data.dphi, data.dphix);
-        }
-		weight *= fabs(data.detjac);
-		// this->ComputeSolution(intpoint, data.phi, data.dphix, data.axes, data.sol, data.dsol);
-		//this->ComputeSolution(intpoint, data);
-		//contribuicoes dos erros
-        TPZGeoEl * ref = this->Reference();
+        constexpr bool hasPhi{false};
+        this->ComputeSolution(intpoint, data, hasPhi);
+		weight *= fabs(data.detjac);        
         ref->X(intpoint, data.x);
-		if(fp) {
-			fp(data.x,u_exact,du_exact);
-            
-			if(data.fVecShapeIndex.NElements())
-			{
-				this->ComputeSolution(intpoint, data);
-                				
-				material->ErrorsHdiv(data,u_exact,du_exact,values);
-                
-			}
-			else{
-				this->ComputeSolution(intpoint, data.phi, data.dphix, data.axes, data.sol, data.dsol);
-				material->Errors(data.x,data.sol[0],data.dsol[0],data.axes,flux_el,u_exact,du_exact,values);
-			}
-        
-			for(int ier = 0; ier < NErrors; ier++)
-				errors[ier] += values[ier]*weight;
-		}
-		
-	}//fim for : integration rule
-	//Norma sobre o elemento
+        materror->Errors(data, values);
+        for (int ier = 0; ier < NErrors; ier++) {
+            errors[ier] += weight * values[ier];
+        }
+    }
+    //Norma sobre o elemento
 	for(int ier = 0; ier < NErrors; ier++){
 		errors[ier] = sqrt(errors[ier]);
 	}//for ier
-	
-	intrule->SetOrder(prevorder);
+	if(store_error)
+    {
+        int64_t index = Index();
+        TPZFMatrix<STATE> &elvals = Mesh()->ElementSolution();
+        if (elvals.Cols() < NErrors) {
+            PZError<<__PRETTY_FUNCTION__;
+            PZError << " The element solution of the mesh should be resized before EvaluateError\n";
+            DebugStop();
+        }
+        for (int ier=0; ier <NErrors; ier++) {
+            elvals(index,ier) = errors[ier];
+        }
+    }
+	intrule->SetOrder(prevOrder);
 	
 }//method
 
-void TPZInterpolationSpace::ComputeError(int errorid,
-                                         TPZVec<REAL> &error){
-	
-	TPZMaterial * material = Material();
-	if(!material){
-		std::cout << "TPZCompElDisc::ComputeError : no material for this element\n";
-		return;
-	}
-	
-	TPZMaterialData data;
-	this->InitMaterialData(data);
-	
-	REAL weight;
-	int dim = Dimension();
-	TPZVec<REAL> intpoint(dim,0.);
-	
-	TPZAutoPointer<TPZIntPoints> intrule = this->GetIntegrationRule().Clone();
-	
-	TPZManVector<int,3> prevorder(dim), maxorder(dim, this->MaxOrder());
-	intrule->GetOrder(prevorder);
-	intrule->SetOrder(maxorder);
-	
-	data.p = this->MaxOrder();
-	data.HSize = 2.*this->InnerRadius();
-	error.Fill(0.);
-	int npoints = intrule->NPoints(), ip;
-	for(ip=0;ip<npoints;ip++){
-		intrule->Point(ip,intpoint,weight);
-		this->ComputeShape(intpoint, data.x, data.jacobian, data.axes, data.detjac, data.jacinv, data.phi, data.phi, data.dphix);
-		weight *= fabs(data.detjac);
-		this->ComputeSolution(intpoint, data.phi, data.dphix, data.axes, data.sol, data.dsol);
-		material->ContributeErrors(data,weight,error,errorid);
-	}
-	intrule->SetOrder(prevorder);
-}
 
 TPZVec<STATE> TPZInterpolationSpace::IntegrateSolution(int variable) const {
-	TPZMaterial * material = Material();
+    //TODOCOMPLEX
+	auto * material =
+        dynamic_cast<TPZMatSingleSpaceT<STATE>*>(Material());
     TPZVec<STATE> result;
 	if(!material){
 		PZError << "Error at " << __PRETTY_FUNCTION__ << " : no material for this element\n";
@@ -1209,11 +1223,11 @@ TPZVec<STATE> TPZInterpolationSpace::IntegrateSolution(int variable) const {
 	const int dim = this->Dimension();
     int meshdim = Mesh()->Dimension();
 	REAL weight;
-	TPZMaterialData data;
+	TPZMaterialDataT<STATE> data;
     TPZInterpolationSpace *thisnonconst = (TPZInterpolationSpace *) this;
     
     TPZInterpolationSpace *effective = thisnonconst;
-    TPZTransform tr(dim);
+    TPZTransform<REAL> tr(dim);
     if (dim != Mesh()->Dimension()) {
         TPZGeoElSide gelside(thisnonconst->Reference(),this->Reference()->NSides()-1);
         TPZGeoElSide neighbour = gelside.Neighbour();
@@ -1228,20 +1242,21 @@ TPZVec<STATE> TPZInterpolationSpace::IntegrateSolution(int variable) const {
             DebugStop();
         }
         gelside.SideTransform3(neighbour, tr);
-        TPZTransform tr2 = neighbour.Element()->SideToSideTransform(neighbour.Side(), neighbour.Element()->NSides()-1);
+        TPZTransform<REAL> tr2 = neighbour.Element()->SideToSideTransform(neighbour.Side(), neighbour.Element()->NSides()-1);
         tr = tr2.Multiply(tr);
-        effective = dynamic_cast<TPZInterpolationSpace *> (neighbour.Element()->Reference());
-        material = effective->Material();
+        TPZCompEl *compneigh = neighbour.Element()->Reference();
+        effective = dynamic_cast<TPZInterpolationSpace *> (compneigh);
+        material = dynamic_cast<TPZMatSingleSpaceT<STATE>*>(effective->Material());
     }
-    
+
     if(!effective) DebugStop();
-    TPZMaterialData data2d;
+    TPZMaterialDataT<STATE> data2d;
     thisnonconst->InitMaterialData(data2d);
 	effective->InitMaterialData(data);
     data.fNeedsSol = true;
 	
 	TPZManVector<REAL, 3> intpoint(dim,0.);
-	const int varsize = material->NSolutionVariables(variable);
+	const int varsize = effective->Material()->NSolutionVariables(variable);
     TPZManVector<STATE,3> value(varsize,0.);
 	
 	const TPZIntPoints &intrule = this->GetIntegrationRule();
@@ -1318,64 +1333,8 @@ void TPZInterpolationSpace::Integrate(int variable, TPZVec<STATE> & value)//AQUI
 //	}//for ip
 //}//method
 
-void TPZInterpolationSpace::ProjectFlux(TPZElementMatrix &ek, TPZElementMatrix &ef) {
-	
-	TPZMaterial * material = Material();
-	if(!material){
-		std::stringstream sout;
-		sout << "Exiting ProjectFlux: no material for this element\n";
-		Print(sout);
-		LOGPZ_ERROR(logger,sout.str());
-		ek.Reset();
-		ef.Reset();
-		return;
-	}
-	
-	int num_flux = material->NFluxes();
-	int dim = Dimension();
-	int nshape = NShapeF();
-	int ncon = NConnects();
-	const TPZIntPoints &intrule = GetIntegrationRule();
-	
-	int numeq = nshape;
-	ek.fMat.Resize(numeq,numeq);
-	ek.fBlock.SetNBlocks(ncon);
-	ef.fMat.Resize(numeq,num_flux);
-	ef.fBlock.SetNBlocks(ncon);
-	
-	for(int i=0; i<ncon; ++i){
-		(ef.fConnect)[i] = ConnectIndex(i);
-		(ek.fConnect)[i] = ConnectIndex(i);
-	}
-	
-	TPZMaterialData data;
-	this->InitMaterialData(data);
-	
-	//TPZManVector<REAL> flux(num_flux,1);
-	TPZManVector<STATE> flux(num_flux,1);
-	TPZManVector<REAL,3> intpoint(dim);
-	REAL weight = 0.;
-	for(int int_ind = 0; int_ind < intrule.NPoints(); ++int_ind){
-		
-		intrule.Point(int_ind,intpoint,weight);
-		this->ComputeShape(intpoint, data.x, data.jacobian, data.axes, data.detjac, data.jacinv, data.phi, data.dphi, data.dphix);
-		weight *= fabs(data.detjac);
-		this->ComputeSolution(intpoint, data.phi, data.dphix, data.axes, data.sol, data.dsol);
-		
-		material->Flux(data.x,data.sol[0],data.dsol[0],data.axes,flux);
-		for(int in=0; in<nshape; in++){
-			for(int ifl=0; ifl<num_flux; ifl++){
-				(ef.fMat)(in,ifl) += flux[ifl]*(STATE)data.phi(in,0)*(STATE)weight;
-			}//for ifl
-			for(int jn = 0; jn<nshape; jn++){
-				(ek.fMat)(in,jn) += data.phi(in,0)*data.phi(jn,0)*weight;
-			}//for jn
-		}//for in
-	}//for int_ind
-}//method
-
 /** Save the element data to a stream */
-void TPZInterpolationSpace::Write(TPZStream &buf, int withclassid)
+void TPZInterpolationSpace::Write(TPZStream &buf, int withclassid) const
 {
 	TPZCompEl::Write(buf,withclassid);
 	buf.Write(&fPreferredOrder,1);
@@ -1383,7 +1342,6 @@ void TPZInterpolationSpace::Write(TPZStream &buf, int withclassid)
 
 
 void TPZInterpolationSpace::MinMaxSolutionValues(TPZVec<STATE> &min, TPZVec<STATE> &max){
-#ifndef STATE_COMPLEX
 	
 	const int dim = Dimension();
 	TPZManVector<REAL,3> intpoint(dim,0.);
@@ -1395,20 +1353,22 @@ void TPZInterpolationSpace::MinMaxSolutionValues(TPZVec<STATE> &min, TPZVec<STAT
 	TPZManVector<int,3> maxorder(dim,intrule->GetMaxOrder());
 	intrule->SetOrder(maxorder);
 	
-	TPZSolVec sol;
-	TPZGradSolVec dsol;
+	
 	TPZFNMatrix<9> axes(3,3,0.);
 	REAL weight;
-	
-	int intrulepoints = intrule->NPoints();
+	TPZMaterialDataT<STATE> data;
+    constexpr bool hasPhi{false};
+	const int intrulepoints = intrule->NPoints();
 	intrule->Point(0,intpoint,weight);
-	this->ComputeSolution(intpoint, sol, dsol, axes);
-	min = sol[0];
-	max = sol[0];
-	const int nvars = sol.NElements();
+    
+	this->ComputeSolution(intpoint, data,hasPhi);
+	min = data.sol[0];
+	max = data.sol[0];
+	const int nvars = data.sol.NElements();
 	for(int int_ind = 1; int_ind < intrulepoints; int_ind++){
 		intrule->Point(int_ind,intpoint,weight);
-		this->ComputeSolution(intpoint, sol, dsol, axes);
+		this->ComputeSolution(intpoint, data,hasPhi);
+        TPZSolVec<STATE> &sol = data.sol;
 		for(int iv = 0; iv < nvars; iv++){
 			if (sol[0][iv] < min[iv]) min[iv] = sol[0][iv];
 			if (sol[0][iv] > max[iv]) max[iv] = sol[0][iv];
@@ -1416,14 +1376,11 @@ void TPZInterpolationSpace::MinMaxSolutionValues(TPZVec<STATE> &min, TPZVec<STAT
 	}//loop over integratin points
 	
 	intrule->SetOrder(prevorder);
-#else
-	DebugStop();
-#endif
 	
 }//void
 
 
-void TPZInterpolationSpace::BuildTransferMatrix(TPZInterpolationSpace &coarsel, TPZTransform &t, TPZTransfer<STATE> &transfer){
+void TPZInterpolationSpace::BuildTransferMatrix(TPZInterpolationSpace &coarsel, TPZTransform<> &t, TPZTransfer<STATE> &transfer){
 	// accumulates the transfer coefficients between the current element and the
 	// coarse element into the transfer matrix, using the transformation t
 	TPZGeoEl *ref = Reference();
@@ -1445,7 +1402,7 @@ void TPZInterpolationSpace::BuildTransferMatrix(TPZInterpolationSpace &coarsel, 
 		LOGPZ_ERROR(logger,sout.str());
 		return;
 	}
-	TPZStack<long> connectlistcoarse;
+	TPZStack<int64_t> connectlistcoarse;
 	TPZStack<int> corblocksize;
 	TPZStack<int> dependencyordercoarse;
 	connectlistcoarse.Resize(0);
@@ -1460,7 +1417,7 @@ void TPZInterpolationSpace::BuildTransferMatrix(TPZInterpolationSpace &coarsel, 
 	int nvar = coarsel.Material()->NStateVariables();
 	
 	// number of blocks is cornod
-	TPZBlock<REAL> corblock(0,cornod);
+	TPZBlock corblock(0,cornod);
 	int in;
 	
 	cormatsize = 0;
@@ -1503,7 +1460,7 @@ void TPZInterpolationSpace::BuildTransferMatrix(TPZInterpolationSpace &coarsel, 
 	}
 	intrule->SetOrder(order);
 	
-	TPZBlock<REAL> locblock(0,locnod);
+	TPZBlock locblock(0,locnod);
 	
 	for(in = 0; in < locnod; in++) {
         TPZConnect &c = Connect(in);
@@ -1547,8 +1504,8 @@ void TPZInterpolationSpace::BuildTransferMatrix(TPZInterpolationSpace &coarsel, 
 	REAL weight;
 	int lin,ljn,cjn;
     
-#ifdef LOG4CXX
-    if (logger->isDebugEnabled() && coarsel.HasDependency()) {
+#ifdef PZ_LOG
+    if (logger.isDebugEnabled() && coarsel.HasDependency()) {
         std::stringstream sout;
         coarsel.Print(sout);
         int nc = coarsel.NConnects();
@@ -1573,16 +1530,16 @@ void TPZInterpolationSpace::BuildTransferMatrix(TPZInterpolationSpace &coarsel, 
 		cordphi.Zero();
 		coarsel.Shape(coarse_int_point,corphi,cordphi);
 		
-#ifdef LOG4CXX
-        if (logger->isDebugEnabled() && coarsel.HasDependency()) {
+#ifdef PZ_LOG
+        if (logger.isDebugEnabled() && coarsel.HasDependency()) {
             std::stringstream sout;
             corphi.Print("Coarse shape functions before expandShapeFunctions",sout);
             LOGPZ_DEBUG(logger, sout.str())
         }
 #endif
 		coarsel.ExpandShapeFunctions(connectlistcoarse,dependencyordercoarse,corblocksize,corphi,cordphi);
-#ifdef LOG4CXX
-        if (logger->isDebugEnabled() && coarsel.HasDependency()) {
+#ifdef PZ_LOG
+        if (logger.isDebugEnabled() && coarsel.HasDependency()) {
             std::stringstream sout;
             corphi.Print("Coarse shape functions after expandShapeFunctions",sout);
             LOGPZ_DEBUG(logger, sout.str())
@@ -1601,7 +1558,7 @@ void TPZInterpolationSpace::BuildTransferMatrix(TPZInterpolationSpace &coarsel, 
 	}
 	loclocmat.SolveDirect(loccormat,ELDLt);
 	
-#ifdef LOG4CXX
+#ifdef PZ_LOG
     {
         std::stringstream sout;
         loccormat.Print("Element transfer matrix",sout);
@@ -1612,21 +1569,21 @@ void TPZInterpolationSpace::BuildTransferMatrix(TPZInterpolationSpace &coarsel, 
 	for(in=0; in<locnod; in++) {
 		//    int cind = connectlistcoarse[in];
 		if(Connect(in).HasDependency()) continue;
-		long locblocknumber = Connect(in).SequenceNumber();
+		int64_t locblocknumber = Connect(in).SequenceNumber();
 		int locblocksize = locblock.Size(in);
-		long locblockpos = locblock.Position(in);
+		int64_t locblockpos = locblock.Position(in);
 		TPZStack<int> locblockvec;
 		TPZStack<int> globblockvec;
-		long numnonzero = 0, jn;
+		int64_t numnonzero = 0, jn;
 		//      if(transfer.HasRowDefinition(locblocknumber)) continue;
 		
 		for(jn = 0; jn<cornod; jn++) {
 			int corblocksize = corblock.Size(jn);
-			long corblockpos = corblock.Position(jn);
-			long cind = connectlistcoarse[jn];
+			int64_t corblockpos = corblock.Position(jn);
+			int64_t cind = connectlistcoarse[jn];
 			TPZConnect &con = coarsel.Mesh()->ConnectVec()[cind];
 			if(con.HasDependency()) continue;
-			long corblocknumber = con.SequenceNumber();
+			int64_t corblocknumber = con.SequenceNumber();
 			if(locblocksize == 0 || corblocksize == 0) continue;
 			TPZFMatrix<STATE> smalll(locblocksize,corblocksize,0.);
 			loccormat.GetSub(locblockpos,corblockpos, locblocksize,corblocksize,smalll);
@@ -1639,11 +1596,11 @@ void TPZInterpolationSpace::BuildTransferMatrix(TPZInterpolationSpace &coarsel, 
 		}
 		if(transfer.HasRowDefinition(locblocknumber)) continue;
 		transfer.AddBlockNumbers(locblocknumber,globblockvec);
-		long jnn;
+		int64_t jnn;
 		for(jnn = 0; jnn<numnonzero; jnn++) {
 			jn = locblockvec[jnn];
 			int corblocksize = corblock.Size(jn);
-			long corblockpos = corblock.Position(jn);
+			int64_t corblockpos = corblock.Position(jn);
 			if(corblocksize == 0 || locblocksize == 0) continue;
 			TPZFMatrix<STATE> smalll(locblocksize,corblocksize,0.);
 			loccormat.GetSub(locblockpos,corblockpos,locblocksize,corblocksize,smalll);
@@ -1654,8 +1611,8 @@ void TPZInterpolationSpace::BuildTransferMatrix(TPZInterpolationSpace &coarsel, 
 }
 
 
-void TPZInterpolationSpace::ExpandShapeFunctions(TPZVec<long> &connectlist, TPZVec<int> &dependencyorder, TPZVec<int> &blocksizes, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphix) {
-	long numblocks =  connectlist.NElements();
+void TPZInterpolationSpace::ExpandShapeFunctions(TPZVec<int64_t> &connectlist, TPZVec<int> &dependencyorder, TPZVec<int> &blocksizes, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphix) {
+	int64_t numblocks =  connectlist.NElements();
 	TPZCompMesh &mesh = *Mesh();
 	int nhandled=0;
 	int current_order = 0;
@@ -1663,7 +1620,7 @@ void TPZInterpolationSpace::ExpandShapeFunctions(TPZVec<long> &connectlist, TPZV
 	while(nhandled < numblocks) {
 		if(dependencyorder[current_block] == current_order) {
 			nhandled++;
-			long cind = connectlist[current_block];
+			int64_t cind = connectlist[current_block];
 			TPZConnect &con = mesh.ConnectVec()[cind];
 			con.ExpandShape(cind,connectlist,blocksizes,phi,dphix);
 		}
@@ -1753,3 +1710,100 @@ void TPZInterpolationSpace::Convert2Axes(const TPZFMatrix<REAL> &dphi, const TPZ
     
 }
 
+int TPZInterpolationSpace::ClassId() const{
+    return Hash("TPZInterpolationSpace") ^ TPZCompEl::ClassId() << 1;
+}
+
+void TPZInterpolationSpace::InitializeElementMatrix(TPZElementMatrix &ek, TPZElementMatrix &ef){
+    TPZMaterial *mat = this->Material();
+    const int numdof = mat->NStateVariables();
+    const int nshape = this->NShapeF();
+    const int ncon = this->NConnects();
+    const int numloadcases = [mat](){
+        if (auto *tmp = dynamic_cast<TPZMatLoadCasesBase*>(mat); tmp){
+            return tmp->NumLoadCases();
+        }else{
+            return 1;
+        }
+    }();
+    
+    ek.fMesh = Mesh();
+    ek.fType = TPZElementMatrix::EK;
+    ek.fOneRestraints = GetShapeRestraints();
+    ef.fOneRestraints = ek.fOneRestraints;
+
+    ef.fMesh = Mesh();
+    ef.fType = TPZElementMatrix::EF;
+    
+    ek.Block().SetNBlocks(ncon);
+    ef.Block().SetNBlocks(ncon);
+
+    int i;
+    int numeq=0;
+    for(i=0; i<ncon; i++){
+        TPZConnect &c = Connect(i);
+        int nshape = c.NShape();
+#ifdef PZDEBUG
+        if (nshape != NConnectShapeF(i,c.Order())) {
+            PZError<<__PRETTY_FUNCTION__ <<" ERROR"<<std::endl;
+            PZError<<"n shape (con.NShape): "<<nshape<<std::endl;
+            PZError<<"n shape (NConnectShapeF): "<<NConnectShapeF(i,c.Order())<<std::endl;
+            DebugStop();
+        }
+#endif
+        int nstate = c.NState();
+        
+#ifdef PZDEBUG
+        if(nstate != numdof)
+        {
+            DebugStop();
+        }
+#endif
+        ek.Block().Set(i,nshape*nstate);
+        ef.Block().Set(i,nshape*nstate);
+        numeq += nshape*nstate;
+    }
+    ek.Matrix().Redim(numeq,numeq);
+    ef.Matrix().Redim(numeq,numloadcases);
+    ek.fConnect.Resize(ncon);
+    ef.fConnect.Resize(ncon);
+    for(i=0; i<ncon; i++){
+        (ef.fConnect)[i] = ConnectIndex(i);
+        (ek.fConnect)[i] = ConnectIndex(i);
+    }
+}//void
+
+void TPZInterpolationSpace::InitializeElementMatrix(TPZElementMatrix &ef){
+    TPZMaterial *mat = this->Material();
+    const int numdof = mat->NStateVariables();
+    const int ncon = this->NConnects();
+    const int nshape = this->NShapeF();
+    const int numeq = nshape*numdof;
+    const int numloadcases = [mat](){
+        if (auto *tmp = dynamic_cast<TPZMatLoadCasesBase*>(mat); tmp){
+            return tmp->NumLoadCases();
+        }else{
+            return 1;
+        }
+    }();
+    ef.fMesh = Mesh();
+    ef.fType = TPZElementMatrix::EF;
+    ef.Matrix().Redim(numeq,numloadcases);
+    ef.Block().SetNBlocks(ncon);
+    ef.fOneRestraints = GetShapeRestraints();
+    int i;
+    for(i=0; i<ncon; i++){
+        TPZConnect &c = Connect(i);
+        unsigned int nshapec = c.NShape();
+#ifdef PZDEBUG
+        if (NConnectShapeF(i, c.Order()) != nshapec || c.NState() != numdof) {
+            DebugStop();
+        }
+#endif
+        ef.Block().Set(i,nshapec*numdof);
+    }
+    ef.fConnect.Resize(ncon);
+    for(i=0; i<ncon; i++){
+        (ef.fConnect)[i] = ConnectIndex(i);
+    }
+}//void

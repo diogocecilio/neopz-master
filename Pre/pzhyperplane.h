@@ -2,12 +2,6 @@
  * @file
  * @brief Contains the TPZReadMeshHR class which reads a mesh in a "human readable" format.
  */
-/*****************************************************************************
- * O contedo desse arquivo �de propriedade do LabMeC-DES-FEC-UNICAMP e do
- * CENPES-Petrobras. 
- * O uso de qualquer parte ou do todo est�condicionado �expressa autoriza�o
- * dos propriet�ios.
- *****************************************************************************/
 
 #ifndef PZREADMESHHR_H
 #define PZREADMESHHR_H
@@ -77,9 +71,9 @@ public:
     
 private:
     /// reorder the nodes to form a convex figure
-    void Reorder(TPZGeoEl *gel, TPZGeoMesh &target, TPZVec<std::pair<long,long> > &sidenodepair);
+    void Reorder(TPZGeoEl *gel, TPZGeoMesh &target, TPZVec<std::pair<int64_t,int64_t> > &sidenodepair);
     /// a version which allows for more than 4 nodes
-    int ReorderGeneral(TPZGeoMesh &target, TPZVec<std::pair<long,long> > &sidenodepair);
+    int ReorderGeneral(TPZGeoMesh &target, TPZVec<std::pair<int64_t,int64_t> > &sidenodepair);
 };
 
 #endif

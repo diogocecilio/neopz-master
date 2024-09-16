@@ -39,39 +39,48 @@ using namespace pzshape;
 /** Creates a geometric element according to the type of the father element */
 template<class TBase>
 TPZGeoEl *TPZGeoElMapped<TBase>::CreateGeoElement(MElementType type,
-												  TPZVec<long>& nodeindexes,
+												  TPZVec<int64_t>& nodeindexes,
 												  int matid,
-												  long& index)
+												  int64_t& index)
 {
 	TPZGeoMesh &mesh = *(this->Mesh());
-	return CreateGeoElementMapped(mesh,type,nodeindexes,matid,index);
+	return mesh.CreateGeoElementMapped(type,nodeindexes,matid,index);
 }
 
 template<class TBase>
 TPZGeoEl * TPZGeoElMapped<TBase>::Clone(TPZGeoMesh &DestMesh) const
 {
-    return new TPZGeoElMapped<TBase>(DestMesh,*this);
+    if(&DestMesh == this->Mesh())
+    {
+        return new TPZGeoElMapped<TBase>(*this);
+    }
+    else
+    {
+        return new TPZGeoElMapped<TBase>(DestMesh,*this);
+    }
 }
 
 /** @} */
 
 template<class TBase>
 TPZGeoEl * TPZGeoElMapped<TBase>::ClonePatchEl(TPZGeoMesh &DestMesh,
-                                std::map<long,long> &gl2lcNdIdx,
-                                std::map<long,long> &gl2lcElIdx) const
+                                std::map<int64_t,int64_t> &gl2lcNdIdx,
+                                std::map<int64_t,int64_t> &gl2lcElIdx) const
 {
     return new TPZGeoElMapped<TBase>(DestMesh,*this,gl2lcNdIdx,gl2lcElIdx);
 }
 
 template <class TBase>
-TPZGeoElMapped<TBase>::TPZGeoElMapped(TPZGeoMesh &destmesh, const TPZGeoElMapped<TBase> &copy) : TBase(destmesh,copy), fCornerCo(copy.fCornerCo)
+TPZGeoElMapped<TBase>::TPZGeoElMapped(TPZGeoMesh &destmesh, const TPZGeoElMapped<TBase> &copy) : TPZRegisterClassId(&TPZGeoElMapped::ClassId),
+TBase(destmesh,copy), fCornerCo(copy.fCornerCo)
 {
     
 }
 
 template <class TBase>
-TPZGeoElMapped<TBase>::TPZGeoElMapped(TPZGeoMesh &destmesh, const TPZGeoElMapped<TBase> &copy, std::map<long,long> &gl2lcNdIdx,
-                                      std::map<long,long> &gl2lcElIdx) : TBase(destmesh,copy,gl2lcNdIdx,gl2lcElIdx),
+TPZGeoElMapped<TBase>::TPZGeoElMapped(TPZGeoMesh &destmesh, const TPZGeoElMapped<TBase> &copy, std::map<int64_t,int64_t> &gl2lcNdIdx,
+                                      std::map<int64_t,int64_t> &gl2lcElIdx) : 
+TPZRegisterClassId(&TPZGeoElMapped::ClassId),TBase(destmesh,copy,gl2lcNdIdx,gl2lcElIdx),
     fCornerCo(copy.fCornerCo)
 {
     
@@ -96,97 +105,21 @@ TPZGeoElMapped<TBase>::TPZGeoElMapped(TPZGeoMesh &destmesh, const TPZGeoElMapped
 #include "tpzgeoelrefpattern.h"
 
 
-TPZGeoEl *CreateGeoElementMapped(TPZGeoMesh &mesh,
-								 MElementType type,
-								 TPZVec<long>& nodeindexes,
-								 int matid,
-								 long& index)
-{
-	{
-		switch( type ){
-			case 0://point
-			{
-				TPZGeoEl * gel =
-				new TPZGeoElMapped<TPZGeoElRefPattern<TPZGeoPoint> > (nodeindexes, matid, mesh, index);
-				return gel;
-			}
-			case 1://line
-			{
-				TPZGeoEl *gel =
-				new TPZGeoElMapped<TPZGeoElRefPattern < TPZGeoLinear > >
-				(nodeindexes, matid, mesh, index);
-				return gel;
-			}
-			case 2://triangle
-			{
-				TPZGeoEl *gel =
-				new TPZGeoElMapped<TPZGeoElRefPattern < TPZGeoTriangle > >
-				(nodeindexes, matid, mesh, index);
-				return gel;
-			}
-			case 3://quadrilatera
-			{
-				TPZGeoEl* gel =
-				new TPZGeoElMapped<TPZGeoElRefPattern < TPZGeoQuad > >
-				(nodeindexes, matid, mesh, index);
-				return gel;
-			}
-			case 4://tetraedra
-			{
-				TPZGeoEl*gel =
-				new TPZGeoElMapped<TPZGeoElRefPattern < TPZGeoTetrahedra > >
-				(nodeindexes, matid, mesh, index);
-				return gel;
-			}
-			case 5://pyramid
-			{
-				TPZGeoEl *gel =
-				new TPZGeoElMapped<TPZGeoElRefPattern < TPZGeoPyramid > >
-				(nodeindexes, matid, mesh, index);
-				return gel;
-			}
-			case 6://prism
-			{
-				TPZGeoEl*gel =
-				new TPZGeoElMapped<TPZGeoElRefPattern < TPZGeoPrism > >
-				(nodeindexes, matid, mesh, index);
-				return gel;
-			}
-			case 7://cube
-			{
-				TPZGeoEl*gel =
-				new TPZGeoElMapped<TPZGeoElRefPattern < TPZGeoCube > >
-				(nodeindexes, matid, mesh, index);
-				return gel;
-			}
-			default:
-			{
-				PZError << "TPZGeoMesh::CreateGeoElement type element not exists:"
-				<< " type = " << type << std::endl;
-				return NULL;
-			}
-		}
-	}
-}
+
 
 using namespace pzgeom;
 
 /// Macro to define templates to TPZGeoElMapped for all the geometric element types
-#define INSERTCLASS(TCL,CLID) \
-template<> \
-int TPZGeoElMapped<TPZGeoElRefPattern< TCL > >::ClassId() const \
-{ \
-return CLID; \
-} \
+#define INSERTCLASS2(TCL) \
 template class \
-TPZRestoreClass< TPZGeoElMapped<TPZGeoElRefPattern<TCL > >, CLID>; \
+TPZRestoreClass< TPZGeoElMapped<TPZGeoElRefPattern<TCL > >>; \
 template class TPZGeoElMapped< TPZGeoElRefPattern<TCL> >;
 
-INSERTCLASS(TPZGeoPoint,TPZGEOELREFPATMAPPEDPOINTID)
-INSERTCLASS(TPZGeoLinear,TPZGEOELREFPATMAPPEDLINEID)
-INSERTCLASS(TPZGeoTriangle,TPZGEOELREFPATMAPPEDTRIANGLEID)
-INSERTCLASS(TPZGeoQuad,TPZGEOELREFPATMAPPEDQUADRILATERALID)
-INSERTCLASS(TPZGeoCube,TPZGEOELREFPATMAPPEDCUBEID)
-INSERTCLASS(TPZGeoPrism,TPZGEOELREFPATMAPPEDPRISMID)
-INSERTCLASS(TPZGeoTetrahedra,TPZGEOELREFPATMAPPEDTETRAHEDRAID)
-INSERTCLASS(TPZGeoPyramid,TPZGEOELREFPATMAPPEDPYRAMIDID)
+INSERTCLASS2(TPZGeoPoint)
+INSERTCLASS2(TPZGeoLinear)
+INSERTCLASS2(TPZGeoTriangle)
+INSERTCLASS2(TPZGeoQuad)
+INSERTCLASS2(TPZGeoCube)
+INSERTCLASS2(TPZGeoPrism)
+INSERTCLASS2(TPZGeoTetrahedra)
+INSERTCLASS2(TPZGeoPyramid)

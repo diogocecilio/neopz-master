@@ -9,15 +9,16 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "pz_config.h"
 #endif
 
 #include "TPZRefPatternDataBase.h"
 #include "pzgeoelside.h"
 #include "pzlog.h"
+#include <fstream>
 
-#ifdef LOG4CXX
-static LoggerPtr logger(Logger::getLogger("pz.refpattern.TPZRefPatternDataBase"));
+#ifdef PZ_LOG
+static TPZLogger logger("pz.refpattern.TPZRefPatternDataBase");
 #endif
 
 #ifdef BORLAND
@@ -32,19 +33,26 @@ TPZRefPatternDataBase gRefDBase;
 //.........................................................................................................................................
 TPZRefPatternDataBase::TPZRefPatternDataBase()
 {
-	this->clear();
+
 }
 
 //.........................................................................................................................................
 TPZRefPatternDataBase::~TPZRefPatternDataBase()
 {
-	//TODO: This destructor must be implemented!!!
+    this->clear();
 }
+
+void TPZRefPatternDataBase::clear()
+{
+    fElTypeRefPatterns.clear();
+    fIdRefPatterns.clear();
+}
+
 
 //.........................................................................................................................................
 int TPZRefPatternDataBase::ReturnUniqueId()
 {
-	int uniqueId = nonInitializedId;
+	int uniqueId = TPZRefPattern::fNonInitializedId;
 	std::set<int> Ids;
 	Ids.clear();
 	
@@ -91,7 +99,7 @@ void TPZRefPatternDataBase::ReadRefPatternDBase(std::ifstream &filename)
 	for(int i = 0; i < nRefpatterns; i++)
 	{
 		TPZAutoPointer<TPZRefPattern> refP = new TPZRefPattern;
-		refP->ReadPattern(filename);
+		refP->ReadAndCreateRefinementPattern(filename);
 		
         MElementType eltype = refP->Element(0)->Type();
         fElTypeRefPatterns[eltype].push_back(refP);
@@ -118,18 +126,18 @@ void TPZRefPatternDataBase::WriteRefPatternDBase(std::ofstream &filename)
 }
 
 //.........................................................................................................................................
-int TPZRefPatternDataBase::ImportRefPatterns()
+int TPZRefPatternDataBase::ImportRefPatterns(int maxdim)
 {
-	std::string DefaulPath;
+	std::string DefaulPath = PZSOURCEDIR;
 	
-	DefaulPath = "NeoPZ/Refine/RefPatterns";
+	DefaulPath += "/Refine/RefPatterns";
 //#define StartPathDefined 1;
 	
-	return ImportRefPatterns(DefaulPath);
+	return ImportRefPatterns(DefaulPath, maxdim);
 }
 
 //.........................................................................................................................................
-int TPZRefPatternDataBase::ImportRefPatterns(std::string &Path)
+int TPZRefPatternDataBase::ImportRefPatterns(std::string &Path, int maxdim)
 {
 	std::string bar = "/";
 	
@@ -168,6 +176,11 @@ int TPZRefPatternDataBase::ImportRefPatterns(std::string &Path)
 			std::string filref(psBuffer);
 			
 			TPZAutoPointer<TPZRefPattern> refpat = new TPZRefPattern(filref);
+            
+            if (refpat->fRefPatternMesh.Dimension() > maxdim) {
+                std::cout << "skipped\n";
+                continue;
+            }
 			
 			if(!this->FindRefPattern(refpat))
 			{
@@ -275,7 +288,7 @@ void TPZRefPatternDataBase::InitializeUniformRefPattern(MElementType elType)
 		}
 		case 1://EOned
 		{
-			std::cout << "\n\tinserting uniform refpattern: line\n";
+			std::cout << "inserting uniform refpattern: line\n";
 			char buf[] =
 			"3     3  "
 			"-50       UnifLin	"
@@ -302,7 +315,7 @@ void TPZRefPatternDataBase::InitializeUniformRefPattern(MElementType elType)
 		}
 		case 2://ETriangle
 		{
-			std::cout << "\n\tinserting uniform refpattern: triangle\n";
+			std::cout << "inserting uniform refpattern: triangle\n";
 			char buf[] =
 			"6     5  "
 			"-50       UnifTri	"
@@ -334,7 +347,7 @@ void TPZRefPatternDataBase::InitializeUniformRefPattern(MElementType elType)
 		}
 		case 3://EQuadrilateral
 		{
-			std::cout << "\n\tinserting uniform refpattern: quadrilateral\n";
+			std::cout << "inserting uniform refpattern: quadrilateral\n";
 			char buf[] =
 			"9     5  "
 			"-50       UnifQua	"
@@ -364,19 +377,12 @@ void TPZRefPatternDataBase::InitializeUniformRefPattern(MElementType elType)
 				refpatFound->SetName(refpat->Name());
 			}
 			refpat->InsertPermuted();
-#ifdef LOG4CXX
-            if (logger->isDebugEnabled()) {
-                std::stringstream sout;
-                refpat->PrintMore(sout);
-                LOGPZ_DEBUG(logger, sout.str())
-            }
-#endif
 			
 			break;
 		}
 		case 4://ETetraedro
 		{
-			std::cout << "\n\tinserting uniform refpattern: tetrahedra\n";
+			std::cout << "inserting uniform refpattern: tetrahedra\n";
 			char buf[] =
 			"10     7"
 			"-50       UnifTet	"
@@ -414,7 +420,7 @@ void TPZRefPatternDataBase::InitializeUniformRefPattern(MElementType elType)
 		}
 		case 5://EPiramide
 		{
-			std::cout << "\n\tinserting uniform refpattern: pyramid\n";
+			std::cout << "inserting uniform refpattern: pyramid\n";
 			char buf[] =
 			"14     11	"
 			"-50       UnifPyr	"
@@ -441,7 +447,7 @@ void TPZRefPatternDataBase::InitializeUniformRefPattern(MElementType elType)
 			" 5     5     9    12    11    10    13	"
 			" 4     4     9     5    13    10	"
 			" 4     4    10     6    13    11	"
-			" 4     4    11     7    12    13	"
+			" 4     4    12    13     7    11	"
 			" 4     4     8    13    12     9	";
 			std::istringstream str(buf);
 			TPZAutoPointer<TPZRefPattern> refpat = new TPZRefPattern(str);
@@ -460,7 +466,7 @@ void TPZRefPatternDataBase::InitializeUniformRefPattern(MElementType elType)
 		}
 		case 6://EPrisma
 		{
-			std::cout << "\n\tinserting uniform refpattern: prism\n";
+			std::cout << "inserting uniform refpattern: prism\n";
 			char buf[] =
 			"18     9  "
 			"-50       UnifPri 	"
@@ -508,7 +514,7 @@ void TPZRefPatternDataBase::InitializeUniformRefPattern(MElementType elType)
 		}
 		case 7://ECube
 		{
-			std::cout << "\n\tinserting uniform refpattern: hexahedre\n";
+			std::cout << "inserting uniform refpattern: hexahedre\n";
 			char buf[] =
 			"27     9  "
 			"-50     UnifHex  "
@@ -581,13 +587,6 @@ void TPZRefPatternDataBase::InitializeAllUniformRefPatterns()
 	InitializeUniformRefPattern(EPiramide);
 	InitializeUniformRefPattern(EPrisma);
 	InitializeUniformRefPattern(ECube);
-}
-
-
-void TPZRefPatternDataBase::InitializeRefPatterns()
-{
-    std::string path = REFPATTERNDIR;
-	ImportRefPatterns(path);
 }
 
 //.........................................................................................................................................

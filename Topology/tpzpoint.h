@@ -10,8 +10,10 @@
 #include "pzfmatrix.h"
 #include "pzvec.h"
 #include "pztrnsform.h"
-#include "tpzpoint.h"
 #include "pzeltype.h"
+#include "pzstack.h"
+#include "pzaxestools.h"
+#include "TPZTopologyUtils.h"
 
 class TPZIntPoints;
 class TPZInt1Point;
@@ -23,29 +25,57 @@ class TPZCompMesh;
 
 /// Groups all classes defining the structure of the master element
 namespace pztopology {
-	
 	/**
 	 * @ingroup topology
 	 * @author Philippe R. B. Devloo
 	 * @brief Defines the topology of a point. \ref topology "Topology"
 	 * It has a one side (the same element).
 	 */
-	class TPZPoint {
+	class TPZPoint : public TPZSavable {
 	public:
-		
-		/** @brief Enumerate for topological characteristics */
-		enum {NCornerNodes = 1, NSides = 1, Dimension = 0, NFaces = 0};
 
+    friend void pztopology::GetPermutation<TPZPoint>(const int permute, TPZVec<int> &permutation);
+		/** @brief Topological characteristics */
+    static constexpr int64_t NSides = 1;
+		static constexpr int64_t NCornerNodes = 1;
+    static constexpr int64_t Dimension = 0;
+    static constexpr int64_t NFacets = 0;
+    static constexpr int64_t NPermutations = 1;
+
+    int ClassId() const override;
+    void Read(TPZStream &buf, void *context) override;
+    void Write(TPZStream &buf, int withclassid) const override;
+
+                
 		/** @brief Default constructor */
-		TPZPoint() {
+        TPZPoint() : TPZRegisterClassId(&TPZPoint::ClassId) {
 		}
 		/** @brief Default destructor */
 		virtual ~TPZPoint() {
 		}
 
+        static void Shape(TPZVec<REAL> &loc,TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi){
+            TShape(loc, phi, dphi);
+        }
+        /** @brief Compute the shape being used to construct the x mapping from local parametric coordinates  */
+        template<class T>
+        static void TShape(const TPZVec<T> &loc,TPZFMatrix<T> &phi,TPZFMatrix<T> &dphi);
+
 		/** @name About sides of the topological element
 		 * @{ */
-		
+
+        /**
+         * This method calculates the influence (a.k.a. the blend function) of the side side regarding an
+         * interior point qsi. It is used by the TPZGeoBlend class.
+         * @param side the index of the side
+         * @param xi coordinates of the interior point
+         * @param blendFactor influence (0 <= blendFactor <= 1)
+         * * @param corrFactorDxi derivative of the blendFactor in respect to xi
+         */
+        template<class T>
+        static void BlendFactorForSide(const int &side, const TPZVec<T> &xi, T &blendFactor,
+                                      TPZVec<T> &corrFactorDxi);
+
 		/** @brief Returns the dimension of the side */
 		static int SideDimension(int side) {
 			return 0;
@@ -98,11 +128,28 @@ namespace pztopology {
 		}
 
 		/** @brief Verifies if the parametric point pt is in the element parametric domain */
-		static bool IsInParametricDomain(TPZVec<REAL> &pt, REAL tol = 1e-6){
+		static bool IsInParametricDomain(const TPZVec<REAL> &pt, REAL tol = 1e-6){
 			return true;
 		}
         
-        static bool MapToSide(int side, TPZVec<REAL> &InternalPar, TPZVec<REAL> &SidePar, TPZFMatrix<REAL> &JacToSide);
+        /** @brief Generates a random point in the master domain */
+        static void RandomPoint(TPZVec<REAL> &pt)
+        {
+            
+        }
+
+        /**
+         * This method will check if the projection to a certain side (MapToSide method) is regular,
+         * i.e., if the interior point in the parametric domain is not too close to the projection's singularity.
+         * @param side the index of the side upon which the interior point will be projected upon
+         * @param xiInterior coordinates of the interior point
+         * @return true if the interior point is far from the singularity
+         */
+        template<class T>
+        static bool CheckProjectionForSingularity(const int &side, const TPZVec<T> &xiInterior);
+
+        template<class T>
+        static void MapToSide(int side, TPZVec<T> &InternalPar, TPZVec<T> &SidePar, TPZFMatrix<T> &JacToSide);
         
         static void ParametricDomainNodeCoord(int node, TPZVec<REAL> &nodeCoord);
 
@@ -112,7 +159,7 @@ namespace pztopology {
 		 * @{ */
 
 		/** @brief Returns the type of the element as specified in file pzeltype.h */
-		static MElementType Type();
+		static constexpr MElementType Type() {return EPoint;}
 		/** @brief Returns the type of the element side as specified in file pzeltype.h */
 		static MElementType Type(int side) ;
 
@@ -126,23 +173,23 @@ namespace pztopology {
 		 * @param sidefrom side where the point resides
 		 * @param sideto side whose closure contains sidefrom
 		 */
-		static TPZTransform SideToSideTransform(int sidefrom, int sideto) {
-			TPZTransform result(0,0);
+		static TPZTransform<> SideToSideTransform(int sidefrom, int sideto) {
+			TPZTransform<> result(0,0);
 			return result;
 		}
 		/**
 		 * @brief Returns the transformation which transform a point from the side to the interior of the element
 		 * @param side Side from which the point will be tranformed (0<=side<=2)
-		 * @return TPZTransform object
+		 * @return TPZTransform<> object
 		 * @see the class TPZTransform
 		 */
-		static TPZTransform TransformSideToElement(int side) {
-			TPZTransform result(0,0);
+		static TPZTransform<> TransformSideToElement(int side) {
+			TPZTransform<> result(0,0);
 			return result;
 		}
 
-		static TPZTransform TransformElementToSide(int side){
-			TPZTransform t(0,0);
+		static TPZTransform<> TransformElementToSide(int side){
+			TPZTransform<> t(0,0);
 			return t;
 		}
 		
@@ -151,7 +198,7 @@ namespace pztopology {
 		 * @param id Indexes of the corner nodes
 		 * @return Index of the transformation of the point corresponding to the topology
 		 */
-		static int GetTransformId(TPZVec<long> &id);
+		static int GetTransformId(const TPZVec<int64_t> &id);
 		
 		/**
 		 * @brief Method which identifies the transformation of a side based on the IDs
@@ -160,7 +207,7 @@ namespace pztopology {
 		 * @param id Indexes of the corner nodes
 		 * @return Index of the transformation of the point corresponding to the topology
 		 */	
-		static int GetTransformId(int side, TPZVec<long> &id);
+		static int GetTransformId(const int side, const TPZVec<int64_t> &id);
 		
 		/** @} */
 
@@ -193,20 +240,20 @@ namespace pztopology {
 	}
 		
 		/** @brief Volume of the master element (measure of the element) */
-		static REAL RefElVolume() {
+		static constexpr REAL RefElVolume() {
 			return 0.;
 		}
         
         /* Given side and gradx the method returns directions needed for Hdiv space */
         static void ComputeDirections(int side, TPZFMatrix<REAL> &gradx, TPZFMatrix<REAL> &directions, TPZVec<int> &sidevectors);
-        static void GetSideDirections(TPZVec<int> &sides, TPZVec<int> &dir, TPZVec<int> &bilinearounao)
+        static void GetSideHDivDirections(TPZVec<int> &sides, TPZVec<int> &dir, TPZVec<int> &bilinearounao)
         {
             sides[0] = 0;
             dir[0] = 0;
             bilinearounao[0] = 0;
         }
 
-        static void GetSideDirections(TPZVec<int> &sides, TPZVec<int> &dir, TPZVec<int> &bilinearounao, TPZVec<int> &sidevectors)
+        static void GetSideHDivDirections(TPZVec<int> &sides, TPZVec<int> &dir, TPZVec<int> &bilinearounao, TPZVec<int> &sidevectors)
         {
             sides[0] = 0;
             dir[0] = 0;
@@ -215,7 +262,8 @@ namespace pztopology {
         }
 
         /// Compute the directions of the HDiv vectors
-        static void ComputeDirections(TPZFMatrix<REAL> &gradx, REAL detjac, TPZFMatrix<REAL> &directions)
+        template <class TVar>
+        static void ComputeHDivDirections(TPZFMatrix<TVar> &gradx, TPZFMatrix<TVar> &directions)
         {
         }
         
@@ -224,7 +272,9 @@ namespace pztopology {
          * Returns the number of bilinear sides to this shape. Needed to compute the number shapefunctions( NConnectShapeF )
          */
         static int NBilinearSides();
-
+	protected:
+        /** @brief Valid permutations between nodes*/
+        static constexpr int fPermutations [1][1]={{0}};
 	};
 	
 }

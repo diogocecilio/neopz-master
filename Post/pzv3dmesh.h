@@ -22,24 +22,25 @@ class TPZV3DGraphMesh : public TPZGraphMesh {
 public:
 	
 	/** @brief Constructor for graphical mesh using 3D Image Visualization format */
-	TPZV3DGraphMesh(TPZCompMesh *cmesh, int dimension, TPZMaterial * mat);
+    TPZV3DGraphMesh(TPZCompMesh *cmesh, int dimension, const std::set<int> & matids, const TPZVec<std::string> &scalarnames,
+                    const TPZVec<std::string> &vecnames);
 	/** @brief Copy constructor for graphical mesh using 3D Image Visualization format */
-	TPZV3DGraphMesh(TPZCompMesh *cmesh,int dim,TPZV3DGraphMesh *graph,TPZMaterial * mat);
+	TPZV3DGraphMesh(TPZCompMesh *cmesh,int dim,TPZV3DGraphMesh *graph);
 	/** @brief Default destructor */
 	virtual ~TPZV3DGraphMesh()
 	{
 	}
 	
 	/** @brief Draw the nodal coordinates and the connectivity */
-	virtual void DrawMesh(int numcases);
+	virtual void DrawMesh(int numcases) override;
 	
 	/** @brief Draw the solution associated with Sol (not implemented) */
-	virtual void DrawSolution(TPZBlock<REAL> &Sol);
+	virtual void DrawSolution(TPZBlock &Sol);
 	/** @brief Draw the solution associated with the variable name */
 	virtual void DrawSolution(char * var = 0);
 	/** @brief Draw the solution sequence */
-	virtual void DrawSolution(int step, REAL time);
-	virtual void SequenceNodes();
+	virtual void DrawSolution(int step, REAL time) override;
+	virtual void SequenceNodes() override;
 	
 	private :
 	TPZCompMesh *fMesh;

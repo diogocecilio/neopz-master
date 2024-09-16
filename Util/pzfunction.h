@@ -3,13 +3,11 @@
 #ifndef PZFUNCTION_H
 #define PZFUNCTION_H
 
-#include "pzsave.h"
+#include "TPZSavable.h"
 #include "pzvec.h"
 #include "pzfmatrix.h"
 
 /** @ingroup util */
-/** @brief TPZFunction class Id */
-const int TPZFUNCTIONID = 9000;
 
 /**
  * @ingroup util
@@ -18,22 +16,23 @@ const int TPZFUNCTIONID = 9000;
  * @since August 01, 2007
  */
 template<class TVar>
-class TPZFunction : public TPZSaveable{
+class TPZFunction : public virtual TPZSavable {
 public:
 	
 	/** @brief Class constructor */
-	TPZFunction();
-	
+	TPZFunction()=default;
 	/** @brief Class destructor */
-	~TPZFunction();
-    
+	virtual ~TPZFunction() = default;
 	/**
 	 * @brief Performs function computation
 	 * @param x point coordinate which is suppose to be in real coordinate system but can be in master coordinate system in derived classes.
 	 * @param f function values
 	 * @param df function derivatives
 	 */
-	virtual void Execute(const TPZVec<REAL> &x, TPZVec<TVar> &f, TPZFMatrix<TVar> &df) = 0;
+	virtual void Execute(const TPZVec<REAL> &x, TPZVec<TVar> &f, TPZFMatrix<TVar> &df)
+    {
+        DebugStop();
+    }
 	
 	/**
 	 * @brief Performs time dependent function computation
@@ -42,7 +41,7 @@ public:
 	 * @param f function values
 	 * @param gradf function derivatives
 	 */	
-	virtual void Execute(const TPZVec<REAL> &x, REAL ftime, TPZVec<TVar> &f, TPZFMatrix<TVar> &gradf){
+	virtual void Execute(const TPZVec<REAL> &x, REAL time, TPZVec<TVar> &f, TPZFMatrix<TVar> &gradf){
         DebugStop();
     }
 
@@ -55,23 +54,41 @@ public:
     virtual void Execute(const TPZVec<REAL> &x, TPZVec<TVar> &f){
         DebugStop();
     }
+
+    /** @brief Polynomial order of this function.
+      *  In case of non-polynomial function it can be a reasonable approximation order. */
+    virtual int PolynomialOrder() const {
+        return 1;
+    }
     
-	/** @brief Returns number of functions. */ 
-	virtual int NFunctions() = 0;
-	
-	/** @brief Polynomial order of this function. */
-	/** In case of non-polynomial function it can be a reasonable approximation order. */
-	virtual int PolynomialOrder() = 0;
+    /// number of values returned by this function
+    virtual int NFunctions() const
+    {
+        return 1;
+    }
     
     /** @brief Print a brief statement */
     virtual void Print(std::ostream &out)
     {
         out << __PRETTY_FUNCTION__ << std::endl;
-        out << "NFunctions = " << NFunctions() << std::endl;
         out << "Polynomial Order = " << PolynomialOrder() << std::endl;
+    }
+    
+public:
+    int ClassId() const override;
+
+    void Write(TPZStream &buf, int withclassid) const override{ //ok
+    }
+
+    void Read(TPZStream &buf, void *context) override{ //ok
     }
 	
 };
+
+template<class TVar>
+int TPZFunction<TVar>::ClassId() const{
+    return Hash("TPZFunction") ^ ClassIdOrHash<TVar>()<<1;
+}
 
 template<class TVar>
 class TPZDummyFunction : public TPZFunction<TVar>
@@ -85,7 +102,7 @@ class TPZDummyFunction : public TPZFunction<TVar>
 public:
 	
 	/** @brief Class constructor */
-	TPZDummyFunction() : TPZFunction<TVar>(), fPorder(-1)
+	TPZDummyFunction() : TPZRegisterClassId(&TPZDummyFunction::ClassId), TPZFunction<TVar>(), fPorder(-1)
     {
         fFunc = 0;
 		fFunc2 = 0;
@@ -98,31 +115,34 @@ public:
         
     }
     
-    TPZDummyFunction(void (*FuncPtr)(const TPZVec<REAL> &x, TPZVec<TVar> &val))
+    TPZDummyFunction(void (*FuncPtr)(const TPZVec<REAL> &x, TPZVec<TVar> &val), int polynomialorder )
+    : TPZRegisterClassId(&TPZDummyFunction::ClassId)
     {
         fFunc = FuncPtr;
 		fFunc2 = 0;
 		fFunc3 = 0;
-		fPorder = -1;
+		fPorder = polynomialorder;
     }
     
-    TPZDummyFunction(void (*FuncPtr)(const TPZVec<REAL> &x, TPZVec<TVar> &val, TPZFMatrix<TVar> &gradf))
+    TPZDummyFunction(void (*FuncPtr)(const TPZVec<REAL> &x, TPZVec<TVar> &val, TPZFMatrix<TVar> &gradf), int polynomialorder )
+    : TPZRegisterClassId(&TPZDummyFunction::ClassId)
     {
 		fFunc = 0;
         fFunc2 = FuncPtr;		
 		fFunc3 = 0;
-		fPorder = -1;
+        fPorder = polynomialorder;
     }
 	
-    TPZDummyFunction(void (*FuncPtr)(const TPZVec<REAL> &x, REAL ftime, TPZVec<TVar> &val, TPZFMatrix<TVar> &gradf))
+    TPZDummyFunction(void (*FuncPtr)(const TPZVec<REAL> &x, REAL ftime, TPZVec<TVar> &val, TPZFMatrix<TVar> &gradf), int polynomialorder ) : TPZRegisterClassId(&TPZDummyFunction::ClassId)
     {
 		fFunc = 0;
         fFunc2 = 0;		
 		fFunc3 = FuncPtr;
-		fPorder = -1;
+        fPorder = polynomialorder;
     }	
     
-    TPZDummyFunction(const TPZDummyFunction &cp) : fFunc(cp.fFunc), fFunc2(cp.fFunc2), fFunc3(cp.fFunc3), fPorder(cp.fPorder)
+    TPZDummyFunction(const TPZDummyFunction &cp) : TPZRegisterClassId(&TPZDummyFunction::ClassId), 
+    fFunc(cp.fFunc), fFunc2(cp.fFunc2), fFunc3(cp.fFunc3), fPorder(cp.fPorder)
     {
         
     }
@@ -142,12 +162,18 @@ public:
 	 * @param f function values
 	 * @param df function derivatives
 	 */
-	virtual void Execute(const TPZVec<REAL> &x, TPZVec<TVar> &f, TPZFMatrix<TVar> &df)
+	virtual void Execute(const TPZVec<REAL> &x, TPZVec<TVar> &f, TPZFMatrix<TVar> &df)  override
     {
         if (!fFunc2) {
-			DebugStop();
+			if (!fFunc)
+				DebugStop();
+			else {
+				df.Zero();
+				fFunc(x, f);
+			}
 		}
-        fFunc2(x, f, df);
+        else
+            fFunc2(x, f, df);
     }
 	
 	/**
@@ -157,7 +183,7 @@ public:
 	 * @param f function values
 	 * @param gradf function derivatives
 	 */	
-	virtual void Execute(const TPZVec<REAL> &x, REAL ftime, TPZVec<TVar> &f, TPZFMatrix<TVar> &gradf)
+	virtual void Execute(const TPZVec<REAL> &x, REAL ftime, TPZVec<TVar> &f, TPZFMatrix<TVar> &gradf)  override
     {
         if (!fFunc3) {
 			DebugStop();
@@ -169,7 +195,7 @@ public:
 	 * @brief Execute method receiving axes. It is used in shape functions
 	 * @note NOT IMPLEMENTED
 	 */
-	virtual void Execute(const TPZVec<REAL> &x, const TPZFMatrix<REAL> &axes, TPZVec<TVar> &f, TPZFMatrix<TVar> &df){
+	virtual void Execute(const TPZVec<REAL> &x, const TPZFMatrix<REAL> &axes, TPZVec<TVar> &f, TPZFMatrix<TVar> &df) override {
         DebugStop();
     }
     
@@ -178,7 +204,7 @@ public:
 	 * @param x point coordinate which is suppose to be in real coordinate system but can be in master coordinate system in derived classes.
 	 * @param f function values
 	 */
-    virtual void Execute(const TPZVec<REAL> &x, TPZVec<TVar> &f){
+    virtual void Execute(const TPZVec<REAL> &x, TPZVec<TVar> &f) override {
 		if (!fFunc) {
 			DebugStop();
 		}
@@ -186,7 +212,7 @@ public:
     }
     
 	/** @brief Returns number of functions. */ 
-	virtual int NFunctions()
+	virtual int NFunctions() const override
     {
         return 1;
     }
@@ -198,9 +224,9 @@ public:
 	
 	/** @brief Polynomial order of this function. */
 	/** In case of non-polynomial function it can be a reasonable approximation order. */
-	virtual int PolynomialOrder() 
+	virtual int PolynomialOrder() const override
     {
-#ifdef DEBUG
+#ifdef PZDEBUG
         if (fPorder == -1) {
             DebugStop();
         }
@@ -209,23 +235,26 @@ public:
     }
 	
 	/** @brief Unique identifier for serialization purposes */
-	virtual int ClassId() const
-    {
-        return -1;
-    }
+	public:
+    int ClassId() const override;
+
 	
 	/** @brief Saves the element data to a stream */
-	virtual void Write(TPZStream &buf, int withclassid)
+	void Write(TPZStream &buf, int withclassid) const override
     {
-//        DebugStop();
-        TPZSaveable::Write(buf,withclassid);
+        DebugStop();
     }
 	
 	/** @brief Reads the element data from a stream */
-	virtual void Read(TPZStream &buf, void *context)
+	void Read(TPZStream &buf, void *context) override
     {
         DebugStop();
     }
 };
+
+template<class TVar>
+int TPZDummyFunction<TVar>::ClassId() const{
+    return TPZFunction<TVar>::ClassId() ^ Hash("TPZDummyFunction");
+}
 
 #endif

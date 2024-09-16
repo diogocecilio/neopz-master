@@ -8,7 +8,10 @@
 
 #include "pzcompel.h"
 class TPZMaterialData;
-
+template<class TVar>
+class TPZMaterialDataT;
+template<class TVar>
+class TPZTransfer;
 /**
  * @brief Implements the interfaces for TPZCompElDisc, TPZInterfaceElement and TPZInterpolatedElement. \ref CompElement "Computational element"
  * @since April 11, 2007
@@ -17,6 +20,10 @@ class TPZMaterialData;
 class TPZInterpolationSpace : public TPZCompEl
 {
 public:
+    
+    public:
+virtual int ClassId() const override;
+
 	
 	/** @brief Default constructor */
 	TPZInterpolationSpace();
@@ -28,10 +35,7 @@ public:
 	TPZInterpolationSpace(TPZCompMesh &mesh, const TPZInterpolationSpace &copy);
 	
 	/** @brief Puts a copy of the element in the patch mesh */
-	TPZInterpolationSpace(TPZCompMesh &mesh, const TPZInterpolationSpace &copy, std::map<long,long> &gl2lcElMap);
-	
-	/** @brief Copy of the element in the new mesh whit alocated index */
-	TPZInterpolationSpace(TPZCompMesh &mesh, const TPZInterpolationSpace &copy, long &index);
+	TPZInterpolationSpace(TPZCompMesh &mesh, const TPZInterpolationSpace &copy, std::map<int64_t,int64_t> &gl2lcElMap);
 	
 	/**
 	 * @brief Create a computational element within mesh
@@ -40,7 +44,7 @@ public:
 	 * @param index new elemen index
 	 */
 	/** Inserts the element within the data structure of the mesh */
-	TPZInterpolationSpace(TPZCompMesh &mesh, TPZGeoEl *gel, long &index);
+	TPZInterpolationSpace(TPZCompMesh &mesh, TPZGeoEl *gel);
 	
     /**
 	 * @name data access methods
@@ -49,7 +53,9 @@ public:
 	 */
 	
 	/** @brief Prints the relevant data of the element to the output stream */
-	virtual void Print(std::ostream &out = std::cout) const;
+	virtual void Print(std::ostream &out = std::cout) const override;
+
+    virtual void ShortPrint(std::ostream &out = std::cout) const override;
 	
 	/** @brief Returns the number of shape functions on a side*/
 	int NSideShapeF(int side) const
@@ -71,7 +77,7 @@ public:
 //    }
 		
 	/** @brief Returns the index of the c th connect object along side is*/
-	long SideConnectIndex(int icon,int is) const
+	int64_t SideConnectIndex(int icon,int is) const
     {
         int locid = SideConnectLocId(icon, is);
         return ConnectIndex(locid);
@@ -94,8 +100,12 @@ public:
     
     /** @brief Adjust the integration rule according to the polynomial order of shape functions. */
     virtual void AdjustIntegrationRule();
+    
+    /** @brief Compute integration order according to ... . */
+    virtual int ComputeIntegrationOrder() const override;
 	
-    virtual void SetIntegrationRule(int order) {
+    
+    virtual void SetIntegrationRule(int order) override{
         std::cout << "TPZInterpolationSpace::SetIntegrationRule called\n";
     }
     
@@ -139,10 +149,17 @@ public:
     }
 	
 	/** @} */
-	
 
-    public:
-    
+    //@{
+    /** 
+	 * @brief Compute shape functions based on master element in the classical FEM manne. 
+	 * @param[in] qsi point in master element coordinates 
+	 * @param[in/out] data stores all input data
+     * @param[in] hasPhi whether the shape functions have been calculated.
+	 */
+    void ComputeSolution(TPZVec<REAL> &qsi, TPZMaterialDataT<CSTATE> &data, bool hasPhi);
+    void ComputeSolution(TPZVec<REAL> &qsi, TPZMaterialDataT<STATE> &data, bool hasPhi);
+    //@}
     
     /** 
 	 * @brief Compute shape functions based on master element in the classical FEM manne. 
@@ -150,20 +167,35 @@ public:
 	 * @param[in] data stores all input data
 	 */
     virtual void ComputeShape(TPZVec<REAL> &intpoint, TPZMaterialData &data);
-	
+
 	/** 
 	 * @brief Initialize a material data and its attributes based on element dimension, number
 	 * of state variables and material definitions
 	 */
-	virtual void InitMaterialData(TPZMaterialData &data);
+    virtual void InitMaterialData(TPZMaterialData &data);
 	
+    /**
+     * @brief Destroy internally allocated data structures
+     */
+    virtual void CleanupMaterialData(TPZMaterialData &data)
+    {
+        
+    }
+    //@{
 	/** @brief Compute and fill data with requested attributes */
-	virtual void ComputeRequiredData(TPZMaterialData &data,
-									 TPZVec<REAL> &qsi);
+	virtual void ComputeRequiredData(TPZMaterialDataT<STATE> &data,
+									 TPZVec<REAL> &qsi){
+        ComputeRequiredDataT(data,qsi);
+    }
+    virtual void ComputeRequiredData(TPZMaterialDataT<CSTATE> &data,
+									 TPZVec<REAL> &qsi){
+        ComputeRequiredDataT(data,qsi);
+    }
+    //@}
 	
 	/** @brief Compute and fill data with requested attributes for each of the compels in fElementVec*/
-	virtual void ComputeRequiredData(TPZVec<REAL> &intpointtemp, TPZVec<TPZTransform> &trvec, TPZVec<TPZMaterialData> &datavec)
-  {
+	virtual void ComputeRequiredData(TPZVec<REAL> &intpointtemp, TPZVec<TPZTransform<REAL> > &trvec, TPZVec<TPZMaterialData> &datavec)
+    {
 		PZError << "This Should never be called in this class, only in its children" << std::endl;
 		DebugStop();
 	}
@@ -180,19 +212,31 @@ public:
 	 * @param ek element matrix
 	 * @param ef element right hand side
 	 */
-	virtual void CalcStiff(TPZElementMatrix &ek, TPZElementMatrix &ef);
+	virtual void CalcStiff(TPZElementMatrixT<STATE> &ek,
+                           TPZElementMatrixT<STATE> &ef) override{
+        CalcStiffInternal<STATE>(ek,ef);
+    }
+    virtual void CalcStiff(TPZElementMatrixT<CSTATE> &ek,
+                           TPZElementMatrixT<CSTATE> &ef) override{
+        CalcStiffInternal<CSTATE>(ek,ef);
+    }
 	
 	/**
 	 * @brief Only computes the element residual
 	 * @param ef element residual
 	 */
-	virtual void CalcResidual(TPZElementMatrix &ef);
+	virtual void CalcResidual(TPZElementMatrixT<STATE> &ef) override{
+        CalcResidualInternal<STATE>(ef);
+    }
+    virtual void CalcResidual(TPZElementMatrixT<CSTATE> &ef) override{
+        CalcResidualInternal<CSTATE>(ef);
+    }
 	
 	/** @brief Initialize element matrix in which is computed CalcStiff */
-	virtual void InitializeElementMatrix(TPZElementMatrix &ek, TPZElementMatrix &ef);
+	virtual void InitializeElementMatrix(TPZElementMatrix &ek, TPZElementMatrix &ef) override;
 	
 	/** @brief Initialize element matrix in which is computed in CalcResidual */
-	virtual void InitializeElementMatrix(TPZElementMatrix &ef);
+	virtual void InitializeElementMatrix(TPZElementMatrix &ef) override;
 	
 	/** @brief Returns minimum and maximum values for each state variable */
 	/** 
@@ -202,7 +246,7 @@ public:
 	void MinMaxSolutionValues(TPZVec<STATE> &min, TPZVec<STATE> &max);
 	
 	/** @brief Returns a reference to an integration rule suitable for integrating the interior of the element */
-	virtual const TPZIntPoints &GetIntegrationRule() const = 0;
+	virtual const TPZIntPoints &GetIntegrationRule() const override = 0;
     
 	/** @brief Returns a reference to an integration rule suitable for integrating the interior of the element */
  	virtual TPZIntPoints &GetIntegrationRule() = 0;
@@ -220,7 +264,12 @@ public:
 	 * @see TPZMaterial::Solution
 	 */
 	/** The var index is obtained by calling the TPZMaterial::VariableIndex method with a post processing name */
-	virtual void Solution(TPZVec<REAL> &qsi,int var,TPZVec<STATE> &sol);
+	void Solution(TPZVec<REAL> &qsi,int var,TPZVec<STATE> &sol) override{
+    SolutionInternal(qsi,var,sol);
+  }
+  void Solution(TPZVec<REAL> &qsi,int var,TPZVec<CSTATE> &sol) override{
+    SolutionInternal(qsi,var,sol);
+  }
 	
 	/**
 	 * @brief Interpolates the solution into the degrees of freedom nodes from the degrees
@@ -250,41 +299,21 @@ public:
 	
 	/** @brief Remove interface which is neighbour from side side */
 	void RemoveInterface(int side);
-	
-	/**
-	 * @brief Performs an error estimate on the elemen
-	 * @param fp function pointer which computes the exact solution
+    /**
+	 * @brief Performs an error estimate on the element.
+     * This estimate is based on the exact solution in its material.
 	 * @param errors (output) the L2 norm or true error of the error of the solution
 	 * @param flux (input) value of the interpolated flux values
 	 */
-	virtual void EvaluateError(  void (*fp)(const TPZVec<REAL> &loc,TPZVec<STATE> &val,TPZFMatrix<STATE> &deriv),
-                               TPZVec<REAL> &errors,TPZBlock<REAL> * flux );
-	
-	/** @brief Computes the element error estimator */
-	virtual void ComputeError(int errorid, TPZVec<REAL> &error);
+    void EvaluateError(TPZVec<REAL> &errors, bool store_error ) override;
 	
 	/** @brief Integrate a variable over the element. */
-	virtual TPZVec<STATE> IntegrateSolution(int variable) const;
+	virtual TPZVec<STATE> IntegrateSolution(int variable) const override;
     
-    virtual void Integrate(int variable, TPZVec<STATE> & value);//AQUIFRAN
+    virtual void Integrate(int variable, TPZVec<STATE> & value) override;//AQUIFRAN
     
 	/** @brief Integrate the solution over the element */
 //	virtual void IntegrateSolution(TPZVec<STATE> & value);
-	
-	/**
-	 * @brief Will project the flux associated with the variational statement onto the finite element interpolation space
-	 * @param ek projection matrix
-	 * @param ef inner product of the flux with the finite element interpolation space
-	 */
-	/**
-	 * The ek matrix corresponds to an L2 (scalar) projection, the ef matrix contains multiple right hand sides, one
-	 * for each component of the flux
-	 */
-	void ProjectFlux(TPZElementMatrix &ek, TPZElementMatrix &ef);
-	
-protected:
-	
-	int fPreferredOrder;
 	
 public:
 	
@@ -318,10 +347,10 @@ public:
 public:
 	
 	/** @brief Saves the element data to a stream */
-	virtual void Write(TPZStream &buf, int withclassid);
+	virtual void Write(TPZStream &buf, int withclassid) const override;
 	
 	/** @brief Reads the element data from a stream */
-	virtual void Read(TPZStream &buf, void *context);
+	virtual void Read(TPZStream &buf, void *context) override;
 	
 	/**
 	 * @brief Accumulates the transfer coefficients between the current element and the
@@ -333,10 +362,27 @@ public:
 	/**
 	 * This method forms the basis for the multigrid method
 	 */
-	void BuildTransferMatrix(TPZInterpolationSpace &coarsel, TPZTransform &t, TPZTransfer<STATE> &transfer);
+	void BuildTransferMatrix(TPZInterpolationSpace &coarsel, TPZTransform<> &t, TPZTransfer<STATE> &transfer);
 	
 protected:
-	
+    template<class TVar>
+    void CalcStiffInternal(TPZElementMatrixT<TVar> &ek, TPZElementMatrixT<TVar> &ef);
+    template<class TVar>
+    void CalcResidualInternal(TPZElementMatrixT<TVar> &ef);
+    template<class TVar>
+    void ComputeRequiredDataT(TPZMaterialDataT<TVar> &data,
+									 TPZVec<REAL> &qsi);
+    template<class TVar>
+    void SolutionInternal(TPZVec<REAL> &qsi,int var,TPZVec<TVar> &sol);
+    /// Preferred polynomial order
+	int fPreferredOrder;
+    //@{
+    //! Internal method for actually computing the solution
+    virtual void ReallyComputeSolution(TPZMaterialDataT<STATE> &data);
+    virtual void ReallyComputeSolution(TPZMaterialDataT<CSTATE> &data);
+    //@}
+    template<class TVar>
+    void ReallyComputeSolutionT(TPZMaterialDataT<TVar> &data);
 	/**
 	 * @brief Auxiliary method to expand a vector of shapefunctions and their derivatives to acount for constraints
 	 * @param connectlist (input) vector of all connects to which the element will contribute
@@ -350,7 +396,7 @@ protected:
 	 * if these shapefunctions are dependent upon other shapefunctions (because of constraints) then the vectors
 	 * are expanded to include the value of the independent shapefunctions and their derivatives as well
 	 */
-    void ExpandShapeFunctions(TPZVec<long> &connectlist, TPZVec<int> &dependencyorder, TPZVec<int> &blocksizes, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi);
+    void ExpandShapeFunctions(TPZVec<int64_t> &connectlist, TPZVec<int> &dependencyorder, TPZVec<int> &blocksizes, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi);
 	
 };
 

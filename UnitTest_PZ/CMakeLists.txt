@@ -1,29 +1,39 @@
 # @file neopz/UnitTest_PZ/CMakeList.txt  -- First Cmake file for Unit Testing modules
 
-if(BUILD_UNITTESTING)
-	ENABLE_TESTING()
-
-	set(RUNTIME_OUTPUT_DIRECTORY pz PARENT_SCOPE)
-
-	if(USING_BOOST)
-
-		add_subdirectory(TestTopology)
-		add_subdirectory(TestMatrix)
-		add_subdirectory(TestMesh)
-		add_subdirectory(TestMaterial)
-		add_subdirectory(TestIntegNum)
-
-		source_group(UnitTestTopology FILES ${pztesttopology})
-		source_group(UnitTestMatrix FILES ${pztestmatrix})
-		source_group(UnitTestMesh FILES ${pztestmesh})
-		source_group(UnitTestIntegNum FILES ${pztestintegnum})
-
-		
-
-	else()
-
-		set(pztest ${pztest} ${pztesttopology} ${pztestmatrix} ${pztestmesh} ${pztestintegnum})
-
-	endif()
+enable_testing()
+#in this file (and ONLY in this file) we will define CATCH_CONFIG_MAIN
+add_library(test_library STATIC test_main.cpp)
+if (APPLE)
+  target_compile_definitions(test_library PUBLIC MACOSX)
 endif()
 
+target_link_libraries(test_library PUBLIC pz Catch2::Catch2)
+
+add_subdirectory(TestReducedSpace)
+add_subdirectory(TestAutoPointer)
+add_subdirectory(TestVecTypes)
+add_subdirectory(TestFad)
+add_subdirectory(TestStruct)
+add_subdirectory(TestHCurl)
+add_subdirectory(TestTopology)
+add_subdirectory(TestRefinement)
+add_subdirectory(TestMatrix)
+add_subdirectory(TestDeRham)
+add_subdirectory(TestEigenSolvers)
+add_subdirectory(TestMesh)
+add_subdirectory(TestMaterial)
+add_subdirectory(TestIntegNum)
+add_subdirectory(TestIterator)
+add_subdirectory(TestGeometry)
+add_subdirectory(TestPlasticity)
+add_subdirectory(TestPre)
+add_subdirectory(TestTensor)
+add_subdirectory(TestRandom)
+add_subdirectory(TestBlend)
+add_subdirectory(TestShape)
+add_subdirectory(TestMultithreading)
+add_subdirectory(TestHDivCollapsed)
+
+if(USING_MKL)
+  add_subdirectory(TestSBFem)
+endif()

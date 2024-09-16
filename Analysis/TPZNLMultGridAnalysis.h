@@ -6,28 +6,22 @@
 #ifndef TPZNLMGANALYSIS_H
 #define TPZNLMGANALYSIS_H
 
-#include "pzanalysis.h"
-
-class TPZInterpolatedElement;
-class TPZTransform;
-
-template <class TVar>
-class TPZStepSolver;
+#include <iosfwd>                 // for string, ostream
+#include "TPZLinearAnalysis.h"           // for TPZLinearAnalysis
+#include "pzmatrix.h"             // for TPZFMatrix, TPZMatrix
+#include "pzreal.h"               // for STATE, REAL
+#include "pzstack.h"              // for TPZStack
 
 class TPZCompMesh;
-
-template<class T, class V>
-
-class TPZAvlMap;
-class TPZOneDRef;
-class TPZGeoEl;
+class TPZMaterial;
+template <class TVar> class TPZMatrixSolver;
 
 
 /**
- * @brief Implements multigrid analysis to Non linear problems. Class TPZNonLinMultGridAnalysis derived from TPZAnalysis. \ref analysis "Analysis"
+ * @brief Implements multigrid analysis to Non linear problems. Class TPZNonLinMultGridAnalysis derived from TPZLinearAnalysis. \ref analysis "Analysis"
  * @ingroup Analysis
  */
-class TPZNonLinMultGridAnalysis : public TPZAnalysis {
+class TPZNonLinMultGridAnalysis : public TPZLinearAnalysis {
 	
 	/** @brief Contains the computational meshes of one cycle: V, W, F, etc */
 	TPZStack < TPZCompMesh * > fMeshes;
@@ -62,7 +56,7 @@ public:
 	/** @brief Number of meshes */
 	int NMeshes() {return fMeshes.NElements();}
 	
-	TPZCompMesh *IMesh(long index);
+	TPZCompMesh *IMesh(int64_t index);
 	
 	/**
 	 * @brief It creates a new established computational mesh in the refinement uniform 
@@ -77,12 +71,12 @@ public:
 	/** @brief It generates a new mesh based on the agglomeration of elements of the fine mesh */
 	static TPZCompMesh *AgglomerateMesh(TPZCompMesh *finemesh,int levelnumbertogroup);
 	
-	void SmoothingSolution(REAL tol,int numiter,TPZMaterial * mat,TPZAnalysis &an,int marcha = 0 ,
+	void SmoothingSolution(REAL tol,int numiter,TPZMaterial * mat,TPZLinearAnalysis &an,int marcha = 0 ,
 						   const std::string &dxout = "plotfile.dx");
 	
-	void SmoothingSolution(REAL tol,int numiter,TPZMaterial * mat,TPZAnalysis &an,TPZFMatrix<STATE> &rhs);
+	void SmoothingSolution(REAL tol,int numiter,TPZMaterial * mat,TPZLinearAnalysis &an,TPZFMatrix<STATE> &rhs);
 	
-	void SmoothingSolution2(REAL tol,int numiter,TPZMaterial * mat,TPZAnalysis &an,int marcha,
+	void SmoothingSolution2(REAL tol,int numiter,TPZMaterial * mat,TPZLinearAnalysis &an,int marcha,
 							const std::string &dxout);
 	
 	void ResetReference(TPZCompMesh *aggcmesh);
@@ -96,21 +90,34 @@ public:
 	void OneGridAlgorithm(std::ostream &out,int nummat);
 	
 	void TwoGridAlgorithm(std::ostream &out,int nummat);
-	
-	void CalcResidual(TPZMatrix<STATE> &sol,TPZAnalysis &an,const std::string  &decompose,TPZFMatrix<STATE> &res);
-	
-	void CalcResidual(TPZMatrix<STATE> &sol,TPZFMatrix<STATE> &anres,TPZFMatrix<STATE> &res,TPZAnalysis &an,const std::string &decompose);
-	
-protected:
-	
-	void (*fFunction)(TPZMaterial *mat,TPZCompMesh *cmesh);
-	
+
+	template<class TVar>
+	void CalcResidual(TPZMatrix<TVar> &sol,TPZLinearAnalysis &an,const std::string  &decompose,TPZFMatrix<TVar> &res);
+
+	template<class TVar>
+	void CalcResidual(TPZMatrix<TVar> &sol,TPZFMatrix<TVar> &anres,TPZFMatrix<TVar> &res,TPZLinearAnalysis &an,const std::string &decompose);
+		
 public:
 	
 	void SetAnalysisFunction(void (*fp)(TPZMaterial *mat,TPZCompMesh *cmesh)){
 		fFunction = fp;
 	}
+protected:
+	
+	void (*fFunction)(TPZMaterial *mat,TPZCompMesh *cmesh);
 	
 };
+
+extern template void
+TPZNonLinMultGridAnalysis::CalcResidual<STATE>(
+	TPZMatrix<STATE> &sol, TPZLinearAnalysis &an,
+	const std::string &decompose,
+	TPZFMatrix<STATE> &res);
+
+extern template void
+TPZNonLinMultGridAnalysis::CalcResidual<STATE>(
+    TPZMatrix<STATE> &sol, TPZFMatrix<STATE> &anres,
+	TPZFMatrix<STATE> &res, TPZLinearAnalysis &an,
+	const std::string &decompose);
 
 #endif

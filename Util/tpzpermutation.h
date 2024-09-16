@@ -6,6 +6,7 @@
 #define TPZPERMUTATION_H
 
 #include "pzmanvector.h"
+#include "TPZSavable.h"
 class TPZStream;
 
 /**
@@ -13,7 +14,7 @@ class TPZStream;
  * @brief This class generates all permutations of n values. \ref util "Utility"
  * @author Philippe R. B. Devloo
  */
-class TPZPermutation {
+class TPZPermutation : public TPZSavable {
 public:
 	/** @brief Constructor with number of permutations */
     TPZPermutation(int n);
@@ -27,7 +28,7 @@ public:
     
     /** @brief Applies the current permutation on the vector in and produces the vector out */
     void Permute(const TPZVec<int> &in, TPZVec<int> &out) const;
-    void Permute(const TPZVec<long> &in, TPZVec<long> &out) const;
+    void Permute(const TPZVec<int64_t> &in, TPZVec<int64_t> &out) const;
 
     /** @brief Operator increment */
     void operator++();
@@ -35,11 +36,10 @@ public:
     void operator++(int) { operator++();}
     
     bool IsFirst();
+        int ClassId() const override;
+    void Read(TPZStream &buf, void *context) override;
+    void Write(TPZStream &buf, int withclassid) const override;
     
-    void Read(TPZStream &buf);
-    
-    void Write(TPZStream &buf);
-
 	/** @brief Returns the counter of the permutations */
 	TPZManVector<int> Counter()
 	{

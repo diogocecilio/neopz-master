@@ -9,14 +9,14 @@
 #include <iostream>
 #include "pzmultiphysicselement.h"
 #include "TPZMultiphysicsInterfaceEl.h"
-#include "pzmaterial.h"
-#include "pzbndcond.h"
+#include "TPZMaterial.h"
+#include "TPZBndCond.h"
 #include "pzlog.h"
 #include "pzinterpolationspace.h"
 #include "pzcompelwithmem.h"
 
-#ifdef LOG4CXX
-static LoggerPtr logger(Logger::getLogger("pz.mesh.TPZMultiPhysicsElement"));
+#ifdef PZ_LOG
+static TPZLogger logger("pz.mesh.TPZMultiPhysicsElement");
 #endif
 
 TPZMultiphysicsElement::TPZMultiphysicsElement(TPZCompMesh &mesh, const TPZMultiphysicsElement &copy) : TPZCompEl(mesh,copy)
@@ -49,8 +49,8 @@ void TPZMultiphysicsElement::CreateInterfaces()
         if(!highlist.NElements()) {
             this->CreateInterface(side);//s�tem iguais ou grande => pode criar a interface
         } else {
-            long ns = highlist.NElements();
-            long is;
+            int64_t ns = highlist.NElements();
+            int64_t is;
             for(is=0; is<ns; is++) {//existem pequenos ligados ao lado atual
                 const int higheldim = highlist[is].Reference().Dimension();
                 if(higheldim != InterfaceDimension) continue;
@@ -77,6 +77,11 @@ void TPZMultiphysicsElement::CreateInterfaces()
     }
 }
 
+int TPZMultiphysicsElement::ComputeIntegrationOrder() const {
+    DebugStop();
+    return 0;
+}
+
 TPZMultiphysicsInterfaceElement * TPZMultiphysicsElement::CreateInterface(int side)
 {
 	//  LOGPZ_INFO(logger, "Entering CreateInterface");
@@ -84,7 +89,7 @@ TPZMultiphysicsInterfaceElement * TPZMultiphysicsElement::CreateInterface(int si
 	
 	TPZGeoEl *ref = Reference();
 	if(!ref) {
-		LOGPZ_WARN(logger, "Exiting CreateInterface Null reference reached - NULL interface returned");
+		LOGPZ_ERROR(logger, "Exiting CreateInterface Null reference reached - NULL interface returned");
 		return newcreatedinterface;
 	}
 	
@@ -92,11 +97,11 @@ TPZMultiphysicsInterfaceElement * TPZMultiphysicsElement::CreateInterface(int si
 	TPZStack<TPZCompElSide> list;
 	list.Resize(0);
 	thisside.EqualLevelElementList(list,0,0);//retorna distinto ao atual ou nulo
-	long size = list.NElements();
+	int64_t size = list.NElements();
 	//espera-se ter os elementos computacionais esquerdo e direito
 	//ja criados antes de criar o elemento interface
     // try to create an interface element between myself and an equal sized neighbour
-    for (long is=0; is<size; is++)
+    for (int64_t is=0; is<size; is++)
     {
 		//Interface has the same material of the neighbour with lesser dimension.
 		//It makes the interface have the same material of boundary conditions (TPZCompElDisc with interface dimension)
@@ -141,50 +146,13 @@ TPZMultiphysicsInterfaceElement * TPZMultiphysicsElement::CreateInterface(int si
                 continue;
             }
         }
-        
-        
-//        matid = this->Mesh()->Reference()->InterfaceMaterial(this->Reference()->MaterialId(), list[0].Element()->Reference()->MaterialId());
-//		if (matid == GMESHNOMATERIAL && thisdim == neighbourdim){
-//			//      matid = this->Material()->Id();
-//            continue;
-//        }
-//        else if(matid == GMESHNOMATERIAL && thisdim != neighbourdim)
-//        {
-//            // verify if either of the neighbours is a boundary condition
-//			if (thisdim < neighbourdim) 
-//            {
-//                // return the material id of boundary condition IF the associated material is derived from bndcond
-//                TPZMaterial *mat = this->Material();
-//                TPZBndCond *bnd = dynamic_cast<TPZBndCond *>(mat);
-//                if(bnd)
-//                {
-//                    matid = this->Material()->Id();
-//                }
-//                else {
-//                    continue;
-//                }
-//            }
-//			else 
-//            {
-//                TPZMaterial *mat = list[is].Element()->Material();
-//                TPZBndCond *bnd = dynamic_cast<TPZBndCond *>(mat);
-//                if (bnd) {
-//                    matid = bnd->Id();
-//                }
-//                else {
-//                    continue;
-//                }
-//            }
-//		}
-		
-		long index;
 		
 		
 		TPZGeoEl *gel = ref->CreateBCGeoEl(side,matid); //isto acertou as vizinhanas da interface geometrica com o atual
 		if(!gel){
 			DebugStop();
-#ifdef LOG4CXX
-            if (logger->isDebugEnabled())
+#ifdef PZ_LOG
+            if (logger.isDebugEnabled())
 			{
 				std::stringstream sout;
 				sout << "CreateBCGeoEl devolveu zero!@@@@";
@@ -199,22 +167,22 @@ TPZMultiphysicsInterfaceElement * TPZMultiphysicsElement::CreateInterface(int si
 			TPZCompElSide thiscompelside(this, thisside.Side());
 			TPZCompElSide neighcompelside(list[is]);
             if (!withmem) {
-                newcreatedinterface = new TPZMultiphysicsInterfaceElement(*fMesh,gel,index,thiscompelside,neighcompelside);
+                newcreatedinterface = new TPZMultiphysicsInterfaceElement(*fMesh,gel,thiscompelside,neighcompelside);
             }
             else
             {
-                newcreatedinterface = new TPZCompElWithMem<TPZMultiphysicsInterfaceElement>(*fMesh,gel,index,thiscompelside,neighcompelside);
+                newcreatedinterface = new TPZCompElWithMem<TPZMultiphysicsInterfaceElement>(*fMesh,gel,thiscompelside,neighcompelside);
             }
 		} else {
 			//caso contrario ou caso ambos sejam de volume
 			TPZCompElSide thiscompelside(this, thisside.Side());
 			TPZCompElSide neighcompelside(list[is]);
             if (!withmem) {
-                newcreatedinterface = new TPZMultiphysicsInterfaceElement(*fMesh,gel,index,neighcompelside,thiscompelside);
+                newcreatedinterface = new TPZMultiphysicsInterfaceElement(*fMesh,gel,neighcompelside,thiscompelside);
             }
             else
             {
-                newcreatedinterface = new TPZCompElWithMem<TPZMultiphysicsInterfaceElement>(*fMesh,gel,index,neighcompelside,thiscompelside);
+                newcreatedinterface = new TPZCompElWithMem<TPZMultiphysicsInterfaceElement>(*fMesh,gel,neighcompelside,thiscompelside);
             }
 		}
 		
@@ -276,7 +244,6 @@ TPZMultiphysicsInterfaceElement * TPZMultiphysicsElement::CreateInterface(int si
 		//int lowside = lower.Side();
 		//existem esquerdo e direito: this e lower
 		TPZGeoEl *gel = ref->CreateBCGeoEl(side,matid);
-		long index;
 		
         bool withmem = fMesh->ApproxSpace().NeedsMemory();
         
@@ -285,17 +252,17 @@ TPZMultiphysicsInterfaceElement * TPZMultiphysicsElement::CreateInterface(int si
 			TPZCompElSide thiscompelside(this, thisside.Side());
 			TPZCompElSide lowcelcompelside(lower);
             if (!withmem) {
-                newcreatedinterface = new TPZMultiphysicsInterfaceElement(*fMesh,gel,index,thiscompelside,lowcelcompelside);
+                newcreatedinterface = new TPZMultiphysicsInterfaceElement(*fMesh,gel,thiscompelside,lowcelcompelside);
             }
             else
             {
-                newcreatedinterface = new TPZCompElWithMem<TPZMultiphysicsInterfaceElement>(*fMesh,gel,index,thiscompelside,lowcelcompelside);
+                newcreatedinterface = new TPZCompElWithMem<TPZMultiphysicsInterfaceElement>(*fMesh,gel,thiscompelside,lowcelcompelside);
             }
 		} else {
 			TPZCompElSide thiscompelside(this, thisside.Side());
 			TPZCompElSide lowcelcompelside(lower);
-#ifdef LOG4CXX_KEEP
-            if (logger->isDebugEnabled())
+#ifdef PZ_LOG_KEEP
+            if (logger.isDebugEnabled())
 			{
 				std::stringstream sout;
 				sout << __PRETTY_FUNCTION__ << " left element";
@@ -309,11 +276,11 @@ TPZMultiphysicsInterfaceElement * TPZMultiphysicsElement::CreateInterface(int si
 #endif
             if (!withmem)
             {
-                newcreatedinterface = new TPZMultiphysicsInterfaceElement(*fMesh,gel,index,lowcelcompelside,thiscompelside);
+                newcreatedinterface = new TPZMultiphysicsInterfaceElement(*fMesh,gel,lowcelcompelside,thiscompelside);
             }
             else
             {
-                newcreatedinterface = new TPZCompElWithMem<TPZMultiphysicsInterfaceElement>(*fMesh,gel,index,lowcelcompelside,thiscompelside);
+                newcreatedinterface = new TPZCompElWithMem<TPZMultiphysicsInterfaceElement>(*fMesh,gel,lowcelcompelside,thiscompelside);
             }
 		}
 		
@@ -368,11 +335,13 @@ void TPZMultiphysicsElement::RemoveInterfaces(){
 		//thisside.EqualLevelElementList(list,0,0);// monta a lista de elementos iguais
 		RemoveInterface(is);// chame remove interface do elemento atual (para o side atual)
 		thisside.HigherLevelElementList(list,0,0);// procurar na lista de elementos menores (todos)
-		long size = list.NElements(),i;            // 'isto pode incluir elementos interfaces'
+		int64_t size = list.NElements(),i;            // 'isto pode incluir elementos interfaces'
 		//tirando os elementos de interface da lista
 		for(i=0;i<size;i++){
 			if(list[i].Element()->Type() == EInterface) {
+#ifdef PZ_LOG
 				LOGPZ_DEBUG(logger, "Removing interface element from the list of higher level elements");
+#endif
 				//This need to be done because otherwise list could be invalidated when an interface is removed.
 				list[i] = TPZCompElSide();//tirando interface
 			}
@@ -408,11 +377,11 @@ void TPZMultiphysicsElement::RemoveInterface(int side) {
 	list.Resize(0);
 	TPZCompElSide thisside(this,side);
 	thisside.EqualLevelElementList(list,0,0);// monta a lista de elementos iguais
-	long size = list.NElements(), i=-1;
+	int64_t size = list.NElements(), i=-1;
 	while(++i < size) if(list[i].Element()->Type() == EInterface) break;// procura aquele que e derivado de TPZInterfaceEl
 	if(!size || i == size){
-#ifdef LOG4CXX
-        if (logger->isDebugEnabled())
+#ifdef PZ_LOG
+        if (logger.isDebugEnabled())
 		{
 			std::stringstream sout;
 			sout << __PRETTY_FUNCTION__ << " no interface element found\n";
@@ -424,9 +393,9 @@ void TPZMultiphysicsElement::RemoveInterface(int side) {
 	}
 	// aqui existe a interface
 	TPZCompEl *cel = list[i].Element();
-#ifdef LOG4CXX
+#ifdef PZ_LOG
 	TPZGeoEl *gel = cel->Reference();
-    if (logger->isDebugEnabled())
+    if (logger.isDebugEnabled())
 	{
 		std::stringstream sout;
 		sout << __PRETTY_FUNCTION__ << " element index " << Index() << " side " << std::endl;
@@ -437,25 +406,62 @@ void TPZMultiphysicsElement::RemoveInterface(int side) {
 	delete cel;
 }
 
-void TPZMultiphysicsElement::ComputeRequiredData(TPZVec<REAL> &point, TPZVec<TPZTransform> &trvec, TPZVec<TPZMaterialData> &datavec)
+template<class TVar>
+void TPZMultiphysicsElement::ComputeRequiredDataT(TPZVec<REAL> &point, TPZVec<TPZTransform<> > &trvec, std::map<int, TPZMaterialDataT<TVar>> &datavec   )
 {
-    long nmeshes = NMeshes();
-    for (long iel = 0; iel<nmeshes; iel++) {
-        TPZCompEl *cel = Element(iel);
+    for (auto &it : datavec) {
+        int elindex = it.first;
+        TPZCompEl *cel = Element(elindex);
+#ifdef PZDEBUG
+        if(!cel) DebugStop();
+#endif
         TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *>(cel);
         if (!intel) {
-            continue;
+            DebugStop();
         }
         TPZGeoEl *gel = intel->Reference();
         TPZManVector<REAL> locpt(gel->Dimension());
-        trvec[iel].Apply(point, locpt);
-        datavec[iel].intGlobPtIndex = -1;
-        intel->ComputeRequiredData(datavec[iel], locpt);
+        trvec[elindex].Apply(point, locpt);
+        datavec[elindex].intGlobPtIndex = -1;
+        intel->ComputeRequiredData(it.second, locpt);
     }
 }
 
 
+template<class TVar>
+void TPZMultiphysicsElement::ComputeRequiredDataT(TPZVec<REAL> &intpointtemp, TPZVec<TPZTransform<> > &trvec, TPZVec<TPZMaterialDataT<TVar>> &datavec)
+{
+    int64_t ElemVecSize = NMeshes();
+    for (int64_t iref = 0; iref < ElemVecSize; iref++)
+    {
+        TPZInterpolationSpace *msp  = dynamic_cast <TPZInterpolationSpace *>(Element(iref));
+        if (!msp) {
+            continue;
+        }
+        
+        TPZManVector<REAL,3> intpoint(msp->Reference()->Dimension(),0.);
+        
+        trvec[iref].Apply(intpointtemp, intpoint);
+        
+        msp->ComputeRequiredData(datavec[iref], intpoint);
+    }
+}//ComputeRequiredData
+
+
 void TPZMultiphysicsElement::TransferMultiphysicsElementSolution()
+{
+    if(fMesh->GetSolType() == EReal){
+        return TransferMultiphysicsElementSolutionT<STATE>();
+    }
+    if(fMesh->GetSolType() == EComplex){
+        return TransferMultiphysicsElementSolutionT<CSTATE>();
+    }
+    PZError<<__PRETTY_FUNCTION__<<'\n';
+    PZError<<"Invalid type! Aborting...\n";
+    DebugStop();
+}
+template<class TVar>
+void TPZMultiphysicsElement::TransferMultiphysicsElementSolutionT()
 {
     int nmeshes = this->NMeshes();
     int icon = 0;
@@ -465,12 +471,15 @@ void TPZMultiphysicsElement::TransferMultiphysicsElementSolution()
         if (!cel) {
             continue;
         }
+        if(!this->IsActiveApproxSpaces(imesh)){
+            continue;
+        }
         int ncon = cel->NConnects();
         for (int iconloc = 0; iconloc < ncon; iconloc++, icon++) {
             TPZConnect &con = this->Connect(icon);
             TPZConnect &conloc = cel->Connect(iconloc);
-            long seq = con.SequenceNumber();
-            long seqloc = conloc.SequenceNumber();
+            int64_t seq = con.SequenceNumber();
+            int64_t seqloc = conloc.SequenceNumber();
             int blsz = this->Mesh()->Block().Size(seq);
 
 #ifdef PZDEBUG
@@ -481,9 +490,11 @@ void TPZMultiphysicsElement::TransferMultiphysicsElementSolution()
 #endif
             int pos = this->Mesh()->Block().Position(seq);
             int posloc = cel->Mesh()->Block().Position(seqloc);
+            TPZFMatrix<TVar> &celSol = cel->Mesh()->Solution();
+            TPZFMatrix<TVar> &meshSol = this->Mesh()->Solution();
             for (int ibl = 0; ibl < blsz; ibl++) {
                 for (int iload = 0; iload < nload; iload++) {
-                    cel->Mesh()->Solution()(posloc+ibl,iload) = this->Mesh()->Solution()(pos+ibl,iload);
+                    celSol(posloc+ibl,iload) = meshSol(pos+ibl,iload);
                 }
 
             }
@@ -491,17 +502,31 @@ void TPZMultiphysicsElement::TransferMultiphysicsElementSolution()
     }
 }
 
-void TPZMultiphysicsElement::EvaluateError(  void (*fp)(const TPZVec<REAL> &loc,TPZVec<STATE> &val,TPZFMatrix<STATE> &deriv),
-                                                     TPZVec<REAL> &errors,TPZBlock<REAL> * /*flux */){
+void TPZMultiphysicsElement::EvaluateError(TPZVec<REAL> &errors, bool store_errors){
     
     DebugStop(); // Should never enter here
     
 
 }//method
 
-void TPZMultiphysicsElement::EvaluateError(TPZFunction<STATE> &func,
-                           TPZVec<STATE> &errors)
+void TPZMultiphysicsElement::GetConnectMeshPairs(TPZVec<std::pair<int64_t,int>> &connectpairs)
 {
-    DebugStop();
+    int nconnect = NConnects();
+    connectpairs.Resize(nconnect);
+    int nmeshes = NMeshes();
+    int count = 0;
+    for (int imesh = 0; imesh < nmeshes; imesh++) {
+        if(!fActiveApproxSpace[imesh]) continue;
+        TPZCompEl *cel = Element(imesh);
+        if(!cel) continue;
+        int nc = cel->NConnects();
+        for (int ic=0; ic < nc; ic++) {
+            connectpairs[count+ic] = std::pair<int64_t, int>(ConnectIndex(count+ic),imesh);
+        }
+        count += nc;
+    }
+#ifdef PZDEBUG
+    if(count != nconnect) DebugStop();
+#endif
 }
 

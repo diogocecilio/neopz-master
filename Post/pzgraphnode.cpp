@@ -5,6 +5,7 @@
 
 #include "pzgraphnode.h"
 #include "pzgraphel.h"
+#include "pzgraphmesh.h"
 
 using namespace std;
 
@@ -30,7 +31,28 @@ TPZGraphNode::~TPZGraphNode(void)
 {
 }
 
-long TPZGraphNode::FirstPoint(void)
+int TPZGraphNode::ClassId() const {
+    return Hash("TPZGraphNode");
+}
+
+void TPZGraphNode::Read(TPZStream& buf, void* context) {
+    fConnect = dynamic_cast<TPZConnect *>(TPZPersistenceManager::GetInstance(&buf));
+    fGraphMesh = dynamic_cast<TPZGraphMesh *>(TPZPersistenceManager::GetInstance(&buf));
+    fGraphEl = dynamic_cast<TPZGraphEl *>(TPZPersistenceManager::GetInstance(&buf));
+    buf.Read(&fPointNum);
+    buf.Read(&fSequenceNumber);
+}
+
+void TPZGraphNode::Write(TPZStream& buf, int withclassid) const {
+    TPZPersistenceManager::WritePointer(fConnect, &buf);
+    TPZPersistenceManager::WritePointer(fGraphMesh, &buf);
+    TPZPersistenceManager::WritePointer(fGraphEl, &buf);
+    buf.Write(&fPointNum);
+    buf.Write(&fSequenceNumber);
+}
+
+
+int64_t TPZGraphNode::FirstPoint(void)
 {
 	return(fPointNum);
 }
@@ -40,7 +62,7 @@ void TPZGraphNode::SetElement(TPZGraphEl *gel)
 	fGraphEl = gel;
 }
 
-void TPZGraphNode::SetPointNumber(long num)
+void TPZGraphNode::SetPointNumber(int64_t num)
 {
 	fPointNum = num;
 }
@@ -72,7 +94,7 @@ void TPZGraphNode::DrawSolution(TPZVec<int> &solind, TPZDrawStyle st) {
 	if(fGraphEl) fGraphEl->DrawSolution(this,solind,st);
 }
 
-void TPZGraphNode::DrawSolution(TPZBlock<REAL> &bl, TPZDrawStyle st) {
+void TPZGraphNode::DrawSolution(TPZBlock &bl, TPZDrawStyle st) {
 	if(fGraphEl) fGraphEl->DrawSolution(this,bl,st);
 }
 

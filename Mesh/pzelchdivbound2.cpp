@@ -6,88 +6,59 @@
 
 #include "pzelchdivbound2.h"
 #include "pzgeoel.h"
-#include "pzmaterial.h"
+#include "TPZMaterial.h"
 #include "pzlog.h"
 #include "TPZShapeDisc.h"
 #include "TPZCompElDisc.h"
-#include "pzmaterialdata.h"
+#include "TPZMaterialDataT.h"
 #include "pzelchdiv.h"
+#include "TPZShapeHDivBound.h"
+#include "TPZShapeHDivConstantBound.h"
+#include "TPZShapeHCurlNoGrads.h"
 
-
-#ifdef LOG4CXX
-static LoggerPtr logger(Logger::getLogger("pz.mesh.TPZCompElHDivBound2"));
+#ifdef PZ_LOG
+static TPZLogger logger("pz.mesh.TPZCompElHDivBound2");
 #endif
 
 template<class TSHAPE>
-TPZCompElHDivBound2<TSHAPE>::TPZCompElHDivBound2(TPZCompMesh &mesh, TPZGeoEl *gel, long &index) :
-TPZIntelGen<TSHAPE>(mesh,gel,index,1), fSideOrient(1){
+TPZCompElHDivBound2<TSHAPE>::TPZCompElHDivBound2(TPZCompMesh &mesh, TPZGeoEl *gel, const HDivFamily hdivfam) :
+TPZRegisterClassId(&TPZCompElHDivBound2::ClassId),
+TPZIntelGen<TSHAPE>(mesh,gel,1), fSideOrient(1), fhdivfam(hdivfam){
 		
 	//int i;
 	this->TPZInterpolationSpace::fPreferredOrder = mesh.GetDefaultOrder();
 	//for(i=0; i<TSHAPE::NSides; i++) this->fConnectIndexes[i]=-1;
-		this->fConnectIndexes[0]=-1;
-	gel->SetReference(this);
-    TPZIntelGen<TSHAPE>::fConnectIndexes.resize(1);
+  this->fConnectIndexes[0]=-1;
+  gel->SetReference(this);
 		
-    this->fConnectIndexes[0] = this->CreateMidSideConnect(TSHAPE::NSides-1);
-#ifdef LOG4CXX
-    if (logger->isDebugEnabled())
+  this->fConnectIndexes[0] = this->CreateMidSideConnect(TSHAPE::NSides-1);
+#ifdef PZ_LOG
+  if (logger.isDebugEnabled())
 		{
-				std::stringstream sout;
-				sout << "After creating boundary flux connect " << this->fConnectIndexes[0] << std::endl;
-				//	this->Print(sout);
-				LOGPZ_DEBUG(logger,sout.str())
-		}
+      std::stringstream sout;
+      sout << "After creating boundary flux connect " << this->fConnectIndexes[0] << std::endl;
+      //	this->Print(sout);
+      LOGPZ_DEBUG(logger,sout.str())
+        }
 #endif
     
-    mesh.ConnectVec()[this->fConnectIndexes[0]].IncrementElConnected();
+  mesh.ConnectVec()[this->fConnectIndexes[0]].IncrementElConnected();
     
 		
-	//TPZGeoElSide myInnerSide(gel,gel->NSides()-1);
-//	TPZGeoElSide neigh = myInnerSide.Neighbour();
-//	while(!neigh.Reference())
-//	{
-//		neigh = neigh.Neighbour();
-//	}
-//	if(neigh == myInnerSide)
-//	{
-//		/**
-//		 O codigo pressupoe que os elementos computacionais 2D sao criados antes dos 1D.
-//		 Quando serao criados os elementos computacionais 1D, os respectivos vizinhos 2D sao encontrados.
-//		 Situacoes assim ocorrem (neste algoritmo) quando eh realizado refinamento uniforme, pois os primeiros elementos sem descendentes sao os 2D (e depois os descendentes 1D de contorno)
-//		 
-//		 Ocorreu o problema quando tentou-se realizar o refinamento do quadrilatero em 02 triangulos, em que o quadrilatero apresenta descendentes e as arestas nao.
-//		 Neste caso a criacao de elementos computacionais eh iniciada pelos 1D, fazendo com que nao encontrem vizinhos computacionais 2D.
-//		 Com isso a variavel int connectIndex0 eh setada com -1, dando o BUG observado.
-//		 */
-//		std::cout << "Nao foi encontrado elemento 2D com elemento computacional inicializado!!!\n"; 
-//		DebugStop();
-//	}
-//	TPZCompElSide compneigh(neigh.Reference());
-//    fneighbour = compneigh;
-//	int sideoffset = neigh.Element()->NSides()-neigh.Side();
-//	int neighnconnects = compneigh.Element()->NConnects();
-//	int connectnumber = neighnconnects-sideoffset;
-//	TPZInterpolatedElement *intel = dynamic_cast<TPZInterpolatedElement *> (compneigh.Element());
-//	connectnumber = intel->SideConnectLocId(0,compneigh.Side());
-//	int connectIndex0 = compneigh.Element()->ConnectIndex(connectnumber);
-//	
-//	this->fConnectIndexes[0] = connectIndex0;
-//	mesh.ConnectVec()[connectIndex0].IncrementElConnected();
 	
-#ifdef LOG4CXX
-    if (logger->isDebugEnabled())
-	{
-		std::stringstream sout;
+#ifdef PZ_LOG
+  if (logger.isDebugEnabled())
+    {
+      std::stringstream sout;
 		
-		sout << std::endl<<" Criando Connects: "<< std::endl;
-		for(int j=0; j< NConnects();j++)
-		{
-			sout<<" "<< this->fConnectIndexes[j];
+      sout << std::endl<<" Criando Connects: "<< std::endl;
+      for(int j=0; j< NConnects();j++)
+        {
+          sout<<" "<< this->fConnectIndexes[j];
 			
-		}
-		LOGPZ_DEBUG(logger,sout.str())
-	}
+        }
+      LOGPZ_DEBUG(logger,sout.str())
+        }
 #endif
 	int sideorder = EffectiveSideOrder(TSHAPE::NSides-1);
 	sideorder = 2*sideorder;
@@ -97,49 +68,61 @@ TPZIntelGen<TSHAPE>(mesh,gel,index,1), fSideOrient(1){
 	//TPZManVector<int,3> order(3,20);
 	this->fIntRule.SetOrder(order);
 
-#ifdef LOG4CXX
-    if (logger->isDebugEnabled())
-	 {
-         std::stringstream sout;
-         sout << "Finalizando criacao do elemento ";
-         this->Print(sout);
-         LOGPZ_DEBUG(logger,sout.str())
-	 }
+
+    if (fhdivfam == HDivFamily::EHDivConstant) {
+        // For HDiv constant, polynomial order was compatibilized in connectorders, 
+        // see TPZShapeHDivConstantBound<TSHAPE>::Initialize. So now we need to update
+        // the number of shape functions and also the integration rule
+        if (TSHAPE::Type() == ETriangle || TSHAPE::Type() == EOned){
+            for (int icon = 0; icon < this->NConnects(); icon++)
+            {
+                TPZConnect &c = this->Connect(icon);
+                int nShapeF = NConnectShapeF(icon,c.Order());
+                if (c.NShape() != nShapeF){
+                    DebugStop();
+                }
+            }
+        }
+    }
+
+#ifdef PZ_LOG
+  if (logger.isDebugEnabled())
+    {
+      std::stringstream sout;
+      sout << "Finalizando criacao do elemento ";
+      this->Print(sout);
+      LOGPZ_DEBUG(logger,sout.str())
+        }
 #endif
 	 
 }
 
 template<class TSHAPE>
 TPZCompElHDivBound2<TSHAPE>::TPZCompElHDivBound2(TPZCompMesh &mesh, const TPZCompElHDivBound2<TSHAPE> &copy) :
-TPZIntelGen<TSHAPE>(mesh,copy), fSideOrient(copy.fSideOrient)
+TPZRegisterClassId(&TPZCompElHDivBound2::ClassId),
+TPZIntelGen<TSHAPE>(mesh,copy), fSideOrient(copy.fSideOrient), fConnectIndexes(copy.fConnectIndexes), fhdivfam(copy.fhdivfam)
 {
-//	for(int i=0;i<TSHAPE::NSides;i++)
-//	{
-//		this-> fConnectIndexes[i] = copy.fConnectIndexes[i];
-//	}
-    long index = copy.fneighbour.Element()->Index();
-    TPZCompEl *cel = this->Mesh()->ElementVec()[index];
-    if (!cel) {
-        DebugStop();
-    }
-    fneighbour = TPZCompElSide(cel,copy.fneighbour.Side());
+#ifdef PZDEBUG
+    if(fConnectIndexes[0] != copy.fConnectIndexes[0]) DebugStop();
+#endif
 }
 
 // NAO TESTADO
 template<class TSHAPE>
 TPZCompElHDivBound2<TSHAPE>::TPZCompElHDivBound2(TPZCompMesh &mesh,
 												 const TPZCompElHDivBound2<TSHAPE> &copy,
-												 std::map<long,long> & gl2lcConMap,
-												 std::map<long,long> & gl2lcElMap) :
-TPZIntelGen<TSHAPE>(mesh,copy,gl2lcConMap,gl2lcElMap), fSideOrient(copy.fSideOrient)
+												 std::map<int64_t,int64_t> & gl2lcConMap,
+												 std::map<int64_t,int64_t> & gl2lcElMap) :
+TPZRegisterClassId(&TPZCompElHDivBound2::ClassId),
+TPZIntelGen<TSHAPE>(mesh,copy,gl2lcConMap,gl2lcElMap), fSideOrient(copy.fSideOrient), fhdivfam(copy.fhdivfam)
 {
 	
 	this-> fPreferredOrder = copy.fPreferredOrder;
 	int i;
 	for(i=0;i<TSHAPE::NSides;i++)
 	{
-		long lcIdx = -1;
-		long glIdx = copy.fConnectIndexes[i];
+		int64_t lcIdx = -1;
+		int64_t glIdx = copy.fConnectIndexes[i];
 		if(glIdx == -1)
 		{
 			// nothing to clone
@@ -162,23 +145,14 @@ TPZIntelGen<TSHAPE>(mesh,copy,gl2lcConMap,gl2lcElMap), fSideOrient(copy.fSideOri
 		}
 		this-> fConnectIndexes[i] = lcIdx;
 	}
-	//   gl2lcElMap[copy.fIndex] = this->Index();
     
-    long neiIdx = copy.fneighbour.Element()->Index();
-    if(gl2lcElMap.find(neiIdx)==gl2lcElMap.end())
-    {
-        DebugStop();
-    }
-    TPZCompEl *cel = mesh.ElementVec()[gl2lcElMap[neiIdx]];
-    if (!cel) {
-        DebugStop();
-    }
-    fneighbour = TPZCompElSide(cel,copy.fneighbour.Side());
 }
 
 // TESTADO
 template<class TSHAPE>
-TPZCompElHDivBound2<TSHAPE>::TPZCompElHDivBound2() : TPZIntelGen<TSHAPE>(),fneighbour()
+TPZCompElHDivBound2<TSHAPE>::TPZCompElHDivBound2() : 
+TPZRegisterClassId(&TPZCompElHDivBound2::ClassId),
+TPZIntelGen<TSHAPE>()
 {
 	this->fPreferredOrder = -1;
 	int i;
@@ -191,10 +165,9 @@ TPZCompElHDivBound2<TSHAPE>::TPZCompElHDivBound2() : TPZIntelGen<TSHAPE>(),fneig
 template<class TSHAPE>
 TPZCompElHDivBound2<TSHAPE>::~TPZCompElHDivBound2(){
     TPZGeoEl *gel = this->Reference();
-    if (gel->Reference() != this) {
-        // tototototo
+    if(!gel) return;
+    if (gel && gel->Reference() != this) {
         return;
-        DebugStop();
     }
     int side = TSHAPE::NSides-1;
     TPZGeoElSide gelside(this->Reference(),side);
@@ -206,19 +179,25 @@ TPZCompElHDivBound2<TSHAPE>::~TPZCompElHDivBound2(){
         c.RemoveDepend();
     }
     gelside.HigherLevelCompElementList3(celstack, 0, 1);
-    long ncel = celstack.size();
-    for (long el=0; el<ncel; el++) {
-        TPZCompElSide celside = celstack[el];
-        TPZCompEl *cel = celside.Element();
+    int64_t ncel = celstack.size();
+    for (int64_t el=0; el<ncel; el++) {
+        TPZCompElSide celsidesmall = celstack[el];
+        TPZGeoElSide gelsidesmall = celsidesmall.Reference();
+        if (gelsidesmall.Dimension() != gel->Dimension()) {
+            continue;
+        }
+        TPZCompEl *cel = celsidesmall.Element();
         TPZInterpolatedElement *intel = dynamic_cast<TPZInterpolatedElement *>(cel);
         if (!intel) {
             DebugStop();
         }
-        int cindex = intel->SideConnectLocId(0, celside.Side());
+        int cindex = intel->SideConnectLocId(0, celsidesmall.Side());
         TPZConnect &c = intel->Connect(cindex);
         c.RemoveDepend();
     }
-    gel->ResetReference();
+    if (gel){
+        gel->ResetReference();
+    }
 
 }
 
@@ -255,7 +234,7 @@ int TPZCompElHDivBound2<TSHAPE>::NConnects() const {
 }
 
 template<class TSHAPE>
-void TPZCompElHDivBound2<TSHAPE>::SetConnectIndex(int i, long connectindex)
+void TPZCompElHDivBound2<TSHAPE>::SetConnectIndex(int i, int64_t connectindex)
 {
 	if(i)
 	{
@@ -268,12 +247,19 @@ void TPZCompElHDivBound2<TSHAPE>::SetConnectIndex(int i, long connectindex)
 template<class TSHAPE>
 int TPZCompElHDivBound2<TSHAPE>::NConnectShapeF(int connect, int connectorder) const
 {
-	if(connect == 0)
-	{
-		
-		TPZManVector<int,22> order(TSHAPE::NSides-TSHAPE::NCornerNodes,connectorder);
-        return TSHAPE::NShapeF(order);
+#ifdef DEBUG
+    if (connect < 0 || connect > TSHAPE::NFacets) {
+        DebugStop();
     }
+#endif
+
+    if(connect == 0)
+    {
+        if(connectorder == 0) return 1;
+        TPZManVector<int,22> order(TSHAPE::NSides-TSHAPE::NCornerNodes,connectorder);
+        return TSHAPE::NShapeF(order);
+    }    
+    
     return -1;
 }
 
@@ -329,7 +315,7 @@ void TPZCompElHDivBound2<TSHAPE>::SetSideOrder(int side, int order) {
 	int connectaux= SideConnectLocId(0,side);
 	if(connectaux<0 || connectaux > this-> NConnects()) {
 		PZError << "TPZCompElHDiv::SetSideOrder. Bad paramenter side " << side << " order " << order << std::endl;
-#ifdef LOG4CXX
+#ifdef PZ_LOG
 		std::stringstream sout;
 		sout << __PRETTY_FUNCTION__ << " Bad side or order " << side << " order " << order;
 		LOGPZ_DEBUG(logger,sout.str())
@@ -338,7 +324,7 @@ void TPZCompElHDivBound2<TSHAPE>::SetSideOrder(int side, int order) {
 	}
 	TPZConnect &c = this->Connect(connectaux);
     c.SetOrder(order,this->fConnectIndexes[connectaux]);
-    long seqnum = c.SequenceNumber();
+    int64_t seqnum = c.SequenceNumber();
     int nvar = 1;
     TPZMaterial * mat =this-> Material();
     if(mat) nvar = mat->NStateVariables();
@@ -361,7 +347,7 @@ int TPZCompElHDivBound2<TSHAPE>::ConnectOrder(int connect) const
 	
 	if (connect < 0 || connect >= this->NConnects())
 	{
-#ifdef LOG4CXX
+#ifdef PZ_LOG
 		{
 			std::stringstream sout;
 			sout << "Connect index out of range connect " << connect <<
@@ -376,7 +362,7 @@ int TPZCompElHDivBound2<TSHAPE>::ConnectOrder(int connect) const
 		std::stringstream sout;
 		sout << __PRETTY_FUNCTION__ << " connect " << connect
 		<< " is not initialized" << std::endl;
-#ifdef LOG4CXX
+#ifdef PZ_LOG
 		LOGPZ_ERROR(logger,sout.str());
 		DebugStop();
 #else
@@ -398,80 +384,46 @@ void TPZCompElHDivBound2<TSHAPE>::InitMaterialData(TPZMaterialData &data)
 	TPZIntelGen<TSHAPE>::InitMaterialData(data);
     data.fShapeType = TPZMaterialData::EScalarShape;
 	
-#ifdef LOG4CXX
-    if (logger->isDebugEnabled())
+#ifdef PZ_LOG
+    if (logger.isDebugEnabled())
 	{
 		LOGPZ_DEBUG(logger,"Initializing normal vectors")
 	}
 #endif
-	
-	//data.fVecShapeIndex=true;
-	/*
-	TPZGeoElSide gelside(this->Reference(),TSHAPE::NSides-1);
-	TPZGeoElSide neighbour = gelside.Neighbour();
-	while(gelside != neighbour && neighbour.Element()->Dimension() != TSHAPE::Dimension+1)
-	{
-		neighbour = neighbour.Neighbour();
-	}
-	if(neighbour.Element()->Dimension() != TSHAPE::Dimension+1)
-	{
-		DebugStop();
-	}
-	TPZGeoEl *neighel = neighbour.Element();
-	TPZManVector<int,9> normalsides;
-//    TPZFNMatrix<100,REAL> normalvec;
-	neighel->ComputeNormals(neighbour.Side(),data.fNormalVec, normalsides);
-//#ifdef LOG4CXX
-//	{
-//		std::stringstream sout;
-//		sout << "normal side depois do ComputeNormals " << normalsides << std::endl;
-//		LOGPZ_DEBUG(logger,sout.str())
-//	}
-//#endif
-	
-	// relate the sides indicated in vecindex to the sides of the current element
-	long nvec = normalsides.NElements();
-	long ivec;
-	for(ivec=0; ivec<nvec; ivec++)
-	{
-		TPZGeoElSide neigh(neighel,normalsides[ivec]);
-//#ifdef LOG4CXX
-//		{
-//			std::stringstream sout;
-//			sout << "normal side depois do TPZGeoElSide " << normalsides << std::endl;
-//			LOGPZ_DEBUG(logger,sout.str())
-//		}
-//#endif
-		while(neigh.Element() != this->Reference())
-		{
-			
-			neigh = neigh.Neighbour();
-		}
-		
-		normalsides[ivec]=neigh.Side();
-	}
-	IndexShapeToVec(normalsides,data.fVecShapeIndex);
-	data.numberdualfunctions = 0;
-#ifdef LOG4CXX
-	{
-		std::stringstream sout;
-		data.fNormalVec.Print("Normal vectors", sout);
-		sout << "Vector/Shape indexes " << data.fVecShapeIndex << std::endl;
-		LOGPZ_DEBUG(logger,sout.str())
-	}
-#endif
-	*/
+    TPZGeoEl *gel = this->Reference();
+    int nc = gel->NCornerNodes();
+    TPZManVector<int64_t,8> id(nc);
+    for (int ic=0; ic<nc; ic++) {
+        id[ic] = gel->Node(ic).Id();
+    }
+    int connectorder = this->Connect(0).Order();
+    int sideorient = fSideOrient;
+
+    // fill in the datastructures of shapedata
+    switch (fhdivfam)
+    {
+    case HDivFamily::EHDivStandard:
+        TPZShapeHDivBound<TSHAPE>::Initialize(id, connectorder, sideorient, data);
+        break;
+    case HDivFamily::EHDivConstant:
+        TPZShapeHDivConstantBound<TSHAPE>::Initialize(id, connectorder, sideorient, data);
+        break;
+    
+    default:
+        DebugStop();
+        break;
+    }
 }
 
 template<class TSHAPE>
-void TPZCompElHDivBound2<TSHAPE>::ComputeShapeIndex(TPZVec<int> &sides, TPZVec<long> &shapeindex) {
+void TPZCompElHDivBound2<TSHAPE>::ComputeShapeIndex(TPZVec<int> &sides, TPZVec<int64_t> &shapeindex) {
 	
-	TPZManVector<long> firstshapeindex;    // Para o que?
+	TPZManVector<int64_t> firstshapeindex;    // Para o que?
 	FirstShapeIndex(firstshapeindex);      // se foram calculados os indices mas n�o utilizados?
 	int nshape = TPZIntelGen<TSHAPE>::NShapeF();
 	shapeindex.Resize(nshape);
-	long nsides = sides.NElements();
-	long is, count=0;
+	int64_t nsides = sides.NElements();
+	int64_t is, count=0;
 	for(is=0 ; is<nsides; is++)
 	{
 		int side = sides[is];
@@ -484,7 +436,7 @@ void TPZCompElHDivBound2<TSHAPE>::ComputeShapeIndex(TPZVec<int> &sides, TPZVec<l
 		}
 	}
 	shapeindex.Resize(count);
-    #ifdef LOG4CXXTPZCompElHDivBound2
+    #ifdef PZ_LOGTPZCompElHDivBound2
 	{
 		std::stringstream sout;
 		sout << "count = " << count << " nshape " << nshape;
@@ -498,7 +450,7 @@ void TPZCompElHDivBound2<TSHAPE>::ComputeShapeIndex(TPZVec<int> &sides, TPZVec<l
 
 /**return the first shape associate to each side*/
 template<class TSHAPE>
-void TPZCompElHDivBound2<TSHAPE>::FirstShapeIndex(TPZVec<long> &Index){
+void TPZCompElHDivBound2<TSHAPE>::FirstShapeIndex(TPZVec<int64_t> &Index){
 	
 	Index.Resize(TSHAPE::NSides+1);
 	Index[0]=0;
@@ -515,8 +467,8 @@ void TPZCompElHDivBound2<TSHAPE>::FirstShapeIndex(TPZVec<long> &Index){
         }
     }
     
-#ifdef LOG4CXX
-    if (logger->isDebugEnabled())
+#ifdef PZ_LOG
+    if (logger.isDebugEnabled())
     {
         std::stringstream sout;
         sout << " FirsShapeIndex result " << Index;
@@ -534,57 +486,35 @@ void TPZCompElHDivBound2<TSHAPE>::SideShapeFunction(int side,TPZVec<REAL> &point
 		DebugStop() ;
 	}
     TPZGeoEl *gel = this->Reference();
-    int nc = gel->NCornerNodes();
-    TPZManVector<long,8> id(nc);
-    for (int ic=0; ic<nc; ic++) {
-        id[ic] = gel->Node(ic).Id();
-    }
-    TPZManVector<int,TSHAPE::NSides> ord;
-    this->GetInterpolationOrder(ord);
-
-    TPZFNMatrix<50,REAL> philoc(phi.Rows(),phi.Cols()),dphiloc(dphi.Rows(),dphi.Cols());
-    TSHAPE::Shape(point,id,ord,philoc,dphiloc);
-    
-    //int idsize = id.size();
-    TPZManVector<int,9> permutegather(TSHAPE::NSides);
-    int transformid = TSHAPE::GetTransformId(id);
-    TSHAPE::GetSideHDivPermutation(transformid, permutegather);
-    
-    TPZManVector<long,27> FirstIndex(TSHAPE::NSides+1);
-    FirstShapeIndex(FirstIndex);
-   
     REAL detjac;
-    if (HDivPiola == 1) {
+    {
         int dim = gel->SideDimension(side);
         TPZFNMatrix<9,REAL> jac(dim,dim),jacinv(dim,dim),axes(dim,3);
         gel->Jacobian(point, jac, axes, detjac, jacinv);
     }
-    else
-    {
-        detjac = 1.;
-    }
-
-
-    int order = this->Connect(0).Order();
-    for (int side=0; side < TSHAPE::NSides; side++) {
-        int ifirst = FirstIndex[side];
-        int kfirst = FirstIndex[permutegather[side]];
-        int nshape = TSHAPE::NConnectShapeF(side,order);
-        for (int i=0; i<nshape; i++) {
-            phi(ifirst+i,0) = philoc(kfirst+i,0)/detjac;
-            for (int d=0; d< TSHAPE::Dimension; d++) {
-                dphi(d,ifirst+i) = dphiloc(d,kfirst+i)/detjac;
-            }
-        }
-    }
     
-    return;
+    TPZShapeHDivBound<TSHAPE> shapehdiv;
+    TPZShapeData shapedata;
+    int nc = gel->NCornerNodes();
+    TPZManVector<int64_t,8> id(nc);
+    for (int ic=0; ic<nc; ic++) {
+        id[ic] = gel->Node(ic).Id();
+    }
+    int connectorder = this->Connect(0).Order();
+    int sideorient = 1;
+    // fill in the datastructures of shapedata
+    shapehdiv.Initialize(id, connectorder, sideorient, shapedata);
+    // compute the shape functions at the integration point
+    shapehdiv.Shape(point, shapedata, phi);
+    phi *= 1./detjac;
+        
 }
 
 /** Compute the shape function at the integration point */
 template<class TSHAPE>
 void TPZCompElHDivBound2<TSHAPE>::Shape(TPZVec<REAL> &pt, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi)
 {
+    DebugStop(); // Is this ever used (Nov 2021). If yes, just uncomment me
     TPZManVector<int,TSHAPE::NSides> ordl;
     this->GetInterpolationOrder(ordl);
     TPZConnect &c = this->Connect(0);
@@ -593,130 +523,41 @@ void TPZCompElHDivBound2<TSHAPE>::Shape(TPZVec<REAL> &pt, TPZFMatrix<REAL> &phi,
     dphi.Resize(TSHAPE::Dimension, nshape);
     SideShapeFunction(TSHAPE::NSides-1, pt, phi, dphi);
 
-
     if (fSideOrient == -1) {
-        phi *= -1.;
-        dphi *= -1.;
+        phi(0,0) *= -1.;
+        dphi(0,0) *= -1.;
     }
     
-    
-    
-    return;
-	/*
-  TPZCompElSide thisside(this,TSHAPE::NSides-1);
-	TPZGeoElSide thisgeoside(thisside.Reference());
-	TPZGeoElSide neighgeo(thisgeoside.Neighbour());
-	TPZCompElSide neigh(fneighbour);
-	TPZInterpolatedElement *neighel = dynamic_cast<TPZInterpolatedElement *> (neigh.Element());
-	if(!neighel)
-	{
-        LOGPZ_ERROR(logger,"Inconsistent neighbour")
-        DebugStop();
-		return;
-	}
-	int nshapeneigh = neighel->NSideShapeF(neighgeo.Side())+1;
-	phi.Redim(nshapeneigh, 1);
-	dphi.Redim(neighgeo.Element()->Dimension(), nshapeneigh);
-	TPZTransform tr(thisgeoside.Dimension()),tr2; 
-	thisgeoside.SideTransform3(neighgeo, tr);
-	TPZManVector<REAL,3> pt2(neighgeo.Dimension()),pt3(neighel->Dimension());
-	tr.Apply(pt, pt2);
-	neighel->SideShapeFunction(neigh.Side(), pt2, phi, dphi);
-	 */
-		//tentando reimplementar 
-		TPZManVector<long,TSHAPE::NSides-1> id(TSHAPE::NSides-1,0);
-		
-		TPZGeoEl *ref = this->Reference();
-		int nnodes= ref->NNodes();
-		for(int i=0; i<nnodes; i++) {
-				id[i] = ref->NodePtr(i)->Id();
-		}
-		
-#ifdef LOG4CXX
-		{
-				std::stringstream sout;
-				sout<< "---Id local---"<<id<<std::endl;
-				LOGPZ_DEBUG(logger,sout.str())
-		}
-#endif
-		
-		//-----ordenando os id's
-//		int i, j, min, x;
-//		for (i = 0; i < nnodes; ++i) {
-//				min = i;
-//				for (j = i+1; j < nnodes; ++j){
-//						if (id[j] < id[min])  min = j;
-//				x = id[i]; 
-//				id[i] = id[min]; 
-//				id[min] = x;
-//				}
-//		}	
-		
-#ifdef LOG4CXX
-		{
-				std::stringstream sout;
-				sout<< "---Id local Reordenado---"<<id<<std::endl;
-				LOGPZ_DEBUG(logger,sout.str())
-		}
-#endif
-		
-		//-----
-		
-	
-		TPZCompElSide thisside(this,TSHAPE::NSides-1);
-		TPZGeoElSide thisgeoside(thisside.Reference());
-//		TPZGeoElSide neighgeo(thisgeoside.Neighbour());
-//		TPZCompElSide neigh(fneighbour);
-		TPZInterpolatedElement *neighel = dynamic_cast<TPZInterpolatedElement *> (thisside.Element());
-//		if(!neighel)
-//		{
-//        LOGPZ_ERROR(logger,"Inconsistent neighbour")
-//        DebugStop();
-//				return;
-//		}
-		int nshapeneigh = neighel->NSideShapeF(thisgeoside.Side());
-		phi.Redim(nshapeneigh, 1);
-		dphi.Redim(thisgeoside.Element()->Dimension(), nshapeneigh);
-		TPZVec<int> ord;
-		neighel->GetInterpolationOrder(ord);
-		TSHAPE::Shape(pt,id,ord,phi,dphi);
-//    if(id[0] > id[1])
-//    {
-//        REAL phival = phi(0,0);
-//        phi(0,0) = phi(1,0);
-//        phi(1,0) = phival;
-//        REAL dphival = dphi(0,0);
-//        dphi(0,0) = dphi(0,1);
-//        dphi(0,1) = dphival;
-//    }
-		
-		
-//		TPZTransform tr(thisgeoside.Dimension()),tr2; 
-//		thisgeoside.SideTransform3(thisgeoside, tr);
-//		TPZManVector<REAL,3> pt2(thisgeoside.Dimension()),pt3(neighel->Dimension());
-//		tr.Apply(pt, pt2);
-//		neighel->SideShapeFunction(thisside.Side(), pt2, phi, dphi);
-    
-#ifdef LOG4CXX
-		//if (logger->isDebugEnabled())
-		{
-				std::stringstream sout;
-				sout.precision(20);
-				sout<< "---Phi Novo---"<<phi<<std::endl;
-				sout<< "---Dphi Novo---"<<dphi<<std::endl;
-				LOGPZ_DEBUG(logger,sout.str())
-		}
-#endif
 }
 
 template<class TSHAPE>
 void TPZCompElHDivBound2<TSHAPE>::ComputeShape(TPZVec<REAL> &intpoint, TPZMaterialData &data){
     
-    this->Shape(intpoint, data.phi, data.dphi);
+    TPZShapeData shapedata(data);
     
-    TPZGeoEl *ref = this->Reference();
-    ref->Jacobian(intpoint, data.jacobian, data.axes, data.detjac, data.jacinv);
+    switch (fhdivfam)
+    {
+    case HDivFamily::EHDivStandard:
+        {
+            auto nShape = TPZShapeHDivBound<TSHAPE>::NShape(shapedata);
+            data.phi.Resize(nShape, 1);
+            TPZShapeHDivBound<TSHAPE>::Shape(intpoint, shapedata, data.phi);
+        }
+        break;
+    case HDivFamily::EHDivConstant:
+        {
+            data.phi.Resize(this->NShapeF(), 1);
+            TPZShapeHDivConstantBound<TSHAPE>::Shape(intpoint, shapedata, data.phi);
+        }
+        break;
+       
+    default:
+        DebugStop();//You should chose an HDiv family space
+        break;
+    }
     
+    data.phi *= 1./data.detjac;
+
 }
 
 template<class TSHAPE>
@@ -733,15 +574,17 @@ template<class TSHAPE>
 void TPZCompElHDivBound2<TSHAPE>::Read(TPZStream &buf, void *context)
 {
 	TPZIntelGen<TSHAPE>::Read(buf,context);
-    buf.Read(&fSideOrient);
+  buf.Read(&fSideOrient);
+  buf.Read(fConnectIndexes.begin(),TSHAPE::NSides);
 }
 
 /** Save the element data to a stream */
 template<class TSHAPE>
-void TPZCompElHDivBound2<TSHAPE>::Write(TPZStream &buf, int withclassid)
+void TPZCompElHDivBound2<TSHAPE>::Write(TPZStream &buf, int withclassid) const
 {
 	TPZIntelGen<TSHAPE>::Write(buf,withclassid);
-    buf.Write(&fSideOrient);
+  buf.Write(&fSideOrient);
+  buf.Write(fConnectIndexes.begin(),TSHAPE::NSides);
 }
 
 /** @brief Prints the relevant data of the element to the output stream */
@@ -750,9 +593,6 @@ void TPZCompElHDivBound2<TSHAPE>::Print(std::ostream &out) const
 {
     out << __PRETTY_FUNCTION__ << std::endl;
     out << "Side orientation " << fSideOrient << std::endl;
-    if (fRestraint.IsInitialized()) {
-        fRestraint.Print(out);
-    }
     TPZIntelGen<TSHAPE>::Print(out);
     
     
@@ -773,13 +613,13 @@ int TPZCompElHDivBound2<TSHAPE>::EffectiveSideOrder(int side) const
 
 /** Return a matrix with index shape and vector associate to element */
 template<class TSHAPE>
-void TPZCompElHDivBound2<TSHAPE>::IndexShapeToVec(TPZVec<int> &VectorSide,TPZVec<std::pair<int,long> > & ShapeAndVec){
+void TPZCompElHDivBound2<TSHAPE>::IndexShapeToVec(TPZVec<int> &VectorSide,TPZVec<std::pair<int,int64_t> > & ShapeAndVec){
 	
 	// VectorSide indicates the side associated with each vector entry
-	TPZVec<long> FirstIndex;
+	TPZVec<int64_t> FirstIndex;
 	// the first index of the shape functions
 	FirstShapeIndex(FirstIndex);
-#ifdef LOG4CXX
+#ifdef PZ_LOG
 		{
 				std::stringstream sout;
 				sout << "FirstIndex of shape functions " << FirstIndex;
@@ -790,35 +630,41 @@ void TPZCompElHDivBound2<TSHAPE>::IndexShapeToVec(TPZVec<int> &VectorSide,TPZVec
 	int tamanho= this->NShapeF();
 	
 	ShapeAndVec.Resize(tamanho);
-	long count=0;
+	int64_t count=0;
 		//for(int jvec=0;jvec< VectorSide.NElements();jvec++)
-	for(long jvec=0;jvec< VectorSide.NElements();jvec++)//coloca-se -1 caso queira reduzir o espaco de fluxo
+	for(int64_t jvec=0;jvec< VectorSide.NElements();jvec++)//coloca-se -1 caso queira reduzir o espaco de fluxo
 	{
 		int lside=VectorSide[jvec];
-		long fshape1= FirstIndex[lside];
-		long fshape2= FirstIndex[lside+1];
-		for (long ishape=fshape1; ishape<fshape2; ishape++)
+		int64_t fshape1= FirstIndex[lside];
+		int64_t fshape2= FirstIndex[lside+1];
+		for (int64_t ishape=fshape1; ishape<fshape2; ishape++)
 		{
 			
-#ifdef LOG4CXX
+#ifdef PZ_LOG
 			std::stringstream sout;
 			sout << " <vec,shape> " << "< "<<jvec << " * "<<ishape << "> "<<std::endl;
 			LOGPZ_DEBUG(logger,sout.str())
 #endif
 			
 			
-			ShapeAndVec[count++]=std::pair<int,long>(jvec,ishape);
+			ShapeAndVec[count++]=std::pair<int,int64_t>(jvec,ishape);
 		}
 		
 	}
 	
-#ifdef LOG4CXX
+#ifdef PZ_LOG
     std::stringstream sout;
     sout << "VecShapeIndex " << ShapeAndVec;
     LOGPZ_DEBUG(logger,sout.str())
 #endif
 	
 	
+}
+
+template<class TSHAPE>
+void TPZCompElHDivBound2<TSHAPE>::SetCreateFunctions(TPZCompMesh* mesh) {
+    mesh->ApproxSpace().SetHDivFamily(fhdivfam);
+    mesh->ApproxSpace().SetAllCreateFunctionsHDiv(TSHAPE::Dimension);
 }
 
 
@@ -828,42 +674,11 @@ void TPZCompElHDivBound2<TSHAPE>::IndexShapeToVec(TPZVec<int> &VectorSide,TPZVec
 #include "pzshapequad.h"
 
 using namespace pzshape;
-/** returns the unique identifier for reading/writing objects to streams */
-template<>
-int TPZCompElHDivBound2<TPZShapePoint>::ClassId() const
-{
-	return TPZHDIVBOUND2POINTID;
-}
-template<>
-int TPZCompElHDivBound2<TPZShapeLinear>::ClassId() const
-{
-	return TPZHDIVBOUND2LINEARID;
-}
-template<>
-int TPZCompElHDivBound2<TPZShapeTriang>::ClassId() const
-{
-	return TPZHDIVBOUND2TRIANGLEID;
-}
-template<>
-int TPZCompElHDivBound2<TPZShapeQuad>::ClassId() const
-{
-	return TPZHDIVBOUND2QUADID;
-}
 
-
-#ifndef BORLAND
-template class
-TPZRestoreClass< TPZCompElHDivBound2<TPZShapePoint>, TPZHDIVBOUND2POINTID>;
-
-template class
-TPZRestoreClass< TPZCompElHDivBound2<TPZShapeLinear>, TPZHDIVBOUND2LINEARID>;
-
-template class
-TPZRestoreClass< TPZCompElHDivBound2<TPZShapeTriang>, TPZHDIVBOUND2TRIANGLEID>;
-
-template class
-TPZRestoreClass< TPZCompElHDivBound2<TPZShapeQuad>, TPZHDIVBOUND2QUADID>;
-#endif
+template class TPZRestoreClass< TPZCompElHDivBound2<TPZShapePoint>>;
+template class TPZRestoreClass< TPZCompElHDivBound2<TPZShapeLinear>>;
+template class TPZRestoreClass< TPZCompElHDivBound2<TPZShapeTriang>>;
+template class TPZRestoreClass< TPZCompElHDivBound2<TPZShapeQuad>>;
 
 
 template class TPZCompElHDivBound2<TPZShapeTriang>;

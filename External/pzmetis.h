@@ -1,13 +1,13 @@
 /**
  * @file
- * @brief Contains TPZMetis class which implements the renumbering for elements of a mesh to minimize the band.
+ * @brief Contains TPZMetis class which implements the renumbering for elements of a mesh to minimize the band using Metis library. It depends on NeoPZ being configured with USING_METIS=ON
  */
 
 #ifndef TPZMETIS_H
 #define TPZMETIS_H
 
 #include "pzstack.h"
-#include "pzrenumbering.h"
+#include "TPZRenumbering.h"
 #include <iostream>
 
 /**
@@ -20,7 +20,7 @@ public:
 	 * @brief Perform the renumbering of elements. The aim of this operation is to minimize the
 	 * band of the resulting stiffeness matrix.
 	 */
-	virtual void Resequence(TPZVec<long> &perm, TPZVec<long> &inverseperm);
+	virtual void Resequence(TPZVec<int64_t> &perm, TPZVec<int64_t> &inverseperm) override;
 	
     /** @brief Constructor. */
 	/** 

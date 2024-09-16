@@ -12,6 +12,9 @@
 struct TPZElementMatrix;
 
 class TPZIntPoints;
+template<class TVar>
+class TPZTransfer;
+
 #include "TPZCompElDisc.h"
 #include "TPZOneShapeRestraint.h"
 #include "pzblockdiag.h"
@@ -25,7 +28,7 @@ class TPZIntPoints;
  * this makes the adaptive process extremely general\n
  */
 class TPZInterpolatedElement : public TPZInterpolationSpace {
-	
+
 protected:
 	
 	/**
@@ -52,7 +55,7 @@ public:
 	 * @param reference reference object to which this element will refer
 	 * @param index index in the vector of elements of mesh where this element was inserted
 	 */
-	TPZInterpolatedElement(TPZCompMesh &mesh, TPZGeoEl *reference, long &index);
+	TPZInterpolatedElement(TPZCompMesh &mesh, TPZGeoEl *reference);
 	
 	/**
 	 * @brief Constructor aimed at creating a copy of an interpolated element within a new mesh
@@ -67,22 +70,21 @@ public:
 	 */
 	TPZInterpolatedElement ( TPZCompMesh &mesh,
 							const TPZInterpolatedElement &copy,
-							std::map<long,long> & gl2lcElMap);
+							std::map<int64_t,int64_t> & gl2lcElMap);
 	
 	TPZInterpolatedElement();
 	/** @brief Destructor, does nothing */
 	virtual ~TPZInterpolatedElement();
 	
 	/** @brief Set create function in TPZCompMesh to create elements of this type */
-	virtual void SetCreateFunctions(TPZCompMesh *mesh){
-		mesh->SetAllCreateFunctionsContinuous();
-	}
+	virtual void SetCreateFunctions(TPZCompMesh *mesh) override;
+            int ClassId() const override;
 	
 	/** @brief Saves the element data to a stream */
-	virtual void Write(TPZStream &buf, int withclassid);
+	void Write(TPZStream &buf, int withclassid) const override;
 	
 	/** @brief Reads the element data from a stream */
-	virtual void Read(TPZStream &buf, void *context);
+	void Read(TPZStream &buf, void *context) override;
 	
 	/**
 	 * @name data access methods
@@ -91,23 +93,26 @@ public:
 	 */
 	
 	/** @brief Prints the relevant data of the element to the output stream */
-	virtual void Print(std::ostream &out = std::cout) const;
+	virtual void Print(std::ostream &out = std::cout) const override;
+
+    /** @brief Prints the relevant data of the element to the output stream */
+    virtual void ShortPrint(std::ostream &out = std::cout) const override;
 	
 	/** @brief Returns the total number of shapefunctions*/
-	int NShapeF() const;
+	int NShapeF() const override;
 	
 	/** @brief Returns the number of shape functions on a side*/
 	int NSideShapeF(int side) const;
 	
-	/** @brief Returns the number of dof nodes along side iside*/
-	virtual int NSideConnects(int iside) const = 0;
+	/** @brief Returns the number of dof along the CLOSURE of the side iside*/
+	virtual int NSideConnects(int iside) const override = 0;
 	
 	/**
 	 * @brief Returns the local node number of icon along is
-	 * @param icon connect number along side is
+	 * @param icon connect number along side is (see NSideConnects)
 	 * @param is side which is being queried
 	 */
-	virtual int SideConnectLocId(int icon,int is) const = 0;
+	virtual int SideConnectLocId(int icon,int is) const override = 0;
 	
 	/**
 	 * @brief Returns the local id of the connect in the middle of the side
@@ -123,22 +128,22 @@ public:
     
 	
 	/** @brief Returns the index of the c th connect object along side is*/
-	long SideConnectIndex(int icon,int is) const;
+	int64_t SideConnectIndex(int icon,int is) const;
 	
 	/** @brief Returns a pointer to the icon th connect object along side is */
 	TPZConnect &SideConnect(int icon,int is);
 	
 	/** @brief Returns the dimension of the element */
-	virtual int Dimension() const = 0;
+	virtual int Dimension() const override = 0;
 	
 	/** @brief Returns the number of corner connects of the element*/
 	virtual int NCornerConnects() const = 0;
 	
 	/** @brief Returns the number of connect objects of the element*/
-	virtual int NConnects() const = 0;
+	virtual int NConnects() const  override = 0;
     
     /** @brief adds the connect indexes associated with base shape functions to the set */
-    virtual void BuildCornerConnectList(std::set<long> &connectindexes) const;
+    virtual void BuildCornerConnectList(std::set<int64_t> &connectindexes) const override;
 
 	
 	/** @brief Identifies the interpolation order of all connects of the element different from the corner connects */
@@ -172,9 +177,9 @@ public:
 	 */
 	
 	/** @brief Sets the node pointer of node i to nod */
-	virtual void SetConnectIndex(int i, long connectindex)=0;
+	virtual void SetConnectIndex(int i, int64_t connectindex) override = 0;
 	
-	virtual void SetIntegrationRule(int order) {
+	virtual void SetIntegrationRule(int order) override {
 		std::cout << "TPZInterpolatedElement::SetIntegrationRule called\n";
 	}
 	
@@ -183,9 +188,8 @@ public:
 	 * This method only updates the datastructure of the element
 	 * In order to change the interpolation order of an element, use the method PRefine
 	 */
-	virtual void SetPreferredOrder(int order) = 0;
-	
-public:
+	virtual void SetPreferredOrder(int order)  override = 0;
+
 	/** @brief Sets the interpolation order of side to order */
 	/** 
 	 * This method only updates the datastructure of the element and
@@ -199,8 +203,6 @@ public:
 	
 	/** @} */
 	
-public:
-	
 	
 	/**
 	 * @name Computational methods
@@ -209,66 +211,7 @@ public:
 	 */
 	
 	/** @brief Compute the values of the shape function along the side*/
-	virtual void SideShapeFunction(int side, TPZVec<REAL> &point, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi) = 0;
-	
-	/** @} */
-	
-	/**
-	 * @name Post processing methods
-	 * @brief The TPZInterpolatedElement class provides the user with a variety of methods for post-processing*/
-	/**
-	 * Methods for error evaluation\n
-	 * Methods for computing derived post processed values (depending on the variational statement)\n
-	 * @{
-	 */
-	
-private:
-	/**
-	 * @brief Computes solution and its derivatives in the local coordinate qsi.
-	 * @param qsi master element coordinate
-	 * @param sol finite element solution
-	 * @param dsol solution derivatives
-	 * @param axes axes indicating the direction of the derivatives
-	 */
-	virtual void ComputeSolution(TPZVec<REAL> &qsi, TPZSolVec &sol, TPZGradSolVec &dsol,TPZFMatrix<REAL> &axes);
-    
-    public:
-    
-    /** 
-	 * @brief Compute shape functions based on master element in the classical FEM manne. 
-	 * @param[in] qsi point in master element coordinates 
-	 * @param[in] data stores all input data
-	 */
-    virtual void ComputeSolution(TPZVec<REAL> &qsi, TPZMaterialData &data);
-	
-	/**
-	 * @brief Computes solution and its derivatives in local coordinate qsi
-	 * @param qsi master element coordinate
-	 * @param phi matrix containing shape functions compute in qsi point
-	 * @param dphix matrix containing the derivatives of shape functions with respect of global coordinates: D[phi,x], D[phi,y], D[phi,z]
-	 * @param axes axes indicating the direction of the derivatives
-	 * @param sol finite element solution
-	 * @param dsol solution derivatives
-	 */
-	virtual void ComputeSolution(TPZVec<REAL> &qsi, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphix,
-								 const TPZFMatrix<REAL> &axes, TPZSolVec &sol, TPZGradSolVec &dsol);
-	
-	/**
-	 * @brief Computes solution and its derivatives in the local coordinate qsi.\n
-	 * This method will function for both volumetric and interface elements
-	 * @param qsi master element coordinate of the interface element
-	 * @param normal unitary normal vector
-	 * @param leftsol finite element solution
-	 * @param dleftsol solution derivatives
-	 * @param leftaxes axes associated with the left solution
-	 * @param rightsol finite element solution
-	 * @param drightsol solution derivatives
-	 * @param rightaxes axes associated with the right solution
-	 */
-	virtual void ComputeSolution(TPZVec<REAL> &qsi,
-								 TPZVec<REAL> &normal,
-								 TPZSolVec &leftsol, TPZGradSolVec &dleftsol,TPZFMatrix<REAL> &leftaxes,
-								 TPZSolVec &rightsol, TPZGradSolVec &drightsol,TPZFMatrix<REAL> &rightaxes);
+	virtual void SideShapeFunction(int side, TPZVec<REAL> &point, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi) override = 0;
 	
 	/**
 	 * @brief Compare the L2 norm of the difference between the švarš solution of the current element with
@@ -281,7 +224,7 @@ private:
 	 * and call LoadReference on the mesh of the element with which to compare the solution\n
 	 * This method only computes the error is the name of the material is matname
 	 */
-	virtual REAL CompareElement(int var, char *matname);
+	virtual REAL CompareElement(int var, char *matname) override;
 	
 	/** @} */
 	
@@ -304,7 +247,7 @@ private:
 	 * Divides the current element into subelements. Inserts the subelements in the mesh of the element
 	 * and returns their indices
 	 */
-	void Divide(long index,TPZVec<long> &sub,int interpolatesolution = 0);
+	void Divide(int64_t index,TPZVec<int64_t> &sub,int interpolatesolution = 0) override;
 	
 	/**
 	 * @brief Changes the interpolation order of a side. Updates all constraints and block sizes\n
@@ -316,7 +259,7 @@ private:
 	 * This call will not šnecessarilyš modify the interpolation order of the side. The interpolation
 	 * order of neighbouring elements need to remain compatible. The actual order is obtained by calling ComputeSideOrder
 	 */
-	void PRefine(int order);
+	void PRefine(int order) override;
 	
 	/** @brief Compute the shapefunction restraints which need to be applied to the shape functions
      on the side of the element*/
@@ -360,7 +303,7 @@ private:
 	void RecomputeRestraints(int side);
 	
     /// Add a shape restraint (meant to fit the pyramid to restraint
-    virtual void AddShapeRestraint(TPZOneShapeRestraint restraint)
+    virtual void AddShapeRestraint(TPZOneShapeRestraint restraint) override
     {
         DebugStop();
     }
@@ -373,7 +316,7 @@ private:
 	 * @param transfer transfer matrix mapping the solution of the coarse mesh into the fine mesh
 	 */
 	/** This method forms the basis for the multigrid method */
-	virtual void BuildTransferMatrix(TPZInterpolatedElement &coarsel, TPZTransform &t, TPZTransfer<STATE> &transfer);
+	virtual void BuildTransferMatrix(TPZInterpolatedElement &coarsel, TPZTransform<> &t, TPZTransfer<STATE> &transfer);
 	
 	/**
 	 * @brief Verify the neighbours of the element and create a node along this side
@@ -381,7 +324,7 @@ private:
 	 * simply calls CreateMidSideConnect which does all the necessary adjustments
 	 */
 	/** If necessary. \n This method returns the index of the newly created node */
-	virtual long CreateMidSideConnect(int side);
+	virtual int64_t CreateMidSideConnect(int side);
 	
 	/**
 	 * @brief Checks if the side order is consistent with the preferred side order and
@@ -417,30 +360,36 @@ private:
 	 * @param dphil large side gradient function values
 	 * @param transform transformation matrix from large side to small side
 	 */
-	int CompareShapeF(int sides, int sidel, TPZFMatrix<REAL> &phis, TPZFMatrix<REAL> &dphis, TPZFMatrix<REAL> &phil, TPZFMatrix<REAL> &dphil, TPZTransform &transform);
+	int CompareShapeF(int sides, int sidel, TPZFMatrix<REAL> &phis, TPZFMatrix<REAL> &dphis, TPZFMatrix<REAL> &phil, TPZFMatrix<REAL> &dphil, TPZTransform<> &transform);
 	
 	/**
 	 * @brief Returns the transformation which transform a point from the side to the interior of the element
 	 * @param side side from which the point will be tranformed (0<=side<=2)
-	 * @return TPZTransform object
+	 * @return TPZTransform<> object
 	 * @see the class TPZTransform
 	 */
-	virtual TPZTransform TransformSideToElement(int side) = 0;
+	virtual TPZTransform<> TransformSideToElement(int side) = 0;
 	
 	/** @} */
 	
 public:
 	
 	/** @brief To enable to work with discontinuous element that can have interface elements*/
-	virtual void SetInterface(int /*side*/, long /*index*/) { }
+	virtual void SetInterface(int /*side*/, int64_t /*index*/) { }
 	virtual int Interface(int /*side*/) { return -1; }
 	virtual int CanHaveInterface() { return 0; }
 	virtual void DeleteInterfaces() { }
 	/** @brief Returns total mass contained into the element */
 	REAL MeanSolution(int var);
 	/** @brief Computes the integral over the finite element */
-	void CalcIntegral(TPZElementMatrix &ef);
+	template<class TVar>
+	void CalcIntegral(TPZElementMatrixT<TVar> &ef);
 	
 };
 
+
+
+extern template
+void TPZInterpolatedElement::
+CalcIntegral<STATE>(TPZElementMatrixT<STATE>&ef);
 #endif

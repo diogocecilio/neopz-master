@@ -7,20 +7,26 @@
 //
 
 #include <iostream>
+#include "pzcmesh.h"
 #include "pzreducedspace.h"
-#include "tpzcompmeshreferred.h"
-#include "pzmaterial.h"
+#include "pzmultiphysicselement.h"
+#include "TPZMaterial.h"
+#include "TPZMatSingleSpace.h"
+#include "TPZMatLoadCases.h"
 #include "pzelmat.h"
 #include "pzlog.h"
-
-#ifdef LOG4CXX
-static LoggerPtr logger(Logger::getLogger("pz.mesh.TPZInterpolationSpace"));
+#include "pzerror.h"
+#ifdef PZ_LOG
+static TPZLogger logger("pz.mesh.TPZInterpolationSpace");
 #endif
 
 /** @brief Default constructor */
-TPZReducedSpace::TPZReducedSpace() : TPZInterpolationSpace()
+TPZReducedSpace::TPZReducedSpace() : TPZRegisterClassId(&TPZReducedSpace::ClassId),
+TPZInterpolationSpace()
 {
-    
+    PZError<<__PRETTY_FUNCTION__;
+    PZError<<" should be reimplemented without TPZCompMeshReferred\n";
+    PZError<<"Aborting...";
 }
 
 /** @brief Default destructor */
@@ -29,22 +35,25 @@ TPZReducedSpace::~TPZReducedSpace()
     
 }
 
-/** @brief Puts a copy of the element in the referred mesh */
-TPZReducedSpace::TPZReducedSpace(TPZCompMesh &mesh, const TPZReducedSpace &copy) : TPZInterpolationSpace(mesh,copy)
-{
-    
-}
 
 /** @brief Puts a copy of the element in the patch mesh */
-TPZReducedSpace::TPZReducedSpace(TPZCompMesh &mesh, const TPZReducedSpace &copy, std::map<long,long> &gl2lcElMap) : TPZInterpolationSpace(mesh,copy,gl2lcElMap)
+TPZReducedSpace::TPZReducedSpace(TPZCompMesh &mesh, const TPZReducedSpace &copy, std::map<int64_t,int64_t> &gl2lcElMap) : TPZRegisterClassId(&TPZReducedSpace::ClassId),
+TPZInterpolationSpace(mesh,copy,gl2lcElMap)
 {
-    
+    PZError<<__PRETTY_FUNCTION__;
+    PZError<<" should be reimplemented without TPZCompMeshReferred\n";
+    PZError<<"Aborting...";
+    DebugStop();
 }
 
 /** @brief Copy of the element in the new mesh whit alocated index */
-TPZReducedSpace::TPZReducedSpace(TPZCompMesh &mesh, const TPZReducedSpace &copy, long &index) : TPZInterpolationSpace(mesh,copy,index)
+TPZReducedSpace::TPZReducedSpace(TPZCompMesh &mesh, const TPZReducedSpace &copy) : TPZRegisterClassId(&TPZReducedSpace::ClassId),
+TPZInterpolationSpace(mesh,copy)
 {
-    
+    PZError<<__PRETTY_FUNCTION__;
+    PZError<<" should be reimplemented without TPZCompMeshReferred\n";
+    PZError<<"Aborting...";
+    DebugStop();
 }
 
 /**
@@ -54,9 +63,10 @@ TPZReducedSpace::TPZReducedSpace(TPZCompMesh &mesh, const TPZReducedSpace &copy,
  * @param index new elemen index
  */
 /** Inserts the element within the data structure of the mesh */
-TPZReducedSpace::TPZReducedSpace(TPZCompMesh &mesh, TPZGeoEl *gel, long &index) : TPZInterpolationSpace(mesh,gel,index)
+TPZReducedSpace::TPZReducedSpace(TPZCompMesh &mesh, TPZGeoEl *gel) : TPZRegisterClassId(&TPZReducedSpace::ClassId),
+TPZInterpolationSpace(mesh,gel)
 {
-    
+    std::cout << "Creating reduced with dim " << gel->Dimension() << '\n';
 }
 
 /** @brief It returns the shapes number of the element */
@@ -112,61 +122,65 @@ void TPZReducedSpace::Shape(TPZVec<REAL> &qsi,TPZFMatrix<REAL> &phi,TPZFMatrix<R
  */
 void TPZReducedSpace::ShapeX(TPZVec<REAL> &qsi,TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphix, TPZFMatrix<REAL> &axes)
 {
-#ifdef STATE_COMPLEX
-    DebugStop();
-#else
     TPZInterpolationSpace *intel = ReferredIntel();
-    TPZSolVec sol;
-    TPZGradSolVec dsol;
-    intel->ComputeSolution(qsi, sol, dsol, axes);
+    TPZMaterialDataT<STATE> inteldata;
+    inteldata.fNeedsSol=true;
+    constexpr bool hasPhi{false};
+    intel->ComputeSolution(qsi,inteldata,hasPhi);
+    TPZSolVec<STATE> &sol = inteldata.sol;
+    TPZGradSolVec<STATE> &dsol = inteldata.dsol;
     int nsol = sol.size();
     int nstate = sol[0].size();
     int dim = axes.Rows();
-    phi.Resize(nstate, nsol);
-    dphix.Resize(nstate*dim, nsol);
+    phi.Resize(nsol,nstate);
+    dphix.Resize(nstate*dim,nsol);
     for (int isol =0; isol<nsol; isol++) {
         for (int istate=0; istate<nstate; istate++) {
-            phi(istate,isol) = sol[isol][istate];
+            phi(isol,istate) = sol[isol][istate];
             for (int id=0; id<dim; id++) {
                 dphix(id+istate*dim,isol) = dsol[isol](id,istate);
             }
         }
     }
-#endif
 }
 
 
-void TPZReducedSpace::ShapeX(TPZVec<REAL> &qsi,TPZMaterialData &data)
+void TPZReducedSpace::ShapeX(TPZVec<REAL> &qsi,TPZMaterialDataT<STATE> &data)
 {
-#ifdef STATE_COMPLEX
-    DebugStop();
-#else
     TPZInterpolationSpace *intel = ReferredIntel();
-    
-    intel->ComputeSolution(qsi, data.sol, data.dsol, data.axes);
-    long nsol = data.sol.size();
+
+    {
+        TPZMaterialDataT<STATE> inteldata;
+        inteldata.fNeedsSol=true;
+        constexpr bool hasPhi{false};
+        intel->ComputeSolution(qsi,inteldata,hasPhi);
+        data.sol = std::move(inteldata.sol);
+        data.dsol = std::move(inteldata.dsol);
+    }
+    int64_t nsol = data.sol.size();
     int nstate = data.sol[0].size();
     int dim = data.axes.Rows();
-    data.phi.Resize(nstate, nsol);
-    data.dphix.Resize(nstate*dim, nsol);
-    for (long isol =0; isol<nsol; isol++) {
+    data.phi.Resize(nsol,nstate);
+    data.dphix.Resize(nstate*dim,nsol);
+    for (int64_t isol =0; isol<nsol; isol++) {
         for (int istate=0; istate<nstate; istate++) {
-            data.phi(istate,isol) = data.sol[isol][istate];
+            data.phi(isol,istate) = data.sol[isol][istate];
             for (int id=0; id<dim; id++) {
                 data.dphix(id+istate*dim,isol) = data.dsol[isol](id,istate);
             }
         }
     }
-#endif
 }
 
 
 void TPZReducedSpace::ComputeShape(TPZVec<REAL> &qsi,TPZMaterialData &data){
-    ShapeX(qsi,data);
-}
-
-void TPZReducedSpace::ComputeSolution(TPZVec<REAL> &qsi,TPZMaterialData &data){
-    ComputeSolution(qsi, data.phi, data.dphix, data.axes,data.sol,data.dsol);
+    auto *tmp = dynamic_cast<TPZMaterialDataT<STATE>*>(&data);
+    if(!tmp){
+        PZError<<__PRETTY_FUNCTION__;
+        PZError<< "is not available to complex types yet.\nAborting...\n";
+        DebugStop();
+    }
+    ShapeX(qsi,*tmp);
 }
 
 /**
@@ -176,19 +190,31 @@ void TPZReducedSpace::ComputeSolution(TPZVec<REAL> &qsi,TPZMaterialData &data){
 void TPZReducedSpace::InitMaterialData(TPZMaterialData &data)
 {
     data.fShapeType = TPZMaterialData::EVecShape;
-    TPZMaterial *mat = Material();
+    auto *mat =
+        dynamic_cast<TPZMatSingleSpace*>(this->Material());
     mat->FillDataRequirements(data);
+    TPZConnect &c = Connect(0);
+    int nshape = c.NShape();
+    int nstate = c.NState();
+    int dim = Reference()->Dimension();
+    data.phi.Resize(nshape, nstate);
+    data.dphix.Resize(dim*nstate,nshape);
+    data.jacobian.Resize(dim,dim);
+    data.jacinv.Resize(dim,dim);
+    data.axes.Resize(dim, 3);
 }
 
 /** @brief Compute and fill data with requested attributes */
-void TPZReducedSpace::ComputeRequiredData(TPZMaterialData &data,
+void TPZReducedSpace::ComputeRequiredData(TPZMaterialDataT<STATE> &data,
                                  TPZVec<REAL> &qsi)
 {
     data.intGlobPtIndex = -1;
+    int dim = Reference()->Dimension();
+    Reference()->Jacobian(qsi, data.jacobian, data.axes, data.detjac, data.jacinv);
     ShapeX(qsi, data.phi, data.dphix, data.axes);
-    
+
     if (data.fNeedsSol) {
-        ComputeSolution(qsi, data.phi, data.dphix, data.axes, data.sol, data.dsol);
+        ReallyComputeSolution(data);
     }
     if (data.fNeedsHSize){
 		data.HSize = 2.*this->InnerRadius();
@@ -200,10 +226,6 @@ void TPZReducedSpace::ComputeRequiredData(TPZMaterialData &data,
     data.x.Resize(3., 0.);
     Reference()->X(qsi, data.x);
     
-    int dim = Reference()->Dimension();
-    data.jacobian.Resize(dim,dim);
-    data.jacinv.Resize(dim,dim);
-    Reference()->Jacobian(qsi, data.jacobian, data.axes, data.detjac, data.jacinv);
 }
 
 
@@ -211,7 +233,6 @@ void TPZReducedSpace::ComputeRequiredData(TPZMaterialData &data,
 void TPZReducedSpace::InitializeElementMatrix(TPZElementMatrix &ek, TPZElementMatrix &ef)
 {
     TPZMaterial *mat = this->Material();
-	const int numdof = 1;
 	const int ncon = this->NConnects();
 #ifdef PZDEBUG
     if (ncon != 1) {
@@ -219,19 +240,29 @@ void TPZReducedSpace::InitializeElementMatrix(TPZElementMatrix &ek, TPZElementMa
     }
 #endif
 	const int nshape = this->NShapeF();
-	const int numeq = nshape*numdof;
-    const int numloadcases = mat->NumLoadCases();
-	ek.fMat.Redim(numeq,numeq);
-	ef.fMat.Redim(numeq,numloadcases);
-	ek.fBlock.SetNBlocks(ncon);
-	ef.fBlock.SetNBlocks(ncon);
-	ek.fNumStateVars = numdof;
-	ef.fNumStateVars = numdof;
+	const int numeq = nshape;
+    const int numloadcases = [mat](){
+        if (auto *tmp = dynamic_cast<TPZMatLoadCasesBase*>(mat); tmp){
+            return tmp->NumLoadCases();
+        }else{
+            return 1;
+        }
+    }();
+	ek.Matrix().Redim(numeq,numeq);
+	ef.Matrix().Redim(numeq,numloadcases);
+    auto &ekBlock = ek.Block();
+    auto &efBlock = ef.Block();
+	ekBlock.SetNBlocks(ncon);
+	efBlock.SetNBlocks(ncon);
+    ek.fMesh = Mesh();
+    ef.fMesh = Mesh();
+    ek.fType = TPZElementMatrix::EK;
+    ef.fType = TPZElementMatrix::EF;
 	int i;
 	for(i=0; i<ncon; i++){
         unsigned int nshape = Connect(i).NShape();
-		ek.fBlock.Set(i,nshape*numdof);
-		ef.fBlock.Set(i,nshape*numdof);
+		ekBlock.Set(i,nshape);
+		efBlock.Set(i,nshape);
 	}
 	ek.fConnect.Resize(ncon);
 	ef.fConnect.Resize(ncon);
@@ -255,14 +286,21 @@ void TPZReducedSpace::InitializeElementMatrix(TPZElementMatrix &ef)
 #endif
 	const int nshape = this->NShapeF();
 	const int numeq = nshape*numdof;
-    const int numloadcases = mat->NumLoadCases();
-	ef.fMat.Redim(numeq,numloadcases);
-	ef.fBlock.SetNBlocks(ncon);
-	ef.fNumStateVars = numdof;
+    const int numloadcases = [mat](){
+        if (auto *tmp = dynamic_cast<TPZMatLoadCasesBase*>(mat); tmp){
+            return tmp->NumLoadCases();
+        }else{
+            return 1;
+        }
+    }();
+	ef.Matrix().Redim(numeq,numloadcases);
+	ef.Block().SetNBlocks(ncon);
+    ef.fMesh = Mesh();
+    ef.fType = TPZElementMatrix::EF;
 	int i;
 	for(i=0; i<ncon; i++){
         unsigned int nshape = Connect(i).NShape();
-		ef.fBlock.Set(i,nshape*numdof);
+		ef.Block().Set(i,nshape*numdof);
 	}
 	ef.fConnect.Resize(ncon);
 	for(i=0; i<ncon; i++){
@@ -271,7 +309,7 @@ void TPZReducedSpace::InitializeElementMatrix(TPZElementMatrix &ef)
 }
 
 /** @brief Save the element data to a stream */
-void TPZReducedSpace::Write(TPZStream &buf, int withclassid)
+void TPZReducedSpace::Write(TPZStream &buf, int withclassid) const
 {
     TPZInterpolationSpace::Write(buf, withclassid);
 }
@@ -284,48 +322,55 @@ void TPZReducedSpace::Read(TPZStream &buf, void *context)
 
 TPZInterpolationSpace *TPZReducedSpace::ReferredIntel() const
 {
-    TPZCompMesh *cmesh = Mesh();
-    TPZCompMeshReferred *cmeshref = dynamic_cast<TPZCompMeshReferred *>(cmesh);
+    return fReferred;
+//     TPZCompMeshReferred *cmeshref = dynamic_cast<TPZCompMeshReferred *>(cmesh);
     
-#ifdef PZDEBUG
-    if (!cmeshref) {
-        DebugStop();
-    }
-#endif
+// #ifdef PZDEBUG
+//     if (!cmeshref) {
+//         DebugStop();
+//     }
+// #endif
     
-    TPZCompEl *cel = cmeshref->ReferredEl(Index());
+//     TPZCompEl *cel = cmeshref->ReferredEl(Index());
     
-#ifdef PZDEBUG
-    if (!cel) {
-        DebugStop();
-    }
-#endif
+// #ifdef PZDEBUG
+//     if (!cel) {
+//         DebugStop();
+//     }
+// #endif
     
-    TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *>(cel);
+//     TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *>(cel);
+    
+    
+//     TPZMultiphysicsElement * mf_cel = dynamic_cast<TPZMultiphysicsElement *>(cel);
 
-#ifdef PZDEBUG
-    if (!intel) {
-        DebugStop();
-    }
-#endif
+// #ifdef PZDEBUG
+//     if (!intel && !mf_cel) {
+//         DebugStop();
+//     }
+// #endif
     
-    return intel;
+//     if (intel) {
+//         return intel;
+//     }
+    
+//     TPZInterpolationSpace * intel_mf = dynamic_cast<TPZInterpolationSpace * >(mf_cel->Element(0)); //@omar:: garbage solution
+//     if(intel_mf){
+//         return intel_mf;
+//     }
+    
+//     return intel;
 }
 
-/**
- * @brief Computes solution and its derivatives in local coordinate qsi
- * @param qsi master element coordinate
- * @param phi matrix containing shape functions compute in qsi point
- * @param dphix matrix containing the derivatives of shape functions in the direction of the axes
- * @param axes [in] axes indicating the direction of the derivatives
- * @param sol finite element solution
- * @param dsol solution derivatives
- */
-void TPZReducedSpace::ComputeSolution(TPZVec<REAL> &qsi, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphix,
-                                const TPZFMatrix<REAL> &axes, TPZSolVec &sol, TPZGradSolVec &dsol)
+void TPZReducedSpace::ReallyComputeSolution(TPZMaterialDataT<STATE>& data)
 {
-    const int dim = this->Reference()->Dimension();
-    const int numdof = this->Material()->NStateVariables();
+    const TPZFMatrix<REAL> &phi = data.phi;
+    const TPZFMatrix<REAL> &dphix = data.dphix;
+    const TPZFMatrix<REAL> &axes = data.axes;
+    TPZSolVec<STATE> &sol = data.sol;
+    TPZGradSolVec<STATE> &dsol = data.dsol;
+    const int dim = axes.Rows();//this->Reference()->Dimension();
+    const int nstate = this->Material()->NStateVariables();
     
 #ifdef PZDEBUG
     const int ncon = this->NConnects();
@@ -334,57 +379,65 @@ void TPZReducedSpace::ComputeSolution(TPZVec<REAL> &qsi, TPZFMatrix<REAL> &phi, 
     }
 #endif
     
+//    TPZInterpolationSpace *intel = ReferredIntel();
+//    TPZSolVec sol_t;
+//    TPZGradSolVec dsol_t;
+//    TPZFMatrix<REAL> axes_t = axes;
+//    intel->ComputeSolution(qsi, sol_t, dsol_t, axes_t);
+    
+    int nsol = phi.Rows();//sol_t.size();
+//    int numdof = sol_t[0].size();
+//    int dim = axes_t.Rows();
+    
     TPZFMatrix<STATE> &MeshSol = Mesh()->Solution();
-    long numbersol = MeshSol.Cols();
+    int64_t numbersol = MeshSol.Cols();
+    int64_t numberdof = MeshSol.Rows();
     sol.Resize(numbersol);
     dsol.Resize(numbersol);
 	
-    for (long is=0 ; is<numbersol; is++) {
-        sol[is].Resize(numdof);
+    for (int64_t is=0 ; is<numbersol; is++) {
+        sol[is].Resize(nstate);
         sol[is].Fill(0.);
-        dsol[is].Redim(dim, numdof);
-        dsol[is].Zero();
+        dsol[is].Redim(dim, nstate);
     }
-	
-    TPZBlock<STATE> &block = Mesh()->Block();
-    long d;
+    
+    TPZBlock &block = Mesh()->Block();
     TPZConnect *df = &this->Connect(0);
-    long dfseq = df->SequenceNumber();
+    int64_t dfseq = df->SequenceNumber();
     int dfvar = block.Size(dfseq);
-    long pos = block.Position(dfseq);
-    for(int jn=0; jn<dfvar; jn++) {
+    int64_t pos = block.Position(dfseq);
+    
 #ifdef PZDEBUG
+    {
+        if(nsol * nstate != dfvar)
         {
-            if(phi.Rows() != numdof)
-            {
-                DebugStop();
-            }
-            if (phi.Cols() != dfvar) {
-                DebugStop();
-            }
-            if (dphix.Rows() != dim*numdof) {
-                DebugStop();
-            }
-            if (dphix.Cols() != dfvar) {
-                DebugStop();
-            }
-            
+            DebugStop();
         }
+        
+    }
+    
+    
 #endif
-        for (long is=0; is<numbersol; is++) {
-            for(d=0; d<numdof; d++){
-                sol[is][d%numdof] += (STATE)phi(d,jn)*MeshSol(pos+jn,is);
-            }
-            for(d=0; d<dim*numdof; d++){
-                dsol[is](d%dim,d/dim) += (STATE)dphix(d,jn)*MeshSol(pos+jn,is);
+    
+    for(int ib=0; ib < nsol; ib++) {
+
+        for (int64_t is=0; is<numbersol; is++) {
+            
+            for(int64_t iv = 0; iv < nstate; iv++){
+                sol[is][iv%nstate] += (STATE)phi.GetVal(ib,iv)*MeshSol(pos+ib*nstate+iv,is);
+                
+                for(int64_t id = 0; id < dim; id++){
+                    dsol[is](id,iv%nstate) += (STATE)dphix.GetVal(id+iv*dim,ib)*MeshSol(pos+ib*nstate+iv,is);
+                }
             }
         }
     }
+    
 }
 
-static TPZCompEl * CreateReducedElement(TPZGeoEl *gel,TPZCompMesh &mesh,long &index)
+static TPZCompEl * CreateReducedElement(TPZGeoEl *gel,TPZCompMesh &mesh)
 {
-    return new TPZReducedSpace(mesh,gel,index);
+    return new TPZReducedSpace(mesh,gel);
 }
 
 void TPZReducedSpace::SetAllCreateFunctionsReducedSpace(TPZCompMesh *cmesh)
@@ -405,7 +458,7 @@ TPZCompEl* TPZReducedSpace::Clone(TPZCompMesh &mesh) const{
     return new TPZReducedSpace(mesh, *this);
 }
 
-TPZCompEl * TPZReducedSpace::ClonePatchEl (TPZCompMesh &mesh, std::map< long, long > &gl2lcConMap, std::map< long, long > &gl2lcElMap) const {
+TPZCompEl * TPZReducedSpace::ClonePatchEl (TPZCompMesh &mesh, std::map< int64_t, int64_t > &gl2lcConMap, std::map< int64_t, int64_t > &gl2lcElMap) const {
     return new TPZReducedSpace(mesh,*this,gl2lcElMap);
 }
 
@@ -421,14 +474,15 @@ TPZCompEl * TPZReducedSpace::ClonePatchEl (TPZCompMesh &mesh, std::map< long, lo
 #include "tpzgraphelpyramidmapped.h"
 #include "tpzgraphelt3d.h"
 #include "pzgraphel.h"
+#include "pzgraphmesh.h"
 
 
 void TPZReducedSpace::CreateGraphicalElement(TPZGraphMesh &grmesh, int dimension) {
 	TPZGeoEl *ref = Reference();
-	int mat = Material()->Id();
+	int matid = Material()->Id();
 	int nsides = ref->NSides();
-	
-	if(dimension == 2 && mat > 0){
+    bool to_postpro = grmesh.Material_Is_PostProcessed(matid);
+	if(dimension == 2 && to_postpro){
 		if(nsides == 9){
 			new TPZGraphElQ2dd(this,&grmesh);
 			return;
@@ -439,7 +493,7 @@ void TPZReducedSpace::CreateGraphicalElement(TPZGraphMesh &grmesh, int dimension
 		}
 	}//2d
 	
-	if(dimension == 3 && mat > 0){
+	if(dimension == 3 && to_postpro){
 		if(nsides == 27){
 			new TPZGraphElQ3dd(this,&grmesh);
 			return;
@@ -458,7 +512,11 @@ void TPZReducedSpace::CreateGraphicalElement(TPZGraphMesh &grmesh, int dimension
 		}//pyram
 	}//3d
 	
-	if(dimension == 1 && mat > 0){
+	if(dimension == 1 && to_postpro){
 		new TPZGraphEl1dd(this,&grmesh);
 	}//1d
+}
+
+int TPZReducedSpace::ClassId() const{
+    return Hash("TPZReducedSpace") ^ TPZInterpolationSpace::ClassId() << 1;
 }

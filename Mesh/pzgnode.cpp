@@ -8,9 +8,11 @@
 #include "pzerror.h"
 #include "pzvec.h"
 #include "pzgmesh.h"
+#include "Hash/TPZHash.h"
 
 using namespace std;
-TPZGeoNode::TPZGeoNode(int id,TPZVec<REAL> &coord,TPZGeoMesh &mesh) {
+TPZGeoNode::TPZGeoNode(int id,TPZVec<REAL> &coord,TPZGeoMesh &mesh) :
+TPZRegisterClassId(&TPZGeoNode::ClassId){
 	mesh.SetNodeIdUsed(id);
 	fId = id;
 	int i,dim=coord.NElements();
@@ -18,11 +20,11 @@ TPZGeoNode::TPZGeoNode(int id,TPZVec<REAL> &coord,TPZGeoMesh &mesh) {
 	for(i=0;i<dim;i++) fCoord[i] = coord[i];
 	for(;i<3;i++) fCoord[i] = 0.;
 }
-TPZGeoNode::TPZGeoNode() {
+TPZGeoNode::TPZGeoNode() : TPZRegisterClassId(&TPZGeoNode::ClassId){
 	fId = -1;
 	for(int i=0;i<3;i++) fCoord[i] = 0.;
 }
-TPZGeoNode::TPZGeoNode(const TPZGeoNode &node) {
+TPZGeoNode::TPZGeoNode(const TPZGeoNode &node) : TPZRegisterClassId(&TPZGeoNode::ClassId) {
 	fId = node.Id();
 	for(int i=0;i<3;i++) fCoord[i] = node.Coord(i);
 }
@@ -36,6 +38,7 @@ TPZGeoNode & TPZGeoNode::operator=(const TPZGeoNode &node){
 void TPZGeoNode::Initialize(TPZVec<REAL> &coord,TPZGeoMesh &mesh) {
 	fId = mesh.CreateUniqueNodeId();
 	int i,dim = coord.NElements();
+    if(dim != 3) DebugStop();
 	if(dim > 3) dim = 3;
 	for(i=0;i<dim;i++) fCoord[i]=coord[i];
 	for(;i<3;i++) fCoord[i]=0.;
@@ -44,6 +47,7 @@ void TPZGeoNode::Initialize(int id,TPZVec<REAL> &coord,TPZGeoMesh &mesh) {
 	fId = id;
 	mesh.SetNodeIdUsed(id);
 	int i,dim = coord.NElements();
+    if(dim != 3) DebugStop();
 	if(dim > 3) dim = 3;
 	for(i=0;i<dim;i++) fCoord[i]=coord[i];
 	for(;i<3;i++) fCoord[i]=0.;
@@ -91,12 +95,11 @@ void TPZGeoNode::Print(ostream & out) {
 }
 
 // return the id of the class (used for writing reading the object)
-int TPZGeoNode::ClassId() const
-{
-	return TPZGEONODEID;
+int TPZGeoNode::ClassId() const{
+    return Hash("TPZGeoNode");
 }
 
 #ifndef BORLAND
-template class TPZRestoreClass<TPZGeoNode,TPZGEONODEID>;
+template class TPZRestoreClass<TPZGeoNode>;
 #endif
 

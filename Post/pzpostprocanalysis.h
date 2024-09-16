@@ -2,13 +2,11 @@
 #ifndef PZPOSTPROCANALYSIS_H
 #define PZPOSTPROCANALYSIS_H
 
-#include "pzanalysis.h"
+#include "TPZLinearAnalysis.h"
 #include "pzcompel.h"
 #include "TPZGeoElement.h"
 #include "pzfmatrix.h"
 #include "pzvec.h"
-#include "pzstrmatrix.h"
-
 
 #include <iostream>
 #include <string>
@@ -20,7 +18,7 @@
  * from the main analysis.
  */
 
-class TPZPostProcAnalysis : public TPZAnalysis {
+class TPZPostProcAnalysis : public TPZLinearAnalysis {
 
 public:
 
@@ -32,10 +30,10 @@ TPZPostProcAnalysis();
     
     TPZPostProcAnalysis &operator=(const TPZPostProcAnalysis &copy);
 
-virtual ~TPZPostProcAnalysis();
+    virtual ~TPZPostProcAnalysis();
 	
     /// Set the computational mesh we are going to post process
-    void SetCompMesh(TPZCompMesh *pRef);
+    void SetCompMesh(TPZCompMesh *pRef, bool mustOptimizeBandwidth = false) override;
     
     TPZCompMesh *ReferenceCompMesh()
     {
@@ -45,14 +43,14 @@ virtual ~TPZPostProcAnalysis();
  *	Assemble() blank implementation in order to avoid its usage. In such an Analysis
  * class the Assemble() method is useless.
  */
-virtual  void Assemble();
+virtual  void Assemble() override;
 
 /**
  *	Solve() blank implementation in order to avoid its usage. In such an Analysis
  * class the Solve() method is useless.
  */
 
-virtual void Solve();
+virtual void Solve() override;
 
 /** 
  * TransferSolution is in charge of transferring the solution from the base analysis/mesh
@@ -71,17 +69,21 @@ static void SetAllCreateFunctionsContinuous();
 		void AutoBuildDisc();
     
     /** @brief Returns the unique identifier for reading/writing objects to streams */
-	virtual int ClassId() const;
+	public:
+int ClassId() const override;
+
 	/** @brief Save the element data to a stream */
-	virtual void Write(TPZStream &buf, int withclassid);
+	void Write(TPZStream &buf, int withclassid) const override;
 	
 	/** @brief Read the element data from a stream */
-	virtual void Read(TPZStream &buf, void *context);
+	void Read(TPZStream &buf, void *context) override;
     
 
 protected:
 	
 	TPZCompMesh * fpMainMesh;
+    
+    TPZVec<TPZCompEl *> fReferredElements;
 
 /**
  * TPZCompElPostProc<TCOMPEL> creation function setup
@@ -90,16 +92,16 @@ protected:
 public:
 
 	
-static TPZCompEl * CreatePostProcDisc(  TPZGeoEl *gel, TPZCompMesh &mesh, long &index);
+static TPZCompEl * CreatePostProcDisc(  TPZGeoEl *gel, TPZCompMesh &mesh);
 	
-static TPZCompEl * CreatePointEl( TPZGeoEl *gel, TPZCompMesh &mesh, long &index);
-static TPZCompEl * CreateLinearEl( TPZGeoEl *gel, TPZCompMesh &mesh, long &index);
-static TPZCompEl * CreateQuadEl( TPZGeoEl *gel, TPZCompMesh &mesh, long &index);
-static TPZCompEl * CreateTriangleEl( TPZGeoEl *gel, TPZCompMesh &mesh, long &index);
-static TPZCompEl * CreateCubeEl( TPZGeoEl *gel, TPZCompMesh &mesh, long &index);
-static TPZCompEl * CreatePyramEl( TPZGeoEl *gel, TPZCompMesh &mesh, long &index);
-static TPZCompEl * CreateTetraEl( TPZGeoEl *gel, TPZCompMesh &mesh, long &index);
-static TPZCompEl * CreatePrismEl( TPZGeoEl *gel, TPZCompMesh &mesh, long &index);
+static TPZCompEl * CreatePointEl( TPZGeoEl *gel, TPZCompMesh &mesh);
+static TPZCompEl * CreateLinearEl( TPZGeoEl *gel, TPZCompMesh &mesh);
+static TPZCompEl * CreateQuadEl( TPZGeoEl *gel, TPZCompMesh &mesh);
+static TPZCompEl * CreateTriangleEl( TPZGeoEl *gel, TPZCompMesh &mesh);
+static TPZCompEl * CreateCubeEl( TPZGeoEl *gel, TPZCompMesh &mesh);
+static TPZCompEl * CreatePyramEl( TPZGeoEl *gel, TPZCompMesh &mesh);
+static TPZCompEl * CreateTetraEl( TPZGeoEl *gel, TPZCompMesh &mesh);
+static TPZCompEl * CreatePrismEl( TPZGeoEl *gel, TPZCompMesh &mesh);
 
 };
 

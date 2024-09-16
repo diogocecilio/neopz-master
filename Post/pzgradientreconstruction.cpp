@@ -7,20 +7,22 @@
 //
 #ifndef STATE_COMPLEX //AQUIFRAN
 #include "pzgradientreconstruction.h"
+#include "TPZElementMatrixT.h"
 #include "pzgradient.h"
 #include "tpzintpoints.h"
 #include "pzmultiphysicselement.h"
-#include "pzmaterial.h"
+#include "TPZMatBase.h"
+#include "TPZMatLoadCases.h"
 #include "pzskylstrmatrix.h"
 #include "pzintel.h"
 #include "pzgnode.h"
 #include "pzstepsolver.h"
-#include "pzbndcond.h"
+#include "TPZBndCond.h"
 #include <cmath>
 
 #include "pzlog.h"
-#ifdef LOG4CXX
-static LoggerPtr logger(Logger::getLogger("pz.pzgradientreconstruction"));
+#ifdef PZ_LOG
+static TPZLogger logger("pz.pzgradientreconstruction");
 #endif
 
 
@@ -74,23 +76,39 @@ void TPZGradientReconstruction::ProjectionL2GradientReconstructed(TPZCompMesh *c
     TPZAutoPointer<TPZFunction<STATE> > fp(pGrad);
     
     //Criar matrix de rigidez e vetor de carga
-    int numloadcases=0;
-    std::map<int, TPZMaterial * >::const_iterator mit;
-	for(mit=cmesh->MaterialVec().begin(); mit!= cmesh->MaterialVec().end(); mit++) {
-        TPZMaterial *mat = mit->second;
-        if (!mat) {
-            DebugStop();
+    const int numloadcases = [cmesh](){
+        int res = 1;
+        if(!cmesh) {
+            return res;
         }
-        numloadcases = mat->NumLoadCases();
-        break;
-    }
+        bool everyMatHasLoadCase{false};
+        for(auto &it : cmesh->MaterialVec()){
+            if(auto *matLoad = dynamic_cast<TPZMatLoadCasesBase*>(it.second);
+               !matLoad) {
+                everyMatHasLoadCase = false;
+                break;
+            }
+        }
+        if(everyMatHasLoadCase){
+            for(auto &it : cmesh->MaterialVec()){
+                auto *matLoad = dynamic_cast<TPZMatLoadCasesBase*>(it.second);
+                const int matNCases = matLoad->MinimumNumberofLoadCases();
+                res = res < matNCases ? matNCases : res;
+            }
+            for(auto &it : cmesh->MaterialVec()){
+                auto *matLoad = dynamic_cast<TPZMatLoadCasesBase*>(it.second);
+                matLoad->SetNumLoadCases(res);
+            }
+        }
+        return res;
+    }();
     
     int neq = cmesh->NEquations();
     TPZFMatrix<STATE> rhs;
     rhs.Redim(neq,numloadcases);
     
-    TPZSkylineStructMatrix stmatrix(cmesh);
-    TPZMatrix<STATE> *stiffmatrix = stmatrix.Create();
+    TPZSkylineStructMatrix<STATE> stmatrix(cmesh);
+    auto *stiffmatrix = stmatrix.Create();
     
     int matid;
     for(int i=0; i<nelem; i++)
@@ -98,11 +116,11 @@ void TPZGradientReconstruction::ProjectionL2GradientReconstructed(TPZCompMesh *c
         TPZCompEl *cel = cmesh->ElementVec()[i];
         if(!cel || cel->Dimension()!=dim) continue;
         
-        TPZElementMatrix ek(cel->Mesh(), TPZElementMatrix::EK);
-        TPZElementMatrix ef(cel->Mesh(), TPZElementMatrix::EF);
+        TPZElementMatrixT<STATE> ek(cel->Mesh(), TPZElementMatrix::EK);
+        TPZElementMatrixT<STATE> ef(cel->Mesh(), TPZElementMatrix::EF);
         
         fGradData->SetCel(cel, useweight, paramK);
-#ifdef LOG4CXX
+#ifdef PZ_LOG
         {
             std::stringstream sout;
             fGradData->Print(sout);
@@ -122,15 +140,27 @@ void TPZGradientReconstruction::ProjectionL2GradientReconstructed(TPZCompMesh *c
         ChangeMaterialIdIntoCompElement(cel, matid, matidl2proj);
         
         //set forcing function of l2 projection material
-        TPZMaterial *mat = cel->Material();
-        mat->SetForcingFunction(fp);
+        auto *mat =
+            dynamic_cast<TPZMaterialT<STATE>*>(cel->Material());
+        if(!mat){
+            PZError<<__PRETTY_FUNCTION__;
+            PZError<<"\nCould not get material type. Aborting...\n";
+            DebugStop();
+        }
+
+        auto forcingFunction = [fp](const TPZVec<REAL>&x,
+                                    TPZVec<STATE>& u){
+            fp->Execute(x, u);
+        };
+        
+        mat->SetForcingFunction(forcingFunction,fp->PolynomialOrder());
         
         //load the matrix ek and vector ef of the element
         cel->CalcStiff(ek,ef);
 //        
 //        ek.fMat.Print("ek = ");
 //        ef.fMat.Print("ef = ");
-//        
+//
         //assemble pos l2 projection
         AssembleGlobalMatrix(cel, ek, ef, *stiffmatrix, rhs);
         
@@ -142,17 +172,19 @@ void TPZGradientReconstruction::ProjectionL2GradientReconstructed(TPZCompMesh *c
     }
     
     //Solve linear system and transfer the solution to computational mesh
+    //TODOCOMPLEX
     TPZStepSolver<STATE> step;
     step.SetDirect(ELDLt);
     step.SetMatrix(stiffmatrix);
     TPZFMatrix<STATE> result;
     step.Solve(rhs, result);
-    cmesh->Solution().Zero();
+//    cmesh->Solution().Zero();
+    
     cmesh->LoadSolution(result);
     
-    //    stiffmatrix->Print("MatKRG = ");
-    //    rhs.Print("FComRG = ");
-    //    result.Print("SolComRG = ");
+//        stiffmatrix->Print("MatKRG = ");
+//        rhs.Print("FComRG = ");
+//        result.Print("SolComRG = ");
 }
 
 void TPZGradientReconstruction::ChangeMaterialIdIntoCompElement(TPZCompEl *cel, int oldmatid, int newmatid) {
@@ -167,8 +199,12 @@ void TPZGradientReconstruction::ChangeMaterialIdIntoCompElement(TPZCompEl *cel, 
 }
 
 
-void TPZGradientReconstruction::AssembleGlobalMatrix(TPZCompEl *el, TPZElementMatrix &ek, TPZElementMatrix &ef,TPZMatrix<STATE> & stiffmatrix, TPZFMatrix<STATE> &rhs){
-    
+void TPZGradientReconstruction::AssembleGlobalMatrix(TPZCompEl *el, TPZElementMatrix &ekb, TPZElementMatrix &efb,TPZMatrix<STATE> & stiffmatrix, TPZFMatrix<STATE> &rhs){
+    //TODOCOMPLEX
+    auto &ek =
+		dynamic_cast<TPZElementMatrixT<STATE>&>(ekb);
+	auto &ef =
+		dynamic_cast<TPZElementMatrixT<STATE>&>(efb);
     if(!el->HasDependency()) {
         ek.ComputeDestinationIndices();
         
@@ -210,7 +246,7 @@ TPZGradientReconstruction::TPZGradientData::TPZGradientData()
     fCelAndNeighbors.resize(0);
     fCenterPointInterface.resize(0);
     
-    this->fForcingFunctionExact = NULL;
+    this->fExactSol = NULL;
     this->fUseForcinfFuncion = false;
     fGhostNeighbor = false;
     
@@ -247,7 +283,7 @@ TPZGradientReconstruction::TPZGradientData::TPZGradientData(const TPZGradientDat
     fGradient = cp.fGradient;
     fSlopeLimiter = cp.fSlopeLimiter;
     
-    fForcingFunctionExact = cp.fForcingFunctionExact;
+    fExactSol = cp.fExactSol;
     fUseForcinfFuncion = cp.fUseForcinfFuncion;
     
     fGhostNeighbor = cp.fGhostNeighbor;
@@ -271,7 +307,7 @@ TPZGradientReconstruction::TPZGradientData & TPZGradientReconstruction::TPZGradi
     fGradient = copy.fGradient;
     fSlopeLimiter = copy.fSlopeLimiter;
     
-    fForcingFunctionExact = copy.fForcingFunctionExact;
+    fExactSol = copy.fExactSol;
     fUseForcinfFuncion = copy.fUseForcinfFuncion;
     
     fGhostNeighbor = copy.fGhostNeighbor;
@@ -309,6 +345,15 @@ void TPZGradientReconstruction::TPZGradientData::SetCel(TPZCompEl * cel, bool us
     
     ComputeSlopeLimiter3();
 }
+#ifdef linux
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat"
+#endif
+#ifdef MACOSX
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat"
+#endif
+
 
 void TPZGradientReconstruction::TPZGradientData::Print(std::ostream &out) const
 {
@@ -372,7 +417,6 @@ void TPZGradientReconstruction::TPZGradientData::Print(std::ostream &out) const
         }
         out <<")\n";
     }
-    
     //Interface
     out <<"\n\n" << name7 <<"\n";
     for (i=0; i<fCenterPointInterface.size(); i++)
@@ -388,6 +432,12 @@ void TPZGradientReconstruction::TPZGradientData::Print(std::ostream &out) const
     
 }
 
+#ifdef linux
+#pragma GCC diagnostic pop    
+#endif
+#ifdef MACOSX
+#pragma clang diagnostic pop
+#endif
 
 void TPZGradientReconstruction::TPZGradientData::GetCenterPointAndCellAveraged(TPZCompEl *cel, TPZManVector<REAL,3> &xcenter, STATE &solcel)
 {
@@ -419,9 +469,9 @@ void TPZGradientReconstruction::TPZGradientData::GetCenterPointAndCellAveraged(T
 		cel->Reference()->X(point,xpoint);
         
         TPZVec<STATE> sol;
-        if (this->HasForcingFunctionExact()){
+        if (this->HasExactSol()){
             sol.Resize(1, 0.);
-            this->fForcingFunctionExact->Execute(xpoint, sol);
+            this->fExactSol->Execute(xpoint, sol);
         }
         else{
             cel->Solution(xpoint, 1, sol);
@@ -591,23 +641,7 @@ void TPZGradientReconstruction::TPZGradientData::InitializeGradData(TPZCompEl *c
 
 #include <stdio.h>
 #ifdef USING_LAPACK
-#ifdef MACOSX
-#include <Accelerate/Accelerate.h>
-#elif USING_MKL
-#include <mkl.h>
-#else
-#include <clapack.h>
-#endif
-#endif
-
-#ifdef USING_BLAS
-#ifdef MACOSX
-#include <Accelerate/Accelerate.h>
-#elif USING_MKL
-#include <mkl.h>
-#else
-#include <cblas.h>
-#endif
+#include "TPZLapack.h"
 #endif
 
 void TPZGradientReconstruction::TPZGradientData::ComputeGradient()
@@ -861,7 +895,7 @@ void TPZGradientReconstruction::TPZGradientData::ComputeSlopeLimiter()
     
     //getting min slope limiter
     STATE alphaK = alphavec[0];
-    for (long j=1; j<alphavec.size(); j++)
+    for (int64_t j=1; j<alphavec.size(); j++)
     {
         if(alphaK > alphavec[j])
         {
@@ -946,7 +980,7 @@ void TPZGradientReconstruction::TPZGradientData::ComputeSlopeLimiter2()
     
     //getting min slope limiter
     STATE alphaK = alphavec[0];
-    for (long j=1; j<alphavec.size(); j++)
+    for (int64_t j=1; j<alphavec.size(); j++)
     {
         if(alphaK > alphavec[j])
         {
@@ -1032,7 +1066,7 @@ void TPZGradientReconstruction::TPZGradientData::ComputeSlopeLimiter3()
     
     //getting min slope limiter
     STATE alphaK = alphavec[0];
-    for (long j=1; j<alphavec.size(); j++)
+    for (int64_t j=1; j<alphavec.size(); j++)
     {
         if(alphaK > alphavec[j])
         {
@@ -1052,7 +1086,7 @@ void TPZGradientReconstruction::TPZGradientData::ComputeWeights(REAL paramk)
     //Node more closer of the cel barycenter
     NodeCloserCenterX(nodecelX);
     
-    long nneighs = fCelAndNeighbors.size()-1;
+    int64_t nneighs = fCelAndNeighbors.size()-1;
     TPZManVector<REAL,30> dist(nneighs,0.);
     TPZManVector<REAL,3> centerneigh(3,0.0);
     
@@ -1120,15 +1154,15 @@ void TPZGradientReconstruction::TPZGradientData::InsertWeights(TPZFMatrix<REAL> 
     if(DeltaH.Rows()!=fWeightsGrad.size()) DebugStop();
     if(DifSol.Rows()!=fWeightsGrad.size()) DebugStop();
     
-    long ncH = DeltaH.Cols();
-    long ncD = DifSol.Cols();
-    for (long i = 0; i<fWeightsGrad.size(); i++) {
+    int64_t ncH = DeltaH.Cols();
+    int64_t ncD = DifSol.Cols();
+    for (int64_t i = 0; i<fWeightsGrad.size(); i++) {
         
-        for (long j = 0; j<ncH; j++){
+        for (int64_t j = 0; j<ncH; j++){
             DeltaH(i,j) = fWeightsGrad[i]*DeltaH(i,j);
         }
         
-        for (long k = 0; k<ncD; k++){
+        for (int64_t k = 0; k<ncD; k++){
             DifSol(i,k) = fWeightsGrad[i]*DifSol(i,k);
         }
     }

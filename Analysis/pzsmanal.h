@@ -7,7 +7,7 @@
 #define TPZSUBMESHANALYSIS_H
 
 
-#include "pzanalysis.h"
+#include "TPZLinearAnalysis.h"
 #include "pzmatred.h"
 class TPZSubCompMesh;
 
@@ -17,7 +17,7 @@ class TPZSubCompMesh;
  * @brief Analysis procedure to computational sub mesh. \ref analysis "Analysis"
  * @ingroup analysis
  */
-class TPZSubMeshAnalysis : public TPZAnalysis  
+class TPZSubMeshAnalysis : public TPZLinearAnalysis  
 {
 private:
 	/** @brief Solution vector */
@@ -29,7 +29,7 @@ private:
 	TPZSubCompMesh *fMesh;
 	
 public:
-	virtual void LoadSolution(const TPZFMatrix<STATE> &sol);
+	virtual void LoadSolution(const TPZFMatrix<STATE> &sol) override;
 	/** @brief Constructor: create an object analysis from one mesh */
 	TPZSubMeshAnalysis(TPZSubCompMesh *mesh = 0);
 	
@@ -42,18 +42,25 @@ public:
 	}
     
     /** @brief Set the computational mesh of the analysis. */
-    virtual void SetCompMesh(TPZCompMesh * mesh, bool mustOptimizeBandwidth);
+    virtual void SetCompMesh(TPZCompMesh * mesh, bool mustOptimizeBandwidth) override;
     
 	
 	/** @brief Run: assemble the stiffness matrix */
-	void Run(std::ostream &out);
+	void Run(std::ostream &out) override;
 	
 	/** @brief CondensedSolution: returns the condensed stiffness matrix - ek - and the condensed solution vector - ef */
 	void CondensedSolution(TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef);
 	
 	/** @brief Assemble the global stiffness matrix and put it into the reducable stiffness matrix */
-	virtual void Assemble();
-	
+	virtual void Assemble() override;
+
+        int ClassId() const override;
+
+    /** @brief compute the reduced right hand side using the current stiffness. Abort if there is no stiffness computed */
+    void ReducedRightHandSide(TPZFMatrix<STATE> &rhs);
+private:
+	template<class TVar>
+	void AssembleInternal();
 };
 
 #endif 

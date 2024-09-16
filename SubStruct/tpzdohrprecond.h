@@ -15,9 +15,7 @@
 #include "tpzdohrassemblelist.h"
 
 #include <list>
-#include <semaphore.h>
-
-#include "pz_pthread.h"
+#include <mutex>
 
 /**
  * \addtogroup substructure
@@ -37,14 +35,16 @@ class TPZDohrPrecond : public TPZMatrix<TVar>
 	TPZStepSolver<TVar> * fCoarse; //K(c)
 
 	/** @brief Size of the coarse system */
-	long fNumCoarse; //n(c)
+	int64_t fNumCoarse; //n(c)
 	
 	/** @brief Number of threads used during preconditioning */
 	int fNumThreads;
 	
 	TPZAutoPointer<TPZDohrAssembly<TVar> > fAssemble;
 	
-    //
+	int64_t Size() const override;
+  TVar* &Elem() override;
+  const TVar* Elem() const override;
     
 public:
     /** @brief Constructor with matrix */
@@ -57,14 +57,29 @@ public:
     ~TPZDohrPrecond();
     
 	// CLONEDEF(TPZDohrPrecond)
-	virtual TPZMatrix<TVar>*Clone() const { return new TPZDohrPrecond(*this); }
+  inline TPZDohrPrecond*NewMatrix() const override {return new TPZDohrPrecond{};}
+	virtual TPZMatrix<TVar>*Clone() const  override { return new TPZDohrPrecond(*this); }
     
     /** @brief The matrix class is a placeholder for a list of substructures */
 	std::list<TPZAutoPointer<TSubStruct> > &Global()
     {
         return fGlobal;
     }
-	
+
+	void CopyFrom(const TPZMatrix<TVar> *  mat) override        
+  {                                                           
+    auto *from = dynamic_cast<const TPZDohrPrecond<TVar,TSubStruct> *>(mat);                
+    if (from) {                                               
+      *this = *from;                                          
+    }                                                         
+    else                                                      
+      {                                                       
+        PZError<<__PRETTY_FUNCTION__;                         
+        PZError<<"\nERROR: Called with incompatible type\n."; 
+        PZError<<"Aborting...\n";                             
+        DebugStop();                                          
+      }                                                       
+  }
 	/** @brief Initialize the necessary datastructures */
 	/** It will compute the coarse matrix, coarse residual and any other necessary data structures */
 	void Initialize();
@@ -92,13 +107,13 @@ public:
 	 * In fact, it will compute \f$v1+v2+v3\f$ \n
 	 * It computes \f$ z = beta * y + alpha * opt(this)*x\f$ but z and x can not overlap in memory.
 	 */
-	virtual void MultAdd(const TPZFMatrix<TVar> &x,const TPZFMatrix<TVar> &y, TPZFMatrix<TVar> &z, const TVar alpha,const TVar beta,const int opt) const;
+	virtual void MultAdd(const TPZFMatrix<TVar> &x,const TPZFMatrix<TVar> &y, TPZFMatrix<TVar> &z, const TVar alpha,const TVar beta,const int opt) const override;
 	
     /** Copy of the MultAdd using TBB */
     virtual void MultAddTBB(const TPZFMatrix<TVar> &x,const TPZFMatrix<TVar> &y, TPZFMatrix<TVar> &z, const TVar alpha,const TVar beta,const int opt) const;
     
 	/** @brief Specify the solution process for the coarse matrix */
-	void SetSolver(TPZSolver<TVar> &solver);
+	void SetSolver(TPZMatrixSolver<TVar> &solver);
 	
 	/** @brief Compute the contribution of the coarse matrix */
 	void ComputeV1(const TPZFMatrix<TVar> &x, TPZFMatrix<TVar> &v1) const;
@@ -106,23 +121,29 @@ public:
 	void ComputeV2(const TPZFMatrix<TVar> &x, TPZFMatrix<TVar> &v2) const;
     
 	/** @brief Routines to send and receive messages */
-	virtual int ClassId() const;	
+	public:
+int ClassId() const override;
+	
     /**
 	 * @brief Unpacks the object structure from a stream of bytes
 	 * @param buf The buffer containing the object in a packed form
 	 * @param context 
 	 */
-	virtual void  Read(TPZStream &buf, void *context );
+	void Read(TPZStream &buf, void *context) override;
 	/**
 	 * @brief Packs the object structure in a stream of bytes
 	 * @param buf Buffer which will receive the bytes
 	 * @param withclassid
 	 */
-	virtual void Write( TPZStream &buf, int withclassid );
+	void Write(TPZStream &buf, int withclassid) const override;
 
 };
 
-#include <pthread.h>
+template <class TVar, class TSubStruct> 
+int TPZDohrPrecond<TVar, TSubStruct>::ClassId() const{
+    return Hash("TPZDohrPrecond") ^ TPZMatrix<TVar>::ClassId() << 1 ^ TSubStruct().ClassId() << 2;
+}
+
 
 /**
  * @brief Auxiliar structure with thread to compute the preconditioner developed by Dohrmann. \ref substructure "Sub Structure"
@@ -205,17 +226,15 @@ struct TPZDohrAssembleList;
  */
 template <class TVar, class TSubStruct> 
 struct TPZDohrPrecondV2SubDataList {
-	TPZDohrPrecondV2SubDataList(TPZAutoPointer<TPZDohrAssembleList<TVar> > &assemble) : fAssemblyStructure(assemble)
+    TPZDohrPrecondV2SubDataList(TPZAutoPointer<TPZDohrAssembleList<TVar> > &assemble) : fAssemblyStructure(assemble), fAccessLock()
 	{
-	  PZ_PTHREAD_MUTEX_INIT(&fAccessLock, 0, "TPZDohrPrecondV2SubDataList::TPZDohrPrecondV2SubDataList()");
 	}
 	~TPZDohrPrecondV2SubDataList()
 	{
-	  PZ_PTHREAD_MUTEX_DESTROY(&fAccessLock, "TPZDohrPrecondV2SubDataList::~TPZDohrPrecondV2SubDataList()");
 	}
 	
     /** @brief Mutex which will enable the access protection of the list */
-	pthread_mutex_t fAccessLock;
+	std::mutex fAccessLock;
 	
     /** @brief The list of structures which need to be computed */
 	std::list<TPZDohrPrecondV2SubData<TVar, TSubStruct> > fWork;
@@ -223,20 +242,18 @@ struct TPZDohrPrecondV2SubDataList {
 	/** @brief Interface to add items in a thread safe way */
 	void AddItem(TPZDohrPrecondV2SubData<TVar, TSubStruct> &data)
 	{
-	  PZ_PTHREAD_MUTEX_LOCK(&fAccessLock, "TPZDohrPrecondV2SubDataList::AddItem()");
+        std::lock_guard<std::mutex> lock(fAccessLock);
 	  fWork.push_back(data);
-	  PZ_PTHREAD_MUTEX_UNLOCK(&fAccessLock, "TPZDohrPrecondV2SubDataList::AddItem()");
 	}
 	/** @brief Interface to pop an item in a thread safe way */
 	TPZDohrPrecondV2SubData<TVar, TSubStruct> PopItem()
 	{
 		TPZDohrPrecondV2SubData<TVar, TSubStruct> result;
-		PZ_PTHREAD_MUTEX_LOCK(&fAccessLock, "TPZDohrPrecondV2SubDataList::PopItem()");
+        std::lock_guard<std::mutex> lock(fAccessLock);
 		if (fWork.size()) {
 			result = *fWork.begin();
 			fWork.pop_front();
 		}
-		PZ_PTHREAD_MUTEX_UNLOCK(&fAccessLock, "TPZDohrPrecondV2SubDataList::PopItem()");
 		return result;
 	}
 	

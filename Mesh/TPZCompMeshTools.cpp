@@ -8,6 +8,7 @@
 
 #include "TPZCompMeshTools.h"
 #include "pzelchdiv.h"
+#include "TPZElementMatrixT.h"
 #include "pzshapepiram.h"
 #include "TPZOneShapeRestraint.h"
 #include "pzshapetriang.h"
@@ -17,8 +18,36 @@
 #include "pzcondensedcompel.h"
 #include "pzmultiphysicselement.h"
 #include "TPZMeshSolution.h"
-
+#include "TPZMaterial.h"
+#include "TPZMatError.h"
+#include "TPZExactFunction.h"
 #include <algorithm>
+
+#include "pzsloan.h"
+#include "TPZSloanRenumbering.h"
+#include "TPZCutHillMcKee.h"
+
+#include "pzlog.h"
+
+#ifdef PZ_LOG
+static TPZLogger logger("pz.TPZCompMeshTools");
+#endif
+
+#ifdef USING_BOOST
+#include "TPZBoostGraph.h"
+/**
+ * @brief To renumbering will use boost library.
+ * @ingroup analysis
+ */
+#define RENUMBER TPZSloanRenumbering()
+#else
+/**
+ * @brief To renumbering will use sloan library.
+ * @ingroup analysis
+ */
+#define RENUMBER TPZSloanRenumbering()
+//#define RENUMBER TPZCutHillMcKee()
+#endif
 
 static TPZOneShapeRestraint SetupPyramidRestraint(TPZCompEl *cel, int side);
 
@@ -26,8 +55,8 @@ using namespace pzshape;
 
 void TPZCompMeshTools::AddHDivPyramidRestraints(TPZCompMesh *cmesh)
 {
-    long nel = cmesh->NElements();
-    for (long el=0; el<nel; el++) {
+    int64_t nel = cmesh->NElements();
+    for (int64_t el=0; el<nel; el++) {
         TPZCompEl *cel = cmesh->Element(el);
         TPZCompElHDiv< pzshape::TPZShapePiram > *pyram = dynamic_cast<TPZCompElHDiv< pzshape::TPZShapePiram > *>(cel);
         if (!pyram) {
@@ -112,7 +141,7 @@ static int nextface(int side, int inc)
     return ((side-14)+inc)%4+14;
 }
 
-static void GetGeoNodeIds(TPZGeoEl *gel, int side, TPZVec<long> &ids)
+static void GetGeoNodeIds(TPZGeoEl *gel, int side, TPZVec<int64_t> &ids)
 {
     int nsidenodes = gel->NSideNodes(side);
     if (nsidenodes != 3) {
@@ -125,7 +154,7 @@ static void GetGeoNodeIds(TPZGeoEl *gel, int side, TPZVec<long> &ids)
 
 static int SideIdf(TPZCompElHDiv<TPZShapePiram> *cel, int side)
 {
-    TPZManVector<long,3> ids(3);
+    TPZManVector<int64_t,3> ids(3);
     GetGeoNodeIds(cel->Reference(),side,ids);
     int transformid = TPZShapeTriang::GetTransformId2dT(ids);
     return idf[transformid];
@@ -141,7 +170,7 @@ static TPZOneShapeRestraint SetupPyramidRestraint(TPZCompEl *cel, int side)
     for (int fc=0; fc<4; fc++)
     {
         int face = nextface(side, fc);
-        long nodeindex = pir->SideConnectIndex(0, face);
+        int64_t nodeindex = pir->SideConnectIndex(0, face);
         result.fFaces[fc] = std::make_pair(nodeindex, SideIdf(pir, face));
         result.fOrient[fc] = mult*pir->SideOrient(face-13);
         mult *= -1;
@@ -152,48 +181,48 @@ static TPZOneShapeRestraint SetupPyramidRestraint(TPZCompEl *cel, int side)
 void TPZCompMeshTools::ExpandHDivPyramidRestraints(TPZCompMesh *cmesh)
 {
     /// Add the shapeonerestraints of all restrained connects build a map indexed on the restrained connect
-    std::map<long, TPZOneShapeRestraint> AllRestraints;
+    std::map<int64_t, TPZOneShapeRestraint> AllRestraints;
     typedef std::list<TPZOneShapeRestraint>::iterator itlist;
     if (!cmesh) {
         DebugStop();
     }
-    long nelem = cmesh->NElements();
-    for (long iel=0; iel<nelem; iel++) {
+    int64_t nelem = cmesh->NElements();
+    for (int64_t iel=0; iel<nelem; iel++) {
         TPZCompEl *cel = cmesh->Element(iel);
         std::list<TPZOneShapeRestraint> ellist;
         ellist = cel->GetShapeRestraints();
         for (itlist it = ellist.begin(); it != ellist.end(); it++) {
-            long elindex = it->fFaces[0].first;
+            int64_t elindex = it->fFaces[0].first;
             AllRestraints[elindex] = *it;
         }
     }
     /// For each element that has a oneshape restraint, add the oneshape restraints of all connects
-    for (long iel=0; iel<nelem; iel++) {
+    for (int64_t iel=0; iel<nelem; iel++) {
         TPZCompEl *cel = cmesh->Element(iel);
         std::list<TPZOneShapeRestraint> ellist;
-        std::map<long, TPZOneShapeRestraint> restraintmap;
-        std::set<long> connectset;
+        std::map<int64_t, TPZOneShapeRestraint> restraintmap;
+        std::set<int64_t> connectset;
         ellist = cel->GetShapeRestraints();
         // we will insert the restraints afterwards
         cel->ResetShapeRestraints();
         for (itlist it = ellist.begin(); it != ellist.end(); it++) {
-            std::cout << "1 including connect index " << it->fFaces[0].first << " to restraint map\n";
-            it->Print(std::cout);
+//            std::cout << "1 including connect index " << it->fFaces[0].first << " to restraint map\n";
+//            it->Print(std::cout);
             restraintmap[it->fFaces[0].first] = *it;
             for (int i=1; i<4; i++) {
                 connectset.insert(it->fFaces[i].first);
             }
         }
         while (connectset.size()) {
-            long cindex = *connectset.begin();
+            int64_t cindex = *connectset.begin();
             connectset.erase(cindex);
             if (AllRestraints.find(cindex) != AllRestraints.end()) {
                 TPZOneShapeRestraint restloc = AllRestraints[cindex];
-                std::cout << "2 including connect index " << cindex << " to restraint map\n";
-                restloc.Print(std::cout);
+//                std::cout << "2 including connect index " << cindex << " to restraint map\n";
+//                restloc.Print(std::cout);
                 restraintmap[cindex] = restloc;
                 for (int i=1; i<4; i++) {
-                    long locindex = restloc.fFaces[i].first;
+                    int64_t locindex = restloc.fFaces[i].first;
                     std::cout << "3 verifying connect index " << locindex << "\n";
                     if (restraintmap.find(locindex) != restraintmap.end()) {
                         std::cout << "********************* CIRCULAR RESTRAINT\n";
@@ -205,7 +234,7 @@ void TPZCompMeshTools::ExpandHDivPyramidRestraints(TPZCompMesh *cmesh)
                 }
             }
         }
-        for (std::map<long,TPZOneShapeRestraint>::iterator it = restraintmap.begin(); it != restraintmap.end(); it++) {
+        for (std::map<int64_t,TPZOneShapeRestraint>::iterator it = restraintmap.begin(); it != restraintmap.end(); it++) {
             cel->AddShapeRestraint(it->second);
         }
     }
@@ -214,8 +243,9 @@ void TPZCompMeshTools::ExpandHDivPyramidRestraints(TPZCompMesh *cmesh)
 
 void TPZCompMeshTools::LoadSolution(TPZCompMesh *cpressure, TPZFunction<STATE> &Forcing)
 {
-    long nel = cpressure->NElements();
-    for (long iel=0; iel<nel; iel++) {
+    int64_t nel = cpressure->NElements();
+    TPZFMatrix<STATE> &sol = cpressure->Solution();
+    for (int64_t iel=0; iel<nel; iel++) {
         TPZCompEl *cel = cpressure->Element(iel);
         if (!cel) {
             continue;
@@ -233,9 +263,10 @@ void TPZCompMeshTools::LoadSolution(TPZCompMesh *cpressure, TPZFunction<STATE> &
             Forcing.Execute(topco, valvec);
             STATE topval = valvec[0];
             TPZConnect &c = cel->Connect(0);
-            long seqnum = c.SequenceNumber();
+            int64_t seqnum = c.SequenceNumber();
             for (int i=0; i<4; i++) {
-                cpressure->Block()(seqnum,0,i,0) = topval;
+                std::pair<int64_t,int64_t> ind = cpressure->Block().at(seqnum,0,i,0);
+                sol.at(ind) = topval;
             }
             for (int i=0; i<4; i++) {
                 TPZConnect &c = cel->Connect(i+1);
@@ -244,7 +275,7 @@ void TPZCompMeshTools::LoadSolution(TPZCompMesh *cpressure, TPZFunction<STATE> &
                 Forcing.Execute(topco, valvec);
                 STATE nodeval = valvec[0];
                 seqnum = c.SequenceNumber();
-                cpressure->Block()(seqnum,0,0,0) = nodeval-topval;
+                sol.at(cpressure->Block().at(seqnum,0,0,0)) = nodeval-topval;
             }
         }
         else
@@ -258,20 +289,20 @@ void TPZCompMeshTools::LoadSolution(TPZCompMesh *cpressure, TPZFunction<STATE> &
                 TPZManVector<STATE,3> valvec(1);
                 Forcing.Execute(topco, valvec);
                 STATE nodeval = valvec[0];
-                long seqnum = c.SequenceNumber();
-                cpressure->Block()(seqnum,0,0,0) = nodeval;
+                int64_t seqnum = c.SequenceNumber();
+                sol.at(cpressure->Block().at(seqnum,0,0,0)) = nodeval;
             }
         }
     }
 }
 
-void TPZCompMeshTools::GroupElements(TPZCompMesh *cmesh, std::set<long> elbasis, std::set<long> &grouped)
+void TPZCompMeshTools::GroupElements(TPZCompMesh *cmesh, std::set<int64_t> elbasis, std::set<int64_t> &grouped)
 {
     cmesh->Reference()->ResetReference();
     cmesh->LoadReferences();
     int dim = cmesh->Dimension();
-    long nel = cmesh->NElements();
-    for (long el=0; el<nel; el++) {
+    int64_t nel = cmesh->NElements();
+    for (int64_t el=0; el<nel; el++) {
         if (elbasis.find(el) == elbasis.end()) {
             continue;
         }
@@ -283,12 +314,12 @@ void TPZCompMeshTools::GroupElements(TPZCompMesh *cmesh, std::set<long> elbasis,
         if (!gel || gel->Dimension() != dim) {
             continue;
         }
-        std::set<long> elgroup;
+        std::set<int64_t> elgroup;
         
-        std::set<long> connectlist;
+        std::set<int64_t> connectlist;
         cel->BuildConnectList(connectlist);
         std::cout << "cel " << cel->Index() << " connects ";
-        for (std::set<long>::iterator it=connectlist.begin(); it != connectlist.end(); it++) {
+        for (std::set<int64_t>::iterator it=connectlist.begin(); it != connectlist.end(); it++) {
             std::cout << *it << " ";
         }
         std::cout << std::endl;
@@ -298,18 +329,18 @@ void TPZCompMeshTools::GroupElements(TPZCompMesh *cmesh, std::set<long> elbasis,
             TPZGeoElSide gelside(gel,is);
             TPZStack<TPZCompElSide> celstack;
             gelside.ConnectedCompElementList(celstack, 0, 0);
-            long nelstack = celstack.size();
-            for (long elst=0; elst<nelstack; elst++) {
+            int64_t nelstack = celstack.size();
+            for (int64_t elst=0; elst<nelstack; elst++) {
                 TPZCompElSide celst=celstack[elst];
 //                TPZGeoElSide gelst =celst.Reference();
                 TPZCompEl *celsidelement = celst.Element();
                 if (elbasis.find(celsidelement->Index()) == elbasis.end()) {
                     continue;
                 }
-                std::set<long> smallset;
+                std::set<int64_t> smallset;
                 celsidelement->BuildConnectList(smallset);
                 std::cout << "neigh " << celsidelement->Index() << " connects ";
-                for (std::set<long>::iterator it=smallset.begin(); it != smallset.end(); it++) {
+                for (std::set<int64_t>::iterator it=smallset.begin(); it != smallset.end(); it++) {
                     std::cout << *it << " ";
                 }
                 std::cout << std::endl;
@@ -323,9 +354,9 @@ void TPZCompMeshTools::GroupElements(TPZCompMesh *cmesh, std::set<long> elbasis,
         }
         if (elgroup.size()) {
             elgroup.insert(el);
-            long grindex;
-            TPZElementGroup *elgr = new TPZElementGroup(*cmesh,grindex);
-            for (std::set<long>::iterator it = elgroup.begin(); it != elgroup.end(); it++) {
+            TPZElementGroup *elgr = new TPZElementGroup(*cmesh);
+            const int64_t grindex = elgr->Index();
+            for (std::set<int64_t>::iterator it = elgroup.begin(); it != elgroup.end(); it++) {
                 elgr->AddElement(cmesh->Element(*it));
             }
             grouped.insert(grindex);
@@ -342,10 +373,10 @@ void TPZCompMeshTools::GroupElements(TPZCompMesh *cmesh)
     cmesh->Reference()->ResetReference();
     cmesh->LoadReferences();
     int dim = cmesh->Dimension();
-    long nel = cmesh->NElements();
+    int64_t nel = cmesh->NElements();
     // all elements that have been put in a group
-    std::set<long> grouped;
-    for (long el=0; el<nel; el++) {
+    std::set<int64_t> grouped;
+    for (int64_t el=0; el<nel; el++) {
         if (grouped.find(el) != grouped.end()) {
             continue;
         }
@@ -357,48 +388,35 @@ void TPZCompMeshTools::GroupElements(TPZCompMesh *cmesh)
         if (!gel || gel->Dimension() != dim) {
             continue;
         }
-        std::set<long> elgroup;
+        std::set<int64_t> elgroup;
         
-        std::set<long> connectlist;
+        std::set<int64_t> connectlist;
         cel->BuildConnectList(connectlist);
-//        std::cout << "cel " << cel->Index() << " connects ";
-//        for (std::set<long>::iterator it=connectlist.begin(); it != connectlist.end(); it++) {
-//            std::cout << *it << " ";
-//        }
-//        std::cout << std::endl;
         int ns = gel->NSides();
         for (int is=0; is<ns; is++) {
-//            std::cout << "side " << is << std::endl;
             TPZGeoElSide gelside(gel,is);
             TPZStack<TPZCompElSide> celstack;
             gelside.ConnectedCompElementList(celstack, 0, 0);
-            long nelstack = celstack.size();
-            for (long elst=0; elst<nelstack; elst++) {
+            int64_t nelstack = celstack.size();
+            for (int64_t elst=0; elst<nelstack; elst++) {
                 TPZCompElSide celst=celstack[elst];
-                //                TPZGeoElSide gelst =celst.Reference();
                 TPZCompEl *celsidelement = celst.Element();
                 if (grouped.find(celsidelement->Index()) != grouped.end()) {
                     continue;
                 }
-                std::set<long> smallset;
+                std::set<int64_t> smallset;
                 celsidelement->BuildConnectList(smallset);
-//                std::cout << "neigh " << celsidelement->Index() << " connects ";
-//                for (std::set<long>::iterator it=smallset.begin(); it != smallset.end(); it++) {
-//                    std::cout << *it << " ";
-//                }
-//                std::cout << std::endl;
                 if (std::includes(connectlist.begin(), connectlist.end(), smallset.begin(), smallset.end()))
                 {
-//                    std::cout << "Is included\n";
                     elgroup.insert(celsidelement->Index());
                 }
             }
         }
         if (elgroup.size()) {
             elgroup.insert(el);
-            long grindex;
-            TPZElementGroup *elgr = new TPZElementGroup(*cmesh,grindex);
-            for (std::set<long>::iterator it = elgroup.begin(); it != elgroup.end(); it++) {
+            TPZElementGroup *elgr = new TPZElementGroup(*cmesh);
+            const int64_t grindex = elgr->Index();
+            for (std::set<int64_t>::iterator it = elgroup.begin(); it != elgroup.end(); it++) {
                 elgr->AddElement(cmesh->Element(*it));
                 grouped.insert(*it);
             }
@@ -411,10 +429,10 @@ void TPZCompMeshTools::GroupElements(TPZCompMesh *cmesh)
 /// ungroup all embedded elements of the computational mesh
 void TPZCompMeshTools::UnGroupElements(TPZCompMesh *cmesh){
     
-    long nelem = cmesh->NElements();
-   
+    int64_t nelem = cmesh->NElements();
+
     //unwrapping element groups
-    for(long i=0; i<nelem; i++){
+    for(int64_t i=0; i<nelem; i++){
         TPZCompEl *el = cmesh->ElementVec()[i];
         TPZElementGroup * group = dynamic_cast<TPZElementGroup*>(el);
         if(group){
@@ -427,10 +445,10 @@ void TPZCompMeshTools::UnGroupElements(TPZCompMesh *cmesh){
 /// uncondensed elements for the elements that have internal nodes
 void TPZCompMeshTools::UnCondensedElements(TPZCompMesh *cmesh){
     
-    long nelem = cmesh->NElements();
+    int64_t nelem = cmesh->NElements();
     
     //unwrapping condensed compel
-    for(long i=0; i<nelem; i++){
+    for(int64_t i=0; i<nelem; i++){
         TPZCompEl *el = cmesh->ElementVec()[i];
         TPZCondensedCompEl * cond = dynamic_cast<TPZCondensedCompEl*>(el);
         if(cond){
@@ -441,56 +459,79 @@ void TPZCompMeshTools::UnCondensedElements(TPZCompMesh *cmesh){
 }
 
 /// Put the element set into a subcompmesh and make the connects internal
-void TPZCompMeshTools::PutinSubmeshes(TPZCompMesh *cmesh, std::map<long,std::set<long> >&elindices, std::map<long,long> &indices, bool KeepOneLagrangian)
+void TPZCompMeshTools::PutinSubmeshes(TPZCompMesh *cmesh, std::map<int64_t,std::set<int64_t> >&elindices, std::map<int64_t,int64_t> &indices, int KeepOneLagrangian)
 {
-    for (std::map<long,std::set<long> >::iterator it = elindices.begin(); it != elindices.end(); it++) {
-        long index;
-        TPZSubCompMesh *subcmesh = new TPZSubCompMesh(*cmesh,index);
+    for (std::map<int64_t,std::set<int64_t> >::iterator it = elindices.begin(); it != elindices.end(); it++) {
+        TPZSubCompMesh *subcmesh = new TPZSubCompMesh(*cmesh);
+        const int64_t index = subcmesh->Index();
         indices[it->first] = index;
-        for (std::set<long>::iterator itloc = it->second.begin(); itloc != it->second.end(); itloc++) {
+        for (std::set<int64_t>::iterator itloc = it->second.begin(); itloc != it->second.end(); itloc++) {
             subcmesh->TransferElement(cmesh, *itloc);
         }
     }
     cmesh->ComputeNodElCon();
-    for (std::map<long,long>::iterator it = indices.begin(); it != indices.end(); it++) {
+    for (std::map<int64_t,int64_t>::iterator it = indices.begin(); it != indices.end(); it++) {
         TPZSubCompMesh *subcmesh = dynamic_cast<TPZSubCompMesh *>(cmesh->Element(it->second));
         if (!subcmesh) {
             DebugStop();
         }
+        int count = 0;
         if (KeepOneLagrangian)
         {
-
-            long nconnects = subcmesh->NConnects();
-            for (long ic=0; ic<nconnects; ic++) {
+            int64_t nconnects = subcmesh->NConnects();
+            for (int64_t ic=0; ic<nconnects; ic++) {
                 TPZConnect &c = subcmesh->Connect(ic);
-                if (c.LagrangeMultiplier() > 0) {
+                if (c.LagrangeMultiplier() == KeepOneLagrangian) {
                     c.IncrementElConnected();
-                    break;
+                    count++;
+                    if(count == 1 && c.NState() == 1)
+                    {
+                        break;
+                    }
+                    else if(count == 2 && c.NState() == 2)
+                    {
+                        break;
+                    }
+                    else if(count == 3 && c.NState() == 3)
+                    {
+                        break;
+                    }
                 }
             }
         }
         subcmesh->MakeAllInternal();
+        subcmesh->CleanUpUnconnectedNodes();
+#ifdef PZ_LOG
+        if(logger.isDebugEnabled())
+        {
+            std::ofstream sout("subcmesh.txt");
+            subcmesh->Print(sout);
+//            LOGPZ_DEBUG(logger, sout.str());
+        }
+#endif
     }
 
+    
     
 }
 
 
 
 /// Put the element set into a subcompmesh and make the connects internal
-void TPZCompMeshTools::PutinSubmeshes(TPZCompMesh *cmesh, std::set<long> &elindices, long &index, bool KeepOneLagrangian)
+void TPZCompMeshTools::PutinSubmeshes(TPZCompMesh *cmesh, std::set<int64_t> &elindices, int64_t &index, int KeepOneLagrangian)
 {
-    TPZSubCompMesh *subcmesh = new TPZSubCompMesh(*cmesh,index);
-    for (std::set<long>::iterator it = elindices.begin(); it != elindices.end(); it++) {
+    TPZSubCompMesh *subcmesh = new TPZSubCompMesh(*cmesh);
+    index = subcmesh->Index();
+    for (std::set<int64_t>::iterator it = elindices.begin(); it != elindices.end(); it++) {
         subcmesh->TransferElement(cmesh, *it);
     }
     cmesh->ComputeNodElCon();
     if (KeepOneLagrangian)
     {
-        long nconnects = subcmesh->NConnects();
-        for (long ic=0; ic<nconnects; ic++) {
+        int64_t nconnects = subcmesh->NConnects();
+        for (int64_t ic=0; ic<nconnects; ic++) {
             TPZConnect &c = subcmesh->Connect(ic);
-            if (c.LagrangeMultiplier() > 0) {
+            if (c.LagrangeMultiplier() == KeepOneLagrangian) {
                 c.IncrementElConnected();
                 break;
             }
@@ -503,25 +544,38 @@ void TPZCompMeshTools::PutinSubmeshes(TPZCompMesh *cmesh, std::set<long> &elindi
 
 
 /// created condensed elements for the elements that have internal nodes
-void TPZCompMeshTools::CreatedCondensedElements(TPZCompMesh *cmesh, bool KeepOneLagrangian)
+void TPZCompMeshTools::CreatedCondensedElements(TPZCompMesh *cmesh, bool KeepOneLagrangian, bool keepmatrix)
 {
-    long nel = cmesh->NElements();
-    for (long el=0; el<nel; el++) {
+//    cmesh->ComputeNodElCon();
+    int64_t nel = cmesh->NElements();
+    for (int64_t el=0; el<nel; el++) {
         TPZCompEl *cel = cmesh->Element(el);
         if (!cel) {
             continue;
         }
         int nc = cel->NConnects();
-        int ic;
         if (KeepOneLagrangian) {
-            for (ic=0; ic<nc; ic++) {
+            int count = 0;
+            for (int ic=0; ic<nc; ic++) {
                 TPZConnect &c = cel->Connect(ic);
                 if (c.LagrangeMultiplier() > 0) {
                     c.IncrementElConnected();
-                    break;
+                    count++;
+                    if(count == 1 && c.NState() == 1)
+                    {
+                        break;
+                    } else if(count == 2 && c.NState() == 2)
+                    {
+                        break;
+                    } else if(count == 3 && c.NState() == 3)
+                    {
+                        break;
+                    }
+                    
                 }
             }
         }
+        int ic;
         for (ic=0; ic<nc; ic++) {
             TPZConnect &c = cel->Connect(ic);
             if (c.HasDependency() || c.NElConnected() > 1) {
@@ -532,51 +586,104 @@ void TPZCompMeshTools::CreatedCondensedElements(TPZCompMesh *cmesh, bool KeepOne
         bool cancondense = (ic != nc);
         if(cancondense)
         {
-            new TPZCondensedCompEl(cel);
+            TPZCondensedCompEl *cond = new TPZCondensedCompEl(cel, keepmatrix);
         }
+        
     }
+
     cmesh->CleanUpUnconnectedNodes();
     
 }
 
-static void ComputeError(TPZCompEl *cel, TPZFunction<STATE> &func, TPZCompMesh *mesh2, TPZVec<STATE> &square_errors);
-
-static void ComputeError(TPZCondensedCompEl *cel, TPZFunction<STATE> &func, TPZCompMesh *mesh2, TPZVec<STATE> &square_errors)
+/// create a condensed element and do not condense the connect with a given lagrange level
+// the method does the same procedure as CreatedCondensedElements, but has different policy for
+// keeping a connect out the condensation loop
+void TPZCompMeshTools::CondenseElements(TPZCompMesh *cmesh, char LagrangeLevelNotCondensed, bool keepmatrix)
 {
-    TPZCompEl *ref = cel->ReferenceCompEl();
-    ComputeError(ref, func, mesh2, square_errors);
+    //    cmesh->ComputeNodElCon();
+    int64_t nel = cmesh->NElements();
+    for (int64_t el=0; el<nel; el++) {
+//        std::cout << "Element " << el << std::endl;
+        TPZCompEl *cel = cmesh->Element(el);
+        if (!cel) {
+            continue;
+        }
+        int nc = cel->NConnects();
+        bool found = false;
+        if(LagrangeLevelNotCondensed >=0)
+        {
+            for (int ic=0; ic<nc; ic++) {
+                TPZConnect &c = cel->Connect(ic);
+//                std::cout << "ic ";
+//                c.Print(*cmesh,std::cout);
+                if(c.LagrangeMultiplier() >= LagrangeLevelNotCondensed && c.NElConnected() == 1)
+                {
+                    c.IncrementElConnected();
+                    found = true;
+                }
+            }
+        }
+        int ic;
+        for (ic=0; ic<nc; ic++) {
+            TPZConnect &c = cel->Connect(ic);
+            if (c.HasDependency() || c.NElConnected() > 1) {
+                continue;
+            }
+            break;
+        }
+        bool cancondense = (ic != nc);
+        if(cancondense)
+        {
+            if(LagrangeLevelNotCondensed >= 0 && !found) DebugStop();
+            TPZCondensedCompEl *cond = new TPZCondensedCompEl(cel, keepmatrix);
+        }
+        
+    }
+
+    cmesh->CleanUpUnconnectedNodes();
+
 }
 
-static void ComputeError(TPZMultiphysicsElement *cel, TPZFunction<STATE> &func, TPZCompMesh *mesh2, TPZVec<STATE> &square_errors)
+static void ComputeError(TPZCompEl *cel, TPZCompMesh *mesh2, TPZVec<STATE> &square_errors);
+
+static void ComputeError(TPZCondensedCompEl *cel, TPZCompMesh *mesh2, TPZVec<STATE> &square_errors)
+{
+    TPZCompEl *ref = cel->ReferenceCompEl();
+    ComputeError(ref, mesh2, square_errors);
+}
+
+static void ComputeError(TPZMultiphysicsElement *cel,TPZCompMesh *mesh2, TPZVec<STATE> &square_errors)
 {
     TPZManVector<STATE,3> errors(3,0.);
-    cel->EvaluateError(func, errors);
-    long index = cel->Index();
+    bool store_error = false;
+    cel->EvaluateError(errors, store_error);
+    int64_t index = cel->Index();
     TPZCompMesh *mesh = cel->Mesh();
+    //TODOCOMPLEX
+    TPZFMatrix<STATE> &elementSol = mesh->ElementSolution();
     for (int i=0; i<3; i++) {
-        mesh->ElementSolution()(index,i) = errors[i];
+        elementSol(index,i) = errors[i];
         square_errors[i] += errors[i]*errors[i];
     }
 }
 
-static void ComputeError(TPZElementGroup *cel, TPZFunction<STATE> &func, TPZCompMesh *mesh2, TPZVec<STATE> &square_errors)
+static void ComputeError(TPZElementGroup *cel, TPZCompMesh *mesh2, TPZVec<STATE> &square_errors)
 {
-    TPZStack<TPZCompEl *,5> celstack;
-    celstack = cel->GetElGroup();
-    long nel = celstack.size();
-    for (long el=0; el<nel; el++) {
+    const TPZVec<TPZCompEl *> &celstack = cel->GetElGroup();
+    int64_t nel = celstack.size();
+    for (int64_t el=0; el<nel; el++) {
         TPZCompEl *subcel = celstack[el];
-        ComputeError(subcel, func, mesh2, square_errors);
+        ComputeError(subcel, mesh2, square_errors);
     }
 }
 
-static void ComputeError(TPZInterpolationSpace *cel, TPZFunction<STATE> &func, TPZCompMesh *mesh2, TPZVec<STATE> &square_errors)
+static void ComputeError(TPZInterpolationSpace *cel, TPZCompMesh *mesh2, TPZVec<STATE> &square_errors)
 {
     DebugStop();
 }
 
 
-static void ComputeError(TPZCompEl *cel, TPZFunction<STATE> &func, TPZCompMesh *mesh2, TPZVec<STATE> &square_errors)
+static void ComputeError(TPZCompEl *cel, TPZCompMesh *mesh2, TPZVec<STATE> &square_errors)
 {
     TPZSubCompMesh *sub = dynamic_cast<TPZSubCompMesh *>(cel);
     // acumulate the errors of the submeshes
@@ -587,32 +694,33 @@ static void ComputeError(TPZCompEl *cel, TPZFunction<STATE> &func, TPZCompMesh *
     TPZElementGroup *elgr = dynamic_cast<TPZElementGroup *>(cel);
     if(elgr)
     {
-        ComputeError(elgr, func, mesh2, square_errors);
+        ComputeError(elgr, mesh2, square_errors);
         return;
     }
     TPZCondensedCompEl *cond = dynamic_cast<TPZCondensedCompEl *>(cel);
     if (cond) {
-        ComputeError(cond, func, mesh2, square_errors);
+        ComputeError(cond, mesh2, square_errors);
         return;
     }
     TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *>(cel);
     if (intel) {
-        ComputeError(intel, func, mesh2, square_errors);
+        ComputeError(intel, mesh2, square_errors);
         return;
     }
     TPZMultiphysicsElement *mphys = dynamic_cast<TPZMultiphysicsElement *>(cel);
     if(mphys)
     {
-        ComputeError(mphys, func, mesh2, square_errors);
+        ComputeError(mphys, mesh2, square_errors);
         return;
     }
     
 }
 /// compute the norm of the difference between two meshes
 /// square of the errors are computed for each element of mesh1
-void TPZCompMeshTools::ComputeDifferenceNorm(TPZCompMesh *mesh1, TPZCompMesh *mesh2, TPZVec<STATE> &square_errors)
+void TPZCompMeshTools::ComputeDifferenceNorm(TPZCompMesh *mesh1, TPZCompMesh *mesh2,
+                                             TPZVec<STATE> &square_errors)
 {
-    long nel = mesh1->NElements();
+    int64_t nel = mesh1->NElements();
     int dim = mesh1->Dimension();
     if(square_errors.size() != 3)
     {
@@ -620,21 +728,38 @@ void TPZCompMeshTools::ComputeDifferenceNorm(TPZCompMesh *mesh1, TPZCompMesh *me
     }
     mesh1->ElementSolution().Redim(mesh1->NElements(), 3);
     
-    int materialid = 1;
-    TPZMeshSolution func(mesh2,materialid);
-    
+    int materialid = 1;    
+
+    TPZAutoPointer<TPZFunction<STATE>> solptr(new TPZMeshSolution(mesh2,materialid));
+    auto solFunc = [solptr](const TPZVec<REAL> &loc, TPZVec<STATE> &result,
+                            TPZFMatrix<STATE> &deriv){
+        solptr->Execute(loc,result,deriv);
+    };
+
+    const auto solOrder = mesh2->GetDefaultOrder();
+    for(auto imat : mesh1->MaterialVec()){
+        auto *errorInterface =
+            dynamic_cast<TPZMatError<STATE>*>(imat.second);
+        if(!errorInterface){
+            PZError<<__PRETTY_FUNCTION__;
+            PZError<<"\nAll materials should have an error interface.\n";
+            PZError<<"Aborting...\n";
+            DebugStop();
+        }
+        errorInterface->SetExactSol(solFunc,solOrder);
+    }
 //    mesh2->Reference()->ResetReference();
 //    mesh2->LoadReferences();
     if (nel >= 1000) {
         std::cout << "ComputeDifferenceNorm nelem " << nel << std::endl;
     }
     
-    for (long el=0; el<nel; el++) {
+    for (int64_t el=0; el<nel; el++) {
         TPZCompEl *cel = mesh1->Element(el);
         if (!cel) {
             continue;
         }
-        ComputeError(cel, func, mesh2, square_errors);
+        ComputeError(cel, mesh2, square_errors);
 
         if (nel >= 1000 && (el+1)%1000 == 0) {
             std::cout << "*";
@@ -652,8 +777,8 @@ void TPZCompMeshTools::AdjustFluxPolynomialOrders(TPZCompMesh *fluxmesh, int hdi
 {
     int dim = fluxmesh->Dimension();
     /// loop over all the elements
-    long nel = fluxmesh->NElements();
-    for (long el=0; el<nel; el++) {
+    int64_t nel = fluxmesh->NElements();
+    for (int64_t el=0; el<nel; el++) {
         TPZCompEl *cel = fluxmesh->Element(el);
         TPZInterpolatedElement *intel = dynamic_cast<TPZInterpolatedElement *>(cel);
         if (!intel) {
@@ -676,7 +801,7 @@ void TPZCompMeshTools::AdjustFluxPolynomialOrders(TPZCompMesh *fluxmesh, int hdi
         //        if (nconside != 1 || maxorder == -1) {
         //            DebugStop();
         //        }
-        long cindex = intel->SideConnectIndex(nconside-1, nsides-1);
+        int64_t cindex = intel->SideConnectIndex(nconside-1, nsides-1);
         TPZConnect &c = fluxmesh->ConnectVec()[cindex];
         if (c.NElConnected() != 1) {
             DebugStop();
@@ -698,9 +823,9 @@ void TPZCompMeshTools::SetPressureOrders(TPZCompMesh *fluxmesh, TPZCompMesh *pre
     int meshdim = fluxmesh->Dimension();
     pressuremesh->Reference()->ResetReference();
     pressuremesh->LoadReferences();
-    TPZManVector<long> pressorder(pressuremesh->NElements(),-1);
-    long nel = fluxmesh->NElements();
-    for (long el=0; el<nel; el++) {
+    TPZManVector<int64_t> pressorder(pressuremesh->NElements(),-1);
+    int64_t nel = fluxmesh->NElements();
+    for (int64_t el=0; el<nel; el++) {
         TPZCompEl *cel = fluxmesh->Element(el);
         TPZInterpolatedElement *intel = dynamic_cast<TPZInterpolatedElement *>(cel);
         if (!intel) {
@@ -711,7 +836,7 @@ void TPZCompMeshTools::SetPressureOrders(TPZCompMesh *fluxmesh, TPZCompMesh *pre
             continue;
         }
         int nsides = gel->NSides();
-        long cindex = intel->SideConnectIndex(0, nsides-1);
+        int64_t cindex = intel->SideConnectIndex(0, nsides-1);
         TPZConnect &c = fluxmesh->ConnectVec()[cindex];
         int order = c.Order();
         TPZCompEl *pressureel = gel->Reference();
@@ -723,7 +848,7 @@ void TPZCompMeshTools::SetPressureOrders(TPZCompMesh *fluxmesh, TPZCompMesh *pre
     }
     pressuremesh->Reference()->ResetReference();
     nel = pressorder.size();
-    for (long el=0; el<nel; el++) {
+    for (int64_t el=0; el<nel; el++) {
         TPZCompEl *cel = pressuremesh->Element(el);
         TPZInterpolatedElement *pintel = dynamic_cast<TPZInterpolatedElement *>(cel);
         if (!pintel) {
@@ -736,5 +861,252 @@ void TPZCompMeshTools::SetPressureOrders(TPZCompMesh *fluxmesh, TPZCompMesh *pre
     }
     
     pressuremesh->ExpandSolution();
+}
+
+/// Print cmesh solution per geometric element
+void TPZCompMeshTools::PrintSolutionByGeoElement(TPZCompMesh* cmesh, std::ostream &out) {
+
+    int64_t nel = cmesh->NElements();
+    for (int64_t el = 0; el < nel; el++) {
+        TPZCompEl *cel = cmesh->Element(el);
+        if (!cel) {
+            continue;
+        }
+        int nc = cel->NConnects();
+
+        bool hasgeometry = false;
+        TPZManVector<REAL> xcenter(3, 0.);
+        TPZGeoEl *gel = cel->Reference();
+        // if a geometric element exists, extract its center coordinate
+        if (gel) {
+            hasgeometry = true;
+            TPZManVector<REAL, 3> xicenter(gel->Dimension(), 0.);
+            gel->CenterPoint(gel->NSides() - 1, xicenter);
+            gel->X(xicenter, xcenter);
+        }
+        out << "CompEl " << el;
+        if (hasgeometry) {
+            out << " Gel " << gel->Index() << " matid " << gel->MaterialId() << " Center " << xcenter;
+        }
+        out << '\n';
+        for (int ic = 0; ic < nc; ic++) {
+            TPZManVector<STATE> connectsol;
+            int64_t cindex = cel->ConnectIndex(ic);
+            TPZConnect &c = cmesh->ConnectVec()[cindex];
+            cmesh->ConnectSolution<STATE>(cindex, cmesh, cmesh->Solution(), connectsol);
+            //for (int i=0; i<connectsol.size(); i++) {
+            //    if (fabs(connectsol[i]) < tol) {
+            //        connectsol[i] = 0.;
+            //    }
+            //}
+            out << ic << " index " << cindex << " values " << connectsol << '\n';
+        }
+    }
+}
+
+void TPZCompMeshTools::PrintStiffnessMatrixByGeoElement(TPZCompMesh *cmesh, std::ostream &out, std::set<int> matIDs) {
+    //TODOCOMPLEX
+    int64_t nel = cmesh->NElements();
+    for (int64_t el = 0; el < nel; el++) {
+        TPZCompEl *cel = cmesh->Element(el);
+        if (!cel) {
+            continue;
+        }
+        TPZGeoEl *gel = cel->Reference();
+        // if a geometric element exists, extract its center coordinate
+        if (gel) {
+            // Only prints information of desired matIDs
+            if (!matIDs.empty()) {
+                if(matIDs.find(gel->MaterialId()) == matIDs.end()) {
+                    continue;
+                }
+            }
+
+            //out << "CompEl " << el;
+
+            TPZManVector<REAL, 3> xicenter(gel->Dimension(), 0.);
+            gel->CenterPoint(gel->NSides() - 1, xicenter);
+
+            TPZManVector<REAL> xcenter(3, 0.);
+            gel->X(xicenter, xcenter);
+
+            out << " Gel " << gel->Index() << " dim " << gel->Dimension() << " matid " << gel->MaterialId() << " Center " << xcenter;
+        }
+        out << '\n';
+
+        TPZElementMatrixT<STATE> ekbc, efbc;
+        cel->CalcStiff(ekbc, efbc);
+
+        ekbc.fMat.Print("StiffnessMatrix", out);
+    }
+}
+
+void TPZCompMeshTools::PrintConnectInfoByGeoElement(TPZCompMesh *cmesh, std::ostream &out, std::set<int> matIDs,
+                                                    bool printSeqNumber, bool printSolution, bool printLagrangeMult) {
+    TPZGeoMesh *gmesh = cmesh->Reference();
+    gmesh->ResetReference();
+    cmesh->LoadReferences();
+
+    int64_t nel = gmesh->NElements();
+    for (int64_t el = 0; el < nel; el++) {
+        TPZGeoEl *gel = gmesh->Element(el);
+        if (!gel) {
+            continue;
+        }
+        TPZCompEl *cel = gel->Reference();
+        if (!cel) {
+            continue;
+        }
+        TPZCompMesh *celmesh = cel->Mesh();
+        TPZFMatrix<STATE> &sol = celmesh->Solution();
+        // Only prints information of desired matIDs
+        if (!matIDs.empty()) {
+            if (matIDs.find(gel->MaterialId()) == matIDs.end()) {
+                continue;
+            }
+        }
+
+        TPZManVector<REAL, 3> xicenter(gel->Dimension(), 0.);
+
+        int nCon = cel->NConnects();
+        int nSides = gel->NSides();
+        int firstSideToHaveConnect = 0;
+        if (nSides != nCon) {
+            firstSideToHaveConnect = gel->NCornerNodes();
+        }
+
+        out << "Gel " << gel->Index() //<< " Cel " << cel->Index()
+            << " dim " << gel->Dimension() << " matid " << gel->MaterialId() << '\n';
+        for (int i = firstSideToHaveConnect; i < nSides; i++) {
+
+            gel->CenterPoint(i, xicenter);
+            TPZManVector<REAL> xcenter(3, 0.);
+            gel->X(xicenter, xcenter);
+            out << "Cord = [" << xcenter;
+
+            int iCon = i - firstSideToHaveConnect;
+            if (cel->NConnects()) {
+                TPZConnect &con = cel->Connect(iCon);
+
+                out << "] Side = " << i;
+                if (printSeqNumber) {
+                    out << " Seqnumber = " << con.SequenceNumber();
+                }
+                out << " Order = " << (int) con.Order() << " NState = " << (int) con.NState()
+                    << " NShape " << con.NShape();
+
+                if (printLagrangeMult) {
+                    out << " IsLagrangeMult = " << (int) con.LagrangeMultiplier();
+                }
+                out << " IsCondensed: " << (int) con.IsCondensed();
+
+                if (con.SequenceNumber() > -1) {
+                    out << " NumElCon = " << con.NElConnected();
+                    if (celmesh->Block().NBlocks()) {
+                        out << " Block size " << celmesh->Block().Size(con.SequenceNumber());
+                        if (printSolution) {
+                            out << " Solution = ";
+                            int64_t ieq;
+                            for (ieq = 0; ieq < celmesh->Block().Size(con.SequenceNumber()); ieq++) {
+                                if (IsZero(sol.at(celmesh->Block().at(con.SequenceNumber(), 0, ieq, 0)))) {
+                                    out << 0.0 << ' ';
+                                } else {
+                                    out << sol.at(celmesh->Block().at(con.SequenceNumber(), 0, ieq, 0)) << ' ';
+                                }
+                            }
+                        }
+                    }
+                }
+                out << '\n';
+            }
+        }
+        for (int i = nSides-firstSideToHaveConnect; i < nCon; i++)
+        {
+
+            TPZConnect &con = cel->Connect(i);
+
+            out << "Connect Number = " << i;
+            if (printSeqNumber) {
+                out << " Seqnumber = " << con.SequenceNumber();
+            }
+            out << " Order = " << (int) con.Order() << " NState = " << (int) con.NState()
+                << " NShape " << con.NShape();
+
+            if (printLagrangeMult) {
+                out << " IsLagrangeMult = " << (int)con.LagrangeMultiplier();
+            }
+            out << " IsCondensed: " << (int)con.IsCondensed();
+
+            if (con.SequenceNumber() > -1) {
+                out << " NumElCon = " << con.NElConnected();
+                if (celmesh->Block().NBlocks()) {
+                    out << " Block size " << celmesh->Block().Size(con.SequenceNumber());
+                    if (printSolution) {
+                        out << " Solution = ";
+                        int64_t ieq;
+                        for (ieq = 0; ieq < celmesh->Block().Size(con.SequenceNumber()); ieq++) {
+                            if (IsZero(sol.at(celmesh->Block().at(con.SequenceNumber(), 0, ieq, 0)))) {
+                                out << 0.0 << ' ';
+                            } else {
+                                out << sol.at(celmesh->Block().at(con.SequenceNumber(), 0, ieq, 0)) << ' ';
+                            }
+                        }
+                    }
+                }
+            }
+
+            out << '\n';
+        }
+        out << '\n';
+    }
+}
+
+/// group elements that share a connect with the basis elements
+void TPZCompMeshTools::GroupNeighbourElements(TPZCompMesh *cmesh, const std::set<int64_t> &seed_elements, std::set<int64_t> &groupindexes)
+{
+    TPZVec<int64_t> connectgroup(cmesh->NConnects(),-1);
+    int64_t nel = cmesh->NElements();
+    TPZVec<int64_t> elhandled(nel,0);
+    for(auto el : seed_elements)
+    {
+        elhandled[el] = 1;
+        TPZElementGroup *elgr = new TPZElementGroup(*cmesh);
+        const int64_t index = elgr->Index();
+        if(index < nel) elhandled[index] = 1;
+        groupindexes.insert(index);
+        TPZCompEl *cel = cmesh->Element(el);
+        int nc = cel->NConnects();
+        for(int ic=0; ic<nc; ic++)
+        {
+            int64_t cindex = cel->ConnectIndex(ic);
+#ifdef PZDEBUG
+            // the elements in seed_elements should not share any connect
+            if(connectgroup[cindex] != -1) DebugStop();
+#endif
+            connectgroup[cindex] = index;
+        }
+        elgr->AddElement(cel);
+    }
+    for(int64_t el = 0; el < nel; el++)
+    {
+        if(elhandled[el]) continue;
+        TPZCompEl *cel = cmesh->Element(el);
+        if(!cel) continue;
+        std::set<int64_t> groups;
+        int nc = cel->NConnects();
+        for(int ic=0; ic<nc; ic++)
+        {
+            int64_t cindex = cel->ConnectIndex(ic);
+            int64_t group = connectgroup[cindex];
+            if(group != -1) groups.insert(group);
+        }
+        if(groups.size()>1) DebugStop();
+        if(groups.size())
+        {
+            int64_t group = *groups.begin();
+            TPZElementGroup *elgr = dynamic_cast<TPZElementGroup *>(cmesh->Element(group));
+            elgr->AddElement(cel);
+        }
+    }
 }
 

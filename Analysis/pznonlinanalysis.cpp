@@ -8,31 +8,30 @@
 #include "pzcompel.h"
 #include "pzintel.h"
 #include "pzfmatrix.h"
-#include "pzsolve.h"
-#include "pzmaterial.h"
+#include "TPZMatrixSolver.h"
+#include "TPZMaterial.h"
 #include "pzelmat.h"
 #include "pzvec.h"
 #include "pzmanvector.h"
 #include "checkconv.h"
-#include "pzstrmatrix.h"
 
 #include "pzlog.h"
 
 #include <stdio.h>
 #include <fstream>
 
-#ifdef LOG4CXX
-static LoggerPtr logger(Logger::getLogger("pz.nonlinearanalysis"));
+#ifdef PZ_LOG
+static TPZLogger logger("pz.nonlinearanalysis");
 #endif
 
 using namespace std;
 
-TPZNonLinearAnalysis::TPZNonLinearAnalysis() : TPZAnalysis() {
+TPZNonLinearAnalysis::TPZNonLinearAnalysis() : TPZLinearAnalysis() {
 	if(Mesh()) Mesh()->Solution().Zero();
 	fSolution.Zero();
 }
 
-TPZNonLinearAnalysis::TPZNonLinearAnalysis(TPZCompMesh *mesh,std::ostream &out) : TPZAnalysis(mesh,true,out) {
+TPZNonLinearAnalysis::TPZNonLinearAnalysis(TPZCompMesh *mesh,std::ostream &out) : TPZLinearAnalysis(mesh,true,out) {
 	if(Mesh()) Mesh()->Solution().Zero();
 	fSolution.Zero();
 }
@@ -71,10 +70,14 @@ REAL TPZNonLinearAnalysis::LineSearch(const TPZFMatrix<STATE> &Wn, TPZFMatrix<ST
 			lambdak = Interval; lambdak *= 0.382; lambdak += ak;
 			//computing residual
 			this->LoadSolution(lambdak);
+#ifdef PZ_LOG
 			LOGPZ_DEBUG(logger,"After LoadSolution")
+#endif
 			//		LogWellSolution(*this->Mesh(), 6);
 			this->AssembleResidual();
+#ifdef PZ_LOG
 			LOGPZ_DEBUG(logger,"After AssembleResidual")
+#endif
 			//		LogWellSolution(*this->Mesh(), 6);
 			NormResLambda = Norm(fRhs);
 		}
@@ -167,7 +170,7 @@ void TPZNonLinearAnalysis::IterativeProcess(std::ostream &out,REAL tol,int numit
 	
 	while(error > tol && iter < numiter) {
 		
-		fSolution.Redim(0,0);
+//        fSolution.Redim(0,0);
 		Assemble();
 		Solve();
 		if (linesearch){
@@ -178,7 +181,8 @@ void TPZNonLinearAnalysis::IterativeProcess(std::ostream &out,REAL tol,int numit
 			fSolution = nextSol;
 		}
 		else{
-			fSolution += prevsol;
+			TPZFMatrix<STATE> sol = fSolution;
+			sol += prevsol;
 		}
 		
 		prevsol -= fSolution;
@@ -240,7 +244,7 @@ void TPZNonLinearAnalysis::LoadSolution(const TPZFMatrix<STATE> &state){
 }
 
 void TPZNonLinearAnalysis::LoadSolution(){
-    TPZAnalysis::LoadSolution();
+    TPZLinearAnalysis::LoadSolution();
 }
 
 void TPZNonLinearAnalysis::LoadState(TPZFMatrix<STATE> &state){

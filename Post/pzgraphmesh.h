@@ -6,56 +6,63 @@
 #ifndef GRAFGRIDH
 #define GRAFGRIDH
 
-
 #include "pzcompel.h"
 #include "pzadmchunk.h"
 #include "pzvec.h"
 #include "tpzautopointer.h"
-#include "pzmaterial.h"
+#include "TPZMaterial.h"
 #include "pzfmatrix.h"
+#include "pzgraphnode.h"
+#include "TPZDrawStyle.h"
+#include "pzgraphel.h"
 
 #include <iostream>
-class TPZGraphNode;
 class TPZCompMesh;
-class TPZGraphEl;
-template<class TVar>
 class TPZBlock;
-
-/** @ingroup post */
-enum TPZDrawStyle {EDXStyle,EMVStyle,EV3DStyle,EVTKStyle};
 
 /**
  * @ingroup post
  * @brief Represents a graphical mesh used for post processing purposes. \ref post "Post processing"
  */
+
 /** 
  * The  graphical mesh represents a logically refined version of the computational mesh \n
  * This logical refinement means that the refined element object are not actually created \n
  * They only exist in the output file. 
  */
-class TPZGraphMesh {
+class TPZGraphMesh : public TPZSavable {
+
 public:
+    
 	/** @brief Constructor for graphical mesh */
-	TPZGraphMesh(TPZCompMesh *cm, int dimension, TPZMaterial * mat);
+    TPZGraphMesh(TPZCompMesh *cm, int dimension, const std::set<int> & matids, const TPZVec<std::string> &scalarnames,const TPZVec<std::string> &vecnames);
+    
+    /** @brief Constructor with tensorial names for graphical mesh */
+    TPZGraphMesh(TPZCompMesh *cm, int dimension, const std::set<int> & matids, const TPZVec<std::string> &scalarnames, const TPZVec<std::string> &vecnames, const TPZVec<std::string> &tensornames);
+    
 	/** @brief Default destructor */
 	virtual ~TPZGraphMesh(void);
-	
+        
+    int ClassId() const override;
+
+    void Read(TPZStream &buf, void *context) override;
+
+    void Write(TPZStream &buf, int withclassid) const override;
+
 	/** @brief Find graphical node (connect) */
-	TPZGraphNode &FindNode(long side);
-	TPZGraphEl *FindElement(long sid);
+	TPZGraphNode &FindNode(int64_t side);
+	TPZGraphEl *FindElement(int64_t sid);
 	/** @brief Vector of the graphical elements */
 	TPZAdmChunkVector<TPZGraphEl *> &ElementList();
 	/** @brief Vector of the graphical nodes */
 	TPZAdmChunkVector<TPZGraphNode> &NodeMap();
 	/** @brief Number of points to drawing, depending on the resolution */
-	long NPoints();
-	long NElements(MElementType type);
+	int64_t NPoints();
+	int64_t NElements(MElementType type);
 	/** @brief Get the resolution of the draw */
 	int Res() {return fResolution;}
-	/** @brief Sets the material information */
-	void SetMaterial(TPZMaterial * mat) {fMaterial = mat;}
 	/** @brief Sets the computational mesh to associate */
-	virtual void SetCompMesh(TPZCompMesh *mesh, TPZMaterial * &mat);
+    virtual void SetCompMesh(TPZCompMesh *mesh, const std::set<int> & matids);
 	/** @brief Draw the graphical nodes information */
 	virtual void DrawNodes();
 	/** @brief Draw the graphical mesh */
@@ -77,17 +84,32 @@ public:
 	/** @brief Sets resolution */
 	void SetResolution(int res){ fResolution = res; SequenceNodes();}
 	
+    /** @brief Print object attributes  */
 	void Print(std::ostream &out);
+    
+    /** @brief  Set names with scalar and vector variable names  */
 	void SetNames(const TPZVec<std::string>&scalarnames, const TPZVec<std::string>&vecnames);
+
+    /** @brief  Set names with scalar, vectorial and tensorial variable names  */
+    void SetNames(const TPZVec<std::string>&scalarnames, const TPZVec<std::string>&vecnames, const TPZVec<std::string>& tensornames);
 	
+    /** @brief Set material ids  */
+    void SetMaterialIds(const std::set<int> & matids);
+    
+    /** @brief Get material ids  */
+    std::set<int> MaterialIds();
+    
+    /** @brief Return a directive if the material id is being postprocessed */
+    bool Material_Is_PostProcessed(int matid);
+    
 protected:
+    
 	/** @brief Computational mesh associated */
 	TPZCompMesh *fCompMesh;
 	/** @brief Geometric mesh related */
 	TPZGeoMesh *fGeoMesh;
-	
-	/** @brief Vector of material associated */
-	TPZMaterial * fMaterial;
+	/** @brief Set of material ids being post-processed */
+    std::set<int> fMaterialIds;
 	/** @brief Dimension of the graphical mesh */
 	int fDimension;
 	/** @brief Vector of graphical elements */
@@ -100,17 +122,36 @@ protected:
 	TPZDrawStyle fStyle;
 	std::ofstream fOutFile;
 	std::string fFileName;
-	/** @brief Vectors of the variables names (scalar and vectorial) */
-	TPZVec<std::string> fScalarNames, fVecNames;
+	/** @brief Vectors of the variables names (scalar, vectorial, and tensorial) */
+	TPZVec<std::string> fScalarNames, fVecNames, fTensorNames;
 	virtual void SequenceNodes();
 	
 	TPZCompEl *FindFirstInterpolatedElement(TPZCompMesh *mesh,int dimension);
 	
 public:
-	/** @brief Return of the material for graphical mesh */
-	virtual TPZMaterial * Material();
+    
+//    /** @brief Return of the material for graphical mesh */
+//    virtual TPZMaterial * Material();
 	/** @brief Return a pointer of the computational mesh */
 	virtual TPZCompMesh *Mesh() { return fCompMesh;}
+    
+    /** @brief Return scalar variable names */
+    TPZVec<std::string> ScalarNames()
+    {
+        return fScalarNames;
+    }
+    
+    /** @brief Return vectorial variable names */
+    TPZVec<std::string> VecNames()
+    {
+        return fVecNames;
+    }
+    
+    /** @brief Return tensorial variable names */
+    TPZVec<std::string> TensorNames()
+    {
+        return fTensorNames;
+    }
 };
 
 inline TPZDrawStyle TPZGraphMesh::Style(){

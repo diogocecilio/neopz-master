@@ -5,12 +5,15 @@
 
 #ifndef TPZFRONT_H
 #define TPZFRONT_H
+#include <mutex>
+#include <thread>
+#include <vector>
 
 #include "pzmatrix.h"
 #include "pzstack.h"
 #include "pzvec.h"
-#include "TPZThreadTools.h"
-
+#include "TPZSemaphore.h"
+#include "Hash/TPZHash.h"
 template<class TVar>
 class TPZEqnArray;
 
@@ -23,21 +26,21 @@ class TPZEqnArray;
  * @brief Abstract class implements storage and decomposition process of the frontal matrix. \ref frontal "Frontal"
  */
 template<class TVar>
-class TPZFront {
+class TPZFront : public TPZSavable {
 	
 public:
 	
-    /** @brief Static main used for testing */	
+    ///** @brief Static main used for testing */	
 	//static void main();
 	
-	long NElements();
+	int64_t NElements();
     /** @brief Simple destructor */
     virtual ~TPZFront();
     /** @brief Simple constructor */
     TPZFront();
     /** @brief Constructor with a initial size parameter */
 	TPZFront(
-			 long GlobalSize //! Initial size of the Frontal Matrix
+			 int64_t GlobalSize //! Initial size of the Frontal Matrix
 			 );
 	
 	TPZFront(const TPZFront<TVar> &cp);
@@ -47,13 +50,13 @@ public:
 	 * @param mineq Initial equation
 	 * @param maxeq Final equation
 	 */
-    void SymbolicDecomposeEquations(long mineq, long maxeq);
+    void SymbolicDecomposeEquations(int64_t mineq, int64_t maxeq);
 	
 	/** 
 	 * @brief Add a contribution of a stiffness matrix using the indexes to compute the frontwidth 
 	 * @param destinationindex Destination index of each element added
 	 */
-	void SymbolicAddKel(TPZVec < long > & destinationindex);
+	void SymbolicAddKel(TPZVec < int64_t > & destinationindex);
 
 	int Work() {
 		return fWork;
@@ -67,6 +70,9 @@ public:
 		std::cout << " fNextRigidBody Mode neste ponto " << fNextRigidBodyMode<<std::endl;
 	}
 	
+        public:
+int ClassId() const override;
+        
 protected:
 	int fWork;
 private:    
@@ -77,13 +83,13 @@ private:
 	 */
 	/** By future assembly processes. 
      */
-    void FreeGlobal(long global);
+    void FreeGlobal(int64_t global);
     
 	/** 
 	 * @brief return a local index corresponding to a global equation number 
 	 * @param global Global equation index which has a local indexation
      */
-    int Local(long global);
+    int Local(int64_t global);
 	
 public:
 	/** @brief Extracts the so far condensed matrix */
@@ -113,9 +119,9 @@ public:
 	}	
 	
 	/** @brief Returns the number of free equations */
-	virtual long NFree();
+	virtual int64_t NFree();
     /** Resets data structure */
-	void Reset(long GlobalSize=0);
+	void Reset(int64_t GlobalSize=0);
 	
     /** @brief It prints TPZFront data */
 	void Print(const char *name, std::ostream& out) const;
@@ -139,20 +145,20 @@ protected:
 	 * If we need a position in globalmatrix of a equation "i" in the frontmatrix \n
 	 * then we can use fGlobal[i]. If the global equation "i" is not used \f$ then fGlobal[i]==-1 \f$
      */
-    TPZManVector <long> fGlobal;
+    TPZManVector <int64_t> fGlobal;
 	
     /** @brief Front equation to each global equation */
     /**
 	 * If we need a position in frontmatrix of a global equation "i" \n
 	 * then we can use fLocal[i]. If the global equation is not represented in the front then \f$ fLocal[i]==-1 \f$.
      */
-    TPZVec<long> fLocal;
+    TPZVec<int64_t> fLocal;
 	
     /** @brief Actual front size */
-    long fFront;
+    int64_t fFront;
 	
 	/** @brief Equation where rigid body modes can be stored */
-	long fNextRigidBodyMode;
+	int64_t fNextRigidBodyMode;
 	
     /** @brief Colection of already decomposed equations still on the front */
     TPZStack <int> fFree;
@@ -179,15 +185,15 @@ public:
 	public:
 		
 		///dados para sincronizar o thread principal
-		pz_semaphore_t fWorkDoneSem;
+		TPZSemaphore fWorkDoneSem;
 		int fWorkDoneCount;
-		pz_critical_section_t fWorkDoneCS;
+		std::mutex fMutexWorkDoneCS;
 		
 		///semaforos para sincronizar os threads de calculo
-		TPZVec<pz_semaphore_t> fWorkSem;
+		TPZVec<TPZSemaphore> fWorkSem;
 		
 		///array de threads
-		TPZVec< pz_thread_t > fThreads;
+		std::vector<std::thread> fThreads;//for now we cannot use TPZVec
 		
 		///vetores de operacao
 		TPZVec<TVar> * fAuxVecCol, * fAuxVecRow;
@@ -196,7 +202,7 @@ public:
         TVar fDiagonal;
 		
 		///num threads
-		int NThreads(){ return fThreads.NElements(); };
+		int NThreads(){ return fThreads.size(); };
 		
 		//vec to storage
 		TPZVec<STensorProductThreadData*> fThreadData;  
@@ -213,46 +219,32 @@ public:
 			this->fRunning = true;
 			
 			fWorkSem.Resize(nthreads);
-			for(int i = 0; i < nthreads; i++){
-				tht::InitializeSemaphore(fWorkSem[i]);
-			}
 			
-			fThreads.Resize(nthreads);
+      // threads must be initialised already with thread work
+			// fThreads.resize(nthreads);
 			fThreadData.Resize(nthreads);
 			for(int i = 0; i < nthreads; i++){
 				STensorProductThreadData * threadData = new STensorProductThreadData;
 				threadData->first = i;
 				threadData->second = this;
 				fThreadData[i] = threadData;
-				tht::CreateThread( fThreads[i], & Execute, threadData);
+        fThreads.push_back(std::thread(Execute, threadData));
 			}
-			
-			tht::InitializeSemaphore(fWorkDoneSem);
-			tht::InitializeCriticalSection(fWorkDoneCS);
-			
 		}///construtor
 		
 		///destrutor
 		~STensorProductMTData(){
 			
-			///finalizando a execucao dos threads
 			this->fRunning = false;
 			const int nthreads = fWorkSem.NElements();
 			for(int i = 0; i < nthreads; i++){
-				tht::SemaphorePost(fWorkSem[i]);
+        fWorkSem[i].Post();
 			}
 			for(int i = 0; i < nthreads; i++){
-				tht::ThreadWaitFor(fThreads[i]);
+        fThreads[i].join();
 				delete fThreadData[i];
 				fThreadData[i] = NULL;
 			}
-			
-			///desalocando objetos, exceto threads que, ao menos no embarcadero, morrem sozinhos
-			for(int i = 0; i < fWorkSem.NElements(); i++){
-				tht::DeleteSemaphore( fWorkSem[i] );
-			}
-			tht::DeleteSemaphore( fWorkDoneSem );
-			tht::DeleteCriticalSection(fWorkDoneCS);
 			
 		}///destrutor
 		
@@ -266,12 +258,12 @@ public:
 		}
 		
 		void WorkDone(){
-			tht::EnterCriticalSection(fWorkDoneCS);
+			std::scoped_lock<std::mutex> lck(fMutexWorkDoneCS);
+      
 			fWorkDoneCount++;
 			if(fWorkDoneCount == NThreads()){
-				tht::SemaphorePost(fWorkDoneSem);
+        fWorkDoneSem.Post();
 			}
-			tht::LeaveCriticalSection(fWorkDoneCS);
 		}
 		
 		void Run(TPZVec<TVar> &AuxVecCol, TPZVec<TVar> &AuxVecRow){
@@ -279,9 +271,9 @@ public:
 			this->fAuxVecRow = &AuxVecRow;
 			this->fWorkDoneCount = 0;
 			for(int i = 0; i < NThreads(); i++){
-				tht::SemaphorePost(fWorkSem[i]);
+				fWorkSem[i].Post();
 			}
-			tht::SemaphoreWait( fWorkDoneSem );
+      fWorkDoneSem.Wait();
 		}
 		
 	};
@@ -310,4 +302,8 @@ public:
 	virtual void TensorProductIJ(int ithread,typename TPZFront<TVar>::STensorProductMTData *data);
 };
 
+template<class TVar>
+int TPZFront<TVar>::ClassId() const {
+    return Hash("TPZFront") ^ ClassIdOrHash<TVar>() << 1;
+}
 #endif //TPZFRONT_H

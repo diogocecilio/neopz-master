@@ -9,9 +9,8 @@
 #include <iostream>
 #include "pzreal.h"
 #include "pzerror.h"
-#include "pzsave.h"
-#include "pzstream.h"
-#include "pzmeshid.h"
+#include "TPZSavable.h"
+#include "TPZStream.h"
 
 
 template<class T>
@@ -29,7 +28,7 @@ class TPZGeoEl;
  * Note that the global id will influence the orientation of the shape functions \n
  * It is very important that the global Ids will not be duplicated within a single mesh
  */
-class TPZGeoNode : public TPZSaveable {
+class TPZGeoNode : public TPZSavable {
 	
 	/** @brief Identity of node*/
 	int		fId;
@@ -50,17 +49,17 @@ public:
 	virtual  ~TPZGeoNode() { }
 	
 	/** @brief Returns the id of the class (used for writing reading the object) */
-	virtual int ClassId() const;
+	public:
+int ClassId() const override;
+
 	/** @brief Reads the object from disk */
-	virtual void Read(TPZStream &buf, void *context) {
-		TPZSaveable::Read(buf,context);
+	void Read(TPZStream &buf, void *context) override{
 		buf.Read(&fId,1);
 		buf.Read(fCoord,3);
 	}
 	
 	/** @brief Writes the object to disk */
-	virtual void Write(TPZStream &buf, int withclassid) {
-		TPZSaveable::Write(buf,withclassid);
+	void Write(TPZStream &buf, int withclassid) const override{
 		buf.Write(&fId,1);
 		buf.Write(fCoord,3);
 	}
@@ -98,7 +97,7 @@ public:
 };
 
 inline REAL TPZGeoNode::Coord(int i) const {
-#ifndef NODEBUG
+#ifndef PZNODEBUG
 	if(i > 2 || i < 0) {
 		PZError << "Not exist (TPZGeoNode) coordinate " << i << std::endl;
 		return 1.e12;

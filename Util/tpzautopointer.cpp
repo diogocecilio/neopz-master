@@ -1,50 +1,38 @@
 /** 
  * @file 
- * @brief Initialize the pthread_mutex_t gAutoPointerMutex. 
+ * @brief Initialize the std::recursive_mutex g_ap_mut and a few template instantiations. 
  */
 
 #include "tpzautopointer.h"
+//namespace pzinternal{
+//    std::recursive_mutex g_ap_mut;
+//    std::mutex g_diag_mut;
+//}
 
-pthread_mutex_t gAutoPointerMutexArray[AP_MUTEX_ARRAY_SZ];
 
-#ifdef PROFILE_AP_MUTEXES
-  unsigned long long ap_mutex_accesses[AP_MUTEX_ARRAY_SZ];
-#endif
+#include "pzmatrix.h"
 
-/* Class to initialize the array. */
-class AutoPointerMutexArrayInit
-{
-public:
-  AutoPointerMutexArrayInit() 
-  {
-    for (int i=0; i< AP_MUTEX_ARRAY_SZ; i++) {
-      pthread_mutex_init(&(gAutoPointerMutexArray[i]),0);
-#ifdef PROFILE_AP_MUTEXES
-      std::cout << "Inicializando autopointe mutex " << i << std:endl;
-      ap_mutex_accesses[i] = 0;
-#endif
-    }
-  }
-  ~AutoPointerMutexArrayInit() 
-  {
-    for (int i=0; i< AP_MUTEX_ARRAY_SZ; i++) {
-      pthread_mutex_destroy(&(gAutoPointerMutexArray[i]));
-#ifdef PROFILE_AP_MUTEXES
-    std:cout << "Destruindo autopointer mutex " << i << std:endl;
-    printf("AutoPointer Mutex 0x%p accessed %lld times\n", 
-	   &(gAutoPointerMutexArray[i]), ap_mutex_accesses[i]);
-#endif
-    }
-  }
+template class TPZAutoPointer<TPZMatrix<float>>;
+template class TPZAutoPointer<TPZMatrix<double>>;
+template class TPZAutoPointer<TPZMatrix<long double>>;
+template class TPZAutoPointer<TPZMatrix<std::complex<float> >>;
+template class TPZAutoPointer<TPZMatrix<std::complex<double> >>;
+template class TPZAutoPointer<TPZMatrix<std::complex<long double> >>;
 
-};
+#include "pzfunction.h"
+template class TPZAutoPointer<TPZFunction<float>>;
+template class TPZAutoPointer<TPZFunction<double>>;
+template class TPZAutoPointer<TPZFunction<long double>>;
+template class TPZAutoPointer<TPZFunction<std::complex<float> >>;
+template class TPZAutoPointer<TPZFunction<std::complex<double> >>;
+template class TPZAutoPointer<TPZFunction<std::complex<long double> >>;
 
-AutoPointerMutexArrayInit tmp;
-
-// template < class T>
-// pthread_mutex_t TPZAutoPointer<T>::gAutoCounterMutex = PTHREAD_MUTEX_INITIALIZER;
-
-// pthread_mutex_t TPZAutoPointer<TPZSaveable>::gAutoCounterMutex = PTHREAD_MUTEX_INITIALIZER;
-
-// template class TPZAutoPointer<TPZSaveable>;
-//gAutoPointerMutex = PTHREAD_MUTEX_INITIALIZER;
+#include "TPZRefPattern.h"
+#include "pzgmesh.h"
+#include "pzcmesh.h"
+class TPZGeoMesh;
+template class TPZAutoPointer<TPZGeoMesh>;
+class TPZCompMesh;
+template class TPZAutoPointer<TPZCompMesh>;
+class TPZRefPattern;
+template class TPZAutoPointer<TPZRefPattern>;

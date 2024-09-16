@@ -20,94 +20,136 @@ class TPZGeoEl;
 class TPZGeoMesh;
 
 namespace pzgeom {
-	
-	/**
-	 * @ingroup geometry
-	 * @brief Implements the geometry of hexahedra element. \ref geometry "Geometry"
-	 */
-	class TPZGeoCube : public TPZNodeRep<8, pztopology::TPZCube> {
-		
-	public:
-		/** @brief Number of corner nodes */
-		enum {NNodes = 8};
-		
-		/** @brief Constructor with list of nodes */
-		TPZGeoCube(TPZVec<long> &nodeindexes) : TPZNodeRep<NNodes, pztopology::TPZCube>(nodeindexes)
-		{
-		}
-		
-		/** @brief Empty constructor */
-		TPZGeoCube() : TPZNodeRep<NNodes, pztopology::TPZCube>()
-		{
-		}
-		
-		/** @brief Constructor with node map */
-		TPZGeoCube(const TPZGeoCube &cp,
-				   std::map<long,long> & gl2lcNdMap) : TPZNodeRep<NNodes, pztopology::TPZCube>(cp,gl2lcNdMap)
-		{
-		}
-		
-		/** @brief Copy constructor */
-		TPZGeoCube(const TPZGeoCube &cp) : TPZNodeRep<NNodes, pztopology::TPZCube>(cp)
-		{
-		}
-		
-		/** @brief Copy constructor */
-		TPZGeoCube(const TPZGeoCube &cp, TPZGeoMesh &) : TPZNodeRep<NNodes, pztopology::TPZCube>(cp)
-		{
-		}
+    
+    /**
+     * @ingroup geometry
+     * @brief Implements the geometry of hexahedra element. \ref geometry "Geometry"
+     */
+    class TPZGeoCube : public TPZNodeRep<8, pztopology::TPZCube> {
+        
+    public:
+        typedef pztopology::TPZCube Top;
+        /** @brief Number of corner nodes */
+        enum {NNodes = 8};
+        
+        /** @brief Constructor with list of nodes */
+        TPZGeoCube(TPZVec<int64_t> &nodeindexes) : TPZRegisterClassId(&TPZGeoCube::ClassId), TPZNodeRep<NNodes, pztopology::TPZCube>(nodeindexes)
+        {
+        }
+        
+        /** @brief Empty constructor */
+        TPZGeoCube() : TPZRegisterClassId(&TPZGeoCube::ClassId),TPZNodeRep<NNodes, pztopology::TPZCube>()
+        {
+        }
+        
+        /** @brief Constructor with node map */
+        TPZGeoCube(const TPZGeoCube &cp,
+                   std::map<int64_t,int64_t> & gl2lcNdMap) : TPZRegisterClassId(&TPZGeoCube::ClassId),
+        TPZNodeRep<NNodes, pztopology::TPZCube>(cp,gl2lcNdMap)
+        {
+        }
+        
+        /** @brief Copy constructor */
+        TPZGeoCube(const TPZGeoCube &cp) : TPZRegisterClassId(&TPZGeoCube::ClassId),
+        TPZNodeRep<NNodes, pztopology::TPZCube>(cp)
+        {
+        }
+        
+        /** @brief Copy constructor */
+        TPZGeoCube(const TPZGeoCube &cp, TPZGeoMesh &) : TPZRegisterClassId(&TPZGeoCube::ClassId),
+        TPZNodeRep<NNodes, pztopology::TPZCube>(cp)
+        {
+        }
         
         static bool IsLinearMapping(int side)
         {
             return true;
         }
-		
-		/** @brief Returns the type name of the element */
-		static std::string TypeName() { return "Hexa";}
-		
-		/* @brief Computes the coordinate of a point given in parameter space */
-        void X(const TPZGeoEl &gel,TPZVec<REAL> &loc,TPZVec<REAL> &result) const
-        {
-            TPZFNMatrix<3*NNodes> coord(3,NNodes);
-            CornerCoordinates(gel, coord);
-            X(coord,loc,result);
-        }
-		
+        
+        /** @brief Returns the type name of the element */
+        static std::string TypeName() { return "Hexahedron";}
+
+        /** @brief Compute x mapping from element nodes and local parametric coordinates */
         template<class T>
-        void GradX(const TPZGeoEl &gel, TPZVec<T> &par, TPZFMatrix<T> &gradx) const
-        {
+        static void X(const TPZFMatrix<REAL> &nodecoordinates,TPZVec<T> &loc,TPZVec<T> &x);
+        
+        /** @brief Compute gradient of x mapping from element nodes and local parametric coordinates */
+        template<class T>
+        static void GradX(const TPZFMatrix<REAL> &nodecoordinates,TPZVec<T> &loc, TPZFMatrix<T> &gradx);
+        
+       
+        
+        
+        /// create an example element based on the topology
+        /* @param gmesh mesh in which the element should be inserted
+         @param matid material id of the element
+         @param lowercorner (in/out) on input lower corner o the cube where the element should be created, on exit position of the next cube
+         @param size (in) size of space where the element should be created
+         */
+        static void InsertExampleElement(TPZGeoMesh &gmesh, int matid, TPZVec<REAL> &lowercorner, TPZVec<REAL> &size);
+        
+        public:
+int ClassId() const override;
+        void Read(TPZStream &buf, void *context) override;
+        void Write(TPZStream &buf, int withclassid) const override;
+
+    public:
+        /** @brief Creates a geometric element according to the type of the father element */
+        // static TPZGeoEl *CreateGeoElement(TPZGeoMesh &mesh, MElementType type,
+        //                                   TPZVec<int64_t>& nodeindexes,
+        //                                   int matid,
+        //                                   int64_t& index);
+        
+    };
+
+    
+    template<class T>
+    inline void TPZGeoCube::X(const TPZFMatrix<REAL> &nodes,TPZVec<T> &loc,TPZVec<T> &x){
+        
+        TPZFNMatrix<8,T> phi(NNodes,1);
+        TPZFNMatrix<24,T> dphi(3,NNodes);
+        TShape(loc,phi,dphi);
+        int space = nodes.Rows();
+        
+        for(int i = 0; i < space; i++) {
+            x[i] = 0.0;
+            for(int j = 0; j < NNodes; j++) {
+                x[i] += phi(j,0)*nodes.GetVal(i,j);
+            }
+        }
+    }
+    
+    
+    template<class T>
+    inline void TPZGeoCube::GradX(const TPZFMatrix<REAL> &nodes,TPZVec<T> &loc, TPZFMatrix<T> &gradx){
+        
+        gradx.Resize(3,3);
+        gradx.Zero();
+        int nrow = nodes.Rows();
+        int ncol = nodes.Cols();
+#ifdef PZDEBUG
+        if(nrow != 3 || ncol  != 8){
+            std::cout << "Objects of incompatible lengths, gradient cannot be computed." << std::endl;
+            std::cout << "nodes matrix must be 3x8." << std::endl;
             DebugStop();
         }
         
-        /* @brief Computes the jacobian of the map between the master element and deformed element */
-		void Jacobian(const TPZGeoEl &gel,TPZVec<REAL> &param,TPZFMatrix<REAL> &jacobian,TPZFMatrix<REAL> &axes,REAL &detjac,TPZFMatrix<REAL> &jacinv) const
+#endif
+        TPZFNMatrix<4,T> phi(NNodes,1);
+        TPZFNMatrix<12,T> dphi(3,NNodes);
+        TShape(loc,phi,dphi);
+        for(int i = 0; i < NNodes; i++)
         {
-            TPZFNMatrix<3*NNodes> coord(3,NNodes);
-            CornerCoordinates(gel, coord);
-            Jacobian(coord, param, jacobian, axes, detjac, jacinv);
+            for(int j = 0; j < 3; j++)
+            {
+                gradx(j,0) += nodes.GetVal(j,i)*dphi(0,i);
+                gradx(j,1) += nodes.GetVal(j,i)*dphi(1,i);
+                gradx(j,2) += nodes.GetVal(j,i)*dphi(2,i);
+            }
         }
-
-		static void X(const TPZFMatrix<REAL> &nodes,TPZVec<REAL> &loc,TPZVec<REAL> &result);
         
-        template<class T>
-        static void GradX(const TPZFMatrix<T> &nodes,TPZVec<T> &loc,TPZVec<T> &result);
-		
-		static void Shape(TPZVec<REAL> &pt,TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi);
-		
-		static void Jacobian(const TPZFMatrix<REAL> &nodes,TPZVec<REAL> &param,TPZFMatrix<REAL> &jacobian,
-							 TPZFMatrix<REAL> &axes,REAL &detjac,TPZFMatrix<REAL> &jacinv);
-		
-		static TPZGeoEl *CreateBCGeoEl(TPZGeoEl *gel, int side,int bc);
-		
-	public:
-		/** @brief Creates a geometric element according to the type of the father element */
-		static TPZGeoEl *CreateGeoElement(TPZGeoMesh &mesh, MElementType type,
-										  TPZVec<long>& nodeindexes,
-										  int matid,
-										  long& index);
-		
-	};
-	
+    }
+    
 };
 
 #endif

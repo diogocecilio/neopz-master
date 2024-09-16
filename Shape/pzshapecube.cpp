@@ -10,6 +10,7 @@
 #include "pzmanvector.h"
 #include "pzerror.h"
 #include "pzreal.h"
+
 using namespace std;
 
 namespace pzshape {
@@ -30,7 +31,10 @@ namespace pzshape {
 		{ { 1.,0.,0.},{0.,1.,0.} }
 	};
 		
-	void TPZShapeCube::ShapeCorner(TPZVec<REAL> &pt, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi) {
+
+
+	void TPZShapeCube::ShapeCorner(const TPZVec<REAL> &pt, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi)
+{
 		
 		REAL x[2],dx[2],y[2],dy[2],z[2],dz[2];
 		x[0]  = (1.-pt[0])/2.;
@@ -79,14 +83,14 @@ namespace pzshape {
 		dphi(1,7) = x[0]*dy[1]*z[1];
 		dphi(2,7) = x[0]*y[1]*dz[1];
 	}
-	
+
 	/**
 	 * @brief Computes the generating shape functions for a quadrilateral element
 	 * @param pt (input) point where the shape function is computed
 	 * @param phi (input) value of the (8) shape functions
 	 * @param dphi (input) value of the derivatives of the (8) shape functions holding the derivatives in a column
 	 */
-	void TPZShapeCube::ShapeGenerating(TPZVec<REAL> &pt, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi)
+	void TPZShapeCube::ShapeGenerating(const TPZVec<REAL> &pt, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi)
 	{
 		int is;
 		// contribute the ribs
@@ -147,8 +151,77 @@ namespace pzshape {
 
 	}
 	
-	
-	void TPZShapeCube::Shape(TPZVec<REAL> &pt, TPZVec<long> &id, TPZVec<int> &order, TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi) {
+    /**
+     * @brief Computes the generating shape functions for a hexahedral element
+     * @param pt (input) point where the shape function is computed
+     * @param phi (input) value of the (8) corner shape functions
+     * @param dphi (input) value of the derivatives of the (4) shape functions holding the derivatives in a column
+     */
+void TPZShapeCube::ShapeGenerating(const TPZVec<REAL> &pt, TPZVec<int> &nshape, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi)
+{
+    int is;
+    // contribute the ribs
+    for(is=8; is<20; is++)
+    {
+        if(nshape[is-8] == 0) continue;
+        int is1,is2;
+        is1 = ContainedSideLocId(is,0);
+        is2 = ContainedSideLocId(is,1);
+        phi(is,0) = phi(is1,0)*phi(is2,0);
+        dphi(0,is) = dphi(0,is1)*phi(is2,0)+phi(is1,0)*dphi(0,is2);
+        dphi(1,is) = dphi(1,is1)*phi(is2,0)+phi(is1,0)*dphi(1,is2);
+        dphi(2,is) = dphi(2,is1)*phi(is2,0)+phi(is1,0)*dphi(2,is2);
+    }
+    // contribution of the faces
+    for(is=20; is<26; is++)
+    {
+
+        int is1,is2;
+        is1 = ContainedSideLocId(is,0);
+        is2 = ContainedSideLocId(is,2);
+        phi(is,0) = phi(is1,0)*phi(is2,0);
+        dphi(0,is) = dphi(0,is1)*phi(is2,0)+phi(is1,0)*dphi(0,is2);
+        dphi(1,is) = dphi(1,is1)*phi(is2,0)+phi(is1,0)*dphi(1,is2);
+        dphi(2,is) = dphi(2,is1)*phi(is2,0)+phi(is1,0)*dphi(2,is2);
+    }
+    // contribution of the volume
+    for(is=26; is<27; is++)
+    {
+
+        int is1,is2;
+        is1 = 0;
+        is2 = 6;
+        phi(is,0) = phi(is1,0)*phi(is2,0);
+        dphi(0,is) = dphi(0,is1)*phi(is2,0)+phi(is1,0)*dphi(0,is2);
+        dphi(1,is) = dphi(1,is1)*phi(is2,0)+phi(is1,0)*dphi(1,is2);
+        dphi(2,is) = dphi(2,is1)*phi(is2,0)+phi(is1,0)*dphi(2,is2);
+    }
+
+    // Make the generating shape functions linear and unitary
+    for(is=8; is<27; is++)
+    {
+        TPZStack<int> highsides;
+        HigherDimensionSides(is,highsides);
+        int h, nh = highsides.NElements();
+        for(h=0; h<nh; h++)
+        {
+            int hs = highsides[h];
+            phi(is,0) += phi(hs,0);
+            dphi(0,is) += dphi(0,hs);
+            dphi(1,is) += dphi(1,hs);
+            dphi(2,is) += dphi(2,hs);
+        }
+        int dim = SideDimension(is);
+        int mult = (dim == 1) ? 4 : (dim == 2) ? 16 : (dim ==3) ? 64 : 0;
+        phi(is,0) *= mult;
+        dphi(0,is) *= mult;
+        dphi(1,is) *= mult;
+        dphi(2,is) *= mult;
+    }
+
+}
+
+	void TPZShapeCube::Shape(TPZVec<REAL> &pt, TPZVec<int64_t> &id, TPZVec<int> &order, TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi) {
 		ShapeCorner(pt,phi,dphi);
 		bool linear = true;
 		int is,d;
@@ -171,20 +244,20 @@ namespace pzshape {
 			REAL outval;
 			ProjectPoint3dCubeToRib(rib,pt,outval);
 			TPZManVector<REAL,1> outvalvec(1,outval);
-			TPZVec<long> ids(2);
+			TPZVec<int64_t> ids(2);
 			int id0,id1;
 			id0 = SideNodes[rib][0];
 			id1 = SideNodes[rib][1];
 			ids[0] = id[id0];
 			ids[1] = id[id1];
 			REAL store1[20],store2[60];
-			int ordin = order[rib]-1;//three orders : order in x , order in y and order in z
-			TPZFMatrix<REAL> phin(ordin,1,store1,20),dphin(3,ordin,store2,60);
+			int nshape = order[rib]-1;//three orders : order in x , order in y and order in z
+			TPZFMatrix<REAL> phin(nshape,1,store1,20),dphin(3,nshape,store2,60);
 			phin.Zero();
 			dphin.Zero();
 			TPZShapeLinear::ShapeInternal(outvalvec,order[rib],phin,dphin,TPZShapeLinear::GetTransformId1d(ids));//ordin = ordem de um lado
-			TransformDerivativeFromRibToCube(rib,ordin,dphin);
-			for (int i = 0; i < ordin; i++) {
+			TransformDerivativeFromRibToCube(rib,nshape,dphin);
+			for (int i = 0; i < nshape; i++) {
 				phi(shape,0) = phiblend(rib+8,0)*phin(i,0);
 				for(int xj=0;xj<3;xj++) {
 					dphi(xj,shape) = dphiblend(xj ,rib+8) *  phin( i, 0) +
@@ -210,7 +283,7 @@ namespace pzshape {
 			dphin.Zero();
 			int ordin =  (ord1 > ord2) ? ord1 : ord2;
 			ordin--;
-			TPZManVector<long> ids(4);
+			TPZManVector<int64_t> ids(4);
 			//TPZVec<int> ids(4);
 			//	int id0,id1;
 			int i;
@@ -232,10 +305,10 @@ namespace pzshape {
 		REAL store1[20],store2[60];
 		int ordmin1 = (order[18]-1);
 		int ord =  ordmin1*ordmin1*ordmin1;//(p-1)^3 : 0<=n1,n2,n3<=p-2
-		TPZFMatrix<REAL> phin(ord,1,store1,20),dphin(3,ord,store2,60);
+		TPZFNMatrix<20, REAL> phin(ord,1),dphin(3,ord);
 		phin.Zero();
 		dphin.Zero();
-		ShapeInternal(pt,ordmin1,phin,dphin);
+		ShapeInternal(pt,order[18],phin,dphin);
 		for(int i=0;i<ord;i++)	{
 			phi(shape,0) = phiblend(26,0)*phin(i,0);
 			for(int xj=0;xj<3;xj++) {
@@ -246,7 +319,7 @@ namespace pzshape {
 		}
 	}
 	
-	void TPZShapeCube::SideShape(int side, TPZVec<REAL> &pt, TPZVec<long> &id, TPZVec<int> &order, TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi) {
+	void TPZShapeCube::SideShape(int side, TPZVec<REAL> &pt, TPZVec<int64_t> &id, TPZVec<int> &order, TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi) {
 		if(side<0 || side>26) PZError << "TPZCompElC3d::SideShapeFunction. Bad paramenter side.\n";
 		else if(side==26) Shape(pt,id,order,phi,dphi);
 		else if(side<8) TPZShapePoint::Shape(pt,id,order,phi,dphi);
@@ -262,11 +335,11 @@ namespace pzshape {
 		}
 	}
     
-    void TPZShapeCube::ShapeOrder(TPZVec<long> &id, TPZVec<int> &order, TPZGenMatrix<int> &shapeorders)//, TPZVec<long> &sides
+    void TPZShapeCube::ShapeOrder(const TPZVec<int64_t> &id, const TPZVec<int> &order, TPZGenMatrix<int> &shapeorders)//, TPZVec<int64_t> &sides
     {
         //DebugStop();
     
-        long nsides = TPZShapeCube::NSides;
+        int64_t nsides = TPZShapeCube::NSides;
         int nshape = NCornerNodes;
         
         int linha = 0;
@@ -296,7 +369,7 @@ namespace pzshape {
     }
     
     
-    void TPZShapeCube::SideShapeOrder(int side,  TPZVec<long> &id, int order, TPZGenMatrix<int> &shapeorders)
+    void TPZShapeCube::SideShapeOrder(const int side,  const TPZVec<int64_t> &id, const int order, TPZGenMatrix<int> &shapeorders)
     {
         //DebugStop();
         if (side<=7)
@@ -359,7 +432,7 @@ namespace pzshape {
             
             int nnodes = NSideNodes(side);
             
-            TPZManVector<long, 4> locid(nnodes);
+            TPZManVector<int64_t, 4> locid(nnodes);
             for (int node=0; node<locid.size(); node++) {
                 locid[node] = id[ContainedSideLocId(side, node)];// SideNodeLocId( side, node);
             }// sera que esta pegando os ids corretos mesmo? 
@@ -384,33 +457,81 @@ namespace pzshape {
         }
 
     }
+    void TPZShapeCube::ShapeInternal(TPZVec<REAL> &x, int order,TPZFMatrix<REAL> &phi,
+                                     TPZFMatrix<REAL> &dphi) {//,int cube_transformation_index
+        if((order-1) < 1) return;
+        int ord = order - 1;//fSideOrder[18]-1;
+        int nshape = ord*ord*ord;
+        phi.Resize(nshape,1);
+        dphi.Resize(3,nshape);
+        REAL store1[20],store2[20],store3[20],store4[20],store5[20],store6[20];
+        TPZFNMatrix<20, REAL> phi0(ord,1),phi1(ord,1),phi2(ord,1),
+        dphi0(1,ord),dphi1(1,ord),dphi2(1,ord);
+        TPZShapeLinear::fOrthogonal(x[0],ord,phi0,dphi0);
+        TPZShapeLinear::fOrthogonal(x[1],ord,phi1,dphi1);
+        TPZShapeLinear::fOrthogonal(x[2],ord,phi2,dphi2);
+        for (int i=0;i<ord;i++) {
+            for (int j=0;j<ord;j++) {
+                for (int k=0;k<ord;k++) {
+                    int index = ord*(ord*i+j)+k;
+                    phi(index,0) =  phi0(i,0)* phi1(j,0)* phi2(k,0);
+                    dphi(0,index) = dphi0(0,i)* phi1(j,0)* phi2(k,0);
+                    dphi(1,index) =  phi0(i,0)*dphi1(0,j)* phi2(k,0);
+                    dphi(2,index) =  phi0(i,0)* phi1(j,0)*dphi2(0,k);
+                }
+            }
+        }
+    }
+
 	
-	void TPZShapeCube::ShapeInternal(TPZVec<REAL> &x, int order,TPZFMatrix<REAL> &phi,
-									 TPZFMatrix<REAL> &dphi) {//,int cube_transformation_index
-		if(order < 1) return;
-		int ord = order;//fSideOrder[18]-1;
-		order = order*order*order;
-		phi.Resize(order,1);
-		dphi.Resize(3,order);
-		REAL store1[20],store2[20],store3[20],store4[20],store5[20],store6[20];
-		TPZFMatrix<REAL> phi0(ord,1,store1,20),phi1(ord,1,store2,20),phi2(ord,1,store3,20),
-		dphi0(1,ord,store4,20),dphi1(1,ord,store5,20),dphi2(1,ord,store6,20);
-		TPZShapeLinear::fOrthogonal(x[0],ord,phi0,dphi0);
-		TPZShapeLinear::fOrthogonal(x[1],ord,phi1,dphi1);
-		TPZShapeLinear::fOrthogonal(x[2],ord,phi2,dphi2);
-		for (int i=0;i<ord;i++) {
-			for (int j=0;j<ord;j++) {
-				for (int k=0;k<ord;k++) {
-					int index = ord*(ord*i+j)+k;
-					phi(index,0) =  phi0(i,0)* phi1(j,0)* phi2(k,0);
-					dphi(0,index) = dphi0(0,i)* phi1(j,0)* phi2(k,0);
-					dphi(1,index) =  phi0(i,0)*dphi1(0,j)* phi2(k,0);
-					dphi(2,index) =  phi0(i,0)* phi1(j,0)*dphi2(0,k);
-				}
-			}
-		}
-	}
-	
+    void TPZShapeCube::ShapeInternal(int side, TPZVec<REAL> &x, int order,
+                                       TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi) {
+        if (side < 8 || side > 26) {
+            DebugStop();
+        }
+        
+        switch (side) {
+                
+            case 8:
+            case 9:
+            case 10:
+            case 11:
+            case 12:
+            case 13:
+            case 14:
+            case 15:
+            case 16:
+            case 17:
+            case 18:
+            case 19:
+            {
+                pzshape::TPZShapeLinear::ShapeInternal(x, order, phi, dphi);
+            }
+                break;
+            case 20:
+            case 21:
+            case 22:
+            case 23:
+            case 24:
+            case 25:
+            {
+                pzshape::TPZShapeQuad::ShapeInternal(x, order, phi, dphi);
+            }
+                break;
+            case 26:
+            {
+                ShapeInternal(x, order, phi, dphi);
+            }
+                break;
+            default:
+                std::cout << "Wrong side parameter side " << side << std::endl;
+                DebugStop();
+                break;
+        }
+        
+        
+        
+    }
 	void TPZShapeCube::TransformDerivativeFromRibToCube(int rib,int num,TPZFMatrix<REAL> &dphi) {
 		for (int j = 0;j<num;j++) {
 			dphi(2,j) = gRibTrans3dCube1d[rib][2]*dphi(0,j);
@@ -462,15 +583,14 @@ namespace pzshape {
 		return 0;
 	}
 	
-	int TPZShapeCube::NShapeF(TPZVec<int> &order) {
+	int TPZShapeCube::NShapeF(const TPZVec<int> &order) {
 		int in,res = NCornerNodes;
 		for(in=NCornerNodes;in<NSides;in++) res += NConnectShapeF(in,order[in-NCornerNodes]);
 		return res;
 	}
 	
-#ifdef _AUTODIFF
-	
-	void TPZShapeCube::ShapeCube(TPZVec<REAL> &point, TPZVec<long> &id, TPZVec<int> &order, TPZVec<FADREAL> &phi)
+
+	void TPZShapeCube::ShapeCube(TPZVec<REAL> &point, TPZVec<int64_t> &id, TPZVec<int> &order, TPZVec<FADREAL> &phi)
 	{
 		const int ndim = 3;
 		
@@ -491,7 +611,7 @@ namespace pzshape {
 		for (int rib = 0; rib < 12; rib++) {
 			FADREAL outval(ndim, 0.0);
 			ProjectPoint3dCubeToRib(rib,pt,outval);
-			TPZVec<long> ids(2);
+			TPZVec<int64_t> ids(2);
 			int id0,id1;
 			id0 = SideNodes[rib][0];
 			id1 = SideNodes[rib][1];
@@ -536,7 +656,7 @@ namespace pzshape {
 			//dphin.Zero();
 			int ordin =  (ord1 > ord2) ? ord1 : ord2;
 			ordin--;
-			TPZManVector<long> ids(4);
+			TPZManVector<int64_t> ids(4);
 			//TPZVec<int> ids(4);
 			int id0,id1,i;
 			for(i=0;i<4;i++) ids[i] = id[FaceNodes[face][i]];
@@ -633,6 +753,5 @@ namespace pzshape {
 		}
 	}
 	
-#endif
-	
+
 };

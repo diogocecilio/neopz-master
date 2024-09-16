@@ -17,14 +17,135 @@
 #ifndef REALH
 #define REALH
 
-#include <math.h>
+#include <pz_config.h>
+#include <limits>
+
+#ifndef _USE_MATH_DEFINES
+#define _USE_MATH_DEFINES
+#include <cmath>
+#endif // _USE_MATH_DEFINES
+//additional math defines
+#define M_SQRT3   1.732050807568877293527446341505872366
+#define M_SQRT1_3 0.577350269189625764509148780501957455
+#define M_SQRT6   2.449489742783178098197284074705891391
+#define M_SQRT1_6 0.408248290463863016366214012450981898
 #include <iostream>
 #include <complex>
-#include <config.h>
 #include "fpo_exceptions.h"
 
-void DebugStop();
+template <int Num, class T> class TFad;
+template <class T> class Fad;
+template <typename Enumeration>
+typename std::underlying_type<Enumeration>::type as_integer(const Enumeration value) {
+    return static_cast<typename std::underlying_type<Enumeration>::type>(value);
+}
 
+#ifdef __GNUC__ // GCC 4.8+, Clang, Intel and other compilers compatible with GCC (-std=c++0x or above)
+[[noreturn]] inline __attribute__((always_inline)) void unreachable() {__builtin_unreachable();}
+#elif defined(_MSC_VER) // MSVC
+[[noreturn]] __forceinline void unreachable() {__assume(false);}
+#else // ???
+inline void unreachable() {}
+#endif
+
+
+class TPZFlopCounter;
+
+//! Enables typename real_type<T>::type for the real type associated with T
+template <typename, typename = void>
+struct real_type;
+
+//! Enabling it for arithmetic types
+template <typename T>
+struct real_type<T, std::enable_if_t<std::is_arithmetic_v<T>||std::is_integral_v<T>>>
+ { using type = T; };
+
+//! Enabling it for complex types
+template <typename T>
+struct real_type<std::complex<T>, void>
+ { using type = T; };
+
+
+//! Enabling it for TPZFlopCounter
+template<>
+struct real_type<TPZFlopCounter, void>
+{ using type = TPZFlopCounter; };
+
+//Convenience macros for real_type<T>::type
+#define RTVar typename real_type<TVar>::type
+#define RType(T) typename real_type<T>::type
+
+//! Enabling it for Fad<T>
+template <typename T>
+struct real_type<Fad<T>, void>
+{ using type =Fad<RType(T)>;};
+//! Enabling it for TFad<6,T>
+template <int N,typename T>
+struct real_type<TFad<N,T>, void>
+{ using type =TFad<N,RType(T)>;};
+
+//! Enables typename complex_type<T>::type for the complex type associated with T
+template <typename, typename = void>
+struct complex_type;
+
+//! Enabling it for arithmetic types
+template <typename T>
+struct complex_type<T, std::enable_if_t<std::is_arithmetic_v<T>||std::is_integral_v<T>>>
+{ using type = std::complex<T>; };
+
+//! Enabling it for complex types
+template <typename T>
+struct complex_type<std::complex<T>, void>
+{ using type = std::complex<T>; };
+
+//! Enabling it for TPZFlopCounter
+template<>
+struct complex_type<TPZFlopCounter, void>
+{ using type = TPZFlopCounter; };
+
+//Convenience macros for complex_type<T>::type
+#define CTVar typename complex_type<TVar>::type
+#define CType(T) typename complex_type<T>::type
+
+//! Enabling it for Fad<T>
+template <typename T>
+struct complex_type<Fad<T>, void>
+{ using type =Fad<CType(T)>;};
+//! Enabling it for TFad<6,T>
+template <int N,typename T>
+struct complex_type<TFad<N,T>, void>
+{ using type =TFad<N,CType(T)>;};
+
+template<class T>
+struct is_complex{ static constexpr bool value = false;};
+
+template<class T>
+struct is_complex<std::complex<T>> : 
+    std::integral_constant<bool,
+    std::is_integral<T>::value ||
+    std::is_floating_point<T>::value>{};
+
+template<class T>
+struct is_arithmetic_pz :
+    std::integral_constant<bool,
+    std::is_integral<T>::value ||
+    std::is_floating_point<T>::value ||
+    is_complex<T>::value>{};
+
+//! Enables typename complex_type<T>::type for the complex type associated with T
+template <typename, typename = void>
+struct is_fad{
+	static constexpr bool value{false};
+};
+
+template<class T>
+struct  is_fad<Fad<T>>{
+	static constexpr bool value{true};
+};
+template<int N, class T>
+struct  is_fad<TFad<N,T>>{
+	static constexpr bool value{true};
+};
 
 /** @brief Gets maxime value between a and b */
 #ifndef MAX
@@ -39,7 +160,6 @@ void DebugStop();
 #define  __PRETTY_FUNCTION__ __FILE__
 #endif
 
-#ifndef ELLIPS
 
 /** \addtogroup common 
  * @{
@@ -62,7 +182,7 @@ const int gNumOp = 12;
 struct TPZCounter {
 	/// Vector of counters by operation: sum, product, division, square root, power, \n
 	/// Cosine, Sine, Arc cosine, arc Sine, arc Tangent, Exponencial and logarithm.
-        unsigned long long fCount[gNumOp];
+        uint64_t fCount[gNumOp];
 	
         /// Counter constructor.
         TPZCounter() 
@@ -108,47 +228,40 @@ struct TPZCounter {
 /** @brief Re-implements << operator to show the counter (count) data */
 std::ostream &operator<<(std::ostream &out,const TPZCounter &count);
 
-class TPZFlopCounter;
-
 /** @brief This is the type of floating point number PZ will use. */
 #ifdef REALfloat
 typedef float REAL;
-#endif
+#endif // REALfloat
 #ifdef REALdouble
 typedef double REAL; //This is the default configuration
-#endif
+#endif // REALdouble
 #ifdef REALlongdouble
 typedef long double REAL;
-#endif
+#endif // REALlongdouble
 #ifdef REALpzfpcounter
 typedef TPZFlopCounter REAL;
-#endif
+#endif // REALpzfpcounter
 
 /** @brief This is the type of State PZ will use. */
 #ifdef STATEfloat
 typedef float STATE;
-#endif
+#endif // STATEfloat
 #ifdef STATEdouble
-typedef double STATE; //This is the default configuration
-#endif
+//This is the default configuration
+typedef double STATE;
+#endif // STATEdouble
 #ifdef STATElongdouble
 typedef long double STATE;
-#endif
-#ifdef STATEcomplexf
-typedef std::complex<float> STATE;
-#endif
-#ifdef STATEcomplexd
-typedef std::complex<double> STATE;
-#endif
-#ifdef STATEcomplexld
-typedef std::complex<long double> STATE;
-#endif
+#endif // STATElongdouble
+typedef std::complex<STATE> CSTATE;
+// set(STATE_COMPLEX "STATE_COMPLEX")
 
+enum ESolType{ EReal=1,EComplex=2,EUndefined=3};
 #ifdef VC
 #include <io.h>
 #ifndef NOMINMAX
 #define NOMINMAX // Preventing the redefinition of min and max as macros
-#endif
+#endif // NOMINMAX
 #include <Windows.h>
 // sqrt function adapted to int numbers. required for VC
 inline double
@@ -177,7 +290,7 @@ atan(int __x)
 {
   return atan((double) __x);
 }
-#endif
+#endif //VC
 
 // fabs function adapted to complex numbers.
 inline float
@@ -216,7 +329,7 @@ public:
 	double fVal;
 #else
 	REAL fVal;
-#endif
+#endif //REALpzfpcounter
 	/** @brief Containts the counter vector by operation performed */
 	static TPZCounter gCount;
 
@@ -225,7 +338,7 @@ public:
 	}
 	inline TPZFlopCounter(const double &val)
 	{
-		fVal = val;
+		fVal = (REAL)val;
 	}
     
     inline REAL val() const
@@ -287,7 +400,7 @@ public:
 	inline TPZFlopCounter operator/(const double &oth) const
 	{
 		TPZFlopCounter result;
-		result.fVal = fVal/oth;
+		result.fVal = fVal/((REAL)oth);
 		gCount.fCount[EDiv]++;
 		return result;
 	}
@@ -425,13 +538,13 @@ inline TPZFlopCounter sqrt(const TPZFlopCounter &orig)
 inline TPZFlopCounter fabsFlop(const TPZFlopCounter &orig)
 {
 	TPZFlopCounter result;
-	result.fVal = fabs(orig.fVal);
+	result.fVal = std::abs(orig.fVal);
 	return result;
 }
 /** @brief Returns the absolute value as REAL and doesn't increments the counters. */
 inline REAL fabs(const TPZFlopCounter &orig)
 {
-	return fabs(orig.fVal);
+    return std::abs(orig.fVal);
 }
 
 /** @brief Returns the power and increments the counter of the power. */
@@ -577,33 +690,39 @@ inline std::istream &operator>>(std::istream &out, /*const*/ TPZFlopCounter &val
 {
 	return out >> val.fVal;
 }
-#endif
+
 
 
 /** @brief Returns the tolerance to Zero value. Actually: \f$ 1e-10 \f$ */
 inline REAL ZeroTolerance() {
-	return 1.e-10;
-}
-inline void ZeroTolerance(double &Tol) {
-	Tol = 1.e-9;
-}
-inline void ZeroTolerance(long double &Tol) {
-	Tol = 1.e-12;
-}
-inline void ZeroTolerance(float &Tol) {
-	Tol = 1.e-7;
-}
-inline void ZeroTolerance(TPZFlopCounter &Tol) {
-	Tol.fVal = 1.e-9;
+    typedef std::numeric_limits< REAL > dbl;
+	return (REAL)pow(10,(-1 * (dbl::max_digits10- 5)));
 }
 
-#ifdef _AUTODIFF
+template<typename T,
+        typename std::enable_if< is_arithmetic_pz<T>::value, int>::type* = nullptr>
+inline void ZeroTolerance(T &tol) {
+    typedef std::numeric_limits< T > dbl;
+    tol = (T)pow(10,(-1 * (dbl::max_digits10- 5)));
+}
+
+template<typename T,
+        typename std::enable_if<std::is_same<T,TPZFlopCounter>::value>::type* = nullptr>
+inline void ZeroTolerance(T &tol) {
+    typedef std::numeric_limits< REAL > dbl;
+    tol = (T)pow(10,(-1 * (dbl::max_digits10- 5)));
+}
+
+template<int Num, typename T>
+inline void ZeroTolerance(TFad<Num,T> &Tol) {
+    ZeroTolerance(Tol.val());
+}
+
 /** @brief Returns if the value a is close Zero as the allowable tolerance */
 template<class T>
 inline bool IsZero( T a ) {
-	return ( fabs( a.val() ) < ZeroTolerance() );
+	return ( std::abs( a.val() ) < ZeroTolerance() );
 }
-#endif
 /** @brief Returns if the value a is close Zero as the allowable tolerance */
 //template<>
 inline bool IsZero( long double a ) {
@@ -657,7 +776,7 @@ inline bool IsZero( std::complex<float> a ) {
 inline bool IsZero( int a ) {
 	return ( a==0 );
 }
-inline bool IsZero( long a ) {
+inline bool IsZero( int64_t a ) {
 	return ( a==0L );
 }
 /// Returns the maximum value between a and b

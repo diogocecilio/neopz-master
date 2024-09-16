@@ -118,7 +118,7 @@ namespace pzrefine {
 			return;//If exist fSubEl return this sons
 		}
 		int j,sub,matid=geo->MaterialId();
-		long index;
+		int64_t index;
 		int np[TPZShapeTriang::NSides];//guarda conectividades dos 4 subelementos
 		
 		for(j=0;j<TPZShapeTriang::NCornerNodes;j++) np[j] = geo->NodeIndex(j);
@@ -128,9 +128,9 @@ namespace pzrefine {
 		}
 		// creating new subelements
 		for(i=0;i<NSubEl;i++) {
-			TPZManVector<long> cornerindexes(TPZShapeTriang::NCornerNodes);
+			TPZManVector<int64_t> cornerindexes(TPZShapeTriang::NCornerNodes);
 			for(int j=0;j<TPZShapeTriang::NCornerNodes;j++) cornerindexes[j] = np[CornerSons[i][j]];
-			long index;
+			int64_t index;
 			TPZGeoEl *subel = geo->CreateGeoElement(ETriangle,cornerindexes,matid,index);
 			geo->SetSubElement(i ,subel);
 		}
@@ -139,7 +139,7 @@ namespace pzrefine {
 		for(sub=0;sub<NSubEl;sub++) {
 			SubElVec[sub] = geo->SubElement(sub);
 			SubElVec[sub]->SetFather(geo);
-			SubElVec[sub]->SetFather(geo->Index());
+			SubElVec[sub]->SetFatherIndex(geo->Index());
 		}
 		for(i=0;i<NSubEl;i++) {//conectividades entre os filhos : viz interna
 			for(j=0;j<NumInNeigh;j++) {        //lado do subel numero do filho viz.             lado do viz.
@@ -150,7 +150,7 @@ namespace pzrefine {
 		geo->SetSubElementConnectivities();
 	}
 	
-	void TPZRefTriangle::NewMidSideNode(TPZGeoEl *gel,int side,long &index) {
+	void TPZRefTriangle::NewMidSideNode(TPZGeoEl *gel,int side,int64_t &index) {
 		
 		MidSideNodeIndex(gel,side,index);
 		if(index < 0) {
@@ -178,7 +178,7 @@ namespace pzrefine {
 		}
 	}
 	
-	void TPZRefTriangle::MidSideNodeIndex(const TPZGeoEl *gel,int side,long &index) {
+	void TPZRefTriangle::MidSideNodeIndex(const TPZGeoEl *gel,int side,int64_t &index) {
 		index = -1;
 		if(side<0 || side>TPZShapeTriang::NSides-1) {
 			PZError << "TPZRefTriangle::MidSideNodeIndex. Bad parameter side = " << side << endl;
@@ -217,15 +217,15 @@ namespace pzrefine {
 		return nsubeldata[side];
 	}
 	
-	TPZTransform TPZRefTriangle::GetTransform(int side,int whichsubel){
+	TPZTransform<> TPZRefTriangle::GetTransform(int side,int whichsubel){
 		if(side<0 || side>(TPZShapeTriang::NSides-1)){
 			PZError << "TPZRefTriangle::GetTransform side out of range or father null\n";
-			return TPZTransform(0,0);
+			return TPZTransform<>(0,0);
 		}
 		int smalldim = TPZShapeTriang::SideDimension(side);
 		int fatherside = FatherSide(side,whichsubel);
 		int largedim = TPZShapeTriang::SideDimension(fatherside);
-		TPZTransform trans(largedim,smalldim);
+		TPZTransform<> trans(largedim,smalldim);
 		int i,j;
 		for(i=0; i<largedim; i++) {
 			for(j=0; j<smalldim; j++) {
@@ -243,5 +243,8 @@ namespace pzrefine {
 		}
 		return fatherside[whichsubel][side];
 	}
-	
+        
+    int TPZRefTriangle::ClassId() const{
+        return Hash("TPZRefTriangle");
+    }	
 };

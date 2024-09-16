@@ -8,33 +8,29 @@
 #include "pzerror.h"
 #include "pzreal.h"
 #include "pzeltype.h"
-
-#include "pzcreateapproxspace.h"
+#include "tpzquadrilateral.h"
+#include "tpztriangle.h"
 #include "pzlog.h"
+#include "pzextractval.h"
+#include "fad.h"
 
-#ifdef LOG4CXX
-static LoggerPtr logger(Logger::getLogger("pz.topology.pzpyramid"));
+#ifdef PZ_LOG
+static TPZLogger logger("pz.topology.pzpyramid");
 #endif
 
 using namespace std;
 
 namespace pztopology {	
 
-	static int FaceConnectLocId[5][9] = { {0,1,2,3,5,6,7,8,13},{0,1,4,5,10,9,14,-1,-1},
+	static constexpr int FaceConnectLocId[5][9] = { {0,1,2,3,5,6,7,8,13},{0,1,4,5,10,9,14,-1,-1},
 		{1,2,4,6,11,10,15,-1,-1},{3,2,4,7,11,12,16,-1,-1},{0,3,4,8,12,9,17,-1,-1} };
 	
 	
-	static int nhighdimsides[19] = {7,7,7,7,9,3,3,3,3,3,3,3,3,1,1,1,1,1,0};
+	static constexpr int nhighdimsides[19] = {7,7,7,7,9,3,3,3,3,3,3,3,3,1,1,1,1,1,0};
+
+	static constexpr int sidedimension[19] = {0,0,0,0,0,1,1,1,1,1,1,1,1,2,2,2,2,2,3};
 	
-	int TPZPyramid::SideNodes[8][2]  = { {0,1},{1,2},{2,3},{3,0},{0,4},{1,4},{2,4},{3,4} };
-	
-	int TPZPyramid::FaceNodes[5][4]  = { {0,1,2,3},{0,1,4,-1},{1,2,4,-1},{3,2,4,-1},{0,3,4,-1} };
-	
-	int TPZPyramid::ShapeFaceId[5][4] = { {0,1,2,3},{0,1,4,-1},{1,2,4,-1},{3,2,4,-1},{0,3,4,-1} };
-	
-	static int sidedimension[19] = {0,0,0,0,0,1,1,1,1,1,1,1,1,2,2,2,2,2,3};
-	
-	static int highsides[19][9] = {
+	static constexpr int highsides[19][9] = {
 		{5,8,9,13,14,17,18},
 		{5,6,10,13,14,15,18},
 		{6,7,11,13,15,16,18},
@@ -66,7 +62,7 @@ namespace pztopology {
 		return nsidenodes[side];
 	}
 	
-	static REAL sidetosidetransforms[19][9][4][3] = {
+	static constexpr REAL sidetosidetransforms[19][9][4][3] = {
 		{
 			{{-99,-99,-99},{-99,-99,-99},{-99,-99,-99},{-1,-99,-99}},
 			{{-99,-99,-99},{-99,-99,-99},{-99,-99,-99},{1,-99,-99}},
@@ -174,14 +170,16 @@ namespace pztopology {
 		}
 	};
 	
-	static REAL MidSideNode[19][3] = {
-		/*00*/{-1.,-1.},   /*01*/{1.,-1.},   /*02*/{1.,1.},/*03*/{-1.,1.},/*04*/{0.,0.,1.},
-		/*05*/{ 0.,-1.},   /*06*/{1., 0.},   /*07*/{0.,1.},/*08*/{-1.,0.},
-		/*09*/{-.5,-.5,.5},/*10*/{.5,-.5,.5},/*11*/{.5,.5,.5},/*12*/{-.5,.5,.5},
-		/*13*/{0.,  0. ,  0. },/*14*/{  0.  ,-2./3.,1./3.},/*15*/{2./3.,0.,1./3.},
-		/*16*/{0.,2./3.,1./3.},/*17*/{-2./3.,  0.  ,1./3.},/*18*/{  0. ,0.,1./5.} };
-    
-    static REAL bPiram[58][3] =
+	static constexpr  REAL MidSideNode[19][3] = {
+		/*00*/{-1.,-1.,0.},   /*01*/{1.,-1.,0.},   /*02*/{1.,1.,0.},
+		/*03*/{-1.,1.,0.},    /*04*/{0.,0.,1.},    /*05*/{0.,-1.,0.},
+		/*06*/{1.,0.,0.},     /*07*/{0.,1.,0.},    /*08*/{-1.,0.,0.},
+		/*09*/{-.5,-.5,.5},   /*10*/{.5,-.5,.5},   /*11*/{.5,.5,.5},
+		/*12*/{-.5,.5,.5},    /*13*/{0.0,0.0,0.0}, /*14*/{0.0,-2./3.,1./3.},
+		/*15*/{2./3.,0.0,1./3.},          /*16*/{0.0,2./3.,1./3.},
+		/*17*/{-2./3.,0.0,1./3.},         /*18*/{0.0,0.0,1./5.} };
+
+    static constexpr REAL bPiram[58][3] =
     {
         {-1,-1,-1}, {1,-1,-1}, {1,1,-1}, {-1,1,-1}, {0,-1,-1}, {1,0,-1}, {0,1,-1}, {-1,0,-1}, {0,0,-1},// face 0
         {0,-1,0}, {0,-1,0}, {-1,1,1}, {0,-1,0}, {-1,-3,1}, {1,-3,1}, {0,-1,1},// face 1
@@ -191,10 +189,10 @@ namespace pztopology {
         //internos
         //faces
         {-1,0,0}, {0,1,0}, // tang da face 0
-        {-1/sqrt(3),-1/sqrt(3),-1/sqrt(3)},{sqrt(2/3), -(1/sqrt(6)), -(1/sqrt(6))}, //face 1
-        {1/sqrt(3),-1/sqrt(3),-1/sqrt(3)},{(1/sqrt(6)), sqrt(2/3), -(1/sqrt(6))}, //face 2
-        {1/sqrt(3),1/sqrt(3),-1/sqrt(3)},{-sqrt(2/3), (1/sqrt(6)), -(1/sqrt(6))}, //face 3
-        {-1/sqrt(3),1/sqrt(3),-1/sqrt(3)},{-(1/sqrt(6)), -sqrt(2/3), -(1/sqrt(6))}, //face 4
+        {-M_SQRT1_3,-M_SQRT1_3,-M_SQRT1_3},{M_SQRT2*M_SQRT1_3, -(M_SQRT1_6), -(M_SQRT1_6)}, //face 1
+        {M_SQRT1_3,-M_SQRT1_3,-M_SQRT1_3},{(M_SQRT1_6), M_SQRT2*M_SQRT1_3, -(M_SQRT1_6)}, //face 2
+        {M_SQRT1_3,M_SQRT1_3,-M_SQRT1_3},{-M_SQRT2*M_SQRT1_3, (M_SQRT1_6), -(M_SQRT1_6)}, //face 3
+        {-M_SQRT1_3,M_SQRT1_3,-M_SQRT1_3},{-(M_SQRT1_6), -M_SQRT2*M_SQRT1_3, -(M_SQRT1_6)}, //face 4
         // arestas
         {1,0,0},{0,1,0},{-1,0,0},{0,-1,0},  {1,1,1},  {-1,1,1},  {-1,-1,1},  {1,-1,1},
         //interior
@@ -202,20 +200,20 @@ namespace pztopology {
         {0,1,0} ,
         {0,0,1}
     };
-    static REAL t1Piram[58][3] =
+    static constexpr REAL t1Piram[58][3] =
     {
         {-1,0,0},{-1,0,0},{-1,0,0},{-1,0,0},{-1,0,0},{-1,0,0},{-1,0,0},{-1,0,0},{-1,0,0},// face 0
-        {-1/sqrt(3),-1/sqrt(3),-1/sqrt(3)}, {-1/sqrt(3),-1/sqrt(3),-1/sqrt(3)}, {-1/sqrt(3),-1/sqrt(3),-1/sqrt(3)}, {-1/sqrt(3),-1/sqrt(3),-1/sqrt(3)}, {-1/sqrt(3),-1/sqrt(3),-1/sqrt(3)}, {-1/sqrt(3),-1/sqrt(3),-1/sqrt(3)}, {-1/sqrt(3),-1/sqrt(3),-1/sqrt(3)}, // face 1
-        {1/sqrt(3),-1/sqrt(3),-1/sqrt(3)}, {1/sqrt(3),-1/sqrt(3),-1/sqrt(3)}, {1/sqrt(3),-1/sqrt(3),-1/sqrt(3)}, {1/sqrt(3),-1/sqrt(3),-1/sqrt(3)}, {1/sqrt(3),-1/sqrt(3),-1/sqrt(3)}, {1/sqrt(3),-1/sqrt(3),-1/sqrt(3)}, {1/sqrt(3),-1/sqrt(3),-1/sqrt(3)}, // face 2
-        {1/sqrt(3),1/sqrt(3),-1/sqrt(3)}, {1/sqrt(3),1/sqrt(3),-1/sqrt(3)}, {1/sqrt(3),1/sqrt(3),-1/sqrt(3)}, {1/sqrt(3),1/sqrt(3),-1/sqrt(3)}, {1/sqrt(3),1/sqrt(3),-1/sqrt(3)}, {1/sqrt(3),1/sqrt(3),-1/sqrt(3)}, {1/sqrt(3),-1/sqrt(3),-1/sqrt(3)}, // fsce 3
-        {-1/sqrt(3),1/sqrt(3),-1/sqrt(3)}, {-1/sqrt(3),1/sqrt(3),-1/sqrt(3)},{-1/sqrt(3),1/sqrt(3),-1/sqrt(3)},{-1/sqrt(3),1/sqrt(3),-1/sqrt(3)}, {-1/sqrt(3),1/sqrt(3),-1/sqrt(3)},{-1/sqrt(3),1/sqrt(3),-1/sqrt(3)},{-1/sqrt(3),1/sqrt(3),-1/sqrt(3)}, // face 4
+        {-M_SQRT1_3,-M_SQRT1_3,-M_SQRT1_3}, {-M_SQRT1_3,-M_SQRT1_3,-M_SQRT1_3}, {-M_SQRT1_3,-M_SQRT1_3,-M_SQRT1_3}, {-M_SQRT1_3,-M_SQRT1_3,-M_SQRT1_3}, {-M_SQRT1_3,-M_SQRT1_3,-M_SQRT1_3}, {-M_SQRT1_3,-M_SQRT1_3,-M_SQRT1_3}, {-M_SQRT1_3,-M_SQRT1_3,-M_SQRT1_3}, // face 1
+        {M_SQRT1_3,-M_SQRT1_3,-M_SQRT1_3}, {M_SQRT1_3,-M_SQRT1_3,-M_SQRT1_3}, {M_SQRT1_3,-M_SQRT1_3,-M_SQRT1_3}, {M_SQRT1_3,-M_SQRT1_3,-M_SQRT1_3}, {M_SQRT1_3,-M_SQRT1_3,-M_SQRT1_3}, {M_SQRT1_3,-M_SQRT1_3,-M_SQRT1_3}, {M_SQRT1_3,-M_SQRT1_3,-M_SQRT1_3}, // face 2
+        {M_SQRT1_3,M_SQRT1_3,-M_SQRT1_3}, {M_SQRT1_3,M_SQRT1_3,-M_SQRT1_3}, {M_SQRT1_3,M_SQRT1_3,-M_SQRT1_3}, {M_SQRT1_3,M_SQRT1_3,-M_SQRT1_3}, {M_SQRT1_3,M_SQRT1_3,-M_SQRT1_3}, {M_SQRT1_3,M_SQRT1_3,-M_SQRT1_3}, {M_SQRT1_3,-M_SQRT1_3,-M_SQRT1_3}, // fsce 3
+        {-M_SQRT1_3,M_SQRT1_3,-M_SQRT1_3}, {-M_SQRT1_3,M_SQRT1_3,-M_SQRT1_3},{-M_SQRT1_3,M_SQRT1_3,-M_SQRT1_3},{-M_SQRT1_3,M_SQRT1_3,-M_SQRT1_3}, {-M_SQRT1_3,M_SQRT1_3,-M_SQRT1_3},{-M_SQRT1_3,M_SQRT1_3,-M_SQRT1_3},{-M_SQRT1_3,M_SQRT1_3,-M_SQRT1_3}, // face 4
         //internos
         //faces
         {0,1,0}, {1,0,0}, //face 0
-        {sqrt(2/3), -(1/sqrt(6)), -(1/sqrt(6))},    {1/sqrt(3),1/sqrt(3),1/sqrt(3)}, //face 1
-        {(1/sqrt(6)), sqrt(2/3), -(1/sqrt(6))},      {-1/sqrt(3),1/sqrt(3),1/sqrt(3)}, //face 2
-        {-sqrt(2/3), (1/sqrt(6)), -(1/sqrt(6))},    {-1/sqrt(3),-1/sqrt(3),1/sqrt(3)}, //face 3
-        {-(1/sqrt(6)), -sqrt(2/3), -(1/sqrt(6))},   {1/sqrt(3),-1/sqrt(3),1/sqrt(3)}, //face 4
+        {M_SQRT2*M_SQRT1_3, -(M_SQRT1_6), -(M_SQRT1_6)},    {M_SQRT1_3,M_SQRT1_3,M_SQRT1_3}, //face 1
+        {(M_SQRT1_6), M_SQRT2*M_SQRT1_3, -(M_SQRT1_6)},      {-M_SQRT1_3,M_SQRT1_3,M_SQRT1_3}, //face 2
+        {-M_SQRT2*M_SQRT1_3, (M_SQRT1_6), -(M_SQRT1_6)},    {-M_SQRT1_3,-M_SQRT1_3,M_SQRT1_3}, //face 3
+        {-(M_SQRT1_6), -M_SQRT2*M_SQRT1_3, -(M_SQRT1_6)},   {M_SQRT1_3,-M_SQRT1_3,M_SQRT1_3}, //face 4
         // arestas
         {0,-1,0},{1,0,0},{0,1,0},{0,0,-1},  {-1,0,1},{0-1,1},{1,0,1},{0,1,1},
         //interior
@@ -224,13 +222,13 @@ namespace pztopology {
         {1,0,0}
     };
     
-    static REAL t2Piram[58][3] =
+    static constexpr REAL t2Piram[58][3] =
     {
         {0,1,0}, {0,1,0}, {0,1,0}, {0,1,0}, {0,1,0}, {0,1,0}, {0,1,0}, {0,1,0}, {0,1,0},// face 0
-        {sqrt(2/3), -(1/sqrt(6)), -(1/sqrt(6))}, {sqrt(2/3), -(1/sqrt(6)), -(1/sqrt(6))}, {sqrt(2/3), -(1/sqrt(6)), -(1/sqrt(6))}, {sqrt(2/3), -(1/sqrt(6)), -(1/sqrt(6))}, {sqrt(2/3), -(1/sqrt(6)), -(1/sqrt(6))}, {sqrt(2/3), -(1/sqrt(6)), -(1/sqrt(6))}, {sqrt(2/3), -(1/sqrt(6)), -(1/sqrt(6))}, // face 1
-        {(1/sqrt(6)), sqrt(2/3), -(1/sqrt(6))}, {(1/sqrt(6)), sqrt(2/3), -(1/sqrt(6))},  {(1/sqrt(6)), sqrt(2/3), -(1/sqrt(6))},{(1/sqrt(6)), sqrt(2/3), -(1/sqrt(6))},{(1/sqrt(6)), sqrt(2/3), -(1/sqrt(6))},{(1/sqrt(6)), sqrt(2/3), -(1/sqrt(6))},{(1/sqrt(6)), sqrt(2/3), -(1/sqrt(6))}, // face 2
-        {-sqrt(2/3), (1/sqrt(6)), -(1/sqrt(6))}, {-sqrt(2/3), (1/sqrt(6)), -(1/sqrt(6))}, {-sqrt(2/3), (1/sqrt(6)), -(1/sqrt(6))}, {-sqrt(2/3), (1/sqrt(6)), -(1/sqrt(6))}, {-sqrt(2/3), (1/sqrt(6)), -(1/sqrt(6))},{-sqrt(2/3), (1/sqrt(6)), -(1/sqrt(6))}, {-sqrt(2/3), (1/sqrt(6)), -(1/sqrt(6))}, // face 3
-        {-(1/sqrt(6)), -sqrt(2/3), -(1/sqrt(6))},{-(1/sqrt(6)), -sqrt(2/3), -(1/sqrt(6))},{-(1/sqrt(6)), -sqrt(2/3), -(1/sqrt(6))},{-(1/sqrt(6)), -sqrt(2/3), -(1/sqrt(6))},{-(1/sqrt(6)), -sqrt(2/3), -(1/sqrt(6))},{-(1/sqrt(6)), -sqrt(2/3), -(1/sqrt(6))},{-(1/sqrt(6)), -sqrt(2/3), -(1/sqrt(6))}, // face 4
+        {M_SQRT2*M_SQRT1_3, -(M_SQRT1_6), -(M_SQRT1_6)}, {M_SQRT2*M_SQRT1_3, -(M_SQRT1_6), -(M_SQRT1_6)}, {M_SQRT2*M_SQRT1_3, -(M_SQRT1_6), -(M_SQRT1_6)}, {M_SQRT2*M_SQRT1_3, -(M_SQRT1_6), -(M_SQRT1_6)}, {M_SQRT2*M_SQRT1_3, -(M_SQRT1_6), -(M_SQRT1_6)}, {M_SQRT2*M_SQRT1_3, -(M_SQRT1_6), -(M_SQRT1_6)}, {M_SQRT2*M_SQRT1_3, -(M_SQRT1_6), -(M_SQRT1_6)}, // face 1
+        {(M_SQRT1_6), M_SQRT2*M_SQRT1_3, -(M_SQRT1_6)}, {(M_SQRT1_6), M_SQRT2*M_SQRT1_3, -(M_SQRT1_6)},  {(M_SQRT1_6), M_SQRT2*M_SQRT1_3, -(M_SQRT1_6)},{(M_SQRT1_6), M_SQRT2*M_SQRT1_3, -(M_SQRT1_6)},{(M_SQRT1_6), M_SQRT2*M_SQRT1_3, -(M_SQRT1_6)},{(M_SQRT1_6), M_SQRT2*M_SQRT1_3, -(M_SQRT1_6)},{(M_SQRT1_6), M_SQRT2*M_SQRT1_3, -(M_SQRT1_6)}, // face 2
+        {-M_SQRT2*M_SQRT1_3, (M_SQRT1_6), -(M_SQRT1_6)}, {-M_SQRT2*M_SQRT1_3, (M_SQRT1_6), -(M_SQRT1_6)}, {-M_SQRT2*M_SQRT1_3, (M_SQRT1_6), -(M_SQRT1_6)}, {-M_SQRT2*M_SQRT1_3, (M_SQRT1_6), -(M_SQRT1_6)}, {-M_SQRT2*M_SQRT1_3, (M_SQRT1_6), -(M_SQRT1_6)},{-M_SQRT2*M_SQRT1_3, (M_SQRT1_6), -(M_SQRT1_6)}, {-M_SQRT2*M_SQRT1_3, (M_SQRT1_6), -(M_SQRT1_6)}, // face 3
+        {-(M_SQRT1_6), -M_SQRT2*M_SQRT1_3, -(M_SQRT1_6)},{-(M_SQRT1_6), -M_SQRT2*M_SQRT1_3, -(M_SQRT1_6)},{-(M_SQRT1_6), -M_SQRT2*M_SQRT1_3, -(M_SQRT1_6)},{-(M_SQRT1_6), -M_SQRT2*M_SQRT1_3, -(M_SQRT1_6)},{-(M_SQRT1_6), -M_SQRT2*M_SQRT1_3, -(M_SQRT1_6)},{-(M_SQRT1_6), -M_SQRT2*M_SQRT1_3, -(M_SQRT1_6)},{-(M_SQRT1_6), -M_SQRT2*M_SQRT1_3, -(M_SQRT1_6)}, // face 4
         //internos
         //faces
         {0,0,-1}, {0,0,-1}, //face 0
@@ -246,7 +244,7 @@ namespace pztopology {
         {0,1,0}
     };
     
-    static int vectorsideorderPi [58] =
+    static constexpr int vectorsideorderPi [58] =
     {
         0,1,2,3,5,6,7,8,13, //face 0
         0,1,4,5,10,9,14,//face 1
@@ -263,21 +261,179 @@ namespace pztopology {
         18,18,18
     };
     
-    static int bilinearounao [58] =   {
+    static constexpr int bilinearounao [58] =   {
         0,0,0,0,0,0,0,0,0,0,
         0,0,0,0,0,0,0,0,0,0,
         0,0,0,0,0,0,0,0,0,0,
         0,0,0,0,0,0,0,1,1,1,
         1,1,1,1,1,1,1,1,1,1,
-        1,1,1,1,1,1,1,1};
+        1,1,1,1,1,1,1,0};
     
-    static int direcaoksioueta [58] = {
+    static constexpr int direcaoksioueta [58] = {
         0,0,0,0,0,0,0,0,0,0,
         0,0,0,0,0,0,0,0,0,0,
         0,0,0,0,0,0,0,0,0,0,
         0,0,0,0,0,0,0,0,0,0,
         0,0,0,0,0,0,1,0,1,0,
         1,0,1,0,1,0,1,2};
+
+
+    template<class T>
+    inline void TPZPyramid::TShape(const TPZVec<T> &loc,TPZFMatrix<T> &phi,TPZFMatrix<T> &dphi) {
+        T xi = loc[0], eta = loc[1] , zeta  = loc[2];
+
+        if (zeta> 1.) {
+            DebugStop();
+        }
+
+        T T0xz = .5*(1.-zeta-xi) / (1.-zeta);
+        T T0yz = .5*(1.-zeta-eta) / (1.-zeta);
+        T T1xz = .5*(1.-zeta+xi) / (1.-zeta);
+        T T1yz = .5*(1.-zeta+eta) / (1.-zeta);
+        if (IsZero(xi)) {
+            T0xz = 0.5;
+            T1xz = 0.5;
+        }
+        if (IsZero(eta)) {
+            T0yz = 0.5;
+            T1yz = 0.5;
+        }
+        T lmez = (1.-zeta);
+
+        phi(0,0)  = T0xz*T0yz*lmez;
+        phi(1,0)  = T1xz*T0yz*lmez;
+        phi(2,0)  = T1xz*T1yz*lmez;
+        phi(3,0)  = T0xz*T1yz*lmez;
+        phi(4,0)  = zeta;
+
+        T lmexmez = 1.-xi-zeta;
+        T lmeymez = 1.-eta-zeta;
+        T lmaxmez = 1.+xi-zeta;
+        T lmaymez = 1.+eta-zeta;
+
+        if (IsZero(lmez) && !IsZero(lmexmez) && !IsZero(lmeymez) &&
+            !IsZero(lmaxmez) && !IsZero(lmaymez)) {
+            DebugStop();
+        }
+        if (IsZero(lmez)) {
+            lmexmez = 0.999;
+            lmeymez = 0.999;
+            lmaxmez = 0.999;
+            lmaymez = 0.999;
+            lmez = 0.001;
+        }
+
+        dphi(0,0) = -.25*lmeymez / lmez;
+        dphi(1,0) = -.25*lmexmez / lmez;
+        dphi(2,0) = -.25*(lmeymez+lmexmez-lmexmez*lmeymez/lmez) / lmez;
+        dphi(0,1) =  .25*lmeymez / lmez;
+        dphi(1,1) = -.25*lmaxmez / lmez;
+        dphi(2,1) = -.25*(lmeymez+lmaxmez-lmaxmez*lmeymez/lmez) / lmez;
+        dphi(0,2) =  .25*lmaymez / lmez;
+        dphi(1,2) =  .25*lmaxmez / lmez;
+        dphi(2,2) = -.25*(lmaymez+lmaxmez-lmaxmez*lmaymez/lmez) / lmez;
+        dphi(0,3) = -.25*lmaymez / lmez;
+        dphi(1,3) =  .25*lmexmez / lmez;
+        dphi(2,3) = -.25*(lmaymez+lmexmez-lmexmez*lmaymez/lmez) / lmez;
+        dphi(0,4) =  0.0;
+        dphi(1,4) =  0.0;
+        dphi(2,4) =  1.0;
+
+    }
+
+    template<class T>
+    void TPZPyramid::BlendFactorForSide(const int &side, const TPZVec<T> &xiVec, T &blendFactor,
+                                          TPZVec<T> &blendFactorDxi){
+        const REAL tol = pztopology::GetTolerance();
+        blendFactorDxi.Resize(TPZPyramid::Dimension, (T) 0);
+        blendFactor = 0;
+        #ifdef PZDEBUG
+        std::ostringstream sout;
+        if(side < NCornerNodes || side >= NSides){
+            sout<<"The side\t"<<side<<"is invalid. Aborting..."<<std::endl;
+        }
+
+        if(!pztopology::TPZPyramid::IsInParametricDomain(xiVec,tol)){
+            sout<<"The method BlendFactorForSide expects the point xi to correspond to coordinates of a point";
+            sout<<" inside the parametric domain. Aborting...";
+        }
+
+        if(!sout.str().empty()){
+            PZError<<std::endl<<sout.str()<<std::endl;
+#ifdef PZ_LOG
+            LOGPZ_FATAL(logger,sout.str().c_str());
+#endif
+            DebugStop();
+        }
+        #endif
+        //if the point is singular, the blend factor and its derivatives should be zero
+        if(!CheckProjectionForSingularity(side,xiVec)){
+            std::cout<<"Side projection is not regular and it should have been checked earlier. Aborting.."<<std::endl;
+            DebugStop();
+            blendFactor = 0;
+            for(int i = 0; i < blendFactorDxi.size(); i++) blendFactorDxi[i] = 0;
+            return;
+        }
+
+        TPZFNMatrix<4,T> phi(NCornerNodes,1);
+        TPZFNMatrix<8,T> dphi(Dimension,NCornerNodes);
+        TPZPyramid::TShape(xiVec,phi,dphi);
+        for(int i = 0; i < TPZPyramid::NSideNodes(side);i++){
+            const int currentNode = TPZPyramid::SideNodeLocId(side, i);
+            blendFactor += phi(currentNode,0);
+            blendFactorDxi[0] +=  dphi(0,currentNode);
+            blendFactorDxi[1] +=  dphi(1,currentNode);
+            blendFactorDxi[2] +=  dphi(2,currentNode);
+        }
+
+        const T &zeta = xiVec[2];
+        switch(side){
+            case  0:
+            case  1:
+            case  2:
+            case  3:
+            case  4:
+                blendFactor = 0;
+                blendFactorDxi[0] = 0;
+                blendFactorDxi[1] = 0;
+                blendFactorDxi[2] = 0;
+                return;
+            case  5:
+            case  6:
+            case  7:
+            case  8:
+                blendFactorDxi[0] *= (1 - zeta);
+                blendFactorDxi[1] *= (1 - zeta);
+                blendFactorDxi[2] =  (1 - zeta) * blendFactorDxi[2] - blendFactor;
+                blendFactor *= 1.-zeta;
+                return;
+            case  9:
+            case 10:
+            case 11:
+            case 12:
+                blendFactorDxi[0] *=  2 * blendFactor;
+                blendFactorDxi[1] *=  2 * blendFactor;
+                blendFactorDxi[2] *=  2 * blendFactor;
+                blendFactor *= blendFactor;
+                return;
+            case 13:
+                return;//correct
+            case 14:
+            case 15:
+            case 16:
+            case 17:
+                blendFactorDxi[0] *=  3 * blendFactor * blendFactor;
+                blendFactorDxi[1] *=  3 * blendFactor * blendFactor;
+                blendFactorDxi[2] *=  3 * blendFactor * blendFactor;
+                blendFactor *= blendFactor * blendFactor;
+                return;
+            case 18:
+                blendFactor = 1;
+                blendFactorDxi[0] = 0;
+                blendFactorDxi[1] = 0;
+                blendFactorDxi[2] = 0;
+        }
+    }
 
     int TPZPyramid:: NBilinearSides()
     {
@@ -332,7 +488,9 @@ namespace pztopology {
 	}
 	
 	void TPZPyramid::CenterPoint(int side, TPZVec<REAL> &center) {
-		//center.Resize(Dimension);
+        if (center.size()!=Dimension) {
+            DebugStop();
+        }
 		int i;
 		for(i=0; i<Dimension; i++) {
 			center[i] = MidSideNode[side][i];
@@ -347,15 +505,15 @@ namespace pztopology {
 		return sidedimension[side];
 	}
 	
-	TPZTransform TPZPyramid::SideToSideTransform(int sidefrom, int sideto)
+	TPZTransform<> TPZPyramid::SideToSideTransform(int sidefrom, int sideto)
 	{
 		if(sidefrom <0 || sidefrom >= NSides || sideto <0 || sideto >= NSides) {
 			PZError << "TPZPyramid::HigherDimensionSides sidefrom "<< sidefrom << 
 			' ' << sideto << endl;
-			return TPZTransform(0);
+			return TPZTransform<>(0);
 		}
 		if(sidefrom == sideto) {
-			return TPZTransform(sidedimension[sidefrom]);
+			return TPZTransform<>(sidedimension[sidefrom]);
 		}
 		if(sidefrom == NSides-1) {
 			return TransformElementToSide(sideto);
@@ -366,98 +524,177 @@ namespace pztopology {
 			if(highsides[sidefrom][is] == sideto) {
 				int dfr = sidedimension[sidefrom];
 				int dto = sidedimension[sideto];
-				TPZTransform trans(dto,dfr);
-				int i,j;
-				for(i=0; i<dto; i++) {
-					for(j=0; j<dfr; j++) {
-						trans.Mult()(i,j) = sidetosidetransforms[sidefrom][is][j][i];
-					}
-					trans.Sum()(i,0) = sidetosidetransforms[sidefrom][is][3][i];
-				}
+				TPZTransform<> trans(dto,dfr);
+                int i,j;
+                for(i=0; i<dto; i++) {
+                    for(j=0; j<dfr; j++) {
+                        trans.Mult()(i,j) = sidetosidetransforms[sidefrom][is][j][i];
+                    }
+                    trans.Sum()(i,0) = sidetosidetransforms[sidefrom][is][3][i];
+                }
 				return trans;
 			}
 		}
 		PZError << "TPZPyramid::SideToSideTransform highside not found sidefrom "
 		<< sidefrom << ' ' << sideto << endl;
-		return TPZTransform(0);
+		return TPZTransform<>(0);
 	}
 	
-	TPZTransform TPZPyramid::TransformElementToSide(int side){
+	TPZTransform<> TPZPyramid::TransformElementToSide(int side){
 		
 		if(side<0 || side>18){
 			PZError << "TPZPyramid::TransformElementToSide called with side error\n";
-			return TPZTransform(0,0);
+			return TPZTransform<>(0,0);
 		}
 		
-		TPZTransform t(sidedimension[side],3);
-		t.Mult().Zero();
-		t.Sum().Zero();
-		
-		switch(side){
-			case 0:
-			case 1:
-			case 2:
-			case 3:
-			case 4:
-				return t;
-			case 5:
-				t.Mult()(0,0) = 1.0;
-				return t;
-			case 6:
-				t.Mult()(0,1) = 1.0;
-				return t;
-			case 7:
-				t.Mult()(0,0) = -1.0;
-				return t;
-			case 8:
-				t.Mult()(0,1) = -1.0;
-				return t;
-			case 9:
-			case 12:
-				t.Mult()(0,0) = 2.0;
-				t.Sum()(0,0)  = 1.0;
-				return t;
-			case 10:
-			case 11:
-				t.Mult()(0,0) = -2.0;
-				t.Sum()(0,0)  =  1.0;
-				return t;
-			case 13:
-				t.Mult()(0,0) =  1.0;
-				t.Mult()(1,1) =  1.0;
-				return t;
-			case 14:
-				t.Mult()(0,0) =  0.5;
-				t.Mult()(0,1) = -0.5;
-				t.Mult()(1,2) =  1.0;
-				return t;
-			case 15:
-			case 16:/** CONTEM ERRO AQUI */
-				t.Mult()(0,0) =  0.5;
-				t.Mult()(0,1) =  0.5;
-				t.Mult()(1,2) =  1.0;
-				return t;
-			case 17:
-				t.Mult()(0,0) = -0.5;
-				t.Mult()(0,1) =  0.5;
-				t.Mult()(1,2) =  1.0;
-				return t;
-			case 18:
-				t.Mult()(0,0) =  1.0;
-				t.Mult()(1,1) =  1.0;
-				t.Mult()(2,2) =  1.0;
-				return t;
-		}
-		return TPZTransform(0,0);
+        TPZTransform<> t(sidedimension[side],3);
+        t.Mult().Zero();
+        t.Sum().Zero();
+        
+        switch(side){
+            case 0:
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+                return t;
+            case 5:
+                t.Mult()(0,0) = 1.0;
+                return t;
+            case 6:
+                t.Mult()(0,1) = 1.0;
+                return t;
+            case 7:
+                t.Mult()(0,0) = -1.0;
+                return t;
+            case 8:
+                t.Mult()(0,1) = -1.0;
+                return t;
+                
+            case 9:
+                t.Mult()(0,0) = 0.5;
+                t.Mult()(0,1) = 0.5;
+                t.Mult()(0,2) = 1.0;
+                return t;
+
+            case 10:
+                t.Mult()(0,0) = -0.5;
+                t.Mult()(0,1) = 0.5;
+                t.Mult()(0,2) = 1.0;
+                return t;
+                
+            case 11:
+                
+                t.Mult()(0,0) = -0.5;
+                t.Mult()(0,1) = -0.5;
+                t.Mult()(0,2) = 1.0;
+                
+                return t;
+                
+            case 12:
+                t.Mult()(0,0) = 0.5;
+                t.Mult()(0,1) = -0.5;
+                t.Mult()(0,2) = 1.0;
+                return t;
+                
+        
+            case 13:
+                t.Mult()(0,0) =  1.0;
+                t.Mult()(1,1) =  1.0;
+                return t;
+//ok hasta aqui
+            case 14:
+//                t.Mult()(0,0) =  0.5;
+//                t.Mult()(0,1) = -0.5;
+//                t.Mult()(1,2) =  1.0;
+//
+//                t.Mult()(0,0) =  1.0;
+//                t.Mult()(0,1) = -0.5;
+//                t.Mult()(0,2) = -0.5;
+//
+//                t.Mult()(1,1) = 1.0;
+//                t.Mult()(1,2) = 1.0;
+//
+//                t.Sum()(0,0) = -0.5;
+//                return t;
+//
+                t.Mult()(0,0) =  0.5;
+                t.Mult()(0,1) = -0.25;
+                t.Mult()(0,2) = -0.25;
+
+                t.Mult()(1,1) = 0.5;
+                t.Mult()(1,2) = 0.5;
+
+                t.Sum()(0,0) =  0.25;
+                t.Sum()(1,0) =  0.5;
+                
+                return t;
+                //                 1  -0.5  -0.5
+                //                 0  1.0   1.0
+                //
+                //
+                //                ((x - 0.5y -0.5z -0.5)+1)/2
+                //                (0x  +y  +z +1)/2
+                
+            case 15:
+                
+                t.Mult()(0,0) =  0.25;
+                t.Mult()(0,1) = 0.5;
+                t.Mult()(0,2) = -0.25;
+                
+                t.Mult()(1,0) = -0.5;
+                t.Mult()(1,2) = 0.5;
+                
+                t.Sum()(0,0) = 0.25;
+                t.Sum()(1,0) = 0.5;
+                return t;
+
+                
+                
+                
+            case 16:
+                
+                t.Mult()(0,0) =  0.5;
+                t.Mult()(0,1) = 0.25;
+                t.Mult()(0,2) = -0.25;
+                
+                t.Mult()(1,1) = -0.5;
+                t.Mult()(1,2) = 0.5;
+                
+                t.Sum()(0,0) = 0.25;
+                t.Sum()(1,0) = 0.5;
+                return t;
+
+            case 17:
+                
+                t.Mult()(0,0) =  -0.25;
+                t.Mult()(0,1) = 0.5;
+                t.Mult()(0,2) = -0.25;
+                
+                t.Mult()(1,0) = 0.50;
+                t.Mult()(1,2) = 0.50;
+                
+                t.Sum()(0,0) = 0.25;
+                t.Sum()(1,0) = 0.5;
+                return t;
+
+            case 18:
+                t.Mult()(0,0) =  1.0;
+                t.Mult()(1,1) =  1.0;
+                t.Mult()(2,2) =  1.0;
+                return t;
+        }
+        return TPZTransform<>(0,0);
+
 	}
 	
-	TPZTransform TPZPyramid::TransformSideToElement(int side){
+	TPZTransform<> TPZPyramid::TransformSideToElement(int side){
 		
 		if(side<0 || side>18){
 			PZError << "TPZPyramid::TransformSideToElement side out range\n";
-			return TPZTransform(0,0);
+			return TPZTransform<>(0,0);
 		}
-		TPZTransform t(3,sidedimension[side]);
+		TPZTransform<> t(3,sidedimension[side]);
 		t.Mult().Zero();
 		t.Sum().Zero();
 		
@@ -577,7 +814,7 @@ namespace pztopology {
 				t.Mult()(2,2) =  1.0;
 				return t;
 		}
-		return TPZTransform(0,0);
+		return TPZTransform<>(0,0);
 	}
 	
 	
@@ -597,11 +834,6 @@ namespace pztopology {
 			return new IntruleType(order);               // integration of the element
 		}
 		return 0;
-	}
-
-	MElementType TPZPyramid::Type()
-	{
-		return EPiramide;
 	}
 
 	MElementType TPZPyramid::Type(int side)
@@ -692,7 +924,7 @@ namespace pztopology {
 		return -1;
 	}
 	
-	bool TPZPyramid::IsInParametricDomain(TPZVec<REAL> &pt, REAL tol){
+	bool TPZPyramid::IsInParametricDomain(const TPZVec<REAL> &pt, REAL tol){
 		const REAL qsi = pt[0];
 		const REAL eta = pt[1];
 		const REAL zeta = pt[2];
@@ -710,12 +942,102 @@ namespace pztopology {
 		
 		
 	}//method
+
     
-    bool TPZPyramid::MapToSide(int side, TPZVec<REAL> &InternalPar, TPZVec<REAL> &SidePar, TPZFMatrix<REAL> &JacToSide) {
-		double zero = 1.E-5;
-		
-		REAL qsi = InternalPar[0]; REAL eta = InternalPar[1]; REAL zeta = InternalPar[2];
-		bool regularmap = true;
+    /** @brief Generates a random point in the master domain */
+    void TPZPyramid::RandomPoint(TPZVec<REAL> &pt)
+    {
+        REAL val = (REAL) rand() / (RAND_MAX);
+        pt[2] = val;
+        for(int i=0; i<2; i++)
+        {
+            val = (1-pt[2])*(-1. + 2.*(REAL) rand() / (RAND_MAX));
+            pt[i] = val;
+        }
+    }
+
+    template<class T>
+    bool TPZPyramid::CheckProjectionForSingularity(const int &side, const TPZVec<T> &xiInterior) {
+        double zero = pztopology::GetTolerance();
+
+        T qsi = xiInterior[0]; T eta = xiInterior[1]; T zeta = xiInterior[2];
+        bool regularmap = true;
+        switch(side)
+        {
+            case 0:
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+                regularmap = true;
+            case 5://1D
+                if(fabs((T)(zeta-1.)) < zero) regularmap = false;
+                break;
+            case 6://1D
+                if(fabs((T)(zeta-1.)) < zero) regularmap = false;
+                break;
+            case 7://1D
+                if(fabs((T)(zeta-1.)) < zero) regularmap = false;
+                break;
+            case 8://1D
+                if(fabs((T)(zeta-1.)) < zero) regularmap = false;
+                break;
+            case 9://1D
+                if( fabs((T)(qsi-1.)) < zero || fabs((T)(eta-1.)) < zero )  regularmap = false;
+                else if(fabs((T)(zeta-1.)) < zero) regularmap = false;
+                break;
+            case 10://1D
+                if( fabs((T)(qsi+1.)) < zero || fabs((T)(eta-1.)) < zero ) regularmap = false;
+                else if(fabs((T)(zeta-1.)) < zero) regularmap = false;
+                break;
+            case 11://1D
+                if( fabs((T)(qsi+1.)) < zero || fabs((T)(eta+1.)) < zero ) regularmap = false;
+                else if(fabs((T)(zeta-1.)) < zero ) regularmap = false;
+                break;
+            case 12://1D
+                if( fabs((T)(qsi-1.)) < zero || fabs((T)(eta+1.)) < zero) regularmap = false;
+                else if(fabs((T)(zeta-1.)) < zero) regularmap = false;
+                break;
+            case 13://2D
+                if(fabs((T)(zeta-1.)) < zero) regularmap = false;
+                break;
+            case 14://2D
+                if(fabs((T)(zeta+eta-1.)) < zero) regularmap = false;//is in side 16
+                else if(fabs((T)(eta-1.)) < zero) regularmap = false;//is in side 13
+                break;
+            case 15://2D
+                if(fabs((T)(zeta-qsi-1.)) < zero) regularmap = false;//is in side 17
+                else if(fabs((T)(qsi+1.)) < zero) regularmap = false;//is in side 13
+                break;
+            case 16://2D
+                if(fabs((T)(1-zeta+eta)) < zero) regularmap = false;//is in side 14
+                else if(fabs((T)(eta+1.)) < zero) regularmap = false;//is in side 13
+                break;
+            case 17://2D
+                if(fabs((T)(zeta+qsi-1.)) < zero) regularmap = false;//is in side 15
+                else if(fabs((T)(qsi-1.)) < zero) regularmap = false;//is in side 13
+                break;
+            case 18:
+                regularmap = true;
+                break;
+            default:
+                PZError<<"Cannot compute CheckProjectionForSingularity method in TPZPyramid class. Invalid parameter (side):\t";
+                PZError<<side<<std::endl;
+                DebugStop();
+        }
+        return regularmap;
+
+    }
+
+    template<class T>
+    void TPZPyramid::MapToSide(int side, TPZVec<T> &InternalPar, TPZVec<T> &SidePar, TPZFMatrix<T> &JacToSide) {
+
+        if(!CheckProjectionForSingularity(side,InternalPar)){
+            std::cout<<"Side projection is not regular and it should have been checked earlier. Aborting.."<<std::endl;
+            DebugStop();
+        }
+
+		T qsi = InternalPar[0]; T eta = InternalPar[1]; T zeta = InternalPar[2];
 		switch(side)
 		{
             case 0:
@@ -729,293 +1051,174 @@ namespace pztopology {
             }
 			case 5://1D
 				SidePar.Resize(1); JacToSide.Resize(1,3);
-				if(fabs(zeta-1.) < zero)
 				{
-                    SidePar[0] = 0.;
-                    JacToSide(0,0) = 0.; JacToSide(0,1) = 0.; JacToSide(0,2) = 0.;
-					regularmap = false;
-				}
-				else
-				{
-                    SidePar[0] = qsi/(1.-zeta);
-                    JacToSide(0,0) = 1./(1.-zeta); JacToSide(0,1) = 0.; JacToSide(0,2) = qsi/((1.-zeta)*(1.-zeta));
+                    SidePar[0] = qsi/(1 - zeta);
+                    JacToSide(0,0) = 1/(1 - zeta);
+                    JacToSide(0,1) = 0;
+                    JacToSide(0,2) = qsi/((-1 + zeta)*(-1 + zeta));
 				}
 				break;
 				
 			case 6://1D
 				SidePar.Resize(1); JacToSide.Resize(1,3);
-				if(fabs(zeta-1.) < zero)
 				{
-                    SidePar[0] = 0.;
-                    JacToSide(0,0) = 0.; JacToSide(0,1) = 0.; JacToSide(0,2) = 0.;
-					regularmap = false;
-				}
-				else
-				{
-                    SidePar[0] = eta/(1.-zeta);
-                    JacToSide(0,0) = 0.; JacToSide(0,1) = 1./(1.-zeta); JacToSide(0,2) = eta/((1.-zeta)*(1.-zeta));
+                    SidePar[0] = eta/(1 - zeta);
+                    JacToSide(0,0) = 0;
+                    JacToSide(0,1) = 1/(1 - zeta);
+                    JacToSide(0,2) = eta/((-1 + zeta)*(-1 + zeta));
 				}
 				break;
 				
 			case 7://1D
 				SidePar.Resize(1); JacToSide.Resize(1,3);
-				if(fabs(zeta-1.) < zero)
 				{
-                    SidePar[0] = 0.;
-                    JacToSide(0,0) = 0.; JacToSide(0,1) = 0.; JacToSide(0,2) = 0.;
-					regularmap = false;
-				}
-				else
-				{
-                    SidePar[0] = qsi/(zeta-1.);
-                    JacToSide(0,0) = 1./(zeta-1.); JacToSide(0,1) = 0.; JacToSide(0,2) = -qsi/((zeta-1.)*(zeta-1.));
+                    SidePar[0] = qsi/(-1 + zeta);
+                    JacToSide(0,0) = 1/(-1 + zeta);
+                    JacToSide(0,1) = 0;
+                    JacToSide(0,2) = -(qsi/((-1 + zeta)*(-1 + zeta)));
 				}
 				break;
 				
 			case 8://1D
 				SidePar.Resize(1); JacToSide.Resize(1,3);
-				if(fabs(zeta-1.) < zero)
 				{
-                    SidePar[0] = 0.;
-                    JacToSide(0,0) = 0.; JacToSide(0,1) = 0.; JacToSide(0,2) = 0.;
-					regularmap = false;
-				}
-				else
-				{
-                    SidePar[0] = eta/(zeta-1.);
-                    JacToSide(0,0) = 0.; JacToSide(0,1) = 1./(zeta-1.); JacToSide(0,2) = -eta/((zeta-1.)*(zeta-1.));
+                    SidePar[0] = eta/(-1 + zeta);
+                    JacToSide(0,0) = 0;
+                    JacToSide(0,1) = 1/(-1 + zeta);
+                    JacToSide(0,2) = -(eta/((-1 + zeta)*(-1 + zeta)));
 				}
 				break;
 				
 			case 9://1D
 				SidePar.Resize(1); JacToSide.Resize(1,3);
-				if( fabs(qsi-1.) < zero || fabs(eta-1.) < zero )
 				{
-                    SidePar[0] = -1.;
-                    JacToSide(0,0) = 0.; JacToSide(0,1) = 0.; JacToSide(0,2) = 0.;
-					regularmap = false;
-				}
-				else if(fabs(zeta-1.) < zero)
-				{
-                    SidePar[0] = 1.;
-                    JacToSide(0,0) = 0.; JacToSide(0,1) = 0.; JacToSide(0,2) = 0.;
-					regularmap = false;
-				}
-				else
-				{
-                    SidePar[0] = -((eta*(-1. + qsi + zeta) + (-1. + zeta)*(-1. + qsi + 5.*zeta))/((-1. + qsi - 3.*zeta)*(-1. + zeta) + eta*(-1. + qsi + zeta)));
-					REAL den = (-1. + qsi - 3.*zeta)*(-1. + zeta) + eta*(-1. + qsi + zeta);
-                    JacToSide(0,0) = (8.*(-1. + zeta)*zeta*(-1. + eta + zeta))/(den*den);
-                    JacToSide(0,1) = (8.*(-1. + zeta)*zeta*(-1. + qsi + zeta))/(den*den);
-                    JacToSide(0,2) = (-8.*((-1. + qsi)*(-1. + zeta)*(-1. + zeta) + eta*((-1. + zeta)*(-1. + zeta) + qsi*(-1. + 2.*zeta))))/(den*den);
+                    SidePar[0] = -1 + (8*(-1 + zeta)*zeta)/(-1 + eta + qsi - eta*qsi - (2 + eta + qsi)*zeta + 3*(zeta*zeta));
+                    T denominator = (((-1 + qsi - 3*zeta)*(-1 + zeta) + eta*(-1 + qsi + zeta))*
+                            ((-1 + qsi - 3*zeta)*(-1 + zeta) + eta*(-1 + qsi + zeta)));
+                    JacToSide(0,0) = (8*(-1 + zeta)*zeta*(-1 + eta + zeta))/denominator;
+                    JacToSide(0,1) = (8*(-1 + zeta)*zeta*(-1 + qsi + zeta))/denominator;
+                    JacToSide(0,2) = (-8*((-1 + qsi)*((-1 + zeta)*(-1 + zeta)) + eta*((-1 + zeta)*
+                            (-1 + zeta) + qsi*(-1 + 2*zeta))))/denominator;
 				}
 				break;
 				
 			case 10://1D
 				SidePar.Resize(1); JacToSide.Resize(1,3);
-				if( fabs(qsi+1.) < zero || fabs(eta-1.) < zero )
 				{
-                    SidePar[0] = -1.;
-                    JacToSide(0,0) = 0.; JacToSide(0,1) = 0.; JacToSide(0,2) = 0.;
-					regularmap = false;
-				}
-				else if(fabs(zeta-1.) < zero)
-				{
-                    SidePar[0] = 1.;
-                    JacToSide(0,0) = 0.; JacToSide(0,1) = 0.; JacToSide(0,2) = 0.;
-					regularmap = false;
-				}
-				else
-				{
-                    SidePar[0] = (-((1. + qsi - 5.*zeta)*(-1. + zeta)) + eta*(-1. - qsi + zeta))/(eta*(1. + qsi - zeta) + (-1. + zeta)*(1. + qsi + 3.*zeta));
-					REAL den = eta*(1. + qsi - zeta) + (-1. + zeta)*(1. + qsi + 3.*zeta);
-                    JacToSide(0,0) = (-8.*(-1. + zeta)*zeta*(-1. + eta + zeta))/(den*den);
-                    JacToSide(0,1) = (-8.*(1. + qsi - zeta)*(-1. + zeta)*zeta)/(den*den);
-                    JacToSide(0,2) = (8.*((1. + qsi)*(-1. + zeta)*(-1. + zeta) - eta*(qsi + (-1. + zeta)*(-1. + zeta) - 2.*qsi*zeta)))/(den*den);
-				}
+                    SidePar[0] = -1 + (8*(-1 + zeta)*zeta)/(eta*(1 + qsi - zeta) + (-1 + zeta)*(1 + qsi + 3*zeta));
+                    T denominator = ((eta*(1 + qsi - zeta) + (-1 + zeta)*(1 + qsi + 3*zeta))*
+                            (eta*(1 + qsi - zeta) + (-1 + zeta)*(1 + qsi + 3*zeta)));
+                    JacToSide(0,0) = (-8*(-1 + zeta)*zeta*(-1 + eta + zeta))/denominator;
+                    JacToSide(0,1) = (-8*(1 + qsi - zeta)*(-1 + zeta)*zeta)/denominator;
+                    JacToSide(0,2) = (8*(1 + qsi)*((-1 + zeta)*(-1 + zeta)) -
+                            8*eta*(qsi + (-1 + zeta)*(-1 + zeta) - 2*qsi*zeta))/denominator;
+
+                }
 				break;
 				
 			case 11://1D
 				SidePar.Resize(1); JacToSide.Resize(1,3);
-				if( fabs(qsi+1.) < zero || fabs(eta+1.) < zero )
 				{
-                    SidePar[0] = -1.;
-                    JacToSide(0,0) = 0.; JacToSide(0,1) = 0.; JacToSide(0,2) = 0.;
-					regularmap = false;
-				}
-				else if(fabs(zeta-1.) < zero )
-				{
-                    SidePar[0] = 1.;
-                    JacToSide(0,0) = 0.; JacToSide(0,1) = 0.; JacToSide(0,2) = 0.;
-					regularmap = false;
-				}
-				else
-				{
-                    SidePar[0] = -1. + (8.*(-1. + zeta)*zeta)/(eta*(-1. - qsi + zeta) + (-1. + zeta)*(1. + qsi + 3.*zeta));
-					REAL den = eta*(-1. - qsi + zeta) + (-1. + zeta)*(1. + qsi + 3.*zeta);
-                    JacToSide(0,0) = (-8.*(-1. + zeta)*zeta*(-1. - eta + zeta))/(den*den);
-                    JacToSide(0,1) = (-8.*(-1. + zeta)*zeta*(-1. - qsi + zeta))/(den*den);
-                    JacToSide(0,2) = (8.*((1. + qsi)*(-1. + zeta)*(-1. + zeta) + eta*(qsi + (-1. + zeta)*(-1. + zeta) - 2.*qsi*zeta)))/(den*den);
+                    SidePar[0] = (1 + eta + qsi + eta*qsi - (6 + eta + qsi)*zeta + 5*(zeta*zeta))/
+                            (eta*(-1 - qsi + zeta) + (-1 + zeta)*(1 + qsi + 3*zeta));
+                    T denominator = (eta*(1 + qsi - zeta) - (-1 + zeta)*(1 + qsi + 3*zeta))*(eta*(1 + qsi - zeta) - (-1 + zeta)*(1 + qsi + 3*zeta));
+                    JacToSide(0,0) = (8*(1 + eta - zeta)*(-1 + zeta)*zeta)/denominator;
+                    JacToSide(0,1) = (8*(1 + qsi - zeta)*(-1 + zeta)*zeta)/denominator;
+                    JacToSide(0,2) = (8*((1 + qsi)*((-1 + zeta)*(-1 + zeta)) +
+                            eta*(qsi + (-1 + zeta)*(-1 + zeta) - 2*qsi*zeta)))/denominator;
 				}
 				break;
 				
 			case 12://1D
 				SidePar.Resize(1); JacToSide.Resize(1,3);
-				if( fabs(qsi-1.) < zero || fabs(eta+1.) > zero)
 				{
-                    SidePar[0] = -1.;
-                    JacToSide(0,0) = 0.; JacToSide(0,1) = 0.; JacToSide(0,2) = 0.;
-					regularmap = false;
-				}
-				else if(fabs(zeta-1.) < zero)
-				{
-                    SidePar[0] = 1.;
-                    JacToSide(0,0) = 0.; JacToSide(0,1) = 0.; JacToSide(0,2) = 0.;
-					regularmap = false;
-				}
-				else
-				{
-                    SidePar[0] = (-(eta*(-1. + qsi + zeta)) + (-1. + zeta)*(-1. + qsi + 5.*zeta))/(-((-1. + qsi - 3.*zeta)*(-1. + zeta)) + eta*(-1. + qsi + zeta));
-					REAL den = (-1. + qsi - 3.*zeta)*(-1. + zeta) - eta*(-1. + qsi + zeta);
-                    JacToSide(0,0) = (-8.*(1. + eta - zeta)*(-1. + zeta)*zeta)/(den*den);
-                    JacToSide(0,1) = (-8.*(-1. + zeta)*zeta*(-1. + qsi + zeta))/(den*den);
-                    JacToSide(0,2) = (8.*(-((-1. + qsi)*(-1. + zeta)*(-1. + zeta)) + eta*((-1. + zeta)*(-1. + zeta) + qsi*(-1. + 2.*zeta))))/(den*den);
+                    SidePar[0] = -1 + (8*(-1 + zeta)*zeta)/(qsi*(1 + eta - zeta) + (-1 + zeta)*(1 + eta + 3*zeta));
+                    T denominator = (qsi*(1 + eta - zeta) + (-1 + zeta)*(1 + eta + 3*zeta))*
+                            (qsi*(1 + eta - zeta) + (-1 + zeta)*(1 + eta + 3*zeta));
+                    JacToSide(0,0) = (-8*(1 + eta - zeta)*(-1 + zeta)*zeta)/denominator;
+                    JacToSide(0,1) = (-8*(-1 + zeta)*zeta*(-1 + qsi + zeta))/denominator;
+                    JacToSide(0,2) = (-8*(-1 + qsi)*((-1 + zeta)*(-1 + zeta)) +
+                            8*eta*((-1 + zeta)*(-1 + zeta) + qsi*(-1 + 2*zeta)))/(((-1 + qsi - 3*zeta)*(-1 + zeta)
+                                    - eta*(-1 + qsi + zeta))*((-1 + qsi - 3*zeta)*(-1 + zeta) - eta*(-1 + qsi + zeta)));
 				}
 				break;
 				
 			case 13://2D
 				SidePar.Resize(2); JacToSide.Resize(2,3);
-				if(fabs(zeta-1.) < zero)
 				{
-                    SidePar[0] = 0.; SidePar[0] = 0.;
-                    JacToSide(0,0) = 0.; JacToSide(0,1) = 0.; JacToSide(0,2) = 0.;
-                    JacToSide(1,0) = 0.; JacToSide(1,1) = 0.; JacToSide(1,2) = 0.;
-					regularmap = false;
-				}
-				else
-				{
-                    SidePar[0] = qsi/(1. - zeta);
-                    SidePar[1] = eta/(1. - zeta);
-                    JacToSide(0,0) = 1./(1. - zeta); JacToSide(0,1) = 0.; JacToSide(0,2) = qsi/((1. - zeta)*(1. - zeta));
-                    JacToSide(1,0) = 0.; JacToSide(1,1) = 1./(1. - zeta); JacToSide(1,2) = eta/((1. - zeta)*(1. - zeta));
-					regularmap = false;
+                    SidePar[0] = qsi/(1 - zeta);
+                    SidePar[1] = eta/(1 - zeta);
+                    JacToSide(0,0) = 1/(1 - zeta);
+                    JacToSide(0,1) = 0;
+                    JacToSide(0,2) = qsi/((-1 + zeta)*(-1 + zeta));
+                    JacToSide(1,0) = 0;
+                    JacToSide(1,1) = 1/(1 - zeta);
+                    JacToSide(1,2) = eta/((-1 + zeta)*(-1 + zeta));
 				}
 				break;
 				
 			case 14://2D
 				SidePar.Resize(2); JacToSide.Resize(2,3);
-				if(fabs(zeta-1.) < zero)
 				{
-                    SidePar[0] = 0.; SidePar[1] = 1.;
-                    JacToSide(0,0) = 0.; JacToSide(0,1) = 0.; JacToSide(0,2) = 0.;
-                    JacToSide(1,0) = 0.; JacToSide(1,1) = 0.; JacToSide(1,2) = 0.;
-					regularmap = false;
-				}
-				else if(fabs(eta-1.) < zero)
-				{
-                    SidePar[0] = qsi/2. + 0.5; SidePar[1] = 0.;
-                    JacToSide(0,0) = 0.; JacToSide(0,1) = 0.; JacToSide(0,2) = 0.;
-                    JacToSide(1,0) = 0.; JacToSide(1,1) = 0.; JacToSide(1,2) = 0.;
-					regularmap = false;
-				}
-				else
-				{
-                    SidePar[0] = ((-1. + eta + zeta)*(-1. - qsi + zeta))/(2.*(-1. + eta - zeta)*(-1. + zeta));
-                    SidePar[1] = (2.*zeta)/(1. - eta + zeta);
-                    JacToSide(0,0) = -(-1. + eta + zeta)/(2.*(-1. + eta - zeta)*(-1. + zeta));
-                    JacToSide(0,1) = ((1. + qsi - zeta)*zeta)/((-1. + zeta)*(1. - eta + zeta)*(1. - eta + zeta));
-                    JacToSide(0,2) = (eta*eta*qsi - (2. + qsi)*(-1. + zeta)*(-1. + zeta) + 2.*eta*(1. - (2. + qsi)*zeta + zeta*zeta))/(2.*(-1. + zeta)*(-1. + zeta)*(1 - eta + zeta)*(1 - eta + zeta));
-                    JacToSide(1,0) = 0.;
-                    JacToSide(1,1) = (2.*zeta)/((1. - eta + zeta)*(1. - eta + zeta));
-                    JacToSide(1,2) = (2. - 2.*eta)/((1. - eta + zeta)*(1. - eta + zeta));
+                    SidePar[0] = -((-1 + eta + zeta)*(-1 - qsi + zeta))/(2.*(-1 + zeta)*(1 - eta + zeta));
+                    SidePar[1] = (2*zeta)/(1 - eta + zeta);
+                    JacToSide(0,0) = (-1 + eta + zeta)/(2.*(-1 + zeta)*(1 - eta + zeta));
+                    JacToSide(0,1) = ((1 + qsi - zeta)*zeta)/((-1 + zeta)*((1 - eta + zeta)*(1 - eta + zeta)));
+                    JacToSide(0,2) = (eta*eta*qsi - (2 + qsi)*((-1 + zeta)*(-1 + zeta)) +
+                                    2*eta*(1 - (2 + qsi)*zeta + zeta*zeta))/
+                                    (2.*((-1 + zeta)*(-1 + zeta))*((1 - eta + zeta)*(1 - eta + zeta)));
+                    JacToSide(1,0) = 0;
+                    JacToSide(1,1) = (2*zeta)/((1 - eta + zeta)*(1 - eta + zeta));
+                    JacToSide(1,2) = (2 - 2*eta)/((1 - eta + zeta)*(1 - eta + zeta));
 				}
 				break;
 				
 			case 15://2D
 				SidePar.Resize(2); JacToSide.Resize(2,3);
-				if(fabs(zeta-1.) < zero)
 				{
-                    SidePar[0] = 0.; SidePar[1] = 1.;
-                    JacToSide(0,0) = 0.; JacToSide(0,1) = 0.; JacToSide(0,2) = 0.;
-                    JacToSide(1,0) = 0.; JacToSide(1,1) = 0.; JacToSide(1,2) = 0.;
-					regularmap = false;
-				}
-				else if(fabs(qsi+1.) < zero)
-				{
-                    SidePar[0] = eta/2. + .5; SidePar[1] = 0.;
-                    JacToSide(0,0) = 0.; JacToSide(0,1) = 0.5; JacToSide(0,2) = 0.;
-                    JacToSide(1,0) = 0.; JacToSide(1,1) = 0.; JacToSide(1,2) = 0.;
-					regularmap = false;
-				}
-				else
-				{
-                    SidePar[0] = ((1. + eta - zeta)*(-1. - qsi + zeta))/(2.*(-1. + zeta)*(1. + qsi + zeta));
-                    SidePar[1] = (2.*zeta)/(1. + qsi + zeta);
-                    JacToSide(0,0) = (zeta*(-1. - eta + zeta))/((-1. + zeta)*(1. + qsi + zeta)*(1. + qsi + zeta));
-                    JacToSide(0,1) = (-1. - qsi + zeta)/(2.*(-1. + zeta)*(1. + qsi + zeta));
-                    JacToSide(0,2) = (-2.*(1. + qsi)*(-1. + zeta)*(-1. + zeta) + eta*(qsi*qsi - (-1. + zeta)*(-1. + zeta) + 2.*qsi*zeta))/(2.*(-1. + zeta)*(-1. + zeta)*(1. + qsi + zeta)*(1. + qsi + zeta));
+                    SidePar[0] = ((1 + eta - zeta)*(-1 - qsi + zeta))/(2.*(-1 + zeta)*(1 + qsi + zeta));
+                    SidePar[1] = (2*zeta)/(1 + qsi + zeta);
+                    JacToSide(0,0) = (zeta*(-1 - eta + zeta))/((-1 + zeta)*((1 + qsi + zeta)*(1 + qsi + zeta)));
+                    JacToSide(0,1) = (-1 - qsi + zeta)/(2.*(-1 + zeta)*(1 + qsi + zeta));
+                    JacToSide(0,2) = (-2*(1 + qsi)*((-1 + zeta)*(-1 + zeta)) +
+                            eta*(qsi*qsi - (-1 + zeta)*(-1 + zeta) + 2*qsi*zeta))/
+                                    (2.*((-1 + zeta)*(-1 + zeta))*((1 + qsi + zeta)*(1 + qsi + zeta)));
                     JacToSide(1,0) = (-2*zeta)/((1 + qsi + zeta)*(1 + qsi + zeta));
-                    JacToSide(1,1) = 0.;
-                    JacToSide(1,2) = (2.*(1. + qsi))/((1. + qsi + zeta)*(1. + qsi + zeta));
+                    JacToSide(1,1) = 0;
+                    JacToSide(1,2) = (2*(1 + qsi))/((1 + qsi + zeta)*(1 + qsi + zeta));
 					
 				}
 				break;
 				
 			case 16://2D
 				SidePar.Resize(2); JacToSide.Resize(2,3);
-				if(fabs(zeta-1.) < zero)
 				{
-                    SidePar[0] = 0.; SidePar[1] = 1.;
-                    JacToSide(0,0) = 0.; JacToSide(0,1) = 0.; JacToSide(0,2) = 0.;
-                    JacToSide(1,0) = 0.; JacToSide(1,1) = 0.; JacToSide(1,2) = 0.;
-					regularmap = false;
-				}
-				else if(fabs(eta+1.) < zero)
-				{
-                    SidePar[0] = -qsi/2. + .5; SidePar[1] = 0.;
-                    JacToSide(0,0) = -0.5; JacToSide(0,1) = 0.; JacToSide(0,2) = 0.;
-                    JacToSide(1,0) = 0.; JacToSide(1,1) = 0.; JacToSide(1,2) = 0.;
-					regularmap = false;
-				}
-				else
-				{
-                    SidePar[0] = ((1. + eta - zeta)*(-1. + qsi + zeta))/(2.*(-1. + zeta)*(1. + eta + zeta));
-                    SidePar[1] = (2.*zeta)/(1. + eta + zeta);
-                    JacToSide(0,0) = (1. + eta - zeta)/(2.*(-1. + zeta)*(1. + eta + zeta));
-                    JacToSide(0,1) = (zeta*(-1. + qsi + zeta))/((-1. + zeta)*(1. + eta + zeta)*(1. + eta + zeta));
-                    JacToSide(0,2) = (-(eta*eta*qsi) + (-2 + qsi)*(-1. + zeta)*(-1. + zeta) - 2.*eta*(1. + (-2. + qsi)*zeta + zeta*zeta))/(2.*(-1. + zeta)*(-1. + zeta)*(1. + eta + zeta)*(1. + eta + zeta));
-                    JacToSide(1,0) = 0.;
-                    JacToSide(1,1) = (-2.*zeta)/((1. + eta + zeta)*(1. + eta + zeta));
-                    JacToSide(1,2) = (2.*(1. + eta))/((1. + eta + zeta)*(1. + eta + zeta));
+                    SidePar[0] = ((1 + eta - zeta)*(-1 - qsi + zeta))/(2.*(-1 + zeta)*(1 + eta + zeta));
+                    SidePar[1] = (2*zeta)/(1 + eta + zeta);
+                    JacToSide(0,0) = (-1 - eta + zeta)/(2.*(-1 + zeta)*(1 + eta + zeta));
+                    JacToSide(0,1) = (zeta*(-1 - qsi + zeta))/((-1 + zeta)*((1 + eta + zeta)*(1 + eta + zeta)));
+                    JacToSide(0,2) = (eta*eta*qsi - (2 + qsi)*((-1 + zeta)*(-1 + zeta)) -
+                                    2*eta*(1 - (2 + qsi)*zeta + zeta*zeta))/
+                                    (2.*((-1 + zeta)*(-1 + zeta))*((1 + eta + zeta)*(1 + eta + zeta)));
+                    JacToSide(1,0) = 0;
+                    JacToSide(1,1) = (-2*zeta)/((1 + eta + zeta)*(1 + eta + zeta));
+                    JacToSide(1,2) = (2*(1 + eta))/((1 + eta + zeta)*(1 + eta + zeta));
 				}
 				break;
 				
 			case 17://2D
 				SidePar.Resize(2); JacToSide.Resize(2,3);
-				if(fabs(zeta-1.) < zero)
 				{
-                    SidePar[0] = 0.; SidePar[1] = 1.;
-                    JacToSide(0,0) = 0.; JacToSide(0,1) = 0.; JacToSide(0,2) = 0.;
-                    JacToSide(1,0) = 0.; JacToSide(1,1) = 0.; JacToSide(1,2) = 0.;
-					regularmap = false;
-				}
-				else if(fabs(qsi-1.) < zero)
-				{
-                    SidePar[0] = 0.5 - eta/2.; SidePar[1] = 0.;
-                    JacToSide(0,0) = 0.; JacToSide(0,1) = -0.5; JacToSide(0,2) = 0.;
-                    JacToSide(1,0) = 0.; JacToSide(1,1) =  0.; JacToSide(1,2) = 0.;
-					regularmap = false;
-				}
-				else
-				{
-                    SidePar[0] = ((-1. + eta + zeta)*(-1. + qsi + zeta))/(2.*(-1. + qsi - zeta)*(-1. + zeta));
-                    SidePar[1] = (2.*zeta)/(1. - qsi + zeta);
-                    JacToSide(0,0) = -((zeta*(-1. + eta + zeta))/((-1. + zeta)*(1. - qsi + zeta)*(1. - qsi + zeta)));
-                    JacToSide(0,1) = (-1. + qsi + zeta)/(2.*(-1. + qsi - zeta)*(-1. + zeta));
-                    JacToSide(0,2) = (2.*(-1. + qsi)*(-1. + zeta)*(-1. + zeta) + eta*(-qsi*qsi + (-1. + zeta)*(-1. + zeta) + 2.*qsi*zeta))/(2.*(-1. + zeta)*(-1. + zeta)*(1. - qsi + zeta)*(1. - qsi + zeta));
-                    JacToSide(1,0) = (2.*zeta)/((1. - qsi + zeta)*(1. - qsi + zeta));
-                    JacToSide(1,1) = 0.;
-                    JacToSide(1,2) = (2. - 2.*qsi)/((1. - qsi + zeta)*(1. - qsi + zeta));
+                    SidePar[0] = ((1 + eta - zeta)*(-1 + qsi + zeta))/(2.*(-1 + zeta)*(1 - qsi + zeta));
+                    SidePar[1] = (2*zeta)/(1 - qsi + zeta);
+                    JacToSide(0,0) = ((1 + eta - zeta)*zeta)/((-1 + zeta)*((1 - qsi + zeta)*(1 - qsi + zeta)));
+                    JacToSide(0,1) = (-1 + qsi + zeta)/(2.*(-1 + zeta)*(1 - qsi + zeta));
+                    JacToSide(0,2) = (2*(-1 + qsi)*((-1 + zeta)*(-1 + zeta)) +
+                                    eta*(qsi*qsi - (-1 + zeta)*(-1 + zeta) - 2*qsi*zeta))/
+                                    (2.*((-1 + zeta)*(-1 + zeta))*((1 - qsi + zeta)*(1 - qsi + zeta)));
+                    JacToSide(1,0) = (2*zeta)/((1 - qsi + zeta)*(1 - qsi + zeta));
+                    JacToSide(1,1) = 0;
+                    JacToSide(1,2) = (2 - 2*qsi)/((1 - qsi + zeta)*(1 - qsi + zeta));
 				}
 				break;
             case 18:
@@ -1025,14 +1228,20 @@ namespace pztopology {
                 JacToSide.Identity();
             }
                 break;
+		    default:
+		        PZError<<"Cannot compute MapToSide method in TPZPyramid class. Invalid parameter (side):\t";
+		        PZError<<side<<std::endl;
+                PZError << "This should have been caught earlier in the execution, there is something wrong.\n";
+                PZError << "Check method TPZPyramid::CheckProjectionForSingularity<T>\n";
+		        DebugStop();
 		}
-		if(side > 18)
-		{
-			cout << "Cant compute MapToSide method in TPZGeoPyramid class!\nParameter (SIDE) must be between 5 and 17!\nMethod Aborted!\n";
-			DebugStop();
-		}
-		return regularmap;
-		
+        #ifdef PZDEBUG
+		for(int i = 0; i < SidePar.size();i++){
+           if(std::isnan( TPZExtractVal::val(SidePar[i]) )){
+               DebugStop();
+           }
+        }
+        #endif
 	}
     
     void TPZPyramid::ParametricDomainNodeCoord(int node, TPZVec<REAL> &nodeCoord)
@@ -1099,6 +1308,62 @@ namespace pztopology {
 		std::cout << "Please implement me\n";
 		DebugStop();
 	}
+    
+    int TPZPyramid::GetTransformId(const int side, const TPZVec<int64_t> &id){
+        switch (side) {
+            case 0:
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+                return 0;
+                break;
+            case 5:
+            case 6:
+            case 7:
+            case 8:
+            case 9:
+            case 10:
+            case 11:
+            case 12:
+            {
+                int in1 = ContainedSideLocId(side,0);
+                int in2 = ContainedSideLocId(side,1);
+                return id[in1]<id[in2] ? 0 : 1;
+            }
+                break;
+            case 13:
+            {
+           
+                TPZManVector<int64_t,4> locid(4);
+                int i;
+                for(i=0; i<4; i++) locid[i] = id[ContainedSideLocId(side,i)];
+                return pztopology::TPZQuadrilateral::GetTransformId(locid);
+            }
+                break;
+            case 14:
+            case 15:
+            case 16:
+            case 17:
+            {
+                TPZManVector<int64_t,3> locid(3);
+                int i;
+                for(i=0; i<3; i++) locid[i] = id[ContainedSideLocId(side,i)];
+                return pztopology::TPZTriangle::GetTransformId(locid);
+            }
+                break;
+                
+           
+            case 18:
+            {
+                
+                return 0;
+            }
+            default:
+                DebugStop();
+        }
+        return -1;
+    }
     
     void computedirectionsPy(int inicio, int fim, TPZFMatrix<REAL> &bvec, TPZFMatrix<REAL> &t1vec,
                            TPZFMatrix<REAL> &t2vec, TPZFMatrix<REAL> &gradx, TPZFMatrix<REAL> &directions);
@@ -1175,6 +1440,10 @@ namespace pztopology {
     
     void TPZPyramid::ComputeDirections(int side, TPZFMatrix<REAL> &gradx, TPZFMatrix<REAL> &directions, TPZVec<int> &sidevectors)
     {
+        // this method is out of date
+        std::cout << __PRETTY_FUNCTION__ << "Deprecated method, not compatible with Piola transform\n";
+        DebugStop();
+        
         if(gradx.Cols()!=3)
         { std::cout << "Gradient dimensions are not compatible with this topology" << std::endl;
             DebugStop();
@@ -1283,12 +1552,16 @@ namespace pztopology {
 
 	}
     
-    void TPZPyramid::ComputeDirections(TPZFMatrix<REAL> &gradx, REAL detjac, TPZFMatrix<REAL> &directions)
+    template <class TVar>
+    void TPZPyramid::ComputeHDivDirections(TPZFMatrix<TVar> &gradx, TPZFMatrix<TVar> &directions)
     {
-        REAL detgrad = gradx(0,0)*gradx(1,1)*gradx(2,2) + gradx(0,1)*gradx(1,2)*gradx(2,0) + gradx(0,2)*gradx(1,0)*gradx(2,1) - gradx(0,2)*gradx(1,1)*gradx(2,0) - gradx(0,0)*gradx(1,2)*gradx(2,1) - gradx(0,1)*gradx(1,0)*gradx(2,2);
-        detgrad = fabs(detgrad);
+        // this method is out of date
+        std::cout << __PRETTY_FUNCTION__ << "Deprecated method, not compatible with Piola transform\n";
+        std::cout << "Pyramid elements should be divided into two tetrahedron elements\n";
+        DebugStop();
+        TVar detjac = TPZAxesTools<TVar>::ComputeDetjac(gradx);
         
-        TPZManVector<REAL,3> v1(3),v2(3),v3(3),ar9(3),ar10(3),ar11(3),ar12(3);
+        TPZManVector<TVar,3> v1(3),v2(3),v3(3),ar9(3),ar10(3),ar11(3),ar12(3);
         for (int i=0; i<3; i++) {
             v1[i] = gradx(i,0);
             v2[i] = gradx(i,1);
@@ -1300,18 +1573,18 @@ namespace pztopology {
          * @brief Computing mapped vector with scaling factor equal 1.0.
          * using contravariant piola mapping.
          */
-        TPZManVector<REAL,3> NormalScales(3,1.);
+        TPZManVector<TVar,3> NormalScales(3,1.);
         
-        if (HDivPiola != 1)
+        
         {
             std::cout << "Pyramid space not complete. Calling debugstop(). " << std::endl;
             DebugStop();
         }
         
         for (int i=0; i<3; i++) {
-            v1[i] /= detgrad;
-            v2[i] /= detgrad;
-            v3[i] /= detgrad;
+            v1[i] /= detjac;
+            v2[i] /= detjac;
+            v3[i] /= detjac;
             ar9[i] = v3[i]-(-v1[i]-v2[i]);
             ar10[i] = v3[i]-(v1[i]-v2[i]);
             ar11[i] = v3[i]-(v1[i]+v2[i]);
@@ -1334,7 +1607,7 @@ namespace pztopology {
             directions(i,7) = ( directions(i,3)+directions(i,0) )/2.;
             directions(i,8) = ( directions(i,4)+directions(i,5)+directions(i,6)+directions(i,7) )/4.;
             //face 1 front face
-            static REAL scale = 1./(2);
+            static TVar scale = 1./(2);
             directions(i,9)  = -v2[i]*scale;
             directions(i,10) = -v2[i]*scale;
             // needs improvement
@@ -1404,7 +1677,8 @@ namespace pztopology {
     }
     
     /// Adjust the directions associated with the tip of the pyramid, considering that one of the faces is constrained
-    void TPZPyramid::AdjustTopDirections(int ConstrainedFace,TPZFMatrix<REAL> &gradx, REAL detjac, TPZFMatrix<REAL> &directions)
+    template <class TVar>
+    void TPZPyramid::AdjustTopDirections(int ConstrainedFace,TPZFMatrix<TVar> &gradx, TPZFMatrix<TVar> &directions)
     {
 #ifdef PZDEBUG
         if (directions.Cols() != 58 || ConstrainedFace < 1 || ConstrainedFace > 4) {
@@ -1412,10 +1686,9 @@ namespace pztopology {
         }
 #endif
         int vectors[] = {11,18,25,32};
-        REAL detgrad = gradx(0,0)*gradx(1,1)*gradx(2,2) + gradx(0,1)*gradx(1,2)*gradx(2,0) + gradx(0,2)*gradx(1,0)*gradx(2,1) - gradx(0,2)*gradx(1,1)*gradx(2,0) - gradx(0,0)*gradx(1,2)*gradx(2,1) - gradx(0,1)*gradx(1,0)*gradx(2,2);
-        detgrad = fabs(detgrad);
+        TVar detjac = TPZAxesTools<TVar>::ComputeDetjac(gradx);
         
-        TPZManVector<REAL,3> v1(3),v2(3),v3(3),ar9(3),ar10(3),ar11(3),ar12(3);
+        TPZManVector<TVar,3> v1(3),v2(3),v3(3),ar9(3),ar10(3),ar11(3),ar12(3);
         for (int i=0; i<3; i++) {
             v1[i] = gradx(i,0);
             v2[i] = gradx(i,1);
@@ -1423,9 +1696,9 @@ namespace pztopology {
         }
         
         for (int i=0; i<3; i++) {
-            v1[i] /= detgrad;
-            v2[i] /= detgrad;
-            v3[i] /= detgrad;
+            v1[i] /= detjac;
+            v2[i] /= detjac;
+            v3[i] /= detjac;
             ar9[i] = v3[i]-(-v1[i]-v2[i]);
             ar10[i] = v3[i]-(v1[i]-v2[i]);
             ar11[i] = v3[i]-(v1[i]+v2[i]);
@@ -1475,9 +1748,9 @@ namespace pztopology {
     }
     
 
-    void TPZPyramid::GetSideDirections(TPZVec<int> &sides, TPZVec<int> &dir, TPZVec<int> &bilounao)
+    void TPZPyramid::GetSideHDivDirections(TPZVec<int> &sides, TPZVec<int> &dir, TPZVec<int> &bilounao)
     {
-        int nsides = NumSides()*3;
+        int nsides = NumSides()*3+1;
         
         sides.Resize(nsides);
         dir.Resize(nsides);
@@ -1491,9 +1764,9 @@ namespace pztopology {
         }
     }
 
-    void TPZPyramid::GetSideDirections(TPZVec<int> &sides, TPZVec<int> &dir, TPZVec<int> &bilounao, TPZVec<int> &sidevectors)
+    void TPZPyramid::GetSideHDivDirections(TPZVec<int> &sides, TPZVec<int> &dir, TPZVec<int> &bilounao, TPZVec<int> &sidevectors)
     {
-        int nsides = NumSides()*3;
+        int nsides = NumSides()*3+1;
         
         sides.Resize(nsides);
         dir.Resize(nsides);
@@ -1506,15 +1779,15 @@ namespace pztopology {
             bilounao[is] = bilinearounao[is];
         }
         
-        for (int i=0; i<Dimension*NumSides(); i++) {
+        for (int i=0; i<nsides; i++) {
             sidevectors[i] = vectorsideorderPi[i];
         }
     }
     
     void TPZPyramid::CornerShape(const TPZVec<REAL> &pt,TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi) {
         if(fabs(pt[0])<1.e-10 && fabs(pt[1])<1.e-10 && pt[2]==1.) {
-            //para testes com transforma�es geometricas-->>Que  o que faz o RefPattern!!
-            //(0,0,1) nunca �um ponto de integra�o
+            //para testes com transformaçoes geometricas-->>Que é o que faz o RefPattern!!
+            //(0,0,1) nunca é um ponto de integração
             phi(0,0)  = 0.;
             phi(1,0)  = 0.;
             phi(2,0)  = 0.;
@@ -1576,6 +1849,45 @@ namespace pztopology {
         dphi(2,4) =  1.0;
     }
     
+    int TPZPyramid::ClassId() const{
+        return Hash("TPZPyramid");
+    }
 
+    void TPZPyramid::Read(TPZStream& buf, void* context) {
+
+    }
+
+    void TPZPyramid::Write(TPZStream& buf, int withclassid) const {
+
+    }
 
 }
+
+/**********************************************************************************************************************
+ * The following are explicit instantiation of member function template of this class, both with class T=REAL and its
+ * respective FAD<REAL> version. In other to avoid potential errors, always declare the instantiation in the same order
+ * in BOTH cases.    @orlandini
+ **********************************************************************************************************************/
+template bool pztopology::TPZPyramid::CheckProjectionForSingularity<REAL>(const int &side, const TPZVec<REAL> &xiInterior);
+
+template void pztopology::TPZPyramid::MapToSide<REAL>(int side, TPZVec<REAL> &InternalPar, TPZVec<REAL> &SidePar, TPZFMatrix<REAL> &JacToSide);
+
+template void pztopology::TPZPyramid::BlendFactorForSide<REAL>(const int &, const TPZVec<REAL> &, REAL &, TPZVec<REAL> &);
+
+template void pztopology::TPZPyramid::TShape<REAL>(const TPZVec<REAL> &loc,TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi);
+
+template void pztopology::TPZPyramid::ComputeHDivDirections<REAL>(TPZFMatrix<REAL> &gradx, TPZFMatrix<REAL> &directions);
+
+template void pztopology::TPZPyramid::AdjustTopDirections<REAL>(int ConstrainedFace, TPZFMatrix<REAL> &gradx, TPZFMatrix<REAL> &directions);
+
+template bool pztopology::TPZPyramid::CheckProjectionForSingularity<Fad<REAL>>(const int &side, const TPZVec<Fad<REAL>> &xiInterior);
+
+template void pztopology::TPZPyramid::MapToSide<Fad<REAL> >(int side, TPZVec<Fad<REAL> > &InternalPar, TPZVec<Fad<REAL> > &SidePar, TPZFMatrix<Fad<REAL> > &JacToSide);
+
+template void pztopology::TPZPyramid::BlendFactorForSide<Fad<REAL>>(const int &, const TPZVec<Fad<REAL>> &, Fad<REAL> &,
+                                                                   TPZVec<Fad<REAL>> &);
+template void pztopology::TPZPyramid::TShape<Fad<REAL>>(const TPZVec<Fad<REAL>> &loc,TPZFMatrix<Fad<REAL>> &phi,TPZFMatrix<Fad<REAL>> &dphi);
+
+template void pztopology::TPZPyramid::ComputeHDivDirections<Fad<REAL>>(TPZFMatrix<Fad<REAL>> &gradx, TPZFMatrix<Fad<REAL>> &directions);
+
+template void pztopology::TPZPyramid::AdjustTopDirections<Fad<REAL> >(int ConstrainedFace, TPZFMatrix<Fad<REAL>> &gradx, TPZFMatrix<Fad<REAL>> &directions);

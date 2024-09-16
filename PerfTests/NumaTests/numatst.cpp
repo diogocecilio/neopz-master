@@ -6,23 +6,26 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include <pz_config.h>
 #endif
 
 #include <iostream>
 #include <cstdlib>
 
-#include "pzbfilestream.h" // TPZBFileStream, TPZFileStream
+#include "TPZFileStream.h"
+#include "TPZBFileStream.h" // TPZBFileStream, TPZFileStream
 #include "pzmd5stream.h"
 
 #include "pzlog.h"
 
 #include <fstream>
 #include <string>
-
-#ifdef LOG4CXX
-static LoggerPtr loggerconverge(Logger::getLogger("pz.converge"));
-static LoggerPtr logger(Logger::getLogger("main"));
+#include <mutex>
+#include <thread>
+#include <condition_variable>
+#ifdef PZ_LOG
+static TPZLogger loggerconverge("pz.converge");
+static TPZLogger logger("main");
 #endif
 
 #include "pzskylmat.h"
@@ -45,15 +48,15 @@ using namespace tbb;
 
 void help(const char* prg)
 {
-    cout << "Compute the Decompose_LDLt method for the matrix" << endl;
-    cout << endl;
-    cout << "Usage: " << prg << "-if file [-v verbose_level] [-b] "
-    << "[-tot_rdt rdt_file] [-op matrix_operation] [-h]" << endl << endl;
-    cout << "matrix_operation:" << endl;
-    cout << " 0: Decompose_LDLt()" << endl;
-    cout << " 1: Decompose_LDLt2() -- deprecated (not working)" << endl;
-    cout << " 2: Decompose_Cholesky()" << endl;
-    clarg::arguments_descriptions(cout, "  ", "\n");
+    std::cout << "Compute the Decompose_LDLt method for the matrix" << std::endl;
+    std::cout << std::endl;
+    std::cout << "Usage: " << prg << "-if file [-v verbose_level] [-b] "
+              << "[-tot_rdt rdt_file] [-op matrix_operation] [-h]" << std::endl << std::endl;
+    std::cout << "matrix_operation:" << std::endl;
+    std::cout << " 0: Decompose_LDLt()" << std::endl;
+    std::cout << " 1: Decompose_LDLt2() -- deprecated (not working)" << std::endl;
+    std::cout << " 2: Decompose_Cholesky()" << std::endl;
+    clarg::arguments_descriptions(std::cout, "  ", "\n");
 }
 
 clarg::argString ifn("-ifn", "input matrix file name (use -bi to read from binary files)", "matrix.txt");
@@ -61,7 +64,7 @@ clarg::argInt affinity("-af", "affinity mode (0=no affinity, 1=heuristi 1)", 0);
 clarg::argInt verb_level("-v", "verbosity level", 0);
 int verbose = 0;
 /* Verbose macro. */
-#define VERBOSE(level,...) if (level <= verbose) cout << __VA_ARGS__
+#define VERBOSE(level,...) if (level <= verbose) std::cout << __VA_ARGS__
 
 clarg::argInt mop("-op", "Matrix operation", 1);
 clarg::argBool br("-br", "binary reference. Reference decomposed matrix file format == binary.", false);
@@ -287,8 +290,6 @@ break
     }
 }
 
-#include <pthread.h>
-
 class thread_timer_t
 {
 public:
@@ -297,28 +298,28 @@ public:
     {start_time = getms();}
     void stop()
     {stop_time = getms();}
-    unsigned long long get_start() {return start_time; }
-    unsigned long long get_stop() {return stop_time; }
-    unsigned long long get_elapsed() {return stop_time-start_time; }
+    uint64_t get_start() {return start_time; }
+    uint64_t get_stop() {return stop_time; }
+    uint64_t get_elapsed() {return stop_time-start_time; }
 private:
-    unsigned long long getms()
+    uint64_t getms()
     {
         timeval t;
         gettimeofday(&t,NULL);
         return (t.tv_sec*1000) + (t.tv_usec/1000);
     }
-    unsigned long long start_time;
-    unsigned long long stop_time;
+    uint64_t start_time;
+    uint64_t stop_time;
 };
 
 int nthreads_initialized;
 int nthreads;
 bool wait_for_all_init;
 std::vector<thread_timer_t> thread_timer;
-pthread_cond_t  cond=PTHREAD_COND_INITIALIZER;
-pthread_cond_t  main_cond=PTHREAD_COND_INITIALIZER;
-pthread_mutex_t glob_mutex=PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t main_mutex=PTHREAD_MUTEX_INITIALIZER;
+std::condition_variable cond;
+std::condition_variable  main_cond;
+std::mutex glob_mutex;
+std::mutex main_mutex;
 bool run_parallel;
 
 class synchronized_threads_t
@@ -341,17 +342,17 @@ public:
     struct thread_arg_t
     {
         thread_arg_t(int t,void (*ir)(int), void (*pr)(int),
-                     pthread_mutex_t* mt, pthread_cond_t* cd,
-                     pthread_cond_t* mcd) :
+                     std::mutex* mt, std::condition_variable* cd,
+                     std::condition_variable* mcd) :
         tid(t), init_routine(ir), parallel_routine(pr),
         glob_mutex(mt), cond(cd), main_cond(mcd)
         {}
         int tid;
         void (*init_routine)(int);
         void (*parallel_routine)(int);
-        pthread_mutex_t* glob_mutex;
-        pthread_cond_t* cond;
-        pthread_cond_t* main_cond;
+        std::mutex* glob_mutex;
+        std::condition_variable* cond;
+        std::condition_variable* main_cond;
     };
     
 private:
@@ -360,7 +361,7 @@ private:
     void (*init_routine)(int);
     /** Parallel routine. Called before the cond mutex. */
     void (*parallel_routine)(int);
-    std::vector<pthread_t> threads;
+    std::vector<std::thread> threads;
     
 };
 
@@ -370,12 +371,11 @@ void *threadfunc(void *parm)
     (synchronized_threads_t::thread_arg_t*) parm;
     
     int tid = args->tid;
-    
-    pthread_mutex_lock(args->glob_mutex);
+    std::unique_lock<std::mutex> lck_global(*(args->glob_mutex));
     if (args->init_routine) {
 #ifdef _GNU_SOURCE
         VERBOSE(1,"Thread " << tid << " calling init routine on CPU "
-                << (int) sched_getcpu() << endl);
+                << (int) sched_getcpu() << std::endl);
 #endif
         (*args->init_routine)(tid);
     }
@@ -383,19 +383,18 @@ void *threadfunc(void *parm)
     if (nthreads_initialized == nthreads) {
         wait_for_all_init = false;
         /* Release main thread */
-        pthread_cond_signal(args->main_cond);
+        args->main_cond->notify_one();
     }
     
     /* Wait for main to sync */
     while (!run_parallel) {
-        pthread_cond_wait(args->cond, args->glob_mutex);
+      args->cond->wait(lck_global);
     }
 #ifdef _GNU_SOURCE
     VERBOSE(1,"Thread " << tid << " calling parallel routine on CPU "
-            << (int) sched_getcpu() << endl);
+            << (int) sched_getcpu() << std::endl);
 #endif
-    
-    pthread_mutex_unlock(args->glob_mutex);
+    lck_global.unlock();
     
     thread_timer[tid].start();
     
@@ -415,37 +414,38 @@ synchronized_threads_t::execute_n_threads(unsigned n,
 {
     nthreads = n;
     nthreads_initialized = 0;
-    threads.resize(nthreads);
     thread_timer.resize(nthreads);
     
     for (int i=0; i<nthreads; i++) {
         synchronized_threads_t::thread_arg_t arg(i,init_routine,parallel_routine,
                                                  &glob_mutex, &cond, &main_cond);
-        PZ_PTHREAD_CREATE(&threads[i],NULL,threadfunc,(void*) &i, __FUNCTION__);
+        threads.push_back(std::thread(threadfunc,&i));
     }
     
     /* Wait for all to be initialized */
-    pthread_mutex_lock(&main_mutex);
+    
+    
+    std::unique_lock<std::mutex> lck_main(main_mutex);
     while (wait_for_all_init) {
-        pthread_cond_wait(&main_cond, &main_mutex);
+      main_cond.wait(lck_main);
     }
-    pthread_mutex_unlock(&main_mutex);
+    lck_main.unlock();
     
     /* Signall all to start together. */
     total_rst.start();
     run_parallel = true;
-    pthread_cond_broadcast(&cond);
+    cond.notify_all();
     
     /* Wait for all to finish. */
     for (unsigned i=0; i<nthreads; i++) {
-        PZ_PTHREAD_JOIN(threads[i], NULL, __FUNCTION__);
+      threads[i].join();
     }
     total_rst.stop();
     
     if (verbose >= 2) {
         printf("%7s,%10s,%10s,%10s\n", "thread", "elapsed", "start", "stop");
         for (unsigned i=0; i<nthreads; i++) {
-            printf("%7d,%10lld,%10lld,%10lld\n", i,
+            printf("%7d,%10lud,%10lud,%10lud\n", i,
                    thread_timer[i].get_elapsed(),
                    thread_timer[i].get_start(),
                    thread_timer[i].get_stop());
@@ -463,7 +463,7 @@ int main(int argc, char *argv[])
     
     /* Parse the arguments */
     if (clarg::parse_arguments(argc, argv)) {
-        cerr << "Error when parsing the arguments!" << endl;
+        std::cerr << "Error when parsing the arguments!" << std::endl;
         return 1;
     }
     
@@ -475,7 +475,7 @@ int main(int argc, char *argv[])
     }
     
     if (nmats.get_value() < 1) {
-        cerr << "Error, nmats must be >= 1" << endl;
+        std::cerr << "Error, nmats must be >= 1" << std::endl;
         return 1;
     }
     
@@ -505,30 +505,29 @@ int main(int argc, char *argv[])
     
     if (mstats.get_value() > 0) {
         unsigned n = matrix.Dim();
-        unsigned long long n_sky_items = 0;
-        unsigned long long max_height = 0;
+        uint64_t n_sky_items = 0;
+        uint64_t max_height = 0;
         for (unsigned i=0; i<n; i++) {
             unsigned height = matrix.SkyHeight(i);
             if (mstats.get_value() > 1) {
-                cout << "col " << i << " height = " << height << endl;
+                std::cout << "col " << i << " height = " << height << std::endl;
             }
             n_sky_items += height;
             if (height > max_height) max_height = height;
         }
-        unsigned long long n2 = n * n;
+        uint64_t n2 = n * n;
         double av_height = (double) n_sky_items / (double) n;
-        cout << "N         = " << n << endl;
-        cout << "N^2       = " << n2 << endl;
-        cout << "Sky items = " << n_sky_items << endl;
-        cout << "N^2 / Sky items = " << (double) n2 / (double) n_sky_items << endl;
-        cout << "Avg. Height = " << av_height << endl;
-        cout << "Max. Height = " << max_height << endl;
+        std::cout << "N         = " << n << std::endl;
+        std::cout << "N^2       = " << n2 << std::endl;
+        std::cout << "Sky items = " << n_sky_items << std::endl;
+        std::cout << "N^2 / Sky items = " << (double) n2 / (double) n_sky_items << std::endl;
+        std::cout << "Avg. Height = " << av_height << std::endl;
+        std::cout << "Max. Height = " << max_height << std::endl;
     }
     
     /** Dump decomposed matrix */
     if (dump_dm.was_set()) {
-        VERBOSE(1, "Dumping decomposed matrix into: " <<
-                dump_dm.get_value() << endl);
+        VERBOSE(1, "Dumping decomposed matrix into: " << dump_dm.get_value() << std::endl);
         FileStreamWrapper dump_file(bd.get_value());
         dump_file.OpenWrite(dump_dm.get_value());
         matrix.Write(dump_file, 0);
@@ -540,20 +539,19 @@ int main(int argc, char *argv[])
         matrix.Write(sig, 1);
         int ret;
         if (chk_dm_sig.was_set()) {
-            if ((ret=sig.CheckMD5(chk_dm_sig.get_value()))) {
-                cerr << "ERROR(ret=" << ret << ") : MD5 Signature for "
-                << "decomposed matrixdoes not match." << endl;
+            if ((ret = sig.CheckMD5(chk_dm_sig.get_value()))) {
+                std::cerr << "ERROR(ret=" << ret << ") : MD5 Signature for "
+                          << "decomposed matrixdoes not match." << std::endl;
                 return 1;
-            }
-            else {
-                cout << "Checking decomposed matrix MD5 signature: [OK]" << endl;
+            } else {
+                std::cout << "Checking decomposed matrix MD5 signature: [OK]" << std::endl;
             }
         }
         if (gen_dm_sig.was_set()) {
             if ((ret=sig.WriteMD5(gen_dm_sig.get_value()))) {
-                cerr << "ERROR (ret=" << ret << ") when writing the "
-                << "decomposed matrix MD5 signature to file: "
-                << gen_dm_sig.get_value() << endl;
+                std::cerr << "ERROR (ret=" << ret << ") when writing the "
+                          << "decomposed matrix MD5 signature to file: "
+                          << gen_dm_sig.get_value() << std::endl;
                 return 1;
             }
         }
@@ -563,8 +561,7 @@ int main(int argc, char *argv[])
     
     /** Check decomposed matrix */
     if (chk_dm_error.was_set()) {
-        VERBOSE(1, "Checking decomposed matrix error: " <<
-                chk_dm_error.get_value() << endl);
+        VERBOSE(1, "Checking decomposed matrix error: " << chk_dm_error.get_value() << std::endl);
         FileStreamWrapper ref_file(br.get_value());
         ref_file.OpenRead(chk_dm_error.get_value());
         /* Reference matrix. */
@@ -572,9 +569,9 @@ int main(int argc, char *argv[])
         ref_matrix.Read(ref_file,0);
         int max_j = matrix.Cols();
         if (max_j != ref_matrix.Cols()) {
-            cerr << "Decomposed matrix has " << max_j
-            << " cols while reference matrix has "
-            << ref_matrix.Cols() << endl;
+            std::cerr << "Decomposed matrix has " << max_j
+                      << " cols while reference matrix has "
+                      << ref_matrix.Cols() << std::endl;
             return 1;
         }
         REAL error_tolerance = error_tol.get_value();
@@ -582,9 +579,9 @@ int main(int argc, char *argv[])
         for (int j=0; j<max_j; j++) {
             int col_height = matrix.SkyHeight(j);
             if (col_height != ref_matrix.SkyHeight(j)) {
-                cerr << "Column " << j << " of decomposed matrix has " << col_height
-                << " non zero rows while reference matrix has "
-                << ref_matrix.SkyHeight(j) << endl;
+                std::cerr << "Column " << j << " of decomposed matrix has " << col_height
+                          << " non zero rows while reference matrix has "
+                          << ref_matrix.SkyHeight(j) << std::endl;
                 return 1;
             }
             int min_i = (j+1) - col_height;
@@ -595,10 +592,10 @@ int main(int argc, char *argv[])
                 if (dm_ij != rm_ij) {
                     REAL diff = abs(dm_ij - rm_ij);
                     if (diff >= error_tolerance) {
-                        VERBOSE(1, "diff(" << diff << ") tolerance (" << error_tolerance 
-                                << "). dm[" << i << "][" << j << "] (" << dm_ij
-                                << ") != rm[" << i << "][" << j << "] (" << rm_ij 
-                                << ")." << endl);
+                        VERBOSE(1, "diff(" << diff << ") tolerance (" << error_tolerance
+                                           << "). dm[" << i << "][" << j << "] (" << dm_ij
+                                           << ") != rm[" << i << "][" << j << "] (" << rm_ij
+                                           << ")." << std::endl);
                         ret = 1;
                         max_error = (max_error < diff)?diff:max_error;
                     }
@@ -606,8 +603,8 @@ int main(int argc, char *argv[])
             }
         }
         if (ret != 0) {
-            cerr << "Error ("<< max_error <<") > error tolerance ("
-            << error_tolerance <<")" <<  endl;
+            std::cerr << "Error (" << max_error << ") > error tolerance ("
+                      << error_tolerance << ")" << std::endl;
         }
     }
     

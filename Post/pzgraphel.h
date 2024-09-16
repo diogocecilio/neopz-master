@@ -7,22 +7,19 @@
 #define GRAFELH
 
 #include "pzcompel.h"
-#include "pzgraphnode.h"
-#include "pzgraphmesh.h"
 #include "pzvec.h"
+#include "TPZDrawStyle.h"
 
 #include <iostream>
 class TPZGraphMesh;
 class TPZGraphNode;
-template <class>
 class TPZBlock;
 
 /**
  * @ingroup post
  * @brief Abstract class to graphical one-, two- and three-dimensional element. \ref post "Post processing"
  */
-class TPZGraphEl
-{
+class TPZGraphEl : public TPZSavable {
 public:
 	/** @brief Constructor of the graphical element */
 	TPZGraphEl(TPZCompEl *cel, TPZGraphMesh *gmesh, TPZGraphNode **connectvec);
@@ -30,10 +27,18 @@ public:
 	TPZGraphEl(TPZCompEl *cel, TPZGraphMesh *gmesh, TPZGraphNode *&connect);
 	/** @brief Default destructor */
 	virtual ~TPZGraphEl(void);
+    
+        static int StaticClassId();
+        
+    virtual int ClassId() const override;
+    
+    virtual void Read(TPZStream &buf, void *context) override;
+    virtual void Write(TPZStream &buf, int withclassid) const override;
+
 	/** @brief Number of connects for the element */
 	virtual int NConnects() = 0;
 	/** @brief Get the Id of the graphical element */
-	long Id() {return fId;}
+	int64_t Id() {return fId;}
 	/** @brief Get the type of the graphical element */
 	virtual MElementType Type() = 0;
 	
@@ -43,16 +48,16 @@ public:
 	virtual int NNodes() = 0;
 	
 	/** @brief Return the graphical connect */
-	virtual TPZGraphNode *Connect(long con) = 0;
+	virtual TPZGraphNode *Connect(int64_t con) = 0;
 	/** @brief Set graphical element id */
-	void SetId(long id) { fId = id;}
+	void SetId(int64_t id) { fId = id;}
 	
 	/** @brief Number of points to graphical resolution */
 	virtual int NPoints(TPZGraphNode *n) = 0;
 	
 	virtual int NElements() = 0;
 	/** @brief Sets a ith graphical node */
-	virtual void SetNode(long i,TPZGraphNode *n);
+	virtual void SetNode(int64_t i,TPZGraphNode *n);
     
     /** @brief the parametric dimension of the element */
     virtual int Dimension() = 0;
@@ -63,7 +68,7 @@ public:
 	void DrawCo(TPZGraphNode *n, TPZDrawStyle st);
 	
 	/** @brief Draw solution of the graphical node */
-	void DrawSolution(TPZGraphNode *n,TPZBlock<REAL> &Sol, TPZDrawStyle st);
+	void DrawSolution(TPZGraphNode *n,TPZBlock &Sol, TPZDrawStyle st);
 	void DrawSolution(TPZGraphNode *n,int solind, TPZDrawStyle st);
 	void DrawSolution(TPZGraphNode *n,TPZVec<int> &solind, TPZDrawStyle st);
 	
@@ -71,7 +76,7 @@ public:
 	void Print(std::ostream &out);
 	
 	/** @brief Number of equations */
-	virtual long EqNum(TPZVec<int> &co) = 0;
+	virtual int64_t EqNum(TPZVec<int> &co) = 0;
 	
 	
 protected:
@@ -89,11 +94,12 @@ protected:
 	
 protected:
 	/** @brief Id of the graphical element */
-	long fId;
+	int64_t fId;
 	
 	/** @brief This method maps the index of a point to parameter space as a function of the number of divisions */
 	virtual void QsiEta(TPZVec<int> &i, int imax, TPZVec<REAL> &qsieta);
-	
+	template<class TVar>
+	void DrawSolutionT(TPZGraphNode *n,TPZVec<int> &solind, TPZDrawStyle st);
 };
 
 #endif

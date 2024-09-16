@@ -8,14 +8,15 @@
 #include "TPZGeoElement.h"
 #include "pzgeoelside.h"
 #include "pzgeoel.h"
+#include "pzgmesh.h"
 
 using namespace pzshape;
 using namespace std;
 
 namespace pzrefine {
-	static int nsubeldata[27] = {1,1,1,1,1,1,1,1,3,3,3,3,3,3,3,3,3,3,3,3,9,9,9,9,9,9,26};
+	static int nsubeldata[27] = {1,1,1,1,1,1,1,1,3,3,3,3,3,3,3,3,3,3,3,3,9,9,9,9,9,9,27};
 	
-	static int subeldata[27][26][2] = {
+	static int subeldata[27][27][2] = {
 		/*00*/{{0,0}},
 		/*01*/{{1,1}},
 		/*02*/{{2,2}},
@@ -43,7 +44,7 @@ namespace pzrefine {
 		/*24*/{{0,7},{0,15},{0,19},{7,11},{7,12},{0,24},{3,24},{4,24},{7,24}},
 		/*25*/{{4,6},{4,17},{4,18},{6,16},{6,19},{4,25},{5,25},{6,25},{7,25}},
 		/*26*/{{0,14},{0,17},{0,18},{6,8},{6,11},{6,12},{0,26},{1,26},{2,26},{3,26},{4,26},{5,26},{6,26},
-			{7,26},{0,22},{0,23},{0,25},{1,25},{2,21},{2,24},{2,25},{3,25},{4,22},{4,23},{6,21},{6,24}}
+			{7,26},{0,22},{0,23},{0,25},{1,25},{2,21},{2,24},{2,25},{3,25},{4,22},{4,23},{6,21},{6,24},{0,6}}
 	};
 	
 	static int MidSideNodes[19][2]  = {
@@ -58,8 +59,8 @@ namespace pzrefine {
 	
 	/**
 	 * define as conectividades entre sub-elementos
-	 * linha i é filho i, {a,b,c} = {lado do filho atual,
-	 * irmão vizinho,lado do vizinho}
+	 * linha i Ã© filho i, {a,b,c} = {lado do filho atual,
+	 * irmÃ£o vizinho,lado do vizinho}
 	 */
 	const int NumInNeigh = 19;
 	static int InNeigh[8][NumInNeigh][3] = {
@@ -328,7 +329,7 @@ namespace pzrefine {
 			return;//If exist fSubEl return this sons
 		}
 		int j,sub,matid=geo->MaterialId();
-		long index;
+		int64_t index;
 		int np[TPZShapeCube::NSides];//guarda conectividades dos 8 subelementos
 		
 		for(j=0;j<TPZShapeCube::NCornerNodes;j++) np[j] = geo->NodeIndex(j);
@@ -338,9 +339,9 @@ namespace pzrefine {
 		}
 		// creating new subelements
 		for(i=0;i<TPZShapeCube::NCornerNodes;i++) {
-			TPZManVector<long>cornerindexes(TPZShapeCube::NCornerNodes);
+			TPZManVector<int64_t>cornerindexes(TPZShapeCube::NCornerNodes);
 			for(int j=0;j<TPZShapeCube::NCornerNodes;j++) cornerindexes[j] = np[CornerSons[i][j]];
-			long index;
+			int64_t index;
 			TPZGeoEl *subel = geo->CreateGeoElement(ECube,cornerindexes,matid,index);
 			geo->SetSubElement(i , subel);
 		}
@@ -349,7 +350,7 @@ namespace pzrefine {
 		for(sub=0;sub<NSubEl;sub++) {
 			SubElVec[sub] = geo->SubElement(sub);
 			SubElVec[sub]->SetFather(geo);
-			SubElVec[sub]->SetFather(geo->Index());
+			SubElVec[sub]->SetFatherIndex(geo->Index());
 		}
 		for(i=0;i<NSubEl;i++) {//conectividades entre os filhos : viz interna
 			for(j=0;j<NumInNeigh;j++) {        //lado do subel                                          numero do filho viz.             lado do viz.
@@ -360,7 +361,7 @@ namespace pzrefine {
 		geo->SetSubElementConnectivities();
 	}
 	
-	void TPZRefCube::NewMidSideNode(TPZGeoEl *gel,int side,long &index) {
+	void TPZRefCube::NewMidSideNode(TPZGeoEl *gel,int side,int64_t &index) {
 		
 		MidSideNodeIndex(gel,side,index);
 		if(index < 0) {
@@ -389,20 +390,20 @@ namespace pzrefine {
 		}
 	}
 	
-	void TPZRefCube::MidSideNodeIndex(const TPZGeoEl *gel,int side,long &index) {
+	void TPZRefCube::MidSideNodeIndex(const TPZGeoEl *gel,int side,int64_t &index) {
 		index = -1;
 		if(side<0 || side>TPZShapeCube::NSides-1) {
 			PZError << "TPZRefCube::MidSideNodeIndex. Bad parameter side = " << side << endl;
 			return;
 		}
 		//sides 0 a 7
-		if(side<TPZShapeCube::NCornerNodes) {//o nó medio do lado 0 é o 0 etc.
+		if(side<TPZShapeCube::NCornerNodes) {//o nÃ³ medio do lado 0 Ã© o 0 etc.
 			index = (gel)->NodeIndex(side);
 			return; 
 		}
-		//o nó medio da face é o centro e o nó medio do centro é o centro
-		//como nó de algum filho se este existir
-		//caso tenha filhos é o canto de algum filho, se não tiver filhos retorna -1
+		//o nÃ³ medio da face Ã© o centro e o nÃ³ medio do centro Ã© o centro
+		//como nÃ³ de algum filho se este existir
+		//caso tenha filhos Ã© o canto de algum filho, se nÃ£o tiver filhos retorna -1
 		if(gel->HasSubElement()) {
 			side-=TPZShapeCube::NCornerNodes;
 			index=(gel->SubElement(MidSideNodes[side][0]))->NodeIndex(MidSideNodes[side][1]);
@@ -442,16 +443,16 @@ namespace pzrefine {
 	//}
 	
 	
-	TPZTransform TPZRefCube::GetTransform(int side,int whichsubel){
+	TPZTransform<> TPZRefCube::GetTransform(int side,int whichsubel){
 		
 		if(side<0 || side>TPZShapeCube::NSides-1){
 			PZError << "TPZRefCube::GetTransform side out of range or father null\n";
-			return TPZTransform(0,0);
+			return TPZTransform<>(0,0);
 		}
 		int smalldim = TPZShapeCube::SideDimension(side);
 		int fatherside = FatherSide(side,whichsubel);
 		int largedim = TPZShapeCube::SideDimension(fatherside);
-		TPZTransform trans(largedim,smalldim);
+		TPZTransform<> trans(largedim,smalldim);
 		int i,j;
 		for(i=0; i<largedim; i++) {
 			for(j=0; j<smalldim; j++) {
@@ -471,4 +472,7 @@ namespace pzrefine {
 		return fatherside[whichsubel][side];
 	}
 	
+        int TPZRefCube::ClassId() const{
+            return Hash("TPZRefCube");
+        }
 };

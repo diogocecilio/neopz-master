@@ -8,18 +8,16 @@
 
 #ifndef STATE_COMPLEX
 
-#include "pzanalysis.h"
+#include "TPZLinearAnalysis.h"
 #include "pzcmesh.h"
 #include "pzflowcmesh.h"
 #include "pzadmchunk.h"
-#include "pzmaterial.h"
-#include "pzconslaw.h"
-#include "pzstrmatrix.h"
-#include "pzsolve.h"
+#include "TPZMaterial.h"
+#include "ConsLaw/TPZConsLaw.h"
+#include "TPZMatrixSolver.h"
 #include "pzdxmesh.h"
 #include "pzstepsolver.h"
 #include "pzblockdiag.h"
-#include "pzsave.h"
 
 #include <iostream>
 
@@ -32,7 +30,7 @@
  * This class implements several tricks to obtain the steady state solution as fast as possible \n
  * It evaluates the CFL of the simulation according to the residual of the system of equations and according to the number of iterations of the Newton method at each step
  */
-class TPZEulerAnalysis : public TPZAnalysis
+class TPZEulerAnalysis : public TPZLinearAnalysis
 {
 	
 public:
@@ -50,10 +48,10 @@ public:
 	virtual void Run(std::ostream &out, const std::string & dxout, int dxRes);
 	
 	/** @brief See declaration in the base class. */
-	virtual void Run(std::ostream &out)
+	virtual void Run(std::ostream &out) override
 	{
 		std::cout <<__PRETTY_FUNCTION__ << " should never be called!!!\n";
-		TPZAnalysis::Run(out);
+		TPZLinearAnalysis::Run(out);
 	}
 	
 	/**
@@ -88,7 +86,8 @@ public:
 	/** 
 	 * Also updates the CompMesh soution.
 	 */
-	void UpdateSolAndRhs(TPZFMatrix<STATE> & deltaSol, REAL & epsilon);
+	template<class TVar>
+	void UpdateSolAndRhs(TPZFMatrix<TVar> & deltaSol, REAL & epsilon);
 	
 	/**
 	 * @brief After a call to UpdateSolution, this method
@@ -112,7 +111,7 @@ public:
 	
 	/** @brief Assembles the stiffness matrix */
 	/** BufferLastStateAssemble or UpdateHistory must be called first. */
-	virtual void Assemble();
+	virtual void Assemble() override;
 	
 	/** @brief Assembles the right hand side vector. */ 
 	/** BufferLastStateAssemble or UpdateHistory must be called first. */
@@ -128,10 +127,10 @@ public:
 	 */
 	int Solve(REAL & res, TPZFMatrix<STATE> * residual, TPZFMatrix<STATE> & delSol);
 	
-	virtual void Solve()
+	virtual void Solve() override
 	{
 		std::cout << __PRETTY_FUNCTION__ << " should never be called\n";
-		TPZAnalysis::Solve();
+		TPZLinearAnalysis::Solve();
 	}
 	/**
 	 * @brief Implements the Newton's method.
@@ -220,7 +219,9 @@ protected:
 	
 	/** @brief Indication if a frontal matrix is being used as a preconditioner */
 	int fHasFrontalPreconditioner;
-	
+private:
+	template<class TVar>
+	void AssembleInternal();
 };
 
 #endif

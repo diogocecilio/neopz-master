@@ -24,8 +24,12 @@ namespace pzgeom {
     class TPZQuadraticPyramid : public pzgeom::TPZNodeRep<13,pztopology::TPZPyramid> {
         
     public:
-        
+        typedef pztopology::TPZPyramid Top;
         enum {NNodes = 13};
+        
+        public:
+int ClassId() const override;
+
         
         //virtual void ParametricDomainNodeCoord(int node, TPZVec<REAL> &nodeCoord);
         
@@ -34,64 +38,60 @@ namespace pzgeom {
             return false;
         }
         
-        TPZQuadraticPyramid(TPZVec<long> &nodeindexes) : pzgeom::TPZNodeRep<NNodes,pztopology::TPZPyramid>(nodeindexes)
+        TPZQuadraticPyramid(TPZVec<int64_t> &nodeindexes) : 
+        TPZRegisterClassId(&TPZQuadraticPyramid::ClassId),
+        pzgeom::TPZNodeRep<NNodes,pztopology::TPZPyramid>(nodeindexes)
         {
         }
         
-        TPZQuadraticPyramid() : pzgeom::TPZNodeRep<NNodes,pztopology::TPZPyramid>()
+        TPZQuadraticPyramid() : TPZRegisterClassId(&TPZQuadraticPyramid::ClassId),
+        pzgeom::TPZNodeRep<NNodes,pztopology::TPZPyramid>()
         {
         }
         
-        TPZQuadraticPyramid(const TPZQuadraticPyramid &cp,std::map<long,long> & gl2lcNdMap) : pzgeom::TPZNodeRep<NNodes,pztopology::TPZPyramid>(cp,gl2lcNdMap)
+        TPZQuadraticPyramid(const TPZQuadraticPyramid &cp,std::map<int64_t,int64_t> & gl2lcNdMap) : TPZRegisterClassId(&TPZQuadraticPyramid::ClassId),
+        pzgeom::TPZNodeRep<NNodes,pztopology::TPZPyramid>(cp,gl2lcNdMap)
         {
         }
         
-        TPZQuadraticPyramid(const TPZQuadraticPyramid &cp) : pzgeom::TPZNodeRep<NNodes,pztopology::TPZPyramid>(cp)
+        TPZQuadraticPyramid(const TPZQuadraticPyramid &cp) : 
+        TPZRegisterClassId(&TPZQuadraticPyramid::ClassId),
+        pzgeom::TPZNodeRep<NNodes,pztopology::TPZPyramid>(cp)
         {
         }
         
-        TPZQuadraticPyramid(const TPZQuadraticPyramid &cp, TPZGeoMesh &) : pzgeom::TPZNodeRep<NNodes,pztopology::TPZPyramid>(cp)
+        TPZQuadraticPyramid(const TPZQuadraticPyramid &cp, TPZGeoMesh &) : TPZRegisterClassId(&TPZQuadraticPyramid::ClassId),
+        pzgeom::TPZNodeRep<NNodes,pztopology::TPZPyramid>(cp)
         {
         }
         
         /** @brief Returns the type name of the element */
-        static std::string TypeName() { return "Pyramid";} 
+        static std::string TypeName() { return "QuadraticPyramid";} 
         
-        static void Shape(TPZVec<REAL> &x,TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi);
-        
-		/* brief compute the coordinate of a point given in parameter space */
-        void X(const TPZGeoEl &gel,TPZVec<REAL> &loc,TPZVec<REAL> &result) const
-        {
-            TPZFNMatrix<3*NNodes> coord(3,NNodes);
-            CornerCoordinates(gel, coord);
-            X(coord,loc,result);
+        /** @brief Compute the shape being used to construct the X mapping from local parametric coordinates  */
+        static void Shape(TPZVec<REAL> &loc,TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi){
+            TShape(loc, phi, dphi);
         }
+        
         
         template<class T>
-        void GradX(const TPZGeoEl &gel, TPZVec<T> &par, TPZFMatrix<T> &gradx) const
-        {
-            DebugStop();
-        }
+        static void TShape(const TPZVec<T> &param,TPZFMatrix<T> &phi,TPZFMatrix<T> &dphi);
 		
-        /* @brief compute the jacobian of the map between the master element and deformed element */
-		void Jacobian(const TPZGeoEl &gel,TPZVec<REAL> &param,TPZFMatrix<REAL> &jacobian,TPZFMatrix<REAL> &axes,REAL &detjac,TPZFMatrix<REAL> &jacinv) const
-        {
-            TPZFNMatrix<3*NNodes> coord(3,NNodes);
-            CornerCoordinates(gel, coord);
-            Jacobian(coord, param, jacobian, axes, detjac, jacinv);
-        }
+        template<class T>
+        static void X(const TPZFMatrix<REAL> &coord, TPZVec<T> &par, TPZVec< T > &result);
         
-        static void X(TPZFMatrix<REAL> &coord, TPZVec<REAL> &par, TPZVec<REAL> &result);
-        
-        static void Jacobian(TPZFMatrix<REAL> &coord, TPZVec<REAL> &par, TPZFMatrix<REAL> &jacobian, TPZFMatrix<REAL> &axes, REAL &detjac, TPZFMatrix<REAL> &jacinv);
-        
-        
+        /** @brief Compute gradient of X mapping from element nodes and local parametric coordinates */
+        template<class T>
+        static void GradX(const TPZFMatrix<REAL> &nodes,TPZVec<T> &par, TPZFMatrix<T> &gradx);
+
         /** @brief Creates a geometric element according to the type of the father element */
-        static TPZGeoEl *CreateGeoElement(TPZGeoMesh &mesh, MElementType type,
-                                          TPZVec<long>& nodeindexes,
-                                          int matid, long& index);
+        // static TPZGeoEl *CreateGeoElement(TPZGeoMesh &mesh, MElementType type,
+        //                                   TPZVec<int64_t>& nodeindexes,
+        //                                   int matid, int64_t& index);
         
-        TPZGeoEl *CreateBCGeoEl(TPZGeoEl *orig,int side,int bc);	
+        static void InsertExampleElement(TPZGeoMesh &gmesh, int matid, TPZVec<REAL> &lowercorner, TPZVec<REAL> &size);
+
+        // TPZGeoEl *CreateBCGeoEl(TPZGeoEl *orig,int side,int bc);	
     };
     
 };

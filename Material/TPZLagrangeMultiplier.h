@@ -1,291 +1,130 @@
-//
-//  TPZLagrangeMultiplier.h
-//  PZ
-//
-//  Created by Philippe Devloo on 5/2/14.
-//
-//
+/**
+ * @file TPZLagrangeMultiplier.h
+ * @brief Contains the TPZLagrangeMultiplier class which implements a lagrange multiplier to be used in FEM formulations.
+ */
 
-#ifndef __PZ__TPZLagrangeMultiplier__
-#define __PZ__TPZLagrangeMultiplier__
+#ifndef TPZLAGRANGEMULTIPLIER_H
+#define TPZLAGRANGEMULTIPLIER_H
 
-#include <iostream>
-#include "pzdiscgal.h"
+#include "TPZMatBase.h"
+#include "TPZMatSingleSpace.h"
+#include "TPZMatInterfaceSingleSpace.h"
 
-/// Material which implements a Lagrange Multiplier
-class TPZLagrangeMultiplier : public TPZDiscontinuousGalerkin
+///! Dummy class for identifying Lagrange Multiplier materials
+class TPZLagrangeMultiplierBase{
+    virtual bool IsLagrangeMult() = 0;
+};
+
+/// Material which implements a Lagrange Multiplier for single space materials.
+template<class TVar = STATE>
+class TPZLagrangeMultiplier :
+    public TPZMatBase<TVar,
+                      TPZMatSingleSpaceT<TVar>,
+                      TPZMatInterfaceSingleSpace<TVar>>,
+    public TPZLagrangeMultiplierBase
 {
+    using TBase = TPZMatBase<TVar,
+                             TPZMatSingleSpaceT<TVar>,
+                             TPZMatInterfaceSingleSpace<TVar>>;
     
-    /// Number of state variables
-    int fNStateVariables;
-    
-    /// Dimensiona associated with the material
-    int fDimension;
-    
-    STATE fMultiplier;
-    
+    bool IsLagrangeMult() override{return true;};
     public :
 	/** @brief Simple constructor */
-	TPZLagrangeMultiplier() : TPZDiscontinuousGalerkin()
+	TPZLagrangeMultiplier() : 
+        TPZRegisterClassId(&TPZLagrangeMultiplier::ClassId),
+        TBase()
     {
         
     }
 	/** @brief Constructor with the index of the material object within the vector */
-	TPZLagrangeMultiplier(int nummat, int dimension, int nstate) : TPZDiscontinuousGalerkin(nummat), fNStateVariables(nstate), fDimension(dimension), fMultiplier(1.)
-    {
-        
-    }
-	
-	/** @brief Copy constructor */
-	TPZLagrangeMultiplier(const TPZLagrangeMultiplier &copy) : TPZDiscontinuousGalerkin(copy), fNStateVariables(copy.fNStateVariables), fDimension(copy.fDimension), fMultiplier(copy.fMultiplier)
+	TPZLagrangeMultiplier(int nummat, int dimension, int nstate=1) :
+        TBase(nummat),
+        fNStateVariables(nstate), fDimension(dimension)
     {
         
     }
     
-    TPZLagrangeMultiplier &operator=(const TPZLagrangeMultiplier &copy)
-    {
-        TPZDiscontinuousGalerkin::operator=(copy);
-        fNStateVariables = copy.fNStateVariables;
-        fDimension = copy.fDimension;
-        fMultiplier = copy.fMultiplier;
-        return *this;
-    }
-    
-    TPZMaterial *NewMaterial()
+    TPZMaterial *NewMaterial() const override
     {
         return new TPZLagrangeMultiplier(*this);
     }
     
-	/** @brief Destructor */
-	virtual ~TPZLagrangeMultiplier()
-    {
-        
-    }
-    
     /** @brief Returns the integrable dimension of the material */
-    virtual int Dimension() const
-    {
-        return fDimension;
-    }
+    int Dimension() const override
+    {return fDimension;}
+
+    //! @name Lagrange
+    /** @{*/
     
-    virtual void SetMultiplier(STATE mult)
-    {
-        fMultiplier = mult;
-    }
+    //! Sets the multiplier.
+    virtual void SetMultiplier(const TVar mult)
+    {fMultiplier = mult;}
+    //! Gets the multiplier.
+    TVar Multiplier()
+    {return fMultiplier;}
+    /** @}*/
+	std::string Name() const override
+    {return "TPZLagrangeMultiplier";}
     
-	
-	virtual std::string Name()
-    {
-        return "TPZLagrangeMultiplier";
-    }
-	
-	/**
-	 * @brief Fill material data parameter with necessary requirements for the ContributeInterface method.
-     * @since April 10, 2007
-	 */
-	/**
-	 * Here, in base class, all requirements are considered as necessary. \n
-	 * Each derived class may optimize performance by selecting only the necessary data.
-	 */
-	virtual void FillDataRequirementsInterface(TPZMaterialData &data)
-    {
-        data.SetAllRequirements(false);
-    }
-	
-    /**
-     * @{
-     * @name Contribute methods
-     * @}
-     */
+    int NStateVariables() const override
+    {return fNStateVariables;}
+
+    void FillDataRequirementsInterface(TPZMaterialData &data) const override
+    { data.SetAllRequirements(false);}
     
-    virtual void Contribute(TPZMaterialData &data, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef)
-    {
-        DebugStop();
-    }
+    void Contribute(const TPZMaterialDataT<TVar> &data, REAL weight,
+                    TPZFMatrix<TVar> &ek,
+                    TPZFMatrix<TVar> &ef) override
+    {}
+    void ContributeBC(const TPZMaterialDataT<TVar> &data, REAL weight,
+                      TPZFMatrix<TVar> &ek, TPZFMatrix<TVar> &ef,
+                      TPZBndCondT<TVar> &bc) override
+    {}
+    void Solution(const TPZMaterialDataT<TVar> &data, int var,
+                  TPZVec<TVar> &sol) override
+    {}
+    void ContributeInterface(const TPZMaterialDataT<TVar> &data,
+                             const TPZMaterialDataT<TVar> &dataleft,
+                             const TPZMaterialDataT<TVar> &dataright,
+                             REAL weight, TPZFMatrix<TVar> &ek,
+                             TPZFMatrix<TVar> &ef) override;
+    void
+    ContributeBCInterface(const TPZMaterialDataT<TVar> &data,
+                          const TPZMaterialDataT<TVar> &dataleft, REAL weight,
+                          TPZFMatrix<TVar> &ek, TPZFMatrix<TVar> &ef,
+                          TPZBndCondT<TVar> &bc) override
+    {}
+
+    void SolutionInterface(const TPZMaterialDataT<TVar> &data,
+                  const TPZMaterialDataT<TVar> &dataleft,
+                  const TPZMaterialDataT<TVar> &dataright,
+                  int var, TPZVec<TVar> &Solout) override
+    {}
+
+    void GetSolDimensions(uint64_t &u_len,
+                                  uint64_t &du_row,
+                                  uint64_t &du_col) const override
+    {u_len=du_row=du_col=0;}
     
-    virtual void Contribute(TPZVec<TPZMaterialData> &datavec, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef);
+    void Print(std::ostream &out) const override;
     
-    virtual void ContributeBC(TPZMaterialData &data, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCond &bc)
-    {
-        DebugStop();
-    }
-    virtual void ContributeBC(TPZVec<TPZMaterialData> &datavec, REAL weight, TPZFMatrix<STATE> &ek,TPZFMatrix<STATE> &ef,TPZBndCond &bc) {
-        DebugStop();
-    }
+    int ClassId() const override;
+	
+	void Write(TPZStream &buf, int withclassid) const override;
+
+	void Read(TPZStream &buf, void *context) override;
+
+protected:
+    //! Number of state variables
+    int fNStateVariables{0};
     
-	virtual void Contribute(TPZMaterialData &data,REAL weight,TPZFMatrix<STATE> &ef) {
-		DebugStop();
-	}
-	virtual void ContributeBC(TPZMaterialData &data,REAL weight,TPZFMatrix<STATE> &ef,TPZBndCond &bc) {
-		DebugStop();
-	}
-    
-	/**
-	 * @brief It computes a contribution to stiffness matrix and load vector at one integration point
-	 * @param data [in]
-	 * @param dataleft [in]
-	 * @param dataright [in]
-	 * @param weight [in]
-	 * @param ek [out] is the stiffness matrix
-	 * @param ef [out] is the load vector
-	 * @since April 16, 2007
-	 */
-	virtual void ContributeInterface(TPZMaterialData &data, TPZMaterialData &dataleft, TPZMaterialData &dataright, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef);
-    
-    
-//    virtual void ContributeInterface(TPZVec<TPZMaterialData> &datavec, TPZVec<TPZMaterialData> &dataleftvec, TPZVec<TPZMaterialData> &datarightvec,
-//                                     REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef)
-//    {
-//        DebugStop();
-//    }
-	
-	/**
-	 * @brief Computes a contribution to the stiffness matrix and load vector at one integration point to multiphysics simulation
-	 * @param data [in]
-	 * @param dataleft [in]
-	 * @param dataright [in]
-	 * @param weight [in]
-	 * @param ek [out] is the stiffness matrix
-	 * @param ef [out] is the load vector
-	 * @since June 5, 2012
-	 */
-    virtual void ContributeInterface(TPZMaterialData &data, TPZVec<TPZMaterialData> &dataleft, TPZVec<TPZMaterialData> &dataright, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef);
-    
-	
-	/**
-	 * @brief It computes a contribution to residual vector at one integration point
-	 * @param data [in]
-	 * @param dataleft [in]
-	 * @param dataright [in]
-	 * @param weight [in]
-	 * @param ef [out] is the load vector
-	 * @since April 16, 2007
-	 */
-	virtual void ContributeInterface(TPZMaterialData &data, TPZMaterialData &dataleft, TPZMaterialData &dataright, REAL weight, TPZFMatrix<STATE> &ef);
-	
-    
-	/**
-	 * @brief Computes a contribution to residual vector at one integration point
-	 * @param data [in]
-	 * @param dataleft [in]
-	 * @param dataright [in]
-	 * @param weight [in]
-	 * @param ef [out] is the load vector
-	 * @since June 5, 2012
-	 */
-	virtual void ContributeInterface(TPZMaterialData &data, TPZVec<TPZMaterialData> &dataleft, TPZVec<TPZMaterialData> &dataright, REAL weight, TPZFMatrix<STATE> &ef)
-    {
-        ContributeInterface(data, dataleft[0], dataright[0], weight, ef);
-    }
-	
-    
-	/**
-	 * @brief It computes a contribution to stiffness matrix and load vector at one BC integration point
-	 * @param data [in]
-	 * @param dataleft [in]
-	 * @param weight [in]
-	 * @param ek [out] is the stiffness matrix
-	 * @param ef [out] is the load vector
-	 * @param bc [in] is the boundary condition object
-	 * @since April 16, 2007
-	 */
-	virtual void ContributeBCInterface(TPZMaterialData &data, TPZMaterialData &dataleft, REAL weight, TPZFMatrix<STATE> &ek,TPZFMatrix<STATE> &ef,TPZBndCond &bc)
-    {
-        DebugStop();
-    }
-    
-    /**
-	 * @brief It computes a contribution to stiffness matrix and load vector at one BC integration point to multiphysics simulation
-	 * @param data [in]
-	 * @param dataleft [in]
-	 * @param weight [in]
-	 * @param ek [out] is the stiffness matrix
-	 * @param ef [out] is the load vector
-	 * @param bc [in] is the boundary condition object
-	 * @since February 21, 2013
-	 */
-	virtual void ContributeBCInterface(TPZMaterialData &data, TPZVec<TPZMaterialData> &dataleft, REAL weight, TPZFMatrix<STATE> &ek,TPZFMatrix<STATE> &ef,TPZBndCond &bc)
-    {
-        DebugStop();
-    }
-    
-	
-	/**
-	 * @brief It computes a contribution to residual vector at one BC integration point
-	 * @param data [in]
-	 * @param dataleft [in]
-	 * @param weight [in]
-	 * @param ef [out] is the load vector
-	 * @param bc [in] is the boundary condition object
-	 * @since April 16, 2007
-	 */
-	virtual void ContributeBCInterface(TPZMaterialData &data, TPZMaterialData &dataleft, REAL weight, TPZFMatrix<STATE> &ef,TPZBndCond &bc)
-    {
-        DebugStop();
-    }
-	
-    /** @brief Returns the solution associated with the var index based on the finite element approximation */
-    void SolutionDisc(TPZMaterialData &data, TPZMaterialData &dataleft, TPZMaterialData &dataright, int var, TPZVec<STATE> &Solout)
-    {
-        std::cout << __PRETTY_FUNCTION__ << " should never be called\n";
-        DebugStop();
-    }
-	
-    /** @} */
-	
-	/**
-	 * @brief Dicontinuous galerkin materials implement contribution of discontinuous elements and interfaces.
-	 * @since Feb 05, 2004
-	 */
-	/**
-	 * @brief Computes interface jump = leftu - rightu
-	 * @since Feb 14, 2006
-	 */
-	virtual void InterfaceJump(TPZVec<REAL> &x, TPZSolVec &leftu,TPZSolVec &rightu,TPZSolVec &jump)
-    {
-        DebugStop();
-    }
-	
-	
-	
-	virtual int NStateVariables()
-    {
-        return fNStateVariables;
-    }
-	
-	
-	virtual void ContributeInterfaceErrors(TPZMaterialData &data, TPZMaterialData &dataleft, TPZMaterialData &dataright,
-										   REAL weight,
-										   TPZVec<STATE> &nkL,
-										   TPZVec<STATE> &nkR,
-										   int &errorid) {
-		PZError << "Method not implemented\n";
-	}
-	
-	virtual void ContributeInterfaceBCErrors(TPZMaterialData &data, TPZMaterialData &dataleft,
-											 REAL weight,
-											 TPZVec<STATE> &nk,
-											 TPZBndCond &bc,
-											 int &errorid) {
-		PZError << "Method not implemented\n";
-	}
-	
-    /** @{
-     * @name Save and Load methods
-     */
-    
-	/** @brief Unique identifier for serialization purposes */
-	virtual int ClassId() const;
-	
-	/** @brief Saves the element data to a stream */
-	virtual void Write(TPZStream &buf, int withclassid);
-	
-	/** @brief Reads the element data from a stream */
-	virtual void Read(TPZStream &buf, void *context);
-	
-    /**
-     * @}
-     */
+    //! Dimension associated with the material
+    int fDimension;
+    //! Associated multiplier
+    TVar fMultiplier{1.};
 };
 
-#endif /* defined(__PZ__TPZLagrangeMultiplier__) */
+
+extern template class TPZLagrangeMultiplier<STATE>;
+extern template class TPZLagrangeMultiplier<CSTATE>;
+#endif

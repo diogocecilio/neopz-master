@@ -6,15 +6,16 @@
 #include "pzskylstrmatrix.h"
 
 /**
- * Implements Non symmetrical SkyLine Structural Matrices
+ * Implements a skyline structural matrix using TPZSkylNSymMatrix as a storage format.
  * ingroup structural
  */
-class TPZSkylineNSymStructMatrix : public TPZSkylineStructMatrix {
+template<class TVar=STATE, class TPar=TPZStructMatrixOR<TVar>>
+class TPZSkylineNSymStructMatrix : public TPZSkylineStructMatrix<TVar,TPar> {
 
 protected:
 
   /** Returns the skyline matrix object */
-  virtual TPZMatrix<STATE> * ReallyCreate(long neq, const TPZVec<long> &skyline);
+  TPZMatrix<TVar> * ReallyCreate(int64_t neq, const TPZVec<int64_t> &skyline) override;
 
 public:
 
@@ -22,17 +23,9 @@ public:
 
   TPZSkylineNSymStructMatrix(TPZAutoPointer<TPZCompMesh> cmesh);
 
-  TPZSkylineNSymStructMatrix(const TPZSkylineStructMatrix &cp);
+  TPZStructMatrix * Clone() override;
 
-  ~TPZSkylineNSymStructMatrix();
-
-  virtual TPZStructMatrix * Clone()
-  {
-    return new TPZSkylineNSymStructMatrix(*this);
-  }
-
-    
-
+  int ClassId() const override;
 };
 
 #endif

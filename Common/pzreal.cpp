@@ -1,7 +1,7 @@
 
 /**
  * @file
- * @brief Contains the TPZCounter methods and the DebugStop() function.
+ * @brief Contains the TPZCounter methods.
  */
 
 #include "pzreal.h"
@@ -9,10 +9,6 @@
 #include <exception>
 
 using namespace std;
-
-int HDivPiola = 0;
-
-#ifndef ELLIPS
 
 TPZCounter TPZFlopCounter::gCount;
 
@@ -49,22 +45,9 @@ std::ostream &operator<<(std::ostream &out,const TPZCounter &count)
 	return out;
 }
 
-#endif
-
 #ifdef WIN32
 //#include <Dialogs.hpp>
-#endif
-
-void DebugStop()
-{
-#ifdef WIN32
-	//ShowMessage("Erro encontrado! Entre em contato com o suporte do programa!");
-#endif
-	std::cout << "Your chance to put a breakpoint at " << __FILE__ <<  "\n";
-	std::bad_exception myex;
-	throw myex;
-	
-}
+#endif // WIN32
 
 //#if !defined(__cplusplus) || __cplusplus < 201103L // If we aren't using C++11.
 #if (!defined(__cplusplus) || __cplusplus < 201103L) && (!defined(_MSC_VER) || _MSC_VER < 1900)// If we aren't using C++11.

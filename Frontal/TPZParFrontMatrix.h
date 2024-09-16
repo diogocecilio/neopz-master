@@ -10,7 +10,6 @@
 #include "TPZFrontNonSym.h"
 #include "TPZFrontSym.h"
 
-#include "pz_pthread.h"
 
 #include "TPZStackEqnStorage.h"
 #include "pzvec.h"
@@ -38,8 +37,8 @@ class TPZEqnArray;
 template <class TVar, class store, class front>
 class TPZParFrontMatrix : public TPZFrontMatrix<TVar, store, front> 
 {
-public: 
-	
+    public:
+int ClassId() const override;
 	/** @brief Used in an independent thread to write decomposed equations to a binary file */
 	static void * WriteFile(void *t);
 	
@@ -51,19 +50,16 @@ public:
 	 * @brief Constructor with a globalsize parameter 
 	 * @param globalsize Indicates initial global size
 	 */
-	TPZParFrontMatrix(long globalsize);
+	TPZParFrontMatrix(int64_t globalsize);
 	
-	TPZParFrontMatrix(const TPZParFrontMatrix &cp) : TPZFrontMatrix<TVar, store,front>(cp), fFinish(0)
+	TPZParFrontMatrix(const TPZParFrontMatrix &cp) : TPZRegisterClassId(&TPZParFrontMatrix::ClassId),
+    TPZFrontMatrix<TVar, store,front>(cp), fFinish(0), fwritelock(), fwritecond()
 	{
         fEqnStack.Resize(0);
-        pthread_mutex_t mlocal = PTHREAD_MUTEX_INITIALIZER;
-        fwritelock = mlocal;
-        pthread_cond_t clocal = PTHREAD_COND_INITIALIZER;
-        fwritecond = clocal;
 	}
 	
 	//CLONEDEF(TPZParFrontMatrix)
-	virtual TPZMatrix<TVar>*Clone() const { return new TPZParFrontMatrix(*this); }
+	virtual TPZMatrix<TVar>*Clone() const override { return new TPZParFrontMatrix(*this); }
 	
     /** 
 	 * @brief Add a contribution of a stiffness matrix 
@@ -71,14 +67,14 @@ public:
 	 * @param sourceindex Source position of values on member stiffness matrix
 	 * @param destinationindex Positioning of such members on global stiffness matrix
 	 */
-    virtual void AddKel(TPZFMatrix<TVar> & elmat, TPZVec < long > & sourceindex, TPZVec < long > & destinationindex);
+    virtual void AddKel(TPZFMatrix<TVar> & elmat, TPZVec < int64_t > & sourceindex, TPZVec < int64_t > & destinationindex) override;
 	
     /**
 	 * @brief Add a contribution of a stiffness matrix putting it on destination indexes position
 	 * @param elmat Member stiffness matrix beeing added
 	 * @param destinationindex Positioning of such members on global stiffness matrix
      */
-    virtual void AddKel(TPZFMatrix<TVar> & elmat, TPZVec < long > & destinationindex);
+    virtual void AddKel(TPZFMatrix<TVar> & elmat, TPZVec < int64_t > & destinationindex) override;
 	
 	/** @brief Sets the flag fFinish to its true value*/    		
 	void FinishWriting();    		
@@ -89,9 +85,9 @@ private:
 	/** @brief Boolean responsibility. Assumes values 0 and 1*/
 	int fFinish;
 	/** @brief Mutual exclusion locks used in management of writeing to disk and decomposition.*/
-	pthread_mutex_t fwritelock;
+	std::mutex fwritelock;
 	/** @brief Condition variable used in management of writeing to disk and decomposition.*/
-	pthread_cond_t fwritecond;
+	std::condition_variable fwritecond;
 	
 	/** @link dependency */
 	/*#  TPZFrontNonSym lnkTPZFrontNonSym; */ 
@@ -99,4 +95,9 @@ private:
 	/** @link dependency */
 	/*#  TPZFrontSym lnkTPZFrontSym; */
 };
+
+template <class TVar, class store, class front>
+int TPZParFrontMatrix<TVar,store,front>::ClassId() const{
+    return Hash("TPZParFrontMatrix") ^ TPZFrontMatrix<TVar, store, front>::ClassId() << 1;
+}
 #endif //TPZPARFRONTMATRIX_H

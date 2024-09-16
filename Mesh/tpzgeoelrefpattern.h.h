@@ -12,45 +12,41 @@
 #include "TPZRefPatternDataBase.h"
 
 template <class TGeo>
-void TPZGeoElRefPattern<TGeo>::Read(TPZStream &str, void *context)
-{
-	TPZGeoElRefLess<TGeo>::Read(str, context);
-	int refpatternindex;
-	str.Read(&refpatternindex, 1);
-	if(refpatternindex != -1)
-	{
-		const std::list< TPZAutoPointer<TPZRefPattern> > &RefPatternList = gRefDBase.RefPatternList(this->Type());
-		std::list< TPZAutoPointer<TPZRefPattern> >::const_iterator it;
-		
-		for(it = RefPatternList.begin(); it != RefPatternList.end(); it++)
-		{
-			if((*it)->Id() == refpatternindex)
-			{
-				break;
-			}
-		}
-		
-		if(it != RefPatternList.end()) 
-        {
-            fRefPattern =*it;
+void TPZGeoElRefPattern<TGeo>::Read(TPZStream &str, void *context) {
+    TPZGeoElRefLess<TGeo>::Read(str, context);
+    str.Read(this->fSubEl);
+    int refpatternindex;
+    str.Read(&refpatternindex, 1);
+    if (refpatternindex != -1) {
+        const std::list< TPZAutoPointer<TPZRefPattern> > &RefPatternList = gRefDBase.RefPatternList(this->Type());
+        std::list< TPZAutoPointer<TPZRefPattern> >::const_iterator it;
+
+        for (it = RefPatternList.begin(); it != RefPatternList.end(); it++) {
+            if ((*it)->Id() == refpatternindex) {
+                break;
+            }
         }
-        else {
+
+        if (it != RefPatternList.end()) {
+            fRefPattern = *it;
+        } else {
             DebugStop();
         }
-	}
-	TPZSaveable::ReadObjects(str, this->fSubEl);
+    }
 }
 
 template <class TGeo>
-void TPZGeoElRefPattern<TGeo>::Write(TPZStream &str, int withclassid){
-	TPZGeoElRefLess<TGeo>::Write(str, withclassid);
-	int refpatternindex = -1;
-	if(fRefPattern) refpatternindex = fRefPattern->Id();
-	str.Write(&refpatternindex, 1);
-	TPZSaveable::WriteObjects(str, this->fSubEl);
+void TPZGeoElRefPattern<TGeo>::Write(TPZStream &str, int withclassid) const {
+    TPZGeoElRefLess<TGeo>::Write(str, withclassid);
+    str.Write(this->fSubEl);
+    int refpatternindex = -1;
+    if (fRefPattern) refpatternindex = fRefPattern->Id();
+    str.Write(&refpatternindex, 1);
 }
+
 template<class TGeo>
-TPZGeoElRefPattern<TGeo>::TPZGeoElRefPattern():TPZGeoElRefLess<TGeo>(), fSubEl(0), fRefPattern(0)
+TPZGeoElRefPattern<TGeo>::TPZGeoElRefPattern():TPZRegisterClassId(&TPZGeoElRefPattern<TGeo>::ClassId),
+TPZGeoElRefLess<TGeo>(), fSubEl(0), fRefPattern(0)
 {
 }
 
@@ -61,23 +57,24 @@ TPZGeoElRefPattern<TGeo>::~TPZGeoElRefPattern() {
 }
 
 template<class TGeo>
-TPZGeoElRefPattern<TGeo>::TPZGeoElRefPattern(TPZVec<long> &nodeindices,int matind,TPZGeoMesh &mesh) :
-TPZGeoElRefLess<TGeo>(nodeindices,matind,mesh) {
+TPZGeoElRefPattern<TGeo>::TPZGeoElRefPattern(TPZVec<int64_t> &nodeindices,int matind,TPZGeoMesh &mesh) :
+TPZRegisterClassId(&TPZGeoElRefPattern<TGeo>::ClassId),TPZGeoElRefLess<TGeo>(nodeindices,matind,mesh) {
 }
 template<class TGeo>
-TPZGeoElRefPattern<TGeo>::TPZGeoElRefPattern(TPZVec<long> &nodeindices,int matind,TPZGeoMesh &mesh, long &index) :
-TPZGeoElRefLess<TGeo>(nodeindices,matind,mesh,index)
+TPZGeoElRefPattern<TGeo>::TPZGeoElRefPattern(TPZVec<int64_t> &nodeindices,int matind,TPZGeoMesh &mesh, int64_t &index) :
+TPZRegisterClassId(&TPZGeoElRefPattern<TGeo>::ClassId),TPZGeoElRefLess<TGeo>(nodeindices,matind,mesh,index)
 {
 }
 
 template<class TGeo>
-TPZGeoElRefPattern<TGeo>::TPZGeoElRefPattern(long id,TPZVec<long> &nodeindexes,int matind,TPZGeoMesh &mesh) :
-TPZGeoElRefLess<TGeo>(id,nodeindexes,matind,mesh) {
+TPZGeoElRefPattern<TGeo>::TPZGeoElRefPattern(int64_t id,TPZVec<int64_t> &nodeindexes,int matind,TPZGeoMesh &mesh) :
+TPZRegisterClassId(&TPZGeoElRefPattern<TGeo>::ClassId),TPZGeoElRefLess<TGeo>(id,nodeindexes,matind,mesh) {
 }
 
 
 template <class TGeo>
-TPZGeoElRefPattern<TGeo>::TPZGeoElRefPattern(TPZGeoMesh &DestMesh, const TPZGeoElRefPattern<TGeo> &cp):TPZGeoElRefLess<TGeo>(DestMesh,cp),
+TPZGeoElRefPattern<TGeo>::TPZGeoElRefPattern(TPZGeoMesh &DestMesh, const TPZGeoElRefPattern<TGeo> &cp):
+TPZRegisterClassId(&TPZGeoElRefPattern<TGeo>::ClassId),TPZGeoElRefLess<TGeo>(DestMesh,cp),
 fRefPattern(cp.fRefPattern) {
 
 	this->fSubEl = cp.fSubEl;
@@ -85,16 +82,23 @@ fRefPattern(cp.fRefPattern) {
 
 template <class TGeo>
 TPZGeoEl * TPZGeoElRefPattern<TGeo>::Clone(TPZGeoMesh &DestMesh) const{
-	return new TPZGeoElRefPattern<TGeo>(DestMesh, *this);
+    if(&DestMesh == this->Mesh())
+    {
+        return new TPZGeoElRefPattern<TGeo>(*this);
+    }
+    else
+    {
+        return new TPZGeoElRefPattern<TGeo>(DestMesh, *this);
+    }
 }
 
 
 template <class TGeo>
 TPZGeoElRefPattern<TGeo>::TPZGeoElRefPattern(TPZGeoMesh &DestMesh,
 											 const TPZGeoElRefPattern<TGeo> &cp,
-											 std::map<long,long> &gl2lcNdMap,
-											 std::map<long,long> &gl2lcElMap):
-TPZGeoElRefLess<TGeo>(DestMesh,cp,gl2lcNdMap,gl2lcElMap),
+											 std::map<int64_t,int64_t> &gl2lcNdMap,
+											 std::map<int64_t,int64_t> &gl2lcElMap):
+TPZRegisterClassId(&TPZGeoElRefPattern<TGeo>::ClassId),TPZGeoElRefLess<TGeo>(DestMesh,cp,gl2lcNdMap,gl2lcElMap),
 fRefPattern ( cp.fRefPattern )
 {
 	int i;
@@ -111,7 +115,10 @@ fRefPattern ( cp.fRefPattern )
 			std::stringstream sout;
 			sout << "ERROR in - " << __PRETTY_FUNCTION__
 			<< " subelement " << i << " index = " << cp.fSubEl[i] << " is not in the map.";
+#ifdef PZ_LOG
+            TPZLogger loggerrefpattern("pz.mesh.tpzgeoelrefpattern");
 			LOGPZ_ERROR (loggerrefpattern,sout.str().c_str());
+#endif
 			DebugStop();
 		}
 		this->fSubEl[i] = gl2lcElMap[cp.fSubEl[i]];
@@ -120,9 +127,33 @@ fRefPattern ( cp.fRefPattern )
 
 template <class TGeo>
 TPZGeoEl * TPZGeoElRefPattern<TGeo>::ClonePatchEl(TPZGeoMesh &DestMesh,
-												  std::map<long,long> &gl2lcNdMap,
-												  std::map<long,long> &gl2lcElMap) const{
+												  std::map<int64_t,int64_t> &gl2lcNdMap,
+												  std::map<int64_t,int64_t> &gl2lcElMap) const{
 	return new TPZGeoElRefPattern<TGeo>(DestMesh, *this, gl2lcNdMap, gl2lcElMap);
 }
+
+#include "TPZGeoCube.h"
+#include "TPZGeoLinear.h"
+#include "pzgeoquad.h"
+#include "pzgeotriangle.h"
+#include "pzgeoprism.h"
+#include "pzgeotetrahedra.h"
+#include "pzgeopyramid.h"
+#include "pzgeopoint.h"
+
+
+#define INSERTCLASS(TCL) \
+template class \
+TPZRestoreClass<TPZGeoElRefPattern<TCL > >; \
+template class TPZGeoElRefPattern<TCL>;
+
+INSERTCLASS(pzgeom::TPZGeoPoint)
+INSERTCLASS(pzgeom::TPZGeoLinear)
+INSERTCLASS(pzgeom::TPZGeoTriangle)
+INSERTCLASS(pzgeom::TPZGeoQuad)
+INSERTCLASS(pzgeom::TPZGeoCube)
+INSERTCLASS(pzgeom::TPZGeoPrism)
+INSERTCLASS(pzgeom::TPZGeoTetrahedra)
+INSERTCLASS(pzgeom::TPZGeoPyramid)
 
 #endif

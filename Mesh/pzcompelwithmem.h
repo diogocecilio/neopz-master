@@ -12,7 +12,10 @@ class TPZMaterialData;
 #include "pzstack.h"
 #include "pzcmesh.h"
 #include "pzquad.h"
-#include "pzmaterial.h"
+#include "TPZMaterial.h"
+#include "TPZMatInterfaceSingleSpace.h"
+#include "TPZMatInterfaceCombinedSpaces.h"
+#include "TPZMatWithMem.h"
 #include "pzelctemp.h"
 #include "pzmultiphysicscompel.h"
 
@@ -21,11 +24,6 @@ class TPZMaterialData;
 #include "pzlog.h"
 
 
-
-#ifdef LOG4CXX
-static LoggerPtr CompElWMemlogger(Logger::getLogger("mesh.TPZCompElWithMem"));
-#endif
-
 /**
  * @brief This class implements the TPZCompEl structure to enable material memory feature. \n
  * It should be instantiated using one of TPZCompEl bottom classes as parent in the template parameter.
@@ -33,267 +31,200 @@ static LoggerPtr CompElWMemlogger(Logger::getLogger("mesh.TPZCompElWithMem"));
  * @since July, 23 2008
  */
 
+/// this boolean creates an option to store a single memory object associated with the element
+// if(gSinglePointMemory == true) all entries in fIntPtIndices will be the same
+extern bool gSinglePointMemory;
+
 template <class TBASE>
 class TPZCompElWithMem : public TBASE
 {
 public:
-  
-  TPZCompElWithMem();
-  
-  virtual ~TPZCompElWithMem();
-  
-  TPZCompElWithMem(TPZCompMesh &mesh, TPZGeoEl *gel, long &index);
-  
-  TPZCompElWithMem(TPZCompMesh &mesh, TPZGeoEl *ref, long &index, TPZCompElSide left, TPZCompElSide right);
-  
-  TPZCompElWithMem(TPZCompMesh &mesh, const TPZCompElWithMem<TBASE> &copy);
-  
-  /** @brief used to generate patch mesh... generates a map of connect index from global mesh to clone mesh */
-  TPZCompElWithMem(TPZCompMesh &mesh,
-                   const TPZCompElWithMem<TBASE> &copy,
-                   std::map<long,long> & gl2lcConMap,
-                   std::map<long,long> & gl2lcElMap);
-  
-  virtual TPZCompEl *Clone(TPZCompMesh &mesh) const {
-    return new TPZCompElWithMem<TBASE> (mesh, *this);
-  }
-  
-  /** @brief Set create function in TPZCompMesh to create elements of this type */
-  virtual void SetCreateFunctions(TPZCompMesh *mesh){
-    mesh->SetAllCreateFunctionsContinuousWithMem();
-  }
-  
-  /**
-   * @brief Create a copy of the given element. The clone copy have the connect indexes mapped to the local clone connects by the given map
-   * @param mesh Patch clone mesh
-   * @param gl2lcConMap map the connects indexes from global element (original) to the local copy.
-   * @param gl2lcElMap map the indexes of the elements between the original element and the patch element
-   */
-  virtual TPZCompEl *ClonePatchEl(TPZCompMesh &mesh,std::map<long,long> & gl2lcConMap,std::map<long,long>&gl2lcElMap) const
-  {
-    return new TPZCompElWithMem<TBASE> (mesh, *this, gl2lcConMap, gl2lcElMap);
-  }
-  
-  
-  void ComputeRequiredData(TPZMaterialData &data, TPZVec<REAL> &qsi);
-  
-  virtual void ComputeRequiredData(TPZVec<REAL> &intpointtemp, TPZVec<TPZTransform> &trvec, TPZVec<TPZMaterialData> &datavec);
-  
-  long GetGlobalIntegrationPointIndex(TPZMaterialData &data);
-  
+    
+    TPZCompElWithMem();
+    
+    virtual ~TPZCompElWithMem();
+    
+    TPZCompElWithMem(TPZCompMesh &mesh, TPZGeoEl *gel);
+    
+    TPZCompElWithMem(TPZCompMesh &mesh, TPZGeoEl *ref, TPZCompElSide left, TPZCompElSide right);
+    
+    TPZCompElWithMem(TPZCompMesh &mesh, const TPZCompElWithMem<TBASE> &copy);
+    
+    /** @brief used to generate patch mesh... generates a map of connect index from global mesh to clone mesh */
+    TPZCompElWithMem(TPZCompMesh &mesh,
+                     const TPZCompElWithMem<TBASE> &copy,
+                     std::map<int64_t,int64_t> & gl2lcConMap,
+                     std::map<int64_t,int64_t> & gl2lcElMap);
+    
+    virtual TPZCompEl *Clone(TPZCompMesh &mesh) const override{
+        return new TPZCompElWithMem<TBASE> (mesh, *this);
+    }
+    
+    
+    
+    /** @brief Set create function in TPZCompMesh to create elements of this type */
+    virtual void SetCreateFunctions(TPZCompMesh *mesh) override{
+        mesh->SetAllCreateFunctionsContinuousWithMem();
+    }
+    
+    /**
+     * @brief Create a copy of the given element. The clone copy have the connect indexes mapped to the local clone connects by the given map
+     * @param mesh Patch clone mesh
+     * @param gl2lcConMap map the connects indexes from global element (original) to the local copy.
+     * @param gl2lcElMap map the indexes of the elements between the original element and the patch element
+     */
+    virtual TPZCompEl *ClonePatchEl(TPZCompMesh &mesh,std::map<int64_t,int64_t> & gl2lcConMap,std::map<int64_t,int64_t>&gl2lcElMap) const override
+    {
+        return new TPZCompElWithMem<TBASE> (mesh, *this, gl2lcConMap, gl2lcElMap);
+    }
+    
+    virtual void ComputeRequiredData(TPZMaterialDataT<STATE> &data, TPZVec<REAL> &qsi) override;
+    
+    int64_t GetGlobalIntegrationPointIndex(TPZMaterialData &data);
+    
 protected:
-  
-  /** @brief PrepareIntPtIndices initializes the material damage varibles memory in the proper material class. */
-  virtual void PrepareIntPtIndices();
-  
-  /** @brief PrepareIntPtIndices initializes the material damage varibles memory in the proper material class. */
-  virtual void ForcePrepareIntPtIndices();
-  
-  /** @brief Frees the material damage varibles memory in the proper material class. */
-  virtual void SetFreeIntPtIndices();
-  
-  void CopyIntPtIndicesFrom(const TPZCompElWithMem<TBASE> & copy);
-  
+    
+    /** @brief PrepareIntPtIndices initializes the material damage varibles memory in the proper material class. */
+    virtual void PrepareIntPtIndices() override;
+    
+    /** @brief PrepareIntPtIndices initializes the material damage varibles memory in the proper material class. */
+    virtual void ForcePrepareIntPtIndices() override;
+    
+    /** @brief PrepareIntPtIndices initializes the material damage varibles memory in the proper material class. */
+    virtual void SetMemoryIndices(TPZVec<int64_t> &indices) override;
+    
+    /** @brief Frees the material damage varibles memory in the proper material class. */
+    virtual void SetFreeIntPtIndices() override;
+    
+    void CopyIntPtIndicesFrom(const TPZCompElWithMem<TBASE> & copy);
+    
 public:
-  
-  /** @brief Get the indices of the vector of element memory associated with the integration points */
-  /**
-   * Will return an empty vector if no memory is associated with the integration point
-   * Is implemented in TPZCompElWithMem
-   */
-  void GetMemoryIndices(TPZVec<long> &indices) const;
-  
-  /// Modify the maximum order an integration rule can integrate
-  virtual void SetIntegrationRule(int ord);
-  
-  /** @brief Saves the element data to a stream */
-  virtual void Write(TPZStream &buf, int withclassid);
-  
-  /** @brief Reads the element data from a stream */
-  virtual void Read(TPZStream &buf, void *context);
-  
-  /** @brief ClassId of the class. Is implemented for each type of compel in this .h */
-  virtual int ClassId() const
-  {
-    DebugStop();
-    return -1;
-  }
-  /**
-   * @name Print
-   * @brief Methods for print data structure
-   * @{
-   */
-  
-  /**
-   * @brief Prints element data
-   * @param out indicates the device where the data will be printed
-   */
-  virtual void Print(std::ostream & out = std::cout) const
-  {
-    TBASE::Print(out);
-    out << "Integration point indexes " << fIntPtIndices << std::endl;
-  }
-  
-  /** @} */
-  
+    
+    /** @brief Get the indices of the vector of element memory associated with the integration points */
+    /**
+     * Will return an empty vector if no memory is associated with the integration point
+     * Is implemented in TPZCompElWithMem
+     */
+    void GetMemoryIndices(TPZVec<int64_t> &indices) const override;
+    
+    /// Modify the maximum order an integration rule can integrate
+    virtual void SetIntegrationRule(int ord) override;
+    
+    /** @brief Saves the element data to a stream */
+    virtual void Write(TPZStream &buf, int withclassid) const override;
+    
+    /** @brief Reads the element data from a stream */
+    virtual void Read(TPZStream &buf, void *context) override;
+    
+    /** @brief ClassId of the class. Is implemented for each type of compel in this .h */
+public:
+    virtual int ClassId() const override;
+    
+    /**
+     * @name Print
+     * @brief Methods for print data structure
+     * @{
+     */
+    
+    /**
+     * @brief Prints element data
+     * @param out indicates the device where the data will be printed
+     */
+    virtual void Print(std::ostream & out = std::cout) const override
+    {
+        TBASE::Print(out);
+        out << "Integration point indexes " << fIntPtIndices << std::endl;
+    }
+    
+    /** @} */
+    
 private:
-  
-  TPZStack<long,128> fIntPtIndices;
-  
+    
+    /// the indexes of the memory vector associated with each integration point
+    // this allows the element to store a different differencial equation coeficient
+    // at each memory point
+    TPZStack<int64_t,128> fIntPtIndices;
+    
+    
 };
 
+
+
 template<class TBASE>
-TPZCompElWithMem<TBASE>::TPZCompElWithMem() : TBASE() {
-  //PrepareIntPtIndices();
+TPZCompElWithMem<TBASE>::TPZCompElWithMem() : TPZRegisterClassId(&TPZCompElWithMem::ClassId),
+TBASE() {
+    //PrepareIntPtIndices();
 }
 
 template<class TBASE>
-TPZCompElWithMem<TBASE>::TPZCompElWithMem(TPZCompMesh &mesh, TPZGeoEl *gel, long &index) :
-TBASE(mesh, gel, index){
-  PrepareIntPtIndices();
+TPZCompElWithMem<TBASE>::TPZCompElWithMem(TPZCompMesh &mesh, TPZGeoEl *gel) :
+TPZRegisterClassId(&TPZCompElWithMem::ClassId),
+TBASE(mesh, gel){
+    PrepareIntPtIndices();
 }
 
 template<class TBASE>
-TPZCompElWithMem<TBASE>::TPZCompElWithMem(TPZCompMesh &mesh, TPZGeoEl *ref, long &index, TPZCompElSide left, TPZCompElSide right) :
-TBASE(mesh, ref, index, left, right){
-  PrepareIntPtIndices();
+TPZCompElWithMem<TBASE>::TPZCompElWithMem(TPZCompMesh &mesh, TPZGeoEl *ref, TPZCompElSide left, TPZCompElSide right) :
+TPZRegisterClassId(&TPZCompElWithMem::ClassId),
+TBASE(mesh, ref, left, right){
+    PrepareIntPtIndices();
 }
 
 template<class TBASE>
 TPZCompElWithMem<TBASE>::TPZCompElWithMem(TPZCompMesh &mesh, const TPZCompElWithMem<TBASE> &copy) :
+TPZRegisterClassId(&TPZCompElWithMem::ClassId),
 TBASE(mesh, copy) {
-  CopyIntPtIndicesFrom(copy);
+    CopyIntPtIndicesFrom(copy);
 }
 
 
 template<class TBASE>
 TPZCompElWithMem<TBASE>::TPZCompElWithMem(TPZCompMesh &mesh,
                                           const TPZCompElWithMem<TBASE> &copy,
-                                          std::map<long,long> & gl2lcConMap,
-                                          std::map<long,long> & gl2lcElMap) :
+                                          std::map<int64_t,int64_t> & gl2lcConMap,
+                                          std::map<int64_t,int64_t> & gl2lcElMap) :
+TPZRegisterClassId(&TPZCompElWithMem::ClassId),
 TBASE(mesh,copy,gl2lcConMap,gl2lcElMap)
 {
-  CopyIntPtIndicesFrom(copy);
+    CopyIntPtIndicesFrom(copy);
 }
-
-
 template <class TBASE>
-inline void TPZCompElWithMem<TBASE>::PrepareIntPtIndices() {
-  
-  // This code was copied from TPZInterpolationSpace::CalcStiff with minor changes
-  // regarding integration point index evaluation.
-  // Inclusions were commented properly.
-  
-  if(fIntPtIndices.NElements())
-  {
-#ifdef LOG4CXX
-    {
-      std::stringstream sout;
-      sout << __PRETTY_FUNCTION__ << " Attempting to add memory indices to an already configured TPZCompElWithMem";
-      LOGPZ_ERROR(CompElWMemlogger,sout.str().c_str());
+inline void TPZCompElWithMem<TBASE>::SetMemoryIndices(TPZVec<int64_t> &indices) {
+    int n = indices.size();
+    fIntPtIndices.Resize(n);
+    for (int i = 0; i < n; i++) {
+        fIntPtIndices[i] = indices[i];
     }
-#endif
-    return;
-  }
-  
-  TPZMaterial * material = TBASE::Material();
-  if(!material){
-    PZError << "Error at " << __PRETTY_FUNCTION__ << " this->Material() == NULL\n";
-    return;
-  }
-  
-  if (this->NumberOfCompElementsInsideThisCompEl() == 0) {
-    // This is suposed to happen if in the constructor of a multiphysics element. The CompEl vector is only initialized after the autobuild
-    return;
-  }
-  
-  const TPZIntPoints &intrule = TBASE::GetIntegrationRule();
-  
-  int intrulepoints = intrule.NPoints();
-  
-  fIntPtIndices.Resize(intrulepoints);
-  
-  for(int int_ind = 0; int_ind < intrulepoints; ++int_ind){
-    fIntPtIndices[int_ind] = this->Material()->PushMemItem();
-    // Pushing a new entry in the material memory
-  } //Loop over integratin points generating a reference vector of memory
-  //entries in the related pzmatwithmem for further use.
-  
 }
-
-template <class TBASE>
-inline void TPZCompElWithMem<TBASE>::ForcePrepareIntPtIndices() {
-  
-  //	if(fIntPtIndices.NElements())
-  //	{
-  //#ifdef LOG4CXX
-  //		{
-  //			std::stringstream sout;
-  //			sout << __PRETTY_FUNCTION__ << " Attempting to add memory indices to an already configured TPZCompElWithMem";
-  //			LOGPZ_ERROR(CompElWMemlogger,sout.str().c_str());
-  //		}
-  //#endif
-  //		return;
-  //	}
-  
-  TPZMaterial * material = TBASE::Material();
-  if(!material){
-    PZError << "Error at " << __PRETTY_FUNCTION__ << " this->Material() == NULL\n";
-    return;
-  }
-  
-  if (this->NumberOfCompElementsInsideThisCompEl() == 0) {
-    // This is suposed to happen if in the constructor of a multiphysics element. The CompEl vector is only initialized after the autobuild
-    return;
-  }
-  
-  const TPZIntPoints &intrule = TBASE::GetIntegrationRule();
-  
-  int intrulepoints = intrule.NPoints();
-  
-  fIntPtIndices.Resize(intrulepoints);
-  
-  for(int int_ind = 0; int_ind < intrulepoints; ++int_ind){
-    fIntPtIndices[int_ind] = this->Material()->PushMemItem();
-    // Pushing a new entry in the material memory
-  } //Loop over integratin points generating a reference vector of memory
-  //entries in the related pzmatwithmem for further use.
-  
-}
-
-
 
 template <class TBASE>
 inline void TPZCompElWithMem<TBASE>::SetFreeIntPtIndices() {
-  
-  TPZMaterial * material = TBASE::Material();
-  if(!material){
-    PZError << "Error at " << __PRETTY_FUNCTION__ << " this->Material() == NULL\n";
-    return;
-  }
-  
-  long n = fIntPtIndices.NElements();
-  
-  for(long i = 0; i < n; i++){
-    this->Material()->FreeMemItem(fIntPtIndices[i]);
-  }
-  
-  fIntPtIndices.Resize(0);
-  
+    
+    TPZMaterial * material = TBASE::Material();
+    auto * matWithMem =
+        dynamic_cast<TPZMatWithMemBase *>(material);
+    if (matWithMem) {
+        int64_t n = fIntPtIndices.NElements();
+        
+        for (int64_t i = 0; i < n; i++) {
+            matWithMem->FreeMemItem(fIntPtIndices[i]);
+        }
+    }
+    fIntPtIndices.Resize(0);
 }
 
 template <class TBASE>
 inline void TPZCompElWithMem<TBASE>::SetIntegrationRule(int ord)
 {
-  TBASE::SetIntegrationRule(ord);
-  // verify if the number of integration points changed
-  const TPZIntPoints &intrule = TBASE::GetIntegrationRule();
-  int intrulepoints = intrule.NPoints();
-  if (intrulepoints != fIntPtIndices.size()) {
-    SetFreeIntPtIndices();
-    PrepareIntPtIndices();
-  }
-  
+    TBASE::SetIntegrationRule(ord);
+    // verify if the number of integration points changed
+    const TPZIntPoints &intrule = TBASE::GetIntegrationRule();
+    int intrulepoints = intrule.NPoints();
+    if (intrulepoints != fIntPtIndices.size()) {
+        SetFreeIntPtIndices();
+        PrepareIntPtIndices();
+    }
+    
 }
 
 
@@ -303,146 +234,135 @@ inline void TPZCompElWithMem<TBASE>::SetIntegrationRule(int ord)
  * Is implemented in TPZCompElWithMem
  */
 template<class TBASE>
-inline void TPZCompElWithMem<TBASE>::GetMemoryIndices(TPZVec<long> &indices) const
+inline void TPZCompElWithMem<TBASE>::GetMemoryIndices(TPZVec<int64_t> &indices) const
 {
-  indices = fIntPtIndices;
+    indices = fIntPtIndices;
 }
 
 
 template <class TBASE>
 void TPZCompElWithMem<TBASE>::CopyIntPtIndicesFrom(const TPZCompElWithMem<TBASE> & copy)
 {
-  
-  TPZMaterial * material = TBASE::Material();
-  if(!material){
-    PZError << "Error at " << __PRETTY_FUNCTION__ << " this->Material() == NULL\n";
-    return;
-  }
-  
-  long i, n = copy.fIntPtIndices.NElements();
-  fIntPtIndices.Resize(n);
-  
-  for(i = 0; i < n; i++)
-  {
-    fIntPtIndices[i] = copy.fIntPtIndices[i];
-  }
+    
+    TPZMaterial * material = TBASE::Material();
+    if(!material){
+        PZError << "Error at " << __PRETTY_FUNCTION__ << " this->Material() == NULL\n";
+        return;
+    }
+    
+    int64_t i, n = copy.fIntPtIndices.NElements();
+    fIntPtIndices.Resize(n);
+    
+    for(i = 0; i < n; i++)
+    {
+        fIntPtIndices[i] = copy.fIntPtIndices[i];
+    }
 }
 
 /** Save the element data to a stream */
 template <class TBASE>
-inline void TPZCompElWithMem<TBASE>::ComputeRequiredData(TPZMaterialData &data,
+inline void TPZCompElWithMem<TBASE>::ComputeRequiredData(TPZMaterialDataT<STATE> &data,
                                                          TPZVec<REAL> &qsi){
-  TBASE::ComputeRequiredData(data, qsi);
-  data.intGlobPtIndex = GetGlobalIntegrationPointIndex(data);
-  //material index for the n-th CompEl integration point
+    TBASE::ComputeRequiredData(data, qsi);
+    if(fIntPtIndices.size())
+    {
+        data.intGlobPtIndex = GetGlobalIntegrationPointIndex(data);
+    }
+    //material index for the n-th CompEl integration point
 }
 
 template <class TBASE>
-inline void TPZCompElWithMem<TBASE>::ComputeRequiredData(TPZVec<REAL> &intpointtemp, TPZVec<TPZTransform> &trvec, TPZVec<TPZMaterialData> &datavec)
+inline int64_t TPZCompElWithMem<TBASE>::GetGlobalIntegrationPointIndex(TPZMaterialData &data)
 {
-  TBASE::ComputeRequiredData(intpointtemp,trvec,datavec);
-  
-  int nelofthismphysics = this->NumberOfCompElementsInsideThisCompEl();
-  for (int icel = 0; icel < nelofthismphysics; icel++) {
-    datavec[icel].intGlobPtIndex = GetGlobalIntegrationPointIndex(datavec[icel]);
-  }
+    int64_t glIntegralPt = -1;
+    auto np = fIntPtIndices.size();
+#ifdef PZDEBUG
+    if(fIntPtIndices.size()==0 && data.intLocPtIndex)
+    {
+        std::cout << __PRETTY_FUNCTION__ << "\nInconsistent data structure intLocPtIndex "
+        << data.intLocPtIndex << " no point indices ";
+    }
+#endif
+    if (np && data.intLocPtIndex >= 0) {
+        glIntegralPt = fIntPtIndices[ data.intLocPtIndex ]; // returning the
+    }
+    return glIntegralPt;
 }
 
 template <class TBASE>
-inline long TPZCompElWithMem<TBASE>::GetGlobalIntegrationPointIndex(TPZMaterialData &data)
+inline void TPZCompElWithMem<TBASE>::Write(TPZStream &buf, int withclassid) const
 {
-  long glIntegralPt = -1;
-  if (data.intLocPtIndex >= 0) {
-    glIntegralPt = fIntPtIndices[ data.intLocPtIndex ]; // returning the
-  }
-  return glIntegralPt;
-}
-
-template <class TBASE>
-inline void TPZCompElWithMem<TBASE>::Write(TPZStream &buf, int withclassid)
-{
-  TBASE::Write(buf,withclassid);
-  TPZSaveable::WriteObjects(buf, fIntPtIndices);
-  int classid = ClassId();
-  buf.Write(&classid);
+    TBASE::Write(buf,withclassid);
+    buf.Write( fIntPtIndices);
+    int classid = ClassId();
+    buf.Write(&classid);
 }
 
 /** Read the element data from a stream */
 template <class TBASE>
 inline void TPZCompElWithMem<TBASE>::Read(TPZStream &buf, void *context)
 {
-  TBASE::Read(buf,context);
-  TPZSaveable::ReadObjects(buf, fIntPtIndices);
-  int classid;
-  buf.Read(&classid);
-  if (classid != ClassId()) {
-    DebugStop();
-  }
+    TBASE::Read(buf,context);
+    buf.Read( fIntPtIndices);
+    int classid;
+    buf.Read(&classid);
+    if (classid != ClassId()) {
+        DebugStop();
+    }
 }
 
-#include "pzshapepoint.h"
-
-/** @brief Routines to send and receive messages */
-template<>
-inline int TPZCompElWithMem<TPZIntelGen<pzshape::TPZShapePoint> >::ClassId() const
-{
-  return TPZCOMPELWITHMEMPOINTID;
+template <class TBASE>
+int TPZCompElWithMem<TBASE>::ClassId() const{
+    return Hash("TPZCompElWithMem") ^ TBASE::ClassId() << 1;
 }
 
-#include "pzshapelinear.h"
 
-template<>
-inline int TPZCompElWithMem<TPZIntelGen<pzshape::TPZShapeLinear> >::ClassId() const
-{
-  return TPZCOMPELWITHMEMLINEARID;
-}
 
-#include "pzshapetriang.h"
-
-template<>
-inline int TPZCompElWithMem<TPZIntelGen<pzshape::TPZShapeTriang> >::ClassId() const
-{
-  return TPZCOMPELWITHMEMTRIANGID;
-}
-
-#include "pzshapequad.h"
-
-template<>
-inline int TPZCompElWithMem<TPZIntelGen<pzshape::TPZShapeQuad> >::ClassId() const
-{
-  return TPZCOMPELWITHMEMQUADID;
-}
-
-#include "pzshapecube.h"
-
-template<>
-inline int TPZCompElWithMem<TPZIntelGen<pzshape::TPZShapeCube> >::ClassId() const
-{
-  return TPZCOMPELWITHMEMCUBEID;
-}
-
-#include "pzshapetetra.h"
-
-template<>
-inline int TPZCompElWithMem<TPZIntelGen<pzshape::TPZShapeTetra> >::ClassId() const
-{
-  return TPZCOMPELWITHMEMTETRAID;
-}
-
-#include "pzshapeprism.h"
-
-template<>
-inline int TPZCompElWithMem<TPZIntelGen<pzshape::TPZShapePrism> >::ClassId() const
-{
-  return TPZCOMPELWITHMEMPRISMID;
-}
-
-#include "pzshapepiram.h"
-
-template<>
-inline int TPZCompElWithMem<TPZIntelGen<pzshape::TPZShapePiram> >::ClassId() const
-{
-  return TPZCOMPELWITHMEMPIRAMID;
+template <class TBASE>
+inline void TPZCompElWithMem<TBASE>::ForcePrepareIntPtIndices() {
+    
+    TPZMaterial * material = TBASE::Material();
+    auto * matWithMem =
+        dynamic_cast<TPZMatWithMemBase *>(material);
+    if(!material || !matWithMem){
+        PZError << "Error at " << __PRETTY_FUNCTION__ << " this->Material() == NULL\n";
+        return;
+    }
+    
+    if (this->NumberOfCompElementsInsideThisCompEl() == 0) {
+        // This is suposed to happen if in the constructor of a multiphysics element. The CompEl vector is only initialized after the autobuild
+        return;
+    }
+    
+    const TPZIntPoints &intrule = TBASE::GetIntegrationRule();
+    
+    int intrulepoints = intrule.NPoints();
+    
+    fIntPtIndices.Resize(intrulepoints);
+    
+    if(gSinglePointMemory && intrulepoints > 0)
+    {
+        int64_t point_index = matWithMem->PushMemItem();
+#ifdef PZDEBUG
+        if(point_index < 0)
+        {
+            std::cout << __PRETTY_FUNCTION__ << " material has no memory interface\n";
+        }
+#endif
+        for(int int_ind = 0; int_ind < intrulepoints; ++int_ind){
+            fIntPtIndices[int_ind] = point_index;
+            // Pushing a new entry in the material memory
+        } //Loop over integratin points generating a reference vector of memory
+    }
+    else
+    {
+        for(int int_ind = 0; int_ind < intrulepoints; ++int_ind){
+            fIntPtIndices[int_ind] = matWithMem->PushMemItem();
+            // Pushing a new entry in the material memory
+        } //Loop over integratin points generating a reference vector of memory
+          //entries in the related pzmatwithmem for further use.
+    }
+    
 }
 
 #endif

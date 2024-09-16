@@ -17,10 +17,6 @@
 
 #include "pzlog.h"
 
-#ifdef LOG4CXX
-static LoggerPtr loggernoderep2(Logger::getLogger("pz.geom.extend"));
-#endif
-
 class TPZGeoEl;
 class TPZGeoMesh;
 
@@ -42,9 +38,9 @@ namespace pzgeom {
 		
 		enum {NNodes = 2*TFather::NNodes};
 		
-		long fNodeIndexes[TFather::NNodes];
+		int64_t fNodeIndexes[TFather::NNodes];
 		/** @brief Constructor with list of nodes */
-		GPr(TPZVec<long> &nodeindexes, TPZGeoMesh &mesh) : TFather(nodeindexes, mesh)
+		GPr(TPZVec<int64_t> &nodeindexes, TPZGeoMesh &mesh) : TFather(nodeindexes, mesh)
 		{
 			int i;
 			for(i=0; i<TFather::NNodes; i++) fNodeIndexes[i] = nodeindexes[TFather::NNodes+i];
@@ -59,7 +55,7 @@ namespace pzgeom {
 		
 		/** @brief Constructor with node map */
 		GPr(const GPr<TFather,Topology> &cp,
-			std::map<long,long> & gl2lcNdMap) : TFather(cp,gl2lcNdMap)
+			std::map<int64_t,int64_t> & gl2lcNdMap) : TFather(cp,gl2lcNdMap)
 		{
 			int i;
 			for(i = 0; i < TFather::NNodes; i++)
@@ -67,13 +63,17 @@ namespace pzgeom {
 #ifdef PZDEBUG
 				if (gl2lcNdMap.find(cp.fNodeIndexes[i+TFather::NNodes]) == gl2lcNdMap.end())
 				{
-					std::stringstream sout;
-					sout << "ERROR in - " << __PRETTY_FUNCTION__
-					<< " trying to clone a node " << i << " index " << cp.fNodeIndexes[i]
-					<< " wich is not mapped";
-					LOGPZ_ERROR(loggernoderep2,sout.str().c_str());
-					fNodeIndexes[i] = -1;
-					continue;
+#ifdef PZ_LOG
+                    TPZLogger loggernoderep2("pz.geom.extend");
+                    if (loggernoderep2.isErrorEnabled()) {
+                      std::stringstream sout;
+                      sout << "ERROR in - " << __PRETTY_FUNCTION__
+                           << " trying to clone a node " << i << " index "
+                           << cp.fNodeIndexes[i] << " wich is not mapped";
+                      LOGPZ_ERROR(loggernoderep2, sout.str().c_str());
+                    }
+#endif
+					DebugStop();
 				}
 #endif
 				fNodeIndexes[i] = gl2lcNdMap [ cp.fNodeIndexes[i+TFather::NNodes] ];
@@ -107,7 +107,7 @@ namespace pzgeom {
 		static void Jacobian(const TPZFMatrix<REAL> &nodes,TPZVec<REAL> &param,TPZFMatrix<REAL> &jacobian);
 		
 		
-		static TPZGeoEl *CreateBCGeoEl(TPZGeoEl *gel, int side,int bc);
+		// static TPZGeoEl *CreateBCGeoEl(TPZGeoEl *gel, int side,int bc);
 		
 		static void Diagnostic(TPZFMatrix<REAL> &coord);
 		
@@ -181,8 +181,8 @@ namespace pzgeom {
 	template<class TFather, class Topology>
 	void GPr<TFather, Topology>::Diagnostic(TPZFMatrix<REAL> & coord)
 	{
-#ifdef LOG4CXX
-		LoggerPtr logger(Logger::getLogger("pz.geom.pzgeoextend"));
+#ifdef PZ_LOG
+		TPZLogger logger("pz.geom.pzgeoextend");
 		
 		TPZIntPoints *integ = Top::CreateSideIntegrationRule(Top::NSides-1,3);
 		int np = integ->NPoints();

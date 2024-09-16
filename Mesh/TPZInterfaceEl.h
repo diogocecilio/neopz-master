@@ -20,8 +20,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include "TPZCompElDisc.h"
-#include "pzmaterialdata.h"
-
+#include "TPZMaterialDataT.h"
 
 /**
  * @brief Computes the contribution over an interface between two discontinuous elements. \ref CompElement "Computational Element"
@@ -41,8 +40,9 @@ class TPZInterfaceElement : public TPZCompEl {
 	TPZManVector<REAL,3> fCenterNormal;
     
     /** @brief Pointer to the integration rule */
-    TPZIntPoints *fIntegrationRule;
-	
+  //  TPZIntPoints *fIntegrationRule;
+    virtual void InitializeIntegrationRule() override;
+
 	/** @brief Informs the connects that this element is no longer connected to it. */
 	void DecreaseElConnected();
 	
@@ -56,20 +56,42 @@ protected:
     
     /** @brief Initialize the material data with the geometric data of the interface element */
     void InitMaterialData(TPZMaterialData &data);
-	
+	/** @{*/
 	/** @brief Compute and fill data with requested attributes for neighbouring element */
-	void ComputeRequiredData(TPZMaterialData &data,
+	void ComputeRequiredData(TPZMaterialDataT<STATE> &data,
 							 TPZInterpolationSpace *elem,
-							 TPZVec<REAL> &IntPoint);
-    
+							 TPZVec<REAL> &IntPoint){
+		ComputeRequiredDataT(data,elem,IntPoint);
+	}
+	void ComputeRequiredData(TPZMaterialDataT<CSTATE> &data,
+							 TPZInterpolationSpace *elem,
+							 TPZVec<REAL> &IntPoint){
+		ComputeRequiredDataT(data,elem,IntPoint);
+	}
+	/** @}*/
+    /** @{*/
     /** @brief Compute the required geometric data for the interface element */
-    void ComputeRequiredData(TPZMaterialData &data);
-	
-public:
+    virtual void ComputeRequiredData(TPZMaterialDataT<STATE> &data,
+									 TPZVec<REAL> &qsi){
+		ComputeRequiredDataT(data,qsi);
+	}
+
+	virtual void ComputeRequiredData(TPZMaterialDataT<CSTATE> &data,
+									 TPZVec<REAL> &qsi){
+		ComputeRequiredDataT(data,qsi);
+	}
+	/** @}*/
+//     virtual void ComputeRequiredData(TPZVec<REAL> &intpointtemp, TPZVec<TPZTransform<> > &trvec, TPZVec<TPZMaterialData> &datavec){
+//         DebugStop();
+//     }
+    
+
+// public:
 	
 	/** @brief Extract connects from element el */
-	void GetConnects(TPZCompElSide &elside, TPZVec<TPZConnect*> &connects, TPZVec<long> &connectindex);
-	
+	void GetConnects(TPZCompElSide &elside, TPZVec<TPZConnect*> &connects, TPZVec<int64_t> &connectindex);
+
+	//@{
 	/** 
 	 * @brief Compute solution at neighbour element in a given master coordinate qsi. It returns the axes
 	 * at which respect derivatives are computed.
@@ -79,9 +101,15 @@ public:
 	 * @param [out] dsol
 	 * @param [out] NeighborAxes
 	 */
-	void NeighbourSolution(TPZCompElSide & Neighbor, TPZVec<REAL> & qsi, TPZSolVec &sol, TPZGradSolVec &dsol, TPZFMatrix<REAL> &NeighborAxes);
-	
-protected:
+	void NeighbourSolution(TPZCompElSide & Neighbor, TPZVec<REAL> & qsi, TPZSolVec<STATE> &sol, TPZGradSolVec<STATE> &dsol, TPZFMatrix<REAL> &NeighborAxes)//TODOCOMPLEX
+	{
+		NeighbourSolutionT(Neighbor,qsi,sol,dsol,NeighborAxes);
+	}
+	void NeighbourSolution(TPZCompElSide & Neighbor, TPZVec<REAL> & qsi, TPZSolVec<CSTATE> &sol, TPZGradSolVec<CSTATE> &dsol, TPZFMatrix<REAL> &NeighborAxes)//TODOCOMPLEX
+	{
+		NeighbourSolutionT(Neighbor,qsi,sol,dsol,NeighborAxes);
+	}
+	//@}
 	
 	/**
 	 * @brief Check consistency of mapped qsi performed by method TPZInterfaceElement::MapQsi by
@@ -91,7 +119,7 @@ protected:
 public:
 	bool CheckConsistencyOfMappedQsi(TPZCompElSide &Neighbor, TPZVec<REAL> &qsi, TPZVec<REAL>&NeighIntPoint);
 	
-	void ComputeSideTransform(TPZCompElSide &Neighbor, TPZTransform &transf);
+	void ComputeSideTransform(TPZCompElSide &Neighbor, TPZTransform<> &transf);
 protected:
 	/** @brief Computes normal at qsi point */
 	void ComputeNormal(TPZVec<REAL>&qsi, TPZVec<REAL> &normal);
@@ -103,11 +131,26 @@ protected:
 	/** @brief Computes normal for linear geometric elements. */
 	/** For linear geometry the normal vector is constant. */
 	void ComputeCenterNormal(TPZVec<REAL> &normal);
-	
+
+	template<class TVar>
+    void CalcStiffT(TPZElementMatrixT<TVar> &ek, TPZElementMatrixT<TVar> &ef);
+    template<class TVar>
+    void CalcResidualT(TPZElementMatrixT<TVar> &ef);
+	template<class TVar>
+	void NeighbourSolutionT(TPZCompElSide & Neighbor, TPZVec<REAL> & qsi, TPZSolVec<TVar> &sol, TPZGradSolVec<TVar> &dsol, TPZFMatrix<REAL> &NeighborAxes);
+	template<class TVar>
+	void IntegrateInterfaceT(int, TPZVec<TVar> &);
+	template<class TVar>
+	void ComputeRequiredDataT(TPZMaterialDataT<TVar> &data,
+							  TPZInterpolationSpace *elem,
+							  TPZVec<REAL> &IntPoint);
+	template<class TVar>
+	void ComputeRequiredDataT(TPZMaterialDataT<TVar> &data,
+							 TPZVec<REAL> &qsi);
 public:
 	
-	void InitializeElementMatrix(TPZElementMatrix &ef);
-	void InitializeElementMatrix(TPZElementMatrix &ek, TPZElementMatrix &ef);
+	void InitializeElementMatrix(TPZElementMatrix &ef) override;
+	void InitializeElementMatrix(TPZElementMatrix &ek, TPZElementMatrix &ef) override;
 	
 	/**
 	 * @brief Maps qsi coordinate at this master element to qsi coordinate at neighbor master element.
@@ -120,7 +163,7 @@ public:
 	enum CalcStiffOptions{ENone = -1, EStandard /*Deprecated*/ = 0, EPenalty, EContDisc,EReferred};
 	
 	/** @brief Constuctor to continuous and/or discontinuous neighbours. */
-	TPZInterfaceElement(TPZCompMesh &mesh,TPZGeoEl *geo,long &index,TPZCompElSide & left, TPZCompElSide &right);
+	TPZInterfaceElement(TPZCompMesh &mesh,TPZGeoEl *geo,TPZCompElSide & left, TPZCompElSide &right);
 	
 	/** @brief Simple copy constructor. */
 	TPZInterfaceElement(TPZCompMesh &mesh, const TPZInterfaceElement &copy);
@@ -134,40 +177,38 @@ public:
 	 */
 	TPZInterfaceElement(TPZCompMesh &mesh,
 						const TPZInterfaceElement &copy,
-						std::map<long,long> &gl2lcConIdx,
-						std::map<long,long> &gl2lcElIdx);
+						std::map<int64_t,int64_t> &gl2lcConIdx,
+						std::map<int64_t,int64_t> &gl2lcElIdx);
 
-	/** @brief Copy constructor with specified index */
-	TPZInterfaceElement(TPZCompMesh &mesh, const TPZInterfaceElement &copy, long &index);
 	
 	/** @brief Empty constructor. */
 	TPZInterfaceElement();
 	
 	/** @brief Default TPZCompEl constructor. SetLeftRightElements must be called before any computation. */
-	TPZInterfaceElement(TPZCompMesh &mesh,TPZGeoEl *geo,long &index);
+	TPZInterfaceElement(TPZCompMesh &mesh,TPZGeoEl *geo);
 	
 	/** @brief Destructor */
 	~TPZInterfaceElement();
 	
-	virtual int IsInterface() { return 1; }
+	virtual int IsInterface() override { return 1; }
 	
 	
 	/** @brief Set neighbors. */
 	void SetLeftRightElements(TPZCompElSide & left, TPZCompElSide & right);
 	
 	/** @brief Makes a clone of this */
-	virtual TPZCompEl *Clone(TPZCompMesh &mesh) const {
+	virtual TPZCompEl *Clone(TPZCompMesh &mesh) const override{
 		return new TPZInterfaceElement(mesh, *this);
 	}
 	
 	/** @see class TPZCompEl */
-	virtual TPZCompEl *ClonePatchEl(TPZCompMesh &mesh,std::map<long,long> &gl2lcConMap, std::map<long,long> &gl2lcElMap) const
+	virtual TPZCompEl *ClonePatchEl(TPZCompMesh &mesh,std::map<int64_t,int64_t> &gl2lcConMap, std::map<int64_t,int64_t> &gl2lcElMap) const override
 	{
 		return new TPZInterfaceElement(mesh, *this, gl2lcConMap,gl2lcElMap);
 	}
 	
 	/** @brief Method used in TPZAgglomerateElement::CreateAgglomerateMesh */
-	TPZCompEl * CloneInterface(TPZCompMesh &aggmesh,long &index, /*TPZCompElDisc **/TPZCompElSide & left, /*TPZCompElDisc **/ TPZCompElSide &right) const;
+	TPZCompEl * CloneInterface(TPZCompMesh &aggmesh, /*TPZCompElDisc **/TPZCompElSide & left, /*TPZCompElDisc **/ TPZCompElSide &right) const;
 	
 	/** @brief Identifies the elements of left and right volume of the interface */
 	void VolumeEls(TPZCompEl &thirdel);
@@ -209,7 +250,7 @@ public:
 	void Normal(TPZVec<REAL>&qsi, TPZVec<REAL> &normal);
 	
 	/** @brief Returns the number from connectivities of the element */
-	virtual int NConnects() const;
+	int NConnects() const override;
 	
 	/** @brief Returns the number from connectivities of the element related to right neighbour */
 	int NRightConnects() const;
@@ -218,21 +259,21 @@ public:
 	int NLeftConnects() const;
 	
 	/** @brief Its return the connects of the left and right element associates */
-	long ConnectIndex(int i) const;
+	int64_t ConnectIndex(int i) const override;
 	
 	/** @brief This function should not be called */
-	void SetConnectIndex(int node, long index);
+	void SetConnectIndex(int node, int64_t index) override;
 
     /** @brief adds the connect indexes associated with base shape functions to the set */
-    virtual void BuildCornerConnectList(std::set<long> &connectindexes) const;
+    void BuildCornerConnectList(std::set<int64_t> &connectindexes) const override;
 	
 	/** @brief Returns the dimension from the element interface */
-	int Dimension() const {
+	int Dimension() const override{
 		return this->Reference()->Dimension();
 	}
 	
 	/** @brief Type of the element */
-	MElementType Type() { return EInterface; }
+	MElementType Type() override { return EInterface; }
 	
 	/**
 	 * @brief Loads the solution within the internal data structure of the element
@@ -241,7 +282,7 @@ public:
 	 * Is used to initialize the solution of connect objects with dependency
 	 * Is also used to load the solution within SuperElements
 	 */
-	virtual void LoadSolution(){
+	void LoadSolution() override{
 		//NOTHING TO BE DONE HERE
 	}
 	
@@ -250,62 +291,28 @@ public:
 	 * @param ek element matrix
 	 * @param ef element right hand side
 	 */
-	virtual void CalcStiff(TPZElementMatrix &ek, TPZElementMatrix &ef);
+	void CalcStiff(TPZElementMatrixT<STATE> &ek, TPZElementMatrixT<STATE> &ef) override{
+		CalcStiffT<STATE>(ek,ef);
+	}
 	
 	/**
 	 * @brief CalcResidual only computes the element residual
 	 * @param ef element residual
 	 */
-	virtual void CalcResidual(TPZElementMatrix &ef);
-	
-	/**
-	 * @brief Computes solution and its derivatives in the local coordinate qsi.
-	 * @param qsi [in] master element coordinate
-	 * @param normal normal vector
-	 * @param leftsol [out] left finite element solution
-	 * @param rightsol [out] right finite element solution
-	 * @param dleftsol [out] left solution derivatives
-	 * @param drightsol [out] right solution derivatives
-	 * @param leftaxes [out] axes associated with the derivative of the left element
-	 * @param rightaxes [out] axes associated with the derivative of the right element
-	 */
-	virtual void ComputeSolution(TPZVec<REAL> &qsi,
-								 TPZVec<REAL> &normal,
-								 TPZSolVec &leftsol, TPZGradSolVec &dleftsol,TPZFMatrix<REAL> &leftaxes,
-								 TPZSolVec &rightsol, TPZGradSolVec &drightsol,TPZFMatrix<REAL> &rightaxes);
-	
-	/**
-	 * @brief Computes solution and its derivatives in local coordinate qsi
-	 * @param qsi master element coordinate
-	 * @param phi matrix containing shape functions compute in qsi point
-	 * @param dphix matrix containing the derivatives of shape functions in the direction of the axes
-	 * @param axes axes indicating the direction of the derivatives
-	 * @param sol finite element solution
-	 * @param dsol solution derivatives
-	 */
-	virtual void ComputeSolution(TPZVec<REAL> &qsi, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphix,
-								 const TPZFMatrix<REAL> &axes, TPZSolVec &sol, TPZGradSolVec &dsol);
-	
-	/**
-	 * @brief Computes solution and its derivatives in the local coordinate qsi.
-	 * @param qsi master element coordinate
-	 * @param sol finite element solution
-	 * @param dsol solution derivatives
-	 * @param axes axes associated with the derivative of the solution
-	 */
-	virtual void ComputeSolution(TPZVec<REAL> &qsi,
-								 TPZSolVec &sol, TPZGradSolVec &dsol,TPZFMatrix<REAL> &axes);
-	
+	void CalcResidual(TPZElementMatrixT<STATE> &ef) override{
+		CalcResidualT<STATE>(ef);
+	}
+    
 	void VetorialProd(TPZVec<REAL> &ivet,TPZVec<REAL> &jvet,TPZVec<REAL> &kvet);
 	
 	/** @brief Prints attributes of the object */
-	void Print(std::ostream &out = std::cout) const;
+	void Print(std::ostream &out = std::cout) const override;
 	
 	/**
 	 * @see Base class for comments
 	 * @brief Interface elements does not have graphical representation
 	 */
-	virtual void CreateGraphicalElement(TPZGraphMesh & graphmesh, int dimension){
+	void CreateGraphicalElement(TPZGraphMesh & graphmesh, int dimension) override{
 		//Nothing to be done here
 	}
 	
@@ -325,36 +332,57 @@ public:
 	/** @brief Make a clone of the fine mesh into clustered mesh.*/
 	void CloneInterface(TPZCompMesh *aggmesh);
 	
-	static int main(TPZCompMesh &cmesh);
-	
-	void EvaluateError(void (*fp)(const TPZVec<REAL> &loc,TPZVec<STATE> &val,TPZFMatrix<STATE> &deriv),
-					   TPZVec<REAL> &errors, TPZBlock<REAL> * /*flux */);
-	
-	/** @brief ComputeError computes the element error estimator */
-	virtual void ComputeErrorFace(int errorid,
-								  TPZVec<STATE> &errorL,
-								  TPZVec<STATE> &errorR);
-	
+    /**
+     * @brief Performs an error estimate on the elemen
+     * @param errors [out] the L2 norm of the error of the solution
+     * @param flux [in] value of the interpolated flux values
+     */
+	void EvaluateError(TPZVec<REAL> &errors, bool store_error) override;
+  	
 	/** @brief Integrate a variable over the element. */
-	virtual void Integrate(int variable, TPZVec<STATE> & value);
+	void Integrate(int variable, TPZVec<STATE> & value) override;
 	
-	void IntegrateInterface(int variable, TPZVec<REAL> & value);
-	
-	/** 
-	 * \f$ opt = 0 \f$ ->  Evaluates \f$ \sqrt{ \int { (leftsol - rightsol)^2 } } \f$ \n
-	 * \f$ opt = 1 \f$ ->  Evaluates \f$ Max { | leftsol - rightsol | } \f$
-	 */
-	void EvaluateInterfaceJump(TPZSolVec &jump, int opt);
+	void IntegrateInterface(int variable, TPZVec<STATE> & value){
+		IntegrateInterfaceT(variable,value);
+	}
 	
 	/** @brief Returns the unique identifier for reading/writing objects to streams */
-	virtual int ClassId() const;
+	public:
+    
+    int ComputeIntegrationOrder() const override;
+    
+	int ClassId() const override;
+
 	/** @brief Saves the element data to a stream */
-	virtual void Write(TPZStream &buf, int withclassid);
+	void Write(TPZStream &buf, int withclassid) const override;
 	
 	/** @brief Reads the element data from a stream */
-	virtual void Read(TPZStream &buf, void *context);
+	void Read(TPZStream &buf, void *context) override;
 	
 };
 
-#endif
 
+#define INSTANTIATE_TEMPLATES(TVar) \
+	extern template \
+	void TPZInterfaceElement::CalcStiffT<TVar>(TPZElementMatrixT<TVar> &, \
+											   TPZElementMatrixT<TVar> &); \
+	extern template \
+	void TPZInterfaceElement::CalcResidualT<TVar>(TPZElementMatrixT<TVar> &); \
+	extern template \
+	void TPZInterfaceElement::NeighbourSolutionT<TVar>( \
+		TPZCompElSide & , TPZVec<REAL> & , TPZSolVec<TVar> &, \
+		TPZGradSolVec<TVar> &, TPZFMatrix<REAL> &); \
+	extern template \
+	void TPZInterfaceElement::IntegrateInterfaceT<TVar>(int, TPZVec<TVar> &); \
+	extern template \
+	void TPZInterfaceElement::ComputeRequiredDataT<TVar>(				\
+		TPZMaterialDataT<TVar> &, TPZInterpolationSpace *, TPZVec<REAL> &); \
+	extern template \
+	void TPZInterfaceElement::ComputeRequiredDataT<TVar>(	\
+		TPZMaterialDataT<TVar> &, TPZVec<REAL> &qsi);
+
+INSTANTIATE_TEMPLATES(STATE)
+INSTANTIATE_TEMPLATES(CSTATE)
+#undef INSTANTIATE_TEMPLATES
+
+#endif

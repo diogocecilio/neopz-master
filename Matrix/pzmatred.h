@@ -7,13 +7,10 @@
 #define _TMATREDHH_
 
 //#include "tintvec.h"
-#include "pzmatrixid.h"
-
-
 #include "pzmatrix.h"
 #include "pzreal.h"
 #include "pzfmatrix.h"
-#include "pzsolve.h"
+#include "TPZMatrixSolver.h"
 
 template<class TVar>
 class TPZVerySparseMatrix;
@@ -48,10 +45,10 @@ public:
 	 * @param dim assumes the value of n1+n2
 	 * @param dim00 equals n1
 	 */
-	TPZMatRed(const long dim, const long dim00);
+	TPZMatRed(const int64_t dim, const int64_t dim00);
 	
 	template<class TSideCopy>
-	TPZMatRed<TVar ,TSideMatrix>(const TPZMatRed<TVar, TSideCopy> &cp): TPZMatrix<TVar>(cp), fK11(cp.fK11), fK01(cp.fK01), fK10(cp.fK10), fF0(cp.fF0), fF1(cp.fF1),fMaxRigidBodyModes(cp.fMaxRigidBodyModes),fNumberRigidBodyModes(cp.fNumberRigidBodyModes)
+	TPZMatRed<TVar ,TSideMatrix>(const TPZMatRed<TVar, TSideCopy> &cp): TPZMatrix<TVar>(cp), fK11(cp.fK11), fK01(cp.fK01), fK10(cp.fK10), fF0(cp.fF0), fF1(cp.fF1),fMaxRigidBodyModes(cp.fMaxRigidBodyModes),fNumberRigidBodyModes(cp.fNumberRigidBodyModes), fF0IsComputed(cp.fF0IsComputed)
 	{
 		fDim0=cp.fDim0;
 		fDim1=cp.fDim1;
@@ -61,13 +58,29 @@ public:
 		
 		if(cp.fK00) fK00 = cp.fK00;
 	}
-	
+	inline TPZMatRed<TVar,TSideMatrix>*NewMatrix() const override {return new TPZMatRed<TVar,TSideMatrix>{};}
 	CLONEDEF(TPZMatRed)
+
+  /** @brief Creates a copy from another TPZMatRed*/
+  void CopyFrom(const TPZMatrix<TVar> *  mat) override
+  {                                                           
+    auto *from = dynamic_cast<const TPZMatRed<TVar,TSideMatrix> *>(mat);                
+    if (from) {                                               
+      *this = *from;                                          
+    }                                                         
+    else                                                      
+      {                                                       
+        PZError<<__PRETTY_FUNCTION__;                         
+        PZError<<"\nERROR: Called with incompatible type\n."; 
+        PZError<<"Aborting...\n";                             
+        DebugStop();                                          
+      }                                                       
+  }
 	/** @brief Simple destructor */
 	~TPZMatRed();
 	
 	/** @brief returns 1 or 0 depending on whether the fK00 matrix is zero or not */
-	virtual int IsSimetric() const;
+	virtual int IsSymmetric() const override;
 	
 	/** @brief changes the declared dimension of the matrix to fDim1 */
 	void SetReduced()
@@ -83,12 +96,12 @@ public:
 	 * @brief Put and Get values without bounds checking
 	 * these methods are faster than "Put" e "Get" if DEBUG is defined
 	 */
-	virtual int PutVal(const long row, const long col, const TVar& value);
-	virtual const TVar &GetVal(const long row, const long col) const;
-	virtual TVar &s(const long row, const long col);
+	virtual int PutVal(const int64_t row, const int64_t col, const TVar& value) override;
+	virtual const TVar GetVal(const int64_t row, const int64_t col) const override;
+	virtual TVar &s(const int64_t row, const int64_t col) override;
 	
 	/** @brief This method will zero all submatrices associated with this reducable matrix class */
-	virtual int Zero();
+	virtual int Zero() override;
 	
 	/**
 	 * @brief Sets the matrix pointer of the upper left matrix to K00
@@ -99,10 +112,17 @@ public:
     /**
      * @brief Sets K01 as computed
      */
-    
-    void SetK01IsComputed (int n)
+    void SetK01IsComputed (bool directive)
     {
-        fK01IsComputed=n;
+        fK01IsComputed = directive;
+    }
+    
+    /**
+     * @brief Sets F0 as computed
+     */
+    void SetF0IsComputed (bool directive)
+    {
+        fF0IsComputed = directive;
     }
 	
 	TPZAutoPointer<TPZMatrix<TVar> > K00()
@@ -118,12 +138,27 @@ public:
 		return fK10;
 	}
     
-    long Dim0()
+    TPZFMatrix<TVar> &K11()
+    {
+        return fK11;
+    }
+    
+    TPZFMatrix<TVar> &F1()
+    {
+        return fF1;
+    }
+    
+    TPZFMatrix<TVar> &F0()
+    {
+        return fF0;
+    }
+    
+    int64_t Dim0()
     {
         return fDim0;
     }
     
-    long Dim1()
+    int64_t Dim1()
     {
         return fDim1;
     }
@@ -174,10 +209,10 @@ public:
 	
 	/** @brief Prints the object data structure */
 	void Print(const char *name = NULL, std::ostream &out = std::cout,
-			   const MatrixOutputFormat = EFormatted) const;
+			   const MatrixOutputFormat = EFormatted) const override;
 	
 	/** @brief Redim: Set the dimension of the complete matrix and reduced matrix */
-	int Redim(const long dim,const long dim00); //Cesar 19/12/00
+	int Redim(const int64_t dim,const int64_t dim00) override; //Cesar 19/12/00
 	
 	/**
 	 * @brief It computes z = beta * y + alpha * opt(this)*x but z and x can not overlap in memory.
@@ -190,18 +225,23 @@ public:
 	 * vector and N is matrix dimension
 	 */
 	void MultAdd(const TPZFMatrix<TVar> &x, const TPZFMatrix<TVar> &y, TPZFMatrix<TVar> &z,
-				 const TVar alpha, const TVar beta, const int opt) const;
+				 const TVar alpha, const TVar beta, const int opt) const override;
 	
 	/** @brief If fK00 is simetric, only part of the matrix is accessible to external objects. */
 	/** Simetrizes copies the data of the matrix to make its data simetric */
 	void SimetrizeMatRed();
 	
 	/** @brief Saveable methods */
-	int ClassId() const;
+	public:
+  int ClassId() const override;
+
 	
-	virtual void Write(TPZStream &buf, int withclassid);
-	virtual void Read(TPZStream &buf, void *context);
-	
+	void Write(TPZStream &buf, int withclassid) const override;
+	void Read(TPZStream &buf, void *context) override;
+protected:
+  int64_t Size() const override;
+  TVar *&Elem() override;
+  const TVar *Elem() const override;
 private:
 	
 	/**
@@ -209,7 +249,7 @@ private:
 	 * @param row Row number
 	 * @param col Column number
 	 */
-	static void Swap(long *row, long *col);
+	static void Swap(int64_t *row, int64_t *col);
     
     /** @brief Decompose K00 and adjust K01 and K10 to reflect rigid body modes */
     void DecomposeK00();
@@ -221,21 +261,25 @@ private:
 	TPZAutoPointer<TPZMatrixSolver<TVar> > fSolver;
 	
 	/** @brief Full Stiffnes matrix */
-	TSideMatrix fK11;
+	TPZFMatrix<TVar> fK11;
+    
 	TSideMatrix fK01, fK10;
 	
 	/** @brief Right hand side or force matrix */
 	TPZFMatrix<TVar> fF0, fF1;
 
 	/** @brief Stores matricess \f$ fKij \f$ dimensions */
-	long fDim0, fDim1;
+	int64_t fDim0, fDim1;
 	
 	/** @brief Is true if the declared dimension of the matrix is fDim0 */
 	bool fIsReduced;
 	
 	/** @brief Is true if \f$ [(K00)^-1][KO1] \f$ has been computed and overwritten \f$ [K01] \f$ */
-	bool fK01IsComputed;
+	bool fK01IsComputed = false;
 	
+    /** @brief Is true if \f$ [(K00)^-1][F0] \f$ has been computed and overwritten \f$ [F0] \f$ */
+    bool fF0IsComputed = false;
+    
     /** @brief Number of rigid body modes foreseen in the computational mesh */
     int fMaxRigidBodyModes;
     
@@ -243,13 +287,18 @@ private:
     int fNumberRigidBodyModes;
 };
 
+template<class TVar, class TSideMatrix>
+int TPZMatRed<TVar,TSideMatrix>::ClassId() const{
+    return Hash("TPZMatRed") ^ TPZMatrix<TVar>::ClassId() << 1 ^ TSideMatrix().ClassId() << 2;
+}
+
 /************/
 /*** Swap ***/
 /* @note Modificacao por Philippe Devloo (insercao de inline )*/
 template<class TVar, class TSideMatrix>
-inline void TPZMatRed<TVar, TSideMatrix>::Swap(long *a, long *b)
+inline void TPZMatRed<TVar, TSideMatrix>::Swap(int64_t *a, int64_t *b)
 {
-	long aux = *a;
+	int64_t aux = *a;
 	*a = *b;
 	*b = aux;
 }

@@ -1,58 +1,33 @@
 /**
  * @file
- * @brief Contains declaration of the TPZAutoPointer class which has Increment and Decrement actions are mutexed by this mutex.
+ * @brief Contains declaration of the TPZAutoPointer class.
  */
 
 #ifndef TPZAUTOPOINTER_H
 #define TPZAUTOPOINTER_H
 
-#include "pz_pthread.h"
+#include <stdlib.h>
+#include <atomic>
+#include <thread>
+#include <chrono>
+#include <iostream>
+#include <mutex>
+#include <stdexcept>
+// #include <iostream>//useful for debugging
 
 /**
  * \addtogroup util
  * @{
  */
 
-/**
- * @brief Increment and Decrement actions are mutexed by this mutex
- */
-#define AP_MUTEX_ARRAY_SZ 512
+// /**
+//  * @brief Increment and Decrement actions are mutexed by this mutex
+//  */
 
-/* Define PROFILE_AP_MUTEXES if you want to profile the autopointer mutexes use. */
-//#define PROFILE_AP_MUTEXES
-
-#ifdef PROFILE_AP_MUTEXES
-extern unsigned long long ap_mutex_accesses[];
-#endif
-
-#define AP_MUTEX_HASH_1         \
-addr = (addr >> 32) ^ addr;   \
-addr = (addr >> 16) ^ addr;   \
-addr = (addr >> 8)  ^ addr;   \
-addr = (addr >> 4)  ^ addr;   \
-i = (unsigned) (addr % AP_MUTEX_ARRAY_SZ)
-
-#define AP_MUTEX_HASH_2         \
-addr = (addr >> 8)  ^ addr;   \
-addr = (addr >> 4)  ^ addr;   \
-i = (unsigned) (addr % AP_MUTEX_ARRAY_SZ)
-
-extern pthread_mutex_t gAutoPointerMutexArray[];
-inline pthread_mutex_t* get_ap_mutex(void* obj)
-{
-	unsigned i;
-	unsigned long long addr = (unsigned long long) obj;
-	//  AP_MUTEX_HASH_1;
-	AP_MUTEX_HASH_2;
-#ifdef PROFILE_AP_MUTEXES
-	ap_mutex_accesses[i]++;
-#endif
-	return &(gAutoPointerMutexArray[i]);
-}
-
-#include <stdlib.h>
-
-
+//namespace pzinternal{
+//    extern std::recursive_mutex g_ap_mut;
+//extern std::mutex g_diag_mut;
+//}
 
 /**
  * @brief This class implements a reference counter mechanism to administer a dynamically allocated object. \ref util "Utility"
@@ -62,157 +37,298 @@ template<class T>
 class TPZAutoPointer {
     
 	/** @brief Counter struct */
-	template<class T2>
     struct TPZReference
     {
-        /** @brief Pointer to T2 object */
-        T2 *fPointer;
-        int fCounter;
+        /** @brief Pointer to T object */
+        T *fPointer{nullptr};
+        /** @brief Reference counter*/
+        std::atomic_int fCounter{0};
         
         TPZReference()
         {
-            fPointer = 0;
-            fCounter = 1;
+            fPointer = nullptr;
+            fCounter.store(1);
         }
         
-        TPZReference(T2 *pointer)
+        TPZReference(T *pointer)
         {
             fPointer = pointer;
-            fCounter = 1;
+            fCounter.store(1);
         }
+
+        TPZReference(const TPZReference &) = delete;        
+        TPZReference(TPZReference&&rval) = delete;
+        TPZReference& operator=(const TPZReference &copy) = delete;
+        TPZReference& operator=(TPZReference &&rval) = delete;
         
         ~TPZReference()
         {
-            if(fPointer) delete fPointer;
-            fPointer = 0;
-        }
-        
-        void ReallocForNuma(int node_id)
-        {
-            // -2: Do not realloc
-            // -1: Realloc to the node that is currently running this thread.
-            // node_id>=0 : Realloc to node_id
-            
-            if (node_id == -2) return;
-            
-            //TODO: Currently relying on first-touch policy to implement case -1
-            
-            T2* old = fPointer;
-            fPointer = (T2*) fPointer->Clone();
-            delete old;
+            if(fPointer) {
+                delete fPointer;
+            }
+            fPointer = nullptr;
         }
         
 
         /** @brief Increment the counter */
         bool Increment()
         {
-            if(PZ_PTHREAD_MUTEX_LOCK(get_ap_mutex((void*) this), __PRETTY_FUNCTION__))
-                return false;
-            fCounter++;
-            PZ_PTHREAD_MUTEX_UNLOCK(get_ap_mutex((void*) this), __PRETTY_FUNCTION__);
+//            std::mutex *mut = get_ap_mutex((void*) this);
+//            std::unique_lock<std::mutex> lck(*mut);//already locks
+            fCounter.fetch_add(1);
+//            lck.unlock();
             return true;
         }
-        /** @brief Decrease the counter. If the counter is zero, delete myself */
+        /** @brief Decrease the counter. The return value will specify if
+            it is needed to delete the reference.*/
         bool Decrease()
         {
-            int should_delete = 0;
-            if(PZ_PTHREAD_MUTEX_LOCK(get_ap_mutex((void*) this), __PRETTY_FUNCTION__))
-                return false;
-            fCounter--;
-            
-            if(fCounter <= 0) should_delete = 1;
-            
-            PZ_PTHREAD_MUTEX_UNLOCK(get_ap_mutex((void*) this), __PRETTY_FUNCTION__);
-            if(should_delete)
-            {
-                delete this;
+            bool should_delete = false;
+            int result = fCounter.fetch_sub(1);
+            result--;
+//            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            // at this point the object may already have been deleted by another thread
+//            {
+//                const std::lock_guard<std::mutex> lock(pzinternal::g_diag_mut);
+//                std::cout <<  "thread id " <<  std::this_thread::get_id() <<
+//                " result " << result << std::endl;
+//            }
+            if((result) == 0) should_delete = true;
+            else if((result) < 0){
+                throw std::logic_error(
+                    "Invalid value for ref counter of TPZAutoPointer");
             }
-            return true;
+            return should_delete;
         }
         
     };
     
 	/** @brief The object which contains the pointer and the reference count */
-	TPZReference<T> *fRef;
+	TPZReference *fRef{nullptr};
     
 public:
 	/** @brief Creates an reference counted null pointer */
-	TPZAutoPointer()
+	TPZAutoPointer() : fRef(new TPZReference())
 	{
-		fRef = new TPZReference<T>();
+		
 	}
     
 	/** @brief The destructor will delete the administered pointer if its reference count is zero */
 	~TPZAutoPointer()
-	{
-		fRef->Decrease();
-		//if(fRef->fCounter<1)
-		//	delete fRef;
+	{        
+        if (fRef && fRef->Decrease()){
+            Release();
+        }
 	}
     
 	/** @brief This method will create an object which will administer the area pointed to by obj */
-	TPZAutoPointer(T *obj)
+	TPZAutoPointer(T *obj) : fRef(new TPZReference(obj))
 	{
-		fRef = new TPZReference<T>(obj);
+
+	}
+
+    /** @brief This method will create an object which will administer the area pointed to by obj */
+    template<class T2>
+	TPZAutoPointer(T2 *obj)
+	{
+        if constexpr (!std::is_base_of_v<T, T2>){
+            static_assert(!sizeof(T2*),"Incompatible types when creating TPZAutoPointer");
+        }
+        fRef = new TPZReference((T*)obj);
 	}
     
 	/** @brief Share the pointer of the copy */
-	TPZAutoPointer(const TPZAutoPointer<T> &copy)
+	TPZAutoPointer(const TPZAutoPointer<T> &copy) :
+        fRef(copy.fRef)
 	{
-		fRef = copy.fRef;
 		fRef->Increment();
 	}
+    /** @brief Acquire the pointer of the rval */
+	TPZAutoPointer(TPZAutoPointer<T> &&rval) :
+        fRef(rval.fRef)
+	{
+		rval.fRef = nullptr;
+	}
+        
+	/** @brief Move assignment operator */
+
+	TPZAutoPointer &operator=(TPZAutoPointer<T> &&rval)
+    {
+        if (fRef && fRef->Decrease()){
+            Release();
+        }
+        fRef = rval.fRef;
+        rval.fRef = nullptr;
+        return *this;
+    }
+    
 	/** @brief Assignment operator */
 	TPZAutoPointer &operator=(const TPZAutoPointer<T> &copy)
 	{
-		if(copy.fRef == fRef) return *this;
-		copy.fRef->Increment();
-		fRef->Decrease();
+		if(copy.fRef == fRef) return *this;		
+        else if (fRef && fRef->Decrease()){
+            Release();
+        }
 		fRef = copy.fRef;
+        copy.fRef->Increment();
+        
 		return *this;
 	}
-    
-	/** @brief Returns the referenced object */
+
+    /** @brief Raw ptr assignment operator */
+
+	TPZAutoPointer &operator=(T *rval)
+    {
+        if (fRef && fRef->Decrease()){
+            Release();
+        }
+        fRef = new TPZReference(rval);
+        return *this;
+    }
+
+    /** @brief Share the pointer of the rval of derived type T2 */
+    template<class T2>
+	TPZAutoPointer(const TPZAutoPointer<T2> &other)
+	{
+        if constexpr (!std::is_base_of_v<T, T2>){
+            throw std::logic_error(
+                    "Incompatible types when creating TPZAutoPointer");
+        }
+        fRef = (TPZReference*) other.fRef;
+        fRef->Increment();
+	}
+    //! Assignment operator from TPZAutoPointer of derived type T2
+    template<class T2>
+    TPZAutoPointer &operator=(const TPZAutoPointer<T2> &other)
+    {
+        if constexpr (!std::is_base_of_v<T, T2>){
+            static_assert(!sizeof(T2*),"Incompatible types when creating TPZAutoPointer");
+        }
+        if (fRef && fRef->Decrease()){
+            Release();
+        }
+        fRef = (TPZReference *) other.fRef;
+        fRef->Increment();
+        return *this;
+    }
+    //! Assignment operator from  derived type T2
+    template<class T2>
+    TPZAutoPointer &operator=(T2 *other)
+    {
+        if constexpr (!std::is_base_of_v<T, T2>){
+            static_assert(!sizeof(T2*),"Incompatible types when creating TPZAutoPointer");
+        }
+        if (fRef && fRef->Decrease()){
+            Release();
+        }
+        fRef = new TPZReference(other);
+        return *this;
+    }
+	/** @brief User-defined conversion from TPZAutoPointer<T> to &T */
 	operator T&()
 	{
 		return *(fRef->fPointer);
 	}
+        
+	/** @brief Returns the referenced object */
+	T& operator *() const
+	{
+		return *(fRef->fPointer);
+	}
+        
+	// /** @brief Returns the referenced object */
+	// T& operator *()
+	// {
+	// 	return *(fRef->fPointer);
+	// }
     
 	/** @brief Returns the pointer for referenced object */
 	T *operator->() const
 	{
 		return fRef->fPointer;
 	}
-	T *operator->()
-	{
-		return fRef->fPointer;
-	}
+	// T *operator->()
+	// {
+		// return fRef->fPointer;
+    // }
     
-	void ReallocForNuma(int node)
+	inline void ReallocForNuma([[maybe_unused]] int node)
 	{
-		fRef->ReallocForNuma(node);
-	}
+		return;
+	}    
     
 	/** @brief Returns if pointer was attributed */
 	operator bool() const{
-		return (this->fRef->fPointer != 0);
+		return (fRef && fRef->fPointer != nullptr);
 	}
 	operator bool() {
-		return fRef->fPointer != 0;
+		return (fRef && fRef->fPointer != nullptr);
 	}
     
 	/** @brief Returns the counter value */
 	int Count() const
 	{
+        if(!fRef) return 0;
 		return fRef->fCounter;
 	}
-	int Count()
-	{
-		return fRef->fCounter;
-	}
-    
+    template<typename R, typename T2>
+    friend TPZAutoPointer<R> TPZAutoPointerDynamicCast(TPZAutoPointer<T2> in);
+    template<class T2>
+    friend class TPZAutoPointer;
+private:
+    /** @brief Method for deleting the reference*/
+    inline void Release(){
+        if(fRef && ! fRef->fCounter) {
+            delete fRef;
+        }
+        fRef = nullptr;
+    }
 };
 
+// this is the reason why the counter is dynamically allocated
+template<typename R, typename T>
+TPZAutoPointer<R> TPZAutoPointerDynamicCast(TPZAutoPointer<T> in) {
+    TPZAutoPointer<R> rv;
+    if (R* p; (p = dynamic_cast<R*> (in.fRef->fPointer)) ) {
+        delete rv.fRef;
+        rv.fRef = (typename TPZAutoPointer<R>::TPZReference *) in.fRef;
+        rv.fRef->Increment();
+    }
+    return rv;
+}
+
 /** @} */
+/** The following templates will be properly instantiated in
+the file tpzautopointer.cpp.
+
+These extern template instantiations are just to avoid each translation
+units creating their own symbols (and afterwards throwing them away)*/
+template <class T>
+class TPZMatrix;
+
+
+extern template class TPZAutoPointer<TPZMatrix<float>>;
+extern template class TPZAutoPointer<TPZMatrix<double>>;
+extern template class TPZAutoPointer<TPZMatrix<long double>>;
+#include <complex>
+extern template class TPZAutoPointer<TPZMatrix<std::complex<float> >>;
+extern template class TPZAutoPointer<TPZMatrix<std::complex<double> >>;
+extern template class TPZAutoPointer<TPZMatrix<std::complex<long double> >>;
+
+template<class T>
+class TPZFunction;
+extern template class TPZAutoPointer<TPZFunction<float>>;
+extern template class TPZAutoPointer<TPZFunction<double>>;
+extern template class TPZAutoPointer<TPZFunction<long double>>;
+extern template class TPZAutoPointer<TPZFunction<std::complex<float> >>;
+extern template class TPZAutoPointer<TPZFunction<std::complex<double> >>;
+extern template class TPZAutoPointer<TPZFunction<std::complex<long double> >>;
+
+class TPZGeoMesh;
+extern template class TPZAutoPointer<TPZGeoMesh>;
+class TPZCompMesh;
+extern template class TPZAutoPointer<TPZCompMesh>;
+class TPZRefPattern;
+extern template class TPZAutoPointer<TPZRefPattern>;
 
 #endif

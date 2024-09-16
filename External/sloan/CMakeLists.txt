@@ -1,8 +1,23 @@
 # @file neopz/External/Sloan/CMakeLists.txt  -- CMake file for the Sloan external module
 
-file(GLOB headers *.h)
-install(FILES ${headers} DESTINATION ${NEOPZ_INCLUDE})
+set(headers sloan.h)
+set(sources
+    diamtr.cpp
+    gegra.cpp
+    iorele.cpp
+    isorti.cpp
+    label.cpp
+    number.cpp
+    profi1.cpp
+    rootls.cpp
+    vsrtp1.cpp
+    )
 
-file(GLOB sources *.cpp)
+target_include_directories(pz PUBLIC 
+                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+                           $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/External/Sloan>
+                           )
 
-set(sloan_SRCS ${headers} ${sources} PARENT_SCOPE)
+install(FILES ${headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/External/Sloan)
+
+target_sources(pz PRIVATE ${headers} ${sources})

@@ -41,28 +41,25 @@ public:
 	void ReadRefPatternDBase(std::ifstream &filein);
 	
 	void WriteRefPatternDBase(std::ofstream &fileout);
-	
-	/**
-	 * @brief Import a library of refinement patterns from the install directory
-	 * @return Return the number of refpatterns imported
-	 */
-	int ImportRefPatterns();
-	
-	/**
-	 * @brief Import a library of refinement patterns from the given directory
-	 * @return Return the number of refpatterns imported
-	 */
-	int ImportRefPatterns(std::string &Path);
-	
-	/** @brief Retrieves the uniform refinement pattern for given element type */ 
+
+	/** @brief Retrieves the uniform refinement pattern for given element type */
 	TPZAutoPointer<TPZRefPattern> GetUniformRefPattern(MElementType type);
 	
 	/** @brief Initialize the uniform refinement pattern from hard coaded data for an specific geometric element */
 	void InitializeUniformRefPattern(MElementType elType);
-	
-	void InitializeRefPatterns();
-	
-	/** @brief Initialize the uniform refinement pattern from hard coaded data for all linear geometric elements */
+
+    void InitializeRefPatterns(int maxdim = 3) {
+        std::string path = PZ_REFPATTERN_DIR;
+        ImportRefPatterns(path, maxdim);
+    }
+
+    /**
+     * @brief Import a library of refinement patterns from the given directory
+     * @return Return the number of refpatterns imported
+     */
+    int ImportRefPatterns(std::string &Path, int maxdim = 3);
+
+    /** @brief Initialize the uniform refinement pattern from hard coaded data for all linear geometric elements */
 	void InitializeAllUniformRefPatterns();
 	
 	/** @brief Insert the refinement pattern in the list of availabe refinement patterns assigns an Id to refPattern */
@@ -82,11 +79,7 @@ public:
 	
 	void Print(std::ostream &out = std::cout);	
 	
-	void clear()
-	{
-		fElTypeRefPatterns.clear();
-		fIdRefPatterns.clear();
-	}
+    void clear();
 	
 protected:
 	
@@ -95,6 +88,12 @@ protected:
 	
 	/** @brief Maps all refinement pattern objects in the mesh, indexed by refpattern Id */
 	std::map< int , TPZAutoPointer<TPZRefPattern> > fIdRefPatterns;
+
+    /**
+     * @brief Import a library of refinement patterns from the install directory
+     * @return Return the number of refpatterns imported
+     */
+    [[deprecated("Use TPZRefPatternDataBase::InitializeRefPatterns instead!")]]int ImportRefPatterns(int maxdim = 3);
 
 };
 

@@ -1,8 +1,10 @@
-file(GLOB source *.cpp)
+set(targetName Perf-SubStruct)
 
-file(GLOB header *.h)
+add_pz_internal_target(
+  NAME ${targetName}
+  SOURCES substruct.cpp
+  FILES cube1.txt 8andares02.txt)
 
-add_executable(Perf-SubStruct ${source} ${header})
-install(TARGETS Perf-SubStruct DESTINATION bin)
-target_link_libraries(Perf-SubStruct pz pthread)
-
+if(USING_PZ_LOG)
+  target_link_libraries(${targetName} PRIVATE ${Log4cxx_LIBRARY})
+endif()

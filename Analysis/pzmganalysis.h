@@ -6,10 +6,12 @@
 #ifndef TPZMGANALYSIS_H
 #define TPZMGANALYSIS_H
 
-#include "pzanalysis.h"
+#include "TPZLinearAnalysis.h"
 #include "pztransfer.h"
+#include "pztrnsform.h" //needed because of default templ params
 
 class TPZInterpolatedElement;
+template<class T>
 class TPZTransform;
 
 template <class TVar>
@@ -22,10 +24,10 @@ class TPZOneDRef;
 class TPZGeoEl;
 
 /**
- * @brief Implements multigrid analysis. TPZMGAnalysis is derived from TPZAnalysis. \ref analysis "Analysis"
+ * @brief Implements multigrid analysis. TPZMGAnalysis is derived from TPZLinearAnalysis. \ref analysis "Analysis"
  * @ingroup Analysis
  */
-class TPZMGAnalysis : public TPZAnalysis {
+class TPZMGAnalysis : public TPZLinearAnalysis {
 public:
 	
 	/** @brief Destructor */
@@ -41,7 +43,7 @@ public:
 	TPZCompMesh *PopMesh ();
 	
 	/** @brief Uses fSolver object to apply a solution algorithm */
-	virtual void Solve ();
+	virtual void Solve () override;
 	
 	/** @brief Loads the last two solutions and call the error between these two aproximations */
 	void ComputeError (TPZVec<REAL> &error);
@@ -71,7 +73,7 @@ private:
 	TPZStack < TPZCompMesh * > fMeshes;
 	
 	/** @brief Contains the meshes solutions */	
-	TPZStack <TPZFMatrix<STATE> *> fSolutions;
+	TPZStack <TPZSolutionMatrix *> fSolutions;
 	
 	/** @brief Contains the solution method applied to the mesh */
 	TPZStack <TPZMatrixSolver<STATE> *> fSolvers;
@@ -91,9 +93,11 @@ private:
 	 */
 	static  REAL ElementError (TPZInterpolatedElement *fine,
 							   TPZInterpolatedElement *coarse,
-							   TPZTransform &tr,
+							   TPZTransform<> &tr,
 							   void (*f) (const TPZVec<REAL> &loc, TPZVec<STATE> &val, TPZFMatrix<STATE> &deriv),
 							   REAL &truerror);
+	template<class TVar>
+	void SolveInternal();
 };
 
 #endif //TPZMGANALYSIS_H

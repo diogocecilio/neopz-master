@@ -15,22 +15,49 @@
 #include <sstream>
 #include "pzlog.h"
 
-#include "TPZfTime.h"
+#include "TPZSimpleTimer.h"
 #include "TPZTimeTemp.h"
 
-#include "pz_pthread.h"
 
 #include "arglib.h"
 
 #include "tpzparallelenviroment.h"
+#include "TPZPersistenceManager.h"
 
+#include <thread>
 
-#ifdef LOG4CXX
-static LoggerPtr logger(Logger::getLogger("substruct.dohrprecond"));
-static LoggerPtr loggerv1v2(Logger::getLogger("substruct.v1v2"));
+#ifdef PZ_LOG
+static TPZLogger logger("substruct.dohrprecond");
+static TPZLogger loggerv1v2("substruct.v1v2");
 #endif
 
 using namespace std;
+
+template<class TVar, class TSubStruct>
+int64_t TPZDohrPrecond<TVar,TSubStruct>::Size() const
+{
+  PZError<<__PRETTY_FUNCTION__;
+  PZError<<"ERROR:Should not be called\n.Aborting...\n";
+  DebugStop();
+	return -1;
+}
+template<class TVar, class TSubStruct>
+TVar* &TPZDohrPrecond<TVar,TSubStruct>::Elem()
+{
+  PZError<<__PRETTY_FUNCTION__;
+  PZError<<"ERROR:Should not be called\n.Aborting...\n";
+  DebugStop();
+	static TVar* t{nullptr};
+  return t;
+}
+template<class TVar, class TSubStruct>
+const TVar* TPZDohrPrecond<TVar,TSubStruct>::Elem() const
+{
+  PZError<<__PRETTY_FUNCTION__;
+  PZError<<"ERROR:Should not be called\n.Aborting...\n";
+  DebugStop();
+	return nullptr;
+}
 
 template<class TVar, class TSubStruct>
 TPZDohrPrecond<TVar, TSubStruct>::TPZDohrPrecond(TPZDohrMatrix<TVar, TSubStruct> &origin, TPZAutoPointer<TPZDohrAssembly<TVar> > assemble)
@@ -134,20 +161,18 @@ void TPZDohrPrecond<TVar, TSubStruct>::MultAddTBB(const TPZFMatrix<TVar> &x,cons
 		this->Error ("TPZFMatrix::MultiplyAdd incompatible dimensions\n");
 	}
 
-	long rows = this->Rows();
-	long cols = this->Cols();
+	int64_t rows = this->Rows();
+	int64_t cols = this->Cols();
 	this->PrepareZ(y,z,beta,opt);
     
     TPZFMatrix<TVar> v1(rows,x.Cols(),0.);
 	TPZFMatrix<TVar> v2(cols,x.Cols(),0.);
 
-    TPZVec<pthread_t> AllThreads(2);
+    std::vector<thread> AllThreads(2);
     TPZDohrPrecondThreadV1Data<TVar,TSubStruct> v1threaddata(this,x,v1);
-    
-    PZ_PTHREAD_CREATE(&AllThreads[0], 0,
-                      (TPZDohrPrecondThreadV1Data<TVar,TSubStruct>::ComputeV1),
-                      &v1threaddata, __FUNCTION__);
-    
+    AllThreads[0] = thread((TPZDohrPrecondThreadV1Data<TVar,TSubStruct>::ComputeV1),
+                           &v1threaddata);
+
     TPZAutoPointer<TPZDohrAssembleList<TVar> > assemblelist = new TPZDohrAssembleList<TVar>(fGlobal.size(),v2,this->fAssemble);
     
     ParallelAssembleTask<TVar, TSubStruct> tbb_work(assemblelist);
@@ -167,21 +192,20 @@ void TPZDohrPrecond<TVar, TSubStruct>::MultAddTBB(const TPZFMatrix<TVar> &x,cons
 
     tbb_work.run_parallel_for(pzenviroment.fSubstructurePartitioner);
 
-    PZ_PTHREAD_CREATE(&AllThreads[1], 0, TPZDohrAssembleList<TVar>::Assemble,
-                      assemblelist.operator->(), __FUNCTION__);
-    
+    AllThreads[1] = thread(TPZDohrAssembleList<TVar>::Assemble,
+                           assemblelist.operator->());
+
     for (int i=0; i<2; i++) {
-        void *result;
-        PZ_PTHREAD_JOIN(AllThreads[i], &result, __FUNCTION__);
+        AllThreads[i].join();
     }
     
     v2 += v1;
 
 	/** Soma v1+v2+v3 com z */
-    long xcols = x.Cols();
-    for (long ic=0; ic<xcols; ic++)
+    int64_t xcols = x.Cols();
+    for (int64_t ic=0; ic<xcols; ic++)
     {
-        for (long c=0; c<rows; c++) {
+        for (int64_t c=0; c<rows; c++) {
             z(c,ic) += v2(c,ic);
         }
     }
@@ -202,17 +226,23 @@ void TPZDohrPrecond<TVar, TSubStruct>::MultAdd(const TPZFMatrix<TVar> &x,const T
 	if(x.Cols() != y.Cols() || x.Cols() != z.Cols() || x.Rows() != y.Rows() || x.Rows() != z.Rows()) {
 		this->Error ("TPZFMatrix::MultiplyAdd incompatible dimensions\n");
 	}
-	TPZfTime precondi; // init of timer
-	long rows = this->Rows();
-	long cols = this->Cols();
-	long c;
+	TPZSimpleTimer precondi; // init of timer
+	int64_t rows = this->Rows();
+	int64_t cols = this->Cols();
+	int64_t c;
 	this->PrepareZ(y,z,beta,opt);
-#ifdef LOG4CXX
+#ifdef PZ_LOG
 	{
 		std::stringstream sout;
 		x.Print("x entry vector",sout);
-		LOGPZ_DEBUG(logger,sout.str())
-		LOGPZ_DEBUG(loggerv1v2,sout.str())
+		if (logger.isDebugEnabled())
+		{
+			LOGPZ_DEBUG(logger, sout.str());
+		}
+		if (loggerv1v2.isDebugEnabled())
+		{
+			LOGPZ_DEBUG(loggerv1v2, sout.str())
+		}
 	}
 #endif
 	TPZFMatrix<TVar> v1(rows,x.Cols(),0.);
@@ -224,12 +254,10 @@ void TPZDohrPrecond<TVar, TSubStruct>::MultAdd(const TPZFMatrix<TVar> &x,const T
 	}
 	else
 	{
-		TPZVec<pthread_t> AllThreads(fNumThreads+2);
+        std::vector<std::thread> AllThreads(fNumThreads+2);
 		TPZDohrPrecondThreadV1Data<TVar,TSubStruct> v1threaddata(this,x,v1);
 		
-		PZ_PTHREAD_CREATE(&AllThreads[0], 0,
-                          (TPZDohrPrecondThreadV1Data<TVar,TSubStruct>::ComputeV1),
-                          &v1threaddata, __FUNCTION__);
+        AllThreads[0] = thread((TPZDohrPrecondThreadV1Data<TVar,TSubStruct>::ComputeV1), &v1threaddata);
 		
 		TPZAutoPointer<TPZDohrAssembleList<TVar> > assemblelist = new TPZDohrAssembleList<TVar>(fGlobal.size(),v2,this->fAssemble);
 		
@@ -248,19 +276,14 @@ void TPZDohrPrecond<TVar, TSubStruct>::MultAdd(const TPZFMatrix<TVar> &x,const T
 		
 		int i;
 		for (i=0; i<fNumThreads; i++) {
-            PZ_PTHREAD_CREATE(&AllThreads[i+2], 0,
-                              (TPZDohrPrecondV2SubDataList<TVar,TSubStruct>::ThreadWork),
-                              &v2work, __FUNCTION__);
+            AllThreads[i+2] = std::thread(TPZDohrPrecondV2SubDataList<TVar,TSubStruct>::ThreadWork, &v2work);
 		}
 		//		v2work.ThreadWork(&v2work);
-		
-		PZ_PTHREAD_CREATE(&AllThreads[1], 0, TPZDohrAssembleList<TVar>::Assemble,
-                          assemblelist.operator->(), __FUNCTION__);
-		//		assemblelist->Assemble(assemblelist.operator->());
+		AllThreads[1] = thread(TPZDohrAssembleList<TVar>::Assemble,
+                               assemblelist.operator->());
 		
 		for (i=0; i<fNumThreads+2; i++) {
-            void *result;
-            PZ_PTHREAD_JOIN(AllThreads[i], &result, __FUNCTION__);
+            AllThreads[i].join();
 		}
 		//		ComputeV2(x,v2);
 	}
@@ -272,10 +295,10 @@ void TPZDohrPrecond<TVar, TSubStruct>::MultAdd(const TPZFMatrix<TVar> &x,const T
 	for(it= fGlobal.begin(); it != fGlobal.end(); it++,isub++)
 	{
 		TPZFNMatrix<100> v2Expand((*it)->fNEquations,1,0.), v3Expand((*it)->fNEquations,1,0.);
-		long neqs = (*it)->fGlobalEqs.NElements();
+		int64_t neqs = (*it)->fGlobalEqs.NElements();
 		TPZFMatrix<TVar> v3_local(neqs,1,0.), v2_local(neqs,1,0.);
 		fAssemble->Extract(isub,v2,v2_local);
-		long i;
+		int64_t i;
 		for (i=0;i<neqs;i++)
 		{
 			std::pair<int,int> ind = (*it)->fGlobalEqs[i];
@@ -288,14 +311,17 @@ void TPZDohrPrecond<TVar, TSubStruct>::MultAdd(const TPZFMatrix<TVar> &x,const T
 			std::pair<int,int> ind = (*it)->fGlobalEqs[i];
 			v3_local(i,0) += v3Expand(ind.first,0);
 		}
-#ifdef LOG4CXX
+#ifdef PZ_LOG
 		{
 			std::stringstream sout;
 			v2Expand.Print("v1+v2 Expand",sout);
 			v3Expand.Print("v3 Expand", sout);
 			v2_local.Print("v1+v2 local",sout);
 			v3_local.Print("v3 local",sout);
-			LOGPZ_DEBUG(logger,sout.str())
+			if (logger.isDebugEnabled())
+			{
+				LOGPZ_DEBUG(logger, sout.str());
+			}
 		}
 #endif
 		fAssemble->Assemble(isub,v3_local,v2);
@@ -304,8 +330,8 @@ void TPZDohrPrecond<TVar, TSubStruct>::MultAdd(const TPZFMatrix<TVar> &x,const T
 	// wait task para finalizacao da chamada
 	// esperar a versao correta do v1
 	/* Sum v1+v2+v3 with z */
-    long xcols = x.Cols();
-    for (long ic=0; ic<xcols; ic++)
+    int64_t xcols = x.Cols();
+    for (int64_t ic=0; ic<xcols; ic++)
     {
         for (c=0; c<rows; c++) {
             z(c,ic) += v2(c,ic);
@@ -319,24 +345,24 @@ template<class TVar, class TSubStruct>
 void TPZDohrPrecond<TVar, TSubStruct>::Initialize()
 {
 	//Compute the skyline of the coarse equations
-	TPZManVector<long> skyline(fNumCoarse);
-	long ic;
+	TPZManVector<int64_t> skyline(fNumCoarse);
+	int64_t ic;
 	for (ic=0; ic<fNumCoarse; ic++) {
 		skyline[ic] = ic;
 	}
-	long nsub = fAssemble->fCoarseEqs.NElements();
-	long isub;
+	int64_t nsub = fAssemble->fCoarseEqs.NElements();
+	int64_t isub;
 	for (isub=0; isub<nsub; isub++) {
-		long nc = fAssemble->fCoarseEqs[isub].NElements();
-		long ic;
-		long mineq = 0;
+		int64_t nc = fAssemble->fCoarseEqs[isub].NElements();
+		int64_t ic;
+		int64_t mineq = 0;
         if(nc != 0) mineq = fAssemble->fCoarseEqs[isub][0];
 		for (ic=0; ic<nc; ic++) {
-			long eq = fAssemble->fCoarseEqs[isub][ic];
+			int64_t eq = fAssemble->fCoarseEqs[isub][ic];
 			mineq = mineq > eq ? eq : mineq;
 		}
 		for (ic=0; ic<nc; ic++) {
-			long eq = fAssemble->fCoarseEqs[isub][ic];
+			int64_t eq = fAssemble->fCoarseEqs[isub][ic];
 			if(skyline[eq] > mineq) skyline[eq] = mineq;
 		}
 	}
@@ -346,13 +372,13 @@ void TPZDohrPrecond<TVar, TSubStruct>::Initialize()
 	{
 		TPZFMatrix<TVar> coarse2(*coarse);
 		for (isub=0; isub<nsub; isub++) {
-			long nc = fAssemble->fCoarseEqs[isub].NElements();
-			long ic;
+			int64_t nc = fAssemble->fCoarseEqs[isub].NElements();
+			int64_t ic;
 			for (ic=0; ic<nc; ic++) {
-				long ieq = fAssemble->fCoarseEqs[isub][ic];
-				long jc;
+				int64_t ieq = fAssemble->fCoarseEqs[isub][ic];
+				int64_t jc;
 				for (jc=0; jc<nc; jc++) {
-					long jeq = fAssemble->fCoarseEqs[isub][jc];
+					int64_t jeq = fAssemble->fCoarseEqs[isub][jc];
 					coarse2(ieq,jeq) = 1.;
 				}
 			}
@@ -386,11 +412,14 @@ void TPZDohrPrecond<TVar, TSubStruct>::ComputeV1(const TPZFMatrix<TVar> &x, TPZF
 		(*it)->Contribute_rc_local(xloc,CoarseResidual_local);
 		fAssemble->AssembleCoarse(isub,CoarseResidual_local,CoarseResidual);
 	}
-#ifdef LOG4CXX
+#ifdef PZ_LOG
 	{
 		std::stringstream sout;
 		CoarseResidual.Print("Coarse Residual",sout);
-		LOGPZ_DEBUG(logger,sout.str())
+		if (logger.isDebugEnabled())
+		{
+			LOGPZ_DEBUG(logger, sout.str());
+		}
 	}
 #endif
 	/* Computing K(c)_inverted*r(c) and stores it in "product" */
@@ -398,11 +427,14 @@ void TPZDohrPrecond<TVar, TSubStruct>::ComputeV1(const TPZFMatrix<TVar> &x, TPZF
 	//Dado global
 	TPZFMatrix<TVar> CoarseSolution(fNumCoarse,x.Cols());
 	fCoarse->Solve(CoarseResidual,CoarseSolution);
-#ifdef LOG4CXX
+#ifdef PZ_LOG
 	{
 		std::stringstream sout;
 		CoarseSolution.Print("CoarseSolution",sout);
-		LOGPZ_DEBUG(logger,sout.str())
+		if (logger.isDebugEnabled())
+		{
+			LOGPZ_DEBUG(logger, sout.str());
+		}
 	}
 #endif
 	isub=0;
@@ -418,11 +450,14 @@ void TPZDohrPrecond<TVar, TSubStruct>::ComputeV1(const TPZFMatrix<TVar> &x, TPZF
 		
 		fAssemble->Assemble(isub,v1_local,v1);
 	}
-#ifdef LOG4CXX
+#ifdef PZ_LOG
 	{
 		std::stringstream sout;
 		v1.Print("v1 vector",sout);
-		LOGPZ_DEBUG(loggerv1v2,sout.str())
+		if (loggerv1v2.isDebugEnabled())
+		{
+			LOGPZ_DEBUG(loggerv1v2, sout.str())
+		}
 	}
 #endif
 }
@@ -441,23 +476,29 @@ void TPZDohrPrecond<TVar, TSubStruct>::ComputeV2(const TPZFMatrix<TVar> &x, TPZF
 		TPZFNMatrix<100,TVar> Residual_local,v2_local;
 		fAssemble->Extract(isub,x,Residual_local);
 		(*it)->Contribute_v2_local(Residual_local,v2_local);
-#ifdef LOG4CXX
+#ifdef PZ_LOG
 		{
 			std::stringstream sout;
 			sout << "Substructure " << isub << std::endl;
 			Residual_local.Print("Residual local",sout);
             v2_local.Print("v2_local",sout);
-			LOGPZ_DEBUG(logger,sout.str())
+			if (logger.isDebugEnabled())
+			{
+				LOGPZ_DEBUG(logger, sout.str());
+			}
 		}
 #endif
 		//		v2_local += v1_local;
 		fAssemble->Assemble(isub,v2_local,v2);
 	}
-#ifdef LOG4CXX
+#ifdef PZ_LOG
 	{
 		std::stringstream sout;
 		v2.Print("v2 vector",sout);
-		LOGPZ_DEBUG(loggerv1v2,sout.str())
+		if (loggerv1v2.isDebugEnabled())
+		{
+			LOGPZ_DEBUG(loggerv1v2, sout.str())
+		}
 	}
 #endif
 }
@@ -475,49 +516,6 @@ void *TPZDohrPrecondV2SubDataList<TVar,TSubStruct>::ThreadWork(void *voidptr)
 	return voidptr;
 }
 
-/** @brief Routines to send and receive messages */
-
-template<>
-int TPZDohrPrecond<float,TPZDohrSubstruct<float> >::ClassId() const
-{
-    return TPZDOHRPRECOND_FLOAT_ID;
-}
-template<>
-int TPZDohrPrecond<double,TPZDohrSubstruct<double> >::ClassId() const
-{
-    return TPZDOHRPRECOND_DOUBLE_ID;
-}
-template<>
-int TPZDohrPrecond< long double,TPZDohrSubstruct<long double > >::ClassId() const
-{
-    return TPZDOHRPRECOND_LONGDOUBLE_ID;
-}
-template<>
-int TPZDohrPrecond< std::complex<double>,TPZDohrSubstruct<std::complex<double> > >::ClassId() const
-{
-    return TPZDOHRPRECOND_COMPLEXDOUBLE_ID;
-}
-template<>
-int TPZDohrPrecond<float,TPZDohrSubstructCondense<float> >::ClassId() const
-{
-    return TPZDOHRPRECONDCONDENSE_FLOAT_ID;
-}
-template<>
-int TPZDohrPrecond<double,TPZDohrSubstructCondense<double> >::ClassId() const
-{
-    return TPZDOHRPRECONDCONDENSE_DOUBLE_ID;
-}
-template<>
-int TPZDohrPrecond<long double,TPZDohrSubstructCondense<long double> >::ClassId() const
-{
-    return TPZDOHRPRECONDCONDENSE_LONGDOUBLE_ID;
-}
-template<>
-int TPZDohrPrecond<std::complex<double>,TPZDohrSubstructCondense<std::complex<double> > >::ClassId() const
-{
-    return TPZDOHRPRECONDCONDENSE_COMPLEXDOUBLE_ID;
-}
-
 /**
  * @brief Unpacks the object structure from a stream of bytes
  * @param buf The buffer containing the object in a packed form
@@ -532,7 +530,7 @@ void TPZDohrPrecond<TVar, TSubStruct>::Read(TPZStream &buf, void *context )
     fGlobal = ptr->SubStructures();
     buf.Read(&fNumCoarse);
     buf.Read(&fNumThreads);
-    fCoarse = dynamic_cast<TPZStepSolver<TVar> *>(TPZSaveable::Restore(buf, 0));
+    fCoarse = dynamic_cast<TPZStepSolver<TVar> *>(TPZPersistenceManager::GetInstance(&buf));
 }
 /**
  * @brief Packs the object structure in a stream of bytes
@@ -540,24 +538,14 @@ void TPZDohrPrecond<TVar, TSubStruct>::Read(TPZStream &buf, void *context )
  * @param withclassid
  */
 template<class TVar, class TSubStruct>
-void TPZDohrPrecond<TVar, TSubStruct>::Write( TPZStream &buf, int withclassid )
+void TPZDohrPrecond<TVar, TSubStruct>::Write( TPZStream &buf, int withclassid ) const
 {
     TPZMatrix<TVar>::Write(buf, withclassid);
     buf.Write(&fNumCoarse);
     buf.Write(&fNumThreads);
-    fCoarse->Write(buf,1);
+    TPZPersistenceManager::WritePointer(fCoarse, &buf);
 }
 
-
-#ifndef BORLAND
-
-template class TPZRestoreClass<TPZDohrPrecond<double, TPZDohrSubstructCondense<double> >, TPZDOHRPRECONDCONDENSE_DOUBLE_ID>;
-template class TPZRestoreClass<TPZDohrPrecond<double, TPZDohrSubstruct<double> >, TPZDOHRPRECOND_DOUBLE_ID>;
-
-template class TPZRestoreClass<TPZDohrPrecond<float, TPZDohrSubstructCondense<float> >, TPZDOHRPRECONDCONDENSE_FLOAT_ID>;
-template class TPZRestoreClass<TPZDohrPrecond<float, TPZDohrSubstruct<float> >, TPZDOHRPRECOND_FLOAT_ID>;
-
-#endif
 
 template class TPZDohrPrecond<float,TPZDohrSubstruct<float> >;
 template class TPZDohrPrecond<double,TPZDohrSubstruct<double> >;
@@ -574,3 +562,20 @@ template class TPZDohrPrecond<std::complex<double>,TPZDohrSubstruct<std::complex
 //template class TPZDohrPrecond<std::complex<float>, TPZDohrSubstructCondense<std::complex<float> > >;
 template class TPZDohrPrecond<std::complex<double>, TPZDohrSubstructCondense<std::complex<double> > >;
 //template class TPZDohrPrecond<std::complex<long double>, TPZDohrSubstructCondense<std::complex<long double> > >;
+
+
+#ifndef BORLAND
+
+template class TPZRestoreClass<TPZDohrPrecond<float, TPZDohrSubstruct<float> >>;
+template class TPZRestoreClass<TPZDohrPrecond<double, TPZDohrSubstruct<double> >>;
+template class TPZRestoreClass<TPZDohrPrecond<long double, TPZDohrSubstruct<long double> >>;
+
+template class TPZRestoreClass<TPZDohrPrecond<std::complex<double>, TPZDohrSubstruct<std::complex<double>> >>;
+
+template class TPZRestoreClass<TPZDohrPrecond<float, TPZDohrSubstructCondense<float> >>;
+template class TPZRestoreClass<TPZDohrPrecond<double, TPZDohrSubstructCondense<double> >>;
+template class TPZRestoreClass<TPZDohrPrecond<long double, TPZDohrSubstructCondense<long double> >>;
+
+template class TPZRestoreClass<TPZDohrPrecond<std::complex<double>, TPZDohrSubstructCondense<std::complex<double>> >>;
+
+#endif

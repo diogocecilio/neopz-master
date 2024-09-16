@@ -6,18 +6,16 @@
 #ifndef NONLINANALYSISH
 #define NONLINANALYSISH
 
-#include "pzanalysis.h"
-#include "pzcompel.h"
-#include "pzfmatrix.h"
-#include "pzvec.h"
-#include "pzcmesh.h"
-#include <iostream>
+#include "TPZLinearAnalysis.h"
+#include <iosfwd>
 
+template<class TVar>
+class TPZFMatrix;
 /**
- * @brief Derived class from TPZAnalysis implements non linear analysis (Newton's method). \ref analysis "Analysis"
+ * @brief Derived class from TPZLinearAnalysis implements non linear analysis (Newton's method). \ref analysis "Analysis"
  * @ingroup analysis
  */
-class TPZNonLinearAnalysis : public TPZAnalysis {
+class TPZNonLinearAnalysis : public TPZLinearAnalysis {
 	
 public:
 	/** @brief Constructor with computational mesh */
@@ -53,9 +51,9 @@ public:
 	
 	virtual void Residual(TPZFMatrix<STATE> &residual, int icase);
 	
-	virtual void LoadSolution();
+	virtual void LoadSolution() override;
 	
-	virtual void LoadSolution(const TPZFMatrix<STATE> &state);
+	virtual void LoadSolution(const TPZFMatrix<STATE> &state) override;
 	
 	/** @brief Load solution with state as solution. But fSolution is not modified */
 	void LoadState(TPZFMatrix<STATE> &state);

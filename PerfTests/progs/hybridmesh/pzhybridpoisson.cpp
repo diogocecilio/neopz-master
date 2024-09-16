@@ -15,8 +15,8 @@
 
 #include <iostream>
 
-#ifdef LOG4CXX
-static LoggerPtr logdata(Logger::getLogger("pz.hybridpoisson"));
+#ifdef PZ_LOG
+static TPZLogger logdata("pz.hybridpoisson");
 #endif
 
 TPZHybridPoisson::TPZHybridPoisson(): TPZMatPoisson3d(){
@@ -61,7 +61,7 @@ void TPZHybridPoisson:: ContributeInterface(TPZMaterialData &data, TPZMaterialDa
         int ish = dataleft.fVecShapeIndex[ivec].second;
         REAL normal = 0.;
         for (int in=0; in<3; in++) {
-            normal += data.normal[in]*dataleft.fNormalVec(in,vec);
+            normal += data.normal[in]*dataleft.fDeformedDirections(in,vec);
         }
         REAL normalishape = normal * dataleft.phi(ish,0);
         for (int jlagr=0; jlagr < nlagrange; jlagr++) {

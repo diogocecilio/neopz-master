@@ -6,73 +6,67 @@
 #include "TPZSemaphore.h"
 
 #include <fstream>
+#include <sstream>
+#include <thread>
 
 #include "pzlog.h"
 
-#ifdef LOG4CXX
-static LoggerPtr logger(Logger::getLogger("pz.util.semaphore"));
+#ifdef PZ_LOG
+static TPZLogger logger("pz.util.semaphore");
 #endif
 
-TPZSemaphore::TPZSemaphore(void)
-{
-	fCounter = 0;
-        PZ_PTHREAD_MUTEX_INIT(&fMutex, NULL, "TPZSemaphore::TPZSemaphore()");
-        PZ_PTHREAD_COND_INIT(&fCond, NULL, "TPZSemaphore::TPZSemaphore()");
-}
-
-TPZSemaphore::~TPZSemaphore(void)
-{
-        PZ_PTHREAD_MUTEX_DESTROY(&fMutex, "TPZSemaphore::~TPZSemaphore()");
-        PZ_PTHREAD_COND_DESTROY(&fCond, "TPZSemaphore::~TPZSemaphore()");
-}
 
 TPZSemaphore::TPZSemaphore(int initCount)
 {
 	fCounter = initCount;
-        PZ_PTHREAD_MUTEX_INIT(&fMutex, NULL, "TPZSemaphore::TPZSemaphore(int)");
-        PZ_PTHREAD_COND_INIT(&fCond, NULL, "TPZSemaphore::TPZSemaphore(int)");
 }
+
+TPZSemaphore& TPZSemaphore::operator=(const TPZSemaphore &cp)
+{
+  fCounter = cp.fCounter;
+  return *this;
+}
+
+TPZSemaphore::TPZSemaphore(const TPZSemaphore &cp){ *this = cp;}
 
 void TPZSemaphore::Wait()
 {
-        PZ_PTHREAD_MUTEX_LOCK(&fMutex, "TPZSemaphore::Wait()");
+  std::unique_lock lck (fMutex);
 	if (fCounter > 0)
 	{
 		fCounter--;
-#ifdef LOG4CXX
-		if(logger->isDebugEnabled())
+#ifdef PZ_LOG
+		if(logger.isDebugEnabled())
 		{
 			std::stringstream sout;
 #ifdef VC
-			sout << "THREAD IN SEMAPHORE WAIT: " << pthread_self().x <<" " <<__LINE__ << std::endl;
+			sout << "THREAD IN SEMAPHORE WAIT: " << std::this_thread::get_id()  <<" " <<__LINE__ << std::endl;
 #else
-			sout << "THREAD IN SEMAPHORE WAIT: " << pthread_self() <<" " <<__LINE__ << std::endl;
+			sout << "THREAD IN SEMAPHORE WAIT: " << std::this_thread::get_id() <<" " <<__LINE__ << std::endl;
 #endif
 			sout << "FCOUNTER VALUE : " << fCounter << std::endl;
 			LOGPZ_DEBUG(logger,sout.str())
 		}
 #endif
-		PZ_PTHREAD_MUTEX_UNLOCK(&fMutex, "TPZSemaphore::Wait()");
 		return;
 	}
 	while (fCounter == 0) {
-                PZ_PTHREAD_COND_WAIT(&fCond, &fMutex, "TPZSemaphore::Wait()");
+    fCond.wait(lck);
 		if (fCounter > 0) {
 			fCounter--;
-#ifdef LOG4CXX
-			if(logger->isDebugEnabled())
+#ifdef PZ_LOG
+			if(logger.isDebugEnabled())
 			{
 				std::stringstream sout;
 #ifdef VC
-				sout << "THREAD IN SEMAPHORE AFTER WAIT: " << pthread_self().x <<" " << __LINE__ << std::endl;
+				sout << "THREAD IN SEMAPHORE AFTER WAIT: " << std::this_thread::get_id() << " " << __LINE__ << std::endl;
 #else
-				sout << "THREAD IN SEMAPHORE AFTER WAIT: " << pthread_self() <<" " << __LINE__ << std::endl;
+				sout << "THREAD IN SEMAPHORE AFTER WAIT: " << std::this_thread::get_id() << " " << __LINE__ << std::endl;
 #endif
 				sout << "FCOUNTER VALUE : " << fCounter << std::endl;
 				LOGPZ_DEBUG(logger,sout.str())
 			}
 #endif
-			PZ_PTHREAD_MUTEX_UNLOCK(&fMutex, "TPZSemaphore::Wait()");
 			return;
 		}
 	}
@@ -81,22 +75,19 @@ void TPZSemaphore::Wait()
 
 void TPZSemaphore::Post()
 {
-	PZ_PTHREAD_MUTEX_LOCK(&fMutex, "TPZSemaphore::Post()");
+	std::unique_lock lck(fMutex);
+        
 	fCounter++;
-#ifdef LOG4CXX
-	if(logger->isDebugEnabled())
+#ifdef PZ_LOG
+	if(logger.isDebugEnabled())
 	{
 		std::stringstream sout;
-#ifdef VC
-		sout << "THREAD IN SEMAPHORE POST: " << pthread_self().x <<" " << __LINE__ << std::endl;
-#else
-		sout << "THREAD IN SEMAPHORE POST: " << pthread_self() <<" " << __LINE__ << std::endl;
-#endif
+		sout << "THREAD IN SEMAPHORE POST: " << std::this_thread::get_id() << " " << __LINE__ << std::endl;
 		sout << "FCOUNTER VALUE : " << fCounter << std::endl;
 		LOGPZ_DEBUG(logger,sout.str())
 	}
 #endif
-	PZ_PTHREAD_COND_SIGNAL(&fCond, "TPZSemaphore::Post()");
-	PZ_PTHREAD_MUTEX_UNLOCK(&fMutex, "TPZSemaphore::Post()");
+  lck.unlock();
+  fCond.notify_one();
 	return;
 }

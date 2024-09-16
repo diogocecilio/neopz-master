@@ -3,18 +3,13 @@
  * @brief Contains declaration of TPZFlowCompMesh class which is a computational mesh with additional data for CFD problems.
  */
 
-#include "pzcompel.h"
-#include "pzgeoel.h"
-#include "pzconslaw.h"
-#include "pzerror.h"
-
 #ifndef TPZFLOWCOMPMESH_H
 #define TPZFLOWCOMPMESH_H
 
-class TPZMaterial;
-class TPZGeoMesh;
-#include <iostream>
 #include "pzcmesh.h"
+#include "TPZConsLawTypes.h"
+#include "TPZMaterial.h"
+class TPZGeoMesh;
 
 /**
  * @brief Computational mesh with additional data for CFD problems. \ref CompMesh "Computational Mesh"
@@ -62,11 +57,11 @@ public:
 	void SetResidualType(TPZResidualType type);
 	
 	/** @brief Sets the forcing funtion for all fluid materials in the mesh. */
-	void SetFlowforcingFunction(TPZAutoPointer<TPZFunction<STATE> > fp);
+	void SetFlowForcingFunction(ForcingFunctionType<STATE> fp, const int pOrder);
 	
 	/** @brief Creates the computational elements, and the degree of freedom nodes. */
 	/** In this reimplementation, also calls CollectFluidMaterials; */
-	virtual void AutoBuild();
+	virtual void AutoBuild() override;
 	
 	/** @brief Returns the first flow material in the mesh */
 	TPZMaterial * GetFlowMaterial();
@@ -75,12 +70,14 @@ public:
 	int NFlowMaterials();
 	
 	/** @brief Returns the unique identifier for reading/writing objects to streams */
-	virtual int ClassId() const;
+	public:
+int ClassId() const override;
+
 	/** @brief Saves the element data to a stream */
-	virtual void Write(TPZStream &buf, int withclassid);
+	void Write(TPZStream &buf, int withclassid) const override;
 	
 	/** @brief Read the element data from a stream */
-	virtual void Read(TPZStream &buf, void *context);
+	void Read(TPZStream &buf, void *context) override;
 	
 	/** @brief Adapt the solution vector to new block dimensions */
 	virtual void ExpandSolution2();
@@ -90,6 +87,8 @@ protected:
 	/** @brief This vector of pointers represent the collection of all fluid materials in the mesh. */
 	/** These are the materials that deserve special attention during the contribution processes. */
 	std::map<int, TPZMaterial* > fFluidMaterial;
-};
 
+	template<class TVar>
+	void ExpandSolution2Internal(TPZFMatrix<TVar> &sol);
+};
 #endif

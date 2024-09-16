@@ -10,22 +10,24 @@
 #include "TPZCompElDisc.h"
 #include "pzfstrmatrix.h"
 #include "TPZParFrontStructMatrix.h"
-#include "TPBSpStructMatrix.h"
+#include "TPZFrontNonSym.h"
+#include "TPZBSpStructMatrix.h"
+#include "TPZElementMatrixT.h"
 #include "pzbdstrmatrix.h"
-
-#include "tpzoutofrange.h"
+#include "pzelmat.h"
 #include <time.h>
 #include "pzlog.h"
+#include "TPZFileStream.h"
 
-#ifdef LOG4CXX
+#ifdef PZ_LOG
 
-static LoggerPtr logger(Logger::getLogger("pz.converge"));
+static TPZLogger logger("pz.converge");
 #endif
 
 using namespace std;
 
 TPZEulerAnalysis::TPZEulerAnalysis():
-TPZAnalysis(), fFlowCompMesh(NULL),
+TPZLinearAnalysis(), fFlowCompMesh(NULL),
 fRhsLast(),
 fNewtonEps(1e-9),  fNewtonMaxIter(10),
 fTimeIntEps(1e-8), fTimeIntMaxIter(100),
@@ -35,7 +37,7 @@ fEvolCFL(0), fpBlockDiag(NULL),fHasFrontalPreconditioner(0)
 }
 
 TPZEulerAnalysis::TPZEulerAnalysis(TPZFlowCompMesh *mesh, std::ostream &out):
-TPZAnalysis(mesh, true, out), fFlowCompMesh(mesh),
+TPZLinearAnalysis(mesh, true, out), fFlowCompMesh(mesh),
 fRhsLast(),
 fNewtonEps(1e-9),  fNewtonMaxIter(10),
 fTimeIntEps(1e-8), fTimeIntMaxIter(100),
@@ -65,32 +67,34 @@ void TPZEulerAnalysis::SetContributionTime(TPZContributeTime time)
 	fFlowCompMesh->SetContributionTime(time);
 }
 
-void TPZEulerAnalysis::UpdateSolAndRhs(TPZFMatrix<STATE> & deltaSol, REAL & epsilon)
+template<class TVar>
+void TPZEulerAnalysis::UpdateSolAndRhs(TPZFMatrix<TVar> & deltaSol, REAL & epsilon)
 {
+	TPZFMatrix<TVar> &sol = fSolution;
     REAL initEpsilon = epsilon;
     int outofrange = 0;
     try
     {
-        fSolution += deltaSol;
+        sol += deltaSol;
         fCompMesh->LoadSolution(fSolution);
         AssembleRhs();
         epsilon = Norm(fRhs);
     }
-	catch(TPZOutofRange obj)
+	catch(...)
 	{
 		outofrange = 1;
-		fSolution -= deltaSol;
+		sol -= deltaSol;
 		epsilon = initEpsilon;
 		fCompMesh->LoadSolution(fSolution);
 	}
 	
     if(epsilon > initEpsilon)
     {
-		fSolution -= deltaSol;
+		sol -= deltaSol;
 		fCompMesh->LoadSolution(fSolution);
 		/*int resultlin = */
 		LineSearch(initEpsilon ,fSolution, deltaSol);
-		fSolution += deltaSol;
+		sol += deltaSol;
 		fCompMesh->LoadSolution(fSolution);
 		epsilon = Norm(fRhs);
     }
@@ -98,7 +102,7 @@ void TPZEulerAnalysis::UpdateSolAndRhs(TPZFMatrix<STATE> & deltaSol, REAL & epsi
     if(outofrange)
     {
 		/*int resultlin = */LineSearch(initEpsilon ,fSolution, deltaSol);
-		fSolution += deltaSol;
+		sol += deltaSol;
 		fCompMesh->LoadSolution(fSolution);
 		epsilon = Norm(fRhs);
 		fFlowCompMesh->ScaleCFL(.5);
@@ -133,6 +137,7 @@ REAL TPZEulerAnalysis::EvaluateFluxEpsilon()
 {
 	// enabling the flux evaluation type
 	fFlowCompMesh->SetResidualType(Flux_RT);
+	//TODOCOMPLEX
 	TPZFMatrix<STATE> Flux;
 	Flux.Redim(fCompMesh->NEquations(),1);
 	Flux.Zero();
@@ -152,8 +157,11 @@ REAL TPZEulerAnalysis::EvaluateFluxEpsilon()
 	return Norm(Flux);
 }
 
-void TPZEulerAnalysis::Assemble()
+
+template<class TVar>
+void TPZEulerAnalysis::AssembleInternal()
 {
+	auto &mySolver = MatrixSolver<TVar>();
 	if(!fCompMesh)
 	{
 		PZError << "TPZEulerAnalysis::Assemble Error: No Computational Mesh\n";
@@ -177,13 +185,13 @@ void TPZEulerAnalysis::Assemble()
 	
 	// contributing referring to the last state
 	fRhs = fRhsLast;
+	//TODOCOMPLEX
+	TPZAutoPointer<TPZMatrix<TVar> >  pTangentMatrix = mySolver.Matrix();
 	
-	TPZAutoPointer<TPZMatrix<STATE> >  pTangentMatrix = fSolver->Matrix();
-	
-	if(!pTangentMatrix || dynamic_cast<TPZParFrontStructMatrix <TPZFrontNonSym<STATE> > *>(fStructMatrix.operator->()))
+	if(!pTangentMatrix || dynamic_cast<TPZParFrontStructMatrix <TPZFrontNonSym<TVar> > *>(fStructMatrix.operator->()))
 	{
 		pTangentMatrix = fStructMatrix->CreateAssemble(fRhs,NULL);
-		fSolver->SetMatrix(pTangentMatrix);
+		mySolver.SetMatrix(pTangentMatrix);
 	}
 	else
 	{
@@ -209,6 +217,9 @@ void TPZEulerAnalysis::Assemble()
 		fpBlockDiag->BuildFromMatrix(pTangentMatrix);
 	}
 }
+void TPZEulerAnalysis::Assemble()
+{
+}
 
 void TPZEulerAnalysis::AssembleRhs()
 {
@@ -229,10 +240,10 @@ void TPZEulerAnalysis::AssembleRhs()
 int TPZEulerAnalysis::Solve(REAL & res, TPZFMatrix<STATE> * residual, TPZFMatrix<STATE> & delSol) {
 	int numeq = fCompMesh->NEquations();
 	if(fRhs.Rows() != numeq ) return 0;
-	
+	//TODOCOMPLEX
 	TPZFMatrix<STATE> rhs(fRhs);
 	
-	fSolver->Solve(rhs, delSol);
+	MatrixSolver<STATE>().Solve(rhs, delSol);
 	
 	if(residual)
 	{   // verifying the inversion of the linear system
@@ -244,6 +255,7 @@ int TPZEulerAnalysis::Solve(REAL & res, TPZFMatrix<STATE> * residual, TPZFMatrix
 
 int TPZEulerAnalysis::RunNewton(REAL & epsilon, int & numIter)
 {
+	//TODOCOMPLEX
 	TPZFMatrix<STATE> delSol(fRhs.Rows(),1);
 	
 	int i = 0;
@@ -257,7 +269,7 @@ int TPZEulerAnalysis::RunNewton(REAL & epsilon, int & numIter)
 	{
 		TPZFrontStructMatrix <TPZFrontNonSym<STATE> > StrMatrix(Mesh());
 		StrMatrix.SetQuiet(1);
-		TPZMatrix<STATE> *front = StrMatrix.CreateAssemble(fRhs,NULL);
+		auto *front = StrMatrix.CreateAssemble(fRhs,NULL);
 		TPZStepSolver<STATE> FrontSolver;
 		FrontSolver.SetDirect(ELU);
 		FrontSolver.SetMatrix(front);
@@ -289,7 +301,7 @@ int TPZEulerAnalysis::RunNewton(REAL & epsilon, int & numIter)
 		i++;
 	}
 	
-#ifdef LOG4CXX
+#ifdef PZ_LOG
 	{
 		std::stringstream sout;
 		sout << "Numero de iteracoes de Newton " << i;
@@ -314,7 +326,12 @@ TPZDXGraphMesh * TPZEulerAnalysis::PrepareDXMesh(const std::string &dxout, int d
 	TPZMaterial *  mat = fFlowCompMesh->GetFlowMaterial();
 	int dim = mat->Dimension();
 	//ResetReference(Mesh());//retira refer�ncias para criar graph consistente
-	TPZDXGraphMesh * graph = new TPZDXGraphMesh (Mesh(),dim,mat,scalar,vector);
+    if (!mat) {
+        DebugStop();
+    }
+    std::set<int> matids;
+    matids.insert(mat->Id());
+	TPZDXGraphMesh * graph = new TPZDXGraphMesh (Mesh(),dim,matids,scalar,vector);
 	//SetReference(Mesh());//recupera as refer�ncias retiradas
 	//ofstream *dxout = new ofstream("ConsLaw.dx");
 	//cout << "\nDX output file : ConsLaw.dx\n";
@@ -380,7 +397,7 @@ void TPZEulerAnalysis::Run(std::ostream &out, const std::string & dxout, int dxR
 		RunNewton(epsilon_Newton, numIter_Newton);
 		
 		// resetting the forcing function for iterations greater than the 1st
-		fFlowCompMesh->SetFlowforcingFunction(NULL);
+		fFlowCompMesh->SetFlowForcingFunction(nullptr,-1);
 		
 		// buffering the contribution to the RHS
 		BufferLastStateAssemble();
@@ -396,8 +413,8 @@ void TPZEulerAnalysis::Run(std::ostream &out, const std::string & dxout, int dxR
 		
 		CFLControl(lastEpsilon, epsilon, epsilon_Newton,  nextTimeStep);
 		
-#ifdef LOG4CXX
-		if(logger->isDebugEnabled())
+#ifdef PZ_LOG
+		if(logger.isDebugEnabled())
 		{
 			std::stringstream sout;
 			sout << "iteration " << i << "Du/Dt " << epsilon << " Total Newton " << fTotalNewton;
@@ -420,7 +437,7 @@ void TPZEulerAnalysis::Run(std::ostream &out, const std::string & dxout, int dxR
 		}
 		i++;
 	}
-#ifdef LOG4CXX
+#ifdef PZ_LOG
 	{
 		std::stringstream sout;
 		sout << "Total number of newton iterations " << this->fTotalNewton;
@@ -513,6 +530,7 @@ int TPZEulerAnalysis::LineSearch(REAL &residual, TPZFMatrix<STATE> &sol0, TPZFMa
 	REAL smallestincr = 1.e-3;
 	REAL dist = 0.;
 	REAL incr = 1.0;
+	//TODOCOMPLEX
 	TPZFMatrix<STATE> solution;
 	fFlowCompMesh->LoadSolution(sol0);
 	AssembleRhs();
@@ -528,7 +546,7 @@ int TPZEulerAnalysis::LineSearch(REAL &residual, TPZFMatrix<STATE> &sol0, TPZFMa
 			AssembleRhs();
 			error = Norm(fRhs);
 		}
-		catch(TPZOutofRange obj)
+		catch(...)
 		{
 			error = 2*preverr+2.;
 		}
@@ -570,10 +588,11 @@ int TPZEulerAnalysis::LineSearch(REAL &residual, TPZFMatrix<STATE> &sol0, TPZFMa
  */
 void TPZEulerAnalysis::CompareRhs()
 {
+	//TODOCOMPLEX
 	int iel;
 	//int numel = 0;
 	int nelem = fCompMesh->NElements();
-	TPZElementMatrix ek1(fCompMesh, TPZElementMatrix::EK) ,ef1(fCompMesh, TPZElementMatrix::EF),ef2(fCompMesh, TPZElementMatrix::EF);
+	TPZElementMatrixT<STATE> ek1(fCompMesh, TPZElementMatrix::EK) ,ef1(fCompMesh, TPZElementMatrix::EF),ef2(fCompMesh, TPZElementMatrix::EF);
 	
 	TPZAdmChunkVector<TPZCompEl *> &elementvec = fCompMesh->ElementVec();
 	TPZFNMatrix<64,STATE> diff(8,8);
@@ -598,18 +617,18 @@ void TPZEulerAnalysis::SetGMResFront(REAL tol, int numiter, int numvectors)
 {
 	TPZFrontStructMatrix <TPZFrontNonSym<STATE> > strfront(Mesh());
 	strfront.SetQuiet(1);
-	TPZMatrix<STATE> *front = strfront.CreateAssemble(fRhs,NULL);
+	auto *front = strfront.CreateAssemble(fRhs,NULL);
 	
 	TPZStepSolver<STATE> FrontSolver;
 	FrontSolver.SetDirect(ELU);
 	FrontSolver.SetMatrix(front);
 	
 	
-	TPZSpStructMatrix StrMatrix(Mesh());
-	//TPZFStructMatrix StrMatrix(cmesh);
+	TPZSpStructMatrix<STATE> StrMatrix(Mesh());
+	//TPZFStructMatrix<STATE> StrMatrix(cmesh);
 	SetStructuralMatrix(StrMatrix);
 	
-	TPZMatrix<STATE> * mat = StrMatrix.Create();
+	auto * mat = StrMatrix.Create();
 	TPZStepSolver<STATE> Solver;
 	Solver.SetGMRES(numiter,
 					numvectors,
@@ -645,12 +664,12 @@ void TPZEulerAnalysis::SetFrontalSolver()
  */
 void TPZEulerAnalysis::SetGMResBlock(REAL tol, int numiter, int numvec)
 {
-	TPZSpStructMatrix StrMatrix(Mesh());
-	//TPZFStructMatrix StrMatrix(cmesh);
+	TPZSpStructMatrix<STATE> StrMatrix(Mesh());
+	//TPZFStructMatrix<STATE> StrMatrix(cmesh);
 	SetStructuralMatrix(StrMatrix);
 	
-	TPZMatrix<STATE> * mat = StrMatrix.Create();
-	TPZBlockDiagonalStructMatrix strBlockDiag(Mesh());
+	auto * mat = StrMatrix.Create();
+	TPZBlockDiagonalStructMatrix<STATE> strBlockDiag(Mesh());
 	TPZStepSolver<STATE> Pre;
 	TPZBlockDiagonal<STATE> * block = new TPZBlockDiagonal<STATE>();//blockDiag.Create();
 	strBlockDiag.AssembleBlockDiagonal(*block); // just to initialize structure

@@ -40,19 +40,39 @@ namespace pzshape{
 		 * These values depend on the point, the order of interpolation and ids of the corner points
 		 * The shapefunction computation uses the shape functions of the linear element for its implementation
 		 */
-		static void Shape(TPZVec<REAL> &pt, TPZVec<long> &id, TPZVec<int> &order,
+		static void Shape(TPZVec<REAL> &pt, TPZVec<int64_t> &id, TPZVec<int> &order,
 						  TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi) {
 			phi(0,0) = 1.;
 		}
 		
-		static void SideShape(int side, TPZVec<REAL> &pt, TPZVec<long> &id, TPZVec<int> &order,TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi) {
+        static void ShapeCorner(const TPZVec<REAL> &pt,TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi)
+        {
+            phi(0,0) = 1.;
+        }
+        /**
+         * @brief Computes the generating shape functions for a quadrilateral element
+         * @param pt (input) point where the shape function is computed
+         * @param phi (input/output) value of the (4) shape functions
+         * @param dphi (input/output) value of the derivatives of the (4) shape functions holding the derivatives in a column
+         */
+        static void ShapeGenerating(const TPZVec<REAL> &pt, TPZVec<int> &nshape, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi){}
+
+        static void ShapeGenerating(const TPZVec<REAL> &pt, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi){}
+
+        static void ShapeInternal(int side, TPZVec<REAL> &x, int order, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi)
+        {
+            
+        }
+
+        
+		static void SideShape(int side, TPZVec<REAL> &pt, TPZVec<int64_t> &id, TPZVec<int> &order,TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi) {
 			if(side == 0) Shape(pt,id,order,phi,dphi);
 		}
 		
         /**
          * @brief returns the polynomial order in the natural ksi, eta of the side associated with each shapefunction
          */
-        static void ShapeOrder(TPZVec<long> &id, TPZVec<int> &order, TPZGenMatrix<int> &shapeorders)//, TPZVec<long> &sides
+        static void ShapeOrder(const TPZVec<int64_t> &id, const TPZVec<int> &order, TPZGenMatrix<int> &shapeorders)//, TPZVec<int64_t> &sides
         {
             shapeorders(0,0) = 0;
         }
@@ -79,7 +99,7 @@ namespace pzshape{
 		 * @brief Compute the permutation of the connects of the sides such that the order of the \n 
 		 * shape functions becomes independent of the element orientation
 		 */
-		static void PermuteSides(int side, TPZVec<long> &id, TPZVec<int> &permutegather)
+		static void PermuteSides(int side, TPZVec<int64_t> &id, TPZVec<int> &permutegather)
 		{
 			permutegather.Resize(1);
 			permutegather[0] = 0;

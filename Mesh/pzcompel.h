@@ -9,21 +9,22 @@
 #include "pzreal.h"
 #include <iostream>
 #include <fstream>
-#include "pzcmesh.h"
 #include "pzgmesh.h"
 #include "pzgeoel.h"
-#include "pzsave.h"
+#include "TPZSavable.h"
 #include "pzfmatrix.h"
 #include "pzmatrix.h"
 #include "pzblock.h"
 #include "pzblockdiag.h"
 #include "pzcreateapproxspace.h"
-#include "pzmaterialdata.h"
 #include "TPZOneShapeRestraint.h"
-#include "pztransfer.h"
+//#include "pztransfer.h"
+#include <functional>
 
 
 struct TPZElementMatrix;
+template<class TVar>
+struct TPZElementMatrixT;
 class TPZCompMesh;
 class TPZBndCond;
 class TPZInterpolatedElement;
@@ -32,8 +33,6 @@ class TPZConnect;
 class TPZMaterial;
 class TPZGeoEl;
 class TPZGeoNode;
-
-class TPZMaterialData;
 
 template<class T>
 class TPZVec;
@@ -45,6 +44,7 @@ class TPZStack;
 class TPZGraphMesh;
 class TPZIntPoints;
 
+template<class T>
 class TPZTransform;
 
 #include "pzeltype.h"
@@ -55,7 +55,7 @@ class TPZTransform;
  * @brief Defines the interface of a computational element. \ref CompElement "Computational Element"
  * @ingroup CompElement
  */
-class TPZCompEl : public virtual TPZSaveable {
+class TPZCompEl : public virtual TPZSavable {
 	
 protected:
 	
@@ -63,14 +63,19 @@ protected:
 	TPZCompMesh 	*fMesh;
 	
 	/** @brief Element index into mesh element vector */
-	long fIndex;
+	int64_t fIndex;
 	
 private:	
 	/** @brief Index of reference element */
-	long fReferenceIndex;
+	int64_t fReferenceIndex;
 	
 public:
 	
+    static int StaticClassId();
+    
+    virtual int ClassId() const override;
+
+    
 	/** @brief Simple Constructor */
 	TPZCompEl();
 	
@@ -92,26 +97,23 @@ public:
 	 * from the both meshes - original and patch
 	 */
 	virtual TPZCompEl *ClonePatchEl(TPZCompMesh &mesh,
-									std::map<long,long> & gl2lcConMap,
-									std::map<long,long> & gl2lcElMap) const = 0;
+									std::map<int64_t,int64_t> & gl2lcConMap,
+									std::map<int64_t,int64_t> & gl2lcElMap) const = 0;
 	
 	
 	/** @brief Put a copy of the element in the referred mesh */
 	TPZCompEl(TPZCompMesh &mesh, const TPZCompEl &copy);
 	
 	/** @brief Put a copy of the element in the patch mesh */
-	TPZCompEl(TPZCompMesh &mesh, const TPZCompEl &copy, std::map<long,long> &gl2lcElMap);
-	
-	/** @brief Copy of the element in the new mesh whit alocated index */
-	TPZCompEl(TPZCompMesh &mesh, const TPZCompEl &copy, long &index);
-	
+	TPZCompEl(TPZCompMesh &mesh, const TPZCompEl &copy, std::map<int64_t,int64_t> &gl2lcElMap);
+		
 	/**
 	 * @brief Creates a computational element within mesh. Inserts the element within the data structure of the mesh
 	 * @param mesh mesh wher will be created the element
 	 * @param gel geometric element for which the computational element will be created
 	 * @param index new elemen index
 	 */
-	TPZCompEl(TPZCompMesh &mesh, TPZGeoEl *gel, long &index);
+	TPZCompEl(TPZCompMesh &mesh, TPZGeoEl *gel);
 	
 	/** @brief Sets the value of the default interpolation order */
 	static void SetgOrder( int order );
@@ -120,24 +122,23 @@ public:
 	static int GetgOrder();
 	
 	/** @brief Sets create function in TPZCompMesh to create elements of this type */
-	virtual void SetCreateFunctions(TPZCompMesh *mesh) {
-		mesh->SetAllCreateFunctionsContinuous();
-	}
+	virtual void SetCreateFunctions(TPZCompMesh *mesh);
 	
 	/** @brief Returns the volume of the geometric element associated. */
 	virtual  REAL VolumeOfEl()
 	{
-		if(fReferenceIndex == 0) return 0.;
+		if(fReferenceIndex == -1) return 0.;
 		return Reference()->Volume();
 	}
 	
-	/** @brief Loads the geometric element referece */
+	/** @brief Loads the geometric element reference */
 	virtual void LoadElementReference();
 	
 	/**
-	 * @brief This method verifies if the element has the given data characteristics
+	 * @brief This method computes the norm of the difference of a post processed variable with
+     @ the same post processed variable of the element pointed to by the geometric element
 	 * @param var state variable number
-	 * @param matname pointer to material name
+	 * @param matname only contribute to the norm if the material name matches the name of the material of the element
 	 **/
 	virtual REAL CompareElement(int var, char *matname);
 	
@@ -154,17 +155,27 @@ public:
 	virtual int IsInterface() { return 0; }
 	
 	/** @brief Return a pointer to the corresponding geometric element if such exists, return 0 otherwise */
-	TPZGeoEl *Reference() const
-	{
-		if ( fMesh->Reference() == NULL ) return NULL;
-		return (fReferenceIndex == -1) ? 0 : fMesh->Reference()->ElementVec()[fReferenceIndex];
-	}
+	TPZGeoEl *Reference() const;
 
-	void SetReference(long referenceindex)
+    int64_t ReferenceIndex()
+    {
+        return fReferenceIndex;
+    }
+    
+	void SetReference(int64_t referenceindex)
 	{
 		fReferenceIndex = referenceindex;
 	}
 	
+    /// return true if the element has a variational statement associated with the material ids
+    virtual bool NeedsComputing(const std::set<int> &materialids)
+    {
+        TPZGeoEl *gel = Reference();
+        if (!gel) {
+            DebugStop();
+        }
+        return materialids.find(gel->MaterialId()) != materialids.end();
+    }
 	/** @brief Returns the number of nodes of the element */
 	virtual int NConnects() const = 0;
 	
@@ -172,16 +183,16 @@ public:
 	virtual int NEquations();
 	
 	/** @brief Returns element index of the mesh fELementVec list */
-	long Index() const;
+	int64_t Index() const;
 	
 	/** @brief Sets element index of the mesh fELementVec list */
-	void SetIndex(long index);
+	void SetIndex(int64_t index);
 	
 	/**
 	 * @brief Returns the index of the ith connectivity of the element
 	 * @param i connectivity index who want knows
 	 */
-	virtual long ConnectIndex(int i) const = 0;
+	virtual int64_t ConnectIndex(int i) const = 0;
 	
 	/**
 	 * @brief Returns a pointer to the ith node
@@ -241,6 +252,14 @@ public:
 	 * @param out Indicates the device where the data will be printed
 	 */
 	virtual void Print(std::ostream &out = std::cout) const;
+
+    /**
+     * @brief ShortPrint element data
+     * @param out Indicates the device where the data will be printed
+     * @note currently (04/03/20) this method is being implemented only for pzmultiphysicscompel::ShortPrint
+     * @note If a short print is useful for your application, please implement as you see fit and modify these notes.
+     */
+    virtual void ShortPrint(std::ostream &out = std::cout) const;
 	
 	/**
 	 * @brief Output device operator
@@ -256,7 +275,7 @@ public:
 	 * @param VarName name of variable to print
 	 * @param out indicates the device where the data will be printed
 	 */
-	virtual void PrintSolution(TPZVec<REAL> &point,char *VarName,std::ostream &out);
+	virtual void PrintSolution(TPZVec<REAL> &point, const char *VarName,std::ostream &out);
 	
 	/**
 	 * @brief Prints one coordinate index corresponding to the point to the output stream
@@ -271,7 +290,7 @@ public:
 	 * @param VarName pointer to variable parameter wha want to print
 	 * @param out indicates the device where the data will be printed
 	 */
-	virtual void PrintTitle(char *VarName,std::ostream &out);
+	virtual void PrintTitle(const char *VarName,std::ostream &out);
 
 	/** @} */
 	
@@ -282,21 +301,38 @@ public:
 	 */
 	static void SetOrthogonalFunction(void (*orthogonal)(REAL x,int num,TPZFMatrix<REAL> & phi,
 														 TPZFMatrix<REAL> & dphi));
+    /**
+     * @brief Computes the element stifness matrix and right hand side
+     * in an internal data structure. Used for initializing condensed element data structures
+     */
+    virtual void Assemble();
+    
+    
+    /** @brief Initialize element matrix in which is computed CalcStiff */
+    virtual void InitializeElementMatrix(TPZElementMatrix &ek, TPZElementMatrix &ef);
+    
+    /** @brief Initialize element matrix in which is computed in CalcResidual */
+    virtual void InitializeElementMatrix(TPZElementMatrix &ef);
+    
+
 	/**
 	 * @brief Computes the element stifness matrix and right hand side
 	 * @param ek element stiffness matrix
 	 * @param ef element load vector
 	 */
-	virtual void CalcStiff(TPZElementMatrix &ek,TPZElementMatrix &ef);
+	virtual void CalcStiff(TPZElementMatrixT<STATE> &ek,TPZElementMatrixT<STATE> &ef);
+    virtual void CalcStiff(TPZElementMatrixT<CSTATE> &ek,TPZElementMatrixT<CSTATE> &ef);
+    
 	
 	/** @brief Verifies if the material associated with the element is contained in the set */
-	virtual bool HasMaterial(const std::set<int> &materialids);
+	virtual bool HasMaterial(const std::set<int> &materialids) const;
 	
 	/**
 	 * @brief Computes the element right hand side
 	 * @param ef element load vector(s)
 	 */
-	virtual void CalcResidual(TPZElementMatrix &ef);
+	virtual void CalcResidual(TPZElementMatrixT<STATE> &ef);
+    virtual void CalcResidual(TPZElementMatrixT<CSTATE> &ef);
 	
 	/**
 	 * @brief Implements of the orthogonal Chebyshev functions
@@ -314,26 +350,18 @@ public:
 	 * @param interpolate boolean variable to indicates if the solution will be interpolated to the sub elements
 	 */
 	/** This method needs to be implemented in the derived classes */
-	virtual void Divide(long index, TPZVec<long> &subindex, int interpolate = 0);
+	virtual void Divide(int64_t index, TPZVec<int64_t> &subindex, int interpolate = 0);
 	
-	/**
-	 * @brief Projects the flux function on the finite element space
-	 * @param ek element stiffness matrix
-	 * @param ef element loads matrix
-	 */
-	virtual void ProjectFlux(TPZElementMatrix &ek,TPZElementMatrix &ef);
-	
-	/**
-	 * @brief Performs an error estimate on the elemen
-	 * @param fp function pointer which computes the exact solution
+
+  /**
+	 * @brief Performs an error estimate on the element based on materials solution
 	 * @param errors [out] the L2 norm of the error of the solution
 	 * @param flux [in] value of the interpolated flux values
 	 */
-	virtual void EvaluateError(void (*fp)(const TPZVec<REAL> &loc,TPZVec<STATE> &val,TPZFMatrix<STATE> &deriv),
-							   TPZVec<REAL> &errors,TPZBlock<REAL> *flux);
-	
+    virtual void EvaluateError(TPZVec<REAL> &errors, bool store_error);
+
 	/** @brief ComputeError computes the element error estimator */
-	virtual void ComputeError(int errorid, TPZVec<REAL> &error) {
+	virtual void ComputeError(int errorid, TPZVec<REAL> &error){
 		PZError << "Error at " << __PRETTY_FUNCTION__ << " - Method not implemented.\n";
 	}
 	
@@ -356,15 +384,28 @@ public:
      * Will return an empty vector if no memory is associated with the integration point
      * Is implemented in TPZCompElWithMem
      */
-    virtual void GetMemoryIndices(TPZVec<long> &indices) const
+    virtual void GetMemoryIndices(TPZVec<int64_t> &indices) const
     {
         indices.resize(0);
     }
+    
+    /** @brief Set the indices of the vector of element memory associated with the integration points */
+    /**
+     * Will return an empty vector if no memory is associated with the integration point
+     * Is implemented in TPZCompElWithMem
+     */
+    virtual void SetMemoryIndices(TPZVec<int64_t> &indices)
+    {
+        if(indices.size() != 0)
+        {
+            DebugStop();
+        }
+    }
 	
-		/** @brief Prepare the vector of the material withmem with the correct integration point indexes */
- 		virtual void PrepareIntPtIndices(){
-			
-		}
+    /** @brief Prepare the vector of the material withmem with the correct integration point indexes */
+    virtual void PrepareIntPtIndices(){
+        
+    }
   
   /** @brief PrepareIntPtIndices initializes the material damage varibles memory in the proper material class. */
 	virtual void ForcePrepareIntPtIndices(){
@@ -385,6 +426,11 @@ public:
     virtual void TransferMultiphysicsElementSolution()
     {
         // Nothing to be done here
+    }
+    
+    virtual void SetMultiphysicsElementSolution()
+    {
+        DebugStop();
     }
 	
     /// Add a shape restraint (meant to fit the pyramid to restraint
@@ -412,59 +458,25 @@ public:
 	 * @param var variable name
 	 * @param sol vetor for the solution
 	 */
-	virtual void Solution(TPZVec<REAL> &qsi,int var,TPZVec<STATE> &sol);
+	virtual void Solution(TPZVec<REAL> &qsi,int var,TPZVec<STATE> &sol){
+        SolutionInternal(qsi,var,sol);
+    }
+    virtual void Solution(TPZVec<REAL> &qsi,int var,TPZVec<CSTATE> &sol){
+        SolutionInternal(qsi,var,sol);
+    }
     
     /**
      * @brief Compute the integral of a variable
      */
     virtual TPZVec<STATE> IntegrateSolution(int var) const;
-	
-	virtual void ComputeSolution(TPZVec<REAL> &qsi, TPZMaterialData &data)	{
-		std::cout <<"Imposed for Hdiv solution ";
-		DebugStop();
-	};
-	
-	/**
-	 * @brief Computes solution and its derivatives in the local coordinate qsi.
-	 * @param qsi master element coordinate
-	 * @param sol finite element solution
-	 * @param dsol solution derivatives
-	 * @param axes axes associated with the derivative of the solution
-	 */
-	virtual void ComputeSolution(TPZVec<REAL> &qsi,
-								 TPZSolVec &sol, TPZGradSolVec &dsol,TPZFMatrix<REAL> &axes);
-	
-	/**
-	 * @brief Computes solution and its derivatives in the local coordinate qsi. \n
-	 * This method will function for both volumetric and interface elements
-	 * @param qsi master element coordinate of the interface element
-	 * @param normal vector
-	 * @param leftsol finite element solution
-	 * @param dleftsol solution derivatives
-	 * @param leftaxes axes associated with the left solution
-	 * @param rightsol finite element solution
-	 * @param drightsol solution derivatives
-	 * @param rightaxes axes associated with the right solution
-	 */
-	virtual void ComputeSolution(TPZVec<REAL> &qsi,
-								 TPZVec<REAL> &normal,
-								 TPZSolVec &leftsol, TPZGradSolVec &dleftsol,TPZFMatrix<REAL> &leftaxes,
-								 TPZSolVec &rightsol, TPZGradSolVec &drightsol,TPZFMatrix<REAL> &rightaxes);
-	
-	/**
-	 * @brief Computes solution and its derivatives in local coordinate qsi
-	 * @param qsi master element coordinate
-	 * @param phi matrix containing shape functions compute in qsi point
-	 * @param dphix matrix containing the derivatives of shape functions in the direction of the axes
-	 * @param axes [in] axes indicating the direction of the derivatives
-	 * @param sol finite element solution
-	 * @param dsol solution derivatives
-	 */
-	virtual void ComputeSolution(TPZVec<REAL> &qsi, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphix,
-								 const TPZFMatrix<REAL> &axes, TPZSolVec &sol, TPZGradSolVec &dsol);
     
+    /**
+     * @brief Compute the integral of a variable defined by the string if the material id is included in matids
+     */
+    virtual TPZVec<STATE> IntegrateSolution(const std::string &varname, const std::set<int> &matids);
+    //@}
     /** @brief adds the connect indexes associated with base shape functions to the set */
-    virtual void BuildCornerConnectList(std::set<long> &connectindexes) const = 0;
+    virtual void BuildCornerConnectList(std::set<int64_t> &connectindexes) const = 0;
 
 	/**
 	 * @brief Builds the list of all connectivities related to the element including the
@@ -475,7 +487,7 @@ public:
 	 * method should do this
 	 */
 //protected:
-	virtual void BuildConnectList(std::set<long> &indepconnectlist, std::set<long> &depconnectlist);
+	virtual void BuildConnectList(std::set<int64_t> &indepconnectlist, std::set<int64_t> &depconnectlist);
 public:
 	/**
 	 * @brief Builds the list of all connectivities related to the element including the
@@ -484,7 +496,7 @@ public:
 	 * @note Note : this method does not reset the stack to zero. The calling
 	 * method should do this
 	 */
-	virtual void BuildConnectList(TPZStack<long> &connectlist);
+	virtual void BuildConnectList(TPZStack<int64_t> &connectlist) const;
 	/**
 	 * @brief Builds the list of all connectivities related to the element including the
 	 * connects pointed to by dependent connects
@@ -492,7 +504,7 @@ public:
 	 * @note Note : this method ADDS connects to the set.
 	 */
 //protected:
-	virtual void BuildConnectList(std::set<long> &connectlist);
+	virtual void BuildConnectList(std::set<int64_t> &connectlist);
 public:
 	
 	/** @brief Returns 1 if the element has at least one dependent node. Returns 0 otherwise */
@@ -518,34 +530,58 @@ public:
 	 * @param inode node to set index
 	 * @param index index to be seted
 	 */
-	virtual void SetConnectIndex(int inode, long index) = 0;
+	virtual void SetConnectIndex(int inode, int64_t index) = 0;
 	
 	/**
 	 * @brief Calculates the diagonal block
 	 * @param connectlist stack list to calculates the diagonal block
 	 * @param block object to receive the diagonal block
 	 */
-	virtual void CalcBlockDiagonal(TPZStack<long> &connectlist, TPZBlockDiagonal<STATE> & block);
+	virtual void CalcBlockDiagonal(TPZStack<int64_t> &connectlist, TPZBlockDiagonal<STATE> & block){
+        CalcBlockDiagonalInternal(connectlist,block);
+    }
+    
+    virtual void CalcBlockDiagonal(TPZStack<int64_t> &connectlist, TPZBlockDiagonal<CSTATE> & block){
+        CalcBlockDiagonalInternal(connectlist,block);
+    }
 	
+    /// Will return the maximum distance between the nodes of the reference element
 	REAL MaximumRadiusOfEl();
 	
+    /// Will return the smallest distance between two nodes of the reference element
 	REAL LesserEdgeOfEl();
 	
 	/** @brief Save the element data to a stream */
-	virtual void Write(TPZStream &buf, int withclassid);
+	void Write(TPZStream &buf, int withclassid) const override;
 	
 	/** @brief Read the element data from a stream */
-	virtual void Read(TPZStream &buf, void *context);
-	
+	void Read(TPZStream &buf, void *context) override;
+	 
 private:
+    template<class TVar>
+    void LoadSolutionInternal();
+    template<class TVar>
+    void SolutionInternal(TPZVec<REAL> &qsi,int var,TPZVec<TVar> &sol);
+    template<class TVar>
+    void CalcBlockDiagonalInternal(TPZStack<int64_t> &connectlist, TPZBlockDiagonal<TVar> & block);
 	/** @brief Default interpolation order */
     static int gOrder;
     
 protected:
+    
     /// Integration rule established by the user
     TPZIntPoints *fIntegrationRule;
     
 public:
+    
+    virtual void InitializeIntegrationRule(){
+        std::cout << "TPZCompEl::InitializeIntegrationRule should not be called\n";
+        DebugStop();
+    }
+    
+    
+    virtual int ComputeIntegrationOrder() const;
+    
     /// Method to set a dynamically allocated integration rule
     virtual void SetIntegrationRule(TPZIntPoints *intrule);
     
@@ -553,6 +589,13 @@ public:
         std::cout << "TPZCompEl::SetIntegrationRule should not be called\n";
     }
     
+    virtual const TPZIntPoints &GetIntegrationRule() const
+    {
+        if(fIntegrationRule)
+			return *fIntegrationRule;
+        DebugStop();
+		return *fIntegrationRule;
+    }
 
 
 };
@@ -711,9 +754,15 @@ public:
 	 * @param onlyinterpolated if == 1, only elements derived from TPZInterpolatedElement will be checked
 	 */
 	TPZCompElSide LowerIdElementList(TPZCompElSide &expandvec,int onlyinterpolated);
+    
+    /**
+     * @brief Split the connect shared between this and right compelsides
+     * @param right compelside that shares the same connects as in this
+     */
+    void SplitConnect(const TPZCompElSide& right) const;
 
 	/** @brief Returns the index of the middle side connect alon fSide */
-    long ConnectIndex() const;
+    int64_t ConnectIndex() const;
 	
 	/** @brief Overlapping operator not equal */
 	bool operator != (const TPZCompElSide &other);
@@ -727,12 +776,18 @@ inline void TPZCompEl::CreateGraphicalElement(TPZGraphMesh &, int) {
 	this->Print(std::cout);
 }
 
-inline void TPZCompEl::CalcStiff(TPZElementMatrix &,TPZElementMatrix &){
-	std::cout << "TPZCompEl::CalcStiff(*,*) is called." << std::endl;
+inline void TPZCompEl::Assemble(){
+    std::cout << "TPZCompEl::Assemble is called." << std::endl;
 }
 
-inline void TPZCompEl::ProjectFlux(TPZElementMatrix &ek,TPZElementMatrix &ef) {
-	std::cout << "TPZCompEl::ProjectFlux is called." << std::endl;
+inline void TPZCompEl::CalcStiff(TPZElementMatrixT<STATE> &,TPZElementMatrixT<STATE> &){
+	PZError << "TPZCompEl::CalcStiff(*,*) is called." << std::endl;
+    DebugStop();
+}
+
+inline void TPZCompEl::CalcStiff(TPZElementMatrixT<CSTATE> &,TPZElementMatrixT<CSTATE> &){
+	PZError << "TPZCompEl::CalcStiff(*,*) is called." << std::endl;
+    DebugStop();
 }
 
 inline bool TPZCompElSide::operator != (const TPZCompElSide &other)
@@ -754,7 +809,7 @@ inline std::ostream &operator << (std::ostream &out,const TPZCompElSide &celside
 	return out;
 }
 
-inline long TPZCompEl::Index() const {
+inline int64_t TPZCompEl::Index() const {
 	return fIndex;
 }
 
@@ -767,5 +822,16 @@ inline int TPZCompEl::GetgOrder( )
 {
 	return gOrder;
 }
+
+
+#define INSTANTIATE(TVar) \
+extern template \
+void TPZCompEl::SolutionInternal<TVar>(TPZVec<REAL> &qsi,int var,TPZVec<TVar> &sol); \
+extern template \
+void TPZCompEl::CalcBlockDiagonalInternal<TVar>(TPZStack<int64_t> &connectlist, TPZBlockDiagonal<TVar> & block);
+
+INSTANTIATE(STATE)
+INSTANTIATE(CSTATE)
+#undef INSTANTIATE
 
 #endif

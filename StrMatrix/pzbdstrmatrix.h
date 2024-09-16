@@ -6,50 +6,51 @@
 #ifndef TPZBLOCKDIAGONALSTRUCTMATRIX_H
 #define TPZBLOCKDIAGONALSTRUCTMATRIX_H
 
-#include "pzmatrix.h"
-#include "pzfmatrix.h"
-#include "pzstrmatrix.h"
+#include "TPZStructMatrixT.h"
+#include "pzstrmatrixor.h"
 
-#include "pzcmesh.h"
-#include "pzvec.h"
-#include "pzblockdiag.h"
+template<class TVar>
+class TPZBlockDiagonal;
 
 /**
- * @brief Implements Block Diagonal Structural Matrices. \ref structural "Structural Matrix"
+ * @brief Implements a block diagonal structural matrix.
  * @ingroup structural
  */
-class TPZBlockDiagonalStructMatrix : public TPZStructMatrix {
-public:    
-	
-	enum MBlockStructure {ENodeBased, EVertexBased, EElementBased};
-	
-	TPZBlockDiagonalStructMatrix(TPZCompMesh *);
-	
-	~TPZBlockDiagonalStructMatrix();
-	
-	TPZBlockDiagonalStructMatrix(const TPZBlockDiagonalStructMatrix &copy) : TPZStructMatrix(copy),
-	fBlockStructure(copy.fBlockStructure),fOverlap(copy.fOverlap)
-	{
-	}
-	
-	/** @brief Creates a sparse blockdiagonal matrix, overlapping should be assumed */
-	virtual TPZMatrix<STATE> * Create();
-    
-	virtual TPZMatrix<STATE> * CreateAssemble(TPZFMatrix<STATE> &rhs,TPZAutoPointer<TPZGuiInterface> guiInterface);
-	
-	virtual TPZStructMatrix * Clone();    
-	
+template<class TVar=STATE, class TPar=TPZStructMatrixOR<TVar>>
+class TPZBlockDiagonalStructMatrix : public TPZStructMatrixT<TVar>,
+                                     public TPar{
 public:
-	
-	void AssembleBlockDiagonal(TPZBlockDiagonal<STATE> & block);
+    using TPZStructMatrixT<TVar>::TPZStructMatrixT;
+    
+    enum MBlockStructure {ENodeBased, EVertexBased, EElementBased};   
+    
+    /** @brief Creates a sparse blockdiagonal matrix, overlapping should be assumed */
+    TPZMatrix<TVar> * Create() override;
+    
+    TPZStructMatrix * Clone() override;
+
+    void EndCreateAssemble(TPZBaseMatrix*) override;
+    
+    
+
+    //@{
+    int ClassId() const override;
+    
+    void Read(TPZStream& buf, void* context) override;
+
+    void Write(TPZStream& buf, int withclassid) const override;
+    //@}
+    
+    void AssembleBlockDiagonal(TPZBlockDiagonal<TVar> & block);
 private:
-	
+    
     void BlockSizes(TPZVec < int > & blocksizes);
     
-    MBlockStructure fBlockStructure;
-    int fOverlap;
+    MBlockStructure fBlockStructure{EVertexBased};
     
+    int fOverlap{0};
     
+    friend TPZPersistenceManager;
 };
 
 #endif //TPZBLOCKDIAGONALSTRUCTMATRIX_H

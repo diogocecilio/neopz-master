@@ -6,44 +6,44 @@
 #ifndef TPZSKYLINESTRUCTMATRIX_H
 #define TPZSKYLINESTRUCTMATRIX_H
 
-#include "pzmatrix.h"
-#include "pzfmatrix.h"
-#include "pzstrmatrix.h"
+#include "TPZStructMatrixT.h"
+#include "pzstrmatrixor.h"
 
 class TPZCompMesh;
 
 /**
- * @brief Implements SkyLine Structural Matrices. \ref structural "Structural Matrix"
+ * @brief Implements a skyline structural matrix using TPZSkylMatrix as a storage format.
  * @ingroup structural
  */
-class TPZSkylineStructMatrix : public TPZStructMatrix {
+template<class TVar=STATE, class TPar=TPZStructMatrixOR<TVar>>
+class TPZSkylineStructMatrix : public TPZStructMatrixT<TVar>,
+                               public TPar{
 protected:
     
     /** @brief the equations which should actually be assembled */
-    TPZVec<long> fActiveEquations;
+    TPZVec<int64_t> fActiveEquations;
     
     /** @brief Equation destination */
-    TPZVec<long> fEquationDestination;
+    TPZVec<int64_t> fEquationDestination;
     
     /** Returns the skyline matrix object */
-    virtual TPZMatrix<STATE> * ReallyCreate(long neq, const TPZVec<long> &skyline);
+    virtual TPZMatrix<TVar> * ReallyCreate(int64_t neq, const TPZVec<int64_t> &skyline);
     
 public:    
-	
-	TPZSkylineStructMatrix(TPZCompMesh *);
+    using TPZStructMatrixT<TVar>::TPZStructMatrixT;
     
-    TPZSkylineStructMatrix(TPZAutoPointer<TPZCompMesh> cmesh);
+    TPZMatrix<TVar> * Create() override;
 	
-	TPZSkylineStructMatrix(const TPZSkylineStructMatrix &cp);
-    
-    ~TPZSkylineStructMatrix();
-	
-    virtual TPZMatrix<STATE> * Create();
-	
-    virtual TPZStructMatrix * Clone();
-    
-public:
-	
+    TPZStructMatrix * Clone() override;
+    //@{
+    int ClassId() const override;
+
+    void Read(TPZStream& buf, void* context) override;
+
+    void Write(TPZStream& buf, int withclassid) const override;
+    //@}
+private :
+    friend TPZPersistenceManager;
 };
 
 #endif //TPZSKYLINESTRUCTMATRIX_H

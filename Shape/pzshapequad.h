@@ -12,9 +12,7 @@
 #include "tpzquadrilateral.h"
 #include "pzshtmat.h"
 
-#ifdef _AUTODIFF
 #include "fadType.h"
-#endif
 
 /// groups all classes dedicated to the computation of shape functions
 namespace pzshape{
@@ -43,23 +41,25 @@ namespace pzshape{
 		 * These values depend on the point, the order of interpolation and ids of the corner points \n
 		 * The shapefunction computation uses the shape functions of the linear element for its implementation
 		 */
-		static void Shape(TPZVec<REAL> &pt, TPZVec<long> &id, TPZVec<int> &order,
+		static void Shape(TPZVec<REAL> &pt, TPZVec<int64_t> &id, TPZVec<int> &order,
 						  TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi);
         
-		static void SideShape(int side, TPZVec<REAL> &pt, TPZVec<long> &id, TPZVec<int> &order,
+      
+        
+		static void SideShape(int side, TPZVec<REAL> &pt, TPZVec<int64_t> &id, TPZVec<int> &order,
 							  TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi);
 
         
         /**
          * @brief returns the polynomial order in the natural ksi, eta of the side associated with each shapefunction
          */
-        static void ShapeOrder(TPZVec<long> &id, TPZVec<int> &order, TPZGenMatrix<int> &shapeorders);//, TPZVec<long> &sides
+        static void ShapeOrder(const TPZVec<int64_t> &id, const TPZVec<int> &order, TPZGenMatrix<int> &shapeorders);//, TPZVec<int64_t> &sides
         
         /**
          * @brief returns the polynomial order in the natural ksi, eta of the internal shapefunctions of a side
          * @param sides is a vector with copy of side as much as needed, it depends on the order
          */
-        static void SideShapeOrder(int side,  TPZVec<long> &id, int order, TPZGenMatrix<int> &shapeorders);
+        static void SideShapeOrder(const int side,  const TPZVec<int64_t> &id, const int order, TPZGenMatrix<int> &shapeorders);
         
 		/**
 		 * @brief Computes the corner shape functions for a quadrilateral element
@@ -67,7 +67,7 @@ namespace pzshape{
 		 * @param phi (output) value of the (4) shape functions
 		 * @param dphi (output) value of the derivatives of the (4) shape functions holding the derivatives in a column
 		 */
-		static void ShapeCorner(TPZVec<REAL> &pt, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi);
+		static void ShapeCorner(const TPZVec<REAL> &pt, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi);
 		
 		/**
 		 * @brief Computes the generating shape functions for a quadrilateral element
@@ -75,9 +75,17 @@ namespace pzshape{
 		 * @param phi (input/output) value of the (4) shape functions
 		 * @param dphi (input/output) value of the derivatives of the (4) shape functions holding the derivatives in a column
 		 */
-		static void ShapeGenerating(TPZVec<REAL> &pt, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi);
+		static void ShapeGenerating(const TPZVec<REAL> &pt, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi);
 		
-		/** 
+        /**
+         * @brief Computes the generating shape functions for a quadrilateral element
+         * @param pt (input) point where the shape function is computed
+         * @param phi (input/output) value of the (4) shape functions
+         * @param dphi (input/output) value of the derivatives of the (4) shape functions holding the derivatives in a column
+         */
+        static void ShapeGenerating(const TPZVec<REAL> &pt, TPZVec<int> &nshape, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi);
+        
+		/**
 		 * @brief Compute the internal functions of the quadrilateral shape function at a point
 		 * @param x coordinate of the point
 		 * @param order maximum order of shape functions to be computed
@@ -95,8 +103,10 @@ namespace pzshape{
 		 */
 		static void ShapeInternal(TPZVec<REAL> &x, int order,
 								  TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi,int quad_transformation_index);
+        
+        static void ShapeInternal(TPZVec<REAL> &x, int order,
+                                  TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi);
 		
-#ifdef _AUTODIFF
 		/**
 		 * @brief Compute the internal functions of the quadrilateral shape function at a point
 		 * @param x coordinate of the point (already setup with derivatives)
@@ -114,7 +124,6 @@ namespace pzshape{
 		 */
 		static void Shape2dQuadInternal(TPZVec<FADREAL> &x, int order,
 										TPZVec<FADREAL> &phi,int quad_transformation_index);
-#endif
 
 		/**
 		 * @brief Transform the derivatives of num shapefunctions in place for a quadrilateral
@@ -134,8 +143,7 @@ namespace pzshape{
 		 */
 		static void TransformPoint2dQ(int transid,TPZVec<REAL> &in,TPZVec<REAL> &out);
 		
-#ifdef _AUTODIFF
-		
+
 		/**
 		 * @brief Transform the coordinates of the point in the space of the quadrilateral
 		 * master element based on the transformation id
@@ -145,7 +153,6 @@ namespace pzshape{
 		 */
 		static void TransformPoint2dQ(int transid,TPZVec<FADREAL> &in,TPZVec<FADREAL> &out);
 		
-#endif
 		/**
 		 * @brief Projects a point from the interior of the element to a rib
 		 * @param rib rib index to which the point should be projected
@@ -160,7 +167,7 @@ namespace pzshape{
 		 * @param id indexes of the corner nodes
 		 * @return index of the transformation of the point
 		 */
-		static int GetTransformId2dQ(TPZVec<long> &id);
+		static int GetTransformId2dQ(TPZVec<int64_t> &id);
 
 		/**
 		 * @brief Transforms the derivative of a shapefunction computed on the rib into the two dimensional derivative
@@ -172,7 +179,7 @@ namespace pzshape{
 		static void TransformDerivativeFromRibToQuad(int rib,int num,TPZFMatrix<REAL> &dphi);
 
 		/** @brief Data structure which defines the quadrilateral transformations */
-		static REAL gTrans2dQ[8][2][2];
+	 	static REAL gTrans2dQ[8][2][2];
 		/** @brief Data structure which defines the quadrilateral transformations */
 		static REAL gFaceTr2dQ[6][2][3];
 		/** @brief Data structure which defines the quadrilateral transformations */
@@ -193,7 +200,10 @@ namespace pzshape{
 		 * @param order vector of integers indicating the interpolation order of the element
 		 * @return number of shape functions
 		 */
-		static int NShapeF(TPZVec<int> &order);
+		static int NShapeF(const TPZVec<int> &order);
+        static TPZTransform<REAL> ParametricTransform(int trans_id);
+        static void ShapeInternal(int side, TPZVec<REAL> &x, int order, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi);
+        
 		
 	};
 	

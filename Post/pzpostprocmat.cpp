@@ -4,53 +4,51 @@
 
 #include "pzpostprocmat.h"
 //#include "poroelastoplasticid.h"
-#include "pzbndcond.h"
+#include "TPZBndCondT.h"
 
-#ifdef LOG4CXX
+#ifdef PZ_LOG
 #include "pzlog.h"
-static LoggerPtr postprocLogger(Logger::getLogger("material.pzPostProcMat"));
+static TPZLogger postprocLogger("material.pzPostProcMat");
 #endif
 
 
-TPZPostProcMat::TPZPostProcMat() : /*TPZMaterial*/TPZDiscontinuousGalerkin()
+TPZPostProcMat::TPZPostProcMat() :TPZRegisterClassId(&TPZPostProcMat::ClassId),TBase()
 {
 	fVars.Resize(0);	
 	fDimension = -1;
 }
 
-TPZPostProcMat::TPZPostProcMat(long id) : /*TPZMaterial*/TPZDiscontinuousGalerkin(id)
+TPZPostProcMat::TPZPostProcMat(int64_t id) : TPZRegisterClassId(&TPZPostProcMat::ClassId),TBase(id)
 {
 	fVars.Resize(0);	
 	fDimension = -1;
-}
-
-TPZPostProcMat::TPZPostProcMat(const TPZPostProcMat &mat) : /*TPZMaterial*/TPZDiscontinuousGalerkin(mat), fVars(mat.fVars), fDimension(mat.fDimension)
-{
 }
 
 TPZPostProcMat::~TPZPostProcMat()
 {
-    std::cout << "\nMaterial " << Id() << " killed\n";
+// #ifdef PZDEBUG
+//     std::cout << "TPZPostProcMat:: Material Id = " << Id() << ", it is being deleted. " << std::endl;
+// #endif
 
 }
 
-void TPZPostProcMat::Print(std::ostream &out)
+void TPZPostProcMat::Print(std::ostream &out) const
 {
 	out << this->Name();
 	out << "\n Base material Data:\n";
-	TPZDiscontinuousGalerkin::Print(out);
+	TPZMaterial::Print(out);
 	out << "Dimension " << fDimension << std::endl;
-	long nVars = fVars.NElements();
+	int64_t nVars = fVars.NElements();
 	out << "\n Post Process Variables\n";
-	for(long i = 0; i < nVars; i++)
+	for(int64_t i = 0; i < nVars; i++)
 	{
 		out << fVars[i].fName << " of size " << fVars[i].fNumEq << " and index " << fVars[i].fIndex << std::endl;
 	}
 }
 
-int TPZPostProcMat::VariableIndex(const std::string &name)
+int TPZPostProcMat::VariableIndex(const std::string &name) const
 {
-	long i, nVars = fVars.NElements();
+	int64_t i, nVars = fVars.NElements();
 	
 	i = 0;
 
@@ -65,30 +63,31 @@ int TPZPostProcMat::VariableIndex(const std::string &name)
 	return fVars[i].fIndex;
 }
 
-int TPZPostProcMat::NSolutionVariables(int var)
+int TPZPostProcMat::NSolutionVariables(int var) const
 {
-	long i, nVars = fVars.NElements();
+	int64_t i, nVars = fVars.NElements();
 	
 	i = 0;
 
 	while(i < nVars && var != fVars[i].fIndex)i++;
 	
-	if(i >= nVars)return -1; // variable not found
+	if(i >= nVars) return -1; // variable not found
 	
 	return fVars[i].fNumEq;
 }
 
-int TPZPostProcMat::NStateVariables()
+int TPZPostProcMat::NStateVariables() const
 {
-	long i, nVars = fVars.NElements(), size = 0;
-	for(i = 0; i < nVars; i++)size += fVars[i].fNumEq;
-	return size;
+	int64_t i, nVars = fVars.NElements(), size = 0;
+    for(i = 0; i < nVars; i++) size += fVars[i].fNumEq;
+    return size;
 }
 
-void TPZPostProcMat::Solution(TPZMaterialData &data, int var, TPZVec<STATE> &Solout)
+void TPZPostProcMat::Solution(const TPZMaterialDataT<STATE> &data,
+                              int var, TPZVec<STATE> &Solout)
 {
 	
-#ifdef LOG4CXX_keep
+#ifdef PZ_LOG_keep
   {
     std::stringstream sout;
     sout << ">>> TPZPostProcMat::Solution() *** called for variable index = " << var;
@@ -96,7 +95,7 @@ void TPZPostProcMat::Solution(TPZMaterialData &data, int var, TPZVec<STATE> &Sol
   }
 #endif
 	
-	long i, nVars = fVars.NElements(), offset = 0;
+	int64_t i, nVars = fVars.NElements(), offset = 0;
 	
 	i = 0;
 
@@ -108,24 +107,23 @@ void TPZPostProcMat::Solution(TPZMaterialData &data, int var, TPZVec<STATE> &Sol
 	
 	if(i >= nVars)return; // variable not found
 	
-	long numeq = fVars[i].fNumEq;
+	int64_t numeq = fVars[i].fNumEq;
 	
 	Solout.Resize(numeq);	
 
 	for(i = 0; i < numeq; i++)Solout[i] = data.sol[0][offset+i];
 }
 
-void TPZPostProcMat::Contribute(TPZMaterialData &data, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef)
+void TPZPostProcMat::Contribute(const TPZMaterialDataT<STATE> &data, REAL weight,
+                                TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef)
 {
 	
-  TPZFMatrix<REAL> &phi = data.phi;
+  const TPZFMatrix<REAL> &phi = data.phi;
   TPZVec<STATE> &sol = data.sol[0];
   int nstate = NStateVariables();
 			
-  long nshape = phi.Rows();
-	
-  TPZFMatrix<REAL> L2(nshape,nshape,0.);
-  long i, j, i_var;
+  int64_t nshape = phi.Rows();
+  int64_t i, j, i_var;
 
   for(i = 0; i < nshape; i++)
 	 for(j = 0; j < nshape; j++)
@@ -133,95 +131,66 @@ void TPZPostProcMat::Contribute(TPZMaterialData &data, REAL weight, TPZFMatrix<S
 	
   for(i = 0; i < nstate; i++)
 	{
-		long eqOffset = i*nshape;
+		int64_t eqOffset = i*nshape;
 		for(i_var = 0; i_var < nshape; i_var++)
 			ef(eqOffset+i_var,0) += (STATE)phi(i_var,0) * sol[i];
 	}
 }
 
-void TPZPostProcMat::Contribute(TPZMaterialData &data, REAL weight, TPZFMatrix<STATE> &ef)
+void TPZPostProcMat::Contribute(const TPZMaterialDataT<STATE> &data, REAL weight, TPZFMatrix<STATE> &ef)
 {
-	PZError << "Error at " << __PRETTY_FUNCTION__ << " TPZPostProcMat::Contribute(ef) should never be called\n";
-	return;
+    PZError << "Error at " << __PRETTY_FUNCTION__ << " TPZPostProcMat::Contribute(ef) should never be called\n";
+    return;
 }
 
-void TPZPostProcMat::ContributeBC(TPZMaterialData &data, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCond &bc)
+void TPZPostProcMat::ContributeBC(const TPZMaterialDataT<STATE> &data, REAL weight, TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef, TPZBndCondT<STATE> &bc)
 {
 	PZError << "Error at " << __PRETTY_FUNCTION__ << " TPZPostProcMat::ContributeBC() should never be called\n";
 	return;
 }
 
-void TPZPostProcMat::ContributeInterface(TPZMaterialData &data, TPZMaterialData &dataleft, TPZMaterialData &dataright, REAL weight, TPZFMatrix<STATE> &ef, TPZFMatrix<STATE> &ek){
+void TPZPostProcMat::ContributeInterface(const TPZMaterialDataT<STATE> &data, const TPZMaterialDataT<STATE> &dataleft, const TPZMaterialDataT<STATE> &dataright, REAL weight, TPZFMatrix<STATE> &ef, TPZFMatrix<STATE> &ek){
   // do nothing
 }
 
-void TPZPostProcMat::ContributeBCInterface(TPZMaterialData &data, TPZMaterialData &dataleft, REAL weight, TPZFMatrix<STATE> &ef, TPZFMatrix<STATE> &ek,TPZBndCond &bc){
+void TPZPostProcMat::ContributeBCInterface(const TPZMaterialDataT<STATE> &data, const TPZMaterialDataT<STATE> &dataleft, REAL weight, TPZFMatrix<STATE> &ef, TPZFMatrix<STATE> &ek,TPZBndCondT<STATE> &bc){
   // do nothing
 }
 
-int TPZPostProcMat::ClassId() const
-{
-	return TPZPOSTPROCMAT_ID;
+int TPZPostProcMat::ClassId() const{
+    return Hash("TPZPostProcMat") ^ TPZMaterial::ClassId() << 1;
 }
 
-std::string TPZPostProcMat::Name()
-{
-	return "TPZPostProcMat"; 
+std::string TPZPostProcMat::Name() const{
+    return "TPZPostProcMat";
 }
 
-void TPZPostProcMat::Write(TPZStream &buf, int withclassid)
+void TPZPostProcMat::Write(TPZStream &buf, int withclassid) const
 {
-	TPZSaveable::Write(buf, withclassid);
 	
-	TPZMaterial::Write(buf, 0);
-	
-	long i, nVars = fVars.NElements();
-	
-	buf. Write(&nVars, 1);
-	
-	for(i = 0; i < nVars; i++)
-	{
-		buf. Write(&fVars[i].fIndex, 1);
-		buf. Write(&fVars[i].fNumEq, 1);
-		int size = strlen(fVars[i].fName.c_str());
-		if(size > 255) size = 255;
-		buf.Write(&size,1);
-		buf. Write(fVars[i].fName.c_str(), size);
-	}
+	TPZMaterial::Write(buf, withclassid);
+	buf.Write(fVars);
+	buf.Write(&fDimension);
 }
 
 void TPZPostProcMat::Read(TPZStream &buf, void *context)
 {
-    TPZSaveable::Read(buf, context);
+    	TPZMaterial::Read(buf, context);
 	
-	TPZMaterial::Read(buf, context);
-	
-	long i, nVars;
-	
-	buf.Read(&nVars, 1);
-	
-	for(i = 0; i < nVars; i++)
-	{
-		buf. Read(&fVars[i].fIndex, 1);
-		buf. Read(&fVars[i].fNumEq, 1);
-		int size;
-		buf. Read(&size, 1);
-		char name[256];
-		buf. Read(name, size);
-		fVars[i].fName = name;
-	}
+	buf.Read(fVars);
+	buf.Read(&fDimension);
 }
 
-void TPZPostProcMat::FillDataRequirements(TPZMaterialData &data){
+void TPZPostProcMat::FillDataRequirements(TPZMaterialData &data) const{
   	
-	TPZMaterial::FillDataRequirements(data);
+	TPZMatSingleSpaceT::FillDataRequirements(data);
 	data.SetAllRequirements(false);
 	data.fNeedsSol = true;	
 }
 
 void TPZPostProcMat::GetPostProcessVarIndexList(TPZVec<int> & varIndexList)
 {
-	long i, n = fVars.NElements();
+	int64_t i, n = fVars.NElements();
 	varIndexList.Resize(n);
 	
 	for(i = 0; i < n; i++)varIndexList[i] = fVars[i].fIndex;
@@ -235,7 +204,7 @@ void TPZPostProcMat::SetPostProcessVarIndexList(TPZVec<std::string> & varIndexNa
 		return;
 	}
 	
-	long i, n = varIndexNames.NElements(), k = 0;
+	int64_t i, n = varIndexNames.NElements(), k = 0;
 	int varindex;
 	fVars.Resize(n);
 	
@@ -247,12 +216,10 @@ void TPZPostProcMat::SetPostProcessVarIndexList(TPZVec<std::string> & varIndexNa
 			fVars[k].fIndex = varindex;
 			fVars[k].fNumEq = pRefMat->NSolutionVariables(varindex);
 			fVars[k].fName  = varIndexNames[i];
-            
 			k++;
 		}
 	}
     
-	
 	fVars.Resize(k);
 	fDimension = pRefMat->Dimension();
 	
@@ -262,3 +229,22 @@ int TPZPostProcMat::Dimension() const
 {
 	return fDimension;
 }
+
+int TPZPostProcVar::ClassId() const {
+    return Hash("TPZPostProcVar");
+}
+
+void TPZPostProcVar::Read(TPZStream& buf, void* context) {
+    buf.Read(&fIndex);
+    buf.Read(&fName);
+    buf.Read(&fNumEq);    
+}
+
+void TPZPostProcVar::Write(TPZStream& buf, int withclassid) const {
+    buf.Write(&fIndex);
+    buf.Write(&fName);
+    buf.Write(&fNumEq);    
+}
+
+template class TPZRestoreClass<TPZPostProcVar>;
+template class TPZRestoreClass<TPZPostProcMat>;

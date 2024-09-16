@@ -12,9 +12,7 @@
 #include "tpzcube.h"
 #include "pzshtmat.h"
 
-#ifdef _AUTODIFF
 #include "fadType.h"
-#endif
 
 /** @brief Groups all classes dedicated to the computation of shape functions */
 namespace pzshape {
@@ -42,23 +40,22 @@ namespace pzshape {
 		 * These values depend on the point, the order of interpolation and ids of the corner points
 		 * The shapefunction computation uses the shape functions of the linear and quadrilateral element for its implementation
 		 */
-		static void Shape(TPZVec<REAL> &pt, TPZVec<long> &id, TPZVec<int> &order, TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi);
+		static void Shape(TPZVec<REAL> &pt, TPZVec<int64_t> &id, TPZVec<int> &order, TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi);
         
-		static void SideShape(int side, TPZVec<REAL> &pt, TPZVec<long> &id, TPZVec<int> &order, TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi);
+		static void SideShape(int side, TPZVec<REAL> &pt, TPZVec<int64_t> &id, TPZVec<int> &order, TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphi);
         
         /**
          * @brief returns the polynomial order in the natural ksi, eta of the side associated with each shapefunction
          */
-        static void ShapeOrder(TPZVec<long> &id, TPZVec<int> &order, TPZGenMatrix<int> &shapeorders);//, TPZVec<long> &sides;
+        static void ShapeOrder(const TPZVec<int64_t> &id, const TPZVec<int> &order, TPZGenMatrix<int> &shapeorders);//, TPZVec<int64_t> &sides;
         
         /**
          * @brief returns the polynomial order in the natural ksi, eta of the internal shapefunctions of a side
          * @param sides is a vector with copy of side as much as needed, it depends on the order
          */
-        static void SideShapeOrder(int side,  TPZVec<long> &id, int order, TPZGenMatrix<int> &shapeorders);
+        static void SideShapeOrder(const int side,  const TPZVec<int64_t> &id, const int order, TPZGenMatrix<int> &shapeorders);
         
 		
-#ifdef _AUTODIFF
 		/**
 		 * @brief Computes the values of the shape functions and their derivatives for a hexahedral element
 		 * @param point (input) point where the shape functions are computed
@@ -70,7 +67,7 @@ namespace pzshape {
 		 * These values depend on the point, the order of interpolation and ids of the corner points
 		 * The shapefunction computation uses the shape functions of the linear and quadrilateral element for its implementation
 		 */
-		static void ShapeCube(TPZVec<REAL> &point, TPZVec<long> &id, TPZVec<int> &order, TPZVec<FADREAL> &phi);
+		static void ShapeCube(TPZVec<REAL> &point, TPZVec<int64_t> &id, TPZVec<int> &order, TPZVec<FADREAL> &phi);
 
 		/**
 		 * @brief Computes the corner shape functions for a hexahedral element
@@ -91,25 +88,85 @@ namespace pzshape {
 		 * determined by the transformation index
 		 */
 		static void Shape3dCubeInternal(TPZVec<FADREAL> &x, int order,TPZVec<FADREAL> &phi);//,int quad_transformation_index
-#endif
-		
+
 		/**
 		 * @brief Computes the corner shape functions for a hexahedral element
 		 * @param pt (input) point where the shape function is computed
 		 * @param phi (output) value of the (8) shape functions
 		 * @param dphi (output) value of the derivatives of the (8) shape functions holding the derivatives in a column
 		 */
-		static void ShapeCorner(TPZVec<REAL> &pt, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi);
-		
+        static void ShapeCorner(const TPZVec<REAL> &pt, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi);
+        /*
+        {
+            
+            REAL x[2],dx[2],y[2],dy[2],z[2],dz[2];
+            x[0]  = (1.-pt[0])/2.;
+            x[1]  = (1.+pt[0])/2.;
+            dx[0] = -0.5;
+            dx[1] =  0.5;
+            y[0]  = (1.-pt[1])/2.;
+            y[1]  = (1.+pt[1])/2.;
+            dy[0] = -0.5;
+            dy[1] =  0.5;
+            z[0]  = (1.-pt[2])/2.;
+            z[1]  = (1.+pt[2])/2.;
+            dz[0] = -0.5;
+            dz[1] =  0.5;
+            
+            phi(0,0)  = x[0]*y[0]*z[0];
+            phi(1,0)  = x[1]*y[0]*z[0];
+            phi(2,0)  = x[1]*y[1]*z[0];
+            phi(3,0)  = x[0]*y[1]*z[0];
+            phi(4,0)  = x[0]*y[0]*z[1];
+            phi(5,0)  = x[1]*y[0]*z[1];
+            phi(6,0)  = x[1]*y[1]*z[1];
+            phi(7,0)  = x[0]*y[1]*z[1];
+            dphi(0,0) = dx[0]*y[0]*z[0];
+            dphi(1,0) = x[0]*dy[0]*z[0];
+            dphi(2,0) = x[0]*y[0]*dz[0];
+            dphi(0,1) = dx[1]*y[0]*z[0];
+            dphi(1,1) = x[1]*dy[0]*z[0];
+            dphi(2,1) = x[1]*y[0]*dz[0];
+            dphi(0,2) = dx[1]*y[1]*z[0];
+            dphi(1,2) = x[1]*dy[1]*z[0];
+            dphi(2,2) = x[1]*y[1]*dz[0];
+            dphi(0,3) = dx[0]*y[1]*z[0];
+            dphi(1,3) = x[0]*dy[1]*z[0];
+            dphi(2,3) = x[0]*y[1]*dz[0];
+            dphi(0,4) = dx[0]*y[0]*z[1];
+            dphi(1,4) = x[0]*dy[0]*z[1];
+            dphi(2,4) = x[0]*y[0]*dz[1];
+            dphi(0,5) = dx[1]*y[0]*z[1];
+            dphi(1,5) = x[1]*dy[0]*z[1];
+            dphi(2,5) = x[1]*y[0]*dz[1];
+            dphi(0,6) = dx[1]*y[1]*z[1];
+            dphi(1,6) = x[1]*dy[1]*z[1];
+            dphi(2,6) = x[1]*y[1]*dz[1];
+            dphi(0,7) = dx[0]*y[1]*z[1];
+            dphi(1,7) = x[0]*dy[1]*z[1];
+            dphi(2,7) = x[0]*y[1]*dz[1];
+        }
+         */
+
+        /**
+         * @brief Computes the generating shape functions for a hexahedral element
+         * @param pt (input) point where the shape function is computed
+         * @param phi (input) value of the (8) corner shape functions
+         * @param dphi (input) value of the derivatives of the (4) shape functions holding the derivatives in a column
+         */
+        static void ShapeGenerating(const TPZVec<REAL> &pt, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi);
+        
+        /**
+         * @brief Computes the generating shape functions for a hexahedral element
+         * @param pt (input) point where the shape function is computed
+         * @param phi (input) value of the (8) corner shape functions
+         * @param dphi (input) value of the derivatives of the (4) shape functions holding the derivatives in a column
+         */
+        static void ShapeGenerating(const TPZVec<REAL> &pt, TPZVec<int> &nshape, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi);
+        
 	private:
 		
-		/**
-		 * @brief Computes the generating shape functions for a quadrilateral element
-		 * @param pt (input) point where the shape function is computed
-		 * @param phi (input) value of the (4) shape functions
-		 * @param dphi (input) value of the derivatives of the (4) shape functions holding the derivatives in a column
-		 */
-		static void ShapeGenerating(TPZVec<REAL> &pt, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi);
+	
 
 		/**
 		 * @brief Compute the internal functions of the hexahedral shape function at a point
@@ -134,7 +191,6 @@ namespace pzshape {
 		 */
 		static void ProjectPoint3dCubeToRib(int face, TPZVec<REAL> &in, REAL &outval);
 		
-#ifdef _AUTODIFF
 		/**
 		 * @brief Projects a point from the interior of the element to a rib
 		 * @param face rib index to which the point should be projected
@@ -150,8 +206,7 @@ namespace pzshape {
 		 * @param outval coordinates of the point on the face (with derivatives)
 		 */
 		static void ProjectPoint3dCubeToFace(int face, TPZVec<FADREAL> &in, TPZVec<FADREAL> &outval);
-#endif
-		
+
 		/**
 		 * @brief Projects a point from the interior of the element to a rib
 		 * @param face rib index to which the point should be projected
@@ -190,7 +245,7 @@ namespace pzshape {
 		 * of the function with respect to the element. The parameter dphi should be dimensioned (3,num), at least
 		 * @param rib rib index along which the shapefunction is defined
 		 * @param num number of shapefunction derivatives which need to be transformed
-		 * @param dphi values of the derivatives of the shapefunctions (modified in place)
+		 * @param dphe shapefunctions (modified in place)
 		 */
 		static void TransformDerivativeFromFaceToCube(int rib,int num,TPZFMatrix<REAL> &dphi);
 
@@ -204,7 +259,7 @@ namespace pzshape {
 		 * @brief Number of shapefunctions of the connect associated with the side, considering the order
 		 * of interpolation of the element
 		 * @param side associated side
-		 * @param order vector of integers indicating the interpolation order of the element
+		 * @param order  interpolation order associated with the side
 		 * @return number of shape functions
 		 */
 		static int NConnectShapeF(int side, int order);
@@ -214,7 +269,8 @@ namespace pzshape {
 		 * @param order vector of integers indicating the interpolation order of the element
 		 * @return number of shape functions
 		 */
-		static int NShapeF(TPZVec<int> &order);
+		static int NShapeF(const TPZVec<int> &order);
+        static void ShapeInternal(int side, TPZVec<REAL> &x, int order, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi);
 
 	};
 	

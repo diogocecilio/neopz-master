@@ -33,30 +33,56 @@ template<class TVar=REAL>
 class TPZSkylNSymMatrix : public TPZMatrix<TVar>
 {
  public:
-  TPZSkylNSymMatrix() : TPZMatrix<TVar>(0,0),fElem(0), fElemb(0), fStorage(0), fStorageb(0) { }
+  TPZSkylNSymMatrix() : TPZRegisterClassId(&TPZSkylNSymMatrix::ClassId),
+    TPZMatrix<TVar>(0,0),fElem(0), fElemb(0), fStorage(0), fStorageb(0) { }
     
-  TPZSkylNSymMatrix(const long nrow, const long ncol);
+  TPZSkylNSymMatrix(const int64_t nrow, const int64_t ncol);
   /**
      Construct a skyline matrix of dimension dim
      skyline indicates the minimum row number which will be accessed by each equation
   */
-  TPZSkylNSymMatrix(const long dim ,const TPZVec<long> &skyline);
-	TPZSkylNSymMatrix(const TPZSkylNSymMatrix &A ) : TPZMatrix<TVar>(A), fElem(0), fElemb(0), fStorage(0), fStorageb(0)  
+  TPZSkylNSymMatrix(const int64_t dim ,const TPZVec<int64_t> &skyline);
+  
+  TPZSkylNSymMatrix(const TPZSkylNSymMatrix &A ) : 
+    TPZRegisterClassId(&TPZSkylNSymMatrix::ClassId),TPZMatrix<TVar>(A), fElem(0), fElemb(0), fStorage(0), fStorageb(0)  
     { 
         Copy(A); 
     }
-
+  TPZSkylNSymMatrix(TPZSkylNSymMatrix &&A ) = default;
+  inline TPZSkylNSymMatrix<TVar>*NewMatrix() const override
+  {
+    return new TPZSkylNSymMatrix<TVar>{};
+  }
   CLONEDEF(TPZSkylNSymMatrix)
+  TPZSkylNSymMatrix& operator=(const TPZSkylNSymMatrix&A);
+  TPZSkylNSymMatrix& operator=(TPZSkylNSymMatrix&&A) = default;
+  virtual ~TPZSkylNSymMatrix() { Clear(); }
+
+  /** @brief Creates a copy from another TPZSkylNSymMatrix*/
+  void CopyFrom(const TPZMatrix<TVar> *  mat) override
+  {                                                           
+    auto *from = dynamic_cast<const TPZSkylNSymMatrix<TVar> *>(mat);                
+    if (from) {                                               
+      *this = *from;                                          
+    }                                                         
+    else                                                      
+      {                                                       
+        PZError<<__PRETTY_FUNCTION__;                         
+        PZError<<"\nERROR: Called with incompatible type\n."; 
+        PZError<<"Aborting...\n";                             
+        DebugStop();                                          
+      }                                                       
+  }
   /**
      modify the skyline of the matrix, throwing away its values
      skyline indicates the minimum row number which will be accessed by each equation
   */
-  void SetSkyline(const TPZVec<long> &skyline);
+  void SetSkyline(const TPZVec<int64_t> &skyline);
 
   /**
      return the height of the skyline for a given column
   */
-  int SkyHeight(long col) { return fElem[col+1]-fElem[col] - 1; }
+  int SkyHeight(int64_t col) { return fElem[col+1]-fElem[col] - 1; }
 
   /** Add a skyline matrix B with same structure of this
    *  It makes this += k * B
@@ -64,48 +90,44 @@ class TPZSkylNSymMatrix : public TPZMatrix<TVar>
   //void AddSameStruct(TPZSkylNSymMatrix &B, double k = 1.);
 
   /**declare the object as non-symmetric matrix*/
-  virtual int IsSimetric() const {return 0;}
+  virtual int IsSymmetric() const  override {return 0;}
 
-  virtual ~TPZSkylNSymMatrix() { Clear(); }
+  int PutVal(const int64_t row,const int64_t col,const TVar &element ) override;
 
-  int PutVal(const long row,const long col,const TVar &element );
-
-  const TVar &GetVal(const long row,const long col ) const;
+  const TVar GetVal(const int64_t row,const int64_t col ) const override;
 
 
   /// Pega o valor na diagonal ou parte de cima da diagonal
-  const TVar &GetValSup(const long row,const long col ) const;
+  const TVar &GetValSup(const int64_t row,const int64_t col ) const;
 
   /// Pega o valor abaixo da diagonal (below)
-  const TVar &GetValB(const long row,const long col ) const;
+  const TVar &GetValB(const int64_t row,const int64_t col ) const;
 
 
-  TVar &operator()(const long row, const long col);
-  virtual TVar &s(const long row, const long col);
+  TVar &operator()(const int64_t row, const int64_t col);
+  virtual TVar &s(const int64_t row, const int64_t col) override;
 
 
-  TVar &operator()(const long row);
+  TVar &operator()(const int64_t row);
 
   virtual void MultAdd(const TPZFMatrix<TVar> &x,const TPZFMatrix<TVar> &y, TPZFMatrix<TVar> &z,
-		       const TVar	alpha,const TVar beta ,const int opt = 0) const ;
+		       const TVar	alpha,const TVar beta ,const int opt = 0) const  override;
     
     
     /** @brief Updates the values of the matrix based on the values of the matrix */
-    virtual void UpdateFrom(TPZAutoPointer<TPZMatrix<TVar> > mat);
+    virtual void UpdateFrom(TPZAutoPointer<TPZMatrix<TVar> > mat) override;
 
   // Operadores com matrizes SKY LINE.
-  //TPZSkylNSymMatrix &operator= (const TPZSkylNSymMatrix &A );
-  //TPZSkylMatrix &operator= (TTempMat<TPZSkylMatrix> A);
 
-  //TPZSkylNSymMatrix operator+  (const TPZSkylNSymMatrix &A ) const;
-  //TPZSkylNSymMatrix operator-  (const TPZSkylNSymMatrix &A ) const;
+  TPZSkylNSymMatrix operator+(const TPZSkylNSymMatrix<TVar> &A ) const;
+  TPZSkylNSymMatrix operator-(const TPZSkylNSymMatrix<TVar> &A ) const;
 
-  //TPZSkylNSymMatrix &operator+=(const TPZSkylNSymMatrix &A );
-  //TPZSkylNSymMatrix &operator-=(const TPZSkylNSymMatrix &A );
+  TPZSkylNSymMatrix &operator+=(const TPZSkylNSymMatrix<TVar> &A );
+  TPZSkylNSymMatrix &operator-=(const TPZSkylNSymMatrix<TVar> &A );
 
   // Operadores com valores NUMERICOS.
-  //TPZSkylNSymMatrix operator*  (const REAL v ) const;
-  //TPZSkylNSymMatrix &operator*=( REAL v );
+  TPZSkylNSymMatrix operator*(const TVar v ) const;
+  TPZSkylNSymMatrix &operator*=( TVar v ) override;
 
   //TPZSkylNSymMatrix operator-() const;// { return operator*(-1.0); }
 
@@ -124,41 +146,43 @@ class TPZSkylNSymMatrix : public TPZMatrix<TVar>
 
   /*** Resolucao de sistemas ***/
 
-  int Decompose_LU();  // Faz A = LU.
+  int Decompose_LU() override;  // Faz A = LU.
 
   //virtual void SolveSOR(int &numiterations,const TPZFMatrix &F, TPZFMatrix &result,
 	//		TPZFMatrix *residual,TPZFMatrix &scratch,const REAL overrelax, REAL &tol,
 	//		const int FromCurrent = 0,const int direction = 1) ;
 
 
-  //int Subst_Forward  ( TPZFMatrix *b ) const;
-  int Subst_Backward ( TPZFMatrix<TVar> *b ) const;
-  int Subst_LForward ( TPZFMatrix<TVar> *b ) const;
-  //int Subst_LBackward( TPZFMatrix *b ) const;
-  //int Subst_Diag     ( TPZFMatrix *b ) const;
+  //int Subst_Forward  ( TPZFMatrix *b ) const override;
+  int Subst_Backward ( TPZFMatrix<TVar> *b ) const override;
+  int Subst_LForward ( TPZFMatrix<TVar> *b ) const override;
+  //int Subst_LBackward( TPZFMatrix *b ) const override;
+  //int Subst_Diag     ( TPZFMatrix *b ) const override;
 
   //void TestSpeed(int col, int prevcol);
 	
 	/**
 	 *@brief Return the id of the matrix defined pzmatrixid.h
 	 */
-	virtual int ClassId() const;
+	public:
+int ClassId() const override;
+
 	/**
 	 * @brief Unpacks the object structure from a stream of bytes
 	 * @param buf The buffer containing the object in a packed form
 	 * @param context 
 	 */
-	virtual void  Read(TPZStream &buf, void *context );
+	void Read(TPZStream &buf, void *context) override;
 	/**
 	 * @brief Packs the object structure in a stream of bytes
 	 * @param buf Buffer which will receive the bytes
 	 * @param withclassid
 	 */
-	virtual void Write( TPZStream &buf, int withclassid );
+	void Write(TPZStream &buf, int withclassid) const override;
     
     /** @brief Fill matrix storage with randomic values */
 	/** This method use GetVal and PutVal which are implemented by each type matrices */
-	void AutoFill(long nrow, long ncol, int symmetric);
+	void AutoFill(int64_t nrow, int64_t ncol, int symmetric) override;
 
 
  protected:
@@ -166,10 +190,10 @@ class TPZSkylNSymMatrix : public TPZMatrix<TVar>
   /**
      This method returns a pointer to the diagonal element of the matrix of the col column
   */
-  TVar *Diag(long col) { return fElem[col];}
+  TVar *Diag(int64_t col) { return fElem[col];}
 
   //void DecomposeColumn(int col, int prevcol);
-	//void DecomposeColumn(int col, int prevcol, std::list<long> &singular);
+	//void DecomposeColumn(int col, int prevcol, std::list<int64_t> &singular);
 
   //void DecomposeColumn2(int col, int prevcol);
  private:
@@ -177,18 +201,18 @@ class TPZSkylNSymMatrix : public TPZMatrix<TVar>
   // Aloca uma nova coluna. 'fDiag[col].pElem' deve ser NULL.
 
 //static int  Error(const char *msg1,const char* msg2="" );
-  int  Clear();
+  int  Clear() override;
   void Copy (const TPZSkylNSymMatrix & );
-  int Size(const long column) const {return fElem[column+1]-fElem[column];}
-  static long NumElements(const TPZVec<long> &skyline);
-  static void InitializeElem(const TPZVec<long> &skyline, TPZManVector<TVar> &storage, TPZVec<TVar *> &elem);
+  int Size(const int64_t column) const {return fElem[column+1]-fElem[column];}
+  static int64_t NumElements(const TPZVec<int64_t> &skyline);
+  static void InitializeElem(const TPZVec<int64_t> &skyline, TPZManVector<TVar> &storage, TPZVec<TVar *> &elem);
   /**
      Computes the highest skyline of both objects
   */
-  static void ComputeMaxSkyline(const TPZSkylNSymMatrix &first, const TPZSkylNSymMatrix &second, TPZVec<int> &res);
+  static void ComputeMaxSkyline(const TPZSkylNSymMatrix &first, const TPZSkylNSymMatrix &second, TPZVec<int64_t> &res);
 	
 	/** @brief Zeroes the matrix */
-	virtual int Zero(){
+	virtual int Zero() override {
 		fStorage.Fill(0.);
         fStorageb.Fill(0.);
 		return 1;
@@ -196,6 +220,13 @@ class TPZSkylNSymMatrix : public TPZMatrix<TVar>
 
 
 protected:
+  TVar *&Elem() override;
+  const TVar *Elem() const override;
+  
+  inline int64_t Size() const override
+  {
+    return fStorage.size();
+  }
   /**
      fElem is of size number of equation+1
      fElem[i] is the first element of the skyline of equation i
@@ -239,4 +270,9 @@ inline REAL TemplateSum<1>(const REAL *p1, const REAL *p2){
 */
 
 //---------------------------------------------------------------------------
+
+template<class TVar>
+int TPZSkylNSymMatrix<TVar>::ClassId() const{
+    return Hash("TPZSkylNSymMatrix") ^ TPZMatrix<TVar>::ClassId() << 1;
+}
 #endif

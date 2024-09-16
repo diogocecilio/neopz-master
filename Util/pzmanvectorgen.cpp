@@ -4,10 +4,13 @@
  */
 
 #include "pzmanvector.h"
-#include "pzstring.h" 
 
+
+template class TPZManVector< float,3 >;
+template class TPZManVector< double,3 >;
+template class TPZManVector< long double,3 >;
 template class TPZManVector< int >;
-template class TPZManVector< long int >;
+template class TPZManVector< int64_t >;
 template class TPZManVector< int *>;
 template class TPZManVector< char *>;
 template class TPZManVector< float >;
@@ -16,5 +19,4 @@ template class TPZManVector< double >;
 template class TPZManVector< double * >;
 template class TPZManVector< long double >;
 template class TPZManVector< long double * >;
-template class TPZManVector<TPZString>;
 

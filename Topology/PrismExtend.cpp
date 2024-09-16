@@ -8,8 +8,8 @@
 using namespace std;
 
 #include "pzlog.h"
-#ifdef LOG4CXX
-static LoggerPtr logger(Logger::getLogger("pz.topology.prismextend"));
+#ifdef PZ_LOG
+static TPZLogger logger("pz.topology.prismextend");
 #endif
 
 namespace pztopology {
@@ -91,7 +91,9 @@ namespace pztopology {
 	
 	template<class TFather>
 	void Pr<TFather>::CenterPoint(int side, TPZVec<REAL> &center) {
-		//center.Resize(Dimension);
+        if (center.size()!=Dimension) {
+            DebugStop();
+        }
 		int ftns = side/TFather::NSides;
 		int fatherside = side%TFather::NSides;
 		TFather::CenterPoint(fatherside,center);
@@ -110,20 +112,20 @@ namespace pztopology {
 	}
 	
 	template<class TFather>
-	TPZTransform Pr<TFather>::TransformElementToSide(int side){
+	TPZTransform<> Pr<TFather>::TransformElementToSide(int side){
 		
 		if(side<0 || side>=NSides)
 		{
 			PZError << "Pr<TFather>::TransformElementToSide called with side error\n";
-			return TPZTransform(0,0);
+			return TPZTransform<>(0,0);
 		}
 		
 		int sidedim = SideDimension(side);
-		TPZTransform t(sidedim,Dimension);//t(dimto,2)
+		TPZTransform<> t(sidedim,Dimension);//t(dimto,2)
 		if(side == NSides) return t;
 		int ftns = side/TFather::NSides;
 		int fatherside = side%TFather::NSides;
-		TPZTransform fathert = TFather::TransformElementToSide(fatherside);
+		TPZTransform<> fathert = TFather::TransformElementToSide(fatherside);
 		int fathersidedimension = sidedim;
 		if(ftns == 2) fathersidedimension--;
 		int id,jd;
@@ -143,18 +145,18 @@ namespace pztopology {
 	}
 	
 	template<class TFather>
-	TPZTransform Pr<TFather>::TransformSideToElement(int side){
+	TPZTransform<> Pr<TFather>::TransformSideToElement(int side){
 		
 		if(side<0 || side>=NSides){
 			PZError << "Pr<TFather>::TransformSideToElement side out range\n";
-			return TPZTransform(0,0);
+			return TPZTransform<>(0,0);
 		}
 		int sidedim = SideDimension(side);
-		TPZTransform t(Dimension,sidedim);
+		TPZTransform<> t(Dimension,sidedim);
 		if(Dimension == sidedim) return t;
 		int ftns = side/TFather::NSides;
 		int fatherside = side%TFather::NSides;
-		TPZTransform fathert = TFather::TransformSideToElement(fatherside);
+		TPZTransform<> fathert = TFather::TransformSideToElement(fatherside);
 		int fathersidedimension = sidedim;
 		if(ftns == 2) fathersidedimension--;
 		int id,jd;
@@ -183,15 +185,15 @@ namespace pztopology {
 	}
 	
 	template<class TFather>
-	TPZTransform Pr<TFather>::SideToSideTransform(int sidefrom, int sideto)
+	TPZTransform<> Pr<TFather>::SideToSideTransform(int sidefrom, int sideto)
 	{
 		if(sidefrom <0 || sidefrom >= NSides || sideto <0 || sideto >= NSides) {
 			PZError << "Pr<TFather>::HigherDimensionSides sidefrom "<< sidefrom << 
 			' ' << sideto << endl;
-			return TPZTransform(0);
+			return TPZTransform<>(0);
 		}
 		if(sidefrom == sideto) {
-			return TPZTransform(SideDimension(sidefrom));
+			return TPZTransform<>(SideDimension(sidefrom));
 		}
 		if(sidefrom == NSides-1) {
 			return TransformElementToSide(sideto);
@@ -204,7 +206,7 @@ namespace pztopology {
 			if(highsides[is] == sideto) {
 				int dfr = SideDimension(sidefrom);
 				int dto = SideDimension(sideto);
-				TPZTransform trans(dto,dfr),toelement(Dimension,sidefrom),toside(sideto,Dimension);
+				TPZTransform<> trans(dto,dfr),toelement(Dimension,sidefrom),toside(sideto,Dimension);
 				toelement = TransformSideToElement(sidefrom);
 				toside = TransformElementToSide(sideto);
 				trans = toside.Multiply(toelement);
@@ -213,7 +215,7 @@ namespace pztopology {
 		}
 		PZError << "Pr<TFather>::SideToSideTransform highside not found sidefrom "
 		<< sidefrom << ' ' << sideto << endl;
-		return TPZTransform(0);
+		return TPZTransform<>(0);
 	}
 	
 	template<class TFather>
@@ -305,13 +307,12 @@ namespace pztopology {
 	}
 	
 	template<class TFather>
-	bool Pr<TFather>::MapToSide(int side, TPZVec<REAL> &InternalPar, TPZVec<REAL> &SidePar, TPZFMatrix<REAL> &JacToSide) {
-		TPZTransform Transf = SideToSideTransform(NSides - 1, side);
+	void Pr<TFather>::MapToSide(int side, TPZVec<REAL> &InternalPar, TPZVec<REAL> &SidePar, TPZFMatrix<REAL> &JacToSide) {
+		TPZTransform<> Transf = SideToSideTransform(NSides - 1, side);
 		SidePar.Resize(SideDimension(side));
 		Transf.Apply(InternalPar,SidePar);
 		
 		JacToSide = Transf.Mult();
-		return true;
 	}
 	
 	/**
@@ -320,8 +321,8 @@ namespace pztopology {
 	template<class TFather>
 	void Pr<TFather>::Diagnostic()
 	{
-#ifdef LOG4CXX
-        if (logger->isDebugEnabled())
+#ifdef PZ_LOG
+        if (logger.isDebugEnabled())
 		{
 			std::stringstream sout;
 			sout << __PRETTY_FUNCTION__ ;
@@ -330,7 +331,7 @@ namespace pztopology {
 			LOGPZ_DEBUG(logger,sout.str());
 		}
 		
-        if (logger->isDebugEnabled())
+        if (logger.isDebugEnabled())
 		{
 			std::stringstream sout;
 			sout << "Testing smallsides\n";
@@ -352,7 +353,7 @@ namespace pztopology {
 		}
 		
 		//  static void HigherDimensionSides(int side, TPZStack<int> &high);
-        if (logger->isDebugEnabled())
+        if (logger.isDebugEnabled())
 		{
 			std::stringstream sout;
 			sout << "Testing HigherDimensionSides\n";
@@ -366,7 +367,7 @@ namespace pztopology {
 			LOGPZ_DEBUG(logger,sout.str());
 		}
 		//  static int NSideNodes(int side);
-        if (logger->isDebugEnabled())
+        if (logger.isDebugEnabled())
 		{
 			std::stringstream sout;
 			sout <<  "Testing NSideNodes\n";
@@ -381,7 +382,7 @@ namespace pztopology {
 		 * returns the local node number of the node "node" along side "side"
 		 */
 		//  static int SideNodeLocId(int side, int node);
-        if (logger->isDebugEnabled())
+        if (logger.isDebugEnabled())
 		{
 			std::stringstream sout;
 			sout << "Testing SideNodeLocId\n";
@@ -400,7 +401,7 @@ namespace pztopology {
 			LOGPZ_DEBUG(logger,sout.str());
 		}
 		//  static void CenterPoint(int side, TPZVec<REAL> &center);
-        if (logger->isDebugEnabled())
+        if (logger.isDebugEnabled())
 		{
 			std::stringstream sout;
 			sout << "Testing CenterPoint\n";
@@ -414,7 +415,7 @@ namespace pztopology {
 			LOGPZ_DEBUG(logger,sout.str());
 		}
 		//  static REAL RefElVolume(){return 2.0*TFather::RefElVolume();}
-        if (logger->isDebugEnabled())
+        if (logger.isDebugEnabled())
 		{
 			std::stringstream sout;
 			sout << "Testing RefelVolume\n";
@@ -422,7 +423,7 @@ namespace pztopology {
 			LOGPZ_DEBUG(logger,sout.str());
 		}
 		//  static int SideDimension(int side);
-        if (logger->isDebugEnabled())
+        if (logger.isDebugEnabled())
 		{
 			std::stringstream sout;
 			sout << "Testing SideDimension\n";
@@ -434,8 +435,8 @@ namespace pztopology {
 			LOGPZ_DEBUG(logger,sout.str());
 		}
 		
-		//  static TPZTransform SideToSideTransform(int sidefrom, int sideto);
-        if (logger->isDebugEnabled())
+		//  static TPZTransform<> SideToSideTransform(int sidefrom, int sideto);
+        if (logger.isDebugEnabled())
 		{
 			std::stringstream sout;
 			sout << "Testing SideToSideTransform\n";
@@ -448,28 +449,28 @@ namespace pztopology {
 				int il;
 				for(il=0; il<nl; il++)
 				{
-					TPZTransform tr;
+					TPZTransform<> tr;
 					tr = SideToSideTransform(is,lower[il]);
 					sout << "Transform from " << is << " to side " << lower[il] << " " << tr; 
 				}
 			}
 			LOGPZ_DEBUG(logger,sout.str());
 		}
-		//  static TPZTransform TransformElementToSide(int side);
-        if (logger->isDebugEnabled())
+		//  static TPZTransform<> TransformElementToSide(int side);
+        if (logger.isDebugEnabled())
 		{
 			std::stringstream sout;
 			sout << "Testing TransformElementToSide\n";
 			int is;
 			for(is=0; is<NSides; is++)
 			{
-				TPZTransform tr = TransformElementToSide(is);
+				TPZTransform<> tr = TransformElementToSide(is);
 				sout << "side " << is << " transform " << tr;
 			}
 			LOGPZ_DEBUG(logger,sout.str());
 		}
-		//  static TPZTransform TransformSideToElement(int side);
-        if (logger->isDebugEnabled())
+		//  static TPZTransform<> TransformSideToElement(int side);
+        if (logger.isDebugEnabled())
 		{
 			std::stringstream sout;
 			sout << "Testing TransformSideToElement\n";
@@ -482,7 +483,7 @@ namespace pztopology {
 		}
 		
 		//  static TPZIntPoints *CreateSideIntegrationRule(int side, int order);
-        if (logger->isDebugEnabled())
+        if (logger.isDebugEnabled())
 		{
 			std::stringstream sout;
 			sout << "Testing CreateSideIntegrationRule order 3\n";
@@ -498,7 +499,7 @@ namespace pztopology {
 		}
 		
 		//  static std::string StrType() ;//{ return EOned;}
-        if (logger->isDebugEnabled())
+        if (logger.isDebugEnabled())
 		{
 			std::stringstream sout;
 			sout << "Testing StrType\n";
@@ -507,7 +508,7 @@ namespace pztopology {
 		}
 		
 		//  static std::string StrType(int side);
-        if (logger->isDebugEnabled())
+        if (logger.isDebugEnabled())
 		{
 			std::stringstream sout;
 			sout << "Testing StrType(side)\n";
@@ -520,7 +521,7 @@ namespace pztopology {
 		}
 		
 		//  static void MapToSide(int side, TPZVec<REAL> &InternalPar, TPZVec<REAL> &SidePar, TPZFMatrix<REAL> &JacToSide);
-        if (logger->isDebugEnabled())
+        if (logger.isDebugEnabled())
 		{
 			std::stringstream sout;
 			TPZManVector<REAL> par(Dimension,sqrt(2.));
@@ -537,7 +538,7 @@ namespace pztopology {
 		}
 		
 		//  static int NSides;
-        if (logger->isDebugEnabled())
+        if (logger.isDebugEnabled())
 		{
 			std::stringstream sout;
 			sout << "Testing NumSides\n";
@@ -546,7 +547,7 @@ namespace pztopology {
 		}
 		
 		//  static int NContainedSides(int side);
-        if (logger->isDebugEnabled())
+        if (logger.isDebugEnabled())
 		{
 			std::stringstream sout;
 			sout << "Testing NContainedSides(side)\n";
@@ -558,7 +559,7 @@ namespace pztopology {
 			LOGPZ_DEBUG(logger,sout.str());
 		}
 		//  static int ContainedSideLocId(int side, int c);
-        if (logger->isDebugEnabled())
+        if (logger.isDebugEnabled())
 		{
 			std::stringstream sout;
 			sout << "Testing ContainedSideLocId(is,ic)\n";
