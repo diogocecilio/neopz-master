@@ -120,8 +120,8 @@ void SolveSelfWeigthBar(string filename)
      an.Solve();
 //
      auto t2 = high_resolution_clock::now();
-     auto ms_int = duration_cast<milliseconds> ( t2 - t1 );
-     std::cout << "tempo total Pardiso = "<<ms_int.count() << " miliseconds\n";
+     auto ms_int = duration_cast<seconds> ( t2 - t1 );
+     std::cout << "tempo total Pardiso = "<<ms_int.count() << " s\n";
 
      std::cout << "start solving with TPZStepSolver"<< endl ;
      t1 = high_resolution_clock::now();
@@ -129,8 +129,8 @@ void SolveSelfWeigthBar(string filename)
      an2.Solve();
 //
      t2 = high_resolution_clock::now();
-     ms_int = duration_cast<milliseconds> ( t2 - t1 );
-     std::cout << "tempo total  StepSolver = "<<ms_int.count() << " miliseconds\n";
+     ms_int = duration_cast<seconds> ( t2 - t1 );
+     std::cout << "tempo total  StepSolver = "<<ms_int.count() << " s\n";
 
 //
 //

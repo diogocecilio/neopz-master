@@ -87,7 +87,7 @@ set(EXTRA_SEARCH_DIRS ${EXTRA_SEARCH_DIRS})
 
 option(CMAKE_TBB_DEBUG "Outputs information when searching for the TBB library" OFF)
 #this is for debugging any problems while finding mkl
-option(CMAKE_MKL_DEBUG "Outputs information when searching for the MKL library" ON)
+option(CMAKE_MKL_DEBUG "Outputs information when searching for the MKL library" OFF)
 mark_as_advanced(CMAKE_MKL_DEBUG)
 mark_as_advanced(CMAKE_TBB_DEBUG)
 
@@ -164,7 +164,7 @@ if(USING_LIBNUMA)
 endif()
 
 #enabling MKL library
-option(USING_MKL "Whether the MKL library will be linked in" ON)
+option(USING_MKL "Whether the MKL library will be linked in" OFF)
 if(USING_MKL)
     include(cmake/EnableMKL.cmake)
     enable_mkl(pz)
@@ -198,7 +198,7 @@ if(BUILD_PUBLICATIONS)
 endif()
 
 #To building all the specific projects developed with PZ environment
-option(BUILD_PROJECTS "To build projects using NeoPZ." ON)
+option(BUILD_PROJECTS "To build projects using NeoPZ." OFF)
 
 #To building all the performance projects developed with PZ environment
 option(BUILD_PERF_TESTS "To build the performance test." OFF)
