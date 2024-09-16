@@ -198,7 +198,7 @@ if(BUILD_PUBLICATIONS)
 endif()
 
 #To building all the specific projects developed with PZ environment
-option(BUILD_PROJECTS "To build projects using NeoPZ." OFF)
+option(BUILD_PROJECTS "To build projects using NeoPZ." ON)
 
 #To building all the performance projects developed with PZ environment
 option(BUILD_PERF_TESTS "To build the performance test." OFF)
