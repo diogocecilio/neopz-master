@@ -80,15 +80,14 @@ void TPZElasticResponse::De(TPZFMatrix<REAL> & De) {
 }
 
 void TPZElasticResponse::SetEngineeringData(REAL Eyoung, REAL Poisson) {
-    
-    m_lambda = Poisson * Eyoung / ((1. + Poisson)*(1. - 2. * Poisson));
-    m_mu = Eyoung / (2. * (1. + Poisson));
+    m_E = Eyoung;
+    m_nu = Poisson;
+    SetLameData();
 }
 
-void TPZElasticResponse::SetLameData(REAL lambda, REAL mu) {
-    
-    m_lambda = lambda;
-    m_mu = mu;
+void TPZElasticResponse::SetLameData() {
+     m_lambda = m_nu * m_E / ((1. + m_nu)*(1. - 2. * m_nu));
+     m_mu = m_E / (2. * (1. + m_nu));
 }
 
 REAL TPZElasticResponse::Lambda() const {

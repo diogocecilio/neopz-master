@@ -15,15 +15,20 @@
 
 class TPZElasticResponse : public TPZSavable {
     
+protected:
     /// First Lamé parameter
     REAL m_lambda;
-    
+
     /// Second Lamé parameter
     REAL m_mu;
-    
+
+    REAL m_E;
+
+    REAL m_nu;
+
     /// Reference strain at zero stress state.
     TPZTensor<REAL> m_epsilon_star;
-    
+
     /// Reference stress at zero strain state.
     TPZTensor<REAL> m_sigma_star;
     
@@ -172,7 +177,7 @@ public:
      @param lambda First Lamé parameter
      @param mu Second Lamé parameter (Shear modulus)
      */
-    void SetLameData(REAL lambda, REAL mu);
+    void SetLameData();
     
     /**
      Access to the first Lamé parameter

@@ -45,7 +45,7 @@
 #include "DarcyFlow/TPZDarcyFlow.h"
 
 
-
+#include "Plasticity/TPZElasticResponse.h"
 #include "Plasticity/pzelastoplasticanalysis.h"
 #include "Plasticity/TPZYCMohrCoulombPV.h"
 #include "Plasticity/TPZMatElastoPlastic_impl.h"
@@ -75,7 +75,8 @@ int leftbc = -4;
 
 // brief Function to create the geometric mesh
 
-typedef TPZMatElastoPlastic2D<TPZYCMohrCoulombPV,TPZElastoPlasticMem> plasticmorh;
+//typedef TPZMatElastoPlastic2D<TPZYCMohrCoulombPV,TPZElastoPlasticMem> plasticmorh;
+typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> plasticmorh;
 typedef   TPZMatElastoPlastic2D < TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZElastoPlasticMem > plasticmat;
 
 TPZGeoMesh *  CreateGMeshSlope( int ref );
@@ -90,7 +91,6 @@ int main()
 	int ref=0;
 	
     TPZGeoMesh *gmesh = CreateGMeshSlope( ref);
-	//TPZGeoMesh *gmesh = CreateGMeshSlope( ref);
 
     std::ofstream meshfile ( "GeoMeshSlope.txt" );
 	
@@ -129,7 +129,16 @@ int main()
 	int numiter=3;
 	bool linesearch=true;
 	bool checkconv= false;
-    analysis.IterativeProcess(std::cout,tol,numiter,linesearch,checkconv);
+
+    analysis.Assemble();
+
+    TPZStepSolver<STATE> * steplocal = dynamic_cast<TPZStepSolver<STATE> *> (analysis.Solver());
+
+    TPZAutoPointer<TPZMatrix<REAL>> stiff = steplocal->Matrix();
+
+    stiff->Print(std::cout);
+
+    //analysis.IterativeProcess(std::cout,tol,numiter,linesearch,checkconv);
 
 
     return 0;
@@ -365,11 +374,44 @@ TPZCompMesh * CreateCMeshSlope ( TPZGeoMesh *gmesh, int pOrder )
 	int matid=1;
 	int planestrain=1;
 	
-	auto * material = new plasticmat(matid,planestrain);
+	//auto * material = new plasticmat(matid,planestrain);
+
+    REAL E=20000.;
+    REAL nu=0.49;
+    TPZElasticResponse  elasticresponse;
+
+    //REAL lambda = nu * E / ((1. + nu)*(1. - 2. * nu));
+    //REAL mu = E / (2. * (1. + nu));
+    elasticresponse.SetEngineeringData(E,nu);
+
+    // Mohr Coulomb data
+    REAL mc_cohesion    = 50.;//kPa
+    REAL mc_phi         = 20.*M_PI/180;
+    REAL mc_psi         = mc_phi;
+
+    //elasticresponse.Print(std::cout);
+
+    plasticmorh mohrcoulombplasticstep;
+
+    mohrcoulombplasticstep.fYC.SetUp ( mc_phi, mc_psi, mc_cohesion, elasticresponse );
+
+    mohrcoulombplasticstep.fER = elasticresponse;
+
+    //mohrcoulombplasticstep.Print(std::cout);
+
+    int PlaneStrain = 1;
+
+    plasticmat * material = new plasticmat ( matid,PlaneStrain );
+
+    material->SetPlasticityModel(mohrcoulombplasticstep);
+
+   // material->
+
+    material->Print(std::cout);
 	
     cmesh->InsertMaterialObject ( material );
 
-    // Condition of contours
+    // boundary condition
     TPZFMatrix<STATE>  val1 ( 2,2,0. );
 	
     TPZManVector<STATE,2> val2 ( 2,0. );
