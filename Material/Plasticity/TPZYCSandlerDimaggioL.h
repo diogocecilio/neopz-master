@@ -264,7 +264,7 @@ inline void TPZYCSandlerDimaggioL::Compute(const TPZTensor<T> & sigma,const T & 
             }
                 
             sout << "Computing the distance from cap entry I1 " << I1 << " sqJ2 " << sqj2 << " lmax " << lmax << " F(lmax) " << FI1;
-            LOGPZ_DEBUG(loggerSML, sout.str())
+            //LOGPZ_DEBUG(loggerSML, sout.str())
         }
 #endif
     }

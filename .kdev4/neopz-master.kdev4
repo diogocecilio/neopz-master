@@ -18,7 +18,7 @@ Launch Configurations=Launch Configuration 0
 [Launch][Launch Configuration 0]
 Configured Launch Modes=execute
 Configured Launchers=nativeAppLauncher
-Name=elasticity-debug
+Name=Elasticity2D
 Type=Native Application
 
 [Launch][Launch Configuration 0][Data]
@@ -26,13 +26,13 @@ Arguments=
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
 EnvironmentGroup=
-Executable=file:///home/diogo/projects/neopz-master-build-debug/Projects2/Elasticity2D/elasticity
+Executable=file:///home/diogo/projects/neopz-master
 External Terminal=konsole --noclose --workdir %workdir -e %exe
 Kill Before Executing Again=4194304
-Project Target=
+Project Target=neopz-master,Projects2,Elasticity2D,elasticity
 Use External Terminal=false
 Working Directory=
-isExecutable=true
+isExecutable=false
 
 [Project]
 VersionControlSupport=kdevgit

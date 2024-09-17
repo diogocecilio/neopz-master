@@ -63,7 +63,7 @@ void SolveSelfWeigthBar(string filename)
 	TPZGeoMesh *gmesh = CreateGeoMesh();
 
 	// Creating computational mesh (approximation space and materials)
-	int p =6;
+	int p =2;
     TPZCompEl::SetgOrder(p);
     TPZCompMesh *cmesh = CreateMesh(gmesh);
 	// Solving linear equations
