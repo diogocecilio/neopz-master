@@ -309,6 +309,7 @@ add_subdirectory(SubStruct)
 add_subdirectory(Random)
 add_subdirectory(Optimization)
 add_subdirectory(Exception)
+add_subdirectory(Projects2)
 #uncomment the following line to be scared
 #message(${PZ_PUBLIC_HEADERS})
 #############INSTALL#############
