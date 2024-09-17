@@ -659,6 +659,8 @@ void TPZMatElastoPlastic2D<T,TMEM>::Solution(const TPZMaterialDataT<STATE> &data
     
 }
 
+
+
 template <class T, class TMEM>
 void TPZMatElastoPlastic2D<T, TMEM>::ComputeDeltaStrainVector(const TPZMaterialDataT<STATE> & data, TPZFMatrix<REAL> &DeltaStrain) {
     TPZFNMatrix<9> DSolXYZ(3, 3, 0.);

@@ -43,7 +43,7 @@
 #include <TPZSimpleTimer.h>
 #include "TPZBndCondT.h"
 #include "DarcyFlow/TPZDarcyFlow.h"
-
+#include <pzlog.h>
 
 #include "Plasticity/TPZElasticResponse.h"
 #include "Plasticity/pzelastoplasticanalysis.h"
@@ -85,7 +85,11 @@ TPZCompMesh * CreateCMeshSlope( TPZGeoMesh *gmesh, int pOrder );
 
 int main()
 {
-	
+//#ifdef PZ_LOG
+
+    TPZLogger::InitializePZLOG();
+//#endif
+
 	int porder=1;
 	
 	int ref=0;
@@ -405,11 +409,15 @@ TPZCompMesh * CreateCMeshSlope ( TPZGeoMesh *gmesh, int pOrder )
 
     material->SetPlasticityModel(mohrcoulombplasticstep);
 
+    material->SetId(matid);
+
    // material->
 
-    material->Print(std::cout);
+    //material->Print(std::cout);
 	
     cmesh->InsertMaterialObject ( material );
+
+    //cmesh->Print(std::cout);
 
     // boundary condition
     TPZFMatrix<STATE>  val1 ( 2,2,0. );
