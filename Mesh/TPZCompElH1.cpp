@@ -123,11 +123,11 @@ void TPZCompElH1<TSHAPE>::InitMaterialData(TPZMaterialData &data){
     data.jacobian.Redim(dim,dim);
     data.jacinv.Redim(dim,dim);
     data.x.Resize(3);
-    if (data.fNeedsSol){
-        uint64_t ulen,durow,ducol;
-        mat->GetSolDimensions(ulen,durow,ducol);
-        data.SetSolSizes(nstate, ulen, durow, ducol);
-    }
+//     if (data.fNeedsSol){
+//         uint64_t ulen,durow,ducol;
+//         mat->GetSolDimensions(ulen,durow,ducol);
+//         data.SetSolSizes(nstate, ulen, durow, ducol);
+//     }
     if(data.fNeedsNeighborCenter)
     {
         TPZGeoElSide gelside(gel);
