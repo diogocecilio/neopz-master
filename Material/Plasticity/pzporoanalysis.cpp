@@ -129,7 +129,7 @@ void TPZPoroElastoPlasticAnalysis::Run(std::ostream &out,REAL tol ,int numiter,
     bool linesearch = false;
     bool checkconv = false;
     bool convordiv;
-	IterativeProcess(out, tol, numiter,linesearch,checkconv,convordiv);
+	//IterativeProcess(out, tol, numiter,linesearch,checkconv,convordiv);
 		
 	#ifdef PZ_LOG
 	{

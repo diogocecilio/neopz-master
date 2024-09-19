@@ -102,14 +102,14 @@ void TPZMatElastoPlastic<T,TMEM>::SetPlasticityModel(T & plasticity)
     m_plasticity_model = plasticity;
     T plastloc(m_plasticity_model);
     //plasticloc.SetState(this->MemItem(intPt).m_elastoplastic_state)
-    m_plasticity_model.Print(std::cout);
+    //m_plasticity_model.Print(std::cout);
 
     memory.m_elastoplastic_state = plastloc.GetState();
     memory.m_ER=plastloc.GetElasticResponse();
     plastloc.ApplyStrainComputeSigma(memory.m_elastoplastic_state.m_eps_t, memory.m_sigma);
     //memory.
     this->SetDefaultMem(memory);
-    memory.Print(std::cout);
+    //memory.Print(std::cout);
 #ifdef PZ_LOG
     if(elastoplasticLogger.isDebugEnabled())
     {

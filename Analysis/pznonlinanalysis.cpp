@@ -154,22 +154,22 @@ REAL TPZNonLinearAnalysis::LineSearch(const TPZFMatrix<STATE> &Wn, TPZFMatrix<ST
 }//void
 
 void TPZNonLinearAnalysis::IterativeProcess(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv) {
-	
+
 	int iter = 0;
 	REAL error = 1.e10;
 	int numeq = fCompMesh->NEquations();
-	
+
 	TPZFMatrix<STATE> prevsol(fSolution);
 	if(prevsol.Rows() != numeq) prevsol.Redim(numeq,1);
-	
+
 	if(checkconv){
 		TPZVec<REAL> coefs(1,1.);
 		TPZFMatrix<STATE> range(numeq,1,1.);
 		CheckConvergence(*this,fSolution,range,coefs);
 	}
-	
+
 	while(error > tol && iter < numiter) {
-		
+
 //        fSolution.Redim(0,0);
 		Assemble();
 		Solve();
@@ -184,7 +184,7 @@ void TPZNonLinearAnalysis::IterativeProcess(std::ostream &out,REAL tol,int numit
 			TPZFMatrix<STATE> sol = fSolution;
 			sol += prevsol;
 		}
-		
+
 		prevsol -= fSolution;
 		REAL normDeltaSol = Norm(prevsol);
 		prevsol = fSolution;
@@ -193,11 +193,11 @@ void TPZNonLinearAnalysis::IterativeProcess(std::ostream &out,REAL tol,int numit
 		double NormResLambda = Norm(fRhs);
 		double norm = NormResLambda;
 		out << "Iteracao n : " << (iter+1) << " : normas |Delta(Un)| e |Delta(rhs)| : " << normDeltaSol << " / " << NormResLambda << endl;
-		
+
 		if(norm < tol) {
 			out << "\nTolerancia atingida na iteracao : " << (iter+1) << endl;
 			out << "\n\nNorma da solucao |Delta(Un)|  : " << norm << endl << endl;
-			
+
 		} else
 			if( (norm - error) > 1.e-9 ) {
 				out << "\nDivergent Method\n";

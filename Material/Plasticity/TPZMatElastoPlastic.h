@@ -278,6 +278,10 @@ public:
         EFailureType    = 20,
     };
 
+    void SetBodyForce(TPZManVector<REAL, 3> Force)
+    {
+			m_force = Force;
+    }
 protected:
 
     /**

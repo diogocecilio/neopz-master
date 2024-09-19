@@ -24,6 +24,8 @@ public:
 
 TPZPostProcAnalysis(TPZCompMesh * pRef);
 
+TPZPostProcAnalysis(TPZCompMesh * pRef,TPZLinearAnalysis * analysis);
+
 TPZPostProcAnalysis();
     
     TPZPostProcAnalysis(const TPZPostProcAnalysis &copy);

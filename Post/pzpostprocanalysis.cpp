@@ -80,6 +80,14 @@ TPZLinearAnalysis(), fpMainMesh(pRef)
     
 }
 
+TPZPostProcAnalysis::TPZPostProcAnalysis(TPZCompMesh * pRef,TPZLinearAnalysis * analysis):TPZRegisterClassId(&TPZPostProcAnalysis::ClassId),
+TPZLinearAnalysis(*analysis), fpMainMesh(pRef)
+{
+
+    SetCompMesh(pRef);
+
+}
+
 TPZPostProcAnalysis::TPZPostProcAnalysis(const TPZPostProcAnalysis &copy) : TPZRegisterClassId(&TPZPostProcAnalysis::ClassId),
 TPZLinearAnalysis(copy), fpMainMesh(0)
 {
@@ -105,6 +113,7 @@ void TPZPostProcAnalysis::SetCompMesh(TPZCompMesh *pRef, bool mustOptimizeBandwi
 {
     // the postprocess mesh already exists, do nothing
     if (fpMainMesh == pRef) {
+        cout << "the postprocess mesh already exists, do nothing." <<endl;
         return;
     }
     
@@ -124,8 +133,10 @@ void TPZPostProcAnalysis::SetCompMesh(TPZCompMesh *pRef, bool mustOptimizeBandwi
     
     TPZGeoMesh * pgmesh = pcMainMesh->Reference();
 
+
     TPZCompMesh * pcPostProcMesh = new TPZCompMesh(pgmesh);
-    
+    //pcPostProcMesh->Print(std::cout);
+
     fCompMesh = pcPostProcMesh;
     
     TPZPostProcAnalysis::SetAllCreateFunctionsPostProc(pcPostProcMesh);
@@ -166,6 +177,7 @@ void TPZPostProcAnalysis::SetPostProcessVariables(TPZVec<int> & matIds, TPZVec<s
 	AutoBuildDisc();
 	
     pcPostProcMesh->ExpandSolution();
+
 }
 
 void TPZPostProcAnalysis::AutoBuildDisc() 
@@ -309,11 +321,43 @@ void TPZPostProcAnalysis::Assemble()
 void TPZPostProcAnalysis::Solve(){
    PZError << "Error at " << __PRETTY_FUNCTION__ << " TPZPostProcAnalysis::Solve() should never be called\n";
 }
-
+// void TPZLinearAnalysis::AssembleResidual()
+// {
+//   int numloadcases = ComputeNumberofLoadCases();
+//
+//   int64_t sz0 = Mesh()->NEquations();
+//   if(sz0==0)
+//     {
+//       PZError << __PRETTY_FUNCTION__;
+//       PZError << "\nERROR: Null mesh.\nAborting...\n";
+//       DebugStop();
+//     }
+//     if (!this->fStructMatrix) {
+//       if(fSolType == EReal){
+//         TPZSkylineNSymStructMatrix<STATE> defaultMatrix(fCompMesh);
+//         this->SetStructuralMatrix(defaultMatrix);
+//       }
+//       else{
+//         TPZSkylineNSymStructMatrix<CSTATE> defaultMatrix(fCompMesh);
+//         this->SetStructuralMatrix(defaultMatrix);
+//       }
+//     }
+//     int64_t sz = this->Mesh()->NEquations();
+//     //int64_t othersz = fStructMatrix->Mesh()->NEquations();
+// 	this->Rhs().Redim(sz,numloadcases);
+//
+// 	fStructMatrix->Assemble(this->Rhs(),fGuiInterface);
+// }//void
 void TPZPostProcAnalysis::TransferSolution()
 {
 
     // this is where we compute the projection of the post processed variables
+    //fpMainMesh e uma malha computacional interna ao posprocess com a solucao do FEM
+    fpMainMesh->Print(cout);
+    fpMainMesh->Solution().Print("SOL");
+    this->Rhs().Print("RHS");
+
+    //fSolution e Rhs() sao membros do TPZAnalysis e a solucao na malha de posproc
     TPZLinearAnalysis::AssembleResidual();
     fSolution = Rhs();
     TPZLinearAnalysis::LoadSolution();
@@ -331,6 +375,8 @@ void TPZPostProcAnalysis::TransferSolution()
     // copy the values from the post processing mesh to the finite element mesh
     TPZFMatrix<STATE> &comprefElSol = compmeshPostProcess->ElementSolution();
     // solmesh if the finite element simulation mesh
+    fpMainMesh->ElementSolution().Print("fpMainMesh");
+    solmesh->ElementSolution().Print("solmesh");
     const TPZFMatrix<STATE> &solmeshElSol = solmesh->ElementSolution();
     int64_t numelsol = solmesh->ElementSolution().Cols();
     int64_t nelem = compmeshPostProcess->NElements();

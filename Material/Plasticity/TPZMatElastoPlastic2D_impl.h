@@ -156,12 +156,12 @@ void TPZMatElastoPlastic2D<T, TMEM>::Contribute(const TPZMaterialDataT<STATE> &d
     ptindex = 0;
     int nstate = NStateVariables();
     REAL val;
-    
-    TPZManVector<STATE, 2> ForceLoc(nstate,0.0);
+    TPZManVector<STATE,3> ForceLoc(this->m_force);
+    //TPZManVector<STATE, 2> ForceLoc(nstate,0.0);
     if (this->fForcingFunction) {
         this->fForcingFunction(data.x, ForceLoc);
     }
-    
+
     int in;
     for (in = 0; in < phr; in++) {
         

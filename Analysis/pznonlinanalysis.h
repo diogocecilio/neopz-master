@@ -29,6 +29,7 @@ public:
 	/** It has the possibility of line search with parameter linesearch = true. */
 	virtual void IterativeProcess(std::ostream &out,REAL tol,int numiter, bool linesearch = false, bool checkconv = false);
 
+	//bool IterativeProcess ( std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv,int &iters );
 	/**
 	 * @brief Implements a golden section line search.
 	 * @param Wn
@@ -41,6 +42,11 @@ public:
 	 * is called before AssembleResidual.
 	 */
 	REAL LineSearch(const TPZFMatrix<STATE> &Wn, TPZFMatrix<STATE> DeltaW, TPZFMatrix<STATE> &NextW, REAL tol, int niter);
+
+
+	    //Improved:A verification is made in order to check convergence.
+	//REAL LineSearch(const TPZFMatrix<REAL> &Wn, const TPZFMatrix<REAL> &DeltaW, TPZFMatrix<REAL> &NextW, REAL RhsNormPrev, REAL &RhsNormResult, //int niter, bool &converging );
+
 	/** @brief Computes the L2 norm of the solution */
 	REAL SolutionNorm();
 	

@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
 
   /*The TPZLinearAnalysis class manages the creation of the algebric
   * problem and the matrix inversion*/
-  TPZLinearAnalysis an(cmesh,RenumType::ENone);
+  TPZLinearAnalysis an(cmesh,true);
 
   //sets number of threads to be used by the solver
   constexpr int nThreads{0};

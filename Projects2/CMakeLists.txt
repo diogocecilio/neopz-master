@@ -9,3 +9,5 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_subdirectory(Elasticity2D)
 
 add_subdirectory(Plasticity2D)
+
+add_subdirectory(geomecproblems)

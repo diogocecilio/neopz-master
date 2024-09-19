@@ -85,7 +85,7 @@ void TPZLinearAnalysis::AssembleT()
     {
         std::stringstream sout;
         PrintVectorByElement(sout, fRhs, 1.e-6);
-//        fRhs.Print("Rhs",sout);
+        fRhs.Print("Rhs",sout);
         LOGPZ_DEBUG(logger,sout.str())
     }
 #endif
@@ -97,7 +97,8 @@ void TPZLinearAnalysis::AssembleResidual()
 {
   int numloadcases = ComputeNumberofLoadCases();
 
-  if(Mesh()->NEquations()==0)
+  int64_t sz0 = Mesh()->NEquations();
+  if(sz0==0)
     {
       PZError << __PRETTY_FUNCTION__;
       PZError << "\nERROR: Null mesh.\nAborting...\n";
@@ -114,8 +115,9 @@ void TPZLinearAnalysis::AssembleResidual()
       }
     }
     int64_t sz = this->Mesh()->NEquations();
+    //int64_t othersz = fStructMatrix->Mesh()->NEquations();
 	this->Rhs().Redim(sz,numloadcases);
-  //int64_t othersz = fStructMatrix->Mesh()->NEquations();
+
 	fStructMatrix->Assemble(this->Rhs(),fGuiInterface);
 }//void
 
@@ -148,7 +150,7 @@ void TPZLinearAnalysis::SolveT()
       if (logger.isDebugEnabled())
         {
           TPZFMatrix<TVar> res2(fRhs);
-          mySolver->Matrix()->Residual(fSolution,fRhs,res2);
+          //mySolver->Matrix()->Residual(fSolution,fRhs,res2);
           std::stringstream sout;
           sout << "Residual norm " << Norm(res2) << std::endl;
           //		res2.Print("Residual",sout);

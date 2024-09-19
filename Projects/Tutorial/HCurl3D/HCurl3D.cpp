@@ -11,7 +11,7 @@
 #include <TPZSSpStructMatrix.h> //symmetric sparse matrix storage
 #include <pzstepsolver.h> //for TPZStepSolver
 #include <TPZSimpleTimer.h>
-#include <TPZVTKGenerator.h>
+//#include <TPZVTKGenerator.h>
 #include <pzlog.h>
 
 #include "TPZMatHCurl3D.h"//for TPZMatHCurlProjection
@@ -153,8 +153,8 @@ int main(int argc, char *argv[])
       "curl_u"};
    const auto file{"hcurl3d"};
    constexpr auto vtkRes{2};
-   auto vtk = TPZVTKGenerator(cmesh, fvars, file, vtkRes);
-   vtk.Do();
+   //auto vtk = TPZVTKGenerator(cmesh, fvars, file, vtkRes);
+   //vtk.Do();
    return 0;
 }
 
