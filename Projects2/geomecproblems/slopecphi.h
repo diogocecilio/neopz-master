@@ -188,7 +188,7 @@ TPZGeoMesh *SlopeCphi::CreateGeoMesh() {
 
     gmesh->BuildConnectivity();
     cout << "c" << endl;
-    for ( int d = 0; d<0; d++ )
+    for ( int d = 0; d<3; d++ )
     {
         int nel = gmesh->NElements();
         TPZManVector<TPZGeoEl *> subels;

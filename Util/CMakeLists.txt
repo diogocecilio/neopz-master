@@ -27,6 +27,7 @@ set(public_headers
   pzvec_extras.h
   )
 set(headers
+  readgidmesh.h
     TPZAssert.h
     TPZHWTools.h
     TPZPriorityQueue.h
@@ -64,6 +65,7 @@ set(headers
     )
 
 set(sources
+  readgidmesh.cpp
     TPZAssert.cpp
     TPZParallelUtils.cpp
     pzcheckconsistency.cpp

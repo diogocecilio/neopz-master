@@ -34,7 +34,7 @@ public:
     Slope( TPZGeoMesh * gmesh,int porder,REAL gammaagua, REAL gammasolo);
 
     TPZCompMesh * CreateCMeshElastoplastic ( TPZGeoMesh *gmesh, int pOrder );
-
+    TPZCompMesh *CreateCompMesh(TPZGeoMesh *gmesh,int porder) ;
     TPZElastoPlasticAnalysis *  SlopeAnalysis(int type,int numthreads);
 
     void ApplyGravityLoad(TPZManVector<REAL, 3> bodyforce);
@@ -73,6 +73,8 @@ Slope::Slope( TPZGeoMesh * gmesh,int porder,REAL gammaagua, REAL gammasolo)
     fgammasolo=gammasolo;
     fGmesh = gmesh;
     fCompMesh = CreateCMeshElastoplastic ( fGmesh, porder );
+    //fCompMesh = CreateCompMesh ( fGmesh, porder );
+
 
 }
 
@@ -98,7 +100,7 @@ REAL Slope::ShearRed ( )
    // fcmesh->LoadReferences();
     LoadingRamp(1.);
 
-    REAL FS=0.8,FSmax=5.,FSmin=0.,tol=0.001;
+    REAL FS=0.5,FSmax=5.,FSmin=0.,tol=0.01;
     int neq = fCompMesh->NEquations();
 
     TPZFMatrix<REAL> displace(neq,1),displace0(neq,1);
@@ -123,7 +125,7 @@ REAL Slope::ShearRed ( )
 
         REAL norm = 1000.;
         REAL tol2 = 0.01;
-        int NumIter = 50;
+        int NumIter = 10;
         bool linesearch = true;
         bool checkconv = false;
         int iters;
@@ -132,10 +134,10 @@ REAL Slope::ShearRed ( )
 
         chrono::steady_clock sc;
         auto start = sc.now();
-
+//IterativeProcess2(std::ostream &out,REAL tol,int numiter, bool linesearch = false, bool checkconv = false);
         conv = anal->IterativeProcess ( cout, tol2, NumIter,linesearch,checkconv,iters );
         norm = Norm ( anal->Rhs() );
-
+std::cout << "conv "<< conv <<std::endl;
 
         //anal->AcceptSolution();
 
@@ -159,6 +161,7 @@ REAL Slope::ShearRed ( )
         std::cout << "coes "<<  c <<std::endl;
         phi=atan ( tan ( phi0 ) /FS );
         psi=phi;
+        //void SetUp(REAL Phi, REAL Psi, REAL c, TPZElasticResponse &ER)
         LEMC.fYC.SetUp ( phi, psi, c, ER );
         material->SetPlasticityModel ( LEMC );
         counterout++;
@@ -209,7 +212,97 @@ void Slope::Solve()
 
 }
 
+TPZCompMesh *Slope::CreateCompMesh(TPZGeoMesh *gmesh,int porder) {
 
+
+    unsigned int dim  = porder;
+    const std::string name ( "ElastoPlastic COMP MESH Slope Problem " );
+
+    TPZCompMesh * cmesh =  new TPZCompMesh ( gmesh );
+    cmesh->SetName ( name );
+    cmesh->SetDefaultOrder (porder );
+    cmesh->SetDimModel ( dim );
+
+
+    //Pu = (2+pi)c = 218.183
+
+      // Mohr Coulomb data
+    //REAL mc_cohesion    = 490.;//kPa
+    REAL mc_cohesion    = 10.;//N/cm^2
+    REAL mc_phi         = 30.*M_PI/180;
+    REAL mc_psi         = mc_phi;
+
+    /// ElastoPlastic Material using Mohr Coulomb
+    // Elastic predictor
+    TPZElasticResponse ER;
+    REAL nu = 0.49;
+    //REAL E = 10000000.;////kPa
+    REAL E = 20000.;////N/cm^2
+
+    plasticmorh plasticstep;
+    //TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC;
+    //TPZPlasticStepVoigt<TPZMohrCoulombVoigt, TPZElasticResponse> LEMC;
+    ER.SetEngineeringData(E,nu);
+    //ER.SetUp ( E, nu );
+    plasticstep.fER =ER;
+    // LEMC.SetElasticResponse( ER );
+    plasticstep.fYC.SetUp ( mc_phi, mc_psi, mc_cohesion, ER );
+
+    int PlaneStrain = 1;
+
+    plasticmat * material = new plasticmat ( 1,PlaneStrain );
+
+    REAL factor;
+    TPZManVector<REAL, 3> bodyforce ( 3,0. );
+    factor=1.;
+    bodyforce[1]=-20.;
+
+   // material->SetPlasticity ( plasticstep );
+
+    material->SetId ( 1 );
+
+    material->SetWhichLoadVector ( 0 ); //option to compute the total internal force vecor fi=(Bt sigma+ N (b+gradu))
+
+    material->SetLoadFactor ( factor );
+
+    material->SetBodyForce ( bodyforce );
+
+    cmesh->InsertMaterialObject(material);
+
+    TPZFMatrix<STATE>  val1 ( 2,2,0. );
+
+    TPZManVector<STATE,2> val2 ( 2,0. );
+
+    val2[1]=1.;
+    val2[0]=1.;
+    auto * bcleft = material->CreateBC(material,-1,3,val1,val2);//bottom
+
+    val2[0]=1.;
+    val2[1]=0.;
+    auto * bcbottom = material->CreateBC(material,-2,3,val1,val2);//rigth
+
+    val2[0]=1.;
+    val2[1]=0;
+    auto *  bcrigth = material->CreateBC(material,-3,3,val1,val2);//left
+
+
+	cmesh->InsertMaterialObject(bcleft);
+
+    cmesh->InsertMaterialObject(bcbottom);
+
+    cmesh->InsertMaterialObject(bcrigth);
+
+
+
+	cmesh->SetAllCreateFunctionsContinuousWithMem();
+
+    cmesh->AutoBuild();
+
+    std::ofstream print("cmeshslopecphi.txt");
+	cmesh->Print(print);
+
+    return cmesh;
+}
 
 TPZCompMesh * Slope::CreateCMeshElastoplastic ( TPZGeoMesh *gmesh, int pOrder )
 {
@@ -261,7 +354,20 @@ TPZCompMesh * Slope::CreateCMeshElastoplastic ( TPZGeoMesh *gmesh, int pOrder )
 
     material->SetId(matid);
 
+    REAL factor;
+    TPZManVector<REAL, 3> bodyforce ( 3,0. );
+    factor=1.;
+    bodyforce[1]=-20.;
 
+   // material->SetPlasticity ( plasticstep );
+
+    material->SetId ( 1 );
+
+    material->SetWhichLoadVector ( 0 ); //option to compute the total internal force vecor fi=(Bt sigma+ N (b+gradu))
+
+    material->SetLoadFactor ( factor );
+
+    material->SetBodyForce ( bodyforce );
    // material->
 
     //material->Print(std::cout);
