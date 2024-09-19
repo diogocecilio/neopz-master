@@ -420,6 +420,134 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 	}
 
 }
+REAL TPZElastoPlasticAnalysis::LineSearch ( const TPZFMatrix<STATE> &Wn, TPZFMatrix<STATE> DeltaW, TPZFMatrix<STATE> &NextW, REAL tol, int niter )
+{
+
+    REAL error = 2.*tol+1.;
+    REAL A = 0.1, B = 2., L = 0, M = 0.;
+    TPZFMatrix<STATE> ak, bk, lambdak, muk, Interval;
+    REAL NormResLambda = 0., NormResMu = 0.;
+    //ak = Wn + 0.1 * DeltaW
+    ak = DeltaW;
+    ak *= A;
+    ak += Wn;
+    //bk = Wn + 2. DeltaW
+    bk = DeltaW;
+    bk *= B;
+    bk += Wn;
+    //Interval = (bk-ak)
+    Interval = bk;
+    Interval -= ak;
+    int iter = 0;
+    int KeptVal = -1; //0 means I have residual(labmda); 1 means I have residual(mu); -1 means I have nothing
+    while ( error > tol && iter < niter )
+    {
+        iter++;
+        //cout << "a  " << std::endl;
+        if ( KeptVal != 0 )
+        {
+            L = 0.382* ( B-A )+A;
+            //lambdak = ak + 0.382*(bk-ak)
+            lambdak = Interval;
+            lambdak *= 0.382;
+            lambdak += ak;
+            //computing residual
+            LoadSolution ( lambdak );
+#ifdef PZ_LOG
+            //LOGPZ_DEBUG ( logger,"After LoadSolution" )
+#endif
+            //		LogWellSolution(*this->Mesh(), 6);
+            this->AssembleResidual();
+#ifdef PZ_LOG
+            //LOGPZ_DEBUG ( logger,"After AssembleResidual" )
+#endif
+            //		LogWellSolution(*this->Mesh(), 6);
+            NormResLambda = Norm ( fRhs );
+        }
+
+        if ( KeptVal != 1 )
+        {
+            //muk = ak + 0.618*(bk-ak)
+            M = 0.618* ( B-A )+A;
+            muk = Interval;
+            muk *= 0.618;
+            muk += ak;
+            LoadSolution ( muk );
+            //cout << "b  " << std::endl;
+            //muk.Print(std::cout);
+            this->AssembleResidual();
+            //cout << "c " << std::endl;
+            NormResMu = Norm ( fRhs );
+        }
+
+        if ( NormResLambda > NormResMu )
+        {
+            A = L;
+            L = M;
+            ak = lambdak;
+            lambdak = muk;
+            NormResLambda = NormResMu;
+            KeptVal = 0;
+        }
+        else
+        {
+            B = M;
+            M = L;
+            bk = muk;
+            muk = lambdak;
+            NormResMu = NormResLambda;
+            KeptVal = 1;
+        }
+        //error = Norm(bk-ak)
+        Interval = bk;
+        Interval -= ak;
+        error = Norm ( Interval );
+
+        //alpha shall be alpha <= 1
+        if ( A > 1. && B > 1. ) break;
+
+    }//while
+
+    double ALPHA = 0.5* ( A + B );
+    NextW = ak;
+    NextW += bk;
+    NextW *= 0.5;
+
+
+#ifdef PZDEBUGLINESEARCH
+    //debug: valor do alpha
+    TPZFMatrix<REAL> alpha;
+    alpha = NextW;
+    alpha -= Wn;
+    REAL sum = 0.;
+    int ncontrib = 0;
+    for ( int i = 0; i < alpha.Rows(); i++ )
+    {
+        if ( DeltaW ( i,0 ) )
+        {
+            alpha ( i,0 ) = alpha ( i,0 ) /DeltaW ( i,0 );
+            sum += alpha ( i,0 );
+            ncontrib++;
+        }
+    }
+    //REAL MeanAlpha = sum/ncontrib;
+    alphafile << /*MeanAlpha << "\t" <<*/ "ALPHA = " << ALPHA << "\n";
+    alphafile.flush();
+#endif
+
+    if ( ALPHA > 1. ) //alpha shall be alpha <= 1
+    {
+        NextW = Wn;
+        NextW += DeltaW;
+#ifdef PZDEBUGLINESEARCH
+        alphafile << "ALPHA LIMIT APPLIED. Alpha = 1.\n";
+#endif
+        return 1.;
+    }
+
+    return ALPHA;
+
+}//void
 
 void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv) {
 
@@ -1205,7 +1333,111 @@ void TPZElastoPlasticAnalysis::GetActiveEquations(TPZVec<int64_t> &activeEquatio
         }
     }
 }
+bool TPZElastoPlasticAnalysis::IterativeProcess ( std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv,int &iters )
+{
 
+    int iter = 0;
+    REAL error = 1.e10,error2=1.e10;
+    int numeq = fCompMesh->NEquations();
+
+ //   cout << "number of equations = " << numeq <<endl;
+
+    TPZFMatrix<STATE> prevsol ( fSolution );
+    if ( prevsol.Rows() != numeq ) prevsol.Redim ( numeq,1 );
+
+    if ( checkconv )
+    {
+        TPZVec<REAL> coefs ( 1,1. );
+        TPZFMatrix<STATE> range ( numeq,1,1. );
+        CheckConvergence ( *this,fSolution,range,coefs );
+    }
+    bool a=true,b=true,c=true;
+    // Assemble();
+// 	 TPZAutoPointer<TPZMatrix<REAL> > K = this->fSolver->Matrix();
+// 	TPZFMatrix<STATE> rhs =fRhs;
+// 	TPZFMatrix<STATE> du;
+// 	//chrono::steady_clock sc1;
+// 	//auto start = sc1.now();
+// 	SolveEigenSparse(0, K, rhs, du );
+// 	//auto end = sc1.now();
+// 	//auto time_span = static_cast<chrono::duration<double>> ( end - start );
+// 	//cout << "| total time taken to solve eigen=  " << time_span.count()<< std::endl;
+// 	 fSolution=du;
+    AssembleResidual();
+  //  std::cout << "asdasdsad " <<std::endl;
+    REAL normrhs0 = Norm ( fRhs );
+  //  cout << "normrhs0 = " << normrhs0 << endl;
+    while ( a && b && c )
+    {
+//        fSolution.Redim(0,0);
+        Assemble();
+        chrono::steady_clock sc;
+        auto start = sc.now();
+        //cout <<  "sdadas" << endl;
+        Solve();
+        //cout <<  "aaaaaaaaaa" << endl;
+        auto end = sc.now();
+        auto time_span = static_cast<chrono::duration<double>> ( end - start );
+        //   cout << "| total time taken to solve PZ=  " << time_span.count()<< std::endl;
+
+        //cout << "a  " << std::endl;
+        if ( linesearch )
+        {
+            TPZFMatrix<STATE> nextSol;
+            //REAL LineSearchTol = 1e-3 * Norm(fSolution);
+            REAL LineSearchTol = 0.001 * Norm ( fSolution );
+            const int niter =20;
+            this->LineSearch ( prevsol, fSolution, nextSol, LineSearchTol, niter );
+            fSolution = nextSol;
+        }
+        else
+        {
+            TPZFMatrix<STATE> sol = fSolution;
+            sol += prevsol;
+        }
+
+        //cout << "b  " << std::endl;
+        prevsol -= fSolution;
+        //REAL normDeltaSol = Norm(prevsol)/unorm0;
+        REAL normu = Norm ( prevsol );
+
+        prevsol = fSolution;
+        this->LoadSolution ( fSolution );
+        this->AssembleResidual();
+        //cout << "c  " << std::endl;
+        REAL normf  = Norm ( fRhs );
+        cout << "Iteracao n : " << ( iter ) << " : normas |Delta(Un)| e |Delta(rhs)/rhs0| : " << normu << " / " << normf/normrhs0 << " | tol = "<<tol << endl;
+        a = iter < numiter ;
+        b =error2 > tol *1.e-3;
+        c= error > tol;
+
+        //if( normDeltaSol>100 || iter >=numiter  || ((normDeltaSol - error2) > 1.e-9 && (NormResLambda - error) > 1.e-9) ) {
+        // if((normu>100 || iter >=numiter  ||(normu - error2) > 1.e-3)&& iter>5) {
+        // if((normu>1 && iter>5 && (normu - error2) > 1.e-3)|| iter >=numiter) {
+//                 if(  ( iter >=numiter || ( iter>2 && normu >1 ) ) ||(normu - error2) > 1.e-3 || fabs((normf - error)) > 1.e-9 ) {
+//             cout << "\nDivergent Method\n";
+//             return false;
+//         }
+        if ( ( iter >=numiter || ( iter>2 && normu >1 ) ) )
+        {
+            //cout << "\nDivergent Method\n";
+            return false;
+        }
+        error = normf;
+        error2=normu;
+        iter++;
+        out.flush();
+
+    }
+    iters=iter;
+   // cout << "Iteracao n : " << ( iter ) << "Norm ( prevsol ) = "<<Norm ( prevsol ) << "Norm ( fRhs ) = "<<Norm ( fRhs ) << endl;
+    return true;
+}
+void  TPZElastoPlasticAnalysis::LoadSolution ( TPZFMatrix<STATE> & loadsol )
+{
+    fSolution = loadsol;
+    LoadSolution();
+}
 // //$Id: pzelastoplasticanalysis.cpp,v 1.27 2010-11-23 18:58:05 diogo Exp $
 // #include "pzelastoplasticanalysis.h"
 // #include "pzcmesh.h"

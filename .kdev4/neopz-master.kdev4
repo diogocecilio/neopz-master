@@ -13,7 +13,7 @@ Install Directory=/opt/neopz
 Runtime=Host System
 
 [Launch]
-Launch Configurations=Launch Configuration 0
+Launch Configurations=Launch Configuration 0,Launch Configuration 1,Launch Configuration 2
 
 [Launch][Launch Configuration 0]
 Configured Launch Modes=execute
@@ -30,6 +30,44 @@ Executable=file:///home/diogo/projects/neopz-master
 External Terminal=konsole --noclose --workdir %workdir -e %exe
 Kill Before Executing Again=4194304
 Project Target=neopz-master,Projects2,geomecproblems,geomecproblems
+Use External Terminal=false
+Working Directory=
+isExecutable=false
+
+[Launch][Launch Configuration 1]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=elasticity
+Type=Native Application
+
+[Launch][Launch Configuration 1][Data]
+Arguments=
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
+Dependency Action=Nothing
+EnvironmentGroup=
+Executable=file:///home/diogo/projects/neopz-master
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Kill Before Executing Again=4194304
+Project Target=neopz-master,Projects2,Elasticity2D,elasticity
+Use External Terminal=false
+Working Directory=
+isExecutable=false
+
+[Launch][Launch Configuration 2]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=plasticity2d
+Type=Native Application
+
+[Launch][Launch Configuration 2][Data]
+Arguments=
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
+Dependency Action=Nothing
+EnvironmentGroup=
+Executable=file:///home/diogo/projects/neopz-master
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Kill Before Executing Again=4194304
+Project Target=neopz-master,Projects2,Plasticity2D,plasticity
 Use External Terminal=false
 Working Directory=
 isExecutable=false

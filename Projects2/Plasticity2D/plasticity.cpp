@@ -75,18 +75,15 @@ int main()
 #endif
 
     int ref=0;
-    int porder=2;
-
     TPZGeoMesh * gmesh =CreateGMeshSlope (  ref );
 
-    //std::stringstream sout;
-    //gmesh->Print(sout);
-    //LOGPZ_DEBUG(teste,sout.str().c_str());
+    int porder=2;
+    REAL gammaagua=0.;
+    REAL gammasolo=20.;
+    Slope*SlopeManager = new Slope(gmesh,porder,gammaagua,gammasolo);
 
-
-    //gmesh->Print(std::cout);
-    Slope*SlopeManager = new Slope(gmesh,porder);
-    SlopeManager->Solve();
+    SlopeManager->ShearRed ( );
+    //SlopeManager->Solve();
 
     return 0;
 }

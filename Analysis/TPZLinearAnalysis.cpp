@@ -200,22 +200,22 @@ void TPZLinearAnalysis::SolveT()
     }
 #ifdef PZ_LOG
   std::stringstream sout;
-  TPZStepSolver<TVar> *step = dynamic_cast<TPZStepSolver<TVar> *> (mySolver);
-  if(!step) DebugStop();
-  int64_t nsing = step->Singular().size();
-	if(nsing && logger.isWarnEnabled()) {
-		sout << "Number of singular equations " << nsing;
-		std::list<int64_t>::iterator it = step->Singular().begin();
-		if(nsing) sout << "\nSingular modes ";
-		while(it != step->Singular().end())
-      {
-        sout << *it << " ";
-        it++;
-      }
-		if(nsing) sout << std::endl;
-		LOGPZ_WARN(logger,sout.str())
-      }
-#endif
+//  TPZStepSolver<TVar> *step = dynamic_cast<TPZStepSolver<TVar> *> (mySolver);
+  //if(!step) DebugStop();
+//   int64_t nsing = step->Singular().size();
+// 	if(nsing && logger.isWarnEnabled()) {
+// 		sout << "Number of singular equations " << nsing;
+// 		std::list<int64_t>::iterator it = step->Singular().begin();
+// 		if(nsing) sout << "\nSingular modes ";
+// 		while(it != step->Singular().end())
+//       {
+//         sout << *it << " ";
+//         it++;
+//       }
+// 		if(nsing) sout << std::endl;
+// 		LOGPZ_WARN(logger,sout.str())
+//       }
+ #endif
 #ifdef PZ_LOG
   if (logger.isDebugEnabled())
     {

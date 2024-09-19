@@ -21,7 +21,7 @@
 static TPZLogger loggerMohrCoulombPV("pz.plasticity.mohrcoulombpv");
 #endif
 
-class TPZYCMohrCoulombPV : public TPZPlasticCriterion {  
+class TPZYCMohrCoulombPV : public TPZPlasticCriterion {
 public:
 
     enum {
@@ -29,7 +29,7 @@ public:
     };
 
 private:
-    
+
     REAL fPhi;
     REAL fPsi;
     REAL fc;
@@ -88,7 +88,7 @@ public:
     /**
      * @brief Sets up the data
      */
-    
+
     /**
      Setup attributes
 
@@ -103,7 +103,14 @@ public:
         fc = c;
         fER = ER;
     }
-
+    void SetLocalMatState ( TPZPlasticState<REAL> & state )
+    {
+        //if ( fc<1.e-3 ) DebugStop();
+        fc =   state.fmatprop[0];
+        fPhi = state.fmatprop[1];
+        fPsi = state.fmatprop[1];
+		//std::cout << "fc = "<< fc <<endl;
+    }
     /**
      * @brief Operator =
      */
@@ -139,7 +146,7 @@ public:
      * @brief Compute initial damage variable from the given principal stress state
      */
     REAL InitialDamage(const TPZVec<REAL> &stress_p) const;
-    
+
     /**
      * @brief Calculates the value c(epsp) and its derivative
      */
@@ -200,7 +207,7 @@ public:
     template<class T>
     bool ReturnMapApex(const TPZVec<T> &sigma_trial, TPZVec<T> &sigma_projected,
             TComputeSequence &memory, REAL &epsbarnew) const;
-    
+
     /**
      Computes gradient of projected stress at sigma_trial for the ReturnMapApex
 
@@ -208,7 +215,7 @@ public:
      @param eps_bar_p accumulated plastic strain
      */
     void ComputeApexGradient(TPZMatrix<REAL> & gradient, REAL & eps_bar_p) const;
-    
+
     /**
      Execute the integration algorithm for the Mohr-Coulomb model.
      Source: Computational Methods for Plasticity: Theory and Applications. Eduardo A. de Souza Neto, Djordje Peric, David R. J. Owen (2008).
@@ -239,19 +246,19 @@ public:
 
     /**
      Access to Friction angle
-     
+
      @return Friction angle
      */
     STATE Phi() {
         return fPhi;
     }
-    
+
     /// Set up the phi
     void SetPhi(STATE phi)
     {
         fPhi = phi;
     }
-    
+
     /**
      Access to Dilation angle
 
@@ -269,14 +276,14 @@ public:
     STATE Cohesion() {
         return fc;
     }
-    
+
     /// Set up the cohesion
     void SetCohesion(STATE cohesion)
     {
         fc = cohesion;
     }
 
-    
+
     /**
      Access to Young's modulus
 
@@ -299,7 +306,7 @@ public:
     virtual void YieldFunction(const TPZVec<STATE>& sigma, STATE kprev, TPZVec<STATE>& yield) const override{
         Phi(sigma, kprev, yield);
     }
-    
+
     virtual int GetNYield() const override{
         return as_integer(NYield);
     }

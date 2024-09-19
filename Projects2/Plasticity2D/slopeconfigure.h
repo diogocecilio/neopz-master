@@ -29,32 +29,151 @@ class Slope
 {
 public:
 
-    TPZCompMesh *fCompMesh;
-    Slope(TPZGeoMesh * gmesh,int porder);
     enum  SolverType { EStep, EPardiso};
-    TPZCompMesh * CreateCMeshDarcy ( TPZGeoMesh *gmesh, int pOrder );
 
-    void SlopeAnalysis(anal *analysis,int type,int numthreads);
-    void ApplyGravityLoad(TPZManVector<REAL, 3> bodyforce);
-    void PostPlasticity(string vtkd);
-    void  CreatePostProcessingMesh (TPZPostProcAnalysis * PostProcess );
-    void PostProcessVariables ( TPZStack<std::string> &scalNames, TPZStack<std::string> &vecNames );
-    void InitializeSimulation(int porder,int ref);
-    void Solve();
+    Slope( TPZGeoMesh * gmesh,int porder,REAL gammaagua, REAL gammasolo);
+
     TPZCompMesh * CreateCMeshElastoplastic ( TPZGeoMesh *gmesh, int pOrder );
 
+    TPZElastoPlasticAnalysis *  SlopeAnalysis(int type,int numthreads);
+
+    void ApplyGravityLoad(TPZManVector<REAL, 3> bodyforce);
+
+    void PostPlasticity(string vtkd);
+
+    void  CreatePostProcessingMesh (TPZPostProcAnalysis * PostProcess );
+
+    void PostProcessVariables ( TPZStack<std::string> &scalNames, TPZStack<std::string> &vecNames );
+
+    void InitializeSimulation(int porder,int ref);
+
+    void Solve();
+
+    void LoadingRamp (  REAL factor );
+
+    REAL ShearRed ( );
+
+
+    void TransferSolutionFromShearRed ( TPZManVector<TPZCompMesh*,3> vecmesh,int isol,REAL FS );
+public:
+    TPZCompMesh *fCompMesh;
 protected:
 
+    REAL fgammaagua;
+    REAL fgammasolo;
     TPZGeoMesh *fGmesh;
     //TPZElastoPlasticAnalysis *fAnalysis;
 
 
 };
 
+Slope::Slope( TPZGeoMesh * gmesh,int porder,REAL gammaagua, REAL gammasolo)
+{
+    fgammaagua=gammaagua;
+    fgammasolo=gammasolo;
+    fGmesh = gmesh;
+    fCompMesh = CreateCMeshElastoplastic ( fGmesh, porder );
+
+}
+
+void Slope::LoadingRamp (  REAL factor )
+{
+    plasticmat * body= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
+    //plasticmatcrisfield * body= dynamic_cast<plasticmatcrisfield *> ( cmesh->FindMaterial ( 1 ) );
+    TPZManVector<REAL, 3> force ( 3,0. );
+
+    force[1]= ( fgammaagua-fgammasolo );
+
+    //force[1]=(-gammasolo);
+    body->SetLoadFactor ( factor );
+    body->SetBodyForce ( force );
+
+}
+
+
+REAL Slope::ShearRed ( )
+{
+
+    //fgmesh->ResetReference();
+   // fcmesh->LoadReferences();
+    LoadingRamp(1.);
+
+    REAL FS=0.8,FSmax=5.,FSmin=0.,tol=0.001;
+    int neq = fCompMesh->NEquations();
+
+    TPZFMatrix<REAL> displace(neq,1),displace0(neq,1);
+
+    int counterout = 0;
+
+    plasticmat *material = dynamic_cast<plasticmat *> ( fCompMesh->MaterialVec() [1] );
+    TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC = material->GetPlasticity();
+    TPZElasticResponse ER = LEMC.fER;
+
+    REAL phi0 = LEMC.fYC.Phi();
+    REAL cohesion0 = LEMC.fYC.Cohesion();
+    REAL phi,psi,c;
+    int numthreads = 0;
+    int type =Slope::EStep;
+    bool conv=false;
+    do {
+
+        fCompMesh->Solution().Zero();
+        std::cout << "FS "<< FS <<  "| step = " << counterout  <<std::endl;
+        TPZElastoPlasticAnalysis* anal =  SlopeAnalysis(type,numthreads);
+
+        REAL norm = 1000.;
+        REAL tol2 = 0.01;
+        int NumIter = 50;
+        bool linesearch = true;
+        bool checkconv = false;
+        int iters;
+
+
+
+        chrono::steady_clock sc;
+        auto start = sc.now();
+
+        conv = anal->IterativeProcess ( cout, tol2, NumIter,linesearch,checkconv,iters );
+        norm = Norm ( anal->Rhs() );
+
+
+        //anal->AcceptSolution();
+
+
+        auto end = sc.now();
+        auto time_span = static_cast<chrono::duration<double>> ( end - start );
+
+        std::cout << "safety factor "<< FS <<  "| step = " << counterout <<" | Rhs norm = " << norm  << " | IterativeProcess Time: " << time_span.count() << " seconds !!! " <<std::endl;
+
+        if ( conv==false ) {
+
+            FSmax = FS;
+            FS = ( FSmin + FSmax ) / 2.;
+        } else {
+
+            FSmin = FS;
+			FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
+        }
+
+        c=cohesion0/FS;
+        std::cout << "coes "<<  c <<std::endl;
+        phi=atan ( tan ( phi0 ) /FS );
+        psi=phi;
+        LEMC.fYC.SetUp ( phi, psi, c, ER );
+        material->SetPlasticityModel ( LEMC );
+        counterout++;
+        if(( FSmax - FSmin ) / FS < tol)anal->AcceptSolution();
+    }  while ( ( FSmax - FSmin ) / FS > tol || conv==false);
+
+        std::cout << "final safety factor "<< FS <<std::endl;
+        return ( FSmax + FSmin )/2;
+}
+
+
+
+
 void Slope::Solve()
 {
-    //TPZElastoPlasticAnalysis *analysis = new TPZElastoPlasticAnalysis( fCompMesh,std::cout );
-    anal *analysis = new anal(fCompMesh,cout);
 
     TPZManVector<REAL,3> gravityload(3,0);
     gravityload[1]=-20.;
@@ -63,7 +182,7 @@ void Slope::Solve()
     int numthreads = 0;
     int type =Slope::EStep;
 
-    SlopeAnalysis(analysis,type,numthreads);
+    TPZElastoPlasticAnalysis * analysis = SlopeAnalysis(type,numthreads);
 
  	REAL tol=1.e-3;
  	int numiter=10;
@@ -71,48 +190,26 @@ void Slope::Solve()
  	bool checkconv= false;
     bool convordiv;
     int iters;
+    int niter_update_jac=1;
+
     std::cout << "start solving"<< endl ;
     auto t1 = high_resolution_clock::now();
+
     //analysis->IterativeProcess(std::cout,tol,numiter,linesearch,checkconv);
     //analysis->IterativeProcessPrecomputedMatrix(std::cout,tol,numiter,linesearch);
-    //analysis->IterativeProcess(std::cout,tol,numiter,linesearch,  checkconv,convordiv) ;
-    int niter_update_jac=1;
+    //analysis->IterativeProcess(std::cout,tol,numiter,linesearch,  checkconv,convordiv);
     analysis->IterativeProcess(std::cout, tol,  numiter, niter_update_jac,  linesearch);
+
     auto t2 = high_resolution_clock::now();
     auto ms_int = duration_cast<milliseconds> ( t2 - t1 );
     std::cout << "tempo total = "<<ms_int.count() << " ms\n";
 
      string vtkd = "postlin.vtk";
-     //PostPlasticity(vtkd);
-
-
-     analysis->AcceptSolution();
-
-     TPZLinearAnalysis * anal = new TPZLinearAnalysis(fCompMesh);
-     //analysis->Solution().Print("sol");
-    //TPZPostProcAnalysis * postprocdeter = new TPZPostProcAnalysis();
-    //CreatePostProcessingMesh ( postprocdeter);
-   // TPZNonLinearAnalysis * postprocdeter = new TPZNonLinearAnalysis(fCompMesh,cout);
-
-    TPZVec<int> PostProcMatIds ( 1,1 );
-
-    TPZStack<std::string> PostProcVars, scalNames, vecNames;
-
-    PostProcessVariables ( scalNames, vecNames );
-
-    //string vtkd = "postprocessdeter.vtk";
-    anal->DefineGraphMesh ( 2,scalNames,vecNames,vtkd );
-
-    anal->PostProcess ( 0 );
+     PostPlasticity(vtkd);
 
 }
 
-Slope::Slope( TPZGeoMesh * gmesh,int porder)
-{
-    fGmesh = gmesh;
-    fCompMesh = CreateCMeshElastoplastic ( fGmesh, porder );
 
-}
 
 TPZCompMesh * Slope::CreateCMeshElastoplastic ( TPZGeoMesh *gmesh, int pOrder )
 {
@@ -213,10 +310,10 @@ void Slope::ApplyGravityLoad(TPZManVector<REAL, 3> bodyforce)
 
 }
 
-void  Slope::SlopeAnalysis(anal *analysis,int type,int numthreads)
+TPZElastoPlasticAnalysis *  Slope::SlopeAnalysis(int type,int numthreads)
 {
 
-    //TPZElastoPlasticAnalysis *analysis = new TPZElastoPlasticAnalysis();
+    TPZElastoPlasticAnalysis *analysis = new TPZElastoPlasticAnalysis(fCompMesh,cout);
     //analysis->SetCompMesh(fCompMesh,true);
 switch(type) {
     case SolverType::EStep:
@@ -246,6 +343,8 @@ switch(type) {
             DebugStop();
         }
     }
+
+    return analysis;
 }
 
 

@@ -79,7 +79,7 @@ REAL tol=1.e-3;
      //REAL fs = analysis->IterativeProcessArcLength ( tolfs,numiterfs,tolres,numiterres,l,lambda0,converge );
      string file  = "footing.vtk";
      //PostPlasticity(file,cmesh);
-// analysis->AcceptSolution();
+ analysis->AcceptSolution();
 
      TPZLinearAnalysis * anal = new TPZLinearAnalysis(cmesh);
      //analysis->Solution().Print("sol");

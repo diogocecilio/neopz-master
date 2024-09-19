@@ -282,7 +282,27 @@ public:
     {
 			m_force = Force;
     }
+    void SetLoadFactor(REAL factor)
+    {
+			ffactor = factor;
+    }
+    void SetWhichLoadVector(int option)
+    {
+        fwhichinternalforce = option;
+    }
+    T GetPlasticity()
+    {
+        return m_plasticity_model;
+    }
 protected:
+
+     REAL ffactor;
+
+
+	  //0 ef = (Bt sigma + (b + gradu))
+	  //1 ef = Bt sigma
+	  //2 ef = b + gradu
+	  int fwhichinternalforce;
 
     /**
     * gravity acceleration

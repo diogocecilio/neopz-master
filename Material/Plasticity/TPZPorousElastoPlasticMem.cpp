@@ -24,7 +24,7 @@ TPZPorousElastoPlasticMem::~TPZPorousElastoPlasticMem(){
 void TPZPorousElastoPlasticMem::Write(TPZStream &buf, int withclassid) const
 {
     m_sigma.Write(buf, withclassid);
-    m_elastoplastic_state.Write(buf, withclassid);
+    //m_elastoplastic_state.Write(buf, withclassid);
     buf.Write(&m_plastic_steps);
     buf.Write(m_u);
     m_ER.Write(buf, withclassid);
@@ -33,7 +33,7 @@ void TPZPorousElastoPlasticMem::Write(TPZStream &buf, int withclassid) const
 void TPZPorousElastoPlasticMem::Read(TPZStream &buf, void *context)
 {
     m_sigma.Read(buf, context);
-    m_elastoplastic_state.Read(buf, context);
+   // m_elastoplastic_state.Read(buf, context);
     buf.Read(&m_plastic_steps);
     buf.Read(m_u);
     m_ER.Read(buf, context);

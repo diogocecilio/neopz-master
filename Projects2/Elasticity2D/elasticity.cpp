@@ -251,7 +251,7 @@ TPZGeoMesh *CreateGeoMeshBending()
 
 
     cout << "c" << endl;
-    for ( int d = 0; d<5; d++ )
+    for ( int d = 0; d<7; d++ )
     {
         int nel = gmesh->NElements();
         TPZManVector<TPZGeoEl *> subels;

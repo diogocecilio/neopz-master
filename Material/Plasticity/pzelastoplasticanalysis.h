@@ -35,10 +35,13 @@ public:
 
 	virtual void IterativeProcess(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv);
 
+	bool IterativeProcess ( std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv,int &iters );
     //Improved:A verification is made in order to check convergence.
     virtual REAL LineSearch(const TPZFMatrix<REAL> &Wn, const TPZFMatrix<REAL> &DeltaW, TPZFMatrix<REAL> &NextW, REAL RhsNormPrev, REAL &RhsNormResult, int niter, bool &converging );
 
+	REAL LineSearch ( const TPZFMatrix<STATE> &Wn, TPZFMatrix<STATE> DeltaW, TPZFMatrix<STATE> &NextW, REAL tol, int niter );
 
+	virtual void  LoadSolution ( TPZFMatrix<STATE> & loadsol );
 	/**
 	 * @brief The code below manages the update of a certain boundary condition (BCId)
 	 * to assume values progressing from begin to end values within nsteps, such

@@ -12,93 +12,103 @@
  */
 template <class T>
 class TPZPlasticState : public TPZSavable {
-    
+
 public:
-    
+
     /// Tensors representing the total and plastic strain states
     TPZTensor<T> m_eps_t, m_eps_p;
-    
+
     /// Plastic volumetric hardeing variable
     T m_hardening;
-    
+
     /// Identifier for the regime of the material behaviour
     int m_m_type;
-    
+
+	TPZVec<T> fmatprop;
+
+    TPZVec<T> fflux;
+
+    T fpressure;
 public:
-    
+
     /// Default constructor - all values set to zero
-    TPZPlasticState(): m_eps_t(), m_eps_p(), m_hardening(T(0.)), m_m_type(0) { }
-    
+    TPZPlasticState(): m_eps_t(), m_eps_p(), m_hardening(T(0.)), m_m_type(0),fpressure(T(0.) ),fmatprop(),fflux() { }
+
     /// Constructor enabling predefinition of hardening
-    TPZPlasticState(const T & hardening):m_eps_t(T(0.)), m_eps_p(T(0.)), m_hardening(hardening), m_m_type(0) { }
-    
+    TPZPlasticState(const T & hardening):m_eps_t(T(0.)), m_eps_p(T(0.)), m_hardening(hardening), m_m_type(0),fpressure(T(0.) ),fmatprop(),fflux() { }
+
     /// Copy constructor
     TPZPlasticState(const TPZPlasticState<T> & source):
-    m_eps_t(source.m_eps_t), m_eps_p(source.m_eps_p), m_hardening(source.m_hardening), m_m_type(source.m_m_type){ }
-    
+    m_eps_t(source.m_eps_t), m_eps_p(source.m_eps_p), m_hardening(source.m_hardening), m_m_type(source.m_m_type),fpressure(source.fpressure ),fmatprop(source.fmatprop),fflux(source.fflux){ }
+
     /// Destructor
     ~TPZPlasticState(){ }
-    
+
     /// Operator =
     const TPZPlasticState<T> & operator=(const TPZPlasticState<T> & source);
-    
+
     /// Operator -=
     const TPZPlasticState<T> & operator-=(const TPZPlasticState<T> & source);
-    
+
     /// Operator +=
     const TPZPlasticState<T> & operator+=(const TPZPlasticState<T> & source);
-    
+
     /// Operator *=
     const TPZPlasticState<T> & operator*=(const TPZPlasticState<T> & source);
-    
+
     /// Operator<<
     friend std::ostream& operator<<( std::ostream& Out, const TPZPlasticState<T> & s )
     {
         s.Print(Out);
         return Out;
     }
-    
+
     /// More complete then Operator << because it allows derivatives supression.
     void Print(std::ostream& Out, int fadDerivatives = 1)const;
-    
+
     // class Access Members (needed for const PlasticState access)
-    
+
     const TPZTensor<T> & EpsT() const
     { return m_eps_t; }
-    
+
     const TPZTensor<T> & EpsP() const
     { return m_eps_p; }
-    
+
     const T & VolHardening() const
     { return m_hardening; }
-    
+
     const int & MType() const
     { return m_m_type; }
         int ClassId() const override;
-    
+	const TPZVec<T> & MatProp() const
+		{ return fmatprop; }
+	const TPZVec<T> & Flux() const
+		{ return fflux; }
+    const T & Pressure() const
+		{ return fpressure; }
     void Read(TPZStream& buf, void* context) override {
         m_eps_t.Read(buf,context);
         m_eps_p.Read(buf,context);
-        
+
         buf.Read(&m_hardening);
         buf.Read(&m_m_type);
     }
-    
+
     void Write(TPZStream &buf, int withclassid) const override{
         m_eps_t.Write(buf,withclassid);
         m_eps_p.Write(buf,withclassid);
-        
+
         buf.Write(&m_hardening);
         buf.Write(&m_m_type);
     }
-    
+
     void CleanUp() {
         m_eps_t.Zero();
         m_eps_p.Zero();
         m_hardening = T(0.);
         m_m_type = 0;
     }
-    
+
     /**
      * Similar to Operator=, but allows copies among different template specializations.
      * When using FAD class Types as template classes, NO DERIVATIVES are copied using this functions,
@@ -106,7 +116,7 @@ public:
      */
     template <class T1>
     void CopyTo(TPZPlasticState<T1> & target) const;
-    
+
 };
 
 template <class T>
@@ -121,7 +131,9 @@ inline const TPZPlasticState<T> & TPZPlasticState<T>::operator=(const TPZPlastic
     m_eps_p = source.EpsP();
     m_hardening = source.VolHardening();
     m_m_type = source.MType();
-    
+	fmatprop=source.MatProp();
+    fflux = source.Flux();
+    fpressure =source.Pressure();
     return *this;
 }
 
@@ -182,6 +194,13 @@ void TPZPlasticState<T>::CopyTo(TPZPlasticState<T1> & target) const
     EpsP().CopyTo(target.m_eps_p);
     target.m_hardening = TPZExtractVal::val( VolHardening() );
     target.m_m_type = MType();
+     target.fpressure = shapeFAD::val( Pressure() );
+	target.fmatprop.Resize(2);
+    target.fflux.Resize(2);
+	target.fmatprop[0]= shapeFAD::val(fmatprop[0]);
+	target.fmatprop[1]= shapeFAD::val(fmatprop[1]);
+    target.fflux[0]= shapeFAD::val(fflux[0]);
+    target.fflux[1]= shapeFAD::val(fflux[1]);
 }
 
 
