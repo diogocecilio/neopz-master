@@ -4,7 +4,8 @@ cmake_minimum_required (VERSION 3.14)
 
 #disable excessive warning messages by Microsoft VC compiler
 #set (CMAKE_USER_MAKE_RULES_OVERRIDE "${CMAKE_CURRENT_LIST_DIR}/cmake/CompilerOptionsMSVC.cmake")
-
+include_directories("/usr/include/eigen3")
+include_directories("/usr/include")
 project(PZ LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

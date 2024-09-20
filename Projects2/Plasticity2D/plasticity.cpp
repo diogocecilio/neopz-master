@@ -77,7 +77,7 @@ int main()
     TPZLogger::InitializePZLOG();
 #endif
 
-    int ref=2;
+    int ref=3;
     TPZGeoMesh * gmesh =CreateGMeshSlope (  ref );
     //TPZGeoMesh * gmesh =CreateGeoMesh(ref);
 
@@ -88,7 +88,7 @@ int main()
 
     SlopeManager->ShearRed ( );
     string vtk="file.vtk";
-    SlopeManager->PostPlasticity(vtk);
+    //SlopeManager->PostPlasticity(vtk);
 
     return 0;
 }
@@ -180,7 +180,7 @@ vector<vector<int>> topol = {
         }
     }
 
-    string meshref = "gmesh.vtk";
+    string meshref = "gmesh2.vtk";
     std::ofstream files ( meshref );
     TPZVTKGeoMesh::PrintGMeshVTK ( gmesh,files,true );
     return gmesh;
