@@ -78,7 +78,7 @@ REAL tol=1.e-3;
  	bool checkconv= false;
     bool convordiv;
     int iters;
-     analysis->IterativeProcess(std::cout,tol,numiter,linesearch,checkconv);
+     analysis->IterativeProcess(std::cout,tol,numiter,linesearch,checkconv,iters);
   //   REAL fs = analysis->IterativeProcessHybridArcLength ( tolfs,numiterfs,tolres,numiterres,l,lambda0,converge,ndesirediters,llimit );
     // REAL fs = analysis->IterativeProcessLinearisedArcLength()
      //REAL fs = analysis->IterativeProcessArcLength ( tolfs,numiterfs,tolres,numiterres,l,lambda0,converge );

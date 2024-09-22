@@ -21,8 +21,8 @@ using std::chrono::seconds;
 
 typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> plasticmorh;
 typedef   TPZMatElastoPlastic2D < TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZElastoPlasticMem > plasticmat;
-//typedef TPZNonLinearAnalysis anal;
-typedef TPZElastoPlasticAnalysis anal;
+//typedef TPZNonLinearAnalysis typedefanal;
+typedef TPZElastoPlasticAnalysis typedefanal;
 using namespace std;
 
 class Slope
@@ -35,7 +35,7 @@ public:
 
     TPZCompMesh * CreateCMeshElastoplastic ( TPZGeoMesh *gmesh, int pOrder );
     TPZCompMesh *CreateCompMesh(TPZGeoMesh *gmesh,int porder) ;
-    TPZElastoPlasticAnalysis *  SlopeAnalysis(int type,int numthreads);
+    typedefanal *  SlopeAnalysis(int type,int numthreads);
 
     void ApplyGravityLoad(TPZManVector<REAL, 3> bodyforce);
 
@@ -62,7 +62,7 @@ protected:
     REAL fgammaagua;
     REAL fgammasolo;
     TPZGeoMesh *fGmesh;
-    //TPZElastoPlasticAnalysis *fAnalysis;
+    //typedefanal *fAnalysis;
 
 
 };
@@ -100,7 +100,7 @@ REAL Slope::ShearRed ( )
    // fcmesh->LoadReferences();
     LoadingRamp(1.);
 
-    REAL FS=0.5,FSmax=5.,FSmin=0.,tol=0.01;
+    REAL FS=0.2,FSmax=5.,FSmin=0.,tol=0.01;
     int neq = fCompMesh->NEquations();
 
     TPZFMatrix<REAL> displace(neq,1),displace0(neq,1);
@@ -121,11 +121,11 @@ REAL Slope::ShearRed ( )
 
         fCompMesh->Solution().Zero();
         std::cout << "FS "<< FS <<  "| step = " << counterout  <<std::endl;
-        TPZElastoPlasticAnalysis* anal =  SlopeAnalysis(type,numthreads);
+        typedefanal* anal =  SlopeAnalysis(type,numthreads);
 
         REAL norm = 1000.;
-        REAL tol2 = 0.01;
-        int NumIter = 10;
+        REAL tol2 = 0.001;
+        int NumIter = 100;
         bool linesearch = true;
         bool checkconv = false;
         int iters;
@@ -135,9 +135,11 @@ REAL Slope::ShearRed ( )
         chrono::steady_clock sc;
         auto start = sc.now();
 //IterativeProcess2(std::ostream &out,REAL tol,int numiter, bool linesearch = false, bool checkconv = false);
-        conv = anal->IterativeProcess ( cout, tol2, NumIter,linesearch,checkconv,iters );
+        conv  = anal->IterativeProcess ( cout, tol2, NumIter,linesearch,checkconv,iters);
+        cout << "iters = " << iters <<endl;
+         //conv = anal->FindRoot ( );
         norm = Norm ( anal->Rhs() );
-std::cout << "conv "<< conv <<std::endl;
+        std::cout << "conv "<< conv <<std::endl;
 
         //anal->AcceptSolution();
 
@@ -185,7 +187,7 @@ void Slope::Solve()
     int numthreads = 0;
     int type =Slope::EStep;
 
-    TPZElastoPlasticAnalysis * analysis = SlopeAnalysis(type,numthreads);
+    typedefanal * analysis = SlopeAnalysis(type,numthreads);
 
  	REAL tol=1.e-3;
  	int numiter=10;
@@ -201,7 +203,7 @@ void Slope::Solve()
     //analysis->IterativeProcess(std::cout,tol,numiter,linesearch,checkconv);
     //analysis->IterativeProcessPrecomputedMatrix(std::cout,tol,numiter,linesearch);
     //analysis->IterativeProcess(std::cout,tol,numiter,linesearch,  checkconv,convordiv);
-    analysis->IterativeProcess(std::cout, tol,  numiter, niter_update_jac,  linesearch);
+    analysis->IterativeProcess(std::cout,tol,numiter,linesearch,checkconv,iters);
 
     auto t2 = high_resolution_clock::now();
     auto ms_int = duration_cast<milliseconds> ( t2 - t1 );
@@ -416,40 +418,45 @@ void Slope::ApplyGravityLoad(TPZManVector<REAL, 3> bodyforce)
 
 }
 
-TPZElastoPlasticAnalysis *  Slope::SlopeAnalysis(int type,int numthreads)
+typedefanal *  Slope::SlopeAnalysis(int type,int numthreads)
 {
 
-    TPZElastoPlasticAnalysis *analysis = new TPZElastoPlasticAnalysis(fCompMesh,cout);
+    typedefanal *analysis = new typedefanal(fCompMesh,cout);
     //analysis->SetCompMesh(fCompMesh,true);
-switch(type) {
-    case SolverType::EStep:
-        {
-			cout << "Solver called with TPZStepSolver\n";
-            TPZSkylineStructMatrix<STATE> matskl(fCompMesh);
-            matskl.SetNumThreads ( numthreads );
-             analysis->SetStructuralMatrix ( matskl );
-             TPZStepSolver<STATE> step;
-             step.SetDirect ( ELDLt );
-             analysis->SetSolver ( step );
-             break;
-        }
-    case SolverType::EPardiso:
-        {
+// switch(type) {
+//     case SolverType::EStep:
+//         {
+// 			cout << "Solver called with TPZStepSolver\n";
+//             TPZSkylineStructMatrix<STATE> matskl(fCompMesh);
+//             matskl.SetNumThreads ( numthreads );
+//              analysis->SetStructuralMatrix ( matskl );
+//              TPZStepSolver<STATE> step;
+//              step.SetDirect ( ELDLt );
+//              analysis->SetSolver ( step );
+//              break;
+//         }
+//     case SolverType::EPardiso:
+//         {
+//             cout << "Solver called with TPZPardisoSolver\n";
+//             TPZSSpStructMatrix<STATE> SSpStructMatrix(fCompMesh);
+//             SSpStructMatrix.SetNumThreads ( numthreads );
+//             analysis->SetStructuralMatrix(SSpStructMatrix);
+//             TPZPardisoSolver<REAL> *pardiso = new TPZPardisoSolver<REAL>;
+//             analysis->SetSolver(*pardiso);
+//             break;
+//         }
+//     default:
+//         {
+//             cout << "Solver was not initialized properly\n";
+//             DebugStop();
+//         }
+//     }
             cout << "Solver called with TPZPardisoSolver\n";
             TPZSSpStructMatrix<STATE> SSpStructMatrix(fCompMesh);
             SSpStructMatrix.SetNumThreads ( numthreads );
             analysis->SetStructuralMatrix(SSpStructMatrix);
             TPZPardisoSolver<REAL> *pardiso = new TPZPardisoSolver<REAL>;
             analysis->SetSolver(*pardiso);
-            break;
-        }
-    default:
-        {
-            cout << "Solver was not initialized properly\n";
-            DebugStop();
-        }
-    }
-
     return analysis;
 }
 

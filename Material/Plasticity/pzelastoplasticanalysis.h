@@ -22,23 +22,11 @@ public:
 	/** @brief Default destructor */
 	virtual ~TPZElastoPlasticAnalysis();
 
-    virtual void IterativeProcessPrecomputedMatrix(std::ostream &out, REAL tol, int numiter, bool linesearch);
+	bool FindRoot();
 
-    /// Iterative process using the linear elastic material as tangent matrix
-    virtual void IterativeProcess(std::ostream &out, REAL tol, int numiter, int niter_update_jac, bool linesearch);
+	bool IterativeProcess ( std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv,int &iters );
 
-	/**
-	 * @brief It process a Newton's method to solve the non-linear problem.
-	 * In this implementation, the line search is temporarily disabled.
-	 */
-	virtual void IterativeProcess(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv,bool &ConvOrDiverg);
-
-	virtual void IterativeProcess(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv);
-
-	bool IterativeProcess(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv,int &iters);
-	//bool IterativeProcess ( std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv,int &iters );
-    //Improved:A verification is made in order to check convergence.
-    virtual REAL LineSearch(const TPZFMatrix<REAL> &Wn, const TPZFMatrix<REAL> &DeltaW, TPZFMatrix<REAL> &NextW, REAL RhsNormPrev, REAL &RhsNormResult, int niter, bool &converging );
+	REAL MyLineSearch(const TPZFMatrix<REAL> &Wn, const TPZFMatrix<REAL> &DeltaW, TPZFMatrix<REAL> &NextW, REAL RhsNormPrev, REAL &RhsNormResult, int niter, bool & converging);
 
 	REAL LineSearch ( const TPZFMatrix<STATE> &Wn, TPZFMatrix<STATE> DeltaW, TPZFMatrix<STATE> &NextW, REAL tol, int niter );
 

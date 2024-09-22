@@ -77,7 +77,7 @@ int main()
     TPZLogger::InitializePZLOG();
 #endif
 
-    int ref=2;
+    int ref=4;
     TPZGeoMesh * gmesh =CreateGMeshSlope (  ref );
     //TPZGeoMesh * gmesh =CreateGeoMesh(ref);
 
@@ -88,7 +88,7 @@ int main()
 
     SlopeManager->ShearRed ( );
     string vtk="file.vtk";
-    SlopeManager->PostPlasticity(vtk);
+    //SlopeManager->PostPlasticity(vtk);
 
     return 0;
 }

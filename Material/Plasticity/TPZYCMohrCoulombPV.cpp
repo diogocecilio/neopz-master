@@ -140,7 +140,7 @@ bool TPZYCMohrCoulombPV::ReturnMapPlane(const TPZVec<T> &sigma_trial, TPZVec<T> 
 
 #ifdef PZDEBUG
     if (i == n_iterations) {
-        DebugStop();
+//         //DebugStop();
     }
 #endif
 
@@ -234,7 +234,7 @@ bool TPZYCMohrCoulombPV::ReturnMapLeftEdge(const TPZVec<T> &sigma_trial, TPZVec<
 #ifdef PZDEBUG
         if(IsZero(det_jac)){
             std::cerr << "TPZYCMohrCoulombPV:: Singular jacobian." << std::endl;
-            DebugStop();
+         //   DebugStop();
         }
 #endif
 
@@ -263,7 +263,7 @@ bool TPZYCMohrCoulombPV::ReturnMapLeftEdge(const TPZVec<T> &sigma_trial, TPZVec<
 
 #ifdef PZDEBUG
     if (i == n_iterations) {
-        DebugStop();
+      //  DebugStop();
     }
 #endif
 
@@ -371,7 +371,7 @@ bool TPZYCMohrCoulombPV::ReturnMapRightEdge(const TPZVec<T> &sigma_trial, TPZVec
 #ifdef PZDEBUG
         if(IsZero(det_jac)){
             std::cerr << "TPZYCMohrCoulombPV:: Singular jacobian." << std::endl;
-            DebugStop();
+           // DebugStop();
         }
 #endif
 
@@ -400,7 +400,7 @@ bool TPZYCMohrCoulombPV::ReturnMapRightEdge(const TPZVec<T> &sigma_trial, TPZVec
 
 #ifdef PZDEBUG
     if (i == n_iterations) {
-        DebugStop();
+       // DebugStop();
     }
 #endif
 
@@ -499,7 +499,7 @@ bool TPZYCMohrCoulombPV::ReturnMapApex(const TPZVec<T> &sigmatrial, TPZVec<T> &s
 
 #ifdef PZDEBUG
     if (i == n_iterations) {
-        DebugStop();
+        //DebugStop();
     }
 #endif
 
