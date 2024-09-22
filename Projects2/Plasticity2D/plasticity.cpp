@@ -77,11 +77,11 @@ int main()
     TPZLogger::InitializePZLOG();
 #endif
 
-    int ref=4;
+    int ref=3;
     TPZGeoMesh * gmesh =CreateGMeshSlope (  ref );
     //TPZGeoMesh * gmesh =CreateGeoMesh(ref);
 
-    int porder=2;
+    int porder=3;
     REAL gammaagua=0.;
     REAL gammasolo=20.;
     Slope*SlopeManager = new Slope(gmesh,porder,gammaagua,gammasolo);

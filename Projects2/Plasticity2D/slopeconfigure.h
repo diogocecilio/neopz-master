@@ -114,8 +114,9 @@ REAL Slope::ShearRed ( )
     REAL phi0 = LEMC.fYC.Phi();
     REAL cohesion0 = LEMC.fYC.Cohesion();
     REAL phi,psi,c;
-    int numthreads = 0;
-    int type =Slope::EStep;
+    int numthreads = 10;
+    int type =0;//EStep
+    //int type =1;//EPardiso
     bool conv=false;
     do {
 
@@ -124,8 +125,8 @@ REAL Slope::ShearRed ( )
         typedefanal* anal =  SlopeAnalysis(type,numthreads);
 
         REAL norm = 1000.;
-        REAL tol2 = 0.001;
-        int NumIter = 100;
+        REAL tol2 = 1.e-3;
+        int NumIter = 30;
         bool linesearch = true;
         bool checkconv = false;
         int iters;
@@ -135,6 +136,7 @@ REAL Slope::ShearRed ( )
         chrono::steady_clock sc;
         auto start = sc.now();
 //IterativeProcess2(std::ostream &out,REAL tol,int numiter, bool linesearch = false, bool checkconv = false);
+        //conv  =anal->IterativeProcess2(cout,tol2, NumIter,  linesearch,  checkconv);
         conv  = anal->IterativeProcess ( cout, tol2, NumIter,linesearch,checkconv,iters);
         cout << "iters = " << iters <<endl;
          //conv = anal->FindRoot ( );
@@ -422,41 +424,35 @@ typedefanal *  Slope::SlopeAnalysis(int type,int numthreads)
 {
 
     typedefanal *analysis = new typedefanal(fCompMesh,cout);
-    //analysis->SetCompMesh(fCompMesh,true);
-// switch(type) {
-//     case SolverType::EStep:
-//         {
-// 			cout << "Solver called with TPZStepSolver\n";
-//             TPZSkylineStructMatrix<STATE> matskl(fCompMesh);
-//             matskl.SetNumThreads ( numthreads );
-//              analysis->SetStructuralMatrix ( matskl );
-//              TPZStepSolver<STATE> step;
-//              step.SetDirect ( ELDLt );
-//              analysis->SetSolver ( step );
-//              break;
-//         }
-//     case SolverType::EPardiso:
-//         {
-//             cout << "Solver called with TPZPardisoSolver\n";
-//             TPZSSpStructMatrix<STATE> SSpStructMatrix(fCompMesh);
-//             SSpStructMatrix.SetNumThreads ( numthreads );
-//             analysis->SetStructuralMatrix(SSpStructMatrix);
-//             TPZPardisoSolver<REAL> *pardiso = new TPZPardisoSolver<REAL>;
-//             analysis->SetSolver(*pardiso);
-//             break;
-//         }
-//     default:
-//         {
-//             cout << "Solver was not initialized properly\n";
-//             DebugStop();
-//         }
-//     }
+    analysis->SetCompMesh(fCompMesh,true);
+switch(type) {
+    case 0:
+        {
+			cout << "Solver called with TPZStepSolver\n";
+            TPZSkylineStructMatrix<STATE> matskl(fCompMesh);
+            matskl.SetNumThreads ( numthreads );
+             analysis->SetStructuralMatrix ( matskl );
+             TPZStepSolver<STATE> step;
+             step.SetDirect ( ELDLt );
+             analysis->SetSolver ( step );
+             break;
+        }
+    case 1:
+        {
             cout << "Solver called with TPZPardisoSolver\n";
             TPZSSpStructMatrix<STATE> SSpStructMatrix(fCompMesh);
             SSpStructMatrix.SetNumThreads ( numthreads );
             analysis->SetStructuralMatrix(SSpStructMatrix);
             TPZPardisoSolver<REAL> *pardiso = new TPZPardisoSolver<REAL>;
             analysis->SetSolver(*pardiso);
+            break;
+        }
+    default:
+        {
+            cout << "Solver was not initialized properly\n";
+            DebugStop();
+        }
+    }
     return analysis;
 }
 

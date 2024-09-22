@@ -26,9 +26,14 @@ public:
 
 	bool IterativeProcess ( std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv,int &iters );
 
+	bool IterativeProcess2(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv);
+
 	REAL MyLineSearch(const TPZFMatrix<REAL> &Wn, const TPZFMatrix<REAL> &DeltaW, TPZFMatrix<REAL> &NextW, REAL RhsNormPrev, REAL &RhsNormResult, int niter, bool & converging);
 
 	REAL LineSearch ( const TPZFMatrix<STATE> &Wn, TPZFMatrix<STATE> DeltaW, TPZFMatrix<STATE> &NextW, REAL tol, int niter );
+
+	//Improved:A verification is made in order to check convergence.
+    virtual REAL LineSearch(const TPZFMatrix<REAL> &Wn, const TPZFMatrix<REAL> &DeltaW, TPZFMatrix<REAL> &NextW, REAL RhsNormPrev, REAL &RhsNormResult, int niter, bool &converging );
 
 	virtual void  LoadSolution ( TPZFMatrix<STATE> & loadsol );
 	/**
