@@ -1,6 +1,6 @@
 [CMake]
 Build Directory Count=2
-Current Build Directory Index-Host System=1
+Current Build Directory Index-Host System=0
 
 [CMake][CMake Build Directory 0]
 Build Directory Path=/home/diogo/projects/neopz-master-build-debug
@@ -20,6 +20,7 @@ CMake Executable=/usr/bin/cmake
 Environment Profile=
 Extra Arguments=
 Install Directory=/opt/neopz
+Runtime=Host System
 
 [Launch]
 Launch Configurations=Launch Configuration 0

@@ -92,7 +92,7 @@ void TPZLinearAnalysis::AssembleT()
     
 	mySolver->UpdateFrom(mySolver->Matrix());
 }
-
+#include "pzfstrmatrix.h"
 void TPZLinearAnalysis::AssembleResidual()
 {
   int numloadcases = ComputeNumberofLoadCases();
@@ -114,11 +114,15 @@ void TPZLinearAnalysis::AssembleResidual()
         this->SetStructuralMatrix(defaultMatrix);
       }
     }
+
     int64_t sz = this->Mesh()->NEquations();
-    //int64_t othersz = fStructMatrix->Mesh()->NEquations();
+
 	this->Rhs().Redim(sz,numloadcases);
 
+   // TPZFMatrix<REAL> rhs(sz,numloadcases);
+   // rhs.Zero();
 	fStructMatrix->Assemble(this->Rhs(),fGuiInterface);
+   // this->Rhs()=rhs;
 }//void
 
 void TPZLinearAnalysis::Solve()

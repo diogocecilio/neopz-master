@@ -73,6 +73,39 @@ Slope::Slope( TPZGeoMesh * gmesh,int porder,REAL gammaagua, REAL gammasolo)
 
 }
 
+void Slope::Solve()
+{
+
+    TPZManVector<REAL,3> gravityload(3,0);
+    gravityload[1]=-20.;
+    ApplyGravityLoad(gravityload);
+
+    int numthreads = 0;
+    int type =Slope::EPardiso;
+
+    typedefanal * analysis = SlopeAnalysis(type,numthreads);
+
+ 	REAL tol=1.e-3;
+ 	int numiter=1;
+ 	bool linesearch=true;
+ 	bool checkconv= false;
+    int iters;
+
+    std::cout << "start solving"<< endl ;
+    auto t1 = high_resolution_clock::now();
+
+    analysis->IterativeProcess(std::cout,tol,numiter,linesearch,checkconv,iters);
+    auto t2 = high_resolution_clock::now();
+    auto ms_int = duration_cast<milliseconds> ( t2 - t1 );
+    std::cout << "tempo total = "<<ms_int.count() << " ms\n";
+
+    analysis->AcceptSolution();
+
+    string vtkd = "postlin.vtk";
+    PostPlasticity(vtkd);
+
+
+}
 void Slope::LoadingRamp (  REAL factor )
 {
     plasticmat * body= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
@@ -174,42 +207,6 @@ REAL Slope::ShearRed ( )
 
 
 
-void Slope::Solve()
-{
-
-    TPZManVector<REAL,3> gravityload(3,0);
-    gravityload[1]=-20.;
-    ApplyGravityLoad(gravityload);
-
-    int numthreads = 0;
-    int type =Slope::EStep;
-
-    typedefanal * analysis = SlopeAnalysis(type,numthreads);
-
- 	REAL tol=1.e-3;
- 	int numiter=10;
- 	bool linesearch=true;
- 	bool checkconv= false;
-    bool convordiv;
-    int iters;
-    int niter_update_jac=1;
-
-    std::cout << "start solving"<< endl ;
-    auto t1 = high_resolution_clock::now();
-
-    //analysis->IterativeProcess(std::cout,tol,numiter,linesearch,checkconv);
-    //analysis->IterativeProcessPrecomputedMatrix(std::cout,tol,numiter,linesearch);
-    //analysis->IterativeProcess(std::cout,tol,numiter,linesearch,  checkconv,convordiv);
-    analysis->IterativeProcess(std::cout,tol,numiter,linesearch,checkconv,iters);
-
-    auto t2 = high_resolution_clock::now();
-    auto ms_int = duration_cast<milliseconds> ( t2 - t1 );
-    std::cout << "tempo total = "<<ms_int.count() << " ms\n";
-
-     string vtkd = "postlin.vtk";
-     PostPlasticity(vtkd);
-
-}
 
 TPZCompMesh *Slope::CreateCompMesh(TPZGeoMesh *gmesh,int porder) {
 
@@ -419,7 +416,7 @@ typedefanal *  Slope::SlopeAnalysis(int type,int numthreads)
 {
 
     typedefanal *analysis = new typedefanal(fCompMesh,cout);
-    analysis->SetCompMesh(fCompMesh,true);
+   // analysis->SetCompMesh(fCompMesh,true);
 switch(type) {
     case 0:
         {
@@ -458,7 +455,7 @@ void Slope::PostPlasticity(string vtkd)
 
    TPZPostProcAnalysis * postprocdeter = new TPZPostProcAnalysis();
     CreatePostProcessingMesh ( postprocdeter);
-   // TPZNonLinearAnalysis * postprocdeter = new TPZNonLinearAnalysis(fCompMesh,cout);
+
 
     TPZVec<int> PostProcMatIds ( 1,1 );
 
@@ -494,10 +491,11 @@ void  Slope::CreatePostProcessingMesh (TPZPostProcAnalysis * PostProcess )
             PostProcVars.Push ( vecNames[i] );
         }
         //
-        PostProcess->SetPostProcessVariables ( PostProcMatIds, PostProcVars );
         TPZFStructMatrix<REAL> structmatrix ( PostProcess->Mesh() );
-        structmatrix.SetNumThreads ( 0 );
         PostProcess->SetStructuralMatrix ( structmatrix );
+        PostProcess->SetPostProcessVariables ( PostProcMatIds, PostProcVars );
+
+
     }
     //
     //Chamar com o analysis e nao com o postanalysis pois tem o acumulo de sols

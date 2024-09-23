@@ -12,7 +12,7 @@
 #include <iostream>
 
 
-class TPZElastoPlasticAnalysis : public TPZNonLinearAnalysis {
+class TPZElastoPlasticAnalysis : public TPZLinearAnalysis {
 
 public:
 	/** @brief Constructor */

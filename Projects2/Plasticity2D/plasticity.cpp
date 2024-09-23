@@ -92,8 +92,9 @@ int main()
     REAL gammasolo=20.;
     Slope*SlopeManager = new Slope(gmesh,porder,gammaagua,gammasolo);
 
+    //SlopeManager->Solve( );
     SlopeManager->ShearRed ( );
-    string vtk="file.vtk";
+    //string vtk="file.vtk";
     //SlopeManager->PostPlasticity(vtk);
 
     return 0;

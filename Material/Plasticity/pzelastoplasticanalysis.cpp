@@ -36,12 +36,12 @@ static TPZLogger loggertest("testing");
 using namespace std;
 
 
-TPZElastoPlasticAnalysis::TPZElastoPlasticAnalysis() : TPZNonLinearAnalysis(), fPrecond(NULL) {
+TPZElastoPlasticAnalysis::TPZElastoPlasticAnalysis() : TPZLinearAnalysis(), fPrecond(NULL) {
 	//Mesh()->Solution().Zero(); already performed in the nonlinearanalysis base class
 	//fSolution.Zero();
 }
 
-TPZElastoPlasticAnalysis::TPZElastoPlasticAnalysis(TPZCompMesh *mesh,std::ostream &out) : TPZNonLinearAnalysis(mesh,out), fPrecond(NULL) {
+TPZElastoPlasticAnalysis::TPZElastoPlasticAnalysis(TPZCompMesh *mesh,std::ostream &out) : TPZLinearAnalysis(mesh,true), fPrecond(NULL) {
 
 	int numeq = fCompMesh->NEquations();
 	fCumSol.Redim(numeq,1);
@@ -136,7 +136,7 @@ REAL TPZElastoPlasticAnalysis::LineSearch(const TPZFMatrix<REAL> &Wn, const TPZF
 
 #ifdef PZDEBUG
     {
-        TPZNonLinearAnalysis::LoadSolution(Wn);
+        TPZLinearAnalysis::LoadSolution(Wn);
         AssembleResidual();
         STATE normprev = Norm(fRhs);
         if (fabs(normprev - RhsNormPrev) > 1.e-6) {
@@ -153,7 +153,7 @@ REAL TPZElastoPlasticAnalysis::LineSearch(const TPZFMatrix<REAL> &Wn, const TPZF
         Interval *= scalefactor;
         NextW = Wn;
         NextW += Interval;
-        TPZNonLinearAnalysis::LoadSolution(NextW);
+        TPZLinearAnalysis::LoadSolution(NextW);
         AssembleResidual();
 #ifdef PZDEBUGBIG
         {
@@ -524,11 +524,12 @@ REAL TPZElastoPlasticAnalysis::AcceptSolution(const int ResetOutputDisplacements
 /** @brief Load the solution into the computable grid, transferring it to the multi physics meshes */
 void TPZElastoPlasticAnalysis::LoadSolution()
 {
-    TPZNonLinearAnalysis::LoadSolution();
+    TPZLinearAnalysis::LoadSolution();
     //a verificacao retorna verdadeiro ou falso para: return fMultiPhysics != NULL;
     //cout << this->IsMultiPhysicsConfiguration() << endl;
         if (this->IsMultiPhysicsConfiguration()) {
-        TPZBuildMultiphysicsMesh::TransferFromMultiPhysics(fMeshVec, fMultiPhysics);
+            cout << "nao é multifisica, porque entra aqui?" <<endl;
+        //TPZBuildMultiphysicsMesh::TransferFromMultiPhysics(fMeshVec, fMultiPhysics);
     }
 
 }
