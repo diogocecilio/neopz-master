@@ -1,4 +1,5 @@
 #include <cmath>
+//#include "readgidmesh.h"
 #include <set>
 #include <iostream>
 #include <fstream>
@@ -14,7 +15,7 @@
 #include "pzgeoelbc.h"
 #include "pzfmatrix.h"
 #include "pzbstrmatrix.h"
-
+///#include "readgidmesh.h"
 #include <TPZGeoElement.h>
 
 #include "pzbuildmultiphysicsmesh.h"
@@ -62,23 +63,23 @@ using namespace std;
 #include "TPZPlasticStepPV.h"
 #include "pzelastoplasticanalysis.h"
 #include "readgidmesh.h"
-#include "slope.h"
+//#include "slope.h"
 #include "slopecphi.h"
-#include "footing.h"
+//#include "footing.h"
 
 int main() {
 
-  // SlopeCphi slopecphi;
+   SlopeCphi slopecphi;
 
-  // slopecphi.run();
+   slopecphi.run();
 
  //    Slope slope;
 //
 //     slope.run();
 
-   Footing foot;
+//   Footing foot;
 
-  foot.runfoot();
+ // foot.runfoot();
 
 
     return 0;

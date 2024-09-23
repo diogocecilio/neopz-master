@@ -1,5 +1,5 @@
 #pragma once
-
+#include "readgidmesh.h"
 #include "pzcmesh.h"
 
 #include "pzgmesh.h"
@@ -11,7 +11,7 @@
 #include <pzstepsolver.h> //for TPZStepSolver
 #include "pzfstrmatrix.h"
 
-#include "readgidmesh.h"
+
 
 typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC;
 //typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEVM;

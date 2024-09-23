@@ -306,7 +306,7 @@ bool TPZElastoPlasticAnalysis::IterativeProcess ( std::ostream &out,REAL tol,int
             TPZFMatrix<STATE> nextSol;
             //REAL LineSearchTol = 1e-3 * Norm(fSolution);
             REAL LineSearchTol = 0.001 * Norm ( fSolution );
-            const int niter =2;
+            const int niter =10;
             this->LineSearch ( prevsol, fSolution, nextSol, LineSearchTol, niter );
             fSolution = nextSol;
         }
@@ -329,7 +329,7 @@ bool TPZElastoPlasticAnalysis::IterativeProcess ( std::ostream &out,REAL tol,int
         b =errordisplace > tol;
         c= errorrhs > tol;
 
-        if ( ( iter >=numiter || ( normf >errorrhs &&normu>errordisplace) ) )
+        if ( ( iter >=numiter || ( iter>10&& normf >errorrhs &&normu>errordisplace) ) )
         {
             cout << "\nDivergent Method\n";
             return false;

@@ -12,12 +12,7 @@ using std::chrono::duration_cast;
 using std::chrono::duration;
 using std::chrono::milliseconds;
 using std::chrono::seconds;
-    int bottombc_slope=-1;
-    int rigthbc_slope = -2;
-    int leftbc_slope =-3;
-    int toprigthbc_slope = -4;
-    int topleftbc_slope = -5;
-    int rampbc_slope = -6;
+
 
 typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> plasticmorh;
 typedef   TPZMatElastoPlastic2D < TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZElastoPlasticMem > plasticmat;
@@ -100,7 +95,7 @@ REAL Slope::ShearRed ( )
    // fcmesh->LoadReferences();
     LoadingRamp(1.);
 
-    REAL FS=0.2,FSmax=5.,FSmin=0.,tol=0.01;
+    REAL FS=0.5,FSmax=5.,FSmin=0.,tol=0.01;
     int neq = fCompMesh->NEquations();
 
     TPZFMatrix<REAL> displace(neq,1),displace0(neq,1);
@@ -115,8 +110,8 @@ REAL Slope::ShearRed ( )
     REAL cohesion0 = LEMC.fYC.Cohesion();
     REAL phi,psi,c;
     int numthreads = 10;
-    int type =0;//EStep
-    //int type =1;//EPardiso
+    //int type =0;//EStep
+    int type =1;//EPardiso
     bool conv=false;
     do {
 
@@ -287,7 +282,7 @@ TPZCompMesh *Slope::CreateCompMesh(TPZGeoMesh *gmesh,int porder) {
 
     val2[0]=1.;
     val2[1]=0;
-    auto *  bcrigth = material->CreateBC(material,-3,3,val1,val2);//left
+    auto *  bcrigth = material->CreateBC(material,-5,3,val1,val2);//left
 
 
 	cmesh->InsertMaterialObject(bcleft);
@@ -389,15 +384,15 @@ TPZCompMesh * Slope::CreateCMeshElastoplastic ( TPZGeoMesh *gmesh, int pOrder )
 
 	val2[0]=1;
 	val2[1]=1;
-    auto * BCond0 = material->CreateBC ( material, bottombc_slope, directionaldirichlet, val1, val2 );
+    auto * BCond0 = material->CreateBC ( material, -1, directionaldirichlet, val1, val2 );
 
 	val2[0]=1;
 	val2[1]=0;
-    auto * BCond1 = material->CreateBC ( material, rigthbc_slope, directionaldirichlet, val1, val2 );
+    auto * BCond1 = material->CreateBC ( material, -2, directionaldirichlet, val1, val2 );
 
 	val2[0]=1;
 	val2[1]=0;
-	auto * BCond2 = material->CreateBC ( material, leftbc_slope, directionaldirichlet, val1, val2 );
+	auto * BCond2 = material->CreateBC ( material, -5, directionaldirichlet, val1, val2 );
 
 	cmesh->InsertMaterialObject ( BCond0 );
     cmesh->InsertMaterialObject ( BCond1 );

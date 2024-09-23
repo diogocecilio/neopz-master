@@ -1,7 +1,7 @@
 #pragma once
 
 #include "pzcmesh.h"
-
+//#include "readgidmesh.h"
 #include "pzgmesh.h"
 #include "TPZYCMohrCoulombPV.h"
 
@@ -10,7 +10,7 @@
 #include <pzskylstrmatrix.h> //symmetric skyline matrix storage
 #include <pzstepsolver.h> //for TPZStepSolver
 #include "pzfstrmatrix.h"
-#include "readgidmesh.h"
+
 
 typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC;
 //typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEVM;

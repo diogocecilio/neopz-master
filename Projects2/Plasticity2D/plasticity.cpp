@@ -65,7 +65,7 @@ using namespace std;
 class TPZMaterial;
 TPZCompMesh * CreateCMeshElastoplastic ( TPZGeoMesh *gmesh, int pOrder );
 TPZGeoMesh *  CreateGMeshSlope ( int ref );
-TPZGeoMesh *CreateGeoMesh(int ref);
+TPZGeoMesh * CreateGMesh ( int ref,string file,std::vector<double> coordbc );
 
 #ifdef PZ_LOG
 static TPZLogger teste("logmain");
@@ -77,9 +77,15 @@ int main()
     TPZLogger::InitializePZLOG();
 #endif
 
-    int ref=3;
-    TPZGeoMesh * gmesh =CreateGMeshSlope (  ref );
-    //TPZGeoMesh * gmesh =CreateGeoMesh(ref);
+    int ref=2;
+    string file;
+    file="/home/diogo/projects/neopz-master/Projects2/Plasticity2D/tri-struc-v2.msh";
+    std::vector<double> coordbc(3);
+    //coordbc[0]=30.;coordbc[1]=5.;coordbc[2]=5.;
+    coordbc[0]=75.;coordbc[1]=30.;coordbc[2]=10.;
+    //coordbc[0]=75.;coordbc[1]=30.;coordbc[2]=5.;
+    //TPZGeoMesh *gmesh = CreateGMesh ( ref,file,coordbc );
+    TPZGeoMesh *gmesh =   CreateGMeshSlope (  ref );
 
     int porder=3;
     REAL gammaagua=0.;
@@ -143,32 +149,36 @@ vector<vector<int>> topol = {
     TPZVec <long> TopoLine ( 2 );
     TopoLine[0] = 0;
     TopoLine[1] = 1;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, bottombc_slope, *gmesh );//bottom
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -1, *gmesh );//bottom
 
     id++;
     TopoLine[0] = 1;
     TopoLine[1] = 2;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, rigthbc_slope, *gmesh );//rigth
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -2, *gmesh );//rigth
 
     id++;
     TopoLine[0] = 2;
     TopoLine[1] = 3;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, toprigthbc_slope, *gmesh );//top-rigth
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -3, *gmesh );//top-rigth
+
+    id++;
+    TopoLine[0] = 4;
+    TopoLine[1] = 5;
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, *gmesh ); //top-left
 
     id++;
     TopoLine[0] = 3;
     TopoLine[1] = 4;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, rampbc_slope, *gmesh ); //ramp
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -6, *gmesh ); //ramp
 
-	id++;
-    TopoLine[0] = 4;
-    TopoLine[1] = 5;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, topleftbc_slope, *gmesh ); //top-left
-
-	id++;
+    id++;
     TopoLine[0] = 5;
     TopoLine[1] = 0;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, leftbc_slope, *gmesh ); //left
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); //left
+
+
+
+
 
     gmesh->BuildConnectivity();
     for ( int d = 0; d<ref; d++ ) {
@@ -186,9 +196,13 @@ vector<vector<int>> topol = {
     return gmesh;
 }
 
-TPZGeoMesh *CreateGeoMesh(int ref) {
+TPZGeoMesh * CreateGMesh ( int ref,string file,std::vector<double> coordbc )
+{
 
-    string file = "/home/diogo/projects/pz-random/data/meshcphi.msh";
+
+    REAL L=coordbc[0];
+    REAL h1=coordbc[1];
+    REAL h2=coordbc[2];
 
     TPZGeoMesh *gmesh  =  new TPZGeoMesh();
 
@@ -251,15 +265,15 @@ TPZGeoMesh *CreateGeoMesh(int ref) {
             {
                 new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -1, *gmesh );//bottom
             }
-            else if ( ( fabs ( ( x0-75 ) ) <tol && fabs ( ( xf-75 ) ) <tol ) )
+            else if ( ( fabs ( ( x0-L ) ) <tol && fabs ( ( xf-L ) ) <tol ) )
             {
                 new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -2, *gmesh );//rigth
             }
-            else if ( ( fabs ( ( y0-30 ) ) <tol && fabs ( ( yf-30 ) ) <tol ) )
+            else if ( ( fabs ( ( y0-h1 ) ) <tol && fabs ( ( yf-h1 ) ) <tol ) )
             {
                 new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -3, *gmesh );//toprigth
             }
-            else if ( ( fabs ( ( y0-40 ) ) <tol && fabs ( ( yf-40 ) ) <tol ) )
+            else if ( ( fabs ( ( y0-(h1+h2) ) ) <tol && fabs ( ( yf-(h1+h2) ) ) <tol ) )
             {
                 new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -4, *gmesh );//topleft
             }
@@ -276,7 +290,7 @@ TPZGeoMesh *CreateGeoMesh(int ref) {
                 cout<< "bc element not found."<<endl;
                 cout<< "x0 = " << x0 << " y0 = "<< y0 << endl;
                 cout<< "xf = " << xf << " yf = "<< yf << endl;
-               // DebugStop();
+                DebugStop();
             }
 
         }
@@ -296,11 +310,13 @@ TPZGeoMesh *CreateGeoMesh(int ref) {
             gel->Divide ( subels );
         }
     }
-    std::ofstream print("gmeshslopecphi.txt");
-	gmesh->Print(print);
-    std::ofstream files ( "teste-mesh-slopecphi.vtk" );
+
+
+
+    std::ofstream files ( "teste-mesh.vtk" );
     TPZVTKGeoMesh::PrintGMeshVTK ( gmesh,files,false );
     cout << "d" << endl;
     return gmesh;
+
 
 }
