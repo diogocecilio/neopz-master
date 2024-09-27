@@ -11,7 +11,7 @@ static TPZLogger logger("pz.analysis");
 static TPZLogger loggerError("pz.analysis.error");
 #endif
 
-TPZLinearAnalysis::TPZLinearAnalysis() : TPZAnalysis()
+TPZLinearAnalysis::TPZLinearAnalysis() : TPZAnalysis(),fRhs(fSolType == EComplex ? true : false)
 {
 }
 

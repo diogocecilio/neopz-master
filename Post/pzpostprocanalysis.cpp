@@ -56,6 +56,7 @@ void TPZPostProcAnalysis::SetCompMesh(TPZCompMesh *pRef)
         TPZAnalysis::CleanUp();
     }
 
+    pRef->ElementSolution().Print("");
     fpMainMesh = pRef;
 
     if (!pRef) {
@@ -407,67 +408,7 @@ void TPZPostProcAnalysis::Solve(){
 
 void TPZPostProcAnalysis::TransferSolution()
 {
-//     TPZLinearAnalysis::AssembleResidual();
-//     fSolution = Rhs();
-//     TPZLinearAnalysis::LoadSolution();
-//
-//     TPZCompMeshReferred *compref = dynamic_cast<TPZCompMeshReferred *>(Mesh());
-//     if (!compref) {
-//         DebugStop();
-//     }
-//     TPZCompMesh *solmesh = fpMainMesh;
-//     long numelsol = solmesh->ElementSolution().Cols();
-//     long nelem = compref->NElements();
-//     compref->ElementSolution().Redim(nelem, numelsol);
-//     if (numelsol)
-//     {
-//         for (long el=0; el<nelem; el++) {
-//             TPZCompEl *cel = compref->ReferredEl(el);
-//             if (!cel) {
-//                 continue;
-//             }
-//             long index = cel->Index();
-//             for (long isol=0; isol<numelsol; isol++) {
-//                // compref->ElementSolution()(el,isol) = solmesh->ElementSolution()(index,isol);
-//             }
-//         }
-//     }
-//     TPZLinearAnalysis::AssembleResidual();
-//     fSolution = Rhs();
-//     TPZLinearAnalysis::LoadSolution();
-//
-//     TPZCompMeshReferred *compref = dynamic_cast<TPZCompMeshReferred *>(Mesh());
-//     if (!compref) {
-//         DebugStop();
-//     }
-//     TPZCompMesh *solmesh = fpMainMesh;
-//
-//     TPZFMatrix<STATE> &comprefElSol = compref->ElementSolution();
-//     const TPZFMatrix<STATE> &solmeshElSol = solmesh->ElementSolution();
-//
-//
-//     comprefElSol.Print("comprefElSol");
-//     solmeshElSol.Print("solmeshElSol");
-//     long numelsol = solmeshElSol.Cols();
-//     long nelem = compref->NElements();
-//     comprefElSol.Redim(nelem, numelsol);
-//     if (numelsol)
-//     {
-//         for (long el=0; el<nelem; el++) {
-//             TPZCompEl *cel = compref->ReferredEl(el);
-//             if (!cel) {
-//                 continue;
-//             }
-//             long index = cel->Index();
-//             for (long isol=0; isol<numelsol; isol++) {
-//
-//                 comprefElSol(el,isol) = solmeshElSol.Get(index,isol);
-//                 //compref->ElementSolution()(el,isol) = solmesh->ElementSolution()(index,isol);
-//             }
-//         }
-//     }
-
-        // this is where we compute the projection of the post processed variables
+ // this is where we compute the projection of the post processed variables
     TPZLinearAnalysis::AssembleResidual();
     fSolution = Rhs();
     TPZLinearAnalysis::LoadSolution();
@@ -479,17 +420,21 @@ void TPZPostProcAnalysis::TransferSolution()
     // fpMainMesh is the mesh with the actual finite element approximation, but probably stored at
     // integration points
     TPZCompMesh *solmesh = fpMainMesh;
+
     fpMainMesh->Reference()->ResetReference();
     fpMainMesh->LoadReferences();
     //In case the post processing computed element solutions
+
     // copy the values from the post processing mesh to the finite element mesh
     TPZFMatrix<STATE> &comprefElSol = compmeshPostProcess->ElementSolution();
     // solmesh if the finite element simulation mesh
     const TPZFMatrix<STATE> &solmeshElSol = solmesh->ElementSolution();
-    int64_t numelsol = solmesh->ElementSolution().Cols();
+
+
+    int64_t numelsol = solmesh->ElementSolution().Rows();
     int64_t nelem = compmeshPostProcess->NElements();
     compmeshPostProcess->ElementSolution().Redim(nelem, numelsol);
-    if (numelsol)
+    if (numelsol!=0)//caso tenha solucao no elemento
     {
         for (int64_t el=0; el<nelem; el++) {
             TPZCompEl *celpost = compmeshPostProcess->Element(el);
@@ -507,6 +452,7 @@ void TPZPostProcAnalysis::TransferSolution()
             }
         }
     }
+
 }
 
 

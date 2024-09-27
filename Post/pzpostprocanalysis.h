@@ -159,6 +159,7 @@ static TPZCompEl * CreateCubeEl( TPZGeoEl *gel, TPZCompMesh &mesh);
 static TPZCompEl * CreatePyramEl( TPZGeoEl *gel, TPZCompMesh &mesh);
 static TPZCompEl * CreateTetraEl( TPZGeoEl *gel, TPZCompMesh &mesh);
 static TPZCompEl * CreatePrismEl( TPZGeoEl *gel, TPZCompMesh &mesh);
+
 };
 
 #endif

@@ -57,7 +57,7 @@ protected:
     REAL fgammaagua;
     REAL fgammasolo;
     TPZGeoMesh *fGmesh;
-    //typedefanal *fAnalysis;
+   // typedefanal *fAnalysis;
 
 
 };
@@ -75,35 +75,8 @@ Slope::Slope( TPZGeoMesh * gmesh,int porder,REAL gammaagua, REAL gammasolo)
 
 void Slope::Solve()
 {
-
-    TPZManVector<REAL,3> gravityload(3,0);
-    gravityload[1]=-20.;
-    ApplyGravityLoad(gravityload);
-
-    int numthreads = 0;
-    int type =Slope::EPardiso;
-
-    typedefanal * analysis = SlopeAnalysis(type,numthreads);
-
- 	REAL tol=1.e-3;
- 	int numiter=1;
- 	bool linesearch=true;
- 	bool checkconv= false;
-    int iters;
-
-    std::cout << "start solving"<< endl ;
-    auto t1 = high_resolution_clock::now();
-
-    analysis->IterativeProcess(std::cout,tol,numiter,linesearch,checkconv,iters);
-    auto t2 = high_resolution_clock::now();
-    auto ms_int = duration_cast<milliseconds> ( t2 - t1 );
-    std::cout << "tempo total = "<<ms_int.count() << " ms\n";
-
-    analysis->AcceptSolution();
-
-    string vtkd = "postlin.vtk";
-    PostPlasticity(vtkd);
-
+    ShearRed();
+    PostPlasticity("saidax.vtk");
 
 }
 void Slope::LoadingRamp (  REAL factor )
@@ -143,9 +116,10 @@ REAL Slope::ShearRed ( )
     REAL cohesion0 = LEMC.fYC.Cohesion();
     REAL phi,psi,c;
     int numthreads = 10;
-    //int type =0;//EStep
-    int type =1;//EPardiso
+    int type =EStep;
+    //int type =EPardiso;
     bool conv=false;
+
     do {
 
         fCompMesh->Solution().Zero();
@@ -164,8 +138,8 @@ REAL Slope::ShearRed ( )
         chrono::steady_clock sc;
         auto start = sc.now();
 //IterativeProcess2(std::ostream &out,REAL tol,int numiter, bool linesearch = false, bool checkconv = false);
-        //conv  =anal->IterativeProcess2(cout,tol2, NumIter,  linesearch,  checkconv);
-        conv  = anal->IterativeProcess ( cout, tol2, NumIter,linesearch,checkconv,iters);
+        conv  =anal->IterativeProcess2(cout,tol2, NumIter,  linesearch,  checkconv,iters);
+        //conv  = anal->IterativeProcess ( cout, tol2, NumIter,linesearch,checkconv,iters);
         cout << "iters = " << iters <<endl;
          //conv = anal->FindRoot ( );
         norm = Norm ( anal->Rhs() );
@@ -197,8 +171,12 @@ REAL Slope::ShearRed ( )
         LEMC.fYC.SetUp ( phi, psi, c, ER );
         material->SetPlasticityModel ( LEMC );
         counterout++;
-        if(( FSmax - FSmin ) / FS < tol)anal->AcceptSolution();
+        if(( FSmax - FSmin ) / FS < tol)
+        {
+            anal->AcceptSolution();
+        }
     }  while ( ( FSmax - FSmin ) / FS > tol || conv==false);
+
 
         std::cout << "final safety factor "<< FS <<std::endl;
         return ( FSmax + FSmin )/2;
@@ -312,7 +290,7 @@ TPZCompMesh * Slope::CreateCMeshElastoplastic ( TPZGeoMesh *gmesh, int pOrder )
 
 	cmesh->SetDimModel ( dim );
 
-	cmesh->SetAllCreateFunctionsContinuousWithMem();
+
 
 	int matid=1;
 	int planestrain=1;
@@ -395,7 +373,7 @@ TPZCompMesh * Slope::CreateCMeshElastoplastic ( TPZGeoMesh *gmesh, int pOrder )
     cmesh->InsertMaterialObject ( BCond1 );
 	cmesh->InsertMaterialObject ( BCond2 );
 
-
+    cmesh->SetAllCreateFunctionsContinuousWithMem();
     //Creating computational elements that manage the space of the mesh:
     cmesh->AutoBuild();
     cmesh->AdjustBoundaryElements();

@@ -191,7 +191,7 @@ REAL TPZElastoPlasticAnalysis::LineSearch(const TPZFMatrix<REAL> &Wn, const TPZF
 	return scalefactor;
 
 }//void
-
+/*
 bool TPZElastoPlasticAnalysis::IterativeProcess2(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv) {
 
 	int iter = 0;
@@ -266,7 +266,7 @@ bool TPZElastoPlasticAnalysis::IterativeProcess2(std::ostream &out,REAL tol,int 
 		out.flush();
 	}
 
-}
+}*/
 
 bool TPZElastoPlasticAnalysis::IterativeProcess ( std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv,int &iters )
 {
@@ -330,6 +330,82 @@ bool TPZElastoPlasticAnalysis::IterativeProcess ( std::ostream &out,REAL tol,int
         c= errorrhs > tol;
 
         if ( ( iter >=numiter || ( iter>10&& normf >errorrhs &&normu>errordisplace) ) )
+        {
+            cout << "\nDivergent Method\n";
+            return false;
+        }
+        errorrhs = normf;
+        errordisplace=normu;
+        iter++;
+        out.flush();
+
+    }
+    iters=iter;
+    cout << "Iteracao n : " << ( iter ) << "Norm ( prevsol ) = "<<Norm ( prevsol ) << "Norm ( fRhs ) = "<<Norm ( fRhs ) << endl;
+    return true;
+}
+bool TPZElastoPlasticAnalysis::IterativeProcess2 ( std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv,int &iters )
+{
+
+    int iter = 0;
+    REAL errordisplace = 1.e10,errorrhs=1.e10;
+    int numeq = fCompMesh->NEquations();
+
+    cout << "number of equations = " << numeq <<endl;
+
+    TPZFMatrix<STATE> prevsol ( fSolution );
+    if ( prevsol.Rows() != numeq ) prevsol.Redim ( numeq,1 );
+
+    if ( checkconv )
+    {
+        TPZVec<REAL> coefs ( 1,1. );
+        TPZFMatrix<STATE> range ( numeq,1,1. );
+        CheckConvergence ( *this,fSolution,range,coefs );
+    }
+    bool a=true,b=true,c=true;
+
+    Assemble();
+
+    REAL normrhs0 = Norm ( fRhs );
+    cout << "normrhs0 = " << normrhs0 << endl;
+
+    while ( a  && c )
+    {
+        if(iter%1==0)
+        {
+            //cout<< "Assembling in iter = "<<iter<< endl;
+            Assemble();
+        }
+        Solve();
+        if ( linesearch )
+        {
+            TPZFMatrix<STATE> nextSol;
+            //REAL LineSearchTol = 1e-3 * Norm(fSolution);
+            REAL LineSearchTol = 0.001 * Norm ( fSolution );
+            const int niter =10;
+            this->LineSearch ( prevsol, fSolution, nextSol, LineSearchTol, niter );
+            fSolution = nextSol;
+        }
+        else
+        {
+            TPZFMatrix<STATE> sol = fSolution;
+            sol += prevsol;
+        }
+
+        prevsol -= fSolution;
+        REAL normu = Norm ( prevsol );
+
+        prevsol = fSolution;
+        this->LoadSolution ( fSolution );
+        //this->AssembleResidual();
+
+        REAL normf  =  Norm ( fRhs )/normrhs0;
+        //cout << "Iteracao n : " << ( iter ) << " : normas |Delta(Un)| e |Delta(rhs)/rhs0| : " << normu << " / " <<normf<< " | tol = "<<tol << endl;
+        a = iter < numiter ;
+        b =errordisplace > tol;
+        c= errorrhs > tol;
+
+        if ( ( iter >=numiter || ( iter>1&& normf >errorrhs &&normu>errordisplace) ) )
         {
             cout << "\nDivergent Method\n";
             return false;
@@ -530,6 +606,7 @@ void TPZElastoPlasticAnalysis::LoadSolution()
         if (this->IsMultiPhysicsConfiguration()) {
             cout << "nao é multifisica, porque entra aqui?" <<endl;
         //TPZBuildMultiphysicsMesh::TransferFromMultiPhysics(fMeshVec, fMultiPhysics);
+            //fCompMesh->TransferMultiphysicsSolution();?
     }
 
 }

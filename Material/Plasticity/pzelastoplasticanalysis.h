@@ -26,7 +26,7 @@ public:
 
 	bool IterativeProcess ( std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv,int &iters );
 
-	bool IterativeProcess2(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv);
+	bool IterativeProcess2(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv,int &iters);
 
 	REAL MyLineSearch(const TPZFMatrix<REAL> &Wn, const TPZFMatrix<REAL> &DeltaW, TPZFMatrix<REAL> &NextW, REAL RhsNormPrev, REAL &RhsNormResult, int niter, bool & converging);
 

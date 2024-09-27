@@ -121,7 +121,8 @@ void TPZAnalysis::SetStructuralMatrix(TPZAutoPointer<TPZStructMatrix> strmatrix)
 }
 TPZAnalysis::TPZAnalysis() :
     TPZRegisterClassId(&TPZAnalysis::ClassId),
-    fRenumber(new RENUMBER){
+    fRenumber(new RENUMBER),fGeoMesh ( 0 ), fCompMesh ( 0 ), fSolution(), fSolver ( 0 ), fStep ( 0 ), fStructMatrix ( 0 )
+    , fGuiInterface ( NULL ), fTable(){
 }
 
 

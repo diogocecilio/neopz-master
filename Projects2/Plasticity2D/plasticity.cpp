@@ -77,7 +77,7 @@ int main()
     TPZLogger::InitializePZLOG();
 #endif
 
-    int ref=2;
+    int ref=1;
     string file;
     file="/home/diogo/projects/neopz-master/Projects2/Plasticity2D/tri-struc-v2.msh";
     std::vector<double> coordbc(3);
@@ -87,13 +87,13 @@ int main()
     //TPZGeoMesh *gmesh = CreateGMesh ( ref,file,coordbc );
     TPZGeoMesh *gmesh =   CreateGMeshSlope (  ref );
 
-    int porder=3;
+    int porder=1;
     REAL gammaagua=0.;
     REAL gammasolo=20.;
     Slope*SlopeManager = new Slope(gmesh,porder,gammaagua,gammasolo);
 
-    //SlopeManager->Solve( );
-    SlopeManager->ShearRed ( );
+    SlopeManager->Solve( );
+    //SlopeManager->ShearRed ( );
     //string vtk="file.vtk";
     //SlopeManager->PostPlasticity(vtk);
 
