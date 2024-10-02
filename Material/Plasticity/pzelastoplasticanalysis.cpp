@@ -67,39 +67,53 @@ TPZElastoPlasticAnalysis::~TPZElastoPlasticAnalysis()
 #endif
 }
 
-bool TPZElastoPlasticAnalysis::FindRoot(){
+bool TPZElastoPlasticAnalysis::FindRoot(int & iters){
 
+    REAL normrhs=10000,normdu=10000,normrhsn=10000,normdun=10000,normrhs0;
     TPZFMatrix<STATE> x(Solution()), dx(Solution());
     x.Zero();
     dx.Zero();
-    REAL tol = 1.0;
+    REAL tol = 1.e-4;
     int n_it = 100;
-    bool stop_criterion_Q = false;
-    REAL resn=10000,resn1=10000;
+    AssembleResidual();
+    normrhs0=Norm(Rhs());
+
     for (int i = 1; i <= n_it; i++) {
         Assemble();
         Solve();
+        if ( false)
+        {
+            TPZFMatrix<STATE> nextSol;
+            REAL LineSearchTol = 0.001 * Norm ( fSolution );
+            const int niter =30;
+            this->LineSearch ( x, fSolution, nextSol, LineSearchTol, niter );
+            x = nextSol;
+            dx=fSolution;
+        }else{
         dx = Solution();
         x += dx;
+        }
         LoadSolution(x);
-        resn=resn1;
-        resn1 = Norm(Rhs());
-        std::cout <<"iter = "<< i << "  residue norm = " << resn1<< std::endl;
-        stop_criterion_Q = resn1 < tol;
-        if (stop_criterion_Q) {
-            std::cout << "Nonlinear process converged with iterations = " << i << " residue norm = " << resn1 << std::endl;
+
+        normdun=normdu;
+        normdu=Norm(dx);
+
+        normrhsn=normrhs;
+        normrhs = Norm(Rhs())/normrhs0;
+
+
+        iters=i;
+        if (normrhs<tol) {
+//std::cout <<"iter = "<< i << " normrhs= " << normrhs<< " normrhsn= " << normrhsn<<" normdu= " << normdu<< " normdun= " << normdun<< std::endl;
             return true;
-        }else if((resn1>resn&&i>10)||resn1>1.e6){
-            std::cout << "Divergent" << std::endl;
+        }else if(i>4&&normrhsn<normrhs&&normdun<normdu){
+           // std::cout << "Fail to converge. Divergent method." << std::endl;
             return false;
         }
     }
 
-    if (stop_criterion_Q == false) {
-        std::cout << "Nonlinear process not converged with residue norm = " << resn1 << std::endl;
-        return false;
-    }
-    return stop_criterion_Q;
+    //std::cout << " Not converged. Maximum number of iterations reached." << std::endl;
+    return false;
 }
 
 REAL TPZElastoPlasticAnalysis::MyLineSearch(const TPZFMatrix<REAL> &Wn, const TPZFMatrix<REAL> &DeltaW, TPZFMatrix<REAL> &NextW, REAL RhsNormPrev, REAL &RhsNormResult, int niter, bool & converging)
@@ -351,7 +365,7 @@ bool TPZElastoPlasticAnalysis::IterativeProcess2 ( std::ostream &out,REAL tol,in
     REAL errordisplace = 1.e10,errorrhs=1.e10;
     int numeq = fCompMesh->NEquations();
 
-    cout << "number of equations = " << numeq <<endl;
+    //cout << "number of equations = " << numeq <<endl;
 
     TPZFMatrix<STATE> prevsol ( fSolution );
     if ( prevsol.Rows() != numeq ) prevsol.Redim ( numeq,1 );
@@ -367,22 +381,20 @@ bool TPZElastoPlasticAnalysis::IterativeProcess2 ( std::ostream &out,REAL tol,in
     Assemble();
 
     REAL normrhs0 = Norm ( fRhs );
-    cout << "normrhs0 = " << normrhs0 << endl;
+   // cout << "normrhs0 = " << normrhs0 << endl;
 
     while ( a  && c )
     {
-        if(iter%1==0)
-        {
-            //cout<< "Assembling in iter = "<<iter<< endl;
-            Assemble();
-        }
+
+        Assemble();
         Solve();
+
         if ( linesearch )
         {
             TPZFMatrix<STATE> nextSol;
             //REAL LineSearchTol = 1e-3 * Norm(fSolution);
             REAL LineSearchTol = 0.001 * Norm ( fSolution );
-            const int niter =10;
+            const int niter =6;
             this->LineSearch ( prevsol, fSolution, nextSol, LineSearchTol, niter );
             fSolution = nextSol;
         }
@@ -405,9 +417,10 @@ bool TPZElastoPlasticAnalysis::IterativeProcess2 ( std::ostream &out,REAL tol,in
         b =errordisplace > tol;
         c= errorrhs > tol;
 
+        iters=iter;
         if ( ( iter >=numiter || ( iter>1&& normf >errorrhs &&normu>errordisplace) ) )
         {
-            cout << "\nDivergent Method\n";
+            //cout << "\nDivergent Method\n";
             return false;
         }
         errorrhs = normf;
@@ -416,8 +429,8 @@ bool TPZElastoPlasticAnalysis::IterativeProcess2 ( std::ostream &out,REAL tol,in
         out.flush();
 
     }
-    iters=iter;
-    cout << "Iteracao n : " << ( iter ) << "Norm ( prevsol ) = "<<Norm ( prevsol ) << "Norm ( fRhs ) = "<<Norm ( fRhs ) << endl;
+
+    //cout << "Iteracao n : " << ( iter ) << "Norm ( prevsol ) = "<<Norm ( prevsol ) << "Norm ( fRhs ) = "<<Norm ( fRhs ) << endl;
     return true;
 }
 

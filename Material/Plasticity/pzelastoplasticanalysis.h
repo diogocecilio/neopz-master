@@ -22,7 +22,7 @@ public:
 	/** @brief Default destructor */
 	virtual ~TPZElastoPlasticAnalysis();
 
-	bool FindRoot();
+	bool FindRoot(int & iters);
 
 	bool IterativeProcess ( std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv,int &iters );
 
