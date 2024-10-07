@@ -56,6 +56,11 @@ virtual int ClassId() const override;
 	{
 		// nothing to be done in this yield criterium
 	}
+
+	virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )
+    {
+
+    }
 	
     /**
     Calculo do criterio de plastificacao 

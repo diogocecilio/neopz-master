@@ -115,7 +115,10 @@ virtual int ClassId() const override;
     }
 
 
-
+	virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )
+    {
+        DebugStop();
+    }
 protected:
   /**
    * @brief Compute the inverse angle of the tresca yield criterium formula and the related data

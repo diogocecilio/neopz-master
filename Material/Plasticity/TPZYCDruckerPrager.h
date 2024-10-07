@@ -72,7 +72,11 @@ public:
 	{
 		//nothing to be done in this yield criterium
 	}
-	
+
+    virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )
+    {
+        DebugStop();
+    }
 	/**
 	 * @brief Checks if the proposed yield state leads to post-peak material behaviour. If so, the material
 	 * is forced to behave in post-peak in order to avoid equation switching during Newton's method

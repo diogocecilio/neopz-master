@@ -212,6 +212,9 @@ int TPZMatElastoPlastic<T,TMEM>::VariableIndex(const std::string &name) const
     if(!strcmp("StrainElasticJ2",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EStrainElasticJ2;
     if(!strcmp("StrainPlasticJ2",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EStrainPlasticJ2;
     if(!strcmp("FailureType",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EFailureType;
+    if(!strcmp("ShearPlasticDeformation",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EShearPlasticDeformation;
+    if(!strcmp("PlasticDeformation",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EPlasticDeformation;
+    if(!strcmp("Coesion",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::ECoesion;
     PZError << "TPZMatElastoPlastic<T,TMEM>:: VariableIndex Error\n";
     return TPZMatElastoPlastic<T,TMEM>::ENone;
 }
@@ -221,10 +224,10 @@ int TPZMatElastoPlastic<T,TMEM>::NSolutionVariables(int var) const
 {
     if(var == TPZMatElastoPlastic<T,TMEM>::EDisplacementDoF) return 3;
     if(var == TPZMatElastoPlastic<T,TMEM>::EDisplacement) return 3;
-    if(var == TPZMatElastoPlastic<T,TMEM>::EStrain) return 9;
-    if(var == TPZMatElastoPlastic<T,TMEM>::EStress) return 9;
-    if(var == TPZMatElastoPlastic<T,TMEM>::EStrainElastic) return 9;
-    if(var == TPZMatElastoPlastic<T,TMEM>::EStrainPlastic) return 9;
+    if(var == TPZMatElastoPlastic<T,TMEM>::EStrain) return 6;
+    if(var == TPZMatElastoPlastic<T,TMEM>::EStress) return 6;
+    if(var == TPZMatElastoPlastic<T,TMEM>::EStrainElastic) return 6;
+    if(var == TPZMatElastoPlastic<T,TMEM>::EStrainPlastic) return 6;
     if(var == TPZMatElastoPlastic<T,TMEM>::EYield) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EVolHardening) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EStrainPValues) return 3;
@@ -239,6 +242,9 @@ int TPZMatElastoPlastic<T,TMEM>::NSolutionVariables(int var) const
     if(var == TPZMatElastoPlastic<T,TMEM>::EStrainElasticJ2) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EStrainPlasticJ2) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EFailureType) return 1;
+    if(var == TPZMatElastoPlastic<T,TMEM>::EShearPlasticDeformation) return 3;
+    if(var == TPZMatElastoPlastic<T,TMEM>::EPlasticDeformation) return 3;
+    if(var == TPZMatElastoPlastic<T,TMEM>::ECoesion) return 1;
 
     if(var == 100) return 1;
     return TBase::NSolutionVariables(var);
@@ -325,30 +331,21 @@ void TPZMatElastoPlastic<T, TMEM>::Solution(const TPZMaterialDataT<STATE> &data,
             }
         }
         break;
-        case EStrainElastic:
+        case EShearPlasticDeformation:
         {
-            Solout[_XX_] = epst.XX();
-            Solout[_XY_] = epst.XY();
-            Solout[_XZ_] = epst.XZ();
-            Solout[_XY_] = epst.XY();
-            Solout[_YY_] = epst.YY();
-            Solout[_YZ_] = epst.YZ();
-            Solout[_XZ_] = epst.XZ();
-            Solout[_YZ_] = epst.YZ();
-            Solout[_ZZ_] = epst.ZZ();
+            Solout.Resize(3);
+            Solout[0] = plasticStrain.XY();
+            Solout[1] = plasticStrain.XZ();
+            Solout[2] = plasticStrain.YZ();
+
         }
             break;
-        case EStrainPlastic:
+        case EPlasticDeformation:
         {
-            Solout[_XX_] = plasticStrain.XX();
-            Solout[_XY_] = plasticStrain.XY();
-            Solout[_XZ_] = plasticStrain.XZ();
-            Solout[_XY_] = plasticStrain.XY();
-            Solout[_YY_] = plasticStrain.YY();
-            Solout[_YZ_] = plasticStrain.YZ();
-            Solout[_XZ_] = plasticStrain.XZ();
-            Solout[_YZ_] = plasticStrain.YZ();
-            Solout[_ZZ_] = plasticStrain.ZZ();
+            Solout.Resize(3);
+            Solout[0] = plasticStrain.XX();
+            Solout[1] = plasticStrain.YY();
+            Solout[2] = plasticStrain.ZZ();
         }
             break;
         case EStrainPlasticJ2:
@@ -359,6 +356,12 @@ void TPZMatElastoPlastic<T, TMEM>::Solution(const TPZMaterialDataT<STATE> &data,
         case EVolHardening:
         {
             Solout[0] = plasticStrain.I1();
+        }
+            break;
+
+        case ECoesion:
+        {
+            Solout[0] = Memory.m_elastoplastic_state.fmatprop[0];
         }
             break;
     default:

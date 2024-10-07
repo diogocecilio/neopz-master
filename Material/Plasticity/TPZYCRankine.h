@@ -84,7 +84,10 @@ public:
         T_YCBASE::Read(buf,context);
         buf.Read(&fYieldT);
     }
-    
+        virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )
+    {
+        DebugStop();
+    }
     public:
 int ClassId() const override;
 

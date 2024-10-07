@@ -196,7 +196,10 @@ public:
         return *this;
     }
     
-    
+        virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )
+    {
+        DebugStop();
+    }
     /**
      Evaluates the yield functions base on a given Stress and hardening
 

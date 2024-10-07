@@ -87,6 +87,8 @@ public:
 
 	void TransferSolution(TPZPostProcAnalysis & ppanalysis);
 
+	void TransferSolution();
+
     void AddNoPenetration(int matid, int direction)
     {
         fMaterialIds.insert(std::pair<int,int>(matid, direction));

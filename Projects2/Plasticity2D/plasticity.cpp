@@ -69,6 +69,7 @@
 #include "pzlog.h"
 #include "TPZFileStream.h"
 #include <TPZBFileStream.h>
+
 using std::chrono::high_resolution_clock;
 using std::chrono::duration_cast;
 using std::chrono::duration;
@@ -80,7 +81,18 @@ class TPZMaterial;
 TPZCompMesh * CreateCMeshElastoplastic ( TPZGeoMesh *gmesh, int pOrder );
 TPZGeoMesh *  CreateGMeshSlope ( int ref );
 TPZGeoMesh * CreateGMesh ( int ref,string file,std::vector<double> coordbc );
-void FindElement ( TPZCompMesh * cmesh,TPZManVector<REAL,3>&vecx, TPZManVector<REAL,3>&vecxi );
+
+TPZCompMesh * CreateCMeshField ( TPZGeoMesh *gmesh);
+
+void TransferSolutionFrom ( TPZFMatrix<REAL> dataexter,TPZCompMesh *cmesh);
+int FindElement ( TPZCompMesh * cmesh,TPZManVector<REAL,3>&vecx, TPZManVector<REAL,3>&vecxi );
+void SetSol(TPZInterpolationSpace * intel,TPZMaterialDataT<REAL>& data,TPZFMatrix<REAL> dataexter);
+//1 Ler os dados e colocar em matrizes cheias
+// x1 y1 z1 dado1 dado2 ... dado n
+// x2 y2 z2 dado1 dado2 ... dado n
+// xn yn zn dado1 dado2 ... dado n
+//opcao 1 - Percorrer as matrizes de dados buscando as coordenadas correspondentes à malha atual considerando um percentual de erro
+//opcao 2 - Utilziar a mesma malha empregada para gerar os dados para interpolar a solucao
 
 #ifdef PZ_LOG
 static TPZLogger teste ( "logmain" );
@@ -102,21 +114,26 @@ int main()
         coordbc[1]=30.;
         coordbc[2]=10.;
         //coordbc[0]=75.;coordbc[1]=30.;coordbc[2]=5.;
-        //TPZGeoMesh *gmesh = CreateGMesh ( ref0,file,coordbc );
-        TPZGeoMesh *gmesh =   CreateGMeshSlope ( ref0 );
+        TPZGeoMesh *gmesh = CreateGMesh ( ref0+1,file,coordbc );
+       // TPZGeoMesh *gmesh =   CreateGMeshSlope ( ref0 );
 
         //TPZCompMesh * cmesh = new TPZCompMesh(gmesh);
 
-        int ref1=3;
+        int ref1=2;
         int porder=2;
         REAL gammaagua=0.;
         REAL gammasolo=20.;
         Slope*SlopeManager = new Slope ( gmesh,porder,ref1,gammaagua,gammasolo );
-//     //TPZStream streamm();
-//     //int idclass ;
+
+        TPZGeoMesh *gmesh2 = CreateGMesh ( ref0,file,coordbc );
+        TPZCompMesh * cmeshfield = CreateCMeshField ( gmesh2);
+        SlopeManager->fCompMeshField=cmeshfield;
+
+
+
 //
         auto t1 = high_resolution_clock::now();
-        //conv  =anal->IterativeProcess2(cout,tol2, NumIter,  linesearch,  checkconv,iters);
+
         SlopeManager->Solve( );
         auto t2 = high_resolution_clock::now();
         auto ms_int = duration_cast<seconds> ( t2 - t1 );
@@ -179,7 +196,198 @@ int main()
 }
 
 
-void FindElement ( TPZCompMesh * cmesh,TPZManVector<REAL,3>&vecx, TPZManVector<REAL,3>&vecxi )
+TPZCompMesh * CreateCMeshField ( TPZGeoMesh *gmesh )
+{
+        string filename="/home/diogo/projects/neopz-master/Projects2/Plasticity2D/coesao3.dat";
+        readgidmesh read;
+        TPZFMatrix<REAL> pzdata  = read.ReadData(filename);
+        int dim=2;
+        TPZCompMesh * cmesh = new TPZCompMesh ( gmesh );
+        cmesh->SetDefaultOrder ( 1);
+        cmesh->SetDimModel ( dim );
+        int matid=1;
+        TPZDarcyFlow* material = new TPZDarcyFlow (matid,  dim);
+        material->SetId(matid);
+        cmesh->InsertMaterialObject ( material );
+        cmesh->SetAllCreateFunctionsContinuous();
+        cmesh->AutoBuild();
+
+        int eqs = cmesh->NEquations();
+        //cout << "eqs = " << eqs << endl;
+        //cout << "pzdata.Rows() = " << pzdata.Rows() << endl;
+        //cout << "pzdata.Cols() = " << pzdata.Cols() << endl;
+
+        cmesh->LoadSolution(pzdata);
+       // TransferSolutionFrom ( pzdata,cmesh);
+        return cmesh;
+}
+
+void TransferSolutionFrom ( TPZFMatrix<REAL> dataexter,TPZCompMesh *cmesh)
+{
+    int rows=dataexter.Rows();
+    int cols=dataexter.Cols();
+
+    int nels =  cmesh->NElements();
+
+    TPZGeoMesh *gmesh = cmesh->Reference();
+
+    REAL tol=1.e-6;
+
+    for(int iel=0;iel<nels;iel++)
+    {
+            TPZCompEl * cel =  cmesh->Element(iel);
+
+            TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *> ( cel );
+
+            TPZMaterialDataT<REAL> data;
+            intel->InitMaterialData ( data );
+            data.fNeedsSol = true;
+
+            int numbersol= dataexter.Cols();
+            data.sol.resize ( numbersol );
+            for ( int is = 0; is<numbersol; is++ ){
+                    data.sol[is].Resize ( 1 );
+                    data.sol[is].Fill ( 0. );
+        }
+
+
+            TPZGeoEl * gel =cel->Reference();
+
+            TPZVec<int64_t> nodeinds;
+            gel->GetNodeIndices(nodeinds);
+
+            int nnodes=nodeinds.size();
+
+            int nconnects = intel->NConnects();
+
+             cout << "nodeinds[0]  = "<<nodeinds[0]<< endl;
+            cout << "intel->ConnectIndex(0)  = "<<intel->ConnectIndex(0)<< endl;
+
+            for(int inode=0;inode<nconnects;inode++)
+            {
+                TPZConnect *df = &intel->Connect(inode);
+                TPZGeoNode node = gmesh->NodeVec()[inode];
+
+                TPZManVector<REAL,3> co(3);
+                node.GetCoordinates(co);
+                for(int irow=0;irow<rows;irow++)
+                {
+                        REAL xdata = dataexter(irow,0);
+                        REAL ydata = dataexter(irow,1);
+                        REAL zdata = dataexter(irow,2);
+                        if(fabs(xdata-co[0])<tol&&fabs(ydata-co[1])<tol&&fabs(zdata-co[2])<tol)
+                        {
+
+                                for(int icol=0;icol<cols;icol++)
+                                {
+                                        data.sol[icol][0]=dataexter(irow,icol);
+                                }
+
+                                intel->LoadSolution();
+
+                        }
+
+                }
+
+            }
+
+    }
+
+
+}
+
+// void TransferSolutionFrom ( TPZFMatrix<REAL> dataexter,TPZCompMesh *cmesh)
+// {
+//     std::vector<std::vector<double>> datastd;
+//
+//
+//     TPZGeoMesh *gmesh = cmesh->Reference();
+//
+//     TPZAdmChunkVector<TPZGeoNode> & nodevec =  gmesh->NodeVec();
+//
+//     int nnodes = nodevec.NElements();
+//
+//     for(int inode=0;inode<nnodes;inode++)
+//     {
+//         TPZManVector<REAL,3> co(3),xi(2);
+//         nodevec[inode].GetCoordinates(co);
+//         int el = FindElement ( cmesh,co,xi );
+//
+//         //cout << "el  = " << el <<endl;
+//         TPZCompEl *cel =  cmesh->ElementVec()[el];
+//         if(!cel)
+//         {
+//             continue;
+//         }
+//         TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *> ( cel );
+//         if(!intel)
+//         {
+//             continue;
+//         }
+//         TPZMaterialDataT<REAL> data;
+//         intel->InitMaterialData ( data );
+//         data.fNeedsSol = true;
+//
+//         data.intLocPtIndex = inode;
+//         intel->ComputeRequiredData ( data, xi );
+//
+//         //intel->ComputeSolution(xi,data);
+//
+//
+//
+//         REAL x,y,z,solu;
+//         x=data.x[0];
+//         y=data.x[1];
+//         z=data.x[2];
+//
+//
+//         REAL xext = dataexter(inode,0);
+//         REAL yext = dataexter(inode,1);
+//         REAL zext = dataexter(inode,2);
+//         if(fabs(xext-x)>1.e-3||fabs(yext-y)>1.e-3||fabs(zext-z)>1.e-3)
+//         {
+//             cout << "as coordendas dos dados internos nao batem com a mablha interna."<<endl;
+//             DebugStop();
+//         }
+//
+//        // SetSol(intel,data,dataexter);
+//        // intel->LoadSolution();
+//     }
+//
+// }
+void SetSol(TPZInterpolationSpace * intel,TPZMaterialDataT<REAL>& data,TPZFMatrix<REAL> dataexter)
+{
+        const TPZFMatrix<REAL> &phi = data.phi;
+
+	const int nstate = intel->Material()->NStateVariables();
+	const int ncon = intel->NConnects();
+	TPZBlock &block = intel->Mesh()->Block();
+	//TPZFMatrix<REAL> &MeshSol = intel->Mesh()->Solution();
+    //const int64_t numbersol = MeshSol.Cols();
+
+        int numbersol= dataexter.Cols()-3;
+        data.sol.resize(numbersol);
+    for (int is = 0; is<numbersol; is++) {
+        data.sol[is].Resize(1);
+        data.sol[is].Fill(0.);
+    }
+
+        	int64_t iv = 0;
+	for(int in=0; in<ncon; in++) {
+		TPZConnect *df = &intel->Connect(in);
+		const int64_t dfseq = df->SequenceNumber();
+		const int dfvar = block.Size(dfseq);
+		const int64_t pos = block.Position(dfseq);
+		for(int jn=0; jn<dfvar; jn++) {
+            for (int64_t is=0; is<numbersol-3; is++) {
+                data.sol[is][iv%nstate] +=
+                    (REAL)phi.Get(iv/nstate,0)*dataexter(pos+jn,is+3);
+            }
+			iv++;
+		}
+	}
+}
+int FindElement ( TPZCompMesh * cmesh,TPZManVector<REAL,3>&vecx, TPZManVector<REAL,3>&vecxi )
 {
         int nels = cmesh->NElements();
 
@@ -197,17 +405,19 @@ void FindElement ( TPZCompMesh * cmesh,TPZManVector<REAL,3>&vecx, TPZManVector<R
                 }
                 bool find = gel->ComputeXInverse ( vecx,vecxi,tol );
                 if ( find ) {
-                        cout << "ponto encontrado no elemento id "<<iel <<endl;
-                        cout << "coordenadas no elemento mestre = "<< vecxi << endl;
-                        break;
+                        //cout << "ponto encontrado no elemento id "<<iel <<endl;
+                        //cout << "coordenadas no elemento mestre = "<< vecxi << endl;
+                        return iel;
                 } else {
                         //cout << " ponto NAO encontrado! " <<endl;
                         //DebugStop();
                 }
 
-
-
         }
+
+            cout << " int KLAnalysis::FindElement  ponto NAO encontrado! " <<endl;
+            DebugStop();
+
 }
 TPZGeoMesh *  CreateGMeshSlope ( int ref )
 {

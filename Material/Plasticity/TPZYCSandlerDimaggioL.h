@@ -166,7 +166,10 @@ public:
 
 	static void TestSolveL();
 //////////////////Internal routines verification/////////////////
-
+	virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )
+    {
+        DebugStop();
+    }
 	static void McCormicRanchSand(TPZYCSandlerDimaggio & material);
 public:
   

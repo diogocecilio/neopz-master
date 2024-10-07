@@ -840,23 +840,23 @@ void TPZPostProcAnalysis::TransferSolution()
         int64_t numelsol = solmesh->ElementSolution().Cols();
         int64_t nelem = compmeshPostProcess->NElements();
         compmeshPostProcess->ElementSolution().Redim ( nelem, numelsol );
-        if ( numelsol ) {
-                for ( int64_t el=0; el<nelem; el++ ) {
-                        TPZCompEl *celpost = compmeshPostProcess->Element ( el );
-                        TPZGeoEl *gel = celpost->Reference();
-                        // we dont acount for condensed elements submeshes etc
-                        if ( !gel ) DebugStop();
-                        TPZCompEl *cel = gel->Reference();
-                        if ( !cel ) {
-                                DebugStop();
-                        }
-                        int64_t index = cel->Index();
-                        // we copy from the simulation mesh to the post processing mesh
-                        for ( int64_t isol=0; isol<numelsol; isol++ ) {
-                                comprefElSol ( el,isol ) = solmeshElSol.Get ( index,isol );
-                        }
-                }
-        }
+//         if ( numelsol ) {
+//                 for ( int64_t el=0; el<nelem; el++ ) {
+//                         TPZCompEl *celpost = compmeshPostProcess->Element ( el );
+//                         TPZGeoEl *gel = celpost->Reference();
+//                         // we dont acount for condensed elements submeshes etc
+//                         if ( !gel ) DebugStop();
+//                         TPZCompEl *cel = gel->Reference();
+//                         if ( !cel ) {
+//                                 DebugStop();
+//                         }
+//                         int64_t index = cel->Index();
+//                         // we copy from the simulation mesh to the post processing mesh
+//                         for ( int64_t isol=0; isol<numelsol; isol++ ) {
+//                                 comprefElSol ( el,isol ) = solmeshElSol.Get ( index,isol );
+//                         }
+//                 }
+//         }
 }
 
 

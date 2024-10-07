@@ -55,7 +55,10 @@ public:
 		// nothing to be done in this yield criterium
 	}
 	
-	
+	virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )
+    {
+        DebugStop();
+    }
 	/**
 	 * Setup of material parameters
 	 * @param[in] phi Mohr Coulomb's internal friction angle

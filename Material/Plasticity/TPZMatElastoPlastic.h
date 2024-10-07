@@ -276,6 +276,10 @@ public:
         EStrainElasticJ2    = 18,
         EStrainPlasticJ2    = 19,
         EFailureType    = 20,
+        EShearPlasticDeformation =21,
+        EPlasticDeformation =22,
+        ECoesion=23
+
     };
 
     void SetBodyForce(TPZManVector<REAL, 3> Force)

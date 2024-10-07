@@ -133,7 +133,11 @@ public:
     virtual int GetNYield() const override{
         return as_integer(NYield);
     }
-    
+
+    virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )
+    {
+        DebugStop();
+    }
 public:
     
     REAL fPhi;

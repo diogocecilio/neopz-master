@@ -88,7 +88,10 @@ public:
     void YieldFunction(const TPZVec<STATE>& sigma, STATE kprev, TPZVec<STATE>& yield) const override{
         Phi(sigma, kprev, yield);
     }
-
+	 void SetLocalMatState ( TPZPlasticState<REAL> & state )
+    {
+        DebugStop();
+    }
     virtual int GetNYield() const override {
         return as_integer(NYield);
     }

@@ -52,21 +52,36 @@ public:
     void LoadingRamp (  REAL factor );
 
     REAL ShearRed ( );
-
+    REAL ShearRed (int imc );
    void DivideElementsAbove(REAL refineaboveval, std::set<long> &elindices);
 
     // Get the vector of element plastic deformations
     void ComputeElementDeformation();
 
-    void TransferSolutionFromShearRed ( TPZManVector<TPZCompMesh*,3> vecmesh,int isol,REAL FS );
+    void TransferSolutionFromShearRed ( TPZCompMesh*cmesh,int isol,REAL FS );
+
+    int FindElement ( TPZCompMesh * cmesh,TPZManVector<REAL,3>&vecx, TPZManVector<REAL,3>&vecxi );
+
+    void TransferSolutionFrom ( TPZCompMesh*cmesh,int isol,REAL FS );
+
+    void TransferFieldsSolutionFrom ( TPZVec<TPZCompMesh*>  CompMeshVec,int isol );
 
     void Write(TPZStream &out);
 /// Read the data from the input stream
     void Read(TPZStream &input);
+
+    void SetCompMeshField(TPZVec<TPZCompMesh*>  CompMeshVec)
+    {
+        fCompMeshVec =CompMeshVec;
+    }
+
 public:
     TPZCompMesh *fCompMesh;
+    TPZCompMesh *fCompMeshField;
+
 protected:
 
+    TPZVec<TPZCompMesh*> fCompMeshVec;
     int fPorder;
     REAL fgammaagua;
     REAL fgammasolo;
@@ -80,6 +95,8 @@ protected:
 
 };
 
+
+
 Slope::Slope( TPZGeoMesh * gmesh,int porder,int ref,REAL gammaagua, REAL gammasolo)
 {
     fgammaagua=gammaagua;
@@ -87,15 +104,16 @@ Slope::Slope( TPZGeoMesh * gmesh,int porder,int ref,REAL gammaagua, REAL gammaso
     fGmesh = gmesh;
     fPorder=porder;
     fref = ref;
+    fCompMesh = CreateCMeshElastoplastic ( fGmesh, fPorder );
 
 }
 
 void Slope::Solve()
 {
-    fCompMesh = CreateCMeshElastoplastic ( fGmesh, 3 );
-
-
-    ShearRed();
+    fCompMesh = CreateCMeshElastoplastic ( fGmesh, fPorder );
+    cout << "NUMBER OF EQUATIONS  = " << fCompMesh->NEquations() << endl;
+    ShearRed(0);
+    //ShearRed();
 
     PostPlasticity("malha-inicial.vtk");
     cout << "Refining.."<<endl;
@@ -106,13 +124,304 @@ void Slope::Solve()
         DivideElementsAbove ( 0.01,elindices );
         fGmesh=fCompMesh->Reference();
         fCompMesh = CreateCMeshElastoplastic ( fGmesh, fPorder );
-        ShearRed();
+        cout << "NUMBER OF EQUATIONS  = " << fCompMesh->NEquations() << endl;
+        ShearRed(0);
+        //ShearRed();
     }
-    int neqs= fCompMesh->NEquations();
-    cout << "NUMBER OF EQUATIONS  = " << neqs << endl;
+
+    string meshref = "refinidemesh-grid.vtk";
+    std::ofstream files ( meshref );
+    TPZVTKGeoMesh::PrintGMeshVTK ( fCompMesh->Reference(),files,true );
     PostPlasticity("malha-refinada.vtk");
 
 }
+
+
+
+
+//Tranfere a solucao nodal da malha cmesh para os pontos de integracao da malha fCompMesh. Este metodo e usado para transferir a solucao dos
+//campos estocasticos. O metodo findelement e caro, e custa muito ao monte carlo.
+void Slope::TransferFieldsSolutionFrom ( TPZVec<TPZCompMesh*>  CompMeshVec,int isol )
+{
+
+    TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( fCompMesh->MaterialVec() [1] );
+    if ( pMatWithMem2 )
+    {
+        pMatWithMem2->SetUpdateMem ( true );
+    }
+    else
+    {
+        DebugStop();
+    }
+
+
+    int nels =  fCompMesh->NElements();
+
+    int ncmeshes= CompMeshVec.size();
+    TPZVec<TPZMaterial *> matvec(ncmeshes);
+    TPZVec<TPZGeoMesh *> geomeshvec(ncmeshes);
+    for(int imesh=0;imesh<ncmeshes;imesh++)
+    {
+        matvec[imesh] = CompMeshVec[imesh]->FindMaterial ( 1 );
+        geomeshvec[imesh] =CompMeshVec[imesh]->Reference();
+    }
+
+    for ( int iel=0; iel<nels; iel++ )
+    {
+
+        TPZCompEl *cel = fCompMesh->ElementVec() [iel];
+        TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *> ( cel );
+        if ( !cel || !intel || dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( intel->Material() )!= pMatWithMem2 ||(intel->Material()->Id()<1))
+        {
+            continue;
+        }
+
+
+        const TPZIntPoints &intpoints = intel->GetIntegrationRule();
+        int nint = intpoints.NPoints();
+        TPZManVector<REAL,3> point ( 2,0. );
+
+
+        TPZMaterialDataT<REAL> data;
+        intel->InitMaterialData ( data );
+        data.fNeedsSol = true;
+
+
+
+        for ( long ip =0; ip<nint; ip++ )
+        {
+            REAL weight;
+            intpoints.Point ( ip, point, weight );
+            data.intLocPtIndex = ip;
+            intel->ComputeRequiredData ( data, point );
+
+            int indexplastic =data.intGlobPtIndex;
+            TPZElastoPlasticMem &mem = pMatWithMem2->MemItem(indexplastic);
+            mem.m_elastoplastic_state.fmatprop.Resize ( 3 );
+
+            for(int imesh=0;imesh<ncmeshes;imesh++)
+            {
+
+                long elementid1 = 0;
+                TPZManVector<REAL,3> qsi ( 2,0. );
+                int targetdim=2;
+                TPZGeoEl *gelfield = geomeshvec[imesh]->FindElement ( data.x, qsi, elementid1,targetdim );
+                TPZCompEl *celfield = gelfield->Reference();
+                TPZInterpolationSpace *intelfield = dynamic_cast<TPZInterpolationSpace *> ( celfield );
+
+                TPZMaterialDataT<REAL> datafield;
+                datafield.fNeedsSol = true;
+                intelfield->InitMaterialData ( datafield );
+                datafield.fNeedsSol = true;
+                intelfield->ComputeRequiredData ( datafield, qsi );
+
+                REAL datarealvalue=datafield.sol[isol][0];
+
+                mem.m_elastoplastic_state.fmatprop[imesh] = datarealvalue;
+            }
+        }
+        pMatWithMem2->SetUpdateMem ( false );
+
+    }
+
+}
+
+
+//Tranfere a solucao nodal da malha cmesh para os pontos de integracao da malha fCompMesh. Este metodo e usado para transferir a solucao dos
+//campos estocasticos. O metodo findelement e caro, e custa muito ao monte carlo.
+void Slope::TransferSolutionFrom ( TPZCompMesh*cmesh,int isol,REAL FS )
+{
+    bool debug=false;
+    TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( fCompMesh->MaterialVec() [1] );
+
+    int nels =  fCompMesh->NElements();
+
+    TPZMaterial *mat = cmesh->FindMaterial ( 1 );
+    if ( !mat )
+    {
+        DebugStop();
+    }
+
+    if ( pMatWithMem2 )
+    {
+        pMatWithMem2->SetUpdateMem ( true );
+    }
+    else
+    {
+        DebugStop();
+    }
+
+    TPZGeoMesh * gmesh1= cmesh->Reference();
+    int cout=0;
+
+    for ( int iel=0; iel<nels; iel++ )
+    {
+
+        TPZCompEl *cel = fCompMesh->ElementVec() [iel];
+        TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *> ( cel );
+        if ( !cel || !intel || dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( intel->Material() )!= pMatWithMem2 ||(intel->Material()->Id()<1))
+        {
+            continue;
+        }
+
+
+        const TPZIntPoints &intpoints = intel->GetIntegrationRule();
+        int nint = intpoints.NPoints();
+        TPZManVector<REAL,3> point ( 2,0. );
+
+
+        TPZMaterialDataT<REAL> data;
+        intel->InitMaterialData ( data );
+        data.fNeedsSol = true;
+
+
+
+        for ( long ip =0; ip<nint; ip++ )
+        {
+            REAL weight;
+            intpoints.Point ( ip, point, weight );
+            data.intLocPtIndex = ip;
+            intel->ComputeRequiredData ( data, point );
+
+            long elementid1 = 0;
+            TPZManVector<REAL,3> qsi ( 2,0. );
+            int targetdim=2;
+            TPZGeoEl *gel1 = gmesh1->FindElement ( data.x, qsi, elementid1,targetdim );
+            TPZCompEl *cel1 = gel1->Reference();
+            TPZInterpolationSpace *intel1 = dynamic_cast<TPZInterpolationSpace *> ( cel1 );
+
+            TPZMaterialDataT<REAL> data1;
+            //data1.intLocPtIndex = ip;
+            data1.fNeedsSol = true;
+            intel1->InitMaterialData ( data1 );
+            data1.fNeedsSol = true;
+            intel1->ComputeRequiredData ( data1, qsi );
+            //intel1->TransferSolution(
+           // data1.Print(cout);
+            REAL coesao=data1.sol[isol][0];
+
+            int indexplastic =data.intGlobPtIndex;
+            TPZElastoPlasticMem &mem = pMatWithMem2->MemItem(indexplastic);
+            mem.m_elastoplastic_state.fmatprop.Resize ( 3 );
+            mem.m_elastoplastic_state.fmatprop[0] = coesao/FS;//coesao
+            mem.m_elastoplastic_state.fmatprop[1] = 30*M_PI/180.;//atritointerno
+            cout++;
+        }
+        pMatWithMem2->SetUpdateMem ( false );
+
+    }
+
+}
+
+void Slope::TransferSolutionFromShearRed ( TPZCompMesh*cmesh,int isol,REAL FS )
+{
+    bool debug=false;
+    TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( fCompMesh->MaterialVec() [1] );
+    int nels =  fCompMesh->NElements();
+
+    TPZMaterial *mat1 = cmesh->FindMaterial ( 1 );
+    if ( !mat1 )
+    {
+        DebugStop();
+    }
+    if ( pMatWithMem2 )
+    {
+        pMatWithMem2->SetUpdateMem ( true );
+    }
+    else
+    {
+        DebugStop();
+    }
+
+    for ( int iel=0; iel<nels; iel++ )
+    {
+        TPZCompEl *cel = fCompMesh->ElementVec() [iel];
+        TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *> ( cel );
+        if ( !cel || !intel || dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( intel->Material() )!= pMatWithMem2 ||(intel->Material()->Id()<1))
+        {
+            continue;
+        }
+
+        TPZGeoMesh *gmesh1 = cmesh->Reference();
+
+        const TPZIntPoints &intpoints = intel->GetIntegrationRule();
+        int nint = intpoints.NPoints();
+        TPZManVector<REAL,3> point ( 2,0. );
+        TPZMaterialDataT<REAL> data1,data;
+        intel->InitMaterialData ( data );
+        data.fNeedsSol = false;
+        data1.fNeedsSol = true;
+
+        long elementid1 = 0;
+        TPZManVector<REAL,3> qsi ( 2,0. );
+
+        for ( long ip =0; ip<nint; ip++ )
+        {
+            REAL weight;
+            intpoints.Point ( ip, point, weight );
+            data.intLocPtIndex = ip;
+            intel->ComputeRequiredData ( data, point );
+
+            TPZGeoEl *gel1 = gmesh1->FindElement ( data.x, qsi, elementid1,2 );
+            TPZCompEl *cel1 = gel1->Reference();
+            TPZInterpolationSpace *intel1 = dynamic_cast<TPZInterpolationSpace *> ( cel1 );
+
+            data1.intLocPtIndex = ip;
+            data1.fNeedsSol = true;
+            intel1->InitMaterialData ( data1 );
+
+            intel1->ComputeRequiredData ( data1, qsi );
+
+
+            int indexplastic =data.intGlobPtIndex;
+
+            REAL coesao=data1.sol[isol][0];
+
+            TPZElastoPlasticMem &mem = pMatWithMem2->MemItem(indexplastic);
+            mem.m_elastoplastic_state.fmatprop.Resize ( 3 );
+            mem.m_elastoplastic_state.fmatprop[0] = coesao/FS;//coesao
+            mem.m_elastoplastic_state.fmatprop[1] = 0.1;//atritointerno
+
+        }
+        pMatWithMem2->SetUpdateMem ( false );
+
+    }
+
+}
+
+int Slope::FindElement ( TPZCompMesh * cmesh,TPZManVector<REAL,3>&vecx, TPZManVector<REAL,3>&vecxi )
+{
+        int nels = cmesh->NElements();
+
+        REAL tol=1.e-5;
+
+        for ( int iel=0; iel<nels; iel++ ) {
+
+                TPZCompEl * cel =  cmesh->ElementVec() [iel];
+                if ( !cel ) {
+                        continue;
+                }
+                TPZGeoEl * gel = cel->Reference();
+                if ( !gel ) {
+                        continue;
+                }
+                bool find = gel->ComputeXInverse ( vecx,vecxi,tol );
+                if ( find ) {
+                        //cout << "ponto encontrado no elemento id "<<iel <<endl;
+                        //cout << "coordenadas no elemento mestre = "<< vecxi << endl;
+                        return iel;
+                } else {
+                        //cout << " ponto NAO encontrado! " <<endl;
+                        //DebugStop();
+                }
+
+        }
+
+            cout << " int KLAnalysis::FindElement  ponto NAO encontrado! " <<endl;
+            DebugStop();
+
+}
+
 
 TPZGeoMesh *  Slope::CreateGMeshSlope ( int ref )
 {
@@ -258,6 +567,7 @@ REAL Slope::ShearRed ( )
         //std::cout << "FS "<< FS <<  "| step = " << counterout  <<std::endl;
         typedefanal* anal =  SlopeAnalysis(type,numthreads);
 
+
         REAL norm = 1000.;
         REAL tol2 = 1.e-4;
         int NumIter = 100;
@@ -317,6 +627,91 @@ REAL Slope::ShearRed ( )
         return ( FSmax + FSmin )/2;
 }
 
+
+REAL Slope::ShearRed (int imc )
+{
+    int numthreads = 10;
+    int type =EStep;
+    //std::cout << "aqqqqq "<<std::endl;
+    LoadingRamp(1.);
+
+    REAL FS=0.8,FSmax=5.,FSmin=0.,tol=0.001;
+    int neq = fCompMesh->NEquations();
+
+    TPZFMatrix<REAL> displace(neq,1),displace0(neq,1);
+
+    int counterout = 0;
+
+    plasticmat *material = dynamic_cast<plasticmat *> ( fCompMesh->MaterialVec() [1] );
+    TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC = material->GetPlasticity();
+    TPZElasticResponse ER = LEMC.fER;
+    REAL FSN=1000;
+    bool conv=false;
+    auto t0 =high_resolution_clock::now();
+    do {
+
+        fCompMesh->Solution().Zero();
+        typedefanal* anal =  SlopeAnalysis(type,numthreads);
+
+        //TransferSolutionFromShearRed (  fCompMeshField,imc, FS );
+        auto t1 = high_resolution_clock::now();
+
+        TransferSolutionFrom (fCompMeshField,imc,FS );
+
+        auto t2 = high_resolution_clock::now();
+        auto ms_int = duration_cast<milliseconds> ( t2 - t1 );
+
+        cout <<" tempo  transfering = "<<ms_int.count() << endl;
+
+        REAL norm = 1000.;
+        REAL tol2 = 0.01;
+        int NumIter = 50;
+        bool linesearch = true;
+        bool checkconv = false;
+        int iters;
+
+
+
+        t1 = high_resolution_clock::now();
+        conv  =anal->IterativeProcess2(cout,tol2, NumIter,  linesearch,  checkconv,iters);
+        //conv  =anal->FindRoot(iters);
+
+        t2 = high_resolution_clock::now();
+        ms_int = duration_cast<milliseconds> ( t2 - t1 );
+        //std::cout << "tempo total iterative process = "<<ms_int.count() << " s\n";
+        norm = Norm ( anal->Rhs() );
+        //conv  = anal->IterativeProcess ( cout, tol2, NumIter,linesearch,checkconv,iters);
+cout << "| step = " << counterout << " FS = "<< FS <<" tempo  iterproc = "<<ms_int.count() << " ms " << " conv?" << conv << " iters = " <<iters<< endl;
+
+
+
+        FSN=FS;
+        if ( conv==false ) {
+
+            FSmax = FS;
+            FS = ( FSmin + FSmax ) / 2.;
+        } else {
+
+            FSmin = FS;
+			FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
+        }
+        if(fabs(FSN-FS)<1.e-3)
+        {
+            anal->AcceptSolution();
+            conv=true;
+        }
+        counterout++;
+        if(( FSmax - FSmin ) / FS < tol)
+        {
+            anal->AcceptSolution();
+        }
+    }  while ( ( FSmax - FSmin ) / FS > tol || conv==false);
+
+        auto t3 = high_resolution_clock::now();
+        auto timeinmili = duration_cast<seconds> ( t3 - t0 );
+        std::cout << "final safety factor "<< FS << " total time in ShearRed = "<< timeinmili.count() << " s "<<std::endl;
+        return ( FSmax + FSmin )/2;
+}
 
 
 
@@ -666,11 +1061,12 @@ void  Slope::CreatePostProcessingMesh (TPZPostProcAnalysis * PostProcess )
 void Slope::PostProcessVariables ( TPZStack<std::string> &scalNames, TPZStack<std::string> &vecNames )
 {
 
+    scalNames.Push ( "Coesion" );
     scalNames.Push ( "StrainPlasticJ2" );
      scalNames.Push ( "VolHardening" );
      vecNames.Push ( "Displacement" );
-     vecNames.Push ( "StrainElastic" );
-    // vecNames.Push ( "StrainPlastic" );
+     vecNames.Push ( "ShearPlasticDeformation" );
+     vecNames.Push ( "PlasticDeformation" );
 
 
 }
@@ -833,11 +1229,11 @@ void Slope::ComputeElementDeformation()
                     continue;
                 }
                 TPZElastoPlasticMem &mem = pMatWithMem2->MemItem(memindices[ind]);
-                //TPZTensor<REAL> plastic =mem.m_elastoplastic_state.EpsP();
-                 //REAL J2 = plastic.J2();
-                 //REAL sqj2 = sqrt(J2);
-                REAL val=mem.m_elastoplastic_state.VolHardening();
-                sqj2el = max(val,sqj2el);
+                TPZTensor<REAL> plastic =mem.m_elastoplastic_state.EpsP();
+                 REAL J2 = plastic.J2();
+                 REAL sqj2 = sqrt(J2);
+                //REAL val=mem.m_elastoplastic_state.VolHardening();
+                sqj2el = max(sqj2,sqj2el);
             }
             fPlasticDeformSqJ2[el] = sqj2el;
         }

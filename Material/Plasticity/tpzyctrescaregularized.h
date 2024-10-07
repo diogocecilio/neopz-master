@@ -70,7 +70,10 @@ public:
     void Write(TPZStream &buf, int withclassid) const override{
         
     }
-
+	virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )
+    {
+        DebugStop();
+    }
 
 	//////////////////CheckConv related methods/////////////////////
 public:

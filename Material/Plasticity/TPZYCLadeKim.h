@@ -113,7 +113,10 @@ public:
 	{
 		fForceYield = forceYield;
 	}
-	
+		void SetLocalMatState ( TPZPlasticState<REAL> & state )
+    {
+        DebugStop();
+    }
     /**
 	 * @brief Calculo do criterio de plastificacao 
 	 * @param[in] sigma tensao atual

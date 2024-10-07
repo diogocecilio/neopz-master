@@ -103,13 +103,13 @@ public:
         fc = c;
         fER = ER;
     }
-    void SetLocalMatState ( TPZPlasticState<REAL> & state )
+    virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )override
     {
         //if ( fc<1.e-3 ) DebugStop();
         fc =   state.fmatprop[0];
         fPhi = state.fmatprop[1];
         fPsi = state.fmatprop[1];
-		//std::cout << "fc = "<< fc <<endl;
+		//std::cout << "fc = "<< fc <<std::endl;
     }
     /**
      * @brief Operator =

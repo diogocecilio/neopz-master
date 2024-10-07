@@ -144,6 +144,10 @@ public:
         return as_integer(NYield);
     }
 
+    void SetLocalMatState ( TPZPlasticState<REAL> & state )
+    {
+        DebugStop();
+    }
 private:
 
     TPZYCCamClayPV fCap;
