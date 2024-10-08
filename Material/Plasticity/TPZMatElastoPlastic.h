@@ -278,7 +278,8 @@ public:
         EFailureType    = 20,
         EShearPlasticDeformation =21,
         EPlasticDeformation =22,
-        ECoesion=23
+        ECoesion=23,
+        EAtrito=24
 
     };
 

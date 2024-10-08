@@ -215,6 +215,7 @@ int TPZMatElastoPlastic<T,TMEM>::VariableIndex(const std::string &name) const
     if(!strcmp("ShearPlasticDeformation",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EShearPlasticDeformation;
     if(!strcmp("PlasticDeformation",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EPlasticDeformation;
     if(!strcmp("Coesion",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::ECoesion;
+    if(!strcmp("Atrito",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EAtrito;
     PZError << "TPZMatElastoPlastic<T,TMEM>:: VariableIndex Error\n";
     return TPZMatElastoPlastic<T,TMEM>::ENone;
 }
@@ -245,6 +246,7 @@ int TPZMatElastoPlastic<T,TMEM>::NSolutionVariables(int var) const
     if(var == TPZMatElastoPlastic<T,TMEM>::EShearPlasticDeformation) return 3;
     if(var == TPZMatElastoPlastic<T,TMEM>::EPlasticDeformation) return 3;
     if(var == TPZMatElastoPlastic<T,TMEM>::ECoesion) return 1;
+     if(var == TPZMatElastoPlastic<T,TMEM>::EAtrito) return 1;
 
     if(var == 100) return 1;
     return TBase::NSolutionVariables(var);
@@ -362,6 +364,11 @@ void TPZMatElastoPlastic<T, TMEM>::Solution(const TPZMaterialDataT<STATE> &data,
         case ECoesion:
         {
             Solout[0] = Memory.m_elastoplastic_state.fmatprop[0];
+        }
+            break;
+                   case EAtrito:
+        {
+            Solout[0] = Memory.m_elastoplastic_state.fmatprop[1];
         }
             break;
     default:

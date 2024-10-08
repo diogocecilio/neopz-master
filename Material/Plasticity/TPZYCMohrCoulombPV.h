@@ -105,6 +105,7 @@ public:
     }
     virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )override
     {
+        //so associativo!
         //if ( fc<1.e-3 ) DebugStop();
         fc =   state.fmatprop[0];
         fPhi = state.fmatprop[1];

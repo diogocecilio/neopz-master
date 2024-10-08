@@ -82,11 +82,12 @@ TPZCompMesh * CreateCMeshElastoplastic ( TPZGeoMesh *gmesh, int pOrder );
 TPZGeoMesh *  CreateGMeshSlope ( int ref );
 TPZGeoMesh * CreateGMesh ( int ref,string file,std::vector<double> coordbc );
 
-TPZCompMesh * CreateCMeshField ( TPZGeoMesh *gmesh);
+TPZCompMesh * CreateCMeshField (  TPZGeoMesh *gmesh,string filename );
 
 void TransferSolutionFrom ( TPZFMatrix<REAL> dataexter,TPZCompMesh *cmesh);
 int FindElement ( TPZCompMesh * cmesh,TPZManVector<REAL,3>&vecx, TPZManVector<REAL,3>&vecxi );
 void SetSol(TPZInterpolationSpace * intel,TPZMaterialDataT<REAL>& data,TPZFMatrix<REAL> dataexter);
+void MonteCarlo();
 //1 Ler os dados e colocar em matrizes cheias
 // x1 y1 z1 dado1 dado2 ... dado n
 // x2 y2 z2 dado1 dado2 ... dado n
@@ -105,44 +106,57 @@ int main()
         TPZLogger::InitializePZLOG();
 #endif
 
-        int ref0=2;
-        string file;
-        file="/home/diogo/projects/neopz-master/Projects2/Plasticity2D/tri-struc-v2.msh";
-        std::vector<double> coordbc ( 3 );
-        //coordbc[0]=30.;coordbc[1]=5.;coordbc[2]=5.;
-        coordbc[0]=75.;
-        coordbc[1]=30.;
-        coordbc[2]=10.;
-        //coordbc[0]=75.;coordbc[1]=30.;coordbc[2]=5.;
-        TPZGeoMesh *gmesh = CreateGMesh ( ref0+1,file,coordbc );
-       // TPZGeoMesh *gmesh =   CreateGMeshSlope ( ref0 );
-
-        //TPZCompMesh * cmesh = new TPZCompMesh(gmesh);
-
-        int ref1=2;
-        int porder=2;
-        REAL gammaagua=0.;
-        REAL gammasolo=20.;
-        Slope*SlopeManager = new Slope ( gmesh,porder,ref1,gammaagua,gammasolo );
-
-        TPZGeoMesh *gmesh2 = CreateGMesh ( ref0,file,coordbc );
-        TPZCompMesh * cmeshfield = CreateCMeshField ( gmesh2);
-        SlopeManager->fCompMeshField=cmeshfield;
-
-
-
+        MonteCarlo();
+//         int ref0=2;
+//         string file;
+//         file="/home/diogo/projects/neopz-master/Projects2/Plasticity2D/tri-struc-v2.msh";
+//         std::vector<double> coordbc ( 3 );
+//         //coordbc[0]=30.;coordbc[1]=5.;coordbc[2]=5.;
+//         coordbc[0]=75.;
+//         coordbc[1]=30.;
+//         coordbc[2]=10.;
+//         //coordbc[0]=75.;coordbc[1]=30.;coordbc[2]=5.;
+//         TPZGeoMesh *gmesh = CreateGMesh ( ref0,file,coordbc );
+//       //  TPZGeoMesh *gmesh =   CreateGMeshSlope ( ref0 );
 //
-        auto t1 = high_resolution_clock::now();
-
-        SlopeManager->Solve( );
-        auto t2 = high_resolution_clock::now();
-        auto ms_int = duration_cast<seconds> ( t2 - t1 );
-        //std::cout << "tempo total iterative process = "<<ms_int.count() << " s\n";
-        //conv  = anal->IterativeProcess ( cout, tol2, NumIter,linesearch,checkconv,iters);
-        cout <<" tempo total da simulacao   = "<<ms_int.count() << " s " << endl;
-         //conv = anal->FindRoot ( );
-
-
+//         //TPZCompMesh * cmesh = new TPZCompMesh(gmesh);
+//
+//         int ref1=3;
+//         int porder=2;
+//         REAL gammaagua=0.;
+//         REAL gammasolo=20.;
+//         REAL coes=10.;
+//         REAL atrito=30.*M_PI/180;
+//         Slope*SlopeManager = new Slope ( gmesh,porder,ref1,gammaagua,gammasolo,coes,atrito );
+//
+//         TPZGeoMesh *gmesh2 = CreateGMesh ( ref0,file,coordbc );
+//         TPZGeoMesh *gmesh3 = CreateGMesh ( ref0,file,coordbc );
+//         string filenamecoes="/home/diogo/projects/neopz-master/Projects2/Plasticity2D/coesao3.dat";
+//         string filenameatrito="/home/diogo/projects/neopz-master/Projects2/Plasticity2D/atrito3.dat";
+//         TPZCompMesh * cmeshfieldatrito= CreateCMeshField ( gmesh2,filenameatrito);
+//         TPZCompMesh * cmeshfieldcoes = CreateCMeshField ( gmesh3,filenamecoes);
+//
+//         TPZVec<TPZCompMesh*> cmeshvec(2);
+//
+//
+//         cmeshvec[0]=cmeshfieldcoes;
+//         cmeshvec[1]=cmeshfieldatrito;
+//
+//         SlopeManager->SetCompMeshField(cmeshvec);
+//
+//
+// //
+//         auto t1 = high_resolution_clock::now();
+//
+//         SlopeManager->Solve( 0);
+//         auto t2 = high_resolution_clock::now();
+//         auto ms_int = duration_cast<seconds> ( t2 - t1 );
+//         //std::cout << "tempo total iterative process = "<<ms_int.count() << " s\n";
+//         //conv  = anal->IterativeProcess ( cout, tol2, NumIter,linesearch,checkconv,iters);
+//         cout <<" tempo total da simulacao   = "<<ms_int.count() << " s " << endl;
+//          //conv = anal->FindRoot ( );
+//
+//
 
         //SlopeManager->ShearRed();
 
@@ -195,10 +209,77 @@ int main()
         return 0;
 }
 
-
-TPZCompMesh * CreateCMeshField ( TPZGeoMesh *gmesh )
+void MonteCarlo()
 {
-        string filename="/home/diogo/projects/neopz-master/Projects2/Plasticity2D/coesao3.dat";
+        string file="/home/diogo/projects/neopz-master/Projects2/Plasticity2D/tri-struc-v2.msh";
+        string filenamecoes="/home/diogo/projects/neopz-master/Projects2/Plasticity2D/coesao3.dat";
+        string filenameatrito="/home/diogo/projects/neopz-master/Projects2/Plasticity2D/atrito3.dat";
+
+        int ref0=2;//original ref
+        int ref1=3;//adaptive ref
+
+        std::vector<double> coordbc ( 3 );
+        coordbc[0]=75.;
+        coordbc[1]=30.;
+        coordbc[2]=10.;
+
+        int porder=2;
+        REAL gammaagua=0.;
+        REAL gammasolo=20.;
+        REAL coes=10.;
+        REAL atrito=30.*M_PI/180;
+
+        for ( int imc=0; imc<=2; imc++ )
+        {
+
+                TPZGeoMesh *gmesh = CreateGMesh ( ref0,file,coordbc );
+                Slope*SlopeManager = new Slope ( gmesh,porder,ref1,gammaagua,gammasolo,coes,atrito );
+                TPZGeoMesh *gmesh2 = CreateGMesh ( ref0,file,coordbc );
+                TPZGeoMesh *gmesh3 = CreateGMesh ( ref0,file,coordbc );
+
+                TPZCompMesh * cmeshfieldatrito= CreateCMeshField ( gmesh2,filenameatrito);
+                TPZCompMesh * cmeshfieldcoes = CreateCMeshField ( gmesh3,filenamecoes);
+
+                TPZVec<TPZCompMesh*> cmeshvec(2);
+
+
+                cmeshvec[0]=cmeshfieldcoes;
+                cmeshvec[1]=cmeshfieldatrito;
+
+                SlopeManager->SetCompMeshField(cmeshvec);
+
+                string saidafs = "post/fs";
+                string vtk = "postvtk/saidamontecarloplasticity";
+                auto var=to_string ( imc );
+                saidafs+=var;
+                vtk+=var;
+                saidafs+=".dat";
+                vtk+=".vtk";
+                ofstream out ( saidafs );
+
+                std::cout << "imc = " <<  imc << std::endl;
+
+                auto t1 = high_resolution_clock::now();
+                REAL FS = SlopeManager->Solve( imc);
+                auto t2 = high_resolution_clock::now();
+                auto ms_int = duration_cast<seconds> ( t2 - t1 );
+                cout <<" tempo total da simulacao   = "<<ms_int.count() << " s " << endl;
+
+                SlopeManager->PostPlasticity(vtk);
+                out << FS << endl;
+                delete gmesh;
+                delete gmesh2;
+                delete gmesh3;
+                //delete cmeshfieldatrito;
+                //delete cmeshfieldcoes;
+
+        }
+}
+
+//Cria uma malha com material generico com um unico grau de liberdade para armazenar a solucao do field nos nos;
+//A malha que le deve ser identica a que gerou o field
+TPZCompMesh * CreateCMeshField ( TPZGeoMesh *gmesh,string filename )
+{
         readgidmesh read;
         TPZFMatrix<REAL> pzdata  = read.ReadData(filename);
         int dim=2;
@@ -211,14 +292,7 @@ TPZCompMesh * CreateCMeshField ( TPZGeoMesh *gmesh )
         cmesh->InsertMaterialObject ( material );
         cmesh->SetAllCreateFunctionsContinuous();
         cmesh->AutoBuild();
-
-        int eqs = cmesh->NEquations();
-        //cout << "eqs = " << eqs << endl;
-        //cout << "pzdata.Rows() = " << pzdata.Rows() << endl;
-        //cout << "pzdata.Cols() = " << pzdata.Cols() << endl;
-
         cmesh->LoadSolution(pzdata);
-       // TransferSolutionFrom ( pzdata,cmesh);
         return cmesh;
 }
 

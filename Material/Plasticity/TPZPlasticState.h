@@ -26,6 +26,8 @@ public:
 
 	TPZVec<T> fmatprop;
 
+    TPZVec<T> fmatpropinit;
+
     TPZVec<T> fflux;
 
     T fpressure;
@@ -39,7 +41,7 @@ public:
 
     /// Copy constructor
     TPZPlasticState(const TPZPlasticState<T> & source):
-    m_eps_t(source.m_eps_t), m_eps_p(source.m_eps_p), m_hardening(source.m_hardening), m_m_type(source.m_m_type),fpressure(source.fpressure ),fmatprop(source.fmatprop),fflux(source.fflux){ }
+    m_eps_t(source.m_eps_t), m_eps_p(source.m_eps_p), m_hardening(source.m_hardening), m_m_type(source.m_m_type),fpressure(source.fpressure ),fmatprop(source.fmatprop),fmatpropinit(source.fmatprop),fflux(source.fflux){ }
 
     /// Destructor
     ~TPZPlasticState(){ }
@@ -82,6 +84,8 @@ public:
         int ClassId() const override;
 	const TPZVec<T> & MatProp() const
 		{ return fmatprop; }
+    const TPZVec<T> & MatPropInit() const
+		{ return fmatpropinit; }
 	const TPZVec<T> & Flux() const
 		{ return fflux; }
     const T & Pressure() const
@@ -132,6 +136,7 @@ inline const TPZPlasticState<T> & TPZPlasticState<T>::operator=(const TPZPlastic
     m_hardening = source.VolHardening();
     m_m_type = source.MType();
 	fmatprop=source.MatProp();
+    fmatpropinit=source.MatPropInit();
     fflux = source.Flux();
     fpressure =source.Pressure();
     return *this;
@@ -197,8 +202,11 @@ void TPZPlasticState<T>::CopyTo(TPZPlasticState<T1> & target) const
      target.fpressure = shapeFAD::val( Pressure() );
 	target.fmatprop.Resize(2);
     target.fflux.Resize(2);
+    target.fmatpropinit.Resize(2);
 	target.fmatprop[0]= shapeFAD::val(fmatprop[0]);
 	target.fmatprop[1]= shapeFAD::val(fmatprop[1]);
+    target.fmatpropinit[0]= shapeFAD::val(fmatpropinit[0]);
+	target.fmatpropinit[1]= shapeFAD::val(fmatpropinit[1]);
     target.fflux[0]= shapeFAD::val(fflux[0]);
     target.fflux[1]= shapeFAD::val(fflux[1]);
 }
