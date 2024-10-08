@@ -266,48 +266,13 @@ template <class T, class TMEM>
 void TPZMatElastoPlastic<T, TMEM>::Solution(const TPZMaterialDataT<STATE> &data, int var, TPZVec<REAL> &Solout) {
 
     Solout.Resize(this->NSolutionVariables(var));
-  int intPt = data.intGlobPtIndex;
-  //TMEM &Memory = TPZMatWithMem<TMEM>::fMemory[intPt];
-  TMEM &Memory = this->MemItem(intPt);
-  T plasticloc(this->m_plasticity_model);
-  plasticloc.SetState(Memory.m_elastoplastic_state);
+    int intPt = data.intGlobPtIndex;
+    TMEM &Memory = this->MemItem(intPt);
+    T plasticloc(m_plasticity_model);
+    plasticloc.SetState(Memory.m_elastoplastic_state);
 
-
-      TPZPlasticState<STATE> PState =Memory.m_elastoplastic_state;
-    TPZTensor<REAL> totalStrain = PState.EpsT();
-    TPZTensor<REAL> plasticStrain = PState.EpsP();
-
-    TPZTensor<STATE> Sigma = Memory.m_sigma;
-    STATE normdsol = Norm(data.dsol[0]);
-
-    if (normdsol != 0.) {
-        TPZTensor<REAL> EpsT;
-        TPZFNMatrix<6,STATE> deltastrain(6,1,0.);
-        ComputeDeltaStrainVector(data, deltastrain);
-
-        EpsT.CopyFrom(deltastrain);
-        EpsT.Add(totalStrain, 1.);
-
-        TPZFMatrix<REAL> Dep;
-        plasticloc.ApplyStrainComputeDep(EpsT, Sigma,Dep);
-        //plasticloc.ApplyStrainComputeSigma(EpsT, Sigma);
-
-    }
-
-
-
-
-
-  //Elastic Strain
-  TPZTensor<REAL> elasticStrain = totalStrain; // Look at line below
-  elasticStrain -= plasticStrain; // here it becomes elasticStrain
-  TPZTensor<REAL>::TPZDecomposed eigensystem;
-  Sigma.EigenSystem(eigensystem);
-  TPZManVector<REAL,3> eigenvals(3,0.);
-  for(int i=0;i<3;i++)eigenvals[i]= eigensystem.fEigenvalues[i];
-
-  //Total Stress
-  TPZTensor<REAL> totalStress = Sigma;
+    TPZTensor<REAL> & totalStrain = Memory.m_elastoplastic_state.m_eps_t;
+    TPZTensor<REAL> & plasticStrain = Memory.m_elastoplastic_state.m_eps_p;
 
     int sz= Memory.m_elastoplastic_state.fmatprop.size();
     if ( sz==0 ) {

@@ -394,7 +394,7 @@ bool TPZElastoPlasticAnalysis::IterativeProcess2 ( std::ostream &out,REAL tol,in
             TPZFMatrix<STATE> nextSol;
             //REAL LineSearchTol = 1e-3 * Norm(fSolution);
             REAL LineSearchTol = 0.001 * Norm ( fSolution );
-            const int niter =6;
+            const int niter =10;
             this->LineSearch ( prevsol, fSolution, nextSol, LineSearchTol, niter );
             fSolution = nextSol;
         }

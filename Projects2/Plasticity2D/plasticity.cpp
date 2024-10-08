@@ -216,7 +216,7 @@ void MonteCarlo()
         string filenameatrito="/home/diogo/projects/neopz-master/Projects2/Plasticity2D/atrito3.dat";
 
         int ref0=2;//original ref
-        int ref1=3;//adaptive ref
+        int ref1=4;//adaptive ref
 
         std::vector<double> coordbc ( 3 );
         coordbc[0]=75.;
@@ -229,13 +229,16 @@ void MonteCarlo()
         REAL coes=10.;
         REAL atrito=30.*M_PI/180;
 
-        for ( int imc=0; imc<=2; imc++ )
+        for ( int imc=10; imc<1000; imc++ )
         {
 
+                //TPZGeoMesh *gmesh =   CreateGMeshSlope ( ref0 +2);
                 TPZGeoMesh *gmesh = CreateGMesh ( ref0,file,coordbc );
                 Slope*SlopeManager = new Slope ( gmesh,porder,ref1,gammaagua,gammasolo,coes,atrito );
-                TPZGeoMesh *gmesh2 = CreateGMesh ( ref0,file,coordbc );
-                TPZGeoMesh *gmesh3 = CreateGMesh ( ref0,file,coordbc );
+                 TPZGeoMesh *gmesh2 = CreateGMesh ( ref0,file,coordbc );
+                 TPZGeoMesh *gmesh3 = CreateGMesh ( ref0,file,coordbc );
+                //TPZGeoMesh *gmesh2 = CreateGMeshSlope ( ref0+2 );
+                //TPZGeoMesh *gmesh3 = CreateGMeshSlope ( ref0+2);
 
                 TPZCompMesh * cmeshfieldatrito= CreateCMeshField ( gmesh2,filenameatrito);
                 TPZCompMesh * cmeshfieldcoes = CreateCMeshField ( gmesh3,filenamecoes);
@@ -265,11 +268,13 @@ void MonteCarlo()
                 auto ms_int = duration_cast<seconds> ( t2 - t1 );
                 cout <<" tempo total da simulacao   = "<<ms_int.count() << " s " << endl;
 
+                cout << " post processing..." <<endl;
                 SlopeManager->PostPlasticity(vtk);
                 out << FS << endl;
                 delete gmesh;
                 delete gmesh2;
                 delete gmesh3;
+                delete SlopeManager;
                 //delete cmeshfieldatrito;
                 //delete cmeshfieldcoes;
 

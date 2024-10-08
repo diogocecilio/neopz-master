@@ -1265,7 +1265,8 @@ void TPZTensor<T>::EigenSystem(TPZDecomposed &eigensystem)const {
 
     T precision;
     ZeroTolerance(precision);
-    T tol = Norm()*precision;
+    //T tol = Norm()*precision;
+    T tol=1.e-3;
     ComputeEigenvectors(eigensystem);
 
     TPZStack<int, 3> indices_to_add;
