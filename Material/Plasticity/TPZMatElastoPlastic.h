@@ -279,7 +279,8 @@ public:
         EShearPlasticDeformation =21,
         EPlasticDeformation =22,
         ECoesion=23,
-        EAtrito=24
+        EAtrito=24,
+        EPOrder=25
 
     };
 

@@ -59,8 +59,12 @@ public:
 
    void DivideElementsAbove(REAL refineaboveval, std::set<long> &elindices);
 
+   void PRefineElementsAbove(REAL refineaboveval, int porder, std::set<long> &elindices);
+
     // Get the vector of element plastic deformations
     void ComputeElementDeformation();
+
+    void ApplyHistory(std::set<long> &elindices);
 
     int FindElement ( TPZCompMesh * cmesh,TPZManVector<REAL,3>&vecx, TPZManVector<REAL,3>&vecxi );
 
@@ -130,13 +134,12 @@ REAL Slope::Solve(int imc)
     REAL FS = ShearRed(20,0.5,0.01);
 
     cout << "Refining.."<<endl;
-    std::set<long> elindices;
-    for (int iref=1; iref<=fref; iref++ )
+    std::set<long> elindices,elindices2;
+    for (int iref=1; iref<fref; iref++ )
     {
         ComputeElementDeformation();
+        PRefineElementsAbove(0.01, fPorder+iref,elindices2);
         DivideElementsAbove ( 0.01,elindices );
-        fGmesh=fCompMesh->Reference();
-        fCompMesh = CreateCMeshElastoplastic ( fGmesh, fPorder );
         neqold=neq;
         neq=fCompMesh->NEquations();
         TransferFieldsSolutionFrom(imc);
@@ -144,7 +147,7 @@ REAL Slope::Solve(int imc)
         FSOLD=FS;
         FS = ShearRed(20,0.5,0.01);
 
-        if(neq>5000||neqold==neq||fabs(FS-FSOLD)<0.02)
+        if(neq>5000||neqold==neq||fabs(FS-FSOLD)<0.001)
         {
             cout << " # of equations execeded the maximum, or no element was refined, exiting refinement method."<<endl;
             break;
@@ -589,6 +592,7 @@ REAL Slope::ShearRed (int maxcout,REAL FS0,REAL fstol )
             anal->AcceptSolution();
             //conv=true;
         }
+        delete anal;
     }  while ( (( FSmax - FSmin ) / FS > tol || conv==false) && counterout<maxcout);
 
         auto t3 = high_resolution_clock::now();
@@ -785,6 +789,7 @@ TPZCompMesh * Slope::CreateCMeshElastoplastic ( TPZGeoMesh *gmesh, int pOrder )
 
     //cmesh->Print(std::cout);
 	cmesh->SetDefaultOrder ( pOrder );
+    //cmesh->GetDefaultOrder
 
 	int dim = 2 ;
 
@@ -964,6 +969,28 @@ switch(type) {
 	analysis->SetPrecond(Pre);
         break;
     }
+        case 4:
+        {
+			//cout << "Solver called with TPZStepSolver\n";
+            TPZSpStructMatrix<STATE> SSpStructMatrix(fCompMesh);
+            SSpStructMatrix.SetNumThreads ( numthreads );
+            analysis->SetStructuralMatrix(SSpStructMatrix);
+             TPZStepSolver<STATE> step;
+             step.SetDirect ( ELU );
+             analysis->SetSolver ( step );
+             break;
+        }
+            case 5:
+        {
+			//cout << "Solver called with TPZStepSolver\n";
+            TPZSkylineStructMatrix<STATE> matskl(fCompMesh);
+            matskl.SetNumThreads ( numthreads );
+             analysis->SetStructuralMatrix ( matskl );
+             TPZStepSolver<STATE> step;
+             step.SetDirect ( ELDLt );
+             analysis->SetSolver ( step );
+             break;
+        }
     default:
         {
             cout << "Solver was not initialized properly\n";
@@ -1031,6 +1058,7 @@ void  Slope::CreatePostProcessingMesh (TPZPostProcAnalysis * PostProcess )
 void Slope::PostProcessVariables ( TPZStack<std::string> &scalNames, TPZStack<std::string> &vecNames )
 {
 
+    scalNames.Push ( "POrder" );
     scalNames.Push ( "Atrito" );
     scalNames.Push ( "Coesion" );
     scalNames.Push ( "StrainPlasticJ2" );
@@ -1046,8 +1074,9 @@ void Slope::PostProcessVariables ( TPZStack<std::string> &scalNames, TPZStack<st
 void Slope::DivideElementsAbove(REAL refineaboveval, std::set<long> &elindices)
 {
 
-    //fCompMesh->Rese;
-    fCompMesh->LoadReferences();
+    //int porder =fPorder+3;
+    //fGmesh->ResetReference();
+    //fCompMesh->LoadReferences();
     TPZManVector<REAL,3> findel(3,0.),qsi(2,0.);
 
 
@@ -1070,9 +1099,11 @@ void Slope::DivideElementsAbove(REAL refineaboveval, std::set<long> &elindices)
         if (elsol.Get(el,0) <=refineaboveval) {
             continue;
         }
+        //intel->PRefine(3);
         int porder = intel->GetPreferredOrder();
         TPZStack<long> subels;
         long index = cel->Index();
+
 
         intel->Divide(index, subels,0);
         for (int is=0; is<subels.size(); is++) {
@@ -1158,18 +1189,64 @@ void Slope::DivideElementsAbove(REAL refineaboveval, std::set<long> &elindices)
         }
     }
 
-    //ApplyHistory(elindices);
-    ComputeElementDeformation();
+//     //ApplyHistory(elindices);
+//     ComputeElementDeformation();
+//     fCompMesh->AdjustBoundaryElements();
+//     fcmesh->InitializeBlock();
+//     fCompMesh->Solution().Zero();
+//    // fneq=fcmesh->NEquations();
+//     fCompMesh->Solution().Resize(0, 0);
+//     fCompMesh->Solution().Redim(fCompMesh->NEquations(), 1);
+//    // fcmesh->LoadReferences();
+
     fCompMesh->AdjustBoundaryElements();
-   // fcmesh->InitializeBlock();
-    fCompMesh->Solution().Zero();
-   // fneq=fcmesh->NEquations();
-    fCompMesh->Solution().Resize(0, 0);
-    fCompMesh->Solution().Redim(fCompMesh->NEquations(), 1);
-   // fcmesh->LoadReferences();
+    fCompMesh->InitializeBlock();
+    TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( fCompMesh->MaterialVec() [1] );
+    pMatWithMem2->ResetMemory();
+//     fCompMesh->Solution().Zero();
+//     fCompMesh->Solution().Resize(0, 0);
+//     fCompMesh->Solution().Redim(fCompMesh->NEquations(), 1);
+
 
 }
 
+/// Change the polynomial order of element using the plastic deformation as threshold
+void Slope::PRefineElementsAbove(REAL refineaboveval, int porder, std::set<long> &elindices)
+{
+    fGmesh->ResetReference();
+    fCompMesh->LoadReferences();
+    long nelem = fCompMesh->NElements();
+    for (long el=0; el<nelem; el++) {
+        TPZCompEl *cel = fCompMesh->ElementVec()[el];
+        if (!cel) {
+            continue;
+        }
+        TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *>(cel);
+        if (!intel) {
+            DebugStop();
+        }
+        TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> (cel->Material());
+        if (!pMatWithMem2) {
+            continue;
+        }
+
+        const TPZFMatrix<STATE> &elsol = fCompMesh->ElementSolution();
+        if (elsol(el,0) < refineaboveval) {
+            continue;
+        }
+        //cout << "porder = " << porder << endl;
+        TPZStack<long> subels;
+        long index = cel->Index();
+        elindices.insert(index);
+        intel->SetPreferredOrder(porder);
+    }
+
+    fCompMesh->AdjustBoundaryElements();
+    fCompMesh->InitializeBlock();
+//     fCompMesh->Solution().Zero();
+//     fCompMesh->Solution().Resize(0, 0);
+//     fCompMesh->Solution().Redim(fCompMesh->NEquations(), 1);
+}
 // Get the vector of element plastic deformations
 void Slope::ComputeElementDeformation()
 {
@@ -1218,6 +1295,33 @@ void Slope::ComputeElementDeformation()
     }
     fCompMesh->SetElementSolution(0, fPlasticDeformSqJ2);
 }
+
+
+void Slope::ApplyHistory(std::set<long> &elindices)
+{
+
+//     std::set<long>::iterator it;
+//     for (it=elindices.begin(); it != elindices.end(); it++) {
+//         long elindex = *it;
+//         TPZCompEl *cel = fCurrentConfig.fCMesh.ElementVec()[elindex];
+//         TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> (cel->Material());
+//         if (!pMatWithMem2) {
+//             DebugStop();
+//         }
+//         // Reset the memory of the integration points of the element
+//         TPZManVector<long> pointindices;
+//         cel->GetMemoryIndices(pointindices);
+//         long npoints = pointindices.size();
+//         for (long ip = 0; ip<npoints; ip++) {
+//             long ind = pointindices[ip];
+//             pMatWithMem2->ResetMemItem(ind);
+//         }
+//
+//         int confindex = 0;
+//         //ApplyDeformation(cel);
+//     }
+}
+
 /// Write the data to the output stream
 void Slope::Write(TPZStream &out)
 {
