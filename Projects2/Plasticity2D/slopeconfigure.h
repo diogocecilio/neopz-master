@@ -135,7 +135,7 @@ REAL Slope::Solve(int imc)
 
     cout << "Refining.."<<endl;
     std::set<long> elindices,elindices2;
-    for (int iref=1; iref<fref; iref++ )
+    for (int iref=1; iref<=fref; iref++ )
     {
         ComputeElementDeformation();
         PRefineElementsAbove(0.01, fPorder+iref,elindices2);
@@ -147,11 +147,11 @@ REAL Slope::Solve(int imc)
         FSOLD=FS;
         FS = ShearRed(20,0.5,0.01);
 
-        if(neq>5000||neqold==neq||fabs(FS-FSOLD)<0.001)
-        {
-            cout << " # of equations execeded the maximum, or no element was refined, exiting refinement method."<<endl;
-            break;
-        }
+        //if(neq>5000||neqold==neq||fabs(FS-FSOLD)<0.001)
+       // {
+          //  cout << " # of equations execeded the maximum, or no element was refined, exiting refinement method."<<endl;
+         //   break;
+        //}
     }
 
     auto var=to_string ( imc );

@@ -216,7 +216,7 @@ void MonteCarlo()
         string filenameatrito="/home/diogo/projects/neopz-master/Projects2/Plasticity2D/atrito3.dat";
 
         int ref0=2;//original ref
-        int ref1=4;//adaptive ref
+        int ref1=3;//adaptive ref
 
         std::vector<double> coordbc ( 3 );
         coordbc[0]=75.;
