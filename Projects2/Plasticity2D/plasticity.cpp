@@ -240,7 +240,7 @@ void MonteCarlo()
 //                 580};
        // int sim[27]={46,50,51,83,144,169,182,183,193,194,197,215,242,247,255,381,408,439,444,454,464,481,508,532,567,581,582};
 
-        for ( int imc=0; imc<1000; imc++ )
+        for ( int imc=45; imc<100; imc++ )
         {
 
                 //TPZGeoMesh *gmesh =   CreateGMeshSlope ( ref0 +2);

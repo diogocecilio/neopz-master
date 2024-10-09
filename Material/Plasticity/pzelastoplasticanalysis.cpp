@@ -73,7 +73,7 @@ bool TPZElastoPlasticAnalysis::FindRoot(int & iters){
     TPZFMatrix<STATE> x(Solution()), dx(Solution());
     x.Zero();
     dx.Zero();
-    REAL tol = 1.e-4;
+    REAL tol = 1.e-3;
     int n_it = 100;
     AssembleResidual();
     normrhs0=Norm(Rhs());
@@ -418,7 +418,7 @@ bool TPZElastoPlasticAnalysis::IterativeProcess2 ( std::ostream &out,REAL tol,in
         c= errorrhs > tol;
 
         iters=iter;
-        if ( ( iter >=numiter || ( iter>5&& normf >errorrhs &&normu>errordisplace) ) )
+        if ( ( iter >=numiter || ( iter>10&& normf >errorrhs &&normu>errordisplace) ) )
         {
             //cout << "\nDivergent Method\n";
             return false;

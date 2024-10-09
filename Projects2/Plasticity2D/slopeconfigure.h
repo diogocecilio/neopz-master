@@ -549,7 +549,7 @@ REAL Slope::ShearRed (int maxcout,REAL FS0,REAL fstol )
         fCompMesh->Solution().Zero();
         typedefanal* anal =  SlopeAnalysis(type,numthreads);
         REAL norm = 1000.;
-        REAL tol2 = 1.e-3;
+        REAL tol2 = 1.e-2;
         int NumIter = 100;
         bool linesearch = true;
         bool checkconv = false;
