@@ -229,7 +229,7 @@ void MonteCarlo()
         REAL coes=10.;
         REAL atrito=30.*M_PI/180;
 
-        for ( int imc=10; imc<1000; imc++ )
+        for ( int imc=178; imc<1000; imc++ )
         {
 
                 //TPZGeoMesh *gmesh =   CreateGMeshSlope ( ref0 +2);

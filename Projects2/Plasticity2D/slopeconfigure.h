@@ -122,6 +122,7 @@ Slope::Slope( TPZGeoMesh * gmesh,int porder,int ref,REAL gammaagua, REAL gammaso
 REAL Slope::Solve(int imc)
 {
     int neqold;
+    REAL FSOLD=1000.;
     fCompMesh = CreateCMeshElastoplastic ( fGmesh, fPorder );
     int neq=fCompMesh->NEquations();
     cout << "NUMBER OF EQUATIONS  = " << neq << endl;
@@ -138,16 +139,15 @@ REAL Slope::Solve(int imc)
         fCompMesh = CreateCMeshElastoplastic ( fGmesh, fPorder );
         neqold=neq;
         neq=fCompMesh->NEquations();
-        cout << "# of equations  = " <<neq  << endl;
         TransferFieldsSolutionFrom(imc);
+        cout << "# of equations  = " <<neq << " fabs(FS-FSOLD)  "  << fabs(FS-FSOLD)  << endl;
+        FSOLD=FS;
         FS = ShearRed(20,0.5,0.01);
-        if(neq>5000||neqold==neq)
+
+        if(neq>5000||neqold==neq||fabs(FS-FSOLD)<0.02)
         {
-            //fCompMesh = CreateCMeshElastoplastic ( gmesh, fPorder );
             cout << " # of equations execeded the maximum, or no element was refined, exiting refinement method."<<endl;
-            cout << " solving final step  "  <<endl;
             break;
-            //fSolver=1;
         }
     }
 
