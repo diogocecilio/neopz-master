@@ -83,11 +83,14 @@ TPZGeoMesh *  CreateGMeshSlope ( int ref );
 TPZGeoMesh * CreateGMesh ( int ref,string file,std::vector<double> coordbc );
 
 TPZCompMesh * CreateCMeshField (  TPZGeoMesh *gmesh,string filename );
-
+void SolveDeter();
 void TransferSolutionFrom ( TPZFMatrix<REAL> dataexter,TPZCompMesh *cmesh);
 int FindElement ( TPZCompMesh * cmesh,TPZManVector<REAL,3>&vecx, TPZManVector<REAL,3>&vecxi );
 void SetSol(TPZInterpolationSpace * intel,TPZMaterialDataT<REAL>& data,TPZFMatrix<REAL> dataexter);
 void MonteCarlo();
+TPZGeoMesh * TriGMesh(int ref,string file);
+
+TPZGeoMesh *  CreateGMeshSlopeMista ( int ref );
 //1 Ler os dados e colocar em matrizes cheias
 // x1 y1 z1 dado1 dado2 ... dado n
 // x2 y2 z2 dado1 dado2 ... dado n
@@ -106,117 +109,19 @@ int main()
         TPZLogger::InitializePZLOG();
 #endif
 
+        //SolveDeter();
         MonteCarlo();
-//         int ref0=2;
-//         string file;
-//         file="/home/diogo/projects/neopz-master/Projects2/Plasticity2D/tri-struc-v2.msh";
-//         std::vector<double> coordbc ( 3 );
-//         //coordbc[0]=30.;coordbc[1]=5.;coordbc[2]=5.;
-//         coordbc[0]=75.;
-//         coordbc[1]=30.;
-//         coordbc[2]=10.;
-//         //coordbc[0]=75.;coordbc[1]=30.;coordbc[2]=5.;
-//         TPZGeoMesh *gmesh = CreateGMesh ( ref0,file,coordbc );
-//       //  TPZGeoMesh *gmesh =   CreateGMeshSlope ( ref0 );
-//
-//         //TPZCompMesh * cmesh = new TPZCompMesh(gmesh);
-//
-//         int ref1=3;
-//         int porder=2;
-//         REAL gammaagua=0.;
-//         REAL gammasolo=20.;
-//         REAL coes=10.;
-//         REAL atrito=30.*M_PI/180;
-//         Slope*SlopeManager = new Slope ( gmesh,porder,ref1,gammaagua,gammasolo,coes,atrito );
-//
-//         TPZGeoMesh *gmesh2 = CreateGMesh ( ref0,file,coordbc );
-//         TPZGeoMesh *gmesh3 = CreateGMesh ( ref0,file,coordbc );
-//         string filenamecoes="/home/diogo/projects/neopz-master/Projects2/Plasticity2D/coesao3.dat";
-//         string filenameatrito="/home/diogo/projects/neopz-master/Projects2/Plasticity2D/atrito3.dat";
-//         TPZCompMesh * cmeshfieldatrito= CreateCMeshField ( gmesh2,filenameatrito);
-//         TPZCompMesh * cmeshfieldcoes = CreateCMeshField ( gmesh3,filenamecoes);
-//
-//         TPZVec<TPZCompMesh*> cmeshvec(2);
-//
-//
-//         cmeshvec[0]=cmeshfieldcoes;
-//         cmeshvec[1]=cmeshfieldatrito;
-//
-//         SlopeManager->SetCompMeshField(cmeshvec);
-//
-//
-// //
-//         auto t1 = high_resolution_clock::now();
-//
-//         SlopeManager->Solve( 0);
-//         auto t2 = high_resolution_clock::now();
-//         auto ms_int = duration_cast<seconds> ( t2 - t1 );
-//         //std::cout << "tempo total iterative process = "<<ms_int.count() << " s\n";
-//         //conv  = anal->IterativeProcess ( cout, tol2, NumIter,linesearch,checkconv,iters);
-//         cout <<" tempo total da simulacao   = "<<ms_int.count() << " s " << endl;
-//          //conv = anal->FindRoot ( );
-//
-//
-
-        //SlopeManager->ShearRed();
-
-        //SlopeManager->PostPlasticity("saida0.vtk");
-//     cout << "Refining.."<<endl;
-//     std::set<long> elindices;
-//     for (int iref=1; iref<=0; iref++ )
-//     {
-//         Slope*SlopeManagertemp = new Slope(gmesh,porder,gammaagua,gammasolo);
-//         SlopeManagertemp->ShearRed();
-//         SlopeManagertemp->ComputeElementDeformation();
-//         SlopeManagertemp->DivideElementsAbove ( 0.01,elindices );
-//         gmesh=SlopeManagertemp->fCompMesh->Reference();
-//     }
-//
-//     Slope*SlopeManager = new Slope(gmesh,porder,gammaagua,gammasolo);
-//
-//     cout << "Solving again.."<<endl;
-//     //fCompMesh = CreateCMeshElastoplastic ( fGmesh, fPorder );
-//     SlopeManager->ShearRed();
-//     SlopeManager->PostPlasticity("saida3.vtk");
-
-
-
-
-//
-//     TPZCompMesh  *cmesh = SlopeManager->fCompMesh;
-//     TPZManVector<REAL,3> vecx(3);
-//     TPZManVector<REAL,3> vecxi(2);
-//     vecx[0]=40.5;
-//     vecx[1]=29.7;
-//     vecx[2]=0.;
-//     FindElement(cmesh,vecx,vecxi);
-
-
-
-
-//     {
-//         TPZBFileStream save;
-//         save.OpenWrite("Config1-0.bin");
-//         SlopeManager->Write(save);
-//     }
-//
-//     {
-//         TPZBFileStream read;
-//         read.OpenRead("Config1-0.bin");
-//         SlopeManager->Read(read);
-//     }
-
         return 0;
 }
 
 void MonteCarlo()
 {
-        string file="/home/diogo/projects/neopz-master/Projects2/Plasticity2D/tri-struc-v2.msh";
-        string filenamecoes="/home/diogo/projects/neopz-master/Projects2/Plasticity2D/coesao3.dat";
-        string filenameatrito="/home/diogo/projects/neopz-master/Projects2/Plasticity2D/atrito3.dat";
+
+        string filenamecoes="/home/diogo/projects/neopz-master/Projects2/Plasticity2D/coesao2tri.dat";
+        string filenameatrito="/home/diogo/projects/neopz-master/Projects2/Plasticity2D/atrito2tri.dat";
 
         int ref0=2;//original ref
-        int ref1=3;//adaptive ref
+        int ref1=2;//adaptive ref
 
         std::vector<double> coordbc ( 3 );
         coordbc[0]=75.;
@@ -229,41 +134,25 @@ void MonteCarlo()
         REAL coes=10.;
         REAL atrito=30.*M_PI/180;
 
-//         int sim[36]={
-//                  36,47,56,73,83,
-//                 119,128,134,149,157,
-//                 193,196,205,220,226,
-//                 238,257,291,298,323,
-//                 325,332,342,344,375,
-//                 380,385,413,432,444,
-//                 493,498,557,567,577,
-//                 580};
-       // int sim[27]={46,50,51,83,144,169,182,183,193,194,197,215,242,247,255,381,408,439,444,454,464,481,508,532,567,581,582};
-
-        for ( int imc=750; imc<1000; imc++ )
+        for ( int imc=0; imc<2; imc++ )
         {
-
-                //TPZGeoMesh *gmesh =   CreateGMeshSlope ( ref0 +2);
-                TPZGeoMesh *gmesh = CreateGMesh ( ref0,file,coordbc );
+                TPZGeoMesh *gmesh = TriGMesh(ref0,"malhaplastica");
                 Slope*SlopeManager = new Slope ( gmesh,porder,ref1,gammaagua,gammasolo,coes,atrito );
-                 TPZGeoMesh *gmesh2 = CreateGMesh ( ref0,file,coordbc );
-                 TPZGeoMesh *gmesh3 = CreateGMesh ( ref0,file,coordbc );
-                //TPZGeoMesh *gmesh2 = CreateGMeshSlope ( ref0+2 );
-                //TPZGeoMesh *gmesh3 = CreateGMeshSlope ( ref0+2);
+                TPZGeoMesh *gmesh2 = TriGMesh(ref0,"malhacoes");
+                TPZGeoMesh *gmesh3 = TriGMesh(ref0,"malhaatrito");
 
                 TPZCompMesh * cmeshfieldatrito= CreateCMeshField ( gmesh2,filenameatrito);
                 TPZCompMesh * cmeshfieldcoes = CreateCMeshField ( gmesh3,filenamecoes);
 
                 TPZVec<TPZCompMesh*> cmeshvec(2);
 
-
                 cmeshvec[0]=cmeshfieldcoes;
                 cmeshvec[1]=cmeshfieldatrito;
 
                 SlopeManager->SetCompMeshField(cmeshvec);
 
-                string saidafs = "post/fs";
-                string vtk = "postvtk/saidamontecarloplasticity";
+                string saidafs = "/home/diogo/Dropbox/adaptive-random-fields-applyed-to-slopes/results/result2/post/fs";
+                string vtk = "/home/diogo/Dropbox/adaptive-random-fields-applyed-to-slopes/results/result2/postvtk/saidamontecarloplasticity";
                 auto var=to_string ( imc );
                 saidafs+=var;
                 vtk+=var;
@@ -286,8 +175,6 @@ void MonteCarlo()
                 delete gmesh2;
                 delete gmesh3;
                 delete SlopeManager;
-                //delete cmeshfieldatrito;
-                //delete cmeshfieldcoes;
 
         }
 }
@@ -386,129 +273,144 @@ void TransferSolutionFrom ( TPZFMatrix<REAL> dataexter,TPZCompMesh *cmesh)
 
 }
 
-// void TransferSolutionFrom ( TPZFMatrix<REAL> dataexter,TPZCompMesh *cmesh)
-// {
-//     std::vector<std::vector<double>> datastd;
-//
-//
-//     TPZGeoMesh *gmesh = cmesh->Reference();
-//
-//     TPZAdmChunkVector<TPZGeoNode> & nodevec =  gmesh->NodeVec();
-//
-//     int nnodes = nodevec.NElements();
-//
-//     for(int inode=0;inode<nnodes;inode++)
-//     {
-//         TPZManVector<REAL,3> co(3),xi(2);
-//         nodevec[inode].GetCoordinates(co);
-//         int el = FindElement ( cmesh,co,xi );
-//
-//         //cout << "el  = " << el <<endl;
-//         TPZCompEl *cel =  cmesh->ElementVec()[el];
-//         if(!cel)
-//         {
-//             continue;
-//         }
-//         TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *> ( cel );
-//         if(!intel)
-//         {
-//             continue;
-//         }
-//         TPZMaterialDataT<REAL> data;
-//         intel->InitMaterialData ( data );
-//         data.fNeedsSol = true;
-//
-//         data.intLocPtIndex = inode;
-//         intel->ComputeRequiredData ( data, xi );
-//
-//         //intel->ComputeSolution(xi,data);
-//
-//
-//
-//         REAL x,y,z,solu;
-//         x=data.x[0];
-//         y=data.x[1];
-//         z=data.x[2];
-//
-//
-//         REAL xext = dataexter(inode,0);
-//         REAL yext = dataexter(inode,1);
-//         REAL zext = dataexter(inode,2);
-//         if(fabs(xext-x)>1.e-3||fabs(yext-y)>1.e-3||fabs(zext-z)>1.e-3)
-//         {
-//             cout << "as coordendas dos dados internos nao batem com a mablha interna."<<endl;
-//             DebugStop();
-//         }
-//
-//        // SetSol(intel,data,dataexter);
-//        // intel->LoadSolution();
-//     }
-//
-// }
-void SetSol(TPZInterpolationSpace * intel,TPZMaterialDataT<REAL>& data,TPZFMatrix<REAL> dataexter)
+void SolveDeter()
 {
-        const TPZFMatrix<REAL> &phi = data.phi;
 
-	const int nstate = intel->Material()->NStateVariables();
-	const int ncon = intel->NConnects();
-	TPZBlock &block = intel->Mesh()->Block();
-	//TPZFMatrix<REAL> &MeshSol = intel->Mesh()->Solution();
-    //const int64_t numbersol = MeshSol.Cols();
+        REAL gammaagua=0.;
+        REAL gammasolo=20.;
+        REAL coes=10.;
+        REAL atrito=30.*M_PI/180;
 
-        int numbersol= dataexter.Cols()-3;
-        data.sol.resize(numbersol);
-    for (int is = 0; is<numbersol; is++) {
-        data.sol[is].Resize(1);
-        data.sol[is].Fill(0.);
-    }
-
-        	int64_t iv = 0;
-	for(int in=0; in<ncon; in++) {
-		TPZConnect *df = &intel->Connect(in);
-		const int64_t dfseq = df->SequenceNumber();
-		const int dfvar = block.Size(dfseq);
-		const int64_t pos = block.Position(dfseq);
-		for(int jn=0; jn<dfvar; jn++) {
-            for (int64_t is=0; is<numbersol-3; is++) {
-                data.sol[is][iv%nstate] +=
-                    (REAL)phi.Get(iv/nstate,0)*dataexter(pos+jn,is+3);
-            }
-			iv++;
-		}
-	}
+        std::set<long> elindices,elindices2;
+        TPZGeoMesh *gmeshtest = TriGMesh(  2,"teste" );
+        Slope*SlopeManagertest = new Slope ( gmeshtest,1,1,gammaagua,gammasolo,coes,atrito );
+        SlopeManagertest->ShearRed(20,0.5,0.01);
+        SlopeManagertest->ComputeElementDeformation();
+        SlopeManagertest->PRefineElementsAbove(0.01, 3,elindices2);
+        SlopeManagertest->DivideElementsAbove ( 0.01,elindices );
+        SlopeManagertest->InitializeMemory();
+        SlopeManagertest->ShearRed(20,0.5,0.01);
+        string meshref = "refinidemesh-grid.vtk";
+        std::ofstream files ( meshref );
+        TPZVTKGeoMesh::PrintGMeshVTK (SlopeManagertest->fCompMesh->Reference(),files,true );
+        string vtk0 = "benchmark.vtk";
+        SlopeManagertest->PostPlasticity(vtk0);
 }
-int FindElement ( TPZCompMesh * cmesh,TPZManVector<REAL,3>&vecx, TPZManVector<REAL,3>&vecxi )
+
+TPZGeoMesh * TriGMesh(int ref,string file)
 {
-        int nels = cmesh->NElements();
+        const std::string name ( file);
 
-        REAL tol=1.e-5;
+        TPZGeoMesh *gmesh  =  new TPZGeoMesh();
 
-        for ( int iel=0; iel<nels; iel++ ) {
+        gmesh->SetName ( name );
 
-                TPZCompEl * cel =  cmesh->ElementVec() [iel];
-                if ( !cel ) {
-                        continue;
+        gmesh->SetDimension ( 2 );
+
+        TPZVec<REAL> coord ( 2 );
+
+        vector<vector<double>> co= {
+                /*0*/{0,0},/*1*/{10,0},/*2*/{20,0},/*3*/{30,0},/*4*/{40,0},/*5*/{50,0},/*6*/{60,0},/*7*/{70,0},
+                /*8*/{0,10},/*9*/{10,10},/*10*/{20,10},/*11*/{30,10},/*12*/{40,10},/*13*/{50,10},/*14*/{60,10},/*15*/{70,10},
+                /*16*/{0,20},/*17*/{10,20},/*18*/{20,20},/*19*/{30,20},/*20*/{40,20},/*21*/{50,20},/*22*/{60,20},/*23*/{70,20},
+                /*24*/{0,30},/*25*/{10,30},/*26*/{20,30},/*27*/{30,30},/*28*/{40,30},/*29*/{50,30},/*30*/{60,30},/*31*/{70,30},
+               /*32*/{0,40},/*33*/{10,40},/*34*/{20,40},/*35*/{30,40}
+        };
+        vector<vector<int>> topol = {
+
+                /*0*/{0,1,8},/*1*/{1,9,8},/*2*/{1,2,9},/*3*/{2,10,9},/*4*/{2,3,10},/*5*/{3,11,10},/*6*/{3,4,11},
+                /*7*/{4,12,11},/*8*/{4,5,12}/*9*/,{5,13,12},/*10*/{5,6,13},/*11*/{6,14,13},/*12*/{6,7,14},/*13*/{7,15,14},
+
+                /*14*/{8,9,16},/*15*/{9,17,16},/*16*/{9,10,17},/*17*/{10,18,17},/*18*/{10,11,18},/*19*/{11,19,18},/*20*/{11,12,19},
+                /*21*/{12,20,19},/*22*/{12,13,20}/*23*/,{13,21,20},/*24*/{13,14,21},/*25*/{14,22,21},/*26*/{14,15,22},/*27*/{15,23,22},
+
+                /*28*/{16,17,24},/*29*/{17,25,24},/*30*/{17,18,25},/*31*/{18,26,25},/*32*/{18,19,26},/*33*/{19,27,26},/*34*/{19,20,27},
+                /*35*/{20,28,27},/*36*/{20,21,28}/*37*/,{21,29,28},/*38*/{21,22,29},/*39*/{22,30,29},/*40*/{22,23,30},/*41*/{23,31,30},
+
+                /*42*/{24,25,32},/*43*/{25,33,32},/*44*/{25,26,33},/*45*/{26,34,33},/*46*/{26,27,34},/*47*/{27,35,34},/*48*/{27,28,35},
+
+                {0,1},{1,2},{2,3},{3,4},{4,5},{5,6},{6,7},/*-1 bottom*/
+
+                {7,15},{15,23},{23,31},/*-2 right*/
+
+                {31,30},{30,29},{29,28},/*-3 top right*/
+
+                {35,34},{34,33},{33,32},/*-4 top left*/
+
+                {32,24},{24,16},{16,8},{8,0},/*-5 left*/
+
+                {28,35}/*-6 ramp*/
+
+
+        };
+
+        gmesh->NodeVec().Resize ( co.size() );
+
+        for ( int inode=0; inode<co.size(); inode++ ) {
+                coord[0] = co[inode][0];
+                coord[1] = co[inode][1];
+                gmesh->NodeVec() [inode] = TPZGeoNode ( inode, coord, *gmesh );
+        }
+        TPZVec <long> topotri( 3 );
+        TPZVec <long> TopoLine( 2 );
+        for ( int iel=0; iel<topol.size(); iel++ ) {
+                if(topol[iel].size()==3)
+                {
+                        topotri[0] = topol[iel][0];
+                        topotri[1] = topol[iel][1];
+                        topotri[2] = topol[iel][2];
+                        new TPZGeoElRefPattern< pzgeom::TPZGeoTriangle> ( iel, topotri, 1,*gmesh );
+                }else if ( topol[iel].size() ==2 ) {
+
+                        TopoLine[0] = topol[iel][0];
+                        TopoLine[1] = topol[iel][1];
+                        REAL x0 = co[TopoLine[0]][0];
+                        REAL y0 = co[TopoLine[0]][1];
+                        REAL xf = co[TopoLine[1]][0];
+                        REAL yf = co[TopoLine[1]][1];
+                        REAL tol=1.e-3;
+                        REAL L=70;
+                        REAL h1=30;
+                        REAL h2=10;
+                        if ( ( fabs ( ( y0-0 ) ) <tol && fabs ( ( yf-0 ) ) <tol ) ) {
+                                new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -1, *gmesh );//bottom
+                        } else if ( ( fabs ( ( x0-L ) ) <tol && fabs ( ( xf-L ) ) <tol ) ) {
+                                new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -2, *gmesh );//rigth
+                        } else if ( ( fabs ( ( y0-h1 ) ) <tol && fabs ( ( yf-h1 ) ) <tol ) ) {
+                                new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -3, *gmesh );//toprigth
+                        } else if ( ( fabs ( ( y0- ( h1+h2 ) ) ) <tol && fabs ( ( yf- ( h1+h2 ) ) ) <tol ) ) {
+                                new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -4, *gmesh );//topleft
+                        } else if ( ( fabs ( ( x0-0 ) ) <tol && fabs ( ( xf-0 ) ) <tol ) ) {
+                                new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -5, *gmesh );//left
+                        } else if ( ( fabs ( ( xf-x0 ) ) >tol && fabs ( ( yf-y0 ) ) >tol ) ) {
+                                new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -6, *gmesh );//ramp
+                        } else {
+                                cout<< "bc element not found."<<endl;
+                                cout<< "x0 = " << x0 << " y0 = "<< y0 << endl;
+                                cout<< "xf = " << xf << " yf = "<< yf << endl;
+                                DebugStop();
+                        }
+
                 }
-                TPZGeoEl * gel = cel->Reference();
-                if ( !gel ) {
-                        continue;
-                }
-                bool find = gel->ComputeXInverse ( vecx,vecxi,tol );
-                if ( find ) {
-                        //cout << "ponto encontrado no elemento id "<<iel <<endl;
-                        //cout << "coordenadas no elemento mestre = "<< vecxi << endl;
-                        return iel;
-                } else {
-                        //cout << " ponto NAO encontrado! " <<endl;
-                        //DebugStop();
-                }
-
         }
 
-            cout << " int KLAnalysis::FindElement  ponto NAO encontrado! " <<endl;
-            DebugStop();
+        gmesh->BuildConnectivity();
+        for ( int d = 0; d<ref; d++ ) {
+                int nel = gmesh->NElements();
+                TPZManVector<TPZGeoEl *> subels;
+                for ( int iel = 0; iel<nel; iel++ ) {
+                        TPZGeoEl *gel = gmesh->ElementVec() [iel];
+                        gel->Divide ( subels );
+                }
+        }
 
+        string meshref = "gmeshtri.vtk";
+        std::ofstream files ( meshref );
+        TPZVTKGeoMesh::PrintGMeshVTK ( gmesh,files,true );
+        return gmesh;
 }
+
+
 TPZGeoMesh *  CreateGMeshSlope ( int ref )
 {
         const std::string name ( "Darcy Flow Slope" );
@@ -602,6 +504,145 @@ TPZGeoMesh *  CreateGMeshSlope ( int ref )
         TPZVTKGeoMesh::PrintGMeshVTK ( gmesh,files,true );
         return gmesh;
 }
+
+
+
+TPZGeoMesh *  CreateGMeshSlopeMista ( int ref )
+{
+        const std::string name ( "Malha Mista" );
+
+        TPZGeoMesh *gmesh  =  new TPZGeoMesh();
+
+        gmesh->SetName ( name );
+
+        gmesh->SetDimension ( 2 );
+
+        TPZVec<REAL> coord ( 2 );
+
+        vector<vector<double>> co= {
+                {0., 0.}, {35., 0.}, {45.,0.},{75., 0.},
+                {75., 30.}, {45.,30.},{35., 30.},{0., 30.},
+                {35., 40.},{0., 40.}
+        };
+        vector<vector<int>> topol = {
+                {0,  1,  6, 7},{1,  2,  5, 6}, {2, 3, 4,  5},
+                {5, 6, 8},{6, 8, 9,  7}
+        };
+
+        gmesh->NodeVec().Resize ( co.size() );
+
+        for ( int inode=0; inode<co.size(); inode++ ) {
+                coord[0] = co[inode][0];
+                coord[1] = co[inode][1];
+                gmesh->NodeVec() [inode] = TPZGeoNode ( inode, coord, *gmesh );
+        }
+        TPZVec <long> TopoQuad ( 4 ),topoltri( 3 );
+
+        int el=0;
+        TopoQuad[0] = topol[el][0];
+        TopoQuad[1] = topol[el][1];
+        TopoQuad[2] = topol[el][2];
+        TopoQuad[3] = topol[el][3];
+        new TPZGeoElRefPattern< pzgeom::TPZGeoQuad> ( el , TopoQuad, 1,*gmesh );
+
+        el++;
+        TopoQuad[0] = topol[el][0];
+        TopoQuad[1] = topol[el][1];
+        TopoQuad[2] = topol[el][2];
+        TopoQuad[3] = topol[el][3];
+        new TPZGeoElRefPattern< pzgeom::TPZGeoQuad> ( el , TopoQuad, 1,*gmesh );
+
+        el++;
+        TopoQuad[0] = topol[el][0];
+        TopoQuad[1] = topol[el][1];
+        TopoQuad[2] = topol[el][2];
+        TopoQuad[3] = topol[el][3];
+        new TPZGeoElRefPattern< pzgeom::TPZGeoQuad> ( el , TopoQuad, 1,*gmesh );
+
+        el++;
+        topoltri[0] = topol[el][0];
+        topoltri[1] = topol[el][1];
+        topoltri[2] = topol[el][2];
+        new TPZGeoElRefPattern< pzgeom::TPZGeoTriangle> ( el , topoltri, 1,*gmesh );
+
+        el++;
+        TopoQuad[0] = topol[el][0];
+        TopoQuad[1] = topol[el][1];
+        TopoQuad[2] = topol[el][2];
+        TopoQuad[3] = topol[el][3];
+        new TPZGeoElRefPattern< pzgeom::TPZGeoQuad> ( el , TopoQuad, 1,*gmesh );
+
+
+
+
+        int id = 4;
+        TPZVec <long> TopoLine ( 2 );
+        TopoLine[0] = 0;
+        TopoLine[1] = 1;
+        new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -1, *gmesh );//bottom
+
+        id++;
+        TopoLine[0] = 1;
+        TopoLine[1] = 2;
+        new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -1, *gmesh );//bottom
+
+        id++;
+        TopoLine[0] = 2;
+        TopoLine[1] = 3;
+        new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -1, *gmesh );//bottom
+
+        id++;
+        TopoLine[0] = 3;
+        TopoLine[1] = 4;
+        new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -2, *gmesh ); //rigth
+
+        id++;
+        TopoLine[0] = 4;
+        TopoLine[1] = 5;
+        new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -3, *gmesh ); //toprigth
+
+        id++;
+        TopoLine[0] = 8;
+        TopoLine[1] = 9;
+        new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, *gmesh ); //topleft
+
+        id++;
+        TopoLine[0] = 9;
+        TopoLine[1] = 7;
+        new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); //left
+
+        id++;
+        TopoLine[0] = 7;
+        TopoLine[1] = 0;
+        new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); //left
+
+        id++;
+        TopoLine[0] = 5;
+        TopoLine[1] = 8;
+        new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -6, *gmesh ); //ramp
+
+
+
+
+
+
+        gmesh->BuildConnectivity();
+        for ( int d = 0; d<ref; d++ ) {
+                int nel = gmesh->NElements();
+                TPZManVector<TPZGeoEl *> subels;
+                for ( int iel = 0; iel<nel; iel++ ) {
+                        TPZGeoEl *gel = gmesh->ElementVec() [iel];
+                        gel->Divide ( subels );
+                }
+        }
+
+        string meshref = "gmesh.vtk";
+        std::ofstream files ( meshref );
+        TPZVTKGeoMesh::PrintGMeshVTK ( gmesh,files,true );
+        return gmesh;
+}
+
+
 
 TPZGeoMesh * CreateGMesh ( int ref,string file,std::vector<double> coordbc )
 {

@@ -73,6 +73,7 @@ public:
     void ShearReductionIntegrationPoints(REAL FS);
 
     void InitializeMemory();
+    void InitializePOrderInRegion();
 
     void Write(TPZStream &out);
 /// Read the data from the input stream
@@ -119,6 +120,7 @@ Slope::Slope( TPZGeoMesh * gmesh,int porder,int ref,REAL gammaagua, REAL gammaso
     fref = ref;
     fCompMesh = CreateCMeshElastoplastic ( fGmesh, fPorder );
     InitializeMemory();
+    //InitializePOrderInRegion();
     fSolver=0;
 
 }
@@ -128,9 +130,11 @@ REAL Slope::Solve(int imc)
     int neqold;
     REAL FSOLD=1000.;
     fCompMesh = CreateCMeshElastoplastic ( fGmesh, fPorder );
+
     int neq=fCompMesh->NEquations();
     cout << "NUMBER OF EQUATIONS  = " << neq << endl;
     TransferFieldsSolutionFrom(imc);
+    InitializePOrderInRegion();
     REAL FS = ShearRed(20,0.5,0.01);
 
     cout << "Refining.."<<endl;
@@ -155,13 +159,38 @@ REAL Slope::Solve(int imc)
     }
 
     auto var=to_string ( imc );
-    string meshref = "post/refinidemesh-grid";
+    string meshref = "/home/diogo/Dropbox/adaptive-random-fields-applyed-to-slopes/results/result2/post/refinidemesh-grid";
     meshref+=var;
     meshref+=".vtk";
     std::ofstream files ( meshref );
     TPZVTKGeoMesh::PrintGMeshVTK (fCompMesh->Reference(),files,true );
 
     return FS;
+}
+
+void Slope::InitializePOrderInRegion()
+{
+//     fGmesh->ResetReference();
+//     fCompMesh->LoadReferences();
+//     long nelem = fCompMesh->NElements();
+//     for (long el=0; el<nelem; el++) {
+//         TPZCompEl *cel = fCompMesh->ElementVec()[el];
+//         TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *>(cel);
+//         TPZManVector<REAL,3> point ( 2,0. );
+//         TPZMaterialDataT<REAL> data;
+//         intel->InitMaterialData ( data );
+//         intel->ComputeRequiredData ( data, point );
+//
+//         if(data.x[0]<10)
+//         {
+//             intel->SetPreferredOrder(5);
+//         }else{
+//             //intel->SetPreferredOrder(2);
+//         }
+//     }
+//
+//     fCompMesh->AdjustBoundaryElements();
+//     fCompMesh->InitializeBlock();
 }
 
 void Slope::InitializeMemory()
