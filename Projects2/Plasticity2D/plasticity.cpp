@@ -121,14 +121,14 @@ void MonteCarlo()
         string filenameatrito="/home/diogo/projects/neopz-master/Projects2/Plasticity2D/atrito2tri.dat";
 
         int ref0=2;//original ref
-        int ref1=2;//adaptive ref
+        int ref1=5;//adaptive ref
 
         std::vector<double> coordbc ( 3 );
         coordbc[0]=75.;
         coordbc[1]=30.;
         coordbc[2]=10.;
 
-        int porder=1;
+        int porder=2;
         REAL gammaagua=0.;
         REAL gammasolo=20.;
         REAL coes=10.;
@@ -151,8 +151,8 @@ void MonteCarlo()
 
                 SlopeManager->SetCompMeshField(cmeshvec);
 
-                string saidafs = "/home/diogo/Dropbox/adaptive-random-fields-applyed-to-slopes/results/result2/post/fs";
-                string vtk = "/home/diogo/Dropbox/adaptive-random-fields-applyed-to-slopes/results/result2/postvtk/saidamontecarloplasticity";
+                string saidafs = "post/fs";
+                string vtk = "postvtk/saidamontecarloplasticity";
                 auto var=to_string ( imc );
                 saidafs+=var;
                 vtk+=var;

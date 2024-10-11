@@ -151,15 +151,18 @@ REAL Slope::Solve(int imc)
         FSOLD=FS;
         FS = ShearRed(20,0.5,0.01);
 
-        //if(neq>5000||neqold==neq||fabs(FS-FSOLD)<0.001)
-       // {
-          //  cout << " # of equations execeded the maximum, or no element was refined, exiting refinement method."<<endl;
-         //   break;
-        //}
+        if(fabs(FS-FSOLD)<0.01)
+        {
+            cout << " FS-FSOLD = "<< fabs(FS-FSOLD)<<endl;
+            break;
+        }else if (neq>10000||neqold==neq){
+            cout << " neq>10000 = "<< neq <<" neqold = "<< neqold <<endl;
+            break;
+        }
     }
 
     auto var=to_string ( imc );
-    string meshref = "/home/diogo/Dropbox/adaptive-random-fields-applyed-to-slopes/results/result2/post/refinidemesh-grid";
+    string meshref = "post/refinidemesh-grid";
     meshref+=var;
     meshref+=".vtk";
     std::ofstream files ( meshref );
