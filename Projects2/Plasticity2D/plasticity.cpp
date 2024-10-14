@@ -69,7 +69,7 @@
 #include "pzlog.h"
 #include "TPZFileStream.h"
 #include <TPZBFileStream.h>
-
+#include "slopeanalysis.h"
 using std::chrono::high_resolution_clock;
 using std::chrono::duration_cast;
 using std::chrono::duration;
@@ -109,9 +109,16 @@ int main()
         TPZLogger::InitializePZLOG();
 #endif
 
+        slopeanalysis anal;
+        anal.CreateFields();
         //SolveDeter();
-        MonteCarlo();
+       // MonteCarlo();
         return 0;
+}
+
+void MonteCarloFields()
+{
+
 }
 
 void MonteCarlo()
@@ -199,79 +206,6 @@ TPZCompMesh * CreateCMeshField ( TPZGeoMesh *gmesh,string filename )
         return cmesh;
 }
 
-void TransferSolutionFrom ( TPZFMatrix<REAL> dataexter,TPZCompMesh *cmesh)
-{
-    int rows=dataexter.Rows();
-    int cols=dataexter.Cols();
-
-    int nels =  cmesh->NElements();
-
-    TPZGeoMesh *gmesh = cmesh->Reference();
-
-    REAL tol=1.e-6;
-
-    for(int iel=0;iel<nels;iel++)
-    {
-            TPZCompEl * cel =  cmesh->Element(iel);
-
-            TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *> ( cel );
-
-            TPZMaterialDataT<REAL> data;
-            intel->InitMaterialData ( data );
-            data.fNeedsSol = true;
-
-            int numbersol= dataexter.Cols();
-            data.sol.resize ( numbersol );
-            for ( int is = 0; is<numbersol; is++ ){
-                    data.sol[is].Resize ( 1 );
-                    data.sol[is].Fill ( 0. );
-        }
-
-
-            TPZGeoEl * gel =cel->Reference();
-
-            TPZVec<int64_t> nodeinds;
-            gel->GetNodeIndices(nodeinds);
-
-            int nnodes=nodeinds.size();
-
-            int nconnects = intel->NConnects();
-
-             cout << "nodeinds[0]  = "<<nodeinds[0]<< endl;
-            cout << "intel->ConnectIndex(0)  = "<<intel->ConnectIndex(0)<< endl;
-
-            for(int inode=0;inode<nconnects;inode++)
-            {
-                TPZConnect *df = &intel->Connect(inode);
-                TPZGeoNode node = gmesh->NodeVec()[inode];
-
-                TPZManVector<REAL,3> co(3);
-                node.GetCoordinates(co);
-                for(int irow=0;irow<rows;irow++)
-                {
-                        REAL xdata = dataexter(irow,0);
-                        REAL ydata = dataexter(irow,1);
-                        REAL zdata = dataexter(irow,2);
-                        if(fabs(xdata-co[0])<tol&&fabs(ydata-co[1])<tol&&fabs(zdata-co[2])<tol)
-                        {
-
-                                for(int icol=0;icol<cols;icol++)
-                                {
-                                        data.sol[icol][0]=dataexter(irow,icol);
-                                }
-
-                                intel->LoadSolution();
-
-                        }
-
-                }
-
-            }
-
-    }
-
-
-}
 
 void SolveDeter()
 {

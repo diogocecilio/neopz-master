@@ -1,6 +1,5 @@
 //
 //
-
 #include "TPZRandomFieldAnalysis.h"
 #include "TPZEigenSolver.h"
 #include "TPZKrylovEigenSolver.h"
@@ -11,7 +10,6 @@
 #include "TPZMatGeneralisedEigenVal.h"
 #include "TPZMaterial.h"
 #include "pzcmesh.h"
-
 #include "pzlog.h"
 #include <random>
 #ifdef PZ_LOG
@@ -163,7 +161,7 @@ void TPZRandomFieldAnalysis::Solve()
         cout << "| total time  =  " << time_span.count() << std::endl;
 
         int ncols = ces.eigenvectors().cols();
-        if(!fNValues)
+        if(!fNValues||fNValues>ncols)
         {
           fNValues = ncols;
         }
@@ -392,8 +390,18 @@ void TPZRandomFieldAnalysis::LoadRealSol(TPZFMatrix<CSTATE> sol)
   }
   LoadSolution(solut);
 }
+void TPZRandomFieldAnalysis::ManageFieldCretion()
+{
+  int nfields = fMeanvec.size();
+  fFields.resize(nfields);
+  if(!nfields)DebugStop();
+  for(int ifield=0;ifield<nfields;ifield++)
+  {
+    fFields[ifield] = GenerateNonGaussinRandomField ( fMeanvec[ifield],fCovvec[ifield],fSamples );
+  }
 
-void  TPZRandomFieldAnalysis::GenerateNonGaussinRandomField (REAL mean, REAL cov, string filename,int samples )
+}
+TPZFMatrix<REAL>  TPZRandomFieldAnalysis::GenerateNonGaussinRandomField (REAL mean, REAL cov,int samples )
 {
         TPZVec<REAL> mean2 ( 2 );
         TPZVec<REAL> cov2 ( 2 );
@@ -433,8 +441,9 @@ void  TPZRandomFieldAnalysis::GenerateNonGaussinRandomField (REAL mean, REAL cov
           }
         }
 
-        PrintField(hhat,filename);
+        //PrintField(hhat,filename);
         //LoadSolution(hhat);
+        return hhat;
 }
 
 void TPZRandomFieldAnalysis::PrintField(TPZFMatrix<REAL> matfield,string filename)
@@ -494,6 +503,11 @@ void TPZRandomFieldAnalysis::Write(TPZStream &buf, int withclassid) const
 {
   //TPZAnalysis::Write(buf,withclassid);
   fSolution.Write(buf,withclassid);
+  for(int ifield=0;ifield< fFields.size(); ifield++)
+  {
+    fFields[ifield].Write(buf,withclassid);
+  }
+
 
 }
 
@@ -501,5 +515,10 @@ void TPZRandomFieldAnalysis::Read(TPZStream &buf, void *context)
 {
   //TPZAnalysis::Read(buf,context);
   fSolution.Read(buf,context);
+  fFields.resize(2);
+  for(int ifield=0;ifield< fFields.size(); ifield++)
+  {
+    fFields[ifield].Read(buf,context);
+  }
 
 }

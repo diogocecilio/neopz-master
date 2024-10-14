@@ -33,6 +33,10 @@ public:
     //contrutor que inicializa os dados da analise do talude
     Slope( TPZGeoMesh * gmesh,int porder,int ref, REAL gammaagua, REAL gammasolo,REAL coes,REAL atrito);
 
+    Slope( );
+
+    ~Slope();
+
     //contrutor que inicializa os dados da analise do talude
     TPZCompMesh * CreateCMeshElastoplastic ( TPZGeoMesh *gmesh, int pOrder );
     TPZCompMesh *CreateCompMesh(TPZGeoMesh *gmesh,int porder) ;
@@ -107,7 +111,16 @@ protected:
 
 };
 
+Slope::~Slope()
+{
 
+}
+
+
+Slope::Slope( )
+{
+
+}
 
 Slope::Slope( TPZGeoMesh * gmesh,int porder,int ref,REAL gammaagua, REAL gammasolo,REAL coes, REAL atrito)
 {

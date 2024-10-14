@@ -1,30 +1,34 @@
-#include <time.h>
-#include <stdio.h>
-#include <fstream>
-#include <iostream>
-#include <chrono>
-#include <fstream>
-#include "TPZRandomFieldAnalysis.h"
-#include "TPZKarhunenLoeveMat.h"
-#include "pzcmesh.h"
-#include "tpzgeoelrefpattern.h"
-#include "TPZVTKGeoMesh.h"
-#include "TPZFileStream.h"
-#include "TPZBFileStream.h"
+// SPDX-FileCopyrightText: 2024 <copyright holder> <email>
+// SPDX-License-Identifier: Apache-2.0
 
-using namespace std;
-TPZGeoMesh * TriGMesh ( int ref );
-TPZCompMesh* CreateCompMeshKL ( TPZGeoMesh * gmesh );
-
-int main()
+#include "slopeanalysis.h"
+slopeanalysis::slopeanalysis( ):
+Slope()
 {
 
-        std::cout << "hello random" << std::endl;
-        int ref=0;
-        TPZGeoMesh * gmesh =  TriGMesh ( ref );
-        TPZCompMesh * cmesh = CreateCompMeshKL ( gmesh );
+}
+slopeanalysis::slopeanalysis( TPZGeoMesh * gmesh,int porder,int ref, REAL gammaagua, REAL gammasolo,REAL coes,REAL atrito):
+Slope( gmesh, porder, ref, gammaagua, gammasolo, coes,atrito)
+{
 
-        TPZRandomFieldAnalysis * randonanalysis = new TPZRandomFieldAnalysis ( cmesh );
+}
+
+slopeanalysis::slopeanalysis ( const slopeanalysis& other ):Slope(other)
+{
+
+}
+
+slopeanalysis::~slopeanalysis()
+{
+
+}
+
+void slopeanalysis::CreateFields()
+{
+        int ref0=0;
+        TPZGeoMesh * gmesh =  TriGMesh(ref0);
+        TPZCompMesh* fCompMeshSlope = CreateCompMeshKL ( gmesh );
+        TPZRandomFieldAnalysis * fFieldAnalysis = new TPZRandomFieldAnalysis ( fCompMeshSlope );
 
         TPZManVector<std::string> scalarnames ( 7 ), vecnames;
         scalarnames[0] = "vec";
@@ -35,28 +39,27 @@ int main()
         scalarnames[5] = "vec5";
         scalarnames[6] = "vecsqr";
 
-        int Startfrom=2;
+        int Startfrom=0;
         if ( Startfrom ==0 ) {
 
-                randonanalysis->SetNEigenpairs ( 250 );
-                randonanalysis->Solve();
+                fFieldAnalysis->SetNEigenpairs ( 250 );
+                fFieldAnalysis->Solve();
 
                 TPZBFileStream save;
                 save.OpenWrite ( "Config1-0.bin" );
-                randonanalysis->Write ( save,randonanalysis->ClassId() );
+                fFieldAnalysis->Write ( save,fFieldAnalysis->ClassId() );
 
         }
 
         if ( Startfrom ==1 ) {
-                //TPZRandomFieldAnalysis * dymmyanalysis = new TPZRandomFieldAnalysis(cmesh);
 
                 TPZBFileStream read;
                 read.OpenRead ( "Config1-0.bin" );
-                randonanalysis->Read ( read,0 );
+                fFieldAnalysis->Read ( read,0 );
 
-                randonanalysis->LoadSolution();
-                randonanalysis->DefineGraphMesh ( 2,scalarnames,vecnames,"filename2.vtk" );
-                randonanalysis->PostProcess ( 0 );
+                fFieldAnalysis->LoadSolution();
+                fFieldAnalysis->DefineGraphMesh ( 2,scalarnames,vecnames,"filename2.vtk" );
+                fFieldAnalysis->PostProcess ( 0 );
 
                 TPZVec<REAL> meanvec(2);
                 meanvec[0]=10;
@@ -65,13 +68,13 @@ int main()
                 covvec[0]=0.3;
                 covvec[1]=0.2;
                 int samples=1000;
-                randonanalysis->SetFieldsData( meanvec,covvec,  samples);
+                fFieldAnalysis->SetFieldsData( meanvec,covvec,  samples);
 
-                randonanalysis->ManageFieldCretion();
+                fFieldAnalysis->ManageFieldCretion();
 
                 TPZBFileStream save;
                 save.OpenWrite ( "Config2-0.bin" );
-                randonanalysis->Write ( save,randonanalysis->ClassId() );
+                fFieldAnalysis->Write ( save,fFieldAnalysis->ClassId() );
         }
 
         if ( Startfrom ==2 ) {
@@ -79,21 +82,20 @@ int main()
 
                 TPZBFileStream read;
                 read.OpenRead ( "Config2-0.bin" );
-                randonanalysis->Read ( read,0 );
+                fFieldAnalysis->Read ( read,0 );
 
                 TPZVec<TPZFMatrix<REAL>> fields;
 
-                fields = randonanalysis->GetFields();
+                fields = fFieldAnalysis->GetFields();
 
-                randonanalysis->LoadSolution ( fields[1] );
-                randonanalysis->DefineGraphMesh ( 2,scalarnames,vecnames,"fields[1].vtk" );
-                randonanalysis->PostProcess ( 0 );
+                fFieldAnalysis->LoadSolution ( fields[1] );
+                fFieldAnalysis->DefineGraphMesh ( 2,scalarnames,vecnames,"fields[1].vtk" );
+                fFieldAnalysis->PostProcess ( 0 );
         }
 
-        return 0;
 }
 
-TPZCompMesh* CreateCompMeshKL ( TPZGeoMesh * gmesh )
+TPZCompMesh* slopeanalysis::CreateCompMeshKL ( TPZGeoMesh * gmesh )
 {
 
         int id=1;
@@ -117,7 +119,8 @@ TPZCompMesh* CreateCompMeshKL ( TPZGeoMesh * gmesh )
         return cmesh;
 }
 
-TPZGeoMesh * TriGMesh ( int ref )
+
+TPZGeoMesh * slopeanalysis::TriGMesh ( int ref )
 {
 
         TPZGeoMesh *gmesh  =  new TPZGeoMesh();

@@ -7,10 +7,14 @@
 #include "TPZAnalysis.h"     //For TPZAnalysis
 #include "tpzautopointer.h" //For TPZAutoPointer
 #include "pzmatrix.h"       //For TPZFMatrix
-#include "TPZKLStrMatrix.h"
 #include "TPZLapackEigenSolver.h"
-#include "tpzklinterpolationspace.h"
 #include "TPZEigenSolver.h"
+#include "pzinterpolationspace.h"
+#include "TPZElementMatrixT.h"
+#include <Eigen/Dense>
+
+using namespace std;
+using namespace Eigen;
 class TPZRandomFieldAnalysis : public TPZAnalysis{
 public:
 
@@ -42,7 +46,9 @@ public:
 
     void LoadRealSol(TPZFMatrix<CSTATE> sol);
 
-    void  GenerateNonGaussinRandomField (REAL mean, REAL cov, string filename ,int samples);
+    TPZFMatrix<REAL>  GenerateNonGaussinRandomField (REAL mean, REAL cov ,int samples);
+
+    void ManageFieldCretion();
 
     void FromEigen ( MatrixXd eigenmat, TPZFMatrix<REAL>  &pzmat );
 
@@ -61,9 +67,32 @@ public:
         fNValues=n;
     }
 
+    void SetFieldsData(TPZVec<REAL> meanvec,TPZVec<REAL> covvec, int samples)
+    {
+        fMeanvec =meanvec;
+        fCovvec=covvec;
+        fSamples=samples;
+    }
+
+    void SetFields(TPZVec<TPZFMatrix<REAL>> fields)
+    {
+        fFields=fields;
+    }
+
+    TPZVec<TPZFMatrix<REAL>> GetFields()
+    {
+        return fFields;
+    }
+
 protected:
 
     int fNValues;
+
+    TPZVec<TPZFMatrix<REAL>> fFields;
+
+    TPZVec<REAL> fMeanvec;
+    TPZVec<REAL> fCovvec;
+    int fSamples;
 
 
 };

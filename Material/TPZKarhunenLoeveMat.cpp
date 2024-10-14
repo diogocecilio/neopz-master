@@ -1,7 +1,7 @@
 #include "TPZKarhunenLoeveMat.h"
 
 
-TPZKarhunenLoeveMat::TPZKarhunenLoeveMat ( int id,REAL Lx,REAL Ly,REAL Lz, int dim , int type,int expansionorder )
+TPZKarhunenLoeveMat::TPZKarhunenLoeveMat ( int id,REAL Lx,REAL Ly,REAL Lz, int dim , int type )
 {
   fId=id;
   fLx=Lx;
@@ -9,7 +9,7 @@ TPZKarhunenLoeveMat::TPZKarhunenLoeveMat ( int id,REAL Lx,REAL Ly,REAL Lz, int d
   fLz=Lz;
   fDim=dim;
   ftype=type;
-  fExpasionOrder=expansionorder;
+
   SetId ( id );
 }
 
