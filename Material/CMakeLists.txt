@@ -6,6 +6,7 @@ target_include_directories(pz PUBLIC
                            )
 
 set(public_headers
+    TPZKarhunenLoeveMat.h
     TPZMaterial.h
     TPZMaterialT.h
     TPZMatBase.h
@@ -38,6 +39,7 @@ set(public_headers
     )
 
 set(headers
+    TPZKarhunenLoeveMat.h
     TPZMaterial.h
     TPZMaterialT.h
     TPZMatBase.h
@@ -68,6 +70,8 @@ set(headers
     TPZLagrangeMultiplierCS.h
    )
 set(sources
+
+    TPZKarhunenLoeveMat.cpp   
     TPZMaterial.cpp
     TPZMaterialT.cpp
     TPZBndCond.cpp

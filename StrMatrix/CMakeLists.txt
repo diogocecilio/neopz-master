@@ -6,6 +6,7 @@ target_include_directories(pz PUBLIC
                            )
 #@TODO: check if these public headers are exaggerated
 set(public_headers
+    TPZKLStrMatrix.h
     TPZStrMatParInterface.h
     TPZStructMatrix.h
     TPZStructMatrixT.h
@@ -37,6 +38,7 @@ set(public_headers
     TPZEquationFilter.h
    )
 set(headers
+    TPZKLStrMatrix.cpp
     TPZStrMatParInterface.h
     TPZStructMatrix.h
     TPZStructMatrixT.h

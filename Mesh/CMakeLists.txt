@@ -7,6 +7,7 @@ target_include_directories(pz PUBLIC
 
 
 set(headers
+tpzklinterpolationspace.h
 tpzcompmeshreferred.h
   doxmesh.h
   pzconnect.h
@@ -64,6 +65,7 @@ tpzcompmeshreferred.h
 )
 
 set(sources
+tpzklinterpolationspace.cpp
 tpzcompmeshreferred.cpp
   pzcheckgeom.cpp
   pzelchdivbound2.cpp

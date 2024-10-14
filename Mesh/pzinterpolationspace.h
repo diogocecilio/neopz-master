@@ -5,7 +5,7 @@
 
 #ifndef PZINTERPOLATIONSPACE_H
 #define PZINTERPOLATIONSPACE_H
-
+#include "TPZKarhunenLoeveMat.h"
 #include "pzcompel.h"
 class TPZMaterialData;
 template<class TVar>
@@ -363,6 +363,10 @@ public:
 	 * This method forms the basis for the multigrid method
 	 */
 	void BuildTransferMatrix(TPZInterpolationSpace &coarsel, TPZTransform<> &t, TPZTransfer<STATE> &transfer);
+
+	void CalcStiffB(TPZElementMatrixT<REAL> &be);
+
+	void CalcStiffC(TPZCompEl *jel, TPZElementMatrixT<REAL> &ce);
 	
 protected:
     template<class TVar>
@@ -397,6 +401,8 @@ protected:
 	 * are expanded to include the value of the independent shapefunctions and their derivatives as well
 	 */
     void ExpandShapeFunctions(TPZVec<int64_t> &connectlist, TPZVec<int> &dependencyorder, TPZVec<int> &blocksizes, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi);
+
+
 	
 };
 

@@ -134,7 +134,7 @@ void MonteCarlo()
         REAL coes=10.;
         REAL atrito=30.*M_PI/180;
 
-        for ( int imc=0; imc<2; imc++ )
+        for ( int imc=750; imc<1000; imc++ )
         {
                 TPZGeoMesh *gmesh = TriGMesh(ref0,"malhaplastica");
                 Slope*SlopeManager = new Slope ( gmesh,porder,ref1,gammaagua,gammasolo,coes,atrito );

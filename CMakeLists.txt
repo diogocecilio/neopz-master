@@ -8,7 +8,8 @@ cmake_minimum_required (VERSION 3.14)
 project(PZ LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
+include_directories('src')
+include_directories("/usr/include/eigen3")
 #this allow us to define custom FindXXX.cmake modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
