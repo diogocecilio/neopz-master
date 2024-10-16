@@ -46,10 +46,6 @@ public:
 
     void LoadRealSol(TPZFMatrix<CSTATE> sol);
 
-    TPZFMatrix<REAL>  GenerateNonGaussinRandomField (REAL mean, REAL cov ,int samples);
-
-    void ManageFieldCretion();
-
     void FromEigen ( MatrixXd eigenmat, TPZFMatrix<REAL>  &pzmat );
 
     void ToEigen ( TPZFMatrix<REAL>  pzmat,MatrixXd &eigenmat );
@@ -67,32 +63,20 @@ public:
         fNValues=n;
     }
 
-    void SetFieldsData(TPZVec<REAL> meanvec,TPZVec<REAL> covvec, int samples)
-    {
-        fMeanvec =meanvec;
-        fCovvec=covvec;
-        fSamples=samples;
-    }
 
-    void SetFields(TPZVec<TPZFMatrix<REAL>> fields)
-    {
-        fFields=fields;
-    }
 
-    TPZVec<TPZFMatrix<REAL>> GetFields()
+    TPZFMatrix<REAL> GetSolutionValVec()
     {
-        return fFields;
+        return fSolutionValVec;
     }
 
 protected:
 
     int fNValues;
+    TPZVec<REAL> fEigenvalues;
+    TPZFMatrix<REAL> fEigenvetors;
+    TPZFMatrix<REAL> fSolutionValVec;
 
-    TPZVec<TPZFMatrix<REAL>> fFields;
-
-    TPZVec<REAL> fMeanvec;
-    TPZVec<REAL> fCovvec;
-    int fSamples;
 
 
 };

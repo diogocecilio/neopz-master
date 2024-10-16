@@ -204,6 +204,7 @@ REAL TPZInterpolationSpace::InnerRadius(){
 }
 
 void TPZInterpolationSpace::InitMaterialData(TPZMaterialData &data){
+	std::cout << "dddd = " <<std::endl;
   data.gelElId = this->Reference()->Id();
     TPZMaterial *locmat = this->Material();
     auto *mat =
@@ -214,6 +215,7 @@ void TPZInterpolationSpace::InitMaterialData(TPZMaterialData &data){
         DebugStop();
     }
 #endif
+
 	mat->FillDataRequirements(data);
 	const int dim = this->Dimension();
 	const int nshape = this->NShapeF();

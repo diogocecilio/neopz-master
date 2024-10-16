@@ -381,7 +381,7 @@ bool TPZElastoPlasticAnalysis::IterativeProcess2 ( std::ostream &out,REAL tol,in
     Assemble();
 
     REAL normrhs0 = Norm ( fRhs );
-   // cout << "normrhs0 = " << normrhs0 << endl;
+    //cout << "normrhs0 = " << normrhs0 << endl;
 
     while ( a  && c &&b)
     {
@@ -1154,3 +1154,5 @@ void  TPZElastoPlasticAnalysis::LoadSolution ( TPZFMatrix<STATE> & loadsol )
     fSolution = loadsol;
     LoadSolution();
 }
+
+

@@ -116,6 +116,12 @@ public:
     /** @brief Returns the number of components which form the flux function */
     virtual int NFluxes() {return 0;}
 
+    virtual TPZMaterial * NewMaterial() const override
+    {
+        TPZKarhunenLoeveMat *mat = new TPZKarhunenLoeveMat(fId,fLx,fLy,fLz,fDim,ftype);
+        return mat;
+    }
+
 
     
     /** @brief Prints out the data associated with the material */

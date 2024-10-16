@@ -152,6 +152,20 @@ public:
     }
 
 
+    void DivideElementsAbove(REAL refineaboveval, std::set<long> &elindices);
+
+    void PRefineElementsAbove(REAL refineaboveval, int porder, std::set<long> &elindices);
+
+    void ComputeElementDeformation();
+public:
+    void PostPlasticity(std::string vtkd);
+
+
+    void CreatePostProcessingMesh (TPZPostProcAnalysis * PostProcess );
+
+    void PostProcessVariables ( TPZStack<std::string> &scalNames, TPZStack<std::string> &vecNames );
+
+
 protected:
 
 	/* @brief Cumulative solution vector*/
@@ -171,6 +185,8 @@ protected:
 
     /// The elasticity mesh and vertical deformation mesh
     TPZManVector<TPZCompMesh *,2> fMeshVec;
+
+
 
 	/**
 	 * TPZCompElWithMem<TBASE> creation function setup

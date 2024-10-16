@@ -1,23 +1,93 @@
 // slopeconfigure.h
 #ifndef SLOPE_H // include guard
 #define SLOPE_H
+#include "readgidmesh.h"
 
 #include <cmath>
 #include <set>
 #include <iostream>
 #include <fstream>
 #include <string>
+#include "pzgmesh.h"
+#include "pzstack.h"
+#include "TPZVTKGeoMesh.h"
+#include "TPZAnalysis.h"
+#include <TPZLinearAnalysis.h> //for TPZLinearAnalysis
+#include <TPZSSpStructMatrix.h>
+#include "TPZBndCond.h"
+#include <pzgeoel.h>
+#include "pzgeoelbc.h"
+#include "pzfmatrix.h"
+#include "pzbstrmatrix.h"
+
+#include <TPZGeoElement.h>
+
+#include "pzbuildmultiphysicsmesh.h"
+#include "TPZInterfaceEl.h"
+#include "TPZMultiphysicsInterfaceEl.h"
+#include "pzfstrmatrix.h"
+#include "pzskylstrmatrix.h"
+#include "TPZSkylineNSymStructMatrix.h"
+#include "pzstepsolver.h"
+#include "TPZGeoLinear.h"
+#include "tpzgeoelrefpattern.h"
+#include "TPZParFrontStructMatrix.h"
+#include "TPZSSpStructMatrix.h"
+#include "TPZGmshReader.h"
+#include <pzgmesh.h> //for TPZGeoMesh
+#include <pzcmesh.h> //for TPZCompMesh
+#include <TPZGeoMeshTools.h> //for TPZGeoMeshTools::CreateGeoMeshOnGrid
+#include <MMeshType.h> //for MMeshType
+#include <pzmanvector.h>//for TPZManVector
+#include <Poisson/TPZMatPoisson.h> //for TPZMatPoisson
+#include <TPZBndCond.h> //for TPZBndCond
+#include <TPZLinearAnalysis.h> //for TPZLinearAnalysis
+#include <TPZSSpStructMatrix.h> //symmetric sparse matrix storage
+#include <pzskylstrmatrix.h> //symmetric skyline matrix storage
+#include <pzstepsolver.h> //for TPZStepSolver
+#include <TPZSimpleTimer.h>
+#include "TPZBndCondT.h"
+#include "DarcyFlow/TPZDarcyFlow.h"
+#include <pzlog.h>
+#include "TPZPardisoSolver.h"
+#include "Plasticity/TPZElasticResponse.h"
+#include "Plasticity/pzelastoplasticanalysis.h"
+#include "Plasticity/TPZYCMohrCoulombPV.h"
+#include "Plasticity/TPZMatElastoPlastic_impl.h"
+#include "Plasticity/TPZMatElastoPlastic2D.h"
+#include "Plasticity/TPZMatElastoPlastic.h"
+#include "Plasticity/TPZPlasticStepPV.h"
+
+#include "readgidmesh.h"
+
+#include "pzeuleranalysis.h"
+#include "pzerror.h"
+#include "TPZCompElDisc.h"
+#include "pzfstrmatrix.h"
+#include "TPZParFrontStructMatrix.h"
+#include "TPZFrontNonSym.h"
+#include "TPZBSpStructMatrix.h"
+#include "TPZElementMatrixT.h"
+#include "pzbdstrmatrix.h"
+#include "pzelmat.h"
+#include <time.h>
+#include "pzlog.h"
+#include "TPZFileStream.h"
+#include <TPZBFileStream.h>
+
 using std::chrono::high_resolution_clock;
 using std::chrono::duration_cast;
 using std::chrono::duration;
 using std::chrono::milliseconds;
 using std::chrono::seconds;
+
 #include "pzblockdiag.h"
 #include "TPZSpStructMatrix.h"
 #include "pzfstrmatrix.h"
 #include "pzbdstrmatrix.h"
 #include "TPZFileStream.h"
 #include <TPZBFileStream.h>
+
 typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> plasticmorh;
 typedef   TPZMatElastoPlastic2D < TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZElastoPlasticMem > plasticmat;
 //typedef TPZNonLinearAnalysis typedefanal;

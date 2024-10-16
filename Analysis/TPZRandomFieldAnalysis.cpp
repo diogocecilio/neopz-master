@@ -11,7 +11,7 @@
 #include "TPZMaterial.h"
 #include "pzcmesh.h"
 #include "pzlog.h"
-#include <random>
+
 #ifdef PZ_LOG
 static TPZLogger logger("pz.analysis");
 static TPZLogger loggerError("pz.analysis.error");
@@ -216,7 +216,8 @@ void TPZRandomFieldAnalysis::Solve()
                         vecpz ( irow,icol ) =sqrt ( val ( icol ) ) *vec.col ( icol ) ( irow );
                 }
         }
-        LoadSolution ( vecpz );
+        fSolutionValVec=vecpz;
+        //LoadSolution ( vecpz );
 
 
 }
@@ -390,61 +391,7 @@ void TPZRandomFieldAnalysis::LoadRealSol(TPZFMatrix<CSTATE> sol)
   }
   LoadSolution(solut);
 }
-void TPZRandomFieldAnalysis::ManageFieldCretion()
-{
-  int nfields = fMeanvec.size();
-  fFields.resize(nfields);
-  if(!nfields)DebugStop();
-  for(int ifield=0;ifield<nfields;ifield++)
-  {
-    fFields[ifield] = GenerateNonGaussinRandomField ( fMeanvec[ifield],fCovvec[ifield],fSamples );
-  }
 
-}
-TPZFMatrix<REAL>  TPZRandomFieldAnalysis::GenerateNonGaussinRandomField (REAL mean, REAL cov,int samples )
-{
-        TPZVec<REAL> mean2 ( 2 );
-        TPZVec<REAL> cov2 ( 2 );
-        TPZVec<string> file2 ( 2 );
-
-
-        TPZFMatrix<REAL>  PHIt,PHI=fSolution,soltemp=fSolution;
-
-        int M = PHI.Cols();
-
-        TPZFMatrix<REAL> THETA ( M,samples );
-
-        std::normal_distribution<REAL> distribution ( 0., 1. );
-        for ( int n = 0; n < samples; n++ )
-        {
-          for ( int iexp = 0; iexp < M; iexp++ )
-          {
-            std::random_device rd{};
-            std::mt19937 generator{ rd() };
-            REAL xic = distribution ( generator );
-            THETA ( iexp,n ) = xic;
-          }
-        }
-
-        TPZFMatrix<REAL> hhat;
-        PHI.Multiply ( THETA, hhat );
-
-        REAL sdev = cov* mean;
-        REAL xi = sqrt ( log ( 1 + pow ( ( sdev / mean),2 ) ) );
-        REAL lambda = log ( mean) - xi * xi / 2.;
-
-        for ( int i = 0; i < hhat.Rows(); i++ )
-        {
-          for ( int j = 0; j < hhat.Cols(); j++ )
-          {
-              hhat ( i,j ) = exp ( lambda + xi * hhat ( i,j ) );
-          }
-        }
-
-        //PrintField(hhat,filename);
-        //LoadSolution(hhat);
-        return hhat;
-}
 
 void TPZRandomFieldAnalysis::PrintField(TPZFMatrix<REAL> matfield,string filename)
 {
@@ -503,10 +450,11 @@ void TPZRandomFieldAnalysis::Write(TPZStream &buf, int withclassid) const
 {
   //TPZAnalysis::Write(buf,withclassid);
   fSolution.Write(buf,withclassid);
-  for(int ifield=0;ifield< fFields.size(); ifield++)
-  {
-    fFields[ifield].Write(buf,withclassid);
-  }
+  fSolutionValVec.Write(buf,withclassid);
+//   for(int ifield=0;ifield< fFields.size(); ifield++)
+//   {
+//     fFields[ifield].Write(buf,withclassid);
+//   }
 
 
 }
@@ -515,10 +463,11 @@ void TPZRandomFieldAnalysis::Read(TPZStream &buf, void *context)
 {
   //TPZAnalysis::Read(buf,context);
   fSolution.Read(buf,context);
-  fFields.resize(2);
-  for(int ifield=0;ifield< fFields.size(); ifield++)
-  {
-    fFields[ifield].Read(buf,context);
-  }
+  fSolutionValVec.Read(buf,context);
+//   fFields.resize(2);
+//   for(int ifield=0;ifield< fFields.size(); ifield++)
+//   {
+//     fFields[ifield].Read(buf,context);
+//   }
 
 }

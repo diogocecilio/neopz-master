@@ -20,7 +20,7 @@ int main()
 {
 
         std::cout << "hello random" << std::endl;
-        int ref=0;
+        int ref=4;
         TPZGeoMesh * gmesh =  TriGMesh ( ref );
         TPZCompMesh * cmesh = CreateCompMeshKL ( gmesh );
 
@@ -65,9 +65,9 @@ int main()
                 covvec[0]=0.3;
                 covvec[1]=0.2;
                 int samples=1000;
-                randonanalysis->SetFieldsData( meanvec,covvec,  samples);
+                //randonanalysis->SetFieldsData( meanvec,covvec,  samples);
 
-                randonanalysis->ManageFieldCretion();
+                //randonanalysis->ManageFieldCretion();
 
                 TPZBFileStream save;
                 save.OpenWrite ( "Config2-0.bin" );
@@ -83,8 +83,11 @@ int main()
 
                 TPZVec<TPZFMatrix<REAL>> fields;
 
-                fields = randonanalysis->GetFields();
+                //fields = randonanalysis->GetFields();
 
+                randonanalysis->LoadSolution ( fields[0] );
+                randonanalysis->DefineGraphMesh ( 2,scalarnames,vecnames,"fields[0].vtk" );
+                randonanalysis->PostProcess ( 0 );
                 randonanalysis->LoadSolution ( fields[1] );
                 randonanalysis->DefineGraphMesh ( 2,scalarnames,vecnames,"fields[1].vtk" );
                 randonanalysis->PostProcess ( 0 );
