@@ -304,8 +304,14 @@ void SlopeAnalysis::IntegrateFieldOverARegion(int imc)
                         intel->ComputeRequiredData(data,point);
                         REAL x=data.x[0];
                         REAL y=data.x[1] ;
-                        REAL residual = (x-40.)*(x-40.)+(y-40.)*(y-40.)-20.*20.;
-                        if(residual<0)
+                        REAL xc=42.;
+                        REAL yc=44.;
+                        REAL r1=13.5;
+                        REAL r2=14.5;
+                        REAL residual = (x-xc)*(x-xc)+(y-yc)*(y-yc)-r2*r2;
+                        REAL residual2 = (x-xc)*(x-xc)+(y-yc)*(y-yc)-r1*r1;
+                        if(residual2>0&&residual<0)
+                        //if((38.<x<42.) && (28.<y<30.))
                         {
                             TPZVec<REAL> integral = cel->IntegrateSolution(0);
                             val+=integral[0];

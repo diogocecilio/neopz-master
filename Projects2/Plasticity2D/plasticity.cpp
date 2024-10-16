@@ -239,7 +239,7 @@ TPZGeoMesh * TriGMesh ( int ref )
                 }
         }
 
-        string meshref = "gmeshtri.vtk";
+        string meshref = "gmeshtri3.vtk";
         std::ofstream files ( meshref );
         TPZVTKGeoMesh::PrintGMeshVTK ( gmesh,files,true );
         return gmesh;
