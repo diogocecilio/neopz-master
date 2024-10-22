@@ -42,9 +42,11 @@ public:
 
     REAL IntegrateSolution ( int varid );
 
-    TPZFMatrix<REAL> NormalizeSolution();
+    void NormalizeSolution();
 
-    void LoadRealSol(TPZFMatrix<CSTATE> sol);
+    TPZFMatrix<REAL> LoadRealSol(TPZFMatrix<CSTATE> sol);
+
+    TPZVec<REAL> LoadRealSol(TPZVec<CSTATE> sol);
 
     void FromEigen ( MatrixXd eigenmat, TPZFMatrix<REAL>  &pzmat );
 

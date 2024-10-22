@@ -61,38 +61,65 @@ void TPZRandomFieldAnalysis::Assemble()
 
   AssembleC(Cmat);
 
-  TPZVec<CSTATE> eigenvalues;
-  TPZFMatrix<CSTATE> eigenvectors;
+
+    int ndof = Cmat.Rows();
+    if(!fNValues||fNValues>ndof)
+    {
+        fNValues = ndof;
+    }
+
+      cout << fNValues << endl;
+      MatrixXd eigenInvBC,eigenInvB,eigenC,eigenB;
+      ToEigen ( Bmat,eigenB );
+      ToEigen ( Cmat,eigenC );
+
+        eigenInvB = eigenB.inverse();
+        eigenInvBC = eigenInvB*eigenC;
+
+        //cout << eigenInvBC << endl;
+
+
+  TPZVec<CSTATE> eigenvaluescomplex;
+  TPZFMatrix<CSTATE> eigenvectorscomplex;
 
   TPZLapackEigenSolver<REAL> defaultSolver;
- //  defaultSolver.SetNEigenpairs(-60);
+   defaultSolver.SetNEigenpairs(fNValues);
 
-   defaultSolver.SolveGeneralisedEigenProblem(Cmat,Bmat,eigenvalues,eigenvectors);
+   defaultSolver.SolveGeneralisedEigenProblem(Cmat,Bmat,eigenvaluescomplex,eigenvectorscomplex);
 
-   for(int i=0;i<eigenvalues.size();i++)cout<< eigenvalues[i] <<endl;
+   fEigenvetors = LoadRealSol(eigenvectorscomplex);
+   fEigenvalues = LoadRealSol(eigenvaluescomplex);
 
-   LoadRealSol(eigenvectors);
-
-   TPZFMatrix<REAL> normalizedeigenvectors = NormalizeSolution();
-
-  int ncols =normalizedeigenvectors.Cols();
-  int nrows = normalizedeigenvectors.Rows();
-  cout << "ncols " << ncols << endl;
-  cout << "nrows " << nrows << endl;
-
- // normalizedeigenvectors.Print("eigenvectors");
-
-  TPZFMatrix<REAL> solut(nrows,ncols);
-
-  for(int ivalue=0;ivalue<nrows;ivalue++)
-  {
-    //cout << eigenvalues[ivalue].real()  <<endl;
-    for(int isol=0;isol<ncols;isol++)
+    for(int i=0;i<fEigenvalues.size();i++)cout<< fEigenvalues[i] <<endl;
+    fEigenvetors.Print("vecs");
+    NormalizeSolution();
+    fSolutionValVec.Resize(ndof,fNValues);
+    for(int idof=0;idof<ndof;idof++)
     {
-      solut ( ivalue,isol ) =sqrt (eigenvalues[isol].real() ) *normalizedeigenvectors( ivalue, isol );
+      for(int iM=0;iM<fNValues;iM++)
+      {
+        fSolutionValVec(idof,iM)=sqrt(fEigenvalues[iM])*fEigenvetors(iM,idof);
+      }
     }
-  }
-  fCompMesh->LoadSolution(solut);
+   // fSolutionValVec.Print("s");
+    LoadSolution(fSolutionValVec);
+
+//    for(int i=0;i<fEigenvalues.size();i++)cout<< fEigenvalues[i] <<endl;
+//    fEigenvetors.Print("vecs");
+//     TPZFMatrix<REAL> newmat(fNValues,fNValues,0.);
+//     for(int icol=0;icol<fNValues;icol++)
+//     {
+//
+//         TPZFMatrix<REAL> ivec(fNValues,1),ivect,mult;
+//         for(int irow=0;irow<fEigenvetors.Rows();irow++)ivec(irow,0)=fEigenvetors(irow,icol);
+//         ivec.Transpose(&ivect);
+//         ivec.Multiply(ivect,mult);
+//         mult*=fEigenvalues[icol];
+//         newmat+=mult;
+//
+//
+//     }
+    //newmat.Print("REC");
 
 
 }
@@ -103,36 +130,16 @@ void TPZRandomFieldAnalysis::Solve()
 
       TPZVec<TPZFMatrix<REAL>> fEigenVectors;
 
-      TPZFMatrix<REAL> fEigenValues;
-
-        std::ofstream outfull ( "outinfofulltime-p2-h4.txt" );
-        chrono::steady_clock fulltime;
-        auto startfull = fulltime.now();
-        std::ofstream out ( "outinfo-p2-h4.txt" );
         TPZFMatrix<REAL> invB,invBC,B,C;
         MatrixXd eigenInvBC,eigenInvB,eigenC,eigenB;
         cout << "Number of Equations =   " << fCompMesh->NEquations() << std::endl;
         cout << "Assembling C  " << std::endl;
-        chrono::steady_clock sc;
-        auto start = sc.now();
 
         AssembleC ( C );
 
-        //int nrows = C.Rows();
-        //int ncols = C.Rows();
-
-        auto end = sc.now();
-        auto time_span = static_cast<chrono::duration<double>> ( end - start );
-        cout << "| total time taken to assemble C =  " << time_span.count() << std::endl;
-
         cout << " Assembling B  " << std::endl;
-        start = sc.now();
 
         AssembleB ( B );
-
-        end = sc.now();
-        time_span = static_cast<chrono::duration<double>> ( end - start );
-        cout << "| total time taken to assemble B =  " << time_span.count() << std::endl;
 
         ToEigen ( B,eigenB );
         ToEigen ( C,eigenC );
@@ -140,7 +147,9 @@ void TPZRandomFieldAnalysis::Solve()
         eigenInvB = eigenB.inverse();
         eigenInvBC = eigenInvB*eigenC;
 
-        MatrixXd val,vec;
+        //cout << eigenC << std::endl;
+
+        MatrixXd eigenvalues,eigenvectors,reconstructed;
 
         //GeneralizedEigenSolver<MatrixXd> ces;
 
@@ -148,17 +157,10 @@ void TPZRandomFieldAnalysis::Solve()
         ComplexEigenSolver<MatrixXd> ces;
 
         cout << " Computing Eigensystem  " << std::endl;
-        start = sc.now();
+
         ces.compute ( eigenInvBC );
         //ces.compute(eigenB, eigenC);
-        end = sc.now();
-        time_span = static_cast<chrono::duration<double>> ( end - start );
-        cout << "| total time taken to compute the Eigensystem =  " << time_span.count() << std::endl;
         ces.info();
-
-        auto endfull = fulltime.now();
-        time_span = static_cast<chrono::duration<double>> ( endfull - startfull );
-        cout << "| total time  =  " << time_span.count() << std::endl;
 
         int ncols = ces.eigenvectors().cols();
         if(!fNValues||fNValues>ncols)
@@ -166,36 +168,40 @@ void TPZRandomFieldAnalysis::Solve()
           fNValues = ncols;
         }
         int nrows = ces.eigenvectors().rows();
-        val.resize ( fNValues,1 );
-        vec.resize ( nrows,fNValues);
+        eigenvalues.resize ( fNValues,1 );
+        eigenvectors.resize ( nrows,fNValues);
+        fEigenvetors.Resize(nrows,fNValues);
 
+        fEigenvalues.resize(fNValues);
         for ( int icol=0; icol< fNValues; icol++ ) {
-                val ( icol,0 ) =ces.eigenvalues() [nrows-icol-1].real();
+                eigenvalues ( icol,0 ) =ces.eigenvalues() [nrows-icol-1].real();
+                fEigenvalues[icol]= eigenvalues ( icol,0 );
                 for ( int irow=0; irow<nrows; irow++ ) {
-                        vec ( irow,icol ) =ces.eigenvectors() ( irow,ncols-icol-1 ).real();
+                        eigenvectors ( irow,icol ) =ces.eigenvectors() ( irow,ncols-icol-1 ).real();
                 }
         }
+    cout << eigenvalues << endl;
+    cout << eigenvectors << endl;
 
-        bool print =true;
-        if ( print==true ) {
-                cout << "Eigenvalues "<<endl;
-                cout << val << endl;
-                //cout << "Eigenvectors "<<endl;
-                //cout << vec << endl;
-                // std::cout << " A "<<endl;
-                // std::cout << eigenInvBC <<std::endl;
-                //std::cout << " A- V * D * V^(-1) = " << "\n" << (vec * val.asDiagonal() * vec.inverse()) << endl;
-        }
+//         //bool print =true;
+//         if ( print==true ) {
+//                // cout << "Eigenvalues "<<endl;
+//               //  cout << val << endl;
+//                 //cout << "Eigenvectors "<<endl;
+//                 //cout << vec << endl;
+//                 // std::cout << " A "<<endl;
+//                 // std::cout << eigenInvBC <<std::endl;
+//                 //std::cout << " A- V * D * V^(-1) = " << "\n" << (vec * val.asDiagonal() * vec.inverse()) << endl;
+//         }
 
         cout << "Start to integrate the solution over the domain..  " << std::endl;
-        start = sc.now();
         TPZFMatrix<REAL> vecpz ( nrows,fNValues );
         fEigenVectors.Resize ( fNValues );
         VectorXd intphisqr ( fNValues );
         for ( int i=0; i<fNValues; i++ ) fEigenVectors[i].Resize ( nrows,1 );
         for ( int icol=0; icol< fNValues; icol++ ) {
                 for ( int irow=0; irow<nrows; irow++ ) {
-                        fEigenVectors[icol] ( irow,0 ) =vec.col ( icol ) ( irow );
+                        fEigenVectors[icol] ( irow,0 ) =eigenvectors.col ( icol ) ( irow );
                 }
 
                 //fEigenVectors[icol].Print(std::cout);
@@ -204,20 +210,19 @@ void TPZRandomFieldAnalysis::Solve()
                 REAL integral = IntegrateSolution ( varid );
                 intphisqr ( icol ) =integral;
                 fEigenVectors[icol]*=1./sqrt ( integral );
-                vec.col ( icol ) *=1./sqrt ( integral );
+                eigenvectors.col ( icol ) *=1./sqrt ( integral );
         }
-        end = sc.now();
-        time_span = static_cast<chrono::duration<double>> ( end - start );
-        cout << "| total time taken to integrate the solution over the domain =  " << time_span.count() << std::endl;
+        FromEigen(eigenvectors,fEigenvetors);
 
         //cout << intphisqr << endl;
         for ( int icol=0; icol< fNValues; icol++ ) {
                 for ( int irow=0; irow<nrows; irow++ ) {
-                        vecpz ( irow,icol ) =sqrt ( val ( icol ) ) *vec.col ( icol ) ( irow );
+                        vecpz ( irow,icol ) =sqrt ( eigenvalues ( icol ) ) *eigenvectors.col ( icol ) ( irow );
                 }
         }
+
         fSolutionValVec=vecpz;
-        //LoadSolution ( vecpz );
+        LoadSolution ( vecpz );
 
 
 }
@@ -343,26 +348,20 @@ void TPZRandomFieldAnalysis::GetDestIndex ( int iel, int nshape, TPZManVector<lo
 
 }
 
-TPZFMatrix<REAL> TPZRandomFieldAnalysis::NormalizeSolution()
+void TPZRandomFieldAnalysis::NormalizeSolution()
 {
-        cout << "Start to integrate the solution over the domain..  " << std::endl;
 
-        TPZFMatrix<REAL> solcopy(fSolution);
-        int nrows= fSolution.Rows();
-        int ncols= fSolution.Cols();
-        int varid=6;
-        REAL integral=0.;
-        for (int irow=0;irow<nrows;irow++ )
-        {
-          for (int icol=0; icol< ncols; icol++)
-          {
-                integral = IntegrateSolution ( varid );
-                REAL temp =solcopy.GetVal(irow,icol);
-                temp*=1./sqrt ( integral );
-                solcopy.PutVal(irow,icol,temp);
-          }
-        }
-        return solcopy;
+  for ( int icol=0; icol< fEigenvetors.Cols(); icol++ )
+  {
+                TPZFMatrix<REAL> ivec(fEigenvetors.Rows(),1);
+                for(int irow=0;irow<fEigenvetors.Rows();irow++)ivec(irow,0)=fEigenvetors(irow,icol);
+                LoadSolution ( ivec );
+                int varid=6;
+                cout << "nao"<<endl;
+                REAL integral = IntegrateSolution ( varid );
+                cout << "integral = "<< integral <<endl;
+                for(int irow=0;irow<fEigenvetors.Rows();irow++)fEigenvetors(irow,icol)*=1./sqrt ( integral );
+  }
 }
 
 REAL TPZRandomFieldAnalysis::IntegrateSolution ( int varid )
@@ -378,20 +377,36 @@ REAL TPZRandomFieldAnalysis::IntegrateSolution ( int varid )
         }
         return  sum ;
 }
-void TPZRandomFieldAnalysis::LoadRealSol(TPZFMatrix<CSTATE> sol)
+TPZFMatrix<REAL>  TPZRandomFieldAnalysis::LoadRealSol(TPZFMatrix<CSTATE> sol)
 {
+  int ncols = sol.Cols();
+  int nrows = sol.Rows();
   TPZFMatrix<REAL> solut(sol.Rows(),sol.Cols());
-  for(int ivalue=0;ivalue<sol.Rows();ivalue++)
+  for ( int icol=0; icol< fNValues; icol++ )
   {
-    //cout << sol[ivalue].real()  <<endl;
-    for(int isol=0;isol<sol.Cols();isol++)
+    for ( int irow=0; irow<nrows; irow++ )
     {
-      solut ( ivalue,isol ) =sol( ivalue, isol ).real();
-    }
-  }
-  LoadSolution(solut);
-}
+      solut ( irow,icol ) =sol( irow,ncols-icol-1 ).real();
 
+
+    }
+
+
+  }
+
+  return solut;
+}
+TPZVec<REAL>  TPZRandomFieldAnalysis::LoadRealSol(TPZVec<CSTATE> sol)
+{
+
+  int nrows = sol.size();
+  TPZVec<REAL> solut(sol.size());
+  for ( int icol=0; icol< fNValues; icol++ )
+  {
+                solut [ icol] =sol[nrows-icol-1].real();
+  }
+return solut;
+}
 
 void TPZRandomFieldAnalysis::PrintField(TPZFMatrix<REAL> matfield,string filename)
 {
@@ -451,6 +466,9 @@ void TPZRandomFieldAnalysis::Write(TPZStream &buf, int withclassid) const
   //TPZAnalysis::Write(buf,withclassid);
   fSolution.Write(buf,withclassid);
   fSolutionValVec.Write(buf,withclassid);
+  //output.Write(&seqsize);
+  buf.Write(fEigenvalues);
+  fEigenvetors.Write(buf,withclassid);
 //   for(int ifield=0;ifield< fFields.size(); ifield++)
 //   {
 //     fFields[ifield].Write(buf,withclassid);
@@ -464,6 +482,8 @@ void TPZRandomFieldAnalysis::Read(TPZStream &buf, void *context)
   //TPZAnalysis::Read(buf,context);
   fSolution.Read(buf,context);
   fSolutionValVec.Read(buf,context);
+  buf.Read(fEigenvalues);
+  fEigenvetors.Read(buf,context);
 //   fFields.resize(2);
 //   for(int ifield=0;ifield< fFields.size(); ifield++)
 //   {

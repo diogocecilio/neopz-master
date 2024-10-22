@@ -6,9 +6,11 @@ void SolveSlope ( int Startfrom );
 TPZGeoMesh * TriGMesh ( int ref );
 TPZCompMesh* CreateCompMeshKL ( TPZGeoMesh * gmesh,int porder,REAL Lx, REAL Ly, REAL Lz, int id,int type );
 TPZCompMesh * CreateCMeshElastoplastic ( TPZGeoMesh *gmesh, int pOrder, REAL coes,REAL atrito );
+void SensivityAnalysisOnEigenvalues ( SlopeAnalysis  * slopeanalysis);
+std::vector<int> GetIndex(std::vector<double> vetor);
+
 int main()
 {
-
 
         int Startfrom =2;
         SolveSlope ( Startfrom );
@@ -16,6 +18,84 @@ int main()
 
         return 0;
 }
+//Parece que sao sempre os mesmos campos criticos independete das proprieadades do talude
+//std::vector<int> critical = {0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 12, 13, 14, 15, 17, 19, 20, 22, 23,
+//25, 28, 36, 40, 46, 49, 51, 52, 55, 56, 82, 89};
+
+std::vector<int> critical={0,1,2,3,4,5,6,7,9,10,12,13,14,15,16,17,18,19,20,22,23,25,28,32,36,40,44,46,49,51,52,55,56,63,75,82,89};
+
+void SensivityAnalysisOnEigenvalues (SlopeAnalysis  * slopeanalysis)
+{
+//   std::vector<std::vector<int>> data= {
+//           {0, 1, 2}, {0, 1, 3}, {0, 1, 4}, {0, 1, 5}, {0, 1, 6},
+//           {0, 1, 7}, {0,1, 8}, {0, 1, 9}, {0, 2, 3}, {0, 2, 4},
+//           {0, 2, 5}, {0, 2, 6},{0, 2, 7}, {0, 2, 8}, {0, 2, 9},
+//           {0, 3, 4}, {0, 3, 5}, {0, 3, 6}, {0, 3, 7},{0, 3, 8},
+//           {0, 3, 9}, {0, 4, 5}, {0, 4, 6}, {0, 4, 7}, {0, 4,8},
+//           {0, 4, 9}, {0, 5, 6}, {0, 5, 7}, {0, 5, 8}, {0, 5, 9},
+//           {0, 6,7}, {0, 6, 8}, {0, 6, 9}, {0, 7, 8}, {0, 7, 9},
+//           {0, 8, 9}, {1, 2,3}, {1, 2, 4}, {1, 2, 5}, {1, 2, 6},
+//           {1, 2, 7}, {1, 2, 8}, {1, 2,9}, {1, 3, 4}, {1, 3, 5},
+//           {1, 3, 6}, {1, 3, 7}, {1, 3, 8}, {1, 3,9}, {1, 4, 5}, {1, 4, 6}, {1, 4, 7}, {1, 4, 8}, {1, 4, 9}, {1, 5,
+//   6}, {1, 5, 7}, {1, 5, 8}, {1, 5, 9}, {1, 6, 7}, {1, 6, 8}, {1, 6,
+//   9}, {1, 7, 8}, {1, 7, 9}, {1, 8, 9}, {2, 3, 4}, {2, 3, 5}, {2, 3,
+//   6}, {2, 3, 7}, {2, 3, 8}, {2, 3, 9}, {2, 4, 5}, {2, 4, 6}, {2, 4,
+//   7}, {2, 4, 8}, {2, 4, 9}, {2, 5, 6}, {2, 5, 7}, {2, 5, 8}, {2, 5,
+//   9}, {2, 6, 7}, {2, 6, 8}, {2, 6, 9}, {2, 7, 8}, {2, 7, 9}, {2, 8,
+//   9}, {3, 4, 5}, {3, 4, 6}, {3, 4, 7}, {3, 4, 8}, {3, 4, 9}, {3, 5,
+//   6}, {3, 5, 7}, {3, 5, 8}, {3, 5, 9}, {3, 6, 7}, {3, 6, 8}, {3, 6,
+//   9}, {3, 7, 8}, {3, 7, 9}, {3, 8, 9}, {4, 5, 6}, {4, 5, 7}, {4, 5,
+//   8}, {4, 5, 9}, {4, 6, 7}, {4, 6, 8}, {4, 6, 9}, {4, 7, 8}, {4, 7,
+//   9}, {4, 8, 9}, {5, 6, 7}, {5, 6, 8}, {5, 6, 9}, {5, 7, 8}, {5, 7,
+//   9}, {5, 8, 9}, {6, 7, 8}, {6, 7, 9}, {6, 8, 9}, {7, 8, 9}};
+
+//   std::vector<std::vector<int>> data= {{0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5},
+//   {1, 2}, {1, 3}, {1, 4}, {1,5}, {2, 3},
+//   {2, 4}, {2, 5}, {3, 4}, {3, 5}, {4, 5}
+//
+// };
+
+std::vector<std::vector<int>> data={{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12},
+{13}, {14}, {15}, {16}, {17}, {18}, {19}, {20}, {21}, {22}, {23},
+{24}, {25}, {26}, {27}, {28}, {29}, {30}, {31}, {32}, {33}, {34},
+{35}, {36}, {37}, {38}, {39}, {40}, {41}, {42}, {43}, {44}, {45},
+{46}, {47}, {48}, {49}, {50}, {51}, {52}, {53}, {54}, {55}, {56},
+{57}, {58}, {59}, {60}, {61}, {62}, {63}, {64}, {65}, {66}, {67},
+{68}, {69}, {70}, {71}, {72}, {73}, {74}, {75}, {76}, {77}, {78},
+{79}, {80}, {81}, {82}, {83}, {84}, {85}, {86}, {87}, {88}, {89},
+{90}, {91}, {92}, {93}, {94}, {95}, {96}, {97}, {98}, {99}, {100},
+{101}, {102}, {103}, {104}, {105}, {106}, {107}, {108}, {109}, {110},
+{111}, {112}, {113}, {114}, {115}, {116}, {117}, {118}, {119}, {120}};
+  TPZFMatrix<REAL>samples1 = slopeanalysis->CreateNormalStandardSamples();
+  TPZFMatrix<REAL>samples2 = slopeanalysis->CreateNormalStandardSamples();
+  TPZVec<TPZFMatrix<REAL>> samples(2);
+  samples[0]=samples1;
+  samples[1]=samples2;
+  slopeanalysis->SetFieldsSamples(samples);
+  std::vector<int> counts;
+  for(int i=0;i<120;i++)
+  {
+        slopeanalysis->ManageFieldCretion(data[i]);
+        int ncritical = slopeanalysis->CountCriticalFields();
+        cout << "cobination = "<<i  <<", ncritical = " << ncritical <<endl;// << "{" <<data[i][0] << data[i][1]<< data[i][2] <<"}"<<endl;
+        if(ncritical>5)
+        {
+                counts.push_back(i);
+        }
+  }
+
+  for(int i=0;i<counts.size();i++)cout << "counts[i]" << counts[i]  <<endl;
+  ofstream outcampos ( "camposcriticos.txt" );
+        outcampos <<"std::vector<int> data={";
+ for(int i=0;i<counts.size();i++)outcampos<<counts[i]<<","  <<endl;
+ outcampos <<"};";
+  //TPZBFileStream save;
+  //save.OpenWrite ( "Config2-0.bin" );
+  //slopeanalysis->Write ( save,slopeanalysis->ClassId() );
+
+}
+
+
 void SolveSlope ( int Startfrom )
 {
         //create random analysis
@@ -32,26 +112,31 @@ void SolveSlope ( int Startfrom )
         TPZManVector<std::string> scalarnames = {"vec","vec1","vec2","vec3","vec4"}, vecnames;
 
         //create slope analysis
-        int ref0slope=1;
-        int porderslope=2;
+        int ref0slope=3;
+        int porderslope=1;
         REAL gammaagua=0.;
         REAL gammasolo=20.;
-        REAL coes=10.;
-        REAL atrito=30*M_PI/180.;
+        REAL coes=50.;
+        REAL atrito=20*M_PI/180.;
         SlopeAnalysis  * slopeanalysis =  new SlopeAnalysis ( gammaagua,gammasolo,coes,atrito,ref0slope,porderslope );
 
-        int solvertype=1;
-        int numthreads=25;
+        int solvertype=0;
+        int numthreads=12;
         slopeanalysis->SetSlopeAnalysis ( solvertype,numthreads );
 
         //solve generalized eigenvalu problem
         if ( Startfrom ==0 ) {
-                randonanalysis->SetNEigenpairs ( 250 );
-                randonanalysis->Solve();
+                randonanalysis->SetNEigenpairs ( 500 );
+                //randonanalysis->Assemble();
+               randonanalysis->Solve();
+
                 //save sqrt(lambda)*phi
                 TPZBFileStream save;
                 save.OpenWrite ( "Config1-0.bin" );
                 randonanalysis->Write ( save,randonanalysis->ClassId() );
+                //randonanalysis->LoadSolution();
+                 randonanalysis->DefineGraphMesh ( 2,scalarnames,vecnames,"filename2Assemble.vtk" );
+                randonanalysis->PostProcess ( 0 );
         }
 
 
@@ -63,16 +148,30 @@ void SolveSlope ( int Startfrom )
 
                 //seting fied data
                 TPZVec<REAL> meanvec ( 2 );
-                meanvec[0]=10;
-                meanvec[1]=30 *M_PI/180.;
+                meanvec[0]=50.;
+                meanvec[1]=20. *M_PI/180.;
                 TPZVec<REAL> covvec ( 2 );
                 covvec[0]=0.3;
                 covvec[1]=0.2;
                 int samples=1000;
+
                 slopeanalysis->SetFieldsData ( cmesh,randonanalysis->GetSolutionValVec(), meanvec,covvec,  samples );
+
                 //crate random fields
                 if ( Startfrom==1 ) {
-                        slopeanalysis->ManageFieldCretion();
+                        //SensivityAnalysisOnEigenvalues ( slopeanalysis);
+                        TPZFMatrix<REAL>samples1 = slopeanalysis->CreateNormalStandardSamples();
+                        TPZFMatrix<REAL>samples2 = slopeanalysis->CreateNormalStandardSamples();
+                        TPZVec<TPZFMatrix<REAL>> samples(2);
+                        samples[0]=samples1;
+                        samples[1]=samples2;
+                        slopeanalysis->SetFieldsSamples(samples);
+                        //std::vector<int> data = {2,3,4};
+                        slopeanalysis->ManageFieldCretion(critical);
+                        slopeanalysis->TransferFieldsSolutionFrom(0);
+                        slopeanalysis->PostPlasticity ( "fieldteste.vtk" );
+                        //slopeanalysis->ManageFieldCretion();
+                        //slopeanalysis->ComputeH();
                         TPZBFileStream save;
                         save.OpenWrite ( "Config2-0.bin" );
                         slopeanalysis->Write ( save,slopeanalysis->ClassId() );
@@ -81,33 +180,43 @@ void SolveSlope ( int Startfrom )
                         read.OpenRead ( "Config2-0.bin" );
                         slopeanalysis->Read ( read,0 );
 
-                        for ( int imc=0; imc<samples; imc++ ) {
 
-                                slopeanalysis->IntegrateFieldOverARegion(imc);
-                                continue;
-                                SlopeAnalysis  * slopeanalysis2 =  new SlopeAnalysis ( gammaagua,gammasolo,coes,atrito,ref0slope,porderslope );
+
+                        //slopeanalysis->SelectCriticalIndexes();
+                        //slopeanalysis->ComputeH();
+                        ofstream out3 ( "saidafs.txt" );
+                        for ( int imc=0; imc<=100; imc++ )
+                        {
+
+                                SlopeAnalysis* slopeanalysis2 = new SlopeAnalysis ( gammaagua,gammasolo,coes,atrito,ref0slope,porderslope ); // Outra cópia independente
                                 slopeanalysis2->SetFieldsData ( cmesh,randonanalysis->GetSolutionValVec(), meanvec,covvec,  samples );
                                 slopeanalysis2->SetFields(slopeanalysis->GetFields());
                                 slopeanalysis2->SetSlopeAnalysis ( solvertype,numthreads );
-                                slopeanalysis2->TransferFieldsSolutionFrom ( imc );
+                                slopeanalysis2->SetFieldsSamples(slopeanalysis->GetFieldsSamples());
 
-                                string saidafs = "post/fs";
-                                string vtk = "postvtk/saidamontecarloplasticity";
+                                string saidafs = "post/fsh";
+                                string vtk = "postvtk/postplasticityvtk";
                                 auto var=to_string ( imc );
                                 saidafs+=var;
                                 vtk+=var;
                                 saidafs+=".dat";
+
                                 vtk+=".vtk";
                                 ofstream out ( saidafs );
+
                                 std::cout << "imc = " <<  imc << std::endl;
                                 auto t1 = high_resolution_clock::now();
-                                REAL FS = slopeanalysis2->SolveSingleField ( imc );
+                                REAL FS2 = slopeanalysis2->SolveSingleField ( imc );
                                 auto t2 = high_resolution_clock::now();
                                 auto ms_int = duration_cast<seconds> ( t2 - t1 );
                                 cout <<" tempo total da simulacao   = "<<ms_int.count() << " s " << endl;
                                 cout << " post processing..." <<endl;
                                 slopeanalysis2->PostPlasticity ( vtk );
-                                out << FS << endl;
+                                //out << FS << endl;
+                                out3<<"imc = "<< imc <<endl;
+                                out3<<"FSF = "<< FS2 <<endl;
+                                //delete slopeanalysis2;
+                                //delete slopeanalysis3;
 
                         }
                 }
@@ -120,6 +229,20 @@ void SolveSlope ( int Startfrom )
 
 
 
+std::vector<int> GetIndex(std::vector<double> vetor)
+{
+    std::vector<int> indices(vetor.size());
+    for (int i = 0; i < vetor.size(); ++i) {
+        indices[i] = i;
+    }
+
+    std::sort(indices.begin(), indices.end(), [&](int a, int b) {
+        return vetor[a] > vetor[b]; // Ordena de forma decrescente
+    });
+
+    return indices;
+
+}
 
 TPZCompMesh* CreateCompMeshKL ( TPZGeoMesh * gmesh,int porder,REAL Lx, REAL Ly, REAL Lz, int id,int type )
 {

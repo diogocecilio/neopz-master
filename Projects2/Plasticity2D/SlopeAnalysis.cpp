@@ -8,20 +8,93 @@ SlopeAnalysis::SlopeAnalysis()
 
 }
 
-SlopeAnalysis::SlopeAnalysis ( const SlopeAnalysis& other )
+SlopeAnalysis::SlopeAnalysis(const SlopeAnalysis & other)
 {
-        fCohesion=other.fCohesion;
-        fAtrito=other.fAtrito;
-        //fPorder=other.fPorder;
-        fGammaW=other.fGammaW;
-        fGammaS=other.fGammaS;
-        fGMesh=other.fGMesh;
-        fCompMesh=other.fCompMesh;
+    // Copiando os tipos básicos
+    fCohesion = other.fCohesion;
+    fAtrito = other.fAtrito;
+    fGammaW = other.fGammaW;
+    fGammaS = other.fGammaS;
+    fNSamples = other.fNSamples;
+
+    // Cópia profunda dos ponteiros
+    if (other.fCompMeshField) {
+        fCompMeshField = new TPZCompMesh(*other.fCompMeshField);
+    } else {
+        fCompMeshField = nullptr;
+    }
+
+    if (other.fCompMesh) {
+        fCompMesh = new TPZCompMesh(*other.fCompMesh);
+    } else {
+        fCompMesh = nullptr;
+    }
+
+    if (other.fGMesh) {
+        fGMesh = new TPZGeoMesh(*other.fGMesh);
+    } else {
+        fGMesh = nullptr;
+    }
+
+    // Cópia das matrizes e vetores
+    fSolutionValVec = other.fSolutionValVec;
+    fFields = other.fFields;
+    fHFields = other.fHFields;
+    fFieldSamples = other.fFieldSamples;
+    fMeanvec = other.fMeanvec;
+    fCovvec = other.fCovvec;
+    fPlasticDeformSqJ2 = other.fPlasticDeformSqJ2;
+}
+
+SlopeAnalysis& SlopeAnalysis::operator=(const SlopeAnalysis& other)
+{
+    if (this != &other) { // Evita auto-atribuição
+        // Libera a memória existente
+        //delete fCompMeshField;
+        //delete fCompMesh;
+        //delete fGMesh;
+
+        // Copiando os tipos básicos
+        fCohesion = other.fCohesion;
+        fAtrito = other.fAtrito;
+        fGammaW = other.fGammaW;
+        fGammaS = other.fGammaS;
+        fNSamples = other.fNSamples;
+
+        // Cópia profunda dos ponteiros
+        if (other.fCompMeshField) {
+            fCompMeshField = new TPZCompMesh(*other.fCompMeshField);
+        } else {
+            fCompMeshField = nullptr;
+        }
+
+        if (other.fCompMesh) {
+            fCompMesh = new TPZCompMesh(*other.fCompMesh);
+        } else {
+            fCompMesh = nullptr;
+        }
+
+        if (other.fGMesh) {
+            fGMesh = new TPZGeoMesh(*other.fGMesh);
+        } else {
+            fGMesh = nullptr;
+        }
+
+        // Cópia das matrizes e vetores
+        fSolutionValVec = other.fSolutionValVec;
+        fFields = other.fFields;
+        fHFields = other.fHFields;
+        fFieldSamples = other.fFieldSamples;
+        fMeanvec = other.fMeanvec;
+        fCovvec = other.fCovvec;
+        fPlasticDeformSqJ2 = other.fPlasticDeformSqJ2;
+    }
+    return *this;
 }
 SlopeAnalysis::SlopeAnalysis ( REAL gammaagua, REAL gammasolo,REAL coes,REAL atrito,int ref0, int porder )
 {
-        fGMesh = TriGMesh(ref0);
-        fCompMesh = CreateCMesh(fGMesh,porder,coes,atrito);
+        fGMesh = TriGMesh ( ref0 );
+        fCompMesh = CreateCMesh ( fGMesh,porder,coes,atrito );
         fCohesion=coes;
         fAtrito=atrito;
         //fPorder=porder;
@@ -30,18 +103,21 @@ SlopeAnalysis::SlopeAnalysis ( REAL gammaagua, REAL gammasolo,REAL coes,REAL atr
 }
 SlopeAnalysis::~SlopeAnalysis()
 {
-
+    delete fCompMeshField;
+    delete fCompMesh;
+    delete fGMesh;
 }
+
+
 REAL SlopeAnalysis::SolveSingleField ( int ifield )
 {
         REAL FSOLD;
         int neqold;
         int neq=fCompMesh->NEquations();
         cout << "NUMBER OF EQUATIONS  = " << neq << endl;
-        TransferFieldsSolutionFrom ( ifield );
+        TransferFieldsSolutionFrom ( ifield);
 
         REAL FS = ShearRed ( 20,0.5,0.01 );
-
         cout << "Refining.."<<endl;
         std::set<long> elindices,elindices2;
         for ( int iref=1; iref<=2; iref++ ) {
@@ -53,7 +129,7 @@ REAL SlopeAnalysis::SolveSingleField ( int ifield )
                 TransferFieldsSolutionFrom ( ifield );
                 cout << "# of equations  = " <<neq << " fabs(FS-FSOLD)  "  << fabs ( FS-FSOLD )  << endl;
                 FSOLD=FS;
-                FS = ShearRed ( 20,0.5,0.01 );
+                FS = ShearRed ( 20,FSOLD,0.01 );
 
                 if ( fabs ( FS-FSOLD ) <0.01 ) {
                         //cout << " FS-FSOLD = "<< fabs ( FS-FSOLD ) <<endl;
@@ -112,7 +188,7 @@ REAL SlopeAnalysis::ShearRed ( int maxcout,REAL FS0,REAL fstol )
 
         do {
 
-                TPZElastoPlasticAnalysis anal =  SetSlopeAnalysis(type,numthreads);
+                TPZElastoPlasticAnalysis anal =  SetSlopeAnalysis ( type,numthreads );
                 fCompMesh->Solution().Zero();
                 REAL norm = 1000.;
                 REAL tol2 = 1.e-3;
@@ -263,7 +339,7 @@ void SlopeAnalysis::TransferFieldsSolutionFrom ( int isol )
         }
         //fCompMeshField->Solution().Redim(0,0);
 }
-void SlopeAnalysis::IntegrateFieldOverARegion(int imc)
+void SlopeAnalysis::IntegrateFieldOverARegion ( int imc )
 {
         string saida = "post/regionmean";
         auto var=to_string ( imc );
@@ -275,24 +351,48 @@ void SlopeAnalysis::IntegrateFieldOverARegion(int imc)
         TPZVec<TPZFMatrix<REAL>> fields=GetFields();
 
         int nfields = fields.size();
-        TPZVec<REAL> integrationmeanvalues(nfields);
 
+        TPZVec<REAL> integrationmeanvalues ( nfields );
+
+        TPZVec<REAL> integrationvariance ( nfields );
 
         for ( int imesh=0; imesh<nfields; imesh++ ) {
 
-                TPZFMatrix<REAL> solu(fields[imesh].Rows());
-                for(int inodalsol=0;inodalsol< fields[imesh].Rows();inodalsol++)solu(inodalsol,0)=fields[imesh](inodalsol,imc);
+                TPZFMatrix<REAL> solu ( fields[imesh].Rows(),1 );
+                //REAL mean=0;
+                int ndegreesoffredoom=fields[imesh].Rows();
+                std::vector<double> v ( ndegreesoffredoom );
+                for ( int inodalsol=0; inodalsol< ndegreesoffredoom; inodalsol++ ) {
+                        solu ( inodalsol,0 ) =fields[imesh] ( inodalsol,imc );
+                        v[inodalsol]=solu ( inodalsol,0 );
+                        //mean+=solu(inodalsol,0);
+
+                }
+
+                if ( false ) { //calcula e imprime media e cov
+                        double sum = std::accumulate ( v.begin(), v.end(), 0.0 );
+                        double mean = sum / v.size();
+
+                        double sq_sum = std::inner_product ( v.begin(), v.end(), v.begin(), 0.0 );
+                        double stdev = std::sqrt ( sq_sum / v.size() - mean * mean );
+
+                        cout << "MEDIA = "<< mean << endl;
+                        cout << "COV = "<< stdev/mean << endl;
+                }
+
                 fCompMeshField->LoadSolution ( solu );
 
                 //num elementos malha elastoplastica
                 int nels =  fCompMeshField->NElements();
                 REAL val=0.;
                 int cout=0;
+                std::vector<double> values;
                 for ( int iel=0; iel<nels; iel++ ) {
 
                         TPZCompEl *cel = fCompMeshField->ElementVec() [iel];
+                        TPZGeoEl * gel=cel->Reference();
                         TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *> ( cel );
-                        if (!cel || !intel) {
+                        if ( !cel || !intel ) {
                                 continue;
                         }
 
@@ -301,28 +401,530 @@ void SlopeAnalysis::IntegrateFieldOverARegion(int imc)
                         TPZMaterialDataT<REAL> data;
                         intel->InitMaterialData ( data );
                         data.fNeedsSol = true;
-                        intel->ComputeRequiredData(data,point);
+                        intel->ComputeRequiredData ( data,point );
                         REAL x=data.x[0];
                         REAL y=data.x[1] ;
                         REAL xc=42.;
                         REAL yc=44.;
                         REAL r1=13.5;
                         REAL r2=14.5;
-                        REAL residual = (x-xc)*(x-xc)+(y-yc)*(y-yc)-r2*r2;
-                        REAL residual2 = (x-xc)*(x-xc)+(y-yc)*(y-yc)-r1*r1;
-                        if(residual2>0&&residual<0)
+                        REAL residual = ( x-xc ) * ( x-xc )+ ( y-yc ) * ( y-yc )-r2*r2;
+                        REAL residual2 = ( x-xc ) * ( x-xc )+ ( y-yc ) * ( y-yc )-r1*r1;
+                        TPZVec<REAL> qsi ( 2,0. ), sol;
+                        REAL elsol=0.;
                         //if((38.<x<42.) && (28.<y<30.))
-                        {
-                            TPZVec<REAL> integral = cel->IntegrateSolution(0);
-                            val+=integral[0];
-                            cout++;
+                        REAL solui=0.;
+                        REAL area=0.;
+                        if ( residual2>0&&residual<0 ) {
+
+                                TPZIntPoints &rule = intel->GetIntegrationRule();
+                                int np = rule.NPoints();
+                                for ( int ip = 0; ip<np; ip++ ) {
+                                        TPZManVector<REAL> point ( 2,0. );
+                                        REAL weight;
+                                        rule.Point ( ip, point, weight );
+                                        intel->ComputeSolution ( point,data,false );
+                                        weight*=fabs ( data.detjac );
+                                        solui+=weight*data.sol[0][0] ;
+                                        TPZFMatrix<REAL> jac,jacinv;
+                                        TPZFMatrix<REAL> axes;
+                                        REAL detjac;
+                                        gel->Jacobian ( point, jac, axes, detjac, jacinv );
+                                        area += weight;
+                                }
+                                values.push_back ( solui/area );
+                        }
+                }
+                double sum = std::accumulate ( values.begin(), values.end(), 0.0 );
+                double mean = sum / values.size();
+                out <<  mean <<endl;
+        }
+
+}
+
+bool SlopeAnalysis::FindCriticalMonteCarloSimulations ( int imc )
+{
+        string saida = "post/regionmean";
+        auto var=to_string ( imc );
+        saida+=var;
+        saida+=".dat";
+        ofstream out ( saida );
+
+        //campos estocasticos
+        TPZVec<TPZFMatrix<REAL>> fields=GetFields();
+
+        int nfields = fields.size();
+
+        TPZVec<REAL> integrationmeanvalues ( nfields );
+
+        TPZVec<REAL> integrationvariance ( nfields );
+
+        for ( int imesh=0; imesh<nfields; imesh++ ) {
+
+                TPZFMatrix<REAL> solu ( fields[imesh].Rows(),1 );
+                //REAL mean=0;
+                int ndegreesoffredoom=fields[imesh].Rows();
+                std::vector<double> v ( ndegreesoffredoom );
+                for ( int inodalsol=0; inodalsol< ndegreesoffredoom; inodalsol++ ) {
+                        solu ( inodalsol,0 ) =fields[imesh] ( inodalsol,imc );
+                        v[inodalsol]=solu ( inodalsol,0 );
+                        //mean+=solu(inodalsol,0);
+
+                }
+
+                if ( false ) { //calcula e imprime media e cov
+                        double sum = std::accumulate ( v.begin(), v.end(), 0.0 );
+                        double mean = sum / v.size();
+
+                        double sq_sum = std::inner_product ( v.begin(), v.end(), v.begin(), 0.0 );
+                        double stdev = std::sqrt ( sq_sum / v.size() - mean * mean );
+
+                        cout << "MEDIA = "<< mean << endl;
+                        cout << "COV = "<< stdev/mean << endl;
+                }
+
+                fCompMeshField->LoadSolution ( solu );
+
+                //num elementos malha elastoplastica
+                int nels =  fCompMeshField->NElements();
+                REAL val=0.;
+                int count=0;
+                std::vector<double> values;
+                for ( int iel=0; iel<nels; iel++ ) {
+
+                        TPZCompEl *cel = fCompMeshField->ElementVec() [iel];
+                        TPZGeoEl * gel=cel->Reference();
+                        TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *> ( cel );
+                        if ( !cel || !intel ) {
+                                continue;
                         }
 
-            }
-            integrationmeanvalues[imesh]=val/cout;
+                        TPZManVector<REAL,3> point ( 2,0. );
+
+                        TPZMaterialDataT<REAL> data;
+                        intel->InitMaterialData ( data );
+                        data.fNeedsSol = true;
+                        intel->ComputeRequiredData ( data,point );
+                        REAL x=data.x[0];
+                        REAL y=data.x[1] ;
+                        REAL xc = 40.;
+                        REAL yc = 44.;
+                        REAL r1 = 12.;
+                        REAL r2 = 15.;
+                        REAL residual1 = ( x-xc ) * ( x-xc )+ ( y-yc ) * ( y-yc )-r1*r1;
+                        REAL residual2 = ( x-xc ) * ( x-xc )+ ( y-yc ) * ( y-yc )-r2*r2;
+                        TPZVec<REAL> qsi ( 2,0. ), sol;
+                        REAL elsol=0.;
+                        //if((38.<x<42.) && (28.<y<30.))
+                        REAL solui=0.;
+                        REAL area=0.;
+                        if ( residual1>0&&residual2<0 ) {
+
+                                TPZIntPoints &rule = intel->GetIntegrationRule();
+                                int np = rule.NPoints();
+                                for ( int ip = 0; ip<np; ip++ ) {
+                                        TPZManVector<REAL> point ( 2,0. );
+                                        REAL weight;
+                                        rule.Point ( ip, point, weight );
+                                        intel->ComputeSolution ( point,data,false );
+                                        weight*=fabs ( data.detjac );
+                                        solui+=weight*data.sol[0][0] ;
+                                        TPZFMatrix<REAL> jac,jacinv;
+                                        TPZFMatrix<REAL> axes;
+                                        REAL detjac;
+                                        gel->Jacobian ( point, jac, axes, detjac, jacinv );
+                                        area += weight;
+                                }
+                                values.push_back ( solui/area );
+                                //count++;
+                        }
+                }
+                double sum = std::accumulate ( values.begin(), values.end(), 0.0 );
+                double mean = sum / values.size();
+                out <<  mean <<endl;
+                integrationmeanvalues[imesh]=mean;
         }
-        out <<  integrationmeanvalues[0] <<endl;
-        out << integrationmeanvalues[1] <<endl;
+
+        REAL nomalizedcohes=integrationmeanvalues[0]/ ( fCohesion );
+        REAL nomalizedphi=integrationmeanvalues[1]/ ( fAtrito );
+        //cout << "(nomalizedcohes+nomalizedphi)  = "<< (nomalizedcohes+nomalizedphi) << endl;
+        std::vector<int> idsmc;
+        REAL val=nomalizedphi - ( -0.5 * nomalizedcohes + 1.45 );
+        if ( val<0 ) {
+                //cout << "amostra falha, imc  = "<< imc << endl;
+                //cout << "----------------------------" << endl;
+                return true;
+        } else {
+                return false;
+        }
+
+
+}
+
+// std::vector<std::vector<int>> SlopeAnalysis::SelectCriticalIndexes()
+// {
+//         int nfields = fMeanvec.size();
+//         if ( !nfields ) DebugStop();
+//         fHFields.Resize ( nfields );
+//         int M = fSolutionValVec.Cols();
+//         int ndofs = fSolutionValVec.Cols();
+//         if ( !fFieldSamples.size() ) DebugStop();
+//
+//         int sz=10;
+//
+//         cout << "ndofs  = "<< ndofs <<endl;
+//         cout << "M  = "<< M <<endl;
+//         cout << "fFieldSamples[0].Rows()  = "<< fFieldSamples[0].Rows() <<endl;
+//         cout << "fFieldSamples[0].Cols()  = "<< fFieldSamples[0].Cols() <<endl;
+//
+//         std::vector<int> indexescoes,indexesatrito;
+//         std::vector<std::vector<int>> indexes ( nfields );
+//         for ( int imc=0; imc<fNSamples; imc++ ) {
+//                 bool fail = FindCriticalMonteCarloSimulations ( imc );
+//                 if ( fail==false ) {
+//                         continue;
+//                 }
+//                 for ( int ifield=0; ifield<nfields; ifield++ ) {
+//
+//                         std::vector<double> theta ( M );
+//                         for ( int iM=0; iM<M; iM++ ) {
+//                                 TPZFMatrix<REAL> transp;
+//                                 //fFieldSamples[ifield].Transpose(&transp);
+//                                 theta[iM] = fFieldSamples[ifield](iM, imc);
+//
+//                         }
+//                         std::vector<int> maiores,menores;
+//                         maiores=GetIndex ( theta,true );
+//                         menores=GetIndex ( theta,false );
+//                         //menores=GetIndex(theta,false);
+//
+//
+//
+//                         //std::cout << "Os 10 maiores valores e seus índices são:" << std::endl;
+//
+//                         for ( int i = 0; i < sz; ++i ) {
+//                                 indexes[ifield].push_back ( maiores[i] );
+//                         }
+//                         for ( int i = 0; i < sz; ++i ) {
+//                                 indexes[ifield].push_back ( menores[i] );
+//                         }
+//
+//                 }
+//
+//         }
+//
+//         return indexes;
+// }
+
+// std::vector<std::vector<int>> SlopeAnalysis::SelectCriticalIndexes2()
+// {
+//         int nfields = fMeanvec.size();
+//         if ( !nfields ) DebugStop();
+//         fHFields.Resize ( nfields );
+//         if ( !fFieldSamples.size() ) DebugStop();
+//         int M = fSolutionValVec.Cols();
+//         std::vector<std::vector<int>> indexes ( nfields );
+//
+//         int nchop=10;
+//         for ( int imc=0; imc<fNSamples; imc++ ) {
+//                 bool fail = FindCriticalMonteCarloSimulations ( imc );
+//                 if ( fail==false ) {
+//                         continue;
+//                 }
+//
+//                 for ( int ifield=0; ifield<nfields; ifield++ )
+//                 {
+//                         std::vector<double> theta ( M );
+//                         for ( int iM=0; iM<M; iM++ ) {
+//                                 theta[iM] = fPesos[ifield](iM,imc);
+//                         }
+//                         std::vector<int> pesosdecrescentes;
+//                         pesosdecrescentes=GetIndex ( theta,true );
+//
+//                         for ( int i = 0; i <=nchop; i++ )
+//                         {
+//                                  indexes[ifield].push_back ( pesosdecrescentes[i] );
+//                         }
+//                         for ( int i = pesosdecrescentes.size(); i>=pesosdecrescentes.size()-nchop; i-- )
+//                         {
+//                                  indexes[ifield].push_back ( pesosdecrescentes[i] );
+//                         }
+//
+//                         for ( int i = 0; i<indexes[ifield].size(); i++ )
+//                         {
+//                                  //cout <<"theta = "<< theta[indexes[ifield][i]] << endl;
+//                         }
+//
+//                 }
+//
+//         }
+//         return indexes;
+// }
+int SlopeAnalysis::CountCriticalFields()
+{
+        int nfields = fMeanvec.size();
+        if ( !nfields ) DebugStop();
+        if ( !fFieldSamples.size() ) DebugStop();
+        int count=0;
+        for ( int imc=0; imc<100; imc++ ) {
+                bool fail = FindCriticalMonteCarloSimulations ( imc );
+                if ( fail==false ) {
+                        continue;
+                }
+                //cout << "Field fail = "<< imc<< " count = "<< count <<  endl;
+                count++;
+
+        }
+        return count;
+}
+void  SlopeAnalysis::ComputeH()
+{
+//         int nfields = fMeanvec.size();
+//         if ( !nfields ) DebugStop();
+//         fHFields.Resize ( nfields );
+//         int M = fSolutionValVec.Cols();
+//         int ndofs = fSolutionValVec.Rows();
+//         if ( !fFieldSamples.size() ) DebugStop();
+//         cout << "nfields" <<nfields << endl;
+//         cout << "GetFields()[0](0,0)" <<GetFields()[0](0,0) << endl;
+//         std::vector<std::vector<int>> indexes = SelectCriticalIndexes2();
+//
+//         for ( int ifield = 0; ifield < nfields; ifield++ ) {
+//                 // Encontrar os índices repetidos no vetor indexes[ifield]
+//                 std::vector<std::pair<int, int>> sol = encontrarRepetidos ( indexes[ifield] );
+//                 int sz = sol.size();
+//                 cout << "sz = "<< sz <<endl;
+//                 int last =indexes[ifield].size()-1;
+//                 cout<<"indexes[ifield][last]= "<<sol[indexes[ifield][0]].first<<endl;
+//                 cout<<"indexes[ifield][last]= "<<sol[indexes[ifield][last]].first<<endl;
+//                 // Cria a matriz ValVecSelected com as dimensões apropriadas
+//                 TPZFMatrix<REAL> ValVecSelected ( ndofs, M );
+//                 ValVecSelected.Zero();
+//                 int count=0;
+//                 cout<<"1 aqui? "<<endl;
+//                 for (const auto& entry : sol) {
+//                         cout<<"1 a aqui? "<<endl;
+//                         //if (entry.second > 2) { // Se o índice apareceu mais de uma vez
+//                                 std::cout << "Indice: " << entry.first << " | Repetições: " << entry.second << "\n";
+//                                 for ( int ndof = 0; ndof < ndofs; ndof++ )
+//                                 {
+//                                         //ValVecSelected ( ndof, count ) = fSolutionValVec ( ndof, sol[indexes[ifield][count]].first);
+//                                         ValVecSelected ( ndof, count ) = fSolutionValVec ( ndof, entry.first);
+//                                 }
+//
+//                        // }
+//                         count++;
+//
+//                 }
+//                 cout<<"2 aqui? "<<endl;
+//
+//                 // Itera sobre os pares (índice e número de repetições) em 'sol'
+// //                 for ( int ichopm=0;ichopm<sz;ichopm++ ) {
+// //                 //std::cout << "Indice: " << sol[ichopm].first << " | Repetições: " << sol[ichopm].second << "\n";
+// //
+// //                  if(sol[ichopm].second>9)//se tiver mai que x repeticoes
+// //                  {
+// //                          cout << "Index = "<< sol[ichopm].first <<endl;
+// //                          cout << "Repeticoes = "<< sol[ichopm].second <<endl;
+// //
+// //                         // Preenche a matriz ValVecSelected
+// //                         for ( int ndof = 0; ndof < ndofs; ndof++ ) {
+// //                                 // Acessa o valor correspondente de fSolutionValVec usando entry.first
+// //                                 //ValVecSelected ( ndof, ichopm ) = fSolutionValVec ( ndof, sol[ichopm].first );
+// //                                 ValVecSelected ( ndof, ichopm ) = fSolutionValVec ( ndof, sol[ichopm].first);
+// //                         }
+// //                  }
+//
+// //                }
+//
+//                 //ValVecSelected.Print("VALVEC");
+//                 cout << "count = "<<count<<endl;
+//                 cout << "ValVecSelected.Cols()  = "<<ValVecSelected.Cols() <<endl;
+//                 cout << "fFieldSamples[ifield].Rows() = "<< fFieldSamples[ifield].Rows() <<endl;
+//                 // Gerar campo aleatório (código comentado que você deve ajustar)
+//                  fHFields[ifield] = GenerateRandomField(fMeanvec[ifield], fCovvec[ifield], ValVecSelected, fFieldSamples[ifield]);
+//                  //fHFields[ifield] = GenerateRandomField2(fMeanvec[ifield], fCovvec[ifield]);
+//                    //TPZVec<TPZFMatrix<REAL>> soluu =GenerateRandomField2 ( fMeanvec[ifield],fCovvec[ifield],ValVecSelected);
+//                 //fHFields[ifield] =soluu[0];
+//                 //fPesos[ifield]=soluu[1];
+//         }
+
+}
+void SlopeAnalysis::ManageFieldCretion()
+{
+        int nfields = fMeanvec.size();
+        fFields.resize ( nfields );
+        fPesos.resize ( nfields );
+        fFieldSamples.Resize ( nfields );
+        if ( !nfields ) DebugStop();
+        for ( int ifield=0; ifield<nfields; ifield++ ) {
+
+                //fFieldSamples[ifield] = CreateNormalStandardSamples();
+                fFields[ifield] = GenerateRandomField ( fMeanvec[ifield],fCovvec[ifield],fSolutionValVec,fFieldSamples[ifield] );
+                //TPZVec<TPZFMatrix<REAL>> sol =GenerateRandomField2 ( fMeanvec[ifield],fCovvec[ifield],fSolutionValVec);
+                //fFields[ifield] =sol[0];
+                fPesos[ifield]=fFieldSamples[ifield];
+
+        }
+
+}
+
+void SlopeAnalysis:: ManageFieldCretion(std::vector<int>  fieldindexes)
+{
+        int nfields = fMeanvec.size();
+        fFields.resize ( nfields );
+        //fPesos.resize ( nfields );
+        //fFieldSamples.Resize ( nfields );
+        if ( !nfields ) DebugStop();
+        int ndofs = fSolutionValVec.Rows();
+        int chopedcollums=fieldindexes.size();
+        TPZFMatrix<REAL> SolutionValVecSelected(ndofs,chopedcollums);
+        SolutionValVecSelected.Zero();
+        for(int iM=0;iM<chopedcollums;iM++)
+        {
+                for(int idof=0;idof<ndofs;idof++)
+                {
+                        SolutionValVecSelected(idof,iM)=fSolutionValVec(idof,fieldindexes[iM]);
+                }
+        }
+
+        for ( int ifield=0; ifield<nfields; ifield++ ) {
+                fFields[ifield] = GenerateRandomField ( fMeanvec[ifield],fCovvec[ifield],SolutionValVecSelected,fFieldSamples[ifield] );
+        }
+        //cout << "sdasssss"<<endl;
+}
+
+TPZFMatrix<REAL>  SlopeAnalysis::GenerateRandomField ( REAL mean, REAL cov,TPZFMatrix<REAL> valvec, TPZFMatrix<REAL> stdnormalsamples )
+{
+        //std::cout <<" mean = "<< mean  << " cov = " << cov<<std::endl;
+        if ( valvec.Rows() <=1 ) {
+                std::cout <<" no fSolutionValVec"<< std::endl;
+                DebugStop();
+        }
+
+        //cout << "kkkkkksdas"<<endl;
+        TPZFMatrix<REAL> hhat,hhat2;
+        valvec.Multiply ( stdnormalsamples, hhat );
+        REAL xi = sqrt ( log ( 1. + cov*cov ) );
+        REAL lambda = log ( mean ) - 0.5*xi * xi;
+        int M=valvec.Cols();
+
+        //cout << "sdas"<<endl;
+        for ( int i = 0; i < hhat.Rows(); i++ ) {//ndof
+                for ( int j = 0; j < hhat.Cols(); j++ ) {//samples
+                        hhat ( i,j ) = exp ( lambda + xi * hhat ( i,j ) );
+                        REAL val=0.;
+                        for(int iM=0;iM<M;iM++)
+                        {
+                             //   val+=stdnormalsamples(iM,j)*valvec(i,iM);
+                        }
+                       //hhat2 ( i,j ) = exp ( lambda + xi * val );
+                }
+        }
+
+        return hhat;
+}
+// TPZVec<TPZFMatrix<REAL>> SlopeAnalysis::GenerateRandomField2 ( REAL mean, REAL cov, TPZFMatrix<REAL> valvec)
+// {
+//         int M = fSolutionValVec.Cols();
+//         int ndofs = fSolutionValVec.Rows();
+//         TPZFMatrix<REAL> hhat(ndofs,fNSamples),pesos(fNSamples,1);
+//
+//         REAL xi = sqrt ( log ( 1. + cov*cov ) );
+//         REAL lambda = log ( mean ) - 0.5*xi * xi;
+//
+//         for(int isample=0;isample<fNSamples;isample++)
+//         {
+//
+//                 for(int idof = 0; idof < ndofs; idof++)
+//                 {
+//                         REAL lambdaphixi=0;
+//                         for ( int iM=0;iM<M;iM++ )
+//                         {                REAL sample = CreateNormalStandardSample( );
+//                 pesos(isample,0)=sample;
+//                                 lambdaphixi+=valvec(idof,iM)*sample;
+//                         }
+//                         hhat ( idof,isample ) = exp ( lambda + xi * lambdaphixi );
+//                 }
+//         }
+//
+//         TPZVec<TPZFMatrix<REAL>> sol(2);
+//         sol[0]=hhat;
+//         sol[1]=pesos;
+//         return sol;
+// }
+TPZVec<TPZFMatrix<REAL>> SlopeAnalysis::GenerateRandomField2 ( REAL mean, REAL cov, TPZFMatrix<REAL> valvec)
+{
+        int M = fSolutionValVec.Cols();
+        int ndofs = fSolutionValVec.Rows();
+        TPZFMatrix<REAL> hhat(ndofs,fNSamples),pesos(M,fNSamples);
+
+        REAL xi = sqrt ( log ( 1. + cov*cov ) );
+        REAL lambda = log ( mean ) - 0.5 * xi * xi;
+        cout << "entrou " << endl;
+
+        std::random_device rd{};
+        std::mt19937 generator{ rd() };
+        std::normal_distribution<REAL> distribution ( 0., 1. );
+
+// Gera pesos (ξi) uma vez
+        for ( int n = 0; n < fNSamples; n++ ) {
+                for ( int iexp = 0; iexp < M; iexp++ ) {
+                        REAL xic = distribution ( generator );
+                        pesos ( iexp, n ) = xic;
+                }
+        }
+
+// Usa os pesos gerados para calcular hhat
+        for ( int isample = 0; isample < fNSamples; isample++ ) {
+                for ( int idof = 0; idof < ndofs; idof++ ) {
+                        REAL lambdaphixi = 0;
+                        for ( int iM = 0; iM < M; iM++ ) {
+                                lambdaphixi += valvec ( idof, iM ) * pesos ( iM, isample );
+                        }
+                        hhat ( idof, isample ) = exp ( lambda + xi * lambdaphixi );
+                }
+        }
+        cout << "saiu "<<endl;
+        TPZVec<TPZFMatrix<REAL>> sol(2);
+        sol[0]=hhat;
+        sol[1]=pesos;
+        return sol;
+}
+
+
+
+TPZFMatrix<REAL> SlopeAnalysis::CreateNormalStandardSamples( )
+{
+
+        TPZFMatrix<REAL> samples;
+        int M = fSolutionValVec.Cols();
+        samples.Resize ( M,fNSamples );
+
+        std::random_device rd{};
+        std::mt19937 generator{ rd() };
+        std::normal_distribution<REAL> distribution ( 0., 1. );
+
+// Gera pesos (ξi) uma vez
+        for ( int n = 0; n < fNSamples; n++ ) {
+                for ( int iexp = 0; iexp < M; iexp++ ) {
+                        REAL xic = distribution ( generator );
+                        samples ( iexp, n ) = xic;
+                }
+        }
+
+        return samples;
+}
+
+REAL SlopeAnalysis::CreateNormalStandardSample( )
+{
+
+        std::normal_distribution<REAL> distribution ( 0., 1. );
+        std::random_device rd{};
+        std::mt19937 generator{ rd() };
+        REAL xic = distribution ( generator );
+        return xic;
+
 }
 
 void SlopeAnalysis::ShearReductionIntegrationPoints ( REAL FS )
@@ -382,7 +984,7 @@ void SlopeAnalysis::ShearReductionIntegrationPoints ( REAL FS )
 
 TPZElastoPlasticAnalysis   SlopeAnalysis::SetSlopeAnalysis ( int type,int numthreads )
 {
-        TPZElastoPlasticAnalysis anal(fCompMesh,cout);
+        TPZElastoPlasticAnalysis anal ( fCompMesh,cout );
 
         switch ( type ) {
         case 0: {
@@ -410,58 +1012,6 @@ TPZElastoPlasticAnalysis   SlopeAnalysis::SetSlopeAnalysis ( int type,int numthr
         }
         }
         return anal;
-}
-void SlopeAnalysis::ManageFieldCretion()
-{
-        int nfields = fMeanvec.size();
-        fFields.resize ( nfields );
-        if ( !nfields ) DebugStop();
-        for ( int ifield=0; ifield<nfields; ifield++ ) {
-                fFields[ifield] = GenerateRandomField ( fMeanvec[ifield],fCovvec[ifield],fSamples );
-        }
-
-}
-TPZFMatrix<REAL>  SlopeAnalysis::GenerateRandomField ( REAL mean, REAL cov,int samples )
-{
-        TPZFMatrix<REAL>  PHIt,PHI=fSolutionValVec;
-
-        //std::cout <<" mean = "<< mean  << " cov = " << cov<<std::endl;
-        if ( PHI.Rows() <=1 ) {
-                std::cout <<" no solution"<< std::endl;
-                DebugStop();
-        }
-
-
-        int M = PHI.Cols();
-
-        TPZFMatrix<REAL> THETA ( M,samples );
-
-        std::normal_distribution<REAL> distribution ( 0., 1. );
-        for ( int n = 0; n < samples; n++ ) {
-                for ( int iexp = 0; iexp < M; iexp++ ) {
-                        std::random_device rd{};
-                        std::mt19937 generator{ rd() };
-                        REAL xic = distribution ( generator );
-                        THETA ( iexp,n ) = xic;
-                }
-        }
-
-        TPZFMatrix<REAL> hhat;
-        PHI.Multiply ( THETA, hhat );
-
-        REAL sdev = cov* mean;
-        REAL xi = sqrt ( log ( 1 + pow ( ( sdev / mean ),2 ) ) );
-        REAL lambda = log ( mean ) - xi * xi / 2.;
-
-        for ( int i = 0; i < hhat.Rows(); i++ ) {
-                for ( int j = 0; j < hhat.Cols(); j++ ) {
-                        hhat ( i,j ) = exp ( lambda + xi * hhat ( i,j ) );
-                }
-        }
-
-        //PrintField(hhat,filename);
-        //LoadSolution(hhat);
-        return hhat;
 }
 
 TPZCompMesh * SlopeAnalysis::CreateCMesh ( TPZGeoMesh *gmesh, int pOrder, REAL coes,REAL atrito )
@@ -564,122 +1114,122 @@ TPZCompMesh * SlopeAnalysis::CreateCMesh ( TPZGeoMesh *gmesh, int pOrder, REAL c
 
         return cmesh;
 }
-void SlopeAnalysis::DivideElementsAbove(REAL refineaboveval, std::set<long> &elindices)
+void SlopeAnalysis::DivideElementsAbove ( REAL refineaboveval, std::set<long> &elindices )
 {
-  //int porder =fPorder+3;
-    //fGmesh->ResetReference();
-    //fCompMesh->LoadReferences();
-    TPZManVector<REAL,3> findel(3,0.),qsi(2,0.);
+        //int porder =fPorder+3;
+        //fGmesh->ResetReference();
+        //fCompMesh->LoadReferences();
+        TPZManVector<REAL,3> findel ( 3,0. ),qsi ( 2,0. );
 
 
-    long nelem = fCompMesh->NElements();
-    for (long el=0; el<nelem; el++) {
-        TPZCompEl *cel = fCompMesh->ElementVec()[el];
-        if (!cel) {
-            continue;
-        }
-
-        TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *>(cel);
-        if (!intel) {
-            DebugStop();
-        }
-        TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> (cel->Material());
-        if (!pMatWithMem2) {
-            continue;
-        }
-        const TPZFMatrix<STATE> &elsol = fCompMesh->ElementSolution();
-        if (elsol.Get(el,0) <=refineaboveval) {
-            continue;
-        }
-        //intel->PRefine(3);
-        int porder = intel->GetPreferredOrder();
-        TPZStack<long> subels;
-        long index = cel->Index();
-
-
-        intel->Divide(index, subels,0);
-        for (int is=0; is<subels.size(); is++) {
-            elindices.insert(subels[is]);
-            TPZCompEl *subcel = fCompMesh->ElementVec()[subels[is]];
-
-            TPZInterpolationSpace *subintel = dynamic_cast<TPZInterpolationSpace *>(subcel);
-            if (!subintel) {
-                DebugStop();
-            }
-            subintel->SetPreferredOrder(porder);
-        }
-    }
-    // divide elements with more than one level difference
-    bool changed = true;
-    while (changed) {
-        changed = false;
-        std::set<long> eltodivide;
         long nelem = fCompMesh->NElements();
-        for (long el=0; el<nelem; el++) {
-            TPZCompEl *cel = fCompMesh->ElementVec()[el];
-            if (!cel) {
-                continue;
-            }
-            TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *>(cel);
-            if (!intel) {
-                DebugStop();
-            }
-            TPZGeoEl *gel = cel->Reference();
-            if (!gel) {
-                DebugStop();
-            }
-            int ns = gel->NSides();
-            for (int is=0; is<ns; is++) {
-                TPZGeoElSide gelside(gel, is);
-                if (gelside.Dimension() != 1) {
-                    continue;
+        for ( long el=0; el<nelem; el++ ) {
+                TPZCompEl *cel = fCompMesh->ElementVec() [el];
+                if ( !cel ) {
+                        continue;
                 }
-                TPZCompElSide big = gelside.LowerLevelCompElementList2(1);
-                if (!big) {
-                    continue;
-                }
-                TPZGeoElSide geobig(big.Reference());
-                // boundary elements will be refined by AdjustBoundaryElements
-                if (geobig.Element()->Dimension() != 2) {
-                    continue;
-                }
-                if (gel->Level()-geobig.Element()->Level() > 1) {
-                    eltodivide.insert(big.Element()->Index());
-                }
-            }
-        }
-        std::set<long>::iterator it;
-        for (it = eltodivide.begin(); it != eltodivide.end(); it++) {
-            changed = true;
-            long el = *it;
-            TPZCompEl *cel = fCompMesh->ElementVec()[el];
-            if (!cel) {
-                continue;
-            }
-            TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *>(cel);
-            if (!intel) {
-                DebugStop();
-            }
-            TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> (cel->Material());
-            if (!pMatWithMem2) {
-                continue;
-            }
 
-            int porder = intel->GetPreferredOrder();
-            TPZStack<long> subels;
-            long index = cel->Index();
-            intel->Divide(index, subels,0);
-            for (int is=0; is<subels.size(); is++) {
-                elindices.insert(subels[is]);
-                TPZCompEl *subcel = fCompMesh->ElementVec()[subels[is]];
-                TPZInterpolationSpace *subintel = dynamic_cast<TPZInterpolationSpace *>(subcel);
-                if (!subintel) {
-                    DebugStop();
+                TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *> ( cel );
+                if ( !intel ) {
+                        DebugStop();
                 }
-                subintel->SetPreferredOrder(porder);
-            }
+                TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( cel->Material() );
+                if ( !pMatWithMem2 ) {
+                        continue;
+                }
+                const TPZFMatrix<STATE> &elsol = fCompMesh->ElementSolution();
+                if ( elsol.Get ( el,0 ) <=refineaboveval ) {
+                        continue;
+                }
+                //intel->PRefine(3);
+                int porder = intel->GetPreferredOrder();
+                TPZStack<long> subels;
+                long index = cel->Index();
+
+
+                intel->Divide ( index, subels,0 );
+                for ( int is=0; is<subels.size(); is++ ) {
+                        elindices.insert ( subels[is] );
+                        TPZCompEl *subcel = fCompMesh->ElementVec() [subels[is]];
+
+                        TPZInterpolationSpace *subintel = dynamic_cast<TPZInterpolationSpace *> ( subcel );
+                        if ( !subintel ) {
+                                DebugStop();
+                        }
+                        subintel->SetPreferredOrder ( porder );
+                }
         }
-    }
+        // divide elements with more than one level difference
+        bool changed = true;
+        while ( changed ) {
+                changed = false;
+                std::set<long> eltodivide;
+                long nelem = fCompMesh->NElements();
+                for ( long el=0; el<nelem; el++ ) {
+                        TPZCompEl *cel = fCompMesh->ElementVec() [el];
+                        if ( !cel ) {
+                                continue;
+                        }
+                        TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *> ( cel );
+                        if ( !intel ) {
+                                DebugStop();
+                        }
+                        TPZGeoEl *gel = cel->Reference();
+                        if ( !gel ) {
+                                DebugStop();
+                        }
+                        int ns = gel->NSides();
+                        for ( int is=0; is<ns; is++ ) {
+                                TPZGeoElSide gelside ( gel, is );
+                                if ( gelside.Dimension() != 1 ) {
+                                        continue;
+                                }
+                                TPZCompElSide big = gelside.LowerLevelCompElementList2 ( 1 );
+                                if ( !big ) {
+                                        continue;
+                                }
+                                TPZGeoElSide geobig ( big.Reference() );
+                                // boundary elements will be refined by AdjustBoundaryElements
+                                if ( geobig.Element()->Dimension() != 2 ) {
+                                        continue;
+                                }
+                                if ( gel->Level()-geobig.Element()->Level() > 1 ) {
+                                        eltodivide.insert ( big.Element()->Index() );
+                                }
+                        }
+                }
+                std::set<long>::iterator it;
+                for ( it = eltodivide.begin(); it != eltodivide.end(); it++ ) {
+                        changed = true;
+                        long el = *it;
+                        TPZCompEl *cel = fCompMesh->ElementVec() [el];
+                        if ( !cel ) {
+                                continue;
+                        }
+                        TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *> ( cel );
+                        if ( !intel ) {
+                                DebugStop();
+                        }
+                        TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( cel->Material() );
+                        if ( !pMatWithMem2 ) {
+                                continue;
+                        }
+
+                        int porder = intel->GetPreferredOrder();
+                        TPZStack<long> subels;
+                        long index = cel->Index();
+                        intel->Divide ( index, subels,0 );
+                        for ( int is=0; is<subels.size(); is++ ) {
+                                elindices.insert ( subels[is] );
+                                TPZCompEl *subcel = fCompMesh->ElementVec() [subels[is]];
+                                TPZInterpolationSpace *subintel = dynamic_cast<TPZInterpolationSpace *> ( subcel );
+                                if ( !subintel ) {
+                                        DebugStop();
+                                }
+                                subintel->SetPreferredOrder ( porder );
+                        }
+                }
+        }
 
 //     //ApplyHistory(elindices);
 //     ComputeElementDeformation();
@@ -691,48 +1241,48 @@ void SlopeAnalysis::DivideElementsAbove(REAL refineaboveval, std::set<long> &eli
 //     fCompMesh->Solution().Redim(fCompMesh->NEquations(), 1);
 //    // fcmesh->LoadReferences();
 
-    fCompMesh->AdjustBoundaryElements();
-    fCompMesh->InitializeBlock();
-    TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( fCompMesh->MaterialVec() [1] );
-    pMatWithMem2->ResetMemory();
+        fCompMesh->AdjustBoundaryElements();
+        fCompMesh->InitializeBlock();
+        TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( fCompMesh->MaterialVec() [1] );
+        pMatWithMem2->ResetMemory();
 //     fCompMesh->Solution().Zero();
 //     fCompMesh->Solution().Resize(0, 0);
 //     fCompMesh->Solution().Redim(fCompMesh->NEquations(), 1);
 
 }
 
-void SlopeAnalysis::PRefineElementsAbove(REAL refineaboveval, int porder, std::set<long> &elindices)
+void SlopeAnalysis::PRefineElementsAbove ( REAL refineaboveval, int porder, std::set<long> &elindices )
 {
 
-    fCompMesh->LoadReferences();
-    long nelem = fCompMesh->NElements();
-    for (long el=0; el<nelem; el++) {
-        TPZCompEl *cel = fCompMesh->ElementVec()[el];
-        if (!cel) {
-            continue;
-        }
-        TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *>(cel);
-        if (!intel) {
-            DebugStop();
-        }
-        TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> (cel->Material());
-        if (!pMatWithMem2) {
-            continue;
+        fCompMesh->LoadReferences();
+        long nelem = fCompMesh->NElements();
+        for ( long el=0; el<nelem; el++ ) {
+                TPZCompEl *cel = fCompMesh->ElementVec() [el];
+                if ( !cel ) {
+                        continue;
+                }
+                TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *> ( cel );
+                if ( !intel ) {
+                        DebugStop();
+                }
+                TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( cel->Material() );
+                if ( !pMatWithMem2 ) {
+                        continue;
+                }
+
+                const TPZFMatrix<STATE> &elsol = fCompMesh->ElementSolution();
+                if ( elsol ( el,0 ) < refineaboveval ) {
+                        continue;
+                }
+                //cout << "porder = " << porder << endl;
+                TPZStack<long> subels;
+                long index = cel->Index();
+                elindices.insert ( index );
+                intel->SetPreferredOrder ( porder );
         }
 
-        const TPZFMatrix<STATE> &elsol = fCompMesh->ElementSolution();
-        if (elsol(el,0) < refineaboveval) {
-            continue;
-        }
-        //cout << "porder = " << porder << endl;
-        TPZStack<long> subels;
-        long index = cel->Index();
-        elindices.insert(index);
-        intel->SetPreferredOrder(porder);
-    }
-
-    fCompMesh->AdjustBoundaryElements();
-    fCompMesh->InitializeBlock();
+        fCompMesh->AdjustBoundaryElements();
+        fCompMesh->InitializeBlock();
 //     fCompMesh->Solution().Zero();
 //     fCompMesh->Solution().Resize(0, 0);
 //     fCompMesh->Solution().Redim(fCompMesh->NEquations(), 1);
@@ -740,100 +1290,94 @@ void SlopeAnalysis::PRefineElementsAbove(REAL refineaboveval, int porder, std::s
 
 void SlopeAnalysis::ComputeElementDeformation()
 {
-    long nelem = fCompMesh->NElements();
-    fPlasticDeformSqJ2.resize(nelem);
-    fPlasticDeformSqJ2.Fill(0.);
-    fCompMesh->ElementSolution().Redim(nelem, 1);
-    TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> (fCompMesh->MaterialVec()[1]);
-    if (!pMatWithMem2) {
-        fPlasticDeformSqJ2.Fill(0.);
-    }
-    else
-    {
-        for (long el = 0; el<nelem; el++) {
-            TPZCompEl *cel = fCompMesh->ElementVec()[el];
-            fPlasticDeformSqJ2[el] = 0.;
-            if (!cel) {
-                continue;
-            }
-            TPZManVector<long> memindices;
-            cel->GetMemoryIndices(memindices);
-            int numind = memindices.size();
-            REAL sqj2el = 0.;
-            REAL phivalplane=0.;
-            for (int ind=0; ind<numind; ind++)
-            {
-                int memoryindex = memindices[ind];
-                if (memoryindex < 0) {
-                    continue;
+        long nelem = fCompMesh->NElements();
+        fPlasticDeformSqJ2.resize ( nelem );
+        fPlasticDeformSqJ2.Fill ( 0. );
+        fCompMesh->ElementSolution().Redim ( nelem, 1 );
+        TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( fCompMesh->MaterialVec() [1] );
+        if ( !pMatWithMem2 ) {
+                fPlasticDeformSqJ2.Fill ( 0. );
+        } else {
+                for ( long el = 0; el<nelem; el++ ) {
+                        TPZCompEl *cel = fCompMesh->ElementVec() [el];
+                        fPlasticDeformSqJ2[el] = 0.;
+                        if ( !cel ) {
+                                continue;
+                        }
+                        TPZManVector<long> memindices;
+                        cel->GetMemoryIndices ( memindices );
+                        int numind = memindices.size();
+                        REAL sqj2el = 0.;
+                        REAL phivalplane=0.;
+                        for ( int ind=0; ind<numind; ind++ ) {
+                                int memoryindex = memindices[ind];
+                                if ( memoryindex < 0 ) {
+                                        continue;
+                                }
+                                TPZElastoPlasticMem &mem = pMatWithMem2->MemItem ( memindices[ind] );
+                                TPZTensor<REAL> plastic =mem.m_elastoplastic_state.EpsP();
+                                TPZTensor<REAL> total =mem.m_elastoplastic_state.EpsT();
+                                TPZVec<REAL> phi;
+                                //pMatWithMem2->GetPlasticity().Phi(total,phi);
+                                REAL J2 = plastic.J2();
+                                REAL sqj2 = sqrt ( J2 );
+                                //REAL val=mem.m_elastoplastic_state.VolHardening();
+                                sqj2el = max ( sqj2,sqj2el );
+                                phivalplane=phi[0];
+
+                        }
+                        fPlasticDeformSqJ2[el] = sqj2el;
                 }
-                TPZElastoPlasticMem &mem = pMatWithMem2->MemItem(memindices[ind]);
-                TPZTensor<REAL> plastic =mem.m_elastoplastic_state.EpsP();
-                TPZTensor<REAL> total =mem.m_elastoplastic_state.EpsT();
-                TPZVec<REAL> phi;
-                //pMatWithMem2->GetPlasticity().Phi(total,phi);
-                 REAL J2 = plastic.J2();
-                 REAL sqj2 = sqrt(J2);
-                //REAL val=mem.m_elastoplastic_state.VolHardening();
-                sqj2el = max(sqj2,sqj2el);
-                phivalplane=phi[0];
-
-            }
-            fPlasticDeformSqJ2[el] = sqj2el;
         }
-    }
-    fCompMesh->SetElementSolution(0, fPlasticDeformSqJ2);
+        fCompMesh->SetElementSolution ( 0, fPlasticDeformSqJ2 );
 }
 
-void SlopeAnalysis::PostPlasticity(std::string vtkd)
+void SlopeAnalysis::PostPlasticity ( std::string vtkd )
 {
-    TPZPostProcAnalysis * postprocdeter = new TPZPostProcAnalysis();
-    CreatePostProcessingMesh ( postprocdeter);
+        TPZPostProcAnalysis * postprocdeter = new TPZPostProcAnalysis();
+        CreatePostProcessingMesh ( postprocdeter );
 
-
-    TPZVec<int> PostProcMatIds ( 1,1 );
-
-    TPZStack<std::string> PostProcVars, scalNames, vecNames;
-
-    PostProcessVariables ( scalNames, vecNames );
-
-    //string vtkd = "postprocessdeter.vtk";
-    postprocdeter->DefineGraphMesh ( 2,scalNames,vecNames,vtkd );
-
-    postprocdeter->PostProcess ( 0 );
-
-    delete postprocdeter;
-}
-
-void  SlopeAnalysis::CreatePostProcessingMesh (TPZPostProcAnalysis * PostProcess )
-{
-    if ( PostProcess->ReferenceCompMesh() != fCompMesh )
-    {
-
-        PostProcess->SetCompMesh ( fCompMesh );
 
         TPZVec<int> PostProcMatIds ( 1,1 );
+
         TPZStack<std::string> PostProcVars, scalNames, vecNames;
+
         PostProcessVariables ( scalNames, vecNames );
 
-        for ( int i=0; i<scalNames.size(); i++ )
-        {
-            PostProcVars.Push ( scalNames[i] );
-        }
-        for ( int i=0; i<vecNames.size(); i++ )
-        {
-            PostProcVars.Push ( vecNames[i] );
+        //string vtkd = "postprocessdeter.vtk";
+        postprocdeter->DefineGraphMesh ( 2,scalNames,vecNames,vtkd );
+
+        postprocdeter->PostProcess ( 0 );
+
+        delete postprocdeter;
+}
+
+void  SlopeAnalysis::CreatePostProcessingMesh ( TPZPostProcAnalysis * PostProcess )
+{
+        if ( PostProcess->ReferenceCompMesh() != fCompMesh ) {
+
+                PostProcess->SetCompMesh ( fCompMesh );
+
+                TPZVec<int> PostProcMatIds ( 1,1 );
+                TPZStack<std::string> PostProcVars, scalNames, vecNames;
+                PostProcessVariables ( scalNames, vecNames );
+
+                for ( int i=0; i<scalNames.size(); i++ ) {
+                        PostProcVars.Push ( scalNames[i] );
+                }
+                for ( int i=0; i<vecNames.size(); i++ ) {
+                        PostProcVars.Push ( vecNames[i] );
+                }
+                //
+                TPZFStructMatrix<REAL> structmatrix ( PostProcess->Mesh() );
+                PostProcess->SetStructuralMatrix ( structmatrix );
+                PostProcess->SetPostProcessVariables ( PostProcMatIds, PostProcVars );
+
+
         }
         //
-        TPZFStructMatrix<REAL> structmatrix ( PostProcess->Mesh() );
-        PostProcess->SetStructuralMatrix ( structmatrix );
-        PostProcess->SetPostProcessVariables ( PostProcMatIds, PostProcVars );
-
-
-    }
-    //
-    //Chamar com o analysis e nao com o postanalysis pois tem o acumulo de sols
-    PostProcess->TransferSolution();
+        //Chamar com o analysis e nao com o postanalysis pois tem o acumulo de sols
+        PostProcess->TransferSolution();
 
 }
 
@@ -841,14 +1385,14 @@ void  SlopeAnalysis::CreatePostProcessingMesh (TPZPostProcAnalysis * PostProcess
 void SlopeAnalysis::PostProcessVariables ( TPZStack<std::string> &scalNames, TPZStack<std::string> &vecNames )
 {
 
-    scalNames.Push ( "POrder" );
-    scalNames.Push ( "Atrito" );
-    scalNames.Push ( "Coesion" );
-    scalNames.Push ( "StrainPlasticJ2" );
-     //scalNames.Push ( "VolHardening" );
-     vecNames.Push ( "Displacement" );
-     //vecNames.Push ( "ShearPlasticDeformation" );
-     //vecNames.Push ( "PlasticDeformation" );
+        scalNames.Push ( "POrder" );
+        scalNames.Push ( "Atrito" );
+        scalNames.Push ( "Coesion" );
+        scalNames.Push ( "StrainPlasticJ2" );
+        //scalNames.Push ( "VolHardening" );
+        vecNames.Push ( "Displacement" );
+        //vecNames.Push ( "ShearPlasticDeformation" );
+        //vecNames.Push ( "PlasticDeformation" );
 
 
 }
@@ -965,52 +1509,37 @@ TPZGeoMesh * SlopeAnalysis::TriGMesh ( int ref )
 }
 
 
-void SlopeAnalysis::Write(TPZStream &buf, int withclassid) const
+void SlopeAnalysis::Write ( TPZStream &buf, int withclassid ) const
 {
-//     buf.Write(&fCohesion);
-//     buf.Write(&fAtrito);
-//     buf.Write(&fGammaW);
-//     buf.Write(&fGammaS);
-//     buf.Write(fMeanvec);
-//     buf.Write(fCovvec);
-//     buf.Write(fSamples);
-//     buf.Write(fPlasticDeformSqJ2);
-//     //fCompMeshField->Reference()->Write(buf, withclassid);
-//     //fCompMeshField->Write(buf, withclassid);
-//     fGMesh->Write(buf, 0);
-//     fCompMesh->Write(buf, 0);
-    fSolutionValVec.Write(buf,withclassid);
-    fFields[0].Write(buf,withclassid);
-    fFields[1].Write(buf,withclassid);
+        fSolutionValVec.Write ( buf,withclassid );
+        //fFieldSamples[0].Write ( buf,withclassid );
+        //fFieldSamples[1].Write ( buf,withclassid );
+        fFields[0].Write ( buf,withclassid );
+        fFields[1].Write ( buf,withclassid );
+        //fHFields[0].Write ( buf,withclassid );
+        //fHFields[1].Write ( buf,withclassid );
+        //fPesos[0].Write ( buf,withclassid );
+        //fPesos[1].Write ( buf,withclassid );
 }
 
-void SlopeAnalysis::Read(TPZStream &buf, void *context)
+void SlopeAnalysis::Read ( TPZStream &buf, void *context )
 {
-//     cout << "a"<<endl;
-//     buf.Read(&fCohesion);
-//     buf.Read(&fAtrito);
-//     buf.Read(&fGammaW);
-//     buf.Read(&fGammaS);
-//     cout << "b"<<endl;
-//     buf.Read(fMeanvec);
-//     buf.Read(fCovvec);
-//     buf.Read(&fSamples);
-//     buf.Read(fPlasticDeformSqJ2);
-//     cout << "c"<<endl;
-//     //fCompMeshField->Reference()->Read(buf, context);
-//     //fCompMeshField->Read(buf, context);
-//     //fCompMesh->Reference()->Read(buf, context);
-//     fGMesh->Read(buf, 0);
-//     cout << "d"<<endl;
-//     fCompMesh->Read(buf, fGMesh);
-//     cout << "e"<<endl;
-    fSolutionValVec.Read(buf,context);
-    fFields.resize(2);
-    fFields[0].Read(buf,context);
-    fFields[1].Read(buf,context);
-    cout << "f"<<endl;
+
+        fSolutionValVec.Read ( buf,context );
+        //fFieldSamples.resize ( 2 );
+        //fFieldSamples[0].Read ( buf,context );
+        //fFieldSamples[1].Read ( buf,context );
+        fFields.resize ( 2 );
+        fFields[0].Read ( buf,context );
+        fFields[1].Read ( buf,context );
+        //fHFields.resize ( 2 );
+        //fHFields[0].Read ( buf,context );
+        //fHFields[1].Read ( buf,context );
+        //fPesos.resize ( 2 );
+        //fPesos[0].Read ( buf,context );
+        //fPesos[1].Read ( buf,context );
 }
-  int SlopeAnalysis::ClassId() const
+int SlopeAnalysis::ClassId() const
 {
-  return Hash("SlopeAnalysis");
+        return Hash ( "SlopeAnalysis" );
 }
