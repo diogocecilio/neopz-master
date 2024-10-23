@@ -75,6 +75,8 @@ public:
 
     void InitializeMemory();
 
+    REAL SolveDeterministic();
+
     void InitializePOrderInRegion();
 
     void Write(TPZStream &buf, int withclassid) const ;

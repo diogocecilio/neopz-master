@@ -8,52 +8,8 @@ SlopeAnalysis::SlopeAnalysis()
 
 }
 
-SlopeAnalysis::SlopeAnalysis(const SlopeAnalysis & other)
+SlopeAnalysis::SlopeAnalysis ( const SlopeAnalysis & other )
 {
-    // Copiando os tipos básicos
-    fCohesion = other.fCohesion;
-    fAtrito = other.fAtrito;
-    fGammaW = other.fGammaW;
-    fGammaS = other.fGammaS;
-    fNSamples = other.fNSamples;
-
-    // Cópia profunda dos ponteiros
-    if (other.fCompMeshField) {
-        fCompMeshField = new TPZCompMesh(*other.fCompMeshField);
-    } else {
-        fCompMeshField = nullptr;
-    }
-
-    if (other.fCompMesh) {
-        fCompMesh = new TPZCompMesh(*other.fCompMesh);
-    } else {
-        fCompMesh = nullptr;
-    }
-
-    if (other.fGMesh) {
-        fGMesh = new TPZGeoMesh(*other.fGMesh);
-    } else {
-        fGMesh = nullptr;
-    }
-
-    // Cópia das matrizes e vetores
-    fSolutionValVec = other.fSolutionValVec;
-    fFields = other.fFields;
-    fHFields = other.fHFields;
-    fFieldSamples = other.fFieldSamples;
-    fMeanvec = other.fMeanvec;
-    fCovvec = other.fCovvec;
-    fPlasticDeformSqJ2 = other.fPlasticDeformSqJ2;
-}
-
-SlopeAnalysis& SlopeAnalysis::operator=(const SlopeAnalysis& other)
-{
-    if (this != &other) { // Evita auto-atribuição
-        // Libera a memória existente
-        //delete fCompMeshField;
-        //delete fCompMesh;
-        //delete fGMesh;
-
         // Copiando os tipos básicos
         fCohesion = other.fCohesion;
         fAtrito = other.fAtrito;
@@ -62,22 +18,22 @@ SlopeAnalysis& SlopeAnalysis::operator=(const SlopeAnalysis& other)
         fNSamples = other.fNSamples;
 
         // Cópia profunda dos ponteiros
-        if (other.fCompMeshField) {
-            fCompMeshField = new TPZCompMesh(*other.fCompMeshField);
+        if ( other.fCompMeshField ) {
+                fCompMeshField = new TPZCompMesh ( *other.fCompMeshField );
         } else {
-            fCompMeshField = nullptr;
+                fCompMeshField = nullptr;
         }
 
-        if (other.fCompMesh) {
-            fCompMesh = new TPZCompMesh(*other.fCompMesh);
+        if ( other.fCompMesh ) {
+                fCompMesh = new TPZCompMesh ( *other.fCompMesh );
         } else {
-            fCompMesh = nullptr;
+                fCompMesh = nullptr;
         }
 
-        if (other.fGMesh) {
-            fGMesh = new TPZGeoMesh(*other.fGMesh);
+        if ( other.fGMesh ) {
+                fGMesh = new TPZGeoMesh ( *other.fGMesh );
         } else {
-            fGMesh = nullptr;
+                fGMesh = nullptr;
         }
 
         // Cópia das matrizes e vetores
@@ -88,8 +44,52 @@ SlopeAnalysis& SlopeAnalysis::operator=(const SlopeAnalysis& other)
         fMeanvec = other.fMeanvec;
         fCovvec = other.fCovvec;
         fPlasticDeformSqJ2 = other.fPlasticDeformSqJ2;
-    }
-    return *this;
+}
+
+SlopeAnalysis& SlopeAnalysis::operator= ( const SlopeAnalysis& other )
+{
+        if ( this != &other ) {                                     // Evita auto-atribuição
+                // Libera a memória existente
+                //delete fCompMeshField;
+                //delete fCompMesh;
+                //delete fGMesh;
+
+                // Copiando os tipos básicos
+                fCohesion = other.fCohesion;
+                fAtrito = other.fAtrito;
+                fGammaW = other.fGammaW;
+                fGammaS = other.fGammaS;
+                fNSamples = other.fNSamples;
+
+                // Cópia profunda dos ponteiros
+                if ( other.fCompMeshField ) {
+                        fCompMeshField = new TPZCompMesh ( *other.fCompMeshField );
+                } else {
+                        fCompMeshField = nullptr;
+                }
+
+                if ( other.fCompMesh ) {
+                        fCompMesh = new TPZCompMesh ( *other.fCompMesh );
+                } else {
+                        fCompMesh = nullptr;
+                }
+
+                if ( other.fGMesh ) {
+                        fGMesh = new TPZGeoMesh ( *other.fGMesh );
+                } else {
+                        fGMesh = nullptr;
+                }
+
+                // Cópia das matrizes e vetores
+                fSolutionValVec = other.fSolutionValVec;
+                fFields = other.fFields;
+                fHFields = other.fHFields;
+                fFieldSamples = other.fFieldSamples;
+                fMeanvec = other.fMeanvec;
+                fCovvec = other.fCovvec;
+                fPlasticDeformSqJ2 = other.fPlasticDeformSqJ2;
+        }
+        return *this;
 }
 SlopeAnalysis::SlopeAnalysis ( REAL gammaagua, REAL gammasolo,REAL coes,REAL atrito,int ref0, int porder )
 {
@@ -100,14 +100,53 @@ SlopeAnalysis::SlopeAnalysis ( REAL gammaagua, REAL gammasolo,REAL coes,REAL atr
         //fPorder=porder;
         fGammaW=gammaagua;
         fGammaS=gammasolo;
+        //InitializeMemory();
 }
 SlopeAnalysis::~SlopeAnalysis()
 {
-    delete fCompMeshField;
-    delete fCompMesh;
-    delete fGMesh;
+        delete fCompMeshField;
+        delete fCompMesh;
+        delete fGMesh;
 }
+REAL SlopeAnalysis::SolveDeterministic()
+{
+        REAL FSOLD;
+        int neqold;
+        int neq=fCompMesh->NEquations();
+        cout << "NUMBER OF EQUATIONS  = " << neq << endl;
+        InitializeMemory();
 
+        REAL FS = ShearRed ( 20,0.5,0.01 );
+        cout << "Refining.."<<endl;
+        std::set<long> elindices,elindices2;
+        for ( int iref=1; iref<=2; iref++ ) {
+                ComputeElementDeformation();
+                PRefineElementsAbove ( 0.01, fCompMesh->GetDefaultOrder()+iref,elindices2 );
+                DivideElementsAbove ( 0.01,elindices );
+                neqold=neq;
+                neq=fCompMesh->NEquations();
+                InitializeMemory();
+                cout << "# of equations  = " <<neq << " fabs(FS-FSOLD)  "  << fabs ( FS-FSOLD )  << endl;
+                FSOLD=FS;
+                FS = ShearRed ( 20,FSOLD,0.01 );
+
+                if ( fabs ( FS-FSOLD ) <0.01 ) {
+                        //cout << " FS-FSOLD = "<< fabs ( FS-FSOLD ) <<endl;
+                        //break;
+                } else if ( neq>10000||neqold==neq ) {
+                        //cout << " neq>10000 = "<< neq <<" neqold = "<< neqold <<endl;
+                        //break;
+                }
+        }
+
+        InitializeMemory();
+        string meshref = "post/refinidemesh-grid";
+        meshref+=".vtk";
+        std::ofstream files ( meshref );
+        TPZVTKGeoMesh::PrintGMeshVTK ( fCompMesh->Reference(),files,true );
+
+        return FS;
+}
 
 REAL SlopeAnalysis::SolveSingleField ( int ifield )
 {
@@ -115,7 +154,7 @@ REAL SlopeAnalysis::SolveSingleField ( int ifield )
         int neqold;
         int neq=fCompMesh->NEquations();
         cout << "NUMBER OF EQUATIONS  = " << neq << endl;
-        TransferFieldsSolutionFrom ( ifield);
+        TransferFieldsSolutionFrom ( ifield );
 
         REAL FS = ShearRed ( 20,0.5,0.01 );
         cout << "Refining.."<<endl;
@@ -141,12 +180,12 @@ REAL SlopeAnalysis::SolveSingleField ( int ifield )
         }
 
         TransferFieldsSolutionFrom ( ifield );
-        auto var=to_string ( ifield );
-        string meshref = "post/refinidemesh-grid";
-        meshref+=var;
-        meshref+=".vtk";
-        std::ofstream files ( meshref );
-        TPZVTKGeoMesh::PrintGMeshVTK ( fCompMesh->Reference(),files,true );
+//         auto var=to_string ( ifield );
+//         string meshref = "post/refinidemesh-grid";
+//         meshref+=var;
+//         meshref+=".vtk";
+//         std::ofstream files ( meshref );
+//         TPZVTKGeoMesh::PrintGMeshVTK ( fCompMesh->Reference(),files,true );
 
         return FS;
 }
@@ -337,8 +376,70 @@ void SlopeAnalysis::TransferFieldsSolutionFrom ( int isol )
                 }
 
         }
-        //fCompMeshField->Solution().Redim(0,0);
+//fCompMeshField->Solution().Redim(0,0);
 }
+
+
+void SlopeAnalysis::InitializeMemory ( )
+{
+
+        TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( fCompMesh->MaterialVec() [1] );
+        if ( pMatWithMem2 ) {
+                pMatWithMem2->SetUpdateMem ( true );
+        } else {
+                DebugStop();
+        }
+
+        //num elementos malha elastoplastica
+        int nels =  fCompMesh->NElements();
+        for ( int iel=0; iel<nels; iel++ ) {
+
+                TPZCompEl *cel = fCompMesh->ElementVec() [iel];
+                TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *> ( cel );
+                if ( !cel || !intel || dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( intel->Material() ) != pMatWithMem2 || ( intel->Material()->Id() <1 ) ) {
+                        continue;
+                }
+
+
+                const TPZIntPoints &intpoints = intel->GetIntegrationRule();
+                int nint = intpoints.NPoints();
+                TPZManVector<REAL,3> point ( 2,0. );
+                // TPZVec<REAL> point ( 3,0. );
+
+
+                TPZMaterialDataT<REAL> data;
+                intel->InitMaterialData ( data );
+                data.fNeedsSol = true;
+
+                for ( long ip =0; ip<nint; ip++ ) {
+                        REAL weight;
+                        intpoints.Point ( ip, point, weight );
+                        data.intLocPtIndex = ip;
+                        intel->ComputeRequiredData ( data, point );
+
+                        int indexplastic =data.intGlobPtIndex;
+                        TPZElastoPlasticMem &mem = pMatWithMem2->MemItem ( indexplastic );
+                        mem.m_elastoplastic_state.fmatprop.Resize ( 3 );
+                        mem.m_elastoplastic_state.fmatpropinit.Resize ( 3 );
+
+                        mem.m_elastoplastic_state.fmatpropinit[0] = fCohesion;
+                        mem.m_elastoplastic_state.fmatpropinit[1] = fAtrito;
+                        //asscociativo
+                        mem.m_elastoplastic_state.fmatpropinit[2] = fAtrito;
+
+                        mem.m_elastoplastic_state.fmatprop[0] = fCohesion;
+                        mem.m_elastoplastic_state.fmatprop[1] = fAtrito;
+                        //asscociativo
+                        mem.m_elastoplastic_state.fmatprop[2] = fAtrito;
+
+                }
+
+        }
+
+        pMatWithMem2->SetUpdateMem ( false );
+
+}
+
 void SlopeAnalysis::IntegrateFieldOverARegion ( int imc )
 {
         string saida = "post/regionmean";
@@ -369,7 +470,7 @@ void SlopeAnalysis::IntegrateFieldOverARegion ( int imc )
 
                 }
 
-                if ( false ) { //calcula e imprime media e cov
+                if ( false ) {                              //calcula e imprime media e cov
                         double sum = std::accumulate ( v.begin(), v.end(), 0.0 );
                         double mean = sum / v.size();
 
@@ -472,7 +573,7 @@ bool SlopeAnalysis::FindCriticalMonteCarloSimulations ( int imc )
 
                 }
 
-                if ( false ) { //calcula e imprime media e cov
+                if ( false ) {                              //calcula e imprime media e cov
                         double sum = std::accumulate ( v.begin(), v.end(), 0.0 );
                         double mean = sum / v.size();
 
@@ -754,22 +855,16 @@ void SlopeAnalysis::ManageFieldCretion()
 {
         int nfields = fMeanvec.size();
         fFields.resize ( nfields );
-        fPesos.resize ( nfields );
-        fFieldSamples.Resize ( nfields );
         if ( !nfields ) DebugStop();
+        if(fFieldSamples.size()==0)DebugStop();
         for ( int ifield=0; ifield<nfields; ifield++ ) {
-
-                //fFieldSamples[ifield] = CreateNormalStandardSamples();
                 fFields[ifield] = GenerateRandomField ( fMeanvec[ifield],fCovvec[ifield],fSolutionValVec,fFieldSamples[ifield] );
-                //TPZVec<TPZFMatrix<REAL>> sol =GenerateRandomField2 ( fMeanvec[ifield],fCovvec[ifield],fSolutionValVec);
-                //fFields[ifield] =sol[0];
-                fPesos[ifield]=fFieldSamples[ifield];
 
         }
 
 }
 
-void SlopeAnalysis:: ManageFieldCretion(std::vector<int>  fieldindexes)
+void SlopeAnalysis:: ManageFieldCretion ( std::vector<int>  fieldindexes )
 {
         int nfields = fMeanvec.size();
         fFields.resize ( nfields );
@@ -778,20 +873,18 @@ void SlopeAnalysis:: ManageFieldCretion(std::vector<int>  fieldindexes)
         if ( !nfields ) DebugStop();
         int ndofs = fSolutionValVec.Rows();
         int chopedcollums=fieldindexes.size();
-        TPZFMatrix<REAL> SolutionValVecSelected(ndofs,chopedcollums);
+        TPZFMatrix<REAL> SolutionValVecSelected ( ndofs,chopedcollums );
         SolutionValVecSelected.Zero();
-        for(int iM=0;iM<chopedcollums;iM++)
-        {
-                for(int idof=0;idof<ndofs;idof++)
-                {
-                        SolutionValVecSelected(idof,iM)=fSolutionValVec(idof,fieldindexes[iM]);
+        for ( int iM=0; iM<chopedcollums; iM++ ) {
+                for ( int idof=0; idof<ndofs; idof++ ) {
+                        SolutionValVecSelected ( idof,iM ) =fSolutionValVec ( idof,fieldindexes[iM] );
                 }
         }
 
         for ( int ifield=0; ifield<nfields; ifield++ ) {
                 fFields[ifield] = GenerateRandomField ( fMeanvec[ifield],fCovvec[ifield],SolutionValVecSelected,fFieldSamples[ifield] );
         }
-        //cout << "sdasssss"<<endl;
+//cout << "sdasssss"<<endl;
 }
 
 TPZFMatrix<REAL>  SlopeAnalysis::GenerateRandomField ( REAL mean, REAL cov,TPZFMatrix<REAL> valvec, TPZFMatrix<REAL> stdnormalsamples )
@@ -810,15 +903,14 @@ TPZFMatrix<REAL>  SlopeAnalysis::GenerateRandomField ( REAL mean, REAL cov,TPZFM
         int M=valvec.Cols();
 
         //cout << "sdas"<<endl;
-        for ( int i = 0; i < hhat.Rows(); i++ ) {//ndof
-                for ( int j = 0; j < hhat.Cols(); j++ ) {//samples
+        for ( int i = 0; i < hhat.Rows(); i++ ) {           //ndof
+                for ( int j = 0; j < hhat.Cols(); j++ ) {   //samples
                         hhat ( i,j ) = exp ( lambda + xi * hhat ( i,j ) );
                         REAL val=0.;
-                        for(int iM=0;iM<M;iM++)
-                        {
-                             //   val+=stdnormalsamples(iM,j)*valvec(i,iM);
+                        for ( int iM=0; iM<M; iM++ ) {
+                                //   val+=stdnormalsamples(iM,j)*valvec(i,iM);
                         }
-                       //hhat2 ( i,j ) = exp ( lambda + xi * val );
+                        //hhat2 ( i,j ) = exp ( lambda + xi * val );
                 }
         }
 
@@ -853,11 +945,11 @@ TPZFMatrix<REAL>  SlopeAnalysis::GenerateRandomField ( REAL mean, REAL cov,TPZFM
 //         sol[1]=pesos;
 //         return sol;
 // }
-TPZVec<TPZFMatrix<REAL>> SlopeAnalysis::GenerateRandomField2 ( REAL mean, REAL cov, TPZFMatrix<REAL> valvec)
+TPZVec<TPZFMatrix<REAL>> SlopeAnalysis::GenerateRandomField2 ( REAL mean, REAL cov, TPZFMatrix<REAL> valvec )
 {
         int M = fSolutionValVec.Cols();
         int ndofs = fSolutionValVec.Rows();
-        TPZFMatrix<REAL> hhat(ndofs,fNSamples),pesos(M,fNSamples);
+        TPZFMatrix<REAL> hhat ( ndofs,fNSamples ),pesos ( M,fNSamples );
 
         REAL xi = sqrt ( log ( 1. + cov*cov ) );
         REAL lambda = log ( mean ) - 0.5 * xi * xi;
@@ -867,7 +959,7 @@ TPZVec<TPZFMatrix<REAL>> SlopeAnalysis::GenerateRandomField2 ( REAL mean, REAL c
         std::mt19937 generator{ rd() };
         std::normal_distribution<REAL> distribution ( 0., 1. );
 
-// Gera pesos (ξi) uma vez
+        // Gera pesos (ξi) uma vez
         for ( int n = 0; n < fNSamples; n++ ) {
                 for ( int iexp = 0; iexp < M; iexp++ ) {
                         REAL xic = distribution ( generator );
@@ -875,7 +967,7 @@ TPZVec<TPZFMatrix<REAL>> SlopeAnalysis::GenerateRandomField2 ( REAL mean, REAL c
                 }
         }
 
-// Usa os pesos gerados para calcular hhat
+        // Usa os pesos gerados para calcular hhat
         for ( int isample = 0; isample < fNSamples; isample++ ) {
                 for ( int idof = 0; idof < ndofs; idof++ ) {
                         REAL lambdaphixi = 0;
@@ -886,7 +978,7 @@ TPZVec<TPZFMatrix<REAL>> SlopeAnalysis::GenerateRandomField2 ( REAL mean, REAL c
                 }
         }
         cout << "saiu "<<endl;
-        TPZVec<TPZFMatrix<REAL>> sol(2);
+        TPZVec<TPZFMatrix<REAL>> sol ( 2 );
         sol[0]=hhat;
         sol[1]=pesos;
         return sol;
@@ -905,7 +997,7 @@ TPZFMatrix<REAL> SlopeAnalysis::CreateNormalStandardSamples( )
         std::mt19937 generator{ rd() };
         std::normal_distribution<REAL> distribution ( 0., 1. );
 
-// Gera pesos (ξi) uma vez
+        // Gera pesos (ξi) uma vez
         for ( int n = 0; n < fNSamples; n++ ) {
                 for ( int iexp = 0; iexp < M; iexp++ ) {
                         REAL xic = distribution ( generator );
@@ -1039,7 +1131,7 @@ TPZCompMesh * SlopeAnalysis::CreateCMesh ( TPZGeoMesh *gmesh, int pOrder, REAL c
         elasticresponse.SetEngineeringData ( E,nu );
 
         // Mohr Coulomb data
-        REAL mc_cohesion    = coes;//kPa
+        REAL mc_cohesion    = coes;                         //kPa
         REAL mc_phi         = atrito;
         REAL mc_psi         = mc_phi;
 
@@ -1070,7 +1162,7 @@ TPZCompMesh * SlopeAnalysis::CreateCMesh ( TPZGeoMesh *gmesh, int pOrder, REAL c
 
         material->SetId ( 1 );
 
-        material->SetWhichLoadVector ( 0 ); //option to compute the total internal force vecor fi=(Bt sigma+ N (b+gradu))
+        material->SetWhichLoadVector ( 0 );                 //option to compute the total internal force vecor fi=(Bt sigma+ N (b+gradu))
 
         material->SetLoadFactor ( factor );
 
@@ -1231,15 +1323,15 @@ void SlopeAnalysis::DivideElementsAbove ( REAL refineaboveval, std::set<long> &e
                 }
         }
 
-//     //ApplyHistory(elindices);
-//     ComputeElementDeformation();
-//     fCompMesh->AdjustBoundaryElements();
-//     fcmesh->InitializeBlock();
-//     fCompMesh->Solution().Zero();
-//    // fneq=fcmesh->NEquations();
-//     fCompMesh->Solution().Resize(0, 0);
-//     fCompMesh->Solution().Redim(fCompMesh->NEquations(), 1);
-//    // fcmesh->LoadReferences();
+        //     //ApplyHistory(elindices);
+        //     ComputeElementDeformation();
+        //     fCompMesh->AdjustBoundaryElements();
+        //     fcmesh->InitializeBlock();
+        //     fCompMesh->Solution().Zero();
+        //    // fneq=fcmesh->NEquations();
+        //     fCompMesh->Solution().Resize(0, 0);
+        //     fCompMesh->Solution().Redim(fCompMesh->NEquations(), 1);
+        //    // fcmesh->LoadReferences();
 
         fCompMesh->AdjustBoundaryElements();
         fCompMesh->InitializeBlock();
@@ -1349,6 +1441,10 @@ void SlopeAnalysis::PostPlasticity ( std::string vtkd )
 
         postprocdeter->PostProcess ( 0 );
 
+        auto var=vtkd;
+        std::ofstream files ( vtkd );
+        TPZVTKGeoMesh::PrintGMeshVTK ( fCompMesh->Reference(),files,true );
+
         delete postprocdeter;
 }
 
@@ -1391,8 +1487,8 @@ void SlopeAnalysis::PostProcessVariables ( TPZStack<std::string> &scalNames, TPZ
         scalNames.Push ( "StrainPlasticJ2" );
         //scalNames.Push ( "VolHardening" );
         vecNames.Push ( "Displacement" );
-        //vecNames.Push ( "ShearPlasticDeformation" );
-        //vecNames.Push ( "PlasticDeformation" );
+//vecNames.Push ( "ShearPlasticDeformation" );
+//vecNames.Push ( "PlasticDeformation" );
 
 
 }
@@ -1471,17 +1567,23 @@ TPZGeoMesh * SlopeAnalysis::TriGMesh ( int ref )
                         REAL h1=30;
                         REAL h2=10;
                         if ( ( fabs ( ( y0-0 ) ) <tol && fabs ( ( yf-0 ) ) <tol ) ) {
-                                new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -1, *gmesh );//bottom
+                                //bottom
+                                new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -1, *gmesh );
                         } else if ( ( fabs ( ( x0-L ) ) <tol && fabs ( ( xf-L ) ) <tol ) ) {
-                                new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -2, *gmesh );//rigth
+                                //rigth
+                                new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -2, *gmesh );
                         } else if ( ( fabs ( ( y0-h1 ) ) <tol && fabs ( ( yf-h1 ) ) <tol ) ) {
-                                new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -3, *gmesh );//toprigth
+                                //toprigth
+                                new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -3, *gmesh );
                         } else if ( ( fabs ( ( y0- ( h1+h2 ) ) ) <tol && fabs ( ( yf- ( h1+h2 ) ) ) <tol ) ) {
-                                new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -4, *gmesh );//topleft
+                                //topleft
+                                new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -4, *gmesh );
                         } else if ( ( fabs ( ( x0-0 ) ) <tol && fabs ( ( xf-0 ) ) <tol ) ) {
-                                new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -5, *gmesh );//left
+                                //left
+                                new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -5, *gmesh );
                         } else if ( ( fabs ( ( xf-x0 ) ) >tol && fabs ( ( yf-y0 ) ) >tol ) ) {
-                                new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -6, *gmesh );//ramp
+                                //ramp
+                                new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -6, *gmesh );
                         } else {
                                 cout<< "bc element not found."<<endl;
                                 cout<< "x0 = " << x0 << " y0 = "<< y0 << endl;
@@ -1516,10 +1618,10 @@ void SlopeAnalysis::Write ( TPZStream &buf, int withclassid ) const
         //fFieldSamples[1].Write ( buf,withclassid );
         fFields[0].Write ( buf,withclassid );
         fFields[1].Write ( buf,withclassid );
-        //fHFields[0].Write ( buf,withclassid );
-        //fHFields[1].Write ( buf,withclassid );
-        //fPesos[0].Write ( buf,withclassid );
-        //fPesos[1].Write ( buf,withclassid );
+//fHFields[0].Write ( buf,withclassid );
+//fHFields[1].Write ( buf,withclassid );
+//fPesos[0].Write ( buf,withclassid );
+//fPesos[1].Write ( buf,withclassid );
 }
 
 void SlopeAnalysis::Read ( TPZStream &buf, void *context )
@@ -1532,10 +1634,10 @@ void SlopeAnalysis::Read ( TPZStream &buf, void *context )
         fFields.resize ( 2 );
         fFields[0].Read ( buf,context );
         fFields[1].Read ( buf,context );
-        //fHFields.resize ( 2 );
-        //fHFields[0].Read ( buf,context );
-        //fHFields[1].Read ( buf,context );
-        //fPesos.resize ( 2 );
+//fHFields.resize ( 2 );
+//fHFields[0].Read ( buf,context );
+//fHFields[1].Read ( buf,context );
+//fPesos.resize ( 2 );
         //fPesos[0].Read ( buf,context );
         //fPesos[1].Read ( buf,context );
 }
