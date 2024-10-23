@@ -1,13 +1,18 @@
 
 #include "slopeconfigure.h"
 #include "SlopeAnalysis.h"
-
+#include <fstream>
 void SolveSlope ( int Startfrom );
 TPZGeoMesh * TriGMesh ( int ref );
 TPZCompMesh* CreateCompMeshKL ( TPZGeoMesh * gmesh,int porder,REAL Lx, REAL Ly, REAL Lz, int id,int type );
 TPZCompMesh * CreateCMeshElastoplastic ( TPZGeoMesh *gmesh, int pOrder, REAL coes,REAL atrito );
-void SensivityAnalysisOnEigenvalues ( SlopeAnalysis  * slopeanalysis );
+
+void saveVector(const std::vector<double>& vec, const std::string& filename) ;
+
+void readVector( std::vector<double>& vec,const std::string& filename);
+
 std::vector<int> GetIndex ( std::vector<double> vetor );
+
 void SolveSlopeIS ( int Startfrom );
 int main()
 {
@@ -39,9 +44,9 @@ void SolveSlopeIS ( int Startfrom )
         int porderslope=1;
         REAL gammaagua=0.;
         REAL gammasolo=20.;
-        REAL coes=26.;
-        REAL atrito=20*M_PI/180.;
-        REAL fsfail=1.5;
+        REAL coes=10.;
+        REAL atrito=30*M_PI/180.;
+        REAL fsfail=1.2;
         REAL coesh=coes/fsfail;
         REAL atritoh= atan ( tan ( atrito ) /fsfail );
 
@@ -126,8 +131,33 @@ void SolveSlopeIS ( int Startfrom )
 
                         //slopeanalysish->TransferFieldsSolutionFrom ( 0 );
                         //slopeanalysish->PostPlasticity ( "fieldtesteH111111111.vtk" );
-                        ofstream out3 ( "saidafsex750-1000.txt" );
-                        for ( int imc=750; imc<=1000; imc++ ) {
+                        //ofstream out3 ( "saidafsex750-1000.txt" );
+
+                        TPZStack<REAL> data;
+                        TPZBFileStream savestack;
+                        savestack.OpenWrite ( "stack.txt" );
+                        data.Push(1000);
+                        savestack.Write(data);
+
+                        std::vector<double> vecout,vecout2,vecin,vecin2;
+                        //vecout.push_back(1000);
+                        //saveVector(vecout,"out.bin") ;
+
+                        //readVector(vecin,"out.bin") ;
+
+                        //cout<< vecin[0] << endl;
+                        //if(true)
+                        //{
+                                readVector(vecin,"FSf.bin");
+                                readVector(vecin2,"FSh.bin");
+                                ofstream out ( "fsf.txt" );
+                                ofstream out2 ( "fsh.txt" );
+                                for(int i=0;i<vecin.size();i++)out<< vecin[i] <<endl;
+                                for(int i=0;i<vecin2.size();i++)out2<< vecin2[i] <<endl;
+
+                        //}
+
+                        for ( int imc=0; imc<=1000; imc++ ) {
 
                                 SlopeAnalysis* slopeanalysisf1 = new SlopeAnalysis ( gammaagua,gammasolo,coes,atrito,ref0slope,porderslope );
                                 slopeanalysisf1->SetFieldsData ( cmesh,randonanalysis->GetSolutionValVec(), meanvec,covvec,  samples );
@@ -146,12 +176,15 @@ void SolveSlopeIS ( int Startfrom )
                                 auto var=to_string ( imc );
                                 saidafs+=var;
                                 vtk+=var;
+                                auto saidafs2=saidafs;
                                 saidafs+=".dat";
-
-                                auto vtk2=vtk;
-                                vtk2+="H.vtk";
+                                saidafs2+=".dat";
                                 vtk+=".vtk";
+
+
+
                                 ofstream out ( saidafs );
+                                ofstream out2 ( saidafs2 );
 
                                 REAL FSf = slopeanalysisf1->SolveSingleField ( imc );
 
@@ -160,10 +193,16 @@ void SolveSlopeIS ( int Startfrom )
                                 //slopeanalysisf1->PostPlasticity ( vtk );
 
                                 //slopeanalysish1->PostPlasticity ( vtk2 );
-                                out << FSf<<" "<<FSh << endl;
-                                out3<< "{"<<FSf << ","<< FSh<<"}," <<  endl;
-                                //delete slopeanalysis2;
-                                //delete slopeanalysis3;
+                                //out  << FSf << endl;
+                                //out2 <<  FSh <<  endl;
+
+                                //if(vecout.size()>vecin.size())
+                                //{
+                                        vecout.push_back(FSf);
+                                        vecout2.push_back(FSh);
+                                        saveVector(vecout,"FSf.bin");
+                                        saveVector(vecout,"FSh.bin");
+                                //}
 
                         }
                 }
@@ -454,77 +493,50 @@ TPZGeoMesh * TriGMesh ( int ref )
         return gmesh;
 }
 
-void SensivityAnalysisOnEigenvalues ( SlopeAnalysis  * slopeanalysis )
+void saveVector(const std::vector<double>& vec, const std::string& filename) {
+    // Open the file in binary mode
+    std::ofstream outFile(filename, std::ios::binary);
+
+    // Check if the file is open
+    if (!outFile.is_open()) {
+        std::cerr << "Error: Could not open file for writing." << std::endl;
+        return;
+    }
+
+    // Write the size of the vector first
+    size_t size = vec.size();
+    outFile.write(reinterpret_cast<const char*>(&size), sizeof(size));
+
+    // Write the vector data
+    outFile.write(reinterpret_cast<const char*>(vec.data()), size * sizeof(double));
+
+    // Close the file
+    outFile.close();
+}
+
+
+
+void readVector( std::vector<double>& vec,const std::string& filename)
 {
-//   std::vector<std::vector<int>> data= {
-//           {0, 1, 2}, {0, 1, 3}, {0, 1, 4}, {0, 1, 5}, {0, 1, 6},
-//           {0, 1, 7}, {0,1, 8}, {0, 1, 9}, {0, 2, 3}, {0, 2, 4},
-//           {0, 2, 5}, {0, 2, 6},{0, 2, 7}, {0, 2, 8}, {0, 2, 9},
-//           {0, 3, 4}, {0, 3, 5}, {0, 3, 6}, {0, 3, 7},{0, 3, 8},
-//           {0, 3, 9}, {0, 4, 5}, {0, 4, 6}, {0, 4, 7}, {0, 4,8},
-//           {0, 4, 9}, {0, 5, 6}, {0, 5, 7}, {0, 5, 8}, {0, 5, 9},
-//           {0, 6,7}, {0, 6, 8}, {0, 6, 9}, {0, 7, 8}, {0, 7, 9},
-//           {0, 8, 9}, {1, 2,3}, {1, 2, 4}, {1, 2, 5}, {1, 2, 6},
-//           {1, 2, 7}, {1, 2, 8}, {1, 2,9}, {1, 3, 4}, {1, 3, 5},
-//           {1, 3, 6}, {1, 3, 7}, {1, 3, 8}, {1, 3,9}, {1, 4, 5}, {1, 4, 6}, {1, 4, 7}, {1, 4, 8}, {1, 4, 9}, {1, 5,
-//   6}, {1, 5, 7}, {1, 5, 8}, {1, 5, 9}, {1, 6, 7}, {1, 6, 8}, {1, 6,
-//   9}, {1, 7, 8}, {1, 7, 9}, {1, 8, 9}, {2, 3, 4}, {2, 3, 5}, {2, 3,
-//   6}, {2, 3, 7}, {2, 3, 8}, {2, 3, 9}, {2, 4, 5}, {2, 4, 6}, {2, 4,
-//   7}, {2, 4, 8}, {2, 4, 9}, {2, 5, 6}, {2, 5, 7}, {2, 5, 8}, {2, 5,
-//   9}, {2, 6, 7}, {2, 6, 8}, {2, 6, 9}, {2, 7, 8}, {2, 7, 9}, {2, 8,
-//   9}, {3, 4, 5}, {3, 4, 6}, {3, 4, 7}, {3, 4, 8}, {3, 4, 9}, {3, 5,
-//   6}, {3, 5, 7}, {3, 5, 8}, {3, 5, 9}, {3, 6, 7}, {3, 6, 8}, {3, 6,
-//   9}, {3, 7, 8}, {3, 7, 9}, {3, 8, 9}, {4, 5, 6}, {4, 5, 7}, {4, 5,
-//   8}, {4, 5, 9}, {4, 6, 7}, {4, 6, 8}, {4, 6, 9}, {4, 7, 8}, {4, 7,
-//   9}, {4, 8, 9}, {5, 6, 7}, {5, 6, 8}, {5, 6, 9}, {5, 7, 8}, {5, 7,
-//   9}, {5, 8, 9}, {6, 7, 8}, {6, 7, 9}, {6, 8, 9}, {7, 8, 9}};
+    // Open the file in binary mode
+    std::ifstream inFile(filename, std::ios::binary);
 
-//   std::vector<std::vector<int>> data= {{0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5},
-//   {1, 2}, {1, 3}, {1, 4}, {1,5}, {2, 3},
-//   {2, 4}, {2, 5}, {3, 4}, {3, 5}, {4, 5}
-//
-// };
+    // Check if the file is open
+    if (!inFile.is_open()) {
+        std::cerr << "Error: Could not open file for reading." << std::endl;
+    }
 
-        std::vector<std::vector<int>> data= {{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12},
-                {13}, {14}, {15}, {16}, {17}, {18}, {19}, {20}, {21}, {22}, {23},
-                {24}, {25}, {26}, {27}, {28}, {29}, {30}, {31}, {32}, {33}, {34},
-                {35}, {36}, {37}, {38}, {39}, {40}, {41}, {42}, {43}, {44}, {45},
-                {46}, {47}, {48}, {49}, {50}, {51}, {52}, {53}, {54}, {55}, {56},
-                {57}, {58}, {59}, {60}, {61}, {62}, {63}, {64}, {65}, {66}, {67},
-                {68}, {69}, {70}, {71}, {72}, {73}, {74}, {75}, {76}, {77}, {78},
-                {79}, {80}, {81}, {82}, {83}, {84}, {85}, {86}, {87}, {88}, {89},
-                {90}, {91}, {92}, {93}, {94}, {95}, {96}, {97}, {98}, {99}, {100},
-                {101}, {102}, {103}, {104}, {105}, {106}, {107}, {108}, {109}, {110},
-                {111}, {112}, {113}, {114}, {115}, {116}, {117}, {118}, {119}, {120}
-        };
-        TPZFMatrix<REAL>samples1 = slopeanalysis->CreateNormalStandardSamples();
-        TPZFMatrix<REAL>samples2 = slopeanalysis->CreateNormalStandardSamples();
-        TPZVec<TPZFMatrix<REAL>> samples ( 2 );
-        samples[0]=samples1;
-        samples[1]=samples2;
-        slopeanalysis->SetFieldsSamples ( samples );
-        std::vector<int> counts;
-        for ( int i=0; i<120; i++ ) {
-                slopeanalysis->ManageFieldCretion ( data[i] );
-                int ncritical = slopeanalysis->CountCriticalFields();
-                cout << "cobination = "<<i  <<", ncritical = " << ncritical <<endl;// << "{" <<data[i][0] << data[i][1]<< data[i][2] <<"}"<<endl;
-                if ( ncritical>5 ) {
-                        counts.push_back ( i );
-                }
-        }
+    // Read the size of the vector first
+    size_t size;
+    inFile.read(reinterpret_cast<char*>(&size), sizeof(size));
 
-        for ( int i=0; i<counts.size(); i++ ) cout << "counts[i]" << counts[i]  <<endl;
-        ofstream outcampos ( "camposcriticos.txt" );
-        outcampos <<"std::vector<int> data={";
-        for ( int i=0; i<counts.size(); i++ ) outcampos<<counts[i]<<","  <<endl;
-        outcampos <<"};";
-        //TPZBFileStream save;
-        //save.OpenWrite ( "Config2-0.bin" );
-        //slopeanalysis->Write ( save,slopeanalysis->ClassId() );
+    // Resize the vector to hold the dat
+
+    vec.resize(size);
+    // Read the vector data
+    inFile.read(reinterpret_cast<char*>(vec.data()), size * sizeof(double));
+
+    // Close the file
+    inFile.close();
 
 }
-//Parece que sao sempre os mesmos campos criticos independete das proprieadades do talude
-//std::vector<int> critical = {0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 12, 13, 14, 15, 17, 19, 20, 22, 23,
-//25, 28, 36, 40, 46, 49, 51, 52, 55, 56, 82, 89};
-
-std::vector<int> critical= {0,1,2,3,4,5,6,7,9,10,12,13,14,15,16,17,18,19,20,22,23,25,28,32,36,40,44,46,49,51,52,55,56,63,75,82,89};
