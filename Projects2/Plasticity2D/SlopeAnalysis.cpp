@@ -4,109 +4,39 @@
 #include "SlopeAnalysis.h"
 
 SlopeAnalysis::SlopeAnalysis()
+    : fCohesion(0), fAtrito(0), fGammaW(0), fGammaS(0),
+      fNSamples(0),fCompMesh(0), fGMesh(0),  fNumThreads(0),
+     fSolver(0)
 {
+    // Construtor padrão
+}
+
+SlopeAnalysis::SlopeAnalysis(const SlopeAnalysis& other)
+    : fCohesion(other.fCohesion), fAtrito(other.fAtrito), fGammaW(other.fGammaW), fGammaS(other.fGammaS),
+        fNSamples(other.fNSamples),fCompMeshField(other.fCompMeshField), fSolutionValVec(other.fSolutionValVec),fFields(other.fFields),fRef0(other.fRef0),fPorder(other.fPorder),  fNumThreads(other.fNumThreads),
+     fSolver(other.fSolver)
+{
+    fGMesh = TriGMesh(fRef0);
+    fCompMesh = CreateCMesh(fGMesh, fPorder, fCohesion, fAtrito);
+    SetSlopeAnalysis ( );
 
 }
 
-SlopeAnalysis::SlopeAnalysis ( const SlopeAnalysis & other )
+SlopeAnalysis::SlopeAnalysis(REAL gammaagua, REAL gammasolo, REAL coes, REAL atrito, int ref0, int porder,int therads,int solver)
+    : fCohesion(coes), fAtrito(atrito), fGammaW(gammaagua), fGammaS(gammasolo),fRef0(ref0),fPorder(porder),fNumThreads(therads),
+     fSolver(solver)
 {
-        // Copiando os tipos básicos
-        fCohesion = other.fCohesion;
-        fAtrito = other.fAtrito;
-        fGammaW = other.fGammaW;
-        fGammaS = other.fGammaS;
-        fNSamples = other.fNSamples;
-
-        // Cópia profunda dos ponteiros
-        if ( other.fCompMeshField ) {
-                fCompMeshField = new TPZCompMesh ( *other.fCompMeshField );
-        } else {
-                fCompMeshField = nullptr;
-        }
-
-        if ( other.fCompMesh ) {
-                fCompMesh = new TPZCompMesh ( *other.fCompMesh );
-        } else {
-                fCompMesh = nullptr;
-        }
-
-        if ( other.fGMesh ) {
-                fGMesh = new TPZGeoMesh ( *other.fGMesh );
-        } else {
-                fGMesh = nullptr;
-        }
-
-        // Cópia das matrizes e vetores
-        fSolutionValVec = other.fSolutionValVec;
-        fFields = other.fFields;
-        fHFields = other.fHFields;
-        fFieldSamples = other.fFieldSamples;
-        fMeanvec = other.fMeanvec;
-        fCovvec = other.fCovvec;
-        fPlasticDeformSqJ2 = other.fPlasticDeformSqJ2;
+    fGMesh = TriGMesh(fRef0);
+    fCompMesh = CreateCMesh(fGMesh, fPorder, fCohesion, fAtrito);
+    SetSlopeAnalysis ( );
 }
 
-SlopeAnalysis& SlopeAnalysis::operator= ( const SlopeAnalysis& other )
-{
-        if ( this != &other ) {                                     // Evita auto-atribuição
-                // Libera a memória existente
-                //delete fCompMeshField;
-                //delete fCompMesh;
-                //delete fGMesh;
-
-                // Copiando os tipos básicos
-                fCohesion = other.fCohesion;
-                fAtrito = other.fAtrito;
-                fGammaW = other.fGammaW;
-                fGammaS = other.fGammaS;
-                fNSamples = other.fNSamples;
-
-                // Cópia profunda dos ponteiros
-                if ( other.fCompMeshField ) {
-                        fCompMeshField = new TPZCompMesh ( *other.fCompMeshField );
-                } else {
-                        fCompMeshField = nullptr;
-                }
-
-                if ( other.fCompMesh ) {
-                        fCompMesh = new TPZCompMesh ( *other.fCompMesh );
-                } else {
-                        fCompMesh = nullptr;
-                }
-
-                if ( other.fGMesh ) {
-                        fGMesh = new TPZGeoMesh ( *other.fGMesh );
-                } else {
-                        fGMesh = nullptr;
-                }
-
-                // Cópia das matrizes e vetores
-                fSolutionValVec = other.fSolutionValVec;
-                fFields = other.fFields;
-                fHFields = other.fHFields;
-                fFieldSamples = other.fFieldSamples;
-                fMeanvec = other.fMeanvec;
-                fCovvec = other.fCovvec;
-                fPlasticDeformSqJ2 = other.fPlasticDeformSqJ2;
-        }
-        return *this;
-}
-SlopeAnalysis::SlopeAnalysis ( REAL gammaagua, REAL gammasolo,REAL coes,REAL atrito,int ref0, int porder )
-{
-        fGMesh = TriGMesh ( ref0 );
-        fCompMesh = CreateCMesh ( fGMesh,porder,coes,atrito );
-        fCohesion=coes;
-        fAtrito=atrito;
-        //fPorder=porder;
-        fGammaW=gammaagua;
-        fGammaS=gammasolo;
-        //InitializeMemory();
-}
 SlopeAnalysis::~SlopeAnalysis()
 {
-        delete fCompMeshField;
+    // Destrutor, limpando a memória alocada
         delete fCompMesh;
         delete fGMesh;
+
 }
 REAL SlopeAnalysis::SolveDeterministic()
 {
@@ -227,7 +157,7 @@ REAL SlopeAnalysis::ShearRed ( int maxcout,REAL FS0,REAL fstol )
 
         do {
 
-                TPZElastoPlasticAnalysis anal =  SetSlopeAnalysis ( type,numthreads );
+                TPZElastoPlasticAnalysis anal =  SetSlopeAnalysis (  );
                 fCompMesh->Solution().Zero();
                 REAL norm = 1000.;
                 REAL tol2 = 1.e-3;
@@ -652,7 +582,7 @@ bool SlopeAnalysis::FindCriticalMonteCarloSimulations ( int imc )
         std::vector<int> idsmc;
         REAL val=nomalizedphi - ( -0.5 * nomalizedcohes + 1.45 );
         if ( val<0 ) {
-                //cout << "amostra falha, imc  = "<< imc << endl;
+                cout << "amostra falha, imc  = "<< imc << endl;
                 //cout << "----------------------------" << endl;
                 return true;
         } else {
@@ -1074,15 +1004,15 @@ void SlopeAnalysis::ShearReductionIntegrationPoints ( REAL FS )
         pMatWithMem2->SetUpdateMem ( false );
 }
 
-TPZElastoPlasticAnalysis   SlopeAnalysis::SetSlopeAnalysis ( int type,int numthreads )
+TPZElastoPlasticAnalysis   SlopeAnalysis::SetSlopeAnalysis ( )
 {
         TPZElastoPlasticAnalysis anal ( fCompMesh,cout );
 
-        switch ( type ) {
+        switch ( fSolver ) {
         case 0: {
                 //cout << "Solver called with TPZStepSolver\n";
                 TPZSkylineStructMatrix<STATE> matskl ( fCompMesh );
-                matskl.SetNumThreads ( numthreads );
+                matskl.SetNumThreads ( fNumThreads );
                 anal.SetStructuralMatrix ( matskl );
                 TPZStepSolver<STATE> step;
                 step.SetDirect ( ELDLt );
@@ -1092,7 +1022,7 @@ TPZElastoPlasticAnalysis   SlopeAnalysis::SetSlopeAnalysis ( int type,int numthr
         case 1: {
                 //cout << "Solver called with TPZPardisoSolver\n";
                 TPZSSpStructMatrix<STATE> SSpStructMatrix ( fCompMesh );
-                SSpStructMatrix.SetNumThreads ( numthreads );
+                SSpStructMatrix.SetNumThreads ( fNumThreads );
                 anal.SetStructuralMatrix ( SSpStructMatrix );
                 TPZPardisoSolver<REAL> *pardiso = new TPZPardisoSolver<REAL>;
                 anal.SetSolver ( *pardiso );

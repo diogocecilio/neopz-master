@@ -1,15 +1,31 @@
-
+#include <iostream>
+#include <fstream>
+#include <thread>
+#include <vector>
 #include "slopeconfigure.h"
 #include "SlopeAnalysis.h"
 #include <fstream>
+#include <iostream>
+#include <fstream>
+#include <thread>
+#include <vector>
+#include <mutex>
+#include <iostream>
+#include <fstream>
+#include <unistd.h>
+#include <sys/wait.h>
+//std::mutex mtx; // Mutex para proteger a escrita nos arquivos
+
+void SolveSlope ( int imc_start, int imc_end, SlopeAnalysis* slopeanalysisf, SlopeAnalysis* slopeanalysish );
 void SolveSlope ( int Startfrom );
 TPZGeoMesh * TriGMesh ( int ref );
 TPZCompMesh* CreateCompMeshKL ( TPZGeoMesh * gmesh,int porder,REAL Lx, REAL Ly, REAL Lz, int id,int type );
 TPZCompMesh * CreateCMeshElastoplastic ( TPZGeoMesh *gmesh, int pOrder, REAL coes,REAL atrito );
+TPZCompMesh CreateCompMeshKL2 ( TPZGeoMesh  gmesh,int porder,REAL Lx, REAL Ly, REAL Lz, int id,int type );
 
-void saveVector(const std::vector<double>& vec, const std::string& filename) ;
+void saveVector ( const std::vector<double>& vec, const std::string& filename, bool append = true ) ;
 
-void readVector( std::vector<double>& vec,const std::string& filename);
+void readVector ( std::vector<double>& vec,const std::string& filename );
 
 std::vector<int> GetIndex ( std::vector<double> vetor );
 
@@ -40,6 +56,8 @@ void SolveSlopeIS ( int Startfrom )
         TPZManVector<std::string> scalarnames = {"vec","vec1","vec2","vec3","vec4"}, vecnames;
 
         //create slope analysis
+        int solvertype=0;
+        int numthreads=10;
         int ref0slope=1;
         int porderslope=1;
         REAL gammaagua=0.;
@@ -50,21 +68,17 @@ void SolveSlopeIS ( int Startfrom )
         REAL coesh=coes/fsfail;
         REAL atritoh= atan ( tan ( atrito ) /fsfail );
 
-        SlopeAnalysis  * slopeanalysisf =  new SlopeAnalysis ( gammaagua,gammasolo,coes,atrito,ref0slope,porderslope );
+        SlopeAnalysis  * slopeanalysisf =  new SlopeAnalysis ( gammaagua,gammasolo,coes,atrito,ref0slope,porderslope ,numthreads,solvertype);
 
-        SlopeAnalysis  * slopeanalysish =  new SlopeAnalysis ( gammaagua,gammasolo,coesh,atritoh,ref0slope,porderslope );
+        SlopeAnalysis  * slopeanalysish =  new SlopeAnalysis ( gammaagua,gammasolo,coesh,atritoh,ref0slope,porderslope,numthreads,solvertype );
 
-        int solvertype=0;
-        int numthreads=12;
- //        slopeanalysish->SetSlopeAnalysis ( solvertype,numthreads );
 //
- //        slopeanalysish->SolveDeterministic();
+        //slopeanalysish->SolveDeterministic();
 //
 //         slopeanalysish->PostPlasticity("deterministic.vtk");
-
         //solve generalized eigenvalu problem
         if ( Startfrom ==0 ) {
-                randonanalysis->SetNEigenpairs ( 500 );
+                randonanalysis->SetNEigenpairs ( 1500 );
                 //randonanalysis->Assemble();
                 randonanalysis->Solve();
 
@@ -91,14 +105,16 @@ void SolveSlopeIS ( int Startfrom )
                 TPZVec<REAL> covvec ( 2 );
                 covvec[0]=0.3;
                 covvec[1]=0.2;
-                int samples=1000;
+                int samples=10000;
                 slopeanalysisf->SetFieldsData ( cmesh,randonanalysis->GetSolutionValVec(), meanvec,covvec,  samples );
 
-                meanvec[0]=coesh;
-                meanvec[1]=atritoh;
-                covvec[0]=0.3;
-                covvec[1]=0.2;
-                slopeanalysish->SetFieldsData ( cmesh,randonanalysis->GetSolutionValVec(), meanvec,covvec,  samples );
+                TPZVec<REAL> meanvech ( 2 );
+                meanvech[0]=coesh;
+                meanvech[1]=atritoh;
+                TPZVec<REAL> covvech ( 2 );
+                covvech[0]=0.3;
+                covvech[1]=0.2;
+                slopeanalysish->SetFieldsData ( cmesh,randonanalysis->GetSolutionValVec(), meanvech,covvech,  samples );
 
                 //crate random fields
                 if ( Startfrom==1 ) {
@@ -129,229 +145,137 @@ void SolveSlopeIS ( int Startfrom )
                         slopeanalysisf->Read ( read,0 );
                         slopeanalysish->Read ( readh,0 );
 
-                        //slopeanalysish->TransferFieldsSolutionFrom ( 0 );
-                        //slopeanalysish->PostPlasticity ( "fieldtesteH111111111.vtk" );
-                        //ofstream out3 ( "saidafsex750-1000.txt" );
+//                         int max_threads = 10; // Definimos 10 threads no máximo
+//                         std::vector<std::thread> threads;
+//
+//                         for ( int imc = 0; imc < 1000; ++imc ) {
+//                                 // Se já estivermos com o número máximo de threads, aguardamos até uma thread finalizar
+//                                 if ( threads.size() >= max_threads ) {
+//                                         for ( auto& th : threads ) {
+//                                                 if ( th.joinable() ) {
+//                                                         th.join(); // Espera até que a thread termine
+//                                                 }
+//                                         }
+//                                         threads.clear(); // Limpa o vetor após juntar todas as threads
+//                                 }
+//
+//                                 // Inicia uma nova thread para cada iteração
+//                                 threads.emplace_back ( solveSlope, imc, slopeanalysisf, slopeanalysish );
+//                         }
+//
+//                         // Certifica-se de que todas as threads sejam finalizadas antes de sair
+//                         for ( auto& th : threads ) {
+//                                 if ( th.joinable() ) {
+//                                         th.join();
+//                                 }
+//                         }
 
-                        TPZStack<REAL> data;
-                        TPZBFileStream savestack;
-                        savestack.OpenWrite ( "stack.txt" );
-                        data.Push(1000);
-                        savestack.Write(data);
+//                         for ( int imc=5; imc<7; imc++ ) {
+//
+//                                 cout << "imc = "<< imc<<endl;
+//                                 SlopeAnalysis* slopeanalysisf1 = new SlopeAnalysis ( *slopeanalysisf );
+//                                 SlopeAnalysis* slopeanalysish1 = new SlopeAnalysis ( *slopeanalysish );
+//
+//                                 REAL fsf = slopeanalysisf1->SolveSingleField(imc);
+//                                 REAL fsh = slopeanalysish1->SolveSingleField(imc);
+//
+//                                 string saidafs = "post/fs";
+//                                 auto var=to_string ( imc );
+//                                 auto saidafs2=saidafs;
+//                                 saidafs+=var;
+//                                 saidafs2+=var;
+//                                 saidafs+=".dat";
+//                                 saidafs2+="h.dat";
+//                                 ofstream out ( saidafs );
+//                                 ofstream out2 ( saidafs2 );
+//
+//                                 out<< fsf << endl;
+//                                 out2<< fsh << endl;
+//
+//                                 delete slopeanalysisf1;
+//                                 delete slopeanalysish1;
+//
+//                         }
 
-                        std::vector<double> vecout,vecout2,vecin,vecin2;
-                        //vecout.push_back(1000);
-                        //saveVector(vecout,"out.bin") ;
+                        int total_imc = 1000;
+                        int num_processes = 5;  // Dividir para 10 processos
+                        int imc_per_process = total_imc / num_processes;
 
-                        //readVector(vecin,"out.bin") ;
+                        for ( int i = 0; i < num_processes; ++i ) {
+                                pid_t pid = fork();  // Cria um novo processo
 
-                        //cout<< vecin[0] << endl;
-                        //if(true)
-                        //{
-                                readVector(vecin,"FSf.bin");
-                                readVector(vecin2,"FSh.bin");
-                                ofstream out ( "fsf.txt" );
-                                ofstream out2 ( "fsh.txt" );
-                                for(int i=0;i<vecin.size();i++)out<< vecin[i] <<endl;
-                                for(int i=0;i<vecin2.size();i++)out2<< vecin2[i] <<endl;
+                                if ( pid == 0 ) { // Processo filho
+                                        int imc_start = i * imc_per_process;
+                                        int imc_end = imc_start + imc_per_process;
+                                        if ( i == num_processes - 1 ) {
+                                                imc_end = total_imc;  // O último processo vai até o fim
+                                        }
 
-                        //}
+                                        // Chama a função para resolver o intervalo de imc
+                                        SolveSlope ( imc_start, imc_end, slopeanalysisf, slopeanalysish );
 
-                        for ( int imc=0; imc<=1000; imc++ ) {
-
-                                SlopeAnalysis* slopeanalysisf1 = new SlopeAnalysis ( gammaagua,gammasolo,coes,atrito,ref0slope,porderslope );
-                                slopeanalysisf1->SetFieldsData ( cmesh,randonanalysis->GetSolutionValVec(), meanvec,covvec,  samples );
-                                slopeanalysisf1->SetFields ( slopeanalysisf->GetFields() );
-                                slopeanalysisf1->SetSlopeAnalysis ( solvertype,numthreads );
-                                slopeanalysisf1->SetFieldsSamples ( slopeanalysisf->GetFieldsSamples() );
-
-                                SlopeAnalysis* slopeanalysish1 = new SlopeAnalysis ( gammaagua,gammasolo,coesh,atritoh,ref0slope,porderslope  );
-                                slopeanalysish1->SetFieldsData ( cmesh,randonanalysis->GetSolutionValVec(), meanvec,covvec,  samples );
-                                slopeanalysish1->SetFields ( slopeanalysish->GetFields() );
-                                slopeanalysish1->SetSlopeAnalysis ( solvertype,numthreads );
-                                slopeanalysish1->SetFieldsSamples ( slopeanalysish->GetFieldsSamples() );
-
-                                string saidafs = "post/fs";
-                                string vtk = "postvtk/postplasticityvtk";
-                                auto var=to_string ( imc );
-                                saidafs+=var;
-                                vtk+=var;
-                                auto saidafs2=saidafs;
-                                saidafs+=".dat";
-                                saidafs2+=".dat";
-                                vtk+=".vtk";
-
-
-
-                                ofstream out ( saidafs );
-                                ofstream out2 ( saidafs2 );
-
-                                REAL FSf = slopeanalysisf1->SolveSingleField ( imc );
-
-                                REAL FSh = slopeanalysish1->SolveSingleField ( imc );
-
-                                //slopeanalysisf1->PostPlasticity ( vtk );
-
-                                //slopeanalysish1->PostPlasticity ( vtk2 );
-                                //out  << FSf << endl;
-                                //out2 <<  FSh <<  endl;
-
-                                //if(vecout.size()>vecin.size())
-                                //{
-                                        vecout.push_back(FSf);
-                                        vecout2.push_back(FSh);
-                                        saveVector(vecout,"FSf.bin");
-                                        saveVector(vecout,"FSh.bin");
-                                //}
-
+                                        _exit ( 0 ); // Termina o processo filho quando completar o intervalo
+                                } else if ( pid > 0 ) {
+                                        // Processo pai continua e cria outro filho
+                                        continue;
+                                } else {
+                                        std::cerr << "Erro ao criar processo!" << std::endl;
+                                        return ;
+                                }
                         }
+
+                        // Processo pai aguarda todos os filhos finalizarem
+                        for ( int i = 0; i < num_processes; ++i ) {
+                                int status;
+                                wait ( &status ); // Espera pelo término de cada processo filho
+                        }
+
+                        std::cout << "Todos os processos concluídos!" << std::endl;
+
+
                 }
+
+
+
+
 
         }
 
-
+        cout << "total"<<endl;
 
 }
 
-void SolveSlope ( int Startfrom )
+void SolveSlope ( int imc_start, int imc_end, SlopeAnalysis* slopeanalysisf, SlopeAnalysis* slopeanalysish )
 {
-        //create random analysis
-        int ref=3;
-        TPZGeoMesh * gmesh =  TriGMesh ( ref );
-        int porder=1;
-        REAL Lx=20.;
-        REAL Ly=2;
-        REAL Lz=1.;
-        int id=1;
-        int type=3;
-        TPZCompMesh * cmesh = CreateCompMeshKL ( gmesh, porder, Lx,  Ly,  Lz,  id, type );
-        TPZRandomFieldAnalysis * randonanalysis = new TPZRandomFieldAnalysis ( cmesh );
-        TPZManVector<std::string> scalarnames = {"vec","vec1","vec2","vec3","vec4"}, vecnames;
+        for ( int imc = imc_start; imc < imc_end; ++imc ) {
+                std::cout << "imc = " << imc << " (PID: " << getpid() << ")" << std::endl;
 
-        //create slope analysis
-        int ref0slope=3;
-        int porderslope=1;
-        REAL gammaagua=0.;
-        REAL gammasolo=20.;
-        //REAL coes=50.;
-       // REAL atrito=20*M_PI/180.;
-        REAL fsfail=2.23;
-        REAL coes=50./fsfail;
-        REAL atrito= atan ( tan ( 20*M_PI/180 ) /fsfail );
+                SlopeAnalysis* slopeanalysisf1 = new SlopeAnalysis ( *slopeanalysisf );
+                SlopeAnalysis* slopeanalysish1 = new SlopeAnalysis ( *slopeanalysish );
 
-        SlopeAnalysis  * slopeanalysis =  new SlopeAnalysis ( gammaagua,gammasolo,coes,atrito,ref0slope,porderslope );
+                REAL fsf = slopeanalysisf1->SolveSingleField ( imc );
+                REAL fsh = slopeanalysish1->SolveSingleField ( imc );
 
-        int solvertype=0;
-        int numthreads=12;
-        slopeanalysis->SetSlopeAnalysis ( solvertype,numthreads );
+                std::string saidavtk = "postvtk/saidavtk" + std::to_string ( imc ) + ".vtk";
+                std::string saidavtk2 = "postvtk/saidavtk" + std::to_string ( imc ) + "h.vtk";
 
-        slopeanalysis->SolveDeterministic();
 
-        slopeanalysis->PostPlasticity("deterministic.vtk");
-        return;
+                slopeanalysisf1->PostPlasticity ( saidavtk );
 
-        //solve generalized eigenvalu problem
-        if ( Startfrom ==0 ) {
-                randonanalysis->SetNEigenpairs ( 500 );
-                //randonanalysis->Assemble();
-                randonanalysis->Solve();
+                slopeanalysish1->PostPlasticity ( saidavtk2 );
 
-                //save sqrt(lambda)*phi
-                TPZBFileStream save;
-                save.OpenWrite ( "Config1-0.bin" );
-                randonanalysis->Write ( save,randonanalysis->ClassId() );
-                //randonanalysis->LoadSolution();
-                randonanalysis->DefineGraphMesh ( 2,scalarnames,vecnames,"filename2Assemble.vtk" );
-                randonanalysis->PostProcess ( 0 );
+                std::string saidafs = "post/fs" + std::to_string ( imc ) + ".dat";
+                std::string saidafs2 = "post/fs" + std::to_string ( imc ) + "h.dat";
+                std::ofstream out ( saidafs );
+                std::ofstream out2 ( saidafs2 );
+
+                out << fsf << std::endl;
+                out2 << fsh << std::endl;
+
+                delete slopeanalysisf1;
+                delete slopeanalysish1;
         }
-
-
-        if ( Startfrom >0 ) {
-                //read sqrt(lambda)*phi
-                TPZBFileStream read;
-                read.OpenRead ( "Config1-0.bin" );
-                randonanalysis->Read ( read,0 );
-
-                //seting fied data
-                TPZVec<REAL> meanvec ( 2 );
-                meanvec[0]=50.;
-                meanvec[1]=20. *M_PI/180.;
-                TPZVec<REAL> covvec ( 2 );
-                covvec[0]=0.3;
-                covvec[1]=0.2;
-                int samples=1000;
-
-                slopeanalysis->SetFieldsData ( cmesh,randonanalysis->GetSolutionValVec(), meanvec,covvec,  samples );
-
-                //crate random fields
-                if ( Startfrom==1 ) {
-                        //SensivityAnalysisOnEigenvalues ( slopeanalysis);
-                        //TPZFMatrix<REAL>samples1 = slopeanalysis->CreateNormalStandardSamples();
-                        //TPZFMatrix<REAL>samples2 = slopeanalysis->CreateNormalStandardSamples();
-                        //TPZVec<TPZFMatrix<REAL>> samples ( 2 );
-                        //samples[0]=samples1;
-                        //samples[1]=samples2;
-                        //slopeanalysis->SetFieldsSamples ( samples );
-                        //std::vector<int> data = {2,3,4};
-                        //slopeanalysis->ManageFieldCretion (  );
-                        //slopeanalysis->TransferFieldsSolutionFrom ( 0 );
-                        //slopeanalysis->PostPlasticity ( "fieldteste.vtk" );
-                        //slopeanalysis->ManageFieldCretion();
-                        //slopeanalysis->ComputeH();
-                        TPZBFileStream save;
-                        save.OpenWrite ( "Config2-0.bin" );
-                        slopeanalysis->Write ( save,slopeanalysis->ClassId() );
-                } else { //Startfrom>1 solve monte carlo
-                        TPZBFileStream read;
-                        read.OpenRead ( "Config2-0.bin" );
-                        slopeanalysis->Read ( read,0 );
-
-
-
-                        //slopeanalysis->SelectCriticalIndexes();
-                        //slopeanalysis->ComputeH();
-                        ofstream out3 ( "saidafs.txt" );
-                        for ( int imc=0; imc<=100; imc++ ) {
-
-                                SlopeAnalysis* slopeanalysis2 = new SlopeAnalysis ( gammaagua,gammasolo,coes,atrito,ref0slope,porderslope ); // Outra cópia independente
-                                slopeanalysis2->SetFieldsData ( cmesh,randonanalysis->GetSolutionValVec(), meanvec,covvec,  samples );
-                                slopeanalysis2->SetFields ( slopeanalysis->GetFields() );
-                                slopeanalysis2->SetSlopeAnalysis ( solvertype,numthreads );
-                                slopeanalysis2->SetFieldsSamples ( slopeanalysis->GetFieldsSamples() );
-
-                                string saidafs = "post/fsh";
-                                string vtk = "postvtk/postplasticityvtk";
-                                auto var=to_string ( imc );
-                                saidafs+=var;
-                                vtk+=var;
-                                saidafs+=".dat";
-
-                                vtk+=".vtk";
-                                ofstream out ( saidafs );
-
-                                std::cout << "imc = " <<  imc << std::endl;
-                                auto t1 = high_resolution_clock::now();
-                                REAL FS2 = slopeanalysis2->SolveSingleField ( imc );
-                                auto t2 = high_resolution_clock::now();
-                                auto ms_int = duration_cast<seconds> ( t2 - t1 );
-                                cout <<" tempo total da simulacao   = "<<ms_int.count() << " s " << endl;
-                                cout << " post processing..." <<endl;
-                                slopeanalysis2->PostPlasticity ( vtk );
-                                //out << FS << endl;
-                                out3<<"imc = "<< imc <<endl;
-                                out3<<"FSF = "<< FS2 <<endl;
-                                //delete slopeanalysis2;
-                                //delete slopeanalysis3;
-
-                        }
-                }
-
-        }
-
-
-
 }
-
 
 
 std::vector<int> GetIndex ( std::vector<double> vetor )
@@ -369,6 +293,19 @@ std::vector<int> GetIndex ( std::vector<double> vetor )
 
 }
 
+TPZCompMesh CreateCompMeshKL2 ( TPZGeoMesh  gmesh,int porder,REAL Lx, REAL Ly, REAL Lz, int id,int type )
+{
+
+        int dim = gmesh.Dimension();
+        TPZCompMesh  cmesh =  TPZCompMesh ( &gmesh );
+        TPZKarhunenLoeveMat * mat = new TPZKarhunenLoeveMat ( id,Lx,Ly,Lz,dim,type );
+        cmesh.SetDefaultOrder ( porder );
+        cmesh.SetDimModel ( dim );
+        cmesh.InsertMaterialObject ( mat );
+        cmesh.SetAllCreateFunctionsContinuous();
+        cmesh.AutoBuild();
+        return cmesh;
+}
 TPZCompMesh* CreateCompMeshKL ( TPZGeoMesh * gmesh,int porder,REAL Lx, REAL Ly, REAL Lz, int id,int type )
 {
 
@@ -493,50 +430,56 @@ TPZGeoMesh * TriGMesh ( int ref )
         return gmesh;
 }
 
-void saveVector(const std::vector<double>& vec, const std::string& filename) {
-    // Open the file in binary mode
-    std::ofstream outFile(filename, std::ios::binary);
+void saveVector ( const std::vector<double>& vec, const std::string& filename, bool append )
+{
+        // Open the file in binary mode, append if needed
+        std::ios_base::openmode mode = std::ios::binary;
+        if ( append ) {
+                mode |= std::ios::app;  // Use append mode
+        }
 
-    // Check if the file is open
-    if (!outFile.is_open()) {
-        std::cerr << "Error: Could not open file for writing." << std::endl;
-        return;
-    }
+        std::ofstream outFile ( filename, mode );
 
-    // Write the size of the vector first
-    size_t size = vec.size();
-    outFile.write(reinterpret_cast<const char*>(&size), sizeof(size));
+        // Check if the file is open
+        if ( !outFile.is_open() ) {
+                std::cerr << "Error: Could not open file for writing/appending." << std::endl;
+                return;
+        }
 
-    // Write the vector data
-    outFile.write(reinterpret_cast<const char*>(vec.data()), size * sizeof(double));
+        // Write the size of the vector first
+        size_t size = vec.size();
+        outFile.write ( reinterpret_cast<const char*> ( &size ), sizeof ( size ) );
 
-    // Close the file
-    outFile.close();
+        // Write the vector data
+        outFile.write ( reinterpret_cast<const char*> ( vec.data() ), size * sizeof ( double ) );
+
+        // Close the file
+        outFile.close();
 }
 
 
 
-void readVector( std::vector<double>& vec,const std::string& filename)
+void readVector ( std::vector<double>& vec, const std::string& filename )
 {
-    // Open the file in binary mode
-    std::ifstream inFile(filename, std::ios::binary);
+        // Open the file in binary mode
+        std::ifstream inFile ( filename, std::ios::binary );
 
-    // Check if the file is open
-    if (!inFile.is_open()) {
-        std::cerr << "Error: Could not open file for reading." << std::endl;
-    }
+        // Check if the file is open
+        if ( !inFile.is_open() ) {
+                std::cerr << "Error: Could not open file for reading." << std::endl;
+                return;
+        }
 
-    // Read the size of the vector first
-    size_t size;
-    inFile.read(reinterpret_cast<char*>(&size), sizeof(size));
+        // Read the size of the vector first
+        size_t size;
+        inFile.read ( reinterpret_cast<char*> ( &size ), sizeof ( size ) );
 
-    // Resize the vector to hold the dat
+        // Resize the vector to hold the data
+        vec.resize ( size );
 
-    vec.resize(size);
-    // Read the vector data
-    inFile.read(reinterpret_cast<char*>(vec.data()), size * sizeof(double));
+        // Read the vector data
+        inFile.read ( reinterpret_cast<char*> ( vec.data() ), size * sizeof ( double ) );
 
-    // Close the file
-    inFile.close();
-
+        // Close the file
+        inFile.close();
 }
