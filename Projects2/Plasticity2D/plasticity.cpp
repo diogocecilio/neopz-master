@@ -15,8 +15,10 @@
 #include <unistd.h>
 #include <sys/wait.h>
 //std::mutex mtx; // Mutex para proteger a escrita nos arquivos
-
+void RunParallelSlopeAnalysis ( int imc_start, int imc_end, int num_processes, SlopeAnalysis* slopeanalysisf, SlopeAnalysis* slopeanalysish );
+void RunParallelSlopeAnalysis ( int imc_start, int imc_end, int num_processes, SlopeAnalysis* slopeanalysis);
 void SolveSlope ( int imc_start, int imc_end, SlopeAnalysis* slopeanalysisf, SlopeAnalysis* slopeanalysish );
+void SolveSlope ( int imc_start, int imc_end, SlopeAnalysis* slopeanalysis );
 void SolveSlope ( int Startfrom );
 TPZGeoMesh * TriGMesh ( int ref );
 TPZCompMesh* CreateCompMeshKL ( TPZGeoMesh * gmesh,int porder,REAL Lx, REAL Ly, REAL Lz, int id,int type );
@@ -30,6 +32,7 @@ void readVector ( std::vector<double>& vec,const std::string& filename );
 std::vector<int> GetIndex ( std::vector<double> vetor );
 
 void SolveSlopeIS ( int Startfrom );
+
 int main()
 {
 
@@ -64,19 +67,19 @@ void SolveSlopeIS ( int Startfrom )
         REAL gammasolo=20.;
         REAL coes=10.;
         REAL atrito=30*M_PI/180.;
-        REAL fsfail=1.2;
+        REAL fsfail=1.20778;
         REAL coesh=coes/fsfail;
         REAL atritoh= atan ( tan ( atrito ) /fsfail );
 
-        SlopeAnalysis  * slopeanalysisf =  new SlopeAnalysis ( gammaagua,gammasolo,coes,atrito,ref0slope,porderslope ,numthreads,solvertype);
+        SlopeAnalysis  * slopeanalysisf =  new SlopeAnalysis ( gammaagua,gammasolo,coes,atrito,ref0slope,porderslope,numthreads,solvertype );
+
+        //slopeanalysisf->SolveDeterministic();
+
 
         SlopeAnalysis  * slopeanalysish =  new SlopeAnalysis ( gammaagua,gammasolo,coesh,atritoh,ref0slope,porderslope,numthreads,solvertype );
 
-//
-        //slopeanalysish->SolveDeterministic();
-//
-//         slopeanalysish->PostPlasticity("deterministic.vtk");
-        //solve generalized eigenvalu problem
+//         slopeanalysish->SolveDeterministic();
+//         return;
         if ( Startfrom ==0 ) {
                 randonanalysis->SetNEigenpairs ( 1500 );
                 //randonanalysis->Assemble();
@@ -84,7 +87,7 @@ void SolveSlopeIS ( int Startfrom )
 
                 //save sqrt(lambda)*phi
                 TPZBFileStream save;
-                save.OpenWrite ( "Config1-0.bin" );
+                save.OpenWrite ( "Config1-0-fs13.bin" );
                 randonanalysis->Write ( save,randonanalysis->ClassId() );
                 //randonanalysis->LoadSolution();
                 randonanalysis->DefineGraphMesh ( 2,scalarnames,vecnames,"filename2Assemble.vtk" );
@@ -95,7 +98,7 @@ void SolveSlopeIS ( int Startfrom )
         if ( Startfrom >0 ) {
                 //read sqrt(lambda)*phi
                 TPZBFileStream read;
-                read.OpenRead ( "Config1-0.bin" );
+                read.OpenRead ( "Config1-0-fs13.bin" );
                 randonanalysis->Read ( read,0 );
 
                 //seting fied data
@@ -118,7 +121,7 @@ void SolveSlopeIS ( int Startfrom )
 
                 //crate random fields
                 if ( Startfrom==1 ) {
-                        //SensivityAnalysisOnEigenvalues ( slopeanalysis);
+
                         TPZFMatrix<REAL>samples1 = slopeanalysisf->CreateNormalStandardSamples();
                         TPZFMatrix<REAL>samples2 = slopeanalysisf->CreateNormalStandardSamples();
                         TPZVec<TPZFMatrix<REAL>> samples ( 2 );
@@ -130,113 +133,29 @@ void SolveSlopeIS ( int Startfrom )
                         slopeanalysisf->ManageFieldCretion();
                         slopeanalysish->ManageFieldCretion();
 
-
-
                         TPZBFileStream save,saveh;
-                        save.OpenWrite ( "Config2-0.bin" );
-                        saveh.OpenWrite ( "Configh-2-0.bin" );
+                        save.OpenWrite ( "Config2-0-fs13.bin" );
+                        saveh.OpenWrite ( "Configh-2-0-fs13.bin" );
                         slopeanalysisf->Write ( save,slopeanalysisf->ClassId() );
                         slopeanalysish->Write ( saveh,slopeanalysish->ClassId()+1 );
 
                 } else { //Startfrom>1 solve monte carlo
                         TPZBFileStream read,readh;
-                        read.OpenRead ( "Config2-0.bin" );
-                        readh.OpenRead ( "Configh-2-0.bin" );
+                        read.OpenRead ( "Config2-0-fs13.bin" );
+                        readh.OpenRead ( "Configh-2-0-fs13.bin" );
                         slopeanalysisf->Read ( read,0 );
                         slopeanalysish->Read ( readh,0 );
 
-//                         int max_threads = 10; // Definimos 10 threads no máximo
-//                         std::vector<std::thread> threads;
-//
-//                         for ( int imc = 0; imc < 1000; ++imc ) {
-//                                 // Se já estivermos com o número máximo de threads, aguardamos até uma thread finalizar
-//                                 if ( threads.size() >= max_threads ) {
-//                                         for ( auto& th : threads ) {
-//                                                 if ( th.joinable() ) {
-//                                                         th.join(); // Espera até que a thread termine
-//                                                 }
-//                                         }
-//                                         threads.clear(); // Limpa o vetor após juntar todas as threads
-//                                 }
-//
-//                                 // Inicia uma nova thread para cada iteração
-//                                 threads.emplace_back ( solveSlope, imc, slopeanalysisf, slopeanalysish );
-//                         }
-//
-//                         // Certifica-se de que todas as threads sejam finalizadas antes de sair
-//                         for ( auto& th : threads ) {
-//                                 if ( th.joinable() ) {
-//                                         th.join();
-//                                 }
-//                         }
 
-//                         for ( int imc=5; imc<7; imc++ ) {
-//
-//                                 cout << "imc = "<< imc<<endl;
-//                                 SlopeAnalysis* slopeanalysisf1 = new SlopeAnalysis ( *slopeanalysisf );
-//                                 SlopeAnalysis* slopeanalysish1 = new SlopeAnalysis ( *slopeanalysish );
-//
-//                                 REAL fsf = slopeanalysisf1->SolveSingleField(imc);
-//                                 REAL fsh = slopeanalysish1->SolveSingleField(imc);
-//
-//                                 string saidafs = "post/fs";
-//                                 auto var=to_string ( imc );
-//                                 auto saidafs2=saidafs;
-//                                 saidafs+=var;
-//                                 saidafs2+=var;
-//                                 saidafs+=".dat";
-//                                 saidafs2+="h.dat";
-//                                 ofstream out ( saidafs );
-//                                 ofstream out2 ( saidafs2 );
-//
-//                                 out<< fsf << endl;
-//                                 out2<< fsh << endl;
-//
-//                                 delete slopeanalysisf1;
-//                                 delete slopeanalysish1;
-//
-//                         }
+                        int imc_start = 100;
+                        int imc_end = 200;
+                        int num_processes =5;  // Dividir para 4 processos
 
-                        int total_imc = 1000;
-                        int num_processes = 5;  // Dividir para 10 processos
-                        int imc_per_process = total_imc / num_processes;
-
-                        for ( int i = 0; i < num_processes; ++i ) {
-                                pid_t pid = fork();  // Cria um novo processo
-
-                                if ( pid == 0 ) { // Processo filho
-                                        int imc_start = i * imc_per_process;
-                                        int imc_end = imc_start + imc_per_process;
-                                        if ( i == num_processes - 1 ) {
-                                                imc_end = total_imc;  // O último processo vai até o fim
-                                        }
-
-                                        // Chama a função para resolver o intervalo de imc
-                                        SolveSlope ( imc_start, imc_end, slopeanalysisf, slopeanalysish );
-
-                                        _exit ( 0 ); // Termina o processo filho quando completar o intervalo
-                                } else if ( pid > 0 ) {
-                                        // Processo pai continua e cria outro filho
-                                        continue;
-                                } else {
-                                        std::cerr << "Erro ao criar processo!" << std::endl;
-                                        return ;
-                                }
-                        }
-
-                        // Processo pai aguarda todos os filhos finalizarem
-                        for ( int i = 0; i < num_processes; ++i ) {
-                                int status;
-                                wait ( &status ); // Espera pelo término de cada processo filho
-                        }
-
-                        std::cout << "Todos os processos concluídos!" << std::endl;
-
+                        // Chama a função para executar a análise paralela entre imc_start e imc_end
+                       RunParallelSlopeAnalysis ( imc_start, imc_end, num_processes, slopeanalysisf, slopeanalysish );
+                        //RunParallelSlopeAnalysis ( imc_start, imc_end, num_processes, slopeanalysish );
 
                 }
-
-
-
 
 
         }
@@ -245,6 +164,100 @@ void SolveSlopeIS ( int Startfrom )
 
 }
 
+void RunParallelSlopeAnalysis ( int imc_start, int imc_end, int num_processes, SlopeAnalysis* analysis )
+{
+        int total_imc = imc_end - imc_start;
+        int imc_per_process = total_imc / num_processes;
+
+        for ( int i = 0; i < num_processes; ++i ) {
+                pid_t pid = fork();  // Cria um novo processo
+
+                if ( pid == 0 ) { // Processo filho
+                        int local_imc_start = imc_start + i * imc_per_process;
+                        int local_imc_end = local_imc_start + imc_per_process;
+
+                        if ( i == num_processes - 1 ) {
+                                local_imc_end = imc_end;  // O último processo vai até o fim
+                        }
+
+                        // Chama a função para resolver o intervalo de imc
+                        SolveSlope ( local_imc_start, local_imc_end, analysis );
+
+                        _exit ( 0 ); // Termina o processo filho quando completar o intervalo
+                } else if ( pid > 0 ) {
+                        // Processo pai continua e cria outro filho
+                        continue;
+                } else {
+                        std::cerr << "Erro ao criar processo!" << std::endl;
+                        return;
+                }
+        }
+
+        // Processo pai aguarda todos os filhos finalizarem
+        for ( int i = 0; i < num_processes; ++i ) {
+                int status;
+                wait ( &status ); // Espera pelo término de cada processo filho
+        }
+}
+
+void RunParallelSlopeAnalysis ( int imc_start, int imc_end, int num_processes, SlopeAnalysis* slopeanalysisf, SlopeAnalysis* slopeanalysish )
+{
+        int total_imc = imc_end - imc_start;
+        int imc_per_process = total_imc / num_processes;
+
+        for ( int i = 0; i < num_processes; ++i ) {
+                pid_t pid = fork();  // Cria um novo processo
+
+                if ( pid == 0 ) { // Processo filho
+                        int local_imc_start = imc_start + i * imc_per_process;
+                        int local_imc_end = local_imc_start + imc_per_process;
+
+                        if ( i == num_processes - 1 ) {
+                                local_imc_end = imc_end;  // O último processo vai até o fim
+                        }
+
+                        // Chama a função para resolver o intervalo de imc
+                        SolveSlope ( local_imc_start, local_imc_end, slopeanalysisf, slopeanalysish );
+
+                        _exit ( 0 ); // Termina o processo filho quando completar o intervalo
+                } else if ( pid > 0 ) {
+                        // Processo pai continua e cria outro filho
+                        continue;
+                } else {
+                        std::cerr << "Erro ao criar processo!" << std::endl;
+                        return;
+                }
+        }
+
+        // Processo pai aguarda todos os filhos finalizarem
+        for ( int i = 0; i < num_processes; ++i ) {
+                int status;
+                wait ( &status ); // Espera pelo término de cada processo filho
+        }
+}
+
+void SolveSlope ( int imc_start, int imc_end, SlopeAnalysis* slopeanalysis )
+{
+         for ( int imc = imc_start; imc < imc_end; ++imc ) {
+                std::cout << "imc = " << imc << " (PID: " << getpid() << ")" << std::endl;
+
+                SlopeAnalysis* analysis = new SlopeAnalysis ( *slopeanalysis );
+
+                REAL fs = analysis->SolveSingleField ( imc );
+
+                std::string saidavtk2 = "postvtk-fs13/saidavtk" + std::to_string ( imc ) + "h.vtk";
+
+                analysis->PostPlasticity ( saidavtk2 );
+
+                std::string saidafs2 = "post-fs13/fs" + std::to_string ( imc ) + "h.dat";
+
+                std::ofstream out2 ( saidafs2 );
+
+                out2 << fs << std::endl;
+
+                delete analysis;
+        }
+}
 void SolveSlope ( int imc_start, int imc_end, SlopeAnalysis* slopeanalysisf, SlopeAnalysis* slopeanalysish )
 {
         for ( int imc = imc_start; imc < imc_end; ++imc ) {
@@ -256,16 +269,16 @@ void SolveSlope ( int imc_start, int imc_end, SlopeAnalysis* slopeanalysisf, Slo
                 REAL fsf = slopeanalysisf1->SolveSingleField ( imc );
                 REAL fsh = slopeanalysish1->SolveSingleField ( imc );
 
-                std::string saidavtk = "postvtk/saidavtk" + std::to_string ( imc ) + ".vtk";
-                std::string saidavtk2 = "postvtk/saidavtk" + std::to_string ( imc ) + "h.vtk";
+                std::string saidavtk = "postvtk-fs13/saidavtk" + std::to_string ( imc ) + ".vtk";
+                std::string saidavtk2 = "postvtk-fs13/saidavtk" + std::to_string ( imc ) + "h.vtk";
 
 
                 slopeanalysisf1->PostPlasticity ( saidavtk );
 
                 slopeanalysish1->PostPlasticity ( saidavtk2 );
 
-                std::string saidafs = "post/fs" + std::to_string ( imc ) + ".dat";
-                std::string saidafs2 = "post/fs" + std::to_string ( imc ) + "h.dat";
+                std::string saidafs = "post-fs13/fs" + std::to_string ( imc ) + ".dat";
+                std::string saidafs2 = "post-fs13/fs" + std::to_string ( imc ) + "h.dat";
                 std::ofstream out ( saidafs );
                 std::ofstream out2 ( saidafs2 );
 

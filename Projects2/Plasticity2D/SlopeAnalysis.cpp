@@ -4,36 +4,36 @@
 #include "SlopeAnalysis.h"
 
 SlopeAnalysis::SlopeAnalysis()
-    : fCohesion(0), fAtrito(0), fGammaW(0), fGammaS(0),
-      fNSamples(0),fCompMesh(0), fGMesh(0),  fNumThreads(0),
-     fSolver(0)
+        : fCohesion ( 0 ), fAtrito ( 0 ), fGammaW ( 0 ), fGammaS ( 0 ),
+          fNSamples ( 0 ),fCompMesh ( 0 ), fGMesh ( 0 ),  fNumThreads ( 0 ),
+          fSolver ( 0 )
 {
-    // Construtor padrão
+        // Construtor padrão
 }
 
-SlopeAnalysis::SlopeAnalysis(const SlopeAnalysis& other)
-    : fCohesion(other.fCohesion), fAtrito(other.fAtrito), fGammaW(other.fGammaW), fGammaS(other.fGammaS),
-        fNSamples(other.fNSamples),fCompMeshField(other.fCompMeshField), fSolutionValVec(other.fSolutionValVec),fFields(other.fFields),fRef0(other.fRef0),fPorder(other.fPorder),  fNumThreads(other.fNumThreads),
-     fSolver(other.fSolver)
+SlopeAnalysis::SlopeAnalysis ( const SlopeAnalysis& other )
+        : fCohesion ( other.fCohesion ), fAtrito ( other.fAtrito ), fGammaW ( other.fGammaW ), fGammaS ( other.fGammaS ),
+          fNSamples ( other.fNSamples ),fCompMeshField ( other.fCompMeshField ), fSolutionValVec ( other.fSolutionValVec ),fFields ( other.fFields ),fRef0 ( other.fRef0 ),fPorder ( other.fPorder ),  fNumThreads ( other.fNumThreads ),
+          fSolver ( other.fSolver )
 {
-    fGMesh = TriGMesh(fRef0);
-    fCompMesh = CreateCMesh(fGMesh, fPorder, fCohesion, fAtrito);
-    SetSlopeAnalysis ( );
+        fGMesh = TriGMesh ( fRef0 );
+        fCompMesh = CreateCMesh ( fGMesh, fPorder, fCohesion, fAtrito );
+        SetSlopeAnalysis ( );
 
 }
 
-SlopeAnalysis::SlopeAnalysis(REAL gammaagua, REAL gammasolo, REAL coes, REAL atrito, int ref0, int porder,int therads,int solver)
-    : fCohesion(coes), fAtrito(atrito), fGammaW(gammaagua), fGammaS(gammasolo),fRef0(ref0),fPorder(porder),fNumThreads(therads),
-     fSolver(solver)
+SlopeAnalysis::SlopeAnalysis ( REAL gammaagua, REAL gammasolo, REAL coes, REAL atrito, int ref0, int porder,int therads,int solver )
+        : fCohesion ( coes ), fAtrito ( atrito ), fGammaW ( gammaagua ), fGammaS ( gammasolo ),fRef0 ( ref0 ),fPorder ( porder ),fNumThreads ( therads ),
+          fSolver ( solver )
 {
-    fGMesh = TriGMesh(fRef0);
-    fCompMesh = CreateCMesh(fGMesh, fPorder, fCohesion, fAtrito);
-    SetSlopeAnalysis ( );
+        fGMesh = TriGMesh ( fRef0 );
+        fCompMesh = CreateCMesh ( fGMesh, fPorder, fCohesion, fAtrito );
+        SetSlopeAnalysis ( );
 }
 
 SlopeAnalysis::~SlopeAnalysis()
 {
-    // Destrutor, limpando a memória alocada
+        // Destrutor, limpando a memória alocada
         delete fCompMesh;
         delete fGMesh;
 
@@ -157,7 +157,7 @@ REAL SlopeAnalysis::ShearRed ( int maxcout,REAL FS0,REAL fstol )
 
         do {
 
-                TPZElastoPlasticAnalysis anal =  SetSlopeAnalysis (  );
+                TPZElastoPlasticAnalysis anal =  SetSlopeAnalysis ( );
                 fCompMesh->Solution().Zero();
                 REAL norm = 1000.;
                 REAL tol2 = 1.e-3;
@@ -592,201 +592,12 @@ bool SlopeAnalysis::FindCriticalMonteCarloSimulations ( int imc )
 
 }
 
-// std::vector<std::vector<int>> SlopeAnalysis::SelectCriticalIndexes()
-// {
-//         int nfields = fMeanvec.size();
-//         if ( !nfields ) DebugStop();
-//         fHFields.Resize ( nfields );
-//         int M = fSolutionValVec.Cols();
-//         int ndofs = fSolutionValVec.Cols();
-//         if ( !fFieldSamples.size() ) DebugStop();
-//
-//         int sz=10;
-//
-//         cout << "ndofs  = "<< ndofs <<endl;
-//         cout << "M  = "<< M <<endl;
-//         cout << "fFieldSamples[0].Rows()  = "<< fFieldSamples[0].Rows() <<endl;
-//         cout << "fFieldSamples[0].Cols()  = "<< fFieldSamples[0].Cols() <<endl;
-//
-//         std::vector<int> indexescoes,indexesatrito;
-//         std::vector<std::vector<int>> indexes ( nfields );
-//         for ( int imc=0; imc<fNSamples; imc++ ) {
-//                 bool fail = FindCriticalMonteCarloSimulations ( imc );
-//                 if ( fail==false ) {
-//                         continue;
-//                 }
-//                 for ( int ifield=0; ifield<nfields; ifield++ ) {
-//
-//                         std::vector<double> theta ( M );
-//                         for ( int iM=0; iM<M; iM++ ) {
-//                                 TPZFMatrix<REAL> transp;
-//                                 //fFieldSamples[ifield].Transpose(&transp);
-//                                 theta[iM] = fFieldSamples[ifield](iM, imc);
-//
-//                         }
-//                         std::vector<int> maiores,menores;
-//                         maiores=GetIndex ( theta,true );
-//                         menores=GetIndex ( theta,false );
-//                         //menores=GetIndex(theta,false);
-//
-//
-//
-//                         //std::cout << "Os 10 maiores valores e seus índices são:" << std::endl;
-//
-//                         for ( int i = 0; i < sz; ++i ) {
-//                                 indexes[ifield].push_back ( maiores[i] );
-//                         }
-//                         for ( int i = 0; i < sz; ++i ) {
-//                                 indexes[ifield].push_back ( menores[i] );
-//                         }
-//
-//                 }
-//
-//         }
-//
-//         return indexes;
-// }
-
-// std::vector<std::vector<int>> SlopeAnalysis::SelectCriticalIndexes2()
-// {
-//         int nfields = fMeanvec.size();
-//         if ( !nfields ) DebugStop();
-//         fHFields.Resize ( nfields );
-//         if ( !fFieldSamples.size() ) DebugStop();
-//         int M = fSolutionValVec.Cols();
-//         std::vector<std::vector<int>> indexes ( nfields );
-//
-//         int nchop=10;
-//         for ( int imc=0; imc<fNSamples; imc++ ) {
-//                 bool fail = FindCriticalMonteCarloSimulations ( imc );
-//                 if ( fail==false ) {
-//                         continue;
-//                 }
-//
-//                 for ( int ifield=0; ifield<nfields; ifield++ )
-//                 {
-//                         std::vector<double> theta ( M );
-//                         for ( int iM=0; iM<M; iM++ ) {
-//                                 theta[iM] = fPesos[ifield](iM,imc);
-//                         }
-//                         std::vector<int> pesosdecrescentes;
-//                         pesosdecrescentes=GetIndex ( theta,true );
-//
-//                         for ( int i = 0; i <=nchop; i++ )
-//                         {
-//                                  indexes[ifield].push_back ( pesosdecrescentes[i] );
-//                         }
-//                         for ( int i = pesosdecrescentes.size(); i>=pesosdecrescentes.size()-nchop; i-- )
-//                         {
-//                                  indexes[ifield].push_back ( pesosdecrescentes[i] );
-//                         }
-//
-//                         for ( int i = 0; i<indexes[ifield].size(); i++ )
-//                         {
-//                                  //cout <<"theta = "<< theta[indexes[ifield][i]] << endl;
-//                         }
-//
-//                 }
-//
-//         }
-//         return indexes;
-// }
-int SlopeAnalysis::CountCriticalFields()
-{
-        int nfields = fMeanvec.size();
-        if ( !nfields ) DebugStop();
-        if ( !fFieldSamples.size() ) DebugStop();
-        int count=0;
-        for ( int imc=0; imc<100; imc++ ) {
-                bool fail = FindCriticalMonteCarloSimulations ( imc );
-                if ( fail==false ) {
-                        continue;
-                }
-                //cout << "Field fail = "<< imc<< " count = "<< count <<  endl;
-                count++;
-
-        }
-        return count;
-}
-void  SlopeAnalysis::ComputeH()
-{
-//         int nfields = fMeanvec.size();
-//         if ( !nfields ) DebugStop();
-//         fHFields.Resize ( nfields );
-//         int M = fSolutionValVec.Cols();
-//         int ndofs = fSolutionValVec.Rows();
-//         if ( !fFieldSamples.size() ) DebugStop();
-//         cout << "nfields" <<nfields << endl;
-//         cout << "GetFields()[0](0,0)" <<GetFields()[0](0,0) << endl;
-//         std::vector<std::vector<int>> indexes = SelectCriticalIndexes2();
-//
-//         for ( int ifield = 0; ifield < nfields; ifield++ ) {
-//                 // Encontrar os índices repetidos no vetor indexes[ifield]
-//                 std::vector<std::pair<int, int>> sol = encontrarRepetidos ( indexes[ifield] );
-//                 int sz = sol.size();
-//                 cout << "sz = "<< sz <<endl;
-//                 int last =indexes[ifield].size()-1;
-//                 cout<<"indexes[ifield][last]= "<<sol[indexes[ifield][0]].first<<endl;
-//                 cout<<"indexes[ifield][last]= "<<sol[indexes[ifield][last]].first<<endl;
-//                 // Cria a matriz ValVecSelected com as dimensões apropriadas
-//                 TPZFMatrix<REAL> ValVecSelected ( ndofs, M );
-//                 ValVecSelected.Zero();
-//                 int count=0;
-//                 cout<<"1 aqui? "<<endl;
-//                 for (const auto& entry : sol) {
-//                         cout<<"1 a aqui? "<<endl;
-//                         //if (entry.second > 2) { // Se o índice apareceu mais de uma vez
-//                                 std::cout << "Indice: " << entry.first << " | Repetições: " << entry.second << "\n";
-//                                 for ( int ndof = 0; ndof < ndofs; ndof++ )
-//                                 {
-//                                         //ValVecSelected ( ndof, count ) = fSolutionValVec ( ndof, sol[indexes[ifield][count]].first);
-//                                         ValVecSelected ( ndof, count ) = fSolutionValVec ( ndof, entry.first);
-//                                 }
-//
-//                        // }
-//                         count++;
-//
-//                 }
-//                 cout<<"2 aqui? "<<endl;
-//
-//                 // Itera sobre os pares (índice e número de repetições) em 'sol'
-// //                 for ( int ichopm=0;ichopm<sz;ichopm++ ) {
-// //                 //std::cout << "Indice: " << sol[ichopm].first << " | Repetições: " << sol[ichopm].second << "\n";
-// //
-// //                  if(sol[ichopm].second>9)//se tiver mai que x repeticoes
-// //                  {
-// //                          cout << "Index = "<< sol[ichopm].first <<endl;
-// //                          cout << "Repeticoes = "<< sol[ichopm].second <<endl;
-// //
-// //                         // Preenche a matriz ValVecSelected
-// //                         for ( int ndof = 0; ndof < ndofs; ndof++ ) {
-// //                                 // Acessa o valor correspondente de fSolutionValVec usando entry.first
-// //                                 //ValVecSelected ( ndof, ichopm ) = fSolutionValVec ( ndof, sol[ichopm].first );
-// //                                 ValVecSelected ( ndof, ichopm ) = fSolutionValVec ( ndof, sol[ichopm].first);
-// //                         }
-// //                  }
-//
-// //                }
-//
-//                 //ValVecSelected.Print("VALVEC");
-//                 cout << "count = "<<count<<endl;
-//                 cout << "ValVecSelected.Cols()  = "<<ValVecSelected.Cols() <<endl;
-//                 cout << "fFieldSamples[ifield].Rows() = "<< fFieldSamples[ifield].Rows() <<endl;
-//                 // Gerar campo aleatório (código comentado que você deve ajustar)
-//                  fHFields[ifield] = GenerateRandomField(fMeanvec[ifield], fCovvec[ifield], ValVecSelected, fFieldSamples[ifield]);
-//                  //fHFields[ifield] = GenerateRandomField2(fMeanvec[ifield], fCovvec[ifield]);
-//                    //TPZVec<TPZFMatrix<REAL>> soluu =GenerateRandomField2 ( fMeanvec[ifield],fCovvec[ifield],ValVecSelected);
-//                 //fHFields[ifield] =soluu[0];
-//                 //fPesos[ifield]=soluu[1];
-//         }
-
-}
 void SlopeAnalysis::ManageFieldCretion()
 {
         int nfields = fMeanvec.size();
         fFields.resize ( nfields );
         if ( !nfields ) DebugStop();
-        if(fFieldSamples.size()==0)DebugStop();
+        if ( fFieldSamples.size() ==0 ) DebugStop();
         for ( int ifield=0; ifield<nfields; ifield++ ) {
                 fFields[ifield] = GenerateRandomField ( fMeanvec[ifield],fCovvec[ifield],fSolutionValVec,fFieldSamples[ifield] );
 
@@ -846,35 +657,7 @@ TPZFMatrix<REAL>  SlopeAnalysis::GenerateRandomField ( REAL mean, REAL cov,TPZFM
 
         return hhat;
 }
-// TPZVec<TPZFMatrix<REAL>> SlopeAnalysis::GenerateRandomField2 ( REAL mean, REAL cov, TPZFMatrix<REAL> valvec)
-// {
-//         int M = fSolutionValVec.Cols();
-//         int ndofs = fSolutionValVec.Rows();
-//         TPZFMatrix<REAL> hhat(ndofs,fNSamples),pesos(fNSamples,1);
-//
-//         REAL xi = sqrt ( log ( 1. + cov*cov ) );
-//         REAL lambda = log ( mean ) - 0.5*xi * xi;
-//
-//         for(int isample=0;isample<fNSamples;isample++)
-//         {
-//
-//                 for(int idof = 0; idof < ndofs; idof++)
-//                 {
-//                         REAL lambdaphixi=0;
-//                         for ( int iM=0;iM<M;iM++ )
-//                         {                REAL sample = CreateNormalStandardSample( );
-//                 pesos(isample,0)=sample;
-//                                 lambdaphixi+=valvec(idof,iM)*sample;
-//                         }
-//                         hhat ( idof,isample ) = exp ( lambda + xi * lambdaphixi );
-//                 }
-//         }
-//
-//         TPZVec<TPZFMatrix<REAL>> sol(2);
-//         sol[0]=hhat;
-//         sol[1]=pesos;
-//         return sol;
-// }
+
 TPZVec<TPZFMatrix<REAL>> SlopeAnalysis::GenerateRandomField2 ( REAL mean, REAL cov, TPZFMatrix<REAL> valvec )
 {
         int M = fSolutionValVec.Cols();
@@ -938,16 +721,7 @@ TPZFMatrix<REAL> SlopeAnalysis::CreateNormalStandardSamples( )
         return samples;
 }
 
-REAL SlopeAnalysis::CreateNormalStandardSample( )
-{
 
-        std::normal_distribution<REAL> distribution ( 0., 1. );
-        std::random_device rd{};
-        std::mt19937 generator{ rd() };
-        REAL xic = distribution ( generator );
-        return xic;
-
-}
 
 void SlopeAnalysis::ShearReductionIntegrationPoints ( REAL FS )
 {

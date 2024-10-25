@@ -123,40 +123,9 @@ public:
     void IntegrateFieldOverARegion(int imc);
     bool FindCriticalMonteCarloSimulations(int imc);
     TPZFMatrix<REAL> CreateNormalStandardSamples();
-    REAL CreateNormalStandardSample();
-    void ComputeH();
-    std::vector<std::vector<int>> SelectCriticalIndexes();
-    int CountCriticalFields();
 
-    std::vector<int> GetIndex(std::vector<double> vetor, bool decrescente = true) {
-        std::vector<int> indices(vetor.size());
-        for (int i = 0; i < vetor.size(); ++i) {
-            indices[i] = i;
-        }
 
-        std::sort(indices.begin(), indices.end(), [&](int a, int b) {
-            return decrescente ? vetor[a] > vetor[b] : vetor[a] < vetor[b];
-        });
 
-        return indices;
-    }
-
-    std::vector<std::pair<int, int>> encontrarRepetidos(const std::vector<int>& maiores) {
-        std::unordered_map<int, int> repetidos;
-        std::vector<std::pair<int, int>> resultado;
-
-        for (int i : maiores) {
-            repetidos[i]++;
-        }
-
-        for (const auto& entry : repetidos) {
-            if (entry.second > 1) {
-                resultado.push_back({entry.first, entry.second});
-            }
-        }
-
-        return resultado;
-    }
 
 private:
     REAL fCohesion;
