@@ -147,9 +147,9 @@ void SolveSlopeIS ( int Startfrom )
                         slopeanalysish->Read ( readh,0 );
 
 
-                        int imc_start = 100;
-                        int imc_end = 200;
-                        int num_processes =5;  // Dividir para 4 processos
+                        int imc_start = 2000;
+                        int imc_end = 10000;
+                        int num_processes =8;  // Dividir para 4 processos
 
                         // Chama a função para executar a análise paralela entre imc_start e imc_end
                        RunParallelSlopeAnalysis ( imc_start, imc_end, num_processes, slopeanalysisf, slopeanalysish );
@@ -269,16 +269,16 @@ void SolveSlope ( int imc_start, int imc_end, SlopeAnalysis* slopeanalysisf, Slo
                 REAL fsf = slopeanalysisf1->SolveSingleField ( imc );
                 REAL fsh = slopeanalysish1->SolveSingleField ( imc );
 
-                std::string saidavtk = "postvtk-fs13/saidavtk" + std::to_string ( imc ) + ".vtk";
-                std::string saidavtk2 = "postvtk-fs13/saidavtk" + std::to_string ( imc ) + "h.vtk";
+                //std::string saidavtk = "postvtk-fs13/saidavtk" + std::to_string ( imc ) + ".vtk";
+                //std::string saidavtk2 = "postvtk-fs13/saidavtk" + std::to_string ( imc ) + "h.vtk";
 
 
-                slopeanalysisf1->PostPlasticity ( saidavtk );
+                //slopeanalysisf1->PostPlasticity ( saidavtk );
 
-                slopeanalysish1->PostPlasticity ( saidavtk2 );
+                //slopeanalysish1->PostPlasticity ( saidavtk2 );
 
-                std::string saidafs = "post-fs13/fs" + std::to_string ( imc ) + ".dat";
-                std::string saidafs2 = "post-fs13/fs" + std::to_string ( imc ) + "h.dat";
+                std::string saidafs = "postx/fs" + std::to_string ( imc ) + ".dat";
+                std::string saidafs2 = "postx/fs" + std::to_string ( imc ) + "h.dat";
                 std::ofstream out ( saidafs );
                 std::ofstream out2 ( saidafs2 );
 
