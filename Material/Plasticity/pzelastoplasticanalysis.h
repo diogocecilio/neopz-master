@@ -28,6 +28,9 @@ public:
 
 	bool IterativeProcess2(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv,int &iters);
 
+		//Implements the cylindrical arc length method ref- Souza Neto 2009
+	REAL IterativeProcessArcLength(REAL tol,int numiter,REAL tol2,int numiter2,REAL l,REAL lambda0,bool &converge);
+
 	REAL MyLineSearch(const TPZFMatrix<REAL> &Wn, const TPZFMatrix<REAL> &DeltaW, TPZFMatrix<REAL> &NextW, REAL RhsNormPrev, REAL &RhsNormResult, int niter, bool & converging);
 
 	REAL LineSearch ( const TPZFMatrix<STATE> &Wn, TPZFMatrix<STATE> DeltaW, TPZFMatrix<STATE> &NextW, REAL tol, int niter );

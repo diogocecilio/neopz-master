@@ -33,16 +33,289 @@ std::vector<int> GetIndex ( std::vector<double> vetor );
 
 void SolveSlopeIS ( int Startfrom );
 
+void ManageStartFrom(int Startfrom);
+
+REAL func(REAL theta,REAL cov,REAL mean);
+void PrintBases(TPZVec<TPZFMatrix<REAL>> allsamples, std::vector<int> indexes, TPZVec<REAL>covvec, TPZVec<REAL>meanvec);
+//void PrintBasesMathematica(TPZVec<TPZFMatrix<REAL>> allsamples, std::vector<int> indexes, TPZVec<REAL>covvec, TPZVec<REAL>meanvec);
+void PrintBasesMathematica(const TPZVec<TPZFMatrix<REAL>>& allsamples, const std::vector<int>& indexes, const TPZVec<REAL>& covvec, const TPZVec<REAL>& meanvec);
 int main()
 {
 
         int Startfrom =2;
-        SolveSlopeIS ( Startfrom );
+        ManageStartFrom ( Startfrom );
 
 
         return 0;
 }
 
+REAL func(REAL theta,REAL cov,REAL mean)
+{
+        REAL xi = sqrt ( log ( 1. + cov*cov ) );
+        REAL lambda = log ( mean ) - 0.5*xi * xi;
+        //return exp ( lambda + xi *theta );
+        return  exp(xi *theta) ;
+}
+
+
+
+void ManageStartFrom(int Startfrom)
+{
+
+        //create random analysis
+        int ref=3;
+        TPZGeoMesh * gmesh =  TriGMesh ( ref );
+        int porder=1;
+        REAL Lx=20.;
+        REAL Ly=2;
+        REAL Lz=1.;
+        int id=1;
+        int type=3;
+        TPZCompMesh * cmesh = CreateCompMeshKL ( gmesh, porder, Lx,  Ly,  Lz,  id, type );
+        TPZRandomFieldAnalysis * randonanalysis = new TPZRandomFieldAnalysis ( cmesh );
+        TPZManVector<std::string> scalarnames = {"vec","vec1","vec2","vec3","vec4"}, vecnames;
+
+        //create slope analysis
+        int solvertype=0;
+        int numthreads=10;
+        int ref0slope=3;
+        int porderslope=2;
+        REAL gammaagua=0.;
+        REAL gammasolo=20.;
+        REAL coes=10.;
+        REAL atrito=30.*M_PI/180.;
+
+        SlopeAnalysis  * slopeanalysis =  new SlopeAnalysis ( gammaagua,gammasolo,coes,atrito,ref0slope,porderslope,numthreads,solvertype );
+
+      //  bool issrm=false;
+       // slopeanalysis->SolveDeterministic(issrm);
+       // std::string saidavtk2 = "postdeter.vtk";
+       // slopeanalysis->PostPlasticity ( saidavtk2 );
+
+       // return;
+        if ( Startfrom ==0 ) {
+                randonanalysis->SetNEigenpairs ( 1500 );
+                //randonanalysis->Assemble();
+                randonanalysis->Solve();
+
+                //save sqrt(lambda)*phi
+                TPZBFileStream save;
+                save.OpenWrite ( "Config0.bin" );
+                randonanalysis->Write ( save,randonanalysis->ClassId() );
+                //randonanalysis->LoadSolution();
+                randonanalysis->DefineGraphMesh ( 2,scalarnames,vecnames,"filename2Assemble.vtk" );
+                randonanalysis->PostProcess ( 0 );
+        }
+
+
+        if ( Startfrom >0 ) {
+                //read sqrt(lambda)*phi
+                TPZBFileStream read;
+                read.OpenRead ( "Config0.bin" );
+                randonanalysis->Read ( read,0 );
+
+                //seting fied data
+                TPZVec<REAL> meanvec ( 2 );
+                meanvec[0]=coes;
+                meanvec[1]=atrito;
+                TPZVec<REAL> covvec ( 2 );
+                covvec[0]=0.3;
+                covvec[1]=0.2;
+                int samples=1000;
+                slopeanalysis->SetFieldsData ( cmesh,randonanalysis->GetSolutionValVec(), meanvec,covvec,  samples );
+
+
+                if ( Startfrom==1 ) {
+
+
+                        slopeanalysis->ManageFieldCretion();
+                        TPZBFileStream save;
+                        save.OpenWrite ( "Config1.bin" );
+                        slopeanalysis->Write ( save,slopeanalysis->ClassId() );
+
+
+                } else { //Startfrom>1 solve monte carlo
+                        TPZBFileStream read;
+                        read.OpenRead ( "Config1.bin" );
+                        slopeanalysis->Read ( read,0 );
+
+                       // std::ofstream posprocfs ( "posprocfs.txt" );
+
+
+                        for(int imc=0;imc<1000;imc++)
+                        {
+
+                                cout << "simulacao de monte carlo numero = "<<imc <<endl;
+                                SlopeAnalysis* analysis = new SlopeAnalysis ( *slopeanalysis );
+                                REAL fs = analysis->SolveSingleField ( imc );
+                               // posprocfs << imc << " "<<fs << endl;
+                                std::string saidavtk2 = "postvtkarclength/saidavtk" + std::to_string ( imc ) + ".vtk";
+                                analysis->PostPlasticity ( saidavtk2 );
+                                std::string saidafs2 = "postarclength/fs" + std::to_string ( imc ) + ".dat";
+                                std::ofstream out2 ( saidafs2 );
+                                out2 << fs << std::endl;
+
+                                delete analysis;
+                        }
+
+
+                }
+
+
+        }
+
+
+        cout << "EXIT SUCESS"<<endl;
+}
+
+
+
+/*
+void ManageStartFrom(int Startfrom)
+{
+
+        //create random analysis
+        int ref=3;
+        TPZGeoMesh * gmesh =  TriGMesh ( ref );
+        int porder=1;
+        REAL Lx=20.;
+        REAL Ly=2;
+        REAL Lz=1.;
+        int id=1;
+        int type=3;
+        TPZCompMesh * cmesh = CreateCompMeshKL ( gmesh, porder, Lx,  Ly,  Lz,  id, type );
+        TPZRandomFieldAnalysis * randonanalysis = new TPZRandomFieldAnalysis ( cmesh );
+        TPZManVector<std::string> scalarnames = {"vec","vec1","vec2","vec3","vec4"}, vecnames;
+
+        //create slope analysis
+        int solvertype=0;
+        int numthreads=10;
+        int ref0slope=3;
+        int porderslope=1;
+        REAL gammaagua=0.;
+        REAL gammasolo=20.;
+        REAL coes=10.;
+        REAL atrito=30.*M_PI/180.;
+
+        SlopeAnalysis  * slopeanalysisf =  new SlopeAnalysis ( gammaagua,gammasolo,coes,atrito,ref0slope,porderslope,numthreads,solvertype );
+
+       // slopeanalysisf->SolveDeterministic();
+        if ( Startfrom ==0 ) {
+                randonanalysis->SetNEigenpairs ( 1500 );
+                //randonanalysis->Assemble();
+                randonanalysis->Solve();
+
+                //save sqrt(lambda)*phi
+                TPZBFileStream save;
+                save.OpenWrite ( "Config1-0-fs13.bin" );
+                randonanalysis->Write ( save,randonanalysis->ClassId() );
+                //randonanalysis->LoadSolution();
+                randonanalysis->DefineGraphMesh ( 2,scalarnames,vecnames,"filename2Assemble.vtk" );
+                randonanalysis->PostProcess ( 0 );
+        }
+
+
+        if ( Startfrom >0 ) {
+                //read sqrt(lambda)*phi
+                TPZBFileStream read;
+                read.OpenRead ( "Config1-0-fs13.bin" );
+                randonanalysis->Read ( read,0 );
+
+                //seting fied data
+                TPZVec<REAL> meanvec ( 2 );
+                meanvec[0]=coes;
+                meanvec[1]=atrito;
+                TPZVec<REAL> covvec ( 2 );
+                covvec[0]=0.3;
+                covvec[1]=0.2;
+                int samples=1000;
+                slopeanalysisf->SetFieldsData ( cmesh,randonanalysis->GetSolutionValVec(), meanvec,covvec,  samples );
+
+
+                if ( Startfrom==1 ) {
+
+                        TPZFMatrix<REAL>samples1 = slopeanalysisf->CreateNormalStandardSamples();
+                        TPZFMatrix<REAL>samples2 = slopeanalysisf->CreateNormalStandardSamples();
+                        TPZVec<TPZFMatrix<REAL>> samples ( 2 );
+                        samples[0]=samples1;
+                        samples[1]=samples2;
+                        samples1.Print("samples");
+                        samples2.Print("samples");
+                        slopeanalysisf->SetFieldsSamples ( samples );
+                        slopeanalysisf->ManageFieldCretion();
+                        TPZBFileStream save,saveh;
+                        save.OpenWrite ( "Config2-0-fs13.bin" );
+                        saveh.OpenWrite ( "Configh-2-0-fs13.bin" );
+                        slopeanalysisf->Write ( save,slopeanalysisf->ClassId() );
+
+
+                } else { //Startfrom>1 solve monte carlo
+                        TPZBFileStream read,readh;
+                        read.OpenRead ( "Config2-0-fs13.bin" );
+                        readh.OpenRead ( "Configh-2-0-fs13.bin" );
+                        slopeanalysisf->Read ( read,0 );
+
+//                         int imc_start = 0;
+//                         int imc_end = 20;
+//
+//                         TPZVec<TPZFMatrix<REAL>> allsamples =slopeanalysisf->GetFieldsSamples();
+//                        std::vector<int> indexes={28,28,51,110,182,187,201,214,266,307,322,324,348,388,394,402,416,417,485,503,555,598,630,650,660,683,
+//                                698,720,746,765,845,870,874,923,928,940,949,955,969,985,992,996
+//                 };
+//                         std::vector<int> indexes={52,74,81,142,177,204,243,259,261,277,281,308,330,356,384,446,458,504,553,590,592,607,625,637,676,715,739,773,
+// 778,783,785,789,793,894,900,905,926,936,959};
+                        //PrintBases(allsamples, indexes, covvec, meanvec);
+//                       // PrintBasesMathematica(allsamples, indexes, covvec, meanvec);
+//                        return;
+                        //std::vector<int> critical={4,1446,889,25,646,1099,1491,558,1042,413,1117};
+//std::vector<std::vector<int>> critical={{4,1446,889,25,646,1099,1491,558,1042,413},{4,2,1327,135,237,25,22,572,751,1447}};//min
+//std::vector<std::vector<int>> critical={{1334,1174,133,254,1207,1005,217,1395,1309,105},{1280,295,138,1245,430,14,1312,1071,1473,1206}};//max
+  //                       std::vector<std::vector<int>> critical={
+ //                       {1334,1174,133,254,1207,1005,217,1395,1309,105,4,1446,889,25,646,1099,1491,558,1042,413},
+//                         {1280,295,138,1245,430,14,1312,1071,1473,1206,4,2,1327,135,237,25,22,572,751,1447}};//max+min
+//                         std::vector<std::vector<int>> critical={
+//                         {4,22,849,576,461,889,1143,242,1124,13},
+//                          {1379,1372,937,1171,510,471,866,274,349,149}};//min sigma
+//                          std::vector<std::vector<int>> critical={
+//                         {896,503,96,1334,1281,69,1174,1311,690,1156},
+//                          {1078,1198,1177,1203,14,664,854,1161,518,975}};//max sigma
+ //                       slopeanalysisf->ManageFieldCretion(critical);
+                       // std::vector<std::vector<double>> failedfields1,failedfields2;
+                       // std::string posprocfs = "posprocfs.txt";
+                        std::ofstream posprocfs ( "posprocfs.txt" );
+
+                        // std::vector<int> critical={30,50,35,70,9,21,76,97,11,19,49,4,99,73,58,54,29,67};
+                         std::vector<int> critical={4, 9, 11, 19, 21, 29, 30, 35, 49, 54, 58, 70, 73, 76, 97, 99, 111, 126, 127, 128, 132, 135, 136, 137, 140, 167, 176, 179, 185, 186, 187, 193, 194, 198, 206, 207, 215, 218, 219, 224, 233, 242, 247, 252, 253, 266, 269, 271, 275, 284, 287, 288, 294, 297, 299, 302, 307, 319, 323, 326, 336, 337, 345, 346, 350, 357, 369, 372, 382, 391, 401, 402, 413, 425, 431, 438, 439, 452, 462, 465, 470, 484, 487, 488, 491, 507, 520, 539, 541, 544, 551, 553, 556, 558, 564, 566, 570, 574, 585, 593, 596, 602, 604, 609, 611, 612, 614, 622, 625, 631, 633, 644, 646, 652, 661, 662, 664, 665, 678, 684, 685, 688, 696, 713, 714, 716, 718, 720, 722, 733, 742, 744, 746, 753, 754, 758, 765, 767, 775, 777, 783, 796, 797, 802, 805, 816, 818, 820, 824, 827, 838, 839, 840, 855, 858, 860, 865, 871, 878, 884, 886, 888, 897, 903, 904, 909, 910, 914, 915, 919, 920, 922, 923, 927, 928, 943, 952, 954, 958, 963, 969, 973, 989, 993
+};
+
+                       // for(int imc=0;imc<critical.size();imc++)
+                        for(int imc=0;imc<1000;imc++)
+                        {
+                                //int imcc=critical[imc];
+                                cout << "simulacao de monte carlo numero = "<<imc <<endl;
+                                SlopeAnalysis* analysis = new SlopeAnalysis ( *slopeanalysisf );
+                               /// analysis->IntegrateFieldOverARegionB (0, imc );
+                                REAL fs = analysis->SolveSingleField ( imc );
+                                posprocfs << imc << " "<<fs << endl;
+                                //slopeanalysisf->IntegrateFieldOverARegion(0.02,imc);
+                                std::string saidavtk2 = "postvtkselected/saidavtk" + std::to_string ( imc ) + ".vtk";
+                                analysis->PostPlasticity ( saidavtk2 );
+                                std::string saidafs2 = "postselected/fs" + std::to_string ( imc ) + ".dat";
+                                std::ofstream out2 ( saidafs2 );
+                                out2 << fs << std::endl;
+
+                                delete analysis;
+                        }
+
+
+                }
+
+
+        }
+
+
+        cout << "total"<<endl;
+}*/
 void SolveSlopeIS ( int Startfrom )
 {
         //create random analysis
@@ -61,27 +334,27 @@ void SolveSlopeIS ( int Startfrom )
         //create slope analysis
         int solvertype=0;
         int numthreads=10;
-        int ref0slope=1;
+        int ref0slope=3;
         int porderslope=1;
         REAL gammaagua=0.;
         REAL gammasolo=20.;
         REAL coes=10.;
-        REAL atrito=30*M_PI/180.;
-        REAL fsfail=1.20778;
+        REAL atrito=30.*M_PI/180.;
+        REAL fsfail=1.2;
         REAL coesh=coes/fsfail;
         REAL atritoh= atan ( tan ( atrito ) /fsfail );
 
         SlopeAnalysis  * slopeanalysisf =  new SlopeAnalysis ( gammaagua,gammasolo,coes,atrito,ref0slope,porderslope,numthreads,solvertype );
 
-        //slopeanalysisf->SolveDeterministic();
+       // slopeanalysisf->SolveDeterministic();
 
-
+//return;
         SlopeAnalysis  * slopeanalysish =  new SlopeAnalysis ( gammaagua,gammasolo,coesh,atritoh,ref0slope,porderslope,numthreads,solvertype );
 
 //         slopeanalysish->SolveDeterministic();
 //         return;
         if ( Startfrom ==0 ) {
-                randonanalysis->SetNEigenpairs ( 1500 );
+                randonanalysis->SetNEigenpairs ( 1653 );
                 //randonanalysis->Assemble();
                 randonanalysis->Solve();
 
@@ -146,19 +419,24 @@ void SolveSlopeIS ( int Startfrom )
                         slopeanalysisf->Read ( read,0 );
                         slopeanalysish->Read ( readh,0 );
 
+                        int imc_start = 100;
+                        int imc_end = 200;
+                        int num_processes =2;  // Dividir para 4 processos
 
-                        int imc_start = 2000;
-                        int imc_end = 10000;
-                        int num_processes =8;  // Dividir para 4 processos
-
+                       // SolveSlope (  imc_start,  imc_end,slopeanalysisf );
                         // Chama a função para executar a análise paralela entre imc_start e imc_end
-                       RunParallelSlopeAnalysis ( imc_start, imc_end, num_processes, slopeanalysisf, slopeanalysish );
-                        //RunParallelSlopeAnalysis ( imc_start, imc_end, num_processes, slopeanalysish );
+                       //RunParallelSlopeAnalysis ( imc_start, imc_end, num_processes, slopeanalysisf, slopeanalysish );
+                       //SolveSlope(imc_start, imc_end, slopeanalysisf, slopeanalysish);
+                       // RunParallelSlopeAnalysis ( imc_start, imc_end, num_processes, slopeanalysisf );
+
+
+
 
                 }
 
 
         }
+
 
         cout << "total"<<endl;
 
@@ -245,11 +523,13 @@ void SolveSlope ( int imc_start, int imc_end, SlopeAnalysis* slopeanalysis )
 
                 REAL fs = analysis->SolveSingleField ( imc );
 
-                std::string saidavtk2 = "postvtk-fs13/saidavtk" + std::to_string ( imc ) + "h.vtk";
+                analysis->IntegrateFieldOverARegion(0.02,imc);
+
+                std::string saidavtk2 = "postvtkx/saidavtk" + std::to_string ( imc ) + "h.vtk";
 
                 analysis->PostPlasticity ( saidavtk2 );
 
-                std::string saidafs2 = "post-fs13/fs" + std::to_string ( imc ) + "h.dat";
+                std::string saidafs2 = "postx/fs" + std::to_string ( imc ) + "h.dat";
 
                 std::ofstream out2 ( saidafs2 );
 
@@ -496,3 +776,151 @@ void readVector ( std::vector<double>& vec, const std::string& filename )
         // Close the file
         inFile.close();
 }
+void PrintBases(TPZVec<TPZFMatrix<REAL>> allsamples, std::vector<int> indexes, TPZVec<REAL>covvec, TPZVec<REAL>meanvec)
+{
+        std::ofstream datacoes ( "basesc.dat" );
+        std::ofstream dataatrito ( "basesa.dat" );
+
+        for(int irow=0;irow<allsamples[0].Rows();irow++)
+        {
+                datacoes<< " base "<< irow ;
+                dataatrito<< " base "<< irow;
+                for(int ifailed=0;ifailed<indexes.size();ifailed++)
+                {
+                        datacoes<<  "  "<< func(allsamples[0](irow,indexes[ifailed]),covvec[0],meanvec[0]);
+                        dataatrito<< "  "<< func(allsamples[1](irow,indexes[ifailed]),covvec[1],meanvec[1]);
+                }
+//                 for(int ifailed=0;ifailed<allsamples[0].Cols();ifailed++){
+//                         datacoes<<  "  "<< func(allsamples[0](irow,ifailed),covvec[0],meanvec[0]);
+//                         dataatrito<< "  "<< func(allsamples[1](irow,ifailed),covvec[1],meanvec[1]);
+//                 }
+                datacoes<< endl;
+                dataatrito<< endl;
+
+        }
+
+}
+
+
+// Função para exportar as bases no formato Mathematica
+void PrintBasesMathematica(const TPZVec<TPZFMatrix<REAL>>& allsamples, const std::vector<int>& indexes, const TPZVec<REAL>& covvec, const TPZVec<REAL>& meanvec) {
+    std::ofstream arquivo("dados_bases.nb");
+    if (!arquivo) {
+        std::cerr << "Erro ao abrir o arquivo para escrita!" << std::endl;
+        return;
+    }
+
+    arquivo << "(*Dados no formato especificado*)\n";
+    arquivo << "dados = {";
+
+    for (int irow = 0; irow < allsamples[0].Rows(); irow++) {
+        arquivo << "{\"base " << irow << "\", ";
+
+        for (size_t i = 0; i < indexes.size(); i++) {
+            double valorCoesao = func(allsamples[0](irow, indexes[i]), covvec[0], meanvec[0]);
+            double valorAtrito = func(allsamples[1](irow, indexes[i]), covvec[1], meanvec[1]);
+
+            arquivo << std::fixed << std::setprecision(6) << valorCoesao;
+
+            if (i < indexes.size() - 1) {
+                arquivo << ", ";
+            }
+        }
+
+        arquivo << "}";
+        if (irow < allsamples[0].Rows() - 1) {
+            arquivo << ", ";
+        }
+    }
+
+    arquivo << "};\n";
+    std::cout << "Dados exportados com sucesso para 'dados_bases.nb'" << std::endl;
+}
+/*
+void PrintBasesMathematica(TPZVec<TPZFMatrix<REAL>> allsamples, std::vector<int> indexes, TPZVec<REAL> covvec, TPZVec<REAL> meanvec)
+{
+    // Abre os arquivos de saída para coesão e atrito
+    std::ofstream datacoes("basesdacoesao.nb");
+    std::ofstream dataatrito("basesdoatrito.nb");
+
+    // Início da estrutura em formato de lista para Mathematica
+    datacoes << "{";
+    dataatrito << "{";
+
+    // Loop sobre as linhas das amostras
+    for (int irow = 0; irow < allsamples[0].Rows(); irow++)
+    {
+        datacoes << "{";
+        dataatrito << "{";
+
+        // Loop sobre os índices falhos (indexes)
+        for (int ifailed = 0; ifailed < indexes.size(); ifailed++)
+        {
+            // Calcula os valores normalizados usando a função `func`
+            REAL coesaoValue = func(allsamples[0](irow, indexes[ifailed]), covvec[0], meanvec[0]);
+            REAL atritoValue = func(allsamples[1](irow, indexes[ifailed]), covvec[1], meanvec[1]);
+
+            // Escreve os valores no arquivo com vírgula até o último elemento
+            datacoes << coesaoValue;
+            dataatrito << atritoValue;
+
+            if (ifailed < indexes.size() - 1)
+            {
+                datacoes << ", ";
+                dataatrito << ", ";
+            }
+        }
+
+        datacoes << "}";
+        dataatrito << "}";
+
+        // Adiciona uma vírgula entre as linhas, exceto na última
+        if (irow < allsamples[0].Rows() - 1)
+        {
+            datacoes << ", ";
+            dataatrito << ", ";
+        }
+    }
+
+    // Finaliza a estrutura de lista em formato Mathematica
+    datacoes << "};";
+    dataatrito << "};";
+
+    // Fecha os arquivos de saída
+    datacoes.close();
+    dataatrito.close();
+}*/
+
+// void PrintBasesMathematica(TPZVec<TPZFMatrix<REAL>> allsamples, std::vector<int> indexes, TPZVec<REAL>covvec, TPZVec<REAL>meanvec)
+// {
+//         std::ofstream datacoes ( "basesdacoesao.nb" );
+//         std::ofstream dataatrito ( "basesdoatrito.nb" );
+//
+//         for(int irow=0;irow<allsamples[0].Rows();irow++)
+//         {
+//
+//                 datacoes << "{";
+//                 dataatrito << "{";
+//                 for(int ifailed=0;ifailed<indexes.size();ifailed++)
+//                 {
+//                         if(ifailed<indexes.size()-1)
+//                         {
+//                                 datacoes<<  func(allsamples[0](irow,indexes[ifailed]),covvec[0],meanvec[0])<< ",";
+//                                 dataatrito<< func(allsamples[1](irow,indexes[ifailed]),covvec[1],meanvec[1]) << ",";
+//                         }else{
+//                                                               datacoes<<  func(allsamples[0](irow,indexes[ifailed]),covvec[0],meanvec[0])<< " ";
+//                                 dataatrito<< func(allsamples[1](irow,indexes[ifailed]),covvec[1],meanvec[1])<< " ";
+//                         }
+//                 }
+//                 if(irow<allsamples[0].Rows()-1)
+//                 {
+//                         datacoes<< "},";
+//                         dataatrito<< "},";
+//                 }else{
+//                         datacoes<< "};";
+//                         dataatrito<< "};";
+//                 }
+//
+//         }
+//
+// }
