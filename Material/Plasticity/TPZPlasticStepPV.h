@@ -51,7 +51,7 @@ public:
      * @param[in] alpha damage variable
      */
 
-  TPZPlasticStepPV(REAL alpha=0.):fYC(), fER(), fResTol(1.e-12), fMaxNewton(30), fN()
+  TPZPlasticStepPV(REAL alpha=0.):fYC(), fER(), fResTol(1.e-12), fMaxNewton(30), fN(), fReductionFactor()
 	{ 
         fN.m_hardening = alpha;
     }
@@ -68,6 +68,7 @@ public:
         fResTol = source.fResTol;
         fMaxNewton = source.fMaxNewton;
         fN = source.fN;
+        fReductionFactor=source.fReductionFactor;
     }
 
     /**
@@ -82,7 +83,7 @@ public:
         fResTol = source.fResTol;
         fMaxNewton = source.fMaxNewton;
         fN = source.fN;
-
+        fReductionFactor=source.fReductionFactor;
         return *this;
     }
 
@@ -105,6 +106,7 @@ public:
         out << "\n fResTol = " << fResTol;
         out << "\n fMaxNewton = " << fMaxNewton;
         out << "\n fN = "; // PlasticState
+         out << "\n fReductionFactor = "<<fReductionFactor <<std::endl;
         fN.Print(out);
     }
 
@@ -232,6 +234,13 @@ public:
         //fPlasticMem.Resize(0);
     }
 
+
+    void SetStrengthReductionFactor(REAL factor)
+    {
+			fReductionFactor = factor;
+    }
+
+
     //virtual void Write(TPZStream &buf) const;
 
     //virtual void Read(TPZStream &buf);
@@ -250,6 +259,8 @@ protected:
 
     /** @brief Maximum number of Newton interations allowed in the nonlinear solvers */
     int fMaxNewton; // COLOCAR = 30 (sugestao do erick!)
+
+    REAL fReductionFactor;
 
 private:
     

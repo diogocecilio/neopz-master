@@ -174,6 +174,14 @@ void TPZMatElastoPlastic2D<T, TMEM>::Contribute(const TPZMaterialDataT<STATE> &d
 //         val -= Stress(_XY_, 0) * dphiXY(0, in);
 //         val -= Stress(_YY_, 0) * dphiXY(1, in);
 //         ef(in * nstate + 1, 0) += weight * val;
+
+
+    //mudando os parametro materiais locais, caso necessario. Verificar o fStrengthRedFactor. Para nao alterar deve ser igual a 1
+    //T plasticloc = this->GetPlasticity();
+    //TPZPlasticState<REAL> state = plasticloc.GetYC().GetLocalMatState();
+
+    //GetLocalMatState();
+
     REAL fac= this->ffactor;
     int in;
 	for(in = 0; in < phr; in++)

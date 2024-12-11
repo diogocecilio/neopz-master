@@ -88,6 +88,15 @@ public:
     {
         DebugStop();
     }
+        virtual TPZPlasticState<REAL> GetLocalMatState (  )
+	{
+		DebugStop();
+	}
+		virtual void ChangeLocalMatParameters( TPZPlasticState<REAL> & state ,REAL factor)override
+	{
+		DebugStop();
+	}
+
     public:
 int ClassId() const override;
 

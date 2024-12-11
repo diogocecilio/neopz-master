@@ -49,7 +49,10 @@ void TPZPlasticStepPV<YC_t, ER_t>::ApplyStrainComputeSigma(const TPZTensor<REAL>
 #endif
 	if(fN.fmatprop.size()!=0 && fN.fmatprop[0]>1.e-3)
  	{
+
         fYC.SetLocalMatState(fN);
+        fYC.ChangeLocalMatParameters( fN ,fReductionFactor);
+
 	}
     
 //    TPZTensor<REAL>::TPZDecomposed sig_eigen_system_last;

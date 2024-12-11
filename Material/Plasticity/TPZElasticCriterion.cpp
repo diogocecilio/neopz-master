@@ -131,6 +131,11 @@ void TPZElasticCriterion::SetState(const TPZPlasticState<REAL> &state)
   fN = state;
 }
 
+TPZPlasticState<REAL> TPZElasticCriterion::GetLocalMatState (  )
+{
+  return fN;
+}
+
 int TPZElasticCriterion::IntegrationSteps() const
 {
   return 1;

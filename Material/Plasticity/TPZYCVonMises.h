@@ -61,7 +61,15 @@ virtual int ClassId() const override;
     {
 
     }
-	
+	    virtual TPZPlasticState<REAL> GetLocalMatState (  )
+	{
+		DebugStop();
+	}
+		virtual void ChangeLocalMatParameters( TPZPlasticState<REAL> & state ,REAL factor)override
+	{
+		DebugStop();
+	}
+
     /**
     Calculo do criterio de plastificacao 
     @param[in] sigma tensao atual

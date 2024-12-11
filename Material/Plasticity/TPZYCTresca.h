@@ -115,10 +115,19 @@ virtual int ClassId() const override;
     }
 
 
-	virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )
+	virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )override
     {
         DebugStop();
     }
+            virtual TPZPlasticState<REAL> GetLocalMatState (  )override
+	{
+		DebugStop();
+	}
+		virtual void ChangeLocalMatParameters( TPZPlasticState<REAL> & state ,REAL factor)override
+	{
+		DebugStop();
+	}
+
 protected:
   /**
    * @brief Compute the inverse angle of the tresca yield criterium formula and the related data

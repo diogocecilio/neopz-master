@@ -112,6 +112,27 @@ public:
         fPsi = state.fmatprop[1];
 		//std::cout << "fc = "<< fc <<std::endl;
     }
+
+    virtual TPZPlasticState<REAL> GetLocalMatState (  )override
+	{
+//         TPZPlasticState<REAL> locstate;
+//         locstate.fmatprop.Resize(3);
+//         locstate.fmatprop[0]=fc;
+//         locstate.fmatprop[1]=fPhi;
+//         locstate.fmatprop[2]=fPsi;
+//         return locstate;
+        DebugStop();
+	}
+
+    virtual void ChangeLocalMatParameters( TPZPlasticState<REAL> & state ,REAL factor) override
+	{
+        REAL c0 =   state.fmatprop[0];
+        REAL Phi0 = state.fmatprop[1];
+        fc =  c0/factor;
+        fPhi = atan ( tan ( Phi0 ) /factor );
+        fPsi = fPhi;
+    }
+
     /**
      * @brief Operator =
      */

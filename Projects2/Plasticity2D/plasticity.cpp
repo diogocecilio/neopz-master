@@ -2,7 +2,8 @@
 #include <fstream>
 #include <thread>
 #include <vector>
-#include "slopeconfigure.h"
+#include "TPZFileStream.h"
+#include <TPZBFileStream.h>
 #include "SlopeAnalysis.h"
 #include <fstream>
 #include <iostream>
@@ -79,7 +80,7 @@ void ManageStartFrom(int Startfrom)
         int solvertype=0;
         int numthreads=10;
         int ref0slope=3;
-        int porderslope=2;
+        int porderslope=1;
         REAL gammaagua=0.;
         REAL gammasolo=20.;
         REAL coes=10.;
@@ -87,12 +88,12 @@ void ManageStartFrom(int Startfrom)
 
         SlopeAnalysis  * slopeanalysis =  new SlopeAnalysis ( gammaagua,gammasolo,coes,atrito,ref0slope,porderslope,numthreads,solvertype );
 
-      //  bool issrm=false;
+       // bool issrm=true;
        // slopeanalysis->SolveDeterministic(issrm);
        // std::string saidavtk2 = "postdeter.vtk";
        // slopeanalysis->PostPlasticity ( saidavtk2 );
 
-       // return;
+     //   return;
         if ( Startfrom ==0 ) {
                 randonanalysis->SetNEigenpairs ( 1500 );
                 //randonanalysis->Assemble();
@@ -142,20 +143,27 @@ void ManageStartFrom(int Startfrom)
                        // std::ofstream posprocfs ( "posprocfs.txt" );
 
 
-                        for(int imc=0;imc<1000;imc++)
+                        int n=10;
+                        REAL p0=0.5;
+                      //  slopeanalysis->SubSet(n,  p0);
+
+                        for(int imc=74;imc<75;imc++)
                         {
 
                                 cout << "simulacao de monte carlo numero = "<<imc <<endl;
                                 SlopeAnalysis* analysis = new SlopeAnalysis ( *slopeanalysis );
-                                REAL fs = analysis->SolveSingleField ( imc );
-                               // posprocfs << imc << " "<<fs << endl;
-                                std::string saidavtk2 = "postvtkarclength/saidavtk" + std::to_string ( imc ) + ".vtk";
-                                analysis->PostPlasticity ( saidavtk2 );
-                                std::string saidafs2 = "postarclength/fs" + std::to_string ( imc ) + ".dat";
-                                std::ofstream out2 ( saidafs2 );
-                                out2 << fs << std::endl;
+                                //REAL fs = analysis->SolveSingleField ( imc );
 
-                                delete analysis;
+                                //analysis->MetropolisHastings(1,74);
+
+                               // posprocfs << imc << " "<<fs << endl;
+                                //std::string saidavtk2 = "postvtkarclength/saidavtk" + std::to_string ( imc ) + ".vtk";
+                                //analysis->PostPlasticity ( saidavtk2 );
+                                //std::string saidafs2 = "postarclength/fs" + std::to_string ( imc ) + ".dat";
+                                //std::ofstream out2 ( saidafs2 );
+                                //out2 << fs << std::endl;
+
+                               // delete analysis;
                         }
 
 

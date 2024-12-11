@@ -300,9 +300,11 @@ public:
     {
         return m_plasticity_model;
     }
+
 protected:
 
      REAL ffactor;
+
 
 
 	  //0 ef = (Bt sigma + (b + gradu))

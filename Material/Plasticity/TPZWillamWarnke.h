@@ -114,6 +114,11 @@ public:
     {
         DebugStop();
     }
+    	virtual void ChangeLocalMatParameters( TPZPlasticState<REAL> & state ,REAL factor)
+	{
+		DebugStop();
+	}
+
 	
 private:
 	

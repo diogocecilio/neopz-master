@@ -67,10 +67,19 @@ virtual int ClassId() const override;
         fTresca.Read(buf, context);
     }
 
-    virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )
+    virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )override
     {
         DebugStop();
     }
+            virtual TPZPlasticState<REAL> GetLocalMatState (  )override
+	{
+		DebugStop();
+	}
+		virtual void ChangeLocalMatParameters( TPZPlasticState<REAL> & state ,REAL factor)override
+	{
+		DebugStop();
+	}
+
 protected:
   /** @brief Pointer to Von Mises's yield criteria object */
   TPZYCVonMises fVonMises;

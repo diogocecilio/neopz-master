@@ -2,6 +2,7 @@
 #define SLOPEANALYSIS_H
 #include "TPZFileStream.h"
 #include <TPZBFileStream.h>
+#include "TPZSavable.h"
 // Inclui várias bibliotecas de análise e estruturas para elementos finitos e material elastoplástico
 #include "tpzgeoelrefpattern.h"
 #include "Plasticity/pzelastoplasticanalysis.h"
@@ -30,6 +31,19 @@
 #include <random>
 #include "TPZSavable.h"
 #include "pzfstrmatrix.h"
+
+
+#include "pzinterpolationspace.h"
+#include "pzstack.h"
+#include "pzcmesh.h"
+#include "pzquad.h"
+#include "TPZMaterial.h"
+#include "TPZMatInterfaceSingleSpace.h"
+#include "TPZMatInterfaceCombinedSpaces.h"
+#include "TPZMatWithMem.h"
+#include "pzelctemp.h"
+#include "pzmultiphysicscompel.h"
+
 using namespace std;
 
 
@@ -142,7 +156,6 @@ public:
     TPZFMatrix<REAL> CreateNormalStandardSamples();
 
 
-
     std::vector<std::pair<int, double>> CrudeMonteCarlo(int a,int b);
 
 
@@ -250,10 +263,52 @@ public:
     TPZVec<TPZFMatrix<REAL>> GetFields();
 
     int ClassId() const; // Identificador de classe para serialização
-    void WriteSubSet(TPZStream &buf, int withclassid) const;
+
     void Write(TPZStream &buf, int withclassid) const; // salva a classe
     void Read(TPZStream &buf, void *context); // le a classe
-    void ReadSubSet(TPZStream &buf, void *context); // le a classe
+
+
+
+    int GetM()
+    {
+        return fSolutionValVec.Cols();
+    }
+
+    TPZVec<TPZFMatrix<REAL>> GetFieldSamples()
+    {
+        return fFieldSamples;
+    }
+
+    void SetSubSetSamples(TPZVec<TPZFMatrix<REAL>> data)
+    {
+        fFieldSamplesSubSetFN.Push(data);
+
+    }
+
+
+    TPZVec<TPZFMatrix<REAL>> GetSubSetSamples(int isample)
+    {
+        return fFieldSamplesSubSetFN[isample];
+    }
+
+    void ResetSubSetSamples()
+    {
+        fFieldSamplesSubSetFN.resize(0);
+    }
+
+    TPZVec<TPZFMatrix<REAL>> GetIfield(int ifield)
+    {
+        TPZVec<TPZFMatrix<REAL>> field(2);
+        field[0].Resize(GetM(),1);
+        field[1].Resize(GetM(),1);
+        for(int iM=0;iM<GetM();iM++)
+        {
+            field[0](iM,0)=fFieldSamples[0](iM,ifield);
+            field[1](iM,0)=fFieldSamples[1](iM,ifield);
+        }
+        return field;
+    }
+
 private:
     REAL fCohesion;   // Coesão do solo
     REAL fAtrito;     // Ângulo de atrito do solo
@@ -266,7 +321,8 @@ private:
     TPZVec<TPZFMatrix<REAL>> fFields;       // Vetor de matrizes dos campos estocásticos
     TPZVec<TPZFMatrix<REAL>> fHFields;      // Vetor de matrizes para campos H
     TPZVec<TPZFMatrix<REAL>> fFieldSamples; // Amostras dos campos estocásticos
-    TPZVec<TPZFMatrix<REAL>> fFieldSamplesSubSet; // Amostras dos campos estocásticos
+
+    TPZStack<TPZVec<TPZFMatrix<REAL>>> fFieldSamplesSubSetFN;
 
     TPZVec<REAL> fMeanvec;    // Vetor dos valores médios dos campos
     TPZVec<REAL> fCovvec;     // Vetor dos coeficientes de variação dos campos

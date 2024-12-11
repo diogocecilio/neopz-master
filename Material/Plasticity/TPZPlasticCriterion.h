@@ -20,6 +20,11 @@ public:
     virtual int GetNYield() const = 0;
 
     virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )=0;
+
+    virtual TPZPlasticState<REAL> GetLocalMatState (  )=0;
+
+    virtual void ChangeLocalMatParameters( TPZPlasticState<REAL> & state ,REAL factor) =0;
+
     
     virtual void Print(std::ostream &out) const {
         std::cout << __PRETTY_FUNCTION__ << " Should not be called, please check children classes." << std::endl;

@@ -88,10 +88,19 @@ public:
 
     void Write(TPZStream& buf, int withclassid) const override;
 
-    void SetLocalMatState ( TPZPlasticState<REAL> & state )
+    void SetLocalMatState ( TPZPlasticState<REAL> & state )override
     {
         DebugStop();
     }
+            virtual TPZPlasticState<REAL> GetLocalMatState (  )override
+	{
+		DebugStop();
+	}
+		virtual void ChangeLocalMatParameters( TPZPlasticState<REAL> & state ,REAL factor)override
+	{
+		DebugStop();
+	}
+
 private:
     /// The function which defines the plastic surface
 

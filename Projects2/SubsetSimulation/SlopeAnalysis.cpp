@@ -6,7 +6,7 @@
 SlopeAnalysis::SlopeAnalysis()
         : fCohesion ( 0 ), fAtrito ( 0 ), fGammaW ( 0 ), fGammaS ( 0 ),
           fNSamples ( 0 ),fCompMesh ( 0 ), fGMesh ( 0 ),  fNumThreads ( 0 ),
-          fSolver ( 0 ), fFieldSamples (0),fMeanvec(0),fCovvec(0), fFieldSamplesSubSet (0)
+          fSolver ( 0 ), fFieldSamples (0),fMeanvec(0),fCovvec(0),fFieldSamplesSubSetFN()
 {
         // Construtor padrão
 }
@@ -14,7 +14,7 @@ SlopeAnalysis::SlopeAnalysis()
 SlopeAnalysis::SlopeAnalysis ( const SlopeAnalysis& other )
         : fCohesion ( other.fCohesion ), fAtrito ( other.fAtrito ), fGammaW ( other.fGammaW ), fGammaS ( other.fGammaS ),
           fNSamples ( other.fNSamples ),fCompMeshField ( other.fCompMeshField ), fSolutionValVec ( other.fSolutionValVec ),fFields ( other.fFields ),fRef0 ( other.fRef0 ),fPorder ( other.fPorder ),  fNumThreads ( other.fNumThreads ),
-          fSolver ( other.fSolver ), fFieldSamples (other.fFieldSamples),fMeanvec(other.fMeanvec),fCovvec(other.fCovvec), fFieldSamplesSubSet (other.fFieldSamplesSubSet)
+          fSolver ( other.fSolver ), fFieldSamples (other.fFieldSamples),fMeanvec(other.fMeanvec),fCovvec(other.fCovvec),fFieldSamplesSubSetFN(other.fFieldSamplesSubSetFN)
 {
         fGMesh = TriGMesh ( fRef0 );
         //fGMesh = QuadGMesh ( fRef0 );
@@ -84,7 +84,7 @@ REAL SlopeAnalysis::IterativeProcessArcLength ( REAL tol,int numiter,REAL tol2,i
                 lambdan=lambda;
                 //lambda=lambda0 ;
 
-
+                //diff=1000;
                 u.Zero();
                 anal.LoadSolution ( u );
                 do { //while( counter<numiter2 && normdu>tol2 );
@@ -142,18 +142,18 @@ REAL SlopeAnalysis::IterativeProcessArcLength ( REAL tol,int numiter,REAL tol2,i
 
 
 
-                        if(normrhs>normrhsold)
-                        {
-                                //lambda-=dlamb;
-                                //normrhs=normrhsold;
-                                //dlamb=0.;
-                                //u=uold;
-                                //lambda=lambda0 ;
-                             //   l*=0.5;
-                                //u=uold;
-                                //continue;
-                        }
-                        //else{
+//                         if(normrhs>normrhsold)
+//                         {
+//                                 //lambda-=dlamb;
+//                                 //normrhs=normrhsold;
+//                                 //dlamb=0.;
+//                                 //u=uold;
+//                                 //lambda=lambda0 ;
+//                              //   l*=0.5;
+//                                 //u=uold;
+//                                 //continue;
+//                         }
+//                         //else{
 
                                 lambda += dlamb;
                                 du=dws+dlamb*dwb;
@@ -172,7 +172,7 @@ REAL SlopeAnalysis::IterativeProcessArcLength ( REAL tol,int numiter,REAL tol2,i
                 anal.AcceptSolution();
                 diff=fabs ( lambda-lambdan );
 
-
+/*
                 fac=ndesi  / ( counter+1 );
 
                 //l=fac*l;
@@ -183,22 +183,22 @@ REAL SlopeAnalysis::IterativeProcessArcLength ( REAL tol,int numiter,REAL tol2,i
                 if(l>5)
                 {
                         l=5.;
-                }
+                }*/
 
-                cout << "fac = " << fac << "(counter+1)  = "<< ( counter+1 ) << "lold = "<<l << " diff = "<< diff<<endl;
+                //cout << "fac = " << fac << "(counter+1)  = "<< ( counter+1 ) << "lold = "<<l << " diff = "<< diff<<endl;
 
         } while ( counterout<numiter && diff>tol );
 
-        if(diff>tol)
-        {
-                converge=false;
-                cout << "Convergence in arc length faile whith diff = "<< diff << endl;
-        }
-        else
-        {
-                cout << "arc length converged whith diff = "<< diff << endl;
-                converge=true;
-        }
+//         if(diff>tol)
+//         {
+//                 converge=false;
+//                 cout << "Convergence in arc length faile whith diff = "<< diff << endl;
+//         }
+//         else
+//         {
+//                 cout << "arc length converged whith diff = "<< diff << endl;
+//                 converge=true;
+//         }
 
         anal.AcceptSolution();
         return lambda;
@@ -207,11 +207,11 @@ REAL SlopeAnalysis::IterativeProcessArcLength ( REAL tol,int numiter,REAL tol2,i
 REAL SlopeAnalysis::ArcLength(bool &conv)
 {
         REAL tol=0.01;
-        int numiter=200;
-        REAL tol2=0.001;
-        int numiter2=60;
+        int numiter=15;
+        REAL tol2=0.01;
+        int numiter2=10;
         REAL l=0.5;
-        REAL lambda0=1;
+        REAL lambda0=0.1;
 
         REAL FS  = IterativeProcessArcLength ( tol,numiter,tol2,numiter2,l,lambda0,conv );
 
@@ -236,7 +236,7 @@ REAL SlopeAnalysis::SolveDeterministic ( bool IsSRM )
                 FS  =ArcLength(conv);
                 if(conv==false)
                 {
-                   FS = GravityIncrease() ;
+                 //  FS = GravityIncrease() ;
                 }
         }
 
@@ -264,7 +264,7 @@ REAL SlopeAnalysis::SolveDeterministic ( bool IsSRM )
                                         FS  =ArcLength(conv);
                 if(conv==false)
                 {
-                   FS = GravityIncrease() ;
+                //   FS = GravityIncrease() ;
                 }
                 }
 
@@ -291,16 +291,17 @@ REAL SlopeAnalysis::SolveSingleField(TPZVec<TPZFMatrix<REAL>> sample )
        REAL FSOLD;
         REAL tolfs=0.01;
         REAL refsqrt=0.01;
+        bool conv;
         int neq=fCompMesh->NEquations();
-        cout << "Starting to solve field  Mesh with "<< neq << " equations "<< endl;
+        cout << "aquiiii           iiiiiii Starting to solve field  Mesh with "<< neq << " equations "<< endl;
         TransferFieldsSolutionFrom ( sample );
 
-        REAL FS = ShearRed ( 20,0.5,tolfs );
-        //REAL FS =ShearRedNoIntegrationPoints( 20,0.5,0.01 );
+        //REAL FS = ShearRed ( 20,0.5,tolfs );
+        REAL FS =ShearRedNoIntegrationPoints( 20,0.5,0.01 );
         //REAL FS  =ArcLength(conv);
 
         std::set<long> elindices,elindices2;
-        for ( int iref=1; iref<=2; iref++ ) {
+        for ( int iref=1; iref<=0; iref++ ) {
                 cout << "refining level "<< iref <<endl;
                 cout << "computing deformation..."  << endl;
                 ComputeElementDeformation();
@@ -313,8 +314,8 @@ REAL SlopeAnalysis::SolveSingleField(TPZVec<TPZFMatrix<REAL>> sample )
                 TransferFieldsSolutionFrom ( sample );
                 cout <<  " Mesh with "<< neq << " equations "<< " fabs(FS-FSOLD)  "  << fabs ( FS-FSOLD )  << endl;
                 FSOLD=FS;
-                FS = ShearRed ( 20,FSOLD,tolfs );
-                //FS =ShearRedNoIntegrationPoints( 20,FSOLD,0.01 );
+               // FS = ShearRed ( 20,FSOLD,tolfs );
+                FS =ShearRedNoIntegrationPoints( 20,FSOLD,0.01 );
                 //REAL FS  =ArcLength(conv);
 
         }
@@ -345,7 +346,7 @@ REAL SlopeAnalysis::SolveSingleField ( int ifield )
         //REAL FS  =ArcLength(conv);
 
         std::set<long> elindices,elindices2;
-        for ( int iref=1; iref<=2; iref++ ) {
+        for ( int iref=1; iref<=1; iref++ ) {
                 cout << "refining level "<< iref <<endl;
                 cout << "computing deformation..."  << endl;
                 ComputeElementDeformation();
@@ -468,7 +469,7 @@ REAL SlopeAnalysis::ShearRed ( int maxcout,REAL FS0,REAL fstol )
                 auto t2 = chrono::high_resolution_clock::now();
                 auto ms_int = chrono::duration_cast<chrono::milliseconds> ( t2 - t1 );
                 norm = Norm ( anal.Rhs() );
-                cout << "| step = " << counterout << " FS = "<< FS <<" tempo  iterproc = "<<ms_int.count() << " ms " << " conv?" << conv << " iters = " <<iters<< endl;
+                //cout << "| step = " << counterout << " FS = "<< FS <<" tempo  iterproc = "<<ms_int.count() << " ms " << " conv?" << conv << " iters = " <<iters<< endl;
 
 
                 FSN=FS;
@@ -660,8 +661,7 @@ void SlopeAnalysis::TransferFieldsSolutionFrom ( TPZVec<TPZFMatrix<REAL>> sample
         for ( int ifield=0; ifield<nfields; ifield++ ) {
                 fields[ifield] = GenerateRandomField ( fMeanvec[ifield],fCovvec[ifield],fSolutionValVec,sample[ifield] );
         }
-cout << fMeanvec[0] << endl;
-cout << "|nfields =  " <<nfields<< std::endl;
+
         for ( int imesh=0; imesh<nfields; imesh++ ) {
                 // TPZCompMesh * mesh = new TPZCompMesh(*fCompMeshField->Clone());
                 //vecfieldmesh[ifield] =fCompMeshField;
@@ -2106,17 +2106,7 @@ TPZGeoMesh *  SlopeAnalysis::QuadGMesh ( int ref )
         return gmesh;
 }
 
-void SlopeAnalysis::WriteSubSet(TPZStream &buf, int withclassid) const
-{
-        fFieldSamplesSubSet[0].Write ( buf,withclassid );
-        fFieldSamplesSubSet[1].Write ( buf,withclassid );
-}
-void SlopeAnalysis::ReadSubSet(TPZStream &buf, void *context)
-{
-        fFieldSamplesSubSet.resize ( 2 );
-        fFieldSamplesSubSet[0].Read ( buf,context );
-        fFieldSamplesSubSet[1].Read ( buf,context );
-}
+
 void SlopeAnalysis::Write ( TPZStream &buf, int withclassid ) const
 {
         fSolutionValVec.Write ( buf,withclassid );
@@ -2125,10 +2115,23 @@ void SlopeAnalysis::Write ( TPZStream &buf, int withclassid ) const
         fFields[0].Write ( buf,withclassid );
         fFields[1].Write ( buf,withclassid );
 
-//fHFields[0].Write ( buf,withclassid );
-//fHFields[1].Write ( buf,withclassid );
-//fPesos[0].Write ( buf,withclassid );
-//fPesos[1].Write ( buf,withclassid );
+		int nc = fFieldSamplesSubSetFN.size();
+        int sz=fFieldSamplesSubSetFN[0].size();
+
+		buf.Write(&nc);
+        buf.Write(&sz);
+
+        cout << "nc write!!! = "<< nc <<endl;
+        cout << "sz write!!! = "<< sz <<endl;
+
+		for(int c=0; c<nc; c++)
+        {
+                for(int j=0;j<sz;j++)
+                {
+                        fFieldSamplesSubSetFN[c][j].Write(buf,withclassid);
+                }
+        }
+
 }
 
 void SlopeAnalysis::Read ( TPZStream &buf, void *context )
@@ -2142,13 +2145,40 @@ void SlopeAnalysis::Read ( TPZStream &buf, void *context )
         fFields[0].Read ( buf,context );
         fFields[1].Read ( buf,context );
 
-//fHFields.resize ( 2 );
-//fHFields[0].Read ( buf,context );
-//fHFields[1].Read ( buf,context );
-//fPesos.resize ( 2 );
-        //fPesos[0].Read ( buf,context );
-        //fPesos[1].Read ( buf,context );
+        int nc,sz;
+		buf.Read(&nc);
+        buf.Read(&sz);
+
+        fFieldSamplesSubSetFN.resize(nc);
+        cout << "nc = "<< nc <<endl;
+        cout << "sz = "<< sz <<endl;
+		for(int c=0; c<nc; c++)
+        {
+                fFieldSamplesSubSetFN[c].resize(sz);
+                for(int j=0;j<sz;j++)
+                {
+                        fFieldSamplesSubSetFN[c][j].Read ( buf,context );
+                }
+        }
+
 }
+
+// 	template<class T>
+// 	static void WriteObjects(TPZStream &buf, const TPZVec<T> &vec)
+// 	{
+// 		long c,nc = vec.NElements();
+// 		buf.Write(&nc,1);
+// 		for(c=0; c<nc; c++)
+//             vec[c].Write(buf,0);
+// 	}
+//
+// 	template<class T>
+// 	static void WriteObjects(TPZStream &buf, const std::vector<T> &vec)
+// 	{
+// 		int c,nc = vec.size();
+// 		buf.Write(&nc,1);
+// 		for(c=0; c<nc; c++) vec[c].Write(buf,0);
+// 	}
 int SlopeAnalysis::ClassId() const
 {
         return Hash ( "SlopeAnalysis" );
