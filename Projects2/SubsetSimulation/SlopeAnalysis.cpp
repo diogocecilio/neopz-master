@@ -341,12 +341,12 @@ REAL SlopeAnalysis::SolveSingleField ( int ifield )
         cout << "Starting to solve field   " << ifield << " Mesh with "<< neq << " equations "<< endl;
         TransferFieldsSolutionFrom ( ifield );
 
-        REAL FS = ShearRed ( 20,0.5,tolfs );
-        //REAL FS =ShearRedNoIntegrationPoints( 20,0.5,0.01 );
+       // REAL FS = ShearRed ( 20,0.5,tolfs );
+        REAL FS =ShearRedNoIntegrationPoints( 20,0.5,0.01 );
         //REAL FS  =ArcLength(conv);
 
         std::set<long> elindices,elindices2;
-        for ( int iref=1; iref<=1; iref++ ) {
+        for ( int iref=1; iref<=0; iref++ ) {
                 cout << "refining level "<< iref <<endl;
                 cout << "computing deformation..."  << endl;
                 ComputeElementDeformation();
@@ -359,8 +359,8 @@ REAL SlopeAnalysis::SolveSingleField ( int ifield )
                 TransferFieldsSolutionFrom ( ifield );
                 cout <<  " Mesh with "<< neq << " equations "<< " fabs(FS-FSOLD)  "  << fabs ( FS-FSOLD )  << endl;
                 FSOLD=FS;
-                FS = ShearRed ( 20,FSOLD,tolfs );
-                //FS =ShearRedNoIntegrationPoints( 20,FSOLD,0.01 );
+                //FS = ShearRed ( 20,FSOLD,tolfs );
+                FS =ShearRedNoIntegrationPoints( 20,FSOLD,0.01 );
                 //REAL FS  =ArcLength(conv);
 
         }
@@ -537,7 +537,10 @@ REAL SlopeAnalysis::ShearRedNoIntegrationPoints ( int maxcout,REAL FS0,REAL fsto
                 auto t2 = chrono::high_resolution_clock::now();
                 auto ms_int = chrono::duration_cast<chrono::milliseconds> ( t2 - t1 );
                 norm = Norm ( anal.Rhs() );
-                cout << "| step = " << counterout << " FS = "<< FS <<" tempo  iterproc = "<<ms_int.count() << " ms " << " conv?" << conv << " iters = " <<iters<< endl;
+                if(counterout%5==0)
+                {
+                        cout << "| step = " << counterout << " FS = "<< FS <<" tempo  iterproc = "<<ms_int.count() << " ms " << " conv?" << conv << " iters = " <<iters<< endl;
+                }
 
 
                 FSN=FS;

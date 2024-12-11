@@ -151,17 +151,16 @@ void ManageStartFrom(int Startfrom)
         int porderslope=2;
         REAL gammaagua=0.;
         REAL gammasolo=20.;
-        REAL coes=10.;
+        REAL coes=15.;
         REAL atrito=30.*M_PI/180.;
 
         SlopeAnalysis  * slopeanalysis =  new SlopeAnalysis ( gammaagua,gammasolo,coes,atrito,ref0slope,porderslope,numthreads,solvertype );
+/*
+       bool issrm=true;
+       slopeanalysis->SolveDeterministic(issrm);
+       std::string saidavtk2 = "postdeter.vtk";
+       slopeanalysis->PostPlasticity ( saidavtk2 );*/
 
-//        bool issrm=false;
-//        slopeanalysis->SolveDeterministic(issrm);
-//        std::string saidavtk2 = "postdeter.vtk";
-//        slopeanalysis->PostPlasticity ( saidavtk2 );
-//
-//        return;
         if ( Startfrom ==0 ) {
                 randonanalysis->SetNEigenpairs ( 1500 );
                 //randonanalysis->Assemble();
@@ -169,7 +168,7 @@ void ManageStartFrom(int Startfrom)
 
                 //save sqrt(lambda)*phi
                 TPZBFileStream save;
-                save.OpenWrite ( "Config0.bin" );
+                save.OpenWrite ( "Configlowpf.bin" );
                 randonanalysis->Write ( save,randonanalysis->ClassId() );
                 //randonanalysis->LoadSolution();
                 randonanalysis->DefineGraphMesh ( 2,scalarnames,vecnames,"filename2Assemble.vtk" );
@@ -181,7 +180,7 @@ void ManageStartFrom(int Startfrom)
                 cout << "AQ"<<endl;
                 //read sqrt(lambda)*phi
                 TPZBFileStream read;
-                read.OpenRead ( "Config0.bin" );
+                read.OpenRead ( "Configlowpf.bin" );
                 randonanalysis->Read ( read,0 );
                 cout << "A2"<<endl;
                 //seting fied data
@@ -191,7 +190,7 @@ void ManageStartFrom(int Startfrom)
                 TPZVec<REAL> covvec ( 2 );
                 covvec[0]=0.3;
                 covvec[1]=0.2;
-                int samples=1000;
+                int samples=10000;
                 slopeanalysis->SetFieldsData ( cmesh,randonanalysis->GetSolutionValVec(), meanvec,covvec,  samples );
 
 
@@ -200,7 +199,7 @@ void ManageStartFrom(int Startfrom)
 
                         slopeanalysis->ManageFieldCretion();
                         TPZBFileStream save;
-                        save.OpenWrite ( "Config1.bin" );
+                        save.OpenWrite ( "Configlowpf1.bin" );
                         slopeanalysis->Write ( save,slopeanalysis->ClassId() );
 
 
@@ -208,12 +207,13 @@ void ManageStartFrom(int Startfrom)
 
 
                         TPZBFileStream read;
-                        read.OpenRead ( "teste.bin" );
+                        read.OpenRead ( "Configlowpf1.bin" );
                         slopeanalysis->Read ( read,0 );
-                        cout << "A3"<<endl;
-                        int n=10;
-                        REAL p0=0.5;
-                        SubSet(n, p0,slopeanalysis );
+                        CrudeMonteCarlo(1000,10000,slopeanalysis);
+//                         cout << "A3"<<endl;
+//                         int n=10;
+//                         REAL p0=0.5;
+//                         SubSet(n, p0,slopeanalysis );
                 }
 
 
@@ -457,10 +457,17 @@ std::vector<std::pair<int, double>> CrudeMonteCarlo(int a,int b, SlopeAnalysis* 
         std::vector<std::pair<int, double>> fsvec;
         for(int imc=a;imc<b;imc++)
         {
-                     SlopeAnalysis* analysis = new SlopeAnalysis ( *slopeanalysis );
-                     REAL fs = analysis->SolveSingleField ( imc );
-                     fsvec.emplace_back(imc, fs);
-                     delete analysis;
+                cout << "imc  = "<<imc<<endl;
+                SlopeAnalysis* analysis = new SlopeAnalysis ( *slopeanalysis );
+                REAL fs = analysis->SolveSingleField ( imc );
+                fsvec.emplace_back(imc, fs);
+                posprocfs << imc << " "<<fs << endl;
+//                 std::string saidavtk2 = "postvtk/saidavtk" + std::to_string ( imc ) + ".vtk";
+//                 analysis->PostPlasticity ( saidavtk2 );
+                std::string saidafs2 = "post/fs" + std::to_string ( imc ) + ".dat";
+                std::ofstream out2 ( saidafs2 );
+                out2 << fs << std::endl;
+                delete analysis;
         }
         return fsvec;
 }
