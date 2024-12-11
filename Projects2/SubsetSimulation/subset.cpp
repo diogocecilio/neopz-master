@@ -155,11 +155,13 @@ void ManageStartFrom(int Startfrom)
         REAL atrito=30.*M_PI/180.;
 
         SlopeAnalysis  * slopeanalysis =  new SlopeAnalysis ( gammaagua,gammasolo,coes,atrito,ref0slope,porderslope,numthreads,solvertype );
-/*
-       bool issrm=true;
-       slopeanalysis->SolveDeterministic(issrm);
-       std::string saidavtk2 = "postdeter.vtk";
-       slopeanalysis->PostPlasticity ( saidavtk2 );*/
+
+//        bool issrm=false;
+//        slopeanalysis->SolveDeterministic(issrm);
+//        std::string saidavtk2 = "postdeter.vtk";
+//        slopeanalysis->PostPlasticity ( saidavtk2 );
+//
+//        return;
 
         if ( Startfrom ==0 ) {
                 randonanalysis->SetNEigenpairs ( 1500 );
@@ -209,11 +211,11 @@ void ManageStartFrom(int Startfrom)
                         TPZBFileStream read;
                         read.OpenRead ( "Configlowpf1.bin" );
                         slopeanalysis->Read ( read,0 );
-                        CrudeMonteCarlo(1000,10000,slopeanalysis);
-//                         cout << "A3"<<endl;
-//                         int n=10;
-//                         REAL p0=0.5;
-//                         SubSet(n, p0,slopeanalysis );
+                        //CrudeMonteCarlo(1000,10000,slopeanalysis);
+                        cout << "A3"<<endl;
+                        int n=10;
+                        REAL p0=0.1;
+                        SubSet(n, p0,slopeanalysis );
                 }
 
 
@@ -240,49 +242,71 @@ std::ofstream posprocfs3 ( "posprocfs3.txt" );
 
 void SubSet(int n, REAL p0,SlopeAnalysis* slopeanalysis )
 {
-        //numeroro de cadeias de markov 0.5* 10 = 5
-        int nc = p0*n;
 
-        //numero de amostras por cadeia 1/0.5 = 2
-        int ns = 1/p0;
-        cout << " nc = " << nc  << " ns = " << ns << endl;
 
         //simulacao inicial de monte carlo com n amostras
 
-        REAL b =0;
-        int startfrom=0;
-        if(startfrom==0)
-        {
 //                 std::vector<std::pair<int, double>> fsdata ={
 //                         {0,1.65563},{14,1.55228},{91,1.44918},{29,1.43568},{98,1.41855},
 //                         {31,1.39284},{18,1.37799},{55,1.36194},{94,1.36182},{84,1.35785},{70,1.33855},{100,1.33394},{44,1.33035},{16,1.32551},{51,1.32047},{23,1.31908},{43,1.31907},{87,1.31888},{46,1.31668},{54,1.31108},{38,1.30393},{89,1.30203},{19,1.2896},{2,1.28696},{49,1.286},{82,1.2821},{58,1.27589},{52,1.27565},{71,1.27106},{35,1.2644},{56,1.26138},{25,1.25786},{1,1.25218},{92,1.2511},{3,1.24322},{50,1.24257},{24,1.23259},{95,1.23068},{41,1.2301},{33,1.23},{99,1.22459},{34,1.22171},{21,1.20724},{39,1.20113},{73,1.20106},{97,1.19908},{10,1.19815},{7,1.19322},{60,1.18987},{88,1.18959},{5,1.1831},{75,1.18262},{22,1.18223},{45,1.17178},{48,1.16989},{76,1.16828},{77,1.16828},{27,1.16365},{67,1.16152},{4,1.16039},{57,1.15895},{64,1.15819},{13,1.14604},{62,1.14531},{28,1.14335},{9,1.1431},{26,1.14245},{78,1.13907},{40,1.13674},{32,1.13039},{59,1.12995},{66,1.12423},{20,1.12217},{42,1.11966},{68,1.1133},{37,1.11108},{15,1.10585},{47,1.10535},{86,1.0959},{83,1.09571},{8,1.09043},{63,1.08922},{12,1.07339},{6,1.07149},{36,1.06869},{61,1.0668},{11,1.06353},{69,1.06345},{65,1.04853},{80,1.04738},{96,1.03642},{53,1.03314},{72,1.01948},{17,1.0192},{81,1.01457},{30,1.00811},{90,0.98553},{93,0.98541},{79,0.9845},{74,0.97595},{85,0.95036}};
-                std::vector<std::pair<int, double>> fsdata =
-                {
-                        {14,1.55228},{91,1.44918},{29,1.43568},{98,1.41855},{31,1.39284},
-                        {18,1.37799},{55,1.36194},{94,1.36182},{84,1.35785},{70,1.33855}
-                };
+//                 std::vector<std::pair<int, double>> fsdata =
+//                 {
+//                         {14,1.55228},{91,1.44918},{29,1.43568},{98,1.41855},{31,1.39284},
+//                         {18,1.37799},{55,1.36194},{94,1.36182},{84,1.35785},{70,1.33855}
+//                 };
+                std::vector<std::pair<int, double>> fsdata ={
+                        {54,1.89556},{23,1.84837},{8,1.75914},{7,1.73126},{30,1.73126},
+                        {57,1.73126},{71,1.73126},{94,1.73126},{48,1.67853},{22,1.67062},
+                        {24,1.65457},{38,1.64212},{61,1.64212},{2,1.63141},{35,1.61408},
+                        {74,1.60421},{34,1.59933},{73,1.59933},{13,1.58809},{59,1.58809},
+                        {98,1.58809},{9,1.57856},{17,1.57856},{52,1.57856},{64,1.57379},
+                        {81,1.5528},{39,1.548},{78,1.53674},{93,1.53674},{42,1.52705},
+                        {92,1.52705},{28,1.51172},{88,1.51172},{90,1.5033},{77,1.48952},
+                        {43,1.47729},{27,1.46797},{50,1.45626},{65,1.44718},{69,1.44718},
+                        {3,1.43937},{19,1.43937},{36,1.43937},{56,1.43937},{97,1.43937},
+                        {80,1.43546},{10,1.42607},{46,1.42607},{75,1.42607},{0,1.41789},
+                        {31,1.41789},{53,1.41789},{55,1.41789},{85,1.41789},{86,1.41383},
+                        {58,1.41181},{21,1.41079},{6,1.4045},{20,1.4045},{26,1.4045},
+                        {32,1.4045},{95,1.4045},{11,1.39658},{15,1.39658},{67,1.39262},
+                        {5,1.38325},{14,1.38325},{76,1.38325},{4,1.37519},{51,1.36771},
+                        {45,1.36184},{63,1.3538},{82,1.3538},{83,1.34978},{29,1.33417},
+                        {1,1.32018},{89,1.32018},{70,1.31887},{18,1.31417},{25,1.31417},
+                        {87,1.31417},{49,1.30909},{12,1.30067},{47,1.30067},{41,1.29306},
+                        {60,1.2873},{79,1.2873},{91,1.28248},{66,1.27454},{62,1.26982},
+                        {16,1.26746},{37,1.26746},{99,1.2619},{33,1.25475},{68,1.2492},
+                        {40,1.24443},{44,1.24443},{84,1.2027},{72,1.15331},{96,1.15013}
+                };//Da simulacao de monte carlo
 
-                slopeanalysis->ResetSubSetSamples();
+        int levels=4;//numero de niveis da simulacao subset
 
-                //especificando os campos inicias da simulacao subset baseado nos menores valores de fs. Comecando do valor n-nc=10-5=5 ate n
-                for (int i=n-nc;i<n;i++ )
-                {
-                        cout << " fsdata[n-nc+1].first " << fsdata[i].first << endl;
-                        TPZVec<TPZFMatrix<REAL>> samples=slopeanalysis->GetIfield(fsdata[i].first);
-                        slopeanalysis->SetSubSetSamples(samples);
+        n=fsdata.size();
+        //numeroro de cadeias de markov
+        int nc = p0*n;
 
-                }
+        //numero de amostras por cadeia
+        int ns = 1/p0;
+        cout << "p0 = "<< p0 <<" n = "<< n  << " nc = " << nc  << " ns = " << ns << endl;
 
+        slopeanalysis->ResetSubSetSamples();
 
-                //Salvando
-                TPZBFileStream save;
-                save.OpenWrite ( "teste.bin" );
-                slopeanalysis->Write ( save,slopeanalysis->ClassId() );
-                REAL b = fsdata[n-nc].second;
-                cout << "estimando a probabilidade de falha incial" << endl;
-                cout<< b <<" " <<  p0     << endl;
-                posprocfs3<< fsdata[n-nc].second<<" " <<  pow(p0,0) *  nc/n << endl;
+        //especificando os campos inicias da simulacao subset baseado nos menores valores de fs. Comecando do valor n-nc=10-5=5 ate n
+        for ( int i=n-nc; i<n; i++ ) {
+                cout << " fsdata[n-nc+1].first " << fsdata[i].first << endl;
+                TPZVec<TPZFMatrix<REAL>> samples=slopeanalysis->GetIfield ( fsdata[i].first );
+                slopeanalysis->SetSubSetSamples ( samples );
+
         }
+
+
+        //Salvando
+        TPZBFileStream save;
+        save.OpenWrite ( "teste.bin" );
+        slopeanalysis->Write ( save,slopeanalysis->ClassId() );
+        REAL b = fsdata[n-nc].second;
+        cout << "estimando a probabilidade de falha incial" << endl;
+        cout<< b <<" " <<  p0     << endl;
+        posprocfs3<< fsdata[n-nc].second<<" " <<  pow ( p0,0 ) *  nc/n << endl;
+
 
 //         SlopeAnalysis* analysist = new SlopeAnalysis ( *slopeanalysis );
 //                 //le os dados dos atributos salvos
@@ -294,8 +318,7 @@ void SubSet(int n, REAL p0,SlopeAnalysis* slopeanalysis )
 
 
 
-        for(int j=1;j<=5;j++)//levels
-        {
+        for ( int j=1; j<=levels; j++ ) { //levels
 
                 //cria uma copia da analise para evitar modificaoes na estrutura interna(dados de pontos de integracao), copiando apenas atributos;
                 SlopeAnalysis* analysis = new SlopeAnalysis ( *slopeanalysis );
@@ -312,52 +335,57 @@ void SubSet(int n, REAL p0,SlopeAnalysis* slopeanalysis )
 
 
                 //faz um loop sobre as cadeias de markov
-                for (int i=0;i<nc;i++ )
-                {
+                for ( int i=0; i<nc; i++ ) {
 
                         cout << " nc  = "<< i << endl;
 
                         //pega o campo selecionado na simualcao anterior com menores fs como semente
-                        TPZVec<TPZFMatrix<REAL>> seed = analysis->GetSubSetSamples(i);
+                        TPZVec<TPZFMatrix<REAL>> seed = analysis->GetSubSetSamples ( i );
                         //seed[0].Print(cout);
                         //return;
                         TPZStack<TPZVec<TPZFMatrix<REAL>>> outsamples;
                         //cada semente gera ns novos campos armazenados no outsamples utilizando o algoritmo de metropolis hastings
-                        outsamples=  MetropolisHastings(ns,seed,analysis,fsvec,b);
-                        for(int ins=0;ins<outsamples.size();ins++)
-                        {
-                                outsamplesfull.Push(outsamples[ins]);
+                        outsamples=  MetropolisHastings ( ns,seed,analysis,fsvec,b );
+                        for ( int ins=0; ins<outsamples.size(); ins++ ) {
+                                outsamplesfull.Push ( outsamples[ins] );
                         }
 
                         //outsamples[0][0].Print(cout);
                 }
 
                 cout << "\n fatores de seguranca =  " <<endl;
-               for(int ii=0;ii<fsvec.size();ii++)cout <<fsvec[ii] << endl;
+                for ( int ii=0; ii<fsvec.size(); ii++ ) cout <<fsvec[ii] << endl;
                 //descarta os campos anteriores
                 analysis->ResetSubSetSamples();
 
                 posprocfs2 << "\n level =  "<< j <<endl;
 
+
+                std::string saidafs2 = "postsubset/fs" + std::to_string ( j ) + ".dat";
+                std::ofstream out2 ( saidafs2 );
+                for ( int ii=0; ii<fsvec.size(); ii++ ) out2 <<fsvec[ii] << endl;
+
                 //cria um pair para armazenar os fatores de seguranca e os indexes
                 std::pair<std::vector<double>,std::vector<int>> out;
 
                 //ordena em ordem decrescente e pega somente os ultimos n-nc=5 ate n=10 valores
-                out=Sort(fsvec,n-nc);
+                out=Sort ( fsvec,n-nc );
 
-               cout << "szstack = "<< outsamplesfull.size() << " out.first.size() ="<< out.first.size() << endl;
-                for (int i = 0; i < out.first.size(); i++)
-                {
+                cout << "szstack = "<< outsamplesfull.size() << " out.first.size() ="<< out.first.size() << endl;
+                for ( int i = 0; i < out.first.size(); i++ ) {
                         cout << "First : " << out.first[i] << ", Second  : " << out.second[i] << endl;
-                        analysis->SetSubSetSamples(outsamplesfull[out.second[i]]);
+                        analysis->SetSubSetSamples ( outsamplesfull[out.second[i]] );
                         posprocfs2 << out.first[i] <<endl;
                 }
 
+                std::string saidafs3 = "postsubset/pf" + std::to_string ( j ) + ".dat";
+                std::ofstream out3 ( saidafs3 );
+                out3 << b <<" " <<  pow ( p0,j ) *  nc/n << endl;
                 b=out.first[0];
                 cout << "estimando a probabilidade de falha" << endl;
                 //estimando a probabilidade de falha
-                cout<< b <<" " <<  pow(p0,j) *  nc/n << endl;
-                posprocfs3<< b <<" " <<  pow(p0,j) *  nc/n << endl;
+                cout<< b <<" " <<  pow ( p0,j ) *  nc/n << endl;
+                posprocfs3<< b <<" " <<  pow ( p0,j ) *  nc/n << endl;
 
                 TPZBFileStream save;
                 save.OpenWrite ( "teste.bin" );
@@ -381,6 +409,8 @@ TPZStack<TPZVec<TPZFMatrix<REAL>>> MetropolisHastings(int nnewsamples,TPZVec<TPZ
         int M = analysis->GetM();
 
         std::normal_distribution<double> distribution ( 0., 1. );
+
+        std::uniform_real_distribution<double> distribution2 ( -0.5, 0.5);
 
         std::uniform_real_distribution<double> distributionunif ( 0, 1. );
 
@@ -422,27 +452,27 @@ TPZStack<TPZVec<TPZFMatrix<REAL>>> MetropolisHastings(int nnewsamples,TPZVec<TPZ
 
                 if(u<alpha)
                 {
-                        cout<< "Aceita com "<<" b = " << b  << " fsx1 = " <<fsx1 << " fsx0 = " << fsx0  << " alpha " << alpha << " u = " << u << endl;
-                        fsx0=fsx1;//aceita fs novo
-                        seedinit=newfield;//atualiza campo novo
-                        outsamples.Push(newfield);//aceita campo novo
+                        if(fsx1<b)
+                        {
+                                cout<< "Aceita com "<<" b = " << b  << " fsx1 = " <<fsx1 << " fsx0 = " << fsx0  << " alpha " << alpha << " u = " << u << endl;
+                                fsx0=fsx1;//aceita fs novo
+                                seedinit=newfield;//atualiza campo novo
+                                outsamples.Push(newfield);//aceita campo novo
+                        }
+                        else
+                        {
+                                cout<< "Rejeita 0 com "<<" b = " << b  << " fsx1 = " <<fsx1  << " alpha " << alpha << " u = " << u << endl;
+                                fsx1=fsx0;//mantem fs antigo
+                                outsamples.Push(seedinit);//descarta amostra e pega campo antigo
+                        }
+
                 }
                 else
                 {
-                         cout<< "Rejeita com "<<" b = " << b  << " fsx1 = " <<fsx1 << " fsx0 = " << fsx0   << " alpha " << alpha << " u = " << u << endl;
+                         cout<< "Rejeita 1 com "<<" b = " << b  << " fsx1 = " <<fsx1 << " fsx0 = " << fsx0   << " alpha " << alpha << " u = " << u << endl;
                         fsx1=fsx0;//mantem fs antigo
                         outsamples.Push(seedinit);//descarta amostra e pega campo antigo
                 }
-//                 if(fsx1<b)
-//                 {
-//                          cout<< "Aceita com "<<" b = " << b  << " fsx1 = " <<fsx1  << " alpha " << alpha << " u = " << u << endl;
-//                         seedinit=newfield;//atualiza campo novo
-//                         outsamples.Push(newfield);//aceita campo novo
-//                 }else
-//                 {
-//                         cout<< "Rejeita com "<<" b = " << b  << " fsx1 = " <<fsx1  << " alpha " << alpha << " u = " << u << endl;
-//                         outsamples.Push(seedinit);//descarta amostra e pega campo antigo
-//                 }
 
                 fsvec.push_back(fsx1);
 

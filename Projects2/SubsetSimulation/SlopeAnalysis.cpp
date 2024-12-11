@@ -70,11 +70,12 @@ REAL SlopeAnalysis::IterativeProcessArcLength ( REAL tol,int numiter,REAL tol2,i
         int counterout=0;
         REAL ndesi=7;
         REAL fac=1;
-        REAL l0=l;
+
         do {
                 cout << "\n load step  = " << counterout+1 << " load factor  = " << lambda << " diff = " << diff << " l = " << l<< " fac = "<< fac <<  endl;
                 int counter=0;
                 REAL normrhs=10.;
+                REAL normdu=10.;
                 REAL normrhsold=10.;
 
                 REAL dlamb=0.;
@@ -82,14 +83,12 @@ REAL SlopeAnalysis::IterativeProcessArcLength ( REAL tol,int numiter,REAL tol2,i
                 //anal.Solution().Zero();
 
                 lambdan=lambda;
-                //lambda=lambda0 ;
+                lambda=lambda0 ;
 
                 //diff=1000;
                 u.Zero();
                 anal.LoadSolution ( u );
-                do { //while( counter<numiter2 && normdu>tol2 );
-
-
+                do {
                         //K dws = -r
                         LoadingRamp ( lambda );
                         anal.Assemble();
@@ -101,12 +100,9 @@ REAL SlopeAnalysis::IterativeProcessArcLength ( REAL tol,int numiter,REAL tol2,i
                         anal.Solve();
                         dwb=anal.Solution();
 
-
                         normrhsold=normrhs;
                         normrhs=Norm ( rhs )/normint;
 
-
-                        cout << "i = " << counter  << " ||rhs|| =  "<< normrhs <<" lambda = "<< lambda << " dlamb = "<< dlamb <<" l = "<< l <<endl;
 
                         TPZVec<REAL> lambvec;
                         if ( counter == 0 ) {
@@ -140,65 +136,25 @@ REAL SlopeAnalysis::IterativeProcessArcLength ( REAL tol,int numiter,REAL tol2,i
 
                         }
 
+                lambda += dlamb;
+                du=dws+dlamb*dwb;
+                normdu=Norm(du);
+                u+=du;
+                anal.LoadSolution ( u );
 
+                cout << "i = " << counter  << " ||rhs|| =  "<< normrhs <<" ||du||  = " <<normdu <<" lambda = "<< lambda << " dlamb = "<< dlamb <<" l = "<< l <<endl;
 
-//                         if(normrhs>normrhsold)
-//                         {
-//                                 //lambda-=dlamb;
-//                                 //normrhs=normrhsold;
-//                                 //dlamb=0.;
-//                                 //u=uold;
-//                                 //lambda=lambda0 ;
-//                              //   l*=0.5;
-//                                 //u=uold;
-//                                 //continue;
-//                         }
-//                         //else{
+                counter++;
 
-                                lambda += dlamb;
-                                du=dws+dlamb*dwb;
-                                //uold=u;
-                                u+=du;
-                                anal.LoadSolution ( u );
-                       // }
-
-
-                        counter++;
-
-                } while ( counter<numiter2 && normrhs>tol2 );
+                } while ( counter<numiter2 && (normdu>tol2 ||normrhs>tol2*10));
 
                 counterout++;
-
                 anal.AcceptSolution();
                 diff=fabs ( lambda-lambdan );
-
-/*
                 fac=ndesi  / ( counter+1 );
 
-                //l=fac*l;
-                if(l<0.01)
-                {
-                        l=0.01;
-                }
-                if(l>5)
-                {
-                        l=5.;
-                }*/
-
-                //cout << "fac = " << fac << "(counter+1)  = "<< ( counter+1 ) << "lold = "<<l << " diff = "<< diff<<endl;
-
-        } while ( counterout<numiter && diff>tol );
-
-//         if(diff>tol)
-//         {
-//                 converge=false;
-//                 cout << "Convergence in arc length faile whith diff = "<< diff << endl;
-//         }
-//         else
-//         {
-//                 cout << "arc length converged whith diff = "<< diff << endl;
-//                 converge=true;
-//         }
+        } while ( counterout<numiter );
+        //} while ( counterout<numiter && diff>tol );
 
         anal.AcceptSolution();
         return lambda;
@@ -207,11 +163,11 @@ REAL SlopeAnalysis::IterativeProcessArcLength ( REAL tol,int numiter,REAL tol2,i
 REAL SlopeAnalysis::ArcLength(bool &conv)
 {
         REAL tol=0.01;
-        int numiter=15;
+        int numiter=20;
         REAL tol2=0.01;
         int numiter2=10;
         REAL l=0.5;
-        REAL lambda0=0.1;
+        REAL lambda0=1.;
 
         REAL FS  = IterativeProcessArcLength ( tol,numiter,tol2,numiter2,l,lambda0,conv );
 
@@ -242,7 +198,7 @@ REAL SlopeAnalysis::SolveDeterministic ( bool IsSRM )
 
         cout << "Refining.."<<endl;
         std::set<long> elindices,elindices2;
-        for ( int iref=1; iref<=2; iref++ ) {
+        for ( int iref=1; iref<=0; iref++ ) {
                 cout << "computing deformation..."  << endl;
                 ComputeElementDeformation();
                 cout << "p refining..."  << endl;
@@ -261,19 +217,11 @@ REAL SlopeAnalysis::SolveDeterministic ( bool IsSRM )
                 } else {
 
                 //FS = ShearRed ( 20,FSOLD,0.01 );
-                                        FS  =ArcLength(conv);
+                FS  =ArcLength(conv);
                 if(conv==false)
                 {
                 //   FS = GravityIncrease() ;
                 }
-                }
-
-                if ( fabs ( FS-FSOLD ) <0.01 ) {
-                        //cout << " FS-FSOLD = "<< fabs ( FS-FSOLD ) <<endl;
-                        //break;
-                } else if ( neq>10000||neqold==neq ) {
-                        //cout << " neq>10000 = "<< neq <<" neqold = "<< neqold <<endl;
-                        //break;
                 }
         }
 
@@ -1838,7 +1786,7 @@ void SlopeAnalysis::PostPlasticity ( std::string vtkd )
         //string vtkd = "postprocessdeter.vtk";
         postprocdeter->DefineGraphMesh ( 2,scalNames,vecNames,vtkd );
 
-        postprocdeter->PostProcess ( 0 );
+        postprocdeter->PostProcess ( 1 );
 
         auto var=vtkd;
         std::ofstream files ( vtkd );
