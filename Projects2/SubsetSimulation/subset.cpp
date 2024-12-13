@@ -148,7 +148,7 @@ void ManageStartFrom(int Startfrom)
         int solvertype=0;
         int numthreads=10;
         int ref0slope=3;
-        int porderslope=2;
+        int porderslope=1;
         REAL gammaagua=0.;
         REAL gammasolo=20.;
         REAL coes=15.;
@@ -179,12 +179,12 @@ void ManageStartFrom(int Startfrom)
 
 
         if ( Startfrom >0 ) {
-                cout << "AQ"<<endl;
+
                 //read sqrt(lambda)*phi
                 TPZBFileStream read;
                 read.OpenRead ( "Configlowpf.bin" );
                 randonanalysis->Read ( read,0 );
-                cout << "A2"<<endl;
+
                 //seting fied data
                 TPZVec<REAL> meanvec ( 2 );
                 meanvec[0]=coes;
@@ -211,10 +211,10 @@ void ManageStartFrom(int Startfrom)
                         TPZBFileStream read;
                         read.OpenRead ( "Configlowpf1.bin" );
                         slopeanalysis->Read ( read,0 );
-                        //CrudeMonteCarlo(1000,10000,slopeanalysis);
+                       // CrudeMonteCarlo(9000,10000,slopeanalysis);
                         cout << "A3"<<endl;
-                        int n=10;
-                        REAL p0=0.1;
+                        int n=100;
+                        REAL p0=0.5;
                         SubSet(n, p0,slopeanalysis );
                 }
 
@@ -277,7 +277,7 @@ void SubSet(int n, REAL p0,SlopeAnalysis* slopeanalysis )
                         {40,1.24443},{44,1.24443},{84,1.2027},{72,1.15331},{96,1.15013}
                 };//Da simulacao de monte carlo
 
-        int levels=4;//numero de niveis da simulacao subset
+        int levels=10;//numero de niveis da simulacao subset
 
         n=fsdata.size();
         //numeroro de cadeias de markov
@@ -291,18 +291,22 @@ void SubSet(int n, REAL p0,SlopeAnalysis* slopeanalysis )
 
         //especificando os campos inicias da simulacao subset baseado nos menores valores de fs. Comecando do valor n-nc=10-5=5 ate n
         for ( int i=n-nc; i<n; i++ ) {
-                cout << " fsdata[n-nc+1].first " << fsdata[i].first << endl;
+                cout << " n-nc = "<< n-nc << " i = "<< i << " fsdata[i].first " << fsdata[i].first << " fsdata[i].second " << fsdata[i].second <<endl;
                 TPZVec<TPZFMatrix<REAL>> samples=slopeanalysis->GetIfield ( fsdata[i].first );
                 slopeanalysis->SetSubSetSamples ( samples );
 
         }
 
+         REAL b = fsdata[n-nc].second;
 
-        //Salvando
+        std::string saidafs3 = "postsubset/pf0.dat";
+        std::ofstream out3 ( saidafs3 );
+        out3 << b <<" " <<  p0  << endl;
+        //Salvado
         TPZBFileStream save;
         save.OpenWrite ( "teste.bin" );
         slopeanalysis->Write ( save,slopeanalysis->ClassId() );
-        REAL b = fsdata[n-nc].second;
+
         cout << "estimando a probabilidade de falha incial" << endl;
         cout<< b <<" " <<  p0     << endl;
         posprocfs3<< fsdata[n-nc].second<<" " <<  pow ( p0,0 ) *  nc/n << endl;
@@ -337,7 +341,7 @@ void SubSet(int n, REAL p0,SlopeAnalysis* slopeanalysis )
                 //faz um loop sobre as cadeias de markov
                 for ( int i=0; i<nc; i++ ) {
 
-                        cout << " nc  = "<< i << endl;
+                        cout << " Cadeia de Markov numero nc  = "<< i << " Cada cadeia gerando ns " << ns <<" amostras. "<< endl;
 
                         //pega o campo selecionado na simualcao anterior com menores fs como semente
                         TPZVec<TPZFMatrix<REAL>> seed = analysis->GetSubSetSamples ( i );
@@ -353,7 +357,7 @@ void SubSet(int n, REAL p0,SlopeAnalysis* slopeanalysis )
                         //outsamples[0][0].Print(cout);
                 }
 
-                cout << "\n fatores de seguranca =  " <<endl;
+                cout << "\n fatores de seguranca nao ordenados =  " <<endl;
                 for ( int ii=0; ii<fsvec.size(); ii++ ) cout <<fsvec[ii] << endl;
                 //descarta os campos anteriores
                 analysis->ResetSubSetSamples();
@@ -363,7 +367,7 @@ void SubSet(int n, REAL p0,SlopeAnalysis* slopeanalysis )
 
                 std::string saidafs2 = "postsubset/fs" + std::to_string ( j ) + ".dat";
                 std::ofstream out2 ( saidafs2 );
-                for ( int ii=0; ii<fsvec.size(); ii++ ) out2 <<fsvec[ii] << endl;
+                //for ( int ii=0; ii<fsvec.size(); ii++ ) out2 <<fsvec[ii] << endl;
 
                 //cria um pair para armazenar os fatores de seguranca e os indexes
                 std::pair<std::vector<double>,std::vector<int>> out;
@@ -371,17 +375,20 @@ void SubSet(int n, REAL p0,SlopeAnalysis* slopeanalysis )
                 //ordena em ordem decrescente e pega somente os ultimos n-nc=5 ate n=10 valores
                 out=Sort ( fsvec,n-nc );
 
+                out2 << "\n level =  "<< j <<endl;
                 cout << "szstack = "<< outsamplesfull.size() << " out.first.size() ="<< out.first.size() << endl;
                 for ( int i = 0; i < out.first.size(); i++ ) {
                         cout << "First : " << out.first[i] << ", Second  : " << out.second[i] << endl;
                         analysis->SetSubSetSamples ( outsamplesfull[out.second[i]] );
                         posprocfs2 << out.first[i] <<endl;
+                        out2 << out.first[i] << endl;
                 }
 
+                b=out.first[0];
                 std::string saidafs3 = "postsubset/pf" + std::to_string ( j ) + ".dat";
                 std::ofstream out3 ( saidafs3 );
                 out3 << b <<" " <<  pow ( p0,j ) *  nc/n << endl;
-                b=out.first[0];
+
                 cout << "estimando a probabilidade de falha" << endl;
                 //estimando a probabilidade de falha
                 cout<< b <<" " <<  pow ( p0,j ) *  nc/n << endl;
@@ -408,7 +415,8 @@ TPZStack<TPZVec<TPZFMatrix<REAL>>> MetropolisHastings(int nnewsamples,TPZVec<TPZ
 
         int M = analysis->GetM();
 
-        std::normal_distribution<double> distribution ( 0., 1. );
+        cout << "MetropolisHastings with proposal distribution ~N(0.0.5) << " << endl;
+        std::normal_distribution<double> distribution ( 0., 0.5 );
 
         std::uniform_real_distribution<double> distribution2 ( -0.5, 0.5);
 
@@ -418,7 +426,7 @@ TPZStack<TPZVec<TPZFMatrix<REAL>>> MetropolisHastings(int nnewsamples,TPZVec<TPZ
 
          for(int ins=0;ins<nnewsamples;ins++)
         {
-                cout<< "-----------------------ins = "<< ins <<endl;
+                cout<< "ins = "<< ins <<endl;
                 TPZVec<TPZFMatrix<REAL>> newfield(2);
                 newfield[0].Resize(M,1);
                 newfield[1].Resize(M,1);
@@ -458,13 +466,13 @@ TPZStack<TPZVec<TPZFMatrix<REAL>>> MetropolisHastings(int nnewsamples,TPZVec<TPZ
                                 fsx0=fsx1;//aceita fs novo
                                 seedinit=newfield;//atualiza campo novo
                                 outsamples.Push(newfield);//aceita campo novo
-                        }
+                       }
                         else
-                        {
-                                cout<< "Rejeita 0 com "<<" b = " << b  << " fsx1 = " <<fsx1  << " alpha " << alpha << " u = " << u << endl;
-                                fsx1=fsx0;//mantem fs antigo
-                                outsamples.Push(seedinit);//descarta amostra e pega campo antigo
-                        }
+                       {
+                               cout<< "Rejeita 0 com "<<" b = " << b  << " fsx1 = " <<fsx1  << " alpha " << alpha << " u = " << u << endl;
+                               fsx1=fsx0;//mantem fs antigo
+                               outsamples.Push(seedinit);//descarta amostra e pega campo antigo
+                       }
 
                 }
                 else
