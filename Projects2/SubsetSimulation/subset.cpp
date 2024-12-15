@@ -149,7 +149,7 @@ void ManageStartFrom(int Startfrom)
         //create slope analysis
         int solvertype=0;
         int numthreads=10;
-        int ref0slope=2;
+        int ref0slope=3;
         int porderslope=1;
         REAL gammaagua=0.;
         REAL gammasolo=20.;

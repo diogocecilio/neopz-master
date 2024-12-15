@@ -220,11 +220,13 @@ TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>>  SubsetMonteCarlo::LevelLoop(
 
         return outsamplesfull;
 }
+//#include "matplotlibcpp.h"
 
 void SubsetMonteCarlo::SubSet( )
 {
 
-    int level=1;
+    REAL p0=0.5;
+    int level=0;
     if(level==0)
     {
         ExecuteInitialMonteCarloSimulation(0,100);
@@ -271,6 +273,9 @@ void SubsetMonteCarlo::SubSet( )
 
         }
 
+        REAL prod=pow(p0,level);
+        ComputePf(copy,prod);
+
         fCurrentConfig.fSimulateFields = LevelLoop(copy);
         std::string name =  "SubsetSimulationLevel"+ std::to_string ( 2 );
         std::stringstream strout;
@@ -282,7 +287,25 @@ void SubsetMonteCarlo::SubSet( )
         Write(save,ClassId());
     }
 
-
+// pfdatabylevel = {};
+// prodloc = 0.25;
+// For[j = 1, j <= 4, j++,
+//   prodloc = 0.25^j;
+//   {ordereddata, idx} =
+//    Transpose[
+//     SortBy[Transpose[{datass[[j]],
+//        Range[Length[datass[[j]]]]}], -First[#] &]];
+//   prodacum = {};
+//   sz = 0.;
+//   For[i = 1, i <= Length[ordereddata] - 1, i++,
+//    sz = Length[Select[ordereddata, # <= ordereddata[[i + 1]] &]]/
+//      Length[Select[ordereddata, # <= ordereddata[[i]] &]];
+//    prodloc *= sz;
+//    AppendTo[prodacum, {ordereddata[[i + 1]], prodloc}];
+//    ];
+//   AppendTo[pfdatabylevel, prodacum];
+//
+//   ];
 
 }
 

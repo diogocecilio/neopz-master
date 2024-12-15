@@ -249,7 +249,7 @@ REAL SlopeAnalysis::SolveSingleField(TPZVec<TPZFMatrix<REAL>> sample )
         //REAL FS  =ArcLength(conv);
 
         std::set<long> elindices,elindices2;
-        for ( int iref=1; iref<=0; iref++ ) {
+        for ( int iref=1; iref<=1; iref++ ) {
                 cout << "refining level "<< iref <<endl;
                 cout << "computing deformation..."  << endl;
                 ComputeElementDeformation();

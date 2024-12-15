@@ -130,6 +130,35 @@ public:
     }
 
 
+    void ComputePf(TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> copy,REAL prod0)
+    {
+        SortData(copy);
+        for(int i=0;i<copy.size()-1;i++)
+        {
+
+            REAL val1=copy[i+1].first;
+            REAL val2=copy[i].first;
+            REAL count1=1.;
+            REAL count2=1.;
+                for (int j =0;j<copy.size();j++)
+                {
+                    if (val1 <= copy[j].first)
+                    {
+                        count1++;
+                    }
+                    if (val2 <= copy[j].first)
+                    {
+                        count2++;
+                    }
+                }
+            prod0*=count2/count1;
+            //cout <<"val1 = " << val1 <<" val2 = " << val2 << " count1/count2 = " << count1/count2 <<endl;
+            cout << val1 << " " << prod0 <<endl;
+
+        }
+    }
+
+
 private:
 
     /// The object with the current configuration
