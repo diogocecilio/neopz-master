@@ -245,11 +245,11 @@ REAL SlopeAnalysis::SolveSingleField(TPZVec<TPZFMatrix<REAL>> sample )
         TransferFieldsSolutionFrom ( sample );
 
         //REAL FS = ShearRed ( 20,0.5,tolfs );
-        REAL FS =ShearRedNoIntegrationPoints( 20,0.1,0.01 );
+        REAL FS =ShearRedNoIntegrationPoints( 20,0.5,0.01 );
         //REAL FS  =ArcLength(conv);
 
         std::set<long> elindices,elindices2;
-        for ( int iref=1; iref<=1; iref++ ) {
+        for ( int iref=1; iref<=0; iref++ ) {
                 cout << "refining level "<< iref <<endl;
                 cout << "computing deformation..."  << endl;
                 ComputeElementDeformation();
@@ -263,7 +263,7 @@ REAL SlopeAnalysis::SolveSingleField(TPZVec<TPZFMatrix<REAL>> sample )
                 cout <<  " Mesh with "<< neq << " equations "<< " fabs(FS-FSOLD)  "  << fabs ( FS-FSOLD )  << endl;
                 FSOLD=FS;
                // FS = ShearRed ( 20,FSOLD,tolfs );
-                FS =ShearRedNoIntegrationPoints( 20,0.1,0.01 );
+                FS =ShearRedNoIntegrationPoints( 20,FSOLD,0.01 );
                 //REAL FS  =ArcLength(conv);
 
         }

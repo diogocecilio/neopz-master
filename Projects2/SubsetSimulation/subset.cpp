@@ -15,6 +15,7 @@
 #include <fstream>
 #include <unistd.h>
 #include <sys/wait.h>
+#include "SubsetMonteCarlo.h"
 //std::mutex mtx; // Mutex para proteger a escrita nos arquivos
 void RunParallelSlopeAnalysis ( int imc_start, int imc_end, int num_processes, SlopeAnalysis* slopeanalysisf, SlopeAnalysis* slopeanalysish );
 void RunParallelSlopeAnalysis ( int imc_start, int imc_end, int num_processes, SlopeAnalysis* slopeanalysis);
@@ -29,6 +30,8 @@ TPZCompMesh CreateCompMeshKL2 ( TPZGeoMesh  gmesh,int porder,REAL Lx, REAL Ly, R
 void ManageStartFrom(int Startfrom);
 
 void SubSet(int n, REAL p0,SlopeAnalysis* slopeanalysis );
+
+void SubSet(SlopeAnalysis* slopeanalysis );
 
 TPZStack<TPZVec<TPZFMatrix<REAL>>> MetropolisHastings(int nnewsamples,TPZVec<TPZFMatrix<REAL>> seedinit,SlopeAnalysis* analysis, std::vector<double> &fsvec, REAL b);
 
@@ -60,7 +63,6 @@ std::pair<std::vector<double>,std::vector<int>> Sort(std::vector<double> vec,int
 
 int main()
 {
-
 
         int Startfrom =2;
         ManageStartFrom ( Startfrom );
@@ -147,7 +149,7 @@ void ManageStartFrom(int Startfrom)
         //create slope analysis
         int solvertype=0;
         int numthreads=10;
-        int ref0slope=3;
+        int ref0slope=2;
         int porderslope=1;
         REAL gammaagua=0.;
         REAL gammasolo=20.;
@@ -211,11 +213,33 @@ void ManageStartFrom(int Startfrom)
                         TPZBFileStream read;
                         read.OpenRead ( "Configlowpf1.bin" );
                         slopeanalysis->Read ( read,0 );
+
+                       // CrudeMonteCarlo(0,1,slopeanalysis);
+
+                        SubsetMonteCarlo*sub=new SubsetMonteCarlo();
+                        sub->SetSlopeAnalysis(slopeanalysis);
+                        sub->SubSet( );
+//                         sub->ExecuteInitialMonteCarloSimulation(0,1);
+//                         TPZBFileStream save;
+//                         save.OpenWrite("SubSetInitialMonteCarloConfig.bin");
+//                         sub->Write(save,sub->ClassId());
+//
+//                         TPZBFileStream read2;
+//                         SubsetMonteCarlo*sub2=new SubsetMonteCarlo();
+//                         read2.OpenRead ( "SubSetInitialMonteCarloConfig.bin" );
+//                         sub2->Read ( read2,0 );
+//
+//                         TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> teste=sub2->GetCurrentConfig()->fSimulateFields;
+
+//                         cout << "teste[0].first = "<< teste[0].first<<endl;
+//                         cout << "teste[0].second[0].Print(cout) = "<<endl;
+//                         teste[0].second[0].Print(cout);
+
                        // CrudeMonteCarlo(9000,10000,slopeanalysis);
-                        cout << "A3"<<endl;
-                        int n=100;
-                        REAL p0=0.5;
-                        SubSet(n, p0,slopeanalysis );
+                       // cout << "A3"<<endl;
+                       // int n=100;
+                       // REAL p0=0.5;
+                        //SubSet(n, p0,slopeanalysis );
                 }
 
 
@@ -224,6 +248,7 @@ void ManageStartFrom(int Startfrom)
 
         cout << "EXIT SUCESS"<<endl;
 }
+
 
 
 vector<size_t> sort_indexes(const vector<double> &v) {
@@ -238,6 +263,8 @@ vector<size_t> sort_indexes(const vector<double> &v) {
 std::ofstream posprocfs ( "posprocfs.txt" );
 std::ofstream posprocfs2 ( "posprocfs2.txt" );
 std::ofstream posprocfs3 ( "posprocfs3.txt" );
+
+
 
 
 void SubSet(int n, REAL p0,SlopeAnalysis* slopeanalysis )
@@ -277,7 +304,7 @@ void SubSet(int n, REAL p0,SlopeAnalysis* slopeanalysis )
                         {40,1.24443},{44,1.24443},{84,1.2027},{72,1.15331},{96,1.15013}
                 };//Da simulacao de monte carlo
 
-        int levels=10;//numero de niveis da simulacao subset
+        int levels=4;//numero de niveis da simulacao subset
 
         n=fsdata.size();
         //numeroro de cadeias de markov
@@ -366,12 +393,18 @@ void SubSet(int n, REAL p0,SlopeAnalysis* slopeanalysis )
 
 
                 std::string saidafs2 = "postsubset/fs" + std::to_string ( j ) + ".dat";
+                std::string saidafs33 = "postsubset/fsfull" + std::to_string ( j ) + ".dat";
                 std::ofstream out2 ( saidafs2 );
+                std::ofstream out22 ( saidafs33 );
                 //for ( int ii=0; ii<fsvec.size(); ii++ ) out2 <<fsvec[ii] << endl;
 
                 //cria um pair para armazenar os fatores de seguranca e os indexes
                 std::pair<std::vector<double>,std::vector<int>> out;
+                std::pair<std::vector<double>,std::vector<int>> outfull;
 
+                outfull=Sort ( fsvec,0 );
+
+                for ( int i = 0; i < outfull.first.size(); i++ ) out22 << outfull.first[i] << endl;
                 //ordena em ordem decrescente e pega somente os ultimos n-nc=5 ate n=10 valores
                 out=Sort ( fsvec,n-nc );
 
@@ -382,6 +415,7 @@ void SubSet(int n, REAL p0,SlopeAnalysis* slopeanalysis )
                         analysis->SetSubSetSamples ( outsamplesfull[out.second[i]] );
                         posprocfs2 << out.first[i] <<endl;
                         out2 << out.first[i] << endl;
+
                 }
 
                 b=out.first[0];
