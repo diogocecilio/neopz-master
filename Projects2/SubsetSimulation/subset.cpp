@@ -215,10 +215,11 @@ void ManageStartFrom(int Startfrom)
                         slopeanalysis->Read ( read,0 );
 
                        // CrudeMonteCarlo(0,1,slopeanalysis);
-
-                        SubsetMonteCarlo*sub=new SubsetMonteCarlo();
-                        sub->SetSlopeAnalysis(slopeanalysis);
-                        sub->SubSet( );
+                        REAL p0=0.5;
+                        int samples=100;
+                        SubsetMonteCarlo*sub=new SubsetMonteCarlo(slopeanalysis,p0,samples);
+                        //sub->SetSlopeAnalysis(slopeanalysis);
+                        sub->SubSet();
 //                         sub->ExecuteInitialMonteCarloSimulation(0,1);
 //                         TPZBFileStream save;
 //                         save.OpenWrite("SubSetInitialMonteCarloConfig.bin");

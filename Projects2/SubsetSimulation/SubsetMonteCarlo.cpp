@@ -5,12 +5,17 @@
 
 
 
-SubsetMonteCarlo::SubsetMonteCarlo() : fCurrentConfig(), fSequence(), fSlopeAnalysis()
+SubsetMonteCarlo::SubsetMonteCarlo() : fCurrentConfig(), fSequence(), fSlopeAnalysis(),fp0(),fNsamples()
 {
 
 }
 
-SubsetMonteCarlo::SubsetMonteCarlo(const SubsetMonteCarlo &copy) : fCurrentConfig(copy.fCurrentConfig), fSequence(copy.fSequence),fSlopeAnalysis(copy.fSlopeAnalysis)
+SubsetMonteCarlo::SubsetMonteCarlo(SlopeAnalysis * analysis, REAL p0, int samples): fCurrentConfig(), fSequence(), fSlopeAnalysis(analysis),fp0(p0),fNsamples(samples)
+{
+
+}
+
+SubsetMonteCarlo::SubsetMonteCarlo(const SubsetMonteCarlo &copy) : fCurrentConfig(copy.fCurrentConfig), fSequence(copy.fSequence),fSlopeAnalysis(copy.fSlopeAnalysis),fp0(copy.fp0),fNsamples(copy.fNsamples)
 {
 
 }
@@ -23,12 +28,15 @@ SubsetMonteCarlo &SubsetMonteCarlo::operator=(const SubsetMonteCarlo &copy)
     fCurrentConfig = copy.fCurrentConfig;
     fSequence = copy.fSequence;
     fSlopeAnalysis= copy.fSlopeAnalysis;
+    fp0=copy.fp0;
+    fNsamples=copy.fNsamples;
     return *this;
 }
 
 SubsetMonteCarlo::~SubsetMonteCarlo()
 {
 
+    delete fSlopeAnalysis;
 }
 
 /// write the object on the stream
@@ -63,14 +71,13 @@ void SubsetMonteCarlo::Read(TPZStream &buf, void *context)
 
 
 
-SubsetMonteCarlo::TConfig::TConfig(): fSimulateFields(),fp0(0),fNsamples(0)
+SubsetMonteCarlo::TConfig::TConfig(): fSimulateFields(),fHistoryLog()
 {
 
 }
 
-SubsetMonteCarlo::TConfig::TConfig(const TConfig &conf) : fSimulateFields(conf.fSimulateFields),fp0(conf.fp0),fNsamples(conf.fNsamples)
+SubsetMonteCarlo::TConfig::TConfig(const TConfig &conf) : fSimulateFields(conf.fSimulateFields),fHistoryLog(conf.fHistoryLog)
 {
-
 
 }
 
@@ -86,15 +93,14 @@ SubsetMonteCarlo::TConfig &SubsetMonteCarlo::TConfig::operator=(const SubsetMont
         return *this;
     }
     fSimulateFields = copy.fSimulateFields;
-    fp0= copy.fp0;
-    fNsamples= copy.fNsamples;
-
+    fHistoryLog=copy.fHistoryLog;
     return *this;
 }
 
 /// Write the data to the output stream
 void SubsetMonteCarlo::TConfig::Write(TPZStream &buf, int withclassid) const
 {
+        //buf.Write(&fHistoryLog);
         int nc = fSimulateFields.size();
         int sz=fSimulateFields[0].second.size();
 
@@ -119,6 +125,7 @@ void SubsetMonteCarlo::TConfig::Write(TPZStream &buf, int withclassid) const
 void SubsetMonteCarlo::TConfig::Read(TPZStream &buf, void *context)
 {
 
+        //buf.Read(&fHistoryLog);
         int nc,sz;
 		buf.Read(&nc);
         buf.Read(&sz);
@@ -226,7 +233,7 @@ void SubsetMonteCarlo::SubSet( )
 {
 
     REAL p0=0.5;
-    int level=0;
+    int level=2;
     if(level==0)
     {
         ExecuteInitialMonteCarloSimulation(0,100);
@@ -260,6 +267,39 @@ void SubsetMonteCarlo::SubSet( )
         save.OpenWrite(name);
         Write(save,ClassId());
     }
+
+    if(level==2)
+    {
+        TPZBFileStream read2;
+        read2.OpenRead ( "SubsetSimulationLevel1.bin" );
+        Read ( read2,0 );
+
+        cout<< " -- level 0 -- "<<endl;
+        TConfig *conf0 =  GetConfig (0);
+        REAL prod=1.;
+        TPZFMatrix<REAL> pfdata=  ComputePf(conf0->fSimulateFields,prod);
+
+
+//         for(int i=0;i<pfdata.Rows();i++)
+//         {
+//             pfout <<  pfdata(i,0) << " "<< pfdata(i,1) <<endl;
+//         }
+
+
+        cout<< " -- level 1 -- "<<endl;
+        TConfig *conf1 =  GetConfig (1);
+
+        prod=pow(p0,1);
+        pfdata= ComputePf(conf1->fSimulateFields,prod);
+
+//         for(int i=0;i<pfdata.Rows();i++)
+//         {
+//             pfout <<  pfdata(i,0) << " "<< pfdata(i,1) <<endl;
+//         }
+
+    }
+
+    return;
     if(level==2)
     {
         TPZBFileStream read2;
@@ -273,8 +313,8 @@ void SubsetMonteCarlo::SubSet( )
 
         }
 
-        REAL prod=pow(p0,level);
-        ComputePf(copy,prod);
+//         REAL prod=pow(p0,level);
+//         ComputePf(copy,prod);
 
         fCurrentConfig.fSimulateFields = LevelLoop(copy);
         std::string name =  "SubsetSimulationLevel"+ std::to_string ( 2 );
@@ -287,25 +327,6 @@ void SubsetMonteCarlo::SubSet( )
         Write(save,ClassId());
     }
 
-// pfdatabylevel = {};
-// prodloc = 0.25;
-// For[j = 1, j <= 4, j++,
-//   prodloc = 0.25^j;
-//   {ordereddata, idx} =
-//    Transpose[
-//     SortBy[Transpose[{datass[[j]],
-//        Range[Length[datass[[j]]]]}], -First[#] &]];
-//   prodacum = {};
-//   sz = 0.;
-//   For[i = 1, i <= Length[ordereddata] - 1, i++,
-//    sz = Length[Select[ordereddata, # <= ordereddata[[i + 1]] &]]/
-//      Length[Select[ordereddata, # <= ordereddata[[i]] &]];
-//    prodloc *= sz;
-//    AppendTo[prodacum, {ordereddata[[i + 1]], prodloc}];
-//    ];
-//   AppendTo[pfdatabylevel, prodacum];
-//
-//   ];
 
 }
 

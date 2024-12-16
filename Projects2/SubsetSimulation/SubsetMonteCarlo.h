@@ -21,7 +21,7 @@
 #include <fstream>
 #include <unistd.h>
 #include <sys/wait.h>
-
+//std::ofstream pfout ( "pfsubset.txt" );
 class SubsetMonteCarlo
 {
 
@@ -49,9 +49,7 @@ class SubsetMonteCarlo
 
             std::string fHistoryLog;
 
-            REAL fp0;
 
-            REAL fNsamples;
 
 
 
@@ -60,6 +58,8 @@ class SubsetMonteCarlo
 
 public:
     SubsetMonteCarlo();
+
+    SubsetMonteCarlo(SlopeAnalysis * analysis, REAL p0, int samples);
 
     ~SubsetMonteCarlo();
 
@@ -130,32 +130,47 @@ public:
     }
 
 
-    void ComputePf(TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> copy,REAL prod0)
+   TPZFMatrix<REAL> ComputePf(TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> copy,REAL &prod0)
     {
+
         SortData(copy);
-        for(int i=0;i<copy.size()-1;i++)
+        int n= copy.size();
+
+        REAL p0=fp0;
+        REAL nc = p0*n;
+        TPZFMatrix<REAL> mat(nc,2);
+//         for(int i=0;i<n-nc;i++)
+//         {
+//             cout << copy[i].first <<endl;
+//
+//         }
+        for(int i=n-nc;i<n-1;i++)
         {
 
             REAL val1=copy[i+1].first;
             REAL val2=copy[i].first;
             REAL count1=1.;
             REAL count2=1.;
-                for (int j =0;j<copy.size();j++)
+                for (int j =n-nc;j<n-1;j++)
                 {
-                    if (val1 <= copy[j].first)
+                    if (val1 >= copy[j].first)
                     {
                         count1++;
                     }
-                    if (val2 <= copy[j].first)
+                    if (val2 >= copy[j].first)
                     {
                         count2++;
                     }
                 }
-            prod0*=count2/count1;
-            //cout <<"val1 = " << val1 <<" val2 = " << val2 << " count1/count2 = " << count1/count2 <<endl;
-            cout << val1 << " " << prod0 <<endl;
 
+
+            prod0*=count1/count2;
+            cout <<"val1 = " << val1 <<" val2 = " << val2 << " count1 = " << count1 << " count2 = " << count2 <<endl;
+            cout << val1 << " " << prod0 <<endl;
+                mat(i,0)=val1;
+                mat(i,1)=prod0;
         }
+        return mat;
     }
 
 
@@ -168,6 +183,10 @@ private:
     std::list<TConfig> fSequence;
 
     SlopeAnalysis * fSlopeAnalysis;
+
+    REAL fp0;
+
+    REAL fNsamples;
 
 };
 
