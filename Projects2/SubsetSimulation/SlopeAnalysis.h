@@ -93,6 +93,8 @@ public:
     REAL ShearRed(int maxcount, REAL FS0, REAL fstol);
 
     REAL ShearRedNoIntegrationPoints ( int maxcout,REAL FS0,REAL fstol );
+
+    void FindRoot(bool &conv);
     /**
      * Realiza o aumento gradativo da carga até atingir a falha, usando o critério de Mohr-Coulomb.
      * @return O fator de segurança encontrado.

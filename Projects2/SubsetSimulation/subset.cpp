@@ -153,17 +153,17 @@ void ManageStartFrom(int Startfrom)
         int porderslope=1;
         REAL gammaagua=0.;
         REAL gammasolo=20.;
-        REAL coes=15.;
+        REAL coes=10.;
         REAL atrito=30.*M_PI/180.;
 
         SlopeAnalysis  * slopeanalysis =  new SlopeAnalysis ( gammaagua,gammasolo,coes,atrito,ref0slope,porderslope,numthreads,solvertype );
 
-//        bool issrm=true;
-//        slopeanalysis->SolveDeterministic(issrm);
-//        std::string saidavtk2 = "postdeter.vtk";
-//        slopeanalysis->PostPlasticity ( saidavtk2 );
-//
-//        return;
+       bool issrm=true;
+       slopeanalysis->SolveDeterministic(issrm);
+       std::string saidavtk2 = "postdeter.vtk";
+       slopeanalysis->PostPlasticity ( saidavtk2 );
+
+       return;
 
         if ( Startfrom ==0 ) {
                 randonanalysis->SetNEigenpairs ( 1500 );
@@ -215,11 +215,17 @@ void ManageStartFrom(int Startfrom)
                         slopeanalysis->Read ( read,0 );
 
                        // CrudeMonteCarlo(0,1,slopeanalysis);
-                        REAL p0=0.1;
-                        int samples=100;
-                        SubsetMonteCarlo*sub=new SubsetMonteCarlo(slopeanalysis,p0,samples);
-                        //sub->SetSlopeAnalysis(slopeanalysis);
-                        sub->SubSet();
+                        REAL fs = slopeanalysis->SolveSingleField ( 0 );
+                        std::string vtkfile="saida.vtk";
+                        slopeanalysis->PostPlasticity ( vtkfile );
+
+
+
+//                         REAL p0=0.1;
+//                         int samples=100;
+//                         SubsetMonteCarlo*sub=new SubsetMonteCarlo(slopeanalysis,p0,samples);
+//                         //sub->SetSlopeAnalysis(slopeanalysis);
+//                         sub->SubSet();
 
 
                        // CrudeMonteCarlo(9000,10000,slopeanalysis);

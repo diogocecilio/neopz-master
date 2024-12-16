@@ -125,6 +125,7 @@ void TPZPlasticStepPV<YC_t, ER_t>::ApplyStressComputeStrain(const TPZTensor<REAL
 	if(fN.fmatprop.size()!=0 && fN.fmatprop[0]>1.e-3)
  	{
         fYC.SetLocalMatState(fN);
+        fYC.ChangeLocalMatParameters( fN ,fReductionFactor);
 	}
     
     TPZTensor<REAL>::TPZDecomposed sig_eigen_system;
@@ -230,6 +231,7 @@ void TPZPlasticStepPV<YC_t, ER_t>::ApplyStrainComputeDep(const TPZTensor<REAL> &
     	if(fN.fmatprop.size()!=0 && fN.fmatprop[0]>1.e-3)
  	{
         fYC.SetLocalMatState(fN);
+        fYC.ChangeLocalMatParameters( fN ,fReductionFactor);
 	}
     TPZTensor<REAL>::TPZDecomposed sig_eigen_system, eps_eigen_system;
     TPZTensor<REAL> sigtr;

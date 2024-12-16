@@ -153,12 +153,85 @@ REAL SlopeAnalysis::IterativeProcessArcLength ( REAL tol,int numiter,REAL tol2,i
                 diff=fabs ( lambda-lambdan );
                 fac=ndesi  / ( counter+1 );
 
-        } while ( counterout<numiter );
-        //} while ( counterout<numiter && diff>tol );
+        //} while ( counterout<numiter );
+        } while ( counterout<numiter && diff>tol );
 
-        anal.AcceptSolution();
+        //anal.AcceptSolution();
+        if(counterout < numiter)
+        {
+                cout << "Converged"<<endl;
+                converge=true;
+        }else{
+                cout << "Not Converged"<<endl;
+                converge=false;
+        }
+
         return lambda;
 }
+
+
+
+void SlopeAnalysis::FindRoot (bool &conv )
+{
+
+
+        TPZElastoPlasticAnalysis anal =  SetSlopeAnalysis ( );
+         plasticmat * body= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
+
+
+  REAL normrhs=10000,normdu=10000,normrhsn=10000,normdun=10000,normrhs0;
+    TPZFMatrix<STATE> x(anal.Solution()), dx(anal.Solution());
+    x.Zero();
+    dx.Zero();
+    REAL tol = 1.e-3;
+    int n_it = 100;
+    anal.AssembleResidual();
+    normrhs0=Norm(anal.Rhs());
+
+    for (int i = 1; i <= n_it; i++) {
+        anal.Assemble();
+        anal.Solve();
+        if ( false)
+        {
+            TPZFMatrix<STATE> nextSol;
+            REAL LineSearchTol = 0.001 * Norm ( anal.Solution() );
+            const int niter =2;
+            anal.LineSearch ( x, anal.Solution(), nextSol, LineSearchTol, niter );
+            x = nextSol;
+            dx=anal.Solution();
+        }else{
+        dx = anal.Solution();
+        x += dx;
+        }
+        //body->GetPlasticModel().SetStrengthReductionFactor(lambda);
+        anal.LoadSolution(x);
+
+        normdun=normdu;
+        normdu=Norm(dx);
+
+        normrhsn=normrhs;
+        normrhs = Norm(anal.Rhs())/normrhs0;
+
+//std::cout <<"iter = "<< i << " normrhs= " << normrhs<< " normrhsn= " << normrhsn<<" normdu= " << normdu<< " normdun= " << normdun<< std::endl;
+        if (normrhs<tol) {
+
+                std::cout <<"iter = "<< i << " normrhs= " << normrhs<< " normrhsn= " << normrhsn<<" normdu= " << normdu<< " normdun= " << normdun<< std::endl;
+                //anal.AcceptSolution();
+
+                conv=true;
+                return;
+        }else if(normrhsn<normrhs&&normdun<normdu){
+            std::cout << "Fail to converge. Divergent method." << std::endl;
+            conv= false;
+            return;
+        }
+    }
+
+    std::cout << " Not converged. Maximum number of iterations reached." << std::endl;
+    conv= false;
+    return;
+}
+
 
 REAL SlopeAnalysis::ArcLength(bool &conv)
 {
@@ -170,6 +243,7 @@ REAL SlopeAnalysis::ArcLength(bool &conv)
         REAL lambda0=1.;
 
         REAL FS  = IterativeProcessArcLength ( tol,numiter,tol2,numiter2,l,lambda0,conv );
+        //REAL FS  = ShearRedNoIntegrationPointsArcLength ( numiter );
 
         return FS;
 }
@@ -202,9 +276,9 @@ REAL SlopeAnalysis::SolveDeterministic ( bool IsSRM )
                 cout << "computing deformation..."  << endl;
                 ComputeElementDeformation();
                 cout << "p refining..."  << endl;
-                PRefineElementsAbove ( 0.01, fCompMesh->GetDefaultOrder()+iref,elindices2 );
+                PRefineElementsAbove ( 0.001, fCompMesh->GetDefaultOrder()+iref,elindices2 );
                 cout << "h refining..."  << endl;
-                DivideElementsAbove ( 0.01,elindices );
+                DivideElementsAbove ( 0.001,elindices );
                 neqold=neq;
                 neq=fCompMesh->NEquations();
                 cout << "initializing memory..."  << endl;
@@ -450,8 +524,8 @@ REAL SlopeAnalysis::ShearRed ( int maxcout,REAL FS0,REAL fstol )
 
 REAL SlopeAnalysis::ShearRedNoIntegrationPoints ( int maxcout,REAL FS0,REAL fstol )
 {
+        //LoadingRamp ( 1.77 );
         LoadingRamp ( 1. );
-
         plasticmat * body= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
         REAL FS=FS0,FSmax=10.,FSmin=0.,tol=fstol;
         int counterout = 0;
@@ -475,11 +549,15 @@ REAL SlopeAnalysis::ShearRedNoIntegrationPoints ( int maxcout,REAL FS0,REAL fsto
                 int iters;
 
                 auto t1 = chrono::high_resolution_clock::now();
-                conv  =anal.IterativeProcess2 ( cout,tol2, NumIter,  linesearch,  checkconv,iters );
+                FindRoot(conv);
+                //if(conv==false)
+                //{
+                 //       conv  =anal.IterativeProcess2 ( cout,tol2, NumIter,  linesearch,  checkconv,iters );
+                //}
 
-//                 int numit1=20,numit2=10;
-//                 REAL tolfs=1.e-2,tolrhs=1.e-3,l=0.5;
-//                 FS = IterativeProcessArcLength ( tolfs,numit1,tolrhs,numit2,l,FS,conv );
+//                  int numit1=20,numit2=10;
+//                  REAL tolfs=1.e-2,tolrhs=1.e-3,l=0.5;
+//                  FS = IterativeProcessArcLength ( tolfs,numit1,tolrhs,numit2,l,FS,conv );
 
 
                 auto t2 = chrono::high_resolution_clock::now();
