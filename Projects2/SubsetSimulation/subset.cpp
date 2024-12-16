@@ -158,7 +158,7 @@ void ManageStartFrom(int Startfrom)
 
         SlopeAnalysis  * slopeanalysis =  new SlopeAnalysis ( gammaagua,gammasolo,coes,atrito,ref0slope,porderslope,numthreads,solvertype );
 
-//        bool issrm=false;
+//        bool issrm=true;
 //        slopeanalysis->SolveDeterministic(issrm);
 //        std::string saidavtk2 = "postdeter.vtk";
 //        slopeanalysis->PostPlasticity ( saidavtk2 );
@@ -215,26 +215,12 @@ void ManageStartFrom(int Startfrom)
                         slopeanalysis->Read ( read,0 );
 
                        // CrudeMonteCarlo(0,1,slopeanalysis);
-                        REAL p0=0.5;
+                        REAL p0=0.1;
                         int samples=100;
                         SubsetMonteCarlo*sub=new SubsetMonteCarlo(slopeanalysis,p0,samples);
                         //sub->SetSlopeAnalysis(slopeanalysis);
                         sub->SubSet();
-//                         sub->ExecuteInitialMonteCarloSimulation(0,1);
-//                         TPZBFileStream save;
-//                         save.OpenWrite("SubSetInitialMonteCarloConfig.bin");
-//                         sub->Write(save,sub->ClassId());
-//
-//                         TPZBFileStream read2;
-//                         SubsetMonteCarlo*sub2=new SubsetMonteCarlo();
-//                         read2.OpenRead ( "SubSetInitialMonteCarloConfig.bin" );
-//                         sub2->Read ( read2,0 );
-//
-//                         TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> teste=sub2->GetCurrentConfig()->fSimulateFields;
 
-//                         cout << "teste[0].first = "<< teste[0].first<<endl;
-//                         cout << "teste[0].second[0].Print(cout) = "<<endl;
-//                         teste[0].second[0].Print(cout);
 
                        // CrudeMonteCarlo(9000,10000,slopeanalysis);
                        // cout << "A3"<<endl;

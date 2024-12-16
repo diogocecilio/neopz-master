@@ -153,6 +153,254 @@ void SubsetMonteCarlo::SaveConfig(std::stringstream &strout)
     fSequence.push_back(fCurrentConfig);
 }
 
+
+
+
+//#include "matplotlibcpp.h"
+
+void SubsetMonteCarlo::SubSet( )
+{
+
+    int level=1;
+    if(level==0)
+    {
+        ExecuteInitialMonteCarloSimulation(0,100);
+        TPZBFileStream save;
+        save.OpenWrite("SubSetInitialMonteCarloConfig.bin");
+        Write(save,ClassId());
+    }
+
+    if(level==1)
+    {
+        TPZBFileStream read2;
+        read2.OpenRead ( "SubSetInitialMonteCarloConfig.bin" );
+        Read ( read2,0 );
+
+        TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> copy = fCurrentConfig.fSimulateFields;
+
+        fCurrentConfig.fSimulateFields = LevelLoop(copy);
+        std::string name =  "Level"+ std::to_string ( 1 );
+        std::stringstream strout;
+        strout << name;
+        SaveConfig(strout);
+        TPZBFileStream save;
+        name+=".bin";
+        save.OpenWrite(name);
+        Write(save,ClassId());
+    }
+
+    if(level==2)
+    {
+        TPZBFileStream read2;
+        read2.OpenRead ( "Level1.bin" );
+        Read ( read2,0 );
+
+        TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> copy = fCurrentConfig.fSimulateFields;
+
+        fCurrentConfig.fSimulateFields = LevelLoop(copy);
+        std::string name =  "Level"+ std::to_string ( 2 );
+        std::stringstream strout;
+        strout << name;
+        SaveConfig(strout);
+        TPZBFileStream save;
+        name+=".bin";
+        save.OpenWrite(name);
+        Write(save,ClassId());
+    }
+
+    if(level==3)
+    {
+        TPZBFileStream read2;
+        read2.OpenRead ( "Level2.bin" );
+        Read ( read2,0 );
+
+        TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> copy = fCurrentConfig.fSimulateFields;
+
+        fCurrentConfig.fSimulateFields = LevelLoop(copy);
+        std::string name =  "Level"+ std::to_string ( 3 );
+        std::stringstream strout;
+        strout << name;
+        SaveConfig(strout);
+        TPZBFileStream save;
+        name+=".bin";
+        save.OpenWrite(name);
+        Write(save,ClassId());
+    }
+    if(level==4)
+    {
+        cout<< "ads"<<endl;
+        TPZBFileStream read2;
+        read2.OpenRead ( "Level3.bin" );
+        Read ( read2,0 );
+
+        TPZStack<TPZFMatrix<REAL>> oudata;
+
+        cout<< " -- level 0 -- "<<endl;
+        TConfig *conf0 =  GetConfig (0);
+        REAL prod=fp0;
+        TPZFMatrix<REAL> pfdata=  ComputePf(conf0->fSimulateFields,prod);
+
+        oudata.Push(pfdata);
+        cout<< " -- level 1 -- "<<endl;
+        TConfig *conf1 =  GetConfig (1);
+
+        prod=pow(fp0,2);
+        pfdata= ComputePf(conf1->fSimulateFields,prod);
+
+        oudata.Push(pfdata);
+        cout<< " -- level 2 -- "<<endl;
+        TConfig *conf2 =  GetConfig (2);
+
+        prod=pow(fp0,3);
+        pfdata= ComputePf(conf2->fSimulateFields,prod);
+
+        oudata.Push(pfdata);
+        cout<< " -- level 3 -- "<<endl;
+        TConfig *conf3 =  GetConfig (3);
+
+        prod=pow(fp0,4);
+        pfdata= ComputePf(conf3->fSimulateFields,prod);
+        oudata.Push(pfdata);
+
+        std::ofstream posprocfs ( "posprocfs.txt" );
+        for(int  i=0;i<oudata.size();i++)
+        {
+            for(int j=0;j<oudata[i].Rows();j++)
+            {
+                posprocfs << oudata[i](j,0) << " " << oudata[i](j,1) <<endl;
+            }
+        }
+    }
+
+}
+TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>>  SubsetMonteCarlo::LevelLoop(TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> copy )
+{
+
+        TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> newSimulateFields;
+        int n= copy.size();
+
+        SortData ( copy );
+
+
+        REAL p0=fp0;
+
+        REAL nc = p0*n;
+        REAL ns = 1/p0;
+        cout << "p0 = "<< p0 << endl;
+        cout << "n = "<< n << endl;
+        cout << "fNsamples = "<< fNsamples << endl;
+        cout << "nc = "<< nc << endl;
+        cout << "ns = "<< ns<<endl;
+        REAL b =copy[n-nc].first;
+
+
+        TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> outsamplesfull;
+
+        for ( int i=0; i<nc; i++ ) {
+                std::pair<REAL,TPZVec<TPZFMatrix<REAL>>> temp;
+                TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> outsamples;
+                outsamples=  MetropolisHastings ( ns, copy[n-nc+i],b );
+                for ( int ins=0; ins<outsamples.size(); ins++ ) {
+                        outsamplesfull.Push ( outsamples[ins] );
+                }
+        }
+
+        return outsamplesfull;
+}
+
+TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> SubsetMonteCarlo::MetropolisHastings(int nnewsamples,std::pair<REAL,TPZVec<TPZFMatrix<REAL>>> seedinit,REAL b)
+{
+
+
+        TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> copy = fCurrentConfig.fSimulateFields;
+
+        SortData(copy);
+
+        int M = fSlopeAnalysis->GetM();
+
+        cout << "MetropolisHastings with proposal distribution ~N(0.,1) << " << endl;
+        std::normal_distribution<double> distribution ( 0., 1. );
+
+        std::uniform_real_distribution<double> distribution2 ( -0.5, 0.5);
+
+        std::uniform_real_distribution<double> distributionunif ( 0, 1. );
+
+        TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> outsamples;
+
+        REAL fsx0 = seedinit.first;
+
+         for(int ins=0;ins<nnewsamples;ins++)
+        {
+                std::pair<REAL,TPZVec<TPZFMatrix<REAL>>> couple;
+                cout<< "ins = "<< ins <<endl;
+                TPZVec<TPZFMatrix<REAL>> newfield(2);
+                newfield[0].Resize(M,1);
+                newfield[1].Resize(M,1);
+
+                 for ( int irdvar = 0; irdvar < M; irdvar++ )
+                 {
+                        std::random_device rd{};
+                        std::mt19937 generator{ rd() };
+                        std::random_device rd2{};
+                        std::mt19937 generator2{ rd2() };
+                        REAL xic = distribution ( generator );
+                        newfield[0] ( irdvar,0 ) = xic+seedinit.second[0]( irdvar,0);
+                        xic = distribution ( generator2 );
+                        newfield[1] ( irdvar,0 ) = xic+seedinit.second[1]( irdvar,0);
+
+                }
+
+                SlopeAnalysis* analysis2 = new SlopeAnalysis ( *fSlopeAnalysis );
+
+                REAL fsx1 =analysis2->SolveSingleField(newfield );
+
+                REAL alpha = min(fsx1/fsx0, 1.);
+
+                //(*Aceitação ou rejeição*)
+                std::random_device rd2{};
+
+                std::mt19937 generator2{ rd2() };
+
+                REAL u = distributionunif(generator2);
+
+
+                if(u<alpha)
+                {
+                        if(fsx1<b)
+                        {
+                                cout<< "Aceita com "<<" b = " << b  << " fsx1 = " <<fsx1 << " fsx0 = " << fsx0  << " alpha " << alpha << " u = " << u << endl;
+                                fsx0=fsx1;//aceita fs novo
+                                seedinit.second=newfield;//atualiza campo novo
+                                couple.first=fsx0;
+                                couple.second = newfield;
+                                outsamples.Push(couple);//aceita campo novo
+                       }
+                        else
+                       {
+                               cout<< "Rejeita 0 com "<<" b = " << b  << " fsx1 = " <<fsx1  << " alpha " << alpha << " u = " << u << endl;
+                               fsx1=fsx0;//mantem fs antigo
+                               couple.first=fsx1;
+                               couple.second = seedinit.second;
+                               outsamples.Push(couple);//descarta amostra e pega campo antigo
+                       }
+
+                }
+                else
+                {
+                         cout<< "Rejeita 1 com "<<" b = " << b  << " fsx1 = " <<fsx1 << " fsx0 = " << fsx0   << " alpha " << alpha << " u = " << u << endl;
+                        fsx1=fsx0;//mantem fs antigo
+                        couple.first=fsx1;
+                        couple.second = seedinit.second;
+                        outsamples.Push(couple);//descarta amostra e pega campo antigo
+
+
+                }
+
+                delete analysis2;
+        }
+
+        return outsamples;
+}
 void SubsetMonteCarlo::ExecuteInitialMonteCarloSimulation ( int a, int b )
 {
         std::stringstream strout;
@@ -184,252 +432,6 @@ void SubsetMonteCarlo::ExecuteInitialMonteCarloSimulation ( int a, int b )
         SaveConfig(strout);
 
 }
-
-TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>>  SubsetMonteCarlo::LevelLoop(TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> copy )
-{
-
-
-
-//         TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> copy = fCurrentConfig.fSimulateFields;
-
-        TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> newSimulateFields;
-
-
-
-        int n= copy.size();
-
-        SortData(copy);
-
-
-        REAL p0=0.5;
-
-        REAL nc = p0*n;
-        REAL ns = 1/p0;
-        cout << "n = "<< n << endl;
-        cout << "nc = "<< nc << endl;
-        cout << "ns = "<< ns<<endl;
-        REAL b =copy[n-nc].first;
-
-
-        TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> outsamplesfull;
-
-        for ( int i=0; i<nc; i++ )
-        {
-            std::pair<REAL,TPZVec<TPZFMatrix<REAL>>> temp;
-            TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> outsamples;
-            TPZVec<TPZFMatrix<REAL>> sample = copy[n-nc+i].second;
-            outsamples=  MetropolisHastings (ns, sample,b);
-            for ( int ins=0; ins<outsamples.size(); ins++ )
-            {
-                outsamplesfull.Push ( outsamples[ins] );
-            }
-        }
-
-        return outsamplesfull;
-}
-//#include "matplotlibcpp.h"
-
-void SubsetMonteCarlo::SubSet( )
-{
-
-    REAL p0=0.5;
-    int level=2;
-    if(level==0)
-    {
-        ExecuteInitialMonteCarloSimulation(0,100);
-        TPZBFileStream save;
-        save.OpenWrite("SubSetInitialMonteCarloConfig.bin");
-        Write(save,ClassId());
-    }
-
-
-
-
-    if(level==1)
-    {
-        TPZBFileStream read2;
-        read2.OpenRead ( "SubSetInitialMonteCarloConfig.bin" );
-        Read ( read2,0 );
-
-        TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> copy = fCurrentConfig.fSimulateFields;
-        if(copy.size()==0)
-        {
-            DebugStop();
-
-        }
-        fCurrentConfig.fSimulateFields = LevelLoop(copy);
-        std::string name =  "SubsetSimulationLevel"+ std::to_string ( 1 );
-        std::stringstream strout;
-        strout << name;
-        SaveConfig(strout);
-        TPZBFileStream save;
-        name+=".bin";
-        save.OpenWrite(name);
-        Write(save,ClassId());
-    }
-
-    if(level==2)
-    {
-        TPZBFileStream read2;
-        read2.OpenRead ( "SubsetSimulationLevel1.bin" );
-        Read ( read2,0 );
-
-        cout<< " -- level 0 -- "<<endl;
-        TConfig *conf0 =  GetConfig (0);
-        REAL prod=1.;
-        TPZFMatrix<REAL> pfdata=  ComputePf(conf0->fSimulateFields,prod);
-
-
-//         for(int i=0;i<pfdata.Rows();i++)
-//         {
-//             pfout <<  pfdata(i,0) << " "<< pfdata(i,1) <<endl;
-//         }
-
-
-        cout<< " -- level 1 -- "<<endl;
-        TConfig *conf1 =  GetConfig (1);
-
-        prod=pow(p0,1);
-        pfdata= ComputePf(conf1->fSimulateFields,prod);
-
-//         for(int i=0;i<pfdata.Rows();i++)
-//         {
-//             pfout <<  pfdata(i,0) << " "<< pfdata(i,1) <<endl;
-//         }
-
-    }
-
-    return;
-    if(level==2)
-    {
-        TPZBFileStream read2;
-        read2.OpenRead ( "SubsetSimulationLevel1.bin" );
-        Read ( read2,0 );
-
-        TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> copy = fCurrentConfig.fSimulateFields;
-        if(copy.size()==0)
-        {
-            DebugStop();
-
-        }
-
-//         REAL prod=pow(p0,level);
-//         ComputePf(copy,prod);
-
-        fCurrentConfig.fSimulateFields = LevelLoop(copy);
-        std::string name =  "SubsetSimulationLevel"+ std::to_string ( 2 );
-        std::stringstream strout;
-        strout << name;
-        SaveConfig(strout);
-        TPZBFileStream save;
-        name+=".bin";
-        save.OpenWrite(name);
-        Write(save,ClassId());
-    }
-
-
-}
-
-
-TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> SubsetMonteCarlo::MetropolisHastings(int nnewsamples,TPZVec<TPZFMatrix<REAL>> seedinit,REAL b)
-{
-
-
-        TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> copy = fCurrentConfig.fSimulateFields;
-
-        SortData(copy);
-
-        SlopeAnalysis* analysis3 = new SlopeAnalysis ( *fSlopeAnalysis );
-
-        REAL fsx0 =analysis3->SolveSingleField ( seedinit );
-
-        cout << "dd"<<endl;
-        delete analysis3;
-
-        int M = fSlopeAnalysis->GetM();
-
-        cout << "MetropolisHastings with proposal distribution ~N(0.0.5) << " << endl;
-        std::normal_distribution<double> distribution ( 0., 0.5 );
-
-        std::uniform_real_distribution<double> distribution2 ( -0.5, 0.5);
-
-        std::uniform_real_distribution<double> distributionunif ( 0, 1. );
-
-        TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> outsamples;
-
-         for(int ins=0;ins<nnewsamples;ins++)
-        {
-                std::pair<REAL,TPZVec<TPZFMatrix<REAL>>> couple;
-                cout<< "ins = "<< ins <<endl;
-                TPZVec<TPZFMatrix<REAL>> newfield(2);
-                newfield[0].Resize(M,1);
-                newfield[1].Resize(M,1);
-
-                 for ( int irdvar = 0; irdvar < M; irdvar++ )
-                 {
-                        std::random_device rd{};
-                        std::mt19937 generator{ rd() };
-                        std::random_device rd2{};
-                        std::mt19937 generator2{ rd2() };
-                        REAL xic = distribution ( generator );
-                        newfield[0] ( irdvar,0 ) = xic+seedinit[0]( irdvar,0);
-                        xic = distribution ( generator2 );
-                        newfield[1] ( irdvar,0 ) = xic+seedinit[1]( irdvar,0);
-
-                }
-
-                SlopeAnalysis* analysis2 = new SlopeAnalysis ( *fSlopeAnalysis );
-
-                REAL fsx1 =analysis2->SolveSingleField(newfield );
-
-                REAL alpha = min(fsx1/fsx0, 1.);
-
-                //(*Aceitação ou rejeição*)
-                std::random_device rd2{};
-
-                std::mt19937 generator2{ rd2() };
-
-                REAL u = distributionunif(generator2);
-
-
-                if(u<alpha)
-                {
-                        if(fsx1<b)
-                        {
-                                cout<< "Aceita com "<<" b = " << b  << " fsx1 = " <<fsx1 << " fsx0 = " << fsx0  << " alpha " << alpha << " u = " << u << endl;
-                                fsx0=fsx1;//aceita fs novo
-                                seedinit=newfield;//atualiza campo novo
-                                couple.first=fsx0;
-                                couple.second = newfield;
-                                outsamples.Push(couple);//aceita campo novo
-                       }
-                        else
-                       {
-                               cout<< "Rejeita 0 com "<<" b = " << b  << " fsx1 = " <<fsx1  << " alpha " << alpha << " u = " << u << endl;
-                               fsx1=fsx0;//mantem fs antigo
-                               couple.first=fsx1;
-                               couple.second = seedinit;
-                               outsamples.Push(couple);//descarta amostra e pega campo antigo
-                       }
-
-                }
-                else
-                {
-                         cout<< "Rejeita 1 com "<<" b = " << b  << " fsx1 = " <<fsx1 << " fsx0 = " << fsx0   << " alpha " << alpha << " u = " << u << endl;
-                        fsx1=fsx0;//mantem fs antigo
-                        couple.first=fsx1;
-                        couple.second = seedinit;
-                        outsamples.Push(couple);//descarta amostra e pega campo antigo
-
-
-                }
-
-                delete analysis2;
-        }
-
-        return outsamples;
-}
-
 void SubsetMonteCarlo::SortData(TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> & data)
 {
     int sizeofstack=data.size();

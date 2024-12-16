@@ -198,7 +198,7 @@ REAL SlopeAnalysis::SolveDeterministic ( bool IsSRM )
 
         cout << "Refining.."<<endl;
         std::set<long> elindices,elindices2;
-        for ( int iref=1; iref<=0; iref++ ) {
+        for ( int iref=1; iref<=1; iref++ ) {
                 cout << "computing deformation..."  << endl;
                 ComputeElementDeformation();
                 cout << "p refining..."  << endl;
@@ -294,7 +294,7 @@ REAL SlopeAnalysis::SolveSingleField ( int ifield )
         //REAL FS  =ArcLength(conv);
 
         std::set<long> elindices,elindices2;
-        for ( int iref=1; iref<=0; iref++ ) {
+        for ( int iref=1; iref<=1; iref++ ) {
                 cout << "refining level "<< iref <<endl;
                 cout << "computing deformation..."  << endl;
                 ComputeElementDeformation();
@@ -1580,7 +1580,9 @@ void SlopeAnalysis::DivideElementsAbove ( REAL refineaboveval, std::set<long> &e
                         if ( !subintel ) {
                                 DebugStop();
                         }
+                        TPZStack<long> subsubels;
                         subintel->SetPreferredOrder ( porder );
+                        subintel->Divide(subels[is],subsubels,0);
                 }
         }
         // divide elements with more than one level difference
@@ -1651,6 +1653,23 @@ void SlopeAnalysis::DivideElementsAbove ( REAL refineaboveval, std::set<long> &e
                                         DebugStop();
                                 }
                                 subintel->SetPreferredOrder ( porder );
+
+//                                 //mais um nivel de refinamento
+//                                TPZStack<long> subsubels;
+//                                subintel->Divide(subels[is],subsubels,0);
+//                                cout << "subsubels.size() = "<< subsubels.size() <<endl;
+//                                cout << "subels.size() = "<< subels.size() <<endl;
+//                                  for ( int is2=0; is2<subsubels.size(); is2++ )
+//                                  {
+//                                          TPZCompEl *subsubcel = fCompMesh->ElementVec() [subsubels[is2]];
+//                                          TPZInterpolationSpace *subsubintel = dynamic_cast<TPZInterpolationSpace *> ( subsubcel );
+//                                          if ( !subintel )
+//                                          {
+//                                                  DebugStop();
+//
+//                                         }
+//                                         subsubintel->SetPreferredOrder ( porder+1 );
+//                                 }
                         }
                 }
         }

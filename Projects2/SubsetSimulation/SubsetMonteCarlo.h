@@ -39,20 +39,12 @@ class SubsetMonteCarlo
 
             void Read(TPZStream &buf, void *context);
 
-
-
-
             int ClassId() const; // Identificador de classe para serialização
 
             //guarda os campos simulados e seus respectivos FSs
             TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> fSimulateFields;
 
             std::string fHistoryLog;
-
-
-
-
-
 
     };
 
@@ -80,7 +72,7 @@ public:
 
     //TPZStack<TPZVec<TPZFMatrix<REAL>>> MetropolisHastings(int nnewsamples,TPZVec<TPZFMatrix<REAL>> seedinit,std::vector<double> &fsvec, REAL b);
 
-    TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> MetropolisHastings(int nnewsamples,TPZVec<TPZFMatrix<REAL>> seedinit,REAL b);
+    TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> MetropolisHastings(int nnewsamples,std::pair<REAL,TPZVec<TPZFMatrix<REAL>>> seedinit,REAL b);
 
     TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>>  LevelLoop( TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>>);
 
@@ -138,20 +130,20 @@ public:
 
         REAL p0=fp0;
         REAL nc = p0*n;
-        TPZFMatrix<REAL> mat(nc,2);
+        TPZFMatrix<REAL> mat(n,2);
 //         for(int i=0;i<n-nc;i++)
 //         {
 //             cout << copy[i].first <<endl;
 //
 //         }
-        for(int i=n-nc;i<n-1;i++)
+        for(int i=0;i<n-1;i++)
         {
 
             REAL val1=copy[i+1].first;
             REAL val2=copy[i].first;
             REAL count1=1.;
             REAL count2=1.;
-                for (int j =n-nc;j<n-1;j++)
+                for (int j =0;j<n-1;j++)
                 {
                     if (val1 >= copy[j].first)
                     {
@@ -165,7 +157,7 @@ public:
 
 
             prod0*=count1/count2;
-            cout <<"val1 = " << val1 <<" val2 = " << val2 << " count1 = " << count1 << " count2 = " << count2 <<endl;
+           // cout <<"val1 = " << val1 <<" val2 = " << val2 << " count1 = " << count1 << " count2 = " << count2 <<endl;
             cout << val1 << " " << prod0 <<endl;
                 mat(i,0)=val1;
                 mat(i,1)=prod0;
