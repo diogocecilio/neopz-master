@@ -66,73 +66,10 @@ int main()
 
         int Startfrom =2;
         ManageStartFrom ( Startfrom );
-
-/*
-        std::vector<double> fsvec ={3.,8.,1.};
-        std::pair<std::vector<double>,std::vector<int>> out;
-
-        out=Sort(fsvec,0);
-
-
-
-        for (size_t i = 0; i < out.first.size(); ++i)
-        {
-                cout << "First (valor): " << out.first[i] << ", Second (índice): " << out.second[i] << endl;
-        }
-        cout << "HELLO WORLD" <<endl;
-
-TPZVec<TPZFMatrix<REAL>> vecmat(2),vecmat2(2),vecmat3(2);
-TPZFMatrix<REAL> a,b,c,d,e,f;
-a.AutoFill(3,3,1);
-b.AutoFill(2,3,1);
-c.AutoFill(3,4,1);
-d.AutoFill(4,5,1);
-e.AutoFill(1,3,1);
-f.AutoFill(2,2,1);
-
-vecmat[0]=a;
-vecmat[1]=b;
-vecmat2[0]=c;
-vecmat2[1]=d;
-vecmat3[0]=e;
-vecmat3[1]=f;
-
-
-TPZStack<TPZVec<TPZFMatrix<REAL>>> stackvecmat;
-
-
-stackvecmat.Push(vecmat);
-
-stackvecmat.Push(vecmat2);
-
-stackvecmat.Push(vecmat3);
-
-                int szstack = stackvecmat.size();
-
-                cout << "szstack = "<< szstack << " out.first.size() ="<<out.first.size() << endl;
-
-                for (int i = 0; i < stackvecmat.size(); i++)
-                {
-                        cout << "First : " << out.first[i] << ", Second  : " << out.second[i] << endl;
-                        //armazena as novas amostras geradas em ordem decrescente do fator de seguranca
-                        stackvecmat[out.second[i]][0].Print(cout);
-                }*/
         return 0;
 }
-
-REAL func(REAL theta,REAL cov,REAL mean)
-{
-        REAL xi = sqrt ( log ( 1. + cov*cov ) );
-        REAL lambda = log ( mean ) - 0.5*xi * xi;
-        //return exp ( lambda + xi *theta );
-        return  exp(xi *theta) ;
-}
-
-
-
 void ManageStartFrom(int Startfrom)
 {
-
         //create random analysis
         int ref=3;
         TPZGeoMesh * gmesh =  TriGMesh ( ref );
@@ -150,7 +87,7 @@ void ManageStartFrom(int Startfrom)
         int solvertype=0;
         int numthreads=10;
         int ref0slope=3;
-        int porderslope=1;
+        int porderslope=2;
         REAL gammaagua=0.;
         REAL gammasolo=20.;
         REAL coes=10.;
@@ -160,6 +97,18 @@ void ManageStartFrom(int Startfrom)
 
        bool issrm=true;
        slopeanalysis->SolveDeterministic(issrm);
+//         int numit1=30,numit2=30;
+//         REAL tolfs=1.e-2,tolrhs=1.e-3,l=1;
+//         bool converge;
+//         slopeanalysis->IterativeProcessArcLength ( tolfs,numit1,tolrhs,numit2,l,1,converge );
+       // slopeanalysis->FindRoot(converge);
+//        REAL tol=1.e-3;
+//        int numiter=30;
+//        REAL l=0.5;
+//        REAL lambda0=5;
+//        bool converge;
+//        REAL lambda=slopeanalysis->IterativeProcessArcLength2 ( tol,numiter, l, lambda0, converge );
+//        cout << "lambda = "<< lambda <<endl;
        std::string saidavtk2 = "postdeter.vtk";
        slopeanalysis->PostPlasticity ( saidavtk2 );
 
@@ -198,8 +147,8 @@ void ManageStartFrom(int Startfrom)
                 slopeanalysis->SetFieldsData ( cmesh,randonanalysis->GetSolutionValVec(), meanvec,covvec,  samples );
 
 
-                if ( Startfrom==1 ) {
-
+                if ( Startfrom==1 )
+                {
 
                         slopeanalysis->ManageFieldCretion();
                         TPZBFileStream save;
@@ -215,20 +164,20 @@ void ManageStartFrom(int Startfrom)
                         slopeanalysis->Read ( read,0 );
 
                        // CrudeMonteCarlo(0,1,slopeanalysis);
-                        REAL fs = slopeanalysis->SolveSingleField ( 0 );
-                        std::string vtkfile="saida.vtk";
-                        slopeanalysis->PostPlasticity ( vtkfile );
+//                         REAL fs = slopeanalysis->SolveSingleField ( 0 );
+//                         std::string vtkfile="saida.vtk";
+//                         slopeanalysis->PostPlasticity ( vtkfile );
 
 
 
-//                         REAL p0=0.1;
-//                         int samples=100;
-//                         SubsetMonteCarlo*sub=new SubsetMonteCarlo(slopeanalysis,p0,samples);
-//                         //sub->SetSlopeAnalysis(slopeanalysis);
-//                         sub->SubSet();
+                         REAL p0=0.1;
+                         int samples=500;
+                         SubsetMonteCarlo*sub=new SubsetMonteCarlo(slopeanalysis,p0,samples);
+
+                         sub->SubSet();
 
 
-                       // CrudeMonteCarlo(9000,10000,slopeanalysis);
+                      //  CrudeMonteCarlo(5156,10000,slopeanalysis);
                        // cout << "A3"<<endl;
                        // int n=100;
                        // REAL p0=0.5;
@@ -527,8 +476,8 @@ std::vector<std::pair<int, double>> CrudeMonteCarlo(int a,int b, SlopeAnalysis* 
                 REAL fs = analysis->SolveSingleField ( imc );
                 fsvec.emplace_back(imc, fs);
                 posprocfs << imc << " "<<fs << endl;
-//                 std::string saidavtk2 = "postvtk/saidavtk" + std::to_string ( imc ) + ".vtk";
-//                 analysis->PostPlasticity ( saidavtk2 );
+                std::string saidavtk2 = "postvtk/saidavtk" + std::to_string ( imc ) + ".vtk";
+                analysis->PostPlasticity ( saidavtk2 );
                 std::string saidafs2 = "post/fs" + std::to_string ( imc ) + ".dat";
                 std::ofstream out2 ( saidafs2 );
                 out2 << fs << std::endl;
@@ -704,4 +653,11 @@ TPZGeoMesh * TriGMesh ( int ref )
         std::ofstream files ( meshref );
         TPZVTKGeoMesh::PrintGMeshVTK ( gmesh,files,true );
         return gmesh;
+}
+REAL func(REAL theta,REAL cov,REAL mean)
+{
+        REAL xi = sqrt ( log ( 1. + cov*cov ) );
+        REAL lambda = log ( mean ) - 0.5*xi * xi;
+        //return exp ( lambda + xi *theta );
+        return  exp(xi *theta) ;
 }

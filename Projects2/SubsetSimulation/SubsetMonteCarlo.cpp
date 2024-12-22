@@ -161,25 +161,25 @@ void SubsetMonteCarlo::SaveConfig(std::stringstream &strout)
 void SubsetMonteCarlo::SubSet( )
 {
 
-    int level=1;
+    int level=4;
     if(level==0)
     {
-        ExecuteInitialMonteCarloSimulation(0,100);
+        ExecuteInitialMonteCarloSimulation(0,500);
         TPZBFileStream save;
-        save.OpenWrite("SubSetInitialMonteCarloConfig.bin");
+        save.OpenWrite("SubSetInitialMonteCarloConfig500c15.bin");
         Write(save,ClassId());
     }
 
     if(level==1)
     {
         TPZBFileStream read2;
-        read2.OpenRead ( "SubSetInitialMonteCarloConfig.bin" );
+        read2.OpenRead ( "SubSetInitialMonteCarloConfig500c15.bin" );
         Read ( read2,0 );
 
         TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> copy = fCurrentConfig.fSimulateFields;
 
         fCurrentConfig.fSimulateFields = LevelLoop(copy);
-        std::string name =  "Level"+ std::to_string ( 1 );
+        std::string name =  "c15LevelN-delta01-"+ std::to_string ( 1 );
         std::stringstream strout;
         strout << name;
         SaveConfig(strout);
@@ -192,13 +192,13 @@ void SubsetMonteCarlo::SubSet( )
     if(level==2)
     {
         TPZBFileStream read2;
-        read2.OpenRead ( "Level1.bin" );
+        read2.OpenRead ( "c15LevelN-delta01-1.bin" );
         Read ( read2,0 );
 
         TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> copy = fCurrentConfig.fSimulateFields;
 
         fCurrentConfig.fSimulateFields = LevelLoop(copy);
-        std::string name =  "Level"+ std::to_string ( 2 );
+        std::string name =  "c15LevelN-delta01-"+ std::to_string ( 2 );
         std::stringstream strout;
         strout << name;
         SaveConfig(strout);
@@ -211,13 +211,13 @@ void SubsetMonteCarlo::SubSet( )
     if(level==3)
     {
         TPZBFileStream read2;
-        read2.OpenRead ( "Level2.bin" );
+        read2.OpenRead ( "Level1unif2.bin" );
         Read ( read2,0 );
 
         TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> copy = fCurrentConfig.fSimulateFields;
 
         fCurrentConfig.fSimulateFields = LevelLoop(copy);
-        std::string name =  "Level"+ std::to_string ( 3 );
+        std::string name =  "Level1unif"+ std::to_string ( 3 );
         std::stringstream strout;
         strout << name;
         SaveConfig(strout);
@@ -228,51 +228,47 @@ void SubsetMonteCarlo::SubSet( )
     }
     if(level==4)
     {
-        cout<< "ads"<<endl;
+       // string filename = "Level3.bin";
+        //string filename = "SubsetSimulationLevel3.bin";
+        //string filename = "Level1unif2.bin";
+        string filename = "c15LevelN-delta01-2.bin";
+
+        PostProcessPf( filename);
+
+    }
+
+}
+
+void SubsetMonteCarlo::PostProcessPf(string filename)
+{
+
         TPZBFileStream read2;
-        read2.OpenRead ( "Level3.bin" );
+        read2.OpenRead ( filename );
         Read ( read2,0 );
 
         TPZStack<TPZFMatrix<REAL>> oudata;
 
-        cout<< " -- level 0 -- "<<endl;
-        TConfig *conf0 =  GetConfig (0);
-        REAL prod=fp0;
-        TPZFMatrix<REAL> pfdata=  ComputePf(conf0->fSimulateFields,prod);
+        int levels = fSequence.size();
 
-        oudata.Push(pfdata);
-        cout<< " -- level 1 -- "<<endl;
-        TConfig *conf1 =  GetConfig (1);
-
-        prod=pow(fp0,2);
-        pfdata= ComputePf(conf1->fSimulateFields,prod);
-
-        oudata.Push(pfdata);
-        cout<< " -- level 2 -- "<<endl;
-        TConfig *conf2 =  GetConfig (2);
-
-        prod=pow(fp0,3);
-        pfdata= ComputePf(conf2->fSimulateFields,prod);
-
-        oudata.Push(pfdata);
-        cout<< " -- level 3 -- "<<endl;
-        TConfig *conf3 =  GetConfig (3);
-
-        prod=pow(fp0,4);
-        pfdata= ComputePf(conf3->fSimulateFields,prod);
-        oudata.Push(pfdata);
-
-        std::ofstream posprocfs ( "posprocfs.txt" );
-        for(int  i=0;i<oudata.size();i++)
+        std::ofstream post ( "todos23.txt" );
+        cout << "levels  = " <<levels <<endl;
+        REAL prod=1;
+        for(int ilevel=0;ilevel<levels;ilevel++)
         {
-            for(int j=0;j<oudata[i].Rows();j++)
-            {
-                posprocfs << oudata[i](j,0) << " " << oudata[i](j,1) <<endl;
-            }
-        }
-    }
+            post << "\n"<<endl;
+            TConfig *conf =  GetConfig (ilevel);
+            TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> leveldata = conf->fSimulateFields;
+            SortData(leveldata);
+            int n= leveldata.size();
 
+            for(int i=0;i<n;i++)
+            {
+                post << leveldata[i].first <<endl;
+            }
+
+        }
 }
+
 TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>>  SubsetMonteCarlo::LevelLoop(TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> copy )
 {
 
@@ -297,6 +293,7 @@ TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>>  SubsetMonteCarlo::LevelLoop(
         TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> outsamplesfull;
 
         for ( int i=0; i<nc; i++ ) {
+                cout<< "---->> inc  = "<<  i <<endl;
                 std::pair<REAL,TPZVec<TPZFMatrix<REAL>>> temp;
                 TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> outsamples;
                 outsamples=  MetropolisHastings ( ns, copy[n-nc+i],b );
@@ -307,7 +304,7 @@ TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>>  SubsetMonteCarlo::LevelLoop(
 
         return outsamplesfull;
 }
-
+std::ofstream posttemp ( "temp.txt" );
 TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> SubsetMonteCarlo::MetropolisHastings(int nnewsamples,std::pair<REAL,TPZVec<TPZFMatrix<REAL>>> seedinit,REAL b)
 {
 
@@ -319,7 +316,7 @@ TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> SubsetMonteCarlo::MetropolisH
         int M = fSlopeAnalysis->GetM();
 
         cout << "MetropolisHastings with proposal distribution ~N(0.,1) << " << endl;
-        std::normal_distribution<double> distribution ( 0., 1. );
+        std::normal_distribution<double> distribution ( 0., 0.1 );
 
         std::uniform_real_distribution<double> distribution2 ( -0.5, 0.5);
 
@@ -328,6 +325,10 @@ TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> SubsetMonteCarlo::MetropolisH
         TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> outsamples;
 
         REAL fsx0 = seedinit.first;
+
+
+        outsamples.Push(seedinit);//aceita campo novo
+
 
          for(int ins=0;ins<nnewsamples;ins++)
         {
@@ -397,6 +398,8 @@ TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> SubsetMonteCarlo::MetropolisH
                 }
 
                 delete analysis2;
+
+                posttemp << fsx1 <<endl;
         }
 
         return outsamples;

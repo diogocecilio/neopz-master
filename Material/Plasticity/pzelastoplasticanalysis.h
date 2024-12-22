@@ -10,7 +10,14 @@
 #include "pzvec.h"
 #include "pzpostprocanalysis.h"
 #include <iostream>
-
+// Inclui várias bibliotecas de análise e estruturas para elementos finitos e material elastoplástico
+#include "tpzgeoelrefpattern.h"
+#include "Plasticity/pzelastoplasticanalysis.h"
+#include "Plasticity/TPZElasticResponse.h"
+#include "Plasticity/TPZYCMohrCoulombPV.h"
+#include "Plasticity/TPZMatElastoPlastic2D.h"
+#include "Plasticity/TPZMatElastoPlastic.h"
+#include "Plasticity/TPZPlasticStepPV.h"
 
 class TPZElastoPlasticAnalysis : public TPZLinearAnalysis {
 
@@ -29,7 +36,7 @@ public:
 	bool IterativeProcess2(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv,int &iters);
 
 		//Implements the cylindrical arc length method ref- Souza Neto 2009
-	REAL IterativeProcessArcLength(REAL tol,int numiter,REAL tol2,int numiter2,REAL l,REAL lambda0,bool &converge);
+	//REAL IterativeProcessArcLength(REAL tol,int numiter,REAL tol2,int numiter2,REAL l,REAL lambda0,bool &converge);
 
 	REAL MyLineSearch(const TPZFMatrix<REAL> &Wn, const TPZFMatrix<REAL> &DeltaW, TPZFMatrix<REAL> &NextW, REAL RhsNormPrev, REAL &RhsNormResult, int niter, bool & converging);
 
@@ -154,6 +161,20 @@ public:
         fMeshVec.Resize(0);
     }
 
+	REAL IterativeProcessArcLength2 ( REAL tol,int numiter,REAL l,REAL lambda0,bool &converge );
+
+	REAL IterativeProcessArcLength ( REAL tol,int numiter,REAL tol2,int numiter2,REAL l,REAL lambda0,bool &converge );
+
+	typedef TPZMatElastoPlastic2D <TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZElastoPlasticMem> plasticmat;
+
+	void LoadingRamp ( REAL factor );
+    REAL  computelamda0 ( TPZFMatrix<REAL>& dwb,  TPZFMatrix<REAL>& dw, REAL& l );
+
+    REAL  computelamda ( TPZFMatrix<REAL>& dwb, TPZFMatrix<REAL>& dws, TPZFMatrix<REAL>& dw, REAL& l );
+
+    TPZVec<REAL>  computelamdacris ( TPZFMatrix<REAL>& dwb, TPZFMatrix<REAL>& dws, TPZFMatrix<REAL>& dw, REAL& l);
+
+    //typedef TPZMatElastoPlastic2D <TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZElastoPlasticMem> plasticmat;
 
     void DivideElementsAbove(REAL refineaboveval, std::set<long> &elindices);
 

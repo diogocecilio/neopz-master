@@ -159,6 +159,7 @@ REAL SlopeAnalysis::IterativeProcessArcLength ( REAL tol,int numiter,REAL tol2,i
         //anal.AcceptSolution();
         if(counterout < numiter)
         {
+                //anal.AcceptSolution();
                 cout << "Converged"<<endl;
                 converge=true;
         }else{
@@ -169,6 +170,117 @@ REAL SlopeAnalysis::IterativeProcessArcLength ( REAL tol,int numiter,REAL tol2,i
         return lambda;
 }
 
+
+
+REAL SlopeAnalysis::IterativeProcessArcLength2 ( REAL tol,int numiter,REAL l,REAL lambda0,bool &converge )
+{
+
+
+        TPZElastoPlasticAnalysis anal =  SetSlopeAnalysis ( );
+
+        std::vector<double> fslist;
+
+        REAL lambda=lambda0;
+
+        TPZFMatrix<REAL> u,dws,dwb,du,rhs,rhs1,rhs2,uold;
+
+        u=anal.Solution();
+
+        u.Zero();
+
+        LoadingRamp (1.);
+        anal.AssembleResidual();
+        TPZFMatrix<REAL> rhstotal=anal.Rhs();
+
+        LoadingRamp ( 0. );
+        anal.AssembleResidual();
+        TPZFMatrix<REAL> rhsint=anal.Rhs();
+        TPZFMatrix<REAL> FBODY=rhstotal-rhsint;
+        REAL normint=Norm ( rhstotal );
+
+        //cout << "\n load step  = " << counterout+1 << " load factor  = " << lambda << " diff = " << diff << " l = " << l<< " fac = "<< fac <<  endl;
+        int counter=0;
+        REAL normrhs=10.;
+        REAL normdu=10.;
+
+        REAL dlamb=0.;
+
+
+        lambda=1 ;
+
+        //diff=1000;
+        u.Zero();
+        anal.LoadSolution ( u );
+        do {
+                //K dws = -r
+                LoadingRamp ( lambda );
+                anal.Assemble();
+                anal.Solve();
+                dws=anal.Solution();
+                rhs=anal.Rhs();
+
+                anal.Rhs() =FBODY;
+                anal.Solve();
+                dwb=anal.Solution();
+
+                normrhs=Norm ( rhs ) /normint;
+
+                TPZVec<REAL> lambvec;
+                if ( counter == 0 ) {
+                        dlamb =computelamda0 ( dwb, u, l );
+                } else {
+
+                        if ( false ) {
+
+                                dlamb = computelamda ( dwb, dws, u, l );
+                        } else {
+                                TPZVec<REAL> lambvec = computelamdacris ( dwb, dws, u, l );
+
+                                LoadingRamp ( lambvec[0]+lambda );
+                                anal.AssembleResidual();
+                                rhs1=anal.Rhs();
+
+                                LoadingRamp ( lambvec[1]+lambda );
+                                anal.AssembleResidual();
+                                rhs2=anal.Rhs();
+
+                                REAL res1 = Norm ( rhs1 );
+                                REAL res2 = Norm ( rhs2 );
+
+                                if ( res1 <res2 ) {
+                                        dlamb = lambvec[0];
+
+                                } else {
+                                        dlamb = lambvec[1];
+                                }
+                        }
+
+                }
+
+                lambda += dlamb;
+                du=dws+dlamb*dwb;
+                normdu=Norm ( du );
+                u+=du;
+                anal.LoadSolution ( u );
+
+                counter++;
+
+        } while ( counter<numiter && (normdu>tol ||normrhs>tol*10));
+
+        if(counter>=numiter)
+        {
+                converge=false;
+        }else
+        {
+                converge=true;
+                //anal.AcceptSolution();
+
+        }
+
+        cout << "i = " << counter  << " ||rhs|| =  "<< normrhs <<" ||du||  = " <<normdu <<" lambda = "<< lambda << " dlamb = "<< dlamb <<" l = "<< l << "converge = "<<converge <<endl;
+        //lambda+=lambda0;
+        return lambda;
+}
 
 
 void SlopeAnalysis::FindRoot (bool &conv )
@@ -184,14 +296,14 @@ void SlopeAnalysis::FindRoot (bool &conv )
     x.Zero();
     dx.Zero();
     REAL tol = 1.e-3;
-    int n_it = 100;
+    int n_it = 60;
     anal.AssembleResidual();
     normrhs0=Norm(anal.Rhs());
 
     for (int i = 1; i <= n_it; i++) {
         anal.Assemble();
         anal.Solve();
-        if ( false)
+        if ( true)
         {
             TPZFMatrix<STATE> nextSol;
             REAL LineSearchTol = 0.001 * Norm ( anal.Solution() );
@@ -259,7 +371,7 @@ REAL SlopeAnalysis::SolveDeterministic ( bool IsSRM )
 
         if ( IsSRM==true ) {
                 //FS = ShearRed ( 20,0.5,0.01 );
-                FS =ShearRedNoIntegrationPoints( 20,0.5,0.01 );
+                FS =ShearRed( 20,0.5,0.01 );
         } else {
                 //FS = GravityIncrease() ;
 
@@ -287,7 +399,7 @@ REAL SlopeAnalysis::SolveDeterministic ( bool IsSRM )
                 FSOLD=FS;
                 if ( IsSRM==true ) {
                        // FS = ShearRed ( 20,FSOLD,0.01 );
-                        FS =ShearRedNoIntegrationPoints( 20,FSOLD,0.01 );
+                        FS =ShearRed( 20,FSOLD,0.01 );
                 } else {
 
                 //FS = ShearRed ( 20,FSOLD,0.01 );
@@ -459,18 +571,21 @@ REAL SlopeAnalysis::ShearRed ( int maxcout,REAL FS0,REAL fstol )
         LoadingRamp ( 1. );
 
 
-        REAL FS=FS0,FSmax=10.,FSmin=0.,tol=fstol;
+        REAL FS=0.1,FSmax=10.,FSmin=0.,tol=fstol;
         int counterout = 0;
         bool conv=false;
         auto t0 =chrono::high_resolution_clock::now();
         REAL FSN=1000;
         int type=0;
         int numthreads=15;
+        REAL lambda0=10,lambda=10;
 
         do {
 
+                cout << "| step = " << counterout << " FS = "<< FS <<  " conv?" << conv<< " lambda = "<<lambda << endl;
                 TPZElastoPlasticAnalysis anal =  SetSlopeAnalysis ( );
                 fCompMesh->Solution().Zero();
+                anal.LoadSolution(fCompMesh->Solution());
                 REAL norm = 1000.;
                 REAL tol2 = 1.e-3;
                 int NumIter = 100;
@@ -478,14 +593,36 @@ REAL SlopeAnalysis::ShearRed ( int maxcout,REAL FS0,REAL fstol )
                 bool checkconv = false;
                 int iters;
 
+
+               //  LoadingRamp ( 1.39 );
                 ShearReductionIntegrationPoints ( FS );
 
                 auto t1 = chrono::high_resolution_clock::now();
-                conv  =anal.IterativeProcess2 ( cout,tol2, NumIter,  linesearch,  checkconv,iters );
+            //    conv  =anal.IterativeProcess2 ( cout,tol2, NumIter,  linesearch,  checkconv,iters );
+        //       int numit1=10;
 
-//                 int numit1=20,numit2=10;
-//                 REAL tolfs=1.e-2,tolrhs=1.e-3,l=0.5;
-//                 FS = IterativeProcessArcLength ( tolfs,numit1,tolrhs,numit2,l,FS,conv );
+      //         REAL tolfs=1.e-6,l=0.1,lambda0=0.1;
+
+ //             lambda0=lambda;
+  //            lambda=IterativeProcessArcLength2 ( tolfs,numit1,l,0.1,conv );
+  //            FS=1/lambda;
+
+ //               FindRoot(conv);
+                int numit1=10,numit2=10;
+                 REAL tolfs=1.e-2,tolrhs=1.e-3,l=1;
+                 lambda0=lambda;
+                 lambda=IterativeProcessArcLength ( tolfs,numit1,tolrhs,numit2,l,FS,conv );
+
+
+                 if(lambda<1)
+                 {
+                         conv=true;
+                 }
+                 else
+                 {
+                         conv=false;
+                 }
+
 
 
                 auto t2 = chrono::high_resolution_clock::now();
@@ -515,13 +652,175 @@ REAL SlopeAnalysis::ShearRed ( int maxcout,REAL FS0,REAL fstol )
                         //conv=true;
                 }
         }  while ( ( ( FSmax - FSmin ) / FS > tol || conv==false ) && counterout<maxcout );
-
-        auto t3 = chrono::high_resolution_clock::now();
-        auto timeinmili = chrono::duration_cast<chrono::seconds> ( t3 - t0 );
-        std::cout << "final safety factor "<< FS << " total time in ShearRed = "<< timeinmili.count() << " s "<<std::endl;
+//         TPZElastoPlasticAnalysis anal =  SetSlopeAnalysis ( );
+//         REAL norm = 1000.;
+//         REAL tol2 = 1.e-3;
+//         int NumIter = 100;
+//         bool linesearch = true;
+//         bool checkconv = false;
+//         int iters;
+//         anal.IterativeProcess2 ( cout,tol2, NumIter,  linesearch,  checkconv,iters );
+//         anal.AcceptSolution();
+//         auto t3 = chrono::high_resolution_clock::now();
+//         auto timeinmili = chrono::duration_cast<chrono::seconds> ( t3 - t0 );
+        //std::cout << "final safety factor "<< FS << " total time in ShearRed = "<< timeinmili.count() << " s "<<std::endl;
         return ( FSmax + FSmin ) /2;
 }
 
+// REAL SlopeAnalysis::ShearRedNoIntegrationPoints ( int maxcout,REAL FS0,REAL fstol )
+// {
+//         //LoadingRamp ( 1.77 );
+//         LoadingRamp ( 1. );
+//         plasticmat * body= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
+//         REAL FS=0.1,FSmax=10.,FSmin=0.,tol=fstol;
+//         int counterout = 0;
+//         bool conv=false;
+//         auto t0 =chrono::high_resolution_clock::now();
+//         REAL FSN=1000;
+//
+//
+//         maxcout=100;
+//
+//         do {
+//
+//                 TPZElastoPlasticAnalysis anal =  SetSlopeAnalysis ( );
+//
+//                 cout << "| step = " << counterout << " FS = "<< FS << endl;
+//
+//                 body->GetPlasticModel().SetStrengthReductionFactor(FS);
+//                 //ShearReductionIntegrationPoints ( FS );
+//
+//                 fCompMesh->Solution().Zero();
+//
+//                 int iters;
+//
+//                 auto t1 = chrono::high_resolution_clock::now();
+//
+//                 int numit1=10;
+//                 REAL tolfs=1.e-6,l=0.1,lambda0=0.1;
+//
+//               // FindRoot(conv);
+//                REAL lambda=IterativeProcessArcLength2 ( tolfs,numit1,l,lambda0,conv );
+//                 //REAL fs=FS;
+//                 auto t2 = chrono::high_resolution_clock::now();
+//                 auto ms_int = chrono::duration_cast<chrono::milliseconds> ( t2 - t1 );
+//
+//                 //cout << "| step = " << counterout << " FS = "<< FS <<" tempo  iterproc = "<<ms_int.count() << " ms " << " conv?" << conv << " iters = " <<iters<< endl;
+//
+//
+// //                 if ( conv==true ) {
+// //                         FS+=lambda;
+// //                         //anal.AcceptSolution();
+// //                 }
+//
+//                 FSN=FS;
+//                 if ( conv==false ) {
+//
+//                         FSmax = FS;
+//                         FS = ( FSmin + FSmax ) / 2.;
+//                 } else {
+//
+//                         FSmin = FS;
+//                         FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
+//
+//                 }
+// //                 if ( fabs ( FSN-FS ) <1.e-3 && conv==true ) {
+// //                         anal.AcceptSolution();
+// //                         //conv=true;
+// //                 }
+// //
+//                  counterout++;
+// //                 if ( ( FSmax - FSmin ) / FS < tol  && conv==true ) {
+// //                         anal.AcceptSolution();
+// //                         //conv=true;
+// //                 }
+//
+//         }  while ( ( ( FSmax - FSmin ) / FS > tol) && counterout<maxcout );
+//
+//         TPZElastoPlasticAnalysis anal =  SetSlopeAnalysis ( );
+//         anal.AcceptSolution();
+//         body->GetPlasticModel().SetStrengthReductionFactor(1.);
+//         auto t3 = chrono::high_resolution_clock::now();
+//         auto timeinmili = chrono::duration_cast<chrono::seconds> ( t3 - t0 );
+//         std::cout << "final safety factor "<< FS << " total time in ShearRed = "<< timeinmili.count() << " s "<<std::endl;
+//         return ( FSmax + FSmin ) /2;
+// }
+
+
+// REAL SlopeAnalysis::ShearRedNoIntegrationPoints ( int maxcout,REAL FS0,REAL fstol )
+// {
+//         //LoadingRamp ( 1.77 );
+//         LoadingRamp ( 1. );
+//         plasticmat * body= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
+//         REAL FS=FS0,FSmax=10.,FSmin=0.,tol=fstol;
+//         int counterout = 0;
+//         bool conv=false;
+//         auto t0 =chrono::high_resolution_clock::now();
+//         REAL FSN=1000;
+//
+//
+//         do {
+//
+//                 cout << "| step = " << counterout << " FS = "<< FS << endl;
+//                 TPZElastoPlasticAnalysis anal =  SetSlopeAnalysis ( );
+//
+//                 body->GetPlasticModel().SetStrengthReductionFactor(FS);
+//
+//                 fCompMesh->Solution().Zero();
+//                 REAL norm = 1000.;
+//                 REAL tol2 = 1.e-3;
+//                 int NumIter = 50;
+//                 bool linesearch = true;
+//                 bool checkconv = false;
+//                 int iters;
+//
+//                 auto t1 = chrono::high_resolution_clock::now();
+//
+//
+//
+//                 int numit1=10;
+//                 REAL tolfs=1.e-6,l=0.1,lambda0=0.1;
+//
+//                REAL lambda=IterativeProcessArcLength2 ( tolfs,numit1,l,lambda0,conv );
+//
+//                 auto t2 = chrono::high_resolution_clock::now();
+//                 auto ms_int = chrono::duration_cast<chrono::milliseconds> ( t2 - t1 );
+//                 norm = Norm ( anal.Rhs() );
+//                 //if(counterout%5==0)
+//                 //{
+//                 //        cout << "| step = " << counterout << " FS = "<< FS <<" tempo  iterproc = "<<ms_int.count() << " ms " << " conv?" << conv << " iters = " <<iters<< endl;
+//                 //}
+//
+//
+//                 FSN=FS;
+//                 if ( conv==false ) {
+//
+//                         FSmax = FS;
+//                         FS = ( FSmin + FSmax ) / 2.;
+//                 } else {
+//
+//                         FSmin = FS;
+//                         FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
+//
+//                 }
+//                 if ( fabs ( FSN-FS ) <1.e-3 && conv==true ) {
+//                         anal.AcceptSolution();
+//                         //conv=true;
+//                 }
+//
+//                 counterout++;
+//                 if ( ( FSmax - FSmin ) / FS < tol  && conv==true ) {
+//                         anal.AcceptSolution();
+//                         //conv=true;
+//                 }
+//         }  while ( ( ( FSmax - FSmin ) / FS > tol || conv==false ) && counterout<maxcout );
+//
+//         body->GetPlasticModel().SetStrengthReductionFactor(1.);
+//         auto t3 = chrono::high_resolution_clock::now();
+//         auto timeinmili = chrono::duration_cast<chrono::seconds> ( t3 - t0 );
+//         std::cout << "final safety factor "<< FS << " total time in ShearRed = "<< timeinmili.count() << " s "<<std::endl;
+//         return ( FSmax + FSmin ) /2;
+// }
 REAL SlopeAnalysis::ShearRedNoIntegrationPoints ( int maxcout,REAL FS0,REAL fstol )
 {
         //LoadingRamp ( 1.77 );
@@ -535,6 +834,7 @@ REAL SlopeAnalysis::ShearRedNoIntegrationPoints ( int maxcout,REAL FS0,REAL fsto
 
 
         do {
+                cout << "| step = " << counterout << " FS = "<< FS << endl;
 
                 TPZElastoPlasticAnalysis anal =  SetSlopeAnalysis ( );
 
@@ -549,15 +849,12 @@ REAL SlopeAnalysis::ShearRedNoIntegrationPoints ( int maxcout,REAL FS0,REAL fsto
                 int iters;
 
                 auto t1 = chrono::high_resolution_clock::now();
-                FindRoot(conv);
-                //if(conv==false)
-                //{
-                 //       conv  =anal.IterativeProcess2 ( cout,tol2, NumIter,  linesearch,  checkconv,iters );
-                //}
 
-//                  int numit1=20,numit2=10;
-//                  REAL tolfs=1.e-2,tolrhs=1.e-3,l=0.5;
-//                  FS = IterativeProcessArcLength ( tolfs,numit1,tolrhs,numit2,l,FS,conv );
+                int numit1=10;
+
+                REAL tolfs=1.e-6,l=0.1,lambda0=0.1;
+
+               REAL lambda=IterativeProcessArcLength2 ( tolfs,numit1,l,lambda0,conv );
 
 
                 auto t2 = chrono::high_resolution_clock::now();
@@ -597,6 +894,85 @@ REAL SlopeAnalysis::ShearRedNoIntegrationPoints ( int maxcout,REAL FS0,REAL fsto
         std::cout << "final safety factor "<< FS << " total time in ShearRed = "<< timeinmili.count() << " s "<<std::endl;
         return ( FSmax + FSmin ) /2;
 }
+/*
+REAL SlopeAnalysis::ShearRedNoIntegrationPoints ( int maxcout,REAL FS0,REAL fstol )
+{
+        //LoadingRamp ( 1.77 );
+        LoadingRamp ( 1. );
+        plasticmat * body= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
+        REAL FS=FS0,FSmax=10.,FSmin=0.,tol=fstol;
+        int counterout = 0;
+        bool conv=false;
+        auto t0 =chrono::high_resolution_clock::now();
+        REAL FSN=1000;
+
+
+        do {
+
+                TPZElastoPlasticAnalysis anal =  SetSlopeAnalysis ( );
+
+                body->GetPlasticModel().SetStrengthReductionFactor(FS);
+
+                fCompMesh->Solution().Zero();
+                REAL norm = 1000.;
+                REAL tol2 = 1.e-3;
+                int NumIter = 50;
+                bool linesearch = true;
+                bool checkconv = false;
+                int iters;
+
+                auto t1 = chrono::high_resolution_clock::now();
+                FindRoot(conv);
+                //if(conv==false)
+                //{
+                   //     conv  =anal.IterativeProcess2 ( cout,tol2, NumIter,  linesearch,  checkconv,iters );
+                //}
+
+                  int numit1=20,numit2=10;
+                  REAL tolfs=1.e-3,tolrhs=1.e-3,l=1.;
+//                  FS = IterativeProcessArcLength ( tolfs,numit1,tolrhs,numit2,l,FS,conv );
+
+
+                FS = IterativeProcessArcLength2 ( tolfs,numit1,l,FS,conv );
+                //REAL fs=FS;
+                auto t2 = chrono::high_resolution_clock::now();
+                auto ms_int = chrono::duration_cast<chrono::milliseconds> ( t2 - t1 );
+                norm = Norm ( anal.Rhs() );
+                //if(counterout%5==0)
+                //{
+                        cout << "| step = " << counterout << " FS = "<< FS <<" tempo  iterproc = "<<ms_int.count() << " ms " << " conv?" << conv << " iters = " <<iters<< endl;
+                //}
+
+
+                FSN=FS;
+                if ( conv==false ) {
+
+                        FSmax = FS;
+                        FS = ( FSmin + FSmax ) / 2.;
+                } else {
+
+                        FSmin = FS;
+                        FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
+
+                }
+                if ( fabs ( FSN-FS ) <1.e-3 && conv==true ) {
+                        anal.AcceptSolution();
+                        //conv=true;
+                }
+
+                counterout++;
+                if ( ( FSmax - FSmin ) / FS < tol  && conv==true ) {
+                        anal.AcceptSolution();
+                        //conv=true;
+                }
+        }  while ( ( ( FSmax - FSmin ) / FS > tol || conv==false ) && counterout<maxcout );
+
+        body->GetPlasticModel().SetStrengthReductionFactor(1.);
+        auto t3 = chrono::high_resolution_clock::now();
+        auto timeinmili = chrono::duration_cast<chrono::seconds> ( t3 - t0 );
+        std::cout << "final safety factor "<< FS << " total time in ShearRed = "<< timeinmili.count() << " s "<<std::endl;
+        return ( FSmax + FSmin ) /2;
+}*/
 
 REAL SlopeAnalysis::GravityIncrease ( )
 {
@@ -1658,9 +2034,9 @@ void SlopeAnalysis::DivideElementsAbove ( REAL refineaboveval, std::set<long> &e
                         if ( !subintel ) {
                                 DebugStop();
                         }
-                        TPZStack<long> subsubels;
-                        subintel->SetPreferredOrder ( porder );
-                        subintel->Divide(subels[is],subsubels,0);
+//                         TPZStack<long> subsubels;
+//                         subintel->SetPreferredOrder ( porder );
+//                         subintel->Divide(subels[is],subsubels,0);
                 }
         }
         // divide elements with more than one level difference

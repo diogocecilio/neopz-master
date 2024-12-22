@@ -121,8 +121,9 @@ public:
         return fSequence.size();
     }
 
+    void PostProcessPf(string filename);
 
-   TPZFMatrix<REAL> ComputePf(TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> copy,REAL &prod0)
+   TPZFMatrix<REAL> ComputePf(TPZStack<std::pair<REAL,TPZVec<TPZFMatrix<REAL>>>> copy,REAL &prod0,int index)
     {
 
         SortData(copy);
@@ -130,20 +131,16 @@ public:
 
         REAL p0=fp0;
         REAL nc = p0*n;
-        TPZFMatrix<REAL> mat(n,2);
-//         for(int i=0;i<n-nc;i++)
-//         {
-//             cout << copy[i].first <<endl;
-//
-//         }
-        for(int i=0;i<n-1;i++)
+        TPZFMatrix<REAL> mat(n-nc,2);
+
+        for(int i=0;i<n-nc;i++)
         {
 
             REAL val1=copy[i+1].first;
             REAL val2=copy[i].first;
             REAL count1=1.;
             REAL count2=1.;
-                for (int j =0;j<n-1;j++)
+                for (int j =0;j<n;j++)
                 {
                     if (val1 >= copy[j].first)
                     {

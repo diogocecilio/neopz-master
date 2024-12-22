@@ -102,6 +102,7 @@ public:
     REAL GravityIncrease ();
 
     REAL IterativeProcessArcLength ( REAL tol,int numiter,REAL tol2,int numiter2,REAL l,REAL lambda0,bool &converge );
+    REAL IterativeProcessArcLength2 ( REAL tol,int numiter,REAL l,REAL lambda0,bool &converge  );
 
     REAL  computelamda0 ( TPZFMatrix<REAL>& dwb,  TPZFMatrix<REAL>& dw, REAL& l );
 
