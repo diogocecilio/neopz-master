@@ -10,6 +10,8 @@ add_subdirectory(Elasticity2D)
 
 add_subdirectory(Plasticity2D)
 
+add_subdirectory(geomecprobdeter)
+
 add_subdirectory(geomecproblems)
 
 add_subdirectory(RandomFields)
