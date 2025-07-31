@@ -43,7 +43,7 @@ void PrintBasesMathematica(const TPZVec<TPZFMatrix<REAL>>& allsamples, const std
 int main()
 {
 
-        int Startfrom =2;
+        int Startfrom =0;
         ManageStartFrom ( Startfrom );
 
 
@@ -88,12 +88,12 @@ void ManageStartFrom(int Startfrom)
 
         SlopeAnalysis  * slopeanalysis =  new SlopeAnalysis ( gammaagua,gammasolo,coes,atrito,ref0slope,porderslope,numthreads,solvertype );
 
-       // bool issrm=true;
-       // slopeanalysis->SolveDeterministic(issrm);
-       // std::string saidavtk2 = "postdeter.vtk";
-       // slopeanalysis->PostPlasticity ( saidavtk2 );
+        bool issrm=true;
+        slopeanalysis->SolveDeterministic(issrm);
+        std::string saidavtk2 = "postdeter.vtk";
+        slopeanalysis->PostPlasticity ( saidavtk2 );
 
-     //   return;
+        return;
         if ( Startfrom ==0 ) {
                 randonanalysis->SetNEigenpairs ( 1500 );
                 //randonanalysis->Assemble();

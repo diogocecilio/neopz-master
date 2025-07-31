@@ -2,8 +2,8 @@
 BuildItems=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x01\x00\x00\x00\x18\x00n\x00e\x00o\x00p\x00z\x00-\x00m\x00a\x00s\x00t\x00e\x00r)
 
 [CMake]
-Build Directory Count=1
-Current Build Directory Index-Host System=0
+Build Directory Count=2
+Current Build Directory Index-Host System=1
 
 [CMake][CMake Build Directory 0]
 Build Directory Path=/home/diogo/projects/neopz-master-build-release
@@ -14,6 +14,38 @@ Environment Profile=
 Extra Arguments=
 Install Directory=/opt/neopz
 Runtime=Host System
+
+[CMake][CMake Build Directory 1]
+Build Directory Path=/home/diogo/projects/neopz-master-build-debug
+Build Type=Debug
+CMake Binary=/usr/bin/cmake
+CMake Executable=/usr/bin/cmake
+Environment Profile=
+Extra Arguments=
+Install Directory=/opt/neopz
+Runtime=Host System
+
+[Launch]
+Launch Configurations=Launch Configuration 0
+
+[Launch][Launch Configuration 0]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=New Compiled Binary Launcher
+Type=Native Application
+
+[Launch][Launch Configuration 0][Data]
+Arguments=
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
+Dependency Action=Nothing
+EnvironmentGroup=
+Executable=file:///home/diogo/projects/neopz-master
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Kill Before Executing Again=4194304
+Project Target=neopz-master,Projects2,Plasticity2D,plasticity
+Use External Terminal=false
+Working Directory=
+isExecutable=false
 
 [Project]
 VersionControlSupport=kdevgit

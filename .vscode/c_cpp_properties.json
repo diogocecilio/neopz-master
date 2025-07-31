@@ -1,0 +1,29 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/Analysis",
+                "${workspaceFolder}/Common",
+                "${workspaceFolder}/Material",
+                "${workspaceFolder}/Matrix",
+                "${workspaceFolder}/Mesh",
+                "${workspaceFolder}/Solvers",
+                "${workspaceFolder}/Geom",
+                "/usr/include/eigen3"
+            ],
+            "defines": [
+                "PZDEBUG",
+                "_GNU_SOURCE"
+            ],
+            "compilerPath": "/usr/bin/g++",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-gcc-x64",
+            "configurationProvider": "ms-vscode.cmake-tools",
+            "compileCommands": "${workspaceFolder}/../neopz-master-build-debug/compile_commands.json"
+        }
+    ],
+    "version": 4
+}

@@ -12,6 +12,7 @@
 #include <utility>    // for pair
 #include <list>       // for std::list
 #include "pzerror.h"  // for DebugStop
+#include <cstdint>
 class TPZSavable;
 class TPZStream;
 class TPZRestoreClassBase;
