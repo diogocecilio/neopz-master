@@ -6,9 +6,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # this option is useful for static analyzers
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+
 add_subdirectory(Elasticity2D)
 
 add_subdirectory(geomecprobdeter)
 
+add_subdirectory(eigensolver)
 
 

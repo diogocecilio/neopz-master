@@ -4,7 +4,7 @@ BuildItems=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x
 [CMake]
 Build Directory Count=2
 Current Build Directory Index-Host System=1
-Temporary Build Directory Index=0
+Temporary Build Directory Index=1
 
 [CMake][CMake Build Directory 0]
 Build Directory Path=/home/diogo/projects/neopz-master-build-release
@@ -40,13 +40,13 @@ Arguments=
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
 EnvironmentGroup=
-Executable=file:///home/diogo/projects/neopz-master
+Executable=file:///home/diogo/projects/neopz-master-build-debug/Projects2/eigensolver/eigensolver
 External Terminal=konsole --noclose --workdir %workdir -e %exe
 Kill Before Executing Again=4194304
 Project Target=neopz-master,Projects2,geomecprobdeter,geomecprobdeter
 Use External Terminal=false
 Working Directory=
-isExecutable=false
+isExecutable=true
 
 [Project]
 VersionControlSupport=kdevgit

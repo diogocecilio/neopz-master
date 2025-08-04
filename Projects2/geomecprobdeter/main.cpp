@@ -17,8 +17,9 @@
 #include <sys/wait.h>
 #include <memory>
 #include "SlopeAnalysis.h"
-
-
+#include "TPZEigenSolver.h"
+#include "TPZKrylovEigenSolver.h"
+#include "TPZLapackEigenSolver.h" // ou outro solver concreto
 typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> plasticmorh;
 typedef TPZMatElastoPlastic2D <TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZElastoPlasticMem> plasticmat;
 
@@ -32,6 +33,39 @@ plasticmat * CreateMaterial(REAL young, REAL poisson, REAL coes,REAL atrito,TPZM
 
 int main()
 {
+
+        std::cout << "\ncriando matrizes:\n";
+        TPZFMatrix<REAL> fullmatA(2,2);
+        fullmatA.PutVal(0,0,12.);fullmatA.PutVal(0,1,-4.);
+        fullmatA.PutVal(1,0,-6.);fullmatA.PutVal(1,1,8.);
+        fullmatA.Print(cout);
+        TPZFMatrix<REAL> fullmatB(2,2);
+        fullmatB.PutVal(0,0,7.);fullmatB.PutVal(0,1,-1.);
+        fullmatB.PutVal(1,0,-9.);fullmatB.PutVal(1,1,5.);
+        fullmatB.Print(cout);
+
+        // Criar ponteiro para a matriz
+        TPZAutoPointer<TPZFMatrix<REAL>> A = new TPZFMatrix<REAL>(fullmatA);
+
+
+
+        // std::cout << "\nadicionado matrizes\n";
+        // eigensolver->SetMatrixA(&fullmatA);
+        // eigensolver->SetMatrixB(&fullmatB);
+        // TPZVec<std::complex<REAL>> val;
+        // TPZFMatrix<std::complex<REAL>> vec;
+        // std::cout << "\nresolvendo\n";
+        // eigensolver->SolveGeneralisedEigenProblem(val,vec);
+        //
+        // std::cout << "\nAutovalores:\n";
+        // for (auto &v : val) std::cout << v << "\n";
+        //
+        // std::cout << "\nAutovetores:\n";
+        // vec.Print(std::cout);
+
+        return 0;
+
+
 
         int ref =1;
         //TPZGeoMesh * gmesh =  TriGMesh (ref);

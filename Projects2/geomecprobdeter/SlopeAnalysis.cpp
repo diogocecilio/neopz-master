@@ -232,7 +232,7 @@ REAL SlopeAnalysis::SolveDeterministic ( bool IsSRM ,REAL coes,REAL atrito)
 
         cout << "Refining.."<<endl;
         std::set<long> elindices,elindices2;
-        for ( int iref=1; iref<=2; iref++ ) {
+        for ( int iref=1; iref<=1; iref++ ) {
                 cout << "computing deformation..."  << endl;
                 ComputeElementDeformation();
                 cout << "p refining..."  << endl;
