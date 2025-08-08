@@ -63,6 +63,8 @@ void TPZEigenSolver<TVar>::SortEigenvalues(TPZVec<CTVar> &w, TPZVec<int> &indice
   w.Resize(NEigenpairs());
 }
 
+
+
 template class TPZEigenSolver<float>;
 template class TPZEigenSolver<double>;
 template class TPZEigenSolver<long double>;

@@ -32,6 +32,7 @@ The usage of NeoPZ can be improved by linking against the following libraries:
 
 - [log4cxx](https://logging.apache.org/log4cxx/latest_stable/), for logging information for debugging purposes.
 - [Intel MKL](https://software.intel.com/en-us/mkl), for enabling sparse matrices solvers (in-house algorithms for skyline matrices are available, among other matrix storage formats).
+sudo apt-get install -y openmpi-bin libopenmpi-dev
 - [METIS](http://glaros.dtc.umn.edu/gkhome/metis/metis/overview) for (experimental) support of the [BDDC  technique](https://epubs.siam.org/doi/abs/10.1137/S1064827502412887?journalCode=sjoce3).
 - [TBB](https://github.com/oneapi-src/oneTBB), also used for experimental techniques such as BDDC
 - [blaze](https://bitbucket.org/blaze-lib/blaze), needed for projects using [SBFEM](https://www.cies.unsw.edu.au/scaled-boundary-finite-element-method-2a)

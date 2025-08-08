@@ -9,96 +9,209 @@
 #include "Poisson/TPZMatPoisson.h"
 #include "pzmanvector.h"
 #include <iostream>
-
+#include "TPZMatGeneralisedEigenVal.h"
+#include "TPZVTKGeoMesh.h"
+#include "tpzgeoelrefpattern.h"
+#include "Elasticity/TPZElasticity2D.h"
+#include "Elasticity/TPZElasticity2DGenEVP.h"
+#include <pzskylstrmatrix.h>
 // Função para criar uma malha 1D simples
-TPZGeoMesh *Create1DGeoMesh(int nel, REAL L) {
-        TPZGeoMesh *gmesh = new TPZGeoMesh();
-        gmesh->NodeVec().Resize(nel+1);
-        for(int i=0; i<=nel; i++) {
-                gmesh->NodeVec()[i].SetNodeId(i);
-                gmesh->NodeVec()[i].SetCoord(0, L*i/nel);
-        }
-        for(long i=0; i<nel; i++) {
-                TPZVec<int64_t> indices(2);
-                indices[0] = i;
-                indices[1] = i+1;
-                gmesh->CreateGeoElement(EOned, indices, 1, i);
-        }
-        gmesh->BuildConnectivity();
-        return gmesh;
+using namespace std;
+TPZGeoMesh *CreateGeoMeshBending()
+{
+        // REAL co[4][2] = {{0.,0.},{5,0},{5,0.5},{0,0.5}};
+        REAL co[12][2] = {{0., 0.}, {0., 0.5}, {1., 0.}, {1., 0.5}, {2., 0.}, {2., 0.5}, {3.,
+                0.}, {3., 0.5}, {4., 0.}, {4., 0.5}, {5., 0.}, {5., 0.5}};
+                long indices[5][4] = {{0,2,3,1},{2,4,5,3},{4,6,7,5},{6,8,9,7},{8,10,11,9}};
+                TPZGeoEl *elvec[5];
+                TPZGeoMesh *gmesh = new TPZGeoMesh();
+                gmesh->SetDimension ( 2 );
+                long nnode = 12;
+                long nod;
+                for ( nod=0; nod<nnode; nod++ )
+                {
+                        long nodind = gmesh->NodeVec().AllocateNewElement();
+                        TPZVec<REAL> coord ( 2 );
+                        coord[0] = co[nod][0];
+                        coord[1] = co[nod][1];
+                        gmesh->NodeVec() [nodind] = TPZGeoNode ( nod,coord,*gmesh );
+                }
+
+                long el;
+                long nelem = 5;
+                for ( el=0; el<nelem; el++ )
+                {
+                        TPZVec<long> nodind ( 4 );
+                        for ( nod=0; nod<4; nod++ ) nodind[nod]=indices[el][nod];
+                        long index;
+                        elvec[el] = gmesh->CreateGeoElement ( EQuadrilateral,nodind,1,index);
+                }
+
+                TPZVec <long> TopoLine ( 2 );
+
+                //long index=2;
+                TopoLine[0] = 0;
+                TopoLine[1] = 1;
+                new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( 5, TopoLine, - 1, *gmesh );//clamped in right side
+
+                TPZVec <long> node ( 1 );
+                node[0]=0;
+                new TPZGeoElRefPattern< pzgeom::TPZGeoPoint> ( 6, node, - 2, *gmesh );//load node
+
+
+                gmesh->BuildConnectivity();
+
+
+                cout << "c" << endl;
+                for ( int d = 0; d<2; d++ )
+                {
+                        int nel = gmesh->NElements();
+                        TPZManVector<TPZGeoEl *> subels;
+                        for ( int iel = 0; iel<nel; iel++ )
+                        {
+                                TPZGeoEl *gel = gmesh->ElementVec() [iel];
+                                gel->Divide ( subels );
+                        }
+                }
+
+                //gmesh->Print(cout);
+                std::ofstream files ( "teste-mesh.vtk" );
+                TPZVTKGeoMesh::PrintGMeshVTK ( gmesh,files,false );
+                cout << "d" << endl;
+                return gmesh;
+
 }
+TPZCompMesh *CreateMeshBending ( TPZGeoMesh *gmesh )
+{
+        TPZCompMesh *cmesh = new TPZCompMesh ( gmesh );
+        cmesh->SetDefaultOrder ( 4);
 
-// Função para criar a malha computacional
-TPZCompMesh *Create1DCompMesh(TPZGeoMesh *gmesh, int pOrder) {
-        TPZCompMesh *cmesh = new TPZCompMesh(gmesh);
-        int dim = 1;
-        cmesh->SetDefaultOrder(pOrder);
-        cmesh->SetDimModel(dim);
+        //TPZElasticityMaterial(int id, REAL E, REAL nu, REAL fx, REAL fy, int planestress = 1);
 
-        // Material do tipo Laplace (autovalor)
-        long matid = 1;
-        TPZMatPoisson<REAL> *mat = new TPZMatPoisson<REAL>(matid, dim);
-        //mat->SetSymmetric();
-        cmesh->InsertMaterialObject(mat);
+        //auto * mat = new TPZElasticity2D ( 1,100.,0.,0.,0. ); //selfweigth
+        auto * mat = new TPZElasticity2DGenEVP ( 1,100.,0.,0.,0., 100.,1.); //selfweigthTPZElasticity2DGenEVP
 
-        // Condições de contorno homogêneas
-        TPZFMatrix<STATE> val1(1,1,0.); // matriz vazia
-        TPZManVector<STATE,1> val2(1,0.);
+        cmesh->SetDimModel ( 2 );
 
-        int bc_left = -1, bc_right = -2;
-        auto bcleft = mat->CreateBC(mat, bc_left, 0, val1, val2);
-        auto bcright = mat->CreateBC(mat, bc_right, 0, val1, val2);
+        // TPZFMatrix<REAL> val1(2,2,0.),val2(2,1,0.);
+        TPZFMatrix<STATE> val1 ( 2,2,0. );
+        TPZVec<STATE> val2 ( 2,0. );
+        //TPZMaterial *bcload,*bcclamp,*bcnode;
 
-        //TPZBndCond *bcleft = mat->CreateBC ( mat,bc_left,0,val1,val2 ); //clamped line
-        //TPZBndCond * bcright = mat->CreateBC(mat, bc_right, 0, val1, val2);
+        val2[0]=0.;
+        val2[1]=0.;
+        auto bcclamp = mat->CreateBC ( mat,-1,0,val1,val2 ); //clamped line restrictions
 
-        cmesh->InsertMaterialObject(bcleft);
-        cmesh->InsertMaterialObject(bcright);
+        val2[0]=0.;
+        val2[1]=0.;
+        auto bcnode = mat->CreateBC ( mat,-2,0,val1,val2 ); //bottomrigth node restrictions
 
-        // Associa os BCs geométricos
-        gmesh->Element(0)->SetMaterialId(bc_left);
-        gmesh->Element(gmesh->NElements()-1)->SetMaterialId(bc_right);
+
+        cmesh->InsertMaterialObject ( mat );
+        cmesh->InsertMaterialObject ( bcclamp );
+        cmesh->InsertMaterialObject ( bcnode );
+
+
+        cmesh->SetAllCreateFunctionsContinuous();
 
         cmesh->AutoBuild();
+        cout << "e" << endl;
+        cmesh->AdjustBoundaryElements();
+        cmesh->CleanUpUnconnectedNodes();
+
         return cmesh;
 }
-
 int main() {
-        //Parâmetros do problema
-        int nel = 10;         // número de elementos
-        REAL L = 1.0;         // comprimento
-        int pOrder = 2;       // ordem do polinômio
 
         // Monta as malhas
-        TPZGeoMesh *gmesh = Create1DGeoMesh(nel, L);
-        TPZCompMesh *cmesh = Create1DCompMesh(gmesh, pOrder);
+        TPZGeoMesh *gmesh = CreateGeoMeshBending();
+        TPZCompMesh *cmesh = CreateMeshBending(gmesh);
 
         // Análise de autovalores
         TPZEigenAnalysis analysis(cmesh);
 
-        // Solver de autovalores (LAPACK)
-        //TPZLapackEigenSolver<CSTATE> solver;
-        TPZKrylovEigenSolver<CSTATE> solver;
-        solver.SetNEigenpairs(3); // calcular 3 autovalores
+        // criar struct matrix
+        TPZSkylineStructMatrix<STATE> strmat(cmesh);
+        strmat.SetNumThreads(0); // ou outro número
 
-        //analysis.SetSolver(solver);
 
-        // Montar as matrizes
+        analysis.SetStructuralMatrix(strmat);
+
+        analysis.StructMatrix()->EquationFilter().Reset();
+        // agora sim pode chamar
+        const int nact = analysis.StructMatrix()->EquationFilter().NActiveEquations();
+
+        //quantos queremos (ex.: 8). Se não há CC, existem ~3 modos rígidos ~0.
+        int nev = std::min(24, nact-1);   // não peça mais que n-1
+
+        TPZKrylovEigenSolver<STATE> solver;
+        solver.SetNEigenpairs(nev);
+        // regra segura: KDim >= 2*nev + 10 e < nact
+        int kdim = std::min(nact-1, std::max(30, 2*nev + 10));
+        solver.SetKrylovDim(kdim);
+
+        solver.SetTolerance(1e-10);
+        solver.SetAsGeneralised(true);
+
+        solver.SetEigenSorting(TPZEigenSort::AbsAscending);
+
+        analysis.SetSolver(solver);
         analysis.Assemble();
-
-        // Resolver
         analysis.Solve();
 
-        // Pega os autovalores/vetores
-        //TPZVec<CSTATE> eigval = analysis.GetEigenvalues();
-        //TPZFMatrix<CSTATE> eigvec = analysis.GetEigenvectors();
 
-        std::cout << "Autovalores:" << std::endl;
-        //for(int i=0; i<eigval.size(); i++) {
-                //std::cout << eigval[i] << std::endl;
-        //}
+        cout << "f" << endl;
+        TPZVec<CSTATE> vec=analysis.GetEigenvalues();
 
-        std::cout <<"HELLO WORLD"<<std::endl;
+        for(int i=0;i<vec.size();i++)cout<< vec[i].real() <<endl;
+
 
         return 0;
 }
+// int main() {
+//
+//         // Monta as malhas
+//         TPZGeoMesh *gmesh = CreateGeoMeshBending();
+//         TPZCompMesh *cmesh = CreateMeshBending(gmesh);
+//
+//         // Análise de autovalores
+//         TPZEigenAnalysis analysis(cmesh);
+//
+//         // criar struct matrix
+//         TPZSkylineStructMatrix<STATE> strmat(cmesh);
+//         strmat.SetNumThreads(0); // ou outro número
+//
+//
+//         analysis.SetStructuralMatrix(strmat);
+//
+//         analysis.StructMatrix()->EquationFilter().Reset();
+//
+//         int nact = analysis.StructMatrix()->EquationFilter().NActiveEquations();
+//
+//         TPZKrylovEigenSolver<STATE> solver;
+//
+//
+//         int nev  = std::min(24, nact-1); // número de autovalores
+//
+//         solver.SetNEigenpairs(nev);
+//
+//         int kdim = std::min(nact, std::max(nev+10, 4*nev));
+//
+//         solver.SetKrylovDim(kdim);
+//
+//         solver.SetTolerance(1e-12);
+//
+//         solver.SetAsGeneralised(true);
+//
+//         analysis.SetSolver(solver);
+//         analysis.Assemble();
+//         analysis.Solve();
+//
+//         cout << "f" << endl;
+//         TPZVec<CSTATE> vec=analysis.GetEigenvalues();
+//
+//         for(int i=0;i<vec.size();i++)cout<< vec[i].real() <<endl;
+//
+//
+//         return 0;
+// }
