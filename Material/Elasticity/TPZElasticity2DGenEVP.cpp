@@ -160,3 +160,52 @@ void TPZElasticity2DGenEVP::ContributeMass(const TPZMaterialDataT<STATE> &data,
     }
 }
 
+int TPZElasticity2DGenEVP::VariableIndex(const std::string &name) const {
+    if (name == "Ux" || name == "EVP_Ux") return EVP_UX;
+    if (name == "Uy" || name == "EVP_Uy") return EVP_UY;
+    if (name == "U"  || name == "EVP_U")  return EVP_UMAG;
+    if (name == "displacement")           return EVP_UVEC;   // <—
+    if (name == "POrder" || name == "p")  return EVP_PORDER;
+    DebugStop(); return -1;
+}
+
+int TPZElasticity2DGenEVP::NSolutionVariables(int var) const {
+    switch (var) {
+        case EVP_UX:    return 1;
+        case EVP_UY:    return 1;
+        case EVP_UMAG:  return 1;
+        case EVP_UVEC:  return 2; // <— (ux,uy)
+        case EVP_PORDER:return 1;
+        default: DebugStop(); return 0;
+    }
+}
+
+void TPZElasticity2DGenEVP::Solution(const TPZMaterialDataT<STATE> &data,
+                                     int var, TPZVec<STATE> &sol)
+{
+    const auto &u = data.sol[0]; // (ux,uy)
+    const STATE ux = (u.size() > 0 ? u[0] : 0.);
+    const STATE uy = (u.size() > 1 ? u[1] : 0.);
+
+    switch (var) {
+        case EVP_UX:   sol.Resize(1); sol[0] = ux; break;
+        case EVP_UY:   sol.Resize(1); sol[0] = uy; break;
+        case EVP_UMAG: sol.Resize(1); sol[0] = std::sqrt(ux*ux + uy*uy); break;
+        case EVP_UVEC: sol.Resize(2); sol[0] = ux; sol[1] = uy; break; // <—
+        case EVP_PORDER: sol.Resize(1); sol[0] = data.p; break;
+        default: DebugStop(); break;
+    }
+}
+
+// multiphysics wrapper
+void TPZElasticity2DGenEVP::Solution(const TPZVec<TPZMaterialDataT<STATE>> &datavec,
+                                     int var, TPZVec<STATE> &sol)
+{
+    Solution(datavec[0], var, sol);
+}
+void TPZElasticity2DGenEVP::FillDataRequirements(TPZMaterialData &data)
+{
+    TPZElasticity2D::FillDataRequirements(data);
+    data.SetAllRequirements(false);
+    data.fNeedsSol = true;   // preciso de data.sol[0]
+}

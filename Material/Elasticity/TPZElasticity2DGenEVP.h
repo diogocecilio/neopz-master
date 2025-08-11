@@ -40,6 +40,29 @@ public:
                       TPZFMatrix<STATE> &ef,
                       TPZBndCondT<STATE> &bc) override;
 
+    // --- variáveis para pós-processo (VTK) ---
+    enum EPostVarEVP
+    {
+        EVP_UX = 0,
+        EVP_UY,
+        EVP_UMAG,
+        EVP_UVEC,   // (opcional) deslocamento vetorial
+        EVP_PORDER
+    };
+
+    int  VariableIndex(const std::string &name) const override;
+
+    int  NSolutionVariables(int var) const override;
+
+    // single-physics (este material é single)
+    void Solution(const TPZMaterialDataT<STATE> &data,int var,TPZVec<STATE> &sol) override;
+
+    // (opcional) compat forward para multiphysics, caso alguém chame com datavec
+    void Solution(const TPZVec<TPZMaterialDataT<STATE>> &datavec,int var,TPZVec<STATE> &sol) ;
+
+    void FillDataRequirements(TPZMaterialData &data);
+
+
 private:
     /// Monta matriz de massa consistente
     void ContributeMass(const TPZMaterialDataT<STATE> &data,

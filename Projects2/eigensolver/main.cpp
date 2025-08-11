@@ -15,9 +15,10 @@
 #include "Elasticity/TPZElasticity2D.h"
 #include "Elasticity/TPZElasticity2DGenEVP.h"
 #include <pzskylstrmatrix.h>
+#include "pzpostprocanalysis.h"
 // Função para criar uma malha 1D simples
 using namespace std;
-TPZGeoMesh *CreateGeoMeshBending()
+TPZGeoMesh *CreateGeoMeshBending(int nref)
 {
         // REAL co[4][2] = {{0.,0.},{5,0},{5,0.5},{0,0.5}};
         REAL co[12][2] = {{0., 0.}, {0., 0.5}, {1., 0.}, {1., 0.5}, {2., 0.}, {2., 0.5}, {3.,
@@ -63,7 +64,7 @@ TPZGeoMesh *CreateGeoMeshBending()
 
 
                 cout << "c" << endl;
-                for ( int d = 0; d<2; d++ )
+                for ( int d = 0; d<nref; d++ )
                 {
                         int nel = gmesh->NElements();
                         TPZManVector<TPZGeoEl *> subels;
@@ -81,17 +82,17 @@ TPZGeoMesh *CreateGeoMeshBending()
                 return gmesh;
 
 }
-TPZCompMesh *CreateMeshBending ( TPZGeoMesh *gmesh )
+TPZCompMesh *CreateMeshBending ( TPZGeoMesh *gmesh,int poder )
 {
         TPZCompMesh *cmesh = new TPZCompMesh ( gmesh );
-        cmesh->SetDefaultOrder ( 4);
+        cmesh->SetDefaultOrder ( poder);
 
         //TPZElasticityMaterial(int id, REAL E, REAL nu, REAL fx, REAL fy, int planestress = 1);
 
         //auto * mat = new TPZElasticity2D ( 1,100.,0.,0.,0. ); //selfweigth
         auto * mat = new TPZElasticity2DGenEVP ( 1,100.,0.,0.,0., 100.,1.); //selfweigthTPZElasticity2DGenEVP
 
-        cmesh->SetDimModel ( 2 );
+        cmesh->SetDimModel ( 1 );
 
         // TPZFMatrix<REAL> val1(2,2,0.),val2(2,1,0.);
         TPZFMatrix<STATE> val1 ( 2,2,0. );
@@ -121,11 +122,17 @@ TPZCompMesh *CreateMeshBending ( TPZGeoMesh *gmesh )
 
         return cmesh;
 }
+
+
+
+
 int main() {
 
         // Monta as malhas
-        TPZGeoMesh *gmesh = CreateGeoMeshBending();
-        TPZCompMesh *cmesh = CreateMeshBending(gmesh);
+        int ref=0;
+        int porder=1;
+        auto gmesh = CreateGeoMeshBending(ref);
+        auto cmesh = CreateMeshBending(gmesh,porder);
 
         // Análise de autovalores
         TPZEigenAnalysis analysis(cmesh);
@@ -141,8 +148,10 @@ int main() {
         // agora sim pode chamar
         const int nact = analysis.StructMatrix()->EquationFilter().NActiveEquations();
 
+        cout << "numero de equações ativas = " << nact << endl;
+
         //quantos queremos (ex.: 8). Se não há CC, existem ~3 modos rígidos ~0.
-        int nev = std::min(24, nact-1);   // não peça mais que n-1
+        int nev = std::min(90, nact-1);   // não peça mais que n-1
 
         TPZKrylovEigenSolver<STATE> solver;
         solver.SetNEigenpairs(nev);
@@ -159,12 +168,47 @@ int main() {
         analysis.Assemble();
         analysis.Solve();
 
+        // 1) Autovalores/autovetores
+        auto vals = analysis.GetEigenvalues();
+        auto eig = analysis.GetEigenvectors();
 
-        cout << "f" << endl;
-        TPZVec<CSTATE> vec=analysis.GetEigenvalues();
+        std::cout << "nev=" << vals.size()
+        << "  eig(rows,cols)=(" << eig.Rows() << "," << eig.Cols() << ")\n";
 
-        for(int i=0;i<vec.size();i++)cout<< vec[i].real() <<endl;
+        // 2) escolha do modo, sem estourar índice
+        int mode = 0; // 0=1º, 1=2º, ...
+        if (eig.Cols() == 0) { std::cerr << "Sem autovetores!\n"; return 0; }
+        if (mode >= eig.Cols()) mode = eig.Cols()-1; // garante
 
+        cout << "numero de autovetores "<<vals.size() << endl;
+        for(int i=0;i<vals.size();i++)cout<< vals[i].real() <<endl;
+        // 3) constrói solução com o TAMANHO CERTO (linhas = eig.Rows)
+        TPZFMatrix<STATE> solRed(eig.Rows(), 1, 0.);
+        for (int r = 0; r < eig.Rows(); r++) {
+                solRed(r,0) = (STATE)eig(r,mode).real(); // ou imag()/abs()
+        }
+
+        // 4) espalha p/ o tamanho total se houver filtro de equações
+        const int neqFull = analysis.Mesh()->NEquations();
+        TPZFMatrix<STATE> solFull;
+        if (eig.Rows() != neqFull) {
+                // há redução: faz Scatter para o vetor completo
+                analysis.StructMatrix()->EquationFilter().Scatter(solRed, solFull);
+        } else {
+                solFull = solRed;
+        }
+
+        // 5) carrega na análise e pós-processa
+        analysis.Solution().Redim(solFull.Rows(), 1);
+        analysis.Solution() = solFull;
+        analysis.LoadSolution();
+
+        TPZStack<std::string> scal, vec;
+        scal.Push("EVP_U");           // ou "U"/"Ux"/"Uy" (conforme seu material)
+        vec.Push("displacement");     // só se você implementou
+
+        analysis.DefineGraphMesh(2, scal, vec, "ref3mode_0.vtk");
+        analysis.PostProcess(0);
 
         return 0;
 }
