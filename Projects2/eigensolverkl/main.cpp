@@ -1,8 +1,6 @@
-// main.cpp — sweep em nRef com prints, tempos e erros
-// Uso:
-//   ./prog --solver=lapack --p=2 --minref=0 --maxref=3
-//   ./prog --solver=krylov --p=2 --minref=0 --maxref=3
-// Flags extras: --vtk-last  (gera VTK só no último nível)
+// main.cpp — sweep em nRef × {Galerkin,Nystrom} × {Lapack,Krylov}
+// Gera results_all.csv com (asm, solver, tempos, erros) e VTK do modo 0
+// somente no último nível (se habilitado).
 
 #include "pzgmesh.h"
 #include "pzcmesh.h"
@@ -17,7 +15,7 @@
 #include "TPZVTKGeoMesh.h"
 #include "TPZMatKLKernel.h"
 #include "pzdoublestrmatriz.h"
-
+#include "TPZBndCond.h"
 
 #include <algorithm>
 #include <chrono>
@@ -28,20 +26,32 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <iomanip> // std::fixed, std::setprecision
+// =================== CONFIGURAÇÕES EXPLÍCITAS =================== //
+static const int   kMatId        = 1;
+static const int   kPOrder       = 2;
+static const int   kRef0         = 0;
+static const int   kRefMax       = 3;
+static const bool  kWriteVTKLast = true; // VTK só no último nível
 
-// ---------------- util ----------------
-template <class T>
-static T read_int_arg(int argc, char** argv, const std::string& key, T defval){
-        const std::string k = "--"+key+"=";
-        for (int i=1;i<argc;i++){ std::string a=argv[i]; if (a.rfind(k,0)==0) return static_cast<T>(std::stoi(a.substr(k.size()))); }
-        return defval;
-}
-static bool has_flag(int argc, char** argv, const std::string& flag){
-        const std::string f="--"+flag; for (int i=1;i<argc;i++) if (f==argv[i]) return true; return false;
-}
+using CAsm = pzdoublestrmatriz<STATE>::ECAssembly;
+enum class ESolver { Lapack, Krylov };
 
-// -------- geometria 3x3 + nRef níveis (retorna AutoPointer!) --------
-static TPZAutoPointer<TPZGeoMesh> CreateGeoMeshMathematicaLike(int matId, int nRef = 1)
+// Quais montagens C comparar (ordem = ordem de relatório)
+static const std::vector<CAsm> kAsmList    = { CAsm::Galerkin, CAsm::Nystrom };
+// Quais solvers comparar
+static const std::vector<ESolver> kSolverList = { ESolver::Lapack, ESolver::Krylov };
+
+static const char* AsmName(CAsm a){
+        switch (a){ case CAsm::Galerkin: return "Galerkin"; case CAsm::Nystrom: return "Nystrom"; }
+        return "Unknown";
+}
+static const char* SolverName(ESolver s){ return s==ESolver::Lapack ? "Lapack" : "Krylov"; }
+// ================================================================ //
+
+// ------------- geometria 3x3 (+ refinos) -------------
+static TPZAutoPointer<TPZGeoMesh>
+CreateGeoMeshMathematicaLike(int matId, int nRef)
 {
         TPZAutoPointer<TPZGeoMesh> gmesh = new TPZGeoMesh;
         gmesh->SetDimension(2);
@@ -56,9 +66,8 @@ static TPZAutoPointer<TPZGeoMesh> CreateGeoMeshMathematicaLike(int matId, int nR
         gmesh->NodeVec().Resize(16);
         for (int i=0;i<16;i++){
                 TPZManVector<REAL,3> c(3,0.); c[0]=X[i][0]; c[1]=X[i][1];
-                gmesh->NodeVec()[i].Initialize(c,*gmesh);
+                gmesh->NodeVec()[i].Initialize(c, *gmesh);
         }
-
         const int conn[9][4] = {
                 { 1, 5, 6, 2}, { 2, 6, 7, 3}, { 3, 7, 8, 4},
                 { 5, 9,10, 6}, { 6,10,11, 7}, { 7,11,12, 8},
@@ -69,7 +78,7 @@ static TPZAutoPointer<TPZGeoMesh> CreateGeoMeshMathematicaLike(int matId, int nR
                 nodes[0]=conn[e][0]-1; nodes[1]=conn[e][1]-1;
                 nodes[2]=conn[e][2]-1; nodes[3]=conn[e][3]-1;
                 int64_t idx;
-                gmesh->CreateGeoElement(EQuadrilateral,nodes,matId,idx);
+                gmesh->CreateGeoElement(EQuadrilateral, nodes, matId, idx);
         }
         gmesh->BuildConnectivity();
 
@@ -81,8 +90,9 @@ static TPZAutoPointer<TPZGeoMesh> CreateGeoMeshMathematicaLike(int matId, int nR
         return gmesh;
 }
 
-// -------- CompMesh H1 com kernel + solução exata --------
-static TPZCompMesh* BuildCompMesh(TPZAutoPointer<TPZGeoMesh> gmesh, int porder, int matId)
+// ------------- CompMesh H1 com kernel + solução exata -------------
+static TPZCompMesh*
+BuildCompMesh(TPZAutoPointer<TPZGeoMesh> gmesh, int porder, int matId)
 {
         auto *cmesh = new TPZCompMesh(gmesh);
         cmesh->SetDimModel(gmesh->Dimension());
@@ -98,6 +108,7 @@ static TPZCompMesh* BuildCompMesh(TPZAutoPointer<TPZGeoMesh> gmesh, int porder, 
         auto *mat = new TPZMatKLKernel(matId, 2, KernelFn);
         mat->SetId(matId);
 
+        // modo 0 analítico
         constexpr double A = 1.15021, k = 1.30654;
         mat->SetExact([A,k](const TPZVec<REAL>& x, STATE& u, TPZFMatrix<STATE>& du){
                 const double xx=x[0], yy=x[1];
@@ -114,145 +125,170 @@ static TPZCompMesh* BuildCompMesh(TPZAutoPointer<TPZGeoMesh> gmesh, int porder, 
         return cmesh;
 }
 
-// -------- solver flag --------
-enum class ESolver { Lapack, Krylov };
-static ESolver parse_solver(int argc, char** argv){
-        for (int i=1;i<argc;i++){ std::string a=argv[i];
-                if (a=="--solver=lapack") return ESolver::Lapack;
-                if (a=="--solver=krylov") return ESolver::Krylov;
-        }
-        return ESolver::Lapack;
-}
+// ------------- linha para relatório -------------
+struct Row {
+        std::string asmname, solver;
+        int ref=0, nel=0, ndof=0;
+        double asm_t=0.0, solve_t=0.0, l2=0.0, energy=0.0, eig0=0.0;
+};
 
-// -------- linha de resultados --------
-struct Row { int ref=0, nel=0, ndof=0; double asm_t=0.0, solve_t=0.0, l2=0.0, energy=0.0, eig0=0.0; };
 
-int main(int argc, char** argv)
+
+using CAsm = pzdoublestrmatriz<STATE>::ECAssembly;
+
+
+int main()
 {
-        const int matId  = 1;
-        const int porder = read_int_arg(argc,argv,"p",1);
-        const int ref0   = read_int_arg(argc,argv,"minref",0);
-        const int refMax = read_int_arg(argc,argv,"maxref",3);
-        const ESolver which = parse_solver(argc,argv);
-        const bool vtkLast = has_flag(argc,argv,"vtk-last");
-
-        std::cout << "===== RUN =====\n"
-        << "solver       = " << (which==ESolver::Lapack?"LAPACK":"KRYLOV") << "\n"
-        << "p            = " << porder << "\n"
-        << "ref range    = [" << ref0 << "," << refMax << "]\n\n";
+        std::cout << "===== RUN (sem argc/argv) =====\n"
+        << "p          = " << kPOrder << "\n"
+        << "ref range  = [" << kRef0 << "," << kRefMax << "]\n\n";
 
         std::vector<Row> results;
+        results.reserve(kAsmList.size()*kSolverList.size()*(kRefMax-kRef0+1));
 
-        for (int ref=ref0; ref<=refMax; ++ref)
-        {
-                std::cout << "\n=== Refinement level " << ref << " ===\n";
+        const std::string csvname = "results_all.csv";
+        std::ofstream csv(csvname);
+        if (!csv) { std::cerr << "ERRO: não consegui abrir " << csvname << "\n"; return 1; }
+        // Formato consistente para o Python
+        csv.setf(std::ios::fixed);
+        csv << "asm,solver,ref,nel,ndof,asm_s,solve_s,L2,Energy,eig0\n";
+        std::cout << ">> Escrevendo CSV em " << csvname << "\n";
 
-                // geo + comp
-                TPZAutoPointer<TPZGeoMesh> gmesh = CreateGeoMeshMathematicaLike(matId, ref);
-                std::cout << "GeoMesh: nel=" << gmesh->NElements()
-                << "  nnodes=" << gmesh->NNodes() << std::endl;
+        for (CAsm asmChoice : kAsmList) {                 // <<<<<< CHAVES EXPLÍCITAS
+                for (ESolver sol : kSolverList)               // <<<<<< CHAVES EXPLÍCITAS
+                {
+                        std::cout << "\n==== Combo: C=" << AsmName(asmChoice)
+                        << " | Solver=" << SolverName(sol) << " ====\n";
 
-                TPZCompMesh* cmesh = BuildCompMesh(gmesh, porder, matId);
-                std::cout << "CompMesh: nelem=" << cmesh->NElements()
-                << "  ndof=" << cmesh->NEquations() << std::endl;
+                        for (int ref=kRef0; ref<=kRefMax; ++ref)
+                        {
+                                std::cout << "\n--- Refinement level " << ref << " ---\n";
 
-                TPZEigenAnalysis an(cmesh);
-                pzdoublestrmatriz<STATE> sm(cmesh);
-                an.SetStructuralMatrix(sm);
+                                TPZAutoPointer<TPZGeoMesh> gmesh = CreateGeoMeshMathematicaLike(kMatId, ref);
+                                std::cout << "GeoMesh: nel=" << gmesh->NElements()
+                                << "  nnodes=" << gmesh->NNodes() << "\n";
 
-                const int ndof = cmesh->NEquations();
-                if (which==ESolver::Lapack) {
-                        TPZLapackEigenSolver<STATE> solver;
-                        solver.SetAsGeneralised(true);
-                        solver.SetEigenSorting(TPZEigenSort::AbsDescending);
-                        solver.SetNEigenpairs(ndof);
-                        an.SetSolver(solver);
-                        std::cout << "Solver: LAPACK (neigs=" << ndof << ")\n";
-                } else {
-                        TPZKrylovEigenSolver<STATE> solver;
-                        solver.SetAsGeneralised(true);
-                        solver.SetEigenSorting(TPZEigenSort::AbsDescending);
-                        solver.SetNEigenpairs(std::min(ndof,150));
-                        solver.SetKrylovDim(10*solver.NEigenpairs());
-                        solver.SetTolerance(1e-10);
-                        an.SetSolver(solver);
-                        std::cout << "Solver: KRYLOV (neigs=" << std::min(ndof,150)
-                        << ", krylovDim=" << 10*solver.NEigenpairs() << ")\n";
-                }
+                                TPZCompMesh* cmesh = BuildCompMesh(gmesh, kPOrder, kMatId);
+                                std::cout << "CompMesh: nelem=" << cmesh->NElements()
+                                << "  ndof="  << cmesh->NEquations() << "\n";
 
-                Row row; row.ref=ref; row.ndof=ndof; row.nel=cmesh->NElements();
+                                TPZEigenAnalysis an(cmesh);
+                                pzdoublestrmatriz<STATE> sm(cmesh);
+                                sm.SetCAssembly(asmChoice);           // Galerkin ou Nystrom
+                                an.SetStructuralMatrix(sm);
 
-                // montagem
-                std::cout << "Assembling (A+B)..." << std::flush;
-                auto t0 = std::chrono::steady_clock::now();
-                an.Assemble();
-                auto t1 = std::chrono::steady_clock::now();
-                row.asm_t = std::chrono::duration<double>(t1-t0).count();
-                std::cout << " done in " << std::scientific << row.asm_t << " s\n";
+                                const int ndof = cmesh->NEquations();
+                                if (sol==ESolver::Lapack) {
+                                        TPZLapackEigenSolver<STATE> solver;
+                                        solver.SetAsGeneralised(true);
+                                        solver.SetEigenSorting(TPZEigenSort::AbsDescending);
+                                        solver.SetNEigenpairs(ndof);
+                                        an.SetSolver(solver);
+                                        std::cout << "Solver: LAPACK (neigs=" << ndof << ")\n";
+                                } else {
+                                        TPZKrylovEigenSolver<STATE> solver;
+                                        solver.SetAsGeneralised(true);
+                                        solver.SetEigenSorting(TPZEigenSort::AbsDescending);
+                                        solver.SetNEigenpairs(std::min(ndof,150));
+                                        solver.SetKrylovDim(10*solver.NEigenpairs());
+                                        solver.SetTolerance(1e-10);
+                                        an.SetSolver(solver);
+                                        std::cout << "Solver: KRYLOV (neigs=" << std::min(ndof,150)
+                                        << ", krylovDim=" << 10*solver.NEigenpairs() << ")\n";
+                                }
 
+                                Row row; row.asmname=AsmName(asmChoice); row.solver=SolverName(sol);
+                                row.ref=ref; row.ndof=ndof; row.nel=cmesh->NElements();
 
-                // solve
-                std::cout << "Solving EVP..." << std::flush;
-                auto t2 = std::chrono::steady_clock::now();
-                an.Solve();
-                auto t3 = std::chrono::steady_clock::now();
-                row.solve_t = std::chrono::duration<double>(t3-t2).count();
-                std::cout << " done in " << std::scientific << row.solve_t << " s\n";
+                                // ---- montagem ----
+                                std::cout << "Assembling (C+B)..." << std::flush;
+                                auto t0 = std::chrono::steady_clock::now();
+                                an.Assemble();
+                                auto t1 = std::chrono::steady_clock::now();
+                                row.asm_t = std::chrono::duration<double>(t1-t0).count();
+                                std::cout << " done in " << std::scientific << row.asm_t << " s\n";
 
-                TPZVec<CSTATE> vals = an.GetEigenvalues();
-                row.eig0 = vals.size() ? vals[0].real() : 0.0;
-                std::cout << "  top eigenvalue (Re) = " << std::setprecision(8) << row.eig0 << "\n";
+                                // ---- solve ----
+                                std::cout << "Solving EVP..." << std::flush;
+                                auto t2 = std::chrono::steady_clock::now();
+                                an.Solve();
+                                auto t3 = std::chrono::steady_clock::now();
+                                row.solve_t = std::chrono::duration<double>(t3-t2).count();
+                                std::cout << " done in " << std::scientific << row.solve_t << " s\n";
 
-                // pós: carrega modo 0 e normaliza por integral
-                std::cout << "Loading mode 0 + normalize by integral..." << std::flush;
-                TPZStack<std::string> scalars, vectors;
-                scalars.Push("Solution"); scalars.Push("ExactSolution"); scalars.Push("Error"); scalars.Push("ErrorSquared");
-                vectors.Push("Gradient"); vectors.Push("ExactGradient"); vectors.Push("ErrorGrad");
-                an.PostProcessMode(0, 0, scalars, vectors,
-                                   TPZEigenAnalysis::EEigPart::Real,
-                                   /*normalizeByIntegral=*/true);
-                if (vtkLast && ref==refMax) std::cout << " VTK: mode0.vtk";
-                std::cout << " ok\n";
+                                TPZVec<CSTATE> vals = an.GetEigenvalues();
+                                row.eig0 = vals.size() ? vals[0].real() : 0.0;
+                                std::cout << "  top eigenvalue (Re) = " << std::setprecision(8) << row.eig0 << "\n";
 
-                // integra erros (somente materiais de volume)
-                std::cout << "Integrating errors..." << std::flush;
-                std::set<int> mats;
-                for (auto &it : cmesh->MaterialVec())if (it.second && dynamic_cast<TPZBndCond*>(it.second)==nullptr) mats.insert(it.first);
+                                // ---- carregar modo 0 (VTK só no último nível, se pedido) ----
+                                TPZStack<std::string> scalars, vectors;
+                                scalars.Push("Solution");  scalars.Push("ExactSolution");
+                                scalars.Push("Error");     scalars.Push("ErrorSquared");
+                                vectors.Push("Gradient");  vectors.Push("ExactGradient");
+                                vectors.Push("ErrorGrad");
 
-                const STATE l2_sq     = an.Integrate("ErrorSquared", mats)[0];
-                const STATE h1semi_sq = an.Integrate("GradErrorSquared", mats)[0];
-                row.l2     = std::sqrt(l2_sq);
-                row.energy = std::sqrt(l2_sq + h1semi_sq);
-                std::cout << " L2=" << std::setprecision(6) << row.l2
-                << "  Energy=" << row.energy << "\n";
+                                if (!kWriteVTKLast || ref==kRefMax) {
+                                        std::cout << "PostProcess (mode 0, normalize by integral)..." << std::flush;
+                                        an.PostProcessMode(0, 0, scalars, vectors,
+                                                           TPZEigenAnalysis::EEigPart::Real,
+                                                           /*normalizeByIntegral=*/true);
+                                        if (kWriteVTKLast && ref==kRefMax) std::cout << " (VTK: mode0.vtk)";
+                                        std::cout << " ok\n";
+                                } else {
+                                        // Se o seu TPZEigenAnalysis tiver método “carregar sem VTK”, use-o aqui.
+                                        an.PostProcessMode(0, 0, scalars, vectors,
+                                                           TPZEigenAnalysis::EEigPart::Real,
+                                                           /*normalizeByIntegral=*/true);
+                                }
 
-                results.push_back(row);
+                                // ---- integra erros (materiais de volume) ----
+                                std::cout << "Integrating errors..." << std::flush;
+                                std::set<int> mats;
+                                for (auto &it : cmesh->MaterialVec())
+                                        if (it.second && dynamic_cast<TPZBndCond*>(it.second)==nullptr)
+                                                mats.insert(it.first);
 
-                // IMPORTANTE: destrua APENAS a compMesh.
-                // gmesh é TPZAutoPointer; o último AutoPointer (no cmesh) libera a geoMesh.
-                delete cmesh;
-        }
+                                const STATE l2_sq     = an.Integrate("ErrorSquared", mats)[0];
+                                const STATE h1semi_sq = an.Integrate("GradErrorSquared", mats)[0];
+                                row.l2     = std::sqrt(l2_sq);
+                                row.energy = std::sqrt(l2_sq + h1semi_sq);
+                                std::cout << " L2=" << std::setprecision(6) << row.l2
+                                << "  Energy=" << row.energy << "\n";
 
-        // tabela
+                                // ---- escreve e força flush no CSV ----
+                                csv << row.asmname << "," << row.solver << ","
+                                << row.ref << "," << row.nel << "," << row.ndof << ","
+                                << std::setprecision(10) << row.asm_t << "," << row.solve_t << ","
+                                << row.l2 << "," << row.energy << "," << row.eig0 << "\n";
+                                csv.flush();
+
+                                results.push_back(row);
+                                delete cmesh; // gmesh (AutoPointer) é liberada ao final
+                        } // ref
+                }     // solver
+        }         // asm
+
+        csv.close();
+
+        // ---- resumo no stdout ----
         std::cout << "\n============================================================\n";
-        std::cout << "p = " << porder << "  solver = " << (which==ESolver::Lapack?"LAPACK":"KRYLOV") << "\n";
-        std::cout << "ref   nel    ndof        asm[s]     solve[s]        ||e||_0        ||e||_E        eig0\n";
-        std::cout << "-------------------------------------------------------------------------------------------\n";
-        std::ofstream csv("results.csv"); csv << "ref,nel,ndof,asm_s,solve_s,L2,Energy,eig0\n";
+        std::cout << "p = " << kPOrder << " | ref=[" << kRef0 << "," << kRefMax << "]\n";
+        std::cout << "asm        solver   ref   nel    ndof     assemble[s]   solve[s]      ||e||_0      ||e||_E      eig0\n";
+        std::cout << "----------------------------------------------------------------------------------------------------------------\n";
         for (auto &r : results){
-                std::cout << std::setw(3) << r.ref
-                << std::setw(7) << r.nel
-                << std::setw(8) << r.ndof
-                << std::setw(13) << std::scientific << std::setprecision(3) << r.asm_t
+                std::cout <<std::fixed<< std::left << std::setw(10) << r.asmname
+                << std::setw(9)  << r.solver
+                << std::right
+                << std::setw(4)  << r.ref
+                << std::setw(7)  << r.nel
+                << std::setw(8)  << r.ndof
+                << std::setw(13) << std::fixed << std::setprecision(5) << r.asm_t
                 << std::setw(12) << r.solve_t
                 << std::setw(14) << r.l2
                 << std::setw(14) << r.energy
                 << std::setw(14) << r.eig0 << "\n";
-                csv << r.ref << "," << r.nel << "," << r.ndof << ","
-                << std::setprecision(10) << r.asm_t << "," << r.solve_t << ","
-                << r.l2 << "," << r.energy << "," << r.eig0 << "\n";
         }
-        std::cout << "-------------------------------------------------------------------------------------------\n";
-        std::cout << "Resultados salvos em results.csv\n";
+        std::cout << "----------------------------------------------------------------------------------------------------------------\n";
+        std::cout << "Resultados salvos em " << csvname << "\n";
         return 0;
 }

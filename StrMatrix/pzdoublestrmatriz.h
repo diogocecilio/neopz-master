@@ -56,6 +56,17 @@ public:
     void Write(TPZStream &buf, int withclassid) const override;
     void Read(TPZStream &buf, void *context) override;
 
+    // adicione dentro de pzdoublestrmatriz<TVar>
+public:
+    enum class ECAssembly { Nystrom, Galerkin };
+
+    void SetCAssembly(ECAssembly m) { fCAssembly = m; }
+    ECAssembly CAssembly() const { return fCAssembly; }
+
+private:
+    ECAssembly fCAssembly = ECAssembly::Nystrom; // padrão anterior
+
+
 private:
     // Montagens globais (preenchem TPZFMatrix<TVar>)
     void AssembleC(TPZFMatrix<TVar> &C);

@@ -51,6 +51,10 @@ public:
                           TPZInterpolationSpace* ely,
                           TPZElementMatrixT<STATE> &ce) const;
 
+    void CalcStiffGalerkin(TPZInterpolationSpace* elx,
+                         TPZInterpolationSpace* ely,
+                         TPZElementMatrixT<STATE>& ce) const;
+
     void CalcStiffMass(TPZInterpolationSpace* el,
                        TPZElementMatrixT<STATE> &be,
                        int qmass) const;

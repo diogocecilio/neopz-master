@@ -82,7 +82,106 @@ bool pzdoublestrmatriz<TVar>::CurrentTargetIsA() const
     }
     return true; // fallback
 }
+template<class TVar>
+void pzdoublestrmatriz<TVar>::AssembleC(TPZFMatrix<TVar> &C)
+{
+    TPZCompMesh* cmesh = this->Mesh();
+    const int64_t neq = cmesh->NEquations();
 
+    C.Redim(neq, neq);
+    C.Zero();
+
+    // --- 1) Filtra elementos válidos de VOLUME e guarda ponteiros úteis
+    struct Entry {
+        TPZInterpolationSpace* el = nullptr;
+        TPZMatKLKernel*        mat = nullptr;
+        int64_t                gelIndex = -1;
+    };
+    std::vector<Entry> vol; vol.reserve(cmesh->NElements());
+
+    auto& elvec = cmesh->ElementVec();
+    for (int64_t iel = 0; iel < (int64_t)cmesh->NElements(); ++iel) {
+        auto *elx = dynamic_cast<TPZInterpolationSpace*>(elvec[iel]);
+        if (!elx || !elx->Reference() || elx->HasDependency()) continue;
+
+        // ignora BCs e materiais não-KL
+        if (dynamic_cast<TPZBndCond*>(elx->Material())) continue;
+        auto *matKL = dynamic_cast<TPZMatKLKernel*>(elx->Material());
+        if (!matKL) continue;
+
+        vol.push_back({elx, matKL, iel});
+    }
+
+    const std::size_t nvol = vol.size();
+    if (nvol == 0) return;
+
+    // --- 2) Pré-computa mapa local->global (dst) por elemento
+    std::vector<TPZManVector<long>> dest; dest.resize(nvol);
+    for (std::size_t a = 0; a < nvol; ++a) {
+        // 'nx' deve bater com linhas do ce.fMat calculado para este elemento a
+        const int nx = vol[a].el->NShapeF();
+        TPZManVector<long> src, dstA;
+        GetDestIndex(vol[a].gelIndex, nx, src, dstA);
+        dest[a] = std::move(dstA);
+    }
+
+    // --- 3) Loop só no triângulo superior: b >= a (simetria)
+    for (std::size_t a = 0; a < nvol; ++a) {
+        for (std::size_t b = a; b < nvol; ++b) {
+
+            TPZElementMatrixT<STATE> ce(cmesh, TPZElementMatrix::EK);
+            try {
+                vol[a].mat->CalcStiffNystrom(vol[a].el, vol[b].el, ce);
+            } catch (...) {
+                std::cout << "CalcStiffNystrom falhou: a="<<a<<" b="<<b
+                << " (gel "<<vol[a].gelIndex<<","<<vol[b].gelIndex<<")\n";
+                throw;
+            }
+
+            const int nx = ce.fMat.Rows();
+            const int ny = ce.fMat.Cols();
+
+            auto &IA = dest[a];
+            auto &IB = dest[b];
+
+            // segurança: pode acontecer de NShapeF() mudar após integração
+            if ((int)IA.size() < nx) { TPZManVector<long> s,d; GetDestIndex(vol[a].gelIndex, nx, s, IA); }
+            if ((int)IB.size() < ny) { TPZManVector<long> s,d; GetDestIndex(vol[b].gelIndex, ny, s, IB); }
+
+            for (int i = 0; i < nx; ++i) {
+                const long I = IA[i];
+                for (int j = 0; j < ny; ++j) {
+                    const long J = IB[j];
+                    const TVar val = (TVar)ce.fMat(i,j);
+
+                    // triângulo superior
+                    C(I,J) += val;
+
+                    if (b != a) {
+                        // espelhamento (Hermitiano se TVar for complexo)
+                        if constexpr (std::is_same_v<TVar,std::complex<float>> ||
+                            std::is_same_v<TVar,std::complex<double>>) {
+                            C(J,I) += std::conj(val);
+                            } else {
+                                C(J,I) += val;
+                            }
+                    }
+                }
+            }
+        }
+    }
+
+    // --- 4) (Opcional) força simetria numérica
+    // for (int64_t i = 0; i < neq; ++i) {
+    //     for (int64_t j = i+1; j < neq; ++j) {
+    //         TVar v = TVar(0.5)*(C(i,j) +
+    //                 (std::is_complex_v<TVar> ? std::conj(C(j,i)) : C(j,i)));
+    //         C(i,j) = v;
+    //         C(j,i) = std::is_complex_v<TVar> ? std::conj(v) : v;
+    //     }
+    // }
+}
+/*
 template<class TVar>
 void pzdoublestrmatriz<TVar>::AssembleC(TPZFMatrix<TVar> &C)
 {
@@ -93,6 +192,8 @@ void pzdoublestrmatriz<TVar>::AssembleC(TPZFMatrix<TVar> &C)
 
     C.Redim(neq, neq);
     C.Zero();
+
+    const bool useGalerkin = (fCAssembly == ECAssembly::Galerkin);
 
     for (long iel=0; iel<nelem; ++iel) {
         auto *elx = dynamic_cast<TPZInterpolationSpace*>(elvec[iel]);
@@ -116,11 +217,18 @@ void pzdoublestrmatriz<TVar>::AssembleC(TPZFMatrix<TVar> &C)
                 DebugStop();
             }
             try{
-                matKL->CalcStiffNystrom(elx, ely, ce);
-            } catch(...){
-                std::cout << "CalcStiffNystrom falhou em iel = "<<iel<< " jel = " <<jel<<std::endl;
+                if (useGalerkin) {
+                    // NOVO: Galerkin padrão (duas regras de integração)
+                    matKL->CalcStiffGalerkin(elx, ely, ce);
+                } else {
+                    // ANTIGO: Nyström
+                    matKL->CalcStiffNystrom(elx, ely, ce);
+                }
+            } catch (...) {
+                std::cout << "C-block falhou em iel=" << iel << " jel=" << jel << std::endl;
                 throw;
             }
+
             const int nx = ce.fMat.Rows();
             const int ny = ce.fMat.Cols();
 
@@ -137,7 +245,7 @@ void pzdoublestrmatriz<TVar>::AssembleC(TPZFMatrix<TVar> &C)
             }
         }
     }
-}
+}*/
 
 template<class TVar>
 void pzdoublestrmatriz<TVar>::AssembleB(TPZFMatrix<TVar> &B)

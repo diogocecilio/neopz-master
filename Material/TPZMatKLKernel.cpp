@@ -69,6 +69,69 @@ void TPZMatKLKernel::CalcStiffNystrom(TPZInterpolationSpace* elx,
     }
 }
 
+// TPZMatKLKernel.cpp
+void TPZMatKLKernel::CalcStiffGalerkin(TPZInterpolationSpace* elx,
+                                       TPZInterpolationSpace* ely,
+                                       TPZElementMatrixT<STATE> &ce) const
+{
+    // dados de FE
+    TPZMaterialDataT<STATE> dataX, dataY;
+    elx->InitMaterialData(dataX);
+    ely->InitMaterialData(dataY);
+
+    // regras de integração (clone das definidas no elemento)
+    auto ruleX = elx->GetIntegrationRule().Clone();
+    auto ruleY = ely->GetIntegrationRule().Clone();
+
+    // (opcional) reforçar a ordem de quadratura
+    // const int p = std::max(elx->GetPreferredOrder(), ely->GetPreferredOrder());
+    // TPZManVector<int,3> ord(elx->Dimension(), 2*p + 4);
+    // ruleX->SetOrder(ord); ruleY->SetOrder(ord);
+
+    const int nx = elx->NShapeF();
+    const int ny = ely->NShapeF();
+    ce.fMat.Redim(nx, ny);
+    ce.fMat.Zero();
+
+    TPZManVector<REAL,3> qsiX(elx->Dimension()), qsiY(ely->Dimension());
+    REAL wx = 0., wy = 0.;
+    const int npx = ruleX->NPoints();
+    const int npy = ruleY->NPoints();
+
+    for (int ipx=0; ipx<npx; ++ipx) {
+        ruleX->Point(ipx, qsiX, wx);
+        // preenche phi, detjac, x, etc.
+        elx->ComputeRequiredData(dataX, qsiX);
+
+        const REAL wJx = wx * dataX.detjac;
+        const TPZVec<REAL> &X = dataX.x;
+        const TPZFMatrix<STATE> &phiX = dataX.phi;
+
+        for (int ipy=0; ipy<npy; ++ipy) {
+            ruleY->Point(ipy, qsiY, wy);
+            ely->ComputeRequiredData(dataY, qsiY);
+
+            const REAL wJy = wy * dataY.detjac;
+            const TPZVec<REAL> &Y = dataY.x;
+            const TPZFMatrix<STATE> &phiY = dataY.phi;
+
+            // kernel e peso total
+            const STATE Kxy = fKernel(X, Y);
+            const STATE W   = (STATE)(wJx * wJy) * Kxy;
+
+            // acumula bloco local
+            for (int i=0; i<nx; ++i) {
+                const STATE pix = phiX(i,0);
+                for (int j=0; j<ny; ++j) {
+                    ce.fMat(i,j) += W * pix * (STATE)phiY(j,0);
+                }
+            }
+        }
+    }
+}
+
+
+
 /** B_ij = ∫ phi_i phi_j dx (massa consistente) */
 void TPZMatKLKernel::CalcStiffMass(TPZInterpolationSpace* el,
                                    TPZElementMatrixT<STATE> &be,
