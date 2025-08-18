@@ -153,10 +153,13 @@ void TPZEigenAnalysis::AssembleT()
 
   // --------- Monta Matrix A ----------
   auto matA = eigSolver.MatrixA();
+
   if (matA && matA->Rows() == sz) {
     matA->Zero();
     fStructMatrix->Assemble(*matA, dummyRhs, fGuiInterface);
   } else {
+    auto  basemat =fStructMatrix->CreateAssemble(dummyRhs, fGuiInterface);
+    //std::cout <<" CreateAssemble = "<<typeid(*basemat).name()<<"\n";
     TPZAutoPointer<TPZMatrix<TVar>> mat =
     dynamic_cast<TPZMatrix<TVar>*>(fStructMatrix->CreateAssemble(dummyRhs, fGuiInterface));
     eigSolver.SetMatrixA(mat);

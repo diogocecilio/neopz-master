@@ -111,6 +111,8 @@ protected:
   int SolveImpl(TPZVec<CTVar> &w,TPZFMatrix<CTVar> &eigenVectors, bool computeVectors);
   //! Set target of spectral transformation equal to user-defined target
   void AdjustTargetST();
+
+  TPZAutoPointer<TPZMatrix<TVar>> fBForMultiply{nullptr};
 };
 
 template<class TVar>

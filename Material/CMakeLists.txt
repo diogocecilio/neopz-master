@@ -36,6 +36,8 @@ set(public_headers
     TPZLagrangeMultiplier.h
     TPZLagrangeMultiplierCS.h
     TPZMatTypes.h
+    TPZMatKLCov2D.h
+    TPZMatKLKernel.h
     )
 
 set(headers
@@ -68,6 +70,8 @@ set(headers
     TPZNullMaterialCS.h
     TPZLagrangeMultiplier.h
     TPZLagrangeMultiplierCS.h
+    TPZMatKLCov2D.h
+    TPZMatKLKernel.h
    )
 set(sources
 
@@ -96,6 +100,8 @@ set(sources
     TPZNullMaterialCS.cpp
     TPZLagrangeMultiplier.cpp
     TPZLagrangeMultiplierCS.cpp
+    TPZMatKLCov2D.cpp
+    TPZMatKLKernel.cpp
    )
 
 install(FILES ${public_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Material)

@@ -15,3 +15,4 @@ add_subdirectory(geomecprobdeter)
 add_subdirectory(eigensolver)
 
 
+add_subdirectory(eigensolverkl)
