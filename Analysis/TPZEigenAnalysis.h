@@ -63,14 +63,14 @@ public:
     // carrega o modo k na malha (e opcionalmente já normaliza por massa)
     void LoadEigenvectorToMesh(int k,
                                EEigPart part = EEigPart::Real,
-                               bool massNormalize = true);
+                               bool massNormalize=false);
 
     // opcional: pós-processa direto um modo
     void PostProcessMode(int k, int subDiv,
                          const TPZStack<std::string>& scalars,
                          const TPZStack<std::string>& vectors,
                          EEigPart part = EEigPart::Real,
-                         bool massNormalize = true);
+                         bool massNormalize = false);
     // acesso útil
     const TPZFMatrix<CSTATE>& Eigenvectors() const { return fEigenvectors; }
     const TPZVec<CSTATE>&     Eigenvalues()  const { return fEigenvalues; }

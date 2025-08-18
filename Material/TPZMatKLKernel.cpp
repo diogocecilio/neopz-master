@@ -139,57 +139,123 @@ void TPZMatKLKernel::FillDataRequirements(TPZMaterialData&data)const
     //data.fNeedsNormal=false;
     //data.fNeedsNeighborSol=false;
 }
+// --- .cpp ---
+enum EVarIds {
+    EVar_Solution = 1, EVar_ExactSolution, EVar_Error, EVar_ErrorSquared,
+    EVar_Gradient, EVar_ExactGradient, EVar_ErrorGrad, EVar_GradErrorSquared
+};
+
 int TPZMatKLKernel::VariableIndex(const std::string& name) const {
-  if (name=="Solution"||name=="u") return ESolution;
-  if (name=="Gradient"||name=="grad") return EGradient;
-  if (name=="ExactSolution") return EExact;
-  if (name=="ExactGradient") return EExactGrad;
-  if (name=="Error") return EError;
-  if (name=="ErrorGrad") return EErrorGrad;
-  return -1;
+    if (name=="Solution")          return EVar_Solution;
+    if (name=="ExactSolution")     return EVar_ExactSolution;
+    if (name=="Error")             return EVar_Error;
+    if (name=="ErrorSquared")      return EVar_ErrorSquared;        // <<<
+    if (name=="Gradient")          return EVar_Gradient;
+    if (name=="ExactGradient")     return EVar_ExactGradient;
+    if (name=="ErrorGrad")         return EVar_ErrorGrad;
+    if (name=="GradErrorSquared")  return EVar_GradErrorSquared;    // <<<
+    return -1;
 }
 
 int TPZMatKLKernel::NSolutionVariables(int var) const {
-  switch (var) {
-    case ESolution: case EExact: case EError: return 1;
-    case EGradient: case EExactGrad: case EErrorGrad: return Dimension();
-    default: return 0;
-  }
+    switch (var) {
+        case EVar_Solution:
+        case EVar_ExactSolution:
+        case EVar_Error:
+        case EVar_ErrorSquared:
+        case EVar_GradErrorSquared: return 1;
+        case EVar_Gradient:
+        case EVar_ExactGradient:
+        case EVar_ErrorGrad:        return 2;
+    }
+    return 0;
 }
 
 void TPZMatKLKernel::Solution(const TPZMaterialDataT<STATE>& data, int var,
-                              TPZVec<STATE>& Solout) {
-  const int dim = Dimension();
-  switch (var) {
-    case ESolution: {
-      Solout.Resize(1); Solout[0] = data.sol[0][0]; break;
+                              TPZVec<STATE>& out)
+{
+    // FE: escalar H1
+    const STATE uh = data.sol[0][0];
+    STATE uex = 0.;
+    TPZFMatrix<STATE> duex; duex.Resize(2,1); duex.Zero();
+    if (fExact) fExact(data.x, uex, duex);
+
+    const STATE e  = uh - uex;
+    const STATE e2 = e*e;
+
+    TPZManVector<STATE,2> gradh(2,0.);
+    if (data.dsol.size()) {
+        gradh[0] = data.dsol[0](0,0);
+        gradh[1] = data.dsol[0](1,0);
     }
-    case EGradient: {
-      Solout.Resize(dim);
-      for (int i=0;i<dim;i++) Solout[i] = data.dsol[0](i,0);
-      break;
+    const STATE ex = gradh[0] - duex(0,0);
+    const STATE ey = gradh[1] - duex(1,0);
+    const STATE gradE2 = ex*ex + ey*ey;
+
+    switch (var) {
+        case EVar_Solution:         out[0]=uh; break;
+        case EVar_ExactSolution:    out[0]=uex; break;
+        case EVar_Error:            out[0]=e;   break;
+        case EVar_ErrorSquared:     out[0]=e2;  break;             // <<<
+        case EVar_Gradient:         out[0]=gradh[0]; out[1]=gradh[1]; break;
+        case EVar_ExactGradient:    out[0]=duex(0,0); out[1]=duex(1,0); break;
+        case EVar_ErrorGrad:        out[0]=ex; out[1]=ey; break;
+        case EVar_GradErrorSquared: out[0]=gradE2; break;          // <<<
+        default: out.Fill(0.);
     }
-    case EExact:
-    case EExactGrad:
-    case EError:
-    case EErrorGrad: {
-      STATE ue = 0; TPZFMatrix<STATE> due(dim,1,0.);
-      if (fExact) fExact(data.x, ue, due);
-      if (var==EExact) { Solout.Resize(1); Solout[0] = ue; break; }
-      if (var==EExactGrad) {
-        Solout.Resize(dim); for (int i=0;i<dim;i++) Solout[i]=due(i,0); break;
-      }
-      if (var==EError) { // u_h - u_ex
-        Solout.Resize(1); Solout[0] = data.sol[0][0] - ue; break;
-      }
-      if (var==EErrorGrad) {
-        Solout.Resize(dim);
-        for (int i=0;i<dim;i++) Solout[i] = data.dsol[0](i,0) - due(i,0);
-        break;
-      }
-      break;
-    }
-    default: Solout.Resize(0); break;
-  }
 }
 
+// int TPZMatKLKernel::VariableIndex(const std::string& name) const {
+//   if (name=="Solution"||name=="u") return ESolution;
+//   if (name=="Gradient"||name=="grad") return EGradient;
+//   if (name=="ExactSolution") return EExact;
+//   if (name=="ExactGradient") return EExactGrad;
+//   if (name=="Error") return EError;
+//   if (name=="ErrorGrad") return EErrorGrad;
+//   return -1;
+// }
+//
+// int TPZMatKLKernel::NSolutionVariables(int var) const {
+//   switch (var) {
+//     case ESolution: case EExact: case EError: return 1;
+//     case EGradient: case EExactGrad: case EErrorGrad: return Dimension();
+//     default: return 0;
+//   }
+// }
+//
+// void TPZMatKLKernel::Solution(const TPZMaterialDataT<STATE>& data, int var,
+//                               TPZVec<STATE>& Solout) {
+//   const int dim = Dimension();
+//   switch (var) {
+//     case ESolution: {
+//       Solout.Resize(1); Solout[0] = data.sol[0][0]; break;
+//     }
+//     case EGradient: {
+//       Solout.Resize(dim);
+//       for (int i=0;i<dim;i++) Solout[i] = data.dsol[0](i,0);
+//       break;
+//     }
+//     case EExact:
+//     case EExactGrad:
+//     case EError:
+//     case EErrorGrad: {
+//       STATE ue = 0; TPZFMatrix<STATE> due(dim,1,0.);
+//       if (fExact) fExact(data.x, ue, due);
+//       if (var==EExact) { Solout.Resize(1); Solout[0] = ue; break; }
+//       if (var==EExactGrad) {
+//         Solout.Resize(dim); for (int i=0;i<dim;i++) Solout[i]=due(i,0); break;
+//       }
+//       if (var==EError) { // u_h - u_ex
+//         Solout.Resize(1); Solout[0] = data.sol[0][0] - ue; break;
+//       }
+//       if (var==EErrorGrad) {
+//         Solout.Resize(dim);
+//         for (int i=0;i<dim;i++) Solout[i] = data.dsol[0](i,0) - due(i,0);
+//         break;
+//       }
+//       break;
+//     }
+//     default: Solout.Resize(0); break;
+//   }
+// }
+//

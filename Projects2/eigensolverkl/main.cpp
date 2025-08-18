@@ -1,4 +1,8 @@
-// main.cpp — KL em [-0.5,0.5]^2 (3x3 quads) com Nyström explícito + TPZKrylovEigenSolver
+// main.cpp — sweep em nRef com prints, tempos e erros
+// Uso:
+//   ./prog --solver=lapack --p=2 --minref=0 --maxref=3
+//   ./prog --solver=krylov --p=2 --minref=0 --maxref=3
+// Flags extras: --vtk-last  (gera VTK só no último nível)
 
 #include "pzgmesh.h"
 #include "pzcmesh.h"
@@ -10,120 +14,97 @@
 #include "TPZLapackEigenSolver.h"
 #include "pzskylstrmatrix.h"
 
-#include "TPZMatKLCov2D.h"
 #include "TPZVTKGeoMesh.h"
-
-#include <iostream>
-#include <algorithm>
-#include <complex>
-#include <fstream>
-
-// ------------------ malha [-0.5,0.5]^2 com nx×ny QUADs ------------------
-#include "pzgmesh.h"
-#include "pzgeoquad.h"
-#include "TPZVTKGeoMesh.h"
-#include "pzdoublestrmatriz.h"
 #include "TPZMatKLKernel.h"
-// malha [-0.5,0.5]x[-0.5,0.5], nós e conectividades iguais às do Mathematica
-// matId: id do material geométrico a ser atribuído aos elementos
-TPZGeoMesh* CreateGeoMeshMathematicaLike(int matId)
+#include "pzdoublestrmatriz.h"
+
+
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <set>
+#include <string>
+#include <vector>
+
+// ---------------- util ----------------
+template <class T>
+static T read_int_arg(int argc, char** argv, const std::string& key, T defval){
+        const std::string k = "--"+key+"=";
+        for (int i=1;i<argc;i++){ std::string a=argv[i]; if (a.rfind(k,0)==0) return static_cast<T>(std::stoi(a.substr(k.size()))); }
+        return defval;
+}
+static bool has_flag(int argc, char** argv, const std::string& flag){
+        const std::string f="--"+flag; for (int i=1;i<argc;i++) if (f==argv[i]) return true; return false;
+}
+
+// -------- geometria 3x3 + nRef níveis (retorna AutoPointer!) --------
+static TPZAutoPointer<TPZGeoMesh> CreateGeoMeshMathematicaLike(int matId, int nRef = 1)
 {
-        auto gmesh = new TPZGeoMesh;
+        TPZAutoPointer<TPZGeoMesh> gmesh = new TPZGeoMesh;
         gmesh->SetDimension(2);
 
-        // ---- nós (mesma ordem que o Mathematica) ----
-        // 1..16  ->  0..15 aqui
         const double m = 1.0/6.0;
         const double X[16][2] = {
-                {-0.5, -0.5},    {-0.5, -m},      {-0.5,  m},      {-0.5,  0.5},
-                {-m , -0.5},     {-m , -m},       {-m ,  m},       {-m ,   0.5},
-                { m, -0.5},      { m, -m},        { m,  m},        { m,   0.5},
-                {0.5, -0.5},     {0.5, -m},       {0.5,  m},       {0.5,  0.5}
+                {-0.5,-0.5},{-0.5,-m},{-0.5, m},{-0.5, 0.5},
+                {-m ,-0.5},{-m ,-m},{-m , m},{-m , 0.5},
+                { m ,-0.5},{ m ,-m},{ m , m},{ m , 0.5},
+                { 0.5,-0.5},{ 0.5,-m},{ 0.5, m},{ 0.5, 0.5}
         };
-
         gmesh->NodeVec().Resize(16);
-        for (int i = 0; i < 16; i++) {
-                TPZManVector<REAL,3> coord(3, 0.);
-                coord[0] = X[i][0];
-                coord[1] = X[i][1];
-                gmesh->NodeVec()[i].Initialize(coord, *gmesh);
+        for (int i=0;i<16;i++){
+                TPZManVector<REAL,3> c(3,0.); c[0]=X[i][0]; c[1]=X[i][1];
+                gmesh->NodeVec()[i].Initialize(c,*gmesh);
         }
 
-        // ---- conectividade (1-based do Mathematica -> 0-based aqui) ----
         const int conn[9][4] = {
                 { 1, 5, 6, 2}, { 2, 6, 7, 3}, { 3, 7, 8, 4},
                 { 5, 9,10, 6}, { 6,10,11, 7}, { 7,11,12, 8},
                 { 9,13,14,10}, {10,14,15,11}, {11,15,16,12}
         };
-
-        for (int e = 0; e < 9; e++) {
+        for (int e=0;e<9;e++){
                 TPZManVector<int64_t,4> nodes(4);
-                nodes[0] = conn[e][0] - 1;
-                nodes[1] = conn[e][1] - 1;
-                nodes[2] = conn[e][2] - 1;
-                nodes[3] = conn[e][3] - 1;
-
-                int64_t index;
-                gmesh->CreateGeoElement(EQuadrilateral, nodes, matId, index);
+                nodes[0]=conn[e][0]-1; nodes[1]=conn[e][1]-1;
+                nodes[2]=conn[e][2]-1; nodes[3]=conn[e][3]-1;
+                int64_t idx;
+                gmesh->CreateGeoElement(EQuadrilateral,nodes,matId,idx);
         }
-
         gmesh->BuildConnectivity();
 
-
-        for ( int d = 0; d<2; d++ )
-        {
-                int nel = gmesh->NElements();
-                TPZManVector<TPZGeoEl *> subels;
-                for ( int iel = 0; iel<nel; iel++ )
-                {
-                        TPZGeoEl *gel = gmesh->ElementVec() [iel];
-                        gel->Divide ( subels );
-                }
+        for (int r=0;r<nRef;r++){
+                const int nel = gmesh->NElements();
+                TPZManVector<TPZGeoEl*> sub;
+                for (int i=0;i<nel;i++) if (auto *gel = gmesh->ElementVec()[i]) gel->Divide(sub);
         }
-
-        // (opcional) exporta para VTK para você conferir
-        std::ofstream vtk("gmesh_from_mathematica.vtk");
-        TPZVTKGeoMesh::PrintGMeshVTK(gmesh, vtk, false);
-
         return gmesh;
 }
 
-// ------------------ CompMesh H1 ------------------
-static TPZCompMesh* CompMesh(TPZAutoPointer<TPZGeoMesh> gmesh, int porder, int matId)
+// -------- CompMesh H1 com kernel + solução exata --------
+static TPZCompMesh* BuildCompMesh(TPZAutoPointer<TPZGeoMesh> gmesh, int porder, int matId)
 {
         auto *cmesh = new TPZCompMesh(gmesh);
         cmesh->SetDimModel(gmesh->Dimension());
         cmesh->SetDefaultOrder(porder);
         cmesh->SetAllCreateFunctionsContinuous();
 
-
-        REAL Lx=1.;
-        REAL Ly=1.;
-        auto KernelFn=[Lx,Ly](const TPZVec<REAL> &x,const TPZVec<REAL>&y)->STATE{
-                const REAL dx=x[0]-y[0];
-                const REAL dy=x[1]-y[1];
-                REAL val = exp ( -fabs ( dx ) / ( Lx )- fabs (dy ) / ( Ly ) );
-                return val;
+        const REAL Lx=1., Ly=1.;
+        auto KernelFn = [Lx,Ly](const TPZVec<REAL>& x, const TPZVec<REAL>& y)->STATE{
+                const REAL dx=x[0]-y[0], dy=x[1]-y[1];
+                return std::exp(-std::fabs(dx)/Lx - std::fabs(dy)/Ly);
         };
 
-
-        //auto * mat = new TPZElasticity2D ( 1,21000000.,0.3,0.,0. ); //selfweigth
-        auto *mat = new TPZMatKLKernel(matId,2, KernelFn);
-
-        const bool isGEV =  (dynamic_cast<TPZMatGeneralisedEigenVal*>(mat)!=nullptr );
-
-        std::cout <<" isGEV = "<<isGEV<<"\n";
+        auto *mat = new TPZMatKLKernel(matId, 2, KernelFn);
         mat->SetId(matId);
 
-        constexpr double A = 1.15021;
-        constexpr double k = 1.30654;
-
-        mat->SetExact([](const TPZVec<REAL>& x, STATE& u, TPZFMatrix<STATE>& du){
-                const double xx = x[0], yy = x[1];
-                u = (STATE)(A * std::cos(k*xx) * std::cos(k*yy));
+        constexpr double A = 1.15021, k = 1.30654;
+        mat->SetExact([A,k](const TPZVec<REAL>& x, STATE& u, TPZFMatrix<STATE>& du){
+                const double xx=x[0], yy=x[1];
+                u = (STATE)(A*std::cos(k*xx)*std::cos(k*yy));
                 du.Resize(2,1);
-                du(0,0) = (STATE)(-A*k*std::sin(k*xx) * std::cos(k*yy)); // du/dx
-                du(1,0) = (STATE)(-A*k*std::cos(k*xx) * std::sin(k*yy)); // du/dy
+                du(0,0) = (STATE)(-A*k*std::sin(k*xx)*std::cos(k*yy));
+                du(1,0) = (STATE)(-A*k*std::cos(k*xx)*std::sin(k*yy));
         });
 
         cmesh->InsertMaterialObject(mat);
@@ -132,163 +113,146 @@ static TPZCompMesh* CompMesh(TPZAutoPointer<TPZGeoMesh> gmesh, int porder, int m
         cmesh->CleanUpUnconnectedNodes();
         return cmesh;
 }
-#include <fstream>
-#include <iomanip>
-#include <complex>
-#include <type_traits>
 
-#include <fstream>
-#include <iomanip>
-#include <complex>
+// -------- solver flag --------
+enum class ESolver { Lapack, Krylov };
+static ESolver parse_solver(int argc, char** argv){
+        for (int i=1;i<argc;i++){ std::string a=argv[i];
+                if (a=="--solver=lapack") return ESolver::Lapack;
+                if (a=="--solver=krylov") return ESolver::Krylov;
+        }
+        return ESolver::Lapack;
+}
 
+// -------- linha de resultados --------
+struct Row { int ref=0, nel=0, ndof=0; double asm_t=0.0, solve_t=0.0, l2=0.0, energy=0.0, eig0=0.0; };
 
-// ------------------ main ------------------
-int main()
+int main(int argc, char** argv)
 {
-        const int   matId  = 1;
-        const int   porder = 2;          // MeshOrder -> 1 (como no Mathematica)
+        const int matId  = 1;
+        const int porder = read_int_arg(argc,argv,"p",1);
+        const int ref0   = read_int_arg(argc,argv,"minref",0);
+        const int refMax = read_int_arg(argc,argv,"maxref",3);
+        const ESolver which = parse_solver(argc,argv);
+        const bool vtkLast = has_flag(argc,argv,"vtk-last");
 
-        // 1) Malhas
-        auto gmesh = CreateGeoMeshMathematicaLike(matId);
-        TPZCompMesh *cmesh = CompMesh(gmesh, porder, matId);
+        std::cout << "===== RUN =====\n"
+        << "solver       = " << (which==ESolver::Lapack?"LAPACK":"KRYLOV") << "\n"
+        << "p            = " << porder << "\n"
+        << "ref range    = [" << ref0 << "," << refMax << "]\n\n";
 
+        std::vector<Row> results;
 
-        TPZEigenAnalysis an(cmesh);
+        for (int ref=ref0; ref<=refMax; ++ref)
+        {
+                std::cout << "\n=== Refinement level " << ref << " ===\n";
 
-        pzdoublestrmatriz<STATE> sm(cmesh);
+                // geo + comp
+                TPZAutoPointer<TPZGeoMesh> gmesh = CreateGeoMeshMathematicaLike(matId, ref);
+                std::cout << "GeoMesh: nel=" << gmesh->NElements()
+                << "  nnodes=" << gmesh->NNodes() << std::endl;
 
+                TPZCompMesh* cmesh = BuildCompMesh(gmesh, porder, matId);
+                std::cout << "CompMesh: nelem=" << cmesh->NElements()
+                << "  ndof=" << cmesh->NEquations() << std::endl;
 
-        an.SetStructuralMatrix(sm);
+                TPZEigenAnalysis an(cmesh);
+                pzdoublestrmatriz<STATE> sm(cmesh);
+                an.SetStructuralMatrix(sm);
 
-        const int nact = cmesh->NEquations();
+                const int ndof = cmesh->NEquations();
+                if (which==ESolver::Lapack) {
+                        TPZLapackEigenSolver<STATE> solver;
+                        solver.SetAsGeneralised(true);
+                        solver.SetEigenSorting(TPZEigenSort::AbsDescending);
+                        solver.SetNEigenpairs(ndof);
+                        an.SetSolver(solver);
+                        std::cout << "Solver: LAPACK (neigs=" << ndof << ")\n";
+                } else {
+                        TPZKrylovEigenSolver<STATE> solver;
+                        solver.SetAsGeneralised(true);
+                        solver.SetEigenSorting(TPZEigenSort::AbsDescending);
+                        solver.SetNEigenpairs(std::min(ndof,150));
+                        solver.SetKrylovDim(10*solver.NEigenpairs());
+                        solver.SetTolerance(1e-10);
+                        an.SetSolver(solver);
+                        std::cout << "Solver: KRYLOV (neigs=" << std::min(ndof,150)
+                        << ", krylovDim=" << 10*solver.NEigenpairs() << ")\n";
+                }
 
+                Row row; row.ref=ref; row.ndof=ndof; row.nel=cmesh->NElements();
 
-        //int solver= enum {ELAPCK=1,EKRILOV=2};
-        //TPZKrylovEigenSolver<STATE> solver;
-        TPZLapackEigenSolver<STATE> solver;
-        //auto solver= new TPZLapackEigenSolver<STATE>;
-        solver.SetAsGeneralised(true);
-
-       // solver.SetKrylovDim(nact);
-       // solver.SetTolerance(1e-12);
-        solver.SetEigenSorting(TPZEigenSort::AbsDescending); // maiores autovalores primeiro
-        solver.SetNEigenpairs(nact);
-        an.SetSolver(solver);
-
-        // for(auto &it :cmesh->MaterialVec()){
-        //         TPZMaterial *m=it.second;
-        //         const bool isBC =  (dynamic_cast<TPZBndCond*>(m)!=nullptr );
-        //         const bool isGEV =  (dynamic_cast<TPZMatGeneralisedEigenVal*>(m)!=nullptr );
-        //         std::cout << " id = "<<it.first << " type = "<<typeid(*m).name()<<" isBC "<<isBC <<" isGEV = "<<isGEV<<"\n";
-        // }
-
-        //std::cout << "Montando matrizes" << std::endl;
-        an.Assemble();
-
-
-        //solver.SetAsGeneralised(false);
-        auto &es = an.EigenSolver<STATE>();
-
-        //solver.SetAsGeneralised(false);
-        auto A=es.MatrixA();
-        A->Print("MatrixA");
-        auto B=es.MatrixB();
-        B->Print("MatrixB");
-
-        // Use a função nativa do PZ para exportar para Mathematica
-        std::ofstream fileA("matrixAB.nb");
-        A->Print("A=",fileA, EMathematicaInput);
-        B->Print("B=",fileA, EMathematicaInput);
-        fileA << "Eigensystem[{A, B}, 10][[1]]"<<std::endl;
-        fileA.close();
-
-        //
-        // TPZFMatrix<REAL> invB,solM;
-        // B->Inverse(invB,ELDLt);
-        //
-        // invB.Multiply(*A,solM);
-        //
-        // TPZAutoPointer<TPZMatrix<STATE>> Ap = new TPZFMatrix<STATE>(solM);
-        //
-        // solver.SetMatrixA(Ap);
-        // std::cout << "aqui" << std::endl;
-        // TPZFMatrix<CSTATE> vecs;
-        // TPZVec<CSTATE> vals;
-        // solver.SolveEigenProblem(vals,vecs);
-        //
-        //
-        // for(int i=0;i<10;i++)std::cout << vals[i].real()<<std::endl;
-
-         an.Solve();
-         TPZVec<CSTATE> vals = an.GetEigenvalues();
-         for(int i=0;i<10;i++)std::cout << vals[i].real()<<std::endl;
-
-         TPZStack<std::string> scalars, vectors;
-        scalars.Push("Solution");
-        scalars.Push("ExactSolution");
-        scalars.Push("Error");          // u_h - u_ex
-        vectors.Push("Gradient");
-        vectors.Push("ExactGradient");
-        vectors.Push("ErrorGrad");
-
-        // carrega o modo 0 (parte real) e exporta VTK
-        an.PostProcessMode(0, /*subDiv*/0, scalars, vectors);
-
-        //an.DefineGraphMesh(2, scalars, vectors, "ref3mode_0.vtk");
-        //an.PostProcess(0);
-        // return 0;
-        // if(true)
-        // {
-        //
-        //
-        // //cmesh->StructMatrix()->EquationFilter().Reset();
-        //
-        // // 2) B e C por Nyström explícito
-        // TPZFMatrix<STATE> B, C;
-        // const int qorder = 10; // regra "segura"
-        //
-        // TPZMatKLCov2D::BuildB_Nystrom(*cmesh, qorder, B);
-        //
-        // // kernel exponencial separável (Lx=Ly=1, sigma^2=1)
-        // auto ker = [](const TPZVec<REAL>& x, const TPZVec<REAL>& y)->STATE {
-        //         return TPZMatKLCov2D::ExpKernel(x,y,1.0,1.0,1.0);
-        // };
-        // TPZMatKLCov2D::BuildC_Nystrom(*cmesh, qorder, ker, C);
-        //
-        //
-        // const int nact = cmesh->NEquations();
-        //
-        // std::cout << "B.Rows()" <<B.Rows()<<std::endl;
-        // std::cout << "nact" <<nact<<std::endl;
-        //
-        // TPZKrylovEigenSolver<STATE> solver;
-        // //solver.SetAsGeneralised(true);
-        // solver.SetNEigenpairs(nact);
-        // solver.SetKrylovDim(nact);
-        // solver.SetTolerance(1e-12);
-        // solver.SetEigenSorting(TPZEigenSort::AbsDescending); // maiores autovalores primeiro
-        //
-        //
-        // TPZFMatrix<REAL> invB,solM;
-        // B.Inverse(invB,ELDLt);
-        //
-        // invB.Multiply(C,solM);
-        //
-        // TPZAutoPointer<TPZMatrix<STATE>> Ap = new TPZFMatrix<STATE>(solM);
-        //
-        // solver.SetMatrixA(Ap);
-        // std::cout << "aqui" << std::endl;
-        // TPZFMatrix<CSTATE> vecs;
-        // TPZVec<CSTATE> vals;
-        // solver.SolveEigenProblem(vals,vecs);
-        //
-        //
-        // for(int i=0;i<10;i++)std::cout << vals[i].real()<<std::endl;
-        //
-        //
-        // }
-        //
+                // montagem
+                std::cout << "Assembling (A+B)..." << std::flush;
+                auto t0 = std::chrono::steady_clock::now();
+                an.Assemble();
+                auto t1 = std::chrono::steady_clock::now();
+                row.asm_t = std::chrono::duration<double>(t1-t0).count();
+                std::cout << " done in " << std::scientific << row.asm_t << " s\n";
 
 
+                // solve
+                std::cout << "Solving EVP..." << std::flush;
+                auto t2 = std::chrono::steady_clock::now();
+                an.Solve();
+                auto t3 = std::chrono::steady_clock::now();
+                row.solve_t = std::chrono::duration<double>(t3-t2).count();
+                std::cout << " done in " << std::scientific << row.solve_t << " s\n";
+
+                TPZVec<CSTATE> vals = an.GetEigenvalues();
+                row.eig0 = vals.size() ? vals[0].real() : 0.0;
+                std::cout << "  top eigenvalue (Re) = " << std::setprecision(8) << row.eig0 << "\n";
+
+                // pós: carrega modo 0 e normaliza por integral
+                std::cout << "Loading mode 0 + normalize by integral..." << std::flush;
+                TPZStack<std::string> scalars, vectors;
+                scalars.Push("Solution"); scalars.Push("ExactSolution"); scalars.Push("Error"); scalars.Push("ErrorSquared");
+                vectors.Push("Gradient"); vectors.Push("ExactGradient"); vectors.Push("ErrorGrad");
+                an.PostProcessMode(0, 0, scalars, vectors,
+                                   TPZEigenAnalysis::EEigPart::Real,
+                                   /*normalizeByIntegral=*/true);
+                if (vtkLast && ref==refMax) std::cout << " VTK: mode0.vtk";
+                std::cout << " ok\n";
+
+                // integra erros (somente materiais de volume)
+                std::cout << "Integrating errors..." << std::flush;
+                std::set<int> mats;
+                for (auto &it : cmesh->MaterialVec())if (it.second && dynamic_cast<TPZBndCond*>(it.second)==nullptr) mats.insert(it.first);
+
+                const STATE l2_sq     = an.Integrate("ErrorSquared", mats)[0];
+                const STATE h1semi_sq = an.Integrate("GradErrorSquared", mats)[0];
+                row.l2     = std::sqrt(l2_sq);
+                row.energy = std::sqrt(l2_sq + h1semi_sq);
+                std::cout << " L2=" << std::setprecision(6) << row.l2
+                << "  Energy=" << row.energy << "\n";
+
+                results.push_back(row);
+
+                // IMPORTANTE: destrua APENAS a compMesh.
+                // gmesh é TPZAutoPointer; o último AutoPointer (no cmesh) libera a geoMesh.
+                delete cmesh;
+        }
+
+        // tabela
+        std::cout << "\n============================================================\n";
+        std::cout << "p = " << porder << "  solver = " << (which==ESolver::Lapack?"LAPACK":"KRYLOV") << "\n";
+        std::cout << "ref   nel    ndof        asm[s]     solve[s]        ||e||_0        ||e||_E        eig0\n";
+        std::cout << "-------------------------------------------------------------------------------------------\n";
+        std::ofstream csv("results.csv"); csv << "ref,nel,ndof,asm_s,solve_s,L2,Energy,eig0\n";
+        for (auto &r : results){
+                std::cout << std::setw(3) << r.ref
+                << std::setw(7) << r.nel
+                << std::setw(8) << r.ndof
+                << std::setw(13) << std::scientific << std::setprecision(3) << r.asm_t
+                << std::setw(12) << r.solve_t
+                << std::setw(14) << r.l2
+                << std::setw(14) << r.energy
+                << std::setw(14) << r.eig0 << "\n";
+                csv << r.ref << "," << r.nel << "," << r.ndof << ","
+                << std::setprecision(10) << r.asm_t << "," << r.solve_t << ","
+                << r.l2 << "," << r.energy << "," << r.eig0 << "\n";
+        }
+        std::cout << "-------------------------------------------------------------------------------------------\n";
+        std::cout << "Resultados salvos em results.csv\n";
         return 0;
 }
