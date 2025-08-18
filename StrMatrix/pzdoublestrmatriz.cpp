@@ -108,7 +108,7 @@ void pzdoublestrmatriz<TVar>::AssembleC(TPZFMatrix<TVar> &C)
             if(dynamic_cast<TPZBndCond*>(elx->Material())||dynamic_cast<TPZBndCond*>(ely->Material()))continue;
             if(dynamic_cast<TPZMatKLKernel*>(elx->Material())==nullptr||dynamic_cast<TPZMatKLKernel*>(ely->Material())==nullptr)continue;
             TPZElementMatrixT<STATE> ce(cmesh, TPZElementMatrix::EK);
-            elx->Material()->Print();
+            //elx->Material()->Print();
             auto *mat =
             dynamic_cast<TPZMatSingleSpace*>(elx->Material());
             if(!mat)

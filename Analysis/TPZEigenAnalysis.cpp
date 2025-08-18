@@ -14,6 +14,7 @@
 #include "TPZBndCond.h" // para identificar boundary conditions
 
 #include "pzlog.h"
+#include <TPZMultiphysicsCompMesh.h>
 
 #ifdef PZ_LOG
 static TPZLogger logger("pz.analysis");
@@ -268,6 +269,78 @@ void TPZEigenAnalysis::Read(TPZStream &buf, void *context)
   buf.Read(fEigenvalues);
   fEigenvectors.Read(buf, context);
   buf.Read(fCalcVectors);
+}
+class TPZMultiphysicsCompMesh;
+
+#include "pzerror.h"                    // DebugStop, PZError
+#include "TPZMultiphysicsCompMesh.h"    // TransferMultiphysicsSolution
+#include <cmath>
+#include <complex>
+
+// escolha do que visualizar
+static inline STATE pick_part(CSTATE z, TPZEigenAnalysis::EEigPart p) {
+  switch (p) {
+    case TPZEigenAnalysis::EEigPart::Real:      return (STATE)std::real(z);
+    case TPZEigenAnalysis::EEigPart::Imag:      return (STATE)std::imag(z);
+    case TPZEigenAnalysis::EEigPart::Magnitude: return (STATE)std::abs(z);
+    case TPZEigenAnalysis::EEigPart::Phase:     return (STATE)std::atan2(std::imag(z), std::real(z));
+  }
+  return (STATE)std::real(z);
+}
+
+void TPZEigenAnalysis::LoadEigenvectorToMesh(int k,
+                                             EEigPart part,
+                                             bool massNormalize)
+{
+  const int neq = fCompMesh->NEquations();
+  if (k < 0 || k >= fEigenvectors.Cols()) { DebugStop(); }
+
+  // 1) monta DOFs a partir do autovetor (sem escala)
+  TPZFMatrix<STATE> sol(neq,1,(STATE)0);
+  for (int i=0; i<neq; i++)
+    sol(i,0) = (STATE)pick_part(fEigenvectors.GetVal(i,k), part);
+
+  // carrega na malha para que Integrate() enxergue "Solution"
+  fCompMesh->LoadSolution(sol);
+  if (auto *mp = dynamic_cast<TPZMultiphysicsCompMesh*>(fCompMesh))
+    mp->TransferMultiphysicsSolution();
+
+  if (massNormalize) {
+    // 2) integra "Solution" nos materiais de volume (sem BCs)
+    std::set<int> mats;
+    for (auto &it : fCompMesh->MaterialVec()) {
+      if (!it.second) continue;
+      if (dynamic_cast<TPZBndCond*>(it.second)) continue; // pula contorno
+      mats.insert(it.first);
+    }
+    TPZVec<STATE> Ivec = this->Integrate("Solution", mats); // <- usa seu material::Solution
+    STATE I = Ivec.size() ? Ivec[0] : 0.;
+
+    // 3) reescala e recarrega
+    const STATE tol = (STATE)1e-14;
+    if (std::abs(I) > tol) {
+      const STATE scale = (STATE)(1.0 / I);
+      for (int i=0; i<neq; i++) sol(i,0) *= scale;
+      fCompMesh->LoadSolution(sol);
+      if (auto *mp = dynamic_cast<TPZMultiphysicsCompMesh*>(fCompMesh))
+        mp->TransferMultiphysicsSolution();
+    }
+    // (se I≈0 — modos de média nula — não normaliza; escolha outro critério se quiser)
+  }
+
+
+}
+
+void TPZEigenAnalysis::PostProcessMode(int k, int subDiv,
+                                       const TPZStack<std::string>& scalars,
+                                       const TPZStack<std::string>& vectors,
+                                       EEigPart part,
+                                       bool massNormalize)
+{
+  LoadEigenvectorToMesh(k, part, massNormalize);
+  this->DefineGraphMesh(fCompMesh->Dimension(), scalars, vectors,
+                        "eigenmode_"+std::to_string(k)+".vtk");
+  this->PostProcess(subDiv);
 }
 
 #define INSTANTIATE_TEMPLATES(TVar) \

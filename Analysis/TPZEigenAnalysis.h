@@ -57,6 +57,24 @@ public:
     //! Read attributes from TPZStream to replicate instance from file
     void Read(TPZStream &buf, void *context) override;
     /** @} */
+
+    enum class EEigPart { Real, Imag, Magnitude, Phase };
+
+    // carrega o modo k na malha (e opcionalmente já normaliza por massa)
+    void LoadEigenvectorToMesh(int k,
+                               EEigPart part = EEigPart::Real,
+                               bool massNormalize = true);
+
+    // opcional: pós-processa direto um modo
+    void PostProcessMode(int k, int subDiv,
+                         const TPZStack<std::string>& scalars,
+                         const TPZStack<std::string>& vectors,
+                         EEigPart part = EEigPart::Real,
+                         bool massNormalize = true);
+    // acesso útil
+    const TPZFMatrix<CSTATE>& Eigenvectors() const { return fEigenvectors; }
+    const TPZVec<CSTATE>&     Eigenvalues()  const { return fEigenvalues; }
+
 protected:
     /**
     * @brief Stores the computed eigenvalues

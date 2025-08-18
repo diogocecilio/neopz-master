@@ -55,6 +55,19 @@ public:
                        TPZElementMatrixT<STATE> &be,
                        int qmass) const;
 
+
+    int  VariableIndex(const std::string &name) const override;
+    int  NSolutionVariables(int var) const override;
+    void Solution(const TPZMaterialDataT<STATE> &data, int var,
+                TPZVec<STATE> &Solout) override;
+
+    enum EVars { ESolution=1, EGradient=2, EExact=3, EExactGrad=4,
+               EError=5, EErrorGrad=6 };
+
+    using TExact = std::function<void(const TPZVec<REAL>&, STATE&, TPZFMatrix<STATE>&)>;
+    void SetExact(TExact f) { fExact = std::move(f); }
+
+
     // ---- IO / RTTI ----
     int ClassId() const override;
     void Write(TPZStream &buf, int withclassid) const override;
@@ -72,4 +85,5 @@ private:
     //int fQx  = 2;   // ordem para integração em x (C)
     //int fQy  = 2;   // ordem para integração em y (C)
     Target fTarget = Target::A;
+    TExact fExact;
 };

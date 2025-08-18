@@ -27,12 +27,6 @@ void TPZMatKLKernel::CalcStiffNystrom(TPZInterpolationSpace* elx,
     auto ruleX = elx->GetIntegrationRule().Clone();
     auto ruleY = ely->GetIntegrationRule().Clone();
 
-    // SetOrder usa TPZVec<int> nas versões recentes
-    //TPZManVector<int,3> ordx(elx->Dimension(), fQx);
-    //TPZManVector<int,3> ordy(ely->Dimension(), fQy);
-    //ruleX->SetOrder(ordx);
-    //ruleY->SetOrder(ordy);
-
     const int nx = elx->NShapeF();
     const int ny = ely->NShapeF();
     ce.fMat.Redim(nx, ny);
@@ -84,8 +78,8 @@ void TPZMatKLKernel::CalcStiffMass(TPZInterpolationSpace* el,
     el->InitMaterialData(data);
 
     auto rule = el->GetIntegrationRule().Clone();
-    TPZManVector<int,3> ord(el->Dimension(), qmass);
-    rule->SetOrder(ord);
+    // TPZManVector<int,3> ord(el->Dimension(), qmass);
+    // rule->SetOrder(ord);
 
     const int n = el->NShapeF();
     be.fMat.Redim(n,n);
@@ -141,8 +135,61 @@ bool TPZMatKLKernel::HasForcingFunction() const
 void TPZMatKLKernel::FillDataRequirements(TPZMaterialData&data)const
 {
     data.SetAllRequirements(false);
-    //data.fNeedsSol=false;
+    data.fNeedsSol=true;
     //data.fNeedsNormal=false;
     //data.fNeedsNeighborSol=false;
+}
+int TPZMatKLKernel::VariableIndex(const std::string& name) const {
+  if (name=="Solution"||name=="u") return ESolution;
+  if (name=="Gradient"||name=="grad") return EGradient;
+  if (name=="ExactSolution") return EExact;
+  if (name=="ExactGradient") return EExactGrad;
+  if (name=="Error") return EError;
+  if (name=="ErrorGrad") return EErrorGrad;
+  return -1;
+}
+
+int TPZMatKLKernel::NSolutionVariables(int var) const {
+  switch (var) {
+    case ESolution: case EExact: case EError: return 1;
+    case EGradient: case EExactGrad: case EErrorGrad: return Dimension();
+    default: return 0;
+  }
+}
+
+void TPZMatKLKernel::Solution(const TPZMaterialDataT<STATE>& data, int var,
+                              TPZVec<STATE>& Solout) {
+  const int dim = Dimension();
+  switch (var) {
+    case ESolution: {
+      Solout.Resize(1); Solout[0] = data.sol[0][0]; break;
+    }
+    case EGradient: {
+      Solout.Resize(dim);
+      for (int i=0;i<dim;i++) Solout[i] = data.dsol[0](i,0);
+      break;
+    }
+    case EExact:
+    case EExactGrad:
+    case EError:
+    case EErrorGrad: {
+      STATE ue = 0; TPZFMatrix<STATE> due(dim,1,0.);
+      if (fExact) fExact(data.x, ue, due);
+      if (var==EExact) { Solout.Resize(1); Solout[0] = ue; break; }
+      if (var==EExactGrad) {
+        Solout.Resize(dim); for (int i=0;i<dim;i++) Solout[i]=due(i,0); break;
+      }
+      if (var==EError) { // u_h - u_ex
+        Solout.Resize(1); Solout[0] = data.sol[0][0] - ue; break;
+      }
+      if (var==EErrorGrad) {
+        Solout.Resize(dim);
+        for (int i=0;i<dim;i++) Solout[i] = data.dsol[0](i,0) - due(i,0);
+        break;
+      }
+      break;
+    }
+    default: Solout.Resize(0); break;
+  }
 }
 
