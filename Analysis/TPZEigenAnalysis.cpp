@@ -12,7 +12,7 @@
 #include "TPZMaterial.h"
 #include "pzcmesh.h"
 #include "TPZBndCond.h" // para identificar boundary conditions
-
+#include "pzinterpolationspace.h"
 #include "pzlog.h"
 #include <TPZMultiphysicsCompMesh.h>
 
@@ -313,14 +313,14 @@ void TPZEigenAnalysis::LoadEigenvectorToMesh(int k,
       if (dynamic_cast<TPZBndCond*>(it.second)) continue; // pula contorno
       mats.insert(it.first);
     }
-    TPZVec<STATE> Ivec = this->Integrate("Solution", mats); // <- usa seu material::Solution
+    TPZVec<STATE> Ivec = this->Integrate("SolutionSquared", mats); // <- usa seu material::Solution
     STATE I = Ivec.size() ? Ivec[0] : 0.;
 
     // 3) reescala e recarrega
     const STATE tol = (STATE)1e-14;
     if (std::abs(I) > tol) {
       const STATE scale = (STATE)(1.0 / I);
-      for (int i=0; i<neq; i++) sol(i,0) *= scale;
+      for (int i=0; i<neq; i++) sol(i,0) *= sqrt(scale);
       fCompMesh->LoadSolution(sol);
       if (auto *mp = dynamic_cast<TPZMultiphysicsCompMesh*>(fCompMesh))
         mp->TransferMultiphysicsSolution();
@@ -343,6 +343,94 @@ void TPZEigenAnalysis::PostProcessMode(int k, int subDiv,
   this->PostProcess(subDiv);
 }
 
+/**
+ * Constrói a matriz PHI_sqrtLambda (ndof x M),
+ * coluna k = sqrt(lambda_k) * (phi_k / ||phi_k||_M),
+ * com ||.||_M = sqrt( ∫ phi^2 dΩ ) via Integrate("SolutionSquared").
+ */
+void TPZEigenAnalysis::BuildPhiSqrtLambdaNodal(int M)
+{
+  const int ndof = fCompMesh->NEquations();
+  const int nm   = std::min(M, (int)fEigenvectors.Cols());
+  if (nm <= 0) return;
+
+  TPZFMatrix<STATE> PHI_sqrtLambda(ndof, nm, (STATE)0);
+
+  // materiais de volume (sem BC) para integração
+  std::set<int> mats;
+  for (auto &it : fCompMesh->MaterialVec()) {
+    if (!it.second) continue;
+    if (dynamic_cast<TPZBndCond*>(it.second)) continue;
+    mats.insert(it.first);
+  }
+
+  TPZFMatrix<STATE> sol(ndof,1,(STATE)0);
+
+  for (int k = 0; k < nm; ++k) {
+    // 1) autovetor k (parte real)
+    for (int i=0; i<ndof; i++) {
+      sol(i,0) = (STATE)fEigenvectors.GetVal(i,k).real();
+    }
+
+    // 2) normalização na métrica de massa: ||phi||_M = sqrt( ∫ phi^2 dΩ )
+    double scale = 1.0;
+    fCompMesh->LoadSolution(sol);
+    if (auto *mp = dynamic_cast<TPZMultiphysicsCompMesh*>(fCompMesh))
+      mp->TransferMultiphysicsSolution();
+
+    TPZVec<STATE> Ivec = this->Integrate("SolutionSquared", mats);
+    const double I = (Ivec.size() ? (double)Ivec[0] : 0.0);
+    if (I > 1e-30) scale = 1.0/std::sqrt(I);
+
+    // 3) √λ_k (parte real, truncada em 0)
+    const double lamk    = std::max(0.0, (double)fEigenvalues[k].real());
+    const double rootlam = std::sqrt(lamk);
+
+    // 4) coluna k := √λ_k * (phi_k * scale)
+    for (int i=0; i<ndof; i++) {
+      PHI_sqrtLambda(i,k) = (STATE)(rootlam* (double)sol(i,0) * scale);
+    }
+  }
+
+  //PHI_sqrtLambda.Print(std::cout);
+  // carrega TODAS as colunas como solução multi-coluna
+  this->LoadSolution(PHI_sqrtLambda);
+  if (auto *mp = dynamic_cast<TPZMultiphysicsCompMesh*>(fCompMesh))
+    mp->TransferMultiphysicsSolution();
+}
+
+void TPZEigenAnalysis::CheckL2Norms(int M, std::ostream& out) {
+  const int ndof = fCompMesh->NEquations();
+  const int nm   = std::min(M, (int)fEigenvectors.Cols());
+
+  // materiais de volume (sem BC)
+  std::set<int> mats;
+  for (auto &it : fCompMesh->MaterialVec()){
+    if (!it.second) continue;
+    if (dynamic_cast<TPZBndCond*>(it.second)) continue;
+    mats.insert(it.first);
+  }
+
+  BuildPhiSqrtLambdaNodal(M);
+
+  TPZFMatrix<STATE> sol;
+
+  sol= this->Solution();
+
+
+  TPZFMatrix<STATE> sol2(sol.Rows(),1,0.);
+  for (int k=0;k<sol.Cols();k++){
+    for (int i=0;i<sol.Rows();i++) sol2(i,0) = sol(i,k);
+    fCompMesh->Solution().Zero();
+    const double lamk    = std::max(0.0, (double)fEigenvalues[k].real());
+    sol2*=1./sqrt(lamk);
+    fCompMesh->LoadSolution(sol2);
+    if (auto *mp = dynamic_cast<TPZMultiphysicsCompMesh*>(fCompMesh)) mp->TransferMultiphysicsSolution();
+    TPZVec<STATE> I = this->Integrate("SolutionSquared", mats);
+    const double norm2 = I.size()? (double)I[0] : 0.0;
+    out << "k="<<k<<"  ∫φ_k^2 = " << norm2 << "\n";
+  }
+}
 #define INSTANTIATE_TEMPLATES(TVar) \
 template TPZEigenSolver<TVar> &TPZEigenAnalysis::EigenSolver<TVar>();
 

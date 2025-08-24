@@ -202,30 +202,36 @@ void TPZMatKLKernel::FillDataRequirements(TPZMaterialData&data)const
     //data.fNeedsNormal=false;
     //data.fNeedsNeighborSol=false;
 }
-
 // --- .cpp ---
-// acrescente os novos ids
+// acrescente os novos ids (mantive ordem e adicionei SolutionSquared sem quebrar os existentes)
 enum EVarIds {
     EVar_Solution = 1, EVar_ExactSolution, EVar_Error, EVar_ErrorSquared,
     EVar_Gradient, EVar_ExactGradient, EVar_ErrorGrad, EVar_GradErrorSquared,
-    // novos para o campo estocástico carregado como Solution
+
+    // novo para normalização por massa
+    EVar_SolutionSquared,
+
+    // pós-processo do campo estocástico carregado como Solution
     EVar_KLField, EVar_KLFieldGrad, EVar_KLFieldLog
 };
 
 int TPZMatKLKernel::VariableIndex(const std::string& name) const {
-    if (name=="Solution")          return EVar_Solution;
-    if (name=="ExactSolution")     return EVar_ExactSolution;
-    if (name=="Error")             return EVar_Error;
-    if (name=="ErrorSquared")      return EVar_ErrorSquared;
-    if (name=="Gradient")          return EVar_Gradient;
-    if (name=="ExactGradient")     return EVar_ExactGradient;
-    if (name=="ErrorGrad")         return EVar_ErrorGrad;
-    if (name=="GradErrorSquared")  return EVar_GradErrorSquared;
+    if (name=="Solution")           return EVar_Solution;
+    if (name=="ExactSolution")      return EVar_ExactSolution;
+    if (name=="Error")              return EVar_Error;
+    if (name=="ErrorSquared")       return EVar_ErrorSquared;
+    if (name=="Gradient")           return EVar_Gradient;
+    if (name=="ExactGradient")      return EVar_ExactGradient;
+    if (name=="ErrorGrad")          return EVar_ErrorGrad;
+    if (name=="GradErrorSquared")   return EVar_GradErrorSquared;
 
-    // novos nomes de pós-processo do campo
-    if (name=="KLField")           return EVar_KLField;
-    if (name=="KLFieldGrad")       return EVar_KLFieldGrad;
-    if (name=="KLFieldLog")        return EVar_KLFieldLog;
+    // **necessário para BuildPhiSqrtLambdaNodal**
+    if (name=="SolutionSquared")    return EVar_SolutionSquared;
+
+    // pós-processo do campo
+    if (name=="KLField")            return EVar_KLField;
+    if (name=="KLFieldGrad")        return EVar_KLFieldGrad;
+    if (name=="KLFieldLog")         return EVar_KLFieldLog;
 
     return -1;
 }
@@ -237,6 +243,7 @@ int TPZMatKLKernel::NSolutionVariables(int var) const {
         case EVar_Error:
         case EVar_ErrorSquared:
         case EVar_GradErrorSquared:
+        case EVar_SolutionSquared:   // <- novo
         case EVar_KLField:
         case EVar_KLFieldLog:
             return 1;
@@ -245,7 +252,7 @@ int TPZMatKLKernel::NSolutionVariables(int var) const {
         case EVar_ExactGradient:
         case EVar_ErrorGrad:
         case EVar_KLFieldGrad:
-            return this->Dimension(); // tipicamente 2 aqui
+            return this->Dimension(); // tipicamente 2
     }
     return 0;
 }
@@ -253,10 +260,10 @@ int TPZMatKLKernel::NSolutionVariables(int var) const {
 void TPZMatKLKernel::Solution(const TPZMaterialDataT<STATE>& data, int var,
                               TPZVec<STATE>& out)
 {
-    // solução primal no ponto (vale tanto pro modo quanto pro campo que você carregou)
+    // solução primal no ponto
     const STATE uh = data.sol.size() ? data.sol[0][0] : (STATE)0.0;
 
-    // exata do modo (se definida)
+    // solução exata (se fornecida)
     STATE uex = 0.;
     TPZFMatrix<STATE> duex; duex.Redim(2,1); duex.Zero();
     if (fExact) fExact(data.x, uex, duex);
@@ -275,32 +282,43 @@ void TPZMatKLKernel::Solution(const TPZMaterialDataT<STATE>& data, int var,
     const STATE gradE2 = ex*ex + ey*ey;
 
     switch (var) {
-        // existentes
-        case EVar_Solution:         out[0]=uh; break;
-        case EVar_ExactSolution:    out[0]=uex; break;
-        case EVar_Error:            out[0]=e;   break;
-        case EVar_ErrorSquared:     out[0]=e2;  break;
-        case EVar_Gradient:
-            for (int i=0;i<dim;i++) out[i]=gradh[i];
-            break;
-        case EVar_ExactGradient:
-            out[0]=duex(0,0); if (dim>1) out[1]=duex(1,0); break;
-        case EVar_ErrorGrad:
-            out[0]=ex; if (dim>1) out[1]=ey; break;
-        case EVar_GradErrorSquared:
-            out[0]=gradE2; break;
+        case EVar_Solution:         out[0] = uh;                break;
+        case EVar_ExactSolution:    out[0] = uex;               break;
+        case EVar_Error:            out[0] = e;                 break;
+        case EVar_ErrorSquared:     out[0] = e2;                break;
 
-            // NOVOS: pós-processo do campo estocástico carregado
+        case EVar_Gradient:
+            for (int i=0;i<dim;i++) out[i] = gradh[i];
+            break;
+
+        case EVar_ExactGradient:
+            out[0] = duex(0,0); if (dim>1) out[1] = duex(1,0);
+            break;
+
+        case EVar_ErrorGrad:
+            out[0] = ex; if (dim>1) out[1] = ey;
+            break;
+
+        case EVar_GradErrorSquared:
+            out[0] = gradE2;
+            break;
+
+            // **novo**: usado na normalização por massa
+        case EVar_SolutionSquared:
+            out[0] = uh*uh;
+            break;
+
+            // pós-processo do campo (quando você carregar E(x) como Solution)
         case EVar_KLField:
-            // simplesmente o valor atual da Solution (no seu fluxo, é o E(x))
-            out[0]=uh; break;
+            out[0] = uh;
+            break;
 
         case EVar_KLFieldGrad:
-            for (int i=0;i<dim;i++) out[i]=gradh[i];
+            for (int i=0;i<dim;i++) out[i] = gradh[i];
             break;
 
         case EVar_KLFieldLog: {
-            constexpr STATE eps = (STATE)1e-30; // evita log(0)
+            constexpr STATE eps = (STATE)1e-30;
             const STATE val = uh > eps ? uh : eps;
             out[0] = std::log(val);
         } break;
@@ -309,6 +327,113 @@ void TPZMatKLKernel::Solution(const TPZMaterialDataT<STATE>& data, int var,
             out.Fill(0.);
     }
 }
+
+// // --- .cpp ---
+// // acrescente os novos ids
+// enum EVarIds {
+//     EVar_Solution = 1, EVar_ExactSolution, EVar_Error, EVar_ErrorSquared,
+//     EVar_Gradient, EVar_ExactGradient, EVar_ErrorGrad, EVar_GradErrorSquared,
+//     // novos para o campo estocástico carregado como Solution
+//     EVar_KLField, EVar_KLFieldGrad, EVar_KLFieldLog
+// };
+//
+// int TPZMatKLKernel::VariableIndex(const std::string& name) const {
+//     if (name=="Solution")          return EVar_Solution;
+//     if (name=="ExactSolution")     return EVar_ExactSolution;
+//     if (name=="Error")             return EVar_Error;
+//     if (name=="ErrorSquared")      return EVar_ErrorSquared;
+//     if (name=="Gradient")          return EVar_Gradient;
+//     if (name=="ExactGradient")     return EVar_ExactGradient;
+//     if (name=="ErrorGrad")         return EVar_ErrorGrad;
+//     if (name=="GradErrorSquared")  return EVar_GradErrorSquared;
+//
+//     // novos nomes de pós-processo do campo
+//     if (name=="KLField")           return EVar_KLField;
+//     if (name=="KLFieldGrad")       return EVar_KLFieldGrad;
+//     if (name=="KLFieldLog")        return EVar_KLFieldLog;
+//
+//     return -1;
+// }
+//
+// int TPZMatKLKernel::NSolutionVariables(int var) const {
+//     switch (var) {
+//         case EVar_Solution:
+//         case EVar_ExactSolution:
+//         case EVar_Error:
+//         case EVar_ErrorSquared:
+//         case EVar_GradErrorSquared:
+//         case EVar_KLField:
+//         case EVar_KLFieldLog:
+//             return 1;
+//
+//         case EVar_Gradient:
+//         case EVar_ExactGradient:
+//         case EVar_ErrorGrad:
+//         case EVar_KLFieldGrad:
+//             return this->Dimension(); // tipicamente 2 aqui
+//     }
+//     return 0;
+// }
+//
+// void TPZMatKLKernel::Solution(const TPZMaterialDataT<STATE>& data, int var,
+//                               TPZVec<STATE>& out)
+// {
+//     // solução primal no ponto (vale tanto pro modo quanto pro campo que você carregou)
+//     const STATE uh = data.sol.size() ? data.sol[0][0] : (STATE)0.0;
+//
+//     // exata do modo (se definida)
+//     STATE uex = 0.;
+//     TPZFMatrix<STATE> duex; duex.Redim(2,1); duex.Zero();
+//     if (fExact) fExact(data.x, uex, duex);
+//
+//     const STATE e  = uh - uex;
+//     const STATE e2 = e*e;
+//
+//     // gradiente numérico da solução
+//     const int dim = this->Dimension();
+//     TPZManVector<STATE,3> gradh(3,0.);
+//     if (data.dsol.size()) {
+//         for (int i=0; i<dim; i++) gradh[i] = data.dsol[0](i,0);
+//     }
+//     const STATE ex = gradh[0] - duex(0,0);
+//     const STATE ey = (dim>1 ? gradh[1] - duex(1,0) : 0.);
+//     const STATE gradE2 = ex*ex + ey*ey;
+//
+//     switch (var) {
+//         // existentes
+//         case EVar_Solution:         out[0]=uh; break;
+//         case EVar_ExactSolution:    out[0]=uex; break;
+//         case EVar_Error:            out[0]=e;   break;
+//         case EVar_ErrorSquared:     out[0]=e2;  break;
+//         case EVar_Gradient:
+//             for (int i=0;i<dim;i++) out[i]=gradh[i];
+//             break;
+//         case EVar_ExactGradient:
+//             out[0]=duex(0,0); if (dim>1) out[1]=duex(1,0); break;
+//         case EVar_ErrorGrad:
+//             out[0]=ex; if (dim>1) out[1]=ey; break;
+//         case EVar_GradErrorSquared:
+//             out[0]=gradE2; break;
+//
+//             // NOVOS: pós-processo do campo estocástico carregado
+//         case EVar_KLField:
+//             // simplesmente o valor atual da Solution (no seu fluxo, é o E(x))
+//             out[0]=uh; break;
+//
+//         case EVar_KLFieldGrad:
+//             for (int i=0;i<dim;i++) out[i]=gradh[i];
+//             break;
+//
+//         case EVar_KLFieldLog: {
+//             constexpr STATE eps = (STATE)1e-30; // evita log(0)
+//             const STATE val = uh > eps ? uh : eps;
+//             out[0] = std::log(val);
+//         } break;
+//
+//         default:
+//             out.Fill(0.);
+//     }
+// }
 
 /*
 

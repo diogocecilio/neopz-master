@@ -71,6 +71,11 @@ public:
                          const TPZStack<std::string>& vectors,
                          EEigPart part = EEigPart::Real,
                          bool massNormalize = false);
+
+    void BuildPhiSqrtLambdaNodal(int M);
+
+    void CheckL2Norms(int M, std::ostream& out);
+
     // acesso útil
     const TPZFMatrix<CSTATE>& Eigenvectors() const { return fEigenvectors; }
     const TPZVec<CSTATE>&     Eigenvalues()  const { return fEigenvalues; }

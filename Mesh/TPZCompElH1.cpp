@@ -144,6 +144,7 @@ void TPZCompElH1<TSHAPE>::ComputeShape(TPZVec<REAL> &intpoint, TPZMaterialData &
     int tranpose = 1;
     REAL alpha = 1.;
     REAL beta = 0.;
+    //shapedata.fDPhi.Print(std::cout);
     data.jacinv.MultAdd(shapedata.fDPhi, data.dphix, data.dphix,alpha,beta,tranpose);
     data.phi = shapedata.fPhi;
 }

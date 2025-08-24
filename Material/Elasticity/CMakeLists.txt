@@ -5,6 +5,7 @@ set(public_headers
     TPZElasticity2D.h
     TPZElasticity2DGenEVP.h
     TPZMatElastic2DMem.h
+    TPZElasticMem.h
     )
 
 set(headers
@@ -12,12 +13,14 @@ set(headers
     TPZElasticity2D.h
     TPZElasticity2DGenEVP.h
     TPZMatElastic2DMem.h
+    TPZElasticMem.h
    )
 set(sources
     TPZElasticity3D.cpp
     TPZElasticity2D.cpp
     TPZElasticity2DGenEVP.cpp
     TPZMatElastic2DMem.cpp
+    TPZElasticMem.cpp
    )
 
 install(FILES ${public_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Material/Elasticity)
