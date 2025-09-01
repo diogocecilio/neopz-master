@@ -104,3 +104,17 @@ void TPZBFileStream::ReadData<int>(int* p, int howMany);
 
 template
 void TPZBFileStream::ReadData<long>(long* p, int howMany);
+
+// Linux costuma usar size_t = unsigned long:
+template void TPZBFileStream::ReadData<unsigned long>(unsigned long*, int);
+template void TPZBFileStream::WriteData<unsigned long const>(unsigned long const*, int);
+
+// Se o NeoPZ foi construído com FAD:
+#if defined(USING_FAD) || defined(PZ_USING_FAD)
+#include "fad.h"   // ajuste o caminho p/ o seu tree (às vezes é "FAD/fad.h")
+template void TPZBFileStream::ReadData<Fad<double>>(Fad<double>*, int);
+template void TPZBFileStream::WriteData<Fad<double> const>(Fad<double> const*, int);
+#endif
+#include "fadType.h"
+template void TPZBFileStream::ReadData< Fad<double> >(Fad<double>*, int);
+template void TPZBFileStream::WriteData< Fad<double> >(Fad<double> const*, int);

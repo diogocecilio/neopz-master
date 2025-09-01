@@ -72,13 +72,15 @@ public:
                          EEigPart part = EEigPart::Real,
                          bool massNormalize = false);
 
-    void BuildPhiSqrtLambdaNodal(int M);
+    //TPZFMatrix<STATE> BuildPhiSqrtLambdaNodal(int M);
 
-    void CheckL2Norms(int M, std::ostream& out);
+   // void CheckL2Norms(int M, std::ostream& out);
 
     // acesso útil
     const TPZFMatrix<CSTATE>& Eigenvectors() const { return fEigenvectors; }
     const TPZVec<CSTATE>&     Eigenvalues()  const { return fEigenvalues; }
+
+
 
 protected:
     /**
@@ -114,6 +116,9 @@ bool TPZEigenAnalysis::ComputeEigenvectors() const
 {
     return fCalcVectors;
 }
+
+
+
 
 #define INSTANTIATE_TEMPLATES(TVar)                                            \
   extern template TPZEigenSolver<TVar> &TPZEigenAnalysis::EigenSolver<TVar>();

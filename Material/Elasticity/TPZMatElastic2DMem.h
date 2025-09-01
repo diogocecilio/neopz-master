@@ -16,9 +16,11 @@ class TPZMatElastic2DMem
                     TPZMatSingleSpaceT<STATE>,
                     TPZMatWithMem<TMEM>>
 {
-    using TSpace   = TPZMatSingleSpaceT<STATE>;
-    using TWithMem = TPZMatWithMem<TMEM>;
-    using TBase    = TPZMatBase<STATE, TSpace, TWithMem>;
+    //using TSpace   = TPZMatSingleSpaceT<STATE>;
+    //using TWithMem = TPZMatWithMem<TMEM>;
+    //using TBase    = TPZMatBase<STATE, TSpace, TWithMem>;
+
+    using TBase = TPZMatBase<STATE,TPZMatSingleSpaceT<STATE>,TPZMatWithMem<TMEM>>;
 
 public:
     enum class EPlaneType { PlaneStress, PlaneStrain };
@@ -64,6 +66,8 @@ public:
 
     }
 
+     void Print(std::ostream & out = std::cout) const override;
+
     // ---------- pós-processo ----------
     enum ESolutionVar {
         EDisplacement = 1, // (ux,uy,0)
@@ -101,8 +105,8 @@ private:
     void ERFromMem(const TPZMaterialDataT<STATE> &data, REAL &E, REAL &nu) const;
 
     // atalhos para TPZMatWithMem
-    const TWithMem* WithMem() const { return static_cast<const TWithMem*>(this); }
-    TWithMem*       WithMem()       { return static_cast<TWithMem*>(this); }
+    const TPZMatWithMem<TMEM>* WithMem() const { return dynamic_cast<const TPZMatWithMem<TMEM>*>(this); }
+    TPZMatWithMem<TMEM>*       WithMem()       { return dynamic_cast<TPZMatWithMem<TMEM>*>(this); }
 };
 
 // ---------------------- Instanciação explícita mais comum ----------------------

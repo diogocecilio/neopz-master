@@ -2137,9 +2137,7 @@ void TPZCompMesh::ProjectSolution(TPZFMatrix<TVar> &projectsol) {
 int TPZCompMesh::ClassId() const{
     return Hash("TPZCompMesh");
 }
-/**
- Save the element data to a stream
- */
+// --- WRITE ---
 void TPZCompMesh::Write(TPZStream &buf, int withclassid) const { //ok
     TPZPersistenceManager::WritePointer(fReference,&buf);
     TPZPersistenceManager::WritePointer(fGMesh.operator->(), &buf);
@@ -2167,7 +2165,7 @@ void TPZCompMesh::Write(TPZStream &buf, int withclassid) const { //ok
     buf.Write(&fDefaultOrder);
     fCreate.Write(buf, withclassid);
     buf.Write(&fNmeshes);
-	
+
 }
 
 /**
@@ -2197,13 +2195,70 @@ void TPZCompMesh::Read(TPZStream &buf, void *context) { //ok
     buf.Read(&fNmeshes);
 }
 
+
+// void TPZCompMesh::Write(TPZStream &buf, int withclassid) const { //ok
+// 	TPZPersistenceManager::WritePointer(fReference,&buf);
+// 	TPZPersistenceManager::WritePointer(fGMesh.operator->(), &buf);
+// 	buf.Write((int)fSolType);
+// 	buf.Write(&fName);
+// 	buf.WritePointers(fElementVec);
+// 	fConnectVec.Write(buf, withclassid);
+// 	std::map<int, TPZMaterial*> internal_materials;
+// 	std::map<int, TPZMaterial*> boundary_materials;
+// 	for (auto mat_pair : fMaterialVec) {
+// 		if (dynamic_cast<TPZBndCond*>(mat_pair.second)){
+// 			boundary_materials.insert(mat_pair);
+// 		} else {
+// 			internal_materials.insert(mat_pair);
+// 		}
+// 	}
+// 	buf.WritePointers(internal_materials);
+// 	buf.WritePointers(boundary_materials);
+// 	fSolutionBlock.Write(buf,0);
+// 	fSolution.Write(buf,0);
+// 	fSolN.Write(buf,0);
+// 	fBlock.Write(buf,0);
+// 	fElementSolution.Write(buf,0);
+// 	buf.Write(&fDimModel);
+// 	buf.Write(&fDefaultOrder);
+// 	fCreate.Write(buf, withclassid);
+// 	buf.Write(&fNmeshes);
+//
+// }
+//
+// /**
+//  * Read the element data from a stream
+//  */
+// void TPZCompMesh::Read(TPZStream &buf, void *context) { //ok
+// 	fReference = dynamic_cast<TPZGeoMesh *>(TPZPersistenceManager::GetInstance(&buf));
+// 	fGMesh = TPZAutoPointerDynamicCast<TPZGeoMesh >(TPZPersistenceManager::GetAutoPointer(&buf));
+// 	fSolType = [&buf](){
+// 		int tmp;
+// 		buf.Read(&tmp);
+// 		return (ESolType) tmp;
+// 	}();
+// 	buf.Read(&fName);
+// 	buf.ReadPointers(fElementVec);
+// 	fConnectVec.Read(buf, context);
+// 	buf.ReadPointers(fMaterialVec); //internal materials
+// 	buf.ReadPointers(fMaterialVec); //boundary materials
+// 	fSolutionBlock.Read(buf, NULL);
+// 	fSolution.Read(buf,NULL);
+// 	fSolN.Read(buf,NULL);
+// 	fBlock.Read(buf, NULL);
+// 	fElementSolution.Read(buf, NULL);
+// 	buf.Read(&fDimModel);
+// 	buf.Read(&fDefaultOrder);
+// 	fCreate.Read(buf, context);
+// 	buf.Read(&fNmeshes);
+// }
 /// Integrate the postprocessed variable name over the elements included in the set matids
 TPZVec<STATE> TPZCompMesh::Integrate(const std::string &varname, const std::set<int> &matids)
 {
     // the postprocessed index of the varname for each material id
     std::map<int,int> variableids;
     int nvars = 0;
-    
+
     std::map<int,TPZMaterial *>::iterator itmap;
     for (itmap = MaterialVec().begin(); itmap != MaterialVec().end(); itmap++) {
         if (matids.find(itmap->first) != matids.end()) {

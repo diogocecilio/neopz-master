@@ -1485,51 +1485,157 @@ void TPZGeoMesh::DeleteElement(TPZGeoEl *gel,int64_t index)
 template class TPZRestoreClass<TPZGeoMesh>;
 #endif
 
-void TPZGeoMesh::Read(TPZStream &buf, void *context) { //ok
-    buf.Read(&fName, 1);
-    fReference = dynamic_cast<TPZCompMesh*>(TPZPersistenceManager::GetInstance(&buf));
-    buf.ReadPointers(fElementVec);
-    fNodeVec.Read(buf, context);
-    buf.Read(&fNodeMaxId);
-    buf.Read(&fElementMaxId);
-    buf.Read(&fDim);
-    int64_t ninterfacemaps;
-    buf.Read(&ninterfacemaps);
-    int64_t c;
-    for (c = 0; c < ninterfacemaps; c++) {
-        int vals[3];
-        buf.Read(vals, 3);
-        fInterfaceMaterials[pair<int, int>(vals[0], vals[1])] = vals[2];
-    }
-}
+// void TPZGeoMesh::Read(TPZStream &buf, void *context) { //ok
+//     buf.Read(&fName, 1);
+//     fReference = dynamic_cast<TPZCompMesh*>(TPZPersistenceManager::GetInstance(&buf));
+//     buf.ReadPointers(fElementVec);
+//     fNodeVec.Read(buf, context);
+//     buf.Read(&fNodeMaxId);
+//     buf.Read(&fElementMaxId);
+//     buf.Read(&fDim);
+//     int64_t ninterfacemaps;
+//     buf.Read(&ninterfacemaps);
+//     int64_t c;
+//     for (c = 0; c < ninterfacemaps; c++) {
+//         int vals[3];
+//         buf.Read(vals, 3);
+//         fInterfaceMaterials[pair<int, int>(vals[0], vals[1])] = vals[2];
+//     }
+// }
+//
+// void TPZGeoMesh::Write(TPZStream &buf, int withclassid) const { //ok
+// #ifdef PZ_LOG
+//     if (logger.isDebugEnabled()) {
+//         LOGPZ_DEBUG(logger, __PRETTY_FUNCTION__);
+//     }
+// #endif
+//     buf.Write(&fName);
+// //    if (fReference) {
+// //        std::cout << __PRETTY_FUNCTION__ << "TPZGeoMesh::Write Trying to write a gmesh with non-null reference. Call ResetReference() and try again." << std::endl;
+// //        std::cout.flush();
+// //        DebugStop();
+// //    }
+//     TPZPersistenceManager::WritePointer(fReference, &buf);
+//     buf.WritePointers(fElementVec);
+//     fNodeVec.Write(buf, withclassid);
+//     buf.Write(&fNodeMaxId);
+//     buf.Write(&fElementMaxId);
+//     buf.Write(&fDim);
+//     int64_t ninterfacemaps = fInterfaceMaterials.size();
+//     buf.Write(&ninterfacemaps);
+//     for (auto elem : fInterfaceMaterials) {
+//         int vals[3];
+//         vals[0] = elem.first.first;
+//         vals[1] = elem.first.second;
+//         vals[2] = elem.second;
+//         buf.Write(vals, 3);
+//     }
+// }
+// ==============================================
+// TPZGeoMesh::Write  (versão leve, sem PM)
+// ==============================================
+void TPZGeoMesh::Write(TPZStream &buf, int withclassid) const
+{
+    // --- cabeçalho simples para identificar este formato ---
+    int32_t magic = 0x474D5348; // "GMSH"
+    int32_t vers  = 1;
+    buf.Write(&magic, 1);
+    buf.Write(&vers,  1);
 
-void TPZGeoMesh::Write(TPZStream &buf, int withclassid) const { //ok
-#ifdef PZ_LOG
-    if (logger.isDebugEnabled()) {
-        LOGPZ_DEBUG(logger, __PRETTY_FUNCTION__);
-    }
-#endif
-    buf.Write(&fName);
-//    if (fReference) {
-//        std::cout << __PRETTY_FUNCTION__ << "TPZGeoMesh::Write Trying to write a gmesh with non-null reference. Call ResetReference() and try again." << std::endl;
-//        std::cout.flush();
-//        DebugStop();
-//    }
-    TPZPersistenceManager::WritePointer(fReference, &buf);
-    buf.WritePointers(fElementVec);
+    // --- metadados básicos ---
+    buf.Write(&fName);          // nome da malha
+    buf.Write(&fDim);           // dimensão geométrica (1/2/3)
+
+    // --- nós (podemos usar a serialização dos nós, que não usa PM) ---
     fNodeVec.Write(buf, withclassid);
-    buf.Write(&fNodeMaxId);
-    buf.Write(&fElementMaxId);
-    buf.Write(&fDim);
-    int64_t ninterfacemaps = fInterfaceMaterials.size();
-    buf.Write(&ninterfacemaps);
-    for (auto elem : fInterfaceMaterials) {
-        int vals[3];
-        vals[0] = elem.first.first;
-        vals[1] = elem.first.second;
-        vals[2] = elem.second;
+
+    // --- elementos geométricos: gravar apenas o essencial ---
+    int64_t nel = 0;
+    for (auto gel : fElementVec) if (gel) nel++;
+    buf.Write(&nel, 1);
+
+    for (auto gel : fElementVec) {
+        if (!gel) continue;
+        int32_t etype  = (int32_t)gel->Type();
+        int32_t matid  = (int32_t)gel->MaterialId();
+        int32_t ncorner = gel->NCornerNodes();
+        buf.Write(&etype,  1);
+        buf.Write(&matid,  1);
+        buf.Write(&ncorner,1);
+        for (int ic = 0; ic < ncorner; ic++) {
+            int64_t nid = gel->NodeIndex(ic);
+            buf.Write(&nid, 1);
+        }
+    }
+
+    // --- tabela de materiais de interface (se usada) ---
+    int64_t ninter = (int64_t)fInterfaceMaterials.size();
+    buf.Write(&ninter, 1);
+    for (auto &it : fInterfaceMaterials) {
+        int vals[3] = { it.first.first, it.first.second, it.second };
         buf.Write(vals, 3);
     }
+
+    // (opcional) máximos de id (não são obrigatórios para reconstruir)
+    buf.Write(&fNodeMaxId);
+    buf.Write(&fElementMaxId);
+}
+
+// ==============================================
+// TPZGeoMesh::Read  (versão leve, sem PM)
+// ==============================================
+void TPZGeoMesh::Read(TPZStream &buf, void *context)
+{
+    // --- checa cabeçalho ---
+    int32_t magic = 0, vers = 0;
+    buf.Read(&magic, 1);
+    buf.Read(&vers,  1);
+    if (magic != 0x474D5348) { // "GMSH"
+        DebugStop(); // arquivo não é do formato leve desta função
+    }
+
+    // --- metadados ---
+    buf.Read(&fName);
+    buf.Read(&fDim);
+
+    // --- nós ---
+    fNodeVec.Read(buf, context);
+
+    // --- apaga elementos atuais e recria do zero ---
+    for (auto gel : fElementVec) if (gel) delete gel;
+    fElementVec.Resize(0);
+    fElementMaxId = 0;
+
+    int64_t nel = 0;
+    buf.Read(&nel, 1);
+    for (int64_t el = 0; el < nel; el++) {
+        int32_t etype = 0, matid = 0, ncorner = 0;
+        buf.Read(&etype,  1);
+        buf.Read(&matid,  1);
+        buf.Read(&ncorner,1);
+        TPZManVector<int64_t,8> nodes(ncorner);
+        for (int ic = 0; ic < ncorner; ic++) buf.Read(&nodes[ic], 1);
+
+        int64_t newIdx = -1;
+        this->CreateGeoElement((MElementType)etype, nodes, matid, newIdx);
+    }
+
+    // --- materiais de interface ---
+    fInterfaceMaterials.clear();
+    int64_t ninter = 0;
+    buf.Read(&ninter, 1);
+    for (int64_t k = 0; k < ninter; k++) {
+        int vals[3]; buf.Read(vals, 3);
+        fInterfaceMaterials[{vals[0], vals[1]}] = vals[2];
+    }
+
+    // --- ids máximos (apenas para manter coerência interna) ---
+    buf.Read(&fNodeMaxId);
+    buf.Read(&fElementMaxId);
+
+    // --- pós: reconecta vizinhanças e zera referência computacional ---
+    this->BuildConnectivity();
+    fReference = nullptr;
 }
 
 int TPZGeoMesh::AddInterfaceMaterial(int leftmaterial, int rightmaterial, int interfacematerial)

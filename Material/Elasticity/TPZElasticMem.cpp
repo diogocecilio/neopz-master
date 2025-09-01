@@ -1,27 +1,64 @@
+//$Id: pzelastoplasticmem.cpp,v 1.6 2009-06-22 00:55:14 erick Exp $
+
 #include "TPZElasticMem.h"
+#ifdef FIX_PLASTIC_TRANSLATORS
+#include "TPZElastoPlasticMemTranslator.h"
+#endif
+#include "pzadmchunk.h"
 
-// IMPORTANTE: TPZStream::Write/Read tem overloads específicos.
-// Para PODs use buf.Write(double) e buf.Read(double&).
-// Evite tentar buf.Write(&bool,1) etc.
-
-void TPZElasticMem::Write(TPZStream &buf, int /*withclassid*/) const {
-    // serializa apenas o que interessa: E e nu
-    // Ajuste os getters conforme a API do TPZElasticResponse da sua branch.
-    const REAL E  = m_ER.E();   // ou m_ER.YoungModulus()
-    const REAL nu = m_ER.Poisson();  // ou m_ER.PoissonRatio()
-    buf.Write(E);
-    buf.Write(nu);
+TPZElasticMem::TPZElasticMem()
+{
 }
 
-void TPZElasticMem::Read(TPZStream &buf, void* /*context*/) {
-    REAL E = 0., nu = 0.;
-    buf.Read(&E);
-    buf.Read(&nu);
-    // Ajuste o setter conforme sua API (SetEngineeringData / SetUp / Set(E,nu) etc.)
-    m_ER.SetEngineeringData(E, nu);
+TPZElasticMem::TPZElasticMem(const TPZElasticMem & other): m_ER(other.m_ER) {
+
 }
 
-void TPZElasticMem::Print(std::ostream &out) const {
-    out << Name() << " { E=" << m_ER.E() << ", nu=" << m_ER.Poisson() << " }";
+
+TPZElasticMem::~TPZElasticMem(){
+
 }
+
+void TPZElasticMem::Write(TPZStream &buf, int withclassid) const
+{
+    m_ER.Write(buf, withclassid);
+}
+
+void TPZElasticMem::Read(TPZStream &buf, void *context)
+{
+    m_ER.Read(buf, context);
+}
+
+void TPZElasticMem::Print(std::ostream &out)const
+{
+    out << Name();
+    m_ER.Print(out);
+}
+
+const std::string TPZElasticMem::Name()const
+{
+    return "TPZElasticMem";
+}
+
+int TPZElasticMem::ClassId() const{
+    return Hash("TPZElasticMem");
+}
+
+const TPZElasticMem & TPZElasticMem::operator=(const TPZElasticMem & other)
+{
+
+    /// check for self-assignment
+    if(&other == this){
+        return *this;
+    }
+
+    m_ER = other.m_ER;
+
+    return *this;
+}
+
+#ifdef FIX_PLASTIC_TRANSLATORS
+template class TPZRestoreClassWithTranslator<TPZElasticMem, TPZElastoPlasticMemTranslator>;
+#endif
+template class TPZRestoreClass<TPZAdmChunkVector<TPZElasticMem>>;
 

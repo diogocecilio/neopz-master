@@ -18,3 +18,6 @@ add_subdirectory(eigensolver)
 add_subdirectory(eigensolverkl)
 
 add_subdirectory(randomfem)
+
+add_subdirectory(ElasticityRandomField)
+

@@ -105,7 +105,7 @@ BuildCompMesh(TPZAutoPointer<TPZGeoMesh> gmesh, int porder, int matId)
                 return std::exp(-std::fabs(dx)/Lx - std::fabs(dy)/Ly);
         };
 
-        auto *mat = new TPZMatKLKernel(matId, 2, KernelFn);
+        auto *mat = new TPZMatKLKernel(matId, 2, Lx,Ly);
         mat->SetId(matId);
 
         // modo 0 analítico

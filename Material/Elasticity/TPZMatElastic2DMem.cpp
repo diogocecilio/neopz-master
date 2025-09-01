@@ -206,7 +206,7 @@ void TPZMatElastic2DMem<TMEM>::Solution(const TPZMaterialDataT<STATE> &data, int
 // ---------- persistência ----------
 template <class TMEM>
 int TPZMatElastic2DMem<TMEM>::ClassId() const {
-    return Hash("TPZMatElastic2DMem") ^ TWithMem::ClassId() << 1;
+    return Hash("TPZMatElastic2DMem") ^ TPZMatWithMem<TMEM>::ClassId() << 1;
 }
 
 template <class TMEM>
@@ -325,6 +325,14 @@ void TPZMatElastic2DMem<TMEM>::SetElasticResponse(const TPZElasticResponse &ER)
     // exatamente como no seu exemplo plástico:
     this->SetDefaultMem(memory);
     // (se sua branch expõe via WithMem(): this->WithMem()->SetDefaultMem(memory); )
+}
+
+template <class TMEM>
+void TPZMatElastic2DMem<TMEM>::Print(std::ostream & out) const
+{
+    out << "name of material : " << Name() << "\n";
+    TMEM memory;
+    memory.m_ER.Print(out);
 }
 // ---------------------- instanciação explícita padrão ----------------------
 template class TPZMatElastic2DMem<TPZElasticMem>;

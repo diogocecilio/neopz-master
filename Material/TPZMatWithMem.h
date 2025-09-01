@@ -26,14 +26,14 @@ public:
     virtual void FreeMemItem(int index) = 0;
 
     /** @ Reset the memory index to its default value */
-    virtual void ResetMemItem(int index) = 0;       
+    virtual void ResetMemItem(int index) = 0;
 
     /// Reset all memory items
     virtual void ResetMemory() = 0;
 
     /** @brief Sets/Unsets the internal memory data to be updated in the next assemble/contribute call */
     virtual void SetUpdateMem(bool update = 1) = 0;
-    
+
     /** @brief Gets the internal memory data to be updated in the next assemble/contribute call */
     virtual bool GetUpdateMem() = 0 ;
 };
@@ -122,7 +122,7 @@ public:
 
     /** @brief Sets/Unsets the internal memory data to be updated in the next assemble/contribute call */
     void SetUpdateMem(bool update = 1) override;
-    
+
     /** @brief Gets the internal memory data to be updated in the next assemble/contribute call */
     bool GetUpdateMem() override;
     /** @}*/
