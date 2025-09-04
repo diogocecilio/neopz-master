@@ -15,7 +15,7 @@
 #include "Plasticity/TPZMatElastoPlastic2D.h"
 #include "Plasticity/TPZMatElastoPlastic.h"
 #include "Plasticity/TPZPlasticStepPV.h"
-
+#include <deque>
 /**
  * @brief Análise não-linear elastoplástica (driver) para malhas do NeoPZ.
  *
@@ -32,12 +32,31 @@
 class TPZElastoPlasticAnalysis : public TPZLinearAnalysis {
 
 public:
+
+	enum class ELineSearch {
+		None = 0,
+		Armijo,
+		QuadraticArmijo,
+		Dicotomic,
+		GoldenSection,
+		StrongWolfe,
+		NonmonotoneArmijo
+	};
+
 	/** @name Construção/Destruição */
 	///@{
 	/** @brief Construtor principal.
 	 *  @param mesh Malha computacional.
-	 *  @param out  Saída de log/diagnóstico. */
-	TPZElastoPlasticAnalysis(TPZCompMesh *mesh,std::ostream &out);
+	 *  @param out  Saída de log/diagnóstico.
+	 *  @param lsearch Tipo de Busca Unidimensional.
+	 */
+
+	// --- NOVO: tipos de line search ---
+
+	/** Construtor principal. Agora aceita o tipo de busca (default: Dicotomic) */
+	TPZElastoPlasticAnalysis(TPZCompMesh *mesh,
+							 std::ostream &out,
+						  ELineSearch lsearch = ELineSearch::Dicotomic);
 
 	/** @brief Construtor default (sem malha). */
 	TPZElastoPlasticAnalysis();
@@ -116,6 +135,26 @@ public:
 							 TPZFMatrix<STATE> DeltaW,
 							 TPZFMatrix<STATE>& NextW,
 							 REAL tol, int niter);
+
+	REAL GoldenSectionLineSearch(const TPZFMatrix<STATE>& Wn,
+														   TPZFMatrix<STATE> DeltaW,
+														   TPZFMatrix<STATE>& NextW,
+														   REAL tol, int niter);
+
+	REAL StrongWolfeLineSearch(const TPZFMatrix<STATE>& Wn,
+							   const TPZFMatrix<STATE>& d,
+							   TPZFMatrix<STATE>& NextW,
+							   REAL c1=1e-4, REAL c2=0.9,
+							   REAL a0=1.0, int max_eval=20);
+
+	REAL NonmonotoneArmijoGLL(const TPZFMatrix<STATE>& Wn,
+														const TPZFMatrix<STATE>& d,
+														TPZFMatrix<STATE>& NextW,
+														std::deque<REAL>& phi_hist, // mantém últimas M φ
+														REAL c1=1e-4, REAL beta=0.5,
+														int M=5, REAL a0=1.0, int max_red=20);
+	void SetLineSearch(ELineSearch kind) { fLineSearch = kind; }
+	ELineSearch GetLineSearch() const { return fLineSearch; }
 	///@}
 
 	/** @name Carga/aceitação de solução */
@@ -321,6 +360,11 @@ protected:
 
 	/** @brief Malhas base associadas à configuração multiphysics. */
 	TPZManVector<TPZCompMesh *,2> fMeshVec;
+
+	ELineSearch fLineSearch = ELineSearch::Dicotomic;
+
+	std::deque<REAL> fPhiHistory;
+
 	///@}
 
 	/**

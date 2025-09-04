@@ -304,7 +304,7 @@ void Solve(TPZCompMesh* cmesh,REAL coes,REAL atrito)
         int neqold;
         cout << "NUMBER OF EQUATIONS  = " << neq << endl;
         for ( int iref=1; iref<=5; iref++ ) {
-
+                std::cout << "\n[solve] ===== Refinamento # "<< iref <<" ====="<<"\n";
                 cout << "# of equations  = " <<neq << " fabs(FS-FSOLD)  "  << fabs ( FS-FSOLD )  << endl;
                 FSOLD=FS;
                 REAL lo=0.5;
@@ -430,37 +430,37 @@ REAL BisectionFS(TPZCompMesh* cmesh, REAL coes, REAL atrito,
         // --- garantir bracket: lo converge, hi falha ---
         int it = 0, tries = 0;
 
-        // Piso (lo) deve CONVERGIR
-        std::cout << "[bisect][bracket] garantindo piso (lo) que CONVERGE...\n";
-        while (!RunAndAccept(cmesh, coes, atrito, lo, it) && tries < 8) {
-                std::cout << "  lo=" << lo << " -> FALHA (iters=" << it<< ")  reduzindo lo para " << (REAL)0.5*lo << "\n";
-                lo *= (REAL)0.5;
-                tries++;
-        }
-        if (tries >= 8) {
-                std::cout << "[bisect][bracket][WARN] não consegui piso que converge após " << tries<< " tentativas. Prosseguindo com lo=" << lo << " (best effort).\n";
-        } else {
-                std::cout << "  lo=" << lo << " -> OK (iters=" << it << ")\n";
-        }
-
-        // Teto (hi) deve FALHAR
-        tries = 0;
-        std::cout << "[bisect][bracket] garantindo teto (hi) que FALHA...\n";
-        while (RunAndAccept(cmesh, coes, atrito, hi, it) && tries < 12) {
-                std::cout << "  hi=" << hi << " -> OK (iters=" << it
-                << ")  aumentando hi para " << (REAL)1.5*hi << "\n";
-                hi *= (REAL)1.5;
-                tries++;
-        }
-        if (tries >= 12) {
-                std::cout << "[bisect][bracket][WARN] não consegui teto que falha após " << tries
-                << " tentativas. Prosseguindo com hi=" << hi << " (best effort).\n";
-        } else {
-                std::cout << "  hi=" << hi << " -> FALHA (iters=" << it << ")\n";
-        }
-
-        std::cout << "[bisect] bracket inicial: lo=" << lo << " (OK), hi=" << hi
-        << " (FAIL)  gap_rel=" << rel_gap(lo,hi) << "\n";
+        // // Piso (lo) deve CONVERGIR
+        // std::cout << "[bisect][bracket] garantindo piso (lo) que CONVERGE...\n";
+        // while (!RunAndAccept(cmesh, coes, atrito, lo, it) && tries < 8) {
+        //         std::cout << "  lo=" << lo << " -> FALHA (iters=" << it<< ")  reduzindo lo para " << (REAL)0.5*lo << "\n";
+        //         lo *= (REAL)0.5;
+        //         tries++;
+        // }
+        // if (tries >= 8) {
+        //         std::cout << "[bisect][bracket][WARN] não consegui piso que converge após " << tries<< " tentativas. Prosseguindo com lo=" << lo << " (best effort).\n";
+        // } else {
+        //         std::cout << "  lo=" << lo << " -> OK (iters=" << it << ")\n";
+        // }
+        //
+        // // Teto (hi) deve FALHAR
+        // tries = 0;
+        // std::cout << "[bisect][bracket] garantindo teto (hi) que FALHA...\n";
+        // while (RunAndAccept(cmesh, coes, atrito, hi, it) && tries < 12) {
+        //         std::cout << "  hi=" << hi << " -> OK (iters=" << it
+        //         << ")  aumentando hi para " << (REAL)1.5*hi << "\n";
+        //         hi *= (REAL)1.5;
+        //         tries++;
+        // }
+        // if (tries >= 12) {
+        //         std::cout << "[bisect][bracket][WARN] não consegui teto que falha após " << tries
+        //         << " tentativas. Prosseguindo com hi=" << hi << " (best effort).\n";
+        // } else {
+        //         std::cout << "  hi=" << hi << " -> FALHA (iters=" << it << ")\n";
+        // }
+        //
+        // std::cout << "[bisect] bracket inicial: lo=" << lo << " (OK), hi=" << hi
+        // << " (FAIL)  gap_rel=" << rel_gap(lo,hi) << "\n";
 
         // --- bisseção ---
         int k = 0;

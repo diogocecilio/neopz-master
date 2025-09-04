@@ -61,11 +61,26 @@
 #include "TPZEigenSolver.h"
 #include "TPZKrylovEigenSolver.h"
 #include "TPZLapackEigenSolver.h" // ou outro solver concreto
-
+#include "pzdoublestrmatriz.h"
+#include "pzskylstrmatrix.h"
+#include <TPZSSpStructMatrix.h> //symmetric sparse matrix storage
+#include <pzskylstrmatrix.h> //symmetric skyline matrix storage
+#include <pzstepsolver.h> //for TPZStepSolver
+#include <TPZSimpleTimer.h>
+#include "TPZPardisoSolver.h"
 typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> TPlasticMC;
 typedef TPZMatElastoPlastic2D<TPlasticMC, TPZElastoPlasticMem>   plasticmat;
 
 using namespace std;
+
+// ------------------------------------------------------------
+// Pós-processo
+// ------------------------------------------------------------
+void PostProcessVariables(TPZStack<std::string>& scal, TPZStack<std::string>& vec);
+
+void CreatePostProcessingMesh(TPZCompMesh* cmesh,TPZPostProcAnalysis* pproc,int matid);
+
+void PostElastoplastic(TPZCompMesh* cmesh,const std::string& vtkfile,int matid);
 
 TPZGeoMesh*  TriGMesh(int ref);
 
@@ -102,7 +117,7 @@ void Solve(TPZCompMesh* cmesh, REAL coes, REAL atrito);
 int main()
 {
         // 1) Malha geométrica
-        int ref = 1;
+        int ref = 0;
         TPZGeoMesh* gmesh = TriGMesh(ref);
 
         {
@@ -113,8 +128,8 @@ int main()
         // 2) Material
         REAL young   = 20000.;
         REAL poisson = 0.49;
-        REAL coes    = 50.;
-        REAL atrito  = 20. * M_PI / 180.;
+        REAL coes    = 10.;
+        REAL atrito  = 30. * M_PI / 180.;
 
         TPZManVector<REAL,3> bodyforce(3,0.0);
         bodyforce[1] = -20.0;
@@ -156,7 +171,9 @@ int main()
                 TPZVTKGeoMesh::PrintGMeshVTK(cmesh->Reference(), vtk1, true);
                 std::cout << "[VTK] gmeshtri_refined_preGI.vtk escrito.\n";
         }
-
+        string vtk2="post_plasticity.vtk";
+        int matid=1;
+        PostElastoplastic(cmesh,vtk2,matid);
 
         return 0;
 }
@@ -170,31 +187,24 @@ void Solve(TPZCompMesh* cmesh,REAL coes,REAL atrito)
         int neq=cmesh->NEquations();
         int neqold;
         cout << "NUMBER OF EQUATIONS  = " << neq << endl;
-        for ( int iref=1; iref<=4; iref++ ) {
+        for ( int iref=1; iref<=5; iref++ ) {
 
-                cout << "# of equations  = " <<neq << " fabs(FS-FSOLD)  "  << fabs ( FS-FSOLD )  << endl;
+                std::cout << "\n[solve] ===== Refinamento # "<< iref <<" ====="<<"\n";
                 FSOLD=FS;
                 REAL lo=0.5;
                 REAL tol_fs_rel=0.01;
                 int max_bis = 20;
                 REAL hi=10;
                 FSOLD=FS;
-                //FS=  HybridBracketedFS(cmesh, coes, atrito, lo,  hi, tol_fs_rel ,  max_bis);
-                cout << " FS = "<< fabs ( FS ) <<endl;
                 FS=  BisectionFS(cmesh, coes, atrito, lo,  hi, tol_fs_rel ,  max_bis);
-                cout << " FS = "<< fabs ( FS ) <<endl;
                 neqold=neq;
                 Hrefine(cmesh,coes, atrito,0.01);
-                if ( fabs ( FS-FSOLD ) <0.01 ) {
-                        cout << " FS-FSOLD = "<< fabs ( FS-FSOLD ) <<endl;
-                        //break;
-                }
                 neq=cmesh->NEquations();
-                if(neq==neqold)
-                {
-                        //break;
-                }
+
         }
+        //para pos-processar
+        int iters_out;
+        RunAndAccept( cmesh,coes,  atrito,  FS,  iters_out);
 }
 bool RunAndAccept(TPZCompMesh* cmesh,
                   REAL coes, REAL atrito, REAL factor, int& iters_out)
@@ -204,14 +214,26 @@ bool RunAndAccept(TPZCompMesh* cmesh,
         InitializeMemory(cmesh, coes, atrito);
         cmesh->Solution().Zero();
 
-        TPZElastoPlasticAnalysis anal(cmesh, std::cout);
-        TPZSkylineStructMatrix<STATE> matskl(cmesh); matskl.SetNumThreads(12);
-        anal.SetStructuralMatrix(matskl);
-        TPZStepSolver<STATE> step; step.SetDirect(ELDLt);
-        anal.SetSolver(step);
+
+        TPZElastoPlasticAnalysis anal(cmesh, std::cout,TPZElastoPlasticAnalysis::ELineSearch::QuadraticArmijo);
+
+        if(false)
+        {
+                TPZSSpStructMatrix<STATE> SSpStructMatrix ( cmesh );
+                SSpStructMatrix.SetNumThreads(12);
+                anal.SetStructuralMatrix(SSpStructMatrix);
+                TPZPardisoSolver<REAL> *pardiso = new TPZPardisoSolver<REAL>;
+                anal.SetSolver ( *pardiso );
+        }else{
+                TPZSkylineStructMatrix<STATE> matskl(cmesh);
+                matskl.SetNumThreads(12);
+                anal.SetStructuralMatrix(matskl);
+                TPZStepSolver<STATE> step; step.SetDirect(ELDLt);
+                anal.SetSolver(step);
+        }
 
         int iters=30;
-        bool ok = anal.IterativeProcess(std::cout, (REAL)1e-2, iters, true, false, iters_out);
+        bool ok = anal.IterativeProcess(std::cout, 1.e-3, iters, true, false, iters_out);
         if (!ok) return false;
         anal.AcceptSolution();
         //cmesh->LoadSolution(anal.CumulativeSolution());
@@ -353,39 +375,39 @@ REAL BisectionFS(TPZCompMesh* cmesh, REAL coes, REAL atrito,
         // --- garantir bracket: lo converge, hi falha ---
         int it = 0, tries = 0;
 
-        // Piso (lo) deve CONVERGIR
-        std::cout << "[bisect][bracket] garantindo piso (lo) que CONVERGE...\n";
-        while (!RunAndAccept(cmesh, coes, atrito, lo, it) && tries < 8) {
-                std::cout << "  lo=" << lo << " -> FALHA (iters=" << it
-                << ")  reduzindo lo para " << (REAL)0.5*lo << "\n";
-                lo *= (REAL)0.5;
-                tries++;
-        }
-        if (tries >= 8) {
-                std::cout << "[bisect][bracket][WARN] não consegui piso que converge após " << tries
-                << " tentativas. Prosseguindo com lo=" << lo << " (best effort).\n";
-        } else {
-                std::cout << "  lo=" << lo << " -> OK (iters=" << it << ")\n";
-        }
-
-        // Teto (hi) deve FALHAR
-        tries = 0;
-        std::cout << "[bisect][bracket] garantindo teto (hi) que FALHA...\n";
-        while (RunAndAccept(cmesh, coes, atrito, hi, it) && tries < 12) {
-                std::cout << "  hi=" << hi << " -> OK (iters=" << it
-                << ")  aumentando hi para " << (REAL)1.5*hi << "\n";
-                hi *= (REAL)1.5;
-                tries++;
-        }
-        if (tries >= 12) {
-                std::cout << "[bisect][bracket][WARN] não consegui teto que falha após " << tries
-                << " tentativas. Prosseguindo com hi=" << hi << " (best effort).\n";
-        } else {
-                std::cout << "  hi=" << hi << " -> FALHA (iters=" << it << ")\n";
-        }
-
-        std::cout << "[bisect] bracket inicial: lo=" << lo << " (OK), hi=" << hi
-        << " (FAIL)  gap_rel=" << rel_gap(lo,hi) << "\n";
+        // // Piso (lo) deve CONVERGIR
+        // std::cout << "[bisect][bracket] garantindo piso (lo) que CONVERGE...\n";
+        // while (!RunAndAccept(cmesh, coes, atrito, lo, it) && tries < 8) {
+        //         std::cout << "  lo=" << lo << " -> FALHA (iters=" << it
+        //         << ")  reduzindo lo para " << (REAL)0.5*lo << "\n";
+        //         lo *= (REAL)0.5;
+        //         tries++;
+        // }
+        // if (tries >= 8) {
+        //         std::cout << "[bisect][bracket][WARN] não consegui piso que converge após " << tries
+        //         << " tentativas. Prosseguindo com lo=" << lo << " (best effort).\n";
+        // } else {
+        //         std::cout << "  lo=" << lo << " -> OK (iters=" << it << ")\n";
+        // }
+        //
+        // // Teto (hi) deve FALHAR
+        // tries = 0;
+        // std::cout << "[bisect][bracket] garantindo teto (hi) que FALHA...\n";
+        // while (RunAndAccept(cmesh, coes, atrito, hi, it) && tries < 12) {
+        //         std::cout << "  hi=" << hi << " -> OK (iters=" << it
+        //         << ")  aumentando hi para " << (REAL)1.5*hi << "\n";
+        //         hi *= (REAL)1.5;
+        //         tries++;
+        // }
+        // if (tries >= 12) {
+        //         std::cout << "[bisect][bracket][WARN] não consegui teto que falha após " << tries
+        //         << " tentativas. Prosseguindo com hi=" << hi << " (best effort).\n";
+        // } else {
+        //         std::cout << "  hi=" << hi << " -> FALHA (iters=" << it << ")\n";
+        // }
+        //
+        // std::cout << "[bisect] bracket inicial: lo=" << lo << " (OK), hi=" << hi
+        // << " (FAIL)  gap_rel=" << rel_gap(lo,hi) << "\n";
 
         // --- bisseção ---
         int k = 0;
@@ -769,7 +791,48 @@ void DivideElementsAbove(TPZCompMesh* cmesh, REAL refineaboveval, std::set<int64
                 }
         }
 }
+// ------------------------------------------------------------
+// Pós-processo
+// ------------------------------------------------------------
+void PostProcessVariables(TPZStack<std::string>& scal, TPZStack<std::string>& vec)
+{
+        scal.Push ( "POrder" );
+        scal.Push ( "Atrito" );
+        scal.Push ( "Coesion" );
+        scal.Push ( "StrainPlasticJ2" );
+        scal.Push ( "VolHardening" );
+        vec.Push ( "Displacement" );
+        vec.Push ( "ShearPlasticDeformation" );
+        vec.Push ( "PlasticDeformation" );
 
+}
+
+void CreatePostProcessingMesh(TPZCompMesh* cmesh,TPZPostProcAnalysis* pproc,int matid)
+{
+        if (pproc->ReferenceCompMesh() != cmesh) {
+                pproc->SetCompMesh(cmesh);
+                TPZStack<std::string> scal, vec, all;
+                PostProcessVariables(scal, vec);
+                for (auto i=0; i<scal.size();  ++i) all.Push(scal[i]);
+                for (auto i=0; i<vec.size();   ++i) all.Push(vec[i]);
+                TPZVec<int> matids(1); matids[0] = matid;
+                pproc->SetPostProcessVariables(matids, all);
+                TPZFStructMatrix<REAL> str(pproc->Mesh());
+                str.SetNumThreads(0);
+                pproc->SetStructuralMatrix(str);
+        }
+        pproc->TransferSolution();
+}
+
+void PostElastoplastic(TPZCompMesh* cmesh,const std::string& vtkfile,int matid)
+{
+        TPZPostProcAnalysis pproc;
+        CreatePostProcessingMesh(cmesh, &pproc, matid);
+        TPZStack<std::string> scal, vec;
+        PostProcessVariables(scal, vec);
+        pproc.DefineGraphMesh(/*dim=*/2, scal, vec, vtkfile);
+        pproc.PostProcess(0);
+}
 
 
 

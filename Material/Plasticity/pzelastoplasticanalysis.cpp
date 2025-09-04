@@ -84,12 +84,12 @@ static TPZLogger loggertest("testing");
 using namespace std;
 
 
-TPZElastoPlasticAnalysis::TPZElastoPlasticAnalysis() : TPZLinearAnalysis(), fPrecond(NULL) {
+TPZElastoPlasticAnalysis::TPZElastoPlasticAnalysis() : TPZLinearAnalysis(), fPrecond(NULL), fLineSearch(ELineSearch::Dicotomic) {
 	//Mesh()->Solution().Zero(); already performed in the nonlinearanalysis base class
 	//fSolution.Zero();
 }
 
-TPZElastoPlasticAnalysis::TPZElastoPlasticAnalysis(TPZCompMesh *mesh,std::ostream &out) : TPZLinearAnalysis(mesh,true), fPrecond(NULL) {
+TPZElastoPlasticAnalysis::TPZElastoPlasticAnalysis(TPZCompMesh *mesh,std::ostream &out, ELineSearch lsearch) : TPZLinearAnalysis(mesh,true), fPrecond(NULL),fLineSearch(lsearch) {
 
 	int numeq = fCompMesh->NEquations();
 	fCumSol.Redim(numeq,1);
@@ -199,14 +199,31 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol, int 
             TPZFMatrix<STATE> nextSol;
             const REAL ls_tol = (REAL)1e-3 * std::max<REAL>( (REAL)1.0, Norm(fSolution) );
             const int  ls_it  = 60;
-            if(true)
-            {
-                ArmijoLineSearch(prevsol, fSolution, nextSol, ls_tol, ls_it); // nextSol = solução ABSOLUTA
-                //QuadraticArmijoLineSearch(prevsol, fSolution, nextSol, ls_tol, ls_it);
-            }else{
-                DicotomicLineSearch(prevsol, fSolution, nextSol, ls_tol, ls_it); // nextSol = solução ABSOLUTA
+            switch (fLineSearch) {
+                case ELineSearch::Armijo:
+                    ArmijoLineSearch(prevsol, fSolution, nextSol, ls_tol, ls_it);
+                    break;
+                case ELineSearch::QuadraticArmijo:
+                    QuadraticArmijoLineSearch(prevsol, fSolution, nextSol, ls_tol, ls_it);
+                    break;
+                case ELineSearch::GoldenSection:
+                    GoldenSectionLineSearch(prevsol, fSolution, nextSol, ls_tol, ls_it);
+                    break;
+                case ELineSearch::Dicotomic:
+                    DicotomicLineSearch(prevsol, fSolution, nextSol, ls_tol, ls_it);
+                    break;
+                case ELineSearch::StrongWolfe:
+                    DebugStop();
+                    StrongWolfeLineSearch(prevsol, fSolution, nextSol, ls_tol, ls_it);
+                    break;
+                case ELineSearch::NonmonotoneArmijo:
+                    DebugStop();
+                    NonmonotoneArmijoGLL(prevsol,fSolution,nextSol,fPhiHistory,1e-4,0.5,7,1.0,ls_it);
+                    break;
+                case ELineSearch::None:
+                default:
+                    break;
             }
-
             fSolution = nextSol;
             //out << "  [it " << iter << "] line search aplicado\n";
         } else {
@@ -259,6 +276,105 @@ void TPZElastoPlasticAnalysis::TransferSolution()
 {
 
 }
+REAL TPZElastoPlasticAnalysis::NonmonotoneArmijoGLL(const TPZFMatrix<STATE>& Wn,
+                          const TPZFMatrix<STATE>& d,
+                          TPZFMatrix<STATE>& NextW,
+                          std::deque<REAL>& phi_hist, // mantém últimas M φ
+                          REAL c1, REAL beta,
+                          int M, REAL a0, int max_red)
+{
+    // φ(0) e φ'(0)
+    TPZFMatrix<REAL> Rn; this->Residual(Rn, 0);
+    REAL phi0 = (REAL)0.5 * Dot(Rn, Rn);
+    REAL dphi0 = -Dot(Rn, Rn); // se Newton; caso contrário compute Jd como no Wolfe
+    REAL PhiMax = phi0;
+    for (REAL v : phi_hist) PhiMax = std::max(PhiMax, v);
+
+    REAL a = a0;
+    for (int k=0; k<max_red; ++k) {
+        TPZFMatrix<STATE> Wtry = Wn; Wtry += a*d;
+        TPZFMatrix<REAL> Rtry; this->Residual(Rtry, 0);
+        REAL phia = (REAL)0.5 * Dot(Rtry, Rtry);
+        if (phia <= PhiMax + c1*a*dphi0) { // aceita
+            NextW = Wtry;
+            phi_hist.push_back(phia);
+            if ((int)phi_hist.size() > M) phi_hist.pop_front();
+            return a;
+        }
+        // backtracking (pode trocar por interpolação quadrática protegida)
+        a *= beta;
+    }
+    NextW = Wn; NextW += a*d;
+    return a;
+}
+
+REAL TPZElastoPlasticAnalysis::StrongWolfeLineSearch(const TPZFMatrix<STATE>& Wn,const TPZFMatrix<STATE>& d,TPZFMatrix<STATE>& NextW,REAL c1, REAL c2,REAL a0, int max_eval)
+{
+    auto phi = [&](const TPZFMatrix<STATE>& W, TPZFMatrix<STATE>& R)->REAL{
+        TPZFMatrix<STATE> Wtmp(W); this->LoadSolution(Wtmp);
+        TPZFMatrix<REAL> res; this->Residual(res, 0);
+        return (REAL)0.5 * Dot(res, res); // Inner = R^T R
+    };
+    auto dphi = [&](const TPZFMatrix<STATE>& W,
+                    const TPZFMatrix<STATE>& R)->REAL{
+        // monta J(W)*d -> Jd
+        TPZFMatrix<REAL> K; TPZVec<REAL> coefs(1,1.0); this->ComputeTangent(K, coefs, 0);
+        TPZFMatrix<REAL> Jd; K.Multiply(d, Jd);
+        return Dot(R, Jd); // R^T (J d)
+    };
+
+    TPZFMatrix<STATE> Rn; this->Residual(Rn, 0);
+    REAL phi0 = (REAL)0.5 * Dot(Rn, Rn);
+    REAL dphi0;
+    { // se for Newton puro, use atalho; caso contrário, compute
+      // dphi0 = -||R||^2;
+      TPZFMatrix<REAL> K; TPZVec<REAL> coefs(1,1.0); this->ComputeTangent(K, coefs, 0);
+      TPZFMatrix<REAL> Jd; K.Multiply(d, Jd);
+      dphi0 = Dot(Rn, Jd);
+    }
+
+    REAL alo=0, ahi=a0, philo=phi0, dphilo=dphi0;
+    TPZFMatrix<STATE> Wtrial, Rtrial;
+    for (int k=0; k<max_eval; ++k) {
+        // avalia em ahi
+        Wtrial = Wn; Wtrial += ahi * d;
+        REAL phihi = phi(Wtrial, Rtrial);
+        if ( (phihi > phi0 + c1*ahi*dphi0) || (k>0 && phihi >= philo) ) {
+            // entra no "zoom"
+            REAL aL=alo, aH=ahi; REAL phiL=philo, dphiL=dphilo;
+            for (int z=0; z<max_eval; ++z) {
+                // interpolação cúbica protegida entre [aL,aH]
+                REAL a = 0.5*(aL+aH);
+                TPZFMatrix<STATE> Wz = Wn; Wz += a*d;
+                TPZFMatrix<STATE> Rz; REAL phiz = phi(Wz, Rz);
+                if ( (phiz > phi0 + c1*a*dphi0) || (phiz >= phiL) ) {
+                    aH = a;
+                } else {
+                    REAL dphiz = dphi(Wz, Rz);
+                    if ( std::fabs(dphiz) <= c2*std::fabs(dphi0) ) {
+                        NextW = Wz; return a;
+                    }
+                    if ( (aH - aL)*dphiz >= 0 ) aH = aL;
+                    aL = a; phiL = phiz; dphiL = dphiz;
+                }
+                if (std::fabs(aH-aL) < 1e-12) { NextW = Wz; return a; }
+            }
+        }
+        REAL dphihi = dphi(Wtrial, Rtrial);
+        if ( std::fabs(dphihi) <= c2*std::fabs(dphi0) ) { NextW = Wtrial; return ahi; }
+        if ( dphihi >= 0 ) {
+            // entra no "zoom" com bracket [ahi, alo]
+            REAL aL=ahi, aH=alo; std::swap(aL,aH); // garanta aL<->alo
+            // (mesma rotina de zoom acima…)
+        }
+        // expande
+        alo = ahi; philo = phihi; dphilo = dphihi; ahi *= 2.0;
+    }
+    // falha branda: devolve o melhor visto
+    NextW = Wn; NextW += alo * d; return alo;
+}
+
+
 // Busca linear dicotômica (dichotomous search) para minimizar ||R|| ao longo de ΔW.
 // tol   -> tolerância para a largura do intervalo em α (ex.: 1e-3)
 // niter -> número máx. de iterações
@@ -509,8 +625,8 @@ REAL TPZElastoPlasticAnalysis::ArmijoLineSearch(const TPZFMatrix<STATE>& Wn,
     }
 }
 
-/*
-REAL TPZElastoPlasticAnalysis::LineSearch(const TPZFMatrix<STATE>& Wn,
+
+REAL TPZElastoPlasticAnalysis::GoldenSectionLineSearch(const TPZFMatrix<STATE>& Wn,
                                           TPZFMatrix<STATE> DeltaW,
                                           TPZFMatrix<STATE>& NextW,
                                           REAL tol, int niter)
@@ -625,7 +741,7 @@ REAL TPZElastoPlasticAnalysis::LineSearch(const TPZFMatrix<STATE>& Wn,
     }
 
     return ALPHA;
-}*/
+}
 
 void TPZElastoPlasticAnalysis::SetUpdateMem(int update)
 {
