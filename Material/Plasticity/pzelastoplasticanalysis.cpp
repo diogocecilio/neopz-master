@@ -28,6 +28,54 @@
 
 #include "pzlog.h"
 
+// CompEl create Functions setup
+
+#include "pzintel.h"
+//#include "pzelctempplus.h"
+
+#include "pzrefpoint.h"
+#include "pzgeopoint.h"
+#include "pzshapepoint.h"
+#include "tpzpoint.h"
+
+#include "pzshapelinear.h"
+#include "TPZGeoLinear.h"
+#include "TPZRefLinear.h"
+#include "tpzline.h"
+
+#include "pzshapetriang.h"
+#include "pzreftriangle.h"
+#include "pzgeotriangle.h"
+#include "tpztriangle.h"
+
+#include "pzrefquad.h"
+#include "pzshapequad.h"
+#include "pzgeoquad.h"
+#include "tpzquadrilateral.h"
+
+#include "pzshapeprism.h"
+#include "pzrefprism.h"
+#include "pzgeoprism.h"
+#include "tpzprism.h"
+
+#include "pzshapetetra.h"
+#include "pzreftetrahedra.h"
+#include "pzgeotetrahedra.h"
+#include "tpztetrahedron.h"
+
+#include "pzshapepiram.h"
+#include "pzrefpyram.h"
+#include "pzgeopyramid.h"
+#include "tpzpyramid.h"
+
+#include "TPZGeoCube.h"
+#include "pzshapecube.h"
+#include "TPZRefCube.h"
+#include "tpzcube.h"
+
+#include "pzelctemp.h"
+
+#include "TPZCompElH1.h"
 #ifdef PZ_LOG
 static TPZLogger EPAnalysisLogger("pz.analysis.elastoplastic");
 static TPZLogger loggertest("testing");
@@ -81,18 +129,8 @@ bool TPZElastoPlasticAnalysis::FindRoot(int & iters){
     for (int i = 1; i <= n_it; i++) {
         Assemble();
         Solve();
-        if ( false)
-        {
-            TPZFMatrix<STATE> nextSol;
-            REAL LineSearchTol = 0.001 * Norm ( fSolution );
-            const int niter =30;
-            this->LineSearch ( x, fSolution, nextSol, LineSearchTol, niter );
-            x = nextSol;
-            dx=fSolution;
-        }else{
         dx = Solution();
         x += dx;
-        }
         LoadSolution(x);
 
         normdun=normdu;
@@ -116,666 +154,478 @@ bool TPZElastoPlasticAnalysis::FindRoot(int & iters){
     return false;
 }
 
-REAL TPZElastoPlasticAnalysis::MyLineSearch(const TPZFMatrix<REAL> &Wn, const TPZFMatrix<REAL> &DeltaW, TPZFMatrix<REAL> &NextW, REAL RhsNormPrev, REAL &RhsNormResult, int niter, bool & converging)
+
+bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol, int numiter,bool linesearch, bool checkconv,int &iters)
 {
-    TPZFMatrix<REAL> Interval = DeltaW;
-    REAL scalefactor = 1.;
-    int iter = 0;
-    do {
-        Interval *= scalefactor;
-        NextW = Wn;
-        NextW += Interval;
-        LoadSolution(NextW);
-        AssembleResidual();
-        RhsNormResult = Norm(fRhs);
-        cout << " Normrhs  = " << RhsNormResult <<endl;
-        scalefactor *= 0.5;
-        iter++;
-    } while (RhsNormResult > RhsNormPrev && iter < niter);
-    if(fabs(RhsNormResult - RhsNormPrev)<1.e-6 )
-    {
-        converging=false;
+    int    iter = 0;
+    REAL   prev_err_u = std::numeric_limits<REAL>::infinity();
+    REAL   prev_err_f = std::numeric_limits<REAL>::infinity();
+
+
+
+    const int numeq = fCompMesh->NEquations();
+
+    TPZFMatrix<STATE> prevsol(fSolution);
+    if (prevsol.Rows() != numeq) prevsol.Redim(numeq,1);
+
+    if (checkconv) {
+        TPZVec<REAL> coefs(1,1.);
+        TPZFMatrix<STATE> range(numeq,1,1.);
+        CheckConvergence(*this, fSolution, range, coefs);
     }
-    else
-    {
-        converging=true;
-    }
-    scalefactor *= 2.;
-	return scalefactor;
-}
 
-REAL TPZElastoPlasticAnalysis::LineSearch(const TPZFMatrix<REAL> &Wn, const TPZFMatrix<REAL> &DeltaW, TPZFMatrix<REAL> &NextW, REAL RhsNormPrev, REAL &RhsNormResult, int niter, bool & converging){
-
-    TPZFMatrix<REAL> Interval = DeltaW;
-
-#ifdef PZDEBUG
-    {
-        TPZLinearAnalysis::LoadSolution(Wn);
-        AssembleResidual();
-        STATE normprev = Norm(fRhs);
-        if (fabs(normprev - RhsNormPrev) > 1.e-6) {
-            std::stringstream sout;
-            sout << "Norm of Wn " << Norm(Wn) << std::endl;
-            sout << "Input previous norm " << RhsNormPrev << " Computed Norm " << normprev;
-            LOGPZ_ERROR(EPAnalysisLogger, sout.str())
-        }
-    }
-#endif
-    REAL scalefactor = 1.;
-    int iter = 0;
-    do {
-        Interval *= scalefactor;
-        NextW = Wn;
-        NextW += Interval;
-        TPZLinearAnalysis::LoadSolution(NextW);
-        AssembleResidual();
-#ifdef PZDEBUGBIG
-        {
-            static int count = 0;
-            {
-                std::stringstream filename,varname;
-                filename << "Sol." << count << ".txt";
-                varname << "DelSol" << count << " = ";
-                ofstream out(filename.str().c_str());
-                Interval.Print(varname.str().c_str(),out,EMathematicaInput);
-            }
-            std::stringstream filename,varname;
-            filename << "Rhs." << count << ".txt";
-            varname << "Rhs" << count++ << " = ";
-            ofstream out(filename.str().c_str());
-            fRhs.Print(varname.str().c_str(),out,EMathematicaInput);
-        }
-#endif
-        RhsNormResult = Norm(fRhs);
-#ifndef PLASTICITY_CLEAN_OUT
-        std::cout << "scale factor " << scalefactor << " residure norm " << RhsNormResult << std::endl;
-#endif
-        scalefactor *= 0.5;
-        iter++;
-    } while (RhsNormResult > RhsNormPrev && iter < niter);
-    if(fabs(RhsNormResult - RhsNormPrev)<1.e-6 )
-    {
-        converging=false;
-    }
-    else
-    {
-        converging=true;
-    }
-    scalefactor *= 2.;
-	return scalefactor;
-
-}//void
-/*
-bool TPZElastoPlasticAnalysis::IterativeProcess2(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv) {
-
-	int iter = 0;
-	REAL error = 1.e10;
-	int numeq = fCompMesh->NEquations();
-	//Mesh()->Solution().Zero();
-	//fSolution->Zero();
-
-
-
-	TPZFMatrix<REAL> prevsol(fSolution);
-	if(prevsol.Rows() != numeq) prevsol.Redim(numeq,1);
-
-#ifdef PZ_LOG_keep
-    {
-        std::stringstream sout;
-        fSolution.Print("Solution for checkconv",sout);
-        LOGPZ_DEBUG(EPAnalysisLogger, sout.str())
-    }
-#endif
-
-	if(checkconv){
-		TPZVec<REAL> coefs(1,1.);
-		TPZFMatrix<REAL> range(numeq,1,1.e-5);
-		CheckConvergence(*this,fSolution,range,coefs);
-	}
-
+    // resíduo inicial
     Assemble();
-    REAL RhsNormPrev = Norm(fRhs);
-	bool linesearchconv=true;
-	while(error > tol && iter < numiter) {
+    REAL normrhs0 = Norm(fRhs);
+    if (normrhs0 == 0.) normrhs0 = 1.; // proteção
 
-		//fSolution.Redim(0,0);
-        REAL RhsNormResult = 0.;
-        AssembleResidual();
-		Solve();
-		if (linesearch){
-			TPZFMatrix<REAL> nextSol;
-			const int niter = 30;
-			this->LineSearch(prevsol, fSolution, nextSol, RhsNormPrev, RhsNormResult, niter,linesearchconv);
-			fSolution = nextSol;
-		}
-		else{
-			(TPZFMatrix<STATE> &)fSolution += prevsol;
-            LoadSolution();
-            AssembleResidual();
-            RhsNormResult = Norm(fRhs);
-		}
+    REAL normu0 = Norm(fSolution);
+    if (normu0 == 0.) normu0 = 1.; // proteção
+    bool converged = false;
+    // int maxiter=30;
+    // if(numiter>maxiter) numiter=maxiter;
 
-		prevsol -= fSolution;
-		REAL normDeltaSol = Norm(prevsol);
-		prevsol = fSolution;
-		REAL norm = RhsNormResult;
-        RhsNormPrev = RhsNormResult;
-		//       out << "Iteracao n : " << (iter+1) << " : norma da solucao |Delta(Un)|: " << norm << endl;
-        std::cout << "Iteracao n : " << (iter+1) << " : normas |Delta(Un)| e |Delta(rhs)| : " << normDeltaSol << " / " << RhsNormResult << endl;
-        //        std::cout << "Iteracao n : " << (iter+1) << " : fRhs : " << fRhs << endl;
+    // out << "\n[IterativeProcess2] Início do Newton-Raphson\n";
+    // out << "  NumEq = " << numeq<< " | tol_u = " << tol << " | tol_f = " << tol<< " | maxiter = " << numiter << "\n";
+    // out << "  Norma inicial do resíduo = " << normrhs0 << "\n";
 
-		if(norm < tol) {
-            std::cout << "\nTolerancia atingida na iteracao : " << (iter+1) << endl;
-            std::cout << "\n\nNorma da solucao |Delta(Un)|  : " << norm << endl << endl;
-            return true;
+    while (iter < numiter) {
 
-		} else
-			if( (norm - error) > 1.e-9 ) {
-                std::cout << "\nDivergent Method \n";
-                return false;
-
-			}
-		error = norm;
-		iter++;
-		out.flush();
-	}
-
-}*/
-
-bool TPZElastoPlasticAnalysis::IterativeProcess ( std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv,int &iters )
-{
-
-    int iter = 0;
-    REAL errordisplace = 1.e10,errorrhs=1.e10;
-    int numeq = fCompMesh->NEquations();
-
-    cout << "number of equations = " << numeq <<endl;
-
-    TPZFMatrix<STATE> prevsol ( fSolution );
-    if ( prevsol.Rows() != numeq ) prevsol.Redim ( numeq,1 );
-
-    if ( checkconv )
-    {
-        TPZVec<REAL> coefs ( 1,1. );
-        TPZFMatrix<STATE> range ( numeq,1,1. );
-        CheckConvergence ( *this,fSolution,range,coefs );
-    }
-    bool a=true,b=true,c=true;
-
-    Assemble();
-
-    REAL normrhs0 = Norm ( fRhs );
-    cout << "normrhs0 = " << normrhs0 << endl;
-
-    while ( a  && c )
-    {
-        if(iter%1==0)
-        {
-            //cout<< "Assembling in iter = "<<iter<< endl;
-            Assemble();
-        }
-        Solve();
-        if ( linesearch )
-        {
-            TPZFMatrix<STATE> nextSol;
-            //REAL LineSearchTol = 1e-3 * Norm(fSolution);
-            REAL LineSearchTol = 0.001 * Norm ( fSolution );
-            const int niter =10;
-            this->LineSearch ( prevsol, fSolution, nextSol, LineSearchTol, niter );
-            fSolution = nextSol;
-        }
-        else
-        {
-            TPZFMatrix<STATE> sol = fSolution;
-            sol += prevsol;
-        }
-
-        prevsol -= fSolution;
-        REAL normu = Norm ( prevsol );
-
-        prevsol = fSolution;
-        this->LoadSolution ( fSolution );
-        //this->AssembleResidual();
-
-        REAL normf  =  Norm ( fRhs )/normrhs0;
-        cout << "Iteracao n : " << ( iter ) << " : normas |Delta(Un)| e |Delta(rhs)/rhs0| : " << normu << " / " <<normf<< " | tol = "<<tol << endl;
-        a = iter < numiter ;
-        b =errordisplace > tol;
-        c= errorrhs > tol;
-
-        if ( ( iter >=numiter || ( iter>10&& normf >errorrhs &&normu>errordisplace) ) )
-        {
-            cout << "\nDivergent Method\n";
-            return false;
-        }
-        errorrhs = normf;
-        errordisplace=normu;
-        iter++;
-        out.flush();
-
-    }
-    iters=iter;
-    cout << "Iteracao n : " << ( iter ) << "Norm ( prevsol ) = "<<Norm ( prevsol ) << "Norm ( fRhs ) = "<<Norm ( fRhs ) << endl;
-    return true;
-}
-
-
-void TPZElastoPlasticAnalysis::LoadingRamp ( REAL factor )
-{
-        plasticmat * body= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
-
-        body->SetLoadFactor ( factor );
-}
-
-REAL TPZElastoPlasticAnalysis::IterativeProcessArcLength2 ( REAL tol,int numiter,REAL l,REAL lambda0,bool &converge )
-{
-
-
-
-        std::vector<double> fslist;
-
-        REAL lambda=lambda0;
-
-        TPZFMatrix<REAL> u,dws,dwb,du,rhs,rhs1,rhs2,uold;
-
-        u=Solution();
-
-        u.Zero();
-
-        LoadingRamp (1.);
-        AssembleResidual();
-        TPZFMatrix<REAL> rhstotal=Rhs();
-
-        LoadingRamp ( 0. );
-        AssembleResidual();
-        TPZFMatrix<REAL> rhsint=Rhs();
-        TPZFMatrix<REAL> FBODY=rhstotal-rhsint;
-        REAL normint=Norm ( rhstotal );
-
-        //cout << "\n load step  = " << counterout+1 << " load factor  = " << lambda << " diff = " << diff << " l = " << l<< " fac = "<< fac <<  endl;
-        int counter=0;
-        REAL normrhs=10.;
-        REAL normdu=10.;
-
-        REAL dlamb=0.;
-
-
-        lambda=1 ;
-
-        //diff=1000;
-        u.Zero();
-        LoadSolution ( u );
-        do {
-                //K dws = -r
-                LoadingRamp ( lambda );
-                Assemble();
-                Solve();
-                dws=Solution();
-                rhs=Rhs();
-
-                Rhs() =FBODY;
-                Solve();
-                dwb=Solution();
-
-                normrhs=Norm ( rhs ) /normint;
-
-                TPZVec<REAL> lambvec;
-                if ( counter == 0 ) {
-                        dlamb =computelamda0 ( dwb, u, l );
-                } else {
-
-                        if ( false ) {
-
-                                dlamb = computelamda ( dwb, dws, u, l );
-                        } else {
-                                TPZVec<REAL> lambvec = computelamdacris ( dwb, dws, u, l );
-
-                                LoadingRamp ( lambvec[0]+lambda );
-                                AssembleResidual();
-                                rhs1=Rhs();
-
-                                LoadingRamp ( lambvec[1]+lambda );
-                                AssembleResidual();
-                                rhs2=Rhs();
-
-                                REAL res1 = Norm ( rhs1 );
-                                REAL res2 = Norm ( rhs2 );
-
-                                if ( res1 <res2 ) {
-                                        dlamb = lambvec[0];
-
-                                } else {
-                                        dlamb = lambvec[1];
-                                }
-                        }
-
-                }
-
-                lambda += dlamb;
-                du=dws+dlamb*dwb;
-                normdu=Norm ( du );
-                u+=du;
-                this->LoadSolution ( u );
-
-                counter++;
-
-        } while ( counter<numiter && (normdu>tol ||normrhs>tol*10));
-
-        if(counter>=numiter)
-        {
-                converge=false;
-        }else
-        {
-                converge=true;
-
-        }
-
-        cout << "i = " << counter  << " ||rhs|| =  "<< normrhs <<" ||du||  = " <<normdu <<" lambda = "<< lambda << " dlamb = "<< dlamb <<" l = "<< l << "converge = "<<converge <<endl;
-        //lambda+=lambda0;
-        return lambda;
-}
-
-REAL TPZElastoPlasticAnalysis::IterativeProcessArcLength ( REAL tol,int numiter,REAL tol2,int numiter2,REAL l,REAL lambda0,bool &converge )
-{
-
-        std::vector<double> fslist;
-
-        REAL lambda=lambda0;
-
-        TPZFMatrix<REAL> u,dws,dwb,du,rhs,rhs1,rhs2,uold;
-
-        u=Solution();
-        u.Zero();
-
-        LoadingRamp ( 1. );
-        AssembleResidual();
-        TPZFMatrix<REAL> rhstotal=Rhs();
-
-        LoadingRamp ( 0. );
-        AssembleResidual();
-        TPZFMatrix<REAL> rhsint=Rhs();
-        TPZFMatrix<REAL> FBODY=rhstotal-rhsint;
-        REAL normint=Norm(rhstotal);
-        REAL diff=1000,lambdan;
-        int counterout=0;
-        REAL ndesi=7;
-        REAL fac=1;
-
-        do {
-                cout << "\n load step  = " << counterout+1 << " load factor  = " << lambda << " diff = " << diff << " l = " << l<< " fac = "<< fac <<  endl;
-                int counter=0;
-                REAL normrhs=10.;
-                REAL normdu=10.;
-                REAL normrhsold=10.;
-
-                REAL dlamb=0.;
-                uold=u;
-                //anal.Solution().Zero();
-
-                lambdan=lambda;
-                lambda=lambda0 ;
-
-                //diff=1000;
-                u.Zero();
-                LoadSolution ( u );
-                do {
-                        //K dws = -r
-                        LoadingRamp ( lambda );
-                        Assemble();
-                       Solve();
-                        dws=Solution();
-                        rhs=Rhs();
-
-                        Rhs() =FBODY;
-                        Solve();
-                        dwb=Solution();
-
-                        normrhsold=normrhs;
-                        normrhs=Norm ( rhs )/normint;
-
-
-                        TPZVec<REAL> lambvec;
-                        if ( counter == 0 ) {
-                                dlamb =computelamda0 ( dwb, u, l );
-                        } else {
-
-                                if ( false ) {
-
-                                        dlamb = computelamda ( dwb, dws, u, l );
-                                } else {
-                                        TPZVec<REAL> lambvec = computelamdacris ( dwb, dws, u, l );
-
-                                        LoadingRamp ( lambvec[0]+lambda );
-                                        AssembleResidual();
-                                        rhs1=Rhs();
-
-                                        LoadingRamp ( lambvec[1]+lambda );
-                                        AssembleResidual();
-                                        rhs2=Rhs();
-
-                                        REAL res1 = Norm ( rhs1 );
-                                        REAL res2 = Norm ( rhs2 );
-
-                                        if ( res1 <res2 ) {
-                                                dlamb = lambvec[0];
-
-                                        } else {
-                                                dlamb = lambvec[1];
-                                        }
-                                }
-
-                        }
-
-                lambda += dlamb;
-                du=dws+dlamb*dwb;
-                normdu=Norm(du);
-                u+=du;
-                LoadSolution ( u );
-
-                cout << "i = " << counter  << " ||rhs|| =  "<< normrhs <<" ||du||  = " <<normdu <<" lambda = "<< lambda << " dlamb = "<< dlamb <<" l = "<< l <<endl;
-
-                counter++;
-
-                } while ( counter<numiter2 && (normdu>tol2 ||normrhs>tol2*10));
-
-                counterout++;
-                AcceptSolution();
-                diff=fabs ( lambda-lambdan );
-                fac=ndesi  / ( counter+1 );
-
-        //} while ( counterout<numiter );
-        } while ( counterout<numiter && diff>tol );
-
-        //anal.AcceptSolution();
-        if(counterout < numiter)
-        {
-                //anal.AcceptSolution();
-                cout << "Converged"<<endl;
-                converge=true;
-        }else{
-                cout << "Not Converged"<<endl;
-                converge=false;
-        }
-
-        return lambda;
-}
-
-
-bool TPZElastoPlasticAnalysis::IterativeProcess2 ( std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv,int &iters )
-{
-
-    int iter = 0;
-    REAL errordisplace = 1.e10,errorrhs=1.e10;
-    int numeq = fCompMesh->NEquations();
-
-    //cout << "number of equations = " << numeq <<endl;
-
-    TPZFMatrix<STATE> prevsol ( fSolution );
-    if ( prevsol.Rows() != numeq ) prevsol.Redim ( numeq,1 );
-
-    if ( checkconv )
-    {
-        TPZVec<REAL> coefs ( 1,1. );
-        TPZFMatrix<STATE> range ( numeq,1,1. );
-        CheckConvergence ( *this,fSolution,range,coefs );
-    }
-    bool a=true,b=true,c=true;
-
-    Assemble();
-
-    REAL normrhs0 = Norm ( fRhs );
-    //cout << "normrhs0 = " << normrhs0 << endl;
-
-    while ( a  && c &&b)
-    {
-
+        // monta e resolve o incremento
         Assemble();
-        Solve();
+        Solve(); // fSolution contém incremento (Δu) OU absol. (depende da sua infra)
 
-        if ( linesearch )
-        {
+        if (linesearch) {
             TPZFMatrix<STATE> nextSol;
-            //REAL LineSearchTol = 1e-3 * Norm(fSolution);
-            REAL LineSearchTol = 0.001 * Norm ( fSolution );
-            const int niter =60;
-            this->LineSearch ( prevsol, fSolution, nextSol, LineSearchTol, niter );
+            const REAL ls_tol = (REAL)1e-3 * std::max<REAL>( (REAL)1.0, Norm(fSolution) );
+            const int  ls_it  = 60;
+            if(true)
+            {
+                ArmijoLineSearch(prevsol, fSolution, nextSol, ls_tol, ls_it); // nextSol = solução ABSOLUTA
+                //QuadraticArmijoLineSearch(prevsol, fSolution, nextSol, ls_tol, ls_it);
+            }else{
+                DicotomicLineSearch(prevsol, fSolution, nextSol, ls_tol, ls_it); // nextSol = solução ABSOLUTA
+            }
+
             fSolution = nextSol;
-        }
-        else
-        {
-            TPZFMatrix<STATE> sol = fSolution;
-            sol += prevsol;
+            //out << "  [it " << iter << "] line search aplicado\n";
+        } else {
+            fSolution += prevsol;
         }
 
-        prevsol -= fSolution;
-        REAL normu = Norm ( prevsol );
+        // erro de deslocamento
+        TPZFMatrix<STATE> delta = fSolution;
+        delta -= prevsol;
+        const REAL err_u = Norm(delta)/normu0;
 
+        // atualiza estado interno
         prevsol = fSolution;
-        this->LoadSolution ( fSolution );
-        //this->AssembleResidual();
+        LoadSolution(fSolution);
 
-        REAL normf  =  Norm ( fRhs )/normrhs0;
-        //cout << "Iteracao n : " << ( iter ) << " : normas |Delta(Un)| e |Delta(rhs)/rhs0| : " << normu << " / " <<normf<< " | tol = "<<tol << endl;
-        a = iter < numiter ;
-        b =errordisplace > tol;
-        c= errorrhs > tol;
+        // reavalia resíduo no estado ATUAL
+        AssembleResidual();
+        const REAL err_f = Norm(fRhs) / normrhs0;
 
-        iters=iter;
-        if ( ( iter >=numiter || ( iter>2&& normf >errorrhs &&normu>errordisplace) ) )
-        {
-            //cout << "\nDivergent Method\n";
-            return false;
+        // imprime diagnóstico
+        // out << "  [it " << iter << "] "
+        // << "||Δu||/normu0 = " << err_u/normu0
+        // << " | ||R||/||R0|| = " << err_f
+        // << " | tol = " << tol << "\n";
+
+        // critério de parada
+        //if (err_u <= tol && err_f <= tol) {
+            if ( err_u <= tol && err_f <= tol) {
+            //out << "  -> Convergência atingida em " << iter+1 << " iterações " << " ||Δu||/||Δu0|| = " << err_u<< " | ||R||/||R0|| = " << err_f<< " | tol = " << tol << "\n";
+            converged = true;
+            iter++;
+            break;
         }
-        errorrhs = normf;
-        errordisplace=normu;
-        iter++;
-        out.flush();
 
+        prev_err_u = err_u;
+        prev_err_f = err_f;
+
+        iter++;
     }
 
-    //cout << "Iteracao n : " << ( iter ) << "Norm ( prevsol ) = "<<Norm ( prevsol ) << "Norm ( fRhs ) = "<<Norm ( fRhs ) << endl;
-    return true;
+    iters = iter;
+    if(!converged){
+        //out << "  -> Não convergiu em " << iters<< " iterações. Últimos erros: "<< "||Δu||/||Δu0||=" << prev_err_u<< " | ||R||/||R0||=" << prev_err_f << "\n";
+    }
+    out.flush();
+    return converged;
 }
 
 void TPZElastoPlasticAnalysis::TransferSolution()
 {
 
+}
+// Busca linear dicotômica (dichotomous search) para minimizar ||R|| ao longo de ΔW.
+// tol   -> tolerância para a largura do intervalo em α (ex.: 1e-3)
+// niter -> número máx. de iterações
+REAL TPZElastoPlasticAnalysis::DicotomicLineSearch(const TPZFMatrix<STATE>& Wn,
+                                          TPZFMatrix<STATE> DeltaW,
+                                          TPZFMatrix<STATE>& NextW,
+                                          REAL tol, int niter)
+{
+    // intervalo inicial de α
+    REAL A = (REAL)0.0, B = (REAL)1.0;
 
+    // pequeno deslocamento interno para as duas amostras (padrão da dicotomização)
+    // mantém proporcionalidade ao intervalo, com piso para não colapsar
+    const REAL delta_min = (REAL)1e-6;
+    auto delta_for = [&](REAL width){
+        return std::max<REAL>(delta_min, (REAL)0.1 * width); // 10% da largura
+    };
+
+    // utilitário: avalia ||R|| em um W qualquer (cópia não-const para LoadSolution)
+    auto eval_phi = [&](const TPZFMatrix<STATE>& Wc)->REAL {
+        TPZFMatrix<STATE> W = Wc;   // cópia NÃO-CONST
+        this->LoadSolution(W);
+        this->AssembleResidual();   // monta APENAS o resíduo
+        return Norm(this->fRhs);    // ||R||_2
+    };
+
+    // backup do estado para restaurar no retorno
+    TPZFMatrix<STATE> backup = this->fSolution;
+
+    // se ΔW vazio, retorna sem andar
+    if (DeltaW.Rows()==0 || DeltaW.Cols()==0) {
+        NextW = Wn;
+        this->LoadSolution(backup);
+        return (REAL)0.0;
+    }
+
+    int  it    = 0;
+    REAL width = B - A;
+
+    // opcional: guarda melhor ponto já visto (robustez)
+    REAL best_phi   = std::numeric_limits<REAL>::infinity();
+    REAL best_alpha = (REAL)0.0;
+    TPZFMatrix<STATE> bestW = Wn;
+
+    while (it < niter && width > tol) {
+        const REAL mid = (REAL)0.5*(A + B);
+        REAL delta = delta_for(width);
+
+        // garante que x1 < x2 e ambos dentro de [A,B]
+        REAL x1 = std::max<REAL>(A, mid - delta);
+        REAL x2 = std::min<REAL>(B, mid + delta);
+        if (x1 >= x2) { // se encostou, relaxa delta
+            delta *= (REAL)0.5;
+            x1 = std::max<REAL>(A, mid - delta);
+            x2 = std::min<REAL>(B, mid + delta);
+            if (x1 >= x2) break; // não há espaço útil
+        }
+
+        // avalia φ nos dois pontos
+        TPZFMatrix<STATE> trial1 = Wn, trial2 = Wn;
+        TPZFMatrix<STATE> d1 = DeltaW, d2 = DeltaW;
+        d1 *= x1; trial1 += d1;
+        d2 *= x2; trial2 += d2;
+
+        const REAL f1 = eval_phi(trial1);
+        const REAL f2 = eval_phi(trial2);
+
+        if (f1 < best_phi) { best_phi = f1; best_alpha = x1; bestW = trial1; }
+        if (f2 < best_phi) { best_phi = f2; best_alpha = x2; bestW = trial2; }
+
+        // passo dicotômico: mantém a metade com menor valor
+        if (f1 > f2) {
+            // mínimo está em (x1, B]
+            A = x1;
+        } else {
+            // mínimo está em [A, x2)
+            B = x2;
+        }
+
+        width = B - A;
+        it++;
+    }
+
+    // α escolhido: meio do intervalo final; se quiser, pode usar best_alpha
+    const REAL alpha = (REAL)0.5*(A + B);
+
+    // monta NextW = Wn + α ΔW
+    NextW = Wn;
+    DeltaW *= alpha;  // DeltaW é por valor → seguro
+    NextW += DeltaW;
+
+    // restaura estado interno do Analysis
+    this->LoadSolution(backup);
+
+    return alpha;
 }
 
-REAL TPZElastoPlasticAnalysis::LineSearch ( const TPZFMatrix<STATE> &Wn, TPZFMatrix<STATE> DeltaW, TPZFMatrix<STATE> &NextW, REAL tol, int niter )
+// Armijo com interpolação quadrática protegida (rápido/robusto)
+REAL TPZElastoPlasticAnalysis::QuadraticArmijoLineSearch(const TPZFMatrix<STATE>& Wn,
+                                          TPZFMatrix<STATE> DeltaW,
+                                          TPZFMatrix<STATE>& NextW,
+                                          REAL tol, int niter)
 {
+    const REAL c1   = (REAL)1e-4;               // decréscimo suficiente
+    const REAL amin = std::max<REAL>(tol, (REAL)1e-8);
+    const REAL shrink_lo = (REAL)0.1, shrink_hi = (REAL)0.5; // guarda-corpos
 
-    //cout << "Entering line search "<<endl;
-    REAL error = 2.*tol+1.;
-    REAL A = 0.1, B = 2., L = 0, M = 0.;
-    TPZFMatrix<STATE> ak, bk, lambdak, muk, Interval;
-    REAL NormResLambda = 0., NormResMu = 0.;
-    //ak = Wn + 0.1 * DeltaW
-    ak = DeltaW;
-    ak *= A;
-    ak += Wn;
-    //bk = Wn + 2. DeltaW
-    bk = DeltaW;
-    bk *= B;
-    bk += Wn;
-    //Interval = (bk-ak)
-    Interval = bk;
-    Interval -= ak;
-    int iter = 0;
-    int KeptVal = -1; //0 means I have residual(labmda); 1 means I have residual(mu); -1 means I have nothing
-    while ( error > tol && iter < niter )
-    {
-        iter++;
-        //cout << "a  " << std::endl;
-        if ( KeptVal != 0 )
-        {
-            L = 0.382* ( B-A )+A;
-            //lambdak = ak + 0.382*(bk-ak)
-            lambdak = Interval;
-            lambdak *= 0.382;
-            lambdak += ak;
-            //computing residual
-            LoadSolution ( lambdak );
-            this->AssembleResidual();
-            NormResLambda = Norm ( fRhs );
+    // utilitário: φ(W) = 1/2 ||R||^2
+    auto eval_phi = [&](const TPZFMatrix<STATE>& Wc)->REAL {
+        TPZFMatrix<STATE> W = Wc;               // NÃO-const p/ LoadSolution
+        this->LoadSolution(W);
+        this->AssembleResidual();               // só o resíduo
+        const REAL rn = Norm(this->fRhs);
+        return (REAL)0.5 * rn * rn;
+    };
+
+    // backup do estado interno
+    TPZFMatrix<STATE> backup = this->fSolution;
+
+    // φ(0) e φ'(0)
+    TPZFMatrix<STATE> W0 = Wn;                  // cópia não-const
+    this->LoadSolution(W0);
+    this->AssembleResidual();
+    const REAL r0  = Norm(this->fRhs);
+    REAL phi0      = (REAL)0.5 * r0 * r0;
+    REAL phip0     = -(REAL)(r0 * r0);          // para passo de Newton, φ'(0)= -||R||^2
+
+    // fallback se, por algum motivo, φ'(0)≥0
+    if (phip0 >= (REAL)0) {
+        const REAL eps = (REAL)1e-6;
+        TPZFMatrix<STATE> Wp = Wn, d = DeltaW; d *= eps; Wp += d;
+        const REAL phip = eval_phi(Wp);
+        phip0 = (phip - phi0) / eps;
+        if (phip0 >= (REAL)0) phip0 = -(REAL)std::max((REAL)1e-16, phi0); // força descida
+    }
+
+    // se ΔW vazio, não anda
+    if (DeltaW.Rows()==0 || DeltaW.Cols()==0) { NextW=Wn; this->LoadSolution(backup); return (REAL)0.0; }
+
+    REAL alpha = (REAL)1.0;
+    REAL best_phi = phi0, best_alpha = (REAL)0.0;
+    TPZFMatrix<STATE> bestW = Wn;
+
+    for (int k = 0; k < niter && alpha >= amin; ++k) {
+        TPZFMatrix<STATE> trial = Wn, d = DeltaW; d *= alpha; trial += d;
+
+        const REAL phi_a = eval_phi(trial);
+        if (phi_a < best_phi) { best_phi = phi_a; best_alpha = alpha; bestW = trial; }
+
+        // Armijo: φ(α) ≤ φ(0) + c1 α φ'(0)
+        if (phi_a <= (REAL)(phi0 + c1 * alpha * phip0)) {
+            NextW = trial;
+            this->LoadSolution(backup);
+            return alpha;
         }
 
-        if ( KeptVal != 1 )
-        {
-            //muk = ak + 0.618*(bk-ak)
-            M = 0.618* ( B-A )+A;
-            muk = Interval;
-            muk *= 0.618;
-            muk += ak;
-            LoadSolution ( muk );
-            this->AssembleResidual();
-            NormResMu = Norm ( fRhs );
+        // --- interpolação quadrática protegida ---
+        // modelo: φ(α) ≈ φ0 + φ'0 α + c α^2  =>  c = (φ(α) - φ0 - φ'0 α)/α^2
+        REAL denom = (phi_a - phi0 - phip0*alpha);
+        REAL a_quad;
+        if (denom <= (REAL)0) {
+            a_quad = alpha * shrink_hi; // guarda-corpo: cai para meia-passada
+        } else {
+            a_quad = -(phip0) * alpha * alpha / ( (REAL)2.0 * denom );
+            // protege dentro de [0.1α, 0.5α]
+            a_quad = std::max(shrink_lo*alpha, std::min(shrink_hi*alpha, a_quad));
         }
+        alpha = a_quad;
+    }
 
-        if ( NormResLambda > NormResMu )
-        {
-            A = L;
-            L = M;
-            ak = lambdak;
-            lambdak = muk;
-            NormResLambda = NormResMu;
-            KeptVal = 0;
-        }
-        else
-        {
-            B = M;
-            M = L;
-            bk = muk;
-            muk = lambdak;
-            NormResMu = NormResLambda;
-            KeptVal = 1;
-        }
-        //error = Norm(bk-ak)
-        Interval = bk;
-        Interval -= ak;
-        error = Norm ( Interval );
+    // fallback: aceita o melhor que reduziu φ, senão não anda
+    if (best_phi < phi0) { NextW = bestW; this->LoadSolution(backup); return best_alpha; }
+    NextW = Wn; this->LoadSolution(backup); return (REAL)0.0;
+}
 
-        //alpha shall be alpha <= 1
-        if ( A > 1. && B > 1. ) break;
+// Armijo (backtracking) line search
+// tol  -> alpha mínimo permitido (ex.: 1e-6)
+// niter-> máximo de backtracks
+// Armijo (backtracking) – versão que COMPILA com LoadSolution(TPZFMatrix<STATE>&)
+REAL TPZElastoPlasticAnalysis::ArmijoLineSearch(const TPZFMatrix<STATE>& Wn,
+                                          TPZFMatrix<STATE> DeltaW,
+                                          TPZFMatrix<STATE>& NextW,
+                                          REAL tol, int niter)
+{
+    // parâmetros do Armijo
+    const REAL c    = (REAL)1e-4;  // decréscimo suficiente
+    const REAL rho  = (REAL)0.5;   // redução do passo
+    const REAL amin = std::max<REAL>(tol, (REAL)1e-8);
 
-    }//while
+    // ---- utilitário: avalia ||R|| em um W qualquer ----
+    auto eval_phi = [&](const TPZFMatrix<STATE>& W)->REAL {
+        TPZFMatrix<STATE> tmp = W;        // cópia NÃO-CONST para LoadSolution
+        this->LoadSolution(tmp);
+        this->AssembleResidual();         // monta apenas o resíduo
+        return Norm(this->fRhs);          // ||R||_2
+    };
 
-    double ALPHA = 0.5* ( A + B );
-    NextW = ak;
-    NextW += bk;
-    NextW *= 0.5;
+    // backup do estado para restaurar no retorno
+    TPZFMatrix<STATE> backup = this->fSolution;
 
-    if ( ALPHA > 1. ) //alpha shall be alpha <= 1
-    {
+    // φ(0) em Wn
+    TPZFMatrix<STATE> W0 = Wn;            // cópia NÃO-CONST
+    const REAL phi0 = eval_phi(W0);
+
+    // passo inicial
+    REAL alpha = (REAL)1.0;
+
+    // melhor já visto (fallback)
+    REAL best_phi   = phi0;
+    REAL best_alpha = (REAL)0.0;
+    TPZFMatrix<STATE> bestW = Wn;
+
+    // se ΔW vazio, não anda
+    if (DeltaW.Rows()==0 || DeltaW.Cols()==0) {
         NextW = Wn;
-        NextW += DeltaW;
-        return 1.;
+        this->LoadSolution(backup);
+        return (REAL)0.0;
+    }
+
+    // backtracking
+    for (int k = 0; k < niter && alpha >= amin; ++k) {
+        TPZFMatrix<STATE> trial = Wn;     // cópia NÃO-CONST
+        TPZFMatrix<STATE> d     = DeltaW; // por valor → seguro
+        d *= alpha;
+        trial += d;
+
+        const REAL phi_a = eval_phi(trial);
+        if (phi_a < best_phi) { best_phi = phi_a; best_alpha = alpha; bestW = trial; }
+
+        // critério de Armijo: phi(a) <= (1 - c a) phi(0)
+        if (phi_a <= (REAL)((1.0 - c*alpha) * phi0)) {
+            NextW = trial;
+            this->LoadSolution(backup);   // restaura estado interno
+            return alpha;
+        }
+        alpha *= rho;
+    }
+
+    // fallback: aceita o melhor que reduziu ||R||, senão não anda
+    if (best_phi < phi0) {
+        NextW = bestW;
+        this->LoadSolution(backup);
+        return best_alpha;
+    } else {
+        NextW = Wn;
+        this->LoadSolution(backup);
+        return (REAL)0.0;
+    }
+}
+
+/*
+REAL TPZElastoPlasticAnalysis::LineSearch(const TPZFMatrix<STATE>& Wn,
+                                          TPZFMatrix<STATE> DeltaW,
+                                          TPZFMatrix<STATE>& NextW,
+                                          REAL tol, int niter)
+{
+    // ------- CONFIG DE VERBOSE -------
+    constexpr bool kVerbose = false; // mude para false para silenciar
+    auto V = [&](auto&&... xs){ if(kVerbose){ (std::cout << ... << xs); } };
+
+    // ---- Intervalo escalar α em [0,1] ----
+    REAL A = (REAL)0.0;
+    REAL B = (REAL)1.0;
+
+    // método áureo
+    constexpr REAL phi  = (REAL)0.6180339887498949;  // (sqrt(5)-1)/2
+    constexpr REAL phi2 = (REAL)1.0 - phi;           // ~0.381966...
+
+    int res_evals = 0;
+
+    // utilitário: avalia ||R(Wn + α ΔW)|| sem “sujar” estado final
+    auto EvalResidualNorm = [&](REAL alpha) -> REAL {
+        TPZFMatrix<STATE> trial = Wn;
+        TPZFMatrix<STATE> d     = DeltaW;  // cópia local
+        d *= alpha;
+        trial += d;
+
+        // salva solução corrente para restaurar depois
+        TPZFMatrix<STATE> backup = fSolution;
+
+        // IMPORTANTE: assumimos que AssembleResidual NÃO atualiza memória
+        this->LoadSolution(trial);
+        this->AssembleResidual();
+        REAL val = Norm(fRhs);
+
+        // restaura solução original
+        this->LoadSolution(backup);
+        res_evals++;
+        return val;
+    };
+
+    // (opcional) medir extremos para debug
+    REAL f0 = EvalResidualNorm((REAL)0.0);
+    REAL f1 = EvalResidualNorm((REAL)1.0);
+
+    // prepara pontos internos
+    REAL L = A + phi2*(B - A);
+    REAL M = A + phi *(B - A);
+
+    REAL fL = EvalResidualNorm(L);
+    REAL fM = EvalResidualNorm(M);
+
+    int  it    = 0;
+    REAL width = B - A;
+
+    if(kVerbose){
+        std::cout << "\n[LineSearch] -- início --\n";
+        std::cout << "  tol(alpha)=" << tol << "  niter_max=" << niter << "\n";
+        std::cout << "  f(0)=" << f0 << "  f(1)=" << f1 << "\n";
+        std::cout << "  A="<<A<<"  B="<<B
+        << "  L="<<L<<" (fL="<<fL<<")"
+        << "  M="<<M<<" (fM="<<fM<<")\n";
+    }
+
+    // loop do áureo
+    while (it < niter && width > tol) {
+        // decide qual metade descartar
+        if (fL > fM) {
+            // descarta [A, L]
+            A  = L;
+            L  = M;
+            fL = fM;
+            M  = A + phi*(B - A);
+            fM = EvalResidualNorm(M);
+        } else {
+            // descarta [M, B]
+            B  = M;
+            M  = L;
+            fM = fL;
+            L  = A + phi2*(B - A);
+            fL = EvalResidualNorm(L);
+        }
+
+        width = B - A;
+        if(kVerbose){
+            std::cout << "  [it " << it
+            << "] A="<<A<<"  B="<<B
+            << "  L="<<L<<" fL="<<fL
+            << "  M="<<M<<" fM="<<fM
+            << "  width="<<width << "\n";
+        }
+        it++;
+    }
+
+    // motivo de parada (debug)
+    if(kVerbose){
+        if(width <= tol) std::cout << "  -> stop: width<=tol ("<<width<<" <= "<<tol<<")\n";
+        else if(it >= niter) std::cout << "  -> stop: iters max ("<<it<<")\n";
+    }
+
+    // α ótimo aproximado = ponto médio do intervalo final
+    REAL ALPHA = (REAL)0.5*(A + B);
+
+    // constrói NextW = Wn + α ΔW
+    NextW = Wn;
+    DeltaW *= ALPHA;
+    NextW += DeltaW;
+
+    if(kVerbose){
+        std::cout << "  ALPHA=" << ALPHA
+        << "  iters=" << it
+        << "  residual_evals=" << res_evals
+        << "\n[LineSearch] -- fim --\n";
     }
 
     return ALPHA;
-
-}//void
+}*/
 
 void TPZElastoPlasticAnalysis::SetUpdateMem(int update)
 {
@@ -818,7 +668,7 @@ REAL TPZElastoPlasticAnalysis::AcceptSolution(const int ResetOutputDisplacements
     auto *elasmat = dynamic_cast<TPZElasticity2D *>(mat);
     if(elasmat)
     {
-        // the material is linear
+        cout<< "the material is linear, exiting..."<<endl;
         return 0.;
     }
 
@@ -827,6 +677,7 @@ REAL TPZElastoPlasticAnalysis::AcceptSolution(const int ResetOutputDisplacements
 	{
 		fCumSol.Zero();
 	}else{
+        //cout<< "accumulating solution..."<<endl;
 		fCumSol += fSolution;
 	}
 
@@ -1202,74 +1053,8 @@ void TPZElastoPlasticAnalysis::ManageIterativeProcess(std::ostream &out,REAL tol
 
 
 
-// CompEl create Functions setup
-
-#include "pzintel.h"
-//#include "pzelctempplus.h"
-
-#include "pzrefpoint.h"
-#include "pzgeopoint.h"
-#include "pzshapepoint.h"
-#include "tpzpoint.h"
-
-#include "pzshapelinear.h"
-#include "TPZGeoLinear.h"
-#include "TPZRefLinear.h"
-#include "tpzline.h"
-
-#include "pzshapetriang.h"
-#include "pzreftriangle.h"
-#include "pzgeotriangle.h"
-#include "tpztriangle.h"
-
-#include "pzrefquad.h"
-#include "pzshapequad.h"
-#include "pzgeoquad.h"
-#include "tpzquadrilateral.h"
-
-#include "pzshapeprism.h"
-#include "pzrefprism.h"
-#include "pzgeoprism.h"
-#include "tpzprism.h"
-
-#include "pzshapetetra.h"
-#include "pzreftetrahedra.h"
-#include "pzgeotetrahedra.h"
-#include "tpztetrahedron.h"
-
-#include "pzshapepiram.h"
-#include "pzrefpyram.h"
-#include "pzgeopyramid.h"
-#include "tpzpyramid.h"
-
-#include "TPZGeoCube.h"
-#include "pzshapecube.h"
-#include "TPZRefCube.h"
-#include "tpzcube.h"
-
-#include "pzelctemp.h"
-
-#include "TPZCompElH1.h"
 void TPZElastoPlasticAnalysis::SetAllCreateFunctionsWithMem(TPZCompMesh *cmesh)
 {
-/*	pzgeom::TPZGeoPoint::fp = TPZElastoPlasticAnalysis::CreatePointElWithMem;
-	 pzgeom::TPZGeoQuad::fp = TPZElastoPlasticAnalysis::CreateQuadElWithMem;
-	pzgeom::TPZGeoTriangle::fp = TPZElastoPlasticAnalysis::CreateTriangElWithMem;
-	pzgeom::TPZGeoPrism::fp = TPZElastoPlasticAnalysis::CreatePrismElWithMem;
-	pzgeom::TPZGeoTetrahedra::fp = TPZElastoPlasticAnalysis::CreateTetraElWithMem;
-	pzgeom::TPZGeoPyramid::fp = TPZElastoPlasticAnalysis::CreatePyramElWithMem;
-	pzgeom::TPZGeoCube::fp = TPZElastoPlasticAnalysis::CreateCubeElWithMem;
-*/
- /*   TPZManVector<TCreateFunction,10> functions(8);
-    functions[EPoint] = &TPZElastoPlasticAnalysis::CreatePointElWithMem;
-	functions[EOned] = TPZElastoPlasticAnalysis::CreateLinearElWithMem;
-	functions[EQuadrilateral] = TPZElastoPlasticAnalysis::CreateQuadElWithMem;
-	functions[ETriangle] = TPZElastoPlasticAnalysis::CreateTriangElWithMem;
-	functions[EPrisma] = TPZElastoPlasticAnalysis::CreatePrismElWithMem;
-	functions[ETetraedro] = TPZElastoPlasticAnalysis::CreateTetraElWithMem;
-	functions[EPiramide] = TPZElastoPlasticAnalysis::CreatePyramElWithMem;
-	functions[ECube] = TPZElastoPlasticAnalysis::CreateCubeElWithMem;
-    */
  TPZManVector<TCreateFunction,10> functions(8);
 	TCreateFunction fp[8];
     cmesh->ApproxSpace().SetCreateFunctions(functions);
@@ -1399,147 +1184,3 @@ void  TPZElastoPlasticAnalysis::LoadSolution ( TPZFMatrix<STATE> & loadsol )
     fSolution = loadsol;
     LoadSolution();
 }
-
-REAL  TPZElastoPlasticAnalysis::computelamda0 ( TPZFMatrix<REAL>& dwb,  TPZFMatrix<REAL>& fext, REAL& l )
-{
-
-        TPZFMatrix<REAL> dwt,solsig;
-        fext.Transpose ( &dwt );
-        dwt.Multiply ( dwb,solsig );
-        REAL scal = solsig.Get ( 0,0 );
-
-        REAL signum=0;
-        //page 111, eq. 4.123 - Souza Neto //verificar sinal
-        if ( scal<0 ) {
-                signum=-1;
-        } else {
-                signum=1;
-        }
-
-
-        TPZFMatrix<REAL> dwbt, aparam;
-        dwb.Transpose ( &dwbt );
-        dwbt.Multiply ( dwb, aparam );
-
-        return signum*l/sqrt ( aparam.Get ( 0,0 ) ) ;
-
-
-}
-
-REAL  TPZElastoPlasticAnalysis::computelamda ( TPZFMatrix<REAL>& dwb, TPZFMatrix<REAL>& dws, TPZFMatrix<REAL>& dw, REAL& l )
-{
-
-
-
-        int sz = dwb.Rows();
-        REAL aa = 0.;
-
-        aa = Dot ( dwb,dwb );
-
-        REAL bb = 0.;
-
-        TPZFMatrix<REAL> dwcopy;
-
-        dwcopy = dw+dws;
-
-        bb = Dot ( dwb,dwcopy );
-
-        bb *= 2;
-        REAL cc = 0.;
-
-        cc= Dot ( dwcopy,dwcopy );
-
-        cc -= l * l;
-        REAL delta = bb * bb - 4. * aa * cc;
-        REAL dlamb2;
-        REAL dlamb1;
-
-
-        //cout << "delta = " << delta << endl;
-        //cout << "aa = " << aa << endl;
-        //cout << "bb = " << bb << endl;
-        //cout << "cc = " << cc << endl;
-        if ( fabs ( aa ) >1.e-12 && delta>0 ) {
-                dlamb2 = ( -bb + sqrt ( delta ) ) / ( 2. * aa ); //maior
-                dlamb1= ( -bb - sqrt ( delta ) ) / ( 2. * aa ); //menor
-                //return dlamb1;
-                //cout << "dlamb1" <<dlamb1 << " dlamb2 = "<< dlamb2 << endl;
-        } else {
-                if ( bb != 0 ) {
-                        //cout << "-cc/bb" <<-cc/bb << endl;
-                        return -cc/bb;
-                } else {
-                        //cout << "(-bb ) / (2. * aa)" <<(-bb ) / (2. * aa)<< endl;
-                        return ( -bb ) / ( 2. * aa );
-                }
-        }
-
-
-        //page 111, eq. 4.118 - Souza Neto
-        TPZFMatrix<REAL> temp1,temp1t,sol1,temp2,temp2t,sol2;
-        temp1=dwb;
-        temp1*=dlamb1;
-        temp1+=dws;
-        temp1+=dw;
-        temp1.Transpose ( &temp1t );
-        temp1t.Multiply ( dw,sol1 );
-
-        temp2=dwb;
-        temp2*=dlamb2;
-        temp2+=dws;
-        temp2+=dw;
-        temp2.Transpose ( &temp2t );
-        temp2t.Multiply ( dw,sol2 );
-
-        if ( sol1.Get ( 0,0 ) >=sol2.Get ( 0,0 ) ) {
-                //cout << "return 1 " << " sol1.Get ( 0,0 ) "<< sol1.Get ( 0,0 ) << " sol2.Get ( 0,0 ) "<< sol2.Get ( 0,0 ) <<endl;
-                return dlamb1;
-        } else {
-                //cout << "return 2 " << endl;
-                return dlamb2;
-        }
-}
-TPZVec<REAL> TPZElastoPlasticAnalysis::computelamdacris ( TPZFMatrix<REAL>& dwb, TPZFMatrix<REAL>& dws, TPZFMatrix<REAL>& dw, REAL& l )
-{
-        // Tamanho da matriz
-        int sz = dwb.Rows();
-
-        // Cálculo de 'aa'
-        REAL aa = Dot ( dwb, dwb );
-
-        // Cálculo de 'bb'
-        TPZFMatrix<REAL> dwcopy = dw + dws;
-        REAL bb = 2.0 * Dot ( dwb, dwcopy );
-
-        // Cálculo de 'cc'
-        REAL cc = Dot ( dwcopy, dwcopy ) - l * l;
-
-        // Delta da equação quadrática
-        REAL delta = bb * bb - 4.0 * aa * cc;
-
-        // Vetor de lambdas
-        TPZVec<REAL> lambvec ( 2, 0 );
-
-        // Tratamento do caso delta >= 0
-        if ( fabs ( aa ) > 1.e-12 && delta >= 0 ) {
-                REAL sqrtDelta = sqrt ( delta );
-                REAL inv2a = 1.0 / ( 2.0 * aa ); // Evita cálculo redundante
-
-                REAL dlamb1 = ( -bb - sqrtDelta ) * inv2a; // Menor raiz
-                REAL dlamb2 = ( -bb + sqrtDelta ) * inv2a; // Maior raiz
-
-                lambvec[0] = dlamb2;
-                lambvec[1] = dlamb1;
-
-        } else if ( fabs ( bb ) > 1.e-12 ) {
-                // Caso especial onde aa é pequeno e bb != 0
-                lambvec[0] = -cc / bb;
-        } else {
-                // Caso degenerado
-                lambvec[0] = -bb / ( 2.0 * aa );
-        }
-
-        // Retorna os valores calculados
-        return lambvec;
-}
-

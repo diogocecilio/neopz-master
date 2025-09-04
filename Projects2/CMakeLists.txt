@@ -21,3 +21,6 @@ add_subdirectory(randomfem)
 
 add_subdirectory(ElasticityRandomField)
 
+add_subdirectory(GeoMecRandFields)
+
+add_subdirectory(GeoMecDeterm)
