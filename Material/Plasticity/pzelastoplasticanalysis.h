@@ -74,6 +74,8 @@ public:
 	 */
 	bool FindRoot(int & iters);
 
+
+
 	/**
 	 * @brief Processo iterativo não-linear (tipo Newton) com *line search* opcional.
 	 * @param out       Stream para log.

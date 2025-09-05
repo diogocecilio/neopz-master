@@ -115,44 +115,60 @@ TPZElastoPlasticAnalysis::~TPZElastoPlasticAnalysis()
 #endif
 }
 
-bool TPZElastoPlasticAnalysis::FindRoot(int & iters){
 
-    REAL normrhs=10000,normdu=10000,normrhsn=10000,normdun=10000,normrhs0;
+bool TPZElastoPlasticAnalysis::FindRoot(int &iters)
+{
+    //METODO DE NEWTON SIMPLES
+    // estado e incremento
     TPZFMatrix<STATE> x(Solution()), dx(Solution());
-    x.Zero();
-    dx.Zero();
-    REAL tol = 1.e-3;
-    int n_it = 100;
-    AssembleResidual();
-    normrhs0=Norm(Rhs());
+    x.Zero(); dx.Zero();
 
-    for (int i = 1; i <= n_it; i++) {
+    const REAL tol   = 1.e-3;
+    const int  n_it  = 30;
+    const REAL EPS   = 1.e-30; // evita divisão por zero
+
+    // resíduo inicial
+    AssembleResidual();
+    REAL normrhs0 = Norm(Rhs());
+    if (!std::isfinite(normrhs0)) normrhs0 = 1.0;
+    if (normrhs0 < EPS) { iters = 0; return true; } // já está resolvido
+
+    REAL normrhs = 1.0;
+    REAL normdu  = 0.0;
+
+    for (int i = 1; i <= n_it; ++i) {
+        // monta tangente e resíduo na solução atual x
         Assemble();
+
+        // resolve Δx
         Solve();
         dx = Solution();
+
+        // atualiza solução candidata
         x += dx;
         LoadSolution(x);
 
-        normdun=normdu;
-        normdu=Norm(dx);
+        // *** RECOMPUTA o resíduo para a solução ATUALIZADA ***
+        AssembleResidual();
 
-        normrhsn=normrhs;
-        normrhs = Norm(Rhs())/normrhs0;
+        // métricas
+        normdu  = Norm(dx);
+        normrhs = Norm(Rhs()) / std::max(normrhs0, EPS);
 
+        iters = i;
 
-        iters=i;
-        if (normrhs<tol) {
-//std::cout <<"iter = "<< i << " normrhs= " << normrhs<< " normrhsn= " << normrhsn<<" normdu= " << normdu<< " normdun= " << normdun<< std::endl;
+        // critério de convergência (resíduo relativo)
+        if (normrhs < tol) {
+            // opcional: AcceptSolution();  // se quiser acumular/atualizar memória aqui
             return true;
-        }else if(i>4&&normrhsn<normrhs&&normdun<normdu){
-           // std::cout << "Fail to converge. Divergent method." << std::endl;
-            return false;
         }
+
     }
 
-    //std::cout << " Not converged. Maximum number of iterations reached." << std::endl;
+    // não convergiu dentro do limite
     return false;
 }
+
 
 
 bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol, int numiter,bool linesearch, bool checkconv,int &iters)
@@ -198,7 +214,7 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol, int 
         if (linesearch) {
             TPZFMatrix<STATE> nextSol;
             const REAL ls_tol = (REAL)1e-3 * std::max<REAL>( (REAL)1.0, Norm(fSolution) );
-            const int  ls_it  = 60;
+            const int  ls_it  = 200;
             switch (fLineSearch) {
                 case ELineSearch::Armijo:
                     ArmijoLineSearch(prevsol, fSolution, nextSol, ls_tol, ls_it);
