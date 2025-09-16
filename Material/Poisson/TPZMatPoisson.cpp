@@ -47,7 +47,7 @@ void TPZMatPoisson<TVar>::ContributeBC(const TPZMaterialDataT<TVar> &data,
                                          TPZFMatrix<TVar> &ek, TPZFMatrix<TVar> &ef,
                                          TPZBndCondT<TVar> &bc)
 {
-	
+	std::cout << " ContributeBCTPZMatPoisson  " <<std::endl;
 	const auto &phi = data.phi;
     const auto &dphi = data.dphix;
 	const int phr = phi.Rows();

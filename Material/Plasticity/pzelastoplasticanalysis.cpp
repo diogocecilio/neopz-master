@@ -116,15 +116,15 @@ TPZElastoPlasticAnalysis::~TPZElastoPlasticAnalysis()
 }
 
 
-bool TPZElastoPlasticAnalysis::FindRoot(int &iters)
+bool TPZElastoPlasticAnalysis::FindRoot(int &iters,REAL &resu,REAL &resf)
 {
     //METODO DE NEWTON SIMPLES
     // estado e incremento
     TPZFMatrix<STATE> x(Solution()), dx(Solution());
     x.Zero(); dx.Zero();
 
-    const REAL tol   = 1.e-3;
-    const int  n_it  = 30;
+    const REAL tol   = 0.01;
+    const int  n_it  = 10;
     const REAL EPS   = 1.e-30; // evita divisão por zero
 
     // resíduo inicial
@@ -132,6 +132,10 @@ bool TPZElastoPlasticAnalysis::FindRoot(int &iters)
     REAL normrhs0 = Norm(Rhs());
     if (!std::isfinite(normrhs0)) normrhs0 = 1.0;
     if (normrhs0 < EPS) { iters = 0; return true; } // já está resolvido
+
+    REAL normu0 = Norm(Solution());
+    if (normu0<=0) normu0 = 1.0;
+    //if (normu0 < EPS) { iters = 0; return true; } // já está resolvido
 
     REAL normrhs = 1.0;
     REAL normdu  = 0.0;
@@ -152,21 +156,29 @@ bool TPZElastoPlasticAnalysis::FindRoot(int &iters)
         AssembleResidual();
 
         // métricas
-        normdu  = Norm(dx);
+        normdu  = Norm(dx)/normu0;
         normrhs = Norm(Rhs()) / std::max(normrhs0, EPS);
 
         iters = i;
 
+        resu=normdu;
+        resf=normrhs;
         // critério de convergência (resíduo relativo)
-        if (normrhs < tol) {
-            // opcional: AcceptSolution();  // se quiser acumular/atualizar memória aqui
+        if (normrhs < tol ) {
+            //std::cout << "normrhs ="<< normrhs<< " normdu ="<< normdu   <<endl;
             return true;
         }
 
     }
-
+    //std::cout << "não convergiu dentro do limite: normrhs ="<< normrhs<< " normdu ="<< normdu   <<endl;
     // não convergiu dentro do limite
-    return false;
+    if( normdu<tol)
+    {
+        return true;
+    }else{
+        return false;
+    }
+
 }
 
 

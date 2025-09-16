@@ -24,3 +24,7 @@ add_subdirectory(ElasticityRandomField)
 add_subdirectory(GeoMecRandFields)
 
 add_subdirectory(GeoMecDeterm)
+
+add_subdirectory(GeoMecRandFieldsMonteCarlo)
+
+add_subdirectory(PoroElastic)

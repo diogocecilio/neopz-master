@@ -300,7 +300,7 @@ int main()
         int ref=1;
         int kMatId=1;
         REAL Lx=20.;
-        REAL Ly=2.;
+        REAL Ly=10.;
         int M=100;
         int NsampGen=10000;
         if(false)
@@ -585,7 +585,9 @@ bool RunAndAccept(TPZCompMesh* cmesh,
         }
 
         int iters=30;
-        bool ok = anal.FindRoot(iters_out);
+        REAL resu;
+        REAL resf;
+        bool ok = anal.FindRoot(iters_out,resu,resf);
         //bool ok = anal.IterativeProcess(std::cout, 1.e-3, iters, true, false, iters_out);
         if (!ok) return false;
         anal.AcceptSolution(1);

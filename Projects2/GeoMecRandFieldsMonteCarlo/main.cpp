@@ -99,100 +99,16 @@
 #include "TPZBFileStream.h"
 #include "TPZVTKGeoMesh.h"
 #include "Projection/TPZL2Projection.h"
-typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> TPlasticMC;
-typedef TPZMatElastoPlastic2D<TPlasticMC, TPZElastoPlasticMem>   plasticmat;
-
-using namespace std;
-
-// ------------------------------------------------------------
-// Pós-processo
-// ------------------------------------------------------------
-void PostProcessVariables(TPZStack<std::string>& scal, TPZStack<std::string>& vec);
-
-void CreatePostProcessingMesh(TPZCompMesh* cmesh,TPZPostProcAnalysis* pproc,int matid);
-
-void PostElastoplastic(TPZCompMesh* cmesh,const std::string& vtkfile,int matid);
-
-TPZGeoMesh*  TriGMesh(int ref);
-
-plasticmat*  CreateMaterial(REAL young, REAL poisson, REAL coes, REAL atrito,TPZManVector<REAL,3> bodyforce,int planestrain = 1, int matid = 1);
-
-TPZCompMesh* CreateCMesh(TPZGeoMesh* gmesh, int pOrder, plasticmat* mat);
-
-
-void InitializeMemory(TPZCompMesh* cmesh, REAL coesion, REAL atrito);
-
-void ComputeElementDeformation(TPZCompMesh* cmesh, TPZVec<REAL>& fPlasticDeformSqJ2);
-
-void DivideElementsAbove(TPZCompMesh* cmesh, REAL refineaboveval, std::set<int64_t>& out_newels);
-
-void PRefineElementsAbove (TPZCompMesh* cmesh, REAL refineaboveval, std::set<int64_t>& out_newels,int porder );
-
-bool Hrefine(TPZCompMesh* cmesh, REAL coes, REAL atrito, REAL refineAboveVal);
-
-bool HPrefine(TPZCompMesh* cmesh, REAL coes, REAL atrito,REAL refineAboveVal,int porder);
-
-REAL UyAtNode(TPZCompMesh* cmesh, REAL x, REAL y);
-
-bool RunAndAccept(TPZCompMesh* cmesh,
-                  REAL coes, REAL atrito, REAL factor, int& iters_out,bool initmem=true);
-
-REAL AutoRefine(TPZCompMesh* cmesh, REAL coes, REAL atrito, REAL refineAboveVal,
-                int max_refines, REAL fs_start, REAL fs_step, REAL fs_max);
-
-
-REAL BisectionFS(TPZCompMesh* cmesh, REAL coes, REAL atrito,
-                 REAL lo, REAL hi, REAL tol_fs_rel, int max_bis,bool initmem=true);
-
-REAL HybridBracketedFS(TPZCompMesh* cmesh, REAL coes, REAL atrito,
-                       REAL lo, REAL hi, REAL tol_fs_rel, int max_it, bool initmem=true);
-
-
-REAL Solve(TPZCompMesh* cmesh,REAL coes,REAL atrito,bool initmem=true);
-
-enum class FieldModel { Gaussian, Lognormal };
-struct FieldSpec {
-        REAL mu_x   = 1.0;          // média alvo do campo X
-        REAL cov_x  = 0.0;          // coeficiente de variação (sigma_x / mu_x)
-        FieldModel model = FieldModel::Gaussian;
-};
-
-REAL SolveStochastic(REAL coes,REAL atrito,bool initmem,const std::vector<TPZCompMesh*>& sources,TPZCompMesh* target,const std::vector<FieldSpec>& specs,int idxE, int idxNu);
-
-
-// KL paramétrico em Lx, Ly
-TPZCompMesh * BuildCompMeshKL_Param(TPZGeoMesh *gmesh, int porder, int matId,
-                                           REAL Lx, REAL Ly);
-
-TPZFMatrix<STATE> BuildPhiSqrtLambda(TPZCompMesh* cmesh,const TPZFMatrix<CSTATE>& eigenvectors,const TPZVec<CSTATE>&eigenvalues,int M);
-
-
-
-// ------------------------------------------------------------------
-// ComputeFieldMulti: lê N malhas-fonte (cada uma já com uma realização "z(x)")
-// e escreve em memória elástica do alvo, montando X_i(x) com mu_x e cov_x.
-// - Gaussian:   X_i = mu_x[i] + (cov_x[i]*mu_x[i]) * z_i
-// - Lognormal:  X_i = exp( mu_ln[i] + sigma_ln[i] * z_i )
-//   onde: sigma_ln = sqrt( ln(1 + COV_x^2) ), mu_ln = ln(mu_x) - 0.5*sigma_ln^2
-// idxE/idxNu escolhem quais campos alimentam E e nu.
-// ------------------------------------------------------------------
-void ComputeFieldMulti(const std::vector<TPZCompMesh*>& sources,
-                              TPZCompMesh* target,
-                              const std::vector<FieldSpec>& specs,
-                              int idxE = 0, int idxNu = 1);
-
-TPZFMatrix<REAL> ComputeTheta (int M, int samples, uint32_t seed=12345);
-
-void BuildFields(int pOrder ,int ref,int kMatId,REAL Lx,REAL Ly,int M,int NsampGen);
-
-void ApplyLoad(TPZCompMesh* cmesh,
-               REAL coes, REAL atrito, TPZManVector<REAL> factors);
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <sstream>
 #include <filesystem>
 
+typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> TPlasticMC;
+typedef TPZMatElastoPlastic2D<TPlasticMC, TPZElastoPlasticMem>   plasticmat;
+
+using namespace std;
 // Lê a última linha não vazia do CSV e retorna o último índice s (ou -1 se não houver dados)
 static inline long LastSampleIndexFromCSV(const std::string& path) {
         std::ifstream in(path);
@@ -217,73 +133,7 @@ static inline long LastSampleIndexFromCSV(const std::string& path) {
                 return -1;
         }
 }
-// int main()
-// {
-//         // 1) Malha geométrica
-//         int ref = 0;
-//         TPZGeoMesh* gmesh = TriGMesh(ref);
-//
-//         {
-//                 std::ofstream vtk1("antes.vtk");
-//                 TPZVTKGeoMesh::PrintGMeshVTK(gmesh, vtk1, true);
-//                 std::cout << "antes.vtk escrito.\n";
-//         }
-//         // 2) Material
-//         REAL young   = 20000.;
-//         REAL poisson = 0.49;
-//         // REAL coes    = 50.;
-//         // REAL atrito  = 20. * M_PI / 180.;
-//         REAL coes    = 10.;
-//         REAL atrito  = 30. * M_PI / 180.;
-//         TPZManVector<REAL,3> bodyforce(3,0.0);
-//         bodyforce[1] = -20.0;
-//
-//         plasticmat* mat = CreateMaterial(young, poisson, coes, atrito, bodyforce);
-//         int pOrder = 2;
-//         TPZCompMesh* cmesh = CreateCMesh(gmesh, pOrder, mat);
-//         mat->SetBodyForce(bodyforce);
-//         InitializeMemory(cmesh, coes, atrito);
-//         auto* body = dynamic_cast<plasticmat*>(cmesh->FindMaterial(1));
-//         if (!body) { std::cerr << "Material id=1 não encontrado.\n"; return 1; }
-//
-//         using Clock = std::chrono::steady_clock;
-//
-//         auto t0 = Clock::now();
-//         REAL FS = Solve(cmesh, coes, atrito,false);
-//         auto t1 = Clock::now();
-//
-//         std::chrono::duration<double> secs = t1 - t0;
-//         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
-//
-//         std::cout << std::fixed << std::setprecision(3)
-//         << "[Timing] Solve: " << secs.count() << " s  (" << ms << " ms)\n";
-//
-//         {
-//                 std::ofstream vtk1("gmeshtri_refined_preGI.vtk");
-//                 TPZVTKGeoMesh::PrintGMeshVTK(cmesh->Reference(), vtk1, true);
-//                 std::cout << "[VTK] gmeshtri_refined_preGI.vtk escrito.\n";
-//         }
-//         string vtk2="post_plasticity.vtk";
-//         int matid=1;
-//         PostElastoplastic(cmesh,vtk2,matid);
-//
-//         cout <<"FS = "<<FS<<endl;
-//         int nloads = 10;
-//         const REAL FS_target = FS ;          // mantém seu “+0.1”
-//         TPZManVector<REAL> factors(nloads+1);   // 0 .. nloads (inclusivo)
-//
-//         for (int i = 0; i <= nloads; ++i) {
-//                 factors[i] = FS_target * REAL(i) / REAL(nloads); // 0, Δ, 2Δ, …, FS_target
-//                 //cout<< factors[i] <<endl;
-//         }
-//
-//
-//         // ApplyLoad(cmesh,coes, atrito,  factors);
-//
-//         return 0;
-// }
-
-static long LastS(const std::string& path){
+static  long LastS(const std::string& path){
         std::ifstream in(path);
         if(!in) return -1;
         std::string line, last;
@@ -292,282 +142,107 @@ static long LastS(const std::string& path){
         auto p = last.find(','); if(p==std::string::npos) return -1;
         try { return std::stol(last.substr(0,p)); } catch(...) { return -1; }
 }
+// ------------------------------------------------------------
+// Pós-processo
+// ------------------------------------------------------------
+void PostProcessVariables(TPZStack<std::string>& scal, TPZStack<std::string>& vec);
 
-int main()
-{
-        int pOrder =2;
-        int refield=1;
-        int ref=1;
-        int kMatId=1;
-        REAL Lx=20.;
-        REAL Ly=2.;
-        int M=100;
-        int NsampGen=10000;
-        if(false)
-        {
-                BuildFields( pOrder , refield, kMatId, Lx, Ly, M,NsampGen);
-        }else
-        {
-                // malhas fontes (para mapear campo -> elasticidade)
-                TPZGeoMesh*  gmesh0       =  TriGMesh(refield);
-                TPZGeoMesh*  gmesh1        = TriGMesh(refield);
+void CreatePostProcessingMesh(TPZCompMesh* cmesh,TPZPostProcAnalysis* pproc,int matid);
 
-                TPZCompMesh* cmeshFieldCoes  = BuildCompMeshKL_Param(gmesh0, pOrder, kMatId, 1.0, 1.0);
-                TPZCompMesh* cmeshFieldAtrito = BuildCompMeshKL_Param(gmesh1, pOrder, kMatId, 1.0, 1.0);
+void PostElastoplastic(TPZCompMesh* cmesh,const std::string& vtkfile,int matid);
 
-                // 2) Material
-                REAL young   = 20000.;
-                REAL poisson = 0.49;
+TPZGeoMesh*  TriGMesh(int ref);
 
-                REAL coes    = 10.;
-                REAL atrito  = 30. * M_PI / 180.;
-                TPZManVector<REAL,3> bodyforce(3,0.0);
-                bodyforce[1] = -20.0;
+plasticmat*  CreateMaterial(REAL young, REAL poisson, REAL coes, REAL atrito,TPZManVector<REAL,3> bodyforce,int planestrain = 1, int matid = 1);
 
-                // lê hhat
-                std::ostringstream fin; fin.setf(std::ios::fixed);
-                fin << "hhat_" << std::setprecision(6) << Lx << "_" << Ly << ".bin";
-                TPZFMatrix<REAL> hhatE,hhatMU;
-                {
-                        TPZBFileStream in;
-                        in.OpenRead(fin.str());
-                        hhatE.Read(in, 0);
-                        hhatMU.Read(in, 0);
-                }
-                const int NsampRun = std::min(500, (int)std::min(hhatE.Cols(), hhatMU.Cols()));
+TPZCompMesh* CreateCMesh(TPZGeoMesh* gmesh, int pOrder, plasticmat* mat);
 
 
-                // nome do CSV (mantém seu padrão)
-                std::ostringstream fout; fout.setf(std::ios::fixed);
-                fout << "mc_results_" << std::setprecision(6) << Lx << "_" << Ly << ".csv";
-                const std::string csvname = fout.str();
+void InitializeMemory(TPZCompMesh* cmesh, REAL coesion, REAL atrito);
 
-                // retoma do último sample salvo
-                const long s_start = LastS(csvname) + 1;
+void ComputeElementDeformation(TPZCompMesh* cmesh, TPZVec<REAL>& fPlasticDeformSqJ2);
 
-                // abre em append (escreve cabeçalho se arquivo novo)
-                std::ofstream outcsv(csvname, std::ios::app);
-                if(outcsv.tellp()==0) outcsv << "sample,FS\n";
-                outcsv.setf(std::ios::fixed); outcsv << std::setprecision(10);
+void DivideElementsAbove(TPZCompMesh* cmesh, REAL refineaboveval, std::set<int64_t>& out_newels);
 
-                std::cout << "solving mc " << fin.str()
-                << " retomando em s=" << s_start
-                << " até < " << NsampRun << std::endl;
+void PRefineElementsAbove (TPZCompMesh* cmesh, REAL refineaboveval, std::set<int64_t>& out_newels,int porder );
 
-                double sum=0.0, sum2=0.0; int nacc=0; // estatísticas desta sessão
-                TPZFMatrix<REAL> colE(hhatE.Rows(),1), colNu(hhatMU.Rows(),1);
+bool Hrefine(TPZCompMesh* cmesh,REAL refineAboveVal);
 
-                // *** LOOP COM RETOMADA ***
-                for (long s = s_start; s < NsampRun; ++s)
-                {
-                        cout << "========== IMC ========== "<< s <<endl;
-                        TPZGeoMesh*  gmesh2  = TriGMesh(ref);
-                        plasticmat*  mat     = CreateMaterial(young, poisson, coes, atrito, bodyforce);
-                        int pOrder = 2;
-                        TPZCompMesh* cmesh   = CreateCMesh(gmesh2, pOrder, mat);
-                        mat->SetBodyForce(bodyforce);
+bool HPrefine(TPZCompMesh* cmesh,REAL refineAboveVal,int porder);
 
-                        auto* body = dynamic_cast<plasticmat*>(cmesh->FindMaterial(1));
-                        if(!body){ std::cerr << "Material id=1 não encontrado.\n"; return 1; }
+REAL UyAtNode(TPZCompMesh* cmesh, REAL x, REAL y);
 
-                        InitializeMemory(cmesh, coes, atrito);
-                        for (int i=0;i<hhatE.Rows(); ++i) colE(i,0)  = hhatE(i,(int)s);
-                        for (int i=0;i<hhatMU.Rows();++i) colNu(i,0) = hhatMU(i,(int)s);
+bool RunAndAccept(TPZCompMesh* cmesh,REAL factor, int & itersout,REAL &resu,REAL &resf);
 
-                        cmeshFieldCoes->LoadSolution(colE);  cmeshFieldCoes->LoadReferences();
-                        cmeshFieldAtrito->LoadSolution(colNu); cmeshFieldAtrito->LoadReferences();
+// novo – nomes mais descritivos + 'verbose' (0=quieto, 1=resumo, 2=por iteração)
+REAL FindFS_Bisection       (TPZCompMesh* cmesh, REAL lo, REAL hi,
+                             REAL tol_fs_rel, int max_it, int verbose = 1);
 
-                        std::vector<TPZCompMesh*> sources = { cmeshFieldCoes, cmeshFieldAtrito };
-                        std::vector<FieldSpec> specs = {
-                                {coes,  0.30, FieldModel::Lognormal},  // -> E
-                                {atrito,0.20, FieldModel::Lognormal}   // -> nu
-                        };
-                        ComputeFieldMulti(sources, cmesh, specs, /*idxE=*/0, /*idxNu=*/1);
-
-                        using Clock = std::chrono::steady_clock;
-                        auto t0 = Clock::now();
-                        REAL FS = SolveStochastic(coes, atrito, false, sources, cmesh, specs, 0, 1);
-                        auto t1 = Clock::now();
-                        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
-                        std::cout << std::fixed << std::setprecision(3)
-                        << "[Timing] Solve: " << (ms/1000.0) << " s  (" << ms << " ms)\n";
-
-                        // (opcionais)
-                        // { std::ofstream vtk1("gmeshtri_refined_preGI.vtk");
-                        //   TPZVTKGeoMesh::PrintGMeshVTK(cmesh->Reference(), vtk1, true); }
-                        // PostElastoplastic(cmesh, "post_plasticity.vtk", /*matid=*/1);
-
-                        if(FS <= 10.0){
-                                outcsv << s << "," << FS << "\n";
-                                outcsv.flush();          // grava imediatamente (seguro pra retomada)
-                                sum  += FS; sum2 += (double)FS*(double)FS; ++nacc;
-                        }
-
-                        delete cmesh;
-                        delete gmesh2;
-                }
-                outcsv.close();
-
-                // estatísticas da sessão corrente (o que rodou agora)
-                if(nacc>0){
-                        const double mean = sum/nacc;
-                        const double var  = std::max(0.0, sum2/nacc - mean*mean);
-                        const double stdv = std::sqrt(var);
-                        std::cout << "[Lx="<<Lx<<", Ly="<<Ly<<"] Nsamp(sessão)="<<nacc
-                        << " mean="<<mean<<" std="<<stdv
-                        << " -> salvo em " << csvname << "\n";
-                } else {
-                        std::cout << "Nenhuma amostra válida adicionada nesta sessão.\n";
-                }
-
-                delete cmeshFieldCoes;
-                delete cmeshFieldAtrito;
-                delete gmesh0;
-                delete gmesh1;
-        }
-
-
-        return 0;
-}
-
-
-// ============================================================
-// Implementações
-// ============================================================
-REAL SolveStochastic(REAL coes,REAL atrito,bool initmem,const std::vector<TPZCompMesh*>& sources,TPZCompMesh* target,const std::vector<FieldSpec>& specs,int idxE, int idxNu)
-{
-        REAL lo=0.25;
-        REAL hi=20.;
-        REAL tol_fs_rel=0.01;
-        int max_bis = 30;
-        REAL FS=5.;
-
-        int porder=target->GetDefaultOrder();
-        int iters_out;
-        //FS=  BisectionFS(cmesh, coes, atrito, lo,  hi, tol_fs_rel ,  max_bis);
-        //FS=1.77;
-        //RunAndAccept( cmesh,coes,  atrito,  FS,  iters_out);
-        //Hrefine(cmesh,coes, atrito,0.01);
-        int maxref=4;
-        for ( int iref=1; iref<=maxref; iref++ ) {
-
-                int neq=target->NEquations();
-                std::cout << "\n[solve] ===== Refinamento # "<< iref <<" ====="<<" neq = " <<neq << "\n";
-                //FS=  BisectionFS(target, coes, atrito, lo,  hi, tol_fs_rel ,  max_bis,initmem);
-                ComputeFieldMulti(sources, target, specs, /*idxE=*/0, /*idxNu=*/1);
-                FS=HybridBracketedFS(target, coes, atrito, lo,  hi, tol_fs_rel ,  max_bis,initmem);
-                if(iref==maxref)
-                {
-                        break;
-                }
-               // Hrefine(target,coes, atrito,0.01);
-
-                HPrefine(target,coes, atrito,0.01,porder);
-
-                porder+=1;
-        }
-        //para pos-processar
-        RunAndAccept( target,coes,  atrito,  FS,  iters_out,initmem);
-        return FS;
-}
-void BuildFields(int pOrder ,int ref,int kMatId,REAL Lx,REAL Ly,int M,int NsampGen)
-{
+REAL FindFS_BracketedSecant (TPZCompMesh* cmesh, REAL lo, REAL hi,
+                             REAL tol_fs_rel, int max_it, int verbose = 1);
 
 
 
-        TPZGeoMesh* gmesh = TriGMesh(ref);
-        TPZCompMesh* cmeshKL = BuildCompMeshKL_Param(gmesh, pOrder, kMatId, Lx, Ly);
+REAL Solve(TPZCompMesh* cmesh,REAL coes,REAL phi);
 
-        TPZEigenAnalysis an(cmeshKL,false);
-        pzdoublestrmatriz<REAL> sm(cmeshKL);
-        sm.SetCAssembly(pzdoublestrmatriz<REAL>::ECAssembly::Galerkin);
-        an.SetStructuralMatrix(sm);
+enum class FieldModel { Gaussian, Lognormal };
+struct FieldSpec {
+        REAL mu_x   = 1.0;          // média alvo do campo X
+        REAL cov_x  = 0.0;          // coeficiente de variação (sigma_x / mu_x)
+        FieldModel model = FieldModel::Gaussian;
+};
 
-        TPZKrylovEigenSolver<STATE> esolver;
-        esolver.SetAsGeneralised(true);
-        esolver.SetEigenSorting(TPZEigenSort::AbsDescending);
-        esolver.SetNEigenpairs(cmeshKL->NEquations());
-        esolver.SetKrylovDim(cmeshKL->NEquations());
-        esolver.SetTolerance(1e-10);
-        an.SetSolver(esolver);
-
-        an.Assemble();
-        an.Solve();
-        TPZFMatrix<CSTATE> evecs = an.Eigenvectors();
-        TPZVec<CSTATE>     evals = an.Eigenvalues();
-
-        TPZFMatrix<STATE> PHI   = BuildPhiSqrtLambda(cmeshKL, evecs, evals, M);
+REAL SolveStochastic(const std::vector<TPZCompMesh*>& sources,TPZCompMesh* target,const std::vector<FieldSpec>& specs);
 
 
+// KL paramétrico em Lx, Ly
+TPZCompMesh * BuildCompMeshKL_Param(TPZGeoMesh *gmesh, int porder, int matId,
+                                           REAL Lx, REAL Ly);
 
-        // Duas famílias independentes para Coes e Phi (poderia ser correlacionado se desejado)
-        TPZFMatrix<REAL>  THETAE  = ComputeTheta(M, NsampGen, /*seed*/12345);
-        TPZFMatrix<REAL>  THETAMU = ComputeTheta(M, NsampGen, /*seed*/54321);
+TPZFMatrix<STATE> BuildPhiSqrtLambda(TPZCompMesh* cmesh,const TPZFMatrix<CSTATE>& eigenvectors,const TPZVec<CSTATE>&eigenvalues,int M);
 
-        TPZFMatrix<REAL>  hhatE,hhatMU; // (ndof x NsampGen)
-        PHI.Multiply(THETAE,  hhatE);
-        PHI.Multiply(THETAMU, hhatMU);
+void RunDeterministic();
 
-        // nome estável (fixed, 6 casas)
-        std::ostringstream oss; oss.setf(std::ios::fixed);
-        oss << "hhat_" << std::setprecision(6) << Lx << "_" << Ly << ".bin";
-        TPZBFileStream out;
-        out.OpenWrite(oss.str());
-        hhatE.Write(out,0);
-        hhatMU.Write(out,0);
+void RunStochastic(bool buildfields);
 
-        delete cmeshKL;
-        delete gmesh;
-        std::cout << "Gerado: " << oss.str() << "\n";
+void SolveMonteCarlo(int pOrderfield ,int pOrderDeform,int reffield,int ref,int kMatId,REAL Lx,REAL Ly);
 
-}
-// ============================================================
-// Implementações
-// ============================================================
-REAL Solve(TPZCompMesh* cmesh,REAL coes,REAL atrito,bool initmem)
-{
-        REAL lo=0.5;
-        REAL hi=10.;
-        REAL tol_fs_rel=0.01;
-        int max_bis = 20;
-        REAL FS=1.;
 
-        int porder=cmesh->GetDefaultOrder();
-        int iters_out;
-        //FS=  BisectionFS(cmesh, coes, atrito, lo,  hi, tol_fs_rel ,  max_bis);
-        //FS=1.77;
-        //RunAndAccept( cmesh,coes,  atrito,  FS,  iters_out);
-        //Hrefine(cmesh,coes, atrito,0.01);
-        int maxref=4;
-        for ( int iref=1; iref<=maxref; iref++ ) {
+// ------------------------------------------------------------------
+// ComputeFieldMulti: lê N malhas-fonte (cada uma já com uma realização "z(x)")
+// e escreve em memória elástica do alvo, montando X_i(x) com mu_x e cov_x.
+// - Gaussian:   X_i = mu_x[i] + (cov_x[i]*mu_x[i]) * z_i
+// - Lognormal:  X_i = exp( mu_ln[i] + sigma_ln[i] * z_i )
+//   onde: sigma_ln = sqrt( ln(1 + COV_x^2) ), mu_ln = ln(mu_x) - 0.5*sigma_ln^2
+// idxE/idxNu escolhem quais campos alimentam E e nu.
+// ------------------------------------------------------------------
+void ComputeFieldMulti(const std::vector<TPZCompMesh*>& sources,
+                              TPZCompMesh* target,
+                              const std::vector<FieldSpec>& specs,
+                              int idxE = 0, int idxNu = 1);
 
-                int neq=cmesh->NEquations();
-                std::cout << "\n[solve] ===== Refinamento # "<< iref <<" ====="<<" neq = " <<neq << "\n";
-               //FS=  BisectionFS(cmesh, coes, atrito, lo,  hi, tol_fs_rel ,  max_bis,initmem);
-                FS=HybridBracketedFS(cmesh, coes, atrito, lo,  hi, tol_fs_rel ,  max_bis,initmem);
-                if(iref==maxref)
-                {
-                       break;
-                }
-                //Hrefine(cmesh,coes, atrito,0.01);
+TPZFMatrix<REAL> ComputeTheta (int M, int samples, uint32_t seed=12345);
 
-                HPrefine(cmesh,coes, atrito,0.01,porder);
-                porder+=1;
-        }
-        //para pos-processar
-        RunAndAccept( cmesh,coes,  atrito,  FS,  iters_out,initmem);
-        return FS;
-}
-bool RunAndAccept(TPZCompMesh* cmesh,
-                  REAL coes, REAL atrito, REAL factor, int& iters_out,bool initmem)
+void BuildFields(int pOrder ,int ref,int kMatId,REAL Lx,REAL Ly,int M,int NsampGen,string oss);
+
+void ApplyLoad(TPZCompMesh* cmesh,
+               REAL coes, REAL atrito, TPZManVector<REAL> factors);
+
+
+
+
+
+
+
+
+bool RunAndAccept(TPZCompMesh* cmesh,REAL factor, int & itersout,REAL &resu,REAL &resf)
 {
         auto* body = dynamic_cast<plasticmat*>(cmesh->FindMaterial(1));
         body->SetLoadFactor(factor);
-        if(initmem)InitializeMemory(cmesh, coes, atrito);
         cmesh->Solution().Zero();
 
 
-        TPZElastoPlasticAnalysis anal(cmesh, std::cout,TPZElastoPlasticAnalysis::ELineSearch::QuadraticArmijo);
+        TPZElastoPlasticAnalysis anal(cmesh, std::cout,TPZElastoPlasticAnalysis::ELineSearch::Armijo);
 
         if(false)
         {
@@ -585,89 +260,16 @@ bool RunAndAccept(TPZCompMesh* cmesh,
         }
 
         int iters=30;
-        bool ok = anal.FindRoot(iters_out);
+        bool ok = anal.FindRoot(itersout,resu,resf);
+        //cout << " ok = "<< ok << " iters_out = "<< iters_out << "resu = "<< resu << " resf = "<< resf <<endl;
         //bool ok = anal.IterativeProcess(std::cout, 1.e-3, iters, true, false, iters_out);
         if (!ok) return false;
         anal.AcceptSolution(1);
         //cmesh->LoadSolution(anal.CumulativeSolution());
         return true;
 }
-void ApplyLoad(TPZCompMesh* cmesh,
-                  REAL coes, REAL atrito, TPZManVector<REAL> factors)
-{
 
-        // parâmetros de controle
-        int nloads = factors.size();
-        REAL FS_target = factors[nloads-1];
-        REAL fator_atual = 0.0;
-        REAL passo_base  = FS_target / REAL(nloads); // passo médio de referência
-
-        cmesh->SetDefaultOrder(4);
-        TPZElastoPlasticAnalysis anal(cmesh, std::cout,TPZElastoPlasticAnalysis::ELineSearch::Dicotomic);
-        auto* body = dynamic_cast<plasticmat*>(cmesh->FindMaterial(1));
-        body->ResetMemory();
-        InitializeMemory(cmesh, coes, atrito);
-        if(true)
-        {
-                TPZSSpStructMatrix<STATE> SSpStructMatrix ( cmesh );
-                SSpStructMatrix.SetNumThreads(12);
-                anal.SetStructuralMatrix(SSpStructMatrix);
-                TPZPardisoSolver<REAL> *pardiso = new TPZPardisoSolver<REAL>;
-                anal.SetSolver ( *pardiso );
-        }else{
-                TPZSkylineStructMatrix<STATE> matskl(cmesh);
-                matskl.SetNumThreads(16);
-                anal.SetStructuralMatrix(matskl);
-                TPZStepSolver<STATE> step; step.SetDirect(ELDLt);
-                anal.SetSolver(step);
-        }
-        const std::string csv_path = "loadsweep.csv";
-        std::ofstream csv(csv_path);
-        csv << "step,factor,uy,iters,ok\n";
-        csv << std::setprecision(15) << std::scientific;
-       // int nloads=factors.size();
-        REAL x=30.;
-        REAL y=40.;
-        REAL uy=0.;
-        int counter=0;
-        int old_iters_out=0;
-        int iters_out;
-        while( counter<100)
-        {
-                body->SetLoadFactor(fator_atual);
-
-
-                bool ok = anal.IterativeProcess(std::cout, 1.e-3, 1000, true, false, iters_out);
-                if(old_iters_out<iters_out)
-                {
-                        old_iters_out=iters_out;
-                }
-                if(!ok)break;
-                TPZFMatrix<REAL> tempsol=anal.Solution();
-                anal.AcceptSolution(0);
-
-                cmesh->LoadSolution(tempsol);
-                uy += UyAtNode(cmesh,  x,  y);
-                csv << counter << "," << -uy << "," << fator_atual << "," << iters_out << "," << 1 << "\n";
-                std::cout << "uy = " << uy << "  factor = " << fator_atual
-                << "  iters = " << iters_out <<  "  old_iters_out = " << old_iters_out << " counter =" << counter<< std::endl;
-
-
-
-
-                REAL peso = 2.5 / std::max(1, old_iters_out);  // 1/iters
-                REAL delta = passo_base * peso  ;      //
-
-                fator_atual += delta;
-                //if (fator_atual > FS_target) fator_atual = FS_target;
-
-                if (fator_atual >= FS_target) old_iters_out=300;
-                counter++;
-        }
-
-}
-
-bool HPrefine(TPZCompMesh* cmesh, REAL coes, REAL atrito,REAL refineAboveVal,int porder)
+bool HPrefine(TPZCompMesh* cmesh,REAL refineAboveVal,int porder)
 {
         const int nels_before = cmesh->NElements();
         TPZVec<REAL> defel;
@@ -686,7 +288,6 @@ bool HPrefine(TPZCompMesh* cmesh, REAL coes, REAL atrito,REAL refineAboveVal,int
         std::cout << "[PRefine] nels: " << (int)novosp.size() << "\n";
 
         if (nels_after > nels_before) {
-                InitializeMemory(cmesh, coes, atrito);
                 return true;
         } else {
                 std::cout << "[PreRefine] sem novos refinamentos; fim.\n";
@@ -695,7 +296,7 @@ bool HPrefine(TPZCompMesh* cmesh, REAL coes, REAL atrito,REAL refineAboveVal,int
 }
 
 
-bool Hrefine(TPZCompMesh* cmesh, REAL coes, REAL atrito,REAL refineAboveVal)
+bool Hrefine(TPZCompMesh* cmesh,REAL refineAboveVal)
 {
         const int nels_before = cmesh->NElements();
         TPZVec<REAL> defel;
@@ -709,7 +310,6 @@ bool Hrefine(TPZCompMesh* cmesh, REAL coes, REAL atrito,REAL refineAboveVal)
         << "  (refinados: " << (int)novos.size() << ")\n";
 
         if (nels_after > nels_before) {
-                InitializeMemory(cmesh, coes, atrito);
                 return true;
         } else {
                 std::cout << "[PreRefine] sem novos refinamentos; fim.\n";
@@ -717,102 +317,144 @@ bool Hrefine(TPZCompMesh* cmesh, REAL coes, REAL atrito,REAL refineAboveVal)
         }
 }
 
-// Drop-in no lugar do BisectionFS: híbrido Secant + Bisection com salvaguardas
-REAL HybridBracketedFS(TPZCompMesh* cmesh, REAL coes, REAL atrito,
-                       REAL lo, REAL hi, REAL tol_fs_rel, int max_it,bool initmem)
-{
-        std::cout << "\n[bisect] ===== Início da bisseção de FS =====\n"
-        << "[bisect] alvo: tol_rel=" << tol_fs_rel
-        << "  max_bis=" << max_it
-        << "  lo_in=" << lo << "  hi_in=" << hi << "\n";
-        auto rel_gap = [](REAL a, REAL b){
-                const REAL m = (REAL)0.5*(a+b);
-                return (b-a)/std::max<REAL>(m,(REAL)1e-12);
-        };
-        if (hi < lo) std::swap(lo,hi);
-
-        REAL flo = +1.; // +1 := converge
-        REAL fhi = -1.; // -1 := falha
-        // loop híbrido
-        for (int k=0; k<max_it && rel_gap(lo,hi) > tol_fs_rel; ++k) {
-
-                // tentativa secante regulada (Illinois)
-                REAL fs = lo - (flo*(hi-lo))/(fhi - flo + 1.e-16);
-                // salvaguarda: mantém dentro do bracket; se ruim, cai na bisseção
-                if (!(fs>lo && fs<hi)) fs = 0.5*(lo+hi);
-
-                int itmid=0;
-                bool ok = RunAndAccept(cmesh, coes, atrito, fs, itmid,initmem);
-                if (ok) {
-                        lo = fs;
-                        flo = +1.;
-                        // Illinois: amortecer o lado que não muda de sinal
-                        fhi *= 0.5;
-                } else {
-                        hi = fs;
-                        fhi = -1.;
-                        flo *= 0.5;
-                }
-                std::cout << "[bisect][it " << k << "] hi=" << hi <<" lo=" << lo<< "  -> " << (ok ? "OK" : "FAIL")<<endl;
-        }
-        std::cout << "[bisect] ===== FIM =====  FS*≈" << lo <<endl;
-        return lo; // melhor piso convergente
+// Pequena utilidade para medir quão "fechado" está o bracket
+static inline REAL RelGap(REAL a, REAL b) {
+        const REAL m = (REAL)0.5*(a+b);
+        return (b - a) / std::max<REAL>(m, (REAL)1e-12);
 }
 
-REAL BisectionFS(TPZCompMesh* cmesh, REAL coes, REAL atrito,
-                 REAL lo, REAL hi,
-                 REAL tol_fs_rel, int max_bis,bool initmem)
+/**
+ * Busca por bisseção do fator de segurança FS.
+ * Mantém sempre um intervalo [lo,hi] e escolhe o meio.
+ * verbose: 0 (silencioso), 1 (resumo), 2 (log por iteração)
+ */
+REAL FindFS_Bisection(TPZCompMesh* cmesh,
+                      REAL lo, REAL hi,
+                      REAL tol_fs_rel, int max_it,
+                      int verbose)
 {
-        auto rel_gap = [](REAL a, REAL b){
-                const REAL m = (REAL)0.5*(a+b);
-                return (b - a) / std::max<REAL>(m, (REAL)1e-12);
-        };
-
         if (hi < lo) std::swap(lo, hi);
 
-        std::cout << "\n[bisect] ===== Início da bisseção de FS =====\n"
-        << "[bisect] alvo: tol_rel=" << tol_fs_rel
-        << "  max_bis=" << max_bis
-        << "  lo_in=" << lo << "  hi_in=" << hi << "\n";
+        if (verbose) {
+                std::cout << "\n[FS-Bisection] start"
+                << "  lo=" << lo << "  hi=" << hi
+                << "  tol_rel=" << tol_fs_rel
+                << "  max_it=" << max_it << "\n";
+        }
 
-
-        // --- bisseção ---
         int k = 0;
-        while (k < max_bis) {
-                const REAL gap = rel_gap(lo, hi);
+        while (k < max_it) {
+                const REAL gap = RelGap(lo, hi);
                 if (gap <= tol_fs_rel) {
-                        std::cout << "[bisect][stop] gap_rel=" << gap
-                        << " <= tol_rel=" << tol_fs_rel
-                        << "  it=" << k << "\n";
+                        if (verbose) {
+                                std::cout << "[FS-Bisection] stop: gap=" << gap
+                                << " <= tol=" << tol_fs_rel
+                                << "  it=" << k << "\n";
+                        }
                         break;
                 }
 
                 const REAL mid = (REAL)0.5*(lo + hi);
                 int it_mid = 0;
-                const bool ok = RunAndAccept(cmesh, coes, atrito, mid, it_mid,initmem);
+                REAL resu,resf;
+                const bool ok = RunAndAccept(cmesh,  mid, it_mid,resu,resf);
 
-                std::cout << "[bisect][it " << k << "] mid=" << mid
-                << "  gap_rel=" << gap
-                << "  -> " << (ok ? "OK" : "FAIL")
-                << " (iters=" << it_mid << ")  ";
-
-                if (ok) {
-                        lo = mid;
-                        std::cout << "novo lo=" << lo << "\n";
-                } else {
-                        hi = mid;
-                        std::cout << "novo hi=" << hi << "\n";
+                if (verbose) {
+                        std::cout << "[FS-Bisection][it " << k << "] "
+                        << "mid=" << mid
+                        << " gap=" << gap
+                        << " -> " << (ok ? "OK" : "FAIL")
+                        << " (iters=" << it_mid << "resu =  "<<resu << "resf =  "<<resf <<  ")\n";
                 }
-                k++;
+
+                if (ok) lo = mid; else hi = mid;
+                ++k;
         }
 
-        const REAL fs_star = lo;
-        std::cout << "[bisect] ===== FIM =====  FS*≈" << fs_star
-        << "  gap_rel_final=" << rel_gap(lo,hi)
-        << "  it_bis=" << k << "\n";
-
-        return fs_star; // melhor estimativa do FS* nesta malha
+        if (verbose) {
+                std::cout << "[FS-Bisection] end  FS≈" << lo
+                << "  gap_final=" << RelGap(lo,hi)
+                << "  it=" << k << "\n";
+        }
+        return lo; // melhor piso convergente
 }
+
+/**
+ * Busca híbrida: secante com salvaguarda de bracket (Illinois) + fallback de bisseção.
+ * Mantém [lo,hi] e tenta passo de secante dentro do intervalo; se sair, usa meio.
+ * verbose: 0 (silencioso), 1 (resumo), 2 (log por iteração)
+ */
+REAL FindFS_BracketedSecant(TPZCompMesh* cmesh,
+                            REAL lo, REAL hi,
+                            REAL tol_fs_rel, int max_it,
+                            int verbose)
+{
+        if (hi < lo) std::swap(lo, hi);
+
+        auto tryFS = [&](REAL fs, int& it,REAL &resu,REAL &resf){ return RunAndAccept(cmesh, fs, it,resu,resf); };
+
+        if (verbose) {
+                std::cout << "\n[FS-BracketedSecant] start"
+                << "  lo=" << lo << "  hi=" << hi
+                << "  tol_rel=" << tol_fs_rel
+                << "  max_it=" << max_it << "\n";
+        }
+
+        // Estado do bracket: +1 = OK (convergiu), -1 = FAIL (não convergiu)
+        // Tentamos avaliar nas extremidades para diagnosticar o bracket.
+        int it_l=0, it_h=0;
+        REAL resu,resf;
+        int flo = tryFS(lo, it_l,resu,resf) ? +1 : -1;
+        int fhi = tryFS(hi, it_h,resu,resf) ? +1 : -1;
+
+        if (verbose) {
+                std::cout << "[FS-BracketedSecant] probe: lo("
+                << lo << ")=" << (flo>0?"OK":"FAIL")
+                << " it=" << it_l << " | hi("
+                << hi << ")=" << (fhi>0?"OK":"FAIL")
+                << " it=" << it_h << "\n";
+        }
+
+        // Obs.: se bracket não for "válido" (mesmo sinal), ainda assim o método progride
+        // porque amortecemos o lado que não muda (Illinois) e temos fallback de bisseção.
+
+        for (int k = 0; k < max_it && RelGap(lo,hi) > tol_fs_rel; ++k) {
+
+                // Secante regulada (Illinois)
+                REAL fs = lo - ( (REAL)flo * (hi - lo) ) / ( (REAL)(fhi - flo) + (REAL)1e-16 );
+
+                // Salvaguarda: manter dentro do intervalo
+                if (!(fs > lo && fs < hi)) fs = (REAL)0.5*(lo + hi);
+
+                int it_mid = 0;
+                const bool ok = tryFS(fs, it_mid,resu,resf);
+
+                if (verbose) {
+                        std::cout << "[FS-BracketedSecant][it " << k << "] "
+                        << "trial=" << fs
+                        << "  bracket=[" << lo << "," << hi << "]"
+                        << "  -> " << (ok ? "OK" : "FAIL")
+                        << " (iters=" << it_mid << "resu =  "<<resu << "resf =  "<<resf <<  ")\n";
+                }
+
+                if (ok) {
+                        lo  = fs;
+                        flo = +1;
+                        fhi = (int)std::lrint(0.5 * fhi); // Illinois damping do lado não mudado
+                } else {
+                        hi  = fs;
+                        fhi = -1;
+                        flo = (int)std::lrint(0.5 * flo);
+                }
+        }
+
+        if (verbose) {
+                std::cout << "[FS-BracketedSecant] end  FS≈" << lo
+                << "  gap_final=" << RelGap(lo,hi) << "\n";
+        }
+        return lo; // melhor piso convergente
+}
+
 
 
 plasticmat* CreateMaterial(REAL young, REAL poisson, REAL coes, REAL atrito,
@@ -1261,20 +903,368 @@ TPZGeoMesh* TriGMesh(int ref)
         return gmesh;
 }
 
+
+REAL Solve(TPZCompMesh* cmesh,REAL coes,REAL phi)
+{
+        REAL lo=0.5;
+        REAL hi=10.;
+        REAL tol_fs_rel=0.005;
+        int max_bis = 20;
+        REAL FS=1000.;
+        REAL FSOLD=0.;
+
+        int porder=cmesh->GetDefaultOrder();
+        porder+=1;
+        int iters_out;
+        int maxref=3;
+        for ( int iref=1; iref<=maxref; iref++ ) {
+
+                int neq=cmesh->NEquations();
+                InitializeMemory(cmesh, coes, phi);
+                std::cout << "\n[solve] ===== Refinamento # "<< iref <<" ====="<<" neq = " <<neq << "\n";
+                //FS=  BisectionFS(cmesh,  lo,  hi, tol_fs_rel ,  max_bis);
+                FSOLD=FS;
+                FS=  FindFS_Bisection(cmesh, lo,  hi, tol_fs_rel ,  max_bis,2);
+                //FS=FindFS_BracketedSecant(cmesh, lo,  hi, tol_fs_rel ,  max_bis,2);
+
+                if(FSOLD<FS)
+                {
+                        cout << "FSOLD<FS  "<< "FSOLD = " << FSOLD << " FS = "<< FS<<endl;
+                        cout  << "FS final = " << FSOLD<<endl;
+                        REAL resu,resf;
+                        RunAndAccept( cmesh,  FSOLD,  iters_out,resu,resf);
+                        return FSOLD;
+
+                }
+                if(iref==maxref)break;
+                HPrefine(cmesh,tol_fs_rel,porder);
+                porder+=1;
+        }
+
+        cout  << "FS final = " << FS<<endl;
+        REAL resu,resf;
+        RunAndAccept( cmesh,  FS,  iters_out,resu,resf);
+        return FS;
+
+}
+void RunDeterministic()
+{
+        int pOrder = 2;
+        int ref =2;
+        TPZGeoMesh* gmesh = TriGMesh(ref);
+        {
+                std::ofstream vtk1("antes.vtk");
+                TPZVTKGeoMesh::PrintGMeshVTK(gmesh, vtk1, true);
+                std::cout << "antes.vtk escrito.\n";
+        }
+        // 2) Material
+        REAL young   = 20000.;
+        REAL poisson = 0.49;
+        REAL coes    = 10.;
+        REAL atrito  = 30. * M_PI / 180.;
+        TPZManVector<REAL,3> bodyforce(3,0.0);
+        bodyforce[1] = -20.0;
+
+        plasticmat* mat = CreateMaterial(young, poisson, coes, atrito, bodyforce);
+
+        TPZCompMesh* cmesh = CreateCMesh(gmesh, pOrder, mat);
+
+        mat->SetBodyForce(bodyforce);
+
+        InitializeMemory(cmesh, coes, atrito);
+
+        using Clock = std::chrono::steady_clock;
+
+        auto t0 = Clock::now();
+        REAL FS = Solve(cmesh, coes,atrito);
+        auto t1 = Clock::now();
+
+        std::chrono::duration<double> secs = t1 - t0;
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+
+        std::cout << std::fixed << std::setprecision(3)
+        << "[Timing] Solve: " << secs.count() << " s  (" << ms << " ms)\n";
+
+        {
+                std::ofstream vtk1("gmeshtri_refined_preGI.vtk");
+                TPZVTKGeoMesh::PrintGMeshVTK(cmesh->Reference(), vtk1, true);
+                std::cout << "[VTK] gmeshtri_refined_preGI.vtk escrito.\n";
+        }
+        string vtk2="post_plasticity.vtk";
+        int matid=1;
+        PostElastoplastic(cmesh,vtk2,matid);
+}
+int main()
+{
+        RunStochastic(false);
+        //RunDeterministic();
+
+        return 0;
+}
+
+void RunStochastic(bool buildfields)
+{
+        int pOrderfield=2;
+        int reField=2;
+        int pOrderDeform =2;
+        int refDeform=2;
+        int kMatId=1;
+        REAL Lx=20.;
+        REAL Ly=2.;
+        int M=100;
+        int NsampGen=1000;
+
+        std::ostringstream oss;
+        oss.setf(std::ios::fixed);
+        oss << "hhat_" << std::setprecision(6) << Lx << "_" << Ly << ".bin";
+        string ossstr=oss.str();
+        if(buildfields)
+        {
+                BuildFields( pOrderfield , reField, kMatId, Lx, Ly, M,NsampGen,ossstr);
+        }else
+        {
+                SolveMonteCarlo( pOrderfield , pOrderDeform, reField, refDeform, kMatId, Lx, Ly);
+        }
+}
+
+void BuildFields(int pOrder ,int ref,int kMatId,REAL Lx,REAL Ly,int M,int NsampGen,string oss)
+{
+
+        TPZGeoMesh* gmesh = TriGMesh(ref);
+        TPZCompMesh* cmeshKL = BuildCompMeshKL_Param(gmesh, pOrder, kMatId, Lx, Ly);
+
+        TPZEigenAnalysis an(cmeshKL,false);
+        pzdoublestrmatriz<REAL> sm(cmeshKL);
+        sm.SetCAssembly(pzdoublestrmatriz<REAL>::ECAssembly::Galerkin);
+        an.SetStructuralMatrix(sm);
+
+        TPZKrylovEigenSolver<STATE> esolver;
+        esolver.SetAsGeneralised(true);
+        esolver.SetEigenSorting(TPZEigenSort::AbsDescending);
+        esolver.SetNEigenpairs(cmeshKL->NEquations());
+        esolver.SetKrylovDim(cmeshKL->NEquations());
+        esolver.SetTolerance(1e-10);
+        an.SetSolver(esolver);
+
+        an.Assemble();
+        an.Solve();
+        TPZFMatrix<CSTATE> evecs = an.Eigenvectors();
+        TPZVec<CSTATE>     evals = an.Eigenvalues();
+
+        TPZFMatrix<STATE> PHI   = BuildPhiSqrtLambda(cmeshKL, evecs, evals, M);
+
+
+
+        // Duas famílias independentes para Coes e Phi (poderia ser correlacionado se desejado)
+        TPZFMatrix<REAL>  THETAE  = ComputeTheta(M, NsampGen, /*seed*/12345);
+        TPZFMatrix<REAL>  THETAMU = ComputeTheta(M, NsampGen, /*seed*/54321);
+
+        TPZFMatrix<REAL>  hhatE,hhatMU; // (ndof x NsampGen)
+        PHI.Multiply(THETAE,  hhatE);
+        PHI.Multiply(THETAMU, hhatMU);
+
+        // nome estável (fixed, 6 casas)
+
+        TPZBFileStream out;
+        out.OpenWrite(oss);
+        hhatE.Write(out,0);
+        hhatMU.Write(out,0);
+
+        delete cmeshKL;
+        delete gmesh;
+        std::cout << "Gerado: " << oss << "\n";
+
+}
+
+REAL SolveStochastic(const std::vector<TPZCompMesh*>& sources,TPZCompMesh* target,const std::vector<FieldSpec>& specs)
+{
+        REAL lo=0.25;
+        REAL hi=20.;
+        REAL tol_fs_rel=0.005;
+        int max_bis = 30;
+        REAL FS=5000.;
+        REAL FSOLD=0.;
+        int porder=target->GetDefaultOrder();
+        int iters_out;
+        int maxref=3;
+        porder+=1;
+        for ( int iref=1; iref<=maxref; iref++ ) {
+
+                FSOLD=FS;
+                int neq=target->NEquations();
+                std::cout << "\n[solve] ===== Refinamento # "<< iref <<" ====="<<" neq = " <<neq << "\n";
+                ComputeFieldMulti(sources, target, specs, /*idxE=*/0, /*idxNu=*/1);
+                FS=FindFS_BracketedSecant(target, lo,  hi, tol_fs_rel ,  max_bis);
+                //FS=  FindFS_Bisection(target, lo,  hi, tol_fs_rel ,  max_bis,2);
+                if(FSOLD<FS)
+                {
+                        cout << "FSOLD<FS  "<< "FSOLD = " << FSOLD << " FS = "<< FS<<endl;
+                        cout  << "FS final = " << FSOLD<<endl;
+                        REAL resu,resf;
+                        RunAndAccept( target,  FSOLD,  iters_out,resu,resf);
+                        return FSOLD;
+
+                }
+                if(iref==maxref)break;
+                HPrefine(target,tol_fs_rel,porder);
+                porder+=1;
+        }
+        cout  << "FS final = " << FS<<endl;
+        REAL resu,resf;
+        RunAndAccept( target,  FSOLD,  iters_out,resu,resf);
+        return FS;
+}
+
+void SolveMonteCarlo(int pOrderfield ,int pOrderDeform,int reffield,int ref,int kMatId,REAL Lx,REAL Ly)
+{
+        // malhas fontes (para mapear campo -> elasticidade)
+        TPZGeoMesh*  gmesh0       =  TriGMesh(reffield);
+        TPZGeoMesh*  gmesh1        = TriGMesh(reffield);
+
+        TPZCompMesh* cmeshFieldCoes  = BuildCompMeshKL_Param(gmesh0, pOrderfield, kMatId, 1.0, 1.0);
+        TPZCompMesh* cmeshFieldAtrito = BuildCompMeshKL_Param(gmesh1, pOrderfield, kMatId, 1.0, 1.0);
+
+        // 2) Material
+        REAL young   = 20000.;
+        REAL poisson = 0.49;
+
+        REAL coes    = 10.;
+        REAL atrito  = 30. * M_PI / 180.;
+        TPZManVector<REAL,3> bodyforce(3,0.0);
+        bodyforce[1] = -20.0;
+
+        // lê hhat
+        std::ostringstream fin;
+        fin.setf(std::ios::fixed);
+        fin << "hhat_" << std::setprecision(6) << Lx << "_" << Ly << ".bin";
+        TPZFMatrix<REAL> hhat1,hhat2;
+        {
+                TPZBFileStream in;
+                in.OpenRead(fin.str());
+                hhat1.Read(in, 0);
+                hhat2.Read(in, 0);
+        }
+        const int NsampRun =hhat1.Cols();
+
+
+        // nome do CSV (mantém seu padrão)
+        std::ostringstream fout; fout.setf(std::ios::fixed);
+        fout << "mc_results_" << std::setprecision(6) << Lx << "_" << Ly << ".csv";
+        const std::string csvname = fout.str();
+
+        // retoma do último sample salvo
+        const long s_start = LastS(csvname) + 1;
+
+        // abre em append (escreve cabeçalho se arquivo novo)
+        std::ofstream outcsv(csvname, std::ios::app);
+        if(outcsv.tellp()==0) outcsv << "sample,FS\n";
+        outcsv.setf(std::ios::fixed); outcsv << std::setprecision(10);
+
+        std::cout << "solving mc " << fin.str()
+        << " retomando em s=" << s_start
+        << " até < " << NsampRun << std::endl;
+
+        double sum=0.0, sum2=0.0; int nacc=0; // estatísticas desta sessão
+        TPZFMatrix<REAL> col1(hhat1.Rows(),1), col2(hhat2.Rows(),1);
+
+        // *** LOOP COM RETOMADA ***
+        for (long s = s_start; s < NsampRun; ++s)
+        {
+                cout << "========== IMC ========== "<< s <<endl;
+
+                TPZGeoMesh*  gmesh2  = TriGMesh(ref);
+
+                plasticmat*  mat     = CreateMaterial(young, poisson, coes, atrito, bodyforce);
+
+
+                TPZCompMesh* cmesh   = CreateCMesh(gmesh2, pOrderDeform, mat);
+                mat->SetBodyForce(bodyforce);
+
+                InitializeMemory(cmesh, coes, atrito);
+                for (int i=0;i<hhat1.Rows(); ++i) col1(i,0)  = hhat1(i,(int)s);
+                for (int i=0;i<hhat2.Rows();++i) col2(i,0) = hhat2(i,(int)s);
+
+                cmeshFieldCoes->LoadSolution(col1);
+                cmeshFieldAtrito->LoadSolution(col2);
+                cmeshFieldCoes->LoadReferences();
+                cmeshFieldAtrito->LoadReferences();
+
+                std::vector<TPZCompMesh*> sources = { cmeshFieldCoes, cmeshFieldAtrito };
+                std::vector<FieldSpec> specs = {
+                        {coes,  0.30, FieldModel::Lognormal},  // -> coes
+                        {atrito,0.20, FieldModel::Lognormal}   // -> atrito
+                };
+                ComputeFieldMulti(sources, cmesh, specs, /*idxE=*/0, /*idxNu=*/1);
+
+                using Clock = std::chrono::steady_clock;
+                auto t0 = Clock::now();
+                REAL FS = SolveStochastic( sources, cmesh, specs);
+                auto t1 = Clock::now();
+                auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+                std::cout << std::fixed << std::setprecision(3)
+                << "[Timing] Solve: " << (ms/1000.0) << " s  (" << ms << " ms)\n";
+
+                {
+                        std::ofstream vtk1("gmeshtri_refined_preGImc.vtk");
+                        TPZVTKGeoMesh::PrintGMeshVTK(cmesh->Reference(), vtk1, true);
+                        PostElastoplastic(cmesh, "post_plasticity.vtk", /*matid=*/1);
+
+                }
+
+                if(FS <= 10.0){
+                        outcsv << s << "," << FS << "\n";
+                        outcsv.flush();          // grava imediatamente (seguro pra retomada)
+                        sum  += FS; sum2 += (double)FS*(double)FS; ++nacc;
+                }
+
+                delete cmesh;
+                delete gmesh2;
+        }
+        outcsv.close();
+
+        // estatísticas da sessão corrente (o que rodou agora)
+        if(nacc>0){
+                const double mean = sum/nacc;
+                const double var  = std::max(0.0, sum2/nacc - mean*mean);
+                const double stdv = std::sqrt(var);
+                std::cout << "[Lx="<<Lx<<", Ly="<<Ly<<"] Nsamp(sessão)="<<nacc
+                << " mean="<<mean<<" std="<<stdv
+                << " -> salvo em " << csvname << "\n";
+        } else {
+                std::cout << "Nenhuma amostra válida adicionada nesta sessão.\n";
+        }
+
+        delete cmeshFieldCoes;
+        delete cmeshFieldAtrito;
+        delete gmesh0;
+        delete gmesh1;
+
+}
+
+
+// ------------------------------------------------------------
+// Rotinas campo estocastico
+// ------------------------------------------------------------
+
 TPZFMatrix<REAL> ComputeTheta (int M, int samples, uint32_t seed)
 {
         std::mt19937 gen(seed);
         std::normal_distribution<double> N01(0.,1.);
         TPZFMatrix<REAL>  THETA (M, samples, 0.);
         for (int j=0;j<samples;j++)
-                for (int i=0;i<M;i++) THETA(i,j) = (REAL)N01(gen);
+        {
+                for (int i=0;i<M;i++)
+                {
+                      THETA(i,j) = (REAL)N01(gen);
+                }
+        }
 
         return THETA;
 }
 
 // KL paramétrico em Lx, Ly
 TPZCompMesh * BuildCompMeshKL_Param(TPZGeoMesh *gmesh, int porder, int matId,
-                                           REAL Lx, REAL Ly)
+                                    REAL Lx, REAL Ly)
 {
         auto *cmesh = new TPZCompMesh(gmesh);
         cmesh->SetDimModel(2);
@@ -1344,7 +1334,7 @@ TPZFMatrix<STATE> BuildPhiSqrtLambda(
         return PHI_sqrtLambda;
 }
 void ComputeFieldMulti(const std::vector<TPZCompMesh*>& sources,TPZCompMesh* target,
-                              const std::vector<FieldSpec>& specs,int idxE, int idxNu)
+                       const std::vector<FieldSpec>& specs,int idxE, int idxNu)
 {
         if (!target) DebugStop();
         if (sources.empty()) DebugStop();

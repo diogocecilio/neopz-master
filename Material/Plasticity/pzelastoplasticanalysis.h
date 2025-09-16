@@ -72,7 +72,7 @@ public:
 	 * @param iters [out] Iterações efetivamente executadas.
 	 * @return true se convergiu segundo critérios internos.
 	 */
-	bool FindRoot(int & iters);
+	bool FindRoot(int & iters,REAL &resu,REAL &resf);
 
 
 

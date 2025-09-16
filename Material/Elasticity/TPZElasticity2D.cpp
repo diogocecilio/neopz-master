@@ -103,7 +103,7 @@ void TPZElasticity2D::Print(std::ostream &out) const {
 void TPZElasticity2D::Contribute(const TPZMaterialDataT<STATE> &data,
                                  REAL weight,
                                  TPZFMatrix<STATE> &ek,TPZFMatrix<STATE> &ef) {
-    
+    std::cout << " ContributeBCELASTICITY " <<std::endl;
     TPZMaterialData::MShapeFunctionType shapetype = data.fShapeType;
     if(shapetype==data.EVecShape){
         ContributeVecShape(data,weight,ek, ef);
