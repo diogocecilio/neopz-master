@@ -52,6 +52,7 @@ int TPZMatPoroElastic2DMem<TMEM>::VariableIndex(const std::string &name) const {
     if (name=="Young")        return EYoung;
     if (name=="Poisson")      return EPoisson;
     if (name=="POrder")       return EPOrder;
+    if (name=="ExactPressureSolution")      return EExactPressure;
     return -1;
 }
 
@@ -66,6 +67,7 @@ int TPZMatPoroElastic2DMem<TMEM>::NSolutionVariables(int var) const {
         case EYoung:        return 1;
         case EPoisson:      return 1;
         case EPOrder:       return 1;
+        case EExactPressure:       return 1;
     }
     return 0;
 }
@@ -79,12 +81,18 @@ void TPZMatPoroElastic2DMem<TMEM>::Solution(const TPZVec<TPZMaterialDataT<STATE>
 {
     const auto &dataU = datavec[0];
     const auto &dataP = datavec[1];
-
+    // solução exata (se fornecida)
+    STATE uex = 0.;
+    TPZFMatrix<STATE> duex; duex.Redim(2,1); duex.Zero();
+    if (fExact) fExact(dataP.x, uex, duex);
     Sol.Resize(0);
     if (var==EYoung)   { Sol.Resize(1); Sol[0]=fE_fallback;  return; }
     if (var==EPoisson) { Sol.Resize(1); Sol[0]=fNu_fallback; return; }
     if (var==EPressure){ Sol.Resize(1); Sol[0] = (dataP.sol.size()? (REAL)dataP.sol[0][0] : 0.0); return; }
+    if (var==EExactPressure){ Sol.Resize(1); Sol[0] = uex; return; }
     if (var==EPOrder)  { Sol.Resize(1); Sol[0]=(REAL)dataU.p; return; }
+
+
 
     // gradientes
     REAL dudx=0, dudy=0, dvdx=0, dvdy=0, dpdx=0, dpdy=0;
@@ -126,188 +134,199 @@ void TPZMatPoroElastic2DMem<TMEM>::Solution(const TPZVec<TPZMaterialDataT<STATE>
         Sol[2] = 0.0; return;
     }
 }
+
 template <class TMEM>
-void TPZMatPoroElastic2DMem<TMEM>::Contribute(const TPZVec<TPZMaterialDataT<STATE>> &datavec,
-                                              REAL weight,
-                                              TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef)
+void TPZMatPoroElastic2DMem<TMEM>::Contribute(
+    const TPZVec<TPZMaterialDataT<STATE>> &datavec,
+    REAL weight,
+    TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef)
 {
-    if (datavec.size() != 2) { PZError << "Needs datavec.size()==2 (u,p)\n"; DebugStop(); }
-
-    // --------------------------- Modo "MassOnly": monta só S(p,p) ---------------------------
-    if (fMassOnly) {
-        const auto &phiP = datavec[1].phi;
-        const int nU = datavec[0].phi.Rows();
-        const int nP = phiP.Rows();
-        const int off_p = 2*nU;
-
-        const STATE mass_coeff = fMassInvDt ? (STATE(1.0)/fTimeStep) : STATE(1.0); // S/dt ou S
-        const STATE coeffS     = mass_coeff * fSe * weight;                         // (|J|*w já em weight)
-
-        for (int i=0; i<nP; ++i) {
-            const STATE Ni = phiP(i,0);
-            for (int j=0; j<nP; ++j) {
-                ek(off_p+i, off_p+j) += coeffS * Ni * phiP(j,0);
-            }
-        }
-        return; // somente S e sai
+    if (datavec.size() != 2) {
+        PZError << "TPZMatPoroElastic2DMem::Contribute needs datavec.size()==2 (u,p)\n";
+        DebugStop();
     }
 
-    // --------------------------- Dados dos dois campos (u,p) ---------------------------
-    const auto &dataU = datavec[0];
-    const auto &dataP = datavec[1];
-
-    const auto &phiU  = dataU.phi;   // H1 vetorial (u)
-    const auto &dphiU = dataU.dphix; // grad N_u  -> dphiU(0,a)=dNa/dx, dphiU(1,a)=dNa/dy
-    const auto &phiP  = dataP.phi;   // H1 escalar (p)
-    const auto &dphiP = dataP.dphix; // grad N_p
+    // ---------------- aliases ----------------
+    auto &dataU  = datavec[0];
+    auto &dataP  = datavec[1];
+    auto &phiU   = dataU.phi;      // H1 vetorial (u)
+    auto &dphiU  = dataU.dphix;    // grad N_u  (linhas = {dx,dy})
+    auto &phiP   = dataP.phi;      // H1 escalar (p)
+    auto &dphiP  = dataP.dphix;    // grad N_p
 
     const int nU   = phiU.Rows();
     const int nP   = phiP.Rows();
+    const int dim  = 2;
     const int off_u = 0;
-    const int off_p = 2*nU;
+    const int off_p = dim*nU;
 
-    // --------------------------- Parâmetros materiais e de tempo ---------------------------
-    STATE E, nu;
-    ERFromMem(dataU, E, nu);
+    // ------------- parâmetros materiais -------------
+    STATE E, nu; ERFromMem(dataU, E, nu);
 
-    TPZFNMatrix<9,STATE> D(3,3,STATE(0)); // tensor constitutivo (2D: [ex,ey,gxy])
+    TPZFMatrix<STATE> D(3,3,0.);
     BuildConstitutiveMatrix(E, nu, D);
 
-    const STATE k_over_mu  = fk/fmu;
-    const STATE mass_coeff = fMassInvDt ? (STATE(1.0)/fTimeStep) : STATE(1.0); // para S e Q^T
-    const STATE diff_coeff = fMassInvDt ? STATE(1.0)             : fTimeStep;  // para H e RHS_p
+    // Matrizes locais
+    TPZFMatrix<STATE> Bu, Bp, Ke, Qe, He, Se;
 
-    // --------------------------- K(u,u): ∫ B^T D B ---------------------------
-    // Sem formar B: para cada par de DOFs (i,j), montamos b_i e b_j diretamente a partir de dphiU
-    // b(ux_a) = [ dNa/dx, 0,       dNa/dy ]
-    // b(uy_a) = [ 0,      dNa/dy,  dNa/dx ]
-    for (int a=0; a<nU; ++a) {
-        const STATE dNadx = dphiU(0,a);
-        const STATE dNady = dphiU(1,a);
+    // construir “B”s
+    BuildBu(dphiU, Bu);            // Bu: (3 x 2*nU) em Voigt
+    BuildBp(dphiP, Bp);            // Bp: (dim x nP)
 
-        // Coluna i = ux_a
-        const STATE bi0 = dNadx;
-        const STATE bi1 = STATE(0);
-        const STATE bi2 = dNady;
+    // --- Ke = Bu^T D Bu
+    TPZFMatrix<STATE> DBu; D.Multiply(Bu, DBu);
+    TPZFMatrix<STATE> But; Bu.Transpose(&But);
+    But.Multiply(DBu, Ke);
 
-        // Coluna i' = uy_a
-        const STATE bi0p = STATE(0);
-        const STATE bi1p = dNady;
-        const STATE bi2p = dNadx;
+    // --- He = (k/μ) * (Bp^T Bp)
+    TPZFMatrix<STATE> Bpt; Bp.Transpose(&Bpt);
+    Bpt.Multiply(Bp, He);
+    He *= (fk/fmu);
+    //std::cout << "He = "<<std::endl;
+    //He.Print("He");
+    // --- Se = Se * (phiP^T phiP)
+    TPZFMatrix<STATE> phiPt; phiP.Transpose(&phiPt);
+    phiP.Multiply(phiPt, Se);      // atenção: phiP * phiP^T
+    Se *= fSe;
+    //std::cout << "Se = "<<std::endl;
+    //Se.Print("Se");
 
-        for (int b=0; b<nU; ++b) {
-            const STATE dNbdx = dphiU(0,b);
-            const STATE dNbdy = dphiU(1,b);
+    // --- Qe = (Bu^T m_u) (phiP^T)  com m_u=[1,1,0]^T
+    TPZFMatrix<STATE> mu(3,1,0.),Qet;  mu(0,0)=1.; mu(1,0)=1.;
+    TPZFMatrix<STATE> g; But.Multiply(mu, g);   // g: (2*nU x 1)
+    TPZFMatrix<STATE> phiPt_loc; phiP.Transpose(&phiPt_loc);
+    g.Multiply(phiPt_loc, Qe);                  // (2*nU x nP)
+    Qe *= falpha;
+    //std::cout << "Qe = "<<std::endl;
+    //Qe.Print("Qe");
+    Qe.Transpose(&Qet);
+    //Qet*=1./fTimeStep;
+    //Se*=1./fTimeStep;
+    // =================== Montagem em ek ===================
+    const int nueqs = dim * nU;   // 2*nU
+    const int npeqs = nP;
 
-            // Coluna j = ux_b
-            const STATE bj0 = dNbdx;
-            const STATE bj1 = STATE(0);
-            const STATE bj2 = dNbdy;
 
-            // Coluna j' = uy_b
-            const STATE bj0p = STATE(0);
-            const STATE bj1p = dNbdy;
-            const STATE bj2p = dNbdx;
-
-            // t = D * b_j
-            auto Kacc_ij = [&](STATE b0, STATE b1, STATE b2,
-                               int row_i) {
-                const STATE t0 = D(0,0)*b0 + D(0,1)*b1 + D(0,2)*b2;
-                const STATE t1 = D(1,0)*b0 + D(1,1)*b1 + D(1,2)*b2;
-                const STATE t2 = D(2,0)*b0 + D(2,1)*b1 + D(2,2)*b2;
-                STATE dot;
-                if (row_i == 0) { // i = ux_a -> bi = [bi0,bi1,bi2]
-                    dot = bi0*t0 + bi1*t1 + bi2*t2;
-                } else {          // i = uy_a -> bi' = [bi0p,bi1p,bi2p]
-                    dot = bi0p*t0 + bi1p*t1 + bi2p*t2;
-                }
-                return dot;
-            };
-
-            // (i=ux_a , j=ux_b)
-            ek(off_u + 2*a + 0, off_u + 2*b + 0) += weight * Kacc_ij(bj0,  bj1,  bj2,  0);
-            // (i=ux_a , j=uy_b)
-            ek(off_u + 2*a + 0, off_u + 2*b + 1) += weight * Kacc_ij(bj0p, bj1p, bj2p, 0);
-            // (i=uy_a , j=ux_b)
-            ek(off_u + 2*a + 1, off_u + 2*b + 0) += weight * Kacc_ij(bj0,  bj1,  bj2,  1);
-            // (i=uy_a , j=uy_b)
-            ek(off_u + 2*a + 1, off_u + 2*b + 1) += weight * Kacc_ij(bj0p, bj1p, bj2p, 1);
-        }
-    }
-
-    // --------------------------- f_u: força de corpo (u) ---------------------------
-    for (int a=0; a<nU; ++a) {
-        const STATE Na = phiU(a,0);
-        ef(off_u + 2*a + 0, 0) += weight * Na * fBody[0];
-        ef(off_u + 2*a + 1, 0) += weight * Na * fBody[1];
-    }
-
-    // --------------------------- -Q(u,p) e +Q^T(p,u) ---------------------------
-    // -Q(u,p)   = -α ∫ Np * [dNa/dx ; dNa/dy]
-    // +Q^T(p,u) = +α/Δt (incremental) ou +α (direto)
-    const STATE cQ  = (-falpha) * weight;                                   // -Q
-    const STATE cQT = (fMassInvDt ? (falpha/fTimeStep) : falpha) * weight;  // +Q^T
-
-    for (int a=0; a<nU; ++a) {
-        const STATE dNadx = dphiU(0,a);
-        const STATE dNady = dphiU(1,a);
-
-        for (int j=0; j<nP; ++j) {
-            const STATE Nj = phiP(j,0);
-
-            const STATE qx = Nj * dNadx;  // parte x
-            const STATE qy = Nj * dNady;  // parte y
-
-            // -Q  (linha u, coluna p)
-            ek(off_u + 2*a + 0, off_p + j) += cQ  * qx;
-            ek(off_u + 2*a + 1, off_p + j) += cQ  * qy;
-
-            // +Q^T (linha p, coluna u)
-            ek(off_p + j,       off_u + 2*a + 0) += cQT * qx;
-            ek(off_p + j,       off_u + 2*a + 1) += cQT * qy;
-        }
-    }
-
-    // --------------------------- H(p,p): difusão (k/μ) ∫ ∇N·∇N ---------------------------
+    for (int i = 0; i < nueqs; ++i)
     {
-        const STATE factorH = diff_coeff * k_over_mu * weight; // (Δt)*(k/μ) no direto; (1)*(k/μ) no incremental
-        for (int i=0; i<nP; ++i) {
-            const STATE dNix = dphiP(0,i);
-            const STATE dNiy = dphiP(1,i);
-            for (int j=0; j<nP; ++j) {
-                const STATE dNjx = dphiP(0,j);
-                const STATE dNjy = dphiP(1,j);
-                ek(off_p + i, off_p + j) += factorH * (dNix*dNjx + dNiy*dNjy);
-            }
+        for (int j = 0; j < nueqs; ++j)
+        {
+            ek(off_u + i, off_u + j) += Ke(i, j)* weight;
         }
+
     }
 
-    // --------------------------- S(p,p): armazenamento S_e ∫ N N ---------------------------
+    for (int i = 0; i < nueqs; ++i)
     {
-        const STATE coeffS = mass_coeff * fSe * weight; // S/dt (incremental) ou S (direto)
-        for (int i=0; i<nP; ++i) {
-            const STATE Ni = phiP(i,0);
-            for (int j=0; j<nP; ++j) {
-                ek(off_p + i, off_p + j) += coeffS * Ni * phiP(j,0);
+        for (int j = 0; j < npeqs; ++j)
+        {
+            ek(off_u + i, off_p + j) += -Qe(i, j)* weight;
+        }
+
+    }
+
+
+
+
+    for (int i = 0; i < npeqs; ++i)
+    {
+        for (int j = 0; j < nueqs; ++j)
+        {
+            ek(off_p + i, off_u + j) +=Qet(i, j)* weight;
+        }
+
+    }
+
+        for (int i = 0; i < npeqs; ++i)
+        {
+            for (int j = 0; j < npeqs; ++j)
+            {
+                ek(off_p + i, off_p + j) +=fTimeStep* He(i, j)* weight;
+                ek(off_p + i, off_p + j) +=Se(i, j)* weight;
             }
+
         }
+
+
+    // =================== Vetor de carga ef ===================
+    auto m = this->WithMem();
+
+    const int gp = dataU.intGlobPtIndex;
+
+    bool update = m->GetUpdateMem();
+    if(update)UpdateMemory(datavec);
+
+    TPZFMatrix<STATE> gvec(dim,1,0.);
+    gvec(0,0) = fG[0]; gvec(1,0) = fG[1];
+
+    // q_H = (k/μ) Bp^T ∇p0
+    // q_h = ρ_f (k/μ) Bp^T g
+    //TPZFMatrix<STATE> gradp(dim,1,0.); for (int k=0;k<dim;k++) gradp(k,0)=m->MemItem(gp).fdPorePressure[k];
+
+    TPZFMatrix<REAL> gradp=dataP.dsol[0];
+    TPZFMatrix<STATE> qH; Bpt.Multiply(gradp, qH); // (nP x 1)
+    TPZFMatrix<STATE> qh; Bpt.Multiply(gvec, qh);
+    //gradp.Print("GradP");
+    //qH.Print("qH");
+    //qh.Print("qh");
+    //qh-qH
+    for (int i = 0; i < nP; i++)
+    {
+        //ef(off_p + i, 0) += weight *(fk/fmu)* (qh(i,0)*frhof  - qH(i,0) )*fTimeStep ;
     }
 
-    // --------------------------- RHS de p: fontes volumétricas s(x) (opcional) ------------
-    if (fForcingP) {
-        TPZManVector<STATE> res(1,0.0);
-        for (int i=0; i<nP; ++i) {
-            fForcingP->Execute(dataP.x, res); // s(x) no ponto
-            ef(off_p + i, 0) += diff_coeff * weight * phiP(i,0) * res[0];
-        }
-    }
 
-    // Observação: gravidade do fluxo (ρ_f g) entra via BC de fluxo em ContributeBC; não há termo
-    // volumétrico quando k, μ e g são constantes (∇·(k/μ ρ_f g)=0).
+
+
+
 }
 
+template <class TMEM>
+void TPZMatPoroElastic2DMem<TMEM>::Contribute(const TPZVec<TPZMaterialDataT<STATE>> &datavec,REAL weight, TPZFMatrix<STATE> &ef)
+{
+
+    const auto& dataU = datavec[0];
+    const auto& dataP = datavec[1];
+    const int nU = dataU.phi.Rows();
+    const int nP = dataP.phi.Rows();
+    const int dim = 2;
+    const int off_p = dim*nU;
+
+    auto m = this->WithMem();
+
+    bool update = m->GetUpdateMem();
+    if(update)UpdateMemory(datavec);
+
+    const int gp = dataU.intGlobPtIndex;
+
+    TPZFMatrix<REAL> gradu=dataU.dsol[0];
+    REAL pressure=dataP.sol[0][0];
 
 
+    // - Q^T u^n  -> - α div(u^n) * φ_p
+    const STATE divu_prev = m->MemItem(gp).fGradSolU(0,0) + m->MemItem(gp).fGradSolU(1,1);
+    for (int i=0;i<nP;i++)
+        ef(off_p + i,0) += weight *   falpha * (gradu(0,0)+gradu(1,1)) * dataP.phi(i,0) ;
+        //ef(off_p + i,0) += weight *   falpha * divu_prev * dataP.phi(i,0) ;
+
+    //std::cout<<"PRESSURE = " << m->MemItem(gp).fPorePressure  <<std::endl;
+    // - S p^n
+    for (int i=0;i<nP;i++)
+        ef(off_p + i,0) += weight *  fSe * pressure * dataP.phi(i,0) ;
+        //ef(off_p + i,0) += weight *  fSe * m->MemItem(gp).fPorePressure * dataP.phi(i,0) ;
+
+    // // + (1-ξ) Δt H p^n  with H = (k/μ) ∇p · ∇φ
+    // const STATE coeff = (1.0 - 1) * fTimeStep * (fk/fmu);
+    // if (coeff != 0.0){
+    //     for (int i=0;i<nP;i++){
+    //         // grad φ_i in global
+    //         STATE dphix = dataP.dphix(0,i), dphiy = dataP.dphix(1,i);
+    //         STATE dot = mem.fdPorePressure[0]*dphix + mem.fdPorePressure[1]*dphiy;
+    //         ef(off_p + i,0) += weight * coeff * dot;
+    //     }
+    // }
+
+}
 
 template <class TMEM>
 void TPZMatPoroElastic2DMem<TMEM>::ContributeBC(
@@ -322,6 +341,7 @@ void TPZMatPoroElastic2DMem<TMEM>::ContributeBC(
         DebugStop();
     }
 
+
     const auto& phiU = datavec[0].phi;
     const auto& phiP = datavec[1].phi;
     const int nU = phiU.Rows();
@@ -330,153 +350,72 @@ void TPZMatPoroElastic2DMem<TMEM>::ContributeBC(
     const int off_u = 0;
     const int off_p = 2*nU;
 
-#ifndef gBigNumber
     const STATE big = 1.e12;
-#else
-    const STATE big = gBigNumber;
-#endif
-
-    // fator de tempo p/ termos de FLUXO (Neumann/Robin) de pressão
-    //const STATE flux_scale = (this->fMassInvDt ? STATE(1.0) : this->fTimeStep);
-    const STATE diff_coeff = fMassInvDt ? 1.0             : fTimeStep;
-    // ---- leitura dos valores de contorno ----
-    auto read_vals = [&](STATE& tx, STATE& ty, STATE& pD)
-    {
-        tx = ty = pD = 0.;
-        if (bc.HasForcingFunctionBC()) {
-            TPZManVector<STATE> res(3,0.0);
-            //bc.ForcingFunctionBC()->Execute(datavec[1].x, res); // res[0]=tx, res[1]=ty, res[2]=pD
-            if (res.size() > 0) tx = res[0];
-            if (res.size() > 1) ty = res[1];
-            if (res.size() > 2) pD = res[2];
-        } else {
-            const TPZVec<STATE>& V2 = bc.Val2(); // vetor
-            const int nv = V2.NElements();
-            if (nv > 0) tx = V2[0];
-            if (nv > 1) ty = V2[1];
-            if (nv > 2) pD = V2[2];
-        }
-    };
+    // std::cout << "[BC] mid=" << bc.Id()
+    // << " type=" << bc.Type()
+    // << " nU=" << datavec[0].phi.Rows()
+    // << " nP=" << datavec[1].phi.Rows()
+    // << " off_p=" << (2*datavec[0].phi.Rows())
+    // << "\n";
+    const TPZVec<STATE>& V2 = bc.Val2();
 
     switch (bc.Type())
     {
         // ---------------------------------------------------------
-        // 0 : Dirichlet completo em u e p  (penalização)
+        // 0 : Dirichlet em u
         case 0:
         {
-            STATE ux, uy, pD; read_vals(ux,uy,pD);
 
-            // u = (ux,uy) por penalização
             for (int i=0;i<nU;++i){
-                ef(off_u+2*i+0,0) += big * ux * phiU(i,0) * weight;
-                ef(off_u+2*i+1,0) += big * uy * phiU(i,0) * weight;
+                ef(off_u+2*i+0,0) += big * (V2[0]- datavec[0].sol[0][0]) * phiU(i,0) * weight;
+                ef(off_u+2*i+1,0) += big * (V2[1]- datavec[0].sol[0][0]) * phiU(i,0) * weight;
                 for (int j=0;j<nU;++j){
                     const STATE pen = big * phiU(i,0) * phiU(j,0) * weight;
                     ek(off_u+2*i+0, off_u+2*j+0) += pen;
                     ek(off_u+2*i+1, off_u+2*j+1) += pen;
                 }
             }
-            // p = pD por penalização (SEM Δt)
-            for (int i=0;i<nP;++i){
-                ef(off_p+i,0) += big * pD * phiP(i,0) * weight;
-                for (int j=0;j<nP;++j){
-                    ek(off_p+i, off_p+j) += big * phiP(i,0) * phiP(j,0) * weight;
-                }
-            }
+
         } break;
 
-        // ---------------------------------------------------------
-        // 1 : Neumann em u (tração), nada em p
+        // 1 : Neumann em u
         case 1:
         {
-            STATE tx, ty, dummy; read_vals(tx,ty,dummy);
-            for (int i=0;i<nU;++i){
-                ef(off_u+2*i+0,0) += tx * phiU(i,0) * weight;
-                ef(off_u+2*i+1,0) += ty * phiU(i,0) * weight;
+            for (int i=0;i<nU;i++){
+                ef(off_u+2*i+0,0) += V2[0] * phiU(i,0) * weight;
+                ef(off_u+2*i+1,0) += V2[1] * phiU(i,0) * weight;
             }
+
         } break;
 
-        // ---------------------------------------------------------
-        // 2 : Dirichlet apenas em p  (penalização)
+        // 2 : Dirichlet em p
         case 2:
         {
-            STATE dummyx, dummyy, pD; read_vals(dummyx,dummyy,pD);
-            for (int i=0;i<nP;++i){
-                ef(off_p+i,0) += big * pD * phiP(i,0) * weight;
-                for (int j=0;j<nP;++j){
-                    ek(off_p+i, off_p+j) += big * phiP(i,0) * phiP(j,0) * weight;
+            //V2[0] valor imposto em V2[0]
+            for(int in = 0 ; in < nP; in++)
+            {
+                //ef(in+off_p,0)	+= (V2[0]- datavec[1].sol[0][0]) *big*phiP(in,0)*weight;	// P Pressure Value
+                for (int jn = 0 ; jn < nP; jn++)
+                {
+                    ek(in+off_p,jn+off_p)+=big*phiP(in,0)*phiP(jn,0)*weight;	// P Pressure
                 }
             }
+
         } break;
 
-        // ---------------------------------------------------------
-        // 3 : Neumann em p (fluxo normal q_n) -> só RHS, com escala temporal
+        // 3 : Dirichlet DIRECIONAL em u.
         case 3:
         {
-            STATE tx, ty, qn; read_vals(tx,ty,qn);
-            for (int i=0;i<nP;++i){
-                //ef(off_p+i,0) += flux_scale * qn * phiP(i,0) * weight;
-                ef(off_p+i,0) += diff_coeff * weight * qn * phiP(i,0);
-            }
-        } break;
+            for(int in = 0 ; in < nU; in++) {
+                //ef(2*in+0,0) += big * (0. - datavec[0].sol[0][0]) * V2[0] * phiU(in,0) * weight;
+                //ef(2*in+1,0) += big * (0. - datavec[0].sol[0][1]) * V2[1] * phiU(in,0) * weight;
+                for (int jn = 0 ; jn < nU; jn++) {
+                    ek(2*in+0,2*jn+0) += big * phiU(in,0) * phiU(jn,0) * weight * V2[0];
+                    ek(2*in+1,2*jn+1) += big * phiU(in,0) * phiU(jn,0) * weight * V2[1];
 
-        // ---------------------------------------------------------
-        // 4 : Dirichlet DIRECIONAL em u (máscara [mask_x,mask_y] em Val2);
-        //     nada em p.
-        case 4:
-        {
-            for (int i=0;i<nU;++i){
-                //ef(off_u+2*i+0,0) += big * mask_x * ux * phiU(i,0) * weight;
-                //ef(off_u+2*i+1,0) += big * mask_y * uy * phiU(i,0) * weight;
-                for (int j=0;j<nU;++j){
-                    ek(off_u+2*i+0, off_u+2*j+0) +=big * bc.Val2()[0] * phiU(i,0) * phiU(j,0) * weight;
-                    ek(off_u+2*i+1, off_u+2*j+1) +=big * bc.Val2()[1] * phiU(i,0) * phiU(j,0) * weight;
-                }
-            }
-            // for(in = 0 ; in < phr; in++) {
-            //     //                ef(nstate*in+0,0) += BIGNUMBER * (0. - data.sol[0][0]) * v2[0] * phi(in,0) * weight;
-            //     //                ef(nstate*in+1,0) += BIGNUMBER * (0. - data.sol[0][1]) * v2[1] * phi(in,0) * weight;
-            //     const auto &v2 = bc.Val2();
-            //     for (jn = 0 ; jn < phr; jn++) {
-            //         ek(nstate*in+0,nstate*jn+0) += BIGNUMBER * phi(in,0) * phi(jn,0) * weight * v2[0];
-            //         ek(nstate*in+1,nstate*jn+1) += BIGNUMBER * phi(in,0) * phi(jn,0) * weight * v2[1];
-            //     }//jn
-            // }//in
-        } break;
+                }//jn
+            }//in
 
-        // ---------------------------------------------------------
-        // 5 : Robin em p  -> β(p - pD) ~ q_n  (ek += β*NiNj , ef += β*pD*Ni)
-        case 5:
-        {
-            const STATE beta = (bc.Val1().Rows()>2 ? bc.Val1()(2,0) : 0.);
-            const TPZVec<STATE>& V2 = bc.Val2();
-            const STATE pD = (V2.NElements()>2 ? V2[2] : 0.);
-            const STATE coeff = diff_coeff * beta;
-            for (int i=0;i<nP;++i){
-                ef(off_p+i,0) += coeff * pD * phiP(i,0) * weight;
-                for (int j=0;j<nP;++j){
-                    ek(off_p+i, off_p+j) += coeff * phiP(i,0) * phiP(j,0) * weight;
-                }
-            }
-        } break;
-
-        // ---------------------------------------------------------
-        // 10 : Neumann em u  +  Dirichlet em p (atalho)
-        case 10:
-        {
-            STATE tx, ty, pD; read_vals(tx,ty,pD);
-            // Neumann-u
-            for (int i=0;i<nU;++i){
-                ef(off_u+2*i+0,0) += tx * phiU(i,0) * weight;
-                ef(off_u+2*i+1,0) += ty * phiU(i,0) * weight;
-            }
-            // Dirichlet-p
-            for (int i=0;i<nP;++i){
-                ef(off_p+i,0) += big * pD * phiP(i,0) * weight;
-                for (int j=0;j<nP;++j){
-                    ek(off_p+i, off_p+j) += big * phiP(i,0) * phiP(j,0) * weight;
-                }
-            }
         } break;
 
         default:
@@ -485,6 +424,11 @@ void TPZMatPoroElastic2DMem<TMEM>::ContributeBC(
 }
 
 
+template <class TMEM>
+void TPZMatPoroElastic2DMem<TMEM>::ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &datavec,REAL weight,TPZFMatrix<STATE> &ef,TPZBndCondT<STATE> &bc)
+{
+
+}
 // ---------- persistência ----------
 template <class TMEM>
 int TPZMatPoroElastic2DMem<TMEM>::ClassId() const {
@@ -549,21 +493,136 @@ void TPZMatPoroElastic2DMem<TMEM>::BuildConstitutiveMatrix(STATE E, STATE nu, TP
         D(2,2)=c*(1.0-2.0*nu)/2.0; // = mu
     }
 }
-
+// ---- Bu (mecânica) : monta matriz B_u (3 x 2*nU) a partir de dphiU(2 x nU)
 template <class TMEM>
-void TPZMatPoroElastic2DMem<TMEM>::BuildBMatrix(const TPZFMatrix<STATE> &dphix, TPZFMatrix<STATE> &B) const {
-    const int n = dphix.Cols();
-    B.Redim(3, 2*n); B.Zero();
-    for (int a=0;a<n;a++){
-        const STATE dNdx = dphix(0,a);
-        const STATE dNdy = dphix(1,a);
+void TPZMatPoroElastic2DMem<TMEM>::BuildBu(const TPZFMatrix<STATE>& dphiU, TPZFMatrix<STATE>& Bu)
+{
+    const int nU = dphiU.Cols();
+    Bu.Redim(3, 2*nU); Bu.Zero();
+    for (int a=0; a<nU; ++a) {
+        const STATE dNdx = dphiU(0,a), dNdy = dphiU(1,a);
         const int iu = 2*a, iv = 2*a+1;
-        B(0,iu) = dNdx;   // exx = dudx
-        B(1,iv) = dNdy;   // eyy = dvdy
-        B(2,iu) = dNdy;   // gxy = dudy
-        B(2,iv) = dNdx;   // gxy = dvdx
+        Bu(0,iu) = dNdx;          // exx = dudx
+        Bu(1,iv) = dNdy;          // eyy = dvdy
+        Bu(2,iu) = dNdy;          // gxy = dudy
+        Bu(2,iv) = dNdx;          // gxy = dvdx
     }
 }
 
+// ---- Bp (fluxo) : gradiente das funções de p agrupado (2 x nP)
+template <class TMEM>
+void TPZMatPoroElastic2DMem<TMEM>::BuildBp(const TPZFMatrix<STATE>& dphiP, TPZFMatrix<STATE>& Bp)
+{
+    const int nP = dphiP.Cols();
+    Bp.Redim(2, nP);
+    for (int j=0; j<nP; ++j) {
+        Bp(0,j) = dphiP(0,j);     // dNj/dx
+        Bp(1,j) = dphiP(1,j);     // dNj/dy
+    }
+}
+
+// ---- Np coluna (nP x 1) útil para produtos B_u^T * (Np escalar)
+template <class TMEM>
+void TPZMatPoroElastic2DMem<TMEM>::BuildNpCol(const TPZFMatrix<STATE>& phiP, TPZFMatrix<STATE>& Np)
+{
+    const int nP = phiP.Rows();
+    Np.Redim(nP,1);
+    for (int j=0; j<nP; ++j) Np(j,0) = phiP(j,0);
+}
+
+template < class TMEM>
+void TPZMatPoroElastic2DMem<TMEM>::ComputePorePressure(const TPZMaterialDataT<STATE> & data, REAL & Pp, TPZVec<REAL> & dPp)
+{
+    int dim = Dimension(), i;
+
+    const int64_t id = data.intGlobPtIndex;
+    if (id<0) return;
+    const TMEM &m = this->WithMem()->MemItem(id);
+
+    Pp = m.fPorePressure;
+    dPp = m.fdPorePressure;
+
+    // adding deltaP information from n+1 time
+    Pp += data.sol[0][dim];
+    for(i = 0; i < dim; i++)dPp[i] += data.dsol[0](i, dim);
+}
+template < class TMEM>
+void TPZMatPoroElastic2DMem<TMEM>::GetPrevPorePressure(const TPZMaterialDataT<STATE>& data,STATE &P0, TPZVec<STATE> &gradP0) const {
+  const int64_t id = data.intGlobPtIndex;
+  if (id < 0) { P0 = 0.; gradP0.Fill(0.); return; }
+  const TMEM &m = this->WithMem()->MemItem(id);
+  P0 = m.fPorePressure;
+  gradP0 = m.fdPorePressure;
+}
+template <class TMEM>
+void TPZMatPoroElastic2DMem<TMEM>::UpdatePorePressure(const TPZMaterialDataT<STATE> & data)
+{
+    int dim = Dimension(), i;
+    int intPt = data.intGlobPtIndex;
+
+    const int64_t id = data.intGlobPtIndex;
+    if (id<0) return;
+    TMEM &m = this->WithMem()->MemItem(id);
+    // updating n+1 information
+    m.fPorePressure += data.sol[0][0];
+
+    //std::cout << data.sol << std::endl;
+    //std::cout << data.dsol << std::endl;
+
+    for(i = 0; i < dim; i++)
+    {
+        m.fdPorePressure[i] += data.dsol[0](i, 0);
+    }
+
+}
+
+
+template <class TMEM>
+void TPZMatPoroElastic2DMem<TMEM>::SetMem(const REAL Pp,const TPZElasticResponse ER)
+{
+    // 1) guarda como fallback (usado se algum IP não tiver memória escrita)
+    fE_fallback  = ER.E();         // ou ER.YoungModulus()
+    fNu_fallback = ER.Poisson();   // ou ER.PoissonRatio()
+
+    // 2) grava o "default" da memória (o que novos IPs recebem ao serem criados)
+    TMEM memory;
+    // Se TMEM tiver outros campos, inicialize-os aqui também.
+    memory.m_ER.SetEngineeringData(ER.E(), ER.Poisson());
+    memory.fPorePressure=Pp;
+    // Em muitas branches, SetDefaultMem é herdado de TPZMatWithMem<TMEM>,
+    // exatamente como no seu exemplo plástico:
+    this->SetDefaultMem(memory);
+    // (se sua branch expõe via WithMem(): this->WithMem()->SetDefaultMem(memory); )
+}
+
+
+// --------------- UpdateMemory -----------------
+template<class TMEM>
+void TPZMatPoroElastic2DMem<TMEM>::UpdateMemory(const TPZVec<TPZMaterialDataT<STATE>>& datavec)
+{
+    const auto& dataU = datavec[0];
+    const auto& dataP = datavec[1];
+    const int gp = dataU.intGlobPtIndex;
+    TMEM& mem = this->MemItem(gp);
+
+    // store p^{n+1}
+    mem.fPorePressure = dataP.sol[0][0];
+
+    // grad p in global (assuming dphix already global; adjust if needed)
+    mem.fdPorePressure[0] = dataP.dsol[0](0,0);
+    mem.fdPorePressure[1] = dataP.dsol[0](1,0);
+
+    // grad u (global)
+    mem.fGradSolU(0,0) = dataU.dsol[0](0,0);
+    mem.fGradSolU(0,1) = dataU.dsol[0](1,0);
+    mem.fGradSolU(1,0) = dataU.dsol[0](1,0);
+    mem.fGradSolU(1,1) = dataU.dsol[0](1,1);
+
+    // optional u
+    mem.fSolU[0] = dataU.sol[0][0];
+    mem.fSolU[1] = dataU.sol[0][1];
+
+    //mem.m_ER.SetEngineeringData(ER.E(), ER.Poisson());
+}
 // ---------- instância explícita ----------
 template class TPZMatPoroElastic2DMem<TPZElasticMem>;

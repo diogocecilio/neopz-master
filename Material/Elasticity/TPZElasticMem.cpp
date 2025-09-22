@@ -10,7 +10,7 @@ TPZElasticMem::TPZElasticMem()
 {
 }
 
-TPZElasticMem::TPZElasticMem(const TPZElasticMem & other): m_ER(other.m_ER) {
+TPZElasticMem::TPZElasticMem(const TPZElasticMem & other): m_ER(other.m_ER),fPorePressure(other.fPorePressure), fdPorePressure(other.fdPorePressure),fSolU(other.fSolU),fGradSolU(other.fGradSolU) {
 
 }
 
@@ -22,17 +22,31 @@ TPZElasticMem::~TPZElasticMem(){
 void TPZElasticMem::Write(TPZStream &buf, int withclassid) const
 {
     m_ER.Write(buf, withclassid);
+    buf.Write(&fPorePressure,1);
+    buf.Write(&fdPorePressure[0],3);
+    buf.Write(&fSolU[0],3);
+    fGradSolU.Write(buf,withclassid);
 }
 
 void TPZElasticMem::Read(TPZStream &buf, void *context)
 {
     m_ER.Read(buf, context);
+    buf.Read(&fPorePressure,1);
+    fdPorePressure.Resize(3);
+    buf.Read(&fdPorePressure[0],3);
+    buf.Read(&fSolU[0],3);
+    fGradSolU.Read(buf,context);
 }
 
 void TPZElasticMem::Print(std::ostream &out)const
 {
     out << Name();
+    out << "\n fPorePressure = " << fPorePressure;
+    out << "\n fdPorePressure = " << fdPorePressure;
+    out << "\n fSolU = " << fSolU;
+    out << "\n fGradSolU = " << fGradSolU;
     m_ER.Print(out);
+
 }
 
 const std::string TPZElasticMem::Name()const
@@ -53,6 +67,10 @@ const TPZElasticMem & TPZElasticMem::operator=(const TPZElasticMem & other)
     }
 
     m_ER = other.m_ER;
+    fPorePressure = other.fPorePressure;
+    fdPorePressure = other.fdPorePressure;
+    fSolU = other.fSolU;
+    fGradSolU = other.fGradSolU;
 
     return *this;
 }

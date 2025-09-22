@@ -26,7 +26,7 @@ class TPZMatPoroElastic2DMem
     using TBase = TPZMatBase<STATE, TPZMatCombinedSpacesT<STATE>, TPZMatWithMem<TMEM>>;
 public:
     explicit TPZMatPoroElastic2DMem(int matid,
-                                    EPlaneType plane = EPlaneType::PlaneStrain);
+                                    EPlaneType plane = EPlaneType::PlaneStress);
 
     // ---------- setup ----------
     void SetElasticResponse(const TPZElasticResponse &ER);
@@ -57,15 +57,20 @@ void Contribute(const TPZVec<TPZMaterialDataT<STATE>> &datavec,
                 REAL weight,
                 TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef) override;
 
+void Contribute(const TPZVec<TPZMaterialDataT<STATE>> &datavec,REAL weight, TPZFMatrix<STATE> &ef) override;
+
 void ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &datavec,
                   REAL weight,
                   TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef,
                   TPZBndCondT<STATE> &bc) override;
 
+void ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &datavec,REAL weight,TPZFMatrix<STATE> &ef,TPZBndCondT<STATE> &bc) override;
 
 
     // ---------- pós-processo ----------
-    enum ESolutionVar { EDisplacement=1, EPressure=2, EFlux=3, EStrain=4, EStress=5, EYoung=6, EPoisson=7, EPOrder=8 };
+    enum ESolutionVar { EDisplacement=1, EPressure=2, EFlux=3, EStrain=4, EStress=5, EYoung=6, EPoisson=7, EPOrder=8 ,EExactPressure=9};
+    using TExact = std::function<void(const TPZVec<REAL>&, STATE&, TPZFMatrix<STATE>&)>;
+    void SetExact(TExact f) { fExact = std::move(f); }
     int  VariableIndex(const std::string &name) const override;
     int  NSolutionVariables(int var) const override;
     void Solution(const TPZVec<TPZMaterialDataT<STATE>> &datavec,
@@ -74,18 +79,27 @@ void ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &datavec,
     void Write(TPZStream &buf, int withclassid) const override;
     void Read (TPZStream &buf, void *ctx) override;
     void Print(std::ostream & out = std::cout) const override;
-    void SetMassOnly(bool on)          { fMassOnly = on; }
-    bool MassOnly() const              { return fMassOnly; }
+    void SetHOnly(bool on)          { fHOnly = on; }
+    bool HOnly() const              { return fHOnly; }
+
+    void ComputePorePressure(const TPZMaterialDataT<STATE> & data, REAL & Pp, TPZVec<REAL> & dPp);
+    void UpdatePorePressure(const TPZMaterialDataT<STATE> & data);
+    void GetPrevPorePressure(const TPZMaterialDataT<STATE>& data,STATE &P0, TPZVec<STATE> &gradP0) const;
+    void SetMem(const REAL Pp,const TPZElasticResponse ER);
+    void UpdateMemory(const TPZVec< TPZMaterialDataT< STATE > >& datavec);
 private:
     // helpers
     void ERFromMem(const TPZMaterialDataT<STATE> &data, STATE &E, STATE &nu) const;
     void BuildConstitutiveMatrix(STATE E, STATE nu, TPZFMatrix<STATE> &D) const; // 3x3
     void BuildBMatrix(const TPZFMatrix<STATE> &dphix, TPZFMatrix<STATE> &B) const; // 3 x 2n
+    void BuildBu(const TPZFMatrix<STATE>& dphiU, TPZFMatrix<STATE>& Bu);
+    void BuildBp(const TPZFMatrix<STATE>& dphiP, TPZFMatrix<STATE>& Bp);
+    void BuildNpCol(const TPZFMatrix<STATE>& phiP, TPZFMatrix<STATE>& Np);
 
 
 private:
     // plano + fallback
-    EPlaneType fPlane = EPlaneType::PlaneStrain;
+    EPlaneType fPlane = EPlaneType::PlaneStress;
     STATE fE_fallback = 1.0, fNu_fallback = 0.3;
 
     // poro
@@ -101,13 +115,17 @@ private:
     STATE fTimeStep  = 1.0;
     bool  fMassInvDt = true;
 
-    bool  fMassOnly = false;
+    bool  fHOnly = false;
     TPZAutoPointer<TPZFunction<STATE>> fForcingP = nullptr;
 
     // atalhos para TPZMatWithMem
     const TPZMatWithMem<TMEM>* WithMem() const { return dynamic_cast<const TPZMatWithMem<TMEM>*>(this); }
     TPZMatWithMem<TMEM>*       WithMem()       { return dynamic_cast<TPZMatWithMem<TMEM>*>(this); }
+    TExact     fExact;
 };
+
+
+
 
 // instância explícita comum
 extern template class TPZMatPoroElastic2DMem<TPZElasticMem>;
