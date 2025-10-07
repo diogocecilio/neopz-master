@@ -20,7 +20,7 @@
 #include "TPZYCMohrCoulombPV.h"
 #include "TPZElasticCriterion.h"
 #include "TPZYCCamClayPV.h"
-
+#include "TPZPlasticStepVoigt.h"
 template class TPZMatElastoPlastic<TPZPlasticStep<TPZYCModifiedMohrCoulomb, TPZThermoForceA, TPZElasticResponse>, TPZElastoPlasticMem>;
 //template class TPZMatElastoPlastic<TPZModifiedMohrCoulomb>;
 
@@ -51,8 +51,10 @@ template class TPZMatElastoPlastic<TPZPlasticStep<TPZYCDruckerPrager, TPZThermoF
 template class TPZMatElastoPlastic<TPZPlasticStepPV<TPZYCMohrCoulombPV,TPZElasticResponse> , TPZElastoPlasticMem>;
 template class TPZMatElastoPlastic<TPZPlasticStepPV<TPZSandlerExtended,TPZElasticResponse> , TPZElastoPlasticMem>;
 template class TPZMatElastoPlastic<TPZPlasticStepPV<TPZYCCamClayPV,TPZElasticResponse> , TPZElastoPlasticMem>;
+//emplate class TPZMatElastoPlastic< TPZPlasticStepPV<TPZYCVonMisesPV, TPZElasticResponse>, TPZElastoPlasticMem >;
 
 template class TPZMatElastoPlastic<TPZElasticCriterion , TPZElastoPlasticMem>;
 template class TPZMatElastoPlastic<TPZElasticCriterion , TPZPoroElastoPlasticMem>;
 
 
+template class TPZMatElastoPlastic<TPZPlasticStepVoigt<TPZYCVonMisesPV, TPZElasticResponse>,TPZElastoPlasticMem>;

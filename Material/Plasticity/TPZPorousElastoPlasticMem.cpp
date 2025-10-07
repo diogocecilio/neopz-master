@@ -28,6 +28,7 @@ void TPZPorousElastoPlasticMem::Write(TPZStream &buf, int withclassid) const
     buf.Write(&m_plastic_steps);
     buf.Write(m_u);
     m_ER.Write(buf, withclassid);
+
 }
 
 void TPZPorousElastoPlasticMem::Read(TPZStream &buf, void *context)
@@ -37,6 +38,7 @@ void TPZPorousElastoPlasticMem::Read(TPZStream &buf, void *context)
     buf.Read(&m_plastic_steps);
     buf.Read(m_u);
     m_ER.Read(buf, context);
+
 }
 
 void TPZPorousElastoPlasticMem::Print(std::ostream &out)const
@@ -47,6 +49,7 @@ void TPZPorousElastoPlasticMem::Print(std::ostream &out)const
     out << "\nm_plastic_steps = " << m_plastic_steps;
     out << "\nm_u = " << m_u;
     out << "\nm_phi = " << m_phi;
+
     m_ER.Print(out);
 }
 
@@ -73,6 +76,8 @@ const TPZPorousElastoPlasticMem & TPZPorousElastoPlasticMem::operator=(const TPZ
     m_phi  = other.m_phi;
     m_u = other.m_u;
     m_ER = other.m_ER;
+
     
     return *this;
 }
+template class TPZRestoreClass<TPZAdmChunkVector<TPZPorousElastoPlasticMem>>;

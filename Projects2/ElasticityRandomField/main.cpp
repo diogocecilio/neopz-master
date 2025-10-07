@@ -6,7 +6,7 @@
 #include <fstream>
 #include <iomanip>
 #include <set>
-
+#include "Plasticity/TPZElasticResponse.h"
 #include "pzgmesh.h"
 #include "pzcmesh.h"
 #include "pzgeoquad.h"

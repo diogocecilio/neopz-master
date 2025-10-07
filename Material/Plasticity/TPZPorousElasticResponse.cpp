@@ -79,6 +79,25 @@ void TPZPorousElasticResponse::Read(TPZStream& buf, void* context) { //ok
     buf.Read(m_is_G_constant_Q);
     buf.Read(m_plane_stress_Q);
 }
+void TPZPorousElasticResponse::De(TPZFMatrix<REAL> & De)
+{
+    REAL Mu2 = 2 * m_mu;
+
+    De.Zero();
+
+    De(_XX_, _XX_) += m_lambda;
+    De(_XX_, _YY_) += m_lambda;
+    De(_XX_, _ZZ_) += m_lambda;
+    De(_YY_, _XX_) += m_lambda;
+    De(_YY_, _YY_) += m_lambda;
+    De(_YY_, _ZZ_) += m_lambda;
+    De(_ZZ_, _XX_) += m_lambda;
+    De(_ZZ_, _YY_) += m_lambda;
+    De(_ZZ_, _ZZ_) += m_lambda;
+
+    int i;
+    for (i = 0; i < 6; i++)De(i, i) += Mu2;
+}
 
 void TPZPorousElasticResponse::SetPorousElasticity(STATE kappa, STATE pt_el, STATE e_0, STATE p_0)
 {

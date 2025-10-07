@@ -13,7 +13,10 @@
 #include "TPZTensor.h"
 #include "TPZPlasticState.h"
 #include "TPZPorousElasticResponse.h"
-
+#include "TPZElastoPlasticMemTranslator.h"
+#endif
+#include "pzadmchunk.h"
+#include "Plasticity/TPZElasticResponse.h"
 /**
  * This class defines the material memory for a porous elastic elastoplastic calculation.
  */
@@ -64,8 +67,10 @@ public:
     REAL m_phi;
     
     /// Porous Elastoplastic response (It is required when elasti response depends on spatial variables)
-    TPZPorousElasticResponse m_ER;
+    TPZElasticResponse m_ER;
+
+
     
 };
 
-#endif /* TPZPorousElastoPlasticMem_hpp */
+

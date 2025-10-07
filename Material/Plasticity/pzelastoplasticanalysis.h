@@ -341,7 +341,7 @@ public:
 	/** @brief Seleciona variáveis escalares/vetoriais de pós-processamento. */
 	void PostProcessVariables ( TPZStack<std::string> &scalNames, TPZStack<std::string> &vecNames );
 	///@}
-
+	void ToggleUpdateMem(bool on) { this->SetUpdateMem(on ? 1 : 0); }
 protected:
 	/** @name Dados internos */
 	///@{

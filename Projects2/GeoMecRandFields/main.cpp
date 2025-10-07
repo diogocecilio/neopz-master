@@ -27,11 +27,11 @@
 #include "TPZVTKGeoMesh.h"
 
 // ---------- NeoPZ material elastoplástico ----------
-#include "TPZElasticResponse.h"
-#include "TPZElastoPlasticMem.h"
-#include "TPZPlasticStepPV.h"
-#include "TPZYCMohrCoulombPV.h"
-#include "TPZMatElastoPlastic2D.h"
+//#include "TPZElasticResponse.h"
+//#include "TPZElastoPlasticMem.h"
+#include "Plasticity/TPZPlasticStepPV.h"
+#include "Plasticity/TPZYCMohrCoulombPV.h"
+#include "Plasticity/TPZMatElastoPlastic2D.h"
 
 // ---------- NeoPZ análise ----------
 
@@ -54,9 +54,9 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <memory>
-
+#include "Plasticity/TPZElasticResponse.h"
 #include "pzskylstrmatrix.h"
-#include "pzelastoplasticanalysis.h"
+#include "Plasticity/pzelastoplasticanalysis.h"
 #include "pznonlinanalysis.h"
 #include "TPZEigenSolver.h"
 #include "TPZKrylovEigenSolver.h"
@@ -365,7 +365,9 @@ int main()
                         plasticmat*  mat     = CreateMaterial(young, poisson, coes, atrito, bodyforce);
                         int pOrder = 2;
                         TPZCompMesh* cmesh   = CreateCMesh(gmesh2, pOrder, mat);
-                        mat->SetBodyForce(bodyforce);
+                        //mat->SetBodyForce(bodyforce);
+                        //REIMPLEMENTAR
+                        DebugStop();
 
                         auto* body = dynamic_cast<plasticmat*>(cmesh->FindMaterial(1));
                         if(!body){ std::cerr << "Material id=1 não encontrado.\n"; return 1; }
@@ -562,7 +564,10 @@ bool RunAndAccept(TPZCompMesh* cmesh,
                   REAL coes, REAL atrito, REAL factor, int& iters_out,bool initmem)
 {
         auto* body = dynamic_cast<plasticmat*>(cmesh->FindMaterial(1));
-        body->SetLoadFactor(factor);
+
+        //REIMPLEMNTAR
+        DebugStop();
+        //body->SetLoadFactor(factor);
         if(initmem)InitializeMemory(cmesh, coes, atrito);
         cmesh->Solution().Zero();
 
@@ -636,8 +641,10 @@ void ApplyLoad(TPZCompMesh* cmesh,
         int iters_out;
         while( counter<100)
         {
-                body->SetLoadFactor(fator_atual);
+                // body->SetLoadFactor(fator_atual);
 
+                //REIMPLEMENTAR
+                DebugStop();
 
                 bool ok = anal.IterativeProcess(std::cout, 1.e-3, 1000, true, false, iters_out);
                 if(old_iters_out<iters_out)
@@ -830,9 +837,12 @@ plasticmat* CreateMaterial(REAL young, REAL poisson, REAL coes, REAL atrito,
         auto* material = new plasticmat(matid, planestrain);
         material->SetPlasticityModel(mc);
         material->SetId(matid);
-        material->SetWhichLoadVector(0);
-        material->SetLoadFactor(1.0);
-        material->SetBodyForce(bodyforce);
+        // material->SetWhichLoadVector(0);
+        // material->SetLoadFactor(1.0);
+        // material->SetBodyForce(bodyforce);
+        //REIMPLEMENTAR
+        DebugStop();
+        //body->SetLoadFactor ( factor );
         return material;
 }
 

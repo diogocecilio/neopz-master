@@ -64,6 +64,8 @@ public:
     
     /// Read class members
     void Read(TPZStream &buf, void *context) override;
+
+    void De(TPZFMatrix<REAL> & De);
     
     /// Set Porous elasticity data
     void SetPorousElasticity(STATE kappa, STATE pt_el, STATE e_0, STATE p_0);

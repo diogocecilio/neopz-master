@@ -89,7 +89,7 @@ TPZElastoPlasticAnalysis::TPZElastoPlasticAnalysis() : TPZLinearAnalysis(), fPre
 	//fSolution.Zero();
 }
 
-TPZElastoPlasticAnalysis::TPZElastoPlasticAnalysis(TPZCompMesh *mesh,std::ostream &out, ELineSearch lsearch) : TPZLinearAnalysis(mesh,true), fPrecond(NULL),fLineSearch(lsearch) {
+TPZElastoPlasticAnalysis::TPZElastoPlasticAnalysis(TPZCompMesh *mesh,std::ostream &out, ELineSearch lsearch) : TPZLinearAnalysis(mesh,false), fPrecond(NULL),fLineSearch(lsearch) {
 
 	int numeq = fCompMesh->NEquations();
 	fCumSol.Redim(numeq,1);
@@ -124,9 +124,10 @@ bool TPZElastoPlasticAnalysis::FindRoot(int &iters,REAL &resu,REAL &resf)
     x.Zero(); dx.Zero();
 
     const REAL tol   = 0.01;
-    const int  n_it  = 10;
+    const int  n_it  = 30;
     const REAL EPS   = 1.e-30; // evita divisão por zero
 
+    //std::cout << "AssembleResidual.."   <<endl;
     // resíduo inicial
     AssembleResidual();
     REAL normrhs0 = Norm(Rhs());
@@ -142,8 +143,10 @@ bool TPZElastoPlasticAnalysis::FindRoot(int &iters,REAL &resu,REAL &resf)
 
     for (int i = 1; i <= n_it; ++i) {
         // monta tangente e resíduo na solução atual x
+        //std::cout << "Assembling.."   <<endl;
         Assemble();
 
+        //std::cout << "Solving.."   <<endl;
         // resolve Δx
         Solve();
         dx = Solution();
@@ -155,9 +158,13 @@ bool TPZElastoPlasticAnalysis::FindRoot(int &iters,REAL &resu,REAL &resf)
         // *** RECOMPUTA o resíduo para a solução ATUALIZADA ***
         AssembleResidual();
 
+
+
         // métricas
         normdu  = Norm(dx)/normu0;
-        normrhs = Norm(Rhs()) / std::max(normrhs0, EPS);
+        normrhs = Norm(Rhs())/normrhs0 ;
+
+        std::cout << "normrhs ="<< normrhs<< " normdu ="<< normdu   <<endl;
 
         iters = i;
 
@@ -165,12 +172,12 @@ bool TPZElastoPlasticAnalysis::FindRoot(int &iters,REAL &resu,REAL &resf)
         resf=normrhs;
         // critério de convergência (resíduo relativo)
         if (normrhs < tol ) {
-            //std::cout << "normrhs ="<< normrhs<< " normdu ="<< normdu   <<endl;
+            std::cout << "normrhs ="<< normrhs<< " normdu ="<< normdu   <<endl;
             return true;
         }
 
     }
-    //std::cout << "não convergiu dentro do limite: normrhs ="<< normrhs<< " normdu ="<< normdu   <<endl;
+    std::cout << "não convergiu dentro do limite: normrhs ="<< normrhs<< " normdu ="<< normdu   <<endl;
     // não convergiu dentro do limite
     if( normdu<tol)
     {
@@ -186,10 +193,6 @@ bool TPZElastoPlasticAnalysis::FindRoot(int &iters,REAL &resu,REAL &resf)
 bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol, int numiter,bool linesearch, bool checkconv,int &iters)
 {
     int    iter = 0;
-    REAL   prev_err_u = std::numeric_limits<REAL>::infinity();
-    REAL   prev_err_f = std::numeric_limits<REAL>::infinity();
-
-
 
     const int numeq = fCompMesh->NEquations();
 
@@ -205,17 +208,18 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol, int 
     // resíduo inicial
     Assemble();
     REAL normrhs0 = Norm(fRhs);
-    if (normrhs0 == 0.) normrhs0 = 1.; // proteção
+    if (normrhs0 <1.e-3) normrhs0 = 1.; // proteção
 
+    REAL normu = Norm(fSolution);
     REAL normu0 = Norm(fSolution);
-    if (normu0 == 0.) normu0 = 1.; // proteção
+    if (normu0  <1.e-3) normu0 = 1.; // proteção
     bool converged = false;
     // int maxiter=30;
     // if(numiter>maxiter) numiter=maxiter;
 
     // out << "\n[IterativeProcess2] Início do Newton-Raphson\n";
     // out << "  NumEq = " << numeq<< " | tol_u = " << tol << " | tol_f = " << tol<< " | maxiter = " << numiter << "\n";
-    // out << "  Norma inicial do resíduo = " << normrhs0 << "\n";
+     cout << "  Norma inicial do resíduo = " << normrhs0 << "\n";
 
     while (iter < numiter) {
 
@@ -225,8 +229,9 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol, int 
 
         if (linesearch) {
             TPZFMatrix<STATE> nextSol;
-            const REAL ls_tol = (REAL)1e-3 * std::max<REAL>( (REAL)1.0, Norm(fSolution) );
+            const REAL ls_tol = 0.1;
             const int  ls_it  = 200;
+
             switch (fLineSearch) {
                 case ELineSearch::Armijo:
                     ArmijoLineSearch(prevsol, fSolution, nextSol, ls_tol, ls_it);
@@ -261,7 +266,7 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol, int 
         // erro de deslocamento
         TPZFMatrix<STATE> delta = fSolution;
         delta -= prevsol;
-        const REAL err_u = Norm(delta)/normu0;
+        const REAL err_u = Norm(delta);
 
         // atualiza estado interno
         prevsol = fSolution;
@@ -269,25 +274,22 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol, int 
 
         // reavalia resíduo no estado ATUAL
         AssembleResidual();
-        const REAL err_f = Norm(fRhs) / normrhs0;
+        const REAL err_f = Norm(fRhs) ;
 
         // imprime diagnóstico
-        // out << "  [it " << iter << "] "
-        // << "||Δu||/normu0 = " << err_u/normu0
-        // << " | ||R||/||R0|| = " << err_f
-        // << " | tol = " << tol << "\n";
+        std::cout << "  [it " << iter << "] "
+        << "||Δu|| = " << err_u
+        << " | ||R|| = " << err_f
+        << " | tol = " << tol << std::endl;
 
         // critério de parada
-        //if (err_u <= tol && err_f <= tol) {
-            if ( err_u <= tol && err_f <= tol) {
-            //out << "  -> Convergência atingida em " << iter+1 << " iterações " << " ||Δu||/||Δu0|| = " << err_u<< " | ||R||/||R0|| = " << err_f<< " | tol = " << tol << "\n";
+        if ( err_u<tol && err_f<tol)
+        {
+            out << "  -> Convergência atingida em " << iter+1 << " iterações " << " ||Δu||/||Δu0|| = " << err_u<< " | ||R||/||R0|| = " << err_f<< " | tol = " << tol << "\n";
             converged = true;
             iter++;
             break;
         }
-
-        prev_err_u = err_u;
-        prev_err_f = err_f;
 
         iter++;
     }
@@ -401,8 +403,108 @@ REAL TPZElastoPlasticAnalysis::StrongWolfeLineSearch(const TPZFMatrix<STATE>& Wn
     // falha branda: devolve o melhor visto
     NextW = Wn; NextW += alo * d; return alo;
 }
+// Busca linear dicotômica (minimiza 1/2||R||^2 ao longo de ΔW).
+// tol   -> tolerância para largura do intervalo em α (ex.: 1e-3)
+// niter -> n° máx. de iterações
+REAL TPZElastoPlasticAnalysis::DicotomicLineSearch(const TPZFMatrix<STATE>& Wn,
+                                                   TPZFMatrix<STATE> DeltaW,
+                                                   TPZFMatrix<STATE>& NextW,
+                                                   REAL tol, int niter)
+{
+    REAL A = (REAL)0.0, B = (REAL)1.0;
+    const REAL amin = std::max<REAL>(tol, (REAL)1e-8);
 
+    auto delta_for = [&](REAL width){
+        return std::max<REAL>((REAL)1e-6, (REAL)0.1 * width);
+    };
 
+    // --- backup do vetor numérico (solução interna) ---
+    TPZFMatrix<STATE> backup = this->fSolution;
+
+    // --- travar UpdateMem durante a busca ---
+    // ajuste o ID do material se for diferente de 1
+    auto *pl = dynamic_cast<plasticmat*>( this->Mesh()->FindMaterial(1) );
+    bool had_update = false;
+    if (pl) {
+        // se tiver getter, use; se não, comente a leitura e apenas force false/true
+        // had_update = pl->GetUpdateMem();
+        pl->SetUpdateMem(false);
+    }
+
+    // f(W) = 1/2 ||R(W)||^2
+    auto eval_f = [&](const TPZFMatrix<STATE>& Wc)->REAL {
+        TPZFMatrix<STATE> W = Wc;
+        this->LoadSolution(W);
+        this->AssembleResidual();
+        const REAL nR = Norm(this->fRhs);
+        return (REAL)0.5 * nR * nR;
+    };
+
+    // se ΔW vazio, não anda
+    if (DeltaW.Rows()==0 || DeltaW.Cols()==0) {
+        NextW = Wn;
+        this->LoadSolution(backup);
+        if (pl) pl->SetUpdateMem(had_update);
+        return amin; // nunca retorne 0
+    }
+
+    // melhor já visto (robustez)
+    REAL f0 = eval_f(Wn);
+    REAL best_f = f0, best_alpha = (REAL)0.0;
+    TPZFMatrix<STATE> bestW = Wn;
+
+    int it = 0;
+    REAL width = B - A;
+
+    while (it < niter && width > tol) {
+        const REAL mid = (REAL)0.5*(A + B);
+        REAL delta = delta_for(width);
+
+        REAL x1 = std::max<REAL>(A, mid - delta);
+        REAL x2 = std::min<REAL>(B, mid + delta);
+        if (x1 >= x2) break;
+
+        TPZFMatrix<STATE> t1 = Wn, t2 = Wn;
+        TPZFMatrix<STATE> d1 = DeltaW, d2 = DeltaW;
+        d1 *= x1; t1 += d1;
+        d2 *= x2; t2 += d2;
+
+        const REAL f1 = eval_f(t1);
+        const REAL f2 = eval_f(t2);
+
+        if (f1 < best_f) { best_f = f1; best_alpha = x1; bestW = t1; }
+        if (f2 < best_f) { best_f = f2; best_alpha = x2; bestW = t2; }
+
+        // passo dicotômico: preserva metade com menor f
+        if (f1 > f2) {
+            A = x1;            // mínimo está em (x1, B]
+        } else if (f2 > f1) {
+            B = x2;            // mínimo está em [A, x2)
+        } else {
+            // empate: evite viés para 0; avance simetricamente
+            A = x1; B = x2;
+        }
+
+        width = B - A;
+        ++it;
+    }
+
+    // escolha final: o melhor amostrado; se não melhorou, pegue o meio
+    REAL alpha = (best_f < f0) ? best_alpha : (REAL)0.5*(A + B);
+    if (alpha < amin) alpha = amin; // nunca devolva 0
+
+    NextW = Wn;
+    DeltaW *= alpha;
+    NextW += DeltaW;
+
+    // restaura estado numérico e UpdateMem
+    this->LoadSolution(backup);
+    if (pl) pl->SetUpdateMem(had_update);
+
+    return alpha;
+}
+
+/*
 // Busca linear dicotômica (dichotomous search) para minimizar ||R|| ao longo de ΔW.
 // tol   -> tolerância para a largura do intervalo em α (ex.: 1e-3)
 // niter -> número máx. de iterações
@@ -498,7 +600,7 @@ REAL TPZElastoPlasticAnalysis::DicotomicLineSearch(const TPZFMatrix<STATE>& Wn,
     this->LoadSolution(backup);
 
     return alpha;
-}
+}*/
 
 // Armijo com interpolação quadrática protegida (rápido/robusto)
 REAL TPZElastoPlasticAnalysis::QuadraticArmijoLineSearch(const TPZFMatrix<STATE>& Wn,

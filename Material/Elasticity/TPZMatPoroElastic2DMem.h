@@ -6,7 +6,7 @@
 #include "TPZMaterialDataT.h"
 #include "TPZBndCondT.h"
 #include "TPZElasticMem.h"
-#include "TPZElasticResponse.h"
+//#include "TPZElasticResponse.h"
 #include "TPZHash.h"
 #include "pzreal.h"
 #include "pzfmatrix.h"
@@ -14,7 +14,10 @@
 #include "pzfunction.h"
 #include <string>
 #include <iostream>
-
+#ifdef PZ_LOG
+// escolha um nome de categoria claro (use pontos para hierarquia)
+static TPZLogger logger_poro_elastic("materials.PoroElastic2DMem");
+#endif
 enum class EPlaneType { PlaneStress=0, PlaneStrain=1 };
 
 /// Poroelástico 2D (PRIMAL: u, p) com memória elástica (E, nu).
@@ -68,9 +71,11 @@ void ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &datavec,REAL weight,TPZ
 
 
     // ---------- pós-processo ----------
-    enum ESolutionVar { EDisplacement=1, EPressure=2, EFlux=3, EStrain=4, EStress=5, EYoung=6, EPoisson=7, EPOrder=8 ,EExactPressure=9};
+    enum ESolutionVar { EDisplacement=1, EPressure=2, EFlux=3, EStrain=4, EStress=5, EYoung=6, EPoisson=7, EPOrder=8 ,EExactPressure=9,ExactPressureGradiendSolution=10,EGradP=11,EExactDisplacement=12};
     using TExact = std::function<void(const TPZVec<REAL>&, STATE&, TPZFMatrix<STATE>&)>;
+    using TExactVec = std::function<void(const TPZVec<REAL>&, TPZVec<STATE>&, TPZFMatrix<STATE>&)>;
     void SetExact(TExact f) { fExact = std::move(f); }
+    void SetExact(TExactVec f) { fExactVec = std::move(f); }
     int  VariableIndex(const std::string &name) const override;
     int  NSolutionVariables(int var) const override;
     void Solution(const TPZVec<TPZMaterialDataT<STATE>> &datavec,
@@ -122,6 +127,7 @@ private:
     const TPZMatWithMem<TMEM>* WithMem() const { return dynamic_cast<const TPZMatWithMem<TMEM>*>(this); }
     TPZMatWithMem<TMEM>*       WithMem()       { return dynamic_cast<TPZMatWithMem<TMEM>*>(this); }
     TExact     fExact;
+    TExactVec     fExactVec;
 };
 
 

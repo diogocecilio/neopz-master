@@ -1,6 +1,6 @@
-/** 
- * @file 
- * @brief Contains the implementation of the InitializePZLOG() function. 
+/**
+ * @file
+ * @brief Contains the implementation of the InitializePZLOG() function.
  */
 
 #include "pzlog.h"
@@ -19,7 +19,16 @@ static std::mutex glogmutex;
 #include <log4cxx/propertyconfigurator.h>
 
 
+#include <log4cxx/helpers/messagebuffer.h>
+#include <log4cxx/spi/location/locationinfo.h>
 
+static inline log4cxx::spi::LocationInfo MakeLoc(const char* file,
+                                                 const char* func,
+                                                 std::size_t line) {
+  // Assinatura esperada: (file, function, className, line)
+  return log4cxx::spi::LocationInfo(file, func, /*className*/ nullptr,
+                                    static_cast<int>(line));
+                                                 }
 
 TPZLogger::TPZLogger(const std::string &&loggerName) : fLogName(loggerName){
 }
@@ -41,8 +50,11 @@ void pzinternal::LogPzDebugImpl(TPZLogger pzlg, std::string msg,
                                 const std::size_t lineN){
   log4cxx::LoggerPtr lg = log4cxx::LoggerPtr(log4cxx::Logger::getLogger(pzlg.fLogName));
   log4cxx::helpers::MessageBuffer oss_;
-  lg->forcedLog(log4cxx::Level::getDebug(), oss_.str(oss_ << msg),
-                log4cxx::spi::LocationInfo(fileName, funcName,lineN));
+  // lg->forcedLog(log4cxx::Level::getDebug(), oss_.str(oss_ << msg),
+  //               log4cxx::spi::LocationInfo(fileName, funcName,lineN));
+  lg->forcedLog(log4cxx::Level::getDebug(),
+                oss_.str(oss_ << msg),
+                MakeLoc(fileName, funcName, lineN));
 }
 
 void pzinternal::LogPzInfoImpl(TPZLogger pzlg, std::string msg,
@@ -50,16 +62,22 @@ void pzinternal::LogPzInfoImpl(TPZLogger pzlg, std::string msg,
                                const std::size_t lineN){
   log4cxx::LoggerPtr lg = log4cxx::LoggerPtr(log4cxx::Logger::getLogger(pzlg.fLogName));
   log4cxx::helpers::MessageBuffer oss_;
-  lg->forcedLog(log4cxx::Level::getInfo(), oss_.str(oss_ << msg),
-                log4cxx::spi::LocationInfo(fileName,funcName,lineN));
+  // lg->forcedLog(log4cxx::Level::getInfo(), oss_.str(oss_ << msg),
+  //               log4cxx::spi::LocationInfo(fileName,funcName,lineN));
+  lg->forcedLog(log4cxx::Level::getInfo(),
+                oss_.str(oss_ << msg),
+                MakeLoc(fileName, funcName, lineN));
 }
 void pzinternal::LogPzWarnImpl(TPZLogger pzlg, std::string msg,
                                const char *funcName, const char *fileName,
                                const std::size_t lineN){
   log4cxx::LoggerPtr lg = log4cxx::LoggerPtr(log4cxx::Logger::getLogger(pzlg.fLogName));
   log4cxx::helpers::MessageBuffer oss_;
-  lg->forcedLog(log4cxx::Level::getWarn(), oss_.str(oss_ << msg),
-                log4cxx::spi::LocationInfo(fileName, funcName,lineN));
+  // lg->forcedLog(log4cxx::Level::getWarn(), oss_.str(oss_ << msg),
+  //               log4cxx::spi::LocationInfo(fileName, funcName,lineN));
+  lg->forcedLog(log4cxx::Level::getWarn(),
+                oss_.str(oss_ << msg),
+                MakeLoc(fileName, funcName, lineN));
 }
 
 void pzinternal::LogPzErrorImpl(TPZLogger pzlg, std::string msg,
@@ -67,17 +85,23 @@ void pzinternal::LogPzErrorImpl(TPZLogger pzlg, std::string msg,
                                 const std::size_t lineN){
   log4cxx::LoggerPtr lg = log4cxx::LoggerPtr(log4cxx::Logger::getLogger(pzlg.fLogName));
   log4cxx::helpers::MessageBuffer oss_;
-  lg->forcedLog(log4cxx::Level::getError(), oss_.str(oss_ << msg),
-                log4cxx::spi::LocationInfo(fileName,funcName,lineN));
+  // lg->forcedLog(log4cxx::Level::getError(), oss_.str(oss_ << msg),
+  //               log4cxx::spi::LocationInfo(fileName,funcName,lineN));
+  lg->forcedLog(log4cxx::Level::getError(),
+                oss_.str(oss_ << msg),
+                MakeLoc(fileName, funcName, lineN));
 }
 
 void pzinternal::LogPzFatalImpl(TPZLogger pzlg, std::string msg,
                                 const char *funcName, const char *fileName,
                                 const std::size_t lineN) {
   log4cxx::LoggerPtr lg = log4cxx::LoggerPtr(log4cxx::Logger::getLogger(pzlg.fLogName));
-  log4cxx::helpers::MessageBuffer oss_; 
-  lg->forcedLog(::log4cxx::Level::getFatal(), oss_.str(oss_ << msg),
-                log4cxx::spi::LocationInfo(fileName,funcName,lineN));
+  log4cxx::helpers::MessageBuffer oss_;
+  // lg->forcedLog(::log4cxx::Level::getFatal(), oss_.str(oss_ << msg),
+  //               log4cxx::spi::LocationInfo(fileName,funcName,lineN));
+  lg->forcedLog(::log4cxx::Level::getFatal(),
+                oss_.str(oss_ << msg),
+                MakeLoc(fileName, funcName, lineN));
 }
 
 /**

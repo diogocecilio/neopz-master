@@ -18,6 +18,7 @@
 #include <memory>
 #include "SlopeAnalysis.h"
 #include "TPZEigenSolver.h"
+#include "Plasticity/TPZElasticResponse.h"
 #include "TPZKrylovEigenSolver.h"
 #include "TPZLapackEigenSolver.h" // ou outro solver concreto
 typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> plasticmorh;
@@ -242,11 +243,13 @@ plasticmat * CreateMaterial(REAL young, REAL poisson, REAL coes,REAL atrito,TPZM
 
         material->SetId ( 1 );
 
-        material->SetWhichLoadVector ( 0 );//option to compute the total internal force vecor fi=(Bt sigma+ N (b+gradu))
-
-        material->SetLoadFactor ( factor );
-
-        material->SetBodyForce ( bodyforce );
+        DebugStop();
+        //REIMPLEMENTAR
+        // material->SetWhichLoadVector ( 0 );//option to compute the total internal force vecor fi=(Bt sigma+ N (b+gradu))
+        //
+        // material->SetLoadFactor ( factor );
+        //
+        // material->SetBodyForce ( bodyforce );
 
         return material;
 }

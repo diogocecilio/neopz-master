@@ -16,7 +16,7 @@
 #include "pzstepsolver.h"
 #include "TPZElasticResponse.h"
 #include "TPZPorousElasticResponse.h"
-
+#include "TPZYCVonMisesPV.h"
 #include <set>
 #include <ostream>
 
@@ -26,6 +26,9 @@ REAL InnerVecOfMat(TPZFMatrix<REAL> &m1, TPZFMatrix<REAL> &m2);
 TPZFMatrix<REAL> ProdT(TPZManVector<REAL,3> &v1, TPZManVector<REAL,3> &v2);
 void ProdT(TPZManVector<REAL,3> &v1, TPZManVector<REAL,3> &v2, TPZFMatrix<REAL> & mat);
 TPZFNMatrix <6> FromMatToVoight(TPZFNMatrix <9> mat);
+#ifdef PZ_LOG
+static TPZLogger TPZPlasticStepPVLog("pz.plasticity.TPZPlasticStepPV");
+#endif
 
 /*
  
@@ -176,10 +179,7 @@ public:
 
     virtual void SetElasticResponse(TPZElasticResponse &ER) override;
 
-    virtual TPZElasticResponse GetElasticResponse() const override
-    {
-        return fER;
-    }
+    virtual TPZElasticResponse GetElasticResponse() const override;
 
     /**
      * @brief Update the damage values

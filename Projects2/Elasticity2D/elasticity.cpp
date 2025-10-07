@@ -16,7 +16,7 @@
 #include "tpzsparseblockdiagonalstructmatrix.h"
 #include "pzpostprocanalysis.h"
 using namespace std;
-
+#include "Plasticity/TPZElasticResponse.h"
 #ifdef LOG4CXX
 static LoggerPtr logger ( Logger::getLogger ( "pz.adaptivity" ) );
 static LoggerPtr loggerconv ( Logger::getLogger ( "pz.adaptivity.conv" ) );

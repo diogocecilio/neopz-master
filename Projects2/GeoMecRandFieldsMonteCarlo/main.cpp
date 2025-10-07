@@ -27,12 +27,12 @@
 #include "TPZVTKGeoMesh.h"
 
 // ---------- NeoPZ material elastoplástico ----------
-#include "TPZElasticResponse.h"
-#include "TPZElastoPlasticMem.h"
-#include "TPZPlasticStepPV.h"
-#include "TPZYCMohrCoulombPV.h"
-#include "TPZMatElastoPlastic2D.h"
-
+//#include "TPZElasticResponse.h"
+#include "Plasticity/TPZElastoPlasticMem.h"
+#include "Plasticity/TPZPlasticStepPV.h"
+#include "Plasticity/TPZYCMohrCoulombPV.h"
+#include "Plasticity/TPZMatElastoPlastic2D.h"
+#include "Plasticity/TPZElasticResponse.h"
 // ---------- NeoPZ análise ----------
 
 #include "pzstepsolver.h"
@@ -56,7 +56,7 @@
 #include <memory>
 
 #include "pzskylstrmatrix.h"
-#include "pzelastoplasticanalysis.h"
+#include "Plasticity/pzelastoplasticanalysis.h"
 #include "pznonlinanalysis.h"
 #include "TPZEigenSolver.h"
 #include "TPZKrylovEigenSolver.h"
@@ -238,7 +238,10 @@ void ApplyLoad(TPZCompMesh* cmesh,
 bool RunAndAccept(TPZCompMesh* cmesh,REAL factor, int & itersout,REAL &resu,REAL &resf)
 {
         auto* body = dynamic_cast<plasticmat*>(cmesh->FindMaterial(1));
-        body->SetLoadFactor(factor);
+        // body->SetLoadFactor(factor);
+        //REIMPLEMENTAR
+        DebugStop();
+        //body->SetLoadFactor ( factor );
         cmesh->Solution().Zero();
 
 
@@ -470,9 +473,12 @@ plasticmat* CreateMaterial(REAL young, REAL poisson, REAL coes, REAL atrito,
         auto* material = new plasticmat(matid, planestrain);
         material->SetPlasticityModel(mc);
         material->SetId(matid);
-        material->SetWhichLoadVector(0);
-        material->SetLoadFactor(1.0);
-        material->SetBodyForce(bodyforce);
+        //REIMPLEMENTAR
+        DebugStop();
+
+        // material->SetWhichLoadVector(0);
+        // material->SetLoadFactor(1.0);
+        // material->SetBodyForce(bodyforce);
         return material;
 }
 
@@ -969,8 +975,10 @@ void RunDeterministic()
 
         TPZCompMesh* cmesh = CreateCMesh(gmesh, pOrder, mat);
 
-        mat->SetBodyForce(bodyforce);
-
+        // mat->SetBodyForce(bodyforce);
+        //REIMPLEMENTAR
+        DebugStop();
+        //body->SetLoadFactor ( factor );
         InitializeMemory(cmesh, coes, atrito);
 
         using Clock = std::chrono::steady_clock;
@@ -1178,7 +1186,9 @@ void SolveMonteCarlo(int pOrderfield ,int pOrderDeform,int reffield,int ref,int 
 
 
                 TPZCompMesh* cmesh   = CreateCMesh(gmesh2, pOrderDeform, mat);
-                mat->SetBodyForce(bodyforce);
+                //REIMPLEMENTAR
+                //mat->SetBodyForce(bodyforce);
+                DebugStop();
 
                 InitializeMemory(cmesh, coes, atrito);
                 for (int i=0;i<hhat1.Rows(); ++i) col1(i,0)  = hhat1(i,(int)s);

@@ -436,6 +436,7 @@
 #include "TPZMatKLKernel.h"
 #include "Elasticity/TPZMatElastic2DMem.h"
 #include "Elasticity/TPZElasticMem.h"
+#include "Plasticity/TPZElasticResponse.h"
 
 #include "pzpostprocanalysis.h"
 #include "pzstepsolver.h"

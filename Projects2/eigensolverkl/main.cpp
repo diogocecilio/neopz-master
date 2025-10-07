@@ -6,7 +6,7 @@
 #include "pzcmesh.h"
 #include "pzgeoquad.h"
 #include "pzintel.h"
-
+#include "Plasticity/TPZElasticResponse.h"
 #include "TPZEigenAnalysis.h"
 #include "TPZKrylovEigenSolver.h"
 #include "TPZLapackEigenSolver.h"

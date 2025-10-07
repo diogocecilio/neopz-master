@@ -9,7 +9,7 @@
 #include <TPZVTKGeoMesh.h>
 #include <pzbuildmultiphysicsmesh.h>
 #include <pzinterpolationspace.h>
-
+#include "Plasticity/TPZElasticResponse.h"
 #include "Elasticity/TPZElasticity2D.h"
 #include "DarcyFlow/TPZDarcyFlow.h"
 
@@ -37,7 +37,7 @@ using std::cout; using std::endl;
 static constexpr int   dim   = 2;
 static constexpr int   order = 2;
 static constexpr double tick = 1.0;   // (não usado aqui)
-static constexpr double lh   = 0.1;
+static constexpr double lh   = 1.0;
 static constexpr double lv   = 1.0;
 
 // materiais/BC ids
@@ -75,7 +75,7 @@ static void DumpGeoBCSummary(TPZGeoMesh* gmesh){
 TPZGeoMesh* CreateSingleQuadMesh()
 {
 
-    REAL co[4][2] = {{0.,0.},{0.1,0.},{0.1,1.},{0.,1.}};
+    REAL co[4][2] = {{0.,0.},{lh,0.},{lh,lv},{0.,lv}};
     long indices[1][4] = {{0,1,2,3}};
     TPZGeoEl *elvec[1];
     TPZGeoMesh *gmesh = new TPZGeoMesh();
@@ -110,9 +110,7 @@ TPZGeoMesh* CreateSingleQuadMesh()
     new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( 1, TopoLine, kBC_Bot, *gmesh );
 
 
-    TopoLine[0] = 0;
-    TopoLine[1] = 1;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( 8, TopoLine, kBC_Bot2, *gmesh );
+
 
     TopoLine[0] = 1;
     TopoLine[1] = 2;
@@ -138,10 +136,15 @@ TPZGeoMesh* CreateSingleQuadMesh()
 
     node[0]=1;
     new TPZGeoElRefPattern< pzgeom::TPZGeoPoint> ( 7, node, kBC_noderigth, *gmesh );//bottomrigth node
+
+
+    TopoLine[0] = 0;
+    TopoLine[1] = 1;
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( 8, TopoLine, kBC_Bot2, *gmesh );
     gmesh->BuildConnectivity();
 
     cout << "c" << endl;
-    for ( int d = 0; d<4; d++ )
+    for ( int d = 0; d<3; d++ )
     {
         int nel = gmesh->NElements();
         TPZManVector<TPZGeoEl *> subels;
@@ -275,41 +278,103 @@ static REAL g_perm= 1.e-10;
 static REAL g_mu  = 1.e-2;
 static REAL g_lv  = 1.;
 static REAL g_time= 0.0;
-static constexpr int KMAX = 10;
+static constexpr int KMAX = 20;
 
 // ---- 1) VERSÃO ESCALAR (para mat->SetExact) ----
-static void ExactP_scalar(const TPZVec<REAL>& x,
+static void Exact(const TPZVec<REAL>& x,
                           STATE& p,                  // <- escalar
                           TPZFMatrix<STATE>& grad)   // gradiente (d/dx,d/dy,d/dz)
 {
-    const REAL y = x[1];
+    REAL z = x[1];
+    //REAL t = g_time;
+    REAL L=g_lv;
     const REAL lambda = g_E*g_nu / ((1.+g_nu)*(1.-2.*g_nu));
     const REAL G      = g_E / (2.*(1.+g_nu));
-    const REAL D = (lambda + 2.*G) * g_perm / g_mu;
+    const REAL c = (lambda + 2.*G) * g_perm / g_mu;
 
-    REAL val = 0.0, dpy = 0.0;
-    for (int k=0; k<=KMAX; ++k) {
-        const REAL m    = (M_PI*0.5) * (2*k+1);
-        const REAL arg  = m * y / g_lv;
-        const REAL expo = std::exp( -(m*m)*D*g_time/(g_lv*g_lv) );
-        val += (2.0/m) * std::sin(arg) * expo;
-        dpy += (2.0/m) * (m/g_lv) * std::cos(arg) * expo;
+    REAL sigma0=1000.;
+    REAL gamma_val=1.;
+
+    REAL sum = 0.0;
+    REAL dpdz = 0.0;
+    REAL dpdt = 0.0;
+
+    for (int m = 0; m < 30; ++m) {
+        REAL n = 2*m + 1;
+        REAL coeff = 1.0 / n;
+        REAL lambda = n * M_PI / (2.0 * L);
+        REAL exponent = - (n*n * M_PI*M_PI * c * g_time) / (4.0 * L*L);
+        REAL exp_term = std::exp(exponent);
+        REAL sin_term = std::sin(lambda * z);
+        REAL cos_term = std::cos(lambda * z);
+
+        sum += coeff * exp_term * sin_term;
+
+        // Derivatives
+        dpdz += coeff * exp_term * lambda * cos_term;
+        dpdt += coeff * (-n*n * M_PI*M_PI * c / (4.0 * L*L)) * exp_term * sin_term;
     }
-    p = val*1000;
-    grad.Redim(3,1); grad.Zero();
-    grad(1,0) = dpy; // componente y
+
+    REAL factor = 4.0 * gamma_val * sigma0 / M_PI;
+    p = factor * sum;
+
+    grad.Resize(2,1); // [∂p/∂z, ∂p/∂t]
+    grad(0,0) = 0;
+    grad(1,0) = factor * dpdz;
+}
+// Exata do DESLOCAMENTO (u = [0, w(y,t)]), com gradiente espacial
+// Eq. (6.40): Δw(z,t) = c_m γ σ0 { (L - z) - (8L/π²) Σ_{m=0}^∞ [ 1/(2m+1)² e^{-((2m+1)² π² c t)/(4L²)} cos((2m+1)π z/(2L)) ] }
+static void ExactDisp(const TPZVec<REAL>& x,
+                      TPZVec<STATE>& u,              // vetor deslocamento [ux, uy]
+                      TPZFMatrix<STATE>& grad)       // grad(u): ∂u_j/∂x_i (i=row, j=col)
+{
+    const REAL y = x[1];      // coordenada vertical (z na equação)
+    const REAL L = g_lv;
+
+    // Constantes elásticas e hidráulicas
+    const REAL lambda = g_E*g_nu / ((1.+g_nu)*(1.-2.*g_nu));
+    const REAL G      = g_E / (2.*(1.+g_nu));
+
+    // difusividade uniaxial c = (λ+2G) k / μ  [m²/s]
+    const REAL c = (lambda + 2.*G) * g_perm / g_mu;
+
+    // compressibilidade uniaxial c_m = 1/(λ+2G)  [1/Pa]
+    const REAL cm = 1.0 / (lambda + 2.*G);
+
+    const REAL gamma_val = 1;   // eficiência de carregamento γ
+    const REAL sigma0    = 1000;  // amplitude de carga σ0
+
+    // Série
+    REAL series  = 0.0;  // termo com cos (...)
+    REAL dseries = 0.0;  // para ∂w/∂y  (usa sin (...))
+
+    for (int m = 0; m <= KMAX; ++m) {
+        const REAL n     = 2*m + 1;
+        const REAL alpha = n * M_PI / (2.0 * L);
+        const REAL expo  = std::exp( -(n*n * M_PI*M_PI) * c * g_time / (4.0 * L * L) );
+        series  += (1.0/(n*n)) * expo * std::cos(alpha * y);
+        dseries += (1.0/n)     * expo * std::sin(alpha * y);
+    }
+
+    // w(y,t)
+    const REAL w = cm * gamma_val * sigma0 *
+                   ( (L - y) - (8.0*L/(M_PI*M_PI)) * series );
+
+    // ∂w/∂y = c_m γ σ0 [ -1 + (4/π) Σ (1/(2m+1)) e^{...} sin(...) ]
+    const REAL dwdY = cm * gamma_val * sigma0 * ( -1.0 + (4.0/M_PI) * dseries );
+
+    // Saídas
+    u.Resize(2);                 // 2D: [ux, uy]
+    u[0] = 0.0;
+    u[1] = w;
+
+    grad.Redim(2,2);             // grad(u): rows= {x,y}, cols = {ux,uy}
+    grad.Zero();
+    // ∂ux/∂x = ∂ux/∂y = 0
+    // ∂uy/∂x = 0, ∂uy/∂y = dwdY
+    grad(1,1) = dwdY;
 }
 
-// ---- 2) ADAPTADOR VETORIAL (p/ TPZDummyFunction e BC/erros) ----
-static void ExactP_vec(const TPZVec<REAL>& x,
-                       TPZVec<STATE>& v,            // <- vetor tamanho 1
-                       TPZFMatrix<STATE>& grad)
-{
-    STATE p;
-    ExactP_scalar(x, p, grad);   // reutiliza cálculo
-    v.Resize(1);
-    v[0] = p;
-}
 
 #include "pzfstrmatrix.h"
 // ===== cria a mista, insere material poroelástico e BCs "reais" =====
@@ -350,31 +415,143 @@ static TPZCompMesh* CreateMPhysWithMaterialsAndBCs(TPZGeoMesh* gmesh)
     TPZFMatrix<STATE> v1(3,3,0.);
     TPZManVector<STATE,3> v2(3,0.);
 
-    v2[0] = 0.0;
-    v2[1] = 1.0;
-    mphys->InsertMaterialObject(mat->CreateBC(mat, kBC_Top, 3, v1, v2));//Direcional em y
+
+
     v2[0] = 1.0;
     v2[1] = 0.0;
     mphys->InsertMaterialObject(mat->CreateBC(mat, kBC_Left, 3, v1, v2));//Direcional em x
     v2[0] = 1.0;
     v2[1] = 0.0;
     mphys->InsertMaterialObject(mat->CreateBC(mat, kBC_Right, 3, v1, v2));//Direcional em x
-    v2[0] = 0.0;
-    v2[1] = 1000.;
-    mphys->InsertMaterialObject(mat->CreateBC(mat, kBC_Bot, 1, v1, v2));//tensao na base
 
-    //mat->SetForcingFunctionBC(ExactP);
-    mat->SetExact(ExactP_scalar);
+    v2[0] = 0.0;
+    v2[1] = 1.0;
+    mphys->InsertMaterialObject(mat->CreateBC(mat, kBC_Top, 3, v1, v2));//base presa em y
+
 
     v2[0] = 0.0;
     v2[1] = 0.0;
-    mphys->InsertMaterialObject(mat->CreateBC(mat, kBC_Bot2, 2, v1, v2));//pressao nula no topo
+    v2[2] = 0.0;//pressao
+    mphys->InsertMaterialObject(mat->CreateBC(mat, kBC_Bot2, 2, v1, v2));//pressao zero
 
+    // v2[0] = 0.0;
+    // v2[1] = 0.0;
+    // v2[2] = 1000;//pressao
+    // mphys->InsertMaterialObject(mat->CreateBC(mat, kBC_nodeleft, 2, v1, v2));//pressao zero
+
+    v2[0] = 0.0;
+    v2[1] = 1000.;
+    mphys->InsertMaterialObject(mat->CreateBC(mat, kBC_Bot, 1, v1, v2));//tensao no top
+
+    mat->SetExact(ExactDisp);
+    mat->SetExact(Exact);
     mphys->AutoBuild();
     mphys->AdjustBoundaryElements();
     mphys->CleanUpUnconnectedNodes();
 
     return mphys;
+}
+
+
+int main()
+{
+    const std::string configfile = "/home/diogo/projects/neopz-master-build-debug/Util/log4cxx.cfg";
+    TPZLogger::InitializePZLOG(configfile);
+    // -------------------- 1) MALHAS --------------------
+    TPZGeoMesh *gmesh   = CreateSingleQuadMesh();
+
+    TPZCompMesh *cmeshU = CMeshElastic (gmesh);
+    TPZCompMesh *cmeshP = CMeshPressure(gmesh);
+
+    // -------------------- 2) MULTIFÍSICA --------------------
+    TPZCompMesh *mphys = CreateMPhysWithMaterialsAndBCs(gmesh);
+
+    TPZVec<TPZCompMesh*> meshvec(2);
+    meshvec[0] = cmeshU;  // u
+    meshvec[1] = cmeshP;  // p
+    TPZBuildMultiphysicsMesh::AddElements(meshvec, mphys);
+    TPZBuildMultiphysicsMesh::AddConnects(meshvec, mphys);
+    TPZBuildMultiphysicsMesh::TransferFromMeshes(meshvec, mphys);
+    mphys->LoadReferences();
+
+    InitializeMemory(mphys, young, nu);
+
+    // pega o material para configurar dt e (opcional) histórico
+    auto *mat = dynamic_cast<TPZMatPoroElastic2DMem<TPZElasticMem>*>(mphys->FindMaterial(kMatVol));
+    if (!mat) { std::cerr << "Material poroelástico não encontrado.\n"; return 1; }
+
+
+
+    // -------------------- 3) ANÁLISE --------------------
+    TPZLinearAnalysis an(mphys,false);
+
+
+   // // TPZSkylineStructMatrix<REAL> str(mphys);
+    TPZFStructMatrix<REAL> str(mphys);
+     an.SetStructuralMatrix(str);
+     TPZStepSolver<REAL> direct;
+     direct.SetDirect(ELU);
+     an.SetSolver(direct);
+
+
+
+     // TPZSSpStructMatrix<STATE> str ( mphys );
+     // // an.SetStructuralMatrix ( str );
+     // // TPZPardisoSolver<REAL> *pardiso = new TPZPardisoSolver<REAL>;
+     // // an.SetSolver ( *pardiso );
+     //
+     // an.SetStructuralMatrix(str);
+     // TPZStepSolver<REAL> direct;
+     // direct.SetDirect(ELU);
+     // an.SetSolver(direct);
+
+    TPZStack<std::string> scal, vecs;
+    vecs.Push("Displacement");
+    vecs.Push("Flux");
+    vecs.Push("ExactPressureGradiendSolution");
+    vecs.Push("GradP");
+    vecs.Push("ExactDisplacement");
+    scal.Push("Pressure");
+    scal.Push("ExactPressureSolution");
+
+    an.DefineGraphMesh(2, scal, vecs, "sol.vtk");
+
+
+    std::ofstream out("/home/diogo/projects/neopz-master/Projects2/PoroElastic/kpz.csv");
+    std::ofstream oute("/home/diogo/projects/neopz-master/Projects2/PoroElastic/fpz.csv");
+     std::ofstream outs("/home/diogo/projects/neopz-master/Projects2/PoroElastic/solpz.csv");
+     REAL scale=1.1;
+     REAL t=0.;
+     REAL dt=1.e-12;
+     g_time=t;
+
+    for(int it=1;it<=1;it++)
+    {
+        std::cout<<"Time  = "<< t << " Normrhs =" << Norm(an.Rhs()) << std::endl;
+        dt = pow(scale,it) - t;
+
+        mat->SetTimeStep(dt);
+
+        mat->SetUpdateMem(true);
+
+        an.Assemble();
+
+        an.Solve();
+
+
+
+        an.SetStep(it);
+
+        an.PostProcess(0);
+
+        mat->SetUpdateMem(false);
+
+        t+=dt;
+
+        g_time=t;
+    }
+
+    return 0;
 }
 // rotula linhas de uma malha H1: "uxN/uyN" se ndof par, "pN" se ndof ímpar
 static std::vector<std::string> LabelsFromSubmesh(TPZCompMesh* cmesh, char kind /*'u' ou 'p'*/){
@@ -453,353 +630,3 @@ void PrintFMat(const TPZFMatrix<STATE>& mat,
         out << '\n';
     }
 }
-
-
-int main()
-{
-    // -------------------- 1) MALHAS --------------------
-    TPZGeoMesh *gmesh   = CreateSingleQuadMesh();
-
-    TPZCompMesh *cmeshU = CMeshElastic (gmesh);
-    TPZCompMesh *cmeshP = CMeshPressure(gmesh);
-
-    // -------------------- 2) MULTIFÍSICA --------------------
-    TPZCompMesh *mphys = CreateMPhysWithMaterialsAndBCs(gmesh);
-
-    TPZVec<TPZCompMesh*> meshvec(2);
-    meshvec[0] = cmeshU;  // u
-    meshvec[1] = cmeshP;  // p
-    TPZBuildMultiphysicsMesh::AddElements(meshvec, mphys);
-    TPZBuildMultiphysicsMesh::AddConnects(meshvec, mphys);
-    TPZBuildMultiphysicsMesh::TransferFromMeshes(meshvec, mphys);
-    mphys->LoadReferences();
-
-    InitializeMemory(mphys, young, nu);
-
-    // pega o material para configurar dt e (opcional) histórico
-    auto *mat = dynamic_cast<TPZMatPoroElastic2DMem<TPZElasticMem>*>(mphys->FindMaterial(kMatVol));
-    if (!mat) { std::cerr << "Material poroelástico não encontrado.\n"; return 1; }
-
-
-
-    // -------------------- 3) ANÁLISE --------------------
-    TPZLinearAnalysis an(mphys,false);
-   // TPZSkylineStructMatrix<REAL> str(mphys);
-    TPZFStructMatrix<REAL> str(mphys);
-    an.SetStructuralMatrix(str);
-    TPZStepSolver<REAL> direct;
-    direct.SetDirect(ELU);
-    an.SetSolver(direct);
-
-
-     // TPZSSpStructMatrix<STATE> SSpStructMatrix ( mphys );
-     // an.SetStructuralMatrix ( SSpStructMatrix );
-     // TPZPardisoSolver<REAL> *pardiso = new TPZPardisoSolver<REAL>;
-     // an.SetSolver ( *pardiso );
-
-     // an.SetStructuralMatrix(SSpStructMatrix);
-     // TPZStepSolver<REAL> direct;
-     // direct.SetDirect(ELU);
-     // an.SetSolver(direct);
-
-    TPZStack<std::string> scal, vecs;
-    vecs.Push("Displacement");
-    scal.Push("Pressure");
-    scal.Push("ExactPressureSolution");
-    an.DefineGraphMesh(2, scal, vecs, "sol.vtk");
-
-
-    std::ofstream out("/home/diogo/projects/neopz-master/Projects2/PoroElastic/kpz.csv");
-    std::ofstream oute("/home/diogo/projects/neopz-master/Projects2/PoroElastic/fpz.csv");
-     std::ofstream outs("/home/diogo/projects/neopz-master/Projects2/PoroElastic/solpz.csv");
-     REAL scale=1.1;
-     REAL t=0.;
-     REAL dt=1.e-12;
-     g_time=t;
-
-    for(int it=1;it<=55;it++)
-    {
-
-
-        dt = pow(scale,it) - t;
-        mat->SetTimeStep(dt);
-        mat->SetUpdateMem(true);
-        an.Assemble();
-        mat->SetUpdateMem(false);
-        auto *msolver = dynamic_cast<TPZMatrixSolver<STATE>*>(an.Solver());
-        TPZFMatrix<STATE> K= *msolver->Matrix();
-        //PrintKWithSubmeshLabels(an, mphys, meshvec[0], meshvec[1]);
-        TPZFMatrix<STATE> f1=an.Rhs();
-        ///f1.Print("f1");
-        an.AssembleResidual();
-        TPZFMatrix<STATE> f2=an.Rhs();
-        //f2.Print("f2");
-        f2+=f1;
-        an.Rhs()=f2;
-        //f2.Print("f2full");
-        //std::cout << std::fixed << std::setprecision(20);
-        //std::cout << "\nKglob (do solver) =\n";
-        //K.Print("Kglob", std::cout, EFormatted);
-        //PrintFMat(K,out);
-        //PrintFMat(an.Rhs(),oute);
-        //PrintFMat(an.Solution(),outs);
-
-
-        an.Solve();
-        //K.Print("KGlobal");
-        //an.Rhs().Print("RHS");
-        //an.Solution().Print("sol");
-
-
-        // depois que mphys estiver montada (AddElements/AddConnects/TransferFromMeshes prontos):
-       // K.Print("kglob ", std::cout, ECSV);
-        // //f2.Print("b ", out, ECSV);
-
-        TPZBuildMultiphysicsMesh::TransferFromMultiPhysics(meshvec, mphys);
-
-        an.SetStep(it);
-        an.PostProcess(0);
-
-
-        mat->SetUpdateMem(false);
-
-        //dt=0.1;
-        t+=dt;
-        g_time=t;
-    }
-
-    //an.Solve();
-
-    // auto *msolver = dynamic_cast<TPZMatrixSolver<STATE>*>(an.Solver());
-    //
-    // auto K = msolver->Matrix();
-    // std::cout << std::fixed << std::setprecision(10);
-    // std::cout << "\nKglob (do solver) =\n";
-    // //K->Print("Kglob", std::cout, EFormatted);
-    // K->Print("Kglob");
-
-//     // -------------------- 4) LOOP EM TEMPO (Backward-Euler) --------------------
-//
-//     const int varU = mat->VariableIndex("Displacement"); // [ux,uy]
-//     const int varP = mat->VariableIndex("Pressure");     // p
-//                 // ajuste
-//     const int  nsteps = 5;          // ajuste
-//
-//     // gráfico (define uma vez)
-//     TPZStack<std::string> scal, vecs;
-//     scal.Push("Pressure");
-//     vecs.Push("Displacement");
-//     an.DefineGraphMesh(2, scal, vecs, "solution.vtk");
-//
-//     std::cout << std::scientific << std::setprecision(6);
-//
-//     std::ofstream prof("saida.csv");
-//     prof << "step,time,y,uy,p\n";
-//     REAL t=0.;
-//     REAL dt =0.000001;
-//     TPZFMatrix<STATE> u_n = meshvec[0]->Solution();
-//     TPZFMatrix<STATE> p_n= meshvec[1]->Solution();
-//     TPZFMatrix<STATE> u_n1 = meshvec[0]->Solution();
-//     TPZFMatrix<STATE> p_n1= meshvec[1]->Solution();
-//     for (int it = 1; it <= 2; ++it)
-//     {
-//
-//         mat->SetTimeStep(dt);
-//
-//        // mat->SetUpdateMem(false);
-//
-//         an.Assemble();
-//
-//         //an.Rhs().Print("RHS");
-//
-//         an.Solve();
-//
-//         an.PostProcess(0);
-//         u_n= u_n1;
-//         p_n = p_n1;
-//
-//         // prints do passo
-//         const TPZFMatrix<STATE> &sol = an.Solution();
-//
-//         mphys->LoadSolution(sol);
-//
-//
-//         TPZBuildMultiphysicsMesh::TransferFromMultiPhysics(meshvec, mphys);
-//         u_n1= meshvec[0]->Solution();
-//         p_n1= meshvec[1]->Solution();
-//
-//         u_n-=u_n1;
-//         p_n-=p_n1;
-//         cout<<  std::scientific << std::setprecision(12)<< "time = "<< t << " dt = "<< dt << " normdu = " << Norm(u_n) << " normdp = " << Norm(p_n) <<endl;
-//
-//
-//         mat->SetUpdateMem(true);
-//         an.Assemble();          // <- percorre elementos/IPs, chama Contribute e UpdatePorePressure
-//         mat->SetUpdateMem(false);
-//
-//
-//         t+=dt;
-//         dt = pow(1.1,it) - t;
-//          // você verá 'solution_inc.vtk' com múltiplos steps
-//     }
-
-    return 0;
-}
-
-/*
-int main2()
-{
-    // -------------------- 1) MALHAS --------------------
-    TPZGeoMesh *gmesh   = CreateSingleQuadMesh();
-    TPZCompMesh *cmeshU = CMeshElastic (gmesh);
-    TPZCompMesh *cmeshP = CMeshPressure(gmesh);
-
-    // -------------------- 2) MULTIFÍSICA --------------------
-    TPZCompMesh *mphys = CreateMPhysWithMaterialsAndBCs(gmesh);
-
-    // acopla submalhas → mista (sem AutoBuild)
-    TPZVec<TPZCompMesh*> meshvec(2);
-    meshvec[0] = cmeshU;  // u
-    meshvec[1] = cmeshP;  // p
-    TPZBuildMultiphysicsMesh::AddElements(meshvec, mphys);
-    TPZBuildMultiphysicsMesh::AddConnects(meshvec, mphys);
-    TPZBuildMultiphysicsMesh::TransferFromMeshes(meshvec, mphys);
-    mphys->LoadReferences();
-    AddBoundaryCompElsToMF(mphys); // cria comp-BCs na mista
-    mphys->CleanUpUnconnectedNodes();
-
-    // memória elástica (E,ν) nos IPs
-    InitializeMemory(mphys, young, nu);
-
-    // pega o material e índices de pós-processo
-    auto *mat = dynamic_cast<TPZMatPoroElastic2DMem<TPZElasticMem>*>(mphys->FindMaterial(kMatVol));
-    if (!mat) { std::cerr << "Material poroelástico não encontrado.\n"; return 1; }
-    const int varU = mat->VariableIndex("Displacement"); // [ux,uy]
-    const int varP = mat->VariableIndex("Pressure");     // p
-
-    // -------------------- 3) ANÁLISE --------------------
-    TPZLinearAnalysis an(mphys,false);
-    TPZSkylineStructMatrix<REAL> str(mphys);
-    an.SetStructuralMatrix(str);
-    TPZStepSolver<REAL> direct; direct.SetDirect(ELDLt);
-    an.SetSolver(direct);
-
-    REAL dt=1;
-    mat->SetTimeStep(dt);
-
-    an.Assemble();
-    an.Solve();
-
-    auto *msolver = dynamic_cast<TPZMatrixSolver<STATE>*>(an.Solver());
-
-    auto K = msolver->Matrix();
-    std::cout << std::fixed << std::setprecision(10);
-    std::cout << "\nKglob (do solver) =\n";
-    K->Print("Kglob", std::cout, EFormatted);
-
-//     */
-// // ---- PoroLogger.hpp (ou num .cpp seu) -----------------------
-// #include <fstream>
-// #include <iomanip>
-// #include <string>
-// #include <cmath>
-//
-// struct PoroLogger {
-//     std::ofstream csv;
-//     std::string   path;
-//     const char*   logo = "⟦ PZ·PORO ⟧";
-//
-//     void OpenCSV(const std::string& p) {
-//         path = p;
-//         csv.open(path, std::ios::out | std::ios::trunc);
-//         // cabeçalho
-//         csv << "step,time,rhs_norm,rhs_u_norm,rhs_p_norm,"
-//         "delta_norm,delta_u_norm,delta_p_norm,"
-//         "p_min,p_mean,p_max,uy_top\n";
-//         csv.flush();
-//     }
-//
-//     // imprime e escreve CSV em uma chamada
-//     void PrintAndCSV(int step, double t,
-//                      double rhs_norm, double rhsu_norm, double rhsp_norm,
-//                      double delta_norm, double deltau_norm, double deltap_norm,
-//                      double pmin, double pmean, double pmax,
-//                      double uy_top = 0.0)
-//     {
-//         std::cout << std::fixed << std::setprecision(6)
-//         << logo << " step=" << step
-//         << "  t=" << t
-//         << "  ||rhs||=" << rhs_norm
-//         << " (u=" << rhsu_norm << ", p=" << rhsp_norm << ")"
-//         << "  ||Δ||=" << delta_norm
-//         << "  ||Δu||=" << deltau_norm
-//         << "  ||Δp||=" << deltap_norm
-//         << "  p[min,mean,max]=[" << pmin << "," << pmean << "," << pmax << "]"
-//         << "  uy_top=" << uy_top
-//         << "\n";
-//
-//         if (csv.is_open()) {
-//             csv << step << ','
-//             << std::setprecision(16) << t << ','
-//             << rhs_norm << ',' << rhsu_norm << ',' << rhsp_norm << ','
-//             << delta_norm << ',' << deltau_norm << ',' << deltap_norm << ','
-//             << pmin << ',' << pmean << ',' << pmax << ','
-//             << uy_top << '\n';
-//             csv.flush();
-//         }
-//     }
-// };
-//
-// // utilitário para separar a norma do RHS entre u e p (assumindo ordenação [u|p])
-// inline void SplitRHS_UP(const TPZFMatrix<STATE>& rhs, int nequ_u,
-//                         double& rhsu_norm, double& rhsp_norm)
-// {
-//     double su=0., sp=0.;
-//     const int neq = rhs.Rows();
-//     for (int i=0; i<nequ_u; ++i) { const double v = rhs(i,0); su += v*v; }
-//     for (int i=nequ_u; i<neq;  ++i) { const double v = rhs(i,0); sp += v*v; }
-//     rhsu_norm = std::sqrt(su);
-//     rhsp_norm = std::sqrt(sp);
-// }
-//
-//
-// TPZVec<REAL>  UyAtPoint(TPZCompMesh* cmesh, REAL x, REAL y,int var)
-// {
-//     TPZGeoMesh* gmesh = cmesh->Reference();
-//     TPZManVector<REAL,3> X(3,0.); X[0]=x; X[1]=y;
-//     TPZManVector<REAL,3> qsi(3,0.);
-//     int64_t elid=0;
-//
-//     cmesh->LoadReferences();          // liga cada TPZGeoEl ao seu TPZCompEl
-//     TPZGeoEl* gel = gmesh->FindElement(X, qsi, elid, /*dim=*/2);
-//     if(!gel || !gel->Reference()) DebugStop();
-//
-//     auto* cel = dynamic_cast<TPZMultiphysicsElement*>(gel->Reference());
-//     if(!cel) DebugStop();
-//
-//     TPZVec<REAL> sol;
-//     cel->Solution(qsi, var, sol);
-//     return sol; // componente y
-// }
-// #include "pzcreateapproxspace.h"  // se precisar do ApproxSpace()
-
-// static void AddBoundaryCompElsToMF(TPZCompMesh* mphys)
-// {
-//     TPZGeoMesh* gmesh = mphys->Reference();
-//     const int gdim = gmesh->Dimension();
-//     int64_t index = -1;
-//
-//     // garanta que a mista sabe criar elementos multifísicos (com memória)
-//     mphys->SetAllCreateFunctionsMultiphysicElemWithMem();
-//
-//     for (auto gel : gmesh->ElementVec()) {
-//         if (!gel) continue;
-//         if (gel->Dimension() != gdim-1) continue;       // só borda
-//         const int bcid = gel->MaterialId();
-//         if (!mphys->FindMaterial(bcid)) continue;       // só IDs com material BC inserido na mista
-//
-//         // ✅ uma das duas linhas abaixo (conforme sua versão):
-//         mphys->CreateCompEl(gel);
-//          //mphys->ApproxSpace().CreateCompEl(gel, *mphys);
-//     }
-// }

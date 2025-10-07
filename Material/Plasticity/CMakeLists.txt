@@ -60,6 +60,9 @@ set(headers
     tpzyctrescaregularized.h
     tpzycvonmises_interface.h
     tpzycvonmisescombtresca.h
+    TPZMatPoroElastoPlastic2DMem.h
+    TPZYCVonMisesPV.h
+    TPZPlasticStepVoigt.h
     )
 
 set(sources
@@ -106,6 +109,9 @@ set(sources
     pzporoanalysis.cpp
     pzporoelastoplasticmem.cpp
     tpzycvonmisescombtresca.cpp
+    TPZMatPoroElastoPlastic2DMem.cpp
+    TPZYCVonMisesPV.cpp
+    TPZPlasticStepVoigt.cpp
     )
 
 set(PZ_FIX_PLASTIC_TRANSLATORS OFF)
@@ -132,6 +138,9 @@ if(PZ_FIX_PLASTIC_TRANSLATORS)
         TPZYCSandlerDimaggioL2Translator.h
         TPZYCSandlerDimaggioLTranslator.h
         TPZYCSandlerDimaggioTranslator.h
+        TPZMatPoroElastoPlastic2DMem.h
+        TPZYCVonMisesPV.h
+        TPZPlasticStepVoigt.h
         )
 
     list(APPEND sources
@@ -155,6 +164,9 @@ if(PZ_FIX_PLASTIC_TRANSLATORS)
         TPZYCSandlerDimaggioL2Translator.cpp
         TPZYCSandlerDimaggioLTranslator.cpp
         TPZYCSandlerDimaggioTranslator.cpp
+        TPZMatPoroElastoPlastic2DMem.cpp
+        TPZYCVonMisesPV.cpp
+        TPZPlasticStepVoigt.cpp
         )
 endif()
 

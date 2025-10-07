@@ -115,13 +115,14 @@ public:
 
     virtual TPZPlasticState<REAL> GetLocalMatState (  )override
 	{
-//         TPZPlasticState<REAL> locstate;
-//         locstate.fmatprop.Resize(3);
-//         locstate.fmatprop[0]=fc;
-//         locstate.fmatprop[1]=fPhi;
-//         locstate.fmatprop[2]=fPsi;
-//         return locstate;
+        TPZPlasticState<REAL> locstate;
+        locstate.fmatprop.Resize(3);
+        locstate.fmatprop[0]=fc;
+        locstate.fmatprop[1]=fPhi;
+        locstate.fmatprop[2]=fPsi;
         DebugStop();
+        return locstate;
+//
 	}
 
     virtual void ChangeLocalMatParameters( TPZPlasticState<REAL> & state ,REAL factor) override

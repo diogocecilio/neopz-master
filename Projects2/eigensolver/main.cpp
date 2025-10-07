@@ -16,6 +16,7 @@
 #include "Elasticity/TPZElasticity2DGenEVP.h"
 #include <pzskylstrmatrix.h>
 #include "pzpostprocanalysis.h"
+#include "Plasticity/TPZElasticResponse.h"
 // Função para criar uma malha 1D simples
 using namespace std;
 TPZGeoMesh *CreateGeoMeshBending(int nref)

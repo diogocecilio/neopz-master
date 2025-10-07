@@ -16,7 +16,10 @@
  * Implements an elastoplastic material and uses the memory feature to store the damage variables
  * This material works only together with the Plasticity Library.
  */
-
+#ifdef PZ_LOG
+// escolha um nome de categoria claro (use pontos para hierarquia)
+static TPZLogger loggerplastic2d("materials.plastic2d");
+#endif
 template <class T, class TMEM = TPZElastoPlasticMem>
 class  TPZMatElastoPlastic2D : public TPZMatElastoPlastic<T,TMEM> //, TPZMatWithMem<TMEM>
 {
@@ -33,7 +36,7 @@ public:
 	 *  contains the index of the material object within the
 	 *  vector
 	 */
-	TPZMatElastoPlastic2D(int id ,  int PlaneStrainOrPlaneStress);
+	TPZMatElastoPlastic2D(int id ,  int PlaneStrainOrPlaneStress=1);
 	
 	/** Creates a material object based on the referred object and
 	 *  inserts it in the vector of material pointers of the mesh.

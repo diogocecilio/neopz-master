@@ -84,6 +84,14 @@ inline void TPZCompElWithMem<TBASE>::PrepareIntPtIndices() {
         } //Loop over integratin points generating a reference vector of memory
         //entries in the related pzmatwithmem for further use.
     }
+    #ifdef PZ_LOG
+    if (CompElWMemlogger.isDebugEnabled()) {
+        std::ostringstream oss;
+        oss << "[F] PrepareIntPtIndices el="<< this->Index()
+        << " NPoints="<< intrule.NPoints() << "\n";
+        LOGPZ_DEBUG(CompElWMemlogger, oss.str());
+    }
+    #endif
 }
 
 

@@ -2,14 +2,14 @@
 #include "TPZBndCondT.h"
 #include "pzfmatrix.h"
 #include "pzerror.h"
-#include "Elasticity/TPZElasticMem.h" // ajuste o path se necessário
+#include "Elasticity/TPZElasticMem.h"
 
 // ---------- ctor ----------
 template <class TMEM>
 TPZMatPoroElastic2DMem<TMEM>::TPZMatPoroElastic2DMem(int matid, EPlaneType plane)
 : TBase(matid), fPlane(plane) {}
 
-// ---------- memória elástica ----------
+// ---------- memria elstica ----------
 template <class TMEM>
 void TPZMatPoroElastic2DMem<TMEM>::SetElasticResponse(const TPZElasticResponse &ER)
 {
@@ -41,7 +41,7 @@ void TPZMatPoroElastic2DMem<TMEM>::FillBoundaryConditionDataRequirements(int, TP
     }
 }
 
-// ---------- pós-processo ----------
+// ---------- ps-processo ----------
 template <class TMEM>
 int TPZMatPoroElastic2DMem<TMEM>::VariableIndex(const std::string &name) const {
     if (name=="Displacement") return EDisplacement;
@@ -53,6 +53,9 @@ int TPZMatPoroElastic2DMem<TMEM>::VariableIndex(const std::string &name) const {
     if (name=="Poisson")      return EPoisson;
     if (name=="POrder")       return EPOrder;
     if (name=="ExactPressureSolution")      return EExactPressure;
+    if (name=="ExactPressureGradiendSolution")      return ExactPressureGradiendSolution;
+    if (name=="GradP")      return EGradP;
+    if (name=="ExactDisplacement")      return EExactDisplacement;
     return -1;
 }
 
@@ -68,6 +71,9 @@ int TPZMatPoroElastic2DMem<TMEM>::NSolutionVariables(int var) const {
         case EPoisson:      return 1;
         case EPOrder:       return 1;
         case EExactPressure:       return 1;
+        case ExactPressureGradiendSolution: return 3;
+        case EGradP: return 3;
+        case EExactDisplacement: return 3;
     }
     return 0;
 }
@@ -81,7 +87,7 @@ void TPZMatPoroElastic2DMem<TMEM>::Solution(const TPZVec<TPZMaterialDataT<STATE>
 {
     const auto &dataU = datavec[0];
     const auto &dataP = datavec[1];
-    // solução exata (se fornecida)
+    // soluo exata (se fornecida)
     STATE uex = 0.;
     TPZFMatrix<STATE> duex; duex.Redim(2,1); duex.Zero();
     if (fExact) fExact(dataP.x, uex, duex);
@@ -91,7 +97,14 @@ void TPZMatPoroElastic2DMem<TMEM>::Solution(const TPZVec<TPZMaterialDataT<STATE>
     if (var==EPressure){ Sol.Resize(1); Sol[0] = (dataP.sol.size()? (REAL)dataP.sol[0][0] : 0.0); return; }
     if (var==EExactPressure){ Sol.Resize(1); Sol[0] = uex; return; }
     if (var==EPOrder)  { Sol.Resize(1); Sol[0]=(REAL)dataU.p; return; }
-
+    if (var==EExactDisplacement){
+        TPZVec<STATE>  exacdisplacement;
+        if (fExactVec) fExactVec(dataP.x, exacdisplacement, duex);
+        const REAL ux = exacdisplacement[0];
+        const REAL uy = exacdisplacement[1];
+        Sol.Resize(3); Sol[0]=ux; Sol[1]=uy; Sol[2]=0.0;
+        return;
+    }
 
 
     // gradientes
@@ -133,6 +146,19 @@ void TPZMatPoroElastic2DMem<TMEM>::Solution(const TPZVec<TPZMaterialDataT<STATE>
         Sol[1] = -k_over_mu * (dpdy - frhof*fG[1]);
         Sol[2] = 0.0; return;
     }
+    if (var==EGradP){
+        Sol.Resize(3);
+        Sol[0] = dpdx ;
+        Sol[1] = dpdy ;
+        Sol[2] = 0.0; return;
+    }
+    if (var==ExactPressureGradiendSolution){
+        Sol.Resize(3);
+        Sol[0] = duex(0,0);
+        Sol[1] = duex(1,0);
+        Sol[2] = 0.;
+        return;
+    }
 }
 
 template <class TMEM>
@@ -160,7 +186,7 @@ void TPZMatPoroElastic2DMem<TMEM>::Contribute(
     const int off_u = 0;
     const int off_p = dim*nU;
 
-    // ------------- parâmetros materiais -------------
+    // ------------- parmetros materiais -------------
     STATE E, nu; ERFromMem(dataU, E, nu);
 
     TPZFMatrix<STATE> D(3,3,0.);
@@ -169,7 +195,7 @@ void TPZMatPoroElastic2DMem<TMEM>::Contribute(
     // Matrizes locais
     TPZFMatrix<STATE> Bu, Bp, Ke, Qe, He, Se;
 
-    // construir “B”s
+    // construir Bs
     BuildBu(dphiU, Bu);            // Bu: (3 x 2*nU) em Voigt
     BuildBp(dphiP, Bp);            // Bp: (dim x nP)
 
@@ -178,7 +204,7 @@ void TPZMatPoroElastic2DMem<TMEM>::Contribute(
     TPZFMatrix<STATE> But; Bu.Transpose(&But);
     But.Multiply(DBu, Ke);
 
-    // --- He = (k/μ) * (Bp^T Bp)
+    // --- He = (k/) * (Bp^T Bp)
     TPZFMatrix<STATE> Bpt; Bp.Transpose(&Bpt);
     Bpt.Multiply(Bp, He);
     He *= (fk/fmu);
@@ -186,7 +212,7 @@ void TPZMatPoroElastic2DMem<TMEM>::Contribute(
     //He.Print("He");
     // --- Se = Se * (phiP^T phiP)
     TPZFMatrix<STATE> phiPt; phiP.Transpose(&phiPt);
-    phiP.Multiply(phiPt, Se);      // atenção: phiP * phiP^T
+    phiP.Multiply(phiPt, Se);      // ateno: phiP * phiP^T
     Se *= fSe;
     //std::cout << "Se = "<<std::endl;
     //Se.Print("Se");
@@ -207,6 +233,10 @@ void TPZMatPoroElastic2DMem<TMEM>::Contribute(
     const int npeqs = nP;
 
 
+    //euler implicito
+    // |K  -Q      | |un1|= |fu           |
+    // |QT  S+dt H | |pn1|  |fq+QT un+S pn|
+
     for (int i = 0; i < nueqs; ++i)
     {
         for (int j = 0; j < nueqs; ++j)
@@ -224,9 +254,6 @@ void TPZMatPoroElastic2DMem<TMEM>::Contribute(
         }
 
     }
-
-
-
 
     for (int i = 0; i < npeqs; ++i)
     {
@@ -259,13 +286,14 @@ void TPZMatPoroElastic2DMem<TMEM>::Contribute(
     TPZFMatrix<STATE> gvec(dim,1,0.);
     gvec(0,0) = fG[0]; gvec(1,0) = fG[1];
 
-    // q_H = (k/μ) Bp^T ∇p0
-    // q_h = ρ_f (k/μ) Bp^T g
+
     //TPZFMatrix<STATE> gradp(dim,1,0.); for (int k=0;k<dim;k++) gradp(k,0)=m->MemItem(gp).fdPorePressure[k];
 
     TPZFMatrix<REAL> gradp=dataP.dsol[0];
-    TPZFMatrix<STATE> qH; Bpt.Multiply(gradp, qH); // (nP x 1)
-    TPZFMatrix<STATE> qh; Bpt.Multiply(gvec, qh);
+    TPZFMatrix<STATE> qH;
+    Bpt.Multiply(gradp, qH); // (nP x 1) (k/) Bp^T p0
+    TPZFMatrix<STATE> qh;
+    Bpt.Multiply(gvec, qh); //_f (k/) Bp^T g
     //gradp.Print("GradP");
     //qH.Print("qH");
     //qh.Print("qh");
@@ -274,9 +302,31 @@ void TPZMatPoroElastic2DMem<TMEM>::Contribute(
     {
         //ef(off_p + i, 0) += weight *(fk/fmu)* (qh(i,0)*frhof  - qH(i,0) )*fTimeStep ;
     }
+//
+
+    TPZFMatrix<REAL> gradu=dataU.dsol[0];
+    REAL pressure=dataP.sol[0][0];
+    for (int i=0;i<nP;i++)
+    {
+        ef(off_p + i,0) += weight *   falpha * (gradu(0,0)+gradu(1,1)) * dataP.phi(i,0) ;// - Q^T u^n  -> -  div(u^n) * _p
+        ef(off_p + i,0) += weight *  fSe * pressure * dataP.phi(i,0) ;//- S p^n
+    }
 
 
+    #ifdef PZ_LOG
+    if (logger_poro_elastic.isDebugEnabled()) {
+        std::ostringstream oss;
 
+        oss << "datavec.size()=" << datavec.size() << "\n";
+        for (size_t i = 0; i < datavec.size(); ++i) {
+            oss << " slot " << i
+            << " intLocPtIndex="  << datavec[i].intLocPtIndex
+            << " intGlobPtIndex=" << datavec[i].intGlobPtIndex << "\n";
+            //datavec[i].Print(oss);
+        }
+        LOGPZ_INFO(logger_poro_elastic, oss.str());
+    }
+    #endif
 
 
 }
@@ -303,7 +353,7 @@ void TPZMatPoroElastic2DMem<TMEM>::Contribute(const TPZVec<TPZMaterialDataT<STAT
     REAL pressure=dataP.sol[0][0];
 
 
-    // - Q^T u^n  -> - α div(u^n) * φ_p
+    // - Q^T u^n  -> -  div(u^n) * _p
     const STATE divu_prev = m->MemItem(gp).fGradSolU(0,0) + m->MemItem(gp).fGradSolU(1,1);
     for (int i=0;i<nP;i++)
         ef(off_p + i,0) += weight *   falpha * (gradu(0,0)+gradu(1,1)) * dataP.phi(i,0) ;
@@ -315,11 +365,11 @@ void TPZMatPoroElastic2DMem<TMEM>::Contribute(const TPZVec<TPZMaterialDataT<STAT
         ef(off_p + i,0) += weight *  fSe * pressure * dataP.phi(i,0) ;
         //ef(off_p + i,0) += weight *  fSe * m->MemItem(gp).fPorePressure * dataP.phi(i,0) ;
 
-    // // + (1-ξ) Δt H p^n  with H = (k/μ) ∇p · ∇φ
+    // // + (1-) t H p^n  with H = (k/) p � 
     // const STATE coeff = (1.0 - 1) * fTimeStep * (fk/fmu);
     // if (coeff != 0.0){
     //     for (int i=0;i<nP;i++){
-    //         // grad φ_i in global
+    //         // grad _i in global
     //         STATE dphix = dataP.dphix(0,i), dphiy = dataP.dphix(1,i);
     //         STATE dot = mem.fdPorePressure[0]*dphix + mem.fdPorePressure[1]*dphiy;
     //         ef(off_p + i,0) += weight * coeff * dot;
@@ -367,8 +417,8 @@ void TPZMatPoroElastic2DMem<TMEM>::ContributeBC(
         {
 
             for (int i=0;i<nU;++i){
-                ef(off_u+2*i+0,0) += big * (V2[0]- datavec[0].sol[0][0]) * phiU(i,0) * weight;
-                ef(off_u+2*i+1,0) += big * (V2[1]- datavec[0].sol[0][0]) * phiU(i,0) * weight;
+                ef(off_u+2*i+0,0) += big * (V2[0]) * phiU(i,0) * weight;
+                ef(off_u+2*i+1,0) += big * (V2[1]) * phiU(i,0) * weight;
                 for (int j=0;j<nU;++j){
                     const STATE pen = big * phiU(i,0) * phiU(j,0) * weight;
                     ek(off_u+2*i+0, off_u+2*j+0) += pen;
@@ -394,7 +444,7 @@ void TPZMatPoroElastic2DMem<TMEM>::ContributeBC(
             //V2[0] valor imposto em V2[0]
             for(int in = 0 ; in < nP; in++)
             {
-                //ef(in+off_p,0)	+= (V2[0]- datavec[1].sol[0][0]) *big*phiP(in,0)*weight;	// P Pressure Value
+                ef(in+off_p,0)	+= (V2[2]) *big*phiP(in,0)*weight;	// P Pressure Value
                 for (int jn = 0 ; jn < nP; jn++)
                 {
                     ek(in+off_p,jn+off_p)+=big*phiP(in,0)*phiP(jn,0)*weight;	// P Pressure
@@ -429,7 +479,7 @@ void TPZMatPoroElastic2DMem<TMEM>::ContributeBC(const TPZVec<TPZMaterialDataT<ST
 {
 
 }
-// ---------- persistência ----------
+// ---------- persistncia ----------
 template <class TMEM>
 int TPZMatPoroElastic2DMem<TMEM>::ClassId() const {
     return Hash("TPZMatPoroElastic2DMem") ^ TBase::ClassId() << 1;
@@ -493,7 +543,7 @@ void TPZMatPoroElastic2DMem<TMEM>::BuildConstitutiveMatrix(STATE E, STATE nu, TP
         D(2,2)=c*(1.0-2.0*nu)/2.0; // = mu
     }
 }
-// ---- Bu (mecânica) : monta matriz B_u (3 x 2*nU) a partir de dphiU(2 x nU)
+// ---- Bu (mecnica) : monta matriz B_u (3 x 2*nU) a partir de dphiU(2 x nU)
 template <class TMEM>
 void TPZMatPoroElastic2DMem<TMEM>::BuildBu(const TPZFMatrix<STATE>& dphiU, TPZFMatrix<STATE>& Bu)
 {
@@ -509,7 +559,7 @@ void TPZMatPoroElastic2DMem<TMEM>::BuildBu(const TPZFMatrix<STATE>& dphiU, TPZFM
     }
 }
 
-// ---- Bp (fluxo) : gradiente das funções de p agrupado (2 x nP)
+// ---- Bp (fluxo) : gradiente das funes de p agrupado (2 x nP)
 template <class TMEM>
 void TPZMatPoroElastic2DMem<TMEM>::BuildBp(const TPZFMatrix<STATE>& dphiP, TPZFMatrix<STATE>& Bp)
 {
@@ -521,7 +571,7 @@ void TPZMatPoroElastic2DMem<TMEM>::BuildBp(const TPZFMatrix<STATE>& dphiP, TPZFM
     }
 }
 
-// ---- Np coluna (nP x 1) útil para produtos B_u^T * (Np escalar)
+// ---- Np coluna (nP x 1) til para produtos B_u^T * (Np escalar)
 template <class TMEM>
 void TPZMatPoroElastic2DMem<TMEM>::BuildNpCol(const TPZFMatrix<STATE>& phiP, TPZFMatrix<STATE>& Np)
 {
@@ -580,19 +630,19 @@ void TPZMatPoroElastic2DMem<TMEM>::UpdatePorePressure(const TPZMaterialDataT<STA
 template <class TMEM>
 void TPZMatPoroElastic2DMem<TMEM>::SetMem(const REAL Pp,const TPZElasticResponse ER)
 {
-    // 1) guarda como fallback (usado se algum IP não tiver memória escrita)
+    // 1) guarda como fallback (usado se algum IP no tiver memria escrita)
     fE_fallback  = ER.E();         // ou ER.YoungModulus()
     fNu_fallback = ER.Poisson();   // ou ER.PoissonRatio()
 
-    // 2) grava o "default" da memória (o que novos IPs recebem ao serem criados)
+    // 2) grava o "default" da memria (o que novos IPs recebem ao serem criados)
     TMEM memory;
-    // Se TMEM tiver outros campos, inicialize-os aqui também.
+    // Se TMEM tiver outros campos, inicialize-os aqui tambm.
     memory.m_ER.SetEngineeringData(ER.E(), ER.Poisson());
     memory.fPorePressure=Pp;
-    // Em muitas branches, SetDefaultMem é herdado de TPZMatWithMem<TMEM>,
-    // exatamente como no seu exemplo plástico:
+    // Em muitas branches, SetDefaultMem  herdado de TPZMatWithMem<TMEM>,
+    // exatamente como no seu exemplo plstico:
     this->SetDefaultMem(memory);
-    // (se sua branch expõe via WithMem(): this->WithMem()->SetDefaultMem(memory); )
+    // (se sua branch expe via WithMem(): this->WithMem()->SetDefaultMem(memory); )
 }
 
 
@@ -624,5 +674,5 @@ void TPZMatPoroElastic2DMem<TMEM>::UpdateMemory(const TPZVec<TPZMaterialDataT<ST
 
     //mem.m_ER.SetEngineeringData(ER.E(), ER.Poisson());
 }
-// ---------- instância explícita ----------
+// ---------- instncia explcita ----------
 template class TPZMatPoroElastic2DMem<TPZElasticMem>;

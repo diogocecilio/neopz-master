@@ -71,14 +71,15 @@ void TPZPlasticStepPV<YC_t, ER_t>::ApplyStrainComputeSigma(const TPZTensor<REAL>
     int m_type = 0;
     STATE nextalpha = 0;
     TPZManVector<REAL, 3> sig_projected(3, 0.);
-    
+    TPZFMatrix<REAL> gradient(3, 3, 0.);
     // ReturMap in the principal values
     if (require_tangent_Q) {
         TPZTensor<REAL>::TPZDecomposed eps_eigen_system;
         eps_tr.EigenSystem(eps_eigen_system);
         
-        TPZFMatrix<REAL> gradient(3, 3, 0.);
+
         fYC.ProjectSigma(sig_eigen_system.fEigenvalues, fN.m_hardening, sig_projected, nextalpha, m_type, &gradient);
+        //gradient.Print(std::cout);
         TangentOperator(gradient, eps_eigen_system, sig_eigen_system, *tangent);
     } else{
         fYC.ProjectSigma(sig_eigen_system.fEigenvalues, fN.m_hardening, sig_projected, nextalpha, m_type);
@@ -87,12 +88,16 @@ void TPZPlasticStepPV<YC_t, ER_t>::ApplyStrainComputeSigma(const TPZTensor<REAL>
     fN.m_hardening = nextalpha;
     fN.m_m_type = m_type;
     
-#ifdef PZ_LOG_KEEP
-    if(logger.isDebugEnabled())
+#ifdef PZ_LOG
     {
         std::stringstream sout;
-        sout << "Sig Trial " << sigtrvec << "\nSig Project " << sigprvec << std::endl;
-        LOGPZ_DEBUG(logger, sout.str())
+        sout << "Sig Trial " << sig_tr << "\nSig Project " << sig_projected << std::endl;
+        sout << "gradient " << std::endl;
+        gradient.Print(sout);
+         sout << "tangent " << std::endl;
+        //tangent->Print(sout);
+        sout << "Sig Trial " << sig_tr << "\nSig Project " << sig_projected << std::endl;
+        LOGPZ_DEBUG(TPZPlasticStepPVLog, sout.str())
     }
 #endif
 
@@ -318,14 +323,14 @@ void TPZPlasticStepPV<YC_t, ER_t>::ApplyStrainComputeDep(const TPZTensor<REAL> &
 
 template <class YC_t, class ER_t>
 void TPZPlasticStepPV<YC_t, ER_t>::TangentOperator(TPZFMatrix<REAL> & gradient,TPZTensor<REAL>::TPZDecomposed & eps_eigen_system, TPZTensor<REAL>::TPZDecomposed & sig_eigen_system, TPZFMatrix<REAL> & Tangent){
-    
+
 
     //Montando a matriz tangente
     unsigned int kival[] = {0, 0, 0, 1, 1, 2};
     unsigned int kjval[] = {0, 1, 2, 1, 2, 2};
     REAL G = fER.G();
     REAL lambda = fER.Lambda();
-    
+
     // Coluna da matriz tangente
     for (unsigned int k = 0; k < 6; ++k) {
         const unsigned int ki = kival[k];
@@ -346,40 +351,40 @@ void TPZPlasticStepPV<YC_t, ER_t>::TangentOperator(TPZFMatrix<REAL> & gradient,T
             }///j
         }///i
     }///k
-    
+
     REAL deigensig = 0., deigeneps = 0.;
     TPZFNMatrix<9, REAL> tempMat(3, 3, 0.);
     TPZFNMatrix<9, REAL> temp_mat(3, 3, 0.);
 //    TPZFNMatrix<9> ColCorr(3, 3, 0.);
     TPZFNMatrix<6> ColCorrV(6, 1, 0.);
-    
+
     // Correction of the eigenvectors variation
     for (unsigned int i = 0; i < 2; ++i) {
         for (unsigned int j = i + 1; j < 3; ++j) {
             deigeneps = eps_eigen_system.fEigenvalues[i] - eps_eigen_system.fEigenvalues[j];
             deigensig = sig_eigen_system.fEigenvalues[i] - sig_eigen_system.fEigenvalues[j];
-    
+
             REAL factor = 0.;
             if (!IsZero(deigeneps)) {
                 factor = deigensig / deigeneps;
             } else {
                 factor = fER.G() * (gradient(i, i) - gradient(i, j) - gradient(j, i) + gradient(j, j)); // expression C.20
             }
-            
+
             ProdT(eps_eigen_system.fEigenvectors[i], eps_eigen_system.fEigenvectors[j],temp_mat);
             for (unsigned int it = 0; it < 3; ++it) {
                 for (unsigned int jt = 0; jt < 3; ++jt) {
                     tempMat(it,jt) += temp_mat(it,jt);
                 }
             }
-            
+
             ProdT(eps_eigen_system.fEigenvectors[j], eps_eigen_system.fEigenvectors[i],temp_mat);
             for (unsigned int it = 0; it < 3; ++it) {
                 for (unsigned int jt = 0; jt < 3; ++jt) {
                     tempMat(it,jt) += temp_mat(it,jt);
                 }
             }
-            
+
             // expression C.14
             for (unsigned int k = 0; k < 6; ++k) {
                 const unsigned int ki = kival[k];
@@ -396,7 +401,7 @@ void TPZPlasticStepPV<YC_t, ER_t>::TangentOperator(TPZFMatrix<REAL> & gradient,T
             }
         } // j
     } // i
-    
+
 }
 
 template <class YC_t, class ER_t>
@@ -724,8 +729,14 @@ void TPZPlasticStepPV<YC_t, ER_t>::SetElasticResponse(TPZElasticResponse &ER)
     fER = ER;
     fYC.SetElasticResponse(ER);
 }
+template <class YC_t, class ER_t>
+TPZElasticResponse TPZPlasticStepPV<YC_t, ER_t>::GetElasticResponse() const
+{
+    return fER;
+}
 
 /// Linear elastic response
+
 template class TPZPlasticStepPV<TPZSandlerExtended, TPZElasticResponse>;
 template class TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>;
 template class TPZPlasticStepPV<TPZYCCamClayPV, TPZElasticResponse>;

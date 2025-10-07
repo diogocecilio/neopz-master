@@ -280,7 +280,9 @@ REAL SlopeAnalysis::SolveDeterministic ( bool IsSRM ,REAL coes,REAL atrito)
 void SlopeAnalysis::ApplyGravityLoad ( TPZManVector<REAL, 3> bodyforce )
 {
         plasticmat * body= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
-        body->SetBodyForce ( bodyforce );
+        //Precisa reimplementar
+        DebugStop();
+        //body->SetBodyForce ( bodyforce );
 
 }
 
@@ -288,7 +290,7 @@ void SlopeAnalysis::LoadingRamp ( REAL factor )
 {
         plasticmat * body= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
         TPZManVector<REAL, 3> force ( 3,0. );
-        body->SetLoadFactor ( factor );
+        //body->SetLoadFactor ( factor );
 
 
 }

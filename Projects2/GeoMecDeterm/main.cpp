@@ -30,11 +30,11 @@
 #include "TPZVTKGeoMesh.h"
 
 // ---------- NeoPZ material elastoplástico ----------
-#include "TPZElasticResponse.h"
-#include "TPZElastoPlasticMem.h"
-#include "TPZPlasticStepPV.h"
-#include "TPZYCMohrCoulombPV.h"
-#include "TPZMatElastoPlastic2D.h"
+//#include "TPZElasticResponse.h"
+#include "Plasticity/TPZElastoPlasticMem.h"
+#include "Plasticity/TPZPlasticStepPV.h"
+#include "Plasticity/TPZYCMohrCoulombPV.h"
+#include "Plasticity/TPZMatElastoPlastic2D.h"
 
 // ---------- NeoPZ análise ----------
 
@@ -57,7 +57,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <memory>
-#include "SlopeAnalysis.h"
+//#include "SlopeAnalysis.h"
 #include "pznonlinanalysis.h"
 #include "TPZEigenSolver.h"
 #include "TPZKrylovEigenSolver.h"
@@ -250,7 +250,7 @@ void Solve(TPZCompMesh* cmesh, REAL coes, REAL atrito);
 int main()
 {
         // 1) Malha geométrica
-        int ref = 3;
+        int ref = 1;
         TPZGeoMesh* gmesh = TriGMesh(ref);
 
         // 2) Material
@@ -265,7 +265,10 @@ int main()
         plasticmat* mat = CreateMaterial(young, poisson, coes, atrito, bodyforce);
         int pOrder = 2;
         TPZCompMesh* cmesh = CreateCMesh(gmesh, pOrder, mat);
+
         mat->SetBodyForce(bodyforce);
+        // //REIMPLEMENTAR
+        // DebugStop();
 
         auto* body = dynamic_cast<plasticmat*>(cmesh->FindMaterial(1));
         if (!body) { std::cerr << "Material id=1 não encontrado.\n"; return 1; }
@@ -274,21 +277,21 @@ int main()
         REAL factor=0.8;
         REAL x=30.;
         REAL y=40.;
-        for(int iload=0;iload<15;iload++)
-        {
-                bool converged= RunAndAccept( cmesh, coes,  atrito,  factor,  iters_out);
-                REAL sol = UyAtNode(cmesh,  x,  y);
-                factor+=0.1;
-                cout << "uy = "<<sol <<" factor = "<< factor << " converged ="<<converged <<endl;
-        }
-
-        // Solve(cmesh, coes, atrito);
-        //
+        // for(int iload=0;iload<15;iload++)
         // {
-        //         std::ofstream vtk1("gmeshtri_refined_preGI.vtk");
-        //         TPZVTKGeoMesh::PrintGMeshVTK(cmesh->Reference(), vtk1, true);
-        //         std::cout << "[VTK] gmeshtri_refined_preGI.vtk escrito.\n";
+        //         bool converged= RunAndAccept( cmesh, coes,  atrito,  factor,  iters_out);
+        //         REAL sol = UyAtNode(cmesh,  x,  y);
+        //         factor+=0.1;
+        //         cout << "uy = "<<sol <<" factor = "<< factor << " converged ="<<converged <<endl;
         // }
+
+         Solve(cmesh, coes, atrito);
+        //
+        {
+                std::ofstream vtk1("gmeshtri_refined_preGI.vtk");
+                TPZVTKGeoMesh::PrintGMeshVTK(cmesh->Reference(), vtk1, true);
+                std::cout << "[VTK] gmeshtri_refined_preGI.vtk escrito.\n";
+        }
 
 
         return 0;
@@ -330,7 +333,13 @@ bool RunAndAccept(TPZCompMesh* cmesh,
                   REAL coes, REAL atrito, REAL factor, int& iters_out)
 {
         auto* body = dynamic_cast<plasticmat*>(cmesh->FindMaterial(1));
-        body->SetLoadFactor(factor);
+        TPZManVector<REAL,3> fb=body->GetBodyForce();
+        for (auto &v : fb) v *= factor;
+        body->SetBodyForce(fb);
+
+        //REIMPLEMENTAR
+       // DebugStop();
+        //body->SetLoadFactor ( factor );
         InitializeMemory(cmesh, coes, atrito);
         cmesh->Solution().Zero();
 
@@ -590,9 +599,12 @@ plasticmat* CreateMaterial(REAL young, REAL poisson, REAL coes, REAL atrito,
         auto* material = new plasticmat(matid, planestrain);
         material->SetPlasticityModel(mc);
         material->SetId(matid);
-        material->SetWhichLoadVector(0);
-        material->SetLoadFactor(1.0);
         material->SetBodyForce(bodyforce);
+//        DebugStop();
+        //Reimplementar
+        //material->SetWhichLoadVector(0);
+       // material->SetLoadFactor(1.0);
+       // material->SetBodyForce(bodyforce);
         return material;
 }
 

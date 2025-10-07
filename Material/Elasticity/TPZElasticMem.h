@@ -5,7 +5,7 @@
 
 #include "TPZMaterial.h"
 #include "TPZTensor.h"
-#include "TPZElastoPlasticMem.h"
+//#include "TPZElastoPlasticMem.h"
 #ifdef FIX_PLASTIC_TRANSLATORS
 #include "TPZElastoPlasticMemTranslator.h"
 #endif

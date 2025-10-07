@@ -669,7 +669,7 @@ template<class TVar>
 void TPZMultiphysicsCompEl<TGeometry>::InitMaterialDataT(TPZVec<TPZMaterialDataT<TVar> > &dataVec, TPZVec<int64_t> *indices)
 {
     int64_t nref = this->fElementVec.size();
-    
+
 #ifdef PZDEBUG
     if (nref != dataVec.size()) {
         PZError << "Error at " << __PRETTY_FUNCTION__ << " The number of materials can not be different from the size of the fElementVec !\n";
@@ -893,7 +893,30 @@ void TPZMultiphysicsCompEl<TGeometry>::CalcStiffT(TPZElementMatrixT<TVar> &ek, T
         }
         
         this->ComputeRequiredData(intpointtemp,trvec,datavec);
-        
+        // ... após ComputeRequiredData(...)
+        // int missing = 0, zeros = 0;
+        // for (int i = 0; i < datavec.size(); ++i) {
+        //     auto *msp = dynamic_cast<TPZInterpolationSpace*>(fElementVec[i].Element());
+        //     if (!msp) continue;
+        //
+        //     const int idx = datavec[i].intGlobPtIndex;
+        //     if (idx < 0) ++missing;     // negativo é inválido
+        //     if (idx == 0) ++zeros;      // 0 é o default típico quando nada foi setado
+        // }
+        // if (missing || zeros) {
+        //    int  idx = datavec[0].intGlobPtIndex;
+        //    int  idx2 = datavec[1].intGlobPtIndex;
+        //     std::cout << "[D] el=" << this->Index()
+        //     << " ip=" << int_ind
+        //     << " idx<0=" << missing
+        //     << " idx==0=" << zeros
+        //     << " of " << datavec.size() << "\n"
+        //     << " idx " << idx << "\n"
+        //     << " idx2 " << idx2 << "\n";
+        // }
+
+
+
         matCombined->Contribute(datavec,weight,ek.fMat,ef.fMat);
     }//loop over integration points
     
