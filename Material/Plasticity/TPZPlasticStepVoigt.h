@@ -14,8 +14,8 @@ template <class YC, class ER>
 class TPZPlasticStepVoigt : public TPZPlasticBase
 {
 public:
-    using YieldCriterion = YC;
-    using ElasticResponse = ER;
+    //using YieldCriterion = YC;
+    //using ElasticResponse = ER;
 
     // ===================== Construtores / Dtor =====================
     TPZPlasticStepVoigt(const YC& yc, const ER& er);
@@ -47,8 +47,31 @@ public:
     void Phi(const TPZTensor<REAL>& epsTotal, TPZVec<REAL>& phi) const override;
 
     void SetElasticResponse(TPZElasticResponse& ERin) override;
+
+
+
     TPZElasticResponse GetElasticResponse() const override;
     TPZPlasticCriterion& GetYC() override;
+
+
+    // (A) Forte/Tipada: barata e infalível
+    void SetPlasticCriterion(const YC& pc);
+
+    // (B) Polimórfica: aceita a classe base, verifica compatibilidade em runtime
+    void SetPlasticCriterion(const TPZPlasticCriterion& pc_base);
+
+
+    TPZTensor<STATE> FromFMatToTensor(TPZFMatrix<STATE> mat);
+
+    // Calcula a matriz tangente consistente pela fórmula:
+    // gamma = yield / (a^T Ce a)
+    // Q = I + gamma Ce dadsig
+    // R = Q^{-1} Ce
+    // Dep = R - ( (R a) ⊗ (R a) ) / (a^T R a)
+    void ConsistentTangent(const TPZTensor<STATE>& sigmatr,const TPZTensor<STATE>& sigmapr,
+                           STATE kappa,
+                           TPZFMatrix<STATE>& Dep) const;
+
 
 
 protected:

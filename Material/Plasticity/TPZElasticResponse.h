@@ -159,12 +159,8 @@ public:
      
      @param De Return the De operator
      */
-    void De(TPZFMatrix<REAL> & De);
+    void De(TPZFMatrix<REAL> & De) const;
 
-    void CMatrix(TPZFMatrix<REAL> & Cmat);
-    
-    
-     void InvCMatrix(TPZFMatrix<STATE>& S);
     /**
      Set elastic parameters using engineering data, i.e. Young modulus and Poisson ratio
      

@@ -17,7 +17,11 @@ static TPZLogger loggerVonMIsesPV("pz.plasticity.vonmisespv");
 class TPZYCVonMisesPV : public TPZPlasticCriterion {
 private:
 
-    REAL fYieldStress;
+    REAL fSigmaY0;
+
+    std::function<STATE(STATE)>  fSigmaY;
+
+    std::function<STATE(STATE)> fH;
 
 
 public:
@@ -28,11 +32,9 @@ public:
 
     TPZYCVonMisesPV();
 
-    TPZYCVonMisesPV(REAL yieldstress, TPZElasticResponse &ER);
+    TPZYCVonMisesPV(STATE sigmaY0, STATE Hiso );
 
     TPZYCVonMisesPV(const TPZYCVonMisesPV &cp);
-
-    void SetUp(REAL yieldstress, TPZElasticResponse &ER);
 
     virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )override;
 
@@ -51,29 +53,29 @@ public:
 
     void Write(TPZStream& buf, int withclassid) const override;
 
-
     /**
      * @brief Print Method
      */
     virtual void Print(std::ostream &out) const override;
 
-    void SetElasticResponse(const TPZElasticResponse &ER) {
-        //fER = ER;
-    }
 
-    virtual TPZElasticResponse GetElasticResponse() const {
-        //return fER;
-    }
-    /**
-     * @brief sigma = lambda Tr(E)I + 2 mu E
-     */
-    template<class T>
-    TPZVec<T> SigmaElastPV(const TPZVec<T> &deform) const;
+    void ProjectSigma(const TPZTensor<STATE> & sigmatr, STATE k_prev, TPZTensor<STATE> & sigmaproj, STATE &k_proj, int & m_type);
 
 
+    TPZTensor<STATE> ComputeN(const TPZTensor<STATE> stresstensor)const;
 
-    void ProjectSigma(const TPZTensor<STATE> & epst,const TPZTensor<STATE> & epsp,STATE k_prev);
+    TPZFMatrix<STATE> GetNdSigma(const TPZTensor<STATE>& sigma) const;
 
+    STATE ComputeGamma(const TPZTensor<STATE>sig, const TPZFMatrix<STATE> elasticmat)const;
+
+    void SetHardening(std::function<STATE(STATE)>  H)      { fH = std::move(H); }
+    void SetYieldStressLaw(std::function<STATE(STATE)>  sy)   { fSigmaY = std::move(sy); }
+
+    void SetUp(STATE sigmaY0, STATE Hiso);
+
+    // acesso seguro
+    STATE H(STATE kappa)      const { return fH ? fH(kappa) : STATE(0); }
+    STATE SigmaY(STATE kappa) const { return fSigmaY ? fSigmaY(kappa) : fSigmaY0; }
 
     /**
      Evaluates the yield criterion
@@ -82,11 +84,11 @@ public:
      @param alpha internal damage variable
      @param phi yield criterion function
      */
-    void Phi(TPZVec<STATE> sig_vec, STATE alpha, TPZVec<STATE> &phi)const;
+    void Phi(TPZTensor<STATE> sig, STATE alpha, TPZVec<STATE> &phi)const;
 
 
     virtual void YieldFunction(const TPZVec<STATE>& sigma, STATE kprev, TPZVec<STATE>& yield) const override{
-        Phi(sigma, kprev, yield);
+        DebugStop();
     }
 
     virtual int GetNYield() const override{

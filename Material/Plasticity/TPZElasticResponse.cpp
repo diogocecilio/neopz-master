@@ -60,7 +60,7 @@ void TPZElasticResponse::Print(std::ostream & out) const {
     m_sigma_star.Print(out);
 }
 
-void TPZElasticResponse::De(TPZFMatrix<REAL> & De) {
+void TPZElasticResponse::De(TPZFMatrix<REAL> & De)const {
     REAL Mu2 = 2 * m_mu;
     
     De.Redim(6,6);
@@ -79,43 +79,7 @@ void TPZElasticResponse::De(TPZFMatrix<REAL> & De) {
     int i;
     for (i = 0; i < 6; i++)De(i, i) += Mu2;
 }
-void TPZElasticResponse::CMatrix(TPZFMatrix<REAL> & Cmat)
-{
-    Cmat.Redim(6,6);
-    Cmat.Zero();
 
-    const STATE a = (4.0*G())/3.0 + K();
-    const STATE b = (-2.0*G())/3.0 + K();
-
-    // parte volumétrica + deviadora (diagonal 3x3 e simétricos)
-    Cmat(0,0) = a;  Cmat(0,1) = b;  Cmat(0,2) = b;
-    Cmat(1,0) = b;  Cmat(1,1) = a;  Cmat(1,2) = b;
-    Cmat(2,0) = b;  Cmat(2,1) = b;  Cmat(2,2) = a;
-
-    // cisalhamentos (engenharia)
-    Cmat(3,3) = G();  // xy
-    Cmat(4,4) = G();  // yz
-    Cmat(5,5) = G();  // zx
-}
-
-void TPZElasticResponse::InvCMatrix(TPZFMatrix<STATE>& S)
-{
-    S.Redim(6,6);
-    S.Zero();
-
-    const STATE c = (G() + 3.0*K()) / (9.0 * G() * K());
-    const STATE d = (-1.0 / (6.0*G())) + (1.0 / (9.0*K()));
-
-    // bloco 3x3 superior-esquerdo (simétrico)
-    S(0,0) = c;  S(0,1) = d;  S(0,2) = d;
-    S(1,0) = d;  S(1,1) = c;  S(1,2) = d;
-    S(2,0) = d;  S(2,1) = d;  S(2,2) = c;
-
-    // cisalhamentos (engenharia)
-    S(3,3) = 1.0/G();  // xy
-    S(4,4) = 1.0/G();  // yz
-    S(5,5) = 1.0/G();  // zx
-}
 void TPZElasticResponse::SetEngineeringData(REAL Eyoung, REAL Poisson) {
     m_E = Eyoung;
     m_nu = Poisson;

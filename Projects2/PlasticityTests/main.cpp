@@ -73,13 +73,13 @@ static TPZLogger logger_plasticity("PlasticityTests");
 
 typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> TPlasticMC;
 
-typedef TPZPlasticStepVoigt<TPZYCVonMisesPV, TPZElasticResponse> TPlasticVM;
+typedef TPZPlasticStepVoigt<TPZYCVonMisesPV, TPZElasticResponse> TPlasticStepVoigtVM;
 
 
 
 typedef TPZMatElastoPlastic<TPlasticMC,TPZElastoPlasticMem> plasticmat;
 
-typedef TPZMatElastoPlastic2D<TPlasticVM,TPZElastoPlasticMem> plasticmatvm;
+typedef TPZMatElastoPlastic2D<TPlasticStepVoigtVM,TPZElastoPlasticMem> TMatElastoPlaticVoigtVM;
 
 
 // struct MechParamsMorhCoulomb {
@@ -123,6 +123,7 @@ struct MechParamsVonMises{
     STATE nu      = 0.30;
 
     STATE sigmay = 0.24;//GPa
+    STATE H0=0.;
 
     // --- carregamentos volumétricos (peso próprio) ---
     STATE fx = 0.0;
@@ -383,22 +384,26 @@ static TPZCompMesh* CompMeshCyl(TPZGeoMesh* gmesh)
     auto *mphys = new TPZCompMesh(gmesh);
     mphys->SetDimModel(2);
     mphys->SetAllCreateFunctionsContinuousWithMem();
-    mphys->SetDefaultOrder(1);
-    auto mat = new plasticmat(1);
+    mphys->SetDefaultOrder(2);
+    auto mat = new TMatElastoPlaticVoigtVM(1);
 
 
      TPZElasticResponse ER;
      ER.SetEngineeringData(param.young, param.nu);
+     TPZYCVonMisesPV vmyc(param.sigmay,param.H0);
 
-     //TPlasticVM vm;
-     //vm.fYC.SetUp(param.sigmay, ER);
-     //vm.fER = ER;
-    //mat->SetPlasticityModel(vm);
+     TPlasticStepVoigtVM PlasticStepVoigt;
+
+
+
+     PlasticStepVoigt.SetPlasticCriterion(vmyc);
+     PlasticStepVoigt.SetElasticResponse(ER);
+
+
+
+     mat->SetPlasticityModel(PlasticStepVoigt);
      mat->SetId(1);
-     //REIMPLEMENTAR
-//     DebugStop();
-     //body->SetLoadFactor ( factor );
-    //mat->SetBodyForce(param.BodyForce);
+
      mphys->InsertMaterialObject(mat);//0
      mat->Print(std::cout);
 
@@ -415,7 +420,7 @@ static TPZCompMesh* CompMeshCyl(TPZGeoMesh* gmesh)
     v2[1]=0.;
     mphys->InsertMaterialObject(mat->CreateBC(mat,bcindexes.bctop , dirdirichlet, v1, v2));
 
-    v2[0]=0.19;
+    v2[0]=-0.19;
     v2[1]=0.;
     mphys->InsertMaterialObject(mat->CreateBC(mat,bcindexes.bcinner , pressure, v1, v2));
 
@@ -433,12 +438,12 @@ void PostProcessVariables(TPZStack<std::string>& scal, TPZStack<std::string>& ve
     //scal.Push ( "POrder" );
    // scal.Push ( "Atrito" );
     //scal.Push ( "Coesion" );
-    //scal.Push ( "StrainPlasticJ2" );
+    scal.Push ( "StrainPlasticJ2" );
     //scal.Push ( "VolHardening" );
     vec.Push ( "Displacement" );
     //vec.Push ( "ShearPlasticDeformation" );
     //vec.Push ( "PlasticDeformation" );
-    //vec.Push ( "StrainElastic" );
+    scal.Push ( "StressXX" );
     scal.Push ( "StrainElasticJ2" );
 
 }
@@ -697,21 +702,29 @@ int main()
      direct.SetDirect(ELU);
      an.SetSolver(direct);
     int itersout;
-    bool ok = an.IterativeProcess(std::cout, 1.e-6, 5, true, false, itersout);
-   REAL resu,resf;
-   int iter;
-   // an.FindRoot(iter,resu,resf);
-   //  int iters=3;
-   //  REAL resu;
-   //  REAL resf;
-    //an.Assemble();
-    //an.Rhs().Print("rhs");
-    //an.Solve();
-    //an.Solution().Print("sol");
-    an.AcceptSolution();
-    std::string vtkfile="load.vtk";
 
-    PostElastoplastic(cmesh,vtkfile,1,0);
+    // an.Assemble();
+    // an.Rhs().Print("RHS");
+    // an.Solve();
+    // an.Solution().Print("SOL");
+    // an.AcceptSolution();
+    //an.Assemble();
+     bool ok = an.IterativeProcess(std::cout, 1.e-6, 10, true, false, itersout);
+     an.AcceptSolution();
+   // REAL resu,resf;
+   // int iter;
+   // // an.FindRoot(iter,resu,resf);
+   // //  int iters=3;
+   // //  REAL resu;
+   // //  REAL resf;
+   //  //an.Assemble();
+   //  //an.Rhs().Print("rhs");
+   //  //an.Solve();
+   //  //an.Solution().Print("sol");
+   //  an.AcceptSolution();
+     std::string vtkfile="load.vtk";
+   //
+     PostElastoplastic(cmesh,vtkfile,1,0);
    //
    // // auto ms = dynamic_cast<TPZMatrixSolver<STATE>*>(an.Solver());
    //                            // monta SÓ o bloco pedido

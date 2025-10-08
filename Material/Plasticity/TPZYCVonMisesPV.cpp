@@ -25,23 +25,27 @@ static inline void LameFromER(const TPZElasticResponse &ER, REAL &lambda, REAL &
 // ======================================================================
 
 TPZYCVonMisesPV::TPZYCVonMisesPV() :
-fYieldStress(0.0)//, fER()
+fSigmaY0(0.0)//, fER()
 {
     // vazio
 }
 
-TPZYCVonMisesPV::TPZYCVonMisesPV(REAL yieldstress, TPZElasticResponse &ER) :
-fYieldStress(yieldstress)//, fER(ER)
+TPZYCVonMisesPV::TPZYCVonMisesPV(STATE sigmaY0, STATE Hiso)
+: fSigmaY0(sigmaY0)
 {
-    // vazio
-}
 
-TPZYCVonMisesPV::TPZYCVonMisesPV(const TPZYCVonMisesPV &cp) :
-TPZPlasticCriterion(cp),
-fYieldStress(cp.fYieldStress)//,
-//fER(cp.fER)
+    // σy(κ) = σy0 + Hiso * κ
+    fSigmaY = [=](STATE kappa) { return sigmaY0 + Hiso * kappa; };
+
+    // H(κ) ≡ Hiso (constante)
+    fH = [=](STATE /*kappa*/) { return Hiso; };
+}
+TPZYCVonMisesPV::TPZYCVonMisesPV(const TPZYCVonMisesPV& cp)
+: TPZPlasticCriterion(cp)
+, fSigmaY0(cp.fSigmaY0)
+, fSigmaY(cp.fSigmaY)
+, fH(cp.fH)
 {
-    // vazio
 }
 
 TPZYCVonMisesPV & TPZYCVonMisesPV::operator=(const TPZYCVonMisesPV &cp)
@@ -49,7 +53,7 @@ TPZYCVonMisesPV & TPZYCVonMisesPV::operator=(const TPZYCVonMisesPV &cp)
     if(this != &cp)
     {
         TPZPlasticCriterion::operator=(cp);
-        fYieldStress = cp.fYieldStress;
+        fSigmaY0 = cp.fSigmaY0;
         //fER = cp.fER;
     }
     return *this;
@@ -59,10 +63,14 @@ TPZYCVonMisesPV & TPZYCVonMisesPV::operator=(const TPZYCVonMisesPV &cp)
 //                         Estado/local e parâmetros
 // ======================================================================
 
-void TPZYCVonMisesPV::SetUp(REAL yieldstress, TPZElasticResponse &ER)
+void TPZYCVonMisesPV::SetUp(STATE sigmaY0, STATE Hiso)
 {
-    fYieldStress = yieldstress;
-    //fER = ER;
+    fSigmaY0     = sigmaY0;
+
+    // σy = σy0 + Hiso * κ
+    fSigmaY = [=](STATE kappa){ return sigmaY0 + Hiso * kappa; };
+    // H(κ) ≡ Hiso
+    fH      = [=](STATE){ return Hiso; };
 }
 
 void TPZYCVonMisesPV::SetLocalMatState(TPZPlasticState<REAL> & /*state*/)
@@ -86,8 +94,6 @@ void TPZYCVonMisesPV::ChangeLocalMatParameters(TPZPlasticState<REAL> & /*state*/
     // Mantido como stub intencional.
 }
 
-
-
 int TPZYCVonMisesPV::ClassId() const
 {
     // Ajuste se sua infraestrutura exigir um ID fixo/Hash específico.
@@ -97,20 +103,20 @@ int TPZYCVonMisesPV::ClassId() const
 
 void TPZYCVonMisesPV::Read(TPZStream& buf, void* /*context*/)
 {
-    buf.Read(&fYieldStress,1);
+    buf.Read(&fSigmaY0,1);
     //fER.Read(buf,nullptr);
 }
 
 void TPZYCVonMisesPV::Write(TPZStream& buf, int /*withclassid*/) const
 {
-    buf.Write(&fYieldStress,1);
+    buf.Write(&fSigmaY0,1);
     //fER.Write(buf,0);
 }
 
 void TPZYCVonMisesPV::Print(std::ostream &out) const
 {
     out << "----- TPZYCVonMisesPV -----\n";
-    out << "Yield stress (sigma_y): " << std::setprecision(12) << fYieldStress << "\n";
+    out << "Yield stress (sigma_y): " << std::setprecision(12) << fSigmaY0 << "\n";
     //out << "Elastic response (E, nu): E=" << fER.E() << "  nu=" << fER.Poisson() << "\n";
     out << "NYield = " << NYield << "\n";
     out << "---------------------------\n";
@@ -120,77 +126,177 @@ void TPZYCVonMisesPV::Print(std::ostream &out) const
 //                 Phi (função de escoamento) e helpers elásticos
 // ======================================================================
 
-void TPZYCVonMisesPV::Phi(TPZVec<STATE> sig_vec, STATE alpha, TPZVec<STATE> &phi) const
+void TPZYCVonMisesPV::Phi(TPZTensor<STATE>sig, STATE alpha, TPZVec<STATE> &phi) const
 {
-    // Von Mises: f = q - sqrt(2/3)*(sigma_y + alpha)
-    // q = sqrt(3/2) ||s|| ; s = sigma - (tr(sigma)/3) * I, em principais
-    if(phi.size() != as_integer(NYield)) phi.Resize(as_integer(NYield), 0.0);
-
-    const STATE I1   = sig_vec[0] + sig_vec[1] + sig_vec[2];
-    const STATE p    = I1 / 3.0;
-    const STATE s0   = sig_vec[0] - p;
-    const STATE s1   = sig_vec[1] - p;
-    const STATE s2   = sig_vec[2] - p;
-    const STATE sJ2  = 0.5*((s0 - s1)*(s0 - s1) + (s1 - s2)*(s1 - s2) + (s2 - s0)*(s2 - s0))/3.0 * 3.0;
-    // A expressão acima é equivalente a J2 = 1/2 s:s; em principais pode-se usar:
-    // J2 = ( (s0^2 + s1^2 + s2^2) )/2   (com s0+s1+s2=0). Para evitar confusão, reescrevemos explicitamente:
-    const STATE J2   = 0.5*(s0*s0 + s1*s1 + s2*s2);
-    const STATE q    = std::sqrt(3.0*J2); // q = sqrt(3*J2) = sqrt(3/2) ||s||
-
-    const STATE sigY = fYieldStress + alpha; // alpha: variável escalar de encruamento (se aplicável)
-    const STATE rhs  = std::sqrt(2.0/3.0) * sigY;
-
-    phi[0] = q - rhs;
-}
-
-template<class T>
-TPZVec<T> TPZYCVonMisesPV::SigmaElastPV(const TPZVec<T> &deform) const
-{
-    // σ_i = λ tr(ε) + 2 μ ε_i  (em principais)
-    TPZVec<T> sigma(3, T(0));
-    REAL lambda = 0.0, mu = 0.0;
-    //LameFromER(fER, lambda, mu);
-
-    const T tr = deform[0] + deform[1] + deform[2];
-    const T common = T(lambda)*tr;
-    sigma[0] = common + T(2.0*mu)*deform[0];
-    sigma[1] = common + T(2.0*mu)*deform[1];
-    sigma[2] = common + T(2.0*mu)*deform[2];
-    return sigma;
+    phi.resize(1);
+    STATE j2 =sig.J2();
+    STATE q=sqrt(3.* j2);
+    STATE f=q-fSigmaY0;
+    phi[0]=f;
 }
 
 
-void TPZYCVonMisesPV::ProjectSigma(const TPZTensor<STATE> & epst,const TPZTensor<STATE> & epsp,STATE k_prev)
+
+void TPZYCVonMisesPV::ProjectSigma(const TPZTensor<STATE> & sigmatr, STATE k_prev, TPZTensor<STATE> & sigmaproj, STATE &k_proj, int & m_type)
 {
-    TPZFMatrix<REAL>  Ce,invCe;
-    //fER.CMatrix(Ce) ;
-    Ce.Print("sd");
-    //fER.InvCMatrix(invCe) ;
-    invCe.Print("invCe");
-    // Usa o overload que calcula Dep (6x6) e reaproveita o resultado
-    #ifdef PZ_LOG
+
+
+    STATE p =sigmatr.I1()/3.;
+    TPZTensor<STATE> S;
+    sigmatr.S(S);
+    STATE j2 =sigmatr.J2();
+    STATE q=sqrt(3.* j2);
+    STATE f=q-fSigmaY0;
+  //  std::cout<< "p = "<< p << std::endl;
+  //  std::cout<< "S = "<< S << std::endl;
+  //  std::cout<< "j2 = "<< j2 << std::endl;
+   // std::cout<< "q = "<< q << std::endl;
+  //  std::cout<< "f = "<< f << std::endl;
+    if(f<0.)
     {
-        std::stringstream sout;
-        sout << ">>> TPZYCVonMisesPV::ProjectSigma (trial)\n";
-        // sout << "E=" << E << " nu=" << nu << " sigy=" << sigy << "\n";
-        // sout << "sigma_trial_principal = " << sigma_trial_principal << "\n";
-        // sout << "p=" << p << "  q=" << q << "  J2=" << J2t << "  f=" << fval << "\n";
-        LOGPZ_DEBUG(loggerVonMIsesPV, sout.str().c_str());
-    }
-    #endif
+        sigmaproj=sigmatr;
+        k_proj=k_prev;
+        m_type=0;//elastic
 
-    #ifdef PZ_LOG
+    }else
     {
-        std::stringstream sout;
-        sout << ">>> TPZYCVonMisesPV::ProjectSigma (proj)\n";
-        // sout << "dgamma=" << dgamma << " denom=" << denom << "\n";
-        // sout << "N=" << N << "\n";
-        // sout << "sigma_proj_principal = " << sigma_principal_out << "\n";
-        // sout << "Dep (6x6):\n";
-        // Dep_out.Print(sout);
-        LOGPZ_DEBUG(loggerVonMIsesPV, sout.str().c_str());
+
+        TPZTensor<REAL>::TPZDecomposed sig_eigen_system;
+        sigmatr.EigenSystem(sig_eigen_system);
+        TPZManVector<STATE,3> sigprincipal=sig_eigen_system.fEigenvalues;
+        TPZManVector<TPZManVector<STATE,3>,3> eigenvectors=sig_eigen_system.fEigenvectors;
+        STATE sig1=sigprincipal[0];
+        STATE sig2=sigprincipal[1];
+        STATE sig3=sigprincipal[2];
+        STATE betaproj=atan((sqrt(3.)* (-sig2+sig3))/(-2.* sig1+sig2+sig3));
+
+        STATE xiproj=sigmatr.I1()/sqrt(3.);
+
+        STATE rhoproj=sqrt(2./3.)*fSigmaY0 ;
+
+        TPZManVector<STATE,3> HWCylCoords(3),HWCart(3);
+        HWCylCoords[0]=xiproj;
+        HWCylCoords[1]=rhoproj;
+        HWCylCoords[2]=betaproj;
+
+
+        TPZHWTools::FromHWCylToPrincipal(HWCylCoords,HWCart);
+
+       // std::cout<< " sig1 = "<< sig1 << " sig2 = "<< sig2 <<" sig3 = "<< sig3 <<std::endl;
+      //  std::cout<< " betasol = "<< betaproj <<std::endl;
+      //  std::cout<< " eigenvectors = "<< eigenvectors <<std::endl;
+     //  std::cout<< " HWCart = "<< HWCart <<std::endl;
+        TPZFMatrix<REAL> v1,v2,v3,v1t,v2t,v3t,temp1,temp2,temp3;
+        v1.CopyFrom(eigenvectors[0]);
+        v2.CopyFrom(eigenvectors[1]);
+        v3.CopyFrom(eigenvectors[2]);
+        v1.Transpose(&v1t);
+        v2.Transpose(&v2t);
+        v3.Transpose(&v3t);
+        v1.Multiply(v1t,temp1);
+        v2.Multiply(v2t,temp2);
+        v3.Multiply(v3t,temp3);
+
+        temp1*=HWCart[0];
+        temp2*=HWCart[1];
+        temp3*=HWCart[2];
+        temp1+=temp2;
+        temp1+=temp3;
+
+       // temp1.Print("sigma projected recontructed");
+
+        sigmaproj.XX()=temp1(0,0);sigmaproj.XY()=temp1(0,1);sigmaproj.XZ()=temp1(0,2);
+        sigmaproj.XY()=temp1(1,0);sigmaproj.YY()=temp1(1,1);sigmaproj.YZ()=temp1(1,2);
+        sigmaproj.XZ()=temp1(2,0);sigmaproj.YZ()=temp1(2,1);sigmaproj.ZZ()=temp1(2,2);
+
+        k_proj=0.;
+    //    std::cout<< " sigmaproj = "<< sigmaproj <<std::endl;
+
+        m_type=1;//plastic
     }
-    #endif
+
+
+}
+TPZTensor<STATE> TPZYCVonMisesPV::ComputeN(const TPZTensor<STATE> stresstensor)const
+{
+    STATE j2 =stresstensor.J2();
+    STATE temp=sqrt(3.)/(2.* sqrt(j2));
+    TPZTensor<STATE> S;
+    stresstensor.S(S);
+    S*=temp;
+    return S;
 }
 
+TPZFMatrix<STATE> TPZYCVonMisesPV::GetNdSigma(const TPZTensor<STATE>& sigma) const
+{
+    TPZFMatrix<STATE> dnds(6,6,0.0);
+
+    // --- Deviador trial S e J2 vindos do TPZTensor ---
+    TPZTensor<STATE> S;
+    sigma.S(S);                 // S = deviador(sigma)
+    const STATE J2 = sigma.J2(); // J2 = 1/2 S:S
+
+    // Proteção numérica
+    const STATE eps = 1e-20;
+    const STATE J2s = std::max(J2, eps);
+    const STATE rootJ2 = std::sqrt(J2s);
+
+    // ===== Projetor deviadorico P na SUA ordem de Voigt =====
+    // Você especificou: P = (1/3) * [[2,-1,-1,0,0,0],[-1,2,-1,0,0,0],[-1,-1,2,0,0,0],[0,0,0,6,0,0],[0,0,0,0,6,0],[0,0,0,0,0,6]]
+    // OBS: isso equivale a bloco normal (2/3,-1/3,...) e cisalhantes = 2 na diagonal,
+    // só que REORDENADO para a convenção [_XX_, _XY_, _XZ_, _YY_, _YZ_, _ZZ_].
+    TPZFMatrix<STATE> P(6,6,0.0);
+    // bloco "normal" (XX,YY,ZZ) — posições (_XX_, _YY_, _ZZ_) = (0,3,5)
+    P(_XX_, _XX_) = 2.0/3.0;  P(_XX_, _YY_) = -1.0/3.0; P(_XX_, _ZZ_) = -1.0/3.0;
+    P(_YY_, _XX_) = -1.0/3.0; P(_YY_, _YY_) =  2.0/3.0; P(_YY_, _ZZ_) = -1.0/3.0;
+    P(_ZZ_, _XX_) = -1.0/3.0; P(_ZZ_, _YY_) = -1.0/3.0; P(_ZZ_, _ZZ_) =  2.0/3.0;
+    // cisalhantes na diagonal (na SUA ordem: XY, XZ, YZ em 1,2,4) → valor 2
+    P(_XY_, _XY_) = 2.0;
+    P(_XZ_, _XZ_) = 2.0;
+    P(_YZ_, _YZ_) = 2.0;
+
+    // ===== vetor s (deviador) em VOIGT na SUA ordem =====
+    TPZFMatrix<STATE> svec(6,1,0.0); // coluna 6x1
+    svec(_XX_,0) = S.XX();
+    svec(_XY_,0) = S.XY(); // atenção: você pediu _XY_ = 1
+    svec(_XZ_,0) = S.XZ(); // _XZ_ = 2
+    svec(_YY_,0) = S.YY(); // _YY_ = 3
+    svec(_YZ_,0) = S.YZ(); // _YZ_ = 4
+    svec(_ZZ_,0) = S.ZZ(); // _ZZ_ = 5
+
+    // ===== outer product (s ⊗ s) usando TPZFMatrix =====
+    TPZFMatrix<STATE> sT;          // 1x6
+    svec.Transpose(&sT);           // sT = s^T
+    TPZFMatrix<STATE> s_outer(6,6,0.0);
+    svec.Multiply(sT, s_outer);    // s_outer = s * s^T
+
+    // ===== coeficientes =====
+    const STATE c1 = std::sqrt(3.0) / (2.0 * rootJ2);
+    const STATE c2 = std::sqrt(3.0) / (4.0 * std::pow(J2s, 1.5));
+
+    // d n / d sigma = c1 * P  -  c2 * (s ⊗ s)
+    dnds = P;
+    dnds *= c1;
+    dnds -= c2 * s_outer;
+
+    return dnds;
+}
+
+STATE TPZYCVonMisesPV::ComputeGamma(const TPZTensor<STATE>sig, const TPZFMatrix<STATE> elasticmat)const
+{
+    STATE j2 =sig.J2();
+    STATE q=sqrt(3.* j2);
+    STATE f=q-fSigmaY0;
+    TPZTensor<STATE> Nvec = ComputeN(sig);
+    //std::cout << "Nvec  = "<<Nvec <<std::endl;
+    TPZFMatrix<STATE> NFmat(6,1,0.),tempsol,NFmatT,sol;
+    Nvec.CopyTo(NFmat);
+    elasticmat.Multiply(NFmat,tempsol);
+    //tempsol.Print("tempsol");
+    NFmat.Transpose(&NFmatT);
+    NFmatT.Multiply(tempsol,sol);
+    //sol.Print("sol");
+ return f/sol(0,0);
+
+}
 
