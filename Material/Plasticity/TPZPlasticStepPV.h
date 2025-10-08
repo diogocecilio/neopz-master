@@ -16,7 +16,7 @@
 #include "pzstepsolver.h"
 #include "TPZElasticResponse.h"
 #include "TPZPorousElasticResponse.h"
-#include "TPZYCVonMisesPV.h"
+//#include "TPZYCVonMisesPV.h"
 #include <set>
 #include <ostream>
 

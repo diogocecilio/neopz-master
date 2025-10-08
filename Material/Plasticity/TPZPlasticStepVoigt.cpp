@@ -306,4 +306,4 @@ TPZTensor<STATE> TPZPlasticStepVoigt<YC,ER>::FromFMatToTensor(TPZFMatrix<STATE> 
     return localt;
 }
 
-template class TPZPlasticStepVoigt<TPZYCVonMisesPV, TPZElasticResponse>;
+template class TPZPlasticStepVoigt<TPZYCVonMisesVoigt, TPZElasticResponse>;

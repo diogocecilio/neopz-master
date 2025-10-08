@@ -57,4 +57,4 @@ template class TPZMatElastoPlastic<TPZElasticCriterion , TPZElastoPlasticMem>;
 template class TPZMatElastoPlastic<TPZElasticCriterion , TPZPoroElastoPlasticMem>;
 
 
-template class TPZMatElastoPlastic<TPZPlasticStepVoigt<TPZYCVonMisesPV, TPZElasticResponse>,TPZElastoPlasticMem>;
+template class TPZMatElastoPlastic<TPZPlasticStepVoigt<TPZYCVonMisesVoigt, TPZElasticResponse>,TPZElastoPlasticMem>;

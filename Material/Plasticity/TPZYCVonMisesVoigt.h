@@ -1,7 +1,7 @@
 
 
-#ifndef TPZYCVONMISESPV_H
-#define TPZYCVONMISESPV_H
+#ifndef TPZYCVONMISESVoigt_H
+#define TPZYCVONMISESVoigt_H
 
 #include "pzlog.h"
 #include "TPZTensor.h"
@@ -11,10 +11,10 @@
 #include "TPZPlasticCriterion.h"
 #include "TPZHWTools.h"
 #ifdef PZ_LOG
-static TPZLogger loggerVonMIsesPV("pz.plasticity.vonmisespv");
+static TPZLogger loggerVonMIsesVoigt("pz.plasticity.vonmisespv");
 #endif
 
-class TPZYCVonMisesPV : public TPZPlasticCriterion {
+class TPZYCVonMisesVoigt : public TPZPlasticCriterion {
 private:
 
     REAL fSigmaY0;
@@ -30,11 +30,11 @@ public:
         NYield = 1
     };
 
-    TPZYCVonMisesPV();
+    TPZYCVonMisesVoigt();
 
-    TPZYCVonMisesPV(STATE sigmaY0, STATE Hiso );
+    TPZYCVonMisesVoigt(STATE sigmaY0, STATE Hiso );
 
-    TPZYCVonMisesPV(const TPZYCVonMisesPV &cp);
+    TPZYCVonMisesVoigt(const TPZYCVonMisesVoigt &cp);
 
     virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )override;
 
@@ -45,7 +45,7 @@ public:
     /**
      * @brief Operator =
      */
-    TPZYCVonMisesPV & operator=(const TPZYCVonMisesPV &cp);
+    TPZYCVonMisesVoigt & operator=(const TPZYCVonMisesVoigt &cp);
 
     virtual int ClassId() const override;
 

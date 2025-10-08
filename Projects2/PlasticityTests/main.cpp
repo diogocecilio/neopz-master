@@ -59,7 +59,7 @@
 #include "pzgeoquad.h"          // você tem GeoQuad no print
 // #include "TPZGeoTriangle.h"  // se tiver triângulos
 // #include "TPZGeoLinear.h"    // se tiver elementos 1D
-#include "Plasticity/TPZYCVonMisesPV.h"
+#include "Plasticity/TPZYCVonMisesVoigt.h"
 
 #include "pzfstrmatrix.h"
 using std::cout; using std::endl;
@@ -73,7 +73,7 @@ static TPZLogger logger_plasticity("PlasticityTests");
 
 typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> TPlasticMC;
 
-typedef TPZPlasticStepVoigt<TPZYCVonMisesPV, TPZElasticResponse> TPlasticStepVoigtVM;
+typedef TPZPlasticStepVoigt<TPZYCVonMisesVoigt, TPZElasticResponse> TPlasticStepVoigtVM;
 
 
 
@@ -390,7 +390,7 @@ static TPZCompMesh* CompMeshCyl(TPZGeoMesh* gmesh)
 
      TPZElasticResponse ER;
      ER.SetEngineeringData(param.young, param.nu);
-     TPZYCVonMisesPV vmyc(param.sigmay,param.H0);
+     TPZYCVonMisesVoigt vmyc(param.sigmay,param.H0);
 
      TPlasticStepVoigtVM PlasticStepVoigt;
 

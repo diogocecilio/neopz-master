@@ -1,4 +1,4 @@
-#include "TPZYCVonMisesPV.h"
+#include "TPZYCVonMisesVoigt.h"
 #include "pzerror.h"
 #include "pzlog.h"
 #include "pzvec.h"
@@ -24,13 +24,13 @@ static inline void LameFromER(const TPZElasticResponse &ER, REAL &lambda, REAL &
 //                              CTORs / DTORs
 // ======================================================================
 
-TPZYCVonMisesPV::TPZYCVonMisesPV() :
+TPZYCVonMisesVoigt::TPZYCVonMisesVoigt() :
 fSigmaY0(0.0)//, fER()
 {
     // vazio
 }
 
-TPZYCVonMisesPV::TPZYCVonMisesPV(STATE sigmaY0, STATE Hiso)
+TPZYCVonMisesVoigt::TPZYCVonMisesVoigt(STATE sigmaY0, STATE Hiso)
 : fSigmaY0(sigmaY0)
 {
 
@@ -40,7 +40,7 @@ TPZYCVonMisesPV::TPZYCVonMisesPV(STATE sigmaY0, STATE Hiso)
     // H(κ) ≡ Hiso (constante)
     fH = [=](STATE /*kappa*/) { return Hiso; };
 }
-TPZYCVonMisesPV::TPZYCVonMisesPV(const TPZYCVonMisesPV& cp)
+TPZYCVonMisesVoigt::TPZYCVonMisesVoigt(const TPZYCVonMisesVoigt& cp)
 : TPZPlasticCriterion(cp)
 , fSigmaY0(cp.fSigmaY0)
 , fSigmaY(cp.fSigmaY)
@@ -48,7 +48,7 @@ TPZYCVonMisesPV::TPZYCVonMisesPV(const TPZYCVonMisesPV& cp)
 {
 }
 
-TPZYCVonMisesPV & TPZYCVonMisesPV::operator=(const TPZYCVonMisesPV &cp)
+TPZYCVonMisesVoigt & TPZYCVonMisesVoigt::operator=(const TPZYCVonMisesVoigt &cp)
 {
     if(this != &cp)
     {
@@ -63,7 +63,7 @@ TPZYCVonMisesPV & TPZYCVonMisesPV::operator=(const TPZYCVonMisesPV &cp)
 //                         Estado/local e parâmetros
 // ======================================================================
 
-void TPZYCVonMisesPV::SetUp(STATE sigmaY0, STATE Hiso)
+void TPZYCVonMisesVoigt::SetUp(STATE sigmaY0, STATE Hiso)
 {
     fSigmaY0     = sigmaY0;
 
@@ -73,14 +73,14 @@ void TPZYCVonMisesPV::SetUp(STATE sigmaY0, STATE Hiso)
     fH      = [=](STATE){ return Hiso; };
 }
 
-void TPZYCVonMisesPV::SetLocalMatState(TPZPlasticState<REAL> & /*state*/)
+void TPZYCVonMisesVoigt::SetLocalMatState(TPZPlasticState<REAL> & /*state*/)
 {
     // Caso sua formulação precise guardar/alterar estado interno local,
     // implemente aqui. Por ora, sem estado interno específico.
      DebugStop(); // remova o DebugStop do header para compilar.
 }
 
-TPZPlasticState<REAL> TPZYCVonMisesPV::GetLocalMatState()
+TPZPlasticState<REAL> TPZYCVonMisesVoigt::GetLocalMatState()
 {
     // Retorne o estado interno local, se houver. Aqui devolvemos um default.
     TPZPlasticState<REAL> st;
@@ -88,34 +88,34 @@ TPZPlasticState<REAL> TPZYCVonMisesPV::GetLocalMatState()
 }
 
 
-void TPZYCVonMisesPV::ChangeLocalMatParameters(TPZPlasticState<REAL> & /*state*/, REAL /*factor*/)
+void TPZYCVonMisesVoigt::ChangeLocalMatParameters(TPZPlasticState<REAL> & /*state*/, REAL /*factor*/)
 {
     // Atualize parâmetros locais (ex.: hardening), se necessário.
     // Mantido como stub intencional.
 }
 
-int TPZYCVonMisesPV::ClassId() const
+int TPZYCVonMisesVoigt::ClassId() const
 {
     // Ajuste se sua infraestrutura exigir um ID fixo/Hash específico.
     // Retornar um valor estável é suficiente para muitos casos.
-        return Hash("TPZYCVonMisesPV") ;
+        return Hash("TPZYCVonMisesVoigt") ;
 }
 
-void TPZYCVonMisesPV::Read(TPZStream& buf, void* /*context*/)
+void TPZYCVonMisesVoigt::Read(TPZStream& buf, void* /*context*/)
 {
     buf.Read(&fSigmaY0,1);
     //fER.Read(buf,nullptr);
 }
 
-void TPZYCVonMisesPV::Write(TPZStream& buf, int /*withclassid*/) const
+void TPZYCVonMisesVoigt::Write(TPZStream& buf, int /*withclassid*/) const
 {
     buf.Write(&fSigmaY0,1);
     //fER.Write(buf,0);
 }
 
-void TPZYCVonMisesPV::Print(std::ostream &out) const
+void TPZYCVonMisesVoigt::Print(std::ostream &out) const
 {
-    out << "----- TPZYCVonMisesPV -----\n";
+    out << "----- TPZYCVonMisesVoigt -----\n";
     out << "Yield stress (sigma_y): " << std::setprecision(12) << fSigmaY0 << "\n";
     //out << "Elastic response (E, nu): E=" << fER.E() << "  nu=" << fER.Poisson() << "\n";
     out << "NYield = " << NYield << "\n";
@@ -126,7 +126,7 @@ void TPZYCVonMisesPV::Print(std::ostream &out) const
 //                 Phi (função de escoamento) e helpers elásticos
 // ======================================================================
 
-void TPZYCVonMisesPV::Phi(TPZTensor<STATE>sig, STATE alpha, TPZVec<STATE> &phi) const
+void TPZYCVonMisesVoigt::Phi(TPZTensor<STATE>sig, STATE alpha, TPZVec<STATE> &phi) const
 {
     phi.resize(1);
     STATE j2 =sig.J2();
@@ -137,7 +137,7 @@ void TPZYCVonMisesPV::Phi(TPZTensor<STATE>sig, STATE alpha, TPZVec<STATE> &phi) 
 
 
 
-void TPZYCVonMisesPV::ProjectSigma(const TPZTensor<STATE> & sigmatr, STATE k_prev, TPZTensor<STATE> & sigmaproj, STATE &k_proj, int & m_type)
+void TPZYCVonMisesVoigt::ProjectSigma(const TPZTensor<STATE> & sigmatr, STATE k_prev, TPZTensor<STATE> & sigmaproj, STATE &k_proj, int & m_type)
 {
 
 
@@ -217,7 +217,7 @@ void TPZYCVonMisesPV::ProjectSigma(const TPZTensor<STATE> & sigmatr, STATE k_pre
 
 
 }
-TPZTensor<STATE> TPZYCVonMisesPV::ComputeN(const TPZTensor<STATE> stresstensor)const
+TPZTensor<STATE> TPZYCVonMisesVoigt::ComputeN(const TPZTensor<STATE> stresstensor)const
 {
     STATE j2 =stresstensor.J2();
     STATE temp=sqrt(3.)/(2.* sqrt(j2));
@@ -227,7 +227,7 @@ TPZTensor<STATE> TPZYCVonMisesPV::ComputeN(const TPZTensor<STATE> stresstensor)c
     return S;
 }
 
-TPZFMatrix<STATE> TPZYCVonMisesPV::GetNdSigma(const TPZTensor<STATE>& sigma) const
+TPZFMatrix<STATE> TPZYCVonMisesVoigt::GetNdSigma(const TPZTensor<STATE>& sigma) const
 {
     TPZFMatrix<STATE> dnds(6,6,0.0);
 
@@ -282,7 +282,7 @@ TPZFMatrix<STATE> TPZYCVonMisesPV::GetNdSigma(const TPZTensor<STATE>& sigma) con
     return dnds;
 }
 
-STATE TPZYCVonMisesPV::ComputeGamma(const TPZTensor<STATE>sig, const TPZFMatrix<STATE> elasticmat)const
+STATE TPZYCVonMisesVoigt::ComputeGamma(const TPZTensor<STATE>sig, const TPZFMatrix<STATE> elasticmat)const
 {
     STATE j2 =sig.J2();
     STATE q=sqrt(3.* j2);

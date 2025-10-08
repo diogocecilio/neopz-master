@@ -81,4 +81,4 @@ template class TPZRestoreClassWithTranslator<TPZMatElastoPlastic2D<TPZPlasticSte
 template class TPZMatElastoPlastic2D<TPZElasticCriterion , TPZElastoPlasticMem>;
 template class TPZMatElastoPlastic2D<TPZElasticCriterion , TPZPoroElastoPlasticMem>;
 #include "TPZPlasticStepVoigt.h"
-template class TPZMatElastoPlastic2D<TPZPlasticStepVoigt<TPZYCVonMisesPV, TPZElasticResponse>,TPZElastoPlasticMem>;
+template class TPZMatElastoPlastic2D<TPZPlasticStepVoigt<TPZYCVonMisesVoigt, TPZElasticResponse>,TPZElastoPlasticMem>;

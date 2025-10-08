@@ -5,7 +5,7 @@
 #include "TPZPlasticBase.h"
 #include "pzvec.h"
 #include <memory>
-#include "TPZYCVonMisesPV.h"
+#include "TPZYCVonMisesVoigt.h"
 #include "TPZElasticResponse.h"
 /// Classe constitutiva elasto-plástica em Voigt (3D) [11,22,33,13,23,12],
 /// com critério de escoamento genérico YC e resposta elástica ER,
