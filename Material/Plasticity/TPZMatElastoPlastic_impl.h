@@ -1569,7 +1569,8 @@ int TPZMatElastoPlastic<T,TMEM>::VariableIndex(const std::string &name) const
     if(!strcmp("DisplacementDoF",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EDisplacementDoF;
     if(!strcmp("Displacement",name.c_str()))            return TPZMatElastoPlastic<T,TMEM>::EDisplacement;
     if(!strcmp("Strain",name.c_str()))                  return TPZMatElastoPlastic<T,TMEM>::EStrain;
-    if(!strcmp("StressXX",name.c_str()))                  return TPZMatElastoPlastic<T,TMEM>::EStress;
+    if(!strcmp("StressXX",name.c_str()))                  return TPZMatElastoPlastic<T,TMEM>::ESX;
+    if(!strcmp("StressYY",name.c_str()))                  return TPZMatElastoPlastic<T,TMEM>::ESY;
     if(!strcmp("StrainElastic",name.c_str()))           return TPZMatElastoPlastic<T,TMEM>::EStrainElastic;
     if(!strcmp("StrainPlastic",name.c_str()))           return TPZMatElastoPlastic<T,TMEM>::EStrainPlastic;
     if(!strcmp("Yield",name.c_str()))                   return TPZMatElastoPlastic<T,TMEM>::EYield;
@@ -1587,6 +1588,7 @@ int TPZMatElastoPlastic<T,TMEM>::VariableIndex(const std::string &name) const
     if(!strcmp("StrainElasticJ2",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EStrainElasticJ2;
     if(!strcmp("StrainPlasticJ2",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EStrainPlasticJ2;
     if(!strcmp("FailureType",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EFailureType;
+    if(!strcmp("Exact",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EEXACT;
     PZError << "TPZMatElastoPlastic<T,TMEM>:: VariableIndex Error\n";
     return TPZMatElastoPlastic<T,TMEM>::ENone;
 }
@@ -1597,7 +1599,8 @@ int TPZMatElastoPlastic<T,TMEM>::NSolutionVariables(int var) const
     if(var == TPZMatElastoPlastic<T,TMEM>::EDisplacementDoF) return 3;
     if(var == TPZMatElastoPlastic<T,TMEM>::EDisplacement) return 3;
     if(var == TPZMatElastoPlastic<T,TMEM>::EStrain) return 6;
-    if(var == TPZMatElastoPlastic<T,TMEM>::EStress) return 1;
+    if(var == TPZMatElastoPlastic<T,TMEM>::ESX) return 1;
+    if(var == TPZMatElastoPlastic<T,TMEM>::ESY) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EStrainElastic) return 6;
     if(var == TPZMatElastoPlastic<T,TMEM>::EStrainPlastic) return 6;
     if(var == TPZMatElastoPlastic<T,TMEM>::EYield) return 1;
@@ -1614,7 +1617,7 @@ int TPZMatElastoPlastic<T,TMEM>::NSolutionVariables(int var) const
     if(var == TPZMatElastoPlastic<T,TMEM>::EStrainElasticJ2) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EStrainPlasticJ2) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EFailureType) return 1;
-
+    if(var == TPZMatElastoPlastic<T,TMEM>::EEXACT) return 1;
     if(var == 100) return 1;
     return TBase::NSolutionVariables(var);
 }
@@ -1672,11 +1675,20 @@ void TPZMatElastoPlastic<T, TMEM>::Solution(const TPZMaterialDataT<STATE> &data,
 
         }
         break;
-        case TPZMatElastoPlastic<T, TMEM>::EStress:
+        case TPZMatElastoPlastic<T, TMEM>::ESX:
         {
             Solout.Resize(1);
             TPZTensor<REAL> & sigma = Memory.m_sigma;
             Solout[0] = sigma.XX();
+
+
+        }
+        break;
+        case TPZMatElastoPlastic<T, TMEM>::ESY:
+        {
+            Solout.Resize(1);
+            TPZTensor<REAL> & sigma = Memory.m_sigma;
+            Solout[0] = sigma.YY();
 
 
         }
@@ -1817,6 +1829,19 @@ void TPZMatElastoPlastic<T, TMEM>::Solution(const TPZMaterialDataT<STATE> &data,
             Solout.Resize(1);
             int m_type = Memory.m_elastoplastic_state.m_m_type;
             Solout[0] = m_type;
+        }
+        break;
+        break;
+        case TPZMatElastoPlastic<T, TMEM>::EEXACT:
+        {
+            TPZVec<STATE> uex(2, 0.0);
+            TPZFMatrix<STATE> duex(2, 2, 0.0);
+            fExactSolution(data.x, uex, duex);
+            Solout.Resize(2);
+            // Comparar deslocamentos FEM e exatos
+            TPZVec<STATE> uh(2);
+            Solout[0] = data.sol[0][0];
+            Solout[1] = data.sol[1][0];
         }
         break;
         default:

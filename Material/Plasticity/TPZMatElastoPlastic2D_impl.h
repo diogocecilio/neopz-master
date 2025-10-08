@@ -651,8 +651,14 @@ void TPZMatElastoPlastic2D<T,TMEM>::Solution(const TPZMaterialDataT<STATE> &data
     datalocal.dsol[0](2,2) = 0.;
     datalocal.dsol[0](0,2) = 0.;
     datalocal.dsol[0](1,2) = 0.;
+
     TPZMatElastoPlastic<T,TMEM>::Solution(datalocal,var,Solout);
-    
+
+
+
+
+
+
 }
 
 

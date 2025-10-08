@@ -639,8 +639,21 @@ public:
         EStrainElasticJ2    = 18,
         EStrainPlasticJ2    = 19,
         EFailureType    = 20,
+        EEXACT    = 21,
+        ESX=22,
+        ESY=23
     };
+    /// Ponteiro para solução exata (para pós-processamento)
+    void (*fExactSolution)(const TPZVec<REAL> &x, TPZVec<STATE> &u,
+                           TPZFMatrix<STATE> &du);
 
+    /// Setter
+    void SetExactSolution(void (*fp)(const TPZVec<REAL> &x,
+                                     TPZVec<STATE> &u,
+                                     TPZFMatrix<STATE> &du))
+    {
+        fExactSolution = fp;
+    }
     void SetBodyForce(TPZManVector<REAL,3> fb)
     {
         m_force=fb;

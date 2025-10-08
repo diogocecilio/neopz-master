@@ -403,7 +403,6 @@ static TPZCompMesh* CompMeshCyl(TPZGeoMesh* gmesh)
 
      mat->SetPlasticityModel(PlasticStepVoigt);
      mat->SetId(1);
-
      mphys->InsertMaterialObject(mat);//0
      mat->Print(std::cout);
 
@@ -420,7 +419,7 @@ static TPZCompMesh* CompMeshCyl(TPZGeoMesh* gmesh)
     v2[1]=0.;
     mphys->InsertMaterialObject(mat->CreateBC(mat,bcindexes.bctop , dirdirichlet, v1, v2));
 
-    v2[0]=-0.19;
+    v2[0]=-0.19209;
     v2[1]=0.;
     mphys->InsertMaterialObject(mat->CreateBC(mat,bcindexes.bcinner , pressure, v1, v2));
 
@@ -444,6 +443,7 @@ void PostProcessVariables(TPZStack<std::string>& scal, TPZStack<std::string>& ve
     //vec.Push ( "ShearPlasticDeformation" );
     //vec.Push ( "PlasticDeformation" );
     scal.Push ( "StressXX" );
+    scal.Push ( "StressYY" );
     scal.Push ( "StrainElasticJ2" );
 
 }
@@ -601,13 +601,13 @@ REAL UyAtNode(TPZCompMesh* cmesh, REAL x, REAL y,REAL z)
 }
 void ApplyLoad(TPZCompMesh* cmesh,TPZManVector<REAL> factors)
 {
-    BoundaryIndexes bcindexes;
+    IndexesCylinder cylindexes;
     // parâmetros de controle
     int nloads = factors.size();
 
     TPZElastoPlasticAnalysis anal(cmesh, std::cout,TPZElastoPlasticAnalysis::ELineSearch::GoldenSection);
 
-    auto* bcmat = dynamic_cast<TPZBndCondT<STATE>*>(cmesh->FindMaterial(bcindexes.bctop));
+    auto* bcmat = dynamic_cast<TPZBndCondT<STATE>*>(cmesh->FindMaterial(cylindexes.bcinner));
 
     if(!bcmat)
     {
@@ -615,9 +615,7 @@ void ApplyLoad(TPZCompMesh* cmesh,TPZManVector<REAL> factors)
         DebugStop();
 
     }
-
-    const REAL load0=bcmat->Val2()[2];
-
+    const REAL load0=bcmat->Val2()[0];
     if(true)
     {
         TPZFStructMatrix<REAL> str(cmesh);
@@ -633,15 +631,14 @@ void ApplyLoad(TPZCompMesh* cmesh,TPZManVector<REAL> factors)
         anal.SetSolver(step);
     }
 
-
     const std::string csv_path = "loadsweep.csv";
     std::ofstream csv(csv_path);
     csv << "step,factor,uy,iters,ok\n";
     csv << std::setprecision(15) << std::scientific;
     // int nloads=factors.size();
-    REAL x=0.5;
-    REAL y=0.5;
-    REAL z=1.;
+    REAL x=200.;
+    REAL y=0.;
+    REAL z=0.;
     REAL uy=0.;
     int counter=0;
     int old_iters_out=0;
@@ -650,28 +647,27 @@ void ApplyLoad(TPZCompMesh* cmesh,TPZManVector<REAL> factors)
 
 
 
-     std::string vtkfile="applyload.vtk";
+     std::string vtkfile="applyloadcyl.vtk";
 
     for(int i =0;i< nloads;i++)
     {
          REAL fator_atual=factors[i];
-        bcmat->Val2()[2]=load0*factors[i];
+        bcmat->Val2()[0]=load0*factors[i];
         cout << "Load step =" << i<<" factor =  "<<factors[i] <<endl;
         int iters_out;
-        REAL resu,resf;
-        //anal.FindRoot(iters_out,resu,resf);
-         bool ok = anal.IterativeProcess(std::cout, 1.e-6,7, true, false, iters_out);
+
+         bool ok = anal.IterativeProcess(std::cout, 1.e-6,30, true, false, iters_out);
 
          TPZFMatrix<REAL> tempsol=anal.Solution();
          anal.AcceptSolution();
 
-         //PostElastoplastic(cmesh,vtkfile,matid,i);
+         PostElastoplastic(cmesh,vtkfile,matid,i);
          cmesh->LoadSolution(tempsol);
          anal.LoadSolution(cmesh->Solution());
-        // uy += UyAtNode(cmesh,  x,  y, z);
-         csv << counter << "," << -uy << "," << fator_atual << "," << iters_out << "," << 1 << "\n";
-         std::cout << "uy = " << uy << "  factor = " << fator_atual
-         << "  iters = " << iters_out <<  "  old_iters_out = " << old_iters_out << " counter =" << counter<< std::endl;
+         //uy += UyAtNode(cmesh,  x,  y, z);
+         //csv << counter << "," << -uy << "," << fator_atual << "," << iters_out << "," << 1 << "\n";
+         //std::cout << "uy = " << uy << "  factor = " << fator_atual
+        // << "  iters = " << iters_out <<  "  old_iters_out = " << old_iters_out << " counter =" << counter<< std::endl;
 
     }
 
@@ -709,8 +705,8 @@ int main()
     // an.Solution().Print("SOL");
     // an.AcceptSolution();
     //an.Assemble();
-     bool ok = an.IterativeProcess(std::cout, 1.e-6, 10, true, false, itersout);
-     an.AcceptSolution();
+  //   bool ok = an.IterativeProcess(std::cout, 1.e-6, 10, true, false, itersout);
+  //   an.AcceptSolution();
    // REAL resu,resf;
    // int iter;
    // // an.FindRoot(iter,resu,resf);
@@ -722,9 +718,9 @@ int main()
    //  //an.Solve();
    //  //an.Solution().Print("sol");
    //  an.AcceptSolution();
-     std::string vtkfile="load.vtk";
-   //
-     PostElastoplastic(cmesh,vtkfile,1,0);
+   //   std::string vtkfile="load.vtk";
+   // //
+   //   PostElastoplastic(cmesh,vtkfile,1,0);
    //
    // // auto ms = dynamic_cast<TPZMatrixSolver<STATE>*>(an.Solver());
    //                            // monta SÓ o bloco pedido
@@ -762,14 +758,14 @@ int main()
    //  // ok = an2.IterativeProcess(std::cout, 1.e-6, 5, true, false, itersout2);
    //
    //
-   //  int nloads = 10;
-   //  const REAL FS_target = 1. ;          // mantém seu “+0.1”
-   //  TPZManVector<REAL> factors(nloads+1);   // 0 .. nloads (inclusivo)
-   //  for (int i = 0; i <= nloads; ++i) {
-   //      factors[i] = FS_target * REAL(i) / REAL(nloads); // 0, Δ, 2Δ, …, FS_target
-   //      //cout<< factors[i] <<endl;
-   //  }
-   //  ApplyLoad( cmesh,factors);
+    int nloads = 20;
+    const REAL FS_target = 1. ;          // mantém seu “+0.1”
+    TPZManVector<REAL> factors(nloads+1);   // 0 .. nloads (inclusivo)
+    for (int i =0; i <= nloads; ++i) {
+        factors[i] = FS_target * REAL(i) / REAL(nloads); // 0, Δ, 2Δ, …, FS_target
+        cout<< factors[i] <<endl;
+    }
+    ApplyLoad( cmesh,factors);
    //
    //  //int itersout;
    //  //
