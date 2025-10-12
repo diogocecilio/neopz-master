@@ -266,7 +266,7 @@ int main()
         int pOrder = 2;
         TPZCompMesh* cmesh = CreateCMesh(gmesh, pOrder, mat);
 
-        mat->SetBodyForce(bodyforce);
+        mat->SetBodyForce0(bodyforce);
         // //REIMPLEMENTAR
         // DebugStop();
 
@@ -333,10 +333,13 @@ bool RunAndAccept(TPZCompMesh* cmesh,
                   REAL coes, REAL atrito, REAL factor, int& iters_out)
 {
         auto* body = dynamic_cast<plasticmat*>(cmesh->FindMaterial(1));
-        TPZManVector<REAL,3> fb=body->GetBodyForce();
-        for (auto &v : fb) v *= factor;
+        const TPZManVector<REAL,3> fbbackup=body->GetBodyForce0();
+        TPZManVector<REAL,3> fb=fbbackup;
+        fb[1]*= factor;
         body->SetBodyForce(fb);
-
+        cout << "factor =  "<<factor  << endl;
+        cout << fb << endl;
+        cout << fbbackup << endl;
         //REIMPLEMENTAR
        // DebugStop();
         //body->SetLoadFactor ( factor );
@@ -350,9 +353,13 @@ bool RunAndAccept(TPZCompMesh* cmesh,
         anal.SetSolver(step);
 
         int iters=30;
-        bool ok = anal.IterativeProcess(std::cout, (REAL)1e-2, iters, true, false, iters_out);
+       // ;/bool ok = anal.IterativeProcess(std::cout, (REAL)1e-2, iters, true, false, iters_out);
+        REAL resu,resf;
+        bool ok = anal.FindRoot( iters_out, resu,resf);
+        body->SetBodyForce(fbbackup);
         if (!ok) return false;
         anal.AcceptSolution();
+
         //cmesh->LoadSolution(anal.CumulativeSolution());
         return true;
 }

@@ -68,9 +68,7 @@ public:
     // Q = I + gamma Ce dadsig
     // R = Q^{-1} Ce
     // Dep = R - ( (R a) ⊗ (R a) ) / (a^T R a)
-    void ConsistentTangent(const TPZTensor<STATE>& sigmatr,const TPZTensor<STATE>& sigmapr,
-                           STATE kappa,
-                           TPZFMatrix<STATE>& Dep) const;
+    void ConsistentTangent(const TPZTensor<STATE>& sigmatr,const TPZTensor<STATE>& sigmapr,STATE gamma,TPZFMatrix<STATE>& Dep) const;
 
 
 

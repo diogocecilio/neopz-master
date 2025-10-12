@@ -32,3 +32,5 @@ add_subdirectory(PoroElastic)
 add_subdirectory(PoroElastoPlastic)
 
 add_subdirectory(PlasticityTests)
+
+add_subdirectory(PlasticityTestsVonMises)

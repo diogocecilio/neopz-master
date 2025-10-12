@@ -390,8 +390,9 @@ static TPZCompMesh* CompMeshCyl(TPZGeoMesh* gmesh)
 
      TPZElasticResponse ER;
      ER.SetEngineeringData(param.young, param.nu);
-     TPZYCVonMisesVoigt vmyc(param.sigmay,param.H0);
+     TPZYCVonMisesVoigt vmyc;
 
+     vmyc.SetUp(param.sigmay,param.H0);
      TPlasticStepVoigtVM PlasticStepVoigt;
 
 

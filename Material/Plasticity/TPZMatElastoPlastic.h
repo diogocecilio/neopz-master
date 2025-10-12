@@ -641,7 +641,11 @@ public:
         EFailureType    = 20,
         EEXACT    = 21,
         ESX=22,
-        ESY=23
+        ESY=23,
+        ESZ=24,
+        EEPZ=25,
+        EEPX=26,
+        EEPY=27
     };
     /// Ponteiro para solução exata (para pós-processamento)
     void (*fExactSolution)(const TPZVec<REAL> &x, TPZVec<STATE> &u,
@@ -658,10 +662,18 @@ public:
     {
         m_force=fb;
     }
-
+    void SetBodyForce0(TPZManVector<REAL,3> fb)
+    {
+        m_force0=fb;
+    }
     TPZManVector<REAL,3>  GetBodyForce()
     {
         return m_force;
+    }
+
+    TPZManVector<REAL,3>  GetBodyForce0()
+    {
+        return m_force0;
     }
 
 protected:
@@ -671,6 +683,8 @@ protected:
     */
     TPZManVector<REAL, 3> m_force={0.,0.,0.};
 
+
+    TPZManVector<REAL, 3> m_force0={0.,0.,0.};
     /**
     * bulk density of rock
     */

@@ -123,8 +123,8 @@ bool TPZElastoPlasticAnalysis::FindRoot(int &iters,REAL &resu,REAL &resf)
     TPZFMatrix<STATE> x(Solution()), dx(Solution());
     x.Zero(); dx.Zero();
 
-    const REAL tol   = 0.01;
-    const int  n_it  = 30;
+    const REAL tol   = 1.e-3;
+    const int  n_it  = 10;
     const REAL EPS   = 1.e-30; // evita divisão por zero
 
     //std::cout << "AssembleResidual.."   <<endl;
@@ -140,7 +140,7 @@ bool TPZElastoPlasticAnalysis::FindRoot(int &iters,REAL &resu,REAL &resf)
 
     REAL normrhs = 1.0;
     REAL normdu  = 0.0;
-
+    resf=10000.;
     for (int i = 1; i <= n_it; ++i) {
         // monta tangente e resíduo na solução atual x
         //std::cout << "Assembling.."   <<endl;
@@ -164,25 +164,33 @@ bool TPZElastoPlasticAnalysis::FindRoot(int &iters,REAL &resu,REAL &resf)
         normdu  = Norm(dx)/normu0;
         normrhs = Norm(Rhs())/normrhs0 ;
 
-        std::cout << "normrhs ="<< normrhs<< " normdu ="<< normdu   <<endl;
+        std::cout << "  [it " << i << "] "
+        << "||Δu|| = " << normdu
+        << " | ||R|| = " << normrhs
+        << " | tol = " << tol << std::endl;
 
         iters = i;
-
+        if(normrhs>resf)break;
         resu=normdu;
         resf=normrhs;
         // critério de convergência (resíduo relativo)
-        if (normrhs < tol ) {
+        if (normrhs < tol &&normdu<tol) {
             std::cout << "normrhs ="<< normrhs<< " normdu ="<< normdu   <<endl;
             return true;
         }
 
     }
     std::cout << "não convergiu dentro do limite: normrhs ="<< normrhs<< " normdu ="<< normdu   <<endl;
+    int numiter=30;
+    std::cout << "Tentando line search com  ="<< normrhs<< " tol ="<< tol << " numiter = "<< numiter<<std::endl;
+    bool conv = IterativeProcess(std::cout,tol, numiter, true,false,iters);
     // não convergiu dentro do limite
-    if( normdu<tol)
+    if( conv)
     {
+        std::cout << "Convergiu com   ="<< iters<< " iteraçoes."<<std::endl;
         return true;
     }else{
+        std::cout << "NAO Convergiu com   ="<< iters<< " iteraçoes."<<std::endl;
         return false;
     }
 
@@ -283,7 +291,7 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol, int 
         << " | tol = " << tol << std::endl;
 
         // critério de parada
-        if ( err_u<tol && err_f<tol)
+        if ( err_u<tol && err_f<tol*100)
         {
             out << "  -> Convergência atingida em " << iter+1 << " iterações " << " ||Δu||/||Δu0|| = " << err_u<< " | ||R||/||R0|| = " << err_f<< " | tol = " << tol << "\n";
             converged = true;

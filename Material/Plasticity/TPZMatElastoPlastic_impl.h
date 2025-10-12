@@ -1569,9 +1569,12 @@ int TPZMatElastoPlastic<T,TMEM>::VariableIndex(const std::string &name) const
     if(!strcmp("DisplacementDoF",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EDisplacementDoF;
     if(!strcmp("Displacement",name.c_str()))            return TPZMatElastoPlastic<T,TMEM>::EDisplacement;
     if(!strcmp("Strain",name.c_str()))                  return TPZMatElastoPlastic<T,TMEM>::EStrain;
-    if(!strcmp("StressXX",name.c_str()))                  return TPZMatElastoPlastic<T,TMEM>::ESX;
-    if(!strcmp("StressYY",name.c_str()))                  return TPZMatElastoPlastic<T,TMEM>::ESY;
-    if(!strcmp("StrainElastic",name.c_str()))           return TPZMatElastoPlastic<T,TMEM>::EStrainElastic;
+    if(!strcmp("StressXX",name.c_str()))                return TPZMatElastoPlastic<T,TMEM>::ESX;
+    if(!strcmp("StressYY",name.c_str()))                return TPZMatElastoPlastic<T,TMEM>::ESY;
+    if(!strcmp("StressZZ",name.c_str()))                return TPZMatElastoPlastic<T,TMEM>::ESZ;
+    if(!strcmp("StrainPlasticZZ",name.c_str()))                return TPZMatElastoPlastic<T,TMEM>::EEPZ;
+    if(!strcmp("StrainPlasticXX",name.c_str()))                return TPZMatElastoPlastic<T,TMEM>::EEPX;
+    if(!strcmp("StrainPlasticYY",name.c_str()))                return TPZMatElastoPlastic<T,TMEM>::EEPY;
     if(!strcmp("StrainPlastic",name.c_str()))           return TPZMatElastoPlastic<T,TMEM>::EStrainPlastic;
     if(!strcmp("Yield",name.c_str()))                   return TPZMatElastoPlastic<T,TMEM>::EYield;
     if(!strcmp("VolHardening",name.c_str()))            return TPZMatElastoPlastic<T,TMEM>::EVolHardening;
@@ -1601,7 +1604,10 @@ int TPZMatElastoPlastic<T,TMEM>::NSolutionVariables(int var) const
     if(var == TPZMatElastoPlastic<T,TMEM>::EStrain) return 6;
     if(var == TPZMatElastoPlastic<T,TMEM>::ESX) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::ESY) return 1;
-    if(var == TPZMatElastoPlastic<T,TMEM>::EStrainElastic) return 6;
+    if(var == TPZMatElastoPlastic<T,TMEM>::ESZ) return 1;
+    if(var == TPZMatElastoPlastic<T,TMEM>::EEPZ) return 1;
+    if(var == TPZMatElastoPlastic<T,TMEM>::EEPX) return 1;
+    if(var == TPZMatElastoPlastic<T,TMEM>::EEPY) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EStrainPlastic) return 6;
     if(var == TPZMatElastoPlastic<T,TMEM>::EYield) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EVolHardening) return 1;
@@ -1662,19 +1668,6 @@ void TPZMatElastoPlastic<T, TMEM>::Solution(const TPZMaterialDataT<STATE> &data,
             }
         }
         break;
-        case TPZMatElastoPlastic<T, TMEM>::EStrain:
-        {
-            Solout.Resize(6);
-            TPZTensor<REAL> & eps_t = Memory.m_elastoplastic_state.m_eps_t;
-            Solout[0] = eps_t.XX();
-            Solout[1] = eps_t.YY();
-            Solout[2] = eps_t.ZZ();
-            Solout[3] = eps_t.XY();
-            Solout[4] = eps_t.XZ();
-            Solout[5] = eps_t.YZ();
-
-        }
-        break;
         case TPZMatElastoPlastic<T, TMEM>::ESX:
         {
             Solout.Resize(1);
@@ -1693,17 +1686,39 @@ void TPZMatElastoPlastic<T, TMEM>::Solution(const TPZMaterialDataT<STATE> &data,
 
         }
         break;
-        case TPZMatElastoPlastic<T, TMEM>::EStrainElastic:
+        case TPZMatElastoPlastic<T, TMEM>::ESZ:
         {
-            Solout.Resize(6);
-            TPZTensor<REAL> eps_e(Memory.m_elastoplastic_state.m_eps_t);
-            eps_e -= Memory.m_elastoplastic_state.m_eps_p;
-            Solout[0] = eps_e.XX();
-            Solout[1] = eps_e.YY();
-            Solout[2] = eps_e.ZZ();
-            Solout[3] = eps_e.XY();
-            Solout[4] = eps_e.XZ();
-            Solout[5] = eps_e.YZ();
+            Solout.Resize(1);
+            TPZTensor<REAL> & sigma = Memory.m_sigma;
+            Solout[0] = sigma.ZZ();
+
+
+        }
+        break;
+        case TPZMatElastoPlastic<T, TMEM>::EEPZ:
+        {
+            Solout.Resize(1);
+            TPZTensor<REAL> & eps_p = Memory.m_elastoplastic_state.m_eps_p;
+            Solout[0] = eps_p.ZZ();
+
+
+        }
+        break;
+        case TPZMatElastoPlastic<T, TMEM>::EEPX:
+        {
+            Solout.Resize(1);
+            TPZTensor<REAL> & eps_p = Memory.m_elastoplastic_state.m_eps_p;
+            Solout[0] = eps_p.XX();
+
+
+        }
+        break;
+        case TPZMatElastoPlastic<T, TMEM>::EEPY:
+        {
+            Solout.Resize(1);
+            TPZTensor<REAL> & eps_p = Memory.m_elastoplastic_state.m_eps_p;
+            Solout[0] = eps_p.YY();
+
 
         }
         break;
@@ -2098,7 +2113,7 @@ void TPZMatElastoPlastic<T,TMEM>::ContributeBC(const TPZMaterialDataT<STATE> &da
 
     const TPZFMatrix<REAL> &v1 = bc.Val1();
     //bc.Print(cout);
-    //cout << "val2:  " << v2[0]          << ' ' << v2[1]          << ' ' << v2[2]          << endl;
+    //std::cout << "val2:  " << v2[2] << std::endl;
     switch (bc.Type()) {
         case 0: // Dirichlet condition
             for(in = 0 ; in < phr; in++) {
@@ -2138,9 +2153,9 @@ void TPZMatElastoPlastic<T,TMEM>::ContributeBC(const TPZMaterialDataT<STATE> &da
 
         case 3: // Directional Null Dirichlet - displacement is set to null in the non-null vector component direction
             for(in = 0 ; in < phr; in++) {
-                //ef(nstate*in+0,0) += BIGNUMBER * (0. - data.sol[0][0]) * v2[0] * phi(in,0) * weight;
-                //ef(nstate*in+1,0) += BIGNUMBER * (0. - data.sol[0][1]) * v2[1] * phi(in,0) * weight;
-                //ef(nstate*in+2,0) += BIGNUMBER * (0. - data.sol[0][2]) * v2[2] * phi(in,0) * weight;
+                ef(nstate*in+0,0) += BIGNUMBER * (0. - data.sol[0][0]) * v2[0] * phi(in,0) * weight;
+                ef(nstate*in+1,0) += BIGNUMBER * (0. - data.sol[0][1]) * v2[1] * phi(in,0) * weight;
+                ef(nstate*in+2,0) += BIGNUMBER * (0. - data.sol[0][2]) * v2[2] * phi(in,0) * weight;
                 for (jn = 0 ; jn < phr; jn++) {
                     ek(nstate*in+0,nstate*jn+0) += BIGNUMBER * phi(in,0) * phi(jn,0) * weight * v2[0];
                     ek(nstate*in+1,nstate*jn+1) += BIGNUMBER * phi(in,0) * phi(jn,0) * weight * v2[1];
@@ -2354,8 +2369,8 @@ void TPZMatElastoPlastic<T,TMEM>::ComputeDeltaStrainVector(const TPZMaterialData
 {
     TPZFNMatrix<9> DSolXYZ(3,3,0.);
     data.axes.Multiply(data.dsol[0],DSolXYZ,1/*transpose*/);
-    std::cout << "\n data dsol \n";
-    data.dsol[0].Print("data.sol");
+    //std::cout << "\n data dsol \n";
+    //data.dsol[0].Print("data.sol");
     DeltaStrain.Redim(6,1);
     DeltaStrain(_XX_,0) = DSolXYZ(0,0);
     DeltaStrain(_YY_,0) = DSolXYZ(1,1);

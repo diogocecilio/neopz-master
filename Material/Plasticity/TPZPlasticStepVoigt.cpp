@@ -10,7 +10,7 @@ template <class YC, class ER>
 TPZPlasticStepVoigt<YC,ER>::TPZPlasticStepVoigt(const YC& yc, const ER& er)
 : fER(er), fYC(yc)
 {
-
+    fN.CleanUp();
 }
 
 // --- Construtor padrão ---
@@ -21,6 +21,7 @@ TPZPlasticStepVoigt<YC,ER>::TPZPlasticStepVoigt()
 , fYC()                   // YC default-constructed
 
 {
+    fN.CleanUp();
     // nada além do init de membros
 }
 
@@ -31,6 +32,7 @@ TPZPlasticStepVoigt<YC,ER>::TPZPlasticStepVoigt(const TPZPlasticStepVoigt& other
 , fER(other.fER)
 , fYC(other.fYC)
 {
+    fN.CleanUp();
     // nada extra
 }
 
@@ -60,6 +62,14 @@ template <class YC, class ER>
 void TPZPlasticStepVoigt<YC,ER>::Print(std::ostream& out) const
 {
 
+        out << "\n" << this->Name();
+        out << "\n YC_t:";
+        fYC.Print(out);
+        out << "\n ER_t:";
+        fER.Print(out);
+        out << "\nTPZPlasticStepPV Internal members:";
+        out << "\n fN = "; // PlasticState
+        fN.Print(out);
 }
 
 template <class YC, class ER>
@@ -75,66 +85,162 @@ void TPZPlasticStepVoigt<YC,ER>::ApplyStrain(const TPZTensor<REAL>& epsTotal)
     fN.m_eps_t = epsTotal; // se o TPZPlasticState tiver esse campo; ajuste conforme seu struct
 }
 
-// --- ComputeSigma: stub (retorna zero) ---
+// // --- ComputeSigma: stub (retorna zero) ---
 template<class YC,class ER>
 void TPZPlasticStepVoigt<YC,ER>::ApplyStrainComputeSigma(const TPZTensor<REAL>& epsTotal,
                                                          TPZTensor<REAL>& sigma,
                                                          TPZFMatrix<REAL>* tangent)
 {
-    TPZFMatrix<STATE>  Ce,invCe,sigtr;
-    fER.De(Ce) ;
-    // Ce.Print("sd");
-    // //fER.InvCMatrix(invCe) ;
-    // //invCe.Print("invCe");
-    //
-     TPZFMatrix<STATE> epst(6,1,0.);
-    // epst(_XX_,0)=0.002;
-    // epst(_YY_,0)=0.001;
 
-   //  std::cout << "epsTotal" << epsTotal << std::endl;
-    epsTotal.CopyTo(epst);
-    Ce.Multiply(epst,sigtr);
+    TPZTensor<REAL>sigtrtensor;
+    fER.ComputeStress(epsTotal,sigtrtensor);
 
-    TPZTensor<STATE> sigtrtensor;
-    sigtrtensor.CopyFrom(sigtr);
-
-    //std::cout<< "sigtrtensor = "<< sigtrtensor <<std::endl;
-
-
-    STATE kprev=0.,kproj;
     int type;
-    fYC.ProjectSigma(sigtrtensor,kprev,sigma,kproj,type);
+    TPZFMatrix<STATE> Ce,Dep;
+    fER.De(Ce);
+    REAL hardening=0.;
+    //std::cout<< "epsTotal= "<< epsTotal << std::endl;
+    STATE gamma=fYC.UpdateHardeningVar(sigtrtensor, fER,hardening);
+    fN.m_hardening=hardening;
+    //std::cout<< "fN.m_hardening DEPOIS = "<< fN.m_hardening << std::endl;
+    fYC.ProjectSigma(sigtrtensor,sigma,fN.m_hardening,type);
 
-    // TPZFMatrix<STATE>dNdSig =  fYC.GetNdSigma(sigmaproj);
-    // dNdSig.Print("dNdSig");
-    // TPZTensor<STATE> Nvec = fYC.ComputeN(sigmaproj);
-    // std::cout<< "Nvec = "<< Nvec <<std::endl;
-    TPZFMatrix<STATE> Dep;
+    fN.m_m_type = type;
+
+
     if(type==1)//plastico
     {
-        this->ConsistentTangent(sigtrtensor,sigma,kprev,Dep);
+         //std::cout<< " ==================== = \n";
+         //std::cout<< "sigtrtensor  ="<<sigtrtensor << std::endl;
+         //std::cout<< "sigma = "<< sigma << std::endl;
+        //std::cout<< "gamma = "<< gamma << std::endl;
+        this->ConsistentTangent(sigtrtensor,sigma,gamma,Dep);
+
     }else{
         Dep=Ce;
     }
-
-
-
-    if (tangent) {   // ✅ evita segfault se chamaram com nullptr
+    if (tangent) {
         *tangent = Dep;
     }
     // Reconstruction of sigmaprTensor
-
     TPZTensor<REAL> eps_e_Np1;
     fER.ComputeStrain(sigma, eps_e_Np1);
     fN.m_eps_t = epsTotal;
     fN.m_eps_p = epsTotal - eps_e_Np1;
 
+
+
 }
+// #define DEBUG_PLASTIC
+// #ifdef DEBUG_PLASTIC
+// #include <iomanip>
+// #include <iostream>
+// #endif
+//
+// template<class YC,class ER>
+// void TPZPlasticStepVoigt<YC,ER>::ApplyStrainComputeSigma(const TPZTensor<REAL>& epsTotal,
+//                                                          TPZTensor<REAL>& sigma,
+//                                                          TPZFMatrix<REAL>* tangent)
+// {
+//     #ifdef DEBUG_PLASTIC
+//     std::cout.setf(std::ios::scientific);
+//     std::cout << std::setprecision(6);
+//     std::cout << "\n=== ApplyStrainComputeSigma ===\n";
+//     std::cout << "epsTotal = [" << epsTotal.XX() << ", " << epsTotal.YY() << ", " << epsTotal.ZZ()
+//     << ", " << epsTotal.XY() << ", " << epsTotal.YZ() << ", " << epsTotal.XZ() << "]\n";
+//     #endif
+//
+//     // 1) Preditor elástico (trial)
+//     TPZTensor<REAL> sigtrtensor;
+//     fER.ComputeStress(epsTotal, sigtrtensor);
+//
+//     #ifdef DEBUG_PLASTIC
+//     std::cout << "sig_trial = [" << sigtrtensor.XX() << ", " << sigtrtensor.YY() << ", " << sigtrtensor.ZZ()
+//     << ", " << sigtrtensor.XY() << ", " << sigtrtensor.YZ() << ", " << sigtrtensor.XZ() << "]\n";
+//     // I1, desviador, J2 e sigma_eq do trial
+//     REAL I1tr = sigtrtensor.I1();
+//     TPZTensor<REAL> str = sigtrtensor;
+//     const REAL ptr = I1tr/3.0;
+//     str.XX() -= ptr; str.YY() -= ptr; str.ZZ() -= ptr;
+//     REAL ss_tr =  str.XX()*str.XX() + str.YY()*str.YY() + str.ZZ()*str.ZZ()
+//     + 2.0*( str.XY()*str.XY() + str.YZ()*str.YZ() + str.XZ()*str.XZ() );
+//     REAL J2tr  = 0.5*ss_tr;
+//     REAL seqtr = std::sqrt(3.0*J2tr);
+//     std::cout << "I1_trial = " << I1tr << "  J2_trial = " << J2tr << "  seq_trial = " << seqtr << "\n";
+//     #endif
+//
+//     // 2) Tensor elástico e hardening
+//     int type = -1;
+//     TPZFMatrix<STATE> Ce, Dep;
+//     fER.De(Ce);
+//
+//     #ifdef DEBUG_PLASTIC
+//     if (Ce.Rows()>=6 && Ce.Cols()>=6) {
+//         std::cout << "Ce diag: C11=" << Ce(0,0) << " C22=" << Ce(1,1)
+//         << " C33=" << Ce(2,2) << " C44=" << Ce(3,3)
+//         << " C55=" << Ce(4,4) << " C66=" << Ce(5,5) << "\n";
+//     }
+//     std::cout << "hard_var(before) = " << fN.m_hardening << "\n";
+//     #endif
+//
+//     REAL hardening = 0.;
+//     STATE gamma = fYC.UpdateHardeningVar(sigtrtensor, Ce, hardening);
+//     fN.m_hardening += hardening;
+//
+//     #ifdef DEBUG_PLASTIC
+//     std::cout << "UpdateHardeningVar: gamma=" << gamma
+//     << "  hardening_inc=" << hardening
+//     << "  hard_var(after)=" << fN.m_hardening << "\n";
+//     #endif
+//
+//     // 3) Projeção (retorno) e tipo (0 elástico, 1 plástico)
+//     fYC.ProjectSigma(sigtrtensor, sigma, fN.m_hardening, type);
+//     fN.m_m_type = type;
+//
+//     #ifdef DEBUG_PLASTIC
+//     std::cout << "ProjectSigma: type=" << type
+//     << "  sigma_corr = [" << sigma.XX() << ", " << sigma.YY() << ", " << sigma.ZZ()
+//     << ", " << sigma.XY() << ", " << sigma.YZ() << ", " << sigma.XZ() << "]\n";
+//     // checar consistência no fim (f≈0)
+//     REAL I1c = sigma.I1();
+//     TPZTensor<REAL> sc = sigma;
+//     const REAL pc = I1c/3.0;
+//     sc.XX() -= pc; sc.YY() -= pc; sc.ZZ() -= pc;
+//     REAL ss_c =  sc.XX()*sc.XX() + sc.YY()*sc.YY() + sc.ZZ()*sc.ZZ()
+//     + 2.0*( sc.XY()*sc.XY() + sc.YZ()*sc.YZ() + sc.XZ()*sc.XZ() );
+//     REAL J2c  = 0.5*ss_c;
+//     REAL seqc = std::sqrt(3.0*J2c);
+//     std::cout << "I1_corr = " << I1c << "  J2_corr = " << J2c << "  seq_corr = " << seqc << "\n";
+//     // Se existir fYC.Phi(σ,hard), você pode conferir f_trial e f_n1 aqui.
+//     #endif
+//
+//     // 4) Tangente consistente
+//     if (type == 1) {
+//         this->ConsistentTangent(sigtrtensor, sigma, gamma, Dep);
+//     } else {
+//         Dep = Ce;
+//     }
+//     if (tangent) { *tangent = Dep; }
+//
+//     // 5) Atualização de strains elástica e plástica
+//     TPZTensor<REAL> eps_e_Np1;
+//     fER.ComputeStrain(sigma, eps_e_Np1);   // inverte a lei elástica
+//     fN.m_eps_t = epsTotal;
+//     fN.m_eps_p = epsTotal - eps_e_Np1;
+//
+//     #ifdef DEBUG_PLASTIC
+//     std::cout << "eps_e(n+1) = [" << eps_e_Np1.XX() << ", " << eps_e_Np1.YY() << ", " << eps_e_Np1.ZZ()
+//     << ", " << eps_e_Np1.XY() << ", " << eps_e_Np1.YZ() << ", " << eps_e_Np1.XZ() << "]\n";
+//     std::cout << "eps_p(n+1) = [" << fN.m_eps_p.XX() << ", " << fN.m_eps_p.YY() << ", " << fN.m_eps_p.ZZ()
+//     << ", " << fN.m_eps_p.XY() << ", " << fN.m_eps_p.YZ() << ", " << fN.m_eps_p.XZ() << "]\n";
+//     std::cout << "tr(eps_p) = " << (fN.m_eps_p.XX()+fN.m_eps_p.YY()+fN.m_eps_p.ZZ())
+//     << " (≈0 em J2)\n";
+//     std::cout << "=== end ApplyStrainComputeSigma ===\n";
+//     #endif
+// }
 
 template<class YC, class ER>
-void TPZPlasticStepVoigt<YC,ER>::ConsistentTangent(const TPZTensor<STATE>& sigmatr,const TPZTensor<STATE>& sigmapr,
-                                                   STATE kappa,
-                                                   TPZFMatrix<STATE>& Dep) const
+void TPZPlasticStepVoigt<YC,ER>::ConsistentTangent(const TPZTensor<STATE>& sigmatr,const TPZTensor<STATE>& sigmapr,STATE gamma, TPZFMatrix<STATE>& Dep) const
 {
 
     TPZTensor<STATE> Nvec = fYC.ComputeN(sigmapr);
@@ -148,7 +254,10 @@ void TPZPlasticStepVoigt<YC,ER>::ConsistentTangent(const TPZTensor<STATE>& sigma
      Ce(_XZ_,_XZ_)/=2.;
      Ce(_YZ_,_YZ_)/=2.;
 
-    STATE gamma = fYC.ComputeGamma(sigmatr,Ce );
+    // STATE gammafYC.UpdateHardeningVar(sigmapr, Ce,fN.m_hardening);
+    //STATE gamma = fYC.ComputeGamma(sigmatr,Ce );
+
+
     // Ce.Print("Ce");
     // dadsig.Print("dadsig");
     // std::cout << "gamma = " << gamma <<std::endl;
