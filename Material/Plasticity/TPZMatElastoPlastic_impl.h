@@ -1573,6 +1573,8 @@ int TPZMatElastoPlastic<T,TMEM>::VariableIndex(const std::string &name) const
     if(!strcmp("StressYY",name.c_str()))                return TPZMatElastoPlastic<T,TMEM>::ESY;
     if(!strcmp("StressZZ",name.c_str()))                return TPZMatElastoPlastic<T,TMEM>::ESZ;
     if(!strcmp("StrainPlasticZZ",name.c_str()))                return TPZMatElastoPlastic<T,TMEM>::EEPZ;
+    if(!strcmp("StrainTotalZZ",name.c_str()))                return TPZMatElastoPlastic<T,TMEM>::EEPZT;
+    if(!strcmp("StrainElasticZZ",name.c_str()))                return TPZMatElastoPlastic<T,TMEM>::EEEZ;
     if(!strcmp("StrainPlasticXX",name.c_str()))                return TPZMatElastoPlastic<T,TMEM>::EEPX;
     if(!strcmp("StrainPlasticYY",name.c_str()))                return TPZMatElastoPlastic<T,TMEM>::EEPY;
     if(!strcmp("StrainPlastic",name.c_str()))           return TPZMatElastoPlastic<T,TMEM>::EStrainPlastic;
@@ -1590,7 +1592,8 @@ int TPZMatElastoPlastic<T,TMEM>::VariableIndex(const std::string &name) const
     if(!strcmp("StressJ2",name.c_str()))                return TPZMatElastoPlastic<T,TMEM>::EStressJ2;
     if(!strcmp("StrainElasticJ2",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EStrainElasticJ2;
     if(!strcmp("StrainPlasticJ2",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EStrainPlasticJ2;
-    if(!strcmp("FailureType",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EFailureType;
+    if(!strcmp("FailureType",name.c_str()))             return TPZMatElastoPlastic<T,TMEM>::EFailureType;
+    if(!strcmp("DamageVariable",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>:: EDamageVar;
     if(!strcmp("Exact",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EEXACT;
     PZError << "TPZMatElastoPlastic<T,TMEM>:: VariableIndex Error\n";
     return TPZMatElastoPlastic<T,TMEM>::ENone;
@@ -1606,8 +1609,10 @@ int TPZMatElastoPlastic<T,TMEM>::NSolutionVariables(int var) const
     if(var == TPZMatElastoPlastic<T,TMEM>::ESY) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::ESZ) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EEPZ) return 1;
+    if(var == TPZMatElastoPlastic<T,TMEM>::EEPZT) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EEPX) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EEPY) return 1;
+    if(var == TPZMatElastoPlastic<T,TMEM>::EEEZ) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EStrainPlastic) return 6;
     if(var == TPZMatElastoPlastic<T,TMEM>::EYield) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EVolHardening) return 1;
@@ -1624,6 +1629,7 @@ int TPZMatElastoPlastic<T,TMEM>::NSolutionVariables(int var) const
     if(var == TPZMatElastoPlastic<T,TMEM>::EStrainPlasticJ2) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EFailureType) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EEXACT) return 1;
+    if(var == TPZMatElastoPlastic<T,TMEM>::EDamageVar) return 1;
     if(var == 100) return 1;
     return TBase::NSolutionVariables(var);
 }
@@ -1704,6 +1710,15 @@ void TPZMatElastoPlastic<T, TMEM>::Solution(const TPZMaterialDataT<STATE> &data,
 
         }
         break;
+        case TPZMatElastoPlastic<T, TMEM>::EEPZT:
+        {
+            Solout.Resize(1);
+            TPZTensor<REAL> & eps_p = Memory.m_elastoplastic_state.m_eps_t;
+            Solout[0] = eps_p.ZZ();
+
+
+        }
+        break;
         case TPZMatElastoPlastic<T, TMEM>::EEPX:
         {
             Solout.Resize(1);
@@ -1718,6 +1733,27 @@ void TPZMatElastoPlastic<T, TMEM>::Solution(const TPZMaterialDataT<STATE> &data,
             Solout.Resize(1);
             TPZTensor<REAL> & eps_p = Memory.m_elastoplastic_state.m_eps_p;
             Solout[0] = eps_p.YY();
+
+
+        }
+        break;
+        break;
+        case TPZMatElastoPlastic<T, TMEM>::EEEZ:
+        {
+            Solout.Resize(1);
+            TPZTensor<REAL> & eps_p = Memory.m_elastoplastic_state.m_eps_p;
+            TPZTensor<REAL> & eps_t = Memory.m_elastoplastic_state.m_eps_t;
+            TPZTensor<REAL> eps_e=eps_t-eps_p;
+            Solout[0] = eps_e.ZZ();
+
+
+        }
+        break;
+        case TPZMatElastoPlastic<T, TMEM>::EDamageVar:
+        {
+            Solout.Resize(1);
+            STATE hardening= Memory.m_elastoplastic_state.m_hardening;
+            Solout[0] =hardening;
 
 
         }
@@ -2494,7 +2530,10 @@ void TPZMatElastoPlastic<T,TMEM>::ApplyDeltaStrainComputeDep(const TPZMaterialDa
     if(TPZMatWithMem<TMEM>::fUpdateMem)
     {
         this->MemItem(intPt).m_sigma        = sigma;
-        this->MemItem(intPt).m_elastoplastic_state = plasticloc.GetState();
+        //this->MemItem(intPt).m_elastoplastic_state = plasticloc.GetState();
+        this->MemItem(intPt).m_elastoplastic_state.m_eps_t = plasticloc.GetState().m_eps_t;
+        this->MemItem(intPt).m_elastoplastic_state.m_eps_p = plasticloc.GetState().m_eps_p;
+        this->MemItem(intPt).m_elastoplastic_state.m_hardening = plasticloc.GetState().m_hardening;
         this->MemItem(intPt).m_plastic_steps = plasticloc.IntegrationSteps();
         this->MemItem(intPt).m_ER = plasticloc.GetElasticResponse();
         int solsize = data.sol[0].size();
@@ -2542,7 +2581,10 @@ void TPZMatElastoPlastic<T,TMEM>::ApplyDeltaStrain(const TPZMaterialDataT<STATE>
     if(TPZMatWithMem<TMEM>::fUpdateMem)
     {
         this->MemItem(intPt).m_sigma        = sigma;
-        this->MemItem(intPt).m_elastoplastic_state = plasticloc.GetState();
+        //this->MemItem(intPt).m_elastoplastic_state = plasticloc.GetState();
+        this->MemItem(intPt).m_elastoplastic_state.m_eps_t = plasticloc.GetState().m_eps_t;
+        this->MemItem(intPt).m_elastoplastic_state.m_eps_p = plasticloc.GetState().m_eps_p;
+        this->MemItem(intPt).m_elastoplastic_state.m_hardening = plasticloc.GetState().m_hardening;
         this->MemItem(intPt).m_plastic_steps = plasticloc.IntegrationSteps();
         this->MemItem(intPt).m_ER = plasticloc.GetElasticResponse();
         int solsize = data.sol[0].size();

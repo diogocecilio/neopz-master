@@ -645,7 +645,10 @@ public:
         ESZ=24,
         EEPZ=25,
         EEPX=26,
-        EEPY=27
+        EEPY=27,
+        EEPZT=28,
+        EEEZ=29,
+        EDamageVar=30
     };
     /// Ponteiro para solução exata (para pós-processamento)
     void (*fExactSolution)(const TPZVec<REAL> &x, TPZVec<STATE> &u,

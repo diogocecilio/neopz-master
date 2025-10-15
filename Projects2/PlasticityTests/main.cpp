@@ -677,7 +677,7 @@ void ApplyLoad(TPZCompMesh* cmesh,TPZManVector<REAL> factors)
 int main()
 {
     const std::string configfile = "/home/diogo/projects/neopz-master-build-debug/Util/log4cxx.cfg";
-    TPZLogger::InitializePZLOG(configfile);
+    //TPZLogger::InitializePZLOG(configfile);
 
     auto gmesh = PressurizedCylinderMesh();
     auto cmesh = CompMeshCyl(gmesh);

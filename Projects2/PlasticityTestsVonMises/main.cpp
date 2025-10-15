@@ -99,6 +99,8 @@ void PostProcessVariables(TPZStack<std::string>& scal, TPZStack<std::string>& ve
 
 void CreatePostProcessingMesh(TPZCompMesh* cmesh,TPZPostProcAnalysis* pproc,int matid);
 
+REAL IterativeProcessArcLength(TPZCompMesh* cmesh,int loaddir,int indexbc);
+
 struct MechParamsVonMises{
     // --- parâmetros mecânicos (SI) ---
     STATE young   = 210;//GPa
@@ -137,7 +139,7 @@ public:
     int bcinner=-1;
     int bcouter=-2;
     int bcbottom=-3;
-    int bctop=-4;;
+    int bctop=-4;
 
 };
 
@@ -242,7 +244,7 @@ TPZGeoMesh* CubeMesh()
     gmesh->BuildConnectivity();
 
     cout << "c" << endl;
-    for ( int d = 0; d<2; d++ )
+    for ( int d = 0; d<3; d++ )
     {
         int nel = gmesh->NElements();
         TPZManVector<TPZGeoEl *> subels;
@@ -417,11 +419,11 @@ static TPZCompMesh* CompMeshCube(TPZGeoMesh* gmesh)
 
 
     TPZElasticResponse ER;
-    ER.SetEngineeringData(200000., 0.);
+    ER.SetEngineeringData(200000., 0.33);
     TPZYCVonMisesVoigt vmyc;
 
     const STATE sigmaY0 = 200.0;
-    const STATE Hiso    = 100000.;
+    const STATE Hiso    = 1000.;
     vmyc.SetUp(sigmaY0,Hiso);
 
     TPlasticStepVoigtVM PlasticStepVoigt;
@@ -458,15 +460,15 @@ static TPZCompMesh* CompMeshCube(TPZGeoMesh* gmesh)
     v2[2]=0.;
     mphys->InsertMaterialObject(mat->CreateBC(mat,bcindexes.bcright, dirdirichlet, v1, v2));
 
-    // v2[0]=0.;
-    // v2[1]=0.;
-    // v2[2]=-200;
-    // mphys->InsertMaterialObject(mat->CreateBC(mat,bcindexes.bctop , newmann, v1, v2));
-
     v2[0]=0.;
     v2[1]=0.;
-    v2[2]=1.;
-    mphys->InsertMaterialObject(mat->CreateBC(mat,bcindexes.bctop , 0, v1, v2));
+    v2[2]=0;
+    mphys->InsertMaterialObject(mat->CreateBC(mat,bcindexes.bctop , newmann, v1, v2));
+/*
+    v2[0]=0.;
+    v2[1]=0.;
+    v2[2]=0.;
+    mphys->InsertMaterialObject(mat->CreateBC(mat,bcindexes.bctop , 0, v1, v2));*/
 
     mphys->AutoBuild();
     mphys->AdjustBoundaryElements();
@@ -501,10 +503,85 @@ void SolveCyl()
     int loaddir=0;//direcao da pressao
     ApplyLoad( cmesh,factors,loaddir,cylindexes.bcinner);
 }
+
+
+
+
+void ApplyLoad(TPZCompMesh* cmesh,TPZManVector<REAL> factors,int loaddir,int indexbc)
+{
+    int dim=cmesh->Dimension();
+
+    cout << "dimensao da malha computacional = " << dim << endl;
+
+    // parâmetros de controle
+    int nloads = factors.size();
+
+    TPZElastoPlasticAnalysis anal(cmesh, std::cout,TPZElastoPlasticAnalysis::ELineSearch::Armijo);
+
+    auto* bcmat = dynamic_cast<TPZBndCondT<STATE>*>(cmesh->FindMaterial(indexbc));
+
+    if(!bcmat)
+    {
+        std::cout << "material do contorno nao encontrado"<<std::endl;
+        DebugStop();
+
+    }
+    const REAL load0=bcmat->Val2()[loaddir];
+    cout << " load0 = "<< load0 <<endl;
+    if(true)
+    {
+        TPZFStructMatrix<REAL> str(cmesh);
+        anal.SetStructuralMatrix(str);
+        TPZStepSolver<REAL> direct;
+        direct.SetDirect(ELU);
+        anal.SetSolver(direct);
+    }else{
+        TPZSkylineStructMatrix<STATE> matskl(cmesh);
+        matskl.SetNumThreads(16);
+        anal.SetStructuralMatrix(matskl);
+        TPZStepSolver<STATE> step; step.SetDirect(ELDLt);
+        anal.SetSolver(step);
+    }
+
+    const std::string csv_path = "loadsweep.csv";
+    std::ofstream csv(csv_path);
+    csv << "step,factor,uy,iters,ok\n";
+    csv << std::setprecision(15) << std::scientific;
+
+
+    int matid=1;
+    std::string vtkfile="cube2.vtk";
+    for(int i =0;i< nloads;i++)
+    {
+
+       // bcmat->Val2()[loaddir]=load0*factors[i];
+        bcmat->Val2()[loaddir]=factors[i];
+        cout << "Load step =" << i<<" factor =  "<<factors[i] <<endl;
+        int iters_out;
+
+        REAL resf,resuu;
+        //bool ok = anal.FindRoot( iters_out,resf,resuu);
+        bool ok = anal.IterativeProcess(std::cout, 1.e-3,30, true, false, iters_out);
+
+        TPZFMatrix<REAL> tempsol=anal.Solution();
+        bcmat->Val2()[loaddir]=0;
+        anal.AcceptSolution();
+
+        // cmesh->LoadSolution(anal.CumulativeSolution());
+        PostElastoplastic(cmesh,vtkfile,matid,i,dim);
+
+        //tempsol.Zero();
+        //cmesh->LoadSolution(tempsol);
+        //anal.LoadSolution();
+    }
+
+}
 void SolveCube()
 {
     auto gmesh = CubeMesh();
     auto cmesh = CompMeshCube(gmesh);
+
+
 
     TPZElastoPlasticAnalysis an(cmesh, std::cout,TPZElastoPlasticAnalysis::ELineSearch::Dicotomic);
 
@@ -514,34 +591,18 @@ void SolveCube()
     direct.SetDirect(ELU);
     an.SetSolver(direct);
 
-    // an.Assemble();
-    // //an.Rhs().Print("Rhs");
-    //  an.Solve();
-    // //
-    // // an.Solution().Print("sol");
-    // //
-    //  an.AcceptSolution();
-    //  std::string vtkfile = "cube.vtk";
-    //  PostElastoplastic(cmesh,vtkfile,1,0,3);
-    //
-    // int nloads = 1;
-    // const REAL FS_target = 1.00005 ;          // mantém seu “+0.1”
-    // TPZManVector<REAL> factors(nloads+1);   // 0 .. nloads (inclusivo)
-    // for (int i =0; i <= nloads; ++i) {
-    //     factors[i] = FS_target * REAL(i) / REAL(nloads); // 0, Δ, 2Δ, …, FS_target
-    //     cout<< factors[i] <<endl;
-    // }
-    //TPZManVector<REAL> factors={0.99,1.,1.00006,1.0001,1.0002,1.001};
-    //TPZManVector<REAL> factors={0.99,1.,1.001,1.002};
-    TPZManVector<REAL> factors={-0.0005,-0.0005,-0.0005,-0.0005,-0.0005,-0.0005,-0.0005,-0.0005};
+    //TPZManVector<REAL> factors={0,-0.0005,-0.0005,-0.0005,-0.0005,-0.0001,0,0,0,0.001,0.001,0.001};
+
     BoundaryIndexes cubeindexes;
-    int loaddir=2;//direcao da carga no topo
-    ApplyLoad( cmesh,factors,loaddir,cubeindexes.bctop);
+    int loaddir=2;
+    IterativeProcessArcLength(cmesh, loaddir, cubeindexes.bctop);
+    //TPZManVector<REAL> factors={200,150,100,50,0};
+    //ApplyLoad( cmesh,factors,loaddir,cubeindexes.bctop);
 }
 int main()
 {
-    const std::string configfile = "/home/diogo/projects/neopz-master-build-debug/Util/log4cxx.cfg";
-    TPZLogger::InitializePZLOG(configfile);
+    //const std::string configfile = "/home/diogo/projects/neopz-master-build-debug/Util/log4cxx.cfg";
+    //TPZLogger::InitializePZLOG(configfile);
 
    // SolveCyl();
 
@@ -560,8 +621,9 @@ void PostProcessVariables(TPZStack<std::string>& scal, TPZStack<std::string>& ve
     scal.Push ( "StrainPlasticXX" );
     scal.Push ( "StrainPlasticYY" );
     scal.Push ( "StrainPlasticZZ" );
-   // vec.Push ( "StrainPlastic" );
-    //vec.Push ( "StrainPValues" );
+    scal.Push ( "StrainTotalZZ" );
+    scal.Push ( "StrainElasticZZ" );
+    scal.Push ( "DamageVariable" );
 }
 
 void CreatePostProcessingMesh(TPZCompMesh* cmesh,TPZPostProcAnalysis* pproc,int matid)
@@ -632,70 +694,1061 @@ REAL UyAtNode3D(TPZCompMesh* cmesh, REAL x, REAL y,REAL z)
 
     return sol(pos+2,0);
 }
-void ApplyLoad(TPZCompMesh* cmesh,TPZManVector<REAL> factors,int loaddir,int indexbc)
+
+// ===== utilidades simples =====
+static inline STATE Dot(const TPZFMatrix<STATE>& a, const TPZFMatrix<STATE>& b) {
+    TPZFMatrix<STATE> at,temp;
+    a.Transpose(&at);
+    at.Multiply(b,temp);
+    if(temp.Rows()>1)DebugStop();
+    STATE s=temp(0,0);
+    return s;
+}
+
+// Eq. (4.123) – passo preditor (k = 1)
+static STATE compute_dlambda0_riks(const TPZFMatrix<STATE>& dwb,
+                                   const TPZFMatrix<STATE>& dw,
+                                   STATE L)
 {
-    int dim=cmesh->Dimension();
+    const STATE s    = Dot(dw, dwb);                 // Δu^T * dū
+    const STATE ndwb = Norm(dwb);
+    const STATE signum = (s > 0.0 ? -1.0 : 1.0);     // Souza Neto 4.123
+    return signum * L / ndwb;
+}
 
-    cout << "dimensao da malha computacional = " << dim << endl;
+// Eqs. (4.116) + (4.118) – escolha da raiz para k > 1
+static STATE compute_dlambda_riks(const TPZFMatrix<STATE>& dwb,
+                                  const TPZFMatrix<STATE>& dws,
+                                  const TPZFMatrix<STATE>& dw,
+                                  STATE L, int& rootIdx)
+{
+    const STATE aa = Dot(dwb, dwb);
+    TPZFMatrix<STATE> t = dw;
+    t += dws;               // t = dw + dws
+    const STATE bb = 2.0 * Dot(dwb, t);
+    const STATE cc = Dot(t,t) - L*L;
 
-    // parâmetros de controle
-    int nloads = factors.size();
+    const STATE eps = 1e-14;
+    if (aa < eps) {                                   // cai para linear
+        rootIdx = 1;
+        return (std::fabs(bb) > eps) ? (-cc/bb) : 0.0;
+    }
 
-    TPZElastoPlasticAnalysis anal(cmesh, std::cout,TPZElastoPlasticAnalysis::ELineSearch::Armijo);
+    STATE disc = bb*bb - 4.0*aa*cc;
+    if (disc < 0.0) disc = 0.0;                       // clamp numérico
+    const STATE sq = std::sqrt(disc);
+
+    const STATE dl1 = (-bb - sq) / (2.0*aa);          // “menor”
+    const STATE dl2 = (-bb + sq) / (2.0*aa);          // “maior”
+
+    auto score = [&](STATE dl)->STATE {
+        TPZFMatrix<STATE> x = dw;                     // Δu^(k-1)
+        TPZFMatrix<STATE> tmp = dwb; tmp *= dl;
+        x += dws; x += tmp;                           // Δu^(k-1)+δu*+δλ dū
+        return Dot(x, dw);                            // maximiza (4.118)
+    };
+    const STATE s1 = score(dl1), s2 = score(dl2);
+    if (s1 > s2) { rootIdx = 1; return dl1; }
+    else         { rootIdx = 2; return dl2; }
+}
+
+REAL IterativeProcessArcLength(TPZCompMesh* cmesh, int loaddir, int indexbc)
+{
+    TPZElastoPlasticAnalysis an(
+        cmesh, std::cout,
+        TPZElastoPlasticAnalysis::ELineSearch::Dicotomic
+    );
 
     auto* bcmat = dynamic_cast<TPZBndCondT<STATE>*>(cmesh->FindMaterial(indexbc));
-
-    if(!bcmat)
-    {
-        std::cout << "material do contorno nao encontrado"<<std::endl;
+    if (!bcmat) {
+        std::cout << "[ArcLength] BndCond material não encontrado (indexbc=" << indexbc << ")\n";
         DebugStop();
-
-    }
-    const REAL load0=bcmat->Val2()[loaddir];
-    cout << " load0 = "<< load0 <<endl;
-    if(true)
-    {
-        TPZFStructMatrix<REAL> str(cmesh);
-        anal.SetStructuralMatrix(str);
-        TPZStepSolver<REAL> direct;
-        direct.SetDirect(ELU);
-        anal.SetSolver(direct);
-    }else{
-        TPZSkylineStructMatrix<STATE> matskl(cmesh);
-        matskl.SetNumThreads(16);
-        anal.SetStructuralMatrix(matskl);
-        TPZStepSolver<STATE> step; step.SetDirect(ELDLt);
-        anal.SetSolver(step);
     }
 
-    const std::string csv_path = "loadsweep.csv";
-    std::ofstream csv(csv_path);
-    csv << "step,factor,uy,iters,ok\n";
-    csv << std::setprecision(15) << std::scientific;
+    int dim =cmesh->Dimension();
+    // Parâmetros
+    const int  maxit_inner = 20;
+    const REAL etol_inner  = 1.e-3;
+    REAL lambda            = 0.1;       // λ inicial
+    REAL lambdan=lambda;
+    REAL L                 = 0.1;      // alvo de arco (norma do incremento total em u)
 
+    // Estado aceito acumulado
+    TPZFMatrix<STATE> u_acc = an.Solution(); u_acc.Zero();
+    // Incremento acumulado no passo corrente
+    TPZFMatrix<STATE> dw = an.Solution();   dw.Zero();
 
+    STATE load0=-200;
+    // ---- Monta FEXT com uma BC "unitária" (ou escala desejada) ----
+    bcmat->Val2()[loaddir] = load0;   // valor de referência para extrair o vetor de cargas
+    an.Assemble();
+    TPZFMatrix<STATE> FEXT = an.Rhs(); // isto é o "rhs" gerado pela BC -> aqui use como vetor de cargas
+    REAL normFEXT = Norm(FEXT);
+    std::cout << " Norm(FEXT) = " << normFEXT << std::endl;
+    bcmat->Val2()[loaddir] = 0.0;     // zera a BC mecânica para o loop de Newton
     int matid=1;
-    std::string vtkfile="applyload.vtk";
-    for(int i =0;i< nloads;i++)
+    std::string vtkfile="cubeal.vtk";
+    // ---- Um único passo de arco (ajuste se quiser mais) ----
+    int  step   = 0;
+    bool okconv = false;
+    STATE diff=10000;
+    STATE tollamb=0.001;
+    while (step < 11)
     {
+        std::cout << "\n[Arc step " << (step+1) << "]  L=" << L << "  lambda=" << lambda << std::endl;
 
-        REAL fator_atual=factors[i];
-        bcmat->Val2()[loaddir]=load0*factors[i];
+        // Estado de trabalho (começa no aceito)
+        TPZFMatrix<STATE> u  = u_acc;
+        TPZFMatrix<STATE> du = an.Solution();
+        du.Zero(); // incremento total do passo
+
+        int  it    = 0;
+        REAL normR = 1e30;
+
+        TPZFMatrix<STATE> rhs, R, dws, dwb; // declara fora
+        dw.Zero();
+
+
+        an.LoadSolution(u);
+        while (it < maxit_inner && normR > etol_inner)
+        {
+            rhs.Zero(); R.Zero(); dws.Zero(); dwb.Zero();
+            bcmat->Val2()[loaddir] = 0.0;
+            an.Assemble();
+            rhs = an.Rhs();   // rhs = -FINT
+
+            TPZFMatrix<STATE> R = FEXT * lambda;
+            R += rhs;
+
+            an.Rhs() = R;
+            an.Solve();
+            dws = an.Solution();
+
+            an.Rhs() = FEXT;
+            an.Solve();
+            TPZFMatrix<STATE> dwb = an.Solution();
+            REAL normdws = Norm(dws);
+            REAL normdwb = Norm(dwb);
+
+            REAL dl = 0.0; int rootIdx = 0;
+            if (it == 0) {
+                dl = compute_dlambda0_riks(dwb, dw, L);
+            } else {
+                dl = compute_dlambda_riks(dwb, dws, dw, L, rootIdx);
+            }
+            const REAL dl_max = 0.1;        // ajuste conforme seu problema
+            if (dl >  dl_max) dl =  dl_max;
+            if (dl < -dl_max) dl = -dl_max;
+            TPZFMatrix<STATE> dwtot = dwb*dl + dws;
+            u      += dwtot;
+            dw     += dwtot;
+            lambda += dl;
+
+            REAL normdu = Norm(dwtot);
+
+            an.LoadSolution(u);
+
+
+            bcmat->Val2()[loaddir] = 0.0;
+            an.Assemble();
+            rhs   = an.Rhs();
+            R     = FEXT * lambda;
+            R += rhs;
+            normR = Norm(R);
+
+
+            // cout << "  [it " << it
+            // << "] diff=" << diff
+            // << " lambda=" << lambda
+            // << "] ||dws||=" << normdws
+            // << " ||dwb||=" << normdwb
+            // << " dl=" << dl
+            //
+            // << " ||dwtot||=" << normdu
+            // << " \n ||R||=" << normR
+            // //<< " ||FINT||=" << Norm(FINT)
+            // << " lambda||FEXT||=" << lambda*Norm(FEXT)
+            // << " ||FEXT||=" << Norm(FEXT)
+            // << endl;
+            it++;
+            if(normR>1.e5)break;
+        }
+
+
+        okconv = (normR <= etol_inner);
+
+        if(okconv)
+        {
+            std::cout << " (OK  ) — posprocessa, atualiza lambda e u \n";
+            an.AcceptSolution();
+            PostElastoplastic(cmesh, vtkfile, matid, step, dim);
+            diff=fabs(lambda-lambdan);
+            cout << "  [it " << it
+            << "] diff=" << diff <<"\n";
+            lambdan = lambda;
+            u_acc   = an.Solution();
+            const int ndesi = 5;
+            L *= REAL(ndesi) / std::max(1, it);
+            if (L > 1) L = 1;
+                             // refaz o MESMO step com L menor
+        }
+        else
+        {
+            std::cout << " (não convergiu) rollback e reduzir L\n" << std::endl;
+            lambda = lambdan;
+            an.LoadSolution(u_acc);
+            dw.Zero();
+            L *= 0.5;
+            continue;
+        }
+
+        step++;
+    }
+    cout << "Unloading" <<endl;
+    TPZManVector<REAL> factors={lambda*load0,lambda*load0*0.8,lambda*load0*0.6,lambda*load0*0.4,lambda*load0*0.2,lambda*load0*0.0};
+    for(int i =0;i< factors.size();i++)
+    {
+        bcmat->Val2()[loaddir]=factors[i];
         cout << "Load step =" << i<<" factor =  "<<factors[i] <<endl;
         int iters_out;
+        bool ok = an.IterativeProcess(std::cout, 1.e-3,30, true, false, iters_out);
+        TPZFMatrix<REAL> tempsol=an.Solution();
+        bcmat->Val2()[loaddir]=0;
+        an.AcceptSolution();
 
-        REAL resf,resuu;
-        //bool ok = anal.FindRoot( iters_out,resf,resuu);
-        bool ok = anal.IterativeProcess(std::cout, 1.e-3,100, true, false, iters_out);
+        PostElastoplastic(cmesh,vtkfile,matid,i+step,dim);
 
-        TPZFMatrix<REAL> tempsol=anal.Solution();
-        anal.AcceptSolution();
-
-        PostElastoplastic(cmesh,vtkfile,matid,i,dim);
-
-        tempsol.Zero();
-        cmesh->LoadSolution(tempsol);
-        anal.LoadSolution(cmesh->Solution());
     }
 
+    an.AcceptSolution();
+    return okconv ? lambda : 0.;
 }
+
+
+// REAL IterativeProcessArcLength(TPZCompMesh* cmesh, int loaddir, int indexbc)
+// {
+//     TPZElastoPlasticAnalysis an(
+//         cmesh, std::cout,
+//         TPZElastoPlasticAnalysis::ELineSearch::Dicotomic
+//     );
+//
+//     auto* bcmat = dynamic_cast<TPZBndCondT<STATE>*>(cmesh->FindMaterial(indexbc));
+//     if (!bcmat) {
+//         std::cout << "[ArcLength] BndCond material não encontrado (indexbc=" << indexbc << ")\n";
+//         DebugStop();
+//     }
+//
+//     int dim =cmesh->Dimension();
+//     // Parâmetros
+//     const int  maxit_inner = 20;
+//     const REAL etol_inner  = 1.e-3;
+//     REAL lambda            = 0.5;       // λ inicial
+//     REAL lambdan=lambda;
+//     REAL L                 = 0.01;      // alvo de arco (norma do incremento total em u)
+//
+//     // Estado aceito acumulado
+//     TPZFMatrix<STATE> u_acc = an.Solution(); u_acc.Zero();
+//     // Incremento acumulado no passo corrente
+//     TPZFMatrix<STATE> dw = an.Solution();   dw.Zero();
+//
+//     // ---- Monta FEXT com uma BC "unitária" (ou escala desejada) ----
+//     bcmat->Val2()[loaddir] = 200;   // valor de referência para extrair o vetor de cargas
+//     an.Assemble();
+//     TPZFMatrix<STATE> FEXT = an.Rhs(); // isto é o "rhs" gerado pela BC -> aqui use como vetor de cargas
+//     REAL normFEXT = Norm(FEXT);
+//     std::cout << " Norm(FEXT) = " << normFEXT << std::endl;
+//     bcmat->Val2()[loaddir] = 0.0;     // zera a BC mecânica para o loop de Newton
+//     int matid=1;
+//     std::string vtkfile="cubeal.vtk";
+//     // ---- Um único passo de arco (ajuste se quiser mais) ----
+//     int  step   = 0;
+//     bool okconv = false;
+//     while (step < 20)
+//     {
+//         std::cout << "\n[Arc step " << (step+1) << "]  L=" << L << "  lambda=" << lambda << std::endl;
+//
+//         // Estado de trabalho (começa no aceito)
+//         TPZFMatrix<STATE> u  = u_acc;
+//         TPZFMatrix<STATE> du = an.Solution();
+//         du.Zero(); // incremento total do passo
+//
+//         int  it    = 0;
+//         REAL normR = 1e30;
+//
+//         TPZFMatrix<STATE> rhs, R, dws, dwb; // declara fora
+//         dw.Zero();
+//
+//
+//         an.LoadSolution(u);
+//         while (it < maxit_inner && normR > etol_inner)
+//         {
+//             rhs.Zero(); R.Zero(); dws.Zero(); dwb.Zero();
+//             bcmat->Val2()[loaddir] = 0.0;
+//             an.Assemble();
+//             rhs = an.Rhs();   // rhs = -FINT
+//
+//             // --- resíduo físico: R = λ FEXT + rhs  (pois rhs = -FINT) ---
+//             TPZFMatrix<STATE> R = FEXT * lambda;
+//             R += rhs;
+//
+//             // --- PARTICULAR: K dws = R ---
+//             an.Rhs() = R;
+//             an.Solve();
+//             dws = an.Solution();
+//
+//             // --- DIREÇÃO EM λ: K dwb = FEXT ---
+//             an.Rhs() = FEXT;
+//             an.Solve();
+//             TPZFMatrix<STATE> dwb = an.Solution();
+//             REAL normdws = Norm(dws);
+//             REAL normdwb = Norm(dwb);
+//             // ---------- cálculo do dl (com salvaguardas) ----------
+//             REAL dl = 0.0; int rootIdx = 0;
+//             if (it == 0) {
+//                 // “curvature safeguard” no preditor
+//                 static REAL sgn = 1.0;
+//                 if (Dot(dwb, dw) < 0.0) sgn = -sgn;
+//                 //dl = sgn * std::fabs(compute_dlambda0_riks(dwb, dw, L));
+//                 dl = compute_dlambda0_riks(dwb, dw, L);
+//             } else {
+//                 dl = compute_dlambda_riks(dwb, dws, dw, L, rootIdx);
+//             }
+//
+//             // clamp em dl
+//             const REAL dl_max = 0.1;        // ajuste conforme seu problema
+//             if (dl >  dl_max) dl =  dl_max;
+//             if (dl < -dl_max) dl = -dl_max;
+//             TPZFMatrix<STATE> dwtot = dwb*dl + dws;
+//             u      += dwtot;
+//             dw     += dwtot;
+//             lambda += dl;
+//
+//             REAL normdu = Norm(dwtot);
+//
+//             an.LoadSolution(u);
+//
+//             // ---------- reavaliar resíduo ATUALIZADO (ESSENCIAL!) ----------
+//             bcmat->Val2()[loaddir] = 0.0;
+//             an.Assemble();
+//             rhs   = an.Rhs();                 // -FINT(u atualizado)
+//             R     = FEXT * lambda;   R += rhs;
+//             normR = Norm(R);
+//
+//
+//             cout << "  [it " << it
+//             << "] ||dws||=" << normdws
+//             << " ||dwb||=" << normdwb
+//             << " dl=" << dl
+//             << " lambda=" << lambda
+//             << " ||dwtot||=" << normdu
+//             << " \n ||R||=" << normR
+//             //<< " ||FINT||=" << Norm(FINT)
+//             << " lambda||FEXT||=" << lambda*Norm(FEXT)
+//             << " ||FEXT||=" << Norm(FEXT)
+//             << endl;
+//             it++;
+//             if(normR>1.e5)break;
+//         }
+//
+//
+//         okconv = (normR <= etol_inner);
+//
+//         if(okconv)
+//         {
+//             REAL uz = UyAtNode3D(cmesh, 0.5,0.5,1.);
+//             std::cout << uz << " " << lambda * normFEXT << std::endl;
+//             std::cout << " (convergiu)\n" << std::endl;
+//
+//             // -------- DUMMY NEWTON CHECK (não persiste) --------
+//             // snapshot
+//             TPZFMatrix<STATE> u_snap = an.Solution();
+//             const REAL bc_old = bcmat->Val2()[loaddir];
+//
+//             // use exatamente a mesma escala que você usou para montar FEXT
+//             const REAL load_ref = 200.0;                 // <- se FEXT veio de Val2()=100
+//             bcmat->Val2()[loaddir] = load_ref * lambda;  // λ fixo no dummy
+//
+//             int iters_out = 0;
+//             bool ok_dummy = an.IterativeProcess(std::cout, 1.e-3, 10,
+//                                                 /*line-search*/ false,
+//                                                 /*update_mem*/  false,                      // <— NÃO atualiza memória
+//                                                 iters_out);
+//
+//             // restaura tudo (dummy não deixa rastro)
+//             an.LoadSolution(u_snap);
+//             bcmat->Val2()[loaddir] = bc_old;
+//
+//             // -------- FIM DUMMY --------
+//
+//             if(ok_dummy)
+//             {
+//                 std::cout << " (OK dummy ) — posprocessa, atualiza lambda e u \n";
+//                 // agora sim, persiste o passo convergido
+//                 an.AcceptSolution();                       // variante correta
+//                 PostElastoplastic(cmesh, vtkfile, matid, step, dim);
+//                 lambdan = lambda;                           // salva λ aceito
+//                 u_acc   = an.Solution();                    // sincroniza com o que o analysis tem
+//                 // (se quiser adaptar L aqui, ok)
+//                 const int ndesi = 5;
+//                 L *= REAL(ndesi) / std::max(1, it);
+//                 if (L > 1) L = 1;
+//                 //if (L > 1) L = 1;
+//             }
+//             else
+//             {
+//                 std::cout << " (dummy não convergiu) — rollback e reduzir L\n";
+//                 // rollback para último estado aceito
+//                 lambda = lambdan;
+//                 an.LoadSolution(u_acc);
+//                 dw.Zero();
+//                 L *= 0.5;
+//                 continue;                                   // refaz o MESMO step com L menor
+//             }
+//         }
+//         else
+//         {
+//             std::cout << " (não convergiu) rollback e reduzir L\n" << std::endl;
+//
+//             // rollback para último aceito e repetir o step com L menor
+//             lambda = lambdan;
+//             an.LoadSolution(u_acc);
+//             dw.Zero();
+//             L *= 0.5;
+//             continue;                                       // refaz o MESMO step
+//         }
+//
+//
+//
+//
+//         step++;
+//     }
+//     an.AcceptSolution();
+//     return okconv ? lambda : 0.;
+// }
+
+
+// REAL IterativeProcessArcLength(TPZCompMesh* cmesh, int loaddir, int indexbc)
+// {
+//     TPZElastoPlasticAnalysis an(
+//         cmesh, std::cout,
+//         TPZElastoPlasticAnalysis::ELineSearch::Armijo
+//     );
+//
+//     auto* bcmat = dynamic_cast<TPZBndCondT<STATE>*>(cmesh->FindMaterial(indexbc));
+//     if (!bcmat) {
+//         std::cout << "[ArcLength] BndCond material não encontrado (indexbc=" << indexbc << ")\n";
+//         DebugStop();
+//     }
+//
+//     int dim =cmesh->Dimension();
+//     // Parâmetros
+//     const int  maxit_inner = 10;
+//     const REAL etol_inner  = 1.e-3;
+//     REAL lambda            = 0.01;       // λ inicial
+//     REAL lambdan=lambda;
+//     REAL L                 = 1.e-4;      // alvo de arco (norma do incremento total em u)
+//
+//     // Estado aceito acumulado
+//     TPZFMatrix<STATE> u_acc = an.Solution(); u_acc.Zero();
+//     // Incremento acumulado no passo corrente
+//     TPZFMatrix<STATE> dw = an.Solution();   dw.Zero();
+//
+//     // ---- Monta FEXT com uma BC "unitária" (ou escala desejada) ----
+//     bcmat->Val2()[loaddir] = 100;   // valor de referência para extrair o vetor de cargas
+//     an.Assemble();
+//     TPZFMatrix<STATE> FEXT = an.Rhs(); // isto é o "rhs" gerado pela BC -> aqui use como vetor de cargas
+//     REAL normFEXT = Norm(FEXT);
+//     std::cout << " Norm(FEXT) = " << normFEXT << std::endl;
+//     bcmat->Val2()[loaddir] = 0.0;     // zera a BC mecânica para o loop de Newton
+//     int matid=1;
+//     std::string vtkfile="cubeal.vtk";
+//     // ---- Um único passo de arco (ajuste se quiser mais) ----
+//     int  step   = 0;
+//     bool okconv = false;
+//     while (step < 20)
+//     {
+//         std::cout << "\n[Arc step " << (step+1) << "]  L=" << L << "  lambda=" << lambda << std::endl;
+//
+//         // Estado de trabalho (começa no aceito)
+//         TPZFMatrix<STATE> u  = u_acc;
+//         TPZFMatrix<STATE> du = an.Solution();
+//         du.Zero(); // incremento total do passo
+//
+//         int  it    = 0;
+//         REAL normR = 1e30;
+//
+//         dw.Zero();
+//
+//         while (it < maxit_inner && normR > etol_inner)
+//         {
+//             bcmat->Val2()[loaddir] = 0.0;
+//             an.Assemble();
+//             TPZFMatrix<STATE> rhs = an.Rhs();   // rhs = -FINT
+//
+//             // --- resíduo físico: R = λ FEXT + rhs  (pois rhs = -FINT) ---
+//             TPZFMatrix<STATE> R = FEXT * lambda;
+//             R += rhs;
+//
+//             // --- PARTICULAR: K dws = R ---
+//             an.Rhs() = R;
+//             an.Solve();
+//             TPZFMatrix<STATE> dws = an.Solution();
+//
+//             // --- DIREÇÃO EM λ: K dwb = FEXT ---
+//             an.Rhs() = FEXT;
+//             an.Solve();
+//             TPZFMatrix<STATE> dwb = an.Solution();
+//
+//             const REAL normdws = Norm(dws);
+//             const REAL normdwb = Norm(dwb);
+//
+//             // ---------- coeficientes da restrição g(dl)=a dl^2 + b dl + c ----------
+//             TPZFMatrix<STATE> t = dw;  t += dws;     // t = dw + dws
+//             long double a_ld = (long double)Dot(dwb,dwb);
+//             long double b_ld = 2.0L * (long double)Dot(dwb,t);
+//             long double c_ld = (long double)Dot(t,t) - (long double)L*(long double)L;
+//             auto g_eval = [&](REAL dl_try)->long double {
+//                 long double d = (long double)dl_try;
+//                 return a_ld*d*d + b_ld*d + c_ld;
+//             };
+//
+//             // ---------- cálculo do dl (com salvaguardas) ----------
+//             REAL dl = 0.0; int rootIdx = 0;
+//             if (it == 0) {
+//                 // “curvature safeguard” no preditor
+//                 static REAL sgn = 1.0;
+//                 if (Dot(dwb, dw) < 0.0) sgn = -sgn;
+//                 dl = sgn * std::fabs(compute_dlambda0_riks(dwb, dw, L));
+//             } else {
+//                 dl = compute_dlambda_riks(dwb, dws, dw, L, rootIdx);
+//             }
+//
+//             // clamp em dl
+//             const REAL dl_max = 0.25;        // ajuste conforme seu problema
+//             if (dl >  dl_max) dl =  dl_max;
+//             if (dl < -dl_max) dl = -dl_max;
+//
+//             // // se g piorou demais, tente a outra raiz
+//             // long double g_old = g_eval(dl);
+//             // if (std::fabsl(g_old) > 0.5L*(long double)L*(long double)L) {
+//             //     int dummy=0;
+//             //     REAL dl_alt = compute_dlambda_riks(dwb, dws, dw, L, dummy); // recomputa (ou guarde o par)
+//             //     long double g_alt = g_eval(dl_alt);
+//             //     if (std::fabsl(g_alt) < std::fabsl(g_old)) dl = dl_alt;
+//             // }
+//
+//             // ---------- passo candidato ----------
+//             TPZFMatrix<STATE> dwtot = (dwb * dl);  dwtot += dws;
+//
+//             // ---------- backtracking no par (Δu, δλ) ----------
+//             auto try_step = [&](REAL alpha, TPZFMatrix<STATE>& u_try, REAL &lambda_try){
+//                 u_try = u; u_try += dwtot * alpha;
+//                 lambda_try = lambda + alpha*dl;
+//                 an.LoadSolution(u_try);
+//                 bcmat->Val2()[loaddir] = 0.0;
+//                 an.Assemble();
+//                 TPZFMatrix<STATE> rhs_try = an.Rhs();           // -FINT(u_try)
+//                 TPZFMatrix<STATE> R_try   = FEXT*lambda_try;
+//                 R_try += rhs_try;
+//                 return Norm(R_try);
+//             };
+//
+//             REAL alpha = 1.0;
+//             TPZFMatrix<STATE> u_try; REAL lambda_try = lambda;
+//             REAL normR_curr = Norm(R); // resíduo antes do passo
+//             REAL normR_test = try_step(alpha, u_try, lambda_try);
+//
+//             int bt = 0;
+//             while (normR_test > 0.9*normR_curr && bt < 6) { // critério simples de Armijo
+//                 alpha *= 0.5;
+//                 normR_test = try_step(alpha, u_try, lambda_try);
+//                 bt++;
+//             }
+//
+//             // aceita o passo (talvez encurtado)
+//             u = u_try;
+//             lambda = lambda_try;
+//             TPZFMatrix<STATE> dwtot_eff = dwtot * alpha;
+//             du += dwtot_eff;
+//             dw += dwtot_eff;
+//
+//             // ---------- reavaliar resíduo ATUALIZADO (ESSENCIAL!) ----------
+//             bcmat->Val2()[loaddir] = 0.0;
+//             an.Assemble();
+//             rhs   = an.Rhs();                 // -FINT(u atualizado)
+//             R     = FEXT * lambda;   R += rhs;
+//             normR = Norm(R);
+//
+//             // ---------- logs úteis ----------
+//             long double gp_ld = b_ld + 2.0L*a_ld*(long double)dl;
+//             long double g_rel = std::fabsl(g_eval(dl)) / std::max<long double>((long double)L*(long double)L, 1e-30L);
+//
+//             std::cout << "  [it " << it
+//             << "] ||dws||="   << normdws
+//             << " ||dwb||="   << normdwb
+//             << " dl="         << dl
+//             << " alpha="      << alpha
+//             << " lambda="     << lambda
+//             << " ||dwtot||="  << Norm(dwtot_eff)
+//             << "\n     ||R||=" << normR
+//             << "  ||FINT||="  << Norm(rhs)
+//             << "  lambda||FEXT||=" << lambda * normFEXT
+//             << "\n     g="    << (STATE)g_eval(dl)
+//             << "  g'="        << (STATE)gp_ld
+//             << "  |g|/L^2="   << (STATE)g_rel
+//             << std::endl;
+//
+//
+//             if(normR>1.e5)break;
+//             it++;
+//
+//         }
+//
+//
+//         okconv = (normR <= etol_inner);
+//
+//         if(okconv)
+//         {
+//             REAL uz = UyAtNode3D(cmesh, 0.5,0.5,1.);
+//             std::cout << uz << " " << lambda * normFEXT << std::endl;
+//             std::cout <<" (convergiu)\n" <<std::endl;
+//             an.AcceptSolution();
+//             PostElastoplastic(cmesh,vtkfile,matid,step,dim);
+//             lambdan=lambda;
+//             u_acc = u;
+//             const int ndesi = 5;
+//             L *= REAL(ndesi) / std::max(1, it);
+//             if (L > 0.01) L = 0.01;
+//         }else{
+//             std::cout <<" (não convergiu)\n" <<std::endl;
+//             lambda=lambdan*0.9;
+//             u.Zero();
+//             an.LoadSolution(u);
+//             L*=0.5;
+//         }
+//
+//
+//
+//         step++;
+//     }
+//
+//     return okconv ? lambda : 0.;
+// }
+
+
+// REAL IterativeProcessArcLength(TPZCompMesh* cmesh, int loaddir, int indexbc)
+// {
+//     TPZElastoPlasticAnalysis an(
+//         cmesh, std::cout,
+//         TPZElastoPlasticAnalysis::ELineSearch::Armijo
+//     );
+//
+//     auto* bcmat = dynamic_cast<TPZBndCondT<STATE>*>(cmesh->FindMaterial(indexbc));
+//     if (!bcmat) {
+//         std::cout << "[ArcLength] BndCond material não encontrado (indexbc=" << indexbc << ")\n";
+//         DebugStop();
+//     }
+//
+//     int dim =cmesh->Dimension();
+//     // Parâmetros
+//     const int  maxit_inner = 10;
+//     const REAL etol_inner  = 1.e-3;
+//     REAL lambda            = 0.01;       // λ inicial
+//     REAL lambdan=lambda;
+//     REAL L                 = 1.e-4;      // alvo de arco (norma do incremento total em u)
+//
+//     // Estado aceito acumulado
+//     TPZFMatrix<STATE> u_acc = an.Solution(); u_acc.Zero();
+//     // Incremento acumulado no passo corrente
+//     TPZFMatrix<STATE> dw = an.Solution();   dw.Zero();
+//
+//     // ---- Monta FEXT com uma BC "unitária" (ou escala desejada) ----
+//     bcmat->Val2()[loaddir] = 100;   // valor de referência para extrair o vetor de cargas
+//     an.Assemble();
+//     TPZFMatrix<STATE> FEXT = an.Rhs(); // isto é o "rhs" gerado pela BC -> aqui use como vetor de cargas
+//     REAL normFEXT = Norm(FEXT);
+//     std::cout << " Norm(FEXT) = " << normFEXT << std::endl;
+//     bcmat->Val2()[loaddir] = 0.0;     // zera a BC mecânica para o loop de Newton
+//     int matid=1;
+//     std::string vtkfile="cubeal.vtk";
+//     // ---- Um único passo de arco (ajuste se quiser mais) ----
+//     int  step   = 0;
+//     bool okconv = false;
+//     while (step < 20)
+//     {
+//         std::cout << "\n[Arc step " << (step+1) << "]  L=" << L << "  lambda=" << lambda << std::endl;
+//
+//         // Estado de trabalho (começa no aceito)
+//         TPZFMatrix<STATE> u  = u_acc;
+//         TPZFMatrix<STATE> du = an.Solution(); du.Zero(); // incremento total do passo
+//
+//         int  it    = 0;
+//         REAL normR = 1e30;
+//
+//         dw.Zero();
+//
+//         while (it < maxit_inner && normR > etol_inner)
+//         {
+//             bcmat->Val2()[loaddir] = 0.0;
+//             an.Assemble();
+//             TPZFMatrix<STATE> rhs = an.Rhs();   // rhs = -FINT
+//
+//             // --- resíduo físico: R = λ FEXT + rhs  (pois rhs = -FINT) ---
+//             TPZFMatrix<STATE> R = FEXT * lambda;
+//             R += rhs;
+//
+//             // --- PARTICULAR: K dws = R ---
+//             an.Rhs() = R;
+//             an.Solve();
+//             TPZFMatrix<STATE> dws = an.Solution();
+//
+//             // --- DIREÇÃO EM λ: K dwb = FEXT ---
+//             an.Rhs() = FEXT;
+//             an.Solve();
+//             TPZFMatrix<STATE> dwb = an.Solution();
+//
+//             const REAL normdws = Norm(dws);
+//             const REAL normdwb = Norm(dwb);
+//
+//             // ---------- coeficientes da restrição g(dl)=a dl^2 + b dl + c ----------
+//             TPZFMatrix<STATE> t = dw;  t += dws;     // t = dw + dws
+//             long double a_ld = (long double)Dot(dwb,dwb);
+//             long double b_ld = 2.0L * (long double)Dot(dwb,t);
+//             long double c_ld = (long double)Dot(t,t) - (long double)L*(long double)L;
+//             auto g_eval = [&](REAL dl_try)->long double {
+//                 long double d = (long double)dl_try;
+//                 return a_ld*d*d + b_ld*d + c_ld;
+//             };
+//
+//             // ---------- cálculo do dl (com salvaguardas) ----------
+//             REAL dl = 0.0; int rootIdx = 0;
+//             if (it == 0) {
+//                 // “curvature safeguard” no preditor
+//                 static REAL sgn = 1.0;
+//                 if (Dot(dwb, dw) < 0.0) sgn = -sgn;
+//                 dl = sgn * std::fabs(compute_dlambda0_riks(dwb, dw, L));
+//             } else {
+//                 dl = compute_dlambda_riks(dwb, dws, dw, L, rootIdx);
+//             }
+//
+//             // clamp em dl
+//             const REAL dl_max = 0.25;        // ajuste conforme seu problema
+//             if (dl >  dl_max) dl =  dl_max;
+//             if (dl < -dl_max) dl = -dl_max;
+//
+//             // se g piorou demais, tente a outra raiz
+//             long double g_old = g_eval(dl);
+//             if (std::fabsl(g_old) > 0.5L*(long double)L*(long double)L) {
+//                 int dummy=0;
+//                 REAL dl_alt = compute_dlambda_riks(dwb, dws, dw, L, dummy); // recomputa (ou guarde o par)
+//                 long double g_alt = g_eval(dl_alt);
+//                 if (std::fabsl(g_alt) < std::fabsl(g_old)) dl = dl_alt;
+//             }
+//
+//             // ---------- passo candidato ----------
+//             TPZFMatrix<STATE> dwtot = (dwb * dl);  dwtot += dws;
+//
+//             // ---------- backtracking no par (Δu, δλ) ----------
+//             auto try_step = [&](REAL alpha, TPZFMatrix<STATE>& u_try, REAL &lambda_try){
+//                 u_try = u; u_try += dwtot * alpha;
+//                 lambda_try = lambda + alpha*dl;
+//                 an.LoadSolution(u_try);
+//                 bcmat->Val2()[loaddir] = 0.0;
+//                 an.Assemble();
+//                 TPZFMatrix<STATE> rhs_try = an.Rhs();           // -FINT(u_try)
+//                 TPZFMatrix<STATE> R_try   = FEXT*lambda_try;
+//                 R_try += rhs_try;
+//                 return Norm(R_try);
+//             };
+//
+//             REAL alpha = 1.0;
+//             TPZFMatrix<STATE> u_try; REAL lambda_try = lambda;
+//             REAL normR_curr = Norm(R); // resíduo antes do passo
+//             REAL normR_test = try_step(alpha, u_try, lambda_try);
+//
+//             int bt = 0;
+//             while (normR_test > 0.9*normR_curr && bt < 6) { // critério simples de Armijo
+//                 alpha *= 0.5;
+//                 normR_test = try_step(alpha, u_try, lambda_try);
+//                 bt++;
+//             }
+//
+//             // aceita o passo (talvez encurtado)
+//             u = u_try;
+//             lambda = lambda_try;
+//             TPZFMatrix<STATE> dwtot_eff = dwtot * alpha;
+//             du += dwtot_eff;
+//             dw += dwtot_eff;
+//
+//             // ---------- reavaliar resíduo ATUALIZADO (ESSENCIAL!) ----------
+//             bcmat->Val2()[loaddir] = 0.0;
+//             an.Assemble();
+//             rhs   = an.Rhs();                 // -FINT(u atualizado)
+//             R     = FEXT * lambda;   R += rhs;
+//             normR = Norm(R);
+//
+//             // ---------- logs úteis ----------
+//             long double gp_ld = b_ld + 2.0L*a_ld*(long double)dl;
+//             long double g_rel = std::fabsl(g_eval(dl)) / std::max<long double>((long double)L*(long double)L, 1e-30L);
+//
+//             std::cout << "  [it " << it
+//             << "] ||dws||="   << normdws
+//             << " ||dwb||="   << normdwb
+//             << " dl="         << dl
+//             << " alpha="      << alpha
+//             << " lambda="     << lambda
+//             << " ||dwtot||="  << Norm(dwtot_eff)
+//             << "\n     ||R||=" << normR
+//             << "  ||FINT||="  << Norm(rhs)
+//             << "  lambda||FEXT||=" << lambda * normFEXT
+//             << "\n     g="    << (STATE)g_eval(dl)
+//             << "  g'="        << (STATE)gp_ld
+//             << "  |g|/L^2="   << (STATE)g_rel
+//             << std::endl;
+//
+//             it++;
+//
+//         }
+//
+//
+//         okconv = (normR <= etol_inner);
+//
+//         if(okconv)
+//         {
+//             REAL uz = UyAtNode3D(cmesh, 0.5,0.5,1.);
+//             std::cout << uz << " " << lambda * normFEXT << std::endl;
+//              std::cout <<" (convergiu)\n" <<std::endl;
+//             an.AcceptSolution(0);
+//             PostElastoplastic(cmesh,vtkfile,matid,step,dim);
+//             lambdan=lambda;
+//             u_acc = u;
+//         }else{
+//             std::cout <<" (não convergiu)\n" <<std::endl;
+//             lambda=lambdan;
+//             u=u_acc;
+//             an.LoadSolution(u);
+//             // const REAL s = 0.5;
+//             // FEXT *= s;
+//             // lambda /= s;
+//             // normFEXT = Norm(FEXT);
+//         }
+//
+//         // Aceita o passo e atualiza acumulados
+//
+//
+//
+//
+//         // Ajuste adaptativo simples do alvo de arco (opcional)
+//         const int ndesi = 10;
+//         //L *= REAL(ndesi) / std::max(1, it);
+//         //if (L > 0.00000) L = 0.001;
+//         // Adaptação simples de L pelo nº de iterações (trust-region)
+//         auto adaptL = [&](REAL L_in, int it){
+//             const REAL it_tar = 6.0; // alvo ~6 iterações
+//             REAL scale = it_tar / std::max<REAL>(1., it);
+//             scale = std::max<REAL>(0.5, std::min<REAL>(2.0, scale));
+//             REAL L_out = L_in * scale;
+//             // limites globais (ajuste ao seu problema)
+//             L_out = std::max<REAL>(1e-6, std::min<REAL>(1e-2, L_out));
+//             return L_out;
+//         };
+//         L = adaptL(L, it);
+//
+//
+//         step++;
+//     }
+//
+//     return okconv ? lambda : 0.;
+// }
+
+/*
+static STATE compute_dlambda0_riks(const TPZFMatrix<STATE>& dwb,
+                                   const TPZFMatrix<STATE>& dw,
+                                   STATE L)
+{
+    const STATE ndwb = Norm(dwb);
+    if (ndwb < (STATE)1e-30) return (STATE)0.0;
+    STATE signum;
+    if (Norm(dw) < (STATE)1e-30) signum = (STATE)1.0;     // 1º passo: seguir em frente
+    else                         signum = (Dot(dw,dwb) >= 0.0 ? 1.0 : -1.0);
+    return signum * (L / ndwb);
+}
+
+// Corretor (k>1): a δλ² + b δλ + c = 0, com DTANG = dwb e t = dw + dws
+// a = ||dwb||²
+// b = 2 (dwb · (dw + dws))
+// c = ||dw + dws||² − L²
+// escolha da raiz: maximize ( (dw + dws + δλ*dwb) · dw )
+static STATE compute_dlambda_riks(const TPZFMatrix<STATE>& dwb,
+                                  const TPZFMatrix<STATE>& dws,
+                                  const TPZFMatrix<STATE>& dw,
+                                  STATE L, int& rootIdx)
+{
+    const long double a = (long double)Dot(dwb,dwb);
+    if (a < 1e-30L) { rootIdx = 1; return (STATE)0.0; }
+
+    const STATE dot_t_dwb = Dot(dwb,dws) + Dot(dwb,dw);
+    const long double b = 2.0L * (long double)dot_t_dwb;
+
+    const STATE t2 = Dot(dws,dws) + Dot(dw,dw) + 2.0*Dot(dw,dws);
+    const long double c = (long double)t2 - (long double)L*(long double)L;
+
+    long double disc = b*b - 4.0L*a*c;
+    if (disc < 0.0L) disc = 0.0L;
+    const long double sq = sqrt(disc);
+
+    const STATE dl1 = (STATE)((-b - sq) / (2.0L*a));
+    const STATE dl2 = (STATE)((-b + sq) / (2.0L*a));
+
+    auto score = [&](STATE dl)->STATE {
+        // (dw + dws + dl*dwb) · dw  (Souza Neto 4.118)
+        return Dot(dw,dw) + Dot(dws,dw) + dl*Dot(dwb,dw);
+    };
+    const STATE s1 = score(dl1), s2 = score(dl2);
+    if (s1 > s2) { rootIdx = 1; return dl1; }
+    else         { rootIdx = 2; return dl2; }
+}
+*/
+
+
+// REAL IterativeProcessArcLength(TPZCompMesh* cmesh,int loaddir,int indexbc)
+// {
+//     TPZElastoPlasticAnalysis an(cmesh, std::cout,TPZElastoPlasticAnalysis::ELineSearch::Armijo);
+//
+//     auto* bcmat = dynamic_cast<TPZBndCondT<STATE>*>(cmesh->FindMaterial(indexbc));
+//
+//     int maxsteps=10;
+//     int maxit_inner=10;
+//     REAL etol_outer=0.01;
+//     REAL etol_inner=1.e-6;
+//     bool converged = false;
+//     REAL lambda0=0.01;
+//     REAL lambda = lambda0;
+//     REAL L=0.00001;
+//     REAL lambda_prev = std::numeric_limits<REAL>::infinity();
+//
+//     TPZFMatrix<STATE> u_acc = an.Solution();
+//     u_acc.Zero();
+//
+//     TPZFMatrix<STATE> dw(an.Solution());
+//     dw.Zero();
+//
+//     int step = 0;
+//     REAL diff = 1e9;
+//
+//     const REAL load0=bcmat->Val2()[loaddir];
+//
+//     bcmat->Val2()[loaddir]=199;
+//     TPZFMatrix<STATE> FEXT;
+//     an.Assemble();
+//     FEXT = an.Rhs();
+//     cout << " Norm(FEXT) = " << Norm(FEXT)  <<std::endl;
+//     bcmat->Val2()[loaddir]=0;
+//
+//     // ===== FIM DO CHECK =====
+//     while (step < 1)
+//     {
+//         std::cout << "\n[Arc step " << (step+1) << "]  L=" << L<< "  lambda=" << lambda << std::endl;
+//
+//         TPZFMatrix<STATE> u = u_acc;
+//
+//         int it = 0;
+//         REAL normdu = 1e30;
+//         REAL normR = 1e30;
+//         dw.Zero();
+//
+//         while (it < maxit_inner && normR > etol_inner)
+//         {
+//             TPZFMatrix<STATE> dwb,dws,FINT;
+//
+//             // --- monta K(u) e FINT(u) com BC zerado ---
+//             bcmat->Val2()[loaddir]=0;
+//             an.Assemble();
+//             FINT=an.Rhs();
+//
+//             // --- resíduo físico: Rphys = FINT - lambda*FEXT ---
+//            //TPZFMatrix<STATE> R = FINT - (FEXT*lambda);
+//             TPZFMatrix<STATE> R =  (FEXT*lambda)-FINT;
+//             // --- PARTICULAR: K dws = -Rphys (sinal corrigido) ---
+//             R *= -1.0;
+//             REAL n0 = Norm(R);
+//             an.Rhs()=R;
+//             an.Solve();
+//             dws=an.Solution();
+//
+//             // --- DIREÇÃO λ: K dwb = FEXT ---
+//             an.Rhs()=FEXT*(-1.0);
+//             an.Solve();
+//             dwb=an.Solution();
+//
+//             STATE normdwb,normdws;
+//             normdwb=Norm(dwb);
+//             normdws=Norm(dws);
+//
+//
+//             REAL dl = 0.0;
+//             if (it == 0) {
+//                 dl = compute_dlambda0_riks(dwb, dw /*Δu^(k-1)*/, L);
+//             } else {
+//                 int rootIdx = 0;
+//                 dl = compute_dlambda_riks(dwb, dws, dw /*Δu^(k-1)*/, L, rootIdx);
+//             }
+//
+//             // // (opcional) freio simples para evitar saltos
+//             // if (dl >  0.05) dl =  0.05;
+//             // if (dl < -0.05) dl = -0.05;
+//
+//             TPZFMatrix<STATE> dwtot = dwb*dl + dws;
+//             u      += dwtot;
+//             dw     += dwtot;
+//             lambda += dl;
+//
+//             normdu = Norm(dwtot);
+//
+//             an.LoadSolution(u);
+//
+//             an.LoadSolution(u);
+//
+//             // --- reavalia Rphys no estado ATUALIZADO (para medir normR corretamente) ---
+//             bcmat->Val2()[loaddir]=0;
+//             an.Assemble();
+//             FINT = an.Rhs();
+//             R    = (FEXT*lambda) - FINT;   // (mesma convenção que você usou no restante)
+//             normR= Norm(R);
+// /*
+//             std::cout << "[ELASTIC CHECK] ||R0||="<< n0
+//             << "  ||R1||="<< n1 << "  (esperado ~ 0 após 1 it)\n";*/
+//
+//             cout << "  [it " << it
+//             << "] ||dws||=" << normdws
+//             << " ||dwb||=" << normdwb
+//             << " dl=" << dl
+//             << " lambda=" << lambda
+//             << " ||dwtot||=" << normdu
+//             << " \n ||R||=" << normR
+//             << " ||FINT||=" << Norm(FINT)
+//             << " lambda||FEXT||=" << lambda*Norm(FEXT)
+//             << " ||FEXT||=" << Norm(FEXT)
+//             << endl;
+//
+//             it++;
+//         }
+//
+//         bool converged = (normR <= etol_inner);
+//         std::cout << (converged ? " (convergiu)\n" : " (não convergiu)\n");
+//
+//         an.AcceptSolution(0);
+//         u_acc = u;
+//         diff = std::fabs(lambda - lambda_prev);
+//         lambda_prev = lambda;
+//
+//         const int ndesi = 10;
+//         L *= REAL(ndesi) / std::max(1, it);
+//         if (L > 0.1) L = 0.1;
+//         step++;
+//     }
+//
+//     return converged ? lambda : 0.;
+// }
+//
+//

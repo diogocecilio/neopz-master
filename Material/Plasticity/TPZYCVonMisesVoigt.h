@@ -20,6 +20,7 @@ class TPZYCVonMisesVoigt : public TPZPlasticCriterion {
 private:
     STATE fSigmaY0 = 0.0;
     STATE fH0 = 0.0;
+    STATE fHard=0.;
 
 
 public:
@@ -51,7 +52,7 @@ public:
     virtual void Print(std::ostream &out) const override;
 
 
-    void ProjectSigma(const TPZTensor<STATE> & sigmatr,  TPZTensor<STATE> & sigmaproj, STATE &cumhardenig, int & m_type);
+    STATE ProjectSigma(const TPZTensor<STATE> & sigmatr,  TPZTensor<STATE> & sigmaproj, TPZElasticResponse &ER,STATE &havarn,STATE &havarn1, int & m_type);
 
 
     TPZTensor<STATE> ComputeN(const TPZTensor<STATE> stresstensor)const;
@@ -64,15 +65,18 @@ public:
 
     void SetYieldStress(STATE sy)   { fSigmaY0 = sy; }
 
-    STATE UpdateHardeningVar(const TPZTensor<STATE>sig,const TPZElasticResponse& ER, STATE &hardeningvar);
 
     void SetUp(STATE sigmaY0, STATE Hiso);
 
     // acesso seguro
     STATE H()      const { return fH0 ;}
 
-    STATE SigmaY(STATE hardeningvar) const { return   278.51775588600316 + 107.03078301291825*(1 - pow(exp(1),-450.3386387920765*hardeningvar)) + 1122.6997583510627*hardeningvar - 1996.235137824671*pow(hardeningvar,2) ;}
-    //STATE SigmaY(STATE hardeningvar) const { return  fSigmaY0+hardeningvar*fH0;  }
+   //
+     STATE SigmaY(STATE hardeningvar) const { return  fSigmaY0+hardeningvar*fH0;  }
+     STATE DSigmaYDepsbar(STATE hardeningvar)  const { return  fH0;  }
+
+    // STATE SigmaY(STATE hardeningvar) const { return   (278.51775588600316 + 107.03078301291825*(1 - pow(exp(1),-450.3386387920765*hardeningvar)) + 1122.6997583510627*hardeningvar - 1996.235137824671*pow(hardeningvar,2)) ;}
+    // STATE DSigmaYDepsbar(STATE hardeningvar) const {return (1122.6997583510627 + 48200.097130887705/pow(2.718281828459045,450.3386387920765*hardeningvar) - 3992.470275649342*hardeningvar);}
 
     /**
      Evaluates the yield criterion

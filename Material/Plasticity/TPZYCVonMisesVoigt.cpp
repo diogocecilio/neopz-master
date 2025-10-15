@@ -82,71 +82,39 @@ void TPZYCVonMisesVoigt::Phi(TPZTensor<STATE>sig, STATE alpha, TPZVec<STATE> &ph
 
 
 
-void TPZYCVonMisesVoigt::ProjectSigma(const TPZTensor<STATE> & sigmatr,  TPZTensor<STATE> & sigmaproj, STATE &cumhardenig, int & m_type)
+STATE TPZYCVonMisesVoigt::ProjectSigma(const TPZTensor<STATE> & sigmatr,  TPZTensor<STATE> & sigmaproj,TPZElasticResponse &ER, STATE &havarn,STATE &havarn1, int & m_type)
 {
 
+    fHard=havarn;
 
-    STATE p =sigmatr.I1()/3.;
     TPZTensor<STATE> S;
     sigmatr.S(S);
     STATE j2 =sigmatr.J2();
     STATE q=sqrt(3.* j2);
-    STATE sigy  = SigmaY(cumhardenig);
+    STATE sigy  = SigmaY(havarn);
    // STATE sigy  = fSigmaY0;
     STATE f=q-sigy;
-
 
     if(f<0.)
     {
         sigmaproj=sigmatr;
-        //cumhardenig+=0.;
+        //sigmaproj+=0.;
+        havarn1=havarn;
         m_type=0;//elastic
+        return 0.;
 
     }else
     {
-/*
-        TPZKrylovEigenSolver<STATE> solver;
-        solver.SetNEigenpairs(3);
-        solver.SetKrylovDim(3);
-        solver.SetTolerance(1e-10);
-        solver.SetAsGeneralised(false);
-        solver.SetEigenSorting(TPZEigenSort::AbsAscending);
+        STATE H=DSigmaYDepsbar(havarn);
+        STATE G=ER.G();
+        STATE gamma =  (q-sigy)/(3*G+H);
+        havarn1=fHard+gamma;
+        STATE sigyn1  = SigmaY(havarn);
 
-        // montar a matriz 3x3 simétrica a partir do tensor sigmatr
-        TPZFMatrix<STATE> mata(3,3,0.);
-        mata(0,0) = sigmatr.XX();  mata(0,1) = sigmatr.XY();  mata(0,2) = sigmatr.XZ();
-        mata(1,0) = sigmatr.XY();  mata(1,1) = sigmatr.YY();  mata(1,2) = sigmatr.YZ();
-        mata(2,0) = sigmatr.XZ();  mata(2,1) = sigmatr.YZ();  mata(2,2) = sigmatr.ZZ();
-
-
-
-        // resolver
-        TPZVec<CSTATE> w;
-        TPZFMatrix<CSTATE> eigenVectors;
-
-        // criar ponteiro auto-gerenciado para matriz COMPLEXA
-        TPZAutoPointer<TPZMatrix<CSTATE>> A =new TPZFMatrix<CSTATE>(mata.Rows(), mata.Rows(), CSTATE(0.,0.));
-
-        for (int i = 0; i < mata.Rows(); i++)
-            for (int j = 0; j < mata.Cols(); j++)
-                static_cast<TPZFMatrix<CSTATE>*>(A.operator->())->PutVal(i,j, CSTATE(mata.GetVal(i,j), 0.0));
-        solver.SetMatrixA(A);
-        solver.SolveEigenProblem(w, eigenVectors);*/
-
-        // std::cout << w <<std::endl;
-
-        //TPZTensor<REAL>::TPZDecomposed dec;
         TPZTensor<REAL>::TPZDecomposed sig_eigen_system;
-//       Decomp3x3( sigmatr,sig_eigen_system);
+        //Decomp3x3( sigmatr,sig_eigen_system);
 
-//         std::cout << "DecEigen"<<std::endl;
-//         dec.Print(std::cout);
-//
-//
         sigmatr.EigenSystem(sig_eigen_system);
-//         std::cout << "DecPZ"<<std::endl;
-//         sig_eigen_system.Print(std::cout);
-
 
         TPZManVector<STATE,3> sigprincipal=sig_eigen_system.fEigenvalues;
         TPZManVector<TPZManVector<STATE,3>,3> eigenvectors=sig_eigen_system.fEigenvectors;
@@ -154,10 +122,11 @@ void TPZYCVonMisesVoigt::ProjectSigma(const TPZTensor<STATE> & sigmatr,  TPZTens
         STATE sig2=sigprincipal[1];
         STATE sig3=sigprincipal[2];
         STATE betaproj=atan((sqrt(3.)* (-sig2+sig3))/(-2.* sig1+sig2+sig3));
+        //STATE betaproj = (1.0/3.0) *atan2( sqrt(3.0)*(sig2 - sig3), (2.0*sig1 - sig2 - sig3) );
 
         STATE xiproj=sigmatr.I1()/sqrt(3.);
 
-        STATE rhoproj=sqrt(2./3.)*sigy ;
+        STATE rhoproj=sqrt(2./3.)*sigyn1 ;
 
         TPZManVector<STATE,3> HWCylCoords(3),HWCart(3);
         HWCylCoords[0]=xiproj;
@@ -166,69 +135,18 @@ void TPZYCVonMisesVoigt::ProjectSigma(const TPZTensor<STATE> & sigmatr,  TPZTens
 
 
         TPZHWTools::FromHWCylToPrincipal(HWCylCoords,HWCart);
-        TPZFMatrix<REAL> v1,v2,v3,v1t,v2t,v3t,temp1,temp2,temp3;
-        v1.CopyFrom(eigenvectors[0]);
-        v2.CopyFrom(eigenvectors[1]);
-        v3.CopyFrom(eigenvectors[2]);
-        v1.Transpose(&v1t);
-        v2.Transpose(&v2t);
-        v3.Transpose(&v3t);
-        v1.Multiply(v1t,temp1);
-        v2.Multiply(v2t,temp2);
-        v3.Multiply(v3t,temp3);
+        sig_eigen_system.fEigenvalues=HWCart;
 
-        temp1*=HWCart[0];
-        temp2*=HWCart[1];
-        temp3*=HWCart[2];
-        temp1+=temp2;
-        temp1+=temp3;
-
-       // temp1.Print("sigma projected recontructed");
-        sigmaproj.XX()=temp1(0,0);sigmaproj.XY()=temp1(0,1);sigmaproj.XZ()=temp1(0,2);
-        sigmaproj.XY()=temp1(1,0);sigmaproj.YY()=temp1(1,1);sigmaproj.YZ()=temp1(1,2);
-        sigmaproj.XZ()=temp1(2,0);sigmaproj.YZ()=temp1(2,1);sigmaproj.ZZ()=temp1(2,2);
+        TPZTensor<STATE>sigmaproj2(sig_eigen_system);
+        sigmaproj=sigmaproj2;
 
         m_type=1;//plastic
+
+        return gamma;
     }
 
-
 }
-// STATE TPZYCVonMisesVoigt::UpdateHardeningVar(const TPZTensor<STATE>sig,const TPZElasticResponse& ER, STATE &hardeningvar)
-// {
-//     STATE j2 =sig.J2();
-//     STATE q=sqrt(3.* j2);
-//     STATE f=q-fSigmaY0;
-//    // std::cout<< "j2 = " << j2 <<std::endl;
-//     hardeningvar=0;
-//
-//    // if(f<1.e-4)return 0;
-//     STATE G=ER.G();
-//     STATE gamma =  f/(3*G+fH0);
-//    // std::cout<<"gamma = "<<gamma << std::endl;
-//     hardeningvar=gamma;
-//     return gamma;
-// }
-// STATE TPZYCVonMisesVoigt::UpdateHardeningVar(const TPZTensor<STATE> sig,
-//                                              const TPZElasticResponse& ER,
-//                                              STATE &hardeningvar)
-// {
-//     const STATE j2 = sig.J2();
-//     const STATE q  = std::sqrt(3.0 * j2);
-//
-//     // endurecimento isotrópico: sigma_y = sigma_y0 + H * kappa
-//     const STATE sigY = fSigmaY0 + fH0 * hardeningvar;
-//     STATE f = q - sigY;
-//
-//     if (f <= 0) return 0.0;                 // elástico (com tolerância pode usar <=)
-//
-//     const STATE G = ER.G();                 // módulo de cisalhamento
-//     STATE gamma = f / (3.0 * G + fH0);      // Δλ = f / (n:C:n + H) com n associado (von Mises)
-//
-//     if (gamma < 0) gamma = 0;               // robustez numérica
-//     hardeningvar += gamma;                  // κ_{n+1} = κ_n + Δλ
-//
-//     return gamma;
-// }
+
 TPZTensor<STATE> TPZYCVonMisesVoigt::ComputeN(const TPZTensor<STATE> stresstensor)const
 {
     STATE j2 =stresstensor.J2();
@@ -320,45 +238,4 @@ TPZFMatrix<STATE> TPZYCVonMisesVoigt::GetNdSigma(const TPZTensor<STATE>& sigma) 
 //  return f/sol(0,0);
 //
 // }
-STATE TPZYCVonMisesVoigt::UpdateHardeningVar(const TPZTensor<STATE>sig,const TPZElasticResponse& ER, STATE &hardeningvar)
-{
-    TPZFMatrix<STATE> elasticmat;
-    ER.De(elasticmat);
-    STATE j2 =sig.J2();
-    //std::cout << "hardeningvar A = "<<hardeningvar <<std::endl;
-    //std::cout << "j2  = "<<j2 <<std::endl;
-    STATE q=sqrt(3.* j2);
-    //STATE f=q-SigmaY(hardeningvar);
-    STATE newsigY=SigmaY(hardeningvar);
-    STATE f=q-newsigY;
-    //std::cout << "SigmaY(hardeningvar)  = "<<SigmaY(hardeningvar) <<std::endl;
-    if(f<0)return 0;
-    TPZTensor<STATE> Nvec = ComputeN(sig);
-   // std::cout << "f  = "<<f <<std::endl;
 
-    TPZFMatrix<STATE> NFmat(6,1,0.),tempsol,NFmatT,sol;
-    Nvec.CopyTo(NFmat);
-    elasticmat.Multiply(NFmat,tempsol);
-    //tempsol.Print("tempsol");
-    NFmat.Transpose(&NFmatT);
-    NFmatT.Multiply(tempsol,sol);
-    //sol.Print("sol");
-    STATE gamma =  f/(sol(0,0)+fH0);
-  //  STATE G=ER.G();
-   //  STATE gamma =  f/(3*G+fH0);
-///     std::cout << "gamma = " << gamma << std::endl;
-    if(gamma>1)
-    {
-        // std::cout << "J2 =" << j2 << std::endl;
-        // NFmat.Print("NF");
-        // NFmatT.Print("NFT");
-        // std::cout << "sol(0,0) = " << sol(0,0) << std::endl;
-        // std::cout << "f" << f << std::endl;
-        // std::cout << "gamma = " << gamma << std::endl;
-        // DebugStop();
-    }
-
-    hardeningvar+=gamma;
-    //std::cout << "hardeningvar D = "<<hardeningvar <<std::endl;
-    return gamma;
-}

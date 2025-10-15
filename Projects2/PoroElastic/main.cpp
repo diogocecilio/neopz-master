@@ -456,7 +456,7 @@ static TPZCompMesh* CreateMPhysWithMaterialsAndBCs(TPZGeoMesh* gmesh)
 int main()
 {
     const std::string configfile = "/home/diogo/projects/neopz-master-build-debug/Util/log4cxx.cfg";
-    TPZLogger::InitializePZLOG(configfile);
+    //TPZLogger::InitializePZLOG(configfile);
     // -------------------- 1) MALHAS --------------------
     TPZGeoMesh *gmesh   = CreateSingleQuadMesh();
 

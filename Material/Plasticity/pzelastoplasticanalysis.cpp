@@ -292,6 +292,7 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol, int 
 
         // critério de parada
         if ( err_u<tol && err_f<tol*100)
+        //if ( err_u<tol)
         {
             out << "  -> Convergência atingida em " << iter+1 << " iterações " << " ||Δu||/||Δu0|| = " << err_u<< " | ||R||/||R0|| = " << err_f<< " | tol = " << tol << "\n";
             converged = true;
