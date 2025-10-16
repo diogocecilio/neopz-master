@@ -190,9 +190,19 @@ TPZFMatrix<STATE> TPZYCVonMisesVoigt::GetNdSigma(const TPZTensor<STATE>& sigma) 
     P(_YY_, _XX_) = -1.0/3.0; P(_YY_, _YY_) =  2.0/3.0; P(_YY_, _ZZ_) = -1.0/3.0;
     P(_ZZ_, _XX_) = -1.0/3.0; P(_ZZ_, _YY_) = -1.0/3.0; P(_ZZ_, _ZZ_) =  2.0/3.0;
     // cisalhantes na diagonal (na SUA ordem: XY, XZ, YZ em 1,2,4) → valor 2
-    P(_XY_, _XY_) = 2.0;
-    P(_XZ_, _XZ_) = 2.0;
-    P(_YZ_, _YZ_) = 2.0;
+    P(_XY_, _XY_) = 1.0;
+    P(_XZ_, _XZ_) = 1.0;
+    P(_YZ_, _YZ_) = 1.0;
+
+    // TPZFNMatrix<36> mat ={
+    //     {2./3., 0, 0, -(1./3.), 0, -(1./3.)},
+    //     {0, 1., 0, 0, 0, 0},
+    //     {0, 0, 1., 0, 0, 0},
+    //     {-(1./3.), 0, 0, 2./3., 0, -(1/3)},
+    //     {0, 0, 0, 0, 1., 0},
+    //     {-(1./3.), 0, 0, -(1./3.), 0, 2./3.}
+    // };
+    // P=mat;
 
     // ===== vetor s (deviador) em VOIGT na SUA ordem =====
     TPZFMatrix<STATE> svec(6,1,0.0); // coluna 6x1

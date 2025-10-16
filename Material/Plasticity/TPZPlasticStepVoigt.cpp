@@ -134,9 +134,9 @@ void TPZPlasticStepVoigt<YC,ER>::ConsistentTangent(const TPZTensor<STATE>& sigma
 
     TPZFMatrix<REAL>  Ce,invCe;
     fER.De(Ce) ;
-     Ce(_XY_,_XY_)/=2.;
-     Ce(_XZ_,_XZ_)/=2.;
-     Ce(_YZ_,_YZ_)/=2.;
+     // Ce(_XY_,_XY_)/=2.;
+     // Ce(_XZ_,_XZ_)/=2.;
+     // Ce(_YZ_,_YZ_)/=2.;
 
     //Q=(IdentityMatrix[6]+gamma Ce . dadsigg);
 
