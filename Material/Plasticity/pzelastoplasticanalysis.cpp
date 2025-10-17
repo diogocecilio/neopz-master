@@ -123,8 +123,8 @@ bool TPZElastoPlasticAnalysis::FindRoot(int &iters,REAL &resu,REAL &resf)
     TPZFMatrix<STATE> x(Solution()), dx(Solution());
     x.Zero(); dx.Zero();
 
-    const REAL tol   = 1.e-3;
-    const int  n_it  = 10;
+    const REAL tol   = 1.e-6;
+    const int  n_it  = 30;
     const REAL EPS   = 1.e-30; // evita divisão por zero
 
     //std::cout << "AssembleResidual.."   <<endl;
@@ -170,7 +170,7 @@ bool TPZElastoPlasticAnalysis::FindRoot(int &iters,REAL &resu,REAL &resf)
         << " | tol = " << tol << std::endl;
 
         iters = i;
-        if(normrhs>resf)break;
+        //if(normrhs>resf)break;
         resu=normdu;
         resf=normrhs;
         // critério de convergência (resíduo relativo)
@@ -181,9 +181,10 @@ bool TPZElastoPlasticAnalysis::FindRoot(int &iters,REAL &resu,REAL &resf)
 
     }
     std::cout << "não convergiu dentro do limite: normrhs ="<< normrhs<< " normdu ="<< normdu   <<endl;
-    int numiter=30;
+    int numiter=100;
     std::cout << "Tentando line search com  ="<< normrhs<< " tol ="<< tol << " numiter = "<< numiter<<std::endl;
     bool conv = IterativeProcess(std::cout,tol, numiter, true,false,iters);
+    //bool conv=false;
     // não convergiu dentro do limite
     if( conv)
     {
@@ -197,6 +198,78 @@ bool TPZElastoPlasticAnalysis::FindRoot(int &iters,REAL &resu,REAL &resf)
 }
 
 
+bool TPZElastoPlasticAnalysis::NewtonRaphson()
+{
+    //METODO DE NEWTON SIMPLES
+    // estado e incremento
+    TPZFMatrix<STATE> x(Solution()), dx(Solution());
+    x.Zero(); dx.Zero();
+
+    const REAL tol   = 1.e-6;
+    const int  n_it  = 30;
+    const REAL EPS   = 1.e-30; // evita divisão por zero
+
+    //std::cout << "AssembleResidual.."   <<endl;
+    // resíduo inicial
+    int iters;
+    REAL resf,resu;
+    AssembleResidual();
+    REAL normrhs0 = Norm(Rhs());
+    if (!std::isfinite(normrhs0)) normrhs0 = 1.0;
+    if (normrhs0 < EPS) { iters = 0; return true; } // já está resolvido
+
+    REAL normu0 = Norm(Solution());
+    if (normu0<=0) normu0 = 1.0;
+    //if (normu0 < EPS) { iters = 0; return true; } // já está resolvido
+
+    REAL normrhs = 1.0;
+    REAL normdu  = 0.0;
+    resf=10000.;
+    for (int i = 1; i <= n_it; ++i) {
+        // monta tangente e resíduo na solução atual x
+        //std::cout << "Assembling.."   <<endl;
+        Assemble();
+
+        //std::cout << "Solving.."   <<endl;
+        // resolve Δx
+        Solve();
+        dx = Solution();
+
+        // atualiza solução candidata
+        x += dx;
+        LoadSolution(x);
+
+        // *** RECOMPUTA o resíduo para a solução ATUALIZADA ***
+        AssembleResidual();
+
+
+
+        // métricas
+        normdu  = Norm(dx)/normu0;
+        normrhs = Norm(Rhs())/normrhs0 ;
+
+        std::cout << "  [it " << i << "] "
+        << "||Δu|| = " << normdu
+        << " | ||R|| = " << normrhs
+        << " | tol = " << tol << std::endl;
+
+        iters = i;
+        //if(normrhs>resf)break;
+        resu=normdu;
+        resf=normrhs;
+        // critério de convergência (resíduo relativo)
+        if (normrhs < tol &&normdu<tol) {
+            std::cout << "normrhs ="<< normrhs<< " normdu ="<< normdu   <<endl;
+            return true;
+        }
+
+    }
+
+    std::cout << "NAO Convergiu com   ="<< iters<< " iteraçoes."<<std::endl;
+    return false;
+
+
+}
 
 bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol, int numiter,bool linesearch, bool checkconv,int &iters)
 {
@@ -412,58 +485,82 @@ REAL TPZElastoPlasticAnalysis::StrongWolfeLineSearch(const TPZFMatrix<STATE>& Wn
     // falha branda: devolve o melhor visto
     NextW = Wn; NextW += alo * d; return alo;
 }
-// Busca linear dicotômica (minimiza 1/2||R||^2 ao longo de ΔW).
-// tol   -> tolerância para largura do intervalo em α (ex.: 1e-3)
-// niter -> n° máx. de iterações
+
 REAL TPZElastoPlasticAnalysis::DicotomicLineSearch(const TPZFMatrix<STATE>& Wn,
                                                    TPZFMatrix<STATE> DeltaW,
                                                    TPZFMatrix<STATE>& NextW,
                                                    REAL tol, int niter)
 {
+    // intervalo inicial de α
     REAL A = (REAL)0.0, B = (REAL)1.0;
-    const REAL amin = std::max<REAL>(tol, (REAL)1e-8);
 
+    const REAL delta_min = (REAL)1e-6;
     auto delta_for = [&](REAL width){
-        return std::max<REAL>((REAL)1e-6, (REAL)0.1 * width);
+        return std::max<REAL>(delta_min, (REAL)0.1 * width); // 10% da largura
     };
 
-    // --- backup do vetor numérico (solução interna) ---
-    TPZFMatrix<STATE> backup = this->fSolution;
+    const REAL amin = std::max<REAL>(tol, (REAL)1e-8); // alpha mínimo aceitável
 
-    // --- travar UpdateMem durante a busca ---
-    // ajuste o ID do material se for diferente de 1
-    auto *pl = dynamic_cast<plasticmat*>( this->Mesh()->FindMaterial(1) );
-    bool had_update = false;
-    if (pl) {
-        // se tiver getter, use; se não, comente a leitura e apenas force false/true
-        // had_update = pl->GetUpdateMem();
-        pl->SetUpdateMem(false);
+    // valida DeltaW
+    if (DeltaW.Rows() == 0 || DeltaW.Cols() == 0) {
+        NextW = Wn;
+        // aplica um pequeno passo para evitar alpha == 0 problema downstream
+        TPZFMatrix<STATE> tiny = Wn;
+        TPZFMatrix<STATE> dd = DeltaW;
+        dd *= amin;
+        tiny += dd;
+        this->LoadSolution(tiny);
+        NextW = tiny;
+        return amin;
     }
 
-    // f(W) = 1/2 ||R(W)||^2
-    auto eval_f = [&](const TPZFMatrix<STATE>& Wc)->REAL {
-        TPZFMatrix<STATE> W = Wc;
-        this->LoadSolution(W);
-        this->AssembleResidual();
-        const REAL nR = Norm(this->fRhs);
+    // --- preparar análise temporária CLONANDO a malha e materiais ---
+    TPZCompMesh *origMesh = this->Mesh();
+    if (!origMesh) {
+        throw std::runtime_error("DicotomicLineSearch: mesh nula no objeto this.");
+    }
+
+    TPZCompMesh *meshCopy = nullptr;
+    try {
+        // Substitua Clone() pelo método correto da sua versão do NeoPZ se necessário.
+        meshCopy = origMesh->Clone();
+    } catch (...) {
+        meshCopy = nullptr;
+    }
+
+    if (!meshCopy) {
+        throw std::runtime_error("DicotomicLineSearch: clonagem profunda da malha nao disponivel. "
+        "Implemente clonagem de estados internos ou use snapshot.");
+    }
+
+    // Constrói uma análise temporária com a mesh copiada.
+    // Assumimos que tmpAnalysis gerencia a mesh copiada (ajuste se sua API for diferente).
+    TPZElastoPlasticAnalysis tmpAnalysis(meshCopy,std::cout);
+    // Opcional: copie solver / structural matrix / configurações relevantes do this para tmpAnalysis
+    // tmpAnalysis.SetStructuralMatrix(this->StructuralMatrix()); // adapte conforme API
+    // tmpAnalysis.SetSolver(this->Solver()); // adapte conforme API
+
+    // Função objetivo sem efeitos colaterais sobre `this` (avalia em tmpAnalysis)
+    auto eval_phi_tmp = [&](const TPZFMatrix<STATE>& Wc)->REAL {
+        TPZFMatrix<STATE> W = Wc;           // cópia para LoadSolution
+        tmpAnalysis.LoadSolution(W);
+        tmpAnalysis.AssembleResidual();
+        REAL nR = Norm(tmpAnalysis.fRhs);
+        if (!std::isfinite(nR)) return std::numeric_limits<REAL>::infinity();
+        // Usar objetivo 0.5 * ||R||^2 para coerência com line-search clássico
         return (REAL)0.5 * nR * nR;
     };
 
-    // se ΔW vazio, não anda
-    if (DeltaW.Rows()==0 || DeltaW.Cols()==0) {
-        NextW = Wn;
-        this->LoadSolution(backup);
-        if (pl) pl->SetUpdateMem(had_update);
-        return amin; // nunca retorne 0
-    }
+    // computa phi0 em Wn (usando tmpAnalysis para não alterar this)
+    const REAL phi0 = eval_phi_tmp(Wn);
 
-    // melhor já visto (robustez)
-    REAL f0 = eval_f(Wn);
-    REAL best_f = f0, best_alpha = (REAL)0.0;
-    TPZFMatrix<STATE> bestW = Wn;
-
+    // iteração dicotômica
     int it = 0;
     REAL width = B - A;
+
+    REAL best_phi = std::numeric_limits<REAL>::infinity();
+    REAL best_alpha = (REAL)0.5 * (A + B);
+    TPZFMatrix<STATE> bestW = Wn;
 
     while (it < niter && width > tol) {
         const REAL mid = (REAL)0.5*(A + B);
@@ -471,417 +568,476 @@ REAL TPZElastoPlasticAnalysis::DicotomicLineSearch(const TPZFMatrix<STATE>& Wn,
 
         REAL x1 = std::max<REAL>(A, mid - delta);
         REAL x2 = std::min<REAL>(B, mid + delta);
-        if (x1 >= x2) break;
+        if (x1 >= x2) {
+            // relaxa delta simetricamente; se ainda não houver espaço, sai
+            delta *= (REAL)0.5;
+            x1 = std::max<REAL>(A, mid - delta);
+            x2 = std::min<REAL>(B, mid + delta);
+            if (x1 >= x2) break;
+        }
 
         TPZFMatrix<STATE> t1 = Wn, t2 = Wn;
         TPZFMatrix<STATE> d1 = DeltaW, d2 = DeltaW;
         d1 *= x1; t1 += d1;
         d2 *= x2; t2 += d2;
 
-        const REAL f1 = eval_f(t1);
-        const REAL f2 = eval_f(t2);
+        const REAL f1 = eval_phi_tmp(t1);
+        const REAL f2 = eval_phi_tmp(t2);
 
-        if (f1 < best_f) { best_f = f1; best_alpha = x1; bestW = t1; }
-        if (f2 < best_f) { best_f = f2; best_alpha = x2; bestW = t2; }
+        if (std::isnan(f1) || std::isnan(f2)) {
+            // avaliação inválida: interrompe busca (ponto de emergência)
+            break;
+        }
 
-        // passo dicotômico: preserva metade com menor f
+        if (f1 < best_phi) { best_phi = f1; best_alpha = x1; bestW = t1; }
+        if (f2 < best_phi) { best_phi = f2; best_alpha = x2; bestW = t2; }
+
+        // dicotômico: manter metade com menor valor
         if (f1 > f2) {
-            A = x1;            // mínimo está em (x1, B]
+            A = x1; // mínimo em (x1,B]
         } else if (f2 > f1) {
-            B = x2;            // mínimo está em [A, x2)
+            B = x2; // mínimo em [A,x2)
         } else {
-            // empate: evite viés para 0; avance simetricamente
-            A = x1; B = x2;
+            // empate: reduzir simetricamente para evitar viés
+            A = x1;
+            B = x2;
         }
 
         width = B - A;
         ++it;
     }
 
-    // escolha final: o melhor amostrado; se não melhorou, pegue o meio
-    REAL alpha = (best_f < f0) ? best_alpha : (REAL)0.5*(A + B);
-    if (alpha < amin) alpha = amin; // nunca devolva 0
+    // escolha final: prefira melhor amostrado; se não encontrado, meio do intervalo
+    REAL alpha = (best_phi < std::numeric_limits<REAL>::infinity()) ? best_alpha : (REAL)0.5*(A + B);
+    if (alpha < amin) alpha = amin;
 
+    // monta NextW e COMITA na análise real (aplica o passo)
     NextW = Wn;
-    DeltaW *= alpha;
-    NextW += DeltaW;
+    TPZFMatrix<STATE> DeltaScaled = DeltaW; // cópia segura
+    DeltaScaled *= alpha;
+    NextW += DeltaScaled;
 
-    // restaura estado numérico e UpdateMem
-    this->LoadSolution(backup);
-    if (pl) pl->SetUpdateMem(had_update);
+    // Aplica/commit NextW na análise real para que o próximo solver trabalhe com o novo estado
+    this->LoadSolution(NextW);
+
+    // NOTA: não deletamos meshCopy explicitamente; espera-se que tmpAnalysis libere a mesh copiada em seu destrutor.
+    // Se sua API exigir delete(meshCopy), adapte aqui.
 
     return alpha;
 }
 
-/*
-// Busca linear dicotômica (dichotomous search) para minimizar ||R|| ao longo de ΔW.
-// tol   -> tolerância para a largura do intervalo em α (ex.: 1e-3)
-// niter -> número máx. de iterações
-REAL TPZElastoPlasticAnalysis::DicotomicLineSearch(const TPZFMatrix<STATE>& Wn,
-                                          TPZFMatrix<STATE> DeltaW,
-                                          TPZFMatrix<STATE>& NextW,
-                                          REAL tol, int niter)
-{
-    // intervalo inicial de α
-    REAL A = (REAL)0.0, B = (REAL)1.0;
 
-    // pequeno deslocamento interno para as duas amostras (padrão da dicotomização)
-    // mantém proporcionalidade ao intervalo, com piso para não colapsar
-    const REAL delta_min = (REAL)1e-6;
-    auto delta_for = [&](REAL width){
-        return std::max<REAL>(delta_min, (REAL)0.1 * width); // 10% da largura
-    };
-
-    // utilitário: avalia ||R|| em um W qualquer (cópia não-const para LoadSolution)
-    auto eval_phi = [&](const TPZFMatrix<STATE>& Wc)->REAL {
-        TPZFMatrix<STATE> W = Wc;   // cópia NÃO-CONST
-        this->LoadSolution(W);
-        this->AssembleResidual();   // monta APENAS o resíduo
-        return Norm(this->fRhs);    // ||R||_2
-    };
-
-    // backup do estado para restaurar no retorno
-    TPZFMatrix<STATE> backup = this->fSolution;
-
-    // se ΔW vazio, retorna sem andar
-    if (DeltaW.Rows()==0 || DeltaW.Cols()==0) {
-        NextW = Wn;
-        this->LoadSolution(backup);
-        return (REAL)0.0;
-    }
-
-    int  it    = 0;
-    REAL width = B - A;
-
-    // opcional: guarda melhor ponto já visto (robustez)
-    REAL best_phi   = std::numeric_limits<REAL>::infinity();
-    REAL best_alpha = (REAL)0.0;
-    TPZFMatrix<STATE> bestW = Wn;
-
-    while (it < niter && width > tol) {
-        const REAL mid = (REAL)0.5*(A + B);
-        REAL delta = delta_for(width);
-
-        // garante que x1 < x2 e ambos dentro de [A,B]
-        REAL x1 = std::max<REAL>(A, mid - delta);
-        REAL x2 = std::min<REAL>(B, mid + delta);
-        if (x1 >= x2) { // se encostou, relaxa delta
-            delta *= (REAL)0.5;
-            x1 = std::max<REAL>(A, mid - delta);
-            x2 = std::min<REAL>(B, mid + delta);
-            if (x1 >= x2) break; // não há espaço útil
-        }
-
-        // avalia φ nos dois pontos
-        TPZFMatrix<STATE> trial1 = Wn, trial2 = Wn;
-        TPZFMatrix<STATE> d1 = DeltaW, d2 = DeltaW;
-        d1 *= x1; trial1 += d1;
-        d2 *= x2; trial2 += d2;
-
-        const REAL f1 = eval_phi(trial1);
-        const REAL f2 = eval_phi(trial2);
-
-        if (f1 < best_phi) { best_phi = f1; best_alpha = x1; bestW = trial1; }
-        if (f2 < best_phi) { best_phi = f2; best_alpha = x2; bestW = trial2; }
-
-        // passo dicotômico: mantém a metade com menor valor
-        if (f1 > f2) {
-            // mínimo está em (x1, B]
-            A = x1;
-        } else {
-            // mínimo está em [A, x2)
-            B = x2;
-        }
-
-        width = B - A;
-        it++;
-    }
-
-    // α escolhido: meio do intervalo final; se quiser, pode usar best_alpha
-    const REAL alpha = (REAL)0.5*(A + B);
-
-    // monta NextW = Wn + α ΔW
-    NextW = Wn;
-    DeltaW *= alpha;  // DeltaW é por valor → seguro
-    NextW += DeltaW;
-
-    // restaura estado interno do Analysis
-    this->LoadSolution(backup);
-
-    return alpha;
-}*/
-
-// Armijo com interpolação quadrática protegida (rápido/robusto)
 REAL TPZElastoPlasticAnalysis::QuadraticArmijoLineSearch(const TPZFMatrix<STATE>& Wn,
-                                          TPZFMatrix<STATE> DeltaW,
-                                          TPZFMatrix<STATE>& NextW,
-                                          REAL tol, int niter)
+                                                         TPZFMatrix<STATE> DeltaW,
+                                                         TPZFMatrix<STATE>& NextW,
+                                                         REAL tol, int niter)
 {
-    const REAL c1   = (REAL)1e-4;               // decréscimo suficiente
-    const REAL amin = std::max<REAL>(tol, (REAL)1e-8);
-    const REAL shrink_lo = (REAL)0.1, shrink_hi = (REAL)0.5; // guarda-corpos
+    const REAL c1        = (REAL)1e-4;                // Armijo parameter
+    const REAL amin      = std::max<REAL>(tol, (REAL)1e-8);
+    const REAL shrink_lo = (REAL)0.1, shrink_hi = (REAL)0.5; // proteção da interpolação
 
-    // utilitário: φ(W) = 1/2 ||R||^2
+    // utilitário: φ(W) = 0.5 ||R||^2 (avalia em cópia para LoadSolution)
     auto eval_phi = [&](const TPZFMatrix<STATE>& Wc)->REAL {
         TPZFMatrix<STATE> W = Wc;               // NÃO-const p/ LoadSolution
         this->LoadSolution(W);
         this->AssembleResidual();               // só o resíduo
         const REAL rn = Norm(this->fRhs);
+        if (!std::isfinite(rn)) return std::numeric_limits<REAL>::infinity();
         return (REAL)0.5 * rn * rn;
     };
 
-    // backup do estado interno
+    // Guard RAII para restaurar fSolution ao sair, a menos que Commit seja chamado.
     TPZFMatrix<STATE> backup = this->fSolution;
+    struct RestoreGuard {
+        TPZElastoPlasticAnalysis* an;
+        TPZFMatrix<STATE> backup;
+        bool committed;
+        RestoreGuard(TPZElastoPlasticAnalysis* a, const TPZFMatrix<STATE>& b)
+        : an(a), backup(b), committed(false) {}
+        ~RestoreGuard() {
+            if (!committed && an) {
+                an->LoadSolution(backup);
+            }
+        }
+        void Commit() { committed = true; }
+    } guard(this, backup);
 
-    // φ(0) e φ'(0)
+    // φ(0) e φ'(0) aproximado
     TPZFMatrix<STATE> W0 = Wn;                  // cópia não-const
     this->LoadSolution(W0);
     this->AssembleResidual();
-    const REAL r0  = Norm(this->fRhs);
-    REAL phi0      = (REAL)0.5 * r0 * r0;
-    REAL phip0     = -(REAL)(r0 * r0);          // para passo de Newton, φ'(0)= -||R||^2
+    const REAL r0 = Norm(this->fRhs);
+    REAL phi0 = (REAL)0.5 * r0 * r0;
+    // aproximação inicial para φ'(0). No contexto do resíduo, usa-se -||R||^2 como heurística.
+    REAL phip0 = -(REAL)(r0 * r0);
 
-    // fallback se, por algum motivo, φ'(0)≥0
+    // fallback para phip0 se não for descida
     if (phip0 >= (REAL)0) {
         const REAL eps = (REAL)1e-6;
-        TPZFMatrix<STATE> Wp = Wn, d = DeltaW; d *= eps; Wp += d;
+        TPZFMatrix<STATE> Wp = Wn;
+        TPZFMatrix<STATE> dd = DeltaW;
+        dd *= eps;
+        Wp += dd;
         const REAL phip = eval_phi(Wp);
-        phip0 = (phip - phi0) / eps;
-        if (phip0 >= (REAL)0) phip0 = -(REAL)std::max((REAL)1e-16, phi0); // força descida
+        if (std::isfinite(phip)) {
+            phip0 = (phip - phi0) / eps;
+        } else {
+            phip0 = -(REAL)std::max((REAL)1e-16, phi0);
+        }
+        if (phip0 >= (REAL)0) phip0 = -(REAL)std::max((REAL)1e-16, phi0);
     }
 
-    // se ΔW vazio, não anda
-    if (DeltaW.Rows()==0 || DeltaW.Cols()==0) { NextW=Wn; this->LoadSolution(backup); return (REAL)0.0; }
+    // se ΔW vazio: não anda (restauração automática pelo guard). retorna amin para evitar 0.
+    if (DeltaW.Rows()==0 || DeltaW.Cols()==0) {
+        NextW = Wn;
+        return amin;
+    }
 
     REAL alpha = (REAL)1.0;
-    REAL best_phi = phi0, best_alpha = (REAL)0.0;
+    REAL best_phi = phi0, best_alpha = amin;
     TPZFMatrix<STATE> bestW = Wn;
 
     for (int k = 0; k < niter && alpha >= amin; ++k) {
-        TPZFMatrix<STATE> trial = Wn, d = DeltaW; d *= alpha; trial += d;
+        TPZFMatrix<STATE> trial = Wn;
+        TPZFMatrix<STATE> d = DeltaW;
+        d *= alpha;
+        trial += d;
 
         const REAL phi_a = eval_phi(trial);
+        if (!std::isfinite(phi_a)) {
+            // avaliação inválida: reduzir e continuar (proteção)
+            alpha *= shrink_hi;
+            continue;
+        }
+
         if (phi_a < best_phi) { best_phi = phi_a; best_alpha = alpha; bestW = trial; }
 
-        // Armijo: φ(α) ≤ φ(0) + c1 α φ'(0)
+        // Armijo: φ(α) ≤ φ(0) + c1 * α * φ'(0)
         if (phi_a <= (REAL)(phi0 + c1 * alpha * phip0)) {
+            // aceita: aplica trial e comita (não restaurar)
+            this->LoadSolution(trial);
+            guard.Commit();
             NextW = trial;
-            this->LoadSolution(backup);
-            return alpha;
+            return std::max<REAL>(alpha, amin);
         }
 
         // --- interpolação quadrática protegida ---
-        // modelo: φ(α) ≈ φ0 + φ'0 α + c α^2  =>  c = (φ(α) - φ0 - φ'0 α)/α^2
-        REAL denom = (phi_a - phi0 - phip0*alpha);
+        // modelo: φ(α) ≈ φ0 + φ'0 α + c α^2 => c = (φ(α) - φ0 - φ'0 α)/α^2
+        REAL denom = (phi_a - phi0 - phip0 * alpha);
         REAL a_quad;
         if (denom <= (REAL)0) {
-            a_quad = alpha * shrink_hi; // guarda-corpo: cai para meia-passada
+            // denom não positivo => não confiamos na interpolação, reduzimos "safely"
+            a_quad = alpha * shrink_hi;
         } else {
-            a_quad = -(phip0) * alpha * alpha / ( (REAL)2.0 * denom );
-            // protege dentro de [0.1α, 0.5α]
-            a_quad = std::max(shrink_lo*alpha, std::min(shrink_hi*alpha, a_quad));
+            a_quad = -(phip0) * alpha * alpha / ((REAL)2.0 * denom);
+            // proteger dentro de [shrink_lo*alpha, shrink_hi*alpha]
+            a_quad = std::max(shrink_lo * alpha, std::min(shrink_hi * alpha, a_quad));
         }
-        alpha = a_quad;
+        // garantir que alpha diminua pra evitar loop infinito (proteção extra)
+        if (a_quad >= alpha) {
+            alpha *= shrink_hi;
+        } else {
+            alpha = a_quad;
+        }
     }
 
-    // fallback: aceita o melhor que reduziu φ, senão não anda
-    if (best_phi < phi0) { NextW = bestW; this->LoadSolution(backup); return best_alpha; }
-    NextW = Wn; this->LoadSolution(backup); return (REAL)0.0;
+    // fallback: se alguma amostra melhorou, aplique o melhor; senão aplique um tiny step amin
+    if (best_phi < phi0) {
+        this->LoadSolution(bestW);
+        guard.Commit();
+        NextW = bestW;
+        return std::max<REAL>(best_alpha, amin);
+    } else {
+        // aplica tiny step para evitar Δu==0 no passo seguinte
+        TPZFMatrix<STATE> tiny = Wn;
+        TPZFMatrix<STATE> dd = DeltaW;
+        dd *= amin;
+        tiny += dd;
+        this->LoadSolution(tiny);
+        guard.Commit();
+        NextW = tiny;
+        return amin;
+    }
 }
+// Armijo (backtracking) line search — evita retornar alpha == 0 e garante que,
+// se um trial for aceito, a solução é aplicada (committed) na análise.
+// Avaliações são feitas no próprio `this` com backup/restore; AO ACEITAR,
+// o guard é marcado como committed para não restaurar o estado antigo.
+//
+// Observações:
+// - Se a sua versão do NeoPZ suporta clonagem profunda (TPZCompMesh::Clone() etc.),
+//   é preferível avaliar em uma análise clonada e no fim aplicar LoadSolution(NextW)
+//   em `this`. Aqui fazemos a versão que compila com LoadSolution(TPZFMatrix<STATE>&).
 
-// Armijo (backtracking) line search
-// tol  -> alpha mínimo permitido (ex.: 1e-6)
-// niter-> máximo de backtracks
-// Armijo (backtracking) – versão que COMPILA com LoadSolution(TPZFMatrix<STATE>&)
 REAL TPZElastoPlasticAnalysis::ArmijoLineSearch(const TPZFMatrix<STATE>& Wn,
-                                          TPZFMatrix<STATE> DeltaW,
-                                          TPZFMatrix<STATE>& NextW,
-                                          REAL tol, int niter)
+                                                TPZFMatrix<STATE> DeltaW,
+                                                TPZFMatrix<STATE>& NextW,
+                                                REAL tol, int niter)
 {
-    // parâmetros do Armijo
-    const REAL c    = (REAL)1e-4;  // decréscimo suficiente
-    const REAL rho  = (REAL)0.5;   // redução do passo
-    const REAL amin = std::max<REAL>(tol, (REAL)1e-8);
+    const REAL c    = (REAL)1e-4;                   // parâmetro Armijo
+    const REAL rho  = (REAL)0.5;                    // redução do passo
+    const REAL amin = std::max<REAL>(tol, (REAL)1e-8); // alpha mínimo aceitável
 
-    // ---- utilitário: avalia ||R|| em um W qualquer ----
-    auto eval_phi = [&](const TPZFMatrix<STATE>& W)->REAL {
+    // Guard RAII para restaurar fSolution ao sair, a menos que commit() seja chamado.
+    TPZFMatrix<STATE> backup = this->fSolution;
+    struct RestoreGuard {
+        TPZElastoPlasticAnalysis* an;
+        TPZFMatrix<STATE> backup;
+        bool committed;
+        RestoreGuard(TPZElastoPlasticAnalysis* a, const TPZFMatrix<STATE>& b)
+        : an(a), backup(b), committed(false) {}
+        ~RestoreGuard() {
+            if (!committed && an) {
+                an->LoadSolution(backup);
+            }
+        }
+        void Commit() { committed = true; }
+    } guard(this, backup);
+
+    // objetivo: f = 0.5 * ||R||^2 (mais coerente com Armijo)
+    auto eval_f = [&](const TPZFMatrix<STATE>& W)->REAL {
         TPZFMatrix<STATE> tmp = W;        // cópia NÃO-CONST para LoadSolution
         this->LoadSolution(tmp);
         this->AssembleResidual();         // monta apenas o resíduo
-        return Norm(this->fRhs);          // ||R||_2
+        REAL nR = Norm(this->fRhs);
+        if (!std::isfinite(nR)) return std::numeric_limits<REAL>::infinity();
+        return (REAL)0.5 * nR * nR;
     };
 
-    // backup do estado para restaurar no retorno
-    TPZFMatrix<STATE> backup = this->fSolution;
+    // valida DeltaW
+    if (DeltaW.Rows() == 0 || DeltaW.Cols() == 0) {
+        NextW = Wn;
+        // não commit: restauração automática no guard
+        return amin;
+    }
 
-    // φ(0) em Wn
-    TPZFMatrix<STATE> W0 = Wn;            // cópia NÃO-CONST
-    const REAL phi0 = eval_phi(W0);
+    // valor inicial f(0)
+    const REAL phi0 = eval_f(Wn);
 
-    // passo inicial
+    // inicial
     REAL alpha = (REAL)1.0;
 
     // melhor já visto (fallback)
-    REAL best_phi   = phi0;
-    REAL best_alpha = (REAL)0.0;
+    REAL best_phi = phi0;
+    REAL best_alpha = amin; // inicializamos com amin para evitar 0
     TPZFMatrix<STATE> bestW = Wn;
 
-    // se ΔW vazio, não anda
-    if (DeltaW.Rows()==0 || DeltaW.Cols()==0) {
-        NextW = Wn;
-        this->LoadSolution(backup);
-        return (REAL)0.0;
-    }
-
-    // backtracking
     for (int k = 0; k < niter && alpha >= amin; ++k) {
-        TPZFMatrix<STATE> trial = Wn;     // cópia NÃO-CONST
-        TPZFMatrix<STATE> d     = DeltaW; // por valor → seguro
+        TPZFMatrix<STATE> trial = Wn;
+        TPZFMatrix<STATE> d = DeltaW;
         d *= alpha;
         trial += d;
 
-        const REAL phi_a = eval_phi(trial);
+        const REAL phi_a = eval_f(trial);
+        if (!std::isfinite(phi_a)) {
+            // avaliação inválida: reduzir e continuar
+            alpha *= rho;
+            continue;
+        }
+
         if (phi_a < best_phi) { best_phi = phi_a; best_alpha = alpha; bestW = trial; }
 
-        // critério de Armijo: phi(a) <= (1 - c a) phi(0)
-        if (phi_a <= (REAL)((1.0 - c*alpha) * phi0)) {
+        // critério Armijo adaptado (usando f): f(alpha) <= (1 - c*alpha) * f0
+        if (phi_a <= (REAL)((1.0 - c * alpha) * phi0)) {
+            // aceita: aplica trial na análise real e comita (não restaurar)
+            this->LoadSolution(trial);   // aplicar a solução aceita
+            guard.Commit();              // impede restauração no destrutor
             NextW = trial;
-            this->LoadSolution(backup);   // restaura estado interno
-            return alpha;
+            return std::max<REAL>(alpha, amin);
         }
+
         alpha *= rho;
     }
 
-    // fallback: aceita o melhor que reduziu ||R||, senão não anda
+    // fallback: se alguma amostra melhorou, aplique-a; caso contrário aplique um passo mínimo
     if (best_phi < phi0) {
+        this->LoadSolution(bestW);
+        guard.Commit();
         NextW = bestW;
-        this->LoadSolution(backup);
-        return best_alpha;
+        return std::max<REAL>(best_alpha, amin);
     } else {
-        NextW = Wn;
-        this->LoadSolution(backup);
-        return (REAL)0.0;
+        // não houve melhoria: aplique um pequeno passo amin (evita Δu == 0)
+        TPZFMatrix<STATE> tiny = Wn;
+        TPZFMatrix<STATE> dd = DeltaW;
+        dd *= amin;
+        tiny += dd;
+        this->LoadSolution(tiny);
+        guard.Commit();
+        NextW = tiny;
+        return amin;
     }
 }
 
+// Golden-section line search — versão corrigida e robusta.
+// - Avaliações de φ feitas em uma análise temporária clonada (tmpAnalysis) para NÃO alterar `this`.
+// - Objetivo usado: f = 0.5 * ||R||^2 (coerente com armijo/quadratic methods).
+// - Nunca retorna alpha == 0: impõe amin = max(tol, 1e-8) e aplica tiny step se necessário.
+// - Aplica (commit) NextW na análise real (this->LoadSolution) ao final.
+// - Trata avaliações inválidas (NaN/Inf) e escolhe o melhor ponto amostrado como fallback.
+//
+// Observações:
+// - Presumo existência de TPZCompMesh::Clone() e um construtor TPZElastoPlasticAnalysis(TPZCompMesh*).
+//   Se a sua API for diferente, adapte as chamadas de clonagem/construct conforme necessário.
+// - Aqui assumo que tmpAnalysis assume a propriedade da mesh copiada; não faço delete(meshCopy).
+//   Se sua API exigir explicitamente liberar meshCopy, ajuste o código.
 
 REAL TPZElastoPlasticAnalysis::GoldenSectionLineSearch(const TPZFMatrix<STATE>& Wn,
-                                          TPZFMatrix<STATE> DeltaW,
-                                          TPZFMatrix<STATE>& NextW,
-                                          REAL tol, int niter)
+                                                       TPZFMatrix<STATE> DeltaW,
+                                                       TPZFMatrix<STATE>& NextW,
+                                                       REAL tol, int niter)
 {
-    // ------- CONFIG DE VERBOSE -------
-    constexpr bool kVerbose = false; // mude para false para silenciar
-    auto V = [&](auto&&... xs){ if(kVerbose){ (std::cout << ... << xs); } };
+    // parámetros
+    const REAL amin = std::max<REAL>(tol, (REAL)1e-8); // alpha mínimo aceitável
+    constexpr bool kVerbose = false;
 
-    // ---- Intervalo escalar α em [0,1] ----
+    // valida DeltaW
+    if (DeltaW.Rows() == 0 || DeltaW.Cols() == 0) {
+        // aplica tiny step e comita para evitar alpha==0 downstream
+        NextW = Wn;
+        TPZFMatrix<STATE> tiny = DeltaW;
+        tiny *= amin;
+        NextW += tiny;
+        this->LoadSolution(NextW);
+        return amin;
+    }
+
+    // --- preparar análise temporária CLONANDO a malha e materiais ---
+    TPZCompMesh *origMesh = this->Mesh();
+    if (!origMesh) {
+        throw std::runtime_error("GoldenSectionLineSearch: mesh nula no objeto this.");
+    }
+
+    TPZCompMesh *meshCopy = nullptr;
+    try {
+        meshCopy = origMesh->Clone();
+    } catch (...) {
+        meshCopy = nullptr;
+    }
+
+    if (!meshCopy) {
+        throw std::runtime_error("GoldenSectionLineSearch: clonagem profunda da malha nao disponivel. "
+        "Implemente clonagem de estados internos ou use snapshot.");
+    }
+
+    // Constrói uma análise temporária com a mesh copiada.
+    TPZElastoPlasticAnalysis tmpAnalysis(meshCopy,std::cout);
+    // opcional: copiar configurações do solver/structural matrix se necessário
+    // tmpAnalysis.SetStructuralMatrix(this->StructuralMatrix()); // adaptar conforme API
+    // tmpAnalysis.SetSolver(this->Solver()); // adaptar conforme API
+
+    // utilitário: avalia φ = 0.5 * ||R||^2 em tmpAnalysis (não altera `this`)
+    auto EvalPhiTmp = [&](REAL alpha)->REAL {
+        TPZFMatrix<STATE> trial = Wn;
+        TPZFMatrix<STATE> d = DeltaW;
+        d *= alpha;
+        trial += d;
+        tmpAnalysis.LoadSolution(trial);
+        tmpAnalysis.AssembleResidual();
+        REAL nr = Norm(tmpAnalysis.fRhs);
+        if (!std::isfinite(nr)) return std::numeric_limits<REAL>::infinity();
+        return (REAL)0.5 * nr * nr;
+    };
+
+    // Golden-section constants
+    constexpr REAL gr = (REAL)0.6180339887498949;  // phi
+    constexpr REAL gr2 = (REAL)1.0 - gr;           // 0.381966...
+
+    // extremos
     REAL A = (REAL)0.0;
     REAL B = (REAL)1.0;
 
-    // método áureo
-    constexpr REAL phi  = (REAL)0.6180339887498949;  // (sqrt(5)-1)/2
-    constexpr REAL phi2 = (REAL)1.0 - phi;           // ~0.381966...
+    REAL f0 = EvalPhiTmp((REAL)0.0);
+    REAL f1 = EvalPhiTmp((REAL)1.0);
 
-    int res_evals = 0;
+    // interior points
+    REAL L = A + gr2 * (B - A);
+    REAL M = A + gr  * (B - A);
 
-    // utilitário: avalia ||R(Wn + α ΔW)|| sem “sujar” estado final
-    auto EvalResidualNorm = [&](REAL alpha) -> REAL {
-        TPZFMatrix<STATE> trial = Wn;
-        TPZFMatrix<STATE> d     = DeltaW;  // cópia local
-        d *= alpha;
-        trial += d;
+    REAL fL = EvalPhiTmp(L);
+    REAL fM = EvalPhiTmp(M);
 
-        // salva solução corrente para restaurar depois
-        TPZFMatrix<STATE> backup = fSolution;
+    int it = 0;
+    REAL width = B - A;
+    int res_evals = 4;
 
-        // IMPORTANTE: assumimos que AssembleResidual NÃO atualiza memória
-        this->LoadSolution(trial);
-        this->AssembleResidual();
-        REAL val = Norm(fRhs);
+    // track best sampled
+    REAL best_phi = std::numeric_limits<REAL>::infinity();
+    REAL best_alpha = (REAL)0.5 * (A + B);
+    TPZFMatrix<STATE> bestW = Wn;
 
-        // restaura solução original
-        this->LoadSolution(backup);
-        res_evals++;
-        return val;
+    auto consider_sample = [&](REAL alpha, REAL phi){
+        if (std::isfinite(phi) && phi < best_phi) {
+            best_phi = phi;
+            best_alpha = alpha;
+            // build bestW lazily
+            bestW = Wn;
+            TPZFMatrix<STATE> dd = DeltaW;
+            dd *= alpha;
+            bestW += dd;
+        }
     };
 
-    // (opcional) medir extremos para debug
-    REAL f0 = EvalResidualNorm((REAL)0.0);
-    REAL f1 = EvalResidualNorm((REAL)1.0);
+    consider_sample((REAL)0.0, f0);
+    consider_sample((REAL)1.0, f1);
+    consider_sample(L, fL);
+    consider_sample(M, fM);
 
-    // prepara pontos internos
-    REAL L = A + phi2*(B - A);
-    REAL M = A + phi *(B - A);
-
-    REAL fL = EvalResidualNorm(L);
-    REAL fM = EvalResidualNorm(M);
-
-    int  it    = 0;
-    REAL width = B - A;
-
-    if(kVerbose){
-        std::cout << "\n[LineSearch] -- início --\n";
-        std::cout << "  tol(alpha)=" << tol << "  niter_max=" << niter << "\n";
-        std::cout << "  f(0)=" << f0 << "  f(1)=" << f1 << "\n";
-        std::cout << "  A="<<A<<"  B="<<B
-        << "  L="<<L<<" (fL="<<fL<<")"
-        << "  M="<<M<<" (fM="<<fM<<")\n";
+    if (kVerbose) {
+        std::cout << "[Golden] start f0="<<f0<<" f1="<<f1<<" L="<<L<<" fL="<<fL<<" M="<<M<<" fM="<<fM<<"\n";
     }
 
-    // loop do áureo
+    // loop golden
     while (it < niter && width > tol) {
-        // decide qual metade descartar
         if (fL > fM) {
-            // descarta [A, L]
-            A  = L;
-            L  = M;
+            // minimum in (L, B]
+            A = L;
+            L = M;
             fL = fM;
-            M  = A + phi*(B - A);
-            fM = EvalResidualNorm(M);
+            M = A + gr * (B - A);
+            fM = EvalPhiTmp(M);
+            ++res_evals;
+            consider_sample(M, fM);
         } else {
-            // descarta [M, B]
-            B  = M;
-            M  = L;
+            // minimum in [A, M)
+            B = M;
+            M = L;
             fM = fL;
-            L  = A + phi2*(B - A);
-            fL = EvalResidualNorm(L);
+            L = A + gr2 * (B - A);
+            fL = EvalPhiTmp(L);
+            ++res_evals;
+            consider_sample(L, fL);
         }
-
         width = B - A;
-        if(kVerbose){
-            std::cout << "  [it " << it
-            << "] A="<<A<<"  B="<<B
-            << "  L="<<L<<" fL="<<fL
-            << "  M="<<M<<" fM="<<fM
-            << "  width="<<width << "\n";
+        ++it;
+        if (kVerbose) {
+            std::cout << " [it " << it << "] A="<<A<<" B="<<B<<" L="<<L<<" fL="<<fL<<" M="<<M<<" fM="<<fM<<" width="<<width<<"\n";
         }
-        it++;
+        // protection: if both fL and fM are infinite/NaN, abort
+        if (!std::isfinite(fL) && !std::isfinite(fM)) break;
     }
 
-    // motivo de parada (debug)
-    if(kVerbose){
-        if(width <= tol) std::cout << "  -> stop: width<=tol ("<<width<<" <= "<<tol<<")\n";
-        else if(it >= niter) std::cout << "  -> stop: iters max ("<<it<<")\n";
-    }
+    // choose alpha: prefer best sampled; otherwise midpoint
+    REAL alpha = (best_phi < std::numeric_limits<REAL>::infinity()) ? best_alpha : (REAL)0.5*(A + B);
+    if (alpha < amin) alpha = amin;
 
-    // α ótimo aproximado = ponto médio do intervalo final
-    REAL ALPHA = (REAL)0.5*(A + B);
-
-    // constrói NextW = Wn + α ΔW
+    // build NextW and commit to real analysis
     NextW = Wn;
-    DeltaW *= ALPHA;
-    NextW += DeltaW;
+    TPZFMatrix<STATE> dsc = DeltaW;
+    dsc *= alpha;
+    NextW += dsc;
 
-    if(kVerbose){
-        std::cout << "  ALPHA=" << ALPHA
-        << "  iters=" << it
-        << "  residual_evals=" << res_evals
-        << "\n[LineSearch] -- fim --\n";
+    // Apply the chosen solution to the real analysis so the next solver sees it
+    this->LoadSolution(NextW);
+
+    if (kVerbose) {
+        std::cout << "[Golden] finish alpha=" << alpha
+        << " iters=" << it
+        << " evals=" << res_evals
+        << " best_phi=" << best_phi << "\n";
     }
 
-    return ALPHA;
+    return alpha;
 }
-
 void TPZElastoPlasticAnalysis::SetUpdateMem(int update)
 {
 	if(!fCompMesh)return;

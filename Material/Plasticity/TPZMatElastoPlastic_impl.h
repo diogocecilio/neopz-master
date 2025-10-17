@@ -2539,7 +2539,7 @@ void TPZMatElastoPlastic<T,TMEM>::ApplyDeltaStrainComputeDep(const TPZMaterialDa
         int solsize = data.sol[0].size();
         for(int i=0; i<solsize; i++)
         {
-            this->MemItem(intPt).m_u[i] += data.sol[0][i];
+            this->MemItem(intPt).m_u[i] = data.sol[0][i];
         }
     }
 
@@ -2590,7 +2590,7 @@ void TPZMatElastoPlastic<T,TMEM>::ApplyDeltaStrain(const TPZMaterialDataT<STATE>
         int solsize = data.sol[0].size();
         for(int i=0; i<solsize; i++)
         {
-            this->MemItem(intPt).m_u[i] += data.sol[0][i];
+            this->MemItem(intPt).m_u[i] = data.sol[0][i];
         }
     }
 }

@@ -74,7 +74,7 @@ public:
 	 */
 	bool FindRoot(int & iters,REAL &resu,REAL &resf);
 
-
+	bool NewtonRaphson();
 
 	/**
 	 * @brief Processo iterativo não-linear (tipo Newton) com *line search* opcional.

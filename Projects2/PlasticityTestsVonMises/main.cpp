@@ -101,6 +101,15 @@ void CreatePostProcessingMesh(TPZCompMesh* cmesh,TPZPostProcAnalysis* pproc,int 
 
 REAL IterativeProcessArcLength(TPZElastoPlasticAnalysis &an,TPZCompMesh* cmesh,int loaddir,int indexbc,std::string vtkfile);
 
+REAL IterativeProcessArcLength(TPZElastoPlasticAnalysis &an,
+                               int loaddir,
+                               int indexbc,
+                               int nsteps,
+                               int nloadcicles,
+                               STATE bccondval,
+                               STATE lambda0,
+                               STATE L0,
+                               std::string vtkfile);
 struct MechParamsVonMises{
     // --- parâmetros mecânicos (SI) ---
     STATE young   = 210;//GPa
@@ -361,13 +370,11 @@ static TPZCompMesh* CompMeshCyl(TPZGeoMesh* gmesh)
 
 
      TPZElasticResponse ER;
-     ER.SetEngineeringData(param.young, param.nu);
+     ER.SetEngineeringData(210,0.3);
+
      TPZYCVonMisesVoigt vmyc;
-
-     vmyc.SetUp(param.sigmay,param.H0);
-
-     const STATE sigmaY0 = param.sigmay;
-     const STATE Hiso    = param.H0;
+     const STATE sigmaY0 = 0.24;
+     const STATE Hiso    = 0.;
      vmyc.SetUp(sigmaY0,Hiso);
 
 
@@ -493,7 +500,7 @@ void SolveCyl()
     an.SetSolver(direct);
     int itersout;
 
-    int nloads = 20;
+    int nloads = 10;
     const REAL FS_target = 1. ;          // mantém seu “+0.1”
     TPZManVector<REAL> factors(nloads+1);   // 0 .. nloads (inclusivo)
     for (int i =0; i <= nloads; ++i) {
@@ -551,22 +558,22 @@ void ApplyLoad(TPZCompMesh* cmesh,TPZManVector<REAL> factors,int loaddir,int ind
 
 
     int matid=1;
-    std::string vtkfile="cube2.vtk";
+    std::string vtkfile="cyl.vtk";
     for(int i =0;i< nloads;i++)
     {
 
-       // bcmat->Val2()[loaddir]=load0*factors[i];
-        bcmat->Val2()[loaddir]=factors[i];
+        bcmat->Val2()[loaddir]=load0*factors[i];
+       // bcmat->Val2()[loaddir]=factors[i];
         cout << "Load step =" << i<<" factor =  "<<factors[i] <<endl;
         int iters_out;
 
         REAL resf,resuu;
         //bool ok = anal.FindRoot( iters_out,resf,resuu);
-        bool ok = anal.IterativeProcess(std::cout, 1.e-3,30, true, false, iters_out);
+       bool ok = anal.IterativeProcess(std::cout, 1.e-6,100, true, false, iters_out);
 
         TPZFMatrix<REAL> tempsol=anal.Solution();
         bcmat->Val2()[loaddir]=0;
-        anal.AcceptSolution();
+        anal.AcceptSolution(0);
 
         // cmesh->LoadSolution(anal.CumulativeSolution());
         PostElastoplastic(cmesh,vtkfile,matid,i,dim);
@@ -584,7 +591,7 @@ void SolveCube()
 
 
 
-    TPZElastoPlasticAnalysis an(cmesh, std::cout,TPZElastoPlasticAnalysis::ELineSearch::Dicotomic);
+    TPZElastoPlasticAnalysis an(cmesh, std::cout,TPZElastoPlasticAnalysis::ELineSearch::Armijo);
 
     TPZFStructMatrix<STATE> str(cmesh);
     an.SetStructuralMatrix(str);
@@ -596,9 +603,17 @@ void SolveCube()
 
     BoundaryIndexes cubeindexes;
     int loaddir=2;
-    std::string vtkfile="cubeal.vtk";
+    int nsteps=100;
+    int nloadcicles=3;
+    STATE bccondval=200.;
+    STATE lambda0=0.0001;
+    STATE L0=0.0003;
+    std::string vtkfile="cubeal2.vtk";
 
-    IterativeProcessArcLength(an,cmesh, loaddir, cubeindexes.bctop,vtkfile);
+    //IterativeProcessArcLength(an,cmesh, loaddir, cubeindexes.bctop,vtkfile);
+
+    IterativeProcessArcLength(an,loaddir,cubeindexes.bctop,nsteps,nloadcicles,bccondval,lambda0,L0,vtkfile);
+
     //IterativeProcessArcLength(an ,cmesh, loaddir, cubeindexes.bctop,vtkfile);
     //TPZManVector<REAL> factors={200,150,100,50,0};
     //ApplyLoad( cmesh,factors,loaddir,cubeindexes.bctop);
@@ -608,7 +623,7 @@ int main()
     //const std::string configfile = "/home/diogo/projects/neopz-master-build-debug/Util/log4cxx.cfg";
     //TPZLogger::InitializePZLOG(configfile);
 
-   // SolveCyl();
+    //SolveCyl();
 
     SolveCube();
 
@@ -616,8 +631,8 @@ int main()
 }
 void PostProcessVariables(TPZStack<std::string>& scal, TPZStack<std::string>& vec)
 {
-   //scal.Push ( "StrainPlasticJ2" );
-    //vec.Push ( "Displacement" );
+   scal.Push ( "StrainPlasticJ2" );
+    vec.Push ( "Displacement" );
     //scal.Push ( "StressXX" );
     //scal.Push ( "StressYY" );
     //scal.Push ( "StrainElasticJ2" );
@@ -922,7 +937,7 @@ REAL IterativeProcessArcLength(TPZElastoPlasticAnalysis &an,TPZCompMesh* cmesh,i
             bool ok = an.IterativeProcess(std::cout, 1.e-3, 30, true, false, iters_out);
             bcmat->Val2()[loaddir] = 0.0;
             an.AcceptSolution();
-            PostElastoplastic(cmesh, vtkfile, 1, i + step + iloadcicle * 100, dim);
+            PostElastoplastic(cmesh, vtkfile, 1, i + step + iloadcicle * nsteps, dim);
         }
     }
 
@@ -930,6 +945,206 @@ REAL IterativeProcessArcLength(TPZElastoPlasticAnalysis &an,TPZCompMesh* cmesh,i
     return 0.0;
 }
 
+// Correções e documentação do método de Comprimento de Arco (Riks)
+// Autor da correção: copilot (@copilot)
+// Observação: este ficheiro contém apenas a função corrigida e documentada.
+// Tip: adapte includes e nomes de tipos conforme o seu projeto (TPZElastoPlasticAnalysis, TPZFMatrix, TPZManVector, etc).
+
+REAL IterativeProcessArcLength(TPZElastoPlasticAnalysis &an,
+                               int loaddir,
+                               int indexbc,
+                               int nsteps,
+                               int nloadcicles,
+                               STATE bccondval,
+                               STATE lambda0,
+                               STATE L0,
+                               std::string vtkfile)
+{
+    // Recupera a malha/condição de contorno
+    auto cmesh = an.Mesh();
+    auto* bcmat = dynamic_cast<TPZBndCondT<STATE>*>(cmesh->FindMaterial(indexbc));
+    if (!bcmat) {
+        std::cout << "[ArcLength] BndCond material não encontrado (indexbc="
+        << indexbc << ")\n";
+        DebugStop();
+    }
+
+    // ===========================================================
+    //           LOOP DE CICLOS DE CARGA
+    // ===========================================================
+    for (int iloadcicle = 0; iloadcicle < nloadcicles; iloadcicle++) {
+
+        std::cout << "\n========== CICLO DE CARGA " << (iloadcicle + 1)
+        << " ==========\n";
+
+        int dim = cmesh->Dimension();
+        REAL lambda = lambda0;   // lambda corrente (pode ser alterado durante os passos)
+        REAL lambdan = lambda;   // lambda aceito (para rollback seguro)
+        REAL L = L0;             // comprimento de arco atual
+
+        // Solução acumulada aceita (u_acc) e incremento acumulado do passo (dw)
+        TPZFMatrix<STATE> u_acc = an.Solution();
+        u_acc.Zero();
+
+        // Monta vetor de cargas externas (FEXT) com a condição de contorno aplicada
+        const STATE load0 = bccondval;
+        bcmat->Val2()[loaddir] = load0;
+        an.Assemble();
+        TPZFMatrix<STATE> FEXT = an.Rhs();
+        // remove o carregamento aplicado da matriz de cond. de contorno,
+        // pois o termo externo será aplicado multiplicado por lambda
+        bcmat->Val2()[loaddir] = 0.0;
+
+        int step = 0;
+
+        // =======================================================
+        //      Loop do método de comprimento de arco (Riks)
+        // =======================================================
+        const int max_cuts = 12;   // limite para reduzir L no mesmo step
+        int cut_count = 0;
+
+        while (step < nsteps) {
+
+            // Estado de trabalho parte do aceito
+            TPZFMatrix<STATE> u  = u_acc;
+            // NOTA: NÃO redeclarar dw aqui (shadowing). Usamos dw como incremento do passo.
+            // bool de convergência e norma do resíduo
+            bool okconv = false;
+            REAL normR  = 1e30;
+            TPZFMatrix<STATE> dw = an.Solution();
+            dw.Zero();
+
+            // ---------- NEWTON DE COMPRIMENTO DE ARCO ----------
+            {
+                const int  maxit_inner = 20;
+                const REAL etol_inner  = 1e-3;
+
+                TPZFMatrix<STATE> rhs, R, dws, dwb;
+
+                int it = 0;
+                // Mantemos um índice de "root" para funções auxiliares de escolha de raiz,
+                // se a implementação de compute_dlambda_riks exigir.
+                int rootIdx = 0;
+
+                while (it < maxit_inner && normR > etol_inner)
+                {
+                    // monta -FINT (observação: usamos bcmat->Val2()[loaddir]=0 para evitar
+                    // re-aplicar o BC na montagem do interno; o externo será lambda*FEXT)
+                    bcmat->Val2()[loaddir] = 0.0;
+                    an.LoadSolution(u);
+                    an.Assemble();
+                    rhs = an.Rhs(); // -FINT
+
+                    // R = lambda * FEXT + (-FINT)
+                    R = FEXT * lambda;
+                    R += rhs;
+
+                    // resolve para dws (incremento devido ao passo de Newton)
+                    an.Rhs() = R;
+                    an.Solve();
+                    dws = an.Solution();
+
+                    // resolve para dwb (direção básica / carregamento)
+                    an.Rhs() = FEXT;
+                    an.Solve();
+                    dwb = an.Solution();
+
+                    // atualiza dl pelo Riks
+                    REAL dl = (it == 0) ? compute_dlambda0_riks(dwb, dw, L)
+                    : compute_dlambda_riks(dwb, dws, dw, L, /*rootIdx*/ *(int[]){0});
+
+                    const REAL dl_max = 0.1;
+                    if (dl >  dl_max) dl =  dl_max;
+                    if (dl < -dl_max) dl = -dl_max;
+
+                    TPZFMatrix<STATE> dwtot = dwb*dl + dws;
+
+                    u      += dwtot;
+                    dw     += dwtot;
+                    lambda += dl;
+
+                    // remonta resíduo para checagem
+                    an.LoadSolution(u);
+                    bcmat->Val2()[loaddir] = 0.0;
+                    an.Assemble();
+                    rhs   = an.Rhs();          // -FINT
+                    R     = FEXT * lambda;     // lambda*FEXT
+                    R    += rhs;               // + (-FINT)
+                    normR = Norm(R);
+
+                    ++it;
+                    // guarda de divergência: se a norma explode, aborta o inner
+                    if (normR > 1e5) {
+                        break;
+                    }
+                } // fim do while (Newton)
+
+                okconv = (normR <= etol_inner);
+            }
+            // ---------- FIM NEWTON ----------
+
+            if (okconv) {
+                // aceita o passo
+                an.AcceptSolution();
+                u_acc   = an.Solution();
+
+                // salva saída VTK (função externa no seu projeto)
+                PostElastoplastic(cmesh, vtkfile, /*matid*/1, /*out_step*/ step + iloadcicle*nsteps, dim);
+
+                // pronto para o próximo step
+                ++step;
+                cut_count = 0;
+
+                // atualiza “lambda aceito” para rollback seguro
+                lambdan = lambda;
+            } else {
+                // rollback e corta L
+                an.LoadSolution(u_acc);
+                lambda = lambdan;   // volta lambda aceito
+                L *= 0.5;
+                ++cut_count;
+
+                if (cut_count > max_cuts || L < 1e-14) {
+                    std::cout << "[ArcLength] Falha em convergir no step " << step
+                    << " após " << cut_count << " cortes de L. Abortando ciclo.\n";
+                    break; // evita loop infinito do ciclo
+                }
+
+                // tenta novamente o MESMO step com L menor
+                continue;
+            }
+
+        } // fim while step < nsteps
+
+        // =======================================================
+        //            DESCARREGAMENTO (unloading)
+        // =======================================================
+        std::cout << "Unloading ciclo " << (iloadcicle + 1) << std::endl;
+        TPZManVector<REAL> factors = {
+            lambda * load0,
+            lambda * load0 * 0.8,
+            lambda * load0 * 0.6,
+            lambda * load0 * 0.4,
+            lambda * load0 * 0.2,
+            0.0
+        };
+
+        // usar int para compatibilidade com TPZManVector::size() (depende da versão)
+        int nFactors = static_cast<int>(factors.size());
+        for (int i = 0; i < nFactors; i++) {
+            bcmat->Val2()[loaddir] = factors[i];
+            std::cout << "Load step = " << i << " factor = " << factors[i] << std::endl;
+            int iters_out = 0;
+            bool ok = an.IterativeProcess(std::cout, 1.e-3, 30, true, false, iters_out);
+            bcmat->Val2()[loaddir] = 0.0;
+            an.AcceptSolution();
+            PostElastoplastic(cmesh, vtkfile, 1, i + step + iloadcicle * nsteps, dim);
+        }
+    } // fim ciclos de carga
+
+    an.AcceptSolution();
+    return 0.0;
+}
 
 // REAL IterativeProcessArcLength(TPZElastoPlasticAnalysis &an, TPZCompMesh* cmesh, int loaddir, int indexbc,std::string vtkfile)
 // {
