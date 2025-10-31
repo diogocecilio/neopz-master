@@ -34,3 +34,5 @@ add_subdirectory(PoroElastoPlastic)
 add_subdirectory(PlasticityTests)
 
 add_subdirectory(PlasticityTestsVonMises)
+
+add_subdirectory(PlasticityTestsMohrCoulomb)

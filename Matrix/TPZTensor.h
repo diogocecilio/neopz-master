@@ -402,6 +402,7 @@ public:
      */
     void Multiply(const TPZTensor<T> tensor, TPZTensor<T> & resp)const;
 
+
     /**
      multiplica um scalar com o tensor atual
      @param [in] constant fator multiplicativo

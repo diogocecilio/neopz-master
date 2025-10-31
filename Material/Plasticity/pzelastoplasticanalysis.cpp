@@ -161,8 +161,8 @@ bool TPZElastoPlasticAnalysis::FindRoot(int &iters,REAL &resu,REAL &resf)
 
 
         // métricas
-        normdu  = Norm(dx)/normu0;
-        normrhs = Norm(Rhs())/normrhs0 ;
+        normdu  = Norm(dx);
+        normrhs = Norm(Rhs());
 
         std::cout << "  [it " << i << "] "
         << "||Δu|| = " << normdu
@@ -198,6 +198,7 @@ bool TPZElastoPlasticAnalysis::FindRoot(int &iters,REAL &resu,REAL &resf)
 }
 
 
+
 bool TPZElastoPlasticAnalysis::NewtonRaphson()
 {
     //METODO DE NEWTON SIMPLES
@@ -212,19 +213,14 @@ bool TPZElastoPlasticAnalysis::NewtonRaphson()
     //std::cout << "AssembleResidual.."   <<endl;
     // resíduo inicial
     int iters;
-    REAL resf,resu;
     AssembleResidual();
-    REAL normrhs0 = Norm(Rhs());
-    if (!std::isfinite(normrhs0)) normrhs0 = 1.0;
-    if (normrhs0 < EPS) { iters = 0; return true; } // já está resolvido
 
-    REAL normu0 = Norm(Solution());
-    if (normu0<=0) normu0 = 1.0;
-    //if (normu0 < EPS) { iters = 0; return true; } // já está resolvido
-
+    STATE r0=0.,r1=0.,r2=0.;
+    TPZFMatrix<STATE> mr0,mr1,mr2;
+    STATE rate0=0.,rate1=0.,rate2=0.;
     REAL normrhs = 1.0;
     REAL normdu  = 0.0;
-    resf=10000.;
+    STATE k=1;
     for (int i = 1; i <= n_it; ++i) {
         // monta tangente e resíduo na solução atual x
         //std::cout << "Assembling.."   <<endl;
@@ -243,20 +239,31 @@ bool TPZElastoPlasticAnalysis::NewtonRaphson()
         AssembleResidual();
 
 
-
         // métricas
-        normdu  = Norm(dx)/normu0;
-        normrhs = Norm(Rhs())/normrhs0 ;
+        normdu  = Norm(dx);
+        normrhs = Norm(Rhs());
 
-        std::cout << "  [it " << i << "] "
+        r0=r1;
+        r1=r2;
+        r2=normrhs;
+
+        mr0=mr1;
+        mr1=mr2;
+        mr2=Rhs();
+
+
+        std::cout << " \n [it " << i << "] "
         << "||Δu|| = " << normdu
         << " | ||R|| = " << normrhs
-        << " | tol = " << tol << std::endl;
+        << " | tol = " << tol;// << std::endl;
+        if (i > 3) {
+                STATE lnR0 = log(r0), lnR1 = log(r1), lnR2 = log(r2);
+                STATE p_est = (lnR2 - lnR1) / (lnR1 - lnR0);
+                std::cout << " | p = " << p_est;
+        }
 
         iters = i;
-        //if(normrhs>resf)break;
-        resu=normdu;
-        resf=normrhs;
+
         // critério de convergência (resíduo relativo)
         if (normrhs < tol &&normdu<tol) {
             std::cout << "normrhs ="<< normrhs<< " normdu ="<< normdu   <<endl;
@@ -270,6 +277,7 @@ bool TPZElastoPlasticAnalysis::NewtonRaphson()
 
 
 }
+
 
 bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol, int numiter,bool linesearch, bool checkconv,int &iters)
 {

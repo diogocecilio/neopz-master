@@ -164,6 +164,59 @@ virtual int ClassId() const override;
 	virtual void Read(TPZStream &buf, void *context) override;
     
 
+
+	void BuildConstitutiveMatrix(STATE E, STATE nu, TPZFMatrix<STATE> &D) const {
+		D.Redim(3,3); D.Zero();
+		const STATE mu = E/(2.0*(1.0+nu));
+		if (fPlaneStrain==false){
+			const STATE c = E/(1.0 - nu*nu);
+			D(0,0)=c; D(0,1)=c*nu; D(1,0)=c*nu; D(1,1)=c; D(2,2)=mu;
+		} else { // PlaneStrain
+			const STATE c = E/((1.0+nu)*(1.0-2.0*nu));
+			D(0,0)=c*(1.0-nu); D(0,1)=c*nu; D(1,0)=c*nu; D(1,1)=c*(1.0-nu);
+			D(2,2)=c*(1.0-2.0*nu)/2.0; // = mu
+		}
+	}
+
+	// void BuildBu(const TPZFMatrix<STATE>& dphiU, TPZFMatrix<STATE>& Bu)
+	// {
+	// 	const int nU = dphiU.Cols();
+	// 	Bu.Redim(3, 2*nU); Bu.Zero();
+	// 	for (int a=0; a<nU; ++a) {
+	// 		const STATE dNdx = dphiU(0,a), dNdy = dphiU(1,a);
+	// 		const int iu = 2*a, iv = 2*a+1;
+	// 		Bu(0,iu) = dNdx;          // exx = dudx
+	// 		Bu(1,iv) = dNdy;          // eyy = dvdy
+	// 		Bu(2,iu) = dNdy;          // gxy = dudy
+	// 		Bu(2,iv) = dNdx;          // gxy = dvdx
+	// 	}
+	// }
+
+
+	void BuildBu(const TPZFMatrix<STATE>& dphiU, TPZFMatrix<STATE>& Bu)
+	{
+		const int nU = dphiU.Cols();
+		Bu.Redim(3, 2*nU);
+		Bu.Zero();
+
+		for (int a = 0; a < nU; ++a) {
+			const STATE dNdx = dphiU(0,a);
+			const STATE dNdy = dphiU(1,a);
+			const int iu = 2*a;       // DOF u
+			const int iv = 2*a + 1;   // DOF v
+
+			// exx
+			Bu(0, iu) = dNdx;
+
+			// eyy
+			Bu(1, iv) = dNdy;
+
+			// exy (tensorial)
+			Bu(2, iu) =   dNdy;
+			Bu(2, iv) =   dNdx;
+
+		}
+	}
 protected:
 	
 	

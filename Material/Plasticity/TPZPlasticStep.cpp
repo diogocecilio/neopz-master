@@ -194,7 +194,9 @@ void TPZPlasticStep<YC_t, TF_t, ER_t>::ComputePlasticVars(const TPZPlasticState<
     // subtract the value of the current plastic deformation
     epsE_T.Add(state_T.EpsP(), T(-1.));
     // compute the stress of the elastic response
-    fER.ComputeStress(epsE_T, sigma_T);
+    //fER.ComputeStress(epsE_T, sigma_T);
+    //Linha acima foi comentada!!
+    DebugStop();
     // compute the value of the thermo dynamical force for the given damage variable
     A_T = fTFA.Compute(state_T.VolHardening());
 }

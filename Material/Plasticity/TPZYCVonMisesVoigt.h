@@ -54,6 +54,9 @@ public:
 
     STATE ProjectSigma(const TPZTensor<STATE> & sigmatr,  TPZTensor<STATE> & sigmaproj, TPZElasticResponse &ER,STATE &havarn,STATE &havarn1, int & m_type);
 
+    STATE ProjectSigmaDep(const TPZTensor<STATE> & sigmatr,  TPZTensor<STATE> & sigmaproj, TPZElasticResponse &ER,STATE &havarn,STATE &havarn1, int & m_type);
+
+    STATE ProjectSigma(TPZManVector<STATE,3> &sigtr,STATE &alphan,TPZManVector<STATE,2> &dlambda,TPZManVector<STATE,3> &sigpr,TPZManVector<STATE,3> &epstr,TPZFNMatrix<9> &Grad3x3,STATE &alphan1,int & m_type);
 
     TPZTensor<STATE> ComputeN(const TPZTensor<STATE> stresstensor)const;
 

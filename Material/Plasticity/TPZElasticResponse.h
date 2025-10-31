@@ -87,79 +87,21 @@ public:
      */
     void Print(std::ostream & out) const;
     
-    /**
-     Computes the stress tensor
-     
-     @param epsilon The strain tensor
-     @param sigma The stress tensor
-     */
-    template<class T>
-    void ComputeStress(const TPZTensor<T> & epsilon, TPZTensor<T> & sigma) const {
 
-        TPZTensor<T> delta_epsilon(epsilon);
-        
-        delta_epsilon.XX() -= m_epsilon_star.XX();
-        delta_epsilon.YY() -= m_epsilon_star.YY();
-        delta_epsilon.ZZ() -= m_epsilon_star.ZZ();
-        delta_epsilon.XY() -= m_epsilon_star.XY();
-        delta_epsilon.XZ() -= m_epsilon_star.XZ();
-        delta_epsilon.YZ() -= m_epsilon_star.YZ();
-        
-        
-        T trace = delta_epsilon.I1();
-        sigma.Identity();
-        sigma.Multiply(trace, m_lambda);
-        sigma.Add(delta_epsilon, 2. * m_mu);
-        
-        sigma.XX() += m_sigma_star.XX();
-        sigma.YY() += m_sigma_star.YY();
-        sigma.ZZ() += m_sigma_star.ZZ();
-        sigma.XY() += m_sigma_star.XY();
-        sigma.XZ() += m_sigma_star.XZ();
-        sigma.YZ() += m_sigma_star.YZ();
 
-    }
-    
-    /**
-     Computes the strain tensor
-     
-     @param sigma The stress tensor
-     @param epsilon The strain tensor
-     */
-    template<class T>
-    void ComputeStrain(const TPZTensor<T> & sigma, TPZTensor<T> & epsilon) const {
-        const T fac = T((1 / 3.)*(1. / (3. * m_lambda + 2. * m_mu) - 1. / (2. * m_mu)));
-        TPZTensor<T> delta_sigma(sigma);
-        delta_sigma -= m_sigma_star;
-        
-        delta_sigma.XX() -= m_sigma_star.XX();
-        delta_sigma.YY() -= m_sigma_star.YY();
-        delta_sigma.ZZ() -= m_sigma_star.ZZ();
-        delta_sigma.XY() -= m_sigma_star.XY();
-        delta_sigma.XZ() -= m_sigma_star.XZ();
-        delta_sigma.YZ() -= m_sigma_star.YZ();
-        
-        REAL trace = delta_sigma.I1();
-        epsilon.Identity();
-        epsilon.Multiply(trace, fac);
-        epsilon.Add(delta_sigma, 1. / (2. * m_mu));
-        
-        epsilon.XX() += m_epsilon_star.XX();
-        epsilon.YY() += m_epsilon_star.YY();
-        epsilon.ZZ() += m_epsilon_star.ZZ();
-        epsilon.XY() += m_epsilon_star.XY();
-        epsilon.XZ() += m_epsilon_star.XZ();
-        epsilon.YZ() += m_epsilon_star.YZ();
-        
-    }
-    
-    
+    void ComputeStress(const TPZTensor<STATE> & epsilon, TPZTensor<STATE> & sigma) const;
+
+
+    void ComputeStrain(const TPZTensor<STATE> & sigma, TPZTensor<STATE> & epsilon) const;
+
     /**
      Incremental constitutive relation in Voigt notation
      
      @param De Return the De operator
      */
-    void De(TPZFMatrix<REAL> & De) const;
+    void De(TPZFMatrix<STATE> & DeMat)const;
+
+    void InverseDe(TPZFMatrix<STATE> & DeMat) const;
 
     /**
      Set elastic parameters using engineering data, i.e. Young modulus and Poisson ratio

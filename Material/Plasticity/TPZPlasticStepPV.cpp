@@ -87,7 +87,12 @@ void TPZPlasticStepPV<YC_t, ER_t>::ApplyStrainComputeSigma(const TPZTensor<REAL>
     
     fN.m_hardening = nextalpha;
     fN.m_m_type = m_type;
-    
+    std::cout << "Sig Trial " << sig_tr << "\nSig Project " << sig_projected << std::endl;
+    std::cout << "gradient " << std::endl;
+    gradient.Print(std::cout);
+    std::cout << "tangent " << std::endl;
+    //tangent->Print(sout);
+    std::cout << "Sig Trial " << sig_tr << "\nSig Project " << sig_projected << std::endl;
 #ifdef PZ_LOG
     {
         std::stringstream sout;

@@ -17,6 +17,8 @@ TPZElasticResponse::TPZElasticResponse() : m_lambda(0.), m_mu(0.) {
 }
 
 TPZElasticResponse::TPZElasticResponse(const TPZElasticResponse & other) {
+    m_E       = other.m_E;
+    m_nu            = other.m_nu;
     m_lambda        = other.m_lambda;
     m_mu            = other.m_mu;
     m_epsilon_star      = other.m_epsilon_star;
@@ -24,6 +26,8 @@ TPZElasticResponse::TPZElasticResponse(const TPZElasticResponse & other) {
 }
 
 TPZElasticResponse & TPZElasticResponse::operator=(const TPZElasticResponse & other) {
+    m_E       = other.m_E;
+    m_nu            = other.m_nu;
     m_lambda        = other.m_lambda;
     m_mu            = other.m_mu;
     m_epsilon_star      = other.m_epsilon_star;
@@ -60,26 +64,79 @@ void TPZElasticResponse::Print(std::ostream & out) const {
     m_sigma_star.Print(out);
 }
 
-void TPZElasticResponse::De(TPZFMatrix<REAL> & De)const {
-    REAL Mu2 = 2 * m_mu;
-    
-    De.Redim(6,6);
-    De.Zero();
-    
-    De(_XX_, _XX_) += m_lambda;
-    De(_XX_, _YY_) += m_lambda;
-    De(_XX_, _ZZ_) += m_lambda;
-    De(_YY_, _XX_) += m_lambda;
-    De(_YY_, _YY_) += m_lambda;
-    De(_YY_, _ZZ_) += m_lambda;
-    De(_ZZ_, _XX_) += m_lambda;
-    De(_ZZ_, _YY_) += m_lambda;
-    De(_ZZ_, _ZZ_) += m_lambda;
-    
-    int i;
-    for (i = 0; i < 6; i++)De(i, i) += Mu2;
+void TPZElasticResponse::De(TPZFMatrix<STATE> & DeMat) const {
+    DeMat.Redim(6,6);
+    DeMat.Zero();
+
+    const STATE nu = Poisson();
+    const STATE E  = this->E();
+    const STATE factor = E/((1.+nu)*(1.-2.*nu));
+
+    // parte normal
+    DeMat(_XX_, _XX_) = 1.-nu;  DeMat(_XX_, _YY_) = nu;     DeMat(_XX_, _ZZ_) = nu;
+    DeMat(_YY_, _XX_) = nu;     DeMat(_YY_, _YY_) = 1.-nu;  DeMat(_YY_, _ZZ_) = nu;
+    DeMat(_ZZ_, _XX_) = nu;     DeMat(_ZZ_, _YY_) = nu;     DeMat(_ZZ_, _ZZ_) = 1.-nu;
+
+
+    DeMat(_XY_, _XY_) = (1.-2.*nu)/2.;
+    DeMat(_XZ_, _XZ_) = (1.-2.*nu)/2.;
+    DeMat(_YZ_, _YZ_) = (1.-2.*nu)/2.;
+
+    DeMat *= factor;
 }
 
+
+void TPZElasticResponse::InverseDe(TPZFMatrix<STATE> & DeMat) const {
+    DeMat.Redim(6,6);
+    DeMat.Zero();
+
+    const STATE nu = Poisson();
+    const STATE E  = this->E();
+    const STATE factor = 1./E;
+
+    // parte normal
+    DeMat(_XX_, _XX_) = 1.;  DeMat(_XX_, _YY_) = -nu;     DeMat(_XX_, _ZZ_) = -nu;
+    DeMat(_YY_, _XX_) = -nu;     DeMat(_YY_, _YY_) = 1.;  DeMat(_YY_, _ZZ_) = -nu;
+    DeMat(_ZZ_, _XX_) = -nu;     DeMat(_ZZ_, _YY_) = -nu;     DeMat(_ZZ_, _ZZ_) = 1.;
+
+
+    DeMat(_XY_, _XY_) =2.*(1.+nu);
+    DeMat(_XZ_, _XZ_) =2.*(1.+nu);
+    DeMat(_YZ_, _YZ_) =2.*(1.+nu);
+
+    DeMat *= factor;
+}
+//template<class T>
+void TPZElasticResponse::ComputeStrain(const TPZTensor<STATE> & sigma, TPZTensor<STATE> & epsilon) const
+{
+
+    TPZFMatrix<STATE> InvCmat,cpsigma(6,1,0.),temp;
+
+    for(int i=0;i<6;i++)cpsigma(i,0)=sigma[i];
+
+    InverseDe(InvCmat);
+
+    InvCmat.Multiply(cpsigma,temp);
+
+    epsilon.CopyFrom(temp);
+
+}
+
+
+void TPZElasticResponse::ComputeStress(const TPZTensor<STATE> & epsilon, TPZTensor<STATE> & sigma) const {
+
+    TPZFMatrix<STATE> Cmat,cpeps(6,1,0.),temp;
+
+    for(int i=0;i<6;i++)cpeps(i,0)=epsilon[i];
+
+    De(Cmat);
+
+    Cmat.Multiply(cpeps,temp);
+
+    sigma.CopyFrom(temp);
+
+
+}
 void TPZElasticResponse::SetEngineeringData(REAL Eyoung, REAL Poisson) {
     m_E = Eyoung;
     m_nu = Poisson;

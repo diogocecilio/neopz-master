@@ -63,6 +63,7 @@ set(headers
     TPZMatPoroElastoPlastic2DMem.h
     TPZYCVonMisesVoigt.h
     TPZPlasticStepVoigt.h
+    TPZYCMohrCoulombPV2.h
     )
 
 set(sources
@@ -112,6 +113,7 @@ set(sources
     TPZMatPoroElastoPlastic2DMem.cpp
     TPZYCVonMisesVoigt.cpp
     TPZPlasticStepVoigt.cpp
+    TPZYCMohrCoulombPV2.cpp
     )
 
 set(PZ_FIX_PLASTIC_TRANSLATORS OFF)
@@ -141,6 +143,7 @@ if(PZ_FIX_PLASTIC_TRANSLATORS)
         TPZMatPoroElastoPlastic2DMem.h
         TPZYCVonMisesVoigt.h
         TPZPlasticStepVoigt.h
+        TPZYCMohrCoulombPV2.h
         )
 
     list(APPEND sources
@@ -167,6 +170,7 @@ if(PZ_FIX_PLASTIC_TRANSLATORS)
         TPZMatPoroElastoPlastic2DMem.cpp
         TPZYCVonMisesVoigt.cpp
         TPZPlasticStepVoigt.cpp
+        TPZYCMohrCoulombPV2.cpp
         )
 endif()
 

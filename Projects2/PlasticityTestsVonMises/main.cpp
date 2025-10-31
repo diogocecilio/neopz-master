@@ -47,10 +47,15 @@
 //#include "TPZElasticResponse.h"
 #include "Plasticity/TPZElastoPlasticMem.h"
 #include "Plasticity/TPZPlasticStepPV.h"
+#include "Plasticity/TPZPlasticStep.h"
+#include "Plasticity/TPZThermoForceA.h"
 #include "Plasticity/TPZPlasticStepVoigt.h"
 #include "Plasticity/TPZVonMises.h"
 #include "Plasticity/TPZYCMohrCoulombPV.h"
 #include "Plasticity/TPZMatElastoPlastic2D.h"
+
+#include "Plasticity/TPZYCMohrCoulombPV2.h"
+
 #include "TPZMaterialDataT.h"
 #include "Plasticity/pzelastoplasticanalysis.h"
 #include "Plasticity/TPZElasticResponse.h"
@@ -85,13 +90,20 @@ using std::cout; using std::endl;
 static TPZLogger logger_plasticity("PlasticityTests");
 #endif
 
+typedef TPZPlasticStep<TPZYCVonMises, TPZElasticResponse,TPZThermoForceA> TPlasticStepVM;
+
+//typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> TPlasticStepMCPV;
+typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> TPlasticStepMCPV;
+
 typedef TPZPlasticStepVoigt<TPZYCVonMisesVoigt, TPZElasticResponse> TPlasticStepVoigtVM;
+
+typedef TPZMatElastoPlastic2D<TPlasticStepVM,TPZElastoPlasticMem> TMatElastoPlaticVM;
 
 typedef TPZMatElastoPlastic2D<TPlasticStepVoigtVM,TPZElastoPlasticMem> TMatElastoPlaticVoigtVM;
 
 typedef TPZMatElastoPlastic<TPlasticStepVoigtVM,TPZElastoPlasticMem> TMatElastoPlaticVoigtVM3D;
 
-void ApplyLoad(TPZCompMesh* cmesh,TPZManVector<REAL> factors,int loaddir,int indexbc);
+void ApplyLoad(TPZCompMesh* cmesh,TPZManVector<REAL> factors,int loaddir,int indexbc,std::string vtkfile);
 
 void PostElastoplastic(TPZCompMesh* cmesh,const std::string& vtkfile,int matid,int step,int dim);
 
@@ -253,7 +265,7 @@ TPZGeoMesh* CubeMesh()
     gmesh->BuildConnectivity();
 
     cout << "c" << endl;
-    for ( int d = 0; d<1; d++ )
+    for ( int d = 0; d<2; d++ )
     {
         int nel = gmesh->NElements();
         TPZManVector<TPZGeoEl *> subels;
@@ -370,10 +382,10 @@ static TPZCompMesh* CompMeshCyl(TPZGeoMesh* gmesh)
 
 
      TPZElasticResponse ER;
-     ER.SetEngineeringData(210,0.3);
+     ER.SetEngineeringData(210000,0.3);
 
      TPZYCVonMisesVoigt vmyc;
-     const STATE sigmaY0 = 0.24;
+     const STATE sigmaY0 = 240.;
      const STATE Hiso    = 0.;
      vmyc.SetUp(sigmaY0,Hiso);
 
@@ -405,7 +417,8 @@ static TPZCompMesh* CompMeshCyl(TPZGeoMesh* gmesh)
     v2[1]=0.;
     mphys->InsertMaterialObject(mat->CreateBC(mat,bcindexes.bctop , dirdirichlet, v1, v2));
 
-    v2[0]=-0.19209;
+    //v2[0]=-0.19209;
+    v2[0]=0;
     v2[1]=0.;
     mphys->InsertMaterialObject(mat->CreateBC(mat,bcindexes.bcinner , pressure, v1, v2));
 
@@ -475,8 +488,8 @@ static TPZCompMesh* CompMeshCube(TPZGeoMesh* gmesh)
     v2[0]=0.;
     v2[1]=0.;
     v2[2]=0.;
-    mphys->InsertMaterialObject(mat->CreateBC(mat,bcindexes.bctop , 0, v1, v2));
-*/
+    mphys->InsertMaterialObject(mat->CreateBC(mat,bcindexes.bctop , 0, v1, v2));*/
+
 
     mphys->AutoBuild();
     mphys->AdjustBoundaryElements();
@@ -500,22 +513,25 @@ void SolveCyl()
     an.SetSolver(direct);
     int itersout;
 
-    int nloads = 10;
-    const REAL FS_target = 1. ;          // mantém seu “+0.1”
-    TPZManVector<REAL> factors(nloads+1);   // 0 .. nloads (inclusivo)
-    for (int i =0; i <= nloads; ++i) {
-        factors[i] = FS_target * REAL(i) / REAL(nloads); // 0, Δ, 2Δ, …, FS_target
-        cout<< factors[i] <<endl;
-    }
+    // int nloads = 10;
+    // const REAL FS_target = 1. ;          //
+    // TPZManVector<REAL> factors(nloads+1);   // 0 .. nloads (inclusivo)
+    // for (int i =0; i <= nloads; ++i) {
+    //     factors[i] = FS_target * REAL(i) / REAL(nloads); // 0, Δ, 2Δ, …, FS_target
+    //     cout<< factors[i] <<endl;
+    // }
     IndexesCylinder cylindexes;
     int loaddir=0;//direcao da pressao
-    ApplyLoad( cmesh,factors,loaddir,cylindexes.bcinner);
+    TPZManVector<REAL,11> factors={-100,-110,-120,-130,-140,-150,-160,-170,-180,-190,-192.09};
+    //factors*=-1;
+    std::string namevtk="cylinder.vtk";
+    ApplyLoad( cmesh,factors,loaddir,cylindexes.bcinner,namevtk);
 }
 
 
 
 
-void ApplyLoad(TPZCompMesh* cmesh,TPZManVector<REAL> factors,int loaddir,int indexbc)
+void ApplyLoad(TPZCompMesh* cmesh,TPZManVector<REAL> factors,int loaddir,int indexbc,std::string vtkfile)
 {
     int dim=cmesh->Dimension();
 
@@ -558,18 +574,17 @@ void ApplyLoad(TPZCompMesh* cmesh,TPZManVector<REAL> factors,int loaddir,int ind
 
 
     int matid=1;
-    std::string vtkfile="cyl.vtk";
     for(int i =0;i< nloads;i++)
     {
 
-        bcmat->Val2()[loaddir]=load0*factors[i];
-       // bcmat->Val2()[loaddir]=factors[i];
+        //bcmat->Val2()[loaddir]=load0*factors[i];
+        bcmat->Val2()[loaddir]=factors[i];
         cout << "Load step =" << i<<" factor =  "<<factors[i] <<endl;
         int iters_out;
 
         REAL resf,resuu;
-        //bool ok = anal.FindRoot( iters_out,resf,resuu);
-       bool ok = anal.IterativeProcess(std::cout, 1.e-6,100, true, false, iters_out);
+        bool ok = anal.NewtonRaphson();
+       //bool ok = anal.IterativeProcess(std::cout, 1.e-6,100, true, false, iters_out);
 
         TPZFMatrix<REAL> tempsol=anal.Solution();
         bcmat->Val2()[loaddir]=0;
@@ -605,7 +620,7 @@ void SolveCube()
     int loaddir=2;
     int nsteps=100;
     int nloadcicles=3;
-    STATE bccondval=200.;
+    STATE bccondval=-200.;
     STATE lambda0=0.0001;
     STATE L0=0.0003;
     std::string vtkfile="cubeal2.vtk";
@@ -615,8 +630,11 @@ void SolveCube()
     IterativeProcessArcLength(an,loaddir,cubeindexes.bctop,nsteps,nloadcicles,bccondval,lambda0,L0,vtkfile);
 
     //IterativeProcessArcLength(an ,cmesh, loaddir, cubeindexes.bctop,vtkfile);
-    //TPZManVector<REAL> factors={200,150,100,50,0};
-    //ApplyLoad( cmesh,factors,loaddir,cubeindexes.bctop);
+   // TPZManVector<REAL> factors={-0.001};
+   // TPZManVector<REAL> factors={0,-0.0005,-0.001,-0.002,0};
+    TPZManVector<REAL> factors={100,200,201};
+    std::string namevtk="block.vtk";
+    ApplyLoad( cmesh,factors,loaddir,cubeindexes.bctop,namevtk);
 }
 int main()
 {
@@ -626,6 +644,111 @@ int main()
     //SolveCyl();
 
     SolveCube();
+//     TPZElasticResponse ER; ER.SetEngineeringData(young, poisson);
+//
+//     TPlasticMC mc;
+//     mc.fYC.SetUp(atrito, atrito, coes, ER);
+//     mc.fER = ER;
+//     mc.SetStrengthReductionFactor(1.0);
+
+    std::cout << "HELLO WORLD"<<std::endl;
+
+    TPZElasticResponse ER;
+    ER.SetEngineeringData(200000., 0.3);
+    TPZYCVonMisesVoigt vmyc;
+
+    const STATE sigmaY0 = 200.0;
+    const STATE Hiso    = 0.;
+    vmyc.SetUp(sigmaY0,Hiso);
+
+    TPlasticStepVoigtVM PlasticStepVoigt;
+
+
+    PlasticStepVoigt.SetPlasticCriterion(vmyc);
+    PlasticStepVoigt.SetElasticResponse(ER);
+    PlasticStepVoigt.Print(std::cout);
+    //
+    //
+    PlasticStepVoigt.Print(std::cout);
+    TPZFMatrix<REAL> Dep(6,6,0.);
+    TPZTensor<STATE> epst;
+    TPZTensor<STATE> sigma;
+    TPZManVector<STATE,6> epstm={0.09687316080701325, 0.08984556978428876, 0.07714716252632703, -0.06426431991284204, 0.031356231215853736, 0.004103411206898777};
+    TPZManVector<STATE,6> epsp={0.0074516806769507, 0.00768296692638031, 0.00739833729141289,0.0024049416177378876, 0.006042120585204784, 0.0010419124338917809};
+    //TPZPlasticState ps;
+    for(int i=0;i<6;i++)PlasticStepVoigt.fN.EpsP()[i]=epsp[i];
+    for(int i=0;i<6;i++)epst[i]=epstm[i];
+
+    PlasticStepVoigt.ApplyStrainComputeSigma(epst,sigma,&Dep);
+    std::cout << sigma <<std::endl;
+    Dep.Print("Dep");
+
+    // TPlasticStepMCPV mc;
+    // TPZElasticResponse ER;
+    // ER.SetEngineeringData(20000., 0.49);
+    // REAL atrito =20*M_PI/180.;
+    // REAL coes=50.;
+    // mc.fYC.SetUp(atrito, atrito, coes, ER);
+    // mc.SetElasticResponse(ER);
+    // mc.fER = ER;
+    // mc.SetStrengthReductionFactor(1.0);
+    // TPZTensor<STATE> epst;
+    // TPZTensor<STATE> sigma;
+    // TPZFMatrix<REAL> Dep(6,6,0.);
+    //
+    //
+    // epst.XX()=3.6157562487484481e-2;
+    // epst.XY()=0.5*2.5111726131341262e-2;
+    // epst.YY()=-2.5800526093809846e-2;
+    // mc.ApplyStrainComputeSigma(epst,sigma,&Dep);
+    //
+    // std::cout << sigma <<std::endl;
+    // Dep.Print("Dep");
+
+
+    // epst.XX()=2.1153582845979804e-2;
+    // epst.XY()=-0.5*3.2774022989690031e-2;
+    // epst.YY()=-6.1244636739267791e-3;
+    // TPZManVector<STATE,6> epsp={0.00632887, 0.00515244/2, 0.00591324/2, 0.00434136, 0.00354462/2, 0.00232864};
+    // TPZManVector<STATE,6> epstm={0.0123779, 0.0859467/2, -0.0368489/2, -0.0200774, 0.0872019/2, 0.044763};
+    // for(int i=0;i<6;i++)mc.fN.EpsP()[i]=epsp[i];
+    // for(int i=0;i<6;i++)epst[i]=epstm[i];
+    // mc.ApplyStrainComputeSigma(epst,sigma,&Dep);
+    //
+    // TPZFMatrix<STATE> Ce;
+    // mc.fER.De(Ce);
+    // Ce.Print("Ce");
+    // std::cout << sigma <<std::endl;
+    // Dep.Print("Dep");
+
+
+    // TPlasticStepMCPV mc2;
+    // TPZElasticResponse ER2;
+    // ER2.SetEngineeringData(10e6, 0.48);
+    // REAL atrito2 =20*M_PI/180.;
+    // REAL coes2=490.;
+    // mc2.fYC.SetUp(atrito2, atrito2, coes2, ER2);
+    // mc2.SetElasticResponse(ER2);
+    // mc2.fER = ER2;
+    // mc2.SetStrengthReductionFactor(1.0);
+    // TPZTensor<STATE> epst2;
+    // TPZTensor<STATE> sigma2;
+    // TPZFMatrix<REAL> Dep2(6,6,0.);
+    //
+    // // epsttr = {-7.1436465404952029 10^-5, (3.7632073167565092) 10^-4,
+    // //     0, -5.4913608546659984 10^-5, 0, 1.1423294530637051 10^-4};
+    //
+    // epst2.XX()=-7.1436465404952029e-5;
+    // epst2.XY()=0.5*3.7632073167565092e-4;
+    // epst2.YY()=-5.4913608546659984e-5;
+    // epst2.ZZ()=1.1423294530637051e-4;
+    // mc2.ApplyStrainComputeSigma(epst2,sigma2,&Dep2);
+    //
+    // TPZFMatrix<STATE> Ce2;
+    // mc2.fER.De(Ce2);
+    // Ce2.Print("Ce");
+    // std::cout << sigma2 <<std::endl;
+    // Dep2.Print("Dep2");
 
     return 0;
 }
@@ -633,8 +756,8 @@ void PostProcessVariables(TPZStack<std::string>& scal, TPZStack<std::string>& ve
 {
    scal.Push ( "StrainPlasticJ2" );
     vec.Push ( "Displacement" );
-    //scal.Push ( "StressXX" );
-    //scal.Push ( "StressYY" );
+    scal.Push ( "StressXX" );
+    scal.Push ( "StressYY" );
     //scal.Push ( "StrainElasticJ2" );
     scal.Push ( "StressZZ" );
     //scal.Push ( "StrainPlasticXX" );
@@ -1017,7 +1140,7 @@ REAL IterativeProcessArcLength(TPZElastoPlasticAnalysis &an,
             // ---------- NEWTON DE COMPRIMENTO DE ARCO ----------
             {
                 const int  maxit_inner = 20;
-                const REAL etol_inner  = 1e-3;
+                const REAL etol_inner  = 1e-4;
 
                 TPZFMatrix<STATE> rhs, R, dws, dwb;
 
@@ -1025,9 +1148,10 @@ REAL IterativeProcessArcLength(TPZElastoPlasticAnalysis &an,
                 // Mantemos um índice de "root" para funções auxiliares de escolha de raiz,
                 // se a implementação de compute_dlambda_riks exigir.
                 int rootIdx = 0;
-
+                std::cout << " \n step = "<< step <<"\n";
                 while (it < maxit_inner && normR > etol_inner)
                 {
+                    std::cout << " iter = "<< it <<"normR" << normR<<"\n";
                     // monta -FINT (observação: usamos bcmat->Val2()[loaddir]=0 para evitar
                     // re-aplicar o BC na montagem do interno; o externo será lambda*FEXT)
                     bcmat->Val2()[loaddir] = 0.0;
@@ -1071,6 +1195,7 @@ REAL IterativeProcessArcLength(TPZElastoPlasticAnalysis &an,
                     R     = FEXT * lambda;     // lambda*FEXT
                     R    += rhs;               // + (-FINT)
                     normR = Norm(R);
+
 
                     ++it;
                     // guarda de divergência: se a norma explode, aborta o inner

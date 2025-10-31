@@ -85,6 +85,57 @@ void TPZPlasticStepVoigt<YC,ER>::ApplyStrain(const TPZTensor<REAL>& epsTotal)
     fN.m_eps_t = epsTotal; // se o TPZPlasticState tiver esse campo; ajuste conforme seu struct
 }
 
+// // // --- ComputeSigma: stub (retorna zero) ---
+// template<class YC,class ER>
+// void TPZPlasticStepVoigt<YC,ER>::ApplyStrainComputeSigma(const TPZTensor<REAL>& epsTotal,
+//                                                          TPZTensor<REAL>& sigma,
+//                                                          TPZFMatrix<REAL>* tangent)
+// {
+//
+//     TPZTensor<REAL>sigtrtensor,sigtrtensor2;
+//     TPZTensor<REAL> eps_e_trial = epsTotal - fN.m_eps_p;
+//     fER.ComputeStress(eps_e_trial,sigtrtensor);
+//     TPZFMatrix<STATE> Cmat;
+//     fER.De(Cmat);
+//
+//     int type;
+//     TPZFMatrix<STATE> Dep;
+//
+//
+//     STATE hvarnew;
+//     STATE gamma=fYC.ProjectSigma(sigtrtensor,sigma,fER,fN.m_hardening,hvarnew,type);
+//
+//     TPZManVector<STATE,3> sigtrvec =ComputePrincialVal(sigtrtensor);
+//     TPZManVector<STATE,3> epstrvecout,sigprojvec;
+//     TPZManVector<STATE,2> dlambda;
+//     TPZFNMatrix<9> Grad3x3(3,3);
+//
+//
+//     fYC.ProjectSigma(sigtrvec,fN.m_hardening,dlambda,sigprojvec,epstrvecout,Grad3x3,hvarnew,type);
+//
+//     fN.m_hardening = hvarnew;
+//     fN.m_m_type = type;
+//
+//     if(type==1)//plastico
+//     {
+//         this->ConsistentTangent(sigtrtensor,sigma,gamma,Dep);
+//         TPZManVector<TPZManVector<REAL,3>,3> eigenvetors = ComputePrincialVec(sigtrtensor);
+//         ConsistentTangent(sigtrvec,sigprojvec,epstrvecout,Grad3x3,eigenvetors);
+//
+//     }else{
+//         Dep=Cmat;
+//     }
+//     //Dep=Ce;
+//     if (tangent) {
+//         *tangent = Dep;
+//     }
+//     // Reconstruction of sigmaprTensor
+//     TPZTensor<REAL> eps_e_Np1;
+//     fER.ComputeStrain(sigma, eps_e_Np1);
+//     fN.m_eps_t = epsTotal;
+//     fN.m_eps_p = epsTotal - eps_e_Np1;
+//
+// }
 // // --- ComputeSigma: stub (retorna zero) ---
 template<class YC,class ER>
 void TPZPlasticStepVoigt<YC,ER>::ApplyStrainComputeSigma(const TPZTensor<REAL>& epsTotal,
@@ -92,26 +143,44 @@ void TPZPlasticStepVoigt<YC,ER>::ApplyStrainComputeSigma(const TPZTensor<REAL>& 
                                                          TPZFMatrix<REAL>* tangent)
 {
 
-    TPZTensor<REAL>sigtrtensor;
+    TPZTensor<REAL>sigtrtensor,sigtrtensor2;
+
     TPZTensor<REAL> eps_e_trial = epsTotal - fN.m_eps_p;
+
     fER.ComputeStress(eps_e_trial,sigtrtensor);
 
-    int type;
-    TPZFMatrix<STATE> Ce,Dep;
-    fER.De(Ce);
+    TPZFMatrix<STATE> Cmat;
+    fER.De(Cmat);
 
+    int type;
+    //TPZFMatrix<STATE> Dep;
+    TPZFNMatrix<36> Dep;
     STATE hvarnew;
-    STATE gamma=fYC.ProjectSigma(sigtrtensor,sigma,fER,fN.m_hardening,hvarnew,type);
+
+    TPZTensor<REAL>::TPZDecomposed eigen_system;
+    sigtrtensor.EigenSystem(eigen_system);
+
+    TPZManVector<STATE,3> sigtrvec =eigen_system.fEigenvalues;
+    TPZManVector<STATE,3> epstrvecout,sigprojvec;
+    TPZManVector<STATE,2> dlambda;
+    TPZFNMatrix<9> Grad3x3(3,3);
+
+
+    fYC.ProjectSigma(sigtrvec,fN.m_hardening,dlambda,sigprojvec,epstrvecout,Grad3x3,hvarnew,type);
+
     fN.m_hardening = hvarnew;
     fN.m_m_type = type;
 
     if(type==1)//plastico
     {
-        this->ConsistentTangent(sigtrtensor,sigma,gamma,Dep);
+        TPZManVector<TPZManVector<REAL,3>,3> eigenvetors = eigen_system.fEigenvectors;
+
+        ConsistentTangent(sigtrvec,sigprojvec,epstrvecout,Grad3x3,eigenvetors,Dep);
 
     }else{
-        Dep=Ce;
+        Dep=Cmat;
     }
+    //Dep=Ce;
     if (tangent) {
         *tangent = Dep;
     }
@@ -122,6 +191,79 @@ void TPZPlasticStepVoigt<YC,ER>::ApplyStrainComputeSigma(const TPZTensor<REAL>& 
     fN.m_eps_p = epsTotal - eps_e_Np1;
 
 }
+
+template<class YC,class ER>
+void TPZPlasticStepVoigt<YC,ER>::ConsistentTangent(TPZManVector<STATE,3>& sigtrial, TPZManVector<STATE,3>& sigproj,TPZManVector<STATE,3>&epstrial, TPZFNMatrix<9> &Grad3x3,TPZManVector<TPZManVector<STATE,3>,3>&eigenvetors, TPZFNMatrix<36>& Dep) const
+{
+
+    TPZFNMatrix<36> gradpart(6,6,0.);
+    TPZFNMatrix<36> rotationpart(6,6,0.);
+    TPZFNMatrix<36> Cmat(6,6,0.),tempmat0;
+    fER.De(Cmat);
+    STATE G= fER.G();
+
+    for( int icol=0;icol<6;icol++)
+    {
+
+        TPZFNMatrix<9> temprot(3,3,0.);
+         TPZFNMatrix<9> deltaE = EBasisGrad(icol);
+         for(int i=0;i<3;i++)
+         {
+             for(int j=0;j<3;j++)
+             {
+                 TPZFNMatrix<6> prodii= FormCartToVoigt(TensorProduct(eigenvetors[i],eigenvetors[i]));
+                 TPZFNMatrix<6> prodjj= FormCartToVoigtGrad(TensorProduct(eigenvetors[j],eigenvetors[j]));
+                 TPZFNMatrix<9> tempmat=TensorProduct(prodii,prodjj);
+                 tempmat*=Grad3x3(i,j);
+                 tempmat.Multiply(Cmat,tempmat0);
+                 TPZFNMatrix<6> prodeltaEVoigth= FormCartToVoigtGrad(deltaE);
+                 tempmat0.Multiply(prodeltaEVoigth,tempmat);
+
+                 for(int irow=0;irow<6;irow++)
+                 {
+                     gradpart(irow,icol)+=tempmat[irow];
+                 }
+                 if(i<=j)continue;
+                 STATE depstr = (epstrial[i] - epstrial[j]);
+                 STATE dsigproj = (sigproj[i] - sigproj[j]);
+                 //std::cout<< "tempmat = "<<tempmat<<std::endl;
+                 STATE fac=0.;
+                 if(fabs(depstr) < 1.e-12)
+                 {
+                      fac = G*(Grad3x3(i, i) -Grad3x3(i, j) - Grad3x3(j, i) + Grad3x3(j, j));
+                 }else{
+                     fac = dsigproj/depstr;
+                }
+                TPZFNMatrix<3> vecj = {{eigenvetors[j][0],eigenvetors[j][1],eigenvetors[j][2]}};
+                TPZFNMatrix<3> veci = {{eigenvetors[i][0]},{eigenvetors[i][1]},{eigenvetors[i][2]}};
+                TPZFMatrix<STATE> temp1,temp2;
+                deltaE.Multiply(veci,temp1);
+                // temp1.Print("temp1");
+                // vecj.Print("vecj");
+                vecj.Multiply(temp1,temp2);
+                //temp2.Print("temp2");
+                TPZFNMatrix<9>tempmat2=TensorProduct(eigenvetors[i],eigenvetors[j])+TensorProduct(eigenvetors[j],eigenvetors[i]);
+                tempmat2*=fac;
+                tempmat2*=temp2(0,0);
+                temprot+=tempmat2;
+                //std::cout <<" temprot = " <<temprot << std::endl;
+
+             }
+        }
+        for(int irow=0;irow<6;irow++)
+        {
+            rotationpart(irow,icol)+=FormCartToVoigt(temprot)[irow];
+        }
+    }
+    // std::cout <<" rotationpart = " <<rotationpart << std::endl;
+    // std::cout <<" gradpart = " <<gradpart << std::endl;
+    Dep=gradpart+rotationpart;
+    std::cout <<" Dep = " <<Dep << std::endl;
+
+}
+
+
+
 
 template<class YC, class ER>
 void TPZPlasticStepVoigt<YC,ER>::ConsistentTangent(const TPZTensor<STATE>& sigmatr,const TPZTensor<STATE>& sigmapr,STATE gamma, TPZFMatrix<STATE>& Dep) const
@@ -134,9 +276,9 @@ void TPZPlasticStepVoigt<YC,ER>::ConsistentTangent(const TPZTensor<STATE>& sigma
 
     TPZFMatrix<REAL>  Ce,invCe;
     fER.De(Ce) ;
-     // Ce(_XY_,_XY_)/=2.;
-     // Ce(_XZ_,_XZ_)/=2.;
-     // Ce(_YZ_,_YZ_)/=2.;
+    // Ce(_XY_,_XY_)/=2.;
+    // Ce(_XZ_,_XZ_)/=2.;
+    // Ce(_YZ_,_YZ_)/=2.;
 
     //Q=(IdentityMatrix[6]+gamma Ce . dadsigg);
 
@@ -163,7 +305,7 @@ void TPZPlasticStepVoigt<YC,ER>::ConsistentTangent(const TPZTensor<STATE>& sigma
 
     RNt.Multiply(Noriginal,tempreal);
 
-    temp*=1./tempreal(0,0);
+    temp*=1./(tempreal(0,0)+fYC.DSigmaYDepsbar(fN.m_hardening));
 
     Dep=R;
 
@@ -276,4 +418,7 @@ TPZTensor<STATE> TPZPlasticStepVoigt<YC,ER>::FromFMatToTensor(TPZFMatrix<STATE> 
     return localt;
 }
 
+
+
+template class TPZPlasticStepVoigt<TPZYCMohrCoulombPV2, TPZElasticResponse>;
 template class TPZPlasticStepVoigt<TPZYCVonMisesVoigt, TPZElasticResponse>;
