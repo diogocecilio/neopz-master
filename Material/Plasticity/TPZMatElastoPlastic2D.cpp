@@ -32,6 +32,7 @@
 #include "TPZYCMohrCoulombPVTranslator.h"
 #include "TPZSandlerExtendedTranslator.h"
 #include "TPZYCCamClayPVTranslator.h"
+#include "TPZYCMohrCoulombPV2.h"
 #endif
 
 template class TPZMatElastoPlastic2D<TPZPlasticStep<TPZYCModifiedMohrCoulomb, TPZThermoForceA, TPZElasticResponse>, TPZElastoPlasticMem>;
@@ -82,3 +83,4 @@ template class TPZMatElastoPlastic2D<TPZElasticCriterion , TPZElastoPlasticMem>;
 template class TPZMatElastoPlastic2D<TPZElasticCriterion , TPZPoroElastoPlasticMem>;
 #include "TPZPlasticStepVoigt.h"
 template class TPZMatElastoPlastic2D<TPZPlasticStepVoigt<TPZYCVonMisesVoigt, TPZElasticResponse>,TPZElastoPlasticMem>;
+template class TPZMatElastoPlastic2D<TPZPlasticStepVoigt<TPZYCMohrCoulombPV2, TPZElasticResponse>,TPZElastoPlasticMem>;

@@ -147,7 +147,10 @@ void TPZPlasticStepVoigt<YC,ER>::ApplyStrainComputeSigma(const TPZTensor<REAL>& 
 
     TPZTensor<REAL> eps_e_trial = epsTotal - fN.m_eps_p;
 
+
     fER.ComputeStress(eps_e_trial,sigtrtensor);
+
+   // std::cout<< "strial = " << sigtrtensor << std::endl;
 
     TPZFMatrix<STATE> Cmat;
     fER.De(Cmat);
@@ -185,6 +188,9 @@ void TPZPlasticStepVoigt<YC,ER>::ApplyStrainComputeSigma(const TPZTensor<REAL>& 
         *tangent = Dep;
     }
     // Reconstruction of sigmaprTensor
+    // Reconstruction of sigmaprTensor
+    eigen_system.fEigenvalues = sigprojvec; // Under the assumption of isotropic material eigen vectors remain unaltered
+    sigma = TPZTensor<REAL>(eigen_system);
     TPZTensor<REAL> eps_e_Np1;
     fER.ComputeStrain(sigma, eps_e_Np1);
     fN.m_eps_t = epsTotal;
@@ -258,10 +264,96 @@ void TPZPlasticStepVoigt<YC,ER>::ConsistentTangent(TPZManVector<STATE,3>& sigtri
     // std::cout <<" rotationpart = " <<rotationpart << std::endl;
     // std::cout <<" gradpart = " <<gradpart << std::endl;
     Dep=gradpart+rotationpart;
-    std::cout <<" Dep = " <<Dep << std::endl;
+  //  std::cout <<" Dep = " <<Dep << std::endl;
 
 }
-
+// template<class YC,class ER>
+// void TPZPlasticStepVoigt<YC,ER>::ConsistentTangent(TPZManVector<STATE,3>& sigtrial, TPZManVector<STATE,3>& sigproj,TPZManVector<STATE,3>&epstrial, TPZFNMatrix<9> &Grad3x3,TPZManVector<TPZManVector<STATE,3>,3>&eigenvetors, TPZFNMatrix<36>& Dep) const
+// {
+//
+//     TPZFNMatrix<36> A(6,6,0.);
+//     TPZFNMatrix<36> R(6,6,0.);
+//     TPZFNMatrix<36> Cmat(6,6,0.);
+//     fER.De(Cmat);
+//     STATE G= fER.G();
+//     //std::cout<<"Cmat" << Cmat <<std::endl;
+//
+//     for( int icol=0;icol<6;icol++)
+//     {
+//
+//         TPZFNMatrix<36> tempmat0;
+//         TPZFNMatrix<6> ColA(6,1,0.);
+//         TPZFNMatrix<6> ColR(6,1,0.);
+//         TPZFNMatrix<9> deltaE = EBasis(icol);
+//         for(int i=0;i<3;i++)
+//         {
+//             for(int j=0;j<3;j++)
+//             {
+//                 TPZFNMatrix<6> prodii= FormCartToVoigt(TensorProduct(eigenvetors[i],eigenvetors[i]));
+//                 TPZFNMatrix<6> prodjj= FormCartToVoigt(TensorProduct(eigenvetors[j],eigenvetors[j]));
+//                 TPZFNMatrix<36> tempmat=TensorProduct(prodii,prodjj),tempmat00;
+//                 //if(icol==5)std::cout<<"Grad3x3(i,j)" << Grad3x3(i,j) <<std::endl;
+//                 //if(icol==5)std::cout<< "tempmat" << tempmat <<std::endl;
+//                 tempmat*=Grad3x3(i,j);
+//                 //if(icol==5)std::cout<< "tempmat*=Grad3x3(i,j)" << tempmat <<std::endl;
+//                 tempmat.Multiply(Cmat,tempmat00);
+//
+//                 //if(icol==5)std::cout<<"Cmat" << Cmat <<std::endl;
+//                 //std::cout<< "tempmat" << tempmat <<std::endl;
+//                 TPZFNMatrix<6> prodeltaEVoigth= FormCartToVoigt(deltaE);
+//                 //if(icol==5)std::cout<<"tempmatafter" << tempmat00 <<std::endl;
+//                 //if(icol==5)std::cout<<"prodeltaEVoigth" << prodeltaEVoigth <<std::endl;
+//                 tempmat00.Multiply(prodeltaEVoigth,tempmat0);
+//                 //if(icol==5)std::cout<< "tempmat0" << tempmat0 <<std::endl;
+//
+//                 for(int irow=0;irow<6;irow++)
+//                 {
+//                     ColA(irow,0)+=tempmat0(irow,0);
+//                 }
+//                 //std::cout<< "ColA" << ColA <<std::endl;
+//                 if(j<=i)continue;
+//                 STATE depstr = (epstrial[i] - epstrial[j]);
+//                 STATE dsigproj = (sigproj[i] - sigproj[j]);
+//                 //std::cout<< "tempmat = "<<tempmat<<std::endl;
+//                 STATE fac=0.;
+//                 if(fabs(depstr) < 1.e-12)
+//                 {
+//                     fac = G*(Grad3x3(i, i) -Grad3x3(i, j) - Grad3x3(j, i) + Grad3x3(j, j));
+//                 }else{
+//                     fac = dsigproj/depstr;
+//                 }
+//                 TPZFNMatrix<9>tempmat2a=TensorProduct(eigenvetors[i],eigenvetors[j]);
+//                 //std::cout<< "tempmat2a" << tempmat2a <<std::endl;
+//                 TPZFNMatrix<9>tempmat2b=TensorProduct(eigenvetors[j],eigenvetors[i]);
+//                // std::cout<< "tempmat2b" << tempmat2b <<std::endl;
+//                 TPZFNMatrix<9> tempmat2 = 0.5*(tempmat2a+tempmat2b);
+//                 //std::cout<< "tempmat2" << tempmat2 <<std::endl;
+//                 TPZFNMatrix<6> sij= FormCartToVoigt(tempmat2);
+//                 TPZFNMatrix<36>tempmat3=TensorProduct(sij,sij);
+//                 //std::cout<< "tempmat3" << tempmat3 <<std::endl;
+//                 tempmat3*=2.*fac;
+//                 TPZFNMatrix<6> tempmat4;
+//
+//                 tempmat3.Multiply(prodeltaEVoigth,tempmat4);
+//                 for(int irow=0;irow<6;irow++)
+//                 {
+//                     ColR(irow,0)+=tempmat4(irow,0);
+//                 }
+//                 //std::cout<< "ColR" << ColR <<std::endl;
+//             }
+//         }
+//         for(int irow=0;irow<6;irow++)
+//         {
+//             A(irow,icol)+=ColA(irow,0);
+//             R(irow,icol)+=ColR(irow,0);;
+//         }
+//     }
+//      //std::cout <<" R = " <<R << std::endl;
+//      //std::cout <<" A = " <<A << std::endl;
+//     Dep=A+R;
+//     //  std::cout <<" Dep = " <<Dep << std::endl;
+//
+// }
 
 
 

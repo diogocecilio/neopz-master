@@ -177,6 +177,8 @@ int TPZMatElastoPlastic<T,TMEM>::VariableIndex(const std::string &name) const
     if(!strcmp("FailureType",name.c_str()))             return TPZMatElastoPlastic<T,TMEM>::EFailureType;
     if(!strcmp("DamageVariable",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>:: EDamageVar;
     if(!strcmp("Exact",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EEXACT;
+    if(!strcmp("EBodyForce",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EBodyForce;
+    if(!strcmp("EOrder",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EOrder;
     PZError << "TPZMatElastoPlastic<T,TMEM>:: VariableIndex Error\n";
     return TPZMatElastoPlastic<T,TMEM>::ENone;
 }
@@ -212,6 +214,8 @@ int TPZMatElastoPlastic<T,TMEM>::NSolutionVariables(int var) const
     if(var == TPZMatElastoPlastic<T,TMEM>::EFailureType) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EEXACT) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EDamageVar) return 1;
+    if(var == TPZMatElastoPlastic<T,TMEM>::EBodyForce) return 1;
+    if(var == TPZMatElastoPlastic<T,TMEM>::EOrder) return 1;
     if(var == 100) return 1;
     return TBase::NSolutionVariables(var);
 }
@@ -475,6 +479,18 @@ void TPZMatElastoPlastic<T, TMEM>::Solution(const TPZMaterialDataT<STATE> &data,
             TPZVec<STATE> uh(2);
             Solout[0] = data.sol[0][0];
             Solout[1] = data.sol[1][0];
+        }
+        break;
+        case TPZMatElastoPlastic<T, TMEM>::EBodyForce:
+        {
+            Solout.Resize(1);
+            Solout[0] = m_force[1];
+        }
+        break;
+        case TPZMatElastoPlastic<T, TMEM>::EOrder:
+        {
+            Solout.Resize(1);
+            Solout[0] = data.p;
         }
         break;
         default:
@@ -833,8 +849,8 @@ void TPZMatElastoPlastic<T,TMEM>::ComputeDeltaStrainVector(const TPZMaterialData
     DeltaStrain(_XX_,0) = DSolXYZ(0,0);
     DeltaStrain(_YY_,0) = DSolXYZ(1,1);
     DeltaStrain(_ZZ_,0) = DSolXYZ(2,2);
-    DeltaStrain(_XY_,0) = ( DSolXYZ(1,0) + DSolXYZ(0,1) );
-    DeltaStrain(_XZ_,0) =( DSolXYZ(2,0) + DSolXYZ(0,2) );
+    DeltaStrain(_XY_,0) =( DSolXYZ(1,0) + DSolXYZ(0,1) );
+    DeltaStrain(_XZ_,0) = ( DSolXYZ(2,0) + DSolXYZ(0,2) );
     DeltaStrain(_YZ_,0) = ( DSolXYZ(2,1) + DSolXYZ(1,2) );
 }
 
@@ -1165,6 +1181,7 @@ void TPZMatElastoPlastic<T,TMEM>::FillDataRequirements(TPZMaterialData &data) co
 template <class T, class TMEM>
 void TPZMatElastoPlastic<T,TMEM>::FillBoundaryConditionDataRequirements(int type,TPZMaterialData &data) const
 {
+    TBase::FillDataRequirements(data);
     data.fNeedsSol = true;
     data.fNeedsNormal = true;
 }

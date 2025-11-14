@@ -212,8 +212,8 @@ virtual int ClassId() const override;
 			Bu(1, iv) = dNdy;
 
 			// exy (tensorial)
-			Bu(2, iu) =   dNdy;
-			Bu(2, iv) =   dNdx;
+			Bu(2, iu) =  dNdy;
+			Bu(2, iv) =  dNdx;
 
 		}
 	}

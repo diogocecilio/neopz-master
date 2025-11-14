@@ -100,9 +100,9 @@ void TPZElasticResponse::InverseDe(TPZFMatrix<STATE> & DeMat) const {
     DeMat(_ZZ_, _XX_) = -nu;     DeMat(_ZZ_, _YY_) = -nu;     DeMat(_ZZ_, _ZZ_) = 1.;
 
 
-    DeMat(_XY_, _XY_) =2.*(1.+nu);
-    DeMat(_XZ_, _XZ_) =2.*(1.+nu);
-    DeMat(_YZ_, _YZ_) =2.*(1.+nu);
+    DeMat(_XY_, _XY_) =2*(1.+nu);
+    DeMat(_XZ_, _XZ_) =2*(1.+nu);
+    DeMat(_YZ_, _YZ_) =2*(1.+nu);
 
     DeMat *= factor;
 }

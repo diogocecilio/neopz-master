@@ -116,10 +116,10 @@ bool TPZYCMohrCoulombPV2::ComputeLambdaSigmaMainPlane(TPZManVector<STATE,3> &sig
     STATE sp2=sigpr[1];
     STATE sp3=sigpr[2];
 
-    if((sp1 >= sp2 || fabs(sp1 - sp2) < 1.e-12) && (sp2 >= sp3 || fabs(sp2 - sp3) < 1.e-12)){
+    if((sp1 > sp2 || IsZero(sp1 - sp2)) && (sp2 > sp3 || IsZero(sp2 - sp3))){
         return true;
     }else{
-       return false;
+        return false;
     }
 }
 
@@ -162,7 +162,7 @@ bool TPZYCMohrCoulombPV2::ComputeLambdaSigmaLeft(TPZManVector<STATE,3> &sigtr,ST
     STATE sp2=sigpr[1];
     STATE sp3=sigpr[2];
 
-    if((sp1 >= sp2 || fabs(sp1 - sp2) < 1.e-12) && (sp2 >= sp3 || fabs(sp2 - sp3) < 1.e-12)){
+    if((sp1 > sp2 || IsZero(sp1 - sp2)) && (sp2 > sp3 || IsZero(sp2 - sp3))){
         return true;
     }else{
         return false;
@@ -214,7 +214,7 @@ bool TPZYCMohrCoulombPV2::ComputeLambdaSigmaRigth(TPZManVector<STATE,3> &sigtr,S
     STATE sp2=sigpr[1];
     STATE sp3=sigpr[2];
 
-    if((sp1 >= sp2 || fabs(sp1 - sp2) < 1.e-12) && (sp2 >= sp3 || fabs(sp2 - sp3) < 1.e-12)){
+    if((sp1 > sp2 || IsZero(sp1 - sp2)) && (sp2 > sp3 || IsZero(sp2 - sp3))){
         return true;
     }else{
         return false;
@@ -268,7 +268,7 @@ STATE TPZYCMohrCoulombPV2::ProjectSigma(TPZManVector<STATE,3> &sigtr,STATE &alph
 
 
     m_type=1;
-    bool check=ComputeLambdaSigmaMainPlane(sigtr,alphan1,dlambda,sigpr,epstr,Grad3x3,alphan1);
+    bool check=ComputeLambdaSigmaMainPlane(sigtr,alphan,dlambda,sigpr,epstr,Grad3x3,alphan1);
 
     if(check)
     {
@@ -278,23 +278,24 @@ STATE TPZYCMohrCoulombPV2::ProjectSigma(TPZManVector<STATE,3> &sigtr,STATE &alph
 
     if(valcheck>0)
     {
-        check=ComputeLambdaSigmaRigth(sigtr,alphan1,dlambda,sigpr,epstr,Grad3x3,alphan1);
-
+        //std::cout<< "Rigth"<<std::endl;
+        check=ComputeLambdaSigmaRigth(sigtr,alphan,dlambda,sigpr,epstr,Grad3x3,alphan1);
+        //std::cout<< "Depois do Rigth"<<std::endl;
         if(check)
         {
             return check;
         }
 
     }else{
-        check=ComputeLambdaSigmaLeft(sigtr,alphan1,dlambda,sigpr,epstr,Grad3x3,alphan1);
+
+        check=ComputeLambdaSigmaLeft(sigtr,alphan,dlambda,sigpr,epstr,Grad3x3,alphan1);
         if(check)
         {
             return check;
         }
-
-        check= ReturnMapApex(sigtr,alphan1,dlambda,sigpr,epstr,Grad3x3,alphan1);
-        return check;
     }
+    check= ReturnMapApex(sigtr,alphan,dlambda,sigpr,epstr,Grad3x3,alphan1);
+    return check;
 
 }
 

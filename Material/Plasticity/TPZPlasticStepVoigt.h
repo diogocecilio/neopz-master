@@ -149,7 +149,37 @@ public:
         return Base;
 
     }
+    TPZFNMatrix<9> EBasis(int k) const
+    {
+        TPZFNMatrix<9>Base;
+        switch (k) {
+            case _XX_:
+                Base={{1., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+                break;
+            case _XY_:
+                Base={{0., 1., 0.}, {1., 0., 0.}, {0., 0., 0.}};
+                break;
+            case _XZ_:
+                Base={{0., 0., 1.}, {0., 0., 0.}, {1., 0., 0.}};
+                break;
+            case _YY_:
+                Base={{0., 0., 0.}, {0., 1., 0.}, {0., 0., 0.}};
+                break;
+            case _YZ_:
+                Base={{0., 0., 0.}, {0., 0., 1.}, {0., 1., 0.}};
+                break;
+            case _ZZ_:
+                Base={{0., 0., 0.}, {0., 0., 0.}, {0., 0., 1.}};
+                break;
 
+            default:
+                DebugStop();
+                break; // Optional for the last case/default
+        }
+
+        return Base;
+
+    }
     TPZFNMatrix<6> FormCartToVoigt(TPZFNMatrix<9> cart)const
     {
         if(cart.Rows()!=3||cart.Cols()!=3)

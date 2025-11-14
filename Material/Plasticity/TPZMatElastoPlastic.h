@@ -278,14 +278,14 @@ inline void BuildBN(const TPZFMatrix<STATE>& dphiXYZ, const TPZFMatrix<STATE>& p
         B(_YY_, iv) = dNdy;// eyy = dv/dy
         B(_ZZ_, iw) = dNdz;// ezz = dw/dz
 
-        B(_XY_, iu) = dNdy;
-        B(_XY_, iv) = dNdx; // gxy = du/dy + dv/dx
+        B(_XY_, iu) =dNdy;
+        B(_XY_, iv) =dNdx; // gxy = du/dy + dv/dx
 
-        B(_XZ_, iu) = dNdz;
-        B(_XZ_, iw) = dNdx; // gxz = du/dz + dw/dx
+        B(_XZ_, iu) =dNdz;
+        B(_XZ_, iw) =dNdx; // gxz = du/dz + dw/dx
 
-        B(_YZ_, iv) = dNdz;
-        B(_YZ_, iw) = dNdy; // gyz = dv/dz + dw/dy
+        B(_YZ_, iv) =dNdz;
+        B(_YZ_, iw) =dNdy; // gyz = dv/dz + dw/dy
 
 
     }
@@ -325,7 +325,9 @@ inline void BuildBN(const TPZFMatrix<STATE>& dphiXYZ, const TPZFMatrix<STATE>& p
         EEPY=27,
         EEPZT=28,
         EEEZ=29,
-        EDamageVar=30
+        EDamageVar=30,
+        EBodyForce=31,
+        EOrder=32
     };
     /// Ponteiro para solução exata (para pós-processamento)
     void (*fExactSolution)(const TPZVec<REAL> &x, TPZVec<STATE> &u,
