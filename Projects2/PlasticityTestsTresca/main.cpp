@@ -65,7 +65,7 @@
 // #include "TPZGeoTriangle.h"  // se tiver triângulos
 // #include "TPZGeoLinear.h"    // se tiver elementos 1D
 #include "Plasticity/TPZYCVonMisesVoigt.h"
-
+#include "Plasticity/TPZYCTrescaVoigt.h"
 #include "pzfstrmatrix.h"
 
 #include "pzgeotetrahedra.h"
@@ -89,20 +89,17 @@ using std::cout; using std::endl;
 #ifdef PZ_LOG
 static TPZLogger logger_plasticity("PlasticityTests");
 #endif
+void ApplyLoad2(TPZCompMesh* cmesh,TPZManVector<REAL> factors,int loaddir,int indexbc,std::string vtkfile);
 
-typedef TPZPlasticStep<TPZYCVonMises, TPZElasticResponse,TPZThermoForceA> TPlasticStepVM;
-
-//typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> TPlasticStepMCPV;
-typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> TPlasticStepMCPV;
+typedef TPZPlasticStepVoigt<TPZYCTrescaVoigt, TPZElasticResponse> TPlasticStepVoigtTresca;
 
 typedef TPZPlasticStepVoigt<TPZYCVonMisesVoigt, TPZElasticResponse> TPlasticStepVoigtVM;
 
-typedef TPZMatElastoPlastic2D<TPlasticStepVM,TPZElastoPlasticMem> TMatElastoPlaticVM;
+typedef TPZMatElastoPlastic2D<TPlasticStepVoigtTresca,TPZElastoPlasticMem> TMatElastoPlaticVoigtTresca;
 
 typedef TPZMatElastoPlastic2D<TPlasticStepVoigtVM,TPZElastoPlasticMem> TMatElastoPlaticVoigtVM;
 
-typedef TPZMatElastoPlastic<TPlasticStepVoigtVM,TPZElastoPlasticMem> TMatElastoPlaticVoigtVM3D;
-REAL UxAtNode2D(TPZCompMesh* cmesh, REAL x, REAL y);
+REAL UxAtNode2D(TPZCompMesh* cmesh, REAL x, REAL y,int dir);
 void ApplyLoad(TPZCompMesh* cmesh,TPZManVector<REAL> factors,int loaddir,int indexbc,std::string vtkfile);
 
 void PostElastoplastic(TPZCompMesh* cmesh,const std::string& vtkfile,int matid,int step,int dim);
@@ -122,37 +119,7 @@ REAL IterativeProcessArcLength(TPZElastoPlasticAnalysis &an,
                                STATE lambda0,
                                STATE L0,
                                std::string vtkfile);
-struct MechParamsVonMises{
-    // --- parâmetros mecânicos (SI) ---
-    STATE young   = 210;//GPa
-    STATE nu      = 0.30;
 
-    STATE sigmay = 0.24;//GPa
-    STATE H0=0.;
-
-    // --- carregamentos volumétricos (peso próprio) ---
-    STATE fx = 0.0;
-    STATE fy =0.;
-    int dim = 3;
-    TPZManVector<STATE,3> BodyForce = {0.0, 0.0, 0.0};
-};
-
-struct BoundaryIndexes {
-    // --- parâmetros mecânicos ---
-public:
-    int bcbottom=-1;
-    int bctop=-2;
-    int bcright=-3;
-    int bcback=-4;
-    int bcleft=-5;
-    int bcfront=-6;
-    int bcnode0=-7;//{b2,0.,0.}
-    int bcnode1=-8;//{b2,b1,0.}
-    int bcnode2=-9;//{0.,b1,0}
-    int bcnode3=-10;//{0.,0.,0.}
-    int bcnode4=-11;//{b2,0.,h}
-
-};
 struct IndexesCylinder {
     // --- parâmetros mecânicos ---
 public:
@@ -163,125 +130,6 @@ public:
     int bctop=-4;
 
 };
-
-
-TPZGeoMesh* CubeMesh()
-{
-
-    STATE b1=0.5,b2=0.5,h=1.;
-    REAL co[8][3] = {{b2,0.,0.},{b2,b1,0.},{0.,b1,0},{0.,0.,0.},
-                     {b2,0.,h},{b2,b1,h},{0.,b1,h},{0.,0.,h}};
-    long indices[1][8] = {{0,1,2,3,4,5,6,7}};
-    TPZGeoEl *elvec[1];
-    TPZGeoMesh *gmesh = new TPZGeoMesh();
-    gmesh->SetDimension ( 3 );
-    long nnode = 8;
-    long nod;
-    for ( nod=0; nod<nnode; nod++ )
-    {
-        long nodind = gmesh->NodeVec().AllocateNewElement();
-        TPZVec<REAL> coord ( 3 );
-        coord[0] = co[nod][0];
-        coord[1] = co[nod][1];
-        coord[2] = co[nod][2];
-        gmesh->NodeVec() [nodind] = TPZGeoNode ( nod,coord,*gmesh );
-    }
-
-    long el;
-    long nelem = 1;
-    long index=0;
-    for ( el=0; el<nelem; el++ )
-    {
-        TPZVec<long> nodind ( nnode );
-        for ( nod=0; nod<nnode; nod++ ) nodind[nod]=indices[el][nod];
-        //    elvec[el] = new TPZGeoElQ2d(el,nodind,1);
-
-        elvec[el] = gmesh->CreateGeoElement ( ECube,nodind,1,index );
-    }
-
-    TPZVec <long> TopoQuad ( 4 );
-
-    BoundaryIndexes bcindexes;
-
-
-    index++;
-    TopoQuad[0] = 0;
-    TopoQuad[1] = 1;
-    TopoQuad[2] = 2;
-    TopoQuad[3] = 3;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoQuad> ( index, TopoQuad, bcindexes.bcbottom, *gmesh );
-
-    index++;
-    TopoQuad[0] = 4;
-    TopoQuad[1] = 5;
-    TopoQuad[2] = 6;
-    TopoQuad[3] = 7;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoQuad> ( index, TopoQuad, bcindexes.bctop, *gmesh );
-
-    index++;
-    TopoQuad[0] = 1;
-    TopoQuad[1] = 2;
-    TopoQuad[2] = 6;
-    TopoQuad[3] = 5;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoQuad> ( index, TopoQuad, bcindexes.bcright, *gmesh );
-
-    index++;
-    TopoQuad[0] = 3;
-    TopoQuad[1] = 2;
-    TopoQuad[2] = 6;
-    TopoQuad[3] = 7;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoQuad> ( index, TopoQuad, bcindexes.bcback, *gmesh );
-
-    index++;
-    TopoQuad[0] = 3;
-    TopoQuad[1] = 7;
-    TopoQuad[2] = 4;
-    TopoQuad[3] = 0;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoQuad> ( index, TopoQuad, bcindexes.bcleft, *gmesh );
-
-    index++;
-    TopoQuad[0] = 0;
-    TopoQuad[1] = 1;
-    TopoQuad[2] = 5;
-    TopoQuad[3] = 4;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoQuad> ( index, TopoQuad, bcindexes.bcfront, *gmesh );
-
-    TPZVec <long> TopoNode ( 1 );
-    index++;
-    TopoNode[0]=0;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoPoint> ( index, TopoNode, bcindexes.bcnode0, *gmesh );
-    index++;
-    TopoNode[0]=1;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoPoint> ( index, TopoNode, bcindexes.bcnode1, *gmesh );
-    index++;
-    TopoNode[0]=2;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoPoint> ( index, TopoNode, bcindexes.bcnode2, *gmesh );
-    index++;
-    TopoNode[0]=3;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoPoint> ( index, TopoNode, bcindexes.bcnode3, *gmesh );
-    index++;
-    TopoNode[0]=4;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoPoint> ( index, TopoNode, bcindexes.bcnode4, *gmesh );
-    gmesh->BuildConnectivity();
-
-    cout << "c" << endl;
-    for ( int d = 0; d<2; d++ )
-    {
-        int nel = gmesh->NElements();
-        TPZManVector<TPZGeoEl *> subels;
-        for ( int iel = 0; iel<nel; iel++ )
-        {
-            TPZGeoEl *gel = gmesh->ElementVec() [iel];
-            gel->Divide ( subels );
-        }
-    }
-    // gmesh->BuildConnectivity();
-    std::ofstream files ( "teste-mesh.vtk" );
-    TPZVTKGeoMesh::PrintGMeshVTK ( gmesh,files,false );
-    cout << "d" << endl;
-    return gmesh;
-
-}
 
 TPZGeoMesh* PressurizedCylinderMesh()
 {
@@ -373,24 +221,24 @@ TPZGeoMesh* PressurizedCylinderMesh()
 
 static TPZCompMesh* CompMeshCyl(TPZGeoMesh* gmesh)
 {
-    MechParamsVonMises param;
+
     auto *mphys = new TPZCompMesh(gmesh);
     mphys->SetDimModel(2);
     mphys->SetAllCreateFunctionsContinuousWithMem();
     mphys->SetDefaultOrder(2);
-    auto mat = new TMatElastoPlaticVoigtVM(1);
+    auto mat = new TMatElastoPlaticVoigtTresca(1);
 
 
      TPZElasticResponse ER;
      ER.SetEngineeringData(210,0.3);
 
-     TPZYCVonMisesVoigt vmyc;
+     TPZYCTrescaVoigt vmyc;
      const STATE sigmaY0 = 0.240;
      const STATE Hiso    = 0.;
      vmyc.SetUp(sigmaY0,Hiso,ER);
 
 
-     TPlasticStepVoigtVM PlasticStepVoigt;
+     TPlasticStepVoigtTresca PlasticStepVoigt;
 
 
 
@@ -428,75 +276,6 @@ static TPZCompMesh* CompMeshCyl(TPZGeoMesh* gmesh)
     //mphys->Print(cout);
     return mphys;
 }
-static TPZCompMesh* CompMeshCube(TPZGeoMesh* gmesh)
-{
-    MechParamsVonMises param;
-    auto *mphys = new TPZCompMesh(gmesh);
-    mphys->SetDimModel(3);
-    mphys->SetAllCreateFunctionsContinuousWithMem();
-    mphys->SetDefaultOrder(2);
-    auto mat = new TMatElastoPlaticVoigtVM3D(1);
-
-
-    TPZElasticResponse ER;
-    ER.SetEngineeringData(200000., 0.0);
-    TPZYCVonMisesVoigt vmyc;
-
-    const STATE sigmaY0 = 200.0;
-    const STATE Hiso    = 10000.;
-    vmyc.SetUp(sigmaY0,Hiso,ER);
-
-    TPlasticStepVoigtVM PlasticStepVoigt;
-
-
-    PlasticStepVoigt.SetPlasticCriterion(vmyc);
-    PlasticStepVoigt.SetElasticResponse(ER);
-
-
-    PlasticStepVoigt.Print(std::cout);
-
-    mat->SetPlasticityModel(PlasticStepVoigt);
-    mat->SetId(1);
-    mphys->InsertMaterialObject(mat);//0
-    //mat->Print(std::cout);
-
-    TPZFMatrix<STATE> v1(3,3,0.);
-    TPZManVector<STATE,3> v2(3,0.);
-    int dirdirichlet=3,pressure=5,newmann=1;
-
-    BoundaryIndexes bcindexes;
-    v2[0]=0.;
-    v2[1]=0.;
-    v2[2]=1.;
-    mphys->InsertMaterialObject(mat->CreateBC(mat,bcindexes.bcbottom , dirdirichlet, v1, v2));
-
-    v2[0]=1.;
-    v2[1]=0.;
-    v2[2]=0.;
-    mphys->InsertMaterialObject(mat->CreateBC(mat,bcindexes.bcfront , dirdirichlet, v1, v2));
-
-    v2[0]=0.;
-    v2[1]=1.;
-    v2[2]=0.;
-    mphys->InsertMaterialObject(mat->CreateBC(mat,bcindexes.bcright, dirdirichlet, v1, v2));
-
-    v2[0]=0.;
-    v2[1]=0.;
-    v2[2]=0;
-    mphys->InsertMaterialObject(mat->CreateBC(mat,bcindexes.bctop , newmann, v1, v2));
-/*
-    v2[0]=0.;
-    v2[1]=0.;
-    v2[2]=0.;
-    mphys->InsertMaterialObject(mat->CreateBC(mat,bcindexes.bctop , 0, v1, v2));*/
-
-
-    mphys->AutoBuild();
-    mphys->AdjustBoundaryElements();
-    mphys->CleanUpUnconnectedNodes();
-    //mphys->Print(cout);
-    return mphys;
-}
 
 
 void SolveCyl()
@@ -513,17 +292,10 @@ void SolveCyl()
     an.SetSolver(direct);
     int itersout;
 
-    // int nloads = 10;
-    // const REAL FS_target = 1. ;          //
-    // TPZManVector<REAL> factors(nloads+1);   // 0 .. nloads (inclusivo)
-    // for (int i =0; i <= nloads; ++i) {
-    //     factors[i] = FS_target * REAL(i) / REAL(nloads); // 0, Δ, 2Δ, …, FS_target
-    //     cout<< factors[i] <<endl;
-    // }
     IndexesCylinder cylindexes;
     int loaddir=0;//direcao da pressao
     //TPZManVector<REAL,11> factors={-100.,-140.,-180.,-190.,-192.};
-    TPZManVector<REAL,11> factors={-0.1,-0.14,-0.18,-0.19,-0.192};
+    TPZManVector<REAL,11> factors={-0.1,-0.14,-0.15,-0.16,-0.165,-0.17};
     //factors*=-1;
     std::string namevtk="cylinder.vtk";
     ApplyLoad( cmesh,factors,loaddir,cylindexes.bcinner,namevtk);
@@ -587,7 +359,7 @@ void ApplyLoad(TPZCompMesh* cmesh,TPZManVector<REAL> factors,int loaddir,int ind
         bool ok = anal.NewtonRaphson();
        //bool ok = anal.IterativeProcess(std::cout, 1.e-6,100, true, false, iters_out);
 
-        ux+= UxAtNode2D(cmesh, 100.,0);
+        ux+= UxAtNode2D(cmesh, 100.,0,0);
         std::cout <<"ux = "<< ux <<"\n";
         TPZFMatrix<REAL> tempsol=anal.Solution();
         bcmat->Val2()[loaddir]=0;
@@ -602,156 +374,401 @@ void ApplyLoad(TPZCompMesh* cmesh,TPZManVector<REAL> factors,int loaddir,int ind
     }
 
 }
-void SolveCube()
-{
-    auto gmesh = CubeMesh();
-    auto cmesh = CompMeshCube(gmesh);
+#include <fstream>
+#include <sstream>
+#include <unordered_map>
+#include <vector>
+#include <string>
+#include <algorithm>
 
-
-
-    TPZElastoPlasticAnalysis an(cmesh, std::cout,TPZElastoPlasticAnalysis::ELineSearch::Armijo);
-
-    TPZFStructMatrix<STATE> str(cmesh);
-    an.SetStructuralMatrix(str);
-    TPZStepSolver<REAL> direct;
-    direct.SetDirect(ELU);
-    an.SetSolver(direct);
-
-    //TPZManVector<REAL> factors={0,-0.0005,-0.0005,-0.0005,-0.0005,-0.0001,0,0,0,0.001,0.001,0.001};
-
-    BoundaryIndexes cubeindexes;
-    int loaddir=2;
-    int nsteps=100;
-    int nloadcicles=3;
-    STATE bccondval=-200.;
-    STATE lambda0=0.0001;
-    STATE L0=0.0003;
-    std::string vtkfile="cubeal2.vtk";
-
-    //IterativeProcessArcLength(an,cmesh, loaddir, cubeindexes.bctop,vtkfile);
-
-    IterativeProcessArcLength(an,loaddir,cubeindexes.bctop,nsteps,nloadcicles,bccondval,lambda0,L0,vtkfile);
-
-    //IterativeProcessArcLength(an ,cmesh, loaddir, cubeindexes.bctop,vtkfile);
-   // TPZManVector<REAL> factors={-0.001};
-   // TPZManVector<REAL> factors={0,-0.0005,-0.001,-0.002,0};
-    TPZManVector<REAL> factors={100,200,201};
-    std::string namevtk="block.vtk";
-    ApplyLoad( cmesh,factors,loaddir,cubeindexes.bctop,namevtk);
+// --- structs simples para armazenar o que lemos ---
+struct NodeRec { double x=0,y=0,z=0; };
+struct Line2  { long n1, n2; };
+struct Quad4  { long n1, n2, n3, n4; };
+struct Tri3 {long n1,n2,n3;};
+static inline std::string trim(const std::string& s){
+    size_t a = s.find_first_not_of(" \t\r\n");
+    size_t b = s.find_last_not_of(" \t\r\n");
+    return (a==std::string::npos)?std::string():s.substr(a,b-a+1);
 }
-int main()
+#include <unordered_map>
+#include <unordered_set>
+#include <cstdint>
+TPZGeoMesh* ReadGiDMesh(const std::string& filename,
+                              int mat2D = 1,   // matid para elementos 2D
+                              int mat1D = -1)  // matid para elementos 1D (bordas)
 {
-    //const std::string configfile = "/home/diogo/projects/neopz-master-build-debug/Util/log4cxx.cfg";
-    //TPZLogger::InitializePZLOG(configfile);
+    std::ifstream in(filename);
+    if(!in){
+        std::cerr << "Nao consegui abrir " << filename << "\n";
+        return nullptr;
+    }
 
-    //SolveCyl();
+    std::unordered_map<long, NodeRec> nodes;
+    std::vector<Line2> lines;
+    std::vector<Quad4> quads;
+    std::vector<Tri3>  tris;   // <<< NOVO: triângulos
 
-    SolveCube();
-//     TPZElasticResponse ER; ER.SetEngineeringData(young, poisson);
-//
-//     TPlasticMC mc;
-//     mc.fYC.SetUp(atrito, atrito, coes, ER);
-//     mc.fER = ER;
-//     mc.SetStrengthReductionFactor(1.0);
+    std::string line;
+    while (std::getline(in, line)) {
+        line = trim(line);
+        if (line.rfind("MESH", 0) != 0) continue;
 
-    std::cout << "HELLO WORLD"<<std::endl;
+        // Ex.: MESH dimension 3 ElemType Linear Nnode 2
+        std::stringstream ss(line);
+        std::string tok, elemType=""; int nnode=0;
+        ss >> tok;                 // MESH
+        // podemos ignorar "dimension ..."
+        while (ss >> tok) {
+            if (tok == "ElemType") { ss >> elemType; }
+            if (tok == "Nnode")    { ss >> nnode;    }
+        }
+
+        // ---- Coordinates (pode estar vazio em blocos seguintes) ----
+        while (std::getline(in, line) && trim(line) != "Coordinates") { /* pula */ }
+        if (trim(line) == "Coordinates") {
+            while (std::getline(in, line)) {
+                line = trim(line);
+                if (line == "End Coordinates") break;
+                if (line.empty()) continue;
+                std::stringstream cs(line);
+                long id; double x,y,z;
+                if (cs >> id >> x >> y >> z) {
+                    // guarda ou sobrescreve (se repetiu bloco com mesmo id)
+                    nodes[id] = {x,y,z};
+                }
+            }
+        }
+
+        // ---- Elements ----
+        while (std::getline(in, line) && trim(line) != "Elements") { /* pula */ }
+        if (trim(line) != "Elements") break;
+
+        while (std::getline(in, line)) {
+            line = trim(line);
+            if (line == "End Elements") break;
+            if (line.empty()) continue;
+            std::stringstream es(line);
+            long eid; es >> eid;
+
+            if (elemType == "Linear" && nnode == 2) {
+                long a,b; es >> a >> b;
+                lines.push_back({a,b});
+
+            } else if (elemType == "Quadrilateral" && nnode == 4) {
+                long a,b,c,d; es >> a >> b >> c >> d;
+                quads.push_back({a,b,c,d});
+
+            } else if (elemType == "Triangle" && nnode == 3) {   // <<< NOVO
+                long a,b,c; es >> a >> b >> c;
+                tris.push_back({a,b,c});
+
+            } else {
+                // tipos não usados neste exemplo: ignore
+            }
+        }
+    }
+
+    if (nodes.empty()) {
+        std::cerr << "Arquivo nao possui bloco Coordinates valido.\n";
+        return nullptr;
+    }
+
+    // --- reindexa nós (ids do arquivo) para 0..N-1 ---
+    std::vector<long> ids; ids.reserve(nodes.size());
+    for (auto &kv : nodes) ids.push_back(kv.first);
+    std::sort(ids.begin(), ids.end());
+    std::unordered_map<long,long> mapId2Idx; mapId2Idx.reserve(ids.size());
+    for (size_t i=0;i<ids.size();++i) mapId2Idx[ids[i]] = (long)i;
+
+    // --- cria TPZGeoMesh ---
+    TPZGeoMesh* gmesh = new TPZGeoMesh();
+    gmesh->SetDimension(2);
+    gmesh->NodeVec().Resize(ids.size());
+
+    for (size_t i=0;i<ids.size();++i){
+        TPZVec<REAL> xc(3,0.);
+        auto &nr = nodes[ids[i]];
+        xc[0]=nr.x; xc[1]=nr.y; xc[2]=nr.z;
+        gmesh->NodeVec()[i] = TPZGeoNode((long)i, xc, *gmesh);
+    }
+
+    long gelid = 0;
+    TPZVec<long> topol2(2), topol3(3), topol4(4);
+
+    // 2D quads
+    for (const auto &q : quads){
+        topol4[0]=mapId2Idx[q.n1];
+        topol4[1]=mapId2Idx[q.n2];
+        topol4[2]=mapId2Idx[q.n3];
+        topol4[3]=mapId2Idx[q.n4];
+        new TPZGeoElRefPattern<pzgeom::TPZGeoQuad>(gelid++, topol4, mat2D, *gmesh);
+    }
+
+    // 2D triângulos  <<< NOVO
+    for (const auto &t : tris){
+        topol3[0]=mapId2Idx[t.n1];
+        topol3[1]=mapId2Idx[t.n2];
+        topol3[2]=mapId2Idx[t.n3];
+        new TPZGeoElRefPattern<pzgeom::TPZGeoTriangle>(gelid++, topol3, mat2D, *gmesh);
+    }
+
+    // chave canônica (aresta não orientada) para (a,b) com a<b
+    auto edge_key = [](long a, long b) -> uint64_t {
+        if (a > b) std::swap(a, b);
+        return ( (uint64_t)a << 32 ) | (uint32_t)b;
+    };
+
+    // conta incidência de arestas em elementos 2D
+    std::unordered_map<uint64_t,int> edge_count;
+
+    // QUADs
+    for (const auto &q : quads) {
+        long a = mapId2Idx[q.n1], b = mapId2Idx[q.n2];
+        long c = mapId2Idx[q.n3], d = mapId2Idx[q.n4];
+        edge_count[edge_key(a,b)]++;
+        edge_count[edge_key(b,c)]++;
+        edge_count[edge_key(c,d)]++;
+        edge_count[edge_key(d,a)]++;
+    }
+
+    // TRIs  <<< NOVO
+    for (const auto &t : tris) {
+        long a = mapId2Idx[t.n1], b = mapId2Idx[t.n2], c = mapId2Idx[t.n3];
+        edge_count[edge_key(a,b)]++;
+        edge_count[edge_key(b,c)]++;
+        edge_count[edge_key(c,a)]++;
+    }
+
+    // conjunto de arestas de fronteira = arestas que aparecem 1 vez
+    std::unordered_set<uint64_t> boundary_edges;
+    for (const auto &kv : edge_count) {
+        if (kv.second == 1) boundary_edges.insert(kv.first);
+    }
+
+    // 1D lines (bordas) — criar SOMENTE se for aresta de fronteira
+    for (const auto &e : lines) {
+        long a = mapId2Idx[e.n1];
+        long b = mapId2Idx[e.n2];
+
+        // pule arestas internas (compartilhadas por 2 elementos 2D)
+        if (!boundary_edges.count(edge_key(a,b))) continue;
+
+        TPZManVector<REAL,3> X0(3,0.), X1(3,0.);
+        gmesh->NodeVec()[a].GetCoordinates(X0);
+        gmesh->NodeVec()[b].GetCoordinates(X1);
+
+        const REAL tol = 1e-8;
+        const REAL Lx  = 5.0; // x da direita
+        const REAL H   = 5.0; // y do topo
+
+        auto on = [&](REAL v, REAL val){ return std::abs(v - val) <= tol; };
+        auto in_left_open = [&](REAL x){ return (x >= 0.0 - tol) && (x < 0.5001 - tol); };
+
+        int bcid = mat1D; // default
+
+        if (on(X0[0], 0.0) && on(X1[0], 0.0)) {
+            bcid = -1;                                  // esquerda (x=0)
+        } else if (on(X0[1], 0.0) && on(X1[1], 0.0)) {
+            bcid = -2;                                  // baixo (y=0)
+        } else if (on(X0[0], Lx) && on(X1[0], Lx)) {
+            bcid = -3;                                  // direita (x=5)
+        } else if (on(X0[1], H) && on(X1[1], H) &&
+                   in_left_open(X0[0]) && in_left_open(X1[0])) {
+            bcid = -4;                                  // topo com 0 ≤ x < 0.5
+        }
+
+        TPZVec<long> topol2(2); topol2[0]=a; topol2[1]=b;
+        new TPZGeoElRefPattern<pzgeom::TPZGeoLinear>(gelid++, topol2, bcid, *gmesh);
+        // if(bcid==-2)
+        // {
+        //     new TPZGeoElRefPattern<pzgeom::TPZGeoLinear>(gelid++, topol2, 1, *gmesh);
+        // }
+    }
+
+    gmesh->BuildConnectivity();
+    for (int d = 0; d < 1; d++) {
+        int nel = gmesh->NElements();
+        TPZManVector<TPZGeoEl*> sub;
+        for (int iel = 0; iel < nel; iel++) {
+            gmesh->ElementVec()[iel]->Divide(sub);
+        }
+    }
+    // opcional: exporta para conferir
+    std::ofstream vtk("gmesh_gid_simple.vtk");
+    TPZVTKGeoMesh::PrintGMeshVTK(gmesh, vtk, true);
+
+    return gmesh;
+}
+
+
+TPZCompMesh* CreateCMeshFoot(TPZGeoMesh* gmesh, int pOrder)
+{
+    TPZCompMesh* cmesh = new TPZCompMesh(gmesh);
+    cmesh->SetDefaultOrder(pOrder);
+    cmesh->SetDimModel(2);
+
+    auto mat = new TMatElastoPlaticVoigtTresca(1);
+   // auto mat = new TMatElastoPlaticVoigtVM(1);
+
 
     TPZElasticResponse ER;
-    ER.SetEngineeringData(200000., 0.3);
-    TPZYCVonMisesVoigt vmyc;
+    ER.SetEngineeringData(0.1e8,0.48);
 
-    const STATE sigmaY0 = 200.0;
+    TPZYCTrescaVoigt vmyc;
+   // TPZYCVonMisesVoigt vmyc;
+    const STATE sigmaY0 = 848.7;
     const STATE Hiso    = 0.;
     vmyc.SetUp(sigmaY0,Hiso,ER);
 
-    TPlasticStepVoigtVM PlasticStepVoigt;
+
+    //TPlasticStepVoigtVM PlasticStepVoigt;
+    TPlasticStepVoigtTresca PlasticStepVoigt;
 
 
     PlasticStepVoigt.SetPlasticCriterion(vmyc);
     PlasticStepVoigt.SetElasticResponse(ER);
-    PlasticStepVoigt.Print(std::cout);
-    //
-    //
-    PlasticStepVoigt.Print(std::cout);
-    TPZFMatrix<REAL> Dep(6,6,0.);
-    TPZTensor<STATE> epst;
-    TPZTensor<STATE> sigma;
-    TPZManVector<STATE,6> epstm={0.09687316080701325, 0.08984556978428876, 0.07714716252632703, -0.06426431991284204, 0.031356231215853736, 0.004103411206898777};
-    TPZManVector<STATE,6> epsp={0.0074516806769507, 0.00768296692638031, 0.00739833729141289,0.0024049416177378876, 0.006042120585204784, 0.0010419124338917809};
-    //TPZPlasticState ps;
-    for(int i=0;i<6;i++)PlasticStepVoigt.fN.EpsP()[i]=epsp[i];
-    for(int i=0;i<6;i++)epst[i]=epstm[i];
-
-    PlasticStepVoigt.ApplyStrainComputeSigma(epst,sigma,&Dep);
-    std::cout << sigma <<std::endl;
-    Dep.Print("Dep");
-
-    // TPlasticStepMCPV mc;
-    // TPZElasticResponse ER;
-    // ER.SetEngineeringData(20000., 0.49);
-    // REAL atrito =20*M_PI/180.;
-    // REAL coes=50.;
-    // mc.fYC.SetUp(atrito, atrito, coes, ER);
-    // mc.SetElasticResponse(ER);
-    // mc.fER = ER;
-    // mc.SetStrengthReductionFactor(1.0);
-    // TPZTensor<STATE> epst;
-    // TPZTensor<STATE> sigma;
-    // TPZFMatrix<REAL> Dep(6,6,0.);
-    //
-    //
-    // epst.XX()=3.6157562487484481e-2;
-    // epst.XY()=0.5*2.5111726131341262e-2;
-    // epst.YY()=-2.5800526093809846e-2;
-    // mc.ApplyStrainComputeSigma(epst,sigma,&Dep);
-    //
-    // std::cout << sigma <<std::endl;
-    // Dep.Print("Dep");
 
 
-    // epst.XX()=2.1153582845979804e-2;
-    // epst.XY()=-0.5*3.2774022989690031e-2;
-    // epst.YY()=-6.1244636739267791e-3;
-    // TPZManVector<STATE,6> epsp={0.00632887, 0.00515244/2, 0.00591324/2, 0.00434136, 0.00354462/2, 0.00232864};
-    // TPZManVector<STATE,6> epstm={0.0123779, 0.0859467/2, -0.0368489/2, -0.0200774, 0.0872019/2, 0.044763};
-    // for(int i=0;i<6;i++)mc.fN.EpsP()[i]=epsp[i];
-    // for(int i=0;i<6;i++)epst[i]=epstm[i];
-    // mc.ApplyStrainComputeSigma(epst,sigma,&Dep);
-    //
-    // TPZFMatrix<STATE> Ce;
-    // mc.fER.De(Ce);
-    // Ce.Print("Ce");
-    // std::cout << sigma <<std::endl;
-    // Dep.Print("Dep");
+
+    mat->SetPlasticityModel(PlasticStepVoigt);
+    mat->SetId(1);
+
+    cmesh->InsertMaterialObject(mat);
+
+    TPZFMatrix<STATE> val1(2,2,0.0);
+    TPZManVector<STATE,2> val2(2,0.0);
+
+    int dir = 3;
+    val2[0]=1;
+    val2[1]=0;
+    auto* bc0 = mat->CreateBC(mat, -1, dir, val1, val2);
+    val2[0]=0;
+    val2[1]=1;
+    auto* bc1 = mat->CreateBC(mat, -2, dir, val1, val2);
+    val2[0]=1;
+    val2[1]=0;
+    auto* bc2 = mat->CreateBC(mat, -3, dir, val1, val2);
+    // val2[0]=0;
+    // val2[1]=0;
+    // auto* bc4 = mat->CreateBC(mat, -4, 0, val1, val2);
+    val2[0]=0;
+    val2[1]=0;
+    auto* bc4 = mat->CreateBC(mat, -4, 1, val1, val2);
+
+    cmesh->InsertMaterialObject(bc0);
+    cmesh->InsertMaterialObject(bc1);
+    cmesh->InsertMaterialObject(bc2);
+    cmesh->InsertMaterialObject(bc4);
+
+    cmesh->SetAllCreateFunctionsContinuousWithMem();
+    cmesh->AutoBuild();
+    cmesh->AdjustBoundaryElements();
+    cmesh->CleanUpUnconnectedNodes();
+    return cmesh;
+}
+
+void SolveFoot()
+{
+    TPZGeoMesh* gmesh = ReadGiDMesh("/home/diogo/projects/neopz-master/Projects2/PlasticityTestsTresca/art2.msh", /*mat2D=*/1, /*mat1D=*/-1);
+    auto cmesh= CreateCMeshFoot(gmesh,2);
+
+    IndexesCylinder cylindexes;
+    int loaddir=1;//direcao da pressao
+    TPZManVector<REAL,11> factors={0, -490, -500,-600, -700,-800,-900,-1000,-1100,-1150,-1200,-1210,-1220,-1225};
+    // TPZManVector<REAL,14> factors={0., -0.0000666667, -0.000133333, -0.0002, -0.000266667, \
+    //     -0.000333333, -0.0004, -0.000466667, -0.000533333, -0.0006, \
+    //     -0.000666667, -0.000733333, -0.0008, -0.000866667, -0.000933333, \
+    //     -0.001, -0.00106667, -0.00113333, -0.0012, -0.00126667, -0.00133333, \
+    //     -0.0014, -0.00146667, -0.00153333, -0.0016, -0.00166667, -0.00173333, \
+    //     -0.0018, -0.00186667, -0.00193333, -0.002};
+
+    //factors*=-1;
+    std::string namevtk="foot.vtk";
+    int indexfoot=-4;
+    ApplyLoad2( cmesh,factors,loaddir,indexfoot,namevtk);
+}
 
 
-    // TPlasticStepMCPV mc2;
-    // TPZElasticResponse ER2;
-    // ER2.SetEngineeringData(10e6, 0.48);
-    // REAL atrito2 =20*M_PI/180.;
-    // REAL coes2=490.;
-    // mc2.fYC.SetUp(atrito2, atrito2, coes2, ER2);
-    // mc2.SetElasticResponse(ER2);
-    // mc2.fER = ER2;
-    // mc2.SetStrengthReductionFactor(1.0);
-    // TPZTensor<STATE> epst2;
-    // TPZTensor<STATE> sigma2;
-    // TPZFMatrix<REAL> Dep2(6,6,0.);
-    //
-    // // epsttr = {-7.1436465404952029 10^-5, (3.7632073167565092) 10^-4,
-    // //     0, -5.4913608546659984 10^-5, 0, 1.1423294530637051 10^-4};
-    //
-    // epst2.XX()=-7.1436465404952029e-5;
-    // epst2.XY()=0.5*3.7632073167565092e-4;
-    // epst2.YY()=-5.4913608546659984e-5;
-    // epst2.ZZ()=1.1423294530637051e-4;
-    // mc2.ApplyStrainComputeSigma(epst2,sigma2,&Dep2);
-    //
-    // TPZFMatrix<STATE> Ce2;
-    // mc2.fER.De(Ce2);
-    // Ce2.Print("Ce");
-    // std::cout << sigma2 <<std::endl;
-    // Dep2.Print("Dep2");
+
+
+void ApplyLoad2(TPZCompMesh* cmesh,TPZManVector<REAL> factors,int loaddir,int indexbc,std::string vtkfile)
+{
+    int dim=cmesh->Dimension();
+
+    cout << "dimensao da malha computacional = " << dim << endl;
+
+    // parâmetros de controle
+    int nloads = factors.size();
+
+    TPZElastoPlasticAnalysis anal(cmesh, std::cout,TPZElastoPlasticAnalysis::ELineSearch::Dicotomic);
+
+    auto* bcmat = dynamic_cast<TPZBndCondT<STATE>*>(cmesh->FindMaterial(indexbc));
+
+    if(!bcmat)
+    {
+        std::cout << "material do contorno nao encontrado"<<std::endl;
+        DebugStop();
+
+    }
+    const REAL load0=bcmat->Val2()[loaddir];
+    cout << " load0 = "<< load0 <<endl;
+    if(true)
+    {
+        TPZFStructMatrix<REAL> str(cmesh);
+        anal.SetStructuralMatrix(str);
+        TPZStepSolver<REAL> direct;
+        direct.SetDirect(ELU);
+        anal.SetSolver(direct);
+    }else{
+        TPZSkylineStructMatrix<STATE> matskl(cmesh);
+        matskl.SetNumThreads(16);
+        anal.SetStructuralMatrix(matskl);
+        TPZStepSolver<STATE> step; step.SetDirect(ELDLt);
+        anal.SetSolver(step);
+    }
+
+    const std::string csv_path = "loadsweep.csv";
+    std::ofstream csv(csv_path);
+    csv << "step,factor,uy,iters,ok\n";
+    csv << std::setprecision(15) << std::scientific;
+
+    REAL ux=0.;
+    int matid=1;
+    for(int i =0;i< nloads;i++)
+    {
+
+        //bcmat->Val2()[loaddir]=load0*factors[i];
+        bcmat->Val2()[loaddir]=factors[i];
+        cout << "Load step =" << i<<" factor =  "<<factors[i] <<endl;
+        int iters_out;
+
+        REAL resf,resuu;
+       //bool ok = anal.NewtonRaphson();
+        bool ok = anal.IterativeProcess(std::cout, 1.e-6,100, true, false, iters_out);
+
+       // ux+= UxAtNode2D(cmesh, 0.,5,1);
+        std::cout <<"ux = "<< ux <<"\n";
+        TPZFMatrix<REAL> tempsol=anal.Solution();
+        bcmat->Val2()[loaddir]=0;
+        anal.AcceptSolution(1);
+
+        // cmesh->LoadSolution(anal.CumulativeSolution());
+        PostElastoplastic(cmesh,vtkfile,matid,i,dim);
+
+        //tempsol.Zero();
+        //cmesh->LoadSolution(tempsol);
+        //anal.LoadSolution();
+    }
+
+}
+
+int main()
+{
+    //const std::string configfile = "/home/diogo/projects/neopz-master-build-debug/Util/log4cxx.cfg";
+    //TPZLogger::InitializePZLOG(configfile);
+    SolveFoot();
+    //SolveCyl();
 
     return 0;
 }
@@ -798,7 +815,7 @@ void PostElastoplastic(TPZCompMesh* cmesh,const std::string& vtkfile,int matid,i
     pproc.SetStep(step);
     pproc.PostProcess(0);
 }
-REAL UxAtNode2D(TPZCompMesh* cmesh, REAL x, REAL y)
+REAL UxAtNode2D(TPZCompMesh* cmesh, REAL x, REAL y,int dir)
 {
     cmesh->LoadReferences();
     auto* gmesh = cmesh->Reference();
@@ -836,7 +853,7 @@ REAL UxAtNode2D(TPZCompMesh* cmesh, REAL x, REAL y)
     TPZFMatrix<REAL> sol = cmesh->Solution();
 
 
-    return sol(pos,0);
+    return sol(pos+dir,0);
 }
 REAL UyAtNode3D(TPZCompMesh* cmesh, REAL x, REAL y,REAL z)
 {

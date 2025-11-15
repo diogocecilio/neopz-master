@@ -8,7 +8,7 @@
 // */
 
 #include "TPZMatElastoPlastic2D_impl.h"
-
+#include "TPZYCTrescaVoigt.h"
 #include "TPZBndCond.h"
 #include "TPZLadeKim.h"
 #include "TPZSandlerDimaggio.h"
@@ -82,5 +82,7 @@ template class TPZRestoreClassWithTranslator<TPZMatElastoPlastic2D<TPZPlasticSte
 template class TPZMatElastoPlastic2D<TPZElasticCriterion , TPZElastoPlasticMem>;
 template class TPZMatElastoPlastic2D<TPZElasticCriterion , TPZPoroElastoPlasticMem>;
 #include "TPZPlasticStepVoigt.h"
+
 template class TPZMatElastoPlastic2D<TPZPlasticStepVoigt<TPZYCVonMisesVoigt, TPZElasticResponse>,TPZElastoPlasticMem>;
+template class TPZMatElastoPlastic2D<TPZPlasticStepVoigt<TPZYCTrescaVoigt, TPZElasticResponse>,TPZElastoPlasticMem>;
 template class TPZMatElastoPlastic2D<TPZPlasticStepVoigt<TPZYCMohrCoulombPV2, TPZElasticResponse>,TPZElastoPlasticMem>;

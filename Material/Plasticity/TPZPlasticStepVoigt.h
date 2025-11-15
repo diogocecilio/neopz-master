@@ -7,6 +7,7 @@
 #include <memory>
 #include "TPZYCVonMisesVoigt.h"
 #include "TPZYCMohrCoulombPV2.h"
+#include "TPZYCTrescaVoigt.h"
 #include "TPZElasticResponse.h"
 /// Classe constitutiva elasto-plástica em Voigt (3D) [11,12,13,22,23,33],
 /// com critério de escoamento genérico YC e resposta elástica ER,

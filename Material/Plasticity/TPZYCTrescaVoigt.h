@@ -1,7 +1,7 @@
 
 
-#ifndef TPZYCVONMISESVoigt_H
-#define TPZYCVONMISESVoigt_H
+#ifndef TPZYCTRESCAVoigt_H
+#define TPZYCTRESCAVoigt_H
 
 #include "pzlog.h"
 #include "TPZTensor.h"
@@ -10,11 +10,9 @@
 #include "TPZElasticResponse.h"
 #include "TPZPlasticCriterion.h"
 #include "TPZHWTools.h"
-#ifdef PZ_LOG
-static TPZLogger loggerVonMIsesVoigt("pz.plasticity.vonmisespv");
-#endif
 
-class TPZYCVonMisesVoigt : public TPZPlasticCriterion {
+
+class TPZYCTrescaVoigt : public TPZPlasticCriterion {
 private:
     STATE fSigmaY0 = 0.0;
     STATE fH0 = 0.0;
@@ -27,9 +25,9 @@ public:
         NYield = 1
     };
 
-    TPZYCVonMisesVoigt();
+    TPZYCTrescaVoigt();
 
-    TPZYCVonMisesVoigt(const TPZYCVonMisesVoigt &cp);
+    TPZYCTrescaVoigt(const TPZYCTrescaVoigt &cp);
 
     virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )override;
 
@@ -57,7 +55,11 @@ public:
     STATE ProjectSigma(TPZManVector<STATE,3> &sigtr,STATE &alphan,TPZManVector<STATE,2> &dlambda,TPZManVector<STATE,3> &sigpr,TPZManVector<STATE,3> &epstr,TPZFNMatrix<9> &Grad3x3,STATE &alphan1,int & m_type);
 
 
+    bool ComputeLambdaSigmaMainPlane(TPZManVector<STATE,3> &sigtr,STATE &alphan,TPZManVector<STATE,2> &dlambda,TPZManVector<STATE,3> &sigpr,TPZManVector<STATE,3> &epstr,TPZFNMatrix<9> &Grad3x3,STATE &alphan1);
 
+    bool ComputeLambdaSigmaLeft(TPZManVector<STATE,3> &sigtr,STATE &alphan,TPZManVector<STATE,2> &dlambda,TPZManVector<STATE,3> &sigpr,TPZManVector<STATE,3> &epstr,TPZFNMatrix<9> &Grad3x3,STATE &alphan1);
+
+    bool ComputeLambdaSigmaRigth(TPZManVector<STATE,3> &sigtr,STATE &alphan,TPZManVector<STATE,2> &dlambda,TPZManVector<STATE,3> &sigpr,TPZManVector<STATE,3> &epstr,TPZFNMatrix<9> &Grad3x3,STATE &alphan1);
     // STATE ComputeGamma(const TPZTensor<STATE>sig, const TPZFMatrix<STATE> elasticmat)const;
 
     void SetHardening(STATE H)      { fH0 = H; }

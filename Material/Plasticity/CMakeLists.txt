@@ -64,6 +64,7 @@ set(headers
     TPZYCVonMisesVoigt.h
     TPZPlasticStepVoigt.h
     TPZYCMohrCoulombPV2.h
+    TPZYCTrescaVoigt.h
     )
 
 set(sources
@@ -114,6 +115,7 @@ set(sources
     TPZYCVonMisesVoigt.cpp
     TPZPlasticStepVoigt.cpp
     TPZYCMohrCoulombPV2.cpp
+    TPZYCTrescaVoigt.cpp
     )
 
 set(PZ_FIX_PLASTIC_TRANSLATORS OFF)
@@ -144,6 +146,7 @@ if(PZ_FIX_PLASTIC_TRANSLATORS)
         TPZYCVonMisesVoigt.h
         TPZPlasticStepVoigt.h
         TPZYCMohrCoulombPV2.h
+        TPZYCTrescaVoigt.h
         )
 
     list(APPEND sources
@@ -171,6 +174,7 @@ if(PZ_FIX_PLASTIC_TRANSLATORS)
         TPZYCVonMisesVoigt.cpp
         TPZPlasticStepVoigt.cpp
         TPZYCMohrCoulombPV2.cpp
+        TPZYCTrescaVoigt.cpp
         )
 endif()
 

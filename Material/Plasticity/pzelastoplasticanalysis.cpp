@@ -205,8 +205,8 @@ bool TPZElastoPlasticAnalysis::NewtonRaphson()
     TPZFMatrix<STATE> x(Solution()), dx(Solution());
     x.Zero(); dx.Zero();
 
-    const REAL tol   = 1.e-1;
-    const int  n_it  = 10;
+    const REAL tol   = 1.e-3;
+    const int  n_it  = 30;
     const REAL EPS   = 1.e-30;
 
     //std::cout << "AssembleResidual.."   <<endl;

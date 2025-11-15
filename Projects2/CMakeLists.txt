@@ -35,4 +35,6 @@ add_subdirectory(PlasticityTests)
 
 add_subdirectory(PlasticityTestsVonMises)
 
+add_subdirectory(PlasticityTestsTresca)
+
 add_subdirectory(PlasticityTestsMohrCoulomb)

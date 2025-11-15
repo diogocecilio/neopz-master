@@ -150,7 +150,7 @@ void TPZPlasticStepVoigt<YC,ER>::ApplyStrainComputeSigma(const TPZTensor<REAL>& 
 
     fER.ComputeStress(eps_e_trial,sigtrtensor);
 
-   // std::cout<< "strial = " << sigtrtensor << std::endl;
+   //std::cout<< "strial = " << sigtrtensor << std::endl;
 
     TPZFMatrix<STATE> Cmat;
     fER.De(Cmat);
@@ -357,56 +357,6 @@ void TPZPlasticStepVoigt<YC,ER>::ConsistentTangent(TPZManVector<STATE,3>& sigtri
 
 
 
-template<class YC, class ER>
-void TPZPlasticStepVoigt<YC,ER>::ConsistentTangent(const TPZTensor<STATE>& sigmatr,const TPZTensor<STATE>& sigmapr,STATE gamma, TPZFMatrix<STATE>& Dep) const
-{
-
-    TPZTensor<STATE> Nvec = fYC.ComputeN(sigmapr);
-
-
-    TPZFMatrix<STATE> dadsig = fYC.GetNdSigma(sigmapr); // 6x6 na sua ordem
-
-    TPZFMatrix<REAL>  Ce,invCe;
-    fER.De(Ce) ;
-    // Ce(_XY_,_XY_)/=2.;
-    // Ce(_XZ_,_XZ_)/=2.;
-    // Ce(_YZ_,_YZ_)/=2.;
-
-    //Q=(IdentityMatrix[6]+gamma Ce . dadsigg);
-
-    TPZFMatrix<STATE> Cedadsig,Q(6,6,0.),Qinv,R;
-    Q.Identity();
-    Ce.Multiply(dadsig,Cedadsig);
-    //Cedadsig.Print("Cedadsig");
-    Cedadsig*=gamma;
-    Q+=Cedadsig;
-
-    Q.Inverse(Qinv,ELU);
-
-    Qinv.Multiply(Ce,R);
-
-    TPZFMatrix<STATE> Noriginal(6,1,0.),RN,RNt,temp,tempreal;
-
-    Nvec.CopyTo(Noriginal);
-
-    R.Multiply(Noriginal,RN);
-
-    RN.Transpose(&RNt);
-
-    RN.Multiply(RNt,temp);
-
-    RNt.Multiply(Noriginal,tempreal);
-
-    temp*=1./(tempreal(0,0)+fYC.DSigmaYDepsbar(fN.m_hardening));
-
-    Dep=R;
-
-    Dep-=temp;
-
-   // Dep= R-1/(asol . R . asol) Outer[Times,R . asol,R . asol];
-
-}
-
 
 // --- ComputeDep: stub (mesma ideia, Dep zerada) ---
 template<class YC,class ER>
@@ -514,3 +464,4 @@ TPZTensor<STATE> TPZPlasticStepVoigt<YC,ER>::FromFMatToTensor(TPZFMatrix<STATE> 
 
 template class TPZPlasticStepVoigt<TPZYCMohrCoulombPV2, TPZElasticResponse>;
 template class TPZPlasticStepVoigt<TPZYCVonMisesVoigt, TPZElasticResponse>;
+template class TPZPlasticStepVoigt<TPZYCTrescaVoigt, TPZElasticResponse>;
