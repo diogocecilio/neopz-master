@@ -77,14 +77,56 @@ void TPZDarcyFlow::ContributeBC(const TPZMaterialDataT<STATE> &data, STATE weigh
                 ef(in, 0) += v2 * (STATE) (phi(in, 0) * weight);
             }
             break;
-        case 2 : // Robin condition
-            for (in = 0; in < phi.Rows(); in++) {
-                ef(in, 0) += v2 * (STATE) (phi(in, 0) * weight);
-                for (jn = 0; jn < phi.Rows(); jn++) {
-                    ek(in, jn) += bc.Val1()(0, 0) * (STATE) (phi(in, 0) * phi(jn, 0) * weight);
+        // case 2 : // Robin condition
+        //     for (in = 0; in < phi.Rows(); in++) {
+        //         ef(in, 0) += v2 * (STATE) (phi(in, 0) * weight);
+        //         for (jn = 0; jn < phi.Rows(); jn++) {
+        //             ek(in, jn) += bc.Val1()(0, 0) * (STATE) (phi(in, 0) * phi(jn, 0) * weight);
+        //         }
+        //     }
+        //     break;
+        case 10: // fallthrough
+        case 2:
+        {
+            const STATE big = 1.e12;
+            const auto &phi = data.phi; // pressão escalar
+            const int nP = phi.Rows();
+            const TPZVec<STATE>& V2 = bc.Val2();
+            const STATE pD = (V2.NElements()>2) ? V2[2] : (V2.NElements()>0 ? V2[0] : 0.);
+
+            for (int i=0;i<nP;i++){
+                ef(i,0) += big * pD * phi(i,0) * weight;
+                for (int j=0;j<nP;j++){
+                    ek(i,j) += big * phi(i,0) * phi(j,0) * weight;
                 }
             }
-            break;
+        } break;
+
+        // 3: Neumann (fluxo normal) em p: RHS
+        case 3:
+        {
+            const auto &phi = data.phi; const int nP = phi.Rows();
+            const TPZVec<STATE>& V2 = bc.Val2();
+            const STATE qn = (V2.NElements()>0) ? V2[0] : 0.;
+            for (int i=0;i<nP;++i){
+                ef(i,0) += qn * phi(i,0) * weight;
+            }
+        } break;
+
+        // 5: Robin: β(p - pD)
+        case 5:
+        {
+            const auto &phi = data.phi; const int nP = phi.Rows();
+            STATE beta = 0.; if (bc.Val1().Rows()>0 && bc.Val1().Cols()>0) beta = bc.Val1()(0,0);
+            const TPZVec<STATE>& V2 = bc.Val2();
+            const STATE pD = (V2.NElements()>2) ? V2[2] : (V2.NElements()>0 ? V2[0] : 0.);
+            for (int i=0;i<nP;++i){
+                ef(i,0) += beta * pD * phi(i,0) * weight;
+                for (int j=0;j<nP;++j){
+                    ek(i,j) += beta * phi(i,0) * phi(j,0) * weight;
+                }
+            }
+        } break;
         default:
             PZError << __PRETTY_FUNCTION__
                     << "\nBoundary condition type not implemented. Please use one of the following:\n"

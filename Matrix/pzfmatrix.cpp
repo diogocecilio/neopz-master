@@ -204,6 +204,15 @@ void TPZFMatrix<TVar>::CopyFrom(const TPZMatrix<TVar> *mat)
         }
     }
 }
+template<class TVar>
+void TPZFMatrix<TVar>::CopyFrom(const TPZManVector<TVar>   vec)
+{
+    const auto r = vec.size();
+    this->Resize(r,1);
+    for(auto i = 0 ;i < r;i++){
+            this->PutVal(i,0,vec[i]);
+    }
+}
 
 template< class TVar >
 void TPZFMatrix<TVar>::InitializeEqualFromList (const std::initializer_list< std::initializer_list<TVar> >& list){

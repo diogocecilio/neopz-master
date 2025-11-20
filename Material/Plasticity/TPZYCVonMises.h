@@ -56,7 +56,20 @@ virtual int ClassId() const override;
 	{
 		// nothing to be done in this yield criterium
 	}
-	
+
+	virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )
+    {
+
+    }
+	    virtual TPZPlasticState<REAL> GetLocalMatState (  )
+	{
+		DebugStop();
+	}
+		virtual void ChangeLocalMatParameters( TPZPlasticState<REAL> & state ,REAL factor)override
+	{
+		DebugStop();
+	}
+
     /**
     Calculo do criterio de plastificacao 
     @param[in] sigma tensao atual

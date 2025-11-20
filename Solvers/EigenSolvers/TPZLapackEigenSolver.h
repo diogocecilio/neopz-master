@@ -95,7 +95,7 @@ public:
      @return Returns info param from LAPACK(0 if executed correctly)
    */
   [[nodiscard]] int SolveHessenbergEigenProblem(TPZFMatrix<TVar> &A, TPZVec<CTVar> &w);
-protected:
+public:
   /*******************
    *    TPZFMATRIX    *
    *******************/

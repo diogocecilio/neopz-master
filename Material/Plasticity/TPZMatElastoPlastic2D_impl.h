@@ -123,36 +123,6 @@ void TPZMatElastoPlastic2D<T, TMEM>::Contribute(const TPZMaterialDataT<STATE> &d
         this->ApplyDeltaStrainComputeDep(data, DeltaStrain, Stress, Dep);
     }
     
-#ifdef MACOS
-    feclearexcept(FE_ALL_EXCEPT);
-    if (fetestexcept(/*FE_DIVBYZERO*/ FE_ALL_EXCEPT)) {
-        std::cout << "division by zero reported\n";
-        DebugStop();
-    }
-#endif
-    
-#ifdef PZ_LOG
-    if (elastoplastic2dLogger.isDebugEnabled()) {
-        std::stringstream sout;
-        sout << ">>> TPZMatElastoPlastic<T,TMEM>::Contribute ***";
-        sout << "\nIntegration Local Point index = " << data.intGlobPtIndex;
-        sout << "\nIntegration Global Point index = " << data.intGlobPtIndex;
-        sout << "\ndata.axes = " << data.axes;
-        sout << "\nDep " << '\n';
-        sout << Dep(_XX_, _XX_) << "\t" << Dep(_XX_, _YY_) << "\t" << Dep(_XX_, _XY_) << "\n";
-        sout << Dep(_YY_, _XX_) << "\t" << Dep(_YY_, _YY_) << "\t" << Dep(_YY_, _XY_) << "\n";
-        sout << Dep(_XY_, _XX_) << "\t" << Dep(_XY_, _YY_) << "\t" << Dep(_XY_, _XY_) << "\n";
-        
-        sout << "\nStress " << '\n';
-        sout << Stress(_XX_, 0) << "\t" << Stress(_YY_, 0) << "\t" << Stress(_XY_, 0) << "\n";
-        
-        sout << "\nDELTA STRAIN \n";
-        sout << DeltaStrain(0, 0) << "\t" << DeltaStrain(1, 0) << "\t" << DeltaStrain(2, 0) << "\n";
-        sout << "data.phi" << data.phi;
-        
-        LOGPZ_DEBUG(elastoplastic2dLogger, sout.str().c_str());
-    }
-#endif
     ptindex = 0;
     int nstate = NStateVariables();
     REAL val;
@@ -162,102 +132,110 @@ void TPZMatElastoPlastic2D<T, TMEM>::Contribute(const TPZMaterialDataT<STATE> &d
         this->fForcingFunction(data.x, ForceLoc);
     }
 
-//     int in;
-//     for (in = 0; in < phr; in++) {
-//
-//         val = ForceLoc[0] * phi(in, 0);
-//         val -= Stress(_XX_, 0) * dphiXY(0, in);
-//         val -= Stress(_XY_, 0) * dphiXY(1, in);
-//         ef(in * nstate + 0, 0) += weight * val;
-//
-//         val = ForceLoc[1] * phi(in, 0);
-//         val -= Stress(_XY_, 0) * dphiXY(0, in);
-//         val -= Stress(_YY_, 0) * dphiXY(1, in);
-//         ef(in * nstate + 1, 0) += weight * val;
-    REAL fac= this->ffactor;
-    int in;
-	for(in = 0; in < phr; in++)
-	{
+    TPZFMatrix<STATE> flocal(2,1,0.);
+    flocal(0,0)=ForceLoc[0];
+    flocal(1,0)=ForceLoc[1];
 
-
-		if(this->fwhichinternalforce == 0)
-        {
-          val  =fac*((ForceLoc[0]) * phi(in,0));
-          val -= Stress(_XX_,0) * dphiXY(0,in);
-          val -= Stress(_XY_,0) * dphiXY(1,in);
-          ef(in*nstate+0,0) += weight * val;
-
-          val  = fac*((ForceLoc[1]) * phi(in,0));
-          val -= Stress(_XY_,0) * dphiXY(0,in);
-          val -= Stress(_YY_,0) * dphiXY(1,in);
-          ef(in*nstate+1,0) += weight * val;
-        }
-        if(this->fwhichinternalforce == 1)
-        {
-
-          val=0.;
-          val -= Stress(_XX_,0) * dphiXY(0,in);
-          val -= Stress(_XY_,0) * dphiXY(1,in);
-          ef(in*nstate+0,0) += weight * val;
-
-
-          val=0.;
-          val -= Stress(_XY_,0) * dphiXY(0,in);
-          val -= Stress(_YY_,0) * dphiXY(1,in);
-          ef(in*nstate+1,0) += weight * val;
-        }
-        if(this->fwhichinternalforce == 2)
-        {
-          val  =fac*((ForceLoc[0]) * phi(in,0));
-          ef(in*nstate+0,0) += weight * val;
-          val  = fac*((ForceLoc[1]) * phi(in,0));
-          ef(in*nstate+1,0) += weight * val;
-        }
-        if(this->fwhichinternalforce ==3)
-        {
-          val  =0.;
-          ef(in*nstate+0,0) += weight * val;
-          val  = 0.;
-          ef(in*nstate+1,0) += weight * val;
-        }
-
-        for (int jn = 0; jn < phr; jn++) {
-            for (int ud = 0; ud < 2; ud++) {
-                for (int vd = 0; vd < 2; vd++) {
-                    Deriv(vd, ud) = dphiXY(vd, in) * dphiXY(ud, jn);
-                }
-            }
-            
-            val = 2. * Dep(_XX_, _XX_) * Deriv(0, 0); //dvdx*dudx
-            val += Dep(_XX_, _XY_) * Deriv(0, 1); //dvdx*dudy
-            val += 2. * Dep(_XY_, _XX_) * Deriv(1, 0); //dvdy*dudx
-            val += Dep(_XY_, _XY_) * Deriv(1, 1); //dvdy*dudy
-            val *= 0.5;
-            ek(in * nstate + 0, jn * nstate + 0) += weight * val;
-            
-            val = Dep(_XX_, _XY_) * Deriv(0, 0);
-            val += 2. * Dep(_XX_, _YY_) * Deriv(0, 1);
-            val += Dep(_XY_, _XY_) * Deriv(1, 0);
-            val += 2. * Dep(_XY_, _YY_) * Deriv(1, 1);
-            val *= 0.5;
-            ek(in * nstate + 0, jn * nstate + 1) += weight * val;
-            
-            val = 2. * Dep(_XY_, _XX_) * Deriv(0, 0);
-            val += Dep(_XY_, _XY_) * Deriv(0, 1);
-            val += 2. * Dep(_YY_, _XX_) * Deriv(1, 0);
-            val += Dep(_YY_, _XY_) * Deriv(1, 1);
-            val *= 0.5;
-            ek(in * nstate + 1, jn * nstate + 0) += weight * val;
-            
-            val = Dep(_XY_, _XY_) * Deriv(0, 0);
-            val += 2. * Dep(_XY_, _YY_) * Deriv(0, 1);
-            val += Dep(_YY_, _XY_) * Deriv(1, 0);
-            val += 2. * Dep(_YY_, _YY_) * Deriv(1, 1);
-            val *= 0.5;
-            ek(in * nstate + 1, jn * nstate + 1) += weight * val;
-        }
+    TPZFMatrix<STATE> NtPhi(2*phr, 2, 0.0);
+    for (int i=0; i<phr; ++i) {
+        NtPhi(nstate*i+0, 0) = phi(i,0);   // nó i, componente u
+        NtPhi(nstate*i+1, 1) = phi(i,0);   // nó i, componente v
     }
-    
+
+    TPZFNMatrix<9> Dep2D={
+    {Dep(_XX_, _XX_) , Dep(_XX_, _YY_) , Dep(_XX_, _XY_)},
+    { Dep(_YY_, _XX_) , Dep(_YY_, _YY_) ,Dep(_YY_, _XY_)},
+    {Dep(_XY_, _XX_) , Dep(_XY_, _YY_), Dep(_XY_, _XY_)}
+    };
+//     TPZFNMatrix<9> Dep2D = {
+//         {Dep(_XX_, _XX_) , Dep(_XX_, _YY_) , Dep(_XX_, _XY_)},
+//         {Dep(_YY_, _XX_) , Dep(_YY_, _YY_) , Dep(_YY_, _XY_)},
+//         {Dep(_XY_, _XX_) , Dep(_XY_, _YY_) , Dep(_XY_, _XY_)} // aqui é **G**
+//     };
+//
+//     TPZFMatrix<STATE> Stress2D(3,1,0.);
+//     Stress2D(0,0)=Stress(_XX_,0);
+//     Stress2D(1,0)=Stress(_YY_,0);
+//     Stress2D(2,0)=Stress(_XY_,0); // τ_xy (= σ_xy)
+     TPZFMatrix<STATE> Stress2D(3,1,0.);
+    Stress2D(0,0)=Stress(_XX_,0);
+    Stress2D(1,0)=Stress(_YY_,0);
+    Stress2D(2,0)=Stress(_XY_,0);
+
+    TPZFMatrix<STATE> B,Bt,temp,ektemp,fint1,fint2,phit;
+    BuildBu(dphiXY, B);
+
+    B.Transpose(&Bt);
+
+    phi.Transpose(&phit);
+
+    Bt.Multiply(Dep2D,temp);
+
+    temp.Multiply(B,ektemp);
+
+    ektemp*=weight;
+
+    ek+=ektemp;
+
+    Bt.Multiply(Stress2D,fint1);
+
+    NtPhi.Multiply(flocal,fint2);
+    fint2-=fint1;
+    // std::cout <<phi << std::endl;
+    // std::cout <<fint2 << std::endl;
+
+    ef+=fint2*weight;
+ //     int in;
+	// for(in = 0; in < phr; in++)
+	// {
+ //
+ //          val  =(ForceLoc[0]) * phi(in,0);
+ //          val -= Stress(_XX_,0) * dphiXY(0,in);
+ //          val -= Stress(_XY_,0) * dphiXY(1,in);
+ //          ef(in*nstate+0,0) += weight * val;
+ //
+ //          val  = (ForceLoc[1]) * phi(in,0);
+ //          val -= Stress(_XY_,0) * dphiXY(0,in);
+ //          val -= Stress(_YY_,0) * dphiXY(1,in);
+ //          ef(in*nstate+1,0) += weight * val;
+ //
+ //        for (int jn = 0; jn < phr; jn++) {
+ //            for (int ud = 0; ud < 2; ud++) {
+ //                for (int vd = 0; vd < 2; vd++) {
+ //                    Deriv(vd, ud) = dphiXY(vd, in) * dphiXY(ud, jn);
+ //                }
+ //            }
+ //
+ //            val = 2. * Dep(_XX_, _XX_) * Deriv(0, 0); //dvdx*dudx
+ //            val += Dep(_XX_, _XY_) * Deriv(0, 1); //dvdx*dudy
+ //            val += 2. * Dep(_XY_, _XX_) * Deriv(1, 0); //dvdy*dudx
+ //            val += Dep(_XY_, _XY_) * Deriv(1, 1); //dvdy*dudy
+ //            val *= 0.5;
+ //            ek(in * nstate + 0, jn * nstate + 0) += weight * val;
+ //
+ //            val = Dep(_XX_, _XY_) * Deriv(0, 0);
+ //            val +=  Dep(_XX_, _YY_) * Deriv(0, 1);
+ //            val += Dep(_XY_, _XY_) * Deriv(1, 0);
+ //            val +=  Dep(_XY_, _YY_) * Deriv(1, 1);
+ //            val *= 0.5;
+ //            ek(in * nstate + 0, jn * nstate + 1) += weight * val;
+ //
+ //            val = 2. * Dep(_XY_, _XX_) * Deriv(0, 0);
+ //            val += Dep(_XY_, _XY_) * Deriv(0, 1);
+ //            val += 2. * Dep(_YY_, _XX_) * Deriv(1, 0);
+ //            val += Dep(_YY_, _XY_) * Deriv(1, 1);
+ //            val *= 0.5;
+ //            ek(in * nstate + 1, jn * nstate + 0) += weight * val;
+ //
+ //            val = Dep(_XY_, _XY_) * Deriv(0, 0);
+ //            val += 2. * Dep(_XY_, _YY_) * Deriv(0, 1);
+ //            val += Dep(_YY_, _XY_) * Deriv(1, 0);
+ //            val += 2. * Dep(_YY_, _YY_) * Deriv(1, 1);
+ //            val *= 0.5;
+ //            ek(in * nstate + 1, jn * nstate + 1) += weight * val;
+ //        }
+ //    }
+//
 #ifdef PZ_LOG
     if (elastoplastic2dLogger.isDebugEnabled()) {
         std::stringstream sout;
@@ -332,73 +310,26 @@ void TPZMatElastoPlastic2D<T, TMEM>::Contribute(const TPZMaterialDataT<STATE> &d
     int nstate = NStateVariables();
     REAL val;
     
-    TPZManVector<STATE, 2> ForceLoc(nstate,0.0);
+    //TPZManVector<STATE, 2> ForceLoc(nstate,0.0);
+    TPZManVector<STATE,3> ForceLoc(this->m_force);
     if (this->fForcingFunction) {
         this->fForcingFunction(data.x, ForceLoc);
     }
-    
-//     int in;
-//     for (in = 0; in < phr; in++) {
-//         val = ForceLoc[0] * phi(in, 0);
-//         val -= Stress(_XX_, 0) * dphiXY(0, in);
-//         val -= Stress(_XY_, 0) * dphiXY(1, in);
-//         ef(in * nstate + 0, 0) += weight * val;
-//
-//         val = ForceLoc[1] * phi(in, 0);
-//         val -= Stress(_XY_, 0) * dphiXY(0, in);
-//         val -= Stress(_YY_, 0) * dphiXY(1, in);
-//         ef(in * nstate + 1, 0) += weight * val;
-//     }
+
 
     int in;
 	for(in = 0; in < phr; in++)
 	{
-		if(this->fwhichinternalforce == 0)
-        {
-          val  =this->ffactor*((ForceLoc[0]) * phi(in,0));
-          val -= Stress(_XX_,0) * dphiXY(0,in);
-          val -= Stress(_XY_,0) * dphiXY(1,in);
-          ef(in*nstate+0,0) += weight * val;
+        val  =((ForceLoc[0]) * phi(in,0));
+        val -= Stress(_XX_,0) * dphiXY(0,in);
+        val -= Stress(_XY_,0) * dphiXY(1,in);
+        ef(in*nstate+0,0) += weight * val;
 
-          val  = this->ffactor*((ForceLoc[1]) * phi(in,0));
-          val -= Stress(_XY_,0) * dphiXY(0,in);
-          val -= Stress(_YY_,0) * dphiXY(1,in);
-          ef(in*nstate+1,0) += weight * val;
-        }
-        if(this->fwhichinternalforce == 1)
-        {
-
-          val=0.;
-          val -= Stress(_XX_,0) * dphiXY(0,in);
-          val -= Stress(_XY_,0) * dphiXY(1,in);
-          ef(in*nstate+0,0) += weight * val;
-
-
-          val=0.;
-          val -= Stress(_XY_,0) * dphiXY(0,in);
-          val -= Stress(_YY_,0) * dphiXY(1,in);
-          ef(in*nstate+1,0) += weight * val;
-        }
-        if(this->fwhichinternalforce == 2)
-        {
-          val  =this->ffactor*((ForceLoc[0]) * phi(in,0));
-          ef(in*nstate+0,0) += weight * val;
-          val  = this->ffactor*((ForceLoc[1]) * phi(in,0));
-          ef(in*nstate+1,0) += weight * val;
-        }
-
-
-	}
-    
-    
-#ifdef PZ_LOG
-    if (elastoplastic2dLogger.isDebugEnabled()) {
-        std::stringstream sout;
-        sout << "<<< TPZMatElastoPlastic2D<T,TMEM>::Contribute ***";
-        sout << " Resultant rhs vector:\n" << ef;
-        LOGPZ_DEBUG(elastoplastic2dLogger, sout.str().c_str());
+        val  = ((ForceLoc[1]) * phi(in,0));
+        val -= Stress(_XY_,0) * dphiXY(0,in);
+        val -= Stress(_YY_,0) * dphiXY(1,in);
+        ef(in*nstate+1,0) += weight * val;
     }
-#endif
     
 }
 
@@ -460,25 +391,8 @@ void TPZMatElastoPlastic2D<T, TMEM>::ContributeBC(const TPZMaterialDataT<STATE> 
         case 1: // Neumann condition
             for (in = 0; in < phi.Rows(); in++) {
 
-//                 ef(nstate * in + 0, 0) += v2[0] * phi(in, 0) * weight;
-//                 ef(nstate * in + 1, 0) += v2[1] * phi(in, 0) * weight;
-//
-
-          if(this->fwhichinternalforce == 0)
-          {
-              ef(nstate*in+0,0) += (v2[0] * phi(in,0) * weight)*this->ffactor;
-              ef(nstate*in+1,0) += (v2[1] * phi(in,0) * weight)*this->ffactor;
-          }
-          if(this->fwhichinternalforce == 1)
-          {
-            ef(in*nstate+0,0) += 0;
-            ef(in*nstate+1,0) += 0;
-          }
-          if(this->fwhichinternalforce == 2)
-          {
-              ef(nstate*in+0,0) += (v2[0] * phi(in,0) * weight)*this->ffactor;
-              ef(nstate*in+1,0) += (v2[1] * phi(in,0) * weight)*this->ffactor;
-          }
+              ef(nstate*in+0,0) += (v2[0] * phi(in,0) * weight);
+              ef(nstate*in+1,0) += (v2[1] * phi(in,0) * weight);
             }
             break;
             
@@ -759,8 +673,14 @@ void TPZMatElastoPlastic2D<T,TMEM>::Solution(const TPZMaterialDataT<STATE> &data
     datalocal.dsol[0](2,2) = 0.;
     datalocal.dsol[0](0,2) = 0.;
     datalocal.dsol[0](1,2) = 0.;
+
     TPZMatElastoPlastic<T,TMEM>::Solution(datalocal,var,Solout);
-    
+
+
+
+
+
+
 }
 
 
@@ -775,7 +695,7 @@ void TPZMatElastoPlastic2D<T, TMEM>::ComputeDeltaStrainVector(const TPZMaterialD
     
     DeltaStrain(_XX_, 0) = DSolXYZ(0, 0);
     DeltaStrain(_YY_, 0) = DSolXYZ(1, 1);
-    DeltaStrain(_XY_, 0) = 0.5 * (DSolXYZ(1, 0) + DSolXYZ(0, 1));
+    DeltaStrain(_XY_, 0) = (DSolXYZ(1, 0) + DSolXYZ(0, 1));
     DeltaStrain(_XZ_, 0) = 0.;
     DeltaStrain(_YZ_, 0) = 0.;
     DeltaStrain(_ZZ_, 0) = 0.;

@@ -1,7 +1,3 @@
-/**
- * @file
- */
-
 #ifndef PZELASTOPLASTIC_H
 #define PZELASTOPLASTIC_H
 
@@ -28,7 +24,7 @@ class  TPZMatElastoPlastic : public TPZMatBase<STATE,
                              TPZMatWithMem<TMEM>,
                              TPZMatErrorSingleSpace<STATE>>;
 public:
-    
+
     /**
     * Default constructor
     */
@@ -220,22 +216,22 @@ public:
     * Sets the SetBulkDensity of the material
     */
     virtual void SetBulkDensity(const REAL & bulk);
-    
+
     /**
      * Sets the nonlinear elastic response (Porous Elastic Response PER) as predictor during elastoplastic process
      */
     virtual void SetPorousElasticity(TPZPorousElasticResponse & PER);
-    
+
     /**
      * Sets the plasticity model
      */
     void SetPlasticModel(T & plasticity_model);
-    
+
     /**
      * Gets the plasticity model
      */
     virtual T & GetPlasticModel();
-    
+
     /**
      * Gets the nonlinear elastic response (Porous Elastic Response PER) as predictor during elastoplastic process
      */
@@ -252,6 +248,50 @@ public:
      */
     void FillBoundaryConditionDataRequirements(int type,
                                               TPZMaterialData &data) const override;
+
+
+// Constrói B (6 x 3*phr) e N (3*phr x 3) para 3D, VOIGT (engenharia)
+// dphiXYZ: (3 x phr)  -> [dN/dx; dN/dy; dN/dz]
+// phi    : (phr x 1)
+// Saída:
+//   B: linhas = [exx, eyy, ezz, gxy, gxz, gyz]
+//   N: empilha blocos diag de phi para u,v,w
+inline void BuildBN(const TPZFMatrix<STATE>& dphiXYZ, const TPZFMatrix<STATE>& phi,TPZFMatrix<STATE>& B, TPZFMatrix<STATE>& N)
+{
+    const int phr = dphiXYZ.Cols();
+    B.Redim(6, 3*phr); B.Zero();
+    N.Redim(3*phr, 3); N.Zero();
+
+    for (int a=0; a<phr; ++a) {
+        const STATE Ni   = phi(a,0);
+        const STATE dNdx = dphiXYZ(0,a);
+        const STATE dNdy = dphiXYZ(1,a);
+        const STATE dNdz = dphiXYZ(2,a);
+
+        const int iu = 3*a, iv = 3*a+1, iw = 3*a+2;
+
+        // N
+        N(iu,0)=Ni; N(iv,1)=Ni; N(iw,2)=Ni;
+
+        // B (ordem: XX, XY, XZ, YY, YZ, ZZ) - engenharia (γ)
+        B(_XX_, iu) = dNdx;// exx = du/dx
+        B(_YY_, iv) = dNdy;// eyy = dv/dy
+        B(_ZZ_, iw) = dNdz;// ezz = dw/dz
+
+        B(_XY_, iu) =dNdy;
+        B(_XY_, iv) =dNdx; // gxy = du/dy + dv/dx
+
+        B(_XZ_, iu) =dNdz;
+        B(_XZ_, iw) =dNdx; // gxz = du/dz + dw/dx
+
+        B(_YZ_, iv) =dNdz;
+        B(_YZ_, iw) =dNdy; // gyz = dv/dz + dw/dy
+
+
+    }
+}
+
+
 
     enum ESolutionVar {
         ENone = -1,
@@ -276,43 +316,62 @@ public:
         EStrainElasticJ2    = 18,
         EStrainPlasticJ2    = 19,
         EFailureType    = 20,
+        EEXACT    = 21,
+        ESX=22,
+        ESY=23,
+        ESZ=24,
+        EEPZ=25,
+        EEPX=26,
+        EEPY=27,
+        EEPZT=28,
+        EEEZ=29,
+        EDamageVar=30,
+        EBodyForce=31,
+        EOrder=32,
+        EDisplacementDoFx = 33
     };
+    /// Ponteiro para solução exata (para pós-processamento)
+    void (*fExactSolution)(const TPZVec<REAL> &x, TPZVec<STATE> &u,
+                           TPZFMatrix<STATE> &du);
 
-    void SetBodyForce(TPZManVector<REAL, 3> Force)
+    /// Setter
+    void SetExactSolution(void (*fp)(const TPZVec<REAL> &x,
+                                     TPZVec<STATE> &u,
+                                     TPZFMatrix<STATE> &du))
     {
-			m_force = Force;
+        fExactSolution = fp;
     }
-    void SetLoadFactor(REAL factor)
+    void SetBodyForce(TPZManVector<REAL,3> fb)
     {
-			ffactor = factor;
+        m_force=fb;
     }
-    void SetWhichLoadVector(int option)
+    void SetBodyForce0(TPZManVector<REAL,3> fb)
     {
-        fwhichinternalforce = option;
+        m_force0=fb;
     }
-    T GetPlasticity()
+    TPZManVector<REAL,3>  GetBodyForce()
     {
-        return m_plasticity_model;
+        return m_force;
     }
+
+    TPZManVector<REAL,3>  GetBodyForce0()
+    {
+        return m_force0;
+    }
+
 protected:
-
-     REAL ffactor;
-
-
-	  //0 ef = (Bt sigma + (b + gradu))
-	  //1 ef = Bt sigma
-	  //2 ef = b + gradu
-	  int fwhichinternalforce;
 
     /**
     * gravity acceleration
     */
-    TPZManVector<REAL, 3> m_force;
+    TPZManVector<REAL, 3> m_force={0.,0.,0.};
 
+
+    TPZManVector<REAL, 3> m_force0={0.,0.,0.};
     /**
     * bulk density of rock
     */
-    REAL m_rho_bulk;
+    REAL m_rho_bulk=0.;
 
     /**
     * Post Processing direction
@@ -335,12 +394,12 @@ protected:
      * Directive that stands for the use of nonlinear elasticity
      */
     bool m_use_non_linear_elasticity_Q;
-    
+
     /**
      * Nonlinear elastic response (Porous Elastic Response PER)
      */
     TPZPorousElasticResponse m_PER;
-	
+
 };
 
 template <class T, class TMEM>

@@ -259,8 +259,9 @@ void TPZMatrix<TVar>::Print(const char *name, std::ostream& out,const MatrixOutp
     cout_state.copyfmt(out);
 
     typedef std::numeric_limits< RTVar > typlim;
-    out << std::setprecision(typlim::max_digits10);
+    //out << std::setprecision(typlim::max_digits10);
 
+    out << std::setprecision(5);
     const auto nrows = Rows();
     const auto ncols = Cols();
     

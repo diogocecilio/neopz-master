@@ -103,14 +103,37 @@ public:
         fc = c;
         fER = ER;
     }
-    void SetLocalMatState ( TPZPlasticState<REAL> & state )
+    virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )override
     {
+        //so associativo!
         //if ( fc<1.e-3 ) DebugStop();
         fc =   state.fmatprop[0];
         fPhi = state.fmatprop[1];
         fPsi = state.fmatprop[1];
-		//std::cout << "fc = "<< fc <<endl;
+		//std::cout << "fc = "<< fc <<std::endl;
     }
+
+    virtual TPZPlasticState<REAL> GetLocalMatState (  )override
+	{
+        TPZPlasticState<REAL> locstate;
+        locstate.fmatprop.Resize(3);
+        locstate.fmatprop[0]=fc;
+        locstate.fmatprop[1]=fPhi;
+        locstate.fmatprop[2]=fPsi;
+        DebugStop();
+        return locstate;
+//
+	}
+
+    virtual void ChangeLocalMatParameters( TPZPlasticState<REAL> & state ,REAL factor) override
+	{
+        REAL c0 =   state.fmatprop[0];
+        REAL Phi0 = state.fmatprop[1];
+        fc =  c0/factor;
+        fPhi = atan ( tan ( Phi0 ) /factor );
+        fPsi = fPhi;
+    }
+
     /**
      * @brief Operator =
      */

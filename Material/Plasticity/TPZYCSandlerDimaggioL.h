@@ -166,6 +166,18 @@ public:
 
 	static void TestSolveL();
 //////////////////Internal routines verification/////////////////
+	virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )override
+    {
+        DebugStop();
+    }
+        virtual TPZPlasticState<REAL> GetLocalMatState (  )override
+	{
+		DebugStop();
+	}
+		virtual void ChangeLocalMatParameters( TPZPlasticState<REAL> & state ,REAL factor)override
+	{
+		DebugStop();
+	}
 
 	static void McCormicRanchSand(TPZYCSandlerDimaggio & material);
 public:

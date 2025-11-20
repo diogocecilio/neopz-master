@@ -6,6 +6,7 @@ target_include_directories(pz PUBLIC
                            )
 #@TODO: check if these public headers are exaggerated
 set(public_headers
+
     TPZStrMatParInterface.h
     TPZStructMatrix.h
     TPZStructMatrixT.h
@@ -35,8 +36,10 @@ set(public_headers
     # tpzsparseblockdiagonalstructmatrix.h # needsreview
     #other
     TPZEquationFilter.h
+    pzdoublestrmatriz.h
    )
 set(headers
+
     TPZStrMatParInterface.h
     TPZStructMatrix.h
     TPZStructMatrixT.h
@@ -67,6 +70,7 @@ set(headers
     #other
     TPZEquationFilter.h
     TPZStructMatrixTBBFlowUtils.h
+    pzdoublestrmatriz.h
    )
 
 set(sources
@@ -100,6 +104,7 @@ set(sources
     #other
     TPZEquationFilter.cpp
     TPZStructMatrixTBBFlowUtils.cpp
+    pzdoublestrmatriz.cpp
    )
 
 install(FILES ${public_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/StrMatrix)

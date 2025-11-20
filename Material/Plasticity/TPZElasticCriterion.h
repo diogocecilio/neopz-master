@@ -148,6 +148,8 @@ public:
      */
     virtual void SetState(const TPZPlasticState<REAL> &state) override;
     
+
+    virtual TPZPlasticState<REAL> GetLocalMatState (  )override;
     /**
      Access to the plastic state member
 
@@ -196,7 +198,16 @@ public:
         return *this;
     }
     
-    
+        virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )override
+    {
+        DebugStop();
+    }
+
+    virtual void ChangeLocalMatParameters( TPZPlasticState<REAL> & state ,REAL factor)override
+	{
+		DebugStop();
+	}
+
     /**
      Evaluates the yield functions base on a given Stress and hardening
 

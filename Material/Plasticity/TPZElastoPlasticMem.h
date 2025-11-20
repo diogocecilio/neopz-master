@@ -59,6 +59,24 @@ public:
     
     /// Elastoplastic response (It is required when elasti response depends on spatial variables)
     TPZElasticResponse m_ER;
+
+    /**
+     * Total Pore Pressure
+     */
+    REAL fPorePressure;
+
+    /**
+     * Spatia Divergent of Pore Pressure
+     */
+    TPZVec<REAL> fdPorePressure;
+
+    /**  displacements */
+    TPZVec<REAL> fSolU;
+
+    /**gradient of u_n */
+    TPZFMatrix<REAL> fGradSolU;
+
+
     
 };
 

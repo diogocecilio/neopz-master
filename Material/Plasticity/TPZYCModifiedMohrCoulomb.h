@@ -66,8 +66,15 @@ public:
     {
         // nothing to be done in this yield criterium
     }
-    
-    
+        virtual TPZPlasticState<REAL> GetLocalMatState (  )
+	{
+		DebugStop();
+	}
+    	virtual void ChangeLocalMatParameters( TPZPlasticState<REAL> & state ,REAL factor)override
+	{
+		DebugStop();
+	}
+
     /**
      * Setup of material parameters
      * @param[in] phi Mohr Coulomb's internal friction angle
@@ -133,7 +140,11 @@ public:
     virtual int GetNYield() const override{
         return as_integer(NYield);
     }
-    
+
+    virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )
+    {
+        DebugStop();
+    }
 public:
     
     REAL fPhi;

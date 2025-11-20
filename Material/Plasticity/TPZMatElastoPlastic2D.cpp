@@ -8,7 +8,7 @@
 // */
 
 #include "TPZMatElastoPlastic2D_impl.h"
-
+#include "TPZYCTrescaVoigt.h"
 #include "TPZBndCond.h"
 #include "TPZLadeKim.h"
 #include "TPZSandlerDimaggio.h"
@@ -32,6 +32,7 @@
 #include "TPZYCMohrCoulombPVTranslator.h"
 #include "TPZSandlerExtendedTranslator.h"
 #include "TPZYCCamClayPVTranslator.h"
+#include "TPZYCMohrCoulombPV2.h"
 #endif
 
 template class TPZMatElastoPlastic2D<TPZPlasticStep<TPZYCModifiedMohrCoulomb, TPZThermoForceA, TPZElasticResponse>, TPZElastoPlasticMem>;
@@ -70,6 +71,7 @@ template class TPZRestoreClassWithTranslator<TPZMatElastoPlastic2D<TPZSandlerDim
 template class TPZMatElastoPlastic2D<TPZPlasticStepPV<TPZYCMohrCoulombPV,TPZElasticResponse> , TPZElastoPlasticMem>;
 template class TPZMatElastoPlastic2D<TPZPlasticStepPV<TPZSandlerExtended,TPZElasticResponse> , TPZElastoPlasticMem>;
 template class TPZMatElastoPlastic2D<TPZPlasticStepPV<TPZYCCamClayPV,TPZElasticResponse> , TPZElastoPlasticMem>;
+//template class TPZMatElastoPlastic2D<TPZPlasticStepPV<TPZYCVonMisesPV,TPZElasticResponse> , TPZElastoPlasticMem>;
 
 #ifdef FIX_PLASTIC_TRANSLATORS
 template class TPZRestoreClassWithTranslator<TPZMatElastoPlastic2D<TPZPlasticStepPV<TPZYCMohrCoulombPV,TPZElasticResponse> , TPZElastoPlasticMem>, TPZMatElastoPlastic2DTranslator<TPZPlasticStepPVTranslator<TPZYCMohrCoulombPVTranslator,TPZElasticResponseTranslator> , TPZElastoPlasticMemTranslator>>;
@@ -79,3 +81,8 @@ template class TPZRestoreClassWithTranslator<TPZMatElastoPlastic2D<TPZPlasticSte
 
 template class TPZMatElastoPlastic2D<TPZElasticCriterion , TPZElastoPlasticMem>;
 template class TPZMatElastoPlastic2D<TPZElasticCriterion , TPZPoroElastoPlasticMem>;
+#include "TPZPlasticStepVoigt.h"
+
+template class TPZMatElastoPlastic2D<TPZPlasticStepVoigt<TPZYCVonMisesVoigt, TPZElasticResponse>,TPZElastoPlasticMem>;
+template class TPZMatElastoPlastic2D<TPZPlasticStepVoigt<TPZYCTrescaVoigt, TPZElasticResponse>,TPZElastoPlasticMem>;
+template class TPZMatElastoPlastic2D<TPZPlasticStepVoigt<TPZYCMohrCoulombPV2, TPZElasticResponse>,TPZElastoPlasticMem>;

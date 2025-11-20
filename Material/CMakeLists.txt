@@ -6,6 +6,7 @@ target_include_directories(pz PUBLIC
                            )
 
 set(public_headers
+    TPZKarhunenLoeveMat.h
     TPZMaterial.h
     TPZMaterialT.h
     TPZMatBase.h
@@ -35,9 +36,12 @@ set(public_headers
     TPZLagrangeMultiplier.h
     TPZLagrangeMultiplierCS.h
     TPZMatTypes.h
+    TPZMatKLCov2D.h
+    TPZMatKLKernel.h
     )
 
 set(headers
+    TPZKarhunenLoeveMat.h
     TPZMaterial.h
     TPZMaterialT.h
     TPZMatBase.h
@@ -66,8 +70,12 @@ set(headers
     TPZNullMaterialCS.h
     TPZLagrangeMultiplier.h
     TPZLagrangeMultiplierCS.h
+    TPZMatKLCov2D.h
+    TPZMatKLKernel.h
    )
 set(sources
+
+    TPZKarhunenLoeveMat.cpp   
     TPZMaterial.cpp
     TPZMaterialT.cpp
     TPZBndCond.cpp
@@ -92,6 +100,8 @@ set(sources
     TPZNullMaterialCS.cpp
     TPZLagrangeMultiplier.cpp
     TPZLagrangeMultiplierCS.cpp
+    TPZMatKLCov2D.cpp
+    TPZMatKLKernel.cpp
    )
 
 install(FILES ${public_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Material)

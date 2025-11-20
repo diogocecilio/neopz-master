@@ -132,6 +132,7 @@ public:
         A3x3Inverse(Rot, RotInv);
     }
 
+
 public:
     
     TPZHWTools();

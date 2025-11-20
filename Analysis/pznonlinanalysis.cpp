@@ -207,7 +207,57 @@ void TPZNonLinearAnalysis::IterativeProcess(std::ostream &out,REAL tol,int numit
 		out.flush();
 	}
 }
+#include "Elasticity/TPZElasticity2D.h"
 
+// REAL TPZNonLinearAnalysis::AcceptSolution(const int ResetOutputDisplacements)
+// {
+//
+//     TPZMaterial *mat = fCompMesh->FindMaterial(1);
+//     if (!mat) {
+//         DebugStop();
+//     }
+//     auto *elasmat = dynamic_cast<TPZElasticity2D *>(mat);
+//     if(elasmat)
+//     {
+//         // the material is linear
+//         return 0.;
+//     }
+//
+//
+// 	if(ResetOutputDisplacements)
+// 	{
+// 		//fCumSol.Zero();
+// 	}else{
+// 		//fCumSol += fSolution;
+// 	}
+//
+// 	#ifdef PZ_LOG
+// 	{
+//             if (EPAnalysisLogger.isDebugEnabled()){
+//                std::stringstream sout;
+//                sout << ">>> TTPZElastoPlasticAnalysis::AcceptSolution *** "
+//                     << " with Norm(fCumSol) = " << Norm(fCumSol);
+//                LOGPZ_DEBUG(EPAnalysisLogger,sout.str().c_str());
+//             }
+// 	}
+// 	#endif
+//
+// 	this->SetUpdateMem(true);
+//
+// 	fRhs.Zero();
+//
+//     AssembleResidual();
+// 	REAL norm = Norm(fRhs);
+//
+// 	this->SetUpdateMem(false);
+//
+// 	fSolution.Zero();
+//
+// 	LoadSolution();
+//
+//
+// 	return norm;
+// }
 /** @brief Zeroes entries of val vector and deriv matrix. */
 void NullForce(TPZVec<REAL> &/*point*/,TPZVec<STATE> &val,TPZFMatrix<STATE> &deriv) {
     int i,cap = val.NElements() ;

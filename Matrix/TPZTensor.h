@@ -402,6 +402,7 @@ public:
      */
     void Multiply(const TPZTensor<T> tensor, TPZTensor<T> & resp)const;
 
+
     /**
      multiplica um scalar com o tensor atual
      @param [in] constant fator multiplicativo
@@ -480,6 +481,8 @@ public:
      * The derivative of the  3rd invariant of deviatoric tensor
      */
     void dJ3(TPZTensor<T> &deriv) const;
+
+    TPZFMatrix<T> d2J2d2Sig() const;
 
     /**
      * @brief adjust the tensor to the given values of I1 and sqj2
@@ -939,6 +942,22 @@ void TPZTensor<T>::dJ2(TPZTensor<T> & Tangent) const {
     Tangent.fData[_YZ_] = fData[_YZ_] * T(2.);
 }
 
+template < class T >
+TPZFMatrix<T> TPZTensor<T>::d2J2d2Sig() const {
+    TPZFMatrix<T> P(6,6,0.0);
+    // bloco "normal" (XX,YY,ZZ) — posições (_XX_, _YY_, _ZZ_) = (0,3,5)
+    P(_XX_, _XX_) = 2.0/3.0;  P(_XX_, _YY_) = -1.0/3.0; P(_XX_, _ZZ_) = -1.0/3.0;
+    P(_YY_, _XX_) = -1.0/3.0; P(_YY_, _YY_) =  2.0/3.0; P(_YY_, _ZZ_) = -1.0/3.0;
+    P(_ZZ_, _XX_) = -1.0/3.0; P(_ZZ_, _YY_) = -1.0/3.0; P(_ZZ_, _ZZ_) =  2.0/3.0;
+    // cisalhantes na diagonal (na SUA ordem: XY, XZ, YZ em 1,2,4) → valor 2?
+    P(_XY_, _XY_) = 1.0;
+    P(_XZ_, _XZ_) = 1.0;
+    P(_YZ_, _YZ_) = 1.0;
+
+    return P;
+}
+
+
 template <class T>
 T TPZTensor<T>::J3() const {
     TPZTensor<T> s;
@@ -1265,7 +1284,8 @@ void TPZTensor<T>::EigenSystem(TPZDecomposed &eigensystem)const {
 
     T precision;
     ZeroTolerance(precision);
-    T tol = Norm()*precision;
+    //T tol = Norm()*precision;
+    T tol=1.e-3;
     ComputeEigenvectors(eigensystem);
 
     TPZStack<int, 3> indices_to_add;

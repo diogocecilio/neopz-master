@@ -129,6 +129,14 @@ bool TPZYCMohrCoulombPV::ReturnMapPlane(const TPZVec<T> &sigma_trial, TPZVec<T> 
     for (i = 0; i < n_iterations; i++) {
         T jac = -constA - T(4. * cosphi2) * H;
         T delta_gamma = - phi / jac;
+        // std::cout << " H = "<< H <<std::endl;
+        // std::cout << " sinphi = "<<sinphi <<std::endl;
+        // std::cout << " sinpsi = "<<sinpsi <<std::endl;
+        // std::cout << " fER.G() = "<<fER.G() <<std::endl;
+        // std::cout << " fER.K() = "<<fER.K() <<std::endl;
+        // std::cout << " cosphi2 = "<<cosphi2 <<std::endl;
+        // std::cout << " constA = "<< constA <<std::endl;
+        // std::cout << "delta_gamma MAIN = "<< delta_gamma <<std::endl;
         gamma += delta_gamma;
         phi = eigenvalues[0] - eigenvalues[2]+(eigenvalues[0] + eigenvalues[2]) * sinphi - 2. * c * cosphi - constA * gamma;
         phival = TPZExtractVal::val(phi);
@@ -140,9 +148,11 @@ bool TPZYCMohrCoulombPV::ReturnMapPlane(const TPZVec<T> &sigma_trial, TPZVec<T> 
 
 #ifdef PZDEBUG
     if (i == n_iterations) {
-        DebugStop();
+//         //DebugStop();
     }
 #endif
+
+    //std::cout << "gamma MAIN = "<< gamma <<std::endl;
 
     epsbar = T(fEpsPlasticBar) + gamma * T(2. * cosphi);
     memory.fGamma[0] = TPZExtractVal::val(gamma);
@@ -151,6 +161,8 @@ bool TPZYCMohrCoulombPV::ReturnMapPlane(const TPZVec<T> &sigma_trial, TPZVec<T> 
     eigenvalues[2] += T(2. * fER.G()*(1 - sinpsi / 3.) - 2. * fER.K() * sinpsi) * gamma;
     sigma_projected = eigenvalues;
     epsbarnew = TPZExtractVal::val(epsbar);
+
+    //std::cout << "sigma_projected MAIN = "<< sigma_projected <<std::endl;
 
     bool check_validity_Q = (TPZExtractVal::val(eigenvalues[0]) > TPZExtractVal::val(eigenvalues[1]) || IsZero(eigenvalues[0]-eigenvalues[1])) && (TPZExtractVal::val(eigenvalues[1]) > TPZExtractVal::val(eigenvalues[2]) || IsZero(eigenvalues[1]-eigenvalues[2]));
     return (check_validity_Q);
@@ -234,7 +246,7 @@ bool TPZYCMohrCoulombPV::ReturnMapLeftEdge(const TPZVec<T> &sigma_trial, TPZVec<
 #ifdef PZDEBUG
         if(IsZero(det_jac)){
             std::cerr << "TPZYCMohrCoulombPV:: Singular jacobian." << std::endl;
-            DebugStop();
+         //   DebugStop();
         }
 #endif
 
@@ -263,12 +275,16 @@ bool TPZYCMohrCoulombPV::ReturnMapLeftEdge(const TPZVec<T> &sigma_trial, TPZVec<
 
 #ifdef PZDEBUG
     if (i == n_iterations) {
-        DebugStop();
+      //  DebugStop();
     }
 #endif
 
     memory.fGamma[0] = TPZExtractVal::val(gamma[0]);
     memory.fGamma[1] = TPZExtractVal::val(gamma[1]);
+    //std::cout<< "igenvalues[0] = "<<eigenvalues[0] << std::endl;
+    //std::cout<< "2. * fER.G()*(1 + sinpsi / 3.) + 2. * fER.K() * sinpsi) * gamma[0] = "<<( 2. * fER.G()*(1 + sinpsi / 3.) + 2. * fER.K() * sinpsi) * gamma[0] << std::endl;
+    //std::cout<< "T((4. * fER.G() / 3. - 2. * fER.K()) * sinpsi) * gamma[1] = "<< T((4. * fER.G() / 3. - 2. * fER.K()) * //sinpsi) * gamma[1]<<std::endl;
+    //std::cout<< "gamma[0]  = "<< gamma[0] << " gamma[1] "<<  gamma[1] << std::endl;
     eigenvalues[0] += -T(2. * fER.G()*(1 + sinpsi / 3.) + 2. * fER.K() * sinpsi) * gamma[0] + T((4. * fER.G() / 3. - 2. * fER.K()) * sinpsi) * gamma[1];
     eigenvalues[1] += T((4. * fER.G() / 3. - fER.K()*2.) * sinpsi) * gamma[0] - T(2. * fER.G()*(1. + sinpsi / 3.) + 2. * fER.K() * sinpsi) * gamma[1];
     eigenvalues[2] += T(2. * fER.G()*(1 - sinpsi / 3.) - 2. * fER.K() * sinpsi)*(gamma[0] + gamma[1]);
@@ -371,7 +387,7 @@ bool TPZYCMohrCoulombPV::ReturnMapRightEdge(const TPZVec<T> &sigma_trial, TPZVec
 #ifdef PZDEBUG
         if(IsZero(det_jac)){
             std::cerr << "TPZYCMohrCoulombPV:: Singular jacobian." << std::endl;
-            DebugStop();
+           // DebugStop();
         }
 #endif
 
@@ -400,7 +416,7 @@ bool TPZYCMohrCoulombPV::ReturnMapRightEdge(const TPZVec<T> &sigma_trial, TPZVec
 
 #ifdef PZDEBUG
     if (i == n_iterations) {
-        DebugStop();
+       // DebugStop();
     }
 #endif
 
@@ -499,7 +515,7 @@ bool TPZYCMohrCoulombPV::ReturnMapApex(const TPZVec<T> &sigmatrial, TPZVec<T> &s
 
 #ifdef PZDEBUG
     if (i == n_iterations) {
-        DebugStop();
+        //DebugStop();
     }
 #endif
 
@@ -562,6 +578,7 @@ void TPZYCMohrCoulombPV::ProjectSigma(const TPZVec<STATE> & sigma_trial, STATE k
     }
 #endif
 
+    //std::cout<< "sigma_trial " <<sigma_trial << std::endl;
     REAL phi = PhiPlane<REAL>(sigma_trial);
     bool elastic_update_Q = IsZero(phi) || phi < 0.0;
     if (elastic_update_Q) {
@@ -598,6 +615,7 @@ void TPZYCMohrCoulombPV::ProjectSigma(const TPZVec<STATE> & sigma_trial, STATE k
 
         const REAL sinpsi = sin(fPsi);
         REAL val = (1 - sinpsi) * sigma_trial[0] - 2. * sigma_trial[1] + (1 + sinpsi) * sigma_trial[2];
+        //std::cout << "VAL = "<< val <<std::endl;
         if (val > 0.) {
             IsEdge = this->ReturnMapRightEdge<REAL>(sigma_trial, sigma_projected, memory, epsbartemp);
             memory.fWhichPlane = TComputeSequence::ERightEdge;

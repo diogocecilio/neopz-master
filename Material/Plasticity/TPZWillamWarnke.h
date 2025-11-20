@@ -109,6 +109,16 @@ public:
     virtual int GetNYield() const {
         return as_integer(NYield);
     }
+
+    	void SetLocalMatState ( TPZPlasticState<REAL> & state )
+    {
+        DebugStop();
+    }
+    	virtual void ChangeLocalMatParameters( TPZPlasticState<REAL> & state ,REAL factor)
+	{
+		DebugStop();
+	}
+
 	
 private:
 	

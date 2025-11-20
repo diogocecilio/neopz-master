@@ -64,7 +64,7 @@ public:
 
     void ReadMesh2 ( std::vector<std::vector<int>>& topol, std::vector<std::vector<double>> &coords,std::string ffile);
 	
-
+   TPZFMatrix<REAL>  ReadData (string filename);
     
     void  FindIds ( TPZVec<double> constcoorddata,TPZVec<int> constcoord, std::vector<int>& ids )
     {

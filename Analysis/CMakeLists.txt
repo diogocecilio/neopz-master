@@ -5,6 +5,7 @@ target_include_directories(pz PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/Analysis>
     )
 set(public_headers
+
     TPZAnalysis.h
     TPZLinearAnalysis.h
     TPZEigenAnalysis.h
@@ -14,6 +15,7 @@ set(public_headers
 
 set(headers
     ${public_headers}
+
     TPZNLMultGridAnalysis.h
     pzmganalysis.h
     pztransientanalysis.h
@@ -22,6 +24,7 @@ set(headers
     )
 
 set(sources
+
     TPZAnalysis.cpp
     TPZLinearAnalysis.cpp
     TPZEigenAnalysis.cpp

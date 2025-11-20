@@ -160,3 +160,34 @@ void readgidmesh::ReadMesh2 ( std::vector<std::vector<int>>& topol, std::vector<
     } else std::cout << "Unable to open file";
 
 }
+TPZFMatrix<REAL> readgidmesh::ReadData (string filename)
+{
+    std::vector<std::vector<double>> data;
+    string line, temp;
+    ifstream myfile ( filename );
+    if ( myfile.is_open() ) {
+        while ( getline ( myfile, line ) ) {
+           //getline ( myfile, line );
+           // std::cout << line<< std::endl;
+            std::vector<string> tokens;
+            istringstream iss ( line );
+            while ( iss >> temp )
+                tokens.push_back ( temp );
+			std::vector<double> input_doub_temp= str_vec<double> ( tokens );
+            data.push_back ( input_doub_temp );
+        }
+       // myfile.close();
+    } else std::cout << "Unable to open file";
+
+    int rows=data.size();
+    int cols = data[0].size();
+    TPZFMatrix<REAL> datapz(rows,cols);
+    for(int irow=0;irow<rows;irow++){
+        for(int icol=0;icol<cols;icol++){
+            datapz(irow,icol)=data[irow][icol];
+        }
+    }
+
+
+    return datapz;
+}

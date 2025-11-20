@@ -286,6 +286,20 @@ protected:
      */
     REAL D2Distance(const TPZElasticResponse &ER, REAL L, TPZVec<REAL> &sigtrialIJ) const;
 
+    	void SetLocalMatState ( TPZPlasticState<REAL> & state )
+    {
+        DebugStop();
+    }
+        virtual TPZPlasticState<REAL> GetLocalMatState (  )
+	{
+		DebugStop();
+	}
+		virtual void ChangeLocalMatParameters( TPZPlasticState<REAL> & state ,REAL factor)override
+	{
+		DebugStop();
+	}
+
+
 public:
     /**
      Evaluates X(EpsilonPvol), the value of the first invariant
@@ -1485,6 +1499,8 @@ inline void TPZYCSandlerDimaggio::TestSolveL() {
     TPZYCSandlerDimaggio YCSandlerDimaggio;
 
     TPZYCSandlerDimaggio::McCormicRanchSand(YCSandlerDimaggio);
+
+
 
     // Verifying if the SolveL routines are working
     // It needs a correct evaluation of both F and dF

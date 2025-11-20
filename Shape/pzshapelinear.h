@@ -113,6 +113,12 @@ namespace pzshape {
 		 */
 		static void Chebyshev(FADREAL & x,int num,TPZVec<FADREAL> &phi);
 
+
+		// int ClassId() const{
+		// 	return Hash("TPZShapeLinear") ^ ClassId() << 1;
+		// }
+
+
 		/** @} */
 		
 public:

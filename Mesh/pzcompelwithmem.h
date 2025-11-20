@@ -136,8 +136,39 @@ public:
         out << "Integration point indexes " << fIntPtIndices << std::endl;
     }
     
+    inline void PublicPrepareIntPtIndices() { this->PrepareIntPtIndices(); }
     /** @} */
-    
+    public:
+        // Chama PrepareIntPtIndices() apenas se ainda não foi feito
+        void EnsurePreparedIntPtIndices() {
+            if (!fIntPtIndices.NElements()) {
+                PrepareIntPtIndices();
+            }
+        }
+
+        // força a criação dos índices usando um material with-mem *explícito*
+        void ForceBuildIntPtIndices(TPZMatWithMemBase* matWithMem) {
+            if (!matWithMem) return;
+            const TPZIntPoints &intrule = TBASE::GetIntegrationRule();
+            const int npts = intrule.NPoints();
+            fIntPtIndices.Resize(npts);
+            for (int ip = 0; ip < npts; ++ip) {
+                fIntPtIndices[ip] = matWithMem->PushMemItem();
+            }
+        }
+public:
+    // Garante que existam ao menos npts índices; cria os que faltam
+    void EnsureIntPtIndicesAtLeast(TPZMatWithMemBase* mwm, int npts) {
+        if (!mwm || npts <= 0) return;
+        const int cur = fIntPtIndices.NElements();
+        if (cur < npts) {
+            fIntPtIndices.Resize(npts);
+            for (int ip = cur; ip < npts; ++ip) {
+                fIntPtIndices[ip] = mwm->PushMemItem();
+            }
+        }
+    }
+
 private:
     
     /// the indexes of the memory vector associated with each integration point

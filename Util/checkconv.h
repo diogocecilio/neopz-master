@@ -42,7 +42,7 @@ void CheckConvergence(TConv &obj, TPZFMatrix<STATE> &state, TPZFMatrix<STATE> &r
 	
 	for(icase = 0; icase < numcases; icase++) {
 		
-		obj.LoadState(state);
+		//obj.LoadState(state);
 		TPZFMatrix<STATE> ReferenceResidual, Tangent, EstimateRes;
 		
 		obj.ComputeTangent(Tangent,coefs,icase);
@@ -69,7 +69,7 @@ void CheckConvergence(TConv &obj, TPZFMatrix<STATE> &state, TPZFMatrix<STATE> &r
 				}
 			}
 			
-			obj.LoadState(actualstate);
+			//obj.LoadState(actualstate);
 			obj.Residual(residual,icase);
 			
 			residual -= ReferenceResidual;

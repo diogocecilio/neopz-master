@@ -230,13 +230,23 @@ void TPZPersistenceManager::TranslatePointers(TPZChunkInTranslation& chunk, cons
         TranslateNextPointer(chunk, toVersion);
     }
 }
+#include <cxxabi.h>
+static std::string demangle(const char* s){int st; char* d=abi::__cxa_demangle(s,0,0,&st); std::string r=d?d:s; free(d); return r;}
 
 // populate the class id map
 void TPZPersistenceManager::PopulateClassIdMap()
 {
+    int idx = 0;
     if (TPZSavable::ClassIdMap().size() == 0) {
         //@TODO parallelize
         for (const auto &restoreClass : TPZSavable::RestoreClassSet()) {
+            //std::cerr << "[PM] trying restoreClass #" << idx++
+            //<< " dyn=" << demangle(typeid(*restoreClass).name()) << std::endl;
+            const std::string dyn = demangle(typeid(*restoreClass).name());
+            if (dyn.find("TPZCompElHDivBound2") != std::string::npos||dyn.find("TPZCompElHDiv") != std::string::npos ||dyn.find("TPZDohrSubstruct") != std::string::npos||dyn.find("TPZDohrMatrix") != std::string::npos) {
+                 //std::cerr << "[PM] skipping " << dyn << "\n";
+                continue;
+            }
             TPZSavable *savable = restoreClass->Restore();
 #ifdef PZ_LOG
             if(logger.isDebugEnabled())
@@ -266,7 +276,7 @@ void TPZPersistenceManager::PopulateClassIdMap()
             }
             delete savable;
         }
-        
+
         std::list<std::map < std::string, uint64_t>> mapsToRemove;
         for (auto versionMap : mVersionHistory) {
             for (auto otherMap : mVersionHistory) {

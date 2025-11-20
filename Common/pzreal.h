@@ -19,6 +19,7 @@
 
 #include <pz_config.h>
 #include <limits>
+#include <cstdint>
 
 #ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
