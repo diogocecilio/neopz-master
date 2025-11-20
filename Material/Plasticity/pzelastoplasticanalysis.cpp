@@ -205,8 +205,8 @@ bool TPZElastoPlasticAnalysis::NewtonRaphson()
     TPZFMatrix<STATE> x(Solution()), dx(Solution());
     x.Zero(); dx.Zero();
 
-    const REAL tol   = 1.e-3;
-    const int  n_it  = 30;
+    const REAL tol   = 1.e-6;
+    const int  n_it  = 15;
     const REAL EPS   = 1.e-30;
 
     //std::cout << "AssembleResidual.."   <<endl;
@@ -275,13 +275,13 @@ bool TPZElastoPlasticAnalysis::NewtonRaphson()
 
 
 }
-bool TPZElastoPlasticAnalysis::NewtonRaphson(TPZStack<STATE> &outresF,TPZStack<STATE> &outresU)
+bool TPZElastoPlasticAnalysis::NewtonRaphson(REAL tol,TPZStack<STATE> &outresF,TPZStack<STATE> &outresU)
 {
 
     TPZFMatrix<STATE> x(Solution()), dx(Solution());
     x.Zero(); dx.Zero();
 
-    const REAL tol   = 1.e-10;
+
     const int  n_it  = 30;
     const REAL EPS   = 1.e-30;
 
@@ -289,6 +289,7 @@ bool TPZElastoPlasticAnalysis::NewtonRaphson(TPZStack<STATE> &outresF,TPZStack<S
     int iters;
     AssembleResidual();
     REAL normrhs0 = Norm(fRhs);
+    if (normrhs0 <1.e-3) normrhs0 = 1.; // proteção
     STATE r0=0.,r1=0.,r2=0.;
     TPZFMatrix<STATE> mr0,mr1,mr2;
     STATE rate0=0.,rate1=0.,rate2=0.;
@@ -340,7 +341,7 @@ bool TPZElastoPlasticAnalysis::NewtonRaphson(TPZStack<STATE> &outresF,TPZStack<S
         iters = i;
 
         // critério de convergência (resíduo relativo)
-        if (normrhs < tol &&normdu<tol) {
+        if (normrhs < tol ) {
             std::cout << "normrhs ="<< normrhs<< " normdu ="<< normdu   <<endl;
             return true;
         }

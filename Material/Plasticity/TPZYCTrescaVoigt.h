@@ -89,6 +89,42 @@ public:
      */
     void Phi(TPZTensor<STATE> sig, STATE alpha, TPZVec<STATE> &phi)const;
 
+        TPZFNMatrix<9> ElasticHWMatrix()
+        {
+                STATE K=fER.K();
+                STATE G=fER.G();
+                TPZFNMatrix<9> Cep=
+                {
+                        { K + 4.*G/3.,  K - 2.* G/3., K - 2.* G/3.},
+                        { K - 2.* G/3., K + 4.*G/3.,  K - 2.* G/3.},
+                        { K - 2.* G/3., K - 2.* G/3., K + 4.*G/3. }
+                };
+                TPZFNMatrix<9> InvCep=
+                {
+                        {(G + 3.*K)/(9.* G * K), -(1./(6.* G)) + 1./(9.* K), -(1./(6.* G)) + 1./(9.* K)},
+                        {-(1./(6.* G)) + 1./(9.* K), (G + 3.*K)/(9.* G * K), -(1./(6.* G)) + 1./(9.* K)},
+                        {-(1./(6.* G)) + 1./(9.* K), -(1./(6.* G)) + 1./(9.* K), (G + 3.*K)/(9.* G * K)}
+                };
+
+
+            return Cep;
+        }
+        TPZFNMatrix<9> InvElasticHWMatrix()
+        {
+                STATE K=fER.K();
+                STATE G=fER.G();
+
+                TPZFNMatrix<9> InvCep=
+                {
+                        {(G + 3.*K)/(9.* G * K), -(1./(6.* G)) + 1./(9.* K), -(1./(6.* G)) + 1./(9.* K)},
+                        {-(1./(6.* G)) + 1./(9.* K), (G + 3.*K)/(9.* G * K), -(1./(6.* G)) + 1./(9.* K)},
+                        {-(1./(6.* G)) + 1./(9.* K), -(1./(6.* G)) + 1./(9.* K), (G + 3.*K)/(9.* G * K)}
+                };
+
+
+                return InvCep;
+        }
+
 
     virtual void YieldFunction(const TPZVec<STATE>& sigma, STATE kprev, TPZVec<STATE>& yield) const override{
         DebugStop();

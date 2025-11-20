@@ -73,6 +73,7 @@ public:
 	 * the finite element approximation*/
 	virtual void Solution(const TPZMaterialDataT<STATE> &data, int var, TPZVec<REAL> &Solout) override;
 	
+
 	/**
 	 * It computes a contribution to the stiffness matrix and load vector at one integration point.
 	 * @param data [in] stores all input data

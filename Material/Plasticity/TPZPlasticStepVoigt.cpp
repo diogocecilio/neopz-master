@@ -183,6 +183,7 @@ void TPZPlasticStepVoigt<YC,ER>::ApplyStrainComputeSigma(const TPZTensor<REAL>& 
     }else{
         Dep=Cmat;
     }
+    //Dep=Cmat;
     //Dep=Ce;
     if (tangent) {
         *tangent = Dep;

@@ -23,6 +23,7 @@ void TPZMatSingleSpace::GetSolDimensions(uint64_t &u_len,
                                          uint64_t &du_row,
                                          uint64_t &du_col) const{
     PZError<<__PRETTY_FUNCTION__;
+     PZError<<"\nBBBBBBBBBBBBBB";
     PZError<<"\nGetSolDimensions and Solution methods";
     PZError<<" should be implemented in your material";
     PZError<<" for any sort of post processing of the FEM solution\n";
@@ -50,6 +51,7 @@ template<class TVar>
 void TPZMatSingleSpaceT<TVar>::Solution(const TPZMaterialDataT<TVar> &data, int var,
          TPZVec<TVar> &sol){
     PZError<<__PRETTY_FUNCTION__;
+    PZError<<"\nAAAAAAAAAAAA";
     PZError<<"\nGetSolDimensions and Solution methods";
     PZError<<" should be implemented in your material";
     PZError<<" for any sort of post processing of the FEM solution\n";

@@ -229,11 +229,44 @@ bool TPZYCTrescaVoigt::ComputeLambdaSigmaMainPlane(TPZManVector<STATE,3> &sigtr,
     Grad3x3(2,2)=0.5;
 
     epstr={-0.16666666666666666*(-2*s1 + s2 + s3)/G + (s1 + s2 + s3)/(9.*K),-0.16666666666666666*(s1 - 2*s2 + s3)/G + (s1 + s2 + s3)/(9.*K),-0.16666666666666666*(s1 + s2 - 2*s3)/G + (s1 + s2 + s3)/(9.*K)};
-    alphan1 = alphan+(dlambda[0] + dlambda[1]) ;
 
     STATE sp1=sigpr[0];
     STATE sp2=sigpr[1];
     STATE sp3=sigpr[2];
+
+    TPZFNMatrix<9> Cep = ElasticHWMatrix();
+    TPZFNMatrix<9> InvCep = InvElasticHWMatrix();
+    TPZFNMatrix<3>epspr(3,1),sigprmat(3,1),epsp,epstrmat,sigtrmat;
+    sigtrmat={{s1},{s2},{s3}};
+    sigprmat={{sp1},{sp2},{sp3}};
+
+    InvCep.Multiply(sigtrmat, epstrmat);
+    InvCep.Multiply(sigprmat, epspr);
+    // std::cout << "**********************************************" << std::endl;
+    // std::cout << "sigtrmat" << std::endl;
+    // std::cout << sigtrmat << std::endl;
+    // std::cout << "sigprmat" << std::endl;
+    // std::cout << sigprmat << std::endl;
+    // std::cout << "Cep" << std::endl;
+    // std::cout << Cep << std::endl;
+    // std::cout << "InvCep" << std::endl;
+    // std::cout << InvCep<< std::endl;
+    // std::cout << "epstrmat"<< std::endl;
+    // std::cout << epstrmat<< std::endl;
+    // std::cout << "epstr"<< std::endl;
+    // std::cout << epstr<< std::endl;
+    epsp=epstrmat-epspr;
+    // std::cout << "epspr"<< std::endl;
+    // std::cout << epspr<< std::endl;
+    // std::cout << "epsp"<< std::endl;
+    // std::cout << epsp<< std::endl;
+
+    STATE hardening=0.;
+    for(int i=0;i<3;i++)hardening+=epsp(i,0)*epsp(i,0);
+
+    alphan1 = alphan+sqrt(2./3.*hardening) ;
+
+
 
     if((sp1 > sp2 || IsZero(sp1 - sp2)) && (sp2 > sp3 || IsZero(sp2 - sp3))){
         return true;
@@ -277,6 +310,38 @@ bool TPZYCTrescaVoigt::ComputeLambdaSigmaLeft(TPZManVector<STATE,3> &sigtr,STATE
     STATE sp2=sigpr[1];
     STATE sp3=sigpr[2];
 
+    TPZFNMatrix<9> Cep = ElasticHWMatrix();
+    TPZFNMatrix<9> InvCep = InvElasticHWMatrix();
+    TPZFNMatrix<3>epspr(3,1),sigprmat(3,1),epsp,epstrmat,sigtrmat;
+    sigtrmat={{s1},{s2},{s3}};
+    sigprmat={{sp1},{sp2},{sp3}};
+
+    InvCep.Multiply(sigtrmat, epstrmat);
+    InvCep.Multiply(sigprmat, epspr);
+    // std::cout << "**********************************************" << std::endl;
+    // std::cout << "sigtrmat" << std::endl;
+    // std::cout << sigtrmat << std::endl;
+    // std::cout << "sigprmat" << std::endl;
+    // std::cout << sigprmat << std::endl;
+    // std::cout << "Cep" << std::endl;
+    // std::cout << Cep << std::endl;
+    // std::cout << "InvCep" << std::endl;
+    // std::cout << InvCep<< std::endl;
+    // std::cout << "epstrmat"<< std::endl;
+    // std::cout << epstrmat<< std::endl;
+    // std::cout << "epstr"<< std::endl;
+    // std::cout << epstr<< std::endl;
+    epsp=epstrmat-epspr;
+    // std::cout << "epspr"<< std::endl;
+    // std::cout << epspr<< std::endl;
+    // std::cout << "epsp"<< std::endl;
+    // std::cout << epsp<< std::endl;
+
+    STATE hardening=0.;
+    for(int i=0;i<3;i++)hardening+=epsp(i,0)*epsp(i,0);
+
+    alphan1 = alphan+sqrt(2./3.*hardening) ;
+
     if((sp1 > sp2 || IsZero(sp1 - sp2)) && (sp2 > sp3 || IsZero(sp2 - sp3))){
         return true;
     }else{
@@ -317,6 +382,39 @@ bool TPZYCTrescaVoigt::ComputeLambdaSigmaRigth(TPZManVector<STATE,3> &sigtr,STAT
         STATE sp1=sigpr[0];
         STATE sp2=sigpr[1];
         STATE sp3=sigpr[2];
+
+
+        TPZFNMatrix<9> Cep = ElasticHWMatrix();
+        TPZFNMatrix<9> InvCep = InvElasticHWMatrix();
+        TPZFNMatrix<3>epspr(3,1),sigprmat(3,1),epsp,epstrmat,sigtrmat;
+        sigtrmat={{s1},{s2},{s3}};
+        sigprmat={{sp1},{sp2},{sp3}};
+
+        InvCep.Multiply(sigtrmat, epstrmat);
+        InvCep.Multiply(sigprmat, epspr);
+        // std::cout << "**********************************************" << std::endl;
+        // std::cout << "sigtrmat" << std::endl;
+        // std::cout << sigtrmat << std::endl;
+        // std::cout << "sigprmat" << std::endl;
+        // std::cout << sigprmat << std::endl;
+        // std::cout << "Cep" << std::endl;
+        // std::cout << Cep << std::endl;
+        // std::cout << "InvCep" << std::endl;
+        // std::cout << InvCep<< std::endl;
+        // std::cout << "epstrmat"<< std::endl;
+        // std::cout << epstrmat<< std::endl;
+        // std::cout << "epstr"<< std::endl;
+        // std::cout << epstr<< std::endl;
+        epsp=epstrmat-epspr;
+        // std::cout << "epspr"<< std::endl;
+        // std::cout << epspr<< std::endl;
+        // std::cout << "epsp"<< std::endl;
+        // std::cout << epsp<< std::endl;
+
+        STATE hardening=0.;
+        for(int i=0;i<3;i++)hardening+=epsp(i,0)*epsp(i,0);
+
+        alphan1 = alphan+sqrt(2./3.*hardening) ;
 
         if((sp1 > sp2 || IsZero(sp1 - sp2)) && (sp2 > sp3 || IsZero(sp2 - sp3))){
             return true;

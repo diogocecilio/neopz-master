@@ -148,7 +148,7 @@ void TPZMatElastoPlastic<T,TMEM>::Print(std::ostream &out) const
 template <class T, class TMEM>
 int TPZMatElastoPlastic<T,TMEM>::VariableIndex(const std::string &name) const
 {
-    if(!strcmp("DisplacementDoF",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EDisplacementDoF;
+    if(!strcmp("DisplacementDoF",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EDisplacementDoFx;
     if(!strcmp("Displacement",name.c_str()))            return TPZMatElastoPlastic<T,TMEM>::EDisplacement;
     if(!strcmp("Strain",name.c_str()))                  return TPZMatElastoPlastic<T,TMEM>::EStrain;
     if(!strcmp("StressXX",name.c_str()))                return TPZMatElastoPlastic<T,TMEM>::ESX;
@@ -186,7 +186,7 @@ int TPZMatElastoPlastic<T,TMEM>::VariableIndex(const std::string &name) const
 template <class T, class TMEM>
 int TPZMatElastoPlastic<T,TMEM>::NSolutionVariables(int var) const
 {
-    if(var == TPZMatElastoPlastic<T,TMEM>::EDisplacementDoF) return 3;
+    if(var == TPZMatElastoPlastic<T,TMEM>::EDisplacementDoFx) return 3;
     if(var == TPZMatElastoPlastic<T,TMEM>::EDisplacement) return 3;
     if(var == TPZMatElastoPlastic<T,TMEM>::EStrain) return 6;
     if(var == TPZMatElastoPlastic<T,TMEM>::ESX) return 1;
@@ -233,31 +233,37 @@ void TPZMatElastoPlastic<T,TMEM>::ApplyDirection(TPZFMatrix<REAL> &vectorTensor,
 template <class T, class TMEM>
 void TPZMatElastoPlastic<T, TMEM>::Solution(const TPZMaterialDataT<STATE> &data, int var, TPZVec<REAL> &Solout) {
 
-
-
+        int intPt = data.intGlobPtIndex;
+        if (intPt == -1 || TPZMatElastoPlastic<T, TMEM>::GetMemory()->NElements() == 0) {
+                return;
+        }
+        TMEM &Memory = this->MemItem(intPt);
     /// Displacements from Degree of Freedom
-    if (var == TPZMatElastoPlastic<T, TMEM>::EDisplacementDoF)
-    {
-        for (int i = 0; i < 3; ++i) {
-            Solout[i] = data.sol[0][i];
-        }//for
-    }//EDisplacement from DoF
 
-    int intPt = data.intGlobPtIndex;
-    if (intPt == -1 || TPZMatElastoPlastic<T, TMEM>::GetMemory()->NElements() == 0) {
-        return;
-    }
 
-    TMEM &Memory = this->MemItem(intPt);
+
     T plasticloc(m_plasticity_model);
     plasticloc.SetState(Memory.m_elastoplastic_state);
     switch (var) {
         case EDisplacement:
         {
             Solout.Resize(3);
-            for (int i = 0; i < 3; i++) {
-                Solout[i] = Memory.m_u[i];
-            }
+            //for (int i = 0; i < 3; i++) {
+                //Solout[i] = Memory.m_u[i];
+                const REAL ux = data.sol[0][0];
+                const REAL uy = data.sol[0][1];
+                const REAL uz = data.sol[0][2];
+                Solout[0]=ux; Solout[1]=uy; Solout[2]=uz;
+            //}
+        }
+        break;
+        case EDisplacementDoFx:
+        {
+                Solout.Resize(3);
+                Solout[0] = Memory.m_u[0];
+                Solout[1] = Memory.m_u[1];
+                Solout[2] = Memory.m_u[2];
+
         }
         break;
         case TPZMatElastoPlastic<T, TMEM>::ESX:
