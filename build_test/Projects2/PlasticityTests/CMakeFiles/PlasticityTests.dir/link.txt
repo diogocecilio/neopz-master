@@ -1,0 +1,1 @@
+/usr/bin/c++ -g -Wl,--dependency-file=CMakeFiles/PlasticityTests.dir/link.d CMakeFiles/PlasticityTests.dir/main.cpp.o -o PlasticityTests  -Wl,-rpath,/home/runner/work/neopz-master/neopz-master/build_test ../../libpz.so

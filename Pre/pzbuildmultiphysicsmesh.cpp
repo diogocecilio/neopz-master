@@ -449,6 +449,8 @@ void TPZBuildMultiphysicsMesh::TransferFromMultiPhysicsT(TPZVec<TPZCompMesh *> &
 
 void TPZBuildMultiphysicsMesh::BuildHybridMesh(TPZCompMesh *cmesh, std::set<int> &MaterialIDs, std::set<int> &BCMaterialIds, int LagrangeMat, int InterfaceMat)
 {
+    // Creates a REFERENCE (not a copy) to the geometric elements vector
+    // Using a reference is appropriate here since we only iterate through the vector
 	TPZAdmChunkVector<TPZGeoEl *> &elvec = cmesh->Reference()->ElementVec();
 	int meshdim = cmesh->Dimension();
     
@@ -657,6 +659,8 @@ void TPZBuildMultiphysicsMesh::UniformRefineCompMesh(TPZCompMesh *cMesh, int ndi
 {
 
     // delete the interface elements
+    // Creates a COPY (not a reference) of the elements vector
+    // A copy is made to safely iterate while deleting elements from the original vector
     TPZAdmChunkVector<TPZCompEl *> elvec = cMesh->ElementVec();
     int64_t nel = elvec.NElements();
     for(int64_t el=0; el < nel; el++){
@@ -665,13 +669,15 @@ void TPZBuildMultiphysicsMesh::UniformRefineCompMesh(TPZCompMesh *cMesh, int ndi
         
         if(compEl->IsInterface()){
             compEl->Reference()->ResetReference();
-            delete compEl;
+            delete compEl;  // Deleting from the original mesh, not from our copy
         }
     }
     
     // divide all elements
 	TPZVec<int64_t > subindex(0);
 	for (int iref = 0; iref < ndiv; iref++) {
+        // Creates a COPY (not a reference) of the elements vector
+        // A copy is made because Divide() may add new elements to the mesh
 		TPZAdmChunkVector<TPZCompEl *> elvec = cMesh->ElementVec();
 		int64_t nel = elvec.NElements(); 
 		for(int64_t el=0; el < nel; el++){
@@ -679,7 +685,7 @@ void TPZBuildMultiphysicsMesh::UniformRefineCompMesh(TPZCompMesh *cMesh, int ndi
 			if(!compEl) continue;
 			int ind = compEl->Index();
             if(compEl->Dimension() >0/* cMesh->Dimension()*/){
-                compEl->Divide(ind, subindex, 0);
+                compEl->Divide(ind, subindex, 0);  // May add new elements
       }
 		}
 	}

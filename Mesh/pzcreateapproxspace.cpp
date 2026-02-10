@@ -250,6 +250,8 @@ void TPZCreateApproximationSpace::BuildMesh(TPZCompMesh &cmesh, const TPZVec<int
  */
 /** Only element of material id in the set<int> will be created */
 void TPZCreateApproximationSpace::BuildMesh(TPZCompMesh &cmesh, const std::set<int> &MaterialIDs) const {
+    // Creates a REFERENCE (not a copy) to the geometric elements vector
+    // The '&' operator indicates this is a reference to the original vector
     TPZAdmChunkVector<TPZGeoEl *> &elvec = cmesh.Reference()->ElementVec();
     int64_t i, nelem = elvec.NElements();
     int64_t neltocreate = 0;
