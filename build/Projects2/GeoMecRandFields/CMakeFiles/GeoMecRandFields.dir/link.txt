@@ -1,1 +1,0 @@
-/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/GeoMecRandFields.dir/link.d CMakeFiles/GeoMecRandFields.dir/main.cpp.o -o GeoMecRandFields  -Wl,-rpath,/home/runner/work/neopz-master/neopz-master/build ../../libpz.so
