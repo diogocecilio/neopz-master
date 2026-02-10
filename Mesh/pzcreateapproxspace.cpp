@@ -204,7 +204,6 @@ void TPZCreateApproximationSpace::BuildMesh(TPZCompMesh &cmesh, const TPZVec<int
     {
         cmesh.Block().SetNBlocks(neltocreate);
     }
-    cmesh.Block().SetNBlocks(nbl);
 	
 	for(i=0; i<nelem; i++) {
 		TPZGeoEl *gel = elvec[i];
@@ -270,7 +269,6 @@ void TPZCreateApproximationSpace::BuildMesh(TPZCompMesh &cmesh, const std::set<i
     {
         cmesh.Block().SetNBlocks(neltocreate);
     }
-    cmesh.Block().SetNBlocks(nbl);
     
     for(i=0; i<nelem; i++) {
         TPZGeoEl *gel = elvec[i];
