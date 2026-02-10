@@ -1,1 +1,0 @@
-/usr/bin/c++ -g -Wl,--dependency-file=CMakeFiles/elasticity.dir/link.d CMakeFiles/elasticity.dir/elasticity.cpp.o -o elasticity  -Wl,-rpath,/home/runner/work/neopz-master/neopz-master/build_test ../../libpz.so
