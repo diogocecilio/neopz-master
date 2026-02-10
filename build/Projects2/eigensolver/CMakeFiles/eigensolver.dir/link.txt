@@ -1,1 +1,0 @@
-/usr/bin/c++ -g -Wl,--dependency-file=CMakeFiles/eigensolver.dir/link.d CMakeFiles/eigensolver.dir/main.cpp.o -o eigensolver  -Wl,-rpath,/home/runner/work/neopz-master/neopz-master/build ../../libpz.so

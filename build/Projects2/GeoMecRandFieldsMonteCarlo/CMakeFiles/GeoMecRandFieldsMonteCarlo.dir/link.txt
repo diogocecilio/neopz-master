@@ -1,1 +1,0 @@
-/usr/bin/c++ -g -Wl,--dependency-file=CMakeFiles/GeoMecRandFieldsMonteCarlo.dir/link.d CMakeFiles/GeoMecRandFieldsMonteCarlo.dir/main.cpp.o -o GeoMecRandFieldsMonteCarlo  -Wl,-rpath,/home/runner/work/neopz-master/neopz-master/build ../../libpz.so
