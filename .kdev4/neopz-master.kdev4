@@ -7,16 +7,6 @@ Current Build Directory Index-Host System=0
 Temporary Build Directory Index=1
 
 [CMake][CMake Build Directory 0]
-Build Directory Path=/home/diogo/projects/neopz-master-build-debug
-Build Type=Debug
-CMake Binary=/usr/bin/cmake
-CMake Executable=/usr/bin/cmake
-Environment Profile=
-Extra Arguments=
-Install Directory=/opt/neopz
-Runtime=Host System
-
-[CMake][CMake Build Directory 1]
 Build Directory Path=/home/diogo/projects/neopz-master-build-release
 Build Type=Release
 CMake Binary=/usr/bin/cmake
@@ -26,24 +16,34 @@ Extra Arguments=
 Install Directory=/opt/neopz
 Runtime=Host System
 
+[CMake][CMake Build Directory 1]
+Build Directory Path=/home/diogo/projects/neopz-master-build-debug
+Build Type=Debug
+CMake Binary=/usr/bin/cmake
+CMake Executable=/usr/bin/cmake
+Environment Profile=
+Extra Arguments=
+Install Directory=/opt/neopz
+Runtime=Host System
+
 [Launch]
-Launch Configurations=Launch Configuration 0,Launch Configuration 1
+Launch Configurations=Launch Configuration 0,Launch Configuration 1,Launch Configuration 2,Launch Configuration 3
 
 [Launch][Launch Configuration 0]
 Configured Launch Modes=execute
 Configured Launchers=nativeAppLauncher
-Name=New Compiled Binary Launcher
+Name=GeoMecRandFieldsMonteCarlo
 Type=Native Application
 
 [Launch][Launch Configuration 0][Data]
 Arguments=
-Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
-Dependency Action=Nothing
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x04\x00\x00\x00\x18\x00n\x00e\x00o\x00p\x00z\x00-\x00m\x00a\x00s\x00t\x00e\x00r\x00\x00\x00\x12\x00P\x00r\x00o\x00j\x00e\x00c\x00t\x00s\x002\x00\x00\x004\x00G\x00e\x00o\x00M\x00e\x00c\x00R\x00a\x00n\x00d\x00F\x00i\x00e\x00l\x00d\x00s\x00M\x00o\x00n\x00t\x00e\x00C\x00a\x00r\x00l\x00o\x00\x00\x004\x00G\x00e\x00o\x00M\x00e\x00c\x00R\x00a\x00n\x00d\x00F\x00i\x00e\x00l\x00d\x00s\x00M\x00o\x00n\x00t\x00e\x00C\x00a\x00r\x00l\x00o)
+Dependency Action=Build
 EnvironmentGroup=
-Executable=file:///home/diogo/projects/neopz-master-build-debug/Projects2/eigensolver/eigensolver
+Executable=file:///home/diogo/projects/neopz-master
 External Terminal=konsole --noclose --workdir %workdir -e %exe
 Kill Before Executing Again=4194304
-Project Target=
+Project Target=neopz-master,Projects2,GeoMecRandFieldsMonteCarlo,GeoMecRandFieldsMonteCarlo
 Use External Terminal=false
 Working Directory=
 isExecutable=false
@@ -51,13 +51,58 @@ isExecutable=false
 [Launch][Launch Configuration 1]
 Configured Launch Modes=execute
 Configured Launchers=nativeAppLauncher
-Name=PoroElastic
+Name=PlasticityTestsMohrCoulomb
 Type=Native Application
 
 [Launch][Launch Configuration 1][Data]
-Configured from ProjectItem=neopz-master,Projects2,PoroElastic,PoroElastic
-Project Target=neopz-master,Projects2,PoroElastic,PoroElastic
-Working Directory=file:///home/diogo/projects/neopz-master-build-release/Projects2/PoroElastic/
+Arguments=
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x04\x00\x00\x00\x18\x00n\x00e\x00o\x00p\x00z\x00-\x00m\x00a\x00s\x00t\x00e\x00r\x00\x00\x00\x12\x00P\x00r\x00o\x00j\x00e\x00c\x00t\x00s\x002\x00\x00\x004\x00P\x00l\x00a\x00s\x00t\x00i\x00c\x00i\x00t\x00y\x00T\x00e\x00s\x00t\x00s\x00M\x00o\x00h\x00r\x00C\x00o\x00u\x00l\x00o\x00m\x00b\x00\x00\x004\x00P\x00l\x00a\x00s\x00t\x00i\x00c\x00i\x00t\x00y\x00T\x00e\x00s\x00t\x00s\x00M\x00o\x00h\x00r\x00C\x00o\x00u\x00l\x00o\x00m\x00b)
+Dependency Action=Build
+EnvironmentGroup=
+Executable=file:///home/diogo/projects/neopz-master
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Kill Before Executing Again=4194304
+Project Target=neopz-master,Projects2,PlasticityTestsMohrCoulomb,PlasticityTestsMohrCoulomb
+Use External Terminal=false
+Working Directory=
+isExecutable=false
+
+[Launch][Launch Configuration 2]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=hprefine
+Type=Native Application
+
+[Launch][Launch Configuration 2][Data]
+Arguments=
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x04\x00\x00\x00\x18\x00n\x00e\x00o\x00p\x00z\x00-\x00m\x00a\x00s\x00t\x00e\x00r\x00\x00\x00\x12\x00P\x00r\x00o\x00j\x00e\x00c\x00t\x00s\x002\x00\x00\x00\x10\x00h\x00p\x00r\x00e\x00f\x00i\x00n\x00e\x00\x00\x00\x10\x00h\x00p\x00r\x00e\x00f\x00i\x00n\x00e)
+Dependency Action=Build
+EnvironmentGroup=
+Executable=file:///home/diogo/projects/neopz-master-build-release/Projects2/hprefine/hprefine
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Kill Before Executing Again=4194304
+Project Target=neopz-master,Projects2,hprefine,hprefine
+Use External Terminal=false
+Working Directory=
+isExecutable=true
+
+[Launch][Launch Configuration 3]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=autoadaptive
+Type=Native Application
+
+[Launch][Launch Configuration 3][Data]
+Arguments=
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x04\x00\x00\x00\x18\x00n\x00e\x00o\x00p\x00z\x00-\x00m\x00a\x00s\x00t\x00e\x00r\x00\x00\x00\x12\x00P\x00r\x00o\x00j\x00e\x00c\x00t\x00s\x002\x00\x00\x00\x18\x00a\x00u\x00t\x00o\x00a\x00d\x00a\x00p\x00t\x00i\x00v\x00e\x00\x00\x00\x18\x00a\x00u\x00t\x00o\x00a\x00d\x00a\x00p\x00t\x00i\x00v\x00e)
+Dependency Action=Build
+EnvironmentGroup=
+Executable=file:///home/diogo/projects/neopz-master
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Kill Before Executing Again=4194304
+Project Target=neopz-master,Projects2,autoadaptive,autoadaptive
+Use External Terminal=false
+Working Directory=
 isExecutable=false
 
 [Project]

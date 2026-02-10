@@ -135,7 +135,7 @@ bool RunAndAccept(TPZCompMesh* cmesh,REAL factor,int matid,bool post)
         TPZStepSolver<STATE> step; step.SetDirect(ELDLt);
         anal.SetSolver(step);
     }
-    bool ok = anal.NewtonRaphson();
+    bool ok = anal.NewtonRaphson(false);
     if(bodymat)
     {
         bodymat->SetBodyForce(f0);
@@ -385,9 +385,9 @@ TPZCompMesh* CreateCMesh(TPZGeoMesh* gmesh, int pOrder)
     cmesh->SetDefaultOrder(pOrder);
     cmesh->SetDimModel(2);
 
-    STATE phi=20*M_PI/180.;
+    STATE phi=30*M_PI/180.;
     STATE psi=phi;
-    STATE c =50.;
+    STATE c =10.;
     TPZElasticResponse ER;
     ER.SetEngineeringData(20000.,0.49);
     auto mc = TPZYCMohrCoulombPV2( phi, psi, c,ER) ;

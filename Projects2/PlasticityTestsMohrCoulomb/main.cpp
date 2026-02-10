@@ -116,11 +116,11 @@ void SolveFoot()
 
 void SolveSlope()
 {
-    auto gmesh = TriGMesh(1);
+    auto gmesh = TriGMesh(0);
     auto cmesh = CreateCMesh(gmesh,2);
     std::string vtkfile2="Slope.vtk";
     int loadid=1;
-    int iref=5;
+    int iref=4;
     STATE tolref=0.015;
     Solve(cmesh,loadid,vtkfile2,iref,tolref);
 
@@ -134,12 +134,13 @@ void SolveSlope()
     an.SetSolver(step);
 
 
-    int nsteps=30;
+    int nsteps=5;
     STATE lambda0=0.0001;
     STATE L0=0.3;
     STATE x=30.;
     STATE y=45;
-    IterativeProcessArcLength2(an,nsteps,lambda0,L0,vtkfile2,loadid,x,y);
+    std::string vtkfile3="SlopeX.vtk";
+    IterativeProcessArcLength2(an,nsteps,lambda0,L0,vtkfile3,loadid,x,y);
 }
 
 int main()
@@ -147,7 +148,7 @@ int main()
 
     std::cout << "HELLO WORLD"<<std::endl;
     SolveSlope();
-    //SolveFoot();
+   // SolveFoot();
 
 
    //  STATE phi=20*M_PI/180.;

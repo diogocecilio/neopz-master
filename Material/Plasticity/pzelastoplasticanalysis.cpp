@@ -199,14 +199,14 @@ bool TPZElastoPlasticAnalysis::FindRoot(int &iters,REAL &resu,REAL &resf)
 
 
 
-bool TPZElastoPlasticAnalysis::NewtonRaphson()
+bool TPZElastoPlasticAnalysis::NewtonRaphson(bool verbose)
 {
 
     TPZFMatrix<STATE> x(Solution()), dx(Solution());
     x.Zero(); dx.Zero();
 
     const REAL tol   = 1.e-6;
-    const int  n_it  = 15;
+    const int  n_it  = 20;
     const REAL EPS   = 1.e-30;
 
     //std::cout << "AssembleResidual.."   <<endl;
@@ -250,21 +250,29 @@ bool TPZElastoPlasticAnalysis::NewtonRaphson()
         mr2=Rhs();
 
 
-        std::cout << " \n [it " << i << "] "
-        << "||Δu|| = " << normdu
-        << " | ||R|| = " << normrhs
-        << " | tol = " << tol;// << std::endl;
-        if (i > 3) {
+        if(verbose)
+        {
+            std::cout << " \n [it " << i << "] "
+            << "||Δu|| = " << normdu
+            << " | ||R|| = " << normrhs
+            << " | tol = " << tol;// << std::endl;
+            if (i > 3) {
                 STATE lnR0 = log(r0), lnR1 = log(r1), lnR2 = log(r2);
                 STATE p_est = (lnR2 - lnR1) / (lnR1 - lnR0);
                 std::cout << " | p = " << p_est;
+            }
         }
+
+
+
+        if(normdu>10)return false;
+
 
         iters = i;
 
         // critério de convergência (resíduo relativo)
         if (normrhs < tol &&normdu<tol) {
-            std::cout << "normrhs ="<< normrhs<< " normdu ="<< normdu   <<endl;
+            //std::cout << "normrhs ="<< normrhs<< " normdu ="<< normdu   <<endl;
             return true;
         }
 

@@ -190,10 +190,19 @@ void InsertFootLoadBCs(TMat* mat, TPZCompMesh* cmesh,int bctype)
         val2[1] = 0.0;
         auto* bc2 = mat->CreateBC(mat, -3, neumannDirichletType, val1, val2);
 
-        // Carga em -4 (tipo 1, sem valor prescrito inicial)
+        //Carga em -4 (tipo 1, sem valor prescrito inicial)
         val2[0] = 0.0;
         val2[1] = 0.0;
         auto* bc4 = mat->CreateBC(mat, -4, bctype, val1, val2);
+
+        // val1(1,1)=1.;
+        // val2[0] = 0.0;
+        // val2[1] = 0.0;
+        // auto* bc4 = mat->CreateBC(mat, -4, 7, val1, val2);
+
+
+
+
 
         cmesh->InsertMaterialObject(bc0);
         cmesh->InsertMaterialObject(bc1);
@@ -212,7 +221,7 @@ TPZCompMesh* CreateCMeshFoot(TPZGeoMesh* gmesh,
         cmesh->SetDimModel(2);
 
         const int   id   = 1;
-        const STATE E    = 0.1e8;
+        const STATE E    = 1.e7;
         const STATE nu   = 0.48;
         const STATE sigy = 848.7;
         const STATE H    = 0.0;
@@ -237,7 +246,7 @@ TPZCompMesh* CreateCMeshFoot(TPZGeoMesh* gmesh,
                 }
                 case EMat::ETresca:
                 {
-                        auto* matTresca = CreateMatTresca(id, E, nu, sigy, H);
+                        auto* matTresca = CreateMatTresca(id, E, nu, 2*coes, H);
                         cmesh->InsertMaterialObject(matTresca);
                         InsertFootLoadBCs(matTresca, cmesh,bctype);
                         break;
@@ -271,15 +280,16 @@ void SolveFoot(EMat mattype)
         WriteGeoMesh ( gmesh2, "malha_refinada.txt" );
 }
 
-void SolveFootApplyDisplacement(EMat mattype)
+void SolveFootApplyDisplacement(std::string namevtk,EMat mattype)
 {
         TPZGeoMesh* gmesh = ReadGiDMesh ( meshfile, /*mat2D=*/1, /*mat1D=*/-1 );
         //TPZGeoMesh *gmesh = ReadGeoMesh ( "malha_refinada.txt" );
         int bctype=0;
         auto cmesh= CreateCMeshFoot ( gmesh,2 ,mattype, bctype);
         std::cout << "Equations = " << cmesh->NEquations() << std::endl;
-        TPZManVector<REAL,14> factors= {0., -0.0001, -0.0001, -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001};
-        std::string namevtk="foot-diplacement.vtk";
+       TPZManVector<REAL,14> factors= { -0.0001, -0.0001, -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001,  -0.0001};
+       // TPZManVector<REAL,14> factors={-0.500000e-03, -0.500000e-03, -0.250000e-03, -0.250000e-03,-0.500000e-03,-0.500000e-03};
+       //factors*=2;
         ApplyLoad2 ( cmesh,factors,1,-4,namevtk );
 
 }
@@ -315,14 +325,20 @@ void SolveFootArcLength(std::string vtkfile,EMat type)
 int main()
 {
         // SolveFoot();
-        std::string vtkfile="foot-arclength-mc.vtk";
-        SolveFootArcLength(vtkfile,EMat::EMohr);
+        // std::string vtkfile="foot-arclength-mc.vtk";
+        // SolveFootArcLength(vtkfile,EMat::EMohr);
+        std::string namevtk="foot-diplacement-mc.vtk";
+        SolveFootApplyDisplacement(namevtk,EMat::EMohr);
 
         // std::string vtkfile="foot-arclength-vm.vtk";
         // SolveFootArcLength(vtkfile,EMat::EVonMises);
+        // std::string namevtk="foot-diplacement-mises.vtk";
+        // SolveFootApplyDisplacement(namevtk,EMat::EVonMises);
 //
         // std::string vtkfile="foot-arclength-tresca.vtk";
         // SolveFootArcLength(vtkfile,EMat::ETresca);
+        // std::string namevtk="foot-diplacement-tresca.vtk";
+        // SolveFootApplyDisplacement(namevtk,EMat::ETresca);
         //SolveFootApplyDisplacement();
         //SolveCyl();
 

@@ -1967,6 +1967,75 @@ void TPZCompMesh::CopyMaterials(TPZCompMesh &mesh) const {
         }
     }
 }
+// void TPZCompMesh::CopyMaterials(TPZCompMesh &mesh) const
+// {
+//     // 1) Clone volumetric mats (não-BC)
+//     for (const auto &it : fMaterialVec) {
+//         TPZMaterial *mat = it.second;
+//         if (!mat) continue;
+//         if (dynamic_cast<TPZBndCond*>(mat)) continue; // pula BC
+//
+//         // evita duplicar
+//         if (mesh.FindMaterial(mat->Id())) continue;
+//
+//         mat->Clone(mesh.fMaterialVec);
+//     }
+//
+//     // 2) Clone BC mats + religa para volumétrico clonado
+//     for (const auto &it : fMaterialVec) {
+//         auto *src_bc = dynamic_cast<TPZBndCond*>(it.second);
+//         if (!src_bc) continue;
+//
+//         // BC inválido
+//         if (!src_bc->Material()) {
+//             std::cout << "CopyMaterials: BC id=" << src_bc->Id()
+//             << " sem material associado\n";
+//             continue; // ou DebugStop();
+//         }
+//
+//         // clona o BC se ainda não existe no destino
+//         if (!mesh.FindMaterial(src_bc->Id())) {
+//             it.second->Clone(mesh.fMaterialVec); // chamar via TPZMaterial*
+//         }
+//
+//         auto *dst_bc = dynamic_cast<TPZBndCond*>(mesh.FindMaterial(src_bc->Id()));
+//         if (!dst_bc) {
+//             std::cout << "CopyMaterials: falha ao obter BC clonado id=" << src_bc->Id() << "\n";
+//             DebugStop();
+//         }
+//
+//         const int vol_id = src_bc->Material()->Id();
+//
+//         // tenta achar volumétrico no destino
+//         TPZMaterial *dst_vol = mesh.FindMaterial(vol_id);
+//
+//         // se não achou, tenta clonar o volumétrico da origem "on-demand"
+//         if (!dst_vol) {
+//             auto itvol = fMaterialVec.find(vol_id);
+//             if (itvol != fMaterialVec.end() && itvol->second &&
+//                 !dynamic_cast<TPZBndCond*>(itvol->second)) {
+//
+//                 if (!mesh.FindMaterial(vol_id)) {
+//                     itvol->second->Clone(mesh.fMaterialVec);
+//                 }
+//                 dst_vol = mesh.FindMaterial(vol_id);
+//                 }
+//         }
+//
+//         // se ainda não achou, é inconsistência (ex.: BC aponta para material dummy fora do map)
+//         if (!dst_vol) {
+//             std::cout << "CopyMaterials: nao achei volumetrico id=" << vol_id
+//             << " para BC id=" << src_bc->Id() << "\n";
+//             // escolha 1: tolerar e seguir (mantém ponteiro atual do BC clonado)
+//             continue;
+//             // escolha 2 (estrito):
+//             // DebugStop();
+//         }
+//
+//         // religa BC clonado para o volumétrico clonado no destino
+//         dst_bc->SetMaterial(dst_vol);
+//     }
+// }
 
 void TPZCompMesh::DeleteMaterial(const int matId) {
     delete this->MaterialVec()[matId];

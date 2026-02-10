@@ -38,3 +38,9 @@ add_subdirectory(PlasticityTestsVonMises)
 add_subdirectory(PlasticityTestsTresca)
 
 add_subdirectory(PlasticityTestsMohrCoulomb)
+
+
+add_subdirectory(hprefine)
+
+
+add_subdirectory(autoadaptive)

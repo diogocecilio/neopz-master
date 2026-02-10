@@ -328,7 +328,8 @@ inline void BuildBN(const TPZFMatrix<STATE>& dphiXYZ, const TPZFMatrix<STATE>& p
         EDamageVar=30,
         EBodyForce=31,
         EOrder=32,
-        EDisplacementDoFx = 33
+        EDisplacementDoFx = 33,
+        EStressSqrtJ2 =34
     };
     /// Ponteiro para solução exata (para pós-processamento)
     void (*fExactSolution)(const TPZVec<REAL> &x, TPZVec<STATE> &u,

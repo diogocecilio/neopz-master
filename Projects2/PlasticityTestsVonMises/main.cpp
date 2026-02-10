@@ -584,7 +584,7 @@ void ApplyLoad(TPZCompMesh* cmesh,TPZManVector<REAL> factors,int loaddir,int ind
         int iters_out;
 
         REAL resf,resuu;
-        bool ok = anal.NewtonRaphson();
+        bool ok = anal.NewtonRaphson(false);
        //bool ok = anal.IterativeProcess(std::cout, 1.e-6,100, true, false, iters_out);
 
         ux+= UxAtNode2D(cmesh, 100.,0);

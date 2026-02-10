@@ -172,6 +172,7 @@ int TPZMatElastoPlastic<T,TMEM>::VariableIndex(const std::string &name) const
     if(!strcmp("StrainPlasticI1",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EStrainPlasticI1;
     if(!strcmp("StrainJ2",name.c_str()))                return TPZMatElastoPlastic<T,TMEM>::EStrainJ2;
     if(!strcmp("StressJ2",name.c_str()))                return TPZMatElastoPlastic<T,TMEM>::EStressJ2;
+    if(!strcmp("SqrtStressJ2",name.c_str()))                return TPZMatElastoPlastic<T,TMEM>::EStressSqrtJ2;
     if(!strcmp("StrainElasticJ2",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EStrainElasticJ2;
     if(!strcmp("StrainPlasticJ2",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EStrainPlasticJ2;
     if(!strcmp("FailureType",name.c_str()))             return TPZMatElastoPlastic<T,TMEM>::EFailureType;
@@ -209,6 +210,7 @@ int TPZMatElastoPlastic<T,TMEM>::NSolutionVariables(int var) const
     if(var == TPZMatElastoPlastic<T,TMEM>::EStrainPlasticI1) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EStrainJ2) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EStressJ2) return 1;
+    if(var == TPZMatElastoPlastic<T,TMEM>::EStressSqrtJ2) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EStrainElasticJ2) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EStrainPlasticJ2) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EFailureType) return 1;
@@ -329,7 +331,6 @@ void TPZMatElastoPlastic<T, TMEM>::Solution(const TPZMaterialDataT<STATE> &data,
 
         }
         break;
-        break;
         case TPZMatElastoPlastic<T, TMEM>::EEEZ:
         {
             Solout.Resize(1);
@@ -434,6 +435,13 @@ void TPZMatElastoPlastic<T, TMEM>::Solution(const TPZMaterialDataT<STATE> &data,
             Solout.Resize(1);
             TPZTensor<REAL> eps_t = Memory.m_elastoplastic_state.m_eps_t;
             Solout[0] = eps_t.J2();
+        }
+        break;
+        case TPZMatElastoPlastic<T, TMEM>::EStressSqrtJ2:
+        {
+            Solout.Resize(1);
+            TPZTensor<REAL> sigma = Memory.m_sigma;
+            Solout[0] = sqrt(sigma.J2());
         }
         break;
         case TPZMatElastoPlastic<T, TMEM>::EStressJ2:
@@ -996,7 +1004,7 @@ void TPZMatElastoPlastic<T,TMEM>::ApplyDeltaStrainComputeDep(const TPZMaterialDa
         int solsize = data.sol[0].size();
         for(int i=0; i<solsize; i++)
         {
-            this->MemItem(intPt).m_u[i] = data.sol[0][i];
+            this->MemItem(intPt).m_u[i] += data.sol[0][i];
         }
     }
 
@@ -1047,7 +1055,7 @@ void TPZMatElastoPlastic<T,TMEM>::ApplyDeltaStrain(const TPZMaterialDataT<STATE>
         int solsize = data.sol[0].size();
         for(int i=0; i<solsize; i++)
         {
-            this->MemItem(intPt).m_u[i] = data.sol[0][i];
+            this->MemItem(intPt).m_u[i] += data.sol[0][i];
         }
     }
 

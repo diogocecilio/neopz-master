@@ -74,7 +74,7 @@ public:
 	 */
 	bool FindRoot(int & iters,REAL &resu,REAL &resf);
 
-	bool NewtonRaphson();
+	bool NewtonRaphson(bool verbose);
 	bool NewtonRaphson(REAL tol,TPZStack<STATE> &outresF,TPZStack<STATE> &outresU);
 
 	/**

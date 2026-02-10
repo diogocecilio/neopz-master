@@ -147,16 +147,7 @@ void TPZMatElastoPlastic2D<T, TMEM>::Contribute(const TPZMaterialDataT<STATE> &d
     { Dep(_YY_, _XX_) , Dep(_YY_, _YY_) ,Dep(_YY_, _XY_)},
     {Dep(_XY_, _XX_) , Dep(_XY_, _YY_), Dep(_XY_, _XY_)}
     };
-//     TPZFNMatrix<9> Dep2D = {
-//         {Dep(_XX_, _XX_) , Dep(_XX_, _YY_) , Dep(_XX_, _XY_)},
-//         {Dep(_YY_, _XX_) , Dep(_YY_, _YY_) , Dep(_YY_, _XY_)},
-//         {Dep(_XY_, _XX_) , Dep(_XY_, _YY_) , Dep(_XY_, _XY_)} // aqui é **G**
-//     };
-//
-//     TPZFMatrix<STATE> Stress2D(3,1,0.);
-//     Stress2D(0,0)=Stress(_XX_,0);
-//     Stress2D(1,0)=Stress(_YY_,0);
-//     Stress2D(2,0)=Stress(_XY_,0); // τ_xy (= σ_xy)
+
      TPZFMatrix<STATE> Stress2D(3,1,0.);
     Stress2D(0,0)=Stress(_XX_,0);
     Stress2D(1,0)=Stress(_YY_,0);
@@ -180,71 +171,11 @@ void TPZMatElastoPlastic2D<T, TMEM>::Contribute(const TPZMaterialDataT<STATE> &d
     Bt.Multiply(Stress2D,fint1);
 
     NtPhi.Multiply(flocal,fint2);
+  //  std::cout<<fint2<< std::endl;
     fint2-=fint1;
-    // std::cout <<phi << std::endl;
-    // std::cout <<fint2 << std::endl;
 
     ef+=fint2*weight;
- //     int in;
-	// for(in = 0; in < phr; in++)
-	// {
- //
- //          val  =(ForceLoc[0]) * phi(in,0);
- //          val -= Stress(_XX_,0) * dphiXY(0,in);
- //          val -= Stress(_XY_,0) * dphiXY(1,in);
- //          ef(in*nstate+0,0) += weight * val;
- //
- //          val  = (ForceLoc[1]) * phi(in,0);
- //          val -= Stress(_XY_,0) * dphiXY(0,in);
- //          val -= Stress(_YY_,0) * dphiXY(1,in);
- //          ef(in*nstate+1,0) += weight * val;
- //
- //        for (int jn = 0; jn < phr; jn++) {
- //            for (int ud = 0; ud < 2; ud++) {
- //                for (int vd = 0; vd < 2; vd++) {
- //                    Deriv(vd, ud) = dphiXY(vd, in) * dphiXY(ud, jn);
- //                }
- //            }
- //
- //            val = 2. * Dep(_XX_, _XX_) * Deriv(0, 0); //dvdx*dudx
- //            val += Dep(_XX_, _XY_) * Deriv(0, 1); //dvdx*dudy
- //            val += 2. * Dep(_XY_, _XX_) * Deriv(1, 0); //dvdy*dudx
- //            val += Dep(_XY_, _XY_) * Deriv(1, 1); //dvdy*dudy
- //            val *= 0.5;
- //            ek(in * nstate + 0, jn * nstate + 0) += weight * val;
- //
- //            val = Dep(_XX_, _XY_) * Deriv(0, 0);
- //            val +=  Dep(_XX_, _YY_) * Deriv(0, 1);
- //            val += Dep(_XY_, _XY_) * Deriv(1, 0);
- //            val +=  Dep(_XY_, _YY_) * Deriv(1, 1);
- //            val *= 0.5;
- //            ek(in * nstate + 0, jn * nstate + 1) += weight * val;
- //
- //            val = 2. * Dep(_XY_, _XX_) * Deriv(0, 0);
- //            val += Dep(_XY_, _XY_) * Deriv(0, 1);
- //            val += 2. * Dep(_YY_, _XX_) * Deriv(1, 0);
- //            val += Dep(_YY_, _XY_) * Deriv(1, 1);
- //            val *= 0.5;
- //            ek(in * nstate + 1, jn * nstate + 0) += weight * val;
- //
- //            val = Dep(_XY_, _XY_) * Deriv(0, 0);
- //            val += 2. * Dep(_XY_, _YY_) * Deriv(0, 1);
- //            val += Dep(_YY_, _XY_) * Deriv(1, 0);
- //            val += 2. * Dep(_YY_, _YY_) * Deriv(1, 1);
- //            val *= 0.5;
- //            ek(in * nstate + 1, jn * nstate + 1) += weight * val;
- //        }
- //    }
-//
-#ifdef PZ_LOG
-    if (elastoplastic2dLogger.isDebugEnabled()) {
-        std::stringstream sout;
-        sout << "<<< TPZMatElastoPlastic2D<T,TMEM>::Contribute ***";
-        sout << " Resultant rhs vector:\n" << ef;
-        sout << " Resultant stiff vector:\n" << ek;
-        LOGPZ_DEBUG(elastoplastic2dLogger, sout.str().c_str());
-    }
-#endif
+
 }
 
 template <class T, class TMEM>
@@ -394,33 +325,27 @@ void TPZMatElastoPlastic2D<T, TMEM>::ContributeBC(const TPZMaterialDataT<STATE> 
               ef(nstate*in+0,0) += (v2[0] * phi(in,0) * weight);
               ef(nstate*in+1,0) += (v2[1] * phi(in,0) * weight);
             }
-            break;
-            
-        case 2: // Mixed condition
+        break;
+        case 2: // Mixed/penalty: só uy imposto
         {
-            TPZFNMatrix<2, STATE> res(2, 1, 0.);
-            for (int i = 0; i < 2; i++) {
-                for (int j = 0; j < 2; j++) {
-                    res(i, 0) += bc.Val1()(i, j) * u_n[j];
+            for(in = 0 ; in < phr; in++)
+            {
+
+                ef(in,0) += weight * (v2[0]*phi(0,in) + v2[1]*phi(1,in));
+                for (jn = 0; jn <phr; jn++) {
+                    ek(in,jn) += bc.Val1()(0,0)*phi(0,in)*phi(0,jn)*weight
+
+                    + bc.Val1()(1,0)*phi(1,in)*phi(0,jn)*weight
+
+                    + bc.Val1()(0,1)*phi(0,in)*phi(1,jn)*weight
+
+                    + bc.Val1()(1,1)*phi(1,in)*phi(1,jn)*weight;
                 }
-            }
-            
-            for (in = 0; in < phi.Rows(); in++) {
-                ef(nstate * in + 0, 0) += (v2[0] - res(0, 0)) * phi(in, 0) * weight;
-                ef(nstate * in + 1, 0) += (v2[1] - res(1, 0)) * phi(in, 0) * weight;
-                for (jn = 0; jn < phi.Rows(); jn++) {
-                    for (idf = 0; idf < 2; idf++) {
-                        for (jdf = 0; jdf < 2; jdf++) {
-                            ek(nstate * in + idf, nstate * jn + jdf) += bc.Val1()(idf, jdf) * phi(in, 0) * phi(jn, 0) * weight;
-                            //BUG FALTA COLOCAR VAL2
-                            //DebugStop();
-                        }
-                    }
-                }
-            }//in
+            }// este caso pode reproduzir o caso 0 quando o deslocamento
         }
-            break;
-            
+        break;
+
+
         case 3: // Directional Null Dirichlet - displacement is set to null in the non-null vector component direction
             for (in = 0; in < phr; in++) {
                 ef(nstate * in + 0, 0) += BIGNUMBER * (0. - u_n[0]) * v2[0] * phi(in, 0) * weight;
@@ -487,7 +412,7 @@ void TPZMatElastoPlastic2D<T, TMEM>::ContributeBC(const TPZMaterialDataT<STATE> 
         }
             break;
             
-        case 7 : {
+        case 7 : {//colocar 1 em val1(1,1)=1 para impor deslocamento val2(1)=uprescribedy
             
             REAL v_null[2];
             v_null[0] = bc.Val1()(0, 0);
@@ -502,9 +427,8 @@ void TPZMatElastoPlastic2D<T, TMEM>::ContributeBC(const TPZMaterialDataT<STATE> 
                 }//jn
             }//in
             break;
-            
         }
-            
+
         default:
 #ifdef PZ_LOG
             if (elastoplastic2dLogger.isDebugEnabled()) {

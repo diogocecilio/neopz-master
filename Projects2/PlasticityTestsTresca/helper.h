@@ -378,6 +378,7 @@ void PostProcessVariables ( TPZStack<std::string>& scal, TPZStack<std::string>& 
         scal.Push ( "StressXX" );
         scal.Push ( "StressYY" );
         scal.Push ( "StressJ2" );
+        scal.Push ( "SqrtStressJ2" );
         scal.Push ( "StressZZ" );
         //scal.Push ( "StrainPlasticXX" );
         //scal.Push ( "StrainPlasticYY" );
@@ -585,6 +586,14 @@ REAL IterativeProcessArcLength ( TPZElastoPlasticAnalysis &an,
                                  STATE L0,
                                  std::string vtkfile )
 {
+
+        const std::string csv_path = "loadsweepArcLengthtresca.csv";
+        std::ofstream csv(csv_path);
+        // agora com a coluna da integral:
+        csv << "step,factor,u,intStressYY,iters,ok\n";
+        csv << std::setprecision(15) << std::scientific;
+        STATE uy=0.;
+
         // Recupera a malha/condição de contorno
         auto cmesh = an.Mesh();
         auto* bcmat = dynamic_cast<TPZBndCondT<STATE>*> ( cmesh->FindMaterial ( indexbc ) );
@@ -671,7 +680,7 @@ REAL IterativeProcessArcLength ( TPZElastoPlasticAnalysis &an,
                                         0
                                 } );
 
-                                const REAL dl_max = 1;
+                                const REAL dl_max = 10;
                                 if ( dl >  dl_max ) dl =  dl_max;
                                 if ( dl < -dl_max ) dl = -dl_max;
 
@@ -725,6 +734,21 @@ REAL IterativeProcessArcLength ( TPZElastoPlasticAnalysis &an,
 
                         L*=fac;
 
+                        uy += UxAtNode2D(cmesh, 0., 5., 1);
+                        std::cout << "u = " << uy << std::endl;
+
+                        std::string varname = "StressYY";
+                        std::set<int> matids = { -4 };
+                        TPZVec<STATE> integral = cmesh->Integrate(varname, matids);
+                        std::cout << "integral = " << integral << std::endl;
+
+                        // grava no CSV: step, fator total, u, integral(StressYY), iterações, ok
+                        csv << step        << ","
+                        << 0   << ","
+                        << uy        << ","
+                        << integral[0] << ","
+                        << countwhile << ","
+                        << (okconv ? 1 : 0) << "\n";
 
                         // atualiza “lambda aceito” para rollback seguro
                         diff=sqrt((lambda-lambdan)*(lambda-lambdan));
@@ -797,7 +821,7 @@ bool RunAndAccept(TPZCompMesh* cmesh,REAL factor,int matid)
                 TPZStepSolver<STATE> step; step.SetDirect(ELDLt);
                 anal.SetSolver(step);
         }
-        bool ok = anal.NewtonRaphson();
+        bool ok = anal.NewtonRaphson(false);
        // int iters_out;
         //bool ok = anal.IterativeProcess(std::cout, 1.e-6,100, true, false, iters_out);
         if(bodymat)
@@ -1189,7 +1213,7 @@ void ApplyLoad ( TPZCompMesh* cmesh,TPZManVector<REAL> factors,int loaddir,int i
                 int iters_out;
 
                 REAL resf,resuu;
-                bool ok = anal.NewtonRaphson();
+                bool ok = anal.NewtonRaphson(false);
                 //bool ok = anal.IterativeProcess(std::cout, 1.e-6,100, true, false, iters_out);
 
                 ux+= UxAtNode2D ( cmesh, 100.,0,0 );
@@ -1483,6 +1507,9 @@ TPZGeoMesh* ReadGiDMesh ( const std::string& filename,
                 } else if ( on ( X0[1], H ) && on ( X1[1], H ) &&
                                 in_left_open ( X0[0] ) && in_left_open ( X1[0] ) ) {
                         bcid = -4;                                  // topo com 0 ≤ x < 0.5
+                }else if ( on ( X0[1], H ) && on ( X1[1], H ) &&
+                                !in_left_open ( X0[0] ) && !in_left_open ( X1[0] ) ) {
+                        bcid = -5;                                  // topo com 0.5 ≤ x < 5
                 }
 
                 TPZVec<long> topol2 ( 2 );
@@ -1509,80 +1536,110 @@ TPZGeoMesh* ReadGiDMesh ( const std::string& filename,
 
         return gmesh;
 }
-void ApplyLoad2 ( TPZCompMesh* cmesh,TPZManVector<REAL> factors,int loaddir,int indexbc,std::string vtkfile )
+void ApplyLoad2 ( TPZCompMesh* cmesh,
+                  TPZManVector<REAL> factors,
+                  int loaddir,
+                  int indexbc,
+                  std::string vtkfile )
 {
-        int dim=cmesh->Dimension();
-
+        int dim = cmesh->Dimension();
         cout << "dimensao da malha computacional = " << dim << endl;
 
-        // parâmetros de controle
         int nloads = factors.size();
 
-        TPZElastoPlasticAnalysis anal ( cmesh, std::cout,TPZElastoPlasticAnalysis::ELineSearch::GoldenSection );
+        TPZElastoPlasticAnalysis anal ( cmesh, std::cout,
+                                        TPZElastoPlasticAnalysis::ELineSearch::GoldenSection );
 
         auto* bcmat = dynamic_cast<TPZBndCondT<STATE>*> ( cmesh->FindMaterial ( indexbc ) );
-
         if ( !bcmat ) {
-                std::cout << "material do contorno nao encontrado"<<std::endl;
+                std::cout << "material do contorno nao encontrado" << std::endl;
                 DebugStop();
-
         }
-        const REAL load0=bcmat->Val2() [loaddir];
-        cout << " load0 = "<< load0 <<endl;
-        if ( true ) {
+
+        const REAL load0 = bcmat->Val2()[loaddir];
+        cout << " load0 = " << load0 << endl;
+
+        {
                 TPZFStructMatrix<REAL> str ( cmesh );
                 anal.SetStructuralMatrix ( str );
                 TPZStepSolver<REAL> direct;
                 direct.SetDirect ( ELU );
                 anal.SetSolver ( direct );
-        } else {
-                TPZSkylineStructMatrix<STATE> matskl ( cmesh );
-                matskl.SetNumThreads ( 16 );
-                anal.SetStructuralMatrix ( matskl );
-                TPZStepSolver<STATE> step;
-                step.SetDirect ( ELDLt );
-                anal.SetSolver ( step );
         }
 
-        const std::string csv_path = "loadsweep.csv";
-        std::ofstream csv ( csv_path );
-        csv << "step,factor,uy,iters,ok\n";
-        csv << std::setprecision ( 15 ) << std::scientific;
+        const std::string csv_path = "loadsweepmises.csv";
+        std::ofstream csv(csv_path);
+        // agora com a coluna da integral:
+        csv << "step,factor,u,intStressYY,iters,ok\n";
+        csv << std::setprecision(15) << std::scientific;
 
-        REAL u=0.;
-        int matid=1;
-        REAL sumfac = 0;
-        for ( int i =0; i< nloads; i++ ) {
+        REAL u = 0.;
+        int matid = 1;
+        REAL sumfac = 0.;
+        STATE sumx=0.;
+        STATE sumy=0.;
 
-                sumfac += factors[i];
-                //bcmat->Val2()[loaddir]=load0*factors[i];
-                bcmat->Val2() [loaddir]=sumfac;
-                cout << "Load step =" << i<<" factor =  "<<sumfac <<endl;
-                int iters_out;
+        csv << 0        << ","
+        << 0   << ","
+        << 0       << ","
+        << 0 << ","
+        << 0 << ","
+        << 1 << "\n";
+        for (int i = 1; i <= nloads; i++) {
 
-                STATE tol = 1.e-3;
-                TPZStack<STATE> outresF;
-                TPZStack<STATE> outresU;
-                // bool ok = anal.NewtonRaphson(tol, outresF, outresU);
-                bool ok = anal.IterativeProcess ( std::cout, tol,100, true, false, iters_out );
+                sumfac += factors[i-1];
+                bcmat->Val2()[loaddir] = sumfac;
+                cout << "Load step = " << i << " factor = " << sumfac << endl;
 
-                u+= UxAtNode2D(cmesh, 0.,5.,1);
-                std::cout <<"u = "<< u <<std::endl;
-                TPZFMatrix<REAL> tempsol=anal.Solution();
-                // bcmat->Val2() [loaddir]=0;
-                anal.AcceptSolution ( 0 );
+                int iters_out = 0;
+                STATE tol = 1.e-6;
+                TPZStack<STATE> outresF, outresU;
 
-                //cmesh->LoadSolution(anal.CumulativeSolution());
-                // cmesh->LoadSolution(anal.CumulativeSolution());
-                PostElastoplastic ( cmesh,vtkfile,matid,i,dim );
-                std::ofstream vtk ( "gsimpletest.vtk" );
-                TPZVTKGeoMesh::PrintGMeshVTK ( cmesh->Reference(), vtk, true );
-                //tempsol.Zero();
-                //cmesh->LoadSolution(tempsol);
-                //anal.LoadSolution();
+                //bool ok = anal.NewtonRaphson(tol,outresF,outresU);
+                bool ok = anal.IterativeProcess(std::cout, tol, 30, true, false, iters_out);
+
+                // deslocamento acumulado (ou mude se quiser apenas o último incremento):
+                u += UxAtNode2D(cmesh, 0., 5., 1);
+                std::cout << "u = " << u << std::endl;
+
+
+
+                TPZFMatrix<REAL> tempsol = anal.Solution();
+                anal.AcceptSolution(1);
+
+                std::string varname = "StressYY";
+                std::set<int> matids = {-4};
+                TPZVec<STATE> integral4 = cmesh->Integrate(varname, matids);
+
+                std::set<int> matids2 = {-2};
+                TPZVec<STATE> integral2 = cmesh->Integrate(varname, matids2);
+
+                std::set<int> matids3 = {-5};
+                //TPZVec<STATE> integral5 = cmesh->Integrate(varname, matids3);
+
+                std::cout << "integral4[0] "<< integral4[0]<< std::endl;
+                std::cout << "integral2[0] "<< integral2[0]<< std::endl;
+               // std::cout << "integral5[0] "<< integral5[0]<< std::endl;
+/*
+                std::cout << "integral[0] = " << integral[0] <<" integral[1] = " << integral[1]  <<" integral[2] = " << integral[2] << "soma y = "<< integral[0] +integral[1] +integral[2] << std::endl;
+
+                std::cout << "integral[3] = " << integral[3] <<" integral[4] = " << integral[4] << "soma x = "<< integral[3] +integral[4] << std::endl;
+*/
+
+                // grava no CSV: step, fator total, u, integral(StressYY), iterações, ok
+                csv << i        << ","
+                << sumfac   << ","
+                << u        << ","
+                << integral2[0] << ","
+                << iters_out << ","
+                << (ok ? 1 : 0) << "\n";
+
+                PostElastoplastic(cmesh, vtkfile, matid, i, dim);
+                std::ofstream vtk("gsimpletest.vtk");
+                TPZVTKGeoMesh::PrintGMeshVTK(cmesh->Reference(), vtk, true);
         }
-
 }
+
 struct IndexesCylinder {
         // --- parâmetros mecânicos ---
 public:

@@ -104,9 +104,32 @@
 #include <string>
 #include <sstream>
 #include <filesystem>
+#include "Plasticity/TPZPlasticStepVoigt.h"
+#include "Plasticity/TPZYCMohrCoulombPV2.h"
 
 typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> TPlasticMC;
 typedef TPZMatElastoPlastic2D<TPlasticMC, TPZElastoPlasticMem>   plasticmat;
+
+typedef TPZPlasticStepVoigt<TPZYCMohrCoulombPV2, TPZElasticResponse> TPlasticStepVoigtMC;
+typedef TPZMatElastoPlastic2D<TPlasticStepVoigtMC,TPZElastoPlasticMem> TMatElastoPlaticMC;
+
+
+REAL young   = 20000.;
+REAL poisson = 0.49;
+
+REAL coes    = 10.;
+REAL atrito  = 30. * M_PI / 180.;
+TPZManVector<REAL,3> bodyforce={0.,-20.,0.};
+
+
+
+REAL IterativeProcessArcLength2(TPZElastoPlasticAnalysis &an,
+                                int nsteps,
+                                STATE lambda0,
+                                STATE L0,
+                                const std::string &vtkfile,
+                                int matid,
+                                STATE x, STATE y);
 
 using namespace std;
 // Lê a última linha não vazia do CSV e retorna o último índice s (ou -1 se não houver dados)
@@ -149,7 +172,8 @@ void PostProcessVariables(TPZStack<std::string>& scal, TPZStack<std::string>& ve
 
 void CreatePostProcessingMesh(TPZCompMesh* cmesh,TPZPostProcAnalysis* pproc,int matid);
 
-void PostElastoplastic(TPZCompMesh* cmesh,const std::string& vtkfile,int matid);
+void PostElastoplastic(TPZCompMesh* cmesh,const std::string& vtkfile,int matid,int step,int dim);
+
 
 TPZGeoMesh*  TriGMesh(int ref);
 
@@ -157,8 +181,8 @@ plasticmat*  CreateMaterial(REAL young, REAL poisson, REAL coes, REAL atrito,TPZ
 
 TPZCompMesh* CreateCMesh(TPZGeoMesh* gmesh, int pOrder, plasticmat* mat);
 
-
-void InitializeMemory(TPZCompMesh* cmesh, REAL coesion, REAL atrito);
+TPZCompMesh* CreateCMesh(TPZGeoMesh* gmesh, int pOrder);
+//void InitializeMemory(TPZCompMesh* cmesh, REAL coesion, REAL atrito);
 
 void ComputeElementDeformation(TPZCompMesh* cmesh, TPZVec<REAL>& fPlasticDeformSqJ2);
 
@@ -172,11 +196,15 @@ bool HPrefine(TPZCompMesh* cmesh,REAL refineAboveVal,int porder);
 
 REAL UyAtNode(TPZCompMesh* cmesh, REAL x, REAL y);
 
-bool RunAndAccept(TPZCompMesh* cmesh,REAL factor, int & itersout,REAL &resu,REAL &resf);
 
 // novo – nomes mais descritivos + 'verbose' (0=quieto, 1=resumo, 2=por iteração)
-REAL FindFS_Bisection       (TPZCompMesh* cmesh, REAL lo, REAL hi,
-                             REAL tol_fs_rel, int max_it, int verbose = 1);
+// REAL FindFS_Bisection       (TPZCompMesh* cmesh, REAL lo, REAL hi,
+//                              REAL tol_fs_rel, int max_it, int verbose =1);
+
+REAL FindFS_Bisection(TPZCompMesh* cmesh,
+                      REAL lo, REAL hi,
+                      REAL tol_fs_rel, int max_it,
+                      int verbose,int loadmatid);
 
 REAL FindFS_BracketedSecant (TPZCompMesh* cmesh, REAL lo, REAL hi,
                              REAL tol_fs_rel, int max_it, int verbose = 1);
@@ -228,49 +256,8 @@ void BuildFields(int pOrder ,int ref,int kMatId,REAL Lx,REAL Ly,int M,int NsampG
 void ApplyLoad(TPZCompMesh* cmesh,
                REAL coes, REAL atrito, TPZManVector<REAL> factors);
 
+bool RunAndAccept(TPZCompMesh* cmesh,REAL factor,int matid,bool post=false);
 
-
-
-
-
-
-
-bool RunAndAccept(TPZCompMesh* cmesh,REAL factor, int & itersout,REAL &resu,REAL &resf)
-{
-        auto* body = dynamic_cast<plasticmat*>(cmesh->FindMaterial(1));
-        // body->SetLoadFactor(factor);
-        //REIMPLEMENTAR
-        DebugStop();
-        //body->SetLoadFactor ( factor );
-        cmesh->Solution().Zero();
-
-
-        TPZElastoPlasticAnalysis anal(cmesh, std::cout,TPZElastoPlasticAnalysis::ELineSearch::Armijo);
-
-        if(false)
-        {
-                TPZSSpStructMatrix<STATE> SSpStructMatrix ( cmesh );
-                SSpStructMatrix.SetNumThreads(12);
-                anal.SetStructuralMatrix(SSpStructMatrix);
-                TPZPardisoSolver<REAL> *pardiso = new TPZPardisoSolver<REAL>;
-                anal.SetSolver ( *pardiso );
-        }else{
-                TPZSkylineStructMatrix<STATE> matskl(cmesh);
-                matskl.SetNumThreads(16);
-                anal.SetStructuralMatrix(matskl);
-                TPZStepSolver<STATE> step; step.SetDirect(ELDLt);
-                anal.SetSolver(step);
-        }
-
-        int iters=30;
-        bool ok = anal.FindRoot(itersout,resu,resf);
-        //cout << " ok = "<< ok << " iters_out = "<< iters_out << "resu = "<< resu << " resf = "<< resf <<endl;
-        //bool ok = anal.IterativeProcess(std::cout, 1.e-3, iters, true, false, iters_out);
-        if (!ok) return false;
-        anal.AcceptSolution(1);
-        //cmesh->LoadSolution(anal.CumulativeSolution());
-        return true;
-}
 
 bool HPrefine(TPZCompMesh* cmesh,REAL refineAboveVal,int porder)
 {
@@ -326,15 +313,11 @@ static inline REAL RelGap(REAL a, REAL b) {
         return (b - a) / std::max<REAL>(m, (REAL)1e-12);
 }
 
-/**
- * Busca por bisseção do fator de segurança FS.
- * Mantém sempre um intervalo [lo,hi] e escolhe o meio.
- * verbose: 0 (silencioso), 1 (resumo), 2 (log por iteração)
- */
+
 REAL FindFS_Bisection(TPZCompMesh* cmesh,
                       REAL lo, REAL hi,
                       REAL tol_fs_rel, int max_it,
-                      int verbose)
+                      int verbose,int loadmatid)
 {
         if (hi < lo) std::swap(lo, hi);
 
@@ -360,7 +343,7 @@ REAL FindFS_Bisection(TPZCompMesh* cmesh,
                 const REAL mid = (REAL)0.5*(lo + hi);
                 int it_mid = 0;
                 REAL resu,resf;
-                const bool ok = RunAndAccept(cmesh,  mid, it_mid,resu,resf);
+                const bool ok = RunAndAccept(cmesh,  mid,loadmatid);
 
                 if (verbose) {
                         std::cout << "[FS-Bisection][it " << k << "] "
@@ -382,120 +365,41 @@ REAL FindFS_Bisection(TPZCompMesh* cmesh,
         return lo; // melhor piso convergente
 }
 
-/**
- * Busca híbrida: secante com salvaguarda de bracket (Illinois) + fallback de bisseção.
- * Mantém [lo,hi] e tenta passo de secante dentro do intervalo; se sair, usa meio.
- * verbose: 0 (silencioso), 1 (resumo), 2 (log por iteração)
- */
-REAL FindFS_BracketedSecant(TPZCompMesh* cmesh,
-                            REAL lo, REAL hi,
-                            REAL tol_fs_rel, int max_it,
-                            int verbose)
-{
-        if (hi < lo) std::swap(lo, hi);
 
-        auto tryFS = [&](REAL fs, int& it,REAL &resu,REAL &resf){ return RunAndAccept(cmesh, fs, it,resu,resf); };
-
-        if (verbose) {
-                std::cout << "\n[FS-BracketedSecant] start"
-                << "  lo=" << lo << "  hi=" << hi
-                << "  tol_rel=" << tol_fs_rel
-                << "  max_it=" << max_it << "\n";
-        }
-
-        // Estado do bracket: +1 = OK (convergiu), -1 = FAIL (não convergiu)
-        // Tentamos avaliar nas extremidades para diagnosticar o bracket.
-        int it_l=0, it_h=0;
-        REAL resu,resf;
-        int flo = tryFS(lo, it_l,resu,resf) ? +1 : -1;
-        int fhi = tryFS(hi, it_h,resu,resf) ? +1 : -1;
-
-        if (verbose) {
-                std::cout << "[FS-BracketedSecant] probe: lo("
-                << lo << ")=" << (flo>0?"OK":"FAIL")
-                << " it=" << it_l << " | hi("
-                << hi << ")=" << (fhi>0?"OK":"FAIL")
-                << " it=" << it_h << "\n";
-        }
-
-        // Obs.: se bracket não for "válido" (mesmo sinal), ainda assim o método progride
-        // porque amortecemos o lado que não muda (Illinois) e temos fallback de bisseção.
-
-        for (int k = 0; k < max_it && RelGap(lo,hi) > tol_fs_rel; ++k) {
-
-                // Secante regulada (Illinois)
-                REAL fs = lo - ( (REAL)flo * (hi - lo) ) / ( (REAL)(fhi - flo) + (REAL)1e-16 );
-
-                // Salvaguarda: manter dentro do intervalo
-                if (!(fs > lo && fs < hi)) fs = (REAL)0.5*(lo + hi);
-
-                int it_mid = 0;
-                const bool ok = tryFS(fs, it_mid,resu,resf);
-
-                if (verbose) {
-                        std::cout << "[FS-BracketedSecant][it " << k << "] "
-                        << "trial=" << fs
-                        << "  bracket=[" << lo << "," << hi << "]"
-                        << "  -> " << (ok ? "OK" : "FAIL")
-                        << " (iters=" << it_mid << "resu =  "<<resu << "resf =  "<<resf <<  ")\n";
-                }
-
-                if (ok) {
-                        lo  = fs;
-                        flo = +1;
-                        fhi = (int)std::lrint(0.5 * fhi); // Illinois damping do lado não mudado
-                } else {
-                        hi  = fs;
-                        fhi = -1;
-                        flo = (int)std::lrint(0.5 * flo);
-                }
-        }
-
-        if (verbose) {
-                std::cout << "[FS-BracketedSecant] end  FS≈" << lo
-                << "  gap_final=" << RelGap(lo,hi) << "\n";
-        }
-        return lo; // melhor piso convergente
-}
-
-
-
-plasticmat* CreateMaterial(REAL young, REAL poisson, REAL coes, REAL atrito,
-                           TPZManVector<REAL,3> bodyforce, int planestrain, int matid)
-{
-        TPZElasticResponse ER; ER.SetEngineeringData(young, poisson);
-
-        TPlasticMC mc;
-        mc.fYC.SetUp(atrito, atrito, coes, ER);
-        mc.fER = ER;
-        mc.SetStrengthReductionFactor(1.0);
-
-        auto* material = new plasticmat(matid, planestrain);
-        material->SetPlasticityModel(mc);
-        material->SetId(matid);
-        //REIMPLEMENTAR
-        DebugStop();
-
-        // material->SetWhichLoadVector(0);
-        // material->SetLoadFactor(1.0);
-        // material->SetBodyForce(bodyforce);
-        return material;
-}
-
-TPZCompMesh* CreateCMesh(TPZGeoMesh* gmesh, int pOrder, plasticmat* mat)
+TPZCompMesh* CreateCMesh(TPZGeoMesh* gmesh, int pOrder)
 {
         TPZCompMesh* cmesh = new TPZCompMesh(gmesh);
         cmesh->SetDefaultOrder(pOrder);
         cmesh->SetDimModel(2);
-        cmesh->InsertMaterialObject(mat);
+
+        STATE phi=atrito;
+        STATE psi=phi;
+        STATE c =coes;
+        TPZElasticResponse ER;
+        ER.SetEngineeringData(young,poisson);
+        auto mc = TPZYCMohrCoulombPV2( phi, psi, c,ER) ;
+        TPlasticStepVoigtMC PlasticStepVoigt;
+        PlasticStepVoigt.SetPlasticCriterion(mc);
+        PlasticStepVoigt.SetElasticResponse(ER);
+
+
+        int id=1;
+        int planestrain=1;
+        auto* material = new TMatElastoPlaticMC(id, planestrain);
+        material->SetPlasticityModel(PlasticStepVoigt);
+        material->SetId(id);
+        material->SetBodyForce0(bodyforce);
+        material->SetBodyForce(bodyforce);
+
+        cmesh->InsertMaterialObject(material);
 
         TPZFMatrix<STATE> val1(2,2,0.0);
         TPZManVector<STATE,2> val2(2,0.0);
 
         int dir = 3;
-        val2[0]=1; val2[1]=1; auto* bc0 = mat->CreateBC(mat, -1, dir, val1, val2);
-        val2[0]=1; val2[1]=0; auto* bc1 = mat->CreateBC(mat, -2, dir, val1, val2);
-        val2[0]=1; val2[1]=0; auto* bc2 = mat->CreateBC(mat, -5, dir, val1, val2);
+        val2[0]=1; val2[1]=1; auto* bc0 = material->CreateBC(material, -1, dir, val1, val2);
+        val2[0]=1; val2[1]=0; auto* bc1 = material->CreateBC(material, -2, dir, val1, val2);
+        val2[0]=1; val2[1]=0; auto* bc2 = material->CreateBC(material, -5, dir, val1, val2);
 
         cmesh->InsertMaterialObject(bc0);
         cmesh->InsertMaterialObject(bc1);
@@ -788,48 +692,8 @@ void PRefineElementsAbove(TPZCompMesh* cmesh,
         cmesh->InitializeBlock();         // re-inicializa blocagem conforme connects
 }
 
-// ------------------------------------------------------------
-// Pós-processo
-// ------------------------------------------------------------
-void PostProcessVariables(TPZStack<std::string>& scal, TPZStack<std::string>& vec)
-{
-        scal.Push ( "POrder" );
-        scal.Push ( "Atrito" );
-        scal.Push ( "Coesion" );
-        scal.Push ( "StrainPlasticJ2" );
-        scal.Push ( "VolHardening" );
-        vec.Push ( "Displacement" );
-        vec.Push ( "ShearPlasticDeformation" );
-        vec.Push ( "PlasticDeformation" );
 
-}
 
-void CreatePostProcessingMesh(TPZCompMesh* cmesh,TPZPostProcAnalysis* pproc,int matid)
-{
-        if (pproc->ReferenceCompMesh() != cmesh) {
-                pproc->SetCompMesh(cmesh);
-                TPZStack<std::string> scal, vec, all;
-                PostProcessVariables(scal, vec);
-                for (auto i=0; i<scal.size();  ++i) all.Push(scal[i]);
-                for (auto i=0; i<vec.size();   ++i) all.Push(vec[i]);
-                TPZVec<int> matids(1); matids[0] = matid;
-                pproc->SetPostProcessVariables(matids, all);
-                TPZFStructMatrix<REAL> str(pproc->Mesh());
-                str.SetNumThreads(0);
-                pproc->SetStructuralMatrix(str);
-        }
-        pproc->TransferSolution();
-}
-
-void PostElastoplastic(TPZCompMesh* cmesh,const std::string& vtkfile,int matid)
-{
-        TPZPostProcAnalysis pproc;
-        CreatePostProcessingMesh(cmesh, &pproc, matid);
-        TPZStack<std::string> scal, vec;
-        PostProcessVariables(scal, vec);
-        pproc.DefineGraphMesh(/*dim=*/2, scal, vec, vtkfile);
-        pproc.PostProcess(2);
-}
 
 TPZGeoMesh* TriGMesh(int ref)
 {
@@ -909,82 +773,193 @@ TPZGeoMesh* TriGMesh(int ref)
         return gmesh;
 }
 
+bool RunAndAccept(TPZCompMesh* cmesh,REAL factor,int matid,bool post)
+{
+        auto* bodymat = dynamic_cast<TMatElastoPlaticMC*>(cmesh->FindMaterial(matid));
+        auto* bcmat = dynamic_cast<TPZBndCondT<STATE>*>(cmesh->FindMaterial(matid));
 
-REAL Solve(TPZCompMesh* cmesh,REAL coes,REAL phi)
+
+        TPZManVector<REAL,3> f0;
+        if(bodymat)
+        {
+                f0=bodymat->GetBodyForce();
+                TPZManVector<REAL,3> fb=f0;
+                fb[1]*=factor;
+                std::cout << "Factor = " << factor <<   "\n";
+                bodymat->SetBodyForce(fb);
+        }else
+        {
+                if(!bcmat)
+                {
+                        std::cout << "material de contorno nao encontrado \n";
+                        DebugStop();
+                }
+                f0=bcmat->Val2();
+                bcmat->Val2()[0] *= factor;
+                bcmat->Val2()[1] *= factor;
+
+
+        }
+
+        cmesh->Solution().Zero();
+
+        TPZElastoPlasticAnalysis anal(cmesh, std::cout,TPZElastoPlasticAnalysis::ELineSearch::Armijo);
+
+        if(false)
+        {
+                TPZFStructMatrix<REAL> str(cmesh);
+                anal.SetStructuralMatrix(str);
+                TPZStepSolver<REAL> direct;
+                direct.SetDirect(ELU);
+                anal.SetSolver(direct);
+        }else{
+                TPZSkylineStructMatrix<STATE> matskl(cmesh);
+                matskl.SetNumThreads(16);
+                anal.SetStructuralMatrix(matskl);
+                TPZStepSolver<STATE> step; step.SetDirect(ELDLt);
+                anal.SetSolver(step);
+        }
+        bool ok = anal.NewtonRaphson(false);
+        if(bodymat)
+        {
+                bodymat->SetBodyForce(f0);
+        }else
+        {
+                bcmat->Val2()[0]=f0[0];
+                bcmat->Val2()[1]=f0[1];
+                bcmat->Val2()[2]=f0[2];
+        }
+        if (!ok) return false;
+        if(post)
+        {
+                int dim=2;
+                int matid=1;
+                PostElastoplastic(cmesh,"post.vtk",matid,0,dim);
+        }
+        anal.AcceptSolution();
+        return true;
+}
+
+REAL Solve(TPZCompMesh* cmesh,int loadmatid,string vtkfile,int ref,STATE tol_fs_rel)
 {
         REAL lo=0.5;
-        REAL hi=10.;
-        REAL tol_fs_rel=0.005;
+        REAL hi=30.;
         int max_bis = 20;
+        int verbose=1;
         REAL FS=1000.;
         REAL FSOLD=0.;
 
         int porder=cmesh->GetDefaultOrder();
         porder+=1;
         int iters_out;
-        int maxref=3;
-        for ( int iref=1; iref<=maxref; iref++ ) {
+        int maxref=ref;
+        TPZStack<STATE> fsstack;
+        for ( int iref=1; iref<maxref; iref++ ) {
 
                 int neq=cmesh->NEquations();
-                InitializeMemory(cmesh, coes, phi);
                 std::cout << "\n[solve] ===== Refinamento # "<< iref <<" ====="<<" neq = " <<neq << "\n";
-                //FS=  BisectionFS(cmesh,  lo,  hi, tol_fs_rel ,  max_bis);
                 FSOLD=FS;
-                FS=  FindFS_Bisection(cmesh, lo,  hi, tol_fs_rel ,  max_bis,2);
-                //FS=FindFS_BracketedSecant(cmesh, lo,  hi, tol_fs_rel ,  max_bis,2);
+                FS=  FindFS_Bisection(cmesh, lo,  hi, tol_fs_rel ,  max_bis,verbose,loadmatid);
 
+
+                fsstack.Push(FS);
                 if(FSOLD<FS)
                 {
                         cout << "FSOLD<FS  "<< "FSOLD = " << FSOLD << " FS = "<< FS<<endl;
                         cout  << "FS final = " << FSOLD<<endl;
                         REAL resu,resf;
-                        RunAndAccept( cmesh,  FSOLD,  iters_out,resu,resf);
+                        RunAndAccept( cmesh,  FSOLD,loadmatid);
                         return FSOLD;
 
                 }
-                if(iref==maxref)break;
-                HPrefine(cmesh,tol_fs_rel,porder);
-                porder+=1;
-        }
+                //if(iref==maxref-1)break;
+                //RunAndAccept( cmesh,  FS,loadmatid,false);
+                HPrefine(cmesh,tol_fs_rel,porder+1);
 
+                //porder+=1;
+        }
+        std::ofstream vtk("gmeshtrirefined.vtk");
+        TPZVTKGeoMesh::PrintGMeshVTK(cmesh->Reference(), vtk, true);
         cout  << "FS final = " << FS<<endl;
-        REAL resu,resf;
-        RunAndAccept( cmesh,  FS,  iters_out,resu,resf);
+        RunAndAccept( cmesh,  FS,loadmatid);
         return FS;
 
 }
+
+void PostProcessVariables(TPZStack<std::string>& scal, TPZStack<std::string>& vec)
+{
+        scal.Push ( "StrainPlasticJ2" );
+        vec.Push ( "Displacement" );
+        scal.Push ( "EBodyForce" );
+        scal.Push ( "StressXX" );
+        scal.Push ( "StressYY" );
+        scal.Push ( "StressZZ" );
+        scal.Push ( "StrainPlasticZZ" );
+        scal.Push ( "StrainTotalZZ" );
+        scal.Push ( "DamageVariable" );
+
+        // scal.Push ( "EOrder" );
+        // scal.Push ( "POrder" );
+        // scal.Push ( "Atrito" );
+        // scal.Push ( "Coesion" );
+        // scal.Push ( "VolHardening" );
+        // vec.Push ( "ShearPlasticDeformation" );
+        // vec.Push ( "PlasticDeformation" );
+
+}
+
+
+
+void CreatePostProcessingMesh(TPZCompMesh* cmesh,TPZPostProcAnalysis* pproc,int matid)
+{
+        if (pproc->ReferenceCompMesh() != cmesh) {
+                pproc->SetCompMesh(cmesh);
+                TPZStack<std::string> scal, vec, all;
+                PostProcessVariables(scal, vec);
+                for (auto i=0; i<scal.size();  ++i) all.Push(scal[i]);
+                for (auto i=0; i<vec.size();   ++i) all.Push(vec[i]);
+                TPZVec<int> matids(1); matids[0] = matid;
+                pproc->SetPostProcessVariables(matids, all);
+                TPZFStructMatrix<REAL> str(pproc->Mesh());
+                str.SetNumThreads(0);
+                pproc->SetStructuralMatrix(str);
+        }
+        pproc->TransferSolution();
+}
+
+void PostElastoplastic(TPZCompMesh* cmesh,const std::string& vtkfile,int matid,int step,int dim)
+{
+        TPZPostProcAnalysis pproc;
+        CreatePostProcessingMesh(cmesh, &pproc, matid);
+        TPZStack<std::string> scal, vec;
+        PostProcessVariables(scal, vec);
+        pproc.DefineGraphMesh(/*dim=*/dim, scal, vec, vtkfile);
+        pproc.SetStep(step);
+        pproc.PostProcess(0);
+}
+
+
 void RunDeterministic()
 {
         int pOrder = 2;
-        int ref =2;
+        int ref =0;
         TPZGeoMesh* gmesh = TriGMesh(ref);
         {
                 std::ofstream vtk1("antes.vtk");
                 TPZVTKGeoMesh::PrintGMeshVTK(gmesh, vtk1, true);
                 std::cout << "antes.vtk escrito.\n";
         }
-        // 2) Material
-        REAL young   = 20000.;
-        REAL poisson = 0.49;
-        REAL coes    = 10.;
-        REAL atrito  = 30. * M_PI / 180.;
-        TPZManVector<REAL,3> bodyforce(3,0.0);
-        bodyforce[1] = -20.0;
 
-        plasticmat* mat = CreateMaterial(young, poisson, coes, atrito, bodyforce);
-
-        TPZCompMesh* cmesh = CreateCMesh(gmesh, pOrder, mat);
-
-        // mat->SetBodyForce(bodyforce);
-        //REIMPLEMENTAR
-        DebugStop();
-        //body->SetLoadFactor ( factor );
-        InitializeMemory(cmesh, coes, atrito);
+        TPZCompMesh* cmesh = CreateCMesh(gmesh, pOrder);
 
         using Clock = std::chrono::steady_clock;
 
         auto t0 = Clock::now();
-        REAL FS = Solve(cmesh, coes,atrito);
+        std::string vtkfile2="Slope.vtk";
+        int loadid=1;
+        int iref=5;
+        STATE tolref=0.015;
+        REAL FS = Solve(cmesh,loadid,vtkfile2,iref,tolref);
         auto t1 = Clock::now();
 
         std::chrono::duration<double> secs = t1 - t0;
@@ -1000,12 +975,34 @@ void RunDeterministic()
         }
         string vtk2="post_plasticity.vtk";
         int matid=1;
-        PostElastoplastic(cmesh,vtk2,matid);
+        int dim=2;
+        RunAndAccept( cmesh,  FS,loadid);
+        std::string vtkfile3="SlopeX.vtk";
+       // void PostElastoplastic(TPZCompMesh* cmesh,const std::string& vtkfile,int matid,int step,int dim)
+        PostElastoplastic(cmesh, vtkfile3, /*matid*/1, /*out_step*/ 0 ,dim);
+        //PostElastoplastic(cmesh,vtk2,matid);
+
+
+        TPZElastoPlasticAnalysis an(cmesh, std::cout,TPZElastoPlasticAnalysis::ELineSearch::Armijo);
+        TPZSkylineStructMatrix<STATE> matskl(cmesh);
+        matskl.SetNumThreads(16);
+        an.SetStructuralMatrix(matskl);
+        TPZStepSolver<STATE> step;
+        step.SetDirect(ELDLt);
+        an.SetSolver(step);
+        int nsteps=20;
+        STATE lambda0=0.0001;
+        STATE L0=1.;
+        STATE x=30.;
+        STATE y=45;
+        std::string vtkfile4="SlopeARC.vtk";
+        IterativeProcessArcLength2(an,nsteps,lambda0,L0,vtkfile4,loadid,x,y);
+
 }
 int main()
 {
-        RunStochastic(false);
-        //RunDeterministic();
+       // RunStochastic(false);
+        RunDeterministic();
 
         return 0;
 }
@@ -1102,14 +1099,17 @@ REAL SolveStochastic(const std::vector<TPZCompMesh*>& sources,TPZCompMesh* targe
                 int neq=target->NEquations();
                 std::cout << "\n[solve] ===== Refinamento # "<< iref <<" ====="<<" neq = " <<neq << "\n";
                 ComputeFieldMulti(sources, target, specs, /*idxE=*/0, /*idxNu=*/1);
-                FS=FindFS_BracketedSecant(target, lo,  hi, tol_fs_rel ,  max_bis);
+                //FS=FindFS_BracketedSecant(target, lo,  hi, tol_fs_rel ,  max_bis);
                 //FS=  FindFS_Bisection(target, lo,  hi, tol_fs_rel ,  max_bis,2);
+                FS=  FindFS_Bisection(target, lo,  hi, tol_fs_rel ,  max_bis,0,1);
+
                 if(FSOLD<FS)
                 {
                         cout << "FSOLD<FS  "<< "FSOLD = " << FSOLD << " FS = "<< FS<<endl;
                         cout  << "FS final = " << FSOLD<<endl;
                         REAL resu,resf;
-                        RunAndAccept( target,  FSOLD,  iters_out,resu,resf);
+                        RunAndAccept( target,  FSOLD,1);
+                        //RunAndAccept( target,  FSOLD,  iters_out,resu,resf);
                         return FSOLD;
 
                 }
@@ -1119,7 +1119,7 @@ REAL SolveStochastic(const std::vector<TPZCompMesh*>& sources,TPZCompMesh* targe
         }
         cout  << "FS final = " << FS<<endl;
         REAL resu,resf;
-        RunAndAccept( target,  FSOLD,  iters_out,resu,resf);
+        RunAndAccept( target,  FSOLD,1);
         return FS;
 }
 
@@ -1133,13 +1133,7 @@ void SolveMonteCarlo(int pOrderfield ,int pOrderDeform,int reffield,int ref,int 
         TPZCompMesh* cmeshFieldAtrito = BuildCompMeshKL_Param(gmesh1, pOrderfield, kMatId, 1.0, 1.0);
 
         // 2) Material
-        REAL young   = 20000.;
-        REAL poisson = 0.49;
 
-        REAL coes    = 10.;
-        REAL atrito  = 30. * M_PI / 180.;
-        TPZManVector<REAL,3> bodyforce(3,0.0);
-        bodyforce[1] = -20.0;
 
         // lê hhat
         std::ostringstream fin;
@@ -1174,23 +1168,23 @@ void SolveMonteCarlo(int pOrderfield ,int pOrderDeform,int reffield,int ref,int 
 
         double sum=0.0, sum2=0.0; int nacc=0; // estatísticas desta sessão
         TPZFMatrix<REAL> col1(hhat1.Rows(),1), col2(hhat2.Rows(),1);
-
+        std:: string vtk2 ="out_mc.vtk";
         // *** LOOP COM RETOMADA ***
-        for (long s = s_start; s < NsampRun; ++s)
+        for (int s = s_start; s < NsampRun; ++s)
         {
                 cout << "========== IMC ========== "<< s <<endl;
 
                 TPZGeoMesh*  gmesh2  = TriGMesh(ref);
 
-                plasticmat*  mat     = CreateMaterial(young, poisson, coes, atrito, bodyforce);
+               // plasticmat*  mat     = CreateMaterial(young, poisson, coes, atrito, bodyforce);
 
 
-                TPZCompMesh* cmesh   = CreateCMesh(gmesh2, pOrderDeform, mat);
+                TPZCompMesh* cmesh   = CreateCMesh(gmesh2, pOrderDeform);
                 //REIMPLEMENTAR
                 //mat->SetBodyForce(bodyforce);
-                DebugStop();
+              //  DebugStop();
 
-                InitializeMemory(cmesh, coes, atrito);
+               //InitializeMemory(cmesh, coes, atrito);
                 for (int i=0;i<hhat1.Rows(); ++i) col1(i,0)  = hhat1(i,(int)s);
                 for (int i=0;i<hhat2.Rows();++i) col2(i,0) = hhat2(i,(int)s);
 
@@ -1217,7 +1211,10 @@ void SolveMonteCarlo(int pOrderfield ,int pOrderDeform,int reffield,int ref,int 
                 {
                         std::ofstream vtk1("gmeshtri_refined_preGImc.vtk");
                         TPZVTKGeoMesh::PrintGMeshVTK(cmesh->Reference(), vtk1, true);
-                        PostElastoplastic(cmesh, "post_plasticity.vtk", /*matid=*/1);
+                        int matid=1;
+                        int dim=2;
+                        //PostElastoplastic(cmesh, vtk2, /*matid*/1, /*out_step*/ 0 ,dim);
+                        PostElastoplastic(cmesh, vtk2, /*matid*/matid, /*out_step*/ s ,dim);
 
                 }
 
@@ -1455,4 +1452,379 @@ void ComputeFieldMulti(const std::vector<TPZCompMesh*>& sources,TPZCompMesh* tar
         }
 
         targetmatwithmem->SetUpdateMem(false);
+}
+// ArcLength (Riks) "Mathematica-like" for TPZ
+// - Predictor: compute_dlambda0_riks (Souza Neto eq 4.123 style)  [you can swap to WL-quadratic if desired]
+// - Corrector: compute_dlambda_riks_mma (matches your Mathematica computeDlambdaRiks, incl. dwPrev reference)
+// - IMPORTANT fixes vs your last run:
+//   (1) Compute residual at BEGINNING of each step (otherwise "ACEITO em 0 iter" bug)
+//   (2) Use uy ABSOLUTE (no +=) to match Mathematica plot of displace
+//   (3) Store dwPrevStep after ACCEPT to guide root selection when ||dw|| ~ 0
+//   (4) Rollback safe: u_acc + lambda_acc + L cut, retry same step
+//   (5) Stop criterion like Mathematica: lambda stabilization OR lambda decreasing (optional)
+
+#include <fstream>
+#include <iomanip>
+#include <vector>
+#include <cmath>
+#include <iostream>
+
+// ------------------------------------------------------------
+// Helpers (assumed available in your codebase)
+//   STATE Dot(const TPZFMatrix<STATE>& a, const TPZFMatrix<STATE>& b);
+//   STATE Norm(const TPZFMatrix<STATE>& a);
+//   REAL  UyAtNode(TPZCompMesh* cmesh, STATE x, STATE y);
+//   void  PostElastoplastic(TPZCompMesh* cmesh, const std::string& vtkfile,
+//                           int matid, int out_step, int dim);
+// ------------------------------------------------------------
+
+
+// Eq. (4.123) – predictor (k = 1): same as your code
+static STATE compute_dlambda0_riks(const TPZFMatrix<STATE>& dwb,
+                                   const TPZFMatrix<STATE>& dw,
+                                   STATE L)
+{
+        const STATE s    = Dot(dw, dwb);
+        const STATE ndwb = Norm(dwb);
+        const STATE eps  = 1e-14;
+
+        if (ndwb < eps) return 0.0; // degenerate
+
+        const STATE signum = (s > 0.0 ? -1.0 : 1.0);
+        return signum * L / ndwb;
+}
+
+// "Mathematica-like" corrector: matches your WL computeDlambdaRiks
+// ref = (||dw||>eps)? dw : dwPrev
+// choose dl that maximizes dot(dw + dws + dl*dwb, ref)
+static STATE compute_dlambda_riks_mma(const TPZFMatrix<STATE>& dwb,
+                                      const TPZFMatrix<STATE>& dws,
+                                      const TPZFMatrix<STATE>& dw,
+                                      STATE L,
+                                      const TPZFMatrix<STATE>& dwPrev)
+{
+        const STATE aa = Dot(dwb, dwb);
+
+        TPZFMatrix<STATE> t = dw;  // t = dw + dws
+        t += dws;
+
+        const STATE bb = 2.0 * Dot(dwb, t);
+        const STATE cc = Dot(t, t) - L*L;
+
+        const STATE eps = 1e-14;
+
+        // linear fallback if aa ~ 0
+        if (aa < eps) {
+                return (std::fabs(bb) > eps) ? (-cc / bb) : 0.0;
+        }
+
+        STATE disc = bb*bb - 4.0*aa*cc;
+        if (disc < 0.0) disc = 0.0;
+        const STATE sq = std::sqrt(disc);
+
+        const STATE dl1 = (-bb - sq) / (2.0*aa);
+        const STATE dl2 = (-bb + sq) / (2.0*aa);
+
+        const STATE dw2 = Dot(dw, dw);
+        const TPZFMatrix<STATE>& ref = (dw2 > eps) ? dw : dwPrev;
+
+        // x1 = dw + dws + dl1*dwb
+        TPZFMatrix<STATE> x1 = dw;
+        x1 += dws;
+        {
+                TPZFMatrix<STATE> tmp = dwb;
+                tmp *= dl1;
+                x1 += tmp;
+        }
+
+        // x2 = dw + dws + dl2*dwb
+        TPZFMatrix<STATE> x2 = dw;
+        x2 += dws;
+        {
+                TPZFMatrix<STATE> tmp = dwb;
+                tmp *= dl2;
+                x2 += tmp;
+        }
+
+        const STATE s1 = Dot(x1, ref);
+        const STATE s2 = Dot(x2, ref);
+
+        return (s1 > s2) ? dl1 : dl2;
+}
+
+
+// Main routine
+REAL IterativeProcessArcLength2(TPZElastoPlasticAnalysis &an,
+                                        int nsteps,
+                                        STATE lambda0,
+                                        STATE L0,
+                                        const std::string &vtkfile,
+                                        int matid,
+                                        STATE x, STATE y)
+{
+        // ======== OUTPUT FILES ========
+        std::ofstream out_ld("arc_load_displacement.txt");
+        out_ld << std::scientific << std::setprecision(15);
+        out_ld << "# step lambda uy\n";
+
+        std::ofstream out_res("arc_residuals.txt");
+        out_res << std::scientific << std::setprecision(15);
+        out_res << "# step iter lambda L res_norm norm_du\n";
+
+        // ======== MESH / MATERIAL ========
+        auto cmesh = an.Mesh();
+        cmesh->Solution().Zero();
+
+        auto* bodymat = dynamic_cast<TMatElastoPlaticMC*>(cmesh->FindMaterial(matid));
+        auto* bcmat   = dynamic_cast<TPZBndCondT<STATE>*>(cmesh->FindMaterial(matid));
+
+        auto* matmem  = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem>*>(cmesh->FindMaterial(1));
+        if (matmem) matmem->ResetMemory();
+
+        // ======== BUILD BASE LOAD VECTOR FEXT (same logic as yours) ========
+        TPZFMatrix<STATE> FEXT;
+
+        if (bodymat) {
+                bodymat->SetBodyForce(bodymat->GetBodyForce0());
+                an.Assemble();
+                FEXT = an.Rhs();
+                TPZManVector<REAL,3> f0 = {0,0,0};
+                bodymat->SetBodyForce(f0);
+        } else {
+                if (!bcmat) {
+                        std::cout << "BC material not found\n";
+                        DebugStop();
+                }
+                an.Assemble();
+                FEXT = an.Rhs();
+                bcmat->Val2()[0]=0.;
+                bcmat->Val2()[1]=0.;
+                bcmat->Val2()[2]=0.;
+        }
+
+        cmesh->Solution().Zero();
+
+        const int dim = cmesh->Dimension();
+
+        // ======== PARAMETERS (Mathematica-like) ========
+        const REAL tol        = 1e-8;
+        const int  maxIter    = 30;
+        const int  maxCuts    = 10;
+        const REAL Lmin       = 1e-14;
+        const REAL Lmax       = 10.0;      // kept for possible future adaptation
+
+        const REAL tolLambda  = 1e-3;
+        // const int  targetIter = 7;      // (optional) for L adaptation like your WL
+
+        // ======== STATE VARIABLES ========
+        REAL L = L0;
+
+        REAL lambda_acc = lambda0;  // accepted lambda
+        REAL lambda     = lambda0;  // working lambda inside step
+        REAL lambda_old = lambda0;  // previous accepted lambda (for stabilization test)
+
+        TPZFMatrix<STATE> u_acc = an.Solution(); // accepted solution
+        u_acc.Zero();
+
+        // Equivalent to Mathematica dwPrev: previous accepted step increment
+        TPZFMatrix<STATE> dwPrevStep = an.Solution();
+        dwPrevStep.Zero();
+
+        int step = 0;
+        int cutCount = 0;
+
+        while (step < nsteps)
+        {
+                std::cout << "=== Step " << step
+                << " | lambda = " << std::scientific << std::setprecision(6) << lambda_acc
+                << " | L = " << std::scientific << std::setprecision(3) << L
+                << " ===\n";
+
+                // backup for rollback
+                const TPZFMatrix<STATE> u_backup = u_acc;
+                const REAL lambda_backup = lambda_acc;
+
+                // start step from accepted state
+                TPZFMatrix<STATE> u  = u_acc;
+                lambda = lambda_acc;
+
+                // step increment accumulator (dw in WL)
+                TPZFMatrix<STATE> dw = an.Solution();
+                dw.Zero();
+
+                // log only if converges
+                struct ResEntry { int iter; STATE lambda; STATE L; STATE res; STATE normdu; };
+                std::vector<ResEntry> res_log;
+
+                bool okConv = false;
+
+                // --------- CRITICAL FIX: compute residual at step start ---------
+                an.LoadSolution(u);
+                an.Assemble();
+                TPZFMatrix<STATE> rhs = an.Rhs();
+
+                TPZFMatrix<STATE> R = FEXT;
+                R *= lambda;
+                R += rhs;
+
+                REAL normR = 10000.;
+
+                if (normR <= tol) {
+                        okConv = true; // already in equilibrium
+                }
+
+                int it = 0;
+
+                while (!okConv && it < maxIter)
+                {
+                        // Solve for dws: K dws = R
+                        an.Rhs() = R;
+                        an.Solve();
+                        TPZFMatrix<STATE> dws = an.Solution();
+
+                        // Solve for dwb: K dwb = FEXT
+                        an.Rhs() = FEXT;
+                        an.Solve();
+                        TPZFMatrix<STATE> dwb = an.Solution();
+
+                        // dl
+                        REAL dl = 0.0;
+                        if (it == 0) {
+                                dl = compute_dlambda0_riks(dwb, dw, L);
+                        } else {
+                                dl = compute_dlambda_riks_mma(dwb, dws, dw, L, dwPrevStep);
+                        }
+
+                        // NOTE: Mathematica had no dl clamp; keep unclamped to match WL.
+                        // If you want safety back, uncomment:
+                        // const REAL dl_max = 1.0;
+                        // if (dl >  dl_max) dl =  dl_max;
+                        // if (dl < -dl_max) dl = -dl_max;
+
+                        // dwtot = dws + dl*dwb
+                        TPZFMatrix<STATE> dwtot = dwb;
+                        dwtot *= dl;
+                        dwtot += dws;
+
+                        const REAL normDu = Norm(dwtot);
+
+                        // update state
+                        u      += dwtot;
+                        dw     += dwtot;
+                        lambda += dl;
+
+                        // recompute residual
+                        an.LoadSolution(u);
+                        an.Assemble();
+                        rhs = an.Rhs();
+
+                        R = FEXT;
+                        R *= lambda;
+                        R += rhs;
+
+                        normR = Norm(R);
+
+                        res_log.push_back({it+1, lambda, L, normR, normDu});
+
+                        std::cout << "iter " << (it+1)
+                        << " | lambda = " << lambda
+                        << " | dl = "     << dl
+                        << " | ||R|| = "  << normR
+                        << " | ||du|| = " << normDu
+                        << "\n";
+
+                        if (normR >= 1e4) { // similar to your WL divergence guard
+                                break;
+                        }
+
+                        okConv = (normR <= tol);
+                        ++it;
+                }
+
+                if (okConv)
+                {
+                        // accept step
+                        cmesh->LoadSolution(u);
+                        an.AcceptSolution();
+
+                        u_acc      = an.Solution();
+                        lambda_acc = lambda;
+
+                        // MATCH Mathematica: absolute uy (do NOT accumulate)
+                        const REAL uy = UyAtNode(cmesh, x, y);
+                        out_ld << step << " " << lambda_acc << " " << uy << "\n";
+
+                        // dump residuals of this step
+                        for (const auto &r : res_log) {
+                                out_res << step << " "
+                                << r.iter << " "
+                                << r.lambda << " "
+                                << r.L << " "
+                                << r.res << " "
+                                << r.normdu
+                                << "\n";
+                        }
+
+                        // VTK output
+                        PostElastoplastic(cmesh, vtkfile, /*matid*/1, /*out_step*/ step, dim);
+
+                        // update dwPrevStep (Mathematica dwPrev)
+                        dwPrevStep = dw;
+
+                        std::cout << "ACEITO em " << it
+                        << " iter | Δlambda_step = "
+                        << std::fabs(lambda_acc - lambda_old)
+                        << " | L = "  << L
+                        << "\n";
+
+                        // Stop criterion like Mathematica:
+                        //   if |lambda - lambda_old| < tolLambda OR lambda decreased
+                        const REAL dlam = std::fabs(lambda_acc - lambda_old);
+                        if (dlam < tolLambda || lambda_old > lambda_acc)
+                        {
+                                std::cout << "LAMBDA ESTABILIZOU/RETROCEDEU: |Δlambda|="
+                                << dlam
+                                << " < " << tolLambda
+                                << "  lambda_final=" << lambda_acc << "\n";
+                                break;
+                        }
+
+                        lambda_old = lambda_acc;
+
+                        cutCount = 0;
+                        ++step;
+                }
+                else
+                {
+                        // rollback and cut L
+                        u_acc = u_backup;
+                        lambda_acc = lambda_backup;
+
+                        an.LoadSolution(u_acc);
+                        lambda = lambda_acc;
+
+                        L *= 0.5;
+                        ++cutCount;
+
+                        std::cout << "REJEITADO - Corte #" << cutCount
+                        << " | L_novo = " << L
+                        << "\n";
+
+                        if (cutCount > maxCuts || L < Lmin) {
+                                std::cout << "[ArcLength] Falha em convergir no step " << step
+                                << " após " << cutCount << " cortes de L. Abortando.\n";
+                                break;
+                        }
+
+                        // retry same step with smaller L
+                        continue;
+                }
+        }
+
+        std::cout << "=== CONCLUÍDO: steps=" << step
+        << " | lambda_final=" << lambda_acc
+        << " ===\n";
+
+        an.AcceptSolution();
+        return 0.0;
 }
