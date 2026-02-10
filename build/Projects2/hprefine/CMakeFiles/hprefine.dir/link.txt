@@ -1,0 +1,1 @@
+/usr/bin/c++ -g -Wl,--dependency-file=CMakeFiles/hprefine.dir/link.d CMakeFiles/hprefine.dir/main.cpp.o -o hprefine  -Wl,-rpath,/home/runner/work/neopz-master/neopz-master/build ../../libpz.so
