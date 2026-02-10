@@ -417,6 +417,8 @@ void TPZCompMesh::AutoBuildContDisc(const TPZVec<TPZGeoEl*> &continuous, const T
     }
 #endif
 	
+    // Creates a REFERENCE (not a copy) to the geometric elements vector
+    // Using a reference is safe here since we only read from the vector
 	TPZAdmChunkVector<TPZGeoEl *> &elvec = Reference()->ElementVec();
 	int64_t nelem = elvec.NElements();
 	
