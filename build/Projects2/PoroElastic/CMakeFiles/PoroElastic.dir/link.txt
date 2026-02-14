@@ -1,1 +1,0 @@
-/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/PoroElastic.dir/link.d CMakeFiles/PoroElastic.dir/main.cpp.o -o PoroElastic  -Wl,-rpath,/home/runner/work/neopz-master/neopz-master/build ../../libpz.so
