@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/eigensolverkl.dir/link.d CMakeFiles/eigensolverkl.dir/main.cpp.o -o eigensolverkl  -Wl,-rpath,/home/runner/work/neopz-master/neopz-master/build ../../libpz.so

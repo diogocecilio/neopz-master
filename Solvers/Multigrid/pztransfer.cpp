@@ -322,7 +322,7 @@ void TPZTransfer<TVar>::TransferSolution(const TPZFMatrix<TVar> &coarsesol, TPZF
     {
         for(iv=0; iv<fNTVarVar; iv++) {
             TPZFMatrix<TVar> tempcoarse(thisc,ncc), tempfine(thisr,ncf);
-            for (int i=0; i<thisr; i++) {
+            for (int i=0; i<thisc; i++) {
                 for (int c=0; c<ncf; c++) {
                     tempcoarse(i,c) = coarsesol.GetVal(iv+i*fNTVarVar,c);
 

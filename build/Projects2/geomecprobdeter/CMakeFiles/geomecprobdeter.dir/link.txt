@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/geomecprobdeter.dir/link.d CMakeFiles/geomecprobdeter.dir/main.cpp.o CMakeFiles/geomecprobdeter.dir/SlopeAnalysis.cpp.o -o geomecprobdeter  -Wl,-rpath,/home/runner/work/neopz-master/neopz-master/build ../../libpz.so
