@@ -66,6 +66,7 @@ set(headers
     TPZYCMohrCoulombPV2.h
     TPZYCTrescaVoigt.h
     TPZModifiedCamClay.h
+    TPZMatPoroElastoPlastic3DMem.h
     )
 
 set(sources
@@ -118,6 +119,7 @@ set(sources
     TPZYCMohrCoulombPV2.cpp
     TPZYCTrescaVoigt.cpp
     TPZModifiedCamClay.cpp
+    TPZMatPoroElastoPlastic3DMem.cpp
     )
 
 set(PZ_FIX_PLASTIC_TRANSLATORS OFF)
