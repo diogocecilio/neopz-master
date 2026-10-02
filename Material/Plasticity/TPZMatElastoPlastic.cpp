@@ -58,3 +58,6 @@ template class TPZMatElastoPlastic<TPZElasticCriterion , TPZPoroElastoPlasticMem
 
 
 template class TPZMatElastoPlastic<TPZPlasticStepVoigt<TPZYCVonMisesVoigt, TPZElasticResponse>,TPZElastoPlasticMem>;
+
+#include "TPZModifiedCamClay.h"
+template class TPZMatElastoPlastic<TPZModifiedCamClay, TPZElastoPlasticMem>;

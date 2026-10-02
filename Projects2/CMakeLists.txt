@@ -39,6 +39,8 @@ add_subdirectory(PlasticityTestsTresca)
 
 add_subdirectory(PlasticityTestsMohrCoulomb)
 
+add_subdirectory(PlasticityTestsCamClay)
+
 
 add_subdirectory(hprefine)
 

@@ -86,3 +86,6 @@ template class TPZMatElastoPlastic2D<TPZElasticCriterion , TPZPoroElastoPlasticM
 template class TPZMatElastoPlastic2D<TPZPlasticStepVoigt<TPZYCVonMisesVoigt, TPZElasticResponse>,TPZElastoPlasticMem>;
 template class TPZMatElastoPlastic2D<TPZPlasticStepVoigt<TPZYCTrescaVoigt, TPZElasticResponse>,TPZElastoPlasticMem>;
 template class TPZMatElastoPlastic2D<TPZPlasticStepVoigt<TPZYCMohrCoulombPV2, TPZElasticResponse>,TPZElastoPlasticMem>;
+
+#include "TPZModifiedCamClay.h"
+template class TPZMatElastoPlastic2D<TPZModifiedCamClay, TPZElastoPlasticMem>;
