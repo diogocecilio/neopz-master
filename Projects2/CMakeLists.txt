@@ -41,6 +41,8 @@ add_subdirectory(PlasticityTestsMohrCoulomb)
 
 add_subdirectory(PlasticityTestsCamClay)
 
+add_subdirectory(PoroCamClay3D)
+
 
 add_subdirectory(hprefine)
 

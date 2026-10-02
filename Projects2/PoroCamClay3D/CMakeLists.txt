@@ -1,0 +1,10 @@
+# Exemplos u-p 3D com Cam-Clay modificado (TPZModifiedCamClay); requer BUILD_PLASTICITY_MATERIALS=ON.
+#   AterroCamClay          aterro sobre fundação Cam-Clay (exemplo do FLAC3D)
+#   TriaxialAbaqusCamClay  Abaqus Benchmarks 1.15.2, adensamento de um corpo de prova triaxial (hex20)
+if(BUILD_PLASTICITY_MATERIALS)
+    set(common TPZPoroCamClayUP.h TPZPoroCamClayUP.cpp malhas.h malhas.cpp)
+    add_executable(AterroCamClay aterro.cpp ${common})
+    target_link_libraries(AterroCamClay pz)
+    add_executable(TriaxialAbaqusCamClay triaxial_abaqus.cpp ${common})
+    target_link_libraries(TriaxialAbaqusCamClay pz)
+endif()

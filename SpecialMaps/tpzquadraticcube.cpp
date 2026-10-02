@@ -396,6 +396,9 @@ void TPZQuadraticCube::InsertExampleElement(TPZGeoMesh &gmesh, int matid, TPZVec
 
 template class TPZRestoreClass< TPZGeoElRefPattern<pzgeom::TPZQuadraticCube>>;
 
+// funções de forma de 20 nós (serendipity) usadas pelo Shape() público (inline)
+template void pzgeom::TPZQuadraticCube::TShape<REAL>(const TPZVec<REAL> &par, TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &dphi);
+
 /*@orlandini : I REALLY dont know why is this here, so I have commented the following lines.
 If it breaks something, I am sorry.*/
 //template class pzgeom::TPZNodeRep<20,pzgeom::TPZQuadraticCube>;
