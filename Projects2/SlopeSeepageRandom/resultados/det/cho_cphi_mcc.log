@@ -1,0 +1,12 @@
+[adapt] nível 0: 854 equações, Gamma = 2.05103; dividindo 15 + 14 elementos (0.619041 s)
+inserting uniform refpattern: quadrilateral
+inserting uniform refpattern: line
+[adapt] nível 1: 1542 equações, Gamma = 1.88623; dividindo 41 + 33 elementos (1.58327 s)
+[adapt] nível 2: 3290 equações, Gamma = 1.82031; dividindo 106 + 64 elementos (4.03493 s)
+
+=== cho_cphi (mcc): H = 10 m, beta = 45 graus, crista 10 m, pe 10 m, base 5 m abaixo do pe (dominio 30 x 15 m), h = 2 m, quadrilateros
+    c = 10 kPa, phi = 30 graus, gamma = 20
+    7266 equacoes, 8226 pontos de integracao
+    Gamma (fator de carga) = 1.1001 (colapso em 1.10999; 5 passos, 68 it., 8 cortes, 62.9191 s) ok
+    FS (reducao de resistencia) = 1.13168 (colapso em 1.14281; 7 passos, 63 it., 9 cortes, 51.0373 s) ok
+    tempo total 114.519 s

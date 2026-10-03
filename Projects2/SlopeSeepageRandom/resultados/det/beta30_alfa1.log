@@ -1,0 +1,10 @@
+[adapt] nível 0: 2078 equações, Gamma = 2.89395; dividindo 35 + 22 elementos (2.55048 s)
+inserting uniform refpattern: quadrilateral
+inserting uniform refpattern: line
+[adapt] nível 1: 3438 equações, Gamma = 2.64614; dividindo 82 + 52 elementos (5.21314 s)
+
+=== percolacao (mc): H = 5 m, beta = 30 graus, crista 10 m, pe 10 m, base 5 m abaixo do pe (dominio 28.6603 x 10 m), h = 1 m, quadrilateros
+    c = 10 kPa, phi = 30 graus, gamma = 20 (forca de corpo gamma'), percolacao hw = 5.000000
+    6594 equacoes, 7317 pontos de integracao
+    Gamma (fator de carga) = 2.53552 (colapso em 2.55777; 7 passos, 89 it., 8 cortes, 14.2782 s) ok
+    tempo total 14.4956 s

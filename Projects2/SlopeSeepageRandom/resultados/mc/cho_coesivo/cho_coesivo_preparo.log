@@ -1,0 +1,12 @@
+[adapt] nível 0: 686 equações, Gamma = 1.37331; dividindo 55 + 15 elementos (0.644976 s)
+inserting uniform refpattern: quadrilateral
+inserting uniform refpattern: line
+[adapt] nível 1: 2422 equações, Gamma = 1.34553; dividindo 153 + 50 elementos (2.89532 s)
+[MC] malha mecânica: 7318 equações, 8046 pontos de integração
+[KL] 1081 equações, |Ω| = 225, C e B montadas em 1.76721 s
+[KL] autoproblema resolvido em 17.8795 s; λ1 = 55.7016, M = 1081, ε_M = 0.036507 (todos os modos: 0.036507)
+[KL:17920.746536ms]
+[KL] 1081 equações, M = 1081, ε_M = 0.036507 (17.9231 s)
+[KL] variância truncada nos pontos de integração: média 0.963458, mínima 0.918315 (compensada)
+[MC] cho_coesivo (mc), medida = gamma, amostras 0..-1, CoV(c) = 0.3, CoV(phi) = 0, CoV(kv) = 0, Lx = 20, Ly = 2 -> cho_coesivo_preparo.csv
+[MC] 0 amostras: média 0, desvio 0, Pf = -nan (tempo 19.7418 s)

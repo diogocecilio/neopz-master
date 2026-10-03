@@ -1,0 +1,2 @@
+# Cam-Clay: Pf por reducao de resistencia (FS converge com a malha; Gamma depende da trajetoria)
+/home/user/neopz-master/Projects2/SlopeSeepageRandom/scripts/montecarlo.sh /tmp/claude-0/-home-user-neopz-master/0e09deed-c26c-5cb3-9fb1-49502c3f6c60/scratchpad/res/v3/SlopeSeepageRandom mc/mcc_ref_fs mcc_ref_fs 300 1 caso=percolacao modelo=mcc medida=fs h=1 adapt=2 hkl=1 covc=0.3 covphi=0.1 covk=0.6 Lx=20 Ly=2

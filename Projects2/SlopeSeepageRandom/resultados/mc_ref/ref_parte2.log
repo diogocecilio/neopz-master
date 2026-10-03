@@ -1,0 +1,44 @@
+[adapt] nível 0: 1742 equações, Gamma = 1.64656; dividindo 25 + 17 elementos (2.20342 s)
+inserting uniform refpattern: quadrilateral
+inserting uniform refpattern: line
+[adapt] nível 1: 2742 equações, Gamma = 1.50349; dividindo 59 + 35 elementos (3.18044 s)
+[MC] malha mecânica: 4962 equações, 5472 pontos de integração
+[KL] lido de kl_H5_b4500_Lx20_Ly2_h1.bin: 871 modos
+[KL] 871 equações, M = 871, ε_M = 0.036072 (0.00775416 s)
+[KL] variância truncada nos pontos de integração: média 0.965429, mínima 0.923879 (compensada)
+[MC] percolacao (mc), medida = gamma, amostras 668..999, CoV(c) = 0.3, CoV(phi) = 0.1, CoV(kv) = 0.6, Lx = 20, Ly = 2 -> ref_parte2.csv
+  amostra 668: fator = 1.90848 (7.76355 s), Pf parcial = 0
+  amostra 678: fator = 1.29297 (6.02712 s), Pf parcial = 0
+  amostra 688: fator = 2.00735 (7.99747 s), Pf parcial = 0
+  amostra 698: fator = 1.96533 (6.94374 s), Pf parcial = 0.0322581
+  amostra 708: fator = 2.03125 (5.05695 s), Pf parcial = 0.0487805
+  amostra 718: fator = 0.972717 (7.55232 s), Pf parcial = 0.0588235
+  amostra 728: fator = 2.04443 (5.07101 s), Pf parcial = 0.0655738
+  amostra 738: fator = 1.40805 (7.99788 s), Pf parcial = 0.056338
+  amostra 748: fator = 0.923828 (6.43849 s), Pf parcial = 0.0617284
+  amostra 758: fator = 1.39844 (5.20427 s), Pf parcial = 0.0659341
+  amostra 768: fator = 1.55499 (8.24159 s), Pf parcial = 0.0891089
+  amostra 778: fator = 1.32812 (4.9816 s), Pf parcial = 0.0810811
+  amostra 788: fator = 2.10376 (6.7571 s), Pf parcial = 0.0743802
+  amostra 798: fator = 1.92578 (11.2769 s), Pf parcial = 0.0687023
+  amostra 808: fator = 1.8714 (16.4244 s), Pf parcial = 0.0638298
+  amostra 818: fator = 1.00595 (16.072 s), Pf parcial = 0.0662252
+  amostra 828: fator = 1.31274 (13.5024 s), Pf parcial = 0.068323
+  amostra 838: fator = 1.53687 (12.8888 s), Pf parcial = 0.0643275
+  amostra 848: fator = 1.09824 (16.0537 s), Pf parcial = 0.0607735
+  amostra 858: fator = 1.672 (9.3795 s), Pf parcial = 0.0680628
+  amostra 868: fator = 1.02161 (8.9414 s), Pf parcial = 0.0696517
+  amostra 878: fator = 1.56653 (8.90993 s), Pf parcial = 0.07109
+  amostra 888: fator = 1.7478 (7.46622 s), Pf parcial = 0.0678733
+  amostra 898: fator = 1.66376 (8.8683 s), Pf parcial = 0.0735931
+  amostra 908: fator = 1.1875 (5.93628 s), Pf parcial = 0.0705394
+  amostra 918: fator = 1.23364 (8.25327 s), Pf parcial = 0.0677291
+  amostra 928: fator = 1.55664 (8.99431 s), Pf parcial = 0.0689655
+  amostra 938: fator = 1.56653 (7.17508 s), Pf parcial = 0.0701107
+  amostra 948: fator = 1.31055 (8.43212 s), Pf parcial = 0.0711744
+  amostra 958: fator = 1.11719 (10.9559 s), Pf parcial = 0.0687285
+  amostra 968: fator = 0.967773 (22.351 s), Pf parcial = 0.0730897
+  amostra 978: fator = 1.21826 (23.326 s), Pf parcial = 0.073955
+  amostra 988: fator = 1.65552 (15.1834 s), Pf parcial = 0.0778816
+  amostra 998: fator = 1.1875 (12.3132 s), Pf parcial = 0.0785498
+[MC] 332 amostras: média 1.4498, desvio 0.369302, Pf = 0.0783133 (tempo 3325.17 s)

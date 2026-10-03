@@ -1,0 +1,12 @@
+[adapt] nível 0: 854 equações, Gamma = 2.05103; dividindo 15 + 14 elementos (1.31009 s)
+inserting uniform refpattern: quadrilateral
+inserting uniform refpattern: line
+[adapt] nível 1: 1542 equações, Gamma = 1.88623; dividindo 41 + 33 elementos (4.47777 s)
+[MC] malha mecânica: 3290 equações, 3636 pontos de integração
+[KL] 1491 equações, |Ω| = 300, C e B montadas em 9.36664 s
+[KL] autoproblema resolvido em 174.196 s; λ1 = 57.123, M = 1491, ε_M = 0.0364691 (todos os modos: 0.0364691)
+[KL:174362.218444ms]
+[KL] 1491 equações, M = 1491, ε_M = 0.0364691 (174.373 s)
+[KL] variância truncada nos pontos de integração: média 0.967152, mínima 0.924829 (compensada)
+[MC] cho_cphi (mc), medida = gamma, amostras 0..-1, CoV(c) = 0.3, CoV(phi) = 0.2, CoV(kv) = 0, Lx = 20, Ly = 2 -> cho_cphi_preparo.csv
+[MC] 0 amostras: média 0, desvio 0, Pf = -nan (tempo 180.296 s)

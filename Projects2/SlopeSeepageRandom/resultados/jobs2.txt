@@ -1,0 +1,2 @@
+cd det && /tmp/claude-0/-home-user-neopz-master/0e09deed-c26c-5cb3-9fb1-49502c3f6c60/scratchpad/res/v3/SlopeSeepageRandom det caso=cho_coesivo modelo=mc h=2 adapt=3 > cho_coesivo_mc_h2.log 2>&1
+/home/user/neopz-master/Projects2/SlopeSeepageRandom/scripts/montecarlo.sh /tmp/claude-0/-home-user-neopz-master/0e09deed-c26c-5cb3-9fb1-49502c3f6c60/scratchpad/res/v3/SlopeSeepageRandom mc/cho_coesivo cho_coesivo 300 1 caso=cho_coesivo modelo=mc h=2 adapt=2 hkl=1 covc=0.3 covphi=0 covk=0 Lx=20 Ly=2
