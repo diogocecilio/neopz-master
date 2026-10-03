@@ -244,6 +244,16 @@ distâncias de autocorrelação: 1.5, 2, 5, 10, 20, 400), Tabela 5 (α = 2–5),
 exemplos de Cho (2010) — com γw = 9.81, a malha do Monte Carlo (`h=1 adapt=2`) e a semente 2025. Cada caso é
 dividido em blocos de 50 amostras e a fila intercala os casos, de modo que todos avançam juntos; tudo é retomável.
 
+Com um comando (compila em `<neopz>/build-campanha`, gera a fila e roda em segundo plano, em sessão própria):
+
+```
+sudo apt install cmake g++ make liblapack-dev libblas-dev       # ninja-build é opcional
+bash Projects2/SlopeSeepageRandom/scripts/rodar_campanha.sh 1000    # [alvo] [processos] [diretório = ~/campanha_artigo]
+bash Projects2/SlopeSeepageRandom/scripts/rodar_campanha.sh parar   # para tudo; rodar de novo continua
+```
+
+Passo a passo, equivalente:
+
 ```
 ninja SlopeSeepageRandom                                   # Release, BUILD_PLASTICITY_MATERIALS=ON, USING_LAPACK=ON
 S=Projects2/SlopeSeepageRandom/scripts
