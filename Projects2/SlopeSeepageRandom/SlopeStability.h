@@ -175,6 +175,9 @@ public:
     /// false) ou de ||Δε^p|| no último passo aceito (increment = true: o mecanismo ativo no colapso; o acúmulo de
     /// ε^p é dominado pela concentração de tensões no pé do talude)
     void PlasticIndicator(std::vector<REAL> &byGel, bool increment = true) const;
+    /// Mecanismo de colapso por ponto de integração (índice de memória), no último passo aceito: ||Δε^p|| e
+    /// ||Δu|| (deslocamento acumulado na memória). Vazios antes do primeiro passo aceito.
+    void MechanismIndicators(std::vector<REAL> &depsp, std::vector<REAL> &du) const;
 
     /// Saída VTK (TPZPostProcAnalysis): tensões, deformação plástica, c, φ, u, forças de percolação
     void DefineVTK(const std::string &file);
@@ -204,6 +207,7 @@ private:
     REAL fLambdaGTarget = 0., fLambdaSTarget = 0., fFTarget = 1.; ///< alvo do passo em Follow
     std::vector<TPZTensor<REAL>> fSigma0;
     std::vector<TPZTensor<REAL>> fEpsPPrev;  ///< ε^p no início do último passo aceito
+    std::vector<TPZManVector<REAL, 3>> fUPrev;  ///< deslocamento no início do último passo aceito
     class TPZPostProcAnalysis *fPost = nullptr;
 };
 

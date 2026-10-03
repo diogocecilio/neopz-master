@@ -11,6 +11,7 @@
 #include "pzinterpolationspace.h"
 #include "pzstack.h"
 #include "pzstepsolver.h"
+#include "pzquad.h"
 
 void TPZDarcyFlowAnisotropic::Contribute(const TPZMaterialDataT<STATE> &data, REAL weight, TPZFMatrix<STATE> &ek,
                                          TPZFMatrix<STATE> &ef) {
@@ -97,6 +98,33 @@ void TSeepageProblem::Evaluate(int64_t gelIndex, const TPZVec<REAL> &qsi, REAL &
     // dsol nos eixos locais do elemento -> componentes globais
     gradu.Resize(2);
     for (int d = 0; d < 2; d++) gradu[d] = data.axes(0, d) * data.dsol[0](0, 0) + data.axes(1, d) * data.dsol[0](1, 0);
+}
+
+REAL TSeepageProblem::Functional() {
+    REAL J = 0.;
+    for (TPZCompEl *cel : fCMesh->ElementVec()) {
+        auto *intel = dynamic_cast<TPZInterpolationSpace *>(cel);
+        if (!intel || !intel->Reference() || intel->Reference()->Dimension() != 2) continue;
+        TPZGeoEl *gel = intel->Reference();
+        std::unique_ptr<TPZIntPoints> rule(gel->CreateSideIntegrationRule(gel->NSides() - 1, 2 * fPar.porder + 2));
+        REAL kv = 1.;
+        // a mesma permeabilidade de TPZDarcyFlowAnisotropic::Contribute (por identificador do elemento)
+        if (const std::vector<REAL> &kvs = fMat->ElementPermeability(); !kvs.empty() && gel->Id() < (int64_t)kvs.size())
+            kv = kvs[gel->Id()];
+        TPZManVector<REAL, 3> qsi(2, 0.);
+        for (int ip = 0; ip < rule->NPoints(); ip++) {
+            REAL w = 0.;
+            rule->Point(ip, qsi, w);
+            TPZFNMatrix<9, REAL> jac(2, 2), axes(2, 3), jacinv(2, 2);
+            REAL detjac = 0.;
+            gel->Jacobian(qsi, jac, axes, detjac, jacinv);
+            REAL u = 0.;
+            TPZManVector<REAL, 2> g(2, 0.);
+            Evaluate(gel->Index(), qsi, u, g);
+            J += 0.5 * w * std::fabs(detjac) * kv * (fPar.alpha * g[0] * g[0] + g[1] * g[1]);
+        }
+    }
+    return J;
 }
 
 void TSeepageProblem::DefineVTK(const std::string &file) {

@@ -314,6 +314,7 @@ void TSlopeFEM<T>::ResetState() {
     fAn->LoadSolution();
     fLambdaG = fLambdaS = 0.;
     fEpsPPrev.clear();
+    fUPrev.clear();
 }
 
 template <class T>
@@ -349,7 +350,11 @@ template <class T>
 void TSlopeFEM<T>::Accept() {
     auto &memory = *fMat->GetMemory();
     fEpsPPrev.resize(fPoints.size());
-    for (int64_t i = 0; i < (int64_t)fPoints.size(); i++) fEpsPPrev[i] = memory[i].m_elastoplastic_state.m_eps_p;
+    fUPrev.resize(fPoints.size());
+    for (int64_t i = 0; i < (int64_t)fPoints.size(); i++) {
+        fEpsPPrev[i] = memory[i].m_elastoplastic_state.m_eps_p;
+        fUPrev[i] = memory[i].m_u;
+    }
     fMat->SetUpdateMem(true);
     fAn->AssembleResidual();
     fMat->SetUpdateMem(false);
@@ -525,6 +530,25 @@ void TSlopeFEM<T>::PlasticIndicator(std::vector<REAL> &byGel, bool increment) co
             s += d * d;
         }
         byGel[fPoints[i].gel] = std::max(byGel[fPoints[i].gel], std::sqrt(s));
+    }
+}
+
+template <class T>
+void TSlopeFEM<T>::MechanismIndicators(std::vector<REAL> &depsp, std::vector<REAL> &du) const {
+    depsp.clear();
+    du.clear();
+    if (fEpsPPrev.size() != fPoints.size() || fUPrev.size() != fPoints.size()) return;
+    auto &memory = *fMat->GetMemory();
+    depsp.assign(fPoints.size(), 0.);
+    du.assign(fPoints.size(), 0.);
+    for (int64_t i = 0; i < (int64_t)fPoints.size(); i++) {
+        if (fPoints[i].gel < 0) continue;
+        const TPZTensor<REAL> &ep = memory[i].m_elastoplastic_state.m_eps_p;
+        REAL s = 0., v = 0.;
+        for (int k = 0; k < 6; k++) s += std::pow(ep[k] - fEpsPPrev[i][k], 2);
+        for (int k = 0; k < 2; k++) v += std::pow(memory[i].m_u[k] - fUPrev[i][k], 2);
+        depsp[i] = std::sqrt(s);
+        du[i] = std::sqrt(v);
     }
 }
 

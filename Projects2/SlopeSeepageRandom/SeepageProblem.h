@@ -35,6 +35,7 @@ public:
     void SetAnisotropy(REAL alpha) { fAlpha = alpha; }
     /// kv por identificador de elemento geométrico (vazio: kv = 1)
     void SetElementPermeability(const std::vector<REAL> &kvById) { fKv = kvById; }
+    const std::vector<REAL> &ElementPermeability() const { return fKv; }
 
     void Contribute(const TPZMaterialDataT<STATE> &data, REAL weight, TPZFMatrix<STATE> &ek,
                     TPZFMatrix<STATE> &ef) override;
@@ -62,6 +63,9 @@ public:
 
     /// u e grad u (componentes globais x, y) no ponto paramétrico qsi do elemento geométrico gel
     void Evaluate(int64_t gelIndex, const TPZVec<REAL> &qsi, REAL &u, TPZManVector<REAL, 2> &gradu);
+    /// Funcional hidráulico J(u) = 1/2 ∫ grad u · K · grad u dΩ (eq. 22; v^d = 0) com K = kv diag(α, 1), kv
+    /// relativo (1 sem campo aleatório): J/(k_h H² γw²) da Fig. 5 é Functional()/(α H² γw²)
+    REAL Functional();
 
     void DefineVTK(const std::string &file);
     void WriteVTK(int step);

@@ -823,6 +823,7 @@ TParamList MCInputParams(const TCase &cs, const TArgs &args, const std::string &
     add("p", std::to_string(args.GetI("p", 2)));
     add("reltol", Fmt(args.Get("reltol", 5.e-3)));
     add("maxit", std::to_string(args.GetI("maxit", 20)));
+    if (args.kv.count("fatormax")) add("fatormax", Fmt(args.Get("fatormax", 20.)));
     add("estagnacao", std::to_string(args.GetI("estagnacao", 1) != 0));
     if (medida == "fs") add("F0", Fmt(args.Get("F0", 0.5)));
     add("adapt", std::to_string(adapt));
@@ -929,6 +930,7 @@ int RunMonteCarlo(const TCase &cs, const TArgs &args, const std::string &modelNa
     opt.relTol = args.Get("reltol", 5.e-3);
     opt.maxIter = args.GetI("maxit", 20);
     opt.stagnation = args.GetI("estagnacao", 1) != 0;
+    opt.maxFactor = args.Get("fatormax", opt.maxFactor);
     const std::string medida = args.GetS("medida", "gamma");  // gamma (fator de carga) ou fs (redução)
     const int64_t n = std::max(args.GetI("n", 100), 0), first = args.GetI("inicio", 0);
     const uint64_t seed = (uint64_t)args.GetI("seed", 2025);
@@ -1097,6 +1099,44 @@ int RunMonteCarlo(const TCase &cs, const TArgs &args, const std::string &modelNa
     }
 
     fileio::TAppendFile out(csv);
+    // <csv>.mec: médias de c e φ na banda de cisalhamento (||Δε^p|| >= 10 % do máximo no último passo aceito,
+    // ponderadas por ||Δε^p||) e de kv na massa que se move (||Δu|| >= 30 % do máximo), como as médias ao longo
+    // da superfície de ruptura e no volume acima dela da seção 6.1 do artigo (Hu et al.)
+    std::set<int64_t> mecDone;
+    {
+        std::ifstream f(csv + ".mec");
+        std::string line;
+        while (std::getline(f, line)) {
+            int64_t id = -1;
+            if (!line.empty() && line.back() == '\n') line.pop_back();
+            if (std::count(line.begin(), line.end(), ',') == 3 && ParseInteger(line.substr(0, line.find(',')), id))
+                mecDone.insert(id);
+        }
+    }
+    // <csv>.modo: modo de ruptura (Figs. 16 e 20 do artigo) pela banda ||Δε^p|| >= 20 % do máximo: "abaixo" se ela
+    // desce mais de 0.1 H abaixo do nível do pé, "pe" se passa a menos de 0.1 H do pé, senão "acima" (0.1 H: duas
+    // vezes o tamanho dos elementos junto ao pé na malha do Monte Carlo, h = H/5 com dois níveis de refinamento)
+    std::set<int64_t> modoDone;
+    {
+        std::ifstream f(csv + ".modo");
+        std::string line;
+        while (std::getline(f, line)) {
+            int64_t id = -1;
+            if (std::count(line.begin(), line.end(), ',') == 3 && ParseInteger(line.substr(0, line.find(',')), id))
+                modoDone.insert(id);
+        }
+    }
+    fileio::TAppendFile modoOut(csv + ".modo");
+    if (modoDone.empty()) {
+        std::ifstream f(csv + ".modo");
+        if (f.peek() == std::ifstream::traits_type::eof()) modoOut.Append("amostra,modo,y_min_banda,dist_pe\n");
+    }
+    const bool mecNew = mecDone.empty();
+    fileio::TAppendFile mecOut(csv + ".mec");
+    if (mecNew) {
+        std::ifstream f(csv + ".mec");
+        if (f.peek() == std::ifstream::traits_type::eof()) mecOut.Append("amostra,c_banda,phi_banda,kv_massa\n");
+    }
     const int vtkEvery = args.GetI("vtk", 0);
     std::cout << "[MC] " << cs.name << " (" << modelName << "), medida = " << medida << ", "
               << (replay ? "amostras " + args.GetS("amostras", "")
@@ -1149,6 +1189,52 @@ int RunMonteCarlo(const TCase &cs, const TArgs &args, const std::string &modelNa
         TFactorResult r = (medida == "fs") ? fem.StrengthReduction(args.Get("F0", 0.5)) : fem.LoadFactor(0.);
         const double dt = Seconds(ts);
         const TMCRow row = MakeRow(s, r, dt, cm, pm, km);
+        if (!mecDone.count(s)) {
+            std::vector<REAL> dep, du;
+            fem.MechanismIndicators(dep, du);
+            REAL dmax = 0., umax = 0.;
+            for (size_t i = 0; i < dep.size(); i++) {
+                dmax = std::max(dmax, dep[i]);
+                umax = std::max(umax, du[i]);
+            }
+            REAL sw = 0., sc = 0., sp = 0., nk = 0., sk = 0.;
+            for (size_t i = 0; i < dep.size(); i++) {
+                if (fem.Points()[i].gel < 0) continue;
+                if (dmax > 0. && dep[i] >= 0.1 * dmax) {
+                    sw += dep[i];
+                    sc += dep[i] * c[i];
+                    sp += dep[i] * phi[i] * 180. / M_PI;
+                }
+                if (umax > 0. && du[i] >= 0.3 * umax) {
+                    nk += 1.;
+                    sk += randomKv ? kvEl[fem.Points()[i].gel] : 1.;
+                }
+            }
+            std::ostringstream ml;
+            ml << std::setprecision(8) << s << "," << (sw > 0. ? sc / sw : cm) << "," << (sw > 0. ? sp / sw : pm) << ","
+               << (nk > 0. ? sk / nk : km) << "\n";
+            mecOut.Append(ml.str());
+            mecDone.insert(s);
+        }
+        if (!modoDone.count(s)) {
+            std::vector<REAL> dep, du;
+            fem.MechanismIndicators(dep, du);
+            REAL dmax = 0.;
+            for (REAL v : dep) dmax = std::max(dmax, v);
+            const REAL xt = cs.geo.Lc + cs.geo.Ls(), yt = cs.geo.Hb, tol = 0.1 * cs.geo.H;
+            REAL ymin = 1.e30, dpe = 1.e30;
+            for (size_t i = 0; i < dep.size(); i++) {
+                if (fem.Points()[i].gel < 0 || dmax <= 0. || dep[i] < 0.2 * dmax) continue;
+                const auto &x = fem.Points()[i].x;
+                ymin = std::min(ymin, x[1]);
+                dpe = std::min(dpe, std::hypot(x[0] - xt, x[1] - yt));
+            }
+            const char *modo = ymin < yt - tol ? "abaixo" : (dpe < tol ? "pe" : "acima");
+            std::ostringstream ml;
+            ml << std::setprecision(6) << s << "," << modo << "," << ymin - yt << "," << dpe << "\n";
+            modoOut.Append(ml.str());
+            modoDone.insert(s);
+        }
         // campos antes da linha do CSV: uma amostra no CSV tem os campos gravados (com campos=1)
         if (fieldsOut && !fieldsOut->Has(s)) fieldsOut->Append(rec);
         auto it = rowOf.find(s);
@@ -1208,6 +1294,7 @@ std::unique_ptr<TPZGeoMesh> AdaptedMesh(const TCase &cs, const TArgs &args) {
     opt.relTol = args.Get("reltol", 5.e-3);
     opt.maxIter = args.GetI("maxit", 20);
     opt.stagnation = args.GetI("estagnacao", 1) != 0;
+    opt.maxFactor = args.Get("fatormax", opt.maxFactor);
     const std::string key = AdaptKey(cs, args), file = AdaptFile(cs, args, key);
     const int64_t nel0 = gmesh->NElements(), nnod0 = gmesh->NNodes();
     const uint64_t sig0 = TSlopeGeometry::Signature(*gmesh);
@@ -1333,6 +1420,7 @@ void RunDrawdown(const TCase &cs, const TArgs &args, const std::string &modelNam
     opt.relTol = args.Get("reltol", 5.e-3);
     opt.maxIter = args.GetI("maxit", 20);
     opt.stagnation = args.GetI("estagnacao", 1) != 0;
+    opt.maxFactor = args.Get("fatormax", opt.maxFactor);
     const bool doFS = args.GetI("fs", 1) != 0, doGamma = args.GetI("gamma", 0) != 0;
     std::unique_ptr<TPZGeoMesh> gmesh = AdaptedMesh(cs, args);
 
@@ -1448,6 +1536,7 @@ void RunDeterministic(const TCase &cs, const TArgs &args, const std::string &mod
     opt.relTol = args.Get("reltol", 5.e-3);
     opt.maxIter = args.GetI("maxit", 20);
     opt.stagnation = args.GetI("estagnacao", 1) != 0;
+    opt.maxFactor = args.Get("fatormax", opt.maxFactor);
     std::unique_ptr<TPZGeoMesh> gmesh = AdaptedMesh(cs, args);
     std::cout << "\n=== " << cs.name << " (" << modelName << "): " << cs.geo.Describe() << "\n";
     std::cout << "    c = " << cs.soil.c << " kPa, phi = " << cs.soil.phiDeg << " graus, gamma = " << cs.soil.gamma
@@ -1470,6 +1559,15 @@ void RunDeterministic(const TCase &cs, const TArgs &args, const std::string &mod
         seep = std::make_unique<TSeepageProblem>(gmesh.get(), cs.geo, sp);
         seep->Solve();
         TransferSeepage(*seep, fem);
+        {   // Fig. 5: funcional hidráulico normalizado J(u'_FE)/(k_h H² γw²), k_h = α (kv = 1)
+            const REAL J = seep->Functional();
+            std::cout << "    funcional hidraulico J(u_FE)/(kh H^2 gw^2) = "
+                      << J / (cs.alpha * cs.geo.H * cs.geo.H * cs.soil.gammaW * cs.soil.gammaW) << "\n";
+        }
+        if (args.GetI("gamma", 1) == 0 && args.GetI("fs", 1) == 0) {
+            std::cout << "    tempo total " << Seconds(t0) << " s\n";
+            return;
+        }
         if (args.GetI("vtk", 0)) {
             seep->DefineVTK(cs.name + "_darcy.vtk");
             seep->WriteVTK(0);
@@ -1536,6 +1634,7 @@ int main(int argc, char **argv) {
             if (args.kv.count("c")) cs.soil.c = args.Get("c", cs.soil.c);
             if (args.kv.count("phi")) cs.soil.phiDeg = args.Get("phi", cs.soil.phiDeg);
             if (args.kv.count("nu")) cs.soil.nu = args.Get("nu", cs.soil.nu);
+            if (args.kv.count("gw")) cs.soil.gammaW = args.Get("gw", cs.soil.gammaW);
             cs.soil.gamma = args.Get("gam", cs.soil.gamma);
             cs.soil.lambda = args.Get("lambda", cs.soil.lambda);
             cs.soil.kappa = args.Get("kappa", cs.soil.kappa);
