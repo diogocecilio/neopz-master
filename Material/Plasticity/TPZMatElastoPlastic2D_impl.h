@@ -132,50 +132,32 @@ void TPZMatElastoPlastic2D<T, TMEM>::Contribute(const TPZMaterialDataT<STATE> &d
         this->fForcingFunction(data.x, ForceLoc);
     }
 
-    TPZFMatrix<STATE> flocal(2,1,0.);
-    flocal(0,0)=ForceLoc[0];
-    flocal(1,0)=ForceLoc[1];
-
-    TPZFMatrix<STATE> NtPhi(2*phr, 2, 0.0);
-    for (int i=0; i<phr; ++i) {
-        NtPhi(nstate*i+0, 0) = phi(i,0);   // nó i, componente u
-        NtPhi(nstate*i+1, 1) = phi(i,0);   // nó i, componente v
+    // ek += w Bᵀ D B e ef += w (Nᵀ f - Bᵀ σ), com B em Voigt de engenharia (ε_xx, ε_yy, γ_xy) — mesma conta de
+    // BuildBu/Dep2D, escrita com laços para não alocar matrizes temporárias em cada ponto de integração
+    const STATE D[3][3] = {{Dep(_XX_, _XX_), Dep(_XX_, _YY_), Dep(_XX_, _XY_)},
+                           {Dep(_YY_, _XX_), Dep(_YY_, _YY_), Dep(_YY_, _XY_)},
+                           {Dep(_XY_, _XX_), Dep(_XY_, _YY_), Dep(_XY_, _XY_)}};
+    const STATE sxx = Stress(_XX_, 0), syy = Stress(_YY_, 0), sxy = Stress(_XY_, 0);
+    for (int in = 0; in < phr; in++) {
+        const STATE dxi = dphiXY(0, in), dyi = dphiXY(1, in);
+        // linhas de Bᵀ para os graus de liberdade (in, u) e (in, v): Bu = (dx, 0, dy), Bv = (0, dy, dx)
+        const STATE Bu[3] = {dxi, 0., dyi}, Bv[3] = {0., dyi, dxi};
+        STATE DBu[3], DBv[3];  // (Bᵀ D) das duas linhas
+        for (int k = 0; k < 3; k++) {
+            DBu[k] = Bu[0] * D[0][k] + Bu[1] * D[1][k] + Bu[2] * D[2][k];
+            DBv[k] = Bv[0] * D[0][k] + Bv[1] * D[1][k] + Bv[2] * D[2][k];
+        }
+        for (int jn = 0; jn < phr; jn++) {
+            const STATE dxj = dphiXY(0, jn), dyj = dphiXY(1, jn);
+            // colunas de B: Bu_j = (dxj, 0, dyj), Bv_j = (0, dyj, dxj)
+            ek(nstate * in + 0, nstate * jn + 0) += weight * (DBu[0] * dxj + DBu[2] * dyj);
+            ek(nstate * in + 0, nstate * jn + 1) += weight * (DBu[1] * dyj + DBu[2] * dxj);
+            ek(nstate * in + 1, nstate * jn + 0) += weight * (DBv[0] * dxj + DBv[2] * dyj);
+            ek(nstate * in + 1, nstate * jn + 1) += weight * (DBv[1] * dyj + DBv[2] * dxj);
+        }
+        ef(nstate * in + 0, 0) += weight * (ForceLoc[0] * phi(in, 0) - (dxi * sxx + dyi * sxy));
+        ef(nstate * in + 1, 0) += weight * (ForceLoc[1] * phi(in, 0) - (dyi * syy + dxi * sxy));
     }
-
-    TPZFNMatrix<9> Dep2D={
-    {Dep(_XX_, _XX_) , Dep(_XX_, _YY_) , Dep(_XX_, _XY_)},
-    { Dep(_YY_, _XX_) , Dep(_YY_, _YY_) ,Dep(_YY_, _XY_)},
-    {Dep(_XY_, _XX_) , Dep(_XY_, _YY_), Dep(_XY_, _XY_)}
-    };
-
-     TPZFMatrix<STATE> Stress2D(3,1,0.);
-    Stress2D(0,0)=Stress(_XX_,0);
-    Stress2D(1,0)=Stress(_YY_,0);
-    Stress2D(2,0)=Stress(_XY_,0);
-
-    TPZFMatrix<STATE> B,Bt,temp,ektemp,fint1,fint2,phit;
-    BuildBu(dphiXY, B);
-
-    B.Transpose(&Bt);
-
-    phi.Transpose(&phit);
-
-    Bt.Multiply(Dep2D,temp);
-
-    temp.Multiply(B,ektemp);
-
-    ektemp*=weight;
-
-    ek+=ektemp;
-
-    Bt.Multiply(Stress2D,fint1);
-
-    NtPhi.Multiply(flocal,fint2);
-  //  std::cout<<fint2<< std::endl;
-    fint2-=fint1;
-
-    ef+=fint2*weight;
-
 }
 
 template <class T, class TMEM>
@@ -283,7 +265,7 @@ void TPZMatElastoPlastic2D<T, TMEM>::ContributeBC(const TPZMaterialDataT<STATE> 
     int nstate = NStateVariables();
     const REAL BIGNUMBER = TPZMaterial::fBigNumber;
 
-    auto bc_with_memory = dynamic_cast<TPZMatWithMem<TMEM> &>(bc);
+    auto &bc_with_memory = dynamic_cast<TPZMatWithMem<TMEM> &>(bc);  // referência: antes copiava toda a memória do contorno em cada ponto
 
     /// Accepting  solution on bc data.
     int gp_index = data.intGlobPtIndex;

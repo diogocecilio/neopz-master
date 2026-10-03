@@ -7,6 +7,8 @@
 #include "tpzintpoints.h"
 #include "TPZElementMatrixT.h"   // <<-- cabeçalho certo do ElementMatrix TEMPLATED
 #include <cmath>
+#include <memory>
+#include <vector>
 
 // ctor default seguro (id -1), dim=2, kernel exponencial com Lx=1, Ly=0.1
 TPZMatKLKernel::TPZMatKLKernel()
@@ -109,122 +111,87 @@ void TPZMatKLKernel::RebuildKernel()
     }
     }
 }
-/** C_ij = ∬ phi_i(x) K(x,y) phi_j(y) dx dy  (Nyström) */
+namespace {
+/// Dados de quadratura de um elemento: pontos x, pesos w·detJ e funções de forma (n x np)
+struct TKLQuadrature {
+    std::vector<TPZManVector<REAL,3>> x;
+    std::vector<REAL> wJ;
+    TPZFNMatrix<200, STATE> phi;
+};
+
+/// Calcula os dados de quadratura do elemento com a regra padrão acrescida de extraOrder.
+void KLQuadrature(TPZInterpolationSpace *el, int extraOrder, TKLQuadrature &q)
+{
+    TPZMaterialDataT<STATE> data;
+    el->InitMaterialData(data);
+    std::unique_ptr<TPZIntPoints> rule(el->GetIntegrationRule().Clone());
+    if (extraOrder > 0) {
+        TPZManVector<int,3> ord(el->Dimension(), 0);
+        rule->GetOrder(ord);
+        for (int d = 0; d < ord.size(); d++) ord[d] += extraOrder;
+        rule->SetOrder(ord);
+    }
+    const int np = rule->NPoints();
+    const int n = el->NShapeF();
+    q.x.resize(np);
+    q.wJ.resize(np);
+    q.phi.Redim(n, np);
+    TPZManVector<REAL,3> qsi(el->Dimension(), 0.);
+    REAL w = 0.;
+    for (int ip = 0; ip < np; ++ip) {
+        rule->Point(ip, qsi, w);
+        el->ComputeRequiredData(data, qsi);
+        q.x[ip] = data.x;
+        q.wJ[ip] = w * data.detjac;
+        for (int i = 0; i < n; ++i) q.phi(i, ip) = data.phi(i, 0);
+    }
+}
+} // namespace
+
+/** C_ij = ∬ phi_i(x) K(x,y) phi_j(y) dx dy, integrada com as regras dos dois elementos (produto tensorial
+ *  das quadraturas). Os dados de quadratura de cada elemento são calculados uma única vez por par (antes,
+ *  ComputeRequiredData de ely era chamado npx*npy vezes) e, no bloco diagonal (elx == ely), onde o kernel
+ *  exponencial tem a quina em x = y, a ordem da regra é aumentada de fDiagonalExtraOrder. */
 void TPZMatKLKernel::CalcStiffNystrom(TPZInterpolationSpace* elx,
                                       TPZInterpolationSpace* ely,
                                       TPZElementMatrixT<STATE> &ce) const
 {
-    TPZMaterialDataT<STATE> dataX, dataY;
-    elx->InitMaterialData(dataX);
-    ely->InitMaterialData(dataY);
-
-    auto ruleX = elx->GetIntegrationRule().Clone();
-    auto ruleY = ely->GetIntegrationRule().Clone();
-
-    const int nx = elx->NShapeF();
-    const int ny = ely->NShapeF();
-    ce.fMat.Redim(nx, ny);
-    ce.fMat.Zero();
-
-    TPZManVector<REAL,3> qsiX(elx->Dimension()), qsiY(ely->Dimension());
-    REAL wx = 0., wy = 0.;
-    const int npx = ruleX->NPoints();
-    const int npy = ruleY->NPoints();
-
-    for (int ipx=0; ipx<npx; ++ipx) {
-        ruleX->Point(ipx, qsiX, wx);
-
-        elx->ComputeRequiredData(dataX, qsiX);
-
-        const REAL wJx = wx * dataX.detjac;
-        const TPZVec<REAL> &X = dataX.x;
-
-        for (int ipy=0; ipy<npy; ++ipy) {
-            ruleY->Point(ipy, qsiY, wy);
-
-            ely->ComputeRequiredData(dataY, qsiY);
-
-            const REAL wJy = wy * dataY.detjac;
-            const TPZVec<REAL> &Y = dataY.x;
-
-            const STATE Kxy = fKernel ? fKernel(X,Y) : (STATE)0;
-            const STATE W   = (STATE)(wJx*wJy) * Kxy;
-
-            const TPZFMatrix<STATE> &phiX = dataX.phi;
-            const TPZFMatrix<STATE> &phiY = dataY.phi;
-
-            for (int i=0;i<nx;i++){
-                const STATE pix = phiX(i,0);
-                for (int j=0;j<ny;j++){
-                    ce.fMat(i,j) += W * pix * (STATE)phiY(j,0);
-                }
-            }
-        }
-    }
+    CalcStiffGalerkin(elx, ely, ce);
 }
 
-// TPZMatKLKernel.cpp
 void TPZMatKLKernel::CalcStiffGalerkin(TPZInterpolationSpace* elx,
                                        TPZInterpolationSpace* ely,
                                        TPZElementMatrixT<STATE> &ce) const
 {
-    // dados de FE
-    TPZMaterialDataT<STATE> dataX, dataY;
-    elx->InitMaterialData(dataX);
-    ely->InitMaterialData(dataY);
-
-    // regras de integração (clone das definidas no elemento)
-    auto ruleX = elx->GetIntegrationRule().Clone();
-    auto ruleY = ely->GetIntegrationRule().Clone();
-
-    // (opcional) reforçar a ordem de quadratura
-    // const int p = std::max(elx->GetPreferredOrder(), ely->GetPreferredOrder());
-    // TPZManVector<int,3> ord(elx->Dimension(), 2*p + 4);
-    // ruleX->SetOrder(ord); ruleY->SetOrder(ord);
-
+    const int extra = (elx == ely) ? fDiagonalExtraOrder : 0;
+    TKLQuadrature qx, qy;
+    KLQuadrature(elx, extra, qx);
+    if (elx == ely) {
+        qy.x = qx.x;
+        qy.wJ = qx.wJ;
+        qy.phi = qx.phi;
+    } else {
+        KLQuadrature(ely, extra, qy);
+    }
     const int nx = elx->NShapeF();
     const int ny = ely->NShapeF();
+    const int npx = (int)qx.wJ.size();
+    const int npy = (int)qy.wJ.size();
     ce.fMat.Redim(nx, ny);
     ce.fMat.Zero();
-
-    TPZManVector<REAL,3> qsiX(elx->Dimension()), qsiY(ely->Dimension());
-    REAL wx = 0., wy = 0.;
-    const int npx = ruleX->NPoints();
-    const int npy = ruleY->NPoints();
-
-    for (int ipx=0; ipx<npx; ++ipx) {
-        ruleX->Point(ipx, qsiX, wx);
-        // preenche phi, detjac, x, etc.
-        elx->ComputeRequiredData(dataX, qsiX);
-
-        const REAL wJx = wx * dataX.detjac;
-        const TPZVec<REAL> &X = dataX.x;
-        const TPZFMatrix<STATE> &phiX = dataX.phi;
-
-        for (int ipy=0; ipy<npy; ++ipy) {
-            ruleY->Point(ipy, qsiY, wy);
-            ely->ComputeRequiredData(dataY, qsiY);
-
-            const REAL wJy = wy * dataY.detjac;
-            const TPZVec<REAL> &Y = dataY.x;
-            const TPZFMatrix<STATE> &phiY = dataY.phi;
-
-            // kernel e peso total
-            const STATE Kxy = fKernel(X, Y);
-            const STATE W   = (STATE)(wJx * wJy) * Kxy;
-
-            // acumula bloco local
-            for (int i=0; i<nx; ++i) {
-                const STATE pix = phiX(i,0);
-                for (int j=0; j<ny; ++j) {
-                    ce.fMat(i,j) += W * pix * (STATE)phiY(j,0);
-                }
-            }
+    // W(ipx, ipy) = wJx wJy K(x, y);  C = PhiX W PhiY^T
+    TPZFNMatrix<400, STATE> W(npx, npy, 0.), PW;
+    for (int ipx = 0; ipx < npx; ++ipx)
+        for (int ipy = 0; ipy < npy; ++ipy)
+            W(ipx, ipy) = (STATE)(qx.wJ[ipx] * qy.wJ[ipy]) * (fKernel ? fKernel(qx.x[ipx], qy.x[ipy]) : (STATE)0);
+    qx.phi.Multiply(W, PW);  // PW = PhiX W (nx x npy)
+    for (int i = 0; i < nx; ++i)
+        for (int j = 0; j < ny; ++j) {
+            STATE v = 0.;
+            for (int ipy = 0; ipy < npy; ++ipy) v += PW(i, ipy) * qy.phi(j, ipy);
+            ce.fMat(i, j) = v;
         }
-    }
 }
-
-
 
 /** B_ij = ∫ phi_i phi_j dx (massa consistente) */
 void TPZMatKLKernel::CalcStiffMass(TPZInterpolationSpace* el,
@@ -234,9 +201,7 @@ void TPZMatKLKernel::CalcStiffMass(TPZInterpolationSpace* el,
     TPZMaterialDataT<STATE> data;
     el->InitMaterialData(data);
 
-    auto rule = el->GetIntegrationRule().Clone();
-    // TPZManVector<int,3> ord(el->Dimension(), qmass);
-    // rule->SetOrder(ord);
+    std::unique_ptr<TPZIntPoints> rule(el->GetIntegrationRule().Clone());
 
     const int n = el->NShapeF();
     be.fMat.Redim(n,n);

@@ -54,7 +54,7 @@ public:
      * @param[in] alpha damage variable
      */
 
-  TPZPlasticStepPV(REAL alpha=0.):fYC(), fER(), fResTol(1.e-12), fMaxNewton(30), fN(), fReductionFactor()
+  TPZPlasticStepPV(REAL alpha=0.):fYC(), fER(), fResTol(1.e-12), fMaxNewton(30), fN(), fReductionFactor(1.)
 	{ 
         fN.m_hardening = alpha;
     }

@@ -31,6 +31,7 @@ TPZPlasticStepVoigt<YC,ER>::TPZPlasticStepVoigt(const TPZPlasticStepVoigt& other
 : TPZPlasticBase(other)   // copia parte base
 , fER(other.fER)
 , fYC(other.fYC)
+, fReductionFactor(other.fReductionFactor)
 {
     fN.CleanUp();
     // nada extra
@@ -145,6 +146,12 @@ void TPZPlasticStepVoigt<YC,ER>::ApplyStrainComputeSigma(const TPZTensor<REAL>& 
 
     TPZTensor<REAL>sigtrtensor,sigtrtensor2;
 
+    // parâmetros por ponto de integração (campos aleatórios) e redução de resistência, como no TPZPlasticStepPV
+    if (fN.fmatprop.size() >= 2 && fN.fmatprop[0] > 1.e-3) {
+        fYC.SetLocalMatState(fN);
+        fYC.ChangeLocalMatParameters(fN, fReductionFactor);
+    }
+
     TPZTensor<REAL> eps_e_trial = epsTotal - fN.m_eps_p;
 
 
@@ -158,7 +165,7 @@ void TPZPlasticStepVoigt<YC,ER>::ApplyStrainComputeSigma(const TPZTensor<REAL>& 
     int type;
     //TPZFMatrix<STATE> Dep;
     TPZFNMatrix<36> Dep;
-    STATE hvarnew;
+    STATE hvarnew = fN.m_hardening;
 
     TPZTensor<REAL>::TPZDecomposed eigen_system;
     sigtrtensor.EigenSystem(eigen_system);
@@ -202,71 +209,56 @@ void TPZPlasticStepVoigt<YC,ER>::ApplyStrainComputeSigma(const TPZTensor<REAL>& 
 template<class YC,class ER>
 void TPZPlasticStepVoigt<YC,ER>::ConsistentTangent(TPZManVector<STATE,3>& sigtrial, TPZManVector<STATE,3>& sigproj,TPZManVector<STATE,3>&epstrial, TPZFNMatrix<9> &Grad3x3,TPZManVector<TPZManVector<STATE,3>,3>&eigenvetors, TPZFNMatrix<36>& Dep) const
 {
-
-    TPZFNMatrix<36> gradpart(6,6,0.);
-    TPZFNMatrix<36> rotationpart(6,6,0.);
-    TPZFNMatrix<36> Cmat(6,6,0.),tempmat0;
+    // Dep = Σ_ij G_ij v_i (w_jᵀ C) + Σ_{i>j} f_ij (e_jᵀ ΔE_k e_i) Voigt(e_i⊗e_j + e_j⊗e_i)
+    //   v_i = Voigt(e_i⊗e_i) (componentes tensoriais), w_j = Voigt de engenharia de e_j⊗e_j (distorções x2),
+    //   C = De, ΔE_k = base de deformação de engenharia da coluna k, f_ij = (σ_i - σ_j)/(ε_i - ε_j).
+    // Mesma conta da versão anterior (TPZFMatrix 6x6 por par i,j), com arranjos fixos.
+    TPZFNMatrix<36> Cmat(6,6,0.);
     fER.De(Cmat);
-    STATE G= fER.G();
-
-    for( int icol=0;icol<6;icol++)
-    {
-
-        TPZFNMatrix<9> temprot(3,3,0.);
-         TPZFNMatrix<9> deltaE = EBasisGrad(icol);
-         for(int i=0;i<3;i++)
-         {
-             for(int j=0;j<3;j++)
-             {
-                 TPZFNMatrix<6> prodii= FormCartToVoigt(TensorProduct(eigenvetors[i],eigenvetors[i]));
-                 TPZFNMatrix<6> prodjj= FormCartToVoigtGrad(TensorProduct(eigenvetors[j],eigenvetors[j]));
-                 TPZFNMatrix<9> tempmat=TensorProduct(prodii,prodjj);
-                 tempmat*=Grad3x3(i,j);
-                 tempmat.Multiply(Cmat,tempmat0);
-                 TPZFNMatrix<6> prodeltaEVoigth= FormCartToVoigtGrad(deltaE);
-                 tempmat0.Multiply(prodeltaEVoigth,tempmat);
-
-                 for(int irow=0;irow<6;irow++)
-                 {
-                     gradpart(irow,icol)+=tempmat[irow];
-                 }
-                 if(i<=j)continue;
-                 STATE depstr = (epstrial[i] - epstrial[j]);
-                 STATE dsigproj = (sigproj[i] - sigproj[j]);
-                 //std::cout<< "tempmat = "<<tempmat<<std::endl;
-                 STATE fac=0.;
-                 if(fabs(depstr) < 1.e-12)
-                 {
-                      fac = G*(Grad3x3(i, i) -Grad3x3(i, j) - Grad3x3(j, i) + Grad3x3(j, j));
-                 }else{
-                     fac = dsigproj/depstr;
-                }
-                TPZFNMatrix<3> vecj = {{eigenvetors[j][0],eigenvetors[j][1],eigenvetors[j][2]}};
-                TPZFNMatrix<3> veci = {{eigenvetors[i][0]},{eigenvetors[i][1]},{eigenvetors[i][2]}};
-                TPZFMatrix<STATE> temp1,temp2;
-                deltaE.Multiply(veci,temp1);
-                // temp1.Print("temp1");
-                // vecj.Print("vecj");
-                vecj.Multiply(temp1,temp2);
-                //temp2.Print("temp2");
-                TPZFNMatrix<9>tempmat2=TensorProduct(eigenvetors[i],eigenvetors[j])+TensorProduct(eigenvetors[j],eigenvetors[i]);
-                tempmat2*=fac;
-                tempmat2*=temp2(0,0);
-                temprot+=tempmat2;
-                //std::cout <<" temprot = " <<temprot << std::endl;
-
-             }
-        }
-        for(int irow=0;irow<6;irow++)
-        {
-            rotationpart(irow,icol)+=FormCartToVoigt(temprot)[irow];
+    const STATE G = fER.G();
+    STATE v[3][6], w[3][6];
+    for (int i = 0; i < 3; i++) {
+        const STATE e0 = eigenvetors[i][0], e1 = eigenvetors[i][1], e2 = eigenvetors[i][2];
+        const STATE vv[6] = {e0*e0, e0*e1, e0*e2, e1*e1, e1*e2, e2*e2};
+        for (int r = 0; r < 6; r++) {
+            v[i][r] = vv[r];
+            w[i][r] = (r == 1 || r == 2 || r == 4) ? 2.*vv[r] : vv[r];
         }
     }
-    // std::cout <<" rotationpart = " <<rotationpart << std::endl;
-    // std::cout <<" gradpart = " <<gradpart << std::endl;
-    Dep=gradpart+rotationpart;
-  //  std::cout <<" Dep = " <<Dep << std::endl;
-
+    STATE wC[3][6];
+    for (int j = 0; j < 3; j++)
+        for (int k = 0; k < 6; k++) {
+            STATE sum = 0.;
+            for (int m = 0; m < 6; m++) sum += w[j][m] * Cmat(m, k);
+            wC[j][k] = sum;
+        }
+    STATE A[3][6];
+    for (int i = 0; i < 3; i++)
+        for (int k = 0; k < 6; k++) {
+            STATE sum = 0.;
+            for (int j = 0; j < 3; j++) sum += Grad3x3(i, j) * wC[j][k];
+            A[i][k] = sum;
+        }
+    Dep.Redim(6, 6);
+    for (int r = 0; r < 6; r++)
+        for (int k = 0; k < 6; k++) Dep(r, k) = v[0][r]*A[0][k] + v[1][r]*A[1][k] + v[2][r]*A[2][k];
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < i; j++) {
+            const STATE depstr = epstrial[i] - epstrial[j];
+            const STATE dsigproj = sigproj[i] - sigproj[j];
+            const STATE fac = (fabs(depstr) < 1.e-12) ? G*(Grad3x3(i, i) - Grad3x3(i, j) - Grad3x3(j, i) + Grad3x3(j, j))
+                                                      : dsigproj/depstr;
+            const TPZManVector<STATE,3> &ei = eigenvetors[i], &ej = eigenvetors[j];
+            // Voigt (tensorial) de e_i⊗e_j + e_j⊗e_i
+            const STATE M[6] = {2.*ei[0]*ej[0], ei[0]*ej[1] + ei[1]*ej[0], ei[0]*ej[2] + ei[2]*ej[0],
+                                2.*ei[1]*ej[1], ei[1]*ej[2] + ei[2]*ej[1], 2.*ei[2]*ej[2]};
+            // e_jᵀ ΔE_k e_i para as 6 colunas (ΔE_k com 1/2 fora da diagonal)
+            const STATE sk[6] = {ej[0]*ei[0], 0.5*(ej[0]*ei[1] + ej[1]*ei[0]), 0.5*(ej[0]*ei[2] + ej[2]*ei[0]),
+                                 ej[1]*ei[1], 0.5*(ej[1]*ei[2] + ej[2]*ei[1]), ej[2]*ei[2]};
+            for (int r = 0; r < 6; r++)
+                for (int k = 0; k < 6; k++) Dep(r, k) += fac * sk[k] * M[r];
+        }
+    }
 }
 // template<class YC,class ER>
 // void TPZPlasticStepVoigt<YC,ER>::ConsistentTangent(TPZManVector<STATE,3>& sigtrial, TPZManVector<STATE,3>& sigproj,TPZManVector<STATE,3>&epstrial, TPZFNMatrix<9> &Grad3x3,TPZManVector<TPZManVector<STATE,3>,3>&eigenvetors, TPZFNMatrix<36>& Dep) const

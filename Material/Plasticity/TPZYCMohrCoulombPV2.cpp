@@ -1,4 +1,5 @@
 #include "TPZYCMohrCoulombPV2.h"
+#include <cmath>
 
 TPZYCMohrCoulombPV2::TPZYCMohrCoulombPV2() : fPhi(0.), fPsi(0.), fc(0.), fER(), fEpsPlasticBar(0.) {
 
@@ -53,29 +54,45 @@ int TPZYCMohrCoulombPV2::GetNYield() const
     return 3;
 }
 
+// parâmetros por ponto: fmatprop = {c, φ, ψ}; o retorno implementado é associado (usa só φ)
 void TPZYCMohrCoulombPV2::SetLocalMatState ( TPZPlasticState<REAL> & state )
 {
-
+    if (state.fmatprop.size() < 2) return;
+    fc = state.fmatprop[0];
+    fPhi = state.fmatprop[1];
+    fPsi = fPhi;
 }
 
 TPZPlasticState<REAL>  TPZYCMohrCoulombPV2::GetLocalMatState (  )
 {
-
+    TPZPlasticState<REAL> locstate;
+    locstate.fmatprop.Resize(3);
+    locstate.fmatprop[0] = fc;
+    locstate.fmatprop[1] = fPhi;
+    locstate.fmatprop[2] = fPsi;
+    return locstate;
 }
 
 void  TPZYCMohrCoulombPV2::ChangeLocalMatParameters( TPZPlasticState<REAL> & state ,REAL factor)
 {
-
+    if (state.fmatprop.size() < 2 || !(factor > 0.)) return;
+    fc = state.fmatprop[0] / factor;
+    fPhi = std::atan(std::tan(state.fmatprop[1]) / factor);
+    fPsi = fPhi;
 }
 
 TPZTensor<STATE> TPZYCMohrCoulombPV2::ComputeN(const TPZTensor<STATE> stresstensor)const
 {
-
+    PZError << __PRETTY_FUNCTION__ << " não implementado\n";
+    DebugStop();
+    return TPZTensor<STATE>();
 }
 
 TPZFMatrix<STATE> TPZYCMohrCoulombPV2::GetNdSigma(const TPZTensor<STATE>& sigma) const
 {
-
+    PZError << __PRETTY_FUNCTION__ << " não implementado\n";
+    DebugStop();
+    return TPZFMatrix<STATE>();
 }
 
 bool TPZYCMohrCoulombPV2::ComputeLambdaSigmaMainPlane(TPZManVector<STATE,3> &sigtr,STATE &alphan,TPZManVector<STATE,2> &dlambda,TPZManVector<STATE,3> &sigpr,TPZManVector<STATE,3> &epstr,TPZFNMatrix<9> &Grad3x3,STATE &alphan1)
@@ -261,7 +278,7 @@ STATE TPZYCMohrCoulombPV2::ProjectSigma(TPZManVector<STATE,3> &sigtr,STATE &alph
     {
         //Elastico
         sigpr=sigtr;
-        alphan=alphan1;
+        alphan1=alphan;
         m_type=0;
         return 0.;
     }

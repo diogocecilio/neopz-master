@@ -131,9 +131,10 @@ void pzdoublestrmatriz<TVar>::AssembleC(TPZFMatrix<TVar> &C)
 
             TPZElementMatrixT<STATE> ce(cmesh, TPZElementMatrix::EK);
             try {
-                vol[a].mat->CalcStiffNystrom(vol[a].el, vol[b].el, ce);
+                if (fCAssembly == ECAssembly::Galerkin) vol[a].mat->CalcStiffGalerkin(vol[a].el, vol[b].el, ce);
+                else                                    vol[a].mat->CalcStiffNystrom(vol[a].el, vol[b].el, ce);
             } catch (...) {
-                std::cout << "CalcStiffNystrom falhou: a="<<a<<" b="<<b
+                std::cout << "CalcStiff (KL) falhou: a="<<a<<" b="<<b
                 << " (gel "<<vol[a].gelIndex<<","<<vol[b].gelIndex<<")\n";
                 throw;
             }

@@ -504,7 +504,7 @@ int TPZFBMatrix<float>::Substitution( TPZFMatrix<float> *B ) const{
 
     
 //    sgbtrs_(<#char *__trans#>, <#__CLPK_integer *__n#>, <#__CLPK_integer *__kl#>, <#__CLPK_integer *__ku#>, <#__CLPK_integer *__nrhs#>, <#__CLPK_real *__ab#>, <#__CLPK_integer *__ldab#>, <#__CLPK_integer *__ipiv#>, <#__CLPK_real *__b#>, <#__CLPK_integer *__ldb#>, <#__CLPK_integer *__info#>)
-    sgbtrs_(notrans, &rows, &bandlower, &bandupper, &nrhs, &fElem[0], &ldab, &fPivot[0], &B->s(0,0), &rows, &info);
+    PZ_LAPACK(sgbtrs)(notrans, &rows, &bandlower, &bandupper, &nrhs, &fElem[0], &ldab, &fPivot[0], &B->s(0,0), &rows, &info);
     return( 1 );
 }
 
@@ -524,7 +524,7 @@ int TPZFBMatrix<double>::Substitution( TPZFMatrix<double> *B ) const{
     
     
     //    sgbtrs_(<#char *__trans#>, <#__CLPK_integer *__n#>, <#__CLPK_integer *__kl#>, <#__CLPK_integer *__ku#>, <#__CLPK_integer *__nrhs#>, <#__CLPK_real *__ab#>, <#__CLPK_integer *__ldab#>, <#__CLPK_integer *__ipiv#>, <#__CLPK_real *__b#>, <#__CLPK_integer *__ldb#>, <#__CLPK_integer *__info#>)
-    dgbtrs_(notrans, &rows, &bandlower, &bandupper, &nrhs, &fElem[0], &ldab, &fPivot[0], &B->s(0,0), &rows, &info);
+    PZ_LAPACK(dgbtrs)(notrans, &rows, &bandlower, &bandupper, &nrhs, &fElem[0], &ldab, &fPivot[0], &B->s(0,0), &rows, &info);
     return( 1 );
 }
 

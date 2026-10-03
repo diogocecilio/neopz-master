@@ -1475,7 +1475,7 @@ int TPZFMatrix<float>::Substitution( TPZFMatrix<float> *B, const TPZVec<int> &in
     int BCols = B->Cols();
     int info = 0;
     
-    sgetrs_(&notrans,&nRows,&BCols,fElem,&nRows,&fPivot[0],B->fElem,&nRows,&info);
+    PZ_LAPACK(sgetrs)(&notrans,&nRows,&BCols,fElem,&nRows,&fPivot[0],B->fElem,&nRows,&info);
     
 #ifdef PZDEBUG
     if(info != 0)
@@ -1515,7 +1515,7 @@ int TPZFMatrix<double>::Substitution( TPZFMatrix<double> *B, const TPZVec<int> &
     int BCols = B->Cols();
     int info = 0;
     
-    dgetrs_(&notrans,&nRows,&BCols,fElem,&nRows,&fPivot[0],B->fElem,&nRows,&info);
+    PZ_LAPACK(dgetrs)(&notrans,&nRows,&BCols,fElem,&nRows,&fPivot[0],B->fElem,&nRows,&info);
     
 #ifdef PZDEBUG
     if(info != 0)
@@ -1632,7 +1632,7 @@ int TPZFMatrix<float>::Decompose_Cholesky(std::list<int64_t> &singular) {
     char uplo = 'U';
     int info;
     //    sposv_(<#char *__uplo#>, <#__CLPK_integer *__n#>, <#__CLPK_integer *__nrhs#>, <#__CLPK_real *__a#>, <#__CLPK_integer *__lda#>, <#__CLPK_real *__b#>, <#__CLPK_integer *__ldb#>, <#__CLPK_integer *__info#>)
-    spotrf_(&uplo, &dim, A, &dim, &info);
+    PZ_LAPACK(spotrf)(&uplo, &dim, A, &dim, &info);
     this->fDecomposed = ECholesky;
     
     if (info != 0) {
@@ -1652,7 +1652,7 @@ int TPZFMatrix<double>::Decompose_Cholesky(std::list<int64_t> &singular) {
     double *A = fElem;
     char uplo = 'U';
     int info;
-    dpotrf_(&uplo, &dim, A, &dim, &info);
+    PZ_LAPACK(dpotrf)(&uplo, &dim, A, &dim, &info);
     this->fDecomposed = ECholesky;
     
     if (info != 0) {
@@ -1796,7 +1796,7 @@ int TPZFMatrix<float>::Decompose_LDLt() {
     
     //    ssysv_(<#char *__uplo#>, <#__CLPK_integer *__n#>, <#__CLPK_integer *__nrhs#>, <#__CLPK_real *__a#>, <#__CLPK_integer *__lda#>, <#__CLPK_integer *__ipiv#>, <#__CLPK_real *__b#>, <#__CLPK_integer *__ldb#>, <#__CLPK_real *__work#>, <#__CLPK_integer *__lwork#>, <#__CLPK_integer *__info#>)
     
-    ssysv_(&uplo, &dim, &nrhs, fElem, &dim, &fPivot[0], &B, &dim, &fWork[0], &worksize, &info);
+    PZ_LAPACK(ssysv)(&uplo, &dim, &nrhs, fElem, &dim, &fPivot[0], &B, &dim, &fWork[0], &worksize, &info);
     fDecomposed = ELDLt;
     return 1;
 }
@@ -1827,7 +1827,7 @@ int TPZFMatrix<double>::Decompose_LDLt() {
     
     //    ssysv_(<#char *__uplo#>, <#__CLPK_integer *__n#>, <#__CLPK_integer *__nrhs#>, <#__CLPK_real *__a#>, <#__CLPK_integer *__lda#>, <#__CLPK_integer *__ipiv#>, <#__CLPK_real *__b#>, <#__CLPK_integer *__ldb#>, <#__CLPK_real *__work#>, <#__CLPK_integer *__lwork#>, <#__CLPK_integer *__info#>)
     
-    dsysv_(&uplo, &dim, &nrhs, fElem, &dim, &fPivot[0], &B, &dim, &fWork[0], &worksize, &info);
+    PZ_LAPACK(dsysv)(&uplo, &dim, &nrhs, fElem, &dim, &fPivot[0], &B, &dim, &fWork[0], &worksize, &info);
     fDecomposed = ELDLt;
     return 1;
 }
@@ -1992,7 +1992,7 @@ int TPZFMatrix<float>::Subst_LForward( TPZFMatrix<float>* b ) const
     int info;
     
     //    ssytrs_(<#char *__uplo#>, <#__CLPK_integer *__n#>, <#__CLPK_integer *__nrhs#>, <#__CLPK_real *__a#>, <#__CLPK_integer *__lda#>, <#__CLPK_integer *__ipiv#>, <#__CLPK_real *__b#>, <#__CLPK_integer *__ldb#>, <#__CLPK_integer *__info#>)
-    ssytrs_(&uplo, &dim, &nrhs, fElem, &dim, &fPivot[0], b->fElem, &dim, &info);
+    PZ_LAPACK(ssytrs)(&uplo, &dim, &nrhs, fElem, &dim, &fPivot[0], b->fElem, &dim, &info);
     return 1;
     //    return TPZMatrix<TVar>::Subst_LForward(b);
 }
@@ -2017,7 +2017,7 @@ int TPZFMatrix<double>::Subst_LForward( TPZFMatrix<double>* b ) const
     if (dim == 0 || nrhs == 0) {
         return 0;
     }
-    dsytrs_(&uplo, &dim, &nrhs, fElem, &dim, &fPivot[0], b->fElem, &dim, &info);
+    PZ_LAPACK(dsytrs)(&uplo, &dim, &nrhs, fElem, &dim, &fPivot[0], b->fElem, &dim, &info);
     return 1;
     //    return TPZMatrix<TVar>::Subst_LForward(b);
 }
@@ -2523,11 +2523,11 @@ int TPZFMatrix<double>::SingularValueDecomposition(TPZFMatrix<double>& U, TPZFMa
     double work_opt;
     int lwork = -1; //<-- Pass -1 to tell Lapack to compute it for you
     // first do a pseudo-run to compute optimal work size
-    dgesvd_(&jobU,&jobVT,&nrows,&ncols,A_ptr,&lda,S_ptr,U_ptr,&ldu,VT_ptr,&ldvt,&work_opt,&lwork,&info);
+    PZ_LAPACK(dgesvd)(&jobU,&jobVT,&nrows,&ncols,A_ptr,&lda,S_ptr,U_ptr,&ldu,VT_ptr,&ldvt,&work_opt,&lwork,&info);
     lwork = (int)work_opt;
     TPZVec<double> work(lwork,0.);
     // then do actual computation of SVD
-    dgesvd_(&jobU,&jobVT,&nrows,&ncols,A_ptr,&lda,S_ptr,U_ptr,&ldu,VT_ptr,&ldvt,&work[0],&lwork,&info);
+    PZ_LAPACK(dgesvd)(&jobU,&jobVT,&nrows,&ncols,A_ptr,&lda,S_ptr,U_ptr,&ldu,VT_ptr,&ldvt,&work[0],&lwork,&info);
     if(info  ==  0){/*all ok*/}
     else if(info>0){
         PZError<<"\nSingularValueDecomposition failed to converge\n";

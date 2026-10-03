@@ -6,12 +6,14 @@
 #endif
 #include "pzadmchunk.h"
 
-TPZElastoPlasticMem::TPZElastoPlasticMem(): m_sigma(), m_elastoplastic_state(), m_plastic_steps(0),m_phi(0.), m_u(3,0.)
+TPZElastoPlasticMem::TPZElastoPlasticMem(): m_sigma(), m_elastoplastic_state(), m_plastic_steps(0),m_phi(0.), m_u(3,0.),
+fPorePressure(0.)
 {
 }
 
 TPZElastoPlasticMem::TPZElastoPlasticMem(const TPZElastoPlasticMem & other):
-m_sigma(other.m_sigma), m_elastoplastic_state(other.m_elastoplastic_state), m_plastic_steps(other.m_plastic_steps), m_phi(other.m_phi), m_u(other.m_u),m_ER(other.m_ER) {
+m_sigma(other.m_sigma), m_elastoplastic_state(other.m_elastoplastic_state), m_plastic_steps(other.m_plastic_steps), m_phi(other.m_phi), m_u(other.m_u),m_ER(other.m_ER),
+fPorePressure(other.fPorePressure), fdPorePressure(other.fdPorePressure), fSolU(other.fSolU), fGradSolU(other.fGradSolU) {
     
 }
 
@@ -72,6 +74,10 @@ const TPZElastoPlasticMem & TPZElastoPlasticMem::operator=(const TPZElastoPlasti
     m_phi  = other.m_phi;
     m_u = other.m_u;
     m_ER = other.m_ER;
+    fPorePressure = other.fPorePressure;
+    fdPorePressure = other.fdPorePressure;
+    fSolU = other.fSolU;
+    fGradSolU = other.fGradSolU;
     
     return *this;
 }

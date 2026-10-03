@@ -57,6 +57,10 @@ public:
 
 
     // (A) Forte/Tipada: barata e infalível
+    /// Fator de redução de resistência (c/F, atan(tan φ/F)) aplicado aos parâmetros por ponto (fmatprop),
+    /// como em TPZPlasticStepPV::SetStrengthReductionFactor
+    void SetStrengthReductionFactor(REAL factor) { fReductionFactor = factor; }
+    REAL StrengthReductionFactor() const { return fReductionFactor; }
     void SetPlasticCriterion(const YC& pc);
 
     // (B) Polimórfica: aceita a classe base, verifica compatibilidade em runtime
@@ -206,6 +210,7 @@ public:
 protected:
     ER   fER;                 // resposta elástica (p.ex., armazena K,G ou E,nu)
     YC   fYC;                 // critério de escoamento (deve derivar de TPZPlasticCriterion)
+    REAL fReductionFactor = 1.; // fator de redução de resistência
     //TPZPlasticState<REAL> fN;
 };
 

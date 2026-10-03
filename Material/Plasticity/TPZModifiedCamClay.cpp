@@ -475,6 +475,9 @@ void TPZModifiedCamClay::Write(TPZStream &buf, int withclassid) const {
     buf.Write(&fK0User);
     buf.Write(&fTol);
     buf.Write(&fMaxIt);
+    int mapping = fStrengthMapping;
+    buf.Write(&mapping);
+    buf.Write(&fReductionFactor);
     fN.Write(buf, withclassid);
 }
 
@@ -493,6 +496,10 @@ void TPZModifiedCamClay::Read(TPZStream &buf, void *context) {
     buf.Read(&fK0User);
     buf.Read(&fTol);
     buf.Read(&fMaxIt);
+    int mapping;
+    buf.Read(&mapping);
+    fStrengthMapping = EStrengthMapping(mapping);
+    buf.Read(&fReductionFactor);
     fN.Read(buf, context);
     UpdateDerived();
 }
@@ -517,8 +524,34 @@ void TPZModifiedCamClay::ApplyStrain(const TPZTensor<REAL> &epsTotal) {
     ApplyStrainComputeSigma(epsTotal, sigma, nullptr);
 }
 
+REAL TPZModifiedCamClay::MFromFriction(REAL phi, EStrengthMapping mapping) {
+    const REAL s = std::sin(phi);
+    if (mapping == EPlaneStrain) return std::sqrt(3.) * s;
+    return 6. * s / (3. - s);
+}
+
+void TPZModifiedCamClay::ApplyLocalProperties() {
+    const TPZVec<REAL> &mp = fN.fmatprop;
+    if (mp.size() < 3 || !(mp[2] > 0.)) return;
+    const REAL c = mp[0], phi = mp[1];
+    const REAL tphi = std::tan(phi);
+    if (!(tphi > 1.e-6)) {
+        PZError << "TPZModifiedCamClay::ApplyLocalProperties: φ deve ser positivo (M = M(φ) > 0)\n";
+        DebugStop();
+    }
+    const REAL phir = std::atan(tphi / fReductionFactor);
+    const REAL M = MFromFriction(phir, fStrengthMapping);
+    const REAL pt = std::max(c, REAL(0.)) / tphi;
+    fYC.SetUp(M, fYC.Lambda(), fYC.Kappa(), fYC.V0(), mp[2], pt, fYC.Beta());
+    if (mp.size() >= 9) {
+        for (int i = 0; i < 6; i++) fSigma0[i] = mp[3 + i];
+        UpdateDerived();
+    }
+}
+
 void TPZModifiedCamClay::ApplyStrainComputeSigma(const TPZTensor<REAL> &epsTotal, TPZTensor<REAL> &sigma,
                                                  TPZFMatrix<REAL> *tangent) {
+    ApplyLocalProperties();
     TResult res;
     if (fShear == EHypoNu) {
         bool zero = true;

@@ -43,6 +43,8 @@ add_subdirectory(PlasticityTestsCamClay)
 
 add_subdirectory(PoroCamClay3D)
 
+add_subdirectory(SlopeSeepageRandom)
+
 
 add_subdirectory(hprefine)
 

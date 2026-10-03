@@ -82,6 +82,10 @@ public:
     void SetExpKernel(REAL Lx, REAL Ly);     // f(x,y)=exp(-|x0-y0|/Lx - |x1-y1|/Ly)
     void SetGaussKernel(REAL Lx, REAL Ly);   // f(x,y)=exp(-((dx/Lx)^2+(dy/Ly)^2))
 
+    /// Acréscimo da ordem de integração no bloco diagonal C_ee (o kernel exponencial tem quina em x = y)
+    void SetDiagonalExtraOrder(int extra) { fDiagonalExtraOrder = extra; }
+    int DiagonalExtraOrder() const { return fDiagonalExtraOrder; }
+
     EKernelKind KernelKind()   const { return fKind; }
     const TPZManVector<REAL,3>& KernelParams() const { return fParams; }
 
@@ -99,4 +103,5 @@ private:
     // descrição persistível do kernel
     EKernelKind          fKind   = EKernelKind::ExpSeparable;
     TPZManVector<REAL,3> fParams = TPZManVector<REAL,3>(3, 1.0); // [Lx,Ly,Lz(opc.)]
+    int                  fDiagonalExtraOrder = 4;
 };

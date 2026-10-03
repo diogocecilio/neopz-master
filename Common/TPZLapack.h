@@ -22,6 +22,16 @@ typedef lapack_complex_double vardoublecomplex;
 typedef lapack_complex_float varfloatcomplex;
 
 #include "lapacke.h"
+#include <cblas.h>
+#endif
+
+// LAPACK >= 3.9.1 (lapack.h com LAPACK_FORTRAN_STRLEN_END) declara os comprimentos ocultos das strings
+// Fortran nas rotinas com argumentos character; as macros LAPACK_xxx do lapack.h os acrescentam.
+// Use PZ_LAPACK(dgesvd)(...) no lugar de dgesvd_(...).
+#if defined(LAPACK_FORTRAN_STRLEN_END) && !defined(MKLLAPACK)
+#define PZ_LAPACK(name) LAPACK_##name
+#else
+#define PZ_LAPACK(name) name##_
 #endif
 #endif
 

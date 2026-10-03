@@ -523,7 +523,7 @@ TPZSBMatrix<std::complex< float > >::Decompose_Cholesky()
     int kd = this->fBand;
     int info = -666;
     
-    cpbtrf_(uplo, &n, &kd , (varfloatcomplex*) fDiag.begin(), &lda, &info);
+    PZ_LAPACK(cpbtrf)(uplo, &n, &kd , (varfloatcomplex*) fDiag.begin(), &lda, &info);
     if( info > 0){
        this->Error(__PRETTY_FUNCTION__,"Decompose_Cholesky <The matrix is not positive definite>");
     }
@@ -553,7 +553,7 @@ TPZSBMatrix<std::complex< double > >::Decompose_Cholesky()
     int lda = this->fBand + 1;
     int kd = this->fBand;
     int info = -666;
-    zpbtrf_(uplo, &n, &kd, (vardoublecomplex *) fDiag.begin(), &lda, &info);
+    PZ_LAPACK(zpbtrf)(uplo, &n, &kd, (vardoublecomplex *) fDiag.begin(), &lda, &info);
     if( info > 0){
        this->Error(__PRETTY_FUNCTION__,"Decompose_Cholesky <The matrix is not positive definite>");
     }
@@ -585,7 +585,7 @@ int TPZSBMatrix<float>::Decompose_Cholesky()
     int info;
     
     //    spbsv_(<#char *__uplo#>, <#__CLPK_integer *__n#>, <#__CLPK_integer *__kd#>, <#__CLPK_integer *__nrhs#>, <#__CLPK_real *__ab#>, <#__CLPK_integer *__ldab#>, <#__CLPK_real *__b#>, <#__CLPK_integer *__ldb#>, <#__CLPK_integer *__info#>)
-    spbsv_(uplo, &n, &kd, &nrhs, ab, &ldab, &b, &n, &info);
+    PZ_LAPACK(spbsv)(uplo, &n, &kd, &nrhs, ab, &ldab, &b, &n, &info);
     
     if (info != 0) {
         DebugStop();
@@ -613,7 +613,7 @@ int TPZSBMatrix<double>::Decompose_Cholesky()
     int info;
     
     //    spbsv_(<#char *__uplo#>, <#__CLPK_integer *__n#>, <#__CLPK_integer *__kd#>, <#__CLPK_integer *__nrhs#>, <#__CLPK_real *__ab#>, <#__CLPK_integer *__ldab#>, <#__CLPK_real *__b#>, <#__CLPK_integer *__ldb#>, <#__CLPK_integer *__info#>)
-    dpbsv_(uplo, &n, &kd, &nrhs, ab, &ldab, &b, &n, &info);
+    PZ_LAPACK(dpbsv)(uplo, &n, &kd, &nrhs, ab, &ldab, &b, &n, &info);
     
     if (info != 0) {
         DebugStop();

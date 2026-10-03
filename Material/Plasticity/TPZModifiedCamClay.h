@@ -183,6 +183,27 @@ public:
     /// Tolerância e número máximo de iterações do Newton local
     void SetLocalTolerance(REAL tol, int maxit = 50) { fTol = tol; fMaxIt = maxit; }
 
+    /// Relação entre M e o ângulo de atrito de estado crítico, usada pelos parâmetros por ponto
+    enum EStrengthMapping {
+        ETriaxialCompression = 0, ///< M = 6 sinφ/(3 - sinφ) (compressão triaxial)
+        EPlaneStrain = 1          ///< M = √3 sinφ (estado crítico em deformação plana com fluxo associado, θ = 0)
+    };
+    static REAL MFromFriction(REAL phi, EStrengthMapping mapping);
+    void SetStrengthMapping(EStrengthMapping mapping) { fStrengthMapping = mapping; }
+    EStrengthMapping StrengthMapping() const { return fStrengthMapping; }
+
+    /// Fator de redução de resistência F (método de redução de resistência, como TPZPlasticStepPV):
+    /// só atua nos parâmetros por ponto (φ_r = atan(tan φ / F), c_r = c/F)
+    void SetStrengthReductionFactor(REAL F) { fReductionFactor = F; }
+    REAL StrengthReductionFactor() const { return fReductionFactor; }
+
+    /// Parâmetros por ponto de integração lidos de TPZPlasticState::fmatprop (o mesmo mecanismo do
+    /// TPZYCMohrCoulombPV, usado nos campos aleatórios): quando fmatprop.size() >= 3 e fmatprop[2] > 0,
+    ///   fmatprop[0] = c, [1] = φ (rad), [2] = p_c0 (> 0), [3..8] = σ0 (opcional; Voigt, tração positiva),
+    /// e o modelo usa M = M(φ_r) e p_t = c cot φ = c_r cot φ_r (invariante pela redução de resistência), mantendo
+    /// λ, κ, v0, β e a elasticidade. Chamado no início de ApplyStrainComputeSigma.
+    void ApplyLocalProperties();
+
     // ------------------------------------------------------------- acesso
     const TPZYCModifiedCamClay &YC() const { return fYC; }
     REAL M() const { return fYC.M(); }
@@ -290,6 +311,9 @@ private:
 
     REAL fTol = 1.e-11;
     int fMaxIt = 50;
+
+    EStrengthMapping fStrengthMapping = ETriaxialCompression;
+    REAL fReductionFactor = 1.;
     int fLastIterations = 0;
 
     TPZElasticResponse fER;
