@@ -2,6 +2,8 @@
 
 #include "SlopeGeometry.h"
 
+#include "FileIO.h"
+
 #include <array>
 #include <cmath>
 #include <sstream>
@@ -136,6 +138,34 @@ void TSlopeGeometry::Grow(TPZGeoMesh *gmesh, std::vector<int64_t> &gels, int lay
         mark.insert(add.begin(), add.end());
     }
     gels.assign(mark.begin(), mark.end());
+}
+
+uint64_t TSlopeGeometry::Signature(const TPZGeoMesh &gmesh) {
+    uint64_t h = fileio::Fnv1a("TSlopeGeometry::Signature", 25);
+    const int64_t nn = gmesh.NNodes(), ne = gmesh.NElements();
+    h = fileio::HashWords(&nn, 1, h);
+    for (int64_t i = 0; i < nn; i++) {
+        const TPZGeoNode &nd = gmesh.NodeVec()[i];
+        const REAL x[3] = {nd.Coord(0), nd.Coord(1), nd.Coord(2)};
+        h = fileio::HashWords(x, 3, h);
+    }
+    h = fileio::HashWords(&ne, 1, h);
+    for (int64_t i = 0; i < ne; i++) {
+        const TPZGeoEl *gel = gmesh.ElementVec()[i];
+        if (!gel) {
+            const int64_t none = -1;
+            h = fileio::HashWords(&none, 1, h);
+            continue;
+        }
+        const int64_t v[4] = {(int64_t)gel->Type(), (int64_t)gel->MaterialId(), (int64_t)gel->NNodes(),
+                              gel->Father() ? gel->Father()->Index() : -1};
+        h = fileio::HashWords(v, 4, h);
+        for (int k = 0; k < gel->NNodes(); k++) {
+            const int64_t nk = gel->NodeIndex(k);
+            h = fileio::HashWords(&nk, 1, h);
+        }
+    }
+    return h;
 }
 
 void TSlopeGeometry::Refine(TPZGeoMesh *gmesh, const std::vector<int64_t> &gels) {

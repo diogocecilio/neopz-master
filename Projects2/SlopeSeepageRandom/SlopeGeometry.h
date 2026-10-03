@@ -21,6 +21,7 @@
 #ifndef SLOPEGEOMETRY_H
 #define SLOPEGEOMETRY_H
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -62,6 +63,9 @@ struct TSlopeGeometry {
     static void Refine(TPZGeoMesh *gmesh, const std::vector<int64_t> &gels);
     /// Acrescenta aos elementos marcados (índices de elementos 2D folha) "layers" camadas de vizinhos
     static void Grow(TPZGeoMesh *gmesh, std::vector<int64_t> &gels, int layers);
+    /// Assinatura exata da malha: FNV-1a dos bits das coordenadas dos nós e da topologia e hierarquia (tipo,
+    /// material, nós, pai) dos elementos. Malhas iguais elemento a elemento e nó a nó têm a mesma assinatura.
+    static uint64_t Signature(const TPZGeoMesh &gmesh);
 
     /// Geometrias do artigo: Cho (2010) coesivo 2:1 e c-φ 1:1 (e o talude de referência com percolação)
     static TSlopeGeometry Cho2H1V(REAL h = 0.5);

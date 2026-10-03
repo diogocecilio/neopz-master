@@ -40,7 +40,10 @@ public:
         int nModes = -1;                 ///< M (<= 0: todos os modos)
         REAL targetVarianceError = -1.;  ///< se > 0, usa o menor M com ε_M <= alvo
         bool normalizeVariance = true;   ///< divide H(x) por √v(x)
-        std::string cacheFile;           ///< arquivo binário com λ e Φ (vazio: sem cache)
+        /// arquivo binário com λ e Φ (vazio: sem cache). Gravação atômica (tmp + rename); o cabeçalho guarda
+        /// versão, Lx, Ly, ordem, neq, número de elementos e de nós e assinatura da malha KL, |Ω| e o número de
+        /// modos gravados; arquivo truncado, corrompido (FNV-1a) ou incompatível é recalculado
+        std::string cacheFile;
     };
 
     /// gmesh: malha geométrica do domínio (a classe passa a ser dona dela)
@@ -90,6 +93,8 @@ private:
     void BuildMesh();
     bool ReadCache();
     void WriteCache() const;
+    /// M a partir de λ e das opções (nModes ou targetVarianceError)
+    int ChooseModes() const;
     void LocatePoint(const TPZManVector<REAL, 3> &x, TPZInterpolationSpace *&cel, TPZManVector<REAL, 3> &qsi,
                      int64_t &start) const;
 

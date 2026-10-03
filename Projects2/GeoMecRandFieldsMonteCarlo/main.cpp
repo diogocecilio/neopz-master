@@ -104,6 +104,11 @@
 #include <string>
 #include <sstream>
 #include <filesystem>
+#include <cstring>
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
+#include <fcntl.h>
 #include "Plasticity/TPZPlasticStepVoigt.h"
 #include "Plasticity/TPZYCMohrCoulombPV2.h"
 
@@ -156,14 +161,317 @@ static inline long LastSampleIndexFromCSV(const std::string& path) {
                 return -1;
         }
 }
-static  long LastS(const std::string& path){
-        std::ifstream in(path);
-        if(!in) return -1;
-        std::string line, last;
-        while(std::getline(in,line)) if(!line.empty()) last = line;
-        if(last.empty() || last.rfind("sample",0)==0) return -1; // cabeçalho
-        auto p = last.find(','); if(p==std::string::npos) return -1;
-        try { return std::stol(last.substr(0,p)); } catch(...) { return -1; }
+// ------------------------------------------------------------
+// Leitura/escrita robusta: campos KL (hhat_<Lx>_<Ly>.bin) e CSV do Monte Carlo
+// ------------------------------------------------------------
+// Formato hhat (versão 1): manifesto + as duas matrizes no formato de TPZFMatrix<REAL>::Write
+//   char[8] "GMRFHHAT" | int64 versão | double Lx, Ly |
+//   int64 M, pOrder (malha do campo), ref (refinamento da malha do campo), NsampGen, ndof, sementeE, sementeMU |
+//   hhatE (ndof x NsampGen) | hhatMU (ndof x NsampGen)
+// TPZFMatrix<REAL>::Write grava: int64 linhas, int64 colunas, char fDecomposed, char fDefPositive, dados por coluna.
+// O formato antigo (sem manifesto, só as duas matrizes) continua sendo aceito na leitura.
+static const char     kHhatMagic[8] = {'G','M','R','F','H','H','A','T'};
+static const int64_t  kHhatVersion  = 1;
+static const uint32_t kSeedCoes     = 12345; // sementes de ComputeTheta em BuildFields (hhatE -> coes)
+static const uint32_t kSeedAtrito   = 54321; //                                          (hhatMU -> atrito)
+
+struct HhatInfo {
+        bool    hasHeader = false; // false: formato antigo, sem manifesto
+        int64_t version = 0;
+        double  Lx = 0., Ly = 0.;
+        int64_t M = -1, pOrder = -1, ref = -1, NsampGen = -1, ndof = -1, seedE = -1, seedMU = -1;
+};
+
+// dados contíguos (por coluna) de uma TPZFMatrix não vazia (Elem() é protegido)
+static inline REAL *FMatData(const TPZFMatrix<REAL> &m) { return &m.g(0, 0); }
+
+// lê uma matriz gravada por TPZFMatrix<REAL>::Write conferindo dimensões contra os bytes restantes do arquivo
+static bool ReadFMatrixChecked(std::ifstream &in, uint64_t &bytesleft, TPZFMatrix<REAL> &mat,
+                               const std::string &nome, std::string &err)
+{
+        int64_t nr = 0, nc = 0;
+        char dec = 0, defpos = 0;
+        const uint64_t hdr = 2*sizeof(int64_t) + 2*sizeof(char);
+        if (bytesleft < hdr) { err = "arquivo truncado antes da matriz " + nome; return false; }
+        in.read(reinterpret_cast<char*>(&nr), sizeof(nr));
+        in.read(reinterpret_cast<char*>(&nc), sizeof(nc));
+        in.read(&dec, 1);
+        in.read(&defpos, 1);
+        if (!in) { err = "erro de leitura no cabeçalho da matriz " + nome; return false; }
+        bytesleft -= hdr;
+        const int64_t maxdim = ((int64_t)1) << 30;
+        if (nr <= 0 || nc <= 0 || nr > maxdim || nc > maxdim || dec != 0) {
+                std::ostringstream o;
+                o << "matriz " << nome << " com cabeçalho inválido (linhas=" << nr << ", colunas=" << nc
+                  << ", decomposta=" << (int)dec << "): arquivo corrompido ou de outro formato";
+                err = o.str(); return false;
+        }
+        const uint64_t need = (uint64_t)nr*(uint64_t)nc*sizeof(REAL);
+        if (need > bytesleft) {
+                std::ostringstream o;
+                o << "arquivo truncado: matriz " << nome << " (" << nr << " x " << nc << ") precisa de "
+                  << need << " bytes, restam " << bytesleft;
+                err = o.str(); return false;
+        }
+        mat.Redim(nr, nc);
+        in.read(reinterpret_cast<char*>(FMatData(mat)), (std::streamsize)need);
+        if (!in) { err = "erro de leitura nos dados da matriz " + nome; return false; }
+        bytesleft -= need;
+        const REAL *p = FMatData(mat);
+        for (int64_t k = 0; k < nr*nc; k++) {
+                if (!std::isfinite(p[k])) {
+                        std::ostringstream o;
+                        o << "valor não finito na matriz " << nome << " (linha " << k % nr << ", coluna " << k / nr << ")";
+                        err = o.str(); return false;
+                }
+        }
+        return true;
+}
+
+// lê hhat_<Lx>_<Ly>.bin (com manifesto ou formato antigo). Retorna false com a causa em err; nunca usa lixo.
+static bool ReadHhatFile(const std::string &path, HhatInfo &info,
+                         TPZFMatrix<REAL> &hhatE, TPZFMatrix<REAL> &hhatMU, std::string &err)
+{
+        info = HhatInfo();
+        std::error_code ec;
+        if (!std::filesystem::is_regular_file(path, ec)) {
+                err = "arquivo não encontrado: " + path + " (gere os campos com RunStochastic(true))";
+                return false;
+        }
+        std::ifstream in(path, std::ios::binary);
+        if (!in) { err = "não foi possível abrir " + path; return false; }
+        in.seekg(0, std::ios::end);
+        const std::streamoff fsize = in.tellg();
+        in.seekg(0, std::ios::beg);
+        if (fsize <= 0) { err = "arquivo vazio: " + path; return false; }
+        uint64_t left = (uint64_t)fsize;
+
+        char magic[8] = {0};
+        if (left >= sizeof(magic)) in.read(magic, sizeof(magic));
+        if (left >= sizeof(magic) && in && std::memcmp(magic, kHhatMagic, sizeof(magic)) == 0) {
+                info.hasHeader = true;
+                left -= sizeof(magic);
+                if (left < sizeof(int64_t)) { err = "manifesto truncado em " + path; return false; }
+                in.read(reinterpret_cast<char*>(&info.version), sizeof(int64_t));
+                left -= sizeof(int64_t);
+                if (!in || info.version != kHhatVersion) {
+                        std::ostringstream o;
+                        o << "versão do formato " << info.version << " não suportada em " << path
+                          << " (esperada " << kHhatVersion << ")";
+                        err = o.str(); return false;
+                }
+                double LxLy[2] = {0., 0.};
+                int64_t ints[7] = {0};
+                if (left < sizeof(LxLy) + sizeof(ints)) { err = "manifesto truncado em " + path; return false; }
+                in.read(reinterpret_cast<char*>(LxLy), sizeof(LxLy));
+                in.read(reinterpret_cast<char*>(ints), sizeof(ints));
+                if (!in) { err = "erro de leitura no manifesto de " + path; return false; }
+                left -= sizeof(LxLy) + sizeof(ints);
+                info.Lx = LxLy[0]; info.Ly = LxLy[1];
+                info.M = ints[0]; info.pOrder = ints[1]; info.ref = ints[2]; info.NsampGen = ints[3];
+                info.ndof = ints[4]; info.seedE = ints[5]; info.seedMU = ints[6];
+        } else {
+                // formato antigo: as duas matrizes desde o início do arquivo
+                in.clear();
+                in.seekg(0, std::ios::beg);
+        }
+
+        if (!ReadFMatrixChecked(in, left, hhatE, "hhatE", err) ||
+            !ReadFMatrixChecked(in, left, hhatMU, "hhatMU", err)) {
+                err += " [" + path + "]";
+                return false;
+        }
+        if (hhatE.Rows() != hhatMU.Rows() || hhatE.Cols() != hhatMU.Cols()) {
+                std::ostringstream o;
+                o << "hhatE (" << hhatE.Rows() << " x " << hhatE.Cols() << ") e hhatMU (" << hhatMU.Rows()
+                  << " x " << hhatMU.Cols() << ") com dimensões diferentes em " << path;
+                err = o.str(); return false;
+        }
+        if (info.hasHeader && (hhatE.Rows() != info.ndof || hhatE.Cols() != info.NsampGen)) {
+                std::ostringstream o;
+                o << "matrizes (" << hhatE.Rows() << " x " << hhatE.Cols() << ") inconsistentes com o manifesto (ndof="
+                  << info.ndof << ", NsampGen=" << info.NsampGen << ") em " << path;
+                err = o.str(); return false;
+        }
+        if (left > 0) {
+                std::cerr << "[hhat] AVISO: " << left << " bytes extras no fim de " << path << " (ignorados)\n";
+        }
+        return true;
+}
+
+// grava hhat com manifesto de forma atômica: <path>.tmp -> fsync -> confere relendo -> std::rename
+static bool WriteHhatFileAtomic(const std::string &path, const HhatInfo &info,
+                                const TPZFMatrix<REAL> &hhatE, const TPZFMatrix<REAL> &hhatMU, std::string &err)
+{
+        const std::string tmp = path + ".tmp";
+        {
+                TPZBFileStream out;
+                out.OpenWrite(tmp);
+                if (!out.AmIOpenForWrite()) { err = "não foi possível criar " + tmp; return false; }
+                // os 8 bytes do magic como um uint64_t (libpz não exporta TPZBFileStream::WriteData<char>)
+                uint64_t magic = 0;
+                std::memcpy(&magic, kHhatMagic, sizeof(magic));
+                out.Write(&magic, 1);
+                const int64_t version = kHhatVersion;
+                out.Write(&version, 1);
+                const double LxLy[2] = {info.Lx, info.Ly};
+                out.Write(LxLy, 2);
+                const int64_t ints[7] = {info.M, info.pOrder, info.ref, info.NsampGen, info.ndof, info.seedE, info.seedMU};
+                out.Write(ints, 7);
+                hhatE.Write(out, 0);
+                hhatMU.Write(out, 0);
+                out.CloseWrite();
+        }
+        {
+                const int fd = ::open(tmp.c_str(), O_RDONLY);
+                if (fd >= 0) { ::fsync(fd); ::close(fd); }
+        }
+        // relê o temporário: detecta gravação incompleta (disco cheio etc.) antes de substituir o arquivo final
+        HhatInfo chk;
+        TPZFMatrix<REAL> cE, cMU;
+        std::string rerr;
+        const bool same = ReadHhatFile(tmp, chk, cE, cMU, rerr) && chk.hasHeader
+                && chk.Lx == info.Lx && chk.Ly == info.Ly && chk.M == info.M && chk.pOrder == info.pOrder
+                && chk.ref == info.ref && chk.NsampGen == info.NsampGen && chk.ndof == info.ndof
+                && chk.seedE == info.seedE && chk.seedMU == info.seedMU
+                && cE.Rows() == hhatE.Rows() && cE.Cols() == hhatE.Cols()
+                && cMU.Rows() == hhatMU.Rows() && cMU.Cols() == hhatMU.Cols()
+                && std::memcmp(FMatData(cE), FMatData(hhatE), sizeof(REAL)*hhatE.Rows()*hhatE.Cols()) == 0
+                && std::memcmp(FMatData(cMU), FMatData(hhatMU), sizeof(REAL)*hhatMU.Rows()*hhatMU.Cols()) == 0;
+        if (!same) {
+                err = "verificação de " + tmp + " falhou" + (rerr.empty() ? std::string("") : (": " + rerr));
+                std::remove(tmp.c_str());
+                return false;
+        }
+        if (std::rename(tmp.c_str(), path.c_str()) != 0) {
+                err = "std::rename(" + tmp + " -> " + path + ") falhou: " + std::strerror(errno);
+                return false;
+        }
+        return true;
+}
+
+// confere o hhat lido contra a malha do campo e os parâmetros da execução corrente (M/NsampGen < 0: não confere)
+static bool CheckHhatAgainstRun(const HhatInfo &info, const TPZFMatrix<REAL> &hhat, int64_t ndofField,
+                                REAL Lx, REAL Ly, int pOrder, int ref, int M, int NsampGen, std::string &err)
+{
+        std::ostringstream o;
+        auto difere = [](double a, double b) { return std::fabs(a - b) > 1e-12*std::max(1.0, std::fabs(b)); };
+        if (hhat.Rows() != ndofField)
+                o << "\n  linhas (ndof) = " << hhat.Rows() << " mas a malha do campo (pOrder=" << pOrder
+                  << ", ref=" << ref << ") tem NEquations = " << ndofField;
+        if (NsampGen > 0 && hhat.Cols() != NsampGen)
+                o << "\n  amostras (colunas) = " << hhat.Cols() << " mas NsampGen = " << NsampGen;
+        if (info.hasHeader) {
+                if (difere(info.Lx, Lx) || difere(info.Ly, Ly))
+                        o << "\n  Lx, Ly do arquivo = " << info.Lx << ", " << info.Ly << " mas a execução usa " << Lx << ", " << Ly;
+                if (info.pOrder != pOrder) o << "\n  pOrder do campo = " << info.pOrder << " mas a execução usa " << pOrder;
+                if (info.ref != ref)       o << "\n  ref do campo = " << info.ref << " mas a execução usa " << ref;
+                if (M > 0 && info.M != M)  o << "\n  M = " << info.M << " mas a execução usa " << M;
+                if (info.seedE != (int64_t)kSeedCoes || info.seedMU != (int64_t)kSeedAtrito)
+                        o << "\n  sementes = " << info.seedE << ", " << info.seedMU << " mas o código usa "
+                          << kSeedCoes << ", " << kSeedAtrito;
+        }
+        err = o.str();
+        return err.empty();
+}
+
+// Lê o CSV do Monte Carlo (sample,FS[,status]) e devolve o conjunto de amostras já concluídas.
+// Uma última linha sem '\n' (gravação interrompida) e linhas malformadas são retiradas do CSV, que é
+// reescrito de forma atômica (tmp + std::rename); as linhas retiradas vão antes para <csv>.descartadas.
+// Arquivo inexistente: conjunto vazio. Retorna false (causa em err) se não conseguir ler/reescrever.
+static bool LoadDoneSamplesCSV(const std::string &path, std::set<long> &done, std::string &err)
+{
+        done.clear();
+        std::error_code ec;
+        if (!std::filesystem::exists(path, ec)) return true;
+        std::string text;
+        {
+                std::ifstream in(path, std::ios::binary);
+                if (!in) { err = "não foi possível abrir " + path; return false; }
+                std::ostringstream ss; ss << in.rdbuf();
+                text = ss.str();
+        }
+        auto trim = [](std::string s) {
+                const char *ws = " \t\r";
+                const size_t a = s.find_first_not_of(ws);
+                if (a == std::string::npos) return std::string();
+                return s.substr(a, s.find_last_not_of(ws) - a + 1);
+        };
+        // "s,FS" ou "s,FS,status" com s inteiro >= 0, FS finito e status conhecido
+        auto parseRow = [&trim](const std::string &line, long &id) {
+                std::vector<std::string> f;
+                std::istringstream iss(line);
+                std::string tok;
+                while (std::getline(iss, tok, ',')) f.push_back(trim(tok));
+                if (!line.empty() && line.back() == ',') f.push_back("");
+                if (f.size() != 2 && f.size() != 3) return false;
+                try {
+                        size_t pos = 0;
+                        id = std::stol(f[0], &pos);
+                        if (pos != f[0].size() || id < 0) return false;
+                        const double fs = std::stod(f[1], &pos);
+                        if (pos != f[1].size() || !std::isfinite(fs)) return false;
+                } catch (...) { return false; }
+                if (f.size() == 3 && f[2] != "ok" && f[2] != "lo_fail" && f[2] != "hi_ok") return false;
+                return true;
+        };
+
+        std::vector<std::string> keep, drop;
+        bool seenHeaderOrData = false;
+        size_t start = 0;
+        while (start < text.size()) {
+                const size_t nl = text.find('\n', start);
+                if (nl == std::string::npos) { // última linha sem '\n': gravação interrompida
+                        drop.push_back(text.substr(start));
+                        std::cerr << "[csv] AVISO: linha final incompleta em " << path << " será descartada: \""
+                                  << drop.back() << "\"\n";
+                        break;
+                }
+                const std::string line = text.substr(start, nl - start);
+                start = nl + 1;
+                const std::string t = trim(line);
+                long id = -1;
+                if (t.empty()) {
+                        keep.push_back(line);
+                } else if (parseRow(t, id)) {
+                        keep.push_back(line);
+                        done.insert(id);
+                        seenHeaderOrData = true;
+                } else if (!seenHeaderOrData && (t.rfind("sample", 0) == 0 || t.rfind("s,", 0) == 0)) {
+                        keep.push_back(line); // cabeçalho
+                        seenHeaderOrData = true;
+                } else {
+                        drop.push_back(line);
+                        std::cerr << "[csv] AVISO: linha malformada em " << path << " será descartada: \"" << line << "\"\n";
+                }
+        }
+        if (drop.empty()) return true;
+
+        // guarda o que será retirado (nada se perde) e só então troca o CSV
+        const std::string dropname = path + ".descartadas";
+        {
+                std::ofstream d(dropname, std::ios::app);
+                for (const auto &l : drop) d << l << "\n";
+                d.flush();
+                if (!d) { err = "não foi possível gravar " + dropname; return false; }
+        }
+        const std::string tmp = path + ".tmp";
+        {
+                std::ofstream o(tmp, std::ios::binary | std::ios::trunc);
+                for (const auto &l : keep) o << l << "\n";
+                o.flush();
+                if (!o) { err = "não foi possível gravar " + tmp; std::remove(tmp.c_str()); return false; }
+        }
+        {
+                const int fd = ::open(tmp.c_str(), O_RDONLY);
+                if (fd >= 0) { ::fsync(fd); ::close(fd); }
+        }
+        if (std::rename(tmp.c_str(), path.c_str()) != 0) {
+                err = "std::rename(" + tmp + " -> " + path + ") falhou: " + std::strerror(errno);
+                return false;
+        }
+        std::cout << "[csv] " << drop.size() << " linha(s) retirada(s) de " << path << " (guardadas em " << dropname << ")\n";
+        return true;
 }
 // ------------------------------------------------------------
 // Pós-processo
@@ -234,7 +542,9 @@ void RunDeterministic();
 
 void RunStochastic(bool buildfields);
 
-void SolveMonteCarlo(int pOrderfield ,int pOrderDeform,int reffield,int ref,int kMatId,REAL Lx,REAL Ly);
+// M e NsampGen: valores da execução corrente, conferidos contra o arquivo hhat (< 0: não confere)
+void SolveMonteCarlo(int pOrderfield ,int pOrderDeform,int reffield,int ref,int kMatId,REAL Lx,REAL Ly,
+                     int M = -1, int NsampGen = -1);
 
 
 // ------------------------------------------------------------------
@@ -1041,7 +1351,7 @@ void RunStochastic(bool buildfields)
                 BuildFields( pOrderfield , reField, kMatId, Lx, Ly, M,NsampGen,ossstr);
         }else
         {
-                SolveMonteCarlo( pOrderfield , pOrderDeform, reField, refDeform, kMatId, Lx, Ly);
+                SolveMonteCarlo( pOrderfield , pOrderDeform, reField, refDeform, kMatId, Lx, Ly, M, NsampGen);
         }
 }
 
@@ -1074,19 +1384,31 @@ void BuildFields(int pOrder ,int ref,int kMatId,REAL Lx,REAL Ly,int M,int NsampG
 
 
         // Duas famílias independentes para Coes e Phi (poderia ser correlacionado se desejado)
-        TPZFMatrix<REAL>  THETAE  = ComputeTheta(M, NsampGen, /*seed*/12345);
-        TPZFMatrix<REAL>  THETAMU = ComputeTheta(M, NsampGen, /*seed*/54321);
+        TPZFMatrix<REAL>  THETAE  = ComputeTheta(M, NsampGen, kSeedCoes);
+        TPZFMatrix<REAL>  THETAMU = ComputeTheta(M, NsampGen, kSeedAtrito);
 
         TPZFMatrix<REAL>  hhatE,hhatMU; // (ndof x NsampGen)
         PHI.Multiply(THETAE,  hhatE);
         PHI.Multiply(THETAMU, hhatMU);
 
-        // nome estável (fixed, 6 casas)
-
-        TPZBFileStream out;
-        out.OpenWrite(oss);
-        hhatE.Write(out,0);
-        hhatMU.Write(out,0);
+        // nome estável (fixed, 6 casas); manifesto + gravação atômica (tmp + rename), conferida relendo
+        HhatInfo info;
+        info.hasHeader = true;
+        info.version = kHhatVersion;
+        info.Lx = Lx; info.Ly = Ly;
+        info.M = M; info.pOrder = pOrder; info.ref = ref; info.NsampGen = NsampGen;
+        info.ndof = cmeshKL->NEquations();
+        info.seedE = kSeedCoes; info.seedMU = kSeedAtrito;
+        if (hhatE.Rows() != info.ndof || hhatE.Cols() != NsampGen) {
+                std::cerr << "[hhat] ERRO: hhatE " << hhatE.Rows() << " x " << hhatE.Cols()
+                          << " difere de ndof x NsampGen = " << info.ndof << " x " << NsampGen << "\n";
+                std::exit(EXIT_FAILURE);
+        }
+        std::string err;
+        if (!WriteHhatFileAtomic(oss, info, hhatE, hhatMU, err)) {
+                std::cerr << "[hhat] ERRO ao gravar " << oss << ": " << err << "\n";
+                std::exit(EXIT_FAILURE);
+        }
 
         delete cmeshKL;
         delete gmesh;
@@ -1145,7 +1467,8 @@ REAL SolveStochastic(const std::vector<TPZCompMesh*>& sources,TPZCompMesh* targe
         return FS;
 }
 
-void SolveMonteCarlo(int pOrderfield ,int pOrderDeform,int reffield,int ref,int kMatId,REAL Lx,REAL Ly)
+void SolveMonteCarlo(int pOrderfield ,int pOrderDeform,int reffield,int ref,int kMatId,REAL Lx,REAL Ly,
+                     int M, int NsampGen)
 {
         // malhas fontes (para mapear campo -> elasticidade)
         TPZGeoMesh*  gmesh0       =  TriGMesh(reffield);
@@ -1161,12 +1484,30 @@ void SolveMonteCarlo(int pOrderfield ,int pOrderDeform,int reffield,int ref,int 
         std::ostringstream fin;
         fin.setf(std::ios::fixed);
         fin << "hhat_" << std::setprecision(6) << Lx << "_" << Ly << ".bin";
+        // (confere existência, manifesto e dimensões; aborta com mensagem clara em vez de usar lixo)
         TPZFMatrix<REAL> hhat1,hhat2;
         {
-                TPZBFileStream in;
-                in.OpenRead(fin.str());
-                hhat1.Read(in, 0);
-                hhat2.Read(in, 0);
+                HhatInfo info;
+                std::string err;
+                if (!ReadHhatFile(fin.str(), info, hhat1, hhat2, err)) {
+                        std::cerr << "[hhat] ERRO: " << err << "\n";
+                        std::exit(EXIT_FAILURE);
+                }
+                const int64_t ndofField = cmeshFieldCoes->NEquations();
+                if (cmeshFieldAtrito->NEquations() != ndofField ||
+                    !CheckHhatAgainstRun(info, hhat1, ndofField, Lx, Ly, pOrderfield, reffield, M, NsampGen, err)) {
+                        std::cerr << "[hhat] ERRO: " << fin.str() << " não corresponde a esta execução:" << err
+                                  << "\n  regenere os campos (RunStochastic(true)) ou ajuste os parâmetros.\n";
+                        std::exit(EXIT_FAILURE);
+                }
+                if (info.hasHeader) {
+                        std::cout << "[hhat] " << fin.str() << ": Lx=" << info.Lx << " Ly=" << info.Ly << " M=" << info.M
+                                  << " pOrder=" << info.pOrder << " ref=" << info.ref << " NsampGen=" << info.NsampGen
+                                  << " ndof=" << info.ndof << " sementes=" << info.seedE << "," << info.seedMU << "\n";
+                } else {
+                        std::cout << "[hhat] " << fin.str() << ": formato antigo (sem manifesto); conferidos só ndof="
+                                  << hhat1.Rows() << " e amostras=" << hhat1.Cols() << "\n";
+                }
         }
         const int NsampRun =hhat1.Cols();
 
@@ -1176,26 +1517,45 @@ void SolveMonteCarlo(int pOrderfield ,int pOrderDeform,int reffield,int ref,int 
         fout << "mc_results_" << std::setprecision(6) << Lx << "_" << Ly << ".csv";
         const std::string csvname = fout.str();
 
-        // retoma do último sample salvo
-        const long s_start = LastS(csvname) + 1;
+        // retoma pelo conjunto de amostras já gravadas (não só a última + 1); linha final incompleta é retirada
+        std::set<long> done;
+        {
+                std::string err;
+                if (!LoadDoneSamplesCSV(csvname, done, err)) {
+                        std::cerr << "[csv] ERRO: " << err << "\n";
+                        std::exit(EXIT_FAILURE);
+                }
+        }
+        long ndone = 0, s_first = -1;
+        for (long s = 0; s < NsampRun; ++s) {
+                if (done.count(s)) ++ndone;
+                else if (s_first < 0) s_first = s;
+        }
 
         // abre em append (escreve cabeçalho se arquivo novo)
         std::ofstream outcsv(csvname, std::ios::app);
+        if (!outcsv.is_open()) {
+                std::cerr << "[csv] ERRO: não foi possível abrir " << csvname << " para escrita\n";
+                std::exit(EXIT_FAILURE);
+        }
         // todas as amostras são gravadas; status da bissecção: ok (FS em (lo,hi)), lo_fail (FS <= lo), hi_ok (FS >= hi)
         // (arquivos antigos têm só "sample,FS" e apenas amostras com FS <= 10; postmontecarlo.py lê os dois formatos)
         if(outcsv.tellp()==0) outcsv << "sample,FS,status\n";
         outcsv.setf(std::ios::fixed); outcsv << std::setprecision(10);
 
         std::cout << "solving mc " << fin.str()
-        << " retomando em s=" << s_start
-        << " até < " << NsampRun << std::endl;
+        << " amostras já no CSV: " << ndone << " de " << NsampRun
+        << ", faltam " << (NsampRun - ndone)
+        << (s_first >= 0 ? " (primeira: s=" + std::to_string(s_first) + ")" : std::string(""))
+        << std::endl;
 
         double sum=0.0, sum2=0.0; int nacc=0; // estatísticas desta sessão
         TPZFMatrix<REAL> col1(hhat1.Rows(),1), col2(hhat2.Rows(),1);
         std:: string vtk2 ="out_mc.vtk";
         // *** LOOP COM RETOMADA ***
-        for (int s = s_start; s < NsampRun; ++s)
+        for (int s = 0; s < NsampRun; ++s)
         {
+                if (done.count(s)) continue; // já está no CSV
                 cout << "========== IMC ========== "<< s <<endl;
 
                 TPZGeoMesh*  gmesh2  = TriGMesh(ref);
@@ -1247,6 +1607,11 @@ void SolveMonteCarlo(int pOrderfield ,int pOrderDeform,int reffield,int ref,int 
                 const char *fsstatusname = (fsstatus < 0) ? "lo_fail" : ((fsstatus > 0) ? "hi_ok" : "ok");
                 outcsv << s << "," << FS << "," << fsstatusname << "\n";
                 outcsv.flush();          // grava imediatamente (seguro pra retomada)
+                if (!outcsv) {           // disco cheio etc.: para em vez de seguir calculando sem gravar
+                        std::cerr << "[csv] ERRO ao gravar a amostra " << s << " em " << csvname << "\n";
+                        std::exit(EXIT_FAILURE);
+                }
+                done.insert(s);
                 if(fsstatus == 0 && FS <= 10.0){ // estatística da sessão: mesmo critério de antes
                         sum  += FS; sum2 += (double)FS*(double)FS; ++nacc;
                 }

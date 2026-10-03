@@ -4,12 +4,16 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <random>
 #include <set>
 #include <stdexcept>
 
+#include "FileIO.h"
+#include "SlopeGeometry.h"
 #include "TPZBFileStream.h"
 #include "TPZLapackEigenSolver.h"
 #include "TPZLinearAnalysis.h"
@@ -23,7 +27,7 @@
 
 namespace {
 const int kMatKL = 1;  // ESoil
-const int kCacheVersion = 2;
+const int kCacheVersion = 3;
 }
 
 TPZKLRandomField::TPZKLRandomField(TPZGeoMesh *gmesh, const TOptions &opt) : fOpt(opt), fGMesh(gmesh) {
@@ -56,54 +60,172 @@ REAL TPZKLRandomField::VarianceError(int M) const {
     return 1. - s / fArea;
 }
 
+int TPZKLRandomField::ChooseModes() const {
+    const int n = (int)fLambda.size();
+    if (fOpt.targetVarianceError > 0.) {
+        for (int M = 1; M <= n; M++)
+            if (VarianceError(M) <= fOpt.targetVarianceError) return M;
+        return n;
+    }
+    return (fOpt.nModes > 0) ? std::min(fOpt.nModes, n) : n;
+}
+
+namespace {
+// Formato do cache (versão 3; tudo por TPZBFileStream, binário nativo):
+//   char[8] "SSR-KLC\n" | int versão, porder | double Lx, Ly, |Ω| | int64 neq, nel, nnós | uint64 assinatura da
+//   malha KL | int64 nλ, M | double λ[nλ] | double Φ[neq x M] (coluna a coluna) | uint64 FNV-1a de tudo o que
+//   precede (exceto o texto inicial) | char[8] "SSR-FIM\n"
+// O tamanho do arquivo é conferido com o cabeçalho antes da leitura dos vetores (TPZBFileStream não acusa leitura
+// além do fim) e o FNV-1a confere o conteúdo; o arquivo é gravado em <cache>.tmp<pid> e renomeado (atômico).
+const char kCacheMagic[8] = {'S', 'S', 'R', '-', 'K', 'L', 'C', '\n'};
+const char kCacheEnd[8] = {'S', 'S', 'R', '-', 'F', 'I', 'M', '\n'};
+const uint64_t kCacheHeaderBytes = 8 + 2 * sizeof(int) + 3 * sizeof(double) + 3 * sizeof(int64_t) + sizeof(uint64_t) +
+                                   2 * sizeof(int64_t);
+
+struct TCacheHeader {
+    int version = -1, porder = -1;
+    double Lx = -1., Ly = -1., area = -1.;
+    int64_t neq = -1, nel = -1, nnod = -1;
+    uint64_t meshSig = 0;
+    int64_t nl = -1, M = -1;
+    uint64_t Hash() const {
+        uint64_t h = fileio::Fnv1a("SSR-KLC", 7);
+        const int64_t iv[8] = {version, porder, neq, nel, nnod, (int64_t)meshSig, nl, M};
+        const double dv[3] = {Lx, Ly, area};
+        h = fileio::HashWords(iv, 8, h);
+        return fileio::HashWords(dv, 3, h);
+    }
+    uint64_t FileBytes() const {
+        return kCacheHeaderBytes + sizeof(double) * ((uint64_t)nl + (uint64_t)neq * (uint64_t)M) + sizeof(uint64_t) + 8;
+    }
+};
+} // namespace
+
 bool TPZKLRandomField::ReadCache() {
     if (fOpt.cacheFile.empty()) return false;
-    std::ifstream test(fOpt.cacheFile, std::ios::binary);
-    if (!test.good()) return false;
-    test.close();
-    TPZBFileStream in;
-    in.OpenRead(fOpt.cacheFile);
-    int version = 0, neq = 0, porder = 0, M = 0, nl = 0;
-    REAL Lx = 0., Ly = 0., area = 0.;
-    in.Read(&version, 1);
-    in.Read(&neq, 1);
-    in.Read(&porder, 1);
-    in.Read(&Lx, 1);
-    in.Read(&Ly, 1);
-    in.Read(&area, 1);
-    if (version != kCacheVersion || neq != NEquations() || porder != fOpt.porder ||
-        std::fabs(Lx - fOpt.Lx) > 1.e-12 || std::fabs(Ly - fOpt.Ly) > 1.e-12) {
-        std::cout << "[KL] cache " << fOpt.cacheFile << " incompatível; recalculando\n";
+    const std::string &file = fOpt.cacheFile;
+    uint64_t fsize = 0;
+    if (!fileio::FileSize(file, fsize)) return false;
+    auto reject = [&](const std::string &why) {
+        std::cout << "[KL] cache " << file << " " << why << "; recalculando\n";
         return false;
+    };
+    if (fsize < kCacheHeaderBytes) return reject("truncado (" + std::to_string(fsize) + " bytes)");
+    TPZBFileStream in;
+    in.OpenRead(file);
+    if (!in.AmIOpenForRead()) return reject("ilegível");
+    uint64_t magic = 0;
+    TCacheHeader h;
+    in.Read(&magic, 1);
+    in.Read(&h.version, 1);
+    in.Read(&h.porder, 1);
+    in.Read(&h.Lx, 1);
+    in.Read(&h.Ly, 1);
+    in.Read(&h.area, 1);
+    in.Read(&h.neq, 1);
+    in.Read(&h.nel, 1);
+    in.Read(&h.nnod, 1);
+    in.Read(&h.meshSig, 1);
+    in.Read(&h.nl, 1);
+    in.Read(&h.M, 1);
+    if (magic != fileio::Word8(kCacheMagic) || h.version != kCacheVersion)
+        return reject("de outro formato ou versão");
+    const int64_t neq = NEquations();
+    const uint64_t sig = TSlopeGeometry::Signature(*fGMesh);
+    if (h.porder != fOpt.porder || h.Lx != fOpt.Lx || h.Ly != fOpt.Ly || h.neq != neq ||
+        h.nel != fGMesh->NElements() || h.nnod != fGMesh->NNodes() || h.meshSig != sig)
+        return reject("incompatível (Lx, Ly, ordem ou malha KL diferentes)");
+    if (h.nl < 1 || h.nl > neq || h.M < 1 || h.M > h.nl || !(h.area > 0.))
+        return reject("corrompido (cabeçalho inválido)");
+    if (fsize != h.FileBytes())
+        return reject("com tamanho inesperado (" + std::to_string(fsize) + " bytes, esperado " +
+                      std::to_string(h.FileBytes()) + "): truncado ou corrompido");
+    std::vector<REAL> lambda(h.nl);
+    in.Read(lambda.data(), (int)h.nl);
+    TPZFMatrix<STATE> phi(neq, h.M);
+    for (int64_t k = 0; k < h.M; k++) in.Read(&phi(0, k), (int)neq);
+    uint64_t sum = 0, end = 0;
+    in.Read(&sum, 1);
+    in.Read(&end, 1);
+    uint64_t check = fileio::HashWords(lambda.data(), lambda.size(), h.Hash());
+    check = fileio::HashWords(&phi.g(0, 0), (size_t)(neq * h.M), check);
+    if (sum != check || end != fileio::Word8(kCacheEnd)) return reject("corrompido (soma de verificação)");
+
+    fLambda = lambda;
+    fArea = h.area;
+    const int Mreq = ChooseModes();
+    if (Mreq > h.M) {
+        fLambda.clear();
+        return reject("com " + std::to_string(h.M) + " modos (pedidos " + std::to_string(Mreq) + ")");
     }
-    in.Read(&nl, 1);
-    fLambda.resize(nl);
-    if (nl) in.Read(fLambda.data(), nl);
-    in.Read(&M, 1);
-    fPhi.Read(in, nullptr);
-    fArea = area;
-    fM = M;
-    if (fPhi.Rows() != neq || fPhi.Cols() != M) return false;
-    std::cout << "[KL] lido de " << fOpt.cacheFile << ": " << M << " modos\n";
+    fM = Mreq;
+    if (fM == h.M) {
+        fPhi = phi;
+    } else {
+        fPhi.Redim(neq, fM);
+        for (int k = 0; k < fM; k++)
+            for (int64_t i = 0; i < neq; i++) fPhi(i, k) = phi(i, k);
+    }
+    std::cout << "[KL] lido de " << file << ": " << fM << " de " << h.M << " modos gravados\n";
     return true;
 }
 
 void TPZKLRandomField::WriteCache() const {
     if (fOpt.cacheFile.empty()) return;
-    TPZBFileStream out;
-    out.OpenWrite(fOpt.cacheFile);
-    int version = kCacheVersion, neq = NEquations(), porder = fOpt.porder, nl = (int)fLambda.size(), M = fM;
-    REAL Lx = fOpt.Lx, Ly = fOpt.Ly, area = fArea;
-    out.Write(&version, 1);
-    out.Write(&neq, 1);
-    out.Write(&porder, 1);
-    out.Write(&Lx, 1);
-    out.Write(&Ly, 1);
-    out.Write(&area, 1);
-    out.Write(&nl, 1);
-    if (nl) out.Write(fLambda.data(), nl);
-    out.Write(&M, 1);
-    fPhi.Write(out, 0);
+    TCacheHeader h;
+    h.version = kCacheVersion;
+    h.porder = fOpt.porder;
+    h.Lx = fOpt.Lx;
+    h.Ly = fOpt.Ly;
+    h.area = fArea;
+    h.neq = NEquations();
+    h.nel = fGMesh->NElements();
+    h.nnod = fGMesh->NNodes();
+    h.meshSig = TSlopeGeometry::Signature(*fGMesh);
+    h.nl = (int64_t)fLambda.size();
+    h.M = fM;
+    if (fPhi.Rows() != h.neq || fPhi.Cols() != h.M) return;
+    uint64_t sum = fileio::HashWords(fLambda.data(), fLambda.size(), h.Hash());
+    sum = fileio::HashWords(&fPhi.g(0, 0), (size_t)(h.neq * h.M), sum);
+    const std::string tmp = fileio::TmpName(fOpt.cacheFile);
+    {
+        TPZBFileStream out;
+        out.OpenWrite(tmp);
+        if (!out.AmIOpenForWrite()) {
+            std::cout << "[KL] não foi possível gravar o cache " << tmp << "\n";
+            return;
+        }
+        const uint64_t magic = fileio::Word8(kCacheMagic), end = fileio::Word8(kCacheEnd);
+        out.Write(&magic, 1);
+        out.Write(&h.version, 1);
+        out.Write(&h.porder, 1);
+        out.Write(&h.Lx, 1);
+        out.Write(&h.Ly, 1);
+        out.Write(&h.area, 1);
+        out.Write(&h.neq, 1);
+        out.Write(&h.nel, 1);
+        out.Write(&h.nnod, 1);
+        out.Write(&h.meshSig, 1);
+        out.Write(&h.nl, 1);
+        out.Write(&h.M, 1);
+        out.Write(fLambda.data(), (int)h.nl);
+        for (int64_t k = 0; k < h.M; k++) out.Write(&fPhi.g(0, k), (int)h.neq);
+        out.Write(&sum, 1);
+        out.Write(&end, 1);
+        out.CloseWrite();
+    }
+    uint64_t size = 0;
+    if (!fileio::FileSize(tmp, size) || size != h.FileBytes()) {
+        std::cout << "[KL] gravação incompleta do cache " << tmp << " (disco cheio?); cache não gravado\n";
+        std::remove(tmp.c_str());
+        return;
+    }
+    try {
+        fileio::Commit(tmp, fOpt.cacheFile);
+        std::cout << "[KL] cache gravado em " << fOpt.cacheFile << " (" << h.M << " modos)\n";
+    } catch (std::exception &e) {
+        std::cout << "[KL] cache não gravado: " << e.what() << "\n";
+    }
 }
 
 void TPZKLRandomField::Compute() {
@@ -157,16 +279,7 @@ void TPZKLRandomField::Compute() {
     fLambda.resize(n);
     for (int64_t k = 0; k < n; k++) fLambda[k] = std::real(w[n - 1 - k]);
 
-    if (fOpt.targetVarianceError > 0.) {
-        fM = (int)n;
-        for (int M = 1; M <= n; M++)
-            if (VarianceError(M) <= fOpt.targetVarianceError) {
-                fM = M;
-                break;
-            }
-    } else {
-        fM = (fOpt.nModes > 0) ? (int)std::min<int64_t>(fOpt.nModes, n) : (int)n;
-    }
+    fM = ChooseModes();
     // Φ_k = √λ_k φ_k, com φ_k normalizado em L2 (φᵀ B φ = 1)
     fPhi.Redim(n, fM);
     TPZFMatrix<STATE> v(n, 1), Bv;

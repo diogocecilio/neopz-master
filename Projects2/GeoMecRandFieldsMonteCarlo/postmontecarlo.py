@@ -1,6 +1,7 @@
 # mc_post.py
 # uso:  python3 mc_post.py --csv out.csv
 import argparse
+import io
 import math
 import numpy as np
 import pandas as pd
@@ -15,8 +16,18 @@ def read_fs_csv(path: Path, include_all: bool = False) -> pd.Series:
     as amostras com FS <= 10. Se houver coluna de status, por padrão mantém o critério antigo (FS <= 10);
     include_all=True usa todas as amostras. Retorna uma Series de FS (float).
     """
+    # última linha sem '\n' = gravação em andamento/interrompida (FS truncado): ignorada
+    # (o main.cpp a retira do CSV ao retomar)
+    text = path.read_text()
+    if text and not text.endswith("\n"):
+        cut = text.rfind("\n") + 1
+        print(f"ignorada linha final incompleta: {text[cut:]!r}")
+        text = text[:cut]
+    if not text.strip():
+        raise ValueError(f"{path} está vazio.")
+
     # lê como texto com 3 colunas fixas: linhas com menos campos ficam com NaN (formato antigo/misto)
-    df = pd.read_csv(path, header=None, names=[0, 1, 2], dtype=str, skip_blank_lines=True)
+    df = pd.read_csv(io.StringIO(text), header=None, names=[0, 1, 2], dtype=str, skip_blank_lines=True)
     df = df.dropna(how="all").reset_index(drop=True)
     if df.empty:
         raise ValueError(f"{path} está vazio.")
@@ -35,6 +46,17 @@ def read_fs_csv(path: Path, include_all: bool = False) -> pd.Series:
             break
     if col is None:
         col = 1 if df[1].notna().any() else 0
+
+    # coluna da amostra: a retomada do main.cpp calcula as lacunas depois (linhas fora de ordem);
+    # ordena pelo índice da amostra e mantém só a 1ª ocorrência de cada uma
+    scol = names.get("sample", names.get("s", 0 if col == 1 else None))
+    if scol is not None and scol != col:
+        sid = pd.to_numeric(df[scol], errors="coerce")
+        dup = sid.notna() & sid.duplicated(keep="first")
+        if dup.any():
+            print(f"ignoradas {int(dup.sum())} linhas com amostra repetida (mantida a primeira)")
+        sid = sid[~dup]
+        df = df.loc[sid.sort_values(kind="stable").index].reset_index(drop=True)
 
     fs = pd.to_numeric(df[col], errors="coerce")
     stcol = names.get("status", 2)
