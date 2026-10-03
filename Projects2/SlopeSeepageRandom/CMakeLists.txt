@@ -6,6 +6,7 @@ if(BUILD_PLASTICITY_MATERIALS)
         SlopeGeometry.h SlopeGeometry.cpp
         KLRandomField.h KLRandomField.cpp
         SeepageProblem.h SeepageProblem.cpp
-        SlopeStability.h SlopeStability.cpp)
+        SlopeStability.h SlopeStability.cpp
+        CoupledDrawdown.h CoupledDrawdown.cpp)
     target_link_libraries(SlopeSeepageRandom pz)
 endif()

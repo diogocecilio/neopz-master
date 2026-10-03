@@ -1,16 +1,21 @@
 // TPZMatPoroElastoPlastic3DMem.h
 //
-// Material multifísico u-p (Biot) 3D com lei elastoplástica para a tensão efetiva e memória nos
-// pontos de integração (versão 3D, com Newton e tangente consistente, do TPZMatPoroElastoPlastic2DMem).
+// Material multifísico u-p (Biot) 3D ou em deformação plana (dim = 2) com lei elastoplástica para a tensão
+// efetiva e memória nos pontos de integração (versão com Newton e tangente consistente do
+// TPZMatPoroElastoPlastic2DMem).
 //
-//   datavec[0] = u (H1 vetorial, 3 componentes), datavec[1] = p (H1 escalar)
+//   datavec[0] = u (H1 vetorial, dim componentes), datavec[1] = p (H1 escalar)
+//
+// Em deformação plana ε_zz = ε_xz = ε_yz = 0 e a lei constitutiva (3D, Voigt) dá σ'_zz.
 //
 // Formulação total (a solução guarda u e p totais; a memória guarda o estado convergido do passo n),
 // Euler implícito, com o resíduo e a jacobiana do método de Newton:
 //
 //   R_u = ∫ Bᵀσ'(ε) - α ∫ Bᵀm N_p p - ∫ N_uᵀ b                        (- forças de contorno)
-//   R_p = ∫ N_pᵀ [α (ε_v - ε_v,n) + S (p - p_n)] + Δt ∫ ∇N_pᵀ (k/μ) (∇p - ρ_f g⃗)
-//   J   = [[∫ Bᵀ D_ep B, -α ∫ Bᵀm N_pᵀ], [α ∫ N_p mᵀB, S ∫ N_p N_pᵀ + Δt (k/μ) ∫ ∇N_pᵀ∇N_p]]
+//   R_p = ∫ N_pᵀ [α (ε_v - ε_v,n) + S (p - p_n)] + Δt ∫ ∇N_pᵀ (K/μ) (∇p - ρ_f g⃗)
+//   J   = [[∫ Bᵀ D_ep B, -α ∫ Bᵀm N_pᵀ], [α ∫ N_p mᵀB, S ∫ N_p N_pᵀ + Δt ∫ ∇N_pᵀ (K/μ) ∇N_p]]
+//
+// K = diag(k_x, k_y, k_z) (SetPermeability com um ou três valores).
 //
 // ek = J e ef = -R (o NeoPZ resolve ek Δx = ef). σ' vem de T::ApplyStrainComputeSigma com o estado da
 // memória (ε_n, ε^p_n, α_n) e σ'_n na entrada (necessária nas leis hipoelásticas). O fluxo (H, f_g) só
@@ -18,7 +23,9 @@
 // Convenções: tração positiva, p > 0 em compressão, σ = σ' - α p I, Voigt do TPZTensor com distorções
 // de engenharia. O índice de memória é o do elemento atômico de u (datavec[0].intGlobPtIndex).
 //
-// Condições de contorno (Val2 com 4 componentes {v_x, v_y, v_z, p}):
+// Condições de contorno (Val2 com 4 componentes {v_x, v_y, v_z, p}, também em 2D; com SetForcingFunctionBC
+// os valores vêm da função, avaliada em cada ponto, com rhsVal de 4 componentes — p.ex. o nível d'água de um
+// rebaixamento que varia no tempo):
 //   0  u = v (todas as componentes)                 1  tração t = v
 //   2  p = Val2[3]                                  3  u_i = 0 nas direções com v_i != 0
 //   5  pressão normal: t = Val2[0] n                 6  u_i = v_i nas direções com Val1(i,i) != 0
@@ -63,7 +70,8 @@ public:
     };
 
     TPZMatPoroElastoPlastic3DMem();
-    explicit TPZMatPoroElastoPlastic3DMem(int matid);
+    /// dim = 3 (sólido) ou 2 (deformação plana)
+    explicit TPZMatPoroElastoPlastic3DMem(int matid, int dim = 3);
 
     // ---------------------------------------------------------------- dados
     void SetPlasticModel(const T &model) { fPlasticModel = model; }
@@ -72,7 +80,9 @@ public:
     void SetModelUpdate(const std::function<void(const TPZVec<REAL> &x, T &model)> &f) { fModelUpdate = f; }
     void SetAlpha(STATE a) { fAlpha = a; }                       ///< coeficiente de Biot
     void SetSe(STATE se) { fSe = se; }                           ///< armazenamento 1/M
-    void SetPermeability(STATE k) { fK = k; }
+    void SetPermeability(STATE k) { fK[0] = fK[1] = fK[2] = k; }
+    /// Permeabilidade ortótropa nos eixos globais
+    void SetPermeability(STATE kx, STATE ky, STATE kz) { fK[0] = kx; fK[1] = ky; fK[2] = kz; }
     void SetViscosity(STATE mu) { fMu = mu; }
     void SetRhoF(STATE rhof) { fRhoF = rhof; }
     void SetGravity(STATE gx, STATE gy, STATE gz) { fG[0] = gx; fG[1] = gy; fG[2] = gz; }
@@ -88,8 +98,8 @@ public:
 
     // ---------------------------------------------------------------- TPZMaterial
     std::string Name() const override { return "TPZMatPoroElastoPlastic3DMem"; }
-    int Dimension() const override { return 3; }
-    int NStateVariables() const override { return 4; }
+    int Dimension() const override { return fDim; }
+    int NStateVariables() const override { return fDim + 1; }
     TPZMaterial *NewMaterial() const override { return new TPZMatPoroElastoPlastic3DMem<T, TMEM>(*this); }
     int IntegrationRuleOrder(const TPZVec<int> &elPMaxOrder) const override;
 
@@ -122,7 +132,9 @@ private:
     T fPlasticModel;
     std::function<void(const TPZVec<REAL> &, T &)> fModelUpdate;
     std::function<REAL(const TPZVec<REAL> &)> fHydro;
-    STATE fAlpha = 1., fSe = 0., fK = 0., fMu = 1., fRhoF = 0.;
+    int fDim = 3;
+    STATE fAlpha = 1., fSe = 0., fMu = 1., fRhoF = 0.;
+    STATE fK[3] = {0., 0., 0.};
     STATE fG[3] = {0., 0., 0.};
     STATE fBody[3] = {0., 0., 0.};
     STATE fTimeStep = 1.;

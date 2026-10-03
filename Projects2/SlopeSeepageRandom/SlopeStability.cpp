@@ -75,9 +75,7 @@ void TPZMatElastoPlastic2DSeepage<T>::Solution(const TPZMaterialDataT<STATE> &da
 }
 
 // ============================================================== modelos
-namespace {
-
-void SetupModel(TMohrCoulomb &mc, const TSoil &soil) {
+void SetupSoilModel(TMohrCoulomb &mc, const TSoil &soil) {
     TPZElasticResponse ER;
     ER.SetEngineeringData(soil.E, soil.nu);
     const REAL phi = soil.phiDeg * M_PI / 180.;
@@ -87,7 +85,7 @@ void SetupModel(TMohrCoulomb &mc, const TSoil &soil) {
     mc.SetStrengthReductionFactor(1.);
 }
 
-void SetupModel(TPZModifiedCamClay &mcc, const TSoil &soil) {
+void SetupSoilModel(TPZModifiedCamClay &mcc, const TSoil &soil) {
     const REAL phi = soil.phiDeg * M_PI / 180.;
     const REAL M = TPZModifiedCamClay::MFromFriction(phi, soil.mapping);
     const REAL pt = soil.c / std::tan(phi);
@@ -98,6 +96,30 @@ void SetupModel(TPZModifiedCamClay &mcc, const TSoil &soil) {
     mcc.SetStrengthMapping(soil.mapping);
     mcc.SetStrengthReductionFactor(1.);
 }
+
+void CamClayInitialState(TPZVec<REAL> &mp, TPZTensor<REAL> &s, const TSoil &soil) {
+    if (mp.size() < 9) DebugStop();  // c e φ já definidos
+    const REAL pmin = 1.;  // kPa: σ0 com p' > -1 kPa (tração) é deslocada para p' = -1 kPa
+    REAL p, q;
+    TPZModifiedCamClay::Invariants(s, p, q);
+    if (p > -pmin) {
+        const REAL dp = -pmin - p;
+        s[_XX_] += dp;
+        s[_YY_] += dp;
+        s[_ZZ_] += dp;
+        p = -pmin;
+    }
+    const REAL M = TPZModifiedCamClay::MFromFriction(mp[1], soil.mapping);
+    const REAL pt = mp[0] / std::tan(mp[1]);
+    // superfície (β = 1) que passa por σ0: (p - pt + a)² + (q/M)² = a²
+    const REAL d = pt - p;  // > 0
+    const REAL a = (d * d + (q / M) * (q / M)) / (2. * d);
+    const REAL pc = std::max(2. * a - pt, REAL(1.e-3));
+    mp[2] = soil.OCR * pc;
+    for (int k = 0; k < 6; k++) mp[3 + k] = s[k];
+}
+
+namespace {
 
 template <class T>
 constexpr bool IsCamClay() {
@@ -116,7 +138,7 @@ TSlopeFEM<T>::TSlopeFEM(TPZGeoMesh *gmesh, const TSlopeGeometry &geo, const TSoi
     fCMesh->SetAllCreateFunctionsContinuousWithMem();
     fMat = new TPZMatElastoPlastic2DSeepage<T>(ESoil);
     T model;
-    SetupModel(model, soil);
+    SetupSoilModel(model, soil);
     fMat->SetPlasticityModel(model);
     TPZManVector<REAL, 3> f = {0., -soil.BodyForce(), 0.};
     fMat->SetBodyForce0(f);
@@ -245,28 +267,11 @@ void TSlopeFEM<T>::SetInitialStress(const std::vector<TPZTensor<REAL>> &sigma0) 
     } else {
         fSigma0 = sigma0;
         auto &memory = *fMat->GetMemory();
-        const REAL pmin = 1.;  // kPa: σ0 com p' > -1 kPa (tração) é deslocada para p' = -1 kPa
         for (int64_t i = 0; i < (int64_t)fPoints.size(); i++) {
             if (fPoints[i].gel < 0) continue;
             TPZVec<REAL> &mp = memory[i].m_elastoplastic_state.fmatprop;
             TPZTensor<REAL> s = sigma0[i];
-            REAL p, q;
-            TPZModifiedCamClay::Invariants(s, p, q);
-            if (p > -pmin) {
-                const REAL dp = -pmin - p;
-                s[_XX_] += dp;
-                s[_YY_] += dp;
-                s[_ZZ_] += dp;
-                p = -pmin;
-            }
-            const REAL M = TPZModifiedCamClay::MFromFriction(mp[1], fSoil.mapping);
-            const REAL pt = mp[0] / std::tan(mp[1]);
-            // superfície (β = 1) que passa por σ0: (p - pt + a)² + (q/M)² = a²
-            const REAL d = pt - p;  // > 0
-            const REAL a = (d * d + (q / M) * (q / M)) / (2. * d);
-            const REAL pc = std::max(2. * a - pt, REAL(1.e-3));
-            mp[2] = fSoil.OCR * pc;
-            for (int k = 0; k < 6; k++) mp[3 + k] = s[k];
+            CamClayInitialState(mp, s, fSoil);
             memory[i].m_elastoplastic_state.fmatpropinit = mp;
             memory[i].m_sigma = s;
             fSigma0[i] = s;

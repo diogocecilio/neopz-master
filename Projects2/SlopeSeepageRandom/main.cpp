@@ -25,6 +25,7 @@
 #include <string>
 #include <vector>
 
+#include "CoupledDrawdown.h"
 #include "KLRandomField.h"
 #include "SeepageProblem.h"
 #include "SlopeGeometry.h"
@@ -115,25 +116,32 @@ TCase MakeCase(const std::string &name, REAL h) {
 
 void AdaptMesh(const TCase &cs, TPZGeoMesh *gmesh, const TArgs &args);
 
-/// Tensão inicial do Cam-Clay: análise elástica (Mohr-Coulomb com c muito alta) com a força de corpo (γ') e
-/// sem percolação, na mesma malha e ordem; os pontos de integração coincidem com os da malha do Cam-Clay.
+/// Tensão efetiva geostática: análise elástica (Mohr-Coulomb com c muito alta) com a força de corpo (γ') e sem
+/// percolação, na mesma malha e ordem; devolve σ'0 nos pontos dados (que devem coincidir com os da análise)
+template <class TPoints>
+std::vector<TPZTensor<REAL>> GeostaticStress(const TCase &cs, TPZGeoMesh *gmesh, const TSolverOptions &opt,
+                                             const TPoints &target) {
+    TSoil elastic = cs.soil;
+    elastic.c = 1.e6;
+    TSlopeFEM<TMohrCoulomb> fe(gmesh, cs.geo, elastic, opt);
+    fe.ResetState();
+    int its = 0;
+    if (!fe.Solve(1., 0., 1., its)) throw std::runtime_error("análise geostática não convergiu");
+    std::vector<TPZTensor<REAL>> s;
+    fe.Stresses(s);
+    const auto &pa = fe.Points();
+    if (pa.size() != target.size()) throw std::runtime_error("pontos de integração diferentes (geostática)");
+    for (size_t i = 0; i < pa.size(); i++)
+        if (target[i].gel >= 0 && std::hypot(pa[i].x[0] - target[i].x[0], pa[i].x[1] - target[i].x[1]) > 1.e-9)
+            throw std::runtime_error("pontos de integração diferentes (geostática)");
+    return s;
+}
+
+/// Tensão inicial do Cam-Clay (Mohr-Coulomb: nada a fazer)
 template <class T>
 void GeostaticStress(const TCase &cs, TPZGeoMesh *gmesh, const TSolverOptions &opt, TSlopeFEM<T> &target) {
     if constexpr (std::is_same_v<T, TPZModifiedCamClay>) {
-        TSoil elastic = cs.soil;
-        elastic.c = 1.e6;
-        TSlopeFEM<TMohrCoulomb> fe(gmesh, cs.geo, elastic, opt);
-        fe.ResetState();
-        int its = 0;
-        if (!fe.Solve(1., 0., 1., its)) throw std::runtime_error("análise geostática não convergiu");
-        std::vector<TPZTensor<REAL>> s;
-        fe.Stresses(s);
-        const auto &pa = fe.Points(), &pb = target.Points();
-        if (pa.size() != pb.size()) throw std::runtime_error("pontos de integração diferentes (geostática)");
-        for (size_t i = 0; i < pa.size(); i++)
-            if (pb[i].gel >= 0 && std::hypot(pa[i].x[0] - pb[i].x[0], pa[i].x[1] - pb[i].x[1]) > 1.e-9)
-                throw std::runtime_error("pontos de integração diferentes (geostática)");
-        target.SetInitialStress(s);
+        target.SetInitialStress(GeostaticStress(cs, gmesh, opt, target.Points()));
     } else {
         (void)cs;
         (void)gmesh;
@@ -352,8 +360,140 @@ void Usage(const char *prog) {
     std::cout << "uso: " << prog << " <comando> [chave=valor ...]\n"
               << "  det caso=cho_coesivo|cho_cphi|percolacao modelo=mc|mcc h=0.5 p=2 hw=5 alpha=1 beta=45 H= c= phi= gam=\n"
               << "      adapt=0 frac=0.02 camadas=1 gamma=1 fs=1 vtk=0 (Cam-Clay: lambda= kappa= v0= OCR=)\n"
+              << "      Lc= Lt= Hb= (dimensões do domínio: crista, pé, base abaixo do pé)\n"
               << "  mc  caso=... modelo=mc|mcc medida=gamma|fs n=100 inicio=0 seed=2025 covc=0.3 covphi=0.1 covk=0.6\n"
-              << "      Lx=20 Ly=2 hkl=1 M=-1 epsM=-1 normvar=1 saida=arquivo.csv vtk=0\n";
+              << "      Lx=20 Ly=2 hkl=1 M=-1 epsM=-1 normvar=1 saida=arquivo.csv vtk=0\n"
+              << "  rebaixamento caso=percolacao modelo=mc|mcc Td=0.1 k=1e-5 Se=0 hw=5 alpha=1 tempos=0.01,0.1,1,3\n"
+              << "      fs=1 gamma=0 saida=rebaixamento.csv vtk=0 (u-p acoplado; T = c_v t / H^2)\n";
+}
+
+/// Lista de números separados por vírgula
+std::vector<REAL> ParseList(const std::string &str) {
+    std::vector<REAL> v;
+    std::stringstream ss(str);
+    std::string item;
+    while (std::getline(ss, item, ','))
+        if (!item.empty()) v.push_back(std::atof(item.c_str()));
+    return v;
+}
+
+/// Rebaixamento rápido/lento com o problema u-p acoplado (TPZMatPoroElastoPlastic3DMem em deformação plana):
+/// em tempos escolhidos a poropressão é congelada e transferida à análise de estabilidade (Γ e/ou FS), como no
+/// artigo, mas com p(x, t) do adensamento em vez do fluxo estacionário desacoplado.
+template <class T>
+void RunDrawdown(const TCase &cs, const TArgs &args, const std::string &modelName) {
+    TSolverOptions opt;
+    opt.porder = args.GetI("p", 2);
+    opt.verbose = args.GetI("verbose", 0);
+    opt.relTol = args.Get("reltol", 5.e-3);
+    opt.maxIter = args.GetI("maxit", 20);
+    opt.stagnation = args.GetI("estagnacao", 1) != 0;
+    const bool doFS = args.GetI("fs", 1) != 0, doGamma = args.GetI("gamma", 0) != 0;
+    std::unique_ptr<TPZGeoMesh> gmesh(cs.geo.CreateGeoMesh());
+    AdaptMesh(cs, gmesh.get(), args);
+
+    typename TCoupledDrawdown<T>::TParams par;
+    par.hw = cs.hw;
+    par.alpha = cs.alpha;
+    par.kv = args.Get("k", 1.e-5);  // artigo: k_v/γw = 1e-6 m⁴/(kN s)
+    par.Se = args.Get("Se", 0.);
+    par.Td = args.Get("Td", 0.1);
+    par.porderU = opt.porder;
+    par.nDrawdown = args.GetI("nrebaixamento", 10);
+    par.growth = args.Get("crescimento", 1.5);
+    par.tol = args.Get("tolup", 1.e-7);
+    par.verbose = args.GetI("verbose", 0);
+
+    TSlopeFEM<T> fem(gmesh.get(), cs.geo, cs.soil, opt);
+    GeostaticStress(cs, gmesh.get(), opt, fem);
+    TCoupledDrawdown<T> cd(gmesh.get(), cs.geo, cs.soil, par);
+    if constexpr (std::is_same_v<T, TPZModifiedCamClay>) cd.SetInitialStress(GeostaticStress(cs, gmesh.get(), opt, cd.Points()));
+    std::cout << "\n=== rebaixamento acoplado (" << modelName << "): " << cs.geo.Describe() << "\n"
+              << "    h_w = " << cs.hw << " m em T_d = " << par.Td << " (t_d = " << par.Td * cd.TimeScale() / 3600.
+              << " h), k_v = " << par.kv << " m/s, k_h/k_v = " << par.alpha << ", c_v = " << cd.Cv()
+              << " m2/s, H2/c_v = " << cd.TimeScale() / 3600. << " h\n"
+              << "    u-p: " << cd.NEquations() << " equacoes; estabilidade: " << fem.NEquations() << " equacoes\n";
+
+    const std::string out = args.GetS("saida", "rebaixamento_" + modelName + ".csv");
+    std::ofstream csv(out);
+    csv << "Td,T,t_h,zw,u_A,umax_desloc,pontos_plasticos,FS,FS_sup,FS_status,Gamma,Gamma_sup,Gamma_status,tempo_s\n";
+    const bool vtk = args.GetI("vtk", 0) != 0;
+    if (vtk) cd.DefineVTK(cs.name + "_" + modelName + "_Td" + args.GetS("Td", "0.1"));
+    // ponto A: abaixo da borda da crista, a meia altura do talude
+    TPZManVector<REAL, 3> xA = {cs.geo.Lc, cs.geo.Hb + 0.5 * cs.geo.H, 0.};
+    int vtkStep = 0;
+    auto evaluate = [&](const std::string &label) {
+        auto t1 = Clock::now();
+        cd.TransferSeepage(fem);
+        TFactorResult rf, rg;
+        if (doFS) {
+            fem.ResetState();
+            rf = fem.StrengthReduction(args.Get("F0", 0.5));
+        }
+        if (doGamma) {
+            fem.ResetState();
+            rg = fem.LoadFactor(0.);
+        }
+        const REAL Tnow = cd.Time();
+        const REAL uA = cd.PorePressureAt(xA) - cs.soil.gammaW * (cs.geo.D() - xA[1]);
+        std::cout << "    " << std::setw(10) << label << " T = " << std::setw(9) << Tnow << "  z_w = " << std::setw(6)
+                  << cd.WaterLevel() << "  u_A = " << std::setw(8) << uA << "  |du|max = " << std::setw(10)
+                  << cd.MaxDisplacementIncrement() << "  plast. " << std::setw(5) << cd.NPlasticPoints();
+        if (doFS) std::cout << "  FS = " << rf.factor << " (" << rf.status << ")";
+        if (doGamma) std::cout << "  Gamma = " << rg.factor << " (" << rg.status << ")";
+        std::cout << "  [" << Seconds(t1) << " s]" << std::endl;
+        csv << par.Td << "," << Tnow << "," << Tnow * cd.TimeScale() / 3600. << "," << cd.WaterLevel() << "," << uA << ","
+            << cd.MaxDisplacementIncrement() << "," << cd.NPlasticPoints() << "," << rf.factor << "," << rf.upper
+            << "," << rf.status << "," << rg.factor << "," << rg.upper << "," << rg.status << "," << Seconds(t1)
+            << std::endl;
+        if (vtk) cd.WriteVTK(vtkStep++);
+    };
+
+    auto t0 = Clock::now();
+    // referência do artigo: fluxo estacionário desacoplado (Darcy) com as mesmas condições de contorno finais
+    {
+        TSeepageProblem::TParams sp;
+        sp.hw = cs.hw;
+        sp.alpha = cs.alpha;
+        sp.gammaW = cs.soil.gammaW;
+        TSeepageProblem seep(gmesh.get(), cs.geo, sp);
+        seep.Solve();
+        TransferSeepage(seep, fem);
+        TFactorResult rf, rg;
+        if (doFS) {
+            fem.ResetState();
+            rf = fem.StrengthReduction(args.Get("F0", 0.5));
+        }
+        if (doGamma) {
+            fem.ResetState();
+            rg = fem.LoadFactor(0.);
+        }
+        std::cout << "    estacionario desacoplado (artigo):";
+        if (doFS) std::cout << " FS = " << rf.factor << " (" << rf.status << ")";
+        if (doGamma) std::cout << " Gamma = " << rg.factor << " (" << rg.status << ")";
+        std::cout << std::endl;
+        csv << par.Td << ",inf,inf," << cs.geo.D() - cs.hw << ",nan,nan,0," << rf.factor << "," << rf.upper << ","
+            << rf.status << "," << rg.factor << "," << rg.upper << "," << rg.status << ",0" << std::endl;
+    }
+    if (!cd.Initialize()) {
+        std::cout << "    equilibrio inicial nao convergiu\n";
+        return;
+    }
+    evaluate("inicial");
+    std::vector<REAL> times;
+    for (REAL f : {0.25, 0.5, 0.75, 1.}) times.push_back(f * par.Td);
+    for (REAL t : ParseList(args.GetS("tempos", "0.01,0.03,0.1,0.3,1,3"))) times.push_back(par.Td + t);
+    for (REAL Tout : times) {
+        if (!cd.AdvanceTo(Tout, args.Get("dtmax", 0.5))) {
+            std::cout << "    colapso no adensamento acoplado em T = " << cd.Time() << " (z_w = " << cd.WaterLevel()
+                      << ")\n";
+            csv << par.Td << "," << cd.Time() << "," << cd.Time() * cd.TimeScale() / 3600. << "," << cd.WaterLevel()
+                << ",nan,nan,0,nan,nan,colapso_acoplado,nan,nan,colapso_acoplado,0" << std::endl;
+            break;
+        }
+        evaluate(Tout <= par.Td * (1. + 1.e-9) ? "rebaixando" : "dissipacao");
+    }
+    std::cout << "    tempo total " << Seconds(t0) << " s\n";
 }
 
 template <class T>
@@ -428,7 +568,7 @@ int main(int argc, char **argv) {
     }
     const std::string cmd = argv[1];
     TArgs args(argc, argv, 2);
-    if (cmd == "det" || cmd == "mc") {
+    if (cmd == "det" || cmd == "mc" || cmd == "rebaixamento") {
         TCase cs = MakeCase(args.GetS("caso", "percolacao"), args.Get("h", 0.5));
         cs.hw = args.Get("hw", cs.hw);
         cs.alpha = args.Get("alpha", cs.alpha);
@@ -442,6 +582,10 @@ int main(int argc, char **argv) {
             cs.geo.h *= s;
             if (!args.kv.count("hw")) cs.hw *= s;
         }
+        // dimensões do domínio (crista, pé e base abaixo do pé), em m
+        if (args.kv.count("Lc")) cs.geo.Lc = args.Get("Lc", cs.geo.Lc);
+        if (args.kv.count("Lt")) cs.geo.Lt = args.Get("Lt", cs.geo.Lt);
+        if (args.kv.count("Hb")) cs.geo.Hb = args.Get("Hb", cs.geo.Hb);
         if (args.kv.count("c")) cs.soil.c = args.Get("c", cs.soil.c);
         if (args.kv.count("phi")) cs.soil.phiDeg = args.Get("phi", cs.soil.phiDeg);
         if (args.kv.count("nu")) cs.soil.nu = args.Get("nu", cs.soil.nu);
@@ -458,6 +602,9 @@ int main(int argc, char **argv) {
         if (cmd == "det") {
             if (model == "mcc") RunDeterministic<TPZModifiedCamClay>(cs, args, model);
             else RunDeterministic<TMohrCoulomb>(cs, args, model);
+        } else if (cmd == "rebaixamento") {
+            if (model == "mcc") RunDrawdown<TPZModifiedCamClay>(cs, args, model);
+            else RunDrawdown<TMohrCoulomb>(cs, args, model);
         } else {
             if (model == "mcc") RunMonteCarlo<TPZModifiedCamClay>(cs, args, model);
             else RunMonteCarlo<TMohrCoulomb>(cs, args, model);

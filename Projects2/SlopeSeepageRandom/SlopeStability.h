@@ -103,6 +103,13 @@ struct TSoil {
     REAL BodyForce() const { return buoyant ? gamma - gammaW : gamma; }
 };
 
+/// Modelos com as propriedades médias do solo (elasticidade, c, φ; Cam-Clay: M(φ), p_t = c cot φ, λ, κ, v0)
+void SetupSoilModel(TMohrCoulomb &mc, const TSoil &soil);
+void SetupSoilModel(TPZModifiedCamClay &mcc, const TSoil &soil);
+/// Cam-Clay: com c = mp[0] e φ = mp[1] (rad), define p_c0 = OCR p_c(σ0) (mp[2]) e σ0 (mp[3..8]) a partir da
+/// tensão inicial s (com p' >= 1 kPa de compressão; s é ajustada)
+void CamClayInitialState(TPZVec<REAL> &mp, TPZTensor<REAL> &s, const TSoil &soil);
+
 struct TSolverOptions {
     int porder = 2;
     REAL tol = 1.e-5;         ///< ||R_livre|| <= tol ||F_ref||

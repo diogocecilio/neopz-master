@@ -9,6 +9,9 @@
 #include "TPZStream.h"
 #include "pzerror.h"
 #include "TPZModifiedCamClay.h"
+#include "TPZPlasticStepVoigt.h"
+#include "TPZYCMohrCoulombPV2.h"
+#include "TPZElasticResponse.h"
 
 namespace {
 
@@ -44,7 +47,12 @@ template <class T, class TMEM>
 TPZMatPoroElastoPlastic3DMem<T, TMEM>::TPZMatPoroElastoPlastic3DMem() : TBase() {}
 
 template <class T, class TMEM>
-TPZMatPoroElastoPlastic3DMem<T, TMEM>::TPZMatPoroElastoPlastic3DMem(int matid) : TBase(matid) {}
+TPZMatPoroElastoPlastic3DMem<T, TMEM>::TPZMatPoroElastoPlastic3DMem(int matid, int dim) : TBase(matid), fDim(dim) {
+    if (dim != 2 && dim != 3) {
+        PZError << Name() << ": dimensão " << dim << " inválida (2: deformação plana, 3: sólido)\n";
+        DebugStop();
+    }
+}
 
 template <class T, class TMEM>
 int TPZMatPoroElastoPlastic3DMem<T, TMEM>::IntegrationRuleOrder(const TPZVec<int> &elPMaxOrder) const {
@@ -80,11 +88,12 @@ void TPZMatPoroElastoPlastic3DMem<T, TMEM>::ContributeInternal(const TPZVec<TPZM
         DebugStop();
     }
     const TPZMaterialDataT<STATE> &dU = datavec[0], &dP = datavec[1];
-    const int nU = dU.phi.Rows(), nP = dP.phi.Rows(), offp = 3 * nU;
+    const int dim = fDim;
+    const int nU = dU.phi.Rows(), nP = dP.phi.Rows(), offp = dim * nU;
 
     if (fMode == EExternalForces) {
         for (int a = 0; a < nU; a++)
-            for (int c = 0; c < 3; c++) ef(3 * a + c, 0) += dU.phi.GetVal(a, 0) * fBody[c] * weight;
+            for (int c = 0; c < dim; c++) ef(dim * a + c, 0) += dU.phi.GetVal(a, 0) * fBody[c] * weight;
         return;
     }
 
@@ -92,15 +101,17 @@ void TPZMatPoroElastoPlastic3DMem<T, TMEM>::ContributeInternal(const TPZVec<TPZM
     ToXYZ(dU.axes, dU.dphix, dphiU);
     ToXYZ(dP.axes, dP.dphix, dphiP);
     TPZFNMatrix<9, REAL> D, gp;
-    ToXYZ(dU.axes, dU.dsol[0], D);    // D(i,j) = ∂u_j/∂x_i
-    ToXYZ(dP.axes, dP.dsol[0], gp);   // ∇p
-    TPZTensor<REAL> eps;
+    ToXYZ(dU.axes, dU.dsol[0], D);    // D(i,j) = ∂u_j/∂x_i (3 x dim)
+    ToXYZ(dP.axes, dP.dsol[0], gp);   // ∇p (3 x 1)
+    TPZTensor<REAL> eps;              // deformação plana: ε_zz = ε_xz = ε_yz = 0
     eps[_XX_] = D(0, 0);
     eps[_YY_] = D(1, 1);
-    eps[_ZZ_] = D(2, 2);
     eps[_XY_] = D(1, 0) + D(0, 1);
-    eps[_XZ_] = D(2, 0) + D(0, 2);
-    eps[_YZ_] = D(2, 1) + D(1, 2);
+    if (dim == 3) {
+        eps[_ZZ_] = D(2, 2);
+        eps[_XZ_] = D(2, 0) + D(0, 2);
+        eps[_YZ_] = D(2, 1) + D(1, 2);
+    }
     const REAL p = dP.sol[0][0];
 
     // ---- lei constitutiva a partir do estado convergido (memória)
@@ -120,7 +131,7 @@ void TPZMatPoroElastoPlastic3DMem<T, TMEM>::ContributeInternal(const TPZVec<TPZM
     const REAL evn = epsn[_XX_] + epsn[_YY_] + epsn[_ZZ_];
     const REAL ev = eps[_XX_] + eps[_YY_] + eps[_ZZ_];
     const REAL pn = mem.fPorePressure;
-    const REAL mob = fK / fMu;
+    const REAL mob[3] = {fK[0] / fMu, fK[1] / fMu, fK[2] / fMu};
 
     // ---- resíduo (ef = -R)
     for (int a = 0; a < nU; a++) {
@@ -129,25 +140,25 @@ void TPZMatPoroElastoPlastic3DMem<T, TMEM>::ContributeInternal(const TPZVec<TPZM
                            sigma[_XY_] * d0 + sigma[_YY_] * d1 + sigma[_YZ_] * d2,
                            sigma[_XZ_] * d0 + sigma[_YZ_] * d1 + sigma[_ZZ_] * d2};
         const REAL dN[3] = {d0, d1, d2};
-        for (int c = 0; c < 3; c++) ef(3 * a + c, 0) += (-f[c] + fAlpha * p * dN[c] + N * fBody[c]) * weight;
+        for (int c = 0; c < dim; c++) ef(dim * a + c, 0) += (-f[c] + fAlpha * p * dN[c] + N * fBody[c]) * weight;
     }
     for (int b = 0; b < nP; b++) {
         REAL r = dP.phi.GetVal(b, 0) * (fAlpha * (ev - evn) + fSe * (p - pn));
         if (fFlow)
-            for (int c = 0; c < 3; c++) r += fTimeStep * mob * dphiP(c, b) * (gp(c, 0) - fRhoF * fG[c]);
+            for (int c = 0; c < dim; c++) r += fTimeStep * mob[c] * dphiP(c, b) * (gp(c, 0) - fRhoF * fG[c]);
         ef(offp + b, 0) -= r * weight;
     }
 
     // ---- jacobiana
     if (ek) {
-        const int nd = 3 * nU;
+        const int nd = dim * nU;
         std::vector<std::array<REAL, 6>> DB(nd);
         std::vector<std::array<int, 3>> brow(nd);
         std::vector<std::array<REAL, 3>> bval(nd);
         for (int a = 0; a < nU; a++) {
-            const REAL dN[3] = {dphiU(0, a), dphiU(1, a), dphiU(2, a)};
-            for (int i = 0; i < 3; i++) {
-                const int col = 3 * a + i;
+            const REAL dN[3] = {dphiU(0, a), dphiU(1, a), dim == 3 ? dphiU(2, a) : 0.};
+            for (int i = 0; i < dim; i++) {
+                const int col = dim * a + i;
                 BColumn(i, dN, brow[col].data(), bval[col].data());
                 for (int rr = 0; rr < 6; rr++) {
                     REAL v = 0.;
@@ -163,18 +174,17 @@ void TPZMatPoroElastoPlastic3DMem<T, TMEM>::ContributeInternal(const TPZVec<TPZM
                 (*ek)(row, col) += v * weight;
             }
         for (int a = 0; a < nU; a++)
-            for (int c = 0; c < 3; c++)
+            for (int c = 0; c < dim; c++)
                 for (int b = 0; b < nP; b++) {
                     const REAL q = fAlpha * dphiU(c, a) * dP.phi.GetVal(b, 0) * weight;
-                    (*ek)(3 * a + c, offp + b) -= q;
-                    (*ek)(offp + b, 3 * a + c) += q;
+                    (*ek)(dim * a + c, offp + b) -= q;
+                    (*ek)(offp + b, dim * a + c) += q;
                 }
         for (int b = 0; b < nP; b++)
             for (int c = 0; c < nP; c++) {
                 REAL v = fSe * dP.phi.GetVal(b, 0) * dP.phi.GetVal(c, 0);
                 if (fFlow)
-                    v += fTimeStep * mob *
-                         (dphiP(0, b) * dphiP(0, c) + dphiP(1, b) * dphiP(1, c) + dphiP(2, b) * dphiP(2, c));
+                    for (int k = 0; k < dim; k++) v += fTimeStep * mob[k] * dphiP(k, b) * dphiP(k, c);
                 (*ek)(offp + b, offp + c) += v * weight;
             }
     }
@@ -185,8 +195,8 @@ void TPZMatPoroElastoPlastic3DMem<T, TMEM>::ContributeInternal(const TPZVec<TPZM
         mem.m_sigma = sigma;
         mem.fPorePressure = p;
         mem.m_plastic_steps = model.IntegrationSteps();
-        mem.m_u.Resize(3);
-        for (int c = 0; c < 3; c++) mem.m_u[c] = dU.sol[0][c];
+        mem.m_u.Resize(dim);
+        for (int c = 0; c < dim; c++) mem.m_u[c] = dU.sol[0][c];
     }
 }
 
@@ -208,29 +218,37 @@ void TPZMatPoroElastoPlastic3DMem<T, TMEM>::ContributeBCInternal(const TPZVec<TP
                                                                  REAL weight, TPZFMatrix<STATE> *ek,
                                                                  TPZFMatrix<STATE> &ef, TPZBndCondT<STATE> &bc) {
     const TPZMaterialDataT<STATE> &dU = datavec[0], &dP = datavec[1];
-    const int nU = dU.phi.Rows(), nP = dP.phi.Rows(), offp = 3 * nU;
-    const TPZVec<STATE> &v2 = bc.Val2();
+    const int dim = fDim;
+    const int nU = dU.phi.Rows(), nP = dP.phi.Rows(), offp = dim * nU;
+    // valores da condição: Val2 ou a função do ponto (rhsVal com 4 componentes {v_x, v_y, v_z, p})
+    TPZManVector<STATE, 4> v2(bc.Val2());
+    if (bc.HasForcingFunctionBC()) {
+        v2.Resize(4);
+        v2.Fill(0.);
+        TPZFNMatrix<16, STATE> v1f(4, 4, 0.);
+        bc.ForcingFunctionBC()(dU.x, v2, v1f);
+    }
     const TPZFMatrix<STATE> &v1 = bc.Val1();
     const bool penalty = (fMode == EFull);
     const REAL big = BigNumber();
     REAL u[3] = {0., 0., 0.};
-    if (dU.sol.size() && dU.sol[0].size() >= 3)
-        for (int c = 0; c < 3; c++) u[c] = dU.sol[0][c];
+    if (dU.sol.size() && dU.sol[0].size() >= dim)
+        for (int c = 0; c < dim; c++) u[c] = dU.sol[0][c];
     const REAL p = (dP.sol.size() && dP.sol[0].size()) ? dP.sol[0][0] : 0.;
 
     auto traction = [&](const REAL t[3]) {
         for (int a = 0; a < nU; a++)
-            for (int c = 0; c < 3; c++) ef(3 * a + c, 0) += t[c] * dU.phi.GetVal(a, 0) * weight;
+            for (int c = 0; c < dim; c++) ef(dim * a + c, 0) += t[c] * dU.phi.GetVal(a, 0) * weight;
     };
     auto penaltyU = [&](const bool mask[3], const REAL val[3]) {
         if (!penalty) return;
         for (int a = 0; a < nU; a++)
-            for (int c = 0; c < 3; c++) {
+            for (int c = 0; c < dim; c++) {
                 if (!mask[c]) continue;
-                ef(3 * a + c, 0) += big * (val[c] - u[c]) * dU.phi.GetVal(a, 0) * weight;
+                ef(dim * a + c, 0) += big * (val[c] - u[c]) * dU.phi.GetVal(a, 0) * weight;
                 if (ek)
                     for (int b = 0; b < nU; b++)
-                        (*ek)(3 * a + c, 3 * b + c) += big * dU.phi.GetVal(a, 0) * dU.phi.GetVal(b, 0) * weight;
+                        (*ek)(dim * a + c, dim * b + c) += big * dU.phi.GetVal(a, 0) * dU.phi.GetVal(b, 0) * weight;
             }
     };
     auto penaltyP = [&](REAL val) {
@@ -271,7 +289,7 @@ void TPZMatPoroElastoPlastic3DMem<T, TMEM>::ContributeBCInternal(const TPZVec<TP
             traction(t);
         } break;
         case EDirectionalU: {
-            const bool mask[3] = {v1.GetVal(0, 0) != 0., v1.GetVal(1, 1) != 0., v1.GetVal(2, 2) != 0.};
+            const bool mask[3] = {v1.GetVal(0, 0) != 0., v1.GetVal(1, 1) != 0., dim == 3 && v1.GetVal(2, 2) != 0.};
             penaltyU(mask, vv);
         } break;
         case ETractionDirichletP:
@@ -281,7 +299,7 @@ void TPZMatPoroElastoPlastic3DMem<T, TMEM>::ContributeBCInternal(const TPZVec<TP
             break;
         case EDirectionalUDirichletP: {
             needP();
-            const bool mask[3] = {v1.GetVal(0, 0) != 0., v1.GetVal(1, 1) != 0., v1.GetVal(2, 2) != 0.};
+            const bool mask[3] = {v1.GetVal(0, 0) != 0., v1.GetVal(1, 1) != 0., dim == 3 && v1.GetVal(2, 2) != 0.};
             penaltyU(mask, vv);
             penaltyP(v2[3]);
         } break;
@@ -336,7 +354,8 @@ void TPZMatPoroElastoPlastic3DMem<T, TMEM>::Solution(const TPZVec<TPZMaterialDat
     switch (var) {
         case EDisplacement:
             Solout.Resize(3);
-            for (int c = 0; c < 3; c++) Solout[c] = dU.sol[0][c];
+            Solout.Fill(0.);
+            for (int c = 0; c < fDim; c++) Solout[c] = dU.sol[0][c];
             break;
         case EPressure:
             Solout.Resize(1);
@@ -348,7 +367,7 @@ void TPZMatPoroElastoPlastic3DMem<T, TMEM>::Solution(const TPZVec<TPZMaterialDat
             break;
         case EFlux:
             Solout.Resize(3);
-            for (int c = 0; c < 3; c++) Solout[c] = -(fK / fMu) * (gp(c, 0) - fRhoF * fG[c]);
+            for (int c = 0; c < 3; c++) Solout[c] = c < fDim ? -(fK[c] / fMu) * (gp(c, 0) - fRhoF * fG[c]) : 0.;
             break;
         case EPressureGradient:
             Solout.Resize(3);
@@ -369,9 +388,10 @@ template <class T, class TMEM>
 void TPZMatPoroElastoPlastic3DMem<T, TMEM>::Write(TPZStream &buf, int withclassid) const {
     TBase::Write(buf, withclassid);
     fPlasticModel.Write(buf, withclassid);
+    buf.Write(&fDim);
     buf.Write(&fAlpha);
     buf.Write(&fSe);
-    buf.Write(&fK);
+    buf.Write(fK, 3);
     buf.Write(&fMu);
     buf.Write(&fRhoF);
     buf.Write(fG, 3);
@@ -386,9 +406,10 @@ template <class T, class TMEM>
 void TPZMatPoroElastoPlastic3DMem<T, TMEM>::Read(TPZStream &buf, void *context) {
     TBase::Read(buf, context);
     fPlasticModel.Read(buf, context);
+    buf.Read(&fDim);
     buf.Read(&fAlpha);
     buf.Read(&fSe);
-    buf.Read(&fK);
+    buf.Read(fK, 3);
     buf.Read(&fMu);
     buf.Read(&fRhoF);
     buf.Read(fG, 3);
@@ -403,11 +424,13 @@ void TPZMatPoroElastoPlastic3DMem<T, TMEM>::Read(TPZStream &buf, void *context) 
 
 template <class T, class TMEM>
 void TPZMatPoroElastoPlastic3DMem<T, TMEM>::Print(std::ostream &out) const {
-    out << Name() << " id " << this->Id() << "\n alpha = " << fAlpha << " Se = " << fSe << " k = " << fK
-        << " mu = " << fMu << " rhof = " << fRhoF << "\n g = (" << fG[0] << ", " << fG[1] << ", " << fG[2]
+    out << Name() << " id " << this->Id() << " dim " << fDim << "\n alpha = " << fAlpha << " Se = " << fSe
+        << " k = (" << fK[0] << ", " << fK[1] << ", " << fK[2] << ") mu = " << fMu << " rhof = " << fRhoF << "\n g = (" << fG[0] << ", " << fG[1] << ", " << fG[2]
         << ") body = (" << fBody[0] << ", " << fBody[1] << ", " << fBody[2] << ")\n dt = " << fTimeStep
         << " flow = " << fFlow << " integration order = " << fIntegrationOrder << "\n";
     fPlasticModel.Print(out);
 }
 
 template class TPZMatPoroElastoPlastic3DMem<TPZModifiedCamClay, TPZElastoPlasticMem>;
+template class TPZMatPoroElastoPlastic3DMem<TPZPlasticStepVoigt<TPZYCMohrCoulombPV2, TPZElasticResponse>,
+                                            TPZElastoPlasticMem>;
