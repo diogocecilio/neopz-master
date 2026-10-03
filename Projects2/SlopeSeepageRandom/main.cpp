@@ -1505,6 +1505,8 @@ void RunDeterministic(const TCase &cs, const TArgs &args, const std::string &mod
 } // namespace
 
 int main(int argc, char **argv) {
+    // saída por linha também fora de um terminal (IDE, nohup, redirecionamento): o andamento aparece na hora
+    std::setvbuf(stdout, nullptr, _IOLBF, 0);
     if (argc < 2) {
         Usage(argv[0]);
         return 1;
