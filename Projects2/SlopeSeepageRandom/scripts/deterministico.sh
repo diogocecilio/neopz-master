@@ -12,6 +12,7 @@ run() {  # nome, argumentos...
 if [ "$PARTE" = base ] || [ "$PARTE" = todas ]; then
     # Cho (2010): coesivo 2:1 (FS = 1.356) e c-phi 1:1 com H = 10 m (FS = 1.204); artigo: Gamma = 1.354 e 1.777
     run cho_coesivo_mc  caso=cho_coesivo modelo=mc h=1 adapt=3
+    run cho_coesivo_mc_h2 caso=cho_coesivo modelo=mc h=2 adapt=3   # malha do Monte Carlo (nível 2)
     run cho_cphi_mc     caso=cho_cphi    modelo=mc h=2 adapt=3
     run cho_cphi_mcc    caso=cho_cphi    modelo=mcc h=2 adapt=3
     # talude com rebaixamento rápido (Tabela 2): Gamma = 1.336

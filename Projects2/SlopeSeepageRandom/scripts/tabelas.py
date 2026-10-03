@@ -67,20 +67,50 @@ def tabela_det(res):
         print()
 
 
+def adapt_level(log, nivel):
+    """Γ do problema médio na malha após `nivel` refinamentos (linha [adapt] do log)"""
+    if not os.path.exists(log):
+        return None
+    for ln in open(log, errors="replace"):
+        m = re.search(r"\[adapt\] n.vel (\d+): .* Gamma = ([0-9.eE+-]+)", ln)
+        if m and int(m.group(1)) == nivel:
+            return float(m.group(2))
+    return None
+
+
+def gamma_det(res, nome):
+    """(Γ FE na malha do Monte Carlo [adapt=2], Γ determinístico do artigo) para o caso"""
+    m = re.match(r"alfa(\d)", nome)
+    if m:
+        return det(f"{res}/det/alfa{m.group(1)}.log")[0], ARTIGO_ALFA[int(m.group(1))]
+    m = re.match(r"hw([0-9.]+)", nome)
+    if m:
+        r = float(m.group(1))
+        return det(f"{res}/det/hw{r * 5:g}.log")[0], ARTIGO_HW[round(r, 1)]
+    if nome == "cho_coesivo":
+        return adapt_level(f"{res}/det/cho_coesivo_mc_h2.log", 2), 1.354  # Monte Carlo com h = 2
+    if nome == "cho_cphi":
+        return adapt_level(f"{res}/det/cho_cphi_mc.log", 2), 1.777
+    if nome.startswith("mcc"):
+        return None, None
+    return adapt_level(f"{res}/det/percolacao_mc.log", 2), 1.336
+
+
 def tabela_mc(res):
-    print("### Monte Carlo (Γ; `h=1 adapt=2`, KL com M modos e compensação da variância)\n")
-    print("| caso | N | μ | σ | CoV % | Pf % | CoV(Pf) % | artigo μ | σ | Pf % |\n|---|---|---|---|---|---|---|---|---|---|")
+    print("### Monte Carlo (Γ; `h=1 adapt=2`, KL com compensação da variância)\n")
+    print("Colunas `*`: Γ multiplicado por Γ_det(artigo)/Γ_det(FE, mesma malha), isto é, descontada a diferença "
+          "determinística (forças de percolação v'_opt × FE e malha).\n")
+    print("| caso | N | μ | σ | Pf % | CoV(Pf) % | Γ_det FE | μ* | σ* | Pf* % | artigo μ | σ | Pf % |\n"
+          "|---|---|---|---|---|---|---|---|---|---|---|---|---|")
     casos = [("referencia", f"{res}/mc_ref/ref.csv")]
     for d in sorted(glob.glob(f"{res}/mc/*/")):
         nome = os.path.basename(d.rstrip("/"))
         arq = f"{d}{nome}.csv"
-        if not os.path.exists(arq):  # ainda em execução: junta as partes
+        if not os.path.exists(arq):  # ainda em execução (um processo por caso)
             partes = sorted(glob.glob(f"{d}{nome}_parte*.csv"))
-            if not partes:
+            if len(partes) != 1:
                 continue
-            arq = partes[0] if len(partes) == 1 else None
-            if arq is None:
-                continue
+            arq = partes[0]
         casos.append((nome, arq))
     for nome, arq in casos:
         if not os.path.exists(arq):
@@ -90,8 +120,14 @@ def tabela_mc(res):
             continue
         n, mu, sd, pf, covpf = estatisticas(v)
         ref = ARTIGO.get(nome, (None, None, None))
-        print(f"| {nome} | {n} | {mu:.3f} | {sd:.3f} | {100 * sd / mu:.1f} | {100 * pf:.2f} | "
-              f"{fmt(100 * covpf, 1) if pf > 0 else '—'} | {fmt(ref[0])} | {fmt(ref[1])} | {fmt(ref[2], 2)} |")
+        gfe, gart = gamma_det(res, nome)
+        if gfe and gart:
+            n_, mus, sds, pfs, _ = estatisticas([x * gart / gfe for x in v])
+            esc = f"{gfe:.3f} | {mus:.3f} | {sds:.3f} | {100 * pfs:.2f}"
+        else:
+            esc = "— | — | — | —"
+        print(f"| {nome} | {n} | {mu:.3f} | {sd:.3f} | {100 * pf:.2f} | "
+              f"{fmt(100 * covpf, 1) if pf > 0 else '—'} | {esc} | {fmt(ref[0])} | {fmt(ref[1])} | {fmt(ref[2], 2)} |")
     print()
 
 
