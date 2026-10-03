@@ -1,0 +1,27 @@
+bash: line 1: 24244 Aborted                 /tmp/claude-0/-home-user-neopz-master/0e09deed-c26c-5cb3-9fb1-49502c3f6c60/scratchpad/res/v3/SlopeSeepageRandom rebaixamento caso=percolacao h=1 adapt=2 gamma=1 modelo=mc Td=0.01 saida=mc_Td0.01.csv > mc_Td0.01.log 2>&1
+bash: line 1: 24247 Aborted                 /tmp/claude-0/-home-user-neopz-master/0e09deed-c26c-5cb3-9fb1-49502c3f6c60/scratchpad/res/v3/SlopeSeepageRandom rebaixamento caso=percolacao h=1 adapt=2 gamma=1 modelo=mc Td=0.1 saida=mc_Td0.1.csv > mc_Td0.1.log 2>&1
+bash: line 1: 24242 Segmentation fault      /tmp/claude-0/-home-user-neopz-master/0e09deed-c26c-5cb3-9fb1-49502c3f6c60/scratchpad/res/v3/SlopeSeepageRandom rebaixamento caso=percolacao h=1 adapt=2 gamma=1 modelo=mcc OCR=1 Td=0.1 saida=mcc_ocr1_Td0.1.csv > mcc_ocr1_Td0.1.log 2>&1
+bash: line 1: 24243 Segmentation fault      /tmp/claude-0/-home-user-neopz-master/0e09deed-c26c-5cb3-9fb1-49502c3f6c60/scratchpad/res/v3/SlopeSeepageRandom rebaixamento caso=percolacao h=1 adapt=2 gamma=1 modelo=mcc OCR=2 Td=0.1 saida=mcc_ocr2_Td0.1.csv > mcc_ocr2_Td0.1.log 2>&1
+bash: line 1: 24272 Aborted                 /tmp/claude-0/-home-user-neopz-master/0e09deed-c26c-5cb3-9fb1-49502c3f6c60/scratchpad/res/v3/SlopeSeepageRandom rebaixamento caso=percolacao h=1 adapt=2 gamma=1 modelo=mc Td=1 saida=mc_Td1.csv > mc_Td1.log 2>&1
+bash: line 1: 24277 Aborted                 /tmp/claude-0/-home-user-neopz-master/0e09deed-c26c-5cb3-9fb1-49502c3f6c60/scratchpad/res/v3/SlopeSeepageRandom rebaixamento caso=percolacao h=1 adapt=2 gamma=1 modelo=mc Td=10 saida=mc_Td10.csv > mc_Td10.log 2>&1
+bash: line 1: 24282 Segmentation fault      /tmp/claude-0/-home-user-neopz-master/0e09deed-c26c-5cb3-9fb1-49502c3f6c60/scratchpad/res/v3/SlopeSeepageRandom rebaixamento caso=percolacao h=1 adapt=2 gamma=1 modelo=mcc OCR=1 Td=10 saida=mcc_ocr1_Td10.csv > mcc_ocr1_Td10.log 2>&1
+bash: line 1: 24336 Segmentation fault      /tmp/claude-0/-home-user-neopz-master/0e09deed-c26c-5cb3-9fb1-49502c3f6c60/scratchpad/res/v3/SlopeSeepageRandom rebaixamento caso=percolacao h=1 adapt=2 gamma=1 modelo=mcc OCR=2 Td=10 saida=mcc_ocr2_Td10.csv > mcc_ocr2_Td10.log 2>&1
+100 amostras em hw0.7.csv
+100 amostras em hw0.9.csv
+100 amostras em alfa2.csv
+100 amostras em alfa5.csv
+100 amostras em covc10.csv
+100 amostras em covc50.csv
+100 amostras em covc70.csv
+100 amostras em covk0.csv
+100 amostras em covk100.csv
+100 amostras em covphi20.csv
+100 amostras em covphi5.csv
+100 amostras em s2.csv
+265 amostras em alfa3.csv
+297 amostras em hw0.5.csv
+265 amostras em cho_cphi.csv
+129 amostras em cho_coesivo.csv
+100 amostras em s20.csv
+100 amostras em s5.csv
+xargs: bash: terminated by signal 15

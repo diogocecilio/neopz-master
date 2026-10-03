@@ -1,0 +1,12 @@
+inserting uniform refpattern: quadrilateral
+inserting uniform refpattern: line
+[adapt] nível 0: 1742 equações, Gamma = 1.64656; dividindo 25 + 17 elementos (lido de malha_percolacao_h1_430451eb.malha)
+[adapt] nível 1: 2742 equações, Gamma = 1.50349; dividindo 59 + 35 elementos (lido de malha_percolacao_h1_430451eb.malha)
+
+=== rebaixamento acoplado (mcc): H = 5 m, beta = 45 graus, crista 10 m, pe 10 m, base 5 m abaixo do pe (dominio 25 x 10 m), h = 1 m, quadrilateros
+    h_w = 5 m em T_d = 10 (t_d = 0.515873 h), k_v = 1e-05 m/s, k_h/k_v = 1, c_v = 0.134615 m2/s, H2/c_v = 0.0515873 h
+    u-p: 5595 equacoes; estabilidade: 4962 equacoes
+    estacionario desacoplado (artigo): FS = 1.11444 (ok) Gamma = 0 (colapso_antes_de_lambda1)
+       inicial T =         0  z_w =     10  u_A = 1.58524e-09  |du|max =          0  plast.  3282  FS = 2.23469 (ok)  Gamma = 1.21245 (ok)  [147.21 s]
+    colapso no adensamento acoplado em T = 2.38281 (z_w = 8.80859)
+    tempo total 591.766 s

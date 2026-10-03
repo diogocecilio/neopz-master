@@ -105,11 +105,92 @@ trajetória drenada do rebaixamento (peso próprio e depois as forças de percol
 colapso — coerente com o colapso do rebaixamento acoplado com Cam-Clay (abaixo). Para o Cam-Clay a medida
 recomendada é o FS (`medida=fs` no Monte Carlo).
 
-_(resultados em execução; as tabelas são geradas por `scripts/tabelas.py <diretório de resultados>`)_
+Varreduras (Mohr-Coulomb, `h=1 adapt=2`, Γ):
+
+| α = k_h/k_v | Γ (FE) | Γ artigo (Tab. 5) | FE/artigo |
+|---|---|---|---|
+| 1 | 1.436 | 1.336 | 1.075 |
+| 2 | 1.688 | 1.533 | 1.101 |
+| 3 | 1.871 | 1.674 | 1.118 |
+| 4 | 2.007 | 1.783 | 1.126 |
+| 5 | 2.137 | 1.872 | 1.141 |
+
+| h_w/H | Γ (FE) | Γ artigo (Tab. 6) | FE/artigo |
+|---|---|---|---|
+| 0.5 | 1.748 | 1.671 | 1.046 |
+| 0.6 | 1.571 | 1.494 | 1.052 |
+| 0.7 | 1.453 | 1.383 | 1.050 |
+| 0.8 | 1.398 | 1.322 | 1.058 |
+| 0.9 | 1.398 | 1.307 | 1.070 |
+| 1.0 | 1.436 | 1.336 | 1.075 |
+
+Fig. 9 (Γ × β):
+
+| β (graus) | α = 1 | α = 5 | α = 10 |
+|---|---|---|---|
+| 15 | 4.963 | 20.000 | 20.000 |
+| 30 | 2.536 | 4.587 | 6.856 |
+| 45 | 1.436 | 2.137 | 2.555 |
+| 60 | 1.031 | 1.347 | 1.468 |
+| 75 | 0.789 | 0.943 | 0.989 |
+| 90 | 0.605 | 0.682 | 0.695 |
+
+Γ cresce com a anisotropia α (horizontal mais permeável: forças de percolação menos horizontais) e tem mínimo
+para rebaixamento parcial (h_w/H ≈ 0.8–0.9), como no artigo; a razão FE/artigo é 1.05–1.07 em h_w/H e cresce de
+1.075 a 1.14 com α (o campo `v'_opt` do artigo atenua o efeito de α em relação à solução exata de Darcy).
+
 
 ## Monte Carlo
 
-_(resultados em execução; as tabelas são geradas por `scripts/tabelas.py <diretório de resultados>`)_
+`h=1 adapt=2` (4962 equações), KL com `hkl=1`, ε_M ≈ 3.6 % compensado, Mohr-Coulomb, Γ por acréscimo de carga;
+**100 amostras por caso** (referência: 1000; alguns casos têm mais), portanto CoV(Pf) de 20–100 %: os valores de
+Pf das sensibilidades são indicativos (o artigo usa 10 000–90 000 amostras). Para mais amostras basta rodar de novo
+o mesmo comando com `n` maior (retomada nativa) ou `scripts/campanha.sh`. CSV, logs e tabelas em `resultados/`.
+
+
+Colunas `*`: Γ multiplicado por Γ_det(artigo)/Γ_det(FE, mesma malha), isto é, descontada a diferença determinística (forças de percolação v'_opt × FE e malha).
+
+| caso | N | μ | σ | Pf % | CoV(Pf) % | Γ_det FE | μ* | σ* | Pf* % | artigo μ | σ | Pf % |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| referencia | 1000 | 1.452 | 0.378 | 8.30 | 10.5 | 1.436 | 1.350 | 0.352 | 14.10 | 1.353 | 0.318 | 11.50 |
+| alfa2 | 100 | 1.732 | 0.497 | 1.00 | 99.5 | 1.688 | 1.572 | 0.452 | 6.00 | 1.562 | 0.390 | 3.90 |
+| alfa3 | 265 | 1.932 | 0.583 | 0.75 | 70.4 | 1.871 | 1.729 | 0.521 | 3.77 | 1.704 | 0.432 | 1.83 |
+| alfa5 | 100 | 2.219 | 0.707 | 0.00 | — | 2.137 | 1.944 | 0.620 | 1.00 | 1.910 | 0.504 | 0.63 |
+| cho_coesivo | 129 | 1.265 | 0.188 | 7.75 | 30.4 | 1.331 | 1.287 | 0.191 | 5.43 | — | — | 6.50 |
+| cho_cphi | 265 | 1.955 | 1.412 | 5.28 | 26.0 | 1.820 | 1.909 | 1.379 | 6.04 | — | — | 5.50 |
+| covc10 | 100 | 1.482 | 0.237 | 0.00 | — | 1.436 | 1.379 | 0.220 | 2.00 | 1.367 | 0.180 | 0.45 |
+| covc50 | 100 | 1.417 | 0.538 | 23.00 | 18.3 | 1.436 | 1.318 | 0.501 | 30.00 | 1.324 | 0.472 | 25.78 |
+| covc70 | 100 | 1.351 | 0.651 | 36.00 | 13.3 | 1.436 | 1.257 | 0.606 | 41.00 | 1.296 | 0.620 | 36.34 |
+| covk0 | 100 | 1.424 | 0.347 | 8.00 | 33.9 | 1.436 | 1.325 | 0.323 | 16.00 | 1.329 | 0.288 | 11.21 |
+| covk100 | 100 | 1.518 | 0.450 | 11.00 | 28.4 | 1.436 | 1.412 | 0.419 | 16.00 | 1.391 | 0.360 | 11.44 |
+| covphi20 | 100 | 1.488 | 0.520 | 12.00 | 27.1 | 1.436 | 1.384 | 0.484 | 16.00 | 1.361 | 0.384 | 15.18 |
+| covphi5 | 100 | 1.451 | 0.348 | 8.00 | 33.9 | 1.436 | 1.350 | 0.324 | 17.00 | 1.351 | 0.300 | 10.20 |
+| hw0.5 | 297 | 1.758 | 0.440 | 1.35 | 49.7 | 1.748 | 1.681 | 0.421 | 2.02 | 1.670 | 0.378 | 1.38 |
+| hw0.7 | 100 | 1.487 | 0.370 | 8.00 | 33.9 | 1.453 | 1.415 | 0.352 | 12.00 | 1.393 | 0.314 | 8.54 |
+| hw0.9 | 100 | 1.425 | 0.371 | 12.00 | 27.1 | 1.398 | 1.332 | 0.346 | 18.00 | 1.325 | 0.306 | 12.58 |
+| mcc_ref_fs | 60 | 1.100 | 0.171 | 25.00 | 22.4 | — | — | — | — | — | — | — |
+| s2 | 100 | 1.468 | 0.429 | 9.00 | 31.8 | 1.436 | 1.365 | 0.399 | 15.00 | 1.361 | 0.372 | 14.99 |
+| s20 | 100 | 1.449 | 0.439 | 15.00 | 23.8 | 1.436 | 1.348 | 0.408 | 23.00 | 1.355 | 0.430 | 20.23 |
+| s5 | 100 | 1.482 | 0.443 | 8.00 | 33.9 | 1.436 | 1.378 | 0.412 | 20.00 | 1.350 | 0.404 | 18.93 |
+
+Leitura:
+
+* As médias reescaladas (μ*) reproduzem as do artigo em todos os casos (diferença < 2 %, salvo α = 2–5, 1–2 %):
+  a diferença na média é a determinística (forças de percolação `v'_opt` × FE, malha), não a do Monte Carlo.
+* O desvio padrão é ~10 % maior (σ* 0.352 × 0.318 na referência) e Pf* é maior (14.1 × 11.5 %): o FE forma
+  mecanismos que seguem as zonas fracas, enquanto o mecanismo log-espiral do artigo é uma família de superfícies
+  suaves que "promedia" a resistência (efeito conhecido do RFEM; Griffiths & Fenton).
+* As tendências das Tabelas 3–6 são reproduzidas: σ e Pf crescem muito com CoV(c) (10 → 70 %: Pf* 2 → 41 %;
+  artigo 0.45 → 36 %), pouco com CoV(φ) e CoV(k_v); crescem com a escala s das distâncias de autocorrelação;
+  Pf cai com α e com h_w/H menor.
+* Cho (2010), sem percolação: Pf = 7.8 % (coesivo; artigo 6.5 %, Cho 7.9 %) e 5.3 % (c-φ; artigo 5.5 %, Cho
+  6.37 %).
+* Cam-Clay (OCR = 1, Pf por FS, 60 amostras): FS médio 1.10, Pf = 25 % — o solo normalmente adensado amolece e
+  é bem menos estável que o Mohr-Coulomb associado com os mesmos c e φ.
+
+Figuras: `resultados/mc_ref/ref.png` (densidade e convergência de Pf e da média, referência), `resultados/mc_alfa.png`
+e `resultados/mc_hw.png`.
+
 
 ## Rebaixamento acoplado (Biot, u-p)
 
@@ -120,7 +201,34 @@ O comando `rebaixamento` resolve o problema u-p em deformação plana no tempo (
 tende à solução estacionária do artigo (mesmas condições de contorno); o estado inicial (nível na crista) é
 hidrostático.
 
-_(resultados em execução; as tabelas são geradas por `scripts/tabelas.py <diretório de resultados>`)_
+`h=1 adapt=2`, k_v = 10⁻⁵ m/s (k_v/γw = 10⁻⁶ m⁴/(kN s), Tabela 2), E = 10⁵ kPa, ν = 0.3, h_w = H = 5 m;
+T_d = c_v t_d/H² é a duração adimensional do rebaixamento. FS e Γ mínimos (no fim do rebaixamento) e no regime
+permanente:
+
+| modelo | T_d | FS mín. | Γ mín. | FS (T → ∞) | Γ (T → ∞) | estacionário desacoplado (artigo): FS / Γ |
+|---|---|---|---|---|---|---|
+| Mohr-Coulomb | 0.01 | 1.114 | 1.186 | 1.208 | 1.425 | 1.218 / 1.436 |
+| Mohr-Coulomb | 0.1 | 1.148 | 1.234 | 1.208 | 1.433 | 1.218 / 1.436 |
+| Mohr-Coulomb | 1 | 1.182 | 1.333 | 1.218 | 1.433 | 1.218 / 1.436 |
+| Mohr-Coulomb | 10 | 1.208 | 1.408 | 1.218 | 1.438 | 1.218 / 1.436 |
+| Cam-Clay OCR = 1 | 0.1 | colapso em T = 0.022 (z_w = 8.92 m) | | | | 1.114 / — |
+| Cam-Clay OCR = 1 | 10 | colapso em T = 2.38 (z_w = 8.81 m) | | | | 1.114 / — |
+| Cam-Clay OCR = 2 | 0.1 | 1.021 | 1.016 | 1.034 | 1.027 | 1.034 / 1.027 |
+| Cam-Clay OCR = 2 | 10 | 1.031 | 1.027 | 1.034 | 1.027 | 1.034 / 1.027 |
+
+* Com o acoplamento, o mínimo de estabilidade ocorre no fim do rebaixamento e é tanto menor quanto mais rápido o
+  rebaixamento (Mohr-Coulomb: FS −8.5 %, Γ −17 % para T_d = 0.01); depois a poropressão se dissipa e FS e Γ tendem
+  ao valor estacionário desacoplado do artigo, que é o limite do rebaixamento lento (T_d = 10). O cálculo do artigo
+  é, portanto, contra a segurança para rebaixamentos rápidos.
+* Mohr-Coulomb associado dilata ao cisalhar (excesso de poropressão negativo, favorável); o Cam-Clay normalmente
+  adensado contrai: gera excesso de poropressão positivo e rompe com 1.1–1.2 m de rebaixamento, mesmo lento —
+  coerente com o FS desacoplado de 1.11 e com a perda de estabilidade na trajetória drenada (seção do Cam-Clay
+  acima). Com OCR = 2 o talude resiste (FS mínimo 1.02).
+* O rebaixamento com malha adaptada exigiu `CleanUpUnconnectedNodes` na malha multifísica (com nós pendentes a
+  renumeração de banda escrevia fora dos limites).
+
+Figuras: `resultados/rebaix/rebaixamento_mc.png` e `resultados/rebaix/rebaixamento_mcc.png` (FS e Γ × T).
+
 
 ## Gravação e retomada (read/write)
 

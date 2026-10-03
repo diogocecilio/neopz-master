@@ -1,0 +1,21 @@
+inserting uniform refpattern: quadrilateral
+inserting uniform refpattern: line
+[adapt] nível 0: 1742 equações, Gamma = 1.64656; dividindo 25 + 17 elementos (lido de malha_percolacao_h1_430451eb.malha)
+[adapt] nível 1: 2742 equações, Gamma = 1.50349; dividindo 59 + 35 elementos (lido de malha_percolacao_h1_430451eb.malha)
+
+=== rebaixamento acoplado (mcc): H = 5 m, beta = 45 graus, crista 10 m, pe 10 m, base 5 m abaixo do pe (dominio 25 x 10 m), h = 1 m, quadrilateros
+    h_w = 5 m em T_d = 10 (t_d = 0.515873 h), k_v = 1e-05 m/s, k_h/k_v = 1, c_v = 0.134615 m2/s, H2/c_v = 0.0515873 h
+    u-p: 5595 equacoes; estabilidade: 4962 equacoes
+    estacionario desacoplado (artigo): FS = 1.03418 (ok) Gamma = 1.02734 (ok)
+       inicial T =         0  z_w =     10  u_A = 3.87494e-11  |du|max =          0  plast.     0  FS = 2.26758 (ok)  Gamma = 2.04768 (ok)  [49.9356 s]
+    rebaixando T =       2.5  z_w =   8.75  u_A = -7.05109  |du|max = 0.000489359  plast.    48  FS = 1.62989 (ok)  Gamma = 1.95153 (ok)  [133.453 s]
+    rebaixando T =         5  z_w =    7.5  u_A = -10.8899  |du|max = 0.000885441  plast.   279  FS = 1.2085 (ok)  Gamma = 1.16382 (ok)  [36.0632 s]
+    rebaixando T =       7.5  z_w =   6.25  u_A = -12.6851  |du|max = 0.00121777  plast.  1358  FS = 1.07812 (ok)  Gamma = 1.05469 (ok)  [30.3934 s]
+    rebaixando T =        10  z_w =      5  u_A = -13.6022  |du|max = 0.00168004  plast.  2146  FS = 1.03088 (ok)  Gamma = 1.02734 (ok)  [34.2285 s]
+    dissipacao T =     10.01  z_w =      5  u_A = -13.6044  |du|max = 0.00168046  plast.  1959  FS = 1.03088 (ok)  Gamma = 1.02734 (ok)  [34.1119 s]
+    dissipacao T =     10.03  z_w =      5  u_A =  -13.609  |du|max = 0.00168112  plast.  1944  FS = 1.03088 (ok)  Gamma = 1.02734 (ok)  [34.0599 s]
+    dissipacao T =      10.1  z_w =      5  u_A = -13.6234  |du|max = 0.00168269  plast.  1938  FS = 1.03418 (ok)  Gamma = 1.02734 (ok)  [32.6678 s]
+    dissipacao T =      10.3  z_w =      5  u_A = -13.6535  |du|max =  0.0016853  plast.  1908  FS = 1.03418 (ok)  Gamma = 1.02734 (ok)  [31.8709 s]
+    dissipacao T =        11  z_w =      5  u_A = -13.7104  |du|max = 0.00168934  plast.  1740  FS = 1.03418 (ok)  Gamma = 1.02734 (ok)  [31.4858 s]
+    dissipacao T =        13  z_w =      5  u_A = -13.7623  |du|max = 0.00169231  plast.  1636  FS = 1.03418 (ok)  Gamma = 1.02734 (ok)  [31.087 s]
+    tempo total 577.674 s

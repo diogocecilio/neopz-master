@@ -1,0 +1,12 @@
+[adapt] nível 0: 1742 equações, Gamma = 1.64656; dividindo 25 + 17 elementos (2.16398 s)
+inserting uniform refpattern: quadrilateral
+inserting uniform refpattern: line
+[adapt] nível 1: 2742 equações, Gamma = 1.50349; dividindo 59 + 35 elementos (3.24917 s)
+[MC] malha mecânica: 4962 equações, 5472 pontos de integração
+[KL] 871 equações, |Ω| = 187.5, C e B montadas em 1.01461 s
+[KL] autoproblema resolvido em 8.66801 s; λ1 = 48.9892, M = 871, ε_M = 0.036072 (todos os modos: 0.036072)
+[KL:8701.759786ms]
+[KL] 871 equações, M = 871, ε_M = 0.036072 (8.70353 s)
+[KL] variância truncada nos pontos de integração: média 0.965429, mínima 0.923879 (compensada)
+[MC] percolacao (mc), medida = gamma, amostras 0..-1, CoV(c) = 0.3, CoV(phi) = 0.1, CoV(kv) = 1, Lx = 20, Ly = 2 -> covk100_preparo.csv
+[MC] 0 amostras: média 0, desvio 0, Pf = -nan (tempo 9.54527 s)

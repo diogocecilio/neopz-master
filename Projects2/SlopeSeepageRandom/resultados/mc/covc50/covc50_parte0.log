@@ -1,0 +1,20 @@
+[adapt] nível 0: 1742 equações, Gamma = 1.64656; dividindo 25 + 17 elementos (4.03894 s)
+inserting uniform refpattern: quadrilateral
+inserting uniform refpattern: line
+[adapt] nível 1: 2742 equações, Gamma = 1.50349; dividindo 59 + 35 elementos (6.65798 s)
+[MC] malha mecânica: 4962 equações, 5472 pontos de integração
+[KL] lido de kl_H5_b4500_Lx20_Ly2_h1.bin: 871 modos
+[KL] 871 equações, M = 871, ε_M = 0.036072 (0.0220555 s)
+[KL] variância truncada nos pontos de integração: média 0.965429, mínima 0.923879 (compensada)
+[MC] percolacao (mc), medida = gamma, amostras 0..99, CoV(c) = 0.5, CoV(phi) = 0.1, CoV(kv) = 0.6, Lx = 20, Ly = 2 -> covc50_parte0.csv
+  amostra 0: fator = 2.5553 (18.1001 s), Pf parcial = 0
+  amostra 10: fator = 1.97769 (16.2847 s), Pf parcial = 0.272727
+  amostra 20: fator = 1.03918 (16.6976 s), Pf parcial = 0.285714
+  amostra 30: fator = 0.686523 (12.9496 s), Pf parcial = 0.290323
+  amostra 40: fator = 0.890869 (14.2116 s), Pf parcial = 0.317073
+  amostra 50: fator = 1.53687 (13.8002 s), Pf parcial = 0.27451
+  amostra 60: fator = 1.06116 (9.60656 s), Pf parcial = 0.245902
+  amostra 70: fator = 1.75439 (7.06559 s), Pf parcial = 0.253521
+  amostra 80: fator = 0.642578 (5.44239 s), Pf parcial = 0.259259
+  amostra 90: fator = 0.852966 (7.93074 s), Pf parcial = 0.241758
+[MC] 100 amostras: média 1.41194, desvio 0.53337, Pf = 0.23 (tempo 1132.54 s)

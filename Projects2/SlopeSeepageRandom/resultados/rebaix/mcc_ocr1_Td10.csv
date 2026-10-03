@@ -1,0 +1,4 @@
+Td,T,t_h,zw,u_A,umax_desloc,pontos_plasticos,FS,FS_sup,FS_status,Gamma,Gamma_sup,Gamma_status,tempo_s
+10,inf,inf,5,nan,nan,0,1.11444,1.12158,ok,0,0.887568,colapso_antes_de_lambda1,0
+10,0,0,10,1.58524e-09,0,3282,2.23469,2.25325,ok,1.21245,1.22301,ok,147.21
+10,2.38281,0.122923,8.80859,nan,nan,0,nan,nan,colapso_acoplado,nan,nan,colapso_acoplado,0
