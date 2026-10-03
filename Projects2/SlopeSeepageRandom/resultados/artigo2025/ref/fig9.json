@@ -1,0 +1,981 @@
+{
+ "figure": "Figure 9: Effect of the anisotropy coefficient on the stability factor",
+ "source": "raster",
+ "page": 13,
+ "x_label": "Slope inclination beta (deg)",
+ "y_label": "Stability Factor Gamma",
+ "series": [
+  {
+   "panel": "alpha = 1",
+   "alpha": 1,
+   "name": "Seepage Forces -grad u'_FE",
+   "style": "solid black line",
+   "points": [
+    [
+     15.0,
+     null
+    ],
+    [
+     20.0,
+     null
+    ],
+    [
+     25.0,
+     3.374
+    ],
+    [
+     30.0,
+     2.326
+    ],
+    [
+     35.0,
+     1.812
+    ],
+    [
+     40.0,
+     1.515
+    ],
+    [
+     45.0,
+     1.314
+    ],
+    [
+     50.0,
+     1.169
+    ],
+    [
+     55.0,
+     1.048
+    ],
+    [
+     60.0,
+     0.956
+    ],
+    [
+     65.0,
+     0.867
+    ],
+    [
+     70.0,
+     0.791
+    ],
+    [
+     75.0,
+     0.72
+    ],
+    [
+     80.0,
+     0.66
+    ],
+    [
+     85.0,
+     0.604
+    ],
+    [
+     90.0,
+     0.554
+    ]
+   ],
+   "uncertainty": [
+    null,
+    null,
+    0.02,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.02
+   ],
+   "beta_where_curve_crosses_top_Gamma5": 22.46,
+   "implied_offaxis_knots": [
+    [
+     20.0,
+     6.58,
+     "segment 20-25 deg visible from beta=22.5; value from extrapolating that segment, +-0.15"
+    ]
+   ],
+   "direct_column_readings_crosscheck": [
+    [
+     20.0,
+     null
+    ],
+    [
+     25.0,
+     3.425
+    ],
+    [
+     30.0,
+     2.339
+    ],
+    [
+     35.0,
+     1.82
+    ],
+    [
+     40.0,
+     1.519
+    ],
+    [
+     45.0,
+     1.316
+    ],
+    [
+     50.0,
+     1.169
+    ],
+    [
+     55.0,
+     1.048
+    ],
+    [
+     60.0,
+     0.956
+    ],
+    [
+     65.0,
+     0.868
+    ],
+    [
+     70.0,
+     0.79
+    ],
+    [
+     75.0,
+     0.72
+    ],
+    [
+     80.0,
+     0.661
+    ],
+    [
+     85.0,
+     0.607
+    ],
+    [
+     90.0,
+     null
+    ]
+   ],
+   "fit_rms_px": 0.204,
+   "n_centreline_points": 632
+  },
+  {
+   "panel": "alpha = 1",
+   "alpha": 1,
+   "name": "Seepage Forces K . v'_opt",
+   "style": "dashed black line",
+   "points": [
+    [
+     15.0,
+     null
+    ],
+    [
+     20.0,
+     null
+    ],
+    [
+     25.0,
+     null
+    ],
+    [
+     30.0,
+     3.493
+    ],
+    [
+     35.0,
+     2.642
+    ],
+    [
+     40.0,
+     2.174
+    ],
+    [
+     45.0,
+     1.889
+    ],
+    [
+     50.0,
+     1.681
+    ],
+    [
+     55.0,
+     1.542
+    ],
+    [
+     60.0,
+     1.42
+    ],
+    [
+     65.0,
+     1.315
+    ],
+    [
+     70.0,
+     1.193
+    ],
+    [
+     75.0,
+     1.021
+    ],
+    [
+     80.0,
+     0.797
+    ],
+    [
+     85.0,
+     0.673
+    ],
+    [
+     90.0,
+     0.598
+    ]
+   ],
+   "uncertainty": [
+    null,
+    null,
+    null,
+    0.02,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.02,
+    0.02
+   ],
+   "beta_where_curve_crosses_top_Gamma5": 26.46,
+   "implied_offaxis_knots": [
+    [
+     25.0,
+     5.62,
+     "segment 25-30 deg visible from beta=26.5; value from extrapolating that segment, +-0.15"
+    ]
+   ],
+   "direct_column_readings_crosscheck": [
+    [
+     25.0,
+     null
+    ],
+    [
+     30.0,
+     3.497
+    ],
+    [
+     35.0,
+     2.652
+    ],
+    [
+     40.0,
+     2.195
+    ],
+    [
+     45.0,
+     1.902
+    ],
+    [
+     50.0,
+     null
+    ],
+    [
+     55.0,
+     1.542
+    ],
+    [
+     60.0,
+     1.421
+    ],
+    [
+     65.0,
+     1.315
+    ],
+    [
+     70.0,
+     null
+    ],
+    [
+     75.0,
+     null
+    ],
+    [
+     80.0,
+     0.809
+    ],
+    [
+     85.0,
+     0.674
+    ],
+    [
+     90.0,
+     null
+    ]
+   ],
+   "fit_rms_px": 0.147,
+   "n_centreline_points": 277
+  },
+  {
+   "panel": "alpha = 5",
+   "alpha": 5,
+   "name": "Seepage Forces -grad u'_FE",
+   "style": "solid black line",
+   "points": [
+    [
+     15.0,
+     null
+    ],
+    [
+     20.0,
+     null
+    ],
+    [
+     25.0,
+     null
+    ],
+    [
+     30.0,
+     3.745
+    ],
+    [
+     35.0,
+     2.746
+    ],
+    [
+     40.0,
+     2.209
+    ],
+    [
+     45.0,
+     1.835
+    ],
+    [
+     50.0,
+     1.57
+    ],
+    [
+     55.0,
+     1.363
+    ],
+    [
+     60.0,
+     1.197
+    ],
+    [
+     65.0,
+     1.062
+    ],
+    [
+     70.0,
+     0.944
+    ],
+    [
+     75.0,
+     0.842
+    ],
+    [
+     80.0,
+     0.758
+    ],
+    [
+     85.0,
+     0.683
+    ],
+    [
+     90.0,
+     0.603
+    ]
+   ],
+   "uncertainty": [
+    null,
+    null,
+    null,
+    0.02,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.02
+   ],
+   "beta_where_curve_crosses_top_Gamma5": 27.16,
+   "implied_offaxis_knots": [
+    [
+     25.0,
+     5.96,
+     "segment 25-30 deg visible from beta=27.2; value from extrapolating that segment, +-0.15"
+    ]
+   ],
+   "direct_column_readings_crosscheck": [
+    [
+     25.0,
+     null
+    ],
+    [
+     30.0,
+     3.773
+    ],
+    [
+     35.0,
+     2.757
+    ],
+    [
+     40.0,
+     2.215
+    ],
+    [
+     45.0,
+     1.839
+    ],
+    [
+     50.0,
+     1.573
+    ],
+    [
+     55.0,
+     1.364
+    ],
+    [
+     60.0,
+     1.198
+    ],
+    [
+     65.0,
+     1.062
+    ],
+    [
+     70.0,
+     0.946
+    ],
+    [
+     75.0,
+     0.842
+    ],
+    [
+     80.0,
+     0.759
+    ],
+    [
+     85.0,
+     0.681
+    ],
+    [
+     90.0,
+     null
+    ]
+   ],
+   "fit_rms_px": 0.241,
+   "n_centreline_points": 597
+  },
+  {
+   "panel": "alpha = 5",
+   "alpha": 5,
+   "name": "Seepage Forces K . v'_opt",
+   "style": "dashed black line",
+   "points": [
+    [
+     15.0,
+     null
+    ],
+    [
+     20.0,
+     null
+    ],
+    [
+     25.0,
+     null
+    ],
+    [
+     30.0,
+     null
+    ],
+    [
+     35.0,
+     4.187
+    ],
+    [
+     40.0,
+     3.204
+    ],
+    [
+     45.0,
+     2.653
+    ],
+    [
+     50.0,
+     2.269
+    ],
+    [
+     55.0,
+     1.998
+    ],
+    [
+     60.0,
+     1.765
+    ],
+    [
+     65.0,
+     1.573
+    ],
+    [
+     70.0,
+     1.384
+    ],
+    [
+     75.0,
+     1.208
+    ],
+    [
+     80.0,
+     1.039
+    ],
+    [
+     85.0,
+     0.883
+    ],
+    [
+     90.0,
+     0.734
+    ]
+   ],
+   "uncertainty": [
+    null,
+    null,
+    null,
+    null,
+    0.02,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.02
+   ],
+   "beta_where_curve_crosses_top_Gamma5": 33.32,
+   "implied_offaxis_knots": [],
+   "direct_column_readings_crosscheck": [
+    [
+     30.0,
+     null
+    ],
+    [
+     35.0,
+     4.206
+    ],
+    [
+     40.0,
+     3.231
+    ],
+    [
+     45.0,
+     2.657
+    ],
+    [
+     50.0,
+     2.281
+    ],
+    [
+     55.0,
+     2.002
+    ],
+    [
+     60.0,
+     null
+    ],
+    [
+     65.0,
+     1.573
+    ],
+    [
+     70.0,
+     1.384
+    ],
+    [
+     75.0,
+     1.208
+    ],
+    [
+     80.0,
+     1.038
+    ],
+    [
+     85.0,
+     null
+    ],
+    [
+     90.0,
+     null
+    ]
+   ],
+   "fit_rms_px": 0.122,
+   "n_centreline_points": 257
+  },
+  {
+   "panel": "alpha = 10",
+   "alpha": 10,
+   "name": "Seepage Forces -grad u'_FE",
+   "style": "solid black line",
+   "points": [
+    [
+     15.0,
+     null
+    ],
+    [
+     20.0,
+     null
+    ],
+    [
+     25.0,
+     null
+    ],
+    [
+     30.0,
+     null
+    ],
+    [
+     35.0,
+     3.486
+    ],
+    [
+     40.0,
+     2.635
+    ],
+    [
+     45.0,
+     2.105
+    ],
+    [
+     50.0,
+     1.768
+    ],
+    [
+     55.0,
+     1.494
+    ],
+    [
+     60.0,
+     1.29
+    ],
+    [
+     65.0,
+     1.125
+    ],
+    [
+     70.0,
+     0.994
+    ],
+    [
+     75.0,
+     0.881
+    ],
+    [
+     80.0,
+     0.788
+    ],
+    [
+     85.0,
+     0.703
+    ],
+    [
+     90.0,
+     0.618
+    ]
+   ],
+   "uncertainty": [
+    null,
+    null,
+    null,
+    null,
+    0.02,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.02
+   ],
+   "beta_where_curve_crosses_top_Gamma5": 30.53,
+   "implied_offaxis_knots": [
+    [
+     30.0,
+     5.18,
+     "segment 30-35 deg visible from beta=30.5; value from extrapolating that segment, +-0.05"
+    ]
+   ],
+   "direct_column_readings_crosscheck": [
+    [
+     30.0,
+     null
+    ],
+    [
+     35.0,
+     3.503
+    ],
+    [
+     40.0,
+     2.642
+    ],
+    [
+     45.0,
+     2.112
+    ],
+    [
+     50.0,
+     1.771
+    ],
+    [
+     55.0,
+     1.497
+    ],
+    [
+     60.0,
+     1.292
+    ],
+    [
+     65.0,
+     1.127
+    ],
+    [
+     70.0,
+     0.994
+    ],
+    [
+     75.0,
+     0.881
+    ],
+    [
+     80.0,
+     0.788
+    ],
+    [
+     85.0,
+     0.703
+    ],
+    [
+     90.0,
+     null
+    ]
+   ],
+   "fit_rms_px": 0.229,
+   "n_centreline_points": 581
+  },
+  {
+   "panel": "alpha = 10",
+   "alpha": 10,
+   "name": "Seepage Forces K . v'_opt",
+   "style": "dashed black line",
+   "points": [
+    [
+     15.0,
+     null
+    ],
+    [
+     20.0,
+     null
+    ],
+    [
+     25.0,
+     null
+    ],
+    [
+     30.0,
+     null
+    ],
+    [
+     35.0,
+     4.851
+    ],
+    [
+     40.0,
+     3.544
+    ],
+    [
+     45.0,
+     2.867
+    ],
+    [
+     50.0,
+     2.418
+    ],
+    [
+     55.0,
+     2.094
+    ],
+    [
+     60.0,
+     1.823
+    ],
+    [
+     65.0,
+     1.599
+    ],
+    [
+     70.0,
+     1.395
+    ],
+    [
+     75.0,
+     1.216
+    ],
+    [
+     80.0,
+     1.054
+    ],
+    [
+     85.0,
+     0.913
+    ],
+    [
+     90.0,
+     0.773
+    ]
+   ],
+   "uncertainty": [
+    null,
+    null,
+    null,
+    null,
+    0.02,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.01,
+    0.03
+   ],
+   "beta_where_curve_crosses_top_Gamma5": 34.4,
+   "implied_offaxis_knots": [],
+   "direct_column_readings_crosscheck": [
+    [
+     35.0,
+     null
+    ],
+    [
+     40.0,
+     3.543
+    ],
+    [
+     45.0,
+     2.882
+    ],
+    [
+     50.0,
+     2.423
+    ],
+    [
+     55.0,
+     2.096
+    ],
+    [
+     60.0,
+     1.824
+    ],
+    [
+     65.0,
+     1.6
+    ],
+    [
+     70.0,
+     1.397
+    ],
+    [
+     75.0,
+     null
+    ],
+    [
+     80.0,
+     null
+    ],
+    [
+     85.0,
+     null
+    ],
+    [
+     90.0,
+     null
+    ]
+   ],
+   "fit_rms_px": 0.138,
+   "n_centreline_points": 253
+  }
+ ],
+ "notes": [
+  "Source: embedded raster image xref 269 (DeviceGray 1506x723 px, 300 ppi) on PDF page 13, extracted with doc.extract_image; placed at bbox (117.02, 295.97, 478.46, 469.49) pt.",
+  "Calibration per panel: axes spines (x: beta=15 and 90 deg; y: Gamma=0 and 5) located as darkness-weighted centroids, plus gray gridlines at beta=30,45,60,75 and Gamma=1..4; linear least-squares fit, max residual 0.25 px (x) and 0.42 px (y). Scale: 5.395 px/deg, 87.63 px per unit Gamma (1 px = 0.0114 Gamma).",
+  "Curve separation: pixels darker than 128 inside the axes (label boxes masked). The solid line is the single large connected component and is always the lowest run in a column / leftmost run in a row; dashes are the separate small components. In panel alpha=1 the last dashes (beta>83.8) touch the solid line: there the solid centre was taken from the bottom edge and the dashed centre from the top edge (minus/plus half the local run height).",
+  "Centre-line points: column scans where the line is shallow (run height < 2 line widths) and row scans where it is steep; dash ends (5 px) excluded. Line width ~7.0 px.",
+  "Values reported are from a piecewise-linear least-squares fit (perpendicular distance, soft-L1) with knots every 5 deg (15,20,...,90). The plotted curves are evidently polylines through data at 5-deg steps: fit RMS 0.12-0.24 px for all 6 curves; 2.5-deg knots do not improve the fit materially, 10-deg knots fail (RMS 3-13 px). Hence the values at beta=15,20,...,90 are the vertices of the plotted polylines.",
+  "Sensitivity of the knot values to the darkness threshold (96/128/160) and to the dash-end margin (3/5/8 px): <= 0.002 for in-axis knots except beta=90 (<= 0.004).",
+  "Reading uncertainty (per point in 'uncertainty'): +-0.01 Gamma (about 1 px) typically; +-0.02 for the first in-axis vertex just below the top of the axis (steep kink), for beta=90 (extrapolated about 1 deg under the right spine) and for the alpha=1 dashed curve at 85-90 deg (merged with solid line); +-0.03 for the alpha=10 dashed value at 90 deg (only a short final dash 86-89 deg).",
+  "null = curve above the top of the axis (Gamma > 5) or no curve (beta=15, 20). The 'implied_offaxis_knots' are extrapolations of the first visible segment to the previous 5-deg knot (assuming the 5-deg polyline model); they are NOT read from the figure and are rough. alpha=10 dashed at 30 deg is not given (only 14% of that segment visible).",
+  "'beta_where_curve_crosses_top_Gamma5' is where the fitted polyline leaves the top of the axis (for alpha=10 dashed it is read from the small top dash piece, ~34.4 deg, +-0.3).",
+  "'direct_column_readings_crosscheck' are model-free local readings at the knot columns (local linear fit to centre-line points within +-2.5 px, null in dash gaps); they agree with the polyline vertices within 0.00-0.03 except at sharp kinks near the top (alpha=1 solid 25 deg: 3.425 vs 3.374) where the local fit straddles the kink and is biased.",
+  "Ordering check: for every beta and alpha the dashed (K.v'_opt) curve is above the solid (-grad u'_FE) one, and both increase with alpha, consistent with the paper's text."
+ ],
+ "calibration": [
+  {
+   "panel": "alpha = 1",
+   "x_px_per_deg": 5.3951,
+   "x_px_at_0": 28.85,
+   "y_px_per_unit": -87.6282,
+   "y_px_at_0": 451.35,
+   "max_resid_px": [
+    0.23,
+    0.41
+   ]
+  },
+  {
+   "panel": "alpha = 5",
+   "x_px_per_deg": 5.3966,
+   "x_px_at_0": 514.58,
+   "y_px_per_unit": -87.6289,
+   "y_px_at_0": 451.35,
+   "max_resid_px": [
+    0.25,
+    0.41
+   ]
+  },
+  {
+   "panel": "alpha = 10",
+   "x_px_per_deg": 5.3947,
+   "x_px_at_0": 999.83,
+   "y_px_per_unit": -87.6282,
+   "y_px_at_0": 451.35,
+   "max_resid_px": [
+    0.2,
+    0.42
+   ]
+  }
+ ]
+}

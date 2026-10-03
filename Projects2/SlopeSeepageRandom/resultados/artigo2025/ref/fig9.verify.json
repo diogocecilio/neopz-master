@@ -1,0 +1,1064 @@
+{
+ "figure": "Figure 9 (p13): Effect of the anisotropy coefficient on the stability factor",
+ "file_checked": "/tmp/claude-0/-home-user/d71779f6-8026-5774-a668-fbfa8d772f4e/scratchpad/ref/fig9.json",
+ "verdict": "OK - accurate within the 5% raster tolerance (max relative difference 1.0%, 76/76 non-null points independently re-read)",
+ "ok": true,
+ "max_rel_error": 0.01,
+ "worst_point": {
+  "alpha": 5,
+  "series": "solid -grad u'_FE",
+  "beta": 90,
+  "verifier": 0.609,
+  "ref": 0.603,
+  "comment": "beta=90 is an extrapolation under the right spine in both readings; the ref states +-0.02 there"
+ },
+ "checked_points": 76,
+ "independent_method": [
+  "Raster re-extracted independently from the PDF (xref 269, DeviceGray 1506x723, placed at bbox 117.02,295.97,478.46,469.49 pt on page 13).",
+  "Calibration re-derived from the OUTWARD TICK MARKS (darkness-weighted centroids of the tick stubs below the x axis and left of each panel's y axis), not from spines/gridlines as the extractor did. x ticks (raster px) alpha=1: 109.96,190.92,271.87,352.79,433.73,514.52; alpha=5: 595.32..1000.03; alpha=10: 1080.94..1485.31 for beta=15,30,...,90 -> 5.3946/5.3961/5.3919 px/deg, max residual 0.014 deg. y ticks: 13.32,100.87,188.50,276.19,363.68,451.35 for Gamma=5..0 -> 87.608 px per unit Gamma, max residual 0.0008. Both axes linear (equal tick spacing), units degrees and dimensionless. Agrees with the extractor's 5.395 px/deg and 87.63 px/Gamma.",
+  "Solid curves: sub-pixel run mid-points (threshold 128, linear edge interpolation) by columns where shallow and by rows where steep; at each knot beta0 two INDEPENDENT one-sided straight-line fits over [beta0-4.5,beta0-0.7] and [beta0+0.7,beta0+4.5] deg are evaluated at beta0 (no global piecewise model). Left and right extrapolations agree to <=0.005 at nearly all knots, which independently confirms that the plotted polylines have vertices at the 5-deg values.",
+  "Dashed curves: each dash isolated as a connected component; end caps trimmed by t*sin(theta)+2 px using the dash's PCA axis; one-sided line fits as above (windows [beta0-4.9,beta0-0.6] / [beta0+0.6,beta0+4.9]). Additionally, for dashes lying entirely within one 5-deg interval, the dash centroid + principal axis was extended to the knot (another independent estimate; agrees within 0.02).",
+  "alpha=1, beta>83.8 (dashed touches solid): solid centre from the merged run's lower edge minus half the nominal solid run height (7.03 px), dashed centre from the upper edge plus half the nominal dashed run height; segment fits extrapolated to 85 and 90.",
+  "Crossing of Gamma=5 re-measured from row mid-points near the top: 22.41, 26.57, 27.21, 33.51, 30.46, 34.81 deg (ref 22.46, 26.46, 27.2, 33.3, 30.5, ~34.4; dashed crossings differ by 0.1-0.4 deg because only a short top dash fragment exists, as the ref says)."
+ ],
+ "series_identification": "Confirmed from the legend inside the raster: solid line = 'Seepage Forces -grad u'_FE', dashed line = 'Seepage Forces K . v'_opt' (legend prints K double-underlined . v'_opt; the body text writes the approximation as -grad u ~ K^-1 . v'_opt - the ref uses the legend wording, which is correct for labelling). Panels alpha=1,5,10 left to right confirmed from the in-panel boxes. Dashed above solid everywhere and both increase with alpha, consistent with the text (p13: higher alpha -> higher stability factors).",
+ "nulls_checked": "All null entries are correct: no curve inside the axes at beta=15,20 (except alpha=1 solid which enters at 22.4 deg, so 20 is null); alpha=1 dashed 25, alpha=5 solid 25, alpha=5 dashed 30, alpha=10 solid 30 (crossing at 30.46 deg -> Gamma(30)~5.17>5) and alpha=10 dashed 30 are above Gamma=5.",
+ "offaxis_extrapolations_check": "Verifier extrapolations of the first visible segment: alpha=1 solid beta=20 -> 6.49-6.53 (ref 6.58), alpha=1 dashed 25 -> 5.53-5.58 (ref 5.62), alpha=5 solid 25 -> 5.91-5.97 (ref 5.96), alpha=10 solid 30 -> 5.17 (ref 5.18). Consistent within the ref's stated +-0.15; these are not readings and should not be used as data.",
+ "problems": [],
+ "minor_observations": [
+  "beta=90 values (all six curves) are necessarily extrapolated ~1 deg under the right spine; verifier differences there are 0.000-0.006 (<=1.0%), within the ref's +-0.02/0.03.",
+  "alpha=1 dashed at 85 deg: the two one-sided edge-based estimates are 0.675 and 0.665 (ref 0.673); the merge with the solid line limits precision to about +-0.01, as the ref states.",
+  "alpha=10 dashed at 55 deg could only be checked from the right side over 0.74 deg of trimmed dash (2.082 vs ref 2.094, 0.6%)."
+ ],
+ "corrections": "none needed",
+ "comparison": [
+  {
+   "alpha": 1,
+   "series": "dashed",
+   "beta": 30,
+   "verifier": 3.492,
+   "detail": {
+    "L": 3.502,
+    "R": 3.483
+   },
+   "ref": 3.493,
+   "abs_diff": -0.0005,
+   "rel_err": 0.0001
+  },
+  {
+   "alpha": 1,
+   "series": "dashed",
+   "beta": 35,
+   "verifier": 2.639,
+   "detail": {
+    "L": 2.638,
+    "R": 2.64
+   },
+   "ref": 2.642,
+   "abs_diff": -0.003,
+   "rel_err": 0.0011
+  },
+  {
+   "alpha": 1,
+   "series": "dashed",
+   "beta": 40,
+   "verifier": 2.171,
+   "detail": {
+    "L": 2.173,
+    "R": 2.169
+   },
+   "ref": 2.174,
+   "abs_diff": -0.003,
+   "rel_err": 0.0014
+  },
+  {
+   "alpha": 1,
+   "series": "dashed",
+   "beta": 45,
+   "verifier": 1.889,
+   "detail": {
+    "L": 1.889,
+    "R": 1.888
+   },
+   "ref": 1.889,
+   "abs_diff": -0.0005,
+   "rel_err": 0.0003
+  },
+  {
+   "alpha": 1,
+   "series": "dashed",
+   "beta": 50,
+   "verifier": 1.679,
+   "detail": {
+    "L": 1.679,
+    "R": 1.679
+   },
+   "ref": 1.681,
+   "abs_diff": -0.002,
+   "rel_err": 0.0012
+  },
+  {
+   "alpha": 1,
+   "series": "dashed",
+   "beta": 55,
+   "verifier": 1.541,
+   "detail": {
+    "L": 1.541,
+    "R": 1.541
+   },
+   "ref": 1.542,
+   "abs_diff": -0.001,
+   "rel_err": 0.0006
+  },
+  {
+   "alpha": 1,
+   "series": "dashed",
+   "beta": 60,
+   "verifier": 1.419,
+   "detail": {
+    "L": 1.419,
+    "R": 1.42
+   },
+   "ref": 1.42,
+   "abs_diff": -0.0005,
+   "rel_err": 0.0004
+  },
+  {
+   "alpha": 1,
+   "series": "dashed",
+   "beta": 65,
+   "verifier": 1.313,
+   "detail": {
+    "L": 1.312,
+    "R": 1.314
+   },
+   "ref": 1.315,
+   "abs_diff": -0.002,
+   "rel_err": 0.0015
+  },
+  {
+   "alpha": 1,
+   "series": "dashed",
+   "beta": 70,
+   "verifier": 1.192,
+   "detail": {
+    "L": 1.192,
+    "R": 1.192
+   },
+   "ref": 1.193,
+   "abs_diff": -0.001,
+   "rel_err": 0.0008
+  },
+  {
+   "alpha": 1,
+   "series": "dashed",
+   "beta": 75,
+   "verifier": 1.022,
+   "detail": {
+    "L": 1.021,
+    "R": 1.023
+   },
+   "ref": 1.021,
+   "abs_diff": 0.001,
+   "rel_err": 0.001
+  },
+  {
+   "alpha": 1,
+   "series": "dashed",
+   "beta": 80,
+   "verifier": 0.793,
+   "detail": {
+    "L": 0.792,
+    "edge": 0.794
+   },
+   "ref": 0.797,
+   "abs_diff": -0.004,
+   "rel_err": 0.005
+  },
+  {
+   "alpha": 1,
+   "series": "dashed",
+   "beta": 85,
+   "verifier": 0.67,
+   "detail": {
+    "edgeL": 0.675,
+    "edgeR": 0.665
+   },
+   "ref": 0.673,
+   "abs_diff": -0.003,
+   "rel_err": 0.0045
+  },
+  {
+   "alpha": 1,
+   "series": "dashed",
+   "beta": 90,
+   "verifier": 0.598,
+   "detail": {
+    "edge": 0.598
+   },
+   "ref": 0.598,
+   "abs_diff": 0.0,
+   "rel_err": 0.0
+  },
+  {
+   "alpha": 1,
+   "series": "solid",
+   "beta": 20,
+   "verifier": 6.534,
+   "ref": null,
+   "note": "ref null (curve above Gamma=5); verifier value is an off-axis extrapolation, not compared"
+  },
+  {
+   "alpha": 1,
+   "series": "solid",
+   "beta": 25,
+   "verifier": 3.359,
+   "detail": {
+    "L": 3.358,
+    "R": 3.359
+   },
+   "ref": 3.374,
+   "abs_diff": -0.0155,
+   "rel_err": 0.0046
+  },
+  {
+   "alpha": 1,
+   "series": "solid",
+   "beta": 30,
+   "verifier": 2.322,
+   "detail": {
+    "L": 2.325,
+    "R": 2.32
+   },
+   "ref": 2.326,
+   "abs_diff": -0.0035,
+   "rel_err": 0.0015
+  },
+  {
+   "alpha": 1,
+   "series": "solid",
+   "beta": 35,
+   "verifier": 1.809,
+   "detail": {
+    "L": 1.81,
+    "R": 1.808
+   },
+   "ref": 1.812,
+   "abs_diff": -0.003,
+   "rel_err": 0.0017
+  },
+  {
+   "alpha": 1,
+   "series": "solid",
+   "beta": 40,
+   "verifier": 1.512,
+   "detail": {
+    "L": 1.512,
+    "R": 1.513
+   },
+   "ref": 1.515,
+   "abs_diff": -0.0025,
+   "rel_err": 0.0017
+  },
+  {
+   "alpha": 1,
+   "series": "solid",
+   "beta": 45,
+   "verifier": 1.312,
+   "detail": {
+    "L": 1.312,
+    "R": 1.312
+   },
+   "ref": 1.314,
+   "abs_diff": -0.002,
+   "rel_err": 0.0015
+  },
+  {
+   "alpha": 1,
+   "series": "solid",
+   "beta": 50,
+   "verifier": 1.168,
+   "detail": {
+    "L": 1.168,
+    "R": 1.168
+   },
+   "ref": 1.169,
+   "abs_diff": -0.001,
+   "rel_err": 0.0009
+  },
+  {
+   "alpha": 1,
+   "series": "solid",
+   "beta": 55,
+   "verifier": 1.047,
+   "detail": {
+    "L": 1.048,
+    "R": 1.046
+   },
+   "ref": 1.048,
+   "abs_diff": -0.001,
+   "rel_err": 0.001
+  },
+  {
+   "alpha": 1,
+   "series": "solid",
+   "beta": 60,
+   "verifier": 0.956,
+   "detail": {
+    "L": 0.956,
+    "R": 0.956
+   },
+   "ref": 0.956,
+   "abs_diff": 0.0,
+   "rel_err": 0.0
+  },
+  {
+   "alpha": 1,
+   "series": "solid",
+   "beta": 65,
+   "verifier": 0.865,
+   "detail": {
+    "L": 0.865,
+    "R": 0.866
+   },
+   "ref": 0.867,
+   "abs_diff": -0.0015,
+   "rel_err": 0.0017
+  },
+  {
+   "alpha": 1,
+   "series": "solid",
+   "beta": 70,
+   "verifier": 0.79,
+   "detail": {
+    "L": 0.79,
+    "R": 0.79
+   },
+   "ref": 0.791,
+   "abs_diff": -0.001,
+   "rel_err": 0.0013
+  },
+  {
+   "alpha": 1,
+   "series": "solid",
+   "beta": 75,
+   "verifier": 0.72,
+   "detail": {
+    "L": 0.72,
+    "R": 0.721
+   },
+   "ref": 0.72,
+   "abs_diff": 0.0005,
+   "rel_err": 0.0007
+  },
+  {
+   "alpha": 1,
+   "series": "solid",
+   "beta": 80,
+   "verifier": 0.659,
+   "detail": {
+    "L": 0.659
+   },
+   "ref": 0.66,
+   "abs_diff": -0.001,
+   "rel_err": 0.0015
+  },
+  {
+   "alpha": 1,
+   "series": "solid",
+   "beta": 85,
+   "verifier": 0.601,
+   "detail": {
+    "edge": 0.601
+   },
+   "ref": 0.604,
+   "abs_diff": -0.003,
+   "rel_err": 0.005
+  },
+  {
+   "alpha": 1,
+   "series": "solid",
+   "beta": 90,
+   "verifier": 0.555,
+   "detail": {
+    "edge": 0.555
+   },
+   "ref": 0.554,
+   "abs_diff": 0.001,
+   "rel_err": 0.0018
+  },
+  {
+   "alpha": 5,
+   "series": "dashed",
+   "beta": 30,
+   "verifier": 6.678,
+   "ref": null,
+   "note": "ref null (curve above Gamma=5); verifier value is an off-axis extrapolation, not compared"
+  },
+  {
+   "alpha": 5,
+   "series": "dashed",
+   "beta": 35,
+   "verifier": 4.198,
+   "detail": {
+    "R": 4.198
+   },
+   "ref": 4.187,
+   "abs_diff": 0.011,
+   "rel_err": 0.0026
+  },
+  {
+   "alpha": 5,
+   "series": "dashed",
+   "beta": 40,
+   "verifier": 3.212,
+   "detail": {
+    "L": 3.212,
+    "R": 3.211
+   },
+   "ref": 3.204,
+   "abs_diff": 0.0075,
+   "rel_err": 0.0023
+  },
+  {
+   "alpha": 5,
+   "series": "dashed",
+   "beta": 45,
+   "verifier": 2.659,
+   "detail": {
+    "L": 2.659,
+    "R": 2.659
+   },
+   "ref": 2.653,
+   "abs_diff": 0.006,
+   "rel_err": 0.0023
+  },
+  {
+   "alpha": 5,
+   "series": "dashed",
+   "beta": 50,
+   "verifier": 2.274,
+   "detail": {
+    "L": 2.271,
+    "R": 2.278
+   },
+   "ref": 2.269,
+   "abs_diff": 0.0055,
+   "rel_err": 0.0024
+  },
+  {
+   "alpha": 5,
+   "series": "dashed",
+   "beta": 55,
+   "verifier": 1.999,
+   "detail": {
+    "L": 1.998,
+    "R": 2.001
+   },
+   "ref": 1.998,
+   "abs_diff": 0.0015,
+   "rel_err": 0.0008
+  },
+  {
+   "alpha": 5,
+   "series": "dashed",
+   "beta": 60,
+   "verifier": 1.768,
+   "detail": {
+    "L": 1.768,
+    "R": 1.768
+   },
+   "ref": 1.765,
+   "abs_diff": 0.003,
+   "rel_err": 0.0017
+  },
+  {
+   "alpha": 5,
+   "series": "dashed",
+   "beta": 65,
+   "verifier": 1.573,
+   "detail": {
+    "L": 1.575,
+    "R": 1.571
+   },
+   "ref": 1.573,
+   "abs_diff": 0.0,
+   "rel_err": 0.0
+  },
+  {
+   "alpha": 5,
+   "series": "dashed",
+   "beta": 70,
+   "verifier": 1.381,
+   "detail": {
+    "L": 1.385,
+    "R": 1.378
+   },
+   "ref": 1.384,
+   "abs_diff": -0.0025,
+   "rel_err": 0.0018
+  },
+  {
+   "alpha": 5,
+   "series": "dashed",
+   "beta": 75,
+   "verifier": 1.209,
+   "detail": {
+    "L": 1.209,
+    "R": 1.209
+   },
+   "ref": 1.208,
+   "abs_diff": 0.001,
+   "rel_err": 0.0008
+  },
+  {
+   "alpha": 5,
+   "series": "dashed",
+   "beta": 80,
+   "verifier": 1.038,
+   "detail": {
+    "L": 1.037,
+    "R": 1.04
+   },
+   "ref": 1.039,
+   "abs_diff": -0.0005,
+   "rel_err": 0.0005
+  },
+  {
+   "alpha": 5,
+   "series": "dashed",
+   "beta": 85,
+   "verifier": 0.887,
+   "detail": {
+    "L": 0.889,
+    "R": 0.885
+   },
+   "ref": 0.883,
+   "abs_diff": 0.004,
+   "rel_err": 0.0045
+  },
+  {
+   "alpha": 5,
+   "series": "dashed",
+   "beta": 90,
+   "verifier": 0.735,
+   "detail": {
+    "L": 0.735
+   },
+   "ref": 0.734,
+   "abs_diff": 0.001,
+   "rel_err": 0.0014
+  },
+  {
+   "alpha": 5,
+   "series": "solid",
+   "beta": 25,
+   "verifier": 5.967,
+   "ref": null,
+   "note": "ref null (curve above Gamma=5); verifier value is an off-axis extrapolation, not compared"
+  },
+  {
+   "alpha": 5,
+   "series": "solid",
+   "beta": 30,
+   "verifier": 3.764,
+   "detail": {
+    "L": 3.774,
+    "R": 3.754
+   },
+   "ref": 3.745,
+   "abs_diff": 0.019,
+   "rel_err": 0.0051
+  },
+  {
+   "alpha": 5,
+   "series": "solid",
+   "beta": 35,
+   "verifier": 2.754,
+   "detail": {
+    "L": 2.756,
+    "R": 2.752
+   },
+   "ref": 2.746,
+   "abs_diff": 0.008,
+   "rel_err": 0.0029
+  },
+  {
+   "alpha": 5,
+   "series": "solid",
+   "beta": 40,
+   "verifier": 2.213,
+   "detail": {
+    "L": 2.213,
+    "R": 2.212
+   },
+   "ref": 2.209,
+   "abs_diff": 0.0035,
+   "rel_err": 0.0016
+  },
+  {
+   "alpha": 5,
+   "series": "solid",
+   "beta": 45,
+   "verifier": 1.837,
+   "detail": {
+    "L": 1.839,
+    "R": 1.836
+   },
+   "ref": 1.835,
+   "abs_diff": 0.0025,
+   "rel_err": 0.0014
+  },
+  {
+   "alpha": 5,
+   "series": "solid",
+   "beta": 50,
+   "verifier": 1.572,
+   "detail": {
+    "L": 1.572,
+    "R": 1.572
+   },
+   "ref": 1.57,
+   "abs_diff": 0.002,
+   "rel_err": 0.0013
+  },
+  {
+   "alpha": 5,
+   "series": "solid",
+   "beta": 55,
+   "verifier": 1.365,
+   "detail": {
+    "L": 1.365,
+    "R": 1.365
+   },
+   "ref": 1.363,
+   "abs_diff": 0.002,
+   "rel_err": 0.0015
+  },
+  {
+   "alpha": 5,
+   "series": "solid",
+   "beta": 60,
+   "verifier": 1.198,
+   "detail": {
+    "L": 1.198,
+    "R": 1.198
+   },
+   "ref": 1.197,
+   "abs_diff": 0.001,
+   "rel_err": 0.0008
+  },
+  {
+   "alpha": 5,
+   "series": "solid",
+   "beta": 65,
+   "verifier": 1.062,
+   "detail": {
+    "L": 1.064,
+    "R": 1.061
+   },
+   "ref": 1.062,
+   "abs_diff": 0.0005,
+   "rel_err": 0.0005
+  },
+  {
+   "alpha": 5,
+   "series": "solid",
+   "beta": 70,
+   "verifier": 0.945,
+   "detail": {
+    "L": 0.946,
+    "R": 0.944
+   },
+   "ref": 0.944,
+   "abs_diff": 0.001,
+   "rel_err": 0.0011
+  },
+  {
+   "alpha": 5,
+   "series": "solid",
+   "beta": 75,
+   "verifier": 0.843,
+   "detail": {
+    "L": 0.843,
+    "R": 0.843
+   },
+   "ref": 0.842,
+   "abs_diff": 0.001,
+   "rel_err": 0.0012
+  },
+  {
+   "alpha": 5,
+   "series": "solid",
+   "beta": 80,
+   "verifier": 0.758,
+   "detail": {
+    "L": 0.758,
+    "R": 0.758
+   },
+   "ref": 0.758,
+   "abs_diff": 0.0,
+   "rel_err": 0.0
+  },
+  {
+   "alpha": 5,
+   "series": "solid",
+   "beta": 85,
+   "verifier": 0.683,
+   "detail": {
+    "L": 0.683,
+    "R": 0.683
+   },
+   "ref": 0.683,
+   "abs_diff": 0.0,
+   "rel_err": 0.0
+  },
+  {
+   "alpha": 5,
+   "series": "solid",
+   "beta": 90,
+   "verifier": 0.609,
+   "detail": {
+    "L": 0.609
+   },
+   "ref": 0.603,
+   "abs_diff": 0.006,
+   "rel_err": 0.01
+  },
+  {
+   "alpha": 10,
+   "series": "dashed",
+   "beta": 35,
+   "verifier": 4.843,
+   "detail": {
+    "R": 4.843
+   },
+   "ref": 4.851,
+   "abs_diff": -0.008,
+   "rel_err": 0.0016
+  },
+  {
+   "alpha": 10,
+   "series": "dashed",
+   "beta": 40,
+   "verifier": 3.54,
+   "detail": {
+    "L": 3.539,
+    "R": 3.54
+   },
+   "ref": 3.544,
+   "abs_diff": -0.0045,
+   "rel_err": 0.0013
+  },
+  {
+   "alpha": 10,
+   "series": "dashed",
+   "beta": 45,
+   "verifier": 2.866,
+   "detail": {
+    "L": 2.866
+   },
+   "ref": 2.867,
+   "abs_diff": -0.001,
+   "rel_err": 0.0003
+  },
+  {
+   "alpha": 10,
+   "series": "dashed",
+   "beta": 50,
+   "verifier": 2.415,
+   "detail": {
+    "R": 2.415
+   },
+   "ref": 2.418,
+   "abs_diff": -0.003,
+   "rel_err": 0.0012
+  },
+  {
+   "alpha": 10,
+   "series": "dashed",
+   "beta": 55,
+   "verifier": 2.082,
+   "detail": {
+    "R": 2.082
+   },
+   "ref": 2.094,
+   "abs_diff": -0.012,
+   "rel_err": 0.0057
+  },
+  {
+   "alpha": 10,
+   "series": "dashed",
+   "beta": 60,
+   "verifier": 1.819,
+   "detail": {
+    "L": 1.819,
+    "R": 1.818
+   },
+   "ref": 1.823,
+   "abs_diff": -0.0045,
+   "rel_err": 0.0025
+  },
+  {
+   "alpha": 10,
+   "series": "dashed",
+   "beta": 65,
+   "verifier": 1.597,
+   "detail": {
+    "L": 1.596,
+    "R": 1.598
+   },
+   "ref": 1.599,
+   "abs_diff": -0.002,
+   "rel_err": 0.0013
+  },
+  {
+   "alpha": 10,
+   "series": "dashed",
+   "beta": 70,
+   "verifier": 1.397,
+   "detail": {
+    "L": 1.398,
+    "R": 1.395
+   },
+   "ref": 1.395,
+   "abs_diff": 0.0015,
+   "rel_err": 0.0011
+  },
+  {
+   "alpha": 10,
+   "series": "dashed",
+   "beta": 75,
+   "verifier": 1.216,
+   "detail": {
+    "L": 1.217,
+    "R": 1.215
+   },
+   "ref": 1.216,
+   "abs_diff": 0.0,
+   "rel_err": 0.0
+  },
+  {
+   "alpha": 10,
+   "series": "dashed",
+   "beta": 80,
+   "verifier": 1.054,
+   "detail": {
+    "L": 1.054,
+    "R": 1.053
+   },
+   "ref": 1.054,
+   "abs_diff": -0.0005,
+   "rel_err": 0.0005
+  },
+  {
+   "alpha": 10,
+   "series": "dashed",
+   "beta": 85,
+   "verifier": 0.911,
+   "detail": {
+    "L": 0.913,
+    "R": 0.909
+   },
+   "ref": 0.913,
+   "abs_diff": -0.002,
+   "rel_err": 0.0022
+  },
+  {
+   "alpha": 10,
+   "series": "dashed",
+   "beta": 90,
+   "verifier": 0.779,
+   "detail": {
+    "L": 0.779
+   },
+   "ref": 0.773,
+   "abs_diff": 0.006,
+   "rel_err": 0.0078
+  },
+  {
+   "alpha": 10,
+   "series": "solid",
+   "beta": 30,
+   "verifier": 5.168,
+   "ref": null,
+   "note": "ref null (curve above Gamma=5); verifier value is an off-axis extrapolation, not compared"
+  },
+  {
+   "alpha": 10,
+   "series": "solid",
+   "beta": 35,
+   "verifier": 3.479,
+   "detail": {
+    "L": 3.48,
+    "R": 3.478
+   },
+   "ref": 3.486,
+   "abs_diff": -0.007,
+   "rel_err": 0.002
+  },
+  {
+   "alpha": 10,
+   "series": "solid",
+   "beta": 40,
+   "verifier": 2.631,
+   "detail": {
+    "L": 2.632,
+    "R": 2.631
+   },
+   "ref": 2.635,
+   "abs_diff": -0.0035,
+   "rel_err": 0.0013
+  },
+  {
+   "alpha": 10,
+   "series": "solid",
+   "beta": 45,
+   "verifier": 2.102,
+   "detail": {
+    "L": 2.103,
+    "R": 2.1
+   },
+   "ref": 2.105,
+   "abs_diff": -0.0035,
+   "rel_err": 0.0017
+  },
+  {
+   "alpha": 10,
+   "series": "solid",
+   "beta": 50,
+   "verifier": 1.766,
+   "detail": {
+    "L": 1.767,
+    "R": 1.766
+   },
+   "ref": 1.768,
+   "abs_diff": -0.0015,
+   "rel_err": 0.0008
+  },
+  {
+   "alpha": 10,
+   "series": "solid",
+   "beta": 55,
+   "verifier": 1.493,
+   "detail": {
+    "L": 1.493,
+    "R": 1.492
+   },
+   "ref": 1.494,
+   "abs_diff": -0.0015,
+   "rel_err": 0.001
+  },
+  {
+   "alpha": 10,
+   "series": "solid",
+   "beta": 60,
+   "verifier": 1.289,
+   "detail": {
+    "L": 1.289,
+    "R": 1.289
+   },
+   "ref": 1.29,
+   "abs_diff": -0.001,
+   "rel_err": 0.0008
+  },
+  {
+   "alpha": 10,
+   "series": "solid",
+   "beta": 65,
+   "verifier": 1.126,
+   "detail": {
+    "L": 1.126,
+    "R": 1.126
+   },
+   "ref": 1.125,
+   "abs_diff": 0.001,
+   "rel_err": 0.0009
+  },
+  {
+   "alpha": 10,
+   "series": "solid",
+   "beta": 70,
+   "verifier": 0.994,
+   "detail": {
+    "L": 0.992,
+    "R": 0.996
+   },
+   "ref": 0.994,
+   "abs_diff": 0.0,
+   "rel_err": 0.0
+  },
+  {
+   "alpha": 10,
+   "series": "solid",
+   "beta": 75,
+   "verifier": 0.88,
+   "detail": {
+    "L": 0.88,
+    "R": 0.88
+   },
+   "ref": 0.881,
+   "abs_diff": -0.001,
+   "rel_err": 0.0011
+  },
+  {
+   "alpha": 10,
+   "series": "solid",
+   "beta": 80,
+   "verifier": 0.788,
+   "detail": {
+    "L": 0.788,
+    "R": 0.788
+   },
+   "ref": 0.788,
+   "abs_diff": 0.0,
+   "rel_err": 0.0
+  },
+  {
+   "alpha": 10,
+   "series": "solid",
+   "beta": 85,
+   "verifier": 0.702,
+   "detail": {
+    "L": 0.702,
+    "R": 0.702
+   },
+   "ref": 0.703,
+   "abs_diff": -0.001,
+   "rel_err": 0.0014
+  },
+  {
+   "alpha": 10,
+   "series": "solid",
+   "beta": 90,
+   "verifier": 0.624,
+   "detail": {
+    "L": 0.624
+   },
+   "ref": 0.618,
+   "abs_diff": 0.006,
+   "rel_err": 0.0097
+  }
+ ],
+ "artifacts": {
+  "overlay_on_rendered_page": "v9/verify_overlay_page.png",
+  "zooms": [
+   "v9/verify_zoom_z1.png",
+   "v9/verify_zoom_z2.png",
+   "v9/verify_zoom_z3.png",
+   "v9/verify_zoom_z4.png",
+   "v9/verify_zoom_z5.png"
+  ],
+  "scripts": [
+   "v9/calib.py",
+   "v9/read.py",
+   "v9/solid2.py",
+   "v9/dashes.py",
+   "v9/dashcols.py",
+   "v9/dash2.py",
+   "v9/dashread.py",
+   "v9/compare.py",
+   "v9/overlay.py"
+  ]
+ }
+}

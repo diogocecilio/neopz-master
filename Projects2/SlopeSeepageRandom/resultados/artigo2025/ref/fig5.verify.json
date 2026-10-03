@@ -1,0 +1,1050 @@
+{
+ "figure": "Figure 5",
+ "file_checked": "fig5.json",
+ "verdict": "OK",
+ "tolerance": "2% relative (vector figure)",
+ "method": "Independent raster method: page 9 re-rendered at 720 dpi (grayscale, clip PDF (100,25)-(500,285)); axis calibration derived from tick-mark centroids detected in the raster (6 per axis, linear fit residual <=0.31 px = 0.03 pt); tick label values read visually from the rendered page; curve centres traced column-by-column as darkness-weighted centroids of dark runs (width 9-13 px), tracked by continuity across dash gaps and excluding columns where the annotation arrow merges with a curve; values at each 5-deg beta from a local quadratic fit over +-1.5 deg (one-sided at 15 and 90 deg).",
+ "checked_points": 128,
+ "max_rel_error_pct_at_5deg_points": 0.164,
+ "dense_comparison": "All traced columns (987-1453 per curve, beta 15.5-89.5) vs the extractor polylines: max |diff| 0.0019 (alpha=1), 0.0013 (alpha=2), 0.0010 (alpha=4), 0.0005 (alpha=10) in y units; max relative 0.38%; median offset -0.0001 to -0.0002 (anti-aliasing bias of the raster method).",
+ "series_identification": "Confirmed: in panel alpha=1 the J(u'_FE) annotation arrow points to the dashed upper curve and the -J*(v'_opt) arrow to the solid lower curve; consistent with the bound -J*(v'_opt) <= J(u) <= J(u'_FE) stated in the text. Other panels use the same styles.",
+ "axis_calibration": "Linear on both axes, confirmed. x ticks 15..90 deg step 15; y: alpha=1 0..1.0 step 0.2, alpha=2 0..0.70 step 0.14, alpha=4 0..0.5 step 0.1, alpha=10 0..0.30 step 0.06. Units: functional normalized by k_h H^2 gamma_w^2 (text p.9).",
+ "problems": [
+  "Not in the JSON file but in the extractor's text summary: the middle column labelled 'beta = 45 deg' actually lists the 40-deg values (e.g. alpha=1 J_FE 0.733 is the 40-deg value; the correct 45-deg value is 0.754 in the file and 0.753 by my tracing). The JSON resampled values at 45 deg are correct: alpha=1 0.7536/0.4928, alpha=2 0.5135/0.3399, alpha=4 0.3510/0.2115, alpha=10 0.2121/0.0999."
+ ],
+ "corrections": "None needed for fig5.json.",
+ "points": [
+  {
+   "panel": "alpha=1",
+   "curve": "J(u'_FE) dashed",
+   "beta": 15,
+   "verifier_raster": 0.5864,
+   "extractor": 0.5864,
+   "rel_diff_pct": 0.002
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "J(u'_FE) dashed",
+   "beta": 20,
+   "verifier_raster": 0.6255,
+   "extractor": 0.6256,
+   "rel_diff_pct": 0.021
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "J(u'_FE) dashed",
+   "beta": 25,
+   "verifier_raster": 0.6579,
+   "extractor": 0.6581,
+   "rel_diff_pct": 0.026
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "J(u'_FE) dashed",
+   "beta": 30,
+   "verifier_raster": 0.6857,
+   "extractor": 0.6861,
+   "rel_diff_pct": 0.054
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "J(u'_FE) dashed",
+   "beta": 35,
+   "verifier_raster": 0.7104,
+   "extractor": 0.7107,
+   "rel_diff_pct": 0.046
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "J(u'_FE) dashed",
+   "beta": 40,
+   "verifier_raster": 0.7328,
+   "extractor": 0.7329,
+   "rel_diff_pct": 0.02
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "J(u'_FE) dashed",
+   "beta": 45,
+   "verifier_raster": 0.7534,
+   "extractor": 0.7536,
+   "rel_diff_pct": 0.032
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "J(u'_FE) dashed",
+   "beta": 50,
+   "verifier_raster": 0.7728,
+   "extractor": 0.7728,
+   "rel_diff_pct": -0.001
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "J(u'_FE) dashed",
+   "beta": 55,
+   "verifier_raster": 0.7899,
+   "extractor": 0.7911,
+   "rel_diff_pct": 0.149
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "J(u'_FE) dashed",
+   "beta": 60,
+   "verifier_raster": 0.8072,
+   "extractor": 0.8085,
+   "rel_diff_pct": 0.159
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "J(u'_FE) dashed",
+   "beta": 65,
+   "verifier_raster": 0.8243,
+   "extractor": 0.8256,
+   "rel_diff_pct": 0.154
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "J(u'_FE) dashed",
+   "beta": 70,
+   "verifier_raster": 0.8415,
+   "extractor": 0.8421,
+   "rel_diff_pct": 0.072
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "J(u'_FE) dashed",
+   "beta": 75,
+   "verifier_raster": 0.8587,
+   "extractor": 0.859,
+   "rel_diff_pct": 0.04
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "J(u'_FE) dashed",
+   "beta": 80,
+   "verifier_raster": 0.8758,
+   "extractor": 0.8758,
+   "rel_diff_pct": -0.002
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "J(u'_FE) dashed",
+   "beta": 85,
+   "verifier_raster": 0.8928,
+   "extractor": 0.8927,
+   "rel_diff_pct": -0.01
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "J(u'_FE) dashed",
+   "beta": 90,
+   "verifier_raster": 0.9101,
+   "extractor": 0.9104,
+   "rel_diff_pct": 0.028
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 15,
+   "verifier_raster": 0.338,
+   "extractor": 0.3382,
+   "rel_diff_pct": 0.06
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 20,
+   "verifier_raster": 0.3751,
+   "extractor": 0.3754,
+   "rel_diff_pct": 0.075
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 25,
+   "verifier_raster": 0.406,
+   "extractor": 0.4062,
+   "rel_diff_pct": 0.056
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 30,
+   "verifier_raster": 0.4321,
+   "extractor": 0.4325,
+   "rel_diff_pct": 0.083
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 35,
+   "verifier_raster": 0.455,
+   "extractor": 0.4552,
+   "rel_diff_pct": 0.05
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 40,
+   "verifier_raster": 0.4749,
+   "extractor": 0.4752,
+   "rel_diff_pct": 0.061
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 45,
+   "verifier_raster": 0.4925,
+   "extractor": 0.4928,
+   "rel_diff_pct": 0.069
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 50,
+   "verifier_raster": 0.5081,
+   "extractor": 0.5084,
+   "rel_diff_pct": 0.056
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 55,
+   "verifier_raster": 0.5221,
+   "extractor": 0.5223,
+   "rel_diff_pct": 0.042
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 60,
+   "verifier_raster": 0.5346,
+   "extractor": 0.5347,
+   "rel_diff_pct": 0.016
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 65,
+   "verifier_raster": 0.5455,
+   "extractor": 0.5457,
+   "rel_diff_pct": 0.044
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 70,
+   "verifier_raster": 0.5553,
+   "extractor": 0.5556,
+   "rel_diff_pct": 0.052
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 75,
+   "verifier_raster": 0.5646,
+   "extractor": 0.5647,
+   "rel_diff_pct": 0.016
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 80,
+   "verifier_raster": 0.5736,
+   "extractor": 0.5738,
+   "rel_diff_pct": 0.037
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 85,
+   "verifier_raster": 0.5825,
+   "extractor": 0.5832,
+   "rel_diff_pct": 0.121
+  },
+  {
+   "panel": "alpha=1",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 90,
+   "verifier_raster": 0.5914,
+   "extractor": 0.5914,
+   "rel_diff_pct": 0.005
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "J(u'_FE) dashed",
+   "beta": 15,
+   "verifier_raster": 0.4025,
+   "extractor": 0.4025,
+   "rel_diff_pct": -0.001
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "J(u'_FE) dashed",
+   "beta": 20,
+   "verifier_raster": 0.4302,
+   "extractor": 0.4303,
+   "rel_diff_pct": 0.018
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "J(u'_FE) dashed",
+   "beta": 25,
+   "verifier_raster": 0.4524,
+   "extractor": 0.4526,
+   "rel_diff_pct": 0.046
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "J(u'_FE) dashed",
+   "beta": 30,
+   "verifier_raster": 0.471,
+   "extractor": 0.4712,
+   "rel_diff_pct": 0.034
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "J(u'_FE) dashed",
+   "beta": 35,
+   "verifier_raster": 0.4866,
+   "extractor": 0.4871,
+   "rel_diff_pct": 0.112
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "J(u'_FE) dashed",
+   "beta": 40,
+   "verifier_raster": 0.5009,
+   "extractor": 0.501,
+   "rel_diff_pct": 0.024
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "J(u'_FE) dashed",
+   "beta": 45,
+   "verifier_raster": 0.5135,
+   "extractor": 0.5135,
+   "rel_diff_pct": -0.0
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "J(u'_FE) dashed",
+   "beta": 50,
+   "verifier_raster": 0.5248,
+   "extractor": 0.5249,
+   "rel_diff_pct": 0.025
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "J(u'_FE) dashed",
+   "beta": 55,
+   "verifier_raster": 0.5347,
+   "extractor": 0.5353,
+   "rel_diff_pct": 0.111
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "J(u'_FE) dashed",
+   "beta": 60,
+   "verifier_raster": 0.5443,
+   "extractor": 0.5451,
+   "rel_diff_pct": 0.147
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "J(u'_FE) dashed",
+   "beta": 65,
+   "verifier_raster": 0.5538,
+   "extractor": 0.5544,
+   "rel_diff_pct": 0.101
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "J(u'_FE) dashed",
+   "beta": 70,
+   "verifier_raster": 0.5633,
+   "extractor": 0.5632,
+   "rel_diff_pct": -0.024
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "J(u'_FE) dashed",
+   "beta": 75,
+   "verifier_raster": 0.572,
+   "extractor": 0.572,
+   "rel_diff_pct": -0.0
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "J(u'_FE) dashed",
+   "beta": 80,
+   "verifier_raster": 0.5806,
+   "extractor": 0.5808,
+   "rel_diff_pct": 0.036
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "J(u'_FE) dashed",
+   "beta": 85,
+   "verifier_raster": 0.5892,
+   "extractor": 0.5893,
+   "rel_diff_pct": 0.021
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "J(u'_FE) dashed",
+   "beta": 90,
+   "verifier_raster": 0.598,
+   "extractor": 0.5982,
+   "rel_diff_pct": 0.038
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 15,
+   "verifier_raster": 0.2297,
+   "extractor": 0.2298,
+   "rel_diff_pct": 0.057
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 20,
+   "verifier_raster": 0.2551,
+   "extractor": 0.2553,
+   "rel_diff_pct": 0.083
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 25,
+   "verifier_raster": 0.2768,
+   "extractor": 0.2769,
+   "rel_diff_pct": 0.043
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 30,
+   "verifier_raster": 0.2954,
+   "extractor": 0.2955,
+   "rel_diff_pct": 0.029
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 35,
+   "verifier_raster": 0.3118,
+   "extractor": 0.312,
+   "rel_diff_pct": 0.056
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 40,
+   "verifier_raster": 0.3266,
+   "extractor": 0.3267,
+   "rel_diff_pct": 0.04
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 45,
+   "verifier_raster": 0.3398,
+   "extractor": 0.3399,
+   "rel_diff_pct": 0.024
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 50,
+   "verifier_raster": 0.3516,
+   "extractor": 0.3516,
+   "rel_diff_pct": 0.002
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 55,
+   "verifier_raster": 0.362,
+   "extractor": 0.3622,
+   "rel_diff_pct": 0.052
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 60,
+   "verifier_raster": 0.3712,
+   "extractor": 0.3714,
+   "rel_diff_pct": 0.056
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 65,
+   "verifier_raster": 0.3793,
+   "extractor": 0.3795,
+   "rel_diff_pct": 0.054
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 70,
+   "verifier_raster": 0.3864,
+   "extractor": 0.3866,
+   "rel_diff_pct": 0.047
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 75,
+   "verifier_raster": 0.3925,
+   "extractor": 0.3926,
+   "rel_diff_pct": 0.014
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 80,
+   "verifier_raster": 0.3978,
+   "extractor": 0.398,
+   "rel_diff_pct": 0.046
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 85,
+   "verifier_raster": 0.4029,
+   "extractor": 0.4029,
+   "rel_diff_pct": 0.004
+  },
+  {
+   "panel": "alpha=2",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 90,
+   "verifier_raster": 0.4065,
+   "extractor": 0.4066,
+   "rel_diff_pct": 0.018
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "J(u'_FE) dashed",
+   "beta": 15,
+   "verifier_raster": 0.2806,
+   "extractor": 0.2807,
+   "rel_diff_pct": 0.026
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "J(u'_FE) dashed",
+   "beta": 20,
+   "verifier_raster": 0.2995,
+   "extractor": 0.2996,
+   "rel_diff_pct": 0.04
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "J(u'_FE) dashed",
+   "beta": 25,
+   "verifier_raster": 0.314,
+   "extractor": 0.3142,
+   "rel_diff_pct": 0.062
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "J(u'_FE) dashed",
+   "beta": 30,
+   "verifier_raster": 0.3258,
+   "extractor": 0.3259,
+   "rel_diff_pct": 0.017
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "J(u'_FE) dashed",
+   "beta": 35,
+   "verifier_raster": 0.3355,
+   "extractor": 0.3356,
+   "rel_diff_pct": 0.041
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "J(u'_FE) dashed",
+   "beta": 40,
+   "verifier_raster": 0.3436,
+   "extractor": 0.3438,
+   "rel_diff_pct": 0.061
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "J(u'_FE) dashed",
+   "beta": 45,
+   "verifier_raster": 0.3509,
+   "extractor": 0.351,
+   "rel_diff_pct": 0.018
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "J(u'_FE) dashed",
+   "beta": 50,
+   "verifier_raster": 0.3572,
+   "extractor": 0.3574,
+   "rel_diff_pct": 0.065
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "J(u'_FE) dashed",
+   "beta": 55,
+   "verifier_raster": 0.3629,
+   "extractor": 0.3631,
+   "rel_diff_pct": 0.059
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "J(u'_FE) dashed",
+   "beta": 60,
+   "verifier_raster": 0.3682,
+   "extractor": 0.3683,
+   "rel_diff_pct": 0.025
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "J(u'_FE) dashed",
+   "beta": 65,
+   "verifier_raster": 0.3732,
+   "extractor": 0.3732,
+   "rel_diff_pct": 0.003
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "J(u'_FE) dashed",
+   "beta": 70,
+   "verifier_raster": 0.3779,
+   "extractor": 0.3778,
+   "rel_diff_pct": -0.019
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "J(u'_FE) dashed",
+   "beta": 75,
+   "verifier_raster": 0.3823,
+   "extractor": 0.3824,
+   "rel_diff_pct": 0.016
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "J(u'_FE) dashed",
+   "beta": 80,
+   "verifier_raster": 0.3869,
+   "extractor": 0.3869,
+   "rel_diff_pct": -0.007
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "J(u'_FE) dashed",
+   "beta": 85,
+   "verifier_raster": 0.3912,
+   "extractor": 0.3912,
+   "rel_diff_pct": 0.001
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "J(u'_FE) dashed",
+   "beta": 90,
+   "verifier_raster": 0.3956,
+   "extractor": 0.3957,
+   "rel_diff_pct": 0.035
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 15,
+   "verifier_raster": 0.1421,
+   "extractor": 0.1422,
+   "rel_diff_pct": 0.05
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 20,
+   "verifier_raster": 0.1571,
+   "extractor": 0.1573,
+   "rel_diff_pct": 0.136
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 25,
+   "verifier_raster": 0.1702,
+   "extractor": 0.1704,
+   "rel_diff_pct": 0.123
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 30,
+   "verifier_raster": 0.1819,
+   "extractor": 0.1821,
+   "rel_diff_pct": 0.102
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 35,
+   "verifier_raster": 0.1926,
+   "extractor": 0.1928,
+   "rel_diff_pct": 0.089
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 40,
+   "verifier_raster": 0.2025,
+   "extractor": 0.2026,
+   "rel_diff_pct": 0.057
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 45,
+   "verifier_raster": 0.2115,
+   "extractor": 0.2115,
+   "rel_diff_pct": 0.019
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 50,
+   "verifier_raster": 0.2194,
+   "extractor": 0.2195,
+   "rel_diff_pct": 0.028
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 55,
+   "verifier_raster": 0.2265,
+   "extractor": 0.2267,
+   "rel_diff_pct": 0.09
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 60,
+   "verifier_raster": 0.2326,
+   "extractor": 0.2328,
+   "rel_diff_pct": 0.081
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 65,
+   "verifier_raster": 0.2378,
+   "extractor": 0.238,
+   "rel_diff_pct": 0.095
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 70,
+   "verifier_raster": 0.242,
+   "extractor": 0.2421,
+   "rel_diff_pct": 0.059
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 75,
+   "verifier_raster": 0.2452,
+   "extractor": 0.2453,
+   "rel_diff_pct": 0.04
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 80,
+   "verifier_raster": 0.2476,
+   "extractor": 0.2477,
+   "rel_diff_pct": 0.027
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 85,
+   "verifier_raster": 0.2492,
+   "extractor": 0.2493,
+   "rel_diff_pct": 0.031
+  },
+  {
+   "panel": "alpha=4",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 90,
+   "verifier_raster": 0.2503,
+   "extractor": 0.2505,
+   "rel_diff_pct": 0.062
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "J(u'_FE) dashed",
+   "beta": 15,
+   "verifier_raster": 0.1764,
+   "extractor": 0.1765,
+   "rel_diff_pct": 0.051
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "J(u'_FE) dashed",
+   "beta": 20,
+   "verifier_raster": 0.187,
+   "extractor": 0.187,
+   "rel_diff_pct": 0.022
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "J(u'_FE) dashed",
+   "beta": 25,
+   "verifier_raster": 0.1946,
+   "extractor": 0.1947,
+   "rel_diff_pct": 0.059
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "J(u'_FE) dashed",
+   "beta": 30,
+   "verifier_raster": 0.2003,
+   "extractor": 0.2005,
+   "rel_diff_pct": 0.075
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "J(u'_FE) dashed",
+   "beta": 35,
+   "verifier_raster": 0.205,
+   "extractor": 0.2051,
+   "rel_diff_pct": 0.051
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "J(u'_FE) dashed",
+   "beta": 40,
+   "verifier_raster": 0.2088,
+   "extractor": 0.2089,
+   "rel_diff_pct": 0.057
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "J(u'_FE) dashed",
+   "beta": 45,
+   "verifier_raster": 0.2122,
+   "extractor": 0.2121,
+   "rel_diff_pct": -0.028
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "J(u'_FE) dashed",
+   "beta": 50,
+   "verifier_raster": 0.2149,
+   "extractor": 0.215,
+   "rel_diff_pct": 0.036
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "J(u'_FE) dashed",
+   "beta": 55,
+   "verifier_raster": 0.2173,
+   "extractor": 0.2174,
+   "rel_diff_pct": 0.036
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "J(u'_FE) dashed",
+   "beta": 60,
+   "verifier_raster": 0.2196,
+   "extractor": 0.2196,
+   "rel_diff_pct": -0.006
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "J(u'_FE) dashed",
+   "beta": 65,
+   "verifier_raster": 0.2216,
+   "extractor": 0.2216,
+   "rel_diff_pct": 0.006
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "J(u'_FE) dashed",
+   "beta": 70,
+   "verifier_raster": 0.2235,
+   "extractor": 0.2236,
+   "rel_diff_pct": 0.035
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "J(u'_FE) dashed",
+   "beta": 75,
+   "verifier_raster": 0.2255,
+   "extractor": 0.2254,
+   "rel_diff_pct": -0.038
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "J(u'_FE) dashed",
+   "beta": 80,
+   "verifier_raster": 0.2274,
+   "extractor": 0.2273,
+   "rel_diff_pct": -0.032
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "J(u'_FE) dashed",
+   "beta": 85,
+   "verifier_raster": 0.2289,
+   "extractor": 0.229,
+   "rel_diff_pct": 0.029
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "J(u'_FE) dashed",
+   "beta": 90,
+   "verifier_raster": 0.2308,
+   "extractor": 0.2309,
+   "rel_diff_pct": 0.035
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 15,
+   "verifier_raster": 0.0678,
+   "extractor": 0.0678,
+   "rel_diff_pct": 0.054
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 20,
+   "verifier_raster": 0.0738,
+   "extractor": 0.0739,
+   "rel_diff_pct": 0.133
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 25,
+   "verifier_raster": 0.0795,
+   "extractor": 0.0796,
+   "rel_diff_pct": 0.164
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 30,
+   "verifier_raster": 0.085,
+   "extractor": 0.0851,
+   "rel_diff_pct": 0.081
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 35,
+   "verifier_raster": 0.0902,
+   "extractor": 0.0903,
+   "rel_diff_pct": 0.108
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 40,
+   "verifier_raster": 0.0952,
+   "extractor": 0.0953,
+   "rel_diff_pct": 0.133
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 45,
+   "verifier_raster": 0.0998,
+   "extractor": 0.0999,
+   "rel_diff_pct": 0.088
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 50,
+   "verifier_raster": 0.1039,
+   "extractor": 0.104,
+   "rel_diff_pct": 0.074
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 55,
+   "verifier_raster": 0.1076,
+   "extractor": 0.1077,
+   "rel_diff_pct": 0.117
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 60,
+   "verifier_raster": 0.1107,
+   "extractor": 0.1108,
+   "rel_diff_pct": 0.109
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 65,
+   "verifier_raster": 0.1132,
+   "extractor": 0.1133,
+   "rel_diff_pct": 0.092
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 70,
+   "verifier_raster": 0.1151,
+   "extractor": 0.1152,
+   "rel_diff_pct": 0.12
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 75,
+   "verifier_raster": 0.1164,
+   "extractor": 0.1164,
+   "rel_diff_pct": 0.039
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 80,
+   "verifier_raster": 0.1171,
+   "extractor": 0.1171,
+   "rel_diff_pct": 0.036
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 85,
+   "verifier_raster": 0.1171,
+   "extractor": 0.1173,
+   "rel_diff_pct": 0.129
+  },
+  {
+   "panel": "alpha=10",
+   "curve": "-J*(v'_opt) solid",
+   "beta": 90,
+   "verifier_raster": 0.117,
+   "extractor": 0.1171,
+   "rel_diff_pct": 0.074
+  }
+ ],
+ "artifacts": [
+  "verify5/fig5_verify_overlay.png",
+  "verify5/fig5_verify_zA.png",
+  "verify5/fig5_verify_zD.png",
+  "verify5/trace.py",
+  "verify5/track.py",
+  "verify5/compare.py"
+ ]
+}

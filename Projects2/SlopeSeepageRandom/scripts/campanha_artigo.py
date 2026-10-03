@@ -4,20 +4,27 @@
 Cada caso é dividido em blocos de amostras (um CSV por bloco: <dir>/<caso>/b<k>.csv); a fila intercala os casos
 (rodada r = bloco r de todos os casos), de modo que todos avançam juntos e os resultados parciais são sempre
 utilizáveis. Rodar de novo a mesma fila retoma: blocos completos são pulados e o executável pula as amostras já
-gravadas num bloco interrompido.
+gravadas num bloco interrompido. Não mude --bloco depois de começar (os blocos são numerados por ele).
 
-  campanha_artigo.py jobs   <executável> <dir> [--alvo artigo|N] [--bloco 50] [--casos a,b,...] > jobs.txt
-  fila.sh jobs.txt 4                                  # 4 processos
-  campanha_artigo.py status <dir>                      # amostras por caso, ritmo e previsão
-  campanha_artigo.py junta  <dir>                      # <dir>/<caso>.csv e <caso>.mec (todos os blocos)
+  campanha_artigo.py jobs   <executável> <dir> [--alvo artigo|N|covX] [--min 1000] [--bloco 50] [--casos a,b]
+                            [--adapt 2] > jobs.txt
+  fila.sh jobs.txt P                                   # P processos (um por núcleo físico)
+  PROCESSOS=P campanha_artigo.py status <dir>          # amostras por caso, Pf, ritmo e previsão de tempo
+  campanha_artigo.py junta  <dir>                      # <dir>/<caso>.csv, .mec, .modo e .param (todos os blocos)
+  campanha_artigo.py pacote <dir> [arquivo.tar.gz]     # só os resultados (sem caches): para enviar/arquivar
 
---alvo artigo: o número de amostras S de cada caso no artigo (critério CoV(Pf) < 5 %); --alvo N: N por caso
-(limitado ao S do artigo).
+--alvo artigo: o número de amostras S de cada caso no artigo (critério CoV(Pf) < 5 %, 10 000 a 100 000);
+--alvo N: N por caso (limitado ao S do artigo);
+--alvo covX (p.ex. cov5): o protocolo do artigo com o Pf deste código: N tal que CoV(Pf) = sqrt((1-Pf)/(N Pf))
+  < X %, com Pf estimado das amostras já calculadas (casos com menos de --min amostras vão até --min; casos com
+  Pf = 0 usam o S do artigo). Gere a fila de novo de tempos em tempos: o alvo é reavaliado com as amostras novas.
 """
 import csv
 import glob
+import math
 import os
 import sys
+import tarfile
 
 # γw = 9.81 kN/m³: os valores do artigo (Fig. 8 em h_w = 0, Fig. 13) correspondem a 9.81, não a 10
 BASE = "caso=percolacao modelo=mc h=1 adapt=2 hkl=1 covc=0.3 covphi=0.1 covk=0.6 Lx=20 Ly=2 gw=9.81"
@@ -79,20 +86,46 @@ def linhas(path):
         return 0
 
 
+def pf_atual(d):
+    rows, _ = ler(d) if os.path.isdir(d) else ({}, {})
+    n = len(rows)
+    return n, (sum(float(r["fator"]) < 1. for r in rows.values()) / n if n else 0.)
+
+
 def jobs(argv):
     alvo = opt(argv, "--alvo", "artigo")
     bloco = int(opt(argv, "--bloco", "50"))
+    nmin = int(opt(argv, "--min", "1000"))
+    adapt = opt(argv, "--adapt", "")  # níveis de refinamento da malha (padrão 2; mude só num diretório novo)
     casos = opt(argv, "--casos", "")
     exe, out = os.path.abspath(argv[0]), os.path.abspath(argv[1])
     nomes = [c for c in CASOS if not casos or c in casos.split(",")]
-    alvos = {c: CASOS[c][1] if alvo == "artigo" else min(int(alvo), CASOS[c][1]) for c in nomes}
+    args = {c: CASOS[c][0] if not adapt else CASOS[c][0].replace("adapt=2", f"adapt={adapt}") for c in nomes}
+    alvos = {}
+    for c in nomes:
+        S = CASOS[c][1]
+        if alvo == "artigo":
+            alvos[c] = S
+        elif alvo.startswith("cov"):
+            x = float(alvo[3:]) / 100.
+            n, pf = pf_atual(os.path.join(out, c))
+            if n < nmin:
+                alvos[c] = nmin
+            elif pf <= 0.:
+                alvos[c] = S
+            else:
+                alvos[c] = max(nmin, int(math.ceil((1. - pf) / (pf * x * x))))
+            alvos[c] = -(-alvos[c] // bloco) * bloco
+            print(f"# {c}: {n} amostras, Pf = {pf * 100:.2f} % -> alvo {alvos[c]} (artigo: {S})", file=sys.stderr)
+        else:
+            alvos[c] = min(int(alvo), S)
     for c in nomes:
         os.makedirs(os.path.join(out, c), exist_ok=True)
     # preparo: malha adaptada e autopares da KL (caches no diretório do caso) antes dos blocos
     for c in nomes:
         d = os.path.join(out, c)
         if not glob.glob(os.path.join(d, "kl_*_v3.bin")):
-            print(f"cd {d} && {exe} mc {CASOS[c][0]} n=0 saida=preparo.csv > preparo.log 2>&1")
+            print(f"cd {d} && {exe} mc {args[c]} n=0 saida=preparo.csv > preparo.log 2>&1")
     rodadas = max((alvos[c] + bloco - 1) // bloco for c in nomes)
     for r in range(rodadas):
         for c in nomes:
@@ -103,7 +136,7 @@ def jobs(argv):
             d = os.path.join(out, c)
             if linhas(os.path.join(d, f"b{r}.csv")) >= n:
                 continue
-            print(f"cd {d} && {exe} mc {CASOS[c][0]} inicio={ini} n={n} saida=b{r}.csv >> b{r}.log 2>&1")
+            print(f"cd {d} && {exe} mc {args[c]} inicio={ini} n={n} saida=b{r}.csv >> b{r}.log 2>&1")
 
 
 def ler(d):
@@ -187,11 +220,43 @@ def junta(argv):
                 w.writeheader()
                 for k in sorted(mec):
                     w.writerow(mec[k])
-        print(f"{c}: {len(rows)} amostras, {len(mec)} com médias no mecanismo")
+        modo = {}
+        for f in glob.glob(os.path.join(d, "b*.csv.modo")):
+            for ln in open(f):
+                p = ln.strip().split(",")
+                if len(p) == 4 and p[0].isdigit():
+                    modo[int(p[0])] = ln.strip()
+        if modo:
+            with open(os.path.join(out, c + ".modo"), "w") as f:
+                f.write("amostra,modo,y_min_banda,dist_pe\n" + "\n".join(modo[k] for k in sorted(modo)) + "\n")
+        par = sorted(glob.glob(os.path.join(d, "b*.csv.param")))
+        if par:
+            with open(par[0]) as fi, open(os.path.join(out, c + ".param"), "w") as fo:
+                fo.write(fi.read())
+        print(f"{c}: {len(rows)} amostras, {len(mec)} com médias no mecanismo, {len(modo)} com modo de ruptura")
+
+
+def pacote(argv):
+    out = os.path.abspath(argv[0])
+    arq = argv[1] if len(argv) > 1 else os.path.join(out, "resultados_campanha.tar.gz")
+    n = 0
+    with tarfile.open(arq, "w:gz") as tar:
+        for c in CASOS:
+            d = os.path.join(out, c)
+            if not os.path.isdir(d):
+                continue
+            for f in sorted(glob.glob(os.path.join(d, "b*.csv")) + glob.glob(os.path.join(d, "b*.csv.*")) +
+                            glob.glob(os.path.join(d, "preparo.log"))):
+                if f.endswith((".lock", ".tmp")):
+                    continue
+                tar.add(f, arcname=os.path.join("campanha", c, os.path.basename(f)))
+                n += 1
+    print(f"{arq}: {n} arquivos ({os.path.getsize(arq) / 1e6:.1f} MB)")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3 or sys.argv[1] not in ("jobs", "status", "junta"):
+    cmds = {"jobs": jobs, "status": status, "junta": junta, "pacote": pacote}
+    if len(sys.argv) < 3 or sys.argv[1] not in cmds:
         print(__doc__)
         sys.exit(1)
-    {"jobs": jobs, "status": status, "junta": junta}[sys.argv[1]](sys.argv[2:])
+    cmds[sys.argv[1]](sys.argv[2:])

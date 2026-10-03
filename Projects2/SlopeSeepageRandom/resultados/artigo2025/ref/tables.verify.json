@@ -1,0 +1,715 @@
+{
+ "verifier": "independent re-check of ref/tables.json",
+ "verdict": "ok",
+ "tolerance": "tables exact; vector figures 2% relative; raster 5%",
+ "methods": {
+  "tables": "pymupdf get_text('words') row reconstruction (not the pdftotext text layer used by the extractor) compared programmatically cell-by-cell with tables.json, plus visual check of 200-dpi renders of each table (vtab/v_t1..t6.png)",
+  "fig26": "800-dpi raster: bar extents from colour masks with sub-pixel coverage, x axis calibrated from the 9 detected tick marks (labels -1.00..1.00 read visually)",
+  "figs28_30": "600-dpi raster: axes spines and tick marks detected in pixels, tick values read visually from the render, circle markers by morphological opening (disk r=9 px) + bbox centre (clipped marker handled), star markers by normalised cross-correlation with the legend star, dashed lines from median y of dash components. Overlay: ref/tables_verify_overlay_fig28_30.png, ref/tables_verify_overlay_zoom.png",
+  "text": "grep of text layer + reading rendered pages for figure-only values"
+ },
+ "tables_check": {
+  "table1": "2/2 rows exact",
+  "table2": "5/5 rows exact",
+  "table3": "11/11 rows x 8 cols exact (row 2 CoV(kv)=0 confirmed, bold in render)",
+  "table4": "7/7 rows x 6 printed cols exact; Lx/Ly columns are derived from Eq 72 (correctly flagged)",
+  "table5": "5/5 rows x 7 cols exact",
+  "table6": "6/6 rows x 7 cols exact",
+  "mismatches": 0
+ },
+ "derived_checks": {
+  "S_implied_Eq68": "recomputed: identical to extractor (10030, 89560, 70203, 20001, 29981, 39919, 30009, ...)",
+  "sigma_over_mu": "recomputed: max gap 0.07 pp (T5 alpha=2, T6 hw/H=0.6, T4 s=1.5) - same as extractor",
+  "lognormal": "recomputed: median from mean/CoV = 1.3170; P(G<1) = 11.79% (mean/CoV) or 12.05% (median 1.313) - same as extractor"
+ },
+ "fig26": [
+  {
+   "bar": "k_v",
+   "extractor": -0.0359,
+   "raster_800dpi": -0.0359,
+   "method": "pixel colour coverage of bar edge, x calibrated on 9 raster tick marks (-1..1), resid 3e-4"
+  },
+  {
+   "bar": "phi",
+   "extractor": 0.5079,
+   "raster_800dpi": 0.5079
+  },
+  {
+   "bar": "c",
+   "extractor": 0.879,
+   "raster_800dpi": 0.879
+  }
+ ],
+ "figs28_30": [
+  {
+   "panel": "28a",
+   "x": 0.6,
+   "kind": "star",
+   "raster": 0.115,
+   "vector_extractor": 0.115,
+   "table3": 0.115,
+   "rel_diff_vs_extractor": 3e-05,
+   "diff_over_axis_span": 0.00033
+  },
+  {
+   "panel": "28a",
+   "x": 0.75,
+   "kind": "circle",
+   "raster": 0.1141,
+   "vector_extractor": 0.1141,
+   "table3": 0.11410000000000001,
+   "rel_diff_vs_extractor": 1e-05,
+   "diff_over_axis_span": 0.00013
+  },
+  {
+   "panel": "28a",
+   "x": 0.9,
+   "kind": "circle",
+   "raster": 0.11631,
+   "vector_extractor": 0.11631,
+   "table3": 0.11630000000000001,
+   "rel_diff_vs_extractor": 3e-05,
+   "diff_over_axis_span": 0.0003
+  },
+  {
+   "panel": "28a",
+   "x": 1.0,
+   "kind": "circle",
+   "raster": 0.1144,
+   "vector_extractor": 0.1144,
+   "table3": 0.1144,
+   "rel_diff_vs_extractor": 0.0,
+   "diff_over_axis_span": 0.0
+  },
+  {
+   "panel": "28a",
+   "x": "CoV(kv)=0 dashed",
+   "kind": "dash",
+   "raster": 0.1121,
+   "vector_extractor": 0.1121,
+   "table3": 0.1121,
+   "rel_diff_vs_extractor": 2e-05
+  },
+  {
+   "panel": "28b",
+   "x": 0.1,
+   "kind": "circle",
+   "raster": 0.00421,
+   "vector_extractor": 0.00448,
+   "table3": 0.0045000000000000005,
+   "rel_diff_vs_extractor": 0.05959,
+   "diff_over_axis_span": 0.00067
+  },
+  {
+   "panel": "28b",
+   "x": 0.3,
+   "kind": "star",
+   "raster": 0.11505,
+   "vector_extractor": 0.115,
+   "table3": 0.115,
+   "rel_diff_vs_extractor": 0.00042,
+   "diff_over_axis_span": 0.00012
+  },
+  {
+   "panel": "28b",
+   "x": 0.5,
+   "kind": "circle",
+   "raster": 0.25787,
+   "vector_extractor": 0.2578,
+   "table3": 0.25780000000000003,
+   "rel_diff_vs_extractor": 0.00027,
+   "diff_over_axis_span": 0.00018
+  },
+  {
+   "panel": "28b",
+   "x": 0.7,
+   "kind": "circle",
+   "raster": 0.36319,
+   "vector_extractor": 0.3634,
+   "table3": 0.36340000000000006,
+   "rel_diff_vs_extractor": 0.00056,
+   "diff_over_axis_span": 0.00051
+  },
+  {
+   "panel": "28c",
+   "x": 0.05,
+   "kind": "circle",
+   "raster": 0.10197,
+   "vector_extractor": 0.102,
+   "table3": 0.102,
+   "rel_diff_vs_extractor": 0.00026,
+   "diff_over_axis_span": 0.00026
+  },
+  {
+   "panel": "28c",
+   "x": 0.1,
+   "kind": "star",
+   "raster": 0.11501,
+   "vector_extractor": 0.115,
+   "table3": 0.115,
+   "rel_diff_vs_extractor": 0.0001,
+   "diff_over_axis_span": 0.00012
+  },
+  {
+   "panel": "28c",
+   "x": 0.15,
+   "kind": "circle",
+   "raster": 0.12712,
+   "vector_extractor": 0.1271,
+   "table3": 0.12710000000000002,
+   "rel_diff_vs_extractor": 0.00019,
+   "diff_over_axis_span": 0.00024
+  },
+  {
+   "panel": "28c",
+   "x": 0.2,
+   "kind": "circle",
+   "raster": 0.15176,
+   "vector_extractor": 0.1518,
+   "table3": 0.1518,
+   "rel_diff_vs_extractor": 0.00028,
+   "diff_over_axis_span": 0.00042
+  },
+  {
+   "panel": "29a",
+   "x": 0.6,
+   "kind": "star",
+   "raster": 1.35298,
+   "vector_extractor": 1.3527,
+   "table3": 1.353,
+   "rel_diff_vs_extractor": 0.00021,
+   "diff_over_axis_span": 0.0007
+  },
+  {
+   "panel": "29a",
+   "x": 0.75,
+   "kind": "circle",
+   "raster": 1.3751,
+   "vector_extractor": 1.37513,
+   "table3": 1.375,
+   "rel_diff_vs_extractor": 2e-05,
+   "diff_over_axis_span": 7e-05
+  },
+  {
+   "panel": "29a",
+   "x": 0.9,
+   "kind": "circle",
+   "raster": 1.37837,
+   "vector_extractor": 1.37831,
+   "table3": 1.378,
+   "rel_diff_vs_extractor": 4e-05,
+   "diff_over_axis_span": 0.00015
+  },
+  {
+   "panel": "29a",
+   "x": 1.0,
+   "kind": "circle",
+   "raster": 1.39144,
+   "vector_extractor": 1.39143,
+   "table3": 1.391,
+   "rel_diff_vs_extractor": 1e-05,
+   "diff_over_axis_span": 3e-05
+  },
+  {
+   "panel": "29a",
+   "x": "CoV(kv)=0 dashed",
+   "kind": "dash",
+   "raster": 1.32906,
+   "vector_extractor": 1.32917,
+   "table3": 1.329,
+   "rel_diff_vs_extractor": 9e-05
+  },
+  {
+   "panel": "29b",
+   "x": 0.1,
+   "kind": "circle",
+   "raster": 1.36728,
+   "vector_extractor": 1.36716,
+   "table3": 1.367,
+   "rel_diff_vs_extractor": 9e-05,
+   "diff_over_axis_span": 0.00031
+  },
+  {
+   "panel": "29b",
+   "x": 0.3,
+   "kind": "star",
+   "raster": 1.35273,
+   "vector_extractor": 1.35269,
+   "table3": 1.353,
+   "rel_diff_vs_extractor": 3e-05,
+   "diff_over_axis_span": 0.0001
+  },
+  {
+   "panel": "29b",
+   "x": 0.5,
+   "kind": "circle",
+   "raster": 1.32362,
+   "vector_extractor": 1.32365,
+   "table3": 1.324,
+   "rel_diff_vs_extractor": 2e-05,
+   "diff_over_axis_span": 6e-05
+  },
+  {
+   "panel": "29b",
+   "x": 0.7,
+   "kind": "circle",
+   "raster": 1.29611,
+   "vector_extractor": 1.29599,
+   "table3": 1.296,
+   "rel_diff_vs_extractor": 9e-05,
+   "diff_over_axis_span": 0.00031
+  },
+  {
+   "panel": "29c",
+   "x": 0.05,
+   "kind": "circle",
+   "raster": 1.35059,
+   "vector_extractor": 1.35058,
+   "table3": 1.351,
+   "rel_diff_vs_extractor": 1e-05,
+   "diff_over_axis_span": 3e-05
+  },
+  {
+   "panel": "29c",
+   "x": 0.1,
+   "kind": "star",
+   "raster": 1.3527,
+   "vector_extractor": 1.3527,
+   "table3": 1.353,
+   "rel_diff_vs_extractor": 0.0,
+   "diff_over_axis_span": 0.0
+  },
+  {
+   "panel": "29c",
+   "x": 0.15,
+   "kind": "circle",
+   "raster": 1.3568,
+   "vector_extractor": 1.35699,
+   "table3": 1.357,
+   "rel_diff_vs_extractor": 0.00014,
+   "diff_over_axis_span": 0.00046
+  },
+  {
+   "panel": "29c",
+   "x": 0.2,
+   "kind": "circle",
+   "raster": 1.36154,
+   "vector_extractor": 1.36134,
+   "table3": 1.361,
+   "rel_diff_vs_extractor": 0.00015,
+   "diff_over_axis_span": 0.0005
+  },
+  {
+   "panel": "30a",
+   "x": 0.6,
+   "kind": "star",
+   "raster": 0.23579,
+   "vector_extractor": 0.23541,
+   "table3": 0.235,
+   "rel_diff_vs_extractor": 0.00161,
+   "diff_over_axis_span": 0.00076
+  },
+  {
+   "panel": "30a",
+   "x": 0.75,
+   "kind": "circle",
+   "raster": 0.24745,
+   "vector_extractor": 0.24779,
+   "table3": 0.248,
+   "rel_diff_vs_extractor": 0.00137,
+   "diff_over_axis_span": 0.00068
+  },
+  {
+   "panel": "30a",
+   "x": 0.9,
+   "kind": "circle",
+   "raster": 0.2563,
+   "vector_extractor": 0.2567,
+   "table3": 0.257,
+   "rel_diff_vs_extractor": 0.00155,
+   "diff_over_axis_span": 0.00079
+  },
+  {
+   "panel": "30a",
+   "x": 1.0,
+   "kind": "circle",
+   "raster": 0.25852,
+   "vector_extractor": 0.25854,
+   "table3": 0.259,
+   "rel_diff_vs_extractor": 9e-05,
+   "diff_over_axis_span": 5e-05
+  },
+  {
+   "panel": "30a",
+   "x": "CoV(kv)=0 dashed",
+   "kind": "dash",
+   "raster": 0.21683,
+   "vector_extractor": 0.21672,
+   "table3": 0.217,
+   "rel_diff_vs_extractor": 0.00052
+  },
+  {
+   "panel": "30b",
+   "x": 0.1,
+   "kind": "circle",
+   "raster": 0.13181,
+   "vector_extractor": 0.13172,
+   "table3": 0.132,
+   "rel_diff_vs_extractor": 0.00066,
+   "diff_over_axis_span": 0.00017
+  },
+  {
+   "panel": "30b",
+   "x": 0.3,
+   "kind": "star",
+   "raster": 0.23524,
+   "vector_extractor": 0.2354,
+   "table3": 0.235,
+   "rel_diff_vs_extractor": 0.00067,
+   "diff_over_axis_span": 0.00031
+  },
+  {
+   "panel": "30b",
+   "x": 0.5,
+   "kind": "circle",
+   "raster": 0.35705,
+   "vector_extractor": 0.35692,
+   "table3": 0.35700000000000004,
+   "rel_diff_vs_extractor": 0.00037,
+   "diff_over_axis_span": 0.00026
+  },
+  {
+   "panel": "30b",
+   "x": 0.7,
+   "kind": "circle",
+   "raster": 0.47839,
+   "vector_extractor": 0.47853,
+   "table3": 0.479,
+   "rel_diff_vs_extractor": 0.00029,
+   "diff_over_axis_span": 0.00027
+  },
+  {
+   "panel": "30c",
+   "x": 0.05,
+   "kind": "circle",
+   "raster": 0.22206,
+   "vector_extractor": 0.22232,
+   "table3": 0.222,
+   "rel_diff_vs_extractor": 0.00117,
+   "diff_over_axis_span": 0.00052
+  },
+  {
+   "panel": "30c",
+   "x": 0.1,
+   "kind": "star",
+   "raster": 0.23535,
+   "vector_extractor": 0.2354,
+   "table3": 0.235,
+   "rel_diff_vs_extractor": 0.00021,
+   "diff_over_axis_span": 0.0001
+  },
+  {
+   "panel": "30c",
+   "x": 0.15,
+   "kind": "circle",
+   "raster": 0.25515,
+   "vector_extractor": 0.25495,
+   "table3": 0.255,
+   "rel_diff_vs_extractor": 0.00077,
+   "diff_over_axis_span": 0.00039
+  },
+  {
+   "panel": "30c",
+   "x": 0.2,
+   "kind": "circle",
+   "raster": 0.28162,
+   "vector_extractor": 0.2819,
+   "table3": 0.282,
+   "rel_diff_vs_extractor": 0.001,
+   "diff_over_axis_span": 0.00056
+  }
+ ],
+ "text_values": [
+  [
+   "Sec4.1 L_m",
+   "10H",
+   "line 534 'L_m = 10H'",
+   "ok"
+  ],
+  [
+   "Sec4.3.1 r_p",
+   0.25,
+   "line 806",
+   "ok"
+  ],
+  [
+   "Sec4.3.1 max gap vs Wu",
+   "up to 40% (London clay)",
+   "line 755",
+   "ok"
+  ],
+  [
+   "Sec4.3.1 alpha",
+   1,
+   "line 803",
+   "ok"
+  ],
+  [
+   "Fig8 betas London",
+   "30, 60 deg",
+   "render p13",
+   "ok"
+  ],
+  [
+   "Fig8 betas Israeli",
+   "35, 60 deg",
+   "render p13",
+   "ok"
+  ],
+  [
+   "Fig8 line styles",
+   "solid=Wu r_p=0.25, dashed=K.v'_opt, dash-dot=-grad u'_FE",
+   "legend p13 + text line 805-808",
+   "ok"
+  ],
+  [
+   "Sec4.3.2 H, beta, c, phi, gamma, hw, alpha",
+   "5 m, 15-90 deg, 10 kPa, 30 deg, 20 kN/m3, hw=H, alpha=1,5,10",
+   "text + Fig 9 render",
+   "ok"
+  ],
+  [
+   "Fig9 line styles",
+   "solid=-grad u'_FE, dashed=K.v'_opt",
+   "legend render p13",
+   "ok"
+  ],
+  [
+   "Sec5.2 MC blocks",
+   10000,
+   "line 1004",
+   "ok"
+  ],
+  [
+   "Sec5.2 l_i",
+   "H/100",
+   "line 1039",
+   "ok"
+  ],
+  [
+   "Sec5.2 M KL terms",
+   2000,
+   "line 1059",
+   "ok"
+  ],
+  [
+   "Sec5.2 KL variance error",
+   "< 6%",
+   "line 1060",
+   "ok"
+  ],
+  [
+   "Fig14 typical Gamma",
+   1.81,
+   "render p19",
+   "ok"
+  ],
+  [
+   "Fig12 labels",
+   "kv mu=1e-6 m2 kPa-1 s-1 CoV=100%; c mu=10 kPa CoV=20%; phi mu=30 CoV=10%; kv colorbar unit m2Pa-1s-1",
+   "render p17",
+   "ok"
+  ],
+  [
+   "Fig14 labels",
+   "c CoV=20%, phi CoV=10%, excess pore pressure colorbar -50..0 kPa",
+   "render p19",
+   "ok"
+  ],
+  [
+   "Sec5.3.1 beta",
+   "~26.5 deg (2:1)",
+   "line 1130 + Fig15",
+   "ok"
+  ],
+  [
+   "Sec5.3.1 mu(cu), CoV(cu)",
+   "23 kPa, 30%",
+   "line 1134",
+   "ok"
+  ],
+  [
+   "Sec5.3.1 Lx, Ly, gamma",
+   "20 m, 2 m, 20 kN/m3",
+   "text",
+   "ok"
+  ],
+  [
+   "Sec5.3.1 Fs Cho / Gamma=Fs present",
+   "1.356 / 1.354",
+   "line 1147-1148 + Fig15",
+   "ok"
+  ],
+  [
+   "Sec5.3.1 M present / Cho",
+   "2000 / 100",
+   "lines 1094, 1102",
+   "ok"
+  ],
+  [
+   "Sec5.3.1 Cho KL domain",
+   "30 m x 10 m",
+   "line 1099",
+   "ok"
+  ],
+  [
+   "Sec5.3.1 S",
+   100000,
+   "line 1105",
+   "ok"
+  ],
+  [
+   "Sec5.3.1 Pf present / Cho",
+   "6.5% / 7.9%",
+   "line 1132 + Fig18 legend",
+   "ok"
+  ],
+  [
+   "Fig16 failure modes",
+   "0.55 / 6.76 / 92.68 %",
+   "render p19 (raster)",
+   "ok"
+  ],
+  [
+   "Sec5.3.2 c, CoV(c), phi, CoV(phi)",
+   "10 kPa, 30%, 30 deg, 20%",
+   "line 1186-1188",
+   "ok"
+  ],
+  [
+   "Sec5.3.2 Gamma, Fs present, Fs Cho",
+   "1.777, 1.203, 1.204",
+   "lines 1196-1198 + Fig19",
+   "ok"
+  ],
+  [
+   "Sec5.3.2 M present / Cho, domain",
+   "2000 / 150, 30 m x 15 m",
+   "lines 1186-1191",
+   "ok"
+  ],
+  [
+   "Sec5.3.2 S",
+   50000,
+   "line 1194",
+   "ok"
+  ],
+  [
+   "Sec5.3.2 Pf present / Cho",
+   "5.50% / 6.37%",
+   "lines 1218-1219 + Fig23 legend",
+   "ok"
+  ],
+  [
+   "Fig20 failure modes",
+   "19.20 / 80.80 / 0.00 %",
+   "render p21 (raster)",
+   "ok"
+  ],
+  [
+   "Sec6 geometry",
+   "H=5 m, beta=45 deg, hw=H, alpha=1",
+   "text + Fig24",
+   "ok"
+  ],
+  [
+   "Sec6 deterministic Gamma",
+   1.336,
+   "line 1297 + Fig24",
+   "ok"
+  ],
+  [
+   "Sec6 S, Pf, CoV(Pf)",
+   "10,000; 11.50%; 2.77%",
+   "lines 1308-1310 + Fig25b label",
+   "ok"
+  ],
+  [
+   "Sec6 log-normal fit",
+   "mean 1.353, median 1.313, CoV 23.54%",
+   "lines 1330-1331",
+   "ok"
+  ],
+  [
+   "Sec6.2 ranges",
+   "kv 60-100 (ref 60), c 10-70 (ref 30), phi 5-20 (ref 10)",
+   "text",
+   "ok"
+  ],
+  [
+   "Sec6.2 S CoV(c)=10%",
+   90000,
+   "line 1415",
+   "ok"
+  ],
+  [
+   "Sec6.3 Eq72",
+   "(Lx,Ly) = s x (20 m, 2 m)",
+   "line 1479",
+   "ok"
+  ],
+  [
+   "Sec6.3 S",
+   "10,000 for all s",
+   "line 1488-1489",
+   "ok"
+  ],
+  [
+   "Sec6.4 S alpha=5",
+   70000,
+   "line 1492",
+   "ok"
+  ],
+  [
+   "Sec6.5 S max / Pf max",
+   "up to 30,000 / max at hw/H ~ 0.9",
+   "lines 1520, 1524",
+   "ok"
+  ],
+  [
+   "Fig15 geometry",
+   "crest 10, slope 10 (2:1), toe ext 10, H 5, depth 10 -> 30 x 10 m",
+   "400-dpi pixel measurement: 10.0/9.8/10.2/4.95/9.9 m",
+   "ok"
+  ],
+  [
+   "Fig15 surfaces",
+   "LEM enters 9.1 m, LA 8.6 m behind crest edge; exit beyond toe",
+   "measured 9.1 / 8.6 m; exit 5.9 m (extractor ~5.7 +-0.3)",
+   "ok (within stated tolerance)"
+  ],
+  [
+   "Fig24/Fig12a domain",
+   "20 x 10 m (10 crest + 5 slope + 5 toe ext, 5 below toe)",
+   "400-dpi pixel measurement of Fig 12a: 19.95 x 9.97 m, crest 10.0 m",
+   "ok"
+  ],
+  [
+   "Fig19 labels",
+   "crest 10 m, 1:1, H 5 m, toe ext 10 m, total depth 10 m",
+   "render p20",
+   "ok (but drawing not to scale, see problems)"
+  ]
+ ],
+ "max_rel_error_figures": 0.0016,
+ "max_rel_error_note": "Largest relative difference raster vs extractor: Fig 30a markers 0.16% (0.08% of axis span). Fig 28b first marker (Pf=0.0045) is half-clipped by the x axis: raster 0.00421 vs extractor 0.00448 vs table 0.0045 (6% relative but 0.07% of the 0-0.4 axis span, i.e. <1 px) - not an extraction error.",
+ "series_identification": "confirmed: star = reference case (at CoV 0.6 / 0.3 / 0.1 in panels a/b/c), filled circles = varied cases, dashed horizontal line labelled 'CoV(k_v)=0' in 28a/29a/30a; Fig 26 colours red=k_v, teal=phi, orange=c (legend order matches bar order). All axes linear (Figs 26, 28-30); Fig 8 y axis log (H_crit) as stated.",
+ "units": "Fig 28 and 30 y axes are fractions (Pf 0.115 = 11.50%, CoV 0.235 = 23.5%), Table 3 in percent - extractor converted correctly. k_v unit 1e-6 m4/kN/s = 1e-9 m2/(Pa s) correct.",
+ "problems": [
+  "Minor: examples.Cho_cohesive_frictional_Fig19.domain_m_as_drawn = [25,10] is 'as labelled', not 'as drawn': Figure 19 is not to scale (the 5 m slope height is drawn the same length as the 10 m crest; the 5 m below the toe is drawn shorter). The labelled dimensions (10/5/10 m, 10 m total) are transcribed correctly.",
+  "Minor: Fig 15 surface exit beyond the toe measured at ~5.9 m (400 dpi) vs the extractor's ~5.7 m; within the extractor's stated +-0.3 m.",
+  "Not independently resolvable: the claim that the Fig 30 reference star sits at 0.2354 rather than 0.2350 is below raster resolution (0.00075 per px at 600 dpi). Raster stars give 0.2358/0.2352/0.2354 (mean 0.2355), consistent with the claim.",
+  "Wording only: the summary puts L_m = 10H under Section 4.3; it is stated in Section 4.1 (tables.json files it correctly under sec4.1_hydraulic)."
+ ],
+ "corrections": "none required to any numeric value; optional rename domain_m_as_drawn -> domain_m_as_labelled for Fig 19"
+}

@@ -1,0 +1,1073 @@
+{
+ "target": "dist.json (Figs 17, 21, 22)",
+ "verdict": "OK",
+ "method": "Independent raster digitization: pages re-rendered at 1200 dpi with pymupdf; per-pixel linear unmixing of red (237,30,36) and black (34,31,31) coverage; axis frame and tick marks detected from the raster (not from drawing commands); tick values read visually from the rendered page (the text layer has no tick labels - confirmed); linear fit per axis; curve centre = coverage-weighted column centroid. In Fig 17, where the red curve is drawn over the black, the black centre was estimated from its visible outer edge minus half the red column thickness, or from a separate black run where the strokes separate. Statistics were recomputed with an independent script from the extractor's points, and medians and P(<1) were also computed from the raster CDFs.",
+ "checked_points": 53,
+ "max_rel_error_points": 0.0165,
+ "max_diff_over_axis_span": 0.0047,
+ "point_checks": [
+  {
+   "panel": "Fig17_PDF",
+   "series": "F_s (Cho [19], red)",
+   "x": 0.9,
+   "y_raster": 0.2992,
+   "y_extractor": 0.299,
+   "abs_diff": -0.0002,
+   "rel_diff": 0.0005,
+   "diff_over_axis_span": 0.0001,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig17_PDF",
+   "series": "F_s (Cho [19], red)",
+   "x": 1.0,
+   "y_raster": 0.8937,
+   "y_extractor": 0.8952,
+   "abs_diff": 0.0015,
+   "rel_diff": 0.0016,
+   "diff_over_axis_span": 0.0006,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig17_PDF",
+   "series": "F_s (Cho [19], red)",
+   "x": 1.1,
+   "y_raster": 1.6184,
+   "y_extractor": 1.6226,
+   "abs_diff": 0.0042,
+   "rel_diff": 0.0026,
+   "diff_over_axis_span": 0.0019,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig17_PDF",
+   "series": "F_s (Cho [19], red)",
+   "x": 1.23,
+   "y_raster": 2.055,
+   "y_extractor": 2.0569,
+   "abs_diff": 0.0019,
+   "rel_diff": 0.0009,
+   "diff_over_axis_span": 0.0008,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig17_PDF",
+   "series": "F_s (Cho [19], red)",
+   "x": 1.4,
+   "y_raster": 1.4158,
+   "y_extractor": 1.4168,
+   "abs_diff": 0.001,
+   "rel_diff": 0.0007,
+   "diff_over_axis_span": 0.0004,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig17_PDF",
+   "series": "F_s (Cho [19], red)",
+   "x": 1.5,
+   "y_raster": 0.8723,
+   "y_extractor": 0.8721,
+   "abs_diff": -0.0002,
+   "rel_diff": 0.0002,
+   "diff_over_axis_span": 0.0001,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig17_PDF",
+   "series": "F_s (Cho [19], red)",
+   "x": 1.7,
+   "y_raster": 0.2153,
+   "y_extractor": 0.2156,
+   "abs_diff": 0.0004,
+   "rel_diff": 0.0016,
+   "diff_over_axis_span": 0.0002,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig17_PDF",
+   "series": "Gamma (limit analysis, black)",
+   "x": 0.9,
+   "y_raster": 0.2652,
+   "y_extractor": 0.2608,
+   "abs_diff": -0.0044,
+   "rel_diff": 0.0165,
+   "diff_over_axis_span": 0.0019,
+   "method": "raster occlusion-aware"
+  },
+  {
+   "panel": "Fig17_PDF",
+   "series": "Gamma (limit analysis, black)",
+   "x": 1.0,
+   "y_raster": 0.8114,
+   "y_extractor": 0.8104,
+   "abs_diff": -0.001,
+   "rel_diff": 0.0012,
+   "diff_over_axis_span": 0.0004,
+   "method": "raster occlusion-aware"
+  },
+  {
+   "panel": "Fig17_PDF",
+   "series": "Gamma (limit analysis, black)",
+   "x": 1.1,
+   "y_raster": 1.5689,
+   "y_extractor": 1.5772,
+   "abs_diff": 0.0083,
+   "rel_diff": 0.0053,
+   "diff_over_axis_span": 0.0037,
+   "method": "raster occlusion-aware"
+  },
+  {
+   "panel": "Fig17_PDF",
+   "series": "Gamma (limit analysis, black)",
+   "x": 1.23,
+   "y_raster": 2.0743,
+   "y_extractor": 2.076,
+   "abs_diff": 0.0017,
+   "rel_diff": 0.0008,
+   "diff_over_axis_span": 0.0008,
+   "method": "raster occlusion-aware"
+  },
+  {
+   "panel": "Fig17_PDF",
+   "series": "Gamma (limit analysis, black)",
+   "x": 1.4,
+   "y_raster": 1.4963,
+   "y_extractor": 1.4998,
+   "abs_diff": 0.0035,
+   "rel_diff": 0.0024,
+   "diff_over_axis_span": 0.0016,
+   "method": "raster occlusion-aware"
+  },
+  {
+   "panel": "Fig17_PDF",
+   "series": "Gamma (limit analysis, black)",
+   "x": 1.5,
+   "y_raster": 0.9341,
+   "y_extractor": 0.9388,
+   "abs_diff": 0.0047,
+   "rel_diff": 0.005,
+   "diff_over_axis_span": 0.0021,
+   "method": "raster occlusion-aware"
+  },
+  {
+   "panel": "Fig17_PDF",
+   "series": "Gamma (limit analysis, black)",
+   "x": 1.7,
+   "y_raster": 0.2387,
+   "y_extractor": 0.2389,
+   "abs_diff": 0.0002,
+   "rel_diff": 0.0007,
+   "diff_over_axis_span": 0.0001,
+   "method": "raster occlusion-aware"
+  },
+  {
+   "panel": "Fig17_CDF",
+   "series": "F_s (Cho [19], red)",
+   "x": 0.95,
+   "y_raster": 0.0407,
+   "y_extractor": 0.0408,
+   "abs_diff": 0.0001,
+   "rel_diff": 0.0031,
+   "diff_over_axis_span": 0.0001,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig17_CDF",
+   "series": "F_s (Cho [19], red)",
+   "x": 1.0,
+   "y_raster": 0.076,
+   "y_extractor": 0.0761,
+   "abs_diff": 0.0,
+   "rel_diff": 0.0003,
+   "diff_over_axis_span": 0.0,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig17_CDF",
+   "series": "F_s (Cho [19], red)",
+   "x": 1.1,
+   "y_raster": 0.2003,
+   "y_extractor": 0.2002,
+   "abs_diff": -0.0,
+   "rel_diff": 0.0002,
+   "diff_over_axis_span": 0.0,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig17_CDF",
+   "series": "F_s (Cho [19], red)",
+   "x": 1.25,
+   "y_raster": 0.4885,
+   "y_extractor": 0.4895,
+   "abs_diff": 0.0009,
+   "rel_diff": 0.0019,
+   "diff_over_axis_span": 0.0009,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig17_CDF",
+   "series": "F_s (Cho [19], red)",
+   "x": 1.4,
+   "y_raster": 0.7605,
+   "y_extractor": 0.7611,
+   "abs_diff": 0.0005,
+   "rel_diff": 0.0007,
+   "diff_over_axis_span": 0.0005,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig17_CDF",
+   "series": "F_s (Cho [19], red)",
+   "x": 1.5,
+   "y_raster": 0.8758,
+   "y_extractor": 0.8758,
+   "abs_diff": -0.0001,
+   "rel_diff": 0.0001,
+   "diff_over_axis_span": 0.0001,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig17_CDF",
+   "series": "Gamma (limit analysis, black)",
+   "x": 0.95,
+   "y_raster": 0.0324,
+   "y_extractor": 0.0321,
+   "abs_diff": -0.0002,
+   "rel_diff": 0.0073,
+   "diff_over_axis_span": 0.0002,
+   "method": "raster occlusion-aware"
+  },
+  {
+   "panel": "Fig17_CDF",
+   "series": "Gamma (limit analysis, black)",
+   "x": 1.0,
+   "y_raster": 0.0644,
+   "y_extractor": 0.0645,
+   "abs_diff": 0.0001,
+   "rel_diff": 0.0018,
+   "diff_over_axis_span": 0.0001,
+   "method": "raster occlusion-aware"
+  },
+  {
+   "panel": "Fig17_CDF",
+   "series": "Gamma (limit analysis, black)",
+   "x": 1.1,
+   "y_raster": 0.1824,
+   "y_extractor": 0.1834,
+   "abs_diff": 0.001,
+   "rel_diff": 0.0056,
+   "diff_over_axis_span": 0.001,
+   "method": "raster occlusion-aware"
+  },
+  {
+   "panel": "Fig17_CDF",
+   "series": "Gamma (limit analysis, black)",
+   "x": 1.25,
+   "y_raster": 0.4725,
+   "y_extractor": 0.472,
+   "abs_diff": -0.0005,
+   "rel_diff": 0.001,
+   "diff_over_axis_span": 0.0005,
+   "method": "raster occlusion-aware"
+  },
+  {
+   "panel": "Fig17_CDF",
+   "series": "Gamma (limit analysis, black)",
+   "x": 1.4,
+   "y_raster": 0.7445,
+   "y_extractor": 0.7456,
+   "abs_diff": 0.001,
+   "rel_diff": 0.0014,
+   "diff_over_axis_span": 0.001,
+   "method": "raster occlusion-aware"
+  },
+  {
+   "panel": "Fig17_CDF",
+   "series": "Gamma (limit analysis, black)",
+   "x": 1.5,
+   "y_raster": 0.8669,
+   "y_extractor": 0.8671,
+   "abs_diff": 0.0003,
+   "rel_diff": 0.0003,
+   "diff_over_axis_span": 0.0003,
+   "method": "raster occlusion-aware"
+  },
+  {
+   "panel": "Fig21_L",
+   "series": "F_s (Cho [19], red)",
+   "x": 0.9,
+   "y_raster": 0.1622,
+   "y_extractor": 0.1643,
+   "abs_diff": 0.0021,
+   "rel_diff": 0.013,
+   "diff_over_axis_span": 0.0007,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig21_L",
+   "series": "F_s (Cho [19], red)",
+   "x": 1.0,
+   "y_raster": 1.1158,
+   "y_extractor": 1.1018,
+   "abs_diff": -0.0141,
+   "rel_diff": 0.0126,
+   "diff_over_axis_span": 0.0047,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig21_L",
+   "series": "F_s (Cho [19], red)",
+   "x": 1.1,
+   "y_raster": 2.617,
+   "y_extractor": 2.6279,
+   "abs_diff": 0.011,
+   "rel_diff": 0.0042,
+   "diff_over_axis_span": 0.0037,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig21_L",
+   "series": "F_s (Cho [19], red)",
+   "x": 1.17,
+   "y_raster": 2.9509,
+   "y_extractor": 2.9532,
+   "abs_diff": 0.0023,
+   "rel_diff": 0.0008,
+   "diff_over_axis_span": 0.0008,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig21_L",
+   "series": "F_s (Cho [19], red)",
+   "x": 1.3,
+   "y_raster": 1.9372,
+   "y_extractor": 1.9258,
+   "abs_diff": -0.0114,
+   "rel_diff": 0.0059,
+   "diff_over_axis_span": 0.0038,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig21_L",
+   "series": "F_s (Cho [19], red)",
+   "x": 1.4,
+   "y_raster": 0.9446,
+   "y_extractor": 0.945,
+   "abs_diff": 0.0004,
+   "rel_diff": 0.0004,
+   "diff_over_axis_span": 0.0001,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig21_L",
+   "series": "F_s (Cho [19], red)",
+   "x": 1.6,
+   "y_raster": 0.1322,
+   "y_extractor": 0.1319,
+   "abs_diff": -0.0003,
+   "rel_diff": 0.0021,
+   "diff_over_axis_span": 0.0001,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig21_R",
+   "series": "Gamma (limit analysis, black)",
+   "x": 0.8,
+   "y_raster": 0.1371,
+   "y_extractor": 0.1382,
+   "abs_diff": 0.0011,
+   "rel_diff": 0.0083,
+   "diff_over_axis_span": 0.0014,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig21_R",
+   "series": "Gamma (limit analysis, black)",
+   "x": 1.0,
+   "y_raster": 0.3844,
+   "y_extractor": 0.3839,
+   "abs_diff": -0.0005,
+   "rel_diff": 0.0014,
+   "diff_over_axis_span": 0.0007,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig21_R",
+   "series": "Gamma (limit analysis, black)",
+   "x": 1.43,
+   "y_raster": 0.7233,
+   "y_extractor": 0.7233,
+   "abs_diff": 0.0,
+   "rel_diff": 0.0001,
+   "diff_over_axis_span": 0.0001,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig21_R",
+   "series": "Gamma (limit analysis, black)",
+   "x": 2.0,
+   "y_raster": 0.4416,
+   "y_extractor": 0.4425,
+   "abs_diff": 0.0009,
+   "rel_diff": 0.0021,
+   "diff_over_axis_span": 0.0012,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig21_R",
+   "series": "Gamma (limit analysis, black)",
+   "x": 3.0,
+   "y_raster": 0.1062,
+   "y_extractor": 0.106,
+   "abs_diff": -0.0002,
+   "rel_diff": 0.002,
+   "diff_over_axis_span": 0.0003,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig21_R",
+   "series": "Gamma (limit analysis, black)",
+   "x": 4.0,
+   "y_raster": 0.0298,
+   "y_extractor": 0.0298,
+   "abs_diff": 0.0,
+   "rel_diff": 0.0005,
+   "diff_over_axis_span": 0.0,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig21_R",
+   "series": "Gamma (limit analysis, black)",
+   "x": 5.0,
+   "y_raster": 0.0104,
+   "y_extractor": 0.0104,
+   "abs_diff": 0.0,
+   "rel_diff": 0.0024,
+   "diff_over_axis_span": 0.0,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig22_L",
+   "series": "F_s (Cho [19], red)",
+   "x": 1.0,
+   "y_raster": 0.0523,
+   "y_extractor": 0.0515,
+   "abs_diff": -0.0008,
+   "rel_diff": 0.016,
+   "diff_over_axis_span": 0.0008,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig22_L",
+   "series": "F_s (Cho [19], red)",
+   "x": 1.1,
+   "y_raster": 0.2233,
+   "y_extractor": 0.2217,
+   "abs_diff": -0.0016,
+   "rel_diff": 0.007,
+   "diff_over_axis_span": 0.0016,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig22_L",
+   "series": "F_s (Cho [19], red)",
+   "x": 1.2,
+   "y_raster": 0.5108,
+   "y_extractor": 0.5114,
+   "abs_diff": 0.0006,
+   "rel_diff": 0.0012,
+   "diff_over_axis_span": 0.0006,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig22_L",
+   "series": "F_s (Cho [19], red)",
+   "x": 1.3,
+   "y_raster": 0.7605,
+   "y_extractor": 0.7607,
+   "abs_diff": 0.0002,
+   "rel_diff": 0.0002,
+   "diff_over_axis_span": 0.0002,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig22_L",
+   "series": "F_s (Cho [19], red)",
+   "x": 1.4,
+   "y_raster": 0.909,
+   "y_extractor": 0.9095,
+   "abs_diff": 0.0005,
+   "rel_diff": 0.0005,
+   "diff_over_axis_span": 0.0005,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig22_L",
+   "series": "F_s (Cho [19], red)",
+   "x": 1.5,
+   "y_raster": 0.9706,
+   "y_extractor": 0.9706,
+   "abs_diff": 0.0,
+   "rel_diff": 0.0,
+   "diff_over_axis_span": 0.0,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig22_R",
+   "series": "Gamma (limit analysis, black)",
+   "x": 1.0,
+   "y_raster": 0.0548,
+   "y_extractor": 0.0552,
+   "abs_diff": 0.0003,
+   "rel_diff": 0.0056,
+   "diff_over_axis_span": 0.0003,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig22_R",
+   "series": "Gamma (limit analysis, black)",
+   "x": 1.5,
+   "y_raster": 0.3817,
+   "y_extractor": 0.3808,
+   "abs_diff": -0.0009,
+   "rel_diff": 0.0023,
+   "diff_over_axis_span": 0.0009,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig22_R",
+   "series": "Gamma (limit analysis, black)",
+   "x": 1.67,
+   "y_raster": 0.4993,
+   "y_extractor": 0.4999,
+   "abs_diff": 0.0006,
+   "rel_diff": 0.0012,
+   "diff_over_axis_span": 0.0006,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig22_R",
+   "series": "Gamma (limit analysis, black)",
+   "x": 2.0,
+   "y_raster": 0.6787,
+   "y_extractor": 0.6794,
+   "abs_diff": 0.0007,
+   "rel_diff": 0.001,
+   "diff_over_axis_span": 0.0007,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig22_R",
+   "series": "Gamma (limit analysis, black)",
+   "x": 3.0,
+   "y_raster": 0.9079,
+   "y_extractor": 0.908,
+   "abs_diff": 0.0001,
+   "rel_diff": 0.0001,
+   "diff_over_axis_span": 0.0001,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig22_R",
+   "series": "Gamma (limit analysis, black)",
+   "x": 4.0,
+   "y_raster": 0.9652,
+   "y_extractor": 0.9652,
+   "abs_diff": 0.0,
+   "rel_diff": 0.0,
+   "diff_over_axis_span": 0.0,
+   "method": "raster column centroid"
+  },
+  {
+   "panel": "Fig22_R",
+   "series": "Gamma (limit analysis, black)",
+   "x": 6.0,
+   "y_raster": 0.9909,
+   "y_extractor": 0.9909,
+   "abs_diff": -0.0,
+   "rel_diff": 0.0,
+   "diff_over_axis_span": 0.0,
+   "method": "raster column centroid"
+  }
+ ],
+ "raster_calibration": {
+  "Fig17_PDF": {
+   "page": 19,
+   "x_tick_values": [
+    0.5,
+    1.0,
+    1.5,
+    2.0
+   ],
+   "x_tick_pdf_raster": [
+    149.672,
+    189.672,
+    229.685,
+    269.69
+   ],
+   "y_tick_values": [
+    2.0,
+    1.5,
+    1.0,
+    0.5,
+    0.0
+   ],
+   "y_tick_pdf_raster": [
+    564.46,
+    590.512,
+    616.568,
+    642.628,
+    668.684
+   ],
+   "max_tick_position_diff_vs_extractor_pt": [
+    0.003,
+    0.019
+   ]
+  },
+  "Fig17_CDF": {
+   "page": 19,
+   "x_tick_values": [
+    0.5,
+    1.0,
+    1.5,
+    2.0
+   ],
+   "x_tick_pdf_raster": [
+    332.756,
+    379.697,
+    426.637,
+    473.577
+   ],
+   "y_tick_values": [
+    1.0,
+    0.8,
+    0.6,
+    0.4,
+    0.2,
+    0.0
+   ],
+   "y_tick_pdf_raster": [
+    554.036,
+    576.964,
+    599.892,
+    622.824,
+    645.752,
+    668.684
+   ],
+   "max_tick_position_diff_vs_extractor_pt": [
+    0.019,
+    0.018
+   ]
+  },
+  "Fig21_L": {
+   "page": 21,
+   "x_tick_values": [
+    0,
+    1,
+    2,
+    3
+   ],
+   "x_tick_pdf_raster": [
+    68.763,
+    100.291,
+    131.82,
+    163.342
+   ],
+   "y_tick_values": [
+    3.0,
+    2.5,
+    2.0,
+    1.5,
+    1.0,
+    0.5,
+    0.0
+   ],
+   "y_tick_pdf_raster": [
+    260.054,
+    275.468,
+    290.874,
+    306.282,
+    321.691,
+    337.102,
+    352.509
+   ],
+   "max_tick_position_diff_vs_extractor_pt": [
+    0.04,
+    0.019
+   ]
+  },
+  "Fig21_R": {
+   "page": 21,
+   "x_tick_values": [
+    0,
+    2,
+    4,
+    6
+   ],
+   "x_tick_pdf_raster": [
+    191.717,
+    223.246,
+    254.773,
+    286.298
+   ],
+   "y_tick_values": [
+    0.8,
+    0.7,
+    0.6,
+    0.5,
+    0.4,
+    0.3,
+    0.2,
+    0.1,
+    0.0
+   ],
+   "y_tick_pdf_raster": [
+    260.054,
+    271.61,
+    283.171,
+    294.725,
+    306.282,
+    317.838,
+    329.394,
+    340.955,
+    352.509
+   ],
+   "max_tick_position_diff_vs_extractor_pt": [
+    0.039,
+    0.02
+   ]
+  },
+  "Fig22_L": {
+   "page": 21,
+   "x_tick_values": [
+    0,
+    0.5,
+    1.0,
+    1.5,
+    2.0
+   ],
+   "x_tick_pdf_raster": [
+    68.89,
+    92.518,
+    116.149,
+    139.776,
+    163.402
+   ],
+   "y_tick_values": [
+    1.0,
+    0.8,
+    0.6,
+    0.4,
+    0.2,
+    0.0
+   ],
+   "y_tick_pdf_raster": [
+    441.484,
+    459.964,
+    478.442,
+    496.918,
+    515.398,
+    533.876
+   ],
+   "max_tick_position_diff_vs_extractor_pt": [
+    0.04,
+    0.039
+   ]
+  },
+  "Fig22_R": {
+   "page": 21,
+   "x_tick_values": [
+    0,
+    2,
+    4,
+    6,
+    8
+   ],
+   "x_tick_pdf_raster": [
+    191.76,
+    215.389,
+    239.018,
+    262.642,
+    286.27
+   ],
+   "y_tick_values": [
+    1.0,
+    0.8,
+    0.6,
+    0.4,
+    0.2,
+    0.0
+   ],
+   "y_tick_pdf_raster": [
+    441.484,
+    459.964,
+    478.442,
+    496.918,
+    515.398,
+    533.876
+   ],
+   "max_tick_position_diff_vs_extractor_pt": [
+    0.04,
+    0.039
+   ]
+  }
+ },
+ "statistics_recomputed_from_extractor_points": {
+  "Fig17 PDF Gamma": {
+   "raw_area": 1.000527276619142,
+   "mean": 1.279387797400092,
+   "std": 0.20065128192131504,
+   "median": 1.263808741486017,
+   "mode": 1.2310550487524377,
+   "P_lt_1": 0.0661218430275251,
+   "xmin": 0.56158,
+   "xmax": 2.77461,
+   "raw_vertex_mode": 1.23099
+  },
+  "Fig17 PDF Fs": {
+   "raw_area": 0.9907717481550621,
+   "mean": 1.2658538069518002,
+   "std": 0.19611880207196883,
+   "median": 1.252379450715858,
+   "mode": 1.22996597179859,
+   "P_lt_1": 0.07550464599842331,
+   "xmin": 0.40169,
+   "xmax": 2.60855,
+   "raw_vertex_mode": 1.23001
+  },
+  "Fig17 CDF Gamma": {
+   "median": 1.2632069198312235,
+   "P_lt_1": 0.06454950980392159,
+   "F_last": 0.99849,
+   "x_last": 2.00617
+  },
+  "Fig17 CDF Fs": {
+   "median": 1.2550614402660527,
+   "P_lt_1": 0.07605504132231412,
+   "F_last": 0.99998,
+   "x_last": 2.1583
+  },
+  "Fig21 PDF Fs": {
+   "raw_area": 1.0289909035764866,
+   "mean": 1.204379385565555,
+   "std": 0.15337181056297822,
+   "median": 1.1902499229352825,
+   "mode": 1.1563324756237812,
+   "P_lt_1": 0.062014956741953266,
+   "xmin": 0.49042,
+   "xmax": 1.98426,
+   "raw_vertex_mode": 1.15635
+  },
+  "Fig21 PDF Gamma": {
+   "raw_area": 0.9931568727532194,
+   "mean": 1.8662606226519565,
+   "std": 0.8225910399411988,
+   "median": 1.6719091918544504,
+   "mode": 1.3938918055902794,
+   "P_lt_1": 0.06623181111147303,
+   "xmin": 0.04934,
+   "xmax": 6.48536,
+   "raw_vertex_mode": 1.3937
+  },
+  "Fig22 CDF Fs": {
+   "median": 1.196289014573213,
+   "P_lt_1": 0.051460639412997985,
+   "F_last": 1.00154,
+   "x_last": 2.22872
+  },
+  "Fig22 CDF Gamma": {
+   "median": 1.6701313924050634,
+   "P_lt_1": 0.055152266009852235,
+   "F_last": 0.99674,
+   "x_last": 8.04488
+  }
+ },
+ "statistics_from_raster": {
+  "Fig17 CDF Gamma": {
+   "median": 1.263552715610683,
+   "P_lt_1": 0.06440130603688185,
+   "F_last": 0.9747415720024465,
+   "x_last": 1.727660386099199
+  },
+  "Fig17 CDF Fs": {
+   "median": 1.2551270196771078,
+   "P_lt_1": 0.07599887443816163,
+   "F_last": 0.9940911180837584,
+   "x_last": 1.8599551882784802
+  },
+  "Fig22 CDF Fs": {
+   "median": 1.196377563486589,
+   "P_lt_1": 0.05244695509487214,
+   "F_last": 0.9939531768306912,
+   "x_last": 1.6429353639165423
+  },
+  "Fig22 CDF Gamma": {
+   "median": 1.6701857335994175,
+   "P_lt_1": 0.05530587745303911,
+   "F_last": 0.9938976487669361,
+   "x_last": 7.908535712338405
+  },
+  "Fig17 PDF Gamma": {
+   "raw_area": 0.9926449728288533,
+   "mean": 1.2755020251549833,
+   "std": 0.192322861497603,
+   "median": 1.2625989104155715,
+   "mode": 1.2296241824111753,
+   "P_lt_1": 0.06595994201765143,
+   "xmin": 0.7872054298245952,
+   "xmax": 1.8647760829702555,
+   "raw_vertex_mode": 1.2296317940249708
+  },
+  "Fig17 PDF Fs": {
+   "raw_area": 0.9911722622224789,
+   "mean": 1.266030272974568,
+   "std": 0.19665020739555486,
+   "median": 1.252445611668733,
+   "mode": 1.2296179581358553,
+   "P_lt_1": 0.07569368266382348,
+   "xmin": 0.7144675360492793,
+   "xmax": 2.0312483759405664,
+   "raw_vertex_mode": 1.2296317940249708
+  },
+  "Fig21 PDF Fs": {
+   "raw_area": 1.030245039887803,
+   "mean": 1.2037773667302107,
+   "std": 0.15473811227740764,
+   "median": 1.1901351801657372,
+   "mode": 1.16115062023845,
+   "P_lt_1": 0.06395033287186541,
+   "xmin": 0.5406872849295454,
+   "xmax": 1.9357009153784253,
+   "raw_vertex_mode": 1.1611162665480104
+  },
+  "Fig21 PDF Gamma": {
+   "raw_area": 0.9906151205237868,
+   "mean": 1.8559038220666082,
+   "std": 0.7955385527882325,
+   "median": 1.670333145372414,
+   "mode": 1.4004501914994933,
+   "P_lt_1": 0.06657877916933733,
+   "xmin": 0.44483686372554077,
+   "xmax": 5.933438512821255,
+   "raw_vertex_mode": 1.4002037249759045
+  }
+ },
+ "summary_comparison": [
+  {
+   "item": "Ex5.3.1 Gamma CDF median",
+   "extractor": 1.26321,
+   "raster": 1.26355
+  },
+  {
+   "item": "Ex5.3.1 Gamma CDF P(<1)",
+   "extractor": 0.06455,
+   "raster": 0.0644,
+   "paper_text": 0.065
+  },
+  {
+   "item": "Ex5.3.1 Fs CDF median",
+   "extractor": 1.25507,
+   "raster": 1.25513
+  },
+  {
+   "item": "Ex5.3.1 Fs CDF P(<1)",
+   "extractor": 0.07605,
+   "raster": 0.076,
+   "paper_text": 0.079
+  },
+  {
+   "item": "Ex5.3.2 Fs CDF median",
+   "extractor": 1.19629,
+   "raster": 1.19638
+  },
+  {
+   "item": "Ex5.3.2 Fs CDF P(<1)",
+   "extractor": 0.05146,
+   "raster": 0.05245,
+   "paper_text": 0.0637
+  },
+  {
+   "item": "Ex5.3.2 Gamma CDF median",
+   "extractor": 1.67013,
+   "raster": 1.67019
+  },
+  {
+   "item": "Ex5.3.2 Gamma CDF P(<1)",
+   "extractor": 0.05515,
+   "raster": 0.05531,
+   "paper_text": 0.055
+  },
+  {
+   "item": "Ex5.3.1 Gamma PDF mean/std/median (raster, tails truncated)",
+   "extractor": [
+    1.27939,
+    0.20063,
+    1.26381
+   ],
+   "raster": [
+    1.2755,
+    0.1923,
+    1.2626
+   ]
+  },
+  {
+   "item": "Ex5.3.1 Fs PDF mean/std/median (raster)",
+   "extractor": [
+    1.26586,
+    0.19611,
+    1.25238
+   ],
+   "raster": [
+    1.266,
+    0.1967,
+    1.2524
+   ]
+  },
+  {
+   "item": "Ex5.3.2 Fs PDF mean/std/median/area (raster)",
+   "extractor": [
+    1.2043,
+    0.15306,
+    1.19023,
+    1.0288
+   ],
+   "raster": [
+    1.2038,
+    0.1547,
+    1.1901,
+    1.0302
+   ]
+  },
+  {
+   "item": "Ex5.3.2 Gamma PDF mean/std/median (raster, cut at 5.93)",
+   "extractor": [
+    1.86627,
+    0.82258,
+    1.67191
+   ],
+   "raster": [
+    1.8559,
+    0.7955,
+    1.6703
+   ]
+  }
+ ],
+ "series_identification": "Confirmed from legends: black = Limit Analysis upper bound solution (Gamma), red = Limit Equilibrium - Cho [19] (F_s). Fig 21/22 left = F_s (red), right = Gamma (black). All axes are linear; quantities are dimensionless (PDF in 1/unit, CDF probability).",
+ "findings": [
+  "Axis calibration confirmed. Raster-detected tick positions agree with the extractor's to <= 0.04 pt on every axis, and tick values (Fig17 x 0.5-2.0, y 0-2 / 0-1; Fig21 x 0-3 / 0-6, y 0-3 / 0-0.8; Fig22 x 0-2 / 0-8, y 0-1) were confirmed visually. The axes are linear, not log.",
+  "53 point checks across all 8 series. Every one is within 2% relative: the max is 1.65%, at a small density value (Fig17 black PDF, x=0.9), and the max difference is 0.37% of axis span. Median raster-to-polyline distance is <= 0.05 pt for every series (the stroke width is 0.71-1.05 pt).",
+  "One apparent outlier, Fig17 black PDF at x=1.40, came from my first occlusion heuristic. Inspecting the raster column showed a separate black run centred at 1.500, which confirms the extractor value of 1.4998.",
+  "The statistics recomputed from the extractor's points reproduce theirs to <= 1e-4 (mean, std, median, P(<1), raw area, and CDF-derived mean/std).",
+  "Mode differences: the extractor reports a parabola-fit mode, while the linear argmax gives 1.231/1.230/1.156/1.394 against their 1.229/1.226/1.164/1.427. The largest gap (Fig21 Gamma, 2.3%) is inside the stated +-0.05 uncertainty, and the JSON also stores mode_argmax=1.3937.",
+  "Raster CDF readings agree with the extractor: medians to <= 0.0004, and P(<1) of 6.44/7.60/5.25/5.53% against 6.46/7.61/5.15/5.52%. The largest relative gap is 1.9%, for Cho F_s in Ex 5.3.2 (0.1 pp absolute, about 1 px).",
+  "Confirmed that the Cho F_s red PDF in Fig 21 is inconsistent with the red CDF in Fig 22: the integrated raster PDF exceeds the plotted CDF by up to about 0.03. Also confirmed that the KDE PDF of Gamma (5.3.2) gives P(<1) of about 6.6%, against 5.5% from the CDF.",
+  "Confirmed that the curves are outlined filled polygons and that the hidden parts beyond the clip exist in the vector data (e.g. Fig17 black PDF fill bbox to x=2.775; Fig21 Gamma to 6.48). These parts cannot be checked by the raster method because they are invisible, but their bounding boxes match.",
+  "Paper text values were rechecked: Pf = 6.5% (LA) and 7.9% (Cho) for 5.3.1, and 5.50% (LA) and 6.37% (Cho) for 5.3.2. They are correctly quoted."
+ ],
+ "minor_issues": [
+  "The dense black CDF series (Fig17: 2324 points; Fig22: 1805 points) have small local zig-zags from the nearest-point pairing: 8 and 5 non-monotone steps, with drops of up to 0.005 in F. They are harmless for the statistics but are not strictly monotone.",
+  "series[2] derived_statistics F_at_end = 1.0, but the last point is 0.99849 at x = 2.006 (cosmetic).",
+  "The PDF-based statistics depend on the hidden or clipped parts and on KDE smoothing. This is documented by the extractor and is not an extraction error."
+ ],
+ "corrections": "none required"
+}

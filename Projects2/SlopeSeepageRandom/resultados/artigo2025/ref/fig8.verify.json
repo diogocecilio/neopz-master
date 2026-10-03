@@ -1,0 +1,1599 @@
+{
+ "figure": "Figure 8 (page 13) - verification of ref/fig8.json",
+ "verdict": "PASS",
+ "ok": true,
+ "tolerance": "2% relative (vector figure)",
+ "max_rel_error": 0.0094,
+ "median_rel_error": 0.0003,
+ "checked_points": 139,
+ "series_covered": "all 12 (each series checked at 8-15 positions incl. x=0 and x~1)",
+ "method": "Independent of the extractor's vector-path parsing: page 13 re-rendered with pymupdf at 1200 dpi (clip x 140-500 pt, y 15-180 pt); axes calibrated from raster gridline/spine pixel centres (subpixel, darkness-weighted) - not from the PDF drawing commands; curves read from dark-pixel runs (grey<100/255) per column (or per row on the steep Israeli segment), with local quadratic fits in (x, log10 H); overlapping curve pairs separated by resolved runs or by edge + half stroke thickness; values at x=0 (hidden under the left spine) by extrapolation from x=0.004-0.03. Style identity checked visually on zoomed 1200 dpi crops and on the provided 300 dpi render.",
+ "calibration_check": {
+  "x": "linear confirmed: London spine/gridlines at px 181.74, 670.59, 1159.45, 1648.38, 2137.21, 2626.15 (x=0..1 step 0.2), residual <0.07 px; Israeli 3115.00 ... 5559.46, residual <0.07 px. Same mapping as extractor (x_pt->x) to <1e-4.",
+  "y": "log10 confirmed: 13 gridlines (4,5,7,8,9,10,30,50,60,70,80,90,100) fit px = -1252.079*log10(H) + 3187.331 with residuals <=0.3 px (one 1.2 px); spacing ratios match log10 (e.g. 4->5: 1249 px/dec, 9->10: 1245 px/dec), NOT linear. Bottom spine -> H=3.00, top spine -> H=201 (i.e. 200 within 0.5%). Extractor log10 map agrees with mine within 0.0006 decades (0.14%).",
+  "units": "y = H_crit; the axis label carries no unit, metres inferred (Table 1 uses kN/m3 and kPa) - consistent with extractor's 'H_crit (m)'."
+ },
+ "series_identification_check": "Confirmed. Legend (and paper text p.12: 'solutions of Wu et al. ... solid lines ... dashed lines and dash-dotted lines refer respectively to the filtration velocity-based variational principle and pore pressure-based FE formulation'): dashed = K.v'_opt, solid = r_p=0.25 (Wu et al.), dash-dot = -grad u'_FE. Zoomed 1200 dpi crops show the extractor's dash-dot polylines run through the dash+dot strokes and the solid polylines through continuous strokes, including the overlapping beta=60 solid/dash-dot pairs (London x=0.4, 0.9; Israeli x=0.4, 0.9) and the dashed/dash-dot pairs near x=0.1. beta assignment (upper family = 30/35 deg, lower = 60 deg) matches the annotation arrows.",
+ "special_points": {
+  "x0_values": "London b30 r_p 95.02 (ext 95.11), b60 r_p 10.90 (10.90), b60 seepage 17.94 (17.95), b30 seepage 155.6 (156.6, -0.6%, steep merged double stroke); Israeli b35 r_p 139.06 (139.05), b60 r_p 7.885 (7.886), b60 seepage 12.98 (12.98).",
+  "israeli_b35_offscale": "Confirmed that Israeli b35 dashed and dash-dot start above the axis top: the straight (x, log10H) segment fitted from raster row runs (x 0.04-0.1) crosses H=200 at x=0.0085 (dashed) and 0.0079 (dash-dot) [extractor 0.0086 / 0.0077], gives H(0.1)=46.83 / 39.15 [46.83 / 39.24] and extrapolates to H(0)=229.0 / 230.2 [229.3 hidden]. The x=0 value is not printed in the figure; treat as off-scale (>200).",
+  "kinks": "Israeli b35 seepage curves have a real kink at x=0.1 (visible in the raster); Israeli b35 r_p curve has a visible kink at x~0.125 - consistent with the extractor's polyline vertices.",
+  "x1_extrapolations": "Flagged x=1 extrapolations agree with raster reads at x=0.98-0.99 (London dash-dot b60 5.45 vs 5.40 merged pair; Israeli dashed b35 8.608 vs 8.611; Israeli dashed b60 4.772 vs 4.774)."
+ },
+ "problems": [
+  "Minor/cosmetic: 'first_visible_point' for the four solid curves at x=0 is 0.4-0.9% above the curve's own points[0] (London b30 95.62 vs 95.11; Israeli b35 140.26 vs 139.05; London b60 10.95 vs 10.90; Israeli b60 7.93 vs 7.89), apparently taken from the stroke outline edge, not the centreline. Within tolerance; points[0]/resampled[0] are the correct centreline values.",
+  "Not an error but a usage caveat: resampled[0] = 229.3 m for Israeli b35 dashed and dash-dot is off-scale (hidden by the axes clip); the extractor flags this correctly (starts_above_axis_top=true, first_visible_point at H=200).",
+  "Not verifiable from the printed figure: the hidden x=0 value 229.3 m; my extrapolation of the visible straight segment gives 229.0-230.2 m, consistent.",
+  "Unit 'm' is inferred, not printed on the axis."
+ ],
+ "corrections": "none required",
+ "checks": [
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "solid",
+   "x": 0.05,
+   "extractor": 86.852,
+   "raster": 86.863,
+   "rel": 0.0001,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "solid",
+   "x": 0.1,
+   "extractor": 76.846,
+   "raster": 76.853,
+   "rel": 0.0001,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "solid",
+   "x": 0.2,
+   "extractor": 58.649,
+   "raster": 58.624,
+   "rel": -0.0004,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "solid",
+   "x": 0.3,
+   "extractor": 45.391,
+   "raster": 45.39,
+   "rel": -0.0,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "solid",
+   "x": 0.4,
+   "extractor": 36.273,
+   "raster": 36.272,
+   "rel": -0.0,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "solid",
+   "x": 0.5,
+   "extractor": 30.018,
+   "raster": 30.017,
+   "rel": -0.0,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "solid",
+   "x": 0.6,
+   "extractor": 25.693,
+   "raster": 25.692,
+   "rel": -0.0,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "solid",
+   "x": 0.7,
+   "extractor": 22.732,
+   "raster": 22.73,
+   "rel": -0.0001,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "solid",
+   "x": 0.8,
+   "extractor": 20.777,
+   "raster": 20.774,
+   "rel": -0.0001,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "solid",
+   "x": 0.9,
+   "extractor": 19.645,
+   "raster": 19.643,
+   "rel": -0.0001,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "solid",
+   "x": 0.98,
+   "extractor": 19.281,
+   "raster": 19.275,
+   "rel": -0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashed",
+   "x": 0.3,
+   "extractor": 40.819,
+   "raster": 40.814,
+   "rel": -0.0001,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashed",
+   "x": 0.4,
+   "extractor": 31.646,
+   "raster": 31.648,
+   "rel": 0.0,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashed",
+   "x": 0.5,
+   "extractor": 25.502,
+   "raster": 25.514,
+   "rel": 0.0005,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashed",
+   "x": 0.6,
+   "extractor": 21.379,
+   "raster": 21.38,
+   "rel": 0.0,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashed",
+   "x": 0.7,
+   "extractor": 18.471,
+   "raster": 18.469,
+   "rel": -0.0002,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashed",
+   "x": 0.8,
+   "extractor": 16.31,
+   "raster": 16.304,
+   "rel": -0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashed",
+   "x": 0.9,
+   "extractor": 14.998,
+   "raster": 14.999,
+   "rel": 0.0,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashed",
+   "x": 0.98,
+   "extractor": 14.608,
+   "raster": 14.604,
+   "rel": -0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashdot",
+   "x": 0.4,
+   "extractor": 18.632,
+   "raster": 18.641,
+   "rel": 0.0005,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashdot",
+   "x": 0.5,
+   "extractor": 15.203,
+   "raster": 15.217,
+   "rel": 0.0009,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashdot",
+   "x": 0.6,
+   "extractor": 13.024,
+   "raster": 13.02,
+   "rel": -0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashdot",
+   "x": 0.7,
+   "extractor": 11.623,
+   "raster": 11.621,
+   "rel": -0.0002,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashdot",
+   "x": 0.8,
+   "extractor": 10.891,
+   "raster": 10.887,
+   "rel": -0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashdot",
+   "x": 0.9,
+   "extractor": 10.546,
+   "raster": 10.546,
+   "rel": -0.0,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashdot",
+   "x": 0.98,
+   "extractor": 10.683,
+   "raster": 10.68,
+   "rel": -0.0004,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.05,
+   "extractor": 10.196,
+   "raster": 10.193,
+   "rel": -0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.1,
+   "extractor": 9.564,
+   "raster": 9.561,
+   "rel": -0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.15,
+   "extractor": 9.001,
+   "raster": 8.999,
+   "rel": -0.0002,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.2,
+   "extractor": 8.504,
+   "raster": 8.502,
+   "rel": -0.0002,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.3,
+   "extractor": 7.675,
+   "raster": 7.673,
+   "rel": -0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.4,
+   "extractor": 7.026,
+   "raster": 7.026,
+   "rel": 0.0,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.6,
+   "extractor": 6.127,
+   "raster": 6.125,
+   "rel": -0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.7,
+   "extractor": 5.832,
+   "raster": 5.83,
+   "rel": -0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.9,
+   "extractor": 5.499,
+   "raster": 5.497,
+   "rel": -0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashed",
+   "x": 0.2,
+   "extractor": 10.683,
+   "raster": 10.68,
+   "rel": -0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashed",
+   "x": 0.3,
+   "extractor": 9.482,
+   "raster": 9.477,
+   "rel": -0.0004,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashed",
+   "x": 0.4,
+   "extractor": 8.885,
+   "raster": 8.881,
+   "rel": -0.0004,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashed",
+   "x": 0.5,
+   "extractor": 8.625,
+   "raster": 8.624,
+   "rel": -0.0001,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashed",
+   "x": 0.6,
+   "extractor": 8.469,
+   "raster": 8.465,
+   "rel": -0.0005,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashed",
+   "x": 0.7,
+   "extractor": 8.307,
+   "raster": 8.304,
+   "rel": -0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashed",
+   "x": 0.8,
+   "extractor": 8.147,
+   "raster": 8.145,
+   "rel": -0.0002,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashed",
+   "x": 0.9,
+   "extractor": 8.05,
+   "raster": 8.048,
+   "rel": -0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashed",
+   "x": 0.98,
+   "extractor": 8.028,
+   "raster": 8.024,
+   "rel": -0.0005,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.2,
+   "extractor": 9.908,
+   "raster": 9.908,
+   "rel": 0.0,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.3,
+   "extractor": 8.278,
+   "raster": 8.277,
+   "rel": -0.0001,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.7,
+   "extractor": 5.632,
+   "raster": 5.631,
+   "rel": -0.0001,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "solid",
+   "x": 0.3,
+   "extractor": 33.899,
+   "raster": 33.91,
+   "rel": 0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "solid",
+   "x": 0.4,
+   "extractor": 25.417,
+   "raster": 25.419,
+   "rel": 0.0001,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "solid",
+   "x": 0.5,
+   "extractor": 20.332,
+   "raster": 20.329,
+   "rel": -0.0001,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "solid",
+   "x": 0.6,
+   "extractor": 16.944,
+   "raster": 16.94,
+   "rel": -0.0002,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "solid",
+   "x": 0.7,
+   "extractor": 14.541,
+   "raster": 14.539,
+   "rel": -0.0001,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "solid",
+   "x": 0.8,
+   "extractor": 12.987,
+   "raster": 12.985,
+   "rel": -0.0001,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "solid",
+   "x": 0.9,
+   "extractor": 12.111,
+   "raster": 12.109,
+   "rel": -0.0002,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "solid",
+   "x": 0.98,
+   "extractor": 11.835,
+   "raster": 11.832,
+   "rel": -0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashed",
+   "x": 0.15,
+   "extractor": 39.589,
+   "raster": 39.59,
+   "rel": 0.0,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashed",
+   "x": 0.3,
+   "extractor": 24.148,
+   "raster": 24.167,
+   "rel": 0.0008,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashed",
+   "x": 0.4,
+   "extractor": 18.756,
+   "raster": 18.755,
+   "rel": -0.0,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashed",
+   "x": 0.5,
+   "extractor": 14.879,
+   "raster": 14.888,
+   "rel": 0.0006,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashed",
+   "x": 0.6,
+   "extractor": 12.718,
+   "raster": 12.714,
+   "rel": -0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashed",
+   "x": 0.7,
+   "extractor": 10.868,
+   "raster": 10.863,
+   "rel": -0.0004,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashed",
+   "x": 0.8,
+   "extractor": 9.463,
+   "raster": 9.464,
+   "rel": 0.0002,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashed",
+   "x": 0.9,
+   "extractor": 8.807,
+   "raster": 8.809,
+   "rel": 0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashed",
+   "x": 0.98,
+   "extractor": 8.611,
+   "raster": 8.608,
+   "rel": -0.0004,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashdot",
+   "x": 0.15,
+   "extractor": 33.073,
+   "raster": 33.076,
+   "rel": 0.0001,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashdot",
+   "x": 0.4,
+   "extractor": 14.304,
+   "raster": 14.319,
+   "rel": 0.001,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashdot",
+   "x": 0.5,
+   "extractor": 11.778,
+   "raster": 11.767,
+   "rel": -0.0009,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashdot",
+   "x": 0.6,
+   "extractor": 9.766,
+   "raster": 9.768,
+   "rel": 0.0002,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashdot",
+   "x": 0.7,
+   "extractor": 8.395,
+   "raster": 8.396,
+   "rel": 0.0002,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashdot",
+   "x": 0.8,
+   "extractor": 7.846,
+   "raster": 7.844,
+   "rel": -0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashdot",
+   "x": 0.9,
+   "extractor": 7.478,
+   "raster": 7.483,
+   "rel": 0.0007,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashdot",
+   "x": 0.98,
+   "extractor": 7.755,
+   "raster": 7.752,
+   "rel": -0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.05,
+   "extractor": 7.211,
+   "raster": 7.209,
+   "rel": -0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.1,
+   "extractor": 6.617,
+   "raster": 6.615,
+   "rel": -0.0002,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.15,
+   "extractor": 6.103,
+   "raster": 6.1,
+   "rel": -0.0005,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.2,
+   "extractor": 5.661,
+   "raster": 5.659,
+   "rel": -0.0004,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.3,
+   "extractor": 4.95,
+   "raster": 4.947,
+   "rel": -0.0005,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.4,
+   "extractor": 4.417,
+   "raster": 4.412,
+   "rel": -0.0011,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.5,
+   "extractor": 4.013,
+   "raster": 4.012,
+   "rel": -0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.6,
+   "extractor": 3.71,
+   "raster": 3.709,
+   "rel": -0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.7,
+   "extractor": 3.487,
+   "raster": 3.485,
+   "rel": -0.0006,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.8,
+   "extractor": 3.331,
+   "raster": 3.329,
+   "rel": -0.0006,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.9,
+   "extractor": 3.237,
+   "raster": 3.236,
+   "rel": -0.0005,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.98,
+   "extractor": 3.207,
+   "raster": 3.212,
+   "rel": 0.0016,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashed",
+   "x": 0.1,
+   "extractor": 8.685,
+   "raster": 8.689,
+   "rel": 0.0005,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashed",
+   "x": 0.2,
+   "extractor": 6.905,
+   "raster": 6.904,
+   "rel": -0.0001,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashed",
+   "x": 0.3,
+   "extractor": 6.076,
+   "raster": 6.075,
+   "rel": -0.0002,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashed",
+   "x": 0.4,
+   "extractor": 5.715,
+   "raster": 5.712,
+   "rel": -0.0006,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashed",
+   "x": 0.5,
+   "extractor": 5.438,
+   "raster": 5.438,
+   "rel": -0.0,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashed",
+   "x": 0.6,
+   "extractor": 5.258,
+   "raster": 5.256,
+   "rel": -0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashed",
+   "x": 0.7,
+   "extractor": 5.063,
+   "raster": 5.061,
+   "rel": -0.0005,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashed",
+   "x": 0.8,
+   "extractor": 4.891,
+   "raster": 4.89,
+   "rel": -0.0002,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashed",
+   "x": 0.9,
+   "extractor": 4.794,
+   "raster": 4.792,
+   "rel": -0.0005,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashed",
+   "x": 0.98,
+   "extractor": 4.774,
+   "raster": 4.772,
+   "rel": -0.0004,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.2,
+   "extractor": 6.197,
+   "raster": 6.195,
+   "rel": -0.0002,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.5,
+   "extractor": 3.804,
+   "raster": 3.803,
+   "rel": -0.0003,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.6,
+   "extractor": 3.486,
+   "raster": 3.484,
+   "rel": -0.0008,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.7,
+   "extractor": 3.293,
+   "raster": 3.291,
+   "rel": -0.0006,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.8,
+   "extractor": 3.199,
+   "raster": 3.197,
+   "rel": -0.0005,
+   "method": "raster 1200 dpi: clean single-stroke column runs, quadratic fit in (x,log10H) over x+-0.015"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashed",
+   "x": 0.1,
+   "extractor": 78.03,
+   "raster": 78.762,
+   "rel": 0.0094,
+   "n": 25,
+   "method": "pair decomposition (top curve of overlapping pair; resolved runs or edge+half-thickness)"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.1,
+   "extractor": 12.762,
+   "raster": 12.712,
+   "rel": -0.0039,
+   "n": 21,
+   "method": "pair decomposition (bottom curve of overlapping pair; resolved runs or edge+half-thickness)"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashed",
+   "x": 0.1,
+   "extractor": 13.069,
+   "raster": 13.081,
+   "rel": 0.0009,
+   "n": 21,
+   "method": "pair decomposition (top curve of overlapping pair; resolved runs or edge+half-thickness)"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.4,
+   "extractor": 7.166,
+   "raster": 7.161,
+   "rel": -0.0007,
+   "n": 46,
+   "method": "pair decomposition (top curve of overlapping pair; resolved runs or edge+half-thickness)"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.4,
+   "extractor": 7.026,
+   "raster": 7.025,
+   "rel": -0.0001,
+   "n": 46,
+   "method": "pair decomposition (bottom curve of overlapping pair; resolved runs or edge+half-thickness)"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.9,
+   "extractor": 5.373,
+   "raster": 5.372,
+   "rel": -0.0003,
+   "n": 46,
+   "method": "pair decomposition (bottom curve of overlapping pair; resolved runs or edge+half-thickness)"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.9,
+   "extractor": 5.499,
+   "raster": 5.496,
+   "rel": -0.0005,
+   "n": 46,
+   "method": "pair decomposition (top curve of overlapping pair; resolved runs or edge+half-thickness)"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.6,
+   "extractor": 5.949,
+   "raster": 5.953,
+   "rel": 0.0007,
+   "n": 42,
+   "method": "pair decomposition (bottom curve of overlapping pair; resolved runs or edge+half-thickness)"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.5,
+   "extractor": 6.436,
+   "raster": 6.432,
+   "rel": -0.0007,
+   "n": 74,
+   "method": "pair decomposition (bottom curve of overlapping pair; resolved runs or edge+half-thickness)"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.1,
+   "extractor": 8.395,
+   "raster": 8.45,
+   "rel": 0.0066,
+   "n": 15,
+   "method": "pair decomposition (bottom curve of overlapping pair; resolved runs or edge+half-thickness)"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashed",
+   "x": 0.1,
+   "extractor": 8.685,
+   "raster": 8.687,
+   "rel": 0.0003,
+   "n": 16,
+   "method": "pair decomposition (top curve of overlapping pair; resolved runs or edge+half-thickness)"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.3,
+   "extractor": 5.036,
+   "raster": 5.05,
+   "rel": 0.0028,
+   "n": 23,
+   "method": "pair decomposition (top curve of overlapping pair; resolved runs or edge+half-thickness)"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.4,
+   "extractor": 4.28,
+   "raster": 4.279,
+   "rel": -0.0002,
+   "n": 74,
+   "method": "pair decomposition (bottom curve of overlapping pair; resolved runs or edge+half-thickness)"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.4,
+   "extractor": 4.417,
+   "raster": 4.415,
+   "rel": -0.0004,
+   "n": 74,
+   "method": "pair decomposition (top curve of overlapping pair; resolved runs or edge+half-thickness)"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.9,
+   "extractor": 3.179,
+   "raster": 3.177,
+   "rel": -0.0007,
+   "n": 46,
+   "method": "pair decomposition (bottom curve of overlapping pair; resolved runs or edge+half-thickness)"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.9,
+   "extractor": 3.237,
+   "raster": 3.235,
+   "rel": -0.0005,
+   "n": 46,
+   "method": "pair decomposition (top curve of overlapping pair; resolved runs or edge+half-thickness)"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "solid",
+   "x": 0.0,
+   "extractor": 95.107,
+   "raster": 95.018,
+   "rel": -0.0009,
+   "method": "quadratic extrapolation in (x,log10H) of clean column runs x in [0.004,0.030] (x=0 hidden by left spine)"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.0,
+   "extractor": 10.901,
+   "raster": 10.899,
+   "rel": -0.0002,
+   "method": "quadratic extrapolation in (x,log10H) of clean column runs x in [0.004,0.030] (x=0 hidden by left spine)"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashed (+dashdot, coincident at x=0)",
+   "x": 0.0,
+   "extractor": 17.949,
+   "raster": 17.943,
+   "rel": -0.0003,
+   "method": "quadratic extrapolation in (x,log10H) of clean column runs x in [0.004,0.012] (x=0 hidden by left spine)"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashed (+dashdot, coincident at x=0)",
+   "x": 0.0,
+   "extractor": 156.555,
+   "raster": 155.577,
+   "rel": -0.0062,
+   "method": "quadratic extrapolation in (x,log10H) of clean column runs x in [0.004,0.012] (x=0 hidden by left spine)"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "solid",
+   "x": 0.0,
+   "extractor": 139.045,
+   "raster": 139.058,
+   "rel": 0.0001,
+   "method": "quadratic extrapolation in (x,log10H) of clean column runs x in [0.004,0.020] (x=0 hidden by left spine)"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.0,
+   "extractor": 7.886,
+   "raster": 7.885,
+   "rel": -0.0002,
+   "method": "quadratic extrapolation in (x,log10H) of clean column runs x in [0.004,0.030] (x=0 hidden by left spine)"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashed (+dashdot, coincident at x=0)",
+   "x": 0.0,
+   "extractor": 12.984,
+   "raster": 12.983,
+   "rel": -0.0001,
+   "method": "quadratic extrapolation in (x,log10H) of clean column runs x in [0.004,0.012] (x=0 hidden by left spine)"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashdot",
+   "x": 0.3,
+   "extractor": 19.321,
+   "raster": 19.339,
+   "rel": 0.0009,
+   "method": "raster: all runs within 7% of value over x+-0.025, robust quadratic fit (n=73)"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashed",
+   "x": 0.2,
+   "extractor": 33.493,
+   "raster": 33.4,
+   "rel": -0.0028,
+   "method": "raster: all runs within 7% of value over x+-0.025, robust quadratic fit (n=89)"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashdot",
+   "x": 0.2,
+   "extractor": 27.931,
+   "raster": 27.901,
+   "rel": -0.0011,
+   "method": "raster: all runs within 7% of value over x+-0.025, robust quadratic fit (n=76)"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashdot",
+   "x": 0.1,
+   "extractor": 65.1,
+   "raster": 65.134,
+   "rel": 0.0005,
+   "method": "raster: all runs within 7% of value over x+-0.025, robust quadratic fit (n=51)"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashed",
+   "x": 0.7,
+   "extractor": 18.471,
+   "raster": 18.465,
+   "rel": -0.0004,
+   "method": "raster: all runs within 7% of value over x+-0.025, robust quadratic fit (n=94)"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashed",
+   "x": 0.1,
+   "extractor": 46.826,
+   "raster": 46.83,
+   "rel": 0.0001,
+   "method": "row-wise horizontal runs on steep segment x in [0.04,0.1], linear fit in (x,log10H)"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashdot",
+   "x": 0.1,
+   "extractor": 39.236,
+   "raster": 39.15,
+   "rel": -0.0022,
+   "method": "same as above"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashed",
+   "x": 0.0,
+   "extractor": 229.292,
+   "raster": 229.0,
+   "rel": -0.0013,
+   "method": "extrapolation of the same straight segment to x=0 (value is above the printed axis top; hidden)"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashdot",
+   "x": 0.0,
+   "extractor": 229.3,
+   "raster": 230.2,
+   "rel": 0.0039,
+   "method": "same as above (hidden)"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "solid",
+   "x": 0.1,
+   "extractor": 91.192,
+   "raster": 91.255,
+   "rel": 0.0007,
+   "method": "raster: runs (<=60 px, steep part) within tol of value over x+-0.015, robust quadratic fit (n=46)"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "solid",
+   "x": 0.15,
+   "extractor": 67.813,
+   "raster": 67.907,
+   "rel": 0.0014,
+   "method": "raster: runs (<=60 px, steep part) within tol of value over x+-0.015, robust quadratic fit (n=33)"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "solid",
+   "x": 0.2,
+   "extractor": 50.991,
+   "raster": 51.018,
+   "rel": 0.0005,
+   "method": "raster: runs (<=60 px, steep part) within tol of value over x+-0.015, robust quadratic fit (n=45)"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashdot",
+   "x": 0.15,
+   "extractor": 48.039,
+   "raster": 47.719,
+   "rel": -0.0067,
+   "method": "raster: runs (<=60 px, steep part) within tol of value over x+-0.015, robust quadratic fit (n=32)"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashdot",
+   "x": 0.05,
+   "extractor": 87.494,
+   "raster": 87.114,
+   "rel": -0.0043,
+   "method": "raster: runs (<=60 px, steep part) within tol of value over x+-0.015, robust quadratic fit (n=53)"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "solid",
+   "x": 0.15,
+   "extractor": 67.191,
+   "raster": 67.278,
+   "rel": 0.0013,
+   "method": "pair decomposition (bottom of dashed/solid pair)"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashed",
+   "x": 0.15,
+   "extractor": 68.833,
+   "raster": 68.701,
+   "rel": -0.0019,
+   "method": "pair decomposition (top of dashed/solid pair)"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashed",
+   "x": 0.05,
+   "extractor": 105.757,
+   "raster": 105.907,
+   "rel": 0.0014,
+   "method": "full-height steep column runs of the dash ending at x~0.048, linear extrapolation in (x,log10H) to 0.05 (n=21)"
+  }
+ ],
+ "excluded_auto_reads": [
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashed",
+   "x": 0.1,
+   "reason": "auto read latched onto r_p solid (curves within 1.5%) -> replaced by pair decomposition"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashdot",
+   "x": 0.05,
+   "reason": "auto read latched onto r_p solid (curves within 0.7%) - not separable at this x"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "solid",
+   "x": 0.5,
+   "reason": "merged run with dash-dot -> replaced by pair decomposition at nearby x"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashed",
+   "x": 0.05,
+   "reason": "too few clean columns (n=9)"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashed",
+   "x": 0.15,
+   "reason": "contaminated by dash-dot (rms 0.004 dec)"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashed",
+   "x": 0.1,
+   "reason": "kink vertex; quadratic window invalid -> replaced by straight-segment fit"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashdot",
+   "x": 0.3,
+   "reason": "only partial dash in 0.303-0.307 -> replaced by wider-window fit"
+  },
+  {
+   "panel": "London",
+   "beta": 30,
+   "style": "dashdot",
+   "x": 0.2,
+   "reason": "only 0.199-0.206 window (partial dash); within tolerance anyway"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashed",
+   "x": 0.2,
+   "reason": "partial window; re-read with wider window"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 35,
+   "style": "dashdot",
+   "x": 0.2,
+   "reason": "partial window; re-read with wider window"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.1,
+   "reason": "overlaps solid/dashed partner -> pair decomposition used where needed"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.15,
+   "reason": "overlaps solid/dashed partner -> pair decomposition used where needed"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.4,
+   "reason": "overlaps solid/dashed partner -> pair decomposition used where needed"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.5,
+   "reason": "overlaps solid/dashed partner -> pair decomposition used where needed"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.6,
+   "reason": "overlaps solid/dashed partner -> pair decomposition used where needed"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.9,
+   "reason": "overlaps solid/dashed partner -> pair decomposition used where needed"
+  },
+  {
+   "panel": "London",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.98,
+   "reason": "overlaps solid/dashed partner -> pair decomposition used where needed"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.1,
+   "reason": "overlaps solid/dashed partner -> pair decomposition used where needed"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.3,
+   "reason": "overlaps solid/dashed partner -> pair decomposition used where needed"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.4,
+   "reason": "overlaps solid/dashed partner -> pair decomposition used where needed"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.9,
+   "reason": "overlaps solid/dashed partner -> pair decomposition used where needed"
+  },
+  {
+   "panel": "Israeli",
+   "beta": 60,
+   "style": "dashdot",
+   "x": 0.98,
+   "reason": "overlaps solid/dashed partner -> pair decomposition used where needed"
+  }
+ ],
+ "artifacts": [
+  "ref/fig8_verify_overlay.png (verifier raster reads on provided 300 dpi render)",
+  "ref/v8/zoom_spots.png, ref/v8/zoom_b60_overlap.png, ref/v8/ovl_London.png, ref/v8/ovl_Israeli.png, ref/v8/zoom_isr_top.png (extractor polylines on 1200 dpi raster)",
+  "ref/v8/*.py (verification scripts)"
+ ]
+}

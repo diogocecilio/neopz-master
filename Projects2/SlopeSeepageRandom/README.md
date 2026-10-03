@@ -43,12 +43,13 @@ crista, `y'` = profundidade abaixo da crista) é a solução de Darcy estacioná
 k_h (1 − e_y⊗e_y)`, `u = 0` na crista, `u = −γw min(y', h_w)` na face e `u = −γw h_w` no pé (eq. 21); base e
 laterais impermeáveis. No esqueleto entram `γ'` e `−grad u` como forças de corpo (eq. 5).
 
-> **Diferença importante em relação ao Γ = 1.336 do artigo.** No artigo, `−grad u` usado na análise limite vem
-> do campo de velocidades *semianalítico* `v'_opt` (princípio de mínimo em velocidade de filtração, Fig. 3,
-> eq. 40, domínio com `R_e`, `L_m = 10 H`); o próprio artigo mostra (eq. 28, Fig. 5, Fig. 9) que esse campo e o
-> FE em poropressão dão estimativas *superior e inferior* das forças de percolação. Aqui `u` é o FE em
-> poropressão (H1, ordem 2) — a estimativa inferior —, o que leva a Γ maior que o do artigo no caso com
-> percolação; nos casos secos (Cho) não há essa diferença e o acordo é de 0.1–2.5 % (abaixo).
+> **Forças de percolação: qual curva do artigo comparar.** O artigo usa duas aproximações de `−grad u`: o campo
+> semianalítico `K·v'_opt` (princípio de mínimo em velocidade de filtração, Fig. 3, eq. 40) e o FE em poropressão
+> `−grad u'_FE`. O Γ = 1.336 do caso de referência (Tabelas 5 e 6, seção 6) é o de `−grad u'_FE`, a mesma
+> aproximação deste código: a Fig. 9 dá Γ ≈ 1.31 em β = 45°, α = 1 para `−grad u'_FE` e ≈ 1.89 para `K·v'_opt`.
+> (Uma versão anterior deste README atribuía a diferença de Γ ao `v'_opt`; isso estava errado.) A diferença que
+> resta vem da discretização: o FE em deslocamentos converge para a carga de colapso de cima, devagar por causa da
+> singularidade no pé (ver a convergência com a malha), e de γw (o artigo usa 9.81; `gw=9.81`).
 
 ## Estrutura (classes nativas do NeoPZ)
 
@@ -72,6 +73,9 @@ análise elástica geostática na mesma malha, `p_c0` = elipse normalmente adens
 elasticidade linear. Com ele Γ e FS dependem da trajetória (endurecimento/amolecimento).
 
 ## Resultados determinísticos
+
+> Valores com γw = 10 (versão anterior). Os determinísticos com γw = 9.81 (convergência com a malha, Fig. 8, Fig. 9,
+> Tabelas 5 e 6) estão em `resultados/artigo2025/det/` e no relatório.
 
 `scripts/deterministico.sh` (Mohr-Coulomb, p = 2, malha adaptada `adapt=3`):
 
@@ -141,6 +145,9 @@ para rebaixamento parcial (h_w/H ≈ 0.8–0.9), como no artigo; a razão FE/art
 
 
 ## Monte Carlo
+
+> Campanha anterior (γw = 10, 100 amostras por caso, outro container). Os números abaixo ficam como registro; a
+> campanha completa, com γw = 9.81 e todos os casos do artigo, é a da seção *Campanha completa do artigo*.
 
 `h=1 adapt=2` (4962 equações), KL com `hkl=1`, ε_M ≈ 3.6 % compensado, Mohr-Coulomb, Γ por acréscimo de carga;
 **100 amostras por caso** (referência: 1000; alguns casos têm mais), portanto CoV(Pf) de 20–100 %: os valores de
@@ -229,6 +236,45 @@ permanente:
 
 Figuras: `resultados/rebaix/rebaixamento_mc.png` e `resultados/rebaix/rebaixamento_mcc.png` (FS e Γ × T).
 
+
+## Campanha completa do artigo (`scripts/campanha_artigo.py`)
+
+Todos os casos de Monte Carlo do artigo — referência, Tabela 3 (CoV de k_v, c e φ), Tabela 4 (escala s das
+distâncias de autocorrelação: 1.5, 2, 5, 10, 20, 400), Tabela 5 (α = 2–5), Tabela 6 (h_w/H = 0.5–0.9) e os dois
+exemplos de Cho (2010) — com γw = 9.81, a malha do Monte Carlo (`h=1 adapt=2`) e a semente 2025. Cada caso é
+dividido em blocos de 50 amostras e a fila intercala os casos, de modo que todos avançam juntos; tudo é retomável.
+
+```
+ninja SlopeSeepageRandom                                   # Release, BUILD_PLASTICITY_MATERIALS=ON, USING_LAPACK=ON
+S=Projects2/SlopeSeepageRandom/scripts
+python3 $S/campanha_artigo.py jobs <build>/Projects2/SlopeSeepageRandom/SlopeSeepageRandom campanha --alvo 1000 > jobs.txt
+nohup $S/fila.sh jobs.txt P > fila.log 2>&1 &              # P = número de núcleos físicos
+PROCESSOS=P python3 $S/campanha_artigo.py status campanha  # amostras, μ, σ, Pf, CoV(Pf), s/amostra e previsão
+```
+
+* `--alvo 1000` (ou 2000): N por caso. `--alvo artigo`: o S de cada caso no artigo (10 000 a 100 000, ~630 mil
+  amostras no total). `--alvo cov5`: o protocolo do artigo com o Pf deste código (CoV(Pf) < 5 %); a fila é gerada
+  de novo de tempos em tempos e o alvo de cada caso é reavaliado com as amostras já calculadas.
+* Para interromper: matar o `fila.sh`/`xargs` e os processos; para continuar, gerar a fila de novo (mesmo
+  `--bloco`) e rodar. Blocos completos são pulados; um bloco interrompido continua da amostra seguinte.
+* Tempo: nesta máquina de 4 núcleos, ~4.5–5 s por amostra com 4 processos simultâneos (Cho coesivo ~1.4×, Cho
+  c-φ ~0.7×). Em horas de CPU: N = 1000 por caso ≈ 37 h, N = 2000 ≈ 75 h, S do artigo ≈ 820–950 h; dividir pelo
+  número de processos. O `status` refaz a previsão com o tempo medido na máquina.
+* Para enviar os resultados: `python3 $S/campanha_artigo.py pacote campanha resultados_campanha.tar.gz` (só os
+  CSV, `.mec`, `.modo`, `.param` e `.resumo` de cada bloco, sem os caches da KL e da malha).
+* Relatório: `analise_artigo.py <campanha> <det> <ref> <saída>` (tabelas e figuras, com os dados do artigo
+  extraídos em `resultados/artigo2025/ref/`) e `relatorio_html.py <saída> relatorio.html`.
+
+Saídas novas do comando `mc` (o fator Γ das amostras não muda):
+
+| arquivo | conteúdo |
+|---|---|
+| `<csv>.mec` | c e φ médios na banda de cisalhamento (‖Δε^p‖ ≥ 10 % do máximo no colapso, ponderados) e k_v médio na massa que se move (‖Δu‖ ≥ 30 % do máximo): as variáveis da correlação de Spearman da seção 6.1 |
+| `<csv>.modo` | modo de ruptura (Figs. 16 e 20): `abaixo` se a banda desce mais de 0.1 H abaixo do nível do pé, `pe` se passa a menos de 0.1 H do pé, `acima` nos demais |
+
+Opções novas: `gw=` (γw, padrão 10; o artigo usa 9.81), `fatormax=` (limite do fator de carga, padrão 20) e, no
+`det`, o funcional hidráulico `J(u)/(k_h H² γw²)` da Fig. 5 (com `gamma=0 fs=0` só o problema hidráulico é
+resolvido).
 
 ## Gravação e retomada (read/write)
 

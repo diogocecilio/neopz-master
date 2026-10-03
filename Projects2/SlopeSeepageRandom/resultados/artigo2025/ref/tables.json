@@ -1,0 +1,1812 @@
+{
+ "figure": "Tables 1-6, text values (Sec. 4.3, 5.2, 5.3, 6, 6.1-6.5), Fig 26, Figs 28-30",
+ "source": "vector",
+ "page": 24,
+ "pages": {
+  "table1": 12,
+  "table2": 22,
+  "table3": 24,
+  "table4": 27,
+  "table5": 28,
+  "table6": 28,
+  "fig26": 23,
+  "fig28": 25,
+  "fig29": 25,
+  "fig30": 26,
+  "fig15": 19,
+  "fig16": 19,
+  "fig19": 20,
+  "fig20": 21,
+  "fig24": 22
+ },
+ "x_label": "various (see series)",
+ "y_label": "various (see series)",
+ "tables": {
+  "table1": {
+   "caption": "TABLE 1 - Soil parameters for Israeli clay and London clay [3] (Wu et al.)",
+   "page": 12,
+   "columns": [
+    "soil_type",
+    "gamma_kN_m3",
+    "c_kPa",
+    "phi_deg"
+   ],
+   "rows": [
+    [
+     "London clay",
+     18.0,
+     6.0,
+     32.0
+    ],
+    [
+     "Israeli clay",
+     18.0,
+     11.7,
+     24.7
+    ]
+   ]
+  },
+  "table2": {
+   "caption": "TABLE 2 - Statistical reference soil model data",
+   "page": 22,
+   "columns": [
+    "symbol",
+    "parameter",
+    "mean",
+    "mean_unit",
+    "CoV_pct",
+    "Lx_m",
+    "Ly_m"
+   ],
+   "rows": [
+    [
+     "c",
+     "Effective cohesion",
+     10,
+     "kPa",
+     30,
+     20,
+     2
+    ],
+    [
+     "phi",
+     "Effective friction angle",
+     30,
+     "deg",
+     10,
+     20,
+     2
+    ],
+    [
+     "k_v",
+     "Vertical permeability",
+     1e-06,
+     "m4/kN/s",
+     60,
+     20,
+     2
+    ],
+    [
+     "alpha",
+     "Permeability anisotropy ratio",
+     1,
+     "-",
+     null,
+     null,
+     null
+    ],
+    [
+     "gamma",
+     "Soil unit weight",
+     20,
+     "kN/m3",
+     null,
+     null,
+     null
+    ]
+   ],
+   "unit_note": "k_v = 1e-6 m^4/(kN s) = 1e-6 m^2/(kPa s) = 1e-9 m^2/(Pa s) (K of Eq. 17 is in m^2 Pa^-1 s^-1). Equivalent hydraulic conductivity k_v*gamma_w ~ 9.81e-6 m/s if gamma_w = 9.81 kN/m3 (gamma_w is never given numerically in the paper)."
+  },
+  "table3": {
+   "caption": "TABLE 3 - Summary of the Monte Carlo simulations: Effects of the coefficient of variation",
+   "page": 24,
+   "columns": [
+    "CoV_kv_pct",
+    "CoV_c_pct",
+    "CoV_phi_pct",
+    "mu_Gamma",
+    "sigma_Gamma",
+    "CoV_Gamma_pct",
+    "Pf_pct",
+    "CoV_Pf_pct"
+   ],
+   "rows": [
+    [
+     60,
+     30,
+     10,
+     1.353,
+     0.318,
+     23.5,
+     11.5,
+     2.77
+    ],
+    [
+     0,
+     30,
+     10,
+     1.329,
+     0.288,
+     21.7,
+     11.21,
+     2.81
+    ],
+    [
+     75,
+     30,
+     10,
+     1.375,
+     0.341,
+     24.8,
+     11.41,
+     2.79
+    ],
+    [
+     90,
+     30,
+     10,
+     1.378,
+     0.354,
+     25.7,
+     11.63,
+     2.76
+    ],
+    [
+     100,
+     30,
+     10,
+     1.391,
+     0.36,
+     25.9,
+     11.44,
+     2.78
+    ],
+    [
+     60,
+     10,
+     10,
+     1.367,
+     0.18,
+     13.2,
+     0.45,
+     4.97
+    ],
+    [
+     60,
+     50,
+     10,
+     1.324,
+     0.472,
+     35.7,
+     25.78,
+     1.7
+    ],
+    [
+     60,
+     70,
+     10,
+     1.296,
+     0.62,
+     47.9,
+     36.34,
+     1.32
+    ],
+    [
+     60,
+     30,
+     5,
+     1.351,
+     0.3,
+     22.2,
+     10.2,
+     2.97
+    ],
+    [
+     60,
+     30,
+     15,
+     1.357,
+     0.346,
+     25.5,
+     12.71,
+     2.62
+    ],
+    [
+     60,
+     30,
+     20,
+     1.361,
+     0.384,
+     28.2,
+     15.18,
+     2.36
+    ]
+   ],
+   "row_notes": [
+    "row 1 = reference case (bold in paper)",
+    "row 2 has CoV(kv) = 0 (deterministic hydraulic solution), confirmed on the rendered page; it is the dashed line 'CoV(kv)=0' of Figs 28a/29a/30a",
+    "rows 3-5: CoV(kv) varied; rows 6-8: CoV(c) varied; rows 9-11: CoV(phi) varied (varied value printed bold in the paper)"
+   ],
+   "S_stated": {
+    "default": 10000,
+    "CoV_c=10%": 90000,
+    "text": "In most cases, a single block of 10,000 simulation cycles proved sufficient to achieve a CoV(Pf) value below 5%. However, the particular case with CoV(c) = 10% required S = 90,000 simulation cycles ... because of the low value of failure probability."
+   },
+   "checks": [
+    {
+     "row_key": [
+      60,
+      30,
+      10
+     ],
+     "sigma_over_mu_pct": 23.5,
+     "tabulated_CoV_pct": 23.5,
+     "abs_diff_pp": 0.0,
+     "S_implied_by_Eq68": 10030,
+     "S_implied_rounded_to_10k": 10000
+    },
+    {
+     "row_key": [
+      0,
+      30,
+      10
+     ],
+     "sigma_over_mu_pct": 21.67,
+     "tabulated_CoV_pct": 21.7,
+     "abs_diff_pp": 0.03,
+     "S_implied_by_Eq68": 10031,
+     "S_implied_rounded_to_10k": 10000
+    },
+    {
+     "row_key": [
+      75,
+      30,
+      10
+     ],
+     "sigma_over_mu_pct": 24.8,
+     "tabulated_CoV_pct": 24.8,
+     "abs_diff_pp": 0.0,
+     "S_implied_by_Eq68": 9974,
+     "S_implied_rounded_to_10k": 10000
+    },
+    {
+     "row_key": [
+      90,
+      30,
+      10
+     ],
+     "sigma_over_mu_pct": 25.69,
+     "tabulated_CoV_pct": 25.7,
+     "abs_diff_pp": 0.01,
+     "S_implied_by_Eq68": 9975,
+     "S_implied_rounded_to_10k": 10000
+    },
+    {
+     "row_key": [
+      100,
+      30,
+      10
+     ],
+     "sigma_over_mu_pct": 25.88,
+     "tabulated_CoV_pct": 25.9,
+     "abs_diff_pp": 0.02,
+     "S_implied_by_Eq68": 10017,
+     "S_implied_rounded_to_10k": 10000
+    },
+    {
+     "row_key": [
+      60,
+      10,
+      10
+     ],
+     "sigma_over_mu_pct": 13.17,
+     "tabulated_CoV_pct": 13.2,
+     "abs_diff_pp": 0.03,
+     "S_implied_by_Eq68": 89560,
+     "S_implied_rounded_to_10k": 90000
+    },
+    {
+     "row_key": [
+      60,
+      50,
+      10
+     ],
+     "sigma_over_mu_pct": 35.65,
+     "tabulated_CoV_pct": 35.7,
+     "abs_diff_pp": 0.05,
+     "S_implied_by_Eq68": 9962,
+     "S_implied_rounded_to_10k": 10000
+    },
+    {
+     "row_key": [
+      60,
+      70,
+      10
+     ],
+     "sigma_over_mu_pct": 47.84,
+     "tabulated_CoV_pct": 47.9,
+     "abs_diff_pp": 0.06,
+     "S_implied_by_Eq68": 10054,
+     "S_implied_rounded_to_10k": 10000
+    },
+    {
+     "row_key": [
+      60,
+      30,
+      5
+     ],
+     "sigma_over_mu_pct": 22.21,
+     "tabulated_CoV_pct": 22.2,
+     "abs_diff_pp": 0.01,
+     "S_implied_by_Eq68": 9981,
+     "S_implied_rounded_to_10k": 10000
+    },
+    {
+     "row_key": [
+      60,
+      30,
+      15
+     ],
+     "sigma_over_mu_pct": 25.5,
+     "tabulated_CoV_pct": 25.5,
+     "abs_diff_pp": 0.0,
+     "S_implied_by_Eq68": 10005,
+     "S_implied_rounded_to_10k": 10000
+    },
+    {
+     "row_key": [
+      60,
+      30,
+      20
+     ],
+     "sigma_over_mu_pct": 28.21,
+     "tabulated_CoV_pct": 28.2,
+     "abs_diff_pp": 0.01,
+     "S_implied_by_Eq68": 10032,
+     "S_implied_rounded_to_10k": 10000
+    }
+   ]
+  },
+  "table4": {
+   "caption": "TABLE 4 - Summary of Monte Carlo Simulations: Effects of the autocorrelation distances ((Lx,Ly) = s*(20 m, 2 m), Eq. 72)",
+   "page": 27,
+   "columns": [
+    "s",
+    "Lx_m",
+    "Ly_m",
+    "mu_Gamma",
+    "sigma_Gamma",
+    "CoV_Gamma_pct",
+    "Pf_pct",
+    "CoV_Pf_pct"
+   ],
+   "rows": [
+    [
+     1.0,
+     20.0,
+     2.0,
+     1.353,
+     0.318,
+     23.5,
+     11.5,
+     2.77
+    ],
+    [
+     1.5,
+     30.0,
+     3.0,
+     1.356,
+     0.352,
+     25.9,
+     13.94,
+     2.48
+    ],
+    [
+     2.0,
+     40.0,
+     4.0,
+     1.361,
+     0.372,
+     27.3,
+     14.99,
+     2.38
+    ],
+    [
+     5.0,
+     100.0,
+     10.0,
+     1.35,
+     0.404,
+     29.9,
+     18.93,
+     2.07
+    ],
+    [
+     10.0,
+     200.0,
+     20.0,
+     1.348,
+     0.419,
+     31.1,
+     19.85,
+     2.01
+    ],
+    [
+     20.0,
+     400.0,
+     40.0,
+     1.355,
+     0.43,
+     31.7,
+     20.23,
+     1.99
+    ],
+    [
+     400.0,
+     8000.0,
+     800.0,
+     1.348,
+     0.432,
+     32.1,
+     21.93,
+     1.89
+    ]
+   ],
+   "row_notes": [
+    "Lx_m, Ly_m columns are derived from Eq. (72), not printed in the table"
+   ],
+   "S_stated": {
+    "all": 10000,
+    "text": "For all considered values of scale factor, a single block of 10,000 simulation cycles proved sufficient."
+   },
+   "checks": [
+    {
+     "row_key": 1.0,
+     "sigma_over_mu_pct": 23.5,
+     "tabulated_CoV_pct": 23.5,
+     "abs_diff_pp": 0.0,
+     "S_implied_by_Eq68": 10030,
+     "S_implied_rounded_to_10k": 10000
+    },
+    {
+     "row_key": 1.5,
+     "sigma_over_mu_pct": 25.96,
+     "tabulated_CoV_pct": 25.9,
+     "abs_diff_pp": 0.06,
+     "S_implied_by_Eq68": 10038,
+     "S_implied_rounded_to_10k": 10000
+    },
+    {
+     "row_key": 2.0,
+     "sigma_over_mu_pct": 27.33,
+     "tabulated_CoV_pct": 27.3,
+     "abs_diff_pp": 0.03,
+     "S_implied_by_Eq68": 10012,
+     "S_implied_rounded_to_10k": 10000
+    },
+    {
+     "row_key": 5.0,
+     "sigma_over_mu_pct": 29.93,
+     "tabulated_CoV_pct": 29.9,
+     "abs_diff_pp": 0.03,
+     "S_implied_by_Eq68": 9995,
+     "S_implied_rounded_to_10k": 10000
+    },
+    {
+     "row_key": 10.0,
+     "sigma_over_mu_pct": 31.08,
+     "tabulated_CoV_pct": 31.1,
+     "abs_diff_pp": 0.02,
+     "S_implied_by_Eq68": 9994,
+     "S_implied_rounded_to_10k": 10000
+    },
+    {
+     "row_key": 20.0,
+     "sigma_over_mu_pct": 31.73,
+     "tabulated_CoV_pct": 31.7,
+     "abs_diff_pp": 0.03,
+     "S_implied_by_Eq68": 9957,
+     "S_implied_rounded_to_10k": 10000
+    },
+    {
+     "row_key": 400.0,
+     "sigma_over_mu_pct": 32.05,
+     "tabulated_CoV_pct": 32.1,
+     "abs_diff_pp": 0.05,
+     "S_implied_by_Eq68": 9966,
+     "S_implied_rounded_to_10k": 10000
+    }
+   ]
+  },
+  "table5": {
+   "caption": "TABLE 5 - Summary of Monte Carlo Simulations: Effects of the permeability anisotropy ratio",
+   "page": 28,
+   "columns": [
+    "alpha",
+    "Gamma_deterministic",
+    "mu_Gamma",
+    "sigma_Gamma",
+    "CoV_Gamma_pct",
+    "Pf_pct",
+    "CoV_Pf_pct"
+   ],
+   "rows": [
+    [
+     1.0,
+     1.336,
+     1.353,
+     0.318,
+     23.5,
+     11.5,
+     2.77
+    ],
+    [
+     2.0,
+     1.533,
+     1.562,
+     0.39,
+     24.9,
+     3.9,
+     3.51
+    ],
+    [
+     3.0,
+     1.674,
+     1.704,
+     0.432,
+     25.3,
+     1.83,
+     4.23
+    ],
+    [
+     4.0,
+     1.783,
+     1.821,
+     0.474,
+     26.0,
+     1.0,
+     4.98
+    ],
+    [
+     5.0,
+     1.872,
+     1.91,
+     0.504,
+     26.4,
+     0.63,
+     4.74
+    ]
+   ],
+   "S_stated": {
+    "alpha=5": 70000,
+    "text": "Considering, for instance, the particular case alpha = 5, S = 70,000 simulation cycles were necessary."
+   },
+   "checks": [
+    {
+     "row_key": 1.0,
+     "sigma_over_mu_pct": 23.5,
+     "tabulated_CoV_pct": 23.5,
+     "abs_diff_pp": 0.0,
+     "S_implied_by_Eq68": 10030,
+     "S_implied_rounded_to_10k": 10000
+    },
+    {
+     "row_key": 2.0,
+     "sigma_over_mu_pct": 24.97,
+     "tabulated_CoV_pct": 24.9,
+     "abs_diff_pp": 0.07,
+     "S_implied_by_Eq68": 20001,
+     "S_implied_rounded_to_10k": 20000
+    },
+    {
+     "row_key": 3.0,
+     "sigma_over_mu_pct": 25.35,
+     "tabulated_CoV_pct": 25.3,
+     "abs_diff_pp": 0.05,
+     "S_implied_by_Eq68": 29981,
+     "S_implied_rounded_to_10k": 30000
+    },
+    {
+     "row_key": 4.0,
+     "sigma_over_mu_pct": 26.03,
+     "tabulated_CoV_pct": 26.0,
+     "abs_diff_pp": 0.03,
+     "S_implied_by_Eq68": 39919,
+     "S_implied_rounded_to_10k": 40000
+    },
+    {
+     "row_key": 5.0,
+     "sigma_over_mu_pct": 26.39,
+     "tabulated_CoV_pct": 26.4,
+     "abs_diff_pp": 0.01,
+     "S_implied_by_Eq68": 70203,
+     "S_implied_rounded_to_10k": 70000
+    }
+   ]
+  },
+  "table6": {
+   "caption": "TABLE 6 - Summary of Monte Carlo Simulations: Water level drawdown height",
+   "page": 28,
+   "columns": [
+    "hw_over_H",
+    "Gamma_deterministic",
+    "mu_Gamma",
+    "sigma_Gamma",
+    "CoV_Gamma_pct",
+    "Pf_pct",
+    "CoV_Pf_pct"
+   ],
+   "rows": [
+    [
+     0.5,
+     1.671,
+     1.67,
+     0.378,
+     22.6,
+     1.38,
+     4.88
+    ],
+    [
+     0.6,
+     1.494,
+     1.502,
+     0.345,
+     22.9,
+     4.2,
+     4.78
+    ],
+    [
+     0.7,
+     1.383,
+     1.393,
+     0.314,
+     22.5,
+     8.54,
+     3.27
+    ],
+    [
+     0.8,
+     1.322,
+     1.338,
+     0.309,
+     23.1,
+     11.99,
+     2.71
+    ],
+    [
+     0.9,
+     1.307,
+     1.325,
+     0.306,
+     23.1,
+     12.58,
+     2.64
+    ],
+    [
+     1.0,
+     1.336,
+     1.353,
+     0.318,
+     23.5,
+     11.5,
+     2.77
+    ]
+   ],
+   "S_stated": {
+    "max": 30000,
+    "text": "The Monte Carlo procedure required up to S = 30,000 simulation cycles to achieve condition CoV(Pf) < 5%."
+   },
+   "checks": [
+    {
+     "row_key": 0.5,
+     "sigma_over_mu_pct": 22.63,
+     "tabulated_CoV_pct": 22.6,
+     "abs_diff_pp": 0.03,
+     "S_implied_by_Eq68": 30009,
+     "S_implied_rounded_to_10k": 30000
+    },
+    {
+     "row_key": 0.6,
+     "sigma_over_mu_pct": 22.97,
+     "tabulated_CoV_pct": 22.9,
+     "abs_diff_pp": 0.07,
+     "S_implied_by_Eq68": 9983,
+     "S_implied_rounded_to_10k": 10000
+    },
+    {
+     "row_key": 0.7,
+     "sigma_over_mu_pct": 22.54,
+     "tabulated_CoV_pct": 22.5,
+     "abs_diff_pp": 0.04,
+     "S_implied_by_Eq68": 10016,
+     "S_implied_rounded_to_10k": 10000
+    },
+    {
+     "row_key": 0.8,
+     "sigma_over_mu_pct": 23.09,
+     "tabulated_CoV_pct": 23.1,
+     "abs_diff_pp": 0.01,
+     "S_implied_by_Eq68": 9995,
+     "S_implied_rounded_to_10k": 10000
+    },
+    {
+     "row_key": 0.9,
+     "sigma_over_mu_pct": 23.09,
+     "tabulated_CoV_pct": 23.1,
+     "abs_diff_pp": 0.01,
+     "S_implied_by_Eq68": 9971,
+     "S_implied_rounded_to_10k": 10000
+    },
+    {
+     "row_key": 1.0,
+     "sigma_over_mu_pct": 23.5,
+     "tabulated_CoV_pct": 23.5,
+     "abs_diff_pp": 0.0,
+     "S_implied_by_Eq68": 10030,
+     "S_implied_rounded_to_10k": 10000
+    }
+   ]
+  }
+ },
+ "text_values": {
+  "sec4.1_hydraulic": {
+   "L_m": "10H (external radius R_e fixed by adopting L_m = 10H)",
+   "R_e_formula": "R_e = sqrt(H^2 + (L_m + H/tan(beta))^2)",
+   "R_e_derived_for_H5_beta45_m": 55.227,
+   "R_w": "h_w/sin(beta)",
+   "R": "H/sin(beta)",
+   "h2_solver": "LSODA (Python)",
+   "FE_elements_hydraulic": "6-node triangular elements",
+   "Fig5_normalisation": "k_h H^2 gamma_w^2",
+   "Fig5_alpha_values_plotted": [
+    1,
+    2,
+    4,
+    10
+   ],
+   "rp_typical": "values below 0.3 generally adopted for r_p in the literature"
+  },
+  "sec4.2_kinematic": {
+   "eta_range": "0 < eta <= 1",
+   "constraints": "0 < theta1 < theta2 < pi - beta; L > 0; P_gamma + P_u > 0",
+   "optimizer": "Particle Swarm Optimization [52]",
+   "Fs_definition": "Gamma(c/Fs, arctan(tan(phi)/Fs)) = 1; Gamma = Fs for phi = 0"
+  },
+  "sec4.3.1_Wu_comparison": {
+   "soil_params": "Table 1",
+   "r_p_Wu": 0.25,
+   "alpha": 1,
+   "betas_from_Fig8": {
+    "London clay": [
+     30,
+     60
+    ],
+    "Israeli clay": [
+     35,
+     60
+    ]
+   },
+   "hw_over_H_range": [
+    0.0,
+    1.0
+   ],
+   "y_quantity": "H_crit (m), log axis",
+   "max_gap_vs_Wu": "up to 40% in critical height (London clay slope)",
+   "line_styles": {
+    "solid": "Wu et al. [3], r_p = 0.25",
+    "dashed": "K.v'_opt (filtration velocity variational)",
+    "dash-dot": "-grad u'_FE (finite elements)"
+   },
+   "gamma_kN_m3": 18.0
+  },
+  "sec4.3.2_anisotropy_deterministic": {
+   "H_m": 5,
+   "beta_deg_range": [
+    15,
+    90
+   ],
+   "c_kPa": 10,
+   "phi_deg": 30,
+   "gamma_kN_m3": 20,
+   "hw": "H (total drawdown)",
+   "alpha_values": [
+    1,
+    5,
+    10
+   ],
+   "seepage_methods": [
+    "K^-1.v'_opt (dashed)",
+    "-grad u'_FE (solid)"
+   ]
+  },
+  "sec5.1_random_fields": {
+   "covariance": "C = exp(-|x1-x2|/Lx - |y1-y2|/Ly)",
+   "distribution": "log-normal (Eq. 65-66)",
+   "cross_correlation": "disregarded (c, phi, K independent)",
+   "same_autocorrelation_for_all_fields": true,
+   "KL_eigenproblem": "FE solution (Allaix & Carbone [68])",
+   "random_field_mesh": "nine-node quadrilateral elements, size sufficiently smaller than Lx, Ly",
+   "CoV_Pf_formula": "CoV(Pf) = sqrt((1-Pf)/(S Pf)) (Eq. 68)",
+   "CoV_Pf_standard_thresholds_pct": [
+    5,
+    2.5
+   ]
+  },
+  "sec5.2_procedure": {
+   "MC_block_size": 10000,
+   "convergence_criterion": "CoV(Pf) < 5%",
+   "permeability": "k_v(x) random, alpha fixed (k_h proportional to k_v)",
+   "hydraulic_solver_random": "FE, variational principle in pore pressure",
+   "piecewise_logspiral_arc_length": "l_i ~ H/100",
+   "phi_i": "max phi(x) over subdomain containing arc M_i M_i+1",
+   "illustration_case": {
+    "H_m": 5,
+    "beta_deg": 45,
+    "hw": "H",
+    "Lx_m": 20,
+    "Ly_m": 2,
+    "alpha": 1,
+    "M_KL": 2000,
+    "KL_variance_error_pct_max": 6,
+    "Fig12_labels": {
+     "k_v": "mu = 1e-6 m2 kPa-1 s-1, CoV = 100% (colorbar 1e-08..4e-06, labelled 'm2 Pa-1 s-1')",
+     "c": "mu = 10 kPa, CoV = 20% (colorbar 5..15 kPa)",
+     "phi": "mu = 30 deg, CoV = 10% (colorbar 25..40 deg)"
+    },
+    "Fig14_typical_cycle_Gamma": 1.81,
+    "Fig14_labels": {
+     "c": "mu = 10 kPa, CoV = 20%",
+     "phi": "mu = 30 deg, CoV = 10%",
+     "excess_pore_pressure_colorbar_kPa": [
+      -50.0,
+      0.0
+     ]
+    }
+   }
+  },
+  "sec5.3.1_Cho_purely_cohesive": {
+   "phi_u_deg": 0,
+   "H_m": 5,
+   "beta_deg": "approx 26.5 (slope 2H:1V, arctan(1/2) = 26.565)",
+   "substrate": "rigid and impermeable",
+   "mu_cu_kPa": 23,
+   "CoV_cu_pct": 30,
+   "Lx_m": 20,
+   "Ly_m": 2,
+   "gamma_kN_m3": 20,
+   "Fs_Cho_LEM": 1.356,
+   "Gamma_present": 1.354,
+   "Fs_present": 1.354,
+   "M_present": 2000,
+   "M_Cho": 100,
+   "Cho_KL_domain_m": [
+    30,
+    10
+   ],
+   "S": 100000,
+   "S_note": "both analyses used S = 100,000; ensured CoV(Pf) < 5%",
+   "Pf_present_pct": 6.5,
+   "Pf_Cho_pct": 7.9,
+   "failure_modes_pct_Fig16": {
+    "above_slope_toe": 0.55,
+    "through_slope_toe": 6.76,
+    "below_slope_toe": 92.68
+   },
+   "PDF_smoothing": "Kernel Density Estimation (no distribution fit)",
+   "seepage": "none (no pore pressure)"
+  },
+  "sec5.3.2_Cho_cohesive_frictional": {
+   "H_m": 5,
+   "beta_deg": 45,
+   "slope": "1H:1V",
+   "conditions": "dry",
+   "mu_c_kPa": 10,
+   "CoV_c_pct": 30,
+   "mu_phi_deg": 30,
+   "CoV_phi_pct": 20,
+   "Lx_m": 20,
+   "Ly_m": 2,
+   "gamma_kN_m3": 20,
+   "Gamma_present": 1.777,
+   "Fs_present": 1.203,
+   "Fs_Cho_LEM": 1.204,
+   "M_present": 2000,
+   "M_Cho": 150,
+   "Cho_KL_domain_m": [
+    30,
+    15
+   ],
+   "S": 50000,
+   "Pf_present_pct": 5.5,
+   "Pf_Cho_pct": 6.37,
+   "failure_modes_pct_Fig20": {
+    "above_slope_toe": 19.2,
+    "through_slope_toe": 80.8,
+    "below_slope_toe": 0.0
+   },
+   "PDF_smoothing": "Kernel Density Estimation"
+  },
+  "sec6_reference_seepage_case": {
+   "H_m": 5,
+   "beta_deg": 45,
+   "hw": "H = 5 m (total drawdown)",
+   "alpha": 1,
+   "statistics": "Table 2",
+   "Gamma_deterministic": 1.336,
+   "S": 10000,
+   "Pf_pct": 11.5,
+   "CoV_Pf_pct": 2.77,
+   "lognormal_fit": {
+    "mean": 1.353,
+    "median": 1.313,
+    "CoV_pct": 23.54
+   },
+   "fit_test": "Chi-square goodness-of-fit -> log-normal preferred over normal; all subsequent PDFs are log-normal fits",
+   "Fig25a_axes": "Gamma 0..3.5, density 0..1.6; dashed vertical line = deterministic solution",
+   "Fig25b_label": "11.50% at 1e4 cycles"
+  },
+  "sec6.1_sensitivity": {
+   "method": "second-order partial Spearman rank correlation (Eqs 70-71), Hu et al. [81]; isotropic permeability",
+   "equivalent_scalars": {
+    "c": "average along critical failure surface",
+    "phi": "average along critical failure surface",
+    "k_v": "average over soil mass above the critical surface (rotating block)"
+   },
+   "coefficients_Fig26": {
+    "k_v": -0.0359,
+    "phi": 0.5079,
+    "c": 0.879
+   },
+   "text_claims": "c and phi positively correlated, c most sensitive ('perfect positive correlation'); k_v slight negative correlation"
+  },
+  "sec6.2_CoV": {
+   "CoV_kv_range_pct": [
+    60,
+    100
+   ],
+   "CoV_kv_ref_pct": 60,
+   "CoV_c_range_pct": [
+    10,
+    70
+   ],
+   "CoV_c_ref_pct": 30,
+   "CoV_phi_range_pct": [
+    5,
+    20
+   ],
+   "CoV_phi_ref_pct": 10,
+   "results": "Table 3",
+   "S": "single block 10,000 in most cases; CoV(c) = 10% required S = 90,000",
+   "Fig28a_dashed": "CoV(kv) = 0 (deterministic hydraulic solution)"
+  },
+  "sec6.3_autocorrelation": {
+   "law": "(Lx, Ly) = s x (20 m, 2 m), s >= 1",
+   "s_values": [
+    1.0,
+    1.5,
+    2.0,
+    5.0,
+    10.0,
+    20.0,
+    400.0
+   ],
+   "S": "single block of 10,000 for all s",
+   "results": "Table 4",
+   "trend": "Pf increases monotonically with s; large s -> homogeneous random soil"
+  },
+  "sec6.4_anisotropy": {
+   "alpha_values": [
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "kv_field": "fixed to reference",
+   "results": "Table 5",
+   "S_alpha5": 70000,
+   "trend": "Pf strongly decreasing with alpha; mu(Gamma) increasing; CoV(Gamma) little affected"
+  },
+  "sec6.5_drawdown": {
+   "hw_over_H_values": [
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9,
+    1.0
+   ],
+   "results": "Table 6",
+   "S_max": 30000,
+   "trend": "Pf increases monotonically with hw/H up to a maximum at about hw/H = 0.9 (cf. Rao et al. [86])"
+  }
+ },
+ "examples": {
+  "Wu_comparison_Fig8": {
+   "H": "variable (H_crit sought)",
+   "beta_deg": {
+    "London": [
+     30,
+     60
+    ],
+    "Israeli": [
+     35,
+     60
+    ]
+   },
+   "hw_over_H": "0..1",
+   "alpha": 1,
+   "gamma_kN_m3": 18,
+   "L_m": "10H",
+   "pore_pressure": "seepage forces from v'_opt or FE (present) vs r_p = 0.25 (Wu)"
+  },
+  "anisotropy_Fig9": {
+   "H_m": 5,
+   "beta_deg": "15..90",
+   "c_kPa": 10,
+   "phi_deg": 30,
+   "gamma_kN_m3": 20,
+   "hw_over_H": 1.0,
+   "alpha": [
+    1,
+    5,
+    10
+   ]
+  },
+  "Cho_cohesive_Fig15": {
+   "H_m": 5,
+   "slope": "2H:1V",
+   "beta_deg": 26.565,
+   "crest_width_m": 10,
+   "slope_horizontal_m": 10,
+   "toe_extension_m": 10,
+   "depth_below_toe_m": 5,
+   "total_height_m": 10,
+   "domain_m": [
+    30,
+    10
+   ],
+   "bottom": "rigid impermeable substrate",
+   "deterministic_surfaces": "both circles tangent to substrate (depth 10 m below crest), exit ~5.7 m beyond toe; LA surface enters ~8.6 m behind crest edge, LEM ~9.1 m (raster estimate, +-0.3 m)",
+   "source": "Figure 15 raster (dimension arrows 10 m / 10 m / 5 m / 10 m, slope triangle 2:1)"
+  },
+  "Cho_cohesive_frictional_Fig19": {
+   "H_m": 5,
+   "slope": "1H:1V",
+   "beta_deg": 45,
+   "crest_width_m": 10,
+   "slope_horizontal_m": 5,
+   "toe_extension_m": 10,
+   "depth_below_toe_m": 5,
+   "total_height_m": 10,
+   "domain_m_as_drawn": [
+    25,
+    10
+   ],
+   "Cho_KL_domain_m": [
+    30,
+    15
+   ],
+   "deterministic_surfaces": "toe failure (both LA log-spiral and LEM circle pass through the toe)",
+   "source": "Figure 19 raster (dimension arrows 10 m / 10 m / 5 m / 10 m, slope triangle 1:1)",
+   "note": "the drawn geometry (25 m x 10 m) differs from the 30 m x 15 m rectangle quoted for Cho's KL domain"
+  },
+  "seepage_reference_Fig24": {
+   "H_m": 5,
+   "beta_deg": 45,
+   "hw_m": 5,
+   "initial_water_level": "crest (y = 0)",
+   "final_water_level": "toe (y = hw = H)",
+   "Gamma_deterministic": 1.336,
+   "critical_surface": "log-spiral through the toe",
+   "domain_from_Figs12_14_raster": {
+    "crest_width_m": 10.0,
+    "slope_horizontal_m": 5.0,
+    "toe_extension_m": 5.0,
+    "depth_below_toe_m": 5.0,
+    "total_m": [
+     20.0,
+     10.0
+    ],
+    "accuracy": "+-0.1-0.2 m (pixel measurement of raster Fig 12a: field 1360 x 680 px, H = 340 px; Fig 14a gives 10.0 / 5.2 m)"
+   },
+   "note": "Figure 24 itself shows only H = hw = 5 m and beta = 45 deg; lateral/bottom extents are not stated in the text"
+  }
+ },
+ "series": [
+  {
+   "panel": "Fig26",
+   "name": "rho_k_vGamma (second-order partial Spearman)",
+   "style": "horizontal bar, fill rgb [0.822, 0.288, 0.361]",
+   "points": [
+    [
+     "k_v",
+     -0.0359
+    ]
+   ]
+  },
+  {
+   "panel": "Fig26",
+   "name": "rho_phiGamma (second-order partial Spearman)",
+   "style": "horizontal bar, fill rgb [0.017, 0.477, 0.552]",
+   "points": [
+    [
+     "phi",
+     0.5079
+    ]
+   ]
+  },
+  {
+   "panel": "Fig26",
+   "name": "rho_cGamma (second-order partial Spearman)",
+   "style": "horizontal bar, fill rgb [0.929, 0.684, 0.286]",
+   "points": [
+    [
+     "c",
+     0.879
+    ]
+   ]
+  },
+  {
+   "panel": "Fig28a",
+   "name": "Pf vs CoV_kv (markers; star = reference case)",
+   "style": "solid line + filled circles, star marker = reference",
+   "points": [
+    [
+     0.6,
+     0.115
+    ],
+    [
+     0.75,
+     0.1141
+    ],
+    [
+     0.9,
+     0.11631
+    ],
+    [
+     1.0,
+     0.1144
+    ]
+   ],
+   "marker_kinds": [
+    "star",
+    "circle",
+    "circle",
+    "circle"
+   ],
+   "page": 25
+  },
+  {
+   "panel": "Fig28a",
+   "name": "Pf for CoV(kv) = 0 (horizontal dashed line)",
+   "style": "dashed",
+   "points": [
+    [
+     null,
+     0.1121
+    ]
+   ]
+  },
+  {
+   "panel": "Fig28b",
+   "name": "Pf vs CoV_c (markers; star = reference case)",
+   "style": "solid line + filled circles, star marker = reference",
+   "points": [
+    [
+     0.1,
+     0.00448
+    ],
+    [
+     0.3,
+     0.115
+    ],
+    [
+     0.5,
+     0.2578
+    ],
+    [
+     0.7,
+     0.3634
+    ]
+   ],
+   "marker_kinds": [
+    "circle",
+    "star",
+    "circle",
+    "circle"
+   ],
+   "page": 25
+  },
+  {
+   "panel": "Fig28c",
+   "name": "Pf vs CoV_phi (markers; star = reference case)",
+   "style": "solid line + filled circles, star marker = reference",
+   "points": [
+    [
+     0.05,
+     0.102
+    ],
+    [
+     0.1,
+     0.115
+    ],
+    [
+     0.15,
+     0.1271
+    ],
+    [
+     0.2,
+     0.1518
+    ]
+   ],
+   "marker_kinds": [
+    "circle",
+    "star",
+    "circle",
+    "circle"
+   ],
+   "page": 25
+  },
+  {
+   "panel": "Fig29a",
+   "name": "mu_Gamma vs CoV_kv (markers; star = reference case)",
+   "style": "solid line + filled circles, star marker = reference",
+   "points": [
+    [
+     0.6,
+     1.3527
+    ],
+    [
+     0.75,
+     1.37513
+    ],
+    [
+     0.9,
+     1.37831
+    ],
+    [
+     1.0,
+     1.39143
+    ]
+   ],
+   "marker_kinds": [
+    "star",
+    "circle",
+    "circle",
+    "circle"
+   ],
+   "page": 25
+  },
+  {
+   "panel": "Fig29a",
+   "name": "mu_Gamma for CoV(kv) = 0 (horizontal dashed line)",
+   "style": "dashed",
+   "points": [
+    [
+     null,
+     1.32917
+    ]
+   ]
+  },
+  {
+   "panel": "Fig29b",
+   "name": "mu_Gamma vs CoV_c (markers; star = reference case)",
+   "style": "solid line + filled circles, star marker = reference",
+   "points": [
+    [
+     0.1,
+     1.36716
+    ],
+    [
+     0.3,
+     1.35269
+    ],
+    [
+     0.5,
+     1.32365
+    ],
+    [
+     0.7,
+     1.29599
+    ]
+   ],
+   "marker_kinds": [
+    "circle",
+    "star",
+    "circle",
+    "circle"
+   ],
+   "page": 25
+  },
+  {
+   "panel": "Fig29c",
+   "name": "mu_Gamma vs CoV_phi (markers; star = reference case)",
+   "style": "solid line + filled circles, star marker = reference",
+   "points": [
+    [
+     0.05,
+     1.35058
+    ],
+    [
+     0.1,
+     1.3527
+    ],
+    [
+     0.15,
+     1.35699
+    ],
+    [
+     0.2,
+     1.36134
+    ]
+   ],
+   "marker_kinds": [
+    "circle",
+    "star",
+    "circle",
+    "circle"
+   ],
+   "page": 25
+  },
+  {
+   "panel": "Fig30a",
+   "name": "CoV_Gamma vs CoV_kv (markers; star = reference case)",
+   "style": "solid line + filled circles, star marker = reference",
+   "points": [
+    [
+     0.6,
+     0.23541
+    ],
+    [
+     0.75,
+     0.24779
+    ],
+    [
+     0.9,
+     0.2567
+    ],
+    [
+     1.0,
+     0.25854
+    ]
+   ],
+   "marker_kinds": [
+    "star",
+    "circle",
+    "circle",
+    "circle"
+   ],
+   "page": 26
+  },
+  {
+   "panel": "Fig30a",
+   "name": "CoV_Gamma for CoV(kv) = 0 (horizontal dashed line)",
+   "style": "dashed",
+   "points": [
+    [
+     null,
+     0.21672
+    ]
+   ]
+  },
+  {
+   "panel": "Fig30b",
+   "name": "CoV_Gamma vs CoV_c (markers; star = reference case)",
+   "style": "solid line + filled circles, star marker = reference",
+   "points": [
+    [
+     0.1,
+     0.13172
+    ],
+    [
+     0.3,
+     0.2354
+    ],
+    [
+     0.5,
+     0.35692
+    ],
+    [
+     0.7,
+     0.47853
+    ]
+   ],
+   "marker_kinds": [
+    "circle",
+    "star",
+    "circle",
+    "circle"
+   ],
+   "page": 26
+  },
+  {
+   "panel": "Fig30c",
+   "name": "CoV_Gamma vs CoV_phi (markers; star = reference case)",
+   "style": "solid line + filled circles, star marker = reference",
+   "points": [
+    [
+     0.05,
+     0.22232
+    ],
+    [
+     0.1,
+     0.2354
+    ],
+    [
+     0.15,
+     0.25495
+    ],
+    [
+     0.2,
+     0.2819
+    ]
+   ],
+   "marker_kinds": [
+    "circle",
+    "star",
+    "circle",
+    "circle"
+   ],
+   "page": 26
+  }
+ ],
+ "checks": {
+  "figures_vs_table3": [
+   {
+    "panel": "28a",
+    "x": 0.6,
+    "plotted": 0.115,
+    "table": 0.115,
+    "diff": -0.0,
+    "status": "match"
+   },
+   {
+    "panel": "28a",
+    "x": 0.75,
+    "plotted": 0.1141,
+    "table": 0.11410000000000001,
+    "diff": 0.0,
+    "status": "match"
+   },
+   {
+    "panel": "28a",
+    "x": 0.9,
+    "plotted": 0.11631,
+    "table": 0.11630000000000001,
+    "diff": 1e-05,
+    "status": "match"
+   },
+   {
+    "panel": "28a",
+    "x": 1.0,
+    "plotted": 0.1144,
+    "table": 0.1144,
+    "diff": 0.0,
+    "status": "match"
+   },
+   {
+    "panel": "28a",
+    "x": "CoV(kv)=0 dashed",
+    "plotted": 0.1121,
+    "table": 0.1121,
+    "diff": -0.0,
+    "status": "match"
+   },
+   {
+    "panel": "28b",
+    "x": 0.1,
+    "plotted": 0.00448,
+    "table": 0.0045000000000000005,
+    "diff": -2e-05,
+    "status": "match"
+   },
+   {
+    "panel": "28b",
+    "x": 0.3,
+    "plotted": 0.115,
+    "table": 0.115,
+    "diff": 0.0,
+    "status": "match"
+   },
+   {
+    "panel": "28b",
+    "x": 0.5,
+    "plotted": 0.2578,
+    "table": 0.25780000000000003,
+    "diff": -0.0,
+    "status": "match"
+   },
+   {
+    "panel": "28b",
+    "x": 0.7,
+    "plotted": 0.3634,
+    "table": 0.36340000000000006,
+    "diff": -0.0,
+    "status": "match"
+   },
+   {
+    "panel": "28c",
+    "x": 0.05,
+    "plotted": 0.102,
+    "table": 0.102,
+    "diff": -0.0,
+    "status": "match"
+   },
+   {
+    "panel": "28c",
+    "x": 0.1,
+    "plotted": 0.115,
+    "table": 0.115,
+    "diff": -0.0,
+    "status": "match"
+   },
+   {
+    "panel": "28c",
+    "x": 0.15,
+    "plotted": 0.1271,
+    "table": 0.12710000000000002,
+    "diff": 0.0,
+    "status": "match"
+   },
+   {
+    "panel": "28c",
+    "x": 0.2,
+    "plotted": 0.1518,
+    "table": 0.1518,
+    "diff": -0.0,
+    "status": "match"
+   },
+   {
+    "panel": "29a",
+    "x": 0.6,
+    "plotted": 1.3527,
+    "table": 1.353,
+    "diff": -0.0003,
+    "status": "match"
+   },
+   {
+    "panel": "29a",
+    "x": 0.75,
+    "plotted": 1.37513,
+    "table": 1.375,
+    "diff": 0.00013,
+    "status": "match"
+   },
+   {
+    "panel": "29a",
+    "x": 0.9,
+    "plotted": 1.37831,
+    "table": 1.378,
+    "diff": 0.00031,
+    "status": "match"
+   },
+   {
+    "panel": "29a",
+    "x": 1.0,
+    "plotted": 1.39143,
+    "table": 1.391,
+    "diff": 0.00043,
+    "status": "match"
+   },
+   {
+    "panel": "29a",
+    "x": "CoV(kv)=0 dashed",
+    "plotted": 1.32917,
+    "table": 1.329,
+    "diff": 0.00017,
+    "status": "match"
+   },
+   {
+    "panel": "29b",
+    "x": 0.1,
+    "plotted": 1.36716,
+    "table": 1.367,
+    "diff": 0.00016,
+    "status": "match"
+   },
+   {
+    "panel": "29b",
+    "x": 0.3,
+    "plotted": 1.35269,
+    "table": 1.353,
+    "diff": -0.00031,
+    "status": "match"
+   },
+   {
+    "panel": "29b",
+    "x": 0.5,
+    "plotted": 1.32365,
+    "table": 1.324,
+    "diff": -0.00035,
+    "status": "match"
+   },
+   {
+    "panel": "29b",
+    "x": 0.7,
+    "plotted": 1.29599,
+    "table": 1.296,
+    "diff": -1e-05,
+    "status": "match"
+   },
+   {
+    "panel": "29c",
+    "x": 0.05,
+    "plotted": 1.35058,
+    "table": 1.351,
+    "diff": -0.00042,
+    "status": "match"
+   },
+   {
+    "panel": "29c",
+    "x": 0.1,
+    "plotted": 1.3527,
+    "table": 1.353,
+    "diff": -0.0003,
+    "status": "match"
+   },
+   {
+    "panel": "29c",
+    "x": 0.15,
+    "plotted": 1.35699,
+    "table": 1.357,
+    "diff": -1e-05,
+    "status": "match"
+   },
+   {
+    "panel": "29c",
+    "x": 0.2,
+    "plotted": 1.36134,
+    "table": 1.361,
+    "diff": 0.00034,
+    "status": "match"
+   },
+   {
+    "panel": "30a",
+    "x": 0.6,
+    "plotted": 0.23541,
+    "table": 0.235,
+    "diff": 0.00041,
+    "status": "match"
+   },
+   {
+    "panel": "30a",
+    "x": 0.75,
+    "plotted": 0.24779,
+    "table": 0.248,
+    "diff": -0.00021,
+    "status": "match"
+   },
+   {
+    "panel": "30a",
+    "x": 0.9,
+    "plotted": 0.2567,
+    "table": 0.257,
+    "diff": -0.0003,
+    "status": "match"
+   },
+   {
+    "panel": "30a",
+    "x": 1.0,
+    "plotted": 0.25854,
+    "table": 0.259,
+    "diff": -0.00046,
+    "status": "match"
+   },
+   {
+    "panel": "30a",
+    "x": "CoV(kv)=0 dashed",
+    "plotted": 0.21672,
+    "table": 0.217,
+    "diff": -0.00028,
+    "status": "match"
+   },
+   {
+    "panel": "30b",
+    "x": 0.1,
+    "plotted": 0.13172,
+    "table": 0.132,
+    "diff": -0.00028,
+    "status": "match"
+   },
+   {
+    "panel": "30b",
+    "x": 0.3,
+    "plotted": 0.2354,
+    "table": 0.235,
+    "diff": 0.0004,
+    "status": "match"
+   },
+   {
+    "panel": "30b",
+    "x": 0.5,
+    "plotted": 0.35692,
+    "table": 0.35700000000000004,
+    "diff": -8e-05,
+    "status": "match"
+   },
+   {
+    "panel": "30b",
+    "x": 0.7,
+    "plotted": 0.47853,
+    "table": 0.479,
+    "diff": -0.00047,
+    "status": "match"
+   },
+   {
+    "panel": "30c",
+    "x": 0.05,
+    "plotted": 0.22232,
+    "table": 0.222,
+    "diff": 0.00032,
+    "status": "match"
+   },
+   {
+    "panel": "30c",
+    "x": 0.1,
+    "plotted": 0.2354,
+    "table": 0.235,
+    "diff": 0.0004,
+    "status": "match"
+   },
+   {
+    "panel": "30c",
+    "x": 0.15,
+    "plotted": 0.25495,
+    "table": 0.255,
+    "diff": -5e-05,
+    "status": "match"
+   },
+   {
+    "panel": "30c",
+    "x": 0.2,
+    "plotted": 0.2819,
+    "table": 0.282,
+    "diff": -0.0001,
+    "status": "match"
+   }
+  ],
+  "n_mismatch": 0,
+  "mismatches": [],
+  "reference_lognormal": {
+   "median_implied_by_mean_cov": 1.317,
+   "median_stated": 1.313,
+   "Pf_lognormal_with_stated_median_pct": 12.05,
+   "Pf_lognormal_with_mean_cov_pct": 11.79,
+   "Pf_MC_pct": 11.5
+  }
+ },
+ "overlays": [
+  "fig26_overlay.png",
+  "fig28_29_overlay.png",
+  "fig30_overlay.png"
+ ],
+ "notes": [
+  "All table values transcribed from the PDF text layer and verified visually against 4x/3x renders of each table (tbl_t1..t6.png in ref/). No discrepancy between text layer and rendered tables.",
+  "Table 3 row 2 is CoV(kv) = 0 (not a typo): it is the 'CoV(kv)=0' dashed reference line in Figs 28a/29a/30a (values 11.21%, 1.329, 21.7% match the dashed lines).",
+  "Tables 4/5/6 first (or last) row duplicates the reference case (mu 1.353, sigma 0.318, CoV 23.5%, Pf 11.50%, CoV(Pf) 2.77%); deterministic reference Gamma = 1.336.",
+  "Fig 26 values read from vector bar rectangles (page 23); x calibration from 9 tick marks (-1..1), residual 2.6e-05. rho_c = 0.879, rho_phi = 0.5079, rho_kv = -0.0359. Text calls the cohesion correlation 'perfect positive', but the bar is ~0.88, not 1.",
+  "Figs 28-30 values are marker centres of vector circle/star paths (pages 25-26); axis calibration from tick marks with tick labels read visually (labels are glyph outlines, no text layer); calibration residual < 2e-5 in data units. All 36 plotted markers plus 3 dashed lines match Table 3 to the printed precision (max |diff|: Pf 2.0e-05, mu 4.3e-04, CoV 4.7e-04) - see checks.figures_vs_table3.",
+  "Fig 30 reference star sits at CoV(Gamma) = 0.2354 (the 23.54% of the text) while Table 3 prints 23.5 and sigma/mu = 0.318/1.353 = 23.50%: consistent within rounding of sigma.",
+  "Reference-case log-normal fit: text gives mean 1.353, median 1.313, CoV 23.54%. A log-normal with mean 1.353 and CoV 23.54% has median 1.3170 (not 1.313; 0.3% gap) - the three numbers are not exactly self-consistent. P(Gamma<1) of the fit = 12.05% (using median 1.313) or 11.79% (using mean/CoV) vs the empirical MC Pf = 11.50%.",
+  "Number of MC cycles S per case is stated only for: reference 10,000; Cho cohesive 100,000; Cho c-phi 50,000; Table 3 CoV(c)=10% 90,000 (others 10,000); Table 4 all 10,000; Table 5 alpha=5 70,000; Table 6 'up to 30,000'. 'S_implied_by_Eq68' in each table's checks back-computes S = (1-Pf)/(Pf CoV(Pf)^2) from the printed Pf and CoV(Pf): it reproduces every stated value (10k, 90k, 70k, 30k) and gives Table 5 alpha=2,3,4 = 20k, 30k, 40k and Table 6 hw/H=0.5 = 30k, others 10k.",
+  "Figures 12, 14 label the cohesion field 'CoV = 20%' and Fig 12 labels k_v 'CoV = 100%', whereas Table 2 reference values are 30% and 60%; these illustrative realizations apparently used different CoVs (or the labels are wrong). Fig 12 colorbar unit 'm2 Pa-1 s-1' conflicts with the 'm2 kPa-1 s-1' of the mu label.",
+  "gamma_w is never given numerically. Fig 14 excess pore pressure colorbar spans -50..0 kPa, consistent with u_min = -hw*gamma_w ~ -50 kPa for hw = 5 m and gamma_w ~ 10 (or 9.81) kN/m3.",
+  "Geometry: Fig 15 (2:1 slope, 10 m crest, 10 m toe extension, substrate 10 m below crest -> 30 m x 10 m, matching Cho's 30 x 10 KL domain). Fig 19 (1:1 slope, 10 m crest, 10 m toe extension, 10 m total depth -> 25 m x 10 m as drawn) differs from the 30 m x 15 m rectangle the text attributes to Cho. Fig 24 domain extents not printed; estimated from raster Figs 12a/14a as 10 m crest + 5 m slope + 5 m toe extension, 5 m below toe (20 m x 10 m).",
+  "Fig 16/20 failure-mode percentages read from zoomed raster renders: 0.55/6.76/92.68 (sum 99.99) and 19.20/80.80/0.00. Fig 18/23/25b legend values are glyph outlines; read visually: 6.5%/7.9%, 5.50%/6.37%, 11.50%.",
+  "Fig 8 slope inclinations (not in text): London clay beta = 30 and 60 deg, Israeli clay beta = 35 and 60 deg (read from the figure annotations, page 13).",
+  "R_e_derived_for_H5_beta45_m is derived (not printed): sqrt(H^2+(10H+H/tan45)^2) = 55.23 m.",
+  "Internal consistency sigma/mu vs printed CoV(Gamma): all rows agree within 0.07 percentage points; the largest gaps (Table 5 alpha=2: 24.97 vs 24.9; Table 6 hw/H=0.6: 22.97 vs 22.9; Table 4 s=1.5: 25.96 vs 25.9) slightly exceed pure rounding of sigma and mu, suggesting CoV was computed from unrounded/fitted values or truncated. Not significant for comparison purposes.",
+  "Coverage limits: Figures 25, 27, 31, 32, 33 (PDF curves / statistics plots) were not digitised here; their scalar content is in Tables 4-6. Figures 14-16, 19, 20, 24 are raster images, so geometric dimensions taken from them are approximate."
+ ]
+}
