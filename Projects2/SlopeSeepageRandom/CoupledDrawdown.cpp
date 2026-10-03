@@ -99,6 +99,10 @@ TCoupledDrawdown<T>::TCoupledDrawdown(TPZGeoMesh *gmesh, const TSlopeGeometry &g
     TPZManVector<int, 2> active = {1, 1};
     TPZManVector<TPZCompMesh *, 2> meshvec = {fCMeshU, fCMeshP};
     fMPhys->BuildMultiphysicsSpace(active, meshvec);
+    // com nós pendentes (malha adaptada) o BuildMultiphysicsSpace numera os conectores dependentes junto com os
+    // independentes; a renumeração de banda (TPZRenumbering) supõe os independentes primeiro, como garante o
+    // CleanUpUnconnectedNodes nas malhas comuns (sem isso: escrita fora dos limites em NodeToElGraph)
+    fMPhys->CleanUpUnconnectedNodes();
     // o material u-p usa os índices de memória dos elementos de u (datavec[0].intGlobPtIndex)
     fMat->GetMemory() = fMatU->GetMemory();
     SetGravityFactor(1.);
