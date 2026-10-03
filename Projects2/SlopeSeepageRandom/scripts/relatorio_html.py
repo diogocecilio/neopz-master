@@ -50,9 +50,10 @@ def diff(a, b):
     return ("+" if d >= 0 else "−") + n(abs(d), 1) + " %"
 
 
-def main(dirres, saida, prev=None):
+def main(dirres, saida, extra=None):
     R = json.load(open(os.path.join(dirres, "resultados.json")))
-    P = json.load(open(prev)) if prev and os.path.exists(prev) else None
+    E = json.load(open(extra)) if extra and os.path.exists(extra) else {}
+    P = E.get("previsao")
     mc, det = R["mc"], R["det"]
     conv = det.get("conv", {})
     H = []
@@ -62,26 +63,32 @@ def main(dirres, saida, prev=None):
     nmin = min((mc[c]["N"] for c in mc), default=0)
     nmax = max((mc[c]["N"] for c in mc), default=0)
     ntot = sum(mc[c]["N"] for c in mc)
+    milhar = lambda v: f"{v:,}".replace(",", ".")  # noqa: E731
+    faixa = milhar(nmin) if nmin == nmax else f"{milhar(nmin)}–{milhar(nmax)}"
     w(f"""<header class="topo">
 <p class="sobre">NeoPZ · Projects2/SlopeSeepageRandom · comparação com Vargas Ceron, Cecílio, Linn &amp; Maghous (IJNAMG 2025)</p>
 <h1>Talude sob rebaixamento: artigo × elementos finitos</h1>
 <p class="lead">Exemplos do artigo recalculados com o código do NeoPZ (elastoplasticidade Mohr-Coulomb incremental, Darcy
 por elementos finitos e campos aleatórios de Karhunen-Loève), comparados com os valores publicados.
-Monte Carlo em andamento: {ntot:,} amostras, {nmin:,}–{nmax:,} por caso.</p>
-</header>""".replace(",", "."))
+Monte Carlo: {milhar(ntot)} amostras ({faixa} por caso).</p>
+</header>""")
+    if E.get("resumo"):
+        w('<section id="resumo"><h2>Resumo</h2><ul class="resumo">')
+        for item in E["resumo"]:
+            w(f"<li>{item}</li>")
+        w("</ul></section>")
 
     # ------------------------------------------------------------------ previsão
     if P:
         w('<section id="previsao"><h2>Previsão de tempo</h2>')
-        w(f'<p>{html.escape(P["texto"])}</p>')
-        w('<div class="tab"><table><thead><tr><th>meta</th><th class="num">amostras</th><th class="num">CPU (h)</th>'
-          '<th class="num">nesta máquina, 4 processos</th><th class="num">16 núcleos</th></tr></thead><tbody>')
+        w(f'<p>{P["texto"]}</p>')
+        w('<div class="tab"><table><thead><tr>' + "".join(
+            f'<th class="{"num" if i else ""}">{c}</th>' for i, c in enumerate(P["colunas"])) + '</tr></thead><tbody>')
         for linha in P["linhas"]:
-            w("<tr>" + "".join(f'<td class="{"num" if i else ""}">{html.escape(str(v))}</td>'
-                               for i, v in enumerate(linha)) + "</tr>")
+            w("<tr>" + "".join(f'<td class="{"num" if i else ""}">{v}</td>' for i, v in enumerate(linha)) + "</tr>")
         w("</tbody></table></div>")
         if P.get("notas"):
-            w("<ul>" + "".join(f"<li>{html.escape(x)}</li>" for x in P["notas"]) + "</ul>")
+            w("<ul>" + "".join(f"<li>{x}</li>" for x in P["notas"]) + "</ul>")
         w("</section>")
 
     # ------------------------------------------------------------------ como foi calculado
@@ -98,7 +105,8 @@ As comparações válidas são, portanto, com as curvas −grad u'<sub>FE</sub> 
 <dt>Peso específico da água</dt><dd>γ<sub>w</sub> = 9,81 kN/m³. O artigo não informa γ<sub>w</sub>, mas os valores da
 Fig. 8 em h<sub>w</sub>/H = 0 só são reproduzidos com 9,81 (com 10 a diferença é de 2,5 %).</dd>
 <dt>Malha do Monte Carlo</dt><dd>h = 1 m (H = 5 m) com dois níveis de refinamento guiados pelo mecanismo do
-problema médio (4 962 equações). Os determinísticos usam até cinco níveis.</dd>
+problema médio: 4 914 equações no caso de referência, 18 014 no Cho coesivo e 3 194 no Cho c-φ (h = 2 m, H = 10 m).
+Os determinísticos usam até cinco níveis.</dd>
 <dt>Campos aleatórios</dt><dd>KL de Galerkin (quadriláteros de 9 nós, h<sub>KL</sub> = 1 m), lognormais,
 covariância exponencial; truncamento com ε<sub>M</sub> ≈ 3,6 % da variância, compensado ponto a ponto (o artigo usa
 M = 2000 termos com erro &lt; 6 %). c, φ e k<sub>v</sub> independentes.</dd>
@@ -140,6 +148,8 @@ M = 2000 termos com erro &lt; 6 %). c, φ e k<sub>v</sub> independentes.</dd>
             extra.append(f"h = 0,5 m, nível {a}: Γ = {n(g)}")
     if extra:
         w("<p>Caso de referência, outras variações: " + "; ".join(extra) + ".</p>")
+    for nota in E.get("notas_conv", []):
+        w(f"<p>{nota}</p>")
 
     # Fig. 8
     w('<h3>Fig. 8 — altura crítica com rebaixamento (Wu et al.)</h3>')
@@ -147,32 +157,47 @@ M = 2000 termos com erro &lt; 6 %). c, φ e k<sub>v</sub> independentes.</dd>
           "H_crit = Γ·H (problema autossemelhante). Cinza: curvas do artigo (contínua r_p = 0,25 de Wu et al.; "
           "tracejada K·v'_opt; traço-ponto −grad u'_FE). Azul: FE com os parâmetros que reproduzem o artigo em "
           "h_w/H = 0; laranja: FE com os parâmetros da Tabela 1 para o rótulo do painel."))
-    f8 = det.get("fig8", {})
-    w('<div class="tab"><table><thead><tr><th>solo</th><th>β</th>'
-      + "".join(f'<th class="num">h<sub>w</sub>/H = {n(h / 5, 1)}</th>' for h in (0, 1, 2, 3, 4, 5))
-      + '</tr></thead><tbody>')
-    for solo, nome in (("A", "A: c = 6, φ = 32°"), ("B", "B: c = 11,7, φ = 24,7°")):
-        for b in (30, 35, 60):
-            vals = []
-            for hw in (0, 1, 2, 3, 4, 5):
-                d = f8.get(f"{solo}_b{b}_hw{hw}", {})
-                if f"{solo}_b{b}_hw{hw}" in NAO_CONV:
-                    vals.append("n.c.")
-                elif d.get("limite_maximo"):
-                    vals.append("&gt; 250")
-                else:
-                    vals.append(n(5 * d["gamma"], 1) if d.get("gamma") else "…")
-            w(f"<tr><td>{nome}</td><td>{b}°</td>" + "".join(f'<td class="num">{v}</td>' for v in vals) + "</tr>")
+    cmp8 = det.get("fig8_cmp", [])
+    xs = (0., 0.2, 0.4, 0.6, 0.8, 1.0)
+    w('<div class="tab"><table><thead><tr><th>painel do artigo (solo do cálculo)</th><th>β</th><th></th>'
+      + "".join(f'<th class="num">h<sub>w</sub>/H = {n(x, 1)}</th>' for x in xs) + '</tr></thead><tbody>')
+    for panel, solo, betas in (("London Clay", "B: c = 11,7, φ = 24,7°", (30, 60)),
+                               ("Israeli Clay", "A: c = 6, φ = 32°", (35, 60))):
+        for b in betas:
+            pts = {round(r["hwH"], 2): r for r in cmp8 if r["painel"] == panel and r["beta"] == b}
+            linhas = (("FE", lambda r: "n.c." if r["nao_conv"] else n(r["fe"], 1)),
+                      ("artigo, −grad u'<sub>FE</sub>", lambda r: n(r["grad_u_fe"], 1)),
+                      ("FE/artigo − 1", lambda r: "—" if r["nao_conv"] else diff(r["fe"], r["grad_u_fe"])))
+            for k, (rot, fn) in enumerate(linhas):
+                cab = f"<td>{panel} ({solo})</td><td>{b}°</td>" if k == 0 else "<td></td><td></td>"
+                w(f"<tr>{cab}<td>{rot}</td>" + "".join(
+                    f'<td class="num">{fn(pts[x]) if x in pts else "…"}</td>' for x in xs) + "</tr>")
     w("</tbody></table></div>")
-    w('<p class="nota">H<sub>crit</sub> em m (γ = 18 kN/m³, γ<sub>w</sub> = 9,81 kN/m³, α = 1). “&gt; 250”: sem colapso até '
-      'Γ = 50; “n.c.”: sem convergência com a malha (lâmina translacional rasa junto à face, φ próximo de β; '
-      'ver texto).</p>')
+    w('<p class="nota">H<sub>crit</sub> em m (γ = 18 kN/m³, γ<sub>w</sub> = 9,81 kN/m³, α = 1, malha com 3 níveis). '
+      '“n.c.”: sem convergência com a malha (φ próximo de β, sem rebaixamento). Valores do artigo interpolados nas '
+      'curvas extraídas do PDF.</p>')
+    for nota in E.get("notas_fig8", []):
+        w(f"<p>{nota}</p>")
 
     # Fig. 9 e Tabelas 5/6 (determinístico)
     w('<h3>Fig. 9 — Γ × inclinação e anisotropia</h3>')
     w(img(os.path.join(dirres, "fig9_gamma_beta.png"),
           "Γ × β para α = 1, 5, 10 (H = h_w = 5 m, c = 10 kPa, φ = 30°, γ = 20 kN/m³). Cinza: artigo "
           "(contínua −grad u'_FE, tracejada K·v'_opt, digitalizadas da figura). Azul: FE, nível 3."))
+    cmp9 = [r for r in det.get("fig9_cmp", []) if r["curva"] == "grad"]
+    if cmp9:
+        bs = (30, 45, 60, 75, 90)
+        w('<div class="tab"><table><thead><tr><th>α</th><th></th>' + "".join(f'<th class="num">β = {b}°</th>' for b in bs)
+          + '</tr></thead><tbody>')
+        for a9 in (1, 5, 10):
+            pts = {r["beta"]: r for r in cmp9 if r["alfa"] == a9}
+            for k, (rot, fn) in enumerate((("FE", lambda r: n(r["fe"])), ("artigo, −grad u'<sub>FE</sub>", lambda r: n(r["artigo"])),
+                                           ("FE/artigo − 1", lambda r: diff(r["fe"], r["artigo"])))):
+                w(f'<tr><td>{a9 if k == 0 else ""}</td><td>{rot}</td>' + "".join(
+                    f'<td class="num">{fn(pts[b]) if b in pts else "—"}</td>' for b in bs) + "</tr>")
+        w("</tbody></table></div>")
+    for nota in E.get("notas_fig9", []):
+        w(f"<p>{nota}</p>")
     t56 = det.get("tab56", {})
     w('<h3>Tabelas 5 e 6 — coluna determinística</h3><div class="tab"><table><thead><tr><th>caso</th>'
       '<th class="num">Γ FE (nível 2, malha do MC)</th><th class="num">Γ FE (nível 3)</th><th class="num">Γ artigo</th>'
@@ -223,10 +248,13 @@ M = 2000 termos com erro &lt; 6 %). c, φ e k<sub>v</sub> independentes.</dd>
               f'{n(st["pf_hi"], 1, True)})</span></td><td class="num">{n(st["covpf"], 1, True)} %</td>'
               f'<td class="num">{n(e.get("mu"))}</td><td class="num">{n(e.get("sd"))}</td>'
               f'<td class="num">{n(e.get("pf"), 2, True) + " %" if e else "—"}</td>'
-              f'<td class="num art">{n(a.get("mu"))}</td><td class="num art">{n(a.get("sd"))}</td>'
+              f'<td class="num art">{n(a.get("mu"))}{"<sup>†</sup>" if "fonte_momentos" in a else ""}</td>'
+              f'<td class="num art">{n(a.get("sd"))}</td>'
               f'<td class="num art">{n(a.get("cov"), 1, True) + " %" if "cov" in a else "—"}</td>'
               f'<td class="num art">{pfart}</td></tr>'.replace(f'{st["N"]:,}', f'{st["N"]:,}'.replace(",", ".")))
         w("</tbody></table></div>")
+    for nota in E.get("notas_mc", []):
+        w(f"<p>{nota}</p>")
     w(img(os.path.join(dirres, "tendencias.png"),
           "Tendências das Tabelas 3–6: Pf, μ(Γ) e CoV(Γ). Vermelho: artigo; azul: FE (barras: IC 95 % de Pf); "
           "verde: FE reescalado pelo Γ determinístico."))
@@ -268,14 +296,17 @@ M = 2000 termos com erro &lt; 6 %). c, φ e k<sub>v</sub> independentes.</dd>
             w(f"<li>{a}</li>")
         w("</ol></section>")
     w("""<section id="reproduzir"><h2>Como reproduzir</h2>
-<pre><code>cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_PLASTICITY_MATERIALS=ON -DUSING_LAPACK=ON &lt;neopz&gt;
-ninja SlopeSeepageRandom
-# Monte Carlo de todos os casos, em blocos de 50 amostras intercalados entre os casos (retomável)
-scripts/campanha_artigo.py jobs ./SlopeSeepageRandom campanha --alvo artigo &gt; jobs.txt
-scripts/fila.sh jobs.txt 4                       # P processos
-scripts/campanha_artigo.py status campanha        # andamento e previsão (PROCESSOS=P)
-scripts/analise_artigo.py campanha det ref saida  # tabelas e figuras
-scripts/relatorio_html.py saida relatorio.html</code></pre></section>""")
+<p>Branch <code>claude/great-clarke-xist30</code> do neopz-master; dados, logs e este relatório em
+<code>Projects2/SlopeSeepageRandom/resultados/artigo2025/</code>.</p>
+<pre><code>sudo apt install cmake g++ make liblapack-dev libblas-dev liblapacke-dev
+# compila, gera a fila (blocos de 50 amostras intercalados entre os 28 casos) e roda em segundo plano
+bash Projects2/SlopeSeepageRandom/scripts/rodar_campanha.sh 1000      # [alvo: N | cov5 | artigo] [processos] [dir]
+S=Projects2/SlopeSeepageRandom/scripts
+PROCESSOS=8 python3 $S/campanha_artigo.py status ~/campanha_artigo     # andamento e previsão
+python3 $S/campanha_artigo.py pacote ~/campanha_artigo resultados.tar.gz
+# análise e relatório (det: logs do comando det; ref: dados extraídos do artigo)
+python3 $S/analise_artigo.py campanha det ref saida
+python3 $S/relatorio_html.py saida relatorio.html saida/extra.json</code></pre></section>""")
 
     css = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "relatorio.css")).read()
     pagina = ("<title>Talude com percolação no NeoPZ</title>\n"

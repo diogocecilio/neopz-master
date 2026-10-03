@@ -141,6 +141,60 @@ def spearman_parcial(x, y, z, w):
     return p2(0, 1, 2, 3), r[0, 1]
 
 
+def comparacoes(R, ref):
+    """Fig. 8 e Fig. 9: FE contra as curvas do artigo (interpoladas nos pontos do FE); Cho: momentos das densidades"""
+    D = R["det"]
+    try:
+        f8 = json.load(open(os.path.join(ref, "fig8.json")))
+
+        def curva(panel, superior, estilo):
+            ss = [x for x in f8["series"] if x["panel"] == panel and x["style"].startswith(estilo)]
+            ss.sort(key=lambda x: -x["points"][-1][1])
+            p = np.array(ss[0 if superior else 1]["points"], float)
+            return lambda x: float(np.exp(np.interp(x, p[:, 0], np.log(p[:, 1]))))
+
+        cmp8 = []
+        for panel, solo, betas in (("London Clay", "B", (30, 60)), ("Israeli Clay", "A", (35, 60))):
+            for i, b in enumerate(betas):
+                dd, ds, so = (curva(panel, i == 0, e) for e in ("dash-dot", "dashed", "solid"))
+                for hw in (0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5):
+                    k = f"{solo}_b{b}_hw{hw:g}"
+                    d = D["fig8"].get(k, {})
+                    if not d.get("gamma") or d.get("limite_maximo"):
+                        continue
+                    x = hw / 5.
+                    cmp8.append({"painel": panel, "solo": solo, "beta": b, "hwH": x, "fe": 5 * d["gamma"],
+                                 "grad_u_fe": dd(x), "v_opt": ds(x), "wu_rp": so(x), "nao_conv": k in NAO_CONV})
+        D["fig8_cmp"] = cmp8
+    except Exception as e:  # noqa: BLE001
+        print("fig8_cmp:", e)
+    try:
+        f9 = json.load(open(os.path.join(ref, "fig9.json")))
+        cmp9 = []
+        for s9 in f9["series"]:
+            for b, y in s9["points"]:
+                if y is None or b % 15:
+                    continue
+                g = D["fig9"].get(f"beta{int(b)}_alfa{s9['alpha']}", {}).get("gamma")
+                if g:
+                    cmp9.append({"alfa": s9["alpha"], "beta": int(b), "fe": g, "curva": "grad" if "grad" in s9["name"]
+                                 else "vopt", "artigo": y})
+        D["fig9_cmp"] = cmp9
+    except Exception as e:  # noqa: BLE001
+        print("fig9_cmp:", e)
+    try:
+        dist = json.load(open(os.path.join(ref, "dist.json")))
+        for s5 in dist["summary"]:
+            c = "cho_coesivo" if "5.3.1" in s5["example"] else "cho_cphi"
+            if s5["variable"] == "Gamma" and c in R["mc"]:
+                a = R["mc"][c].setdefault("artigo", {})
+                a["mu"], a["sd"] = s5["from_pdf"]["mean"], s5["from_pdf"]["std"]
+                a["cov"] = a["sd"] / a["mu"]
+                a["fonte_momentos"] = "Fig. 17" if c == "cho_coesivo" else "Fig. 21"
+    except Exception as e:  # noqa: BLE001
+        print("dist:", e)
+
+
 def main(camp, det, ref, out):
     os.makedirs(out, exist_ok=True)
     R = {"mc": {}, "det": {}, "notas": []}
@@ -214,6 +268,7 @@ def main(camp, det, ref, out):
     D["fig9"] = {os.path.basename(f)[:-4]: det_log(f) for f in sorted(glob.glob(os.path.join(det, "fig9/*.log")))}
     D["fig8"] = {os.path.basename(f)[:-4]: det_log(f) for f in sorted(glob.glob(os.path.join(det, "fig8/*.log")))}
     D["fig5"] = {os.path.basename(f)[:-4]: det_log(f) for f in sorted(glob.glob(os.path.join(det, "fig5/*.log")))}
+    comparacoes(R, ref)
     json.dump(R, open(os.path.join(out, "resultados.json"), "w"), indent=1, default=float)
 
     # ------------------------------------------------------------ markdown

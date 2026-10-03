@@ -1,0 +1,42 @@
+{
+ "resumo": [
+  "<b>Reprodutibilidade.</b> As 631 amostras calculadas nas duas máquinas (este container e a do autor, 8 processos) são idênticas bit a bit; o Monte Carlo abaixo tem 100 amostras por caso nos 28 casos do artigo.",
+  "<b>Exemplos secos (Cho).</b> O FE converge para logo abaixo do limite superior do artigo, como esperado: Γ = 1,764 contra 1,777 no talude c-φ e 1,317 contra 1,354 no coesivo; FS = 1,202 contra 1,203 (artigo) e 1,204 (Cho).",
+  "<b>Caso de referência com percolação.</b> O FE converge para Γ ≈ 1,40, 4,7 % acima do Γ = 1,336 do artigo, que deveria ser um limite superior. A diferença não vem da malha mecânica, de γ<sub>w</sub> nem do tamanho do domínio (α = 1); fica nas forças de percolação. Com anisotropia aparece também o efeito do domínio truncado: com 50 m de crista, pé e base a diferença de α = 3 e 5 cai de 10–13 % para 5–6 %.",
+  "<b>Fig. 8.</b> Com os solos trocados em relação à Tabela 1 (ver Observações), o FE reproduz as curvas −grad u'<sub>FE</sub> do artigo com diferença de 0,3–3,8 % em três das quatro curvas. Na quarta (φ = 32°, β = 35°) o FE, que diminui com o refinamento, fica 17–29 % abaixo: com φ próximo de β o mecanismo rotacional do artigo superestima H<sub>crit</sub>.",
+  "<b>Monte Carlo.</b> Reescalada pelo Γ determinístico na mesma malha, a média de Γ coincide com a do artigo nos 26 casos com percolação (diferença média 0,6 %, máxima 2,8 %); o desvio padrão é em média 11 % maior. O Pf do artigo fica dentro do intervalo de confiança de 95 % do FE em 26 dos 28 casos, e todas as tendências das Tabelas 3–6 se repetem. Com 100 amostras os intervalos de Pf são largos (referência: 6,3–18,6 %).",
+  "<b>Cho no Monte Carlo.</b> A densidade de Γ do talude coesivo é quase a do artigo (μ = 1,249, σ = 0,192 contra 1,279 e 0,201 na Fig. 17); Pf = 9 % contra 6,5 % (artigo) e 7,9 % (Cho). No c-φ, μ = 2,03 e σ = 0,97 contra 1,87 e 0,82; Pf = 6 % contra 5,5 %.",
+  "<b>Sensibilidade e modos de ruptura.</b> Correlações parciais de Spearman com médias no mecanismo: c 0,86, φ 0,53, k<sub>v</sub> −0,08 (artigo: 0,88, 0,51, −0,04). Cho coesivo: 100 % das rupturas abaixo do pé (artigo 92,7 %); Cho c-φ: 96 % pelo pé e 4 % acima (artigo 80,8 % e 19,2 %).",
+  "<b>Previsão.</b> Na máquina do autor (8 processos, ~3,7 s por amostra), N = 1.000 por caso leva ~4 h, N = 2.000 ~9 h, e a escala do artigo (630 mil amostras) ~8 dias, dois terços disso só no Cho coesivo."
+ ],
+ "previsao": {
+  "texto": "Tempo medido na máquina do autor com 8 processos simultâneos: 3,3–3,9 s por amostra nos casos com percolação, 2,3 s no Cho c-φ e 35 s no Cho coesivo (malha de 18 mil equações). Horas que faltam a partir das 100 amostras por caso já calculadas.",
+  "colunas": ["meta por caso", "amostras no total", "CPU que falta (h)", "8 processos", "16 processos"],
+  "linhas": [
+   ["N = 500", "14.000", "15", "1,9 h", "0,9 h"],
+   ["N = 1.000", "28.000", "34", "4,2 h", "2,1 h"],
+   ["N = 2.000", "56.000", "71", "8,9 h", "4,4 h"],
+   ["CoV(Pf) &lt; 5 % com o Pf do FE (<code>--alvo cov5</code>)", "≈ 400.000", "≈ 440", "≈ 2,3 dias", "≈ 1,2 dia"],
+   ["S do artigo (10 mil a 100 mil)", "630.000", "1.513", "7,9 dias", "3,9 dias"]
+  ],
+  "notas": [
+   "No alvo do artigo, o Cho coesivo responde por 984 das 1.513 h de CPU (100 mil amostras × 35 s). Com h = 2 m nesse caso (malha de ~7 mil equações) o custo dele cai para cerca de um terço.",
+   "O alvo cov5 usa o Pf estimado com 100 amostras; nos casos ainda sem falhas (α = 3–5 e CoV(c) = 10 %) ele cai no S do artigo e será refeito quando houver falhas."
+  ]
+ },
+ "notas_conv": [
+  "Nos níveis mais finos aparecem quedas isoladas que não seguem a sequência: FS = 1,131 (referência, nível 4) e 1,172 (h = 0,5 m, nível 3), e Γ = 1,230 no Cho coesivo, nível 4 (execução interrompida com 20 cortes de passo). São colapsos prematuros do critério de não convergência do Newton em malhas muito refinadas, não valores físicos; os níveis 2–3 usados nas comparações não apresentam isso.",
+  "Domínio e anisotropia (nível 3, γ<sub>w</sub> = 9,81): α = 3 dá Γ = 1,847 com o domínio de 25 × 10 m e 1,770 com 50 m de crista, pé e base (artigo 1,674); α = 5 dá 2,120, 2,000 (25/25/15 m) e 1,968 (50 m) (artigo 1,872). As laterais impermeáveis próximas bloqueiam o fluxo horizontal quando k<sub>h</sub> &gt; k<sub>v</sub>; com o domínio grande, a diferença em relação ao artigo volta a ~5 %, a mesma de α = 1. No Monte Carlo isso é compensado pela coluna reescalada (μ*, σ*, Pf*), que usa o Γ determinístico no mesmo domínio e malha."
+ ],
+ "notas_fig8": [
+  "Solo A com β = 35° (painel “Israeli Clay”): o FE decresce com o refinamento (h<sub>w</sub>/H = 0,5: H<sub>crit</sub> = 9,25, 8,97, 8,84, 8,71 e 8,35 m nos níveis 0 a 4) e já fica abaixo da curva do artigo (11,78 m) na malha mais grossa. Com φ = 32° e β = 35° o mecanismo crítico é raso e quase translacional, que a família rotacional log-espiral não representa bem. Sem rebaixamento (h<sub>w</sub> = 0) o FE não converge com a malha (n.c.).",
+  "Solo B com β = 60°, h<sub>w</sub>/H = 1: 5,59 m no nível 3 e 5,49 m no nível 4, contra 5,41 m do artigo (+1,5 %)."
+ ],
+ "notas_fig9": [
+  "Para α = 1 o FE fica 4–8 % acima da curva −grad u'<sub>FE</sub> (o mesmo resíduo do caso de referência). Para α = 5 e 10 a diferença chega a 8–25 % no domínio de 25 × 10 m, porque as laterais impermeáveis próximas bloqueiam o fluxo horizontal (ver convergência com a malha)."
+ ],
+ "notas_mc": [
+  "<sup>†</sup> No Cho, μ e σ do artigo foram calculados a partir das densidades das Figs. 17 e 21 extraídas do PDF; o artigo não os tabela.",
+  "Com 100 amostras por caso, CoV(Pf) fica entre 14 % e 100 % e os casos com Pf pequeno (α ≥ 2, h<sub>w</sub>/H = 0,5, CoV(c) = 10 %) têm 0 ou 1 falha: as médias e os desvios já são comparáveis, mas Pf só fica bem determinado com mais amostras (ver previsão)."
+ ]
+}

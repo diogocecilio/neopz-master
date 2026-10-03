@@ -48,3 +48,6 @@ ol, ul { margin: 0; padding-left: 22px; display: grid; gap: 8px; }
 sub, sup { line-height: 0; }
 a { color: var(--fe); }
 :focus-visible { outline: 2px solid var(--fe); outline-offset: 2px; }
+.resumo { gap: 10px; }
+.resumo li { max-width: 80ch; }
+.resumo b { font-weight: 600; }
