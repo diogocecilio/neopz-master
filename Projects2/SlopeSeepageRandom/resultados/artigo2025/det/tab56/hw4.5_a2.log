@@ -1,0 +1,11 @@
+inserting uniform refpattern: quadrilateral
+inserting uniform refpattern: line
+[adapt] nível 0: 1742 equações, Gamma = 1.61597; dividindo 22 + 18 elementos (lido de malha_percolacao_h1_47f9e1b9.malha)
+[adapt] nível 1: 2694 equações, Gamma = 1.46765; dividindo 51 + 34 elementos (lido de malha_percolacao_h1_47f9e1b9.malha)
+
+=== percolacao (mc): H = 5 m, beta = 45 graus, crista 10 m, pe 10 m, base 5 m abaixo do pe (dominio 25 x 10 m), h = 1 m, quadrilateros
+    c = 10 kPa, phi = 30 graus, gamma = 20 (forca de corpo gamma'), percolacao hw = 4.500000
+    4690 equacoes, 5175 pontos de integracao
+    funcional hidraulico J(u_FE)/(kh H^2 gw^2) = 0.270893
+    Gamma (fator de carga) = 1.41574 (colapso em 1.42686; 6 passos, 81 it., 9 cortes, 4.35769 s) ok
+    tempo total 4.56106 s

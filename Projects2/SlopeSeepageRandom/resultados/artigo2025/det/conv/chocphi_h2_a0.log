@@ -1,0 +1,7 @@
+
+=== cho_cphi (mc): H = 10 m, beta = 45 graus, crista 10 m, pe 10 m, base 5 m abaixo do pe (dominio 30 x 15 m), h = 2 m, quadrilateros
+    c = 10 kPa, phi = 30 graus, gamma = 20
+    854 equacoes, 855 pontos de integracao
+    Gamma (fator de carga) = 2.13847 (colapso em 2.15724; 9 passos, 102 it., 10 cortes, 0.617476 s) ok
+    FS (reducao de resistencia) = 1.27222 (colapso em 1.2821; 5 passos, 62 it., 8 cortes, 0.576146 s) ok
+    tempo total 1.20236 s

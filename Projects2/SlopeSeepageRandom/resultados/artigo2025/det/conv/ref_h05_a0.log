@@ -1,0 +1,8 @@
+
+=== percolacao (mc): H = 5 m, beta = 45 graus, crista 10 m, pe 10 m, base 5 m abaixo do pe (dominio 25 x 10 m), h = 0.5 m, quadrilateros
+    c = 10 kPa, phi = 30 graus, gamma = 20 (forca de corpo gamma'), percolacao hw = 5.000000
+    6682 equacoes, 7200 pontos de integracao
+    funcional hidraulico J(u_FE)/(kh H^2 gw^2) = 0.307363
+    Gamma (fator de carga) = 1.52698 (colapso em 1.5381; 7 passos, 94 it., 9 cortes, 6.49271 s) ok
+    FS (reducao de resistencia) = 1.25793 (colapso em 1.26535; 6 passos, 77 it., 9 cortes, 5.03923 s) ok
+    tempo total 11.8331 s

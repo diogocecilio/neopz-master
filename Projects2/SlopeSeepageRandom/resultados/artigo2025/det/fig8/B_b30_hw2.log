@@ -1,0 +1,136 @@
+inserting uniform refpattern: quadrilateral
+inserting uniform refpattern: line
+[adapt] nível 0: 5338 equações, Gamma = 3.94946; dividindo 27 + 21 elementos (lido de malha_percolacao_h1_6f4bcc92.malha)
+[adapt] nível 1: 6482 equações, Gamma = 3.81598; dividindo 91 + 55 elementos (lido de malha_percolacao_h1_6f4bcc92.malha)
+[adapt] nível 2: 9910 equações, Gamma = 3.77148; dividindo 317 + 146 elementos (lido de malha_percolacao_h1_6f4bcc92.malha)
+
+=== percolacao (mc): H = 5 m, beta = 30 graus, crista 20 m, pe 20 m, base 10 m abaixo do pe (dominio 48.6603 x 15 m), h = 1 m, quadrilateros
+    c = 11.7 kPa, phi = 24.7 graus, gamma = 18 (forca de corpo gamma'), percolacao hw = 2.000000
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+    20778 equacoes, 23454 pontos de integracao
+**
+    funcional hidraulico J(u_FE)/(kh H^2 gw^2) = 0.0821102
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+**
+    Gamma (fator de carga) = 3.77148 (colapso em 3.80115; 9 passos, 104 it., 7 cortes, 106.803 s) ok
+    tempo total 107.638 s

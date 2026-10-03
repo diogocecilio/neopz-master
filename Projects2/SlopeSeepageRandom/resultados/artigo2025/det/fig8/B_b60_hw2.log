@@ -1,0 +1,101 @@
+[adapt] nível 0: 4594 equações, Gamma = 1.59743; dividindo 17 + 15 elementos (3.66267 s)
+inserting uniform refpattern: quadrilateral
+inserting uniform refpattern: line
+[adapt] nível 1: 5354 equações, Gamma = 1.51462; dividindo 44 + 28 elementos (4.32011 s)
+[adapt] nível 2: 7050 equações, Gamma = 1.46765; dividindo 130 + 68 elementos (6.0016 s)
+[adapt] malha adaptada (3 níveis) gravada em malha_percolacao_h1_aa8c6aed.malha
+
+=== percolacao (mc): H = 5 m, beta = 60 graus, crista 20 m, pe 20 m, base 10 m abaixo do pe (dominio 42.8868 x 15 m), h = 1 m, quadrilateros
+    c = 11.7 kPa, phi = 24.7 graus, gamma = 18 (forca de corpo gamma'), percolacao hw = 2.000000
+    11702 equacoes, 13059 pontos de integracao
+*
+    funcional hidraulico J(u_FE)/(kh H^2 gw^2) = 0.110363
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+*
+    Gamma (fator de carga) = 1.45117 (colapso em 1.46106; 5 passos, 73 it., 8 cortes, 17.5604 s) ok
+    tempo total 18.0391 s

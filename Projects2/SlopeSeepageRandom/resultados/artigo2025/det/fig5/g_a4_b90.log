@@ -1,0 +1,12 @@
+
+=== percolacao (mc): H = 5 m, beta = 90 graus, crista 50 m, pe 50 m, base 50 m abaixo do pe (dominio 100 x 55 m), h = 0.5 m, quadrilateros
+    c = 10 kPa, phi = 30 graus, gamma = 20 (forca de corpo gamma'), percolacao hw = 5.000000
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+    169242 equacoes, 189000 pontos de integracao
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+********************
+*
+    funcional hidraulico J(u_FE)/(kh H^2 gw^2) = 0.32785
+    tempo total 5.78271 s

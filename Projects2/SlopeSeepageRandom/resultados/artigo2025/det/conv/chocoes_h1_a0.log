@@ -1,0 +1,7 @@
+
+=== cho_coesivo (mc): H = 5 m, beta = 26.5651 graus, crista 10 m, pe 10 m, base 5 m abaixo do pe (dominio 30 x 10 m), h = 1 m, quadrilateros
+    c = 23 kPa, phi = 0 graus, gamma = 20
+    2162 equacoes, 2250 pontos de integracao
+    Gamma (fator de carga) = 1.34735 (colapso em 1.35847; 6 passos, 79 it., 9 cortes, 1.22512 s) ok
+    FS (reducao de resistencia) = 1.35297 (colapso em 1.36409; 7 passos, 83 it., 9 cortes, 1.48709 s) ok
+    tempo total 2.72113 s

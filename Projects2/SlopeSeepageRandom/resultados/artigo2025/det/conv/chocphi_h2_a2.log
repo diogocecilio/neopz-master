@@ -1,0 +1,12 @@
+inserting uniform refpattern: quadrilateral
+inserting uniform refpattern: line
+[adapt] nível 0: 854 equações, Gamma = 2.13847; dividindo 15 + 14 elementos (lido de malha_cho_cphi_h2_ece79057.malha)
+[adapt] nível 1: 1542 equações, Gamma = 1.89735; dividindo 38 + 32 elementos (1.48854 s)
+[adapt] malha adaptada (2 níveis) gravada em malha_cho_cphi_h2_ece79057.malha
+
+=== cho_cphi (mc): H = 10 m, beta = 45 graus, crista 10 m, pe 10 m, base 5 m abaixo do pe (dominio 30 x 15 m), h = 2 m, quadrilateros
+    c = 10 kPa, phi = 30 graus, gamma = 20
+    3194 equacoes, 3528 pontos de integracao
+    Gamma (fator de carga) = 1.80878 (colapso em 1.8199; 7 passos, 95 it., 9 cortes, 3.09515 s) ok
+    FS (reducao de resistencia) = 1.2085 (colapso em 1.21838; 5 passos, 70 it., 8 cortes, 2.53366 s) ok
+    tempo total 5.65057 s
