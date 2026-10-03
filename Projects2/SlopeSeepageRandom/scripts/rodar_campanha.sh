@@ -39,9 +39,10 @@ falta=""
 for c in cmake g++ make python3 lscpu; do command -v $c > /dev/null || falta="$falta $c"; done
 ldconfig -p | grep -q 'liblapack\.so ' || falta="$falta liblapack-dev"
 ldconfig -p | grep -q 'libblas\.so ' || falta="$falta libblas-dev"
+[ -f /usr/include/lapacke.h ] || [ -f /usr/include/x86_64-linux-gnu/lapacke.h ] || falta="$falta liblapacke-dev"
 if [ -n "$falta" ]; then
     echo "faltam:$falta"
-    echo "instale com: sudo apt install cmake g++ make python3 util-linux liblapack-dev libblas-dev"
+    echo "instale com: sudo apt install cmake g++ make python3 util-linux liblapack-dev libblas-dev liblapacke-dev"
     exit 1
 fi
 if [ -s "$CAMP/fila.pid" ] && kill -0 "$(cat "$CAMP/fila.pid")" 2>/dev/null; then

@@ -247,7 +247,7 @@ dividido em blocos de 50 amostras e a fila intercala os casos, de modo que todos
 Com um comando (compila em `<neopz>/build-campanha`, gera a fila e roda em segundo plano, em sessão própria):
 
 ```
-sudo apt install cmake g++ make liblapack-dev libblas-dev       # ninja-build é opcional
+sudo apt install cmake g++ make liblapack-dev libblas-dev liblapacke-dev   # ninja-build é opcional
 bash Projects2/SlopeSeepageRandom/scripts/rodar_campanha.sh 1000    # [alvo] [processos] [diretório = ~/campanha_artigo]
 bash Projects2/SlopeSeepageRandom/scripts/rodar_campanha.sh parar   # para tudo; rodar de novo continua
 ```
