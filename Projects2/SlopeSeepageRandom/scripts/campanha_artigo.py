@@ -209,14 +209,14 @@ def junta(argv):
             continue
         cols = list(next(iter(rows.values())).keys())
         with open(os.path.join(out, c + ".csv"), "w", newline="") as f:
-            w = csv.DictWriter(f, fieldnames=cols)
+            w = csv.DictWriter(f, fieldnames=cols, lineterminator="\n")
             w.writeheader()
             for k in sorted(rows):
                 w.writerow(rows[k])
         if mec:
             mcols = list(next(iter(mec.values())).keys())
             with open(os.path.join(out, c + ".mec"), "w", newline="") as f:
-                w = csv.DictWriter(f, fieldnames=mcols)
+                w = csv.DictWriter(f, fieldnames=mcols, lineterminator="\n")
                 w.writeheader()
                 for k in sorted(mec):
                     w.writerow(mec[k])
