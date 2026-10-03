@@ -22,6 +22,7 @@
 #define SLOPEGEOMETRY_H
 
 #include <string>
+#include <vector>
 
 #include "pzgmesh.h"
 
@@ -55,6 +56,12 @@ struct TSlopeGeometry {
     TPZGeoMesh *CreateGeoMesh() const;
 
     std::string Describe() const;
+
+    /// Divide (TPZGeoEl::Divide, padrão uniforme) os elementos 2D folha dados e os elementos de contorno cujo
+    /// vizinho foi dividido; os nós pendentes são tratados pelo NeoPZ (restrições H1 no AutoBuild)
+    static void Refine(TPZGeoMesh *gmesh, const std::vector<int64_t> &gels);
+    /// Acrescenta aos elementos marcados (índices de elementos 2D folha) "layers" camadas de vizinhos
+    static void Grow(TPZGeoMesh *gmesh, std::vector<int64_t> &gels, int layers);
 
     /// Geometrias do artigo: Cho (2010) coesivo 2:1 e c-φ 1:1 (e o talude de referência com percolação)
     static TSlopeGeometry Cho2H1V(REAL h = 0.5);

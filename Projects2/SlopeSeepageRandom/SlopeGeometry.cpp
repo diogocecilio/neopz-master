@@ -5,10 +5,12 @@
 #include <array>
 #include <cmath>
 #include <sstream>
+#include <set>
 #include <vector>
 
 #include "pzgeoel.h"
 #include "pzgnode.h"
+#include "pzgeoelside.h"
 
 REAL TSlopeGeometry::Ls() const {
     if (betaDeg >= 90. - 1.e-9) return 0.;
@@ -115,4 +117,49 @@ TPZGeoMesh *TSlopeGeometry::CreateGeoMesh() const {
     for (int j = nyA; j > 0; j--) line(nA[0][j], nA[0][j - 1], ELeft);
     gmesh->BuildConnectivity();
     return gmesh;
+}
+
+void TSlopeGeometry::Grow(TPZGeoMesh *gmesh, std::vector<int64_t> &gels, int layers) {
+    std::set<int64_t> mark(gels.begin(), gels.end());
+    for (int l = 0; l < layers; l++) {
+        std::set<int64_t> add;
+        for (int64_t g : mark) {
+            TPZGeoEl *gel = gmesh->Element(g);
+            for (int side = 0; side < gel->NSides(); side++) {
+                TPZGeoElSide gs(gel, side);
+                for (TPZGeoElSide n = gs.Neighbour(); n != gs; n = n.Neighbour()) {
+                    TPZGeoEl *ng = n.Element();
+                    if (ng->Dimension() == 2 && !ng->HasSubElement()) add.insert(ng->Index());
+                }
+            }
+        }
+        mark.insert(add.begin(), add.end());
+    }
+    gels.assign(mark.begin(), mark.end());
+}
+
+void TSlopeGeometry::Refine(TPZGeoMesh *gmesh, const std::vector<int64_t> &gels) {
+    TPZManVector<TPZGeoEl *> sub;
+    for (int64_t g : gels) {
+        TPZGeoEl *gel = gmesh->Element(g);
+        if (gel && gel->Dimension() == 2 && !gel->HasSubElement()) gel->Divide(sub);
+    }
+    // contorno: divide os elementos 1D folha cujo elemento vizinho de volume foi dividido
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        const int64_t nel = gmesh->NElements();
+        for (int64_t i = 0; i < nel; i++) {
+            TPZGeoEl *gel = gmesh->Element(i);
+            if (!gel || gel->Dimension() != 1 || gel->HasSubElement()) continue;
+            TPZGeoElSide gs(gel, gel->NSides() - 1);
+            bool divide = false;
+            for (TPZGeoElSide n = gs.Neighbour(); n != gs; n = n.Neighbour())
+                if (n.Element()->Dimension() == 2 && n.Element()->HasSubElement()) divide = true;
+            if (divide) {
+                gel->Divide(sub);
+                changed = true;
+            }
+        }
+    }
 }

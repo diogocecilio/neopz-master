@@ -107,6 +107,7 @@ struct TSolverOptions {
     int porder = 2;
     REAL tol = 1.e-5;         ///< ||R_livre|| <= tol ||F_ref||
     int maxIter = 20;         ///< Newton: iterações por passo (não convergência = colapso)
+    bool stagnation = true;   ///< interrompe o Newton sem redução de 1/2 do resíduo em 3 iterações
     REAL relTol = 5.e-3;      ///< precisão relativa do fator (Γ ou FS)
     REAL step0 = 0.25;        ///< passo inicial do fator
     REAL maxFactor = 20.;
@@ -163,6 +164,11 @@ public:
     /// Fixa cargas e fator de redução e resolve um passo a partir do estado aceito; aceita se convergir
     bool Solve(REAL lambdaGravity, REAL lambdaSeepage, REAL F, int &iterations);
 
+    /// Indicador por elemento geométrico (índice): máximo, nos pontos de integração, de ||ε^p|| (increment =
+    /// false) ou de ||Δε^p|| no último passo aceito (increment = true: o mecanismo ativo no colapso; o acúmulo de
+    /// ε^p é dominado pela concentração de tensões no pé do talude)
+    void PlasticIndicator(std::vector<REAL> &byGel, bool increment = true) const;
+
     /// Saída VTK (TPZPostProcAnalysis): tensões, deformação plástica, c, φ, u, forças de percolação
     void DefineVTK(const std::string &file);
     void WriteVTK(int step);
@@ -190,6 +196,7 @@ private:
     REAL fLambdaG = 0., fLambdaS = 0., fF = 1.;                   ///< estado aceito
     REAL fLambdaGTarget = 0., fLambdaSTarget = 0., fFTarget = 1.; ///< alvo do passo em Follow
     std::vector<TPZTensor<REAL>> fSigma0;
+    std::vector<TPZTensor<REAL>> fEpsPPrev;  ///< ε^p no início do último passo aceito
     class TPZPostProcAnalysis *fPost = nullptr;
 };
 

@@ -20,6 +20,8 @@
 #include <map>
 #include <memory>
 #include <sstream>
+#include <stdexcept>
+#include <type_traits>
 #include <string>
 #include <vector>
 
@@ -111,6 +113,35 @@ TCase MakeCase(const std::string &name, REAL h) {
     return c;
 }
 
+void AdaptMesh(const TCase &cs, TPZGeoMesh *gmesh, const TArgs &args);
+
+/// Tensão inicial do Cam-Clay: análise elástica (Mohr-Coulomb com c muito alta) com a força de corpo (γ') e
+/// sem percolação, na mesma malha e ordem; os pontos de integração coincidem com os da malha do Cam-Clay.
+template <class T>
+void GeostaticStress(const TCase &cs, TPZGeoMesh *gmesh, const TSolverOptions &opt, TSlopeFEM<T> &target) {
+    if constexpr (std::is_same_v<T, TPZModifiedCamClay>) {
+        TSoil elastic = cs.soil;
+        elastic.c = 1.e6;
+        TSlopeFEM<TMohrCoulomb> fe(gmesh, cs.geo, elastic, opt);
+        fe.ResetState();
+        int its = 0;
+        if (!fe.Solve(1., 0., 1., its)) throw std::runtime_error("análise geostática não convergiu");
+        std::vector<TPZTensor<REAL>> s;
+        fe.Stresses(s);
+        const auto &pa = fe.Points(), &pb = target.Points();
+        if (pa.size() != pb.size()) throw std::runtime_error("pontos de integração diferentes (geostática)");
+        for (size_t i = 0; i < pa.size(); i++)
+            if (pb[i].gel >= 0 && std::hypot(pa[i].x[0] - pb[i].x[0], pa[i].x[1] - pb[i].x[1]) > 1.e-9)
+                throw std::runtime_error("pontos de integração diferentes (geostática)");
+        target.SetInitialStress(s);
+    } else {
+        (void)cs;
+        (void)gmesh;
+        (void)opt;
+        (void)target;
+    }
+}
+
 /// Estatísticas de um campo lognormal (média, CoV; CoV = 0: determinístico)
 struct TFieldSpec {
     REAL mean = 1., cov = 0.;
@@ -123,6 +154,7 @@ void RunMonteCarlo(const TCase &cs, const TArgs &args, const std::string &modelN
     opt.verbose = args.GetI("verbose", 0);
     opt.relTol = args.Get("reltol", 5.e-3);
     opt.maxIter = args.GetI("maxit", 20);
+    opt.stagnation = args.GetI("estagnacao", 1) != 0;
     const std::string medida = args.GetS("medida", "gamma");  // gamma (fator de carga) ou fs (redução)
     const int64_t n = args.GetI("n", 100), first = args.GetI("inicio", 0);
     const uint64_t seed = (uint64_t)args.GetI("seed", 2025);
@@ -131,7 +163,11 @@ void RunMonteCarlo(const TCase &cs, const TArgs &args, const std::string &modelN
     const REAL Lx = args.Get("Lx", 20.), Ly = args.Get("Ly", 2.);
 
     std::unique_ptr<TPZGeoMesh> gmesh(cs.geo.CreateGeoMesh());
+    AdaptMesh(cs, gmesh.get(), args);
     TSlopeFEM<T> fem(gmesh.get(), cs.geo, cs.soil, opt);
+    GeostaticStress(cs, gmesh.get(), opt, fem);
+    std::cout << "[MC] malha mecânica: " << fem.NEquations() << " equações, " << fem.NPoints()
+              << " pontos de integração\n";
 
     // campo aleatório: malha KL própria (quadriláteros de 9 nós, h_KL)
     TSlopeGeometry geoKL = cs.geo;
@@ -267,9 +303,55 @@ void RunMonteCarlo(const TCase &cs, const TArgs &args, const std::string &modelN
               << " (tempo " << Seconds(t0) << " s)\n";
 }
 
+/// Adapta o TPZGeoMesh ao mecanismo de colapso do problema com propriedades médias (Mohr-Coulomb): em cada nível
+/// resolve Γ (ou FS), marca os elementos com ||ε^p|| > frac max e "camadas" de vizinhos e os divide.
+void AdaptMesh(const TCase &cs, TPZGeoMesh *gmesh, const TArgs &args) {
+    const int levels = args.GetI("adapt", 0);
+    if (levels <= 0) return;
+    const REAL frac = args.Get("frac", 0.02);
+    const int layers = args.GetI("camadas", 1);
+    const bool fs = args.GetS("medida", "gamma") == "fs";
+    TSolverOptions opt;
+    opt.porder = args.GetI("p", 2);
+    opt.relTol = args.Get("reltol", 5.e-3);
+    opt.maxIter = args.GetI("maxit", 20);
+    opt.stagnation = args.GetI("estagnacao", 1) != 0;
+    for (int l = 0; l < levels; l++) {
+        auto t0 = Clock::now();
+        TSlopeFEM<TMohrCoulomb> fem(gmesh, cs.geo, cs.soil, opt);
+        std::unique_ptr<TSeepageProblem> seep;
+        if (cs.seepage) {
+            TSeepageProblem::TParams sp;
+            sp.hw = cs.hw;
+            sp.alpha = cs.alpha;
+            sp.gammaW = cs.soil.gammaW;
+            seep = std::make_unique<TSeepageProblem>(gmesh, cs.geo, sp);
+            seep->Solve();
+            TransferSeepage(*seep, fem);
+        }
+        fem.ResetState();
+        TFactorResult r = fs ? fem.StrengthReduction(args.Get("F0", 0.5)) : fem.LoadFactor(0.);
+        std::vector<REAL> ind;
+        fem.PlasticIndicator(ind, args.GetI("incremento", 1) != 0);
+        REAL vmax = 0.;
+        for (REAL v : ind) vmax = std::max(vmax, v);
+        std::vector<int64_t> marked;
+        for (TPZGeoEl *gel : gmesh->ElementVec())
+            if (gel && gel->Dimension() == 2 && !gel->HasSubElement() && ind[gel->Index()] > frac * vmax)
+                marked.push_back(gel->Index());
+        const size_t nmarked = marked.size();
+        TSlopeGeometry::Grow(gmesh, marked, layers);
+        std::cout << "[adapt] nível " << l << ": " << fem.NEquations() << " equações, " << (fs ? "FS" : "Gamma")
+                  << " = " << r.factor << "; dividindo " << nmarked << " + " << marked.size() - nmarked
+                  << " elementos (" << Seconds(t0) << " s)\n";
+        TSlopeGeometry::Refine(gmesh, marked);
+    }
+}
+
 void Usage(const char *prog) {
     std::cout << "uso: " << prog << " <comando> [chave=valor ...]\n"
-              << "  det caso=cho_coesivo|cho_cphi|percolacao modelo=mc|mcc h=0.5 p=2 hw=5 alpha=1 beta=45 H= vtk=0\n"
+              << "  det caso=cho_coesivo|cho_cphi|percolacao modelo=mc|mcc h=0.5 p=2 hw=5 alpha=1 beta=45 H= c= phi= gam=\n"
+              << "      adapt=0 frac=0.02 camadas=1 gamma=1 fs=1 vtk=0 (Cam-Clay: lambda= kappa= v0= OCR=)\n"
               << "  mc  caso=... modelo=mc|mcc medida=gamma|fs n=100 inicio=0 seed=2025 covc=0.3 covphi=0.1 covk=0.6\n"
               << "      Lx=20 Ly=2 hkl=1 M=-1 epsM=-1 normvar=1 saida=arquivo.csv vtk=0\n";
 }
@@ -281,14 +363,21 @@ void RunDeterministic(const TCase &cs, const TArgs &args, const std::string &mod
     opt.verbose = args.GetI("verbose", 0);
     opt.relTol = args.Get("reltol", 5.e-3);
     opt.maxIter = args.GetI("maxit", 20);
+    opt.stagnation = args.GetI("estagnacao", 1) != 0;
     std::unique_ptr<TPZGeoMesh> gmesh(cs.geo.CreateGeoMesh());
+    AdaptMesh(cs, gmesh.get(), args);
     std::cout << "\n=== " << cs.name << " (" << modelName << "): " << cs.geo.Describe() << "\n";
     std::cout << "    c = " << cs.soil.c << " kPa, phi = " << cs.soil.phiDeg << " graus, gamma = " << cs.soil.gamma
               << (cs.soil.buoyant ? " (forca de corpo gamma')" : "") << (cs.seepage ? ", percolacao hw = " : "")
               << (cs.seepage ? std::to_string(cs.hw) : std::string()) << "\n";
     auto t0 = Clock::now();
     TSlopeFEM<T> fem(gmesh.get(), cs.geo, cs.soil, opt);
+    GeostaticStress(cs, gmesh.get(), opt, fem);
     std::cout << "    " << fem.NEquations() << " equacoes, " << fem.NPoints() << " pontos de integracao\n";
+    if (args.GetI("vtk", 0)) {  // malha (elementos computacionais = folhas da malha adaptada)
+        std::ofstream f(cs.name + "_malha.vtk");
+        TPZVTKGeoMesh::PrintCMeshVTK(fem.Mesh(), f, true);
+    }
     std::unique_ptr<TSeepageProblem> seep;
     if (cs.seepage) {
         TSeepageProblem::TParams sp;
@@ -356,6 +445,13 @@ int main(int argc, char **argv) {
         if (args.kv.count("c")) cs.soil.c = args.Get("c", cs.soil.c);
         if (args.kv.count("phi")) cs.soil.phiDeg = args.Get("phi", cs.soil.phiDeg);
         if (args.kv.count("nu")) cs.soil.nu = args.Get("nu", cs.soil.nu);
+        cs.soil.gamma = args.Get("gam", cs.soil.gamma);
+        cs.soil.lambda = args.Get("lambda", cs.soil.lambda);
+        cs.soil.kappa = args.Get("kappa", cs.soil.kappa);
+        cs.soil.v0 = args.Get("v0", cs.soil.v0);
+        cs.soil.OCR = args.Get("OCR", cs.soil.OCR);
+        if (args.GetS("mapeamento", "deformacao_plana") == "triaxial")
+            cs.soil.mapping = TPZModifiedCamClay::ETriaxialCompression;
         if (args.kv.count("E")) cs.soil.E = args.Get("E", cs.soil.E);
         cs.geo.triangles = args.GetI("tri", 0) != 0;
         const std::string model = args.GetS("modelo", "mc");

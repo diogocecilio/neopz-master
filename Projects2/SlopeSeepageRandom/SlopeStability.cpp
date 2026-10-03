@@ -308,6 +308,7 @@ void TSlopeFEM<T>::ResetState() {
     fAn->Solution().Zero();
     fAn->LoadSolution();
     fLambdaG = fLambdaS = 0.;
+    fEpsPPrev.clear();
 }
 
 template <class T>
@@ -341,6 +342,9 @@ void TSlopeFEM<T>::ComputeReference() {
 
 template <class T>
 void TSlopeFEM<T>::Accept() {
+    auto &memory = *fMat->GetMemory();
+    fEpsPPrev.resize(fPoints.size());
+    for (int64_t i = 0; i < (int64_t)fPoints.size(); i++) fEpsPPrev[i] = memory[i].m_elastoplastic_state.m_eps_p;
     fMat->SetUpdateMem(true);
     fAn->AssembleResidual();
     fMat->SetUpdateMem(false);
@@ -357,6 +361,7 @@ bool TSlopeFEM<T>::Solve(REAL lambdaGravity, REAL lambdaSeepage, REAL F, int &it
     fAn->LoadSolution(x);
     iterations = 0;
     REAL nr = 0., nr0 = -1.;
+    std::vector<REAL> hist;
     bool ok = false;
     try {
         for (int it = 1; it <= fOpt.maxIter; it++) {
@@ -374,6 +379,10 @@ bool TSlopeFEM<T>::Solve(REAL lambdaGravity, REAL lambdaSeepage, REAL F, int &it
                 break;
             }
             if (it > 3 && nr > 1.e3 * std::max(nr0, REAL(1.))) break;  // divergência
+            // estagnação: sem redução de pelo menos 1/2 em 3 iterações (o Newton com tangente consistente
+            // converge quadraticamente quando o passo é admissível)
+            hist.push_back(nr);
+            if (fOpt.stagnation && it >= 6 && nr > 0.5 * hist[hist.size() - 4]) break;
             iterations = it;
             fAn->Solve();
             x += fAn->Solution();
@@ -416,7 +425,7 @@ TFactorResult TSlopeFEM<T>::Follow(const std::function<void(REAL)> &apply, REAL 
                 r.status = "limite_maximo";
                 return r;
             }
-            if (its <= fOpt.maxIter / 4) dt *= 1.5;
+            if (its <= fOpt.maxIter / 2) dt *= 1.5;
         } else {
             r.cuts++;
             r.upper = tn;
@@ -434,6 +443,27 @@ TFactorResult TSlopeFEM<T>::Follow(const std::function<void(REAL)> &apply, REAL 
 template <class T>
 TFactorResult TSlopeFEM<T>::LoadFactor(REAL lambda0) {
     fFTarget = 1.;
+    if constexpr (IsCamClay<T>()) {
+        // Cam-Clay: σ0 já equilibra γ' (λ = 1); aplica a percolação com λ = 1 e então aumenta as duas cargas.
+        // Colapso antes de λ = 1 só indica Γ < 1 (o caminho não permite reduzir a gravidade abaixo de σ0).
+        if (lambda0 < 1.) lambda0 = 1.;
+        fLambdaGTarget = 1.;
+        auto applySeep = [this](REAL s) { fLambdaSTarget = s; };
+        TFactorResult r0 = Follow(applySeep, 0., 1., 1.);
+        if (r0.factor < 1.) {
+            r0.factor = 0.;
+            r0.status = "colapso_antes_de_lambda1";
+            return r0;
+        }
+        auto apply = [this](REAL lam) {
+            fLambdaGTarget = lam;
+            fLambdaSTarget = lam;
+        };
+        TFactorResult r = Follow(apply, lambda0, fOpt.step0, fOpt.maxFactor);
+        r.iterations += r0.iterations;
+        r.steps += r0.steps;
+        return r;
+    }
     auto apply = [this](REAL lam) {
         fLambdaGTarget = lam;
         fLambdaSTarget = lam;
@@ -474,6 +504,23 @@ TFactorResult TSlopeFEM<T>::StrengthReduction(REAL F0) {
     rf.iterations += r0.iterations;
     rf.steps += r0.steps;
     return rf;
+}
+
+template <class T>
+void TSlopeFEM<T>::PlasticIndicator(std::vector<REAL> &byGel, bool increment) const {
+    byGel.assign(fGMesh->NElements(), 0.);
+    auto &memory = *fMat->GetMemory();
+    const bool inc = increment && fEpsPPrev.size() == fPoints.size();
+    for (int64_t i = 0; i < (int64_t)fPoints.size(); i++) {
+        if (fPoints[i].gel < 0) continue;
+        const TPZTensor<REAL> &ep = memory[i].m_elastoplastic_state.m_eps_p;
+        REAL s = 0.;
+        for (int k = 0; k < 6; k++) {
+            const REAL d = inc ? ep[k] - fEpsPPrev[i][k] : ep[k];
+            s += d * d;
+        }
+        byGel[fPoints[i].gel] = std::max(byGel[fPoints[i].gel], std::sqrt(s));
+    }
 }
 
 template <class T>
