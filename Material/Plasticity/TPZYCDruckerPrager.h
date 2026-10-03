@@ -73,13 +73,14 @@ public:
 		//nothing to be done in this yield criterium
 	}
 
-    virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )
+    virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )override
     {
         DebugStop();
     }
-        virtual TPZPlasticState<REAL> GetLocalMatState (  )
+        virtual TPZPlasticState<REAL> GetLocalMatState (  )override
 	{
 		DebugStop();
+		return TPZPlasticState<REAL>();
 	}
 		virtual void ChangeLocalMatParameters( TPZPlasticState<REAL> & state ,REAL factor)override
 	{

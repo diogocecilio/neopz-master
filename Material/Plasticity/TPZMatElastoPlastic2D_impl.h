@@ -308,20 +308,24 @@ void TPZMatElastoPlastic2D<T, TMEM>::ContributeBC(const TPZMaterialDataT<STATE> 
               ef(nstate*in+1,0) += (v2[1] * phi(in,0) * weight);
             }
         break;
-        case 2: // Mixed/penalty: só uy imposto
+        case 2: // Mixed condition (mola): mesma forma do ContributeBC só de resíduo; phi é (nshape x 1)
         {
-            for(in = 0 ; in < phr; in++)
-            {
+            TPZFNMatrix<2, STATE> res(2, 1, 0.);
+            for (int i = 0; i < 2; i++) {
+                for (int j = 0; j < 2; j++) {
+                    res(i, 0) += bc.Val1()(i, j) * u_n[j];
+                }
+            }
 
-                ef(in,0) += weight * (v2[0]*phi(0,in) + v2[1]*phi(1,in));
-                for (jn = 0; jn <phr; jn++) {
-                    ek(in,jn) += bc.Val1()(0,0)*phi(0,in)*phi(0,jn)*weight
-
-                    + bc.Val1()(1,0)*phi(1,in)*phi(0,jn)*weight
-
-                    + bc.Val1()(0,1)*phi(0,in)*phi(1,jn)*weight
-
-                    + bc.Val1()(1,1)*phi(1,in)*phi(1,jn)*weight;
+            for (in = 0; in < phr; in++) {
+                ef(nstate * in + 0, 0) += (v2[0] - res(0, 0)) * phi(in, 0) * weight;
+                ef(nstate * in + 1, 0) += (v2[1] - res(1, 0)) * phi(in, 0) * weight;
+                for (jn = 0; jn < phr; jn++) {
+                    for (idf = 0; idf < 2; idf++) {
+                        for (jdf = 0; jdf < 2; jdf++) {
+                            ek(nstate * in + idf, nstate * jn + jdf) += bc.Val1()(idf, jdf) * phi(in, 0) * phi(jn, 0) * weight;
+                        }
+                    }
                 }
             }// este caso pode reproduzir o caso 0 quando o deslocamento
         }
@@ -340,14 +344,18 @@ void TPZMatElastoPlastic2D<T, TMEM>::ContributeBC(const TPZMaterialDataT<STATE> 
             break;
             
         case 4: // stressField Neumann condition
-            v2[0] = v1(0, 0) * data.normal[0] + v1(0, 1) * data.normal[1];
-            v2[1] = v1(1, 0) * data.normal[0] + v1(1, 1) * data.normal[1];
+        {
+            // cópia local: antes escrevia em bc.Val2() através da referência const (alterava o contorno)
+            TPZManVector<STATE,2> v2loc(2, 0.);
+            v2loc[0] = v1(0, 0) * data.normal[0] + v1(0, 1) * data.normal[1];
+            v2loc[1] = v1(1, 0) * data.normal[0] + v1(1, 1) * data.normal[1];
             // The normal vector points towards the neighbor. The negative sign is there to
             // reflect the outward normal vector.
             for (in = 0; in < phi.Rows(); in++) {
-                ef(nstate * in + 0, 0) += v2[0] * phi(in, 0) * weight;
-                ef(nstate * in + 1, 0) += v2[1] * phi(in, 0) * weight;
+                ef(nstate * in + 0, 0) += v2loc[0] * phi(in, 0) * weight;
+                ef(nstate * in + 1, 0) += v2loc[1] * phi(in, 0) * weight;
             }
+        }
             break;
         case 5://PRESSAO DEVE SER POSTA NA POSICAO 0 DO VETOR v2
         {
@@ -495,14 +503,18 @@ void TPZMatElastoPlastic2D<T, TMEM>::ContributeBC(const TPZMaterialDataT<STATE> 
             break;
             
         case 4: // stressField Neumann condition
-            v2[0] = v1(0, 0) * data.normal[0] + v1(0, 1) * data.normal[1];
-            v2[1] = v1(1, 0) * data.normal[0] + v1(1, 1) * data.normal[1];
+        {
+            // cópia local: antes escrevia em bc.Val2() através da referência const (alterava o contorno)
+            TPZManVector<STATE,2> v2loc(2, 0.);
+            v2loc[0] = v1(0, 0) * data.normal[0] + v1(0, 1) * data.normal[1];
+            v2loc[1] = v1(1, 0) * data.normal[0] + v1(1, 1) * data.normal[1];
             // The normal vector points towards the neighbor. The negative sign is there to
             // reflect the outward normal vector.
             for (in = 0; in < phi.Rows(); in++) {
-                ef(nstate * in + 0, 0) += v2[0] * phi(in, 0) * weight;
-                ef(nstate * in + 1, 0) += v2[1] * phi(in, 0) * weight;
+                ef(nstate * in + 0, 0) += v2loc[0] * phi(in, 0) * weight;
+                ef(nstate * in + 1, 0) += v2loc[1] * phi(in, 0) * weight;
             }
+        }
             break;
         case 5://PRESSAO DEVE SER POSTA NA POSICAO 0 DO VETOR v2
         {

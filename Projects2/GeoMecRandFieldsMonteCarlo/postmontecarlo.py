@@ -7,37 +7,48 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-def read_fs_csv(path: Path) -> pd.Series:
+def read_fs_csv(path: Path, include_all: bool = False) -> pd.Series:
     """
-    Lê um CSV com 2 colunas (amostra, FS) OU apenas 1 coluna (FS).
-    Aceita com/sem cabeçalho. Retorna uma Series de FS (float).
+    Lê um CSV com 3 colunas (amostra, FS, status), 2 colunas (amostra, FS) OU apenas 1 coluna (FS).
+    Aceita com/sem cabeçalho e arquivos mistos (cabeçalho antigo "sample,FS" seguido de linhas com status).
+    O main.cpp grava agora TODAS as amostras com status (ok, lo_fail, hi_ok); os arquivos antigos só tinham
+    as amostras com FS <= 10. Se houver coluna de status, por padrão mantém o critério antigo (FS <= 10);
+    include_all=True usa todas as amostras. Retorna uma Series de FS (float).
     """
-    try:
-        df = pd.read_csv(path)
-    except Exception:
-        # fallback: separador pode ser espaço/; tente leitura genérica
-        df = pd.read_csv(path, header=None)
+    # lê como texto com 3 colunas fixas: linhas com menos campos ficam com NaN (formato antigo/misto)
+    df = pd.read_csv(path, header=None, names=[0, 1, 2], dtype=str, skip_blank_lines=True)
+    df = df.dropna(how="all").reset_index(drop=True)
+    if df.empty:
+        raise ValueError(f"{path} está vazio.")
 
-    # tenta detectar a coluna FS
+    # cabeçalho: primeira linha sem nenhum valor numérico
+    names = {}
+    if pd.to_numeric(df.iloc[0], errors="coerce").isna().all():
+        names = {str(v).strip().lower(): k for k, v in df.iloc[0].items() if isinstance(v, str)}
+        df = df.iloc[1:].reset_index(drop=True)
+
+    # coluna de FS
     col = None
-    for name in df.columns:
-        if str(name).strip().lower() in ("fs", "f_s", "fatorseguranca", "factor_of_safety"):
-            col = name
+    for name in ("fs", "f_s", "fatorseguranca", "factor_of_safety"):
+        if name in names:
+            col = names[name]
             break
-
     if col is None:
-        # se há exatamente 2 colunas, assuma a 2ª como FS
-        if df.shape[1] == 2:
-            col = df.columns[1]
-        elif df.shape[1] == 1:
-            col = df.columns[0]
-        else:
-            raise ValueError(
-                f"Não consegui identificar a coluna de FS em {path}. "
-                f"Colunas lidas: {list(df.columns)}"
-            )
+        col = 1 if df[1].notna().any() else 0
 
-    fs = pd.to_numeric(df[col], errors="coerce").dropna().reset_index(drop=True)
+    fs = pd.to_numeric(df[col], errors="coerce")
+    stcol = names.get("status", 2)
+    has_status = col != stcol and df[stcol].notna().any()
+    if has_status:
+        status = df[stcol].fillna("ok").str.strip()  # linhas antigas (sem status) = ok
+        print("amostras por status:", status[fs.notna()].value_counts().to_dict())
+        if not include_all:
+            nexcl = int((fs > 10.0).sum())
+            if nexcl:
+                print(f"excluídas {nexcl} amostras com FS > 10 (critério antigo; use --all para incluir)")
+            fs = fs.where(fs <= 10.0)
+
+    fs = fs.dropna().reset_index(drop=True)
     if fs.empty:
         raise ValueError("Coluna de FS ficou vazia após coerção numérica.")
     return fs
@@ -78,12 +89,14 @@ def ci95(mean: float, std: float, n: int):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--csv", type=str, default="mc_results_20.000000_2.000000.csv",
-                    help="arquivo CSV com amostras (colunas: s,FS) ou apenas FS")
+                    help="arquivo CSV com amostras (colunas: s,FS[,status]) ou apenas FS")
     ap.add_argument("--bins", type=int, default=30, help="número de bins do histograma")
+    ap.add_argument("--all", action="store_true",
+                    help="usa todas as amostras (por padrão, com coluna de status, só FS <= 10 como antes)")
     args = ap.parse_args()
 
     path = Path(args.csv)
-    fs = read_fs_csv(path)
+    fs = read_fs_csv(path, include_all=args.all)
     x = fs.values.astype(float)
     n = x.size
 

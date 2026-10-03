@@ -113,13 +113,14 @@ public:
 	{
 		fForceYield = forceYield;
 	}
-		void SetLocalMatState ( TPZPlasticState<REAL> & state )
+		void SetLocalMatState ( TPZPlasticState<REAL> & state )override
     {
         DebugStop();
     }
-        virtual TPZPlasticState<REAL> GetLocalMatState (  )
+        virtual TPZPlasticState<REAL> GetLocalMatState (  )override
 	{
 		DebugStop();
+		return TPZPlasticState<REAL>();
 	}
 		virtual void ChangeLocalMatParameters( TPZPlasticState<REAL> & state ,REAL factor)override
 	{

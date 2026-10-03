@@ -305,6 +305,8 @@ void ComputeField(TPZCompMesh* source,TPZCompMesh* target,
     const REAL lambda_ln = std::log(mu) - 0.5*std::log(1.0 + (sigma*sigma)/(mu*mu)); // ex. coerente com (mu,sigma)
     const REAL xi_ln     = std::sqrt(std::log(1.0 + (sigma*sigma)/(mu*mu)));
 
+    // índice inicial da busca na malha source (antes não inicializado); reaproveita o último elemento encontrado
+    int64_t elidsrc = 0;
     const int nels = target->NElements();
     for (int iel=0; iel<nels; iel++)
     {
@@ -334,7 +336,6 @@ void ComputeField(TPZCompMesh* source,TPZCompMesh* target,
 
             // acha, na malha source, o elemento e o ponto equivalente
             TPZManVector<REAL,3> qsisource(2,0.);
-            int64_t elidsrc;
             TPZGeoEl *gelsource =source->Reference()->FindElement(datatarget.x, qsisource, elidsrc, source->Dimension());
             if (!gelsource) DebugStop();
 

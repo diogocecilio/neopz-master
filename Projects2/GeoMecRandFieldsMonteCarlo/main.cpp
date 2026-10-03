@@ -201,10 +201,11 @@ REAL UyAtNode(TPZCompMesh* cmesh, REAL x, REAL y);
 // REAL FindFS_Bisection       (TPZCompMesh* cmesh, REAL lo, REAL hi,
 //                              REAL tol_fs_rel, int max_it, int verbose =1);
 
+// status (opcional): 0 = FS em (lo,hi); -1 = lo já não converge (FS <= lo); +1 = hi converge (FS >= hi)
 REAL FindFS_Bisection(TPZCompMesh* cmesh,
                       REAL lo, REAL hi,
                       REAL tol_fs_rel, int max_it,
-                      int verbose,int loadmatid);
+                      int verbose,int loadmatid, int *status = nullptr);
 
 REAL FindFS_BracketedSecant (TPZCompMesh* cmesh, REAL lo, REAL hi,
                              REAL tol_fs_rel, int max_it, int verbose = 1);
@@ -220,7 +221,7 @@ struct FieldSpec {
         FieldModel model = FieldModel::Gaussian;
 };
 
-REAL SolveStochastic(const std::vector<TPZCompMesh*>& sources,TPZCompMesh* target,const std::vector<FieldSpec>& specs);
+REAL SolveStochastic(const std::vector<TPZCompMesh*>& sources,TPZCompMesh* target,const std::vector<FieldSpec>& specs, int *status = nullptr);
 
 
 // KL paramétrico em Lx, Ly
@@ -317,15 +318,28 @@ static inline REAL RelGap(REAL a, REAL b) {
 REAL FindFS_Bisection(TPZCompMesh* cmesh,
                       REAL lo, REAL hi,
                       REAL tol_fs_rel, int max_it,
-                      int verbose,int loadmatid)
+                      int verbose,int loadmatid, int *status)
 {
         if (hi < lo) std::swap(lo, hi);
+        if (status) *status = 0;
 
         if (verbose) {
                 std::cout << "\n[FS-Bisection] start"
                 << "  lo=" << lo << "  hi=" << hi
                 << "  tol_rel=" << tol_fs_rel
                 << "  max_it=" << max_it << "\n";
+        }
+
+        // testa os extremos antes da bissecção (antes 'lo' era retornado sem nunca ter sido testado)
+        if (!RunAndAccept(cmesh, lo, loadmatid)) {
+                std::cout << "[FS-Bisection] AVISO: lo=" << lo << " nao converge -> FS <= lo; retornando lo\n";
+                if (status) *status = -1;
+                return lo;
+        }
+        if (RunAndAccept(cmesh, hi, loadmatid)) {
+                std::cout << "[FS-Bisection] AVISO: hi=" << hi << " converge -> FS >= hi; retornando hi\n";
+                if (status) *status = 1;
+                return hi;
         }
 
         int k = 0;
@@ -342,7 +356,7 @@ REAL FindFS_Bisection(TPZCompMesh* cmesh,
 
                 const REAL mid = (REAL)0.5*(lo + hi);
                 int it_mid = 0;
-                REAL resu,resf;
+                REAL resu = 0., resf = 0.;
                 const bool ok = RunAndAccept(cmesh,  mid,loadmatid);
 
                 if (verbose) {
@@ -825,9 +839,8 @@ bool RunAndAccept(TPZCompMesh* cmesh,REAL factor,int matid,bool post)
                 bodymat->SetBodyForce(f0);
         }else
         {
-                bcmat->Val2()[0]=f0[0];
-                bcmat->Val2()[1]=f0[1];
-                bcmat->Val2()[2]=f0[2];
+                // restaura Val2 (antes escrevia Val2()[2], fora do tamanho 2 de Val2)
+                for (int i = 0; i < bcmat->Val2().size(); i++) bcmat->Val2()[i] = f0[i];
         }
         if (!ok) return false;
         if(post)
@@ -1081,8 +1094,9 @@ void BuildFields(int pOrder ,int ref,int kMatId,REAL Lx,REAL Ly,int M,int NsampG
 
 }
 
-REAL SolveStochastic(const std::vector<TPZCompMesh*>& sources,TPZCompMesh* target,const std::vector<FieldSpec>& specs)
+REAL SolveStochastic(const std::vector<TPZCompMesh*>& sources,TPZCompMesh* target,const std::vector<FieldSpec>& specs, int *status)
 {
+        int stat = 0, statold = 0; // status da bissecção do nível atual / anterior
         REAL lo=0.25;
         REAL hi=20.;
         REAL tol_fs_rel=0.005;
@@ -1101,15 +1115,19 @@ REAL SolveStochastic(const std::vector<TPZCompMesh*>& sources,TPZCompMesh* targe
                 ComputeFieldMulti(sources, target, specs, /*idxE=*/0, /*idxNu=*/1);
                 //FS=FindFS_BracketedSecant(target, lo,  hi, tol_fs_rel ,  max_bis);
                 //FS=  FindFS_Bisection(target, lo,  hi, tol_fs_rel ,  max_bis,2);
-                FS=  FindFS_Bisection(target, lo,  hi, tol_fs_rel ,  max_bis,0,1);
+                statold = stat;
+                FS=  FindFS_Bisection(target, lo,  hi, tol_fs_rel ,  max_bis,0,1,&stat);
 
                 if(FSOLD<FS)
                 {
                         cout << "FSOLD<FS  "<< "FSOLD = " << FSOLD << " FS = "<< FS<<endl;
                         cout  << "FS final = " << FSOLD<<endl;
                         REAL resu,resf;
-                        RunAndAccept( target,  FSOLD,1);
+                        if (!RunAndAccept( target,  FSOLD,1)) {
+                                cout << "AVISO: RunAndAccept nao convergiu em FS = " << FSOLD << endl;
+                        }
                         //RunAndAccept( target,  FSOLD,  iters_out,resu,resf);
+                        if (status) *status = statold;
                         return FSOLD;
 
                 }
@@ -1119,7 +1137,11 @@ REAL SolveStochastic(const std::vector<TPZCompMesh*>& sources,TPZCompMesh* targe
         }
         cout  << "FS final = " << FS<<endl;
         REAL resu,resf;
-        RunAndAccept( target,  FSOLD,1);
+        // aceita o estado no FS final deste nível (antes usava FSOLD, o fator do nível anterior; 5000 se maxref==1)
+        if (!RunAndAccept( target,  FS,1)) {
+                cout << "AVISO: RunAndAccept nao convergiu em FS final = " << FS << endl;
+        }
+        if (status) *status = stat;
         return FS;
 }
 
@@ -1159,7 +1181,9 @@ void SolveMonteCarlo(int pOrderfield ,int pOrderDeform,int reffield,int ref,int 
 
         // abre em append (escreve cabeçalho se arquivo novo)
         std::ofstream outcsv(csvname, std::ios::app);
-        if(outcsv.tellp()==0) outcsv << "sample,FS\n";
+        // todas as amostras são gravadas; status da bissecção: ok (FS em (lo,hi)), lo_fail (FS <= lo), hi_ok (FS >= hi)
+        // (arquivos antigos têm só "sample,FS" e apenas amostras com FS <= 10; postmontecarlo.py lê os dois formatos)
+        if(outcsv.tellp()==0) outcsv << "sample,FS,status\n";
         outcsv.setf(std::ios::fixed); outcsv << std::setprecision(10);
 
         std::cout << "solving mc " << fin.str()
@@ -1202,7 +1226,8 @@ void SolveMonteCarlo(int pOrderfield ,int pOrderDeform,int reffield,int ref,int 
 
                 using Clock = std::chrono::steady_clock;
                 auto t0 = Clock::now();
-                REAL FS = SolveStochastic( sources, cmesh, specs);
+                int fsstatus = 0;
+                REAL FS = SolveStochastic( sources, cmesh, specs, &fsstatus);
                 auto t1 = Clock::now();
                 auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
                 std::cout << std::fixed << std::setprecision(3)
@@ -1218,9 +1243,11 @@ void SolveMonteCarlo(int pOrderfield ,int pOrderDeform,int reffield,int ref,int 
 
                 }
 
-                if(FS <= 10.0){
-                        outcsv << s << "," << FS << "\n";
-                        outcsv.flush();          // grava imediatamente (seguro pra retomada)
+                // grava todas as amostras (antes só FS <= 10, e as demais eram perdidas/recalculadas na retomada)
+                const char *fsstatusname = (fsstatus < 0) ? "lo_fail" : ((fsstatus > 0) ? "hi_ok" : "ok");
+                outcsv << s << "," << FS << "," << fsstatusname << "\n";
+                outcsv.flush();          // grava imediatamente (seguro pra retomada)
+                if(fsstatus == 0 && FS <= 10.0){ // estatística da sessão: mesmo critério de antes
                         sum  += FS; sum2 += (double)FS*(double)FS; ++nacc;
                 }
 
@@ -1373,6 +1400,8 @@ void ComputeFieldMulti(const std::vector<TPZCompMesh*>& sources,TPZCompMesh* tar
         targetmatwithmem->SetUpdateMem(true);
         TPZAdmChunkVector<TPZElastoPlasticMem> &mem = *targetmatwithmem->GetMemory();
 
+        // índice inicial da busca em cada fonte (antes não inicializado); reaproveita o último elemento encontrado
+        std::vector<int64_t> elidsrc(sources.size(), 0);
         const int nels = target->NElements();
         for (int iel=0; iel<nels; iel++)
         {
@@ -1407,8 +1436,7 @@ void ComputeFieldMulti(const std::vector<TPZCompMesh*>& sources,TPZCompMesh* tar
                         for (size_t f=0; f<sources.size(); ++f)
                         {
                                 TPZManVector<REAL,3> qsi(3,0.);
-                                int64_t elidsrc;
-                                TPZGeoEl *gelsrc = sources[f]->Reference()->FindElement(datatarget.x, qsi, elidsrc, sources[f]->Dimension());
+                                TPZGeoEl *gelsrc = sources[f]->Reference()->FindElement(datatarget.x, qsi, elidsrc[f], sources[f]->Dimension());
 
                                 if (!gelsrc || !gelsrc->Reference()) DebugStop();
                                 auto *celsource = dynamic_cast<TPZInterpolationSpace*>(gelsrc->Reference());
@@ -1446,6 +1474,9 @@ void ComputeFieldMulti(const std::vector<TPZCompMesh*>& sources,TPZCompMesh* tar
                         mem[indextarget].m_elastoplastic_state.fmatprop.Resize ( 3 );
                         mem[indextarget].m_elastoplastic_state.fmatprop[0]=coes;
                         mem[indextarget].m_elastoplastic_state.fmatprop[1]=atrito;
+                        mem[indextarget].m_elastoplastic_state.fmatprop[2]=atrito; // psi = phi (antes não inicializado)
+                        // valores iniciais (antes nunca definidos aqui), como em InitializeMemory
+                        mem[indextarget].m_elastoplastic_state.fmatpropinit = mem[indextarget].m_elastoplastic_state.fmatprop;
 
                 }
 
@@ -1597,9 +1628,8 @@ REAL IterativeProcessArcLength2(TPZElastoPlasticAnalysis &an,
                 }
                 an.Assemble();
                 FEXT = an.Rhs();
-                bcmat->Val2()[0]=0.;
-                bcmat->Val2()[1]=0.;
-                bcmat->Val2()[2]=0.;
+                // zera Val2 (antes escrevia Val2()[2], fora do tamanho 2 de Val2)
+                for (int i = 0; i < bcmat->Val2().size(); i++) bcmat->Val2()[i] = 0.;
         }
 
         cmesh->Solution().Zero();

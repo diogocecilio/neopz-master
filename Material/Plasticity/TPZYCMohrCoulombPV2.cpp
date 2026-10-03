@@ -263,7 +263,19 @@ bool TPZYCMohrCoulombPV2::ReturnMapApex(TPZManVector<STATE,3> &sigtr,STATE &alph
 
 STATE TPZYCMohrCoulombPV2::ProjectSigma(const TPZTensor<STATE> & sigmatr,  TPZTensor<STATE> & sigmaproj, TPZElasticResponse &ER,STATE &havarn,STATE &havarn1,int & m_type)
 {
-
+    // implementada via a versão em valores principais (como em TPZPlasticStepVoigt::ApplyStrainComputeSigma),
+    // usando a resposta elástica ER recebida (cópia local para não alterar fER)
+    TPZYCMohrCoulombPV2 yc(*this);
+    yc.fER = ER;
+    TPZTensor<STATE>::TPZDecomposed eigen_system;
+    sigmatr.EigenSystem(eigen_system);
+    TPZManVector<STATE,3> sigtrvec = eigen_system.fEigenvalues, sigprojvec(3,0.), epstrvec(3,0.);
+    TPZManVector<STATE,2> dlambda(2,0.);
+    TPZFNMatrix<9> Grad3x3(3,3,0.);
+    STATE res = yc.ProjectSigma(sigtrvec,havarn,dlambda,sigprojvec,epstrvec,Grad3x3,havarn1,m_type);
+    eigen_system.fEigenvalues = sigprojvec; // material isotrópico: autovetores inalterados
+    sigmaproj = TPZTensor<STATE>(eigen_system);
+    return res;
 }
 STATE TPZYCMohrCoulombPV2::ProjectSigma(TPZManVector<STATE,3> &sigtr,STATE &alphan,TPZManVector<STATE,2> &dlambda,TPZManVector<STATE,3> &sigpr,TPZManVector<STATE,3> &epstr,TPZFNMatrix<9> &Grad3x3,STATE &alphan1,int & m_type)
 {

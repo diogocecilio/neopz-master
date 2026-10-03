@@ -95,6 +95,7 @@ public:
             virtual TPZPlasticState<REAL> GetLocalMatState (  )override
 	{
 		DebugStop();
+		return TPZPlasticState<REAL>();
 	}
 		virtual void ChangeLocalMatParameters( TPZPlasticState<REAL> & state ,REAL factor)override
 	{

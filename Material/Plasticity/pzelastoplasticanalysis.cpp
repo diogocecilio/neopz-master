@@ -210,7 +210,7 @@ bool TPZElastoPlasticAnalysis::NewtonRaphson(bool verbose)
     const REAL EPS   = 1.e-30;
 
     //std::cout << "AssembleResidual.."   <<endl;
-    int iters;
+    int iters = 0;
     AssembleResidual();
 
     STATE r0=0.,r1=0.,r2=0.;
@@ -228,6 +228,9 @@ bool TPZElastoPlasticAnalysis::NewtonRaphson(bool verbose)
         // resolve Δx
         Solve();
         dx = Solution();
+
+        // norma da solução acumulada ANTES deste incremento (escala do teste de divergência)
+        const REAL normx_prev = Norm(x);
 
         // atualiza solução candidata
         x += dx;
@@ -265,7 +268,10 @@ bool TPZElastoPlasticAnalysis::NewtonRaphson(bool verbose)
 
 
 
-        if(normdu>10)return false;
+        // divergência: incremento não finito ou muito maior que a solução já acumulada
+        // (antes: normdu>10 absoluto, dependente da escala/unidades do problema; para ||x|| <= 1 é o mesmo teste)
+        if (!std::isfinite(normdu) || !std::isfinite(normrhs)) return false;
+        if (normdu > 10. * std::max<REAL>(normx_prev, 1.)) return false;
 
 
         iters = i;
@@ -294,7 +300,7 @@ bool TPZElastoPlasticAnalysis::NewtonRaphson(REAL tol,TPZStack<STATE> &outresF,T
     const REAL EPS   = 1.e-30;
 
     //std::cout << "AssembleResidual.."   <<endl;
-    int iters;
+    int iters = 0;
     AssembleResidual();
     REAL normrhs0 = Norm(fRhs);
     if (normrhs0 <1.e-3) normrhs0 = 1.; // proteção
@@ -611,6 +617,8 @@ REAL TPZElastoPlasticAnalysis::DicotomicLineSearch(const TPZFMatrix<STATE>& Wn,
         throw std::runtime_error("DicotomicLineSearch: mesh nula no objeto this.");
     }
 
+    // a cópia da malha refaz as referências da malha geométrica; guarda a malha referenciada para restaurá-la no fim
+    TPZCompMesh *refMesh = origMesh->Reference() ? origMesh->Reference()->Reference() : nullptr;
     TPZCompMesh *meshCopy = nullptr;
     try {
         // Substitua Clone() pelo método correto da sua versão do NeoPZ se necessário.
@@ -711,8 +719,11 @@ REAL TPZElastoPlasticAnalysis::DicotomicLineSearch(const TPZFMatrix<STATE>& Wn,
     // Aplica/commit NextW na análise real para que o próximo solver trabalhe com o novo estado
     this->LoadSolution(NextW);
 
-    // NOTA: não deletamos meshCopy explicitamente; espera-se que tmpAnalysis libere a mesh copiada em seu destrutor.
-    // Se sua API exigir delete(meshCopy), adapte aqui.
+    // tmpAnalysis não é dona da cópia: libera a malha copiada (antes vazava a cada chamada) e restaura as
+    // referências geométricas, que a cópia/destruição da malha copiada desfaz
+    delete meshCopy;
+    meshCopy = nullptr;
+    if (refMesh) refMesh->LoadReferences();
 
     return alpha;
 }
@@ -969,8 +980,8 @@ REAL TPZElastoPlasticAnalysis::ArmijoLineSearch(const TPZFMatrix<STATE>& Wn,
 // Observações:
 // - Presumo existência de TPZCompMesh::Clone() e um construtor TPZElastoPlasticAnalysis(TPZCompMesh*).
 //   Se a sua API for diferente, adapte as chamadas de clonagem/construct conforme necessário.
-// - Aqui assumo que tmpAnalysis assume a propriedade da mesh copiada; não faço delete(meshCopy).
-//   Se sua API exigir explicitamente liberar meshCopy, ajuste o código.
+// - tmpAnalysis NÃO assume a propriedade da mesh copiada: ela é deletada no fim e as referências
+//   geométricas da malha original são restauradas.
 
 REAL TPZElastoPlasticAnalysis::GoldenSectionLineSearch(const TPZFMatrix<STATE>& Wn,
                                                        TPZFMatrix<STATE> DeltaW,
@@ -998,6 +1009,8 @@ REAL TPZElastoPlasticAnalysis::GoldenSectionLineSearch(const TPZFMatrix<STATE>& 
         throw std::runtime_error("GoldenSectionLineSearch: mesh nula no objeto this.");
     }
 
+    // a cópia da malha refaz as referências da malha geométrica; guarda a malha referenciada para restaurá-la no fim
+    TPZCompMesh *refMesh = origMesh->Reference() ? origMesh->Reference()->Reference() : nullptr;
     TPZCompMesh *meshCopy = nullptr;
     try {
         meshCopy = origMesh->Clone();
@@ -1120,6 +1133,11 @@ REAL TPZElastoPlasticAnalysis::GoldenSectionLineSearch(const TPZFMatrix<STATE>& 
     // Apply the chosen solution to the real analysis so the next solver sees it
     this->LoadSolution(NextW);
 
+    // tmpAnalysis não é dona da cópia: libera a malha copiada e restaura as referências geométricas
+    delete meshCopy;
+    meshCopy = nullptr;
+    if (refMesh) refMesh->LoadReferences();
+
     if (kVerbose) {
         std::cout << "[Golden] finish alpha=" << alpha
         << " iters=" << it
@@ -1163,12 +1181,20 @@ void TPZElastoPlasticAnalysis::SetUpdateMem(int update)
 REAL TPZElastoPlasticAnalysis::AcceptSolution(const int ResetOutputDisplacements)
 {
 
-    TPZMaterial *mat = fCompMesh->FindMaterial(1);
-    if (!mat) {
+    // percorre todos os materiais (antes usava só FindMaterial(1) e dava DebugStop se o id 1 não existisse):
+    // se só há material linear (TPZElasticity2D) e nenhum material com memória, não há o que aceitar
+    if (!fCompMesh || fCompMesh->MaterialVec().empty()) {
         DebugStop();
     }
-    auto *elasmat = dynamic_cast<TPZElasticity2D *>(mat);
-    if(elasmat)
+    bool haslinear = false, hasmem = false;
+    for (auto &matit : fCompMesh->MaterialVec()) {
+        TPZMaterial *mat = matit.second;
+        if (!mat) continue;
+        if (dynamic_cast<TPZElasticity2D *>(mat)) haslinear = true;
+        if (dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *>(mat) ||
+            dynamic_cast<TPZMatWithMem<TPZPoroElastoPlasticMem> *>(mat)) hasmem = true;
+    }
+    if(haslinear && !hasmem)
     {
         cout<< "the material is linear, exiting..."<<endl;
         return 0.;
@@ -1557,9 +1583,8 @@ void TPZElastoPlasticAnalysis::ManageIterativeProcess(std::ostream &out,REAL tol
 
 void TPZElastoPlasticAnalysis::SetAllCreateFunctionsWithMem(TPZCompMesh *cmesh)
 {
- TPZManVector<TCreateFunction,10> functions(8);
-	TCreateFunction fp[8];
-    cmesh->ApproxSpace().SetCreateFunctions(functions);
+    // antes passava ponteiros TCreateFunction não inicializados; usa as funções com memória do NeoPZ
+    cmesh->SetAllCreateFunctionsContinuousWithMem();
 
 }
 

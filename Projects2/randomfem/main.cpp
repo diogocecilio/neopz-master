@@ -622,6 +622,8 @@ static void ComputeFieldMulti(const std::vector<TPZCompMesh*>& sources,
     targetmatwithmem->SetUpdateMem(true);
     TPZAdmChunkVector<TPZElasticMem> &mem = *targetmatwithmem->GetMemory();
 
+    // índice inicial da busca em cada fonte (antes não inicializado); reaproveita o último elemento encontrado
+    std::vector<int64_t> elidsrc(sources.size(), 0);
     const int nels = target->NElements();
     for (int iel=0; iel<nels; iel++)
     {
@@ -656,8 +658,7 @@ static void ComputeFieldMulti(const std::vector<TPZCompMesh*>& sources,
             for (size_t f=0; f<sources.size(); ++f)
             {
                 TPZManVector<REAL,3> qsi(3,0.);
-                int64_t elidsrc;
-                TPZGeoEl *gelsrc = sources[f]->Reference()->FindElement(datatarget.x, qsi, elidsrc, sources[f]->Dimension());
+                TPZGeoEl *gelsrc = sources[f]->Reference()->FindElement(datatarget.x, qsi, elidsrc[f], sources[f]->Dimension());
 
                 if (!gelsrc || !gelsrc->Reference()) DebugStop();
                 auto *celsource = dynamic_cast<TPZInterpolationSpace*>(gelsrc->Reference());

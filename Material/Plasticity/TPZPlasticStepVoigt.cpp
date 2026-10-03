@@ -29,11 +29,11 @@ TPZPlasticStepVoigt<YC,ER>::TPZPlasticStepVoigt()
 template <class YC, class ER>
 TPZPlasticStepVoigt<YC,ER>::TPZPlasticStepVoigt(const TPZPlasticStepVoigt& other)
 : TPZPlasticBase(other)   // copia parte base
+, fN(other.fN)            // copia o estado plástico (antes era zerado com CleanUp, ao contrário do operator=)
 , fER(other.fER)
 , fYC(other.fYC)
 , fReductionFactor(other.fReductionFactor)
 {
-    fN.CleanUp();
     // nada extra
 }
 

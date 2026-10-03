@@ -201,8 +201,8 @@ int TPZMatElastoPlastic<T,TMEM>::NSolutionVariables(int var) const
     if(var == TPZMatElastoPlastic<T,TMEM>::EStrainPlastic) return 6;
     if(var == TPZMatElastoPlastic<T,TMEM>::EYield) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EVolHardening) return 1;
-    if(var == TPZMatElastoPlastic<T,TMEM>::EStrainPValues) return 6;
-    if(var == TPZMatElastoPlastic<T,TMEM>::EStressPValues) return 6;
+    if(var == TPZMatElastoPlastic<T,TMEM>::EStrainPValues) return 3;
+    if(var == TPZMatElastoPlastic<T,TMEM>::EStressPValues) return 3;
     if(var == TPZMatElastoPlastic<T,TMEM>::EStrainElasticPValues) return 3;
     if(var == TPZMatElastoPlastic<T,TMEM>::EStrainPlasticPValues) return 3;
     if(var == TPZMatElastoPlastic<T,TMEM>::EStrainI1) return 1;
@@ -531,24 +531,25 @@ void TPZMatElastoPlastic<T,TMEM>::Contribute(const TPZMaterialDataT<STATE> &data
     axesT.Multiply(dphi,dphiXYZ);
 
     TPZFNMatrix<9>  Deriv(3,3);
-    TPZFNMatrix<36> Dep(6,6);
+    TPZFNMatrix<36> Dep(6,6,0.); // zerada: alguns modelos plásticos acumulam em Dep
     TPZFNMatrix<6>  DeltaStrain(6,1);
     TPZFNMatrix<6>  Stress(6,1);
 
     this->ComputeDeltaStrainVector(data, DeltaStrain);
     this->ApplyDeltaStrainComputeDep(data, DeltaStrain, Stress, Dep);
 
-    TPZManVector<STATE, 3> ForceLoc(3,0.0);
+    // força de corpo por unidade de volume: m_force (SetBodyForce), como no TPZMatElastoPlastic2D;
+    // a função forçante, se houver, substitui m_force e é tratada como aceleração (multiplicada por m_rho_bulk)
+    TPZManVector<STATE, 3> ForceLoc(m_force);
     if(this->fForcingFunction)
     {
         this->fForcingFunction(data.x,ForceLoc);
+        for (int i = 0; i < 3; i++) ForceLoc[i] *= m_rho_bulk;
     }
-    // força de corpo (gravidade), já em unidades de volume
     TPZFMatrix<STATE> flocal(3,1,0.);
     flocal(0,0) = ForceLoc[0];
     flocal(1,0) = ForceLoc[1];
     flocal(2,0) = ForceLoc[2];
-    flocal *= m_rho_bulk; // se o ForceLoc é aceleração (g), multiplica pela densidade
 
     // constrói B e N
     TPZFMatrix<STATE> B, N, Bt, Nt, temp, ektemp, fint1, fint2;
@@ -744,32 +745,34 @@ void TPZMatElastoPlastic<T,TMEM>::Contribute(const TPZMaterialDataT<STATE> &data
     int nstate = NStateVariables();
     REAL val;
 
-    TPZManVector<STATE, 3> ForceLoc(nstate,0.0);
+    // força de corpo: mesma convenção do Contribute com ek (m_force, ou m_rho_bulk * função forçante)
+    TPZManVector<STATE, 3> ForceLoc(m_force);
     if(this->fForcingFunction)
     {
         this->fForcingFunction(data.x,ForceLoc);
+        for (int i = 0; i < 3; i++) ForceLoc[i] *= m_rho_bulk;
     }
 
     int in;
     for(in = 0; in < phr; in++) { //in: test function index
 
-        // m_force represents the gravity acceleration
+        // m_force represents the body force per unit volume
         //First equation: fb and fk
-        val  = m_rho_bulk * ForceLoc[0] * phi(in,0); // fb
+        val  = ForceLoc[0] * phi(in,0); // fb
         val -= Stress(_XX_,0) * dphiXYZ(0,in); // |
         val -= Stress(_XY_,0) * dphiXYZ(1,in); // fk
         val -= Stress(_XZ_,0) * dphiXYZ(2,in); // |
         ef(in*nstate+0,0) += weight * val;
 
         //Second equation: fb and fk
-        val  = m_rho_bulk * ForceLoc[1] * phi(in,0); // fb
+        val  = ForceLoc[1] * phi(in,0); // fb
         val -= Stress(_XY_,0) * dphiXYZ(0,in); // |
         val -= Stress(_YY_,0) * dphiXYZ(1,in); // fk
         val -= Stress(_YZ_,0) * dphiXYZ(2,in); // |
         ef(in*nstate+1,0) += weight * val;
 
         //third equation: fb and fk
-        val  = m_rho_bulk * ForceLoc[2] * phi(in,0); // fb
+        val  = ForceLoc[2] * phi(in,0); // fb
         val -= Stress(_XZ_,0) * dphiXYZ(0,in); // |
         val -= Stress(_YZ_,0) * dphiXYZ(1,in); // fk
         val -= Stress(_ZZ_,0) * dphiXYZ(2,in); // |
@@ -996,9 +999,13 @@ void TPZMatElastoPlastic<T,TMEM>::ApplyDeltaStrainComputeDep(const TPZMaterialDa
     {
         this->MemItem(intPt).m_sigma        = sigma;
         //this->MemItem(intPt).m_elastoplastic_state = plasticloc.GetState();
-        this->MemItem(intPt).m_elastoplastic_state.m_eps_t = plasticloc.GetState().m_eps_t;
-        this->MemItem(intPt).m_elastoplastic_state.m_eps_p = plasticloc.GetState().m_eps_p;
-        this->MemItem(intPt).m_elastoplastic_state.m_hardening = plasticloc.GetState().m_hardening;
+        // estado plástico atualizado (inclui m_m_type, usado em "FailureType"); fmatprop/fmatpropinit são
+        // parâmetros de entrada por ponto e ficam como estão na memória
+        const TPZPlasticState<REAL> state_np1 = plasticloc.GetState();
+        this->MemItem(intPt).m_elastoplastic_state.m_eps_t = state_np1.m_eps_t;
+        this->MemItem(intPt).m_elastoplastic_state.m_eps_p = state_np1.m_eps_p;
+        this->MemItem(intPt).m_elastoplastic_state.m_hardening = state_np1.m_hardening;
+        this->MemItem(intPt).m_elastoplastic_state.m_m_type = state_np1.m_m_type;
         this->MemItem(intPt).m_plastic_steps = plasticloc.IntegrationSteps();
         this->MemItem(intPt).m_ER = plasticloc.GetElasticResponse();
         int solsize = data.sol[0].size();
@@ -1047,9 +1054,13 @@ void TPZMatElastoPlastic<T,TMEM>::ApplyDeltaStrain(const TPZMaterialDataT<STATE>
     {
         this->MemItem(intPt).m_sigma        = sigma;
         //this->MemItem(intPt).m_elastoplastic_state = plasticloc.GetState();
-        this->MemItem(intPt).m_elastoplastic_state.m_eps_t = plasticloc.GetState().m_eps_t;
-        this->MemItem(intPt).m_elastoplastic_state.m_eps_p = plasticloc.GetState().m_eps_p;
-        this->MemItem(intPt).m_elastoplastic_state.m_hardening = plasticloc.GetState().m_hardening;
+        // estado plástico atualizado (inclui m_m_type, usado em "FailureType"); fmatprop/fmatpropinit são
+        // parâmetros de entrada por ponto e ficam como estão na memória
+        const TPZPlasticState<REAL> state_np1 = plasticloc.GetState();
+        this->MemItem(intPt).m_elastoplastic_state.m_eps_t = state_np1.m_eps_t;
+        this->MemItem(intPt).m_elastoplastic_state.m_eps_p = state_np1.m_eps_p;
+        this->MemItem(intPt).m_elastoplastic_state.m_hardening = state_np1.m_hardening;
+        this->MemItem(intPt).m_elastoplastic_state.m_m_type = state_np1.m_m_type;
         this->MemItem(intPt).m_plastic_steps = plasticloc.IntegrationSteps();
         this->MemItem(intPt).m_ER = plasticloc.GetElasticResponse();
         int solsize = data.sol[0].size();

@@ -315,33 +315,11 @@ public:
 	TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZElastoPlasticMem> plasticmat;
 	///@}
 
-	/** @name Utilidades de refinamento dirigido por indicador */
-	///@{
-	/** @brief Escala vetor de carga (ou BCs relevantes) por um fator. */
-	void LoadingRamp ( REAL factor );
-
-	/** @brief Marca e divide elementos cujo indicador excede um limiar. */
-	void DivideElementsAbove(REAL refineaboveval, std::set<long> &elindices);
-
-	/** @brief Aumenta a ordem p de elementos cujo indicador excede um limiar. */
-	void PRefineElementsAbove(REAL refineaboveval, int porder, std::set<long> &elindices);
-
-	/** @brief Recalcula indicadores de deformação plástica por elemento. */
-	void ComputeElementDeformation();
-	///@}
+	// LoadingRamp, DivideElementsAbove, PRefineElementsAbove, ComputeElementDeformation, PostPlasticity,
+	// CreatePostProcessingMesh e PostProcessVariables eram declaradas aqui sem definição nem uso
+	// (versões equivalentes existem nos projetos, p.ex. SlopeAnalysis em Projects2/GeoMecDeterm)
 
 public:
-	/** @name Pós-processamento */
-	///@{
-	/** @brief Gera VTK pós-processado com variáveis plásticas/estruturais. */
-	void PostPlasticity(std::string vtkd);
-
-	/** @brief Cria malha de pós-processamento (supermesh) associada. */
-	void CreatePostProcessingMesh (TPZPostProcAnalysis * PostProcess );
-
-	/** @brief Seleciona variáveis escalares/vetoriais de pós-processamento. */
-	void PostProcessVariables ( TPZStack<std::string> &scalNames, TPZStack<std::string> &vecNames );
-	///@}
 	void ToggleUpdateMem(bool on) { this->SetUpdateMem(on ? 1 : 0); }
 protected:
 	/** @name Dados internos */
