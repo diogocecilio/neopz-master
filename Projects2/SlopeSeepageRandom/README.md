@@ -122,6 +122,30 @@ hidrostático.
 
 _(resultados em execução; as tabelas são geradas por `scripts/tabelas.py <diretório de resultados>`)_
 
+## Gravação e retomada (read/write)
+
+Nada do que já foi calculado se perde se o processo for interrompido (SIGKILL, queda da máquina):
+
+| arquivo | conteúdo | uso |
+|---|---|---|
+| `<saida>.csv` | uma linha por amostra, escrita com um único `write` + `fdatasync` | rodar de novo o **mesmo comando** retoma: as amostras já gravadas são puladas e uma linha final incompleta é descartada (gravação atômica, `.tmp` + `rename`) |
+| `<saida>.csv.param` | parâmetros que definem o resultado (caso, modelo, CoVs, Lx, Ly, malha, semente, ...) | conferidos na retomada: parâmetros diferentes são recusados (código 3; `forcar=1` aceita) |
+| `<saida>.csv.resumo` | μ, σ (n − 1), CoV, Pf, CoV(Pf) e contagem por status de **todo** o CSV | refeito a cada execução |
+| `<saida>.csv.lock` | trava (`flock`) | dois processos nunca escrevem no mesmo CSV (código 4) |
+| `kl_..._v3.bin` | autopares da KL com cabeçalho (versão, Lx, Ly, ordem, assinatura da malha) | relido em vez de recalculado; arquivo truncado ou diferente é recalculado; escrita atômica |
+| `malha_<caso>_h<h>_<hash>.malha` | elementos divididos em cada nível da adaptação | a malha adaptada é reconstruída (idêntica) em vez de refazer as análises de colapso (`malha=0` desliga) |
+| `<saida>.csv.campos` (`campos=1`) | c, φ nos pontos de integração e k_v por elemento de cada amostra (binário) | equivalente aos antigos `hhat`; leitura com o comando `campos arquivo=...` |
+
+`amostras=3,17,40-45` recalcula amostras escolhidas (p.ex. com `vtk=1`, para figuras) e confere com o CSV. As
+amostras são geradas por `seed_seq{semente, amostra, campo}`: cada uma é reproduzível isoladamente, em qualquer
+ordem e em qualquer processo (`scripts/montecarlo.sh` divide as amostras entre processos e junta os CSV).
+
+Verificado: uma execução interrompida com `kill -9` no meio de uma amostra e retomada dá o mesmo CSV que a
+execução sem interrupção (exceto o tempo), sem repetições; reexecutar não recalcula nada; os números são
+idênticos aos da versão anterior do programa. No `Projects2/GeoMecRandFieldsMonteCarlo` antigo, os arquivos
+`hhat` passaram a ter cabeçalho (parâmetros, dimensões) e escrita atômica, a leitura confere o tamanho com a
+malha do campo (o formato antigo continua legível) e a retomada usa o conjunto de amostras já gravadas.
+
 ## Correções feitas no NeoPZ e nas rotinas antigas
 
 Biblioteca (usadas por este projeto e pelas rotinas de campos aleatórios):
