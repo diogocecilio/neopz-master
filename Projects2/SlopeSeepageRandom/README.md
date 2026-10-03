@@ -85,7 +85,25 @@ elasticidade linear. Com ele Γ e FS dependem da trajetória (endurecimento/amol
 * O exemplo c-φ de Cho (2010) tem H = 10 m (o texto da seção 5.3.2 diz 5 m, mas Γ = 1.777 e FS = 1.203/1.204 só
   são reproduzidos com H = 10 m; com H = 5 m o próprio Bishop simplificado dá FS ≈ 1.61).
 * No caso coesivo o FE fica 2.4 % abaixo do limite superior log-espiral (esperado).
-* No caso com percolação o FE fica 5 % acima: ver a nota sobre `v'_opt` acima.
+* No caso com percolação o FE fica 5 % acima: ver a nota sobre `v'_opt` acima. Aumentar o domínio de
+  25 × 10 m para 105 × 55 m (`Lc=50 Lt=50 Hb=50`) muda Γ só em +0.5 % (1.418 → 1.426 com `h=2 adapt=3`): a
+  diferença não vem do truncamento do domínio.
+
+**Cam-Clay no caso com percolação (OCR = 1): dependência de malha.**
+
+| `adapt` | equações | FS | Γ |
+|---|---|---|---|
+| 0 | 1742 | 1.243 | 1.344 |
+| 1 | 2742 | 1.145 | colapso na etapa de percolação (λ_s = 0.85) |
+| 2 | 4962 | 1.114 | colapso na etapa de percolação (λ_s = 0.89) |
+| 3 | 9730 | 1.094 | 1.00 |
+
+O Cam-Clay normalmente adensado amolece no lado seco da elipse (pontos rasos, `p'` pequeno frente a `p_t`), sem
+regularização: o FS por redução de resistência converge com a malha, mas Γ depende da trajetória (a
+equivalência `Γ ≥ 1 ⇔ FS ≥ 1` só vale para a plasticidade perfeita associada). Com a resistência real, a
+trajetória drenada do rebaixamento (peso próprio e depois as forças de percolação) chega praticamente ao
+colapso — coerente com o colapso do rebaixamento acoplado com Cam-Clay (abaixo). Para o Cam-Clay a medida
+recomendada é o FS (`medida=fs` no Monte Carlo).
 
 _(resultados em execução; as tabelas são geradas por `scripts/tabelas.py <diretório de resultados>`)_
 
