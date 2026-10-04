@@ -63,7 +63,7 @@ def main(dirres, saida, extra=None):
     nmin = min((mc[c]["N"] for c in mc), default=0)
     nmax = max((mc[c]["N"] for c in mc), default=0)
     ntot = sum(mc[c]["N"] for c in mc)
-    milhar = lambda v: f"{v:,}".replace(",", ".")  # noqa: E731
+    milhar = lambda v: f"{v:,}".replace(",", ".") if v >= 10000 else str(v)  # noqa: E731
     faixa = milhar(nmin) if nmin == nmax else f"{milhar(nmin)}–{milhar(nmax)}"
     w(f"""<header class="topo">
 <p class="sobre">NeoPZ · Projects2/SlopeSeepageRandom · comparação com Vargas Ceron, Cecílio, Linn &amp; Maghous (IJNAMG 2025)</p>
@@ -179,6 +179,10 @@ artigo usa M = 2000 termos com erro &lt; 6 %, sem compensação). c, φ e k<sub>
       'curvas extraídas do PDF.</p>')
     for nota in E.get("notas_fig8", []):
         w(f"<p>{nota}</p>")
+    if os.path.exists(os.path.join(dirres, "mecanismo_A35.png")):
+        w(img(os.path.join(dirres, "mecanismo_A35.png"),
+              "Norma da deformação plástica no colapso, solo A (c = 6 kPa, φ = 32°), β = 35°, nível 3: sem rebaixamento "
+              "(esquerda; caso que não converge com a malha) e h_w/H = 0,5 (direita)."))
 
     # Fig. 9 e Tabelas 5/6 (determinístico)
     w('<h3>Fig. 9 — Γ × inclinação e anisotropia</h3>')

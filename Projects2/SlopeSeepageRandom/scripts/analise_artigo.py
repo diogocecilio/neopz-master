@@ -12,6 +12,7 @@ import json
 import math
 import os
 import re
+import shutil
 import sys
 
 import numpy as np
@@ -318,6 +319,11 @@ def salva(fig, out, nome):
 
 
 def figuras(R, dados, det, ref, out):
+    # figura do mecanismo (feita por mecanismo_artigo.py a partir dos VTK, que não ficam no repositório)
+    for ext in ("pdf", "png"):
+        src = os.path.join(det, "mech", "mecanismo_A35." + ext)
+        if os.path.exists(src):
+            shutil.copy(src, out)
     plt.rcParams.update({"font.size": 9, "axes.grid": True, "grid.alpha": 0.3, "figure.dpi": 130})
     C_FE, C_ART, C_ART2 = "#1f6fb4", "#c0392b", "#7f7f7f"
 
@@ -344,8 +350,10 @@ def figuras(R, dados, det, ref, out):
             ax.set_title(rf"$\alpha = {a}$")
             ax.set_xlabel(r"$\beta$ (°)")
         axs[0].set_ylabel(r"$J/(k_h H^2 \gamma_w^2)$")
-        axs[0].legend(fontsize=6)
-        fig.tight_layout()
+        # legenda abaixo dos painéis, para não cobrir os pontos
+        h, lb = axs[0].get_legend_handles_labels()
+        fig.legend(h, lb, loc="lower center", ncol=4, fontsize=8, frameon=False)
+        fig.tight_layout(rect=(0, 0.08, 1, 1))
         salva(fig, out, "fig5_funcional")
         plt.close(fig)
     except Exception as e:  # noqa: BLE001

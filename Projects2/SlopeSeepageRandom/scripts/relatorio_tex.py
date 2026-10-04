@@ -2,7 +2,7 @@
 """Relatório comparativo em LaTeX a partir de analise_artigo.py.
 
 Uso: relatorio_tex.py <saída de analise_artigo.py> <diretório do relatório>
-Escreve <dir>/relatorio.tex e copia as figuras (PDF) para <dir>/figuras/; compilar com pdflatex duas vezes. Os
+Escreve <dir>/relatorio.tex e copia as figuras (PDF) para <dir>/figuras/; compilar com pdflatex três vezes. Os
 números do texto são calculados de resultados.json, de modo que o relatório pode ser refeito com mais amostras.
 Tabelas e figuras do relatório são numeradas R1, R2, ...; "Tabela 3 do artigo" etc. referem-se ao artigo.
 """
@@ -60,7 +60,9 @@ def dif(a, b, d=1):
 
 
 def milhar(v):
-    return f"{int(round(v)):,}".replace(",", ".")
+    """separador de milhar (ponto) a partir de 10 000; números de 4 algarismos sem separador"""
+    n = int(round(v))
+    return f"{n:,}".replace(",", ".") if abs(n) >= 10000 else str(n)
 
 
 def dur(h):
@@ -72,7 +74,8 @@ def main(dirres, dirtex):
     mc, det = R["mc"], R["det"]
     conv = det.get("conv", {})
     os.makedirs(os.path.join(dirtex, "figuras"), exist_ok=True)
-    for nome in ("fig5_funcional", "fig8_hcrit", "fig9_gamma_beta", "densidades", "tendencias", "convergencia_pf"):
+    for nome in ("fig5_funcional", "fig8_hcrit", "fig9_gamma_beta", "densidades", "tendencias", "convergencia_pf",
+                 "mecanismo_A35"):
         src = os.path.join(dirres, nome + ".pdf")
         if os.path.exists(src):
             shutil.copy(src, os.path.join(dirtex, "figuras", nome + ".pdf"))
@@ -88,8 +91,8 @@ def main(dirres, dirtex):
     dentro_b = [c for c in com_pf if mc[c]["pf_lo"] <= mc[c]["artigo"]["pf"] <= mc[c]["pf_hi"]]
     entre_pt = [c for c in perc if mc[c]["pf"] <= mc[c]["artigo"]["pf"] <= mc[c]["escalado"]["pf"]]
     fora_pt = [c for c in perc if c not in entre_pt]
-    entre_ic = [c for c in perc if min(mc[c]["pf_lo"], mc[c]["escalado"]["pf_lo"]) <= mc[c]["artigo"]["pf"]
-                <= max(mc[c]["pf_hi"], mc[c]["escalado"]["pf_hi"])]
+    uniao_ic = [c for c in perc if mc[c]["pf_lo"] <= mc[c]["artigo"]["pf"] <= mc[c]["pf_hi"] or
+                mc[c]["escalado"]["pf_lo"] <= mc[c]["artigo"]["pf"] <= mc[c]["escalado"]["pf_hi"]]
     ref = mc["ref"]
     rf = {a: conv.get(f"ref_h1_a{a}", {}) for a in range(6)}
     cc = {a: conv.get(f"chocoes_h1_a{a}", {}) for a in range(6)}
@@ -140,7 +143,13 @@ def main(dirres, dirtex):
     cpu_coes = (ch["S_artigo"] - ch["N"]) * t_coes / 3600.
     a5 = mc["alfa5"]
     nf_a5 = round(a5["pf"] * a5["N"])
-    excl = ", ".join(ROTULO[c] for c in fora_pt)
+    sem_falha = [c for c in mc if mc[c]["pf"] <= 0]
+    nota_sem_falha = (" Casos ainda sem falhas usam o $S$ do artigo: " + "; ".join(
+        f"{ROTULO[c]}, {milhar(mc[c]['S_artigo'])} amostras (cerca de "
+        f"{milhar((mc[c]['S_artigo'] - mc[c]['N']) * mc[c]['tempo_medio_s'] / 3600)}\\,h de CPU)"
+        for c in sem_falha) + ".") if sem_falha else ""
+    rot_fora = [ROTULO[c] for c in fora_pt]
+    excl = rot_fora[0] if len(rot_fora) == 1 else ", ".join(rot_fora[:-1]) + " e " + rot_fora[-1] if rot_fora else ""
 
     L = []
     w = L.append
@@ -195,14 +204,15 @@ estima o tempo para chegar ao número de amostras do artigo. Tabelas e figuras d
     w(r"\section{Resumo dos resultados}")
     w(r"\begin{itemize}")
     w(r"\item \textbf{Reprodutibilidade.} Nas amostras em comum entre duas máquinas (o container de desenvolvimento e "
-      r"a máquina do autor, 631 amostras) e entre os dois pacotes de resultados recebidos (2.800 amostras), os "
-      r"resultados são idênticos em todos os dígitos gravados ($\Gam$, médias dos campos e modo de ruptura); cada "
+      r"a máquina do autor, 631 amostras) e entre os dois pacotes de resultados recebidos (2800 amostras), os "
+      r"resultados são idênticos em todos os dígitos gravados ($\Gam$ e médias dos campos; modo de ruptura nas 431 "
+      r"amostras do container que o registram); cada "
       r"amostra depende só de (semente, índice da amostra, campo).")
-    w(r"\item \textbf{Exemplos secos (Cho).} O FE converge para logo abaixo do limite superior do artigo, como esperado: "
-      rf"no talude $c$-$\varphi$, $\Gam = {f(cp[4].get('gamma'))}$ (nível 4) contra 1,777 e "
-      rf"FS $= {f(cp[4].get('fs'))}$ contra 1,203 (artigo) e 1,204 (Cho); no coesivo, $\Gam = {f(cc[3].get('gamma'))}$ "
-      rf"e FS $= {f(cc[3].get('fs'))}$ (nível 3, ainda decrescendo cerca de 0,6\,\% por nível) contra 1,354 (artigo) "
-      r"e 1,356 (Cho).")
+    w(r"\item \textbf{Exemplos secos (Cho).} No talude $c$-$\varphi$ o FE converge para logo abaixo do limite superior "
+      rf"do artigo, como esperado: $\Gam = {f(cp[4].get('gamma'))}$ (nível 4) contra 1,777 e "
+      rf"FS $= {f(cp[4].get('fs'))}$ contra 1,203 (artigo) e 1,204 (Cho). No coesivo ainda decresce: "
+      rf"$\Gam = {f(cc[3].get('gamma'))}$ e FS $= {f(cc[3].get('fs'))}$ no nível 3 (cerca de 0,6\,\% por nível, "
+      rf"{dif(cc[3].get('gamma'), 1.354)} em relação a 1,354; Cho: 1,356).")
     w(rf"\item \textbf{{Caso de referência com percolação.}} O último fator convergido no FE refinado é "
       rf"$\Gam = {f(g_conv)}$ e o colapso ocorre em {f(min(g_sup))}--{f(max(g_sup))}, isto é, "
       rf"{dif(g_conv, 1.336)} a {dif(max(g_sup), 1.336)} acima do $\Gam = 1{{,}}336$ do artigo, que é um limite "
@@ -212,13 +222,15 @@ estima o tempo para chegar ao número de amostras do artigo. Tabelas e figuras d
       r"fecha a diferença. O restante é atribuído, por exclusão, às forças de percolação. Com anisotropia soma-se o "
       r"efeito do domínio truncado (laterais impermeáveis a 10\,m do talude): com 50\,m de crista, pé e base, a "
       rf"diferença de $\alpha = 3$ e $5$ cai para {dif(dom['alfa3_dom50'].get('gamma'), 1.674)} e "
-      rf"{dif(dom['alfa5_dom50'].get('gamma'), 1.872)} (em $\beta = 45^\circ$).")
+      rf"{dif(dom['alfa5_dom50'].get('gamma'), 1.872)} (nível 3, $\beta = 45^\circ$; $\alpha = 1$ no mesmo nível e "
+      rf"domínio: {dif(conv.get('ref_dom_a3', {}).get('gamma'), 1.336)}).")
     w(r"\item \textbf{Fig.~8 do artigo.} Com os solos trocados em relação à Tabela~1 do artigo (seção~\ref{sec:obs}), "
       rf"o FE reproduz as curvas ${{\gradu}}$ com diferença de no máximo {f(100 * max(d8b), 1)}\,\% em três das "
       rf"quatro curvas (nível 3). Na quarta ($\varphi = 32^\circ$, $\beta = 35^\circ$) o FE fica {faixa8}\,\% abaixo "
       rf"para $h_w/H \ge 0{{,}}2$ (nível 3) e continua diminuindo com o refinamento; em $h_w/H = 0{{,}}1$ fica "
-      rf"{dif(r01['fe'], r01['grad_u_fe'], 0) if r01 else '---'} e sem rebaixamento não converge com a malha. Com "
-      r"$\varphi$ próximo de $\beta$ o mecanismo rotacional do artigo superestima $\Hcrit$.")
+      rf"{dif(r01['fe'], r01['grad_u_fe'], 0) if r01 else '---'} e sem rebaixamento não converge com a malha. Como as "
+      r"outras três curvas concordam, o limite superior do artigo provavelmente não é justo nesse caso ($\varphi$ "
+      r"próximo de $\beta$, mecanismo raso junto à face).")
     w(rf"\item \textbf{{Monte Carlo, média e desvio.}} Nos {len(perc)} casos com percolação (Tabelas~3 a 6 do artigo) "
       rf"a média de $\Gam$ do FE é em média {p(mu_b.mean())}\,\% maior que a do artigo, o mesmo viés do problema médio "
       r"na malha do Monte Carlo. Reescalada amostra a amostra por $\Gart/\Gfe$ do problema médio, coincide com a do "
@@ -226,12 +238,12 @@ estima o tempo para chegar ao número de amostras do artigo. Tabelas e figuras d
       rf"é em média {p(sd_e.mean(), 0)}\,\% maior.")
     w(rf"\item \textbf{{Monte Carlo, probabilidade de falha.}} O Pf do artigo está no intervalo de confiança de 95\,\% "
       rf"do FE em {len(dentro_b)} dos {len(com_pf)} casos. Nos casos com percolação ele fica entre o Pf do FE (menor, "
-      rf"pelo viés da média) e o Pf reescalado (maior, pelo desvio maior) em {len(entre_pt)} dos {len(perc)} casos, "
-      rf"e na união dos dois intervalos de confiança em {len(entre_ic)}"
-      + (rf"; as exceções são {excl}, em que o Pf do FE já é maior que o do artigo." if fora_pt else ".") +
-      r" As tendências principais das Tabelas~3 a 6 do artigo se repetem (Pf com CoV$(c)$, CoV$(\varphi)$, $s$, "
-      r"$\alpha$ e $h_w/H$; $\mu$ com $\alpha$ e $h_w/H$); variações pequenas ($\mu$ com CoV$(\varphi)$, $\sigma$ com "
-      r"$s$) ficam dentro do ruído amostral.")
+      rf"pelo viés da média) e o Pf reescalado (maior, pelo desvio maior) em {len(entre_pt)} dos {len(perc)} casos"
+      + (rf" (exceções: {excl}, em que o Pf do FE já é maior que o do artigo)" if fora_pt else "") +
+      rf", e dentro de pelo menos um dos dois intervalos de confiança em {len(uniao_ic)} dos {len(perc)}. As "
+      r"tendências principais das Tabelas~3 a 6 do artigo se repetem (Pf com CoV$(c)$, CoV$(\varphi)$, $s$, $\alpha$ e "
+      r"$h_w/H$; $\sigma$ e CoV com $s$; $\mu$ com $\alpha$ e $h_w/H$); variações pequenas ($\mu$ com CoV$(\varphi)$ e "
+      r"com $s$, oscilações de $\sigma$ entre valores vizinhos de $s$) ficam dentro do ruído amostral.")
     w(rf"\item \textbf{{Cho.}} Coesivo: $\mu = {f(ch['mu'])}$, $\sigma = {f(ch['sd'])}$ contra "
       rf"{f(ch['artigo']['mu'])} e {f(ch['artigo']['sd'])} da Fig.~17 do artigo; Pf $= {p(ch['pf'])}\,\%$ contra "
       r"6,5\,\% (artigo) e 7,9\,\% (Cho). $c$-$\varphi$: a mediana coincide "
@@ -265,8 +277,8 @@ O artigo avalia a estabilidade pelo fator $\Gam$ (eq.~54 do artigo), multiplicad
 superior). As forças de percolação vêm de uma solução semianalítica em velocidade de filtração ($\vopt$) ou de
 elementos finitos em poropressão (${\gradu}$). O $\Gam = 1{,}336$ do caso de referência (seção~6 e Tabelas~5 e 6 do
 artigo) corresponde à curva ${\gradu}$: a Fig.~9 do artigo dá 1,31 em $\beta = 45^\circ$, $\alpha = 1$ para
-${\gradu}$, contra 1,89 para $\vopt$ (a diferença de 1,7\,\% entre 1,31 e 1,336 excede um pouco a precisão de leitura,
-$\pm 0{,}01$).
+${\gradu}$, contra 1,89 para $\vopt$ (a diferença de 1,7\,\% entre o valor digitalizado, 1,314, e 1,336 excede um
+pouco a precisão de leitura, $\pm 0{,}01$).
 
 O código (\texttt{Projects2/SlopeSeepageRandom} do NeoPZ) calcula o mesmo $\Gam$ como o multiplicador das mesmas
 cargas no colapso de uma análise elastoplástica incremental: Mohr-Coulomb associado
@@ -283,10 +295,10 @@ do artigo, e um FE convergido abaixo do valor do artigo indica um limite superio
 rebaixamento só são reproduzidos com 9,81 (com 10 a diferença é de 2,3 a 2,5\,\%).
 \item Domínio: crista de 10\,m, pé de 10\,m e base 5\,m abaixo do pé ($25 \times 10$\,m no talude de referência, com
 $H = 5$\,m e $\beta = 45^\circ$). Malha estruturada com $h = 1$\,m e refinamento adaptativo guiado pelo mecanismo de
-colapso do problema médio. No Monte Carlo, dois níveis: 4.914 equações no caso de referência, 18.014 no Cho coesivo
-e 3.194 no Cho $c$-$\varphi$ ($h = 2$\,m, $H = 10$\,m).
+colapso do problema médio. No Monte Carlo, dois níveis: 4914 equações no caso de referência, 18.014 no Cho coesivo
+e 3194 no Cho $c$-$\varphi$ ($h = 2$\,m, $H = 10$\,m).
 \item Campos aleatórios: KL de Galerkin (quadriláteros de 9 nós, $h_{\mathrm{KL}} = 1$\,m) com todos os modos da KL
-discreta ($M$ = número de equações da malha KL: 871, 1.081 e 1.491); lognormais, covariância exponencial
+discreta ($M$ = número de equações da malha KL: 871, 1081 e 1491); lognormais, covariância exponencial
 $\exp(-|\Delta x|/L_x - |\Delta y|/L_y)$, $c$, $\varphi$ e $k_v$ independentes. O erro de discretização da variância
 é $\varepsilon_M \approx 3{,}6\,\%$ para $(L_x, L_y) = (20, 2)$\,m (0,007 a 2,3\,\% nos casos da Tabela~4 do artigo),
 compensado ponto a ponto. O artigo usa $M = 2000$ termos com erro abaixo de 6\,\%, sem compensação.
@@ -317,7 +329,8 @@ lidos). Os momentos $\mu$ e $\sigma$ dos exemplos de Cho foram calculados dessas
           + f" & {art}\\\\")
     w(r"\bottomrule\end{tabular}\\[2pt]{\footnotesize $^a$ $\Gam = F_s$ para $\varphi = 0$; Cho (2010), equilíbrio "
       r"limite: 1,356. $^b$ Cho (2010): 1,204.}\end{table}")
-    w(r"Nos exemplos secos o FE decresce com o refinamento e fica logo abaixo do limite superior do artigo; para o "
+    w(r"Nos exemplos secos o FE decresce com o refinamento e fica abaixo do limite superior do artigo (logo abaixo no "
+      r"$c$-$\varphi$; no coesivo ainda decresce cerca de 0,6\,\% por nível); para o "
       r"$c$-$\varphi$, a solução log-espiral de Chen (1975), reimplementada aqui, dá $\Gam = 1{,}7770$ e "
       r"$F_s = 1{,}203$ com $H = 10$\,m, os valores do artigo. No caso com percolação o último fator convergido é "
       rf"{f(g_conv)} nos níveis 4 e 5 e com $h = 0{{,}}5$\,m e 3 níveis, e o colapso ocorre em "
@@ -333,7 +346,9 @@ lidos). Os momentos $\mu$ e $\sigma$ dos exemplos de Cho foram calculados dessas
       rf"nível 3), e $\Gam = {f(cc[4].get('gamma'))}$ no Cho coesivo, nível 4 (20 cortes de passo; a execução foi "
       r"interrompida antes do FS). As quedas de FS são colapsos prematuros do "
       r"critério de não convergência do Newton em malhas muito finas; o valor do Cho coesivo no nível 4 não foi "
-      r"confirmado e não é usado. Com $h = 1$\,m, os níveis 2 e 3 usados nas comparações não apresentam o problema.")
+      r"confirmado e não é usado. Com $h = 1$\,m, os níveis 2 e 3 usados nas comparações não apresentam o problema. "
+      r"Na seção~\ref{sec:f8} dois valores de nível 4 (9 e 10 cortes de passo) aparecem só como indicação da "
+      r"tendência; as conclusões usam o nível 3.")
 
     w(r"\subsection{Anisotropia e tamanho do domínio}\label{sec:dom}")
     w(r"\begin{table}[H]\centering\small\caption{$\Gam$ (nível 3, $\beta = 45^\circ$) para três domínios "
@@ -353,7 +368,8 @@ lidos). Os momentos $\mu$ e $\sigma$ dos exemplos de Cho foram calculados dessas
     w(r"\begin{figure}[H]\centering\includegraphics[width=\textwidth]{figuras/fig5_funcional}"
       r"\caption{$J(u)/(k_h H^2\gamma_w^2)$ do FE em poropressão (malha convergida) para dois domínios (crista/pé/base "
       r"10/10/5\,m e 50/50/50\,m), com as estimativas do artigo $J(u'_{\mathrm{FE}})$ (tracejada) e "
-      r"$-J^*(\underline{v}'_{\mathrm{opt}})$ (contínua); só o domínio grande fica entre elas.}\label{fig:f5}"
+      r"$-J^*(\underline{v}'_{\mathrm{opt}})$ (contínua); só o domínio grande fica entre elas em todos os pontos.}"
+      r"\label{fig:f5}"
       r"\end{figure}")
     n_ab = sum(1 for a in (1, 2, 4, 10) for b in (15, 30, 45, 60, 75, 90) if f5.get(f"a{a}_b{b}", {}).get("J"))
     w(r"O funcional depende do tamanho do domínio, que o artigo não informa para o FE. Com crista, pé e base de 50\,m "
@@ -388,17 +404,26 @@ lidos). Os momentos $\mu$ e $\sigma$ dos exemplos de Cho foram calculados dessas
             w(r"\addlinespace")
     w(r"\bottomrule\end{tabular}\\[2pt]{\footnotesize $^c$ fora da escala impressa (até 200\,m), lido do vetor do "
       r"PDF.}\end{table}")
-    w(r"Sem rebaixamento, o FE reproduz a solução log-espiral (e o artigo) nas três curvas que convergem: "
-      + ", ".join(f"{f(hw0[k]['fe'], 2)}\\,m ({dif(hw0[k]['fe'], hw0[k]['grad_u_fe'])})"
+    w(r"Sem rebaixamento, fora o solo A com $\beta = 35^\circ$, o FE reproduz a solução log-espiral (e o artigo) nas "
+      r"três curvas (nível 3, que ainda diminui 1,7 a 3,1\,\% por nível): "
+      + ", ".join(f"{f(hw0[k]['fe'], 2)}\\,m (solo {k[0]}, ${k[1]}^\\circ$; {dif(hw0[k]['fe'], hw0[k]['grad_u_fe'])})"
                   for k in (("A", 60), ("B", 60), ("B", 30)) if k in hw0) + ".")
     w(r"No solo A com $\beta = 35^\circ$ o FE decresce com o refinamento (em $h_w/H = 0{,}5$: "
       + ", ".join(f"{f(5 * g, 2)}\\,m" for g in a35_l if g) + r" nos níveis 2, 3 e 4, com 7, 8 e 9 cortes de "
       r"passo) e fica abaixo da curva do artigo (" + (f(r05['grad_u_fe'], 2) if r05 else "---") +
-      r"\,m) já na malha mais grossa. Com $\varphi = 32^\circ$ e $\beta = 35^\circ$ o mecanismo crítico do FE é raso e "
-      r"quase translacional, paralelo à face, que a família rotacional log-espiral não representa bem. Em "
+      r"\,m) já na malha mais grossa. O mecanismo do FE (Fig.~\ref{fig:mec}) é uma banda curva rasa junto à face, da "
+      r"aresta da crista ao pé; sem rebaixamento, ainda mais rasa e quase paralela à face. Como as outras três curvas da "
+      r"Fig.~8 do artigo concordam com o FE dentro de 4\,\%, a diferença é específica desse caso ($\varphi$ próximo de "
+      r"$\beta$) e indica que o limite superior do artigo não é justo aqui; não foi possível separar o efeito da forma "
+      r"do mecanismo do das forças de percolação junto à face, onde são mais intensas. Em "
       rf"$h_w/H = 0{{,}}1$ o FE fica {dif(r01['fe'], r01['grad_u_fe'], 0) if r01 else '---'} e sem rebaixamento esse "
       r"caso não converge com a malha. No solo B com $\beta = 60^\circ$ e $h_w/H = 1$ o nível 4 dá "
       rf"{f(5 * c8.get('B_b60_hw5_a4', {}).get('gamma', float('nan')), 2)}\,m, contra 5,41\,m do artigo.")
+    if os.path.exists(os.path.join(dirtex, "figuras", "mecanismo_A35.pdf")):
+        w(r"\begin{figure}[H]\centering\includegraphics[width=\textwidth]{figuras/mecanismo_A35}"
+          r"\caption{Norma da deformação plástica no colapso, solo A ($c = 6$\,kPa, $\varphi = 32^\circ$), "
+          r"$\beta = 35^\circ$, nível 3: sem rebaixamento (esquerda; caso que não converge com a malha) e "
+          r"$h_w/H = 0{,}5$ (direita). Modelo com $H = 5$\,m e $\Hcrit = \Gam H$.}\label{fig:mec}\end{figure}")
 
     w(r"\subsection{Fig.~9 e Tabelas~5 e 6 do artigo: inclinação, anisotropia e rebaixamento}")
     w(r"\begin{figure}[H]\centering\includegraphics[width=\textwidth]{figuras/fig9_gamma_beta}"
@@ -408,7 +433,7 @@ lidos). Os momentos $\mu$ e $\sigma$ dos exemplos de Cho foram calculados dessas
     bs = (30, 45, 60, 75, 90)
     fig9 = det.get("fig9", {})
     w(r"\begin{table}[H]\centering\small\caption{Fig.~9 do artigo: FE (nível 3) contra a curva ${\gradu}$ do artigo "
-      r"(digitalizada da imagem, $\pm 0{,}01$).}\label{tab:f9}\begin{tabular}{llrrrrr}\toprule $\alpha$ & & " +
+      r"(digitalizada da imagem, $\pm 0{,}01$; dif.\ calculada com os valores digitalizados sem arredondamento).}\label{tab:f9}\begin{tabular}{llrrrrr}\toprule $\alpha$ & & " +
       " & ".join(f"$\\beta = {b}^\\circ$" for b in bs) + r"\\\midrule")
     for a9 in (1, 5, 10):
         pts = {r["beta"]: r for r in cmp9 if r["alfa"] == a9}
@@ -475,7 +500,7 @@ lidos). Os momentos $\mu$ e $\sigma$ dos exemplos de Cho foram calculados dessas
               f"{p(e.get('pf'), 2) if e else '---'} & {mua} & {sda} & {pfa}\\\\")
         w(r"\bottomrule\end{tabular}")
         if chave == "Seção 5.3":
-            w(r"\\[2pt]{\footnotesize $^\dagger$ $\mu$ e $\sigma$ do artigo calculados das curvas das Figs.~17, 21 e 22 "
+            w(r"\\[2pt]\parbox{\linewidth}{\footnotesize $^\dagger$ $\mu$ e $\sigma$ do artigo calculados das curvas das Figs.~17, 21 e 22 "
               r"do artigo (não tabelados); no $c$-$\varphi$ a densidade da Fig.~21 é cortada na cauda e a CDF da Fig.~22 "
               rf"dá $\mu = {f(acf.get('mu_cdf'), 2)}$ e $\sigma = {f(acf.get('sd_cdf'), 2)}$. Pf de Cho (2010): 7,9\,\% "
               r"(coesivo) e 6,37\,\% ($c$-$\varphi$).}")
@@ -485,8 +510,8 @@ lidos). Os momentos $\mu$ e $\sigma$ dos exemplos de Cho foram calculados dessas
       rf"$\sigma = {f(ch['sd'])}$ contra {f(ch['artigo']['mu'])} e {f(ch['artigo']['sd'])}); a média um pouco menor "
       rf"acompanha o $\Gam$ determinístico do FE na malha do Monte Carlo ({f(ch['gamma_det_fe'])} contra 1,354) e "
       rf"leva a um Pf maior ({p(ch['pf'])}\,\%, ou {p(ch['escalado']['pf'])}\,\% reescalado, contra 6,5\,\% no artigo "
-      r"e 7,9\,\% em Cho). No talude $c$-$\varphi$ os quantis do FE e do artigo (CDF da Fig.~22) coincidem: "
-      + ", ".join(f"{q[1:]}\\,\\%: {f(cf[q], 2)} e {f(acf['quantis'][q], 2)}" for q in ("q05", "q25", "q75", "q95"))
+      r"e 7,9\,\% em Cho). No talude $c$-$\varphi$ os quantis do FE e do artigo (CDF da Fig.~22) são próximos: "
+      + ", ".join(f"{int(q[1:])}\\,\\%: {f(cf[q], 2)} e {f(acf['quantis'][q], 2)}" for q in ("q05", "q25", "q75", "q95"))
       + rf"; mediana {f(cf['mediana'], 2)} e {f(acf['mediana'], 2)}. O desvio padrão maior do FE "
       rf"({f(cf['sd'])}) vem da cauda superior: uma amostra tem $\Gam = {f(cf['max'], 1)}$ e, sem ela, "
       rf"$\sigma = {f(cf['sd_sem_max'])}$.")
@@ -510,8 +535,9 @@ lidos). Os momentos $\mu$ e $\sigma$ dos exemplos de Cho foram calculados dessas
       + (rf" (exceções: {excl}, com Pf do FE já maior que o do artigo)" if fora_pt else "") +
       r". As tendências principais se repetem: Pf cresce muito com CoV$(c)$, pouco com CoV$(\varphi)$ e quase nada "
       r"com CoV$(k_v)$; cresce com a escala $s$ das distâncias de autocorrelação; cai com $\alpha$; e o mínimo de "
-      r"estabilidade ocorre perto de $h_w/H = 0{,}8$--$0{,}9$. Variações pequenas ($\mu$ com CoV$(\varphi)$, $\sigma$ "
-      r"com $s$) ficam dentro do ruído amostral.")
+      r"estabilidade ocorre perto de $h_w/H = 0{,}8$--$0{,}9$; $\sigma$ e CoV crescem com $s$. Variações pequenas "
+      r"($\mu$ com CoV$(\varphi)$ e com $s$, oscilações de $\sigma$ entre valores vizinhos de $s$) ficam dentro do "
+      r"ruído amostral.")
     w(rf"Nos casos com Pf pequeno ainda há poucas falhas (por exemplo, $\alpha = 5$: {nf_a5} em {a5['N']}), e o Pf "
       r"deles só fica bem determinado com muito mais amostras (seção~\ref{sec:prev}).")
     w(r"\begin{figure}[H]\centering\includegraphics[width=0.62\textwidth]{figuras/convergencia_pf}"
@@ -555,8 +581,9 @@ com $\gamma' = 18 - 9{,}81$ dá, para $c = 6$\,kPa e $\varphi = 32^\circ$ (``Lon
 $\Hcrit = 13{,}00$\,m ($\beta = 60^\circ$) e $229{,}1$\,m ($\beta = 35^\circ$), que são as curvas do painel ``Israeli
 Clay'' (12,98\,m e 229,3\,m, este fora da escala impressa, lido do vetor do PDF); para $c = 11{,}7$\,kPa e
 $\varphi = 24{,}7^\circ$ dá 17,97\,m ($\beta = 60^\circ$) e 156,7\,m ($\beta = 30^\circ$), as do painel ``London
-Clay'' (17,95 e 156,6\,m). O FE dá os mesmos valores nas três curvas que convergem (""" + hw0_txt + r""", diferença de
-0,7 a 2,1\,\%); para $\varphi = 32^\circ$, $\beta = 35^\circ$ ele não converge com a malha (seção~\ref{sec:f8}).
+Clay'' (17,95 e 156,6\,m). Para $\varphi = 32^\circ$, $\beta = 35^\circ$ o FE não converge com a malha
+(seção~\ref{sec:f8}); nas outras três curvas ele dá os mesmos valores (""" + hw0_txt + r""", diferença de 0,7 a
+2,1\,\%, nível 3).
 \item \textbf{$\gamma_w$ não informado.} Os valores da Fig.~8 do artigo sem rebaixamento só são reproduzidos com
 $\gamma_w = 9{,}81$\,kN/m$^3$.
 \item \textbf{Altura do exemplo $c$-$\varphi$ de Cho.} O texto da seção~5.3.2 e o rótulo da cota da Fig.~19 do
@@ -568,9 +595,9 @@ artigo vale 0,88.
 \item \textbf{Forças de percolação do caso de referência.} Mesmo usando a mesma aproximação (${\gradu}$), o FE
 convergido fica acima do $\Gam = 1{,}336$ do artigo (seção~\ref{sec:conv}), o que aponta para uma diferença na solução
 hidráulica (malha e domínio do FE hidráulico do artigo não são informados).
-\item \textbf{Mecanismos rotacionais com $\varphi$ próximo de $\beta$.} No solo A com $\beta = 35^\circ$ o FE fica
+\item \textbf{Limite superior com $\varphi$ próximo de $\beta$.} No solo A com $\beta = 35^\circ$ o FE fica
 """ + faixa8 + r"""\,\% abaixo do limite superior do artigo para $h_w/H \ge 0{,}2$ e continua diminuindo com o
-refinamento (seção~\ref{sec:f8}).
+refinamento, com um mecanismo raso junto à face (seção~\ref{sec:f8}).
 \end{enumerate}
 """)
 
@@ -588,13 +615,14 @@ refinamento (seção~\ref{sec:f8}).
              "artigo": r"$S$ do artigo (10 mil a 100 mil)"}
     for alvo, tot, cpu in prev:
         w(f"{nomes[alvo]} & {milhar(tot)} & {milhar(cpu)} & {dur(cpu / 8)} & {dur(cpu / 16)}\\\\")
-    w(r"\bottomrule\end{tabular}\\[2pt]{\footnotesize $^d$ fórmula aplicada ao Pf atual de cada caso (no mínimo 1000, "
+    w(r"\bottomrule\end{tabular}\\[2pt]\parbox{\linewidth}{\footnotesize $^d$ fórmula aplicada ao Pf atual de cada caso (no mínimo 1000, "
       r"em blocos de 50); muito incerta onde há poucas falhas: $\alpha = 5$ tem " + str(nf_a5) + " falha"
       + ("s" if nf_a5 != 1 else "") + " em " + str(a5["N"]) + r" amostras, e o alvo dele vai de cerca de 30 mil a 1 "
-      r"milhão de amostras no intervalo de confiança de Pf.}\end{table}")
+      r"milhão de amostras no intervalo de confiança de Pf." + nota_sem_falha + r"}\end{table}")
     w(rf"No alvo do artigo o Cho coesivo responde por {milhar(cpu_coes)} das {milhar(prev[3][2])}\,h de CPU que "
       r"faltam. Com $h = 2$\,m nesse caso (cerca de 7 mil equações) o custo por amostra cai para cerca de um quinto "
-      r"(medição com 4 amostras: 6,4\,s contra 29,7\,s), com $\Gam$ cerca de 1\,\% maior. Na ferramenta, "
+      r"(medição no container de desenvolvimento, 4 amostras simultâneas: 6,4\,s com $h = 2$\,m contra 29,7\,s "
+      r"com $h = 1$\,m), com $\Gam$ cerca de 1\,\% maior. Na ferramenta, "
       r"\texttt{-{}-alvo cov5} leva primeiro cada caso a 1000 amostras (\texttt{-{}-min}) e reavalia o alvo cada vez "
       r"que a fila é gerada de novo.")
 
@@ -616,7 +644,7 @@ PROCESSOS=8 python3 $S/campanha_artigo.py status ~/campanha_artigo
 # análise (campanha: ~/campanha_artigo ou $A/campanha) e relatórios
 python3 $S/analise_artigo.py ~/campanha_artigo $A/det $A/ref saida
 python3 $S/relatorio_tex.py saida relatorio_tex
-cd relatorio_tex && pdflatex relatorio.tex && pdflatex relatorio.tex
+cd relatorio_tex && for i in 1 2 3; do pdflatex relatorio.tex; done
 \end{verbatim}
 \end{minipage}
 \end{document}
