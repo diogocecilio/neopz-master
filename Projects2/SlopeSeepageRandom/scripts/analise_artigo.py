@@ -118,7 +118,12 @@ def estat(g):
     cen = (pf + z * z / (2 * n)) / den
     hw = z * math.sqrt(pf * (1 - pf) / n + z * z / (4 * n * n)) / den
     lg = np.log(g[g > 0])
-    return {"N": n, "mu": mu, "sd": sd, "cov": sd / mu, "pf": pf, "covpf": covpf, "pf_lo": cen - hw,
+    gs = np.sort(g)
+    rob = {"q05": float(np.quantile(g, .05)), "q25": float(np.quantile(g, .25)), "q75": float(np.quantile(g, .75)),
+           "q95": float(np.quantile(g, .95)), "max": float(gs[-1]),
+           "mu_sem_max": float(np.mean(gs[:-1])) if n > 2 else float("nan"),
+           "sd_sem_max": float(np.std(gs[:-1], ddof=1)) if n > 2 else float("nan")}
+    return {**rob, "N": n, "mu": mu, "sd": sd, "cov": sd / mu, "pf": pf, "covpf": covpf, "pf_lo": cen - hw,
             "pf_hi": cen + hw, "mediana": float(np.median(g)), "mu_ln": float(np.mean(lg)),
             "sd_ln": float(np.std(lg, ddof=1)) if n > 1 else 0.,
             "pf_lognormal": float(0.5 * math.erfc(np.mean(lg) / (np.std(lg, ddof=1) * math.sqrt(2))))
@@ -189,6 +194,10 @@ def comparacoes(R, ref):
             if s5["variable"] == "Gamma" and c in R["mc"]:
                 a = R["mc"][c].setdefault("artigo", {})
                 a["mu"], a["sd"] = s5["from_pdf"]["mean"], s5["from_pdf"]["std"]
+                fc = s5.get("from_cdf", {})
+                a["mu_cdf"], a["sd_cdf"] = fc.get("mean_crosscheck"), fc.get("std_crosscheck")
+                a["mediana"] = fc.get("median")
+                a["quantis"] = {k: fc.get(k) for k in ("q05", "q25", "q75", "q95")}
                 a["cov"] = a["sd"] / a["mu"]
                 a["fonte_momentos"] = "Fig. 17" if c == "cho_coesivo" else "Fig. 21"
     except Exception as e:  # noqa: BLE001
@@ -203,7 +212,7 @@ def main(camp, det, ref, out):
     dados = {}
     for c in CASOS:
         d = os.path.join(camp, c)
-        if not os.path.isdir(d):
+        if not os.path.isdir(d) and not os.path.exists(d + ".csv"):
             continue
         rows, mec = ler(d)
         if not rows:
@@ -253,7 +262,8 @@ def main(camp, det, ref, out):
     R["modos"] = {}
     for c in CASOS:
         cont = {}
-        for f in glob.glob(os.path.join(camp, c, "b*.csv.modo")):
+        blocos = glob.glob(os.path.join(camp, c, "b*.csv.modo"))  # blocos; senão o arquivo juntado <caso>.modo
+        for f in blocos or glob.glob(os.path.join(camp, c + ".modo")):
             for ln in open(f):
                 p = ln.strip().split(",")
                 if len(p) == 4 and p[0].isdigit():
@@ -268,6 +278,8 @@ def main(camp, det, ref, out):
     D["fig9"] = {os.path.basename(f)[:-4]: det_log(f) for f in sorted(glob.glob(os.path.join(det, "fig9/*.log")))}
     D["fig8"] = {os.path.basename(f)[:-4]: det_log(f) for f in sorted(glob.glob(os.path.join(det, "fig8/*.log")))}
     D["fig5"] = {os.path.basename(f)[:-4]: det_log(f) for f in sorted(glob.glob(os.path.join(det, "fig5/*.log")))}
+    for sub in ("dom", "conv8"):  # domínio × anisotropia; convergência de pontos da Fig. 8
+        D[sub] = {os.path.basename(f)[:-4]: det_log(f) for f in sorted(glob.glob(os.path.join(det, sub, "*.log")))}
     comparacoes(R, ref)
     json.dump(R, open(os.path.join(out, "resultados.json"), "w"), indent=1, default=float)
 
@@ -299,6 +311,12 @@ def main(camp, det, ref, out):
     print("\n".join(md))
 
 
+def salva(fig, out, nome):
+    """PNG (relatório HTML) e PDF vetorial (relatório LaTeX)"""
+    fig.savefig(os.path.join(out, nome + ".png"))
+    fig.savefig(os.path.join(out, nome + ".pdf"))
+
+
 def figuras(R, dados, det, ref, out):
     plt.rcParams.update({"font.size": 9, "axes.grid": True, "grid.alpha": 0.3, "figure.dpi": 130})
     C_FE, C_ART, C_ART2 = "#1f6fb4", "#c0392b", "#7f7f7f"
@@ -313,8 +331,9 @@ def figuras(R, dados, det, ref, out):
                     continue
                 p = np.array(s["resampled_beta_5deg"], float)
                 ls = "--" if "FE" in s["name"] else "-"
-                ax.plot(p[:, 0], p[:, 1], ls, color=C_ART2, label=f"artigo {s['name']}")
-            for pref, lab, mk in (("g_", "FE (domínio 10H)", "o"), ("", "FE (domínio 25×10 m)", "s")):
+                nm = r"$J(u'_{FE})$" if "FE" in s["name"] else r"$-J^*(v'_{opt})$"
+                ax.plot(p[:, 0], p[:, 1], ls, color=C_ART2, label=f"artigo {nm}")
+            for pref, lab, mk in (("g_", "FE (crista/pé/base 50 m)", "o"), ("", "FE (crista/pé/base 10/10/5 m)", "s")):
                 xs, ys = [], []
                 for b in (15, 30, 45, 60, 75, 90):
                     v = R["det"]["fig5"].get(f"{pref}a{a}_b{b}", {}).get("J")
@@ -322,12 +341,12 @@ def figuras(R, dados, det, ref, out):
                         xs.append(b)
                         ys.append(v)
                 ax.plot(xs, ys, mk + "-", color=C_FE if pref else "#76b7e5", ms=4, label=lab)
-            ax.set_title(f"α = {a}")
-            ax.set_xlabel("β (°)")
-        axs[0].set_ylabel("J / (k_h H² γw²)")
+            ax.set_title(rf"$\alpha = {a}$")
+            ax.set_xlabel(r"$\beta$ (°)")
+        axs[0].set_ylabel(r"$J/(k_h H^2 \gamma_w^2)$")
         axs[0].legend(fontsize=6)
         fig.tight_layout()
-        fig.savefig(os.path.join(out, "fig5_funcional.png"))
+        salva(fig, out, "fig5_funcional")
         plt.close(fig)
     except Exception as e:  # noqa: BLE001
         print("fig5:", e)
@@ -352,7 +371,7 @@ def figuras(R, dados, det, ref, out):
                     if d.get("gamma") and not d.get("limite_maximo") and f"{solo}_b{b}_hw{hw:g}" not in NAO_CONV:
                         xs.append(hw / 5)
                         ys.append(5 * d["gamma"])
-                ax.plot(xs, ys, "o-", color=C_FE, ms=4, label=f"FE, β = {b}°")
+                ax.plot(xs, ys, "o-", color=C_FE, ms=4, label=rf"FE, $\beta = {b}°$")
                 xs, ys = [], []
                 other = "A" if solo == "B" else "B"
                 for hw in (0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5):
@@ -361,15 +380,15 @@ def figuras(R, dados, det, ref, out):
                         xs.append(hw / 5)
                         ys.append(5 * d["gamma"])
                 if xs:
-                    ax.plot(xs, ys, "x:", color="#e67e22", ms=4, label=f"FE com o solo da Tab. 1, β = {b}°")
+                    ax.plot(xs, ys, "x:", color="#e67e22", ms=4, label=rf"FE, solo da Tab. 1 do artigo, $\beta = {b}°$")
             ax.set_yscale("log")
             ax.set_ylim(3, 300)
             ax.set_title(f"{pn} (painel do artigo)")
-            ax.set_xlabel("h_w/H")
+            ax.set_xlabel(r"$h_w/H$")
             ax.legend(fontsize=6)
-        axs[0].set_ylabel("H_crit (m)")
+        axs[0].set_ylabel(r"$H_{crit}$ (m)")
         fig.tight_layout()
-        fig.savefig(os.path.join(out, "fig8_hcrit.png"))
+        salva(fig, out, "fig8_hcrit")
         plt.close(fig)
     except Exception as e:  # noqa: BLE001
         print("fig8:", e)
@@ -384,21 +403,22 @@ def figuras(R, dados, det, ref, out):
                     continue
                 p = np.array([(x, y) for x, y in s["points"] if y is not None], float)
                 ls = "-" if "grad" in s["name"] else "--"
-                ax.plot(p[:, 0], p[:, 1], ls, color=C_ART2, label="artigo " + ("−grad u'_FE" if ls == "-" else "K·v'_opt"))
+                ax.plot(p[:, 0], p[:, 1], ls, color=C_ART2,
+                        label="artigo " + (r"$-\mathrm{grad}\,u'_{FE}$" if ls == "-" else r"$K\cdot v'_{opt}$"))
             xs, ys = [], []
             for b in (15, 30, 45, 60, 75, 90):
                 d = R["det"]["fig9"].get(f"beta{b}_alfa{a}", {})
                 if d.get("gamma"):
                     xs.append(b)
                     ys.append(d["gamma"])
-            ax.plot(xs, ys, "o-", color=C_FE, ms=4, label="FE (adapt=3)")
+            ax.plot(xs, ys, "o-", color=C_FE, ms=4, label="FE (nível 3)")
             ax.set_ylim(0, 5)
-            ax.set_title(f"α = {a}")
-            ax.set_xlabel("β (°)")
-        axs[0].set_ylabel("Γ")
+            ax.set_title(rf"$\alpha = {a}$")
+            ax.set_xlabel(r"$\beta$ (°)")
+        axs[0].set_ylabel(r"$\Gamma$")
         axs[0].legend(fontsize=7)
         fig.tight_layout()
-        fig.savefig(os.path.join(out, "fig9_gamma_beta.png"))
+        salva(fig, out, "fig9_gamma_beta")
         plt.close(fig)
     except Exception as e:  # noqa: BLE001
         print("fig9:", e)
@@ -418,42 +438,42 @@ def figuras(R, dados, det, ref, out):
             sl = math.sqrt(math.log(1 + (s / m) ** 2))
             ml = math.log(m) - sl * sl / 2
             ax.plot(x, np.exp(-(np.log(x) - ml) ** 2 / (2 * sl * sl)) / (x * sl * math.sqrt(2 * math.pi)), "--",
-                    color=C_ART, label="artigo: lognormal (μ 1.353, σ 0.318)")
+                    color=C_ART, label=r"artigo: lognormal ($\mu$ = 1,353, $\sigma$ = 0,318)")
             ax.axvline(1, color="k", lw=0.6)
-            ax.set_title("Referência (Tabela 2)")
-            ax.set_xlabel("Γ")
+            ax.set_title("Referência (Tabela 2 do artigo)")
+            ax.set_xlabel(r"$\Gamma$")
             ax.legend(fontsize=6)
         for ax, c, fig_ in ((axs[1], "cho_coesivo", "Figure 17"), (axs[2], "cho_cphi", "Figure 21")):
             for s in dist["series"]:
                 if s["figure"] == fig_ and s["curve_type"] == "PDF":
                     p = np.array(s["points"], float)
                     ax.plot(p[:, 0], p[:, 1], "--" if "Gamma" in s["name"] else ":",
-                            color=C_ART if "Gamma" in s["name"] else C_ART2, label="artigo " + s["name"].split(" (")[0]
-                            + (" (LA)" if "Gamma" in s["name"] else " (Cho)"))
+                            color=C_ART if "Gamma" in s["name"] else C_ART2,
+                            label=r"artigo, $\Gamma$ (análise limite)" if "Gamma" in s["name"] else r"Cho (2010), $F_s$")
             if c in dados:
                 g = dados[c]
                 xx = np.linspace(0.3, 6 if c == "cho_cphi" else 2.5, 400)
-                ax.plot(xx, gaussian_kde(g)(xx), color=C_FE, label=f"FE Γ, N = {len(g)}")
-            ax.set_title(c)
-            ax.set_xlabel("Γ ou F_s")
+                ax.plot(xx, gaussian_kde(g)(xx), color=C_FE, label=rf"FE, $\Gamma$, N = {len(g)}")
+            ax.set_title({"cho_coesivo": "Cho, coesivo", "cho_cphi": r"Cho, $c$-$\varphi$"}[c])
+            ax.set_xlabel(r"$\Gamma$ ou $F_s$")
             ax.legend(fontsize=6)
         fig.tight_layout()
-        fig.savefig(os.path.join(out, "densidades.png"))
+        salva(fig, out, "densidades")
         plt.close(fig)
     except Exception as e:  # noqa: BLE001
         print("densidades:", e)
 
     # tendências (Tabelas 3-6): Pf e μ
     try:
-        series = [("CoV(c)", ["covc10", "ref", "covc50", "covc70"], [0.1, 0.3, 0.5, 0.7]),
-                  ("CoV(φ)", ["covphi5", "ref", "covphi15", "covphi20"], [0.05, 0.1, 0.15, 0.2]),
-                  ("CoV(k_v)", ["covk0", "ref", "covk75", "covk90", "covk100"], [0, 0.6, 0.75, 0.9, 1.0]),
-                  ("escala s", ["ref", "s1.5", "s2", "s5", "s10", "s20"], [1, 1.5, 2, 5, 10, 20]),
-                  ("α", ["ref", "alfa2", "alfa3", "alfa4", "alfa5"], [1, 2, 3, 4, 5]),
-                  ("h_w/H", ["hw0.5", "hw0.6", "hw0.7", "hw0.8", "hw0.9", "ref"], [0.5, 0.6, 0.7, 0.8, 0.9, 1.0])]
+        series = [(r"CoV($c$)", ["covc10", "ref", "covc50", "covc70"], [0.1, 0.3, 0.5, 0.7]),
+                  (r"CoV($\varphi$)", ["covphi5", "ref", "covphi15", "covphi20"], [0.05, 0.1, 0.15, 0.2]),
+                  (r"CoV($k_v$)", ["covk0", "ref", "covk75", "covk90", "covk100"], [0, 0.6, 0.75, 0.9, 1.0]),
+                  (r"escala $s$ (log)", ["ref", "s1.5", "s2", "s5", "s10", "s20", "s400"], [1, 1.5, 2, 5, 10, 20, 400]),
+                  (r"$\alpha$", ["ref", "alfa2", "alfa3", "alfa4", "alfa5"], [1, 2, 3, 4, 5]),
+                  (r"$h_w/H$", ["hw0.5", "hw0.6", "hw0.7", "hw0.8", "hw0.9", "ref"], [0.5, 0.6, 0.7, 0.8, 0.9, 1.0])]
         fig, axs = plt.subplots(3, 6, figsize=(16, 8))
         for j, (nome, casos, xv) in enumerate(series):
-            for i, (key, lab) in enumerate((("pf", "Pf"), ("mu", "μ(Γ)"), ("cov", "CoV(Γ)"))):
+            for i, (key, lab) in enumerate((("pf", "Pf"), ("mu", r"$\mu(\Gamma)$"), ("cov", r"CoV($\Gamma$)"))):
                 ax = axs[i, j]
                 xa, ya, xf, yf, lo, hi, xs_, ys_ = [], [], [], [], [], [], [], []
                 for c, xx in zip(casos, xv):
@@ -466,8 +486,8 @@ def figuras(R, dados, det, ref, out):
                         xf.append(xx)
                         yf.append(st[key])
                         if key == "pf":
-                            lo.append(st["pf"] - st["pf_lo"])
-                            hi.append(st["pf_hi"] - st["pf"])
+                            lo.append(max(st["pf"] - st["pf_lo"], 0.))
+                            hi.append(max(st["pf_hi"] - st["pf"], 0.))
                         if st.get("escalado"):
                             xs_.append(xx)
                             ys_.append(st["escalado"][key])
@@ -477,7 +497,9 @@ def figuras(R, dados, det, ref, out):
                 else:
                     ax.plot(xf, yf, "o-", color=C_FE, ms=4, label="FE")
                 if xs_ and key != "cov":
-                    ax.plot(xs_, ys_, "^:", color="#2e8b57", ms=4, label="FE × Γ_art/Γ_FE")
+                    ax.plot(xs_, ys_, "^:", color="#2e8b57", ms=4, label=r"FE $\times\,\Gamma_{art}/\Gamma_{FE}$")
+                if "escala" in nome:
+                    ax.set_xscale("log")
                 if i == 2:
                     ax.set_xlabel(nome)
                 if j == 0:
@@ -485,7 +507,7 @@ def figuras(R, dados, det, ref, out):
                 if i == 0 and j == 0:
                     ax.legend(fontsize=6)
         fig.tight_layout()
-        fig.savefig(os.path.join(out, "tendencias.png"))
+        salva(fig, out, "tendencias")
         plt.close(fig)
     except Exception as e:  # noqa: BLE001
         print("tendencias:", e)
@@ -497,7 +519,8 @@ def figuras(R, dados, det, ref, out):
             st = R["mc"].get(c)
             if st:
                 p = np.array(st["conv_pf"], float)
-                ax.semilogx(p[:, 0], p[:, 1], color=col, label=c)
+                ax.semilogx(p[:, 0], p[:, 1], color=col,
+                            label={"ref": "referência", "cho_coesivo": "Cho, coesivo", "cho_cphi": r"Cho, $c$-$\varphi$"}[c])
         for v, col in ((0.115, C_FE), (0.065, "#e67e22"), (0.055, "#2e8b57")):
             ax.axhline(v, color=col, ls="--", lw=0.7)
         ax.set_xlabel("número de amostras")
@@ -505,7 +528,7 @@ def figuras(R, dados, det, ref, out):
         ax.set_ylim(0, 0.3)
         ax.legend(fontsize=7)
         fig.tight_layout()
-        fig.savefig(os.path.join(out, "convergencia_pf.png"))
+        salva(fig, out, "convergencia_pf")
         plt.close(fig)
     except Exception as e:  # noqa: BLE001
         print("convergencia:", e)

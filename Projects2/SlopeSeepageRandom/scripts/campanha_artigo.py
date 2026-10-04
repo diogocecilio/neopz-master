@@ -140,8 +140,17 @@ def jobs(argv):
 
 
 def ler(d):
+    """amostras e médias no mecanismo dos blocos <d>/b*.csv, ou dos arquivos juntados <d>.csv e <d>.mec"""
     rows, mec = {}, {}
-    for f in glob.glob(os.path.join(d, "b*.csv")):
+    arquivos = glob.glob(os.path.join(d, "b*.csv"))
+    if not arquivos and os.path.exists(d + ".csv"):
+        with open(d + ".csv") as fh:
+            rows = {int(r["amostra"]): r for r in csv.DictReader(fh)}
+        if os.path.exists(d + ".mec"):
+            with open(d + ".mec") as fh:
+                mec = {int(r["amostra"]): r for r in csv.DictReader(fh)}
+        return rows, mec
+    for f in arquivos:
         with open(f) as fh:
             for r in csv.DictReader(fh):
                 try:

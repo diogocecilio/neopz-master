@@ -1,0 +1,13 @@
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex)
+ restricted \write18 enabled.
+entering extended mode
+! I can't find file `relatorio.tex'.
+<*> relatorio.tex
+                 
+(Press Enter to retry, or Control-D to exit)
+Please type another input file name
+! Emergency stop.
+<*> relatorio.tex
+                 
+!  ==> Fatal error occurred, no output PDF file produced!
+Transcript written on texput.log.

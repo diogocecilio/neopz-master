@@ -103,13 +103,14 @@ deslocamentos converge para ela de cima com o refinamento, e o mecanismo log-esp
 As comparações válidas são, portanto, com as curvas −grad u'<sub>FE</sub> do artigo.</p>
 <dl class="pares">
 <dt>Peso específico da água</dt><dd>γ<sub>w</sub> = 9,81 kN/m³. O artigo não informa γ<sub>w</sub>, mas os valores da
-Fig. 8 em h<sub>w</sub>/H = 0 só são reproduzidos com 9,81 (com 10 a diferença é de 2,5 %).</dd>
+Fig. 8 em h<sub>w</sub>/H = 0 só são reproduzidos com 9,81 (com 10 a diferença é de 2,3 a 2,5 %).</dd>
 <dt>Malha do Monte Carlo</dt><dd>h = 1 m (H = 5 m) com dois níveis de refinamento guiados pelo mecanismo do
 problema médio: 4 914 equações no caso de referência, 18 014 no Cho coesivo e 3 194 no Cho c-φ (h = 2 m, H = 10 m).
 Os determinísticos usam até cinco níveis.</dd>
-<dt>Campos aleatórios</dt><dd>KL de Galerkin (quadriláteros de 9 nós, h<sub>KL</sub> = 1 m), lognormais,
-covariância exponencial; truncamento com ε<sub>M</sub> ≈ 3,6 % da variância, compensado ponto a ponto (o artigo usa
-M = 2000 termos com erro &lt; 6 %). c, φ e k<sub>v</sub> independentes.</dd>
+<dt>Campos aleatórios</dt><dd>KL de Galerkin (quadriláteros de 9 nós, h<sub>KL</sub> = 1 m) com todos os modos
+da KL discreta, lognormais, covariância exponencial; erro de discretização da variância ε<sub>M</sub> ≈ 3,6 % para
+(L<sub>x</sub>, L<sub>y</sub>) = (20, 2) m (0,007–2,3 % nos casos da Tabela 4 do artigo), compensado ponto a ponto (o
+artigo usa M = 2000 termos com erro &lt; 6 %, sem compensação). c, φ e k<sub>v</sub> independentes.</dd>
 <dt>Amostragem</dt><dd>Monte Carlo direto, como no artigo; Pf = P(Γ &lt; 1). Cada amostra é reproduzível isoladamente
 (semente, amostra, campo) e a campanha é retomável.</dd>
 </dl></section>""")
