@@ -802,13 +802,12 @@ inline REAL Interpolate(const std::vector<std::array<REAL, N>> &tab, REAL x, int
     if (tab.empty()) return 0.;
     if (x <= tab.front()[0]) return tab.front()[c];
     if (x >= tab.back()[0]) return tab.back()[c];
-    for (size_t i = 1; i < tab.size(); ++i) {
-        if (tab[i][0] >= x) {
-            const REAL t = (x - tab[i - 1][0]) / (tab[i][0] - tab[i - 1][0]);
-            return tab[i - 1][c] + t * (tab[i][c] - tab[i - 1][c]);
-        }
-    }
-    return tab.back()[c];
+    // binary search of the interval and the formula of numpy.interp
+    const auto it = std::upper_bound(tab.begin(), tab.end(), x,
+                                     [](REAL v, const std::array<REAL, N> &row) { return v < row[0]; });
+    const auto &a = *(it - 1), &b = *it;
+    const REAL slope = (b[c] - a[c]) / (b[0] - a[0]);
+    return slope * (x - a[0]) + a[c];
 }
 
 /**

@@ -172,8 +172,9 @@ public:
      * @param n unit deviatoric direction of the trial state in principal stresses (zero if isotropic)
      * @param isotropic true when the trial state is isotropic (\f$\rho_{tr}=0\f$)
      * @param[out] Dproj 3x3 matrix \f$D_{ij}=\partial\sigma^{proj}_i/\partial\sigma^{tr}_j\f$
+     * @return false if the local Jacobian is singular (Dproj is not computed)
      */
-    void GradProjection(const TPZVec<REAL> &X, const TTrial &trial, const TPZVec<REAL> &n, bool isotropic,
+    bool GradProjection(const TPZVec<REAL> &X, const TTrial &trial, const TPZVec<REAL> &n, bool isotropic,
                         TPZFMatrix<REAL> &Dproj) const;
 
     /**

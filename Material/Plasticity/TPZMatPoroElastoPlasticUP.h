@@ -41,12 +41,17 @@ public:
      *
      * The values of the boundary condition are given in Val2 (and the components in Val1 for the
      * directional condition). A forcing function of the boundary condition, if present, replaces Val2.
+     *
+     * The Dirichlet conditions are imposed by penalty (BigNumber) in Contribute. The driver
+     * TPZPoroElastoPlasticUPAnalysis eliminates their equations by default (SetEliminateDirichlet) and
+     * imposes the values directly on the solution; in that case the forcing functions of the Dirichlet
+     * conditions are evaluated at the nodes.
      */
     enum EBCType {
-        EDirichletU = 0,        ///< all displacement components prescribed: u = Val2[0..dim-1] (penalty)
+        EDirichletU = 0,        ///< all displacement components prescribed: u = Val2[0..dim-1]
         ENeumannU = 1,          ///< traction t = lambda Val2[0..dim-1], scaled by the load factor lambda
-        EDirichletP = 2,        ///< pore pressure prescribed: p = Val2[0] (drained boundary, penalty)
-        EDirichletUDirectional = 3, ///< components d with Val1(d,d) != 0 prescribed: u_d = Val2[d] (penalty)
+        EDirichletP = 2,        ///< pore pressure prescribed: p = Val2[0] (drained boundary)
+        EDirichletUDirectional = 3, ///< components d with Val1(d,d) != 0 prescribed: u_d = Val2[d]
         ENeumannUFixed = 4      ///< traction t = Val2[0..dim-1], not scaled by the load factor
     };
 
@@ -78,7 +83,7 @@ public:
     int NFailedProjections() const { return fNFailed.load(); }
     void ResetFailedProjections() { fNFailed = 0; }
 
-    /** @brief Penalty number of the Dirichlet conditions */
+    /** @brief Penalty number of the Dirichlet conditions (used when their equations are not eliminated) */
     void SetBigNumber(REAL big) { fBig = big; }
     REAL BigNumber() const { return fBig; }
 
@@ -167,7 +172,7 @@ public:
      */
     TPZMatPoroElastoPlasticUP(int id, EKinematics kinematics);
 
-    /** @brief Copy constructor (the memory is shared, as in TPZMatWithMem) */
+    /** @brief Copy constructor (the memory is copied, as in TPZMatWithMem) */
     TPZMatPoroElastoPlasticUP(const TPZMatPoroElastoPlasticUP &cp);
 
     virtual ~TPZMatPoroElastoPlasticUP() = default;
@@ -201,8 +206,18 @@ public:
     /**
      * @brief Order of the integration rule passed to the Gauss rules (3: 2x2 or 2x2x2 points (reduced),
      * 4: 3x3 or 3x3x3 points (full)); 0 uses the NeoPZ default
+     *
+     * The order defines the number of memory items of each element, so it must be set before the
+     * multiphysics space is built (TPZMultiphysicsCompMesh::BuildMultiphysicsSpaceWithMemory).
      */
-    void SetIntegrationOrder(int order) { fIntegrationOrder = order; }
+    void SetIntegrationOrder(int order) {
+        if (order != fIntegrationOrder && this->GetMemory() && this->GetMemory()->NElements() > 0) {
+            std::cout << __PRETTY_FUNCTION__ << ": the integration order cannot change after the memory "
+                      << "of the integration points was created" << std::endl;
+            DebugStop();
+        }
+        fIntegrationOrder = order;
+    }
     int IntegrationOrder() const { return fIntegrationOrder; }
 
     /** @} */
@@ -220,7 +235,9 @@ public:
      * @brief Calls f for every integration point of the elements of this material, with the element,
      * the index of the point, its physical coordinates, its parametric coordinates, the weight times
      * the determinant of the Jacobian (without the 2 pi r factor) and the memory item.
-     * The integration rule is the same used by the multiphysics element in the assembly.
+     * The integration rule is the same used by the multiphysics element in the assembly. Only the
+     * multiphysics elements found directly in the mesh are visited (not the elements inside condensed
+     * elements or submeshes).
      */
     void ForEachIntegrationPoint(TPZCompMesh *mesh,
                                  const std::function<void(TPZCompEl *cel, int ip, const TPZVec<REAL> &x,

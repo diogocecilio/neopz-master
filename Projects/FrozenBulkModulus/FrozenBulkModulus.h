@@ -3,6 +3,8 @@
  * @brief Sect. 6.1 and Table 3 of the article: exact integration of the porous elastic law during the
  * plastic correction (this work) versus the bulk modulus frozen at its trial value, in drained and
  * undrained triaxial tests at a material point of the RS2 clay.
+ *
+ * Mirrors the functions frozen() and undrained_point() of gen_data.py (Python transcription).
  */
 #pragma once
 
@@ -14,11 +16,13 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <map>
 #include <sstream>
 #include <string>
 #include <vector>
 
 /**
+ * @ingroup mccpaper
  * @brief Exact and frozen integration of the porous law in the local return mapping (Sect. 4.3 and 6.1,
  * Table 3).
  *
@@ -52,19 +56,15 @@
  *  - First increment with 15 and 10 increments and the frozen form: sweep of the lateral strain
  *    \f$\varepsilon_r\in[-0.03,0.01]\f$ (4001 states) to bracket the solution \f$\sigma_r=-p'_0\f$.
  *
- * The program mirrors the functions frozen() and undrained_point() of gen_data.py (Python transcription).
  * There is no finite element mesh in this example: the "structure" is a single integration point, and the
- * methods follow the sequence of the finite element examples: set-up of the material (CreateMaterial), of
- * the reference solutions (ClosedForm), solution (RunDrained, RunUndrained, FirstIncrementSweep) and
- * post-processing (PostProcess, Print).
+ * methods follow the sequence of the finite element examples: set-up of the material (CreateMaterial) and of
+ * the reference solutions (ClosedForm, FirstIncrementClosed), solution (RunDrained, RunUndrained, RunTests,
+ * FirstIncrementSweep) and post-processing (PostProcess, Print).
  */
 class FrozenBulkModulus {
 public:
-    /** @brief Integration of the porous law during the plastic correction */
-    enum EIntegration {
-        EExact = 0, ///< exact integral of the porous law (this work)
-        EFrozen = 1 ///< bulk modulus frozen at its trial value (Sanei et al. 2020)
-    };
+    /** @brief Integration of the porous law during the plastic correction (the enumeration of the library) */
+    typedef TPZYCModifiedCamClayRHW::EPorousIntegration EIntegration;
 
     /** @brief Initial isotropic state of a test */
     struct TState {
@@ -89,7 +89,6 @@ public:
         bool fConverged = false;               ///< false if a local projection failed
         std::vector<std::array<REAL, 3>> fPath; ///< rows (eps_a, p', q)
         std::vector<REAL> fPClosed;            ///< p' of the path (B.7) at the eta of each row (NaN at elastic states)
-        int fNPlastic = 0;                     ///< number of plastic states of the path
         REAL fEnd = std::numeric_limits<REAL>::quiet_NaN(); ///< p'_end - p'_0 (R/2)^Lambda (kPa)
         REAL fMax = std::numeric_limits<REAL>::quiet_NaN(); ///< max |p' - p'(eta)| at the plastic states (kPa)
         mcc::TLocalStats fStats;               ///< local Newton iterations of the plastic projections
@@ -97,19 +96,19 @@ public:
 
     /** @brief Drained and undrained tests of a state, an integration and a number of increments */
     struct TRun {
-        int fState = 0;                  ///< index in fStates
-        EIntegration fIntegration = EExact;
-        int fN = 0;                      ///< number of increments
-        TDrained fDrained;
-        TUndrained fUndrained;
+        int fState = 0;         ///< index in fStates
+        EIntegration fIntegration = TPZYCModifiedCamClayRHW::EExact; ///< integration of the porous law
+        int fN = 0;             ///< number of increments
+        TDrained fDrained;      ///< drained test
+        TUndrained fUndrained;  ///< undrained test
     };
 
-    /** @brief Analysis of the first increment of a drained test */
+    /** @brief State at the end of the first increment of a drained test */
     struct TFirstIncrement {
         REAL fQ = 0.;          ///< deviatoric stress (kPa)
         REAL fEpsV = 0.;       ///< volumetric strain
-        REAL fPcRatio = 0.;    ///< p'_c / p'_c,n from the consistency condition
-        REAL fV0DalKappa = 0.; ///< v0 Delta alpha / kappa = (lambda - kappa)/kappa ln(p'_c/p'_c,n)
+        REAL fPcRatio = std::numeric_limits<REAL>::quiet_NaN();    ///< p'_c / p'_c,n from the consistency condition
+        REAL fV0DalKappa = std::numeric_limits<REAL>::quiet_NaN(); ///< v0 Delta alpha / kappa = (lambda - kappa)/kappa ln(p'_c/p'_c,n)
     };
 
     /** @brief Sweep of the lateral strain in the first increment of the frozen form */
@@ -119,32 +118,47 @@ public:
         std::vector<std::array<REAL, 5>> fRows; ///< (eps_r, converged, sigma_r + p'_0, q, p'_c/p'_c,n)
         int fFailures = 0;     ///< states where the local projection failed
         bool fBracket = false; ///< a change of sign of sigma_r + p'_0 was found
-        std::array<REAL, 4> fLeft{}, fRight{}; ///< converged states (eps_r, sigma_r + p'_0, q, p'_c/p'_c,n) around it
+        std::array<REAL, 4> fLeft{};  ///< converged state (eps_r, sigma_r + p'_0, q, p'_c/p'_c,n) before the change of sign
+        std::array<REAL, 4> fRight{}; ///< converged state after the change of sign
+        std::array<REAL, 4> fRoot{};  ///< linear interpolation between fLeft and fRight at sigma_r + p'_0 = 0
     };
 
     /** @brief Values of the Python transcription (gen_data.py frozen()) of one test */
     struct TPythonReference {
         bool fAvailable = false; ///< the test is in the reference list
         bool fNone = false;      ///< the Python test failed (no solution)
-        REAL fEnd = 0., fMax = 0., fIts = 0.;
-        int fItMax = 0;
+        REAL fEnd = 0.;          ///< end error (kPa)
+        REAL fMax = 0.;          ///< largest error along the path (kPa)
+        REAL fIts = 0.;          ///< mean number of local Newton iterations per projection
+        int fItMax = 0;          ///< largest number of local Newton iterations
     };
 
     /** @brief One row of Table 3 of the article (a negative value is a dash: no convergence) */
     struct TArticleRow {
-        int fN;
-        REAL fDrainedExact, fDrainedFrozen, fItsExact, fItsFrozen, fUndrainedNC, fUndrainedOCR5;
+        int fN;               ///< number of increments
+        REAL fDrainedExact;   ///< drained NC, largest error in q, exact integration (kPa)
+        REAL fDrainedFrozen;  ///< drained NC, largest error in q, frozen modulus (kPa)
+        REAL fItsExact;       ///< drained NC, mean local iterations, exact integration
+        REAL fItsFrozen;      ///< drained NC, mean local iterations, frozen modulus
+        REAL fUndrainedNC;    ///< undrained NC, frozen modulus, largest error in p' (kPa)
+        REAL fUndrainedOCR5;  ///< undrained OCR = 5, frozen modulus, largest error in p' (kPa)
     };
 
-    /** @name Parameters (Sect. 6.1) */
+    /** @name Material parameters (Sect. 6.1) */
     /** @{ */
-    REAL fM = 1.2, fLambda = 0.077, fKappa = 0.0066, fV0 = 1.70;
+    REAL fM = 1.2;         ///< slope of the critical state line
+    REAL fLambda = 0.077;  ///< slope of the normal compression line
+    REAL fKappa = 0.0066;  ///< slope of the swelling line
+    REAL fV0 = 1.70;       ///< initial specific volume
     REAL fG = 20000.;      ///< constant shear modulus (kPa)
     REAL fNu = 0.3;        ///< Poisson ratio (not used with constant G; argument of the closed form)
-    REAL fEaMax = 0.2;     ///< final axial strain
+    /** @} */
+    /** @name Tests */
+    /** @{ */
+    REAL fEaMax = 0.2;         ///< final axial strain
     int fClosedPoints = 20000; ///< points of the closed form of the drained test (npts of triaxial_closed)
-    std::vector<int> fIncrements = {10, 15, 20, 25, 50, 100, 200, 400, 800, 1600};
-    std::vector<TState> fStates = {{"NC", 200., 200.}, {"OCR5", 100., 500.}};
+    std::vector<int> fIncrements = {10, 15, 20, 25, 50, 100, 200, 400, 800, 1600}; ///< numbers of increments
+    std::vector<TState> fStates = {{"NC", 200., 200.}, {"OCR5", 100., 500.}};      ///< initial states
     /** @} */
 
     /** @brief Constitutive model: MCC with porous elasticity, constant G and the given integration */
@@ -169,6 +183,9 @@ public:
     /** @brief First increment of a drained test: q, eps_v, p'_c/p'_c,n and v0 Delta alpha / kappa */
     TFirstIncrement FirstIncrement(const TDrained &d, const TState &st) const;
 
+    /** @brief Closed form of the drained test of a state at eps_a = dea (q and eps_v only) */
+    TFirstIncrement FirstIncrementClosed(const TState &st, REAL dea) const;
+
     /**
      * @brief First increment of the drained NC test with the frozen form and n increments: the lateral strain
      * eps_r is swept in [-0.03, 0.01] (4001 states, numpy.linspace) and the stress update is evaluated from
@@ -179,12 +196,18 @@ public:
     /** @brief Runs all the tests (both integrations, both states, all the increments) */
     std::vector<TRun> RunTests() const;
 
-    /** @brief Writes the CSV files of Table 3, of the paths, of the closed forms and of the first increment */
-    void PostProcess(const std::vector<TRun> &runs, const TFirstIncrement first[2],
+    /**
+     * @brief Writes the CSV files of Table 3, of the paths, of the closed forms and of the first increment
+     * @param runs all the tests
+     * @param first first increment of the drained NC test with 20 increments: exact, frozen, closed form
+     * @param sweeps sweeps of the first increment of the frozen form
+     */
+    void PostProcess(const std::vector<TRun> &runs, const std::array<TFirstIncrement, 3> &first,
                      const std::vector<TSweep> &sweeps) const;
 
     /** @brief Prints Table 3 and the other quantities of Sect. 6.1 next to the article and Python values */
-    void Print(const std::vector<TRun> &runs, const TFirstIncrement first[2], const std::vector<TSweep> &sweeps) const;
+    void Print(const std::vector<TRun> &runs, const std::array<TFirstIncrement, 3> &first,
+               const std::vector<TSweep> &sweeps) const;
 
     /** @brief Runs the complete example */
     void RunAll();
@@ -197,11 +220,46 @@ public:
     static const std::vector<TArticleRow> &ArticleTable3();
 
     /** @brief "exact" or "frozen" */
-    static std::string IntegrationName(EIntegration integ) { return integ == EExact ? "exact" : "frozen"; }
+    static std::string IntegrationName(EIntegration integ) {
+        return integ == TPZYCModifiedCamClayRHW::EExact ? "exact" : "frozen";
+    }
 
 private:
     /** @brief The run of a state, an integration and a number of increments (nullptr if absent) */
     static const TRun *Find(const std::vector<TRun> &runs, int state, EIntegration integ, int n);
+
+    /** @brief Table 3 of the article */
+    void PrintTable3(const std::vector<TRun> &runs) const;
+
+    /** @brief Errors not in Table 3: drained end errors, undrained exact errors and end errors, ratios frozen/exact */
+    void PrintOtherErrors(const std::vector<TRun> &runs) const;
+
+    /** @brief Mean and largest numbers of local Newton iterations of every test */
+    void PrintIterations(const std::vector<TRun> &runs) const;
+
+    /** @brief First increment of the drained NC test with 20 increments and the sweeps with 15 and 10 increments */
+    void PrintFirstIncrement(const std::array<TFirstIncrement, 3> &first, const std::vector<TSweep> &sweeps) const;
+
+    /** @brief Summary of the agreement of every test with the Python transcription */
+    void PrintAgreement(const std::vector<TRun> &runs) const;
+
+    /** @brief A value with a fixed number of decimals, or a dash for NaN (no solution) */
+    static std::string Fmt(REAL v, int prec);
+
+    /**
+     * @brief "value [reference]" in 2 width + 4 columns: the value right-aligned in width columns, the reference
+     * left-aligned (fixed notation with prec decimals, or scientific notation with prec decimals if sci)
+     */
+    static std::string Cell(REAL v, REAL ref, int prec, int width, bool sci = false);
+
+    /** @brief Column label of a Cell: right-aligned with the values, padded to 2 width + 4 columns */
+    static std::string Head(const std::string &label, int width);
+
+    /** @brief Text centred in width columns */
+    static std::string Center(const std::string &text, int width);
+
+    /** @brief Value of a Python reference: largest error (maxerr) or end error; NaN if the test failed */
+    static REAL RefValue(const TPythonReference &py, bool maxerr);
 };
 
 // ------------------------------------------------------------------------------------------------ set-up
@@ -211,13 +269,21 @@ inline mcc::TPlastic FrozenBulkModulus::CreateMaterial(EIntegration integ) const
     model.SetModifiedCamClay(fM, fLambda, fKappa); // pt = 0, omega = 1
     model.SetPorousElasticity();
     model.SetConstantShearModulus(fG);
-    model.SetPorousIntegration(integ == EExact ? TPZYCModifiedCamClayRHW::EExact : TPZYCModifiedCamClayRHW::EFrozen);
+    model.SetPorousIntegration(integ);
     model.SetDefaultSpecificVolume(fV0);
     return model;
 }
 
 inline std::vector<std::array<REAL, 6>> FrozenBulkModulus::ClosedForm(const TState &st, int npts) const {
     return mcc::TriaxialDrainedClosed(st.fP0, st.fPc0, fV0, fM, fLambda, fKappa, fG, fNu, npts);
+}
+
+inline FrozenBulkModulus::TFirstIncrement FrozenBulkModulus::FirstIncrementClosed(const TState &st, REAL dea) const {
+    const auto closed = ClosedForm(st, fClosedPoints);
+    TFirstIncrement f;
+    f.fQ = mcc::Interpolate(closed, dea, 2);
+    f.fEpsV = mcc::Interpolate(closed, dea, 3);
+    return f;
 }
 
 // ------------------------------------------------------------------------------------------------ solution
@@ -255,7 +321,6 @@ inline FrozenBulkModulus::TUndrained FrozenBulkModulus::RunUndrained(const mcc::
             const REAL pclosed = mcc::UndrainedClosedP(st.fP0, R, fM, fLambda, fKappa, row[2] / row[1]);
             u.fPClosed.push_back(pclosed);
             u.fMax = std::max(u.fMax, std::fabs(row[1] - pclosed));
-            u.fNPlastic++;
         } else {
             u.fPClosed.push_back(std::numeric_limits<REAL>::quiet_NaN());
         }
@@ -278,7 +343,7 @@ inline FrozenBulkModulus::TFirstIncrement FrozenBulkModulus::FirstIncrement(cons
 
 inline FrozenBulkModulus::TSweep FrozenBulkModulus::FirstIncrementSweep(int n) const {
     const TState &st = fStates[0];
-    const mcc::TPlastic model = CreateMaterial(EFrozen);
+    const mcc::TPlastic model = CreateMaterial(TPZYCModifiedCamClayRHW::EFrozen);
     TSweep s;
     s.fN = n;
     s.fDea = fEaMax / n;
@@ -303,7 +368,7 @@ inline FrozenBulkModulus::TSweep FrozenBulkModulus::FirstIncrementSweep(int n) c
             s.fFailures++;
         }
     }
-    // first change of sign of sigma_r + p'_0 between consecutive converged states
+    // first change of sign of sigma_r + p'_0 between consecutive converged states (numpy.sign)
     auto sign = [](REAL x) { return (x > 0.) - (x < 0.); };
     const std::array<REAL, 5> *prev = nullptr;
     for (auto &r : s.fRows) {
@@ -312,6 +377,8 @@ inline FrozenBulkModulus::TSweep FrozenBulkModulus::FirstIncrementSweep(int n) c
             s.fBracket = true;
             s.fLeft = {(*prev)[0], (*prev)[2], (*prev)[3], (*prev)[4]};
             s.fRight = {r[0], r[2], r[3], r[4]};
+            const REAL t = s.fLeft[1] / (s.fLeft[1] - s.fRight[1]);
+            for (int k = 0; k < 4; ++k) s.fRoot[k] = s.fLeft[k] + t * (s.fRight[k] - s.fLeft[k]);
             break;
         }
         prev = &r;
@@ -321,7 +388,7 @@ inline FrozenBulkModulus::TSweep FrozenBulkModulus::FirstIncrementSweep(int n) c
 
 inline std::vector<FrozenBulkModulus::TRun> FrozenBulkModulus::RunTests() const {
     std::vector<TRun> runs;
-    for (EIntegration integ : {EExact, EFrozen}) {
+    for (EIntegration integ : {TPZYCModifiedCamClayRHW::EExact, TPZYCModifiedCamClayRHW::EFrozen}) {
         const mcc::TPlastic model = CreateMaterial(integ);
         for (int is = 0; is < int(fStates.size()); ++is) {
             const TState &st = fStates[is];
@@ -349,15 +416,16 @@ inline const FrozenBulkModulus::TRun *FrozenBulkModulus::Find(const std::vector<
 
 // ------------------------------------------------------------------------------------------------ post-processing
 
-inline void FrozenBulkModulus::PostProcess(const std::vector<TRun> &runs, const TFirstIncrement first[2],
+inline void FrozenBulkModulus::PostProcess(const std::vector<TRun> &runs, const std::array<TFirstIncrement, 3> &first,
                                            const std::vector<TSweep> &sweeps) const {
+    const EIntegration ex = TPZYCModifiedCamClayRHW::EExact, fr = TPZYCModifiedCamClayRHW::EFrozen;
     const REAL nan = std::numeric_limits<REAL>::quiet_NaN();
-    // Table 3 (all the increments of the sweep)
+    // Table 3 (all the increments of the study)
     {
         std::vector<std::vector<REAL>> rows;
         for (int n : fIncrements) {
-            const TRun *ne = Find(runs, 0, EExact, n), *nf = Find(runs, 0, EFrozen, n);
-            const TRun *oe = Find(runs, 1, EExact, n), *of = Find(runs, 1, EFrozen, n);
+            const TRun *ne = Find(runs, 0, ex, n), *nf = Find(runs, 0, fr, n);
+            const TRun *oe = Find(runs, 1, ex, n), *of = Find(runs, 1, fr, n);
             rows.push_back({REAL(n), ne->fDrained.fMax, nf->fDrained.fMax,
                             ne->fDrained.fConverged ? ne->fDrained.fStats.Mean() : nan,
                             nf->fDrained.fConverged ? nf->fDrained.fStats.Mean() : nan, nf->fUndrained.fMax,
@@ -395,7 +463,7 @@ inline void FrozenBulkModulus::PostProcess(const std::vector<TRun> &runs, const 
     }
     // paths, one file per test, state and integration (column n identifies the number of increments)
     for (int is = 0; is < int(fStates.size()); ++is) {
-        for (EIntegration integ : {EExact, EFrozen}) {
+        for (EIntegration integ : {ex, fr}) {
             const std::string tag = fStates[is].fName + "_" + IntegrationName(integ);
             std::vector<std::vector<REAL>> drows, urows;
             for (int n : fIncrements) {
@@ -424,100 +492,129 @@ inline void FrozenBulkModulus::PostProcess(const std::vector<TRun> &runs, const 
         for (auto &w : ClosedForm(fStates[is], 600)) crows.push_back({w[0], w[1], w[2], w[3], w[4], w[5]});
         mcc::WriteCSV("frozen_closed_drained_" + fStates[is].fName + ".csv",
                       {"eps_a", "p_eff", "q", "eps_v", "eps_q", "sigma_a"}, crows);
+        // elastic part p' = p'_0 up to the yield ratio eta_y = M sqrt(R - 1), then (B.7) from eta_y to M
+        // (subcritical NC: eta increases from 0; supercritical OCR = 5: eta decreases from 2.4)
         std::vector<std::vector<REAL>> brows;
-        const REAL R = fStates[is].fPc0 / fStates[is].fP0;
-        for (int i = 0; i < 400; ++i) {
-            const REAL eta = fM * i / 400.;
-            const REAL p = mcc::UndrainedClosedP(fStates[is].fP0, R, fM, fLambda, fKappa, eta);
+        const REAL p0 = fStates[is].fP0, R = fStates[is].fPc0 / p0, etay = fM * std::sqrt(std::max(R - 1., REAL(0.)));
+        if (etay > 0.) brows.push_back({0., p0, 0.});
+        for (int i = 0; i <= 400; ++i) {
+            const REAL eta = etay + (fM - etay) * i / 400.;
+            const REAL p = mcc::UndrainedClosedP(p0, R, fM, fLambda, fKappa, eta);
             brows.push_back({eta, p, eta * p});
         }
         mcc::WriteCSV("frozen_closed_undrained_" + fStates[is].fName + ".csv", {"eta", "p_eff", "q"}, brows);
     }
     // first increment of the drained NC test with 20 increments
     {
-        const auto closed = ClosedForm(fStates[0], fClosedPoints);
-        const REAL de = fEaMax / 20.;
         std::vector<std::vector<REAL>> rows;
-        rows.push_back({0., first[0].fQ, first[0].fEpsV, first[0].fPcRatio, first[0].fV0DalKappa});
-        rows.push_back({1., first[1].fQ, first[1].fEpsV, first[1].fPcRatio, first[1].fV0DalKappa});
-        rows.push_back({2., mcc::Interpolate(closed, de, 2), mcc::Interpolate(closed, de, 3), nan, nan});
+        for (int i = 0; i < 3; ++i)
+            rows.push_back({REAL(i), first[i].fQ, first[i].fEpsV, first[i].fPcRatio, first[i].fV0DalKappa});
         mcc::WriteCSV("frozen_first_increment.csv",
                       {"integration(0=exact;1=frozen;2=closed_form)", "q", "eps_v", "pc_over_pcn", "v0_dal_over_kappa"},
                       rows);
     }
+    // sweeps of the first increment of the frozen form, and the states around the change of sign (first_frozen)
+    std::vector<std::vector<REAL>> brackets;
     for (auto &s : sweeps) {
         std::vector<std::vector<REAL>> rows;
         for (auto &r : s.fRows) rows.push_back({r[0], r[1], r[2], r[3], r[4]});
         mcc::WriteCSV("frozen_first_sweep_n" + std::to_string(s.fN) + ".csv",
                       {"eps_r", "converged", "sigma_r_plus_p0", "q", "pc_over_pcn"}, rows);
+        if (!s.fBracket) continue;
+        const std::array<REAL, 4> *states[3] = {&s.fLeft, &s.fRight, &s.fRoot};
+        for (int k = 0; k < 3; ++k) {
+            const auto &w = *states[k];
+            brackets.push_back({REAL(s.fN), REAL(k), w[0], w[1], w[2], w[3], s.fDea - 2. * w[0]});
+        }
     }
+    mcc::WriteCSV("frozen_first_sweep_bracket.csv",
+                  {"n", "state(0=before;1=after;2=interpolated)", "eps_r", "sigma_r_plus_p0", "q", "pc_over_pcn", "eps_v"},
+                  brackets);
 }
 
-inline void FrozenBulkModulus::Print(const std::vector<TRun> &runs, const TFirstIncrement first[2],
-                                     const std::vector<TSweep> &sweeps) const {
-    std::ostringstream os;
-    // a value with a fixed number of decimals, or a dash for no solution
-    auto fmt = [](REAL v, int prec) {
-        std::ostringstream s;
-        if (std::isnan(v)) s << "-";
-        else s << std::fixed << std::setprecision(prec) << v;
-        return s.str();
-    };
-    // "value [reference]" in a column of the given width
-    auto cell = [&fmt](REAL v, REAL ref, int prec, int width) {
-        std::ostringstream s;
-        s << std::setw(width) << (fmt(v, prec) + " [" + fmt(ref, prec) + "]");
-        return s.str();
-    };
-    auto ref = [](const TPythonReference &py, bool maxerr) {
-        if (!py.fAvailable || py.fNone) return std::numeric_limits<REAL>::quiet_NaN();
-        return maxerr ? py.fMax : py.fEnd;
-    };
-    auto refits = [](const TPythonReference &py) {
-        if (!py.fAvailable || py.fNone) return std::numeric_limits<REAL>::quiet_NaN();
-        return py.fIts;
-    };
-    const REAL nan = std::numeric_limits<REAL>::quiet_NaN();
+inline std::string FrozenBulkModulus::Fmt(REAL v, int prec) {
+    std::ostringstream s;
+    if (std::isnan(v)) s << "-";
+    else s << std::fixed << std::setprecision(prec) << v;
+    return s.str();
+}
 
+inline std::string FrozenBulkModulus::Cell(REAL v, REAL ref, int prec, int width, bool sci) {
+    auto f = [&](REAL x) {
+        if (!sci) return Fmt(x, prec);
+        std::ostringstream t;
+        t << std::scientific << std::setprecision(prec) << x;
+        return t.str();
+    };
+    std::ostringstream s;
+    s << std::setw(width) << f(v) << " " << std::left << std::setw(width + 3) << ("[" + f(ref) + "]");
+    return s.str();
+}
+
+inline std::string FrozenBulkModulus::Head(const std::string &label, int width) {
+    std::string s(2 * width + 4, ' ');
+    const int start = std::max(0, width - int(label.size()));
+    s.replace(start, std::min(label.size(), s.size() - start), label.substr(0, s.size() - start));
+    return s;
+}
+
+inline std::string FrozenBulkModulus::Center(const std::string &text, int width) {
+    const int left = std::max(0, (width - int(text.size())) / 2);
+    std::string s = std::string(left, ' ') + text;
+    if (int(s.size()) < width) s += std::string(width - s.size(), ' ');
+    return s;
+}
+
+inline REAL FrozenBulkModulus::RefValue(const TPythonReference &py, bool maxerr) {
+    if (!py.fAvailable || py.fNone) return std::numeric_limits<REAL>::quiet_NaN();
+    return maxerr ? py.fMax : py.fEnd;
+}
+
+inline void FrozenBulkModulus::PrintTable3(const std::vector<TRun> &runs) const {
+    const EIntegration ex = TPZYCModifiedCamClayRHW::EExact, fr = TPZYCModifiedCamClayRHW::EFrozen;
+    const REAL nan = std::numeric_limits<REAL>::quiet_NaN();
+    auto refits = [](const TPythonReference &py) {
+        return (!py.fAvailable || py.fNone) ? std::numeric_limits<REAL>::quiet_NaN() : py.fIts;
+    };
     std::cout << "\nTable 3 - exact integration of the porous law and bulk modulus frozen at its trial value\n"
               << "RS2 clay (M = 1.2, lambda = 0.077, kappa = 0.0066, v0 = 1.70, G = 20 MPa), triaxial tests to eps_a = 20%\n"
-              << "this work [reference]: article Table 3; rows 15 and 25 (not in the article): Python gen_data.py frozen()\n"
+              << "this work [reference]: article Table 3; rows marked * (not in the article): Python gen_data.py frozen()\n"
               << "  '-' : no convergence in the first increment\n\n";
-    std::cout << "        |            Drained, NC                                       |    Undrained, frozen\n"
-              << "        |  largest error in q (kPa)      |  local iterations           |  largest error in p' (kPa)\n"
-              << "      n |      exact          frozen     |     exact        frozen     |       NC             OCR = 5\n";
+    const int wq = 6, wi = 6, wp = 6; // widths of the values
+    std::cout << "        |" << Center("Drained, NC", 4 * (wq + wi) + 17) << "|" << Center("Undrained, frozen", 4 * wp + 8)
+              << "\n        |" << Center("largest error in q (kPa)", 4 * wq + 8) << "|"
+              << Center("local iterations", 4 * wi + 8) << "|" << Center("largest error in p' (kPa)", 4 * wp + 8)
+              << "\n      n |" << Head("exact", wq) << Head("frozen", wq) << "|" << Head("exact", wi) << Head("frozen", wi)
+              << "|" << Head("NC", wp) << Head("OCR = 5", wp) << "\n";
     for (int n : fIncrements) {
-        const TRun *ne = Find(runs, 0, EExact, n), *nf = Find(runs, 0, EFrozen, n), *of = Find(runs, 1, EFrozen, n);
+        const TRun *ne = Find(runs, 0, ex, n), *nf = Find(runs, 0, fr, n), *of = Find(runs, 1, fr, n);
         TArticleRow art{n, nan, nan, nan, nan, nan, nan};
         bool inArticle = false;
         for (auto &a : ArticleTable3()) {
-            if (a.fN == n) {
-                art = a;
-                inArticle = true;
-            }
+            if (a.fN != n) continue;
+            art = a;
+            inArticle = true;
         }
         if (inArticle) {
             for (REAL *v : {&art.fDrainedExact, &art.fDrainedFrozen, &art.fItsExact, &art.fItsFrozen, &art.fUndrainedNC,
                             &art.fUndrainedOCR5})
                 if (*v < 0.) *v = nan;
         } else {
-            art.fDrainedExact = ref(PythonReference("drained", "NC", EExact, n), true);
-            art.fDrainedFrozen = ref(PythonReference("drained", "NC", EFrozen, n), true);
-            art.fItsExact = refits(PythonReference("drained", "NC", EExact, n));
-            art.fItsFrozen = refits(PythonReference("drained", "NC", EFrozen, n));
-            art.fUndrainedNC = ref(PythonReference("undrained", "NC", EFrozen, n), true);
-            art.fUndrainedOCR5 = ref(PythonReference("undrained", "OCR5", EFrozen, n), true);
+            art.fDrainedExact = RefValue(PythonReference("drained", "NC", ex, n), true);
+            art.fDrainedFrozen = RefValue(PythonReference("drained", "NC", fr, n), true);
+            art.fItsExact = refits(PythonReference("drained", "NC", ex, n));
+            art.fItsFrozen = refits(PythonReference("drained", "NC", fr, n));
+            art.fUndrainedNC = RefValue(PythonReference("undrained", "NC", fr, n), true);
+            art.fUndrainedOCR5 = RefValue(PythonReference("undrained", "OCR5", fr, n), true);
         }
         const REAL itse = ne->fDrained.fConverged ? ne->fDrained.fStats.Mean() : nan;
         const REAL itsf = nf->fDrained.fConverged ? nf->fDrained.fStats.Mean() : nan;
-        std::cout << std::setw(7) << n << (inArticle ? " |" : "*|") << cell(ne->fDrained.fMax, art.fDrainedExact, 2, 15)
-                  << cell(nf->fDrained.fMax, art.fDrainedFrozen, 2, 16) << " |" << cell(itse, art.fItsExact, 2, 13)
-                  << cell(itsf, art.fItsFrozen, 2, 14) << " |" << cell(nf->fUndrained.fMax, art.fUndrainedNC, 3, 15)
-                  << cell(of->fUndrained.fMax, art.fUndrainedOCR5, 3, 16) << "\n";
+        std::cout << std::setw(7) << n << (inArticle ? " |" : "*|") << Cell(ne->fDrained.fMax, art.fDrainedExact, 2, wq)
+                  << Cell(nf->fDrained.fMax, art.fDrainedFrozen, 2, wq) << "|" << Cell(itse, art.fItsExact, 2, wi)
+                  << Cell(itsf, art.fItsFrozen, 2, wi) << "|" << Cell(nf->fUndrained.fMax, art.fUndrainedNC, 3, wp)
+                  << Cell(of->fUndrained.fMax, art.fUndrainedOCR5, 3, wp) << "\n";
     }
-    std::cout << "  (*) reference from the Python transcription (row not printed in the article)\n";
 
-    // failures of the frozen form
     std::cout << "\nDrained tests without solution (article: frozen form, 15 increments or fewer, no convergence in the "
                  "first increment):\n";
     bool anyfail = false;
@@ -531,58 +628,56 @@ inline void FrozenBulkModulus::Print(const std::vector<TRun> &runs, const TFirst
                   << "   [Python: " << (py.fNone ? "no solution, first increment does not converge" : "solution") << "]\n";
     }
     if (!anyfail) std::cout << "  none\n";
+}
 
-    // other quantities of the drained tests quoted in the text of Sect. 6.1
-    auto py = [&ref](const char *test, const char *state, EIntegration integ, int n, bool maxerr) {
-        return ref(PythonReference(test, state, integ, n), maxerr);
+inline void FrozenBulkModulus::PrintOtherErrors(const std::vector<TRun> &runs) const {
+    const EIntegration ex = TPZYCModifiedCamClayRHW::EExact, fr = TPZYCModifiedCamClayRHW::EFrozen;
+    auto py = [](const char *test, const char *state, EIntegration integ, int n, bool maxerr) {
+        return RefValue(PythonReference(test, state, integ, n), maxerr);
     };
+    const int w = 8, wg = 4 * w + 8; // width of the values and of a group of two cells
     std::cout << "\nDrained tests, other errors in q (kPa), this work [Python]:\n"
-              << "        |         NC, error at eps_a = 20%        |  OCR = 5, largest error along the path  |"
-                 "     OCR = 5, error at eps_a = 20%\n"
-              << "      n |         exact               frozen      |         exact               frozen      |"
-                 "         exact               frozen\n";
+              << "        |" << Center("NC, error at eps_a = 20%", wg) << "|"
+              << Center("OCR = 5, largest error along the path", wg) << "|" << Center("OCR = 5, error at eps_a = 20%", wg)
+              << "\n      n |";
+    for (int k = 0; k < 3; ++k) std::cout << Head("exact", w) << Head("frozen", w) << (k < 2 ? "|" : "\n");
     for (int n : fIncrements) {
-        const TRun *ne = Find(runs, 0, EExact, n), *nf = Find(runs, 0, EFrozen, n);
-        const TRun *oe = Find(runs, 1, EExact, n), *of = Find(runs, 1, EFrozen, n);
-        std::cout << std::setw(7) << n << " |" << cell(ne->fDrained.fEnd, py("drained", "NC", EExact, n, false), 4, 20)
-                  << cell(nf->fDrained.fEnd, py("drained", "NC", EFrozen, n, false), 4, 20) << " |"
-                  << cell(oe->fDrained.fMax, py("drained", "OCR5", EExact, n, true), 4, 20)
-                  << cell(of->fDrained.fMax, py("drained", "OCR5", EFrozen, n, true), 4, 20) << " |"
-                  << cell(oe->fDrained.fEnd, py("drained", "OCR5", EExact, n, false), 4, 20)
-                  << cell(of->fDrained.fEnd, py("drained", "OCR5", EFrozen, n, false), 4, 20) << "\n";
+        const TRun *ne = Find(runs, 0, ex, n), *nf = Find(runs, 0, fr, n);
+        const TRun *oe = Find(runs, 1, ex, n), *of = Find(runs, 1, fr, n);
+        std::cout << std::setw(7) << n << " |" << Cell(ne->fDrained.fEnd, py("drained", "NC", ex, n, false), 4, w)
+                  << Cell(nf->fDrained.fEnd, py("drained", "NC", fr, n, false), 4, w) << "|"
+                  << Cell(oe->fDrained.fMax, py("drained", "OCR5", ex, n, true), 4, w)
+                  << Cell(of->fDrained.fMax, py("drained", "OCR5", fr, n, true), 4, w) << "|"
+                  << Cell(oe->fDrained.fEnd, py("drained", "OCR5", ex, n, false), 4, w)
+                  << Cell(of->fDrained.fEnd, py("drained", "OCR5", fr, n, false), 4, w) << "\n";
     }
 
     // undrained tests: exact integration on the closed-form path (B.7); end values of the frozen form
-    auto sci = [](REAL v, REAL r, int width) {
-        std::ostringstream s, t;
-        s << std::scientific << std::setprecision(1) << v << " [" << r << "]";
-        t << std::setw(width) << s.str();
-        return t.str();
-    };
     std::cout << "\nUndrained tests (kPa), this work [Python]: largest |p' - p'(B.7)| with the exact integration "
                  "(article: < 1e-10)\nand p'_end - p'_0 (R/2)^Lambda with the frozen modulus\n"
-              << "        |    exact, largest error in p'       |   frozen, p' error at eps_a = 20%\n"
-              << "      n |               NC            OCR = 5 |                NC             OCR = 5\n";
+              << "        |" << Center("exact, largest error in p'", wg) << "|"
+              << Center("frozen, p' error at eps_a = 20%", wg) << "\n      n |" << Head("NC", w) << Head("OCR = 5", w)
+              << "|" << Head("NC", w) << Head("OCR = 5", w) << "\n";
     REAL maxexact[2] = {0., 0.};
     for (int n : fIncrements) {
-        const TRun *ne = Find(runs, 0, EExact, n), *oe = Find(runs, 1, EExact, n);
-        const TRun *nf = Find(runs, 0, EFrozen, n), *of = Find(runs, 1, EFrozen, n);
+        const TRun *ne = Find(runs, 0, ex, n), *oe = Find(runs, 1, ex, n);
+        const TRun *nf = Find(runs, 0, fr, n), *of = Find(runs, 1, fr, n);
         maxexact[0] = std::max(maxexact[0], ne->fUndrained.fMax);
         maxexact[1] = std::max(maxexact[1], oe->fUndrained.fMax);
-        std::cout << std::setw(7) << n << " |" << sci(ne->fUndrained.fMax, py("undrained", "NC", EExact, n, true), 18)
-                  << sci(oe->fUndrained.fMax, py("undrained", "OCR5", EExact, n, true), 19) << " |"
-                  << cell(nf->fUndrained.fEnd, py("undrained", "NC", EFrozen, n, false), 4, 18)
-                  << cell(of->fUndrained.fEnd, py("undrained", "OCR5", EFrozen, n, false), 4, 20) << "\n";
+        std::cout << std::setw(7) << n << " |" << Cell(ne->fUndrained.fMax, py("undrained", "NC", ex, n, true), 1, w, true)
+                  << Cell(oe->fUndrained.fMax, py("undrained", "OCR5", ex, n, true), 1, w, true) << "|"
+                  << Cell(nf->fUndrained.fEnd, py("undrained", "NC", fr, n, false), 4, w)
+                  << Cell(of->fUndrained.fEnd, py("undrained", "OCR5", fr, n, false), 4, w) << "\n";
     }
     std::cout << std::scientific << std::setprecision(1) << "  largest over all n: NC " << maxexact[0] << ", OCR5 "
               << maxexact[1] << " kPa   [article: < 1e-10 kPa; Python: 2.0e-11, 6.5e-11]\n"
               << std::defaultfloat;
 
-    // ratios frozen / exact
+    // ratios frozen / exact quoted in the text of Sect. 6.1
     REAL rnc[2] = {1e300, -1e300}, rocm[2] = {1e300, -1e300}, roce[2] = {1e300, -1e300}, dits = 0.;
     for (int n : fIncrements) {
-        const TRun *ne = Find(runs, 0, EExact, n), *nf = Find(runs, 0, EFrozen, n);
-        const TRun *oe = Find(runs, 1, EExact, n), *of = Find(runs, 1, EFrozen, n);
+        const TRun *ne = Find(runs, 0, ex, n), *nf = Find(runs, 0, fr, n);
+        const TRun *oe = Find(runs, 1, ex, n), *of = Find(runs, 1, fr, n);
         if (ne->fDrained.fConverged && nf->fDrained.fConverged) {
             const REAL a = nf->fDrained.fMax / ne->fDrained.fMax;
             rnc[0] = std::min(rnc[0], a);
@@ -608,16 +703,54 @@ inline void FrozenBulkModulus::Print(const std::vector<TRun> &runs, const TFirst
               << "  drained OCR5, error at 20% of the frozen form " << 100. * (roce[0] - 1.) << "% to "
               << 100. * (roce[1] - 1.) << "% larger   [article: 4 to 6%; Python: 3.95% to 6.19%]\n"
               << std::defaultfloat;
+}
 
-    // first increment of the drained NC test with 20 increments
-    const auto closed = ClosedForm(fStates[0], fClosedPoints);
-    const REAL de = fEaMax / 20.;
+inline void FrozenBulkModulus::PrintIterations(const std::vector<TRun> &runs) const {
+    // "mean/max", with * when it differs from the Python transcription
+    auto cell = [](const mcc::TLocalStats &st, bool conv, const TPythonReference &py) {
+        std::ostringstream s;
+        if (!conv) {
+            s << "-" << (py.fNone ? "" : "*");
+        } else {
+            const bool same = py.fAvailable && !py.fNone && std::fabs(st.Mean() - py.fIts) < 1e-12 && st.fMax == py.fItMax;
+            s << std::fixed << std::setprecision(2) << st.Mean() << "/" << st.fMax << (same ? "" : "*");
+        }
+        std::ostringstream t;
+        t << std::setw(11) << s.str();
+        return t.str();
+    };
+    std::cout << "\nLocal Newton iterations per plastic projection, mean/largest (* : differs from Python gen_data.py)\n"
+              << "        |";
+    for (const char *g : {"Drained, NC", "Drained, OCR = 5", "Undrained, NC", "Undrained, OCR = 5"})
+        std::cout << Center(g, 25) << "|";
+    std::cout << "\n      n |";
+    for (int k = 0; k < 4; ++k) std::cout << "      exact     frozen   |";
+    std::cout << "\n";
+    for (int n : fIncrements) {
+        std::cout << std::setw(7) << n << " |";
+        for (int test = 0; test < 2; ++test) {
+            for (int is = 0; is < int(fStates.size()); ++is) {
+                for (EIntegration integ : {TPZYCModifiedCamClayRHW::EExact, TPZYCModifiedCamClayRHW::EFrozen}) {
+                    const TRun *r = Find(runs, is, integ, n);
+                    const TPythonReference py =
+                        PythonReference(test == 0 ? "drained" : "undrained", fStates[is].fName, integ, n);
+                    const bool conv = test == 0 ? r->fDrained.fConverged : r->fUndrained.fConverged;
+                    std::cout << cell(test == 0 ? r->fDrained.fStats : r->fUndrained.fStats, conv, py);
+                }
+                std::cout << "   |";
+            }
+        }
+        std::cout << "\n";
+    }
+}
+
+inline void FrozenBulkModulus::PrintFirstIncrement(const std::array<TFirstIncrement, 3> &first,
+                                                   const std::vector<TSweep> &sweeps) const {
     const REAL bound = std::exp(fKappa / (fLambda - fKappa));
     std::cout << "\nFirst increment of the drained NC test with 20 increments (Delta eps_a = 1%), this work "
                  "[article; Python]:\n"
-              << std::fixed << std::setprecision(4) << "  closed form at eps_a = 1%: q = " << std::setprecision(2)
-              << mcc::Interpolate(closed, de, 2) << " kPa [100.9; 100.94], eps_v = " << std::setprecision(5)
-              << mcc::Interpolate(closed, de, 3) << " [0.0121; 0.01209]\n";
+              << std::fixed << "  closed form at eps_a = 1%: q = " << std::setprecision(2) << first[2].fQ
+              << " kPa [100.9; 100.94], eps_v = " << std::setprecision(5) << first[2].fEpsV << " [0.0121; 0.01209]\n";
     const char *aq[2] = {"85.0", "41.8"}, *pyq[2] = {"85.00", "41.82"};
     const char *aev[2] = {"-", "0.0247"}, *pyev[2] = {"0.00981", "0.02467"};
     const char *apc[2] = {"1.25", "1.098"}, *pypc[2] = {"1.2515", "1.0981"};
@@ -631,7 +764,7 @@ inline void FrozenBulkModulus::Print(const std::vector<TRun> &runs, const TFirst
     }
     std::cout << "  bound of the frozen form p'c/p'c,n < exp(kappa/(lambda-kappa)) = " << bound << " [1.098; 1.0983]\n";
 
-    // sweeps of the first increment with 15 and 10 increments
+    // sweeps of the first increment with 15 and 10 increments (Python 'first_frozen')
     std::cout << "\nFrozen form, first increment with 15 and 10 increments: sweep of eps_r in [-0.03, 0.01] (4001 states), "
                  "this work [Python]\n";
     struct TSweepRef {
@@ -650,7 +783,7 @@ inline void FrozenBulkModulus::Print(const std::vector<TRun> &runs, const TFirst
             std::cout << "; no change of sign\n";
             continue;
         }
-        std::cout << "; sigma_r + p'0 changes sign between eps_r = " << std::setprecision(5) << s.fLeft[0] << " and "
+        std::cout << "\n      sigma_r + p'0 changes sign between eps_r = " << std::setprecision(5) << s.fLeft[0] << " and "
                   << s.fRight[0];
         if (r) std::cout << " [" << r->fE0 << ", " << r->fE1 << "]";
         std::cout << "\n      q = " << std::setprecision(4) << s.fLeft[2] << " and " << s.fRight[2];
@@ -658,13 +791,15 @@ inline void FrozenBulkModulus::Print(const std::vector<TRun> &runs, const TFirst
         std::cout << ", p'c/p'c,n = " << std::setprecision(6) << s.fLeft[3] << " and " << s.fRight[3];
         if (r) std::cout << " [" << r->fPc0 << ", " << r->fPc1 << "]";
         std::cout << ", eps_v = " << std::setprecision(4) << s.fDea - 2. * s.fLeft[0] << " and "
-                  << s.fDea - 2. * s.fRight[0] << "\n";
+                  << s.fDea - 2. * s.fRight[0] << "\n      linear interpolation at sigma_r = -p'0: q = "
+                  << std::setprecision(2) << s.fRoot[2] << " kPa, eps_v = " << std::setprecision(4)
+                  << s.fDea - 2. * s.fRoot[0] << (s.fN == 15 ? " [article: 41.9 kPa and 3.5%]" : "") << "\n";
     }
-    std::cout << "  (article: with 15 increments the solution lies at the bound, q = 41.9 kPa and eps_v = 3.5%)\n"
-              << std::defaultfloat;
+    std::cout << std::defaultfloat;
+}
 
-    // agreement with the Python transcription
-    REAL dend = 0., dmax = 0., dits2 = 0., dund = 0.;
+inline void FrozenBulkModulus::PrintAgreement(const std::vector<TRun> &runs) const {
+    REAL dend = 0., dmax = 0., dits = 0., dund = 0.;
     int ditmax = 0, nmissing = 0, nsame = 0, ncmp = 0;
     for (auto &r : runs) {
         for (int test = 0; test < 2; ++test) {
@@ -685,14 +820,14 @@ inline void FrozenBulkModulus::Print(const std::vector<TRun> &runs, const TFirst
             const REAL end = drained ? r.fDrained.fEnd : r.fUndrained.fEnd;
             const REAL mx = drained ? r.fDrained.fMax : r.fUndrained.fMax;
             const mcc::TLocalStats &st = drained ? r.fDrained.fStats : r.fUndrained.fStats;
-            if (!drained && r.fIntegration == EExact) {
+            if (!drained && r.fIntegration == TPZYCModifiedCamClayRHW::EExact) {
                 // round-off level values: absolute difference
                 dund = std::max({dund, std::fabs(end - py.fEnd), std::fabs(mx - py.fMax)});
             } else {
                 dend = std::max(dend, std::fabs(end - py.fEnd) / std::max(std::fabs(py.fEnd), REAL(1e-300)));
                 dmax = std::max(dmax, std::fabs(mx - py.fMax) / std::max(std::fabs(py.fMax), REAL(1e-300)));
             }
-            dits2 = std::max(dits2, std::fabs(st.Mean() - py.fIts));
+            dits = std::max(dits, std::fabs(st.Mean() - py.fIts));
             ditmax = std::max(ditmax, std::abs(st.fMax - py.fItMax));
         }
     }
@@ -700,9 +835,18 @@ inline void FrozenBulkModulus::Print(const std::vector<TRun> &runs, const TFirst
               << " tests, file frozen_runs.csv): same convergence in " << nsame << " tests\n"
               << "  largest relative difference: end error " << dend << ", largest error " << dmax
               << " (undrained exact, absolute: " << dund << " kPa)\n"
-              << "  largest difference of the mean local iterations " << dits2 << ", of the maximum " << ditmax << "\n"
+              << "  largest difference of the mean local iterations " << dits << ", of the maximum " << ditmax << "\n"
               << std::defaultfloat;
     if (nmissing) std::cout << "  " << nmissing << " tests without Python reference\n";
+}
+
+inline void FrozenBulkModulus::Print(const std::vector<TRun> &runs, const std::array<TFirstIncrement, 3> &first,
+                                     const std::vector<TSweep> &sweeps) const {
+    PrintTable3(runs);
+    PrintOtherErrors(runs);
+    PrintIterations(runs);
+    PrintFirstIncrement(first, sweeps);
+    PrintAgreement(runs);
 }
 
 inline void FrozenBulkModulus::RunAll() {
@@ -711,16 +855,21 @@ inline void FrozenBulkModulus::RunAll() {
               << std::endl;
     const std::vector<TRun> runs = RunTests();
 
-    TFirstIncrement first[2];
-    for (EIntegration integ : {EExact, EFrozen}) first[integ] = FirstIncrement(Find(runs, 0, integ, 20)->fDrained, fStates[0]);
-    std::vector<TSweep> sweeps = {FirstIncrementSweep(15), FirstIncrementSweep(10)};
+    // first increment of the drained NC test with 20 increments: exact, frozen and closed form
+    std::array<TFirstIncrement, 3> first;
+    for (EIntegration integ : {TPZYCModifiedCamClayRHW::EExact, TPZYCModifiedCamClayRHW::EFrozen}) {
+        const TRun *r = Find(runs, 0, integ, 20);
+        if (r) first[integ] = FirstIncrement(r->fDrained, fStates[0]);
+    }
+    first[2] = FirstIncrementClosed(fStates[0], fEaMax / 20.);
+    const std::vector<TSweep> sweeps = {FirstIncrementSweep(15), FirstIncrementSweep(10)};
 
     Print(runs, first, sweeps);
     PostProcess(runs, first, sweeps);
     const REAL secs = std::chrono::duration<REAL>(std::chrono::steady_clock::now() - t0).count();
     std::cout << "\nFiles: frozen_table3.csv, frozen_runs.csv, frozen_{drained,undrained}_{NC,OCR5}_{exact,frozen}.csv,\n"
-              << "       frozen_closed_{drained,undrained}_{NC,OCR5}.csv, frozen_first_increment.csv, "
-                 "frozen_first_sweep_n{15,10}.csv\n"
+              << "       frozen_closed_{drained,undrained}_{NC,OCR5}.csv, frozen_first_increment.csv,\n"
+              << "       frozen_first_sweep_n{15,10}.csv, frozen_first_sweep_bracket.csv\n"
               << "Run time: " << std::fixed << std::setprecision(2) << secs << " s" << std::defaultfloat << std::endl;
 }
 
@@ -739,8 +888,10 @@ inline const std::vector<FrozenBulkModulus::TArticleRow> &FrozenBulkModulus::Art
 inline FrozenBulkModulus::TPythonReference FrozenBulkModulus::PythonReference(const std::string &test,
                                                                               const std::string &state,
                                                                               EIntegration integ, int n) {
-    // gen_data.py frozen(): test state integration n end max mean_its max_its ("none": no solution)
-    static const char *table = R"(
+    // gen_data.py frozen(): test state integration n end max mean_its max_its ("none": no solution);
+    // parsed once into a map with the key "test state integration n"
+    static const std::map<std::string, TPythonReference> refs = [] {
+        static const char *table = R"(
 drained NC exact 10 -9.39763053418443 31.07422486195506 9.045454545454545 11
 undrained NC exact 10 8.87611690814083e-08 5.684341886080802e-14 8.0 8
 drained NC exact 15 -6.222098948169219 22.823612784084702 7.9 10
@@ -822,24 +973,26 @@ undrained OCR5 frozen 800 -0.20824252109366626 0.20824252109352415 4.0 4
 drained OCR5 frozen 1600 0.010979989719402283 0.042665071783829944 3.0 3
 undrained OCR5 frozen 1600 -0.10560815342657293 0.10560815342580554 3.0 3
 )";
-    TPythonReference ref;
-    std::istringstream in(table);
-    std::string line;
-    while (std::getline(in, line)) {
-        std::istringstream ls(line);
-        std::string t, s, i, rest;
-        int nn = 0;
-        if (!(ls >> t >> s >> i >> nn)) continue;
-        if (t != test || s != state || i != IntegrationName(integ) || nn != n) continue;
-        ref.fAvailable = true;
-        ls >> rest;
-        if (rest == "none") {
-            ref.fNone = true;
-            return ref;
+        std::map<std::string, TPythonReference> m;
+        std::istringstream in(table);
+        std::string line;
+        while (std::getline(in, line)) {
+            std::istringstream ls(line);
+            std::string t, s, i, rest;
+            int nn = 0;
+            if (!(ls >> t >> s >> i >> nn >> rest)) continue;
+            TPythonReference ref;
+            ref.fAvailable = true;
+            if (rest == "none") {
+                ref.fNone = true;
+            } else {
+                ref.fEnd = std::stod(rest);
+                ls >> ref.fMax >> ref.fIts >> ref.fItMax;
+            }
+            m[t + " " + s + " " + i + " " + std::to_string(nn)] = ref;
         }
-        ref.fEnd = std::stod(rest);
-        ls >> ref.fMax >> ref.fIts >> ref.fItMax;
-        return ref;
-    }
-    return ref;
+        return m;
+    }();
+    const auto it = refs.find(test + " " + state + " " + IntegrationName(integ) + " " + std::to_string(n));
+    return it == refs.end() ? TPythonReference() : it->second;
 }

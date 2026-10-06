@@ -22,6 +22,7 @@
 #include <vector>
 
 /**
+ * @ingroup mccpaper
  * @brief Drained triaxial compression tests of the RS2 manual with the Modified Cam-Clay return mapping
  * in rotated Haigh-Westergaard space (TPZPlasticStepModifiedCamClay).
  *
@@ -35,7 +36,9 @@
  *  - Fig8.8: OCR = 5, \f$p'_0=100\f$, \f$p'_{c0}=500\f$ kPa, constant \f$\nu\f$ (yield in the supercritical region).
  *
  * For each case the example computes
- *  -# the closed-form solution of Appendix B.1 (mcc::TriaxialDrainedClosed, 600 points per branch);
+ *  -# the closed-form solution of Appendix B.1 (mcc::TriaxialDrainedClosed with npts = 600, as gen_data.py:
+ *     41 points on the elastic branch and two sets of 600 stress ratios on the plastic branch, uniform and
+ *     clustered near \f$M\f$);
  *  -# the material point solution (mcc::TriaxialDrained, a transcription of TriaxialPointCC: \f$\varepsilon_{zz}\f$
  *     prescribed in equal increments, lateral strains from a Newton iteration on
  *     \f$\sigma'_{xx}=\sigma'_{yy}=-p'_0\f$ with the xx-yy block of the consistent tangent) with 100, 200, 400, 800
@@ -55,8 +58,10 @@
  *    numbers of the Python transcription;
  *  - exact: the stress ratio \f$\eta\f$ with \f$\varepsilon_a(\eta)=0.2\f$ is found by bisection on the
  *    parametric closed form (ClosedFormAtRatio). The differences are below \f$10^{-3}\f$ kPa; with this value the
- *    errors are those printed in Table 2 of the article (19 of the 20 entries to the printed digits; the
- *    exception, NC with constant G and 800 increments, is -0.11750 kPa, at the rounding boundary of -0.118).
+ *    errors agree with Table 2 of the article in 19 of the 20 entries to the printed digits (the exception,
+ *    NC with constant G and 800 increments, is -0.117497 kPa, at the rounding boundary of the article's -0.118)
+ *    and the four values of \f$q_{exact}\f$ agree, whereas the interpolated value differs from the article in 8
+ *    entries and in \f$q_{exact}\f$ of NC with constant G (387.879).
  *
  * Output files (working directory), with \<case\> = nc_nu, nc_g, ocr2, ocr5:
  *  - rs2_\<case\>_closed.csv: closed form up to 20% (eps_a, p', q, eps_v, eps_q, sigma_a), dashed lines of Fig. 4;
@@ -69,14 +74,17 @@
  */
 class RS2Triaxial {
 public:
-    /** @brief Number of increments of the convergence study (Table 2) */
+    /** @brief Number of entries (increment counts) of the convergence study (Table 2) */
     static constexpr int NIncrements = 5;
 
     /** @brief Material and boundary ids of the single element finite element check */
     enum { EMatId = 1, EBottom = -1, ERight = -2, ETop = -3, ELeft = -4, EPBottom = -11, EPRight = -12,
            EPTop = -13, EPLeft = -14 };
 
-    /** @brief Reference values of a test (Python transcription and article) */
+    /**
+     * @brief Reference values of a test (Python transcription and article); "400" refers to the default number
+     * of increments of the curves of Fig. 4 (fNFigure)
+     */
     struct TReference {
         REAL fQExactInterp = 0.;                ///< Python: q_exact(0.2) by numpy.interp on the closed form
         std::array<REAL, NIncrements> fErr{};   ///< Python: q_num - q_exact(interp) at eps_a = 0.2
@@ -86,9 +94,12 @@ public:
         REAL fEaMaxDiff400 = 0.;                ///< Python: eps_a of the largest difference
         std::array<REAL, NIncrements> fErrArticle{}; ///< article, Table 2 (3 decimals)
         REAL fQExactArticle = 0.;               ///< article, Table 2
-        REAL fMaxDiffArticle = std::numeric_limits<REAL>::quiet_NaN(); ///< article, Sect. 6.1 (if reported)
+        /// article: max |q - q_closed| with 400 increments (text of Sect. 6.1 or Table 3; NaN if not reported)
+        REAL fMaxDiffArticle = std::numeric_limits<REAL>::quiet_NaN();
         REAL fLocalItsMean = 0.;                ///< Python: mean local Newton iterations per projection (400 increments)
         int fLocalItsMax = 0;                   ///< Python: maximum local Newton iterations (400 increments)
+        /// article: mean local Newton iterations with 400 increments (Table 3; NaN if not reported)
+        REAL fLocalItsArticle = std::numeric_limits<REAL>::quiet_NaN();
     };
 
     /** @brief Definition of a test */
@@ -160,7 +171,9 @@ public:
 
     /**
      * @brief Deviatoric stress of the closed form at the axial strain ea, without interpolation: bisection on
-     * \f$\eta\in(\eta_y,M)\f$ for \f$\varepsilon_a(\eta)=\varepsilon_a\f$ (ea must be beyond the yield point)
+     * \f$\eta\f$ between \f$\eta_y\f$ and \f$M\f$ (increasing in the subcritical region, decreasing in the
+     * supercritical region) for \f$\varepsilon_a(\eta)=\varepsilon_a\f$
+     * @param ea axial strain beyond the yield point (NaN is returned in the elastic branch)
      */
     REAL ExactDeviatoricStress(const TCase &tcase, REAL ea) const;
     /** @} */
@@ -176,6 +189,9 @@ public:
     /**
      * @brief Solves the test with the element: analysis, structural matrix (TPZSkylineNSymStructMatrix), direct
      * solver (TPZStepSolver, ELU), nsteps increments of the top displacement and post-processing (CSV, VTK)
+     * @param tcase test
+     * @param nsteps number of increments; res.fPoint must hold the material point solution with nsteps increments
+     * @param res results of the test: fFE, fFEMaxDiff and fFEMeanEvaluations are filled
      */
     void RunFiniteElement(const TCase &tcase, int nsteps, TResult &res);
     /** @} */
@@ -206,31 +222,39 @@ private:
 inline std::vector<RS2Triaxial::TCase> RS2Triaxial::Cases() const {
     const REAL nan = std::numeric_limits<REAL>::quiet_NaN();
     std::vector<TCase> cases(4);
-    // reference values: RS2 lines of the Python reference numbers (gen_data.py rs2) and Table 2 of the article
+    // Reference values, in the order of TReference:
+    //   Python (gen_data.py rs2, RS2 lines of the reference numbers): q_exact (interpolated), errors for
+    //   100...1600 increments, q and eps_v at 20% (400 increments), max |q - q_closed| and its eps_a;
+    //   article: Table 2 errors and q_exact, max |q - q_closed| (Sect. 6.1; Table 3 for constant G);
+    //   Python: mean and maximum local iterations (400 increments); article: mean local iterations (Table 3).
     cases[0] = {"Fig8.5", "nc_nu", "NC, constant nu", 200., 200., false,
                 {388.345014514804,
                  {-0.9271152607461772, -0.4653471852926714, -0.23319763506560776, -0.11660994508389422,
                   -0.05815190967706485},
                  388.1118168797384, 0.05055284332005455, 1.38335978861, 0.0085,
-                 {-0.928, -0.466, -0.234, -0.117, -0.059}, 388.345, 1.4, 4.070781893004115, 5}};
+                 {-0.928, -0.466, -0.234, -0.117, -0.059}, 388.345, 1.4,
+                 4.070781893004115, 5, nan}};
     cases[1] = {"Fig8.6", "nc_g", "NC, constant G", 200., 200., true,
                 {387.87931751567714,
                  {-0.9322888920397645, -0.4676679620955042, -0.234278829244829, -0.11715511929116929,
                   -0.05845798283939985},
                  387.6450386864323, 0.05050173562793553, 1.25602047411, 0.011,
-                 {-0.933, -0.468, -0.235, -0.118, -0.059}, 387.880, nan, 4.051070840197694, 5}};
+                 {-0.933, -0.468, -0.235, -0.118, -0.059}, 387.880, 1.26,
+                 4.051070840197694, 5, 4.05}};
     cases[2] = {"Fig8.7", "ocr2", "OCR = 2", 100., 200., false,
                 {196.86572443881326,
                  {-0.20723535233290136, -0.10393816753074248, -0.05187258970593689, -0.02585923859714967,
                   -0.01285719431635357},
                  196.81385184910732, 0.022449480426678547, 2.7352857887, 0.003,
-                 {-0.207, -0.104, -0.052, -0.026, -0.013}, 196.866, nan, 4., 4}};
+                 {-0.207, -0.104, -0.052, -0.026, -0.013}, 196.866, nan,
+                 4., 4, nan}};
     cases[3] = {"Fig8.8", "ocr5", "OCR = 5", 100., 500., false,
                 {202.87765357015488,
                  {0.19603904867420852, 0.09867007181884446, 0.04912937943888096, 0.024558549624657644,
                   0.012244299472143894},
                  202.92678294959376, -0.014181972004958021, 8.46654345612, 0.0065,
-                 {0.196, 0.099, 0.049, 0.025, 0.012}, 202.878, 8.5, 4., 4}};
+                 {0.196, 0.099, 0.049, 0.025, 0.012}, 202.878, 8.5,
+                 4., 4, nan}};
     return cases;
 }
 
@@ -366,7 +390,8 @@ inline void RS2Triaxial::RunFiniteElement(const TCase &tcase, int nsteps, TResul
     std::vector<mcc::TAnalysis::TLoadState> steps;
     for (int k = 1; k <= nsteps; ++k) steps.emplace_back(0., 1., -fEaMax * k / nsteps);
 
-    // in axisymmetry XX is radial, YY axial and ZZ the hoop component; the state is homogeneous
+    // in axisymmetry XX is radial, YY axial and ZZ the hoop component; the state is homogeneous, so the
+    // first integration point represents the element (0. - x avoids writing -0 for the initial state)
     res.fFE.clear();
     auto monitor = [&](int, const mcc::TAnalysis::TLoadState &s) {
         const auto gps = mcc::GaussPoints(mat, mphys);
@@ -467,6 +492,15 @@ inline void RS2Triaxial::RunAll() {
         s << std::fixed << std::setprecision(prec) << a << " | " << b;
         return s.str();
     };
+    // value of the article as printed there, or "-" if the article does not report it
+    auto article = [](REAL a) {
+        std::ostringstream s;
+        if (std::isnan(a))
+            s << "-";
+        else
+            s << a;
+        return s.str();
+    };
 
     std::cout << "Table 2 (a): q_num - q_exact at eps_a = 20% (kPa), q_exact interpolated on the closed form "
                  "(npts = 600)\n             [this code | Python gen_data.py]\n";
@@ -493,13 +527,22 @@ inline void RS2Triaxial::RunAll() {
     for (size_t j = 0; j < cases.size(); ++j)
         std::cout << std::setw(22) << cell(results[j].fQExactRoot, cases[j].fRef.fQExactArticle, 3);
     std::cout << "\n";
+    // entries that do not round to the article's value: print them with more digits
+    for (size_t j = 0; j < cases.size(); ++j)
+        for (int i = 0; i < NIncrements; ++i)
+            if (std::fabs(results[j].fErrRoot[i] - cases[j].fRef.fErrArticle[i]) > 5.e-4)
+                std::cout << "note: " << cases[j].fLabel << ", " << fIncrements[i] << " increments: " << std::fixed
+                          << std::setprecision(6) << results[j].fErrRoot[i]
+                          << " (rounding boundary of the article's value " << std::setprecision(3)
+                          << cases[j].fRef.fErrArticle[i] << ")\n";
     REAL rel100 = 0.;
     for (size_t j = 0; j < cases.size(); ++j)
         rel100 = std::max(rel100, std::fabs(results[j].fErrRoot[0]) / results[j].fQExactRoot);
     std::cout << "largest error at eps_a = 20% with 100 increments: " << std::fixed << std::setprecision(2)
               << 100. * rel100 << "% (article: 0.24%)\n\n";
 
-    std::cout << "Fig. 4, " << fNFigure << " increments [this code | Python | article]\n";
+    std::cout << "Fig. 4, " << fNFigure
+              << " increments [this code | Python | article: Sect. 6.1, Table 3 for constant G]\n";
     for (size_t j = 0; j < cases.size(); ++j) {
         const auto &r = results[j];
         const auto &ref = cases[j].fRef;
@@ -507,13 +550,8 @@ inline void RS2Triaxial::RunAll() {
         std::cout << "  " << std::setw(17) << std::left << cases[j].fLabel << std::right << "q(20%) = "
                   << cell(e[2], ref.fQEnd400, 6) << " kPa, eps_v(20%) = " << cell(e[3], ref.fEvEnd400, 8) << "\n"
                   << std::setw(19) << "" << "max|q - q_closed| along the path = " << cell(r.fMaxDiff400, ref.fMaxDiff400, 4)
-                  << " | ";
-        if (std::isnan(ref.fMaxDiffArticle))
-            std::cout << "-";
-        else
-            std::cout << std::setprecision(1) << ref.fMaxDiffArticle;
-        std::cout << " kPa at eps_a = " << std::setprecision(3) << 100. * r.fEaMaxDiff400 << " | "
-                  << 100. * ref.fEaMaxDiff400 << " %\n";
+                  << " | " << article(ref.fMaxDiffArticle) << " kPa at eps_a = " << std::setprecision(3)
+                  << 100. * r.fEaMaxDiff400 << " | " << 100. * ref.fEaMaxDiff400 << " %\n";
     }
 
     // OCR = 5 (last case): peak, softening and dilation; reference values of the Python transcription
@@ -551,12 +589,12 @@ inline void RS2Triaxial::RunAll() {
     }
 
     std::cout << "\nLocal Newton iterations per projection (" << fNFigure
-              << " increments): mean, max [this code | Python]\n";
+              << " increments): mean [this code | Python | article, Table 3], max [this code | Python]\n";
     for (size_t j = 0; j < cases.size(); ++j)
         std::cout << "  " << std::setw(17) << std::left << cases[j].fLabel << std::right
-                  << cell(results[j].fStats400.Mean(), cases[j].fRef.fLocalItsMean, 4) << ", "
-                  << results[j].fStats400.fMax << " | " << cases[j].fRef.fLocalItsMax << " (" << results[j].fStats400.fCalls
-                  << " projections)\n";
+                  << cell(results[j].fStats400.Mean(), cases[j].fRef.fLocalItsMean, 4) << " | "
+                  << article(cases[j].fRef.fLocalItsArticle) << ", " << results[j].fStats400.fMax << " | "
+                  << cases[j].fRef.fLocalItsMax << " (" << results[j].fStats400.fCalls << " projections)\n";
 
     if (fFECheck) {
         std::cout << "\nFinite element check (not in the article): one axisymmetric Q8-Q4 element, " << fNFigure

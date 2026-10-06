@@ -56,20 +56,26 @@ The example also uses these native NeoPZ classes:
        of the non-symmetric consistent tangent. They are compared with `camclay_hw.apply_strain` for the same
        trial stress.
      - **12 Lode angles** (beta = k·pi/6) with the same trial invariants, in a rotated frame. The program prints the
-       largest deviation of p' and q from the reference, and the largest change of the unit deviatoric direction
-       n. The return is radial, so n is preserved.
+       number of failed projections, the largest deviations of p', q and p_c from the reference, and the largest
+       change of the unit deviatoric direction n. The return is radial, so n is preserved.
 
 ## Build and run
 
-The example is one of the targets of `Projects/CMakeLists.txt`:
-`add_mcc_example(YieldSurfaceProjection main.cpp YieldSurfaceProjection.h)`.
+The example is one of the targets of `Projects/CMakeLists.txt`
+(`add_mcc_example(YieldSurfaceProjection main.cpp YieldSurfaceProjection.h)`), built when NeoPZ is configured with
+`-DBUILD_PLASTICITY_MATERIALS=ON -DBUILD_PROJECTS=ON`:
 
 ```
 cmake --build <build dir> --target YieldSurfaceProjection
 cd <run dir> && <build dir>/Projects/YieldSurfaceProjection/YieldSurfaceProjection
 ```
 
-The program takes no arguments and writes its files to the current directory. It runs in about 0.3 s.
+The program takes no arguments and writes its files to the current directory. It runs in about 0.4 s.
+
+The class `YieldSurfaceProjection` keeps the structure of the other examples: the data of the problem as members,
+`CreateGeoMesh` (the closed surface mesh of Fig. 1), `RunSurface` (Fig. 1), `MeridianCases`, `ProjectMeridian`,
+`StressUpdate`, `LodeAngleCheck` and `WriteMeridianFiles` (Fig. 2), `RunProjection` (printout of Fig. 2) and
+`RunAll`, called by `main.cpp`.
 
 ## Output files
 
@@ -97,6 +103,7 @@ largest absolute difference is 5e-10 kPa.
 | Width 2·rho_max | 81.6497 kPa | 82 kPa |
 | rho_max = sqrt(2/3)·M·a | 40.8248 kPa | 40.8 kPa |
 | p' of the critical state section | 50 kPa | p'c/2 |
+| q on the critical state circle | 50 kPa | M·a = 50 kPa (the CSL crosses the apex) |
 | max \|Phi\|/a² on the grid | 1.3e-15 | 0 |
 
 ### Fig. 2: local projection
@@ -113,11 +120,12 @@ differences are at most 3e-16.
 | Delta alpha | 4.38969882846531e-3 | 4.38969882846531e-3 | > 0 (expands) | -1.48802784536323e-3 | -1.48802784536323e-3 | < 0 (contracts) |
 | Delta gamma | 3.80824131077182e-5 | 3.80824131077182e-5 | | 2.1813889378447e-5 | 2.1813889378447e-5 | |
 | Newton iterations | 5 | 5 | | 5 | 5 | |
-| sin(angle) of the energy contour and Phi = 0 | 3e-16 | | tangent | -3e-16 | | tangent |
+| sin(angle) of the energy contour and Phi = 0 | 3.2e-16 | | tangent | -2.7e-16 | | tangent |
 
 ### Fig. 2: full stress update
 
-Python values come from `camclay_hw.apply_strain` with the same trial stress.
+Python values come from `camclay_hw.apply_strain` with the same trial stress (p' and q are printed against the
+`cpp_linear` values, which agree with those of `apply_strain` to the last bit).
 
 | Quantity | (a) this code | (a) Python | (b) this code | (b) Python |
 |---|---|---|---|---|
@@ -125,13 +133,15 @@ Python values come from `camclay_hw.apply_strain` with the same trial stress.
 | q (kPa) | 88.9952382809623 | 88.9952382809623 | 91.9111041468245 | 91.9111041468245 |
 | p_c (kPa) | 212.055214021664 | 212.055214021664 | 196.071030732738 | 196.071030732738 |
 | Type | 1 (subcritical) | 1 | 2 (supercritical) | 2 |
+| Local Newton iterations | 5 | 5 | 5 | 5 |
 | D(xx,xx) | 6602.24726500131 | 6602.24726500131 | 5364.93535860097 | 5364.93535860097 |
 | D(xx,yy) | 3042.43773376281 | 3042.43773376281 | 1056.60235171857 | 1056.60235171857 |
 | D(xx,zz) | 2574.29639922714 | 2574.29639922714 | 4690.63762352755 | 4690.63762352755 |
 | D(zz,xx) | 2901.65252916347 | 2901.65252916347 | 4952.36669843129 | 4952.36669843129 |
 | D(zz,zz) | 2439.92318569832 | 2439.92318569832 | 6782.81618365257 | 6782.81618365257 |
 | D(xy,xy) | 1779.90476561925 | 1779.90476561925 | 2154.1665034412 | 2154.1665034412 |
-| 12 Lode angles, rotated frame: max \|Δp'\|, max \|Δq\| (kPa) | 5.7e-14, 7.1e-14 | | 3.6e-14, 4.3e-14 | |
+| 12 Lode angles, rotated frame: failures | 0 | | 0 | |
+| 12 Lode angles: max \|Δp'\|, max \|Δq\|, max \|Δp_c\| (kPa) | 5.7e-14, 7.1e-14, 2.8e-14 | | 3.6e-14, 4.3e-14, 2.8e-14 | |
 | 12 Lode angles: max \|n - n_tr\| | 1.3e-15 | | 7.0e-16 | |
 
 The tangent entries agree to a relative difference of at most 3.4e-15. D(xx,zz) and D(zz,xx) differ from each

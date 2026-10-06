@@ -7,12 +7,10 @@ cmake_minimum_required(VERSION 3.14)
 project(MCCPaperExamples LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Finding the pz package if not in neopz buildtree
+# Finding the pz package if not in neopz buildtree (NeoPZConfig.cmake provides add_pz_target)
 if(NOT CMAKE_IS_PZ_BUILDTREE)
     find_package(NeoPZ REQUIRED)
-    include(${PZ_CMAKE_INSTALL_DIR}/add_pz_target.cmake OPTIONAL)
 endif()
 
 # header-only utilities shared by the examples
@@ -21,7 +19,7 @@ target_include_directories(mcc_paper_common INTERFACE ${CMAKE_CURRENT_SOURCE_DIR
 
 # add_mcc_example(<name> <sources...>): one executable per example, linked to pz
 function(add_mcc_example name)
-    add_pz_target(NAME ${name} SOURCES ${ARGN})
+    add_pz_target(NAME ${name} SOURCES ${ARGN} REQUIRED PZ_BUILD_PLASTICITY_MATERIALS)
     target_link_libraries(${name} PRIVATE mcc_paper_common)
     set_target_properties(${name} PROPERTIES FOLDER "MCCPaper")
 endfunction()

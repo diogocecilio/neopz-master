@@ -15,6 +15,7 @@
 #include "TPZStream.h"
 #include "pzerror.h"
 #include <cmath>
+#include <memory>
 
 template <class T, class TMEM>
 TPZMatPoroElastoPlasticUP<T, TMEM>::TPZMatPoroElastoPlasticUP()
@@ -431,7 +432,7 @@ void TPZMatPoroElastoPlasticUP<T, TMEM>::ForEachIntegrationPoint(
             ordervec[ordervec.size() - 1] = msp->MaxOrder();
         }
         const int order = IntegrationRuleOrder(ordervec);
-        TPZIntPoints *intrule = gel->CreateSideIntegrationRule(gel->NSides() - 1, order);
+        std::unique_ptr<TPZIntPoints> intrule(gel->CreateSideIntegrationRule(gel->NSides() - 1, order));
         TPZManVector<int, 4> intorder(dim, order);
         intrule->SetOrder(intorder);
         TPZManVector<int64_t, 64> indices;
@@ -451,7 +452,6 @@ void TPZMatPoroElastoPlasticUP<T, TMEM>::ForEachIntegrationPoint(
             gel->X(qsi, x);
             f(cel, ip, x, qsi, w * std::fabs(detjac), this->MemItem(indices[ip]));
         }
-        delete intrule;
     }
 }
 
@@ -522,3 +522,4 @@ void TPZMatPoroElastoPlasticUP<T, TMEM>::Read(TPZStream &buf, void *context) {
 }
 
 template class TPZMatPoroElastoPlasticUP<TPZPlasticStepModifiedCamClay, TPZElastoPlasticMem>;
+template class TPZRestoreClass<TPZMatPoroElastoPlasticUP<TPZPlasticStepModifiedCamClay, TPZElastoPlasticMem>>;

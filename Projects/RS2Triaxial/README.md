@@ -25,7 +25,9 @@ computed at a material point. The C++ code transcribes the function `rs2()` of `
 
 The class `RS2Triaxial` (`RS2Triaxial.h`) runs these steps for each case:
 
-1. It computes the closed form of Appendix B.1 with 600 points per branch (`mcc::TriaxialDrainedClosed`).
+1. It computes the closed form of Appendix B.1 (`mcc::TriaxialDrainedClosed`) with `npts = 600`, as `gen_data.py`
+   does: 41 points on the elastic branch, then two sets of 600 stress ratios on the plastic branch, one uniform
+   and one clustered near M.
 2. It computes the material point solution (`mcc::TriaxialDrained`, the transcription of `TriaxialPointCC`)
    with 100, 200, 400, 800 and 1600 increments. eps_zz is prescribed in each increment. The lateral strains
    come from a Newton iteration on sigma'_xx = sigma'_yy = -p'0 that uses the xx-yy block of the consistent
@@ -35,7 +37,7 @@ The class `RS2Triaxial` (`RS2Triaxial.h`) runs these steps for each case:
      definition used by the Python reference numbers.
    - **(b) exact:** bisection on the stress ratio eta of the parametric closed form, solving eps_a(eta) = 0.2
      (`RS2Triaxial::ExactDeviatoricStress`). The two values differ by less than 1e-3 kPa. Definition (b)
-     reproduces the digits printed in Table 2 of the article.
+     agrees with the digits printed in Table 2 of the article (see below).
 4. It finds the largest difference along the path, max |q - q_closed(eps_a)|, between the 400-increment
    solution and the closed form, interpolated at the numerical axial strains.
 5. For OCR = 5, it reports the peak of q, the closed-form peak, q at 20% and the maximum compression eps_v
@@ -54,12 +56,15 @@ The class `RS2Triaxial` (`RS2Triaxial.h`) runs these steps for each case:
 
 ## Build and run
 
-The example is built with the other projects (`add_mcc_example(RS2Triaxial main.cpp RS2Triaxial.h)` in
-`Projects/CMakeLists.txt`). After building, run it from an empty directory:
+The example is built with the other examples of the article. `Projects/RS2Triaxial/CMakeLists.txt` declares
+the target with `add_mcc_example(RS2Triaxial main.cpp RS2Triaxial.h)`, and the function `add_mcc_example` is
+defined in `Projects/CMakeLists.txt`. Configure the top-level CMake with `-DBUILD_PLASTICITY_MATERIALS=ON
+-DBUILD_PROJECTS=ON`, build the target `RS2Triaxial`, and run it from an empty directory:
 
 ```
-mkdir run_rs2 && cd run_rs2
-<build>/Projects/RS2Triaxial/RS2Triaxial
+cmake -G Ninja -B build -DBUILD_PLASTICITY_MATERIALS=ON -DBUILD_PROJECTS=ON -DCMAKE_BUILD_TYPE=Release
+ninja -C build RS2Triaxial
+mkdir run_rs2 && cd run_rs2 && ../build/Projects/RS2Triaxial/RS2Triaxial
 ```
 
 The run takes about 2 s. The program prints Table 2 and the values of Fig. 4 next to the Python and
@@ -73,15 +78,15 @@ article reference values, which are hard-coded in `RS2Triaxial::Cases()` and `RS
 | `rs2_<case>_n400.csv` | material point, 400 increments: the same columns plus `q_closed`, `q_minus_q_closed` and `eps_v_closed` (closed form interpolated at eps_a); solid lines of Fig. 4 |
 | `rs2_table2.csv` | Table 2: `err_interp_<case>` and `err_exact_<case>` for 100 to 1600 increments; the last row (increments = 0) holds q_exact |
 | `rs2_<case>_fe.csv` | FE check: `eps_a,p_eff,q,eps_v,eps_q,q_point,q_minus_q_point` |
-| `rs2_<case>_fe.scal_vec.0.vtk` | FE check: nodal displacement and pore pressure at eps_a = 20% |
+| `rs2_<case>_fe.scal_vec.0.vtk` | FE check: nodal displacement and pore pressure at eps_a = 20% (NeoPZ's graphical mesh appends `.scal_vec.0` to the name `rs2_<case>_fe.vtk`) |
 | `rs2_<case>_fe_gauss.vtk` | FE check: integration points (stress, p', q, p'c, v0, type of response) |
 
 Fig. 4 plots q against `eps_q` in panels (a-d) and `eps_v` against `eps_a` in panels (e-h).
 
 ## Results compared with the reference
 
-The reference values come from the Python transcription (`gen_data.py rs2`) and from the article (Table 2 and
-the text of Sect. 6.1).
+The reference values come from the Python transcription (`gen_data.py rs2`) and from the article (Table 2, the
+text of Sect. 6.1 and, for NC with constant G, Table 3).
 
 **Table 2 (a), q_num - q_exact (kPa) with q_exact interpolated.** This code and Python agree to all 8 printed
 decimals, so a single value is shown:
@@ -109,20 +114,25 @@ The 400-increment paths (all columns, 401 rows) and the closed-form tables agree
 | 1600 | -0.059 \| -0.059 | -0.059 \| -0.059 | -0.013 \| -0.013 | 0.012 \| 0.012 |
 | q_exact | 388.345 \| 388.345 | 387.880 \| 387.880 | 196.866 \| 196.866 | 202.878 \| 202.878 |
 
-One entry differs: NC with constant G at 800 increments gives -0.11750, which sits on the rounding boundary.
-With the interpolated q_exact, 8 entries and the q_exact of NC with constant G (387.879) would differ from the
-article in the third decimal. The article's Table 2 therefore uses the exact closed-form value, while the Python
-reference numbers use the interpolated one.
+One entry differs: NC with constant G at 800 increments gives -0.117497, which sits on the rounding boundary of
+-0.118 (the program prints a note with the extra digits). With the interpolated q_exact, 8 entries and the q_exact
+of NC with constant G (387.879) would differ from the article in the third decimal. The article's Table 2 is
+therefore consistent with the exact closed-form value, while the Python reference numbers (`gen_data.py`) use the
+interpolated one.
 
 The largest error at eps_a = 20% with 100 increments is 0.24%, the same value as the article.
 
-**Fig. 4, 400 increments.** Each cell shows this code | Python | article; `-` means the article gives no value:
+**Fig. 4, 400 increments.** Each cell shows this code | Python | article; `-` means the article gives no value.
+The Python values are those of the arrays of `gen_data.py rs2` (`data_rs2.pkl`) with the same definitions. The
+article gives the largest difference along the path in the text of Sect. 6.1 (1.4 kPa for the normally
+consolidated clay, 8.5 kPa for OCR = 5) and, for NC with constant G, in Table 3 (1.26 kPa, closed form with
+npts = 20000):
 
 | quantity | NC, constant nu | NC, constant G | OCR = 2 | OCR = 5 |
 |---|---|---|---|---|
 | q(20%) (kPa) | 388.111817 \| 388.111817 | 387.645039 \| 387.645039 | 196.813852 \| 196.813852 | 202.926783 \| 202.926783 \| 202.9 |
 | eps_v(20%) | 0.05055284 \| 0.05055284 | 0.05050174 \| 0.05050174 | 0.02244948 \| 0.02244948 | -0.01418197 \| -0.01418197 |
-| max \|q - q_closed\| (kPa) | 1.3834 \| 1.3834 \| 1.4 | 1.2560 \| 1.2560 \| - | 2.7353 \| 2.7353 \| - | 8.4665 \| 8.4665 \| 8.5 |
+| max \|q - q_closed\| (kPa) | 1.3834 \| 1.3834 \| 1.4 | 1.2560 \| 1.2560 \| 1.26 | 2.7353 \| 2.7353 \| - | 8.4665 \| 8.4665 \| 8.5 |
 | at eps_a | 0.85% \| 0.85% | 1.10% \| 1.10% | 0.30% \| 0.30% | 0.65% \| 0.65% |
 
 **OCR = 5.** Each cell shows this code | Python | article:
@@ -135,12 +145,12 @@ The largest error at eps_a = 20% with 100 increments is 0.24%, the same value as
 | maximum compression eps_v | 0.2577% \| 0.2577% \| 0.26%, at eps_a = 0.70% |
 
 **Local Newton iterations, 400 increments.** This includes every projection made inside the lateral-strain
-iterations. Each cell shows this code | Python:
+iterations. Each cell shows this code | Python, plus the article (Table 3, NC with constant G) for the mean:
 
 | case | mean iterations per projection | max | projections |
 |---|---|---|---|
 | NC, constant nu | 4.0708 \| 4.0708 | 5 \| 5 | 1215 \| 1215 |
-| NC, constant G | 4.0511 \| 4.0511 | 5 \| 5 | 1214 \| 1214 |
+| NC, constant G | 4.0511 \| 4.0511 \| 4.05 | 5 \| 5 | 1214 \| 1214 |
 | OCR = 2 | 4.0000 \| 4.0000 | 4 \| 4 | 1182 \| 1182 |
 | OCR = 5 | 4.0000 \| 4.0000 | 4 \| 4 | 1163 \| 1163 |
 

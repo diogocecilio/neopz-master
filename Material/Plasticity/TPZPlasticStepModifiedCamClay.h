@@ -30,9 +30,9 @@
  *  -# local Newton iterations (TPZYCModifiedCamClayRHW::ProjectHW), with the region check for
  *     \f$\omega\neq1\f$;
  *  -# projected principal stresses \f$\sigma_{proj}=\xi\mathbf1/\sqrt3+\rho\,n\f$;
- *  -# Jacobian of the projection (22) and elastic trial strains
- *     \f$\varepsilon_{tr}=D_{HW}^{-1}(K_{tr},G)\,\sigma_{tr}\f$;
+ *  -# Jacobian of the projection (22);
  *  -# consistent tangent operator (8) with the rotational correction (9) (ComputedDep of HWTools.m),
+ *     with \f$\kappa_{ij}=2G\rho/\rho_{tr}\f$ (see ComputedDep),
  *     assembled column by column, i.e. already transposed with respect to the row-wise storage of
  *     the Wolfram Language routine (Sect. 3 of the article).
  *
@@ -44,6 +44,7 @@
  *    \f$\gamma_{xy}=2\varepsilon_{xy}\f$, as in the strain tensors of TPZElasticResponse);
  *  - m_hardening: preconsolidation pressure \f$p_c\f$ (positive);
  *  - m_m_type: 0 elastic, 1 plastic in the subcritical region, 2 plastic in the supercritical region;
+ *  - m_eps_p: not used (zero), the plastic strain is not defined by the hypoelastic predictor;
  *  - fmatprop[0]: specific volume \f$v_0\f$ of the point (if fmatprop is empty, the default
  *    specific volume of the class is used).
  *
@@ -150,8 +151,10 @@ public:
      * @param[in,out] sigma on input the stress of the last converged step; on output the updated stress
      * @param tangent if not null, the 6x6 consistent tangent with respect to engineering strains
      *
-     * The state (fN) is updated: m_eps_t, m_hardening (pc), m_m_type. On failure of the local
-     * projection the state is not changed, sigma is returned unchanged, LastProjectionFailed()
+     * The state (fN) is updated: m_eps_t, m_hardening (pc), m_m_type, and the elastic response
+     * (GetElasticResponse) receives the pair (E, nu) equivalent to the trial moduli. On failure of the
+     * local projection (no convergence, wrong region or singular Jacobian of the projection) the state
+     * and the elastic response are not changed, sigma is returned unchanged, LastProjectionFailed()
      * becomes true and the tangent is set to the elastic trial operator.
      */
     void ApplyStrainComputeSigma(const TPZTensor<REAL> &epsTotal, TPZTensor<REAL> &sigma,
@@ -207,16 +210,24 @@ public:
 
     /**
      * @brief Consistent tangent (8) in spectral form with the rotational correction (9) (ComputedDep)
-     * @param sigproj projected principal stresses
-     * @param epstr elastic trial principal strains
      * @param Dproj Jacobian of the projection in principal stresses (22)
      * @param eigvec eigenvectors of the trial stress (eigvec[i] is the i-th eigenvector)
      * @param Ktr trial bulk modulus
      * @param G shear modulus
+     * @param ratio \f$\rho/\rho_{tr}=1/(1+6G\Delta\gamma/M^2)\f$ (1 for an elastic state)
      * @param[out] Dep 6x6 consistent tangent (columns are the responses to unit engineering strains)
+     *
+     * The coefficients of the rotational correction are
+     * \f$\kappa_{ij}=(\sigma_i-\sigma_j)/(\varepsilon^{tr}_i-\varepsilon^{tr}_j)\f$. Since the return of
+     * the Modified Cam-Clay model is radial in the deviatoric plane and
+     * \f$\varepsilon^{tr}_i-\varepsilon^{tr}_j=(\sigma^{tr}_i-\sigma^{tr}_j)/(2G)\f$, all of them are
+     * equal to \f$2G\rho/\rho_{tr}\f$. The closed form is used instead of the quotient of the Wolfram
+     * Language routine, which is corrupted by cancellation when two trial eigenvalues are close (the
+     * routine switches to the limit only when the difference is below 1e-15 in absolute value). Both
+     * forms agree to round-off for distinct eigenvalues.
      */
-    static void ComputedDep(const TPZVec<REAL> &sigproj, const TPZVec<REAL> &epstr, const TPZFMatrix<REAL> &Dproj,
-                            const TPZVec<TPZManVector<REAL, 3>> &eigvec, REAL Ktr, REAL G, TPZFMatrix<REAL> &Dep);
+    static void ComputedDep(const TPZFMatrix<REAL> &Dproj, const TPZVec<TPZManVector<REAL, 3>> &eigvec, REAL Ktr,
+                            REAL G, REAL ratio, TPZFMatrix<REAL> &Dep);
 
     /**
      * @brief Isotropic elastic operator \f$\mathbb{C}(K,G)\f$ of (10), engineering strains

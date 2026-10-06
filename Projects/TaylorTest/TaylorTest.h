@@ -8,17 +8,18 @@
 #include "MCCPaperTools.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
+#include <iomanip>
+#include <iostream>
 #include <random>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <array>
-#include <iostream>
-#include <iomanip>
-#include <sstream>
 
 /**
+ * @ingroup mccpaper
  * @brief Taylor test (23) of the consistent tangent at elastic, subcritical and supercritical states.
  *
  * The test compares the stress update with its first-order Taylor expansion along a random strain
@@ -46,6 +47,13 @@
  * The slope of the least-squares line of \f$\log E\f$ against \f$\log\alpha\f$ over the 300 points
  * \f$(\alpha_1,E_1)\f$ and the median of the pairwise slopes \f$p\f$ are reported (Fig. 3).
  *
+ * The pairwise slope \f$p\f$ uses one direction for both amplitudes, so the constant \f$C(\Delta\varepsilon)\f$
+ * cancels; the least-squares line mixes 300 directions and its slope carries the scatter of
+ * \f$\log C(\Delta\varepsilon)\f$. In elastic steps the shear modulus is that of the converged state and only
+ * the porous volumetric law is nonlinear, so \f$C\propto(\mathrm{tr}\,\Delta\varepsilon)^2\f$: the scatter of
+ * \f$\log C\f$ is large and the fitted slope is not a measure of the order there (the article reports only
+ * the median, 2.000, for elastic steps).
+ *
  * The random numbers are consumed in exactly the order of the function taylor() of gen_data.py. Two
  * generators are used:
  *  - TNumpyRandom: a transcription of numpy's default_rng(2026) (SeedSequence + PCG64 XSL-RR and
@@ -55,7 +63,7 @@
  *    equivalent (second order with \f$\mathbb{D}\f$, first order with \f$\mathbb{D}^T\f$ at plastic states).
  *
  * There is no finite element mesh in this example: the "material" is a single integration point, and
- * the methods follow the same sequence of the finite element examples (material set up, solution,
+ * the methods follow the same sequence as the finite element examples (material set-up, solution,
  * post-processing).
  */
 class TaylorTest {
@@ -69,6 +77,7 @@ public:
     /** @brief Source of uniformly distributed random numbers */
     class TRandom {
     public:
+        /** @brief Virtual destructor of the interface */
         virtual ~TRandom() = default;
         /** @brief Uniform number in [lo, hi) */
         virtual REAL Uniform(REAL lo, REAL hi) = 0;
@@ -89,6 +98,7 @@ public:
      */
     class TNumpyRandom : public TRandom {
     public:
+        /** @brief Seeds the generator as numpy.random.default_rng(seed) (SeedSequence, then pcg64_set_seed) */
         explicit TNumpyRandom(uint64_t seed);
         /** @brief Next 64-bit output of PCG64 (random_raw) */
         uint64_t Next64();
@@ -100,6 +110,7 @@ public:
         }
         /** @brief Next double in [0, 1) (next_double of numpy) */
         REAL NextDouble() { return REAL(Next64() >> 11) * (1.0 / 9007199254740992.0); }
+        /** @brief Generator.uniform of numpy: \f$lo+(hi-lo)\,u\f$ */
         REAL Uniform(REAL lo, REAL hi) override { return lo + (hi - lo) * NextDouble(); }
         std::string Name() const override { return "pcg64"; }
         std::string Description() const override {
@@ -109,28 +120,44 @@ public:
     private:
         /** @brief 128-bit unsigned integer as two 64-bit words */
         struct TU128 {
-            uint64_t fHi = 0, fLo = 0;
+            uint64_t fHi = 0; ///< most significant word
+            uint64_t fLo = 0; ///< least significant word
         };
+        /** @brief Sum modulo \f$2^{128}\f$ */
         static TU128 Add(const TU128 &a, const TU128 &b);
+        /** @brief Product modulo \f$2^{128}\f$ */
         static TU128 Mul(const TU128 &a, const TU128 &b);
+        /** @brief Most significant 64 bits of the 128-bit product of two 64-bit words */
         static uint64_t MulHi(uint64_t a, uint64_t b);
+        /** @brief Linear congruential step: state = state * multiplier + increment */
         void Step() { fState = Add(Mul(fState, fMultiplier), fInc); }
-        TU128 fState, fInc;
+        /** @brief State of the congruential generator */
+        TU128 fState;
+        /** @brief Increment (odd) of the congruential generator */
+        TU128 fInc;
         /** @brief PCG_DEFAULT_MULTIPLIER_128 */
         const TU128 fMultiplier{0x2360ED051FC65DA4ULL, 0x4385DF649FCCF645ULL};
     };
 
-    /** @brief std::mt19937_64 with std::uniform_real_distribution */
+    /**
+     * @brief std::mt19937_64 with the 53-bit conversion \f$u=(x\gg 11)\,2^{-53}\f$ and \f$lo+(hi-lo)\,u\f$:
+     * the engine and the conversion are fully specified, so the sample is the same with any standard
+     * library (std::uniform_real_distribution is implementation defined)
+     */
     class TMersenneRandom : public TRandom {
     public:
+        /** @brief Seeds std::mt19937_64 */
         explicit TMersenneRandom(uint64_t seed) : fGen(seed) {}
-        REAL Uniform(REAL lo, REAL hi) override { return std::uniform_real_distribution<REAL>(lo, hi)(fGen); }
+        REAL Uniform(REAL lo, REAL hi) override {
+            return lo + (hi - lo) * (REAL(fGen() >> 11) * (1.0 / 9007199254740992.0));
+        }
         std::string Name() const override { return "mt19937"; }
         std::string Description() const override {
-            return "std::mt19937_64, seed 2026: independent sample (statistical comparison)";
+            return "std::mt19937_64, seed 2026: independent sample (statistical comparison, orders only)";
         }
 
     private:
+        /** @brief The 64-bit Mersenne Twister engine */
         std::mt19937_64 fGen;
     };
     /** @} */
@@ -140,7 +167,6 @@ public:
         REAL fPn;     ///< mean effective stress p'_n of the isotropic state (kPa)
         REAL fPcn;    ///< preconsolidation pressure p'_c,n (kPa)
         REAL fRange;  ///< the components of eps_0 are drawn in [-range, range]
-        std::string fName;
     };
 
     /** @brief Result of one panel of Fig. 3: a state and the operator D or D^T */
@@ -152,13 +178,17 @@ public:
         TPZTensor<REAL> fSigma0;    ///< sigma(eps_0)
         TPZFNMatrix<36, REAL> fD0;  ///< consistent tangent at eps_0 (not transposed)
         REAL fPc = 0.;              ///< preconsolidation pressure after the update
-        REAL fP = 0., fQ = 0.;      ///< p' and q of sigma_0 (kPa)
+        REAL fP = 0.;               ///< p' of sigma_0 (kPa)
+        REAL fQ = 0.;               ///< q of sigma_0 (kPa)
         REAL fAsym = 0.;            ///< ||D0 - D0^T|| / ||D0|| (Frobenius norms)
         int fRejected = 0;          ///< pairs discarded because a perturbed state changed kind
         std::vector<std::array<REAL, 4>> fPairs; ///< (alpha1, E1, alpha2, E2)
         std::vector<REAL> fSlopes;  ///< pairwise slopes p
-        REAL fFitSlope = 0., fFitIntercept = 0.; ///< least-squares line log E1 = b0 + b1 log alpha1
-        REAL fMedian = 0., fMinSlope = 0., fMaxSlope = 0.;
+        REAL fFitSlope = 0.;        ///< slope b1 of the least-squares line log E1 = b0 + b1 log alpha1
+        REAL fFitIntercept = 0.;    ///< intercept b0 of the least-squares line
+        REAL fMedian = 0.;          ///< median of the pairwise slopes
+        REAL fMinSlope = 0.;        ///< smallest pairwise slope
+        REAL fMaxSlope = 0.;        ///< largest pairwise slope
     };
 
     /**
@@ -166,17 +196,30 @@ public:
      * (gen_data.py taylor(), numpy default_rng(2026)); a negative value means "not reported"
      */
     struct TReference {
-        REAL fArtP, fArtQ, fArtAsym, fArtFit, fArtMedian;
-        REAL fPyP, fPyQ, fPyAsym, fPyFit, fPyMedian;
+        REAL fArtP;      ///< article: p' of the state (kPa)
+        REAL fArtQ;      ///< article: q of the state (kPa)
+        REAL fArtAsym;   ///< article: asymmetry ||D - D^T||/||D||
+        REAL fArtFit;    ///< article: slope of the least-squares line
+        REAL fArtMedian; ///< article: median of the pairwise slopes
+        REAL fPyP;       ///< Python: p' of the state (kPa)
+        REAL fPyQ;       ///< Python: q of the state (kPa)
+        REAL fPyAsym;    ///< Python: asymmetry
+        REAL fPyFit;     ///< Python: slope of the least-squares line (np.polyfit)
+        REAL fPyMedian;  ///< Python: median of the pairwise slopes
     };
 
     /** @name Parameters (Table 1, Taylor test) */
     /** @{ */
-    REAL fM = 1.0, fLambda = 0.174, fKappa = 0.026, fV0 = 2.08, fNu = 0.3;
-    int fNPairs = 300;                          ///< pairs of amplitudes per panel
-    REAL fAlphaMin = 1.e-4, fAlphaMax = 1.e-2;  ///< range of the amplitudes
-    REAL fDirectionNorm = 1.e-3;                ///< norm of the strain direction
-    uint64_t fSeed = 2026;
+    REAL fM = 1.0;          ///< slope of the critical state line
+    REAL fLambda = 0.174;   ///< slope of the normal compression line
+    REAL fKappa = 0.026;    ///< slope of the swelling line
+    REAL fV0 = 2.08;        ///< specific volume
+    REAL fNu = 0.3;         ///< Poisson ratio (shear modulus from the porous bulk modulus)
+    int fNPairs = 300;      ///< pairs of amplitudes per panel
+    REAL fAlphaMin = 1.e-4; ///< smallest amplitude
+    REAL fAlphaMax = 1.e-2; ///< largest amplitude
+    REAL fDirectionNorm = 1.e-3; ///< norm of the strain direction
+    uint64_t fSeed = 2026;  ///< seed of both generators (as in gen_data.py)
     /** @} */
 
     /** @brief Constitutive model: MCC, porous elasticity, shear modulus from the Poisson ratio */
@@ -211,8 +254,15 @@ public:
     /** @brief Writes one CSV file per panel with the points of Fig. 3 and a summary file with the fits */
     void PostProcess(const std::vector<TPanel> &panels, const std::string &prefix) const;
 
-    /** @brief Prints the results of a run next to the values of the article and of the Python script */
-    void Print(const std::vector<TPanel> &panels, const TRandom &rng, bool comparePython) const;
+    /**
+     * @brief Prints the results of a run next to the reference values
+     * @param panels results of Run
+     * @param rng generator used (for the description)
+     * @param sameDraws true for the numpy-compatible stream: the states are those of the article, and the
+     * article and Python values are printed; false for an independent sample: only the slopes are compared
+     * with the article
+     */
+    void Print(const std::vector<TPanel> &panels, const TRandom &rng, bool sameDraws) const;
 
     /** @brief Runs the test with the numpy-compatible generator and with std::mt19937_64 */
     void RunAll();
@@ -277,7 +327,7 @@ inline TaylorTest::TNumpyRandom::TNumpyRandom(uint64_t seed) {
     for (int k = 0; k < 4; ++k) s[k] = uint64_t(words[2 * k]) | (uint64_t(words[2 * k + 1]) << 32);
     // pcg64_set_seed: initstate = (s0, s1), initseq = (s2, s3) as (high, low) words
     const TU128 initstate{s[0], s[1]};
-    TU128 initseq{s[2], s[3]};
+    const TU128 initseq{s[2], s[3]};
     // pcg_setseq_128_srandom_r
     fState = TU128{0, 0};
     fInc.fHi = (initseq.fHi << 1) | (initseq.fLo >> 63);
@@ -329,9 +379,9 @@ inline mcc::TPlastic TaylorTest::CreateMaterial() const {
 
 inline TaylorTest::TState TaylorTest::State(int kind) const {
     switch (kind) {
-        case EElastic: return {100., 116.6, 0.002, "elastic"};
-        case ESubcritical: return {100., 116.6, 0.005, "subcritical"};
-        default: return {50., 116.6, 0.02, "supercritical"};
+        case EElastic: return {100., 116.6, 0.002};
+        case ESubcritical: return {100., 116.6, 0.005};
+        default: return {50., 116.6, 0.02};
     }
 }
 
@@ -380,9 +430,10 @@ inline bool TaylorTest::TaylorError(const mcc::TPlastic &model, const TPanel &pa
     TPZManVector<REAL, 6> x(6);
     for (int i = 0; i < 6; ++i) x[i] = panel.fX0[i] + alpha * dx[i];
     TPZTensor<REAL> sigma;
-    TPZFNMatrix<36, REAL> Dx(6, 6, 0.);
+    TPZFNMatrix<36, REAL> Dpert(6, 6, 0.); // tangent at the perturbed state (not used)
     REAL pc;
-    if (!Response(model, panel.fKind, x, sigma, Dx, pc, type)) return false;
+    if (!Response(model, panel.fKind, x, sigma, Dpert, pc, type)) return false;
+    // (sigma - sigma0) - (alpha D) dx, as r[0] - f0 - a * D @ dx in gen_data.py
     REAL e2 = 0.;
     for (int i = 0; i < 6; ++i) {
         REAL lin = 0.;
@@ -440,7 +491,7 @@ inline void TaylorTest::Perturb(const mcc::TPlastic &model, TPanel &panel, TRand
     }
     panel.fFitSlope = sxy / sxx;
     panel.fFitIntercept = ym - panel.fFitSlope * xm;
-    // median (mean of the two central values for an even number), extreme values
+    // median (mean of the two central values for an even number, as np.median), extreme values
     std::vector<REAL> sorted(panel.fSlopes);
     std::sort(sorted.begin(), sorted.end());
     const size_t m = sorted.size();
@@ -511,38 +562,43 @@ inline TaylorTest::TReference TaylorTest::Reference(int kind, bool transposed) {
     }
 }
 
-inline void TaylorTest::Print(const std::vector<TPanel> &panels, const TRandom &rng, bool comparePython) const {
-    auto ref = [](REAL v, int prec) {
+inline void TaylorTest::Print(const std::vector<TPanel> &panels, const TRandom &rng, bool sameDraws) const {
+    // reference value with a given number of decimals ("-" if not reported); scale 100 for percentages
+    auto ref = [](REAL v, int prec, REAL scale = 1., const char *unit = "") {
         std::ostringstream s;
         if (v < 0.) s << "-";
-        else s << std::fixed << std::setprecision(prec) << v;
+        else s << std::fixed << std::setprecision(prec) << scale * v << unit;
         return s.str();
     };
     std::cout << "\n" << rng.Description() << "\n";
-    std::cout << "  values: this work [article]" << (comparePython ? " {Python}" : "")
+    std::cout << "  values: this work [article]" << (sameDraws ? " {Python}" : "")
               << "; asym = ||D - D^T||/||D||; slopes of log E against log alpha\n";
+    if (!sameDraws)
+        std::cout << "  (the states differ from those of Fig. 3: only the orders 2 (D) and 1 (D^T) are comparable)\n";
     std::cout << std::left << std::setw(17) << "  state" << std::setw(5) << "op" << std::setw(17) << "p' (kPa)"
-              << std::setw(17) << "q (kPa)" << std::setw(28) << "asym" << std::setw(32) << "fitted slope"
+              << std::setw(17) << "q (kPa)" << std::setw(26) << "asym" << std::setw(32) << "fitted slope"
               << "median slope" << "\n";
     for (auto &p : panels) {
         const TReference r = Reference(p.fKind, p.fTransposed);
         std::ostringstream cp, cq, ca, cf, cm;
-        cp << std::fixed << std::setprecision(3) << p.fP << " [" << ref(r.fArtP, 1) << "]";
-        cq << std::fixed << std::setprecision(3) << p.fQ << " [" << ref(r.fArtQ, 1) << "]";
-        ca << std::fixed << std::setprecision(5) << p.fAsym << " [" << ref(r.fArtAsym, 3) << "]";
+        cp << std::fixed << std::setprecision(3) << p.fP;
+        cq << std::fixed << std::setprecision(3) << p.fQ;
+        ca << std::fixed << std::setprecision(3) << 100. * p.fAsym << "%";
         cf << std::fixed << std::setprecision(6) << p.fFitSlope << " [" << ref(r.fArtFit, 3) << "]";
         cm << std::fixed << std::setprecision(6) << p.fMedian << " [" << ref(r.fArtMedian, 3) << "]";
-        if (comparePython) {
-            ca << " {" << ref(r.fPyAsym, 5) << "}";
+        if (sameDraws) {
+            cp << " [" << ref(r.fArtP, 1) << "]";
+            cq << " [" << ref(r.fArtQ, 1) << "]";
+            ca << " [" << ref(r.fArtAsym, 1, 100., "%") << "] {" << ref(r.fPyAsym, 3, 100., "%") << "}";
             cf << " {" << ref(r.fPyFit, 6) << "}";
             cm << " {" << ref(r.fPyMedian, 6) << "}";
         }
         std::cout << "  " << std::setw(15) << KindName(p.fKind) << std::setw(5) << (p.fTransposed ? "D^T" : "D")
-                  << std::setw(17) << cp.str() << std::setw(17) << cq.str() << std::setw(28) << ca.str()
+                  << std::setw(17) << cp.str() << std::setw(17) << cq.str() << std::setw(26) << ca.str()
                   << std::setw(32) << cf.str() << cm.str() << "\n";
     }
     std::cout << std::right;
-    if (comparePython) {
+    if (sameDraws) {
         std::cout << "  Python states (gen_data.py): p' = " << std::setprecision(15) << Reference(0, false).fPyP << ", "
                   << Reference(1, false).fPyP << ", " << Reference(2, false).fPyP
                   << "; q = " << Reference(0, false).fPyQ << ", " << Reference(1, false).fPyQ << ", "
@@ -562,8 +618,13 @@ inline void TaylorTest::Print(const std::vector<TPanel> &panels, const TRandom &
 inline void TaylorTest::RunAll() {
     std::cout << "Taylor test of the consistent tangent (Sect. 4.5, Fig. 3): M = " << fM << ", lambda = " << fLambda
               << ", kappa = " << fKappa << ", v0 = " << fV0 << ", porous elasticity, nu = " << fNu << "\n";
-    std::cout << "states: sigma_n = -p'_n I, p'_c,n = 116.6 kPa; elastic p'_n = 100 (range 0.002), subcritical "
-                 "p'_n = 100 (0.005), supercritical p'_n = 50 (0.02)\n";
+    std::cout << "converged states sigma_n = -p'_n I, eps_n = 0:";
+    for (int kind : {EElastic, ESubcritical, ESupercritical}) {
+        const TState st = State(kind);
+        std::cout << (kind ? "; " : " ") << KindName(kind) << " p'_n = " << st.fPn << ", p'_c,n = " << st.fPcn
+                  << ", eps_0 in [-" << st.fRange << ", " << st.fRange << "]";
+    }
+    std::cout << "\n";
     // 1. same random numbers as the Python script: reproduces the states and slopes of Fig. 3
     std::cout << "check of the PCG64 transcription against numpy default_rng(2026).bit_generator.random_raw(3): "
               << (TNumpyRandom::SelfTest() ? "ok" : "FAILED") << "\n";
@@ -571,7 +632,7 @@ inline void TaylorTest::RunAll() {
     const std::vector<TPanel> fig3 = Run(pcg);
     Print(fig3, pcg, true);
     PostProcess(fig3, "taylor_" + pcg.Name());
-    // 2. independent sample with the C++ standard generator: statistical comparison
+    // 2. independent sample with the C++ standard engine: statistical comparison
     TMersenneRandom mt(fSeed);
     const std::vector<TPanel> sample = Run(mt);
     Print(sample, mt, false);

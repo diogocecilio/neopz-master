@@ -12,10 +12,18 @@
 #include "MCCPaperTools.h"
 #include "TPZHWTools.h"
 #include "TPZVTKGeoMesh.h"
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <fstream>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <string>
+#include <vector>
 
 /**
+ * @ingroup mccpaper
  * @brief Yield surface of the Modified Cam-Clay model (Fig. 1) and closest-point projection in the meridian
  * plane (Fig. 2).
  *
@@ -36,8 +44,9 @@
  *    (\f$v_0/(\lambda-\kappa)=13.3\f$) for the trial states \f$(p',q)=(190,150)\f$ kPa (subcritical) and
  *    \f$(55,128)\f$ kPa (supercritical). The local problem (18) is solved with
  *    TPZYCModifiedCamClayRHW::ProjectHW and the result is verified through the complete stress update
- *    TPZPlasticStepModifiedCamClay::ApplyStrainComputeSigma (strain driven, for 13 orientations and Lode angles
- *    of the same trial invariants) and against the consistent tangent of the Python code.
+ *    TPZPlasticStepModifiedCamClay::ApplyStrainComputeSigma (strain driven), first for the triaxial trial stress
+ *    (projected state, \f$p_c\f$ and consistent tangent compared with camclay_hw.apply_strain) and then for 12
+ *    Lode angles with the same trial invariants in a rotated frame (radial return).
  *
  * Sign conventions: the constitutive classes use tension positive, \f$p=I_1/3\f$, \f$\xi=\sqrt3\,p\f$,
  * \f$\rho=\sqrt{2J_2}\f$; the figures and the printout use the soil mechanics quantities \f$p'=-p\f$ and
@@ -79,21 +88,22 @@ public:
     REAL fPcn = 200.;    ///< preconsolidation pressure at the start of the step \f$p_{c,n}\f$ (kPa)
     REAL fPStart = 100.; ///< isotropic converged state \f$p'_n\f$ of the strain driven stress update (kPa)
     int fNCurve = 400;   ///< number of points of the curves of Fig. 2 (ellipses and energy contour)
+    int fNLode = 12;     ///< number of Lode angles \f$\beta=2\pi k/n\f$ of the radial return check
     /** @} */
 
     /** @brief Trial state of Fig. 2 and the reference values of the Python code (fig_surface.py, camclay_hw.py) */
     struct TMeridianCase {
-        std::string fName;  ///< prefix of the output files
+        std::string fName;  ///< suffix of the output files
         std::string fTitle; ///< title of the panel of Fig. 2
         REAL fPTrial = 0.;  ///< trial mean effective stress \f$p'_{tr}\f$ (kPa)
         REAL fQTrial = 0.;  ///< trial deviatoric stress \f$q_{tr}\f$ (kPa)
-        REAL fPRef = 0.;    ///< Python: projected \f$p'\f$
-        REAL fQRef = 0.;    ///< Python: projected \f$q\f$
-        REAL fARef = 0.;    ///< Python: semi-axis \f$a\f$ at the end of the step
-        REAL fDalRef = 0.;  ///< Python: \f$\Delta\alpha\f$
-        REAL fDgRef = 0.;   ///< Python: \f$\Delta\gamma\f$
-        int fItRef = 0;     ///< Python: local Newton iterations
-        REAL fPcRef = 0.;   ///< Python: \f$p_c\f$ returned by apply_strain
+        REAL fPRef = 0.;    ///< Python (cpp_linear): projected \f$p'\f$
+        REAL fQRef = 0.;    ///< Python (cpp_linear): projected \f$q\f$
+        REAL fARef = 0.;    ///< Python (cpp_linear): semi-axis \f$a\f$ at the end of the step
+        REAL fDalRef = 0.;  ///< Python (cpp_linear): \f$\Delta\alpha\f$
+        REAL fDgRef = 0.;   ///< Python (cpp_linear): \f$\Delta\gamma\f$
+        int fItRef = 0;     ///< Python (cpp_linear and apply_strain): local Newton iterations
+        REAL fPcRef = 0.;   ///< Python (apply_strain): \f$p_c\f$ at the end of the step
         REAL fAArticle = 0.; ///< value of \f$a\f$ quoted in the caption of Fig. 2
         /** @brief Python consistent tangent (apply_strain): D(xx,xx), D(xx,yy), D(xx,zz), D(zz,xx), D(zz,zz), D(xy,xy) */
         std::array<REAL, 6> fDRef{};
@@ -122,11 +132,24 @@ public:
         bool fFailed = false;        ///< true if the local projection failed
     };
 
+    /** @brief Largest deviations of the stress update over the Lode angles of a trial state (radial return check) */
+    struct TLodeCheck {
+        int fNTests = 0;    ///< number of trial states (Lode angles)
+        int fFailures = 0;  ///< number of failed local projections
+        REAL fDp = 0.;      ///< \f$\max|p'-p'_{ref}|\f$ (kPa)
+        REAL fDq = 0.;      ///< \f$\max|q-q_{ref}|\f$ (kPa)
+        REAL fDpc = 0.;     ///< \f$\max|p_c-p_{c,ref}|\f$ (kPa)
+        REAL fDn = 0.;      ///< \f$\max\|n-n_{tr}\|\f$, unit deviatoric directions after and before the return
+    };
+
     /** @name Fig. 1: yield surface */
     /** @{ */
 
     /** @brief Yield criterion of Fig. 1 (\f$\lambda\f$ and \f$\kappa\f$ do not affect the surface) */
     TPZYCModifiedCamClayRHW CreateSurfaceCriterion() const;
+
+    /** @brief Semi-axis of the surface of Fig. 1, \f$a=(p'_c+p_t)/(1+\omega)\f$ (hardening law (13) with \f$\Delta\alpha=0\f$) */
+    REAL SurfaceSemiAxis(const TPZYCModifiedCamClayRHW &yc) const;
 
     /** @brief Hydrostatic coordinate of the i-th section of the grid, \f$\xi_i=\sqrt3\,[p_t+(-p'_c-p_t)\,i/(n_\xi-1)]\f$ */
     REAL GridXi(int i) const;
@@ -165,6 +188,13 @@ public:
     TPZPlasticStepModifiedCamClay CreatePlasticStep() const;
 
     /**
+     * @brief The two trial states of Fig. 2 with the reference values of the article (caption) and of the Python
+     * code: cpp_linear of fig_surface.py (local problem) and camclay_hw.apply_strain from \f$\sigma_n=-p'_nI\f$ with the
+     * strain that gives the same trial stress (\f$p_c\f$ and consistent tangent)
+     */
+    std::vector<TMeridianCase> MeridianCases() const;
+
+    /**
      * @brief Local problem (18) for the trial invariants of a case (cpp_linear of fig_surface.py):
      * \f$\xi_{tr}=-\sqrt3\,p'_{tr}\f$, \f$\rho_{tr}=\sqrt{2/3}\,q_{tr}\f$, \f$b=1\f$
      */
@@ -179,6 +209,13 @@ public:
     TStressUpdateResult StressUpdate(const TPZTensor<REAL> &sigmaTrial) const;
 
     /**
+     * @brief Radial return check: stress update of the trial states with the invariants of the case, Lode angles
+     * \f$\beta_k=2\pi k/n\f$ and principal directions rotated by an arbitrary rotation; the projected \f$p'\f$,
+     * \f$q\f$ and \f$p_c\f$ must be those of the meridian projection and the deviatoric direction must not change
+     */
+    TLodeCheck LodeAngleCheck(const TMeridianCase &c) const;
+
+    /**
      * @brief Writes the curves of a panel of Fig. 2 (fig_meridian of fig_surface.py): ellipses at the start and at
      * the end of the step, energy-norm contour centred at the trial state through the projected state, and the
      * points (trial, projected, tip of the flow direction arrow)
@@ -190,72 +227,62 @@ public:
     /** @} */
 
     /** @brief Runs Figs. 1 and 2 */
-    void Run();
+    void RunAll();
+
+    /** @name Auxiliary functions */
+    /** @{ */
+
+    /** @brief Relative difference \f$|x-r|/\max(|r|,10^{-300})\f$ */
+    static REAL RelDiff(REAL x, REAL r);
+
+    /** @brief Value i (0..n-1) of numpy.linspace(start, stop, n), computed as numpy does (the last value is exactly stop) */
+    static REAL Linspace(REAL start, REAL stop, int n, int i);
+
+    /** @brief Returns x with the sign of a zero removed (avoids "-0" in the CSV files) */
+    static REAL NoNegativeZero(REAL x);
+
+    /**
+     * @brief Principal stresses of the HW cylindrical coordinates (TPZHWTools) and value of the yield function
+     * (TPZYCModifiedCamClayRHW::YieldFunction) at them
+     * @param yc yield criterion
+     * @param pc preconsolidation pressure
+     * @param cyl HW cylindrical coordinates \f$(\xi,\rho,\beta)\f$
+     * @param[out] sigma principal stresses (tension positive)
+     * @return \f$\Phi\f$
+     */
+    static REAL PhiAtHW(const TPZYCModifiedCamClayRHW &yc, REAL pc, const TPZVec<REAL> &cyl, TPZVec<REAL> &sigma);
+
+    /** @brief Rotation matrix \f$R=R_z(a)R_y(b)R_x(c)\f$ */
+    static TPZFNMatrix<9, REAL> Rotation(REAL a, REAL b, REAL c);
+
+    /** @brief Symmetric tensor with principal values s and principal directions in the columns of R, \f$R\,\mathrm{diag}(s)R^T\f$ */
+    static TPZTensor<REAL> TensorFromPrincipal(const TPZVec<REAL> &s, const TPZFMatrix<REAL> &R);
+
+    /** @brief Unit deviatoric direction \f$n=s/\|s\|\f$ of a stress tensor (zero for an isotropic tensor) */
+    static TPZTensor<REAL> DeviatoricDirection(const TPZTensor<REAL> &sig);
+    /** @} */
 };
-
-// --------------------------------------------------------------------------------------------- helpers
-
-namespace ysp {
-/** @brief Relative difference \f$|x-r|/\max(|r|,10^{-300})\f$ */
-inline REAL RelDiff(REAL x, REAL r) { return std::fabs(x - r) / std::max(std::fabs(r), REAL(1.e-300)); }
-
-/** @brief Values 0..n-1 of numpy.linspace(start, stop, n) (the last value is exactly stop) */
-inline REAL Linspace(REAL start, REAL stop, int n, int i) {
-    if (i == n - 1) return stop;
-    return i * ((stop - start) / (n - 1)) + start;
-}
-
-/** @brief Returns x with the sign of a zero removed (avoids "-0" in the CSV files) */
-inline REAL NoNegativeZero(REAL x) { return x + 0.; }
-
-/** @brief Rotation matrix \f$R=R_z(a)R_y(b)R_x(c)\f$ */
-inline TPZFNMatrix<9, REAL> Rotation(REAL a, REAL b, REAL c) {
-    TPZFNMatrix<9, REAL> Rz(3, 3, 0.), Ry(3, 3, 0.), Rx(3, 3, 0.), tmp, R;
-    Rz(0, 0) = std::cos(a); Rz(0, 1) = -std::sin(a); Rz(1, 0) = std::sin(a); Rz(1, 1) = std::cos(a); Rz(2, 2) = 1.;
-    Ry(0, 0) = std::cos(b); Ry(0, 2) = std::sin(b); Ry(2, 0) = -std::sin(b); Ry(2, 2) = std::cos(b); Ry(1, 1) = 1.;
-    Rx(1, 1) = std::cos(c); Rx(1, 2) = -std::sin(c); Rx(2, 1) = std::sin(c); Rx(2, 2) = std::cos(c); Rx(0, 0) = 1.;
-    Rz.Multiply(Ry, tmp);
-    tmp.Multiply(Rx, R);
-    return R;
-}
-
-/** @brief Symmetric tensor with principal values s and principal directions in the columns of R, \f$R\,\mathrm{diag}(s)R^T\f$ */
-inline TPZTensor<REAL> TensorFromPrincipal(const TPZVec<REAL> &s, const TPZFMatrix<REAL> &R) {
-    TPZFNMatrix<9, REAL> D(3, 3, 0.), RD, Rt, RDRt;
-    for (int i = 0; i < 3; ++i) D(i, i) = s[i];
-    R.Multiply(D, RD);
-    R.Transpose(&Rt);
-    RD.Multiply(Rt, RDRt);
-    TPZTensor<REAL> sig;
-    for (int r = 0; r < 3; ++r)
-        for (int c = r; c < 3; ++c) sig(r, c) = 0.5 * (RDRt(r, c) + RDRt(c, r));
-    return sig;
-}
-
-/** @brief Unit deviatoric direction \f$n=s/\|s\|\f$ of a stress tensor (zero for an isotropic tensor) */
-inline TPZTensor<REAL> DeviatoricDirection(const TPZTensor<REAL> &sig) {
-    TPZTensor<REAL> s;
-    sig.S(s);
-    const REAL norm = s.Norm();
-    if (norm > 0.) s *= (1. / norm);
-    return s;
-}
-} // namespace ysp
 
 // --------------------------------------------------------------------------------------------- Fig. 1
 
 inline TPZYCModifiedCamClayRHW YieldSurfaceProjection::CreateSurfaceCriterion() const {
     TPZYCModifiedCamClayRHW yc;
-    yc.SetUp(fM1, 0.2, 0.05, fPt1, fOmega1);
+    yc.SetUp(fM1, fLambda, fKappa, fPt1, fOmega1);
     return yc;
 }
 
+inline REAL YieldSurfaceProjection::SurfaceSemiAxis(const TPZYCModifiedCamClayRHW &yc) const {
+    REAL a, H, pc;
+    yc.Hardening(fPc1, 0., fV0, a, H, pc);
+    return a;
+}
+
 inline REAL YieldSurfaceProjection::GridXi(int i) const {
-    return std::sqrt(3.) * ysp::Linspace(fPt1, -fPc1, fNXi, i);
+    return std::sqrt(3.) * Linspace(fPt1, -fPc1, fNXi, i);
 }
 
 inline REAL YieldSurfaceProjection::GridBeta(int j) const {
-    return ysp::Linspace(0., 2. * M_PI, fNBeta, j);
+    return Linspace(0., 2. * M_PI, fNBeta, j);
 }
 
 inline REAL YieldSurfaceProjection::SurfaceRadius(const TPZYCModifiedCamClayRHW &yc, REAL a, REAL xi) const {
@@ -267,8 +294,7 @@ inline REAL YieldSurfaceProjection::SurfaceRadius(const TPZYCModifiedCamClayRHW 
 
 inline TPZGeoMesh *YieldSurfaceProjection::CreateGeoMesh(ESpace space, TPZVec<REAL> &elData) const {
     const TPZYCModifiedCamClayRHW yc = CreateSurfaceCriterion();
-    REAL a, H, pc;
-    yc.Hardening(fPc1, 0., 2., a, H, pc);
+    const REAL a = SurfaceSemiAxis(yc);
     const int nring = fNXi - 2;    // sections with rho > 0 (the first and the last are the apexes)
     const int nmer = fNBeta - 1;   // distinct meridians (beta = 2 pi coincides with beta = 0)
     TPZGeoMesh *gmesh = new TPZGeoMesh;
@@ -344,8 +370,8 @@ inline TPZGeoMesh *YieldSurfaceProjection::CreateGeoMesh(ESpace space, TPZVec<RE
 inline void YieldSurfaceProjection::RunSurface() {
     const REAL sq3 = std::sqrt(3.);
     const TPZYCModifiedCamClayRHW yc = CreateSurfaceCriterion();
-    REAL a, H, pc;
-    yc.Hardening(fPc1, 0., 2., a, H, pc); // a = (pc + pt)/(1 + omega)
+    const REAL a = SurfaceSemiAxis(yc); // a = (pc + pt)/(1 + omega)
+    const REAL pc = fPc1;
 
     // grid of fig_surface.py: principal stresses (HW formula), RHW coordinates and Phi
     std::vector<std::vector<REAL>> rows;
@@ -356,19 +382,17 @@ inline void YieldSurfaceProjection::RunSurface() {
             const REAL xi = GridXi(i);
             const REAL rho = SurfaceRadius(yc, a, xi);
             TPZManVector<REAL, 3> cyl = {xi, rho, beta}, s(3), x(3);
-            TPZHWTools::FromHWCylToPrincipal(cyl, s);
+            const REAL phi = PhiAtHW(yc, pc, cyl, s);
             TPZHWTools::FromHWCylToHWCart(cyl, x);
-            TPZManVector<STATE, 1> phi(1, 0.);
-            yc.YieldFunction(s, pc, phi);
-            phimax = std::max(phimax, std::fabs(phi[0]) / (a * a));
+            phimax = std::max(phimax, std::fabs(phi) / (a * a));
             ximax = std::max(ximax, xi);
             ximin = std::min(ximin, xi);
             if (rho > rhomax) {
                 rhomax = rho;
                 xirhomax = xi;
             }
-            rows.push_back({xi, beta, rho, ysp::NoNegativeZero(-xi / sq3), std::sqrt(1.5) * rho, s[0], s[1], s[2], x[0], x[1], x[2],
-                            phi[0] / (a * a)});
+            rows.push_back({xi, beta, rho, NoNegativeZero(-xi / sq3), std::sqrt(1.5) * rho, s[0], s[1], s[2], x[0],
+                            x[1], x[2], phi / (a * a)});
         }
     }
     mcc::WriteCSV("fig1_surface.csv", {"xi", "beta", "rho", "p_eff", "q", "sigma1", "sigma2", "sigma3", "sstar1",
@@ -413,22 +437,25 @@ inline void YieldSurfaceProjection::RunSurface() {
     row("rho_max (kPa), from the grid", rhomax, "40.8");
     row("rho_max = sqrt(2/3) M a (kPa), closed form", std::sqrt(2. / 3.) * yc.M() * a, "40.8");
     row("p' of the section of rho_max (kPa)", -xirhomax / sq3, "p'c/2 = 50");
-    row("q on the critical state circle = M a (kPa)", std::sqrt(1.5) * rcs, "50");
+    row("q on the critical state circle (kPa)", std::sqrt(1.5) * rcs, "M a = 50");
     std::cout << "  Phi/a^2 (TPZYCModifiedCamClayRHW::YieldFunction) at points of the surface and inside it:\n";
-    const REAL pts[6][2] = {{0., 0.}, {25., M_PI / 6.}, {50., M_PI / 3.}, {80., 2.}, {100., 4.}, {50., -1.}};
-    for (auto &pt : pts) {
-        const REAL pp = pt[0];
-        const bool center = pt[1] < 0.;
-        const REAL xi = -sq3 * pp;
-        const REAL rho = center ? 0. : SurfaceRadius(yc, a, xi);
-        TPZManVector<REAL, 3> cyl = {xi, rho, center ? 0. : pt[1]}, s(3);
-        TPZHWTools::FromHWCylToPrincipal(cyl, s);
-        TPZManVector<STATE, 1> phi(1, 0.);
-        yc.YieldFunction(s, pc, phi);
+    // points of the surface: (p'/p'c, Lode angle); the first and the last are the apexes
+    const REAL surfacePoints[5][2] = {{0., 0.}, {0.25, M_PI / 6.}, {0.5, M_PI / 3.}, {0.8, 2.}, {1., 4.}};
+    TPZManVector<REAL, 3> s(3);
+    for (auto &pt : surfacePoints) {
+        const REAL xi = -sq3 * (pt[0] * fPc1);
+        const REAL rho = SurfaceRadius(yc, a, xi);
+        TPZManVector<REAL, 3> cyl = {xi, rho, pt[1]};
+        const REAL phi = PhiAtHW(yc, pc, cyl, s);
         std::ostringstream name;
-        name << (center ? "centre of the ellipse" : "surface") << ": p' = " << pp << ", q = " << std::sqrt(1.5) * rho;
-        if (!center) name << ", beta = " << pt[1];
-        row(name.str(), phi[0] / (a * a), center ? "-1" : "0");
+        name << "surface: p' = " << pt[0] * fPc1 << ", q = " << std::sqrt(1.5) * rho << ", beta = " << pt[1];
+        row(name.str(), phi / (a * a), "0");
+    }
+    {
+        TPZManVector<REAL, 3> cyl = {sq3 * (yc.Pt() - a), 0., 0.};
+        std::ostringstream name;
+        name << "centre of the ellipse: p' = " << a - yc.Pt() << ", q = 0";
+        row(name.str(), PhiAtHW(yc, pc, cyl, s) / (a * a), "-1");
     }
     std::cout << "  max |Phi|/a^2 on the " << fNXi << " x " << fNBeta << " grid of fig_surface.py = " << phimax << "\n";
     std::cout << "  files: fig1_surface.csv (" << fNXi * fNBeta << " points), fig1_critical_state_circle.csv, "
@@ -455,6 +482,39 @@ inline TPZPlasticStepModifiedCamClay YieldSurfaceProjection::CreatePlasticStep()
     st.m_hardening = fPcn;
     model.SetState(st);
     return model;
+}
+
+inline std::vector<YieldSurfaceProjection::TMeridianCase> YieldSurfaceProjection::MeridianCases() const {
+    std::vector<TMeridianCase> cases(2);
+    cases[0].fName = "a_subcritical";
+    cases[0].fTitle = "(a) subcritical region: compaction and hardening";
+    cases[0].fPTrial = 190.;
+    cases[0].fQTrial = 150.;
+    cases[0].fPRef = 163.66180702920812;
+    cases[0].fQRef = 88.99523828096234;
+    cases[0].fARef = 106.02760701083203;
+    cases[0].fDalRef = 0.004389698828465314;
+    cases[0].fDgRef = 3.808241310771821e-05;
+    cases[0].fItRef = 5;
+    cases[0].fPcRef = 212.05521402166406;
+    cases[0].fAArticle = 106.0;
+    cases[0].fDRef = {6602.247265001305, 3042.437733762812, 2574.2963992271384, 2901.6525291634684,
+                      2439.9231856983192, 1779.9047656192472};
+    cases[1].fName = "b_supercritical";
+    cases[1].fTitle = "(b) supercritical region: dilation and softening";
+    cases[1].fPTrial = 55.;
+    cases[1].fQTrial = 128.;
+    cases[1].fPRef = 63.92816707217939;
+    cases[1].fQRef = 91.91110414682453;
+    cases[1].fARef = 98.0355153663691;
+    cases[1].fDalRef = -0.0014880278453632317;
+    cases[1].fDgRef = 2.181388937844696e-05;
+    cases[1].fItRef = 5;
+    cases[1].fPcRef = 196.0710307327382;
+    cases[1].fAArticle = 98.0;
+    cases[1].fDRef = {5364.935358600966, 1056.6023517185656, 4690.6376235275475, 4952.366698431286,
+                      6782.816183652566, 2154.166503441201};
+    return cases;
 }
 
 inline YieldSurfaceProjection::TMeridianResult YieldSurfaceProjection::ProjectMeridian(const TMeridianCase &c) const {
@@ -500,18 +560,40 @@ YieldSurfaceProjection::StressUpdate(const TPZTensor<REAL> &sigmaTrial) const {
     return r;
 }
 
+inline YieldSurfaceProjection::TLodeCheck YieldSurfaceProjection::LodeAngleCheck(const TMeridianCase &c) const {
+    const TPZFNMatrix<9, REAL> R = Rotation(0.3, 0.7, 1.1);
+    TLodeCheck chk;
+    for (int k = 0; k < fNLode; ++k) {
+        TPZManVector<REAL, 3> cyl = {-std::sqrt(3.) * c.fPTrial, std::sqrt(2. / 3.) * c.fQTrial, 2. * M_PI * k / fNLode};
+        TPZManVector<REAL, 3> s(3);
+        TPZHWTools::FromHWCylToPrincipal(cyl, s);
+        const TStressUpdateResult u = StressUpdate(TensorFromPrincipal(s, R));
+        chk.fNTests++;
+        if (u.fFailed) {
+            chk.fFailures++;
+            continue;
+        }
+        const TPZTensor<REAL> ntr = DeviatoricDirection(u.fSigmaTrial), n = DeviatoricDirection(u.fSigma);
+        chk.fDp = std::max(chk.fDp, std::fabs(mcc::MeanEffectiveStress(u.fSigma) - c.fPRef));
+        chk.fDq = std::max(chk.fDq, std::fabs(mcc::DeviatoricStress(u.fSigma) - c.fQRef));
+        chk.fDpc = std::max(chk.fDpc, std::fabs(u.fPc - c.fPcRef));
+        chk.fDn = std::max(chk.fDn, (n - ntr).Norm());
+    }
+    return chk;
+}
+
 inline void YieldSurfaceProjection::WriteMeridianFiles(const TMeridianCase &c, const TMeridianResult &r) const {
     // ellipses p' in [0, 2a] (ellipse of fig_surface.py) and the energy-norm contour through the projected state,
     // (p' - p'_tr)^2/K + (q - q_tr)^2/(3G) = d^2
     const REAL d2 = (c.fPTrial - r.fP) * (c.fPTrial - r.fP) / fK + (c.fQTrial - r.fQ) * (c.fQTrial - r.fQ) / (3. * fG);
     std::vector<std::vector<REAL>> rows;
     for (int k = 0; k < fNCurve; ++k) {
-        const REAL t = ysp::Linspace(0., M_PI, fNCurve, k);
-        const REAL th = ysp::Linspace(0., 2. * M_PI, fNCurve, k);
+        const REAL t = Linspace(0., M_PI, fNCurve, k);
+        const REAL th = Linspace(0., 2. * M_PI, fNCurve, k);
         std::vector<REAL> rw;
         for (REAL a : {r.fAn, r.fA}) {
             const REAL p = -a + a * std::cos(t);
-            rw.push_back(ysp::NoNegativeZero(-p));
+            rw.push_back(NoNegativeZero(-p));
             rw.push_back(fM2 * std::sqrt(std::max(a * a - (p + a) * (p + a), REAL(0.))));
         }
         rw.push_back(c.fPTrial + std::sqrt(d2 * fK) * std::cos(th));
@@ -530,56 +612,26 @@ inline void YieldSurfaceProjection::WriteMeridianFiles(const TMeridianCase &c, c
 }
 
 inline void YieldSurfaceProjection::RunProjection() {
-    std::vector<TMeridianCase> cases(2);
-    // reference values: fig_surface.py (cpp_linear) and camclay_hw.apply_strain with the same trial stress
-    cases[0].fName = "a_subcritical";
-    cases[0].fTitle = "(a) subcritical region: compaction and hardening";
-    cases[0].fPTrial = 190.;
-    cases[0].fQTrial = 150.;
-    cases[0].fPRef = 163.66180702920812;
-    cases[0].fQRef = 88.99523828096234;
-    cases[0].fARef = 106.02760701083203;
-    cases[0].fDalRef = 0.004389698828465314;
-    cases[0].fDgRef = 3.808241310771821e-05;
-    cases[0].fItRef = 5;
-    cases[0].fPcRef = 212.05521402166406;
-    cases[0].fAArticle = 106.0;
-    cases[0].fDRef = {6602.247265001305, 3042.437733762812, 2574.2963992271384, 2901.6525291634684,
-                      2439.9231856983192, 1779.9047656192472};
-    cases[1].fName = "b_supercritical";
-    cases[1].fTitle = "(b) supercritical region: dilation and softening";
-    cases[1].fPTrial = 55.;
-    cases[1].fQTrial = 128.;
-    cases[1].fPRef = 63.92816707217939;
-    cases[1].fQRef = 91.91110414682453;
-    cases[1].fARef = 98.0355153663691;
-    cases[1].fDalRef = -0.0014880278453632317;
-    cases[1].fDgRef = 2.181388937844696e-05;
-    cases[1].fItRef = 5;
-    cases[1].fPcRef = 196.0710307327382;
-    cases[1].fAArticle = 98.0;
-    cases[1].fDRef = {5364.935358600966, 1056.6023517185656, 4690.6376235275475, 4952.366698431286,
-                      6782.816183652566, 2154.166503441201};
-
     std::cout << "\n=== Fig. 2: closest-point projection in the meridian plane, linear elasticity K = " << fK
               << " kPa, G = " << fG << " kPa, M = " << fM2 << ", p_c,n = " << fPcn
               << " kPa, v0/(lambda - kappa) = " << std::setprecision(3) << fV0 / (fLambda - fKappa) << " ===\n";
     // critical state line q = M p' (two points, as in fig_meridian)
     mcc::WriteCSV("fig2_critical_state_line.csv", {"p", "q"}, {{0., 0.}, {240., fM2 * 240.}});
 
-    for (auto &c : cases) {
+    auto row = [](const std::string &name, REAL val, REAL ref, const std::string &art) {
+        std::cout << "  " << std::left << std::setw(22) << name << std::right << std::setprecision(15)
+                  << std::setw(24) << val << std::setw(24) << ref << std::setprecision(1) << std::scientific
+                  << std::setw(11) << RelDiff(val, ref) << std::defaultfloat << std::setw(10) << art << "\n";
+    };
+    for (const TMeridianCase &c : MeridianCases()) {
         const TMeridianResult r = ProjectMeridian(c);
         WriteMeridianFiles(c, r);
-        std::cout << std::defaultfloat << std::setprecision(6) << "\n" << c.fTitle << ": trial p' = " << c.fPTrial << " kPa, q = " << c.fQTrial << " kPa\n";
+        std::cout << std::defaultfloat << std::setprecision(6) << "\n" << c.fTitle << ": trial p' = " << c.fPTrial
+                  << " kPa, q = " << c.fQTrial << " kPa\n";
         std::cout << "  local problem (18), TPZYCModifiedCamClayRHW::ProjectHW" << (r.fConverged ? "" : " NOT CONVERGED")
                   << "\n";
         std::cout << "  " << std::left << std::setw(22) << "quantity" << std::right << std::setw(24) << "this code"
                   << std::setw(24) << "Python" << std::setw(11) << "rel.diff" << std::setw(10) << "article" << "\n";
-        auto row = [](const std::string &name, REAL val, REAL ref, const std::string &art) {
-            std::cout << "  " << std::left << std::setw(22) << name << std::right << std::setprecision(15)
-                      << std::setw(24) << val << std::setw(24) << ref << std::setprecision(1) << std::scientific
-                      << std::setw(11) << ysp::RelDiff(val, ref) << std::defaultfloat << std::setw(10) << art << "\n";
-        };
         std::ostringstream art;
         art << std::fixed << std::setprecision(1) << c.fAArticle;
         row("p' (kPa)", r.fP, c.fPRef, "");
@@ -601,13 +653,14 @@ inline void YieldSurfaceProjection::RunProjection() {
                   << "  energy-norm contour tangent to Phi = 0 at the projected state: sin(angle between normals) = "
                   << sine << std::defaultfloat << "\n";
 
-        // complete stress update: triaxial trial stress (sigma_zz axial) and 12 Lode angles in a rotated frame
+        // complete stress update with the triaxial trial stress (sigma_zz axial); p' and q are compared with the
+        // local projection (camclay_hw.apply_strain gives the same values to the last bit)
         TPZTensor<REAL> sigtr;
         sigtr.XX() = sigtr.YY() = -(c.fPTrial - c.fQTrial / 3.);
         sigtr.ZZ() = -(c.fPTrial + 2. * c.fQTrial / 3.);
         const TStressUpdateResult su = StressUpdate(sigtr);
-        std::cout << std::setprecision(15) << "  stress update TPZPlasticStepModifiedCamClay::ApplyStrainComputeSigma "
-                  << "(from sigma_n = -" << std::setprecision(4) << fPStart << " I kPa, eps_n = 0):\n";
+        std::cout << "  stress update TPZPlasticStepModifiedCamClay::ApplyStrainComputeSigma (from sigma_n = -"
+                  << std::setprecision(4) << fPStart << " I kPa, eps_n = 0):\n";
         std::cout << std::setprecision(15) << "    trial p' = " << mcc::MeanEffectiveStress(su.fSigmaTrial)
                   << ", q = " << mcc::DeviatoricStress(su.fSigmaTrial) << (su.fFailed ? "  PROJECTION FAILED" : "")
                   << "\n";
@@ -615,38 +668,76 @@ inline void YieldSurfaceProjection::RunProjection() {
         row("  q (kPa)", mcc::DeviatoricStress(su.fSigma), c.fQRef, "");
         row("  p_c (kPa)", su.fPc, c.fPcRef, "");
         std::cout << "    type " << su.fType << " (" << (su.fType == 1 ? "subcritical" : su.fType == 2 ? "supercritical" : "elastic")
-                  << "), local iterations " << su.fIter << "\n";
+                  << "), local iterations " << su.fIter << " (Python " << c.fItRef << ")\n";
         const int idx[6][2] = {{_XX_, _XX_}, {_XX_, _YY_}, {_XX_, _ZZ_}, {_ZZ_, _XX_}, {_ZZ_, _ZZ_}, {_XY_, _XY_}};
         const char *names[6] = {"D(xx,xx)", "D(xx,yy)", "D(xx,zz)", "D(zz,xx)", "D(zz,zz)", "D(xy,xy)"};
         std::cout << "    consistent tangent (kPa), non-symmetric:\n";
         for (int k = 0; k < 6; ++k) row(std::string("    ") + names[k], su.fDep(idx[k][0], idx[k][1]), c.fDRef[k], "");
 
         // invariance with respect to the Lode angle and to the orientation of the principal axes
-        const TPZFNMatrix<9, REAL> R = ysp::Rotation(0.3, 0.7, 1.1);
-        REAL dp = 0., dq = 0., dn = 0.;
-        int ntests = 0;
-        for (int k = 0; k < 12; ++k) {
-            TPZManVector<REAL, 3> cyl = {-std::sqrt(3.) * c.fPTrial, std::sqrt(2. / 3.) * c.fQTrial, k * M_PI / 6.};
-            TPZManVector<REAL, 3> s(3);
-            TPZHWTools::FromHWCylToPrincipal(cyl, s);
-            const TPZTensor<REAL> st = ysp::TensorFromPrincipal(s, R);
-            const TStressUpdateResult u = StressUpdate(st);
-            const TPZTensor<REAL> ntr = ysp::DeviatoricDirection(u.fSigmaTrial), n = ysp::DeviatoricDirection(u.fSigma);
-            dp = std::max(dp, std::fabs(mcc::MeanEffectiveStress(u.fSigma) - c.fPRef));
-            dq = std::max(dq, std::fabs(mcc::DeviatoricStress(u.fSigma) - c.fQRef));
-            dn = std::max(dn, (n - ntr).Norm());
-            if (u.fFailed) dp = 1.e300;
-            ntests++;
-        }
-        std::cout << std::scientific << std::setprecision(1) << "    " << ntests
-                  << " Lode angles beta = k pi/6 in a rotated frame: max |p' - p'_ref| = " << dp
-                  << " kPa, max |q - q_ref| = " << dq << " kPa, max |n - n_tr| = " << dn << std::defaultfloat << "\n";
+        const TLodeCheck chk = LodeAngleCheck(c);
+        std::cout << std::scientific << std::setprecision(1) << "    " << chk.fNTests
+                  << " Lode angles beta = 2 pi k/" << fNLode << " in a rotated frame (" << chk.fFailures
+                  << " failures): max |p' - p'_ref| = " << chk.fDp << " kPa, max |q - q_ref| = " << chk.fDq
+                  << " kPa, max |p_c - p_c,ref| = " << chk.fDpc << " kPa, max |n - n_tr| = " << chk.fDn
+                  << std::defaultfloat << "\n";
         std::cout << "  files: fig2" << c.fName << "_curves.csv, fig2" << c.fName << "_points.csv\n";
     }
     std::cout << "  file: fig2_critical_state_line.csv\n";
 }
 
-inline void YieldSurfaceProjection::Run() {
+inline void YieldSurfaceProjection::RunAll() {
     RunSurface();
     RunProjection();
+}
+
+// --------------------------------------------------------------------------------------------- auxiliary functions
+
+inline REAL YieldSurfaceProjection::RelDiff(REAL x, REAL r) {
+    return std::fabs(x - r) / std::max(std::fabs(r), REAL(1.e-300));
+}
+
+inline REAL YieldSurfaceProjection::Linspace(REAL start, REAL stop, int n, int i) {
+    if (i == n - 1) return stop;
+    return i * ((stop - start) / (n - 1)) + start;
+}
+
+inline REAL YieldSurfaceProjection::NoNegativeZero(REAL x) { return x + 0.; }
+
+inline REAL YieldSurfaceProjection::PhiAtHW(const TPZYCModifiedCamClayRHW &yc, REAL pc, const TPZVec<REAL> &cyl,
+                                            TPZVec<REAL> &sigma) {
+    TPZHWTools::FromHWCylToPrincipal(cyl, sigma);
+    TPZManVector<STATE, 1> phi(1, 0.);
+    yc.YieldFunction(sigma, pc, phi);
+    return phi[0];
+}
+
+inline TPZFNMatrix<9, REAL> YieldSurfaceProjection::Rotation(REAL a, REAL b, REAL c) {
+    TPZFNMatrix<9, REAL> Rz(3, 3, 0.), Ry(3, 3, 0.), Rx(3, 3, 0.), tmp, R;
+    Rz(0, 0) = std::cos(a); Rz(0, 1) = -std::sin(a); Rz(1, 0) = std::sin(a); Rz(1, 1) = std::cos(a); Rz(2, 2) = 1.;
+    Ry(0, 0) = std::cos(b); Ry(0, 2) = std::sin(b); Ry(2, 0) = -std::sin(b); Ry(2, 2) = std::cos(b); Ry(1, 1) = 1.;
+    Rx(1, 1) = std::cos(c); Rx(1, 2) = -std::sin(c); Rx(2, 1) = std::sin(c); Rx(2, 2) = std::cos(c); Rx(0, 0) = 1.;
+    Rz.Multiply(Ry, tmp);
+    tmp.Multiply(Rx, R);
+    return R;
+}
+
+inline TPZTensor<REAL> YieldSurfaceProjection::TensorFromPrincipal(const TPZVec<REAL> &s, const TPZFMatrix<REAL> &R) {
+    TPZFNMatrix<9, REAL> D(3, 3, 0.), RD, Rt, RDRt;
+    for (int i = 0; i < 3; ++i) D(i, i) = s[i];
+    R.Multiply(D, RD);
+    R.Transpose(&Rt);
+    RD.Multiply(Rt, RDRt);
+    TPZTensor<REAL> sig;
+    for (int r = 0; r < 3; ++r)
+        for (int c = r; c < 3; ++c) sig(r, c) = 0.5 * (RDRt(r, c) + RDRt(c, r));
+    return sig;
+}
+
+inline TPZTensor<REAL> YieldSurfaceProjection::DeviatoricDirection(const TPZTensor<REAL> &sig) {
+    TPZTensor<REAL> s;
+    sig.S(s);
+    const REAL norm = s.Norm();
+    if (norm > 0.) s *= (1. / norm);
+    return s;
 }

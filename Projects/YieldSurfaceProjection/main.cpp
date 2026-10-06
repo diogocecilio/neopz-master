@@ -7,6 +7,6 @@
 
 int main() {
     YieldSurfaceProjection example;
-    example.Run();
+    example.RunAll();
     return 0;
 }

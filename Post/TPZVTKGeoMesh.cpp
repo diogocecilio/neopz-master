@@ -286,6 +286,8 @@ void TPZVTKGeoMesh::PrintGMeshVTK(TPZGeoMesh * gmesh, std::ofstream &file, TPZVe
     if (gmesh->NElements() != elData.NElements()) {
         std::cout << "Wrong vector size of elements data!" << std::endl;
         std::cout << "See " << __PRETTY_FUNCTION__ << std::endl;
+        // a shorter vector would be read out of bounds
+        if (elData.NElements() < gmesh->NElements()) DebugStop();
     }
     file.clear();
     int64_t nelements = gmesh->NElements();
@@ -379,6 +381,8 @@ void TPZVTKGeoMesh::PrintGMeshVTK(TPZGeoMesh * gmesh, std::ofstream &file, TPZVe
     if (gmesh->NElements() != elData.NElements()) {
         std::cout << "Wrong vector size of elements data!" << std::endl;
         std::cout << "See " << __PRETTY_FUNCTION__ << std::endl;
+        // a shorter vector would be read out of bounds
+        if (elData.NElements() < gmesh->NElements()) DebugStop();
     }
     file.clear();
     int64_t nelements = gmesh->NElements();
@@ -568,6 +572,8 @@ void TPZVTKGeoMesh::PrintGMeshVTK(TPZGeoMesh * gmesh, char *filename, TPZChunkVe
     if (gmesh->NElements() != elData.NElements()) {
         std::cout << "Wrong vector size of elements data!" << std::endl;
         std::cout << "See " << __PRETTY_FUNCTION__ << std::endl;
+        // a shorter vector would be read out of bounds
+        if (elData.NElements() < gmesh->NElements()) DebugStop();
     }
     file.clear();
     int64_t nelements = gmesh->NElements();
@@ -666,6 +672,8 @@ void TPZVTKGeoMesh::PrintGMeshVTK(TPZGeoMesh * gmesh, char *filename, TPZVec<REA
     if (gmesh->NElements() != elData.NElements()) {
         std::cout << "Wrong vector size of elements data!" << std::endl;
         std::cout << "See " << __PRETTY_FUNCTION__ << std::endl;
+        // a shorter vector would be read out of bounds
+        if (elData.NElements() < gmesh->NElements()) DebugStop();
     }
     file.clear();
     int64_t nelements = gmesh->NElements();
@@ -761,6 +769,8 @@ void TPZVTKGeoMesh::PrintGMeshVTK(TPZGeoMesh * gmesh, char *filename, TPZVec<TPZ
     if (gmesh->NElements() != elData.NElements()) {
         std::cout << "Wrong vector size of elements data!" << std::endl;
         std::cout << "See " << __PRETTY_FUNCTION__ << std::endl;
+        // a shorter vector would be read out of bounds
+        if (elData.NElements() < gmesh->NElements()) DebugStop();
     }
     file.clear();
     int64_t nelements = gmesh->NElements();

@@ -116,14 +116,14 @@ void TPZPlasticStepModifiedCamClay::EigenSystem(const TPZTensor<REAL> &sigma, TP
             for (int j = i; j < 3; ++j) {
                 REAL dot = 0.;
                 for (int k = 0; k < 3; ++k) dot += eigvec[i][k] * eigvec[j][k];
-                if (std::fabs(dot - (i == j ? 1. : 0.)) > 1.e-10) ok = false;
+                if (std::fabs(dot - (i == j ? 1. : 0.)) > 1.e-13) ok = false;
             }
         }
         for (int r = 0; ok && r < 3; ++r) {
             for (int c = r; c < 3; ++c) {
                 REAL val = 0.;
                 for (int i = 0; i < 3; ++i) val += eigval[i] * eigvec[i][r] * eigvec[i][c];
-                if (std::fabs(val - sigma(r, c)) > 1.e-11 * scale) ok = false;
+                if (std::fabs(val - sigma(r, c)) > 1.e-13 * scale) ok = false;
             }
         }
         for (int i = 0; ok && i < 2; ++i)
@@ -174,10 +174,9 @@ void TPZPlasticStepModifiedCamClay::TrialStress(const TPZTensor<REAL> &deps, con
     sigtr.ZZ() += shift;
 }
 
-void TPZPlasticStepModifiedCamClay::ComputedDep(const TPZVec<REAL> &sigproj, const TPZVec<REAL> &epstr,
-                                                const TPZFMatrix<REAL> &Dproj,
+void TPZPlasticStepModifiedCamClay::ComputedDep(const TPZFMatrix<REAL> &Dproj,
                                                 const TPZVec<TPZManVector<REAL, 3>> &eigvec, REAL Ktr, REAL G,
-                                                TPZFMatrix<REAL> &Dep) {
+                                                REAL ratio, TPZFMatrix<REAL> &Dep) {
     TPZFNMatrix<36, REAL> C(6, 6, 0.);
     ElasticOperator(Ktr, G, C);
     // projection vectors: v_ii (stress type) and v_jj (strain type, engineering shear)
@@ -189,20 +188,12 @@ void TPZPlasticStepModifiedCamClay::ComputedDep(const TPZVec<REAL> &sigproj, con
         veps[i][_XZ_] *= 2.;
         veps[i][_YZ_] *= 2.;
     }
-    // rotational correction: kappa_ij s_ij s_ij^T for i < j, eq. (9)
-    REAL sij[3][6], kap[3];
+    // rotational correction: kappa_ij s_ij s_ij^T for i < j, eq. (9), with
+    // kappa_ij = (sigma_i - sigma_j)/(eps_tr,i - eps_tr,j) = 2 G rho/rho_tr for every pair
+    REAL sij[3][6];
+    const REAL kap = 2. * G * ratio;
     const int pairs[3][2] = {{0, 1}, {0, 2}, {1, 2}};
-    for (int ip = 0; ip < 3; ++ip) {
-        const int i = pairs[ip][0], j = pairs[ip][1];
-        SymVoigt(eigvec[i], eigvec[j], sij[ip]);
-        const REAL depstr = epstr[i] - epstr[j];
-        const REAL dsig = sigproj[i] - sigproj[j];
-        if (std::fabs(depstr) < 1.e-15) {
-            kap[ip] = G * (Dproj.GetVal(i, i) - Dproj.GetVal(i, j) - Dproj.GetVal(j, i) + Dproj.GetVal(j, j));
-        } else {
-            kap[ip] = dsig / depstr;
-        }
-    }
+    for (int ip = 0; ip < 3; ++ip) SymVoigt(eigvec[pairs[ip][0]], eigvec[pairs[ip][1]], sij[ip]);
     Dep.Redim(6, 6);
     // column icol of the operator = response to the unit engineering strain e_icol
     for (int icol = 0; icol < 6; ++icol) {
@@ -216,7 +207,7 @@ void TPZPlasticStepModifiedCamClay::ComputedDep(const TPZVec<REAL> &sigproj, con
             }
         }
         for (int ip = 0; ip < 3; ++ip) {
-            const REAL fac = 2. * kap[ip] * sij[ip][icol];
+            const REAL fac = 2. * kap * sij[ip][icol];
             for (int l = 0; l < 6; ++l) Dep(l, icol) += fac * sij[ip][l];
         }
     }
@@ -253,9 +244,10 @@ void TPZPlasticStepModifiedCamClay::ApplyStrainComputeSigma(const TPZTensor<REAL
     TPZTensor<REAL> sigtr;
     REAL Ktr, G;
     TrialStress(deps, sigman, v0, sigtr, Ktr, G);
+    // equivalent pair (E, nu) of (K_tr, G), stored in fER when the step succeeds
     const REAL Eq = 9. * Ktr * G / (3. * Ktr + G);
     const REAL nuq = (3. * Ktr - 2. * G) / (2. * (3. * Ktr + G));
-    if (std::isfinite(Eq) && std::isfinite(nuq) && Eq > 0.) fER.SetEngineeringData(Eq, nuq);
+    const bool validER = std::isfinite(Eq) && std::isfinite(nuq) && Eq > 0.;
 
     // 2. spectral decomposition of the trial stress
     TPZManVector<REAL, 3> strhw(3, 0.);
@@ -285,6 +277,7 @@ void TPZPlasticStepModifiedCamClay::ApplyStrainComputeSigma(const TPZTensor<REAL
     if (fYC.PhiCC(ptr, rhotr, an, btr) <= 1.e-11 * an * an) {
         sigma = sigtr;
         if (tangent) ElasticOperator(Ktr, G, *tangent);
+        if (validER) fER.SetEngineeringData(Eq, nuq);
         fN.m_eps_t = epsTotal;
         fN.m_m_type = 0;
         fSigma = sigma;
@@ -337,16 +330,20 @@ void TPZPlasticStepModifiedCamClay::ApplyStrainComputeSigma(const TPZTensor<REAL
         }
     }
 
-    // 6-7. Jacobian of the projection, elastic trial strains and consistent tangent
+    // 6-7. Jacobian of the projection and consistent tangent
     if (tangent) {
         TPZFNMatrix<9, REAL> Dproj(3, 3, 0.);
-        fYC.GradProjection(X, trial, n, isotropic, Dproj);
-        const REAL ia = (G + 3. * Ktr) / (9. * G * Ktr), ib = -1. / (6. * G) + 1. / (9. * Ktr);
-        TPZManVector<REAL, 3> epstr(3, 0.);
-        for (int i = 0; i < 3; ++i) {
-            for (int j = 0; j < 3; ++j) epstr[i] += ((i == j) ? ia : ib) * strhw[j];
+        if (!fYC.GradProjection(X, trial, n, isotropic, Dproj)) {
+            fFailed = true;
+            sigma = sigman;
+            ElasticOperator(Ktr, G, *tangent);
+            return;
         }
-        ComputedDep(sigproj, epstr, Dproj, vecs, Ktr, G, *tangent);
+        // rho/rho_tr from the second local residual, rho (1 + 6 G dgamma/M^2) = rho_tr (exact also for
+        // isotropic trial states, where the quotient of the principal differences is undefined)
+        const REAL M = fYC.M();
+        const REAL ratio = 1. / (1. + 6. * G * X[3] / (M * M));
+        ComputedDep(Dproj, vecs, Ktr, G, ratio, *tangent);
         if (fTransposed) {
             TPZFNMatrix<36, REAL> Dt;
             tangent->Transpose(&Dt);
@@ -354,6 +351,7 @@ void TPZPlasticStepModifiedCamClay::ApplyStrainComputeSigma(const TPZTensor<REAL
         }
     }
 
+    if (validER) fER.SetEngineeringData(Eq, nuq);
     fYC.Hardening(pcn, X[2], v0, an, H, pc);
     fN.m_hardening = pc;
     fN.m_eps_t = epsTotal;

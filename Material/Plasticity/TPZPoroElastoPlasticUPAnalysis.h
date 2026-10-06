@@ -82,7 +82,11 @@ public:
 
     /** @name Set up */
     /** @{ */
-    /** @brief Registers the component (0, 1 or 2) of the boundary condition bcid as controlled displacement */
+    /**
+     * @brief Registers the component (0, 1 or 2) of the boundary condition bcid as controlled displacement
+     *
+     * Where a node belongs also to a condition with fixed values, the fixed value prevails.
+     */
     void SetControlledDisplacement(int bcid, int component);
 
     /** @brief Newton tolerance on the normalized residual, maximum iterations and maximum bisection level */
@@ -102,7 +106,11 @@ public:
      * @brief If true (default), the equations with Dirichlet conditions are eliminated from the linear
      * systems with the equation filter of the structural matrix (TPZEquationFilter) and their values are
      * imposed exactly, as in the Python code; if false, the conditions are only imposed by the penalty
-     * terms of the material (accuracy limited by the penalty number)
+     * terms of the material (accuracy limited by the penalty number). With elimination the values are
+     * nodal: Val2, or the forcing function of the condition evaluated at the vertices and at the mid-edge
+     * nodes. A component prescribed by several conditions receives the value of the first one in the
+     * order of the elements, the conditions with fixed values being processed before those with
+     * controlled displacement.
      */
     void SetEliminateDirichlet(bool eliminate) { fEliminateDirichlet = eliminate; }
 
@@ -115,7 +123,7 @@ public:
      */
     void SetNodalResidualNorm(bool nodal) { fNodalNorm = nodal; }
 
-    /** @brief Converts the displacement components of a vector from the hierarchical to the nodal basis */
+    /** @brief Converts the displacement components of a vector from the hierarchical to the nodal basis (see IdentifyEquations) */
     void ToNodalBasis(TPZFMatrix<STATE> &v) const;
     /** @} */
 
@@ -197,22 +205,29 @@ public:
      * @param space 0 displacement, 1 pore pressure
      * @param component component of the displacement (0 for the pressure)
      * @return equation index, or -1 if the node has no connect in the space
+     *
+     * The map of the nodes is built by IdentifyEquations.
      */
     int64_t NodeEquation(int64_t node, int space, int component) const;
 
-    /** @brief Value of a nodal degree of freedom in the solution loaded in the mesh */
+    /** @brief Value of a nodal degree of freedom in the solution loaded in the mesh (see IdentifyEquations) */
     REAL NodalValue(int64_t node, int space, int component) const;
 
-    /** @brief Flags of the equations with Dirichlet conditions (true = constrained) */
+    /**
+     * @brief Builds the maps of equations (pressure flags, nodes, edges) and the flags of the constrained
+     * equations. It is called by Run, AdvanceStep, SolveStep and Reaction; call it explicitly before
+     * using ConstrainedEquations, PressureEquations or ToNodalBasis outside of them.
+     */
+    void IdentifyEquations();
+
+    /** @brief Flags of the equations with Dirichlet conditions (true = constrained, see IdentifyEquations) */
     const std::vector<bool> &ConstrainedEquations() const { return fConstrained; }
 
-    /** @brief Flags of the pressure equations (true = pore pressure) */
+    /** @brief Flags of the pressure equations (true = pore pressure, see IdentifyEquations) */
     const std::vector<bool> &PressureEquations() const { return fIsPressure; }
     /** @} */
 
 protected:
-    /** @brief Builds the maps of equations (pressure flags, nodes) and the constrained equations */
-    void IdentifyEquations();
 
     /** @brief Sets the values of the controlled displacement in the boundary conditions */
     void ApplyControlledDisplacement(REAL uc);

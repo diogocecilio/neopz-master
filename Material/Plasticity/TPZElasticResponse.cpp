@@ -31,6 +31,7 @@ TPZElasticResponse & TPZElasticResponse::operator=(const TPZElasticResponse & ot
     m_lambda        = other.m_lambda;
     m_mu            = other.m_mu;
     m_epsilon_star      = other.m_epsilon_star;
+    m_sigma_star    = other.m_sigma_star;
     return *this;
 }
 

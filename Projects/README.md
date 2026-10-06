@@ -49,5 +49,7 @@ make -j 4
 ```
 
 The executables write their files in the current directory and print the comparison of their results with
-the values of the article. The documentation of the classes is generated with `-DBUILD_DOCS=ON` (Doxygen
+the values of the article and of the Python code. Run times (Release build, one core): YieldSurfaceProjection
+0.3 s, TaylorTest 0.05 s, RS2Triaxial 1.9 s, FrozenBulkModulus 0.4 s, FLAC3DTriaxial 1.6 s,
+TerzaghiConsolidation 2.9 s, AbaqusTriaxialConsolidation 68 s and EmbankmentConsolidation 35 s. The documentation of the classes is generated with `-DBUILD_DOCS=ON` (Doxygen
 group *Examples of the Modified Cam-Clay u-p article*).

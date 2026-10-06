@@ -15,6 +15,7 @@
 #include "pzerror.h"
 #include <cmath>
 #include <iomanip>
+#include <tuple>
 
 TPZPoroElastoPlasticUPAnalysis::TPZPoroElastoPlasticUPAnalysis(TPZMultiphysicsCompMesh *mesh,
                                                                TPZMatPoroElastoPlasticUPBase *mat,
@@ -29,6 +30,13 @@ void TPZPoroElastoPlasticUPAnalysis::SetControlledDisplacement(int bcid, int com
     if (!bc || !TPZMatPoroElastoPlasticUPBase::IsDirichletU(bc->Type())) {
         std::cout << __PRETTY_FUNCTION__ << " boundary condition " << bcid
                   << " does not exist or is not a Dirichlet condition of the displacement" << std::endl;
+        DebugStop();
+    }
+    if (component < 0 || component >= fMat->DimensionU() ||
+        (bc->Type() == TPZMatPoroElastoPlasticUPBase::EDirichletUDirectional &&
+         bc->Val1().GetVal(component, component) == 0.)) {
+        std::cout << __PRETTY_FUNCTION__ << " component " << component << " of the boundary condition " << bcid
+                  << " is not prescribed" << std::endl;
         DebugStop();
     }
     fControlled.push_back({bcid, component});
@@ -112,6 +120,10 @@ void TPZPoroElastoPlasticUPAnalysis::IdentifyEquations() {
         const bool dirU = TPZMatPoroElastoPlasticUPBase::IsDirichletU(type);
         const bool dirP = TPZMatPoroElastoPlasticUPBase::IsDirichletP(type);
         if (!dirU && !dirP) continue;
+        if (dirP && bc->Val2().size() < 1 && !bc->HasForcingFunctionBC()) {
+            std::cout << __PRETTY_FUNCTION__ << " boundary condition " << bc->Id() << " without value" << std::endl;
+            DebugStop();
+        }
         const int ncu = mfel->Element(0) ? mfel->Element(0)->NConnects() : 0;
         for (int i = 0; i < cel->NConnects(); ++i) {
             const bool isU = (i < ncu);
@@ -160,39 +172,99 @@ void TPZPoroElastoPlasticUPAnalysis::ImposeDirichletValues(TPZFMatrix<STATE> &so
                 mid[ie][d] = sol.GetVal(e[0] + d, 0) + 0.5 * (sol.GetVal(e[1] + d, 0) + sol.GetVal(e[2] + d, 0));
         }
     }
-    for (int64_t iel = 0; iel < fMPhys->NElements(); ++iel) {
-        TPZCompEl *cel = fMPhys->Element(iel);
-        auto *mfel = dynamic_cast<TPZMultiphysicsElement *>(cel);
-        if (!mfel || !cel->Material()) continue;
-        auto *bc = dynamic_cast<TPZBndCondT<STATE> *>(cel->Material());
-        if (!bc || bc->HasForcingFunctionBC()) continue;
-        const int type = bc->Type();
-        const bool dirU = TPZMatPoroElastoPlasticUPBase::IsDirichletU(type);
-        const bool dirP = TPZMatPoroElastoPlasticUPBase::IsDirichletP(type);
-        if (!dirU && !dirP) continue;
-        const TPZVec<STATE> &v2 = bc->Val2();
-        const int ncorner = cel->Reference()->NCornerNodes();
-        const int ncu = mfel->Element(0) ? mfel->Element(0)->NConnects() : 0;
-        for (int i = 0; i < cel->NConnects(); ++i) {
-            const bool isU = (i < ncu);
-            if ((isU && !dirU) || (!isU && !dirP)) continue;
-            const int local = isU ? i : i - ncu;
-            const bool vertex = local < ncorner;
-            TPZConnect &c = cel->Connect(i);
-            const int64_t seq = c.SequenceNumber();
-            const int64_t pos = block.Position(seq);
-            const int size = block.Size(seq);
-            if (!isU) {
-                for (int k = 0; k < size; ++k) sol(pos + k, 0) = vertex ? v2[0] : 0.;
-                continue;
+    // an equation receives the value of the first condition that prescribes it; the conditions with
+    // fixed values are processed before those with controlled displacement (the fixed values prevail)
+    std::vector<bool> written(sol.Rows(), false);
+    // prescribed nodal value at the mid-edge node: edge equation -> (value, equations of the two vertices)
+    std::map<int64_t, std::tuple<STATE, int64_t, int64_t>> edgeValues;
+    auto isControlled = [this](int id) {
+        for (auto &ctrl : fControlled)
+            if (ctrl.first == id) return true;
+        return false;
+    };
+    for (int pass = 0; pass < 2; ++pass) {
+        for (int64_t iel = 0; iel < fMPhys->NElements(); ++iel) {
+            TPZCompEl *cel = fMPhys->Element(iel);
+            auto *mfel = dynamic_cast<TPZMultiphysicsElement *>(cel);
+            if (!mfel || !cel->Material() || !cel->Reference()) continue;
+            auto *bc = dynamic_cast<TPZBndCondT<STATE> *>(cel->Material());
+            if (!bc) continue;
+            const int type = bc->Type();
+            const bool dirU = TPZMatPoroElastoPlasticUPBase::IsDirichletU(type);
+            const bool dirP = TPZMatPoroElastoPlasticUPBase::IsDirichletP(type);
+            if (!dirU && !dirP) continue;
+            if (isControlled(bc->Id()) != (pass == 1)) continue;
+            TPZGeoEl *gel = cel->Reference();
+            // values of the condition at a point: Val2, replaced by the forcing function if present
+            TPZManVector<STATE, 3> v2const(bc->Val2());
+            if (v2const.size() < 3) {
+                const int n0 = v2const.size();
+                v2const.Resize(3);
+                for (int i = n0; i < 3; ++i) v2const[i] = 0.;
             }
-            for (int d = 0; d < dim; ++d) {
-                if (type == TPZMatPoroElastoPlasticUPBase::EDirichletUDirectional && bc->Val1().GetVal(d, d) == 0.)
+            const bool forcing = bc->HasForcingFunctionBC();
+            auto valueAtSide = [&](int side, TPZManVector<STATE, 3> &v) {
+                v = v2const;
+                if (!forcing) return;
+                TPZManVector<REAL, 3> qsi(gel->Dimension(), 0.), x(3, 0.);
+                gel->CenterPoint(side, qsi);
+                gel->X(qsi, x);
+                TPZFNMatrix<9, STATE> v1(3, 3, 0.);
+                bc->ForcingFunctionBC()(x, v, v1);
+            };
+            const int ncorner = gel->NCornerNodes();
+            const int ncu = mfel->Element(0) ? mfel->Element(0)->NConnects() : 0;
+            TPZManVector<STATE, 3> v(3, 0.);
+            for (int i = 0; i < cel->NConnects(); ++i) {
+                const bool isU = (i < ncu);
+                if ((isU && !dirU) || (!isU && !dirP)) continue;
+                const int side = isU ? i : i - ncu; // H1 connects follow the sides of the element
+                const int64_t seq = cel->Connect(i).SequenceNumber();
+                const int64_t pos = block.Position(seq);
+                const int size = block.Size(seq);
+                if (size == 0) continue;
+                const bool vertex = side < ncorner;
+                const bool edge = isU && !vertex && gel->SideDimension(side) == 1 && size == dim;
+                if (!vertex && !edge && forcing) {
+                    std::cout << __PRETTY_FUNCTION__ << " boundary condition " << bc->Id()
+                              << ": forcing functions are supported only for vertex and quadratic edge functions"
+                              << std::endl;
+                    DebugStop();
+                }
+                if (vertex || edge) valueAtSide(side, v);
+                if (!isU) {
+                    for (int k = 0; k < size; ++k) {
+                        if (written[pos + k]) continue;
+                        sol(pos + k, 0) = vertex ? v[0] : 0.;
+                        written[pos + k] = true;
+                    }
                     continue;
-                const STATE val = (d < v2.size()) ? v2[d] : 0.;
-                for (int k = d; k < size; k += dim) sol(pos + k, 0) = vertex ? val : 0.;
+                }
+                for (int d = 0; d < dim; ++d) {
+                    if (type == TPZMatPoroElastoPlasticUPBase::EDirichletUDirectional && bc->Val1().GetVal(d, d) == 0.)
+                        continue;
+                    if (edge) {
+                        // the coefficient of the edge function (value 1 at the mid-edge node) is computed
+                        // after the vertices: c_e = u_mid - (u_a + u_b)/2
+                        if (written[pos + d]) continue;
+                        written[pos + d] = true;
+                        const int64_t sa = cel->Connect(gel->SideNodeLocIndex(side, 0)).SequenceNumber();
+                        const int64_t sb = cel->Connect(gel->SideNodeLocIndex(side, 1)).SequenceNumber();
+                        edgeValues[pos + d] = std::make_tuple(v[d], block.Position(sa) + d, block.Position(sb) + d);
+                        continue;
+                    }
+                    for (int k = d; k < size; k += dim) {
+                        if (written[pos + k]) continue;
+                        sol(pos + k, 0) = vertex ? v[d] : 0.;
+                        written[pos + k] = true;
+                    }
+                }
             }
         }
+    }
+    for (auto &ev : edgeValues) {
+        const STATE val = std::get<0>(ev.second);
+        sol(ev.first, 0) = val - 0.5 * (sol.GetVal(std::get<1>(ev.second), 0) + sol.GetVal(std::get<2>(ev.second), 0));
     }
     if (fNodalNorm) {
         for (size_t ie = 0; ie < fEdgeEquations.size(); ++ie) {

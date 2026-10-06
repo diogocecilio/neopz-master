@@ -173,17 +173,14 @@ bool TPZYCModifiedCamClayRHW::ProjectHW(const TTrial &trial, TPZVec<REAL> &X, in
     return false;
 }
 
-void TPZYCModifiedCamClayRHW::GradProjection(const TPZVec<REAL> &X, const TTrial &trial, const TPZVec<REAL> &n,
+bool TPZYCModifiedCamClayRHW::GradProjection(const TPZVec<REAL> &X, const TTrial &trial, const TPZVec<REAL> &n,
                                              bool isotropic, TPZFMatrix<REAL> &Dproj) const {
     const REAL sq3 = std::sqrt(3.);
     TPZFNMatrix<16, REAL> J(4, 4, 0.), dRdY(4, 2, 0.);
     Jacobian(X, trial, J, dRdY);
     // dX/dY = -J^{-1} dR/dY
     TPZFNMatrix<8, REAL> dXdY(dRdY);
-    if (!SolvePivoting(J, dXdY)) {
-        std::cout << __PRETTY_FUNCTION__ << " singular local Jacobian" << std::endl;
-        DebugStop();
-    }
+    if (!SolvePivoting(J, dXdY)) return false;
     dXdY *= -1.;
     const REAL f = isotropic ? 1. / (1. + 6. * trial.fG * X[3] / (fM * fM)) : X[1] / trial.fRhoTr;
     Dproj.Redim(3, 3);
@@ -194,6 +191,7 @@ void TPZYCModifiedCamClayRHW::GradProjection(const TPZVec<REAL> &X, const TTrial
                           dXdY(1, 1) * n[i] * n[j] + f * (delta - 1. / 3. - n[i] * n[j]);
         }
     }
+    return true;
 }
 
 void TPZYCModifiedCamClayRHW::YieldFunction(const TPZVec<STATE> &sigma, STATE kprev, TPZVec<STATE> &yield) const {

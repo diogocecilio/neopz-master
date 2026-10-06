@@ -35,6 +35,19 @@ The test compares the stress update with its first-order Taylor expansion, eq. (
   change kind are discarded. The program reports the least-squares slope of log E1 against
   log alpha1 over the 300 points and the median of the 300 pairwise slopes p.
 
+### Fitted slope and pairwise slope
+
+The pairwise slope p uses the same direction for both amplitudes, so the constant C(deps) cancels
+and p measures the order directly. The least-squares line instead mixes 300 different directions, so
+its slope also carries the scatter of log C(deps) over the sample.
+
+In an elastic step the shear modulus is that of the converged state, and only the porous volumetric
+law is nonlinear. So E = C0 (alpha tr deps)^2 with a fixed C0, and E falls to round-off (about 1e-14)
+for deviatoric directions. Over the 300 directions, log E1 - 2 log alpha1 scatters with a standard
+deviation of about 2. In the plastic panels the same quantity scatters by about 0.4. This is why the
+fitted slopes of the elastic panels are 2.04 and 2.28, in Python too, while all their pairwise
+slopes lie within 2 +/- 0.002. The article reports only the median, 2.000, for elastic steps.
+
 ### Random numbers
 
 The random numbers are drawn in exactly the order used by `taylor()`, and the test runs twice:
@@ -43,14 +56,10 @@ The random numbers are drawn in exactly the order used by `taylor()`, and the te
    then PCG64 with XSL-RR output, then `Generator.uniform`. It uses portable 64-bit arithmetic. The
    program checks it against the first three raw outputs of numpy at start-up. Because it uses the
    same draws as the Python script, this run gives the same states, asymmetries and slopes as Fig. 3.
-2. **`std::mt19937_64`** with seed 2026 gives an independent sample, which you can compare with the
-   article only statistically. Its states (p', q) differ from those of Fig. 3. In the plastic states
-   the slopes must be close to 2 with D and close to 1 with D^T.
-
-The fitted slopes of the elastic panels have no reference in the article. They differ from 2 (Python
-gives 2.04 and 2.28) because the elastic error E is very small: it comes only from the curvature of
-the porous law, so it reaches round-off level at the smallest amplitudes. Only the median slope, 2.000,
-is meaningful there.
+2. **`TaylorTest::TMersenneRandom`** uses `std::mt19937_64` with seed 2026 and the explicit 53-bit
+   conversion u = (x >> 11) 2^-53. It gives an independent sample, identical with any standard library,
+   which you can compare with the article only statistically. Its states (p', q) differ from those of
+   Fig. 3. In the plastic states the slopes must be close to 2 with D and close to 1 with D^T.
 
 ## How to run
 
@@ -61,8 +70,7 @@ The example is built with the other examples of the article. The top-level CMake
     ninja -C build TaylorTest
     mkdir run_taylor && cd run_taylor && ../build/Projects/TaylorTest/TaylorTest
 
-The program takes no arguments, runs in well under a second and writes its files to the current
-directory.
+The program takes no arguments, runs in about 0.05 s and writes its files to the current directory.
 
 ## Output files
 
@@ -73,40 +81,44 @@ directory.
 | `taylor_mt19937_*.csv` | The same files for the std::mt19937_64 sample. |
 
 To redraw Fig. 3, plot `log_E1` against `log_alpha1` and the line `fit_intercept + fit_slope * log alpha`.
-These are the same quantities that `fig_taylor()` plots from the Python results.
+These are the same quantities that `fig_taylor()` plots from the Python results. This example has
+no mesh, so it writes no VTK files.
 
 ## Results
 
 The program prints this work, then the article value in brackets and the Python value in braces.
-The table below shows the run with the numpy-compatible stream (Fig. 3); the Python values come from
-`reference_numbers.txt` (`gen_data.py taylor()`).
+The asymmetry is printed in percent, as in the article. The table below shows the run with the
+numpy-compatible stream (Fig. 3). The Python values come from `reference_numbers.txt`
+(`gen_data.py taylor()`), and "-" means the article does not report the value.
 
-| state | op | p' (kPa) | q (kPa) | asym | fitted slope | median slope |
-|---|---|---|---|---|---|---|
-| elastic | D | 105.255 (Python 105.255) | 16.836 (16.836) | 0 (0) | 2.043056 (Python 2.043056) | 1.999994 (art. 2.000; Python 1.999994) |
-| elastic | D^T | 105.255 | 16.836 | 0 | 2.284137 (Python 2.284155) | 1.999990 (art. 2.000; Python 1.999992) |
-| subcritical | D | 103.412 (art. 103.4) | 40.704 (art. 40.7) | 0.01584 (art. 1.6%; Python 0.01584) | **1.996015** (art. 1.996; Python 1.996015) | 1.999987 (art. 2.000; Python 1.999987) |
-| subcritical | D^T | 103.412 | 40.704 | 0.01584 | **1.039380** (art. 1.039; Python 1.039380) | 1.000271 (art. 1.000; Python 1.000271) |
-| supercritical | D | 23.671 (art. 23.7) | 45.631 (art. 45.6) | 0.03288 (art. 3.3%; Python 0.03288) | **1.976463** (art. 1.976; Python 1.976463) | 2.000000 (art. 2.000; Python 1.999998) |
-| supercritical | D^T | 23.671 | 45.631 | 0.03288 | **1.012999** (art. 1.013; Python 1.012999) | 0.999809 (art. 1.000; Python 0.999809) |
+| state | op | p', q (kPa): this work / article | asym: this work / article / Python | fitted slope: this work / article / Python | median slope: this work / article / Python |
+|---|---|---|---|---|---|
+| elastic | D | 105.255, 16.836 / - | 0 / - / 0 | 2.043056 / - / 2.043056 | 1.999994 / 2.000 / 1.999994 |
+| elastic | D^T | 105.255, 16.836 / - | 0 / - / 0 | 2.284137 / - / 2.284155 | 1.999990 / 2.000 / 1.999992 |
+| subcritical | D | 103.412, 40.704 / 103.4, 40.7 | 1.584% / 1.6% / 1.584% | **1.996015** / 1.996 / 1.996015 | 1.999987 / 2.000 / 1.999987 |
+| subcritical | D^T | 103.412, 40.704 / 103.4, 40.7 | 1.584% / 1.6% / 1.584% | **1.039380** / 1.039 / 1.039380 | 1.000271 / 1.000 / 1.000271 |
+| supercritical | D | 23.671, 45.631 / 23.7, 45.6 | 3.288% / 3.3% / 3.288% | **1.976463** / 1.976 / 1.976463 | 2.000000 / 2.000 / 1.999998 |
+| supercritical | D^T | 23.671, 45.631 / 23.7, 45.6 | 3.288% / 3.3% / 3.288% | **1.012999** / 1.013 / 1.012999 | 0.999809 / 1.000 / 0.999809 |
 
-* The states sigma0 agree with the Python transcription to 12 or more digits: p' = 103.411561037478
-  and q = 40.7038106469357 at the subcritical state, p' = 23.6707002558066 and q = 45.6311078924772 at
-  the supercritical state. The asymmetries agree to 12 digits.
+* The states agree with the Python transcription to 12 or more digits: p' = 103.411561037478
+  and q = 40.7038106469357 at the subcritical state, and p' = 23.6707002558066 and q = 45.6311078924772
+  at the supercritical state. The asymmetries agree to 12 digits.
 * The values of log E agree with those of the Python script to about 1e-8 (median over the 300
-  points). The largest differences, about 1e-5, occur at the smallest amplitudes, where E reaches
-  round-off level. As a result, the fitted slopes agree to 6 digits. Running the Python script on
-  another machine changes them at the 1e-7 level.
+  points). The largest differences, up to 1e-5 in the plastic panels and 1e-3 in the elastic ones,
+  occur where E is close to round-off. As a result, the fitted slopes of the plastic panels agree to
+  6 decimals. The elastic D^T fit differs by 2e-5 (2.284137 against 2.284155), because a few of its
+  points have tr deps close to 0. Re-running the Python script itself changes the fitted slopes at the
+  1e-7 level (1.99601547 against 1.99601534 in `reference_numbers.txt`).
 * No pair was discarded, matching the Python run.
 
-Independent sample with std::mt19937_64 (seed 2026). The states differ from Fig. 3, so compare only
-the orders:
+Independent sample with std::mt19937_64 (seed 2026). The states differ from Fig. 3, so the program
+compares only the slopes with the article:
 
-| state | op | p' (kPa) | q (kPa) | asym | fitted slope | median slope |
-|---|---|---|---|---|---|---|
-| elastic | D / D^T | 91.765 | 14.250 | 0 | 2.184 / 1.972 | 2.000010 / 2.000008 |
-| subcritical | D / D^T | 76.154 | 55.985 | 0.01096 | 1.989 / 0.984 | 1.999997 / 1.000548 |
-| supercritical | D / D^T | 56.637 | 58.024 | 0.08830 | 2.002 / 1.007 | 1.999998 / 1.000001 |
+| state | p', q (kPa) | asym | fitted slope D / D^T | median slope D / D^T |
+|---|---|---|---|---|
+| elastic | 91.765, 14.250 | 0 | 2.184 / 1.972 | 2.000007 / 2.000006 |
+| subcritical | 76.154, 55.985 | 1.096% | 1.989 / 0.984 | 1.999997 / 1.000548 |
+| supercritical | 56.637, 58.024 | 8.830% | 2.002 / 1.007 | 2.000000 / 1.000001 |
 
 The conclusion is the same as in the article. With the consistent operator D the test is of second
 order at both plastic states (median 2.000). With the transpose D^T, which is what the column-wise
