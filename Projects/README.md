@@ -27,13 +27,14 @@ round-off and the tables of the article.
 |---|---|---|
 | `TPZYCModifiedCamClayRHW` | yield function, hardening law, local residuals, Jacobian, Newton projection and Jacobian of the projection | (11)–(13), (17)–(22), (A.1); `HardeningCC`, `PhiCC`, `ResCC`, `JacCC`, `dResdTrialCC`, `ProjectHWCC`, `GradCC` |
 | `TPZPlasticStepModifiedCamClay` | elastic predictor with the porous law, spectral decomposition, stress update and consistent tangent (also a linear elastic option) | Algorithm 1, (8)–(10), (14)–(16); `TrialStressCC`, `ProjectStressCC`, `ComputedDep` |
-| `TPZMatPoroElastoPlasticUP` | multiphysics u–p material with memory, plane strain / axisymmetry / 3D with the six-row operator | (24)–(28); `ComputeBN`, `ContributePorous`, `ContributePlasticity` |
+| `TPZMatPoroElastoPlasticUP` | multiphysics u–p material with memory, plane strain / axisymmetry / 3D with the six-row operator; post-processing variables of the integration points (p', q, p_c, type of response, stresses, ...) read from the memory | (24)–(28); `ComputeBN`, `ContributePorous`, `ContributePlasticity` |
 | `TPZPoroElastoPlasticUPAnalysis` | incremental Newton driver with time step, load factor, controlled displacement, bisection and reactions | Sect. 5.4; `SolveStepUP`, `AdvanceUP`, `IterativeProcessUP`, `ReactionByMarker` |
 
 `Common/MCCPaperTools.h` gathers the utilities shared by the projects: structured Q8–Q4 and Hex20–Hex8 meshes
 (including the quarter cylinder with quadratic geometry), the displacement (serendipity), pore pressure and
-multiphysics meshes, output at the integration points, interpolation of the stress at a point, material point
-drivers and the closed-form solutions of Appendix B.
+multiphysics meshes, output at the integration points, interpolation of the stress at a point, the VTK file
+series of every converged state for ParaView (`mcc::TVTKSeries`), material point drivers and the closed-form
+solutions of Appendix B.
 
 Each project is written as a class in the style of the NeoPZ examples (the `Footing` class): geometric mesh,
 computational meshes, analysis with structural matrix (`TPZSkylineNSymStructMatrix`) and solver
@@ -51,5 +52,53 @@ make -j 4
 The executables write their files in the current directory and print the comparison of their results with
 the values of the article and of the Python code. Run times (Release build, one core): YieldSurfaceProjection
 0.3 s, TaylorTest 0.05 s, RS2Triaxial 1.9 s, FrozenBulkModulus 0.4 s, FLAC3DTriaxial 1.6 s,
-TerzaghiConsolidation 2.9 s, AbaqusTriaxialConsolidation 68 s and EmbankmentConsolidation 35 s. The documentation of the classes is generated with `-DBUILD_DOCS=ON` (Doxygen
-group *Examples of the Modified Cam-Clay u-p article*).
+TerzaghiConsolidation 2.9 s, AbaqusTriaxialConsolidation 68 s and EmbankmentConsolidation 35 s (without the
+VTK series, argument `novtk`; see below). The documentation of the classes is generated with `-DBUILD_DOCS=ON`
+(Doxygen group *Examples of the Modified Cam-Clay u-p article*).
+
+## Figures
+
+Each project has a script `plot_figures.py` (Python 3 with numpy and matplotlib) that draws the figures of the
+article from the CSV files of its executable, with the style of the figures of the article
+(`Common/mcc_figstyle.py`) and the digitized reference curves of the Python code (`<project>/reference/`):
+
+```
+cd <run directory>          # where the executable wrote its CSV files
+./FLAC3DTriaxial
+python3 <neopz>/Projects/FLAC3DTriaxial/plot_figures.py      # writes figures/fig05_flac3d_triaxial.pdf/.png
+```
+
+| Project | Files (PDF and PNG in `<run directory>/figures`) |
+|---|---|
+| YieldSurfaceProjection | `fig01_mcc_surface`, `fig02_meridian_projection` |
+| TaylorTest | `fig03_taylor_test` (and the same figure for the `std::mt19937_64` sample) |
+| RS2Triaxial | `fig04_rs2_triaxial` |
+| FrozenBulkModulus | `supplementary_table03_frozen_bulk_modulus` (Table 3; not a figure of the article) |
+| FLAC3DTriaxial | `fig05_flac3d_triaxial` |
+| TerzaghiConsolidation | `fig06_terzaghi_consolidation` |
+| AbaqusTriaxialConsolidation | `fig07_abaqus_model`, `fig08_abaqus_states`, `fig09_abaqus_results` |
+| EmbankmentConsolidation | `fig10_embankment_model`, `fig11_embankment_history`, `fig12_embankment_fields` |
+
+The scripts are ports of `fig_surface.py` and `figs.py` of the Python code, reading the CSV files instead of the
+pickled results; the figures are the same as those of the article. The font of the article (TeX Gyre Heros) is
+used when it is installed; otherwise a font with the metrics of Helvetica (Nimbus Sans, Liberation Sans or
+FreeSans) or DejaVu Sans.
+
+## Viewing the solution in ParaView
+
+EmbankmentConsolidation and AbaqusTriaxialConsolidation write the solution of every converged state (every
+increment or time step) as VTK file series, one directory per run under `vtk/` (`mcc::TVTKSeries`):
+
+* `<prefix>_nodal.vtk.series`: displacement and pore pressure at the nodes (NeoPZ graph mesh of the
+  multiphysics mesh);
+* `<prefix>_intpoints.vtk.series`: the variables of the integration points (p', q, p_c, type of response,
+  volumetric strain, effective and total stresses, principal stresses), projected element by element on a
+  discontinuous mesh by `TPZPostProcAnalysis`, as in the NeoPZ footing example;
+* `<prefix>_gausspoints.vtk.series`: the integration points as a point cloud;
+* `<prefix>_states.csv`: the time, load factor or displacement of each state.
+
+Open the `.vtk.series` files in ParaView (5.5 or later): the time controls then show the time of each state
+(the state index for the embankment, δ/H for the triaxial test). The READMEs of the two projects describe the
+files and the steps in ParaView (field, time, Warp By Vector, excess pore pressure with the Calculator,
+point cloud). The argument `novtk` skips these files; with them EmbankmentConsolidation takes about 54 s
+(37 MB of files) and AbaqusTriaxialConsolidation about 3 min (160 MB).

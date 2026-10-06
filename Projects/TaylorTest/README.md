@@ -80,9 +80,26 @@ The program takes no arguments, runs in about 0.05 s and writes its files to the
 | `taylor_pcg64_summary.csv` | One row per panel: `kind, transposed, p_eff, q, pc, asym, fit_slope, fit_intercept, median_slope, min_slope, max_slope, rejected, draws`, then the state `x0_*` (engineering strains) and `sig0_*`. |
 | `taylor_mt19937_*.csv` | The same files for the std::mt19937_64 sample. |
 
-To redraw Fig. 3, plot `log_E1` against `log_alpha1` and the line `fit_intercept + fit_slope * log alpha`.
-These are the same quantities that `fig_taylor()` plots from the Python results. This example has
-no mesh, so it writes no VTK files.
+These are the quantities that `fig_taylor()` plots from the Python results; `plot_figures.py` draws Fig. 3
+from them (see Figures). This example has no mesh, so it writes no VTK files.
+
+## Figures
+
+```
+python3 <neopz>/Projects/TaylorTest/plot_figures.py [run directory] [-o output directory]
+```
+
+Run it after the executable, with the directory of its CSV files (default: the current directory). The figures
+are written as PDF and PNG to `<run directory>/figures` (or to the output directory); Python 3 with numpy and
+matplotlib is needed.
+
+| File | Article | Data |
+|---|---|---|
+| `fig03_taylor_test` | Fig. 3: log E(α) against log α, (a, b) consistent tangent D (second order), (c, d) transpose Dᵀ (first order) | `taylor_pcg64_*.csv` (the draws of `gen_data.py`) |
+| `fig03_taylor_test_mt19937` | not in the article: the same figure for the independent `std::mt19937_64` sample | `taylor_mt19937_*.csv` |
+
+The script is a port of `fig_taylor()` of `figs.py`: it plots `log_E1` against `log_alpha1` and the line
+`fit_intercept + fit_slope * log alpha` of the summary file.
 
 ## Results
 

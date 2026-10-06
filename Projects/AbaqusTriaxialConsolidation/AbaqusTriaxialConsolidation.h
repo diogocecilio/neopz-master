@@ -9,6 +9,7 @@
 #include "TPZSkylineNSymStructMatrix.h"
 #include "pzstepsolver.h"
 #include <iostream>
+#include <memory>
 #include <string>
 
 /**
@@ -64,6 +65,12 @@ public:
     REAL fTend = 34.56e6;                 ///< 400 days
     REAL fDHend = 0.6;                    ///< final delta/H
 
+    /**
+     * @brief Write the VTK file series of every increment of each finite element run (mcc::TVTKSeries) in
+     * vtk/\<run name\>, with the series time delta/H (the command line argument "novtk" disables it)
+     */
+    bool fWriteVTK = true;
+
     /** @brief The plastic model of the benchmark */
     mcc::TPlastic Model(bool transposed = false) const;
 
@@ -73,7 +80,12 @@ public:
     /** @brief Computational meshes, material and boundary conditions */
     TPZMultiphysicsCompMesh *CreateCompMesh(TPZGeoMesh *gmesh, const TConfig &cfg, mcc::TPoroMaterial *&mat);
 
-    /** @brief Solves a configuration and writes its post-processing files */
+    /**
+     * @brief Solves a configuration and writes its post-processing files: abaqus_\<name\>.csv, the VTK files of
+     * the final state and, with fWriteVTK, the VTK file series of every increment in vtk/\<name\>
+     * (abaqus_\<name\>_nodal.vtk.series, abaqus_\<name\>_intpoints.vtk.series, abaqus_\<name\>_gausspoints.vtk.series
+     * and abaqus_\<name\>_states.csv with the time and the platen displacement of each state)
+     */
     TResult Run(const TConfig &cfg);
 
     /** @brief Fig. 8: drained tests at a material point from p'0 = 100 and 20 kPa (600 increments) and closed form */
@@ -253,6 +265,11 @@ inline AbaqusTriaxialConsolidation::TResult AbaqusTriaxialConsolidation::Run(con
     for (int k = 1; k <= cfg.fNSteps; ++k)
         steps.emplace_back(fTend * k / cfg.fNSteps, 1., -fDHend * fH * k / cfg.fNSteps);
     const std::string prefix = "abaqus_" + cfg.fName;
+    // VTK file series of every increment (series time delta/H)
+    std::unique_ptr<mcc::TVTKSeries> vtk;
+    if (fWriteVTK)
+        vtk = std::make_unique<mcc::TVTKSeries>(mphys, mat, "vtk/" + cfg.fName, prefix, "delta_H",
+                                                std::vector<std::string>{"t", "uc"});
     auto monitor = [&](int istep, const mcc::TAnalysis::TLoadState &s) {
         const TPZTensor<REAL> sig = mcc::StressAtPoint(mat, mphys, pointA);
         const REAL dH = fDHend * s.fTime / fTend;
@@ -261,6 +278,7 @@ inline AbaqusTriaxialConsolidation::TResult AbaqusTriaxialConsolidation::Run(con
         for (auto n : analysis.NodesOfMaterials({EMatId})) pmax = std::max(pmax, std::fabs(analysis.NodalValue(n, 1, 0)));
         const REAL ev = dH - 2. * analysis.NodalValue(iR, 0, 0) / fR; // exact with the smooth platen (homogeneous)
         res.fHistory.push_back({dH, mcc::MeanEffectiveStress(sig), mcc::DeviatoricStress(sig), sa, pmax, ev});
+        if (vtk) vtk->Write(dH, {s.fTime, s.fUc});
         if (istep == cfg.fNSteps) {
             mcc::WriteNodalVTK(analysis, dim, prefix + ".vtk", 0);
             mcc::WriteGaussPointsVTK(mat, mphys, prefix + "_gauss.vtk");
@@ -272,6 +290,7 @@ inline AbaqusTriaxialConsolidation::TResult AbaqusTriaxialConsolidation::Run(con
     std::vector<std::vector<REAL>> rows;
     for (auto &h : res.fHistory) rows.push_back({h[0], h[1], h[2], h[3], h[4], h[5]});
     mcc::WriteCSV(prefix + ".csv", {"delta_H", "p_A", "q_A", "sigma_a_platen", "max_pw", "eps_v"}, rows);
+    vtk.reset(); // the post-processing meshes refer to the meshes of the run
     mcc::DeleteMeshes(mphys);
     return res;
 }

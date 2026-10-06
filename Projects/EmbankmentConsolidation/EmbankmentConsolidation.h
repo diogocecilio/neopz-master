@@ -15,6 +15,7 @@
 #include <cmath>
 #include <iomanip>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -134,6 +135,12 @@ public:
     /** @} */
 
     /**
+     * @brief Write the VTK file series of every converged state (mcc::TVTKSeries) of the Cam-Clay and elastic runs,
+     * in the directories vtk/embankment and vtk/embankment_elastic (the command line argument "novtk" disables it)
+     */
+    bool fWriteVTK = true;
+
+    /**
      * @brief Effective geostatic stresses (tension positive) at the height y
      * @param y height (m); the depth is \f$d=10-y\f$
      * @param[out] sv vertical effective stress \f$-(\gamma_{sat}-\gamma_w)d\f$
@@ -204,6 +211,11 @@ public:
      * @param variant ECamClay and EElastic: undrained loading and consolidation, with CSV files (and the
      * fields of Fig. 12 for ECamClay); ETransposed: undrained loading only, without output files
      * @return monitored history, convergence records and post-processed quantities of the run
+     *
+     * With fWriteVTK, the ECamClay and EElastic runs write the VTK file series of the 36 converged states
+     * (mcc::TVTKSeries) in vtk/embankment and vtk/embankment_elastic: the series time is the index of the
+     * state (0 initial state, 1 to 10 undrained increments, 11 to 35 consolidation steps) and the file
+     * \<name\>_states.csv gives the time t and the load factor of each index.
      */
     TResult Run(EVariant variant);
 
@@ -461,6 +473,14 @@ inline EmbankmentConsolidation::TResult EmbankmentConsolidation::Run(EVariant va
 
     TResult res;
     res.fR0 = InitialResidual(analysis, mat, res.fBaseReaction0);
+
+    // VTK file series of every converged state (series time = index of the state, see Run)
+    std::unique_ptr<mcc::TVTKSeries> vtk;
+    if (fWriteVTK && variant != ETransposed) {
+        const std::string name = (variant == EElastic) ? "embankment_elastic" : "embankment";
+        vtk = std::make_unique<mcc::TVTKSeries>(mphys, mat, "vtk/" + name, name, "state",
+                                                std::vector<std::string>{"t", "lambda"});
+    }
     const std::vector<bool> &ispressure = analysis.PressureEquations();
     res.fNEquations = mphys->NEquations();
     res.fNPressureNodes = std::count(ispressure.begin(), ispressure.end(), true);
@@ -497,6 +517,7 @@ inline EmbankmentConsolidation::TResult EmbankmentConsolidation::Run(EVariant va
         row.push_back(zonepressure(zone1));
         row.push_back(zonepressure(zone2));
         res.fHistory.push_back(row);
+        if (vtk) vtk->Write(REAL(res.fHistory.size() - 1), {s.fTime, s.fLambda});
         if (variant == ECamClay && stage == 1 && std::fabs(s.fTime - 1.e6) < 1e-6 * s.fTime)
             WriteState(analysis, mat, mphys, "t1e6", 1, res.fExcess1e6, res.fExcess1e6X);
     };
@@ -564,6 +585,7 @@ inline EmbankmentConsolidation::TResult EmbankmentConsolidation::Run(EVariant va
         mcc::WriteCSV(prefix + "_convergence.csv", {"stage", "increment", "t", "lambda", "evaluation", "residual"}, conv);
     }
 
+    vtk.reset(); // the post-processing meshes refer to the meshes of the run
     mcc::DeleteMeshes(mphys);
     res.fSeconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - clock0).count();
     return res;

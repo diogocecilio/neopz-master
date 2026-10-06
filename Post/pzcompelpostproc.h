@@ -29,19 +29,42 @@ class TPZMaterialData;
 
 
 #include "pzmultiphysicselement.h"
+#include "TPZMatSingleSpace.h"
+#include "TPZMatCombinedSpaces.h"
 
 
+
+/**
+ * @brief Data shared by all the post-processing elements: the element of the simulation mesh whose
+ * solution (usually stored at the integration points) is projected on the post-processing element.
+ *
+ * The referred element is either
+ *  - a TPZInterpolationSpace whose material is a single-space material (TPZMatSingleSpaceT), e.g. the
+ *    elastoplastic materials with memory (TPZMatElastoPlastic2D inside TPZCompElWithMem), or
+ *  - a TPZMultiphysicsElement (e.g. TPZCompElWithMem<TPZMultiphysicsCompEl>) whose material is a
+ *    combined-space material (TPZMatCombinedSpacesT), e.g. a TPZMatWithMem material of a
+ *    TPZMultiphysicsCompMesh. The variables are then evaluated by the material from the vector of
+ *    material data of the atomic spaces, built by the multiphysics element itself.
+ */
+struct TPZCompElPostProcBase
+{
+    /// element of the simulation mesh (TPZInterpolationSpace or TPZMultiphysicsElement)
+    TPZCompEl *fReferredElement = 0;
+};
 
 /**
  * @brief This class implements the TPZCompEl structure to enable copying the solution
  * of the referred compEl at the integration points to itself and interpolating it inside the element
  * @since May, 1 2009
+ *
+ * The post-processing element uses a clone of the integration rule of the referred element. In
+ * CalcResidual the variables of the referred material are evaluated at each integration point (for a
+ * material with memory, from the memory item of the point) and projected on the shape functions of this
+ * element by a least squares fit computed element by element (TPZPostProcMat::Contribute). When the
+ * number of shape functions equals the number of points (order n-1 with n x n or n x n x n Gauss points,
+ * see TPZPostProcAnalysis::AutoBuildDisc) the projection is the Lagrange interpolation of the values at
+ * the points, i.e. the usual extrapolation of the integration point values to the element.
  */
-struct TPZCompElPostProcBase
-{
-    TPZInterpolationSpace *fReferredElement = 0;
-};
-
 template <class TCOMPEL >
 class TPZCompElPostProc : public TCOMPEL, public TPZCompElPostProcBase
 {
@@ -68,16 +91,21 @@ public:
     /** @brief Initializes the shape function type in order to allow non ill-conditioned L2 Transfer matrix */
     void InitializeShapeFunctions();
     
+    /** @brief Element of the simulation mesh whose solution is post-processed */
     TPZCompEl *ReferredElement()
     {
         if(!fReferredElement) DebugStop();
         return fReferredElement;
     }
 
+    /**
+     * @brief Sets the element of the simulation mesh whose solution is post-processed: a
+     * TPZInterpolationSpace (single-space material) or a TPZMultiphysicsElement (combined-space material)
+     */
     void SetReferredElement(TPZCompEl *cel)
     {
-        fReferredElement = dynamic_cast<TCOMPEL *>(cel);
-        if(!fReferredElement) DebugStop();
+        if(!dynamic_cast<TPZInterpolationSpace *>(cel) && !dynamic_cast<TPZMultiphysicsElement *>(cel)) DebugStop();
+        fReferredElement = cel;
     }
     
     virtual TPZCompEl *Clone(TPZCompMesh &mesh) const override;
@@ -112,6 +140,12 @@ public:
      * method to extrapolate this information throughout the element subdomain.
      * The final ef vector shall be copied onto the solution vector, as it represents
      * the shape functions multipliers of the extrapolation functions.
+     *
+     * If the referred element is a TPZMultiphysicsElement, the vector of material data is built by the
+     * multiphysics element as in TPZMultiphysicsCompEl::CalcStiff (InitMaterialData, AffineTransform and
+     * ComputeRequiredData at each point), the indices intLocPtIndex and intGlobPtIndex of all the
+     * entries are set from the memory indices of the referred element (GetMemoryIndices) and the
+     * variables are evaluated by TPZMatCombinedSpacesT::Solution(datavec, var, sol).
      */
     virtual void CalcResidual(TPZElementMatrixT<STATE> &ef) override{
         CalcResidualInternal(ef);
@@ -258,8 +292,18 @@ inline void TPZCompElPostProc<TCOMPEL>::CalcResidualInternal(TPZElementMatrixT<T
     
     if(!pPostProcMat) DebugStop();
     
+    // material of a referred TPZInterpolationSpace
     auto* pMaterialRef =
         dynamic_cast<TPZMatSingleSpaceT<STATE>*>(pCompElRef->Material());
+    // material of a referred TPZMultiphysicsElement
+    auto* pMatCombinedRef =
+        dynamic_cast<TPZMatCombinedSpacesT<STATE>*>(pCompElRef->Material());
+    if((pMultiRef && !pMatCombinedRef) || (!pIntSpRef && !pMultiRef))
+    {
+        PZError << "Error at " << __PRETTY_FUNCTION__ << " the referred element must be a TPZInterpolationSpace or "
+                << "a TPZMultiphysicsElement with a combined-space material\n";
+        DebugStop();
+    }
     
     
     if (this->NConnects() == 0) return;///boundary discontinuous elements have this characteristic
@@ -299,6 +343,35 @@ inline void TPZCompElPostProc<TCOMPEL>::CalcResidualInternal(TPZElementMatrixT<T
         return;
     }
     
+    // Referred multiphysics element: vector of material data of the atomic spaces, built as in
+    // TPZMultiphysicsCompEl::CalcStiff, affine transforms to the atomic elements and memory indices
+    TPZManVector<TPZMaterialDataT<STATE>,4> datavecRef;
+    TPZManVector<TPZTransform<>,4> trvecRef;
+    TPZManVector<int64_t,64> memIndices;
+    if(pMultiRef)
+    {
+        const int64_t nref = pMultiRef->NMeshes();
+        datavecRef.resize(nref);
+        // InitMaterialData of the atomic elements and FillDataRequirements of the material
+        pMultiRef->InitMaterialData(datavecRef);
+        for(int64_t iref = 0; iref < nref; iref++)
+        {
+            TPZInterpolationSpace *msp = dynamic_cast<TPZInterpolationSpace *>(pMultiRef->Element(iref));
+            if(!msp) continue;
+            datavecRef[iref].p = msp->MaxOrder();
+            datavecRef[iref].fNeedsSol = true;
+        }
+        pMultiRef->AffineTransform(trvecRef);
+        // memory items of the integration points (empty if the element has no memory)
+        pCompElRef->GetMemoryIndices(memIndices);
+        if(memIndices.size() && memIndices.size() != intrulepoints)
+        {
+            PZError << "Error at " << __PRETTY_FUNCTION__ << " the referred element has " << memIndices.size()
+                    << " memory items and " << intrulepoints << " integration points\n";
+            DebugStop();
+        }
+    }
+    
     int nshape = this->NShapeF();
     TPZFNMatrix<10,STATE> ekTemp(nshape, nshape, 0.);
     
@@ -324,13 +397,19 @@ inline void TPZCompElPostProc<TCOMPEL>::CalcResidualInternal(TPZElementMatrixT<T
         {
             pIntSpRef->ComputeShape(intpointRef,dataRef);
             pIntSpRef->ComputeRequiredData(dataRef, intpointRef);
+            weightRef *= fabs(dataRef.detjac);
         }
         if(pMultiRef)
         {
-            pMultiRef->ComputeRequiredData(dataRef, intpointRef);
+            // local index of the point in the rule of the referred element (the cloned rule has the same points)
+            const int64_t nref = datavecRef.size();
+            for(int64_t iref = 0; iref < nref; iref++) datavecRef[iref].intLocPtIndex = int_ind;
+            pMultiRef->ComputeRequiredData(intpointRef, trvecRef, datavecRef);
+            // global index of the memory item of the point (-1 without memory)
+            const int64_t globindex = memIndices.size() ? memIndices[int_ind] : -1;
+            for(int64_t iref = 0; iref < nref; iref++) datavecRef[iref].intGlobPtIndex = globindex;
         }
         weight    *= fabs(data.detjac);
-        weightRef *= fabs(dataRef.detjac);
         
 //        if(pIntSpRef)
 //        {
@@ -345,7 +424,7 @@ inline void TPZCompElPostProc<TCOMPEL>::CalcResidualInternal(TPZElementMatrixT<T
         // stacking the solutions to post process.
 #ifdef PZ_LOG
         TPZLogger pzcompelpostproclogger("pz.mesh.TPZCompElPostProc");
-        if(pzcompelpostproclogger.isDebugEnabled())
+        if(pIntSpRef && pzcompelpostproclogger.isDebugEnabled())
         {
             std::stringstream sout;
             sout << "Integration point " << int_ind << " x = " << dataRef.x << " GradSol = " << dataRef.dsol[0] ;
@@ -361,10 +440,17 @@ inline void TPZCompElPostProc<TCOMPEL>::CalcResidualInternal(TPZElementMatrixT<T
 
             // diferenca entre variavel de interpolacao e variavel de elemento
             if (variableindex < 99) {
-                pMaterialRef->Solution(dataRef, variableindex, Sol);
+                if(pMultiRef) pMatCombinedRef->Solution(datavecRef, variableindex, Sol);
+                else pMaterialRef->Solution(dataRef, variableindex, Sol);
             }
             else {
                 pCompElRef->Solution(intpointRef, variableindex, Sol);
+            }
+            if(pMultiRef && Sol.size() < nsolvars)
+            {
+                PZError << "Error at " << __PRETTY_FUNCTION__ << " variable " << variableindex << " returned "
+                        << Sol.size() << " values instead of " << nsolvars << "\n";
+                DebugStop();
             }
 
 #ifdef PZ_LOG
@@ -384,6 +470,16 @@ inline void TPZCompElPostProc<TCOMPEL>::CalcResidualInternal(TPZElementMatrixT<T
         pPostProcMat->Contribute(data,weight,ekTemp,efTemp);
         
     }//loop over integration points
+    
+    if(pMultiRef)
+    {
+        // as TPZMultiphysicsCompEl::CleanupMaterialData
+        for(int64_t iref = 0; iref < datavecRef.size(); iref++)
+        {
+            TPZInterpolationSpace *msp = dynamic_cast<TPZInterpolationSpace *>(pMultiRef->Element(iref));
+            if(msp) msp->CleanupMaterialData(datavecRef[iref]);
+        }
+    }
     
     TPZFNMatrix<90,STATE> ekCopy(ekTemp);
     

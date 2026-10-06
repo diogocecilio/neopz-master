@@ -153,13 +153,44 @@ class TPZMatPoroElastoPlasticUP : public TPZMatBase<STATE, TPZMatCombinedSpacesT
 
 public:
 
-    /** @brief Post-processing variables (names accepted by VariableIndex in parentheses) */
+    /**
+     * @brief Post-processing variables (names accepted by VariableIndex in parentheses)
+     *
+     * Displacement and pore pressure are interpolated from the solution (datavec). The other variables are
+     * read from the memory item of the integration point, datavec[0].intGlobPtIndex, i.e. they hold the
+     * state of the last converged step; they are defined only at the integration points (at any other
+     * point, intGlobPtIndex < 0, they are zero, as in TPZMatElastoPlastic). They are meant to be projected
+     * on a post-processing mesh with TPZPostProcAnalysis (or written at the points, see the examples of the
+     * article). Signs: stresses and strains are positive in tension, as in the memory; p' and q follow
+     * the soil mechanics convention of the article (p' > 0 in compression).
+     */
     enum ESolutionVar {
         EDisplacement = 1,  ///< displacement vector ("Displacement")
         EPorePressure = 2,  ///< pore pressure ("PorePressure" or "Pressure")
         EDisplacementX = 3, ///< ("DisplacementX")
         EDisplacementY = 4, ///< ("DisplacementY")
-        EDisplacementZ = 5  ///< ("DisplacementZ")
+        EDisplacementZ = 5, ///< ("DisplacementZ")
+        EMeanEffectiveStress = 6,       ///< \f$p'=-\mathrm{tr}\,\sigma'/3\f$ ("MeanEffectiveStress")
+        EDeviatoricStress = 7,          ///< \f$q=\sqrt{3J_2}\f$ of the effective stress ("DeviatoricStress")
+        EEffectiveStressXX = 8,         ///< \f$\sigma'_{xx}\f$ ("EffectiveStressXX")
+        EEffectiveStressYY = 9,         ///< \f$\sigma'_{yy}\f$ ("EffectiveStressYY")
+        EEffectiveStressZZ = 10,        ///< \f$\sigma'_{zz}\f$, hoop stress in axisymmetry ("EffectiveStressZZ")
+        EEffectiveStressXY = 11,        ///< \f$\sigma'_{xy}\f$ ("EffectiveStressXY")
+        EEffectiveStressXZ = 12,        ///< \f$\sigma'_{xz}\f$ ("EffectiveStressXZ")
+        EEffectiveStressYZ = 13,        ///< \f$\sigma'_{yz}\f$ ("EffectiveStressYZ")
+        EPrincipalEffectiveStress = 14, ///< principal effective stresses \f$\sigma'_1\ge\sigma'_2\ge\sigma'_3\f$ (vector, "PrincipalEffectiveStress")
+        EPreconsolidationPressure = 15, ///< \f$p'_c\f$, m_elastoplastic_state.m_hardening ("PreconsolidationPressure")
+        EPlasticType = 16,              ///< 0 elastic, 1 subcritical, 2 supercritical plastic response of the last step ("PlasticType")
+        EVolumetricStrain = 17,         ///< \f$\mathrm{tr}\,\varepsilon\f$ of the total strain (negative in compression, "VolumetricStrain")
+        ESpecificVolume = 18,           ///< specific volume \f$v_0\f$ of the porous law, fmatprop[0] ("SpecificVolume")
+        ETotalStressXX = 19,            ///< total stress \f$\sigma_{xx}=\sigma'_{xx}-\alpha_Bp_w\f$, \f$p_w\f$ of the memory ("TotalStressXX")
+        ETotalStressYY = 20,            ///< ("TotalStressYY")
+        ETotalStressZZ = 21,            ///< ("TotalStressZZ")
+        ETotalStressXY = 22,            ///< ("TotalStressXY")
+        ETotalStressXZ = 23,            ///< ("TotalStressXZ")
+        ETotalStressYZ = 24,            ///< ("TotalStressYZ")
+        EEffectiveStress = 25,          ///< effective stress tensor, 9 components by rows ("EffectiveStress")
+        ETotalStress = 26               ///< total stress tensor \f$\sigma'-\alpha_Bp_wI\f$, 9 components by rows ("TotalStress")
     };
 
     /** @brief Default constructor (plane strain, id 0) */
@@ -273,10 +304,16 @@ public:
     void ContributeBC(const TPZVec<TPZMaterialDataT<STATE>> &datavec, REAL weight, TPZFMatrix<STATE> &ef,
                       TPZBndCondT<STATE> &bc) override;
 
+    /** @brief Index of a post-processing variable (see ESolutionVar) */
     int VariableIndex(const std::string &name) const override;
 
+    /** @brief Number of components of a post-processing variable: 3 for vectors, 9 for tensors, 1 otherwise */
     int NSolutionVariables(int var) const override;
 
+    /**
+     * @brief Value of a post-processing variable (see ESolutionVar); the variables of the integration
+     * points are read from the memory item datavec[0].intGlobPtIndex and are zero if it is negative
+     */
     void Solution(const TPZVec<TPZMaterialDataT<STATE>> &datavec, int var, TPZVec<STATE> &sol) override;
 
     TPZMaterial *NewMaterial() const override;

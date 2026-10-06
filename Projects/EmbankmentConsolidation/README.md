@@ -43,13 +43,15 @@ The class `EmbankmentConsolidation` follows the structure of the NeoPZ examples:
 ## Running
 
 ```
-./EmbankmentConsolidation
+./EmbankmentConsolidation          # CSV files and the VTK series of every converged state
+./EmbankmentConsolidation novtk    # without the VTK series
 ```
 
-The run takes about 34 s: 15 s for the Cam-Clay model, 5 s for the transposed-tangent loading and 14 s for
-the elastic model. The Python script takes 2–3 min. Almost all of the time goes into the skyline LU
-decomposition. The analysis does not renumber the equations, so that the LU without pivoting is stable in
-the undrained steps.
+Without the VTK series the run takes about 34 s: 15 s for the Cam-Clay model, 5 s for the transposed-tangent
+loading and 14 s for the elastic model. The Python script takes 2–3 min. Almost all of the time goes into
+the skyline LU decomposition. The analysis does not renumber the equations, so that the LU without pivoting
+is stable in the undrained steps. The VTK series add about 0.25 s per state (36 states in each of the two
+runs, mostly the NeoPZ graph mesh of the integration point fields), about 18 s in all.
 
 Files written in the working directory (the transposed-tangent run writes none):
 
@@ -65,6 +67,75 @@ Files written in the working directory (the transposed-tangent run writes none):
 
 The FLAC3D markers of Fig. 11 are the digitized histories of the Python package
 (`dados/flac_historicos_digitalizados.json`); they are not written here.
+
+## Viewing the solution in ParaView
+
+The Cam-Clay and the elastic runs write all their 36 converged states with `mcc::TVTKSeries`, in
+`vtk/embankment/` and `vtk/embankment_elastic/` (prefix `embankment` or `embankment_elastic`; 112 files and
+about 18 MB in each directory):
+
+| File | Contents |
+|---|---|
+| `embankment_nodal.vtk.series` → `embankment_nodal.scal_vec.<k>.vtk` | `Displacement` (vector) and `PorePressure` at the nodes, written by the NeoPZ graph mesh of the multiphysics mesh (`TPZAnalysis::DefineGraphMesh`/`PostProcess`) |
+| `embankment_intpoints.vtk.series` → `embankment_intpoints.scal_vec.<k>.vtk` | the variables of the integration points of `TPZMatPoroElastoPlasticUP`, projected element by element on a discontinuous mesh by `TPZPostProcAnalysis` (as in the NeoPZ footing example): `MeanEffectiveStress` p', `DeviatoricStress` q, `PreconsolidationPressure` p_c, `PlasticType` (0 elastic, 1 subcritical, 2 supercritical), `VolumetricStrain` (tr ε, negative in compression), `SpecificVolume`, `EffectiveStressXX/YY/ZZ/XY`, `TotalStressXX/YY/ZZ/XY` (σ' − p_w I), `PrincipalEffectiveStress` (vector σ'1 ≥ σ'2 ≥ σ'3 at the points) and the tensors `EffectiveStress` and `TotalStress` |
+| `embankment_gausspoints.vtk.series` → `embankment_gausspoints.<k>.vtk` | the 1800 integration points as a point cloud with their exact values: p', q, p_c, v0, type and σ' |
+| `embankment_states.csv` | index k of each state with its time t (s) and load factor λ |
+
+The time of the series is the index k of the state: 0 is the geostatic state, 1 to 10 are the undrained
+increments (λ = 0.1 … 1, t = 0) and 11 to 35 the consolidation steps (t = 10^(2 + (k − 11)/4) s, up to
+10⁸ s); `embankment_states.csv` gives t and λ of each k. Stresses are positive in tension (as in NeoPZ);
+p' and q follow the soil mechanics convention (p' > 0 in compression). With 3 × 3 Gauss points the
+projection is biquadratic: its values at the element vertices are the Lagrange extrapolation of the nine
+Gauss values (the interpolation of `mcc::StressAtPoint`), and the jumps between neighbouring elements show
+the discretization error. Being extrapolations, the vertex values can overshoot: the projected `PlasticType`
+is not an integer (it ranges from about −1.9 to 4.4; the point cloud has the type of each point), q can be
+slightly negative, and the projected principal stresses, sorted at the points, can be out of order where two
+of them are close. For the principal values of the extrapolated tensor apply *Filters → Alphabetical →
+Tensor Principal Invariants* (ParaView 5.10 or later) to `EffectiveStress`.
+
+In ParaView (5.5 or later, which reads the `.series` files):
+
+1. *File → Open* `vtk/embankment/embankment_nodal.vtk.series` (open the `.series` file, not the numbered
+   files) and press *Apply*.
+2. Choose the field in the *Coloring* box of the toolbar (`PorePressure`, or `Displacement` with its
+   magnitude or a component) and use *Rescale to data range over all timesteps* for a fixed color scale.
+3. Play the states with the VCR buttons of the *Time* toolbar (*Last Frame* is t = 10⁸ s).
+4. Deformed shape: select the reader and apply *Filters → Alphabetical → Warp By Vector* with
+   *Vectors* = `Displacement` and a *Scale Factor* of 10 to 20 (the settlements are below 0.3 m on a
+   20 m model).
+5. Excess pore pressure (Fig. 12a, b): select the reader (before the warp, so that the coordinates are the
+   undeformed ones) and apply *Filters → Calculator* with *Result Array Name* `ExcessPorePressure` and the
+   expression `PorePressure - 10*(10 - coordsY)`, i.e. p − γ_w (10 − y) kPa.
+6. Integration point fields: open `vtk/embankment/embankment_intpoints.vtk.series` and color by
+   `MeanEffectiveStress`, `DeviatoricStress`, `PreconsolidationPressure`, ... (the type of response of
+   Fig. 12c is shown by the point cloud, item 7).
+   To see them on the deformed mesh, apply *Filters → Resample With Dataset* (source: the nodal reader,
+   destination: the integration point reader) to bring `Displacement` to its points, then *Warp By Vector*.
+7. Point cloud: open `vtk/embankment/embankment_gausspoints.vtk.series`, set *Representation* to
+   *Point Gaussian* (a *Gaussian Radius* of about 0.1 m) and color by `PlasticType`: at the last state the
+   140 subcritical and 32 supercritical points of Fig. 12c appear.
+
+The elastic run (`vtk/embankment_elastic/`) has the same files. The VTK files of the three states of Fig. 12
+listed above are still written in the working directory.
+
+## Figures
+
+```
+python3 <neopz>/Projects/EmbankmentConsolidation/plot_figures.py [run directory] [-o output directory]
+```
+
+Run it after the executable, with the directory of its CSV files (default: the current directory). The figures
+are written as PDF and PNG to `<run directory>/figures` (or to the output directory); Python 3 with numpy and
+matplotlib is needed. A figure whose CSV files are missing is skipped with a message.
+
+| File | Article | Data |
+|---|---|---|
+| `fig10_embankment_model` | Fig. 10: mesh, load, drained top, boundary conditions, settlement points and the zones pp1, pp2 | `embankment_nodal_undrained.csv` (vertices of the mesh) |
+| `fig11_embankment_history` | Fig. 11: (a) settlements at x = 0, 2, 4, 6 m and (b) pore pressures pp1, pp2 from t = 0 to 10⁸ s, with the inset of pp2 against log t (Mandel–Cryer effect); markers: FLAC3D | `embankment_history.csv`, `reference/flac_historicos_digitalizados.json` |
+| `fig12_embankment_fields` | Fig. 12: excess pore pressure at the end of the undrained loading (a) and at t = 10⁶ s (b), plastic integration points (c) and settlement (d) at t = 10⁸ s | `embankment_nodal_{undrained,t1e6,t1e8}.csv`, `embankment_gauss_t1e8.csv` |
+
+The script draws the three states of the article; the fields of all 36 converged states are in the VTK series
+(see *Viewing the solution in ParaView*).
 
 ## Results
 

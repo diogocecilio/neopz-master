@@ -21,6 +21,23 @@ settlement of the top and pore pressures at the vertices of x = 0), `terzaghi_fi
 column for the four times, numerical and exact), `terzaghi_fig6b.csv` (degree of consolidation),
 `terzaghi_table5.csv`, and VTK files of the nodal fields at the four times.
 
+## Figures
+
+```
+python3 <neopz>/Projects/TerzaghiConsolidation/plot_figures.py [run directory] [-o output directory]
+```
+
+Run it after the executable, with the directory of its CSV files (default: the current directory). The figures
+are written as PDF and PNG to `<run directory>/figures` (or to the output directory); Python 3 with numpy and
+matplotlib is needed.
+
+| File | Article | Data |
+|---|---|---|
+| `fig06_terzaghi_consolidation` | Fig. 6: (a) p_w/q along the column at x = 0 for T = 0.001, 0.01, 0.1 and 0.5 with the exact series solution; (b) degree of consolidation U = w/w∞ against T = c_v t/H² with the exact solution | `terzaghi_fig6a.csv`, `terzaghi_fig6b.csv`, `terzaghi_q8q4_history.csv`, `terzaghi_hex20hex8_history.csv` |
+
+The script also prints the largest error of p_w at each time and compares the Hex20–Hex8 history with the Q8–Q4
+one.
+
 ## Results (Table 5)
 
 | T | 0.001 | 0.01 | 0.1 | 0.5 |

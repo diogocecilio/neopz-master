@@ -87,6 +87,23 @@ The program takes no arguments and writes its files to the current directory. It
 
 `<state>` is `NC` or `OCR5`, and `<integration>` is `exact` or `frozen`.
 
+## Figures
+
+```
+python3 <neopz>/Projects/FrozenBulkModulus/plot_figures.py [run directory] [-o output directory]
+```
+
+Run it after the executable, with the directory of its CSV files (default: the current directory). The figures
+are written as PDF and PNG to `<run directory>/figures` (or to the output directory); Python 3 with numpy and
+matplotlib is needed.
+
+The article has no figure for this example (Table 3 only); the script draws a supplementary figure, labelled as
+not in the article:
+
+| File | Content | Data |
+|---|---|---|
+| `supplementary_table03_frozen_bulk_modulus` | exact integration against frozen bulk modulus versus the number of increments n (10 … 1600), NC and OCR = 5: (a) drained, largest error in q; (b) drained, mean local iterations; (c) undrained, largest error in p'; (d) undrained, mean local iterations. Table 3 holds the drained NC curves of (a) and (b) and the frozen curves of (c); crosses mark the frozen NC drained tests without solution (n ≤ 15) | `frozen_runs.csv` |
+
 ## Results
 
 The program prints each value of this work with the reference in brackets. The reference is the

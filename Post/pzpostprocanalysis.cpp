@@ -572,6 +572,12 @@
 #include "TPZRefCube.h"
 #include "tpzcube.h"
 #include "pzelctemp.h"
+#include "TPZMatCombinedSpaces.h"
+
+#include <algorithm>
+#include <cmath>
+#include <memory>
+#include <vector>
 
 #ifdef PZ_LOG
 static TPZLogger PPAnalysisLogger ( "pz.analysis.postproc" );
@@ -678,6 +684,59 @@ void TPZPostProcAnalysis::SetPostProcessVariables ( TPZVec<int> & matIds, TPZVec
         pcPostProcMesh->ExpandSolution();
 }
 
+/**
+ * @brief Verifies that the integration rule of a multiphysics element with memory (GetIntegrationRule, cloned
+ * by the post-processing element) is the rule of its assembly and of its memory
+ *
+ * TPZMultiphysicsCompEl::CalcStiff and CalcResidual integrate with the rule of the interior side of the
+ * geometric element whose order is chosen by the material (IntegrationRuleOrder of the maximum orders of the
+ * atomic spaces), and the material reads the memory item intGlobPtIndex = memory index of the point
+ * intLocPtIndex of that rule. The post-processing must therefore use the same points in the same order;
+ * the memory indices must be one per point. An element without memory imposes no condition: its variables
+ * are computed from the solution, at the points of any rule.
+ */
+static void CheckMultiphysicsIntegrationRule ( TPZMultiphysicsElement *celmf )
+{
+        TPZManVector<int64_t,64> memindices;
+        celmf->GetMemoryIndices ( memindices );
+        if ( memindices.size() == 0 ) return;
+        auto *mat = dynamic_cast<TPZMatCombinedSpaces *> ( celmf->Material() );
+        TPZGeoEl *gel = celmf->Reference();
+        if ( !mat || !gel ) {
+                PZError << "Error at " << __PRETTY_FUNCTION__ << " multiphysics element without combined-space material\n";
+                DebugStop();
+        }
+        TPZManVector<int,4> ordervec;
+        for ( int64_t iref = 0; iref < celmf->NMeshes(); iref++ ) {
+                TPZInterpolationSpace *msp = dynamic_cast<TPZInterpolationSpace *> ( celmf->Element ( iref ) );
+                if ( !msp ) continue;
+                ordervec.Resize ( ordervec.size() +1 );
+                ordervec[ordervec.size()-1] = msp->MaxOrder();
+        }
+        const int order = mat->IntegrationRuleOrder ( ordervec );
+        std::unique_ptr<TPZIntPoints> assemblyrule ( gel->CreateSideIntegrationRule ( gel->NSides()-1, order ) );
+        TPZManVector<int,3> orderdim ( gel->Dimension(), order );
+        assemblyrule->SetOrder ( orderdim );
+        const TPZIntPoints &elrule = celmf->GetIntegrationRule();
+        bool same = assemblyrule->NPoints() == elrule.NPoints();
+        TPZManVector<REAL,3> pa ( gel->Dimension(),0. ), pb ( gel->Dimension(),0. );
+        REAL wa, wb;
+        for ( int ip = 0; same && ip < elrule.NPoints(); ip++ ) {
+                assemblyrule->Point ( ip, pa, wa );
+                elrule.Point ( ip, pb, wb );
+                REAL diff = std::fabs ( wa-wb );
+                for ( int d = 0; d < gel->Dimension(); d++ ) diff += std::fabs ( pa[d]-pb[d] );
+                if ( diff > 1.e-12 ) same = false;
+        }
+        if ( !same || memindices.size() != elrule.NPoints() ) {
+                PZError << "Error at " << __PRETTY_FUNCTION__ << " element " << celmf->Index()
+                        << ": the integration rule of the multiphysics element (" << elrule.NPoints()
+                        << " points) is not the rule of its assembly (" << assemblyrule->NPoints()
+                        << " points) or of its memory (" << memindices.size() << " items)\n";
+                DebugStop();
+        }
+}
+
 void TPZPostProcAnalysis::AutoBuildDisc()
 {
         TPZAdmChunkVector<TPZGeoEl *> &elvec = Mesh()->Reference()->ElementVec();
@@ -685,8 +744,10 @@ void TPZPostProcAnalysis::AutoBuildDisc()
         int neltocreate = 0;
 
         // build a data structure indicating which geometric elements will be post processed
+        // (in the order of the geometric mesh, so that the post-processing elements and the graphical
+        // output follow that order)
         fpMainMesh->LoadReferences();
-        std::map<TPZGeoEl *,TPZCompEl *> geltocreate;
+        std::vector<std::pair<TPZGeoEl *,TPZCompEl *> > geltocreate;
         TPZCompMesh * pcPostProcMesh = this->Mesh();
         for ( i=0; i<nelem; i++ ) {
                 TPZGeoEl * gel = elvec[i];
@@ -704,7 +765,7 @@ void TPZPostProcAnalysis::AutoBuildDisc()
                 }
 
                 if ( gel->Reference() ) {
-                        geltocreate[elvec[i]] = gel->Reference();
+                        geltocreate.push_back ( std::make_pair ( elvec[i], gel->Reference() ) );
                 }
         }
         Mesh()->Reference()->ResetReference();
@@ -716,8 +777,7 @@ void TPZPostProcAnalysis::AutoBuildDisc()
         if ( neltocreate > nbl ) Mesh()->Block().SetNBlocks ( neltocreate );
         Mesh()->Block().SetNBlocks ( nbl );
 
-        std::map<TPZGeoEl *, TPZCompEl *>::iterator it;
-        for ( it=geltocreate.begin(); it!= geltocreate.end(); it++ ) {
+        for ( auto it=geltocreate.begin(); it!= geltocreate.end(); it++ ) {
                 TPZGeoEl *gel = it->first;
                 if ( !gel ) continue;
                 int matid = gel->MaterialId();
@@ -731,25 +791,39 @@ void TPZPostProcAnalysis::AutoBuildDisc()
                 if ( !celpost ) DebugStop();
                 TPZCompEl *celref = it->second;
                 int nc = cel->NConnects();
-                int ncref = celref->NConnects();
                 TPZInterpolationSpace *celspace = dynamic_cast<TPZInterpolationSpace *> ( cel );
                 TPZInterpolationSpace *celrefspace = dynamic_cast<TPZInterpolationSpace *> ( celref );
-                int porder;
-                if ( !celrefspace ) {
-                        TPZMultiphysicsElement *celrefmf = dynamic_cast<TPZMultiphysicsElement *> ( celref );
-                        if ( celrefmf ) {
-                                celrefspace = dynamic_cast<TPZInterpolationSpace *> ( celrefmf->Element ( 0 ) );
-                        } else {
-                                DebugStop();
-                        }
-                }
-                celpost->fReferredElement = celrefspace;
-
+                TPZMultiphysicsElement *celrefmf = dynamic_cast<TPZMultiphysicsElement *> ( celref );
+                int porder = -1;
                 if ( celrefspace ) {
                         porder = celrefspace->GetPreferredOrder();
+                } else if ( celrefmf ) {
+                        // the multiphysics element itself is referred: its material (a combined-space material,
+                        // possibly with memory) evaluates the variables from the data of all the atomic spaces.
+                        // The order of the projection starts from the highest order of the atomic spaces.
+                        for ( int64_t iref = 0; iref < celrefmf->NMeshes(); iref++ ) {
+                                TPZInterpolationSpace *msp = dynamic_cast<TPZInterpolationSpace *> ( celrefmf->Element ( iref ) );
+                                if ( msp ) porder = std::max ( porder, msp->GetPreferredOrder() );
+                        }
+                        CheckMultiphysicsIntegrationRule ( celrefmf );
                 } else {
                         DebugStop();
                 }
+                if ( porder < 1 ) DebugStop();
+                celpost->fReferredElement = celref;
+
+                const TPZIntPoints &intruleref = celref->GetIntegrationRule();
+                // The element-wise L2 projection (TPZCompElPostProc::CalcResidual) is singular when the element
+                // has more shape functions than integration points (e.g. quadratic elements with 2 x 2 or
+                // 2 x 2 x 2 points): the order is reduced until the number of shape functions does not exceed
+                // the number of points. With n x n (x n) Gauss points the order n-1 gives the full tensor
+                // product space, and the projection is the Lagrange interpolation of the values at the points.
+                auto nshapeorder = [&] ( int order ) {
+                        int nshape = 0;
+                        for ( int ic=0; ic<nc; ic++ ) nshape += celspace->NConnectShapeF ( ic,order );
+                        return nshape;
+                };
+                while ( porder > 1 && nshapeorder ( porder ) > intruleref.NPoints() ) porder--;
 
                 celspace->SetPreferredOrder ( porder );
                 for ( int ic=0; ic<nc; ic++ ) {
@@ -758,8 +832,6 @@ void TPZPostProcAnalysis::AutoBuildDisc()
                         cel->Connect ( ic ).SetNShape ( nshape );
                 }
 
-                TPZIntPoints &intrule = celspace->GetIntegrationRule();
-                const TPZIntPoints &intruleref = celref->GetIntegrationRule();
                 TPZIntPoints * cloned_rule = intruleref.Clone();
                 cel->SetIntegrationRule ( cloned_rule );
 

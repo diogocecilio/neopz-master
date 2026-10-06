@@ -56,4 +56,27 @@
  * Each project is a class written in the style of the NeoPZ examples (geometric mesh, computational
  * meshes, analysis with structural matrix and solver, incremental solution and post-processing). The
  * projects are built with -DBUILD_PLASTICITY_MATERIALS=ON -DBUILD_PROJECTS=ON.
+ *
+ * @section mccpaper_paraview Viewing the solution in ParaView
+ *
+ * EmbankmentConsolidation and AbaqusTriaxialConsolidation write every converged state (every increment
+ * or time step) as VTK file series with mcc::TVTKSeries, one directory per run under vtk/ (the command
+ * line argument novtk skips them):
+ *  - \<prefix\>_nodal.vtk.series: displacement and pore pressure at the nodes, written by the native graph
+ *    mesh of the multiphysics mesh (TPZAnalysis::DefineGraphMesh once, SetStep and PostProcess per state);
+ *  - \<prefix\>_intpoints.vtk.series: the variables of the integration points of TPZMatPoroElastoPlasticUP
+ *    (TPZMatPoroElastoPlasticUP::ESolutionVar: p', q, p_c, type of response, volumetric strain, specific
+ *    volume, effective and total stresses, principal effective stresses), projected element by element on a
+ *    discontinuous mesh by TPZPostProcAnalysis, as in the footing example of NeoPZ (SetPostProcessVariables
+ *    once, TransferSolution and PostProcess per state);
+ *  - \<prefix\>_gausspoints.vtk.series: the integration points as a point cloud (mcc::WriteGaussPointsVTK);
+ *  - \<prefix\>_states.csv: the time, load factor or displacement of each state.
+ *
+ * The .series files (JSON, "file-series-version" 1.0) give ParaView the time of each file. TPZPostProcAnalysis
+ * supports a TPZMultiphysicsCompMesh whose material is a combined-space material with memory: each
+ * post-processing element (TPZCompElPostProc) refers to the multiphysics element, builds the vector of
+ * material data of the atomic spaces as TPZMultiphysicsCompEl::CalcStiff does, sets the memory index of each
+ * integration point and calls TPZMatCombinedSpacesT::Solution. Its order is n-1 for n x n (x n) Gauss points,
+ * so the projection is the Lagrange extrapolation of the integration point values (the interpolation of
+ * mcc::StressAtPoint). The READMEs of the two projects describe the files and the steps in ParaView.
  */

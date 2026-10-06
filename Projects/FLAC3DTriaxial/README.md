@@ -24,8 +24,24 @@ with `TPZSkylineNSymStructMatrix` and `TPZStepSolver` LU, increments and post-pr
 ./FLAC3DTriaxial
 ```
 
-Run time: about 2 s. Files: `flac3d_<test>.csv` (ε_a, p', q, v, u for Fig. 5), `flac3d_<test>.vtk`
+Run time: about 2 s. Files: `flac3d_<test>.csv` (ε_a, p', q, v, u for Fig. 5), `flac3d_<test>.scal_vec.0.vtk`
 (nodal fields) and `flac3d_<test>_gauss.vtk` (state of the integration points).
+
+## Figures
+
+```
+python3 <neopz>/Projects/FLAC3DTriaxial/plot_figures.py [run directory] [-o output directory]
+```
+
+Run it after the executable, with the directory of its CSV files (default: the current directory). The figures
+are written as PDF and PNG to `<run directory>/figures` (or to the output directory); Python 3 with numpy and
+matplotlib is needed.
+
+| File | Article | Data |
+|---|---|---|
+| `fig05_flac3d_triaxial` | Fig. 5: drained (a, b) and undrained (c, d) tests with R = 1.6 and R = 8, q–ε_a and stress paths p'–q with the CSL and the initial yield surface; dashed lines: closed-form solutions; squares: FLAC3D final states (Table 4) | `flac3d_<drained\|undrained>_R<1.6\|8>.csv` |
+
+The script also prints the final states, the peaks and the closed-form values at the same ε_a.
 
 ## Results (final states, p', q and u in kPa)
 

@@ -83,6 +83,20 @@ article reference values, which are hard-coded in `RS2Triaxial::Cases()` and `RS
 
 Fig. 4 plots q against `eps_q` in panels (a-d) and `eps_v` against `eps_a` in panels (e-h).
 
+## Figures
+
+```
+python3 <neopz>/Projects/RS2Triaxial/plot_figures.py [run directory] [-o output directory]
+```
+
+Run it after the executable, with the directory of its CSV files (default: the current directory). The figures
+are written as PDF and PNG to `<run directory>/figures` (or to the output directory); Python 3 with numpy and
+matplotlib is needed.
+
+| File | Article | Data |
+|---|---|---|
+| `fig04_rs2_triaxial` | Fig. 4: q against ε_q (a–d) and ε_v against ε_a (e–h) for NC with constant ν, NC with constant G, OCR = 2 and OCR = 5: this work with 400 increments, closed form and the digitized RS2 curves (Figs. 8.5–8.8 of the RS2 manual) | `rs2_<case>_n400.csv`, `rs2_<case>_closed.csv`, `reference/rs2_fig85_88_digitized.json` |
+
 ## Results compared with the reference
 
 The reference values come from the Python transcription (`gen_data.py rs2`) and from the article (Table 2, the

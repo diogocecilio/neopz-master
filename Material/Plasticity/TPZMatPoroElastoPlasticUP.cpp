@@ -14,7 +14,9 @@
 #include "TPZHash.h"
 #include "TPZStream.h"
 #include "pzerror.h"
+#include <algorithm>
 #include <cmath>
+#include <map>
 #include <memory>
 
 template <class T, class TMEM>
@@ -358,13 +360,82 @@ void TPZMatPoroElastoPlasticUP<T, TMEM>::ContributeBCInternal(const TPZVec<TPZMa
     }
 }
 
+namespace {
+/**
+ * @brief Eigenvalues of a symmetric tensor (cyclic Jacobi rotations, accurate also for repeated
+ * eigenvalues), sorted in decreasing order
+ */
+void SortedEigenvalues(const TPZTensor<REAL> &t, REAL eig[3]) {
+    REAL a[3][3] = {{t.XX(), t.XY(), t.XZ()}, {t.XY(), t.YY(), t.YZ()}, {t.XZ(), t.YZ(), t.ZZ()}};
+    for (int sweep = 0; sweep < 50; ++sweep) {
+        const REAL off = std::fabs(a[0][1]) + std::fabs(a[0][2]) + std::fabs(a[1][2]);
+        const REAL diag = std::fabs(a[0][0]) + std::fabs(a[1][1]) + std::fabs(a[2][2]);
+        if (off <= 1.e-15 * diag || off < 1.e-300) break;
+        for (int p = 0; p < 2; ++p) {
+            for (int q = p + 1; q < 3; ++q) {
+                if (a[p][q] == 0.) continue;
+                // rotation that annihilates a[p][q]
+                const REAL theta = (a[q][q] - a[p][p]) / (2. * a[p][q]);
+                const REAL tt = (theta >= 0. ? 1. : -1.) / (std::fabs(theta) + std::sqrt(theta * theta + 1.));
+                const REAL c = 1. / std::sqrt(tt * tt + 1.), sn = tt * c;
+                for (int k = 0; k < 3; ++k) { // columns p and q
+                    const REAL akp = a[k][p], akq = a[k][q];
+                    a[k][p] = c * akp - sn * akq;
+                    a[k][q] = sn * akp + c * akq;
+                }
+                for (int k = 0; k < 3; ++k) { // rows p and q
+                    const REAL apk = a[p][k], aqk = a[q][k];
+                    a[p][k] = c * apk - sn * aqk;
+                    a[q][k] = sn * apk + c * aqk;
+                }
+            }
+        }
+    }
+    for (int i = 0; i < 3; ++i) eig[i] = a[i][i];
+    std::sort(eig, eig + 3, [](REAL x, REAL y) { return x > y; });
+}
+
+/** @brief Components of a tensor by rows (XX XY XZ, XY YY YZ, XZ YZ ZZ) */
+void TensorRows(const TPZTensor<REAL> &t, TPZVec<STATE> &sol) {
+    sol.Resize(9);
+    sol[0] = t.XX(); sol[1] = t.XY(); sol[2] = t.XZ();
+    sol[3] = t.XY(); sol[4] = t.YY(); sol[5] = t.YZ();
+    sol[6] = t.XZ(); sol[7] = t.YZ(); sol[8] = t.ZZ();
+}
+} // namespace
+
 template <class T, class TMEM>
 int TPZMatPoroElastoPlasticUP<T, TMEM>::VariableIndex(const std::string &name) const {
-    if (name == "Displacement") return EDisplacement;
-    if (name == "PorePressure" || name == "Pressure") return EPorePressure;
-    if (name == "DisplacementX") return EDisplacementX;
-    if (name == "DisplacementY") return EDisplacementY;
-    if (name == "DisplacementZ") return EDisplacementZ;
+    static const std::map<std::string, int> names = {
+        {"Displacement", EDisplacement},
+        {"PorePressure", EPorePressure},
+        {"Pressure", EPorePressure},
+        {"DisplacementX", EDisplacementX},
+        {"DisplacementY", EDisplacementY},
+        {"DisplacementZ", EDisplacementZ},
+        {"MeanEffectiveStress", EMeanEffectiveStress},
+        {"DeviatoricStress", EDeviatoricStress},
+        {"EffectiveStressXX", EEffectiveStressXX},
+        {"EffectiveStressYY", EEffectiveStressYY},
+        {"EffectiveStressZZ", EEffectiveStressZZ},
+        {"EffectiveStressXY", EEffectiveStressXY},
+        {"EffectiveStressXZ", EEffectiveStressXZ},
+        {"EffectiveStressYZ", EEffectiveStressYZ},
+        {"PrincipalEffectiveStress", EPrincipalEffectiveStress},
+        {"PreconsolidationPressure", EPreconsolidationPressure},
+        {"PlasticType", EPlasticType},
+        {"VolumetricStrain", EVolumetricStrain},
+        {"SpecificVolume", ESpecificVolume},
+        {"TotalStressXX", ETotalStressXX},
+        {"TotalStressYY", ETotalStressYY},
+        {"TotalStressZZ", ETotalStressZZ},
+        {"TotalStressXY", ETotalStressXY},
+        {"TotalStressXZ", ETotalStressXZ},
+        {"TotalStressYZ", ETotalStressYZ},
+        {"EffectiveStress", EEffectiveStress},
+        {"TotalStress", ETotalStress}};
+    auto it = names.find(name);
+    if (it != names.end()) return it->second;
     return TBase::VariableIndex(name);
 }
 
@@ -372,13 +443,13 @@ template <class T, class TMEM>
 int TPZMatPoroElastoPlasticUP<T, TMEM>::NSolutionVariables(int var) const {
     switch (var) {
     case EDisplacement:
+    case EPrincipalEffectiveStress:
         return 3;
-    case EPorePressure:
-    case EDisplacementX:
-    case EDisplacementY:
-    case EDisplacementZ:
-        return 1;
+    case EEffectiveStress:
+    case ETotalStress:
+        return 9;
     default:
+        if (var >= EPorePressure && var <= ETotalStressYZ) return 1;
         return TBase::NSolutionVariables(var);
     }
 }
@@ -392,22 +463,75 @@ void TPZMatPoroElastoPlasticUP<T, TMEM>::Solution(const TPZVec<TPZMaterialDataT<
     case EDisplacement:
         sol.Resize(3);
         for (int i = 0; i < 3; ++i) sol[i] = (i < dim) ? u[i] : 0.;
-        break;
+        return;
     case EPorePressure:
         sol.Resize(1);
         sol[0] = datavec[1].sol[0][0];
-        break;
+        return;
     case EDisplacementX:
     case EDisplacementY:
     case EDisplacementZ: {
         const int c = var - EDisplacementX;
         sol.Resize(1);
         sol[0] = (c < dim) ? u[c] : 0.;
-        break;
+        return;
     }
     default:
+        break;
+    }
+    if (var < EMeanEffectiveStress || var > ETotalStress) {
         sol.Resize(NSolutionVariables(var));
         sol.Fill(0.);
+        return;
+    }
+    // variables of the integration points: state of the last converged step in the memory
+    sol.Resize(NSolutionVariables(var));
+    sol.Fill(0.);
+    const int64_t gp = datavec[0].intGlobPtIndex;
+    if (gp < 0 || gp >= int64_t(this->GetMemory()->NElements())) return;
+    const TMEM &mem = this->MemItem(gp);
+    const TPZTensor<REAL> &sig = mem.m_sigma;
+    const auto &state = mem.m_elastoplastic_state;
+    // total stress with the pore pressure of the point (compression positive)
+    TPZTensor<REAL> total(sig);
+    for (int i : {_XX_, _YY_, _ZZ_}) total[i] -= fAlpha * state.fpressure;
+    // Voigt index of TPZTensor of the components XX, YY, ZZ, XY, XZ, YZ
+    static const int comp[6] = {_XX_, _YY_, _ZZ_, _XY_, _XZ_, _YZ_};
+    switch (var) {
+    case EMeanEffectiveStress:
+        sol[0] = -sig.I1() / 3.;
+        break;
+    case EDeviatoricStress:
+        sol[0] = std::sqrt(3. * std::max(REAL(0.), sig.J2()));
+        break;
+    case EPrincipalEffectiveStress: {
+        REAL eig[3];
+        SortedEigenvalues(sig, eig);
+        for (int i = 0; i < 3; ++i) sol[i] = eig[i];
+        break;
+    }
+    case EPreconsolidationPressure:
+        sol[0] = state.m_hardening;
+        break;
+    case EPlasticType:
+        sol[0] = state.m_m_type;
+        break;
+    case EVolumetricStrain:
+        sol[0] = state.m_eps_t.I1();
+        break;
+    case ESpecificVolume:
+        sol[0] = state.fmatprop.size() ? state.fmatprop[0] : 0.;
+        break;
+    case EEffectiveStress:
+        TensorRows(sig, sol);
+        break;
+    case ETotalStress:
+        TensorRows(total, sol);
+        break;
+    default:
+        if (var >= EEffectiveStressXX && var <= EEffectiveStressYZ) sol[0] = sig[comp[var - EEffectiveStressXX]];
+        else if (var >= ETotalStressXX && var <= ETotalStressYZ) sol[0] = total[comp[var - ETotalStressXX]];
+        break;
     }
 }
 

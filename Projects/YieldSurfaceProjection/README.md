@@ -92,6 +92,23 @@ The class `YieldSurfaceProjection` keeps the structure of the other examples: th
 All curves match the arrays of `fig_surface.py` within the 12 significant digits written to the CSV files. The
 largest absolute difference is 5e-10 kPa.
 
+## Figures
+
+```
+python3 <neopz>/Projects/YieldSurfaceProjection/plot_figures.py [run directory] [-o output directory]
+```
+
+Run it after the executable, with the directory of its CSV files (default: the current directory). The figures
+are written as PDF and PNG to `<run directory>/figures` (or to the output directory); Python 3 with numpy and
+matplotlib is needed.
+
+| File | Article | Data |
+|---|---|---|
+| `fig01_mcc_surface` | Fig. 1: MCC yield surface with the critical state circle, (a) principal stresses (compression axes), (b) RHW space | `fig1_surface.csv`, `fig1_critical_state_circle.csv` |
+| `fig02_meridian_projection` | Fig. 2: closest-point projection in the meridian plane, (a) subcritical, (b) supercritical | `fig2a_subcritical_*.csv`, `fig2b_supercritical_*.csv`, `fig2_critical_state_line.csv` |
+
+The script is a port of `fig_surface()` and `fig_meridian()` of `fig_surface.py` that reads the CSV files.
+
 ## Results compared with the article and the Python code
 
 ### Fig. 1

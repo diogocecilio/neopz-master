@@ -3,8 +3,8 @@
  * @brief Utilities shared by the examples of the article "Return mapping for Modified Cam-Clay
  * plasticity in rotated Haigh-Westergaard space with consistent tangent operator and coupled u-p
  * consolidation": structured meshes (Q8-Q4, Hex20-Hex8), atomic and multiphysics computational meshes,
- * post-processing at the integration points, material point drivers and the closed-form solutions of
- * Appendix B.
+ * post-processing at the integration points, VTK file series of every converged state for ParaView
+ * (TVTKSeries), material point drivers and the closed-form solutions of Appendix B.
  *
  * The functions mirror the routines of the Python transcription of the Wolfram Language packages
  * (fe_user.py, camclay_hw.py): SubdivideQuadMesh, BoxMesh3D, QuarterCylinderMesh, LocatePoint,
@@ -33,6 +33,8 @@
 #include "TPZPlasticStepModifiedCamClay.h"
 #include "TPZMatPoroElastoPlasticUP.h"
 #include "TPZPoroElastoPlasticUPAnalysis.h"
+#include "pzpostprocanalysis.h"
+#include "pzfstrmatrix.h"
 
 #include <vector>
 #include <map>
@@ -44,6 +46,9 @@
 #include <functional>
 #include <algorithm>
 #include <numeric>
+#include <memory>
+#include <string>
+#include <filesystem>
 
 /**
  * @ingroup mccpaper
@@ -603,6 +608,215 @@ inline void WriteCSV(const std::string &file, const std::vector<std::string> &he
     for (auto &r : rows)
         for (size_t i = 0; i < r.size(); ++i) out << r[i] << (i + 1 < r.size() ? "," : "\n");
 }
+
+/**
+ * @brief Restores the references of a geometric mesh when it goes out of scope
+ *
+ * TPZPostProcAnalysis (SetCompMesh, SetPostProcessVariables, TransferSolution and its destructor) resets and
+ * loads the references of the geometric mesh (TPZGeoEl::Reference and TPZGeoMesh::Reference). The guard saves
+ * them at construction and restores them at destruction, so that the post-processing leaves the geometric
+ * mesh exactly as it found it.
+ */
+class TReferenceGuard {
+public:
+    /** @brief Saves the references of the elements of gmesh and of gmesh itself */
+    explicit TReferenceGuard(TPZGeoMesh *gmesh) : fGMesh(gmesh), fMesh(gmesh->Reference()) {
+        fRefs.resize(gmesh->NElements(), nullptr);
+        for (int64_t i = 0; i < gmesh->NElements(); ++i)
+            if (TPZGeoEl *gel = gmesh->Element(i)) fRefs[i] = gel->Reference();
+    }
+    /** @brief Restores the saved references */
+    ~TReferenceGuard() {
+        fGMesh->SetReference(fMesh);
+        for (int64_t i = 0; i < fGMesh->NElements() && i < int64_t(fRefs.size()); ++i)
+            if (TPZGeoEl *gel = fGMesh->Element(i)) gel->SetReference(fRefs[i]);
+    }
+    TReferenceGuard(const TReferenceGuard &) = delete;
+    TReferenceGuard &operator=(const TReferenceGuard &) = delete;
+
+private:
+    TPZGeoMesh *fGMesh;
+    TPZCompMesh *fMesh;
+    std::vector<TPZCompEl *> fRefs;
+};
+
+/**
+ * @brief Writes a ParaView file series (JSON, "\<file\>.vtk.series")
+ * @param file name of the series file
+ * @param names names of the data files, relative to the directory of the series file
+ * @param times time of each data file (shown by ParaView in the time controls)
+ */
+inline void WriteFileSeries(const std::string &file, const std::vector<std::string> &names,
+                            const std::vector<REAL> &times) {
+    std::ofstream out(file);
+    out << "{\n  \"file-series-version\" : \"1.0\",\n  \"files\" : [\n" << std::setprecision(15);
+    for (size_t i = 0; i < names.size() && i < times.size(); ++i)
+        out << "    { \"name\" : \"" << names[i] << "\", \"time\" : " << times[i] << " }"
+            << (i + 1 < names.size() ? "," : "") << "\n";
+    out << "  ]\n}\n";
+}
+
+/**
+ * @brief VTK output of every converged state of a u-p run, as ParaView file series
+ *
+ * Built once per run, after the multiphysics mesh and the memory of the integration points are initialized,
+ * and destroyed before the meshes. Each call of Write (one per converged state k = 0, 1, ...) writes in the
+ * directory of the run (created with std::filesystem):
+ *  - \<name\>_nodal.scal_vec.\<k\>.vtk: Displacement (vector) and PorePressure at the nodes, written by the native
+ *    graph mesh of the multiphysics mesh (TPZAnalysis::DefineGraphMesh once, SetStep and PostProcess for each
+ *    state); the graph mesh belongs to an analysis object of its own, so that it is independent of other
+ *    post-processing calls on the analysis that solves the problem (e.g. WriteNodalVTK);
+ *  - \<name\>_intpoints.scal_vec.\<k\>.vtk: the variables of the integration points of TPZMatPoroElastoPlasticUP
+ *    (IntegrationPointVariables) projected element by element on a discontinuous mesh by TPZPostProcAnalysis,
+ *    as in the footing example of NeoPZ (SetPostProcessVariables once, TransferSolution and PostProcess for
+ *    each state). The order of the projection is n-1 for n x n (x n) Gauss points, so the nodal values are
+ *    the Lagrange extrapolation of the values at the points (the interpolation of StressAtPoint). Being
+ *    extrapolated, the vertex values can overshoot: PlasticType is not an integer there and the principal
+ *    stresses, sorted at the points, can be out of order where two of them are close;
+ *  - \<name\>_gausspoints.\<k\>.vtk: the integration points as a point cloud (WriteGaussPointsVTK), optional;
+ *  - \<name\>_nodal.vtk.series, \<name\>_intpoints.vtk.series and \<name\>_gausspoints.vtk.series: ParaView file
+ *    series with the time of each file (rewritten after each state, so that an interrupted run is readable);
+ *  - \<name\>_states.csv: index k of the state, series time and the values given to Write.
+ *
+ * The output does not change the analysis: the solution and the memory are only read, and the references
+ * of the geometric mesh are restored after each operation (TReferenceGuard).
+ */
+class TVTKSeries {
+public:
+    /**
+     * @brief Creates the directory, the graph mesh of the nodal fields and the post-processing mesh
+     * @param mphys multiphysics mesh of the run
+     * @param mat u-p material (its id selects the elements of the post-processing mesh)
+     * @param dir directory of the files (created if it does not exist)
+     * @param name prefix of the file names
+     * @param timename name of the series time in the CSV file of the states
+     * @param columns names of the values given to Write (columns of the CSV file of the states)
+     * @param gausspoints also write the point cloud of the integration points
+     * @param resolution resolution of the graph meshes (0: vertices of the elements; r: 2^r subdivisions per side)
+     */
+    TVTKSeries(TPZMultiphysicsCompMesh *mphys, TPoroMaterial *mat, const std::string &dir, const std::string &name,
+               const std::string &timename, const std::vector<std::string> &columns = {}, bool gausspoints = true,
+               int resolution = 0)
+        : fMPhys(mphys), fMat(mat), fDir(dir), fName(name), fTimeName(timename), fColumns(columns),
+          fGaussPoints(gausspoints), fResolution(resolution), fDim(mat->Dimension()) {
+        std::filesystem::create_directories(fDir);
+        TReferenceGuard guard(mphys->Reference());
+        // nodal fields: native graph mesh of the multiphysics mesh (no renumbering of the equations)
+        fNodal = std::make_unique<TPZLinearAnalysis>(mphys, false);
+        TPZManVector<std::string, 1> scal(1, "PorePressure"), vec(1, "Displacement");
+        fNodal->DefineGraphMesh(fDim, scal, vec, Path("_nodal.vtk"));
+        // integration point fields: post-processing mesh of TPZPostProcAnalysis (footing example)
+        TPZManVector<std::string, 32> scalip, vecip, tensip, all;
+        IntegrationPointVariables(fDim, scalip, vecip, tensip);
+        for (auto *names : {&scalip, &vecip, &tensip})
+            for (int i = 0; i < names->size(); ++i) {
+                all.Resize(all.size() + 1);
+                all[all.size() - 1] = (*names)[i];
+            }
+        TPZManVector<int, 1> matids(1, mat->Id());
+        fPost = std::make_unique<TPZPostProcAnalysis>();
+        fPost->SetCompMesh(mphys);
+        fPost->SetPostProcessVariables(matids, all);
+        TPZFStructMatrix<STATE> sm(fPost->Mesh());
+        sm.SetNumThreads(0);
+        fPost->SetStructuralMatrix(sm);
+        fPost->DefineGraphMesh(fDim, scalip, vecip, tensip, Path("_intpoints.vtk"));
+    }
+
+    /** @brief Deletes the post-processing analyses (before the meshes) and restores the references */
+    ~TVTKSeries() {
+        TReferenceGuard guard(fMPhys->Reference());
+        fPost.reset();
+        fNodal.reset();
+    }
+
+    TVTKSeries(const TVTKSeries &) = delete;
+    TVTKSeries &operator=(const TVTKSeries &) = delete;
+
+    /**
+     * @brief Writes the files of the current state (solution loaded in the mesh, memory of the converged step)
+     * @param time time of the state in the file series
+     * @param values values of the columns of the CSV file of the states
+     */
+    void Write(REAL time, const std::vector<REAL> &values = {}) {
+        const int k = static_cast<int>(fTimes.size());
+        {
+            TReferenceGuard guard(fMPhys->Reference());
+            fNodal->SetStep(k);
+            fNodal->PostProcess(fResolution, fDim);
+            fPost->TransferSolution();
+            fPost->SetStep(k);
+            fPost->PostProcess(fResolution, fDim);
+        }
+        if (fGaussPoints) WriteGaussPointsVTK(fMat, fMPhys, fDir + "/" + GaussPointsFile(k));
+        fTimes.push_back(time);
+        fValues.push_back(values);
+        // file series and table of the states, rewritten after each state
+        std::vector<std::string> nodal, intpoints, gauss;
+        for (int i = 0; i <= k; ++i) {
+            nodal.push_back(fName + "_nodal.scal_vec." + std::to_string(i) + ".vtk");
+            intpoints.push_back(fName + "_intpoints.scal_vec." + std::to_string(i) + ".vtk");
+            gauss.push_back(GaussPointsFile(i));
+        }
+        WriteFileSeries(Path("_nodal.vtk.series"), nodal, fTimes);
+        WriteFileSeries(Path("_intpoints.vtk.series"), intpoints, fTimes);
+        if (fGaussPoints) WriteFileSeries(Path("_gausspoints.vtk.series"), gauss, fTimes);
+        std::vector<std::string> header = {"index", fTimeName};
+        header.insert(header.end(), fColumns.begin(), fColumns.end());
+        std::vector<std::vector<REAL>> rows;
+        for (int i = 0; i <= k; ++i) {
+            rows.push_back({REAL(i), fTimes[i]});
+            rows.back().insert(rows.back().end(), fValues[i].begin(), fValues[i].end());
+        }
+        WriteCSV(Path("_states.csv"), header, rows);
+    }
+
+    /** @brief Number of states written */
+    int NStates() const { return static_cast<int>(fTimes.size()); }
+
+    /** @brief Directory of the files */
+    const std::string &Directory() const { return fDir; }
+
+    /**
+     * @brief Variables of TPZMatPoroElastoPlasticUP written at the integration points: scalars (p', q, pc, type of
+     * response, volumetric strain, specific volume and the components of the effective and total stresses;
+     * XZ and YZ only in 3D), vectors (principal effective stresses) and tensors (effective and total stress)
+     */
+    static void IntegrationPointVariables(int dim, TPZVec<std::string> &scal, TPZVec<std::string> &vec,
+                                          TPZVec<std::string> &tens) {
+        std::vector<std::string> s = {"MeanEffectiveStress", "DeviatoricStress", "PreconsolidationPressure",
+                                      "PlasticType", "VolumetricStrain", "SpecificVolume"};
+        std::vector<std::string> comps = {"XX", "YY", "ZZ", "XY"};
+        if (dim == 3) comps.insert(comps.end(), {"XZ", "YZ"});
+        for (const char *stress : {"EffectiveStress", "TotalStress"})
+            for (auto &c : comps) s.push_back(stress + c);
+        scal.Resize(s.size());
+        for (size_t i = 0; i < s.size(); ++i) scal[i] = s[i];
+        vec.Resize(1);
+        vec[0] = "PrincipalEffectiveStress";
+        tens.Resize(2);
+        tens[0] = "EffectiveStress";
+        tens[1] = "TotalStress";
+    }
+
+private:
+    /** @brief Path of a file of the run: directory, prefix and suffix */
+    std::string Path(const std::string &suffix) const { return fDir + "/" + fName + suffix; }
+    /** @brief Name of the point cloud of the state k */
+    std::string GaussPointsFile(int k) const { return fName + "_gausspoints." + std::to_string(k) + ".vtk"; }
+
+    TPZMultiphysicsCompMesh *fMPhys;
+    TPoroMaterial *fMat;
+    std::string fDir, fName, fTimeName;
+    std::vector<std::string> fColumns;
+    bool fGaussPoints;
+    int fResolution;
+    int fDim;
+    std::unique_ptr<TPZLinearAnalysis> fNodal;  ///< analysis of the graph mesh of the nodal fields
+    std::unique_ptr<TPZPostProcAnalysis> fPost; ///< projection of the integration point variables
+    std::vector<REAL> fTimes;                   ///< series time of each state
+    std::vector<std::vector<REAL>> fValues;     ///< values of each state for the CSV file
+};
 
 /** @brief Deletes a multiphysics mesh, its atomic meshes and the geometric mesh */
 inline void DeleteMeshes(TPZMultiphysicsCompMesh *mphys) {
