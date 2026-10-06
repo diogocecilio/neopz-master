@@ -9,7 +9,14 @@ list(APPEND PZ_PUBLIC_HEADERS
     "${CMAKE_CURRENT_SOURCE_DIR}/material/doxmaterial.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/solver/doxsolver.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/shape/doxshape.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/mccpaper/doxmccpaper.h"
     )
+
+#the examples of the Modified Cam-Clay u-p article (Projects folder)
+if(BUILD_PROJECTS)
+    file(GLOB MCC_PAPER_HEADERS "${PROJECT_SOURCE_DIR}/Projects/Common/*.h" "${PROJECT_SOURCE_DIR}/Projects/*/*.h")
+    list(APPEND PZ_PUBLIC_HEADERS ${MCC_PAPER_HEADERS})
+endif()
 
 if(DOXYGEN_ADD_ALL)
     list(APPEND PZ_PUBLIC_HEADERS ${pz_sources})#this is valid just for this scope

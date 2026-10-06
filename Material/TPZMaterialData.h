@@ -135,10 +135,10 @@ public:
 
     /** @brief Index of the current integration point being evaluated **/
     /** Needed for materials with memory **/
-    int intLocPtIndex;
+    int intLocPtIndex{-1};
     
     /** @brief global point index */
-    int intGlobPtIndex;
+    int intGlobPtIndex{-1};
     
     /** @brief Number of points in the integration rule */
     int NintPts;

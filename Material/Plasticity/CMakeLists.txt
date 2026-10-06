@@ -65,6 +65,10 @@ set(headers
     TPZPlasticStepVoigt.h
     TPZYCMohrCoulombPV2.h
     TPZYCTrescaVoigt.h
+    TPZYCModifiedCamClayRHW.h
+    TPZPlasticStepModifiedCamClay.h
+    TPZMatPoroElastoPlasticUP.h
+    TPZPoroElastoPlasticUPAnalysis.h
     )
 
 set(sources
@@ -116,6 +120,10 @@ set(sources
     TPZPlasticStepVoigt.cpp
     TPZYCMohrCoulombPV2.cpp
     TPZYCTrescaVoigt.cpp
+    TPZYCModifiedCamClayRHW.cpp
+    TPZPlasticStepModifiedCamClay.cpp
+    TPZMatPoroElastoPlasticUP.cpp
+    TPZPoroElastoPlasticUPAnalysis.cpp
     )
 
 set(PZ_FIX_PLASTIC_TRANSLATORS OFF)
@@ -181,5 +189,12 @@ endif()
 
 
 install(FILES ${headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Material/REAL/Plasticity)
+
+#for doxygen: Modified Cam-Clay model, u-p material and incremental driver of the MCC u-p article
+foreach(header TPZYCModifiedCamClayRHW.h TPZPlasticStepModifiedCamClay.h TPZMatPoroElastoPlasticUP.h
+               TPZPoroElastoPlasticUPAnalysis.h)
+    list(APPEND PZ_PUBLIC_HEADERS " ${CMAKE_CURRENT_SOURCE_DIR}/${header}")
+endforeach()
+set(PZ_PUBLIC_HEADERS ${PZ_PUBLIC_HEADERS} PARENT_SCOPE)
 
 target_sources(pz PRIVATE ${headers} ${sources})

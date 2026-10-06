@@ -1,31 +1,53 @@
-# NeoPZ Examples
-This repository aims to illustrate the functionalities available in the [NeoPZ](https://github.com/labmec/neopz) library and to provide a short tutorial for introducing the most used classes in the library.
+# Examples of the Modified Cam-Clay u–p article
 
+This folder contains one project per numerical example of the article
 
-## Usage
-First, install NeoPZ according to the instructions in the GitHub repository.
+> D. Lira Cecílio, *Return mapping for Modified Cam-Clay plasticity in rotated Haigh–Westergaard space
+> with consistent tangent operator and coupled u–p consolidation*.
 
-Then, this project can be configured through CMake. Since some projects rely on graphical output in the `vtk` format, it is recommended to use [Paraview](https://www.paraview.org/) for visualization.
+The examples are the C++/NeoPZ counterparts of the Python transcription of the Wolfram Language packages
+(`camclay_hw.py` = `camclay-perf.m`, `fe_user.py` = `poro-camclay-fem.m`, drivers `gen_data.py`,
+`gen_data3d.py`, `aterro_elastic.py` and `fig_surface.py`). They reproduce the numbers of the Python code to
+round-off and the tables of the article.
 
-## Examples
-### Special Maps
+| Project | Article | Python driver |
+|---|---|---|
+| [YieldSurfaceProjection](YieldSurfaceProjection) | Figs. 1 and 2 | `fig_surface.py` |
+| [TaylorTest](TaylorTest) | Sect. 4.5, Fig. 3 | `gen_data.py taylor` |
+| [RS2Triaxial](RS2Triaxial) | Sect. 6.1, Fig. 4, Table 2 | `gen_data.py rs2` |
+| [FrozenBulkModulus](FrozenBulkModulus) | Sect. 6.1, Table 3 | `gen_data.py frozen` |
+| [FLAC3DTriaxial](FLAC3DTriaxial) | Sect. 6.2, Fig. 5, Table 4 | `gen_data.py itasca` |
+| [TerzaghiConsolidation](TerzaghiConsolidation) | Sect. 6.3, Fig. 6, Table 5 | `gen_data.py terzaghi`, `gen_data3d.py` |
+| [AbaqusTriaxialConsolidation](AbaqusTriaxialConsolidation) | Sects. 6.4 and 6.6, Figs. 7–9, Tables 6 and 8 | `gen_data.py abaqus abaqus_mp abaqus_states`, `gen_data3d.py` |
+| [EmbankmentConsolidation](EmbankmentConsolidation) | Sect. 6.5, Figs. 10–12, Table 7 | `gen_data.py aterro`, `aterro_elastic.py` |
 
-This sample project is used for demonstrating some of the unusual special geometrical mappings available in NeoPZ. It also shows how even these curved elements can be geometrically refined. It relies on graphical output.
+## Library classes (Material/Plasticity)
 
-### F17 Directional Refinement
+| Class | Role | Article / WL routines |
+|---|---|---|
+| `TPZYCModifiedCamClayRHW` | yield function, hardening law, local residuals, Jacobian, Newton projection and Jacobian of the projection | (11)–(13), (17)–(22), (A.1); `HardeningCC`, `PhiCC`, `ResCC`, `JacCC`, `dResdTrialCC`, `ProjectHWCC`, `GradCC` |
+| `TPZPlasticStepModifiedCamClay` | elastic predictor with the porous law, spectral decomposition, stress update and consistent tangent (also a linear elastic option) | Algorithm 1, (8)–(10), (14)–(16); `TrialStressCC`, `ProjectStressCC`, `ComputedDep` |
+| `TPZMatPoroElastoPlasticUP` | multiphysics u–p material with memory, plane strain / axisymmetry / 3D with the six-row operator | (24)–(28); `ComputeBN`, `ContributePorous`, `ContributePlasticity` |
+| `TPZPoroElastoPlasticUPAnalysis` | incremental Newton driver with time step, load factor, controlled displacement, bisection and reactions | Sect. 5.4; `SolveStepUP`, `AdvanceUP`, `IterativeProcessUP`, `ReactionByMarker` |
 
- This project used a F17 aircraft as a model to demonstrate the capabilities of automatic directional refinement in NeoPZ. These capabilities might be useful, for instance, in the case of boundary layer analysis, hence the chosen example. The program first builds a mesh modelling the *outside* of the aircraft, and the aircraft is part of the boundary of the created mesh. Then, through sucessive iterations, it models the boundary layer of the jet. It relies on graphical output.
+`Common/MCCPaperTools.h` gathers the utilities shared by the projects: structured Q8–Q4 and Hex20–Hex8 meshes
+(including the quarter cylinder with quadratic geometry), the displacement (serendipity), pore pressure and
+multiphysics meshes, output at the integration points, interpolation of the stress at a point, material point
+drivers and the closed-form solutions of Appendix B.
 
-## Tutorials 
-### Poisson2D
+Each project is written as a class in the style of the NeoPZ examples (the `Footing` class): geometric mesh,
+computational meshes, analysis with structural matrix (`TPZSkylineNSymStructMatrix`) and solver
+(`TPZStepSolver`, LU), incremental solution and post-processing (CSV files with the data of the figures and VTK
+files of the nodal fields and of the integration points).
 
-Solve the Poisson equation in a bidimensional domain and performs error analysis.
+## Building and running
 
-### HCurlProjection
+```
+cmake -DBUILD_PLASTICITY_MATERIALS=ON -DBUILD_PROJECTS=ON -DCMAKE_BUILD_TYPE=Release <path to neopz>
+make -j 4
+./Projects/AbaqusTriaxialConsolidation/AbaqusTriaxialConsolidation
+```
 
-Projects a given analytic solution on a HCurl-conforming approximation space and performs error analysis.
-
-### HCurl3D
-
-Solves a simple model problem in a threedimensional domain using HCurl-conforming elements.
-Illustrates how to read a mesh from [gmsh](https://gmsh.info/)
+The executables write their files in the current directory and print the comparison of their results with
+the values of the article. The documentation of the classes is generated with `-DBUILD_DOCS=ON` (Doxygen
+group *Examples of the Modified Cam-Clay u-p article*).

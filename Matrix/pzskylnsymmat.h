@@ -211,10 +211,12 @@ int ClassId() const override;
   */
   static void ComputeMaxSkyline(const TPZSkylNSymMatrix &first, const TPZSkylNSymMatrix &second, TPZVec<int64_t> &res);
 	
-	/** @brief Zeroes the matrix */
+	/** @brief Zeroes the matrix (and resets the decomposition flag, so that a matrix assembled
+	 * after Zero() is decomposed again) */
 	virtual int Zero() override {
 		fStorage.Fill(0.);
         fStorageb.Fill(0.);
+        this->fDecomposed = 0;
 		return 1;
     }
 

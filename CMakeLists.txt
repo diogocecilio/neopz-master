@@ -198,8 +198,9 @@ if(BUILD_PUBLICATIONS)
     add_subdirectory(Publications)
 endif()
 
-#To building all the specific projects developed with PZ environment
-option(BUILD_PROJECTS "To build projects using NeoPZ." OFF)
+#To build the examples of the Modified Cam-Clay paper (Projects folder, one executable per example).
+#They require the plasticity materials (BUILD_PLASTICITY_MATERIALS=ON).
+option(BUILD_PROJECTS "To build the examples of the Modified Cam-Clay u-p paper (Projects folder)." ON)
 
 #To building all the performance projects developed with PZ environment
 option(BUILD_PERF_TESTS "To build the performance test." OFF)
@@ -310,7 +311,6 @@ add_subdirectory(SubStruct)
 add_subdirectory(Random)
 add_subdirectory(Optimization)
 add_subdirectory(Exception)
-add_subdirectory(Projects2)
 #uncomment the following line to be scared
 #message(${PZ_PUBLIC_HEADERS})
 #############INSTALL#############
@@ -365,8 +365,12 @@ include(cmake/add_pz_target.cmake)
 include(cmake/check_pz_opt.cmake)
 
 if(BUILD_PROJECTS)
-  include(cmake/EnableNeoPZExamples.cmake)
-  enable_neopzexamples()
+  if(BUILD_PLASTICITY_MATERIALS)
+    add_subdirectory(Projects)
+  else()
+    message(STATUS "BUILD_PROJECTS: the examples of the Modified Cam-Clay paper need "
+                   "BUILD_PLASTICITY_MATERIALS=ON; the Projects folder is not built.")
+  endif()
 endif()
 
 if(BUILD_UNITTESTING)
