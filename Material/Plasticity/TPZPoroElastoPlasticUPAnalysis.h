@@ -34,13 +34,16 @@ class TPZMultiphysicsCompMesh;
  * (1e-8); at least one correction is always performed. If the iterations do not converge (25) or the
  * local projection fails at an integration point, the increment is bisected (up to 8 levels).
  * The memory of the integration points is updated only after convergence (AcceptSolution).
+ * The convergence records of the converged increments are kept in StepLog; the total work, the iterations
+ * of the failed attempts included, is counted by NGlobalIterations and NBisections (Table 10 of the
+ * article).
  *
  * The equations of the Dirichlet conditions are eliminated from the linear systems with the equation
  * filter of the structural matrix (TPZEquationFilter) and their values are written in the solution before
  * the iterations, as in the reference implementation (SetEliminateDirichlet). The norms of the residual
  * and of the external forces are computed in the nodal basis of the serendipity element
  * (SetNodalResidualNorm), so that the normalized residual and the number of iterations are those of the
- * article (Table 8).
+ * article (Table 9).
  *
  * The analysis is built without bandwidth optimization (the constructor passes
  * mustOptimizeBandwidth = false), so that the pressure equations are numbered after the displacement
@@ -176,9 +179,59 @@ public:
     /** @brief State of the last converged increment */
     const TLoadState &CurrentState() const { return fCurrent; }
 
-    /** @brief Convergence records of all converged increments */
+    /**
+     * @brief Convergence records of all converged increments
+     *
+     * The number of evaluations of a converged (sub)increment is the size of fResiduals (the iteration in
+     * which convergence is detected included); the attempts that failed and were bisected are not recorded
+     * (see NGlobalIterations for the total work).
+     */
     const std::vector<TStepLog> &StepLog() const { return fStepLog; }
+    /** @brief Clears the convergence records (the counters NGlobalIterations and NBisections are not changed) */
     void ClearStepLog() { fStepLog.clear(); }
+    /** @} */
+
+    /** @name Work counters (Table 10 of the article; itcount and ncut of fe_user.py) */
+    /** @{ */
+    /**
+     * @brief Number of global Newton iterations since the construction or the last ResetCounters
+     *
+     * One iteration is counted each time SolveStep assembles the tangent and the residual
+     * (the counter itcount of solve_step in fe_user.py is incremented at the same place), so that the count
+     * includes:
+     *  - the iteration in which convergence is detected (no linear system is solved in it);
+     *  - all the iterations of the attempts that do not converge in the maximum number of iterations and are
+     *    bisected;
+     *  - the iteration in which the local projection fails at some integration point (which aborts the
+     *    attempt; no residual is recorded in the step log for it).
+     *
+     * An attempt whose residual is not finite is abandoned at once; solve_step of fe_user.py has no such
+     * test and keeps iterating, the only difference between the counting rules of the two codes.
+     *
+     * The iterations of the converged (sub)increments are also recorded in the step log (StepLog,
+     * MeanEvaluations of MCCPaperTools.h): NGlobalIterations() minus the sum of the sizes of the residual
+     * records is the work lost in failed attempts. The assemblies that only update the memory
+     * (AcceptSolution) or compute reactions are not counted. The counter accumulates over several calls of
+     * Run (e.g. undrained loading followed by consolidation).
+     */
+    int64_t NGlobalIterations() const { return fNGlobalIterations; }
+
+    /**
+     * @brief Number of (sub)increments that did not converge since the construction or the last
+     * ResetCounters (counter ncut of advance in fe_user.py)
+     *
+     * Incremented by AdvanceStep each time SolveStep fails, before the level check: when the analysis
+     * succeeds it is the number of bisections (each failed (sub)increment is split into two halves);
+     * when an increment fails at the maximum bisection level, that last failure is also counted, as in
+     * fe_user.py.
+     */
+    int64_t NBisections() const { return fNBisections; }
+
+    /** @brief Sets NGlobalIterations and NBisections to zero */
+    void ResetCounters() {
+        fNGlobalIterations = 0;
+        fNBisections = 0;
+    }
     /** @} */
 
     /** @name Post-processing helpers */
@@ -263,6 +316,10 @@ protected:
     TPZFMatrix<STATE> fConverged;
     TLoadState fCurrent;
     std::vector<TStepLog> fStepLog;
+    /** @brief Global Newton iterations, failed attempts included (NGlobalIterations) */
+    int64_t fNGlobalIterations = 0;
+    /** @brief Failed (sub)increments (NBisections) */
+    int64_t fNBisections = 0;
 };
 
 #endif

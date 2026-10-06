@@ -336,6 +336,7 @@ bool TPZPoroElastoPlasticUPAnalysis::SolveStep(const TLoadState &s0, const TLoad
     ImposeDirichletValues(sol);
 
     for (int it = 1; it <= fMaxIt; ++it) {
+        fNGlobalIterations++; // every assembly of the iterations, failed attempts included (itcount)
         LoadSolution(sol);
         fMat->ResetFailedProjections();
         Assemble();
@@ -392,6 +393,7 @@ bool TPZPoroElastoPlasticUPAnalysis::AdvanceStep(const TLoadState &s0, const TLo
         return true;
     }
     LoadSolution(fConverged);
+    fNBisections++; // counted before the level check, as ncut in fe_user.py
     if (level >= fMaxBisections) return false;
     nbisect++;
     TLoadState mid((s0.fTime + s1.fTime) / 2., (s0.fLambda + s1.fLambda) / 2., (s0.fUc + s1.fUc) / 2.);

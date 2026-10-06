@@ -61,13 +61,38 @@ void Jacobi3(REAL A[3][3], REAL V[3][3]) {
 } // namespace
 
 TPZPlasticStepModifiedCamClay::TPZPlasticStepModifiedCamClay()
-    : fYC(), fER(), fModel(EModifiedCamClay), fShear(EPoisson), fG(0.), fNu(0.3), fV0Default(2.), fTransposed(false),
-      fN(), fSigma(), fLastNewtonIterations(0), fFailed(false) {
+    : fYC(), fER(), fModel(EModifiedCamClay), fShear(EPoisson), fG(0.), fNu(0.3), fV0Default(2.),
+      fTangentMode(EConsistentTangent), fFDStep(1.e-7), fN(), fSigma(), fLastNewtonIterations(0), fFailed(false) {
+}
+
+const char *TPZPlasticStepModifiedCamClay::TangentModeName(ETangentMode mode) {
+    switch (mode) {
+    case EConsistentTangent:
+        return "D";
+    case ETransposedTangent:
+        return "DT";
+    case ESymmetricTangent:
+        return "sym";
+    case EContinuumTangent:
+        return "cont";
+    case EFiniteDifferenceTangent:
+        return "fd";
+    }
+    return "unknown";
 }
 
 void TPZPlasticStepModifiedCamClay::SetModifiedCamClay(REAL M, REAL lambda, REAL kappa, REAL pt, REAL omega) {
     fModel = EModifiedCamClay;
     fYC.SetUp(M, lambda, kappa, pt, omega);
+}
+
+void TPZPlasticStepModifiedCamClay::SetFiniteDifferenceStep(REAL h) {
+    if (!(h > 0.) || !std::isfinite(h)) {
+        std::cout << __PRETTY_FUNCTION__ << " invalid step h = " << h << " (it must be positive and finite)"
+                  << std::endl;
+        DebugStop();
+    }
+    fFDStep = h;
 }
 
 void TPZPlasticStepModifiedCamClay::SetLinearElastic(REAL E, REAL nu) {
@@ -213,8 +238,142 @@ void TPZPlasticStepModifiedCamClay::ComputedDep(const TPZFMatrix<REAL> &Dproj,
     }
 }
 
+void TPZPlasticStepModifiedCamClay::ContinuumTangent(const TPZTensor<REAL> &sigma, REAL pc, REAL v0,
+                                                     TPZFMatrix<REAL> &Dc) const {
+    // moduli at the state (continuum_tangent of camclay_hw.py)
+    const REAL p = sigma.I1() / 3.;
+    const bool linear = fYC.VolumetricLaw() == TPZYCModifiedCamClayRHW::ELinear;
+    const REAL K = linear ? fYC.K0() : -v0 * p / fYC.Kappa();
+    const REAL G = (fShear == EConstantG) ? fG : 3. * (1. - 2. * fNu) / (2. * (1. + fNu)) * K;
+    TPZFNMatrix<36, REAL> C(6, 6, 0.);
+    ElasticOperator(K, G, C);
+    // gradient of the yield function in engineering form (shear components doubled)
+    const REAL omega = fYC.Omega(), pt = fYC.Pt(), M2 = fYC.M() * fYC.M();
+    const REAL a = (pc + pt) / (1. + omega);
+    const REAL pbar = p - pt + a;
+    const REAL b = (pbar >= 0.) ? 1. : omega;
+    const REAL b2 = b * b;
+    REAL n[6];
+    for (int k = 0; k < 6; ++k) {
+        const bool diag = (k == _XX_ || k == _YY_ || k == _ZZ_);
+        const REAL sk = diag ? sigma[k] - p : sigma[k];
+        n[k] = (diag ? 2. * pbar / (3. * b2) : 0.) + 3. * sk / M2;
+        if (!diag) n[k] *= 2.;
+    }
+    // hardening: dPhi/da and da/dgamma (dal = -2 dgamma pbar/b^2)
+    const REAL H = v0 * pc / ((fYC.Lambda() - fYC.Kappa()) * (1. + omega));
+    const REAL dphida = 2. * pbar / b2 - 2. * a;
+    const REAL dadg = -H * 2. * pbar / b2;
+    REAL Cn[6], nC[6], nCn = 0.;
+    for (int l = 0; l < 6; ++l) {
+        Cn[l] = 0.;
+        nC[l] = 0.;
+        for (int k = 0; k < 6; ++k) {
+            Cn[l] += C.GetVal(l, k) * n[k];
+            nC[l] += n[k] * C.GetVal(k, l);
+        }
+    }
+    for (int k = 0; k < 6; ++k) nCn += n[k] * Cn[k];
+    const REAL den = nCn - dphida * dadg;
+    Dc.Redim(6, 6);
+    for (int l = 0; l < 6; ++l)
+        for (int k = 0; k < 6; ++k) Dc(l, k) = C.GetVal(l, k) - Cn[l] * nC[k] / den;
+}
+
+bool TPZPlasticStepModifiedCamClay::FiniteDifferenceTangent(const TPZTensor<REAL> &epsTotal,
+                                                            const TPZTensor<REAL> &sigman, TPZFMatrix<REAL> &Dfd) {
+    // the object is restored after the 12 updates
+    const TPZPlasticState<REAL> N(fN);
+    const TPZElasticResponse ER(fER);
+    const TPZTensor<REAL> sig(fSigma);
+    const int nit = fLastNewtonIterations;
+    const bool failed = fFailed;
+    const REAL h = fFDStep;
+    Dfd.Redim(6, 6);
+    bool ok = true;
+    for (int k = 0; k < 6 && ok; ++k) {
+        TPZTensor<REAL> sp, sm;
+        for (int sign = 0; sign < 2 && ok; ++sign) {
+            TPZTensor<REAL> eps(epsTotal);
+            eps[k] += (sign == 0) ? h : -h;
+            TPZTensor<REAL> &s = (sign == 0) ? sp : sm;
+            s = sigman;
+            fN = N;
+            StressUpdate(eps, s, nullptr);
+            if (fFailed) ok = false;
+        }
+        if (!ok) break;
+        for (int l = 0; l < 6; ++l) Dfd(l, k) = (sp[l] - sm[l]) / (2. * h);
+    }
+    fN = N;
+    fER = ER;
+    fSigma = sig;
+    fLastNewtonIterations = nit;
+    fFailed = failed;
+    return ok;
+}
+
 void TPZPlasticStepModifiedCamClay::ApplyStrainComputeSigma(const TPZTensor<REAL> &epsTotal, TPZTensor<REAL> &sigma,
                                                             TPZFMatrix<REAL> *tangent) {
+    if (!tangent || fModel == ELinearElastic || fTangentMode == EConsistentTangent) {
+        StressUpdate(epsTotal, sigma, tangent);
+        return;
+    }
+    // converged state, stress and elastic response, for the finite differences and the failure case
+    const TPZPlasticState<REAL> N0(fN);
+    const TPZElasticResponse ER0(fER);
+    const TPZTensor<REAL> sigma0(fSigma);
+    const TPZTensor<REAL> sigman(sigma);
+    StressUpdate(epsTotal, sigma, tangent);
+    if (fFailed) return;
+    TPZFMatrix<REAL> &D = *tangent;
+    switch (fTangentMode) {
+    case EConsistentTangent:
+        break;
+    case ETransposedTangent: {
+        TPZFNMatrix<36, REAL> Dt;
+        D.Transpose(&Dt);
+        D = Dt;
+        break;
+    }
+    case ESymmetricTangent: {
+        TPZFNMatrix<36, REAL> Ds(6, 6, 0.);
+        for (int l = 0; l < 6; ++l)
+            for (int k = 0; k < 6; ++k) Ds(l, k) = 0.5 * (D.GetVal(l, k) + D.GetVal(k, l));
+        D = Ds;
+        break;
+    }
+    case EContinuumTangent:
+        if (fN.m_m_type != 0) ContinuumTangent(sigma, fN.m_hardening, SpecificVolume(), D);
+        break;
+    case EFiniteDifferenceTangent: {
+        // the extra updates start from the converged state of the point
+        const TPZPlasticState<REAL> N1(fN);
+        fN = N0;
+        TPZFNMatrix<36, REAL> Dfd(6, 6, 0.);
+        const bool ok = FiniteDifferenceTangent(epsTotal, sigman, Dfd);
+        fN = N1;
+        if (ok) {
+            D = Dfd;
+            break;
+        }
+        // failure of an extra update: the call fails as a whole (state, stress and elastic response unchanged)
+        fN = N0;
+        fER = ER0;
+        fSigma = sigma0;
+        fFailed = true;
+        sigma = sigman;
+        TPZTensor<REAL> sigtr;
+        REAL Ktr, G;
+        TrialStress(epsTotal - N0.m_eps_t, sigman, SpecificVolume(), sigtr, Ktr, G);
+        ElasticOperator(Ktr, G, D);
+        break;
+    }
+    }
+}
+
+void TPZPlasticStepModifiedCamClay::StressUpdate(const TPZTensor<REAL> &epsTotal, TPZTensor<REAL> &sigma,
+                                                 TPZFMatrix<REAL> *tangent) {
     fFailed = false;
     fLastNewtonIterations = 0;
     const TPZTensor<REAL> sigman(sigma);
@@ -344,11 +503,6 @@ void TPZPlasticStepModifiedCamClay::ApplyStrainComputeSigma(const TPZTensor<REAL
         const REAL M = fYC.M();
         const REAL ratio = 1. / (1. + 6. * G * X[3] / (M * M));
         ComputedDep(Dproj, vecs, Ktr, G, ratio, *tangent);
-        if (fTransposed) {
-            TPZFNMatrix<36, REAL> Dt;
-            tangent->Transpose(&Dt);
-            *tangent = Dt;
-        }
     }
 
     if (validER) fER.SetEngineeringData(Eq, nuq);
@@ -386,7 +540,7 @@ void TPZPlasticStepModifiedCamClay::Print(std::ostream &out) const {
     out << Name() << "\n model = " << (fModel == EModifiedCamClay ? "Modified Cam-Clay" : "linear elastic")
         << "\n shear = " << (fShear == EConstantG ? "constant G = " : "Poisson nu = ")
         << (fShear == EConstantG ? fG : fNu) << "\n default v0 = " << fV0Default
-        << "\n transposed tangent = " << fTransposed << "\n";
+        << "\n tangent mode = " << TangentModeName(fTangentMode) << " (finite difference step " << fFDStep << ")\n";
     fYC.Print(out);
     fER.Print(out);
     fN.Print(out);
@@ -399,13 +553,14 @@ int TPZPlasticStepModifiedCamClay::ClassId() const {
 void TPZPlasticStepModifiedCamClay::Write(TPZStream &buf, int withclassid) const {
     fYC.Write(buf, withclassid);
     fER.Write(buf, withclassid);
-    int model = fModel, shear = fShear, transp = fTransposed;
+    int model = fModel, shear = fShear, mode = fTangentMode;
     buf.Write(&model);
     buf.Write(&shear);
     buf.Write(&fG);
     buf.Write(&fNu);
     buf.Write(&fV0Default);
-    buf.Write(&transp);
+    buf.Write(&mode);
+    buf.Write(&fFDStep);
     fN.Write(buf, withclassid);
     fSigma.Write(buf, withclassid);
 }
@@ -413,16 +568,17 @@ void TPZPlasticStepModifiedCamClay::Write(TPZStream &buf, int withclassid) const
 void TPZPlasticStepModifiedCamClay::Read(TPZStream &buf, void *context) {
     fYC.Read(buf, context);
     fER.Read(buf, context);
-    int model, shear, transp;
+    int model, shear, mode;
     buf.Read(&model);
     buf.Read(&shear);
     buf.Read(&fG);
     buf.Read(&fNu);
     buf.Read(&fV0Default);
-    buf.Read(&transp);
+    buf.Read(&mode);
+    buf.Read(&fFDStep);
     fModel = EModel(model);
     fShear = EShear(shear);
-    fTransposed = transp;
+    fTangentMode = ETangentMode(mode);
     fN.Read(buf, context);
     fSigma.Read(buf, context);
 }

@@ -2,9 +2,10 @@
  * @file MCCPaperTools.h
  * @brief Utilities shared by the examples of the article "Return mapping for Modified Cam-Clay
  * plasticity in rotated Haigh-Westergaard space with consistent tangent operator and coupled u-p
- * consolidation": structured meshes (Q8-Q4, Hex20-Hex8), atomic and multiphysics computational meshes,
- * post-processing at the integration points, VTK file series of every converged state for ParaView
- * (TVTKSeries), material point drivers and the closed-form solutions of Appendix B.
+ * consolidation": structured meshes (Q8-Q4, Hex20-Hex8: rectangle, box, block, unit cube, slab and quarter
+ * cylinder), CSV files of the geometric mesh for plotting (WriteMeshCSV), atomic and multiphysics
+ * computational meshes, post-processing at the integration points, VTK file series of every converged state
+ * for ParaView (TVTKSeries), material point drivers and the closed-form solutions of Appendix B.
  *
  * The functions mirror the routines of the Python transcription of the Wolfram Language packages
  * (fe_user.py, camclay_hw.py): SubdivideQuadMesh, BoxMesh3D, QuarterCylinderMesh, LocatePoint,
@@ -144,6 +145,20 @@ inline TPZGeoMesh *CreateRectangleMesh(REAL x0, REAL y0, REAL x1, REAL y1, int n
  * @return material ids of the boundary elements created on the face
  */
 typedef std::function<std::vector<int>(const std::array<std::array<REAL, 3>, 4> &X)> TMarker3D;
+
+/**
+ * @brief Helper of the marker functions: true if the four vertices of a face lie on the plane
+ * \f$x_{axis}=value\f$
+ * @param X coordinates of the four vertices of the face (argument of TMarker3D)
+ * @param axis 0 (x), 1 (y) or 2 (z)
+ * @param value coordinate of the plane
+ * @param tol absolute tolerance on the coordinate
+ */
+inline bool FaceOnPlane(const std::array<std::array<REAL, 3>, 4> &X, int axis, REAL value, REAL tol = 1.e-9) {
+    for (auto &p : X)
+        if (std::fabs(p[axis] - value) > tol) return false;
+    return true;
+}
 
 namespace internal {
 /**
@@ -340,6 +355,163 @@ inline TPZGeoMesh *CreateQuarterCylinderMesh(REAL R, REAL H, int nc, int nr, int
         x[1] *= R / r;
     };
     return internal::HexMesh(vertices, cells, matid, marker, 2, move);
+}
+
+/**
+ * @brief Block \f$[x_0,x_1]\times[y_0,y_1]\times[z_0,z_1]\f$ divided into nx x ny x nz trilinear hexahedra
+ * (TPZGeoCube), the generalization of CreateBoxMesh to any origin
+ * @param x0 lower corner (x, y, z)
+ * @param x1 upper corner (x, y, z)
+ * @param nx,ny,nz number of elements in each direction
+ * @param matid material id of the hexahedra
+ * @param marker material ids of the boundary quadrilaterals (TPZGeoQuad) created on each boundary face
+ * (several ids create coincident elements, none creates no element); FaceOnPlane helps to write it
+ *
+ * The vertices are numbered with x fastest, then y, then z: node (i, j, k) has index
+ * \f$k(n_y+1)(n_x+1)+j(n_x+1)+i\f$ and coordinates \f$x_0+(x_1-x_0)i/n_x\f$, etc.; the elements follow the
+ * same order, and the vertices of each element follow TPZCube (see WriteMeshCSV). Geometry is trilinear:
+ * the 20-node serendipity displacement space (CreateDisplacementMesh) is built on it without geometric
+ * mid-edge nodes.
+ */
+inline TPZGeoMesh *CreateBlockMesh(const std::array<REAL, 3> &x0, const std::array<REAL, 3> &x1, int nx, int ny,
+                                   int nz, int matid, const TMarker3D &marker) {
+    auto idx = [nx, ny](int i, int j, int k) { return int64_t(k) * (ny + 1) * (nx + 1) + int64_t(j) * (nx + 1) + i; };
+    std::vector<std::array<REAL, 3>> vertices;
+    for (int k = 0; k <= nz; ++k)
+        for (int j = 0; j <= ny; ++j)
+            for (int i = 0; i <= nx; ++i)
+                vertices.push_back({x0[0] + (x1[0] - x0[0]) * i / nx, x0[1] + (x1[1] - x0[1]) * j / ny,
+                                    x0[2] + (x1[2] - x0[2]) * k / nz});
+    std::vector<std::array<int64_t, 8>> cells;
+    for (int k = 0; k < nz; ++k)
+        for (int j = 0; j < ny; ++j)
+            for (int i = 0; i < nx; ++i)
+                cells.push_back({idx(i, j, k), idx(i + 1, j, k), idx(i + 1, j + 1, k), idx(i, j + 1, k),
+                                 idx(i, j, k + 1), idx(i + 1, j, k + 1), idx(i + 1, j + 1, k + 1), idx(i, j + 1, k + 1)});
+    return internal::HexMesh(vertices, cells, matid, marker, 1);
+}
+
+/**
+ * @brief A single trilinear hexahedron on the unit cube \f$[0,1]^3\f$ (element tests with a homogeneous
+ * state, e.g. the triaxial tests of RS2 and FLAC3D in 3D)
+ * @param matid material id of the hexahedron
+ * @param marker material ids of the boundary quadrilaterals of each of the six faces (see CreateBlockMesh)
+ *
+ * Nodes 0-7 are the vertices of TPZCube: (0,0,0), (1,0,0), (1,1,0), (0,1,0), (0,0,1), (1,0,1), (1,1,1),
+ * (0,1,1).
+ */
+inline TPZGeoMesh *CreateUnitCubeMesh(int matid, const TMarker3D &marker) {
+    return CreateBlockMesh({0., 0., 0.}, {1., 1., 1.}, 1, 1, 1, matid, marker);
+}
+
+/**
+ * @brief Slab \f$[x_0,x_1]\times[y_0,y_1]\times[0,t]\f$ with nx x ny x 1 trilinear hexahedra: the 3D
+ * counterpart of the 2D structured mesh CreateRectangleMesh (plane strain is imposed with
+ * \f$u_z=0\f$ on the faces z = 0 and z = t)
+ * @param x0,y0 lower corner of the rectangle
+ * @param x1,y1 upper corner of the rectangle
+ * @param thickness thickness t of the slab (z direction)
+ * @param nx,ny number of elements in x and y
+ * @param matid material id of the hexahedra
+ * @param marker material ids of the boundary quadrilaterals of each boundary face (see CreateBlockMesh)
+ *
+ * The vertices of the plane z = 0 have the indices of the nodes of CreateRectangleMesh (row by row,
+ * \f$j(n_x+1)+i\f$) and those of the plane z = t follow with the offset \f$(n_x+1)(n_y+1)\f$.
+ */
+inline TPZGeoMesh *CreateSlabMesh(REAL x0, REAL y0, REAL x1, REAL y1, REAL thickness, int nx, int ny, int matid,
+                                  const TMarker3D &marker) {
+    return CreateBlockMesh({x0, y0, 0.}, {x1, y1, thickness}, nx, ny, 1, matid, marker);
+}
+
+/**
+ * @brief Writes the geometric mesh as CSV files for plotting (e.g. the finite element meshes of the
+ * figures of the article drawn with matplotlib)
+ * @param gmesh geometric mesh (only the leaf elements, without subelements, are written)
+ * @param prefix path prefix of the files
+ *
+ * Files (one header line, comma separated, integers for the indices, coordinates with 16 digits):
+ *  - \<prefix\>_nodes.csv: @c node, @c x, @c y, @c z for every node of the mesh; @c node is the index
+ *    of the node in TPZGeoMesh::NodeVec (the row order), referred to by the other files;
+ *  - \<prefix\>_elements.csv: @c element, @c matid, @c nnodes, @c n0, ..., @c n{N-1} for every element of
+ *    the dimension of the mesh (volume elements in 3D): element index in the geometric mesh, material id,
+ *    number of nodes and node indices in the NeoPZ order of the element, padded with -1 up to the largest
+ *    number of nodes N;
+ *  - \<prefix\>_faces.csv: same columns for the elements of dimension one less (the boundary condition
+ *    elements: quadrilaterals in 3D, lines in 2D). A face with several boundary conditions appears once per
+ *    material id (coincident elements); the orientation of the faces is not normalized;
+ *  - \<prefix\>_edges.csv: @c n0, @c n1, @c nmid, @c boundary for each distinct edge of the elements of
+ *    the mesh dimension: end nodes (n0 < n1), mid-edge node of a quadratic geometry (-1 for a straight
+ *    edge) and 1 if the edge belongs to an element of the faces file (0 otherwise), for wireframe plots of
+ *    the whole mesh or of its boundary only.
+ *
+ * Node order of the hexahedra (TPZCube; TPZGeoCube has 8 nodes, TPZQuadraticCube 20). Vertices 0-7 at the
+ * parametric points \f$(\xi,\eta,\zeta)\f$ = (-1,-1,-1), (1,-1,-1), (1,1,-1), (-1,1,-1), (-1,-1,1),
+ * (1,-1,1), (1,1,1), (-1,1,1); nodes 8-19 at the middle of the edges (sides 8-19 of TPZCube)
+ * 0-1, 1-2, 2-3, 3-0, 0-4, 1-5, 2-6, 3-7, 4-5, 5-6, 6-7, 7-4. Quadrilaterals (TPZQuadrilateral;
+ * TPZGeoQuad 4 nodes, TPZQuadraticQuad 8): vertices 0-3 at (-1,-1), (1,-1), (1,1), (-1,1), nodes 4-7 at
+ * the middle of the edges 0-1, 1-2, 2-3, 3-0. In general the quadratic maps of NeoPZ number the mid-edge
+ * node of edge side s as node s, which is how the edges file is built. A curved edge of a
+ * TPZQuadraticCube (e.g. the lateral face of CreateQuarterCylinderMesh) is the parabola through its end
+ * nodes and its mid-edge node: x(t) = x0 (1-t)(1-2t) + 4 xm t(1-t) + x1 t(2t-1), t in [0, 1].
+ * Elements of other dimensions (points, lines in 3D) are not written.
+ */
+inline void WriteMeshCSV(TPZGeoMesh *gmesh, const std::string &prefix) {
+    const int dim = gmesh->Dimension();
+    {
+        std::ofstream out(prefix + "_nodes.csv");
+        out << "node,x,y,z\n" << std::setprecision(16);
+        TPZManVector<REAL, 3> x(3, 0.);
+        for (int64_t i = 0; i < gmesh->NNodes(); ++i) {
+            gmesh->NodeVec()[i].GetCoordinates(x);
+            out << i << "," << x[0] << "," << x[1] << "," << x[2] << "\n";
+        }
+    }
+    auto writeElements = [gmesh](const std::string &file, int eldim) {
+        std::vector<TPZGeoEl *> els;
+        int nmax = 0;
+        for (int64_t iel = 0; iel < gmesh->NElements(); ++iel) {
+            TPZGeoEl *gel = gmesh->Element(iel);
+            if (!gel || gel->HasSubElement() || gel->Dimension() != eldim) continue;
+            els.push_back(gel);
+            nmax = std::max(nmax, gel->NNodes());
+        }
+        std::ofstream out(file);
+        out << "element,matid,nnodes";
+        for (int k = 0; k < nmax; ++k) out << ",n" << k;
+        out << "\n";
+        for (TPZGeoEl *gel : els) {
+            out << gel->Index() << "," << gel->MaterialId() << "," << gel->NNodes();
+            for (int k = 0; k < nmax; ++k) out << "," << (k < gel->NNodes() ? gel->NodeIndex(k) : int64_t(-1));
+            out << "\n";
+        }
+    };
+    writeElements(prefix + "_elements.csv", dim);
+    writeElements(prefix + "_faces.csv", dim - 1);
+    {
+        std::map<std::pair<int64_t, int64_t>, int64_t> edges;
+        std::set<std::pair<int64_t, int64_t>> boundary;
+        for (int64_t iel = 0; iel < gmesh->NElements(); ++iel) {
+            TPZGeoEl *gel = gmesh->Element(iel);
+            if (!gel || gel->HasSubElement() || gel->Dimension() < dim - 1 || gel->Dimension() > dim) continue;
+            const bool quadratic = gel->NNodes() > gel->NCornerNodes();
+            for (int side = gel->NCornerNodes(); side < gel->NSides(); ++side) {
+                if (gel->SideDimension(side) != 1) continue;
+                const int64_t a = gel->SideNodeIndex(side, 0), b = gel->SideNodeIndex(side, 1);
+                const std::pair<int64_t, int64_t> key(std::min(a, b), std::max(a, b));
+                if (gel->Dimension() == dim - 1) {
+                    boundary.insert(key);
+                    continue;
+                }
+                const int64_t mid = (quadratic && side < gel->NNodes()) ? gel->NodeIndex(side) : int64_t(-1);
+                edges.insert({key, mid});
+            }
+        }
+        std::ofstream out(prefix + "_edges.csv");
+        out << "n0,n1,nmid,boundary\n";
+        for (auto &e : edges)
+            out << e.first.first << "," << e.first.second << "," << e.second << "," << int(boundary.count(e.first))
+                << "\n";
+    }
 }
 /** @} */
 

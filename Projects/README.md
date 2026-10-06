@@ -26,12 +26,14 @@ round-off and the tables of the article.
 | Class | Role | Article / WL routines |
 |---|---|---|
 | `TPZYCModifiedCamClayRHW` | yield function, hardening law, local residuals, Jacobian, Newton projection and Jacobian of the projection | (11)–(13), (17)–(22), (A.1); `HardeningCC`, `PhiCC`, `ResCC`, `JacCC`, `dResdTrialCC`, `ProjectHWCC`, `GradCC` |
-| `TPZPlasticStepModifiedCamClay` | elastic predictor with the porous law, spectral decomposition, stress update and consistent tangent (also a linear elastic option) | Algorithm 1, (8)–(10), (14)–(16); `TrialStressCC`, `ProjectStressCC`, `ComputedDep` |
+| `TPZPlasticStepModifiedCamClay` | elastic predictor with the porous law, spectral decomposition, stress update and consistent tangent (also a linear elastic option); tangent returned to the global iterations selected by `SetTangentMode`: consistent `D` (default), `D^T`, `(D+D^T)/2`, continuum operator, central differences (Sect. 6.7, Table 10) | Algorithm 1, (8)–(10), (14)–(16); `TrialStressCC`, `ProjectStressCC`, `ComputedDep`; `TANGENT['mode']` of `gen_data.py`, `continuum_tangent` |
 | `TPZMatPoroElastoPlasticUP` | multiphysics u–p material with memory, plane strain / axisymmetry / 3D with the six-row operator; post-processing variables of the integration points (p', q, p_c, type of response, stresses, ...) read from the memory | (24)–(28); `ComputeBN`, `ContributePorous`, `ContributePlasticity` |
-| `TPZPoroElastoPlasticUPAnalysis` | incremental Newton driver with time step, load factor, controlled displacement, bisection and reactions | Sect. 5.4; `SolveStepUP`, `AdvanceUP`, `IterativeProcessUP`, `ReactionByMarker` |
+| `TPZPoroElastoPlasticUPAnalysis` | incremental Newton driver with time step, load factor, controlled displacement, bisection and reactions; convergence records of the converged increments (`StepLog`) and work counters with the failed attempts (`NGlobalIterations`, `NBisections`) | Sect. 5.4; `SolveStepUP`, `AdvanceUP`, `IterativeProcessUP`, `ReactionByMarker`; `itcount`, `ncut` of `fe_user.py` |
 
 `Common/MCCPaperTools.h` gathers the utilities shared by the projects: structured Q8–Q4 and Hex20–Hex8 meshes
-(including the quarter cylinder with quadratic geometry), the displacement (serendipity), pore pressure and
+(box, block, unit cube, slab and the quarter cylinder with quadratic geometry), CSV files of the geometric mesh
+for plotting it in Python (`mcc::WriteMeshCSV`: nodes, elements, boundary faces and edges with the mid-edge nodes
+of the curved geometry), the displacement (serendipity), pore pressure and
 multiphysics meshes, output at the integration points, interpolation of the stress at a point, the VTK file
 series of every converged state for ParaView (`mcc::TVTKSeries`), material point drivers and the closed-form
 solutions of Appendix B.
