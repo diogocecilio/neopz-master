@@ -1,4 +1,4 @@
-"""Figure 4 of the article (drained triaxial tests of the RS2 manual) from the CSV files written by RS2Triaxial.
+"""Figure 5 of the article (drained triaxial tests of the RS2 manual) from the CSV files written by RS2Triaxial.
 
 Usage (run the executable first; it writes its CSV files to the current directory):
 
@@ -9,7 +9,8 @@ to <run directory>/figures, or to the output directory.
 
 Figures produced:
 
-- fig04_rs2_triaxial (same panels, curves, markers and annotations as fig_rs2 of figs.py of the Python code): Fig. 4, drained triaxial tests at a material point for the four cases of the RS2 manual
+- fig05_rs2_triaxial: Fig. 5 (Fig. 4 of v0.6; same panels, curves, markers and annotations as fig_rs2 of figs.py of
+  the Python code), drained triaxial tests at a material point for the four cases of the RS2 manual
   (NC with constant nu, NC with constant G, OCR = 2 and OCR = 5): q against eps_q (panels a-d) and eps_v against
   eps_a (panels e-h). Solid lines: this work with 400 increments (rs2_<case>_n400.csv); dashed lines: closed form
   of Appendix B.1 up to eps_a = 20% (rs2_<case>_closed.csv); markers: curves "Analytical" and FE of Figs. 8.5-8.8
@@ -17,9 +18,10 @@ Figures produced:
   dados/rs2_fig85_88_digitized.json of the Python code).
 - supplementary_rs2_element_check: finite element check of the material point solution: (a) the single Hex20-Hex8
   element (unit cube, 2 x 2 x 2 Gauss points) with the boundary conditions of the drained RS2 tests, drawn from
-  rs2_mesh_*.csv with the module Common/mcc_hexmodel.py (the same element is the model of the FLAC3D tests,
-  figure fig_single_element_model of FLAC3DTriaxial); (b) q against eps_a of the four cases, element (markers) and
-  material point (lines), 400 increments (rs2_<case>_fe.csv); (c) |q_FE - q_point| along the path.
+  rs2_mesh_*.csv with the module Common/mcc_hexmodel.py (the model of the article, with the boundary conditions of
+  the RS2 and FLAC3D tests, is Fig. 4, fig04_single_element_model of FLAC3DTriaxial); (b) q against eps_a of the four
+  cases, element (markers) and material point (lines), 400 increments (rs2_<case>_fe.csv); (c) |q_FE - q_point|
+  along the path (log scale).
 
 The script also compares this work with the last points of the digitized RS2 curves (numbers of the text of
 Sect. 6.1: the end values of q differ from the RS2 analytical curves by less than 0.3 %; the RS2 finite element
@@ -55,7 +57,7 @@ def columns(T):
 
 
 def fig_rs2(run, out):
-    """Fig. 4: q-eps_q and eps_v-eps_a of the four drained tests, this work, closed form and RS2."""
+    """Fig. 5: q-eps_q and eps_v-eps_a of the four drained tests, this work, closed form and RS2."""
     rs = reference(HERE, 'rs2_fig85_88_digitized.json')
     fig, axs = plt.subplots(2, 4, figsize=(TEXTW, 3.75))
     for j, (tag, name, title, p0, pc0) in enumerate(CASES):
@@ -109,7 +111,7 @@ def fig_rs2(run, out):
     h, lab = axs[0, 0].get_legend_handles_labels()
     fig.legend(h, lab, loc='lower center', ncol=4, bbox_to_anchor=(0.5, -0.035), fontsize=7.5)
     fig.tight_layout(rect=(0, 0.04, 1, 1), h_pad=0.6, w_pad=0.5)
-    save(fig, out, 'fig04_rs2_triaxial')
+    save(fig, out, 'fig05_rs2_triaxial')
 
 
 def compare_digitized(run, out):
@@ -154,8 +156,10 @@ def fig_element_check(run, out):
             return hexmodel.FACE_LATERAL
         return hexmodel.FACE_RESTRAINED
     box = hexmodel.draw_model(ax, mesh, view, color)
-    for x, y in ((0.15, 0.15), (0.85, 0.15), (0.5, 0.5), (0.15, 0.85), (0.85, 0.85)):
+    top_arrows = ((0.15, 0.15), (0.85, 0.15), (0.5, 0.5), (0.15, 0.85), (0.85, 0.85))
+    for x, y in top_arrows:
         hexmodel.arrow(ax, P(x, y, 1.38), P(x, y, 1.03), color=INK)
+    ytitle = max(P(x, y, 1.38)[1] for x, y in top_arrows) + 0.08     # above the highest arrow tail
     for z in (0.2, 0.5, 0.8):
         hexmodel.arrow(ax, P(1.5, 0.0, z), P(1.02, 0.0, z), color=C2)
         hexmodel.arrow(ax, P(0.0, 1.5, z), P(0.0, 1.02, z), color=C2)
@@ -165,10 +169,10 @@ def fig_element_check(run, out):
     ax.text(xt, P(0, 1, 0.0)[1] - 0.12, '$p_w$ = 0 at the\nvertices (drained)', fontsize=6.4, va='center')
     ax.text(box[0] - 0.4, box[2] - 0.32, 'hidden: $u_x$ = 0 on $x$ = 0, $u_y$ = 0 on $y$ = 0,\n$u_z$ = 0 on $z$ = 0; '
             '2 × 2 × 2 Gauss points', fontsize=6.2, color=INK2, va='center')
-    ax.text(box[0] - 0.4, P(0.5, 0.5, 1.38)[1] + 0.12, '(a) one Hex20–Hex8 element', fontsize=8, va='bottom')
+    ax.text(box[0] - 0.4, ytitle, '(a) one Hex20–Hex8 element', fontsize=8, va='bottom')
     ax.set_aspect('equal')
     ax.set_xlim(box[0] - 0.45, xt + 1.05)
-    ax.set_ylim(box[2] - 0.5, P(0.5, 0.5, 1.38)[1] + 0.3)
+    ax.set_ylim(box[2] - 0.5, ytitle + 0.2)
     ax.axis('off')
     axb = fig.add_axes([0.435, 0.2, 0.235, 0.66])
     axc = fig.add_axes([0.785, 0.2, 0.205, 0.66])
@@ -178,7 +182,7 @@ def fig_element_check(run, out):
         axb.plot(fe['eps_a'], fe['q_point'], color=col, lw=1.1, label=lab)
         axb.plot(fe['eps_a'][::16], fe['q'][::16], 'o', ms=2.6, mfc='white', mec=col, mew=0.7)
         d = np.abs(fe['q_minus_q_point'])
-        axc.semilogy(fe['eps_a'][1:], np.maximum(d[1:], 1e-12), color=col, lw=0.9)
+        axc.semilogy(fe['eps_a'][1:], np.maximum(d[1:], 1e-14), color=col, lw=0.9)
         print('RS2 element check %-6s q(20%%) = %.9f (element) | %.9f (material point) kPa, max |q_FE - q_point| = '
               '%.2e kPa, %.4f evaluations per increment'
               % (tag, check['q_fe'][j], check['q_point'][j], check['max_diff_q'][j], check['mean_evaluations'][j]))
@@ -188,13 +192,13 @@ def fig_element_check(run, out):
     axb.plot([], [], color=INK2, lw=1.1, label='material point')
     axb.legend(loc='lower right', fontsize=5.9, handlelength=1.3, labelspacing=0.2, ncol=2, columnspacing=0.8,
                borderaxespad=0.3)
-    axc.set(xlabel='$\\varepsilon_a$', ylabel='$|q_{FE} - q_{point}|$ (kPa)', xlim=(0, 0.2), ylim=(1e-10, 1e-4))
+    axc.set(xlabel='$\\varepsilon_a$', ylabel='$|q_{FE} - q_{point}|$ (kPa)', xlim=(0, 0.2), ylim=(1e-14, 1e-4))
     axc.set_title('(c) difference', fontsize=8)
     save(fig, out, 'supplementary_rs2_element_check')
 
 
 if __name__ == '__main__':
-    args = arguments('Figures of the RS2 drained triaxial tests (Fig. 4 and the finite element check) from the CSV '
+    args = arguments('Figures of the RS2 drained triaxial tests (Fig. 5 and the finite element check) from the CSV '
                      'files of RS2Triaxial.')
     fig_rs2(args.rundir, args.outdir)
     compare_digitized(args.rundir, args.outdir)

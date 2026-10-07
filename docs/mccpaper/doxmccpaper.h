@@ -45,17 +45,17 @@
  *
  * @section mccpaper_examples Examples (folder Projects)
  *
- * | Project | Article (numbering of v0.6; the sections and tables are kept in v0.7) |
+ * | Project | Article (numbering of v0.7) |
  * |---|---|
  * | YieldSurfaceProjection | Figs. 1 and 2: yield surface and closest-point projection in the meridian plane |
  * | TaylorTest | Sect. 4.5, Fig. 3: Taylor test of the consistent tangent; Table 10: Taylor slopes of the transpose, symmetric part and continuum operator |
- * | RS2Triaxial | Sect. 6.1, Fig. 4, Table 2: drained triaxial tests of the RS2 manual |
+ * | RS2Triaxial | Sect. 6.1, Figs. 4 and 5, Table 2: drained triaxial tests of the RS2 manual |
  * | FrozenBulkModulus | Sect. 6.1, Table 3: exact integration of the porous law versus frozen bulk modulus |
- * | IntegrationSchemes | Sect. 6.2, Fig. 5, Table 4: return mapping of this work against the rival implicit and explicit integration schemes at a material point |
- * | FLAC3DTriaxial | Sect. 6.3, Fig. 6, Table 5: triaxial tests of FLAC3D with one Hex20-Hex8 u-p element |
- * | TerzaghiConsolidation | Sect. 6.4, Fig. 7, Table 6: Terzaghi consolidation |
- * | AbaqusTriaxialConsolidation | Sects. 6.5 and 6.7, Figs. 8-10, Tables 7, 9 and 10: Abaqus benchmark 1.15.2 |
- * | EmbankmentConsolidation | Sects. 6.6 and 6.7, Figs. 11-13, Tables 8 and 10: embankment on a Cam-Clay foundation |
+ * | IntegrationSchemes | Sect. 6.2, Fig. 6, Table 4: return mapping of this work against the rival implicit and explicit integration schemes at a material point |
+ * | FLAC3DTriaxial | Sects. 6.3 and 6.7, Figs. 4 and 7, Tables 5 and 10: triaxial tests of FLAC3D with one Hex20-Hex8 u-p element |
+ * | TerzaghiConsolidation | Sect. 6.4, Fig. 8, Table 6: Terzaghi consolidation |
+ * | AbaqusTriaxialConsolidation | Sects. 6.5 and 6.7, Figs. 9-11, Tables 7, 9 and 10: Abaqus benchmark 1.15.2 |
+ * | EmbankmentConsolidation | Sects. 6.6 and 6.7, Figs. 12-14, Tables 8 and 10: embankment on a Cam-Clay foundation |
  *
  * Each project is a class written in the style of the NeoPZ examples (geometric mesh, computational
  * meshes, analysis with structural matrix and solver, incremental solution and post-processing). The

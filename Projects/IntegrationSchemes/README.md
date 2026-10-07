@@ -1,9 +1,9 @@
-# IntegrationSchemes: the return mapping against other integration schemes (Sect. 6.2, Table 4, Fig. 5)
+# IntegrationSchemes: the return mapping against other integration schemes (Sect. 6.2, Table 4, Fig. 6)
 
 This example compares the return mapping of the article *"Return mapping for Modified Cam-Clay plasticity in
 rotated Haigh-Westergaard space with consistent tangent operator and coupled u-p consolidation"* (D. Lira Cecilio)
 with the integration schemes of the recent literature for the same model, in material-point tests that have
-closed-form references. It reproduces Table 4, Fig. 5 and the numbers of the text of Sect. 6.2. Up to version
+closed-form references. It reproduces Table 4, Fig. 6 and the numbers of the text of Sect. 6.2. Up to version
 v0.6 of the article these schemes existed only in the Python code (`rivais.py` and the function `rivais()` of
 `gen_data.py`); the class `IntegrationSchemes` is their C++ transcription, and the return mapping of this work is
 also run with the library class `TPZPlasticStepModifiedCamClay`.
@@ -93,7 +93,7 @@ article (v0.6), the check of the library against `be_tensor` and the comparison 
 |---|---|
 | `schemes_results.csv` | One row per run: `test, scheme, family` (BE, library, RK), `control, model` (RK), `n, tol, converged`, the values `v0, v1, v2` (xieB: relative error; undrained: p' - p'_exact, q - q_exact; drained: q - q_exact, eps_v - eps_v,exact, largest q), `work, substeps, substepped_increments, rk_attempts, rk_rejections, p_end, q_end, eps_v_end, time_s`, and for the drained tests `bisection_increments` (increments solved by the bisection safeguard of the driver), `unbalanced_increments` (bisections stopped without equilibrium) and `max_abs_sigma_r_plus_p0` (largest \|sigma_r + p'0\| of the accepted increments, kPa; nan for the other tests) |
 | `schemes_table4.csv` | Table 4: one row per scheme (and the two library checks): (a) error and work of test B in one increment; (b) p' and q errors and work of the undrained test with OCR = 10 in 10 increments; (c) q error, eps_v error (%) and work of the drained NC test in 10 increments, `c_converged` |
-| `schemes_fig05.csv` | The points of Fig. 5: `panel` (a, b, c), `test, scheme, family, n, tol, converged, work, error` (the absolute value of the error drawn) |
+| `schemes_fig05.csv` | The points of Fig. 6: `panel` (a, b, c), `test, scheme, family, n, tol, converged, work, error` (the absolute value of the error drawn) |
 | `schemes_references.csv` | Closed-form references: `test, eps_a, eta, p_eff, q, eps_v, q_peak` |
 | `schemes_library_check.csv` | `TPZPlasticStepModifiedCamClay` (exact and frozen) against `be_tensor` for every BE run: final p', q, the largest difference along the path and the work of both |
 | `schemes_python_comparison.csv` | Each result of `data_rivais.pkl` next to the C++ value and the difference, with the work of both |
@@ -109,7 +109,7 @@ python3 <neopz>/Projects/IntegrationSchemes/plot_figures.py [run directory] [-o 
 
 | File | Article | Data |
 |---|---|---|
-| `fig05_integration_schemes` | Fig. 5: error against work in the tests of Table 4, (a) test B of Xie et al., (b) undrained, OCR = 10, (c) drained, NC; port of `fig_rivais()` of `figs.py` | `schemes_fig05.csv` |
+| `fig06_integration_schemes` | Fig. 6: error against work in the tests of Table 4, (a) test B of Xie et al., (b) undrained, OCR = 10, (c) drained, NC; port of `fig_rivais()` of `figs.py` | `schemes_fig05.csv` |
 | `supplementary_secant_first_increment` | not in the article: a single step of this work and of the secant scheme in the first increment of the drained test with OCR = 10, (a) sigma_r + p'0 against the lateral strain, with the failures and the spurious states, (b) local iterations | `schemes_secant_first_increment_sweep.csv` |
 
 ## Results
@@ -124,7 +124,7 @@ python3 <neopz>/Projects/IntegrationSchemes/plot_figures.py [run directory] [-o 
 | RK ME2(1) | 3.25e-5 [3.25e-5] | 288 [288] | -0.044 [-0.044] | 252 [252] | -2.01 [-2.01] | -0.05 [-0.05] | 734 [734] |
 | RK RKDP5(4) | 2.35e-7 [2.35e-7] | 150 [150] | -0.010 [-0.010] | 72 [72] | -2.01 [-2.01] | -0.05 [-0.05] | 432 [432] |
 
-Every value of Table 4 and of Fig. 5 is the same as in the article: the tests are at a material point, so the
+Every value of Table 4 and of Fig. 6 is the same as in the article: the tests are at a material point, so the
 three-dimensional finite element models of v0.7 do not change them.
 
 ### Numbers of the text of Sect. 6.2
@@ -202,7 +202,7 @@ therefore the solution of the drained increment and the Python value is an artef
 accept the last midpoint of a bisection that does not converge; this program counts such increments
 (`unbalanced_increments` of `schemes_results.csv`) and reports the largest |sigma_r + p'0| of every drained run:
 there are none, every drained increment is solved by the Newton iterations, and the largest |sigma_r + p'0| is
-2.0e-8 kPa (the tolerance 1e-10 p'0). The run is not in Table 4 or Fig. 5; the statements of Sect. 6.2 that use it
+2.0e-8 kPa (the tolerance 1e-10 p'0). The run is not in Table 4 or Fig. 6; the statements of Sect. 6.2 that use it
 hold with both values (the secant G reduces the error of this work by 16% here, 15% in Python).
 
 Two details of the transcription make the comparison exact: the loading criterion of the Runge-Kutta schemes is
@@ -221,4 +221,4 @@ elastic part of about 3e-7 of the increment); and Brent's method is the algorith
   for the comparison).
 * `make_reference.py`: writes `IntegrationSchemesReference.h` from `data_rivais.pkl` of the Python code.
 * `main.cpp`: creates the example and calls `RunAll()`.
-* `plot_figures.py`: Fig. 5 and the supplementary figure.
+* `plot_figures.py`: Fig. 6 and the supplementary figure.

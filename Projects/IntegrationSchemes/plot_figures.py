@@ -10,7 +10,7 @@ to <run directory>/figures, or to the output directory.
 
 Figures produced:
 
-- fig05_integration_schemes: Fig. 5 (fig_rivais of figs.py of the Python code), error against work (local Newton
+- fig06_integration_schemes: Fig. 6 (fig_rivais of figs.py of the Python code), error against work (local Newton
   iterations or evaluations of the elastoplastic operator) in the tests of Table 4: (a) test B of Xie et al.
   (relative error of the stress; BE with 1 to 1024 increments, RK in one increment with tolerances 1e-1 to 1e-8);
   (b) undrained test with OCR = 10 of Krabbenhoft and Lyamin (|p' - p'_exact| at eps_a = 8%; BE with 5 to 1000
@@ -59,7 +59,7 @@ def curve(ax, pts, key):
 
 
 def fig_schemes(run, out):
-    """Fig. 5: error against work in the tests of Table 4."""
+    """Fig. 6: error against work in the tests of Table 4."""
     rows = read_rows(os.path.join(run, 'schemes_fig05.csv'))
     fig, axs = plt.subplots(1, 3, figsize=(TEXTW, 2.45))
     labels = {'a': ('relative error of $\\sigma$', '(a) undrained, NC (Xie et al. test B)'),
@@ -87,7 +87,7 @@ def fig_schemes(run, out):
     fig.legend([h[i] for i in order], [lab[i] for i in order], loc='upper center', ncol=5, fontsize=6.6,
                bbox_to_anchor=(0.5, 1.05), handlelength=2.4, columnspacing=1.0)
     fig.tight_layout(w_pad=0.6)
-    save(fig, out, 'fig05_integration_schemes')
+    save(fig, out, 'fig06_integration_schemes')
 
 
 def fig_secant_sweep(run, out):
@@ -134,6 +134,6 @@ def fig_secant_sweep(run, out):
 
 
 if __name__ == '__main__':
-    args = arguments('Fig. 5 of the article (integration schemes) from the CSV files of IntegrationSchemes.')
+    args = arguments('Fig. 6 of the article (integration schemes) from the CSV files of IntegrationSchemes.')
     fig_schemes(args.rundir, args.outdir)
     fig_secant_sweep(args.rundir, args.outdir)

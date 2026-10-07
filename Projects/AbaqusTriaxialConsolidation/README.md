@@ -1,4 +1,4 @@
-# AbaqusTriaxialConsolidation — Sects. 6.5 and 6.7, Figs. 8–10, Tables 7, 9 and 10
+# AbaqusTriaxialConsolidation — Sects. 6.5 and 6.7, Figs. 9–11, Tables 7, 9 and 10
 
 Abaqus benchmark 1.15.2: drained triaxial test with displacement control on a cylindrical clay specimen,
 modelled in three dimensions with the mixed u–p element Hex20–Hex8 (serendipity quadratic displacements,
@@ -11,9 +11,9 @@ the cell pressure; the platen moves down to δ/H = 0.6 in 400 days in 150 increm
 A quarter of the upper half of the specimen (H = 60 mm, R = 20 mm) is meshed with
 `mcc::CreateQuarterCylinderMesh` (quadratic geometry, `TPZQuadraticCube`, the nodes of the lateral faces on the
 cylinder): 2 × 2 × 4 divisions, i.e. 48 Hex20–Hex8 elements, 321 nodes, 95 pore pressure nodes and 1058
-degrees of freedom, of which 811 (smooth platen) or 731 (rough platen) are free equations (Fig. 8a), and the
+degrees of freedom, of which 811 (smooth platen) or 731 (rough platen) are free equations (Fig. 9a), and the
 refined mesh 4 × 4 × 8 of the softening study, 384 elements, 2009 nodes and 6576 degrees of freedom, 5727 free
-with the smooth platen (Fig. 8b). Boundary conditions: symmetry planes x = 0 (u_x = 0) and y = 0 (u_y = 0); mid-plane z = 0
+with the smooth platen (Fig. 9b). Boundary conditions: symmetry planes x = 0 (u_x = 0) and y = 0 (u_y = 0); mid-plane z = 0
 impermeable with u_z = 0; cell pressure p'0 on the curved lateral face (radial traction −p'0 (x, y, 0)/r);
 platen z = H with prescribed u_z and p_w = 0, smooth (only u_z) or rough (also u_x = u_y = 0). Integration:
 2 × 2 × 2 (reduced) or 3 × 3 × 3 (full) Gauss points. The axisymmetric Q8–Q4 models of the previous version of
@@ -23,7 +23,7 @@ Monitored quantities: stress at point A (x = 5 mm, y = 0, z = 7.5 mm, i.e. r = 5
 benchmark) interpolated from the integration points of the element that contains it (`mcc::StressAtPoint`).
 In the axisymmetric mesh of the benchmark A is the centroid of the element next to the axis; in the quarter of
 cylinder it lies on the edge x = 5 mm, y = 0 of the element next to the axis (it is the mid-edge node of that
-edge, Fig. 8a), and the first element that contains it is used, as in the Python code: its stress is
+edge, Fig. 9a), and the first element that contains it is used, as in the Python code: its stress is
 extrapolated from the integration points, linearly with 2 × 2 × 2 points and quadratically with 3 × 3 × 3 points.
 The smallest, mean and largest q at the integration points of that element are also recorded. Further: average
 axial stress on the platen σ_a (reaction divided by πR²/4) and the global deviatoric stress σ_a − p'0; largest
@@ -37,9 +37,9 @@ Parts (command line arguments, default `all`; `novtk` disables the VTK series):
 
 | Part | Contents | Time |
 |---|---|---|
-| `mesh` | CSV files of the meshes 2 × 2 × 4 and 4 × 4 × 8 (`mcc::WriteMeshCSV`) for Fig. 8 | < 1 s |
-| `mp` | material point: drained tests from p'0 = 100 and 20 kPa with 600 increments and the closed form of Appendix B.1 (Fig. 9); the benchmark state with 30, 150 and 3000 increments (column Δδ/H = 0.02 of Table 7) | 0.3 s |
-| `fe` | 48 elements, 150 increments: smooth platen 2 × 2 × 2, rough platen 2 × 2 × 2 and 3 × 3 × 3 (Fig. 10, Table 7), comparison with the digitized Abaqus curves | 56 s (+ 98 s for the VTK series) |
+| `mesh` | CSV files of the meshes 2 × 2 × 4 and 4 × 4 × 8 (`mcc::WriteMeshCSV`) for Fig. 9 | < 1 s |
+| `mp` | material point: drained tests from p'0 = 100 and 20 kPa with 600 increments and the closed form of Appendix B.1 (Fig. 10); the benchmark state with 30, 150 and 3000 increments (column Δδ/H = 0.02 of Table 7) | 0.3 s |
+| `fe` | 48 elements, 150 increments: smooth platen 2 × 2 × 2, rough platen 2 × 2 × 2 and 3 × 3 × 3 (Fig. 11, Table 7), comparison with the digitized Abaqus curves | 56 s (+ 98 s for the VTK series) |
 | `tangents` | rough platen 2 × 2 × 2 with the operators D, central differences (`fd`), (D + Dᵀ)/2 (`sym`), continuum tangent (`cont`) and Dᵀ (`DT`): Tables 9 and 10 (no VTK series) | 3.2 min |
 | `tolerance` | the five runs of `tangents` with the tolerance 10⁻⁹ instead of 10⁻⁸ (sensitivity of Table 10, see Results; no VTK series) | 4.0 min |
 | `states` | 48 elements, smooth platen, 600 increments from p'0 = 100 and 20 kPa (Sect. 6.5) | 1.7 min (+ 55 s) |
@@ -48,7 +48,7 @@ Parts (command line arguments, default `all`; `novtk` disables the VTK series):
 ```
 ./AbaqusTriaxialConsolidation                                             # everything (about 38 min)
 ./AbaqusTriaxialConsolidation mesh mp fe tangents tolerance states novtk  # all but the refined mesh, about 10 min
-./AbaqusTriaxialConsolidation mesh mp fe novtk                            # Figs. 8 to 10 and Table 7, about 1 min
+./AbaqusTriaxialConsolidation mesh mp fe novtk                            # Figs. 9 to 11 and Table 7, about 1 min
 ```
 
 Times: Release build, one thread, wall times measured with other jobs on the machine (load average 2 to 4 on 4
@@ -142,13 +142,13 @@ python3 <neopz>/Projects/AbaqusTriaxialConsolidation/plot_figures.py [run direct
 Run it after the executable, with the directory of its CSV files (default: the current directory). The figures
 are written as PDF and PNG to `<run directory>/figures` (or to the output directory); Python 3 with numpy and
 matplotlib is needed. A figure whose CSV files are missing is skipped with a message. The figures use only the
-CSV files (`./AbaqusTriaxialConsolidation mesh mp fe novtk` is enough for Figs. 8 to 10):
+CSV files (`./AbaqusTriaxialConsolidation mesh mp fe novtk` is enough for Figs. 9 to 11):
 
 | File | Article | Data (part of the executable) |
 |---|---|---|
-| `fig08_abaqus_model` | Fig. 8: (a) quarter of the specimen with 48 Hex20–Hex8 elements, boundary conditions, vertex and mid-edge nodes and point A; (b) refined mesh 4 × 4 × 8 | `abaqus_mesh_2x2x4_*.csv`, `abaqus_mesh_4x4x8_*.csv` (`mesh`) |
-| `fig09_abaqus_states` | Fig. 9: material point from p'0 = 100 and 20 kPa against the closed form: p'–q, q–ε1 and εv–ε1 | `abaqus_material_point_p0_*.csv`, `abaqus_closed_form_p0_*.csv` (`mp`) |
-| `fig10_abaqus_results` | Fig. 10: q at A against δ/H with the smooth (a) and rough (b) platens and the stress paths at A (c), with the digitized Abaqus curves | `abaqus_smooth_2x2x2.csv`, `abaqus_rough_2x2x2.csv`, `abaqus_rough_3x3x3.csv` (`fe`), `abaqus_material_point_30.csv` (`mp`), `reference/abaqus_1_15_2_digitalizado.json` |
+| `fig09_abaqus_model` | Fig. 9: (a) quarter of the specimen with 48 Hex20–Hex8 elements, boundary conditions, vertex and mid-edge nodes and point A; (b) refined mesh 4 × 4 × 8 | `abaqus_mesh_2x2x4_*.csv`, `abaqus_mesh_4x4x8_*.csv` (`mesh`) |
+| `fig10_abaqus_states` | Fig. 10: material point from p'0 = 100 and 20 kPa against the closed form: p'–q, q–ε1 and εv–ε1 | `abaqus_material_point_p0_*.csv`, `abaqus_closed_form_p0_*.csv` (`mp`) |
+| `fig11_abaqus_results` | Fig. 11: q at A against δ/H with the smooth (a) and rough (b) platens and the stress paths at A (c), with the digitized Abaqus curves | `abaqus_smooth_2x2x2.csv`, `abaqus_rough_2x2x2.csv`, `abaqus_rough_3x3x3.csv` (`fe`), `abaqus_material_point_30.csv` (`mp`), `reference/abaqus_1_15_2_digitalizado.json` |
 | `supplementary_abaqus_softening` | not in the article: p'0 = 20 kPa, global q (platen force) and q at A with the two meshes against the material point; deformed outer generatrix | `abaqus_smooth_600_p0_20*.csv` (`states`, `softening`) |
 | `supplementary_abaqus_tangents` | not in the article: cumulative evaluations of the residual with the five operators of Table 10, (a) tolerance 10⁻⁸ and (b) 10⁻⁹ (panel (b) only if the part `tolerance` was run) | `abaqus_tangents_evaluations.csv`, `abaqus_table10.csv` (`tangents`); `abaqus_table10_tolerance.csv`, `abaqus_rough_2x2x2_tolerance_tangent_*.csv` (`tolerance`) |
 
@@ -204,7 +204,7 @@ with a difference larger than 1 kPa in either direction, 0.144 against 0.172, fa
 `abaqus_fe_numbers.csv`). Beyond δ/H ≈ 0.35 the stresses oscillate within the elements, while the average
 axial stress on the platen is unaffected (250.93 against 250.78 kPa). At the end, q at the 27 points of the
 element that contains A ranges from 142.9 to 167.6 kPa (mean 158.1; with 2 × 2 × 2 points 155.6 to 156.8, mean
-155.9; columns `q_elA_min`, `q_elA_mean`, `q_elA_max`, band in Fig. 10b). The value at A depends on where A is
+155.9; columns `q_elA_min`, `q_elA_mean`, `q_elA_max`, band in Fig. 11b). The value at A depends on where A is
 in the locked element: in the axisymmetric mesh A was the centroid of its element, a Gauss point of the 3 × 3
 rule (145.5 kPa at the end, within a range of 137.7 to 168.8 kPa, mean 156.2, in that element), whereas in the
 quarter of cylinder A lies on an edge of the element and its stress is extrapolated quadratically in two

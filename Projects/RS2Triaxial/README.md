@@ -1,10 +1,11 @@
-# RS2Triaxial: drained triaxial tests of the RS2 manual (Sect. 6.1, Fig. 4, Table 2)
+# RS2Triaxial: drained triaxial tests of the RS2 manual (Sect. 6.1, Figs. 4 and 5, Table 2)
 
 This example reproduces Sect. 6.1 of the article *Return mapping for Modified Cam-Clay plasticity in rotated
 Haigh-Westergaard space with consistent tangent operator and coupled u-p consolidation* (D. Lira Cecilio):
-Fig. 4 and Table 2. These are the drained triaxial compression tests of the RS2 manual (Rocscience, Sect. 8.7),
-computed at a material point. The C++ code transcribes the function `rs2()` of `gen_data.py`, which calls
-`camclay_hw.triaxial_point` and `camclay_hw.triaxial_closed` in the Python version.
+Fig. 5 and Table 2. These are the drained triaxial compression tests of the RS2 manual (Rocscience, Sect. 8.7),
+computed at a material point and checked with the single Hex20-Hex8 element of Fig. 4. The C++ code transcribes
+the function `rs2()` of `gen_data.py`, which calls `camclay_hw.triaxial_point` and `camclay_hw.triaxial_closed`
+in the Python version.
 
 ## Problem
 
@@ -42,7 +43,7 @@ The class `RS2Triaxial` (`RS2Triaxial.h`) runs these steps for each case:
    solution and the closed form, interpolated at the numerical axial strains.
 5. For OCR = 5, it reports the peak of q, the closed-form peak, q at 20% and the maximum compression eps_v
    before dilation.
-6. It runs a finite element check. The 400-increment test is repeated with one Hex20-Hex8 u-p element
+6. It runs a finite element check (Fig. 4a). The 400-increment test is repeated with one Hex20-Hex8 u-p element
    (quadratic serendipity displacement, trilinear pore pressure) on the unit cube with 2 x 2 x 2 Gauss points,
    the same element as the FLAC3D tests (FLAC3DTriaxial). u_x = 0 on the face x = 0, u_y = 0 on y = 0 and
    u_z = 0 on z = 0 (symmetry planes); the cell pressure p'0 acts on the faces x = 1 and y = 1; the vertical
@@ -69,15 +70,17 @@ ninja -C build RS2Triaxial
 mkdir run_rs2 && cd run_rs2 && ../build/Projects/RS2Triaxial/RS2Triaxial
 ```
 
-The run takes about 5.5 s (Release, one core; 1.2 to 1.6 s for each finite element check). The program prints Table 2 and the values of Fig. 4 next to the Python and
-article reference values, which are hard-coded in `RS2Triaxial::Cases()` and `RS2Triaxial::RunAll()`.
+The run takes about 5 s (Release, one core; 4.5 to 5.4 s in repeated runs, 1.0 to 1.4 s for each finite
+element check). The program prints Table 2
+and the values of Fig. 5 next to the Python and article reference values, which are hard-coded in
+`RS2Triaxial::Cases()` and `RS2Triaxial::RunAll()`.
 
 ## Output files
 
 | file | contents |
 |---|---|
-| `rs2_<case>_closed.csv` | closed form up to eps_a = 20%: `eps_a,p_eff,q,eps_v,eps_q,sigma_a` (dashed lines of Fig. 4) |
-| `rs2_<case>_n400.csv` | material point, 400 increments: the same columns plus `q_closed`, `q_minus_q_closed` and `eps_v_closed` (closed form interpolated at eps_a); solid lines of Fig. 4 |
+| `rs2_<case>_closed.csv` | closed form up to eps_a = 20%: `eps_a,p_eff,q,eps_v,eps_q,sigma_a` (dashed lines of Fig. 5) |
+| `rs2_<case>_n400.csv` | material point, 400 increments: the same columns plus `q_closed`, `q_minus_q_closed` and `eps_v_closed` (closed form interpolated at eps_a); solid lines of Fig. 5 |
 | `rs2_table2.csv` | Table 2: `err_interp_<case>` and `err_exact_<case>` for 100 to 1600 increments; the last row (increments = 0) holds q_exact |
 | `rs2_<case>_fe.csv` | FE check: `eps_a,p_eff,q,eps_v,eps_q` of the element, `p_point,q_point,eps_v_point` of the material point with the same increments, `q_minus_q_point` and the residual `evaluations` of the increment |
 | `rs2_fe_check.csv` | FE check summary, one row per case (`case` 0-3 in the order nc_nu, nc_g, ocr2, ocr5): q, p' and eps_v at 20% of the element and of the material point, largest differences along the path, spread of q over the 8 integration points, mean and largest evaluations per increment, global iterations, bisections, wall time, equations |
@@ -85,7 +88,7 @@ article reference values, which are hard-coded in `RS2Triaxial::Cases()` and `RS
 | `rs2_<case>_fe.scal_vec.0.vtk` | FE check: nodal displacement and pore pressure at eps_a = 20% (NeoPZ's graphical mesh appends `.scal_vec.0` to the name `rs2_<case>_fe.vtk`) |
 | `rs2_<case>_fe_gauss.vtk` | FE check: integration points (stress, p', q, p'c, v0, type of response) |
 
-Fig. 4 plots q against `eps_q` in panels (a-d) and `eps_v` against `eps_a` in panels (e-h).
+Fig. 5 plots q against `eps_q` in panels (a-d) and `eps_v` against `eps_a` in panels (e-h).
 
 ## Figures
 
@@ -99,7 +102,7 @@ matplotlib is needed.
 
 | File | Article | Data |
 |---|---|---|
-| `fig04_rs2_triaxial` | Fig. 4: q against ε_q (a–d) and ε_v against ε_a (e–h) for NC with constant ν, NC with constant G, OCR = 2 and OCR = 5: this work with 400 increments, closed form and the digitized RS2 curves (Figs. 8.5–8.8 of the RS2 manual) | `rs2_<case>_n400.csv`, `rs2_<case>_closed.csv`, `reference/rs2_fig85_88_digitized.json` |
+| `fig05_rs2_triaxial` | Fig. 5 (Fig. 4 of v0.6): q against ε_q (a–d) and ε_v against ε_a (e–h) for NC with constant ν, NC with constant G, OCR = 2 and OCR = 5: this work with 400 increments, closed form and the digitized RS2 curves (Figs. 8.5–8.8 of the RS2 manual) | `rs2_<case>_n400.csv`, `rs2_<case>_closed.csv`, `reference/rs2_fig85_88_digitized.json` |
 | `supplementary_rs2_element_check` | finite element check: (a) the Hex20–Hex8 element with the boundary conditions of the drained tests; (b) q against ε_a of the element (markers) and of the material point (lines); (c) \|q_FE − q_point\| along the path | `rs2_mesh_*.csv`, `rs2_<case>_fe.csv`, `rs2_fe_check.csv` |
 
 The script also writes `rs2_digitized_comparison.csv` (output directory): the last points of the digitized RS2
@@ -108,8 +111,8 @@ curves by 0.03 to 0.20 %; the RS2 finite element curves of the normally consolid
 (constant G) and 2.2 % (constant ν) in q, with volumetric strains 6.5 and 7.9 % larger (text of Sect. 6.1).
 
 The model of the element is drawn with the module `Common/mcc_hexmodel.py`; the figure of the model for the
-article, with the boundary conditions of the drained (RS2 and FLAC3D) and undrained (FLAC3D) tests, is
-`fig_single_element_model` of FLAC3DTriaxial.
+article, with the boundary conditions of the drained (RS2 and FLAC3D) and undrained (FLAC3D) tests, is Fig. 4,
+`fig04_single_element_model` of FLAC3DTriaxial.
 
 ## Results compared with the reference
 
@@ -150,7 +153,7 @@ interpolated one.
 
 The largest error at eps_a = 20% with 100 increments is 0.24%, the same value as the article.
 
-**Fig. 4, 400 increments.** Each cell shows this code | Python | article; `-` means the article gives no value.
+**Fig. 5, 400 increments.** Each cell shows this code | Python | article; `-` means the article gives no value.
 The Python values are those of the arrays of `gen_data.py rs2` (`data_rs2.pkl`) with the same definitions. The
 article gives the largest difference along the path in the text of Sect. 6.1 (1.4 kPa for the normally
 consolidated clay, 8.5 kPa for OCR = 5) and, for NC with constant G, in Table 3 (1.26 kPa, closed form with
@@ -191,7 +194,7 @@ previous version to the 9 printed decimals.
 
 | case | q(20%) FE (kPa) | q(20%) material point (kPa) | max \|q_FE - q_point\| (kPa) | evaluations per increment (largest) | total | time (s) |
 |---|---|---|---|---|---|---|
-| NC, constant nu | 388.111817677 | 388.111816880 | 2.1e-6 | 2.6425 (5) | 1057 | 1.6 |
-| NC, constant G | 387.645039512 | 387.645038686 | 9.8e-7 | 2.6225 (5) | 1049 | 1.3 |
-| OCR = 2 | 196.813852106 | 196.813851849 | 4.8e-7 | 2.4475 (5) | 979 | 1.2 |
-| OCR = 5 | 202.926783192 | 202.926782950 | 5.3e-7 | 2.4075 (5) | 963 | 1.3 |
+| NC, constant nu | 388.111817677 | 388.111816880 | 2.1e-6 | 2.6425 (5) | 1057 | 1.1–1.3 |
+| NC, constant G | 387.645039512 | 387.645038686 | 9.8e-7 | 2.6225 (5) | 1049 | 1.1–1.4 |
+| OCR = 2 | 196.813852106 | 196.813851849 | 4.8e-7 | 2.4475 (5) | 979 | 1.1–1.3 |
+| OCR = 5 | 202.926783192 | 202.926782950 | 5.3e-7 | 2.4075 (5) | 963 | 1.0–1.3 |

@@ -1,7 +1,7 @@
 /**
  * @file TerzaghiConsolidation.h
  * @brief Sect. 6.4 of the article: Terzaghi's consolidation of an elastic column with 1 x 1 x 10 Hex20-Hex8
- * elements (Fig. 7 and Table 6).
+ * elements (Fig. 8 and Table 6).
  */
 #pragma once
 
@@ -9,11 +9,14 @@
 #include "TPZSkylineNSymStructMatrix.h"
 #include "pzstepsolver.h"
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cmath>
 #include <iomanip>
 #include <iostream>
+#include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -27,8 +30,9 @@
  * is discretized with 1 x 1 x 10 Hex20-Hex8 elements (quadratic serendipity displacement, trilinear pore
  * pressure) with 3 x 3 x 3 Gauss points. The base z = 0 is fixed (u_z = 0) and impermeable, the four lateral
  * faces have zero normal displacement and are impermeable, and the load q = 10 kPa is applied at t = 0 on the
- * drained top z = H (p_w = 0). The load is applied in an undrained step (Dt = 0), followed by 101 time steps
- * with 20 steps per decade from T = c_v t/H^2 = 1e-5 to 1 (plus the times T = 0.001, 0.01, 0.1 and 0.5).
+ * drained top z = H (p_w = 0). The load is applied in an undrained step (Dt = 0), followed by 102 time steps: the
+ * 101 times with 20 steps per decade from T = c_v t/H^2 = 1e-5 to 1, which include T = 0.001, 0.01 and 0.1, and
+ * T = 0.5 (Table 6).
  *
  * Monitored: the settlement of the top vertex of the edge x = y = 0 and the pore pressure at the eleven
  * vertices of this edge (z = 0, 1, ..., 10 m). The model reproduces the plane strain Q8-Q4 column of the
@@ -40,8 +44,9 @@ public:
     /** @brief Material and boundary ids: faces x = 0, x = 1, y = 0, y = 1, z = 0, z = H and the drained top */
     enum { EMatId = 1, EX0 = -21, EX1 = -22, EY0 = -23, EY1 = -24, EZ0 = -25, EZ1 = -26, EPZ1 = -36 };
 
-    /** @brief Results: rows (t, settlement of the top, pore pressures at the vertices of the edge x = y = 0 sorted by height) */
+    /** @brief Results of the analysis: history of the monitored nodes, work counters and checks of the solution */
     struct TResult {
+        /// rows (t, settlement of the top, p_w at the vertices of x = y = 0 sorted by height), initial state first
         std::vector<std::vector<REAL>> fHistory;
         std::vector<REAL> fHeights;   ///< heights z of the monitored pressure vertices
         REAL fMeanEvaluations = 0.;   ///< mean residual evaluations per increment
@@ -51,12 +56,17 @@ public:
         REAL fSpreadW = 0.;           ///< largest difference of the settlement over the four vertices of the top (m)
         REAL fSpreadP = 0.;           ///< largest difference of p_w between the four vertical edges at the same height (kPa)
         int64_t fNEquations = 0;      ///< equations of the multiphysics mesh
-        int fNElements = 0, fNPoints = 0; ///< volume elements and integration points
+        int fNElements = 0;           ///< volume elements
+        int fNPoints = 0;             ///< integration points
     };
 
     /** @name Data of the problem */
     /** @{ */
-    REAL fE = 1.e4, fNu = 0.25, fK = 1.e-6, fQ = 10., fH = 10.;
+    REAL fE = 1.e4;  ///< Young's modulus E (kPa)
+    REAL fNu = 0.25; ///< Poisson's ratio nu
+    REAL fK = 1.e-6; ///< mobility k (m^2/(kPa s))
+    REAL fQ = 10.;   ///< load q on the top (kPa)
+    REAL fH = 10.;   ///< height H of the column (m)
     int fNz = 10; ///< number of elements along the height
     /** @} */
 
@@ -77,7 +87,7 @@ public:
     /** @brief Solves the model and post-processes it */
     TResult Run();
 
-    /** @brief Runs the model, prints Table 6 and writes the CSV files of Fig. 7 and Table 6 */
+    /** @brief Runs the model, prints Table 6 and writes the CSV files of Fig. 8 and Table 6 */
     void RunAll();
 };
 
@@ -229,8 +239,9 @@ inline void TerzaghiConsolidation::RunAll() {
     const auto start = std::chrono::steady_clock::now();
     std::cout << std::setprecision(6);
     const REAL scale = fH * fH / Cv();
-    std::cout << "Terzaghi consolidation (Sect. 6.4): 1 x 1 x " << fNz << " Hex20-Hex8 elements, 3 x 3 x 3 points; c_v = "
-              << Cv() << " m2/s, E_oed = " << Eoed() << " kPa, w_inf = qH/E_oed = " << 1e3 * fQ * fH / Eoed() << " mm\n";
+    std::cout << "Terzaghi consolidation (Sect. 6.4, Fig. 8, Table 6): 1 x 1 x " << fNz
+              << " Hex20-Hex8 elements, 3 x 3 x 3 points; c_v = " << Cv() << " m2/s, E_oed = " << Eoed()
+              << " kPa, w_inf = qH/E_oed = " << 1e3 * fQ * fH / Eoed() << " mm\n";
     const TResult r = Run();
     std::cout << r.fNElements << " elements, " << r.fNPoints << " integration points, " << r.fNEquations
               << " equations, " << r.fHistory.size() - 1 << " increments (undrained step and "
@@ -239,16 +250,14 @@ inline void TerzaghiConsolidation::RunAll() {
     const REAL refErr[4] = {0.075, 0.011, 0.007, 0.015}, refS[4] = {0.366, 0.954, 2.959, 6.289},
                refEx[4] = {0.297, 0.940, 2.974, 6.366};
     std::cout << "Table 6                T:     0.001      0.01       0.1       0.5\n";
-    std::vector<std::vector<REAL>> table, fig7;
+    std::vector<std::vector<REAL>> table, isochrones;
     const REAL Ts[4] = {0.001, 0.01, 0.1, 0.5};
     std::array<REAL, 4> err, errz, s, sex;
-    std::array<int, 4> index;
     for (int i = 0; i < 4; ++i) {
         const REAL t = Ts[i] * scale;
         size_t best = 0;
         for (size_t k = 0; k < r.fHistory.size(); ++k)
             if (std::fabs(r.fHistory[k][0] - t) < std::fabs(r.fHistory[best][0] - t)) best = k;
-        index[i] = int(best);
         const auto &row = r.fHistory[best];
         REAL U = 0.;
         err[i] = 0.;
@@ -260,7 +269,7 @@ inline void TerzaghiConsolidation::RunAll() {
                 err[i] = std::fabs(row[2 + j] / fQ - pex);
                 errz[i] = z;
             }
-            fig7.push_back({Ts[i], z, row[2 + j] / fQ, pex});
+            isochrones.push_back({Ts[i], z, row[2 + j] / fQ, pex});
         }
         s[i] = row[1];
         sex[i] = fQ * fH / Eoed() * U;
@@ -295,15 +304,15 @@ inline void TerzaghiConsolidation::RunAll() {
               << " m, pore pressure spread between the four vertical edges " << r.fSpreadP << " kPa\n";
     std::cout << "evaluations of the residual per increment: " << r.fMeanEvaluations << ", total "
               << r.fNGlobalIterations << ", bisections " << r.fNBisections << "; solution " << r.fWallTime << " s\n";
-    // degree of consolidation U(T) (Fig. 7b)
-    std::vector<std::vector<REAL>> fig7b;
+    // degree of consolidation U(T) (Fig. 8c)
+    std::vector<std::vector<REAL>> degree;
     for (auto &row : r.fHistory) {
         const REAL T = row[0] / scale;
         REAL U = 0.;
         if (T > 0.) mcc::TerzaghiPressure(0., T, U);
-        fig7b.push_back({T, row[1] * Eoed() / (fQ * fH), U});
+        degree.push_back({T, row[1] * Eoed() / (fQ * fH), U});
     }
-    // exact series solution (B.9) for the lines of Fig. 7: isochrones at 201 heights and U at 301 values of T
+    // exact series solution (B.9) for the lines of Fig. 8b and 8c: isochrones at 201 heights and U at 301 values of T
     std::vector<std::vector<REAL>> iso, deg;
     for (REAL T : Ts)
         for (int k = 0; k <= 200; ++k) {
@@ -323,8 +332,8 @@ inline void TerzaghiConsolidation::RunAll() {
                   {"T", "increment", "max_err_pw", "z_max_err", "settlement_mm", "settlement_exact_mm",
                    "settlement_diff_percent"},
                   table);
-    mcc::WriteCSV("terzaghi_fig7a.csv", {"T", "z", "pw_over_q", "exact"}, fig7);
-    mcc::WriteCSV("terzaghi_fig7b.csv", {"T", "U_numerical", "U_exact"}, fig7b);
+    mcc::WriteCSV("terzaghi_isochrones.csv", {"T", "z", "pw_over_q", "exact"}, isochrones);
+    mcc::WriteCSV("terzaghi_degree.csv", {"T", "U_numerical", "U_exact"}, degree);
     mcc::WriteCSV("terzaghi_summary.csv",
                   {"H", "E", "nu", "k", "q", "cv", "Eoed", "w_inf", "elements", "points", "equations", "increments",
                    "mean_evaluations", "global_iterations", "bisections", "wall_time_s", "spread_settlement",
@@ -332,7 +341,7 @@ inline void TerzaghiConsolidation::RunAll() {
                   {{fH, fE, fNu, fK, fQ, Cv(), Eoed(), fQ * fH / Eoed(), REAL(r.fNElements), REAL(r.fNPoints),
                     REAL(r.fNEquations), REAL(r.fHistory.size() - 1), r.fMeanEvaluations, REAL(r.fNGlobalIterations),
                     REAL(r.fNBisections), r.fWallTime, r.fSpreadW, r.fSpreadP, u[2 + 9] / fQ, u[2 + 8] / fQ, u[1]}});
-    std::cout << "Files: terzaghi_history.csv, terzaghi_fig7a.csv, terzaghi_fig7b.csv, terzaghi_exact_isochrones.csv, "
+    std::cout << "Files: terzaghi_history.csv, terzaghi_isochrones.csv, terzaghi_degree.csv, terzaghi_exact_isochrones.csv, "
                  "terzaghi_exact_degree.csv, terzaghi_table6.csv, terzaghi_summary.csv, terzaghi_mesh_*.csv, "
                  "terzaghi.scal_vec.<step>.vtk\ntotal run time "
               << std::chrono::duration<REAL>(std::chrono::steady_clock::now() - start).count() << " s\n";

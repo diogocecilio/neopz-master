@@ -4,7 +4,7 @@ _edges.csv).
 
 Shared by the figure scripts of FLAC3DTriaxial (the single element of the triaxial tests), RS2Triaxial (the same
 element in the finite element check) and TerzaghiConsolidation (the column).
-The style is that of the model figures of the article (Fig. 8 of the Abaqus benchmark): orthographic projection
+The style is that of the model figures of the article (Fig. 9 of the Abaqus benchmark): orthographic projection
 with back-face culling (the models are convex boxes), boundary faces coloured by their boundary condition, hidden
 edges dashed, vertex nodes (displacement and pore pressure) as squares and mid-edge nodes (displacement only) as
 dots.
@@ -19,7 +19,7 @@ from matplotlib.patches import Polygon as MPoly
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from mcc_figstyle import C1, INK, INK2, MUTED, read_csv  # noqa: E402
 
-# face colours of the model figures (as fig08_abaqus_model): loaded lateral faces (cell pressure), top faces with a
+# face colours of the model figures (as fig09_abaqus_model): loaded lateral faces (cell pressure), top faces with a
 # prescribed displacement or load, faces with displacement restraints (symmetry planes, base)
 FACE_LATERAL = '#c4e5d6'
 FACE_TOP = '#b7d3f6'

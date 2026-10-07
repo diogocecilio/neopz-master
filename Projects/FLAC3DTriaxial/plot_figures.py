@@ -1,4 +1,5 @@
-"""Figures of the FLAC3D triaxial tests (Sect. 6.3 of the article) from the CSV files of FLAC3DTriaxial.
+"""Figures 4 and 7 of the article (single-element model and FLAC3D triaxial tests, Sects. 6.1 and 6.3) from the CSV
+files of FLAC3DTriaxial.
 
 Usage (run the executable first; it writes its CSV files to the current directory):
 
@@ -9,18 +10,18 @@ to <run directory>/figures, or to the output directory.
 
 Figures produced:
 
-- fig_single_element_model: the single Hex20-Hex8 element (unit cube, 2 x 2 x 2 Gauss points) of the triaxial
-  tests with its boundary conditions: (a) drained tests (RS2, Sect. 6.1, and FLAC3D, Sect. 6.3): pore pressure
-  prescribed as zero at the eight vertices; (b) undrained tests (FLAC3D): no drained face, k = 0, Dt = 0. Symmetry
-  planes x = 0 and y = 0 and base z = 0 (hidden, grey), cell pressure on the faces x = 1 and y = 1 (green),
+- fig04_single_element_model: Fig. 4, the single Hex20-Hex8 element (unit cube, 2 x 2 x 2 Gauss points) of the
+  triaxial tests with its boundary conditions: (a) drained tests (RS2, Sect. 6.1, and FLAC3D, Sect. 6.3): pore
+  pressure prescribed as zero at the eight vertices; (b) undrained tests (FLAC3D): no drained face, k = 0, Dt = 0.
+  Symmetry planes x = 0 and y = 0 and base z = 0 (hidden, grey), cell pressure on the faces x = 1 and y = 1 (green),
   controlled vertical displacement of the top (blue); vertex nodes (u and p_w) and mid-edge nodes (u only). The
   meshes are read from flac3d_mesh_<drained|undrained>_*.csv (mcc::WriteMeshCSV), the faces are coloured by their
   boundary ids (FLAC3DTriaxial.h) and the cell pressure of the FLAC3D tests is read from flac3d_summary.csv.
-- fig06_flac3d_triaxial: Fig. 6, drained (panels a, b) and undrained (panels c, d) triaxial tests with R = 1.6
-  and R = 8: q against eps_a and stress paths in the p'-q plane, with the critical state line and the initial
-  yield surface of R = 1.6. Solid lines: this work (flac3d_<drained|undrained>_R<1.6|8>.csv, columns eps_a, p_eff,
-  q, v, u); dashed lines: closed-form solutions written by the executable (flac3d_<test>_closed.csv); squares:
-  final states of FLAC3D (column flac3d of flac3d_table5.csv); M and p'0 from flac3d_summary.csv.
+- fig07_flac3d_triaxial: Fig. 7 (Fig. 6 of v0.6), drained (panels a, b) and undrained (panels c, d) triaxial tests
+  with R = 1.6 and R = 8: q against eps_a and stress paths in the p'-q plane, with the critical state line and the
+  initial yield surface of R = 1.6. Solid lines: this work (flac3d_<drained|undrained>_R<1.6|8>.csv, columns eps_a,
+  p_eff, q, v, u); dashed lines: closed-form solutions written by the executable (flac3d_<test>_closed.csv);
+  squares: final states of FLAC3D (column flac3d of flac3d_table5.csv); M and p'0 from flac3d_summary.csv.
 
 The script also prints the final states, the peaks and the closed-form values at the same eps_a (Table 5).
 """
@@ -59,7 +60,7 @@ def name(test, R):
     return f'{test}_R{R:g}'
 
 
-# =========================================================================================== model figure
+# =========================================================================================== Fig. 4 (model)
 def cube_facecolor(ids):
     """Colour of a face of the cube from its boundary ids."""
     if EZ1 in ids:
@@ -78,10 +79,13 @@ def draw_element(ax, mesh, view, labels, title, drained=True, legend=True):
     P = view.point
     box = hexmodel.draw_model(ax, mesh, view, cube_facecolor, open_vertices=() if drained else mesh.vertices)
     # controlled vertical displacement of the top: arrows above the face z = 1
-    for x, y in ((0.15, 0.15), (0.85, 0.15), (0.5, 0.5), (0.15, 0.85), (0.85, 0.85)):
+    top_arrows = ((0.15, 0.15), (0.85, 0.15), (0.5, 0.5), (0.15, 0.85), (0.85, 0.85))
+    for x, y in top_arrows:
         hexmodel.arrow(ax, P(x, y, 1.38), P(x, y, 1.03), color=INK)
+    y_arrows = max(P(x, y, 1.38)[1] for x, y in top_arrows)      # highest arrow tail (the title goes above it)
     # cell pressure on the faces x = 1 and y = 1: arrows normal to the faces at their outer edges (silhouette)
-    for z in (0.2, 0.5, 0.8):
+    zp = (0.2, 0.5, 0.8)
+    for z in zp:
         hexmodel.arrow(ax, P(1.5, 0.0, z), P(1.02, 0.0, z), color=C2)
         hexmodel.arrow(ax, P(0.0, 1.5, z), P(0.0, 1.02, z), color=C2)
     # axes, below the element on the left
@@ -92,12 +96,17 @@ def draw_element(ax, mesh, view, labels, title, drained=True, legend=True):
         v = view(d)[0] - view(np.zeros(3))[0]
         hexmodel.arrow(ax, o, o + v, color=INK2, lw=0.6, ms=5)
         ax.text(*(o + 1.35 * v), f'${lab}$', fontsize=7, color=INK2, ha='center', va='center')
-    # labels in a column to the right of the drawing
+    # labels in a column to the right of the drawing; the leader of the top points to the shaft of the nearest
+    # arrow of the prescribed displacement, and the leader of the lateral faces runs on the face y = 1 between
+    # the arrows of the cell pressure at z = 0.5 and z = 0.8 (no crossing with the arrows, nodes and edges)
     xt = P(0.0, 1.5, 0.5)[0] + 0.12
-    ax.annotate(labels['top'], xy=tuple(P(0.3, 0.75, 1.0)), xytext=(xt, P(0.5, 0.5, 1.38)[1] - 0.04),
-                textcoords='data', fontsize=6.6, color=INK, ha='left', va='center',
-                arrowprops=dict(arrowstyle='-', color=C1, lw=0.7, shrinkA=2, shrinkB=0), zorder=8)
-    ax.annotate(labels['lateral'], xy=tuple(P(0.3, 1.0, 0.62)), xytext=(xt, P(0, 1, 0.62)[1]),
+    xa = P(0.15, 0.85, 1.25)
+    ax.annotate(labels['top'], xy=tuple(xa), xytext=(xt, xa[1]), textcoords='data', fontsize=6.6, color=INK,
+                ha='left', va='center',
+                arrowprops=dict(arrowstyle='-', color=C1, lw=0.7, shrinkA=2, shrinkB=1.5), zorder=8)
+    ylat = 0.5 * (P(0.0, 1.02, zp[1])[1] + P(0.0, 1.5, zp[2])[1])
+    z0, z1 = P(0.3, 1.0, 0.0)[1], P(0.3, 1.0, 1.0)[1]
+    ax.annotate(labels['lateral'], xy=tuple(P(0.3, 1.0, (ylat - z0) / (z1 - z0))), xytext=(xt, ylat),
                 textcoords='data', fontsize=6.6, color=INK, ha='left', va='center',
                 arrowprops=dict(arrowstyle='-', color=C2, lw=0.7, shrinkA=2, shrinkB=0), zorder=8)
     y = P(0, 1, 0.0)[1] - 0.06
@@ -108,13 +117,13 @@ def draw_element(ax, mesh, view, labels, title, drained=True, legend=True):
         hexmodel.node_legend(ax, xt + 0.03, yl, 0.13, open_vertex=not drained,
                              vertex='vertex node: $u$, $p_w$ = 0' if drained else 'vertex node: $u$ and $p_w$')
         ax.text(xt - 0.0, yl - 0.31, '2 × 2 × 2 Gauss points', fontsize=6.6, color=INK2, ha='left', va='center')
-    ytop = P(0.5, 0.5, 1.38)[1] + 0.22
+    ytop = y_arrows + 0.08
     ax.text(box[0] - 0.42, ytop, title, fontsize=8, va='bottom', ha='left')
     return [box[0] - 0.45, xt + 1.62, yl - 0.40, ytop + 0.18]
 
 
 def fig_model(run, out):
-    """Single element of the triaxial tests with the boundary conditions of the drained and undrained tests."""
+    """Fig. 4: single element of the triaxial tests with the boundary conditions of the drained and undrained tests."""
     S = summary(run)
     p0 = S['drained_R1.6']['p0']
     view = hexmodel.View(24, 33)
@@ -144,12 +153,12 @@ def fig_model(run, out):
         print('model %-9s: %d element, %d vertices, %d edges, %d boundary faces, %d drained faces'
               % (tag, mesh.nelements, len(mesh.vertices), len(mesh.edges), len(mesh.faces), drained_faces))
     fig.tight_layout(w_pad=0.2)
-    save(fig, out, 'fig_single_element_model')
+    save(fig, out, 'fig04_single_element_model')
 
 
-# =========================================================================================== Fig. 6
+# =========================================================================================== Fig. 7
 def fig_flac3d(run, out):
-    """Fig. 6: q-eps_a and p'-q of the drained and undrained tests with R = 1.6 and R = 8."""
+    """Fig. 7: q-eps_a and p'-q of the drained and undrained tests with R = 1.6 and R = 8."""
     S = summary(run)
     M = S['drained_R1.6']['M']
     hist = {k: read_csv(os.path.join(run, f'flac3d_{name(*k)}.csv')) for k in TESTS}
@@ -212,10 +221,11 @@ def fig_flac3d(run, out):
                Line2D([], [], ls='', marker='s', ms=4.5, mfc='white', mec=INK2, label='FLAC3D (final state)')]
     fig.legend(handles=handles, loc='lower center', ncol=4, bbox_to_anchor=(0.5, -0.07), fontsize=7.5)
     fig.tight_layout(rect=(0, 0.05, 1, 1), w_pad=0.6)
-    save(fig, out, 'fig06_flac3d_triaxial')
+    save(fig, out, 'fig07_flac3d_triaxial')
 
 
 if __name__ == '__main__':
-    args = arguments('Figures of the FLAC3D triaxial tests (model and Fig. 6) from the CSV files of FLAC3DTriaxial.')
+    args = arguments('Figs. 4 and 7 of the article (single-element model and FLAC3D triaxial tests) from the CSV files '
+                     'of FLAC3DTriaxial.')
     fig_model(args.rundir, args.outdir)
     fig_flac3d(args.rundir, args.outdir)

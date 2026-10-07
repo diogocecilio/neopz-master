@@ -1,6 +1,6 @@
 /**
  * @file IntegrationSchemes.h
- * @brief Sect. 6.2, Table 4 and Fig. 5 of the article: accuracy and work of the return mapping of this work and
+ * @brief Sect. 6.2, Table 4 and Fig. 6 of the article: accuracy and work of the return mapping of this work and
  * of the rival integration schemes of the Modified Cam-Clay model (implicit backward-Euler variants and explicit
  * adaptive Runge-Kutta schemes) in material-point tests with closed-form references. C++ port of rivais.py and
  * of the function rivais() of gen_data.py of the Python code of the article.
@@ -29,7 +29,7 @@
 /**
  * @ingroup mccpaper
  * @brief Comparison of the return mapping of this work with the integration schemes of the recent literature
- * (Sect. 6.2, Table 4 and Fig. 5 of the article).
+ * (Sect. 6.2, Table 4 and Fig. 6 of the article).
  *
  * The schemes integrate the same Modified Cam-Clay model (\f$\omega=1\f$, \f$p_t=0\f$) with the same elastic,
  * flow and hardening laws: porous volumetric law \f$p=p_n\exp(-v_0\Delta\varepsilon^e_v/\kappa)\f$, shear modulus
@@ -222,7 +222,7 @@ public:
     };
 
     /**
-     * @brief One run of Table 4 / Fig. 5: a scheme in a test with a number of increments (and a tolerance)
+     * @brief One run of Table 4 / Fig. 6: a scheme in a test with a number of increments (and a tolerance)
      *
      * The values fV follow data_rivais.pkl: test B of Xie et al.: (relative error of the stress, -, -); undrained
      * tests: (p' - p'_exact, q - q_exact, -) at the end; drained tests: (q - q_exact, eps_v - eps_v,exact, largest
@@ -447,11 +447,11 @@ public:
 
     /** @name Tests */
     /** @{ */
-    /** @brief Test B of Xie et al. (2026): BE with 1 to 1024 increments, RK in one increment (Fig. 5a, Table 4a) */
+    /** @brief Test B of Xie et al. (2026): BE with 1 to 1024 increments, RK in one increment (Fig. 6a, Table 4a) */
     void RunXieTestB();
-    /** @brief Undrained test of Krabbenhoft and Lyamin, OCR = 1 (eps_a = 2.5%) or 10 (8%) (Fig. 5b, Table 4b) */
+    /** @brief Undrained test of Krabbenhoft and Lyamin, OCR = 1 (eps_a = 2.5%) or 10 (8%) (Fig. 6b, Table 4b) */
     void RunKLUndrained(int ocr, REAL eamax);
-    /** @brief Drained test of Krabbenhoft and Lyamin, OCR = 1 or 10, eps_a = 25% (Fig. 5c, Table 4c) */
+    /** @brief Drained test of Krabbenhoft and Lyamin, OCR = 1 or 10, eps_a = 25% (Fig. 6c, Table 4c) */
     void RunKLDrained(int ocr);
     /**
      * @brief Robustness of the single backward-Euler step in the first increment of the drained test with OCR = 10
@@ -472,7 +472,7 @@ public:
 
     /** @name Post-processing */
     /** @{ */
-    /** @brief Writes the CSV files (results, Table 4, Fig. 5, references, library check, Python comparison) */
+    /** @brief Writes the CSV files (results, Table 4, Fig. 6, references, library check, Python comparison) */
     void PostProcess() const;
     /** @brief Prints Table 4 with the values of the article (v0.6) */
     void PrintTable4() const;
@@ -503,7 +503,7 @@ private:
     /** @brief Writes a CSV file with string cells */
     static void WriteTable(const std::string &file, const std::vector<std::string> &header,
                            const std::vector<std::vector<std::string>> &rows);
-    /** @brief The value of the error quantity drawn in Fig. 5 for a record */
+    /** @brief The value of the error quantity drawn in Fig. 6 for a record */
     static REAL FigureError(const TRecord &rec);
     /** @brief Solution of a 4 x 4 system by Gaussian elimination with partial pivoting (numpy.linalg.solve) */
     static bool Solve4(std::array<std::array<REAL, 4>, 4> A, std::array<REAL, 4> &b);
@@ -1684,7 +1684,7 @@ inline void IntegrationSchemes::PostProcess() const {
                 "substeps", "substepped_increments", "rk_attempts", "rk_rejections", "p_end", "q_end", "eps_v_end",
                 "time_s", "bisection_increments", "unbalanced_increments", "max_abs_sigma_r_plus_p0"},
                rows);
-    // 2. Fig. 5: (panel, scheme, parameter, work, error)
+    // 2. Fig. 6: (panel, scheme, parameter, work, error)
     rows.clear();
     const std::vector<std::pair<std::string, std::string>> panels = {
         {"a", "xieB"}, {"b", "kl_undrained_ocr10"}, {"c", "kl_drained_ocr1"}};
@@ -2123,7 +2123,7 @@ inline void IntegrationSchemes::PrintPythonComparison() const {
 
 inline void IntegrationSchemes::RunAll() {
     const auto t0 = std::chrono::steady_clock::now();
-    std::cout << "Integration schemes of the Modified Cam-Clay model at a material point (Sect. 6.2, Table 4, Fig. 5)\n";
+    std::cout << "Integration schemes of the Modified Cam-Clay model at a material point (Sect. 6.2, Table 4, Fig. 6)\n";
     const TMaterial X = XieMaterial(), K = KLMaterial();
     std::cout << std::setprecision(10) << "test B of Xie et al.: M = " << X.fM << ", lambda = " << X.fLambda
               << ", kappa = " << X.fKappa << ", v0 = " << X.fV0 << ", nu = " << X.fNu << ", p'0 = p'c0 = " << fXieP0

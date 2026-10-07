@@ -11,18 +11,18 @@ run with only some of its parts) is skipped with a message.
 
 Figures produced:
 
-- fig08_abaqus_model: Fig. 8, the model of the upper half of the specimen: (a) quarter of the specimen with
+- fig09_abaqus_model: Fig. 9, the model of the upper half of the specimen: (a) quarter of the specimen with
   2 x 2 x 4 divisions (48 Hex20-Hex8 elements, curved lateral faces), the boundary conditions (platen, cell
   pressure on the lateral face, symmetry planes x = 0 and y = 0, mid-plane), the vertex (u and p_w) and mid-edge
   (u only) nodes of the visible faces and the point A; (b) the refined mesh 4 x 4 x 8 (384 elements) of the
   softening study. The meshes are read from the CSV files of mcc::WriteMeshCSV (abaqus_mesh_2x2x4_*.csv and
   abaqus_mesh_4x4x8_*.csv, part "mesh"); the curved edges are the parabolas through their mid-edge nodes. The
   drawing is an orthographic projection with back-face culling (the quarter of cylinder is convex).
-- fig09_abaqus_states: Fig. 9, drained tests at a material point from p'0 = 100 kPa (R = 1.17, subcritical) and
+- fig10_abaqus_states: Fig. 10, drained tests at a material point from p'0 = 100 kPa (R = 1.17, subcritical) and
   p'0 = 20 kPa (R = 5.83, supercritical) with p'c0 = 116.6 kPa: (a) stress paths p'-q, (b) q-eps_1 and
   (c) eps_v-eps_1 in the four-quadrant layout; 600 increments (abaqus_material_point_p0_<p'0>.csv) against the
   closed form of Appendix B.1 (abaqus_closed_form_p0_<p'0>.csv). Part "mp".
-- fig10_abaqus_results: Fig. 10, q at A against delta/H: (a) smooth platen, Hex20-Hex8 model with 150 increments
+- fig11_abaqus_results: Fig. 11, q at A against delta/H: (a) smooth platen, Hex20-Hex8 model with 150 increments
   (abaqus_smooth_2x2x2.csv) and material point with 30 increments (abaqus_material_point_30.csv); (b) rough
   platen with 2 x 2 x 2 and 3 x 3 x 3 points (abaqus_rough_2x2x2.csv, abaqus_rough_3x3x3.csv), with the range of q
   at the 27 integration points of the element that contains A for the full integration (columns q_elA_min and
@@ -69,7 +69,7 @@ def read_table(path):
         return list(csv.DictReader(f))
 
 
-# =========================================================================================== Fig. 8 model
+# =========================================================================================== Fig. 9 model
 def read_mesh(run, prefix):
     """Mesh written by mcc::WriteMeshCSV: node coordinates (mm), boundary faces (node lists) and their ids."""
     N = read_csv(os.path.join(run, prefix + '_nodes.csv'))
@@ -159,7 +159,7 @@ def draw_mesh(ax, X, faces, ids, view, lw=0.45, nodes=False, shift=(0.0, 0.0)):
 
 
 def fig_abaqus_model(run, out):
-    """Fig. 8: (a) the 3D model with 48 Hex20-Hex8 elements and its boundary conditions; (b) refined mesh."""
+    """Fig. 9: (a) the 3D model with 48 Hex20-Hex8 elements and its boundary conditions; (b) refined mesh."""
     X, faces, ids, nel = read_mesh(run, 'abaqus_mesh_2x2x4')
     fine = os.path.exists(os.path.join(run, 'abaqus_mesh_4x4x8_faces.csv'))
     view = View(22, -28)
@@ -239,11 +239,11 @@ def fig_abaqus_model(run, out):
     ax.set_xlim(box[0] - 15, right + 1.5)
     ax.set_ylim(yl - 6, ytitle + 4)
     ax.axis('off')
-    print('Fig. 8: coarse mesh %d elements, %d nodes; refined mesh %d elements' % (nel, len(X), nfine))
-    save(fig, out, 'fig08_abaqus_model')
+    print('Fig. 9: coarse mesh %d elements, %d nodes; refined mesh %d elements' % (nel, len(X), nfine))
+    save(fig, out, 'fig09_abaqus_model')
 
 
-# =========================================================================================== Fig. 9 two initial states
+# =========================================================================================== Fig. 10 two initial states
 def material_point_states(run):
     """Material point (600 increments) and closed form of the two initial states: p'0 -> (point, closed), arrays
     with the columns eps_1, p', q, eps_v (compression positive)."""
@@ -262,7 +262,7 @@ def material_point_states(run):
 
 
 def fig_abaqus_states(run, out):
-    """Fig. 9: four quadrants, p'-q (right), q-eps_1 (eps_1 to the left) and eps_v-eps_1 (eps_v downwards)."""
+    """Fig. 10: four quadrants, p'-q (right), q-eps_1 (eps_1 to the left) and eps_v-eps_1 (eps_v downwards)."""
     Z = material_point_states(run)
     cases = [(100.0, C1), (20.0, C2)]
     fig = plt.figure(figsize=(TEXTW * 0.92, 4.6))
@@ -340,13 +340,13 @@ def fig_abaqus_states(run, out):
     for p0, _ in cases:
         mp, cf = Z[p0]['point'], Z[p0]['closed']
         kq = int(np.argmax(mp[:, 2]))
-        print("Fig. 9: p'0 = %g kPa, peak q = %.3f kPa at eps_1 = %.3f (closed form %.3f); end q = %.3f, eps_v = %.4f;"
+        print("Fig. 10: p'0 = %g kPa, peak q = %.3f kPa at eps_1 = %.3f (closed form %.3f); end q = %.3f, eps_v = %.4f;"
               " max |q - closed| = %.3f kPa" % (p0, mp[kq, 2], mp[kq, 0], cf[:, 2].max(), mp[-1, 2], mp[-1, 3],
                                                np.abs(mp[:, 2] - np.interp(mp[:, 0], cf[:, 0], cf[:, 2])).max()))
-    save(fig, out, 'fig09_abaqus_states')
+    save(fig, out, 'fig10_abaqus_states')
 
 
-# =========================================================================================== Fig. 10 results
+# =========================================================================================== Fig. 11 results
 COLS = ('delta_H', 'p_A', 'q_A', 'sigma_a_platen', 'q_platen', 'max_pw', 'eps_v', 'evaluations', 'q_elA_min',
         'q_elA_mean', 'q_elA_max')
 
@@ -363,7 +363,7 @@ def history(run, name):
 
 
 def fig_abaqus(run, out):
-    """Fig. 10: q at A against delta/H, smooth (a) and rough (b) platens, and the stress paths at A (c)."""
+    """Fig. 11: q at A against delta/H, smooth (a) and rough (b) platens, and the stress paths at A (c)."""
     ab = reference(HERE, 'abaqus_1_15_2_digitalizado.json')
     fig, axs = plt.subplots(1, 3, figsize=(TEXTW, 2.35))
     hs, hr, hr4 = history(run, 'smooth_2x2x2'), history(run, 'rough_2x2x2'), history(run, 'rough_3x3x3')
@@ -414,10 +414,10 @@ def fig_abaqus(run, out):
     off = 4.0 * np.array([-np.sin(np.radians(ang)), np.cos(np.radians(ang))])
     ax.annotate('drained: slope 3', xy=(114.5, 43.5), xytext=tuple(off), textcoords='offset points',
                 rotation=ang, rotation_mode='anchor', ha='center', va='bottom', fontsize=6.6, color=INK)
-    print('Fig. 10: q_A at delta/H = 0.6: smooth %.3f, material point (30 incr.) %.3f, rough 2x2x2 %.3f, rough 3x3x3 '
+    print('Fig. 11: q_A at delta/H = 0.6: smooth %.3f, material point (30 incr.) %.3f, rough 2x2x2 %.3f, rough 3x3x3 '
           '%.3f (max %.3f at %.3f) kPa' % (hs[-1, 2], mp[-1, 2], hr[-1, 2], hr4[-1, 2], hr4[:, 2].max(),
                                           hr4[np.argmax(hr4[:, 2]), 0]))
-    save(fig, out, 'fig10_abaqus_results')
+    save(fig, out, 'fig11_abaqus_results')
 
 
 # =========================================================================================== supplementary figures
@@ -504,7 +504,7 @@ FIGURES = (
 )
 
 if __name__ == '__main__':
-    args = arguments('Figs. 8 to 10 of the article (Abaqus benchmark 1.15.2) and the supplementary figures from the '
+    args = arguments('Figs. 9 to 11 of the article (Abaqus benchmark 1.15.2) and the supplementary figures from the '
                      'CSV files of AbaqusTriaxialConsolidation.')
     for function, files in FIGURES:
         missing = [f for f in files if not os.path.exists(os.path.join(args.rundir, f))]

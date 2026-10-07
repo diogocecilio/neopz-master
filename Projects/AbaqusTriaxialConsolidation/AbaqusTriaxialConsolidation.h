@@ -1,7 +1,7 @@
 /**
  * @file AbaqusTriaxialConsolidation.h
  * @brief Sect. 6.5 of the article: consolidation of a triaxial specimen (Abaqus benchmark 1.15.2) with the
- * three-dimensional Hex20-Hex8 model (Figs. 8 to 10 and Table 7), and the global Newton iterations of
+ * three-dimensional Hex20-Hex8 model (Figs. 9 to 11 and Table 7), and the global Newton iterations of
  * Sect. 6.7 in the same benchmark (Table 9 and the Abaqus columns of Table 10).
  */
 #pragma once
@@ -152,17 +152,17 @@ public:
      */
     TResult Run(const TConfig &cfg);
 
-    /** @brief Fig. 8: CSV files of the geometric meshes (coarse 2 x 2 x 4 and refined 4 x 4 x 8, mcc::WriteMeshCSV) */
+    /** @brief Fig. 9: CSV files of the geometric meshes (coarse 2 x 2 x 4 and refined 4 x 4 x 8, mcc::WriteMeshCSV) */
     void WriteMeshes();
 
-    /** @brief Fig. 9: drained tests at a material point from p'0 = 100 and 20 kPa (600 increments) and closed form */
+    /** @brief Fig. 10: drained tests at a material point from p'0 = 100 and 20 kPa (600 increments) and closed form */
     void MaterialPointStates();
 
     /** @brief Table 7 (column delta delta/H = 0.02): material point solution with 30, 150 and 3000 increments */
     void MaterialPointIncrements();
 
     /**
-     * @brief Fig. 10 and Table 7: smooth platen with 2 x 2 x 2 points, rough platen with 2 x 2 x 2 (reduced) and
+     * @brief Fig. 11 and Table 7: smooth platen with 2 x 2 x 2 points, rough platen with 2 x 2 x 2 (reduced) and
      * 3 x 3 x 3 (full) points, 150 increments; comparison with the digitized Abaqus curves
      */
     void FiniteElementModels();
@@ -526,7 +526,7 @@ inline void AbaqusTriaxialConsolidation::WriteNumbers(
 }
 
 inline void AbaqusTriaxialConsolidation::WriteMeshes() {
-    std::cout << "\nFig. 8: geometric meshes of the quarter of the specimen (Hex20 with quadratic geometry)\n";
+    std::cout << "\nFig. 9: geometric meshes of the quarter of the specimen (Hex20 with quadratic geometry)\n";
     for (auto n : {std::array<int, 3>{2, 2, 4}, std::array<int, 3>{4, 4, 8}}) {
         TConfig cfg;
         cfg.fNc = n[0];
@@ -546,7 +546,7 @@ inline void AbaqusTriaxialConsolidation::WriteMeshes() {
 }
 
 inline void AbaqusTriaxialConsolidation::MaterialPointStates() {
-    std::cout << "\nFig. 9: drained test at a material point, p'c0 = 116.6 kPa (600 increments) and closed form\n";
+    std::cout << "\nFig. 10: drained test at a material point, p'c0 = 116.6 kPa (600 increments) and closed form\n";
     for (REAL p0 : {100., 20.}) {
         mcc::TLocalStats stats;
         auto mp = mcc::TriaxialDrained(Model(), p0, fPc0, fV0, fDHend, 600, &stats);

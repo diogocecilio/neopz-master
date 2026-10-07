@@ -1,7 +1,7 @@
 /**
  * @file RS2Triaxial.h
  * @brief Sect. 6.1 of the article: drained triaxial tests of the RS2 manual (Rocscience, Sect. 8.7) at a
- * material point, Fig. 4 and Table 2.
+ * material point (Fig. 5 and Table 2) and their finite element check with one Hex20-Hex8 element (model in Fig. 4).
  *
  * Mirrors the function rs2() of gen_data.py (camclay_hw.triaxial_point and camclay_hw.triaxial_closed).
  */
@@ -18,6 +18,7 @@
 #include <iostream>
 #include <limits>
 #include <map>
+#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -49,7 +50,7 @@
  *     axial strains (numpy.interp, as in gen_data.py);
  *  -# for OCR = 5, the peak of \f$q\f$, the value at 20% and the maximum compression \f$\varepsilon_v\f$;
  *  -# a finite element check: the 400-increment test repeated with one Hex20-Hex8 u-p element on the unit cube
- *     (2 x 2 x 2 Gauss points; u_x = 0 on x = 0, u_y = 0 on y = 0, u_z = 0 on z = 0, cell pressure p'0 on the
+ *     (Fig. 4a; 2 x 2 x 2 Gauss points; u_x = 0 on x = 0, u_y = 0 on y = 0, u_z = 0 on z = 0, cell pressure p'0 on the
  *     faces x = 1 and y = 1, vertical displacement of the top z = 1 controlled, pore pressure prescribed as zero
  *     at the eight vertices), assembled and solved with the native NeoPZ classes (geometric mesh, atomic and
  *     multiphysics computational meshes, TPZPoroElastoPlasticUPAnalysis with TPZSkylineNSymStructMatrix and
@@ -67,14 +68,15 @@
  *    entries and in \f$q_{exact}\f$ of NC with constant G (387.879).
  *
  * Output files (working directory), with \<case\> = nc_nu, nc_g, ocr2, ocr5:
- *  - rs2_\<case\>_closed.csv: closed form up to 20% (eps_a, p', q, eps_v, eps_q, sigma_a), dashed lines of Fig. 4;
+ *  - rs2_\<case\>_closed.csv: closed form up to 20% (eps_a, p', q, eps_v, eps_q, sigma_a), dashed lines of Fig. 5;
  *  - rs2_\<case\>_n400.csv: material point with 400 increments (same columns, plus the closed form interpolated at
- *    eps_a and the difference), solid lines of Fig. 4;
+ *    eps_a and the difference), solid lines of Fig. 5;
  *  - rs2_table2.csv: Table 2 (both definitions of q_exact; the last row, increments = 0, holds q_exact);
  *  - rs2_\<case\>_fe.csv, rs2_\<case\>_fe.scal_vec.0.vtk, rs2_\<case\>_fe_gauss.vtk: finite element check;
  *  - rs2_fe_check.csv: summary of the finite element check (q at 20%, largest differences from the material
  *    point, global iterations, wall time);
- *  - rs2_mesh_*.csv: geometric mesh of the element (mcc::WriteMeshCSV), for the figure of the model.
+ *  - rs2_mesh_*.csv: geometric mesh of the element (mcc::WriteMeshCSV), for the drawing of the model (the model of
+ *    the article, Fig. 4, is drawn by FLAC3DTriaxial with the same element).
  *
  * Stresses in kPa, compression positive in the printed and written invariants (p', q, eps_v, eps_a).
  */
@@ -92,7 +94,7 @@ public:
 
     /**
      * @brief Reference values of a test (Python transcription and article); "400" refers to the default number
-     * of increments of the curves of Fig. 4 (fNFigure)
+     * of increments of the curves of Fig. 5 (fNFigure)
      */
     struct TReference {
         REAL fQExactInterp = 0.;                ///< Python: q_exact(0.2) by numpy.interp on the closed form
@@ -115,7 +117,7 @@ public:
     struct TCase {
         std::string fName;  ///< figure of the RS2 manual (Fig8.5 ... Fig8.8)
         std::string fTag;   ///< tag of the output files
-        std::string fLabel; ///< label of Fig. 4 / Table 2
+        std::string fLabel; ///< label of Fig. 5 / Table 2
         REAL fP0 = 200.;    ///< initial isotropic effective stress p'0 (kPa), also the cell pressure
         REAL fPc0 = 200.;   ///< initial preconsolidation pressure p'c0 (kPa)
         bool fConstantG = false; ///< constant shear modulus G (true) or constant Poisson's ratio (false)
@@ -130,7 +132,8 @@ public:
         REAL fQExactRoot = 0.;                                    ///< q_exact(0.2), exact (bisection on eta)
         std::array<REAL, NIncrements> fErrInterp{};               ///< q_num - q_exact(interp)
         std::array<REAL, NIncrements> fErrRoot{};                 ///< q_num - q_exact(exact)
-        REAL fMaxDiff400 = 0., fEaMaxDiff400 = 0.;                ///< largest |q - q_closed| along the path (400)
+        REAL fMaxDiff400 = 0.;                                    ///< largest |q - q_closed| along the path (400)
+        REAL fEaMaxDiff400 = 0.;                                  ///< eps_a of the largest difference
         mcc::TLocalStats fStats400;                               ///< local Newton iterations (400 increments)
         std::vector<std::array<REAL, 6>> fFE;                     ///< FE check (eps_a, p', q, eps_v, eps_q, evaluations)
         REAL fFEMaxDiff = 0.;                                     ///< max |q_FE - q_point| along the path (400)
@@ -147,7 +150,12 @@ public:
 
     /** @name Material parameters (Table 1) */
     /** @{ */
-    REAL fM = 1.2, fLambda = 0.077, fKappa = 0.0066, fV0 = 1.70, fG = 2.e4, fNu = 0.3;
+    REAL fM = 1.2;        ///< slope of the critical state line M
+    REAL fLambda = 0.077; ///< slope of the normal compression line lambda
+    REAL fKappa = 0.0066; ///< slope of the swelling lines kappa
+    REAL fV0 = 1.70;      ///< initial specific volume v0
+    REAL fG = 2.e4;       ///< shear modulus of the cases with constant G (kPa)
+    REAL fNu = 0.3;       ///< Poisson's ratio of the cases with constant nu
     /** @} */
     /** @brief Final axial strain of the tests */
     REAL fEaMax = 0.2;
@@ -155,7 +163,7 @@ public:
     int fNClosed = 600;
     /** @brief Numbers of increments of the convergence study */
     std::array<int, NIncrements> fIncrements = {100, 200, 400, 800, 1600};
-    /** @brief Number of increments of the curves of Fig. 4 and of the finite element check */
+    /** @brief Number of increments of the curves of Fig. 5 and of the finite element check */
     int fNFigure = 400;
     /** @brief Runs the finite element check */
     bool fFECheck = true;
@@ -171,6 +179,7 @@ public:
     /**
      * @brief Yield point of the drained path \f$q=3(p'-p'_0)\f$:
      * \f$(9+M^2)p'^2-(18p'_0+M^2p'_{c0})p'+9p'^2_0=0\f$
+     * @param tcase test (p'0 and p'c0)
      * @param[out] py mean effective stress at yield
      * @return stress ratio at yield \f$\eta_y=q_y/p'_y\f$
      */
@@ -190,6 +199,7 @@ public:
      * @brief Deviatoric stress of the closed form at the axial strain ea, without interpolation: bisection on
      * \f$\eta\f$ between \f$\eta_y\f$ and \f$M\f$ (increasing in the subcritical region, decreasing in the
      * supercritical region) for \f$\varepsilon_a(\eta)=\varepsilon_a\f$
+     * @param tcase test (initial state and shear law)
      * @param ea axial strain beyond the yield point (NaN is returned in the elastic branch)
      */
     REAL ExactDeviatoricStress(const TCase &tcase, REAL ea) const;
@@ -211,7 +221,8 @@ public:
      * solver (TPZStepSolver, ELU), nsteps increments of the top displacement and post-processing (CSV, VTK)
      * @param tcase test
      * @param nsteps number of increments; res.fPoint must hold the material point solution with nsteps increments
-     * @param res results of the test: fFE, fFEMaxDiff and fFEMeanEvaluations are filled
+     * @param res results of the test: the fFE* members (history, differences from the material point, work
+     * counters, wall time, spread of q over the points and equations) are filled
      */
     void RunFiniteElement(const TCase &tcase, int nsteps, TResult &res);
     /** @} */
@@ -219,7 +230,7 @@ public:
     /** @brief Runs a test: closed form, material point solutions, finite element check and CSV files */
     TResult Run(const TCase &tcase);
 
-    /** @brief Runs the four tests and prints Table 2 and the values of Fig. 4 next to the reference values */
+    /** @brief Runs the four tests and prints Table 2 and the values of Fig. 5 next to the reference values */
     void RunAll();
 
 private:
@@ -509,7 +520,7 @@ inline RS2Triaxial::TResult RS2Triaxial::Run(const TCase &tcase) {
         rows.push_back({r[0], r[1], r[2], r[3], r[4], r[5], qc, r[2] - qc, evc});
     }
 
-    // curves of Fig. 4: material point (fNFigure increments) and closed form up to eps_a = 20%
+    // curves of Fig. 5: material point (fNFigure increments) and closed form up to eps_a = 20%
     const std::string base = "rs2_" + tcase.fTag;
     mcc::WriteCSV(base + "_n" + std::to_string(fNFigure) + ".csv",
                   {"eps_a", "p_eff", "q", "eps_v", "eps_q", "sigma_a", "q_closed", "q_minus_q_closed", "eps_v_closed"},
@@ -524,11 +535,12 @@ inline RS2Triaxial::TResult RS2Triaxial::Run(const TCase &tcase) {
 }
 
 inline void RS2Triaxial::RunAll() {
+    const auto start = std::chrono::steady_clock::now();
     const std::vector<TCase> cases = Cases();
     std::vector<TResult> results;
     for (auto &c : cases) results.push_back(Run(c));
 
-    std::cout << "RS2 drained triaxial tests at a material point (Sect. 6.1, Fig. 4, Table 2)\n"
+    std::cout << "RS2 drained triaxial tests at a material point (Sect. 6.1, Fig. 5, Table 2)\n"
               << "M = " << fM << ", lambda = " << fLambda << ", kappa = " << fKappa << ", v0 = " << fV0
               << ", nu = " << fNu << " or G = " << fG / 1000. << " MPa; cell pressure p'0, eps_a up to "
               << 100. * fEaMax << "%\n\n";
@@ -592,7 +604,7 @@ inline void RS2Triaxial::RunAll() {
     std::cout << "largest error at eps_a = 20% with 100 increments: " << std::fixed << std::setprecision(2)
               << 100. * rel100 << "% (article: 0.24%)\n\n";
 
-    std::cout << "Fig. 4, " << fNFigure
+    std::cout << "Fig. 5, " << fNFigure
               << " increments [this code | Python | article: Sect. 6.1, Table 3 for constant G]\n";
     for (size_t j = 0; j < cases.size(); ++j) {
         const auto &r = results[j];
@@ -679,7 +691,7 @@ inline void RS2Triaxial::RunAll() {
         delete gmesh;
     }
     std::cout << "\nFiles: rs2_<case>_closed.csv, rs2_<case>_n" << fNFigure
-              << ".csv (Fig. 4), rs2_table2.csv (Table 2), rs2_<case>_fe.csv, rs2_fe_check.csv, rs2_mesh_*.csv and VTK "
+              << ".csv (Fig. 5), rs2_table2.csv (Table 2), rs2_<case>_fe.csv, rs2_fe_check.csv, rs2_mesh_*.csv and VTK "
                  "files of the FE check\n";
 
     // Table 2 as CSV
@@ -704,4 +716,6 @@ inline void RS2Triaxial::RunAll() {
     }
     rows.push_back(qrow); // last row (increments = 0): q_exact
     mcc::WriteCSV("rs2_table2.csv", head, rows);
+    std::cout << "total run time " << std::setprecision(3)
+              << std::chrono::duration<REAL>(std::chrono::steady_clock::now() - start).count() << " s\n";
 }

@@ -1,12 +1,12 @@
 /**
  * @file main.cpp
  * @brief Embankment loading on a Modified Cam-Clay foundation: undrained loading and consolidation of a
- * 20 x 10 x 1 Hex20-Hex8 u-p slab in plane strain (Sect. 6.6, Figs. 11 to 13, Table 8 and the embankment
+ * 20 x 10 x 1 Hex20-Hex8 u-p slab in plane strain (Sect. 6.6, Figs. 12 to 14, Table 8 and the embankment
  * column of Table 10), with the elastic variant and the comparison of the tangent operators.
  *
  * Usage: EmbankmentConsolidation [novtk] [verbose] [model] [elastic] [tangents] [modes=D,sym,cont,DT,fd]
  *  - novtk: do not write the VTK file series of every converged state (vtk/embankment and
- *    vtk/embankment_elastic); the CSV files and the VTK files of the three states of Fig. 13 are always written;
+ *    vtk/embankment_elastic); the CSV files and the VTK files of the three states of Fig. 14 are always written;
  *  - verbose: one line per increment of the analyses;
  *  - model, elastic, tangents: run only these parts (default: all of them; see EmbankmentConsolidation::EPart);
  *  - modes=...: tangent operators of the comparison (default D,sym,cont,DT,fd).

@@ -2,7 +2,7 @@
  * @file EmbankmentConsolidation.h
  * @brief Sect. 6.6 of the article: embankment loading on a Modified Cam-Clay foundation (FLAC3D example).
  * A 1 m slice of the foundation is modelled with 20 x 10 x 1 Hex20-Hex8 u-p elements in plane strain, with
- * geostatic initial state, undrained loading and consolidation (Figs. 11 to 13, Table 8 and the embankment
+ * geostatic initial state, undrained loading and consolidation (Figs. 12 to 14, Table 8 and the embankment
  * column of Table 10).
  */
 #pragma once
@@ -33,7 +33,7 @@
  *
  * Half of the problem: the slab \f$[0,20]\times[0,10]\times[0,1]\f$ m (x horizontal, y vertical, z the thickness),
  * the 1 m slice of the FLAC3D model, divided into 20 x 10 x 1 Hex20-Hex8 elements of 1 m (serendipity quadratic
- * displacement, trilinear pore pressure) with 3 x 3 x 3 Gauss points (Fig. 11). Plane strain is imposed with
+ * displacement, trilinear pore pressure) with 3 x 3 x 3 Gauss points (Fig. 12). Plane strain is imposed with
  * \f$u_z=0\f$ on the faces z = 0 and z = 1 m.
  *
  * Material (Table 1): \f$M=0.888\f$, \f$\lambda=0.161\f$, \f$\kappa=0.062\f$, \f$v_\lambda=2.858\f$,
@@ -99,7 +99,7 @@ public:
 
     /** @brief Parts of RunAll (bit mask) */
     enum EPart {
-        EPartModel = 1,    ///< Cam-Clay model with the consistent tangent: Table 8, Figs. 12 and 13, CSV and VTK files
+        EPartModel = 1,    ///< Cam-Clay model with the consistent tangent: Table 8, Figs. 13 and 14, CSV and VTK files
         EPartElastic = 2,  ///< elastic foundation (plastic share of the settlement)
         EPartTangents = 4, ///< comparison of the tangent operators (Table 10, embankment column)
         EPartAll = 7       ///< all of them
@@ -141,11 +141,11 @@ public:
         /** @brief Check of fReactionZ0 at t = 1e8 s: \f$-\frac{1}{T}\int_V(\sigma'_{zz}-\alpha_B p_w)\,dV\f$ summed over the
          * integration points (T = 1 m, the fields do not depend on z) */
         REAL fSigmaZZForce = 0.;
-        REAL fExcessUndrained = 0.;   ///< largest excess pore pressure at the end of the loading (Fig. 13a)
+        REAL fExcessUndrained = 0.;   ///< largest excess pore pressure at the end of the loading (Fig. 14a)
         std::array<REAL, 3> fExcessUndrainedX = {0., 0., 0.}; ///< vertex where it occurs
-        REAL fExcess1e6 = 0.;         ///< largest excess pore pressure at t = 1e6 s (Fig. 13b)
+        REAL fExcess1e6 = 0.;         ///< largest excess pore pressure at t = 1e6 s (Fig. 14b)
         std::array<REAL, 3> fExcess1e6X = {0., 0., 0.};       ///< vertex where it occurs
-        REAL fHeave = 0.;             ///< largest heave of the top at t = 1e8 s (negative settlement, Fig. 13d)
+        REAL fHeave = 0.;             ///< largest heave of the top at t = 1e8 s (negative settlement, Fig. 14d)
         REAL fHeaveStart = -1.;       ///< first x of the top with heave at t = 1e8 s (-1 if none)
         REAL fCvUndrained = 0.;       ///< consolidation coefficient of the skeleton in zone pp2, end of the loading
         REAL fCvFinal = 0.;           ///< consolidation coefficient of the skeleton in zone pp2, t = 1e8 s
@@ -301,7 +301,7 @@ public:
     void MatrixProfile(mcc::TAnalysis &an, TResult &res, bool write) const;
 
     /**
-     * @brief Writes the fields of a state (Fig. 13): nodal VTK (displacement and pore pressure), VTK of the
+     * @brief Writes the fields of a state (Fig. 14): nodal VTK (displacement and pore pressure), VTK of the
      * integration points, CSV of the vertex values (with the excess pore pressure) and of the integration points
      * @param an analysis (solution of the state loaded in the mesh)
      * @param mat the u-p material
@@ -319,7 +319,7 @@ public:
      * @param variant ECamClay or EElastic: undrained loading and consolidation
      * @param mode tangent operator returned by the stress update (SetTangentMode)
      * @param output write the files of the run: CSV of the mesh, histories, convergence records and matrix
-     * profile, fields of Fig. 13 (ECamClay) and the VTK series (with fWriteVTK); without output only the
+     * profile, fields of Fig. 14 (ECamClay) and the VTK series (with fWriteVTK); without output only the
      * results are returned (comparison of the tangent operators)
      * @return monitored history, convergence records and post-processed quantities of the run
      *
@@ -722,7 +722,7 @@ inline void EmbankmentConsolidation::WriteState(mcc::TAnalysis &an, mcc::TPoroMa
     // native NeoPZ post-processing of the nodal fields and the integration points
     mcc::WriteNodalVTK(an, 3, "embankment_nodal.vtk", step);
     mcc::WriteGaussPointsVTK(mat, mphys, "embankment_gauss_" + tag + ".vtk");
-    // vertex values: displacement, pore pressure and excess pore pressure (Fig. 13a, b and d use the face z = 0)
+    // vertex values: displacement, pore pressure and excess pore pressure (Fig. 14a, b and d use the face z = 0)
     TPZGeoMesh *gmesh = mphys->Reference();
     std::vector<std::vector<REAL>> rows;
     excess = -1e300;
@@ -738,7 +738,7 @@ inline void EmbankmentConsolidation::WriteState(mcc::TAnalysis &an, mcc::TPoroMa
         }
     }
     mcc::WriteCSV("embankment_nodal_" + tag + ".csv", {"x", "y", "z", "ux", "uy", "uz", "p", "p_excess"}, rows);
-    // integration points (Fig. 13c)
+    // integration points (Fig. 14c)
     rows.clear();
     for (auto &g : mcc::GaussPoints(mat, mphys))
         rows.push_back({g.fX[0], g.fX[1], g.fX[2], mcc::MeanEffectiveStress(g.fSigma), mcc::DeviatoricStress(g.fSigma),
@@ -889,7 +889,7 @@ inline EmbankmentConsolidation::TResult EmbankmentConsolidation::Run(EVariant va
         });
         PlaneStrainCheck(analysis, mphys, res);
 
-        // heave of the top at the end (vertices of the face z = 0, Fig. 13d)
+        // heave of the top at the end (vertices of the face z = 0, Fig. 14d)
         std::vector<std::pair<REAL, REAL>> profile;
         for (int64_t n = 0; n < gmesh->NNodes(); ++n) {
             TPZManVector<REAL, 3> x(3);
@@ -912,7 +912,7 @@ inline EmbankmentConsolidation::TResult EmbankmentConsolidation::Run(EVariant va
 
     if (output)
         timed([&] {
-            // histories (Fig. 12) and convergence records (Sect. 6.7)
+            // histories (Fig. 13) and convergence records (Sect. 6.7)
             mcc::WriteCSV(prefix + "_history.csv", {"t", "lambda", "s_x0", "s_x2", "s_x4", "s_x6", "pp1", "pp2"},
                           res.fHistory);
             std::vector<std::vector<REAL>> conv;
@@ -1048,7 +1048,7 @@ inline void EmbankmentConsolidation::RunAll() {
                 Summary(std::string("table8_undrained_") + keys[i], U[2 + i], RU[1 + i], i < 4 ? "m" : "kPa");
                 Summary(std::string("table8_t1e8_") + keys[i], F[2 + i], RF[1 + i], i < 4 ? "m" : "kPa");
             }
-            // whole histories against the 2D model (Fig. 12)
+            // whole histories against the 2D model (Fig. 13)
             REAL ds = 0., dp = 0.;
             for (int k = 0; k < kNStates; ++k) {
                 for (int c = 1; c <= 4; ++c) ds = std::max(ds, std::fabs(h[k][1 + c] - kRefHistory[k][c]));
@@ -1174,7 +1174,7 @@ inline void EmbankmentConsolidation::RunAll() {
             Summary("cv_t_d2_undrained", r.fCvUndrained * tcv / (dcv * dcv), 0.050, "");
             Summary("cv_t_d2_t1e8", r.fCvFinal * tcv / (dcv * dcv), 0.103, "");
 
-            // fields of Fig. 13
+            // fields of Fig. 14
             std::cout << std::fixed << std::setprecision(2) << "largest excess pore pressure: end of loading "
                       << r.fExcessUndrained << " kPa at (" << r.fExcessUndrainedX[0] << ", " << r.fExcessUndrainedX[1]
                       << ", " << r.fExcessUndrainedX[2] << ") (2D 56.14 at (1, 9)); t = 1e6 s " << r.fExcess1e6

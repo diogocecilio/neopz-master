@@ -13,21 +13,21 @@ ParaView (README.md, section "Viewing the solution in ParaView").
 
 Figures produced:
 
-- fig11_embankment_model: Fig. 11, the model in an oblique (cavalier) projection with x to the right, y up and z
+- fig12_embankment_model: Fig. 12, the model in an oblique (cavalier) projection with x to the right, y up and z
   towards the reader: the mesh of the slab (embankment_mesh_*.csv, written by mcc::WriteMeshCSV: the faces z = 1 m,
   y = 10 m and x = 20 m are visible), the strip load, the drained top, the boundary conditions (u_x = 0 at x = 0
   and x = 20 m, u_z = 0 on the faces z = 0 and z = 1 m, fixed and impermeable base), the settlement points at
   x = 0, 2, 4, 6 m (vertices of the face z = 0) and the elements of the zones pp1 and pp2
   (embankment_monitor.csv); on the right, one Hex20-Hex8 element with its 20 displacement nodes and its 8 pore
   pressure nodes.
-- fig12_embankment_history: Fig. 12, histories from the end of the undrained loading (t = 0) to t = 1e8 s
+- fig13_embankment_history: Fig. 13, histories from the end of the undrained loading (t = 0) to t = 1e8 s
   (embankment_history.csv): (a) settlements of the top at x = 0, 2, 4, 6 m, (b) pore pressures in the zones pp1
   and pp2, with pp2 against log t in the inset (Mandel-Cryer effect). Markers: the FLAC3D histories, digitized
   (reference/flac_historicos_digitalizados.json, the file dados/ of the Python code), with the FLAC3D values at
   the end of the loading (Table 8) at t = 0. The numbers of the discussion read from the FLAC3D histories (share of
   the excess pore pressure of pp2 dissipated and of the consolidation settlement at x = 0 developed at t = 2.5e5 s
-  and 1e6 s), with those of this work, are printed and written to fig12_flac3d_numbers.csv in the output directory.
-- fig13_embankment_fields: Fig. 13, fields on the face z = 0 (embankment_nodal_<state>.csv, vertices of the face,
+  and 1e6 s), with those of this work, are printed and written to fig13_flac3d_numbers.csv in the output directory.
+- fig14_embankment_fields: Fig. 14, fields on the face z = 0 (embankment_nodal_<state>.csv, vertices of the face,
   contours on the two triangles of each quadrilateral, as in the Python code; the fields do not depend on z):
   (a) excess pore pressure at the end of the undrained loading, (b) at t = 1e6 s, (c) plastic integration points
   at t = 1e8 s in the layer of points nearest to the face z = 0 (embankment_gauss_t1e8.csv: type 1 subcritical,
@@ -113,7 +113,7 @@ def flac_numbers(flac, hc, out):
     """Numbers of the discussion of Sect. 6.6 read from the digitized FLAC3D histories (linear interpolation in t),
     with the values of this work at the same times from the history hc: share of the excess pore pressure of pp2
     dissipated and share of the consolidation settlement at x = 0 developed at the first FLAC3D point
-    (t = 2.5e5 s) and at t = 1e6 s. Printed and written to <out>/fig12_flac3d_numbers.csv."""
+    (t = 2.5e5 s) and at t = 1e6 s. Printed and written to <out>/fig13_flac3d_numbers.csv."""
     hyd2 = 25.0  # hydrostatic pore pressure at the centre of pp2 (y = 7.5 m)
     tp, vp = flac_history(flac, 'pp2', t0=False)
     ts, vs = flac_history(flac, 'uz_x0', t0=False)
@@ -129,14 +129,14 @@ def flac_numbers(flac, hc, out):
                      100 * (hc[0, 6] - pw) / (hc[0, 6] - hyd2), sw, 100 * (sw - hc[0, 1]) / (hc[-1, 1] - hc[0, 1])))
         print('FLAC3D at t = %.3g s: pp2 %.2f kPa (%.0f%% of the excess dissipated), settlement x = 0 %.4f m (%.0f%% of '
               'the consolidation settlement); this work: pp2 %.2f kPa (%.1f%%), settlement %.4f m (%.1f%%)' % rows[-1])
-    with open(os.path.join(out, 'fig12_flac3d_numbers.csv'), 'w') as f:
+    with open(os.path.join(out, 'fig13_flac3d_numbers.csv'), 'w') as f:
         f.write('t,flac_pp2,flac_pp2_dissipated_pct,flac_s_x0,flac_s_x0_consolidation_pct,'
                 'this_pp2,this_pp2_dissipated_pct,this_s_x0,this_s_x0_consolidation_pct\n')
         for r in rows:
             f.write(','.join('%.6g' % v for v in r) + '\n')
 
 
-# =========================================================================================== Fig. 11
+# =========================================================================================== Fig. 12
 # oblique (cavalier) projection: x to the right, y up, z towards the reader drawn down and to the left at 45 degrees
 # with its true length, so that the visible faces are z = 1 m (front), y = 10 m (top) and x = 20 m (right)
 OBLIQUE = np.array([-np.cos(np.pi / 4), -np.sin(np.pi / 4)])
@@ -149,7 +149,7 @@ def project(X):
 
 
 def fig_embankment_model(run, out):
-    """Fig. 11: the 3D model, the boundary conditions, the monitoring points and the Hex20-Hex8 element."""
+    """Fig. 12: the 3D model, the boundary conditions, the monitoring points and the Hex20-Hex8 element."""
     nodes = read_csv(os.path.join(run, 'embankment_mesh_nodes.csv'))
     faces = read_csv(os.path.join(run, 'embankment_mesh_faces.csv'))
     elements = read_csv(os.path.join(run, 'embankment_mesh_elements.csv'))
@@ -305,14 +305,14 @@ def fig_embankment_model(run, out):
     axe.text(0.1, -2.98, '3 × 3 × 3 Gauss points', ha='center', va='bottom', fontsize=6.8, color=INK2)
     nel = len(elements['element'])
     nmid = int(np.sum(edges['nmid'] >= 0)) if 'nmid' in edges else 0
-    print('Fig. 11: %d hexahedra, %d vertices, %d edges (%d with a geometric mid-edge node), %d boundary faces; '
+    print('Fig. 12: %d hexahedra, %d vertices, %d edges (%d with a geometric mid-edge node), %d boundary faces; '
           'slab %g x %g x %g m' % (nel, len(X), len(edges['n0']), nmid, len(fmat), W, H, T))
-    save(fig, out, 'fig11_embankment_model')
+    save(fig, out, 'fig12_embankment_model')
 
 
-# =========================================================================================== Fig. 12
+# =========================================================================================== Fig. 13
 def fig_embankment_history(run, out):
-    """Fig. 12: settlements and pore pressures against t, with the FLAC3D histories (fig_aterro_hist of figs.py)."""
+    """Fig. 13: settlements and pore pressures against t, with the FLAC3D histories (fig_aterro_hist of figs.py)."""
     hc = consolidation_history(run)
     flac = reference(HERE, 'flac_historicos_digitalizados.json')
     fig, axs = plt.subplots(1, 2, figsize=(TEXTW, 2.7))
@@ -368,14 +368,14 @@ def fig_embankment_history(run, out):
     axin.grid(True, which='major', lw=0.4)
     fig.tight_layout(w_pad=1.2)
     flac_numbers(flac, hc, out)
-    print('Fig. 12: t = 1e8 s: settlements %s m, pp1 %.4f, pp2 %.4f kPa; pp2 %.3f -> %.3f kPa at t = %.3g s'
+    print('Fig. 13: t = 1e8 s: settlements %s m, pp1 %.4f, pp2 %.4f kPa; pp2 %.3f -> %.3f kPa at t = %.3g s'
           % (np.array2string(hc[-1, 1:5], precision=6), hc[-1, 5], hc[-1, 6], hc[0, 6], hc[km, 6], hc[km, 0]))
-    save(fig, out, 'fig12_embankment_history')
+    save(fig, out, 'fig13_embankment_history')
 
 
-# =========================================================================================== Fig. 13
+# =========================================================================================== Fig. 14
 def fig_embankment_fields(run, out):
-    """Fig. 13: excess pore pressure at the end of the loading and at t = 1e6 s, plastic integration points and
+    """Fig. 14: excess pore pressure at the end of the loading and at t = 1e6 s, plastic integration points and
     settlement at t = 1e8 s, on the face z = 0 (fig_aterro_fields of figs.py)."""
     nodal = {tag: face_z0(read_csv(os.path.join(run, f'embankment_nodal_{tag}.csv')))
              for tag in ('undrained', 't1e6', 't1e8')}
@@ -398,7 +398,7 @@ def fig_embankment_fields(run, out):
         ax.set_title(title, fontsize=8)
         ax.text(19.6, 0.6, f'max {pex.max():.1f} kPa', ha='right', va='bottom', fontsize=6.8, color=INK)
         k = int(np.argmax(pex))
-        print('Fig. 13: %s: largest excess pore pressure on the face z = 0: %.2f kPa at (%g, %g)'
+        print('Fig. 14: %s: largest excess pore pressure on the face z = 0: %.2f kPa at (%g, %g)'
               % (tag, pex[k], n['x'][k], n['y'][k]))
     cb = fig.colorbar(cs, cax=cax1)
     cb.set_label('kPa', fontsize=7.5)
@@ -457,9 +457,9 @@ def fig_embankment_fields(run, out):
         cax.set_position([pc.x0, pa.y0, pc.width, pa.height])
     per_layer = ', '.join('z = %.4f: %d sub, %d super' % (z, np.sum((typ == 1) & (zl == z)), np.sum((typ == 2) & (zl == z)))
                           for z in layers)
-    print('Fig. 13: t = 1e8 s: plastic points (%s; total %d, %d of %d); settlement from %.4f to %.4f m, heave of the '
+    print('Fig. 14: t = 1e8 s: plastic points (%s; total %d, %d of %d); settlement from %.4f to %.4f m, heave of the '
           'top up to %.4f mm' % (per_layer, np.sum(typ == 1), np.sum(typ == 2), len(typ), s.min(), s.max(), 1e3 * heave))
-    save(fig, out, 'fig13_embankment_fields')
+    save(fig, out, 'fig14_embankment_fields')
 
 
 # (function, CSV files)
@@ -472,7 +472,7 @@ FIGURES = (
 )
 
 if __name__ == '__main__':
-    args = arguments('Figs. 11 to 13 of the article (embankment on a Cam-Clay foundation) from the CSV files of '
+    args = arguments('Figs. 12 to 14 of the article (embankment on a Cam-Clay foundation) from the CSV files of '
                      'EmbankmentConsolidation.')
     for function, files in FIGURES:
         missing = [f for f in files if not os.path.exists(os.path.join(args.rundir, f))]

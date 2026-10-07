@@ -15,16 +15,16 @@ IntegrationSchemes). They reproduce the numbers of the Python code to round-off 
 |---|---|---|
 | [YieldSurfaceProjection](YieldSurfaceProjection) | Figs. 1 and 2 | `fig_surface.py` |
 | [TaylorTest](TaylorTest) | Sect. 4.5, Fig. 3; Table 10 (Taylor slopes of the tangent operators) | `gen_data.py taylor`, `tangentes` (Taylor slopes) |
-| [RS2Triaxial](RS2Triaxial) | Sect. 6.1, Fig. 4, Table 2 | `gen_data.py rs2` |
+| [RS2Triaxial](RS2Triaxial) | Sect. 6.1, Figs. 4 and 5, Table 2 | `gen_data.py rs2` |
 | [FrozenBulkModulus](FrozenBulkModulus) | Sect. 6.1, Table 3 | `gen_data.py frozen` |
-| [IntegrationSchemes](IntegrationSchemes) | Sect. 6.2, Fig. 5, Table 4 | `gen_data.py rivais`, `rivais.py` |
-| [FLAC3DTriaxial](FLAC3DTriaxial) | Sect. 6.3, Fig. 6, Table 5 | `gen_data.py itasca` |
-| [TerzaghiConsolidation](TerzaghiConsolidation) | Sect. 6.4, Fig. 7, Table 6 | `gen_data.py terzaghi`, `gen_data3d.py` |
-| [AbaqusTriaxialConsolidation](AbaqusTriaxialConsolidation) | Sects. 6.5 and 6.7, Figs. 8–10, Tables 7, 9 and 10 | `gen_data.py abaqus abaqus_mp abaqus_states`, `gen_data3d.py` |
-| [EmbankmentConsolidation](EmbankmentConsolidation) | Sects. 6.6 and 6.7, Figs. 11–13, Tables 8 and 10 | `gen_data.py aterro`, `aterro_elastic.py` |
+| [IntegrationSchemes](IntegrationSchemes) | Sect. 6.2, Fig. 6, Table 4 | `gen_data.py rivais`, `rivais.py` |
+| [FLAC3DTriaxial](FLAC3DTriaxial) | Sects. 6.3 and 6.7, Figs. 4 and 7, Tables 5 and 10 | `gen_data.py itasca` |
+| [TerzaghiConsolidation](TerzaghiConsolidation) | Sect. 6.4, Fig. 8, Table 6 | `gen_data.py terzaghi`, `gen_data3d.py` |
+| [AbaqusTriaxialConsolidation](AbaqusTriaxialConsolidation) | Sects. 6.5 and 6.7, Figs. 9–11, Tables 7, 9 and 10 | `gen_data.py abaqus abaqus_mp abaqus_states`, `gen_data3d.py` |
+| [EmbankmentConsolidation](EmbankmentConsolidation) | Sects. 6.6 and 6.7, Figs. 12–14, Tables 8 and 10 | `gen_data.py aterro`, `aterro_elastic.py` |
 
-Section, table and figure numbers of the article v0.6; the sections and tables are kept in v0.7, whose figures
-after Fig. 3 may be renumbered when the finite element meshes are added. The material-point examples
+Section, table and figure numbers of the article v0.7 (the figure of the single-element model, Fig. 4, was added,
+so the later figures moved by one with respect to v0.6). The material-point examples
 (YieldSurfaceProjection, TaylorTest, FrozenBulkModulus, IntegrationSchemes and the material-point tests of
 RS2Triaxial) have no finite element mesh.
 
@@ -77,23 +77,22 @@ article from the CSV files of its executable, with the style of the figures of t
 ```
 cd <run directory>          # where the executable wrote its CSV files
 ./FLAC3DTriaxial
-python3 <neopz>/Projects/FLAC3DTriaxial/plot_figures.py      # writes figures/fig06_flac3d_triaxial.pdf/.png
+python3 <neopz>/Projects/FLAC3DTriaxial/plot_figures.py      # writes figures/fig07_flac3d_triaxial.pdf/.png
 ```
 
 | Project | Files (PDF and PNG in `<run directory>/figures`) |
 |---|---|
 | YieldSurfaceProjection | `fig01_mcc_surface`, `fig02_meridian_projection` |
 | TaylorTest | `fig03_taylor_test` (and the same figure for the `std::mt19937_64` sample); `supplementary_taylor_operators` (Taylor slopes of Table 10; not a figure of the article) |
-| RS2Triaxial | `fig04_rs2_triaxial`; `supplementary_rs2_element_check` (not a figure of the article) |
+| RS2Triaxial | `fig05_rs2_triaxial`; `supplementary_rs2_element_check` (not a figure of the article) |
 | FrozenBulkModulus | `supplementary_table03_frozen_bulk_modulus` (Table 3; not a figure of the article) |
-| IntegrationSchemes | `fig05_integration_schemes`; `supplementary_secant_first_increment` (single secant step in the first increment of the drained test with OCR = 10; not a figure of the article) |
-| FLAC3DTriaxial | `fig06_flac3d_triaxial`; `fig_single_element_model` (the Hex20–Hex8 element with its boundary conditions) |
-| TerzaghiConsolidation | `fig07_terzaghi_consolidation` |
-| AbaqusTriaxialConsolidation | `fig08_abaqus_model`, `fig09_abaqus_states`, `fig10_abaqus_results`; `supplementary_abaqus_softening`, `supplementary_abaqus_tangents` (not figures of the article) |
-| EmbankmentConsolidation | `fig11_embankment_model`, `fig12_embankment_history`, `fig13_embankment_fields` |
+| IntegrationSchemes | `fig06_integration_schemes`; `supplementary_secant_first_increment` (single secant step in the first increment of the drained test with OCR = 10; not a figure of the article) |
+| FLAC3DTriaxial | `fig04_single_element_model` (the Hex20–Hex8 element of the RS2 and FLAC3D tests with its boundary conditions), `fig07_flac3d_triaxial` |
+| TerzaghiConsolidation | `fig08_terzaghi_consolidation` |
+| AbaqusTriaxialConsolidation | `fig09_abaqus_model`, `fig10_abaqus_states`, `fig11_abaqus_results`; `supplementary_abaqus_softening`, `supplementary_abaqus_tangents` (not figures of the article) |
+| EmbankmentConsolidation | `fig12_embankment_model`, `fig13_embankment_history`, `fig14_embankment_fields` |
 
-The numbers in the file names are the figure numbers of the article v0.6; in v0.7 the figures may be renumbered
-when the drawings of the finite element meshes are added.
+The numbers in the file names are the figure numbers of the article v0.7.
 
 The scripts are ports of `fig_surface.py` and `figs.py` of the Python code, reading the CSV files instead of the
 pickled results; the figures are the same as those of the article. The font of the article (TeX Gyre Heros) is

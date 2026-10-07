@@ -1,4 +1,4 @@
-# EmbankmentConsolidation — Sect. 6.6, Figs. 11–13, Table 8 and the embankment column of Table 10
+# EmbankmentConsolidation — Sect. 6.6, Figs. 12–14, Table 8 and the embankment column of Table 10
 
 Embankment loading on a Modified Cam-Clay foundation (FLAC3D example *Embankment loading on a Cam-Clay
 foundation*): a 50 kPa strip load on a 10 m saturated clay layer, applied in undrained increments and
@@ -11,7 +11,7 @@ variant is `aterro_elastic.py` and the comparison of the tangent operators is th
   quadratic displacement, trilinear pore pressure, i.e. pressure one order lower): 1553 displacement nodes
   (462 vertices and 1091 mid-edge nodes), 462 pore pressure nodes, 5121 equations, 3430 after the elimination
   of the Dirichlet conditions; 3 × 3 × 3 Gauss points (`SetIntegrationOrder(4)`), 5400 integration points
-  (Fig. 11). The mesh is `mcc::CreateSlabMesh`; its CSV files are written with `mcc::WriteMeshCSV`.
+  (Fig. 12). The mesh is `mcc::CreateSlabMesh`; its CSV files are written with `mcc::WriteMeshCSV`.
 * Material (Table 1): M = 0.888, λ = 0.161, κ = 0.062, v_λ = 2.858, porous elasticity with ν = 0.3,
   uniform p'c0 = 160 kPa. γ_sat = 23 kN/m³, γ_w = 10 kN/m³, K_f = 2·10⁵ kPa, n = 0.3 (α_B = 1,
   1/M_B = n/K_f), mobility k = 10⁻⁹ m²/(kPa s); body force (0, −23, 0) and fluid weight (0, −10, 0).
@@ -92,15 +92,15 @@ Files written in the working directory:
 
 | File | Contents |
 |---|---|
-| `embankment_mesh_{nodes,elements,faces,edges}.csv` | the geometric mesh (`mcc::WriteMeshCSV`): 462 vertices, 200 hexahedra, 464 boundary quadrilaterals with their material ids (−1 base, −2 x = 20 m, −4 x = 0, −5 loaded strip, −6 z = 0, −7 z = 1 m, −13 drained top) and 1091 edges (Fig. 11) |
-| `embankment_monitor.csv` | settlement points (vertices) and the boxes of the elements of the zones pp1, pp2 (Fig. 11) |
-| `embankment_history.csv` | t, λ, settlements at x = 0, 2, 4, 6 m, pp1, pp2 (Fig. 12, Table 8); 11 undrained states (t = 0) and 25 consolidation steps |
+| `embankment_mesh_{nodes,elements,faces,edges}.csv` | the geometric mesh (`mcc::WriteMeshCSV`): 462 vertices, 200 hexahedra, 464 boundary quadrilaterals with their material ids (−1 base, −2 x = 20 m, −4 x = 0, −5 loaded strip, −6 z = 0, −7 z = 1 m, −13 drained top) and 1091 edges (Fig. 12) |
+| `embankment_monitor.csv` | settlement points (vertices) and the boxes of the elements of the zones pp1, pp2 (Fig. 12) |
+| `embankment_history.csv` | t, λ, settlements at x = 0, 2, 4, 6 m, pp1, pp2 (Fig. 13, Table 8); 11 undrained states (t = 0) and 25 consolidation steps |
 | `embankment_convergence.csv` | normalized residual of every evaluation of every increment (stage 0 undrained, 1 consolidation; Sect. 6.7) |
 | `embankment_types.csv` | elastic, subcritical and supercritical integration points in each of the three layers z = const of points, end of the loading and t = 10⁸ s |
 | `embankment_nodal.scal_vec.{0,1,2}.vtk` | nodal displacement and pore pressure (native NeoPZ VTK) at the end of the loading, t = 10⁶ s and t = 10⁸ s |
 | `embankment_gauss_{undrained,t1e6,t1e8}.vtk` | integration points: p', q, p_c, v0, type (0 elastic, 1 subcritical, 2 supercritical), σ' |
-| `embankment_nodal_{undrained,t1e6,t1e8}.csv` | vertices: x, y, z, u_x, u_y, u_z, p, excess pore pressure p − γ_w(10 − y) (Fig. 13a, b, d, face z = 0) |
-| `embankment_gauss_{undrained,t1e6,t1e8}.csv` | integration points: x, y, z, p', q, p_c, v0, type (Fig. 13c) |
+| `embankment_nodal_{undrained,t1e6,t1e8}.csv` | vertices: x, y, z, u_x, u_y, u_z, p, excess pore pressure p − γ_w(10 − y) (Fig. 14a, b, d, face z = 0) |
+| `embankment_gauss_{undrained,t1e6,t1e8}.csv` | integration points: x, y, z, p', q, p_c, v0, type (Fig. 14c) |
 | `embankment_matrix_profile.csv` | height of each column of the skyline matrix of the filtered system and 1 for a pore pressure equation |
 | `embankment_elastic_{history,convergence,types}.csv` | the same for the elastic variant |
 | `embankment_tangents.csv` | Table 10, embankment column: per operator the mean and largest evaluations per undrained increment and per consolidation step, total evaluations, global iterations (`NGlobalIterations`, failed attempts included), failed attempts (`NBisections`), run time, time per iteration, final settlement and pore pressure, largest difference of the histories from D, largest relative change of the undrained residuals from D, and the 2D values of v0.6 |
@@ -108,7 +108,7 @@ Files written in the working directory:
 | `embankment_tangents_convergence.csv` | normalized residual of every evaluation of every increment of every operator (mode, stage, increment, t, λ, evaluation, residual) |
 | `embankment_summary.csv` | every number printed by the program (quantity, value, value of the 2D model of v0.6, unit) |
 
-The FLAC3D markers of Fig. 12 are the digitized histories of the Python package
+The FLAC3D markers of Fig. 13 are the digitized histories of the Python package
 (`reference/flac_historicos_digitalizados.json`); they are not written here.
 
 ## Viewing the solution in ParaView
@@ -146,21 +146,21 @@ In ParaView (5.5 or later, which reads the `.series` files):
 4. Deformed shape: select the reader and apply *Filters → Alphabetical → Warp By Vector* with
    *Vectors* = `Displacement` and a *Scale Factor* of 10 to 20 (the settlements are below 0.3 m on a
    20 m model).
-5. Excess pore pressure (Fig. 13a, b): select the reader (before the warp, so that the coordinates are the
+5. Excess pore pressure (Fig. 14a, b): select the reader (before the warp, so that the coordinates are the
    undeformed ones) and apply *Filters → Calculator* with *Result Array Name* `ExcessPorePressure` and the
    expression `PorePressure - 10*(10 - coordsY)`, i.e. p − γ_w (10 − y) kPa.
 6. Integration point fields: open `vtk/embankment/embankment_intpoints.vtk.series` and color by
    `MeanEffectiveStress`, `DeviatoricStress`, `PreconsolidationPressure`, ... (the type of response of
-   Fig. 13c is shown by the point cloud, item 7).
+   Fig. 14c is shown by the point cloud, item 7).
    To see them on the deformed mesh, apply *Filters → Resample With Dataset* (source: the nodal reader,
    destination: the integration point reader) to bring `Displacement` to its points, then *Warp By Vector*.
 7. Point cloud: open `vtk/embankment/embankment_gausspoints.vtk.series`, set *Representation* to
    *Point Gaussian* (a *Gaussian Radius* of about 0.1 m) and color by `PlasticType`: at the last state the
-   3 × 140 subcritical and 3 × 32 supercritical points of Fig. 13c appear, the same in the three layers of points.
+   3 × 140 subcritical and 3 × 32 supercritical points of Fig. 14c appear, the same in the three layers of points.
 8. The fields do not depend on z: the view along −z (*Set view direction to −Z*) shows the face z = 1 m, and
    *Filters → Alphabetical → Slice* with the normal (0, 0, 1) gives any section.
 
-The elastic run (`vtk/embankment_elastic/`) has the same files. The VTK files of the three states of Fig. 13
+The elastic run (`vtk/embankment_elastic/`) has the same files. The VTK files of the three states of Fig. 14
 listed above are still written in the working directory.
 
 ## Figures
@@ -175,9 +175,9 @@ matplotlib is needed. A figure whose CSV files are missing is skipped with a mes
 
 | File | Article | Data |
 |---|---|---|
-| `fig11_embankment_model` | Fig. 11: the slab in an oblique projection (x to the right, y up, z towards the reader: the faces z = 1 m, y = 10 m and x = 20 m are visible) with its 20 × 10 × 1 mesh, the load, the drained top, the boundary conditions, the settlement points and the zones pp1, pp2; on the right, the Hex20–Hex8 element with its 20 displacement nodes and 8 pore pressure nodes | `embankment_mesh_*.csv`, `embankment_monitor.csv` |
-| `fig12_embankment_history` | Fig. 12: (a) settlements at x = 0, 2, 4, 6 m and (b) pore pressures pp1, pp2 from t = 0 to 10⁸ s, with the inset of pp2 against log t (Mandel–Cryer effect); markers: FLAC3D | `embankment_history.csv`, `reference/flac_historicos_digitalizados.json`; the numbers of the discussion read from the FLAC3D histories (share of the excess pore pressure of pp2 dissipated and of the consolidation settlement at x = 0 developed at t = 2.5·10⁵ s and 10⁶ s: 47 %, 71 %, 13 %), with those of this work, are written to `fig12_flac3d_numbers.csv` |
-| `fig13_embankment_fields` | Fig. 13, on the face z = 0: excess pore pressure at the end of the undrained loading (a) and at t = 10⁶ s (b), plastic integration points of the layer z = 0.113 m (c) and settlement (d) at t = 10⁸ s | `embankment_nodal_{undrained,t1e6,t1e8}.csv`, `embankment_gauss_t1e8.csv` |
+| `fig12_embankment_model` | Fig. 12: the slab in an oblique projection (x to the right, y up, z towards the reader: the faces z = 1 m, y = 10 m and x = 20 m are visible) with its 20 × 10 × 1 mesh, the load, the drained top, the boundary conditions, the settlement points and the zones pp1, pp2; on the right, the Hex20–Hex8 element with its 20 displacement nodes and 8 pore pressure nodes | `embankment_mesh_*.csv`, `embankment_monitor.csv` |
+| `fig13_embankment_history` | Fig. 13: (a) settlements at x = 0, 2, 4, 6 m and (b) pore pressures pp1, pp2 from t = 0 to 10⁸ s, with the inset of pp2 against log t (Mandel–Cryer effect); markers: FLAC3D | `embankment_history.csv`, `reference/flac_historicos_digitalizados.json`; the numbers of the discussion read from the FLAC3D histories (share of the excess pore pressure of pp2 dissipated and of the consolidation settlement at x = 0 developed at t = 2.5·10⁵ s and 10⁶ s: 47 %, 71 %, 13 %), with those of this work, are written to `fig13_flac3d_numbers.csv` |
+| `fig14_embankment_fields` | Fig. 14, on the face z = 0: excess pore pressure at the end of the undrained loading (a) and at t = 10⁶ s (b), plastic integration points of the layer z = 0.113 m (c) and settlement (d) at t = 10⁸ s | `embankment_nodal_{undrained,t1e6,t1e8}.csv`, `embankment_gauss_t1e8.csv` |
 
 The script draws the three states of the article; the fields of all 36 converged states are in the VTK series
 (see *Viewing the solution in ParaView*).
@@ -199,7 +199,7 @@ from its histories:
 
 Over the 36 monitored states the histories differ from the 2D ones by at most 4.7·10⁻¹⁰ m (settlements) and
 3.3·10⁻⁸ kPa (pore pressures), the level of the Newton tolerance (the third undrained increment stops one
-iteration earlier in 3D, see the plane strain paragraph above); the vertex fields of Fig. 13 differ by at most
+iteration earlier in 3D, see the plane strain paragraph above); the vertex fields of Fig. 14 differ by at most
 4.9·10⁻¹⁰ m and 6·10⁻⁸ kPa, the states of the integration points by 10⁻⁶ kPa, with the same type of response at
 every point.
 

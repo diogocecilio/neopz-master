@@ -1,4 +1,4 @@
-# FLAC3DTriaxial — Sect. 6.3, Fig. 6 and Table 5; FLAC3D column of Table 10 (Sect. 6.7)
+# FLAC3DTriaxial — Sect. 6.3, Figs. 4 and 7, Table 5; FLAC3D column of Table 10 (Sect. 6.7)
 
 Drained and undrained triaxial tests of the FLAC3D verification problem on a single three-dimensional u–p
 element, from an isotropic effective stress p'0 = 5 kPa with overconsolidation ratios R = p'c0/p'0 = 1.6
@@ -20,9 +20,10 @@ element, from an isotropic effective stress p'0 = 5 kPa with overconsolidation r
   `TPZPlasticStepModifiedCamClay::SetTangentMode`: consistent `D`, central differences `fd`, symmetric part `sym`,
   continuum tangent `cont` and transpose `DT`.
 
-The state is homogeneous: the eight integration points have the same p' and q to 4·10⁻¹¹ kPa and the eight
-vertices the same pore pressure to 2·10⁻¹⁰ kPa, and the element reproduces the axisymmetric Q8–Q4 element of v0.6
-of the article (Python code `gen_data.py itasca`) to 10⁻¹² kPa.
+The state is homogeneous: the eight integration points have the same p' and q to 4·10⁻¹¹ kPa and, in the undrained
+tests, the eight vertices the same pore pressure to 3·10⁻¹⁰ kPa, and the element reproduces the axisymmetric Q8–Q4
+element of v0.6 of the article (Python code `gen_data.py itasca`) to 10⁻¹² kPa in the final states (to 6·10⁻¹¹ kPa
+along the whole histories, the precision of the CSV files).
 
 The class `FLAC3DTriaxial` follows the structure of the NeoPZ examples: `CreateGeoMesh` (unit cube with
 `mcc::CreateUnitCubeMesh` and `mcc::FaceOnPlane`), `CreateCompMesh` (displacement, pore pressure and
@@ -30,7 +31,7 @@ multiphysics meshes with the material `TPZMatPoroElastoPlasticUP` and its bounda
 `TPZPoroElastoPlasticUPAnalysis` with `TPZSkylineNSymStructMatrix` and `TPZStepSolver` LU, increments, work
 counters and post-processing), the closed forms of Appendix B (`DrainedClosed`, `UndrainedClosed`,
 `CriticalState`, `ClosedPeak`, evaluated without interpolation by bisection on the stress ratio), `RunTests`
-(Table 5, Fig. 6), `RunTangents` (Table 10) and `WriteMeshes` (model figure).
+(Table 5, Fig. 7), `RunTangents` (Table 10) and `WriteMeshes` (model of Fig. 4).
 
 ## Running
 
@@ -38,19 +39,19 @@ counters and post-processing), the closed forms of Appendix B (`DrainedClosed`, 
 ./FLAC3DTriaxial
 ```
 
-Run time: 5.3 s (Release, one core; the incremental solutions take 1.4 s for each drained test, 0.6 s for each
-undrained test and 0.16 to 0.25 s for each run of Table 10).
+Run time: about 5 s (Release, one core; 4.9 to 5.4 s in repeated runs): the incremental solutions take 1.3 to
+1.6 s for each drained test, 0.6 to 0.7 s for each undrained test and 0.16 to 0.31 s for each run of Table 10.
 
 | File | Contents |
 |---|---|
 | `flac3d_<test>.csv` | history of the test (`drained_R1.6`, `drained_R8`, `undrained_R1.6`, `undrained_R8`): `eps_a, p_eff, q, v, u` (mean pore pressure of the vertices) and `evaluations` (residual evaluations of the increment) |
-| `flac3d_<test>_closed.csv` | closed form up to the final ε_a (dashed lines of Fig. 6): `eps_a, p_eff, q, v` (drained) or `eps_a, p_eff, q, u` (undrained) |
+| `flac3d_<test>_closed.csv` | closed form up to the final ε_a (dashed lines of Fig. 7): `eps_a, p_eff, q, v` (drained) or `eps_a, p_eff, q, u` (undrained) |
 | `flac3d_table5.csv` | Table 5: `test, quantity, this_work, closed_form, flac3d, critical_state` and the differences (%) from this work |
 | `flac3d_summary.csv` | per test: final state, η at the end, peak of q and of the closed form, mean and largest evaluations per increment, global iterations, bisections, wall time, spread over the integration points, equations, differences from the Python final state, material |
 | `flac3d_table10.csv` | Table 10, FLAC3D column: `tangent, nsteps, mean_evaluations, max_evaluations, global_iterations, bisections, wall_time_s, completed, p_end, q_end, v_end, python_mean_evaluations` |
 | `flac3d_tangents_evaluations.csv` | evaluations of each of the 50 increments with each operator |
 | `flac3d_drained_R1.6_50steps_D.csv` | history of the 50-increment test with D |
-| `flac3d_mesh_<drained\|undrained>_*.csv` | geometric mesh of the element (`mcc::WriteMeshCSV`: nodes, elements, faces with their boundary ids, edges) |
+| `flac3d_mesh_<drained\|undrained>_*.csv` | geometric mesh of the element (`mcc::WriteMeshCSV`: nodes, elements, faces with their boundary ids, edges), model of Fig. 4 |
 | `flac3d_<test>.scal_vec.0.vtk`, `flac3d_<test>_gauss.vtk` | nodal fields and integration points at the end of the test |
 
 ## Figures
@@ -66,8 +67,8 @@ matplotlib is needed. The module `Common/mcc_hexmodel.py` (drawing of the hexahe
 
 | File | Article | Data |
 |---|---|---|
-| `fig_single_element_model` | model of the single-element tests: (a) drained tests of RS2 (Sect. 6.1) and FLAC3D (Sect. 6.3), p_w = 0 at the vertices; (b) undrained tests of FLAC3D (no drained face) | `flac3d_mesh_<drained\|undrained>_*.csv`, `flac3d_summary.csv` |
-| `fig06_flac3d_triaxial` | Fig. 6: drained (a, b) and undrained (c, d) tests with R = 1.6 and R = 8, q–ε_a and stress paths p'–q with the CSL and the initial yield surface; dashed lines: closed-form solutions; squares: FLAC3D final states (Table 5) | `flac3d_<test>.csv`, `flac3d_<test>_closed.csv`, `flac3d_table5.csv`, `flac3d_summary.csv` |
+| `fig04_single_element_model` | Fig. 4, model of the single-element tests: (a) drained tests of RS2 (Sect. 6.1) and FLAC3D (Sect. 6.3), p_w = 0 at the vertices; (b) undrained tests of FLAC3D (no drained face) | `flac3d_mesh_<drained\|undrained>_*.csv`, `flac3d_summary.csv` |
+| `fig07_flac3d_triaxial` | Fig. 7: drained (a, b) and undrained (c, d) tests with R = 1.6 and R = 8, q–ε_a and stress paths p'–q with the CSL and the initial yield surface; dashed lines: closed-form solutions; squares: FLAC3D final states (Table 5) | `flac3d_<test>.csv`, `flac3d_<test>_closed.csv`, `flac3d_table5.csv`, `flac3d_summary.csv` |
 
 The script also prints the final states, the peaks and the closed-form values at the same ε_a.
 
@@ -86,7 +87,7 @@ are those of v0.6 of the article (axisymmetric Q8–Q4 element, Python code) to 
 The closed forms agree with the element to 0.011 % in the drained tests and to 0.60 % in the undrained tests
 (u with R = 8; the closed form assumes an incompressible fluid); FLAC3D agrees to 0.15 %. Peaks with R = 8:
 q = 18.108 kPa at ε_a = 3.0 % (closed form 18.262 kPa at 2.93 %) in the drained test and 15.048 kPa at
-ε_a = 4.0 % (closed form 15.051 kPa at 4.03 %) in the undrained test; η = 14.422/14.048 = 1.027 at the end of
+ε_a = 4.025 % (closed form 15.051 kPa at 4.026 %) in the undrained test; η = 14.422/14.048 = 1.027 at the end of
 the undrained test with R = 8. Residual evaluations per increment: 2.228 and 2.34 (drained), 2.0025 (undrained),
 identical to the Python code increment by increment; no bisection.
 
@@ -94,12 +95,16 @@ identical to the Python code increment by increment; no bisection.
 
 | Operator | evaluations per increment (largest) | total | wall time (s) | v0.6 (Python) |
 |---|---|---|---|---|
-| consistent D | 3.02 (4) | 151 | 0.16 | 3.02 |
-| finite differences | 3.02 (4) | 151 | 0.19 | 3.02 |
-| symmetric part (D + Dᵀ)/2 | 3.02 (4) | 151 | 0.16 | 3.02 |
-| continuum tangent | 5.48 (7) | 274 | 0.25 | 5.48 |
-| transpose Dᵀ | 3.02 (4) | 151 | 0.17 | 3.02 |
+| consistent D | 3.02 (4) | 151 | 0.16–0.17 | 3.02 |
+| finite differences | 3.02 (4) | 151 | 0.17–0.24 | 3.02 |
+| symmetric part (D + Dᵀ)/2 | 3.02 (4) | 151 | 0.17–0.18 | 3.02 |
+| continuum tangent | 5.48 (7) | 274 | 0.25–0.31 | 5.48 |
+| transpose Dᵀ | 3.02 (4) | 151 | 0.16–0.25 | 3.02 |
 
-The final q coincide to 2.5·10⁻⁹ kPa. In the homogeneous test the Newton correction involves only the xx–yy block
-of the operator, which is symmetric (σ_xx = σ_yy), so D, Dᵀ and (D + Dᵀ)/2 give the same iterations; the
+The final q coincide to 2.5·10⁻⁹ kPa. With one element (68 equations) the wall times (ranges of four runs)
+measure mostly the overhead of the assembly and of the LU decomposition, and vary by several hundredths of a
+second from run to run. In the homogeneous test the Newton correction involves only the xx–yy block of the
+operator (the free displacement equations are u_x on the face x = 1 and at the mid-edge nodes of the edges
+parallel to x, u_y likewise and u_z at the mid-edge nodes of the vertical edges, while u_z is prescribed on the top
+and the base), which is symmetric (σ_xx = σ_yy), so D, Dᵀ and (D + Dᵀ)/2 give the same iterations; the
 evaluations of every increment are those of the Python code for the five operators.

@@ -1,8 +1,8 @@
 /**
  * @file FLAC3DTriaxial.h
  * @brief Sect. 6.3 of the article: drained and undrained triaxial tests of the FLAC3D verification problem
- * with a single Hex20-Hex8 u-p element (Fig. 6 and Table 5), and the FLAC3D column of Table 10 (Sect. 6.7):
- * global iterations with five tangent operators.
+ * with a single Hex20-Hex8 u-p element (model in Fig. 4, results in Fig. 7 and Table 5), and the FLAC3D column of
+ * Table 10 (Sect. 6.7): global iterations with five tangent operators.
  */
 #pragma once
 
@@ -10,6 +10,7 @@
 #include "TPZSkylineNSymStructMatrix.h"
 #include "pzstepsolver.h"
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cmath>
@@ -17,6 +18,7 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -81,14 +83,16 @@ public:
     struct TResult {
         /// rows (eps_a, p', q, v, mean pore pressure of the vertices, residual evaluations of the increment)
         std::vector<std::array<REAL, 6>> fHistory;
-        REAL fV0 = 0., fPc0 = 0.;         ///< initial specific volume and preconsolidation pressure
+        REAL fV0 = 0.;                    ///< initial specific volume v0 (on the normal compression line)
+        REAL fPc0 = 0.;                   ///< initial preconsolidation pressure p'c0 = R p'0 (kPa)
         REAL fMeanEvaluations = 0.;       ///< mean residual evaluations per converged increment (step log)
         int fMaxEvaluations = 0;          ///< largest number of evaluations of an increment
         int64_t fNGlobalIterations = 0;   ///< all the global iterations, failed attempts included
         int64_t fNBisections = 0;         ///< bisected increments
         REAL fWallTime = 0.;              ///< wall time of the incremental solution (s)
         bool fCompleted = false;          ///< all the increments converged
-        REAL fSpreadP = 0., fSpreadQ = 0.; ///< largest spread of p' and q over the integration points (kPa)
+        REAL fSpreadP = 0.;               ///< largest spread of p' over the integration points (kPa)
+        REAL fSpreadQ = 0.;               ///< largest spread of q over the integration points (kPa)
         REAL fSpreadU = 0.;               ///< largest spread of the pore pressure over the vertices (kPa)
         int64_t fNEquations = 0;          ///< equations of the multiphysics mesh
         int fNPoints = 0;                 ///< integration points
@@ -96,12 +100,21 @@ public:
 
     /** @brief Values of Table 5 for a test: this work, closed form, FLAC3D and critical state */
     struct TTable5 {
-        std::array<REAL, 3> fThis{}, fClosed{}, fFLAC{}, fCritical{}; ///< (p', q, v) drained or (p', q, u) undrained
+        std::array<REAL, 3> fThis{};     ///< this work: (p', q, v) drained or (p', q, u) undrained
+        std::array<REAL, 3> fClosed{};   ///< closed form at the same axial strain (same quantities)
+        std::array<REAL, 3> fFLAC{};     ///< FLAC3D (Table 5 of the article)
+        std::array<REAL, 3> fCritical{}; ///< critical state reached by the test
     };
 
     /** @name Material parameters (Table 1) and loading */
     /** @{ */
-    REAL fM = 1.02, fLambda = 0.2, fKappa = 0.05, fVLambda = 3.32, fG = 250., fP0 = 5., fKw = 2.e4;
+    REAL fM = 1.02;      ///< slope of the critical state line M
+    REAL fLambda = 0.2;  ///< slope of the normal compression line lambda
+    REAL fKappa = 0.05;  ///< slope of the swelling lines kappa
+    REAL fVLambda = 3.32; ///< specific volume of the normal compression line at p' = 1 kPa
+    REAL fG = 250.;      ///< shear modulus G (kPa, constant)
+    REAL fP0 = 5.;       ///< initial isotropic effective stress and cell pressure p'0 (kPa)
+    REAL fKw = 2.e4;     ///< bulk modulus of the pore fluid K_w (kPa, undrained tests)
     /** @} */
 
     /** @brief Specific volume of the initial state on the normal compression line */
@@ -151,20 +164,20 @@ public:
     /** @} */
 
     /**
-     * @brief Writes the closed-form curves of Fig. 6 up to the final axial strain of the test (dashed lines):
+     * @brief Writes the closed-form curves of Fig. 7 up to the final axial strain of the test (dashed lines):
      * drained, mcc::TriaxialDrainedClosed with npts = 600 (columns eps_a, p_eff, q, v); undrained, 40 points on the
      * elastic branch and the stress ratios of fig_itasca of figs.py (npts = 600, clustered near M; columns eps_a,
      * p_eff, q, u)
      */
     void WriteClosedForm(const TCase &tcase, const std::string &file) const;
 
-    /** @brief Runs the four tests of Table 5 (Fig. 6) and writes the tables */
+    /** @brief Runs the four tests of Table 5 (Fig. 7) and writes the tables */
     void RunTests();
 
     /** @brief Runs the drained test with R = 1.6 in 50 increments with the five tangent operators (Table 10) */
     void RunTangents();
 
-    /** @brief Writes the geometric meshes of the drained and undrained tests (figure of the model) */
+    /** @brief Writes the geometric meshes of the drained and undrained tests (model of Fig. 4) */
     void WriteMeshes();
 
     /** @brief Runs everything */
@@ -474,7 +487,7 @@ inline void FLAC3DTriaxial::WriteMeshes() {
 
 inline void FLAC3DTriaxial::RunTests() {
     std::cout << std::setprecision(6);
-    std::cout << "FLAC3D triaxial tests (Sect. 6.3, Table 5, Fig. 6): one Hex20-Hex8 element, 2 x 2 x 2 points\n";
+    std::cout << "FLAC3D triaxial tests (Sect. 6.3, Table 5, Fig. 7): one Hex20-Hex8 element, 2 x 2 x 2 points\n";
     std::vector<TCase> cases(4);
     cases[0] = {1.6, true, 0.5, 500, TPZPlasticStepModifiedCamClay::EConsistentTangent, "drained_R1.6"};
     cases[1] = {8.0, true, 0.5, 500, TPZPlasticStepModifiedCamClay::EConsistentTangent, "drained_R8"};
@@ -615,8 +628,9 @@ inline void FLAC3DTriaxial::RunAll() {
     WriteMeshes();
     RunTests();
     RunTangents();
-    std::cout << "\nFiles: flac3d_<test>.csv and flac3d_<test>_closed.csv (Fig. 6), flac3d_table5.csv, flac3d_summary.csv, flac3d_table10.csv, "
-                 "flac3d_tangents_evaluations.csv, flac3d_mesh_<drained|undrained>_*.csv (model figure), VTK files\n"
+    std::cout << "\nFiles: flac3d_<test>.csv and flac3d_<test>_closed.csv (Fig. 7), flac3d_table5.csv, "
+                 "flac3d_summary.csv, flac3d_table10.csv, flac3d_tangents_evaluations.csv, "
+                 "flac3d_mesh_<drained|undrained>_*.csv (Fig. 4), VTK files\n"
               << "total run time " << std::chrono::duration<REAL>(std::chrono::steady_clock::now() - start).count()
               << " s\n";
 }
