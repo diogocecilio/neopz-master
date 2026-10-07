@@ -7,19 +7,26 @@ This folder contains one project per numerical example of the article
 
 The examples are the C++/NeoPZ counterparts of the Python transcription of the Wolfram Language packages
 (`camclay_hw.py` = `camclay-perf.m`, `fe_user.py` = `poro-camclay-fem.m`, drivers `gen_data.py`,
-`gen_data3d.py`, `aterro_elastic.py` and `fig_surface.py`). They reproduce the numbers of the Python code to
-round-off and the tables of the article.
+`gen_data3d.py`, `aterro_elastic.py` and `fig_surface.py`) and of the rival integration schemes that existed only
+in Python (`rivais.py`: implicit backward-Euler variants and adaptive explicit Runge-Kutta schemes, ported in
+IntegrationSchemes). They reproduce the numbers of the Python code to round-off and the tables of the article.
 
 | Project | Article | Python driver |
 |---|---|---|
 | [YieldSurfaceProjection](YieldSurfaceProjection) | Figs. 1 and 2 | `fig_surface.py` |
-| [TaylorTest](TaylorTest) | Sect. 4.5, Fig. 3 | `gen_data.py taylor` |
+| [TaylorTest](TaylorTest) | Sect. 4.5, Fig. 3; Table 10 (Taylor slopes of the tangent operators) | `gen_data.py taylor`, `tangentes` (Taylor slopes) |
 | [RS2Triaxial](RS2Triaxial) | Sect. 6.1, Fig. 4, Table 2 | `gen_data.py rs2` |
 | [FrozenBulkModulus](FrozenBulkModulus) | Sect. 6.1, Table 3 | `gen_data.py frozen` |
-| [FLAC3DTriaxial](FLAC3DTriaxial) | Sect. 6.2, Fig. 5, Table 4 | `gen_data.py itasca` |
-| [TerzaghiConsolidation](TerzaghiConsolidation) | Sect. 6.3, Fig. 6, Table 5 | `gen_data.py terzaghi`, `gen_data3d.py` |
-| [AbaqusTriaxialConsolidation](AbaqusTriaxialConsolidation) | Sects. 6.4 and 6.6, Figs. 7–9, Tables 6 and 8 | `gen_data.py abaqus abaqus_mp abaqus_states`, `gen_data3d.py` |
-| [EmbankmentConsolidation](EmbankmentConsolidation) | Sect. 6.5, Figs. 10–12, Table 7 | `gen_data.py aterro`, `aterro_elastic.py` |
+| [IntegrationSchemes](IntegrationSchemes) | Sect. 6.2, Fig. 5, Table 4 | `gen_data.py rivais`, `rivais.py` |
+| [FLAC3DTriaxial](FLAC3DTriaxial) | Sect. 6.3, Fig. 6, Table 5 | `gen_data.py itasca` |
+| [TerzaghiConsolidation](TerzaghiConsolidation) | Sect. 6.4, Fig. 7, Table 6 | `gen_data.py terzaghi`, `gen_data3d.py` |
+| [AbaqusTriaxialConsolidation](AbaqusTriaxialConsolidation) | Sects. 6.5 and 6.7, Figs. 8–10, Tables 7, 9 and 10 | `gen_data.py abaqus abaqus_mp abaqus_states`, `gen_data3d.py` |
+| [EmbankmentConsolidation](EmbankmentConsolidation) | Sects. 6.6 and 6.7, Figs. 11–13, Tables 8 and 10 | `gen_data.py aterro`, `aterro_elastic.py` |
+
+Section, table and figure numbers of the article v0.6; the sections and tables are kept in v0.7, whose figures
+after Fig. 3 may be renumbered when the finite element meshes are added. The material-point examples
+(YieldSurfaceProjection, TaylorTest, FrozenBulkModulus, IntegrationSchemes and the material-point tests of
+RS2Triaxial) have no finite element mesh.
 
 ## Library classes (Material/Plasticity)
 
@@ -52,11 +59,14 @@ make -j 4
 ```
 
 The executables write their files in the current directory and print the comparison of their results with
-the values of the article and of the Python code. Run times (Release build, one core): YieldSurfaceProjection
-0.3 s, TaylorTest 0.05 s, RS2Triaxial 1.9 s, FrozenBulkModulus 0.4 s, FLAC3DTriaxial 1.6 s,
-TerzaghiConsolidation 2.9 s, AbaqusTriaxialConsolidation 68 s and EmbankmentConsolidation 35 s (without the
-VTK series, argument `novtk`; see below). The documentation of the classes is generated with `-DBUILD_DOCS=ON`
-(Doxygen group *Examples of the Modified Cam-Clay u-p article*).
+the values of the article and of the Python code. Run times (Release build, one core): the material-point examples
+take less than half a second (YieldSurfaceProjection 0.4 s, TaylorTest 0.07 s, FrozenBulkModulus 0.4 s,
+IntegrationSchemes 0.3 s); the finite element examples, all three-dimensional with Hex20–Hex8 elements, take from
+a few seconds (TerzaghiConsolidation, FLAC3DTriaxial, RS2Triaxial) to a few minutes (AbaqusTriaxialConsolidation,
+EmbankmentConsolidation, whose comparison of the tangent operators of Table 10 repeats the analysis with each
+operator). The README of each project gives its run times and the arguments that select its parts (for example
+`novtk`, which skips the VTK series; see below). The documentation of the classes is generated with
+`-DBUILD_DOCS=ON` (Doxygen group *Examples of the Modified Cam-Clay u-p article*).
 
 ## Figures
 
@@ -67,19 +77,23 @@ article from the CSV files of its executable, with the style of the figures of t
 ```
 cd <run directory>          # where the executable wrote its CSV files
 ./FLAC3DTriaxial
-python3 <neopz>/Projects/FLAC3DTriaxial/plot_figures.py      # writes figures/fig05_flac3d_triaxial.pdf/.png
+python3 <neopz>/Projects/FLAC3DTriaxial/plot_figures.py      # writes figures/fig06_flac3d_triaxial.pdf/.png
 ```
 
 | Project | Files (PDF and PNG in `<run directory>/figures`) |
 |---|---|
 | YieldSurfaceProjection | `fig01_mcc_surface`, `fig02_meridian_projection` |
-| TaylorTest | `fig03_taylor_test` (and the same figure for the `std::mt19937_64` sample) |
-| RS2Triaxial | `fig04_rs2_triaxial` |
+| TaylorTest | `fig03_taylor_test` (and the same figure for the `std::mt19937_64` sample); `supplementary_taylor_operators` (Taylor slopes of Table 10; not a figure of the article) |
+| RS2Triaxial | `fig04_rs2_triaxial`; `supplementary_rs2_element_check` (not a figure of the article) |
 | FrozenBulkModulus | `supplementary_table03_frozen_bulk_modulus` (Table 3; not a figure of the article) |
-| FLAC3DTriaxial | `fig05_flac3d_triaxial` |
-| TerzaghiConsolidation | `fig06_terzaghi_consolidation` |
-| AbaqusTriaxialConsolidation | `fig07_abaqus_model`, `fig08_abaqus_states`, `fig09_abaqus_results` |
-| EmbankmentConsolidation | `fig10_embankment_model`, `fig11_embankment_history`, `fig12_embankment_fields` |
+| IntegrationSchemes | `fig05_integration_schemes`; `supplementary_secant_first_increment` (single secant step in the first increment of the drained test with OCR = 10; not a figure of the article) |
+| FLAC3DTriaxial | `fig06_flac3d_triaxial`; `fig_single_element_model` (the Hex20–Hex8 element with its boundary conditions) |
+| TerzaghiConsolidation | `fig07_terzaghi_consolidation` |
+| AbaqusTriaxialConsolidation | `fig08_abaqus_model`, `fig09_abaqus_states`, `fig10_abaqus_results`; `supplementary_abaqus_softening`, `supplementary_abaqus_tangents` (not figures of the article) |
+| EmbankmentConsolidation | `fig11_embankment_model`, `fig12_embankment_history`, `fig13_embankment_fields` |
+
+The numbers in the file names are the figure numbers of the article v0.6; in v0.7 the figures may be renumbered
+when the drawings of the finite element meshes are added.
 
 The scripts are ports of `fig_surface.py` and `figs.py` of the Python code, reading the CSV files instead of the
 pickled results; the figures are the same as those of the article. The font of the article (TeX Gyre Heros) is
@@ -102,5 +116,5 @@ increment or time step) as VTK file series, one directory per run under `vtk/` (
 Open the `.vtk.series` files in ParaView (5.5 or later): the time controls then show the time of each state
 (the state index for the embankment, δ/H for the triaxial test). The READMEs of the two projects describe the
 files and the steps in ParaView (field, time, Warp By Vector, excess pore pressure with the Calculator,
-point cloud). The argument `novtk` skips these files; with them EmbankmentConsolidation takes about 54 s
-(37 MB of files) and AbaqusTriaxialConsolidation about 3 min (160 MB).
+point cloud). The argument `novtk` skips these files; the READMEs of the two projects give the run times and
+the size of the files with them.

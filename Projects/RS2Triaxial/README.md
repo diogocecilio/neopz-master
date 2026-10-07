@@ -42,12 +42,14 @@ The class `RS2Triaxial` (`RS2Triaxial.h`) runs these steps for each case:
    solution and the closed form, interpolated at the numerical axial strains.
 5. For OCR = 5, it reports the peak of q, the closed-form peak, q at 20% and the maximum compression eps_v
    before dilation.
-6. It runs a finite element check that is not in the article. The 400-increment test is repeated with one
-   axisymmetric Q8-Q4 u-p element of 1 m x 1 m with 2 x 2 Gauss points. The radial displacement is fixed on the
-   axis and the vertical displacement is fixed at the base. The cell pressure acts on the lateral face, the top
-   displacement is controlled, and p = 0 is prescribed on the whole boundary (drained). The check follows the
-   usual NeoPZ sequence, in the same style as `footing.h`:
-   - `CreateGeoMesh` builds the geometric mesh.
+6. It runs a finite element check. The 400-increment test is repeated with one Hex20-Hex8 u-p element
+   (quadratic serendipity displacement, trilinear pore pressure) on the unit cube with 2 x 2 x 2 Gauss points,
+   the same element as the FLAC3D tests (FLAC3DTriaxial). u_x = 0 on the face x = 0, u_y = 0 on y = 0 and
+   u_z = 0 on z = 0 (symmetry planes); the cell pressure p'0 acts on the faces x = 1 and y = 1; the vertical
+   displacement of the top z = 1 is controlled; p_w = 0 is prescribed at the eight vertices (drained). The check
+   follows the usual NeoPZ sequence, in the same style as `footing.h`:
+   - `CreateGeoMesh` builds the geometric mesh (`mcc::CreateUnitCubeMesh`, a boundary quadrilateral for the
+     displacement condition and a coincident one for the pore pressure on each face).
    - `CreateCompMesh` builds the atomic displacement and pressure meshes and the multiphysics mesh with memory.
    - `RunFiniteElement` builds `TPZPoroElastoPlasticUPAnalysis` with `TPZSkylineNSymStructMatrix` and
      `TPZStepSolver` (ELU), solves the increments, and post-processes the results to VTK and CSV.
@@ -67,7 +69,7 @@ ninja -C build RS2Triaxial
 mkdir run_rs2 && cd run_rs2 && ../build/Projects/RS2Triaxial/RS2Triaxial
 ```
 
-The run takes about 2 s. The program prints Table 2 and the values of Fig. 4 next to the Python and
+The run takes about 5.5 s (Release, one core; 1.2 to 1.6 s for each finite element check). The program prints Table 2 and the values of Fig. 4 next to the Python and
 article reference values, which are hard-coded in `RS2Triaxial::Cases()` and `RS2Triaxial::RunAll()`.
 
 ## Output files
@@ -77,7 +79,9 @@ article reference values, which are hard-coded in `RS2Triaxial::Cases()` and `RS
 | `rs2_<case>_closed.csv` | closed form up to eps_a = 20%: `eps_a,p_eff,q,eps_v,eps_q,sigma_a` (dashed lines of Fig. 4) |
 | `rs2_<case>_n400.csv` | material point, 400 increments: the same columns plus `q_closed`, `q_minus_q_closed` and `eps_v_closed` (closed form interpolated at eps_a); solid lines of Fig. 4 |
 | `rs2_table2.csv` | Table 2: `err_interp_<case>` and `err_exact_<case>` for 100 to 1600 increments; the last row (increments = 0) holds q_exact |
-| `rs2_<case>_fe.csv` | FE check: `eps_a,p_eff,q,eps_v,eps_q,q_point,q_minus_q_point` |
+| `rs2_<case>_fe.csv` | FE check: `eps_a,p_eff,q,eps_v,eps_q` of the element, `p_point,q_point,eps_v_point` of the material point with the same increments, `q_minus_q_point` and the residual `evaluations` of the increment |
+| `rs2_fe_check.csv` | FE check summary, one row per case (`case` 0-3 in the order nc_nu, nc_g, ocr2, ocr5): q, p' and eps_v at 20% of the element and of the material point, largest differences along the path, spread of q over the 8 integration points, mean and largest evaluations per increment, global iterations, bisections, wall time, equations |
+| `rs2_mesh_*.csv` | geometric mesh of the element (`mcc::WriteMeshCSV`: nodes, elements, faces with their boundary ids, edges), for the figure of the model |
 | `rs2_<case>_fe.scal_vec.0.vtk` | FE check: nodal displacement and pore pressure at eps_a = 20% (NeoPZ's graphical mesh appends `.scal_vec.0` to the name `rs2_<case>_fe.vtk`) |
 | `rs2_<case>_fe_gauss.vtk` | FE check: integration points (stress, p', q, p'c, v0, type of response) |
 
@@ -96,6 +100,16 @@ matplotlib is needed.
 | File | Article | Data |
 |---|---|---|
 | `fig04_rs2_triaxial` | Fig. 4: q against ε_q (a–d) and ε_v against ε_a (e–h) for NC with constant ν, NC with constant G, OCR = 2 and OCR = 5: this work with 400 increments, closed form and the digitized RS2 curves (Figs. 8.5–8.8 of the RS2 manual) | `rs2_<case>_n400.csv`, `rs2_<case>_closed.csv`, `reference/rs2_fig85_88_digitized.json` |
+| `supplementary_rs2_element_check` | finite element check: (a) the Hex20–Hex8 element with the boundary conditions of the drained tests; (b) q against ε_a of the element (markers) and of the material point (lines); (c) \|q_FE − q_point\| along the path | `rs2_mesh_*.csv`, `rs2_<case>_fe.csv`, `rs2_fe_check.csv` |
+
+The script also writes `rs2_digitized_comparison.csv` (output directory): the last points of the digitized RS2
+curves against this work interpolated at the same abscissa. The end values of q differ from the RS2 analytical
+curves by 0.03 to 0.20 %; the RS2 finite element curves of the normally consolidated cases are softer by 1.3
+(constant G) and 2.2 % (constant ν) in q, with volumetric strains 6.5 and 7.9 % larger (text of Sect. 6.1).
+
+The model of the element is drawn with the module `Common/mcc_hexmodel.py`; the figure of the model for the
+article, with the boundary conditions of the drained (RS2 and FLAC3D) and undrained (FLAC3D) tests, is
+`fig_single_element_model` of FLAC3DTriaxial.
 
 ## Results compared with the reference
 
@@ -168,13 +182,16 @@ iterations. Each cell shows this code | Python, plus the article (Table 3, NC wi
 | OCR = 2 | 4.0000 \| 4.0000 | 4 \| 4 | 1182 \| 1182 |
 | OCR = 5 | 4.0000 \| 4.0000 | 4 \| 4 | 1163 \| 1163 |
 
-**Finite element check (one axisymmetric Q8-Q4 element, 400 increments).** The element reproduces the material
-point to the tolerance of the global Newton iterations (normalized residual 1e-8). The mean number of global
-residual evaluations per increment includes the predictor.
+**Finite element check (one Hex20-Hex8 element, 2 x 2 x 2 points, 400 increments).** The element reproduces the
+material point to the tolerance of the global Newton iterations (normalized residual 1e-8): the largest
+differences along the path are 2.1e-6 kPa in q, 1.9e-6 kPa in p' and 1.2e-10 in eps_v, and q differs between the
+eight integration points by less than 5e-7 kPa. The mean number of global residual evaluations per increment
+includes the predictor; no increment was bisected. The values are those of the axisymmetric Q8-Q4 element of the
+previous version to the 9 printed decimals.
 
-| case | q(20%) FE (kPa) | q(20%) material point (kPa) | max \|q_FE - q_point\| (kPa) | evaluations per increment |
-|---|---|---|---|---|
-| NC, constant nu | 388.111817677 | 388.111816880 | 2.2e-6 | 2.64 |
-| NC, constant G | 387.645039512 | 387.645038686 | 9.8e-7 | 2.62 |
-| OCR = 2 | 196.813852106 | 196.813851849 | 4.8e-7 | 2.45 |
-| OCR = 5 | 202.926783192 | 202.926782950 | 5.3e-7 | 2.41 |
+| case | q(20%) FE (kPa) | q(20%) material point (kPa) | max \|q_FE - q_point\| (kPa) | evaluations per increment (largest) | total | time (s) |
+|---|---|---|---|---|---|---|
+| NC, constant nu | 388.111817677 | 388.111816880 | 2.1e-6 | 2.6425 (5) | 1057 | 1.6 |
+| NC, constant G | 387.645039512 | 387.645038686 | 9.8e-7 | 2.6225 (5) | 1049 | 1.3 |
+| OCR = 2 | 196.813852106 | 196.813851849 | 4.8e-7 | 2.4475 (5) | 979 | 1.2 |
+| OCR = 5 | 202.926783192 | 202.926782950 | 5.3e-7 | 2.4075 (5) | 963 | 1.3 |

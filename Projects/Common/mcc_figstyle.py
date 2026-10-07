@@ -112,7 +112,8 @@ plt.rcParams.update({
     'text.color': INK,
 })
 if FONT != 'DejaVu Sans':
-    plt.rcParams.update({'mathtext.rm': FONT, 'mathtext.it': FONT + ':italic', 'mathtext.bf': FONT + ':bold'})
+    plt.rcParams.update({'mathtext.rm': FONT, 'mathtext.it': FONT + ':italic', 'mathtext.bf': FONT + ':bold',
+                         'mathtext.sf': FONT, 'mathtext.cal': FONT + ':italic'})  # cal: avoids the 'cursive' lookup
 
 
 def panel_label(ax, s, x=-0.02, y=1.03):

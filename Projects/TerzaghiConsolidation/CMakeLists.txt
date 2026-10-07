@@ -1,2 +1,2 @@
-# Sect. 6.3, Fig. 6 and Table 5: Terzaghi consolidation (Q8-Q4 plane strain and Hex20-Hex8)
+# Sect. 6.4, Fig. 7 and Table 6: Terzaghi consolidation (1 x 1 x 10 Hex20-Hex8 elements)
 add_mcc_example(TerzaghiConsolidation main.cpp TerzaghiConsolidation.h)

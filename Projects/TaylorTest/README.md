@@ -1,4 +1,4 @@
-# TaylorTest: Taylor test of the consistent tangent (Sect. 4.5, Fig. 3)
+# TaylorTest: Taylor test of the consistent tangent (Sect. 4.5, Fig. 3; Table 10, last column)
 
 This example checks that the tangent returned by the Modified Cam-Clay return mapping
 (`TPZPlasticStepModifiedCamClay`, which projects in rotated Haigh-Westergaard space with
@@ -6,7 +6,9 @@ This example checks that the tangent returned by the Modified Cam-Clay return ma
 Sect. 4.5 and Fig. 3 of the article *"Return mapping for Modified Cam-Clay plasticity in rotated
 Haigh-Westergaard space with consistent tangent operator and coupled u-p consolidation"*
 (D. Lira Cecilio). The Python reference is the function `taylor()` in `gen_data.py`, and the figure
-is drawn by `fig_taylor()` in `figs.py`.
+is drawn by `fig_taylor()` in `figs.py`. It also computes the Taylor slopes of the tangent operators compared in
+Sect. 6.7 (consistent tangent, transpose, symmetric part and continuum operator; last column of Table 10), which
+the Python code computes in `tangentes()` of `gen_data.py`.
 
 ## What is computed
 
@@ -61,6 +63,24 @@ The random numbers are drawn in exactly the order used by `taylor()`, and the te
    which you can compare with the article only statistically. Its states (p', q) differ from those of
    Fig. 3. In the plastic states the slopes must be close to 2 with D and close to 1 with D^T.
 
+### Tangent operators of Sect. 6.7 (Table 10, last column)
+
+At the subcritical and supercritical states of Fig. 3 (the same eps0, sigma0 and p_c), the test is repeated with
+the four operators that Table 10 compares:
+
+| operator | code in `taylor_operators_summary.csv` | definition |
+|---|---|---|
+| `D` | 0 | consistent tangent (8)-(9) returned by `TPZPlasticStepModifiedCamClay` |
+| `DT` | 1 | its transpose D^T (the column-wise Voigt assembly without the correction of Sect. 3) |
+| `sym` | 2 | its symmetric part (D + D^T)/2 (what a code with a symmetric solver uses) |
+| `cont` | 3 | continuum operator `TPZPlasticStepModifiedCamClay::ContinuumTangent` at sigma0 and the updated p_c |
+
+For each state (subcritical, then supercritical) and each operator (in the order D, DT, sym, cont), 300 pairs
+are drawn as above, from `TaylorTest::TNumpyRandom(7)`, i.e. numpy's `default_rng(7)` of `tangentes()`. The
+program reports the fitted and median slopes next to the values of the Python code (`data_tangentes.pkl`), and
+checks that each operator is the one returned by the library with `SetTangentMode` (the tangent modes used by the
+finite element examples for the other columns of Table 10).
+
 ## How to run
 
 The example is built with the other examples of the article. The top-level CMake needs
@@ -70,7 +90,7 @@ The example is built with the other examples of the article. The top-level CMake
     ninja -C build TaylorTest
     mkdir run_taylor && cd run_taylor && ../build/Projects/TaylorTest/TaylorTest
 
-The program takes no arguments, runs in about 0.05 s and writes its files to the current directory.
+The program takes no arguments, runs in about 0.07 s and writes its files to the current directory.
 
 ## Output files
 
@@ -79,6 +99,8 @@ The program takes no arguments, runs in about 0.05 s and writes its files to the
 | `taylor_pcg64_<kind>_<op>.csv` | Points of one panel of Fig. 3, with `<kind>` = `elastic`, `subcritical`, `supercritical` and `<op>` = `D`, `DT`. Columns: `alpha1, E1, log_alpha1, log_E1, fit_log_E1` (the least-squares line at log alpha1), `alpha2, E2, pair_slope`. Fig. 3 shows panels (a) `subcritical_D`, (b) `supercritical_D`, (c) `subcritical_DT` and (d) `supercritical_DT`. |
 | `taylor_pcg64_summary.csv` | One row per panel: `kind, transposed, p_eff, q, pc, asym, fit_slope, fit_intercept, median_slope, min_slope, max_slope, rejected, draws`, then the state `x0_*` (engineering strains) and `sig0_*`. |
 | `taylor_mt19937_*.csv` | The same files for the std::mt19937_64 sample. |
+| `taylor_operators_<kind>_<op>.csv` | Points of the Taylor test of an operator at a plastic state, `<kind>` = `subcritical`, `supercritical` and `<op>` = `D`, `DT`, `sym`, `cont`; same columns as the panel files. |
+| `taylor_operators_summary.csv` | One row per state and operator (last column of Table 10): `kind, operator` (0 D, 1 D^T, 2 symmetric part, 3 continuum), `p_eff, q, pc, asym_operator` (asymmetry of the operator), `fit_slope, fit_intercept, median_slope, min_slope, max_slope, rejected`, the Python values `python_fit_slope, python_median_slope` and `diff_library_mode` (largest \|difference\| from the operator returned with `SetTangentMode`; 0). |
 
 These are the quantities that `fig_taylor()` plots from the Python results; `plot_figures.py` draws Fig. 3
 from them (see Figures). This example has no mesh, so it writes no VTK files.
@@ -97,6 +119,7 @@ matplotlib is needed.
 |---|---|---|
 | `fig03_taylor_test` | Fig. 3: log E(α) against log α, (a, b) consistent tangent D (second order), (c, d) transpose Dᵀ (first order) | `taylor_pcg64_*.csv` (the draws of `gen_data.py`) |
 | `fig03_taylor_test_mt19937` | not in the article: the same figure for the independent `std::mt19937_64` sample | `taylor_mt19937_*.csv` |
+| `supplementary_taylor_operators` | not a figure of the article: the Taylor test of D, D^T, (D + D^T)/2 and the continuum operator at the two plastic states, with the fitted and median slopes of the last column of Table 10 | `taylor_operators_*.csv` |
 
 The script is a port of `fig_taylor()` of `figs.py`: it plots `log_E1` against `log_alpha1` and the line
 `fit_intercept + fit_slope * log alpha` of the summary file.
@@ -141,9 +164,34 @@ The conclusion is the same as in the article. With the consistent operator D the
 order at both plastic states (median 2.000). With the transpose D^T, which is what the column-wise
 Voigt assembly returns without the correction of Sect. 3, it is only of first order (median 1.000).
 
+### Tangent operators (last column of Table 10)
+
+Fitted and median slopes, this work {Python, `data_tangentes.pkl`}; Table 10 reports the medians rounded to two
+decimals (2.00 / 2.00 with D, 1.00 / 1.00 with the other operators):
+
+| operator | subcritical, fitted | subcritical, median | supercritical, fitted | supercritical, median |
+|---|---|---|---|---|
+| D | 2.013909 {2.013910} | 2.000009 {2.000010} | 2.041269 {2.041270} | 2.000003 {2.000003} |
+| D^T | 1.015806 {1.015806} | 0.999828 {0.999828} | 1.049645 {1.049645} | 1.000297 {1.000297} |
+| (D + D^T)/2 | 0.916720 {0.916720} | 0.999179 {0.999179} | 1.013183 {1.013183} | 1.000542 {1.000542} |
+| continuum | 1.005394 {1.005394} | 1.000005 {1.000005} | 0.998892 {0.998892} | 1.000017 {1.000017} |
+
+The slopes of D^T, of the symmetric part and of the continuum operator agree with the Python values to 9 digits;
+those of D to 6 digits (7e-7 in the fit, 4e-7 in the median), because with D the error E is of second order and
+its smallest values are close to round-off, as in Fig. 3. No pair was discarded. Only the consistent tangent gives
+second order; the transpose, the symmetric part and the continuum operator give first order, which is why the
+global Newton iterations converge linearly with them (Sect. 6.7). The continuum operator is symmetric (associated
+flow), and its error constant is the largest (the median of log E - log alpha is 3.2 units above that of D^T at
+the subcritical state and 1.9 units above at the supercritical state, i.e. errors about 23 and 7 times larger).
+The four operators tested are identical (difference 0) to those that `TPZPlasticStepModifiedCamClay` returns to the
+global iterations with `SetTangentMode` (`EConsistentTangent`, `ETransposedTangent`, `ESymmetricTangent`,
+`EContinuumTangent`), i.e. the operators of the finite element comparisons of Table 10.
+
 ## Files
 
 * `TaylorTest.h`: the class `TaylorTest`. It contains the material set-up, the drawing of the
-  states, the perturbations and fits, the CSV post-processing, the printout with the reference values,
-  and the generators `TNumpyRandom` and `TMersenneRandom`.
+  states, the perturbations and fits (`Perturb`, `PerturbWith`), the comparison of the tangent operators
+  (`OperatorSlopes`, `PostProcessOperators`, `PrintOperators`), the CSV post-processing, the printout with the
+  reference values, and the generators `TNumpyRandom` and `TMersenneRandom`.
+* `plot_figures.py`: Fig. 3 and the supplementary figure of the operators.
 * `main.cpp`: creates the example and calls `RunAll()`.

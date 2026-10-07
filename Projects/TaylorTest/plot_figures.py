@@ -15,6 +15,10 @@ Figures produced (same panels, fits, slope triangles and annotations as fig_tayl
   taylor_pcg64_summary.csv (numpy-compatible PCG64 stream, the draws of gen_data.py, i.e. the data of Fig. 3).
 - fig03_taylor_test_mt19937: the same figure for the independent std::mt19937_64 sample
   (taylor_mt19937_*.csv; not in the article, other states, same orders). Written only when these files exist.
+- supplementary_taylor_operators: Taylor test of the tangent operators of Sect. 6.7 at the two plastic states of
+  Fig. 3: consistent tangent D, transpose D^T, symmetric part (D + D^T)/2 and continuum operator (the slopes are
+  the last column of Table 10; not a figure of the article). Files: taylor_operators_<kind>_<op>.csv and
+  taylor_operators_summary.csv (draws of numpy's default_rng(7), as tangentes() of gen_data.py).
 """
 import os
 import sys
@@ -74,8 +78,45 @@ def fig_taylor(run, out, stream='pcg64', name='fig03_taylor_test'):
     save(fig, out, name)
 
 
+OPERATORS = (('D', 0, '$\\mathbb{D}$'), ('DT', 1, '$\\mathbb{D}^{\\mathsf{T}}$'),
+             ('sym', 2, '$(\\mathbb{D}+\\mathbb{D}^{\\mathsf{T}})/2$'), ('cont', 3, 'continuum'))
+
+
+def fig_operators(run, out):
+    """Supplementary figure: Taylor test of the four tangent operators of Table 10 at the states of Fig. 3."""
+    path = os.path.join(run, 'taylor_operators_summary.csv')
+    if not os.path.exists(path):
+        return
+    S = read_csv(path)
+    fig, axs = plt.subplots(2, 4, figsize=(TEXTW, 3.5), sharex=True)
+    for row, kind in enumerate((1, 2)):
+        for col, (op, code, label) in enumerate(OPERATORS):
+            ax = axs[row, col]
+            i = np.flatnonzero((S['kind'] == kind) & (S['operator'] == code))
+            if i.size != 1:
+                sys.exit(f'operator summary: no single row for kind {kind}, operator {op}')
+            b1, b0, med = S['fit_slope'][i[0]], S['fit_intercept'][i[0]], S['median_slope'][i[0]]
+            P = read_csv(os.path.join(run, f'taylor_operators_{KINDS[kind]}_{op}.csv'))
+            x, y = P['log_alpha1'], P['log_E1']
+            ax.plot(x, y, 'o', ms=1.4, mfc=C1, mec='none', alpha=0.55)
+            xx = np.array([x.min() - 0.1, x.max() + 0.1])
+            ax.plot(xx, b0 + b1 * xx, color=C2, lw=1.1)
+            ax.text(0.04, 0.95, f'fit {b1:.3f}\nmedian {med:.3f}', transform=ax.transAxes, fontsize=6.4, color=INK,
+                    va='top', ha='left', bbox=dict(boxstyle='square,pad=0.15', fc='white', ec='none', alpha=0.85))
+            ax.set_title('(' + 'abcdefgh'[4 * row + col] + ') ' + label, fontsize=7.4)
+            if row == 1:
+                ax.set_xlabel('log $\\alpha$')
+            if col == 0:
+                ax.set_ylabel(NAMES[kind].split(' ')[0] + '\nlog $E(\\alpha)$')
+            ax.tick_params(labelsize=6.6)
+            print('Taylor operator %-13s %-4s fit %.4f, median %.4f' % (KINDS[kind], op, b1, med))
+    fig.tight_layout(h_pad=0.6, w_pad=0.5)
+    save(fig, out, 'supplementary_taylor_operators')
+
+
 if __name__ == '__main__':
     args = arguments('Fig. 3 of the article (Taylor test) from the CSV files of TaylorTest.')
     fig_taylor(args.rundir, args.outdir)
     if os.path.exists(os.path.join(args.rundir, 'taylor_mt19937_summary.csv')):
         fig_taylor(args.rundir, args.outdir, 'mt19937', 'fig03_taylor_test_mt19937')
+    fig_operators(args.rundir, args.outdir)

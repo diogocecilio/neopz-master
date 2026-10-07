@@ -12,6 +12,7 @@
 #include "pzstepsolver.h"
 
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <iomanip>
 #include <iostream>
@@ -47,11 +48,13 @@
  *     \f$\max_k|q_k-q_{closed}(\varepsilon_{a,k})|\f$, with \f$q_{closed}\f$ linearly interpolated at the numerical
  *     axial strains (numpy.interp, as in gen_data.py);
  *  -# for OCR = 5, the peak of \f$q\f$, the value at 20% and the maximum compression \f$\varepsilon_v\f$;
- *  -# a finite element check that is not in the article: the 400-increment test repeated with one axisymmetric
- *     Q8-Q4 u-p element (drained, pore pressure prescribed as zero), assembled and solved with the native
- *     NeoPZ classes (geometric mesh, atomic and multiphysics computational meshes,
- *     TPZPoroElastoPlasticUPAnalysis with TPZSkylineNSymStructMatrix and TPZStepSolver). The strain field is
- *     homogeneous, so the element must reproduce the material point.
+ *  -# a finite element check: the 400-increment test repeated with one Hex20-Hex8 u-p element on the unit cube
+ *     (2 x 2 x 2 Gauss points; u_x = 0 on x = 0, u_y = 0 on y = 0, u_z = 0 on z = 0, cell pressure p'0 on the
+ *     faces x = 1 and y = 1, vertical displacement of the top z = 1 controlled, pore pressure prescribed as zero
+ *     at the eight vertices), assembled and solved with the native NeoPZ classes (geometric mesh, atomic and
+ *     multiphysics computational meshes, TPZPoroElastoPlasticUPAnalysis with TPZSkylineNSymStructMatrix and
+ *     TPZStepSolver). The strain field is homogeneous, so the element must reproduce the material point; the
+ *     same element, with the boundary conditions of each test, is used for the FLAC3D tests (FLAC3DTriaxial).
  *
  * Two definitions of \f$q_{exact}\f$ at \f$\varepsilon_a=20\%\f$ are reported:
  *  - interpolated: linear interpolation of the 600-point closed-form table, as gen_data.py and the reference
@@ -68,7 +71,10 @@
  *  - rs2_\<case\>_n400.csv: material point with 400 increments (same columns, plus the closed form interpolated at
  *    eps_a and the difference), solid lines of Fig. 4;
  *  - rs2_table2.csv: Table 2 (both definitions of q_exact; the last row, increments = 0, holds q_exact);
- *  - rs2_\<case\>_fe.csv, rs2_\<case\>_fe.scal_vec.0.vtk, rs2_\<case\>_fe_gauss.vtk: finite element check.
+ *  - rs2_\<case\>_fe.csv, rs2_\<case\>_fe.scal_vec.0.vtk, rs2_\<case\>_fe_gauss.vtk: finite element check;
+ *  - rs2_fe_check.csv: summary of the finite element check (q at 20%, largest differences from the material
+ *    point, global iterations, wall time);
+ *  - rs2_mesh_*.csv: geometric mesh of the element (mcc::WriteMeshCSV), for the figure of the model.
  *
  * Stresses in kPa, compression positive in the printed and written invariants (p', q, eps_v, eps_a).
  */
@@ -77,9 +83,12 @@ public:
     /** @brief Number of entries (increment counts) of the convergence study (Table 2) */
     static constexpr int NIncrements = 5;
 
-    /** @brief Material and boundary ids of the single element finite element check */
-    enum { EMatId = 1, EBottom = -1, ERight = -2, ETop = -3, ELeft = -4, EPBottom = -11, EPRight = -12,
-           EPTop = -13, EPLeft = -14 };
+    /**
+     * @brief Material and boundary ids of the single element finite element check: faces x = 0, x = 1, y = 0,
+     * y = 1, z = 0, z = 1 (displacement and cell pressure) and the drained faces (pore pressure, coincident with
+     * the six faces); the same ids as FLAC3DTriaxial
+     */
+    enum { EMatId = 1, EX0 = -21, EX1 = -22, EY0 = -23, EY1 = -24, EZ0 = -25, EZ1 = -26, EPDrained = -30 };
 
     /**
      * @brief Reference values of a test (Python transcription and article); "400" refers to the default number
@@ -123,9 +132,17 @@ public:
         std::array<REAL, NIncrements> fErrRoot{};                 ///< q_num - q_exact(exact)
         REAL fMaxDiff400 = 0., fEaMaxDiff400 = 0.;                ///< largest |q - q_closed| along the path (400)
         mcc::TLocalStats fStats400;                               ///< local Newton iterations (400 increments)
-        std::vector<std::array<REAL, 5>> fFE;                     ///< FE check (eps_a, p', q, eps_v, eps_q)
+        std::vector<std::array<REAL, 6>> fFE;                     ///< FE check (eps_a, p', q, eps_v, eps_q, evaluations)
         REAL fFEMaxDiff = 0.;                                     ///< max |q_FE - q_point| along the path (400)
+        REAL fFEMaxDiffP = 0.;                                    ///< max |p'_FE - p'_point| along the path
+        REAL fFEMaxDiffEv = 0.;                                   ///< max |eps_v,FE - eps_v,point| along the path
         REAL fFEMeanEvaluations = 0.;                             ///< mean global residual evaluations per increment
+        int fFEMaxEvaluations = 0;                                ///< largest number of evaluations of an increment
+        int64_t fFEGlobalIterations = 0;                          ///< all the global iterations (NGlobalIterations)
+        int64_t fFEBisections = 0;                                ///< bisected increments (NBisections)
+        REAL fFEWallTime = 0.;                                    ///< wall time of the incremental solution (s)
+        REAL fFESpreadQ = 0.;                                     ///< largest spread of q over the 8 points (kPa)
+        int64_t fFEEquations = 0;                                 ///< equations of the multiphysics mesh
     };
 
     /** @name Material parameters (Table 1) */
@@ -178,12 +195,15 @@ public:
     REAL ExactDeviatoricStress(const TCase &tcase, REAL ea) const;
     /** @} */
 
-    /** @name Finite element check: one axisymmetric Q8-Q4 element */
+    /** @name Finite element check: one Hex20-Hex8 element */
     /** @{ */
-    /** @brief Geometric mesh: one 1 m x 1 m quadrilateral (x = r, y = z) with boundary lines for u and p */
+    /**
+     * @brief Geometric mesh: the unit cube (one trilinear hexahedron) with a boundary quadrilateral for the
+     * displacement condition and a coincident one for the pore pressure on each face
+     */
     TPZGeoMesh *CreateGeoMesh();
 
-    /** @brief Displacement (Q8), pore pressure (Q4) and multiphysics meshes, materials and initial state */
+    /** @brief Displacement (Hex20), pore pressure (Hex8) and multiphysics meshes, materials and initial state */
     TPZMultiphysicsCompMesh *CreateCompMesh(TPZGeoMesh *gmesh, const TCase &tcase, mcc::TPoroMaterial *&mat);
 
     /**
@@ -314,48 +334,58 @@ inline REAL RS2Triaxial::ExactDeviatoricStress(const TCase &tcase, REAL ea) cons
 }
 
 inline TPZGeoMesh *RS2Triaxial::CreateGeoMesh() {
-    // one quadrilateral; each side receives a line for the displacement and a coincident line for the pore pressure
-    return mcc::CreateRectangleMesh(0., 0., 1., 1., 1, 1, EMatId, [](int side, const TPZVec<REAL> &) {
-        const int uid[4] = {EBottom, ERight, ETop, ELeft};
-        const int pid[4] = {EPBottom, EPRight, EPTop, EPLeft};
-        return std::vector<int>{uid[side], pid[side]};
+    // one trilinear hexahedron on [0,1]^3 (the serendipity displacement space needs no geometric mid-edge nodes);
+    // each face receives a quadrilateral for the displacement condition and a coincident one for the pore pressure
+    return mcc::CreateUnitCubeMesh(EMatId, [](const std::array<std::array<REAL, 3>, 4> &X) {
+        std::vector<int> ids;
+        const int planes[3][2] = {{EX0, EX1}, {EY0, EY1}, {EZ0, EZ1}};
+        for (int axis = 0; axis < 3; ++axis)
+            for (int side = 0; side < 2; ++side)
+                if (mcc::FaceOnPlane(X, axis, REAL(side))) ids.push_back(planes[axis][side]);
+        ids.push_back(EPDrained);
+        return ids;
     });
 }
 
 inline TPZMultiphysicsCompMesh *RS2Triaxial::CreateCompMesh(TPZGeoMesh *gmesh, const TCase &tcase,
                                                             mcc::TPoroMaterial *&mat) {
-    const std::set<int> bcids = {EBottom, ERight, ETop, ELeft, EPBottom, EPRight, EPTop, EPLeft};
-    TPZCompMesh *cmeshU = mcc::CreateDisplacementMesh(gmesh, 2, EMatId, bcids); // serendipity Q8
-    TPZCompMesh *cmeshP = mcc::CreatePressureMesh(gmesh, 2, EMatId, bcids);     // bilinear Q4
+    const std::set<int> bcids = {EX0, EX1, EY0, EY1, EZ0, EZ1, EPDrained};
+    TPZCompMesh *cmeshU = mcc::CreateDisplacementMesh(gmesh, 3, EMatId, bcids); // serendipity Hex20
+    TPZCompMesh *cmeshP = mcc::CreatePressureMesh(gmesh, 3, EMatId, bcids);     // trilinear Hex8
 
     TPZMultiphysicsCompMesh *mphys = new TPZMultiphysicsCompMesh(gmesh);
-    mphys->SetDimModel(2);
-    mat = new mcc::TPoroMaterial(EMatId, TPZMatPoroElastoPlasticUPBase::EAxisymmetric);
+    mphys->SetDimModel(3);
+    mat = new mcc::TPoroMaterial(EMatId, TPZMatPoroElastoPlasticUPBase::EThreeDimensional);
     mat->SetPlasticModel(CreateMaterial(tcase));
     mat->SetBiot(1., 0.);       // drained: incompressible constituents, pore pressure prescribed as zero
     mat->SetPermeability(0.);
-    mat->SetIntegrationOrder(3); // 2 x 2 Gauss points
+    mat->SetIntegrationOrder(3); // 2 x 2 x 2 Gauss points
     mphys->InsertMaterialObject(mat);
 
-    TPZFNMatrix<4, STATE> val1(2, 2, 0.);
-    TPZManVector<STATE, 3> val2(2, 0.);
-    // axis: u_r = 0
-    val1(0, 0) = 1.;
-    mphys->InsertMaterialObject(mat->CreateBC(mat, ELeft, TPZMatPoroElastoPlasticUPBase::EDirichletUDirectional, val1, val2));
-    // base: u_z = 0
-    val1.Zero();
-    val1(1, 1) = 1.;
-    mphys->InsertMaterialObject(mat->CreateBC(mat, EBottom, TPZMatPoroElastoPlasticUPBase::EDirichletUDirectional, val1, val2));
-    // top: u_z controlled by the analysis
-    mphys->InsertMaterialObject(mat->CreateBC(mat, ETop, TPZMatPoroElastoPlasticUPBase::EDirichletUDirectional, val1, val2));
-    // lateral face: cell pressure p'0 (total = effective stress, the pore pressure is zero)
-    val1.Zero();
-    val2[0] = -tcase.fP0;
-    mphys->InsertMaterialObject(mat->CreateBC(mat, ERight, TPZMatPoroElastoPlasticUPBase::ENeumannU, val1, val2));
-    // drained: p = 0 on the whole boundary
+    using B = TPZMatPoroElastoPlasticUPBase;
+    TPZFNMatrix<9, STATE> val1(3, 3, 0.);
+    TPZManVector<STATE, 3> val2(3, 0.);
+    auto directional = [&](int id, int comp) {
+        val1.Zero();
+        val1(comp, comp) = 1.;
+        val2.Fill(0.);
+        mphys->InsertMaterialObject(mat->CreateBC(mat, id, B::EDirichletUDirectional, val1, val2));
+    };
+    directional(EX0, 0); // symmetry planes
+    directional(EY0, 1);
+    directional(EZ0, 2);
+    directional(EZ1, 2); // top: u_z controlled by the analysis
+    // faces x = 1 and y = 1: cell pressure p'0 (total = effective stress, the pore pressure is zero)
+    for (int k = 0; k < 2; ++k) {
+        val1.Zero();
+        val2.Fill(0.);
+        val2[k] = -tcase.fP0;
+        mphys->InsertMaterialObject(mat->CreateBC(mat, k == 0 ? EX1 : EY1, B::ENeumannU, val1, val2));
+    }
+    // drained: p = 0 on the whole boundary (the eight vertices)
     TPZManVector<STATE, 3> zero(1, 0.);
-    for (int id : {EPBottom, EPRight, EPTop, EPLeft})
-        mphys->InsertMaterialObject(mat->CreateBC(mat, id, TPZMatPoroElastoPlasticUPBase::EDirichletP, val1, zero));
+    val1.Zero();
+    mphys->InsertMaterialObject(mat->CreateBC(mat, EPDrained, B::EDirichletP, val1, zero));
     mcc::BuildMultiphysics(mphys, cmeshU, cmeshP, EMatId, bcids);
 
     // initial state of the integration points: isotropic stress p'0, preconsolidation p'c0, specific volume v0
@@ -374,6 +404,7 @@ inline void RS2Triaxial::RunFiniteElement(const TCase &tcase, int nsteps, TResul
     TPZGeoMesh *gmesh = CreateGeoMesh();
     mcc::TPoroMaterial *mat = nullptr;
     TPZMultiphysicsCompMesh *mphys = CreateCompMesh(gmesh, tcase, mat);
+    res.fFEEquations = mphys->NEquations();
 
     // analysis: non-symmetric skyline matrix and LU decomposition (no renumbering, see TPZPoroElastoPlasticUPAnalysis)
     mcc::TAnalysis analysis(mphys, mat);
@@ -383,40 +414,60 @@ inline void RS2Triaxial::RunFiniteElement(const TCase &tcase, int nsteps, TResul
     TPZStepSolver<STATE> step;
     step.SetDirect(ELU);
     analysis.SetSolver(step);
-    analysis.SetControlledDisplacement(ETop, 1);
+    analysis.SetControlledDisplacement(EZ1, 2);
     analysis.SetPredictor(true);
 
     // increments of the top displacement (height 1 m: u_z = -eps_a), constant cell pressure (load factor 1)
     std::vector<mcc::TAnalysis::TLoadState> steps;
     for (int k = 1; k <= nsteps; ++k) steps.emplace_back(0., 1., -fEaMax * k / nsteps);
 
-    // in axisymmetry XX is radial, YY axial and ZZ the hoop component; the state is homogeneous, so the
-    // first integration point represents the element (0. - x avoids writing -0 for the initial state)
+    // XX and YY are the lateral components, ZZ the axial one; the state is homogeneous, so the first integration
+    // point represents the element (0. - x avoids writing -0 for the initial state); the spread of q over the
+    // points measures the deviation from homogeneity
     res.fFE.clear();
+    res.fFESpreadQ = 0.;
+    res.fFEMaxEvaluations = 0;
+    size_t nlog = 0;
     auto monitor = [&](int, const mcc::TAnalysis::TLoadState &s) {
         const auto gps = mcc::GaussPoints(mat, mphys);
         const auto &g = gps[0];
-        res.fFE.push_back({0. - s.fUc, mcc::MeanEffectiveStress(g.fSigma), mcc::DeviatoricStress(g.fSigma), 0. - g.fEps.I1(),
-                           2. / 3. * std::fabs(g.fEps.YY() - g.fEps.XX())});
+        const REAL q = mcc::DeviatoricStress(g.fSigma);
+        for (auto &gi : gps) res.fFESpreadQ = std::max(res.fFESpreadQ, std::fabs(mcc::DeviatoricStress(gi.fSigma) - q));
+        int nev = 0;
+        const auto &log = analysis.StepLog();
+        for (; nlog < log.size(); ++nlog) nev += int(log[nlog].fResiduals.size());
+        res.fFEMaxEvaluations = std::max(res.fFEMaxEvaluations, nev);
+        res.fFE.push_back({0. - s.fUc, mcc::MeanEffectiveStress(g.fSigma), q, 0. - g.fEps.I1(),
+                           2. / 3. * std::fabs(g.fEps.ZZ() - g.fEps.XX()), REAL(nev)});
     };
+    analysis.ResetCounters();
+    const auto start = std::chrono::steady_clock::now();
     if (!analysis.Run(steps, monitor)) std::cerr << "RS2Triaxial: the finite element solution failed\n";
+    res.fFEWallTime = std::chrono::duration<REAL>(std::chrono::steady_clock::now() - start).count();
     res.fFEMeanEvaluations = mcc::MeanEvaluations(analysis.StepLog());
+    res.fFEGlobalIterations = analysis.NGlobalIterations();
+    res.fFEBisections = analysis.NBisections();
 
     // post-processing: integration points and nodal fields (VTK) and the history (CSV)
     const std::string base = "rs2_" + tcase.fTag + "_fe";
     mcc::WriteGaussPointsVTK(mat, mphys, base + "_gauss.vtk");
-    mcc::WriteNodalVTK(analysis, 2, base + ".vtk", 0);
+    mcc::WriteNodalVTK(analysis, 3, base + ".vtk", 0);
 
     // comparison with the material point solution with the same increments
     const auto &mp = res.fPoint.at(nsteps);
-    res.fFEMaxDiff = 0.;
+    res.fFEMaxDiff = res.fFEMaxDiffP = res.fFEMaxDiffEv = 0.;
     std::vector<std::vector<REAL>> rows;
     for (size_t k = 0; k < res.fFE.size() && k < mp.size(); ++k) {
         const auto &f = res.fFE[k];
         res.fFEMaxDiff = std::max(res.fFEMaxDiff, std::fabs(f[2] - mp[k][2]));
-        rows.push_back({f[0], f[1], f[2], f[3], f[4], mp[k][2], f[2] - mp[k][2]});
+        res.fFEMaxDiffP = std::max(res.fFEMaxDiffP, std::fabs(f[1] - mp[k][1]));
+        res.fFEMaxDiffEv = std::max(res.fFEMaxDiffEv, std::fabs(f[3] - mp[k][3]));
+        rows.push_back({f[0], f[1], f[2], f[3], f[4], mp[k][1], mp[k][2], mp[k][3], f[2] - mp[k][2], f[5]});
     }
-    mcc::WriteCSV(base + ".csv", {"eps_a", "p_eff", "q", "eps_v", "eps_q", "q_point", "q_minus_q_point"}, rows);
+    mcc::WriteCSV(base + ".csv",
+                  {"eps_a", "p_eff", "q", "eps_v", "eps_q", "p_point", "q_point", "eps_v_point", "q_minus_q_point",
+                   "evaluations"},
+                  rows);
     mcc::DeleteMeshes(mphys);
 }
 
@@ -597,19 +648,39 @@ inline void RS2Triaxial::RunAll() {
                   << cases[j].fRef.fLocalItsMax << " (" << results[j].fStats400.fCalls << " projections)\n";
 
     if (fFECheck) {
-        std::cout << "\nFinite element check (not in the article): one axisymmetric Q8-Q4 element, " << fNFigure
+        std::cout << "\nFinite element check: one Hex20-Hex8 element (2 x 2 x 2 points), " << fNFigure
                   << " increments [FE | material point]\n";
+        std::vector<std::vector<REAL>> fe;
         for (size_t j = 0; j < cases.size(); ++j) {
             const auto &r = results[j];
+            const auto &mp = r.fPoint.at(fNFigure).back();
             std::cout << "  " << std::setw(17) << std::left << cases[j].fLabel << std::right << "q(20%) = "
-                      << cell(r.fFE.back()[2], r.fPoint.at(fNFigure).back()[2], 9) << " kPa, max|q_FE - q_point| = "
-                      << std::scientific << std::setprecision(2) << r.fFEMaxDiff << std::fixed
-                      << " kPa, global evaluations per increment = " << std::setprecision(2) << r.fFEMeanEvaluations
-                      << "\n";
+                      << cell(r.fFE.back()[2], mp[2], 9) << " kPa, max|q_FE - q_point| = " << std::scientific
+                      << std::setprecision(2) << r.fFEMaxDiff << ", max|p'_FE - p'_point| = " << r.fFEMaxDiffP
+                      << " kPa, max|eps_v,FE - eps_v,point| = " << r.fFEMaxDiffEv << ", spread of q over the points "
+                      << r.fFESpreadQ << " kPa" << std::fixed << "\n" << std::setw(19) << ""
+                      << "global evaluations per increment = " << std::setprecision(4) << r.fFEMeanEvaluations
+                      << " (max " << r.fFEMaxEvaluations << "), total " << r.fFEGlobalIterations << ", bisections "
+                      << r.fFEBisections << ", " << std::setprecision(3) << r.fFEWallTime << " s, " << r.fFEEquations
+                      << " equations\n";
+            fe.push_back({REAL(j), REAL(fNFigure), r.fFE.back()[2], mp[2], r.fFE.back()[1], mp[1], r.fFE.back()[3],
+                          mp[3], r.fFEMaxDiff, r.fFEMaxDiffP, r.fFEMaxDiffEv, r.fFESpreadQ, r.fFEMeanEvaluations,
+                          REAL(r.fFEMaxEvaluations), REAL(r.fFEGlobalIterations), REAL(r.fFEBisections),
+                          r.fFEWallTime, REAL(r.fFEEquations)});
         }
+        // summary of the check (case index in the order nc_nu, nc_g, ocr2, ocr5) and the mesh of the element
+        mcc::WriteCSV("rs2_fe_check.csv",
+                      {"case", "increments", "q_fe", "q_point", "p_fe", "p_point", "eps_v_fe", "eps_v_point",
+                       "max_diff_q", "max_diff_p", "max_diff_eps_v", "spread_q", "mean_evaluations", "max_evaluations",
+                       "global_iterations", "bisections", "wall_time_s", "equations"},
+                      fe);
+        TPZGeoMesh *gmesh = CreateGeoMesh();
+        mcc::WriteMeshCSV(gmesh, "rs2_mesh");
+        delete gmesh;
     }
     std::cout << "\nFiles: rs2_<case>_closed.csv, rs2_<case>_n" << fNFigure
-              << ".csv (Fig. 4), rs2_table2.csv (Table 2), rs2_<case>_fe.csv and VTK files of the FE check\n";
+              << ".csv (Fig. 4), rs2_table2.csv (Table 2), rs2_<case>_fe.csv, rs2_fe_check.csv, rs2_mesh_*.csv and VTK "
+                 "files of the FE check\n";
 
     // Table 2 as CSV
     std::vector<std::vector<REAL>> rows;

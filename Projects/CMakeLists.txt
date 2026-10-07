@@ -24,11 +24,14 @@ function(add_mcc_example name)
     set_target_properties(${name} PROPERTIES FOLDER "MCCPaper")
 endfunction()
 
+# section, table and figure numbers of the article v0.6 (sections and tables are kept in v0.7; the figures after
+# Fig. 3 may be renumbered when the finite element meshes are added)
 add_subdirectory(YieldSurfaceProjection)       # Figs. 1-2
-add_subdirectory(TaylorTest)                   # Sect. 4.5, Fig. 3
+add_subdirectory(TaylorTest)                   # Sect. 4.5, Fig. 3; Table 10 (Taylor slopes of the operators)
 add_subdirectory(RS2Triaxial)                  # Sect. 6.1, Fig. 4, Table 2
 add_subdirectory(FrozenBulkModulus)            # Sect. 6.1, Table 3
-add_subdirectory(FLAC3DTriaxial)               # Sect. 6.2, Fig. 5, Table 4
-add_subdirectory(TerzaghiConsolidation)        # Sect. 6.3, Fig. 6, Table 5
-add_subdirectory(AbaqusTriaxialConsolidation)  # Sects. 6.4 and 6.6, Figs. 7-9, Tables 6 and 8
-add_subdirectory(EmbankmentConsolidation)      # Sect. 6.5, Figs. 10-12, Table 7
+add_subdirectory(IntegrationSchemes)           # Sect. 6.2, Fig. 5, Table 4
+add_subdirectory(FLAC3DTriaxial)               # Sect. 6.3, Fig. 6, Table 5
+add_subdirectory(TerzaghiConsolidation)        # Sect. 6.4, Fig. 7, Table 6
+add_subdirectory(AbaqusTriaxialConsolidation)  # Sects. 6.5 and 6.7, Figs. 8-10, Tables 7, 9 and 10
+add_subdirectory(EmbankmentConsolidation)      # Sects. 6.6 and 6.7, Figs. 11-13, Tables 8 and 10

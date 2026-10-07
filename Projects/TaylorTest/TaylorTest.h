@@ -1,7 +1,8 @@
 /**
  * @file TaylorTest.h
  * @brief Sect. 4.5 and Fig. 3 of the article: Taylor test of the consistent tangent operator of the
- * Modified Cam-Clay return mapping in rotated Haigh-Westergaard space (TPZPlasticStepModifiedCamClay).
+ * Modified Cam-Clay return mapping in rotated Haigh-Westergaard space (TPZPlasticStepModifiedCamClay), and the
+ * Taylor slopes of the alternative tangent operators of Sect. 6.7 (last column of Table 10).
  */
 #pragma once
 
@@ -13,6 +14,7 @@
 #include <cstdint>
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include <random>
 #include <sstream>
 #include <string>
@@ -61,6 +63,16 @@
  *    asymmetries and the fitted slopes are those of the article;
  *  - TMersenneRandom: std::mt19937_64 with seed 2026, an independent sample that must be statistically
  *    equivalent (second order with \f$\mathbb{D}\f$, first order with \f$\mathbb{D}^T\f$ at plastic states).
+ *
+ * Taylor slopes of the operators of Table 10 (Sect. 6.7; tangentes() of gen_data.py, OperatorSlopes): at the
+ * subcritical and supercritical states of Fig. 3 (the same \f$\varepsilon_0\f$), the test is repeated with the
+ * consistent tangent \f$\mathbb{D}\f$, its transpose \f$\mathbb{D}^T\f$, its symmetric part
+ * \f$(\mathbb{D}+\mathbb{D}^T)/2\f$ and the continuum operator (TPZPlasticStepModifiedCamClay::ContinuumTangent at
+ * \f$\sigma_0\f$ and the updated \f$p_c\f$), with 300 pairs per operator drawn from TNumpyRandom(7), i.e.
+ * numpy's default_rng(7), in the order of the Python script (states 1, 2; operators D, DT, sym, cont). Each
+ * operator is also obtained from the library with TPZPlasticStepModifiedCamClay::SetTangentMode (EConsistentTangent,
+ * ETransposedTangent, ESymmetricTangent, EContinuumTangent), the operators of the global iterations of Table 10,
+ * and must be identical to the one tested (column diff_library_mode of taylor_operators_summary.csv).
  *
  * There is no finite element mesh in this example: the "material" is a single integration point, and
  * the methods follow the same sequence as the finite element examples (material set-up, solution,
@@ -220,6 +232,7 @@ public:
     REAL fAlphaMax = 1.e-2; ///< largest amplitude
     REAL fDirectionNorm = 1.e-3; ///< norm of the strain direction
     uint64_t fSeed = 2026;  ///< seed of both generators (as in gen_data.py)
+    uint64_t fOperatorSeed = 7; ///< seed of the draws of the comparison of the operators (tangentes() of gen_data.py)
     /** @} */
 
     /** @brief Constitutive model: MCC, porous elasticity, shear modulus from the Poisson ratio */
@@ -264,7 +277,36 @@ public:
      */
     void Print(const std::vector<TPanel> &panels, const TRandom &rng, bool sameDraws) const;
 
-    /** @brief Runs the test with the numpy-compatible generator and with std::mt19937_64 */
+    /** @brief Draws the pairs of one panel with the operator D (6x6) and computes the slopes and the fit */
+    void PerturbWith(const mcc::TPlastic &model, TPanel &panel, const TPZFMatrix<REAL> &D, TRandom &rng) const;
+
+    /** @brief Taylor test of one tangent operator at a state of Fig. 3 (last column of Table 10) */
+    struct TOperatorPanel {
+        std::string fOperator; ///< D, DT, sym or cont (names of gen_data.py)
+        TPanel fPanel;         ///< state, pairs, slopes and fit
+        TPZFNMatrix<36, REAL> fMatrix; ///< the operator
+        REAL fLibraryDiff = -1.; ///< largest |difference| from the tangent of the library mode (SetTangentMode)
+    };
+
+    /**
+     * @brief Taylor slopes of the consistent tangent D, its transpose, its symmetric part and the continuum
+     * operator at the subcritical and supercritical states of Fig. 3 (tangentes() of gen_data.py)
+     * @param fig3 panels of Run with the numpy-compatible stream of seed 2026 (the states eps_0 of Fig. 3)
+     * @return eight panels, in the order (kind 1: D, DT, sym, cont), (kind 2: D, DT, sym, cont); the draws come
+     * from TNumpyRandom(fOperatorSeed)
+     */
+    std::vector<TOperatorPanel> OperatorSlopes(const std::vector<TPanel> &fig3) const;
+
+    /** @brief Writes taylor_operators_summary.csv and one file of points per operator and state */
+    void PostProcessOperators(const std::vector<TOperatorPanel> &ops) const;
+
+    /** @brief Prints the slopes of the operators with the values of the Python code and of Table 10 */
+    void PrintOperators(const std::vector<TOperatorPanel> &ops) const;
+
+    /** @brief Python values (data_tangentes.pkl) of the fitted and median slopes of an operator at a state */
+    static void OperatorReference(int kind, const std::string &op, REAL &fit, REAL &median);
+
+    /** @brief Runs the test with the numpy-compatible generator and with std::mt19937_64, then the operators */
     void RunAll();
 
     /** @brief Reference values of a panel */
@@ -449,6 +491,11 @@ inline void TaylorTest::Perturb(const mcc::TPlastic &model, TPanel &panel, TRand
     TPZFNMatrix<36, REAL> D(6, 6, 0.);
     for (int i = 0; i < 6; ++i)
         for (int j = 0; j < 6; ++j) D(i, j) = panel.fTransposed ? panel.fD0(j, i) : panel.fD0(i, j);
+    PerturbWith(model, panel, D, rng);
+}
+
+inline void TaylorTest::PerturbWith(const mcc::TPlastic &model, TPanel &panel, const TPZFMatrix<REAL> &D,
+                                    TRandom &rng) const {
     panel.fPairs.clear();
     panel.fSlopes.clear();
     panel.fRejected = 0;
@@ -615,6 +662,151 @@ inline void TaylorTest::Print(const std::vector<TPanel> &panels, const TRandom &
     std::cout << std::defaultfloat << std::setprecision(6) << "\n";
 }
 
+inline void TaylorTest::OperatorReference(int kind, const std::string &op, REAL &fit, REAL &median) {
+    // gen_data.py tangentes(), numpy default_rng(7): out[('taylor', kind, op)] = (fitted slope, median slope)
+    struct TRef {
+        int fKind;
+        const char *fOp;
+        REAL fFit, fMedian;
+    };
+    static const TRef refs[] = {{1, "D", 2.0139100258796616, 2.0000096402788152},
+                                {1, "DT", 1.0158055249438278, 0.9998283289949064},
+                                {1, "sym", 0.9167202240286861, 0.9991788058849537},
+                                {1, "cont", 1.0053936737427394, 1.0000050727073335},
+                                {2, "D", 2.041269916294635, 2.000002687021147},
+                                {2, "DT", 1.0496453929964105, 1.0002973098453514},
+                                {2, "sym", 1.0131830871801109, 1.0005421178195406},
+                                {2, "cont", 0.9988922920878781, 1.0000170654756}};
+    fit = median = -1.;
+    for (auto &r : refs)
+        if (r.fKind == kind && op == r.fOp) {
+            fit = r.fFit;
+            median = r.fMedian;
+        }
+}
+
+inline std::vector<TaylorTest::TOperatorPanel> TaylorTest::OperatorSlopes(const std::vector<TPanel> &fig3) const {
+    const mcc::TPlastic model = CreateMaterial();
+    TNumpyRandom rg(fOperatorSeed);
+    std::vector<TOperatorPanel> out;
+    for (int kind : {ESubcritical, ESupercritical}) {
+        // the state eps_0 of Fig. 3 (panel with D of this kind); sigma_0, D_0 and p_c recomputed as in tangentes()
+        const TPanel *fig = nullptr;
+        for (auto &p : fig3)
+            if (p.fKind == kind && !p.fTransposed) fig = &p;
+        if (!fig) DebugStop();
+        TPanel base(*fig);
+        TPZFNMatrix<36, REAL> D0(6, 6, 0.);
+        REAL pc = 0.;
+        int type = -1;
+        if (!Response(model, kind, base.fX0, base.fSigma0, D0, pc, type) || type != kind) DebugStop();
+        base.fD0 = D0;
+        base.fPc = pc;
+        TPZFNMatrix<36, REAL> DT(6, 6, 0.), Dsym(6, 6, 0.), Dc(6, 6, 0.);
+        for (int i = 0; i < 6; ++i)
+            for (int j = 0; j < 6; ++j) {
+                DT(i, j) = D0(j, i);
+                Dsym(i, j) = 0.5 * (D0(i, j) + D0(j, i));
+            }
+        model.ContinuumTangent(base.fSigma0, pc, fV0, Dc);
+        const std::vector<std::pair<std::string, TPZFNMatrix<36, REAL>>> ops = {
+            {"D", D0}, {"DT", DT}, {"sym", Dsym}, {"cont", Dc}};
+        // the same operators returned by the library to the global iterations (SetTangentMode, Table 10)
+        const std::map<std::string, TPZPlasticStepModifiedCamClay::ETangentMode> modes = {
+            {"D", TPZPlasticStepModifiedCamClay::EConsistentTangent},
+            {"DT", TPZPlasticStepModifiedCamClay::ETransposedTangent},
+            {"sym", TPZPlasticStepModifiedCamClay::ESymmetricTangent},
+            {"cont", TPZPlasticStepModifiedCamClay::EContinuumTangent}};
+        for (auto &op : ops) {
+            TOperatorPanel res;
+            res.fOperator = op.first;
+            res.fMatrix = op.second;
+            mcc::TPlastic lib(model);
+            lib.SetTangentMode(modes.at(op.first));
+            TPZTensor<REAL> sl;
+            TPZFNMatrix<36, REAL> Dl(6, 6, 0.);
+            REAL pcl = 0.;
+            int typel = -1;
+            if (!Response(lib, kind, base.fX0, sl, Dl, pcl, typel) || typel != kind) DebugStop();
+            res.fLibraryDiff = 0.;
+            for (int i = 0; i < 6; ++i)
+                for (int j = 0; j < 6; ++j)
+                    res.fLibraryDiff = std::max(res.fLibraryDiff, std::fabs(Dl(i, j) - op.second.GetVal(i, j)));
+            res.fPanel = base;
+            res.fPanel.fTransposed = op.first == "DT";
+            PerturbWith(model, res.fPanel, op.second, rg);
+            out.push_back(res);
+        }
+    }
+    return out;
+}
+
+inline void TaylorTest::PostProcessOperators(const std::vector<TOperatorPanel> &ops) const {
+    std::vector<std::vector<REAL>> summary;
+    for (auto &o : ops) {
+        const TPanel &p = o.fPanel;
+        std::vector<std::vector<REAL>> rows;
+        for (size_t k = 0; k < p.fPairs.size(); ++k) {
+            const auto &q = p.fPairs[k];
+            const REAL la = std::log(q[0]);
+            rows.push_back({q[0], q[1], la, std::log(q[1]), p.fFitIntercept + p.fFitSlope * la, q[2], q[3],
+                            p.fSlopes[k]});
+        }
+        mcc::WriteCSV("taylor_operators_" + KindName(p.fKind) + "_" + o.fOperator + ".csv",
+                      {"alpha1", "E1", "log_alpha1", "log_E1", "fit_log_E1", "alpha2", "E2", "pair_slope"}, rows);
+        REAL pyfit, pymed;
+        OperatorReference(p.fKind, o.fOperator, pyfit, pymed);
+        // asymmetry of the operator itself
+        REAL nd = 0., na = 0.;
+        for (int i = 0; i < 6; ++i)
+            for (int j = 0; j < 6; ++j) {
+                const REAL d = o.fMatrix.GetVal(i, j), a = o.fMatrix.GetVal(i, j) - o.fMatrix.GetVal(j, i);
+                nd += d * d;
+                na += a * a;
+            }
+        const REAL opcode = o.fOperator == "D" ? 0. : (o.fOperator == "DT" ? 1. : (o.fOperator == "sym" ? 2. : 3.));
+        summary.push_back({REAL(p.fKind), opcode, p.fP, p.fQ, p.fPc, std::sqrt(na) / std::sqrt(nd), p.fFitSlope,
+                           p.fFitIntercept, p.fMedian, p.fMinSlope, p.fMaxSlope, REAL(p.fRejected), pyfit, pymed,
+                           o.fLibraryDiff});
+    }
+    mcc::WriteCSV("taylor_operators_summary.csv",
+                  {"kind", "operator", "p_eff", "q", "pc", "asym_operator", "fit_slope", "fit_intercept",
+                   "median_slope", "min_slope", "max_slope", "rejected", "python_fit_slope", "python_median_slope",
+                   "diff_library_mode"},
+                  summary);
+}
+
+inline void TaylorTest::PrintOperators(const std::vector<TOperatorPanel> &ops) const {
+    std::cout << "\nTaylor slopes of the tangent operators of Sect. 6.7 (last column of Table 10), states of Fig. 3, "
+                 "numpy-compatible stream default_rng("
+              << fOperatorSeed << ")\n";
+    std::cout << "  values: this work {Python, data_tangentes.pkl} [Table 10, median]; operator codes in "
+                 "taylor_operators_summary.csv: 0 D, 1 D^T, 2 (D+D^T)/2, 3 continuum\n";
+    std::cout << std::left << std::setw(17) << "  state" << std::setw(7) << "op" << std::setw(36) << "fitted slope"
+              << "median slope" << std::right << "\n";
+    REAL dfit = 0., dmed = 0.;
+    for (auto &o : ops) {
+        REAL pyfit, pymed;
+        OperatorReference(o.fPanel.fKind, o.fOperator, pyfit, pymed);
+        dfit = std::max(dfit, std::fabs(o.fPanel.fFitSlope - pyfit));
+        dmed = std::max(dmed, std::fabs(o.fPanel.fMedian - pymed));
+        std::ostringstream f, m;
+        f << std::fixed << std::setprecision(9) << o.fPanel.fFitSlope << " {" << pyfit << "}";
+        m << std::fixed << std::setprecision(9) << o.fPanel.fMedian << " {" << pymed << "} ["
+          << (o.fOperator == "D" ? "2.00" : "1.00") << "]";
+        std::cout << "  " << std::left << std::setw(15) << KindName(o.fPanel.fKind) << std::setw(7) << o.fOperator
+                  << std::setw(36) << f.str() << m.str() << std::right << "\n";
+    }
+    std::cout << "  largest difference with the Python values: fitted slope " << std::scientific << std::setprecision(2)
+              << dfit << ", median " << dmed << std::defaultfloat << std::setprecision(6) << "; rejected pairs:";
+    for (auto &o : ops) std::cout << " " << o.fPanel.fRejected;
+    REAL dlib = 0.;
+    for (auto &o : ops) dlib = std::max(dlib, o.fLibraryDiff);
+    std::cout << "\n  the operators tested are those returned by TPZPlasticStepModifiedCamClay::SetTangentMode "
+                 "(D, DT, sym, cont): largest |difference| "
+              << dlib << "\n";
+}
+
 inline void TaylorTest::RunAll() {
     std::cout << "Taylor test of the consistent tangent (Sect. 4.5, Fig. 3): M = " << fM << ", lambda = " << fLambda
               << ", kappa = " << fKappa << ", v0 = " << fV0 << ", porous elasticity, nu = " << fNu << "\n";
@@ -632,7 +824,11 @@ inline void TaylorTest::RunAll() {
     const std::vector<TPanel> fig3 = Run(pcg);
     Print(fig3, pcg, true);
     PostProcess(fig3, "taylor_" + pcg.Name());
-    // 2. independent sample with the C++ standard engine: statistical comparison
+    // 2. alternative tangent operators at the states of Fig. 3 (Table 10, last column; tangentes() of gen_data.py)
+    const std::vector<TOperatorPanel> ops = OperatorSlopes(fig3);
+    PrintOperators(ops);
+    PostProcessOperators(ops);
+    // 3. independent sample with the C++ standard engine: statistical comparison
     TMersenneRandom mt(fSeed);
     const std::vector<TPanel> sample = Run(mt);
     Print(sample, mt, false);
