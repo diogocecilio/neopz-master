@@ -1,0 +1,278 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{booktabs,array}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,calc}
+\usepackage[hidelinks]{hyperref}
+
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcommand{\cc}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\bu}{\boldsymbol{u}}\newcommand{\bq}{\boldsymbol{q}}\newcommand{\bv}{\boldsymbol{v}}
+\newcommand{\br}{\boldsymbol{r}}\newcommand{\bn}{\boldsymbol{n}}\newcommand{\bb}{\boldsymbol{b}}
+\newcommand{\bg}{\boldsymbol{g}}\newcommand{\bt}{\boldsymbol{t}}\newcommand{\bsig}{\boldsymbol{\sigma}}
+\newcommand{\beps}{\boldsymbol{\varepsilon}}\newcommand{\mvec}{\boldsymbol{m}}
+\newcommand{\Id}{\mathbf{I}}\newcommand{\Div}{\nabla\!\cdot}
+\newcommand{\Kt}{\mathbf{K}_T}\newcommand{\Qc}{\mathbf{Q}_c}
+
+\title{Formulação de três campos $\bu$--$\bq$--$p$ (deslocamento H$^1$, pressão H$^1$, fluxo H(div))\\
+para o talude poroplástico no NeoPZ}
+\author{Nota técnica --- branch \cc{branch_paper_mcc}}
+\date{8 de outubro de 2026}
+
+\begin{document}
+\maketitle
+
+\section{Resposta curta}
+
+\textbf{É possível, mas não é uma troca de parâmetro}: o material e o driver atuais assumem dois espaços.
+A infraestrutura de que a versão de três campos depende já existe e foi testada em programas de prova
+ligados à \cc{libpz.so}:
+\begin{itemize}
+\item elementos H(div) de volume e de contorno (\cc{TPZCompElHDiv}, \cc{TPZCompElHDivBound2}) em triângulos,
+  com \cc{ApproxSpace().SetHDivFamily(...)} e \cc{SetAllCreateFunctionsHDiv()};
+\item \cc{TPZMultiphysicsCompMesh} com três malhas atômicas $\{u,q,p\}$ e memória por ponto de integração
+  (malha do talude em \cc{TriGMesh(0)}: $240+315+36=591$ equações, contra 276 no u--p);
+\item o material misto \cc{TPZMixedDarcyFlow} (blocos $\mathbf A$, $\mathbf B$ e o contorno de pressão natural);
+\item a atualização plástica e a memória, que não dependem do espaço da pressão.
+\end{itemize}
+\textbf{Falta escrever}: um material \cc{TPZMatPoroElastoPlasticUQP} (estimativa: cerca de 250 linhas), um driver irmão
+do \cc{TPZPoroElastoPlasticUPAnalysis} (cerca de 120 linhas) e as ferramentas de malha (cerca de 60 linhas).
+
+\paragraph{Ressalva importante sobre ``pressão H$^1$''.} Na forma mista a pressão só precisa estar em $L^2$.
+Medi, com o \cc{TPZMixedDarcyFlow} do próprio repositório, o problema de Darcy $p_{ex}=x^2+y$ no quadrado unitário
+(malhas $2,4,8$, $k=1$): com pressão \emph{descontínua} de mesma ordem o fluxo é exato ($10^{-14}$) e $\|p-p_{ex}\|=O(h^2)$; com
+pressão P1 \emph{contínua} o erro do fluxo é só $O(h)$ ($0{,}145;\,0{,}064;\,0{,}030$) e o resíduo de divergência não converge
+($2{,}9;\,2{,}7;\,2{,}6$). Com $k=2$ e $p$ em P1 contínua não melhora. A causa é que $\operatorname{div}\mathcal Q_h=P_k^{disc}$ e a equação de
+conservação só é testada contra funções contínuas. Logo, \textbf{a combinação pedida (u em P2, p em P1 H$^1$, q em H(div)) é montável (a malha de três espaços foi
+construída) e o par $q$--$p$ resolve o Darcy puro, mas perde a conservação local e a precisão do fluxo}; o sistema $u$--$q$--$p$ completo não foi
+montado nem resolvido. A escolha estável e conservativa é pressão descontínua (Seção~\ref{sec:esp}).
+
+%=====================================================================================================
+\section{Forma forte}
+Convenções do código atual (\cc{TPZMatPoroElastoPlasticUP}): tensão positiva em tração, $p$ positiva em compressão,
+$\bsig=\bsig'-\alpha\,p\,\Id$; $k$ é a mobilidade (condutividade hidráulica dividida por $\gamma_w$) e $\rho_w\bg$ o peso do fluido
+por unidade de volume.
+\begin{align}
+ \Div\bigl(\bsig'-\alpha\,p\,\Id\bigr)+\bb &= \mathbf 0, \label{eq:mom}\\
+ k^{-1}\,\bq+\nabla p-\rho_w\bg &= \mathbf 0 \quad(\bq=-k(\nabla p-\rho_w\bg)), \label{eq:darcy}\\
+ \alpha\,\partial_t(\Div\bu)+\tfrac1M\,\partial_t p+\Div\bq &= 0, \label{eq:mass}
+\end{align}
+com $\bsig'$ elastoplástico dependente da trajetória ($\dot{\bsig}'=\mathbb D_{ep}:\dot{\beps}$). Contorno
+($\partial\Omega=\Gamma_u\cup\Gamma_t=\Gamma_p\cup\Gamma_q$):
+\begin{equation}
+ \bu=\bu_D\ \text{em }\Gamma_u,\quad (\bsig'-\alpha p\Id)\bn=\bt_N\ \text{em }\Gamma_t,\quad
+ p=p_D\ \text{em }\Gamma_p,\quad \bq\cdot\bn=q_N\ \text{em }\Gamma_q.
+\end{equation}
+No talude: $\Gamma_p$ é a superfície do terreno ($p_D=\gamma_w(H-y)^+$) e $\Gamma_q$ a base e as laterais ($q_N=0$, impermeáveis).
+
+\section{Forma fraca}
+Espaços: $\mathcal V_0=\{\bv\in[H^1]^d:\bv=\mathbf 0\text{ em }\Gamma_u\}$, $\mathcal Q_0=\{\br\in H(\mathrm{div}):\br\cdot\bn=0\text{ em }\Gamma_q\}$,
+$\mathcal W=L^2$. Achar $\bu\in\bu_D+\mathcal V_0$, $\bq\in\bar\bq_N+\mathcal Q_0$ e $p\in\mathcal W$ tais que, para todo
+$(\bv,\br,w)$ e com Euler implícito em $[t_n,t_{n+1}]$, $\Delta t=t_{n+1}-t_n$:
+\begin{align}
+ &\int_\Omega\beps(\bv):\bsig'(\beps(\bu))\,d\Omega-\alpha\!\int_\Omega p\,\Div\bv\,d\Omega
+ =\int_\Omega\bv\cdot\bb\,d\Omega+\int_{\Gamma_t}\bv\cdot\bt_N\,d\Gamma, \label{eq:W1}\\
+ &\int_\Omega k^{-1}\bq\cdot\br\,d\Omega-\int_\Omega p\,\Div\br\,d\Omega
+ =\int_\Omega\rho_w\bg\cdot\br\,d\Omega-\int_{\Gamma_p}p_D\,\br\cdot\bn\,d\Gamma, \label{eq:W2}\\
+ &\alpha\!\int_\Omega w\,\Div(\bu-\bu_n)\,d\Omega+\tfrac1M\!\int_\Omega w\,(p-p_n)\,d\Omega
+ +\Delta t\!\int_\Omega w\,\Div\bq\,d\Omega=0. \label{eq:W3}
+\end{align}
+A equação \eqref{eq:W2} vem de multiplicar \eqref{eq:darcy} por $\br$ e integrar por partes o gradiente da pressão:
+$\int\nabla p\cdot\br=-\int p\,\Div\br+\int_{\Gamma_p}p_D\,\br\cdot\bn$ (pois $\br\cdot\bn=0$ em $\Gamma_q$). A \eqref{eq:W3} \emph{não}
+é integrada por partes. Com $\bq=-k(\nabla p-\rho_w\bg)$ exato, a \eqref{eq:W3} reduz-se ao resíduo do código u--p,
+$\Delta t\int k\nabla w\cdot(\nabla p-\rho_w\bg)$.
+
+\paragraph{Condições essenciais e naturais.} Elas trocam de natureza em relação ao u--p:
+\begin{center}\small
+\begin{tabular}{lll}
+\toprule
+condição & u--p (código atual) & u--q--p\\\midrule
+$\bu=\bu_D$ & essencial & essencial\\
+$(\bsig'-\alpha p\Id)\bn=\bt_N$ & natural & natural\\
+$p=p_D$ (dreno) & \textbf{essencial} (\cc{EDirichletP}) & \textbf{natural}: $-\int_{\Gamma_p}p_D\,\br\cdot\bn$ em \eqref{eq:W2}\\
+$\bq\cdot\bn=q_N$ & natural (só $q_N=0$, sem BC) & \textbf{essencial}: dofs de traço normal\\\bottomrule
+\end{tabular}
+\end{center}
+\textbf{Armadilha:} no misto, uma face sem condição explícita fica com $p=0$ (natural), isto é, \emph{drenada}; no u--p, sem condição
+significa impermeável. Toda face impermeável (base, laterais) precisa de elemento de contorno H(div) com $q\cdot n=0$.
+
+%=====================================================================================================
+\section{Forma matricial}
+Com $\bu_h=\mathbf N_u\mathbf U$, $\bq_h=\boldsymbol\Phi\mathbf Q$ (bases vetoriais H(div)), $p_h=\mathbf N_p\mathbf P$,
+$\beps(\bu_h)=\mathbf B_u\mathbf U$, $\mvec=(1,1,1,0,0,0)^T$ e $D=\Div\boldsymbol\Phi$:
+\begin{align}
+ \Qc&=\!\int\!\alpha\,\mathbf B_u^T\mvec\,\mathbf N_p\,d\Omega, &
+ \mathbf S&=\!\int\!\tfrac1M\,\mathbf N_p^T\mathbf N_p\,d\Omega, &
+ \Kt&=\!\int\!\mathbf B_u^T\,\mathbb D_{ep}\,\mathbf B_u\,d\Omega,\\
+ \mathbf A&=\!\int\!k^{-1}\boldsymbol\Phi^T\boldsymbol\Phi\,d\Omega, &
+ \mathbf B&=\!\int\!\mathbf N_p^T D\,d\Omega\ (n_p\times n_q), &
+ \mathbf g_q&=\!\int\!\boldsymbol\Phi^T\rho_w\bg\,d\Omega,\\
+ \mathbf h_p&=\!\int_{\Gamma_p}\!(\boldsymbol\Phi\cdot\bn)^Tp_D\,d\Gamma, &
+ \mathbf f_b&=\!\int\!\mathbf N_u^T\bb, & \mathbf f_t&=\!\int_{\Gamma_t}\!\mathbf N_u^T\bt_N .
+\end{align}
+Resíduos ($\mathbf X=(\mathbf U,\mathbf Q,\mathbf P)$, $\lambda$ = fator de carga das trações):
+\begin{align}
+ \mathbf R_u&=\mathbf F_{int}(\mathbf U)-\Qc\mathbf P-\mathbf f_b-\lambda\mathbf f_t, \qquad \mathbf F_{int}=\!\int\!\mathbf B_u^T\bsig'\,d\Omega,\\
+ \mathbf R_q&=\mathbf A\mathbf Q-\mathbf B^T\mathbf P-\mathbf g_q+\mathbf h_p,\\
+ \mathbf R_p&=\Qc^T(\mathbf U-\mathbf U_n)+\mathbf S(\mathbf P-\mathbf P_n)+\Delta t\,\mathbf B\mathbf Q .
+\end{align}
+Newton, $\mathbf K\,\Delta\mathbf X=-\mathbf R$ (no NeoPZ, \cc{ef}$=-\mathbf R$ e \cc{ek}$=\mathbf K$):
+\begin{equation}\label{eq:K}
+ \mathbf K=\begin{bmatrix}
+ \Kt & \mathbf 0 & -\Qc\\
+ \mathbf 0 & \mathbf A & -\mathbf B^T\\
+ \Qc^T & \Delta t\,\mathbf B & \mathbf S
+ \end{bmatrix}.
+\end{equation}
+Contribuição por ponto de integração (peso $w$): $\mathrm{ek}_{uu}\mathrel{+}=w\,\mathbf B_u^T\mathbb D_{ep}\mathbf B_u$,
+$\mathrm{ek}_{up}\mathrel{-}=w\,\alpha\mathbf B_u^T\mvec\mathbf N_p$, $\mathrm{ek}_{qq}\mathrel{+}=w\,k^{-1}\Phi_i\!\cdot\!\Phi_j$,
+$\mathrm{ek}_{qp}\mathrel{-}=w\,\mathrm{div}\Phi_i\,N_j$, $\mathrm{ek}_{pu}\mathrel{+}=w\,\alpha N_i\mvec^T\mathbf B_u$,
+$\mathrm{ek}_{pq}\mathrel{+}=w\,\Delta t\,N_i\,\mathrm{div}\Phi_j$, $\mathrm{ek}_{pp}\mathrel{+}=w\,N_iN_j/M$.
+Layout do elemento: $[u\,|\,q\,|\,p]$, na ordem do vetor de malhas.
+
+\paragraph{O que permanece igual ao u--p.} $\Kt$ (tangente consistente do Mohr--Coulomb), $\Qc$, $\mathbf S$, o termo
+$\Qc^T(\mathbf U-\mathbf U_n)$ com $\beps_n$ da memória, a atualização da memória após a convergência e o controle de carga e
+bissecção. A atualização plástica não vê pressão nem fluxo, e a memória só troca a origem de $p$ (de \cc{datavec[1]} para
+\cc{datavec[2]}). O que sai: $\nabla N_p\!\cdot\!\nabla p$, o bloco $\Delta t\,\mathbf H$ e $\mathbf f_g$.
+
+\paragraph{Passo não drenado ($\Delta t=0$).} A linha de massa perde $\mathbf B$; $\mathbf Q=\mathbf A^{-1}(\mathbf B^T\mathbf P+\mathbf g_q-\mathbf h_p)$ segue
+$\mathbf P$ e o par $(\mathbf U,\mathbf P)$ resolve o mesmo problema de Taylor--Hood não drenado do u--p.
+
+\paragraph{Relação com o u--p (complemento de Schur).} Eliminando $\mathbf Q$,
+$\mathbf R_p=\Qc^T(\mathbf U-\mathbf U_n)+\mathbf S(\mathbf P-\mathbf P_n)+\Delta t(\mathbf H_m\mathbf P-\mathbf f_m)$, com
+$\mathbf H_m=\mathbf B\mathbf A^{-1}\mathbf B^T$ e $\mathbf f_m=\mathbf B\mathbf A^{-1}(\mathbf h_p-\mathbf g_q)$: o sistema u--p com $\mathbf H\to\mathbf H_m$ (verificado
+numericamente, erro $10^{-15}$). $\mathbf H_m\neq\mathbf H$: $\mathbf H-\mathbf H_m\succeq0$, pois $\mathbf H_m$ é a energia da projeção $L^2$ de $-k\nabla p_h$ em $\mathcal Q_h$.
+$\mathbf A$ não é bloco-diagonal (as facetas são compartilhadas), logo a eliminação global não é prática; só as funções internas
+podem ser condensadas por elemento.
+
+\paragraph{Solver.} Com a ordem $(\mathbf U,\mathbf Q,\mathbf P)$, o pivô de $\mathbf P$ após eliminar $\mathbf U$ e $\mathbf Q$ é
+$\mathbf S+\Qc^T\Kt^{-1}\Qc+\Delta t\,\mathbf B\mathbf A^{-1}\mathbf B^T$ (positivo se $\Kt$ e $\mathbf A$ são SPD): a LU sem pivotamento do skyline não
+simétrico continua adequada, como no u--p, desde que $p$ fique por último e não haja renumeração (inferência, não executada). A
+matriz é não simétrica; multiplicar a linha $q$ por $\Delta t$ e a linha $p$ por $-1$ a simetriza, mas degenera em $\Delta t=0$.
+
+%=====================================================================================================
+\section{Escolha dos espaços e estabilidade}\label{sec:esp}
+Fatos verificados no NeoPZ (triângulo, família \cc{EHDivStandard}, ordem $k$ = \cc{SetDefaultOrder}): traço normal $P_k$,
+$\operatorname{div}\mathcal Q_h=P_k$ (posto numérico 3, 6, 10), contém $RT_k$ e tem $k^2+5k+3$ funções ($9,17,27$). \textbf{A ordem 0 não
+funciona na família Standard} (aborta em \cc{TPZShapeHDiv::ComputeVecandShape}); o $RT_0$ é a \cc{EHDivConstant} de ordem 0
+($\operatorname{div}=P_0$ para toda ordem; precisa de elementos de contorno orientados).
+
+\begin{center}\small
+\begin{tabular}{L{4.6cm}L{1.9cm}L{7.6cm}}
+\toprule
+($\bu$, $p$, $\bq$) & $\operatorname{div}\mathcal Q_h$ & comentário\\\midrule
+P2, P1 H$^1$, \cc{EHDivStandard} $k=1$ & $P_1^{disc}$ & \textbf{o que foi pedido}. Mesmo $p$ do código atual, 9 funções por triângulo; malha verificada, sistema completo não resolvido. $\mathcal W_h\subsetneq\operatorname{div}\mathcal Q_h$: sem conservação por elemento e, medido em 2D, fluxo $O(h)$.\\
+P2, P0 (DG), \cc{EHDivConstant} $k=0$ ($RT_0$) & $P_0$ & \textbf{recomendada para conservação}: par clássico, estável (P2--P0 também no bloco de Biot); $p$ só de ordem 1; $p$ é constante por elemento, então $\nabla p=0$ e a força de percolação vem de $\bq$.\\
+P2, P1 (DG), \cc{EHDivStandard} $k=1$ & $P_1^{disc}$ & Brezzi uniforme no bloco de Darcy, mas P2--P1$^{disc}$ não é Taylor--Hood: não afirmo a estabilidade do bloco de Biot.\\
+P2, P1 H$^1$, $RT_0$ & $P_0$ & \textbf{não usar}: P1 contínua não cabe em $P_0$.\\\bottomrule
+\end{tabular}
+\end{center}
+\textbf{Bloco de Darcy:} é preciso inf--sup e coercividade no núcleo discreto. A condição clássica é
+$\operatorname{div}\mathcal Q_h\subseteq\mathcal W_h$ (pressão descontínua de ordem $\ge k$). Com $p$ contínua vale a inf--sup (levanta-se $\br$ com $\Div\br=w$) e o
+sistema é bem posto, mas a coercividade no núcleo discreto não é uniforme na norma $H(\mathrm{div})$, o que concorda com a medição
+acima. \textbf{Bloco de Biot:} é o do u--p, Taylor--Hood P2--P1 contínua ou P2--P0.
+
+\paragraph{Vantagens do misto.} (i) $\bq\cdot\bn$ contínuo entre elementos; (ii) balanço global exato (testando \eqref{eq:W3} com $w=1$: $10^{-11}$ contra
+$5\cdot10^{-4}$ no u--p, no teste 1D); (iii) $\mathbf A$ integra $k^{-1}$ ponto a ponto, adequado a campos espacialmente variáveis de
+permeabilidade (Ceron et al.); (iv) a força de percolação do estudo de estabilidade sai direto do fluxo, porque
+$-\nabla p=k^{-1}\bq-\rho_w\bg$:
+\begin{equation}
+ \bb=\lambda\bigl(\rho_{sat}\bg-\nabla p\bigr)=\lambda\bigl[(\rho_{sat}-\rho_w)\bg+k^{-1}\bq\bigr]
+ =\lambda\bigl[\gamma'\,\mathbf e_g+k^{-1}\bq\bigr],
+\end{equation}
+peso submerso mais força de arraste. \textbf{Custos:} mais equações; $\mathbf A\sim k^{-1}$ exige adimensionalizar $q$; a norma do resíduo precisa ser por
+bloco (linhas de força, de fluxo e de volume têm unidades diferentes); $p_D$ passa a ser imposta fracamente (em $\Gamma_p$, $p_h\neq p_D$ pontualmente nos
+primeiros passos).
+
+%=====================================================================================================
+\section{Fluxo do código}
+\begin{figure}[!p]
+\centering
+\begin{tikzpicture}[
+  node distance=5mm and 6mm,
+  box/.style={draw, rounded corners=2pt, align=center, font=\scriptsize, inner sep=3pt, fill=blue!5, text width=3.7cm},
+  wide/.style={draw, rounded corners=2pt, align=center, font=\scriptsize, inner sep=3pt, fill=green!6, text width=8.6cm},
+  new/.style={draw=red!70!black, thick, rounded corners=2pt, align=center, font=\scriptsize, inner sep=3pt, fill=red!6, text width=3.7cm},
+  dec/.style={draw, diamond, aspect=2.4, align=center, font=\scriptsize, inner sep=1pt, fill=yellow!12},
+  arr/.style={-{Stealth[length=2mm]}, thick}]
+\node[wide] (geo) {\cc{TriGMesh(ref)} + \cc{AddWaterLoadElements}: geometria e ids de contorno};
+\node[box, below=of geo, xshift=-4.4cm] (mu) {malha atômica $u$\\H$^1$ P2, \cc{nstate}=2\\\cc{TPZNullMaterial}};
+\node[new, below=of geo] (mq) {malha atômica $q$ (\textbf{nova})\\H(div) \cc{EHDivStandard} $k=1$, \cc{nstate}=1\\\cc{SetHDivFamily}+\cc{SetAllCreateFunctionsHDiv}};
+\node[box, below=of geo, xshift=4.4cm] (mp) {malha atômica $p$\\H$^1$ P1, \cc{nstate}=1\\\cc{TPZNullMaterial}};
+\node[wide, below=of mq] (mf) {\cc{TPZMultiphysicsCompMesh::BuildMultiphysicsSpaceWithMemory}\\\cc{active={1,1,1}}, \cc{meshvec={u,q,p}}, memória no material 1, todos os \cc{bcids}\\connects numerados: $u$, depois $q$, depois $p$ (sem renumeração)};
+\node[new, below=of mf, text width=8.6cm] (mat) {\cc{TPZMatPoroElastoPlasticUQP} (\textbf{novo}) + BCs\\\cc{EDirichletU*}, \cc{ENeumannU*}, \cc{EDirichletP} (natural), \cc{EFluxQ} (essencial, base e laterais)};
+\node[new, below=of mat, text width=8.6cm] (an) {driver irmão do \cc{TPZPoroElastoPlasticUPAnalysis} (\textbf{novo})\\\cc{IdentifyEquations}: papéis $u/q/p$, restrições de $q$, norma por bloco};
+\node[box, below=of an, text width=6cm] (run) {\cc{Run} $\rightarrow$ \cc{AdvanceStep} (bissecção) $\rightarrow$ \cc{SolveStep}: $\Delta t=t_{n+1}-t_n$, chute só em $u$};
+\node[box, below=of run] (asm) {\cc{Assemble}: por elemento \cc{CalcStiff}\\\cc{datavec}: $[0]=u$ (com memória), $[1]=q$, $[2]=p$};
+\node[box, right=of asm, text width=4.6cm] (pl) {por ponto de integração:\\memória $\bsig'_n,\beps_n,p_n$\\\cc{ApplyStrainComputeSigma} (MC)\\$\mathbf R_u,\mathbf R_q,\mathbf R_p$ e $\mathbf K$ \eqref{eq:K}};
+\node[box, below=of asm] (sol) {\cc{Solve}: skyline não simétrico, \cc{ELU}\\ordem $(u,q,p)$};
+\node[dec, below=of sol] (cv) {convergiu?};
+\node[box, below=of cv] (acc) {\cc{AcceptSolution}: grava $\bsig'$, $\beps$, $p$ na memória};
+\node[box, left=of acc, text width=3.4cm] (out) {saídas: $p$, $\bq$, VTK\\$\bb=\lambda[\gamma'\mathbf e_g+k^{-1}\bq]$\\\cc{SlopeAnalysis} (FS)};
+\draw[arr] (geo) -- (mu); \draw[arr] (geo) -- (mq); \draw[arr] (geo) -- (mp);
+\draw[arr] (mu) |- (mf.west); \draw[arr] (mq) -- (mf); \draw[arr] (mp) |- (mf.east);
+\draw[arr] (mf) -- (mat); \draw[arr] (mat) -- (an); \draw[arr] (an) -- (run); \draw[arr] (run) -- (asm);
+\draw[arr] (asm) -- (pl); \draw[arr] (asm) -- (sol); \draw[arr] (sol) -- (cv);
+\draw[arr] (cv) -- node[right, font=\scriptsize]{sim} (acc);
+\draw[arr] (cv.east) -- ++(1.0,0) |- node[pos=0.25, right, font=\scriptsize, align=left]{não: nova\\iteração} ($(asm.east)+(0.5,-0.15)$);
+\draw[arr] (acc) -- (out);
+\draw[arr] (acc.east) -- ++(4.4,0) |- node[pos=0.25, right, font=\scriptsize]{próximo estado} (run.east);
+\end{tikzpicture}
+\caption{Fluxo da análise u--q--p. Em vermelho, o que precisa ser escrito; o restante já existe.}
+\end{figure}
+
+\paragraph{Passos de implementação, em ordem.}
+\begin{enumerate}
+\item Refatorar (sem mudar resultados) a atualização plástica de \cc{ContributeInternal} num método protegido, e conferir contra as saídas
+  de \cc{TerzaghiConsolidation} e \cc{SlopeDrawdown}.
+\item Enum de BC: \cc{EFluxQ}; no u--q--p \cc{EDirichletP} deixa de gerar equações restritas.
+\item Material novo: u em \cc{datavec[0]} (a memória só é entregue ali), q em \cc{[1]}, p em \cc{[2]}; blocos $\mathbf A$ e $\mathbf B$ copiados do
+  \cc{TPZMixedDarcyFlow} (atenção ao índice de \cc{divphi}); \cc{ContributeBC}: $p_D$ natural em $\mathbf f_q$, $q\cdot n$ por penalidade ou eliminação.
+\item Driver: \cc{IdentifyEquations} com mapa de papéis das malhas. Armadilha: o laço \cc{for(space<2)} de \cc{fNodeConnects}
+  não exclui uma malha H(div), porque um triângulo H(div) tem $3+1=4$ connects ($\ge3$); as facetas seriam registradas como vértices.
+  \cc{SolveStep}: só $u$ recebe o preditor; $q$ e $p$ partem do convergido.
+\item Ferramentas: malha de fluxo, \cc{BuildMultiphysics} com três malhas, \cc{SetInitialPressure} com o índice 2.
+\item Testes: Taylor do \cc{ek} (blocos $\mathbf A,\mathbf B,\Qc,\mathbf S,\Kt$); patch test ($q$ constante, $p$ linear) com erro $\sim10^{-12}$; hidrostático
+  ($\bq=\mathbf 0$, testa o sinal de $\mathbf g_q$); Terzaghi 1D contra o u--p existente e a solução analítica; por fim o rebaixamento.
+\end{enumerate}
+
+%=====================================================================================================
+\section{Verificação numérica das matrizes e dos sinais (1D)}
+Coluna unitária ($E=1$, $k=1$, $\sigma_0=1$), Euler implícito com primeiro passo não drenado ($\Delta t=0$), como no driver. O script
+\cc{scripts/uqp/terzaghi_uqp.py} (numpy) monta o sistema $(\mathbf U,\mathbf Q,\mathbf P)$ da \eqref{eq:K} com $u$ P2, $q$ P2, $p$ P1 e compara com o u--p
+($n=40$, $\Delta t=2\cdot10^{-4}$, $\alpha=1$, $1/M=0$):
+\begin{center}\small
+\begin{tabular}{llcccc}
+\toprule
+esquema & $T$ & $\max|\Delta p|/p_0$ & $u_{topo}$ rel. & fluxo rel. & defeito de balanço\\\midrule
+u--p & 0,1 & $2{,}5\cdot10^{-4}$ & $1{,}2\cdot10^{-4}$ & $4{,}9\cdot10^{-4}$ & $5{,}2\cdot10^{-4}$\\
+u--q--p (q P2, p P1) & 0,1 & $3{,}9\cdot10^{-4}$ & $2{,}5\cdot10^{-4}$ & $1{,}2\cdot10^{-3}$ & $7\cdot10^{-13}$\\
+u--p & 1 & $4{,}5\cdot10^{-5}$ & $2{,}2\cdot10^{-5}$ & $3{,}6\cdot10^{-4}$ & $2{,}6\cdot10^{-4}$\\
+u--q--p (q P2, p P1) & 1 & $8{,}0\cdot10^{-5}$ & $4{,}5\cdot10^{-5}$ & $8{,}6\cdot10^{-4}$ & $4\cdot10^{-11}$\\\bottomrule
+\end{tabular}
+\end{center}
+\begin{itemize}
+\item O erro de pressão do u--q--p é 1,5 a 2 vezes o do u--p na mesma malha; o balanço de massa é exato até o erro de máquina.
+\item Sinais: com gravidade ($\gamma_w=2$) e tempo longo, $p\to\gamma_w(1-x)$ e $q\to0$ (erro $2\cdot10^{-15}$); com $p_D=0{,}5$ no topo e sem gravidade, $|p-0{,}5|<10^{-15}$
+  (confirma o sinal do termo natural $-\int p_D\,\br\cdot\bn$); a redução de Schur reproduz o passo completo a $1{,}3\cdot10^{-15}$.
+\item Newton elastoplástico 1D com $\Kt=\int\mathbf B^T\mathbb D_{ep}\mathbf B$: resíduos $1{,}0;\,0{,}22;\,7{,}4\cdot10^{-2};\,2{,}0\cdot10^{-2};\,2{,}4\cdot10^{-3};\,5{,}3\cdot10^{-5};\,2{,}9\cdot10^{-8};\,8{,}8\cdot10^{-15}$
+  (quadrático no fim); com a tangente elástica, resíduo ainda $\sim3\cdot10^{-3}$ após 30 iterações.
+\item O par ``instável'' q P1/p P1 ($\operatorname{div}=P_0$) não aparece instável em 1D (só 1,7 a 2 vezes menos preciso em $T=0{,}1$): este teste não prova instabilidade; o
+  argumento da Seção~\ref{sec:esp} é teórico e a medição 2D acima é a evidência.
+\item Passo muito curto ($\Delta t<h^2/(6c_v)$): oscilação de Vermeer--Verruijt no u--p (sobrepasso de 17\,\%); no misto, o sobrepasso é menor, mas $p$ no nó drenado fica longe de zero,
+  porque $p_D$ é fraca.
+\end{itemize}
+
+\section*{Riscos e itens não verificados}
+Nenhuma montagem nem solução u--q--p 2D foi executada (apenas a malha, a montagem das matrizes dos materiais existentes e o teste 1D em Python). Não verificados: a
+orientação e o sinal da função do contorno H(div) no termo $-p_D\,\br\cdot\bn$ (apoiado no uso do \cc{TPZMixedDarcyFlow}); elementos de contorno
+\emph{gêmeos} compartilhando o connect da faceta; a normalização do dof de ordem 0 como fluxo total pela faceta; o desempenho da LU sem pivotamento com blocos de escalas muito
+diferentes (limiar absoluto $10^{-25}$; planos B: \cc{ELUPivot} com matriz cheia, ou Pardiso com MKL); a condensação das funções internas, que conflita com
+\cc{ForEachIntegrationPoint}/\cc{InitializeMemory}; quadriláteros e 3D.
+\end{document}
