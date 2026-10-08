@@ -27,8 +27,11 @@ perfeitamente plástico, por **aumento de carga (gravidade)** e por **redução 
 4. `MarkPlasticZone()` + `Refine()`: marca os elementos com √J₂(εᵖ) ≥ 10 % do máximo no colapso
    do GI e do SRM (mecanismos diferentes) e faz refinamento h com balanceamento 2:1 e renumeração
    de banda (lógica de `DivideElementsAbove`/`Hrefine` do projeto original).
-5. `PostProcess()`: VTK com deslocamento total, J₂(εᵖ) e região de retorno (`FailureType`:
-   0 elástico, 1 plano principal, 2/3 arestas, −1 ápice).
+5. `PostPlasticity()` / `CreatePostProcessingMesh()` / `PostProcessVariables()` (as do projeto
+   original): VTK com `POrder`, `Atrito` (rad) e `Coesion` efetivos no ponto (com a redução do SRM),
+   `StrainPlasticJ2`, `FailureType` (0 elástico, 1 plano principal, 2/3 arestas, −1 ápice) e o
+   deslocamento total. Os campos são projetados em L² pelo `TPZPostProcAnalysis` (pequenas
+   oscilações em `StrainPlasticJ2`/`FailureType` são da projeção).
 
 ## Compilar e executar
 
@@ -42,8 +45,8 @@ ninja SlopeMohrCoulomb
 ./SlopeMohrCoulomb nu=0.3     # outro coeficiente de Poisson
 ```
 
-Saídas: `slope_*_GI_refK.scal_vec.0.vtk`, `slope_*_SRM_refK.scal_vec.0.vtk` (estado no colapso) e
-`slope_*_mesh.vtk`.
+Saídas: `slope_*_GI_refK.scal_vec.0.vtk`, `slope_*_SRM_refK.scal_vec.0.vtk` (campos no último
+estado convergido) e `slope_*_GI_refK.vtk`, `slope_*_SRM_refK.vtk` (malha geométrica).
 
 ## Resultados
 
@@ -114,6 +117,7 @@ componentes tensoriais. O commit `e16d8bc` introduziu essa convenção no materi
 | `TPZMatElastoPlastic_impl.h` | Elasticidade não linear gravava `m_ER` na memória a cada avaliação (fora de `fUpdateMem`) | escrita fora do commit (sem efeito observável hoje) | ER local; gravado só no commit |
 | `TPZMatElastoPlastic_impl.h` | Autovalores e J₂ de deformação calculados com γ no slot tensorial | J₂(εᵖ) com parcela de cisalhamento ×4 | conversão γ→ε antes dos invariantes |
 | `TPZMatElastoPlastic_impl.h/.h` | Cópia sem `m_force0`/`fExactSolution`; ponteiro não inicializado; `EEXACT` lia `sol[1]`; `NSolutionVariables` 6 para 3 valores | UB, pós-processamento errado | corrigidos |
+| `TPZMatElastoPlastic_impl.h/.h`, `TPZYCMohrCoulombPV2.h` | `POrder`, `Coesion`, `Atrito` pedidos pelo pós-processamento original não existiam | variável desconhecida | `EPOrder`, `ECohesion`, `EFriction` (c e φ do critério local, já reduzidos) |
 | `TPZMatElastoPlastic2D_impl.h` | `auto bc_with_memory = ...` (cópia profunda de toda a memória do contorno a cada ponto de integração); BC tipo 4 escrevia em `Val2` compartilhado | custo O(n²) por montagem; corrida entre threads | referência; tração local |
 | `TPZMatWithMem.h` | `operator=` sem `return` e chamada inválida em `shared_ptr` | UB / não compila se usado | corrigido |
 | `pzelastoplasticanalysis.cpp` | Buscas lineares dicotômica (padrão) e áurea clonavam **a malha inteira com a memória** a cada iteração e vazavam; a dicotômica nunca testava o passo completo | vazamento de memória; convergência linear | avaliação in loco; na dicotômica o passo completo é aceito se reduzir ‖R‖ |
@@ -155,9 +159,10 @@ Box 8.5 e projeção de ponto mais próximo exata por conjunto ativo; 24 000 est
 * `FS`/`FSOLD` não inicializados em `Solve`/`SolveDeterministic` (`FSOLD` vira `FS0` de `ShearRed*`;
   se 0, `FS = 1/((1/FSmin + 1/FSmax)/2)` divide por zero); arc-length aceitava passos não
   convergidos e o teste |Δλ| < tol parava antes do pico.
-* Construtor de cópia raso + destrutor que apaga as malhas (double free); `PostPlasticity`
-  sobrescrevia o VTK de resultados com a geometria; variáveis de pós-processamento inexistentes
-  (`Atrito`, `Coesion`, `POrder`); deslocamentos sempre nulos após `AcceptSolution`.
+* Construtor de cópia raso + destrutor que apaga as malhas (double free); as variáveis de
+  pós-processamento `Atrito`, `Coesion` e `POrder` não existiam no material (agora implementadas);
+  deslocamentos sempre nulos após `AcceptSolution` (agora o pós-processamento usa a solução
+  acumulada). `PostPlasticity`/`CreatePostProcessingMesh`/`PostProcessVariables` foram mantidas.
 * Skyline simétrica + LDLᵀ com a tangente não simétrica do caminho PV (descartava o triângulo
   inferior); sem renumeração de banda, a skyline explodia após o refinamento.
 

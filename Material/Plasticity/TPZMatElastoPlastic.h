@@ -328,7 +328,9 @@ inline void BuildBN(const TPZFMatrix<STATE>& dphiXYZ, const TPZFMatrix<STATE>& p
         EDamageVar=30,
         EBodyForce=31,
         EOrder=32,
-        EDisplacementDoFx = 33
+        EDisplacementDoFx = 33,
+        ECohesion = 34, ///< cohesion used at the point (point properties and strength reduction)
+        EFriction = 35  ///< friction angle (rad) used at the point (point properties and strength reduction)
     };
     /// Ponteiro para solução exata (para pós-processamento)
     void (*fExactSolution)(const TPZVec<REAL> &x, TPZVec<STATE> &u,

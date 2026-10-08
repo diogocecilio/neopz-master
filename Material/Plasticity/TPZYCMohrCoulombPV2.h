@@ -55,6 +55,9 @@ public:
     }
 
     void SetElasticResponse(const TPZElasticResponse &ER) { fER = ER; }
+
+    STATE Cohesion() const { return fc; }
+    STATE Phi() const { return fPhi; }
     TPZYCMohrCoulombPV2 & operator=(const TPZYCMohrCoulombPV2 &cp);
 
     virtual int ClassId() const override;

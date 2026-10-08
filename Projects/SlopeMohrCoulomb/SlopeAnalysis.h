@@ -16,10 +16,12 @@
 #include "pzstepsolver.h"
 #include "pzintel.h"
 #include "pzgeoelside.h"
+#include "TPZVTKGeoMesh.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <fstream>
 #include <functional>
 #include <limits>
 #include <iostream>
@@ -92,21 +94,42 @@ public:
         return fCMesh->NEquations();
     }
 
-    /// VTK with total displacement and plastic/failure indicators of the last accepted state
-    void PostProcess(const std::string &file) {
-        TPZPostProcAnalysis pp;
-        pp.SetCompMesh(fCMesh);
-        TPZManVector<int, 1> matids(1, 1);
-        TPZManVector<std::string, 3> scal = {"StrainPlasticJ2", "FailureType"}, vec = {"Displacement"};
-        TPZManVector<std::string, 3> vars = {"StrainPlasticJ2", "FailureType", "Displacement"};
-        TPZFStructMatrix<STATE> str(pp.Mesh());
-        pp.SetStructuralMatrix(str);
-        pp.SetPostProcessVariables(matids, vars);
-        fCMesh->LoadSolution(fAn->CumulativeSolution()); // "Displacement" reads the mesh solution
-        pp.TransferSolution();
-        fAn->LoadSolution();                             // back to the zero increment
-        pp.DefineGraphMesh(2, scal, vec, file);
-        pp.PostProcess(0);
+    /// VTK of the last accepted state: fields in <vtkd>.scal_vec.0.vtk, geometric mesh in vtkd
+    void PostPlasticity(const std::string &vtkd) {
+        TPZPostProcAnalysis postproc;
+        CreatePostProcessingMesh(postproc);
+        TPZStack<std::string> scalNames, vecNames;
+        PostProcessVariables(scalNames, vecNames);
+        postproc.DefineGraphMesh(2, scalNames, vecNames, vtkd);
+        postproc.PostProcess(0);
+        std::ofstream files(vtkd);
+        TPZVTKGeoMesh::PrintGMeshVTK(fCMesh->Reference(), files, true);
+    }
+
+    void CreatePostProcessingMesh(TPZPostProcAnalysis &postproc) {
+        postproc.SetCompMesh(fCMesh);
+        TPZStack<std::string> postProcVars, scalNames, vecNames;
+        PostProcessVariables(scalNames, vecNames);
+        for (auto &name : scalNames) postProcVars.Push(name);
+        for (auto &name : vecNames) postProcVars.Push(name);
+        TPZManVector<int, 1> postProcMatIds(1, 1);
+        TPZFStructMatrix<STATE> structmatrix(postproc.Mesh());
+        postproc.SetStructuralMatrix(structmatrix);
+        postproc.SetPostProcessVariables(postProcMatIds, postProcVars);
+        // "Displacement" reads the mesh solution, which is the (zero) increment after AcceptSolution: load the total
+        fCMesh->LoadSolution(fAn->CumulativeSolution());
+        postproc.TransferSolution();
+        fAn->LoadSolution();
+    }
+
+    /// Coesion and Atrito (rad) are the values used at the point: point properties and strength reduction
+    static void PostProcessVariables(TPZStack<std::string> &scalNames, TPZStack<std::string> &vecNames) {
+        scalNames.Push("POrder");
+        scalNames.Push("Atrito");
+        scalNames.Push("Coesion");
+        scalNames.Push("StrainPlasticJ2");
+        scalNames.Push("FailureType"); // 0 elastic, 1 main plane, 2/3 edges, -1 apex
+        vecNames.Push("Displacement");
     }
 
     REAL fTolNewton = 1.e-8; ///< ||R|| <= tol * ||F_ext||

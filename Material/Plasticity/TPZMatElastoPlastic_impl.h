@@ -3,6 +3,16 @@
 #include "TPZMaterialDataT.h"
 #include "pzlog.h"
 
+#include <type_traits>
+
+namespace {
+/// T::LocalCriterion() is a Mohr-Coulomb criterion with Cohesion() and Phi() (TPZPlasticStepPV, TPZPlasticStepVoigt)
+template <class T, class = void> struct HasMCStrength : std::false_type {};
+template <class T>
+struct HasMCStrength<T, std::void_t<decltype(std::declval<const T &>().LocalCriterion().Cohesion()),
+                                    decltype(std::declval<const T &>().LocalCriterion().Phi())>> : std::true_type {};
+}
+
 #ifdef PZ_LOG
 static TPZLogger elastoplasticLogger("pz.material.pzElastoPlastic");
 static TPZLogger updatelogger("pz.material.pzElastoPlastic.update");
@@ -180,6 +190,9 @@ int TPZMatElastoPlastic<T,TMEM>::VariableIndex(const std::string &name) const
     if(!strcmp("Exact",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EEXACT;
     if(!strcmp("EBodyForce",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EBodyForce;
     if(!strcmp("EOrder",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EOrder;
+    if(!strcmp("POrder",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EOrder;
+    if(!strcmp("Coesion",name.c_str()))        return TPZMatElastoPlastic<T,TMEM>::ECohesion;
+    if(!strcmp("Atrito",name.c_str()))         return TPZMatElastoPlastic<T,TMEM>::EFriction;
     PZError << "TPZMatElastoPlastic<T,TMEM>:: VariableIndex Error\n";
     return TPZMatElastoPlastic<T,TMEM>::ENone;
 }
@@ -217,6 +230,8 @@ int TPZMatElastoPlastic<T,TMEM>::NSolutionVariables(int var) const
     if(var == TPZMatElastoPlastic<T,TMEM>::EDamageVar) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EBodyForce) return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::EOrder) return 1;
+    if(var == TPZMatElastoPlastic<T,TMEM>::ECohesion) return 1;
+    if(var == TPZMatElastoPlastic<T,TMEM>::EFriction) return 1;
     if(var == 100) return 1;
     return TBase::NSolutionVariables(var);
 }
@@ -495,6 +510,17 @@ void TPZMatElastoPlastic<T, TMEM>::Solution(const TPZMaterialDataT<STATE> &data,
         {
             Solout.Resize(1);
             Solout[0] = m_force[1];
+        }
+        break;
+        case TPZMatElastoPlastic<T, TMEM>::ECohesion:
+        case TPZMatElastoPlastic<T, TMEM>::EFriction:
+        {
+            Solout.Resize(1);
+            Solout[0] = 0.;
+            if constexpr (HasMCStrength<T>::value) {
+                auto yc = plasticloc.LocalCriterion();
+                Solout[0] = (var == TPZMatElastoPlastic<T, TMEM>::ECohesion) ? yc.Cohesion() : yc.Phi();
+            }
         }
         break;
         case TPZMatElastoPlastic<T, TMEM>::EOrder:

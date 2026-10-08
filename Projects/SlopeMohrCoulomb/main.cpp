@@ -14,7 +14,6 @@
 #include "Plasticity/TPZYCMohrCoulombPV.h"
 #include "Plasticity/TPZYCMohrCoulombPV2.h"
 #include "TPZGeoLinear.h"
-#include "TPZVTKGeoMesh.h"
 #include "pzgeotriangle.h"
 #include "tpzgeoelrefpattern.h"
 
@@ -190,17 +189,15 @@ void Run(const TPlastic &model, const Soil &s, int nref, const std::string &tag)
     for (int k = 0;; k++) {
         const int64_t neq = cmesh->NEquations();
         const REAL fsGI = slope.GravityIncrease();
-        slope.PostProcess(tag + "_GI_ref" + std::to_string(k) + ".vtk");
+        slope.PostPlasticity(tag + "_GI_ref" + std::to_string(k) + ".vtk");
         slope.MarkPlasticZone(0.1); // failure mechanism at collapse
         const REAL fsSRM = slope.StrengthReduction();
-        slope.PostProcess(tag + "_SRM_ref" + std::to_string(k) + ".vtk");
+        slope.PostPlasticity(tag + "_SRM_ref" + std::to_string(k) + ".vtk");
         slope.MarkPlasticZone(0.1);
         table.push_back({REAL(k), REAL(neq), fsGI, fsSRM});
         if (k == nref) break;
         slope.Refine();
     }
-    std::ofstream vtk(tag + "_mesh.vtk");
-    TPZVTKGeoMesh::PrintCMeshVTK(cmesh, vtk, true);
     std::cout << "\n" << tag << ": refinement  equations  FS(gravity increase)  FS(strength reduction)\n";
     for (auto &r : table) std::cout << "  " << r[0] << "  " << r[1] << "  " << r[2] << "  " << r[3] << "\n";
     delete cmesh;
