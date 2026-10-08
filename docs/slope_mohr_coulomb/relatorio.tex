@@ -24,6 +24,7 @@
 \newcommand{\cc}[1]{\texttt{\detokenize{#1}}} % code names in captions and titles (moving arguments)
 \makeatletter\g@addto@macro\UrlBreaks{\do\_\do\<\do\>\do\:\do\=\do\a\do\b\do\c\do\d\do\e\do\f\do\g\do\h\do\i\do\j\do\k\do\l\do\m\do\n\do\o\do\p\do\q\do\r\do\s\do\t\do\u\do\v\do\w\do\x\do\y\do\z}\makeatother
 \Urlmuskip=0mu plus 1mu
+\renewcommand{\lstlistingname}{Listagem}
 \newcommand{\sig}{\bm{\sigma}}
 \newcommand{\eps}{\bm{\varepsilon}}
 \newcommand{\D}{\mathbb{D}}
@@ -48,8 +49,9 @@ por redução de resistência (SRM): \code{SlopeMohrCoulomb} (talude seco) e \co
 saturado e rebaixamento rápido do reservatório, com análise acoplada u--p de Biot e forças de
 percolação, no cenário de Ceron et al., 2025). Os resultados foram verificados por: teste de Taylor da
 tangente; convergência quadrática de Newton; convergência do FS com o refinamento; equilíbrio-limite
-de Bishop com o mesmo campo de poropressão; e uma solução independente da percolação, que coincide com
-a do NeoPZ até a precisão de impressão. Uma revisão adversarial do código encontrou e corrigiu uma
+de Bishop com o mesmo campo de poropressão; e uma solução independente da percolação, que difere da
+do NeoPZ em no máximo 0,8\,\% e coincide até a precisão de impressão depois de descontado o termo de
+armazenamento do último passo. Uma revisão adversarial do código encontrou e corrigiu uma
 inconsistência de integração das forças de percolação e o descarte silencioso da tensão inicial no
 material u--p.
 \end{abstract}
@@ -107,7 +109,7 @@ compressão e $\sig_{\text{total}}=\sig'-\alpha p\,\mathbf I$.
 \begin{equation}
 f(\sig) = (\sigma_1-\sigma_3) + (\sigma_1+\sigma_3)\sin\phi - 2c\cos\phi \le 0 .
 \end{equation}
-O modelo do artigo (\code{TPZPlasticStepVoigt<TPZYCMohrCoulombPV2>}) projeta o preditor elástico em
+O modelo do artigo (RHW, \code{TPZPlasticStepVoigt<TPZYCMohrCoulombPV2>}) projeta o preditor elástico em
 forma fechada no espaço de Haigh--Westergaard rotacionado, com quatro regiões (plano principal,
 duas arestas, ápice), e devolve a tangente consistente espectral
 \begin{equation}
@@ -115,19 +117,20 @@ duas arestas, ápice), e devolve a tangente consistente espectral
  + \sum_{i\ne j}\frac{\sigma_i-\sigma_j}{\varepsilon^{tr}_i-\varepsilon^{tr}_j}\,\mathbb E_{ij},
 \end{equation}
 termo coaxial mais correção de rotação dos autovetores (Eq.~28--37 e Listing~1 do artigo). O modelo
-antigo \code{TPZPlasticStepPV<TPZYCMohrCoulombPV>} (Souza Neto, Box 8.5, iterativo) foi corrigido e
+antigo (PV, \code{TPZPlasticStepPV<TPZYCMohrCoulombPV>}; Souza Neto, Box 8.5, iterativo) foi corrigido e
 mantido para verificação cruzada.
 
 \paragraph{Redução de resistência e aumento de gravidade.} No SRM, $c_F=c/F$, $\phi_F=\arctan(\tan\phi/F)$
-e $\psi=\phi$ (associativo). No aumento de gravidade todas as forças de volume são multiplicadas por
+e $\psi=\phi$ (associativo). No aumento de gravidade (GI) todas as forças de volume são multiplicadas por
 $\lambda$; para Mohr--Coulomb isso equivale a dividir só $c$ por $\lambda$, de modo que
 $\text{FS}_{\text{grav}}\ge\text{FS}_{\text{SRM}}$ quando $\phi>0$.
 
 %=====================================================================================================
 \section{Erros corrigidos na biblioteca}\label{sec:bugs}
 
-A Tabela~\ref{tab:bugs} lista as correções (commit \code{bb77c0a}, e as duas linhas finais dos
-commits \code{cb6fd46} e \code{be1d4ef}). Antes do commit, quatro revisões adversariais encontraram
+A Tabela~\ref{tab:bugs} lista as correções (commit \code{bb77c0a}; as três linhas finais são dos commits
+\code{cb6fd46}, \code{be1d4ef} e da revisão \code{7d96dbf}, que acrescentou a conversão da tensão inicial e
+a \code{TPZRestoreClass}). Antes do commit, quatro revisões adversariais encontraram
 regressões que as primeiras versões das correções introduziam, todas evitadas:
 vetor \code{fmatprop} nulo de placeholder tratado como propriedade do ponto (zeraria $c$); caminho
 antigo de \code{ApplyStrainComputeDep} necessário ao Cam-Clay/Drucker--Prager (restaurado; só o
@@ -224,7 +227,7 @@ $\gamma=\SI{20}{kN/m^3}$; triângulos P2; base fixa e laterais em rolete (Figura
 \item \code{Newton()}: Newton--Raphson com a tangente consistente, retrocesso em $\|R\|$ guardando o
   melhor iterado, saída por divergência; $\|R\|\le10^{-8}\|F_{ext}\|$.
 \item \code{Continuation()}: a partir de um estado de equilíbrio aumenta o parâmetro; se Newton converge
-  aceita o estado (memória plástica) e aumenta o passo ($\times1{,}5$); se falha descarta a tentativa e
+  aceita o estado (memória plástica) e, se convergiu em até 8 iterações, aumenta o passo ($\times1{,}5$); se falha descarta a tentativa e
   divide o passo por 2; para quando o passo $<0{,}2\%$ do parâmetro. O FS é o último valor convergido.
 \item \code{GravityIncrease()}: parâmetro $\lambda$ multiplicando a força de volume.
   \code{StrengthReduction()}: gravidade total aplicada por continuação com $F_0=1$ (dividido por 2 até
@@ -251,8 +254,10 @@ renumeração de banda após o refinamento.
 incluindo autovalores repetidos, o resto
 $E(\alpha)=\|\sig(\eps+\alpha\Delta\eps)-\sig(\eps)-\alpha\D\Delta\eps\|$ deve cair com ordem 2
 (Eq.~63--65 do artigo). A Figura~\ref{fig:taylor} e a Tabela~\ref{tab:taylor} confirmam ordem 2 no plano
-principal e nas duas arestas para os dois modelos, e resto nulo (exato) no regime elástico e no ápice.
-Antes das correções o modelo antigo tinha ordem 1 em todos os regimes, inclusive no elástico. As
+principal e nos estados de aresta ($\varepsilon_2=\varepsilon_3$, $\varepsilon_1=\varepsilon_2$) para os dois
+modelos, e resto nulo (exato) no regime elástico e no ápice (exceto o ponto $\alpha=10^{-7}$ do ápice no RHW,
+$3\cdot10^{-7}$, também da decomposição espectral). Antes das correções o modelo antigo tinha ordem 1 no
+regime elástico, no plano principal e nas arestas (só o ápice, com $\D=0$, já era exato). As
 tangentes são simétricas ($|\D-\D^T|/|\D|<2\cdot10^{-14}$), o que legitima a fatoração $LDL^T$.
 
 Para $\alpha\le10^{-5}$ o modelo do artigo nas arestas ($m=2,3$) para em
@@ -269,10 +274,10 @@ o patamar.
 \toprule
 caso ($m$ no modelo do artigo) & RHW, $\alpha\in[10^{-4},10^{-2}]$ & RHW, $[10^{-5},10^{-2}]$ & PV, $[10^{-5},10^{-2}]$\\
 \midrule
-geral ($m=1$) & 2,000 & 2,000 & 2,000\\
+geral 1 ($m=1$) & 2,000 & 2,000 & 2,000\\
 $\varepsilon_2=\varepsilon_3$ ($m=2$) & 2,000 & 1,806 & 2,000\\
 $\varepsilon_1=\varepsilon_2$ ($m=3$) & 2,000 & 1,614 & 2,000\\
-geral ($m=1$) & 1,999 & 1,999 & 1,999\\
+geral 2 ($m=1$) & 1,998 & 1,999 & 1,999\\
 ápice ($m=-1$), elástico ($m=0$) & \multicolumn{3}{c}{resto no nível de arredondamento ($\le4\cdot10^{-13}$)}\\
 \bottomrule
 \end{tabular}
@@ -285,8 +290,9 @@ geral ($m=1$) & 1,999 & 1,999 & 1,999\\
 modelo com autovalores por Jacobi (o patamar das arestas é da decomposição espectral).}\label{fig:taylor}
 \end{figure}
 
-\paragraph{Newton.} Com a tangente consistente a convergência global é quadrática
-(Figura~\ref{fig:newton}), p.ex.\ $\|R\|/\|F\|$: $4\cdot10^{-5}\to4\cdot10^{-8}\to10^{-13}$.
+\paragraph{Newton.} Com a tangente consistente a convergência é quadrática na fase final
+(Figura~\ref{fig:newton}), p.ex.\ $\|R\|/\|F\|$: $4\cdot10^{-5}\to4\cdot10^{-8}\to10^{-13}$; perto do colapso
+há um patamar de várias iterações com retrocesso antes dessa fase.
 
 \begin{figure}[t]
 \centering\includegraphics[width=0.55\textwidth]{fig_newton.pdf}
@@ -327,8 +333,8 @@ ciclo & equações & grav.\ (artigo) & SRM (artigo) & grav.\ (PV) & SRM (PV)\\
 
 \begin{figure}[t]
 \centering\includegraphics[width=0.98\textwidth]{fig_mechanism_dry.pdf}
-\caption{Deformação plástica ($\sqrt{J_2(\eps^p)}$ normalizada) no colapso, malha do último ciclo:
-aumento de gravidade (mecanismo raso) e SRM, com o círculo crítico de Bishop (tracejado).}\label{fig:mechdry}
+\caption{Deformação plástica ($\sqrt{J_2(\eps^p)}$ normalizada) no colapso, malha do ciclo 4 (3408
+equações): aumento de gravidade (mecanismo raso) e SRM, este com o círculo crítico de Bishop (tracejado).}\label{fig:mechdry}
 \end{figure}
 
 %=====================================================================================================
@@ -355,8 +361,9 @@ K_T&=\int B^T\D B, \quad Q=\int\alpha B^T\mathbf m N_p,
 $S=\int M^{-1}N_p^TN_p$, $H=\int k\nabla N_p^T\nabla N_p$, $f_g=\int k\nabla N_p^T\rho_w\mathbf g$,
 $f_b=\int N_u^T\mathbf b$. O Mohr--Coulomb do artigo foi ligado ao material com uma instanciação explícita
 e \code{LastProjectionFailed()} (a projeção fechada nunca falha). Como \code{TPZPlasticStepVoigt} é
-formulado em deformação total, o estado inicial vem de um passo de gravidade (o $\sig'$ inicial da
-memória é ignorado). Espaços: Taylor--Hood (u P2, p P1) em \code{TriGMesh(ref)} (\code{ref=1}: 196 triângulos, a malha
+formulado em deformação total, o estado inicial vem de um passo de gravidade (a memória parte de
+$\sig'_0=0$; uma tensão inicial dada em \code{InitializeMemory} seria convertida na deformação própria
+$\eps^p=\eps-\D^{e\,-1}\sig'_0$, Seção~\ref{sec:review}). Espaços: Taylor--Hood (u P2, p P1) em \code{TriGMesh(ref)} (\code{ref=1}: 196 triângulos, a malha
 inicial de \code{SlopeMohrCoulomb}; \code{ref=2}: 784); o driver
 \code{TPZPoroElastoPlasticUPAnalysis} não renumera as equações, para que as de pressão fiquem depois
 das de deslocamento e a LU sem pivotamento seja estável no passo não drenado ($S=0$, $\Delta t=0$).
@@ -379,7 +386,7 @@ O rascunho de \code{CreateCompMesh} vinha do exemplo triaxial de Cam-Clay; as co
 \end{itemize}
 
 \begin{table}[h]
-\centering\small
+\centering\footnotesize
 \begin{tabular}{@{}lll@{}}
 \toprule
 id & mecânico & hidráulico\\
@@ -499,7 +506,7 @@ elastoplástica de \code{SlopeMohrCoulomb}, trocando a força de volume por
 onde $\lambda$ é o fator de gravidade que \code{SlopeAnalysis} impõe pela força de volume do material.
 Equivalência: com $\sig=\sig'-p\mathbf I$, a forma fraca em tensões totais, integrada por partes,
 \begin{equation}
-\int_\Omega B^T\sig'\,d\Omega = \int_\Omega(\gamma_{sat}\mathbf g-\nabla p)\cdot\mathbf v\,d\Omega
+\int_\Omega \eps(\mathbf v):\sig'\,d\Omega = \int_\Omega(\gamma_{sat}\mathbf g-\nabla p)\cdot\mathbf v\,d\Omega
  + \int_\Gamma(\mathbf t+p\,\mathbf n)\cdot\mathbf v\,d\Gamma,
 \end{equation}
 e no contorno submerso $\mathbf t=-p_w\mathbf n$ com $p=p_w$: a tração efetiva é nula, e o problema
@@ -543,9 +550,11 @@ A Figura~\ref{fig:pfields} mostra o campo de $p$ e a Figura~\ref{fig:pprof} perf
   total e, com fluido incompressível, a poropressão: sob o terreno baixo a queda é próxima da do
   carregamento unidimensional ($\Delta p\approx-\gamma_w\Delta H=-100$~kPa; obtido: $-71$~kPa em
   $(55,25)$ e $-75$~kPa em $(55,15)$, pois a carga só existe em $x\ge30$~m), enquanto sob o topo a
-  queda é menor ($-29$~kPa em $(15,20)$). A face e o pé ficam com $p=0$.
-\item \textbf{Adensamento}: a água do maciço escoa para a face e o pé; $p$ cresce junto à face e ao
-  pé e cai sob o topo, até o regime permanente de percolação com a linha freática no topo.
+  queda é menor ($-30$~kPa em $(15,20)$). A face e o pé ficam com $p=0$.
+\item \textbf{Adensamento}: a água entra pelo topo e sai pela face e pelo pé; $p$ cresce acima do nível
+  do pé (atrás da face e perto da superfície do topo, p.ex.\ de 21 para 35~kPa em $(35,30)$) e cai em
+  profundidade e sob o terreno à frente do pé (de 97 para 67~kPa em $(40,25)$, de 391 para 362~kPa em
+  $(0,0)$), até o regime permanente de percolação com a linha freática no topo.
 \end{itemize}
 
 \begin{figure}[t]
@@ -570,12 +579,15 @@ $-3$, $-4$, $-6$ e fluxo nulo no resto. Comparação nos 435 vértices:
   $\max p=362{,}6$~kPa), RMS $0{,}78$~kPa.
 \end{itemize}
 As diferenças são o termo de armazenamento do último passo de Euler implícito,
-$k\,\delta p\approx-\Delta t^{-1}\int N_p\,\Delta(\nabla\!\cdot\mathbf u)$, calculado com os deslocamentos P2
-do próprio VTK (\code{scripts/storage_check.py}): descontado esse termo, a diferença cai para
+\[
+\mathbf H\,\delta\mathbf p=-\Delta t^{-1}\int_\Omega\alpha N_p^T\,\Delta(\nabla\!\cdot\mathbf u)\,d\Omega,\qquad
+\delta p=0\ \text{em}\ -3,-4,-6,
+\]
+calculado com os deslocamentos P2 do próprio VTK (\code{scripts/storage_check.py}): descontado esse termo, a diferença cai para
 $5\cdot10^{-4}$~kPa, a precisão dos números gravados. A parte hidráulica (condições de contorno,
 termo gravitacional, discretização) está verificada (Figura~\ref{fig:laplace}). A solução P1 independente converge com $O(h^2)$:
-diferença máxima nos nós da malha inicial em relação a 5 refinamentos de 5,2; 1,8; 0,55~kPa para
-\code{ref} = 0, 1, 2.
+diferença máxima nos 36 nós de \code{TriGMesh(0)} em relação à solução com 5 refinamentos de 5,2; 1,8;
+0,55~kPa para \code{ref} = 0, 1, 2.
 
 \begin{figure}[t]
 \centering\includegraphics[width=0.92\textwidth]{fig_laplace_check.pdf}
@@ -594,8 +606,9 @@ estado & $T$ & FS grav.\ (ciclos 0/1/2/3) & FS SRM (ciclos 0/1/2/3) & Bishop gra
 \rows{figs/tab_fs_drawdown.tex}
 \bottomrule
 \end{tabular}
-\caption{FS de cada estado: elementos finitos (\cc{SlopeAnalysis.h}, malha inicial \cc{TriGMesh(1)} e
-três ciclos de refinamento da zona plástica) e Bishop simplificado com o mesmo campo $p^+$.}\label{tab:fsdd}
+\caption{FS de cada estado ($\nu=0{,}3$, inclusive o seco): elementos finitos (\cc{SlopeAnalysis.h}, malha
+inicial \cc{TriGMesh(1)} e três ciclos de refinamento da zona plástica) e Bishop simplificado com o mesmo
+campo $p^+$.}\label{tab:fsdd}
 \end{table}
 
 Resultados (Tabela~\ref{tab:fsdd} e Figura~\ref{fig:fstime}; valores do ciclo 3):
@@ -610,12 +623,14 @@ Resultados (Tabela~\ref{tab:fsdd} e Figura~\ref{fig:fstime}; valores do ciclo 3)
   em $T=0{,}1$ ($t\approx0{,}4$~dia com $k=\SI{e-2}{m/dia}$), 0,895 em $T=1$, 0,881 em $T=10$ e 0,886 no
   regime permanente (Bishop 0,931; 0,860; 0,846; 0,850). O rebaixamento instantâneo baixa $p$ junto à
   face e ao pé (efeito de Biot); depois a água que entra pelo topo e sai pela face e pelo pé eleva
-  $p$ nessa região e as forças de percolação apontam para fora do talude. O mínimo ocorre entre
-  $T=10$ e o regime permanente (diferença dentro da tolerância da continuação). Com essa hipótese o
-  estado de projeto é o campo permanente: FS = 0,886 (SRM) e
+  $p$ atrás da face, acima do nível do pé, e as forças de percolação apontam para fora do talude. O
+  mínimo ocorre em $T\approx10$: 0,881 por SRM e 0,770 por gravidade (Bishop 0,846 e 0,718), 0,5 a
+  1,5\,\% abaixo do regime permanente --- todos os métodos dão a mesma ordem, e a diferença excede a
+  tolerância de 0,2\,\% da continuação. No regime permanente (o campo de Ceron et al.) FS = 0,886 e
   $\Gamma=\lambda_{\text{grav}}\gamma H/c=20\cdot0{,}781=15{,}6$ (Bishop: 0,850 e 14,5), contra
-  $\Gamma\approx36$ do talude seco ($20\cdot1{,}793$) --- valores diretamente comparáveis com o fator de
-  estabilidade de Ceron et al.\ para $\beta=45^\circ$ e $h_w=H$.
+  $\Gamma=20\cdot1{,}906=38{,}1$ do talude seco no mesmo ciclo e com o mesmo $\nu$ (Bishop 36,1; com o
+  refinamento o seco converge para $\approx36$) --- valores comparáveis com o fator de estabilidade de
+  Ceron et al.\ para $\beta=45^\circ$ e $h_w=H$.
 \item \textbf{Drenado} (linha freática no pé, sem recarga): FS = 1,230, igual ao seco, porque o mecanismo
   crítico fica acima de $y=30$~m. É o limite de longo prazo de um rebaixamento lento; num modelo com face
   de percolação unilateral (sem realimentação pelo topo e pela face) o FS se recuperaria em direção a
@@ -624,7 +639,8 @@ Resultados (Tabela~\ref{tab:fsdd} e Figura~\ref{fig:fstime}; valores do ciclo 3)
 
 \paragraph{Elementos finitos $\times$ Bishop.} No ciclo 3 o FS dos elementos finitos fica 2 a 4\,\% acima
 do de Bishop por SRM e 5 a 8\,\% por gravidade --- o mesmo padrão do talude seco no ciclo 3 (1,9\,\% e
-5,5\,\%), que cai para 0,3\,\% e 0,7\,\% no ciclo 5 (Tabela~\ref{tab:fsdry}). As duas análises,
+5,5\,\% acima, $\nu=0{,}3$, Tabela~\ref{tab:fsdd}), que no ciclo 5 passa a 0,2\,\% e 0,7\,\% \emph{abaixo}
+de Bishop (Tabela~\ref{tab:fsdry}, $\nu=0{,}49$). As duas análises,
 independentes, concordam dentro do erro de discretização esperado, e o mecanismo dos elementos finitos
 coincide com o círculo crítico (Figura~\ref{fig:mechdd}).
 
@@ -649,9 +665,10 @@ crítico de Bishop.}\label{fig:mechdd}
 \end{figure}
 
 \subsection{Convergência da análise u--p}
-Todos os passos convergem sem bissecção. No passo drenado de gravidade
-$\|R\|/\|F\|$: $10{,}1\to8\cdot10^{-3}\to3{,}7\cdot10^{-3}\to6\cdot10^{-4}\to5{,}8\cdot10^{-6}\to1{,}3\cdot10^{-9}$;
-nos passos de adensamento são 6 a 8 avaliações, com a fase final quadrática. As primeiras iterações
+Todos os passos convergem sem bissecção. No passo drenado de gravidade (malha \code{ref=2})
+$\|R\|/\|F\|$: $10{,}1\to8\cdot10^{-3}\to3{,}7\cdot10^{-3}\to6\cdot10^{-4}\to5{,}8\cdot10^{-6}\to1{,}3\cdot10^{-9}$
+(5 avaliações com \code{ref=1}); nos passos de adensamento são 4 a 8 avaliações, com a fase final
+quadrática. As primeiras iterações
 são mais lentas porque pontos mudam entre elástico e plástico e porque o resíduo normalizado mistura
 as linhas de pressão (escaladas por $\Delta t$) com as de deslocamento --- comportamento do driver,
 igual ao dos exemplos de Cam-Clay.
@@ -673,8 +690,11 @@ agente encarregado de refutá-lo. Resultado:
 \begin{itemize}
 \item \textbf{Malhas de níveis diferentes} (confirmado, corrigido): a malha de estabilidade partia de
   \code{TriGMesh(1)} e a de poropressão era \code{TriGMesh(2)}; com $\nabla p$ descontínuo dentro do
-  elemento, a força de percolação era mal integrada (o FS da malha inicial logo após o rebaixamento
-  caía de 1,137 para 1,061 ao corrigir). Agora as duas partem do mesmo nível (\code{ref=}).
+  elemento, a força de percolação era mal integrada. Com o campo de \code{ref=2}, o FS do ciclo 0 logo
+  após o rebaixamento era 1,137 na malha de estabilidade \code{TriGMesh(1)} e 1,061 na \code{TriGMesh(2)}
+  (parte dessa queda é do refinamento: o talude seco passa de 1,399 para 1,312 com a mesma troca); na
+  configuração final, \code{ref=1} nas duas malhas, o valor é 1,109. Agora as duas partem do mesmo nível
+  (\code{ref=}).
 \item \textbf{Tensão inicial descartada no material u--p} (confirmado, corrigido na biblioteca):
   \code{TPZPlasticStepVoigt} é formulado em deformação total e ignora \code{m_sigma}; uma tensão
   geostática dada em \code{InitializeMemory} (como no rascunho do usuário) sumia sem aviso. Agora é
@@ -686,9 +706,11 @@ agente encarregado de refutá-lo. Resultado:
 \item \textbf{Fluxo associado no passo não drenado} (confirmado, documentado): com $\psi=\phi$ a dilatância
   plástica, compensada pela compressão elástica do esqueleto, reduz $p$ logo após o rebaixamento
   (cerca de $-7$~kPa em profundidade, contra $-28$~kPa da variação total). O verificador repetiu a
-  análise com o modelo antigo, que admite $\psi\ne\phi$ (com $\psi=30^\circ$ reproduz o modelo do artigo):
-  na malha inicial o FS logo após o rebaixamento cai de 1,137 ($\psi=30^\circ$) para 1,115 ($15^\circ$) e
-  1,106 ($5^\circ$) por SRM, e de 1,540 para 1,370 por gravidade. O FS desse instante é, portanto,
+  análise com o modelo antigo, que admite $\psi\ne\phi$ (com $\psi=30^\circ$ reproduz o modelo do artigo),
+  ainda na configuração anterior à correção das malhas (u--p em \code{TriGMesh(2)}, estabilidade em
+  \code{TriGMesh(1)}, ciclo 0; só a variação relativa é indicativa): o FS logo após o rebaixamento cai de
+  1,137 ($\psi=30^\circ$) para 1,115 ($15^\circ$) e 1,106 ($5^\circ$) por SRM, e de 1,540 para 1,370 por
+  gravidade. O FS desse instante é, portanto,
   otimista em alguns por cento; o regime permanente não depende de $\psi$. O retorno fechado do artigo
   só admite $\psi=\phi$, e o modelo antigo com $\psi=0$ falha no ápice (gradiente nulo).
 \item Menores, corrigidos: \code{porder} diferente de 2 (a poropressão P1 é suposta), nível final fora de
@@ -702,8 +724,9 @@ agente encarregado de refutá-lo. Resultado:
   rebaixamento da linha freática dentro do maciço (fluxo não confinado) não é modelado --- coerente
   com a hipótese de rebaixamento rápido de Ceron et al.
 \item Mohr--Coulomb associativo (o retorno fechado exige $\psi=\phi$): no passo não drenado a dilatância
-  plástica reduz $p$, e o FS logo após o rebaixamento fica otimista em cerca de 3\,\% (SRM) a 11\,\%
-  (gravidade) em relação a $\psi=5^\circ$ (Seção~\ref{sec:review}); o regime permanente não depende
+  plástica reduz $p$, e o FS logo após o rebaixamento fica otimista em cerca de 3\,\% (SRM) a 12\,\%
+  (gravidade) em relação a $\psi=5^\circ$ (estimativa da configuração antiga de malhas,
+  Seção~\ref{sec:review}); o regime permanente não depende
   disso. No FS a sucção ($p<0$) é desprezada ($p^+$).
 \item Depois que o FS cai abaixo de 1, os deslocamentos da análise u--p perdem o significado físico.
 \item O FS por gravidade só converge com o refinamento da zona plástica (mecanismo raso); os valores
@@ -714,20 +737,27 @@ agente encarregado de refutá-lo. Resultado:
 %=====================================================================================================
 \section{Como reproduzir}
 \begin{lstlisting}[language=bash]
-cmake -DBUILD_PLASTICITY_MATERIALS=ON -DBUILD_PROJECTS=ON <neopz>; ninja SlopeMohrCoulomb SlopeDrawdown
-SLOPE_VERBOSE=1 ./SlopeMohrCoulomb nref=4 > out.txt   # talude seco (SlopeMohrCoulomb check: teste de Taylor)
-./SlopeDrawdown nref=3 > out.txt                      # rebaixamento rapido (ref=1)
-python3 scripts/bishop_pw.py <dry|crest|drained|drawdown_up.scal_vec.N.vtk>   # Bishop (em <rebaixamento>/bms)
-python3 scripts/laplace_check.py <rebaixamento ref=2> <saida>                 # percolacao independente
-python3 scripts/make_figures.py <seco> <rebaixamento> data/taylor.csv <saida laplace> figs
-pdflatex relatorio.tex
+cmake -G Ninja -DBUILD_PLASTICITY_MATERIALS=ON -DBUILD_PROJECTS=ON <neopz>
+ninja SlopeMohrCoulomb SlopeDrawdown
+./SlopeMohrCoulomb check                          # teste de Taylor
+./SlopeMohrCoulomb > rhw.txt; ./SlopeMohrCoulomb pv > pv.txt; ./SlopeMohrCoulomb nu=0.3   # Tabela 4 (nref=5)
+SLOPE_VERBOSE=1 ./SlopeMohrCoulomb nref=4 > out.txt   # figuras do talude seco (Newton, mecanismos)
+./SlopeDrawdown nref=3 > out.txt                  # rebaixamento (ref=1): Tabela 6, Figuras 6-9
+./SlopeDrawdown ref=2 nref=0 > out.txt            # campos ref=2: verificacao da percolacao, Bishop ref=2
+cd <rebaixamento>; mkdir bms; for a in dry crest drained; do python3 scripts/bishop_pw.py $a > bms/bishop_$a.txt; done
+for N in 1 2 3 4 5; do python3 scripts/bishop_pw.py drawdown_up.scal_vec.$N.vtk > bms/bishop_$N.txt; done
+python3 scripts/laplace_check.py <rebaixamento ref=2> <saida laplace>
+python3 scripts/make_figures.py <seco> <rebaixamento> data/taylor.csv <saida laplace> figs; pdflatex relatorio.tex
 \end{lstlisting}
-Os scripts de verificação independente (Bishop com poropressão, solução P1 da percolação, teste de
-Taylor) estão em \code{docs/slope_mohr_coulomb/scripts}.
+Os dados de Taylor vêm de \code{scripts/taylor_curves.cpp} e \code{scripts/taylor_eigen_floor.cpp}
+(compilados com as opções de \code{SlopeMohrCoulomb}); os resultados usados nas tabelas estão em
+\code{docs/slope_mohr_coulomb/data}.
+
 
 \begin{thebibliography}{9}
-\bibitem{lira2026} D.~Lira Cecílio. Return mapping for Mohr--Coulomb plasticity in rotated
+\bibitem{lira2026} D.~Lira Cecílio. Analytical return mapping for Mohr--Coulomb plasticity in rotated
   Haigh--Westergaard space with consistent tangent operator. \emph{J.\ Eng.\ Math.} 157:10, 2026.
+  doi:10.1007/s10665-026-10519-1.
 \bibitem{ceron2025} M.~V.~Ceron, D.~Lira Cecílio, R.~V.~Linn, S.~Maghous. Stability analysis of slope
   subjected to seepage forces considering spatial variability of soil properties. \emph{Int.\ J.\ Numer.\
   Anal.\ Methods Geomech.} 49(11):2459--2491, 2025. doi:10.1002/nag.3993.

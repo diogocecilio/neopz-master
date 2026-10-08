@@ -141,7 +141,7 @@ if os.path.exists(taylor_csv):
     if os.path.exists(info):
         labels = {(r["model"], r["case"]): r["label"] for r in csv.DictReader(open(info))}
     floor = os.path.join(os.path.dirname(taylor_csv), "diag_floor.csv")
-    panels = [("PV", "PV legado (corrigido)", "err2"), ("Voigt", "RHW (artigo)", "err2")]
+    panels = [("PV", "PV (antigo, corrigido)", "err2"), ("Voigt", "RHW (artigo)", "err2")]
     if os.path.exists(floor):
         panels.append(("Jacobi", "RHW, autovalores por Jacobi", "err2_jacobi"))
     fig, axs = plt.subplots(1, len(panels), figsize=(6.9, 2.7), sharey=True)
@@ -159,7 +159,8 @@ if os.path.exists(taylor_csv):
                     uniq.append(r)
             a_ = np.array([float(r["alpha"]) for r in uniq])
             e_ = np.array([float(r[col]) for r in uniq])
-            lab = labels.get(("Voigt" if model == "Jacobi" else model, case), case)
+            lab = {"1": "geral 1", "2": r"aresta $\varepsilon_2=\varepsilon_3$", "3": r"aresta $\varepsilon_1=\varepsilon_2$",
+                   "4": "ápice", "5": "geral 2", "6": "elástico"}.get(case, case)
             ax.loglog(a_, np.maximum(e_, 1e-17), "o-", ms=2.2, lw=0.8, label=lab)
         a_ = np.array([1e-6, 1e-2])
         ax.loglog(a_, 1e2 * a_ ** 2, "k--", lw=0.7, label="ordem 2")
@@ -182,7 +183,9 @@ for l in open(os.path.join(slope_dir, "out.txt")):
 conv = [(h, c) for h, c in hist if "converged" in h and len(c) >= 3]
 fig, ax = plt.subplots(figsize=(4.0, 2.9))
 for h, c in conv[:: max(1, len(conv) // 8)][:8]:
-    ax.semilogy(range(1, len(c) + 1), c, "o-", ms=2.5, lw=0.8, label=h.split(" (")[0][:28])
+    m_ = re.match(r"\[(\S+)\] p = (\S+)", h)
+    lab_ = "%s, p = %s" % (m_.group(1), m_.group(2).replace(".", ",")[:6]) if m_ else h[:20]
+    ax.semilogy(range(1, len(c) + 1), c, "o-", ms=2.5, lw=0.8, label=lab_)
 ax.axhline(1e-8, color="k", lw=0.6, ls=":")
 ax.set_xlabel("iteração de Newton")
 ax.set_ylabel(r"$\|R\|/\|F_{ext}\|$")
@@ -206,7 +209,7 @@ rhw = np.array(rhw)
 fig, axs = plt.subplots(1, 2, figsize=(6.6, 2.7))
 for ax, col, lab, b in [(axs[0], 1, "aumento de gravidade", BISHOP_DRY[1]), (axs[1], 2, "redução de resistência", BISHOP_DRY[0])]:
     ax.plot(range(len(rhw)), rhw[:, col], "o-", ms=3, label="RHW (artigo)")
-    ax.plot(range(len(pv)), pv[:, col], "s--", ms=3, mfc="none", label="PV legado (corrigido)")
+    ax.plot(range(len(pv)), pv[:, col], "s--", ms=3, mfc="none", label="PV (antigo, corrigido)")
     ax.axhline(b, color="k", lw=0.7, ls=":", label="Bishop simplificado")
     ax.set_xticks(range(len(rhw)))
     ax.set_xticklabels(["%d\n%d" % (k, n) for k, n in enumerate(rhw[:, 0])], fontsize=7)
@@ -220,10 +223,12 @@ save(fig, "fig_fs_refinement.pdf")
 # ---------------------------------------------------------------- mechanisms of the dry slope
 nref = int(tab[-1, 0])
 fig, axs = plt.subplots(1, 2, figsize=(6.8, 2.4))
-for ax, kind, circ in [(axs[0], "GI", None), (axs[1], "SRM", (42.6, 45.2, 15.39))]:
+bdry = os.path.join(dd_dir, "bms", "bishop_dry.txt")
+circ_dry = bishop(bdry)[1] if os.path.exists(bdry) else None
+for ax, kind, circ in [(axs[0], "GI", None), (axs[1], "SRM", circ_dry)]:
     pts, tris, f = read_vtk(os.path.join(slope_dir, "slope_rhw_%s_ref%d.scal_vec.0.vtk" % (kind, nref)))
     v = np.maximum(f["StrainPlasticJ2"], 0)
-    tp = ax.tripcolor(pts[:, 0], pts[:, 1], tris, v / v.max(), shading="gouraud", cmap="inferno_r", vmin=0, vmax=0.5)
+    tp = ax.tripcolor(pts[:, 0], pts[:, 1], tris, v / v.max(), shading="gouraud", cmap="inferno_r", vmin=0, vmax=0.2)
     ax.triplot(pts[:, 0], pts[:, 1], tris, lw=0.1, color="0.75")
     outline(ax, zoom=True)
     if circ:
@@ -289,7 +294,7 @@ for s, fname in [("dry", "bishop_dry.txt"), ("crest", "bishop_crest.txt"), ("dra
 # LaTeX table of the FS of every state (FE cycles and Bishop)
 num = lambda v: ("%.3f" % v).replace(".", ",")
 lab = {"dry": "seco", "crest": "reservatório no topo", "T0": "logo após o rebaixamento", "T0.1": "adensamento",
-       "T1": "adensamento", "T10": "adensamento", "steady": "percolação permanente", "drained": "drenado (freática no pé)"}
+       "T1": "adensamento", "T10": "adensamento", "steady": "regime permanente", "drained": "drenado (freática no pé)"}
 Tlab = {"T0": "0", "T0.1": "0,1", "T1": "1", "T10": "10", "steady": r"$\infty$"}
 with open(os.path.join(out, "tab_fs_drawdown.tex"), "w") as ftab:
     for st in ["dry", "crest", "T0", "T0.1", "T1", "T10", "steady", "drained"]:
@@ -306,13 +311,13 @@ for ax, col, bcol, lab in [(axs[0], 3, 0, "redução de resistência"), (axs[1],
     ncyc = min(fs[s].shape[0] for s in order)
     for cyc in range(ncyc):
         ax.semilogx([Tval[s] for s in order], [fs[s][cyc, col] for s in order], "o-", ms=3, lw=0.8,
-                    alpha=0.35 + 0.65 * cyc / max(1, ncyc - 1), color="C0", label="FE, ciclo %d" % cyc)
+                    alpha=0.35 + 0.65 * cyc / max(1, ncyc - 1), color="C0", label="EF, ciclo %d" % cyc)
     bs = [s for s in order if s in bish]
     ax.semilogx([Tval[s] for s in bs], [bish[s][bcol] for s in bs], "k^", ms=5, mfc="none", label="Bishop")
     for s, ls, c, name in [("dry", ":", "C3", "seco"), ("crest", "--", "C2", "reservatório no topo"),
                            ("drained", "-.", "C1", "drenado (freática no pé)")]:
         if s in fs:
-            ax.axhline(fs[s][-1, col], color=c, lw=0.8, ls=ls, label=name + " (FE)")
+            ax.axhline(fs[s][-1, col], color=c, lw=0.8, ls=ls, label=name + " (EF)")
     ax.axhline(1.0, color="k", lw=0.5)
     ax.set_xticks([1e-2, 1e-1, 1, 10, 1e3])
     ax.set_xticklabels(["0", "0,1", "1", "10", r"$\infty$"])
@@ -328,7 +333,7 @@ fig, axs = plt.subplots(1, 2, figsize=(6.8, 2.4))
 for ax, s in zip(axs, ["T0", "steady"]):
     pts, tris, f = read_vtk(os.path.join(dd_dir, "drawdown_%s.scal_vec.0.vtk" % s))
     v = np.maximum(f["StrainPlasticJ2"], 0)
-    tp = ax.tripcolor(pts[:, 0], pts[:, 1], tris, v / v.max(), shading="gouraud", cmap="inferno_r", vmin=0, vmax=0.5)
+    tp = ax.tripcolor(pts[:, 0], pts[:, 1], tris, v / v.max(), shading="gouraud", cmap="inferno_r", vmin=0, vmax=0.2)
     ax.triplot(pts[:, 0], pts[:, 1], tris, lw=0.1, color="0.75")
     outline(ax, zoom=True)
     if s in bish:

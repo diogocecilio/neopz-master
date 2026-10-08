@@ -72,8 +72,8 @@ campo p⁺ (busca multi-início, `docs/slope_mohr_coulomb/scripts/bishop_pw.py`)
 | drenado (linha freática no pé) | — | 1,906 | 1,230 | 1,806 | 1,206 |
 
 * O rebaixamento rápido leva o talude ao equilíbrio-limite (FS = 1,00) e, com a linha freática mantida
-  no topo, a percolação o torna instável (FS ≈ 0,88 no regime permanente; Γ = 20·FS_grav ≈ 15,6 contra
-  ≈ 36 do talude seco).
+  no topo, a percolação o torna instável: mínimo em T ≈ 10 (FS = 0,881; Bishop 0,846), 0,5 % abaixo do
+  regime permanente (0,886; Γ = 20·FS_grav = 15,6 contra 38,1 do talude seco no mesmo ciclo).
 * Elementos finitos × Bishop: 2–4 % (SRM) e 5–8 % (gravidade) acima no ciclo 3, o mesmo padrão do
   talude seco, que converge para Bishop com mais refinamento.
 * Com os campos de `ref=2` Bishop dá FS 4–8 % maior (1,038 logo após o rebaixamento, 0,884 no regime
