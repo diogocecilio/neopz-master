@@ -5,6 +5,9 @@
 
 #include "TPZMatPoroElastoPlasticUP.h"
 #include "TPZPlasticStepModifiedCamClay.h"
+#include "TPZPlasticStepVoigt.h"
+#include "TPZYCMohrCoulombPV2.h"
+#include "TPZElasticResponse.h"
 #include "pzcmesh.h"
 #include "pzcompel.h"
 #include "pzmultiphysicselement.h"
@@ -647,3 +650,5 @@ void TPZMatPoroElastoPlasticUP<T, TMEM>::Read(TPZStream &buf, void *context) {
 
 template class TPZMatPoroElastoPlasticUP<TPZPlasticStepModifiedCamClay, TPZElastoPlasticMem>;
 template class TPZRestoreClass<TPZMatPoroElastoPlasticUP<TPZPlasticStepModifiedCamClay, TPZElastoPlasticMem>>;
+// Mohr-Coulomb (closed-form RHW projection, paper model): total-strain update, the stress of the memory is not used
+template class TPZMatPoroElastoPlasticUP<TPZPlasticStepVoigt<TPZYCMohrCoulombPV2, TPZElasticResponse>, TPZElastoPlasticMem>;

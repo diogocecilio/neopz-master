@@ -47,6 +47,9 @@ public:
     void SetState(const TPZPlasticState<REAL>& state) override;
     TPZPlasticState<REAL> GetState() const override;
 
+    /// Interface of the u-p material (TPZMatPoroElastoPlasticUP): the closed-form projection never fails
+    bool LastProjectionFailed() const { return false; }
+
     void Phi(const TPZTensor<REAL>& epsTotal, TPZVec<REAL>& phi) const override;
 
     void SetElasticResponse(TPZElasticResponse& ERin) override;
