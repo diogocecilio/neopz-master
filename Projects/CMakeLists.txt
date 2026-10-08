@@ -38,3 +38,4 @@ add_subdirectory(EmbankmentConsolidation)      # Sects. 6.6 and 6.7, Figs. 12-14
 
 # Mohr-Coulomb slope stability (RHW Mohr-Coulomb of Lira Cecilio, J Eng Math 2026): gravity increase and SRM
 add_subdirectory(SlopeMohrCoulomb)
+add_subdirectory(SlopeMohrCoulomb3D)  # same slope extruded 40 m: tetrahedra (default) or hexahedra
