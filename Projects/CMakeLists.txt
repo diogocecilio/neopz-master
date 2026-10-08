@@ -35,3 +35,6 @@ add_subdirectory(FLAC3DTriaxial)               # Sects. 6.3 and 6.7, Figs. 4 and
 add_subdirectory(TerzaghiConsolidation)        # Sect. 6.4, Fig. 8, Table 6
 add_subdirectory(AbaqusTriaxialConsolidation)  # Sects. 6.5 and 6.7, Figs. 9-11, Tables 7, 9 and 10
 add_subdirectory(EmbankmentConsolidation)      # Sects. 6.6 and 6.7, Figs. 12-14, Tables 8 and 10
+
+# Mohr-Coulomb slope stability (RHW Mohr-Coulomb of Lira Cecilio, J Eng Math 2026): gravity increase and SRM
+add_subdirectory(SlopeMohrCoulomb)
