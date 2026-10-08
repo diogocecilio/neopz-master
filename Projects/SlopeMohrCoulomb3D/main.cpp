@@ -9,7 +9,7 @@
 //  - hexa: a structured quadrilateral version of the 2D mesh extruded into hexahedra (prepared,
 //    same boundary ids).
 //
-// Usage: SlopeMohrCoulomb3D [hexa] [pv] [mesh] [nref=<n>] [ref=<n>] [nz=<n>] [lz=<m>] [p=<order>] [nu=<poisson>]
+// Options are hard coded in main() (Options and Soil):
 //   mesh   : only writes the geometric mesh (VTK) and the number of equations, no analysis
 //   ref    : uniform refinements of the 2D base mesh (default 1, as in the 2D project)
 //   nref   : adaptive refinement cycles of the plastic zone (default 0; tetrahedra become pyramids)
@@ -301,17 +301,16 @@ void Run(const TPlastic &model, const Soil &s, const Options &o, const std::stri
 int main(int argc, char *argv[]) {
     Options o;
     Soil s;
-    for (int i = 1; i < argc; i++) {
-        if (!strcmp(argv[i], "hexa")) o.hexa = true;
-        else if (!strcmp(argv[i], "pv")) o.pv = true;
-        else if (!strcmp(argv[i], "mesh")) o.meshonly = true;
-        else if (!strncmp(argv[i], "nref=", 5)) o.nref = atoi(argv[i] + 5);
-        else if (!strncmp(argv[i], "ref=", 4)) o.ref = atoi(argv[i] + 4);
-        else if (!strncmp(argv[i], "nz=", 3)) o.nz = atoi(argv[i] + 3);
-        else if (!strncmp(argv[i], "lz=", 3)) o.lz = atof(argv[i] + 3);
-        else if (!strncmp(argv[i], "p=", 2)) o.porder = atoi(argv[i] + 2);
-        else if (!strncmp(argv[i], "nu=", 3)) s.nu = atof(argv[i] + 3);
-    }
+
+    o.hexa = true;
+    o.pv = true;
+    o.meshonly = true;
+    o.nref = 1;
+    o.ref = 1;
+    o.nz =1;
+    o.lz =40;
+    o.porder = 2;
+    s.nu = 0.3;
     const std::string tag = std::string("slope3d_") + (o.hexa ? "hexa" : "tetra") + (o.pv ? "_pv" : "_rhw");
     if (o.pv) Run(ModelPV(s), s, o, tag);
     else Run(ModelVoigt(s), s, o, tag);

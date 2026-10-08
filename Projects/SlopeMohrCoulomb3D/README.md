@@ -44,12 +44,12 @@ algoritmo (Newton com tangente consistente e busca linear, continuação com div
 ```
 cmake -DBUILD_PLASTICITY_MATERIALS=ON -DBUILD_PROJECTS=ON <neopz>
 ninja SlopeMohrCoulomb3D
-./SlopeMohrCoulomb3D mesh       # só gera a malha (slope3d_*_gmesh.vtk) e informa o nº de equações
-./SlopeMohrCoulomb3D            # tetraedros, FS por gravidade e por SRM
-./SlopeMohrCoulomb3D hexa       # hexaedros
-./SlopeMohrCoulomb3D pv         # modelo antigo (verificação)
-./SlopeMohrCoulomb3D nz=1 p=1   # opções para testes rápidos
+./SlopeMohrCoulomb3D
 ```
+
+As opções ficam fixas no código, em `main()`: `o.hexa` (hexaedros/tetraedros), `o.pv` (modelo
+antigo/artigo), `o.meshonly` (só a malha `slope3d_*_gmesh.vtk` e o nº de equações), `o.nref`,
+`o.ref`, `o.nz`, `o.lz`, `o.porder` e `s.nu`.
 
 Estimativa de tamanho (P2, 8 camadas): da ordem de 2–3·10⁴ equações; o solver é a skyline
 LDLᵀ com renumeração de banda, como no 2D, e pode ficar lento em 3D.
