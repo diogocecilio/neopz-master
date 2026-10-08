@@ -23,6 +23,7 @@ plt.rcParams.update({"font.size": 9, "axes.titlesize": 9, "legend.fontsize": 8, 
                      "savefig.bbox": "tight", "font.family": "serif"})
 slope_dir, dd_dir, taylor_csv, laplace_dir, out = sys.argv[1:6]
 os.makedirs(out, exist_ok=True)
+BISHOP_DRY = (1.209, 1.802)  # Bishop simplified: SRM, gravity increase (scripts/bishop_pw.py)
 GROUND = np.array([[0, 40], [30, 40], [40, 30], [70, 30], [70, 0], [0, 0], [0, 40]])
 
 
@@ -57,14 +58,25 @@ def read_vtk(fname):
             fields[l.split()[1]] = block(k + 2, n)
         elif l.startswith("VECTORS"):
             fields[l.split()[1]] = block(k + 1, 3 * n).reshape(n, 3)
-    return pts, np.array(tris), fields
+    # the graph mesh repeats the nodes of each element: merge coincident points (averaging the fields)
+    key = np.round(pts, 6)
+    uniq, inv = np.unique(key, axis=0, return_inverse=True)
+    inv = inv.ravel()
+    cnt = np.bincount(inv, minlength=len(uniq)).astype(float)
+    for name, v in fields.items():
+        if v.ndim == 1:
+            fields[name] = np.bincount(inv, weights=v, minlength=len(uniq)) / cnt
+        else:
+            fields[name] = np.stack([np.bincount(inv, weights=v[:, k], minlength=len(uniq)) / cnt
+                                     for k in range(v.shape[1])], axis=1)
+    return uniq, inv[np.array(tris)], fields
 
 
-def outline(ax):
+def outline(ax, zoom=False):
     ax.plot(GROUND[:, 0], GROUND[:, 1], "k-", lw=0.8)
     ax.set_aspect("equal")
-    ax.set_xlim(-1, 71)
-    ax.set_ylim(-1, 41)
+    ax.set_xlim(*((12, 62) if zoom else (-1, 71)))
+    ax.set_ylim(*((16, 41) if zoom else (-1, 41)))
     ax.set_xlabel("x (m)")
     ax.set_ylabel("y (m)")
 
@@ -110,34 +122,37 @@ for _ in range(1):  # uniform refinement: TriGMesh(1)
 fig, ax = plt.subplots(figsize=(6.2, 3.6))
 ax.triplot(X[:, 0], X[:, 1], T, lw=0.4, color="0.55")
 outline(ax)
-for txt, x, y, kw in [("$-1$ base (fixa)", 35, -0.5, dict(va="top", ha="center")),
-                      ("$-2$ rolete", 70.7, 15, dict(rotation=90, va="center")),
-                      ("$-3$ pé", 56, 30.6, dict(ha="center")), ("$-4$ topo", 15, 40.6, dict(ha="center")),
-                      ("$-5$ rolete", -0.8, 20, dict(rotation=90, va="center", ha="right")),
-                      ("$-6$ face", 36.5, 36.5, dict(rotation=-45))]:
-    ax.text(x, y, txt, fontsize=8, **kw)
+box = dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.9)
+for txt, x, y, kw in [("$-1$ base (fixa)", 35, 1.2, dict(va="bottom", ha="center")),
+                      ("$-2$ rolete", 68.8, 15, dict(rotation=90, va="center", ha="right")),
+                      ("$-3$ pé", 56, 28.8, dict(ha="center", va="top")),
+                      ("$-4$ topo", 15, 38.8, dict(ha="center", va="top")),
+                      ("$-5$ rolete", 1.2, 20, dict(rotation=90, va="center", ha="left")),
+                      ("$-6$ face", 33.6, 34.2, dict(rotation=-45, ha="center", va="center"))]:
+    ax.text(x, y, txt, fontsize=8, bbox=box, **kw)
 ax.set_title("TriGMesh(1): 196 triângulos (P2), talude de 10 m a 45°")
 save(fig, "fig_mesh.pdf")
 
 # ---------------------------------------------------------------- Taylor test
-rows = list(csv.DictReader(open(taylor_csv)))
-fig, axs = plt.subplots(1, 2, figsize=(6.6, 2.9), sharey=True)
-for ax, model in zip(axs, sorted({r["model"] for r in rows})):
-    for case in dict.fromkeys(r["case"] for r in rows if r["model"] == model):
-        rr = [r for r in rows if r["model"] == model and r["case"] == case]
-        a = np.array([float(r["alpha"]) for r in rr])
-        e = np.array([float(r["err2"]) for r in rr])
-        if np.max(e) <= 0:
-            continue
-        ax.loglog(a, np.maximum(e, 1e-16), "o-", ms=2.5, lw=0.8, label="%s (m=%s)" % (case, rr[0]["m_type"]))
-    a = np.array([1e-6, 1e-2])
-    ax.loglog(a, 1e2 * a ** 2, "k--", lw=0.7, label="ordem 2")
-    ax.set_xlabel(r"$\alpha$")
-    ax.set_title(model, fontsize=8)
-    ax.grid(alpha=0.3, which="both")
-axs[0].set_ylabel(r"$\|\sigma(\varepsilon+\alpha\Delta\varepsilon)-\sigma(\varepsilon)-\alpha\,\mathbb{D}\Delta\varepsilon\|$")
-axs[1].legend(loc="lower right", fontsize=6.5)
-save(fig, "fig_taylor.pdf")
+if os.path.exists(taylor_csv):
+    rows = list(csv.DictReader(open(taylor_csv)))
+    fig, axs = plt.subplots(1, 2, figsize=(6.6, 2.9), sharey=True)
+    for ax, model in zip(axs, sorted({r["model"] for r in rows})):
+        for case in dict.fromkeys(r["case"] for r in rows if r["model"] == model):
+            rr = [r for r in rows if r["model"] == model and r["case"] == case]
+            a = np.array([float(r["alpha"]) for r in rr])
+            e = np.array([float(r["err2"]) for r in rr])
+            if np.max(e) <= 0:
+                continue
+            ax.loglog(a, np.maximum(e, 1e-16), "o-", ms=2.5, lw=0.8, label="%s (m=%s)" % (case, rr[0]["m_type"]))
+        a = np.array([1e-6, 1e-2])
+        ax.loglog(a, 1e2 * a ** 2, "k--", lw=0.7, label="ordem 2")
+        ax.set_xlabel(r"$\alpha$")
+        ax.set_title(model, fontsize=8)
+        ax.grid(alpha=0.3, which="both")
+    axs[0].set_ylabel(r"$\|\sigma(\varepsilon+\alpha\Delta\varepsilon)-\sigma(\varepsilon)-\alpha\,\mathbb{D}\Delta\varepsilon\|$")
+    axs[1].legend(loc="lower right", fontsize=6.5)
+    save(fig, "fig_taylor.pdf")
 
 # ---------------------------------------------------------------- Newton convergence (SLOPE_VERBOSE)
 hist, cur = [], []
@@ -168,14 +183,20 @@ for l in open(os.path.join(slope_dir, "out.txt")):
 tab = np.array(tab)
 pv = np.array([[870, 3.043, 1.401], [918, 2.516, 1.312], [1140, 2.094, 1.258], [1814, 1.918, 1.229],
                [3408, 1.840, 1.212], [7142, 1.797, 1.203]])  # SlopeMohrCoulomb pv (README, nref=5)
+rhw = [list(r[1:]) for r in tab]
+if len(rhw) == 5:
+    rhw.append([7684, 1.793, 1.203])  # cycle 5 of the README (nref=5)
+rhw = np.array(rhw)
 fig, axs = plt.subplots(1, 2, figsize=(6.6, 2.7))
-for ax, col, pvcol, lab, b in [(axs[0], 2, 1, "aumento de gravidade", 1.857), (axs[1], 3, 2, "redução de resistência", 1.209)]:
-    ax.semilogx(tab[:, 1], tab[:, col], "o-", ms=3, label="RHW (artigo)")
-    ax.semilogx(pv[:, 0], pv[:, pvcol], "s--", ms=3, mfc="none", label="PV legado (corrigido)")
+for ax, col, lab, b in [(axs[0], 1, "aumento de gravidade", BISHOP_DRY[1]), (axs[1], 2, "redução de resistência", BISHOP_DRY[0])]:
+    ax.plot(range(len(rhw)), rhw[:, col], "o-", ms=3, label="RHW (artigo)")
+    ax.plot(range(len(pv)), pv[:, col], "s--", ms=3, mfc="none", label="PV legado (corrigido)")
     ax.axhline(b, color="k", lw=0.7, ls=":", label="Bishop simplificado")
-    ax.set_xlabel("equações")
+    ax.set_xticks(range(len(rhw)))
+    ax.set_xticklabels(["%d\n%d" % (k, n) for k, n in enumerate(rhw[:, 0])], fontsize=7)
+    ax.set_xlabel("ciclo / equações")
     ax.set_title(lab)
-    ax.grid(alpha=0.3, which="both")
+    ax.grid(alpha=0.3)
 axs[0].set_ylabel("FS")
 axs[1].legend()
 save(fig, "fig_fs_refinement.pdf")
@@ -186,9 +207,9 @@ fig, axs = plt.subplots(1, 2, figsize=(6.8, 2.4))
 for ax, kind, circ in [(axs[0], "GI", None), (axs[1], "SRM", (42.6, 45.2, 15.39))]:
     pts, tris, f = read_vtk(os.path.join(slope_dir, "slope_rhw_%s_ref%d.scal_vec.0.vtk" % (kind, nref)))
     v = np.maximum(f["StrainPlasticJ2"], 0)
-    tp = ax.tripcolor(pts[:, 0], pts[:, 1], tris, v / v.max(), shading="gouraud", cmap="magma_r", vmin=0, vmax=0.3)
-    ax.triplot(pts[:, 0], pts[:, 1], tris, lw=0.08, color="0.6")
-    outline(ax)
+    tp = ax.tripcolor(pts[:, 0], pts[:, 1], tris, v / v.max(), shading="gouraud", cmap="inferno_r", vmin=0, vmax=0.5)
+    ax.triplot(pts[:, 0], pts[:, 1], tris, lw=0.1, color="0.75")
+    outline(ax, zoom=True)
     if circ:
         circle(ax, *circ, color="c", lw=1.0, ls="--")
     ax.set_title(("%s: " % kind) + r"$\sqrt{J_2(\varepsilon^p)}/\max$ no colapso")
@@ -200,7 +221,7 @@ states = ["crest", "T0", "T0.1", "T1", "T10", "steady"]
 titles = {"crest": "reservatório no topo", "T0": "logo após o rebaixamento (T = 0)", "T0.1": "T = 0,1", "T1": "T = 1",
           "T10": "T = 10", "steady": "regime permanente"}
 up = {s: read_vtk(os.path.join(dd_dir, "drawdown_up.scal_vec.%d.vtk" % k)) for k, s in enumerate(states)}
-fig, axs = plt.subplots(2, 2, figsize=(6.8, 4.4))
+fig, axs = plt.subplots(2, 2, figsize=(6.8, 4.6), layout="constrained")
 lev = np.arange(0, 401, 25)
 for ax, s in zip(axs.flat, ["crest", "T0", "T1", "steady"]):
     pts, tris, f = up[s]
@@ -209,7 +230,7 @@ for ax, s in zip(axs.flat, ["crest", "T0", "T1", "steady"]):
     ax.tricontour(tr, f["PorePressure"], levels=lev[::2], colors="k", linewidths=0.3)
     outline(ax)
     ax.set_title(titles[s])
-fig.colorbar(cs, ax=axs, shrink=0.8, label="p (kPa)")
+fig.colorbar(cs, ax=axs, shrink=0.9, label="p (kPa)")
 save(fig, "fig_pressure_fields.pdf")
 
 
@@ -231,7 +252,8 @@ for ax, x0, top in zip(axs, (15.0, 35.0, 55.0), (40.0, 35.0, 30.0)):
     ax.set_xlabel("p (kPa)")
     ax.grid(alpha=0.3)
 axs[0].set_ylabel("y (m)")
-axs[2].legend(fontsize=5.5, loc="upper right")
+h, l = axs[0].get_legend_handles_labels()
+fig.legend(h, l, loc="lower center", ncol=4, fontsize=6.5, bbox_to_anchor=(0.5, -0.12))
 save(fig, "fig_pressure_profiles.pdf")
 
 # ---------------------------------------------------------------- FS of the drawdown states
@@ -251,10 +273,10 @@ Tval = {"T0": 1e-2, "T0.1": 0.1, "T1": 1.0, "T10": 10.0, "steady": 1e3}
 order = [s for s in ["T0", "T0.1", "T1", "T10", "steady"] if s in fs]
 fig, axs = plt.subplots(1, 2, figsize=(6.8, 2.8))
 for ax, col, bcol, lab in [(axs[0], 3, 0, "redução de resistência"), (axs[1], 2, 2, "aumento de gravidade")]:
-    for cyc in range(fs[order[0]].shape[0]):
+    ncyc = min(fs[s].shape[0] for s in order)
+    for cyc in range(ncyc):
         ax.semilogx([Tval[s] for s in order], [fs[s][cyc, col] for s in order], "o-", ms=3, lw=0.8,
-                    alpha=0.35 + 0.65 * cyc / max(1, fs[order[0]].shape[0] - 1), color="C0",
-                    label="FE, ciclo %d" % cyc)
+                    alpha=0.35 + 0.65 * cyc / max(1, ncyc - 1), color="C0", label="FE, ciclo %d" % cyc)
     bs = [s for s in order if s in bish]
     ax.semilogx([Tval[s] for s in bs], [bish[s][bcol] for s in bs], "k^", ms=5, mfc="none", label="Bishop")
     for s, ls in [("dry", ":"), ("crest", "--")]:
@@ -276,9 +298,9 @@ fig, axs = plt.subplots(1, 2, figsize=(6.8, 2.4))
 for ax, s in zip(axs, ["T0", "steady"]):
     pts, tris, f = read_vtk(os.path.join(dd_dir, "drawdown_%s.scal_vec.0.vtk" % s))
     v = np.maximum(f["StrainPlasticJ2"], 0)
-    tp = ax.tripcolor(pts[:, 0], pts[:, 1], tris, v / v.max(), shading="gouraud", cmap="magma_r", vmin=0, vmax=0.3)
-    ax.triplot(pts[:, 0], pts[:, 1], tris, lw=0.08, color="0.6")
-    outline(ax)
+    tp = ax.tripcolor(pts[:, 0], pts[:, 1], tris, v / v.max(), shading="gouraud", cmap="inferno_r", vmin=0, vmax=0.5)
+    ax.triplot(pts[:, 0], pts[:, 1], tris, lw=0.1, color="0.75")
+    outline(ax, zoom=True)
     if s in bish:
         circle(ax, *bish[s][1], color="c", lw=1.0, ls="--")
     ax.set_title("SRM, %s" % titles[s])
