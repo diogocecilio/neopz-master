@@ -7,7 +7,8 @@
 //     with the pore pressure frozen and applied as the seepage body force b = gamma_sat g - grad p+
 //     (p+ = max(p, 0): suction neglected).
 //
-// Usage: SlopeDrawdown [nref=<n>] [L=<reservoir level after the drawdown, default 30 (toe)>]
+// Usage: SlopeDrawdown [nref=<n>] [ref=<uniform refinements of the u-p and FS meshes, default 1>]
+//                      [L=<reservoir level after the drawdown in [30, 40], default 30 (toe)>]
 #include "../SlopeMohrCoulomb/SlopeAnalysis.h"
 #include "../SlopeMohrCoulomb/SlopeModel.h"
 #include "Plasticity/TPZMatPoroElastoPlasticUP.h"
@@ -17,7 +18,9 @@
 #include "TPZSkylineNSymStructMatrix.h"
 #include "pzgeoelbc.h"
 
+#include <algorithm>
 #include <cstring>
+#include <functional>
 #include <map>
 #include <string>
 #include <vector>
@@ -55,7 +58,7 @@ TPZCompMesh *CreateAtomicMesh(TPZGeoMesh *gmesh, int nstate, int order, const st
     return cmesh;
 }
 
-/// Biot u-p mesh of the slope (plane strain, Taylor-Hood: u of order porder >= 2, p of order porder - 1).
+/// Biot u-p mesh of the slope (plane strain, Taylor-Hood: u P2 and p P1, porder = 2).
 /// Base fixed, sides on rollers, base and sides impermeable. Reservoir level H = H0 - lambda (H0 - H1), lambda =
 /// load factor of the step (0: crest, 1: drawn down; bisection interpolates it). Ground surface (toe -3, crest -4,
 /// face -6): p = gamma_w (H - y)+, i.e. drained above the water (the phreatic surface stays at the crest, as in
@@ -64,6 +67,7 @@ template <class TPlastic>
 TPZMultiphysicsCompMesh *CreateCompMesh(TPZGeoMesh *gmesh, int porder, const TPlastic &model, const Soil &s,
                                         const Water &w) {
     using B = TPZMatPoroElastoPlasticUPBase;
+    if (porder != 2) DebugStop(); // PoreField and the nodal Dirichlet values assume a P1 pressure
     const std::set<int> bcids = {-1, -2, -3, -4, -5, -6, -13, -16};
     TPZManVector<TPZCompMesh *, 2> meshvec = {CreateAtomicMesh(gmesh, 2, porder, bcids),
                                               CreateAtomicMesh(gmesh, 1, porder - 1, bcids)};
@@ -107,7 +111,7 @@ TPZMultiphysicsCompMesh *CreateCompMesh(TPZGeoMesh *gmesh, int porder, const TPl
 }
 
 /// Pore pressure of the u-p analysis (linear on each triangle of the u-p mesh) at any point of the slope
-class PoreField {
+class PoreField { // the FS mesh must be the u-p mesh or a refinement of it (grad p constant per element)
     struct Tri {
         REAL x0[2], inv[4], p0, dp[2]; // x = x0 + J xi, inv = J^-1, p = p0 + dp . xi
     };
@@ -116,7 +120,8 @@ class PoreField {
 public:
     PoreField() = default; // dry slope
 
-    PoreField(const TUPAnalysis &an, TPZGeoMesh *gmesh) {
+    /// linear interpolation of the vertex values p(node) on the volume triangles of gmesh
+    PoreField(TPZGeoMesh *gmesh, const std::function<REAL(int64_t)> &pnode) {
         for (int64_t i = 0; i < gmesh->NElements(); i++) {
             TPZGeoEl *gel = gmesh->Element(i);
             if (!gel || gel->HasSubElement() || gel->MaterialId() != 1) continue;
@@ -124,7 +129,7 @@ public:
             for (int k = 0; k < 3; k++) {
                 x[k][0] = gel->NodePtr(k)->Coord(0);
                 x[k][1] = gel->NodePtr(k)->Coord(1);
-                p[k] = an.NodalValue(gel->NodeIndex(k), 1, 0);
+                p[k] = pnode(gel->NodeIndex(k));
             }
             const REAL a = x[1][0] - x[0][0], b = x[2][0] - x[0][0], c = x[1][1] - x[0][1], d = x[2][1] - x[0][1];
             const REAL det = a * d - b * c;
@@ -184,8 +189,8 @@ struct State {
 
 /// FS by gravity increase and by strength reduction (as in SlopeMohrCoulomb) for a frozen pore pressure
 template <class TPlastic>
-std::pair<REAL, REAL> FactorOfSafety(const TPlastic &model, const Soil &s, const State &st, int nref) {
-    TPZGeoMesh *gmesh = TriGMesh(1);
+std::pair<REAL, REAL> FactorOfSafety(const TPlastic &model, const Soil &s, const State &st, int ref, int nref) {
+    TPZGeoMesh *gmesh = TriGMesh(ref); // same level as the u-p mesh: grad p+ is constant in each element
     TPZCompMesh *cmesh = CreateCMesh(gmesh, 2, model, s);
     SetSeepageForce<TPlastic>(cmesh, st.pf, s.gamma);
     SlopeAnalysis<TPlastic> slope(cmesh);
@@ -197,7 +202,7 @@ std::pair<REAL, REAL> FactorOfSafety(const TPlastic &model, const Soil &s, const
         slope.MarkPlasticZone(0.1);
         std::cout << "[" << st.name << "] refinement " << k << ": " << cmesh->NEquations() << " equations, FS GI "
                   << fsGI << ", FS SRM " << fsSRM << "\n";
-        if (k == nref) break;
+        if (k >= nref) break;
         slope.Refine();
     }
     slope.PostPlasticity("drawdown_" + st.name + ".vtk");
@@ -207,8 +212,8 @@ std::pair<REAL, REAL> FactorOfSafety(const TPlastic &model, const Soil &s, const
 }
 
 /// u-p analysis: pore pressure before the drawdown, right after it (undrained) and during the consolidation
-std::vector<State> PorePressureStates(const TMCVoigt &model, const Soil &s, const Water &w, REAL Tc) {
-    TPZGeoMesh *gmesh = TriGMesh(2);
+std::vector<State> PorePressureStates(const TMCVoigt &model, const Soil &s, const Water &w, REAL Tc, int ref) {
+    TPZGeoMesh *gmesh = TriGMesh(ref);
     AddWaterLoadElements(gmesh);
     TPZMultiphysicsCompMesh *mphys = CreateCompMesh(gmesh, 2, model, s, w); // no renumbering: p after u (ELU)
     std::vector<State> states;
@@ -226,12 +231,13 @@ std::vector<State> PorePressureStates(const TMCVoigt &model, const Soil &s, cons
         vec.Push("Displacement");
         an.DefineGraphMesh(2, scal, vec, "drawdown_up.vtk");
         auto record = [&](const std::string &name, REAL t) {
-            states.push_back({name, t, PoreField(an, gmesh)});
+            states.push_back({name, t, PoreField(gmesh, [&an](int64_t n) { return an.NodalValue(n, 1, 0); })});
             an.SetStep(int(states.size()) - 1);
             an.PostProcess(1, 2);
         };
         // reservoir at the crest: gravity in one drained step (steady state); rapid drawdown at t = 0: undrained
-        // step (Dt = 0, lambda 0 -> 1); consolidation: T = cv t / H^2 = 1e-3 ... 10 (4 steps per decade), steady
+        // step (Dt = 0, lambda 0 -> 1); consolidation: T = cv t / H^2 = 1e-3 ... 10 (4 steps per decade) and steady
+        // seepage with the phreatic surface kept at the crest (the rapid-drawdown field of Ceron et al.)
         using TS = TUPAnalysis::TLoadState;
         bool ok = an.Run({TS(0., 0., 0.)}, nullptr, TS(-1.e4 * Tc, 0., 0.));
         if (ok) record("crest", -1.);
@@ -245,6 +251,9 @@ std::vector<State> PorePressureStates(const TMCVoigt &model, const Soil &s, cons
                           TS(0., 1., 0.));
         if (!ok) std::cout << "u-p analysis stopped\n";
     }
+    // reference: drained after the drawdown without recharge (water table at the reservoir level, hydrostatic)
+    states.push_back({"drained", -1., PoreField(gmesh, [&](int64_t n) {
+                          return w.gammaw * std::max<REAL>(w.H1 - gmesh->NodeVec()[n].Coord(1), 0.); })});
     TPZManVector<TPZCompMesh *, 2> atomic(mphys->MeshVector());
     delete mphys;
     for (auto *m : atomic) delete m;
@@ -253,21 +262,26 @@ std::vector<State> PorePressureStates(const TMCVoigt &model, const Soil &s, cons
 }
 
 int main(int argc, char *argv[]) {
-    int nref = 2;
+    int nref = 2, ref = 1;
     Soil s;
     s.nu = 0.3; // drained Poisson ratio of the skeleton (the undrained response comes from the coupling)
     Water w;
     for (int i = 1; i < argc; i++) {
-        if (!strncmp(argv[i], "nref=", 5)) nref = atoi(argv[i] + 5);
+        if (!strncmp(argv[i], "nref=", 5)) nref = std::max(0, atoi(argv[i] + 5));
+        else if (!strncmp(argv[i], "ref=", 4)) ref = std::max(0, atoi(argv[i] + 4));
         else if (!strncmp(argv[i], "L=", 2)) w.H1 = atof(argv[i] + 2);
+    }
+    if (w.H1 < 30. || w.H1 > w.H0) { // no water load on the crest, no reservoir below the toe
+        std::cout << "L must be in [30, 40]\n";
+        return 1;
     }
     const TMCVoigt model = ModelVoigt(s);
     const REAL M = s.E * (1. - s.nu) / ((1. + s.nu) * (1. - 2. * s.nu)); // oedometric modulus
     const REAL Tc = 100. / (w.kh / w.gammaw * M);                     // t = T H^2 / cv, H = 10 m
     std::vector<State> states = {{"dry", -1., PoreField()}};
-    for (auto &st : PorePressureStates(model, s, w, Tc)) states.push_back(st);
+    for (auto &st : PorePressureStates(model, s, w, Tc, ref)) states.push_back(st);
     std::vector<std::pair<REAL, REAL>> fs;
-    for (auto &st : states) fs.push_back(FactorOfSafety(model, s, st, nref));
+    for (auto &st : states) fs.push_back(FactorOfSafety(model, s, st, ref, nref));
     std::cout << "\nstate  t (day)  T = cv t / H^2  FS(gravity increase)  FS(strength reduction)\n";
     for (size_t i = 0; i < states.size(); i++) {
         std::cout << "  " << states[i].name << "  ";

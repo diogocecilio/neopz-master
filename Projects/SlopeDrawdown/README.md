@@ -13,7 +13,7 @@ percolação = −∇p como forças de volume, resistência em tensões efetivas
 
 1. **Análise u-p (Biot) poro-elastoplástica** — `TPZMatPoroElastoPlasticUP` com o Mohr–Coulomb do
    artigo (`TPZPlasticStepVoigt<TPZYCMohrCoulombPV2>`) e o driver `TPZPoroElastoPlasticUPAnalysis`;
-   Taylor–Hood (u P2, p P1) em `TriGMesh(2)`.
+   Taylor–Hood (u P2, p P1) em `TriGMesh(ref)` (`ref=1`, a malha inicial de `SlopeMohrCoulomb`).
    * Contornos mecânicos: base fixa, laterais em rolete. Hidráulicos: base e laterais impermeáveis;
      superfície do terreno (pé −3, topo −4, face −6) com p = γw (H − y)⁺ e carga d'água t = −γw (H − y)⁺ n
      nas partes submersas (elementos gêmeos −13 e −16, pois um id de contorno tem uma só condição).
@@ -23,9 +23,11 @@ percolação = −∇p como forças de volume, resistência em tensões efetivas
    * Passos: (a) gravidade com o reservatório no topo em um passo drenado (regime permanente);
      (b) rebaixamento instantâneo: passo não drenado (Δt = 0, λ: 0 → 1); (c) adensamento
      (percolação transiente), T = c_v t / H² = 10⁻³ … 10 (4 passos por década) e regime permanente.
-2. **Estabilidade** em cada estado (`dry`, `crest`, `T0`, `T0.1`, `T1`, `T10`, `steady`):
-   `SlopeAnalysis.h` sem alteração, malha elastoplástica de `SlopeMohrCoulomb` com a força de volume
-   substituída por b = λ(γ_sat g − ∇p⁺), p⁺ = max(p, 0) (sucção desprezada), p congelado do estado.
+2. **Estabilidade** em cada estado (`dry`, `crest`, `T0`, `T0.1`, `T1`, `T10`, `steady` e a referência
+   `drained`: linha freática no nível final, hidrostática, sem recarga pelo topo):
+   `SlopeAnalysis.h` sem alteração, malha elastoplástica de `SlopeMohrCoulomb` partindo do mesmo nível
+   `TriGMesh(ref)` da malha u-p (∇p constante em cada elemento, inclusive após o refinamento), com a força
+   de volume substituída por b = λ(γ_sat g − ∇p⁺), p⁺ = max(p, 0) (sucção desprezada), p congelado.
    * No aumento de gravidade λ multiplica γ_sat **e** ∇p (pesos do solo e da água), o que equivale a
      c/λ; no SRM λ = 1 e c, tan φ são reduzidos.
    * Com p = p_água no contorno submerso, a tração efetiva é nula: o problema efetivo com b é
@@ -46,7 +48,8 @@ dependem de k).
 ninja SlopeDrawdown
 ./SlopeDrawdown            # 2 ciclos de refinamento da zona plástica
 ./SlopeDrawdown nref=3
-./SlopeDrawdown L=35       # rebaixamento parcial (nível final y = 35)
+./SlopeDrawdown ref=2      # malhas u-p e de estabilidade mais finas (bem mais lento)
+./SlopeDrawdown L=35       # rebaixamento parcial (nível final y = 35; L em [30, 40])
 ```
 
 Saídas: `drawdown_up.scal_vec.N.vtk` (pressão e deslocamento da análise u-p, N = estado) e
@@ -74,5 +77,12 @@ e Bishop simplificado com o mesmo campo p⁺ (busca de círculos, script indepen
   modelado.
 * `TPZPlasticStepVoigt` é formulado em deformação total: o estado inicial vem do passo de gravidade
   (σ' inicial da memória é ignorado).
-* Mohr–Coulomb associativo: no passo não drenado a dilatância plástica geraria sucção; o acréscimo
-  de resistência correspondente é desprezado no FS (p⁺, análise drenada com p congelado).
+* Mohr–Coulomb associativo (o retorno fechado exige ψ = φ): no passo não drenado a dilatância
+  plástica gera sucção (≈ 7 kPa em profundidade, contra ≈ 28 kPa da variação causada pelo
+  rebaixamento), o que reduz p logo após o rebaixamento; o regime permanente não depende disso.
+* Quando o FS fica abaixo de 1 (a partir de T ≈ 1), a própria análise u-p entra em colapso: no último
+  passo (T = 10 → regime permanente) os deslocamentos de uma cunha junto à face crescem sem limite;
+  a poropressão continua sendo a da percolação permanente (diferença ≤ 3 kPa, termo de armazenamento),
+  mas os deslocamentos desse estado não têm significado físico.
+* Com o Mohr–Coulomb de deformação total, uma tensão efetiva inicial dada em `InitializeMemory` é
+  convertida na deformação própria εᵖ = ε − Dᵉ⁻¹σ'₀ (correção feita no material u-p).

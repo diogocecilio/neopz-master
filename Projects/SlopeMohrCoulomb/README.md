@@ -74,11 +74,11 @@ Fator de segurança (ν = 0,49, tolerância de 0,2 % no parâmetro; `nref=5`):
 | 3 | 1814 | 1,918 | 1,229 | 1,918 | 1,229 |
 | 4 | 3408 | 1,840 | 1,215 | 1,840 | 1,212 |
 | 5 | 7684 / 7142 | 1,793 | 1,203 | 1,797 | 1,203 |
-| Bishop simplificado | — | 1,857 | 1,209 | | |
+| Bishop simplificado | — | 1,806 | 1,206 | | |
 
 * Os dois modelos constitutivos, independentes, dão o mesmo FS (diferenças dentro da tolerância).
 * O FS converge com o refinamento da zona plástica para os valores de equilíbrio-limite (Bishop,
-  busca de círculos, script independente). Malha grossa superestima muito o FS por gravidade
+  busca de círculos multi-início, `docs/slope_mohr_coulomb/scripts/bishop_pw.py`). Malha grossa superestima muito o FS por gravidade
   (mecanismo raso, junto à face).
 * O fator de gravidade não é o FS de redução de resistência: para Mohr–Coulomb, multiplicar γ por λ
   equivale a dividir só c por λ, logo FS_gravidade ≥ FS_SRM quando φ > 0.
@@ -105,20 +105,21 @@ componentes tensoriais. O commit `e16d8bc` introduziu essa convenção no materi
 | `TPZYCMohrCoulombPV.cpp` | ψ = 0 no ápice: 0/0; `k_proj` não definido no ramo elástico; `SigmaElastPV` atribuía o vetor inteiro | NaN; endurecimento zerado | guardas; `k_proj = k_prev`; índices |
 | `TPZYCMohrCoulombPV2.cpp` | Ramo elástico `alphan = alphan1` (sobrescreve a **entrada** com a saída não inicializada) | memória com lixo (UB) | `alphan1 = alphan` |
 | `TPZYCMohrCoulombPV2.cpp` | Ápice com Jacobiano −1e-11 (artigo: Dep = 0); teste elástico `Φ < 0` (artigo Eq. 56: `Φ ≤ 0`); todas as regiões com `m_type = 1` | tangente negativa espúria; regiões indistinguíveis | Jacobiano nulo; `≤ 0`; 1 plano, 2 aresta direita, 3 aresta esquerda, −1 ápice |
-| `TPZYCMohrCoulombPV2.h/.cpp` | `YieldFunction`, `SetLocalMatState`, `ChangeLocalMatParameters`, `Print` vazios; funções não-void sem `return`; ψ ignorado sem aviso | SRM impossível; UB | implementados (Eq. 44, 45, 49; c/F, atan(tanφ/F)); stubs com `DebugStop`; `DebugStop` se ψ ≠ φ (método associativo) |
+| `TPZYCMohrCoulombPV2.h/.cpp` | `YieldFunction`, `SetLocalMatState`, `ChangeLocalMatParameters` vazios; `Print` só escrevia "Should not be called" em `std::cout`; funções não-void sem `return`; ψ ignorado sem aviso | SRM impossível; UB | implementados (Eq. 44, 45, 49; c/F, atan(tanφ/F)); stubs com `DebugStop`; `DebugStop` se ψ ≠ φ (método associativo) |
 | `TPZPlasticStepVoigt.cpp/.h` | `STATE hvarnew;` não inicializado gravado em `fN.m_hardening` | UB / NaN na memória | inicializado com o estado anterior |
 | `TPZPlasticStepVoigt.cpp` | `SetElasticResponse` não repassava o ER ao critério (G, K da projeção) | projeção e tangente com módulos diferentes do preditor (ordem 1) | repassa (também no construtor) |
 | `TPZPlasticStepVoigt.cpp/.h` | Sem fator de redução; cópia descartava `fN`; `ClassId()==0`, `Read/Write` vazios; `Phi()`=0; `ApplyStrainComputeDep` nulo | SRM impossível; serialização e `Yield` inúteis | `SetStrengthReductionFactor`, `LocalCriterion()`, cópia completa, serialização, `Phi` real |
+| `TPZPlasticStepVoigt.cpp` | Ramo plástico só para `m_type == 1` | com as regiões novas (2, 3, −1) arestas e ápice receberiam a tangente elástica | `type == 0` elástico, demais plásticos |
+| `TPZPlasticStepVoigt.cpp` | `ApplyStrain` só gravava `m_eps_t`; `ApplyLoad` devolvia zero em silêncio | memória incoerente; resultado falso | atualização completa; `ApplyLoad` com `DebugStop` |
 | `TPZPlasticStepVoigt.cpp` | Ramo elástico reconstruía σ pela decomposição espectral | erro ~1e-8 com autovalores repetidos (atrapalha o critério de Newton) | σ = σ_trial; no ramo plástico soma só a correção plástica |
 | `TPZYCTrescaVoigt.cpp/.h`, `TPZYCVonMisesVoigt.h` | mesmo `alphan = alphan1` do PV2 (Tresca); `YieldFunction` = `DebugStop` | endurecimento corrompido; `Phi()`/`Yield` abortaria | `alphan1 = alphan`; funções de escoamento implementadas |
-| `TPZElasticResponse.cpp` | `operator=` não copiava σ* | cópia incompleta | corrigido |
 | `TPZPlasticState.h` | Construtor de cópia: `fmatpropinit(source.fmatprop)` | propriedades "iniciais" viram as reduzidas → reduções compostas | `fmatpropinit(source.fmatpropinit)` |
 | `TPZMatElastoPlastic_impl.h` | `m_m_type` não gravado na memória; `m_u` guardava só o último incremento | `FailureType` sempre 0; `DisplacementDoF` errado | grava `m_m_type`; `m_u += Δu` |
 | `TPZMatElastoPlastic_impl.h` | Elasticidade não linear gravava `m_ER` na memória a cada avaliação (fora de `fUpdateMem`) | escrita fora do commit (sem efeito observável hoje) | ER local; gravado só no commit |
 | `TPZMatElastoPlastic_impl.h` | Autovalores e J₂ de deformação calculados com γ no slot tensorial | J₂(εᵖ) com parcela de cisalhamento ×4 | conversão γ→ε antes dos invariantes |
 | `TPZMatElastoPlastic_impl.h/.h` | Cópia sem `m_force0`/`fExactSolution`; ponteiro não inicializado; `EEXACT` lia `sol[1]`; `NSolutionVariables` 6 para 3 valores | UB, pós-processamento errado | corrigidos |
 | `TPZMatElastoPlastic_impl.h/.h`, `TPZYCMohrCoulombPV2.h` | `POrder`, `Coesion`, `Atrito` pedidos pelo pós-processamento original não existiam | variável desconhecida | `EPOrder`, `ECohesion`, `EFriction` (c e φ do critério local, já reduzidos) |
-| `TPZMatElastoPlastic2D_impl.h` | `auto bc_with_memory = ...` (cópia profunda de toda a memória do contorno a cada ponto de integração); BC tipo 4 escrevia em `Val2` compartilhado | custo O(n²) por montagem; corrida entre threads | referência; tração local |
+| `TPZMatElastoPlastic2D_impl.h` | `auto bc_with_memory = ...` (cópia profunda de toda a memória do contorno a cada ponto de integração, e a atualização de `m_u` ia para a cópia descartada); BC tipo 4 escrevia em `Val2` compartilhado | custo O(n²) por montagem; deslocamento do contorno perdido; corrida entre threads | referência; tração local |
 | `TPZMatWithMem.h` | `operator=` sem `return` e chamada inválida em `shared_ptr` | UB / não compila se usado | corrigido |
 | `pzelastoplasticanalysis.cpp` | Buscas lineares dicotômica (padrão) e áurea clonavam **a malha inteira com a memória** a cada iteração e vazavam; a dicotômica nunca testava o passo completo | vazamento de memória; convergência linear | avaliação in loco; na dicotômica o passo completo é aceito se reduzir ‖R‖ |
 | `pzelastoplasticanalysis.cpp` | `ELineSearch::None` deixava `fSolution` vazio; sem saída para NaN (agora mantém o último iterado finito); `ManageIterativeProcess` aceitava passo não convergido; `SetAllCreateFunctionsWithMem` instalava 8 ponteiros nulos | falhas/estado plástico corrompido | corrigidos |

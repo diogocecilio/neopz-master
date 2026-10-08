@@ -23,7 +23,7 @@ plt.rcParams.update({"font.size": 9, "axes.titlesize": 9, "legend.fontsize": 8, 
                      "savefig.bbox": "tight", "font.family": "serif"})
 slope_dir, dd_dir, taylor_csv, laplace_dir, out = sys.argv[1:6]
 os.makedirs(out, exist_ok=True)
-BISHOP_DRY = (1.209, 1.802)  # Bishop simplified: SRM, gravity increase (scripts/bishop_pw.py)
+BISHOP_DRY = (1.206, 1.806)  # Bishop simplified: SRM, gravity increase (scripts/bishop_pw.py)
 GROUND = np.array([[0, 40], [30, 40], [40, 30], [70, 30], [70, 0], [0, 0], [0, 40]])
 
 
@@ -136,22 +136,38 @@ save(fig, "fig_mesh.pdf")
 # ---------------------------------------------------------------- Taylor test
 if os.path.exists(taylor_csv):
     rows = list(csv.DictReader(open(taylor_csv)))
-    fig, axs = plt.subplots(1, 2, figsize=(6.6, 2.9), sharey=True)
-    for ax, model in zip(axs, sorted({r["model"] for r in rows})):
-        for case in dict.fromkeys(r["case"] for r in rows if r["model"] == model):
-            rr = [r for r in rows if r["model"] == model and r["case"] == case]
-            a = np.array([float(r["alpha"]) for r in rr])
-            e = np.array([float(r["err2"]) for r in rr])
-            if np.max(e) <= 0:
-                continue
-            ax.loglog(a, np.maximum(e, 1e-16), "o-", ms=2.5, lw=0.8, label="%s (m=%s)" % (case, rr[0]["m_type"]))
-        a = np.array([1e-6, 1e-2])
-        ax.loglog(a, 1e2 * a ** 2, "k--", lw=0.7, label="ordem 2")
+    labels = {}
+    info = os.path.join(os.path.dirname(taylor_csv), "case_info.csv")
+    if os.path.exists(info):
+        labels = {(r["model"], r["case"]): r["label"] for r in csv.DictReader(open(info))}
+    floor = os.path.join(os.path.dirname(taylor_csv), "diag_floor.csv")
+    panels = [("PV", "PV legado (corrigido)", "err2"), ("Voigt", "RHW (artigo)", "err2")]
+    if os.path.exists(floor):
+        panels.append(("Jacobi", "RHW, autovalores por Jacobi", "err2_jacobi"))
+    fig, axs = plt.subplots(1, len(panels), figsize=(6.9, 2.7), sharey=True)
+    for ax, (model, title, col) in zip(axs, panels):
+        if model == "Jacobi":
+            rr_all = [dict(r, model="Voigt") for r in csv.DictReader(open(floor))]
+        else:
+            rr_all = [r for r in rows if r["model"] == model]
+        for case in dict.fromkeys(r["case"] for r in rr_all):
+            rr = [r for r in rr_all if r["case"] == case]
+            seen, uniq = set(), []
+            for r in rr:
+                if r["alpha"] not in seen:
+                    seen.add(r["alpha"])
+                    uniq.append(r)
+            a_ = np.array([float(r["alpha"]) for r in uniq])
+            e_ = np.array([float(r[col]) for r in uniq])
+            lab = labels.get(("Voigt" if model == "Jacobi" else model, case), case)
+            ax.loglog(a_, np.maximum(e_, 1e-17), "o-", ms=2.2, lw=0.8, label=lab)
+        a_ = np.array([1e-6, 1e-2])
+        ax.loglog(a_, 1e2 * a_ ** 2, "k--", lw=0.7, label="ordem 2")
         ax.set_xlabel(r"$\alpha$")
-        ax.set_title(model, fontsize=8)
+        ax.set_title(title, fontsize=8)
         ax.grid(alpha=0.3, which="both")
     axs[0].set_ylabel(r"$\|\sigma(\varepsilon+\alpha\Delta\varepsilon)-\sigma(\varepsilon)-\alpha\,\mathbb{D}\Delta\varepsilon\|$")
-    axs[1].legend(loc="lower right", fontsize=6.5)
+    axs[-1].legend(loc="lower right", fontsize=5.5)
     save(fig, "fig_taylor.pdf")
 
 # ---------------------------------------------------------------- Newton convergence (SLOPE_VERBOSE)
@@ -264,11 +280,25 @@ for l in open(os.path.join(dd_dir, "out.txt")):
         fs.setdefault(m.group(1), []).append([int(m.group(2)), int(m.group(3)), float(m.group(4)), float(m.group(5))])
 fs = {k: np.array(v) for k, v in fs.items()}
 bish = {}
-for s, fname in [("dry", "bishop_dry.txt"), ("crest", "bishop_crest.txt")] + \
+bdir = os.path.join(dd_dir, "bms") if os.path.isdir(os.path.join(dd_dir, "bms")) else dd_dir
+for s, fname in [("dry", "bishop_dry.txt"), ("crest", "bishop_crest.txt"), ("drained", "bishop_drained.txt")] + \
         [(st, "bishop_%d.txt" % k) for k, st in enumerate(states) if k > 0]:
-    p = os.path.join(dd_dir, fname)
+    p = os.path.join(bdir, fname)
     if os.path.exists(p) and "FS(SRM)" in open(p).read():
         bish[s] = bishop(p)
+# LaTeX table of the FS of every state (FE cycles and Bishop)
+num = lambda v: ("%.3f" % v).replace(".", ",")
+lab = {"dry": "seco", "crest": "reservatório no topo", "T0": "logo após o rebaixamento", "T0.1": "adensamento",
+       "T1": "adensamento", "T10": "adensamento", "steady": "percolação permanente", "drained": "drenado (freática no pé)"}
+Tlab = {"T0": "0", "T0.1": "0,1", "T1": "1", "T10": "10", "steady": r"$\infty$"}
+with open(os.path.join(out, "tab_fs_drawdown.tex"), "w") as ftab:
+    for st in ["dry", "crest", "T0", "T0.1", "T1", "T10", "steady", "drained"]:
+        if st not in fs:
+            continue
+        b = bish.get(st)
+        ftab.write("%s & %s & %s & %s & %s & %s \\\\\n" % (lab[st], Tlab.get(st, "---"),
+                   " / ".join(num(v) for v in fs[st][:, 2]), " / ".join(num(v) for v in fs[st][:, 3]),
+                   num(b[2]) if b else "", num(b[0]) if b else ""))
 Tval = {"T0": 1e-2, "T0.1": 0.1, "T1": 1.0, "T10": 10.0, "steady": 1e3}
 order = [s for s in ["T0", "T0.1", "T1", "T10", "steady"] if s in fs]
 fig, axs = plt.subplots(1, 2, figsize=(6.8, 2.8))
@@ -279,10 +309,10 @@ for ax, col, bcol, lab in [(axs[0], 3, 0, "redução de resistência"), (axs[1],
                     alpha=0.35 + 0.65 * cyc / max(1, ncyc - 1), color="C0", label="FE, ciclo %d" % cyc)
     bs = [s for s in order if s in bish]
     ax.semilogx([Tval[s] for s in bs], [bish[s][bcol] for s in bs], "k^", ms=5, mfc="none", label="Bishop")
-    for s, ls in [("dry", ":"), ("crest", "--")]:
+    for s, ls, c, name in [("dry", ":", "C3", "seco"), ("crest", "--", "C2", "reservatório no topo"),
+                           ("drained", "-.", "C1", "drenado (freática no pé)")]:
         if s in fs:
-            ax.axhline(fs[s][-1, col], color="C3" if s == "dry" else "C2", lw=0.8, ls=ls,
-                       label=("seco" if s == "dry" else "reservatório no topo") + " (FE)")
+            ax.axhline(fs[s][-1, col], color=c, lw=0.8, ls=ls, label=name + " (FE)")
     ax.axhline(1.0, color="k", lw=0.5)
     ax.set_xticks([1e-2, 1e-1, 1, 10, 1e3])
     ax.set_xticklabels(["0", "0,1", "1", "10", r"$\infty$"])

@@ -21,6 +21,7 @@
 #include <cmath>
 #include <map>
 #include <memory>
+#include <type_traits>
 
 template <class T, class TMEM>
 TPZMatPoroElastoPlasticUP<T, TMEM>::TPZMatPoroElastoPlasticUP()
@@ -589,6 +590,13 @@ void TPZMatPoroElastoPlasticUP<T, TMEM>::InitializeMemory(
     ForEachIntegrationPoint(mesh, [&](TPZCompEl *, int, const TPZVec<REAL> &x, const TPZVec<REAL> &, REAL, TMEM &mem) {
         mem = def;
         init(x, mem);
+        // a total-strain plastic step (TPZPlasticStepVoigt) does not read m_sigma: the initial effective stress
+        // becomes the eigenstrain eps_p = eps_t - De^-1 sigma0, so that De (eps - eps_p) = sigma0 at eps = eps_t
+        if constexpr (!std::is_same_v<T, TPZPlasticStepModifiedCamClay>) {
+            TPZTensor<REAL> epse;
+            fPlasticity.GetElasticResponse().ComputeStrain(mem.m_sigma, epse);
+            mem.m_elastoplastic_state.m_eps_p = mem.m_elastoplastic_state.m_eps_t - epse;
+        }
     });
 }
 
@@ -652,3 +660,4 @@ template class TPZMatPoroElastoPlasticUP<TPZPlasticStepModifiedCamClay, TPZElast
 template class TPZRestoreClass<TPZMatPoroElastoPlasticUP<TPZPlasticStepModifiedCamClay, TPZElastoPlasticMem>>;
 // Mohr-Coulomb (closed-form RHW projection, paper model): total-strain update, the stress of the memory is not used
 template class TPZMatPoroElastoPlasticUP<TPZPlasticStepVoigt<TPZYCMohrCoulombPV2, TPZElasticResponse>, TPZElastoPlasticMem>;
+template class TPZRestoreClass<TPZMatPoroElastoPlasticUP<TPZPlasticStepVoigt<TPZYCMohrCoulombPV2, TPZElasticResponse>, TPZElastoPlasticMem>>;

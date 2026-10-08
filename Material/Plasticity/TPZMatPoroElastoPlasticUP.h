@@ -140,6 +140,12 @@ protected:
  *  - m_elastoplastic_state.m_m_type: 0 elastic, 1 subcritical plastic, 2 supercritical plastic;
  *  - m_elastoplastic_state.fpressure: pore pressure \f$p_{w,n}\f$ at the point.
  * The memory is updated only when TPZMatWithMem::fUpdateMem is set (after convergence of the step).
+ * With the Mohr-Coulomb step TPZPlasticStepVoigt<TPZYCMohrCoulombPV2> the update is in total strain,
+ * \f$\sigma' = \mathbb{D}^e(\varepsilon-\varepsilon^p)\f$ + plastic correction: m_sigma is an output only (an initial
+ * effective stress set by InitializeMemory is turned into the eigenstrain m_eps_p), m_hardening is the
+ * accumulated plastic multiplier, fmatprop holds optional point properties (c, phi, psi) and m_m_type is
+ * 0 elastic, 1 main plane, 2/3 edges, -1 apex; the outputs PreconsolidationPressure, PlasticType and
+ * SpecificVolume then report these raw values.
  *
  * @tparam T plastic step with the interface of TPZPlasticStepModifiedCamClay: ApplyStrainComputeSigma
  * receives the converged stress in @c sigma and returns the tangent with respect to engineering strains;
