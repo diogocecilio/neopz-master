@@ -78,11 +78,14 @@ e Bishop simplificado com o mesmo campo p⁺ (busca de círculos, script indepen
 * `TPZPlasticStepVoigt` é formulado em deformação total: o estado inicial vem do passo de gravidade
   (σ' inicial da memória é ignorado).
 * Mohr–Coulomb associativo (o retorno fechado exige ψ = φ): no passo não drenado a dilatância
-  plástica gera sucção (≈ 7 kPa em profundidade, contra ≈ 28 kPa da variação causada pelo
-  rebaixamento), o que reduz p logo após o rebaixamento; o regime permanente não depende disso.
-* Quando o FS fica abaixo de 1 (a partir de T ≈ 1), a própria análise u-p entra em colapso: no último
-  passo (T = 10 → regime permanente) os deslocamentos de uma cunha junto à face crescem sem limite;
-  a poropressão continua sendo a da percolação permanente (diferença ≤ 3 kPa, termo de armazenamento),
-  mas os deslocamentos desse estado não têm significado físico.
+  plástica reduz p (≈ −7 kPa em profundidade, contra ≈ −28 kPa da variação causada pelo
+  rebaixamento). Na malha inicial, com o modelo antigo e ψ = 5°, o FS logo após o rebaixamento é
+  1,106 (SRM) e 1,370 (gravidade), contra 1,137 e 1,540 com ψ = φ: esse FS é otimista em alguns por
+  cento. O regime permanente não depende de ψ.
+* A análise u-p não é refinada: com `ref=1` ela não rompe (FS do ciclo 0 > 1); com `ref=2` uma cunha
+  junto à face se desloca sem limite no último passo (FS < 1). A poropressão continua sendo a da
+  percolação permanente (diferença ≤ 3 kPa), mas esses deslocamentos não têm significado físico.
+* O campo de poropressão depende da malha u-p: Bishop com o campo de `ref=2` dá FS cerca de 4–6 %
+  maior que com o de `ref=1`.
 * Com o Mohr–Coulomb de deformação total, uma tensão efetiva inicial dada em `InitializeMemory` é
   convertida na deformação própria εᵖ = ε − Dᵉ⁻¹σ'₀ (correção feita no material u-p).

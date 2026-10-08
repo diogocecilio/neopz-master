@@ -356,7 +356,8 @@ $S=\int M^{-1}N_p^TN_p$, $H=\int k\nabla N_p^T\nabla N_p$, $f_g=\int k\nabla N_p
 $f_b=\int N_u^T\mathbf b$. O Mohr--Coulomb do artigo foi ligado ao material com uma instanciação explícita
 e \code{LastProjectionFailed()} (a projeção fechada nunca falha). Como \code{TPZPlasticStepVoigt} é
 formulado em deformação total, o estado inicial vem de um passo de gravidade (o $\sig'$ inicial da
-memória é ignorado). Espaços: Taylor--Hood (u P2, p P1) em \code{TriGMesh(2)} (784 triângulos); o driver
+memória é ignorado). Espaços: Taylor--Hood (u P2, p P1) em \code{TriGMesh(ref)} (\code{ref=1}: 196 triângulos, a malha
+inicial de \code{SlopeMohrCoulomb}; \code{ref=2}: 784); o driver
 \code{TPZPoroElastoPlasticUPAnalysis} não renumera as equações, para que as de pressão fiquem depois
 das de deslocamento e a LU sem pivotamento seja estável no passo não drenado ($S=0$, $\Delta t=0$).
 
@@ -506,7 +507,7 @@ efetivo sem carga d'água é equivalente ao problema total. No aumento de gravid
 $\gamma_{sat}$ \emph{e} $\nabla p$ (pesos do solo e da água), o que mantém a equivalência com $c/\lambda$
 e com o fator de estabilidade $\Gamma=\lambda\gamma H/c$ de Ceron et al.; no SRM $\lambda=1$.
 A sucção é desprezada ($p^+$). A malha de estabilidade parte do mesmo nível uniforme da malha u--p
-(\code{TriGMesh(2)}) e só é refinada: assim cada elemento, e cada filho, fica dentro de um triângulo u--p,
+(\code{TriGMesh(ref)}) e só é refinada: assim cada elemento, e cada filho, fica dentro de um triângulo u--p,
 onde $\nabla p$ é constante, e a força de percolação é integrada exatamente (com a malha de estabilidade
 um nível mais grossa, a regra de Gauss misturava gradientes de quatro triângulos com pesos que não são
 as áreas --- erro de 30 a 45\,\% no elemento do pé; ver Seção~\ref{sec:review}).
@@ -540,9 +541,9 @@ A Figura~\ref{fig:pfields} mostra o campo de $p$ e a Figura~\ref{fig:pprof} perf
 \item \textbf{Reservatório no topo}: $p=\gamma_w(40-y)$ (hidrostático) em todo o domínio, como deve ser.
 \item \textbf{Logo após o rebaixamento} (não drenado): a retirada da carga d'água reduz a tensão
   total e, com fluido incompressível, a poropressão: sob o terreno baixo a queda é próxima da do
-  carregamento unidimensional ($\Delta p\approx-\gamma_w\Delta H=-100$~kPa; obtido: $-78$~kPa em
-  $(55,25)$ e $-75$~kPa em $(55,15)$, a carga só existe em $x\ge30$~m), enquanto sob o topo a queda é
-  menor ($-29$~kPa em $(15,20)$). A face e o pé ficam com $p=0$; o mínimo é $-1{,}3$~kPa.
+  carregamento unidimensional ($\Delta p\approx-\gamma_w\Delta H=-100$~kPa; obtido: $-71$~kPa em
+  $(55,25)$ e $-75$~kPa em $(55,15)$, pois a carga só existe em $x\ge30$~m), enquanto sob o topo a
+  queda é menor ($-29$~kPa em $(15,20)$). A face e o pé ficam com $p=0$.
 \item \textbf{Adensamento}: a água do maciço escoa para a face e o pé; $p$ cresce junto à face e ao
   pé e cai sob o topo, até o regime permanente de percolação com a linha freática no topo.
 \end{itemize}
@@ -558,7 +559,8 @@ A Figura~\ref{fig:pfields} mostra o campo de $p$ e a Figura~\ref{fig:pprof} perf
 reservatório ($x=55$~m).}\label{fig:pprof}
 \end{figure}
 
-\paragraph{Verificação independente da percolação.} A malha \code{TriGMesh(2)} foi reimplementada em
+\paragraph{Verificação independente da percolação.} Feita com a malha mais fina (\code{ref=2}). A malha
+\code{TriGMesh(2)} foi reimplementada em
 Python (numpy) com uma montagem P1 própria (\code{scripts/laplace_check.py}: teste de patch com erro
 $10^{-13}$; convergência $O(h^2)$) para a carga total $h=y+p/\gamma_w$, $\nabla^2h=0$, com $h=y$ em
 $-3$, $-4$, $-6$ e fluxo nulo no resto. Comparação nos 435 vértices:
@@ -571,7 +573,9 @@ As diferenças são o termo de armazenamento do último passo de Euler implícit
 $k\,\delta p\approx-\Delta t^{-1}\int N_p\,\Delta(\nabla\!\cdot\mathbf u)$, calculado com os deslocamentos P2
 do próprio VTK (\code{scripts/storage_check.py}): descontado esse termo, a diferença cai para
 $5\cdot10^{-4}$~kPa, a precisão dos números gravados. A parte hidráulica (condições de contorno,
-termo gravitacional, discretização) está verificada.
+termo gravitacional, discretização) está verificada. A solução P1 independente converge com $O(h^2)$:
+diferença máxima nos nós da malha inicial em relação a 5 refinamentos de 5,2; 1,8; 0,55~kPa para
+\code{ref} = 0, 1, 2.
 
 \subsection{Fator de segurança}
 \begin{table}[h]
@@ -609,12 +613,14 @@ são mais lentas porque pontos mudam entre elástico e plástico e porque o res�
 as linhas de pressão (escaladas por $\Delta t$) com as de deslocamento --- comportamento do driver,
 igual ao dos exemplos de Cam-Clay.
 
-\paragraph{Colapso na própria análise u--p.} O deslocamento máximo é 0,30~m com o reservatório no
-topo, 0,35~m de $T=0$ a $T=1$ e 0,40~m em $T=10$; no último passo ($T=10\to10^4$) uma cunha junto à
-face e ao pé se desloca sem limite ($\max|\mathbf u|=174$~m). É coerente com o FS abaixo de 1 a partir
-de $T\approx1$ (Tabela~\ref{tab:fsdd}): o acoplamento (sucção por dilatância) retarda, mas não impede, a
-ruptura. A poropressão desse estado continua sendo a da percolação permanente (diferença $\le3$~kPa,
-o termo de armazenamento acima), mas os deslocamentos não têm significado físico e não são usados.
+\paragraph{Ruptura na própria análise u--p.} Com \code{ref=1} o deslocamento máximo é 0,30~m com o
+reservatório no topo e 0,35--0,36~m depois do rebaixamento: a malha u--p grossa, sem refinamento,
+superestima a resistência (o FS do ciclo 0 é maior que 1) e a análise acoplada não rompe. Com
+\code{ref=2} o deslocamento é 0,35~m até $T=1$ e 0,40~m em $T=10$, e no último passo
+($T=10\to10^4$) uma cunha junto à face e ao pé se desloca sem limite ($\max|\mathbf u|=174$~m),
+coerente com FS $<1$: o acoplamento (sucção por dilatância) retarda, mas não impede, a ruptura. Nesse
+caso a poropressão continua sendo a da percolação permanente (diferença $\le3$~kPa, o termo de
+armazenamento acima), mas os deslocamentos não têm significado físico.
 
 %=====================================================================================================
 \section{Revisão adversarial do código}\label{sec:review}
@@ -634,8 +640,14 @@ agente encarregado de refutá-lo. Resultado:
 \item \textbf{Topo drenado} (refutado como erro): manter $p=0$ no topo depois do rebaixamento faz o topo
   realimentar o maciço; é a hipótese de rebaixamento rápido de Ceron et al.\ (linha freática no topo),
   documentada; o estado ``drenado'' foi acrescentado como referência sem recarga.
-\item \textbf{Fluxo associado no passo não drenado}: com $\psi=\phi$ a dilatância plástica gera sucção e
-  reduz $p$ logo após o rebaixamento (ver Limitações); o retorno fechado do artigo só admite $\psi=\phi$.
+\item \textbf{Fluxo associado no passo não drenado} (confirmado, documentado): com $\psi=\phi$ a dilatância
+  plástica, compensada pela compressão elástica do esqueleto, reduz $p$ logo após o rebaixamento
+  (cerca de $-7$~kPa em profundidade, contra $-28$~kPa da variação total). O verificador repetiu a
+  análise com o modelo antigo, que admite $\psi\ne\phi$ (com $\psi=30^\circ$ reproduz o modelo do artigo):
+  na malha inicial o FS logo após o rebaixamento cai de 1,137 ($\psi=30^\circ$) para 1,115 ($15^\circ$) e
+  1,106 ($5^\circ$) por SRM, e de 1,540 para 1,370 por gravidade. O FS desse instante é, portanto,
+  otimista em alguns por cento; o regime permanente não depende de $\psi$. O retorno fechado do artigo
+  só admite $\psi=\phi$, e o modelo antigo com $\psi=0$ falha no ápice (gradiente nulo).
 \item Menores, corrigidos: \code{porder} diferente de 2 (a poropressão P1 é suposta), nível final fora de
   $[30,40]$~m, \code{nref} negativo.
 \end{itemize}
@@ -647,8 +659,9 @@ agente encarregado de refutá-lo. Resultado:
   rebaixamento da linha freática dentro do maciço (fluxo não confinado) não é modelado --- coerente
   com a hipótese de rebaixamento rápido de Ceron et al.
 \item Mohr--Coulomb associativo (o retorno fechado exige $\psi=\phi$): no passo não drenado a dilatância
-  plástica gera sucção e reduz $p$ logo após o rebaixamento; o regime permanente não depende disso. No
-  FS a sucção é desprezada ($p^+$).
+  plástica reduz $p$, e o FS logo após o rebaixamento fica otimista em cerca de 3\,\% (SRM) a 11\,\%
+  (gravidade) em relação a $\psi=5^\circ$ (Seção~\ref{sec:review}); o regime permanente não depende
+  disso. No FS a sucção ($p<0$) é desprezada ($p^+$).
 \item Depois que o FS cai abaixo de 1, os deslocamentos da análise u--p perdem o significado físico.
 \item O FS por gravidade só converge com o refinamento da zona plástica (mecanismo raso); os valores
   da malha inicial são apenas indicativos.
