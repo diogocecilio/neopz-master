@@ -5,12 +5,21 @@
 
 #include "pzvec.h"
 
+namespace {
+/// true if the criterion stores its own elastic response (it must follow the one of the step)
+template <class Y, class = void> struct HasSetER : std::false_type {};
+template <class Y>
+struct HasSetER<Y, std::void_t<decltype(std::declval<Y &>().SetElasticResponse(std::declval<const TPZElasticResponse &>()))>>
+    : std::true_type {};
+}
+
 // ===================== Construtores / Dtor =====================
 template <class YC, class ER>
 TPZPlasticStepVoigt<YC,ER>::TPZPlasticStepVoigt(const YC& yc, const ER& er)
 : fER(er), fYC(yc)
 {
     fN.CleanUp();
+    if constexpr (HasSetER<YC>::value) fYC.SetElasticResponse(er); // one elastic response for predictor and projection
 }
 
 // --- Construtor padrão ---
@@ -29,11 +38,11 @@ TPZPlasticStepVoigt<YC,ER>::TPZPlasticStepVoigt()
 template <class YC, class ER>
 TPZPlasticStepVoigt<YC,ER>::TPZPlasticStepVoigt(const TPZPlasticStepVoigt& other)
 : TPZPlasticBase(other)   // copia parte base
+, fN(other.fN)            // o estado faz parte do objeto (como no operator= implícito)
 , fER(other.fER)
 , fYC(other.fYC)
+, fReductionFactor(other.fReductionFactor)
 {
-    fN.CleanUp();
-    // nada extra
 }
 
 // --- Destrutor ---
@@ -45,17 +54,39 @@ TPZPlasticStepVoigt<YC,ER>::~TPZPlasticStepVoigt()
 template <class YC, class ER>
 int TPZPlasticStepVoigt<YC,ER>::ClassId() const
 {
-    return 0;
+    return Hash("TPZPlasticStepVoigt") ^ YC().ClassId() << 1 ^ ER().ClassId() << 2;
 }
 
 template <class YC, class ER>
 void TPZPlasticStepVoigt<YC,ER>::Write(TPZStream& buf, int withclassid) const
 {
+    fYC.Write(buf, withclassid);
+    fER.Write(buf, withclassid);
+    fN.Write(buf, withclassid);
+    buf.Write(&fReductionFactor);
 }
 
 template <class YC, class ER>
 void TPZPlasticStepVoigt<YC,ER>::Read(TPZStream& buf, void* context)
 {
+    fYC.Read(buf, context);
+    fER.Read(buf, context);
+    fN.Read(buf, context);
+    buf.Read(&fReductionFactor);
+}
+
+template <class YC, class ER>
+YC TPZPlasticStepVoigt<YC,ER>::LocalCriterion() const
+{
+    YC yc(fYC);
+    // point properties {c, phi, psi}; an all-zero vector is a placeholder (e.g. written by post-processing)
+    const bool props = fN.fmatprop.size() >= 3 && (fN.fmatprop[0] != 0. || fN.fmatprop[1] != 0.);
+    if (props || fReductionFactor != 1.) {
+        TPZPlasticState<REAL> state(fN);
+        if (props) yc.SetLocalMatState(state);
+        if (fReductionFactor != 1.) yc.ChangeLocalMatParameters(state, fReductionFactor);
+    }
+    return yc;
 }
 
 template <class YC, class ER>
@@ -82,7 +113,8 @@ const char* TPZPlasticStepVoigt<YC,ER>::Name() const
 template<class YC,class ER>
 void TPZPlasticStepVoigt<YC,ER>::ApplyStrain(const TPZTensor<REAL>& epsTotal)
 {
-    fN.m_eps_t = epsTotal; // se o TPZPlasticState tiver esse campo; ajuste conforme seu struct
+    TPZTensor<REAL> sigma;
+    ApplyStrainComputeSigma(epsTotal, sigma); // updates eps_t, eps_p and the hardening
 }
 
 // // // --- ComputeSigma: stub (retorna zero) ---
@@ -142,61 +174,41 @@ void TPZPlasticStepVoigt<YC,ER>::ApplyStrainComputeSigma(const TPZTensor<REAL>& 
                                                          TPZTensor<REAL>& sigma,
                                                          TPZFMatrix<REAL>* tangent)
 {
-
-    TPZTensor<REAL>sigtrtensor,sigtrtensor2;
-
-    TPZTensor<REAL> eps_e_trial = epsTotal - fN.m_eps_p;
-
-
-    fER.ComputeStress(eps_e_trial,sigtrtensor);
-
-   //std::cout<< "strial = " << sigtrtensor << std::endl;
-
-    TPZFMatrix<STATE> Cmat;
-    fER.De(Cmat);
-
-    int type;
-    //TPZFMatrix<STATE> Dep;
-    TPZFNMatrix<36> Dep;
-    STATE hvarnew;
+    // elastic predictor: Voigt strains with engineering shear (paper Eq. 22 and 26)
+    TPZTensor<REAL> sigtrtensor;
+    fER.ComputeStress(epsTotal - fN.m_eps_p, sigtrtensor);
 
     TPZTensor<REAL>::TPZDecomposed eigen_system;
     sigtrtensor.EigenSystem(eigen_system);
-
-    TPZManVector<STATE,3> sigtrvec =eigen_system.fEigenvalues;
-    TPZManVector<STATE,3> epstrvecout,sigprojvec;
+    TPZManVector<STATE,3> sigtrvec = eigen_system.fEigenvalues, epstrvecout, sigprojvec;
     TPZManVector<STATE,2> dlambda;
-    TPZFNMatrix<9> Grad3x3(3,3);
-
-
-    fYC.ProjectSigma(sigtrvec,fN.m_hardening,dlambda,sigprojvec,epstrvecout,Grad3x3,hvarnew,type);
-
+    TPZFNMatrix<9> Grad3x3(3,3,0.);
+    STATE hvarnew = fN.m_hardening;
+    int type = 0;
+    YC yc(LocalCriterion());
+    yc.ProjectSigma(sigtrvec,fN.m_hardening,dlambda,sigprojvec,epstrvecout,Grad3x3,hvarnew,type);
     fN.m_hardening = hvarnew;
     fN.m_m_type = type;
 
-    if(type==1)//plastico
-    {
+    if (type == 0) {
+        sigma = sigtrtensor; // elastic step: no spectral reconstruction round-off
+        if (tangent) fER.De(*tangent);
+    } else {
         TPZManVector<TPZManVector<REAL,3>,3> eigenvetors = eigen_system.fEigenvectors;
-
-        ConsistentTangent(sigtrvec,sigprojvec,epstrvecout,Grad3x3,eigenvetors,Dep);
-
-    }else{
-        Dep=Cmat;
+        // isotropy: principal directions are kept (paper Eq. 62); adding only the plastic correction keeps the
+        // eigen-decomposition round-off away from the elastic part
+        for (int i = 0; i < 3; i++) eigen_system.fEigenvalues[i] = sigprojvec[i] - sigtrvec[i];
+        sigma = sigtrtensor + TPZTensor<REAL>(eigen_system);
+        if (tangent) {
+            TPZFNMatrix<36> Dep;
+            ConsistentTangent(sigtrvec,sigprojvec,epstrvecout,Grad3x3,eigenvetors,Dep);
+            *tangent = Dep;
+        }
     }
-    //Dep=Cmat;
-    //Dep=Ce;
-    if (tangent) {
-        *tangent = Dep;
-    }
-    // Reconstruction of sigmaprTensor
-    // Reconstruction of sigmaprTensor
-    eigen_system.fEigenvalues = sigprojvec; // Under the assumption of isotropic material eigen vectors remain unaltered
-    sigma = TPZTensor<REAL>(eigen_system);
     TPZTensor<REAL> eps_e_Np1;
     fER.ComputeStrain(sigma, eps_e_Np1);
     fN.m_eps_t = epsTotal;
     fN.m_eps_p = epsTotal - eps_e_Np1;
-
 }
 
 template<class YC,class ER>
@@ -365,9 +377,8 @@ void TPZPlasticStepVoigt<YC,ER>::ApplyStrainComputeDep(const TPZTensor<REAL>& ep
                                                        TPZTensor<REAL>& sigma,
                                                        TPZFMatrix<REAL>& Dep)
 {
-    (void)epsTotal;
-    sigma.Zero();
-    Dep.Redim(6,6); Dep.Zero();
+    Dep.Redim(6,6);
+    ApplyStrainComputeSigma(epsTotal, sigma, &Dep);
 }
 
 // --- ApplyLoad: stub (inverso constitutivo a implementar) ---
@@ -375,7 +386,8 @@ template<class YC,class ER>
 void TPZPlasticStepVoigt<YC,ER>::ApplyLoad(const TPZTensor<REAL>& sigma, TPZTensor<REAL>& epsTotal)
 {
     (void)sigma;
-    epsTotal.Zero(); // TODO
+    epsTotal.Zero();
+    DebugStop(); // not implemented
 }
 
 // --- Set/GetState exigidos pela base ---
@@ -397,10 +409,13 @@ inline TPZPlasticCriterion& TPZPlasticStepVoigt<YC,ER>::GetYC()
 }
 // --- Phi: stub (devolva um vetor com o(s) valor(es) de f; aqui 1 componente = 0) ---
 template<class YC,class ER>
-void TPZPlasticStepVoigt<YC,ER>::Phi(const TPZTensor<REAL>& epsTotal, TPZVec<REAL>& phi) const
+void TPZPlasticStepVoigt<YC,ER>::Phi(const TPZTensor<REAL>& epsElastic, TPZVec<REAL>& phi) const
 {
-    (void)epsTotal;
-    phi.Resize(1); phi[0] = 0.; // TODO: usar fYC
+    TPZTensor<REAL> sigma;
+    fER.ComputeStress(epsElastic, sigma);
+    TPZTensor<REAL>::TPZDecomposed eigen_system;
+    sigma.EigenSystem(eigen_system);
+    LocalCriterion().YieldFunction(eigen_system.fEigenvalues, fN.m_hardening, phi);
 }
 
 // --- ElasticResponse: a base exige TPZElasticResponse exatamente ---
@@ -408,6 +423,7 @@ template<class YC,class ER>
 void TPZPlasticStepVoigt<YC,ER>::SetElasticResponse(TPZElasticResponse& ERin)
 {
     fER = ERin;
+    if constexpr (HasSetER<YC>::value) fYC.SetElasticResponse(ERin); // the projection uses the criterion's G, K
 }
 
 // (A) Forte/Tipada: barata e infalível

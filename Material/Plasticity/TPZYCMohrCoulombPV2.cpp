@@ -45,7 +45,11 @@ void TPZYCMohrCoulombPV2::Write(TPZStream& buf, int withclassid) const { //ok
 }
 void TPZYCMohrCoulombPV2::YieldFunction(const TPZVec<STATE> &sigma, STATE kprev, TPZVec<STATE> &yield) const
 {
-
+    const STATE sinphi = sin(fPhi), ccos = 2. * fc * cos(fPhi);
+    yield.Resize(3);
+    yield[0] = (sigma[0] - sigma[2]) + (sigma[0] + sigma[2]) * sinphi - ccos;
+    yield[1] = (sigma[1] - sigma[2]) + (sigma[1] + sigma[2]) * sinphi - ccos;
+    yield[2] = (sigma[0] - sigma[1]) + (sigma[0] + sigma[1]) * sinphi - ccos;
 }
 
 int TPZYCMohrCoulombPV2::GetNYield() const
@@ -55,27 +59,37 @@ int TPZYCMohrCoulombPV2::GetNYield() const
 
 void TPZYCMohrCoulombPV2::SetLocalMatState ( TPZPlasticState<REAL> & state )
 {
-
+    if (state.fmatprop.size() < 2) return;
+    fc = state.fmatprop[0];
+    fPhi = state.fmatprop[1];
+    fPsi = state.fmatprop[1]; // associative method (psi = phi)
 }
 
 TPZPlasticState<REAL>  TPZYCMohrCoulombPV2::GetLocalMatState (  )
 {
-
+    TPZPlasticState<REAL> state;
+    state.fmatprop = {fc, fPhi, fPsi};
+    return state;
 }
 
 void  TPZYCMohrCoulombPV2::ChangeLocalMatParameters( TPZPlasticState<REAL> & state ,REAL factor)
 {
-
+    if (factor <= 0.) DebugStop();
+    fc /= factor;
+    fPhi = atan(tan(fPhi) / factor);
+    fPsi = atan(tan(fPsi) / factor);
 }
 
 TPZTensor<STATE> TPZYCMohrCoulombPV2::ComputeN(const TPZTensor<STATE> stresstensor)const
 {
-
+    DebugStop(); // not implemented
+    return TPZTensor<STATE>();
 }
 
 TPZFMatrix<STATE> TPZYCMohrCoulombPV2::GetNdSigma(const TPZTensor<STATE>& sigma) const
 {
-
+    DebugStop(); // not implemented
+    return TPZFMatrix<STATE>();
 }
 
 bool TPZYCMohrCoulombPV2::ComputeLambdaSigmaMainPlane(TPZManVector<STATE,3> &sigtr,STATE &alphan,TPZManVector<STATE,2> &dlambda,TPZManVector<STATE,3> &sigpr,TPZManVector<STATE,3> &epstr,TPZFNMatrix<9> &Grad3x3,STATE &alphan1)
@@ -234,8 +248,7 @@ bool TPZYCMohrCoulombPV2::ReturnMapApex(TPZManVector<STATE,3> &sigtr,STATE &alph
 
     STATE K = fER.K();
 
-    Grad3x3.Zero();
-    Grad3x3+=-10e-12;
+    Grad3x3.Zero(); // paper Sect. 4.4: the apex tangent is the null operator
 
     epstr={-0.16666666666666666*(-2*s1 + s2 + s3)/G + (s1 + s2 + s3)/(9.*K),-0.16666666666666666*(s1 - 2*s2 + s3)/G + (s1 + s2 + s3)/(9.*K),-0.16666666666666666*(s1 + s2 - 2*s3)/G + (s1 + s2 + s3)/(9.*K)};
     alphan1=alphan;
@@ -246,7 +259,8 @@ bool TPZYCMohrCoulombPV2::ReturnMapApex(TPZManVector<STATE,3> &sigtr,STATE &alph
 
 STATE TPZYCMohrCoulombPV2::ProjectSigma(const TPZTensor<STATE> & sigmatr,  TPZTensor<STATE> & sigmaproj, TPZElasticResponse &ER,STATE &havarn,STATE &havarn1,int & m_type)
 {
-
+    DebugStop(); // not implemented: use the principal-value version
+    return 0.;
 }
 STATE TPZYCMohrCoulombPV2::ProjectSigma(TPZManVector<STATE,3> &sigtr,STATE &alphan,TPZManVector<STATE,2> &dlambda,TPZManVector<STATE,3> &sigpr,TPZManVector<STATE,3> &epstr,TPZFNMatrix<9> &Grad3x3,STATE &alphan1,int & m_type)
 {
@@ -256,18 +270,18 @@ STATE TPZYCMohrCoulombPV2::ProjectSigma(TPZManVector<STATE,3> &sigtr,STATE &alph
     STATE cosphi=cos(phi);
 
 
+    if (fabs(fPsi - fPhi) > 1.e-12) DebugStop(); // the closed-form projection is associative (psi = phi)
     STATE phimain=(sigtr[0]-sigtr[2])+(sigtr[0]+sigtr[2])*sin(phi)-2.* c* cos(phi);
-    if(phimain<0)
+    if(phimain<=0) // elastic, paper Eq. (56)
     {
-        //Elastico
         sigpr=sigtr;
-        alphan=alphan1;
+        alphan1=alphan;
         m_type=0;
         return 0.;
     }
 
 
-    m_type=1;
+    m_type=1; // main plane
     bool check=ComputeLambdaSigmaMainPlane(sigtr,alphan,dlambda,sigpr,epstr,Grad3x3,alphan1);
 
     if(check)
@@ -280,9 +294,9 @@ STATE TPZYCMohrCoulombPV2::ProjectSigma(TPZManVector<STATE,3> &sigtr,STATE &alph
     {
         //std::cout<< "Rigth"<<std::endl;
         check=ComputeLambdaSigmaRigth(sigtr,alphan,dlambda,sigpr,epstr,Grad3x3,alphan1);
-        //std::cout<< "Depois do Rigth"<<std::endl;
         if(check)
         {
+            m_type=2; // right corner (beta = 0)
             return check;
         }
 
@@ -291,9 +305,11 @@ STATE TPZYCMohrCoulombPV2::ProjectSigma(TPZManVector<STATE,3> &sigtr,STATE &alph
         check=ComputeLambdaSigmaLeft(sigtr,alphan,dlambda,sigpr,epstr,Grad3x3,alphan1);
         if(check)
         {
+            m_type=3; // left corner (beta = pi/3)
             return check;
         }
     }
+    m_type=-1; // apex (tensile), as in TPZYCMohrCoulombPV
     check= ReturnMapApex(sigtr,alphan,dlambda,sigpr,epstr,Grad3x3,alphan1);
     return check;
 

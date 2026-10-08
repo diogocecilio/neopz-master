@@ -103,14 +103,14 @@ public:
         fc = c;
         fER = ER;
     }
+    /// Point properties fmatprop = {c, phi, ...} replace the parameters of this object (associative: psi = phi,
+    /// the drivers do not keep fmatprop[2] up to date)
     virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )override
     {
-        //so associativo!
-        //if ( fc<1.e-3 ) DebugStop();
+        if (state.fmatprop.size() < 2) return;
         fc =   state.fmatprop[0];
         fPhi = state.fmatprop[1];
         fPsi = state.fmatprop[1];
-		//std::cout << "fc = "<< fc <<std::endl;
     }
 
     virtual TPZPlasticState<REAL> GetLocalMatState (  )override
@@ -120,18 +120,17 @@ public:
         locstate.fmatprop[0]=fc;
         locstate.fmatprop[1]=fPhi;
         locstate.fmatprop[2]=fPsi;
-        DebugStop();
         return locstate;
-//
 	}
 
+    /// Strength reduction of the current parameters: c/F, atan(tan(phi)/F), atan(tan(psi)/F).
+    /// TPZPlasticStepPV applies it to a fresh copy of the criterion, so it never compounds.
     virtual void ChangeLocalMatParameters( TPZPlasticState<REAL> & state ,REAL factor) override
 	{
-        REAL c0 =   state.fmatprop[0];
-        REAL Phi0 = state.fmatprop[1];
-        fc =  c0/factor;
-        fPhi = atan ( tan ( Phi0 ) /factor );
-        fPsi = fPhi;
+        if (factor <= 0.) DebugStop();
+        fc /= factor;
+        fPhi = atan ( tan ( fPhi ) /factor );
+        fPsi = atan ( tan ( fPsi ) /factor );
     }
 
     /**

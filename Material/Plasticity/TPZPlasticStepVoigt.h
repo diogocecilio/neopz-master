@@ -9,6 +9,7 @@
 #include "TPZYCMohrCoulombPV2.h"
 #include "TPZYCTrescaVoigt.h"
 #include "TPZElasticResponse.h"
+#include <type_traits>
 /// Classe constitutiva elasto-plástica em Voigt (3D) [11,12,13,22,23,33],
 /// com critério de escoamento genérico YC e resposta elástica ER,
 /// no mesmo espírito do TPZPlasticStepPV (mas operando em Voigt).
@@ -55,6 +56,12 @@ public:
     TPZElasticResponse GetElasticResponse() const override;
     TPZPlasticCriterion& GetYC() override;
 
+
+    /// Shear strength reduction factor F (SRM): the criterion is evaluated with c/F, atan(tan(phi)/F)
+    void SetStrengthReductionFactor(REAL F) { fReductionFactor = F; }
+
+    /// Copy of the criterion with the point properties (fN.fmatprop) and the strength reduction applied
+    YC LocalCriterion() const;
 
     // (A) Forte/Tipada: barata e infalível
     void SetPlasticCriterion(const YC& pc);
@@ -206,6 +213,7 @@ public:
 protected:
     ER   fER;                 // resposta elástica (p.ex., armazena K,G ou E,nu)
     YC   fYC;                 // critério de escoamento (deve derivar de TPZPlasticCriterion)
+    REAL fReductionFactor = 1.; // fator de redução de resistência (SRM)
     //TPZPlasticState<REAL> fN;
 };
 

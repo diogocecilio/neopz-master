@@ -127,7 +127,8 @@ public:
 
 
     virtual void YieldFunction(const TPZVec<STATE>& sigma, STATE kprev, TPZVec<STATE>& yield) const override{
-        DebugStop();
+        yield.Resize(1);
+        yield[0] = (sigma[0] - sigma[2]) - SigmaY(kprev);
     }
 
     virtual int GetNYield() const override{

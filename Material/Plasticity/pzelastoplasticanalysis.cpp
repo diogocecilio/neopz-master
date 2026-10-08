@@ -419,6 +419,8 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol, int 
                     break;
                 case ELineSearch::None:
                 default:
+                    nextSol = prevsol; // full Newton step
+                    nextSol += fSolution;
                     break;
             }
             fSolution = nextSol;
@@ -433,12 +435,18 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol, int 
         const REAL err_u = Norm(delta);
 
         // atualiza estado interno
+        TPZFMatrix<STATE> lastgood(prevsol);
         prevsol = fSolution;
         LoadSolution(fSolution);
 
         // reavalia resíduo no estado ATUAL
         AssembleResidual();
         const REAL err_f = Norm(fRhs) ;
+        if (!std::isfinite(err_f)) { // diverged: keep the last finite iterate and stop
+            fSolution = lastgood;
+            LoadSolution();
+            break;
+        }
 
         // imprime diagnóstico
         std::cout << "  [it " << iter << "] "
@@ -597,45 +605,30 @@ REAL TPZElastoPlasticAnalysis::DicotomicLineSearch(const TPZFMatrix<STATE>& Wn,
         return amin;
     }
 
-    // --- preparar análise temporária CLONANDO a malha e materiais ---
-    TPZCompMesh *origMesh = this->Mesh();
-    if (!origMesh) {
-        throw std::runtime_error("DicotomicLineSearch: mesh nula no objeto this.");
-    }
-
-    TPZCompMesh *meshCopy = nullptr;
-    try {
-        // Substitua Clone() pelo método correto da sua versão do NeoPZ se necessário.
-        meshCopy = origMesh->Clone();
-    } catch (...) {
-        meshCopy = nullptr;
-    }
-
-    if (!meshCopy) {
-        throw std::runtime_error("DicotomicLineSearch: clonagem profunda da malha nao disponivel. "
-        "Implemente clonagem de estados internos ou use snapshot.");
-    }
-
-    // Constrói uma análise temporária com a mesh copiada.
-    // Assumimos que tmpAnalysis gerencia a mesh copiada (ajuste se sua API for diferente).
-    TPZElastoPlasticAnalysis tmpAnalysis(meshCopy,std::cout);
-    // Opcional: copie solver / structural matrix / configurações relevantes do this para tmpAnalysis
-    // tmpAnalysis.SetStructuralMatrix(this->StructuralMatrix()); // adapte conforme API
-    // tmpAnalysis.SetSolver(this->Solver()); // adapte conforme API
-
-    // Função objetivo sem efeitos colaterais sobre `this` (avalia em tmpAnalysis)
+    // Objective evaluated in place: fUpdateMem is false during the iterations, so the plastic memory is
+    // untouched. (The former version cloned the whole mesh and memory at every call and leaked the clone.)
     auto eval_phi_tmp = [&](const TPZFMatrix<STATE>& Wc)->REAL {
-        TPZFMatrix<STATE> W = Wc;           // cópia para LoadSolution
-        tmpAnalysis.LoadSolution(W);
-        tmpAnalysis.AssembleResidual();
-        REAL nR = Norm(tmpAnalysis.fRhs);
+        TPZFMatrix<STATE> W = Wc;
+        this->LoadSolution(W);
+        this->AssembleResidual();
+        REAL nR = Norm(fRhs);
         if (!std::isfinite(nR)) return std::numeric_limits<REAL>::infinity();
-        // Usar objetivo 0.5 * ||R||^2 para coerência com line-search clássico
         return (REAL)0.5 * nR * nR;
     };
 
-    // computa phi0 em Wn (usando tmpAnalysis para não alterar this)
+    // phi0 at Wn
     const REAL phi0 = eval_phi_tmp(Wn);
+
+    // the full Newton step is accepted when it decreases the residual (keeps quadratic convergence)
+    {
+        TPZFMatrix<STATE> full = Wn;
+        full += DeltaW;
+        if (eval_phi_tmp(full) < phi0) {
+            NextW = full;
+            this->LoadSolution(NextW);
+            return 1.;
+        }
+    }
 
     // iteração dicotômica
     int it = 0;
@@ -703,8 +696,6 @@ REAL TPZElastoPlasticAnalysis::DicotomicLineSearch(const TPZFMatrix<STATE>& Wn,
     // Aplica/commit NextW na análise real para que o próximo solver trabalhe com o novo estado
     this->LoadSolution(NextW);
 
-    // NOTA: não deletamos meshCopy explicitamente; espera-se que tmpAnalysis libere a mesh copiada em seu destrutor.
-    // Se sua API exigir delete(meshCopy), adapte aqui.
 
     return alpha;
 }
@@ -951,18 +942,11 @@ REAL TPZElastoPlasticAnalysis::ArmijoLineSearch(const TPZFMatrix<STATE>& Wn,
     }
 }
 
-// Golden-section line search — versão corrigida e robusta.
-// - Avaliações de φ feitas em uma análise temporária clonada (tmpAnalysis) para NÃO alterar `this`.
-// - Objetivo usado: f = 0.5 * ||R||^2 (coerente com armijo/quadratic methods).
+// Golden-section line search.
+// - Objetivo usado: f = 0.5 * ||R||^2 (coerente com armijo/quadratic methods), avaliado in loco.
 // - Nunca retorna alpha == 0: impõe amin = max(tol, 1e-8) e aplica tiny step se necessário.
 // - Aplica (commit) NextW na análise real (this->LoadSolution) ao final.
 // - Trata avaliações inválidas (NaN/Inf) e escolhe o melhor ponto amostrado como fallback.
-//
-// Observações:
-// - Presumo existência de TPZCompMesh::Clone() e um construtor TPZElastoPlasticAnalysis(TPZCompMesh*).
-//   Se a sua API for diferente, adapte as chamadas de clonagem/construct conforme necessário.
-// - Aqui assumo que tmpAnalysis assume a propriedade da mesh copiada; não faço delete(meshCopy).
-//   Se sua API exigir explicitamente liberar meshCopy, ajuste o código.
 
 REAL TPZElastoPlasticAnalysis::GoldenSectionLineSearch(const TPZFMatrix<STATE>& Wn,
                                                        TPZFMatrix<STATE> DeltaW,
@@ -984,39 +968,16 @@ REAL TPZElastoPlasticAnalysis::GoldenSectionLineSearch(const TPZFMatrix<STATE>& 
         return amin;
     }
 
-    // --- preparar análise temporária CLONANDO a malha e materiais ---
-    TPZCompMesh *origMesh = this->Mesh();
-    if (!origMesh) {
-        throw std::runtime_error("GoldenSectionLineSearch: mesh nula no objeto this.");
-    }
-
-    TPZCompMesh *meshCopy = nullptr;
-    try {
-        meshCopy = origMesh->Clone();
-    } catch (...) {
-        meshCopy = nullptr;
-    }
-
-    if (!meshCopy) {
-        throw std::runtime_error("GoldenSectionLineSearch: clonagem profunda da malha nao disponivel. "
-        "Implemente clonagem de estados internos ou use snapshot.");
-    }
-
-    // Constrói uma análise temporária com a mesh copiada.
-    TPZElastoPlasticAnalysis tmpAnalysis(meshCopy,std::cout);
-    // opcional: copiar configurações do solver/structural matrix se necessário
-    // tmpAnalysis.SetStructuralMatrix(this->StructuralMatrix()); // adaptar conforme API
-    // tmpAnalysis.SetSolver(this->Solver()); // adaptar conforme API
-
-    // utilitário: avalia φ = 0.5 * ||R||^2 em tmpAnalysis (não altera `this`)
+    // phi = 0.5*||R||^2 evaluated in place (fUpdateMem is false during the iterations; the former version
+    // cloned the whole mesh and memory at every call and leaked the clone)
     auto EvalPhiTmp = [&](REAL alpha)->REAL {
         TPZFMatrix<STATE> trial = Wn;
         TPZFMatrix<STATE> d = DeltaW;
         d *= alpha;
         trial += d;
-        tmpAnalysis.LoadSolution(trial);
-        tmpAnalysis.AssembleResidual();
-        REAL nr = Norm(tmpAnalysis.fRhs);
+        this->LoadSolution(trial);
+        this->AssembleResidual();
+        REAL nr = Norm(fRhs);
         if (!std::isfinite(nr)) return std::numeric_limits<REAL>::infinity();
         return (REAL)0.5 * nr * nr;
     };
@@ -1509,7 +1470,13 @@ void TPZElastoPlasticAnalysis::ManageIterativeProcess(std::ostream &out,REAL tol
         bool checkconv = false;
             bool convordiv;
             int iters;
-		IterativeProcess(out, tol, numiter, linesearch, checkconv,iters);
+		if (!IterativeProcess(out, tol, numiter, linesearch, checkconv,iters)) {
+			// a non-converged state must not be committed to the plastic memory
+			out << "ManageIterativeProcess: load step " << i << " did not converge, stopping\n";
+			fSolution.Zero();
+			LoadSolution();
+			break;
+		}
 
 
 		#ifdef PZ_LOG
@@ -1549,9 +1516,7 @@ void TPZElastoPlasticAnalysis::ManageIterativeProcess(std::ostream &out,REAL tol
 
 void TPZElastoPlasticAnalysis::SetAllCreateFunctionsWithMem(TPZCompMesh *cmesh)
 {
- TPZManVector<TCreateFunction,10> functions(8);
-	TCreateFunction fp[8];
-    cmesh->ApproxSpace().SetCreateFunctions(functions);
+    cmesh->SetAllCreateFunctionsContinuousWithMem(); // the former body installed 8 null create functions
 
 }
 

@@ -163,7 +163,7 @@ STATE TPZYCTrescaVoigt::ProjectSigma(TPZManVector<STATE,3> &sigtr,STATE &alphan,
     {
         //Elastico
         sigpr=sigtr;
-        alphan=alphan1;
+        alphan1=alphan; // elastic: hardening unchanged (was alphan=alphan1, overwriting the input)
         m_type=0;
         return 0.;
     }

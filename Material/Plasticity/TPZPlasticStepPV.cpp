@@ -47,14 +47,8 @@ void TPZPlasticStepPV<YC_t, ER_t>::ApplyStrainComputeSigma(const TPZTensor<REAL>
         }
     }
 #endif
-	if(fN.fmatprop.size()!=0 && fN.fmatprop[0]>1.e-3)
- 	{
+    YC_t yc(LocalCriterion());
 
-        fYC.SetLocalMatState(fN);
-        fYC.ChangeLocalMatParameters( fN ,fReductionFactor);
-
-	}
-    
 //    TPZTensor<REAL>::TPZDecomposed sig_eigen_system_last;
 //    sigma.EigenSystem(sig_eigen_system_last);
 
@@ -74,15 +68,17 @@ void TPZPlasticStepPV<YC_t, ER_t>::ApplyStrainComputeSigma(const TPZTensor<REAL>
     TPZFMatrix<REAL> gradient(3, 3, 0.);
     // ReturMap in the principal values
     if (require_tangent_Q) {
-        TPZTensor<REAL>::TPZDecomposed eps_eigen_system;
-        eps_tr.EigenSystem(eps_eigen_system);
-        
-
-        fYC.ProjectSigma(sig_eigen_system.fEigenvalues, fN.m_hardening, sig_projected, nextalpha, m_type, &gradient);
-        //gradient.Print(std::cout);
-        TangentOperator(gradient, eps_eigen_system, sig_eigen_system, *tangent);
+        yc.ProjectSigma(sig_eigen_system.fEigenvalues, fN.m_hardening, sig_projected, nextalpha, m_type, &gradient);
+        // Principal trial strains from the trial stress (coaxial, eps_i - eps_j = (str_i - str_j)/2G): no second
+        // eigen-decomposition of eps_tr, whose shear slots hold engineering strains (TPZElasticResponse::De)
+        TPZTensor<REAL>::TPZDecomposed eps_eigen_system(sig_eigen_system), sig_proj_system(sig_eigen_system);
+        for (int i = 0; i < 3; i++) eps_eigen_system.fEigenvalues[i] /= 2. * fER.G();
+        sig_proj_system.fEigenvalues = sig_projected; // spin factor uses the PROJECTED stresses (C.14)
+        TangentOperator(gradient, eps_eigen_system, sig_proj_system, *tangent);
+        // TangentOperator differentiates w.r.t. tensor components: d/dgamma = 1/2 d/deps for the shear columns
+        for (int i = 0; i < 6; i++) for (int k : {_XY_, _XZ_, _YZ_}) (*tangent)(i, k) *= 0.5;
     } else{
-        fYC.ProjectSigma(sig_eigen_system.fEigenvalues, fN.m_hardening, sig_projected, nextalpha, m_type);
+        yc.ProjectSigma(sig_eigen_system.fEigenvalues, fN.m_hardening, sig_projected, nextalpha, m_type);
     }
     
     fN.m_hardening = nextalpha;
@@ -326,6 +322,13 @@ void TPZPlasticStepPV<YC_t, ER_t>::ApplyStrainComputeDep(const TPZTensor<REAL> &
 #endif
 }
 
+// Mohr-Coulomb has no ProjectSigmaDep (DebugStop): use the consistent tangent of ApplyStrainComputeSigma
+template <>
+void TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>::ApplyStrainComputeDep(const TPZTensor<REAL> &epsTotal, TPZTensor<REAL> &sigma, TPZFMatrix<REAL> &Dep) {
+    Dep.Redim(6, 6);
+    ApplyStrainComputeSigma(epsTotal, sigma, &Dep);
+}
+
 template <class YC_t, class ER_t>
 void TPZPlasticStepPV<YC_t, ER_t>::TangentOperator(TPZFMatrix<REAL> & gradient,TPZTensor<REAL>::TPZDecomposed & eps_eigen_system, TPZTensor<REAL>::TPZDecomposed & sig_eigen_system, TPZFMatrix<REAL> & Tangent){
 
@@ -333,6 +336,7 @@ void TPZPlasticStepPV<YC_t, ER_t>::TangentOperator(TPZFMatrix<REAL> & gradient,T
     //Montando a matriz tangente
     unsigned int kival[] = {0, 0, 0, 1, 1, 2};
     unsigned int kjval[] = {0, 1, 2, 1, 2, 2};
+    Tangent.Redim(6, 6); // the terms below are accumulated
     REAL G = fER.G();
     REAL lambda = fER.Lambda();
 
@@ -358,7 +362,6 @@ void TPZPlasticStepPV<YC_t, ER_t>::TangentOperator(TPZFMatrix<REAL> & gradient,T
     }///k
 
     REAL deigensig = 0., deigeneps = 0.;
-    TPZFNMatrix<9, REAL> tempMat(3, 3, 0.);
     TPZFNMatrix<9, REAL> temp_mat(3, 3, 0.);
 //    TPZFNMatrix<9> ColCorr(3, 3, 0.);
     TPZFNMatrix<6> ColCorrV(6, 1, 0.);
@@ -376,6 +379,7 @@ void TPZPlasticStepPV<YC_t, ER_t>::TangentOperator(TPZFMatrix<REAL> & gradient,T
                 factor = fER.G() * (gradient(i, i) - gradient(i, j) - gradient(j, i) + gradient(j, j)); // expression C.20
             }
 
+            TPZFNMatrix<9, REAL> tempMat(3, 3, 0.); // e_i x e_j + e_j x e_i of THIS pair only
             ProdT(eps_eigen_system.fEigenvectors[i], eps_eigen_system.fEigenvectors[j],temp_mat);
             for (unsigned int it = 0; it < 3; ++it) {
                 for (unsigned int jt = 0; jt < 3; ++jt) {
@@ -649,6 +653,22 @@ TPZPlasticState<STATE>  TPZPlasticStepPV<YC_t, ER_t>::GetState() const
 }
 
 template <class YC_t, class ER_t>
+YC_t TPZPlasticStepPV<YC_t, ER_t>::LocalCriterion() const
+{
+    // point properties and strength reduction on a copy of the criterion: never compounds and also
+    // applies when the memory has no point properties (fmatprop empty)
+    YC_t yc(fYC);
+    // point properties {c, phi, psi}; an all-zero vector is a placeholder (e.g. written by post-processing)
+    const bool props = fN.fmatprop.size() >= 3 && (fN.fmatprop[0] != 0. || fN.fmatprop[1] != 0.);
+    if (props || fReductionFactor != 1.) {
+        TPZPlasticState<REAL> state(fN);
+        if (props) yc.SetLocalMatState(state);
+        if (fReductionFactor != 1.) yc.ChangeLocalMatParameters(state, fReductionFactor);
+    }
+    return yc;
+}
+
+template <class YC_t, class ER_t>
 void TPZPlasticStepPV<YC_t, ER_t>::Phi(const TPZTensor<STATE> &eps, TPZVec<REAL> &phi) const
 {
     TPZTensor<STATE> sigma;
@@ -659,7 +679,7 @@ void TPZPlasticStepPV<YC_t, ER_t>::Phi(const TPZTensor<STATE> &eps, TPZVec<REAL>
     sigvec[0] = DecSig.fEigenvalues[0];
     sigvec[1] = DecSig.fEigenvalues[1];
     sigvec[2] = DecSig.fEigenvalues[2];
-    fYC.Phi(sigvec, fN.VolHardening(), phi);
+    LocalCriterion().Phi(sigvec, fN.VolHardening(), phi);
 }
 
 template <class YC_t, class ER_t>

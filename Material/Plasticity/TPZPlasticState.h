@@ -47,7 +47,7 @@ public:
 
     /// Copy constructor
     TPZPlasticState(const TPZPlasticState<T> & source):
-    m_eps_t(source.m_eps_t), m_eps_p(source.m_eps_p), m_hardening(source.m_hardening), m_m_type(source.m_m_type),fpressure(source.fpressure ),fmatprop(source.fmatprop),fmatpropinit(source.fmatprop),fflux(source.fflux),fdPorePressure(source.fdPorePressure),fSolU(source.fSolU),fGradSolU(source.fGradSolU){ }
+    m_eps_t(source.m_eps_t), m_eps_p(source.m_eps_p), m_hardening(source.m_hardening), m_m_type(source.m_m_type),fpressure(source.fpressure ),fmatprop(source.fmatprop),fmatpropinit(source.fmatpropinit),fflux(source.fflux),fdPorePressure(source.fdPorePressure),fSolU(source.fSolU),fGradSolU(source.fGradSolU){ }
 
     /// Destructor
     ~TPZPlasticState(){ }

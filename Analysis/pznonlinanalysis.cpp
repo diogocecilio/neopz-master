@@ -181,8 +181,7 @@ void TPZNonLinearAnalysis::IterativeProcess(std::ostream &out,REAL tol,int numit
 			fSolution = nextSol;
 		}
 		else{
-			TPZFMatrix<STATE> sol = fSolution;
-			sol += prevsol;
+			fSolution += prevsol; // full Newton step (a local copy here discarded the update)
 		}
 
 		prevsol -= fSolution;

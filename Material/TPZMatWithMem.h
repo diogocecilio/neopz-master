@@ -167,9 +167,10 @@ TPZMatWithMem<TMem>::operator=(const TPZMatWithMem<TMem> &mat)
     fDefaultMem = mat.fDefaultMem;
     fUpdateMem = mat.fUpdateMem;
     if(!fMemory){
-        fMemory(new TPZAdmChunkVector<TMem>());
+        fMemory = std::make_shared<TPZAdmChunkVector<TMem>>();
     }
     *fMemory = *mat.fMemory;
+    return *this;
 }
 
 

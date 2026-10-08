@@ -53,6 +53,8 @@ public:
         fc = c;
         fER = ER;
     }
+
+    void SetElasticResponse(const TPZElasticResponse &ER) { fER = ER; }
     TPZYCMohrCoulombPV2 & operator=(const TPZYCMohrCoulombPV2 &cp);
 
     virtual int ClassId() const override;
@@ -60,20 +62,23 @@ public:
     void Read(TPZStream& buf, void* context) override;
 
     void Write(TPZStream& buf, int withclassid) const override;
+    /// Planes Phi1(s1,s3), Phi2(s2,s3), Phi6(s1,s2) of the ordered sector s1>=s2>=s3 (paper Eq. 44, 45, 49)
     virtual void YieldFunction(const TPZVec<STATE> &sigma, STATE kprev, TPZVec<STATE> &yield) const override;
 
     virtual int GetNYield() const override;
 
+    /// Point properties fmatprop = {c, phi, ...} (if present) replace the parameters of this object (psi = phi)
     virtual void SetLocalMatState ( TPZPlasticState<REAL> & state )override;
 
     virtual TPZPlasticState<REAL> GetLocalMatState (  )override;
 
+    /// Strength reduction of the current parameters: c/F, atan(tan(phi)/F), atan(tan(psi)/F).
+    /// Callers apply it to a fresh copy of the criterion, so it never compounds.
     virtual void ChangeLocalMatParameters( TPZPlasticState<REAL> & state ,REAL factor)override;
 
 
-    virtual void Print(std::ostream &out) const {
-        std::cout << __PRETTY_FUNCTION__ << " Should not be called, please check children classes." << std::endl;
-        //        DebugStop();
+    virtual void Print(std::ostream &out) const override {
+        out << "TPZYCMohrCoulombPV2\nPhi: " << fPhi << "\nPsi: " << fPsi << "\nc: " << fc << std::endl;
     }
 
     TPZTensor<STATE> ComputeN(const TPZTensor<STATE> stresstensor)const;

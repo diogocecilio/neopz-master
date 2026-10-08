@@ -2,6 +2,15 @@
 
 typedef TFad<3, REAL> fadtype;
 
+/// sigma1 >= sigma2 >= sigma3 with a tolerance relative to the stress level (an absolute IsZero
+/// rejects valid edge returns, whose equal pair differs by round-off, and sends them to the apex)
+template <class T>
+static bool IsOrdered(const TPZVec<T> &e, REAL c) {
+    const REAL s0 = TPZExtractVal::val(e[0]), s1 = TPZExtractVal::val(e[1]), s2 = TPZExtractVal::val(e[2]);
+    const REAL tol = 1.e-10 * std::max({fabs(s0), fabs(s1), fabs(s2), fabs(c), (REAL)1.});
+    return s0 - s1 >= -tol && s1 - s2 >= -tol;
+}
+
 TPZYCMohrCoulombPV::TPZYCMohrCoulombPV() : fPhi(0.), fPsi(0.), fc(0.), fER(), fEpsPlasticBar(0.) {
 
 }
@@ -88,9 +97,7 @@ TPZVec<T> TPZYCMohrCoulombPV::SigmaElastPV(const TPZVec<T> &deform) const {
     T trace = deform[0] + deform[1] + deform[2];
     TPZVec<T> sigma(3, 0.);
 
-    sigma = trace * fER.Lambda() + 2 * fER.G() * deform[0];
-    sigma = trace * fER.Lambda() + 2 * fER.G() * deform[1];
-    sigma = trace * fER.Lambda() + 2 * fER.G() * deform[2];
+    for (int i = 0; i < 3; i++) sigma[i] = trace * fER.Lambda() + 2 * fER.G() * deform[i];
 
     return sigma;
 }
@@ -164,7 +171,7 @@ bool TPZYCMohrCoulombPV::ReturnMapPlane(const TPZVec<T> &sigma_trial, TPZVec<T> 
 
     //std::cout << "sigma_projected MAIN = "<< sigma_projected <<std::endl;
 
-    bool check_validity_Q = (TPZExtractVal::val(eigenvalues[0]) > TPZExtractVal::val(eigenvalues[1]) || IsZero(eigenvalues[0]-eigenvalues[1])) && (TPZExtractVal::val(eigenvalues[1]) > TPZExtractVal::val(eigenvalues[2]) || IsZero(eigenvalues[1]-eigenvalues[2]));
+    bool check_validity_Q = IsOrdered(eigenvalues, fc);
     return (check_validity_Q);
 }
 
@@ -291,7 +298,7 @@ bool TPZYCMohrCoulombPV::ReturnMapLeftEdge(const TPZVec<T> &sigma_trial, TPZVec<
     sigma_projected = eigenvalues;
     epsbarnew = TPZExtractVal::val(epsbar);
 
-    bool check_validity_Q = (TPZExtractVal::val(eigenvalues[0]) > TPZExtractVal::val(eigenvalues[1]) || IsZero(eigenvalues[0]-eigenvalues[1])) && (TPZExtractVal::val(eigenvalues[1]) > TPZExtractVal::val(eigenvalues[2]) || IsZero(eigenvalues[1]-eigenvalues[2]));
+    bool check_validity_Q = IsOrdered(eigenvalues, fc);
     return (check_validity_Q);
 }
 
@@ -429,7 +436,7 @@ bool TPZYCMohrCoulombPV::ReturnMapRightEdge(const TPZVec<T> &sigma_trial, TPZVec
     sigma_projected = eigenvalues;
     epsbarnew = TPZExtractVal::val(epsbar);
 
-    bool check_validity_Q = (TPZExtractVal::val(eigenvalues[0]) > TPZExtractVal::val(eigenvalues[1]) || IsZero(eigenvalues[0]-eigenvalues[1])) && (TPZExtractVal::val(eigenvalues[1]) > TPZExtractVal::val(eigenvalues[2]) || IsZero(eigenvalues[1]-eigenvalues[2]));
+    bool check_validity_Q = IsOrdered(eigenvalues, fc);
     return (check_validity_Q);
 }
 
@@ -489,7 +496,7 @@ bool TPZYCMohrCoulombPV::ReturnMapApex(const TPZVec<T> &sigmatrial, TPZVec<T> &s
     T c, H;
     PlasticityFunction(epsbarnp1, c, H);
 
-    T alpha = cos(fPhi) / sin(fPsi);
+    T alpha = IsZero(sinpsi) ? 0. : cos(fPhi) / sin(fPsi); // psi = 0: no hardening update (H = 0)
     REAL tol = 1.e-8;
 
     T res = c * cotphi - ptrnp1;
@@ -499,7 +506,7 @@ bool TPZYCMohrCoulombPV::ReturnMapApex(const TPZVec<T> &sigmatrial, TPZVec<T> &s
     int i;
     bool stop_criterion;
     for (i = 0; i < n_iterations; i++) {
-        const T jac = H * T(cosphi * cotphi) / T(sinpsi) + T(K);
+        const T jac = IsZero(sinpsi) ? T(K) : H * T(cosphi * cotphi) / T(sinpsi) + T(K);
         DEpsPV -= res / jac;
 
         epsbarnp1 = T(fEpsPlasticBar) + T(alpha) * DEpsPV;
@@ -533,7 +540,7 @@ void TPZYCMohrCoulombPV::ComputeApexGradient(TPZMatrix<REAL> & gradient, REAL & 
     const REAL sinpsi = sin(fPsi);
     const REAL cotphi = 1. / tan(fPhi);
     const REAL K = fER.K();
-    const REAL alpha = cosphi / sinpsi;
+    const REAL alpha = IsZero(sinpsi) ? 0. : cosphi / sinpsi;
     PlasticityFunction(eps_bar_p, c, H);
     const REAL num = H * alpha * cotphi / K;
     const REAL denom = 1. + num;
@@ -567,6 +574,7 @@ void TPZYCMohrCoulombPV::ProjectSigma(const TPZVec<STATE> & sigma_trial, STATE k
 
     TComputeSequence memory;
     this->SetEpsBar(k_prev);
+    k_proj = k_prev; // kept in the elastic branch
     REAL epsbartemp = k_prev; // it will be defined by the correct returnmap
 
     bool check_validity_Q;

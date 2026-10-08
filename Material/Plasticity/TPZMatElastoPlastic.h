@@ -332,7 +332,7 @@ inline void BuildBN(const TPZFMatrix<STATE>& dphiXYZ, const TPZFMatrix<STATE>& p
     };
     /// Ponteiro para solução exata (para pós-processamento)
     void (*fExactSolution)(const TPZVec<REAL> &x, TPZVec<STATE> &u,
-                           TPZFMatrix<STATE> &du);
+                           TPZFMatrix<STATE> &du) = nullptr;
 
     /// Setter
     void SetExactSolution(void (*fp)(const TPZVec<REAL> &x,

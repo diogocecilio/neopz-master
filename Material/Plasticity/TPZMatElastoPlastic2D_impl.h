@@ -352,7 +352,7 @@ void TPZMatElastoPlastic2D<T, TMEM>::ContributeBC(const TPZMaterialDataT<STATE> 
     int nstate = NStateVariables();
     const REAL BIGNUMBER = TPZMaterial::fBigNumber;
 
-    auto bc_with_memory = dynamic_cast<TPZMatWithMem<TMEM> &>(bc);
+    auto &bc_with_memory = dynamic_cast<TPZMatWithMem<TMEM> &>(bc); // reference: a copy duplicates the whole memory
 
     /// Accepting  solution on bc data.
     int gp_index = data.intGlobPtIndex;
@@ -432,15 +432,15 @@ void TPZMatElastoPlastic2D<T, TMEM>::ContributeBC(const TPZMaterialDataT<STATE> 
             }//in
             break;
             
-        case 4: // stressField Neumann condition
-            v2[0] = v1(0, 0) * data.normal[0] + v1(0, 1) * data.normal[1];
-            v2[1] = v1(1, 0) * data.normal[0] + v1(1, 1) * data.normal[1];
-            // The normal vector points towards the neighbor. The negative sign is there to
-            // reflect the outward normal vector.
+        case 4: // stressField Neumann condition: traction = Val1 . n (local: Val2 is shared by all threads)
+        {
+            const STATE t0 = v1(0, 0) * data.normal[0] + v1(0, 1) * data.normal[1];
+            const STATE t1 = v1(1, 0) * data.normal[0] + v1(1, 1) * data.normal[1];
             for (in = 0; in < phi.Rows(); in++) {
-                ef(nstate * in + 0, 0) += v2[0] * phi(in, 0) * weight;
-                ef(nstate * in + 1, 0) += v2[1] * phi(in, 0) * weight;
+                ef(nstate * in + 0, 0) += t0 * phi(in, 0) * weight;
+                ef(nstate * in + 1, 0) += t1 * phi(in, 0) * weight;
             }
+        }
             break;
         case 5://PRESSAO DEVE SER POSTA NA POSICAO 0 DO VETOR v2
         {
@@ -588,15 +588,15 @@ void TPZMatElastoPlastic2D<T, TMEM>::ContributeBC(const TPZMaterialDataT<STATE> 
             }//in
             break;
             
-        case 4: // stressField Neumann condition
-            v2[0] = v1(0, 0) * data.normal[0] + v1(0, 1) * data.normal[1];
-            v2[1] = v1(1, 0) * data.normal[0] + v1(1, 1) * data.normal[1];
-            // The normal vector points towards the neighbor. The negative sign is there to
-            // reflect the outward normal vector.
+        case 4: // stressField Neumann condition: traction = Val1 . n (local: Val2 is shared by all threads)
+        {
+            const STATE t0 = v1(0, 0) * data.normal[0] + v1(0, 1) * data.normal[1];
+            const STATE t1 = v1(1, 0) * data.normal[0] + v1(1, 1) * data.normal[1];
             for (in = 0; in < phi.Rows(); in++) {
-                ef(nstate * in + 0, 0) += v2[0] * phi(in, 0) * weight;
-                ef(nstate * in + 1, 0) += v2[1] * phi(in, 0) * weight;
+                ef(nstate * in + 0, 0) += t0 * phi(in, 0) * weight;
+                ef(nstate * in + 1, 0) += t1 * phi(in, 0) * weight;
             }
+        }
             break;
         case 5://PRESSAO DEVE SER POSTA NA POSICAO 0 DO VETOR v2
         {

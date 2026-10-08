@@ -54,7 +54,7 @@ public:
      * @param[in] alpha damage variable
      */
 
-  TPZPlasticStepPV(REAL alpha=0.):fYC(), fER(), fResTol(1.e-12), fMaxNewton(30), fN(), fReductionFactor()
+  TPZPlasticStepPV(REAL alpha=0.):fYC(), fER(), fResTol(1.e-12), fMaxNewton(30), fN(), fReductionFactor(1.)
 	{ 
         fN.m_hardening = alpha;
     }
@@ -235,10 +235,14 @@ public:
     }
 
 
+    /// Shear strength reduction factor F (SRM): the criterion is evaluated with c/F, atan(tan(phi)/F)
     void SetStrengthReductionFactor(REAL factor)
     {
 			fReductionFactor = factor;
     }
+
+    /// Copy of the criterion with the point properties (fN.fmatprop) and the strength reduction applied
+    YC_t LocalCriterion() const;
 
 
     //virtual void Write(TPZStream &buf) const;
