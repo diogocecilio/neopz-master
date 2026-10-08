@@ -269,7 +269,7 @@ for ax, x0, top in zip(axs, (15.0, 35.0, 55.0), (40.0, 35.0, 30.0)):
     ax.grid(alpha=0.3)
 axs[0].set_ylabel("y (m)")
 h, l = axs[0].get_legend_handles_labels()
-fig.legend(h, l, loc="lower center", ncol=4, fontsize=6.5, bbox_to_anchor=(0.5, -0.12))
+fig.legend(h, l, loc="upper center", ncol=4, fontsize=6.5, bbox_to_anchor=(0.5, -0.02))
 save(fig, "fig_pressure_profiles.pdf")
 
 # ---------------------------------------------------------------- FS of the drawdown states

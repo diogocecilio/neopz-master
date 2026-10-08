@@ -573,30 +573,73 @@ As diferenças são o termo de armazenamento do último passo de Euler implícit
 $k\,\delta p\approx-\Delta t^{-1}\int N_p\,\Delta(\nabla\!\cdot\mathbf u)$, calculado com os deslocamentos P2
 do próprio VTK (\code{scripts/storage_check.py}): descontado esse termo, a diferença cai para
 $5\cdot10^{-4}$~kPa, a precisão dos números gravados. A parte hidráulica (condições de contorno,
-termo gravitacional, discretização) está verificada. A solução P1 independente converge com $O(h^2)$:
+termo gravitacional, discretização) está verificada (Figura~\ref{fig:laplace}). A solução P1 independente converge com $O(h^2)$:
 diferença máxima nos nós da malha inicial em relação a 5 refinamentos de 5,2; 1,8; 0,55~kPa para
 \code{ref} = 0, 1, 2.
+
+\begin{figure}[t]
+\centering\includegraphics[width=0.92\textwidth]{fig_laplace_check.pdf}
+\caption{Percolação permanente (\cc{ref=2}): poropressão do NeoPZ $\times$ solução P1 independente nos 435
+vértices e mapa da diferença (concentrada junto à face e ao pé, onde atua o termo de armazenamento do
+último passo).}\label{fig:laplace}
+\end{figure}
 
 \subsection{Fator de segurança}
 \begin{table}[h]
 \centering\small
 \begin{tabular}{@{}lcL{3.0cm}L{3.0cm}cc@{}}
 \toprule
-estado & $T$ & FS grav.\ (ciclos 0/1/2) & FS SRM (ciclos 0/1/2) & Bishop grav. & Bishop SRM\\
+estado & $T$ & FS grav.\ (ciclos 0/1/2/3) & FS SRM (ciclos 0/1/2/3) & Bishop grav. & Bishop SRM\\
 \midrule
 \rows{figs/tab_fs_drawdown.tex}
 \bottomrule
 \end{tabular}
-\caption{FS de cada estado: elementos finitos (\cc{SlopeAnalysis.h}, malha inicial \cc{TriGMesh(2)}
-e dois ciclos de refinamento da zona plástica) e Bishop simplificado com o mesmo campo $p^+$.}\label{tab:fsdd}
+\caption{FS de cada estado: elementos finitos (\cc{SlopeAnalysis.h}, malha inicial \cc{TriGMesh(1)} e
+três ciclos de refinamento da zona plástica) e Bishop simplificado com o mesmo campo $p^+$.}\label{tab:fsdd}
 \end{table}
 
-% FS_DISCUSSION
+Resultados (Tabela~\ref{tab:fsdd} e Figura~\ref{fig:fstime}; valores do ciclo 3):
+\begin{itemize}
+\item \textbf{Reservatório no topo}: FS = 1,637 por SRM e 3,80 por gravidade (Bishop 1,597 e 3,61). A
+  carga d'água e o empuxo ($\gamma'=\SI{10}{kN/m^3}$) tornam o talude submerso mais estável que o
+  seco (1,229).
+\item \textbf{Logo após o rebaixamento} ($T=0$): FS = 1,000 por SRM e por gravidade (Bishop 0,974 e
+  0,943): o talude perde a carga estabilizante da água enquanto a poropressão interna continua alta e
+  chega ao equilíbrio-limite.
+\item \textbf{Adensamento com a linha freática no topo} (hipótese de Ceron et al.): o FS cai para 0,959
+  em $T=0{,}1$ ($t\approx0{,}4$~dia com $k=\SI{e-2}{m/dia}$), 0,895 em $T=1$, 0,881 em $T=10$ e 0,886 no
+  regime permanente (Bishop 0,931; 0,860; 0,846; 0,850). O rebaixamento instantâneo baixa $p$ junto à
+  face e ao pé (efeito de Biot); depois a água que entra pelo topo e sai pela face e pelo pé eleva
+  $p$ nessa região e as forças de percolação apontam para fora do talude. O mínimo ocorre entre
+  $T=10$ e o regime permanente (diferença dentro da tolerância da continuação). Com essa hipótese o
+  estado de projeto é o campo permanente: FS = 0,886 (SRM) e
+  $\Gamma=\lambda_{\text{grav}}\gamma H/c=20\cdot0{,}781=15{,}6$ (Bishop: 0,850 e 14,5), contra
+  $\Gamma\approx36$ do talude seco ($20\cdot1{,}793$) --- valores diretamente comparáveis com o fator de
+  estabilidade de Ceron et al.\ para $\beta=45^\circ$ e $h_w=H$.
+\item \textbf{Drenado} (linha freática no pé, sem recarga): FS = 1,230, igual ao seco, porque o mecanismo
+  crítico fica acima de $y=30$~m. É o limite de longo prazo de um rebaixamento lento; num modelo com face
+  de percolação unilateral (sem realimentação pelo topo e pela face) o FS se recuperaria em direção a
+  esse valor.
+\end{itemize}
+
+\paragraph{Elementos finitos $\times$ Bishop.} No ciclo 3 o FS dos elementos finitos fica 2 a 4\,\% acima
+do de Bishop por SRM e 5 a 8\,\% por gravidade --- o mesmo padrão do talude seco no ciclo 3 (1,9\,\% e
+5,5\,\%), que cai para 0,3\,\% e 0,7\,\% no ciclo 5 (Tabela~\ref{tab:fsdry}). As duas análises,
+independentes, concordam dentro do erro de discretização esperado, e o mecanismo dos elementos finitos
+coincide com o círculo crítico (Figura~\ref{fig:mechdd}).
+
+\paragraph{Sensibilidade à malha u--p.} Bishop com os campos de \code{ref=2} dá FS por SRM de 1,038
+($T=0$), 1,008 ($0{,}1$), 0,930 (1), 0,904 (10) e 0,884 (permanente): 4 a 8\,\% acima dos campos de
+\code{ref=1}, porque a poropressão junto ao pé é mal resolvida por triângulos de 5~m. A tendência e a
+conclusão se mantêm (FS em torno de 1 logo após o rebaixamento e abaixo de 1 depois), mas o instante em
+que o FS cruza 1 passa de $T\approx0$ para $T\approx0{,}1$--$1$. Para valores quantitativos convém
+\code{ref=2} (ou refinamento junto ao pé), ao custo de uma análise de estabilidade bem mais cara.
 
 \begin{figure}[t]
 \centering\includegraphics[width=0.98\textwidth]{fig_fs_time.pdf}
 \caption{FS após o rebaixamento em função de $T=c_vt/H^2$ (ciclos de refinamento em tons crescentes),
-Bishop com o mesmo campo $p^+$ ($\triangle$) e os estados seco e com o reservatório no topo.}\label{fig:fstime}
+Bishop com o mesmo campo $p^+$ ($\triangle$) e os estados seco, drenado (coincidentes) e com o
+reservatório no topo.}\label{fig:fstime}
 \end{figure}
 
 \begin{figure}[t]
@@ -671,11 +714,13 @@ agente encarregado de refutá-lo. Resultado:
 %=====================================================================================================
 \section{Como reproduzir}
 \begin{lstlisting}[language=bash]
-cmake -DBUILD_PLASTICITY_MATERIALS=ON -DBUILD_PROJECTS=ON <neopz>
-ninja SlopeMohrCoulomb SlopeDrawdown
-SLOPE_VERBOSE=1 ./SlopeMohrCoulomb nref=4 > out.txt   # talude seco (+ "check": teste de Taylor)
-./SlopeDrawdown nref=3 > out.txt                      # rebaixamento rapido
-python docs/slope_mohr_coulomb/scripts/make_figures.py <seco> <rebaixamento> <taylor.csv> <laplace> figs
+cmake -DBUILD_PLASTICITY_MATERIALS=ON -DBUILD_PROJECTS=ON <neopz>; ninja SlopeMohrCoulomb SlopeDrawdown
+SLOPE_VERBOSE=1 ./SlopeMohrCoulomb nref=4 > out.txt   # talude seco (SlopeMohrCoulomb check: teste de Taylor)
+./SlopeDrawdown nref=3 > out.txt                      # rebaixamento rapido (ref=1)
+python3 scripts/bishop_pw.py <dry|crest|drained|drawdown_up.scal_vec.N.vtk>   # Bishop (em <rebaixamento>/bms)
+python3 scripts/laplace_check.py <rebaixamento ref=2> <saida>                 # percolacao independente
+python3 scripts/make_figures.py <seco> <rebaixamento> data/taylor.csv <saida laplace> figs
+pdflatex relatorio.tex
 \end{lstlisting}
 Os scripts de verificação independente (Bishop com poropressão, solução P1 da percolação, teste de
 Taylor) estão em \code{docs/slope_mohr_coulomb/scripts}.

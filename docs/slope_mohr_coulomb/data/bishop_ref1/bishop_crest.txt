@@ -1,0 +1,1 @@
+crest: Bishop FS(SRM) = 1.5967 circle (xc, yc, R) = (41.35, 44.95, 15.00); FS(GI) = 3.611

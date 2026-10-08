@@ -1,0 +1,1 @@
+drawdown_up.scal_vec.2.vtk: Bishop FS(SRM) = 0.9308 circle (xc, yc, R) = (41.35, 42.95, 13.00); FS(GI) = 0.854

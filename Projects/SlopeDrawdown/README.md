@@ -57,18 +57,30 @@ Saídas: `drawdown_up.scal_vec.N.vtk` (pressão e deslocamento da análise u-p, 
 
 ## Resultados
 
-FS com a malha inicial (`nref=0`; o refinamento da zona plástica reduz o FS, ver `SlopeMohrCoulomb`)
-e Bishop simplificado com o mesmo campo p⁺ (busca de círculos, script independente):
+`./SlopeDrawdown nref=3` (malhas `TriGMesh(1)`, 32 min). FS no ciclo 3 e Bishop simplificado com o mesmo
+campo p⁺ (busca multi-início, `docs/slope_mohr_coulomb/scripts/bishop_pw.py`):
 
-| estado | T = c_v t / H² | FS gravidade | FS SRM | Bishop (SRM) |
-|---|---|---|---|---|
-| seco | — | 3,041 | 1,399 | 1,207 |
-| reservatório no topo | — | 6,060 | 1,924 | 1,604 |
-| logo após o rebaixamento (não drenado) | 0 | 1,544 | 1,137 | 1,038 |
-| adensamento | 0,1 | 1,646 | 1,164 | |
-| adensamento | 1 | 1,358 | 1,141 | 0,933 |
-| adensamento | 10 | 1,288 | 1,125 | |
-| regime permanente (campo de Ceron et al.) | ∞ | 1,235 | 1,106 | 0,885 |
+| estado | T = c_v t / H² | FS gravidade | FS SRM | Bishop gravidade | Bishop SRM |
+|---|---|---|---|---|---|
+| seco | — | 1,906 | 1,229 | 1,806 | 1,206 |
+| reservatório no topo | — | 3,799 | 1,637 | 3,611 | 1,597 |
+| logo após o rebaixamento (não drenado) | 0 | 1,000 | 1,000 | 0,943 | 0,974 |
+| adensamento | 0,1 | 0,910 | 0,959 | 0,854 | 0,931 |
+| adensamento | 1 | 0,793 | 0,895 | 0,737 | 0,860 |
+| adensamento | 10 | 0,770 | 0,881 | 0,718 | 0,846 |
+| percolação permanente (campo de Ceron et al.) | ∞ | 0,781 | 0,886 | 0,723 | 0,850 |
+| drenado (linha freática no pé) | — | 1,906 | 1,230 | 1,806 | 1,206 |
+
+* O rebaixamento rápido leva o talude ao equilíbrio-limite (FS = 1,00) e, com a linha freática mantida
+  no topo, a percolação o torna instável (FS ≈ 0,88 no regime permanente; Γ = 20·FS_grav ≈ 15,6 contra
+  ≈ 36 do talude seco).
+* Elementos finitos × Bishop: 2–4 % (SRM) e 5–8 % (gravidade) acima no ciclo 3, o mesmo padrão do
+  talude seco, que converge para Bishop com mais refinamento.
+* Com os campos de `ref=2` Bishop dá FS 4–8 % maior (1,038 logo após o rebaixamento, 0,884 no regime
+  permanente): a poropressão junto ao pé pede malha u-p mais fina.
+* Verificação da percolação: solução P1 independente (`docs/slope_mohr_coulomb/scripts/laplace_check.py`)
+  igual à do NeoPZ até 5·10⁻⁴ kPa, descontado o termo de armazenamento do último passo.
+* Relatório completo: `docs/slope_mohr_coulomb/relatorio.tex`.
 
 ## Limitações
 

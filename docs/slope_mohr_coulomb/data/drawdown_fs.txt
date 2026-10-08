@@ -1,0 +1,60 @@
+  step 1/1: t = 0  lambda = 0  uc = 0  evaluations = 5  bisections = 0
+  step 1/1: t = 0  lambda = 1  uc = 0  evaluations = 7  bisections = 0
+  step 1/18: t = 0.00371429  lambda = 1  uc = 0  evaluations = 7  bisections = 0
+  step 2/18: t = 0.00660504  lambda = 1  uc = 0  evaluations = 6  bisections = 0
+  step 3/18: t = 0.0117456  lambda = 1  uc = 0  evaluations = 6  bisections = 0
+  step 4/18: t = 0.020887  lambda = 1  uc = 0  evaluations = 6  bisections = 0
+  step 5/18: t = 0.0371429  lambda = 1  uc = 0  evaluations = 6  bisections = 0
+  step 6/18: t = 0.0660504  lambda = 1  uc = 0  evaluations = 6  bisections = 0
+  step 7/18: t = 0.117456  lambda = 1  uc = 0  evaluations = 7  bisections = 0
+  step 8/18: t = 0.20887  lambda = 1  uc = 0  evaluations = 6  bisections = 0
+  step 9/18: t = 0.371429  lambda = 1  uc = 0  evaluations = 7  bisections = 0
+  step 10/18: t = 0.660504  lambda = 1  uc = 0  evaluations = 6  bisections = 0
+  step 11/18: t = 1.17456  lambda = 1  uc = 0  evaluations = 6  bisections = 0
+  step 12/18: t = 2.0887  lambda = 1  uc = 0  evaluations = 6  bisections = 0
+  step 13/18: t = 3.71429  lambda = 1  uc = 0  evaluations = 8  bisections = 0
+  step 14/18: t = 6.60504  lambda = 1  uc = 0  evaluations = 6  bisections = 0
+  step 15/18: t = 11.7456  lambda = 1  uc = 0  evaluations = 7  bisections = 0
+  step 16/18: t = 20.887  lambda = 1  uc = 0  evaluations = 6  bisections = 0
+  step 17/18: t = 37.1429  lambda = 1  uc = 0  evaluations = 5  bisections = 0
+  step 18/18: t = 37142.9  lambda = 1  uc = 0  evaluations = 4  bisections = 0
+[dry] refinement 0: 870 equations, FS GI 3.04077, FS SRM 1.39868
+[dry] refinement 1: 918 equations, FS GI 2.51562, FS SRM 1.31152
+[dry] refinement 2: 1140 equations, FS GI 2.10254, FS SRM 1.25781
+[dry] refinement 3: 1814 equations, FS GI 1.90625, FS SRM 1.22852
+[crest] refinement 0: 870 equations, FS GI 6.05981, FS SRM 1.92383
+[crest] refinement 1: 966 equations, FS GI 5.01172, FS SRM 1.74805
+[crest] refinement 2: 1274 equations, FS GI 4.18115, FS SRM 1.67334
+[crest] refinement 3: 2086 equations, FS GI 3.79883, FS SRM 1.63672
+[T0] refinement 0: 870 equations, FS GI 1.40234, FS SRM 1.10938
+[T0] refinement 1: 1072 equations, FS GI 1.15625, FS SRM 1.05469
+[T0] refinement 2: 1458 equations, FS GI 1.05664, FS SRM 1.01953
+[T0] refinement 3: 2166 equations, FS GI 0.999512, FS SRM 1
+[T0.1] refinement 0: 870 equations, FS GI 1.32324, FS SRM 1.12109
+[T0.1] refinement 1: 1072 equations, FS GI 1.08374, FS SRM 1.03125
+[T0.1] refinement 2: 1458 equations, FS GI 0.96582, FS SRM 0.983887
+[T0.1] refinement 3: 2142 equations, FS GI 0.910156, FS SRM 0.958984
+[T1] refinement 0: 870 equations, FS GI 1.14746, FS SRM 1.07031
+[T1] refinement 1: 952 equations, FS GI 0.949707, FS SRM 0.9729
+[T1] refinement 2: 1146 equations, FS GI 0.850098, FS SRM 0.923828
+[T1] refinement 3: 1692 equations, FS GI 0.792969, FS SRM 0.894531
+[T10] refinement 0: 870 equations, FS GI 1.1167, FS SRM 1.05762
+[T10] refinement 1: 928 equations, FS GI 0.921875, FS SRM 0.964111
+[T10] refinement 2: 1140 equations, FS GI 0.825195, FS SRM 0.90918
+[T10] refinement 3: 1710 equations, FS GI 0.769531, FS SRM 0.881348
+[steady] refinement 0: 870 equations, FS GI 1.12439, FS SRM 1.0625
+[steady] refinement 1: 918 equations, FS GI 0.936523, FS SRM 0.966309
+[steady] refinement 2: 1140 equations, FS GI 0.83252, FS SRM 0.912476
+[steady] refinement 3: 1710 equations, FS GI 0.78125, FS SRM 0.885742
+[drained] refinement 0: 870 equations, FS GI 3.04077, FS SRM 1.39868
+[drained] refinement 1: 918 equations, FS GI 2.51562, FS SRM 1.31152
+[drained] refinement 2: 1140 equations, FS GI 2.09814, FS SRM 1.25781
+[drained] refinement 3: 1814 equations, FS GI 1.90625, FS SRM 1.23047
+  dry  -  -  1.90625  1.22852
+  crest  -  -  3.79883  1.63672
+  T0  0  0  0.999512  1
+  T0.1  0.371429  0.1  0.910156  0.958984
+  T1  3.71429  1  0.792969  0.894531
+  T10  37.1429  10  0.769531  0.881348
+  steady  37142.9  10000  0.78125  0.885742
+  drained  -  -  1.90625  1.23047
