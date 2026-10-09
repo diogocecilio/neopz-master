@@ -41,3 +41,6 @@ add_subdirectory(SlopeMohrCoulomb)
 
 # Rapid drawdown of the reservoir: u-p (Biot) Mohr-Coulomb analysis and FS with the seepage forces
 add_subdirectory(SlopeDrawdown)
+
+# Seepage forces of a rapid drawdown (Ceron et al. 2025, Sect. 4.3): anisotropic steady seepage and FEM stability
+add_subdirectory(SlopeSeepageForces)

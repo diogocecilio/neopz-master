@@ -1,0 +1,342 @@
+{
+ "paper": "Ceron, Cecilio, Linn & Maghous, IJNAMG 2025, doi:10.1002/nag.3993",
+ "script": "/home/user/neopz-master/Projects/SlopeSeepageForces/scripts/digitize_figures.py",
+ "renders_dpi": 450.0,
+ "fig5": {
+  "source": "vector fill_between polygon of the PDF (page 9)",
+  "curves": {
+   "J_FE": "dashed upper boundary of the grey band, J(u'_FE)",
+   "minus_Jstar_opt": "solid lower boundary, -J*(v'_opt)"
+  },
+  "normalization": "k_h H^2 gamma_w^2 (paper text)",
+  "uncertainty_per_alpha": {
+   "1": {
+    "vector_band_vs_line_outline_max": 0.0014814430238456744,
+    "raster_minus_vector_max_abs": 0.0013626056448959867,
+    "raster_minus_vector_mean": -0.00046724194264414115,
+    "vector_axis_fit_rms_pt": [
+     0.002079236862319312,
+     0.0005503081222863013
+    ],
+    "raster_axis_fit_rms_px": [
+     3.558288381353746e-13,
+     0.2126926095529621
+    ]
+   },
+   "2": {
+    "vector_band_vs_line_outline_max": 0.0009020815501405988,
+    "raster_minus_vector_max_abs": 0.0008225837578407225,
+    "raster_minus_vector_mean": -0.0002670624601514964,
+    "vector_axis_fit_rms_pt": [
+     0.0016760709592021032,
+     0.0005503081222829908
+    ],
+    "raster_axis_fit_rms_px": [
+     0.11952286956705695,
+     0.2126926095529708
+    ]
+   },
+   "4": {
+    "vector_band_vs_line_outline_max": 0.000282804207213494,
+    "raster_minus_vector_max_abs": 0.000219477045484473,
+    "raster_minus_vector_mean": -8.890687354400305e-05,
+    "vector_axis_fit_rms_pt": [
+     0.002079236862319312,
+     0.0007217077175915175
+    ],
+    "raster_axis_fit_rms_px": [
+     3.558288381353746e-13,
+     0.21269260955293076
+    ]
+   },
+   "10": {
+    "vector_band_vs_line_outline_max": 0.00015581712087209265,
+    "raster_minus_vector_max_abs": 0.00010228171706942735,
+    "raster_minus_vector_mean": -3.2734710234186976e-05,
+    "vector_axis_fit_rms_pt": [
+     0.0016760709592021032,
+     0.0007217077175822272
+    ],
+    "raster_axis_fit_rms_px": [
+     0.1321375061964567,
+     0.2126926095529519
+    ]
+   }
+  },
+  "uncertainty_note": "vector values: <= 0.0015 (alpha=1), <= 0.0009 (2), <= 0.0003 (4), <= 0.0002 (10) = max difference between the band polygon and the independent line outline; raster values: within 0.0014 of the vector values",
+  "overlay": "red/blue thin lines = vector band edges, green dots (drawn 12 px above the line) = raster trace, orange circles = CSV points"
+ },
+ "fig8": {
+  "source": "vector stroke outlines of the PDF (page 13)",
+  "curves": {
+   "vopt": "dashed, seepage forces K^-1 . v'_opt",
+   "FE": "dash-dot, seepage forces -grad u'_FE",
+   "Wu_rp025": "solid, Wu et al. r_p = 0.25 (digitized only)"
+  },
+  "y_axis": "log10, ticks 10^1, 10^2 and minor ticks; axis range 3.00 .. 201.0 m",
+  "omitted_clipped_points": [
+   {
+    "soil": "Israeli",
+    "beta_deg": 35,
+    "curve": "vopt",
+    "hw_over_H": 0.0,
+    "Hcrit_m_from_clipped_vector_geometry": 229.319,
+    "axis_range_m": [
+     3.0,
+     201.0
+    ]
+   },
+   {
+    "soil": "Israeli",
+    "beta_deg": 35,
+    "curve": "FE",
+    "hw_over_H": 0.0,
+    "Hcrit_m_from_clipped_vector_geometry": 229.328,
+    "axis_range_m": [
+     3.0,
+     201.0
+    ]
+   }
+  ],
+  "low_support_vertices": [
+   {
+    "soil": "London",
+    "beta_deg": 60,
+    "curve": "FE",
+    "hw_over_H": 1.0,
+    "note": "no ink within this vertex' neighbourhood (dash gap); value interpolated / extrapolated by the polyline fit"
+   },
+   {
+    "soil": "Israeli",
+    "beta_deg": 60,
+    "curve": "FE",
+    "hw_over_H": 0.8,
+    "note": "no ink within this vertex' neighbourhood (dash gap); value interpolated / extrapolated by the polyline fit"
+   }
+  ],
+  "uncertainty_note": "vector values: polyline vertices recovered to <= 1.5e-4 in log10(H) (0.03 %), axis map 2e-5; points flagged in low_support_vertices (end of a dash-dot line in a gap) are interpolated / extrapolated over <= 0.025 h_w/H, about +-0.3 %. Values at h_w/H between the data vertices are the plotted straight segments (log-linear interpolation). Raster values (paper_fig8_raster.csv): only where the line is not overlapped by another one; agreement with the vector values reported below.",
+  "validation": {
+   "vector_polyline_fit": {
+    "London beta=30 FE": {
+     "vertex_step_hw": 0.05,
+     "rms_log10": 1.5777101109227654e-05,
+     "max_log10": 6.624610633343408e-05,
+     "stroke_width_pt": 1.0468049727691286
+    },
+    "London beta=30 Wu_rp025": {
+     "vertex_step_hw": 0.025,
+     "rms_log10": 8.893649371553196e-06,
+     "max_log10": 4.01495904831517e-05,
+     "stroke_width_pt": 1.0466275501125377
+    },
+    "London beta=30 vopt": {
+     "vertex_step_hw": 0.05,
+     "rms_log10": 1.3311547674056132e-05,
+     "max_log10": 4.803621441062944e-05,
+     "stroke_width_pt": 1.0470245875071396
+    },
+    "London beta=60 FE": {
+     "vertex_step_hw": 0.025,
+     "rms_log10": 1.0028189806844712e-05,
+     "max_log10": 2.9974020240741694e-05,
+     "stroke_width_pt": 1.0465004633423884
+    },
+    "London beta=60 Wu_rp025": {
+     "vertex_step_hw": 0.025,
+     "rms_log10": 1.1491896424049579e-05,
+     "max_log10": 3.727609783243935e-05,
+     "stroke_width_pt": 1.0467564982246054
+    },
+    "London beta=60 vopt": {
+     "vertex_step_hw": 0.025,
+     "rms_log10": 1.17346066202082e-05,
+     "max_log10": 3.364289055629577e-05,
+     "stroke_width_pt": 1.0467811344752125
+    },
+    "Israeli beta=35 FE": {
+     "vertex_step_hw": 0.1,
+     "rms_log10": 2.0579519947010398e-05,
+     "max_log10": 0.00010180975623130806,
+     "stroke_width_pt": 1.0472968891407657
+    },
+    "Israeli beta=35 Wu_rp025": {
+     "vertex_step_hw": 0.025,
+     "rms_log10": 1.3518247277217382e-05,
+     "max_log10": 4.578954825285031e-05,
+     "stroke_width_pt": 1.047295504133492
+    },
+    "Israeli beta=35 vopt": {
+     "vertex_step_hw": 0.1,
+     "rms_log10": 2.2613377393172636e-05,
+     "max_log10": 0.00014648645078452205,
+     "stroke_width_pt": 1.0468235387424791
+    },
+    "Israeli beta=60 FE": {
+     "vertex_step_hw": 0.025,
+     "rms_log10": 1.2372546112546989e-05,
+     "max_log10": 4.3227948300250674e-05,
+     "stroke_width_pt": 1.046351480876032
+    },
+    "Israeli beta=60 Wu_rp025": {
+     "vertex_step_hw": 0.025,
+     "rms_log10": 1.0375292282027916e-05,
+     "max_log10": 3.178801936487563e-05,
+     "stroke_width_pt": 1.0463530599272037
+    },
+    "Israeli beta=60 vopt": {
+     "vertex_step_hw": 0.025,
+     "rms_log10": 1.1635867151233755e-05,
+     "max_log10": 4.757976750524584e-05,
+     "stroke_width_pt": 1.0462122908139202
+    }
+   },
+   "vector_axis_fit_rms_pt": {
+    "London": [
+     0.002020250102464228,
+     0.0017989627219231995
+    ],
+    "Israeli": [
+     0.00131125994616959,
+     0.0018084320183649341
+    ]
+   },
+   "raster_two_sided_minus_vector_log10": {
+    "n": 89,
+    "rms": 0.0005545012323292253,
+    "max_abs": 0.002223004208623758
+   },
+   "raster_polyline_method_minus_vector_log10": {
+    "n": 50,
+    "rms": 0.00014795648548712333,
+    "max_abs": 0.0005476615617490133
+   }
+  },
+  "overlay": "thin coloured lines = vector polylines (green vopt, red FE, blue Wu), dots drawn 10 px above = raster trace, orange circles = CSV points"
+ },
+ "fig9": {
+  "source": "raster only (Fig. 9 is an embedded 300-ppi bitmap): hi-13.png, polyline vertices at 5 deg",
+  "curves": {
+   "FE": "solid, seepage forces -grad u'_FE",
+   "vopt": "dashed, seepage forces K^-1 . v'_opt"
+  },
+  "method": "curves separated per column (solid = lowest run); per 5-deg interval one straight centre line (column or row scans across the band, asymmetric edge fit insensitive to dash ends); node = weighted mean of the two adjacent lines",
+  "vertex_check_deg": "intersection abscissa of adjacent segment lines minus node, at kinks with slope change > 0.02/deg: {\"alpha=1 FE\": [-0.016, -0.038, -0.018], \"alpha=1 vopt\": [-0.019, -0.038, 0.022], \"alpha=5 FE\": [-0.037, -0.009, -0.004, -0.042], \"alpha=5 vopt\": [-0.114, 0.003, -0.047, 0.024], \"alpha=10 FE\": [-0.02, -0.026, -0.037], \"alpha=10 vopt\": [-0.016, -0.038, 0.021]}",
+  "uncertainty_Gamma_per_point": {
+   "alpha=1 FE beta=25": 0.0034,
+   "alpha=1 FE beta=30": 0.002,
+   "alpha=1 FE beta=35": 0.0009,
+   "alpha=1 FE beta=40": 0.0008,
+   "alpha=1 FE beta=45": 0.0009,
+   "alpha=1 FE beta=50": 0.001,
+   "alpha=1 FE beta=55": 0.0011,
+   "alpha=1 FE beta=60": 0.0012,
+   "alpha=1 FE beta=65": 0.001,
+   "alpha=1 FE beta=70": 0.001,
+   "alpha=1 FE beta=75": 0.001,
+   "alpha=1 FE beta=80": 0.0012,
+   "alpha=1 FE beta=85": 0.0012,
+   "alpha=1 FE beta=90": 0.0013,
+   "alpha=1 vopt beta=30": 0.0031,
+   "alpha=1 vopt beta=35": 0.0019,
+   "alpha=1 vopt beta=40": 0.0011,
+   "alpha=1 vopt beta=45": 0.0012,
+   "alpha=1 vopt beta=50": 0.0013,
+   "alpha=1 vopt beta=55": 0.0017,
+   "alpha=1 vopt beta=60": 0.0009,
+   "alpha=1 vopt beta=65": 0.0013,
+   "alpha=1 vopt beta=70": 0.0013,
+   "alpha=1 vopt beta=75": 0.0012,
+   "alpha=1 vopt beta=80": 0.0026,
+   "alpha=1 vopt beta=85": 0.0114,
+   "alpha=1 vopt beta=90": 0.0071,
+   "alpha=5 FE beta=30": 0.0046,
+   "alpha=5 FE beta=35": 0.0009,
+   "alpha=5 FE beta=40": 0.001,
+   "alpha=5 FE beta=45": 0.0009,
+   "alpha=5 FE beta=50": 0.0009,
+   "alpha=5 FE beta=55": 0.001,
+   "alpha=5 FE beta=60": 0.001,
+   "alpha=5 FE beta=65": 0.001,
+   "alpha=5 FE beta=70": 0.0015,
+   "alpha=5 FE beta=75": 0.0009,
+   "alpha=5 FE beta=80": 0.0009,
+   "alpha=5 FE beta=85": 0.0009,
+   "alpha=5 FE beta=90": 0.0013,
+   "alpha=5 vopt beta=35": 0.0193,
+   "alpha=5 vopt beta=40": 0.0011,
+   "alpha=5 vopt beta=45": 0.0015,
+   "alpha=5 vopt beta=50": 0.002,
+   "alpha=5 vopt beta=55": 0.0014,
+   "alpha=5 vopt beta=60": 0.0014,
+   "alpha=5 vopt beta=65": 0.0019,
+   "alpha=5 vopt beta=70": 0.0014,
+   "alpha=5 vopt beta=75": 0.0012,
+   "alpha=5 vopt beta=80": 0.0042,
+   "alpha=5 vopt beta=85": 0.003,
+   "alpha=5 vopt beta=90": 0.0019,
+   "alpha=10 FE beta=35": 0.0017,
+   "alpha=10 FE beta=40": 0.0009,
+   "alpha=10 FE beta=45": 0.0011,
+   "alpha=10 FE beta=50": 0.001,
+   "alpha=10 FE beta=55": 0.0008,
+   "alpha=10 FE beta=60": 0.0009,
+   "alpha=10 FE beta=65": 0.0011,
+   "alpha=10 FE beta=70": 0.0029,
+   "alpha=10 FE beta=75": 0.0011,
+   "alpha=10 FE beta=80": 0.001,
+   "alpha=10 FE beta=85": 0.0009,
+   "alpha=10 FE beta=90": 0.0013,
+   "alpha=10 vopt beta=35": 0.0025,
+   "alpha=10 vopt beta=40": 0.0013,
+   "alpha=10 vopt beta=45": 0.0011,
+   "alpha=10 vopt beta=50": 0.0014,
+   "alpha=10 vopt beta=55": 0.0014,
+   "alpha=10 vopt beta=60": 0.0014,
+   "alpha=10 vopt beta=65": 0.0014,
+   "alpha=10 vopt beta=70": 0.0019,
+   "alpha=10 vopt beta=75": 0.0025,
+   "alpha=10 vopt beta=80": 0.0017,
+   "alpha=10 vopt beta=85": 0.0015,
+   "alpha=10 vopt beta=90": 0.0019
+  },
+  "uncertainty_note": "u = sqrt(sigma_fit^2 + (half spread over renders at [450, 300, 600] dpi)^2); median 0.0013, max 0.0193. Method validated on Fig. 8 against the vector truth (see fig8.validation). Recommended +-0.005 for all points except those with a larger u listed above.",
+  "omitted_hidden_points": [
+   {
+    "alpha": 1,
+    "curve": "FE",
+    "beta_deg": 20,
+    "Gamma_extrapolated": 6.539,
+    "note": "above the plotted range (Gamma > 5): straight-line extrapolation of the visible part of the adjacent polyline segment, not a visible point"
+   },
+   {
+    "alpha": 1,
+    "curve": "vopt",
+    "beta_deg": 25,
+    "Gamma_extrapolated": 5.585,
+    "note": "above the plotted range (Gamma > 5): straight-line extrapolation of the visible part of the adjacent polyline segment, not a visible point"
+   },
+   {
+    "alpha": 5,
+    "curve": "FE",
+    "beta_deg": 25,
+    "Gamma_extrapolated": 5.99,
+    "note": "above the plotted range (Gamma > 5): straight-line extrapolation of the visible part of the adjacent polyline segment, not a visible point"
+   },
+   {
+    "alpha": 5,
+    "curve": "vopt",
+    "beta_deg": 30,
+    "Gamma_extrapolated": 6.833,
+    "note": "above the plotted range (Gamma > 5): straight-line extrapolation of the visible part of the adjacent polyline segment, not a visible point"
+   },
+   {
+    "alpha": 10,
+    "curve": "FE",
+    "beta_deg": 30,
+    "Gamma_extrapolated": 5.177,
+    "note": "above the plotted range (Gamma > 5): straight-line extrapolation of the visible part of the adjacent polyline segment, not a visible point"
+   }
+  ],
+  "overlay": "thin lines = fitted polylines (red FE, green vopt), dots 14 px above = traced run centres, orange circles = CSV points, orange boxes = masked label boxes"
+ }
+}
