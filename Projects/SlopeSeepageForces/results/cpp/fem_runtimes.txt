@@ -1,3 +1,5 @@
 2026-10-09 08:05:15  fembatch fig=9: 362 s, exit code 0  (alphas=1 betas=60)
 2026-10-09 08:10:01  fembatch fig=8: 286 s, exit code 0  (panels=Israeli60 hws=0.5 curves=FE)
 2026-10-09 09:05:55  fembatch fig=8: 406 s, exit code 0  (panels=Israeli35 hws=0.5 curves=FE)
+2026-10-09 11:52:10  fembatch fig=8: 9036 s, exit code 0  ()
+2026-10-09 12:00:46  fembatch fig=9: 9552 s, exit code 0  ()

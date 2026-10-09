@@ -44,3 +44,19 @@
 2026-10-09 11:13:22    [fem fig8] Israeli beta=35 hw/H=0.5 vopt: limit analysis, then 4 FEM cycles
 2026-10-09 11:20:51    [fem fig8 18] Israeli beta=35 hw/H=0.5 vopt: H_crit FEM = 14.9702 m (h -> 0; H_ref 15.5 m, last cycle lambda 0.989258, 6004 equations), LA = 15.4642 m (447.9 s)
 2026-10-09 11:20:51    [fem fig8] Israeli beta=35 hw/H=1 vopt: limit analysis, then 4 FEM cycles
+2026-10-09 11:27:53    [fem fig8 19] Israeli beta=35 hw/H=1 vopt: H_crit FEM = 8.73853 m (h -> 0; H_ref 8.73 m, last cycle lambda 1.03906, 5828 equations), LA = 8.72817 m (421.2 s)
+2026-10-09 11:27:53    [fem fig8] Israeli beta=35 hw/H=1 FE: limit analysis, then 4 FEM cycles
+2026-10-09 11:33:39    [fem fig8 20] Israeli beta=35 hw/H=1 FE: H_crit FEM = 6.23475 m (h -> 0; H_ref 6.34 m, last cycle lambda 1.01562, 6308 equations), LA = 6.33647 m (340.9 s)
+2026-10-09 11:33:39    [fem fig8] Israeli beta=60 hw/H=0 none: limit analysis, then 4 FEM cycles
+2026-10-09 11:36:03    [fem fig8 21] Israeli beta=60 hw/H=0 none: H_crit FEM = 12.9238 m (h -> 0; H_ref 13 m, last cycle lambda 1.03125, 2952 equations), LA = 12.986 m (144.8 s)
+2026-10-09 11:36:03    [fem fig8] Israeli beta=60 hw/H=0.2 vopt: limit analysis, then 4 FEM cycles
+2026-10-09 11:40:09    [fem fig8 22] Israeli beta=60 hw/H=0.2 vopt: H_crit FEM = 6.99768 m (h -> 0; H_ref 6.93 m, last cycle lambda 1.03906, 3444 equations), LA = 6.92533 m (244.4 s)
+2026-10-09 11:40:09    [fem fig8] Israeli beta=60 hw/H=0.2 FE: limit analysis, then 4 FEM cycles
+2026-10-09 11:44:24    [fem fig8 23] Israeli beta=60 hw/H=0.2 FE: H_crit FEM = 6.25245 m (h -> 0; H_ref 6.21 m, last cycle lambda 1.0332, 3446 equations), LA = 6.21381 m (251.2 s)
+2026-10-09 11:44:24    [fem fig8] Israeli beta=60 hw/H=0.5 vopt: limit analysis, then 4 FEM cycles
+2026-10-09 11:48:28    [fem fig8 24] Israeli beta=60 hw/H=0.5 vopt: H_crit FEM = 5.50141 m (h -> 0; H_ref 5.48 m, last cycle lambda 1.03613, 4440 equations), LA = 5.48158 m (243.6 s)
+2026-10-09 11:48:28    [fem fig8] Israeli beta=60 hw/H=1 vopt: limit analysis, then 4 FEM cycles
+2026-10-09 11:50:09    [fem fig8 25] Israeli beta=60 hw/H=1 vopt: H_crit FEM = 4.83 m (h -> 0; H_ref 4.83 m, last cycle lambda 1.03125, 2850 equations), LA = 4.82789 m (99.59 s)
+2026-10-09 11:50:09    [fem fig8] Israeli beta=60 hw/H=1 FE: limit analysis, then 4 FEM cycles
+2026-10-09 11:52:10    [fem fig8 26] Israeli beta=60 hw/H=1 FE: H_crit FEM = 3.27 m (h -> 0; H_ref 3.27 m, last cycle lambda 1.03125, 2964 equations), LA = 3.27093 m (117.6 s)
+2026-10-09 11:52:10  fembatch fig=8: 26 cases run, 2 already in /home/user/neopz-master/Projects/SlopeSeepageForces/results/cpp/fem_fig8.csv, 0 failed, 9036 s

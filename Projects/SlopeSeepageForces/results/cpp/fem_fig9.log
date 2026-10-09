@@ -44,3 +44,21 @@
 2026-10-09 11:05:07    [fem fig9] alpha=10 beta=30 vopt: limit analysis, then 4 FEM cycles
 2026-10-09 11:16:59    [fem fig9 19] alpha=10 beta=30 vopt: Gamma_FEM = 8.22412 (h -> 0; last cycle 9.48535, 8478 equations), Gamma_LA = 8.80687 (711.3 s)
 2026-10-09 11:16:59    [fem fig9] alpha=10 beta=30 FE: limit analysis, then 4 FEM cycles
+2026-10-09 11:29:58    [fem fig9 20] alpha=10 beta=30 FE: Gamma_FEM = 3.53516 (h -> 0; last cycle 3.66699, 10866 equations), Gamma_LA = 4.69437 (775.3 s)
+2026-10-09 11:29:58    [fem fig9] alpha=10 beta=45 vopt: limit analysis, then 4 FEM cycles
+2026-10-09 11:33:59    [fem fig9 21] alpha=10 beta=45 vopt: Gamma_FEM = 2.89355 (h -> 0; last cycle 3.0166, 4308 equations), Gamma_LA = 2.89742 (240.3 s)
+2026-10-09 11:33:59    [fem fig9] alpha=10 beta=45 FE: limit analysis, then 4 FEM cycles
+2026-10-09 11:40:55    [fem fig9 22] alpha=10 beta=45 FE: Gamma_FEM = 2.03516 (h -> 0; last cycle 2.08203, 6400 equations), Gamma_LA = 2.12954 (413.4 s)
+2026-10-09 11:40:55    [fem fig9] alpha=10 beta=60 vopt: limit analysis, then 4 FEM cycles
+2026-10-09 11:44:12    [fem fig9 23] alpha=10 beta=60 vopt: Gamma_FEM = 1.83594 (h -> 0; last cycle 1.89453, 3614 equations), Gamma_LA = 1.83335 (195.6 s)
+2026-10-09 11:44:12    [fem fig9] alpha=10 beta=60 FE: limit analysis, then 4 FEM cycles
+2026-10-09 11:47:39    [fem fig9 24] alpha=10 beta=60 FE: Gamma_FEM = 1.29688 (h -> 0; last cycle 1.34961, 3928 equations), Gamma_LA = 1.30019 (205.3 s)
+2026-10-09 11:47:39    [fem fig9] alpha=10 beta=75 vopt: limit analysis, then 4 FEM cycles
+2026-10-09 11:50:56    [fem fig9 25] alpha=10 beta=75 vopt: Gamma_FEM = 1.22363 (h -> 0; last cycle 1.28516, 3432 equations), Gamma_LA = 1.22261 (195.6 s)
+2026-10-09 11:50:56    [fem fig9] alpha=10 beta=75 FE: limit analysis, then 4 FEM cycles
+2026-10-09 11:54:07    [fem fig9 26] alpha=10 beta=75 FE: Gamma_FEM = 0.886719 (h -> 0; last cycle 0.933594, 3318 equations), Gamma_LA = 0.887616 (188.6 s)
+2026-10-09 11:54:07    [fem fig9] alpha=10 beta=90 vopt: limit analysis, then 4 FEM cycles
+2026-10-09 11:57:50    [fem fig9 27] alpha=10 beta=90 vopt: Gamma_FEM = 0.77832 (h -> 0; last cycle 0.813477, 3332 equations), Gamma_LA = 0.780274 (222.3 s)
+2026-10-09 11:57:50    [fem fig9] alpha=10 beta=90 FE: limit analysis, then 4 FEM cycles
+2026-10-09 12:00:46    [fem fig9 28] alpha=10 beta=90 FE: Gamma_FEM = 0.627441 (h -> 0; last cycle 0.652344, 3296 equations), Gamma_LA = 0.623514 (172.6 s)
+2026-10-09 12:00:46  fembatch fig=9: 28 cases run, 2 already in /home/user/neopz-master/Projects/SlopeSeepageForces/results/cpp/fem_fig9.csv, 0 failed, 9552 s

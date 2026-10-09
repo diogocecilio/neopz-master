@@ -33,3 +33,16 @@
 
 # Python bytecode of the figure scripts
 __pycache__/
+
+# LaTeX byproducts of the reports in docs/ (the .tex and the compiled .pdf are versioned)
+docs/**/*.aux
+docs/**/*.log
+docs/**/*.out
+docs/**/*.toc
+docs/**/*.synctex.gz
+docs/**/*.fls
+docs/**/*.fdb_latexmk
+
+# editor swap files
+.*.kate-swp
+*.swp
