@@ -2,8 +2,17 @@
 
 This folder contains one project per numerical example of the article
 
-> D. Lira Cecílio, *Return mapping for Modified Cam-Clay plasticity in rotated Haigh–Westergaard space
-> with consistent tangent operator and coupled u–p consolidation*.
+> D. Lira Cecílio, *Two-variable closest-point projection of the Modified Cam-Clay model in rotated
+> Haigh–Westergaard space with consistent tangent operator* (v0.8; the section, figure and table numbers quoted
+> in the projects and in their printouts are still those of v0.7, *Return mapping for Modified Cam-Clay plasticity
+> in rotated Haigh–Westergaard space with consistent tangent operator and coupled u–p consolidation*).
+
+Since v0.8 the local problem is solved with two unknowns, the angle of the meridian ellipse and the hardening
+increment (`TPZYCModifiedCamClayRHW::ProjectReduced`, the default; the four-unknown system `ProjectHW` is kept as a
+cross-check, `SetLocalSolver`). The projected stresses, the consistent tangent and all the finite element results
+are unchanged to round-off; only the numbers of local Newton corrections per projection printed by the material
+point examples differ from the v0.7 and Python values quoted in the printouts (which refer to the four-unknown
+system), typically 2 to 3 instead of 4 to 9. `YieldSurfaceProjection` prints the cross-check of the two solvers.
 
 The examples are the C++/NeoPZ counterparts of the Python transcription of the Wolfram Language packages
 (`camclay_hw.py` = `camclay-perf.m`, `fe_user.py` = `poro-camclay-fem.m`, drivers `gen_data.py`,
@@ -32,7 +41,7 @@ RS2Triaxial) have no finite element mesh.
 
 | Class | Role | Article / WL routines |
 |---|---|---|
-| `TPZYCModifiedCamClayRHW` | yield function, hardening law, local residuals, Jacobian, Newton projection and Jacobian of the projection | (11)–(13), (17)–(22), (A.1); `HardeningCC`, `PhiCC`, `ResCC`, `JacCC`, `dResdTrialCC`, `ProjectHWCC`, `GradCC` |
+| `TPZYCModifiedCamClayRHW` | yield function, hardening law; reduced local problem in (θ, Δα): residual, 2×2 Jacobian, Newton projection, plastic multiplier and Jacobian of the projection (`ResidualReduced`, `JacobianReduced`, `ProjectReduced`, `ReducedToFull`, `GradProjectionReduced`); four-unknown system as a cross-check (`ProjectHW`, `GradProjection`) | v0.8 Sects. 3.3–3.5, (A.3)–(A.4); v0.7 (11)–(13), (17)–(22), (A.1); `HardeningCC`, `PhiCC`, `ResCC`, `JacCC`, `dResdTrialCC`, `ProjectHWCC`, `GradCC` |
 | `TPZPlasticStepModifiedCamClay` | elastic predictor with the porous law, spectral decomposition, stress update and consistent tangent (also a linear elastic option); tangent returned to the global iterations selected by `SetTangentMode`: consistent `D` (default), `D^T`, `(D+D^T)/2`, continuum operator, central differences (Sect. 6.7, Table 10) | Algorithm 1, (8)–(10), (14)–(16); `TrialStressCC`, `ProjectStressCC`, `ComputedDep`; `TANGENT['mode']` of `gen_data.py`, `continuum_tangent` |
 | `TPZMatPoroElastoPlasticUP` | multiphysics u–p material with memory, plane strain / axisymmetry / 3D with the six-row operator; post-processing variables of the integration points (p', q, p_c, type of response, stresses, ...) read from the memory | (24)–(28); `ComputeBN`, `ContributePorous`, `ContributePlasticity` |
 | `TPZPoroElastoPlasticUPAnalysis` | incremental Newton driver with time step, load factor, controlled displacement, bisection and reactions; convergence records of the converged increments (`StepLog`) and work counters with the failed attempts (`NGlobalIterations`, `NBisections`) | Sect. 5.4; `SolveStepUP`, `AdvanceUP`, `IterativeProcessUP`, `ReactionByMarker`; `itcount`, `ncut` of `fe_user.py` |

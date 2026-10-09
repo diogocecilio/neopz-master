@@ -198,3 +198,10 @@ previous version to the 9 printed decimals.
 | NC, constant G | 387.645039512 | 387.645038686 | 9.8e-7 | 2.6225 (5) | 1049 | 1.1–1.4 |
 | OCR = 2 | 196.813852106 | 196.813851849 | 4.8e-7 | 2.4475 (5) | 979 | 1.1–1.3 |
 | OCR = 5 | 202.926783192 | 202.926782950 | 5.3e-7 | 2.4075 (5) | 963 | 1.0–1.3 |
+
+## Note on the local iterations (v0.8)
+
+Since v0.8 the local problem is solved with the two unknowns (θ, Δα) (`TPZYCModifiedCamClayRHW::ProjectReduced`).
+The errors, stresses and strains printed by this example are unchanged; the numbers of local Newton corrections
+per projection are those of the reduced problem (typically 2 to 3), and the reference values quoted in the
+printout for them are those of the four-unknown system of v0.7 and of the Python code.

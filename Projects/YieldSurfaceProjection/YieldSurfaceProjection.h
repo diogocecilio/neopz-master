@@ -14,6 +14,7 @@
 #include "TPZVTKGeoMesh.h"
 #include <algorithm>
 #include <array>
+#include <random>
 #include <cmath>
 #include <fstream>
 #include <iomanip>
@@ -109,16 +110,43 @@ public:
         std::array<REAL, 6> fDRef{};
     };
 
-    /** @brief Solution of the local problem (18) in the meridian plane */
+    /** @brief Solution of the local problem in the meridian plane (reduced problem, with the full system as a check) */
     struct TMeridianResult {
         REAL fP = 0.;   ///< projected \f$p'\f$ (kPa)
         REAL fQ = 0.;   ///< projected \f$q\f$ (kPa)
         REAL fA = 0.;   ///< semi-axis at the end of the step (kPa)
         REAL fAn = 0.;  ///< semi-axis at the start of the step (kPa)
         REAL fDal = 0.; ///< hardening increment \f$\Delta\alpha=-\Delta\varepsilon^p_v\f$
-        REAL fDg = 0.;  ///< plastic multiplier \f$\Delta\gamma\f$
-        int fIter = 0;  ///< number of local Newton corrections
-        bool fConverged = false; ///< true if ProjectHW converged
+        REAL fDg = 0.;  ///< plastic multiplier \f$\Delta\gamma\f$ recovered from the reduced solution
+        REAL fTheta = 0.; ///< angle of the projected state on the meridian ellipse (0 at the compression apex)
+        int fIter = 0;  ///< number of local Newton corrections of the reduced problem (ProjectReduced)
+        bool fConverged = false; ///< true if ProjectReduced converged
+        int fIterFull = 0;       ///< number of Newton corrections of the four-unknown system (ProjectHW)
+        bool fConvergedFull = false; ///< true if ProjectHW converged
+        REAL fDpFull = 0.;  ///< \f$|p'-p'_{full}|\f$ between the two solvers (kPa)
+        REAL fDqFull = 0.;  ///< \f$|q-q_{full}|\f$ (kPa)
+        REAL fDaFull = 0.;  ///< \f$|a-a_{full}|\f$ (kPa)
+        REAL fDgFull = 0.;  ///< \f$|\Delta\gamma-\Delta\gamma_{full}|\f$
+    };
+
+    /** @brief Summary of the cross-check of the two local solvers on random trial states */
+    struct TSolverCheck {
+        int fNStates = 0;      ///< number of trial states outside the surface
+        int fFailReduced = 0;  ///< failures of the reduced solver
+        int fFailFull = 0;     ///< failures of the full solver
+        REAL fDp = 0.;         ///< largest \f$|p'-p'_{full}|\f$ (kPa)
+        REAL fDq = 0.;         ///< largest \f$|q-q_{full}|\f$ (kPa)
+        REAL fDa = 0.;         ///< largest \f$|a-a_{full}|\f$ (kPa)
+        REAL fDproj = 0.;      ///< largest entry of \f$|D_{proj}-D_{proj,full}|\f$
+        REAL fDprojP = 0.;     ///< trial p' of the state of the largest difference in \f$D_{proj}\f$ (kPa)
+        REAL fDprojQ = 0.;     ///< trial q of that state (kPa)
+        int fNegDgReduced = 0; ///< states where the reduced solution has \f$\Delta\gamma<0\f$ (rejected by the stress update)
+        int fNegDgFull = 0;    ///< states where the full solution has \f$\Delta\gamma<0\f$
+        int fNotMinimum = 0;   ///< states where the distance of the reduced solution exceeds that of the full one by more than 1e-8
+        REAL fMeanIterReduced = 0.; ///< mean Newton corrections of the reduced solver
+        REAL fMeanIterFull = 0.;    ///< mean Newton corrections of the full solver
+        int fMaxIterReduced = 0;    ///< largest number of corrections of the reduced solver
+        int fMaxIterFull = 0;       ///< largest number of corrections of the full solver
     };
 
     /** @brief Result of the complete stress update for one trial state */
@@ -195,10 +223,25 @@ public:
     std::vector<TMeridianCase> MeridianCases() const;
 
     /**
-     * @brief Local problem (18) for the trial invariants of a case (cpp_linear of fig_surface.py):
-     * \f$\xi_{tr}=-\sqrt3\,p'_{tr}\f$, \f$\rho_{tr}=\sqrt{2/3}\,q_{tr}\f$, \f$b=1\f$
+     * @brief Local problem for the trial invariants of a case (cpp_linear of fig_surface.py):
+     * \f$\xi_{tr}=-\sqrt3\,p'_{tr}\f$, \f$\rho_{tr}=\sqrt{2/3}\,q_{tr}\f$, \f$b=1\f$, solved with the reduced
+     * problem (two unknowns) and, as a check, with the four-unknown system
      */
     TMeridianResult ProjectMeridian(const TMeridianCase &c) const;
+
+    /**
+     * @brief Cross-check of the reduced and of the full local solvers on random trial states outside the surface
+     * (both regions, including states close to the apexes and to the critical state line): projected state,
+     * semi-axis, Jacobian of the projection and number of Newton corrections
+     * @param yc criterion (the volumetric law and the elastic moduli of the trial are those of the arguments)
+     * @param G shear modulus
+     * @param v0 specific volume
+     * @param pcn preconsolidation pressure
+     * @param n number of trial states
+     * @param seed seed of the random generator
+     */
+    static TSolverCheck CrossCheckSolvers(const TPZYCModifiedCamClayRHW &yc, REAL G, REAL v0, REAL pcn, int n,
+                                          unsigned seed);
 
     /**
      * @brief Complete stress update (Algorithm 1) reaching the trial stress sigmaTrial from the isotropic converged
@@ -527,8 +570,10 @@ inline YieldSurfaceProjection::TMeridianResult YieldSurfaceProjection::ProjectMe
     trial.fPcn = fPcn;
     trial.fB = 1.;
     TMeridianResult r;
-    TPZManVector<REAL, 4> X(4, 0.);
-    r.fConverged = yc.ProjectHW(trial, X, r.fIter);
+    TPZManVector<REAL, 4> X(4, 0.), Xfull(4, 0.);
+    TPZManVector<REAL, 2> X2(2, 0.);
+    r.fConverged = yc.ProjectReduced(trial, X2, r.fIter);
+    yc.ReducedToFull(X2, trial, X);
     REAL H, pc;
     yc.Hardening(fPcn, X[2], fV0, r.fA, H, pc);
     yc.Hardening(fPcn, 0., fV0, r.fAn, H, pc);
@@ -536,7 +581,103 @@ inline YieldSurfaceProjection::TMeridianResult YieldSurfaceProjection::ProjectMe
     r.fQ = X[1] * std::sqrt(1.5);
     r.fDal = X[2];
     r.fDg = X[3];
+    r.fTheta = X2[0];
+    // the same problem with the four-unknown system
+    r.fConvergedFull = yc.ProjectHW(trial, Xfull, r.fIterFull);
+    REAL afull;
+    yc.Hardening(fPcn, Xfull[2], fV0, afull, H, pc);
+    r.fDpFull = std::fabs(r.fP + Xfull[0] / std::sqrt(3.));
+    r.fDqFull = std::fabs(r.fQ - Xfull[1] * std::sqrt(1.5));
+    r.fDaFull = std::fabs(r.fA - afull);
+    r.fDgFull = std::fabs(r.fDg - Xfull[3]);
     return r;
+}
+
+inline YieldSurfaceProjection::TSolverCheck
+YieldSurfaceProjection::CrossCheckSolvers(const TPZYCModifiedCamClayRHW &yc, REAL G, REAL v0, REAL pcn, int n,
+                                          unsigned seed) {
+    const REAL sq3 = std::sqrt(3.);
+    std::mt19937_64 rng(seed);
+    std::uniform_real_distribution<REAL> uni(0., 1.);
+    REAL an, H, pc;
+    yc.Hardening(pcn, 0., v0, an, H, pc);
+    TSolverCheck chk;
+    REAL sumRed = 0., sumFull = 0.;
+    int nboth = 0;
+    while (chk.fNStates < n) {
+        // log-uniform p' in [0.02 p_c,n, 20 p_c,n] (compression) and q in [1e-6 a_n, 20 a_n]
+        const REAL p = pcn * std::pow(10., -1.7 + 3. * uni(rng));
+        const REAL q = an * std::pow(10., -6. + 7.3 * uni(rng));
+        if (yc.PhiCC(-p, std::sqrt(2. / 3.) * q, an, yc.BFromP(-p, an)) <= 0.) continue;
+        chk.fNStates++;
+        TPZYCModifiedCamClayRHW::TTrial trial;
+        trial.fXiTr = -sq3 * p;
+        trial.fRhoTr = std::sqrt(2. / 3.) * q;
+        trial.fG = G;
+        trial.fV0 = v0;
+        trial.fPcn = pcn;
+        trial.fB = yc.BFromP(-p, an);
+        TPZManVector<REAL, 4> X(4, 0.), Xf(4, 0.);
+        TPZManVector<REAL, 2> X2(2, 0.);
+        int itr = 0, itf = 0;
+        const bool okr = yc.ProjectReduced(trial, X2, itr);
+        const bool okf = yc.ProjectHW(trial, Xf, itf);
+        if (!okr) chk.fFailReduced++;
+        if (!okf) chk.fFailFull++;
+        if (!okr || !okf) continue;
+        yc.ReducedToFull(X2, trial, X);
+        if (X[3] < -1.e-14) chk.fNegDgReduced++;
+        if (Xf[3] < -1.e-14) chk.fNegDgFull++;
+        // the four-unknown Newton iterations may converge to a stationary point of the distance that is not its
+        // minimum (negative multiplier): only the admissible solutions are compared
+        if (X[3] < -1.e-14 || Xf[3] < -1.e-14) continue;
+        nboth++;
+        sumRed += itr;
+        sumFull += itf;
+        chk.fMaxIterReduced = std::max(chk.fMaxIterReduced, itr);
+        chk.fMaxIterFull = std::max(chk.fMaxIterFull, itf);
+        REAL a, af;
+        yc.Hardening(pcn, X[2], v0, a, H, pc);
+        yc.Hardening(pcn, Xf[2], v0, af, H, pc);
+        chk.fDp = std::max(chk.fDp, std::fabs(X[0] - Xf[0]) / sq3);
+        chk.fDq = std::max(chk.fDq, std::fabs(X[1] - Xf[1]) * std::sqrt(1.5));
+        chk.fDa = std::max(chk.fDa, std::fabs(a - af));
+        // squared distance (linear law) or Bregman divergence of the porous law, both solutions
+        auto dist2 = [&](const TPZVec<REAL> &Z) {
+            REAL dv;
+            if (yc.VolumetricLaw() == TPZYCModifiedCamClayRHW::ELinear) {
+                dv = (Z[0] - trial.fXiTr) * (Z[0] - trial.fXiTr) / (6. * yc.K0());
+            } else {
+                dv = -yc.Kappa() / (sq3 * v0) * (Z[0] * std::log(Z[0] / trial.fXiTr) - Z[0] + trial.fXiTr);
+            }
+            return dv + (Z[1] - trial.fRhoTr) * (Z[1] - trial.fRhoTr) / (4. * G);
+        };
+        if (dist2(X) > dist2(Xf) * (1. + 1.e-8) + 1.e-14) chk.fNotMinimum++;
+        // Jacobian of the projection for a triaxial direction n (sigma_zz axial)
+        TPZManVector<REAL, 3> nvec(3, 0.);
+        const bool isotropic = !(trial.fRhoTr > 1.e-14 * std::max(1., p));
+        if (!isotropic) {
+            nvec[0] = nvec[1] = 1. / std::sqrt(6.);
+            nvec[2] = -2. / std::sqrt(6.);
+        }
+        TPZFNMatrix<9, REAL> Dr(3, 3, 0.), Df(3, 3, 0.);
+        if (yc.GradProjectionReduced(X2, trial, nvec, isotropic, Dr) && yc.GradProjection(Xf, trial, nvec, isotropic, Df)) {
+            for (int i = 0; i < 3; ++i) {
+                for (int j = 0; j < 3; ++j) {
+                    if (std::fabs(Dr(i, j) - Df(i, j)) > chk.fDproj) {
+                        chk.fDproj = std::fabs(Dr(i, j) - Df(i, j));
+                        chk.fDprojP = p;
+                        chk.fDprojQ = q;
+                    }
+                }
+            }
+        }
+    }
+    if (nboth > 0) {
+        chk.fMeanIterReduced = sumRed / nboth;
+        chk.fMeanIterFull = sumFull / nboth;
+    }
+    return chk;
 }
 
 inline YieldSurfaceProjection::TStressUpdateResult
@@ -628,8 +769,8 @@ inline void YieldSurfaceProjection::RunProjection() {
         WriteMeridianFiles(c, r);
         std::cout << std::defaultfloat << std::setprecision(6) << "\n" << c.fTitle << ": trial p' = " << c.fPTrial
                   << " kPa, q = " << c.fQTrial << " kPa\n";
-        std::cout << "  local problem (18), TPZYCModifiedCamClayRHW::ProjectHW" << (r.fConverged ? "" : " NOT CONVERGED")
-                  << "\n";
+        std::cout << "  reduced local problem (theta, Delta alpha), TPZYCModifiedCamClayRHW::ProjectReduced"
+                  << (r.fConverged ? "" : " NOT CONVERGED") << "\n";
         std::cout << "  " << std::left << std::setw(22) << "quantity" << std::right << std::setw(24) << "this code"
                   << std::setw(24) << "Python" << std::setw(11) << "rel.diff" << std::setw(10) << "article" << "\n";
         std::ostringstream art;
@@ -640,8 +781,14 @@ inline void YieldSurfaceProjection::RunProjection() {
         row("a_n (kPa)", r.fAn, 100., "100");
         row("Delta alpha", r.fDal, c.fDalRef, c.fDalRef > 0 ? "> 0" : "< 0");
         row("Delta gamma", r.fDg, c.fDgRef, "");
+        std::cout << "  " << std::left << std::setw(22) << "theta (rad)" << std::right << std::setprecision(15)
+                  << std::setw(24) << r.fTheta << std::defaultfloat << "\n";
         std::cout << "  " << std::left << std::setw(22) << "Newton iterations" << std::right << std::setw(24) << r.fIter
-                  << std::setw(24) << c.fItRef << "\n";
+                  << std::setw(24) << c.fItRef << "   (Python: four unknowns)\n";
+        std::cout << std::scientific << std::setprecision(1) << "  four-unknown system (ProjectHW): " << r.fIterFull
+                  << " iterations" << (r.fConvergedFull ? "" : " NOT CONVERGED") << ", |p' - p'_full| = " << r.fDpFull
+                  << " kPa, |q - q_full| = " << r.fDqFull << " kPa, |a - a_full| = " << r.fDaFull
+                  << " kPa, |Delta gamma - Delta gamma_full| = " << r.fDgFull << std::defaultfloat << "\n";
         std::cout << "  surface " << (r.fA > r.fAn ? "expands" : "contracts") << ": a = " << std::fixed
                   << std::setprecision(1) << r.fA << (r.fA > r.fAn ? " > " : " < ") << "a_n = " << std::setprecision(0)
                   << r.fAn << std::defaultfloat << " (article: a = " << art.str() << " kPa)\n";
@@ -684,6 +831,27 @@ inline void YieldSurfaceProjection::RunProjection() {
         std::cout << "  files: fig2" << c.fName << "_curves.csv, fig2" << c.fName << "_points.csv\n";
     }
     std::cout << "  file: fig2_critical_state_line.csv\n";
+
+    // cross-check of the two local solvers on random trial states: linear elasticity of Fig. 2 and the porous
+    // elasticity of the Abaqus clay (M = 1, lambda = 0.174, kappa = 0.026, v0 = 2.08, nu = 0.3 at p'_n = 100 kPa)
+    std::cout << "\n  cross-check of the reduced (theta, Delta alpha) and of the four-unknown local solvers on random "
+                 "trial states outside the surface\n";
+    auto report = [](const std::string &name, const TSolverCheck &chk) {
+        std::cout << std::scientific << std::setprecision(1) << "  " << name << ": " << chk.fNStates << " states, failures "
+                  << chk.fFailReduced << " (reduced) " << chk.fFailFull << " (full); max |p' - p'_full| = " << chk.fDp
+                  << " kPa, |q - q_full| = " << chk.fDq << " kPa, |a - a_full| = " << chk.fDa
+                  << " kPa, |D_proj - D_proj,full| = " << chk.fDproj << " (at p' = " << std::defaultfloat
+                  << std::setprecision(4) << chk.fDprojP << ", q = " << chk.fDprojQ << ")" << std::setprecision(3)
+                  << "; Newton corrections: reduced " << chk.fMeanIterReduced << " (max " << chk.fMaxIterReduced
+                  << "), full " << chk.fMeanIterFull << " (max " << chk.fMaxIterFull << "); solutions with Delta gamma < 0: "
+                  << chk.fNegDgReduced << " (reduced), " << chk.fNegDgFull << " (full); reduced solution farther than the full one: "
+                  << chk.fNotMinimum << "\n";
+    };
+    report("linear elasticity, K = 6 MPa, G = 3 MPa, p_c,n = 200 kPa", CrossCheckSolvers(CreateMeridianCriterion(), fG, fV0, fPcn, 2000, 2026));
+    TPZYCModifiedCamClayRHW ycp;
+    ycp.SetUp(1., 0.174, 0.026);
+    const REAL v0p = 2.08, Kp = v0p * 100. / 0.026, Gp = 3. * (1. - 0.6) / (2. * 1.3) * Kp;
+    report("porous elasticity, Abaqus clay, p'_n = 100 kPa, p_c,n = 116.6 kPa", CrossCheckSolvers(ycp, Gp, v0p, 116.6, 2000, 2026));
 }
 
 inline void YieldSurfaceProjection::RunAll() {

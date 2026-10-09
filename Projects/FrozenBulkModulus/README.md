@@ -194,3 +194,10 @@ exactly as in the Python code. Over all the tests:
 
 The example uses `TPZPlasticStepModifiedCamClay` and `TPZYCModifiedCamClayRHW` from
 `Material/Plasticity`, and the material point drivers and closed forms of `Projects/Common/MCCPaperTools.h`.
+
+## Note on the local iterations (v0.8)
+
+Since v0.8 the local problem is solved with the two unknowns (θ, Δα) (`TPZYCModifiedCamClayRHW::ProjectReduced`).
+The errors, stresses and strains printed by this example are unchanged; the numbers of local Newton corrections
+per projection are those of the reduced problem (typically 2 to 3), and the reference values quoted in the
+printout for them are those of the four-unknown system of v0.7 and of the Python code.

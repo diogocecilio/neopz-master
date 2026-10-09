@@ -1,4 +1,7 @@
-# TaylorTest: Taylor test of the consistent tangent (Sect. 4.5, Fig. 3; Table 10, last column)
+# TaylorTest: Taylor test of the consistent tangent (v0.7 Sect. 4.5, Fig. 3; Table 10, last column; v0.8 Sect. 4, Fig. 2, Table 5)
+
+Since v0.8 the figure of the article has only the two panels of the consistent tangent (`fig03_taylor_test`);
+the four-panel figure with the transpose is written as `fig03_taylor_test_with_transpose`.
 
 This example checks that the tangent returned by the Modified Cam-Clay return mapping
 (`TPZPlasticStepModifiedCamClay`, which projects in rotated Haigh-Westergaard space with

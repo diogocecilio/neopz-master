@@ -454,11 +454,12 @@ void TPZPlasticStepModifiedCamClay::StressUpdate(const TPZTensor<REAL> &epsTotal
     }
     bool found = false;
     TPZManVector<REAL, 4> X(4, 0.);
+    TPZManVector<REAL, 2> X2(2, 0.);
     REAL pbar = 0.;
     for (int ib = 0; ib < blist.size() && !found; ++ib) {
         trial.fB = blist[ib];
         int niter = 0;
-        if (!fYC.ProjectHW(trial, X, niter)) continue;
+        if (!fYC.Project(trial, X, X2, niter)) continue;
         REAL a;
         fYC.Hardening(pcn, X[2], v0, a, H, pc);
         pbar = X[0] / sq3 - fYC.Pt() + a;
@@ -492,7 +493,7 @@ void TPZPlasticStepModifiedCamClay::StressUpdate(const TPZTensor<REAL> &epsTotal
     // 6-7. Jacobian of the projection and consistent tangent
     if (tangent) {
         TPZFNMatrix<9, REAL> Dproj(3, 3, 0.);
-        if (!fYC.GradProjection(X, trial, n, isotropic, Dproj)) {
+        if (!fYC.ProjectionJacobian(X, X2, trial, n, isotropic, Dproj)) {
             fFailed = true;
             sigma = sigman;
             ElasticOperator(Ktr, G, *tangent);

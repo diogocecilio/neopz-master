@@ -163,3 +163,14 @@ Python values come from `camclay_hw.apply_strain` with the same trial stress (p'
 
 The tangent entries agree to a relative difference of at most 3.4e-15. D(xx,zz) and D(zz,xx) differ from each
 other: the consistent tangent of the MCC model is not symmetric (Sect. 3 of the article).
+
+## Cross-check of the two local solvers (v0.8)
+
+Since v0.8 the local problem is solved with the two unknowns (θ, Δα) (`TPZYCModifiedCamClayRHW::ProjectReduced`).
+`RunProjection` solves the two trial states of Fig. 2 with the reduced problem (3 Newton corrections each, against
+5 of the four-unknown system; same solution to 1e-13 kPa) and then draws 2000 random trial states outside the
+surface, for the linear elasticity of Fig. 2 and for the porous elasticity of the Abaqus clay, and compares the
+projected state, the semi-axis, the Jacobian of the projection and the numbers of Newton corrections of the two
+solvers (`CrossCheckSolvers`). Only the admissible solutions (Δγ ≥ 0) are compared; the printout also counts the
+states in which each solver converged to a stationary point of the distance with Δγ < 0, and those in which the
+reduced solution is farther from the trial state than the full one (none).

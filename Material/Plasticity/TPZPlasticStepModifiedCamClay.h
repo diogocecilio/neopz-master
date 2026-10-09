@@ -16,22 +16,23 @@
 
 /**
  * @ingroup material
- * @brief Stress update of the Modified Cam-Clay model (Algorithm 1 of the article, routine
- * ProjectStressCC of camclay-perf.m) and its consistent tangent operator.
+ * @brief Stress update of the Modified Cam-Clay model (Algorithm 1 of the article; routine
+ * ProjectStressCC of camclay-perf.m with the four-unknown local system) and its consistent tangent operator.
  *
  * The class follows the interface of the NeoPZ plastic steps (TPZPlasticBase) so that it can be
  * used as the template argument of the elastoplastic materials. The steps are:
- *  -# elastic trial state (16): \f$\sigma_{tr}=s_n+2G\Delta e+p_{tr}I\f$ with
+ *  -# elastic trial state: \f$\sigma_{tr}=s_n+2G\Delta e+p_{tr}I\f$ with
  *     \f$p_{tr}=p_n\exp(-v_0\Delta\varepsilon_v/\kappa)\f$ (porous law) or
  *     \f$p_{tr}=p_n+K_0\Delta\varepsilon_v\f$ (linear law), and \f$G\f$ constant or
  *     \f$G=\frac{3(1-2\nu)}{2(1+\nu)}K(p_n)\f$ frozen in the step (hypoelastic law of FLAC3D/Abaqus);
  *  -# spectral decomposition of \f$\sigma_{tr}\f$ (TPZTensor::EigenSystem);
  *  -# elastic check \f$\Phi(\xi_{tr},\rho_{tr},a_n)\le10^{-11}a_n^2\f$;
- *  -# local Newton iterations (TPZYCModifiedCamClayRHW::ProjectHW), with the region check for
- *     \f$\omega\neq1\f$;
+ *  -# local Newton iterations of the reduced problem in the angle of the meridian ellipse and the hardening
+ *     increment (TPZYCModifiedCamClayRHW::ProjectReduced; the four-unknown system TPZYCModifiedCamClayRHW::ProjectHW
+ *     is available as a cross-check, SetLocalSolver), with the region check for \f$\omega\neq1\f$;
  *  -# projected principal stresses \f$\sigma_{proj}=\xi\mathbf1/\sqrt3+\rho\,n\f$;
- *  -# Jacobian of the projection (22);
- *  -# consistent tangent operator (8) with the rotational correction (9) (ComputedDep of HWTools.m),
+ *  -# Jacobian of the projection in principal stresses, by implicit differentiation of the converged local system;
+ *  -# consistent tangent operator in spectral form with the rotational correction (ComputedDep of HWTools.m),
  *     with \f$\kappa_{ij}=2G\rho/\rho_{tr}\f$ (see ComputedDep),
  *     assembled column by column, i.e. already transposed with respect to the row-wise storage of
  *     the Wolfram Language routine (Sect. 3 of the article).
@@ -144,8 +145,11 @@ public:
     /** @brief Shear modulus from a constant Poisson ratio and the bulk modulus at the start of the step (15) */
     void SetPoissonRatio(REAL nu) { fShear = EPoisson; fNu = nu; }
 
-    /** @brief Exact (default) or frozen integration of the porous law (comparison of Sect. 6.1) */
+    /** @brief Exact (default) or frozen integration of the porous law (comparison with the frozen bulk modulus) */
     void SetPorousIntegration(TPZYCModifiedCamClayRHW::EPorousIntegration integ) { fYC.SetPorousIntegration(integ); }
+
+    /** @brief Local system solved at the plastic points: reduced (two unknowns, default) or full (four unknowns) */
+    void SetLocalSolver(TPZYCModifiedCamClayRHW::ELocalSolver solver) { fYC.SetLocalSolver(solver); }
 
     /** @brief Linear isotropic elastic model (no plasticity): \f$\sigma=\sigma_n+D_e\Delta\varepsilon\f$ */
     void SetLinearElastic(REAL E, REAL nu);

@@ -10,10 +10,12 @@ to <run directory>/figures, or to the output directory.
 Figures produced (same panels, fits, slope triangles and annotations as fig_taylor of figs.py of the Python code):
 
 - fig03_taylor_test: Fig. 3, log E(alpha) against log alpha for 300 random perturbations at the subcritical
-  (compaction) and supercritical (dilation) states, with the consistent tangent D (panels a, b: second order)
-  and with its transpose D^T (panels c, d: first order). Files: taylor_pcg64_<kind>_<op>.csv and
-  taylor_pcg64_summary.csv (numpy-compatible PCG64 stream, the draws of gen_data.py, i.e. the data of Fig. 3).
-- fig03_taylor_test_mt19937: the same figure for the independent std::mt19937_64 sample
+  (compaction) and supercritical (dilation) states with the consistent tangent D (panels a, b: second order).
+  Files: taylor_pcg64_<kind>_D.csv and taylor_pcg64_summary.csv (numpy-compatible PCG64 stream, the draws of
+  gen_data.py, i.e. the data of Fig. 3).
+- fig03_taylor_test_with_transpose: the same with the transpose D^T added (panels c, d: first order), the
+  four-panel figure of the earlier versions of the article (not a figure of the article).
+- fig03_taylor_test_mt19937: the four-panel figure for the independent std::mt19937_64 sample
   (taylor_mt19937_*.csv; not in the article, other states, same orders). Written only when these files exist.
 - supplementary_taylor_operators: Taylor test of the tangent operators of Sect. 6.7 at the two plastic states of
   Fig. 3: consistent tangent D, transpose D^T, symmetric part (D + D^T)/2 and continuum operator (the slopes are
@@ -41,11 +43,13 @@ def summary_row(S, kind, transp):
     return {k: v[i[0]] for k, v in S.items()}
 
 
-def fig_taylor(run, out, stream='pcg64', name='fig03_taylor_test'):
-    """Fig. 3: Taylor test of D (second order) and of D^T (first order) at the two plastic states."""
+def fig_taylor(run, out, stream='pcg64', name='fig03_taylor_test', transpose=False):
+    """Fig. 3: Taylor test of D (second order) at the two plastic states; with transpose=True the panels of
+    D^T (first order) are added below."""
     S = read_csv(os.path.join(run, f'taylor_{stream}_summary.csv'))
-    fig, axs = plt.subplots(2, 2, figsize=(TEXTW * 0.86, 4.6))
-    for row, transp in enumerate((False, True)):
+    rows = (False, True) if transpose else (False,)
+    fig, axs = plt.subplots(len(rows), 2, figsize=(TEXTW * 0.86, 4.6 if transpose else 2.45), squeeze=False)
+    for row, transp in enumerate(rows):
         for col, kind in enumerate((1, 2)):
             ax = axs[row, col]
             r = summary_row(S, kind, transp)
@@ -117,6 +121,7 @@ def fig_operators(run, out):
 if __name__ == '__main__':
     args = arguments('Fig. 3 of the article (Taylor test) from the CSV files of TaylorTest.')
     fig_taylor(args.rundir, args.outdir)
+    fig_taylor(args.rundir, args.outdir, name='fig03_taylor_test_with_transpose', transpose=True)
     if os.path.exists(os.path.join(args.rundir, 'taylor_mt19937_summary.csv')):
-        fig_taylor(args.rundir, args.outdir, 'mt19937', 'fig03_taylor_test_mt19937')
+        fig_taylor(args.rundir, args.outdir, 'mt19937', 'fig03_taylor_test_mt19937', transpose=True)
     fig_operators(args.rundir, args.outdir)
