@@ -1742,3 +1742,5 @@ j = 300 l = 300
 [GI] last converged p = 1.07715
 [FS] cycle 2: 2844 equations, lambda GI 1.07715 (69.1599 s); GI plastic zone x in [-0.616773, 12.4677], y in [-9.12309, 0] (1 %: x in [-0.616773, 12.4677], y in [-9.12309, 0])
 [GI] p = 0.5 converged (6 it.)
+[GI] p = 1.25 failed (22 it.)
+[GI] p = 0.875 converged (11 it.)
