@@ -316,7 +316,23 @@ Fig. 8 (`results/fig8.png`), H_crit (m) MEF / LA / artigo:
   Israeli 35° vopt, 0,2 / 0,5: −3,0 / −3,2 %; as curvas FE dos painéis abatidos em h_w > 0 ficam a −2,0 … +0,1 %. O
   sentido (MEF abaixo) é o esperado de Γ_LA ≥ λ*, mas acima de ~2 % passa da incerteza da extrapolação de ordem 1
   em 4 ciclos.
-  <!-- OUTLIERS: a ser completado pelo auditor -->
+  **Estes casos ficam marcados como "não convergidos"** (Fig. 9 FE β = 30° α = 5 e α = 10; Fig. 8 Israeli 35° h_w = 0;
+  em menor grau os demais listados acima): a investigação foi interrompida e os marcadores MEF correspondentes em
+  `results/fig8.png` e `fig9.png` não devem ser lidos como valores de colapso. O que a investigação parcial
+  (`results/fem/outliers/`, `summary.csv` e logs) mostrou antes de ser encerrada:
+  * o domínio é a suspeita principal: a caixa de estabilidade é limitada pela caixa hidráulica do artigo (apenas 10 m
+    = 2 H à direita do pé na Fig. 9), e para β = 30° com α = 5–10 o mecanismo ótimo da análise limite é do tipo II,
+    saindo 0,65–0,74 H além do pé; no ciclo 0 do MEF (α = 10) a zona plástica chega a 0,59 H da lateral direita da
+    caixa, e λ₀ = 4,695 coincide com Γ_LA = 4,694 — a queda nos ciclos seguintes (3,67 em λ₃) acontece com o
+    mecanismo encostado no contorno;
+  * o próprio campo FE depende da extensão da caixa nesses casos: só com a caixa hidráulica alargada para 50/30/30 m
+    a análise limite passa de 4,694 para 5,375 (α = 10) e de 3,786 para 3,957 (α = 5), isto é, +14,5 % e +4,5 %,
+    enquanto para β ≥ 45° o efeito é ≤ 1 %;
+  * em Israeli 35° h_w = 0 (H_ref = 229 m) o ciclo 0 parou no limite da continuação (λ = 100) e a sequência
+    2,63 / 1,57 / 1,23 é pré-assintótica: seriam necessários mais ciclos (custo de ~1 h por ciclo adicional).
+  Conclusão provisória: para β ≤ 30° com forças de percolação fortemente horizontais (α ≥ 5) a comparação MEF × análise
+  limite exige um domínio maior que a caixa hidráulica do artigo e mais ciclos de refinamento; os números das tabelas
+  acima para esses casos são limites inferiores da sequência, não estimativas convergidas.
 * Em relação ao artigo o MEF repete o quadro das seções 4.2–4.3: Israeli 35° FE −20 … −27 % (o valor do artigo não
   é o colapso destes dados, seção 5, item 5) e Israeli 35° vopt +11,9 % em h_w/H = 0,2 (viés de quadratura do
   artigo, seção 5, item 6).

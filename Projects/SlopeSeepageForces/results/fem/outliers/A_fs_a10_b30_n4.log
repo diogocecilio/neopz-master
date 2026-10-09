@@ -102,3 +102,4 @@ j = 7525 l = 7525
 [GI] p = 3.6875 failed (21 it.)
 [GI] p = 3.64062 failed (33 it.)
 [GI] p = 3.61719 failed (92 it.)
+[GI] p = 3.60547 converged (61 it.)
