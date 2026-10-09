@@ -306,5 +306,6 @@ at 1e6 s and at 1e8 s; excess pore pressure on the vertical x = 2 m), this work 
 | pp1, end of loading (kPa) | 33.1 | 33.4 | 18.1 |
 | pp2, end of loading / peak (kPa) | 55.7 / 58.8 at 3.2e5 s | 55.5 / 59.3 at 4.2e5 s | 62.4 / none |
 
-The two finite element solutions agree to within 3 mm at the monitored points (9 mm along the whole surface at
-1e8 s) and 0.6 kPa; the published FLAC3D histories settle less and dissipate the excess pore pressure much earlier.
+The two finite element solutions agree to within 2 mm and 0.4 kPa at the end of the loading and 3 mm and 0.1 kPa at
+1e8 s at the monitored points (up to 4 mm and 2 kPa during the dissipation; 9 mm along the whole surface at 1e8 s);
+the published FLAC3D histories settle less and dissipate the excess pore pressure much earlier.
