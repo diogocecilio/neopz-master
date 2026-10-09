@@ -22,3 +22,25 @@
 2026-10-09 10:06:09    [fem fig9] alpha=1 beta=90 FE: limit analysis, then 4 FEM cycles
 2026-10-09 10:10:14    [fem fig9 8] alpha=1 beta=90 FE: Gamma_FEM = 0.553223 (h -> 0; last cycle 0.576172, 3168 equations), Gamma_LA = 0.551266 (242.1 s)
 2026-10-09 10:10:14    [fem fig9] alpha=5 beta=30 vopt: limit analysis, then 4 FEM cycles
+2026-10-09 10:22:47    [fem fig9 9] alpha=5 beta=30 vopt: Gamma_FEM = 6.54761 (h -> 0; last cycle 7.33203, 8598 equations), Gamma_LA = 6.84809 (751.3 s)
+2026-10-09 10:22:47    [fem fig9] alpha=5 beta=30 FE: limit analysis, then 4 FEM cycles
+2026-10-09 10:34:10    [fem fig9 10] alpha=5 beta=30 FE: Gamma_FEM = 3.14844 (h -> 0; last cycle 3.27148, 10266 equations), Gamma_LA = 3.78602 (681.1 s)
+2026-10-09 10:34:10    [fem fig9] alpha=5 beta=45 vopt: limit analysis, then 4 FEM cycles
+2026-10-09 10:38:44    [fem fig9 11] alpha=5 beta=45 vopt: Gamma_FEM = 2.67383 (h -> 0; last cycle 2.79688, 4284 equations), Gamma_LA = 2.68289 (272.7 s)
+2026-10-09 10:38:44    [fem fig9] alpha=5 beta=45 FE: limit analysis, then 4 FEM cycles
+2026-10-09 10:44:02    [fem fig9 12] alpha=5 beta=45 FE: Gamma_FEM = 1.80664 (h -> 0; last cycle 1.85938, 5884 equations), Gamma_LA = 1.84661 (315.7 s)
+2026-10-09 10:44:02    [fem fig9] alpha=5 beta=60 vopt: limit analysis, then 4 FEM cycles
+2026-10-09 10:47:20    [fem fig9 13] alpha=5 beta=60 vopt: Gamma_FEM = 1.78906 (h -> 0; last cycle 1.84766, 3568 equations), Gamma_LA = 1.78016 (197.3 s)
+2026-10-09 10:47:20    [fem fig9] alpha=5 beta=60 FE: limit analysis, then 4 FEM cycles
+2026-10-09 10:50:20    [fem fig9 14] alpha=5 beta=60 FE: Gamma_FEM = 1.20605 (h -> 0; last cycle 1.25293, 3978 equations), Gamma_LA = 1.20697 (177.3 s)
+2026-10-09 10:50:20    [fem fig9] alpha=5 beta=75 vopt: limit analysis, then 4 FEM cycles
+2026-10-09 10:54:12    [fem fig9 15] alpha=5 beta=75 vopt: Gamma_FEM = 1.22363 (h -> 0; last cycle 1.2793, 3438 equations), Gamma_LA = 1.21626 (231 s)
+2026-10-09 10:54:12    [fem fig9] alpha=5 beta=75 FE: limit analysis, then 4 FEM cycles
+2026-10-09 10:57:55    [fem fig9 16] alpha=5 beta=75 FE: Gamma_FEM = 0.854492 (h -> 0; last cycle 0.895508, 3316 equations), Gamma_LA = 0.85077 (220.9 s)
+2026-10-09 10:57:55    [fem fig9] alpha=5 beta=90 vopt: limit analysis, then 4 FEM cycles
+2026-10-09 11:01:04    [fem fig9 17] alpha=5 beta=90 vopt: Gamma_FEM = 0.737305 (h -> 0; last cycle 0.769531, 3140 equations), Gamma_LA = 0.735717 (177.7 s)
+2026-10-09 11:01:04    [fem fig9] alpha=5 beta=90 FE: limit analysis, then 4 FEM cycles
+2026-10-09 11:05:07    [fem fig9 18] alpha=5 beta=90 FE: Gamma_FEM = 0.607666 (h -> 0; last cycle 0.634766, 3240 equations), Gamma_LA = 0.607951 (240 s)
+2026-10-09 11:05:07    [fem fig9] alpha=10 beta=30 vopt: limit analysis, then 4 FEM cycles
+2026-10-09 11:16:59    [fem fig9 19] alpha=10 beta=30 vopt: Gamma_FEM = 8.22412 (h -> 0; last cycle 9.48535, 8478 equations), Gamma_LA = 8.80687 (711.3 s)
+2026-10-09 11:16:59    [fem fig9] alpha=10 beta=30 FE: limit analysis, then 4 FEM cycles
