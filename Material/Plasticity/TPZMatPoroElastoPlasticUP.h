@@ -345,27 +345,8 @@ public:
     void ComputeB(const TPZFMatrix<REAL> &phi, const TPZFMatrix<REAL> &gradphi, const TPZVec<REAL> &x,
                   TPZFMatrix<REAL> &B) const;
 
-    /**
-     * @brief Transposed displacement shape-function matrix at a point, stored by dof as N of BuildBN of
-     * TPZMatElastoPlastic: u = N_u d with the dof ordering a dim + d, and the body forces are f_b = N_u^T b
-     * @param phi shape functions of the displacement (n x 1)
-     * @param[out] NT (dim n) x dim matrix N_u^T, NT(a dim + d, d) = phi_a
-     */
-    void ComputeN(const TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &NT) const;
-
 protected:
-    /**
-     * @brief Contribution of an integration point with (ek) or without (ek = nullptr) the tangent
-     *
-     * Matrix form, with B (6 x n_u), N_u (dim x n_u), N_p (1 x n_p), G_p = grad N_p (dim x n_p),
-     * m = (1 0 0 1 0 1)^T in the Voigt order of TPZTensor (so that m^T B d = tr eps, hoop strain included)
-     * and dvol = weight (times 2 pi r in axisymmetry):
-     * \f[ ef_u \mathrel{-}= dvol\,[B^T\sigma' - \alpha_B p\,(m^TB)^T - N_u^Tb], \qquad
-     *     ef_p \mathrel{-}= dvol\,[N_p^T(\alpha_B(\mathrm{tr}\,\varepsilon-\mathrm{tr}\,\varepsilon_n)
-     *     + (p-p_n)/M_B) + \Delta t\,k\,G_p^T(\nabla p-\rho_w g)], \f]
-     * \f[ ek \mathrel{+}= dvol \begin{bmatrix} B^T\mathbb{D}B & -\alpha_B(m^TB)^TN_p \\
-     *     \alpha_B N_p^T m^TB & N_p^TN_p/M_B + \Delta t\,k\,G_p^TG_p \end{bmatrix}. \f]
-     */
+    /** @brief Contribution with or without the tangent */
     void ContributeInternal(const TPZVec<TPZMaterialDataT<STATE>> &datavec, REAL weight, TPZFMatrix<STATE> *ek,
                             TPZFMatrix<STATE> &ef);
 

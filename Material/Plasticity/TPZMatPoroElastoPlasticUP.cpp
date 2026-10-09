@@ -134,24 +134,6 @@ void TPZMatPoroElastoPlasticUP<T, TMEM>::ComputeB(const TPZFMatrix<REAL> &phi, c
 }
 
 template <class T, class TMEM>
-void TPZMatPoroElastoPlasticUP<T, TMEM>::ComputeN(const TPZFMatrix<REAL> &phi, TPZFMatrix<REAL> &N) const {
-    const int dim = DimensionU();
-    const int n = phi.Rows();
-    N.Redim(dim * n, dim);
-    for (int a = 0; a < n; ++a)
-        for (int d = 0; d < dim; ++d) N(dim * a + d, d) = phi.GetVal(a, 0);
-}
-
-namespace {
-/** @brief ek(row0 + i, col0 + j) += scale blk(i, j): adds a block to the element matrix (or vector) */
-inline void AddBlock(TPZFMatrix<STATE> &ek, int64_t row0, int64_t col0, const TPZFMatrix<REAL> &blk, REAL scale) {
-    const int64_t nr = blk.Rows(), nc = blk.Cols();
-    for (int64_t j = 0; j < nc; ++j)
-        for (int64_t i = 0; i < nr; ++i) ek(row0 + i, col0 + j) += scale * blk.GetVal(i, j);
-}
-} // namespace
-
-template <class T, class TMEM>
 void TPZMatPoroElastoPlasticUP<T, TMEM>::Contribute(const TPZVec<TPZMaterialDataT<STATE>> &datavec, REAL weight,
                                                     TPZFMatrix<STATE> &ek, TPZFMatrix<STATE> &ef) {
     ContributeInternal(datavec, weight, &ek, ef);
@@ -177,32 +159,18 @@ void TPZMatPoroElastoPlasticUP<T, TMEM>::ContributeInternal(const TPZVec<TPZMate
     const bool axi = (fKinematics == EAxisymmetric);
     const REAL dvol = weight * (axi ? 2. * M_PI * x[0] : 1.);
 
-    // displacement shape functions N_u^T (nequ x dim, as BuildBN of TPZMatElastoPlastic), body force b (dim x 1)
-    // and f_b = N_u^T b (nequ x 1)
-    TPZFNMatrix<180, REAL> NuT(nequ, dim);
-    TPZFNMatrix<3, REAL> b(dim, 1);
-    TPZFNMatrix<60, REAL> fb(nequ, 1);
-    ComputeN(dataU.phi, NuT);
-    for (int d = 0; d < dim; ++d) b(d, 0) = fBodyForce[d];
-    NuT.Multiply(b, fb);                        // (nequ x dim) (dim x 1)
-
-    // external forces only: ef_u += dvol f_b (used for the normalization of the residual)
+    // external forces only: body forces f_b (used for the normalization of the residual)
     if (fExternalOnly) {
-        AddBlock(ef, 0, 0, fb, dvol);
+        for (int a = 0; a < nu; ++a) {
+            for (int d = 0; d < dim; ++d) ef(a * dim + d, 0) += dvol * dataU.phi.GetVal(a, 0) * fBodyForce[d];
+        }
         return;
     }
 
-    // strain-displacement operator B (6 x nequ, engineering shear strains, hoop strain in axisymmetry),
-    // pressure shape functions N_p (1 x np; N_p^T is dataP.phi itself) and their global gradients G_p (dim x np)
-    TPZFNMatrix<360, REAL> B(6, nequ), Bt(nequ, 6);
-    TPZFNMatrix<60, REAL> gradU(dim, nu), Np(1, np), Gp(dim, np), Gpt(np, dim);
+    TPZFNMatrix<60, REAL> gradU, gradP, B;
     GlobalGradients(dataU, gradU);
-    GlobalGradients(dataP, Gp);
+    GlobalGradients(dataP, gradP);
     ComputeB(dataU.phi, gradU, x, B);
-    B.Transpose(&Bt);
-    dataP.phi.Transpose(&Np);
-    Gp.Transpose(&Gpt);
-    const TPZFMatrix<REAL> &Npt = dataP.phi;
 
     // total strain at the point (engineering components), from the current solution
     TPZFNMatrix<9, REAL> du(3, 3, 0.);
@@ -261,55 +229,62 @@ void TPZMatPoroElastoPlasticUP<T, TMEM>::ContributeInternal(const TPZVec<TPZMate
         mem.m_elastoplastic_state.fpressure = p;
     }
 
-    // Voigt vectors (order of TPZTensor: XX XY XZ YY YZ ZZ): effective stress sigma' and m = (1 0 0 1 0 1)^T;
-    // B^T m (nequ x 1) is the divergence of the displacement shape functions (hoop strain included)
-    TPZFNMatrix<6, REAL> sig(6, 1), m(6, 1, 0.);
-    sigma.CopyTo(sig);
-    m(_XX_, 0) = m(_YY_, 0) = m(_ZZ_, 0) = 1.;
-    TPZFNMatrix<60, REAL> Btm(nequ, 1), mB(1, nequ);
-    Bt.Multiply(m, Btm);                        // B^T m  (nequ x 6) (6 x 1)
-    Btm.Transpose(&mB);                         // m^T B  (1 x nequ)
+    // m^T B for each displacement dof (divergence including the hoop strain)
+    TPZFNMatrix<60, REAL> mB(nequ, 1, 0.);
+    for (int I = 0; I < nequ; ++I) mB(I, 0) = B(_XX_, I) + B(_YY_, I) + B(_ZZ_, I);
 
-    // momentum balance: R_u = B^T sigma' - alpha p B^T m - N_u^T b;  ef_u -= dvol R_u
-    TPZFNMatrix<60, REAL> Ru(nequ, 1), Qp(Btm);
-    Bt.Multiply(sig, Ru);                       // B^T sigma'  (nequ x 6) (6 x 1)
-    Qp *= fAlpha * p;                           // alpha p B^T m
-    Ru -= Qp;
-    Ru -= fb;                                   // N_u^T b
-    AddBlock(ef, 0, 0, Ru, -dvol);
-
-    // mass balance: R_p = N_p^T [alpha (tr eps - tr eps_n) + (p - p_n)/M] + Dt k G_p^T (grad p - rho_w g);
-    // ef_p -= dvol R_p
-    TPZFNMatrix<3, REAL> flow(dim, 1);          // grad p - rho_w g
-    for (int i = 0; i < dim; ++i) flow(i, 0) = gradp[i] - fFluidWeight[i];
-    TPZFNMatrix<60, REAL> Rp(Npt), q(np, 1);
-    Rp *= fAlpha * (eps.I1() - trepsn) + fInvBiotModulus * (p - pn); // N_p^T [alpha (tr eps - tr eps_n) + (p - p_n)/M]
-    Gpt.Multiply(flow, q);                      // G_p^T (grad p - rho_w g)  (np x dim) (dim x 1)
-    q *= fTimeStep * fPermeability;
-    Rp += q;
-    AddBlock(ef, nequ, 0, Rp, -dvol);
+    // residual of the momentum balance: R_u = B^T sigma' - alpha m^T B p N_p - N_u^T b
+    for (int a = 0; a < nu; ++a) {
+        for (int d = 0; d < dim; ++d) {
+            const int I = a * dim + d;
+            REAL fint = 0.;
+            for (int l = 0; l < 6; ++l) fint += B(l, I) * sigma[l];
+            const REAL Ru = fint - fAlpha * mB(I, 0) * p - dataU.phi.GetVal(a, 0) * fBodyForce[d];
+            ef(I, 0) -= dvol * Ru;
+        }
+    }
+    // residual of the mass balance: R_p = N_p alpha (tr eps - tr eps_n) + N_p S (p - p_n) + Dt k gradN_p (grad p - rho_w g)
+    const REAL treps = eps.I1();
+    for (int j = 0; j < np; ++j) {
+        const REAL Np = dataP.phi.GetVal(j, 0);
+        REAL flow = 0.;
+        for (int i = 0; i < dim; ++i) flow += gradP.GetVal(i, j) * (gradp[i] - fFluidWeight[i]);
+        const REAL Rp = Np * fAlpha * (treps - trepsn) + Np * fInvBiotModulus * (p - pn) +
+                        fTimeStep * fPermeability * flow;
+        ef(nequ + j, 0) -= dvol * Rp;
+    }
 
     if (!ek) return;
-    // tangent: ek += dvol [[B^T Dep B, -Q], [Q^T, S + Dt H]], Q = alpha B^T m N_p
-    TPZFNMatrix<360, REAL> DB(6, nequ);
-    TPZFNMatrix<3600, REAL> Kuu(nequ, nequ);
-    Dep.Multiply(B, DB);                        // Dep B      (6 x 6) (6 x nequ)
-    Bt.Multiply(DB, Kuu);                       // B^T Dep B  (nequ x 6) (6 x nequ)
-    AddBlock(*ek, 0, 0, Kuu, dvol);             // ek_uu += dvol B^T Dep B
-
-    TPZFNMatrix<480, REAL> Q(nequ, np), Qt(np, nequ);
-    Btm.Multiply(Np, Q);                        // B^T m N_p    (nequ x 1) (1 x np)
-    Npt.Multiply(mB, Qt);                       // N_p^T m^T B  (np x 1) (1 x nequ)
-    AddBlock(*ek, 0, nequ, Q, -fAlpha * dvol);  // ek_up -= Q
-    AddBlock(*ek, nequ, 0, Qt, fAlpha * dvol);  // ek_pu += Q^T
-
-    TPZFNMatrix<64, REAL> S(np, np), H(np, np);
-    Npt.Multiply(Np, S);                        // N_p^T N_p  (np x 1) (1 x np)
-    S *= fInvBiotModulus;
-    Gpt.Multiply(Gp, H);                        // G_p^T G_p  (np x dim) (dim x np)
-    H *= fTimeStep * fPermeability;
-    S += H;                                     // S + Dt H
-    AddBlock(*ek, nequ, nequ, S, dvol);         // ek_pp += dvol (S + Dt H)
+    // K_T = B^T D B
+    TPZFNMatrix<360, REAL> DB(6, nequ, 0.);
+    for (int l = 0; l < 6; ++l)
+        for (int J = 0; J < nequ; ++J) {
+            REAL val = 0.;
+            for (int m = 0; m < 6; ++m) val += Dep.GetVal(l, m) * B.GetVal(m, J);
+            DB(l, J) = val;
+        }
+    for (int I = 0; I < nequ; ++I) {
+        for (int J = 0; J < nequ; ++J) {
+            REAL val = 0.;
+            for (int l = 0; l < 6; ++l) val += B.GetVal(l, I) * DB.GetVal(l, J);
+            (*ek)(I, J) += dvol * val;
+        }
+        // -Q and Q^T
+        for (int j = 0; j < np; ++j) {
+            const REAL q = fAlpha * mB(I, 0) * dataP.phi.GetVal(j, 0) * dvol;
+            (*ek)(I, nequ + j) -= q;
+            (*ek)(nequ + j, I) += q;
+        }
+    }
+    // S + Dt H
+    for (int i = 0; i < np; ++i) {
+        for (int j = 0; j < np; ++j) {
+            REAL h = 0.;
+            for (int k = 0; k < dim; ++k) h += gradP.GetVal(k, i) * gradP.GetVal(k, j);
+            (*ek)(nequ + i, nequ + j) += dvol * (fInvBiotModulus * dataP.phi.GetVal(i, 0) * dataP.phi.GetVal(j, 0) +
+                                                 fTimeStep * fPermeability * h);
+        }
+    }
 }
 
 template <class T, class TMEM>
