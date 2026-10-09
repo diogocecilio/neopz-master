@@ -1,0 +1,7 @@
+reproduce_python.py  2026-10-09 03:47:45  workers=1 seeds=(0, 1) quick=False
+
+==============================================================================================================
+D7) Optimiser robustness at the Fig. 8 outliers: 6 seeds, 80 particles, 300 iterations (default: 2 seeds,
+    40 particles, 150 iterations), both mechanism classes, d_max = 30 H
+==============================================================================================================
+[D7] 12 tasks, 6 cached, running 6 on 1 worker(s)

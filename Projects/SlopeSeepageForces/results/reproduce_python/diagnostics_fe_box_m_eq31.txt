@@ -1,0 +1,215 @@
+reproduce_python.py  2026-10-09 03:16:31  workers=1 seeds=(0, 1) quick=False
+
+==============================================================================================================
+D1) Fig. 9, -grad u'_FE with the FE box fixed in METRES (50 m left of O, 10 m right of the toe, 30 m
+    below the toe, i.e. the Fig. 4 box for H = 1 m) instead of scaled with H (H = 5 m: 10 H / 2 H / 6 H)
+==============================================================================================================
+[D1 (box in m)] 45 tasks, 0 cached, running 45 on 1 worker(s)
+   [D1 (box in m) 1/45    12.4 s] alpha=1 beta=20.0 hw/H=1.0 FE: Gamma=6.99254 Hcrit=34.9627 I (12.4 s)
+   [D1 (box in m) 2/45    44.6 s] alpha=5 beta=20.0 hw/H=1.0 FE: Gamma=17.12532 Hcrit=85.6266 II (32.2 s)
+   [D1 (box in m) 3/45    72.0 s] alpha=10 beta=20.0 hw/H=1.0 FE: Gamma=38.21533 Hcrit=191.0766 II (27.4 s)
+   [D1 (box in m) 4/45    82.1 s] alpha=1 beta=25.0 hw/H=1.0 FE: Gamma=3.39011 Hcrit=16.9505 I (10.1 s)
+   [D1 (box in m) 5/45    94.9 s] alpha=5 beta=25.0 hw/H=1.0 FE: Gamma=5.91516 Hcrit=29.5758 II (12.8 s)
+   [D1 (box in m) 6/45   129.0 s] alpha=10 beta=25.0 hw/H=1.0 FE: Gamma=7.53248 Hcrit=37.6624 II (34.1 s)
+   [D1 (box in m) 7/45   139.5 s] alpha=1 beta=30.0 hw/H=1.0 FE: Gamma=2.33281 Hcrit=11.6640 I (10.6 s)
+   [D1 (box in m) 8/45   149.2 s] alpha=5 beta=30.0 hw/H=1.0 FE: Gamma=3.78592 Hcrit=18.9296 I (9.7 s)
+   [D1 (box in m) 9/45   159.9 s] alpha=10 beta=30.0 hw/H=1.0 FE: Gamma=4.69396 Hcrit=23.4698 II (10.6 s)
+   [D1 (box in m) 10/45   170.0 s] alpha=1 beta=35.0 hw/H=1.0 FE: Gamma=1.82921 Hcrit=9.1461 I (10.2 s)
+   [D1 (box in m) 11/45   179.8 s] alpha=5 beta=35.0 hw/H=1.0 FE: Gamma=2.78186 Hcrit=13.9093 I (9.8 s)
+   [D1 (box in m) 12/45   189.9 s] alpha=10 beta=35.0 hw/H=1.0 FE: Gamma=3.53505 Hcrit=17.6752 I (10.1 s)
+   [D1 (box in m) 13/45   199.4 s] alpha=1 beta=40.0 hw/H=1.0 FE: Gamma=1.52958 Hcrit=7.6479 I (9.5 s)
+   [D1 (box in m) 14/45   208.9 s] alpha=5 beta=40.0 hw/H=1.0 FE: Gamma=2.21741 Hcrit=11.0871 I (9.5 s)
+   [D1 (box in m) 15/45   218.3 s] alpha=10 beta=40.0 hw/H=1.0 FE: Gamma=2.66091 Hcrit=13.3046 I (9.4 s)
+   [D1 (box in m) 16/45   227.0 s] alpha=1 beta=45.0 hw/H=1.0 FE: Gamma=1.32617 Hcrit=6.6309 I (8.7 s)
+   [D1 (box in m) 17/45   235.3 s] alpha=5 beta=45.0 hw/H=1.0 FE: Gamma=1.84647 Hcrit=9.2324 I (8.3 s)
+   [D1 (box in m) 18/45   244.3 s] alpha=10 beta=45.0 hw/H=1.0 FE: Gamma=2.12933 Hcrit=10.6467 I (9.0 s)
+   [D1 (box in m) 19/45   254.0 s] alpha=1 beta=50.0 hw/H=1.0 FE: Gamma=1.17530 Hcrit=5.8765 I (9.7 s)
+   [D1 (box in m) 20/45   263.9 s] alpha=5 beta=50.0 hw/H=1.0 FE: Gamma=1.57851 Hcrit=7.8926 I (9.9 s)
+   [D1 (box in m) 21/45   273.6 s] alpha=10 beta=50.0 hw/H=1.0 FE: Gamma=1.76794 Hcrit=8.8397 I (9.7 s)
+   [D1 (box in m) 22/45   283.1 s] alpha=1 beta=55.0 hw/H=1.0 FE: Gamma=1.05601 Hcrit=5.2800 I (9.5 s)
+   [D1 (box in m) 23/45   292.5 s] alpha=5 beta=55.0 hw/H=1.0 FE: Gamma=1.37247 Hcrit=6.8623 I (9.3 s)
+   [D1 (box in m) 24/45   301.4 s] alpha=10 beta=55.0 hw/H=1.0 FE: Gamma=1.50369 Hcrit=7.5185 I (8.9 s)
+   [D1 (box in m) 25/45   310.4 s] alpha=1 beta=60.0 hw/H=1.0 FE: Gamma=0.95704 Hcrit=4.7852 I (9.0 s)
+   [D1 (box in m) 26/45   318.9 s] alpha=5 beta=60.0 hw/H=1.0 FE: Gamma=1.20692 Hcrit=6.0346 I (8.5 s)
+   [D1 (box in m) 27/45   327.9 s] alpha=10 beta=60.0 hw/H=1.0 FE: Gamma=1.30015 Hcrit=6.5007 I (9.0 s)
+   [D1 (box in m) 28/45   337.5 s] alpha=1 beta=65.0 hw/H=1.0 FE: Gamma=0.87186 Hcrit=4.3593 I (9.6 s)
+   [D1 (box in m) 29/45   346.3 s] alpha=5 beta=65.0 hw/H=1.0 FE: Gamma=1.06947 Hcrit=5.3474 I (8.8 s)
+   [D1 (box in m) 30/45   355.4 s] alpha=10 beta=65.0 hw/H=1.0 FE: Gamma=1.13698 Hcrit=5.6849 I (9.1 s)
+   [D1 (box in m) 31/45   364.5 s] alpha=1 beta=70.0 hw/H=1.0 FE: Gamma=0.79640 Hcrit=3.9820 I (9.1 s)
+   [D1 (box in m) 32/45   373.9 s] alpha=5 beta=70.0 hw/H=1.0 FE: Gamma=0.95243 Hcrit=4.7622 I (9.3 s)
+   [D1 (box in m) 33/45   383.0 s] alpha=10 beta=70.0 hw/H=1.0 FE: Gamma=1.00204 Hcrit=5.0102 I (9.1 s)
+   [D1 (box in m) 34/45   391.8 s] alpha=1 beta=75.0 hw/H=1.0 FE: Gamma=0.72809 Hcrit=3.6404 I (8.8 s)
+   [D1 (box in m) 35/45   400.5 s] alpha=5 beta=75.0 hw/H=1.0 FE: Gamma=0.85074 Hcrit=4.2537 I (8.7 s)
+   [D1 (box in m) 36/45   408.5 s] alpha=10 beta=75.0 hw/H=1.0 FE: Gamma=0.88759 Hcrit=4.4379 I (8.0 s)
+   [D1 (box in m) 37/45   417.5 s] alpha=1 beta=80.0 hw/H=1.0 FE: Gamma=0.66516 Hcrit=3.3258 I (9.0 s)
+   [D1 (box in m) 38/45   426.3 s] alpha=5 beta=80.0 hw/H=1.0 FE: Gamma=0.76094 Hcrit=3.8047 I (8.8 s)
+   [D1 (box in m) 39/45   434.8 s] alpha=10 beta=80.0 hw/H=1.0 FE: Gamma=0.78851 Hcrit=3.9425 I (8.5 s)
+   [D1 (box in m) 40/45   443.4 s] alpha=1 beta=85.0 hw/H=1.0 FE: Gamma=0.60649 Hcrit=3.0324 I (8.6 s)
+   [D1 (box in m) 41/45   451.3 s] alpha=5 beta=85.0 hw/H=1.0 FE: Gamma=0.68060 Hcrit=3.4030 I (7.9 s)
+   [D1 (box in m) 42/45   459.4 s] alpha=10 beta=85.0 hw/H=1.0 FE: Gamma=0.70130 Hcrit=3.5065 I (8.0 s)
+   [D1 (box in m) 43/45   466.5 s] alpha=1 beta=90.0 hw/H=1.0 FE: Gamma=0.55125 Hcrit=2.7562 I (7.1 s)
+   [D1 (box in m) 44/45   473.4 s] alpha=5 beta=90.0 hw/H=1.0 FE: Gamma=0.60794 Hcrit=3.0397 I (6.9 s)
+   [D1 (box in m) 45/45   480.3 s] alpha=10 beta=90.0 hw/H=1.0 FE: Gamma=0.62350 Hcrit=3.1175 I (6.9 s)
+[D1 (box in m)] wall 480.3 s for the new tasks; summed task time of all 45 results 480.3 s
+[D1] 90 tasks, 56 cached, running 34 on 1 worker(s)
+   [D1 1/34     9.8 s] alpha=10 beta=35.0 hw/H=1.0 FE: Gamma=3.90021 Hcrit=19.5011 I (9.8 s)
+   [D1 2/34    19.2 s] alpha=1 beta=40.0 hw/H=1.0 FE: Gamma=1.61920 Hcrit=8.0960 I (9.4 s)
+   [D1 3/34    29.4 s] alpha=5 beta=40.0 hw/H=1.0 FE: Gamma=2.35633 Hcrit=11.7816 I (10.1 s)
+   [D1 4/34    39.4 s] alpha=10 beta=40.0 hw/H=1.0 FE: Gamma=2.83551 Hcrit=14.1775 I (10.1 s)
+   [D1 5/34    47.9 s] alpha=1 beta=45.0 hw/H=1.0 FE: Gamma=1.38907 Hcrit=6.9454 I (8.5 s)
+   [D1 6/34    56.5 s] alpha=5 beta=45.0 hw/H=1.0 FE: Gamma=1.93071 Hcrit=9.6535 I (8.6 s)
+   [D1 7/34    65.6 s] alpha=10 beta=45.0 hw/H=1.0 FE: Gamma=2.22539 Hcrit=11.1269 I (9.1 s)
+   [D1 8/34    75.1 s] alpha=1 beta=50.0 hw/H=1.0 FE: Gamma=1.22153 Hcrit=6.1077 I (9.5 s)
+   [D1 9/34    84.6 s] alpha=5 beta=50.0 hw/H=1.0 FE: Gamma=1.63293 Hcrit=8.1647 I (9.4 s)
+   [D1 10/34    93.7 s] alpha=10 beta=50.0 hw/H=1.0 FE: Gamma=1.82587 Hcrit=9.1294 I (9.1 s)
+   [D1 11/34   103.4 s] alpha=1 beta=55.0 hw/H=1.0 FE: Gamma=1.09102 Hcrit=5.4551 I (9.6 s)
+   [D1 12/34   112.2 s] alpha=5 beta=55.0 hw/H=1.0 FE: Gamma=1.40928 Hcrit=7.0464 I (8.9 s)
+   [D1 13/34   121.7 s] alpha=10 beta=55.0 hw/H=1.0 FE: Gamma=1.54100 Hcrit=7.7050 I (9.5 s)
+   [D1 14/34   130.7 s] alpha=1 beta=60.0 hw/H=1.0 FE: Gamma=0.98407 Hcrit=4.9204 I (9.0 s)
+   [D1 15/34   139.4 s] alpha=5 beta=60.0 hw/H=1.0 FE: Gamma=1.23267 Hcrit=6.1633 I (8.7 s)
+   [D1 16/34   148.2 s] alpha=10 beta=60.0 hw/H=1.0 FE: Gamma=1.32534 Hcrit=6.6267 I (8.8 s)
+   [D1 17/34   157.4 s] alpha=1 beta=65.0 hw/H=1.0 FE: Gamma=0.89298 Hcrit=4.4649 I (9.2 s)
+   [D1 18/34   166.5 s] alpha=5 beta=65.0 hw/H=1.0 FE: Gamma=1.08799 Hcrit=5.4400 I (9.1 s)
+   [D1 19/34   175.2 s] alpha=10 beta=65.0 hw/H=1.0 FE: Gamma=1.15467 Hcrit=5.7734 I (8.7 s)
+   [D1 20/34   184.2 s] alpha=1 beta=70.0 hw/H=1.0 FE: Gamma=0.81303 Hcrit=4.0651 I (9.0 s)
+   [D1 21/34   193.0 s] alpha=5 beta=70.0 hw/H=1.0 FE: Gamma=0.96603 Hcrit=4.8302 I (8.8 s)
+   [D1 22/34   201.7 s] alpha=10 beta=70.0 hw/H=1.0 FE: Gamma=1.01482 Hcrit=5.0741 I (8.7 s)
+   [D1 23/34   210.1 s] alpha=1 beta=75.0 hw/H=1.0 FE: Gamma=0.74120 Hcrit=3.7060 I (8.4 s)
+   [D1 24/34   218.4 s] alpha=5 beta=75.0 hw/H=1.0 FE: Gamma=0.86090 Hcrit=4.3045 I (8.4 s)
+   [D1 25/34   226.7 s] alpha=10 beta=75.0 hw/H=1.0 FE: Gamma=0.89703 Hcrit=4.4852 I (8.2 s)
+   [D1 26/34   235.0 s] alpha=1 beta=80.0 hw/H=1.0 FE: Gamma=0.67551 Hcrit=3.3776 I (8.3 s)
+   [D1 27/34   243.4 s] alpha=5 beta=80.0 hw/H=1.0 FE: Gamma=0.76862 Hcrit=3.8431 I (8.4 s)
+   [D1 28/34   251.7 s] alpha=10 beta=80.0 hw/H=1.0 FE: Gamma=0.79561 Hcrit=3.9780 I (8.3 s)
+   [D1 29/34   259.4 s] alpha=1 beta=85.0 hw/H=1.0 FE: Gamma=0.61461 Hcrit=3.0731 I (7.7 s)
+   [D1 30/34   267.2 s] alpha=5 beta=85.0 hw/H=1.0 FE: Gamma=0.68645 Hcrit=3.4322 I (7.8 s)
+   [D1 31/34   276.0 s] alpha=10 beta=85.0 hw/H=1.0 FE: Gamma=0.70670 Hcrit=3.5335 I (8.8 s)
+   [D1 32/34   283.1 s] alpha=1 beta=90.0 hw/H=1.0 FE: Gamma=0.55760 Hcrit=2.7880 I (7.1 s)
+   [D1 33/34   290.3 s] alpha=5 beta=90.0 hw/H=1.0 FE: Gamma=0.61242 Hcrit=3.0621 I (7.2 s)
+   [D1 34/34   297.1 s] alpha=10 beta=90.0 hw/H=1.0 FE: Gamma=0.62764 Hcrit=3.1382 I (6.8 s)
+[D1] wall 297.1 s for the new tasks; summed task time of all 90 results 972.2 s
+alpha  beta |   paper       status |  box ~ H      rel | box in m      rel     mech
+    1    20 |  6.5401 extrapolated |   9.4500  +0.4449 |   6.9925  +0.0692   I1.000
+    1    25 |  3.3635       vertex |   3.9315  +0.1689 |   3.3901  +0.0079   I1.000
+    1    30 |  2.3216       vertex |   2.5727  +0.1082 |   2.3328  +0.0048   I1.000
+    1    35 |  1.8088       vertex |   1.9667  +0.0873 |   1.8292  +0.0113   I1.000
+    1    40 |  1.5131       vertex |   1.6192  +0.0701 |   1.5296  +0.0109   I1.000
+    1    45 |  1.3124       vertex |   1.3891  +0.0584 |   1.3262  +0.0105   I1.000
+    1    50 |  1.1678       vertex |   1.2215  +0.0460 |   1.1753  +0.0064   I1.000
+    1    55 |  1.0483       vertex |   1.0910  +0.0408 |   1.0560  +0.0074   I1.000
+    1    60 |  0.9557       vertex |   0.9841  +0.0297 |   0.9570  +0.0014   I1.000
+    1    65 |  0.8663       vertex |   0.8930  +0.0308 |   0.8719  +0.0064   I1.000
+    1    70 |  0.7901       vertex |   0.8130  +0.0290 |   0.7964  +0.0080   I1.000
+    1    75 |  0.7202       vertex |   0.7412  +0.0292 |   0.7281  +0.0109   I1.000
+    1    80 |  0.6589       vertex |   0.6755  +0.0252 |   0.6652  +0.0095   I1.000
+    1    85 |  0.6018       vertex |   0.6146  +0.0213 |   0.6065  +0.0078   I1.000
+    1    90 |  0.5548       vertex |   0.5576  +0.0050 |   0.5512  -0.0064   I1.000
+    5    20 |     nan         none |  56.5057     +nan |  17.1253     +nan  II0.642
+    5    25 |  5.9866 extrapolated |   7.8714  +0.3148 |   5.9152  -0.0119  II0.550
+    5    30 |  3.7565       vertex |   4.3267  +0.1518 |   3.7859  +0.0078   I1.000
+    5    35 |  2.7504       vertex |   3.0340  +0.1031 |   2.7819  +0.0114   I1.000
+    5    40 |  2.2124       vertex |   2.3563  +0.0651 |   2.2174  +0.0023   I1.000
+    5    45 |  1.8366       vertex |   1.9307  +0.0512 |   1.8465  +0.0054   I1.000
+    5    50 |  1.5716       vertex |   1.6329  +0.0390 |   1.5785  +0.0044   I1.000
+    5    55 |  1.3647       vertex |   1.4093  +0.0327 |   1.3725  +0.0057   I1.000
+    5    60 |  1.1977       vertex |   1.2327  +0.0292 |   1.2069  +0.0077   I1.000
+    5    65 |  1.0630       vertex |   1.0880  +0.0235 |   1.0695  +0.0061   I1.000
+    5    70 |  0.9441       vertex |   0.9660  +0.0232 |   0.9524  +0.0088   I1.000
+    5    75 |  0.8429       vertex |   0.8609  +0.0214 |   0.8507  +0.0093   I1.000
+    5    80 |  0.7585       vertex |   0.7686  +0.0133 |   0.7609  +0.0032   I1.000
+    5    85 |  0.6825       vertex |   0.6864  +0.0058 |   0.6806  -0.0028   I1.000
+    5    90 |  0.6088       vertex |   0.6124  +0.0060 |   0.6079  -0.0014   I1.000
+   10    20 |     nan         none |      inf     +nan |  38.2153     +nan  II1.043
+   10    25 |     nan         none |  13.5182     +nan |   7.5325     +nan  II0.836
+   10    30 |  5.1758 extrapolated |   6.2676  +0.2110 |   4.6940  -0.0931  II0.736
+   10    35 |  3.4782       vertex |   3.9002  +0.1213 |   3.5350  +0.0163   I1.000
+   10    40 |  2.6326       vertex |   2.8355  +0.0771 |   2.6609  +0.0108   I1.000
+   10    45 |  2.1013       vertex |   2.2254  +0.0591 |   2.1293  +0.0133   I1.000
+   10    50 |  1.7663       vertex |   1.8259  +0.0337 |   1.7679  +0.0009   I1.000
+   10    55 |  1.4921       vertex |   1.5410  +0.0328 |   1.5037  +0.0078   I1.000
+   10    60 |  1.2883       vertex |   1.3253  +0.0288 |   1.3001  +0.0092   I1.000
+   10    65 |  1.1261       vertex |   1.1547  +0.0254 |   1.1370  +0.0097   I1.000
+   10    70 |  0.9946       vertex |   1.0148  +0.0203 |   1.0020  +0.0075   I1.000
+   10    75 |  0.8790       vertex |   0.8970  +0.0205 |   0.8876  +0.0098   I1.000
+   10    80 |  0.7880       vertex |   0.7956  +0.0097 |   0.7885  +0.0006   I1.000
+   10    85 |  0.7020       vertex |   0.7067  +0.0067 |   0.7013  -0.0010   I1.000
+   10    90 |  0.6240       vertex |   0.6276  +0.0058 |   0.6235  -0.0008   I1.000
+        box scaled with H: n=39 mean rel +0.0450, rms 0.0597, max |rel| 0.1689
+      box fixed in metres: n=39 mean rel +0.0064, rms 0.0080, max |rel| 0.0163
+
+==============================================================================================================
+D2) Eq. (31) as PRINTED vs corrected: v'_opt zone-1 field with the sign typo (prefactor 1/(C-D)), the
+    exponent/coefficient typo (C/D instead of sqrt(C/D)) or both; Gamma after full optimisation
+==============================================================================================================
+[D2 (variants)] 48 tasks, 0 cached, running 48 on 1 worker(s)
+   [D2 (variants) 1/48     6.0 s] alpha=1 beta=30.0 hw/H=1.0 vopt_eq31_printed: Gamma=4.71283 Hcrit=23.5642 I (6.0 s)
+   [D2 (variants) 2/48    12.3 s] alpha=1 beta=30.0 hw/H=1.0 vopt_eq31_sign: Gamma=14.27820 Hcrit=71.3910 I (6.3 s)
+   [D2 (variants) 3/48    30.0 s] alpha=1 beta=30.0 hw/H=1.0 vopt_eq31_expo: Gamma=2.29860 Hcrit=11.4930 I (17.6 s)
+   [D2 (variants) 4/48    36.3 s] alpha=10 beta=30.0 hw/H=1.0 vopt_eq31_printed: Gamma=2.99022 Hcrit=14.9511 I (6.3 s)
+   [D2 (variants) 5/48    42.8 s] alpha=10 beta=30.0 hw/H=1.0 vopt_eq31_sign: Gamma=4.86274 Hcrit=24.3137 I (6.5 s)
+   [D2 (variants) 6/48    58.2 s] alpha=10 beta=30.0 hw/H=1.0 vopt_eq31_expo: Gamma=4.33292 Hcrit=21.6646 I (15.3 s)
+   [D2 (variants) 7/48    65.2 s] London beta=30.0 hw/H=0.5 vopt_eq31_printed: Gamma=4.99940 Hcrit=49.9940 I (7.0 s)
+   [D2 (variants) 8/48    76.5 s] London beta=30.0 hw/H=0.5 vopt_eq31_sign: Gamma=12.65379 Hcrit=126.5379 I (11.3 s)
+   [D2 (variants) 9/48    97.7 s] London beta=30.0 hw/H=0.5 vopt_eq31_expo: Gamma=1.82486 Hcrit=18.2486 I (21.3 s)
+   [D2 (variants) 10/48   104.0 s] London beta=30.0 hw/H=1.0 vopt_eq31_printed: Gamma=2.49970 Hcrit=24.9970 I (6.3 s)
+   [D2 (variants) 11/48   113.1 s] London beta=30.0 hw/H=1.0 vopt_eq31_sign: Gamma=6.32689 Hcrit=63.2689 I (9.0 s)
+   [D2 (variants) 12/48   131.3 s] London beta=30.0 hw/H=1.0 vopt_eq31_expo: Gamma=1.01057 Hcrit=10.1057 I (18.3 s)
+   [D2 (variants) 13/48   137.5 s] alpha=1 beta=45.0 hw/H=1.0 vopt_eq31_printed: Gamma=3.19985 Hcrit=15.9993 I (6.1 s)
+   [D2 (variants) 14/48   143.7 s] alpha=1 beta=45.0 hw/H=1.0 vopt_eq31_sign: Gamma=6.15341 Hcrit=30.7670 I (6.2 s)
+   [D2 (variants) 15/48   161.3 s] alpha=1 beta=45.0 hw/H=1.0 vopt_eq31_expo: Gamma=1.35143 Hcrit=6.7571 I (17.6 s)
+   [D2 (variants) 16/48   168.1 s] alpha=10 beta=45.0 hw/H=1.0 vopt_eq31_printed: Gamma=3.46526 Hcrit=17.3263 I (6.8 s)
+   [D2 (variants) 17/48   174.3 s] alpha=10 beta=45.0 hw/H=1.0 vopt_eq31_sign: Gamma=4.72389 Hcrit=23.6195 I (6.3 s)
+   [D2 (variants) 18/48   190.4 s] alpha=10 beta=45.0 hw/H=1.0 vopt_eq31_expo: Gamma=2.38599 Hcrit=11.9300 I (16.1 s)
+   [D2 (variants) 19/48   199.3 s] alpha=1 beta=60.0 hw/H=1.0 vopt_eq31_printed: Gamma=2.94014 Hcrit=14.7007 I (8.8 s)
+   [D2 (variants) 20/48   210.7 s] alpha=1 beta=60.0 hw/H=1.0 vopt_eq31_sign: Gamma=3.87576 Hcrit=19.3788 I (11.4 s)
+   [D2 (variants) 21/48   224.5 s] alpha=1 beta=60.0 hw/H=1.0 vopt_eq31_expo: Gamma=1.04027 Hcrit=5.2013 I (13.8 s)
+   [D2 (variants) 22/48   232.9 s] alpha=10 beta=60.0 hw/H=1.0 vopt_eq31_printed: Gamma=4.07683 Hcrit=20.3842 I (8.4 s)
+   [D2 (variants) 23/48   241.7 s] alpha=10 beta=60.0 hw/H=1.0 vopt_eq31_sign: Gamma=5.32075 Hcrit=26.6038 I (8.8 s)
+   [D2 (variants) 24/48   257.1 s] alpha=10 beta=60.0 hw/H=1.0 vopt_eq31_expo: Gamma=1.73118 Hcrit=8.6559 I (15.4 s)
+   [D2 (variants) 25/48   272.9 s] London beta=60.0 hw/H=0.5 vopt_eq31_printed: Gamma=3.32523 Hcrit=33.2523 I (15.9 s)
+   [D2 (variants) 26/48   292.7 s] London beta=60.0 hw/H=0.5 vopt_eq31_sign: Gamma=2.27131 Hcrit=22.7131 I (19.7 s)
+   [D2 (variants) 27/48   315.8 s] London beta=60.0 hw/H=0.5 vopt_eq31_expo: Gamma=0.67904 Hcrit=6.7904 I (23.2 s)
+   [D2 (variants) 28/48   323.3 s] London beta=60.0 hw/H=1.0 vopt_eq31_printed: Gamma=1.76431 Hcrit=17.6431 I (7.5 s)
+   [D2 (variants) 29/48   332.3 s] London beta=60.0 hw/H=1.0 vopt_eq31_sign: Gamma=2.22150 Hcrit=22.2150 I (9.0 s)
+   [D2 (variants) 30/48   348.1 s] London beta=60.0 hw/H=1.0 vopt_eq31_expo: Gamma=0.58520 Hcrit=5.8520 I (15.8 s)
+   [D2 (variants) 31/48   358.3 s] Israeli beta=60.0 hw/H=0.5 vopt_eq31_printed: Gamma=1.70981 Hcrit=17.0981 I (10.3 s)
+   [D2 (variants) 32/48   378.4 s] Israeli beta=60.0 hw/H=0.5 vopt_eq31_sign: Gamma=1.81306 Hcrit=18.1306 I (20.1 s)
+   [D2 (variants) 33/48   399.0 s] Israeli beta=60.0 hw/H=0.5 vopt_eq31_expo: Gamma=0.41269 Hcrit=4.1269 I (20.6 s)
+   [D2 (variants) 34/48   408.1 s] Israeli beta=60.0 hw/H=1.0 vopt_eq31_printed: Gamma=0.85491 Hcrit=8.5491 I (9.1 s)
+   [D2 (variants) 35/48   418.6 s] Israeli beta=60.0 hw/H=1.0 vopt_eq31_sign: Gamma=1.11565 Hcrit=11.1565 I (10.5 s)
+   [D2 (variants) 36/48   433.9 s] Israeli beta=60.0 hw/H=1.0 vopt_eq31_expo: Gamma=0.33812 Hcrit=3.3812 I (15.3 s)
+   [D2 (variants) 37/48   440.0 s] alpha=1 beta=75.0 hw/H=1.0 vopt_eq31_printed: Gamma=6.33448 Hcrit=31.6724 I (6.1 s)
+   [D2 (variants) 38/48   446.3 s] alpha=1 beta=75.0 hw/H=1.0 vopt_eq31_sign: Gamma=3.83202 Hcrit=19.1601 I (6.3 s)
+   [D2 (variants) 39/48   504.5 s] alpha=1 beta=75.0 hw/H=1.0 vopt_eq31_expo: Gamma=0.76894 Hcrit=3.8447 I (58.3 s)
+   [D2 (variants) 40/48   514.0 s] alpha=10 beta=75.0 hw/H=1.0 vopt_eq31_printed: Gamma=5.23489 Hcrit=26.1744 I (9.5 s)
+   [D2 (variants) 41/48   527.2 s] alpha=10 beta=75.0 hw/H=1.0 vopt_eq31_sign: Gamma=4.24362 Hcrit=21.2181 I (13.2 s)
+   [D2 (variants) 42/48   545.1 s] alpha=10 beta=75.0 hw/H=1.0 vopt_eq31_expo: Gamma=1.04235 Hcrit=5.2118 I (17.9 s)
+   [D2 (variants) 43/48   551.5 s] alpha=1 beta=90.0 hw/H=1.0 vopt_eq31_printed: Gamma=4.73109 Hcrit=23.6554 I (6.4 s)
+   [D2 (variants) 44/48   558.1 s] alpha=1 beta=90.0 hw/H=1.0 vopt_eq31_sign: Gamma=4.73109 Hcrit=23.6554 I (6.7 s)
+   [D2 (variants) 45/48   569.7 s] alpha=1 beta=90.0 hw/H=1.0 vopt_eq31_expo: Gamma=0.60143 Hcrit=3.0072 I (11.5 s)
+   [D2 (variants) 46/48   576.1 s] alpha=10 beta=90.0 hw/H=1.0 vopt_eq31_printed: Gamma=12.75466 Hcrit=63.7733 I (6.5 s)
+   [D2 (variants) 47/48   695.8 s] alpha=10 beta=90.0 hw/H=1.0 vopt_eq31_sign: Gamma=3.65454 Hcrit=18.2727 I (119.7 s)
+   [D2 (variants) 48/48   712.3 s] alpha=10 beta=90.0 hw/H=1.0 vopt_eq31_expo: Gamma=0.61663 Hcrit=3.0831 I (16.5 s)
+[D2 (variants)] wall 712.3 s for the new tasks; summed task time of all 48 results 712.3 s
+[D2] wall 0.0 s for the new tasks; summed task time of all 64 results 941.6 s
+   Fig. 9 (Gamma):
+   alpha  beta    paper |               vopt |  vopt_eq31_printed |     vopt_eq31_sign |     vopt_eq31_expo
+       1    30   3.4895 |   3.5788 ( +0.026) |   4.7128 ( +0.351) |  14.2782 ( +3.092) |   2.2986 ( -0.341)
+       1    45   1.8875 |   1.9045 ( +0.009) |   3.1999 ( +0.695) |   6.1534 ( +2.260) |   1.3514 ( -0.284)
+       1    60   1.4228 |   1.4289 ( +0.004) |   2.9401 ( +1.066) |   3.8758 ( +1.724) |   1.0403 ( -0.269)
+       1    75   1.0233 |   1.0251 ( +0.002) |   6.3345 ( +5.190) |   3.8320 ( +2.745) |   0.7689 ( -0.249)
+       1    90   0.6046 |   0.6014 ( -0.005) |   4.7311 ( +6.825) |   4.7311 ( +6.825) |   0.6014 ( -0.005)
+      10    30      nan |   8.8069 (   +nan) |   2.9902 (   +nan) |   4.8627 (   +nan) |   4.3329 (   +nan)
+      10    45   2.8659 |   2.8974 ( +0.011) |   3.4653 ( +0.209) |   4.7239 ( +0.648) |   2.3860 ( -0.167)
+      10    60   1.8231 |   1.8333 ( +0.006) |   4.0768 ( +1.236) |   5.3208 ( +1.919) |   1.7312 ( -0.050)
+      10    75   1.2135 |   1.2226 ( +0.008) |   5.2349 ( +3.314) |   4.2436 ( +2.497) |   1.0424 ( -0.141)
+      10    90   0.7778 |   0.7803 ( +0.003) |  12.7547 (+15.398) |   3.6545 ( +3.699) |   0.6166 ( -0.207)
+   Fig. 8 ('fitted' parameters, H_crit in m):
+   Israeli  60 hw/H=0.5    5.438 |    5.482 ( +0.008) |   17.098 ( +2.144) |   18.131 ( +2.334) |    4.127 ( -0.241)
+   Israeli  60 hw/H=1.0    4.788 |    4.828 ( +0.008) |    8.549 ( +0.786) |   11.156 ( +1.330) |    3.381 ( -0.294)
+    London  30 hw/H=0.5   25.505 |   26.415 ( +0.036) |   49.994 ( +0.960) |  126.538 ( +3.961) |   18.249 ( -0.285)
+    London  30 hw/H=1.0   14.521 |   14.607 ( +0.006) |   24.997 ( +0.721) |   63.269 ( +3.357) |   10.106 ( -0.304)
+    London  60 hw/H=0.5    8.625 |    8.674 ( +0.006) |   33.252 ( +2.855) |   22.713 ( +1.633) |    6.790 ( -0.213)
+    London  60 hw/H=1.0    8.045 |    8.127 ( +0.010) |   17.643 ( +1.193) |   22.215 ( +1.761) |    5.852 ( -0.273)
+
+wall time of new computations: 
+total wall time 1492.0 s

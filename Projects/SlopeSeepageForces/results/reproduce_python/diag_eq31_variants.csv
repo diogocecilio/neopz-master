@@ -1,0 +1,65 @@
+fig,case,variant,value,paper,rel
+fig9,alpha=1 beta=30,vopt,3.57876,3.4895,0.0255782
+fig9,alpha=1 beta=30,vopt_eq31_printed,4.71283,3.4895,0.350575
+fig9,alpha=1 beta=30,vopt_eq31_sign,14.2782,3.4895,3.09176
+fig9,alpha=1 beta=30,vopt_eq31_expo,2.2986,3.4895,-0.341281
+fig9,alpha=1 beta=45,vopt,1.90448,1.8875,0.00899819
+fig9,alpha=1 beta=45,vopt_eq31_printed,3.19985,1.8875,0.695287
+fig9,alpha=1 beta=45,vopt_eq31_sign,6.15341,1.8875,2.26008
+fig9,alpha=1 beta=45,vopt_eq31_expo,1.35143,1.8875,-0.284013
+fig9,alpha=1 beta=60,vopt,1.42889,1.4228,0.00428201
+fig9,alpha=1 beta=60,vopt_eq31_printed,2.94014,1.4228,1.06644
+fig9,alpha=1 beta=60,vopt_eq31_sign,3.87576,1.4228,1.72404
+fig9,alpha=1 beta=60,vopt_eq31_expo,1.04027,1.4228,-0.268861
+fig9,alpha=1 beta=75,vopt,1.02512,1.0233,0.0017833
+fig9,alpha=1 beta=75,vopt_eq31_printed,6.33448,1.0233,5.19024
+fig9,alpha=1 beta=75,vopt_eq31_sign,3.83202,1.0233,2.74477
+fig9,alpha=1 beta=75,vopt_eq31_expo,0.768938,1.0233,-0.24857
+fig9,alpha=1 beta=90,vopt,0.601432,0.6046,-0.00523954
+fig9,alpha=1 beta=90,vopt_eq31_printed,4.73109,0.6046,6.82516
+fig9,alpha=1 beta=90,vopt_eq31_sign,4.73109,0.6046,6.82516
+fig9,alpha=1 beta=90,vopt_eq31_expo,0.601432,0.6046,-0.00523954
+fig9,alpha=10 beta=30,vopt,8.80687,nan,nan
+fig9,alpha=10 beta=30,vopt_eq31_printed,2.99022,nan,nan
+fig9,alpha=10 beta=30,vopt_eq31_sign,4.86274,nan,nan
+fig9,alpha=10 beta=30,vopt_eq31_expo,4.33292,nan,nan
+fig9,alpha=10 beta=45,vopt,2.89742,2.8659,0.0109994
+fig9,alpha=10 beta=45,vopt_eq31_printed,3.46526,2.8659,0.209135
+fig9,alpha=10 beta=45,vopt_eq31_sign,4.72389,2.8659,0.648311
+fig9,alpha=10 beta=45,vopt_eq31_expo,2.38599,2.8659,-0.167454
+fig9,alpha=10 beta=60,vopt,1.83335,1.8231,0.00562034
+fig9,alpha=10 beta=60,vopt_eq31_printed,4.07683,1.8231,1.23621
+fig9,alpha=10 beta=60,vopt_eq31_sign,5.32075,1.8231,1.91852
+fig9,alpha=10 beta=60,vopt_eq31_expo,1.73118,1.8231,-0.050422
+fig9,alpha=10 beta=75,vopt,1.22261,1.2135,0.00751028
+fig9,alpha=10 beta=75,vopt_eq31_printed,5.23489,1.2135,3.31387
+fig9,alpha=10 beta=75,vopt_eq31_sign,4.24362,1.2135,2.49701
+fig9,alpha=10 beta=75,vopt_eq31_expo,1.04235,1.2135,-0.141036
+fig9,alpha=10 beta=90,vopt,0.780274,0.7778,0.00318131
+fig9,alpha=10 beta=90,vopt_eq31_printed,12.7547,0.7778,15.3984
+fig9,alpha=10 beta=90,vopt_eq31_sign,3.65454,0.7778,3.69855
+fig9,alpha=10 beta=90,vopt_eq31_expo,0.616628,0.7778,-0.207215
+fig8,Israeli beta=60 hw/H=0.5,vopt,5.48158,5.438,0.00801403
+fig8,Israeli beta=60 hw/H=0.5,vopt_eq31_printed,17.0981,5.438,2.1442
+fig8,Israeli beta=60 hw/H=0.5,vopt_eq31_sign,18.1306,5.438,2.33405
+fig8,Israeli beta=60 hw/H=0.5,vopt_eq31_expo,4.12688,5.438,-0.241104
+fig8,Israeli beta=60 hw/H=1.0,vopt,4.82789,4.788,0.00833088
+fig8,Israeli beta=60 hw/H=1.0,vopt_eq31_printed,8.54907,4.788,0.78552
+fig8,Israeli beta=60 hw/H=1.0,vopt_eq31_sign,11.1565,4.788,1.33009
+fig8,Israeli beta=60 hw/H=1.0,vopt_eq31_expo,3.3812,4.788,-0.293818
+fig8,London beta=30 hw/H=0.5,vopt,26.4145,25.505,0.0356613
+fig8,London beta=30 hw/H=0.5,vopt_eq31_printed,49.994,25.505,0.960165
+fig8,London beta=30 hw/H=0.5,vopt_eq31_sign,126.538,25.505,3.9613
+fig8,London beta=30 hw/H=0.5,vopt_eq31_expo,18.2486,25.505,-0.284507
+fig8,London beta=30 hw/H=1.0,vopt,14.6072,14.521,0.00593718
+fig8,London beta=30 hw/H=1.0,vopt_eq31_printed,24.997,14.521,0.721439
+fig8,London beta=30 hw/H=1.0,vopt_eq31_sign,63.2689,14.521,3.35706
+fig8,London beta=30 hw/H=1.0,vopt_eq31_expo,10.1057,14.521,-0.304064
+fig8,London beta=60 hw/H=0.5,vopt,8.67353,8.625,0.00562711
+fig8,London beta=60 hw/H=0.5,vopt_eq31_printed,33.2523,8.625,2.85534
+fig8,London beta=60 hw/H=0.5,vopt_eq31_sign,22.7131,8.625,1.6334
+fig8,London beta=60 hw/H=0.5,vopt_eq31_expo,6.79039,8.625,-0.212709
+fig8,London beta=60 hw/H=1.0,vopt,8.12707,8.045,0.0102009
+fig8,London beta=60 hw/H=1.0,vopt_eq31_printed,17.6431,8.045,1.19306
+fig8,London beta=60 hw/H=1.0,vopt_eq31_sign,22.215,8.045,1.76134
+fig8,London beta=60 hw/H=1.0,vopt_eq31_expo,5.85203,8.045,-0.272588

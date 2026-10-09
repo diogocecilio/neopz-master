@@ -1,0 +1,14 @@
+reproduce_python.py  2026-10-09 03:45:30  workers=1 seeds=(0, 1) quick=False
+
+==============================================================================================================
+D6) beta = 15 deg (< phi = 30): admissible mechanisms with P_ext > 0 by a brute-force grid (vopt and FE)
+==============================================================================================================
+   alpha= 1 vopt: grid (40x40x16 per class) min Gamma = 210.4 (I, x = [1.6916 1.9937 0.0668])  [1 s]
+   alpha= 1   FE: grid (40x40x16 per class) min Gamma = none with P_ext > 0 (Gamma = inf)  [2 s]
+   alpha= 5 vopt: grid (40x40x16 per class) min Gamma = none with P_ext > 0 (Gamma = inf)  [2 s]
+   alpha= 5   FE: grid (40x40x16 per class) min Gamma = none with P_ext > 0 (Gamma = inf)  [2 s]
+   alpha=10 vopt: grid (40x40x16 per class) min Gamma = none with P_ext > 0 (Gamma = inf)  [2 s]
+   alpha=10   FE: grid (40x40x16 per class) min Gamma = none with P_ext > 0 (Gamma = inf)  [2 s]
+
+wall time of new computations: 
+total wall time 10.0 s

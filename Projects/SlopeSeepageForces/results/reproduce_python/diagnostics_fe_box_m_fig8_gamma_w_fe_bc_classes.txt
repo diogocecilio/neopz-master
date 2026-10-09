@@ -1,0 +1,72 @@
+reproduce_python.py  2026-10-09 03:41:43  workers=1 seeds=(0, 1) quick=False
+
+==============================================================================================================
+D1b) Counter-check on Fig. 8: had the FE box been fixed in metres AND H_crit been found at the actual
+     height, Gamma(H = H_crit,paper) with the 50/10/30 m box would be 1.  Gamma at H = H_crit,paper:
+==============================================================================================================
+[D1b] 6 tasks, 0 cached, running 6 on 1 worker(s)
+   [D1b 1/6    10.0 s] London beta=30.0 hw/H=1.0 FE: Gamma=1.00358 Hcrit=10.8076 I (10.0 s)
+   [D1b 2/6    19.6 s] London beta=30.0 hw/H=1.0 FE: Gamma=0.86171 Hcrit=9.2797 I (9.6 s)
+   [D1b 3/6    28.1 s] London beta=60.0 hw/H=1.0 FE: Gamma=1.00775 Hcrit=5.4539 I (8.5 s)
+   [D1b 4/6    36.6 s] London beta=60.0 hw/H=1.0 FE: Gamma=0.98197 Hcrit=5.3144 I (8.5 s)
+   [D1b 5/6    46.9 s] Israeli beta=60.0 hw/H=0.5 FE: Gamma=1.00161 Hcrit=3.8111 I (10.3 s)
+   [D1b 6/6    56.1 s] Israeli beta=60.0 hw/H=0.5 FE: Gamma=0.98780 Hcrit=3.7586 I (9.2 s)
+[D1b] wall 56.1 s for the new tasks; summed task time of all 6 results 56.1 s
+   London beta=30 hw/H=1.0: H = H_crit,paper = 10.769 m: Gamma(box ~ H) = 1.0036, Gamma(box 50/10/30 m) = 0.8617   (consistent hypothesis gives 1)
+   London beta=60 hw/H=1.0: H = H_crit,paper = 5.412 m: Gamma(box ~ H) = 1.0077, Gamma(box 50/10/30 m) = 0.9820   (consistent hypothesis gives 1)
+   Israeli beta=60 hw/H=0.5: H = H_crit,paper = 3.805 m: Gamma(box ~ H) = 1.0016, Gamma(box 50/10/30 m) = 0.9878   (consistent hypothesis gives 1)
+
+==============================================================================================================
+D3) gamma_w = 9.8 instead of 9.81 in Fig. 9 (both the buoyant weight and the seepage field)
+==============================================================================================================
+[D3] 12 tasks, 6 cached, running 6 on 1 worker(s)
+   [D3 1/6    13.8 s] alpha=1 beta=30.0 hw/H=1.0 vopt: Gamma=3.58464 Hcrit=17.9232 I (13.8 s)
+   [D3 2/6    25.5 s] alpha=1 beta=60.0 hw/H=1.0 vopt: Gamma=1.42923 Hcrit=7.1462 I (11.7 s)
+   [D3 3/6    36.6 s] alpha=1 beta=90.0 hw/H=1.0 vopt: Gamma=0.60154 Hcrit=3.0077 I (11.1 s)
+   [D3 4/6    45.9 s] alpha=1 beta=30.0 hw/H=1.0 FE: Gamma=2.57691 Hcrit=12.8846 I (9.3 s)
+   [D3 5/6    54.4 s] alpha=1 beta=60.0 hw/H=1.0 FE: Gamma=0.98451 Hcrit=4.9225 I (8.5 s)
+   [D3 6/6    61.2 s] alpha=1 beta=90.0 hw/H=1.0 FE: Gamma=0.55770 Hcrit=2.7885 I (6.9 s)
+[D3] wall 61.2 s for the new tasks; summed task time of all 12 results 125.1 s
+   alpha=1 beta=  30 vopt: gw 9.81 -> 3.57876, gw 9.8 -> 3.58464 (change +0.00165); paper 3.4895
+   alpha=1 beta=  30   FE: gw 9.81 -> 2.57274, gw 9.8 -> 2.57691 (change +0.00162); paper 2.3216
+   alpha=1 beta=  60 vopt: gw 9.81 -> 1.42889, gw 9.8 -> 1.42923 (change +0.00024); paper 1.4228
+   alpha=1 beta=  60   FE: gw 9.81 -> 0.98407, gw 9.8 -> 0.98451 (change +0.00044); paper 0.9557
+   alpha=1 beta=  90 vopt: gw 9.81 -> 0.60143, gw 9.8 -> 0.60154 (change +0.00018); paper 0.6046
+   alpha=1 beta=  90   FE: gw 9.81 -> 0.55760, gw 9.8 -> 0.55770 (change +0.00018); paper 0.5548
+
+==============================================================================================================
+D4) Fig. 9 FE, alpha = 1: far-side condition / mesh / P_u evaluation (box scaled with H)
+==============================================================================================================
+[D4] 12 tasks, 3 cached, running 9 on 1 worker(s)
+   [D4 1/9     9.3 s] alpha=1 beta=30.0 hw/H=1.0 FE: Gamma=2.61031 Hcrit=13.0515 I (9.3 s)
+   [D4 2/9    17.3 s] alpha=1 beta=30.0 hw/H=1.0 FE: Gamma=2.57318 Hcrit=12.8659 I (8.0 s)
+   [D4 3/9    29.2 s] alpha=1 beta=30.0 hw/H=1.0 FE: Gamma=2.57272 Hcrit=12.8636 I (11.9 s)
+   [D4 4/9    37.8 s] alpha=1 beta=45.0 hw/H=1.0 FE: Gamma=1.39820 Hcrit=6.9910 I (8.6 s)
+   [D4 5/9    45.2 s] alpha=1 beta=45.0 hw/H=1.0 FE: Gamma=1.38936 Hcrit=6.9468 I (7.4 s)
+   [D4 6/9    58.4 s] alpha=1 beta=45.0 hw/H=1.0 FE: Gamma=1.38907 Hcrit=6.9454 I (13.2 s)
+   [D4 7/9    66.5 s] alpha=1 beta=60.0 hw/H=1.0 FE: Gamma=0.98787 Hcrit=4.9394 I (8.1 s)
+   [D4 8/9    73.6 s] alpha=1 beta=60.0 hw/H=1.0 FE: Gamma=0.98375 Hcrit=4.9188 I (7.1 s)
+   [D4 9/9    85.8 s] alpha=1 beta=60.0 hw/H=1.0 FE: Gamma=0.98407 Hcrit=4.9203 I (12.2 s)
+[D4] wall 85.8 s for the new tasks; summed task time of all 12 results 113.2 s
+   beta=  30    default (P2 ref1 zero_lb, boundary P_u): Gamma = 2.5727 (rel to paper +0.1082)
+   beta=  30                          impermeable sides: Gamma = 2.6103 (rel to paper +0.1244)
+   beta=  30                           P1 ref0 (coarse): Gamma = 2.5732 (rel to paper +0.1084)
+   beta=  30                      domain quadrature P_u: Gamma = 2.5727 (rel to paper +0.1082)
+   beta=  45    default (P2 ref1 zero_lb, boundary P_u): Gamma = 1.3891 (rel to paper +0.0584)
+   beta=  45                          impermeable sides: Gamma = 1.3982 (rel to paper +0.0654)
+   beta=  45                           P1 ref0 (coarse): Gamma = 1.3894 (rel to paper +0.0586)
+   beta=  45                      domain quadrature P_u: Gamma = 1.3891 (rel to paper +0.0584)
+   beta=  60    default (P2 ref1 zero_lb, boundary P_u): Gamma = 0.9841 (rel to paper +0.0297)
+   beta=  60                          impermeable sides: Gamma = 0.9879 (rel to paper +0.0337)
+   beta=  60                           P1 ref0 (coarse): Gamma = 0.9838 (rel to paper +0.0294)
+   beta=  60                      domain quadrature P_u: Gamma = 0.9841 (rel to paper +0.0297)
+
+==============================================================================================================
+D5) Mechanism classes: best Gamma of class I (B on the face) and II (B below the toe) for every Fig. 8/9 run
+==============================================================================================================
+   172 runs; class II strictly lower in 3.  Optimum of class II = toe mechanism (d = 0) when Gamma_II = Gamma_I:
+   Gamma_II / Gamma_I - 1: min -1.59e-01, median +0.00e+00, max +9.54e-02
+   class-I optima with eta < 0.999 (B above the toe): 38 of 270
+
+wall time of new computations: 
+total wall time 203.2 s

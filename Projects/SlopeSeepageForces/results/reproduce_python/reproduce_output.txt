@@ -1,0 +1,725 @@
+reproduce_python.py  2026-10-09 03:13:02  workers=2 seeds=(0, 1) quick=False
+[fig5] 44 tasks, 0 cached, running 44 on 2 worker(s)
+   [fig5 1/44     0.8 s] alpha=1 beta=22.5: -J*=0.39147 J_FE=0.64243 (0.8 s)
+   [fig5 2/44     0.8 s] alpha=1 beta=15.0: -J*=0.33815 J_FE=0.58633 (0.8 s)
+   [fig5 3/44     1.5 s] alpha=1 beta=37.5: -J*=0.46550 J_FE=0.72184 (0.6 s)
+   [fig5 4/44     1.5 s] alpha=1 beta=30.0: -J*=0.43247 J_FE=0.68585 (0.7 s)
+   [fig5 5/44     2.0 s] alpha=1 beta=45.0: -J*=0.49278 J_FE=0.75317 (0.6 s)
+   [fig5 6/44     2.1 s] alpha=1 beta=52.5: -J*=0.51555 J_FE=0.78150 (0.6 s)
+   [fig5 7/44     2.5 s] alpha=1 beta=60.0: -J*=0.53465 J_FE=0.80790 (0.5 s)
+   [fig5 8/44     2.6 s] alpha=1 beta=67.5: -J*=0.55073 J_FE=0.83320 (0.5 s)
+   [fig5 9/44     3.0 s] alpha=1 beta=75.0: -J*=0.56468 J_FE=0.85804 (0.5 s)
+   [fig5 10/44     3.0 s] alpha=1 beta=82.5: -J*=0.57867 J_FE=0.88301 (0.4 s)
+   [fig5 11/44     3.4 s] alpha=1 beta=90.0: -J*=0.59138 J_FE=0.90871 (0.4 s)
+   [fig5 12/44     4.0 s] alpha=2 beta=15.0: -J*=0.22972 J_FE=0.40239 (1.0 s)
+   [fig5 13/44     4.3 s] alpha=2 beta=22.5: -J*=0.26651 J_FE=0.44192 (0.9 s)
+   [fig5 14/44     4.8 s] alpha=2 beta=30.0: -J*=0.29553 J_FE=0.47105 (0.8 s)
+   [fig5 15/44     5.1 s] alpha=2 beta=37.5: -J*=0.31955 J_FE=0.49408 (0.7 s)
+   [fig5 16/44     5.5 s] alpha=2 beta=45.0: -J*=0.33987 J_FE=0.51323 (0.7 s)
+   [fig5 17/44     5.8 s] alpha=2 beta=52.5: -J*=0.35706 J_FE=0.52981 (0.8 s)
+   [fig5 18/44     6.1 s] alpha=2 beta=60.0: -J*=0.37142 J_FE=0.54466 (0.6 s)
+   [fig5 19/44     6.5 s] alpha=2 beta=67.5: -J*=0.38315 J_FE=0.55839 (0.6 s)
+   [fig5 20/44     6.7 s] alpha=2 beta=75.0: -J*=0.39260 J_FE=0.57147 (0.6 s)
+   [fig5 21/44     7.0 s] alpha=2 beta=82.5: -J*=0.40062 J_FE=0.58430 (0.5 s)
+   [fig5 22/44     7.3 s] alpha=2 beta=90.0: -J*=0.40656 J_FE=0.59723 (0.5 s)
+   [fig5 23/44     8.1 s] alpha=4 beta=15.0: -J*=0.14217 J_FE=0.28060 (1.1 s)
+   [fig5 24/44     8.2 s] alpha=4 beta=22.5: -J*=0.16403 J_FE=0.30725 (0.9 s)
+   [fig5 25/44     9.0 s] alpha=4 beta=30.0: -J*=0.18211 J_FE=0.32578 (0.9 s)
+   [fig5 26/44     9.1 s] alpha=4 beta=37.5: -J*=0.19780 J_FE=0.33968 (1.0 s)
+   [fig5 27/44     9.9 s] alpha=4 beta=45.0: -J*=0.21150 J_FE=0.35075 (0.8 s)
+   [fig5 28/44     9.9 s] alpha=4 beta=52.5: -J*=0.22321 J_FE=0.35998 (0.8 s)
+   [fig5 29/44    10.5 s] alpha=4 beta=60.0: -J*=0.23279 J_FE=0.36800 (0.7 s)
+   [fig5 30/44    10.6 s] alpha=4 beta=67.5: -J*=0.24015 J_FE=0.37524 (0.7 s)
+   [fig5 31/44    11.2 s] alpha=4 beta=82.5: -J*=0.24856 J_FE=0.38853 (0.6 s)
+   [fig5 32/44    11.2 s] alpha=4 beta=75.0: -J*=0.24532 J_FE=0.38201 (0.7 s)
+   [fig5 33/44    11.6 s] alpha=4 beta=90.0: -J*=0.25046 J_FE=0.39502 (0.5 s)
+   [fig5 34/44    12.5 s] alpha=10 beta=15.0: -J*=0.06779 J_FE=0.17637 (1.3 s)
+   [fig5 35/44    12.7 s] alpha=10 beta=22.5: -J*=0.07676 J_FE=0.19099 (1.1 s)
+   [fig5 36/44    13.7 s] alpha=10 beta=30.0: -J*=0.08507 J_FE=0.20032 (1.2 s)
+   [fig5 37/44    13.7 s] alpha=10 beta=37.5: -J*=0.09283 J_FE=0.20690 (1.0 s)
+   [fig5 38/44    14.6 s] alpha=10 beta=52.5: -J*=0.10592 J_FE=0.21593 (0.8 s)
+   [fig5 39/44    14.6 s] alpha=10 beta=45.0: -J*=0.09986 J_FE=0.21190 (0.9 s)
+   [fig5 40/44    15.3 s] alpha=10 beta=60.0: -J*=0.11079 J_FE=0.21934 (0.8 s)
+   [fig5 41/44    15.4 s] alpha=10 beta=67.5: -J*=0.11430 J_FE=0.22237 (0.8 s)
+   [fig5 42/44    16.2 s] alpha=10 beta=75.0: -J*=0.11640 J_FE=0.22514 (0.8 s)
+   [fig5 43/44    16.2 s] alpha=10 beta=82.5: -J*=0.11723 J_FE=0.22779 (0.8 s)
+   [fig5 44/44    16.8 s] alpha=10 beta=90.0: -J*=0.11705 J_FE=0.23039 (0.6 s)
+[fig5] wall 16.8 s for the new tasks; summed task time of all 44 results 33.0 s
+
+Fig. 5: normalised functionals, h_w = H (ours / paper vertex polyline, rel = ours/paper - 1)
+alpha   beta | -J*(vopt)    paper       rel |   J(uFE)    paper       rel
+    1   15.0 |   0.33815  0.33815 +1.42e-05 |  0.58633  0.58641 -1.44e-04
+    1   22.5 |   0.39147  0.39146 +7.95e-06 |  0.64243  0.64257 -2.22e-04
+    1   30.0 |   0.43247  0.43251 -9.21e-05 |  0.68585  0.68605 -2.96e-04
+    1   37.5 |   0.46550  0.46553 -6.17e-05 |  0.72184  0.72207 -3.25e-04
+    1   45.0 |   0.49278  0.49278 -8.81e-06 |  0.75317  0.75364 -6.14e-04
+    1   52.5 |   0.51555  0.51554 +2.54e-05 |  0.78150  0.78195 -5.82e-04
+    1   60.0 |   0.53465  0.53465 +2.56e-06 |  0.80790  0.80847 -6.97e-04
+    1   67.5 |   0.55073  0.55076 -6.69e-05 |  0.83320  0.83372 -6.20e-04
+    1   75.0 |   0.56468  0.56471 -5.67e-05 |  0.85804  0.85902 -1.15e-03
+    1   82.5 |   0.57867  0.57862 +8.75e-05 |  0.88301  0.88388 -9.86e-04
+    1   90.0 |   0.59138  0.59140 -3.65e-05 |  0.90871  0.91037 -1.82e-03
+    2   15.0 |   0.22972  0.22977 -2.02e-04 |  0.40239  0.40244 -1.39e-04
+    2   22.5 |   0.26651  0.26651 +1.62e-05 |  0.44192  0.44201 -1.92e-04
+    2   30.0 |   0.29553  0.29554 -4.39e-05 |  0.47105  0.47123 -3.75e-04
+    2   37.5 |   0.31955  0.31957 -3.88e-05 |  0.49408  0.49431 -4.51e-04
+    2   45.0 |   0.33987  0.33989 -7.22e-05 |  0.51323  0.51352 -5.63e-04
+    2   52.5 |   0.35706  0.35706 +1.66e-05 |  0.52981  0.53011 -5.63e-04
+    2   60.0 |   0.37142  0.37142 -7.85e-06 |  0.54466  0.54509 -7.90e-04
+    2   67.5 |   0.38315  0.38320 -1.33e-04 |  0.55839  0.55873 -6.14e-04
+    2   75.0 |   0.39260  0.39259 +2.88e-05 |  0.57147  0.57201 -9.33e-04
+    2   82.5 |   0.40062  0.40063 -2.07e-05 |  0.58430  0.58482 -8.99e-04
+    2   90.0 |   0.40656  0.40658 -4.73e-05 |  0.59723  0.59820 -1.62e-03
+    4   15.0 |   0.14217  0.14218 -9.66e-05 |  0.28060  0.28068 -2.84e-04
+    4   22.5 |   0.16403  0.16405 -1.05e-04 |  0.30725  0.30735 -3.13e-04
+    4   30.0 |   0.18211  0.18212 -7.02e-05 |  0.32578  0.32594 -4.98e-04
+    4   37.5 |   0.19780  0.19782 -9.85e-05 |  0.33968  0.33991 -6.67e-04
+    4   45.0 |   0.21150  0.21152 -8.73e-05 |  0.35075  0.35097 -6.40e-04
+    4   52.5 |   0.22321  0.22322 -4.74e-05 |  0.35998  0.36023 -7.05e-04
+    4   60.0 |   0.23279  0.23281 -8.13e-05 |  0.36800  0.36835 -9.43e-04
+    4   67.5 |   0.24015  0.24016 -6.88e-05 |  0.37524  0.37550 -6.86e-04
+    4   75.0 |   0.24532  0.24535 -1.40e-04 |  0.38201  0.38235 -9.03e-04
+    4   82.5 |   0.24856  0.24855 +5.42e-05 |  0.38853  0.38886 -8.59e-04
+    4   90.0 |   0.25046  0.25045 +2.45e-05 |  0.39502  0.39565 -1.59e-03
+   10   15.0 |   0.06779  0.06780 -9.64e-05 |  0.17637  0.17645 -4.60e-04
+   10   22.5 |   0.07676  0.07677 -2.06e-04 |  0.19099  0.19111 -6.40e-04
+   10   30.0 |   0.08507  0.08508 -7.82e-05 |  0.20032  0.20048 -8.02e-04
+   10   37.5 |   0.09283  0.09284 -5.70e-05 |  0.20690  0.20712 -1.07e-03
+   10   45.0 |   0.09986  0.09986 -5.65e-05 |  0.21190  0.21214 -1.15e-03
+   10   52.5 |   0.10592  0.10592 -5.45e-05 |  0.21593  0.21614 -9.86e-04
+   10   60.0 |   0.11079  0.11079 +2.05e-05 |  0.21934  0.21964 -1.34e-03
+   10   67.5 |   0.11430  0.11430 -3.46e-05 |  0.22237  0.22259 -1.00e-03
+   10   75.0 |   0.11640  0.11640 -3.76e-05 |  0.22514  0.22538 -1.05e-03
+   10   82.5 |   0.11723  0.11723 -1.36e-05 |  0.22779  0.22805 -1.16e-03
+   10   90.0 |   0.11705  0.11705 -5.70e-06 |  0.23039  0.23091 -2.26e-03
+   per-curve relative differences (points with a visible paper value: vertex/segment):
+                        1 J_FE: n=11  mean=-0.0007  rms=0.0008  max|rel|=0.0018 (-0.0018)
+             1 minus_Jstar_opt: n=11  mean=-0.0000  rms=0.0001  max|rel|=0.0001 (-0.0001)
+                        2 J_FE: n=11  mean=-0.0006  rms=0.0008  max|rel|=0.0016 (-0.0016)
+             2 minus_Jstar_opt: n=11  mean=-0.0000  rms=0.0001  max|rel|=0.0002 (-0.0002)
+                        4 J_FE: n=11  mean=-0.0007  rms=0.0008  max|rel|=0.0016 (-0.0016)
+             4 minus_Jstar_opt: n=11  mean=-0.0001  rms=0.0001  max|rel|=0.0001 (-0.0001)
+                       10 J_FE: n=11  mean=-0.0011  rms=0.0012  max|rel|=0.0023 (-0.0023)
+            10 minus_Jstar_opt: n=11  mean=-0.0001  rms=0.0001  max|rel|=0.0002 (-0.0002)
+[fig9] 120 tasks, 0 cached, running 120 on 2 worker(s)
+   [fig9 1/120     1.3 s] alpha=5 beta=15.0 hw/H=1.0 vopt: Gamma=inf Hcrit=inf None (1.2 s)
+   [fig9 2/120     2.7 s] alpha=10 beta=15.0 hw/H=1.0 vopt: Gamma=inf Hcrit=inf None (1.4 s)
+   [fig9 3/120   120.1 s] alpha=1 beta=15.0 hw/H=1.0 vopt: Gamma=119.08093 Hcrit=595.4046 I (120.1 s)
+   [fig9 4/120   121.3 s] alpha=5 beta=20.0 hw/H=1.0 vopt: Gamma=inf Hcrit=inf None (1.3 s)
+   [fig9 5/120   122.7 s] alpha=10 beta=20.0 hw/H=1.0 vopt: Gamma=inf Hcrit=inf None (1.3 s)
+   [fig9 6/120   123.5 s] alpha=1 beta=15.0 hw/H=1.0 FE: Gamma=inf Hcrit=inf None (0.8 s)
+   [fig9 7/120   124.2 s] alpha=5 beta=15.0 hw/H=1.0 FE: Gamma=inf Hcrit=inf None (0.7 s)
+   [fig9 8/120   124.9 s] alpha=10 beta=15.0 hw/H=1.0 FE: Gamma=inf Hcrit=inf None (0.7 s)
+   [fig9 9/120   135.4 s] alpha=1 beta=25.0 hw/H=1.0 vopt: Gamma=5.89728 Hcrit=29.4864 I (10.6 s)
+   [fig9 10/120   147.6 s] alpha=1 beta=20.0 hw/H=1.0 vopt: Gamma=19.32041 Hcrit=96.6020 I (144.9 s)
+   [fig9 11/120   199.9 s] alpha=5 beta=25.0 hw/H=1.0 vopt: Gamma=18.40617 Hcrit=92.0309 I (64.4 s)
+   [fig9 12/120   204.6 s] alpha=10 beta=25.0 hw/H=1.0 vopt: Gamma=50.33370 Hcrit=251.6685 I (57.0 s)
+   [fig9 13/120   213.8 s] alpha=1 beta=30.0 hw/H=1.0 vopt: Gamma=3.57876 Hcrit=17.8938 I (14.0 s)
+   [fig9 14/120   219.0 s] alpha=5 beta=30.0 hw/H=1.0 vopt: Gamma=6.84809 Hcrit=34.2404 I (14.4 s)
+   [fig9 15/120   225.0 s] alpha=10 beta=30.0 hw/H=1.0 vopt: Gamma=8.80687 Hcrit=44.0344 I (11.1 s)
+   [fig9 16/120   254.4 s] alpha=5 beta=20.0 hw/H=1.0 FE: Gamma=56.50574 Hcrit=282.5287 II (29.4 s)
+   [fig9 17/120   255.1 s] alpha=10 beta=20.0 hw/H=1.0 FE: Gamma=inf Hcrit=inf None (0.7 s)
+   [fig9 18/120   260.0 s] alpha=1 beta=20.0 hw/H=1.0 FE: Gamma=9.45005 Hcrit=47.2502 I (41.0 s)
+   [fig9 19/120   268.8 s] alpha=1 beta=35.0 hw/H=1.0 vopt: Gamma=2.67684 Hcrit=13.3842 I (13.7 s)
+   [fig9 20/120   274.7 s] alpha=5 beta=35.0 hw/H=1.0 vopt: Gamma=4.33945 Hcrit=21.6972 I (14.7 s)
+   [fig9 21/120   284.3 s] alpha=10 beta=35.0 hw/H=1.0 vopt: Gamma=4.99392 Hcrit=24.9696 I (15.6 s)
+   [fig9 22/120   287.3 s] alpha=1 beta=37.5 hw/H=1.0 vopt: Gamma=2.40687 Hcrit=12.0344 I (12.6 s)
+   [fig9 23/120   297.5 s] alpha=5 beta=37.5 hw/H=1.0 vopt: Gamma=3.71783 Hcrit=18.5892 I (13.1 s)
+   [fig9 24/120   300.5 s] alpha=10 beta=37.5 hw/H=1.0 vopt: Gamma=4.17524 Hcrit=20.8762 I (13.2 s)
+   [fig9 25/120   309.4 s] alpha=1 beta=40.0 hw/H=1.0 vopt: Gamma=2.20044 Hcrit=11.0022 I (11.9 s)
+   [fig9 26/120   313.1 s] alpha=5 beta=40.0 hw/H=1.0 vopt: Gamma=3.27541 Hcrit=16.3770 I (12.6 s)
+   [fig9 27/120   322.3 s] alpha=10 beta=40.0 hw/H=1.0 vopt: Gamma=3.61753 Hcrit=18.0876 I (12.9 s)
+   [fig9 28/120   326.6 s] alpha=1 beta=45.0 hw/H=1.0 vopt: Gamma=1.90448 Hcrit=9.5224 I (13.5 s)
+   [fig9 29/120   336.6 s] alpha=5 beta=45.0 hw/H=1.0 vopt: Gamma=2.68289 Hcrit=13.4144 I (14.3 s)
+   [fig9 30/120   338.2 s] alpha=10 beta=45.0 hw/H=1.0 vopt: Gamma=2.89742 Hcrit=14.4871 I (11.6 s)
+   [fig9 31/120   346.2 s] alpha=1 beta=25.0 hw/H=1.0 FE: Gamma=3.93147 Hcrit=19.6574 I (9.6 s)
+   [fig9 32/120   348.8 s] alpha=5 beta=25.0 hw/H=1.0 FE: Gamma=7.87138 Hcrit=39.3569 I (10.6 s)
+   [fig9 33/120   362.6 s] alpha=1 beta=50.0 hw/H=1.0 vopt: Gamma=1.70067 Hcrit=8.5034 I (13.8 s)
+   [fig9 34/120   376.4 s] alpha=5 beta=50.0 hw/H=1.0 vopt: Gamma=2.29508 Hcrit=11.4754 I (13.8 s)
+   [fig9 35/120   390.3 s] alpha=10 beta=50.0 hw/H=1.0 vopt: Gamma=2.43736 Hcrit=12.1868 I (13.9 s)
+   [fig9 36/120   402.8 s] alpha=10 beta=25.0 hw/H=1.0 FE: Gamma=13.51815 Hcrit=67.5908 II (56.5 s)
+   [fig9 37/120   403.2 s] alpha=1 beta=52.5 hw/H=1.0 vopt: Gamma=1.62005 Hcrit=8.1002 I (12.9 s)
+   [fig9 38/120   416.2 s] alpha=5 beta=52.5 hw/H=1.0 vopt: Gamma=2.14344 Hcrit=10.7172 I (13.5 s)
+   [fig9 39/120   417.4 s] alpha=10 beta=52.5 hw/H=1.0 vopt: Gamma=2.25862 Hcrit=11.2931 I (14.2 s)
+   [fig9 40/120   429.5 s] alpha=1 beta=55.0 hw/H=1.0 vopt: Gamma=1.54937 Hcrit=7.7469 I (13.3 s)
+   [fig9 41/120   431.6 s] alpha=5 beta=55.0 hw/H=1.0 vopt: Gamma=2.01008 Hcrit=10.0504 I (14.2 s)
+   [fig9 42/120   444.0 s] alpha=1 beta=60.0 hw/H=1.0 vopt: Gamma=1.42889 Hcrit=7.1445 I (12.3 s)
+   [fig9 43/120   444.3 s] alpha=10 beta=55.0 hw/H=1.0 vopt: Gamma=2.10178 Hcrit=10.5089 I (14.8 s)
+   [fig9 44/120   457.1 s] alpha=5 beta=60.0 hw/H=1.0 vopt: Gamma=1.78016 Hcrit=8.9008 I (13.2 s)
+   [fig9 45/120   457.6 s] alpha=10 beta=60.0 hw/H=1.0 vopt: Gamma=1.83335 Hcrit=9.1667 I (13.3 s)
+   [fig9 46/120   471.4 s] alpha=1 beta=65.0 hw/H=1.0 vopt: Gamma=1.32147 Hcrit=6.6073 I (14.3 s)
+   [fig9 47/120   472.2 s] alpha=5 beta=65.0 hw/H=1.0 vopt: Gamma=1.57958 Hcrit=7.8979 I (14.6 s)
+   [fig9 48/120   486.0 s] alpha=10 beta=65.0 hw/H=1.0 vopt: Gamma=1.60513 Hcrit=8.0257 I (14.6 s)
+   [fig9 49/120   486.2 s] alpha=1 beta=67.5 hw/H=1.0 vopt: Gamma=1.26455 Hcrit=6.3228 I (14.0 s)
+   [fig9 50/120   500.2 s] alpha=5 beta=67.5 hw/H=1.0 vopt: Gamma=1.48542 Hcrit=7.4271 I (14.2 s)
+   [fig9 51/120   500.4 s] alpha=10 beta=67.5 hw/H=1.0 vopt: Gamma=1.50163 Hcrit=7.5081 I (14.3 s)
+   [fig9 52/120   514.3 s] alpha=1 beta=70.0 hw/H=1.0 vopt: Gamma=1.19887 Hcrit=5.9943 I (14.1 s)
+   [fig9 53/120   515.3 s] alpha=5 beta=70.0 hw/H=1.0 vopt: Gamma=1.39380 Hcrit=6.9690 I (14.9 s)
+   [fig9 54/120   529.0 s] alpha=10 beta=70.0 hw/H=1.0 vopt: Gamma=1.40378 Hcrit=7.0189 I (14.6 s)
+   [fig9 55/120   529.9 s] alpha=1 beta=75.0 hw/H=1.0 vopt: Gamma=1.02512 Hcrit=5.1256 I (14.6 s)
+   [fig9 56/120   543.5 s] alpha=5 beta=75.0 hw/H=1.0 vopt: Gamma=1.21626 Hcrit=6.0813 I (14.5 s)
+   [fig9 57/120   544.5 s] alpha=10 beta=75.0 hw/H=1.0 vopt: Gamma=1.22261 Hcrit=6.1131 I (14.6 s)
+   [fig9 58/120   557.3 s] alpha=1 beta=80.0 hw/H=1.0 vopt: Gamma=0.79229 Hcrit=3.9614 I (13.9 s)
+   [fig9 59/120   559.4 s] alpha=5 beta=80.0 hw/H=1.0 vopt: Gamma=1.04635 Hcrit=5.2318 I (14.9 s)
+   [fig9 60/120   571.2 s] alpha=1 beta=82.5 hw/H=1.0 vopt: Gamma=0.72084 Hcrit=3.6042 I (11.7 s)
+   [fig9 61/120   571.4 s] alpha=10 beta=80.0 hw/H=1.0 vopt: Gamma=1.05876 Hcrit=5.2938 I (14.1 s)
+   [fig9 62/120   585.2 s] alpha=5 beta=82.5 hw/H=1.0 vopt: Gamma=0.96485 Hcrit=4.8242 I (14.1 s)
+   [fig9 63/120   585.7 s] alpha=10 beta=82.5 hw/H=1.0 vopt: Gamma=0.98304 Hcrit=4.9152 I (14.3 s)
+   [fig9 64/120   596.6 s] alpha=1 beta=85.0 hw/H=1.0 vopt: Gamma=0.67841 Hcrit=3.3921 I (11.3 s)
+   [fig9 65/120   599.6 s] alpha=5 beta=85.0 hw/H=1.0 vopt: Gamma=0.88593 Hcrit=4.4297 I (13.9 s)
+   [fig9 66/120   610.4 s] alpha=10 beta=85.0 hw/H=1.0 vopt: Gamma=0.91143 Hcrit=4.5571 I (13.9 s)
+   [fig9 67/120   611.1 s] alpha=1 beta=90.0 hw/H=1.0 vopt: Gamma=0.60143 Hcrit=3.0072 I (11.5 s)
+   [fig9 68/120   624.1 s] alpha=10 beta=90.0 hw/H=1.0 vopt: Gamma=0.78027 Hcrit=3.9014 I (13.0 s)
+   [fig9 69/120   634.1 s] alpha=1 beta=30.0 hw/H=1.0 FE: Gamma=2.57274 Hcrit=12.8637 I (10.0 s)
+   [fig9 70/120   643.1 s] alpha=5 beta=30.0 hw/H=1.0 FE: Gamma=4.32674 Hcrit=21.6337 I (9.0 s)
+   [fig9 71/120   652.1 s] alpha=10 beta=30.0 hw/H=1.0 FE: Gamma=6.26764 Hcrit=31.3382 I (9.0 s)
+   [fig9 72/120   661.4 s] alpha=1 beta=35.0 hw/H=1.0 FE: Gamma=1.96672 Hcrit=9.8336 I (9.3 s)
+   [fig9 73/120   671.1 s] alpha=5 beta=35.0 hw/H=1.0 FE: Gamma=3.03400 Hcrit=15.1700 I (9.7 s)
+   [fig9 74/120   680.9 s] alpha=10 beta=35.0 hw/H=1.0 FE: Gamma=3.90021 Hcrit=19.5011 I (9.8 s)
+   [fig9 75/120   690.3 s] alpha=1 beta=37.5 hw/H=1.0 FE: Gamma=1.77273 Hcrit=8.8636 I (9.5 s)
+   [fig9 76/120   691.9 s] alpha=5 beta=90.0 hw/H=1.0 vopt: Gamma=0.73572 Hcrit=3.6786 I (81.5 s)
+   [fig9 77/120   699.7 s] alpha=5 beta=37.5 hw/H=1.0 FE: Gamma=2.65041 Hcrit=13.2521 I (9.3 s)
+   [fig9 78/120   700.9 s] alpha=10 beta=37.5 hw/H=1.0 FE: Gamma=3.28339 Hcrit=16.4170 I (9.0 s)
+   [fig9 79/120   709.4 s] alpha=1 beta=40.0 hw/H=1.0 FE: Gamma=1.61920 Hcrit=8.0960 I (9.7 s)
+   [fig9 80/120   711.3 s] alpha=5 beta=40.0 hw/H=1.0 FE: Gamma=2.35633 Hcrit=11.7816 I (10.3 s)
+   [fig9 81/120   719.5 s] alpha=10 beta=40.0 hw/H=1.0 FE: Gamma=2.83551 Hcrit=14.1775 I (10.1 s)
+   [fig9 82/120   719.8 s] alpha=1 beta=45.0 hw/H=1.0 FE: Gamma=1.38907 Hcrit=6.9454 I (8.5 s)
+   [fig9 83/120   728.1 s] alpha=5 beta=45.0 hw/H=1.0 FE: Gamma=1.93071 Hcrit=9.6535 I (8.6 s)
+   [fig9 84/120   729.3 s] alpha=10 beta=45.0 hw/H=1.0 FE: Gamma=2.22539 Hcrit=11.1269 I (9.4 s)
+   [fig9 85/120   737.7 s] alpha=1 beta=50.0 hw/H=1.0 FE: Gamma=1.22153 Hcrit=6.1077 I (9.6 s)
+   [fig9 86/120   739.2 s] alpha=5 beta=50.0 hw/H=1.0 FE: Gamma=1.63293 Hcrit=8.1647 I (9.9 s)
+   [fig9 87/120   746.9 s] alpha=10 beta=50.0 hw/H=1.0 FE: Gamma=1.82587 Hcrit=9.1294 I (9.1 s)
+   [fig9 88/120   748.2 s] alpha=1 beta=52.5 hw/H=1.0 FE: Gamma=1.15267 Hcrit=5.7633 I (9.0 s)
+   [fig9 89/120   756.5 s] alpha=5 beta=52.5 hw/H=1.0 FE: Gamma=1.51391 Hcrit=7.5695 I (9.6 s)
+   [fig9 90/120   757.5 s] alpha=10 beta=52.5 hw/H=1.0 FE: Gamma=1.67264 Hcrit=8.3632 I (9.2 s)
+   [fig9 91/120   765.9 s] alpha=1 beta=55.0 hw/H=1.0 FE: Gamma=1.09102 Hcrit=5.4551 I (9.5 s)
+   [fig9 92/120   767.1 s] alpha=5 beta=55.0 hw/H=1.0 FE: Gamma=1.40928 Hcrit=7.0464 I (9.6 s)
+   [fig9 93/120   775.7 s] alpha=10 beta=55.0 hw/H=1.0 FE: Gamma=1.54100 Hcrit=7.7050 I (9.8 s)
+   [fig9 94/120   776.2 s] alpha=1 beta=60.0 hw/H=1.0 FE: Gamma=0.98407 Hcrit=4.9204 I (9.1 s)
+   [fig9 95/120   784.8 s] alpha=5 beta=60.0 hw/H=1.0 FE: Gamma=1.23267 Hcrit=6.1633 I (9.1 s)
+   [fig9 96/120   785.5 s] alpha=10 beta=60.0 hw/H=1.0 FE: Gamma=1.32534 Hcrit=6.6267 I (9.4 s)
+   [fig9 97/120   794.7 s] alpha=1 beta=65.0 hw/H=1.0 FE: Gamma=0.89298 Hcrit=4.4649 I (9.9 s)
+   [fig9 98/120   795.3 s] alpha=5 beta=65.0 hw/H=1.0 FE: Gamma=1.08799 Hcrit=5.4400 I (9.7 s)
+   [fig9 99/120   803.7 s] alpha=10 beta=65.0 hw/H=1.0 FE: Gamma=1.15467 Hcrit=5.7734 I (8.9 s)
+   [fig9 100/120   804.9 s] alpha=1 beta=67.5 hw/H=1.0 FE: Gamma=0.85183 Hcrit=4.2591 I (9.7 s)
+   [fig9 101/120   812.7 s] alpha=5 beta=67.5 hw/H=1.0 FE: Gamma=1.02460 Hcrit=5.1230 I (9.1 s)
+   [fig9 102/120   814.1 s] alpha=10 beta=67.5 hw/H=1.0 FE: Gamma=1.08153 Hcrit=5.4076 I (9.2 s)
+   [fig9 103/120   822.1 s] alpha=1 beta=70.0 hw/H=1.0 FE: Gamma=0.81303 Hcrit=4.0651 I (9.4 s)
+   [fig9 104/120   823.2 s] alpha=5 beta=70.0 hw/H=1.0 FE: Gamma=0.96603 Hcrit=4.8302 I (9.1 s)
+   [fig9 105/120   831.0 s] alpha=10 beta=70.0 hw/H=1.0 FE: Gamma=1.01482 Hcrit=5.0741 I (8.9 s)
+   [fig9 106/120   831.9 s] alpha=1 beta=75.0 hw/H=1.0 FE: Gamma=0.74120 Hcrit=3.7060 I (8.7 s)
+   [fig9 107/120   839.2 s] alpha=5 beta=75.0 hw/H=1.0 FE: Gamma=0.86090 Hcrit=4.3045 I (8.2 s)
+   [fig9 108/120   840.4 s] alpha=10 beta=75.0 hw/H=1.0 FE: Gamma=0.89703 Hcrit=4.4852 I (8.5 s)
+   [fig9 109/120   847.5 s] alpha=1 beta=80.0 hw/H=1.0 FE: Gamma=0.67551 Hcrit=3.3776 I (8.3 s)
+   [fig9 110/120   848.5 s] alpha=5 beta=80.0 hw/H=1.0 FE: Gamma=0.76862 Hcrit=3.8431 I (8.1 s)
+   [fig9 111/120   856.5 s] alpha=10 beta=80.0 hw/H=1.0 FE: Gamma=0.79561 Hcrit=3.9780 I (9.0 s)
+   [fig9 112/120   857.5 s] alpha=1 beta=82.5 hw/H=1.0 FE: Gamma=0.64453 Hcrit=3.2227 I (9.0 s)
+   [fig9 113/120   865.0 s] alpha=5 beta=82.5 hw/H=1.0 FE: Gamma=0.72641 Hcrit=3.6321 I (8.6 s)
+   [fig9 114/120   865.4 s] alpha=10 beta=82.5 hw/H=1.0 FE: Gamma=0.74978 Hcrit=3.7489 I (8.0 s)
+   [fig9 115/120   873.2 s] alpha=5 beta=85.0 hw/H=1.0 FE: Gamma=0.68645 Hcrit=3.4322 I (7.8 s)
+   [fig9 116/120   873.2 s] alpha=1 beta=85.0 hw/H=1.0 FE: Gamma=0.61461 Hcrit=3.0731 I (8.2 s)
+   [fig9 117/120   880.4 s] alpha=1 beta=90.0 hw/H=1.0 FE: Gamma=0.55760 Hcrit=2.7880 I (7.1 s)
+   [fig9 118/120   881.7 s] alpha=10 beta=85.0 hw/H=1.0 FE: Gamma=0.70670 Hcrit=3.5335 I (8.5 s)
+   [fig9 119/120   887.4 s] alpha=5 beta=90.0 hw/H=1.0 FE: Gamma=0.61242 Hcrit=3.0621 I (7.1 s)
+   [fig9 120/120   888.7 s] alpha=10 beta=90.0 hw/H=1.0 FE: Gamma=0.62764 Hcrit=3.1382 I (7.0 s)
+[fig9] wall 888.7 s for the new tasks; summed task time of all 120 results 1775.9 s
+
+Fig. 9: Gamma, H = 5, c = 10, phi = 30, gamma = 20, h_w = H, gamma_w = 9.81; ours vs paper polyline
+   ('vertex' = 5-deg node of the paper polyline, 'segment' = between nodes (chord), 'extrapolated' =
+    hidden node above the plot, 'offplot(>5)' = no paper curve visible there)
+   alpha = 1
+     beta |  FE ours    paper      rel      mech | vopt ours    paper      rel      mech
+     15.0 |      inf      nan     +nan         - |  119.0809      nan     +nan    I0.128   [offplot(>5)/offplot(>5)]
+     20.0 |   9.4500   6.5401  +0.4449    I1.000 |   19.3204      nan     +nan    I0.759   [extrapolated/offplot(>5)]
+     25.0 |   3.9315   3.3635  +0.1689    I1.000 |    5.8973   5.5832  +0.0563    I1.000   [vertex/extrapolated]
+     30.0 |   2.5727   2.3216  +0.1082    I1.000 |    3.5788   3.4895  +0.0256    I1.000   [vertex/vertex]
+     35.0 |   1.9667   1.8088  +0.0873    I1.000 |    2.6768   2.6350  +0.0159    I1.000   [vertex/vertex]
+     37.5 |   1.7727   1.6609  +0.0673    I1.000 |    2.4069   2.4039  +0.0012    I1.000   [segment/segment]
+     40.0 |   1.6192   1.5131  +0.0701    I1.000 |    2.2004   2.1728  +0.0127    I1.000   [vertex/vertex]
+     45.0 |   1.3891   1.3124  +0.0584    I1.000 |    1.9045   1.8875  +0.0090    I1.000   [vertex/vertex]
+     50.0 |   1.2215   1.1678  +0.0460    I1.000 |    1.7007   1.6805  +0.0120    I1.000   [vertex/vertex]
+     52.5 |   1.1527   1.1080  +0.0403    I1.000 |    1.6200   1.6106  +0.0059    I1.000   [segment/segment]
+     55.0 |   1.0910   1.0483  +0.0408    I1.000 |    1.5494   1.5407  +0.0056    I1.000   [vertex/vertex]
+     60.0 |   0.9841   0.9557  +0.0297    I1.000 |    1.4289   1.4228  +0.0043    I1.000   [vertex/vertex]
+     65.0 |   0.8930   0.8663  +0.0308    I1.000 |    1.3215   1.3129  +0.0065    I1.000   [vertex/vertex]
+     67.5 |   0.8518   0.8282  +0.0285    I1.000 |    1.2646   1.2521  +0.0099    I1.000   [segment/segment]
+     70.0 |   0.8130   0.7901  +0.0290    I1.000 |    1.1989   1.1913  +0.0064    I1.000   [vertex/vertex]
+     75.0 |   0.7412   0.7202  +0.0292    I1.000 |    1.0251   1.0233  +0.0018    I1.000   [vertex/vertex]
+     80.0 |   0.6755   0.6589  +0.0252    I1.000 |    0.7923   0.7943  -0.0025    I1.000   [vertex/vertex]
+     82.5 |   0.6445   0.6303  +0.0225    I1.000 |    0.7208   0.7310  -0.0139    I1.000   [segment/segment]
+     85.0 |   0.6146   0.6018  +0.0213    I1.000 |    0.6784   0.6677  +0.0160    I1.000   [vertex/vertex]
+     90.0 |   0.5576   0.5548  +0.0050    I1.000 |    0.6014   0.6046  -0.0052    I1.000   [vertex/vertex]
+   alpha = 5
+     beta |  FE ours    paper      rel      mech | vopt ours    paper      rel      mech
+     15.0 |      inf      nan     +nan         - |       inf      nan     +nan         -   [offplot(>5)/offplot(>5)]
+     20.0 |  56.5057      nan     +nan   II0.376 |       inf      nan     +nan         -   [offplot(>5)/offplot(>5)]
+     25.0 |   7.8714   5.9866  +0.3148    I1.000 |   18.4062      nan     +nan    I1.000   [extrapolated/offplot(>5)]
+     30.0 |   4.3267   3.7565  +0.1518    I1.000 |    6.8481   6.8712  -0.0034    I1.000   [vertex/extrapolated]
+     35.0 |   3.0340   2.7504  +0.1031    I1.000 |    4.3394   4.1971  +0.0339    I1.000   [vertex/vertex]
+     37.5 |   2.6504   2.4814  +0.0681    I1.000 |    3.7178   3.7035  +0.0039    I1.000   [segment/segment]
+     40.0 |   2.3563   2.2124  +0.0651    I1.000 |    3.2754   3.2099  +0.0204    I1.000   [vertex/vertex]
+     45.0 |   1.9307   1.8366  +0.0512    I1.000 |    2.6829   2.6547  +0.0106    I1.000   [vertex/vertex]
+     50.0 |   1.6329   1.5716  +0.0390    I1.000 |    2.2951   2.2728  +0.0098    I1.000   [vertex/vertex]
+     52.5 |   1.5139   1.4682  +0.0312    I1.000 |    2.1434   2.1368  +0.0031    I1.000   [segment/segment]
+     55.0 |   1.4093   1.3647  +0.0327    I1.000 |    2.0101   2.0007  +0.0047    I1.000   [vertex/vertex]
+     60.0 |   1.2327   1.1977  +0.0292    I1.000 |    1.7802   1.7665  +0.0077    I1.000   [vertex/vertex]
+     65.0 |   1.0880   1.0630  +0.0235    I1.000 |    1.5796   1.5729  +0.0042    I1.000   [vertex/vertex]
+     67.5 |   1.0246   1.0035  +0.0210    I1.000 |    1.4854   1.4819  +0.0023    I1.000   [segment/segment]
+     70.0 |   0.9660   0.9441  +0.0232    I1.000 |    1.3938   1.3910  +0.0020    I1.000   [vertex/vertex]
+     75.0 |   0.8609   0.8429  +0.0214    I1.000 |    1.2163   1.2070  +0.0077    I1.000   [vertex/vertex]
+     80.0 |   0.7686   0.7585  +0.0133    I1.000 |    1.0464   1.0412  +0.0049    I1.000   [vertex/vertex]
+     82.5 |   0.7264   0.7205  +0.0082    I1.000 |    0.9648   0.9641  +0.0007    I1.000   [segment/segment]
+     85.0 |   0.6864   0.6825  +0.0058    I1.000 |    0.8859   0.8871  -0.0013    I1.000   [vertex/vertex]
+     90.0 |   0.6124   0.6088  +0.0060    I1.000 |    0.7357   0.7348  +0.0012    I1.000   [vertex/vertex]
+   alpha = 10
+     beta |  FE ours    paper      rel      mech | vopt ours    paper      rel      mech
+     15.0 |      inf      nan     +nan         - |       inf      nan     +nan         -   [offplot(>5)/offplot(>5)]
+     20.0 |      inf      nan     +nan         - |       inf      nan     +nan         -   [offplot(>5)/offplot(>5)]
+     25.0 |  13.5182      nan     +nan   II0.672 |   50.3337      nan     +nan    I1.000   [offplot(>5)/offplot(>5)]
+     30.0 |   6.2676   5.1758  +0.2110    I1.000 |    8.8069      nan     +nan    I1.000   [extrapolated/offplot(>5)]
+     35.0 |   3.9002   3.4782  +0.1213    I1.000 |    4.9939   4.8437  +0.0310    I1.000   [vertex/vertex]
+     37.5 |   3.2834   3.0554  +0.0746    I1.000 |    4.1752   4.1917  -0.0039    I1.000   [segment/segment]
+     40.0 |   2.8355   2.6326  +0.0771    I1.000 |    3.6175   3.5397  +0.0220    I1.000   [vertex/vertex]
+     45.0 |   2.2254   2.1013  +0.0591    I1.000 |    2.8974   2.8659  +0.0110    I1.000   [vertex/vertex]
+     50.0 |   1.8259   1.7663  +0.0337    I1.000 |    2.4374   2.4149  +0.0093    I1.000   [vertex/vertex]
+     52.5 |   1.6726   1.6292  +0.0267    I1.000 |    2.2586   2.2537  +0.0022    I1.000   [segment/segment]
+     55.0 |   1.5410   1.4921  +0.0328    I1.000 |    2.1018   2.0925  +0.0044    I1.000   [vertex/vertex]
+     60.0 |   1.3253   1.2883  +0.0288    I1.000 |    1.8333   1.8231  +0.0056    I1.000   [vertex/vertex]
+     65.0 |   1.1547   1.1261  +0.0254    I1.000 |    1.6051   1.5979  +0.0045    I1.000   [vertex/vertex]
+     67.5 |   1.0815   1.0604  +0.0200    I1.000 |    1.5016   1.4963  +0.0036    I1.000   [segment/segment]
+     70.0 |   1.0148   0.9946  +0.0203    I1.000 |    1.4038   1.3947  +0.0065    I1.000   [vertex/vertex]
+     75.0 |   0.8970   0.8790  +0.0205    I1.000 |    1.2226   1.2135  +0.0075    I1.000   [vertex/vertex]
+     80.0 |   0.7956   0.7880  +0.0097    I1.000 |    1.0588   1.0545  +0.0040    I1.000   [vertex/vertex]
+     82.5 |   0.7498   0.7450  +0.0064    I1.000 |    0.9830   0.9832  -0.0002    I1.000   [segment/segment]
+     85.0 |   0.7067   0.7020  +0.0067    I1.000 |    0.9114   0.9120  -0.0006    I1.000   [vertex/vertex]
+     90.0 |   0.6276   0.6240  +0.0058    I1.000 |    0.7803   0.7778  +0.0032    I1.000   [vertex/vertex]
+   per-curve relative differences (points with a visible paper value: vertex/segment):
+                        1 vopt: n=17  mean=+0.0065  rms=0.0110  max|rel|=0.0256 (+0.0256)
+                          1 FE: n=18  mean=+0.0505  rms=0.0633  max|rel|=0.1689 (+0.1689)
+                        5 vopt: n=16  mean=+0.0073  rms=0.0112  max|rel|=0.0339 (+0.0339)
+                          5 FE: n=17  mean=+0.0408  rms=0.0552  max|rel|=0.1518 (+0.1518)
+                       10 vopt: n=16  mean=+0.0069  rms=0.0108  max|rel|=0.0310 (+0.0310)
+                         10 FE: n=16  mean=+0.0355  rms=0.0471  max|rel|=0.1213 (+0.1213)
+[fig8-fitted] 92 tasks, 0 cached, running 92 on 2 worker(s)
+   [fig8-fitted 1/92    20.2 s] London beta=30.0 hw/H=0.0 none: Gamma=15.65274 Hcrit=156.5274 I (20.2 s)
+   [fig8-fitted 2/92   319.3 s] London beta=30.0 hw/H=0.1 vopt: Gamma=8.57406 Hcrit=85.7406 I (299.0 s)
+   [fig8-fitted 3/92   338.1 s] London beta=30.0 hw/H=0.2 vopt: Gamma=5.86977 Hcrit=58.6977 I (18.8 s)
+   [fig8-fitted 4/92   357.6 s] London beta=30.0 hw/H=0.3 vopt: Gamma=4.32382 Hcrit=43.2382 I (19.5 s)
+   [fig8-fitted 5/92   376.8 s] London beta=30.0 hw/H=0.4 vopt: Gamma=3.30182 Hcrit=33.0182 I (19.2 s)
+   [fig8-fitted 6/92   381.1 s] London beta=30.0 hw/H=0.05 vopt: Gamma=10.88247 Hcrit=108.8247 I (381.1 s)
+   [fig8-fitted 7/92   397.1 s] London beta=30.0 hw/H=0.5 vopt: Gamma=2.64145 Hcrit=26.4145 I (20.3 s)
+   [fig8-fitted 8/92   400.7 s] London beta=30.0 hw/H=0.6 vopt: Gamma=2.20121 Hcrit=22.0121 I (19.7 s)
+   [fig8-fitted 9/92   417.4 s] London beta=30.0 hw/H=0.7 vopt: Gamma=1.88675 Hcrit=18.8675 I (20.3 s)
+   [fig8-fitted 10/92   419.9 s] London beta=30.0 hw/H=0.8 vopt: Gamma=1.66236 Hcrit=16.6236 I (19.2 s)
+   [fig8-fitted 11/92   434.8 s] London beta=30.0 hw/H=1.0 vopt: Gamma=1.46072 Hcrit=14.6072 I (14.9 s)
+   [fig8-fitted 12/92   437.2 s] London beta=30.0 hw/H=0.9 vopt: Gamma=1.52164 Hcrit=15.2164 I (19.8 s)
+   [fig8-fitted 13/92   442.1 s] Israeli beta=35.0 hw/H=0.0 none: Gamma=22.88286 Hcrit=228.8286 I (7.3 s)
+   [fig8-fitted 14/92   454.3 s] Israeli beta=35.0 hw/H=0.1 vopt: Gamma=7.36463 Hcrit=73.6463 I (12.1 s)
+   [fig8-fitted 15/92   468.7 s] Israeli beta=35.0 hw/H=0.2 vopt: Gamma=3.86606 Hcrit=38.6606 I (14.5 s)
+   [fig8-fitted 16/92   488.0 s] Israeli beta=35.0 hw/H=0.3 vopt: Gamma=2.57737 Hcrit=25.7737 I (19.3 s)
+   [fig8-fitted 17/92   507.4 s] Israeli beta=35.0 hw/H=0.4 vopt: Gamma=1.93303 Hcrit=19.3303 I (19.4 s)
+   [fig8-fitted 18/92   526.7 s] Israeli beta=35.0 hw/H=0.5 vopt: Gamma=1.54642 Hcrit=15.4642 I (19.4 s)
+   [fig8-fitted 19/92   542.4 s] Israeli beta=35.0 hw/H=0.05 vopt: Gamma=11.16565 Hcrit=111.6565 I (105.2 s)
+   [fig8-fitted 20/92   545.5 s] Israeli beta=35.0 hw/H=0.6 vopt: Gamma=1.28869 Hcrit=12.8869 I (18.8 s)
+   [fig8-fitted 21/92   562.5 s] Israeli beta=35.0 hw/H=0.7 vopt: Gamma=1.10459 Hcrit=11.0459 I (20.1 s)
+   [fig8-fitted 22/92   565.0 s] Israeli beta=35.0 hw/H=0.8 vopt: Gamma=0.97355 Hcrit=9.7355 I (19.5 s)
+   [fig8-fitted 23/92   579.2 s] Israeli beta=35.0 hw/H=1.0 vopt: Gamma=0.87282 Hcrit=8.7282 I (14.2 s)
+   [fig8-fitted 24/92   580.4 s] London beta=60.0 hw/H=0.0 none: Gamma=1.79495 Hcrit=17.9495 I (1.1 s)
+   [fig8-fitted 25/92   581.4 s] Israeli beta=35.0 hw/H=0.9 vopt: Gamma=0.89729 Hcrit=8.9729 I (18.9 s)
+   [fig8-fitted 26/92   596.5 s] London beta=60.0 hw/H=0.05 vopt: Gamma=1.50555 Hcrit=15.0555 I (16.1 s)
+   [fig8-fitted 27/92   596.8 s] London beta=60.0 hw/H=0.1 vopt: Gamma=1.30862 Hcrit=13.0862 I (15.4 s)
+   [fig8-fitted 28/92   613.4 s] London beta=60.0 hw/H=0.2 vopt: Gamma=1.07178 Hcrit=10.7178 I (16.9 s)
+   [fig8-fitted 29/92   614.4 s] London beta=60.0 hw/H=0.3 vopt: Gamma=0.94844 Hcrit=9.4844 I (17.6 s)
+   [fig8-fitted 30/92   631.9 s] London beta=60.0 hw/H=0.4 vopt: Gamma=0.88925 Hcrit=8.8925 I (18.5 s)
+   [fig8-fitted 31/92   633.5 s] London beta=60.0 hw/H=0.5 vopt: Gamma=0.86735 Hcrit=8.6735 I (19.1 s)
+   [fig8-fitted 32/92   650.5 s] London beta=60.0 hw/H=0.6 vopt: Gamma=0.84911 Hcrit=8.4911 I (18.6 s)
+   [fig8-fitted 33/92   653.8 s] London beta=60.0 hw/H=0.7 vopt: Gamma=0.83493 Hcrit=8.3493 I (20.3 s)
+   [fig8-fitted 34/92   669.7 s] London beta=60.0 hw/H=0.8 vopt: Gamma=0.82234 Hcrit=8.2234 I (19.2 s)
+   [fig8-fitted 35/92   672.8 s] London beta=60.0 hw/H=0.9 vopt: Gamma=0.81284 Hcrit=8.1284 I (19.0 s)
+   [fig8-fitted 36/92   673.6 s] Israeli beta=60.0 hw/H=0.0 none: Gamma=1.29860 Hcrit=12.9860 I (0.7 s)
+   [fig8-fitted 37/92   682.9 s] London beta=60.0 hw/H=1.0 vopt: Gamma=0.81271 Hcrit=8.1271 I (13.2 s)
+   [fig8-fitted 38/92   689.9 s] Israeli beta=60.0 hw/H=0.05 vopt: Gamma=1.03603 Hcrit=10.3603 I (16.3 s)
+   [fig8-fitted 39/92   699.0 s] Israeli beta=60.0 hw/H=0.1 vopt: Gamma=0.87217 Hcrit=8.7217 I (16.1 s)
+   [fig8-fitted 40/92   706.6 s] Israeli beta=60.0 hw/H=0.2 vopt: Gamma=0.69253 Hcrit=6.9253 I (16.8 s)
+   [fig8-fitted 41/92   716.7 s] Israeli beta=60.0 hw/H=0.3 vopt: Gamma=0.60970 Hcrit=6.0970 I (17.7 s)
+   [fig8-fitted 42/92   726.6 s] Israeli beta=60.0 hw/H=0.4 vopt: Gamma=0.57363 Hcrit=5.7363 I (19.9 s)
+   [fig8-fitted 43/92   736.1 s] Israeli beta=60.0 hw/H=0.5 vopt: Gamma=0.54816 Hcrit=5.4816 I (19.4 s)
+   [fig8-fitted 44/92   746.8 s] Israeli beta=60.0 hw/H=0.6 vopt: Gamma=0.52831 Hcrit=5.2831 I (20.2 s)
+   [fig8-fitted 45/92   755.2 s] Israeli beta=60.0 hw/H=0.7 vopt: Gamma=0.51044 Hcrit=5.1044 I (19.1 s)
+   [fig8-fitted 46/92   765.3 s] Israeli beta=60.0 hw/H=0.8 vopt: Gamma=0.49447 Hcrit=4.9447 I (18.4 s)
+   [fig8-fitted 47/92   773.8 s] Israeli beta=60.0 hw/H=0.9 vopt: Gamma=0.48365 Hcrit=4.8365 I (18.6 s)
+   [fig8-fitted 48/92   778.0 s] Israeli beta=60.0 hw/H=1.0 vopt: Gamma=0.48279 Hcrit=4.8279 I (12.8 s)
+   [fig8-fitted 49/92   790.0 s] London beta=30.0 hw/H=0.1 FE: Gamma=6.62705 Hcrit=66.2705 I (12.0 s)
+   [fig8-fitted 50/92   801.3 s] London beta=30.0 hw/H=0.2 FE: Gamma=3.72089 Hcrit=37.2089 I (11.3 s)
+   [fig8-fitted 51/92   812.7 s] London beta=30.0 hw/H=0.3 FE: Gamma=2.50291 Hcrit=25.0291 I (11.4 s)
+   [fig8-fitted 52/92   814.0 s] London beta=30.0 hw/H=0.05 FE: Gamma=9.85216 Hcrit=98.5216 I (40.2 s)
+   [fig8-fitted 53/92   823.5 s] London beta=30.0 hw/H=0.4 FE: Gamma=1.87580 Hcrit=18.7580 I (10.8 s)
+   [fig8-fitted 54/92   825.7 s] London beta=30.0 hw/H=0.5 FE: Gamma=1.51316 Hcrit=15.1316 I (11.7 s)
+   [fig8-fitted 55/92   836.1 s] London beta=30.0 hw/H=0.6 FE: Gamma=1.29121 Hcrit=12.9121 I (12.6 s)
+   [fig8-fitted 56/92   837.8 s] London beta=30.0 hw/H=0.7 FE: Gamma=1.15556 Hcrit=11.5556 I (12.0 s)
+   [fig8-fitted 57/92   847.6 s] London beta=30.0 hw/H=0.8 FE: Gamma=1.08095 Hcrit=10.8095 I (11.5 s)
+   [fig8-fitted 58/92   848.6 s] London beta=30.0 hw/H=0.9 FE: Gamma=1.05694 Hcrit=10.5694 I (10.9 s)
+   [fig8-fitted 59/92   856.4 s] Israeli beta=35.0 hw/H=0.05 FE: Gamma=9.00651 Hcrit=90.0651 I (7.8 s)
+   [fig8-fitted 60/92   857.1 s] London beta=30.0 hw/H=1.0 FE: Gamma=1.08076 Hcrit=10.8076 I (9.5 s)
+   [fig8-fitted 61/92   866.1 s] Israeli beta=35.0 hw/H=0.1 FE: Gamma=4.49089 Hcrit=44.9089 I (9.6 s)
+   [fig8-fitted 62/92   870.0 s] Israeli beta=35.0 hw/H=0.2 FE: Gamma=2.22966 Hcrit=22.2966 I (12.9 s)
+   [fig8-fitted 63/92   877.9 s] Israeli beta=35.0 hw/H=0.3 FE: Gamma=1.47253 Hcrit=14.7253 I (11.8 s)
+   [fig8-fitted 64/92   881.8 s] Israeli beta=35.0 hw/H=0.4 FE: Gamma=1.08803 Hcrit=10.8803 I (11.8 s)
+   [fig8-fitted 65/92   888.4 s] Israeli beta=35.0 hw/H=0.5 FE: Gamma=0.86303 Hcrit=8.6303 I (10.6 s)
+   [fig8-fitted 66/92   892.8 s] Israeli beta=35.0 hw/H=0.6 FE: Gamma=0.73103 Hcrit=7.3103 I (11.0 s)
+   [fig8-fitted 67/92   899.4 s] Israeli beta=35.0 hw/H=0.7 FE: Gamma=0.65401 Hcrit=6.5401 I (11.0 s)
+   [fig8-fitted 68/92   903.9 s] Israeli beta=35.0 hw/H=0.8 FE: Gamma=0.61545 Hcrit=6.1545 I (11.1 s)
+   [fig8-fitted 69/92   909.9 s] Israeli beta=35.0 hw/H=0.9 FE: Gamma=0.60916 Hcrit=6.0916 I (10.5 s)
+   [fig8-fitted 70/92   913.7 s] Israeli beta=35.0 hw/H=1.0 FE: Gamma=0.63365 Hcrit=6.3365 I (9.8 s)
+   [fig8-fitted 71/92   920.4 s] London beta=60.0 hw/H=0.05 FE: Gamma=1.49008 Hcrit=14.9008 I (10.5 s)
+   [fig8-fitted 72/92   923.5 s] London beta=60.0 hw/H=0.1 FE: Gamma=1.27227 Hcrit=12.7227 I (9.8 s)
+   [fig8-fitted 73/92   930.9 s] London beta=60.0 hw/H=0.2 FE: Gamma=0.99206 Hcrit=9.9206 I (10.5 s)
+   [fig8-fitted 74/92   933.3 s] London beta=60.0 hw/H=0.3 FE: Gamma=0.82458 Hcrit=8.2458 I (9.8 s)
+   [fig8-fitted 75/92   940.8 s] London beta=60.0 hw/H=0.4 FE: Gamma=0.71636 Hcrit=7.1636 I (9.9 s)
+   [fig8-fitted 76/92   944.0 s] London beta=60.0 hw/H=0.5 FE: Gamma=0.64341 Hcrit=6.4341 I (10.7 s)
+   [fig8-fitted 77/92   951.7 s] London beta=60.0 hw/H=0.6 FE: Gamma=0.59389 Hcrit=5.9389 I (10.9 s)
+   [fig8-fitted 78/92   954.4 s] London beta=60.0 hw/H=0.7 FE: Gamma=0.56167 Hcrit=5.6167 I (10.3 s)
+   [fig8-fitted 79/92   961.8 s] London beta=60.0 hw/H=0.8 FE: Gamma=0.54365 Hcrit=5.4365 I (10.1 s)
+   [fig8-fitted 80/92   964.1 s] London beta=60.0 hw/H=0.9 FE: Gamma=0.53850 Hcrit=5.3850 I (9.8 s)
+   [fig8-fitted 81/92   970.3 s] London beta=60.0 hw/H=1.0 FE: Gamma=0.54539 Hcrit=5.4539 I (8.5 s)
+   [fig8-fitted 82/92   974.2 s] Israeli beta=60.0 hw/H=0.05 FE: Gamma=1.02011 Hcrit=10.2011 I (10.0 s)
+   [fig8-fitted 83/92   979.4 s] Israeli beta=60.0 hw/H=0.1 FE: Gamma=0.83722 Hcrit=8.3722 I (9.1 s)
+   [fig8-fitted 84/92   984.6 s] Israeli beta=60.0 hw/H=0.2 FE: Gamma=0.62138 Hcrit=6.2138 I (10.4 s)
+   [fig8-fitted 85/92   989.6 s] Israeli beta=60.0 hw/H=0.3 FE: Gamma=0.50215 Hcrit=5.0215 I (10.2 s)
+   [fig8-fitted 86/92   994.6 s] Israeli beta=60.0 hw/H=0.4 FE: Gamma=0.42881 Hcrit=4.2881 I (10.0 s)
+   [fig8-fitted 87/92   999.6 s] Israeli beta=60.0 hw/H=0.5 FE: Gamma=0.38111 Hcrit=3.8111 I (10.0 s)
+   [fig8-fitted 88/92  1004.6 s] Israeli beta=60.0 hw/H=0.6 FE: Gamma=0.34979 Hcrit=3.4979 I (10.0 s)
+   [fig8-fitted 89/92  1009.6 s] Israeli beta=60.0 hw/H=0.7 FE: Gamma=0.33033 Hcrit=3.3033 I (10.1 s)
+   [fig8-fitted 90/92  1014.8 s] Israeli beta=60.0 hw/H=0.8 FE: Gamma=0.32059 Hcrit=3.2059 I (10.2 s)
+   [fig8-fitted 91/92  1019.7 s] Israeli beta=60.0 hw/H=0.9 FE: Gamma=0.31972 Hcrit=3.1972 I (10.0 s)
+   [fig8-fitted 92/92  1023.5 s] Israeli beta=60.0 hw/H=1.0 FE: Gamma=0.32708 Hcrit=3.2708 I (8.7 s)
+[fig8-fitted] wall 1023.6 s for the new tasks; summed task time of all 92 results 2043.0 s
+
+Fig. 8, parameter set 'fitted': London panel c=11.7 phi=24.7 gamma=18.0 gamma_w=9.8; Israeli panel c=6.0 phi=32.0 gamma=18.0 gamma_w=9.8
+   H_crit (m) ours vs paper polyline (log-interpolated), rel = ours/paper - 1; mechanism (eta | d/H)
+   London beta=30 vopt:
+      hw/H=0.00  ours=  156.527  paper=  156.555 (      vertex)  rel= -0.0002  I 1.0000
+      hw/H=0.05  ours=  108.825  paper=  105.721 (      vertex)  rel= +0.0294  I 1.0000
+      hw/H=0.10  ours=   85.741  paper=   77.484 (      vertex)  rel= +0.1066  I 1.0000
+      hw/H=0.20  ours=   58.698  paper=   57.430 (      vertex)  rel= +0.0221  I 1.0000
+      hw/H=0.30  ours=   43.238  paper=   40.818 (      vertex)  rel= +0.0593  I 1.0000
+      hw/H=0.40  ours=   33.018  paper=   31.645 (      vertex)  rel= +0.0434  I 0.5664
+      hw/H=0.50  ours=   26.415  paper=   25.505 (      vertex)  rel= +0.0357  I 0.7081
+      hw/H=0.60  ours=   22.012  paper=   21.379 (      vertex)  rel= +0.0296  I 0.8497
+      hw/H=0.70  ours=   18.868  paper=   18.472 (      vertex)  rel= +0.0214  I 0.9913
+      hw/H=0.80  ours=   16.624  paper=   16.310 (      vertex)  rel= +0.0192  I 1.0000
+      hw/H=0.90  ours=   15.216  paper=   14.998 (      vertex)  rel= +0.0146  I 1.0000
+      hw/H=1.00  ours=   14.607  paper=   14.521 (      vertex)  rel= +0.0059  I 1.0000
+   London beta=30 FE:
+      hw/H=0.00  ours=  156.527  paper=  156.557 (      vertex)  rel= -0.0002  I 1.0000
+      hw/H=0.05  ours=   98.522  paper=   86.891 (      vertex)  rel= +0.1339  I 1.0000
+      hw/H=0.10  ours=   66.271  paper=   65.160 (      vertex)  rel= +0.0170  I 1.0000
+      hw/H=0.20  ours=   37.209  paper=   37.241 (      vertex)  rel= -0.0009  I 1.0000
+      hw/H=0.30  ours=   25.029  paper=   24.861 (      vertex)  rel= +0.0068  I 1.0000
+      hw/H=0.40  ours=   18.758  paper=   18.631 (      vertex)  rel= +0.0068  I 1.0000
+      hw/H=0.50  ours=   15.132  paper=   15.204 (      vertex)  rel= -0.0048  I 1.0000
+      hw/H=0.60  ours=   12.912  paper=   13.024 (      vertex)  rel= -0.0086  I 1.0000
+      hw/H=0.70  ours=   11.556  paper=   11.623 (      vertex)  rel= -0.0058  I 1.0000
+      hw/H=0.80  ours=   10.810  paper=   10.889 (      vertex)  rel= -0.0073  I 1.0000
+      hw/H=0.90  ours=   10.569  paper=   10.547 (      vertex)  rel= +0.0021  I 1.0000
+      hw/H=1.00  ours=   10.808  paper=   10.769 (      vertex)  rel= +0.0036  I 1.0000
+   London beta=60 vopt:
+      hw/H=0.00  ours=   17.949  paper=   17.949 (      vertex)  rel= +0.0000  I 1.0000
+      hw/H=0.05  ours=   15.055  paper=   15.034 (      vertex)  rel= +0.0014  I 1.0000
+      hw/H=0.10  ours=   13.086  paper=   13.069 (      vertex)  rel= +0.0013  I 1.0000
+      hw/H=0.20  ours=   10.718  paper=   10.683 (      vertex)  rel= +0.0033  I 1.0000
+      hw/H=0.30  ours=    9.484  paper=    9.481 (      vertex)  rel= +0.0004  I 1.0000
+      hw/H=0.40  ours=    8.892  paper=    8.886 (      vertex)  rel= +0.0007  I 1.0000
+      hw/H=0.50  ours=    8.674  paper=    8.625 (      vertex)  rel= +0.0056  I 1.0000
+      hw/H=0.60  ours=    8.491  paper=    8.470 (      vertex)  rel= +0.0025  I 1.0000
+      hw/H=0.70  ours=    8.349  paper=    8.307 (      vertex)  rel= +0.0051  I 1.0000
+      hw/H=0.80  ours=    8.223  paper=    8.147 (      vertex)  rel= +0.0094  I 1.0000
+      hw/H=0.90  ours=    8.128  paper=    8.050 (      vertex)  rel= +0.0097  I 1.0000
+      hw/H=1.00  ours=    8.127  paper=    8.045 (      vertex)  rel= +0.0102  I 1.0000
+   London beta=60 FE:
+      hw/H=0.00  ours=   17.949  paper=   17.950 (      vertex)  rel= -0.0000  I 1.0000
+      hw/H=0.05  ours=   14.901  paper=   14.896 (      vertex)  rel= +0.0003  I 1.0000
+      hw/H=0.10  ours=   12.723  paper=   12.755 (      vertex)  rel= -0.0025  I 1.0000
+      hw/H=0.20  ours=    9.921  paper=    9.909 (      vertex)  rel= +0.0012  I 1.0000
+      hw/H=0.30  ours=    8.246  paper=    8.279 (      vertex)  rel= -0.0040  I 1.0000
+      hw/H=0.40  ours=    7.164  paper=    7.163 (      vertex)  rel= +0.0001  I 1.0000
+      hw/H=0.50  ours=    6.434  paper=    6.434 (      vertex)  rel= +0.0000  I 1.0000
+      hw/H=0.60  ours=    5.939  paper=    5.952 (      vertex)  rel= -0.0022  I 1.0000
+      hw/H=0.70  ours=    5.617  paper=    5.632 (      vertex)  rel= -0.0027  I 1.0000
+      hw/H=0.80  ours=    5.437  paper=    5.452 (      vertex)  rel= -0.0028  I 1.0000
+      hw/H=0.90  ours=    5.385  paper=    5.374 (      vertex)  rel= +0.0020  I 1.0000
+      hw/H=1.00  ours=    5.454  paper=    5.412 (      vertex)  rel= +0.0077  I 1.0000
+   Israeli beta=35 vopt:
+      hw/H=0.00  ours=  228.829  paper=  229.319 (extrapolated)  rel= -0.0021  I 1.0000
+      hw/H=0.05  ours=  111.656  paper=  103.594 (extrapolated)  rel= +0.0778  I 1.0000
+      hw/H=0.10  ours=   73.646  paper=   46.798 (      vertex)  rel= +0.5737  I 1.0000
+      hw/H=0.20  ours=   38.661  paper=   33.493 (      vertex)  rel= +0.1543  I 0.2768
+      hw/H=0.30  ours=   25.774  paper=   24.151 (      vertex)  rel= +0.0672  I 0.4151
+      hw/H=0.40  ours=   19.330  paper=   18.757 (      vertex)  rel= +0.0306  I 0.5535
+      hw/H=0.50  ours=   15.464  paper=   14.878 (      vertex)  rel= +0.0394  I 0.6919
+      hw/H=0.60  ours=   12.887  paper=   12.719 (      vertex)  rel= +0.0132  I 0.8303
+      hw/H=0.70  ours=   11.046  paper=   10.862 (      vertex)  rel= +0.0169  I 0.9686
+      hw/H=0.80  ours=    9.736  paper=    9.462 (      vertex)  rel= +0.0289  I 1.0000
+      hw/H=0.90  ours=    8.973  paper=    8.807 (      vertex)  rel= +0.0188  I 1.0000
+      hw/H=1.00  ours=    8.728  paper=    8.563 (      vertex)  rel= +0.0193  I 1.0000
+   Israeli beta=35 FE:
+      hw/H=0.00  ours=  228.829  paper=  229.328 (extrapolated)  rel= -0.0022  I 1.0000
+      hw/H=0.05  ours=   90.065  paper=   94.762 (extrapolated)  rel= -0.0496  I 0.1064
+      hw/H=0.10  ours=   44.909  paper=   39.157 (      vertex)  rel= +0.1469  I 0.2141
+      hw/H=0.20  ours=   22.297  paper=   27.937 (      vertex)  rel= -0.2019  I 0.4349
+      hw/H=0.30  ours=   14.725  paper=   19.281 (      vertex)  rel= -0.2363  I 0.6710
+      hw/H=0.40  ours=   10.880  paper=   14.301 (      vertex)  rel= -0.2392  I 1.0000
+      hw/H=0.50  ours=    8.630  paper=   11.775 (      vertex)  rel= -0.2671  I 1.0000
+      hw/H=0.60  ours=    7.310  paper=    9.766 (      vertex)  rel= -0.2515  I 1.0000
+      hw/H=0.70  ours=    6.540  paper=    8.394 (      vertex)  rel= -0.2209  I 1.0000
+      hw/H=0.80  ours=    6.154  paper=    7.841 (      vertex)  rel= -0.2151  I 1.0000
+      hw/H=0.90  ours=    6.092  paper=    7.477 (      vertex)  rel= -0.1853  I 1.0000
+      hw/H=1.00  ours=    6.336  paper=    7.827 (      vertex)  rel= -0.1904  I 1.0000
+   Israeli beta=60 vopt:
+      hw/H=0.00  ours=   12.986  paper=   12.986 (      vertex)  rel= +0.0000  I 1.0000
+      hw/H=0.05  ours=   10.360  paper=   10.319 (      vertex)  rel= +0.0040  I 1.0000
+      hw/H=0.10  ours=    8.722  paper=    8.686 (      vertex)  rel= +0.0041  I 1.0000
+      hw/H=0.20  ours=    6.925  paper=    6.905 (      vertex)  rel= +0.0029  I 1.0000
+      hw/H=0.30  ours=    6.097  paper=    6.077 (      vertex)  rel= +0.0033  I 1.0000
+      hw/H=0.40  ours=    5.736  paper=    5.716 (      vertex)  rel= +0.0035  I 1.0000
+      hw/H=0.50  ours=    5.482  paper=    5.438 (      vertex)  rel= +0.0080  I 1.0000
+      hw/H=0.60  ours=    5.283  paper=    5.258 (      vertex)  rel= +0.0048  I 1.0000
+      hw/H=0.70  ours=    5.104  paper=    5.064 (      vertex)  rel= +0.0080  I 1.0000
+      hw/H=0.80  ours=    4.945  paper=    4.891 (      vertex)  rel= +0.0110  I 1.0000
+      hw/H=0.90  ours=    4.836  paper=    4.794 (      vertex)  rel= +0.0089  I 1.0000
+      hw/H=1.00  ours=    4.828  paper=    4.788 (      vertex)  rel= +0.0083  I 1.0000
+   Israeli beta=60 FE:
+      hw/H=0.00  ours=   12.986  paper=   12.986 (      vertex)  rel= +0.0000  I 1.0000
+      hw/H=0.05  ours=   10.201  paper=   10.177 (      vertex)  rel= +0.0024  I 1.0000
+      hw/H=0.10  ours=    8.372  paper=    8.394 (      vertex)  rel= -0.0026  I 1.0000
+      hw/H=0.20  ours=    6.214  paper=    6.197 (      vertex)  rel= +0.0027  I 1.0000
+      hw/H=0.30  ours=    5.022  paper=    5.035 (      vertex)  rel= -0.0027  I 1.0000
+      hw/H=0.40  ours=    4.288  paper=    4.280 (      vertex)  rel= +0.0019  I 1.0000
+      hw/H=0.50  ours=    3.811  paper=    3.805 (      vertex)  rel= +0.0016  I 1.0000
+      hw/H=0.60  ours=    3.498  paper=    3.486 (      vertex)  rel= +0.0034  I 1.0000
+      hw/H=0.70  ours=    3.303  paper=    3.293 (      vertex)  rel= +0.0031  I 1.0000
+      hw/H=0.80  ours=    3.206  paper=    3.199 (      vertex)  rel= +0.0021  I 1.0000
+      hw/H=0.90  ours=    3.197  paper=    3.179 (      vertex)  rel= +0.0057  I 1.0000
+      hw/H=1.00  ours=    3.271  paper=    3.235 (      vertex)  rel= +0.0111  I 1.0000
+   per-curve relative differences (points with a visible paper value: vertex/segment):
+              London 30.0 vopt: n=12  mean=+0.0322  rms=0.0422  max|rel|=0.1066 (+0.1066)
+                London 30.0 FE: n=12  mean=+0.0119  rms=0.0393  max|rel|=0.1339 (+0.1339)
+              London 60.0 vopt: n=12  mean=+0.0041  rms=0.0055  max|rel|=0.0102 (+0.0102)
+                London 60.0 FE: n=12  mean=-0.0002  rms=0.0030  max|rel|=0.0077 (+0.0077)
+             Israeli 35.0 vopt: n=10  mean=+0.0962  rms=0.1903  max|rel|=0.5737 (+0.5737)
+               Israeli 35.0 FE: n=10  mean=-0.1861  rms=0.2181  max|rel|=0.2671 (-0.2671)
+             Israeli 60.0 vopt: n=12  mean=+0.0056  rms=0.0064  max|rel|=0.0110 (+0.0110)
+               Israeli 60.0 FE: n=12  mean=+0.0024  rms=0.0042  max|rel|=0.0111 (+0.0111)
+[fig8-table1] 92 tasks, 0 cached, running 92 on 2 worker(s)
+   [fig8-table1 1/92     0.2 s] London beta=30.0 hw/H=0.0 none: Gamma=inf Hcrit=inf None (0.2 s)
+   [fig8-table1 2/92     9.8 s] London beta=30.0 hw/H=0.1 vopt: Gamma=10.62987 Hcrit=106.2987 I (9.7 s)
+   [fig8-table1 3/92    10.1 s] London beta=30.0 hw/H=0.05 vopt: Gamma=21.25975 Hcrit=212.5975 I (10.1 s)
+   [fig8-table1 4/92    20.3 s] London beta=30.0 hw/H=0.2 vopt: Gamma=5.31494 Hcrit=53.1494 I (10.5 s)
+   [fig8-table1 5/92    34.5 s] London beta=30.0 hw/H=0.4 vopt: Gamma=2.65747 Hcrit=26.5747 I (14.2 s)
+   [fig8-table1 6/92    53.5 s] London beta=30.0 hw/H=0.5 vopt: Gamma=2.12597 Hcrit=21.2597 I (19.0 s)
+   [fig8-table1 7/92    72.3 s] London beta=30.0 hw/H=0.6 vopt: Gamma=1.77165 Hcrit=17.7165 I (18.9 s)
+   [fig8-table1 8/92    88.6 s] London beta=30.0 hw/H=0.3 vopt: Gamma=3.54329 Hcrit=35.4329 I (78.5 s)
+   [fig8-table1 9/92    91.2 s] London beta=30.0 hw/H=0.7 vopt: Gamma=1.51855 Hcrit=15.1855 I (18.9 s)
+   [fig8-table1 10/92   107.6 s] London beta=30.0 hw/H=0.8 vopt: Gamma=1.32873 Hcrit=13.2873 I (18.9 s)
+   [fig8-table1 11/92   109.1 s] London beta=30.0 hw/H=0.9 vopt: Gamma=1.19474 Hcrit=11.9474 I (17.8 s)
+   [fig8-table1 12/92   110.0 s] Israeli beta=35.0 hw/H=0.0 none: Gamma=6.82478 Hcrit=68.2478 I (0.9 s)
+   [fig8-table1 13/92   121.3 s] London beta=30.0 hw/H=1.0 vopt: Gamma=1.14631 Hcrit=11.4631 I (13.7 s)
+   [fig8-table1 14/92   126.5 s] Israeli beta=35.0 hw/H=0.05 vopt: Gamma=5.24658 Hcrit=52.4658 I (16.6 s)
+   [fig8-table1 15/92   138.7 s] Israeli beta=35.0 hw/H=0.1 vopt: Gamma=4.33145 Hcrit=43.3145 I (17.4 s)
+   [fig8-table1 16/92   146.0 s] Israeli beta=35.0 hw/H=0.2 vopt: Gamma=3.40344 Hcrit=34.0344 I (19.5 s)
+   [fig8-table1 17/92   158.4 s] Israeli beta=35.0 hw/H=0.3 vopt: Gamma=2.78601 Hcrit=27.8601 I (19.7 s)
+   [fig8-table1 18/92   165.1 s] Israeli beta=35.0 hw/H=0.4 vopt: Gamma=2.33099 Hcrit=23.3099 I (19.1 s)
+   [fig8-table1 19/92   177.9 s] Israeli beta=35.0 hw/H=0.5 vopt: Gamma=1.98286 Hcrit=19.8286 I (19.5 s)
+   [fig8-table1 20/92   184.7 s] Israeli beta=35.0 hw/H=0.6 vopt: Gamma=1.71518 Hcrit=17.1518 I (19.5 s)
+   [fig8-table1 21/92   196.7 s] Israeli beta=35.0 hw/H=0.7 vopt: Gamma=1.51244 Hcrit=15.1244 I (18.8 s)
+   [fig8-table1 22/92   204.1 s] Israeli beta=35.0 hw/H=0.8 vopt: Gamma=1.36554 Hcrit=13.6554 I (19.4 s)
+   [fig8-table1 23/92   216.6 s] Israeli beta=35.0 hw/H=0.9 vopt: Gamma=1.27098 Hcrit=12.7098 I (19.9 s)
+   [fig8-table1 24/92   217.0 s] Israeli beta=35.0 hw/H=1.0 vopt: Gamma=1.23170 Hcrit=12.3170 I (13.0 s)
+   [fig8-table1 25/92   217.3 s] London beta=60.0 hw/H=0.0 none: Gamma=1.29860 Hcrit=12.9860 I (0.7 s)
+   [fig8-table1 26/92   233.0 s] London beta=60.0 hw/H=0.05 vopt: Gamma=1.03603 Hcrit=10.3603 I (15.9 s)
+   [fig8-table1 27/92   233.3 s] London beta=60.0 hw/H=0.1 vopt: Gamma=0.87217 Hcrit=8.7217 I (16.0 s)
+   [fig8-table1 28/92   249.4 s] London beta=60.0 hw/H=0.2 vopt: Gamma=0.69253 Hcrit=6.9253 I (16.5 s)
+   [fig8-table1 29/92   251.6 s] London beta=60.0 hw/H=0.3 vopt: Gamma=0.60970 Hcrit=6.0970 I (18.3 s)
+   [fig8-table1 30/92   269.0 s] London beta=60.0 hw/H=0.4 vopt: Gamma=0.57363 Hcrit=5.7363 I (19.5 s)
+   [fig8-table1 31/92   270.4 s] London beta=60.0 hw/H=0.5 vopt: Gamma=0.54816 Hcrit=5.4816 I (18.8 s)
+   [fig8-table1 32/92   287.6 s] London beta=60.0 hw/H=0.6 vopt: Gamma=0.52831 Hcrit=5.2831 I (18.6 s)
+   [fig8-table1 33/92   288.9 s] London beta=60.0 hw/H=0.7 vopt: Gamma=0.51044 Hcrit=5.1044 I (18.5 s)
+   [fig8-table1 34/92   306.2 s] London beta=60.0 hw/H=0.8 vopt: Gamma=0.49447 Hcrit=4.9447 I (18.7 s)
+   [fig8-table1 35/92   307.7 s] London beta=60.0 hw/H=0.9 vopt: Gamma=0.48365 Hcrit=4.8365 I (18.8 s)
+   [fig8-table1 36/92   308.6 s] Israeli beta=60.0 hw/H=0.0 none: Gamma=1.79495 Hcrit=17.9495 I (0.9 s)
+   [fig8-table1 37/92   318.8 s] London beta=60.0 hw/H=1.0 vopt: Gamma=0.48279 Hcrit=4.8279 I (12.6 s)
+   [fig8-table1 38/92   324.3 s] Israeli beta=60.0 hw/H=0.05 vopt: Gamma=1.50555 Hcrit=15.0555 I (15.7 s)
+   [fig8-table1 39/92   334.1 s] Israeli beta=60.0 hw/H=0.1 vopt: Gamma=1.30862 Hcrit=13.0862 I (15.2 s)
+   [fig8-table1 40/92   341.1 s] Israeli beta=60.0 hw/H=0.2 vopt: Gamma=1.07178 Hcrit=10.7178 I (16.8 s)
+   [fig8-table1 41/92   351.2 s] Israeli beta=60.0 hw/H=0.3 vopt: Gamma=0.94844 Hcrit=9.4844 I (17.1 s)
+   [fig8-table1 42/92   359.4 s] Israeli beta=60.0 hw/H=0.4 vopt: Gamma=0.88925 Hcrit=8.8925 I (18.3 s)
+   [fig8-table1 43/92   370.8 s] Israeli beta=60.0 hw/H=0.5 vopt: Gamma=0.86735 Hcrit=8.6735 I (19.6 s)
+   [fig8-table1 44/92   379.0 s] Israeli beta=60.0 hw/H=0.6 vopt: Gamma=0.84911 Hcrit=8.4911 I (19.6 s)
+   [fig8-table1 45/92   391.2 s] Israeli beta=60.0 hw/H=0.7 vopt: Gamma=0.83493 Hcrit=8.3493 I (20.5 s)
+   [fig8-table1 46/92   398.5 s] Israeli beta=60.0 hw/H=0.8 vopt: Gamma=0.82234 Hcrit=8.2234 I (19.5 s)
+   [fig8-table1 47/92   409.7 s] Israeli beta=60.0 hw/H=0.9 vopt: Gamma=0.81284 Hcrit=8.1284 I (18.4 s)
+   [fig8-table1 48/92   410.5 s] Israeli beta=60.0 hw/H=1.0 vopt: Gamma=0.81271 Hcrit=8.1271 I (12.0 s)
+   [fig8-table1 49/92   416.3 s] London beta=30.0 hw/H=0.05 FE: Gamma=12.46960 Hcrit=124.6960 I (6.6 s)
+   [fig8-table1 50/92   417.9 s] London beta=30.0 hw/H=0.1 FE: Gamma=6.21812 Hcrit=62.1812 I (7.4 s)
+   [fig8-table1 51/92   429.6 s] London beta=30.0 hw/H=0.3 FE: Gamma=2.04306 Hcrit=20.4306 I (11.7 s)
+   [fig8-table1 52/92   441.1 s] London beta=30.0 hw/H=0.4 FE: Gamma=1.51769 Hcrit=15.1769 I (11.4 s)
+   [fig8-table1 53/92   452.5 s] London beta=30.0 hw/H=0.5 FE: Gamma=1.19950 Hcrit=11.9950 I (11.4 s)
+   [fig8-table1 54/92   463.3 s] London beta=30.0 hw/H=0.6 FE: Gamma=0.98283 Hcrit=9.8283 I (10.8 s)
+   [fig8-table1 55/92   474.3 s] London beta=30.0 hw/H=0.7 FE: Gamma=0.85265 Hcrit=8.5265 I (11.0 s)
+   [fig8-table1 56/92   476.3 s] London beta=30.0 hw/H=0.2 FE: Gamma=3.08890 Hcrit=30.8890 I (60.0 s)
+   [fig8-table1 57/92   485.4 s] London beta=30.0 hw/H=0.8 FE: Gamma=0.78883 Hcrit=7.8883 I (11.0 s)
+   [fig8-table1 58/92   486.7 s] London beta=30.0 hw/H=0.9 FE: Gamma=0.77701 Hcrit=7.7701 I (10.4 s)
+   [fig8-table1 59/92   494.9 s] London beta=30.0 hw/H=1.0 FE: Gamma=0.81413 Hcrit=8.1413 I (9.5 s)
+   [fig8-table1 60/92   498.1 s] Israeli beta=35.0 hw/H=0.05 FE: Gamma=5.00829 Hcrit=50.0829 I (11.4 s)
+   [fig8-table1 61/92   505.6 s] Israeli beta=35.0 hw/H=0.1 FE: Gamma=3.80288 Hcrit=38.0288 I (10.7 s)
+   [fig8-table1 62/92   509.9 s] Israeli beta=35.0 hw/H=0.2 FE: Gamma=2.47761 Hcrit=24.7761 I (11.7 s)
+   [fig8-table1 63/92   515.7 s] Israeli beta=35.0 hw/H=0.3 FE: Gamma=1.81511 Hcrit=18.1511 I (10.1 s)
+   [fig8-table1 64/92   521.2 s] Israeli beta=35.0 hw/H=0.4 FE: Gamma=1.43720 Hcrit=14.3720 I (11.3 s)
+   [fig8-table1 65/92   527.1 s] Israeli beta=35.0 hw/H=0.5 FE: Gamma=1.20380 Hcrit=12.0380 I (11.3 s)
+   [fig8-table1 66/92   531.6 s] Israeli beta=35.0 hw/H=0.6 FE: Gamma=1.05459 Hcrit=10.5459 I (10.3 s)
+   [fig8-table1 67/92   537.6 s] Israeli beta=35.0 hw/H=0.7 FE: Gamma=0.96086 Hcrit=9.6086 I (10.5 s)
+   [fig8-table1 68/92   542.9 s] Israeli beta=35.0 hw/H=0.8 FE: Gamma=0.90871 Hcrit=9.0871 I (11.3 s)
+   [fig8-table1 69/92   548.5 s] Israeli beta=35.0 hw/H=0.9 FE: Gamma=0.89241 Hcrit=8.9241 I (10.9 s)
+   [fig8-table1 70/92   553.0 s] Israeli beta=35.0 hw/H=1.0 FE: Gamma=0.91037 Hcrit=9.1037 I (10.1 s)
+   [fig8-table1 71/92   558.6 s] London beta=60.0 hw/H=0.05 FE: Gamma=1.02011 Hcrit=10.2011 I (10.1 s)
+   [fig8-table1 72/92   562.3 s] London beta=60.0 hw/H=0.1 FE: Gamma=0.83722 Hcrit=8.3722 I (9.3 s)
+   [fig8-table1 73/92   568.7 s] London beta=60.0 hw/H=0.2 FE: Gamma=0.62138 Hcrit=6.2138 I (10.1 s)
+   [fig8-table1 74/92   572.5 s] London beta=60.0 hw/H=0.3 FE: Gamma=0.50215 Hcrit=5.0215 I (10.2 s)
+   [fig8-table1 75/92   578.4 s] London beta=60.0 hw/H=0.4 FE: Gamma=0.42881 Hcrit=4.2881 I (9.8 s)
+   [fig8-table1 76/92   582.6 s] London beta=60.0 hw/H=0.5 FE: Gamma=0.38111 Hcrit=3.8111 I (10.1 s)
+   [fig8-table1 77/92   588.5 s] London beta=60.0 hw/H=0.6 FE: Gamma=0.34979 Hcrit=3.4979 I (10.1 s)
+   [fig8-table1 78/92   593.0 s] London beta=60.0 hw/H=0.7 FE: Gamma=0.33033 Hcrit=3.3033 I (10.4 s)
+   [fig8-table1 79/92   598.5 s] London beta=60.0 hw/H=0.8 FE: Gamma=0.32059 Hcrit=3.2059 I (10.0 s)
+   [fig8-table1 80/92   602.9 s] London beta=60.0 hw/H=0.9 FE: Gamma=0.31972 Hcrit=3.1972 I (10.0 s)
+   [fig8-table1 81/92   607.2 s] London beta=60.0 hw/H=1.0 FE: Gamma=0.32708 Hcrit=3.2708 I (8.7 s)
+   [fig8-table1 82/92   613.1 s] Israeli beta=60.0 hw/H=0.05 FE: Gamma=1.49008 Hcrit=14.9008 I (10.2 s)
+   [fig8-table1 83/92   617.1 s] Israeli beta=60.0 hw/H=0.1 FE: Gamma=1.27227 Hcrit=12.7227 I (10.0 s)
+   [fig8-table1 84/92   623.0 s] Israeli beta=60.0 hw/H=0.2 FE: Gamma=0.99206 Hcrit=9.9206 I (9.9 s)
+   [fig8-table1 85/92   626.9 s] Israeli beta=60.0 hw/H=0.3 FE: Gamma=0.82458 Hcrit=8.2458 I (9.8 s)
+   [fig8-table1 86/92   633.1 s] Israeli beta=60.0 hw/H=0.4 FE: Gamma=0.71636 Hcrit=7.1636 I (10.1 s)
+   [fig8-table1 87/92   637.5 s] Israeli beta=60.0 hw/H=0.5 FE: Gamma=0.64341 Hcrit=6.4341 I (10.6 s)
+   [fig8-table1 88/92   643.5 s] Israeli beta=60.0 hw/H=0.6 FE: Gamma=0.59389 Hcrit=5.9389 I (10.5 s)
+   [fig8-table1 89/92   647.9 s] Israeli beta=60.0 hw/H=0.7 FE: Gamma=0.56167 Hcrit=5.6167 I (10.4 s)
+   [fig8-table1 90/92   653.9 s] Israeli beta=60.0 hw/H=0.8 FE: Gamma=0.54365 Hcrit=5.4365 I (10.4 s)
+   [fig8-table1 91/92   657.9 s] Israeli beta=60.0 hw/H=0.9 FE: Gamma=0.53850 Hcrit=5.3850 I (9.9 s)
+   [fig8-table1 92/92   662.5 s] Israeli beta=60.0 hw/H=1.0 FE: Gamma=0.54539 Hcrit=5.4539 I (8.6 s)
+[fig8-table1] wall 662.5 s for the new tasks; summed task time of all 92 results 1320.2 s
+
+Fig. 8, parameter set 'table1': London panel c=6.0 phi=32.0 gamma=18.0 gamma_w=9.8; Israeli panel c=11.7 phi=24.7 gamma=18.0 gamma_w=9.8
+   H_crit (m) ours vs paper polyline (log-interpolated), rel = ours/paper - 1; mechanism (eta | d/H)
+   London beta=30 vopt:
+      hw/H=0.00  ours=      inf  paper=  156.555 (      vertex)  rel=    +nan  None nan
+      hw/H=0.05  ours=  212.597  paper=  105.721 (      vertex)  rel= +1.0109  I 0.0601
+      hw/H=0.10  ours=  106.299  paper=   77.484 (      vertex)  rel= +0.3719  I 0.1202
+      hw/H=0.20  ours=   53.149  paper=   57.430 (      vertex)  rel= -0.0745  I 0.2404
+      hw/H=0.30  ours=   35.433  paper=   40.818 (      vertex)  rel= -0.1319  I 0.3607
+      hw/H=0.40  ours=   26.575  paper=   31.645 (      vertex)  rel= -0.1602  I 0.4809
+      hw/H=0.50  ours=   21.260  paper=   25.505 (      vertex)  rel= -0.1664  I 0.6011
+      hw/H=0.60  ours=   17.716  paper=   21.379 (      vertex)  rel= -0.1713  I 0.7213
+      hw/H=0.70  ours=   15.186  paper=   18.472 (      vertex)  rel= -0.1779  I 0.8416
+      hw/H=0.80  ours=   13.287  paper=   16.310 (      vertex)  rel= -0.1853  I 0.9618
+      hw/H=0.90  ours=   11.947  paper=   14.998 (      vertex)  rel= -0.2034  I 1.0000
+      hw/H=1.00  ours=   11.463  paper=   14.521 (      vertex)  rel= -0.2106  I 1.0000
+   London beta=30 FE:
+      hw/H=0.00  ours=      inf  paper=  156.557 (      vertex)  rel=    +nan  None nan
+      hw/H=0.05  ours=  124.696  paper=   86.891 (      vertex)  rel= +0.4351  I 0.0815
+      hw/H=0.10  ours=   62.181  paper=   65.160 (      vertex)  rel= -0.0457  I 0.1633
+      hw/H=0.20  ours=   30.889  paper=   37.241 (      vertex)  rel= -0.1706  I 0.3279
+      hw/H=0.30  ours=   20.431  paper=   24.861 (      vertex)  rel= -0.1782  I 0.4947
+      hw/H=0.40  ours=   15.177  paper=   18.631 (      vertex)  rel= -0.1854  I 0.6653
+      hw/H=0.50  ours=   11.995  paper=   15.204 (      vertex)  rel= -0.2111  I 0.8444
+      hw/H=0.60  ours=    9.828  paper=   13.024 (      vertex)  rel= -0.2454  I 1.0000
+      hw/H=0.70  ours=    8.527  paper=   11.623 (      vertex)  rel= -0.2664  I 1.0000
+      hw/H=0.80  ours=    7.888  paper=   10.889 (      vertex)  rel= -0.2756  I 1.0000
+      hw/H=0.90  ours=    7.770  paper=   10.547 (      vertex)  rel= -0.2633  I 1.0000
+      hw/H=1.00  ours=    8.141  paper=   10.769 (      vertex)  rel= -0.2440  I 1.0000
+   London beta=60 vopt:
+      hw/H=0.00  ours=   12.986  paper=   17.949 (      vertex)  rel= -0.2765  I 1.0000
+      hw/H=0.05  ours=   10.360  paper=   15.034 (      vertex)  rel= -0.3109  I 1.0000
+      hw/H=0.10  ours=    8.722  paper=   13.069 (      vertex)  rel= -0.3326  I 1.0000
+      hw/H=0.20  ours=    6.925  paper=   10.683 (      vertex)  rel= -0.3517  I 1.0000
+      hw/H=0.30  ours=    6.097  paper=    9.481 (      vertex)  rel= -0.3569  I 1.0000
+      hw/H=0.40  ours=    5.736  paper=    8.886 (      vertex)  rel= -0.3545  I 1.0000
+      hw/H=0.50  ours=    5.482  paper=    8.625 (      vertex)  rel= -0.3645  I 1.0000
+      hw/H=0.60  ours=    5.283  paper=    8.470 (      vertex)  rel= -0.3763  I 1.0000
+      hw/H=0.70  ours=    5.104  paper=    8.307 (      vertex)  rel= -0.3855  I 1.0000
+      hw/H=0.80  ours=    4.945  paper=    8.147 (      vertex)  rel= -0.3931  I 1.0000
+      hw/H=0.90  ours=    4.836  paper=    8.050 (      vertex)  rel= -0.3992  I 1.0000
+      hw/H=1.00  ours=    4.828  paper=    8.045 (      vertex)  rel= -0.3999  I 1.0000
+   London beta=60 FE:
+      hw/H=0.00  ours=   12.986  paper=   17.950 (      vertex)  rel= -0.2765  I 1.0000
+      hw/H=0.05  ours=   10.201  paper=   14.896 (      vertex)  rel= -0.3152  I 1.0000
+      hw/H=0.10  ours=    8.372  paper=   12.755 (      vertex)  rel= -0.3436  I 1.0000
+      hw/H=0.20  ours=    6.214  paper=    9.909 (      vertex)  rel= -0.3729  I 1.0000
+      hw/H=0.30  ours=    5.022  paper=    8.279 (      vertex)  rel= -0.3935  I 1.0000
+      hw/H=0.40  ours=    4.288  paper=    7.163 (      vertex)  rel= -0.4013  I 1.0000
+      hw/H=0.50  ours=    3.811  paper=    6.434 (      vertex)  rel= -0.4077  I 1.0000
+      hw/H=0.60  ours=    3.498  paper=    5.952 (      vertex)  rel= -0.4123  I 1.0000
+      hw/H=0.70  ours=    3.303  paper=    5.632 (      vertex)  rel= -0.4135  I 1.0000
+      hw/H=0.80  ours=    3.206  paper=    5.452 (      vertex)  rel= -0.4120  I 1.0000
+      hw/H=0.90  ours=    3.197  paper=    5.374 (      vertex)  rel= -0.4051  I 1.0000
+      hw/H=1.00  ours=    3.271  paper=    5.412 (      vertex)  rel= -0.3956  I 1.0000
+   Israeli beta=35 vopt:
+      hw/H=0.00  ours=   68.248  paper=  229.319 (extrapolated)  rel= -0.7024  I 1.0000
+      hw/H=0.05  ours=   52.466  paper=  103.594 (extrapolated)  rel= -0.4935  I 1.0000
+      hw/H=0.10  ours=   43.315  paper=   46.798 (      vertex)  rel= -0.0744  I 1.0000
+      hw/H=0.20  ours=   34.034  paper=   33.493 (      vertex)  rel= +0.0162  I 1.0000
+      hw/H=0.30  ours=   27.860  paper=   24.151 (      vertex)  rel= +0.1536  I 1.0000
+      hw/H=0.40  ours=   23.310  paper=   18.757 (      vertex)  rel= +0.2427  I 1.0000
+      hw/H=0.50  ours=   19.829  paper=   14.878 (      vertex)  rel= +0.3327  I 1.0000
+      hw/H=0.60  ours=   17.152  paper=   12.719 (      vertex)  rel= +0.3485  I 1.0000
+      hw/H=0.70  ours=   15.124  paper=   10.862 (      vertex)  rel= +0.3924  I 1.0000
+      hw/H=0.80  ours=   13.655  paper=    9.462 (      vertex)  rel= +0.4432  I 1.0000
+      hw/H=0.90  ours=   12.710  paper=    8.807 (      vertex)  rel= +0.4431  I 1.0000
+      hw/H=1.00  ours=   12.317  paper=    8.563 (      vertex)  rel= +0.4384  I 1.0000
+   Israeli beta=35 FE:
+      hw/H=0.00  ours=   68.248  paper=  229.328 (extrapolated)  rel= -0.7024  I 1.0000
+      hw/H=0.05  ours=   50.083  paper=   94.762 (extrapolated)  rel= -0.4715  I 1.0000
+      hw/H=0.10  ours=   38.029  paper=   39.157 (      vertex)  rel= -0.0288  I 1.0000
+      hw/H=0.20  ours=   24.776  paper=   27.937 (      vertex)  rel= -0.1131  I 1.0000
+      hw/H=0.30  ours=   18.151  paper=   19.281 (      vertex)  rel= -0.0586  I 1.0000
+      hw/H=0.40  ours=   14.372  paper=   14.301 (      vertex)  rel= +0.0050  I 1.0000
+      hw/H=0.50  ours=   12.038  paper=   11.775 (      vertex)  rel= +0.0223  I 1.0000
+      hw/H=0.60  ours=   10.546  paper=    9.766 (      vertex)  rel= +0.0799  I 1.0000
+      hw/H=0.70  ours=    9.609  paper=    8.394 (      vertex)  rel= +0.1447  I 1.0000
+      hw/H=0.80  ours=    9.087  paper=    7.841 (      vertex)  rel= +0.1589  I 1.0000
+      hw/H=0.90  ours=    8.924  paper=    7.477 (      vertex)  rel= +0.1935  I 1.0000
+      hw/H=1.00  ours=    9.104  paper=    7.827 (      vertex)  rel= +0.1631  I 1.0000
+   Israeli beta=60 vopt:
+      hw/H=0.00  ours=   17.949  paper=   12.986 (      vertex)  rel= +0.3822  I 1.0000
+      hw/H=0.05  ours=   15.055  paper=   10.319 (      vertex)  rel= +0.4590  I 1.0000
+      hw/H=0.10  ours=   13.086  paper=    8.686 (      vertex)  rel= +0.5066  I 1.0000
+      hw/H=0.20  ours=   10.718  paper=    6.905 (      vertex)  rel= +0.5522  I 1.0000
+      hw/H=0.30  ours=    9.484  paper=    6.077 (      vertex)  rel= +0.5607  I 1.0000
+      hw/H=0.40  ours=    8.892  paper=    5.716 (      vertex)  rel= +0.5557  I 1.0000
+      hw/H=0.50  ours=    8.674  paper=    5.438 (      vertex)  rel= +0.5950  I 1.0000
+      hw/H=0.60  ours=    8.491  paper=    5.258 (      vertex)  rel= +0.6149  I 1.0000
+      hw/H=0.70  ours=    8.349  paper=    5.064 (      vertex)  rel= +0.6488  I 1.0000
+      hw/H=0.80  ours=    8.223  paper=    4.891 (      vertex)  rel= +0.6813  I 1.0000
+      hw/H=0.90  ours=    8.128  paper=    4.794 (      vertex)  rel= +0.6955  I 1.0000
+      hw/H=1.00  ours=    8.127  paper=    4.788 (      vertex)  rel= +0.6974  I 1.0000
+   Israeli beta=60 FE:
+      hw/H=0.00  ours=   17.949  paper=   12.986 (      vertex)  rel= +0.3822  I 1.0000
+      hw/H=0.05  ours=   14.901  paper=   10.177 (      vertex)  rel= +0.4642  I 1.0000
+      hw/H=0.10  ours=   12.723  paper=    8.394 (      vertex)  rel= +0.5157  I 1.0000
+      hw/H=0.20  ours=    9.921  paper=    6.197 (      vertex)  rel= +0.6009  I 1.0000
+      hw/H=0.30  ours=    8.246  paper=    5.035 (      vertex)  rel= +0.6377  I 1.0000
+      hw/H=0.40  ours=    7.164  paper=    4.280 (      vertex)  rel= +0.6737  I 1.0000
+      hw/H=0.50  ours=    6.434  paper=    3.805 (      vertex)  rel= +0.6909  I 1.0000
+      hw/H=0.60  ours=    5.939  paper=    3.486 (      vertex)  rel= +0.7036  I 1.0000
+      hw/H=0.70  ours=    5.617  paper=    3.293 (      vertex)  rel= +0.7057  I 1.0000
+      hw/H=0.80  ours=    5.437  paper=    3.199 (      vertex)  rel= +0.6994  I 1.0000
+      hw/H=0.90  ours=    5.385  paper=    3.179 (      vertex)  rel= +0.6939  I 1.0000
+      hw/H=1.00  ours=    5.454  paper=    3.235 (      vertex)  rel= +0.6859  I 1.0000
+   per-curve relative differences (points with a visible paper value: vertex/segment):
+              London 30.0 vopt: n=11  mean=-0.0090  rms=0.3590  max|rel|=1.0109 (+1.0109)
+                London 30.0 FE: n=11  mean=-0.1500  rms=0.2463  max|rel|=0.4351 (+0.4351)
+              London 60.0 vopt: n=12  mean=-0.3585  rms=0.3602  max|rel|=0.3999 (-0.3999)
+                London 60.0 FE: n=12  mean=-0.3791  rms=0.3815  max|rel|=0.4135 (-0.4135)
+             Israeli 35.0 vopt: n=10  mean=+0.2736  rms=0.3255  max|rel|=0.4432 (+0.4432)
+               Israeli 35.0 FE: n=10  mean=+0.0567  rms=0.1159  max|rel|=0.1935 (+0.1935)
+             Israeli 60.0 vopt: n=12  mean=+0.5791  rms=0.5866  max|rel|=0.6974 (+0.6974)
+               Israeli 60.0 FE: n=12  mean=+0.6212  rms=0.6299  max|rel|=0.7057 (+0.7057)
+
+wall time of new computations: fig5 16.8 s, fig9 888.7 s, fig8-fitted 1023.6 s, fig8-table1 662.5 s
+total wall time 2595.6 s

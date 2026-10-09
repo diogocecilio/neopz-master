@@ -85,3 +85,25 @@ L) dry stability numbers N = gamma H_c / c: independent (own geometry + shoelace
    beta= 60 phi= 30: N indep   16.03518 at [0.7347 1.6118 1.    ]; limit_analysis   16.03518 rel +2.7e-12 (41 s)
    beta= 45 phi= 20: N indep   16.16094 at [0.6548 1.7767 1.    ]; limit_analysis   16.16094 rel +3.3e-12 (40 s)
    beta= 45 phi= 40: N indep  185.48655 at [1.2312 1.7377 1.    ]; limit_analysis  185.48655 rel +2.6e-12 (57 s)
+   beta= 30 phi= 25: N indep  119.92031 at [1.1406 1.8246 1.    ]; limit_analysis  119.92031 rel +2.8e-12 (77 s)
+   beta= 45 phi=  0: N indep    5.52598 at [ 0.3601  2.6883 11.    ]; limit_analysis    5.52598 rel +5.6e-12 (39 s)
+   Fig. 8 panel London  beta=60: paper   17.949 | London (Table 1):   12.9860 (gw 9.8)   13.0019 (gw 9.81) | Israeli (Table 1):   17.9495 (gw 9.8)   17.9714 (gw 9.81)
+   Fig. 8 panel London  beta=30: paper  156.555 | London (Table 1):       inf (gw 9.8)       inf (gw 9.81) | Israeli (Table 1):  156.5274 (gw 9.8)  156.7186 (gw 9.81)
+   Fig. 8 panel Israeli beta=60: paper   12.986 | London (Table 1):   12.9860 (gw 9.8)   13.0019 (gw 9.81) | Israeli (Table 1):   17.9495 (gw 9.8)   17.9714 (gw 9.81)
+   Fig. 8 panel Israeli beta=35: paper  229.319 | London (Table 1):  228.8286 (gw 9.8)  229.1080 (gw 9.81) | Israeli (Table 1):   68.2478 (gw 9.8)   68.3311 (gw 9.81)
+====================================================================================================
+O) optimiser: limit_analysis.stability_factor vs scipy differential_evolution (+ same NM polish)
+====================================================================================================
+   Fig9 a=1 beta=30: stability_factor 3.57875508 (I, x=[0.9101  2.09748 1.     ]); DE+NM best 3.57875508 rel +5.9e-14  [I: DE 3.57869 -> NM 3.57875508; II: DE 1e+30 -> NM 1000000000000000019884624838656.00000000] (23 s)
+   Fig9 a=1 beta=90: stability_factor 0.60143218 (I, x=[0.93423 1.31565 1.     ]); DE+NM best 0.60143218 rel +1.1e-15  [I: DE 0.601219 -> NM 0.60143218; II: DE 3.44766 -> NM 3.44788048] (22 s)
+   Israeli beta=35 hw=0.5H: stability_factor 1.98178957 (I, x=[0.72993 2.01765 1.     ]); DE+NM best 1.98178957 rel +2.2e-16  [I: DE 1.98309 -> NM 1.98178957; II: DE 1.98309 -> NM 1.98178957] (37 s)
+   London(Table 1) beta=30 hw=0.2H: stability_factor 5.30401085 (I, x=[0.9304  2.13252 0.24049]); DE+NM best 5.30401085 rel +1.8e-15  [I: DE 5.30391 -> NM 5.30401085; II: DE 1e+30 -> NM 1000000000000000019884624838656.00000000] (22 s)
+   London(Table 1) beta=60 hw=0: stability_factor 1.30018873 (I, x=[0.76862 1.61892 1.     ]); DE+NM best 1.30018873 rel +2.2e-16  [I: DE 1.30019 -> NM 1.30018873; II: DE 1e+30 -> NM 1000000000000000019884624838656.00000000] (2 s)
+====================================================================================================
+E) mechanisms outside the limit_analysis class (C on the soil side of the face, C below the crest),
+   dry, H = c = gamma = 1: random search, NM from the best (may walk back into the class)
+====================================================================================================
+   beta=60.0 phi=32.0: limit_analysis 17.747576; 806 extended mechanisms with P > 0, best 25.29593 at [-0.0035  1.8505  0.9684] -> NM 23.506401 at [-0.0036  1.8129  1.    ] (inside the limit_analysis class: False; random best dilatant: True)
+   beta=90.0 phi= 0.0: limit_analysis 3.831337; 34015 extended mechanisms with P > 0, best 4.23910 at [-0.0441  1.1502  0.9915] -> NM 3.831337 at [0.4788 1.0028 1.    ] (inside the limit_analysis class: True; random best dilatant: True)
+   beta=30.0 phi=20.0: limit_analysis 41.214687; 1 extended mechanisms with P > 0, best 187.76920 at [1.1901 1.9647 1.4239] -> NM 41.214689 at [0.9168 1.8908 1.    ] (inside the limit_analysis class: True; random best dilatant: True)
+   beta=60.0 phi=24.7: limit_analysis 12.579965; 2105 extended mechanisms with P > 0, best 15.54351 at [-0.0183  1.7182  0.9903] -> NM 12.579965 at [0.6502 1.5937 1.    ] (inside the limit_analysis class: True; random best dilatant: True)
