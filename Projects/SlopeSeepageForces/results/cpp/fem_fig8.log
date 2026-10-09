@@ -8,3 +8,15 @@
 2026-10-09 09:05:55  fembatch fig=8: 1 cases run, 0 already in /home/user/neopz-master/Projects/SlopeSeepageForces/results/cpp/fem_fig8.csv, 0 failed, 405.4 s
 2026-10-09 09:21:34  fembatch fig=8: 4 panels x 4 h_w / H x 2 curves, soil swapped, gamma_w 9.8, alpha 1; fem:nref=3;mark=0.05;smesh=0.25/0.25/0.25/1;sa=2;maxnewton=100;tolfs=0.002|la:box_m=50/10/30;hbc=zero/zero/noflow;horder=2;href=1;hmesh=gen/0.025/0.0625/0.15/2;lm=10;mech=I+II;seeds=0+1+2;np=40;niter=150;pools=25;q=coarse/fine;polish=1;dmax=10;soil=swapped;Href=LA3; out /home/user/neopz-master/Projects/SlopeSeepageForces/results/cpp/fem_fig8.csv (2 rows already there)
 2026-10-09 09:21:34    [fem fig8] London beta=30 hw/H=0 none: limit analysis, then 4 FEM cycles
+2026-10-09 09:28:18    [fem fig8 1] London beta=30 hw/H=0 none: H_crit FEM = 150.254 m (h -> 0; H_ref 157 m, last cycle lambda 1.07812, 6920 equations), LA = 156.527 m (403.4 s)
+2026-10-09 09:28:18    [fem fig8] London beta=30 hw/H=0.2 vopt: limit analysis, then 4 FEM cycles
+2026-10-09 09:35:54    [fem fig8 2] London beta=30 hw/H=0.2 vopt: H_crit FEM = 55.5472 m (h -> 0; H_ref 58.7 m, last cycle lambda 0.976562, 7298 equations), LA = 58.6977 m (429.7 s)
+2026-10-09 09:35:54    [fem fig8] London beta=30 hw/H=0.2 FE: limit analysis, then 4 FEM cycles
+2026-10-09 09:44:40    [fem fig8 3] London beta=30 hw/H=0.2 FE: H_crit FEM = 36.4734 m (h -> 0; H_ref 37.2 m, last cycle lambda 0.995117, 8080 equations), LA = 37.2089 m (513.6 s)
+2026-10-09 09:44:40    [fem fig8] London beta=30 hw/H=0.5 vopt: limit analysis, then 4 FEM cycles
+2026-10-09 09:54:52    [fem fig8 4] London beta=30 hw/H=0.5 vopt: H_crit FEM = 25.575 m (h -> 0; H_ref 26.4 m, last cycle lambda 0.983398, 9186 equations), LA = 26.4145 m (610.8 s)
+2026-10-09 09:54:52    [fem fig8] London beta=30 hw/H=0.5 FE: limit analysis, then 4 FEM cycles
+2026-10-09 10:02:32    [fem fig8 5] London beta=30 hw/H=0.5 FE: H_crit FEM = 15.1535 m (h -> 0; H_ref 15.1 m, last cycle lambda 1.01855, 8006 equations), LA = 15.1316 m (456 s)
+2026-10-09 10:02:32    [fem fig8] London beta=30 hw/H=1 vopt: limit analysis, then 4 FEM cycles
+2026-10-09 10:13:28    [fem fig8 6] London beta=30 hw/H=1 vopt: H_crit FEM = 14.5929 m (h -> 0; H_ref 14.6 m, last cycle lambda 1.03027, 7418 equations), LA = 14.6072 m (654.6 s)
+2026-10-09 10:13:28    [fem fig8] London beta=30 hw/H=1 FE: limit analysis, then 4 FEM cycles

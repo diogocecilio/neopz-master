@@ -678,11 +678,10 @@ inline OptPoint PSO(const std::function<REAL(const REAL *)> &fun, const std::fun
 }
 
 /// Bounded Nelder-Mead of scipy.optimize (minimize(method="Nelder-Mead", bounds=..., initial_simplex=...)): standard
-/// coefficients, trial points clipped to the box, stop when max|x_i - x_0| <= xatol and max|f_i - f_0| <= fatol
-inline OptPoint NelderMeadScipy(const std::function<REAL(const REAL *)> &fun, const REAL x0[3], REAL sim0[4][3],
-                                const REAL lb[3], const REAL ub[3], REAL xatol, REAL fatol, int maxiter, int maxfev,
-                                int64_t &nEval) {
-    (void)x0; // the simplex sim0 carries the start point (row 0)
+/// coefficients, trial points clipped to the box, stop when max|x_i - x_0| <= xatol and max|f_i - f_0| <= fatol;
+/// sim0: initial simplex (row 0 = start point)
+inline OptPoint NelderMeadScipy(const std::function<REAL(const REAL *)> &fun, REAL sim0[4][3], const REAL lb[3],
+                                const REAL ub[3], REAL xatol, REAL fatol, int maxiter, int maxfev, int64_t &nEval) {
     const int N = 3;
     const REAL rho = 1., chi = 2., psi = 0.5, sigma = 0.5;
     std::array<std::array<REAL, 3>, 4> sim;
@@ -780,7 +779,7 @@ inline OptPoint Polish(const std::function<REAL(const REAL *)> &fun, const REAL 
             for (int d = 0; d < 3; d++) sim[i + 1][d] = best.x[d];
             sim[i + 1][i] = best.x[i] + step[i] <= ub[i] ? best.x[i] + step[i] : best.x[i] - step[i];
         }
-        const OptPoint res = NelderMeadScipy(fun, best.x, sim, lb, ub, 1.e-10, 1.e-13, 4000, 8000, nEval);
+        const OptPoint res = NelderMeadScipy(fun, sim, lb, ub, 1.e-10, 1.e-13, 4000, 8000, nEval);
         if (res.f <= best.f) best = res;
         for (REAL &s : step) s *= 0.2;
     }

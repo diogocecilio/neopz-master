@@ -1,6 +1,6 @@
 // Seepage force field f = -grad u (kN/m^3, NeoPZ coordinates, y up) at any point of the soil, for the FEM stability
 // (forcing function evaluated at every integration point of every assembly, from several threads) and for the
-// limit analysis (to be ported from scripts/limit_analysis.py).
+// limit analysis (LimitAnalysis.h, from several threads).
 //
 //  - ForceField: generic interface; FE fields (PoreField below), the analytical K^-1 v'_opt field
 //    (AnalyticalSeepage.h, port of scripts/analytical_seepage.py) and the dry/no-seepage case all plug in through it.
@@ -50,8 +50,6 @@ public:
         REAL area;
     };
 
-    PoreField() = default;
-
     /// From the solution of a 2D H1 mesh (material matid, order <= 2, straight triangles); var = index of the
     /// scalar solution variable of the material
     PoreField(TPZCompMesh *cmesh, int matid, int var) {
@@ -77,19 +75,6 @@ public:
         BuildTree();
     }
 
-    /// From nodal data: triangles as vertex coordinates and the 6 values (vertices, then edge midpoints)
-    PoreField(const std::vector<std::array<REAL, 6>> &xy, const std::vector<std::array<REAL, 6>> &u) {
-        for (size_t i = 0; i < xy.size(); i++) {
-            const REAL x[3][2] = {{xy[i][0], xy[i][1]}, {xy[i][2], xy[i][3]}, {xy[i][4], xy[i][5]}};
-            Tri t;
-            SetGeometry(t, x);
-            std::copy(u[i].begin(), u[i].end(), t.u);
-            fTri.push_back(t);
-        }
-        BuildTree();
-    }
-
-    bool Empty() const { return fTri.empty(); }
     const std::vector<Tri> &Triangles() const { return fTri; }
 
     /// Quadratic interpolant on triangle t at the parametric point (xi, eta): u and grad u (x, y)
