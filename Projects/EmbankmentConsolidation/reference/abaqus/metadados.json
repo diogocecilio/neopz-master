@@ -1,0 +1,512 @@
+{
+  "odb_name": "aterro_camclay.odb",
+  "description": "DDB object",
+  "job_status": "JOB_STATUS_COMPLETED_SUCCESSFULLY",
+  "abaqus_version": "Abaqus/Standard Learning Edition 2026",
+  "steps": [
+    {
+      "name": "GEOSTATIC",
+      "domain": "TIME",
+      "procedure": "*GEOSTATIC",
+      "start_time": 0.0,
+      "requested_period": 1.0,
+      "number_frames": 2,
+      "last_recorded_value": 1.0,
+      "variables": {
+        "AC YIELD": {
+          "description": "Active yield flag",
+          "type": "SCALAR",
+          "component_labels": [],
+          "table": "campos/01_GEOSTATIC__001_AC_YIELD.csv",
+          "rows": 1600,
+          "field_values": 1600
+        },
+        "E": {
+          "description": "Strain components",
+          "type": "TENSOR_2D_PLANAR",
+          "component_labels": [
+            "E11",
+            "E22",
+            "E33",
+            "E12"
+          ],
+          "table": "campos/01_GEOSTATIC__002_E.csv",
+          "rows": 6400,
+          "field_values": 1600
+        },
+        "FLVEL": {
+          "description": "Pore fluid effective velocity",
+          "type": "VECTOR",
+          "component_labels": [
+            "FLVEL1",
+            "FLVEL2"
+          ],
+          "table": "campos/01_GEOSTATIC__003_FLVEL.csv",
+          "rows": 3200,
+          "field_values": 1600
+        },
+        "PE": {
+          "description": "Plastic strain components",
+          "type": "TENSOR_2D_PLANAR",
+          "component_labels": [
+            "PE11",
+            "PE22",
+            "PE33",
+            "PE12"
+          ],
+          "table": "campos/01_GEOSTATIC__004_PE.csv",
+          "rows": 6400,
+          "field_values": 1600
+        },
+        "PEEQ": {
+          "description": "Equivalent plastic strain",
+          "type": "SCALAR",
+          "component_labels": [],
+          "table": "campos/01_GEOSTATIC__005_PEEQ.csv",
+          "rows": 1600,
+          "field_values": 1600
+        },
+        "POR": {
+          "description": "Pore or Acoustic Pressure",
+          "type": "SCALAR",
+          "component_labels": [],
+          "table": "campos/01_GEOSTATIC__006_POR.csv",
+          "rows": 462,
+          "field_values": 462
+        },
+        "RF": {
+          "description": "Reaction force",
+          "type": "VECTOR",
+          "component_labels": [
+            "RF1",
+            "RF2"
+          ],
+          "table": "campos/01_GEOSTATIC__007_RF.csv",
+          "rows": 2644,
+          "field_values": 1322
+        },
+        "S": {
+          "description": "Stress components",
+          "type": "TENSOR_2D_PLANAR",
+          "component_labels": [
+            "S11",
+            "S22",
+            "S33",
+            "S12"
+          ],
+          "table": "campos/01_GEOSTATIC__008_S.csv",
+          "rows": 6400,
+          "field_values": 1600
+        },
+        "U": {
+          "description": "Spatial displacement",
+          "type": "VECTOR",
+          "component_labels": [
+            "U1",
+            "U2"
+          ],
+          "table": "campos/01_GEOSTATIC__009_U.csv",
+          "rows": 2644,
+          "field_values": 1322
+        },
+        "VOIDR": {
+          "description": "Void ratio",
+          "type": "SCALAR",
+          "component_labels": [],
+          "table": "campos/01_GEOSTATIC__010_VOIDR.csv",
+          "rows": 1600,
+          "field_values": 1600
+        }
+      }
+    },
+    {
+      "name": "UNDRAINED_LOADING",
+      "domain": "TIME",
+      "procedure": "*SOILS, CONSOLIDATION",
+      "start_time": 1.0,
+      "requested_period": 1.0,
+      "number_frames": 25,
+      "last_recorded_value": 1.0,
+      "variables": {
+        "AC YIELD": {
+          "description": "Active yield flag",
+          "type": "SCALAR",
+          "component_labels": [],
+          "table": "campos/02_UNDRAINED_LOADING__001_AC_YIELD.csv",
+          "rows": 20000,
+          "field_values": 20000
+        },
+        "E": {
+          "description": "Strain components",
+          "type": "TENSOR_2D_PLANAR",
+          "component_labels": [
+            "E11",
+            "E22",
+            "E33",
+            "E12"
+          ],
+          "table": "campos/02_UNDRAINED_LOADING__002_E.csv",
+          "rows": 80000,
+          "field_values": 20000
+        },
+        "FLVEL": {
+          "description": "Pore fluid effective velocity",
+          "type": "VECTOR",
+          "component_labels": [
+            "FLVEL1",
+            "FLVEL2"
+          ],
+          "table": "campos/02_UNDRAINED_LOADING__003_FLVEL.csv",
+          "rows": 40000,
+          "field_values": 20000
+        },
+        "PE": {
+          "description": "Plastic strain components",
+          "type": "TENSOR_2D_PLANAR",
+          "component_labels": [
+            "PE11",
+            "PE22",
+            "PE33",
+            "PE12"
+          ],
+          "table": "campos/02_UNDRAINED_LOADING__004_PE.csv",
+          "rows": 80000,
+          "field_values": 20000
+        },
+        "PEEQ": {
+          "description": "Equivalent plastic strain",
+          "type": "SCALAR",
+          "component_labels": [],
+          "table": "campos/02_UNDRAINED_LOADING__005_PEEQ.csv",
+          "rows": 20000,
+          "field_values": 20000
+        },
+        "POR": {
+          "description": "Pore or Acoustic Pressure",
+          "type": "SCALAR",
+          "component_labels": [],
+          "table": "campos/02_UNDRAINED_LOADING__006_POR.csv",
+          "rows": 5775,
+          "field_values": 5775
+        },
+        "RF": {
+          "description": "Reaction force",
+          "type": "VECTOR",
+          "component_labels": [
+            "RF1",
+            "RF2"
+          ],
+          "table": "campos/02_UNDRAINED_LOADING__007_RF.csv",
+          "rows": 33050,
+          "field_values": 16525
+        },
+        "S": {
+          "description": "Stress components",
+          "type": "TENSOR_2D_PLANAR",
+          "component_labels": [
+            "S11",
+            "S22",
+            "S33",
+            "S12"
+          ],
+          "table": "campos/02_UNDRAINED_LOADING__008_S.csv",
+          "rows": 80000,
+          "field_values": 20000
+        },
+        "U": {
+          "description": "Spatial displacement",
+          "type": "VECTOR",
+          "component_labels": [
+            "U1",
+            "U2"
+          ],
+          "table": "campos/02_UNDRAINED_LOADING__009_U.csv",
+          "rows": 33050,
+          "field_values": 16525
+        },
+        "VOIDR": {
+          "description": "Void ratio",
+          "type": "SCALAR",
+          "component_labels": [],
+          "table": "campos/02_UNDRAINED_LOADING__010_VOIDR.csv",
+          "rows": 20000,
+          "field_values": 20000
+        }
+      }
+    },
+    {
+      "name": "CONSOLIDATION_EARLY",
+      "domain": "TIME",
+      "procedure": "*SOILS, CONSOLIDATION",
+      "start_time": 2.0,
+      "requested_period": 100000.0,
+      "number_frames": 3,
+      "last_recorded_value": 100000.0,
+      "variables": {
+        "AC YIELD": {
+          "description": "Active yield flag",
+          "type": "SCALAR",
+          "component_labels": [],
+          "table": "campos/03_CONSOLIDATION_EARLY__001_AC_YIELD.csv",
+          "rows": 2400,
+          "field_values": 2400
+        },
+        "E": {
+          "description": "Strain components",
+          "type": "TENSOR_2D_PLANAR",
+          "component_labels": [
+            "E11",
+            "E22",
+            "E33",
+            "E12"
+          ],
+          "table": "campos/03_CONSOLIDATION_EARLY__002_E.csv",
+          "rows": 9600,
+          "field_values": 2400
+        },
+        "FLVEL": {
+          "description": "Pore fluid effective velocity",
+          "type": "VECTOR",
+          "component_labels": [
+            "FLVEL1",
+            "FLVEL2"
+          ],
+          "table": "campos/03_CONSOLIDATION_EARLY__003_FLVEL.csv",
+          "rows": 4800,
+          "field_values": 2400
+        },
+        "PE": {
+          "description": "Plastic strain components",
+          "type": "TENSOR_2D_PLANAR",
+          "component_labels": [
+            "PE11",
+            "PE22",
+            "PE33",
+            "PE12"
+          ],
+          "table": "campos/03_CONSOLIDATION_EARLY__004_PE.csv",
+          "rows": 9600,
+          "field_values": 2400
+        },
+        "PEEQ": {
+          "description": "Equivalent plastic strain",
+          "type": "SCALAR",
+          "component_labels": [],
+          "table": "campos/03_CONSOLIDATION_EARLY__005_PEEQ.csv",
+          "rows": 2400,
+          "field_values": 2400
+        },
+        "POR": {
+          "description": "Pore or Acoustic Pressure",
+          "type": "SCALAR",
+          "component_labels": [],
+          "table": "campos/03_CONSOLIDATION_EARLY__006_POR.csv",
+          "rows": 693,
+          "field_values": 693
+        },
+        "RF": {
+          "description": "Reaction force",
+          "type": "VECTOR",
+          "component_labels": [
+            "RF1",
+            "RF2"
+          ],
+          "table": "campos/03_CONSOLIDATION_EARLY__007_RF.csv",
+          "rows": 3966,
+          "field_values": 1983
+        },
+        "S": {
+          "description": "Stress components",
+          "type": "TENSOR_2D_PLANAR",
+          "component_labels": [
+            "S11",
+            "S22",
+            "S33",
+            "S12"
+          ],
+          "table": "campos/03_CONSOLIDATION_EARLY__008_S.csv",
+          "rows": 9600,
+          "field_values": 2400
+        },
+        "U": {
+          "description": "Spatial displacement",
+          "type": "VECTOR",
+          "component_labels": [
+            "U1",
+            "U2"
+          ],
+          "table": "campos/03_CONSOLIDATION_EARLY__009_U.csv",
+          "rows": 3966,
+          "field_values": 1983
+        },
+        "VOIDR": {
+          "description": "Void ratio",
+          "type": "SCALAR",
+          "component_labels": [],
+          "table": "campos/03_CONSOLIDATION_EARLY__010_VOIDR.csv",
+          "rows": 2400,
+          "field_values": 2400
+        }
+      }
+    },
+    {
+      "name": "CONSOLIDATION_LATE",
+      "domain": "TIME",
+      "procedure": "*SOILS, CONSOLIDATION",
+      "start_time": 100002.0,
+      "requested_period": 99900000.0,
+      "number_frames": 62,
+      "last_recorded_value": 99900000.0,
+      "variables": {
+        "AC YIELD": {
+          "description": "Active yield flag",
+          "type": "SCALAR",
+          "component_labels": [],
+          "table": "campos/04_CONSOLIDATION_LATE__001_AC_YIELD.csv",
+          "rows": 49600,
+          "field_values": 49600
+        },
+        "E": {
+          "description": "Strain components",
+          "type": "TENSOR_2D_PLANAR",
+          "component_labels": [
+            "E11",
+            "E22",
+            "E33",
+            "E12"
+          ],
+          "table": "campos/04_CONSOLIDATION_LATE__002_E.csv",
+          "rows": 198400,
+          "field_values": 49600
+        },
+        "FLVEL": {
+          "description": "Pore fluid effective velocity",
+          "type": "VECTOR",
+          "component_labels": [
+            "FLVEL1",
+            "FLVEL2"
+          ],
+          "table": "campos/04_CONSOLIDATION_LATE__003_FLVEL.csv",
+          "rows": 99200,
+          "field_values": 49600
+        },
+        "PE": {
+          "description": "Plastic strain components",
+          "type": "TENSOR_2D_PLANAR",
+          "component_labels": [
+            "PE11",
+            "PE22",
+            "PE33",
+            "PE12"
+          ],
+          "table": "campos/04_CONSOLIDATION_LATE__004_PE.csv",
+          "rows": 198400,
+          "field_values": 49600
+        },
+        "PEEQ": {
+          "description": "Equivalent plastic strain",
+          "type": "SCALAR",
+          "component_labels": [],
+          "table": "campos/04_CONSOLIDATION_LATE__005_PEEQ.csv",
+          "rows": 49600,
+          "field_values": 49600
+        },
+        "POR": {
+          "description": "Pore or Acoustic Pressure",
+          "type": "SCALAR",
+          "component_labels": [],
+          "table": "campos/04_CONSOLIDATION_LATE__006_POR.csv",
+          "rows": 14322,
+          "field_values": 14322
+        },
+        "RF": {
+          "description": "Reaction force",
+          "type": "VECTOR",
+          "component_labels": [
+            "RF1",
+            "RF2"
+          ],
+          "table": "campos/04_CONSOLIDATION_LATE__007_RF.csv",
+          "rows": 81964,
+          "field_values": 40982
+        },
+        "S": {
+          "description": "Stress components",
+          "type": "TENSOR_2D_PLANAR",
+          "component_labels": [
+            "S11",
+            "S22",
+            "S33",
+            "S12"
+          ],
+          "table": "campos/04_CONSOLIDATION_LATE__008_S.csv",
+          "rows": 198400,
+          "field_values": 49600
+        },
+        "U": {
+          "description": "Spatial displacement",
+          "type": "VECTOR",
+          "component_labels": [
+            "U1",
+            "U2"
+          ],
+          "table": "campos/04_CONSOLIDATION_LATE__009_U.csv",
+          "rows": 81964,
+          "field_values": 40982
+        },
+        "VOIDR": {
+          "description": "Void ratio",
+          "type": "SCALAR",
+          "component_labels": [],
+          "table": "campos/04_CONSOLIDATION_LATE__010_VOIDR.csv",
+          "rows": 49600,
+          "field_values": 49600
+        }
+      }
+    }
+  ],
+  "tables": [
+    "campos/01_GEOSTATIC__001_AC_YIELD.csv",
+    "campos/01_GEOSTATIC__002_E.csv",
+    "campos/01_GEOSTATIC__003_FLVEL.csv",
+    "campos/01_GEOSTATIC__004_PE.csv",
+    "campos/01_GEOSTATIC__005_PEEQ.csv",
+    "campos/01_GEOSTATIC__006_POR.csv",
+    "campos/01_GEOSTATIC__007_RF.csv",
+    "campos/01_GEOSTATIC__008_S.csv",
+    "campos/01_GEOSTATIC__009_U.csv",
+    "campos/01_GEOSTATIC__010_VOIDR.csv",
+    "campos/02_UNDRAINED_LOADING__001_AC_YIELD.csv",
+    "campos/02_UNDRAINED_LOADING__002_E.csv",
+    "campos/02_UNDRAINED_LOADING__003_FLVEL.csv",
+    "campos/02_UNDRAINED_LOADING__004_PE.csv",
+    "campos/02_UNDRAINED_LOADING__005_PEEQ.csv",
+    "campos/02_UNDRAINED_LOADING__006_POR.csv",
+    "campos/02_UNDRAINED_LOADING__007_RF.csv",
+    "campos/02_UNDRAINED_LOADING__008_S.csv",
+    "campos/02_UNDRAINED_LOADING__009_U.csv",
+    "campos/02_UNDRAINED_LOADING__010_VOIDR.csv",
+    "campos/03_CONSOLIDATION_EARLY__001_AC_YIELD.csv",
+    "campos/03_CONSOLIDATION_EARLY__002_E.csv",
+    "campos/03_CONSOLIDATION_EARLY__003_FLVEL.csv",
+    "campos/03_CONSOLIDATION_EARLY__004_PE.csv",
+    "campos/03_CONSOLIDATION_EARLY__005_PEEQ.csv",
+    "campos/03_CONSOLIDATION_EARLY__006_POR.csv",
+    "campos/03_CONSOLIDATION_EARLY__007_RF.csv",
+    "campos/03_CONSOLIDATION_EARLY__008_S.csv",
+    "campos/03_CONSOLIDATION_EARLY__009_U.csv",
+    "campos/03_CONSOLIDATION_EARLY__010_VOIDR.csv",
+    "campos/04_CONSOLIDATION_LATE__001_AC_YIELD.csv",
+    "campos/04_CONSOLIDATION_LATE__002_E.csv",
+    "campos/04_CONSOLIDATION_LATE__003_FLVEL.csv",
+    "campos/04_CONSOLIDATION_LATE__004_PE.csv",
+    "campos/04_CONSOLIDATION_LATE__005_PEEQ.csv",
+    "campos/04_CONSOLIDATION_LATE__006_POR.csv",
+    "campos/04_CONSOLIDATION_LATE__007_RF.csv",
+    "campos/04_CONSOLIDATION_LATE__008_S.csv",
+    "campos/04_CONSOLIDATION_LATE__009_U.csv",
+    "campos/04_CONSOLIDATION_LATE__010_VOIDR.csv"
+  ],
+  "history_rows": 1194,
+  "numerical_export_complete": true
+}

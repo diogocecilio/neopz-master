@@ -30,7 +30,7 @@ IntegrationSchemes). They reproduce the numbers of the Python code to round-off 
 | [FLAC3DTriaxial](FLAC3DTriaxial) | Sects. 6.3 and 6.7, Figs. 4 and 7, Tables 5 and 10 | `gen_data.py itasca` |
 | [TerzaghiConsolidation](TerzaghiConsolidation) | Sect. 6.4, Fig. 8, Table 6 | `gen_data.py terzaghi`, `gen_data3d.py` |
 | [AbaqusTriaxialConsolidation](AbaqusTriaxialConsolidation) | Sects. 6.5 and 6.7, Figs. 9–11, Tables 7, 9 and 10 | `gen_data.py abaqus abaqus_mp abaqus_states`, `gen_data3d.py` |
-| [EmbankmentConsolidation](EmbankmentConsolidation) | Sects. 6.6 and 6.7, Figs. 12–14, Tables 8 and 10 | `gen_data.py aterro`, `aterro_elastic.py` |
+| [EmbankmentConsolidation](EmbankmentConsolidation) | Sects. 6.6 and 6.7, Figs. 12–14, Tables 8 and 10 (v0.9: Sect. 6.4, Figs. 7–9, Tables 6 and 7, with the Abaqus analysis of the same problem in `reference/abaqus`) | `gen_data.py aterro`, `aterro_elastic.py`, `abaqus_extract.py` |
 
 Section, table and figure numbers of the article v0.7 (the figure of the single-element model, Fig. 4, was added,
 so the later figures moved by one with respect to v0.6). The material-point examples

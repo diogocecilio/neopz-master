@@ -1,5 +1,7 @@
-"""Figures 11, 12 and 13 of the article (embankment on a Cam-Clay foundation, Sect. 6.6) from the files written by
-EmbankmentConsolidation (3D model: 20 x 10 x 1 Hex20-Hex8 elements, the 1 m slice of the FLAC3D model).
+"""Figures of the embankment on a Cam-Clay foundation (v0.8/v0.9 of the article, Sect. 6.4; Figs. 12 to 14 of
+v0.7) from the files written by EmbankmentConsolidation (3D model: 20 x 10 x 1 Hex20-Hex8 elements, the 1 m slice
+of the FLAC3D model) and from the Abaqus/Standard analysis of the same problem (reference/abaqus, written by
+abaqus_extract.py from the CSV export of the Abaqus ODB).
 
 Usage (run the executable first; it writes its CSV files to the current directory):
 
@@ -7,31 +9,39 @@ Usage (run the executable first; it writes its CSV files to the current director
 
 The run directory (default: the current directory) holds the CSV files; the figures are written as PDF and PNG
 to <run directory>/figures, or to the output directory. A figure whose CSV files are missing is skipped with a
-message. This script draws the three states of the article; the fields at every converged state (36 states) are
-in the VTK series written by the executable in vtk/embankment and vtk/embankment_elastic, to be opened in
-ParaView (README.md, section "Viewing the solution in ParaView").
+message. The fields at every converged state (36 states) are in the VTK series written by the executable in
+vtk/embankment and vtk/embankment_elastic, to be opened in ParaView (README.md, section "Viewing the solution in
+ParaView").
 
 Figures produced:
 
-- fig12_embankment_model: Fig. 12, the model in an oblique (cavalier) projection with x to the right, y up and z
+- fig12_embankment_model: the model in an oblique (cavalier) projection with x to the right, y up and z
   towards the reader: the mesh of the slab (embankment_mesh_*.csv, written by mcc::WriteMeshCSV: the faces z = 1 m,
   y = 10 m and x = 20 m are visible), the strip load, the drained top, the boundary conditions (u_x = 0 at x = 0
   and x = 20 m, u_z = 0 on the faces z = 0 and z = 1 m, fixed and impermeable base), the settlement points at
   x = 0, 2, 4, 6 m (vertices of the face z = 0) and the elements of the zones pp1 and pp2
   (embankment_monitor.csv); on the right, one Hex20-Hex8 element with its 20 displacement nodes and its 8 pore
   pressure nodes.
-- fig13_embankment_history: Fig. 13, histories from the end of the undrained loading (t = 0) to t = 1e8 s
+- fig13_embankment_history: histories from the end of the undrained loading (t = 0) to t = 1e8 s
   (embankment_history.csv): (a) settlements of the top at x = 0, 2, 4, 6 m, (b) pore pressures in the zones pp1
-  and pp2, with pp2 against log t in the inset (Mandel-Cryer effect). Markers: the FLAC3D histories, digitized
+  and pp2, with pp2 against log t in the inset (Mandel-Cryer effect). Dashed lines: the Abaqus analysis
+  (reference/abaqus/abaqus_history.csv). Markers: the FLAC3D histories, digitized
   (reference/flac_historicos_digitalizados.json, the file dados/ of the Python code), with the FLAC3D values at
-  the end of the loading (Table 8) at t = 0. The numbers of the discussion read from the FLAC3D histories (share of
+  the end of the loading at t = 0. The numbers of the discussion read from the FLAC3D histories (share of
   the excess pore pressure of pp2 dissipated and of the consolidation settlement at x = 0 developed at t = 2.5e5 s
-  and 1e6 s), with those of this work, are printed and written to fig13_flac3d_numbers.csv in the output directory.
-- fig14_embankment_fields: Fig. 14, fields on the face z = 0 (embankment_nodal_<state>.csv, vertices of the face,
+  and 1e6 s), with those of this work, are printed and written to fig13_flac3d_numbers.csv, and the table of the
+  article (this work, Abaqus and FLAC3D at the end of the loading and at t = 1e8 s, and the peak of pp2) to
+  embankment_comparison_table.csv in the output directory.
+- fig14_embankment_fields: fields on the face z = 0 (embankment_nodal_<state>.csv, vertices of the face,
   contours on the two triangles of each quadrilateral, as in the Python code; the fields do not depend on z):
   (a) excess pore pressure at the end of the undrained loading, (b) at t = 1e6 s, (c) plastic integration points
   at t = 1e8 s in the layer of points nearest to the face z = 0 (embankment_gauss_t1e8.csv: type 1 subcritical,
   2 supercritical; the three layers of points are identical), (d) settlement at t = 1e8 s.
+- fig15_embankment_profiles: comparison with Abaqus along lines of the mesh (embankment_nodal_<state>.csv and
+  reference/abaqus/abaqus_nodal_<state>.csv): (a) settlement of the top against x at the end of the undrained
+  loading, at t = 1e6 s and at t = 1e8 s; (b) excess pore pressure against depth on the vertical x = 2 m at the end
+  of the loading and at t = 1e6 s (the Abaqus frame closest to 1e6 s is at 9.85e5 s). Lines: this work; markers:
+  Abaqus.
 """
 import csv
 import os
@@ -99,6 +109,25 @@ def consolidation_history(run):
     iu = int(np.nonzero(h['t'] <= 0.0)[0][-1])
     cols = ['t'] + [f's_x{x}' for x in X_SETTLEMENT] + ['pp1', 'pp2']
     return np.column_stack([h[c] for c in cols])[iu:]
+
+
+def abaqus_history(key):
+    """History of the Abaqus analysis (reference/abaqus/abaqus_history.csv): t (s after the start of the loading)
+    and the column key (s_x0 ... s_x6 in m, pp1, pp2 in kPa), from the end of the loading (t = 1 s, taken as t = 0)
+    on; None if the file is missing."""
+    path = os.path.join(HERE, 'reference', 'abaqus', 'abaqus_history.csv')
+    if not os.path.exists(path):
+        return None
+    h = read_csv(path)
+    sel = h['t'] >= 1.0 - 1e-9
+    t = h['t'][sel] - 1.0
+    return t, h[key][sel]
+
+
+def abaqus_nodal(tag):
+    """Nodal fields of the Abaqus analysis at a state (reference/abaqus/abaqus_nodal_<tag>.csv) or None."""
+    path = os.path.join(HERE, 'reference', 'abaqus', f'abaqus_nodal_{tag}.csv')
+    return read_csv(path) if os.path.exists(path) else None
 
 
 def flac_history(flac, key, t0=True):
@@ -319,28 +348,39 @@ def fig_embankment_history(run, out):
     ax = axs[0]
     cols = [C1, C2, C3, C4]
     hh = []
+    aba = {key: abaqus_history(key) for key in ('s_x0', 's_x2', 's_x4', 's_x6', 'pp1', 'pp2')}
+    has_abaqus = all(v is not None for v in aba.values())
     for k, x in enumerate(X_SETTLEMENT):
         ax.plot(hc[:, 0] / 1e6, hc[:, 1 + k], color=cols[k], lw=1.4)
+        if has_abaqus:
+            ta, va = aba[f's_x{x}']
+            ax.plot(ta / 1e6, va, color=cols[k], lw=1.1, ls=(0, (4, 2.2)))
         t, v = flac_history(flac, f'uz_x{x}')
         sel = np.linspace(0, len(t) - 1, 14).astype(int)
         ax.plot(t[sel] / 1e6, v[sel], 'o', ms=3.3, mfc='white', mec=cols[k], mew=0.8)
         hh.append(Line2D([], [], color=cols[k], lw=1.4, label=f'$x$ = {x} m'))
     hh += [Line2D([], [], color=INK2, lw=1.4, label='this work'),
+           Line2D([], [], color=INK2, lw=1.1, ls=(0, (4, 2.2)), label='Abaqus'),
            Line2D([], [], ls='', marker='o', ms=3.3, mfc='white', mec=INK2, label='FLAC3D')]
-    ax.set(xlabel='$t$ (10$^6$ s)', ylabel='settlement (m)', xlim=(0, 100), ylim=(-0.06, 0.40))
+    ax.set(xlabel='$t$ (10$^6$ s)', ylabel='settlement (m)', xlim=(0, 100), ylim=(-0.06, 0.42))
     ax.set_yticks([0, 0.1, 0.2, 0.3])
     ax.set_title('(a) surface settlement', fontsize=8)
-    ax.legend(handles=hh, loc='upper center', ncol=3, fontsize=6.9, columnspacing=1.0, handlelength=1.6)
+    ax.legend(handles=hh, loc='upper center', ncol=4, fontsize=6.6, columnspacing=0.9, handlelength=1.5)
     # final values at x = 0 (the difference discussed in the text); the FLAC3D label is placed above the value it
     # prints (last digitized point, rounded to mm), as in figs.py
     s_flac = round(float(flac_history(flac, 'uz_x0', t0=False)[1][-1]), 3)
-    ax.text(99, hc[-1, 1] + 0.012, f'this work, $x$ = 0: {hc[-1, 1]:.3f} m', ha='right', va='bottom',
-            fontsize=6.8, color=INK)
+    lab = f'this work, $x$ = 0: {hc[-1, 1]:.3f} m'
+    if has_abaqus:
+        lab += f'; Abaqus: {aba["s_x0"][1][-1]:.3f} m'
+    ax.text(99, hc[-1, 1] + 0.012, lab, ha='right', va='bottom', fontsize=6.8, color=INK)
     ax.text(99, s_flac + 0.010, f'FLAC3D, $x$ = 0: {s_flac:.3f} m', ha='right', va='bottom', fontsize=6.8,
             color=INK)
     ax = axs[1]
     for k, key in enumerate(('pp1', 'pp2')):
         ax.plot(hc[:, 0] / 1e6, hc[:, 5 + k], color=cols[k], lw=1.4)
+        if has_abaqus:
+            ta, va = aba[key]
+            ax.plot(ta / 1e6, va, color=cols[k], lw=1.1, ls=(0, (4, 2.2)))
         t, v = flac_history(flac, key)
         sel = np.linspace(0, len(t) - 1, 14).astype(int)
         ax.plot(t[sel] / 1e6, v[sel], 'o', ms=3.3, mfc='white', mec=cols[k], mew=0.8)
@@ -348,10 +388,13 @@ def fig_embankment_history(run, out):
     ax.set(xlabel='$t$ (10$^6$ s)', ylabel='pore pressure (kPa)', xlim=(0, 112), ylim=(0, 70))
     ax.set_xticks([0, 20, 40, 60, 80, 100])
     ax.set_title('(b) pore pressure in zones pp1 and pp2', fontsize=8)
-    ax.legend(handles=hh[-2:], loc='center', bbox_to_anchor=(0.62, 0.22), fontsize=7)
+    ax.legend(handles=hh[-3:], loc='center', bbox_to_anchor=(0.62, 0.20), fontsize=6.8)
     # detail in log scale: Mandel-Cryer effect in pp2 and early dissipation of FLAC3D
     axin = ax.inset_axes([0.40, 0.53, 0.57, 0.37])
     axin.semilogx(hc[1:, 0], hc[1:, 6], color=C2, lw=1.3)
+    if has_abaqus:
+        ta, va = aba['pp2']
+        axin.semilogx(ta[ta > 0], va[ta > 0], color=C2, lw=1.0, ls=(0, (4, 2.2)))
     t, v = flac_history(flac, 'pp2', t0=False)
     tk = np.unique(np.searchsorted(t, np.logspace(np.log10(t[0]), 8, 9)).clip(0, len(t) - 1))
     axin.semilogx(t[tk], v[tk], 'o', ms=3.0, mfc='white', mec=C2, mew=0.8)
@@ -370,7 +413,44 @@ def fig_embankment_history(run, out):
     flac_numbers(flac, hc, out)
     print('Fig. 13: t = 1e8 s: settlements %s m, pp1 %.4f, pp2 %.4f kPa; pp2 %.3f -> %.3f kPa at t = %.3g s'
           % (np.array2string(hc[-1, 1:5], precision=6), hc[-1, 5], hc[-1, 6], hc[0, 6], hc[km, 6], hc[km, 0]))
+    comparison_table(hc, aba if has_abaqus else None, flac, out)
     save(fig, out, 'fig13_embankment_history')
+
+
+def comparison_table(hc, aba, flac, out):
+    """Table of the article: settlements (m) and pore pressures (kPa) at the end of the undrained loading and at
+    t = 1e8 s, and the peak of pp2 after the loading (Mandel-Cryer effect) with its time, for this work, Abaqus and
+    FLAC3D (digitized histories; the FLAC3D values at the end of the loading are those read from the example).
+    Written to <out>/embankment_comparison_table.csv and printed."""
+    keys = ['s_x0', 's_x2', 's_x4', 's_x6', 'pp1', 'pp2']
+    fkeys = ['uz_x0', 'uz_x2', 'uz_x4', 'uz_x6', 'pp1', 'pp2']
+    rows = []
+    for k, (key, fkey) in enumerate(zip(keys, fkeys)):
+        this0, this1 = hc[0, 1 + k], hc[-1, 1 + k]
+        if aba is not None:
+            ta, va = aba[key]
+            ab0, ab1 = va[0], va[-1]
+        else:
+            ab0 = ab1 = float('nan')
+        tf, vf = flac_history(flac, fkey, t0=False)
+        rows.append((key, this0, ab0, FLAC_T0[fkey], this1, ab1, vf[-1]))
+    km = int(np.argmax(hc[:, 6]))
+    peak = [('pp2_peak', hc[km, 6], hc[km, 0])]
+    if aba is not None:
+        ta, va = aba['pp2']
+        ka = int(np.argmax(va))
+        peak.append(('pp2_peak_abaqus', va[ka], ta[ka]))
+    with open(os.path.join(out, 'embankment_comparison_table.csv'), 'w') as f:
+        f.write('quantity,this_work_t0,abaqus_t0,flac3d_t0,this_work_t1e8,abaqus_t1e8,flac3d_t1e8\n')
+        for r in rows:
+            f.write(r[0] + ',' + ','.join('%.6g' % v for v in r[1:]) + '\n')
+        for name, v, t in peak:
+            f.write('%s,%.6g,%.6g\n' % (name, v, t))
+    print('comparison table (end of loading | t = 1e8 s; this work, Abaqus, FLAC3D):')
+    for r in rows:
+        print('  %-5s %8.4f %8.4f %8.4f | %8.4f %8.4f %8.4f' % r)
+    for name, v, t in peak:
+        print('  %s: %.2f kPa at t = %.3g s' % (name, v, t))
 
 
 # =========================================================================================== Fig. 14
@@ -462,6 +542,71 @@ def fig_embankment_fields(run, out):
     save(fig, out, 'fig14_embankment_fields')
 
 
+# =========================================================================================== Fig. 15
+def fig_embankment_profiles(run, out):
+    """Fig. 15: surface settlement against x and excess pore pressure against depth on the vertical x = 2 m, this
+    work (lines) against Abaqus (markers)."""
+    tags = (('undrained', 'end of undrained loading', C1, 'o'), ('t1e6', '$t$ = 10$^6$ s', C2, 's'),
+            ('t1e8', '$t$ = 10$^8$ s', C3, '^'))
+    nodal = {tag: face_z0(read_csv(os.path.join(run, f'embankment_nodal_{tag}.csv'))) for tag, *_ in tags}
+    aba = {tag: abaqus_nodal(tag) for tag, *_ in tags}
+    if any(v is None for v in aba.values()):
+        print('skipped fig15_embankment_profiles: reference/abaqus/abaqus_nodal_<tag>.csv missing')
+        return
+    fig, axs = plt.subplots(1, 2, figsize=(TEXTW, 2.6), gridspec_kw=dict(width_ratios=(1.45, 1)))
+    ax = axs[0]
+    hh = []
+    xline = 2.0
+    for tag, label, col, mk in tags:
+        n = nodal[tag]
+        top = np.abs(n['y'] - 10.0) < 1e-9
+        o = np.argsort(n['x'][top])
+        ax.plot(n['x'][top][o], -n['uy'][top][o], color=col, lw=1.4)
+        a = aba[tag]
+        atop = np.abs(a['y'] - 10.0) < 1e-9
+        xa, sa = a['x'][atop], -a['uy'][atop]
+        o = np.argsort(xa)
+        sel = o[::2]  # the corner nodes (every 1 m)
+        ax.plot(xa[sel], sa[sel], mk, ms=3.4, mfc='white', mec=col, mew=0.8)
+        hh.append(Line2D([], [], color=col, lw=1.4, marker=mk, ms=3.4, mfc='white', mec=col, mew=0.8, label=label))
+        ks = np.argmin(np.abs(n['x'][top]))
+        print('Fig. 15: %s: settlement at x = 0: this work %.4f m, Abaqus %.4f m; largest |difference| on the top '
+              '%.4f m' % (tag, -n['uy'][top][ks], sa[np.argmin(np.abs(xa))],
+                          np.max(np.abs(np.interp(xa[sel], n['x'][top][np.argsort(n['x'][top])],
+                                                  -n['uy'][top][np.argsort(n['x'][top])]) - sa[sel]))))
+    hh += [Line2D([], [], color=INK2, lw=1.4, label='this work'),
+           Line2D([], [], ls='', marker='o', ms=3.4, mfc='white', mec=INK2, label='Abaqus')]
+    ax.axhline(0, color=GRID, lw=0.6)
+    ax.plot([0, 4], [-0.062, -0.062], color=C2, lw=3.2, solid_capstyle='butt', clip_on=False, zorder=6)
+    ax.text(4.4, -0.062, '$q$ = 50 kPa on 0 $\\leq x \\leq$ 4 m', ha='left', va='center', fontsize=6.8, color=INK)
+    ax.invert_yaxis()
+    ax.set(xlabel='$x$ (m)', ylabel='settlement (m)', xlim=(0, 20), ylim=(0.30, -0.075))
+    ax.set_yticks([0, 0.1, 0.2, 0.3])
+    ax.set_title('(a) settlement of the surface', fontsize=8)
+    ax.legend(handles=hh, loc='lower right', fontsize=6.6, ncol=1, handlelength=2.2)
+    ax = axs[1]
+    for tag, label, col, mk in tags[:2]:
+        n = nodal[tag]
+        line = np.abs(n['x'] - xline) < 1e-9
+        o = np.argsort(n['y'][line])
+        ax.plot(n['p_excess'][line][o], n['y'][line][o], color=col, lw=1.4)
+        a = aba[tag]
+        aline = (np.abs(a['x'] - xline) < 1e-9) & np.isfinite(a['p_excess'])
+        o = np.argsort(a['y'][aline])
+        ax.plot(a['p_excess'][aline][o], a['y'][aline][o], mk, ms=3.4, mfc='white', mec=col, mew=0.8)
+        pmax = np.max(n['p_excess'][line])
+        amax = np.max(a['p_excess'][aline])
+        print('Fig. 15: %s: largest excess pore pressure on x = %g m: this work %.2f kPa, Abaqus %.2f kPa'
+              % (tag, xline, pmax, amax))
+    ax.set(xlabel='excess pore pressure (kPa)', ylabel='$y$ (m)', xlim=(0, 60), ylim=(0, 10))
+    ax.set_yticks([0, 2, 4, 6, 8, 10])
+    ax.set_title(f'(b) isochrones on $x$ = {xline:g} m', fontsize=8)
+    ax.legend(handles=[Line2D([], [], color=c, lw=1.4, marker=m, ms=3.4, mfc='white', mec=c, mew=0.8, label=l)
+                       for _, l, c, m in tags[:2]], loc='lower right', fontsize=6.6, handlelength=2.2)
+    fig.tight_layout(w_pad=1.4)
+    save(fig, out, 'fig15_embankment_profiles')
+
+
 # (function, CSV files)
 FIGURES = (
     (fig_embankment_model, ('embankment_mesh_nodes.csv', 'embankment_mesh_elements.csv', 'embankment_mesh_faces.csv',
@@ -469,11 +614,13 @@ FIGURES = (
     (fig_embankment_history, ('embankment_history.csv',)),
     (fig_embankment_fields, ('embankment_nodal_undrained.csv', 'embankment_nodal_t1e6.csv',
                              'embankment_nodal_t1e8.csv', 'embankment_gauss_t1e8.csv')),
+    (fig_embankment_profiles, ('embankment_nodal_undrained.csv', 'embankment_nodal_t1e6.csv',
+                               'embankment_nodal_t1e8.csv')),
 )
 
 if __name__ == '__main__':
-    args = arguments('Figs. 12 to 14 of the article (embankment on a Cam-Clay foundation) from the CSV files of '
-                     'EmbankmentConsolidation.')
+    args = arguments('Figures of the embankment on a Cam-Clay foundation from the CSV files of '
+                     'EmbankmentConsolidation and the Abaqus reference files.')
     for function, files in FIGURES:
         missing = [f for f in files if not os.path.exists(os.path.join(args.rundir, f))]
         if missing:

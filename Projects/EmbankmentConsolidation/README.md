@@ -280,3 +280,31 @@ shared machine), so that the run times follow the iterations.
 
 The program prints these comparisons; `embankment_summary.csv` lists every number with the value of the 2D model
 of v0.6.
+
+## Comparison with Abaqus (v0.9 of the article, Sect. 6.4)
+
+The folder `reference/abaqus` holds the Abaqus/Standard analysis of the same problem (plane strain, 20 x 10 CPE8RP
+elements of 1 m, same initial stresses, pore pressures, boundary conditions, fluid modulus and mobility; the load
+ramped in a consolidation step of 1 s with the top drained, then consolidation to 1e8 s with automatic time stepping):
+`aterro_camclay.inp` (the input file, whose heading comments explain the adaptation of the FLAC3D data: e0 = 3/7
+kept, lambda and kappa scaled layer by layer by (1 + e0)/v0 to preserve v0/kappa and v0/(lambda - kappa)),
+`metadados.json` (ODB metadata), `abaqus_history.csv` (t after the start of the loading, settlements at x = 0, 2, 4,
+6 m relative to the geostatic step, pore pressures pp1 and pp2 as the means of the four corner nodes of the elements
+centred at (0.5, 9.5) and (1.5, 7.5) m), `abaqus_nodal_{undrained,t1e5,t1e6,t1e8}.csv` (nodal displacements and,
+at the corner nodes, total and excess pore pressures at the end of the loading, at 1e5 s, at the frame closest to
+1e6 s and at 1e8 s), `abaqus_frames.csv`, `abaqus_nodes.csv` and `abaqus_elements.csv`. They are written by
+`abaqus_extract.py` from the CSV export of the ODB (the 181 MB zip with all the fields is not in the repository).
+
+`plot_figures.py` draws the Abaqus histories as dashed lines in `fig13_embankment_history`, writes the table of the
+article (`embankment_comparison_table.csv`: this work, Abaqus and FLAC3D at the end of the loading and at 1e8 s, and
+the peak of pp2) and the new figure `fig15_embankment_profiles` (settlement of the surface at the end of the loading,
+at 1e6 s and at 1e8 s; excess pore pressure on the vertical x = 2 m), this work against Abaqus.
+
+| | This work | Abaqus | FLAC3D |
+|---|---|---|---|
+| settlement x = 0, end of loading / 1e8 s (m) | 0.153 / 0.275 | 0.152 / 0.273 | 0.140 / 0.193 |
+| pp1, end of loading (kPa) | 33.1 | 33.4 | 18.1 |
+| pp2, end of loading / peak (kPa) | 55.7 / 58.8 at 3.2e5 s | 55.5 / 59.3 at 4.2e5 s | 62.4 / none |
+
+The two finite element solutions agree to within 3 mm at the monitored points (9 mm along the whole surface at
+1e8 s) and 0.6 kPa; the published FLAC3D histories settle less and dissipate the excess pore pressure much earlier.
