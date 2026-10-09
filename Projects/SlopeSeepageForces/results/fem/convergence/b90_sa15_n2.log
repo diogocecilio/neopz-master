@@ -1,0 +1,67 @@
+inserting uniform refpattern: triangle
+inserting uniform refpattern: line
+********
+[Time for assembly:113.723822ms]
+[Time for solving:294.216971ms]
+hydraulic domain: H 5 m, beta 90 deg, h_w 5 m, box x in [-50, 10], y in [-35, 0]
+K = diag(1, 1), alpha 1, gamma_w 9.81, order 2, mesh gen; far sides: left zero, base zero, right noflow
+seepage: 17487 equations, J/(kh H^2 gw^2) 0.725481, min p -1.04942e-11 kPa, 0.860763 s
+stability domain: H 5 m, beta 90 deg, h_w 5 m, box x in [-7.5, 10], y in [-12.5, 0]
+stability mesh gen: 125 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.002
+total pore pressure at the 750 integration points of the initial stability mesh: 0 with p < 0, min p 0.00563894 kPa
+[GI] p = 0.5 converged (6 it.)
+[GI] p = 1.25 failed (13 it.)
+[GI] p = 0.875 failed (17 it.)
+[GI] p = 0.6875 converged (28 it.)
+[GI] p = 0.875 failed (10 it.)
+[GI] p = 0.78125 failed (12 it.)
+[GI] p = 0.734375 failed (14 it.)
+[GI] p = 0.710938 failed (20 it.)
+[GI] p = 0.699219 failed (32 it.)
+[GI] p = 0.693359 failed (101 it.)
+[GI] p = 0.69043 converged (31 it.)
+[GI] p = 0.693359 converged (91 it.)
+[GI] p = 0.696289 failed (11 it.)
+[GI] p = 0.694824 failed (11 it.)
+[GI] last converged p = 0.693359
+[FS] cycle 0: 568 equations, lambda GI 0.693359 (8.81851 s); GI plastic zone x in [-4.94088, 0], y in [-5, 0] (1 %: x in [-4.94088, 0], y in [-5, 0])
+[GI] p = 0.5 converged (7 it.)
+[GI] p = 1.25 failed (12 it.)
+[GI] p = 0.875 failed (13 it.)
+[GI] p = 0.6875 failed (22 it.)
+[GI] p = 0.59375 converged (9 it.)
+[GI] p = 0.6875 failed (21 it.)
+[GI] p = 0.640625 failed (40 it.)
+[GI] p = 0.617188 converged (29 it.)
+[GI] p = 0.640625 failed (22 it.)
+[GI] p = 0.628906 failed (42 it.)
+[GI] p = 0.623047 converged (62 it.)
+[GI] p = 0.628906 failed (20 it.)
+[GI] p = 0.625977 failed (34 it.)
+[GI] p = 0.624512 failed (101 it.)
+[GI] last converged p = 0.623047
+[FS] cycle 1: 854 equations, lambda GI 0.623047 (16.844 s); GI plastic zone x in [-3.92329, 0], y in [-5, 0] (1 %: x in [-3.92329, 0], y in [-5, 0])
+[GI] p = 0.5 converged (9 it.)
+[GI] p = 1 failed (10 it.)
+[GI] p = 0.75 failed (14 it.)
+[GI] p = 0.625 failed (24 it.)
+[GI] p = 0.5625 converged (9 it.)
+[GI] p = 0.625 failed (23 it.)
+[GI] p = 0.59375 failed (61 it.)
+[GI] p = 0.578125 converged (12 it.)
+[GI] p = 0.59375 failed (55 it.)
+[GI] p = 0.585938 converged (55 it.)
+[GI] p = 0.59375 failed (32 it.)
+[GI] p = 0.589844 failed (101 it.)
+[GI] p = 0.587891 converged (51 it.)
+[GI] p = 0.589844 failed (87 it.)
+[GI] last converged p = 0.587891
+[FS] cycle 2: 1564 equations, lambda GI 0.587891 (45.265 s); GI plastic zone x in [-3.92329, 0], y in [-5, 0] (1 %: x in [-3.92329, 0], y in [-5, 0])
+
+cycle  equations  lambda_GI (= Gamma_FEM)  H_crit (m)  gamma H_crit / c  time (s)  plastic zone / H (mark; 1 %): x_min  x_max - x_T  y_min - y_T
+  0  568  0.693359  3.4668  6.93359  8.81851  -0.988177  0  0;  -0.988177  0  0
+  1  854  0.623047  3.11523  6.23047  16.844  -0.784658  0  0;  -0.784658  0  0
+  2  1564  0.587891  2.93945  5.87891  45.265  -0.784658  0  0;  -0.784658  0  0
+box / H: x_min -1.5, x_max - x_T 2, y_min - y_T -1.5
+lambda extrapolated to h -> 0 from the last cycles: order 1 0.552734, observed order 1 -> 0.552734, linear in 1 / sqrt(neq) 0.488378
+total time 71.8705 s

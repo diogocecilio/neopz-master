@@ -1,0 +1,816 @@
+
+=== case: H=5 beta=20 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+***
+[Time for assembly:34.520346ms]
+[Time for solving:37.332590ms]
+limit analysis: H 5 m, beta 20 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 23.7374] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 0: 6138 equations, J/(kh H^2 gw^2) 0.49425125, 0.22 s
+Gamma = 6.99252747  (H_crit = Gamma H = 34.96263735 m, gamma H_crit / c = 69.9252747), mechanism I
+  theta1 1.250039116, theta2 2.160177786, eta 1, theta_O 1.250039116
+  A = (-8.04245559e-13, 0), B = (13.7373871, 5), C = (3.45015588, -10.38484198) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 10.94296662, r_h 18.50730907, L = OA 8.04245559e-13
+  P_mr 1929.261855, P_gamma -514.5311115, P_u 790.434476 (per unit omega, fine)
+  best by class: I 6.992527474, II 6.99252747; seed spread 3.3e-15; at search bound s=lower
+evaluations 44396, 3.433 s (field 0.2197 s)
+
+=== case: H=5 beta=20 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+inserting uniform refpattern: triangle
+inserting uniform refpattern: line
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+************
+[Time for assembly:137.748410ms]
+Entering Solve
+[Time for solving:619.755918ms]
+limit analysis: H 5 m, beta 20 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 23.7374] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 1: 24207 equations, J/(kh H^2 gw^2) 0.49424968, 1.52 s
+Gamma = 6.992533435  (H_crit = Gamma H = 34.96266717 m, gamma H_crit / c = 69.92533435), mechanism I
+  theta1 1.250030156, theta2 2.160184033, eta 1, theta_O 1.250030156
+  A = (-1.265654248e-13, 0), B = (13.7373871, 5), C = (3.450178733, -10.38459981) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 10.94274401, r_h 18.50709505, L = OA 1.265654248e-13
+  P_mr 1929.235445, P_gamma -514.5350955, P_u 790.4344478 (per unit omega, fine)
+  best by class: I 6.992533435, II 6.992533435; seed spread 5.3e-15; at search bound s=lower
+evaluations 29202, 1.098 s (field 1.52 s)
+
+=== case: H=5 beta=30 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+**
+[Time for assembly:28.297880ms]
+[Time for solving:31.695589ms]
+limit analysis: H 5 m, beta 30 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 18.6603] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 0: 5406 equations, J/(kh H^2 gw^2) 0.53033151, 0.181 s
+Gamma = 2.33285259  (H_crit = Gamma H = 11.66426295 m, gamma H_crit / c = 23.3285259), mechanism I
+  theta1 0.8969787994, theta2 2.144079682, eta 1, theta_O 0.9821439837
+  A = (-0.5413979736, 0), B = (8.660254038, 5), C = (2.761592205, -4.13656246) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 5.293476467, r_h 10.87524643, L = OA 0.5413979736
+  P_mr 781.5887227, P_gamma -101.6814156, P_u 436.7170394 (per unit omega, fine)
+  best by class: I 2.33285259, II 2.33285259; seed spread 2.7e-15; at search bound s=lower
+evaluations 19078, 0.8842 s (field 0.1806 s)
+
+=== case: H=5 beta=30 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+**********
+[Time for assembly:122.352878ms]
+Entering Solve
+[Time for solving:494.494936ms]
+limit analysis: H 5 m, beta 30 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 18.6603] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 1: 21319 equations, J/(kh H^2 gw^2) 0.53032788, 1.19 s
+Gamma = 2.332813241  (H_crit = Gamma H = 11.66406621 m, gamma H_crit / c = 23.32813241), mechanism I
+  theta1 0.896968566, theta2 2.144086045, eta 1, theta_O 0.9821351084
+  A = (-0.541400718, 0), B = (8.660254038, 5), C = (2.761576425, -4.136459321) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 5.293387736, r_h 10.87516834, L = OA 0.541400718
+  P_mr 781.5821486, P_gamma -101.6840575, P_u 436.7225144 (per unit omega, fine)
+  best by class: I 2.332813241, II 2.332813241; seed spread 1.1e-15; at search bound s=lower
+evaluations 19675, 1.064 s (field 1.19 s)
+
+=== case: H=5 beta=45 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+**
+[Time for assembly:27.105193ms]
+[Time for solving:32.249707ms]
+limit analysis: H 5 m, beta 45 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 15] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 0: 4889 equations, J/(kh H^2 gw^2) 0.58262398, 0.205 s
+Gamma = 1.326253394  (H_crit = Gamma H = 6.63126697 m, gamma H_crit / c = 13.26253394), mechanism I
+  theta1 0.6711284052, theta2 1.970439722, eta 1, theta_O 0.8889497564
+  A = (-1.047464863, 0), B = (5, 5), C = (1.899660229, -2.340289892) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 3.763310123, r_h 7.968184385, L = OA 1.047464863
+  P_mr 427.2056492, P_gamma 39.74848525, P_u 282.3661658 (per unit omega, fine)
+  best by class: I 1.326253394, II 1.326253394; seed spread 1.1e-15; at search bound s=upper
+evaluations 16585, 0.855 s (field 0.205 s)
+
+=== case: H=5 beta=45 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+*********
+[Time for assembly:111.668917ms]
+[Time for solving:433.311011ms]
+limit analysis: H 5 m, beta 45 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 15] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 1: 19273 equations, J/(kh H^2 gw^2) 0.58260815, 1.06 s
+Gamma = 1.326196597  (H_crit = Gamma H = 6.630982985 m, gamma H_crit / c = 13.26196597), mechanism I
+  theta1 0.671077374, theta2 1.970465876, eta 1, theta_O 0.8889012391
+  A = (-1.047434971, 0), B = (5, 5), C = (1.899575895, -2.339953974) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 3.763011778, r_h 7.967907753, L = OA 1.047434971
+  P_mr 427.1869172, P_gamma 39.7418242, P_u 282.3724974 (per unit omega, fine)
+  best by class: I 1.326196597, II 1.326196597; seed spread 1.1e-15; at search bound s=upper
+evaluations 17228, 0.9247 s (field 1.062 s)
+
+=== case: H=5 beta=60 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+**
+[Time for assembly:23.467324ms]
+[Time for solving:22.590821ms]
+limit analysis: H 5 m, beta 60 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 12.8868] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 0: 4561 equations, J/(kh H^2 gw^2) 0.63058757, 0.151 s
+Gamma = 0.9571439625  (H_crit = Gamma H = 4.785719813 m, gamma H_crit / c = 9.571439625), mechanism I
+  theta1 0.6192536233, theta2 1.749548552, eta 1, theta_O 0.9505955517
+  A = (-1.526451225, 0), B = (2.886751346, 5), C = (1.58290569, -2.216296211) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 3.818385695, r_h 7.333140153, L = OA 1.526451225
+  P_mr 339.4375761, P_gamma 98.53928149, P_u 256.0965825 (per unit omega, fine)
+  best by class: I 0.9571439625, II 0.9571439625; seed spread 2.2e-16; at search bound s=upper
+evaluations 17660, 0.8201 s (field 0.1509 s)
+
+=== case: H=5 beta=60 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+*********
+[Time for assembly:98.470554ms]
+[Time for solving:378.660039ms]
+limit analysis: H 5 m, beta 60 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 12.8868] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 1: 17977 equations, J/(kh H^2 gw^2) 0.63055019, 0.98 s
+Gamma = 0.9570701262  (H_crit = Gamma H = 4.785350631 m, gamma H_crit / c = 9.570701262), mechanism I
+  theta1 0.6192175988, theta2 1.749549932, eta 1, theta_O 0.9505371401
+  A = (-1.526334355, 0), B = (2.886751346, 5), C = (1.582936949, -2.216066277) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 3.818182524, r_h 7.332908324, L = OA 1.526334355
+  P_mr 339.4215678, P_gamma 98.53553181, P_u 256.1109653 (per unit omega, fine)
+  best by class: I 0.9570701262, II 0.9570701262; seed spread 8.9e-16; at search bound s=upper
+evaluations 17558, 0.9969 s (field 0.9799 s)
+
+=== case: H=5 beta=75 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+**
+[Time for assembly:28.207192ms]
+[Time for solving:22.361482ms]
+limit analysis: H 5 m, beta 75 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 11.3397] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 0: 4499 equations, J/(kh H^2 gw^2) 0.67706835, 0.156 s
+Gamma = 0.7281567132  (H_crit = Gamma H = 3.640783566 m, gamma H_crit / c = 7.281567132), mechanism I
+  theta1 0.6685519996, theta2 1.509187867, eta 1, theta_O 1.034474446
+  A = (-2.077545466, 0), B = (1.339745962, 5), C = (1.839017781, -3.093693355) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 4.991032582, r_h 8.109077905, L = OA 2.077545466
+  P_mr 353.7431297, P_gamma 175.4909944, P_u 310.3153208 (per unit omega, fine)
+  best by class: I 0.7281567132, II 0.7281567132; seed spread 2.2e-16; at search bound s=lower
+evaluations 20671, 0.8499 s (field 0.1565 s)
+
+=== case: H=5 beta=75 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+********
+[Time for assembly:97.777817ms]
+[Time for solving:344.792184ms]
+limit analysis: H 5 m, beta 75 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 11.3397] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 1: 17741 equations, J/(kh H^2 gw^2) 0.67700699, 0.9 s
+Gamma = 0.7281017496  (H_crit = Gamma H = 3.640508748 m, gamma H_crit / c = 7.281017496), mechanism I
+  theta1 0.6684622605, theta2 1.509252349, eta 1, theta_O 1.034467911
+  A = (-2.077545783, 0), B = (1.339745962, 5), C = (1.838430151, -3.092658797) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 4.989930455, r_h 8.108009146, L = OA 2.077545783
+  P_mr 353.6882942, P_gamma 175.4578328, P_u 310.3098424 (per unit omega, fine)
+  best by class: I 0.7281017496, II 0.7281017496; seed spread 2.2e-16; at search bound s=upper
+evaluations 20089, 0.9113 s (field 0.8998 s)
+
+=== case: H=5 beta=90 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+**
+[Time for assembly:23.399074ms]
+[Time for solving:21.813316ms]
+limit analysis: H 5 m, beta 90 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 10] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 0: 4438 equations, J/(kh H^2 gw^2) 0.72558915, 0.149 s
+Gamma = 0.5513123398  (H_crit = Gamma H = 2.756561699 m, gamma H_crit / c = 5.513123398), mechanism I
+  theta1 0.7712980753, theta2 1.255354788, eta 1, theta_O 1.038831102
+  A = (-2.73820512, 0), B = (0, 5), C = (3.662343934, -6.222550444) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 8.926766616, r_h 11.80501595, L = OA 2.73820512
+  P_mr 516.7680913, P_gamma 388.5037687, P_u 548.838014 (per unit omega, fine)
+  best by class: I 0.5513123398, II 3.425669114; seed spread 6.7e-16; at search bound s=upper
+evaluations 32927, 1.986 s (field 0.1491 s)
+
+=== case: H=5 beta=90 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+********
+[Time for assembly:101.026219ms]
+[Time for solving:316.612742ms]
+limit analysis: H 5 m, beta 90 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 10] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 1: 17487 equations, J/(kh H^2 gw^2) 0.72548082, 0.87 s
+Gamma = 0.5512663398  (H_crit = Gamma H = 2.756331699 m, gamma H_crit / c = 5.512663398), mechanism I
+  theta1 0.7712283836, theta2 1.25537706, eta 1, theta_O 1.038806389
+  A = (-2.738079007, 0), B = (0, 5), C = (3.661465675, -6.220706533) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 8.924761168, r_h 11.80299055, L = OA 2.738079007
+  P_mr 516.6640362, P_gamma 388.4244144, P_u 548.8068273 (per unit omega, fine)
+  best by class: I 0.5512663398, II 3.4243138; seed spread 4.4e-16; at search bound s=upper
+evaluations 25992, 0.9544 s (field 0.8703 s)
+
+=== case: H=5 beta=25 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+**
+[Time for assembly:30.349840ms]
+[Time for solving:32.545898ms]
+limit analysis: H 5 m, beta 25 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 5; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 20.7225] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 0: 5695 equations, J/(kh H^2 gw^2) 0.21251156, 0.195 s
+Gamma = 5.91637216  (H_crit = Gamma H = 29.5818608 m, gamma H_crit / c = 59.1637216), mechanism II
+  theta1 0.939748891, theta2 2.345236226, d / H 0.5548783821, theta_O 0.939748891
+  A = (-7.68274333e-14, 0), B = (13.49692651, 5), C = (3.679307656, -5.03517977) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 6.236212003, r_h 14.03889145, L = OA 7.68274333e-14
+  P_mr 1370.05334, P_gamma -332.3638332, P_u 563.9336707 (per unit omega, fine)
+  best by class: I 6.187727999, II 5.91637216; seed spread 1.4e-05
+evaluations 29321, 1.013 s (field 0.195 s)
+
+=== case: H=5 beta=25 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+***********
+[Time for assembly:119.557596ms]
+Entering Solve
+[Time for solving:500.091469ms]
+limit analysis: H 5 m, beta 25 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 5; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 20.7225] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 1: 22469 equations, J/(kh H^2 gw^2) 0.21250589, 1.24 s
+Gamma = 5.915508261  (H_crit = Gamma H = 29.5775413 m, gamma H_crit / c = 59.15508261), mechanism II
+  theta1 0.9398214225, theta2 2.345206095, d / H 0.5549339821, theta_O 0.9398214225
+  A = (-3.264055692e-13, 0), B = (13.49720451, 5), C = (3.679358829, -5.036016547) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 6.236917833, r_h 14.03964822, L = OA 3.264055692e-13
+  P_mr 1370.161117, P_gamma -332.336326, P_u 563.9582014 (per unit omega, fine)
+  best by class: I 6.186807661, II 5.915508261; seed spread 1.1e-05
+evaluations 29538, 1.145 s (field 1.243 s)
+
+=== case: H=5 beta=40 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+**
+[Time for assembly:26.204107ms]
+[Time for solving:26.386307ms]
+limit analysis: H 5 m, beta 40 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 5; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 15.9588] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 0: 4948 equations, J/(kh H^2 gw^2) 0.23417422, 0.165 s
+Gamma = 2.217732525  (H_crit = Gamma H = 11.08866263 m, gamma H_crit / c = 22.17732525), mechanism I
+  theta1 0.7547572851, theta2 1.993413432, eta 1, theta_O 0.8793494323
+  A = (-0.6838665729, 0), B = (5.958767963, 5), C = (2.404088295, -2.904289748) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 4.239146637, r_h 8.666807022, L = OA 0.6838665729
+  P_mr 494.8744532, P_gamma 24.30113742, P_u 198.8431992 (per unit omega, fine)
+  best by class: I 2.217732525, II 2.217732525; seed spread 6.7e-16; at search bound s=lower
+evaluations 18263, 0.8775 s (field 0.165 s)
+
+=== case: H=5 beta=40 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+*********
+[Time for assembly:104.830523ms]
+[Time for solving:421.443719ms]
+limit analysis: H 5 m, beta 40 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 5; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 15.9588] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 1: 19523 equations, J/(kh H^2 gw^2) 0.23416171, 1.03 s
+Gamma = 2.217489943  (H_crit = Gamma H = 11.08744972 m, gamma H_crit / c = 22.17489943), mechanism I
+  theta1 0.7545452019, theta2 1.99352361, eta 1, theta_O 0.8791295363
+  A = (-0.6837113133, 0), B = (5.958767963, 5), C = (2.403788698, -2.902628154) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 4.237677019, r_h 8.665414549, L = OA 0.6837113133
+  P_mr 494.7733278, P_gamma 24.2758462, P_u 198.8472978 (per unit omega, fine)
+  best by class: I 2.217489943, II 2.217489943; seed spread 2.9e-15; at search bound s=upper
+evaluations 18154, 0.9893 s (field 1.032 s)
+
+=== case: H=5 beta=60 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+**
+[Time for assembly:23.981471ms]
+[Time for solving:22.794744ms]
+limit analysis: H 5 m, beta 60 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 5; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 12.8868] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 0: 4561 equations, J/(kh H^2 gw^2) 0.25274779, 0.153 s
+Gamma = 1.207080711  (H_crit = Gamma H = 6.035403553 m, gamma H_crit / c = 12.07080711), mechanism I
+  theta1 0.6527702086, theta2 1.700362016, eta 1, theta_O 0.9215780827
+  A = (-1.379791995, 0), B = (2.886751346, 5), C = (1.90776061, -2.513612675) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 4.138387465, r_h 7.577123352, L = OA 1.379791995
+  P_mr 348.8917355, P_gamma 107.1825705, P_u 181.8550493 (per unit omega, fine)
+  best by class: I 1.207080711, II 1.207080711; seed spread 2.2e-16; at search bound s=lower
+evaluations 17570, 0.826 s (field 0.1533 s)
+
+=== case: H=5 beta=60 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+*********
+[Time for assembly:121.697036ms]
+[Time for solving:356.110159ms]
+limit analysis: H 5 m, beta 60 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 5; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 12.8868] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 1: 17977 equations, J/(kh H^2 gw^2) 0.25272241, 0.965 s
+Gamma = 1.206965953  (H_crit = Gamma H = 6.034829764 m, gamma H_crit / c = 12.06965953), mechanism I
+  theta1 0.6526610477, theta2 1.700420072, eta 1, theta_O 0.9214935611
+  A = (-1.379720419, 0), B = (2.886751346, 5), C = (1.907431075, -2.512737443) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 4.137537239, r_h 7.576298046, L = OA 1.379720419
+  P_mr 348.8443657, P_gamma 107.1640912, P_u 181.8617631 (per unit omega, fine)
+  best by class: I 1.206965953, II 1.206965953; seed spread 4.4e-16; at search bound s=lower
+evaluations 17857, 0.9643 s (field 0.9648 s)
+
+=== case: H=5 beta=90 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+**
+[Time for assembly:25.055243ms]
+[Time for solving:24.374511ms]
+limit analysis: H 5 m, beta 90 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 5; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 10] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 0: 4438 equations, J/(kh H^2 gw^2) 0.2737008, 0.157 s
+Gamma = 0.607980129  (H_crit = Gamma H = 3.039900645 m, gamma H_crit / c = 6.07980129), mechanism I
+  theta1 0.7834387614, theta2 1.215572558, eta 1, theta_O 1.006832188
+  A = (-2.634338619, 0), B = (0, 5), C = (4.485724197, -7.092215214) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 10.04961746, r_h 12.89741797, L = OA 2.634338619
+  P_mr 565.935297, P_gamma 429.6664068, P_u 501.1786488 (per unit omega, fine)
+  best by class: I 0.607980129, II 3.48348267; seed spread 4.4e-16; at search bound s=upper
+evaluations 26636, 1.032 s (field 0.1571 s)
+
+=== case: H=5 beta=90 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+********
+[Time for assembly:94.236519ms]
+[Time for solving:316.581432ms]
+limit analysis: H 5 m, beta 90 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 5; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 10] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 1: 17487 equations, J/(kh H^2 gw^2) 0.27365416, 0.903 s
+Gamma = 0.6079512527  (H_crit = Gamma H = 3.039756263 m, gamma H_crit / c = 6.079512527), mechanism I
+  theta1 0.7833803893, theta2 1.215623732, eta 1, theta_O 1.006839466
+  A = (-2.634344851, 0), B = (0, 5), C = (4.484124545, -7.089800279) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 10.04678429, r_h 12.89459746, L = OA 2.634344851
+  P_mr 565.7983781, P_gamma 429.5594973, P_u 501.1045577 (per unit omega, fine)
+  best by class: I 0.6079512527, II 3.481214445; seed spread 2.2e-16; at search bound s=upper
+evaluations 26257, 1.056 s (field 0.9027 s)
+
+=== case: H=5 beta=20 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+***
+[Time for assembly:32.986045ms]
+[Time for solving:41.189688ms]
+limit analysis: H 5 m, beta 20 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 10; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 23.7374] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 0: 6138 equations, J/(kh H^2 gw^2) 0.1439209, 0.223 s
+Gamma = 38.30502358  (H_crit = Gamma H = 191.5251179 m, gamma H_crit / c = 383.0502358), mechanism II
+  theta1 1.206153519, theta2 2.341217752, d / H 1.044625979, theta_O 1.206153519
+  A = (-2.575717417e-14, 0), B = (18.96051699, 5), C = (3.982576429, -10.43343788) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 11.1677008, r_h 21.50650386, L = OA 2.575717417e-14
+  P_mr 2925.539186, P_gamma -976.8204972, P_u 1053.195315 (per unit omega, fine)
+  best by class: I inf, II 38.30502358; seed spread 0.002
+evaluations 53175, 4.528 s (field 0.2233 s)
+
+=== case: H=5 beta=20 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+************
+[Time for assembly:130.895091ms]
+Entering Solve
+[Time for solving:567.996790ms]
+limit analysis: H 5 m, beta 20 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 10; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 23.7374] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 1: 24207 equations, J/(kh H^2 gw^2) 0.14391349, 1.36 s
+Gamma = 38.25868042  (H_crit = Gamma H = 191.2934021 m, gamma H_crit / c = 382.5868042), mechanism II
+  theta1 1.206258948, theta2 2.341149521, d / H 1.044612004, theta_O 1.206258948
+  A = (-2.557953849e-13, 0), B = (18.96044712, 5), C = (3.982229317, -10.43583075) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 11.16981261, r_h 21.50841415, L = OA 2.557953849e-13
+  P_mr 2925.84228, P_gamma -976.6235967, P_u 1053.09885 (per unit omega, fine)
+  best by class: I inf, II 38.25868042; seed spread 0.002
+evaluations 53259, 5.136 s (field 1.36 s)
+
+=== case: H=5 beta=30 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+**
+[Time for assembly:28.191216ms]
+[Time for solving:31.223322ms]
+limit analysis: H 5 m, beta 30 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 10; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 18.6603] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 0: 5406 equations, J/(kh H^2 gw^2) 0.15579019, 0.193 s
+Gamma = 4.695395319  (H_crit = Gamma H = 23.47697659 m, gamma H_crit / c = 46.95395319), mechanism II
+  theta1 0.7112912952, theta2 2.420752243, d / H 0.7351282457, theta_O 0.7210227434
+  A = (-0.06592262434, 0), B = (12.33589527, 5), C = (3.321758008, -2.919423396) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 4.47207033, r_h 11.99883067, L = OA 0.06592262434
+  P_mr 1073.633555, P_gamma -238.9723352, P_u 467.6290259 (per unit omega, fine)
+  best by class: I 5.284497548, II 4.695395319; seed spread 3.1e-15
+evaluations 23529, 1.054 s (field 0.1935 s)
+
+=== case: H=5 beta=30 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+**********
+[Time for assembly:122.117966ms]
+Entering Solve
+[Time for solving:492.136922ms]
+limit analysis: H 5 m, beta 30 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 10; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 18.6603] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 1: 21319 equations, J/(kh H^2 gw^2) 0.15578108, 1.15 s
+Gamma = 4.694371624  (H_crit = Gamma H = 23.47185812 m, gamma H_crit / c = 46.94371624), mechanism II
+  theta1 0.7112093874, theta2 2.420890153, d / H 0.735572952, theta_O 0.7209630588
+  A = (-0.06607713309, 0), B = (12.3381188, 5), C = (3.321816019, -2.919122995) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 4.472035227, r_h 12.00025936, L = OA 0.06607713309
+  P_mr 1073.933212, P_gamma -239.2051714, P_u 467.975558 (per unit omega, fine)
+  best by class: I 5.282931534, II 4.694371624; seed spread 6.7e-16
+evaluations 22827, 1.134 s (field 1.152 s)
+
+=== case: H=5 beta=50 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+**
+[Time for assembly:26.986435ms]
+[Time for solving:24.946192ms]
+limit analysis: H 5 m, beta 50 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 10; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 14.1955] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 0: 4706 equations, J/(kh H^2 gw^2) 0.16931993, 0.171 s
+Gamma = 1.768704991  (H_crit = Gamma H = 8.843524953 m, gamma H_crit / c = 17.68704991), mechanism I
+  theta1 0.700308402, theta2 1.827404031, eta 1, theta_O 0.8838851451
+  A = (-0.9758099293, 0), B = (4.195498156, 5), C = (2.184613193, -2.663654274) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 4.133198326, r_h 7.92308369, L = OA 0.9758099293
+  P_mr 395.7036932, P_gamma 74.69433505, P_u 149.0307606 (per unit omega, fine)
+  best by class: I 1.768704991, II 1.768704991; seed spread 2.2e-15; at search bound s=lower
+evaluations 17107, 0.8271 s (field 0.1706 s)
+
+=== case: H=5 beta=50 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+*********
+[Time for assembly:100.679970ms]
+[Time for solving:357.342963ms]
+limit analysis: H 5 m, beta 50 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 10; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 14.1955] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 1: 18559 equations, J/(kh H^2 gw^2) 0.16929309, 0.928 s
+Gamma = 1.768222557  (H_crit = Gamma H = 8.841112783 m, gamma H_crit / c = 17.68222557), mechanism I
+  theta1 0.6999356146, theta2 1.827612589, eta 1, theta_O 0.8835511375
+  A = (-0.9756312107, 0), B = (4.195498156, 5), C = (2.183679734, -2.660703193) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 4.130446359, r_h 7.920466323, L = OA 0.9756312107
+  P_mr 395.5415117, P_gamma 74.64610678, P_u 149.048309 (per unit omega, fine)
+  best by class: I 1.768222557, II 1.768222557; seed spread 2e-15; at search bound s=upper
+evaluations 17830, 0.9668 s (field 0.9277 s)
+
+=== case: H=5 beta=90 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+**
+[Time for assembly:37.262304ms]
+[Time for solving:26.931283ms]
+limit analysis: H 5 m, beta 90 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 10; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 10] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 0: 4438 equations, J/(kh H^2 gw^2) 0.18483429, 0.175 s
+Gamma = 0.6235390478  (H_crit = Gamma H = 3.117695239 m, gamma H_crit / c = 6.235390478), mechanism I
+  theta1 0.7862847273, theta2 1.204287288, eta 1, theta_O 0.9982604631
+  A = (-2.603753759, 0), B = (0, 5), C = (4.745171312, -7.36196722) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 10.40217578, r_h 13.24140794, L = OA 2.603753759
+  P_mr 581.3595911, P_gamma 442.1037675, P_u 490.2509793 (per unit omega, fine)
+  best by class: I 0.6235390478, II 3.247191119; seed spread 0; at search bound s=upper
+evaluations 33188, 1.969 s (field 0.1753 s)
+
+=== case: H=5 beta=90 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+********
+[Time for assembly:92.053737ms]
+[Time for solving:314.065590ms]
+limit analysis: H 5 m, beta 90 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 10; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 10] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 1: 17487 equations, J/(kh H^2 gw^2) 0.1847923, 0.886 s
+Gamma = 0.623513587  (H_crit = Gamma H = 3.117567935 m, gamma H_crit / c = 6.23513587), mechanism I
+  theta1 0.7862314826, theta2 1.204334727, eta 1, theta_O 0.9982660705
+  A = (-2.603761154, 0), B = (0, 5), C = (4.743594095, -7.359610848) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 10.39939907, r_h 13.23864288, L = OA 2.603761154
+  P_mr 581.2257121, P_gamma 441.9998886, P_u 490.1782133 (per unit omega, fine)
+  best by class: I 0.623513587, II 3.245012762; seed spread 4.4e-16; at search bound s=upper
+evaluations 33930, 2.281 s (field 0.8862 s)
+
+=== case: H=1 beta=30 hw=0.1 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1
+*****
+[Time for assembly:52.774165ms]
+[Time for solving:93.523212ms]
+limit analysis: H 1 m, beta 30 deg, h_w / H 0.1, c 11.7 kPa, phi 24.7 deg, gamma 18, gamma_w 9.8 (gamma' 8.2), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 11.7321] m, y >= -31 m, far sides left zero / base zero / right noflow, order 2, href 0: 9952 equations, J/(kh H^2 gw^2) 0.011579453, 0.395 s
+Gamma = 66.27071186  (H_crit = Gamma H = 66.27071186 m, gamma H_crit / c = 101.9549413), mechanism I
+  theta1 1.138738848, theta2 1.88298612, eta 1, theta_O 1.236143008
+  A = (-0.2383214604, 0), B = (1.732050808, 1), C = (0.730916132, -2.101949637) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 2.31465198, r_h 3.259503366, L = OA 0.2383214604
+  P_mr 66.98678386, P_gamma 0.3120348366, P_u 0.6987704194 (per unit omega, fine)
+  best by class: I 66.27071186, II 66.27071186; seed spread 7.1e-15; at search bound s=lower
+evaluations 84140, 8.21 s (field 0.3947 s)
+
+=== case: H=1 beta=30 hw=0.1 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*******************
+[Time for assembly:239.454336ms]
+Entering Solve
+[Time for solving:1407.508695ms]
+limit analysis: H 1 m, beta 30 deg, h_w / H 0.1, c 11.7 kPa, phi 24.7 deg, gamma 18, gamma_w 9.8 (gamma' 8.2), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 11.7321] m, y >= -31 m, far sides left zero / base zero / right noflow, order 2, href 1: 39339 equations, J/(kh H^2 gw^2) 0.011578796, 2.74 s
+Gamma = 66.27055233  (H_crit = Gamma H = 66.27055233 m, gamma H_crit / c = 101.9546959), mechanism I
+  theta1 1.138727859, theta2 1.882997574, eta 1, theta_O 1.236137961
+  A = (-0.2383289365, 0), B = (1.732050808, 1), C = (0.73090151, -2.101873394) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 2.314579751, r_h 3.259435299, L = OA 0.2383289365
+  P_mr 66.98539297, P_gamma 0.3120098501, P_u 0.698776851 (per unit omega, fine)
+  best by class: I 66.27055233, II 66.27055233; seed spread 1.2e-14; at search bound s=upper
+evaluations 84660, 9.03 s (field 2.739 s)
+
+=== case: H=1 beta=30 hw=0.5 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1
+*****
+[Time for assembly:57.953698ms]
+[Time for solving:98.509613ms]
+limit analysis: H 1 m, beta 30 deg, h_w / H 0.5, c 11.7 kPa, phi 24.7 deg, gamma 18, gamma_w 9.8 (gamma' 8.2), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 11.7321] m, y >= -31 m, far sides left zero / base zero / right noflow, order 2, href 0: 10059 equations, J/(kh H^2 gw^2) 0.21004001, 0.403 s
+Gamma = 15.131564  (H_crit = Gamma H = 15.131564 m, gamma H_crit / c = 23.27932923), mechanism I
+  theta1 0.8871606631, theta2 2.088305033, eta 1, theta_O 1.081325713
+  A = (-0.2975486429, 0), B = (1.732050808, 1), C = (0.5621123134, -1.055197134) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 1.361050312, r_h 2.36486603, L = OA 0.2975486429
+  P_mr 47.57005418, P_gamma -0.2123345844, P_u 3.356097792 (per unit omega, fine)
+  best by class: I 15.131564, II 15.131564; seed spread 2.2e-16; at search bound s=upper
+evaluations 18552, 1.069 s (field 0.4025 s)
+
+=== case: H=1 beta=30 hw=0.5 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+********************
+
+[Time for assembly:238.509535ms]
+Entering Solve
+[Time for solving:1530.012863ms]
+limit analysis: H 1 m, beta 30 deg, h_w / H 0.5, c 11.7 kPa, phi 24.7 deg, gamma 18, gamma_w 9.8 (gamma' 8.2), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 11.7321] m, y >= -31 m, far sides left zero / base zero / right noflow, order 2, href 1: 39765 equations, J/(kh H^2 gw^2) 0.21003888, 2.88 s
+Gamma = 15.13156961  (H_crit = Gamma H = 15.13156961 m, gamma H_crit / c = 23.27933787), mechanism I
+  theta1 0.8871561332, theta2 2.08830533, eta 1, theta_O 1.081316181
+  A = (-0.2975401717, 0), B = (1.732050808, 1), C = (0.562118593, -1.055184683) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 1.361039274, r_h 2.364852102, L = OA 0.2975401717
+  P_mr 47.56959849, P_gamma -0.212322386, P_u 3.356054313 (per unit omega, fine)
+  best by class: I 15.13156961, II 15.13156961; seed spread 1.3e-15; at search bound s=upper
+evaluations 18601, 1.204 s (field 2.88 s)
+
+=== case: H=1 beta=60 hw=0.2 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1
+****
+[Time for assembly:46.621237ms]
+[Time for solving:71.683417ms]
+limit analysis: H 1 m, beta 60 deg, h_w / H 0.2, c 11.7 kPa, phi 24.7 deg, gamma 18, gamma_w 9.8 (gamma' 8.2), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 10.5774] m, y >= -31 m, far sides left zero / base zero / right noflow, order 2, href 0: 9014 equations, J/(kh H^2 gw^2) 0.049025783, 0.348 s
+Gamma = 9.920698781  (H_crit = Gamma H = 9.920698781 m, gamma H_crit / c = 15.26261351), mechanism I
+  theta1 0.7671236428, theta2 1.62385821, eta 1, theta_O 1.074743349
+  A = (-0.4375666553, 0), B = (0.5773502692, 1), C = (0.4773881033, -0.8821105945) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 1.27092931, r_h 1.884763307, L = OA 0.4375666553
+  P_mr 24.63724753, P_gamma 1.327860933, P_u 1.155557632 (per unit omega, fine)
+  best by class: I 9.920698781, II 9.920698781; seed spread 2.2e-16; at search bound s=upper
+evaluations 17556, 1.029 s (field 0.3479 s)
+
+=== case: H=1 beta=60 hw=0.2 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:203.097601ms]
+Entering Solve
+[Time for solving:1081.157668ms]
+limit analysis: H 1 m, beta 60 deg, h_w / H 0.2, c 11.7 kPa, phi 24.7 deg, gamma 18, gamma_w 9.8 (gamma' 8.2), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 10.5774] m, y >= -31 m, far sides left zero / base zero / right noflow, order 2, href 1: 35631 equations, J/(kh H^2 gw^2) 0.049023465, 2.27 s
+Gamma = 9.920617111  (H_crit = Gamma H = 9.920617111 m, gamma H_crit / c = 15.26248786), mechanism I
+  theta1 0.767123371, theta2 1.623870807, eta 1, theta_O 1.074759412
+  A = (-0.4375809161, 0), B = (0.5773502692, 1), C = (0.4773648138, -0.8821014101) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 1.270916436, r_h 1.884755371, L = OA 0.4375809161
+  P_mr 24.63728327, P_gamma 1.327850941, P_u 1.15559167 (per unit omega, fine)
+  best by class: I 9.920617111, II 9.920617111; seed spread 0; at search bound s=upper
+evaluations 17277, 1.1 s (field 2.267 s)
+
+=== case: H=1 beta=60 hw=1 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1
+****
+[Time for assembly:50.001157ms]
+[Time for solving:66.618113ms]
+limit analysis: H 1 m, beta 60 deg, h_w / H 1, c 11.7 kPa, phi 24.7 deg, gamma 18, gamma_w 9.8 (gamma' 8.2), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 10.5774] m, y >= -31 m, far sides left zero / base zero / right noflow, order 2, href 0: 8825 equations, J/(kh H^2 gw^2) 0.80794774, 0.326 s
+Gamma = 5.454316409  (H_crit = Gamma H = 5.454316409 m, gamma H_crit / c = 8.391256014), mechanism I
+  theta1 0.5621549827, theta2 1.720547556, eta 1, theta_O 0.91427467
+  A = (-0.378075281, 0), B = (0.5773502692, 1), C = (0.35663647, -0.4628358066) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 0.8683422948, r_h 1.479392841, L = OA 0.378075281
+  P_mr 18.24621514, P_gamma 0.961204956, P_u 2.38407496 (per unit omega, fine)
+  best by class: I 5.454316409, II 5.454316409; seed spread 8.9e-16; at search bound s=lower
+evaluations 17277, 1.129 s (field 0.3264 s)
+
+=== case: H=1 beta=60 hw=1 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:199.466907ms]
+Entering Solve
+[Time for solving:1039.301208ms]
+limit analysis: H 1 m, beta 60 deg, h_w / H 1, c 11.7 kPa, phi 24.7 deg, gamma 18, gamma_w 9.8 (gamma' 8.2), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 10.5774] m, y >= -31 m, far sides left zero / base zero / right noflow, order 2, href 1: 34873 equations, J/(kh H^2 gw^2) 0.80791656, 2.15 s
+Gamma = 5.454023655  (H_crit = Gamma H = 5.454023655 m, gamma H_crit / c = 8.390805623), mechanism I
+  theta1 0.5620858009, theta2 1.720568693, eta 1, theta_O 0.9141922211
+  A = (-0.3780452248, 0), B = (0.5773502692, 1), C = (0.3566199832, -0.4627354945) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 0.868249449, r_h 1.479296112, L = OA 0.3780452248
+  P_mr 18.24462583, P_gamma 0.9611146206, P_u 2.384053459 (per unit omega, fine)
+  best by class: I 5.454023655, II 5.454023655; seed spread 8.9e-16; at search bound s=upper
+evaluations 16967, 1.161 s (field 2.149 s)
+
+=== case: H=1 beta=35 hw=0.1 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1
+****
+[Time for assembly:58.794705ms]
+[Time for solving:87.386213ms]
+limit analysis: H 1 m, beta 35 deg, h_w / H 0.1, c 6 kPa, phi 32 deg, gamma 18, gamma_w 9.8 (gamma' 8.2), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 11.4281] m, y >= -31 m, far sides left zero / base zero / right noflow, order 2, href 0: 9566 equations, J/(kh H^2 gw^2) 0.011977107, 0.384 s
+Gamma = 44.91249186  (H_crit = Gamma H = 44.91249186 m, gamma H_crit / c = 134.7374756), mechanism I
+  theta1 1.006249217, theta2 2.046992633, eta 0.2141103589, theta_O 1.180871938
+  A = (-0.04686518111, 0), B = (0.3057812823, 0.2141103589), C = (0.08662590501, -0.2107857906) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 0.2495005402, r_h 0.4780855752, L = OA 0.04686518111
+  P_mr 0.7984803408, P_gamma -0.00336897886, P_u 0.02114755911 (per unit omega, fine)
+  best by class: I 44.91249186, II 50.27765114; seed spread 3.3e-15
+evaluations 55679, 5.113 s (field 0.384 s)
+
+=== case: H=1 beta=35 hw=0.1 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*******************
+[Time for assembly:218.016110ms]
+Entering Solve
+[Time for solving:1293.784451ms]
+limit analysis: H 1 m, beta 35 deg, h_w / H 0.1, c 6 kPa, phi 32 deg, gamma 18, gamma_w 9.8 (gamma' 8.2), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 11.4281] m, y >= -31 m, far sides left zero / base zero / right noflow, order 2, href 1: 37799 equations, J/(kh H^2 gw^2) 0.01197602, 2.57 s
+Gamma = 44.90919191  (H_crit = Gamma H = 44.90919191 m, gamma H_crit / c = 134.7275757), mechanism I
+  theta1 1.006109307, theta2 2.047011344, eta 0.2140656894, theta_O 1.180632599
+  A = (-0.04682120617, 0), B = (0.3057174877, 0.2140656894), C = (0.08663617525, -0.2106673569) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 0.2493824531, r_h 0.4779066667, L = OA 0.04682120617
+  P_mr 0.7979420354, P_gamma -0.003364590417, P_u 0.02113249051 (per unit omega, fine)
+  best by class: I 44.90919191, II 50.27735113; seed spread 2e-15
+evaluations 31424, 1.918 s (field 2.57 s)
+
+=== case: H=1 beta=35 hw=0.6 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1
+*****
+[Time for assembly:60.669134ms]
+[Time for solving:86.439242ms]
+limit analysis: H 1 m, beta 35 deg, h_w / H 0.6, c 6 kPa, phi 32 deg, gamma 18, gamma_w 9.8 (gamma' 8.2), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 11.4281] m, y >= -31 m, far sides left zero / base zero / right noflow, order 2, href 0: 9890 equations, J/(kh H^2 gw^2) 0.29898275, 0.387 s
+Gamma = 7.310352687  (H_crit = Gamma H = 7.310352687 m, gamma H_crit / c = 21.93105806), mechanism I
+  theta1 0.9067678719, theta2 2.09455115, eta 1, theta_O 1.078359508
+  A = (-0.1878627249, 0), B = (1.428148007, 1), C = (0.4096295269, -0.7634901775) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 0.9694917442, r_h 2.036486558, L = OA 0.1878627249
+  P_mr 15.39856251, P_gamma -0.3873739898, P_u 2.49377886 (per unit omega, fine)
+  best by class: I 7.310352687, II 7.310352687; seed spread 8.9e-16; at search bound s=lower
+evaluations 18352, 1.063 s (field 0.3865 s)
+
+=== case: H=1 beta=35 hw=0.6 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*******************
+[Time for assembly:229.196153ms]
+Entering Solve
+[Time for solving:1444.316172ms]
+limit analysis: H 1 m, beta 35 deg, h_w / H 0.6, c 6 kPa, phi 32 deg, gamma 18, gamma_w 9.8 (gamma' 8.2), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 11.4281] m, y >= -31 m, far sides left zero / base zero / right noflow, order 2, href 1: 39095 equations, J/(kh H^2 gw^2) 0.29898107, 2.7 s
+Gamma = 7.310303725  (H_crit = Gamma H = 7.310303725 m, gamma H_crit / c = 21.93091117), mechanism I
+  theta1 0.9067574476, theta2 2.094561046, eta 1, theta_O 1.07836008
+  A = (-0.1878711043, 0), B = (1.428148007, 1), C = (0.4096180283, -0.7634697935) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 0.9694737692, r_h 2.036474657, L = OA 0.1878711043
+  P_mr 15.39849713, P_gamma -0.3874076675, P_u 2.493817703 (per unit omega, fine)
+  best by class: I 7.310303725, II 7.310303725; seed spread 4.4e-16; at search bound s=lower
+evaluations 19061, 1.199 s (field 2.7 s)
+
+=== case: H=1 beta=60 hw=0.5 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1
+****
+[Time for assembly:47.542665ms]
+[Time for solving:72.020565ms]
+limit analysis: H 1 m, beta 60 deg, h_w / H 0.5, c 6 kPa, phi 32 deg, gamma 18, gamma_w 9.8 (gamma' 8.2), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 10.5774] m, y >= -31 m, far sides left zero / base zero / right noflow, order 2, href 0: 9256 equations, J/(kh H^2 gw^2) 0.24994421, 0.328 s
+Gamma = 3.81116391  (H_crit = Gamma H = 3.81116391 m, gamma H_crit / c = 11.43349173), mechanism I
+  theta1 0.7682198797, theta2 1.741738347, eta 1, theta_O 1.12553353
+  A = (-0.3473532513, 0), B = (0.5773502692, 1), C = (0.2972128008, -0.6227928594) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 0.896290322, r_h 1.646794968, L = OA 0.3473532513
+  P_mr 9.163182602, P_gamma 0.6179719557, P_u 1.786328362 (per unit omega, fine)
+  best by class: I 3.81116391, II 3.81116391; seed spread 4.4e-16; at search bound s=upper
+evaluations 17355, 1.011 s (field 0.3285 s)
+
+=== case: H=1 beta=60 hw=0.5 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:213.821923ms]
+Entering Solve
+[Time for solving:1165.087492ms]
+limit analysis: H 1 m, beta 60 deg, h_w / H 0.5, c 6 kPa, phi 32 deg, gamma 18, gamma_w 9.8 (gamma' 8.2), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 10.5774] m, y >= -31 m, far sides left zero / base zero / right noflow, order 2, href 1: 36571 equations, J/(kh H^2 gw^2) 0.24994082, 2.38 s
+Gamma = 3.811122649  (H_crit = Gamma H = 3.811122649 m, gamma H_crit / c = 11.43336795), mechanism I
+  theta1 0.7682240234, theta2 1.741741423, eta 1, theta_O 1.125544967
+  A = (-0.3473597439, 0), B = (0.5773502692, 1), C = (0.297206702, -0.6227984044) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 0.8962944582, r_h 1.646801469, L = OA 0.3473597439
+  P_mr 9.163249812, P_gamma 0.6179702615, P_u 1.786373722 (per unit omega, fine)
+  best by class: I 3.811122649, II 3.811122649; seed spread 4.4e-16; at search bound s=upper
+evaluations 17381, 1.118 s (field 2.38 s)
+
+=== case: H=1 beta=60 hw=0.9 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1
+****
+[Time for assembly:48.220598ms]
+[Time for solving:69.634281ms]
+limit analysis: H 1 m, beta 60 deg, h_w / H 0.9, c 6 kPa, phi 32 deg, gamma 18, gamma_w 9.8 (gamma' 8.2), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 10.5774] m, y >= -31 m, far sides left zero / base zero / right noflow, order 2, href 0: 9041 equations, J/(kh H^2 gw^2) 0.6816001, 0.325 s
+Gamma = 3.197373324  (H_crit = Gamma H = 3.197373324 m, gamma H_crit / c = 9.592119971), mechanism I
+  theta1 0.6275434722, theta2 1.776111939, eta 1, theta_O 0.9708298125
+  A = (-0.2872845418, 0), B = (0.5773502692, 1), C = (0.2829611006, -0.4136328147) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 0.7044658955, r_h 1.443960774, L = OA 0.2872845418
+  P_mr 7.627596942, P_gamma 0.5120400744, P_u 1.873542143 (per unit omega, fine)
+  best by class: I 3.197373324, II 3.197373324; seed spread 2.2e-16; at search bound s=upper
+evaluations 17504, 1.037 s (field 0.3254 s)
+
+=== case: H=1 beta=60 hw=0.9 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:203.294445ms]
+Entering Solve
+[Time for solving:1078.133059ms]
+limit analysis: H 1 m, beta 60 deg, h_w / H 0.9, c 6 kPa, phi 32 deg, gamma 18, gamma_w 9.8 (gamma' 8.2), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 10.5774] m, y >= -31 m, far sides left zero / base zero / right noflow, order 2, href 1: 35721 equations, J/(kh H^2 gw^2) 0.68158992, 2.22 s
+Gamma = 3.197255855  (H_crit = Gamma H = 3.197255855 m, gamma H_crit / c = 9.591767566), mechanism I
+  theta1 0.6275241983, theta2 1.776102718, eta 1, theta_O 0.9707775326
+  A = (-0.2872618, 0), B = (0.5773502692, 1), C = (0.2829789355, -0.4136124822) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 0.7044499853, r_h 1.443937233, L = OA 0.2872618
+  P_mr 7.627378164, P_gamma 0.5120404751, P_u 1.873560962 (per unit omega, fine)
+  best by class: I 3.197255855, II 3.197255855; seed spread 4.4e-16; at search bound s=upper
+evaluations 17878, 1.157 s (field 2.217 s)
+
+=== case: H=5 beta=15 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1
+limit analysis: H 5 m, beta 15 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 1; water analytical, P_u domain
+analytical field K^-1 v'_opt: beta 15 alpha 1 h_w/H 1: m = sqrt(C/D) 0.914482324, C/h2e^2 0.453095224, D/h2e^2 0.5417998164, F 0.5035683481, 1/A 0.3472471486, I3 0.8490509102, -J*/(kh H^2 gw^2) 0.3381548146
+Gamma = 119.0809262  (H_crit = Gamma H = 595.4046312 m, gamma H_crit / c = 1190.809262), mechanism I
+  theta1 1.61593617, theta2 2.03291046, eta 0.1280436015, theta_O 1.616372076
+  A = (-0.00199872325, 0), B = (2.389326132, 0.6402180076), C = (-0.2086898045, -4.575795142) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 4.580460936, r_h 5.827218889, L = OA 0.00199872325
+  P_mr 112.3742232, P_gamma -3.010921728, P_u 3.95460118 (per unit omega, fine)
+  best by class: I 119.0809262, II inf; seed spread 9.3e-15
+evaluations 50268, 5.808 s (field 0.006138 s)
+
+=== case: H=5 beta=20 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1
+limit analysis: H 5 m, beta 20 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 1; water analytical, P_u domain
+analytical field K^-1 v'_opt: beta 20 alpha 1 h_w/H 1: m = sqrt(C/D) 0.8991876631, C/h2e^2 0.4444826496, D/h2e^2 0.5497359435, F 0.5043245452, 1/A 0.358098622, I3 0.9972205727, -J*/(kh H^2 gw^2) 0.3753862795
+Gamma = 19.32040651  (H_crit = Gamma H = 96.60203257 m, gamma H_crit / c = 193.2040651), mechanism I
+  theta1 1.40897313, theta2 2.044245646, eta 0.7586504194, theta_O 1.410945244
+  A = (-0.02547848676, 0), B = (10.42187448, 3.793252097), C = (2.029527724, -12.58803981) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 12.75467744, r_h 18.40592863, L = OA 0.02547848676
+  P_mr 1525.039662, P_gamma -201.1664902, P_u 280.1006296 (per unit omega, fine)
+  best by class: I 19.32040651, II 20.1256898; seed spread 1.4e-14
+evaluations 36122, 0.8076 s (field 0.004597 s)
+
+=== case: H=5 beta=45 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1
+limit analysis: H 5 m, beta 45 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 1; water analytical, P_u domain
+analytical field K^-1 v'_opt: beta 45 alpha 1 h_w/H 1: m = sqrt(C/D) 0.7634347218, C/h2e^2 0.3661434121, D/h2e^2 0.6282137069, F 0.5118866656, 1/A 0.4244131816, I3 1.459224077, -J*/(kh H^2 gw^2) 0.4927776857
+Gamma = 1.904484093  (H_crit = Gamma H = 9.522420464 m, gamma H_crit / c = 19.04484093), mechanism I
+  theta1 0.4483012603, theta2 1.964306828, eta 1, theta_O 0.4656129363
+  A = (-0.1081423912, 0), B = (5, 5), C = (2.419468564, -1.215683946) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 2.804764624, r_h 6.730072021, L = OA 0.1081423912
+  P_mr 324.1287552, P_gamma 33.65844471, P_u 136.5339745 (per unit omega, fine)
+  best by class: I 1.904484093, II 1.904484093; seed spread 8.9e-16; at search bound s=upper
+evaluations 20013, 0.513 s (field 0.004353 s)
+
+=== case: H=5 beta=25 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1
+limit analysis: H 5 m, beta 25 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 5; water analytical, P_u domain
+analytical field K^-1 v'_opt: beta 25 alpha 5 h_w/H 1: m = sqrt(C/D) 0.8277405336, C/h2e^2 1.136728728, D/h2e^2 1.659084059, F 0.1804274133, 1/A 0.1360592981, I3 0.3918154274, -J*/(kh H^2 gw^2) 0.1430607102
+Gamma = 18.406173  (H_crit = Gamma H = 92.030865 m, gamma H_crit / c = 184.06173), mechanism I
+  theta1 1.221948587, theta2 2.030978992, eta 1, theta_O 1.222260599
+  A = (-0.003390086246, 0), B = (10.7225346, 5), C = (3.48721361, -9.596867128) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 10.21196224, r_h 16.29166658, L = OA 0.003390086246
+  P_mr 1395.46334, P_gamma -154.202823, P_u 230.0177869 (per unit omega, fine)
+  best by class: I 18.406173, II 18.406173; seed spread 3.3e-15; at search bound s=upper
+evaluations 82649, 12.89 s (field 0.007528 s)
+
+=== case: H=5 beta=50 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1
+limit analysis: H 5 m, beta 50 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 5; water analytical, P_u domain
+analytical field K^-1 v'_opt: beta 50 alpha 5 h_w/H 1: m = sqrt(C/D) 0.6500479685, C/h2e^2 0.8008966286, D/h2e^2 1.895333569, F 0.1937854678, 1/A 0.1717629793, I3 0.5465573467, -J*/(kh H^2 gw^2) 0.1850857036
+Gamma = 2.295081844  (H_crit = Gamma H = 11.47540922 m, gamma H_crit / c = 22.95081844), mechanism I
+  theta1 0.4178866144, theta2 1.877214852, eta 1, theta_O 0.4611209947
+  A = (-0.2685890657, 0), B = (4.195498156, 5), C = (2.258552956, -1.122152347) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 2.765080955, r_h 6.421254244, L = OA 0.2685890657
+  P_mr 290.8705095, P_gamma 49.99787952, P_u 76.73856353 (per unit omega, fine)
+  best by class: I 2.295081844, II 2.295081844; seed spread 6.7e-16; at search bound s=upper
+evaluations 19042, 0.8152 s (field 0.009947 s)
+
+=== case: H=5 beta=90 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1
+limit analysis: H 5 m, beta 90 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 5; water analytical, P_u domain
+analytical field K^-1 v'_opt: beta 90 alpha 5 h_w/H 1: m = sqrt(C/D) 0.05512490606, C/h2e^2 0.01285568644, D/h2e^2 4.23057644, F 0.2123208794, 1/A 0.2122065908, I3 0.6284009346, -J*/(kh H^2 gw^2) 0.2101804535
+Gamma = 0.7357173723  (H_crit = Gamma H = 3.678586862 m, gamma H_crit / c = 7.357173723), mechanism I
+  theta1 0.8523770817, theta2 1.255183358, eta 1, theta_O 1.091078943
+  A = (-2.983584191, 0), B = (0, 5), C = (4.384498194, -8.427648278) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 11.19436883, r_h 14.12535177, L = OA 2.983584191
+  P_mr 642.6919076, P_gamma 478.5415921, P_u 395.0165591 (per unit omega, fine)
+  best by class: I 0.7357173723, II 5.360729844; seed spread 1.1e-15; at search bound s=upper
+evaluations 47755, 10.47 s (field 0.004556 s)
+
+=== case: H=5 beta=35 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1
+limit analysis: H 5 m, beta 35 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 10; water analytical, P_u domain
+analytical field K^-1 v'_opt: beta 35 alpha 10 h_w/H 1: m = sqrt(C/D) 0.7078241522, C/h2e^2 1.659295353, D/h2e^2 3.311867414, F 0.1035239313, 1/A 0.08471207611, I3 0.2577477078, -J*/(kh H^2 gw^2) 0.09031790977
+Gamma = 4.993923039  (H_crit = Gamma H = 24.9696152 m, gamma H_crit / c = 49.93923039), mechanism I
+  theta1 0.7870500128, theta2 2.037195656, eta 1, theta_O 0.799680416
+  A = (-0.07792961824, 0), B = (7.140740034, 5), C = (3.045726775, -3.133993097) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 4.424832425, r_h 9.106644678, L = OA 0.07792961824
+  P_mr 548.6429874, P_gamma -4.273060065, P_u 114.1351831 (per unit omega, fine)
+  best by class: I 4.993923039, II 4.993923039; seed spread 3.1e-15; at search bound s=lower
+evaluations 22848, 0.5348 s (field 0.007372 s)
+
+=== case: H=5 beta=90 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1
+limit analysis: H 5 m, beta 90 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 10; water analytical, P_u domain
+analytical field K^-1 v'_opt: beta 90 alpha 10 h_w/H 1: m = sqrt(C/D) 0.321709034, C/h2e^2 0.5020242728, D/h2e^2 4.850630604, F 0.1180130625, 1/A 0.1157490495, I3 0.3501845562, -J*/(kh H^2 gw^2) 0.1170494047
+Gamma = 0.7802744244  (H_crit = Gamma H = 3.901372122 m, gamma H_crit / c = 7.802744244), mechanism I
+  theta1 0.779494828, theta2 1.230999098, eta 1, theta_O 1.019154149
+  A = (-2.676443499, 0), B = (0, 5), C = (4.153728944, -6.75000318) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 9.602801598, r_h 12.46258556, L = OA 2.676443499
+  P_mr 546.4814317, P_gamma 413.6198903, P_u 286.7509211 (per unit omega, fine)
+  best by class: I 0.7802744244, II 0.7802744244; seed spread 6.7e-16; at search bound s=upper
+evaluations 23394, 0.7561 s (field 0.005127 s)
+
+=== case: H=10 beta=30 hw=0.05 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=analytical seeds=0,1
+limit analysis: H 10 m, beta 30 deg, h_w / H 0.05, c 11.7 kPa, phi 24.7 deg, gamma 18, gamma_w 9.8 (gamma' 8.2), alpha 1; water analytical, P_u domain
+analytical field K^-1 v'_opt: beta 30 alpha 1 h_w/H 0.05: m = sqrt(C/D) 0.8591904419, C/h2e^2 0.4217289061, D/h2e^2 0.5712872022, F 0.5064047244, 1/A 0.3819718634, I3 1.223472077, -J*/(kh H^2 gw^2) 0.0025115298
+Gamma = 10.88246756  (H_crit = Gamma H = 108.8246756 m, gamma H_crit / c = 167.4225778), mechanism I
+  theta1 1.158368319, theta2 1.847936563, eta 1, theta_O 1.229704171
+  A = (-1.868946646, 0), B = (17.32050808, 10), C = (8.036033843, -22.63887244) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 24.71087178, r_h 33.93372152, L = OA 1.868946646
+  P_mr 6879.227419, P_gamma 391.8204838, P_u 240.3180806 (per unit omega, fine)
+  best by class: I 10.88246756, II 10.88246756; seed spread 5.1e-15; at search bound s=lower
+evaluations 80770, 11.33 s (field 0.004264 s)
+
+=== case: H=10 beta=30 hw=0.5 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=analytical seeds=0,1
+limit analysis: H 10 m, beta 30 deg, h_w / H 0.5, c 11.7 kPa, phi 24.7 deg, gamma 18, gamma_w 9.8 (gamma' 8.2), alpha 1; water analytical, P_u domain
+analytical field K^-1 v'_opt: beta 30 alpha 1 h_w/H 0.5: m = sqrt(C/D) 0.8591904419, C/h2e^2 0.4217289061, D/h2e^2 0.5712872022, F 0.5064047244, 1/A 0.3819718634, I3 1.223472077, -J*/(kh H^2 gw^2) 0.1412126401
+Gamma = 2.641454027  (H_crit = Gamma H = 26.41454027 m, gamma H_crit / c = 40.63775426), mechanism I
+  theta1 0.7307984946, theta2 2.106020991, eta 0.7080601256, theta_O 0.7700625885
+  A = (-0.4195163571, 0), B = (12.26396112, 7.080601256), C = (5.120791531, -4.966091257) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 7.440233455, r_h 14.00527302, L = OA 0.4195163571
+  P_mr 1790.689182, P_gamma -14.52341811, P_u 692.4413997 (per unit omega, fine)
+  best by class: I 2.641454027, II 2.675724115; seed spread 1.1e-15
+evaluations 21214, 0.6041 s (field 0.00423 s)
+
+=== case: H=10 beta=60 hw=0.1 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=analytical seeds=0,1
+limit analysis: H 10 m, beta 60 deg, h_w / H 0.1, c 11.7 kPa, phi 24.7 deg, gamma 18, gamma_w 9.8 (gamma' 8.2), alpha 1; water analytical, P_u domain
+analytical field K^-1 v'_opt: beta 60 alpha 1 h_w/H 0.1: m = sqrt(C/D) 0.5889717531, C/h2e^2 0.262492322, D/h2e^2 0.7567068603, F 0.5234075403, 1/A 0.4774648293, I3 1.615192651, -J*/(kh H^2 gw^2) 0.01084351747
+Gamma = 1.308619919  (H_crit = Gamma H = 13.08619919 m, gamma H_crit / c = 20.13261414), mechanism I
+  theta1 0.7616608097, theta2 1.603717288, eta 1, theta_O 1.042205672
+  A = (-4.099846232, 0), B = (5.773502692, 10), C = (5.153567376, -8.824217863) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 12.78641796, r_h 18.83442322, L = OA 4.099846232
+  P_mr 2432.383976, P_gamma 1329.542, P_u 529.1978377 (per unit omega, fine)
+  best by class: I 1.308619919, II 1.308619919; seed spread 8.9e-16; at search bound s=upper
+evaluations 17176, 0.4063 s (field 0.003529 s)
+
+=== case: H=10 beta=35 hw=0.2 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=analytical seeds=0,1
+limit analysis: H 10 m, beta 35 deg, h_w / H 0.2, c 6 kPa, phi 32 deg, gamma 18, gamma_w 9.8 (gamma' 8.2), alpha 1; water analytical, P_u domain
+analytical field K^-1 v'_opt: beta 35 alpha 1 h_w/H 0.2: m = sqrt(C/D) 0.8330637062, C/h2e^2 0.4067044752, D/h2e^2 0.5860336083, F 0.5078346849, 1/A 0.395143307, I3 1.313026341, -J*/(kh H^2 gw^2) 0.03092778264
+Gamma = 3.866058879  (H_crit = Gamma H = 38.66058879 m, gamma H_crit / c = 115.9817664), mechanism I
+  theta1 0.7890117412, theta2 2.085877487, eta 0.2767544962, theta_O 0.8114509319
+  A = (-0.06864018875, 0), B = (3.952463822, 2.767544962), C = (1.494606351, -1.574585389) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 2.218796722, r_h 4.989504919, L = OA 0.06864018875
+  P_mr 95.88612586, P_gamma -4.243222403, P_u 29.04525695 (per unit omega, fine)
+  best by class: I 3.866058879, II 4.19614033; seed spread 6.7e-16
+evaluations 30733, 0.8002 s (field 0.004406 s)
+
+=== case: H=10 beta=60 hw=0.7 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=analytical seeds=0,1
+limit analysis: H 10 m, beta 60 deg, h_w / H 0.7, c 6 kPa, phi 32 deg, gamma 18, gamma_w 9.8 (gamma' 8.2), alpha 1; water analytical, P_u domain
+analytical field K^-1 v'_opt: beta 60 alpha 1 h_w/H 0.7: m = sqrt(C/D) 0.5889717531, C/h2e^2 0.262492322, D/h2e^2 0.7567068603, F 0.5234075403, 1/A 0.4774648293, I3 1.615192651, -J*/(kh H^2 gw^2) 0.30370196
+Gamma = 0.510437937  (H_crit = Gamma H = 5.10437937 m, gamma H_crit / c = 15.31313811), mechanism I
+  theta1 0.4349381673, theta2 1.802764337, eta 1, theta_O 0.6651748774
+  A = (-1.981100275, 0), B = (5.773502692, 10), C = (2.878010051, -2.257598378) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 5.357957036, r_h 12.59494326, L = OA 1.981100275
+  P_mr 623.7698726, P_gamma 412.1346253, P_u 809.8942002 (per unit omega, fine)
+  best by class: I 0.510437937, II 0.510437937; seed spread 4.4e-16; at search bound s=upper
+evaluations 17371, 0.6779 s (field 0.004492 s)
+
+labatch: 57 cases run, 0 already in /home/user/neopz-master/Projects/SlopeSeepageForces/results/limit_analysis_cpp/cpp_vs_python.csv, 0 failed

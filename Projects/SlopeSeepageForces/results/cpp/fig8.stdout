@@ -1,0 +1,410 @@
+fig8: 4 panels x 12 h_w / H x 2 curves, soil swapped, gamma_w 9.8, alpha 1, H_ref 1 m; box_m=50/10/30;hbc=zero/zero/noflow;horder=2;href=1;hmesh=gen/0.025/0.0625/0.15/2;lm=10;mech=I+II;seeds=0+1+2;np=40;niter=150;pools=25;q=coarse/fine;polish=1;dmax=10;soil=swapped; out /home/user/neopz-master/Projects/SlopeSeepageForces/results/cpp/fig8.csv (0 rows already there)
+  [fig8 1] London beta=30 hw/H=0 none: Gamma = 156.5274, H_crit = 156.5274 m, mechanism I eta = 1, seed spread 7.8e-15, s=lower (0.048 s)
+  [fig8 2] London beta=30 hw/H=0.05 vopt: Gamma = 108.8247, H_crit = 108.8247 m, mechanism I eta = 1, seed spread 1.4e-14, s=upper (18.3 s)
+inserting uniform refpattern: triangle
+inserting uniform refpattern: line
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*******************
+[Time for assembly:235.795484ms]
+Entering Solve
+[Time for solving:1383.682396ms]
+  [fig8 3] London beta=30 hw/H=0.05 FE: Gamma = 98.52177, H_crit = 98.52177 m, mechanism I eta = 1, seed spread 9.1e-15, s=upper (15.1 s)
+  [fig8 4] London beta=30 hw/H=0.1 vopt: Gamma = 85.74057, H_crit = 85.74057 m, mechanism I eta = 1, seed spread 1.5e-14, s=lower (17.8 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*******************
+[Time for assembly:237.651994ms]
+Entering Solve
+[Time for solving:1534.146098ms]
+  [fig8 5] London beta=30 hw/H=0.1 FE: Gamma = 66.27055, H_crit = 66.27055 m, mechanism I eta = 1, seed spread 1.2e-14, s=upper (16.4 s)
+  [fig8 6] London beta=30 hw/H=0.2 vopt: Gamma = 58.69766, H_crit = 58.69766 m, mechanism I eta = 1, seed spread 2e-15, s=lower (23 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+********************
+
+[Time for assembly:254.939371ms]
+Entering Solve
+[Time for solving:1478.911058ms]
+  [fig8 7] London beta=30 hw/H=0.2 FE: Gamma = 37.20894, H_crit = 37.20894 m, mechanism I eta = 1, seed spread 6.7e-16, s=lower (12 s)
+  [fig8 8] London beta=30 hw/H=0.3 vopt: Gamma = 43.23822, H_crit = 43.23822 m, mechanism I eta = 1, seed spread 2e-15, s=upper (15.2 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*******************
+[Time for assembly:238.179643ms]
+Entering Solve
+[Time for solving:1560.181695ms]
+  [fig8 9] London beta=30 hw/H=0.3 FE: Gamma = 25.02916, H_crit = 25.02916 m, mechanism I eta = 1, seed spread 1.1e-15, s=lower (4.71 s)
+  [fig8 10] London beta=30 hw/H=0.4 vopt: Gamma = 33.01818, H_crit = 33.01818 m, mechanism I eta = 0.5664, seed spread 8.9e-16 (1.02 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+********************
+
+[Time for assembly:290.873157ms]
+Entering Solve
+[Time for solving:1547.597147ms]
+  [fig8 11] London beta=30 hw/H=0.4 FE: Gamma = 18.75804, H_crit = 18.75804 m, mechanism I eta = 1, seed spread 2.2e-15, s=lower (4.65 s)
+  [fig8 12] London beta=30 hw/H=0.5 vopt: Gamma = 26.41454, H_crit = 26.41454 m, mechanism I eta = 0.7081, seed spread 6.7e-16 (1.03 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+********************
+
+[Time for assembly:233.818033ms]
+Entering Solve
+[Time for solving:1556.477523ms]
+  [fig8 13] London beta=30 hw/H=0.5 FE: Gamma = 15.13157, H_crit = 15.13157 m, mechanism I eta = 1, seed spread 1.8e-15, s=upper (4.57 s)
+  [fig8 14] London beta=30 hw/H=0.6 vopt: Gamma = 22.01212, H_crit = 22.01212 m, mechanism I eta = 0.8497, seed spread 1.1e-15 (0.899 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+********************
+
+[Time for assembly:233.489175ms]
+Entering Solve
+[Time for solving:1473.212615ms]
+  [fig8 15] London beta=30 hw/H=0.6 FE: Gamma = 12.91208, H_crit = 12.91208 m, mechanism I eta = 1, seed spread 4.4e-16, s=upper (4.44 s)
+  [fig8 16] London beta=30 hw/H=0.7 vopt: Gamma = 18.86753, H_crit = 18.86753 m, mechanism I eta = 0.9913, seed spread 1.8e-15 (0.964 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+********************
+
+[Time for assembly:247.887259ms]
+Entering Solve
+[Time for solving:1509.583144ms]
+  [fig8 17] London beta=30 hw/H=0.7 FE: Gamma = 11.55559, H_crit = 11.55559 m, mechanism I eta = 1, seed spread 2e-15, s=upper (4.96 s)
+  [fig8 18] London beta=30 hw/H=0.8 vopt: Gamma = 16.62358, H_crit = 16.62358 m, mechanism I eta = 1, seed spread 2.4e-15, s=lower (1.06 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+********************
+
+[Time for assembly:332.709300ms]
+Entering Solve
+[Time for solving:1463.800449ms]
+  [fig8 19] London beta=30 hw/H=0.8 FE: Gamma = 10.80954, H_crit = 10.80954 m, mechanism I eta = 1, seed spread 1.6e-15, s=lower (4.72 s)
+  [fig8 20] London beta=30 hw/H=0.9 vopt: Gamma = 15.21637, H_crit = 15.21637 m, mechanism I eta = 1, seed spread 2e-15, s=upper (0.941 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*******************
+[Time for assembly:272.814582ms]
+Entering Solve
+[Time for solving:1987.788294ms]
+  [fig8 21] London beta=30 hw/H=0.9 FE: Gamma = 10.56939, H_crit = 10.56939 m, mechanism I eta = 1, seed spread 4.4e-16, s=upper (5.9 s)
+  [fig8 22] London beta=30 hw/H=1 vopt: Gamma = 14.60721, H_crit = 14.60721 m, mechanism I eta = 1, seed spread 1.3e-15, s=lower (0.759 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*******************
+[Time for assembly:413.068891ms]
+Entering Solve
+[Time for solving:1953.267583ms]
+  [fig8 23] London beta=30 hw/H=1 FE: Gamma = 10.80762, H_crit = 10.80762 m, mechanism I eta = 1, seed spread 4.4e-16, s=upper (6.19 s)
+  [fig8 24] London beta=60 hw/H=0 none: Gamma = 17.94946, H_crit = 17.94946 m, mechanism I eta = 1, seed spread 4.4e-16, s=upper (0.0202 s)
+  [fig8 25] London beta=60 hw/H=0.05 vopt: Gamma = 15.05548, H_crit = 15.05548 m, mechanism I eta = 1, seed spread 2.2e-16, s=upper (0.876 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:231.556313ms]
+Entering Solve
+[Time for solving:1083.925392ms]
+  [fig8 26] London beta=60 hw/H=0.05 FE: Gamma = 14.9008, H_crit = 14.9008 m, mechanism I eta = 1, seed spread 6.7e-16, s=upper (5.18 s)
+  [fig8 27] London beta=60 hw/H=0.1 vopt: Gamma = 13.0862, H_crit = 13.0862 m, mechanism I eta = 1, seed spread 8.9e-16, s=lower (1.05 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:213.688407ms]
+Entering Solve
+[Time for solving:1276.732426ms]
+  [fig8 28] London beta=60 hw/H=0.1 FE: Gamma = 12.72267, H_crit = 12.72267 m, mechanism I eta = 1, seed spread 8.9e-16, s=upper (5.48 s)
+  [fig8 29] London beta=60 hw/H=0.2 vopt: Gamma = 10.71775, H_crit = 10.71775 m, mechanism I eta = 1, seed spread 1.6e-15, s=upper (0.982 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:331.349950ms]
+Entering Solve
+[Time for solving:1731.140213ms]
+  [fig8 30] London beta=60 hw/H=0.2 FE: Gamma = 9.920617, H_crit = 9.920617 m, mechanism I eta = 1, seed spread 6.7e-16, s=lower (5.36 s)
+  [fig8 31] London beta=60 hw/H=0.3 vopt: Gamma = 9.484357, H_crit = 9.484357 m, mechanism I eta = 1, seed spread 6.7e-16, s=lower (1.17 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:267.191734ms]
+Entering Solve
+[Time for solving:1602.836561ms]
+  [fig8 32] London beta=60 hw/H=0.3 FE: Gamma = 8.245864, H_crit = 8.245864 m, mechanism I eta = 1, seed spread 2.2e-16, s=upper (4.91 s)
+  [fig8 33] London beta=60 hw/H=0.4 vopt: Gamma = 8.892467, H_crit = 8.892467 m, mechanism I eta = 1, seed spread 1.3e-15, s=lower (1.03 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:310.844316ms]
+Entering Solve
+[Time for solving:1300.754628ms]
+  [fig8 34] London beta=60 hw/H=0.4 FE: Gamma = 7.163628, H_crit = 7.163628 m, mechanism I eta = 1, seed spread 4.4e-16, s=upper (4.84 s)
+  [fig8 35] London beta=60 hw/H=0.5 vopt: Gamma = 8.673534, H_crit = 8.673534 m, mechanism I eta = 1, seed spread 4.4e-16, s=upper (0.93 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:278.772379ms]
+Entering Solve
+[Time for solving:1533.117875ms]
+  [fig8 36] London beta=60 hw/H=0.5 FE: Gamma = 6.43407, H_crit = 6.43407 m, mechanism I eta = 1, seed spread 4.4e-16, s=upper (5.09 s)
+  [fig8 37] London beta=60 hw/H=0.6 vopt: Gamma = 8.491065, H_crit = 8.491065 m, mechanism I eta = 1, seed spread 6.7e-16, s=lower (0.973 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:261.481535ms]
+Entering Solve
+[Time for solving:1667.388721ms]
+  [fig8 38] London beta=60 hw/H=0.6 FE: Gamma = 5.938905, H_crit = 5.938905 m, mechanism I eta = 1, seed spread 6.7e-16, s=lower (5.59 s)
+  [fig8 39] London beta=60 hw/H=0.7 vopt: Gamma = 8.349307, H_crit = 8.349307 m, mechanism I eta = 1, seed spread 6.7e-16, s=lower (1.27 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:303.570358ms]
+Entering Solve
+[Time for solving:1698.070682ms]
+  [fig8 40] London beta=60 hw/H=0.7 FE: Gamma = 5.616738, H_crit = 5.616738 m, mechanism I eta = 1, seed spread 6.7e-16, s=upper (5.5 s)
+  [fig8 41] London beta=60 hw/H=0.8 vopt: Gamma = 8.223442, H_crit = 8.223442 m, mechanism I eta = 1, seed spread 6.7e-16, s=upper (1.24 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:274.852893ms]
+Entering Solve
+[Time for solving:1232.274604ms]
+  [fig8 42] London beta=60 hw/H=0.8 FE: Gamma = 5.436561, H_crit = 5.436561 m, mechanism I eta = 1, seed spread 4.4e-16, s=lower (4.93 s)
+  [fig8 43] London beta=60 hw/H=0.9 vopt: Gamma = 8.128373, H_crit = 8.128373 m, mechanism I eta = 1, seed spread 2.2e-16, s=upper (1.15 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:206.146321ms]
+Entering Solve
+[Time for solving:1103.101112ms]
+  [fig8 44] London beta=60 hw/H=0.9 FE: Gamma = 5.385042, H_crit = 5.385042 m, mechanism I eta = 1, seed spread 1.6e-15, s=lower (5 s)
+  [fig8 45] London beta=60 hw/H=1 vopt: Gamma = 8.127066, H_crit = 8.127066 m, mechanism I eta = 1, seed spread 4.4e-16, s=upper (0.96 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:254.557133ms]
+Entering Solve
+[Time for solving:1371.530751ms]
+  [fig8 46] London beta=60 hw/H=1 FE: Gamma = 5.454024, H_crit = 5.454024 m, mechanism I eta = 1, seed spread 8.9e-16, s=upper (5.29 s)
+  [fig8 47] Israeli beta=35 hw/H=0 none: Gamma = 228.8286, H_crit = 228.8286 m, mechanism I eta = 1, seed spread 2.8e-14, s=upper (0.06 s)
+  [fig8 48] Israeli beta=35 hw/H=0.05 vopt: Gamma = 111.6565, H_crit = 111.6565 m, mechanism I eta = 1, seed spread 9.5e-15, s=upper (0.917 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*******************
+[Time for assembly:289.991843ms]
+Entering Solve
+[Time for solving:1669.379704ms]
+  [fig8 49] Israeli beta=35 hw/H=0.05 FE: Gamma = 90.06924, H_crit = 90.06924 m, mechanism I eta = 0.1065, seed spread 4.4e-16 (6.06 s)
+  [fig8 50] Israeli beta=35 hw/H=0.1 vopt: Gamma = 73.64632, H_crit = 73.64632 m, mechanism I eta = 1, seed spread 7.1e-15, s=upper (15.8 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*******************
+[Time for assembly:374.279989ms]
+Entering Solve
+[Time for solving:1600.020103ms]
+  [fig8 51] Israeli beta=35 hw/H=0.1 FE: Gamma = 44.90919, H_crit = 44.90919 m, mechanism I eta = 0.2141, seed spread 4.7e-15 (6.99 s)
+  [fig8 52] Israeli beta=35 hw/H=0.2 vopt: Gamma = 38.66059, H_crit = 38.66059 m, mechanism I eta = 0.2768, seed spread 4.4e-16 (5.96 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*******************
+[Time for assembly:247.656679ms]
+Entering Solve
+[Time for solving:1788.965791ms]
+  [fig8 53] Israeli beta=35 hw/H=0.2 FE: Gamma = 22.29663, H_crit = 22.29663 m, mechanism I eta = 0.4349, seed spread 5.3e-15 (5.9 s)
+  [fig8 54] Israeli beta=35 hw/H=0.3 vopt: Gamma = 25.77373, H_crit = 25.77373 m, mechanism I eta = 0.4151, seed spread 1.1e-15 (1.46 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*******************
+[Time for assembly:309.599875ms]
+Entering Solve
+[Time for solving:1684.212209ms]
+  [fig8 55] Israeli beta=35 hw/H=0.3 FE: Gamma = 14.72527, H_crit = 14.72527 m, mechanism I eta = 0.671, seed spread 2e-15 (5.37 s)
+  [fig8 56] Israeli beta=35 hw/H=0.4 vopt: Gamma = 19.33029, H_crit = 19.33029 m, mechanism I eta = 0.5535, seed spread 3.1e-15 (1.19 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*******************
+[Time for assembly:280.612693ms]
+Entering Solve
+[Time for solving:1621.345056ms]
+  [fig8 57] Israeli beta=35 hw/H=0.4 FE: Gamma = 10.88028, H_crit = 10.88028 m, mechanism I eta = 1, seed spread 1.6e-15, s=lower (5.58 s)
+  [fig8 58] Israeli beta=35 hw/H=0.5 vopt: Gamma = 15.46424, H_crit = 15.46424 m, mechanism I eta = 0.6919, seed spread 6.7e-16 (1.63 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*******************
+[Time for assembly:275.870388ms]
+Entering Solve
+[Time for solving:1638.940884ms]
+  [fig8 59] Israeli beta=35 hw/H=0.5 FE: Gamma = 8.630303, H_crit = 8.630303 m, mechanism I eta = 1, seed spread 1.6e-15, s=lower (5.77 s)
+  [fig8 60] Israeli beta=35 hw/H=0.6 vopt: Gamma = 12.88686, H_crit = 12.88686 m, mechanism I eta = 0.8303, seed spread 1.3e-15 (1.2 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*******************
+[Time for assembly:331.398679ms]
+Entering Solve
+[Time for solving:2011.766197ms]
+  [fig8 61] Israeli beta=35 hw/H=0.6 FE: Gamma = 7.310304, H_crit = 7.310304 m, mechanism I eta = 1, seed spread 6.7e-16, s=lower (6.07 s)
+  [fig8 62] Israeli beta=35 hw/H=0.7 vopt: Gamma = 11.04588, H_crit = 11.04588 m, mechanism I eta = 0.9686, seed spread 2e-15 (0.967 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*******************
+[Time for assembly:341.999758ms]
+Entering Solve
+[Time for solving:1668.500490ms]
+  [fig8 63] Israeli beta=35 hw/H=0.7 FE: Gamma = 6.5401, H_crit = 6.5401 m, mechanism I eta = 1, seed spread 2.7e-15, s=upper (5.7 s)
+  [fig8 64] Israeli beta=35 hw/H=0.8 vopt: Gamma = 9.735513, H_crit = 9.735513 m, mechanism I eta = 1, seed spread 2.4e-15, s=lower (1.15 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*******************
+[Time for assembly:344.358743ms]
+Entering Solve
+[Time for solving:2041.711886ms]
+  [fig8 65] Israeli beta=35 hw/H=0.8 FE: Gamma = 6.154472, H_crit = 6.154472 m, mechanism I eta = 1, seed spread 3.3e-15, s=upper (6.3 s)
+  [fig8 66] Israeli beta=35 hw/H=0.9 vopt: Gamma = 8.972933, H_crit = 8.972933 m, mechanism I eta = 1, seed spread 8.9e-16, s=upper (0.76 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*******************
+[Time for assembly:290.925301ms]
+Entering Solve
+[Time for solving:1598.893475ms]
+  [fig8 67] Israeli beta=35 hw/H=0.9 FE: Gamma = 6.091574, H_crit = 6.091574 m, mechanism I eta = 1, seed spread 4.4e-16, s=lower (5.25 s)
+  [fig8 68] Israeli beta=35 hw/H=1 vopt: Gamma = 8.72817, H_crit = 8.72817 m, mechanism I eta = 1, seed spread 1.1e-15, s=lower (0.759 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:304.197071ms]
+Entering Solve
+[Time for solving:1640.970849ms]
+  [fig8 69] Israeli beta=35 hw/H=1 FE: Gamma = 6.336469, H_crit = 6.336469 m, mechanism I eta = 1, seed spread 4e-15, s=upper (5.63 s)
+  [fig8 70] Israeli beta=60 hw/H=0 none: Gamma = 12.98603, H_crit = 12.98603 m, mechanism I eta = 1, seed spread 6.7e-16, s=upper (0.0601 s)
+  [fig8 71] Israeli beta=60 hw/H=0.05 vopt: Gamma = 10.36026, H_crit = 10.36026 m, mechanism I eta = 1, seed spread 6.7e-16, s=upper (0.804 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:263.123612ms]
+Entering Solve
+[Time for solving:1063.576723ms]
+  [fig8 72] Israeli beta=60 hw/H=0.05 FE: Gamma = 10.20113, H_crit = 10.20113 m, mechanism I eta = 1, seed spread 8.9e-16, s=upper (4.68 s)
+  [fig8 73] Israeli beta=60 hw/H=0.1 vopt: Gamma = 8.721742, H_crit = 8.721742 m, mechanism I eta = 1, seed spread 1.1e-15, s=upper (0.913 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:239.436888ms]
+Entering Solve
+[Time for solving:1123.575995ms]
+  [fig8 74] Israeli beta=60 hw/H=0.1 FE: Gamma = 8.372229, H_crit = 8.372229 m, mechanism I eta = 1, seed spread 1.1e-15, s=lower (4.64 s)
+  [fig8 75] Israeli beta=60 hw/H=0.2 vopt: Gamma = 6.925329, H_crit = 6.925329 m, mechanism I eta = 1, seed spread 2.4e-15, s=lower (0.979 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:267.834925ms]
+Entering Solve
+[Time for solving:1384.439522ms]
+  [fig8 76] Israeli beta=60 hw/H=0.2 FE: Gamma = 6.21381, H_crit = 6.21381 m, mechanism I eta = 1, seed spread 6.7e-16, s=lower (4.85 s)
+  [fig8 77] Israeli beta=60 hw/H=0.3 vopt: Gamma = 6.097011, H_crit = 6.097011 m, mechanism I eta = 1, seed spread 8.9e-16, s=upper (0.964 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:328.740520ms]
+Entering Solve
+[Time for solving:1542.010456ms]
+  [fig8 78] Israeli beta=60 hw/H=0.3 FE: Gamma = 5.021557, H_crit = 5.021557 m, mechanism I eta = 1, seed spread 4.4e-16, s=upper (5.83 s)
+  [fig8 79] Israeli beta=60 hw/H=0.4 vopt: Gamma = 5.736264, H_crit = 5.736264 m, mechanism I eta = 1, seed spread 8.9e-16, s=upper (1.15 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:306.234377ms]
+Entering Solve
+[Time for solving:1619.751866ms]
+  [fig8 80] Israeli beta=60 hw/H=0.4 FE: Gamma = 4.288158, H_crit = 4.288158 m, mechanism I eta = 1, seed spread 8.9e-16, s=lower (5.7 s)
+  [fig8 81] Israeli beta=60 hw/H=0.5 vopt: Gamma = 5.48158, H_crit = 5.48158 m, mechanism I eta = 1, seed spread 8.9e-16, s=lower (1.31 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:271.347542ms]
+Entering Solve
+[Time for solving:1248.485517ms]
+  [fig8 82] Israeli beta=60 hw/H=0.5 FE: Gamma = 3.811123, H_crit = 3.811123 m, mechanism I eta = 1, seed spread 6.7e-16, s=upper (4.89 s)
+  [fig8 83] Israeli beta=60 hw/H=0.6 vopt: Gamma = 5.283063, H_crit = 5.283063 m, mechanism I eta = 1, seed spread 6.7e-16, s=upper (1.23 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:292.693977ms]
+Entering Solve
+[Time for solving:1569.936529ms]
+  [fig8 84] Israeli beta=60 hw/H=0.6 FE: Gamma = 3.497957, H_crit = 3.497957 m, mechanism I eta = 1, seed spread 1.1e-15, s=upper (5.08 s)
+  [fig8 85] Israeli beta=60 hw/H=0.7 vopt: Gamma = 5.104379, H_crit = 5.104379 m, mechanism I eta = 1, seed spread 1.3e-15, s=upper (1.22 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:226.450819ms]
+Entering Solve
+[Time for solving:1510.349909ms]
+  [fig8 86] Israeli beta=60 hw/H=0.7 FE: Gamma = 3.303374, H_crit = 3.303374 m, mechanism I eta = 1, seed spread 6.7e-16, s=upper (5.08 s)
+  [fig8 87] Israeli beta=60 hw/H=0.8 vopt: Gamma = 4.944712, H_crit = 4.944712 m, mechanism I eta = 1, seed spread 8.9e-16, s=lower (1.38 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:318.161392ms]
+Entering Solve
+[Time for solving:1531.638989ms]
+  [fig8 88] Israeli beta=60 hw/H=0.8 FE: Gamma = 3.205907, H_crit = 3.205907 m, mechanism I eta = 1, seed spread 2e-15, s=lower (5.42 s)
+  [fig8 89] Israeli beta=60 hw/H=0.9 vopt: Gamma = 4.836452, H_crit = 4.836452 m, mechanism I eta = 1, seed spread 8.9e-16, s=upper (1.26 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:380.418554ms]
+Entering Solve
+[Time for solving:1632.245902ms]
+  [fig8 90] Israeli beta=60 hw/H=0.9 FE: Gamma = 3.197256, H_crit = 3.197256 m, mechanism I eta = 1, seed spread 4.4e-16, s=upper (5.85 s)
+  [fig8 91] Israeli beta=60 hw/H=1 vopt: Gamma = 4.827888, H_crit = 4.827888 m, mechanism I eta = 1, seed spread 6.7e-16, s=upper (1.33 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:304.305037ms]
+Entering Solve
+[Time for solving:1471.474884ms]
+  [fig8 92] Israeli beta=60 hw/H=1 FE: Gamma = 3.270927, H_crit = 3.270927 m, mechanism I eta = 1, seed spread 1.3e-15, s=lower (4.92 s)
+fig8: 92 limit analyses run (0 with Gamma = inf), 0 already in /home/user/neopz-master/Projects/SlopeSeepageForces/results/cpp/fig8.csv, 404.9 s

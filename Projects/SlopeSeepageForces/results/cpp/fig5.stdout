@@ -1,0 +1,364 @@
+fig5: 4 alphas x 11 betas; hw=1;box_H=50/10/30;hbc=zero/zero/noflow;horder=2;href=1;hmesh=gen/0.025/0.0625/0.15/2;lm=10; out results/cpp/fig5.csv (0 rows already there)
+inserting uniform refpattern: triangle
+inserting uniform refpattern: line
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+********************
+***
+[Time for assembly:300.620594ms]
+Entering Solve
+[Time for solving:2164.156702ms]
+  [fig5] alpha=1 beta=15: -J*/(kh H^2 gw^2) = 0.3381548146 (m = 0.914482324); J_FE/(kh H^2 gw^2) = 0.5863252696 (45557 equations, 3.74 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+********************
+
+[Time for assembly:237.675213ms]
+Entering Solve
+[Time for solving:1635.109389ms]
+  [fig5] alpha=1 beta=22.5: -J*/(kh H^2 gw^2) = 0.3914676762 (m = 0.8904793011); J_FE/(kh H^2 gw^2) = 0.6424302247 (40665 equations, 2.98 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*******************
+[Time for assembly:244.557435ms]
+Entering Solve
+[Time for solving:1400.697979ms]
+  [fig5] alpha=1 beta=30: -J*/(kh H^2 gw^2) = 0.4324692005 (m = 0.8591904419); J_FE/(kh H^2 gw^2) = 0.6858461372 (38247 equations, 2.72 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:209.943263ms]
+Entering Solve
+[Time for solving:1233.034235ms]
+  [fig5] alpha=1 beta=37.5: -J*/(kh H^2 gw^2) = 0.4655040146 (m = 0.8180641274); J_FE/(kh H^2 gw^2) = 0.7218395165 (36963 equations, 2.45 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:211.261160ms]
+Entering Solve
+[Time for solving:1185.179099ms]
+  [fig5] alpha=1 beta=45: -J*/(kh H^2 gw^2) = 0.4927776857 (m = 0.7634347218); J_FE/(kh H^2 gw^2) = 0.7531749864 (36201 equations, 2.45 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:214.288235ms]
+Entering Solve
+[Time for solving:1119.324000ms]
+  [fig5] alpha=1 beta=52.5: -J*/(kh H^2 gw^2) = 0.5155544894 (m = 0.6898702372); J_FE/(kh H^2 gw^2) = 0.7815047899 (35613 equations, 2.3 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:212.383819ms]
+Entering Solve
+[Time for solving:1047.536676ms]
+  [fig5] alpha=1 beta=60: -J*/(kh H^2 gw^2) = 0.5346500479 (m = 0.5889717531); J_FE/(kh H^2 gw^2) = 0.8079165576 (34873 equations, 2.19 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:201.996547ms]
+Entering Solve
+[Time for solving:1087.031906ms]
+  [fig5] alpha=1 beta=67.5: -J*/(kh H^2 gw^2) = 0.5507274667 (m = 0.4469105623); J_FE/(kh H^2 gw^2) = 0.8332120245 (34735 equations, 2.36 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:199.294605ms]
+Entering Solve
+[Time for solving:1013.427363ms]
+  [fig5] alpha=1 beta=75: -J*/(kh H^2 gw^2) = 0.5646799842 (m = 0.2383976515); J_FE/(kh H^2 gw^2) = 0.8580565983 (34759 equations, 2.19 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:205.225781ms]
+Entering Solve
+[Time for solving:1043.582968ms]
+  [fig5] alpha=1 beta=82.5: -J*/(kh H^2 gw^2) = 0.5786708385 (m = 0, degenerate); J_FE/(kh H^2 gw^2) = 0.8830412787 (34195 equations, 2.15 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:203.745152ms]
+Entering Solve
+[Time for solving:1107.791285ms]
+  [fig5] alpha=1 beta=90: -J*/(kh H^2 gw^2) = 0.5913769302 (m = 0, degenerate); J_FE/(kh H^2 gw^2) = 0.9087461924 (34581 equations, 2.2 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+********************
+***
+[Time for assembly:355.704126ms]
+Entering Solve
+[Time for solving:2357.976349ms]
+  [fig5] alpha=2 beta=15: -J*/(kh H^2 gw^2) = 0.2297246028 (m = 0.9149351837); J_FE/(kh H^2 gw^2) = 0.4023851926 (45557 equations, 4.06 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+********************
+
+[Time for assembly:249.696239ms]
+Entering Solve
+[Time for solving:1689.835423ms]
+  [fig5] alpha=2 beta=22.5: -J*/(kh H^2 gw^2) = 0.2665149731 (m = 0.8665877594); J_FE/(kh H^2 gw^2) = 0.4419207903 (40665 equations, 3.09 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*******************
+[Time for assembly:250.250526ms]
+Entering Solve
+[Time for solving:1372.795244ms]
+  [fig5] alpha=2 beta=30: -J*/(kh H^2 gw^2) = 0.2955261587 (m = 0.8129077756); J_FE/(kh H^2 gw^2) = 0.4710511504 (38247 equations, 2.67 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:223.433926ms]
+Entering Solve
+[Time for solving:1225.302761ms]
+  [fig5] alpha=2 beta=37.5: -J*/(kh H^2 gw^2) = 0.3195544245 (m = 0.7548779372); J_FE/(kh H^2 gw^2) = 0.4940856122 (36963 equations, 2.48 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:216.802424ms]
+Entering Solve
+[Time for solving:1174.056132ms]
+  [fig5] alpha=2 beta=45: -J*/(kh H^2 gw^2) = 0.3398699104 (m = 0.6902865661); J_FE/(kh H^2 gw^2) = 0.5132373459 (36201 equations, 2.39 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:236.051274ms]
+Entering Solve
+[Time for solving:1190.913774ms]
+  [fig5] alpha=2 beta=52.5: -J*/(kh H^2 gw^2) = 0.3570623966 (m = 0.6136231186); J_FE/(kh H^2 gw^2) = 0.5298169005 (35613 equations, 2.42 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:200.361160ms]
+Entering Solve
+[Time for solving:1056.739383ms]
+  [fig5] alpha=2 beta=60: -J*/(kh H^2 gw^2) = 0.3714195943 (m = 0.5161965378); J_FE/(kh H^2 gw^2) = 0.5446692646 (34873 equations, 2.17 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:203.798816ms]
+Entering Solve
+[Time for solving:1051.730411ms]
+  [fig5] alpha=2 beta=67.5: -J*/(kh H^2 gw^2) = 0.3831522122 (m = 0.3858589495); J_FE/(kh H^2 gw^2) = 0.5583997101 (34735 equations, 2.19 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:224.491765ms]
+Entering Solve
+[Time for solving:1041.488619ms]
+  [fig5] alpha=2 beta=75: -J*/(kh H^2 gw^2) = 0.3926028827 (m = 0.2050434452); J_FE/(kh H^2 gw^2) = 0.5714856011 (34759 equations, 2.26 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:200.268712ms]
+Entering Solve
+[Time for solving:1027.148258ms]
+  [fig5] alpha=2 beta=82.5: -J*/(kh H^2 gw^2) = 0.400621891 (m = 0, degenerate); J_FE/(kh H^2 gw^2) = 0.5843177022 (34195 equations, 2.19 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:218.583739ms]
+Entering Solve
+[Time for solving:1060.042029ms]
+  [fig5] alpha=2 beta=90: -J*/(kh H^2 gw^2) = 0.4065601831 (m = 0, degenerate); J_FE/(kh H^2 gw^2) = 0.5972489258 (34581 equations, 2.26 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+********************
+***
+[Time for assembly:303.310864ms]
+Entering Solve
+[Time for solving:2145.707802ms]
+  [fig5] alpha=4 beta=15: -J*/(kh H^2 gw^2) = 0.1421662631 (m = 0.9576273419); J_FE/(kh H^2 gw^2) = 0.280600184 (45557 equations, 3.67 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+********************
+
+[Time for assembly:234.438443ms]
+Entering Solve
+[Time for solving:1618.273099ms]
+  [fig5] alpha=4 beta=22.5: -J*/(kh H^2 gw^2) = 0.164029834 (m = 0.8604586641); J_FE/(kh H^2 gw^2) = 0.3072534861 (40665 equations, 2.94 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*******************
+[Time for assembly:224.146379ms]
+Entering Solve
+[Time for solving:1387.851773ms]
+  [fig5] alpha=4 beta=30: -J*/(kh H^2 gw^2) = 0.1821067583 (m = 0.7766539518); J_FE/(kh H^2 gw^2) = 0.325779656 (38247 equations, 2.76 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:224.664934ms]
+Entering Solve
+[Time for solving:1219.202690ms]
+  [fig5] alpha=4 beta=37.5: -J*/(kh H^2 gw^2) = 0.1978018256 (m = 0.7135785466); J_FE/(kh H^2 gw^2) = 0.339686148 (36963 equations, 2.59 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:237.472598ms]
+Entering Solve
+[Time for solving:1131.604083ms]
+  [fig5] alpha=4 beta=45: -J*/(kh H^2 gw^2) = 0.2115041756 (m = 0.6666245509); J_FE/(kh H^2 gw^2) = 0.3507496481 (36201 equations, 2.31 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:205.695018ms]
+Entering Solve
+[Time for solving:1104.891281ms]
+  [fig5] alpha=4 beta=52.5: -J*/(kh H^2 gw^2) = 0.2232101047 (m = 0.6246461853); J_FE/(kh H^2 gw^2) = 0.3599844706 (35613 equations, 2.26 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:200.979880ms]
+Entering Solve
+[Time for solving:1084.616584ms]
+  [fig5] alpha=4 beta=60: -J*/(kh H^2 gw^2) = 0.2327903935 (m = 0.5723564113); J_FE/(kh H^2 gw^2) = 0.368010551 (34873 equations, 2.27 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:212.784772ms]
+Entering Solve
+[Time for solving:1031.690043ms]
+  [fig5] alpha=4 beta=67.5: -J*/(kh H^2 gw^2) = 0.2401454297 (m = 0.4923659051); J_FE/(kh H^2 gw^2) = 0.3752504101 (34735 equations, 2.26 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:201.674907ms]
+Entering Solve
+[Time for solving:1056.610445ms]
+  [fig5] alpha=4 beta=75: -J*/(kh H^2 gw^2) = 0.2453161289 (m = 0.3686636153); J_FE/(kh H^2 gw^2) = 0.3820162269 (34759 equations, 2.23 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:200.837961ms]
+Entering Solve
+[Time for solving:1036.932871ms]
+  [fig5] alpha=4 beta=82.5: -J*/(kh H^2 gw^2) = 0.2485635195 (m = 0.1890594038); J_FE/(kh H^2 gw^2) = 0.388543922 (34195 equations, 2.12 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:201.498715ms]
+Entering Solve
+[Time for solving:1078.876930ms]
+  [fig5] alpha=4 beta=90: -J*/(kh H^2 gw^2) = 0.2504559712 (m = 0, degenerate); J_FE/(kh H^2 gw^2) = 0.3950265045 (34581 equations, 2.2 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+********************
+***
+[Time for assembly:354.823871ms]
+Entering Solve
+[Time for solving:2264.633447ms]
+  [fig5] alpha=10 beta=15: -J*/(kh H^2 gw^2) = 0.06779371743 (m = 1.063425801); J_FE/(kh H^2 gw^2) = 0.1763689888 (45557 equations, 3.93 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+********************
+
+[Time for assembly:283.345132ms]
+Entering Solve
+[Time for solving:1637.942781ms]
+  [fig5] alpha=10 beta=22.5: -J*/(kh H^2 gw^2) = 0.07675544761 (m = 0.8740063547); J_FE/(kh H^2 gw^2) = 0.1909891071 (40665 equations, 3.05 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*******************
+[Time for assembly:232.469863ms]
+Entering Solve
+[Time for solving:1369.747295ms]
+  [fig5] alpha=10 beta=30: -J*/(kh H^2 gw^2) = 0.08507481994 (m = 0.7516739405); J_FE/(kh H^2 gw^2) = 0.2003234812 (38247 equations, 2.73 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:236.211286ms]
+Entering Solve
+[Time for solving:1255.495606ms]
+  [fig5] alpha=10 beta=37.5: -J*/(kh H^2 gw^2) = 0.0928322396 (m = 0.6951154549); J_FE/(kh H^2 gw^2) = 0.2068976527 (36963 equations, 2.56 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+******************
+[Time for assembly:258.900862ms]
+Entering Solve
+[Time for solving:1258.319014ms]
+  [fig5] alpha=10 beta=45: -J*/(kh H^2 gw^2) = 0.09985501633 (m = 0.6848814158); J_FE/(kh H^2 gw^2) = 0.2118972452 (36201 equations, 2.66 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:224.054448ms]
+Entering Solve
+[Time for solving:1099.867143ms]
+  [fig5] alpha=10 beta=52.5: -J*/(kh H^2 gw^2) = 0.1059189683 (m = 0.7003287571); J_FE/(kh H^2 gw^2) = 0.2159330361 (35613 equations, 2.34 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:220.255221ms]
+Entering Solve
+[Time for solving:1054.232503ms]
+  [fig5] alpha=10 beta=60: -J*/(kh H^2 gw^2) = 0.1107920525 (m = 0.7164789981); J_FE/(kh H^2 gw^2) = 0.219349246 (34873 equations, 2.22 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:207.305507ms]
+Entering Solve
+[Time for solving:1027.833204ms]
+  [fig5] alpha=10 beta=67.5: -J*/(kh H^2 gw^2) = 0.1142969328 (m = 0.7020973217); J_FE/(kh H^2 gw^2) = 0.2223701436 (34735 equations, 2.18 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:226.407984ms]
+Entering Solve
+[Time for solving:1028.347855ms]
+  [fig5] alpha=10 beta=75: -J*/(kh H^2 gw^2) = 0.1163958595 (m = 0.6303609833); J_FE/(kh H^2 gw^2) = 0.2251504586 (34759 equations, 2.2 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:198.097818ms]
+Entering Solve
+[Time for solving:1007.848148ms]
+  [fig5] alpha=10 beta=82.5: -J*/(kh H^2 gw^2) = 0.1172284076 (m = 0.4974135666); J_FE/(kh H^2 gw^2) = 0.2277997237 (34195 equations, 2.15 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*****************
+[Time for assembly:208.621457ms]
+Entering Solve
+[Time for solving:1040.360723ms]
+  [fig5] alpha=10 beta=90: -J*/(kh H^2 gw^2) = 0.1170494047 (m = 0.321709034); J_FE/(kh H^2 gw^2) = 0.2303894912 (34581 equations, 2.17 s)
+fig5: 44 cases run, 0 already in results/cpp/fig5.csv, 115.6 s

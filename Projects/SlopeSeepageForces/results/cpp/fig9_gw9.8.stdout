@@ -1,0 +1,364 @@
+fig9: 3 alphas x 20 betas x 2 curves, H 5 m, c 10, phi 30, gamma 20, gamma_w 9.8, h_w / H 1; box_m=50/10/30;hbc=zero/zero/noflow;horder=2;href=1;hmesh=gen/0.025/0.0625/0.15/2;lm=10;mech=I+II;seeds=0+1+2;np=40;niter=150;pools=25;q=coarse/fine;polish=1;dmax=10; out results/cpp/fig9_gammaw9.8.csv (0 rows already there)
+  [fig9 1] alpha=1 beta=15 vopt: Gamma = 119.9662, H_crit = 599.8309 m, mechanism I eta = 0.1273, seed spread 6.4e-14 (7.97 s)
+inserting uniform refpattern: triangle
+inserting uniform refpattern: line
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*************
+[Time for assembly:204.919384ms]
+Entering Solve
+[Time for solving:763.912506ms]
+  [fig9 2] alpha=1 beta=15 FE: Gamma = inf (no mechanism with P_gamma + P_u > 0) (3.74 s)
+  [fig9 3] alpha=1 beta=20 vopt: Gamma = 19.43897, H_crit = 97.19483 m, mechanism I eta = 0.7546, seed spread 3.6e-15 (11.4 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+************
+[Time for assembly:186.520423ms]
+Entering Solve
+[Time for solving:660.078700ms]
+  [fig9 4] alpha=1 beta=20 FE: Gamma = 7.025882, H_crit = 35.12941 m, mechanism I eta = 1, seed spread 3.1e-15, s=upper (3.82 s)
+  [fig9 5] alpha=1 beta=25 vopt: Gamma = 5.913788, H_crit = 29.56894 m, mechanism I eta = 1, seed spread 1.6e-15, s=lower (1.32 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+***********
+[Time for assembly:164.905602ms]
+Entering Solve
+[Time for solving:526.602879ms]
+  [fig9 6] alpha=1 beta=25 FE: Gamma = 3.398398, H_crit = 16.99199 m, mechanism I eta = 1, seed spread 3.6e-15, s=upper (3.79 s)
+  [fig9 7] alpha=1 beta=30 vopt: Gamma = 3.584644, H_crit = 17.92322 m, mechanism I eta = 1, seed spread 2.9e-15, s=lower (0.932 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+**********
+[Time for assembly:174.765252ms]
+Entering Solve
+[Time for solving:686.490767ms]
+  [fig9 8] alpha=1 beta=30 FE: Gamma = 2.336613, H_crit = 11.68306 m, mechanism I eta = 1, seed spread 2.2e-15, s=lower (3.31 s)
+  [fig9 9] alpha=1 beta=35 vopt: Gamma = 2.679855, H_crit = 13.39927 m, mechanism I eta = 1, seed spread 2.4e-15, s=upper (1.03 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+**********
+[Time for assembly:112.922322ms]
+Entering Solve
+[Time for solving:499.021299ms]
+  [fig9 10] alpha=1 beta=35 FE: Gamma = 1.831438, H_crit = 9.15719 m, mechanism I eta = 1, seed spread 8.9e-16, s=lower (3.12 s)
+  [fig9 11] alpha=1 beta=37.5 vopt: Gamma = 2.409182, H_crit = 12.04591 m, mechanism I eta = 1, seed spread 6.7e-16, s=upper (0.939 s)
+*********
+[Time for assembly:145.429940ms]
+[Time for solving:517.450527ms]
+  [fig9 12] alpha=1 beta=37.5 FE: Gamma = 1.664808, H_crit = 8.32404 m, mechanism I eta = 1, seed spread 1.1e-15, s=lower (3.24 s)
+  [fig9 13] alpha=1 beta=40 vopt: Gamma = 2.202262, H_crit = 11.01131 m, mechanism I eta = 1, seed spread 8.9e-16, s=lower (0.831 s)
+*********
+[Time for assembly:163.051665ms]
+[Time for solving:567.544537ms]
+  [fig9 14] alpha=1 beta=40 FE: Gamma = 1.531049, H_crit = 7.655245 m, mechanism I eta = 1, seed spread 1.8e-15, s=upper (3.71 s)
+  [fig9 15] alpha=1 beta=45 vopt: Gamma = 1.905672, H_crit = 9.528362 m, mechanism I eta = 1, seed spread 2.4e-15, s=lower (0.907 s)
+*********
+[Time for assembly:294.381886ms]
+[Time for solving:764.106537ms]
+  [fig9 16] alpha=1 beta=45 FE: Gamma = 1.327222, H_crit = 6.636109 m, mechanism I eta = 1, seed spread 1.3e-15, s=upper (4.01 s)
+  [fig9 17] alpha=1 beta=50 vopt: Gamma = 1.701478, H_crit = 8.507389 m, mechanism I eta = 1, seed spread 4.4e-16, s=upper (1.47 s)
+*********
+[Time for assembly:140.954609ms]
+[Time for solving:412.584310ms]
+  [fig9 18] alpha=1 beta=50 FE: Gamma = 1.176084, H_crit = 5.88042 m, mechanism I eta = 1, seed spread 1.3e-15, s=upper (3.05 s)
+  [fig9 19] alpha=1 beta=52.5 vopt: Gamma = 1.62071, H_crit = 8.103549 m, mechanism I eta = 1, seed spread 8.9e-16, s=upper (1.17 s)
+*********
+[Time for assembly:138.017249ms]
+[Time for solving:474.924298ms]
+  [fig9 20] alpha=1 beta=52.5 FE: Gamma = 1.113236, H_crit = 5.566181 m, mechanism I eta = 1, seed spread 6.7e-16, s=lower (3.16 s)
+  [fig9 21] alpha=1 beta=55 vopt: Gamma = 1.549914, H_crit = 7.749568 m, mechanism I eta = 1, seed spread 6.7e-16, s=upper (1.35 s)
+*********
+[Time for assembly:164.266631ms]
+[Time for solving:550.738762ms]
+  [fig9 22] alpha=1 beta=55 FE: Gamma = 1.056612, H_crit = 5.28306 m, mechanism I eta = 1, seed spread 1.6e-15, s=lower (3.5 s)
+  [fig9 23] alpha=1 beta=60 vopt: Gamma = 1.429234, H_crit = 7.146168 m, mechanism I eta = 1, seed spread 1.1e-15, s=lower (1.09 s)
+*********
+[Time for assembly:128.740055ms]
+[Time for solving:341.318604ms]
+  [fig9 24] alpha=1 beta=60 FE: Gamma = 0.9575139, H_crit = 4.787569 m, mechanism I eta = 1, seed spread 6.7e-16, s=upper (3.15 s)
+  [fig9 25] alpha=1 beta=65 vopt: Gamma = 1.321628, H_crit = 6.608142 m, mechanism I eta = 1, seed spread 6.7e-16, s=upper (1.31 s)
+********
+[Time for assembly:164.228952ms]
+[Time for solving:521.268628ms]
+  [fig9 26] alpha=1 beta=65 FE: Gamma = 0.8722292, H_crit = 4.361146 m, mechanism I eta = 1, seed spread 4.4e-16, s=upper (3.64 s)
+  [fig9 27] alpha=1 beta=67.5 vopt: Gamma = 1.264638, H_crit = 6.32319 m, mechanism I eta = 1, seed spread 1.3e-15, s=lower (1.2 s)
+********
+[Time for assembly:100.422982ms]
+[Time for solving:427.849138ms]
+  [fig9 28] alpha=1 beta=67.5 FE: Gamma = 0.8334354, H_crit = 4.167177 m, mechanism I eta = 1, seed spread 1.1e-15, s=upper (3.54 s)
+  [fig9 29] alpha=1 beta=70 vopt: Gamma = 1.198903, H_crit = 5.994514 m, mechanism I eta = 1, seed spread 0.94, s=lower (1.53 s)
+********
+[Time for assembly:109.268145ms]
+[Time for solving:491.753663ms]
+  [fig9 30] alpha=1 beta=70 FE: Gamma = 0.7966989, H_crit = 3.983495 m, mechanism I eta = 1, seed spread 8.9e-16, s=lower (3.2 s)
+  [fig9 31] alpha=1 beta=75 vopt: Gamma = 1.025175, H_crit = 5.125874 m, mechanism I eta = 1, seed spread 1.1e-15, s=upper (1.28 s)
+********
+[Time for assembly:123.489196ms]
+[Time for solving:445.560124ms]
+  [fig9 32] alpha=1 beta=75 FE: Gamma = 0.7283178, H_crit = 3.641589 m, mechanism I eta = 1, seed spread 1.1e-15, s=upper (2.74 s)
+  [fig9 33] alpha=1 beta=80 vopt: Gamma = 0.7924415, H_crit = 3.962208 m, mechanism I eta = 1, seed spread 2e-15, s=upper (1.57 s)
+********
+[Time for assembly:123.039258ms]
+[Time for solving:324.883162ms]
+  [fig9 34] alpha=1 beta=80 FE: Gamma = 0.6653536, H_crit = 3.326768 m, mechanism I eta = 1, seed spread 1.1e-15, s=upper (3.17 s)
+  [fig9 35] alpha=1 beta=82.5 vopt: Gamma = 0.7209951, H_crit = 3.604975 m, mechanism I eta = 1, seed spread 6.7e-16, s=lower (0.439 s)
+********
+[Time for assembly:149.763561ms]
+[Time for solving:348.926566ms]
+  [fig9 36] alpha=1 beta=82.5 FE: Gamma = 0.6355213, H_crit = 3.177606 m, mechanism I eta = 1, seed spread 6.7e-16, s=upper (3.13 s)
+  [fig9 37] alpha=1 beta=85 vopt: Gamma = 0.6785494, H_crit = 3.392747 m, mechanism I eta = 1, seed spread 4.4e-16, s=upper (0.871 s)
+********
+[Time for assembly:161.083141ms]
+[Time for solving:460.452473ms]
+  [fig9 38] alpha=1 beta=85 FE: Gamma = 0.6066374, H_crit = 3.033187 m, mechanism I eta = 1, seed spread 3.2, s=lower (3.05 s)
+  [fig9 39] alpha=1 beta=90 vopt: Gamma = 0.6015383, H_crit = 3.007691 m, mechanism I eta = 1, seed spread 3.1e-15, s=upper (0.757 s)
+********
+[Time for assembly:136.605909ms]
+[Time for solving:439.163917ms]
+  [fig9 40] alpha=1 beta=90 FE: Gamma = 0.5513712, H_crit = 2.756856 m, mechanism I eta = 1, seed spread 5.3, s=lower (3.03 s)
+  [fig9 41] alpha=5 beta=15 vopt: Gamma = inf (no mechanism with P_gamma + P_u > 0) (0.793 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*************
+[Time for assembly:186.556898ms]
+Entering Solve
+[Time for solving:815.933677ms]
+  [fig9 42] alpha=5 beta=15 FE: Gamma = inf (no mechanism with P_gamma + P_u > 0) (4.28 s)
+  [fig9 43] alpha=5 beta=20 vopt: Gamma = inf (no mechanism with P_gamma + P_u > 0) (0.777 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+************
+[Time for assembly:196.563759ms]
+Entering Solve
+[Time for solving:914.337105ms]
+  [fig9 44] alpha=5 beta=20 FE: Gamma = 17.30389, H_crit = 86.51947 m, mechanism II d/H = 0.6618, seed spread 0.00044 (6.93 s)
+  [fig9 45] alpha=5 beta=25 vopt: Gamma = 18.50022, H_crit = 92.50108 m, mechanism I eta = 1, seed spread 1.9e-14, s=lower (13.1 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+***********
+[Time for assembly:175.400655ms]
+Entering Solve
+[Time for solving:718.243866ms]
+  [fig9 46] alpha=5 beta=25 FE: Gamma = 5.938448, H_crit = 29.69224 m, mechanism II d/H = 0.5505, seed spread 9.5e-06 (3.65 s)
+  [fig9 47] alpha=5 beta=30 vopt: Gamma = 6.861548, H_crit = 34.30774 m, mechanism I eta = 1, seed spread 1.3e-15, s=lower (0.887 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+**********
+[Time for assembly:145.717872ms]
+Entering Solve
+[Time for solving:620.756252ms]
+  [fig9 48] alpha=5 beta=30 FE: Gamma = 3.792673, H_crit = 18.96336 m, mechanism I eta = 1, seed spread 3.6e-15, s=lower (3.31 s)
+  [fig9 49] alpha=5 beta=35 vopt: Gamma = 4.344212, H_crit = 21.72106 m, mechanism I eta = 1, seed spread 2.4e-15, s=lower (1.08 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+**********
+[Time for assembly:109.638241ms]
+Entering Solve
+[Time for solving:521.998876ms]
+  [fig9 50] alpha=5 beta=35 FE: Gamma = 2.78527, H_crit = 13.92635 m, mechanism I eta = 1, seed spread 5.6e-15, s=upper (3.37 s)
+  [fig9 51] alpha=5 beta=37.5 vopt: Gamma = 3.721016, H_crit = 18.60508 m, mechanism I eta = 1, seed spread 1.3e-15, s=lower (1.14 s)
+*********
+[Time for assembly:149.897499ms]
+[Time for solving:526.685730ms]
+  [fig9 52] alpha=5 beta=37.5 FE: Gamma = 2.468501, H_crit = 12.34251 m, mechanism I eta = 1, seed spread 2.2e-15, s=upper (3.15 s)
+  [fig9 53] alpha=5 beta=40 vopt: Gamma = 3.277618, H_crit = 16.38809 m, mechanism I eta = 1, seed spread 1.1e-15, s=lower (1.05 s)
+*********
+[Time for assembly:149.491736ms]
+[Time for solving:477.882791ms]
+  [fig9 54] alpha=5 beta=40 FE: Gamma = 2.219269, H_crit = 11.09634 m, mechanism I eta = 1, seed spread 2.4e-15, s=lower (3.07 s)
+  [fig9 55] alpha=5 beta=45 vopt: Gamma = 2.683997, H_crit = 13.41998 m, mechanism I eta = 1, seed spread 2e-15, s=upper (0.967 s)
+*********
+[Time for assembly:139.571227ms]
+[Time for solving:534.964366ms]
+  [fig9 56] alpha=5 beta=45 FE: Gamma = 1.847697, H_crit = 9.238484 m, mechanism I eta = 1, seed spread 2.4e-15, s=upper (3.69 s)
+  [fig9 57] alpha=5 beta=50 vopt: Gamma = 2.29561, H_crit = 11.47805 m, mechanism I eta = 1, seed spread 1.8e-15, s=upper (1.26 s)
+*********
+[Time for assembly:155.486601ms]
+[Time for solving:578.115011ms]
+  [fig9 58] alpha=5 beta=50 FE: Gamma = 1.579389, H_crit = 7.896944 m, mechanism I eta = 1, seed spread 8.9e-16, s=lower (3.04 s)
+  [fig9 59] alpha=5 beta=52.5 vopt: Gamma = 2.143773, H_crit = 10.71887 m, mechanism I eta = 1, seed spread 1.3e-15, s=upper (1.33 s)
+*********
+[Time for assembly:125.011715ms]
+[Time for solving:509.911697ms]
+  [fig9 60] alpha=5 beta=52.5 FE: Gamma = 1.470036, H_crit = 7.350182 m, mechanism I eta = 1, seed spread 1.1e-15, s=lower (3.1 s)
+  [fig9 61] alpha=5 beta=55 vopt: Gamma = 2.010254, H_crit = 10.05127 m, mechanism I eta = 1, seed spread 6.7e-16, s=upper (1.02 s)
+*********
+[Time for assembly:149.708295ms]
+[Time for solving:453.741529ms]
+  [fig9 62] alpha=5 beta=55 FE: Gamma = 1.373038, H_crit = 6.865189 m, mechanism I eta = 1, seed spread 1.3e-15, s=upper (3.38 s)
+  [fig9 63] alpha=5 beta=60 vopt: Gamma = 1.780115, H_crit = 8.900577 m, mechanism I eta = 1, seed spread 2e-15, s=upper (1.18 s)
+*********
+[Time for assembly:165.492599ms]
+[Time for solving:492.876517ms]
+  [fig9 64] alpha=5 beta=60 FE: Gamma = 1.207301, H_crit = 6.036505 m, mechanism I eta = 1, seed spread 1.8e-15, s=lower (2.99 s)
+  [fig9 65] alpha=5 beta=65 vopt: Gamma = 1.579394, H_crit = 7.896968 m, mechanism I eta = 1, seed spread 8.9e-16, s=lower (1.12 s)
+********
+[Time for assembly:126.204812ms]
+[Time for solving:429.750218ms]
+  [fig9 66] alpha=5 beta=65 FE: Gamma = 1.069763, H_crit = 5.348816 m, mechanism I eta = 1, seed spread 1, s=lower (2.96 s)
+  [fig9 67] alpha=5 beta=67.5 vopt: Gamma = 1.485189, H_crit = 7.425946 m, mechanism I eta = 1, seed spread 1.1e-15, s=upper (1.35 s)
+********
+[Time for assembly:127.908663ms]
+[Time for solving:436.705850ms]
+  [fig9 68] alpha=5 beta=67.5 FE: Gamma = 1.009026, H_crit = 5.045132 m, mechanism I eta = 1, seed spread 1.6e-15, s=lower (3.27 s)
+  [fig9 69] alpha=5 beta=70 vopt: Gamma = 1.393548, H_crit = 6.96774 m, mechanism I eta = 1, seed spread 8.9e-16, s=lower (1.29 s)
+********
+[Time for assembly:145.333827ms]
+[Time for solving:400.058994ms]
+  [fig9 70] alpha=5 beta=70 FE: Gamma = 0.9526341, H_crit = 4.763171 m, mechanism I eta = 1, seed spread 1.3e-15, s=upper (3.08 s)
+  [fig9 71] alpha=5 beta=75 vopt: Gamma = 1.216018, H_crit = 6.080091 m, mechanism I eta = 1, seed spread 4.4e-16, s=upper (1 s)
+********
+[Time for assembly:129.048204ms]
+[Time for solving:405.590849ms]
+  [fig9 72] alpha=5 beta=75 FE: Gamma = 0.8509026, H_crit = 4.254513 m, mechanism I eta = 1, seed spread 4.4e-16, s=upper (2.85 s)
+  [fig9 73] alpha=5 beta=80 vopt: Gamma = 1.046155, H_crit = 5.230773 m, mechanism I eta = 1, seed spread 0, s=lower (1.06 s)
+********
+[Time for assembly:107.004368ms]
+[Time for solving:387.150928ms]
+  [fig9 74] alpha=5 beta=80 FE: Gamma = 0.7610654, H_crit = 3.805327 m, mechanism I eta = 1, seed spread 1.6e-15, s=lower (2.81 s)
+  [fig9 75] alpha=5 beta=82.5 vopt: Gamma = 0.9646833, H_crit = 4.823416 m, mechanism I eta = 1, seed spread 8.9e-16, s=lower (1.14 s)
+********
+[Time for assembly:104.792244ms]
+[Time for solving:319.223965ms]
+  [fig9 76] alpha=5 beta=82.5 FE: Gamma = 0.7198191, H_crit = 3.599095 m, mechanism I eta = 1, seed spread 2.2e-16, s=lower (3.01 s)
+  [fig9 77] alpha=5 beta=85 vopt: Gamma = 0.8858032, H_crit = 4.429016 m, mechanism I eta = 1, seed spread 1.6e-15, s=lower (1.29 s)
+********
+[Time for assembly:140.520384ms]
+[Time for solving:461.289290ms]
+  [fig9 78] alpha=5 beta=85 FE: Gamma = 0.6806905, H_crit = 3.403452 m, mechanism I eta = 1, seed spread 3.2, s=lower (2.81 s)
+  [fig9 79] alpha=5 beta=90 vopt: Gamma = 0.735661, H_crit = 3.678305 m, mechanism I eta = 1, seed spread 6.7e-16, s=upper (14.2 s)
+********
+[Time for assembly:96.300931ms]
+[Time for solving:367.378459ms]
+  [fig9 80] alpha=5 beta=90 FE: Gamma = 0.6080096, H_crit = 3.040048 m, mechanism I eta = 1, seed spread 4.4e-16, s=upper (3.16 s)
+  [fig9 81] alpha=10 beta=15 vopt: Gamma = inf (no mechanism with P_gamma + P_u > 0) (0.698 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+*************
+[Time for assembly:233.129774ms]
+Entering Solve
+[Time for solving:851.718186ms]
+  [fig9 82] alpha=10 beta=15 FE: Gamma = inf (no mechanism with P_gamma + P_u > 0) (4.17 s)
+  [fig9 83] alpha=10 beta=20 vopt: Gamma = inf (no mechanism with P_gamma + P_u > 0) (0.952 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+************
+[Time for assembly:139.899385ms]
+Entering Solve
+[Time for solving:728.726662ms]
+  [fig9 84] alpha=10 beta=20 FE: Gamma = 38.94269, H_crit = 194.7135 m, mechanism II d/H = 0.9841, seed spread 0.012 (12.9 s)
+  [fig9 85] alpha=10 beta=25 vopt: Gamma = 50.88173, H_crit = 254.4086 m, mechanism I eta = 1, seed spread 0.3, s=lower (11.4 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+***********
+[Time for assembly:165.092777ms]
+Entering Solve
+[Time for solving:639.154443ms]
+  [fig9 86] alpha=10 beta=25 FE: Gamma = 7.572877, H_crit = 37.86439 m, mechanism II d/H = 0.8208, seed spread 0.0002 (4.23 s)
+  [fig9 87] alpha=10 beta=30 vopt: Gamma = 8.826194, H_crit = 44.13097 m, mechanism I eta = 1, seed spread 3.6e-15, s=lower (1.18 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+**********
+[Time for assembly:118.738993ms]
+Entering Solve
+[Time for solving:702.609515ms]
+  [fig9 88] alpha=10 beta=30 FE: Gamma = 4.709005, H_crit = 23.54502 m, mechanism II d/H = 0.7342, seed spread 6.2e-15 (4.13 s)
+  [fig9 89] alpha=10 beta=35 vopt: Gamma = 4.999405, H_crit = 24.99703 m, mechanism I eta = 1, seed spread 3.3e-15, s=lower (1.02 s)
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+**********
+[Time for assembly:174.646344ms]
+Entering Solve
+[Time for solving:458.120989ms]
+  [fig9 90] alpha=10 beta=35 FE: Gamma = 3.539608, H_crit = 17.69804 m, mechanism I eta = 1, seed spread 0.037, s=lower (3.73 s)
+  [fig9 91] alpha=10 beta=37.5 vopt: Gamma = 4.17869, H_crit = 20.89345 m, mechanism I eta = 1, seed spread 8.9e-16, s=lower (1.29 s)
+*********
+[Time for assembly:184.450651ms]
+[Time for solving:612.531828ms]
+  [fig9 92] alpha=10 beta=37.5 FE: Gamma = 3.039268, H_crit = 15.19634 m, mechanism I eta = 1, seed spread 3.6e-15, s=upper (3.73 s)
+  [fig9 93] alpha=10 beta=40 vopt: Gamma = 3.619793, H_crit = 18.09897 m, mechanism I eta = 1, seed spread 1.3e-15, s=lower (1.02 s)
+*********
+[Time for assembly:150.060404ms]
+[Time for solving:587.313037ms]
+  [fig9 94] alpha=10 beta=40 FE: Gamma = 2.662912, H_crit = 13.31456 m, mechanism I eta = 1, seed spread 6.7e-16, s=upper (3.51 s)
+  [fig9 95] alpha=10 beta=45 vopt: Gamma = 2.898432, H_crit = 14.49216 m, mechanism I eta = 1, seed spread 2e-15, s=lower (1.24 s)
+*********
+[Time for assembly:146.333295ms]
+[Time for solving:614.817355ms]
+  [fig9 96] alpha=10 beta=45 FE: Gamma = 2.13057, H_crit = 10.65285 m, mechanism I eta = 1, seed spread 6.7e-16, s=upper (3.63 s)
+  [fig9 97] alpha=10 beta=50 vopt: Gamma = 2.437745, H_crit = 12.18873 m, mechanism I eta = 1, seed spread 2.4e-15, s=upper (1.28 s)
+*********
+[Time for assembly:99.533401ms]
+[Time for solving:376.943101ms]
+  [fig9 98] alpha=10 beta=50 FE: Gamma = 1.768845, H_crit = 8.844223 m, mechanism I eta = 1, seed spread 1.6e-15, s=lower (2.91 s)
+  [fig9 99] alpha=10 beta=52.5 vopt: Gamma = 2.258806, H_crit = 11.29403 m, mechanism I eta = 1, seed spread 8.9e-16, s=upper (1.08 s)
+*********
+[Time for assembly:156.935239ms]
+[Time for solving:416.530132ms]
+  [fig9 100] alpha=10 beta=52.5 FE: Gamma = 1.627077, H_crit = 8.135383 m, mechanism I eta = 1, seed spread 1.3e-15, s=lower (3.57 s)
+  [fig9 101] alpha=10 beta=55 vopt: Gamma = 2.101817, H_crit = 10.50909 m, mechanism I eta = 1, seed spread 2.2e-15, s=upper (1.43 s)
+*********
+[Time for assembly:152.108306ms]
+[Time for solving:490.485443ms]
+  [fig9 102] alpha=10 beta=55 FE: Gamma = 1.504205, H_crit = 7.521027 m, mechanism I eta = 1, seed spread 4.4e-16, s=upper (2.9 s)
+  [fig9 103] alpha=10 beta=60 vopt: Gamma = 1.833193, H_crit = 9.165966 m, mechanism I eta = 1, seed spread 2.2e-16, s=upper (1.38 s)
+*********
+[Time for assembly:112.048901ms]
+[Time for solving:334.862568ms]
+  [fig9 104] alpha=10 beta=60 FE: Gamma = 1.300459, H_crit = 6.502294 m, mechanism I eta = 1, seed spread 1.1e-15, s=lower (2.91 s)
+  [fig9 105] alpha=10 beta=65 vopt: Gamma = 1.60488, H_crit = 8.024401 m, mechanism I eta = 1, seed spread 6.7e-16, s=lower (1.14 s)
+********
+[Time for assembly:159.707516ms]
+[Time for solving:514.231703ms]
+  [fig9 106] alpha=10 beta=65 FE: Gamma = 1.137227, H_crit = 5.686137 m, mechanism I eta = 1, seed spread 1.1, s=lower (3.57 s)
+  [fig9 107] alpha=10 beta=67.5 vopt: Gamma = 1.501352, H_crit = 7.506761 m, mechanism I eta = 1, seed spread 1.1e-15, s=lower (1.1 s)
+********
+[Time for assembly:96.789506ms]
+[Time for solving:383.200943ms]
+  [fig9 108] alpha=10 beta=67.5 FE: Gamma = 1.066773, H_crit = 5.333863 m, mechanism I eta = 1, seed spread 1.8e-15, s=upper (3.34 s)
+  [fig9 109] alpha=10 beta=70 vopt: Gamma = 1.403496, H_crit = 7.017482 m, mechanism I eta = 1, seed spread 1.3e-15, s=upper (1.13 s)
+********
+[Time for assembly:136.745216ms]
+[Time for solving:421.426037ms]
+  [fig9 110] alpha=10 beta=70 FE: Gamma = 1.0022, H_crit = 5.010999 m, mechanism I eta = 1, seed spread 1.4, s=lower (3.11 s)
+  [fig9 111] alpha=10 beta=75 vopt: Gamma = 1.222346, H_crit = 6.11173 m, mechanism I eta = 1, seed spread 6.7e-16, s=upper (1.41 s)
+********
+[Time for assembly:112.032739ms]
+[Time for solving:364.041057ms]
+  [fig9 112] alpha=10 beta=75 FE: Gamma = 0.8877175, H_crit = 4.438588 m, mechanism I eta = 1, seed spread 4.4e-16, s=upper (2.69 s)
+  [fig9 113] alpha=10 beta=80 vopt: Gamma = 1.058532, H_crit = 5.292661 m, mechanism I eta = 1, seed spread 1.1e-15, s=lower (1.31 s)
+********
+[Time for assembly:165.048608ms]
+[Time for solving:447.941733ms]
+  [fig9 114] alpha=10 beta=80 FE: Gamma = 0.7886056, H_crit = 3.943028 m, mechanism I eta = 1, seed spread 6.7e-16, s=upper (3.23 s)
+  [fig9 115] alpha=10 beta=82.5 vopt: Gamma = 0.9828407, H_crit = 4.914203 m, mechanism I eta = 1, seed spread 1.1e-15, s=upper (1.34 s)
+********
+[Time for assembly:153.088085ms]
+[Time for solving:446.730456ms]
+  [fig9 116] alpha=10 beta=82.5 FE: Gamma = 0.7436792, H_crit = 3.718396 m, mechanism I eta = 1, seed spread 1.1e-15, s=upper (3.19 s)
+  [fig9 117] alpha=10 beta=85 vopt: Gamma = 0.9112531, H_crit = 4.556266 m, mechanism I eta = 1, seed spread 1.6e-15, s=upper (1.04 s)
+********
+[Time for assembly:114.810497ms]
+[Time for solving:528.634193ms]
+  [fig9 118] alpha=10 beta=85 FE: Gamma = 0.7013745, H_crit = 3.506873 m, mechanism I eta = 1, seed spread 8.9e-16, s=upper (2.72 s)
+  [fig9 119] alpha=10 beta=90 vopt: Gamma = 0.7801479, H_crit = 3.900739 m, mechanism I eta = 1, seed spread 2e-15, s=upper (9.63 s)
+********
+[Time for assembly:138.590423ms]
+[Time for solving:393.527268ms]
+  [fig9 120] alpha=10 beta=90 FE: Gamma = 0.6235577, H_crit = 3.117788 m, mechanism I eta = 1, seed spread 1.3e-15, s=upper (4.54 s)
+fig9: 120 limit analyses run (7 with Gamma = inf), 0 already in results/cpp/fig9_gammaw9.8.csv, 346.2 s

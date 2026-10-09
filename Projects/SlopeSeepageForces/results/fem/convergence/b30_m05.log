@@ -1,0 +1,114 @@
+inserting uniform refpattern: triangle
+inserting uniform refpattern: line
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+**********
+[Time for assembly:129.503713ms]
+Entering Solve
+[Time for solving:463.362544ms]
+hydraulic domain: H 5 m, beta 30 deg, h_w 5 m, box x in [-50, 18.6603], y in [-35, 0]
+K = diag(1, 1), alpha 1, gamma_w 9.81, order 2, mesh gen; far sides: left zero, base zero, right noflow
+seepage: 21319 equations, J/(kh H^2 gw^2) 0.530328, min p -7.56625e-12 kPa, 1.18245 s
+stability domain: H 5 m, beta 30 deg, h_w 5 m, box x in [-18.6603, 18.6603], y in [-23.6603, 0]
+stability mesh gen: 285 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.002
+total pore pressure at the 1710 integration points of the initial stability mesh: 0 with p < 0, min p 0.263062 kPa
+[GI] p = 0.5 converged (1 it.)
+[GI] p = 1.25 converged (5 it.)
+[GI] p = 2.375 converged (8 it.)
+[GI] p = 4.0625 failed (26 it.)
+[GI] p = 3.21875 failed (66 it.)
+[GI] p = 2.79688 converged (12 it.)
+[GI] p = 3.21875 failed (60 it.)
+[GI] p = 3.00781 converged (33 it.)
+[GI] p = 3.21875 failed (41 it.)
+[GI] p = 3.11328 converged (84 it.)
+[GI] p = 3.21875 failed (17 it.)
+[GI] p = 3.16602 failed (21 it.)
+[GI] p = 3.13965 failed (27 it.)
+[GI] p = 3.12646 failed (43 it.)
+[GI] p = 3.11987 converged (95 it.)
+[GI] p = 3.12646 failed (19 it.)
+[GI] last converged p = 3.11987
+[FS] cycle 0: 1240 equations, lambda GI 3.11987 (31.7596 s); GI plastic zone x in [-2.82882, 13.3262], y in [-7.87794, 0] (1 %: x in [-2.82882, 15.7014], y in [-7.87794, 0])
+[GI] p = 0.5 converged (1 it.)
+[GI] p = 1.25 converged (5 it.)
+[GI] p = 2.375 converged (11 it.)
+[GI] p = 3.5 failed (20 it.)
+[GI] p = 2.9375 failed (34 it.)
+[GI] p = 2.65625 failed (101 it.)
+[GI] p = 2.51562 converged (18 it.)
+[GI] p = 2.65625 failed (101 it.)
+[GI] p = 2.58594 converged (34 it.)
+[GI] p = 2.65625 failed (101 it.)
+[GI] p = 2.62109 converged (40 it.)
+[GI] p = 2.65625 failed (101 it.)
+[GI] p = 2.63867 converged (47 it.)
+[GI] p = 2.65625 failed (93 it.)
+[GI] p = 2.64746 converged (52 it.)
+[GI] p = 2.65625 failed (70 it.)
+[GI] last converged p = 2.64746
+[FS] cycle 1: 2128 equations, lambda GI 2.64746 (99.7017 s); GI plastic zone x in [-1.6496, 11.4195], y in [-6.69626, 0] (1 %: x in [-2.04267, 12.3728], y in [-7.11586, 0])
+[GI] p = 0.5 converged (1 it.)
+[GI] p = 1.25 converged (6 it.)
+[GI] p = 2.375 converged (15 it.)
+[GI] p = 3.5 failed (16 it.)
+[GI] p = 2.9375 failed (17 it.)
+[GI] p = 2.65625 failed (25 it.)
+[GI] p = 2.51562 failed (42 it.)
+[GI] p = 2.44531 failed (101 it.)
+[GI] p = 2.41016 converged (37 it.)
+[GI] p = 2.44531 converged (90 it.)
+[GI] p = 2.48047 failed (22 it.)
+[GI] p = 2.46289 failed (38 it.)
+[GI] p = 2.4541 failed (101 it.)
+[GI] last converged p = 2.44531
+[FS] cycle 2: 4050 equations, lambda GI 2.44531 (136.32 s); GI plastic zone x in [-1.25652, 10.2716], y in [-6.06299, 0] (1 %: x in [-1.25652, 11.0368], y in [-6.204, 0])
+[GI] p = 0.5 converged (1 it.)
+[GI] p = 1.25 converged (8 it.)
+[GI] p = 2.375 failed (99 it.)
+[GI] p = 1.8125 converged (10 it.)
+[GI] p = 2.375 failed (97 it.)
+[GI] p = 2.09375 converged (10 it.)
+[GI] p = 2.375 failed (80 it.)
+[GI] p = 2.23438 converged (9 it.)
+[GI] p = 2.375 failed (84 it.)
+[GI] p = 2.30469 converged (11 it.)
+[GI] p = 2.375 failed (89 it.)
+[GI] p = 2.33984 converged (29 it.)
+[GI] p = 2.375 failed (68 it.)
+[GI] p = 2.35742 converged (48 it.)
+[GI] p = 2.375 failed (44 it.)
+[GI] p = 2.36621 failed (101 it.)
+[GI] last converged p = 2.35742
+[FS] cycle 3: 8770 equations, lambda GI 2.35742 (528.518 s); GI plastic zone x in [-1.09946, 9.88891], y in [-5.71423, 0] (1 %: x in [-1.09946, 10.2716], y in [-5.85898, 0])
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+[GI] p = 0.5 converged (1 it.)
+[GI] p = 1.25 converged (9 it.)
+[GI] p = 2 converged (13 it.)
+[GI] p = 2.75 failed (19 it.)
+[GI] p = 2.375 failed (34 it.)
+[GI] p = 2.1875 converged (10 it.)
+[GI] p = 2.375 failed (32 it.)
+[GI] p = 2.28125 converged (10 it.)
+[GI] p = 2.375 failed (31 it.)
+[GI] p = 2.32812 failed (101 it.)
+[GI] p = 2.30469 converged (22 it.)
+[GI] p = 2.32812 failed (101 it.)
+[GI] p = 2.31641 converged (41 it.)
+[GI] p = 2.32812 failed (100 it.)
+[GI] p = 2.32227 converged (62 it.)
+[GI] p = 2.32812 failed (80 it.)
+[GI] last converged p = 2.32227
+[FS] cycle 4: 20988 equations, lambda GI 2.32227 (2068.76 s); GI plastic zone x in [-0.942394, 9.50495], y in [-5.52164, 0] (1 %: x in [-1.02093, 9.73533], y in [-5.62547, 0])
+
+cycle  equations  lambda_GI (= Gamma_FEM)  H_crit (m)  gamma H_crit / c  time (s)  plastic zone / H (mark; 1 %): x_min  x_max - x_T  y_min - y_T
+  0  1240  3.11987  15.5994  31.1987  31.7596  -0.565764  0.933182  -0.575588;  -0.565764  1.40822  -0.575588
+  1  2128  2.64746  13.2373  26.4746  99.7017  -0.32992  0.551846  -0.339253;  -0.408534  0.742514  -0.423171
+  2  4050  2.44531  12.2266  24.4531  136.32  -0.251305  0.32226  -0.212598;  -0.251305  0.475317  -0.240801
+  3  8770  2.35742  11.7871  23.5742  528.518  -0.219892  0.245731  -0.142846;  -0.219892  0.32226  -0.171795
+  4  20988  2.32227  11.6113  23.2227  2068.76  -0.188479  0.16894  -0.104328;  -0.204185  0.215015  -0.125094
+box / H: x_min -3.73205, x_max - x_T 2, y_min - y_T -3.73205
+lambda extrapolated to h -> 0 from the last cycles: order 1 2.28711, observed order 1.32193 -> 2.29883, linear in 1 / sqrt(neq) 2.25799
+total time 2866.72 s

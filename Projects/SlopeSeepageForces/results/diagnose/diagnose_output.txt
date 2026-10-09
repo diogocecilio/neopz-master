@@ -1,0 +1,374 @@
+diagnose_fig8_fig9.py  2026-10-09 06:26:08  workers=2
+
+==============================================================================================================
+mechanisms: plots of the optimal mechanisms (from the reproduce_python baseline) with the seepage-force fields
+==============================================================================================================
+   wrote /home/user/neopz-master/Projects/SlopeSeepageForces/results/diagnose/mechanisms_israeli35.png
+   wrote /home/user/neopz-master/Projects/SlopeSeepageForces/results/diagnose/mechanisms_london30.png
+   wrote /home/user/neopz-master/Projects/SlopeSeepageForces/results/diagnose/mechanisms_london60.png
+   wrote /home/user/neopz-master/Projects/SlopeSeepageForces/results/diagnose/mechanisms_israeli60.png
+   wrote /home/user/neopz-master/Projects/SlopeSeepageForces/results/diagnose/mechanisms_fig9_vopt.png
+   wrote /home/user/neopz-master/Projects/SlopeSeepageForces/results/diagnose/mechanisms_zoom_O.png
+   [mechanisms: 14 s]
+
+==============================================================================================================
+selfsimilar: H_crit * h_w / H along the Fig. 8 curves (constant for a mechanism family that scales with R_w)
+==============================================================================================================
+   H_crit * (h_w/H) [m] (constant along a family of mechanisms that scales with R_w = h_w / sin beta);
+   'B/R_w' = distance of the exit point B from O over R_w
+   London   30 vopt ours/paper  0.1:  8.57/  7.75  0.2: 11.74/ 11.49  0.3: 12.97/ 12.25  0.4: 13.21/ 12.66* 0.5: 13.21/ 12.75* 0.6: 13.21/ 12.83* 0.7: 13.21/ 12.93* 0.8: 13.30/ 13.05  0.9: 13.69/ 13.50  1.0: 14.61/ 14.52 
+   London   30 FE   ours/paper  0.1:  6.63/  6.52  0.2:  7.44/  7.45  0.3:  7.51/  7.46  0.4:  7.50/  7.45  0.5:  7.57/  7.60  0.6:  7.75/  7.81  0.7:  8.09/  8.14  0.8:  8.65/  8.71  0.9:  9.51/  9.49  1.0: 10.81/ 10.77 
+   London   60 vopt ours/paper  0.1:  1.31/  1.31  0.2:  2.14/  2.14  0.3:  2.85/  2.84  0.4:  3.56/  3.55  0.5:  4.34/  4.31  0.6:  5.09/  5.08  0.7:  5.84/  5.81  0.8:  6.58/  6.52  0.9:  7.32/  7.25  1.0:  8.13/  8.04 
+   London   60 FE   ours/paper  0.1:  1.27/  1.28  0.2:  1.98/  1.98  0.3:  2.47/  2.48  0.4:  2.87/  2.87  0.5:  3.22/  3.22  0.6:  3.56/  3.57  0.7:  3.93/  3.94  0.8:  4.35/  4.36  0.9:  4.85/  4.84  1.0:  5.45/  5.41 
+   Israeli  35 vopt ours/paper  0.1:  7.36/  4.68  0.2:  7.73/  6.70* 0.3:  7.73/  7.25* 0.4:  7.73/  7.50* 0.5:  7.73/  7.44* 0.6:  7.73/  7.63* 0.7:  7.73/  7.60* 0.8:  7.79/  7.57  0.9:  8.08/  7.93  1.0:  8.73/  8.56 
+   Israeli  35 FE   ours/paper  0.1:  4.49/  3.92* 0.2:  4.46/  5.59* 0.3:  4.42/  5.78* 0.4:  4.35/  5.72  0.5:  4.32/  5.89  0.6:  4.39/  5.86  0.7:  4.58/  5.88  0.8:  4.92/  6.27  0.9:  5.48/  6.73  1.0:  6.34/  7.83 
+   Israeli  60 vopt ours/paper  0.1:  0.87/  0.87  0.2:  1.39/  1.38  0.3:  1.83/  1.82  0.4:  2.29/  2.29  0.5:  2.74/  2.72  0.6:  3.17/  3.15  0.7:  3.57/  3.54  0.8:  3.96/  3.91  0.9:  4.35/  4.31  1.0:  4.83/  4.79 
+   Israeli  60 FE   ours/paper  0.1:  0.84/  0.84  0.2:  1.24/  1.24  0.3:  1.51/  1.51  0.4:  1.72/  1.71  0.5:  1.91/  1.90  0.6:  2.10/  2.09  0.7:  2.31/  2.31  0.8:  2.56/  2.56  0.9:  2.88/  2.86  1.0:  3.27/  3.23 
+   (* = mechanism exits on the face above the toe, eta < 1)
+   [selfsimilar: 0 s]
+
+==============================================================================================================
+zones: split of P_u of our optimal vopt mechanisms by zone (evaluated here, no optimisation)
+==============================================================================================================
+   case                        m     L/H | fraction of P_u from r < 0.05R_w, [0.05, s*]R_w, [s*, 1]R_w, zone 2, zone 3 | Gamma if f = 0 for r < s*R_w | paper/ours - 1
+   London 30 hw/H=0.1      0.859  0.2311 | -0.000 +0.021 +0.260 +0.720 +0.000 | +0.012 | -0.0963
+   London 30 hw/H=0.2      0.859  0.2159 | +0.000 +0.049 +0.363 +0.588 +0.000 | +0.038 | -0.0216
+   London 30 hw/H=0.5      0.859  0.0419 | +0.009 +0.207 +0.663 +0.121 +0.000 | +0.283 | -0.0344
+   London 30 hw/H=1.0      0.859  0.0174 | +0.021 +0.288 +0.691 +0.000 +0.000 | +0.472 | -0.0059
+   London 60 hw/H=0.1      0.589  0.4100 | -0.000 +0.000 +0.075 +0.925 +0.000 | -0.000 | -0.0013
+   London 60 hw/H=0.2      0.589  0.4727 | -0.001 -0.001 +0.165 +0.837 +0.000 | -0.001 | -0.0032
+   London 60 hw/H=0.5      0.589  0.5095 | -0.003 -0.006 +0.602 +0.408 +0.000 | -0.006 | -0.0056
+   London 60 hw/H=1.0      0.589  0.1236 | +0.012 +0.143 +0.845 +0.000 +0.000 | +0.103 | -0.0101
+   Israeli 35 hw/H=0.1     0.833  0.1450 | -0.001 +0.013 +0.262 +0.727 +0.000 | +0.010 | -0.3646
+   Israeli 35 hw/H=0.2     0.833  0.0069 | +0.010 +0.176 +0.693 +0.121 +0.000 | +0.278 | -0.1337
+   Israeli 35 hw/H=0.5     0.833  0.0172 | +0.010 +0.176 +0.693 +0.121 +0.000 | +0.278 | -0.0379
+   Israeli 35 hw/H=1.0     0.833  0.0037 | +0.019 +0.252 +0.729 +0.000 +0.000 | +0.453 | -0.0189
+   Israeli 60 hw/H=0.1     0.589  0.3250 | -0.001 -0.001 +0.090 +0.911 +0.000 | -0.000 | -0.0041
+   Israeli 60 hw/H=0.2     0.589  0.3880 | -0.002 -0.003 +0.196 +0.809 +0.000 | -0.002 | -0.0029
+   Israeli 60 hw/H=0.5     0.589  0.3545 | -0.004 -0.007 +0.599 +0.411 +0.000 | -0.007 | -0.0080
+   Israeli 60 hw/H=1.0     0.589  0.0405 | +0.013 +0.153 +0.834 +0.000 +0.000 | +0.132 | -0.0083
+   Fig9 a=1 b=30           0.859  0.0076 | +0.020 +0.283 +0.698 +0.000 +0.000 | +0.658 | -0.0249
+   Fig9 a=1 b=35           0.833  0.0107 | +0.019 +0.265 +0.715 +0.000 +0.000 | +0.428 | -0.0156
+   Fig9 a=1 b=40           0.802  0.0152 | +0.019 +0.249 +0.732 +0.000 +0.000 | +0.319 | -0.0126
+   Fig9 a=1 b=45           0.763  0.0216 | +0.018 +0.232 +0.751 +0.000 +0.000 | +0.250 | -0.0089
+   Fig9 a=1 b=50           0.717  0.0313 | +0.016 +0.212 +0.772 +0.000 +0.000 | +0.199 | -0.0119
+   Fig9 a=1 b=60           0.589  0.0785 | +0.010 +0.149 +0.841 +0.000 +0.000 | +0.107 | -0.0043
+   Fig9 a=1 b=75           0.238  0.4511 | -0.016 -0.014 +1.030 +0.000 +0.000 | -0.015 | -0.0018
+   Fig9 a=5 b=30           0.769  0.0062 | +0.049 +0.365 +0.586 +0.000 +0.000 | +1.555 | +0.0034
+   Fig9 a=5 b=35           0.724  0.0132 | +0.055 +0.374 +0.571 +0.000 +0.000 | +0.804 | -0.0328
+   Fig9 a=5 b=40           0.692  0.0222 | +0.056 +0.383 +0.562 +0.000 +0.000 | +0.569 | -0.0200
+   Fig9 a=5 b=45           0.668  0.0347 | +0.051 +0.391 +0.558 +0.000 +0.000 | +0.446 | -0.0105
+   Fig9 a=5 b=50           0.650  0.0537 | +0.041 +0.397 +0.562 +0.000 +0.000 | +0.360 | -0.0097
+   Fig9 a=5 b=60           0.606  0.1274 | +0.024 +0.353 +0.623 +0.000 +0.000 | +0.219 | -0.0077
+   Fig9 a=5 b=75           0.436  0.3507 | -0.003 +0.103 +0.900 +0.000 +0.000 | +0.041 | -0.0076
+   Fig9 a=10 b=30          0.752  0.0070 | +0.064 +0.407 +0.530 +0.000 +0.000 | +2.934 | +nan
+   Fig9 a=10 b=35          0.708  0.0156 | +0.071 +0.425 +0.504 +0.000 +0.000 | +1.063 | -0.0301
+   Fig9 a=10 b=40          0.688  0.0263 | +0.072 +0.447 +0.481 +0.000 +0.000 | +0.714 | -0.0215
+   Fig9 a=10 b=45          0.685  0.0416 | +0.065 +0.475 +0.460 +0.000 +0.000 | +0.559 | -0.0109
+   Fig9 a=10 b=50          0.694  0.0645 | +0.052 +0.503 +0.446 +0.000 +0.000 | +0.462 | -0.0092
+   Fig9 a=10 b=60          0.716  0.1419 | +0.031 +0.506 +0.463 +0.000 +0.000 | +0.317 | -0.0056
+   Fig9 a=10 b=75          0.630  0.3261 | +0.006 +0.286 +0.708 +0.000 +0.000 | +0.125 | -0.0075
+   [zones: 13 s]
+
+==============================================================================================================
+quadconv: 
+==============================================================================================================
+   Gamma(level) / Gamma(ref) - 1 at our optimal K^-1 v'_opt mechanisms (P_u by polar quadrature)
+   Israeli 35 hw/H=0.1    coarse:+2.5e-03 medium:+3.6e-05 fine:+2.9e-07 xfine:+2.4e-10 ref:+0.0e+00
+   Israeli 35 hw/H=0.2    coarse:+4.3e-05 medium:+6.0e-06 fine:+1.8e-06 xfine:+1.0e-09 ref:+0.0e+00
+   Israeli 35 hw/H=0.5    coarse:+4.3e-05 medium:+6.0e-06 fine:+1.8e-06 xfine:+1.0e-09 ref:+0.0e+00
+   Israeli 35 hw/H=1.0    coarse:-1.3e-05 medium:+2.6e-07 fine:+9.3e-08 xfine:+1.6e-09 ref:+0.0e+00
+   London 30 hw/H=0.1     coarse:+2.1e-03 medium:+2.0e-05 fine:+2.1e-07 xfine:-2.6e-10 ref:+0.0e+00
+   London 30 hw/H=0.2     coarse:+1.8e-03 medium:+5.4e-05 fine:+5.8e-07 xfine:-5.9e-11 ref:+0.0e+00
+   London 30 hw/H=0.5     coarse:+1.9e-04 medium:+1.4e-05 fine:+1.3e-06 xfine:+7.8e-10 ref:+0.0e+00
+   London 30 hw/H=1.0     coarse:-3.2e-05 medium:+1.2e-06 fine:+6.8e-07 xfine:+1.1e-09 ref:+0.0e+00
+   Fig9 a=1 b=35          coarse:-2.0e-05 medium:+9.8e-07 fine:+5.6e-07 xfine:+1.5e-09 ref:+0.0e+00
+   Fig9 a=1 b=45          coarse:+2.7e-05 medium:+4.0e-06 fine:+1.9e-06 xfine:+1.5e-09 ref:+0.0e+00
+   Fig9 a=5 b=35          coarse:-5.3e-05 medium:+7.5e-06 fine:+4.2e-06 xfine:+1.1e-08 ref:+0.0e+00
+   Fig9 a=5 b=45          coarse:+2.9e-04 medium:+3.6e-05 fine:+8.0e-06 xfine:+8.6e-09 ref:+0.0e+00
+   [quadconv: 5 s]
+
+==============================================================================================================
+grid: (a) ours-higher points: any mechanism below the paper value? (b) Israeli 35 FE: fraction below the paper
+==============================================================================================================
+   case                                   paper ours(PSO)  grid min  polished    #adm  #<paper frac<paper
+   Fig8 London 30 vopt hw/H=0.05        105.721   108.825   109.077   108.825   13762        0     0.0000
+   Fig8 London 30 vopt hw/H=0.1          77.484    85.741    85.924    85.741   14223        0     0.0000
+   Fig8 London 30 vopt hw/H=0.2          57.430    58.698    58.926    58.698   14411        0     0.0000
+   Fig8 London 30 vopt hw/H=0.5          25.505    26.415    26.455    26.415   14193        0     0.0000
+   Fig8 Israeli 35 vopt hw/H=0.1         46.798    73.646    74.145    73.646   11138        0     0.0000
+   Fig8 Israeli 35 vopt hw/H=0.2         33.493    38.661    38.694    38.661   11013        0     0.0000
+   Fig8 Israeli 35 vopt hw/H=0.5         14.878    15.464    15.485    15.464   10345        0     0.0000
+   Fig8 Israeli 35 vopt hw/H=1.0          8.563     8.728     8.735     8.728    9116        0     0.0000
+   Fig8 London 30 FE hw/H=0.05           86.891    98.522    98.649    98.522   18457        0     0.0000
+   Fig8 Israeli 35 FE hw/H=0.1           39.157    44.909    44.917    44.909   16929        0     0.0000
+   Fig8 Israeli 35 FE hw/H=0.2           27.937    22.297    22.299    22.297   17521     1603     0.0915
+   Fig8 Israeli 35 FE hw/H=0.5           11.775     8.630     8.632     8.630   17661     1272     0.0720
+   Fig8 Israeli 35 FE hw/H=1.0            7.827     6.336     6.341     6.336   16716      453     0.0271
+   Fig9 a=1 b=35 vopt                     2.635     2.677     2.678     2.677   10425        0     0.0000
+   Fig9 a=5 b=35 vopt                     4.197     4.339     4.343     4.339    6849        0     0.0000
+   Fig9 a=10 b=35 vopt                    4.844     4.994     4.999     4.994    6293        0     0.0000
+   Fig9 a=1 b=45 vopt                     1.887     1.904     1.905     1.904   16970        0     0.0000
+   [grid: 0 s]
+
+==============================================================================================================
+restrict: minimum of Gamma over restricted mechanism sets (grid): which restriction would raise Israeli 35 FE to the
+==============================================================================================================
+   min Gamma * H [m] over restricted sets (grid, then rel. to the paper value):
+   case                            paper          all      class I     toe only     L>=0.25H      L>=0.5H        L>=1H  II d>=0.25H   II d>=0.5H theta2<=pi/2  theta2<=1.9    r_h<=1.5H      r_h<=1H
+   Israeli 35 FE hw/H=0.5         11.775   8.63(-0.27)   8.63(-0.27)   8.63(-0.27)   8.68(-0.26)  10.15(-0.14)  23.91(+1.03)  10.50(-0.11)  11.91(+0.01)  36.14(+2.07)   9.98(-0.15)   9.10(-0.23)  10.95(-0.07)
+   Israeli 35 FE hw/H=1.0          7.827   6.34(-0.19)   6.34(-0.19)   6.34(-0.19)   6.53(-0.17)   7.85(+0.00)  18.81(+1.40)   7.34(-0.06)   7.87(+0.01)  33.18(+3.24)   7.88(+0.01)   7.84(+0.00)  15.02(+0.92)
+   London 30 FE hw/H=0.5          15.204  15.13(-0.00)  15.13(-0.00)  15.13(-0.00)  15.13(-0.00)  15.85(+0.04)  23.28(+0.53)  17.31(+0.14)  19.08(+0.25)  43.83(+1.88)  17.36(+0.14)  16.42(+0.08)  20.97(+0.38)
+   London 30 FE hw/H=1.0          10.769  10.81(+0.00)  10.81(+0.00)  10.81(+0.00)  10.85(+0.01)  11.75(+0.09)  17.10(+0.59)  11.44(+0.06)  11.89(+0.10)  38.68(+2.59)  13.26(+0.23)  14.80(+0.37)  26.30(+1.44)
+   Israeli 60 FE hw/H=0.5          3.805   3.81(+0.00)   3.81(+0.00)   3.81(+0.00)   3.81(+0.00)   3.96(+0.04)   6.09(+0.60)   6.54(+0.72)   7.07(+0.86)   4.11(+0.08)   3.81(+0.00)   3.83(+0.01)   4.48(+0.18)
+   London 60 FE hw/H=0.5           6.434   6.43(+0.00)   6.43(+0.00)   6.43(+0.00)   6.43(+0.00)   6.47(+0.01)   8.20(+0.27)   9.01(+0.40)   9.96(+0.55)   6.64(+0.03)   6.43(+0.00)   6.47(+0.00)   7.48(+0.16)
+   [restrict: 0 s]
+
+==============================================================================================================
+eq56: 
+==============================================================================================================
+   Fig8 London 30 vopt hw/H=0.1       strict class I 8.57406 | Eq.56-only (signed) 8.57392 (-1.63e-05) | paper 7.74840
+   Fig8 Israeli 35 vopt hw/H=0.2      strict class I 3.86606 | Eq.56-only (signed) 3.86581 (-6.33e-05) | paper 3.34930
+   Fig8 Israeli 35 vopt hw/H=0.5      strict class I 1.54642 | Eq.56-only (signed) 1.54633 (-6.33e-05) | paper 1.48780
+   Fig8 Israeli 35 FE hw/H=0.5        strict class I 0.86303 | Eq.56-only (signed) 0.86303 (+3.82e-06) | paper 1.17750
+   Fig8 London 60 vopt hw/H=0.5       strict class I 0.86735 | Eq.56-only (signed) 0.86735 (-6.35e-06) | paper 0.86250
+   Fig9 a=1 b=35                      strict class I 2.67684 | Eq.56-only (signed) 2.67684 (-3.45e-07) | paper 2.63500
+   Fig9 a=5 b=35                      strict class I 4.33945 | Eq.56-only (signed) 4.33944 (-2.54e-06) | paper 4.19710
+   [eq56: 0 s]
+
+==============================================================================================================
+fe_settings: 
+==============================================================================================================
+   variant                        | Israeli 35 FE rel to paper at h_w/H = 0.2, 0.5, 1.0 | controls (FE, h_w/H = 0.5): London 30, London 60, Israeli 60
+   baseline                       | -0.202 -0.267 -0.190 | 
+   alpha=2                        | -0.110 -0.190 -0.028 | 
+   alpha=3                        | -0.035 -0.126 +0.111 | 
+   alpha=5                        | +0.072 -0.021 +0.356 | 
+   impermeable box                | -0.200 -0.261 -0.181 | +0.002 +0.002 +0.004
+   toe_r                          | -0.195 -0.248 -0.157 | 
+   box x2 (100/20/60 H)           | -0.200 -0.261 -0.180 | +0.002 +0.002 +0.004
+   box 50/10/30 m at H_ref=10 m   | -0.232 -0.348 -0.316 | -0.101 -0.029 -0.038
+   P1 coarse h0=0.25H hs=0.5H     | -0.183 -0.266 -0.189 | +0.002 +0.010 +0.018
+   P1 very coarse h0=0.5H hs=H    | -0.204 -0.265 -0.177 | +0.009 +0.051 +0.084
+   gamma_w field 9.81             | -0.203 -0.268 -0.191 | -0.006 -0.001 +0.001
+   gamma_w field 10               | -0.221 -0.285 -0.209 | -0.026 -0.013 -0.013
+   FE field of beta=30            | -0.123 -0.165 +0.063 | 
+   FE field of beta=32.5          | -0.163 -0.219 -0.067 | 
+   slope beta=30 (Israeli soil)   | +0.106 +0.019 +0.040 | 
+   slope beta=32.5                | -0.068 -0.145 -0.093 | 
+   [fe_settings: 0 s]
+
+==============================================================================================================
+soil: 
+==============================================================================================================
+   c chosen so that H_crit(h_w = 0) = 229.33 m (the paper's clipped end); rel to the paper:
+   phi = 30.0, c = 13.041: vopt 0.2: +1.046 | vopt 0.5: +1.033 | vopt 1.0: +1.012 | FE 0.2: +0.523 | FE 0.5: +0.444 | FE 1.0: +0.609
+   phi = 31.0, c =  9.296: vopt 0.2: +0.673 | vopt 0.5: +0.528 | vopt 1.0: +0.504 | FE 0.2: +0.168 | FE 0.5: +0.081 | FE 1.0: +0.199
+   phi = 31.5, c =  7.594: vopt 0.2: +0.423 | vopt 0.5: +0.281 | vopt 1.0: +0.259 | FE 0.2: -0.018 | FE 0.5: -0.095 | FE 1.0: +0.002
+   phi = 32.0, c =  6.013: vopt 0.2: +0.157 | vopt 0.5: +0.042 | vopt 1.0: +0.022 | FE 0.2: -0.200 | FE 0.5: -0.265 | FE 1.0: -0.189
+   phi = 32.5, c =  4.564: vopt 0.2: -0.098 | vopt 0.5: -0.188 | vopt 1.0: -0.205 | FE 0.2: -0.376 | FE 0.5: -0.428 | FE 1.0: -0.370
+   [soil: 0 s]
+
+==============================================================================================================
+loading: 
+==============================================================================================================
+   gamma' -> gamma = 18 (seepage field unchanged)   Israeli  35 FE hw/H=0.2:   25.262 m vs paper   27.937 (-0.096)
+   saturated gamma above the lowered water level    Israeli  35 FE hw/H=0.2:   17.610 m vs paper   27.937 (-0.370)
+   gamma' -> gamma = 18 (seepage field unchanged)   Israeli  35 FE hw/H=0.5:    9.845 m vs paper   11.775 (-0.164)
+   saturated gamma above the lowered water level    Israeli  35 FE hw/H=0.5:    6.974 m vs paper   11.775 (-0.408)
+   gamma' -> gamma = 18 (seepage field unchanged)   Israeli  35 FE hw/H=1.0:    7.147 m vs paper    7.827 (-0.087)
+   saturated gamma above the lowered water level    Israeli  35 FE hw/H=1.0:    7.147 m vs paper    7.827 (-0.087)
+   gamma' -> gamma = 18 (seepage field unchanged)   London   30 FE hw/H=0.5:   15.160 m vs paper   15.204 (-0.003)
+   saturated gamma above the lowered water level    London   30 FE hw/H=0.5:   11.321 m vs paper   15.204 (-0.255)
+   gamma' -> gamma = 18 (seepage field unchanged)   London   30 FE hw/H=1.0:   11.039 m vs paper   10.769 (+0.025)
+   saturated gamma above the lowered water level    London   30 FE hw/H=1.0:   11.026 m vs paper   10.769 (+0.024)
+   gamma' -> gamma = 18 (seepage field unchanged)   London   60 FE hw/H=0.5:    4.552 m vs paper    6.434 (-0.293)
+   saturated gamma above the lowered water level    London   60 FE hw/H=0.5:    4.836 m vs paper    6.434 (-0.248)
+   [loading: 0 s]
+
+==============================================================================================================
+fe_scale: 
+==============================================================================================================
+   FE seepage force x 0.75: rel to paper at h_w/H = (0.1, 0.2, 0.3, 0.5, 0.7, 1.0): +0.612 +0.122 +0.074 +0.031 +0.093 +0.130  (h_w >= 0.2: mean +0.090, spread 0.099)
+   FE seepage force x 0.8: rel to paper at h_w/H = (0.1, 0.2, 0.3, 0.5, 0.7, 1.0): +0.494 +0.040 -0.005 -0.044 +0.013 +0.048  (h_w >= 0.2: mean +0.010, spread 0.093)
+   FE seepage force x 0.85: rel to paper at h_w/H = (0.1, 0.2, 0.3, 0.5, 0.7, 1.0): +0.391 -0.032 -0.073 -0.111 -0.057 -0.023  (h_w >= 0.2: mean -0.059, spread 0.088)
+   [fe_scale: 0 s]
+
+==============================================================================================================
+vopt_field: 
+==============================================================================================================
+   rel. to the paper (rel. to our optimal field) per case:
+   variant                  Fig9 a=1 b=35     Fig9 a=1 b=45     Fig9 a=1 b=60     Fig9 a=5 b=35      Isr35 hw=0.2      Isr35 hw=0.5        Isr35 hw=1      Lon30 hw=0.1      Lon30 hw=0.5      Lon60 hw=0.5
+   optimal (baseline)   +0.016(+0.000) +0.009(+0.000) +0.004(+0.000) +0.034(+0.000) +0.154(+0.000) +0.039(+0.000) +0.019(+0.000) +0.107(+0.000) +0.036(+0.000) +0.006(+0.000)
+   dm=-0.2              +0.060(+0.044) +0.038(+0.029) +0.020(+0.016) +0.085(+0.050) +0.208(+0.046) +0.088(+0.046) +0.065(+0.045) +0.100(-0.006) +0.081(+0.044) -0.011(-0.016)
+   dm=-0.1              +0.036(+0.019) +0.022(+0.013) +0.012(+0.008) +0.056(+0.022) +0.178(+0.021) +0.061(+0.021) +0.040(+0.020) +0.104(-0.003) +0.056(+0.020) -0.002(-0.008)
+   dm=+0.1              -0.000(-0.016) -0.002(-0.011) -0.002(-0.007) +0.016(-0.017) +0.135(-0.017) +0.022(-0.017) +0.003(-0.016) +0.109(+0.002) +0.019(-0.016) +0.013(+0.007)
+   dm=+0.2              -0.014(-0.029) -0.011(-0.019) -0.008(-0.012) +0.002(-0.031) +0.118(-0.031) +0.007(-0.031) -0.011(-0.030) +0.111(+0.004) +0.005(-0.030) +0.019(+0.014)
+   one step from m=1    -0.014(-0.029) -0.019(-0.028) -0.027(-0.031) -0.016(-0.049) +0.118(-0.031) +0.007(-0.031) -0.011(-0.030) +0.110(+0.003) +0.009(-0.025) +0.044(+0.038)
+   degenerate m->0      +1.156(+1.122) +0.320(+0.308) -0.065(-0.069) +1.839(+1.745) +0.257(+0.089) +0.560(+0.501) +1.308(+1.265) +0.059(-0.043) +0.473(+0.422) -0.106(-0.111)
+   L_m=2H               +0.016(+0.000) +0.009(+0.000) +0.004(+0.000) +0.034(+0.000) +0.154(+0.000) +0.039(+0.000) +0.019(+0.000) +0.107(+0.000) +0.036(+0.000) +0.006(+0.000)
+   L_m=0.5H             +0.016(+0.000) +0.009(+0.000) +0.004(+0.000) +0.034(+0.000) +0.154(+0.000) +0.039(+0.000) +0.019(+0.000) +0.107(+0.000) +0.036(+0.000) +0.006(+0.000)
+   zone 3 removed       +0.016(+0.000) +0.009(+0.000) +0.004(+0.000) +0.034(+0.000) +0.154(+0.000) +0.039(+0.000) +0.019(-0.000) +0.107(+0.000) +0.036(+0.000) +0.006(+0.000)
+   gamma_w field 10     -0.004(-0.020) -0.006(-0.015) -0.007(-0.012) +0.013(-0.020) +0.127(-0.023) +0.015(-0.023) -0.004(-0.023) +0.093(-0.012) +0.014(-0.020) -0.006(-0.012)
+   -J*/(k_h H^2 gw^2) at h_w = H, alpha = 1 (Fig. 5 solid curve) of each variant, rel. to the optimal field:
+   optimal (baseline)   beta 30: +0.00e+00  beta 45: +0.00e+00  beta 60: +0.00e+00
+   dm=-0.2              beta 30: -8.22e-04  beta 45: -6.31e-04  beta 60: -4.11e-04
+   dm=-0.1              beta 30: -1.84e-04  beta 45: -1.43e-04  beta 60: -9.51e-05
+   dm=+0.1              beta 30: -1.51e-04  beta 45: -1.19e-04  beta 60: -8.24e-05
+   dm=+0.2              beta 30: -5.52e-04  beta 45: -4.40e-04  beta 60: -3.08e-04
+   one step from m=1    beta 30: -3.83e-04  beta 45: -9.67e-04  beta 60: -2.76e-03
+   degenerate m->0      beta 30: -7.19e-02  beta 45: -4.44e-02  beta 60: -2.15e-02
+   L_m=2H               beta 30: -4.32e-01  beta 45: -4.29e-01  beta 60: -4.28e-01
+   L_m=0.5H             beta 30: -6.20e-01  beta 45: -6.40e-01  beta 60: -6.55e-01
+   zone 3 removed       beta 30: -7.07e-01  beta 45: -7.40e-01  beta 60: -7.55e-01
+   gamma_w field 10     beta 30: +0.00e+00  beta 45: -1.11e-16  beta 60: +0.00e+00
+   [vopt_field: 0 s]
+
+==============================================================================================================
+gamma_w: 
+==============================================================================================================
+   Fig. 9 (nodes with a visible paper value): mean / rms of ours/paper - 1
+   gamma_w 9.81 (baseline)        vopt: all beta n=22 mean +0.0117 rms 0.0151 | beta 30-50: mean +0.0172 rms 0.0191
+   gamma_w 9.81 (baseline)        FE  : all beta n=23 mean +0.0068 rms 0.0086 | beta 30-50: mean +0.0083 rms 0.0094
+   gamma_w 9.8                    vopt: all beta n=22 mean +0.0121 rms 0.0156 | beta 30-50: mean +0.0179 rms 0.0199
+   gamma_w 9.8                    FE  : all beta n=23 mean +0.0074 rms 0.0093 | beta 30-50: mean +0.0092 rms 0.0102
+   gamma_w 10                     vopt: all beta n=22 mean +0.0038 rms 0.0071 | beta 30-50: mean +0.0034 rms 0.0067
+   gamma_w 10                     FE  : all beta n=23 mean -0.0051 rms 0.0098 | beta 30-50: mean -0.0086 rms 0.0116
+   gamma_w 10 in the field only   vopt: all beta n=22 mean -0.0018 rms 0.0065 | beta 30-50: mean +0.0007 rms 0.0059
+   gamma_w 10 in the field only   FE  : all beta n=23 mean -0.0086 rms 0.0103 | beta 30-50: mean -0.0097 rms 0.0109
+   Fig. 8 (h_w/H = 0.1, 0.5, 1): mean / rms of ours/paper - 1, panels London 60 / Israeli 60 / London 30 + Israeli 35
+   gamma_w 9.8 (baseline)       beta 60 panels : mean +0.0044 rms 0.0064
+   gamma_w 9.8 (baseline)       London 30      : mean +0.0273 rms 0.0465
+   gamma_w 9.8 (baseline)       Israeli 35     : mean +0.0667 rms 0.3045
+   gamma_w 9.81 in the field    beta 60 panels : mean +0.0038 rms 0.0059
+   gamma_w 9.81 in the field    London 30      : mean +0.0264 rms 0.0461
+   gamma_w 9.81 in the field    Israeli 35     : mean +0.0654 rms 0.3039
+   gamma_w 10 in the field      beta 60 panels : mean -0.0070 rms 0.0078
+   gamma_w 10 in the field      London 30      : mean +0.0087 rms 0.0412
+   gamma_w 10 in the field      Israeli 35     : mean +0.0418 rms 0.2932
+   [gamma_w: 0 s]
+
+==============================================================================================================
+quadrature: 
+==============================================================================================================
+   reported minimum of the emulated objective rel. to our exact minimum ('bias') vs the observed paper/ours - 1
+   (h = H/25 and H/50; PSO 2 seeds x 30 particles x 100 iterations + Nelder-Mead on the same objective)
+   Fig8 London 30   vopt 0.05: obs -0.029 H/25 -0.024 H/50 -0.009 | 0.1: obs -0.096 H/25 -0.029 H/50 -0.009 | 0.2: obs -0.022 H/25 -0.023 H/50 -0.010 | 0.3: obs -0.056 H/25 -0.061 H/50 -0.012 | 0.5: obs -0.034 H/25 -0.045 H/50 -0.013 | 0.7: obs -0.021 H/25 -0.026 H/50 -0.008 | 1: obs -0.006 H/25 -0.011 H/50 -0.009
+   Fig8 Israeli 35  vopt 0.05: obs -0.072 H/25 -0.603 H/50 -0.263 | 0.1: obs -0.365 H/25 -0.451 H/50 -0.122 | 0.2: obs -0.134 H/25 -0.168 H/50 -0.068 | 0.3: obs -0.063 H/25 -0.121 H/50 -0.035 | 0.5: obs -0.038 H/25 -0.055 H/50 -0.022 | 0.7: obs -0.017 H/25 -0.036 H/50 -0.012 | 1: obs -0.019 H/25 -0.033 H/50 -0.013
+   Fig8 London 60   vopt 0.05: obs -0.001 H/25 -0.001 H/50 -0.000 | 0.1: obs -0.001 H/25 -0.002 H/50 -0.001 | 0.2: obs -0.003 H/25 -0.003 H/50 -0.000 | 0.3: obs -0.000 H/25 -0.005 H/50 -0.002 | 0.5: obs -0.006 H/25 -0.004 H/50 -0.003 | 0.7: obs -0.005 H/25 -0.008 H/50 -0.002 | 1: obs -0.010 H/25 -0.002 H/50 -0.000
+   Fig8 Israeli 60  vopt 0.05: obs -0.004 H/25 -0.001 H/50 -0.000 | 0.1: obs -0.004 H/25 -0.002 H/50 -0.001 | 0.2: obs -0.003 H/25 -0.004 H/50 -0.001 | 0.3: obs -0.003 H/25 -0.008 H/50 -0.001 | 0.5: obs -0.008 H/25 -0.006 H/50 -0.003 | 0.7: obs -0.008 H/25 -0.008 H/50 -0.003 | 1: obs -0.008 H/25 -0.009 H/50 -0.002
+   Fig8 London 30   FE   0.05: obs -0.118 H/25 -0.016 H/50 -0.007 | 0.1: obs -0.017 H/25 -0.020 H/50 -0.006 | 0.2: obs +0.001 H/25 -0.009 H/50 -0.005 | 0.3: obs -0.007 H/25 -0.015 H/50 -0.004 | 0.5: obs +0.005 H/25 -0.016 H/50 -0.003 | 0.7: obs +0.006 H/25 -0.011 H/50 -0.004 | 1: obs -0.004 H/25 -0.011 H/50 -0.005
+   Fig8 Israeli 35  FE   0.05: obs +0.052 H/25 -0.581 H/50 -0.387 | 0.1: obs -0.128 H/25 -0.358 H/50 -0.062 | 0.2: obs +0.253 H/25 -0.059 H/50 -0.024 | 0.3: obs +0.309 H/25 -0.044 H/50 -0.011 | 0.5: obs +0.364 H/25 -0.016 H/50 -0.006 | 0.7: obs +0.283 H/25 -0.017 H/50 -0.005 | 1: obs +0.235 H/25 -0.026 H/50 -0.009
+   Fig8 London 60   FE   0.05: obs -0.000 H/25 -0.000 H/50 +0.000 | 0.1: obs +0.003 H/25 +0.000 H/50 -0.001 | 0.2: obs -0.001 H/25 -0.005 H/50 -0.001 | 0.3: obs +0.004 H/25 -0.003 H/50 -0.001 | 0.5: obs -0.000 H/25 -0.007 H/50 -0.003 | 0.7: obs +0.003 H/25 -0.010 H/50 -0.003 | 1: obs -0.008 H/25 -0.010 H/50 -0.006
+   Fig8 Israeli 60  FE   0.05: obs -0.002 H/25 -0.000 H/50 +0.001 | 0.1: obs +0.003 H/25 +0.003 H/50 -0.001 | 0.2: obs -0.003 H/25 -0.007 H/50 -0.001 | 0.3: obs +0.003 H/25 -0.006 H/50 -0.002 | 0.5: obs -0.002 H/25 -0.010 H/50 -0.003 | 0.7: obs -0.003 H/25 -0.014 H/50 -0.004 | 1: obs -0.011 H/25 -0.017 H/50 -0.005
+   Fig9 a=1  vopt 30: obs -0.025 /25 -0.028 /50 -0.011 | 35: obs -0.016 /25 -0.030 /50 -0.011 | 40: obs -0.013 /25 -0.030 /50 -0.010 | 45: obs -0.009 /25 -0.099 /50 -0.048 | 50: obs -0.012 /25 -0.003 /50 -0.002 | 60: obs -0.004 /25 -0.006 /50 -0.002 | 75: obs -0.002 /25 -0.008 /50 -0.002 | 90: obs +0.005 /25 -0.008 /50 -0.003
+   Fig9 a=1  FE   30: obs -0.005 /25 -0.013 /50 -0.006 | 35: obs -0.011 /25 -0.022 /50 -0.008 | 40: obs -0.011 /25 -0.014 /50 -0.007 | 45: obs -0.010 /25 -0.075 /50 -0.036 | 50: obs -0.006 /25 -0.024 /50 -0.009 | 60: obs -0.001 /25 -0.014 /50 -0.008 | 75: obs -0.011 /25 -0.011 /50 -0.002 | 90: obs +0.006 /25 -0.004 /50 -0.000
+   Fig9 a=5  vopt 30: obs +0.003 /25 -0.053 /50 -0.022 | 35: obs -0.033 /25 -0.052 /50 -0.016 | 40: obs -0.020 /25 -0.053 /50 -0.019 | 45: obs -0.011 /25 -0.120 /50 -0.062 | 50: obs -0.010 /25 +0.010 /50 +0.003 | 60: obs -0.008 /25 -0.002 /50 +0.001 | 75: obs -0.008 /25 -0.003 /50 -0.001 | 90: obs -0.001 /25 -0.004 /50 -0.002
+   Fig9 a=5  FE   30: obs -0.008 /25 -0.020 /50 -0.013 | 35: obs -0.011 /25 -0.027 /50 -0.012 | 40: obs -0.002 /25 -0.020 /50 -0.008 | 45: obs -0.005 /25 -0.060 /50 -0.030 | 50: obs -0.004 /25 -0.021 /50 -0.009 | 60: obs -0.008 /25 -0.014 /50 -0.005 | 75: obs -0.009 /25 -0.011 /50 -0.003 | 90: obs +0.001 /25 -0.003 /50 -0.002
+   Fig9 a=10 vopt 30: obs +nan /25 -0.067 /50 -0.027 | 35: obs -0.030 /25 -0.061 /50 -0.019 | 40: obs -0.022 /25 -0.060 /50 -0.022 | 45: obs -0.011 /25 -0.128 /50 -0.067 | 50: obs -0.009 /25 +0.009 /50 +0.004 | 60: obs -0.006 /25 +0.001 /50 +0.002 | 75: obs -0.007 /25 -0.003 /50 -0.001 | 90: obs -0.003 /25 -0.006 /50 -0.002
+   Fig9 a=10 FE   30: obs +0.103 /25 +0.094 /50 +0.107 | 35: obs -0.016 /25 -0.031 /50 -0.012 | 40: obs -0.011 /25 -0.020 /50 -0.010 | 45: obs -0.013 /25 -0.055 /50 -0.027 | 50: obs -0.001 /25 -0.021 /50 -0.009 | 60: obs -0.009 /25 -0.014 /50 -0.004 | 75: obs -0.010 /25 -0.009 /50 -0.002 | 90: obs +0.001 /25 -0.003 /50 -0.002
+   h = H/25: 95 points (Israeli 35 FE excluded): corr(bias, observed) = +0.867; rms of observed 0.0464 -> rms of observed - bias 0.0297
+   h = H/50: 95 points (Israeli 35 FE excluded): corr(bias, observed) = +0.733; rms of observed 0.0464 -> rms of observed - bias 0.0323
+   [quadrature: 0 s]
+
+==============================================================================================================
+digitization: 
+==============================================================================================================
+   Fig. 9 alpha= 1 vopt: ours - paper (Gamma units) 30:+0.089 35:+0.042 40:+0.028 45:+0.017 50:+0.020 55:+0.009 60:+0.006 65:+0.009 70:+0.008 75:+0.002 80:-0.002 85:+0.011 90:-0.003
+        constant offset +0.0180 leaves rms 0.0238; proportional +1.48 % leaves rms 0.0145  (1 px of the 300 ppi bitmap = 0.0114)
+   Fig. 9 alpha= 1 FE  : ours - paper (Gamma units) 25:+0.027 30:+0.011 35:+0.020 40:+0.016 45:+0.014 50:+0.008 55:+0.008 60:+0.001 65:+0.006 70:+0.006 75:+0.008 80:+0.006 85:+0.005 90:-0.004
+        constant offset +0.0094 leaves rms 0.0075; proportional +0.77 % leaves rms 0.0041  (1 px of the 300 ppi bitmap = 0.0114)
+   Fig. 9 alpha= 5 vopt: ours - paper (Gamma units) 35:+0.142 40:+0.066 45:+0.028 50:+0.022 55:+0.009 60:+0.014 65:+0.007 70:+0.003 75:+0.009 80:+0.005 85:-0.001 90:+0.001
+        constant offset +0.0254 leaves rms 0.0393; proportional +1.81 % leaves rms 0.0259  (1 px of the 300 ppi bitmap = 0.0114)
+   Fig. 9 alpha= 5 FE  : ours - paper (Gamma units) 30:+0.029 35:+0.031 40:+0.005 45:+0.010 50:+0.007 55:+0.008 60:+0.009 65:+0.006 70:+0.008 75:+0.008 80:+0.002 85:-0.002 90:-0.001
+        constant offset +0.0094 leaves rms 0.0096; proportional +0.70 % leaves rms 0.0054  (1 px of the 300 ppi bitmap = 0.0114)
+   Fig. 9 alpha=10 vopt: ours - paper (Gamma units) 35:+0.150 40:+0.078 45:+0.032 50:+0.022 55:+0.009 60:+0.010 65:+0.007 70:+0.009 75:+0.009 80:+0.004 85:-0.001 90:+0.002
+        constant offset +0.0278 leaves rms 0.0421; proportional +1.85 % leaves rms 0.0256  (1 px of the 300 ppi bitmap = 0.0114)
+   Fig. 9 alpha=10 FE  : ours - paper (Gamma units) 35:+0.057 40:+0.028 45:+0.028 50:+0.002 55:+0.012 60:+0.012 65:+0.011 70:+0.007 75:+0.009 80:+0.001 85:-0.001 90:-0.001
+        constant offset +0.0137 leaves rms 0.0160; proportional +1.12 % leaves rms 0.0088  (1 px of the 300 ppi bitmap = 0.0114)
+   Fig. 8 (vector strokes, centre lines of the PDF paths): max |log10 misfit| of the vertex polylines: London beta=30 FE: 6.6e-05, London beta=30 vopt: 4.8e-05, London beta=60 FE: 3.0e-05, London beta=60 vopt: 3.4e-05, Israeli beta=35 FE: 1.0e-04, Israeli beta=35 vopt: 1.5e-04, Israeli beta=60 FE: 4.3e-05, Israeli beta=60 vopt: 4.8e-05
+   [digitization: 0 s]
+
+==============================================================================================================
+summary: ranked list of the tested explanations with their numbers (from the CSV files of the other experiments)
+==============================================================================================================
+Ranked list (most to least supported).  'obs' = paper / ours - 1 at the paper's plotted vertices.
+
+1. SUPPORTED (explains (2), (3) and the +0.7 % of the Fig. 9 FE curve): the paper's minima are minima of a
+   NOISY objective.  Its P_u was evaluated with a fixed (absolute) resolution, and the PSO converges to
+   mechanisms where the integration error favours failure, so every reported Gamma is biased LOW; the bias
+   is large for small or thin mechanisms next to O (local K^-1 v'_opt mechanisms at small h_w, optima that
+   start 0.004-0.03 H behind O) and negligible for the large mechanisms of the beta = 60 panels.
+   a) Our objective is exact.  P_u at the optimal mechanisms converges to <= 8e-6 ('fine' vs 'ref',
+      quadrature_convergence.csv).  Brute-force grids with log-spaced eta >= 0.01 contain no mechanism below
+      the paper value (grid_search.csv): Israeli 35 0.1 74.14 vs paper 46.8; Israeli 35 0.2 38.69 vs paper 33.49; London 30 0.1 85.92 vs paper 77.48; Fig9 a=5 b=35 4.343 vs paper 4.197.
+      The Eq. 56-only class (no 'spiral below O' check, signed integrals) changes Gamma by <= 6.3e-05 (eq56_only_class.csv).
+   b) Israeli 35 vopt: for h_w/H = 0.2-0.7 our optimum is ONE mechanism scaled with R_w (exit B on the face at 1.384 R_w from O): H_crit h_w/H = 7.36/7.73/7.73/7.73/7.73/7.73/7.73 m (h_w/H = 0.1..0.7); the paper's product falls as h_w decreases: 4.68/6.70/7.25/7.50/7.44/7.63/7.60 m.  An exact objective is scale invariant; the paper's is not (absolute resolution).
+   b) London 30 vopt: for h_w/H = 0.4-0.7 our optimum is ONE mechanism scaled with R_w (exit B on the face at 1.416 R_w from O): H_crit h_w/H = 8.57/11.74/12.97/13.21/13.21/13.21/13.21 m (h_w/H = 0.1..0.7); the paper's product falls as h_w decreases: 7.75/11.49/12.25/12.66/12.75/12.83/12.93 m.  An exact objective is scale invariant; the paper's is not (absolute resolution).
+   c) Emulation: P_u by a cell-midpoint grid of FIXED spacing h (absolute coordinates) minimised by the same
+      PSO (2 seeds x 30 particles x 100 iterations, class I).  Reported-minimum bias vs observed (obs):
+      Fig8 Israeli 35 vopt [%] obs | h=H/25 / H/50:  0.1: obs -36.5 | -45.1 / -12.2;  0.2: obs -13.4 | -16.8 / -6.8;  0.3: obs -6.3 | -12.1 / -3.5;  0.5: obs -3.8 | -5.5 / -2.2;  0.7: obs -1.7 | -3.6 / -1.2;  1: obs -1.9 | -3.3 / -1.3
+      Fig8 London 30  vopt [%] obs | h=H/25 / H/50:  0.05: obs -2.9 | -2.4 / -0.9;  0.1: obs -9.6 | -2.9 / -0.9;  0.2: obs -2.2 | -2.3 / -1.0;  0.3: obs -5.6 | -6.1 / -1.2;  0.5: obs -3.4 | -4.5 / -1.3;  0.7: obs -2.1 | -2.6 / -0.8;  1: obs -0.6 | -1.1 / -0.9
+      Fig8 London 60  vopt [%] obs | h=H/25 / H/50:  0.1: obs -0.1 | -0.2 / -0.1;  0.5: obs -0.6 | -0.4 / -0.3;  1: obs -1.0 | -0.2 / -0.0
+      Fig8 Israeli 60 vopt [%] obs | h=H/25 / H/50:  0.1: obs -0.4 | -0.2 / -0.1;  0.5: obs -0.8 | -0.6 / -0.3;  1: obs -0.8 | -0.9 / -0.2
+      Fig8 London 30  FE   [%] obs | h=H/25 / H/50:  0.05: obs -11.8 | -1.6 / -0.7;  0.1: obs -1.7 | -2.0 / -0.6;  0.5: obs +0.5 | -1.6 / -0.3;  1: obs -0.4 | -1.1 / -0.5
+      Fig9 a=1        vopt [%] obs | h=H/25 / H/50:  30: obs -2.5 | -2.8 / -1.1;  35: obs -1.6 | -3.0 / -1.1;  40: obs -1.3 | -3.0 / -1.0;  50: obs -1.2 | -0.3 / -0.2;  60: obs -0.4 | -0.6 / -0.2;  90: obs +0.5 | -0.8 / -0.3
+      Fig9 a=5        vopt [%] obs | h=H/25 / H/50:  35: obs -3.3 | -5.2 / -1.6;  40: obs -2.0 | -5.3 / -1.9;  50: obs -1.0 | +1.0 / +0.3;  60: obs -0.8 | -0.2 / +0.1;  90: obs -0.1 | -0.4 / -0.2
+      Fig9 a=10       vopt [%] obs | h=H/25 / H/50:  35: obs -3.0 | -6.1 / -1.9;  40: obs -2.2 | -6.0 / -2.2;  50: obs -0.9 | +0.9 / +0.4;  60: obs -0.6 | +0.1 / +0.2;  90: obs -0.3 | -0.6 / -0.2
+      Fig9 a=1        FE   [%] obs | h=H/25 / H/50:  30: obs -0.5 | -1.3 / -0.6;  35: obs -1.1 | -2.2 / -0.8;  40: obs -1.1 | -1.4 / -0.7;  50: obs -0.6 | -2.4 / -0.9;  60: obs -0.1 | -1.4 / -0.8;  90: obs +0.6 | -0.4 / -0.0
+      h = H/25: 95 points (Israeli 35 FE excluded): corr(bias, obs) = +0.87; rms(obs) 4.64 % -> rms(obs - bias) 2.97 %
+      h = H/50: 95 points (Israeli 35 FE excluded): corr(bias, obs) = +0.73; rms(obs) 4.64 % -> rms(obs - bias) 3.23 %
+      The paper's resolution lies between H/25 and H/50 (about H/35).  beta = 45 in Fig. 9 is an artefact of
+      the emulation (face along the cell diagonals: -5..-13 %), which itself shows how irregular such errors are.
+   d) Fig. 9: obs is more negative where a larger share of P_u comes from the singular fan r < s* R_w around O (corr -0.33, 20 optima; share 25-55 % for beta <= 50, ~0 for beta = 75) -- zones_pu_split.csv, mechanisms_zoom_O.png, mechanisms_fig9_vopt.png.
+
+2. POSSIBLE COMPLEMENT for (3), not decisive: a zone-1 exponent m ~10 % above the optimum (e.g. a fixed point
+   m = sqrt(C/D) not converged).  J* is stationary in m, so Fig. 5 cannot see it (-J* changes by 1.5e-4 / 0.8e-4 at beta 30 / 60 for dm = +0.1), but the A-at-O optima are sensitive:
+   ours/paper - 1 [%], optimal m -> m (1 + 0.1): Fig9 a=1 b=35: +1.6 -> -0.0; Fig9 a=1 b=45: +0.9 -> -0.2; Fig9 a=1 b=60: +0.4 -> -0.2; Fig9 a=5 b=35: +3.4 -> +1.6; Isr35 hw=0.2: +15.4 -> +13.5; Isr35 hw=0.5: +3.9 -> +2.2; Isr35 hw=1: +1.9 -> +0.3; Lon30 hw=0.1: +10.7 -> +10.9; Lon30 hw=0.5: +3.6 -> +1.9; Lon60 hw=0.5: +0.6 -> +1.3
+   It removes the Fig. 9 residual at beta 35-60 for alpha = 1 but not the small-h_w residuals (Lon30 0.1,
+   Isr35 0.2) and worsens London 60.  'One step from m = 1' changes -J* by -2.8e-3 at beta 60 (Fig. 5 match is
+   2e-4): excluded.
+
+3. UNLIKELY: gamma_w = 10 in Fig. 9.  vopt beta 30-50 mean/rms 1.72/1.91 % -> 0.34/0.67 %, but FE (all beta) 0.68/0.86 % -> -0.51/0.98 %, and the paper's own Fig. 4b legend (-9.81 for a unit drawdown) and the Fig. 8 dry ends (9.8) say otherwise; gamma_w = 9.8 changes Fig. 9 by +0.05 %.
+
+4. REFUTED
+   - optimiser of the paper missed OUR better mechanisms (for the 'ours lower' Israeli 35 FE points): 9.1 / 7.2 / 2.7 % of the admissible grid beats the paper at h_w/H = 0.2 / 0.5 / 1; of the whole PSO box 0.8 % (0.5) and 0.1 % (1.0), whereas the paper reached the 1 %-of-optimum regions of the London 30 / Israeli 60 FE problems, which are 2e-5 of the box (exploratory count, 4e5 random points).
+   - restricted mechanism sets (toe only, L >= 0.25/0.5/1 H, II with d >= 0.25/0.5 H, theta2 <= pi/2 or 1.9, r_h <= 1 or 1.5 H): none raises Israeli 35 FE to the paper at both h_w/H = 0.5 and 1 without moving the matching London 30 / London 60 / Israeli 60 FE points by +10 to +86 % (restricted_classes_fe.csv).
+   - mechanism class of Eq. 56 only / mechanism II: <= 6e-5 change; class II never lower at these points.
+   - FE settings for Israeli 35 FE (ours/paper - 1 [%] at h_w/H = 0.2 0.5 1 | controls London 30, London 60, Israeli 60 FE at 0.5):
+       baseline                       -20.2 -26.7 -19.0
+       impermeable box                -20.0 -26.1 -18.1 | controls +0.2 +0.2 +0.4
+       toe_r                          -19.5 -24.8 -15.7
+       box x2 (100/20/60 H)           -20.0 -26.1 -18.0 | controls +0.2 +0.2 +0.4
+       box 50/10/30 m at H_ref=10 m   -23.2 -34.8 -31.6 | controls -10.1 -2.9 -3.8
+       P1 coarse h0=0.25H hs=0.5H     -18.3 -26.6 -18.9 | controls +0.2 +1.0 +1.8
+       P1 very coarse h0=0.5H hs=H    -20.4 -26.5 -17.7 | controls +0.9 +5.1 +8.4
+       gamma_w field 9.81             -20.3 -26.8 -19.1 | controls -0.6 -0.1 +0.1
+       gamma_w field 10               -22.1 -28.5 -20.9 | controls -2.6 -1.3 -1.3
+       alpha=2                        -11.0 -19.0 -2.8
+       alpha=3                        -3.5 -12.6 +11.1
+       alpha=5                        +7.2 -2.1 +35.6
+       FE field of beta=30            -12.3 -16.5 +6.3
+       FE field of beta=32.5          -16.3 -21.9 -6.7
+       slope beta=30 (Israeli soil)   +10.6 +1.9 +4.0
+       slope beta=32.5                -6.8 -14.5 -9.3
+   - soil swap / (c, phi) with the dry end 229.3 m kept: phi 30 c 13.04: vopt +105 +103 +101 FE +52 +44 +61; phi 31 c 9.30: vopt +67 +53 +50 FE +17 +8 +20; phi 31.5 c 7.59: vopt +42 +28 +26 FE -2 -10 +0; phi 32 c 6.01: vopt +16 +4 +2 FE -20 -27 -19; phi 32.5 c 4.56: vopt -10 -19 -21 FE -38 -43 -37 (ours/paper - 1 [%] at h_w/H = 0.2 0.5 1): no single soil fits both curves.
+   - loading (ours/paper - 1): gamma' -> gamma = 18 Israeli 35 0.2: -10 %; saturated gamma abov Israeli 35 0.2: -37 %; gamma' -> gamma = 18 Israeli 35 0.5: -16 %; saturated gamma abov Israeli 35 0.5: -41 %; gamma' -> gamma = 18 Israeli 35 1: -9 %; saturated gamma abov Israeli 35 1: -9 %; gamma' -> gamma = 18 London 30 0.5: -0 %; saturated gamma abov London 30 0.5: -26 %; gamma' -> gamma = 18 London 30 1: +3 %; saturated gamma abov London 30 1: +2 %; gamma' -> gamma = 18 London 60 0.5: -29 %; saturated gamma abov London 60 0.5: -25 %
+   - analytical-field variants: degenerate m -> 0 for every beta (-J* -7.2 % at beta 30: excluded by Fig. 5; Gamma +112 % at Fig. 9 beta 35); L_m = 2 H / 0.5 H and zone 3 removed: Gamma unchanged (|change| <= 3e-04, the optimal mechanisms never reach R; J* would change by -43..-75 %); printed Eq. 31: -28..+1500 % (results/reproduce_python/diag_eq31_variants.csv).
+   - digitization / stroke-centre offsets: Fig. 8 = PDF path centre lines, polyline misfit <= 1.5e-4 in log10 (0.03 %); Fig. 9 residuals grow with Gamma (a constant offset leaves rms 0.024, 0.039, 0.042 vs 1 px = 0.011).
+   - FE box / H_ref for Fig. 8: box 50/10/30 m at H_ref = 10 m lowers Gamma (wrong sign for Israeli 35 FE) and moves the matching controls by -3..-10 %; box x2 or impermeable: <= 0.4 %.
+
+5. NOT EXPLAINED
+   - (1) Israeli 35 FE, ours 19-27 % lower at h_w/H >= 0.2: every tested FE setting gives the same Gamma within 2 %,
+     the paper's optimiser cannot have missed 3-9 % of the admissible space, and numerical noise biases LOW (emulated
+     bias -0.5..-6 %, opposite sign).  The paper's curve corresponds to FE seepage forces scaled by ~0.8 (+49.4 +4.0 -0.5 -4.4 +1.3 +4.8 % at h_w/H = 0.1 0.2 0.3 0.5 0.7 1)
+     or to (phi 31.5, c 7.59) for this curve only.  The paper's own FE/vopt ratio for this panel (0.76-0.91)
+     differs from that of every other panel and of Fig. 9 at beta = 35 (0.69), where ours equals the paper's:
+     most likely an inconsistent setting of that single run in the paper.  Our curve should stay as it is.
+   - isolated paper points London 30 vopt h_w/H = 0.1 (obs -9.6 %, emulated -2.9 %) and London 30 FE 0.05 (obs
+     -11.8 %, emulated -1.6 %): kinks of the paper's curves, consistent with lucky outliers of a noisy objective but
+     not reproduced by the emulation.  Israeli 35 h_w/H = 0.05 has NO paper vertex (vertex step 0.1): the 'paper'
+     value there is the plotted chord, not a computed point.
+   wrote /home/user/neopz-master/Projects/SlopeSeepageForces/results/diagnose/summary_vopt_residuals.png
+   [summary: 0 s]
+total 34 s

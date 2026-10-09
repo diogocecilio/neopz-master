@@ -1,0 +1,2037 @@
+{
+ "H=5 beta=20 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 1,
+   "beta": 20.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 6.992538256151801,
+  "Hcrit": 34.962691280759,
+  "mechanism": "I",
+  "x": [
+   1.2500282301482275,
+   2.1601853757537324,
+   1.0
+  ],
+  "P_mr": 1929.2297675588447,
+  "P_gamma": -514.5359520197218,
+  "P_u": 790.4343020733054,
+  "time": 12.38887333869934
+ },
+ "H=5 beta=20 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 1,
+   "beta": 20.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 6.992538256151801,
+  "Hcrit": 34.962691280759,
+  "mechanism": "I",
+  "x": [
+   1.2500282301482275,
+   2.1601853757537324,
+   1.0
+  ],
+  "P_mr": 1929.2297675588447,
+  "P_gamma": -514.5359520197218,
+  "P_u": 790.4343020733054,
+  "time": 12.38887333869934
+ },
+ "H=5 beta=30 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 1,
+   "beta": 30.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 2.332807590383051,
+  "Hcrit": 11.664037951915256,
+  "mechanism": "I",
+  "x": [
+   0.8969643023713089,
+   2.1440867889158097,
+   1.0
+  ],
+  "P_mr": 781.5767823777799,
+  "P_gamma": -101.68300952479129,
+  "P_u": 436.7199776827367,
+  "time": 10.567527055740356
+ },
+ "H=5 beta=30 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 1,
+   "beta": 30.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 2.332807590383051,
+  "Hcrit": 11.664037951915256,
+  "mechanism": "I",
+  "x": [
+   0.8969643023713089,
+   2.1440867889158097,
+   1.0
+  ],
+  "P_mr": 781.5767823777799,
+  "P_gamma": -101.68300952479129,
+  "P_u": 436.7199776827367,
+  "time": 10.567527055740356
+ },
+ "H=5 beta=45 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 1,
+   "beta": 45.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 1.326173942849824,
+  "Hcrit": 6.63086971424912,
+  "mechanism": "I",
+  "x": [
+   0.671079279139434,
+   1.9704647625902811,
+   1.0
+  ],
+  "P_mr": 427.1875560359416,
+  "P_gamma": 39.74211010236139,
+  "P_u": 282.37819571359773,
+  "time": 8.65098786354065
+ },
+ "H=5 beta=45 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 1,
+   "beta": 45.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 1.326173942849824,
+  "Hcrit": 6.63086971424912,
+  "mechanism": "I",
+  "x": [
+   0.671079279139434,
+   1.9704647625902811,
+   1.0
+  ],
+  "P_mr": 427.1875560359416,
+  "P_gamma": 39.74211010236139,
+  "P_u": 282.37819571359773,
+  "time": 8.65098786354065
+ },
+ "H=5 beta=60 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 1,
+   "beta": 60.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 0.9570437002244383,
+  "Hcrit": 4.785218501122191,
+  "mechanism": "I",
+  "x": [
+   0.6191997989032978,
+   1.749558364700103,
+   1.0
+  ],
+  "P_mr": 339.414814135681,
+  "P_gamma": 98.53271557669649,
+  "P_u": 256.1165173225788,
+  "time": 9.013724088668823
+ },
+ "H=5 beta=60 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 1,
+   "beta": 60.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 0.9570437002244383,
+  "Hcrit": 4.785218501122191,
+  "mechanism": "I",
+  "x": [
+   0.6191997989032978,
+   1.749558364700103,
+   1.0
+  ],
+  "P_mr": 339.414814135681,
+  "P_gamma": 98.53271557669649,
+  "P_u": 256.1165173225788,
+  "time": 9.013724088668823
+ },
+ "H=5 beta=75 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 1,
+   "beta": 75.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 0.7280854915521047,
+  "Hcrit": 3.6404274577605236,
+  "mechanism": "I",
+  "x": [
+   0.6684442540339801,
+   1.5092618472877453,
+   1.0
+  ],
+  "P_mr": 353.67754919355974,
+  "P_gamma": 175.45173785284967,
+  "P_u": 310.312026563886,
+  "time": 8.755836486816406
+ },
+ "H=5 beta=75 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 1,
+   "beta": 75.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 0.7280854915521047,
+  "Hcrit": 3.6404274577605236,
+  "mechanism": "I",
+  "x": [
+   0.6684442540339801,
+   1.5092618472877453,
+   1.0
+  ],
+  "P_mr": 353.67754919355974,
+  "P_gamma": 175.45173785284967,
+  "P_u": 310.312026563886,
+  "time": 8.755836486816406
+ },
+ "H=5 beta=90 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 1,
+   "beta": 90.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 0.5512494963637296,
+  "Hcrit": 2.7562474818186478,
+  "mechanism": "I",
+  "x": [
+   0.771220103172825,
+   1.2553837108383015,
+   1.0
+  ],
+  "P_mr": 516.6488627926618,
+  "P_gamma": 388.41232802758776,
+  "P_u": 548.8200253816982,
+  "time": 7.139260768890381
+ },
+ "H=5 beta=90 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 1,
+   "beta": 90.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 0.5512494963637296,
+  "Hcrit": 2.7562474818186478,
+  "mechanism": "I",
+  "x": [
+   0.771220103172825,
+   1.2553837108383015,
+   1.0
+  ],
+  "P_mr": 516.6488627926618,
+  "P_gamma": 388.41232802758776,
+  "P_u": 548.8200253816982,
+  "time": 7.139260768890381
+ },
+ "H=5 beta=25 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 5,
+   "beta": 25.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 5.915161969761358,
+  "Hcrit": 29.575809848806788,
+  "mechanism": "II",
+  "x": [
+   0.9404524674632144,
+   2.3438655838304054,
+   1.549698984765786
+  ],
+  "P_mr": 1366.6079752017724,
+  "P_gamma": -330.2122226285117,
+  "P_u": 561.2469740331139,
+  "time": 12.84085202217102
+ },
+ "H=5 beta=25 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 5,
+   "beta": 25.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 5.915161969761358,
+  "Hcrit": 29.575809848806788,
+  "mechanism": "II",
+  "x": [
+   0.9404524674632144,
+   2.3438655838304054,
+   1.549698984765786
+  ],
+  "P_mr": 1366.6079752017724,
+  "P_gamma": -330.2122226285117,
+  "P_u": 561.2469740331139,
+  "time": 12.84085202217102
+ },
+ "H=5 beta=40 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 5,
+   "beta": 40.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 2.2174106325578156,
+  "Hcrit": 11.087053162789077,
+  "mechanism": "I",
+  "x": [
+   0.7545414197046675,
+   1.9935237526639762,
+   1.0
+  ],
+  "P_mr": 494.7705199011125,
+  "P_gamma": 24.27588980950446,
+  "P_u": 198.85396833967718,
+  "time": 9.536194324493408
+ },
+ "H=5 beta=40 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 5,
+   "beta": 40.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 2.2174106325578156,
+  "Hcrit": 11.087053162789077,
+  "mechanism": "I",
+  "x": [
+   0.7545414197046675,
+   1.9935237526639762,
+   1.0
+  ],
+  "P_mr": 494.7705199011125,
+  "P_gamma": 24.27588980950446,
+  "P_u": 198.85396833967718,
+  "time": 9.536194324493408
+ },
+ "H=5 beta=60 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 5,
+   "beta": 60.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 1.206917761549323,
+  "Hcrit": 6.034588807746615,
+  "mechanism": "I",
+  "x": [
+   0.6526191525057147,
+   1.700443849093562,
+   1.0
+  ],
+  "P_mr": 348.82634810790717,
+  "P_gamma": 107.15689422356553,
+  "P_u": 181.8655721125981,
+  "time": 8.498214721679688
+ },
+ "H=5 beta=60 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 5,
+   "beta": 60.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 1.206917761549323,
+  "Hcrit": 6.034588807746615,
+  "mechanism": "I",
+  "x": [
+   0.6526191525057147,
+   1.700443849093562,
+   1.0
+  ],
+  "P_mr": 348.82634810790717,
+  "P_gamma": 107.15689422356553,
+  "P_u": 181.8655721125981,
+  "time": 8.498214721679688
+ },
+ "H=5 beta=90 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 5,
+   "beta": 90.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 0.6079375850887689,
+  "Hcrit": 3.039687925443845,
+  "mechanism": "I",
+  "x": [
+   0.7833792539810265,
+   1.2156221818919886,
+   1.0
+  ],
+  "P_mr": 565.7980877119167,
+  "P_gamma": 429.5594143284489,
+  "P_u": 501.1250861689183,
+  "time": 6.934636116027832
+ },
+ "H=5 beta=90 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 5,
+   "beta": 90.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 0.6079375850887689,
+  "Hcrit": 3.039687925443845,
+  "mechanism": "I",
+  "x": [
+   0.7833792539810265,
+   1.2156221818919886,
+   1.0
+  ],
+  "P_mr": 565.7980877119167,
+  "P_gamma": 429.5594143284489,
+  "P_u": 501.1250861689183,
+  "time": 6.934636116027832
+ },
+ "H=5 beta=20 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 10,
+   "beta": 20.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 38.21532532862142,
+  "Hcrit": 191.0766266431071,
+  "mechanism": "II",
+  "x": [
+   1.2062522272102738,
+   2.340977065353316,
+   2.042948529711511
+  ],
+  "P_mr": 2923.7511170616244,
+  "P_gamma": -975.3034458839466,
+  "P_u": 1051.8107395395596,
+  "time": 27.437906980514526
+ },
+ "H=5 beta=20 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 10,
+   "beta": 20.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 38.21532532862142,
+  "Hcrit": 191.0766266431071,
+  "mechanism": "II",
+  "x": [
+   1.2062522272102738,
+   2.340977065353316,
+   2.042948529711511
+  ],
+  "P_mr": 2923.7511170616244,
+  "P_gamma": -975.3034458839466,
+  "P_u": 1051.8107395395596,
+  "time": 27.437906980514526
+ },
+ "H=5 beta=30 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 10,
+   "beta": 30.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 4.693955447830078,
+  "Hcrit": 23.46977723915039,
+  "mechanism": "II",
+  "x": [
+   0.7111904106209422,
+   2.420963757416958,
+   1.7358748020472112
+  ],
+  "P_mr": 1074.1422030257777,
+  "P_gamma": -239.3360573851935,
+  "P_u": 468.1712508513633,
+  "time": 10.646925687789917
+ },
+ "H=5 beta=30 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 10,
+   "beta": 30.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 4.693955447830078,
+  "Hcrit": 23.46977723915039,
+  "mechanism": "II",
+  "x": [
+   0.7111904106209422,
+   2.420963757416958,
+   1.7358748020472112
+  ],
+  "P_mr": 1074.1422030257777,
+  "P_gamma": -239.3360573851935,
+  "P_u": 468.1712508513633,
+  "time": 10.646925687789917
+ },
+ "H=5 beta=50 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 10,
+   "beta": 50.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 1.767938113962849,
+  "Hcrit": 8.839690569814245,
+  "mechanism": "I",
+  "x": [
+   0.6997590236388793,
+   1.8277049280766189,
+   1.0
+  ],
+  "P_mr": 395.4631773305882,
+  "P_gamma": 74.62377145044552,
+  "P_u": 149.0623260477039,
+  "time": 9.727412462234497
+ },
+ "H=5 beta=50 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 10,
+   "beta": 50.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 1.767938113962849,
+  "Hcrit": 8.839690569814245,
+  "mechanism": "I",
+  "x": [
+   0.6997590236388793,
+   1.8277049280766189,
+   1.0
+  ],
+  "P_mr": 395.4631773305882,
+  "P_gamma": 74.62377145044552,
+  "P_u": 149.0623260477039,
+  "time": 9.727412462234497
+ },
+ "H=5 beta=90 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 10,
+   "beta": 90.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 0.6234984876494784,
+  "Hcrit": 3.1174924382473916,
+  "mechanism": "I",
+  "x": [
+   0.7862312810255719,
+   1.2043328440744194,
+   1.0
+  ],
+  "P_mr": 581.2272874625902,
+  "P_gamma": 442.0011978211984,
+  "P_u": 490.2020055157559,
+  "time": 6.909591913223267
+ },
+ "H=5 beta=90 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 10,
+   "beta": 90.0,
+   "approach": "FE",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {
+    "left": 10.0,
+    "right": 2.0,
+    "depth": 6.0
+   },
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 0.6234984876494784,
+  "Hcrit": 3.1174924382473916,
+  "mechanism": "I",
+  "x": [
+   0.7862312810255719,
+   1.2043328440744194,
+   1.0
+  ],
+  "P_mr": 581.2272874625902,
+  "P_gamma": 442.0011978211984,
+  "P_u": 490.2020055157559,
+  "time": 6.909591913223267
+ },
+ "H=1 beta=30 hw=0.1 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig8",
+   "pset": "fitted",
+   "soil": "London",
+   "beta": 30.0,
+   "alpha": 1,
+   "H": 10.0,
+   "c": 11.7,
+   "phi": 24.7,
+   "gamma": 18.0,
+   "gamma_w": 9.8,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "hw_over_H": 0.1,
+   "approach": "FE"
+  },
+  "Gamma": 6.627050878243686,
+  "Hcrit": 66.27050878243686,
+  "mechanism": "I",
+  "x": [
+   1.138728961143707,
+   1.8830003022824513,
+   1.0
+  ],
+  "P_mr": 6698.579341316632,
+  "P_gamma": 311.9986736117092,
+  "P_u": 698.7947342535858,
+  "time": 11.983659267425537
+ },
+ "H=1 beta=30 hw=0.1 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig8",
+   "pset": "fitted",
+   "soil": "London",
+   "beta": 30.0,
+   "alpha": 1,
+   "H": 10.0,
+   "c": 11.7,
+   "phi": 24.7,
+   "gamma": 18.0,
+   "gamma_w": 9.8,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "hw_over_H": 0.1,
+   "approach": "FE"
+  },
+  "Gamma": 6.627050878243686,
+  "Hcrit": 66.27050878243686,
+  "mechanism": "I",
+  "x": [
+   1.138728961143707,
+   1.8830003022824513,
+   1.0
+  ],
+  "P_mr": 6698.579341316632,
+  "P_gamma": 311.9986736117092,
+  "P_u": 698.7947342535858,
+  "time": 11.983659267425537
+ },
+ "H=1 beta=30 hw=0.5 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig8",
+   "pset": "fitted",
+   "soil": "London",
+   "beta": 30.0,
+   "alpha": 1,
+   "H": 10.0,
+   "c": 11.7,
+   "phi": 24.7,
+   "gamma": 18.0,
+   "gamma_w": 9.8,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "hw_over_H": 0.5,
+   "approach": "FE"
+  },
+  "Gamma": 1.513156892597637,
+  "Hcrit": 15.13156892597637,
+  "mechanism": "I",
+  "x": [
+   0.8871540622119193,
+   2.0883063766851384,
+   1.0
+  ],
+  "P_mr": 4756.946925717826,
+  "P_gamma": -212.32371189251424,
+  "P_u": 3356.0472404894554,
+  "time": 11.68819260597229
+ },
+ "H=1 beta=30 hw=0.5 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig8",
+   "pset": "fitted",
+   "soil": "London",
+   "beta": 30.0,
+   "alpha": 1,
+   "H": 10.0,
+   "c": 11.7,
+   "phi": 24.7,
+   "gamma": 18.0,
+   "gamma_w": 9.8,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "hw_over_H": 0.5,
+   "approach": "FE"
+  },
+  "Gamma": 1.513156892597637,
+  "Hcrit": 15.13156892597637,
+  "mechanism": "I",
+  "x": [
+   0.8871540622119193,
+   2.0883063766851384,
+   1.0
+  ],
+  "P_mr": 4756.946925717826,
+  "P_gamma": -212.32371189251424,
+  "P_u": 3356.0472404894554,
+  "time": 11.68819260597229
+ },
+ "H=1 beta=60 hw=0.2 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig8",
+   "pset": "fitted",
+   "soil": "London",
+   "beta": 60.0,
+   "alpha": 1,
+   "H": 10.0,
+   "c": 11.7,
+   "phi": 24.7,
+   "gamma": 18.0,
+   "gamma_w": 9.8,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "hw_over_H": 0.2,
+   "approach": "FE"
+  },
+  "Gamma": 0.9920590276829983,
+  "Hcrit": 9.920590276829982,
+  "mechanism": "I",
+  "x": [
+   0.7671358740700425,
+   1.6238729653621644,
+   1.0
+  ],
+  "P_mr": 2463.786890709662,
+  "P_gamma": 1327.873852205812,
+  "P_u": 1155.6345096544244,
+  "time": 10.498812913894653
+ },
+ "H=1 beta=60 hw=0.2 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig8",
+   "pset": "fitted",
+   "soil": "London",
+   "beta": 60.0,
+   "alpha": 1,
+   "H": 10.0,
+   "c": 11.7,
+   "phi": 24.7,
+   "gamma": 18.0,
+   "gamma_w": 9.8,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "hw_over_H": 0.2,
+   "approach": "FE"
+  },
+  "Gamma": 0.9920590276829983,
+  "Hcrit": 9.920590276829982,
+  "mechanism": "I",
+  "x": [
+   0.7671358740700425,
+   1.6238729653621644,
+   1.0
+  ],
+  "P_mr": 2463.786890709662,
+  "P_gamma": 1327.873852205812,
+  "P_u": 1155.6345096544244,
+  "time": 10.498812913894653
+ },
+ "H=1 beta=60 hw=1 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig8",
+   "pset": "fitted",
+   "soil": "London",
+   "beta": 60.0,
+   "alpha": 1,
+   "H": 10.0,
+   "c": 11.7,
+   "phi": 24.7,
+   "gamma": 18.0,
+   "gamma_w": 9.8,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "hw_over_H": 1.0,
+   "approach": "FE"
+  },
+  "Gamma": 0.5453919044407213,
+  "Hcrit": 5.453919044407213,
+  "mechanism": "I",
+  "x": [
+   0.5620755377468651,
+   1.720567338115299,
+   1.0
+  ],
+  "P_mr": 1824.4349185458332,
+  "P_gamma": 961.1038125960847,
+  "P_u": 2384.0777049343633,
+  "time": 8.452320575714111
+ },
+ "H=1 beta=60 hw=1 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig8",
+   "pset": "fitted",
+   "soil": "London",
+   "beta": 60.0,
+   "alpha": 1,
+   "H": 10.0,
+   "c": 11.7,
+   "phi": 24.7,
+   "gamma": 18.0,
+   "gamma_w": 9.8,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "hw_over_H": 1.0,
+   "approach": "FE"
+  },
+  "Gamma": 0.5453919044407213,
+  "Hcrit": 5.453919044407213,
+  "mechanism": "I",
+  "x": [
+   0.5620755377468651,
+   1.720567338115299,
+   1.0
+  ],
+  "P_mr": 1824.4349185458332,
+  "P_gamma": 961.1038125960847,
+  "P_u": 2384.0777049343633,
+  "time": 8.452320575714111
+ },
+ "H=1 beta=35 hw=0.1 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig8",
+   "pset": "fitted",
+   "soil": "Israeli",
+   "beta": 35.0,
+   "alpha": 1,
+   "H": 10.0,
+   "c": 6.0,
+   "phi": 32.0,
+   "gamma": 18.0,
+   "gamma_w": 9.8,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "hw_over_H": 0.1,
+   "approach": "FE"
+  },
+  "Gamma": 4.490892373281674,
+  "Hcrit": 44.90892373281674,
+  "mechanism": "I",
+  "x": [
+   1.0061218018919484,
+   2.0470182041401577,
+   0.2140671673577662
+  ],
+  "P_mr": 79.79801177707647,
+  "P_gamma": -3.365336429117909,
+  "P_u": 21.13419062206863,
+  "time": 9.637914896011353
+ },
+ "H=1 beta=35 hw=0.1 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig8",
+   "pset": "fitted",
+   "soil": "Israeli",
+   "beta": 35.0,
+   "alpha": 1,
+   "H": 10.0,
+   "c": 6.0,
+   "phi": 32.0,
+   "gamma": 18.0,
+   "gamma_w": 9.8,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "hw_over_H": 0.1,
+   "approach": "FE"
+  },
+  "Gamma": 4.490892373281674,
+  "Hcrit": 44.90892373281674,
+  "mechanism": "I",
+  "x": [
+   1.0061218018919484,
+   2.0470182041401577,
+   0.2140671673577662
+  ],
+  "P_mr": 79.79801177707647,
+  "P_gamma": -3.365336429117909,
+  "P_u": 21.13419062206863,
+  "time": 9.637914896011353
+ },
+ "H=1 beta=35 hw=0.6 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig8",
+   "pset": "fitted",
+   "soil": "Israeli",
+   "beta": 35.0,
+   "alpha": 1,
+   "H": 10.0,
+   "c": 6.0,
+   "phi": 32.0,
+   "gamma": 18.0,
+   "gamma_w": 9.8,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "hw_over_H": 0.6,
+   "approach": "FE"
+  },
+  "Gamma": 0.7310284851829596,
+  "Hcrit": 7.310284851829596,
+  "mechanism": "I",
+  "x": [
+   0.9067606656678728,
+   2.0945603228201524,
+   1.0
+  ],
+  "P_mr": 1539.8569348888952,
+  "P_gamma": -387.4103235235219,
+  "P_u": 2493.835676433682,
+  "time": 11.024081468582153
+ },
+ "H=1 beta=35 hw=0.6 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig8",
+   "pset": "fitted",
+   "soil": "Israeli",
+   "beta": 35.0,
+   "alpha": 1,
+   "H": 10.0,
+   "c": 6.0,
+   "phi": 32.0,
+   "gamma": 18.0,
+   "gamma_w": 9.8,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "hw_over_H": 0.6,
+   "approach": "FE"
+  },
+  "Gamma": 0.7310284851829596,
+  "Hcrit": 7.310284851829596,
+  "mechanism": "I",
+  "x": [
+   0.9067606656678728,
+   2.0945603228201524,
+   1.0
+  ],
+  "P_mr": 1539.8569348888952,
+  "P_gamma": -387.4103235235219,
+  "P_u": 2493.835676433682,
+  "time": 11.024081468582153
+ },
+ "H=1 beta=60 hw=0.5 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig8",
+   "pset": "fitted",
+   "soil": "Israeli",
+   "beta": 60.0,
+   "alpha": 1,
+   "H": 10.0,
+   "c": 6.0,
+   "phi": 32.0,
+   "gamma": 18.0,
+   "gamma_w": 9.8,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "hw_over_H": 0.5,
+   "approach": "FE"
+  },
+  "Gamma": 0.3811110139583546,
+  "Hcrit": 3.8111101395835463,
+  "mechanism": "I",
+  "x": [
+   0.768213871580333,
+   1.7417458233233174,
+   1.0
+  ],
+  "P_mr": 916.3118839746263,
+  "P_gamma": 617.9593181955856,
+  "P_u": 1786.3581914389038,
+  "time": 9.995105981826782
+ },
+ "H=1 beta=60 hw=0.5 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig8",
+   "pset": "fitted",
+   "soil": "Israeli",
+   "beta": 60.0,
+   "alpha": 1,
+   "H": 10.0,
+   "c": 6.0,
+   "phi": 32.0,
+   "gamma": 18.0,
+   "gamma_w": 9.8,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "hw_over_H": 0.5,
+   "approach": "FE"
+  },
+  "Gamma": 0.3811110139583546,
+  "Hcrit": 3.8111101395835463,
+  "mechanism": "I",
+  "x": [
+   0.768213871580333,
+   1.7417458233233174,
+   1.0
+  ],
+  "P_mr": 916.3118839746263,
+  "P_gamma": 617.9593181955856,
+  "P_u": 1786.3581914389038,
+  "time": 9.995105981826782
+ },
+ "H=1 beta=60 hw=0.9 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig8",
+   "pset": "fitted",
+   "soil": "Israeli",
+   "beta": 60.0,
+   "alpha": 1,
+   "H": 10.0,
+   "c": 6.0,
+   "phi": 32.0,
+   "gamma": 18.0,
+   "gamma_w": 9.8,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "hw_over_H": 0.9,
+   "approach": "FE"
+  },
+  "Gamma": 0.31972084747924545,
+  "Hcrit": 3.1972084747924545,
+  "mechanism": "I",
+  "x": [
+   0.6275085274053235,
+   1.7761080333960195,
+   1.0
+  ],
+  "P_mr": 762.7245462399311,
+  "P_gamma": 512.028455491129,
+  "P_u": 1873.5668294376806,
+  "time": 10.003593683242798
+ },
+ "H=1 beta=60 hw=0.9 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig8",
+   "pset": "fitted",
+   "soil": "Israeli",
+   "beta": 60.0,
+   "alpha": 1,
+   "H": 10.0,
+   "c": 6.0,
+   "phi": 32.0,
+   "gamma": 18.0,
+   "gamma_w": 9.8,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "hw_over_H": 0.9,
+   "approach": "FE"
+  },
+  "Gamma": 0.31972084747924545,
+  "Hcrit": 3.1972084747924545,
+  "mechanism": "I",
+  "x": [
+   0.6275085274053235,
+   1.7761080333960195,
+   1.0
+  ],
+  "P_mr": 762.7245462399311,
+  "P_gamma": 512.028455491129,
+  "P_u": 1873.5668294376806,
+  "time": 10.003593683242798
+ },
+ "H=5 beta=15 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 1,
+   "beta": 15.0,
+   "approach": "vopt",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 119.08092623908823,
+  "Hcrit": 595.4046311954412,
+  "mechanism": "I",
+  "x": [
+   1.6159361446329878,
+   2.0329104807571428,
+   0.1280435963263892
+  ],
+  "P_mr": 112.37420153810088,
+  "P_gamma": -3.0109213558150985,
+  "P_u": 3.9546006257636566,
+  "time": 120.07346796989441
+ },
+ "H=5 beta=20 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 1,
+   "beta": 20.0,
+   "approach": "vopt",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 19.320406514628605,
+  "Hcrit": 96.60203257314302,
+  "mechanism": "I",
+  "x": [
+   1.4089731406390293,
+   2.0442456394337496,
+   0.7586503414473615
+  ],
+  "P_mr": 1525.0393937636138,
+  "P_gamma": -201.16643054022092,
+  "P_u": 280.1005561037238,
+  "time": 144.9033362865448
+ },
+ "H=5 beta=45 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 1,
+   "beta": 45.0,
+   "approach": "vopt",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 1.9044840927918847,
+  "Hcrit": 9.522420463959424,
+  "mechanism": "I",
+  "x": [
+   0.4483012429943932,
+   1.9643068271509936,
+   1.0
+  ],
+  "P_mr": 324.1287490760439,
+  "P_gamma": 33.65844377074067,
+  "P_u": 136.5339722766343,
+  "time": 13.542518138885498
+ },
+ "H=5 beta=25 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 5,
+   "beta": 25.0,
+   "approach": "vopt",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 18.406173000196482,
+  "Hcrit": 92.0308650009824,
+  "mechanism": "I",
+  "x": [
+   1.2219486114855584,
+   2.0309789737256136,
+   1.0
+  ],
+  "P_mr": 1395.4634026780468,
+  "P_gamma": -154.2028177571052,
+  "P_u": 230.0177849783277,
+  "time": 64.40930604934692
+ },
+ "H=5 beta=50 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 5,
+   "beta": 50.0,
+   "approach": "vopt",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 2.2950818443770915,
+  "Hcrit": 11.475409221885457,
+  "mechanism": "I",
+  "x": [
+   0.41788660235630115,
+   1.8772148581108585,
+   1.0
+  ],
+  "P_mr": 290.8705072611722,
+  "P_gamma": 49.99787862097545,
+  "P_u": 76.73856346879123,
+  "time": 13.775679349899292
+ },
+ "H=5 beta=90 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 5,
+   "beta": 90.0,
+   "approach": "vopt",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 0.7357173723378708,
+  "Hcrit": 3.6785868616893542,
+  "mechanism": "I",
+  "x": [
+   0.8523771005388376,
+   1.255183329510998,
+   1.0
+  ],
+  "P_mr": 642.6919752569136,
+  "P_gamma": 478.5416470061482,
+  "P_u": 395.01659617444597,
+  "time": 81.50035691261292
+ },
+ "H=5 beta=35 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 10,
+   "beta": 35.0,
+   "approach": "vopt",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 4.993923039056518,
+  "Hcrit": 24.96961519528259,
+  "mechanism": "I",
+  "x": [
+   0.7870500295032586,
+   2.037195649752734,
+   1.0
+  ],
+  "P_mr": 548.6429978191306,
+  "P_gamma": -4.273058840519733,
+  "P_u": 114.13518397306555,
+  "time": 15.58345341682434
+ },
+ "H=5 beta=90 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig9",
+   "alpha": 10,
+   "beta": 90.0,
+   "approach": "vopt",
+   "hw_over_H": 1.0,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "H": 5.0,
+   "c": 10.0,
+   "phi": 30.0,
+   "gamma": 20.0,
+   "gamma_w": 9.81
+  },
+  "Gamma": 0.7802744244539849,
+  "Hcrit": 3.9013721222699242,
+  "mechanism": "I",
+  "x": [
+   0.779494794419155,
+   1.2309991002863916,
+   1.0
+  ],
+  "P_mr": 546.4813819217759,
+  "P_gamma": 413.61985306218804,
+  "P_u": 286.7508944529428,
+  "time": 12.996358871459961
+ },
+ "H=10 beta=30 hw=0.05 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=analytical seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig8",
+   "pset": "fitted",
+   "soil": "London",
+   "beta": 30.0,
+   "alpha": 1,
+   "H": 10.0,
+   "c": 11.7,
+   "phi": 24.7,
+   "gamma": 18.0,
+   "gamma_w": 9.8,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "hw_over_H": 0.05,
+   "approach": "vopt"
+  },
+  "Gamma": 10.882467557534701,
+  "Hcrit": 108.82467557534702,
+  "mechanism": "I",
+  "x": [
+   1.158368316823391,
+   1.8479365544603141,
+   1.0
+  ],
+  "P_mr": 6879.227323717034,
+  "P_gamma": 391.8205015507622,
+  "P_u": 240.31805409823303,
+  "time": 381.06213665008545
+ },
+ "H=10 beta=30 hw=0.5 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=analytical seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig8",
+   "pset": "fitted",
+   "soil": "London",
+   "beta": 30.0,
+   "alpha": 1,
+   "H": 10.0,
+   "c": 11.7,
+   "phi": 24.7,
+   "gamma": 18.0,
+   "gamma_w": 9.8,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "hw_over_H": 0.5,
+   "approach": "vopt"
+  },
+  "Gamma": 2.641454026673738,
+  "Hcrit": 26.41454026673738,
+  "mechanism": "I",
+  "x": [
+   0.7307984749238233,
+   2.106021003522536,
+   0.7080601090112253
+  ],
+  "P_mr": 1790.6890725567903,
+  "P_gamma": -14.523426896122068,
+  "P_u": 692.4413669678344,
+  "time": 20.33270788192749
+ },
+ "H=10 beta=60 hw=0.1 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=analytical seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig8",
+   "pset": "fitted",
+   "soil": "London",
+   "beta": 60.0,
+   "alpha": 1,
+   "H": 10.0,
+   "c": 11.7,
+   "phi": 24.7,
+   "gamma": 18.0,
+   "gamma_w": 9.8,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "hw_over_H": 0.1,
+   "approach": "vopt"
+  },
+  "Gamma": 1.3086199189618157,
+  "Hcrit": 13.086199189618156,
+  "mechanism": "I",
+  "x": [
+   0.761660819429711,
+   1.603717277941613,
+   1.0
+  ],
+  "P_mr": 2432.3840178350897,
+  "P_gamma": 1329.542025330778,
+  "P_u": 529.1978445046166,
+  "time": 15.386225461959839
+ },
+ "H=10 beta=35 hw=0.2 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=analytical seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig8",
+   "pset": "fitted",
+   "soil": "Israeli",
+   "beta": 35.0,
+   "alpha": 1,
+   "H": 10.0,
+   "c": 6.0,
+   "phi": 32.0,
+   "gamma": 18.0,
+   "gamma_w": 9.8,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "hw_over_H": 0.2,
+   "approach": "vopt"
+  },
+  "Gamma": 3.866058878898674,
+  "Hcrit": 38.66058878898674,
+  "mechanism": "I",
+  "x": [
+   0.789011741905236,
+   2.0858774875285606,
+   0.2767545014649549
+  ],
+  "P_mr": 95.88612959607364,
+  "P_gamma": -4.24322265607447,
+  "P_u": 29.045258165525574,
+  "time": 14.450938940048218
+ },
+ "H=10 beta=60 hw=0.7 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=analytical seeds=0,1": {
+  "spec": {
+   "kind": "la",
+   "fig": "fig8",
+   "pset": "fitted",
+   "soil": "Israeli",
+   "beta": 60.0,
+   "alpha": 1,
+   "H": 10.0,
+   "c": 6.0,
+   "phi": 32.0,
+   "gamma": 18.0,
+   "gamma_w": 9.8,
+   "seeds": [
+    0,
+    1
+   ],
+   "field_kw": {},
+   "la_kw": {},
+   "hw_over_H": 0.7,
+   "approach": "vopt"
+  },
+  "Gamma": 0.5104379369798832,
+  "Hcrit": 5.104379369798831,
+  "mechanism": "I",
+  "x": [
+   0.4349382058648788,
+   1.8027643372214486,
+   1.0
+  ],
+  "P_mr": 623.7698962874205,
+  "P_gamma": 412.13463976426584,
+  "P_u": 809.8942321062115,
+  "time": 19.12745976448059
+ }
+}

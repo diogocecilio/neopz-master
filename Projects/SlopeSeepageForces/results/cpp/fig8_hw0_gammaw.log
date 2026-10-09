@@ -1,0 +1,24 @@
+2026-10-09 05:18:28  fig8: 4 panels x 1 h_w / H x 2 curves, soil swapped, gamma_w 9.8, alpha 1, H_ref 1 m; box_m=50/10/30;hbc=zero/zero/noflow;horder=2;href=1;hmesh=gen/0.025/0.0625/0.15/2;lm=10;mech=I+II;seeds=0+1+2;np=40;niter=150;pools=25;q=coarse/fine;polish=1;dmax=10;soil=swapped; out results/cpp/fig8_hw0_gammaw.csv (0 rows already there)
+2026-10-09 05:18:28    [fig8 1] London beta=30 hw/H=0 none: Gamma = 156.5274, H_crit = 156.5274 m, mechanism I eta = 1, seed spread 7.8e-15, s=lower (0.0577 s)
+2026-10-09 05:18:28    [fig8 2] London beta=60 hw/H=0 none: Gamma = 17.94946, H_crit = 17.94946 m, mechanism I eta = 1, seed spread 4.4e-16, s=upper (0.00865 s)
+2026-10-09 05:18:28    [fig8 3] Israeli beta=35 hw/H=0 none: Gamma = 228.8286, H_crit = 228.8286 m, mechanism I eta = 1, seed spread 2.8e-14, s=upper (0.0647 s)
+2026-10-09 05:18:28    [fig8 4] Israeli beta=60 hw/H=0 none: Gamma = 12.98603, H_crit = 12.98603 m, mechanism I eta = 1, seed spread 6.7e-16, s=upper (0.0445 s)
+2026-10-09 05:18:28  fig8: 4 limit analyses run (0 with Gamma = inf), 0 already in results/cpp/fig8_hw0_gammaw.csv, 0.1769 s
+2026-10-09 05:18:28  fig8: 4 panels x 1 h_w / H x 2 curves, soil table1, gamma_w 9.8, alpha 1, H_ref 1 m; box_m=50/10/30;hbc=zero/zero/noflow;horder=2;href=1;hmesh=gen/0.025/0.0625/0.15/2;lm=10;mech=I+II;seeds=0+1+2;np=40;niter=150;pools=25;q=coarse/fine;polish=1;dmax=10;soil=table1; out results/cpp/fig8_hw0_gammaw.csv (8 rows already there)
+2026-10-09 05:18:28    [fig8 1] London beta=30 hw/H=0 none: Gamma = inf (no mechanism with P_gamma + P_u > 0) (0.0573 s)
+2026-10-09 05:18:28    [fig8 2] London beta=60 hw/H=0 none: Gamma = 12.98603, H_crit = 12.98603 m, mechanism I eta = 1, seed spread 6.7e-16, s=upper (0.0571 s)
+2026-10-09 05:18:28    [fig8 3] Israeli beta=35 hw/H=0 none: Gamma = 68.24781, H_crit = 68.24781 m, mechanism I eta = 1, seed spread 3.3e-15, s=lower (0.0272 s)
+2026-10-09 05:18:28    [fig8 4] Israeli beta=60 hw/H=0 none: Gamma = 17.94946, H_crit = 17.94946 m, mechanism I eta = 1, seed spread 4.4e-16, s=upper (0.0149 s)
+2026-10-09 05:18:28  fig8: 4 limit analyses run (1 with Gamma = inf), 0 already in results/cpp/fig8_hw0_gammaw.csv, 0.1579 s
+2026-10-09 05:18:28  fig8: 4 panels x 1 h_w / H x 2 curves, soil swapped, gamma_w 9.81, alpha 1, H_ref 1 m; box_m=50/10/30;hbc=zero/zero/noflow;horder=2;href=1;hmesh=gen/0.025/0.0625/0.15/2;lm=10;mech=I+II;seeds=0+1+2;np=40;niter=150;pools=25;q=coarse/fine;polish=1;dmax=10;soil=swapped; out results/cpp/fig8_hw0_gammaw.csv (16 rows already there)
+2026-10-09 05:18:28    [fig8 1] London beta=30 hw/H=0 none: Gamma = 156.7186, H_crit = 156.7186 m, mechanism I eta = 1, seed spread 6.7e-15, s=lower (0.0619 s)
+2026-10-09 05:18:28    [fig8 2] London beta=60 hw/H=0 none: Gamma = 17.97138, H_crit = 17.97138 m, mechanism I eta = 1, seed spread 2.2e-16, s=lower (0.0125 s)
+2026-10-09 05:18:29    [fig8 3] Israeli beta=35 hw/H=0 none: Gamma = 229.108, H_crit = 229.108 m, mechanism I eta = 1, seed spread 2.8e-14, s=upper (0.0593 s)
+2026-10-09 05:18:29    [fig8 4] Israeli beta=60 hw/H=0 none: Gamma = 13.00189, H_crit = 13.00189 m, mechanism I eta = 1, seed spread 8.9e-16, s=upper (0.054 s)
+2026-10-09 05:18:29  fig8: 4 limit analyses run (0 with Gamma = inf), 0 already in results/cpp/fig8_hw0_gammaw.csv, 0.1897 s
+2026-10-09 05:18:29  fig8: 4 panels x 1 h_w / H x 2 curves, soil table1, gamma_w 9.81, alpha 1, H_ref 1 m; box_m=50/10/30;hbc=zero/zero/noflow;horder=2;href=1;hmesh=gen/0.025/0.0625/0.15/2;lm=10;mech=I+II;seeds=0+1+2;np=40;niter=150;pools=25;q=coarse/fine;polish=1;dmax=10;soil=table1; out results/cpp/fig8_hw0_gammaw.csv (24 rows already there)
+2026-10-09 05:18:29    [fig8 1] London beta=30 hw/H=0 none: Gamma = inf (no mechanism with P_gamma + P_u > 0) (0.0715 s)
+2026-10-09 05:18:29    [fig8 2] London beta=60 hw/H=0 none: Gamma = 13.00189, H_crit = 13.00189 m, mechanism I eta = 1, seed spread 8.9e-16, s=upper (0.0571 s)
+2026-10-09 05:18:29    [fig8 3] Israeli beta=35 hw/H=0 none: Gamma = 68.33114, H_crit = 68.33114 m, mechanism I eta = 1, seed spread 4e-15, s=upper (0.0241 s)
+2026-10-09 05:18:29    [fig8 4] Israeli beta=60 hw/H=0 none: Gamma = 17.97138, H_crit = 17.97138 m, mechanism I eta = 1, seed spread 2.2e-16, s=lower (0.0107 s)
+2026-10-09 05:18:29  fig8: 4 limit analyses run (1 with Gamma = inf), 0 already in results/cpp/fig8_hw0_gammaw.csv, 0.1656 s

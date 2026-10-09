@@ -1,0 +1,209 @@
+
+b30_m02: H 5 m, beta 30 deg, h_w 5 m, box x in [-18.6603, 18.6603], y in [-23.6603, 0]; stability mesh gen: 285 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.002
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0   1240    3.11987                 27.5     -2.83  15.70  -7.88
+      1   2204    2.64746    -0.1514      87.1     -2.04  12.37  -7.12
+      2   4666    2.44531    -0.0764     159.8     -1.65  11.04  -6.32
+      3  10592    2.35742    -0.0359     544.0     -1.26  10.27  -5.91
+      4  26334    2.32227    -0.0149    1737.3     -1.02   9.81  -5.65
+  extrapolated: sqrtneq2 2.26133, order 1.32217, richardson 2.29884
+  total 2558 s
+
+b30_m05: H 5 m, beta 30 deg, h_w 5 m, box x in [-18.6603, 18.6603], y in [-23.6603, 0]; stability mesh gen: 285 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.002
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0   1240    3.11987                 31.8     -2.83  15.70  -7.88
+      1   2128    2.64746    -0.1514      99.7     -2.04  12.37  -7.12
+      2   4050    2.44531    -0.0764     136.3     -1.26  11.04  -6.20
+      3   8770    2.35742    -0.0359     528.5     -1.10  10.27  -5.86
+      4  20988    2.32227    -0.0149    2068.8     -1.02   9.74  -5.63
+  extrapolated: sqrtneq2 2.25801, order 1.32217, richardson 2.29884
+  total 2867 s
+
+b30_sa15_n2: H 5 m, beta 30 deg, h_w 5 m, box x in [-16.1603, 18.6603], y in [-21.1603, 0]; stability mesh gen: 270 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.002
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0   1174    2.74414                 22.5     -3.09  13.33  -7.39
+      1   1934    2.51562    -0.0833      78.4     -2.23  11.42  -6.65
+      2   4016    2.39258    -0.0489     101.3     -1.79  10.65  -5.99
+  extrapolated: sqrtneq2 2.11359, order 0.89319, richardson 2.24906
+  total 204 s
+
+b30_sa3_n2: H 5 m, beta 30 deg, h_w 5 m, box x in [-23.6603, 18.6603], y in [-28.6603, 0]; stability mesh gen: 331 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.002
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0   1432    2.83203                 24.5     -2.88  13.33  -6.95
+      1   2190    2.55078    -0.0993      56.0     -2.08  12.37  -6.95
+      2   4384    2.41895    -0.0517     120.0     -1.68  11.42  -6.41
+  extrapolated: sqrtneq2 2.10118, order 1.09317, richardson 2.30264
+  total 202 s
+
+b30_sr15_n2: H 5 m, beta 30 deg, h_w 5 m, box x in [-18.6603, 16.1603], y in [-23.6603, 0]; stability mesh gen: 281 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.002
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0   1228    2.69141                 16.5     -2.83  11.57  -6.65
+      1   1966    2.51562    -0.0653      59.7     -2.04  11.57  -6.65
+      2   4246    2.40137    -0.0454     161.5     -1.65  10.76  -6.24
+  extrapolated: sqrtneq2 2.15808, order 0.62166, richardson 2.18926
+  total 239 s
+
+b60_m01: H 5 m, beta 60 deg, h_w 5 m, box x in [-12.8868, 12.8868], y in [-17.8868, 0]; stability mesh gen: 186 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.002
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0    826    1.19580                 12.9     -4.46   5.65  -6.45
+      1   1234    1.08813    -0.0900      27.4     -3.55   4.12  -5.90
+      2   2392    1.02588    -0.0572      53.1     -2.65   3.65  -5.45
+      3   5304    0.99219    -0.0328     226.3     -2.46   3.19  -5.14
+  extrapolated: sqrtneq2 0.92330, order 0.88567, richardson 0.95244
+  total 321 s
+
+b60_m02: H 5 m, beta 60 deg, h_w 5 m, box x in [-12.8868, 12.8868], y in [-17.8868, 0]; stability mesh gen: 186 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.002
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0    826    1.19580                 14.9     -4.46   5.65  -6.45
+      1   1200    1.08887    -0.0894      23.8     -3.55   4.12  -5.90
+      2   2268    1.02441    -0.0592      82.3     -2.65   3.65  -5.45
+      3   4870    0.99219    -0.0315     217.4     -2.46   3.19  -5.14
+      4  11356    0.97266    -0.0197     606.1     -2.14   3.04  -5.07
+  extrapolated: sqrtneq2 0.93560, order 0.72221, richardson 0.94259
+  total 1454 s
+
+b60_m05: H 5 m, beta 60 deg, h_w 5 m, box x in [-12.8868, 12.8868], y in [-17.8868, 0]; stability mesh gen: 186 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.002
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0    826    1.19580                 12.3     -4.46   5.65  -6.45
+      1   1162    1.08813    -0.0900      26.9     -2.65   4.12  -5.90
+      2   2014    1.02734    -0.0559      64.8     -2.65   3.65  -5.45
+      3   3924    0.99219    -0.0342      81.1     -2.28   3.19  -5.14
+      4   8384    0.97461    -0.0177     235.9     -2.10   2.89  -5.00
+  extrapolated: sqrtneq2 0.93654, order 0.99975, richardson 0.95702
+  total 422 s
+
+b60_m05_n5: H 5 m, beta 60 deg, h_w 5 m, box x in [-12.8868, 12.8868], y in [-17.8868, 0]; stability mesh gen: 186 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.002
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0    826    1.19580                 12.9     -4.46   5.65  -6.45
+      1   1162    1.08813    -0.0900      30.0     -2.65   4.12  -5.90
+      2   2014    1.02734    -0.0559      74.9     -2.65   3.65  -5.45
+      3   3924    0.99219    -0.0342      79.6     -2.28   3.19  -5.14
+      4   8384    0.97461    -0.0177     247.1     -2.10   2.89  -5.00
+      5  17228    0.96484    -0.0100    1382.9     -2.01   2.89  -5.00
+  extrapolated: sqrtneq2 0.94232, order 0.84816, richardson 0.95264
+  total 1829 s
+
+b60_m10: H 5 m, beta 60 deg, h_w 5 m, box x in [-12.8868, 12.8868], y in [-17.8868, 0]; stability mesh gen: 186 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.002
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0    826    1.19580                 11.7     -4.46   5.65  -6.45
+      1   1006    1.09802    -0.0818      20.2     -2.65   2.89  -5.00
+      2   1620    1.03613    -0.0564      47.2     -2.65   2.89  -5.00
+      3   3062    0.99805    -0.0368      74.2     -2.46   2.89  -5.00
+      4   5194    0.98047    -0.0176     144.5     -2.28   2.89  -5.00
+  extrapolated: sqrtneq2 0.92234, order 1.11538, richardson 0.96540
+  total 299 s
+
+b60_mn200_n2: H 5 m, beta 60 deg, h_w 5 m, box x in [-12.8868, 12.8868], y in [-17.8868, 0]; stability mesh gen: 186 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 200, continuation tol 0.002
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0    826    1.19580                 12.2     -4.46   5.65  -6.45
+      1   1200    1.08887    -0.0894      20.4     -3.55   4.12  -5.90
+      2   2268    1.02441    -0.0592      59.8     -2.65   3.65  -5.45
+  extrapolated: sqrtneq2 0.85241, order 0.73019, richardson 0.92657
+  total 93 s
+
+b60_mn30_n2: H 5 m, beta 60 deg, h_w 5 m, box x in [-12.8868, 12.8868], y in [-17.8868, 0]; stability mesh gen: 186 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 30, continuation tol 0.002
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0    826    1.19141                  9.9     -4.46   5.65  -6.45
+      1   1200    1.08008    -0.0934      14.8     -3.55   3.81  -5.72
+      2   2234    1.01562    -0.0597      30.8     -2.65   3.65  -5.45
+  extrapolated: sqrtneq2 0.83874, order 0.78837, richardson 0.92697
+  total 57 s
+
+b60_s0125: H 5 m, beta 60 deg, h_w 5 m, box x in [-12.8868, 12.8868], y in [-17.8868, 0]; stability mesh gen: 350 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.002
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0   1502    1.10132                 24.5     -3.70   5.37  -5.61
+      1   2232    1.03247    -0.0625      58.5     -3.07   3.94  -5.31
+      2   4344    0.99512    -0.0362      94.7     -2.44   3.37  -5.13
+      3   9108    0.97461    -0.0206     223.2     -2.19   3.05  -5.07
+  extrapolated: sqrtneq2 0.92883, order 0.86504, richardson 0.94964
+  total 402 s
+
+b60_sref1: H 5 m, beta 60 deg, h_w 5 m, box x in [-12.8868, 12.8868], y in [-17.8868, 0]; stability mesh gen: 744 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.002
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0   3138    1.08813                 60.0     -3.55   4.12  -5.90
+  total 61 s
+
+b60_sref2: H 5 m, beta 60 deg, h_w 5 m, box x in [-12.8868, 12.8868], y in [-17.8868, 0]; stability mesh gen: 2976 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.002
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0  12226    1.02441                285.0     -2.65   3.65  -5.45
+  total 286 s
+
+b60_tol1e3_n2: H 5 m, beta 60 deg, h_w 5 m, box x in [-12.8868, 12.8868], y in [-17.8868, 0]; stability mesh gen: 186 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.001
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0    826    1.19800                 13.9     -4.46   4.12  -6.08
+      1   1200    1.08887    -0.0911      24.0     -3.55   4.12  -5.90
+      2   2268    1.02588    -0.0578      69.8     -2.65   3.65  -5.45
+  extrapolated: sqrtneq2 0.85780, order 0.79285, richardson 0.93989
+  total 109 s
+
+b60_tol5e3_n2: H 5 m, beta 60 deg, h_w 5 m, box x in [-12.8868, 12.8868], y in [-17.8868, 0]; stability mesh gen: 186 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.005
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0    826    1.19141                  9.4     -4.46   5.65  -6.45
+      1   1200    1.08594    -0.0885      16.7     -3.55   4.12  -5.90
+      2   2248    1.02148    -0.0594      35.4     -2.65   3.65  -5.45
+  extrapolated: sqrtneq2 0.84665, order 0.71036, richardson 0.92016
+  total 62 s
+
+b60_vopt_m02: H 5 m, beta 60 deg, h_w 5 m, box x in [-12.8868, 12.8868], y in [-17.8868, 0]; stability mesh gen: 186 triangles; water analytical, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.002
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0    826    1.81250                  6.1     -2.65   2.89  -5.00
+      1   1090    1.61914    -0.1067      19.4     -2.65   2.89  -5.00
+      2   1854    1.52539    -0.0579      66.7     -1.73   2.89  -5.00
+      3   4116    1.47852    -0.0307     120.6     -1.37   2.89  -5.00
+      4   9930    1.44922    -0.0198     352.7     -1.18   2.89  -5.00
+  extrapolated: sqrtneq2 1.39626, order 0.67776, richardson 1.40036
+  total 566 s
+
+b60_vopt_m05: H 5 m, beta 60 deg, h_w 5 m, box x in [-12.8868, 12.8868], y in [-17.8868, 0]; stability mesh gen: 186 triangles; water analytical, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.002
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0    826    1.81250                  6.4     -2.65   2.89  -5.00
+      1   1056    1.62354    -0.1043      16.3     -2.65   2.89  -5.00
+      2   1754    1.53125    -0.0568      23.2     -1.55   2.89  -5.00
+      3   3420    1.47852    -0.0344     126.0     -1.37   2.89  -5.00
+      4   7266    1.45508    -0.0159     325.5     -1.04   2.89  -5.00
+  extrapolated: sqrtneq2 1.40385, order 1.16965, richardson 1.43632
+  total 498 s
+
+b90_m02: H 5 m, beta 90 deg, h_w 5 m, box x in [-10, 10], y in [-15, 0]; stability mesh gen: 152 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.002
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0    682    0.74316                 10.7     -4.67   1.64  -6.40
+      1   1036    0.64502    -0.1321      22.1     -4.19   0.00  -5.00
+      2   1750    0.59815    -0.0727      49.4     -3.71   0.00  -5.00
+      3   3652    0.57422    -0.0400      94.5     -3.47   0.00  -5.00
+      4   8186    0.56250    -0.0204     130.8     -3.30   0.00  -5.00
+  extrapolated: sqrtneq2 0.53893, order 1.02973, richardson 0.55125
+  total 309 s
+
+b90_m05: H 5 m, beta 90 deg, h_w 5 m, box x in [-10, 10], y in [-15, 0]; stability mesh gen: 152 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.002
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0    682    0.74316                 10.5     -4.67   1.64  -6.40
+      1    946    0.64868    -0.1271      18.6     -3.71   0.00  -5.00
+      2   1568    0.59912    -0.0764      40.8     -3.71   0.00  -5.00
+      3   3168    0.57617    -0.0383      97.0     -3.47   0.00  -5.00
+      4   6292    0.56250    -0.0237     151.3     -3.24   0.00  -5.00
+  extrapolated: sqrtneq2 0.52910, order 0.74721, richardson 0.54235
+  total 319 s
+
+b90_sa15_n2: H 5 m, beta 90 deg, h_w 5 m, box x in [-7.5, 10], y in [-12.5, 0]; stability mesh gen: 125 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.002
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0    568    0.69336                  8.8     -4.94   0.00  -5.00
+      1    854    0.62305    -0.1014      16.8     -3.92   0.00  -5.00
+      2   1564    0.58789    -0.0564      45.3     -3.92   0.00  -5.00
+  extrapolated: sqrtneq2 0.48838, order 1.00000, richardson 0.55274
+  total 72 s
+
+b90_sa3_n2: H 5 m, beta 90 deg, h_w 5 m, box x in [-15, 10], y in [-20, 0]; stability mesh gen: 181 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.002
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0    796    0.73438                 10.9     -5.00   1.23  -5.98
+      1   1106    0.64868    -0.1167      22.3     -4.48   0.00  -5.00
+      2   1800    0.59961    -0.0757      26.9     -3.71   0.00  -5.00
+  extrapolated: sqrtneq2 0.42163, order 0.80425, richardson 0.53385
+  total 61 s
+
+b90_sr15_n2: H 5 m, beta 90 deg, h_w 5 m, box x in [-10, 7.5], y in [-15, 0]; stability mesh gen: 148 triangles; water seepage, form u, gamma_ref 10.19; Newton cap 100, continuation tol 0.002
+  cycle  neq     lambda    d(lambda)   time(s)  zone 1%: x_min  x_max  y_min
+      0    666    0.75195                 12.0     -4.67   2.91  -6.71
+      1   1006    0.64648    -0.1403      23.7     -3.71   0.00  -5.00
+      2   1720    0.59815    -0.0748      54.1     -3.71   0.00  -5.00
+  extrapolated: sqrtneq2 0.44098, order 1.12556, richardson 0.55724
+  total 91 s

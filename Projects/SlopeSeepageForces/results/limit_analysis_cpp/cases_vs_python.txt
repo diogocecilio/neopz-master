@@ -1,0 +1,58 @@
+# C++ 'la' cases mirroring Python results of reproduce_python.py (see scripts/compare_cpp_la.py)
+H=5 beta=20 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+H=5 beta=20 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+H=5 beta=30 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+H=5 beta=30 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+H=5 beta=45 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+H=5 beta=45 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+H=5 beta=60 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+H=5 beta=60 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+H=5 beta=75 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+H=5 beta=75 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+H=5 beta=90 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+H=5 beta=90 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+H=5 beta=25 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+H=5 beta=25 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+H=5 beta=40 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+H=5 beta=40 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+H=5 beta=60 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+H=5 beta=60 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+H=5 beta=90 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+H=5 beta=90 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+H=5 beta=20 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+H=5 beta=20 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+H=5 beta=30 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+H=5 beta=30 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+H=5 beta=50 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+H=5 beta=50 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+H=5 beta=90 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1
+H=5 beta=90 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=fe hboxm=50,10,30 seeds=0,1 href=1
+H=1 beta=30 hw=0.1 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1
+H=1 beta=30 hw=0.1 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1
+H=1 beta=30 hw=0.5 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1
+H=1 beta=30 hw=0.5 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1
+H=1 beta=60 hw=0.2 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1
+H=1 beta=60 hw=0.2 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1
+H=1 beta=60 hw=1 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1
+H=1 beta=60 hw=1 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1
+H=1 beta=35 hw=0.1 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1
+H=1 beta=35 hw=0.1 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1
+H=1 beta=35 hw=0.6 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1
+H=1 beta=35 hw=0.6 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1
+H=1 beta=60 hw=0.5 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1
+H=1 beta=60 hw=0.5 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1
+H=1 beta=60 hw=0.9 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1
+H=1 beta=60 hw=0.9 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=fe hboxm=50,10,30 seeds=0,1 href=1
+H=5 beta=15 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1
+H=5 beta=20 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1
+H=5 beta=45 hw=1 alpha=1 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1
+H=5 beta=25 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1
+H=5 beta=50 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1
+H=5 beta=90 hw=1 alpha=5 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1
+H=5 beta=35 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1
+H=5 beta=90 hw=1 alpha=10 c=10 phi=30 gamma=20 gammaw=9.81 water=analytical seeds=0,1
+H=10 beta=30 hw=0.05 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=analytical seeds=0,1
+H=10 beta=30 hw=0.5 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=analytical seeds=0,1
+H=10 beta=60 hw=0.1 alpha=1 c=11.7 phi=24.7 gamma=18 gammaw=9.8 water=analytical seeds=0,1
+H=10 beta=35 hw=0.2 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=analytical seeds=0,1
+H=10 beta=60 hw=0.7 alpha=1 c=6 phi=32 gamma=18 gammaw=9.8 water=analytical seeds=0,1

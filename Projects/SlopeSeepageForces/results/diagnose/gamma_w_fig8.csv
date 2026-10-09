@@ -1,0 +1,73 @@
+gamma_w,soil,beta,hw_over_H,curve,Hcrit,paper,rel
+9.8 (baseline),London,30,0.1,vopt,85.7406,77.484,0.106558
+9.81 in the field,London,30,0.1,vopt,85.6896,77.484,0.105901
+10 in the field,London,30,0.1,vopt,84.7258,77.484,0.0934614
+9.8 (baseline),London,30,0.1,FE,66.2705,65.16,0.0170428
+9.81 in the field,London,30,0.1,FE,66.2238,65.16,0.0163257
+10 in the field,London,30,0.1,FE,65.3461,65.16,0.00285577
+9.8 (baseline),London,30,0.5,vopt,26.4145,25.505,0.0356613
+9.81 in the field,London,30,0.5,vopt,26.387,25.505,0.0345828
+10 in the field,London,30,0.5,vopt,25.8741,25.505,0.0144703
+9.8 (baseline),London,30,0.5,FE,15.1316,15.204,-0.00476395
+9.81 in the field,London,30,0.5,FE,15.1151,15.204,-0.005847
+10 in the field,London,30,0.5,FE,14.8084,15.204,-0.0260212
+9.8 (baseline),London,30,1,vopt,14.6072,14.521,0.00593718
+9.81 in the field,London,30,1,vopt,14.5918,14.521,0.00487417
+10 in the field,London,30,1,vopt,14.3042,14.521,-0.0149305
+9.8 (baseline),London,30,1,FE,10.8076,10.769,0.00358343
+9.81 in the field,London,30,1,FE,10.7959,10.769,0.00249445
+10 in the field,London,30,1,FE,10.5775,10.769,-0.0177795
+9.8 (baseline),London,60,0.1,vopt,13.0862,13.069,0.00131603
+9.81 in the field,London,60,0.1,vopt,13.0824,13.069,0.0010252
+10 in the field,London,60,0.1,vopt,13.0105,13.069,-0.00447262
+9.8 (baseline),London,60,0.1,FE,12.7227,12.755,-0.00253618
+9.81 in the field,London,60,0.1,FE,12.7187,12.755,-0.00284365
+10 in the field,London,60,0.1,FE,12.6446,12.755,-0.00865288
+9.8 (baseline),London,60,0.5,vopt,8.67353,8.625,0.00562711
+9.81 in the field,London,60,0.5,vopt,8.66838,8.625,0.00502976
+10 in the field,London,60,0.5,vopt,8.57144,8.625,-0.00620996
+9.8 (baseline),London,60,0.5,FE,6.43405,6.434,7.95532e-06
+9.81 in the field,London,60,0.5,FE,6.42971,6.434,-0.000667486
+10 in the field,London,60,0.5,FE,6.34821,6.434,-0.0133342
+9.8 (baseline),London,60,1,vopt,8.12707,8.045,0.0102009
+9.81 in the field,London,60,1,vopt,8.12206,8.045,0.00957863
+10 in the field,London,60,1,vopt,8.02799,8.045,-0.00211406
+9.8 (baseline),London,60,1,FE,5.45392,5.412,0.00774557
+9.81 in the field,London,60,1,FE,5.44996,5.412,0.00701323
+10 in the field,London,60,1,FE,5.37571,5.412,-0.00670488
+9.8 (baseline),Israeli,35,0.1,vopt,77.3212,46.798,0.652233
+9.81 in the field,Israeli,35,0.1,vopt,77.2289,46.798,0.65026
+10 in the field,Israeli,35,0.1,vopt,75.5124,46.798,0.613583
+9.8 (baseline),Israeli,35,0.1,FE,44.9089,39.157,0.146894
+9.81 in the field,Israeli,35,0.1,FE,44.8545,39.157,0.145503
+10 in the field,Israeli,35,0.1,FE,43.8424,39.157,0.119657
+9.8 (baseline),Israeli,35,0.5,vopt,15.4642,14.878,0.0394028
+9.81 in the field,Israeli,35,0.5,vopt,15.4458,14.878,0.0381621
+10 in the field,Israeli,35,0.5,vopt,15.1025,14.878,0.0150886
+9.8 (baseline),Israeli,35,0.5,FE,8.63029,11.775,-0.267066
+9.81 in the field,Israeli,35,0.5,FE,8.61981,11.775,-0.267957
+10 in the field,Israeli,35,0.5,FE,8.42492,11.775,-0.284508
+9.8 (baseline),Israeli,35,1,vopt,8.72817,8.563,0.0192889
+9.81 in the field,Israeli,35,1,vopt,8.71792,8.563,0.0180923
+10 in the field,Israeli,35,1,vopt,8.5274,8.563,-0.00415688
+9.8 (baseline),Israeli,35,1,FE,6.33645,7.827,-0.190437
+9.81 in the field,Israeli,35,1,FE,6.32898,7.827,-0.191392
+10 in the field,Israeli,35,1,FE,6.19004,7.827,-0.209143
+9.8 (baseline),Israeli,60,0.1,vopt,8.72174,8.686,0.00411488
+9.81 in the field,Israeli,60,0.1,vopt,8.7186,8.686,0.00375339
+10 in the field,Israeli,60,0.1,vopt,8.65931,8.686,-0.00307285
+9.8 (baseline),Israeli,60,0.1,FE,8.37221,8.394,-0.00259562
+9.81 in the field,Israeli,60,0.1,FE,8.36901,8.394,-0.00297688
+10 in the field,Israeli,60,0.1,FE,8.30862,8.394,-0.0101716
+9.8 (baseline),Israeli,60,0.5,vopt,5.48158,5.438,0.00801403
+9.81 in the field,Israeli,60,0.5,vopt,5.47794,5.438,0.00734546
+10 in the field,Israeli,60,0.5,vopt,5.40963,5.438,-0.00521645
+9.8 (baseline),Israeli,60,0.5,FE,3.81111,3.805,0.00160582
+9.81 in the field,Israeli,60,0.5,FE,3.80822,3.805,0.000847013
+10 in the field,Israeli,60,0.5,FE,3.75415,3.805,-0.0133627
+9.8 (baseline),Israeli,60,1,vopt,4.82789,4.788,0.00833088
+9.81 in the field,Israeli,60,1,vopt,4.82443,4.788,0.00760831
+10 in the field,Israeli,60,1,vopt,4.75956,4.788,-0.00593937
+9.8 (baseline),Israeli,60,1,FE,3.27083,3.235,0.0110744
+9.81 in the field,Israeli,60,1,FE,3.26823,3.235,0.010273
+10 in the field,Israeli,60,1,FE,3.21973,3.235,-0.0047204

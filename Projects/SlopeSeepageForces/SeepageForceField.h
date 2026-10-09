@@ -2,8 +2,8 @@
 // (forcing function evaluated at every integration point of every assembly, from several threads) and for the
 // limit analysis (to be ported from scripts/limit_analysis.py).
 //
-//  - ForceField: generic interface; FE fields (PoreField below), the analytical K^-1 v'_opt field (to be ported
-//    from scripts/analytical_seepage.py) and the dry/no-seepage case all plug in through it.
+//  - ForceField: generic interface; FE fields (PoreField below), the analytical K^-1 v'_opt field
+//    (AnalyticalSeepage.h, port of scripts/analytical_seepage.py) and the dry/no-seepage case all plug in through it.
 //  - PoreField: generalization of PoreField of Projects/SlopeDrawdown/main.cpp (P1 pressure, linear search) to the
 //    excess pore pressure u of the seepage FE solution: per straight triangle, the quadratic Lagrange interpolant of
 //    the FE solution at the 3 vertices and 3 edge midpoints (exact for order <= 2, so grad u is the exact P2

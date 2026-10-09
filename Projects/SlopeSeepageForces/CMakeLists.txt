@@ -2,5 +2,5 @@
 # slope meshes, steady anisotropic seepage, seepage force field and FEM gravity-increase stability (SlopeAnalysis.h)
 add_pz_target(NAME SlopeSeepageForces
               SOURCES main.cpp SlopeGeometry.h DelaunayMesher.h AnisotropicDarcy.h SeepageFE.h SeepageForceField.h
-                      FEMStability.h
+                      FEMStability.h LimitAnalysis.h AnalyticalSeepage.h
               REQUIRED PZ_BUILD_PLASTICITY_MATERIALS)

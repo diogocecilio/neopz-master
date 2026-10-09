@@ -10,6 +10,8 @@
 // How lambda reaches the forcing function: TPZMatElastoPlastic2D::Contribute starts the local body force from the
 // material body force m_force (which SlopeAnalysis sets to lambda (0, -gamma_ref, 0)) and lets the forcing function
 // overwrite it, so the forcing function recovers lambda = -m_force[1] / gamma_ref (as in SlopeDrawdown).
+// The factors of the refinement cycles of the plastic zone decrease towards the collapse factor with order ~1 in h
+// (each cycle halves h in the plastic zone): ExtrapolateCycles extrapolates them to h -> 0 (README, section (g)).
 #ifndef FEMSTABILITY_H
 #define FEMSTABILITY_H
 
@@ -151,6 +153,40 @@ struct FSCycle {
     REAL zone1[4] = {0., 0., 0., 0.}; ///< the same with 1 % of the max (extent of the mechanism)
     double seconds = 0.;     ///< wall time of the cycle
 };
+
+/// Extrapolation of the gravity-increase factors of the refinement cycles to the mesh limit. Every cycle halves the
+/// element size h in the marked (plastic) zone, so lambda_k ~ lambda_inf + C h_k^p with h_k ~ 2^-k. With
+/// d_k = lambda_{k-1} - lambda_k:
+///  - h1: Richardson with the order p = 1 (the first-order convergence of displacement-based collapse loads when the
+///    shear band is not aligned with the mesh, observed in the convergence study): lambda_k - d_k;
+///  - richardson: with the observed order p = log2(d_{k-1} / d_k) of the last three cycles, lambda_k - d_k / (2^p - 1),
+///    defined only when both differences are positive and decrease (NaN otherwise);
+///  - sqrtneq: linear in 1 / sqrt(neq) through the last two cycles (h ~ neq^-1/2 under uniform refinement).
+/// NaN when there are not enough cycles. The continuation stops within tolFS of the last converged factor, so the
+/// differences, and the extrapolations, carry a noise of a few tolFS.
+struct FSExtrapolation {
+    REAL h1 = NAN, richardson = NAN, order = NAN, sqrtneq = NAN;
+};
+
+template <class TCycle>
+FSExtrapolation ExtrapolateCycles(const std::vector<TCycle> &c) {
+    FSExtrapolation e;
+    const size_t n = c.size();
+    if (n >= 2) {
+        const REAL l1 = c[n - 2].gi, l2 = c[n - 1].gi;
+        e.h1 = 2. * l2 - l1;
+        const REAL x1 = 1. / std::sqrt(REAL(c[n - 2].neq)), x2 = 1. / std::sqrt(REAL(c[n - 1].neq));
+        if (x1 > x2) e.sqrtneq = l2 - (l1 - l2) * x2 / (x1 - x2);
+    }
+    if (n >= 3) {
+        const REAL d1 = c[n - 3].gi - c[n - 2].gi, d2 = c[n - 2].gi - c[n - 1].gi;
+        if (d1 > 0. && d2 > 0. && d2 < d1) {
+            e.order = std::log2(d1 / d2);
+            e.richardson = c[n - 1].gi - d2 / (std::pow(2., e.order) - 1.);
+        }
+    }
+    return e;
+}
 
 /// Bounding box of the elements with sqrt(J2(eps_p)) >= frac * max (the indicator of SlopeAnalysis::MarkPlasticZone)
 /// in the last accepted state: the extent of the failure mechanism, to check that the box contains it

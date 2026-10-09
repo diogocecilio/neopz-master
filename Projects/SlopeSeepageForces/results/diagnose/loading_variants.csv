@@ -1,0 +1,13 @@
+variant,soil,beta,hw_over_H,Hcrit,paper,rel
+gamma' -> gamma = 18 (seepage field unchanged),Israeli,35,0.2,25.2618,27.937,-0.0957582
+saturated gamma above the lowered water level,Israeli,35,0.2,17.6096,27.937,-0.369668
+gamma' -> gamma = 18 (seepage field unchanged),Israeli,35,0.5,9.84538,11.775,-0.163874
+saturated gamma above the lowered water level,Israeli,35,0.5,6.97403,11.775,-0.407726
+gamma' -> gamma = 18 (seepage field unchanged),Israeli,35,1,7.14679,7.827,-0.0869054
+saturated gamma above the lowered water level,Israeli,35,1,7.14678,7.827,-0.0869066
+gamma' -> gamma = 18 (seepage field unchanged),London,30,0.5,15.16,15.204,-0.00289089
+saturated gamma above the lowered water level,London,30,0.5,11.3213,15.204,-0.255373
+gamma' -> gamma = 18 (seepage field unchanged),London,30,1,11.0385,10.769,0.0250288
+saturated gamma above the lowered water level,London,30,1,11.026,10.769,0.0238608
+gamma' -> gamma = 18 (seepage field unchanged),London,60,0.5,4.55192,6.434,-0.292521
+saturated gamma above the lowered water level,London,60,0.5,4.83577,6.434,-0.248404

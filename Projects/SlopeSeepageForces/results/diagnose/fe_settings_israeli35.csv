@@ -1,0 +1,70 @@
+variant,soil,beta,hw_over_H,Hcrit,paper,rel
+baseline,Israeli,35,0.2,22.2966,27.937,-0.201898
+baseline,Israeli,35,0.5,8.63029,11.775,-0.267066
+baseline,Israeli,35,1,6.33645,7.827,-0.190437
+alpha=2,Israeli,35,0.2,24.8745,27.937,-0.10962
+alpha=2,Israeli,35,0.5,9.5406,11.775,-0.189758
+alpha=2,Israeli,35,1,7.60479,7.827,-0.0283899
+alpha=3,Israeli,35,0.2,26.9628,27.937,-0.0348714
+alpha=3,Israeli,35,0.5,10.2945,11.775,-0.125732
+alpha=3,Israeli,35,1,8.69788,7.827,0.111266
+alpha=5,Israeli,35,0.2,29.9507,27.937,0.0720814
+alpha=5,Israeli,35,0.5,11.5297,11.775,-0.0208314
+alpha=5,Israeli,35,1,10.6137,7.827,0.356033
+impermeable box,Israeli,35,0.2,22.356,27.937,-0.199771
+impermeable box,Israeli,35,0.5,8.70142,11.775,-0.261026
+impermeable box,Israeli,35,1,6.41415,7.827,-0.18051
+impermeable box,London,30,0.5,15.2409,15.204,0.00242472
+impermeable box,London,60,0.5,6.44668,6.434,0.00197029
+impermeable box,Israeli,60,0.5,3.82137,3.805,0.00430163
+toe_r,Israeli,35,0.2,22.4758,27.937,-0.195481
+toe_r,Israeli,35,0.5,8.85524,11.775,-0.247963
+toe_r,Israeli,35,1,6.59442,7.827,-0.157478
+box x2 (100/20/60 H),Israeli,35,0.2,22.354,27.937,-0.199841
+box x2 (100/20/60 H),Israeli,35,0.5,8.70113,11.775,-0.261051
+box x2 (100/20/60 H),Israeli,35,1,6.41654,7.827,-0.180204
+box x2 (100/20/60 H),London,30,0.5,15.2385,15.204,0.00227217
+box x2 (100/20/60 H),London,60,0.5,6.44711,6.434,0.00203812
+box x2 (100/20/60 H),Israeli,60,0.5,3.82173,3.805,0.00439654
+box 50/10/30 m at H_ref=10 m,Israeli,35,0.2,21.4623,27.937,-0.231761
+box 50/10/30 m at H_ref=10 m,Israeli,35,0.5,7.67971,11.775,-0.347796
+box 50/10/30 m at H_ref=10 m,Israeli,35,1,5.35348,7.827,-0.316025
+box 50/10/30 m at H_ref=10 m,London,30,0.5,13.6709,15.204,-0.100834
+box 50/10/30 m at H_ref=10 m,London,60,0.5,6.24993,6.434,-0.0286085
+box 50/10/30 m at H_ref=10 m,Israeli,60,0.5,3.6621,3.805,-0.0375549
+P1 coarse h0=0.25H hs=0.5H,Israeli,35,0.2,22.8318,27.937,-0.182738
+P1 coarse h0=0.25H hs=0.5H,Israeli,35,0.5,8.64205,11.775,-0.266068
+P1 coarse h0=0.25H hs=0.5H,Israeli,35,1,6.3441,7.827,-0.189459
+P1 coarse h0=0.25H hs=0.5H,London,30,0.5,15.2346,15.204,0.00201487
+P1 coarse h0=0.25H hs=0.5H,London,60,0.5,6.4956,6.434,0.00957465
+P1 coarse h0=0.25H hs=0.5H,Israeli,60,0.5,3.87538,3.805,0.0184979
+P1 very coarse h0=0.5H hs=H,Israeli,35,0.2,22.2474,27.937,-0.203658
+P1 very coarse h0=0.5H hs=H,Israeli,35,0.5,8.65315,11.775,-0.265125
+P1 very coarse h0=0.5H hs=H,Israeli,35,1,6.44149,7.827,-0.177017
+P1 very coarse h0=0.5H hs=H,London,30,0.5,15.3378,15.204,0.00879715
+P1 very coarse h0=0.5H hs=H,London,60,0.5,6.76067,6.434,0.0507729
+P1 very coarse h0=0.5H hs=H,Israeli,60,0.5,4.12335,3.805,0.0836666
+gamma_w field 9.81,Israeli,35,0.2,22.2695,27.937,-0.202867
+gamma_w field 9.81,Israeli,35,0.5,8.61981,11.775,-0.267957
+gamma_w field 9.81,Israeli,35,1,6.32898,7.827,-0.191392
+gamma_w field 9.81,London,30,0.5,15.1151,15.204,-0.005847
+gamma_w field 9.81,London,60,0.5,6.42971,6.434,-0.000667486
+gamma_w field 9.81,Israeli,60,0.5,3.80822,3.805,0.000847013
+gamma_w field 10,Israeli,35,0.2,21.7664,27.937,-0.220875
+gamma_w field 10,Israeli,35,0.5,8.42492,11.775,-0.284508
+gamma_w field 10,Israeli,35,1,6.19004,7.827,-0.209143
+gamma_w field 10,London,30,0.5,14.8084,15.204,-0.0260212
+gamma_w field 10,London,60,0.5,6.34821,6.434,-0.0133342
+gamma_w field 10,Israeli,60,0.5,3.75415,3.805,-0.0133627
+FE field of beta=30,Israeli,35,0.2,24.504,27.937,-0.122885
+FE field of beta=30,Israeli,35,0.5,9.83357,11.775,-0.164877
+FE field of beta=30,Israeli,35,1,8.32241,7.827,0.0632955
+FE field of beta=32.5,Israeli,35,0.2,23.3783,27.937,-0.16318
+FE field of beta=32.5,Israeli,35,0.5,9.19246,11.775,-0.219324
+FE field of beta=32.5,Israeli,35,1,7.30157,7.827,-0.0671309
+slope beta=30 (Israeli soil),Israeli,35,0.2,30.889,27.937,0.105668
+slope beta=30 (Israeli soil),Israeli,35,0.5,11.995,11.775,0.0186801
+slope beta=30 (Israeli soil),Israeli,35,1,8.14129,7.827,0.0401551
+slope beta=32.5,Israeli,35,0.2,26.0353,27.937,-0.0680708
+slope beta=32.5,Israeli,35,0.5,10.0681,11.775,-0.144962
+slope beta=32.5,Israeli,35,1,7.1019,7.827,-0.0926404
