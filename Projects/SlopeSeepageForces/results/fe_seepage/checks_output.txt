@@ -1,0 +1,307 @@
+==============================================================================================================
+0) Meshes: quadtree conforming Delaunay generator (default) vs the block generator, box 50/10/30 H
+==============================================================================================================
+  beta  hw/H   method ref      nv    ntri min ang max ang   h_min/H h_max/H  #bnd   time
+    15  1.00 quadtree   0    1128    2125   23.24   117.3  1.23e-02    5.63   129  0.11s
+    15  1.00 quadtree   1    4872    9466   25.67   111.5  3.61e-03    2.82   276  0.10s
+    15  1.00 quadtree   2   21312   42030   21.78   119.2  6.78e-04    1.50   592  0.54s
+    15  1.00   blocks   1   12027   23520    0.63   137.5  5.23e-03    2.27   532  0.04s
+    15  0.50 quadtree   0    1236    2335   22.86   117.3  1.23e-02    5.63   135  0.03s
+    15  0.50 quadtree   1    5594   10886   18.43   116.6  3.27e-03    2.82   300  0.10s
+    15  0.50 quadtree   2   25289   49919   19.54   133.5  6.78e-04    1.50   657  0.68s
+    15  0.50   blocks   1   13338   26096    0.52   137.5  5.23e-03    2.26   578  0.04s
+    30  1.00 quadtree   0     930    1748   24.05   111.8  1.22e-02    5.55   110  0.03s
+    30  1.00 quadtree   1    4188    8136   23.50   128.8  3.48e-03    2.82   238  0.09s
+    30  1.00 quadtree   2   18575   36633   23.37   119.5  7.62e-04    1.51   515  0.47s
+    30  1.00   blocks   1   10092   19722    0.51   135.8  5.17e-03    2.28   460  0.03s
+    30  0.50 quadtree   0    1027    1935   24.05   115.9  1.22e-02    5.55   117  0.03s
+    30  0.50 quadtree   1    4857    9451   22.22   132.2  3.36e-03    2.82   261  0.10s
+    30  0.50 quadtree   2   22294   44005   22.46   121.6  7.62e-04    1.51   581  0.49s
+    30  0.50   blocks   1   11368   22230    0.40   135.7  5.17e-03    2.28   504  0.03s
+    45  1.00 quadtree   0     888    1670   24.81   117.2  1.45e-02    5.76   104  0.02s
+    45  1.00 quadtree   1    3948    7668   20.15   125.8  3.09e-03    2.78   226  0.09s
+    45  1.00 quadtree   2   17713   34933   23.92   121.6  9.08e-04    1.41   491  0.44s
+    45  1.00   blocks   1    9558   18676    0.42   139.1  5.15e-03    2.34   438  0.03s
+    45  0.50 quadtree   0     985    1857   24.81   118.5  1.45e-02    5.76   111  0.03s
+    45  0.50 quadtree   1    4539    8827   20.15   125.8  3.09e-03    2.78   249  0.09s
+    45  0.50 quadtree   2   21111   41664   23.47   121.6  9.11e-04    1.41   556  0.51s
+    45  0.50   blocks   1   11100   21712    0.32   139.0  5.06e-03    2.31   486  0.03s
+    60  1.00 quadtree   0     857    1610   18.43   116.6  1.37e-02    5.88   102  0.02s
+    60  1.00 quadtree   1    3826    7429   18.43   119.0  3.35e-03    2.76   221  0.06s
+    60  1.00 quadtree   2   17233   33984   18.43   123.8  8.38e-04    1.56   480  0.44s
+    60  1.00   blocks   1    9577   18720    0.35   144.4  5.07e-03    2.35   432  0.03s
+    60  0.50 quadtree   0     937    1763   18.43   116.6  1.37e-02    5.88   109  0.02s
+    60  0.50 quadtree   1    4362    8479   18.43   122.3  3.35e-03    2.76   243  0.11s
+    60  0.50 quadtree   2   20386   40226   18.44   126.9  8.38e-04    1.56   544  0.49s
+    60  0.50   blocks   1   11098   21716    0.26   144.4  4.98e-03    2.34   478  0.03s
+    75  1.00 quadtree   0     833    1564   18.43   116.6  1.47e-02    5.97   100  0.02s
+    75  1.00 quadtree   1    3782    7343   18.43   118.4  2.93e-03    2.75   219  0.07s
+    75  1.00 quadtree   2   17023   33569   21.13   115.1  8.06e-04    1.68   475  0.40s
+    75  1.00   blocks   1    9920   19404    0.29   150.0  4.51e-03    2.31   434  0.03s
+    75  0.50 quadtree   0     915    1721   18.43   116.6  1.45e-02    5.97   107  0.04s
+    75  0.50 quadtree   1    4285    8327   18.43   118.4  2.93e-03    2.75   241  0.10s
+    75  0.50 quadtree   2   20015   39490   20.35   120.0  7.65e-04    1.68   538  0.48s
+    75  0.50   blocks   1   11440   22400    0.22   150.1  4.46e-03    2.32   478  0.05s
+    90  1.00 quadtree   0     844    1587   24.92   108.3  1.56e-02    5.66    99  0.02s
+    90  1.00 quadtree   1    3772    7325   23.02   110.9  3.91e-03    3.61   217  0.08s
+    90  1.00 quadtree   2   17070   33665   23.92   121.6  9.77e-04    1.41   473  0.43s
+    90  1.00   blocks   1   10472   20502    0.24   156.4  3.88e-03    2.27   440  0.03s
+    90  0.50 quadtree   0     916    1724   24.92   108.3  1.56e-02    5.66   106  0.02s
+    90  0.50 quadtree   1    4268    8296   23.02   108.8  3.91e-03    3.61   238  0.07s
+    90  0.50 quadtree   2   20070   39603   23.92   121.6  9.77e-04    1.41   535  0.45s
+    90  0.50   blocks   1   12250   24012    0.19   163.0  3.85e-03    2.27   486  0.03s
+==============================================================================================================
+1) Manufactured solution, anisotropic K = diag(1, 1/4) (alpha = 4), beta = 60, h_w = 0.6 H, box 2/1.5/1.5 H:
+   u = cos(1.1x+0.3) sinh(0.6y+0.2) + 0.3xy, f = -div K grad u, Dirichlet on crest/face/toe, NON-zero
+   Neumann flux g = K grad u . n on the left, bottom and right sides; uniform-size quadtree meshes (not nested:
+   rates with respect to h_eff = sqrt(|Omega| / n_vertices); expected P1: 2 (L2), 1 (energy); P2: 3, 2)
+==============================================================================================================
+  P1:  ref     ndof    h_eff    L2 error  rate  energy err  rate
+          0      167   0.2243   3.850e-02   nan   3.951e-01   nan
+          1      597   0.1187   8.845e-03  2.31   1.947e-01  1.11
+          2     2280   0.0607   2.243e-03  2.05   9.859e-02  1.02
+          3     8845   0.0308   5.526e-04  2.07   4.878e-02  1.04
+          4    34841   0.0155   1.394e-04  2.01   2.440e-02  1.01
+  P2:  ref     ndof    h_eff    L2 error  rate  energy err  rate
+          0      613   0.2243   4.893e-04   nan   1.354e-02   nan
+          1     2282   0.1187   6.406e-05  3.19   3.488e-03  2.13
+          2     8911   0.0607   8.196e-06  3.07   8.848e-04  2.05
+          3    34968   0.0308   1.033e-06  3.06   2.223e-04  2.04
+          4   138545   0.0155   1.295e-07  3.03   5.565e-05  2.02
+  patch test P1 (u linear, Dirichlet surface + Neumann far sides, graded quadtree mesh): max |u_h - u| = 1.07e-14
+  patch test P2 (u linear, Dirichlet surface + Neumann far sides, graded quadtree mesh): max |u_h - u| = 1.12e-13
+  patch test P1 (u linear, Dirichlet surface + Neumann far sides, graded blocks mesh): max |u_h - u| = 1.16e-13
+  patch test P2 (u linear, Dirichlet surface + Neumann far sides, graded blocks mesh): max |u_h - u| = 9.59e-14
+==============================================================================================================
+2) Cross-check with the independent P1 solver docs/slope_mohr_coulomb/scripts/laplace_check.py
+==============================================================================================================
+  (a) SlopeDrawdown steady head on TriGMesh(2) (435 nodes): max |h_this - h_laplace_check| = 1.21e-13 m (h in [30.000, 40.000])
+  (b) beta=45, alpha=1, h_w=H, bc=zero_lb     mesh ref 0 (888 nodes): max |u_this - u_lc| = 1.78e-14 kPa, J/(kh H^2 gw^2): laplace_check 0.75729840, this 0.75729840
+  (b) beta=45, alpha=1, h_w=H, bc=impermeable mesh ref 0 (888 nodes): max |u_this - u_lc| = 4.13e-14 kPa, J/(kh H^2 gw^2): laplace_check 0.70045326, this 0.70045326
+  (c) anisotropy vs the isotropic problem on the stretched slope (y' = sqrt(alpha) y), P2 ref 1, zero_lb:
+      beta=  30 alpha=   4 hw/H=1.0: J anisotropic 0.3257772, isotropic stretched (beta' = 49.11) 0.3257771, rel. diff -1.6e-07; force within 3H of O: RMS rel. diff 0.122%
+      beta=  60 alpha=  10 hw/H=1.0: J anisotropic 0.2193445, isotropic stretched (beta' = 79.65) 0.2193424, rel. diff -9.6e-06; force within 3H of O: RMS rel. diff 0.191%
+      beta=  45 alpha=   4 hw/H=0.5: J anisotropic 0.1125744, isotropic stretched (beta' = 63.43) 0.1125741, rel. diff -2.0e-06; force within 3H of O: RMS rel. diff 0.140%
+==============================================================================================================
+3) Mesh convergence of J(u'_FE)/(k_h H^2 gamma_w^2), box 50/10/30 H, bc zero_lb (u = 0 left + bottom)
+   (J converges from above: the discrete space with the exact piecewise-linear Dirichlet data is conforming)
+   quadtree meshes; last line: P2 on the independent 'blocks' mesh generator (ref 2)
+==============================================================================================================
+  beta=45 alpha=1 hw/H=1.0
+    P1 ref 0: ndof      888  J = 0.7572984  dJ = +nan  rate(N)   nan  min p = 0.00e+00 kPa  (0.0 s)
+    P1 ref 1: ndof     3948  J = 0.7542086  dJ = -3.09e-03  rate(N)   nan  min p = 0.00e+00 kPa  (0.1 s)
+    P1 ref 2: ndof    17713  J = 0.7534328  dJ = -7.76e-04  rate(N)  0.92  min p = 0.00e+00 kPa  (0.6 s)
+    P1 ref 3: ndof    79453  J = 0.7532370  dJ = -1.96e-04  rate(N)  0.92  min p = 0.00e+00 kPa  (3.5 s)
+    P1 Aitken extrapolation J_inf = 0.7531708
+    P2 ref 0: ndof     3445  J = 0.7531936  dJ = +nan  rate(N)   nan  min p = 0.00e+00 kPa  (0.0 s)
+    P2 ref 1: ndof    15563  J = 0.7531728  dJ = -2.08e-05  rate(N)   nan  min p = 0.00e+00 kPa  (0.3 s)
+    P2 ref 2: ndof    70358  J = 0.7531709  dJ = -1.90e-06  rate(N)  1.59  min p = 0.00e+00 kPa  (1.7 s)
+    P2 Aitken extrapolation J_inf = 0.7531707
+    P2 blocks ref 2: ndof   185895  J = 0.7531709  (minus the last quadtree P2 value: +5.90e-09; block-mesh angles [0.33, 142.3] deg)
+  beta=90 alpha=1 hw/H=1.0
+    P1 ref 0: ndof      844  J = 0.9145409  dJ = +nan  rate(N)   nan  min p = 0.00e+00 kPa  (0.0 s)
+    P1 ref 1: ndof     3772  J = 0.9101112  dJ = -4.43e-03  rate(N)   nan  min p = 0.00e+00 kPa  (0.1 s)
+    P1 ref 2: ndof    17070  J = 0.9090405  dJ = -1.07e-03  rate(N)  0.94  min p = 0.00e+00 kPa  (0.5 s)
+    P1 ref 3: ndof    76749  J = 0.9087779  dJ = -2.63e-04  rate(N)  0.93  min p = 0.00e+00 kPa  (3.3 s)
+    P1 Aitken extrapolation J_inf = 0.9086925
+    P2 ref 0: ndof     3274  J = 0.9088275  dJ = +nan  rate(N)   nan  min p = 0.00e+00 kPa  (0.0 s)
+    P2 ref 1: ndof    14868  J = 0.9087109  dJ = -1.17e-04  rate(N)   nan  min p = 0.00e+00 kPa  (0.2 s)
+    P2 ref 2: ndof    67804  J = 0.9086942  dJ = -1.67e-05  rate(N)  1.28  min p = 0.00e+00 kPa  (1.7 s)
+    P2 Aitken extrapolation J_inf = 0.9086914
+    P2 blocks ref 2: ndof   202245  J = 0.9086942  (minus the last quadtree P2 value: -4.85e-08; block-mesh angles [0.18, 157.8] deg)
+  beta=15 alpha=1 hw/H=1.0
+    P1 ref 0: ndof     1128  J = 0.5889950  dJ = +nan  rate(N)   nan  min p = 0.00e+00 kPa  (0.0 s)
+    P1 ref 1: ndof     4872  J = 0.5870179  dJ = -1.98e-03  rate(N)   nan  min p = 0.00e+00 kPa  (0.1 s)
+    P1 ref 2: ndof    21312  J = 0.5865047  dJ = -5.13e-04  rate(N)  0.91  min p = 0.00e+00 kPa  (0.6 s)
+    P1 ref 3: ndof    93584  J = 0.5863710  dJ = -1.34e-04  rate(N)  0.91  min p = 0.00e+00 kPa  (4.0 s)
+    P1 Aitken extrapolation J_inf = 0.5863239
+    P2 ref 0: ndof     4380  J = 0.5863322  dJ = +nan  rate(N)   nan  min p = 0.00e+00 kPa  (0.1 s)
+    P2 ref 1: ndof    19209  J = 0.5863256  dJ = -6.66e-06  rate(N)   nan  min p = 0.00e+00 kPa  (0.3 s)
+    P2 ref 2: ndof    84653  J = 0.5863251  dJ = -4.52e-07  rate(N)  1.81  min p = 0.00e+00 kPa  (2.0 s)
+    P2 Aitken extrapolation J_inf = 0.5863251
+    P2 blocks ref 2: ndof   228475  J = 0.5863251  (minus the last quadtree P2 value: -1.56e-08; block-mesh angles [0.54, 141.1] deg)
+  beta=30 alpha=10 hw/H=1.0
+    P1 ref 0: ndof      930  J = 0.2034070  dJ = +nan  rate(N)   nan  min p = 0.00e+00 kPa  (0.0 s)
+    P1 ref 1: ndof     4188  J = 0.2010383  dJ = -2.37e-03  rate(N)   nan  min p = 0.00e+00 kPa  (0.1 s)
+    P1 ref 2: ndof    18575  J = 0.2004953  dJ = -5.43e-04  rate(N)  0.99  min p = 0.00e+00 kPa  (0.6 s)
+    P1 ref 3: ndof    82837  J = 0.2003604  dJ = -1.35e-04  rate(N)  0.93  min p = 0.00e+00 kPa  (3.4 s)
+    P1 Aitken extrapolation J_inf = 0.2003157
+    P2 ref 0: ndof     3607  J = 0.2003637  dJ = +nan  rate(N)   nan  min p = 0.00e+00 kPa  (0.0 s)
+    P2 ref 1: ndof    16511  J = 0.2003193  dJ = -4.45e-05  rate(N)   nan  min p = 0.00e+00 kPa  (0.2 s)
+    P2 ref 2: ndof    73782  J = 0.2003159  dJ = -3.39e-06  rate(N)  1.72  min p = 0.00e+00 kPa  (1.8 s)
+    P2 Aitken extrapolation J_inf = 0.2003156
+    P2 blocks ref 2: ndof   192975  J = 0.2003157  (minus the last quadtree P2 value: -1.46e-07; block-mesh angles [0.42, 139.1] deg)
+  beta=60 alpha=4 hw/H=0.5
+    P1 ref 0: ndof      937  J = 0.1202315  dJ = +nan  rate(N)   nan  min p = 0.00e+00 kPa  (0.0 s)
+    P1 ref 1: ndof     4362  J = 0.1194116  dJ = -8.20e-04  rate(N)   nan  min p = 0.00e+00 kPa  (0.1 s)
+    P1 ref 2: ndof    20386  J = 0.1192108  dJ = -2.01e-04  rate(N)  0.91  min p = 0.00e+00 kPa  (0.7 s)
+    P1 ref 3: ndof    94430  J = 0.1191601  dJ = -5.08e-05  rate(N)  0.90  min p = 0.00e+00 kPa  (4.2 s)
+    P1 Aitken extrapolation J_inf = 0.1191429
+    P2 ref 0: ndof     3636  J = 0.1191517  dJ = +nan  rate(N)   nan  min p = 0.00e+00 kPa  (0.0 s)
+    P2 ref 1: ndof    17202  J = 0.1191435  dJ = -8.20e-06  rate(N)   nan  min p = 0.00e+00 kPa  (0.3 s)
+    P2 ref 2: ndof    80997  J = 0.1191430  dJ = -5.57e-07  rate(N)  1.74  min p = 0.00e+00 kPa  (2.2 s)
+    P2 Aitken extrapolation J_inf = 0.1191429
+    P2 blocks ref 2: ndof   222945  J = 0.1191430  (minus the last quadtree P2 value: -1.83e-08; block-mesh angles [0.18, 147.2] deg)
+==============================================================================================================
+4) Sensitivity to the box extents and the far-side BC (P2 ref 1): J and the seepage force -grad u'_FE
+   in the soil within 3H of O (grid 0.05H): rel = RMS|f - f_base| / RMS|f_base|, max = max|f - f_base| / max|f_base|
+==============================================================================================================
+  beta=45 alpha=1 h_w=H  (4664 sample points)
+    base 50/10/30 zero_lb            J = 0.75317 ( +0.00%)  force rel   0.00%  max   0.00%
+    depth 29 (30H below crest)       J = 0.75563 ( +0.33%)  force rel   0.17%  max   0.22%
+    left 49.4, depth 29.6 (raw px)   J = 0.75210 ( -0.14%)  force rel   0.14%  max   0.32%
+    left 25                          J = 0.75412 ( +0.13%)  force rel   0.14%  max   0.14%
+    left 100                         J = 0.75317 ( -0.00%)  force rel   0.10%  max   0.17%
+    right 5                          J = 0.63541 (-15.64%)  force rel   3.47%  max   1.62%
+    right 20                         J = 0.93366 (+23.96%)  force rel   1.17%  max   1.00%
+    depth 15                         J = 0.84647 (+12.39%)  force rel   5.20%  max   2.41%
+    depth 60                         J = 0.72606 ( -3.60%)  force rel   1.69%  max   0.74%
+    all x2 (100/20/60)               J = 0.84827 (+12.63%)  force rel   3.74%  max   1.92%
+    bc zero_b                        J = 0.75316 ( -0.00%)  force rel   0.00%  max   0.00%
+    bc zero_l                        J = 0.69864 ( -7.24%)  force rel   3.40%  max   1.49%
+    bc impermeable                   J = 0.69652 ( -7.52%)  force rel   3.56%  max   1.56%
+    bc impermeable 100/20/60         J = 0.79798 ( +5.95%)  force rel   5.44%  max   2.66%
+    bc toe_r (u=-gw hw right)        J = 0.89565 (+18.92%)  force rel  11.79%  max   5.29%
+  beta=90 alpha=10 h_w=H  (4474 sample points)
+    base 50/10/30 zero_lb            J = 0.23039 ( +0.00%)  force rel   0.00%  max   0.00%
+    depth 29 (30H below crest)       J = 0.23045 ( +0.03%)  force rel   0.10%  max   0.31%
+    left 49.4, depth 29.6 (raw px)   J = 0.23003 ( -0.16%)  force rel   0.21%  max   0.48%
+    left 25                          J = 0.23526 ( +2.12%)  force rel   1.94%  max   1.10%
+    left 100                         J = 0.22942 ( -0.42%)  force rel   0.39%  max   0.29%
+    right 5                          J = 0.20368 (-11.59%)  force rel   8.15%  max   4.79%
+    right 20                         J = 0.26297 (+14.14%)  force rel   4.50%  max   2.43%
+    depth 15                         J = 0.23447 ( +1.77%)  force rel   1.54%  max   0.89%
+    depth 60                         J = 0.23005 ( -0.15%)  force rel   0.17%  max   0.24%
+    all x2 (100/20/60)               J = 0.25794 (+11.96%)  force rel   5.61%  max   3.11%
+    bc zero_b                        J = 0.22833 ( -0.89%)  force rel   0.80%  max   0.48%
+    bc zero_l                        J = 0.22971 ( -0.29%)  force rel   0.25%  max   0.15%
+    bc impermeable                   J = 0.22266 ( -3.35%)  force rel   2.96%  max   1.74%
+    bc impermeable 100/20/60         J = 0.25216 ( +9.45%)  force rel   6.87%  max   3.85%
+    bc toe_r (u=-gw hw right)        J = 0.44710 (+94.07%)  force rel  20.95%  max  11.61%
+==============================================================================================================
+5) J(u'_FE)/(k_h H^2 gamma_w^2) at h_w = H vs beta, Fig. 5 dashed curves (vector data), box 50/10/30 H, P2 ref 1
+   far sides: zero_lb (u = 0 left + bottom, right no-flow; the default), zero_b, zero_l, impermeable;
+   box variants with zero_lb: _d29 = depth 30 H below the crest (29 H below the toe), _rO = right side 10 H
+   beyond O instead of beyond the toe.  rel = J_FE / J_paper - 1.  J_FE (conforming, exact piecewise-linear
+   data) is an upper bound of the exact J of its box: the paper's values must lie ABOVE the converged J of
+   the paper's box (P2 ref 1 here: converged to ~1e-5 relative, see check 3)
+==============================================================================================================
+  alpha = 1:  beta   paper           zero_lb            zero_b            zero_l       impermeable       zero_lb_d29        zero_lb_rO
+                15  0.5864   0.58633  -0.01%   0.58632  -0.02%   0.52243 -10.91%   0.52050 -11.24%   0.58918  +0.47%   0.50734 -13.48%
+                20  0.6256   0.62552  -0.02%   0.62551  -0.02%   0.56543  -9.62%   0.56345  -9.94%   0.62822  +0.41%   0.56796  -9.22%
+                25  0.6581   0.65798  -0.03%   0.65796  -0.03%   0.60003  -8.83%   0.59801  -9.14%   0.66058  +0.37%   0.61331  -6.81%
+                30  0.6861   0.68585  -0.03%   0.68583  -0.03%   0.62925  -8.28%   0.62720  -8.58%   0.68839  +0.34%   0.64992  -5.27%
+                35  0.7107   0.71046  -0.04%   0.71045  -0.04%   0.65478  -7.87%   0.65271  -8.16%   0.71297  +0.32%   0.68094  -4.19%
+                40  0.7330   0.73270  -0.03%   0.73269  -0.04%   0.67768  -7.54%   0.67558  -7.83%   0.73518  +0.30%   0.70813  -3.39%
+                45  0.7536   0.75317  -0.06%   0.75316  -0.06%   0.69864  -7.30%   0.69652  -7.58%   0.75563  +0.26%   0.73260  -2.79%
+                50  0.7728   0.77231  -0.06%   0.77230  -0.06%   0.71815  -7.07%   0.71602  -7.34%   0.77476  +0.26%   0.75509  -2.29%
+                55  0.7911   0.79047  -0.08%   0.79046  -0.08%   0.73661  -6.89%   0.73445  -7.16%   0.79290  +0.23%   0.77612  -1.89%
+                60  0.8085   0.80790  -0.07%   0.80789  -0.07%   0.75428  -6.70%   0.75211  -6.97%   0.81033  +0.23%   0.79609  -1.53%
+                65  0.8256   0.82485  -0.09%   0.82484  -0.10%   0.77142  -6.57%   0.76924  -6.83%   0.82726  +0.20%   0.81533  -1.25%
+                70  0.8421   0.84150  -0.08%   0.84149  -0.08%   0.78823  -6.40%   0.78603  -6.66%   0.84391  +0.21%   0.83408  -0.96%
+                75  0.8590   0.85804  -0.12%   0.85803  -0.12%   0.80491  -6.30%   0.80269  -6.56%   0.86044  +0.16%   0.85258  -0.75%
+                80  0.8758   0.87464  -0.13%   0.87462  -0.13%   0.82162  -6.18%   0.81939  -6.44%   0.87703  +0.14%   0.87105  -0.54%
+                85  0.8927   0.89146  -0.14%   0.89145  -0.14%   0.83855  -6.07%   0.83630  -6.32%   0.89386  +0.13%   0.88969  -0.34%
+                90  0.9104   0.90871  -0.18%   0.90870  -0.18%   0.85588  -5.99%   0.85362  -6.23%   0.91110  +0.08%   0.90871  -0.18%
+  alpha = 2:  beta   paper           zero_lb            zero_b            zero_l       impermeable       zero_lb_d29        zero_lb_rO
+                15  0.4024   0.40239  -0.01%   0.40227  -0.04%   0.37934  -5.74%   0.37476  -6.88%   0.40350  +0.26%   0.35444 -11.93%
+                20  0.4303   0.43022  -0.02%   0.43009  -0.05%   0.40854  -5.06%   0.40392  -6.13%   0.43127  +0.22%   0.39544  -8.10%
+                25  0.4526   0.45251  -0.02%   0.45238  -0.05%   0.43158  -4.65%   0.42693  -5.67%   0.45353  +0.20%   0.42561  -5.97%
+                30  0.4712   0.47105  -0.04%   0.47092  -0.07%   0.45060  -4.38%   0.44590  -5.37%   0.47205  +0.17%   0.44947  -4.62%
+                35  0.4871   0.48692  -0.04%   0.48678  -0.07%   0.46678  -4.18%   0.46206  -5.15%   0.48791  +0.16%   0.46921  -3.68%
+                40  0.5011   0.50082  -0.05%   0.50068  -0.08%   0.48091  -4.02%   0.47615  -4.97%   0.50180  +0.15%   0.48611  -2.98%
+                45  0.5135   0.51323  -0.06%   0.51309  -0.09%   0.49349  -3.90%   0.48871  -4.83%   0.51421  +0.13%   0.50093  -2.45%
+                50  0.5249   0.52451  -0.07%   0.52437  -0.09%   0.50490  -3.80%   0.50009  -4.72%   0.52548  +0.12%   0.51422  -2.03%
+                55  0.5353   0.53492  -0.08%   0.53477  -0.11%   0.51541  -3.72%   0.51058  -4.63%   0.53588  +0.10%   0.52635  -1.68%
+                60  0.5451   0.54466  -0.08%   0.54451  -0.11%   0.52524  -3.64%   0.52038  -4.53%   0.54562  +0.10%   0.53761  -1.37%
+                65  0.5544   0.55391  -0.09%   0.55376  -0.12%   0.53456  -3.58%   0.52968  -4.46%   0.55486  +0.08%   0.54823  -1.11%
+                70  0.5632   0.56280  -0.08%   0.56265  -0.10%   0.54352  -3.50%   0.53861  -4.37%   0.56376  +0.09%   0.55838  -0.86%
+                75  0.5720   0.57147  -0.09%   0.57132  -0.12%   0.55224  -3.46%   0.54731  -4.32%   0.57242  +0.07%   0.56822  -0.66%
+                80  0.5808   0.58003  -0.13%   0.57987  -0.15%   0.56085  -3.43%   0.55589  -4.28%   0.58098  +0.04%   0.57789  -0.49%
+                85  0.5893   0.58858  -0.13%   0.58842  -0.15%   0.56944  -3.37%   0.56447  -4.22%   0.58952  +0.03%   0.58752  -0.31%
+                90  0.5982   0.59723  -0.16%   0.59707  -0.19%   0.57814  -3.35%   0.57314  -4.19%   0.59818  -0.00%   0.59723  -0.16%
+  alpha = 4:  beta   paper           zero_lb            zero_b            zero_l       impermeable       zero_lb_d29        zero_lb_rO
+                15  0.2807   0.28060  -0.03%   0.28002  -0.24%   0.27354  -2.54%   0.26692  -4.90%   0.28101  +0.12%   0.25017 -10.87%
+                20  0.2996   0.29953  -0.03%   0.29893  -0.23%   0.29292  -2.24%   0.28630  -4.44%   0.29992  +0.10%   0.27756  -7.36%
+                25  0.3142   0.31410  -0.03%   0.31348  -0.23%   0.30773  -2.06%   0.30110  -4.17%   0.31448  +0.09%   0.29716  -5.42%
+                30  0.3259   0.32578  -0.05%   0.32514  -0.25%   0.31956  -1.96%   0.31290  -4.00%   0.32615  +0.06%   0.31222  -4.21%
+                35  0.3356   0.33543  -0.06%   0.33478  -0.25%   0.32932  -1.88%   0.32263  -3.87%   0.33580  +0.05%   0.32432  -3.37%
+                40  0.3438   0.34363  -0.05%   0.34297  -0.25%   0.33759  -1.81%   0.33087  -3.76%   0.34399  +0.05%   0.33441  -2.73%
+                45  0.3510   0.35075  -0.06%   0.35008  -0.25%   0.34477  -1.77%   0.33802  -3.69%   0.35111  +0.04%   0.34305  -2.26%
+                50  0.3574   0.35706  -0.09%   0.35638  -0.28%   0.35113  -1.75%   0.34436  -3.64%   0.35742  +0.01%   0.35062  -1.89%
+                55  0.3631   0.36276  -0.10%   0.36208  -0.28%   0.35687  -1.72%   0.35007  -3.59%   0.36312  +0.00%   0.35741  -1.57%
+                60  0.3684   0.36800  -0.09%   0.36731  -0.28%   0.36214  -1.69%   0.35532  -3.54%   0.36835  +0.00%   0.36360  -1.29%
+                65  0.3732   0.37290  -0.09%   0.37220  -0.27%   0.36706  -1.65%   0.36022  -3.48%   0.37325  +0.01%   0.36935  -1.04%
+                70  0.3779   0.37754  -0.08%   0.37684  -0.27%   0.37173  -1.62%   0.36487  -3.44%   0.37789  +0.01%   0.37478  -0.81%
+                75  0.3824   0.38201  -0.09%   0.38130  -0.27%   0.37622  -1.60%   0.36934  -3.40%   0.38236  +0.00%   0.37998  -0.62%
+                80  0.3869   0.38637  -0.13%   0.38565  -0.31%   0.38060  -1.62%   0.37370  -3.40%   0.38672  -0.04%   0.38504  -0.47%
+                85  0.3912   0.39068  -0.13%   0.38997  -0.32%   0.38494  -1.60%   0.37801  -3.37%   0.39103  -0.04%   0.39003  -0.30%
+                90  0.3957   0.39502  -0.16%   0.39430  -0.34%   0.38929  -1.61%   0.38234  -3.36%   0.39536  -0.07%   0.39502  -0.16%
+  alpha = 10:  beta   paper           zero_lb            zero_b            zero_l       impermeable       zero_lb_d29        zero_lb_rO
+                15  0.1764   0.17637  -0.05%   0.17457  -1.07%   0.17547  -0.55%   0.16863  -4.43%   0.17645  -0.00%   0.15895  -9.92%
+                20  0.1870   0.18690  -0.06%   0.18505  -1.05%   0.18607  -0.51%   0.17925  -4.16%   0.18697  -0.03%   0.17439  -6.75%
+                25  0.1947   0.19452  -0.07%   0.19264  -1.04%   0.19373  -0.48%   0.18689  -3.99%   0.19459  -0.04%   0.18490  -5.01%
+                30  0.2005   0.20032  -0.08%   0.19841  -1.03%   0.19956  -0.46%   0.19270  -3.88%   0.20039  -0.05%   0.19264  -3.91%
+                35  0.2051   0.20492  -0.10%   0.20299  -1.04%   0.20418  -0.47%   0.19730  -3.82%   0.20499  -0.07%   0.19864  -3.16%
+                40  0.2089   0.20870  -0.09%   0.20675  -1.02%   0.20797  -0.44%   0.20107  -3.74%   0.20877  -0.05%   0.20349  -2.58%
+                45  0.2122   0.21190  -0.12%   0.20993  -1.05%   0.21117  -0.46%   0.20426  -3.72%   0.21196  -0.09%   0.20755  -2.17%
+                50  0.2150   0.21467  -0.14%   0.21269  -1.06%   0.21395  -0.47%   0.20701  -3.70%   0.21473  -0.11%   0.21103  -1.83%
+                55  0.2174   0.21712  -0.14%   0.21513  -1.05%   0.21642  -0.46%   0.20946  -3.66%   0.21719  -0.11%   0.21410  -1.53%
+                60  0.2196   0.21934  -0.13%   0.21734  -1.05%   0.21864  -0.45%   0.21167  -3.63%   0.21941  -0.11%   0.21686  -1.26%
+                65  0.2217   0.22139  -0.12%   0.21938  -1.02%   0.22070  -0.43%   0.21371  -3.58%   0.22146  -0.09%   0.21939  -1.02%
+                70  0.2236   0.22331  -0.11%   0.22129  -1.02%   0.22262  -0.42%   0.21562  -3.55%   0.22338  -0.08%   0.22176  -0.81%
+                75  0.2254   0.22514  -0.11%   0.22311  -1.01%   0.22446  -0.41%   0.21745  -3.52%   0.22521  -0.08%   0.22400  -0.62%
+                80  0.2273   0.22691  -0.17%   0.22487  -1.07%   0.22623  -0.47%   0.21921  -3.56%   0.22698  -0.14%   0.22616  -0.50%
+                85  0.2290   0.22865  -0.15%   0.22660  -1.05%   0.22797  -0.45%   0.22094  -3.52%   0.22872  -0.12%   0.22828  -0.31%
+                90  0.2309   0.23039  -0.23%   0.22833  -1.12%   0.22971  -0.52%   0.22266  -3.57%   0.23045  -0.20%   0.23039  -0.23%
+  min total pore pressure p = u + gw y over all dofs of all runs: 0.000e+00 kPa (must be >= 0)
+  zero_lb     : rel. diff to the paper dashed curves: mean -0.085%, min -0.226%, max -0.014%, RMS 0.097%; points with J_FE > J_paper (impossible for the paper's box): 0 of 64
+  zero_b      : rel. diff to the paper dashed curves: mean -0.373%, min -1.119%, max -0.016%, RMS 0.545%; points with J_FE > J_paper (impossible for the paper's box): 0 of 64
+  zero_l      : rel. diff to the paper dashed curves: mean -3.420%, min -10.910%, max -0.414%, RMS 4.377%; points with J_FE > J_paper (impossible for the paper's box): 0 of 64
+  impermeable : rel. diff to the paper dashed curves: mean -5.029%, min -11.239%, max -3.363%, RMS 5.342%; points with J_FE > J_paper (impossible for the paper's box): 0 of 64
+  zero_lb_d29 : rel. diff to the paper dashed curves: mean +0.079%, min -0.200%, max +0.472%, RMS 0.165%; points with J_FE > J_paper (impossible for the paper's box): 44 of 64
+  zero_lb_rO  : rel. diff to the paper dashed curves: mean -2.957%, min -13.483%, max -0.160%, RMS 4.269%; points with J_FE > J_paper (impossible for the paper's box): 0 of 64
+  -> written /home/user/neopz-master/Projects/SlopeSeepageForces/data/fe_seepage_fig5_J.csv
+  Effect of a coarse P2 mesh like Fig. 4a (h = hc at O, W, T and the face, grade 0.3, hmax 6-8 H) on J:
+  alpha beta    J fine    paper  hc=0.25 (nv)  hc=0.15 (nv)  hc=0.1 (nv)
+      1   15   0.58633 +0.014%    +0.020% (280)    +0.009% (471)    +0.005% (603)
+      1   45   0.75317 +0.062%    +0.135% (225)    +0.076% (366)    +0.031% (437)
+      1   90   0.90871 +0.183%    +0.495% (212)    +0.187% (323)    +0.177% (381)
+     10   15   0.17637 +0.046%    +0.193% (280)    +0.068% (471)    +0.052% (603)
+     10   45   0.21190 +0.119%    +0.672% (225)    +0.227% (366)    +0.157% (437)
+     10   90   0.23039 +0.227%    +0.571% (212)    +0.227% (323)    +0.207% (381)
+==============================================================================================================
+6) Fig. 4b: iso-lines of u'_FE (levels -0.98 k, gamma_w = 9.81, H = 1, h_w = H, beta = 45, alpha = 1);
+   depth below the toe ground where each iso-line reaches the right side, s = depth / (30 H)
+==============================================================================================================
+  native Fig. 4 image of the PDF (1000 x 1728 px): panel b box columns 7.5 - 945.5, crest row 588.5, toe-ground row 604.5, bottom row 1066.0, crest edge O at column 775
+    H = 15.38 px (width61): left of O 49.91 H, right of O 11.09 H (right of the toe 10.09 H for beta = 45), depth below crest 31.05 H = below toe 30.01 H
+    H = 16.00 px (crest_to_toe): left of O 47.97 H, right of O 10.66 H (right of the toe 9.66 H for beta = 45), depth below crest 29.84 H = below toe 28.84 H
+  re-measured on /tmp/claude-0/-home-user-neopz-master/339d491a-b062-561e-a71b-775db071f418/scratchpad/pdf/fig4.png: vertical box lines at columns [42, 43, 824, 825], crest rows [604, 605, 1002], toe-ground rows [617, 618, 1002]
+  right-side crossings (rows): [np.float64(618.0), np.float64(637.5), np.float64(659.0), np.float64(681.0), np.float64(707.5), np.float64(737.0), np.float64(772.0), np.float64(815.0), np.float64(868.5), np.float64(931.5)]
+  box measured in Fig. 4b (px): width 782.0, left of O 642.0, depth below toe 384.5, crest-to-toe 13.0; with H = 12.82 px (box width = 61 H for beta = 45): left 50.1 H, right of toe 9.9 H, depth below toe 30.0 H
+    level  paper s      zero_lb  impermeable
+    -8.83    0.052        0.053        0.064
+    -7.85    0.107        0.108        0.131
+    -6.87    0.165        0.167        0.209
+    -5.89    0.234        0.233        0.306
+    -4.91    0.309        0.310        0.444
+    -3.92    0.402        0.402        0.708
+    -2.94    0.515        0.515          nan
+    -1.96    0.653        0.652          nan
+    -0.98    0.817        0.817          nan
+  zero_lb    : u at the bottom-right corner = 0.000 kPa (paper legend: 0.00); RMS(s_FE - s_paper) = 0.001
+  impermeable: u at the bottom-right corner = -3.616 kPa (paper legend: 0.00); RMS(s_FE - s_paper) = 0.141
+==============================================================================================================
+7) Field interface: force(x, y) = -grad u'_FE, vectorised point location, P1 vs P2, outside points
+==============================================================================================================
+  H = 5 m, beta = 60, alpha = 5: P2 ref 2 force at 2e5 random points in 0.45 s; points outside the soil returning 0: True
+  P1 ref 2 vs P2 ref 2 within 3H of O: RMS rel. diff of f = 1.89%;  J/(kh H^2 gw^2): P1 0.324621, P2 0.324409
+  P2 ref 1 vs P2 ref 2 within 3H of O: RMS rel. diff of f = 0.132% (0.133% beyond 0.25 H from the toe)
+  arbitrary array shapes: True;  u(-H/2, H) = -26.1054 kPa, f = (2.2673241767851167, 1.9689794429066012)
+  default field (P2 ref 1), 1e5 random points: first call (incl. point-locator build) 0.09 s
+  points on the ground surface (beta = 60, h_w/H = 1): 4000; with f = 0: 0; u = nan: 0; max |u - Eq. 21 data| = 2.8e-14 kPa
+  points on the ground surface (beta = 45, h_w/H = 0.4): 4000; with f = 0: 0; u = nan: 0; max |u - Eq. 21 data| = 1.1e-14 kPa
+  similarity: |f(H = 5)(5x, 5y) - f(H = 1)(x, y)| <= 8.5e-12 kN/m^3 at 4664 points; J/(kh H^2 gw^2) 0.076677042543 vs 0.076677042543
+  -> written /home/user/neopz-master/Projects/SlopeSeepageForces/data/fe_seepage_reference_points.csv (98 rows)
+total time 252.5 s

@@ -17,24 +17,40 @@ discrete minimum is an UPPER bound of the exact J (it converges from above under
 The infinite half-space of the paper is truncated to a box (FE domain of Fig. 4a): `left` to the left of O,
 `right` to the right of the toe T and `depth` below T (in units of H, as SlopeGeometry.h of the C++ code).
 Each far side (left, bottom, right) is either impermeable (zero flux, natural BC) or carries Dirichlet data
-u = 0 ("zero") or u = -gamma_w h_w ("toe").
+u = 0 ("zero") or u = -gamma_w h_w ("toe"); named combinations in BC_PRESETS.
 
-Mesh: three mapped (transfinite, straight-line intersection) blocks of quadrilaterals split into triangles:
-  A under the crest, B under the face, C under the toe ground.  The block interfaces are straight lines from O
-  and from T in the direction of the bisector of the soil angle at O (and of the re-entrant angle at T),
-  d = (cos beta - 1, sin beta) / |.|, so that the construction is valid for any beta in (0, 90] deg (beta = 90:
-  vertical face, block B is a parallelogram strip).  The node distributions on the block edges follow a size
-  function graded towards O, W and T (the singular points of grad u) and the face:
+Paper configuration (DEFAULT, decided by the checks 5 and 6 below): box left 50 H / right 10 H / depth 30 H below
+the toe (measured on the native 1000 x 1728 px image of Fig. 4 embedded in the PDF: box 938 x 477 px = 61 H x 31 H
+for beta = 45 deg) and preset "zero_lb": u = 0 on the left side and on the bottom, zero flux on the right side.
+It reproduces the dashed curves J(u'_FE) of Fig. 5 (h_w = H) within 0.25 % for alpha = 1, 2, 4, 10 and
+beta = 15..90 deg (always slightly BELOW the paper, as expected from a converged lower value of an upper-bound
+functional against the paper's coarse 6-node mesh), and the iso-lines of Fig. 4b (they end on the right side; the
+"0.00" at the bottom-right corner is u there).  The fully impermeable box ("impermeable") gives J 3-11 % lower and
+iso-lines that end on the bottom: it does NOT reproduce the paper.
+
+Mesh (default method "quadtree"): conforming Delaunay triangulation (scipy.spatial.Delaunay) of
+  - boundary nodes distributed on the polygon edges by equidistribution of int ds / h (O, W, T are nodes), and
+  - the vertices of an axis-aligned quadtree whose leaves have side <= h(centre) (graded, deterministic),
+    without the vertices that are closer than 0.5 h to the boundary or inside the diametral circle of a boundary
+    segment (Gabriel condition: every boundary segment is a Delaunay edge; checked, with segment splitting as a
+    fallback), triangles outside the soil removed.  Min angle about 18-25 deg, max angle < 135 deg for any beta.
+The target size h is graded towards O, W and T (T and W are singular points of grad u) and the face:
       h = min(hmax, h0 + grade * dist(O, W, T), hs + grade * dist(face));
-  refinement level `ref` divides hs, grade and hmax by 2**ref and h0 by 4**ref (so that the corner layer does
-  not limit the convergence rate of the singular solution at the re-entrant toe T).
+refinement level `ref` divides hs, grade and hmax by 2**ref and h0 by 4**ref (so that the corner layer does
+not limit the convergence rate of the singular solution at the re-entrant toe T).
+Alternative method "blocks": three mapped (transfinite) blocks of quadrilaterals split into triangles, below the
+crest, the face and the toe ground (the previous generator; strongly stretched elements away from the slope, min
+angle < 1 deg, max angle up to 163 deg for beta = 90; kept for the independent-mesh cross-check of J).
 
 Field interface of the shared spec:  field.force(x, y) = -grad u_FE (kN/m^3), field.u(x, y),
-field.velocity(x, y) = -K grad u_FE; point location with matplotlib.tri.TrapezoidMapTriFinder;
-0 force (nan u) outside the FE domain.
+field.velocity(x, y) = -K grad u_FE; point location with matplotlib.tri.TrapezoidMapTriFinder, plus a retry
+for points within 1e-9 H of the soil (points ON the crest, face and toe ground are part of the soil);
+0 force (nan u) outside the FE domain and for non-finite input.  The mesh is generated for H = 1 and scaled,
+so u / (gamma_w H) and f / gamma_w depend on (x / H, y / H) only (exact similarity in H).
 
 Run as a script to execute the verification checks and the comparison with Figs. 4b and 5 of the paper:
     python3 Projects/SlopeSeepageForces/scripts/fe_seepage.py [--quick] [--no-plot] [--only fig5,fig4,...]
+(output in results/fe_seepage/checks_output.txt, figures in results/fe_seepage and data/fe_seepage_fig4_check.png)
 """
 from __future__ import annotations
 
@@ -59,10 +75,11 @@ BASE, RIGHT, TOE, CREST, LEFT, FACE = -1, -2, -3, -4, -5, -6
 SURFACE_IDS = (CREST, FACE, TOE)
 FAR_IDS = {"left": LEFT, "bottom": BASE, "right": RIGHT}
 
-# named far-side boundary conditions
+# named far-side boundary conditions ("paper" = "zero_lb", the default: it reproduces Figs. 4b and 5)
 BC_PRESETS = {
     "impermeable": {"left": "neumann", "bottom": "neumann", "right": "neumann"},
     "zero_lb": {"left": "zero", "bottom": "zero", "right": "neumann"},      # u = 0 left + bottom, right no-flow
+    "paper": {"left": "zero", "bottom": "zero", "right": "neumann"},        # alias of zero_lb
     "zero_b": {"left": "neumann", "bottom": "zero", "right": "neumann"},    # u = 0 on the bottom only
     "zero_l": {"left": "zero", "bottom": "neumann", "right": "neumann"},    # u = 0 on the left side only
     "zero_lbr": {"left": "zero", "bottom": "zero", "right": "zero"},        # data jump at the right top corner
@@ -126,6 +143,32 @@ class SlopeDomain:
         """Dirichlet data of Eq. (21) at points of the ground surface (crest, face, toe ground)."""
         y = np.asarray(y, float)
         return -gamma_w * np.clip(y, 0.0, self.hw)
+
+    def polygon(self):
+        """boundary polygon (positive orientation in (x, y)) and the boundary id of each edge V[k] -> V[k+1]"""
+        H = self.H
+        V = [np.array([self.xl, 0.0]), self.O] + ([self.W] if self.has_W else []) + \
+            [self.T, np.array([self.xr, H]), np.array([self.xr, self.yb]), np.array([self.xl, self.yb])]
+        ids = [CREST] + [FACE] * (2 if self.has_W else 1) + [TOE, RIGHT, BASE, LEFT]
+        return np.array(V), ids
+
+    def area(self):
+        return (self.xr - self.xl) * self.yb - (self.xr - self.xT) * self.H - 0.5 * self.xT * self.H
+
+    def dist_boundary(self, x, y):
+        """distance of the points (x, y) to the boundary polygon"""
+        V, _ = self.polygon()
+        d = np.full(np.shape(x), np.inf)
+        for k in range(len(V)):
+            P, Q = V[k], V[(k + 1) % len(V)]
+            e = Q - P
+            t = np.clip(((x - P[0]) * e[0] + (y - P[1]) * e[1]) / (e @ e), 0.0, 1.0)
+            d = np.minimum(d, np.hypot(x - P[0] - t * e[0], y - P[1] - t * e[1]))
+        return d
+
+
+# box of the paper's FE model (Fig. 4a/b), in units of H: left of O, right of T, below T
+PAPER_BOX = dict(left=50.0, right=10.0, depth=30.0)
 
 
 # ======================================================================================================
@@ -221,8 +264,145 @@ class Mesh:
         return dict(min_angle=ang.min(), max_angle=ang.max(), hmin=L.min(), hmax=L.max())
 
 
-def build_mesh(dom: SlopeDomain, size: MeshSize | None = None):
-    """Three-block structured triangle mesh of the slope box (see module docstring)."""
+def _boundary_loop(dom, sf):
+    """boundary nodes (closed loop, no repetition) on the polygon edges and the id of each segment k -> k+1"""
+    V, ids = dom.polygon()
+    foc = [dom.O, dom.T] + ([dom.W] if dom.has_W else [])
+    nodes, eid = [], []
+    for k in range(len(V)):
+        e, _ = _edge_nodes(V[k], V[(k + 1) % len(V)], sf, foci=foc)
+        nodes.append(e[:-1])
+        eid.append(np.full(len(e) - 1, ids[k]))
+    return np.vstack(nodes), np.concatenate(eid)
+
+
+def _quadtree_points(dom, sf):
+    """vertices of an axis-aligned quadtree over the box whose leaves (cells meeting the soil) have side
+    <= h(centre); returns (n, 2) points"""
+    width = dom.xr - dom.xl
+    corners = np.array([[dom.xl, 0.0], [dom.xr, dom.H], [dom.xl, dom.yb], [dom.xr, dom.yb]])
+    hmax = float(np.max(sf(corners[:, 0], corners[:, 1])))
+    nx = int(np.ceil(width / hmax - 1e-9))
+    s0 = width / nx
+    ny = int(np.ceil(dom.yb / s0 - 1e-9))
+    i, j = (a.ravel() for a in np.meshgrid(np.arange(nx), np.arange(ny), indexing="ij"))
+    leaves = []
+    lev = 0
+    while True:
+        s = s0 / 2 ** lev
+        x0, y0 = dom.xl + i * s, j * s
+        # the ground depth is non-decreasing in x: the cell meets the soil iff its bottom is below ground(x0)
+        meets = (y0 + s > dom.ground(x0) + 1e-12 * dom.H) & (x0 < dom.xr) & (y0 < dom.yb)
+        split = meets & (s > sf(x0 + 0.5 * s, y0 + 0.5 * s))
+        leaves.append((lev, i[meets & ~split], j[meets & ~split]))
+        if not split.any() or lev > 40:
+            break
+        i2, j2 = i[split], j[split]
+        i = np.concatenate([2 * i2, 2 * i2 + 1, 2 * i2, 2 * i2 + 1])
+        j = np.concatenate([2 * j2, 2 * j2, 2 * j2 + 1, 2 * j2 + 1])
+        lev += 1
+    # leaf corners in integer coordinates of the finest level -> unique vertices
+    C = []
+    for lv, il, jl in leaves:
+        f = 2 ** (lev - lv)
+        for di in (0, 1):
+            for dj in (0, 1):
+                C.append(np.stack([(il + di) * f, (jl + dj) * f], 1))
+    C = np.unique(np.vstack(C), axis=0)
+    sL = s0 / 2 ** lev
+    return np.stack([dom.xl + C[:, 0] * sL, C[:, 1] * sL], 1)
+
+
+def _quadtree_mesh(dom: SlopeDomain, size: MeshSize, excl=0.5, max_fix=10):
+    """graded, deterministic conforming Delaunay mesh of the slope box (see module docstring)"""
+    from scipy.spatial import Delaunay, cKDTree
+    sf = lambda x, y: size(dom, x, y)
+    H = dom.H
+    B, beid = _boundary_loop(dom, sf)
+    P = _quadtree_points(dom, sf)
+    x, y = P[:, 0], P[:, 1]
+    inside = (x > dom.xl) & (x < dom.xr) & (y < dom.yb) & (y > dom.ground(x))
+    P = P[inside]
+    P = P[dom.dist_boundary(P[:, 0], P[:, 1]) > excl * sf(P[:, 0], P[:, 1])]
+    tree = cKDTree(P)
+    for it in range(max_fix + 1):
+        nb = len(B)
+        bedges = np.stack([np.arange(nb), (np.arange(nb) + 1) % nb], 1)
+        # Gabriel condition: no interior point inside (1.05 x) the diametral circle of a boundary segment
+        mid = 0.5 * (B[bedges[:, 0]] + B[bedges[:, 1]])
+        rad = 0.525 * np.linalg.norm(B[bedges[:, 1]] - B[bedges[:, 0]], axis=1)
+        hit = tree.query_ball_point(mid, rad)
+        bad = np.unique(np.concatenate([np.asarray(h, dtype=int) for h in hit] + [np.zeros(0, int)]))
+        Pin = np.delete(P, bad, axis=0)
+        X = np.vstack([B, Pin])
+        T = Delaunay(X).simplices.astype(np.int64)
+        c = X[T].mean(1)
+        T = T[(c[:, 1] > dom.ground(c[:, 0])) & (c[:, 0] > dom.xl) & (c[:, 0] < dom.xr) & (c[:, 1] < dom.yb)]
+        # every boundary segment must be an edge of the triangulation (then no triangle crosses the boundary)
+        E = np.sort(np.concatenate([T[:, [0, 1]], T[:, [1, 2]], T[:, [2, 0]]]), 1)
+        key = E[:, 0] * len(X) + E[:, 1]
+        be = np.sort(bedges, 1)
+        missing = ~np.isin(be[:, 0] * len(X) + be[:, 1], key)
+        if not missing.any():
+            break
+        if it == max_fix:
+            raise RuntimeError(f"quadtree mesh: {missing.sum()} boundary segments not conforming")
+        # split the missing segments at their midpoints and retry
+        k = np.nonzero(missing)[0]
+        newB = 0.5 * (B[bedges[k, 0]] + B[bedges[k, 1]])
+        order = np.argsort(np.concatenate([np.arange(nb), k + 0.5]), kind="stable")
+        B = np.vstack([B, newB])[order]
+        beid = np.concatenate([beid, beid[k]])[order]
+    x = X[T]
+    det = (x[:, 1, 0] - x[:, 0, 0]) * (x[:, 2, 1] - x[:, 0, 1]) - (x[:, 1, 1] - x[:, 0, 1]) * (x[:, 2, 0] - x[:, 0, 0])
+    T[det < 0] = T[det < 0][:, [0, 2, 1]]
+    if np.any(np.abs(det) < 1e-12 * H * H * 4.0 ** (-size.ref)) or abs(0.5 * np.abs(det).sum() / dom.area() - 1) > 1e-10:
+        raise RuntimeError("quadtree mesh: degenerate triangles or wrong area")
+    # drop unused points (cannot happen with a conforming triangulation, kept for safety)
+    used = np.zeros(len(X), bool)
+    used[T.ravel()] = True
+    if not used.all():
+        new = np.cumsum(used) - 1
+        if not used[:len(B)].all():
+            raise RuntimeError("quadtree mesh: unused boundary node")
+        X, T = X[used], new[T]
+    nb = len(B)
+    return Mesh(X, T, np.stack([np.arange(nb), (np.arange(nb) + 1) % nb], 1), beid)
+
+
+_MESH_CACHE = {}
+
+
+def build_mesh(dom: SlopeDomain, size: MeshSize | None = None, method="quadtree"):
+    """triangle mesh of the slope box, method 'quadtree' (default) or 'blocks'; cached (alpha, bc and the
+    polynomial order do not change the mesh, which is shared read-only by the solutions)"""
+    size = size or MeshSize()
+    # The mesh is generated for H = 1 and scaled by H: the Delaunay triangulation of the (cocircular) quadtree
+    # points depends on round-off, so generating it at the actual H gave a different choice of diagonals for
+    # each H (e.g. 3518 of 8469 triangles differ between H = 1 and H = 5 at beta = 60, ref 1) and a field that
+    # was not exactly the scaled one (0.1 % RMS in the force near the slope).  Now u / (gamma_w H) and f / gamma_w
+    # are exactly functions of (x / H, y / H), as the similarity argument H_crit = Gamma(H) H requires.
+    hwr = dom.hw / dom.H
+    key = (method, dom.beta_deg, hwr, dom.left, dom.right, dom.depth,
+           size.h0, size.hs, size.grade, size.hmax, size.ref, size.uniform)
+    if key not in _MESH_CACHE:
+        if len(_MESH_CACHE) > 24:
+            _MESH_CACHE.clear()
+        unit = SlopeDomain(dom.beta_deg, 1.0, hwr, dom.left, dom.right, dom.depth)
+        if method == "quadtree":
+            _MESH_CACHE[key] = _quadtree_mesh(unit, size)
+        elif method == "blocks":
+            _MESH_CACHE[key] = _block_mesh(unit, size)
+        else:
+            raise ValueError(f"unknown mesh method {method!r}")
+    m = _MESH_CACHE[key]
+    if dom.H == 1.0:
+        return m
+    return Mesh(m.X * dom.H, m.T, m.edges, m.eid)
+
+
+def _block_mesh(dom: SlopeDomain, size: MeshSize | None = None):
+    """Three-block structured triangle mesh of the slope box (method 'blocks', see module docstring)."""
     size = size or MeshSize()
     sf = lambda x, y: size(dom, x, y)
     H, yb = dom.H, dom.yb
@@ -366,7 +546,6 @@ class FESpace:
             mid = len(X) + inv.reshape(3, ne).T
             self.Ed = np.concatenate([T, mid], axis=1)
             self.Xd = np.concatenate([X, 0.5 * (X[uniq[:, 0]] + X[uniq[:, 1]])])
-            self._edge_index = {tuple(k): len(X) + i for i, k in enumerate(uniq)}
             self._uniq = uniq
         self.ndof = len(self.Xd)
 
@@ -445,7 +624,7 @@ def solve_dirichlet(space: FESpace, A, dofs, values, rhs=None):
     free = np.ones(space.ndof, bool)
     free[dofs] = False
     Aff = A[free][:, free].tocsc()
-    u[free] = spla.spsolve(Aff, b[free], permc_spec="MMD_AT_PLUS_A")
+    u[free] = spla.spsolve(Aff, b[free], permc_spec="COLAMD")     # (MMD_AT_PLUS_A is erratic on P1 meshes)
     return u
 
 
@@ -459,13 +638,16 @@ class FESeepage:
     ----------
     beta_deg, H, hw, alpha : slope angle (deg), height, water level after drawdown (0 <= hw <= H), k_h / k_v
     kh, gamma_w            : horizontal permeability (only scales J and v) and unit weight of water
-    left, right, depth     : FE box in units of H (left of O, right of T, below T)
-    bc                     : far-side conditions, preset name of BC_PRESETS or dict side -> neumann|zero|toe
-    order, ref, size       : P1/P2, refinement level, MeshSize (default MeshSize(ref=ref))
+    left, right, depth     : FE box in units of H (left of O, right of T, below T); default: the paper's box
+    bc                     : far-side conditions, preset name of BC_PRESETS or dict side -> neumann|zero|toe;
+                             default "zero_lb" (= "paper": u = 0 on the left side and the bottom, right no-flow)
+    order, ref, size       : P1/P2 (default P2), refinement level, MeshSize (default MeshSize(ref=ref))
+    mesh, mesh_method      : prebuilt Mesh, or the generator "quadtree" (default) / "blocks"
     """
 
-    def __init__(self, beta_deg, H=1.0, hw=None, alpha=1.0, kh=1.0, gamma_w=9.81, left=50.0, right=10.0,
-                 depth=30.0, bc="impermeable", order=1, ref=1, size=None, mesh=None):
+    def __init__(self, beta_deg, H=1.0, hw=None, alpha=1.0, kh=1.0, gamma_w=9.81, left=PAPER_BOX["left"],
+                 right=PAPER_BOX["right"], depth=PAPER_BOX["depth"], bc="zero_lb", order=2, ref=1, size=None,
+                 mesh=None, mesh_method="quadtree"):
         t0 = time.time()
         self.dom = SlopeDomain(beta_deg, H, hw, left, right, depth)
         self.H, self.hw, self.alpha = self.dom.H, self.dom.hw, float(alpha)
@@ -474,7 +656,7 @@ class FESeepage:
         self.kh, self.kv, self.gamma_w = float(kh), float(kh) / self.alpha, float(gamma_w)
         self.bc = _bc_dict(bc)
         self.order = order
-        self.mesh = mesh if mesh is not None else build_mesh(self.dom, size or MeshSize(ref=ref))
+        self.mesh = mesh if mesh is not None else build_mesh(self.dom, size or MeshSize(ref=ref), mesh_method)
         self.space = FESpace(self.mesh, order)
         self.A = self.space.stiffness(self.kh, self.kv)
         sp_ = self.space
@@ -528,12 +710,45 @@ class FESeepage:
         return -float(R[d].sum())
 
     # ------------------------------------------------------------------ point evaluation
+    # points of the closed soil domain within LOCATE_TOL * H of the boundary are always located (see _locate)
+    LOCATE_TOL = 1e-9
+
     def _locate(self, x, y):
+        """element index of each point (-1 outside the FE box).  The trapezoid-map finder misses most points
+        that lie ON an inclined boundary edge (round-off puts about half of them a few ulps outside, and the
+        finder rejects some of the others), e.g. 1890 of 2000 random points of the face returned f = 0 and
+        u = nan before this fix.  Points within LOCATE_TOL * H of the soil that are not found are therefore
+        searched again after a shift of 4 LOCATE_TOL * H into the soil (inward normals of the face, of the
+        horizontal and vertical sides and of the box corners)."""
         if self._trifinder is None:
             import matplotlib.tri as mtri
             self._tri = mtri.Triangulation(self.mesh.X[:, 0], self.mesh.X[:, 1], self.mesh.T)
             self._trifinder = self._tri.get_trifinder()
-        return self._trifinder(x, y)
+        e = np.asarray(self._trifinder(x, y))
+        bad = ~(np.isfinite(x) & np.isfinite(y))          # the finder returns an element for y = nan
+        if np.any(bad):
+            e = np.where(bad, -1, e)
+        miss = np.nonzero((e < 0) & ~bad)[0]
+        if len(miss):
+            tol = self.LOCATE_TOL * self.H
+            xm, ym = x[miss], y[miss]
+            with np.errstate(invalid="ignore"):
+                near = self.dom.in_box(xm, ym, tol) | (self.dom.dist_boundary(xm, ym) <= tol)
+            miss = miss[near]
+            if len(miss):
+                e = e.copy()
+                s = 4.0 * tol
+                r2 = np.sqrt(0.5)
+                dirs = ((-self.dom.sb, self.dom.cb), (0.0, 1.0), (1.0, 0.0), (-1.0, 0.0), (0.0, -1.0),
+                        (r2, r2), (-r2, r2), (r2, -r2), (-r2, -r2))
+                for dx, dy in dirs:
+                    ee = np.asarray(self._trifinder(x[miss] + s * dx, y[miss] + s * dy))
+                    ok = ee >= 0
+                    e[miss[ok]] = ee[ok]
+                    miss = miss[~ok]
+                    if not len(miss):
+                        break
+        return e
 
     def _bary(self, e, x, y):
         X = self.mesh.X
@@ -686,7 +901,48 @@ def _soil_samples(dom, rmax, step):
 FIG4B_PX = dict(left=42.5, right=824.5, crest=604.5, toe=617.5, bottom=1002.0, xO=684.5)
 FIG4B_RIGHT_ROWS = [(-8.83, 637.5), (-7.85, 658.5), (-6.87, 681.0), (-5.89, 707.5), (-4.91, 736.5),
                     (-3.92, 772.0), (-2.94, 815.5), (-1.96, 868.5), (-0.98, 931.5)]
+COARSE_MESHES = ((0.25, 0.35, 8.0), (0.15, 0.3, 6.0), (0.1, 0.3, 6.0))    # (hc, grade, hmax) like Fig. 4a
 FIG4_IMAGE_DEFAULT = "/tmp/claude-0/-home-user-neopz-master/339d491a-b062-561e-a71b-775db071f418/scratchpad/pdf/fig4.png"
+
+
+PAPER_PDF_DEFAULT = os.path.join(os.path.dirname(FIG4_IMAGE_DEFAULT), "paper.pdf")
+
+
+def measure_fig4_native(pdf):
+    """Box of Fig. 4a/4b on the native image embedded in the PDF (page 8, 1000 x 1728 px grey JPEG at 300 ppi,
+    extracted with pdfimages): box columns, crest / toe-ground / bottom rows of panel (b) and the extents in H for
+    a box width of 61 H (left 50 H + face 1 H (beta = 45) + right 10 H) and for H = crest-to-toe distance."""
+    import shutil
+    import subprocess
+    import tempfile
+    from PIL import Image
+    if not (os.path.exists(pdf) and shutil.which("pdfimages")):
+        return None
+    with tempfile.TemporaryDirectory() as tmp:
+        subprocess.run(["pdfimages", "-j", "-f", "8", "-l", "8", pdf, os.path.join(tmp, "f4")], check=True)
+        files = sorted(f for f in os.listdir(tmp) if f.startswith("f4"))
+        if not files:
+            return None
+        im = np.array(Image.open(os.path.join(tmp, files[0])).convert("L")).astype(float)
+    if im.shape != (1728, 1000):
+        return None
+    dark = im < 150
+    b = dark[540:1100]                                         # panel (b)
+    cols = np.nonzero(b.mean(0) > 0.6)[0]
+    left, right = cols[cols < 500].mean(), cols[cols > 500].mean()
+    prof = im[540:1100, 20:700].mean(1)
+    rows = np.nonzero(prof < 200)[0] + 540                     # crest line (top) and bottom line
+    crest, bottom = rows[rows < 800].mean(), rows[rows > 800].mean()
+    prof_r = im[560:640, 860:940].mean(1)
+    rr = np.nonzero(prof_r < 200)[0] + 560                     # toe-ground line = first dark run (then iso-lines)
+    toe = rr[rr <= rr[0] + 2].mean()
+    # crest edge O: right end of the crest line
+    xO = np.nonzero(dark[int(round(crest)), :int(right) - 50])[0].max()
+    out = dict(left_col=left, right_col=right, crest_row=crest, toe_row=toe, bottom_row=bottom, xO_col=float(xO))
+    for name, Hpx in (("width61", (right - left) / 61.0), ("crest_to_toe", toe - crest)):
+        out[name] = dict(H_px=Hpx, left=(xO - left) / Hpx, right_of_O=(right - xO) / Hpx,
+                         depth_below_crest=(bottom - crest) / Hpx, depth_below_toe=(bottom - toe) / Hpx)
+    return out
 
 
 def measure_fig4b(path):
@@ -715,7 +971,8 @@ def check_mms(log, quick):
     log("=" * 110)
     log("1) Manufactured solution, anisotropic K = diag(1, 1/4) (alpha = 4), beta = 60, h_w = 0.6 H, box 2/1.5/1.5 H:")
     log("   u = cos(1.1x+0.3) sinh(0.6y+0.2) + 0.3xy, f = -div K grad u, Dirichlet on crest/face/toe, NON-zero")
-    log("   Neumann flux g = K grad u . n on the left, bottom and right sides; uniform-size block meshes.")
+    log("   Neumann flux g = K grad u . n on the left, bottom and right sides; uniform-size quadtree meshes (not nested:")
+    log("   rates with respect to h_eff = sqrt(|Omega| / n_vertices); expected P1: 2 (L2), 1 (energy); P2: 3, 2)")
     log("=" * 110)
     kx, ky = 1.0, 0.25
     uex = lambda x, y: np.cos(1.1 * x + 0.3) * np.sinh(0.6 * y + 0.2) + 0.3 * x * y
@@ -739,18 +996,18 @@ def check_mms(log, quick):
             uh = solve_dirichlet(spc, A, d, uex(spc.Xd[d, 0], spc.Xd[d, 1]), rhs=b)
             eL2, eE, nE = fe_errors(spc, uh, uex, gex, kx, ky)
             es.append((eL2, eE))
-            hs.append(mesh.quality()["hmax"])
+            hs.append(np.sqrt(dom.area() / mesh.nv))
             ns.append(spc.ndof)
         es = np.array(es)
         rL, rE = _rate(es[:, 0], hs), _rate(es[:, 1], hs)
-        log(f"  P{order}:  {'ref':>3} {'ndof':>8} {'h_max':>8} {'L2 error':>11} {'rate':>5} {'energy err':>11} {'rate':>5}")
+        log(f"  P{order}:  {'ref':>3} {'ndof':>8} {'h_eff':>8} {'L2 error':>11} {'rate':>5} {'energy err':>11} {'rate':>5}")
         for r in range(len(hs)):
             log(f"        {r:3d} {ns[r]:8d} {hs[r]:8.4f} {es[r, 0]:11.3e} {rL[r]:5.2f} {es[r, 1]:11.3e} {rE[r]:5.2f}")
         res[order] = (rL[-1], rE[-1])
-    # patch test: linear u, mixed BCs, P1 and P2 must be exact
+    # patch test: linear u, mixed BCs, P1 and P2 must be exact (both mesh generators)
     lin = lambda x, y: 2.0 - 0.7 * x + 1.3 * y
-    for order in (1, 2):
-        mesh = build_mesh(dom, MeshSize(ref=0, h0=0.05, hs=0.2, hmax=1.0))
+    for order, method in ((1, "quadtree"), (2, "quadtree"), (1, "blocks"), (2, "blocks")):
+        mesh = build_mesh(dom, MeshSize(ref=0, h0=0.05, hs=0.2, hmax=1.0), method)
         spc = FESpace(mesh, order)
         A = spc.stiffness(kx, ky)
         b = np.zeros(spc.ndof)
@@ -759,9 +1016,60 @@ def check_mms(log, quick):
             b += spc.neumann(e, lambda x, y, n=n: np.full(np.shape(x), kx * (-0.7) * n[0] + ky * 1.3 * n[1]))
         d = spc.boundary_dofs(list(SURFACE_IDS))
         uh = solve_dirichlet(spc, A, d, lin(spc.Xd[d, 0], spc.Xd[d, 1]), rhs=b)
-        log(f"  patch test P{order} (u linear, Dirichlet surface + Neumann far sides, graded mesh): "
+        log(f"  patch test P{order} (u linear, Dirichlet surface + Neumann far sides, graded {method} mesh): "
             f"max |u_h - u| = {np.abs(uh - lin(spc.Xd[:, 0], spc.Xd[:, 1])).max():.2e}")
     return res
+
+
+def check_mesh(log, quick, plot):
+    log("=" * 110)
+    log("0) Meshes: quadtree conforming Delaunay generator (default) vs the block generator, box 50/10/30 H")
+    log("=" * 110)
+    log(f"  {'beta':>4} {'hw/H':>5} {'method':>8} {'ref':>3} {'nv':>7} {'ntri':>7} {'min ang':>7} {'max ang':>7} "
+        f"{'h_min/H':>9} {'h_max/H':>7} {'#bnd':>5} {'time':>6}")
+    for b in ((15, 45, 90) if quick else (15, 30, 45, 60, 75, 90)):
+        for hwr in (1.0, 0.5):
+            dom = SlopeDomain(b, 1.0, hwr)
+            for method, refs in (("quadtree", (0, 1, 2)), ("blocks", (1,))):
+                for r in refs:
+                    t = time.time()
+                    m = build_mesh(dom, MeshSize(ref=r), method)
+                    dt = time.time() - t
+                    q = m.quality()
+                    d1, d2 = m.X[m.T[:, 1]] - m.X[m.T[:, 0]], m.X[m.T[:, 2]] - m.X[m.T[:, 0]]
+                    area = 0.5 * np.abs(d1[:, 0] * d2[:, 1] - d1[:, 1] * d2[:, 0]).sum()
+                    assert abs(area / dom.area() - 1) < 1e-10
+                    log(f"  {b:4.0f} {hwr:5.2f} {method:>8} {r:3d} {m.nv:7d} {len(m.T):7d} {q['min_angle']:7.2f} "
+                        f"{q['max_angle']:7.1f} {q['hmin']:9.2e} {q['hmax']:7.2f} {len(m.edges):5d} {dt:5.2f}s")
+    if plot:
+        _plot_meshes()
+
+
+def _plot_meshes():
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    fig, axs = plt.subplots(3, 3, figsize=(15, 10.5), constrained_layout=True)
+    cols = {CREST: "#2a78d6", FACE: "#eb6834", TOE: "#1baf7a", LEFT: "0.3", BASE: "0.3", RIGHT: "0.3"}
+    for row, (b, hwr) in zip(axs, ((15, 0.5), (45, 1.0), (90, 0.5))):
+        dom = SlopeDomain(b, 1.0, hwr)
+        m = build_mesh(dom, MeshSize(ref=0))
+        for ax, lim in zip(row, (None, (-6.0, 8.0, 6.0, -0.4), (-0.3, dom.xT + 0.3, 1.3, -0.1))):
+            ax.triplot(m.X[:, 0], m.X[:, 1], m.T, lw=0.25, color="0.45")
+            for i, c in cols.items():
+                e = m.edges[m.eid == i]
+                ax.plot(m.X[e].transpose(2, 1, 0)[0], m.X[e].transpose(2, 1, 0)[1], color=c, lw=1.4)
+            ax.set_aspect("equal")
+            if lim:
+                ax.set_xlim(lim[0], lim[1])
+                ax.set_ylim(lim[2], lim[3])
+            else:
+                ax.invert_yaxis()
+            ax.set_title(f"beta = {b}, h_w = {hwr:g} H, ref 0 ({m.nv} nodes)", fontsize=9)
+    fig.suptitle("quadtree conforming Delaunay meshes (paper coordinates, y down; x, y in units of H)", fontsize=10)
+    os.makedirs(RESULTS_DIR, exist_ok=True)
+    fig.savefig(os.path.join(RESULTS_DIR, "fe_meshes.png"), dpi=90)
+    plt.close(fig)
 
 
 def check_laplace_cross(log):
@@ -801,6 +1109,27 @@ def check_laplace_cross(log):
         out["b_" + bc] = (du, J_lc / (gw ** 2), fe.J_normalized())
         log(f"  (b) beta=45, alpha=1, h_w=H, bc={bc:11s} mesh ref 0 ({m.nv} nodes): max |u_this - u_lc| = {du:.2e} kPa, "
             f"J/(kh H^2 gw^2): laplace_check {J_lc / gw ** 2:.8f}, this {fe.J_normalized():.8f}")
+    # (c) anisotropy by the affine map y' = sqrt(alpha) y: the anisotropic problem (beta, H, alpha) is the ISOTROPIC
+    # problem on the stretched slope beta' = atan(sqrt(alpha) tan beta), H' = sqrt(alpha) H, h_w' = sqrt(alpha) h_w,
+    # gamma_w' = gamma_w / sqrt(alpha), box left 50 / sqrt(alpha), right 10 / sqrt(alpha), depth 30 (units of H'),
+    # and J_aniso / (k_h H^2 gw^2) = J_iso' / (k_h H'^2 gw'^2) / sqrt(alpha)  (different, non-affine meshes)
+    log("  (c) anisotropy vs the isotropic problem on the stretched slope (y' = sqrt(alpha) y), P2 ref 1, zero_lb:")
+    for b, a, hwr in ((30.0, 4.0, 1.0), (60.0, 10.0, 1.0), (45.0, 4.0, 0.5)):
+        fa = FESeepage(b, 1.0, hwr, a, bc="zero_lb", order=2, ref=1)
+        sa = np.sqrt(a)
+        bs = np.degrees(np.arctan(sa * np.tan(np.radians(b))))
+        fi = FESeepage(bs, sa, sa * hwr, 1.0, gamma_w=9.81 / sa, bc="zero_lb", order=2, ref=1,
+                       left=PAPER_BOX["left"] / sa, right=PAPER_BOX["right"] / sa, depth=PAPER_BOX["depth"])
+        Ji = fi.J_normalized() / sa
+        # the force: f_x = f'_x, f_y = sqrt(alpha) f'_y at (x, y' = sqrt(alpha) y)
+        xs, ys = _soil_samples(fa.dom, 3.0, 0.1)
+        fx, fy = fa.force(xs, ys)
+        gx, gy = fi.force(xs, sa * ys)
+        rel = np.sqrt(np.mean((fx - gx) ** 2 + (fy - sa * gy) ** 2) / np.mean(fx ** 2 + fy ** 2))
+        out[f"c_{b}_{a}"] = (fa.J_normalized(), Ji, rel)
+        log(f"      beta={b:4.0f} alpha={a:4.0f} hw/H={hwr}: J anisotropic {fa.J_normalized():.7f}, isotropic stretched "
+            f"(beta' = {bs:.2f}) {Ji:.7f}, rel. diff {Ji / fa.J_normalized() - 1:+.1e}; force within 3H of O: RMS rel. "
+            f"diff {100 * rel:.3f}%")
     return out
 
 
@@ -808,6 +1137,7 @@ def check_convergence(log, quick):
     log("=" * 110)
     log("3) Mesh convergence of J(u'_FE)/(k_h H^2 gamma_w^2), box 50/10/30 H, bc zero_lb (u = 0 left + bottom)")
     log("   (J converges from above: the discrete space with the exact piecewise-linear Dirichlet data is conforming)")
+    log("   quadtree meshes; last line: P2 on the independent 'blocks' mesh generator (ref 2)")
     log("=" * 110)
     cases = [(45, 1, 1.0), (90, 10, 1.0)] if quick else [(45, 1, 1.0), (90, 1, 1.0), (15, 1, 1.0), (30, 10, 1.0),
                                                          (60, 4, 0.5)]
@@ -832,6 +1162,12 @@ def check_convergence(log, quick):
                 q = (Js[-2] - Js[-1]) / (Js[-3] - Js[-2])
                 Jx = Js[-1] - (Js[-2] - Js[-1]) * q / (1 - q)
                 log(f"    P{order} Aitken extrapolation J_inf = {Jx:.7f}")
+        rb = 1 if quick else 2
+        fb = FESeepage(b, 1.0, hwr, a, bc="zero_lb", order=2, ref=rb, mesh_method="blocks")
+        q = fb.mesh.quality()
+        log(f"    P2 blocks ref {rb}: ndof {fb.space.ndof:8d}  J = {fb.J_normalized():.7f}  (minus the last quadtree P2 value: "
+            f"{fb.J_normalized() - Js[-1]:+.2e}; block-mesh angles [{q['min_angle']:.2f}, {q['max_angle']:.1f}] deg)")
+        rows.append((b, a, hwr, -2, rb, fb.space.ndof, fb.J_normalized()))
     return rows
 
 
@@ -876,77 +1212,125 @@ def check_sensitivity(log, quick):
     return out
 
 
+FIG5_VARIANTS = (   # (column label, FESeepage keyword arguments besides beta, H, hw, alpha)
+    ("zero_lb", dict(bc="zero_lb")),
+    ("zero_b", dict(bc="zero_b")),
+    ("zero_l", dict(bc="zero_l")),
+    ("impermeable", dict(bc="impermeable")),
+    ("zero_lb_d29", dict(bc="zero_lb", depth=29.0)),            # 30 H below the CREST
+    ("zero_lb_rO", dict(bc="zero_lb", right="from_O")),         # right side 10 H beyond O (not beyond the toe)
+)
+
+
 def check_fig5(log, quick, plot):
     log("=" * 110)
     log("5) J(u'_FE)/(k_h H^2 gamma_w^2) at h_w = H vs beta, Fig. 5 dashed curves (vector data), box 50/10/30 H, P2 ref 1")
+    log("   far sides: zero_lb (u = 0 left + bottom, right no-flow; the default), zero_b, zero_l, impermeable;")
+    log("   box variants with zero_lb: _d29 = depth 30 H below the crest (29 H below the toe), _rO = right side 10 H")
+    log("   beyond O instead of beyond the toe.  rel = J_FE / J_paper - 1.  J_FE (conforming, exact piecewise-linear")
+    log("   data) is an upper bound of the exact J of its box: the paper's values must lie ABOVE the converged J of")
+    log("   the paper's box (P2 ref 1 here: converged to ~1e-5 relative, see check 3)")
     log("=" * 110)
     paper = _load_fig5_paper()
     betas = np.arange(15, 91, 15 if quick else 5)
-    bcs = ("zero_lb", "impermeable", "zero_b")
+    names = [n for n, _ in FIG5_VARIANTS]
     rows = []
     pmins = []
     for a in (1, 2, 4, 10):
-        log(f"  alpha = {a}:  {'beta':>5} {'paper':>8} " + " ".join(f"{bc:>11s} {'rel':>7}" for bc in bcs))
+        log(f"  alpha = {a}:  {'beta':>4} {'paper':>7} " + " ".join(f"{n:>17s}" for n in names))
         for b in betas:
             ref = paper[(a, int(b))][1] if paper else np.nan
             vals = []
-            for bc in bcs:
-                fe = FESeepage(b, 1.0, 1.0, a, bc=bc, order=2, ref=0 if quick else 1)
+            for _, kw in FIG5_VARIANTS:
+                kw = dict(kw)
+                if kw.get("right") == "from_O":
+                    kw["right"] = PAPER_BOX["right"] - 1.0 / np.tan(np.radians(b))
+                fe = FESeepage(b, 1.0, 1.0, a, order=2, ref=0 if quick else 1, **kw)
                 vals.append(fe.J_normalized())
                 pmin, _ = fe.min_pore_pressure()
                 pmins.append(pmin)
             rows.append([a, b, ref] + vals)
-            log(f"              {b:5.0f} {ref:8.4f} " + " ".join(f"{v:11.4f} {100 * (v / ref - 1):+6.2f}%" for v in vals))
+            log(f"              {b:4.0f} {ref:7.4f} " + " ".join(f"{v:9.5f} {100 * (v / ref - 1):+6.2f}%" for v in vals))
     rows = np.array(rows)
     log(f"  min total pore pressure p = u + gw y over all dofs of all runs: {min(pmins):.3e} kPa (must be >= 0)")
-    for k, bc in enumerate(bcs):
+    for k, n in enumerate(names):
         rel = rows[:, 3 + k] / rows[:, 2] - 1
-        log(f"  {bc:11s}: rel. diff to the paper dashed curves: mean {100 * rel.mean():+.3f}%, "
-            f"min {100 * rel.min():+.3f}%, max {100 * rel.max():+.3f}%")
+        log(f"  {n:12s}: rel. diff to the paper dashed curves: mean {100 * rel.mean():+.3f}%, min {100 * rel.min():+.3f}%, "
+            f"max {100 * rel.max():+.3f}%, RMS {100 * np.sqrt(np.mean(rel ** 2)):.3f}%; points with J_FE > J_paper "
+            f"(impossible for the paper's box): {int(np.sum(rel > 0))} of {len(rel)}")
     out = os.path.join(DATA_DIR, "fe_seepage_fig5_J.csv")
     np.savetxt(out, rows, delimiter=",", fmt="%.6f",
-               header="J(u'_FE)/(k_h H^2 gamma_w^2), h_w = H, box left 50H / right 10H / depth 30H below toe, P2 ref 1 "
-                      "(fe_seepage.py)\nalpha,beta_deg,paper_fig5_dashed," + ",".join(f"J_{bc}" for bc in bcs))
+               header="J(u'_FE)/(k_h H^2 gamma_w^2), h_w = H, box left 50H / right 10H beyond the toe / depth 30H below "
+                      "the toe unless stated, P2 ref 1 quadtree mesh (fe_seepage.py); _d29: depth 29 H below the toe; "
+                      "_rO: right side 10 H beyond O\nalpha,beta_deg,paper_fig5_dashed," + ",".join(f"J_{n}" for n in names))
     log(f"  -> written {out}")
+    # the paper's own mesh (Fig. 4a: a few hundred 6-node triangles, about H/5 at the slope, several H far away)
+    # gives an upper bound above the converged J: emulate it with coarse P2 meshes of the default generator
+    log("  Effect of a coarse P2 mesh like Fig. 4a (h = hc at O, W, T and the face, grade 0.3, hmax 6-8 H) on J:")
+    log(f"  {'alpha':>5} {'beta':>4} {'J fine':>9} {'paper':>8}  " +
+        "  ".join(f"hc={hc:g} (nv)" for hc, _, _ in COARSE_MESHES))
+    for a in (1, 10):
+        for b in ((15, 90) if quick else (15, 45, 90)):
+            fine = FESeepage(b, 1.0, 1.0, a, bc="zero_lb", order=2, ref=1).J_normalized()
+            cs = []
+            for hc, g, hm in COARSE_MESHES:
+                co = FESeepage(b, 1.0, 1.0, a, bc="zero_lb", order=2, size=MeshSize(h0=hc, hs=hc, grade=g, hmax=hm))
+                cs.append(f"{100 * (co.J_normalized() / fine - 1):+.3f}% ({co.mesh.nv})")
+            ref = paper[(a, int(b))][1] if paper else np.nan
+            log(f"  {a:5d} {b:4d} {fine:9.5f} {100 * (ref / fine - 1):+.3f}%  " + "  ".join(f"{c:>15s}" for c in cs))
     if plot:
-        _plot_fig5(rows, bcs)
+        _plot_fig5(rows, names)
     return rows
 
 
-def _plot_fig5(rows, bcs):
+def _plot_fig5(rows, names):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     paper = np.loadtxt(os.path.join(DATA_DIR, "fig5_vector_fill_polygons.csv"), delimiter=",", comments="#")
     ana = os.path.join(PROJECT_DIR, "results", "analytical_seepage", "fig5_analytical_Jstar.csv")
     ana = np.loadtxt(ana, delimiter=",", comments="#") if os.path.exists(ana) else None
-    fig, axs = plt.subplots(2, 2, figsize=(10, 7.2), constrained_layout=True)
-    col = {"zero_lb": "#2a78d6", "impermeable": "#eb6834", "zero_b": "#1baf7a"}
-    lab = {"zero_lb": "FE, u = 0 left + bottom", "impermeable": "FE, impermeable sides",
-           "zero_b": "FE, u = 0 bottom only"}
-    for ax, a, ymax in zip(axs.ravel(), (1, 2, 4, 10), (1.0, 0.7, 0.5, 0.3)):
+    fig, axs = plt.subplots(2, 4, figsize=(17, 7.6), constrained_layout=True, gridspec_kw=dict(height_ratios=[1.5, 1]))
+    col = {"zero_lb": "#2a78d6", "impermeable": "#eb6834", "zero_b": "#1baf7a", "zero_l": "#a35bd6",
+           "zero_lb_d29": "#c9a227", "zero_lb_rO": "0.5"}
+    lab = {"zero_lb": "FE, u = 0 left + bottom (default)", "impermeable": "FE, impermeable sides",
+           "zero_b": "FE, u = 0 bottom only", "zero_l": "FE, u = 0 left only",
+           "zero_lb_d29": "FE default BC, depth 30 H below the crest", "zero_lb_rO": "FE default BC, right side 10 H beyond O"}
+    for k, (a, ymax) in enumerate(zip((1, 2, 4, 10), (1.0, 0.7, 0.5, 0.3))):
+        ax, axr = axs[0, k], axs[1, k]
         p = paper[paper[:, 0] == a]
         ax.fill_between(p[:, 1], p[:, 2], p[:, 3], color="0.88", lw=0)
         ax.plot(p[:, 1], p[:, 3], "k--", lw=1.6, label="paper J(u'_FE) (dashed)")
         ax.plot(p[:, 1], p[:, 2], "k-", lw=1.2, label="paper -J*(v'_opt) (solid)")
         r = rows[rows[:, 0] == a]
-        for k, bc in enumerate(bcs):
-            ax.plot(r[:, 1], r[:, 3 + k], "o", ms=4.5, mfc="none", mew=1.4, color=col[bc], label=lab[bc])
+        for i, n in enumerate(names):
+            if n in ("zero_lb", "zero_l", "impermeable"):
+                ax.plot(r[:, 1], r[:, 3 + i], "o", ms=4.5 if i == 0 else 3.5, mfc="none", mew=1.4 if i == 0 else 1.0,
+                        color=col[n], label=lab[n])
+            if n in ("zero_lb", "zero_b", "zero_lb_d29", "zero_l"):
+                axr.plot(r[:, 1], 100 * (r[:, 3 + i] / r[:, 2] - 1), "-o", ms=3, lw=1.2 if i == 0 else 0.9,
+                         color=col[n], label=lab[n])
         if ana is not None:
             q = ana[ana[:, 0] == a]
             ax.plot(q[:, 1], q[:, 2], "x", ms=4, color="0.35", label="analytical -J* (analytical_seepage.py)")
         ax.set_title(f"alpha = {a}", fontsize=10)
-        ax.set_xlim(15, 90)
         ax.set_ylim(0, ymax)
-        ax.set_xticks(range(15, 91, 15))
-        ax.grid(color="0.92", lw=0.6)
-        ax.set_xlabel("slope inclination beta (deg)")
         ax.set_ylabel("J / (k_h H^2 gamma_w^2)")
+        axr.axhline(0.0, color="k", lw=0.8)
+        axr.set_ylim(-1.3, 0.6)
+        axr.set_ylabel("J_FE / J_paper - 1 (%)")
+        axr.set_xlabel("slope inclination beta (deg)")
+        for x in (ax, axr):
+            x.set_xlim(15, 90)
+            x.set_xticks(range(15, 91, 15))
+            x.grid(color="0.92", lw=0.6)
     axs[0, 0].legend(fontsize=7.5, loc="lower right", frameon=False)
-    fig.suptitle("Fig. 5 check: FE hydraulic functional at h_w = H, box 50H left of O / 10H right of toe / 30H below toe",
-                 fontsize=10)
+    axs[1, 0].legend(fontsize=7, loc="lower left", frameon=False)
+    fig.suptitle("Fig. 5 check: FE hydraulic functional at h_w = H (P2, converged), box 50 H left of O / 10 H right of the "
+                 "toe / 30 H below the toe; bottom: relative difference to the dashed curves (u = 0 left only: off scale "
+                 "for small alpha; impermeable: -3.4 to -11 %, off scale)", fontsize=9.5)
     os.makedirs(RESULTS_DIR, exist_ok=True)
-    fig.savefig(os.path.join(RESULTS_DIR, "fe_fig5_vs_paper.png"), dpi=130)
+    fig.savefig(os.path.join(RESULTS_DIR, "fe_fig5_vs_paper.png"), dpi=120)
     plt.close(fig)
 
 
@@ -956,6 +1340,16 @@ def check_fig4(log, plot, image=None):
     log("   depth below the toe ground where each iso-line reaches the right side, s = depth / (30 H)")
     log("=" * 110)
     image = image or FIG4_IMAGE_DEFAULT
+    nat = measure_fig4_native(PAPER_PDF_DEFAULT)
+    if nat is not None:
+        log(f"  native Fig. 4 image of the PDF (1000 x 1728 px): panel b box columns {nat['left_col']:.1f} - "
+            f"{nat['right_col']:.1f}, crest row {nat['crest_row']:.1f}, toe-ground row {nat['toe_row']:.1f}, bottom row "
+            f"{nat['bottom_row']:.1f}, crest edge O at column {nat['xO_col']:.0f}")
+        for name in ("width61", "crest_to_toe"):
+            e = nat[name]
+            log(f"    H = {e['H_px']:.2f} px ({name}): left of O {e['left']:.2f} H, right of O {e['right_of_O']:.2f} H "
+                f"(right of the toe {e['right_of_O'] - 1:.2f} H for beta = 45), depth below crest "
+                f"{e['depth_below_crest']:.2f} H = below toe {e['depth_below_toe']:.2f} H")
     if os.path.exists(image):
         m = measure_fig4b(image)
         log(f"  re-measured on {image}: vertical box lines at columns {m['vertical_lines']}, crest rows "
@@ -1035,11 +1429,11 @@ def _plot_fig4(sols, s_paper, lev, s_fe, image):
     keep = gy > fe.dom.ground(gx) + 0.02
     fx, fy = fe.force(gx[keep], gy[keep])
     ax.plot([-1.2, 0, fe.dom.xT, 2.4], [0, 0, 1, 1], "k-", lw=1.2)
-    ax.quiver(gx[keep], gy[keep], fx, -fy, angles="xy", scale_units="xy", scale=60.0, width=0.0025, color="#2a78d6")
-    # (y axis inverted below: the quiver y component is flipped back to the downward paper axis)
+    # angles="xy": arrows drawn in data coordinates, so with the inverted (downward) y axis fy > 0 points down
+    ax.quiver(gx[keep], gy[keep], fx, fy, angles="xy", scale_units="xy", scale=60.0, width=0.0025, color="#2a78d6")
     ax.invert_yaxis()
     ax.set_aspect("equal")
-    ax.set_title("seepage force -grad u'_FE near the slope (cf. Fig. 4c), zero_lb", fontsize=10)
+    ax.set_title("seepage force -grad u'_FE near the slope (cf. Fig. 4c), zero_lb, P2 ref 1", fontsize=10)
     ax.set_xlabel("x / H")
     ax.set_ylabel("y / H (down)")
     fig.savefig(os.path.join(DATA_DIR, "fe_seepage_fig4_check.png"), dpi=110)
@@ -1067,10 +1461,40 @@ def check_field(log):
     rel = np.sqrt(np.mean(np.sum((a1 - a2) ** 2, 0)) / np.mean(np.sum(a2 ** 2, 0)))
     log(f"  P1 ref 2 vs P2 ref 2 within 3H of O: RMS rel. diff of f = {100 * rel:.2f}%;  J/(kh H^2 gw^2): "
         f"P1 {f1.J_normalized():.6f}, P2 {f2.J_normalized():.6f}")
+    f2c = FESeepage(60.0, 5.0, 5.0, 5.0, gamma_w=9.81, bc="zero_lb", order=2, ref=1)
+    a2c = np.array(f2c.force(xs, ys))
+    rel_c = np.sqrt(np.mean(np.sum((a2c - a2) ** 2, 0)) / np.mean(np.sum(a2 ** 2, 0)))
+    far = np.hypot(xs - f2.dom.xT, ys - f2.dom.H) > 0.25 * f2.H        # away from the singular toe
+    rel_cf = np.sqrt(np.mean(np.sum((a2c - a2)[:, far] ** 2, 0)) / np.mean(np.sum(a2[:, far] ** 2, 0)))
+    log(f"  P2 ref 1 vs P2 ref 2 within 3H of O: RMS rel. diff of f = {100 * rel_c:.3f}% "
+        f"({100 * rel_cf:.3f}% beyond 0.25 H from the toe)")
     shape_ok = f2.force(np.zeros((3, 4)), np.ones((3, 4)))[0].shape == (3, 4)
     log(f"  arbitrary array shapes: {shape_ok};  u(-H/2, H) = {float(f2.u(-2.5, 5.0)):.4f} kPa, f = "
         f"{tuple(float(v) for v in f2.force(-2.5, 5.0))}")
-    # constant gravity check: f must be close to gamma_w e_y just below the submerged toe ground? (u = const there)
+    # first call on a fresh default field (P2 ref 1) includes the construction of the point locator
+    f3 = FESeepage(45.0, 5.0, 2.0, 4.0, gamma_w=9.81)
+    x3, y3 = rng.uniform(-15, 15, 100000), rng.uniform(-2, 15, 100000)
+    t = time.time()
+    f3.force(x3, y3)
+    log(f"  default field (P2 ref 1), 1e5 random points: first call (incl. point-locator build) {time.time() - t:.2f} s")
+    # points ON the ground surface (crest, face, toe ground) belong to the closed soil domain: f must not be
+    # 0 there and u must equal the Dirichlet data (before the _locate fix, 1890 of 2000 face points gave 0 / nan)
+    for fe in (f2, f3):
+        d = fe.dom
+        s = rng.uniform(0.0, 1.0, 2000)
+        xs_ = np.concatenate([rng.uniform(-2.0, 0.0, 1000) * fe.H, s * d.xT, d.xT + rng.uniform(0.0, 2.0, 1000) * fe.H])
+        ys_ = np.concatenate([np.zeros(1000), s * d.H, np.full(1000, d.H)])
+        fx_, fy_ = fe.force(xs_, ys_)
+        uu = fe.u(xs_, ys_)
+        err = np.nanmax(np.abs(uu - d.surface_u(xs_, ys_, fe.gamma_w)))
+        log(f"  points on the ground surface (beta = {d.beta_deg:g}, h_w/H = {fe.hw / fe.H:g}): {len(xs_)}; with f = 0: "
+            f"{int(np.sum((fx_ == 0) & (fy_ == 0)))}; u = nan: {int(np.isnan(uu).sum())}; max |u - Eq. 21 data| = {err:.1e} kPa")
+    # exact similarity in H: the mesh is generated for H = 1 and scaled
+    f4 = FESeepage(45.0, 1.0, 0.4, 4.0, gamma_w=9.81)
+    xs4, ys4 = _soil_samples(f4.dom, 3.0, 0.05)
+    d4 = np.array(f3.force(5.0 * xs4, 5.0 * ys4)) - np.array(f4.force(xs4, ys4))
+    log(f"  similarity: |f(H = 5)(5x, 5y) - f(H = 1)(x, y)| <= {np.abs(d4).max():.1e} kN/m^3 at {len(xs4)} points; "
+        f"J/(kh H^2 gw^2) {f3.J_normalized():.12f} vs {f4.J_normalized():.12f}")
     return rel
 
 
@@ -1080,28 +1504,31 @@ def write_reference_points(log):
     pts = [(-2.0, 0.5), (-0.5, 0.25), (-0.5, 1.0), (0.2, 0.5), (0.5, 1.2), (1.0, 2.0), (2.0, 1.5), (-1.0, 3.0),
            (0.0, 5.0), (4.0, 3.0)]
     cases = [(45, 1, 1.0), (90, 1, 1.0), (30, 10, 1.0), (60, 5, 1.0), (60, 4, 0.5)]
-    for b, a, hwr in cases:
-        fe = FESeepage(b, 1.0, hwr, a, gamma_w=9.81, bc="zero_lb", order=2, ref=2)
-        for x, y in pts:
-            if not fe.dom.in_box(x, y) or y <= fe.dom.ground(x) + 0.05:
-                continue
-            u = float(fe.u(x, y))
-            fx, fy = (float(v) for v in fe.force(x, y))
-            rows.append((b, a, hwr, x, y, u, fx, fy, fe.J_normalized()))
+    for ib, bc in enumerate(("zero_lb", "impermeable")):
+        for b, a, hwr in cases:
+            fe = FESeepage(b, 1.0, hwr, a, gamma_w=9.81, bc=bc, order=2, ref=2)
+            for x, y in pts:
+                if not fe.dom.in_box(x, y) or y <= fe.dom.ground(x) + 0.05:
+                    continue
+                u = float(fe.u(x, y))
+                fx, fy = (float(v) for v in fe.force(x, y))
+                rows.append((ib, b, a, hwr, x, y, u, fx, fy, fe.J_normalized()))
     out = os.path.join(DATA_DIR, "fe_seepage_reference_points.csv")
     np.savetxt(out, np.array(rows), delimiter=",", fmt="%.8g",
-               header="FE reference (fe_seepage.py, P2 ref 2, box 50/10/30 H, u = 0 on left + bottom, right no-flow), "
-                      "H = 1, gamma_w = 9.81, k_h = 1, paper coordinates (y down)\n"
-                      "beta_deg,alpha,hw_over_H,x,y,u_kPa,fx,fy,J_over_kh_H2_gw2")
+               header="FE reference (fe_seepage.py, P2 ref 2 quadtree mesh, box 50/10/30 H; bc 0 = zero_lb: u = 0 on "
+                      "left + bottom, right no-flow; bc 1 = impermeable), H = 1, gamma_w = 9.81, k_h = 1, paper "
+                      "coordinates (y down)\nbc,beta_deg,alpha,hw_over_H,x,y,u_kPa,fx,fy,J_over_kh_H2_gw2")
     log(f"  -> written {out} ({len(rows)} rows)")
+
+
+ALL_CHECKS = "mesh,mms,cross,conv,sens,fig5,fig4,field,ref"
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--quick", action="store_true")
     ap.add_argument("--no-plot", action="store_true")
-    ap.add_argument("--only", default="mms,cross,conv,sens,fig5,fig4,field,ref",
-                    help="comma list of mms,cross,conv,sens,fig5,fig4,field,ref")
+    ap.add_argument("--only", default=ALL_CHECKS, help="comma list of " + ALL_CHECKS)
     ap.add_argument("--fig4-image", default=None, help="page crop of Fig. 4 (PDF page 8) for the overlay")
     args = ap.parse_args(argv)
     os.makedirs(RESULTS_DIR, exist_ok=True)
@@ -1113,6 +1540,8 @@ def main(argv=None):
         lines.append(s)
 
     t0 = time.time()
+    if "mesh" in only:
+        check_mesh(log, args.quick, not args.no_plot)
     if "mms" in only:
         check_mms(log, args.quick)
     if "cross" in only:
@@ -1131,7 +1560,7 @@ def main(argv=None):
         write_reference_points(log)
     log(f"total time {time.time() - t0:.1f} s")
     tag = "_quick" if args.quick else ""
-    if only == set("mms,cross,conv,sens,fig5,fig4,field,ref".split(",")):
+    if only == set(ALL_CHECKS.split(",")):
         with open(os.path.join(RESULTS_DIR, f"checks_output{tag}.txt"), "w") as f:
             f.write("\n".join(lines) + "\n")
 

@@ -1,0 +1,17 @@
+panel,beta_deg,soil_params,gamma_w,Hcrit_m,paper_Hcrit_m,mechanism
+London,30,London,9.81,inf,156.555,
+London,30,London,9.8,inf,156.555,
+London,30,Israeli,9.81,156.71856,156.555,I
+London,30,Israeli,9.8,156.52744,156.555,I
+London,60,London,9.81,13.00189,17.949,I
+London,60,London,9.8,12.98603,17.949,I
+London,60,Israeli,9.81,17.97138,17.949,I
+London,60,Israeli,9.8,17.94946,17.949,I
+Israeli,35,London,9.81,229.10797,229.319,I
+Israeli,35,London,9.8,228.82857,229.319,I
+Israeli,35,Israeli,9.81,68.33114,229.319,I
+Israeli,35,Israeli,9.8,68.24781,229.319,I
+Israeli,60,London,9.81,13.00189,12.986,I
+Israeli,60,London,9.8,12.98603,12.986,I
+Israeli,60,Israeli,9.81,17.97138,12.986,I
+Israeli,60,Israeli,9.8,17.94946,12.986,I

@@ -1,0 +1,230 @@
+limit_analysis.py checks (full), quadrature levels: coarse: Quadrature(coarse: panels=4x5 grade=1 rho=1x4 circle_grade=0, 30 rays/piece); medium: Quadrature(medium: panels=8x6 grade=3 rho=2x5 circle_grade=2, 84 rays/piece); fine: Quadrature(fine: panels=12x8 grade=5 rho=2x6 circle_grade=4, 176 rays/piece); xfine: Quadrature(xfine: panels=24x10 grade=8 rho=4x8 circle_grade=7, 400 rays/piece); ref: Quadrature(ref: panels=48x12 grade=12 rho=6x10 circle_grade=10, 864 rays/piece)
+====================================================================================================
+1) P_gamma: closed form f1 - f2 - f3 (- f4 for II) vs polar quadrature ('xfine') vs polygon (shoelace)
+   gamma' = 1, H = 1; random admissible mechanisms; rel = |a - b| / |closed form|; 'max rel (r_h<=20H)'
+   = max over mechanisms of moderate size; 'max scaled' = max |a - b| / (|f1| + |f2| + |f3| + |f4|) over all
+   (huge near-degenerate random mechanisms, r0 ~ 1e3 H, have P_gamma ~ 1e-4 of the f terms: cancellation)
+====================================================================================================
+ beta   phi mech    n  max rel(r_h<=20H)  median rel  max scaled  Eq53 vs sinform  polygon max rel
+   30   0.0    I  300           2.39e-11    7.87e-15    3.79e-14         4.88e-13         9.77e-14
+   30   0.0   II  300           7.37e-14    1.27e-14    5.34e-14                -         4.71e-14
+   30  20.0    I  300           7.92e-12    6.76e-15    3.54e-13         1.59e-13         7.97e-12
+   30  20.0   II  300           6.46e-14    6.23e-15    1.66e-14                -         1.00e-13
+   30  32.0    I  300           2.71e-12    4.65e-15    2.62e-12         3.16e-13         4.14e-14
+   30  32.0   II  300           2.50e-14    5.76e-15    1.10e-14                -         5.65e-15
+   45   0.0    I  300           7.14e-13    5.96e-15    1.78e-14         3.86e-12         1.92e-13
+   45   0.0   II  300           7.02e-14    1.02e-14    1.75e-14                -         2.97e-14
+   45  20.0    I  300           4.01e-12    7.41e-15    4.27e-13         9.52e-13         1.38e-13
+   45  20.0   II  300           2.26e-13    6.11e-15    1.93e-14                -         1.24e-13
+   45  32.0    I  300           1.87e-12    6.64e-15    1.98e-13         1.19e-12         9.36e-13
+   45  32.0   II  300           2.85e-13    5.07e-15    1.31e-14                -         1.41e-11
+   60   0.0    I  300           2.74e-12    5.88e-15    2.06e-14         1.91e-13         8.47e-15
+   60   0.0   II  300           5.12e-14    1.00e-14    5.26e-14                -         4.14e-14
+   60  20.0    I  300           1.46e-12    5.95e-15    5.62e-14         9.33e-13         1.03e-14
+   60  20.0   II  300           1.45e-13    5.29e-15    2.70e-14                -         9.26e-14
+   60  32.0    I  300           8.12e-12    6.70e-15    5.20e-12         5.31e-13         9.68e-13
+   60  32.0   II  300           1.05e-12    3.63e-15    6.85e-15                -         2.00e-14
+   90   0.0    I  300           4.52e-12    5.18e-15    3.98e-14                -         4.52e-15
+   90   0.0   II  300           1.14e-13    8.27e-15    1.13e-13                -         2.10e-14
+   90  20.0    I  300           2.30e-12    5.91e-15    5.51e-14                -         5.67e-14
+   90  20.0   II  300           7.77e-13    3.05e-15    1.41e-14                -         3.44e-13
+   90  32.0    I  300           2.30e-12    5.71e-15    2.45e-13                -         7.27e-14
+   90  32.0   II  300           1.49e-14    2.61e-15    9.29e-15                -         1.83e-14
+   worst closed-form vs quadrature relative difference (r_h <= 20 H): 2.39e-11
+   P_mr continuity at phi -> 0: P_mr(phi=0) = 4.065731660449, P_mr(phi=1e-7 deg) = 4.065731638254
+   P_mr Eq. 48 vs int c cos(phi)|U| dS (phi =  0.0): 4.065731660449 4.065731660449
+   P_mr Eq. 48 vs int c cos(phi)|U| dS (phi = 30.0): 1.120621932785 1.120621932785
+====================================================================================================
+2) P_u: polar domain quadrature ('xfine') vs boundary formula -int u U.n dS for smooth potentials
+====================================================================================================
+   beta=  45 phi=30.0  I: uniform (0,1): med 5.7e-15 max(r_h<=20H) 1.3e-11 | uniform (0.7,-0.3): med 4.8e-15 max(r_h<=20H) 1.9e-14 | x^2y-y^3+xy+x: med 4.2e-15 max(r_h<=20H) 4.5e-14
+   beta=  45 phi=30.0 II: uniform (0,1): med 5.1e-15 max(r_h<=20H) 1.3e-13 | uniform (0.7,-0.3): med 5.6e-15 max(r_h<=20H) 2.4e-14 | x^2y-y^3+xy+x: med 6.0e-15 max(r_h<=20H) 1.0e-12
+   beta=  90 phi=20.0  I: uniform (0,1): med 4.8e-15 max(r_h<=20H) 3.4e-14 | uniform (0.7,-0.3): med 5.8e-15 max(r_h<=20H) 1.8e-13 | x^2y-y^3+xy+x: med 4.5e-15 max(r_h<=20H) 2.2e-14
+   beta=  90 phi=20.0 II: uniform (0,1): med 3.6e-15 max(r_h<=20H) 7.5e-14 | uniform (0.7,-0.3): med 2.4e-15 max(r_h<=20H) 1.6e-14 | x^2y-y^3+xy+x: med 6.3e-15 max(r_h<=20H) 1.5e-12
+   beta=  30 phi=10.0  I: uniform (0,1): med 8.1e-15 max(r_h<=20H) 4.0e-12 | uniform (0.7,-0.3): med 4.0e-15 max(r_h<=20H) 1.6e-14 | x^2y-y^3+xy+x: med 4.8e-15 max(r_h<=20H) 1.8e-13
+   beta=  30 phi=10.0 II: uniform (0,1): med 6.7e-15 max(r_h<=20H) 1.2e-12 | uniform (0.7,-0.3): med 5.2e-15 max(r_h<=20H) 2.7e-14 | x^2y-y^3+xy+x: med 6.6e-15 max(r_h<=20H) 8.4e-14
+====================================================================================================
+3) Dry homogeneous slopes: N = gamma H_c / c (gamma_w = 0, no seepage) vs literature
+====================================================================================================
+ beta  phi     N ours mech       params (theta1, theta2, eta | d/H) literature   conf  3.83tan(45+phi/2)
+   90    0     3.8313    I             (0.4788, 1.0028, eta=1.0000)       3.83   high              3.830
+   90    5     4.1897    I             (0.5285, 1.0258, eta=1.0000)       4.19 medium              4.180
+   90   10     4.5828    I             (0.5793, 1.0520, eta=1.0000)       4.59 medium              4.564
+   90   15     5.0180    I             (0.6312, 1.0803, eta=1.0000)       5.02 medium              4.991
+   90   20     5.5049    I             (0.6842, 1.1101, eta=1.0000)       5.51 medium              5.470
+   90   25     6.0558    I             (0.7386, 1.1410, eta=1.0000)       6.06 medium              6.012
+   90   30     6.6869    I             (0.7942, 1.1727, eta=1.0000)       6.69 medium              6.634
+   90   35     7.4206    I             (0.8513, 1.2050, eta=1.0000)       7.43 medium              7.357
+   90   40     8.2880    I             (0.9099, 1.2377, eta=1.0000)       8.30 medium              8.213
+   75    0     4.5645    I             (0.3921, 1.2931, eta=1.0000)       4.57   high 
+   75    5     5.1402    I             (0.4431, 1.2989, eta=1.0000)        nan        
+   75   10     5.7994    I             (0.4954, 1.3126, eta=1.0000)        nan        
+   75   15     6.5669    I             (0.5494, 1.3314, eta=1.0000)        nan        
+   75   20     7.4767    I             (0.6051, 1.3534, eta=1.0000)        nan        
+   75   25     8.5773    I             (0.6630, 1.3778, eta=1.0000)        nan        
+   75   30     9.9404    I             (0.7231, 1.4039, eta=1.0000)        nan        
+   75   35    11.6773    I             (0.7857, 1.4310, eta=1.0000)        nan        
+   75   40    13.9699    I             (0.8512, 1.4590, eta=1.0000)        nan        
+   60    0     5.2474    I             (0.3273, 1.5805, eta=1.0000)       5.24   high 
+   60    5     6.1575    I             (0.3860, 1.5631, eta=1.0000)       6.17    low 
+   60   10     7.2580    I             (0.4473, 1.5611, eta=1.0000)       7.26    low 
+   60   15     8.6285    I             (0.5120, 1.5677, eta=1.0000)       8.65    low 
+   60   20    10.3907    I             (0.5809, 1.5796, eta=1.0000)      10.39    low 
+   60   25    12.7431    I             (0.6548, 1.5947, eta=1.0000)      12.75    low 
+   60   30    16.0352    I             (0.7347, 1.6118, eta=1.0000)      16.18    low 
+   60   35    20.9393    I             (0.8219, 1.6297, eta=1.0000)        nan        
+   60   40    28.9149    I             (0.9180, 1.6474, eta=1.0000)        nan        
+   45    0     5.5260   II             (0.3601, 2.6883, d/H=10.000)       5.52   high   [d = d_max: deeper mechanisms lower N further]
+   45    5     7.3515    I             (0.3719, 1.8167, eta=1.0000)        nan        
+   45   10     9.3097    I             (0.4579, 1.7929, eta=1.0000)        nan        
+   45   15    12.0526    I             (0.5515, 1.7816, eta=1.0000)        nan        
+   45   20    16.1609    I             (0.6548, 1.7767, eta=1.0000)        nan        
+   45   25    22.8963    I             (0.7700, 1.7744, eta=1.0000)        nan        
+   45   30    35.5405    I             (0.9002, 1.7712, eta=1.0000)        nan        
+   45   35    65.5194    I             (1.0501, 1.7626, eta=1.0000)        nan        
+   45   40   185.4866    I             (1.2312, 1.7377, eta=1.0000)        nan        
+   30    0     5.5331   II             (0.3617, 2.6900, d/H=10.000)       5.52   high   [d = d_max: deeper mechanisms lower N further]
+   30    5     9.1305   II              (0.4022, 2.1188, d/H=0.142)        nan        
+   30   10    13.4993    I             (0.5712, 1.9863, eta=1.0000)        nan        
+   30   15    21.6896    I             (0.7321, 1.9386, eta=1.0000)        nan        
+   30   20    41.2147    I             (0.9168, 1.8908, eta=1.0000)        nan        
+   30   25   119.9203    I             (1.1406, 1.8246, eta=1.0000)        nan        
+   30   30        inf None                                        -        nan        
+   30   35        inf None                                        -        nan        
+   30   40        inf None                                        -        nan        
+====================================================================================================
+4) Scale invariance: Gamma(H) / Gamma(2H) = 2 (P_mr ~ c H^2, P_gamma, P_u ~ gamma H^3 at fixed h_w/H)
+====================================================================================================
+   dry London soil beta=60: Gamma(H=5) = 2.60037745, Gamma(H=10) = 1.30018873, ratio = 2.00000000; Hcrit = 13.001887 / 13.001887; angles [0.76862 1.61892] / [0.76862 1.61892]
+   analytical seepage beta=60 alpha=1 hw=H: Gamma(H=5) = 1.42889244, Gamma(H=10) = 0.71444622, ratio = 2.00000000; Hcrit = 7.144462 / 7.144462; angles [0.18709 1.77249] / [0.18709 1.77249]
+====================================================================================================
+5) Uniform body-force field f = (0, g): Gamma(gamma', f) must equal Gamma(gamma' + g, no field)
+====================================================================================================
+   beta=  60 c=  6.0 phi=32.0 gamma'=  8.19 g= 4.00: domain 1.7470952682  boundary 1.7470952682  gamma'+g 1.7470952682  rel -1.0e-15 / -1.2e-15
+   beta=  45 c= 10.0 phi=30.0 gamma'= 10.19 g= 9.81: domain 3.5540477521  boundary 3.5540477521  gamma'+g 3.5540477521  rel +2.7e-15 / -8.9e-16
+   beta=  90 c= 10.0 phi= 0.0 gamma'= 18.00 g= 2.00: domain 0.3831337148  boundary 0.3831337148  gamma'+g 0.3831337148  rel +2.2e-16 / +6.7e-16
+====================================================================================================
+6) PSO (+ Nelder-Mead) vs brute-force grid search over (theta1, theta2, s) for each mechanism class
+   (grid best then polished by Nelder-Mead from the grid point)
+====================================================================================================
+   dry London soil (c=6, phi=32), gamma'=8.19, beta=60: PSO+NM Gamma = 1.30018873 (I, x = [0.76862  1.618921 1.      ]), seed spread 1.1e-15, 24758 evaluations, 1.1 s
+      grid I 160x160x60 = 1536000 points (closed-form P_gamma): min 1.300230 at [0.7706 1.6202 1.    ] -> NM 1.30018873 at [0.76862  1.618921 1.      ]; PSO class best 1.30018873; diff +1.1e-15  (0.9 s)
+      grid II 160x160x60 = 1536000 points (closed-form P_gamma): min 1.300230 at [0.7706 1.6202 1.    ] -> NM 1.30018873 at [0.76862  1.618921 1.      ]; PSO class best 1.30018873; diff +2.2e-16  (0.8 s)
+   dry phi=0, beta=45 (mechanism II, d<=10H): PSO+NM Gamma = 5.52598083 (II, x = [ 0.360084  2.68835  11.      ]), seed spread 4.4e-15, 31775 evaluations, 1.3 s
+      grid I 160x160x60 = 1536000 points (closed-form P_gamma): min 5.870268 at [0.2964 1.8672 1.    ] -> NM 5.87008244 at [0.290568 1.86752  1.      ]; PSO class best 5.87008244; diff +2.2e-16  (0.8 s)
+      grid II 160x160x60 = 1536000 points (closed-form P_gamma): min 5.527032 at [ 0.3557  2.6871 10.322 ] -> NM 5.52598083 at [ 0.360084  2.68835  11.      ]; PSO class best 5.52598083; diff +2.2e-16  (0.6 s)
+   Fig. 9 alpha=1 beta=60, analytical v'_opt field: PSO+NM Gamma = 1.42889244 (I, x = [0.187091 1.77249  1.      ]), seed spread 1.3e-15, 25836 evaluations, 19.0 s
+      grid I 50x50x20 = 50000 points (coarse quadrature): min 1.431171 at [0.1282 1.7952 1.    ] -> NM 1.42889244 at [0.187091 1.77249  1.      ]; PSO class best 1.42889244; diff +6.7e-16  (4.4 s)
+      grid II 50x50x20 = 50000 points (coarse quadrature): min 1.431171 at [0.1282 1.7952 1.    ] -> NM 1.42889244 at [0.187091 1.77249  1.      ]; PSO class best 1.42889244; diff +4.4e-16  (2.5 s)
+   beta=30, c=11.7, phi=24.7, gamma=18, h_w/H=0.2, analytical field (R_w inside the mechanism): PSO+NM Gamma = 5.86708097 (I, x = [1.074297 1.925093 1.      ]), seed spread 1.3e-15, 31269 evaluations, 28.5 s
+      grid I 50x50x20 = 50000 points (coarse quadrature): min 5.890959 at [1.0899 1.9234 1.    ] -> NM 5.86708097 at [1.074297 1.925093 1.      ]; PSO class best 5.86708097; diff -3.4e-15  (5.7 s)
+      grid II 50x50x20 = 50000 points (coarse quadrature): min 5.890958 at [1.0899 1.9234 1.    ] -> NM 5.86708097 at [1.074297 1.925093 1.      ]; PSO class best 5.86708097; diff -3.3e-15  (3.8 s)
+====================================================================================================
+7) Convergence of the P_u quadrature at the optimal mechanisms (analytical field, Fig. 9 data alpha=1,
+   h_w = H: discontinuities at r = R_w = R, R_e about O, r^(m-1) singularity at O)
+====================================================================================================
+   (last case: beta=30, H=10, h_w/H=0.2, c=11.7, phi=24.7, gamma=18: circle R_w inside the mechanism)
+   beta=  45 h_w/H=1.0 (m = 0.7634) P_gamma = 33.658444, P_u(ref) = 136.5343004393
+      coarse: P_u = 136.5297028958  rel -3.37e-05  Gamma 1.90453187  (2.5 ms)
+      medium: P_u = 136.5336169280  rel -5.01e-06  Gamma 1.90448807  (3.7 ms)
+        fine: P_u = 136.5339722766  rel -2.40e-06  Gamma 1.90448409  (4.6 ms)
+       xfine: P_u = 136.5343001880  rel -1.84e-09  Gamma 1.90448042  (13.5 ms)
+         ref: P_u = 136.5343004393  rel +0.00e+00  Gamma 1.90448042  (50.7 ms)
+        fine without circle splits: rel -2.80e-06
+       xfine without circle splits: rel -3.31e-07
+   beta=  60 h_w/H=1.0 (m = 0.5890) P_gamma = 60.569161, P_u(ref) = 94.6870757847
+      coarse: P_u = 94.6462984831  rel -4.31e-04  Gamma 1.42926401  (1.3 ms)
+      medium: P_u = 94.6790418473  rel -8.48e-05  Gamma 1.42896257  (2.3 ms)
+        fine: P_u = 94.6866608068  rel -4.38e-06  Gamma 1.42889244  (3.7 ms)
+       xfine: P_u = 94.6870750951  rel -7.28e-09  Gamma 1.42888863  (12.1 ms)
+         ref: P_u = 94.6870757847  rel +0.00e+00  Gamma 1.42888862  (40.9 ms)
+        fine without circle splits: rel -5.01e-05
+       xfine without circle splits: rel -7.23e-06
+   beta=  90 h_w/H=1.0 (m = 0.0000) P_gamma = 519.724035, P_u(ref) = 713.8659683879
+      coarse: P_u = 714.3028424441  rel +6.12e-04  Gamma 0.60121926  (4.0 ms)
+      medium: P_u = 713.8691061292  rel +4.40e-06  Gamma 0.60143065  (5.0 ms)
+        fine: P_u = 713.8659852792  rel +2.37e-08  Gamma 0.60143218  (7.0 ms)
+       xfine: P_u = 713.8659683938  rel +8.28e-12  Gamma 0.60143218  (14.8 ms)
+         ref: P_u = 713.8659683879  rel +0.00e+00  Gamma 0.60143218  (38.4 ms)
+        fine without circle splits: rel +3.92e-05
+       xfine without circle splits: rel +3.41e-06
+   beta=  30 h_w/H=0.2 (m = 0.8592) P_gamma = 250.036289, P_u(ref) = 747.9860954701
+      coarse: P_u = 746.1688993078  rel -2.43e-03  Gamma 5.87777982  (3.9 ms)
+      medium: P_u = 747.9322090264  rel -7.20e-05  Gamma 5.86739438  (5.0 ms)
+        fine: P_u = 747.9855185093  rel -7.71e-07  Gamma 5.86708097  (6.8 ms)
+       xfine: P_u = 747.9860955292  rel +7.90e-11  Gamma 5.86707758  (15.9 ms)
+         ref: P_u = 747.9860954701  rel +0.00e+00  Gamma 5.86707758  (49.6 ms)
+        fine without circle splits: rel -3.08e-04
+       xfine without circle splits: rel +4.53e-05
+====================================================================================================
+8) FE field (-grad u'_FE, fe_seepage.py defaults, ref=1, H=5, h_w=H, alpha=1): domain quadrature vs the
+   boundary formula (exact for f = -grad u_h); the optimiser uses the boundary formula for FE fields
+====================================================================================================
+   FE field (fe_seepage.py defaults at run time): beta= 45.0 alpha= 1.00 hw/H=1.000 box(L,R,D)/H=(50,10,30) bc={'left': 'zero', 'bottom': 'zero', 'right': 'neumann'} P2 nv=3948 ntri=7668 ndof=15563 angles=[20.1,125.8] J/(kh H^2 gw^2)=0.753173 min p=0.000e+00 at [-250.    0.]
+   beta=  45: Gamma_FE = 1.389073 (boundary); boundary P_u with 24/48/192 panels: 267.42118326 267.42010415 267.42049586
+      domain coarse: 267.42557695  rel to boundary +1.90e-05  (0.00 s)
+      domain   fine: 267.42052435  rel to boundary +1.07e-07  (0.00 s)
+      domain  xfine: 267.42027239  rel to boundary -8.36e-07  (0.01 s)
+      domain    ref: 267.42048954  rel to boundary -2.36e-08  (0.08 s)
+      domain  dense: 267.42030664  rel to boundary -7.08e-07  (0.52 s)
+   FE field (fe_seepage.py defaults at run time): beta= 90.0 alpha= 1.00 hw/H=1.000 box(L,R,D)/H=(50,10,30) bc={'left': 'zero', 'bottom': 'zero', 'right': 'neumann'} P2 nv=3772 ntri=7325 ndof=14868 angles=[23.0,110.9] J/(kh H^2 gw^2)=0.908711 min p=0.000e+00 at [-250.    0.]
+   beta=  90: Gamma_FE = 0.557601 (boundary); boundary P_u with 24/48/192 panels: 543.38132100 543.38279889 543.38281575
+      domain coarse: 543.38989503  rel to boundary +1.30e-05  (0.00 s)
+      domain   fine: 543.38229914  rel to boundary -9.51e-07  (0.00 s)
+      domain  xfine: 543.38451926  rel to boundary +3.14e-06  (0.01 s)
+      domain    ref: 543.38316281  rel to boundary +6.39e-07  (0.06 s)
+      domain  dense: 543.38284968  rel to boundary +6.25e-08  (0.36 s)
+====================================================================================================
+9) Fig. 8 at h_w/H = 0: buoyant slope (gamma' = gamma - gamma_w, NoSeepage), H_crit = Gamma * H
+   paper values: dashed (v'_opt) / dash-dot (FE) ends of paper_fig8*.csv (identical at h_w = 0)
+====================================================================================================
+   panel beta |            soil params gamma_w |  Hcrit ours     paper ours/paper | mechanism
+  London   30 |  London c=6.0 phi=32.0    9.81 |         inf   156.555        inf | Table 1 no admissible mechanism with P_gamma > 0 (Gamma = inf)
+  London   30 |  London c=6.0 phi=32.0    9.80 |         inf   156.555        inf | Table 1 no admissible mechanism with P_gamma > 0 (Gamma = inf)
+  London   30 | Israeli c=11.7 phi=24.7    9.81 |    156.7186   156.555    1.00104 | SWAPPED I theta1=1.1254 theta2=1.8298 eta=1.0000 L/H=0.0763
+  London   30 | Israeli c=11.7 phi=24.7    9.80 |    156.5274   156.555    0.99982 | SWAPPED I theta1=1.1254 theta2=1.8298 eta=1.0000 L/H=0.0763
+  London   60 |  London c=6.0 phi=32.0    9.81 |     13.0019    17.949    0.72438 | Table 1 I theta1=0.7686 theta2=1.6189 eta=1.0000 L/H=0.2201
+  London   60 |  London c=6.0 phi=32.0    9.80 |     12.9860    17.949    0.72350 | Table 1 I theta1=0.7686 theta2=1.6189 eta=1.0000 L/H=0.2201
+  London   60 | Israeli c=11.7 phi=24.7    9.81 |     17.9714    17.949    1.00125 | SWAPPED I theta1=0.6502 theta2=1.5937 eta=1.0000 L/H=0.3093
+  London   60 | Israeli c=11.7 phi=24.7    9.80 |     17.9495    17.949    1.00003 | SWAPPED I theta1=0.6502 theta2=1.5937 eta=1.0000 L/H=0.3093
+ Israeli   35 |  London c=6.0 phi=32.0    9.81 |    229.1080   229.319    0.99908 | SWAPPED I theta1=1.2783 theta2=1.7561 eta=1.0000 L/H=0.0329
+ Israeli   35 |  London c=6.0 phi=32.0    9.80 |    228.8286   229.319    0.99786 | SWAPPED I theta1=1.2783 theta2=1.7561 eta=1.0000 L/H=0.0329
+ Israeli   35 | Israeli c=11.7 phi=24.7    9.81 |     68.3311   229.319    0.29797 | Table 1 I theta1=0.9573 theta2=1.8421 eta=1.0000 L/H=0.1256
+ Israeli   35 | Israeli c=11.7 phi=24.7    9.80 |     68.2478   229.319    0.29761 | Table 1 I theta1=0.9573 theta2=1.8421 eta=1.0000 L/H=0.1256
+ Israeli   60 |  London c=6.0 phi=32.0    9.81 |     13.0019    12.986    1.00122 | SWAPPED I theta1=0.7686 theta2=1.6189 eta=1.0000 L/H=0.2201
+ Israeli   60 |  London c=6.0 phi=32.0    9.80 |     12.9860    12.986    1.00000 | SWAPPED I theta1=0.7686 theta2=1.6189 eta=1.0000 L/H=0.2201
+ Israeli   60 | Israeli c=11.7 phi=24.7    9.81 |     17.9714    12.986    1.38390 | Table 1 I theta1=0.6502 theta2=1.5937 eta=1.0000 L/H=0.3093
+ Israeli   60 | Israeli c=11.7 phi=24.7    9.80 |     17.9495    12.986    1.38222 | Table 1 I theta1=0.6502 theta2=1.5937 eta=1.0000 L/H=0.3093
+====================================================================================================
+10) beta < phi without seepage (London clay of Table 1, beta = 30 < phi = 32)
+====================================================================================================
+   beta= 30.0 phi=32.0: 227835 random admissible mechanisms (I and II, d <= 100 H): 0 with P_gamma > 0, max P_gamma / (gamma' r_h^3) = -1.694e-10
+   beta= 31.9 phi=32.0: 227402 random admissible mechanisms (I and II, d <= 100 H): 0 with P_gamma > 0, max P_gamma / (gamma' r_h^3) = -2.900e-11
+   beta= 32.1 phi=32.0: 227217 random admissible mechanisms (I and II, d <= 100 H): 132 with P_gamma > 0, max P_gamma / (gamma' r_h^3) = +1.547e-07
+   London soil beta=30.0: Hcrit = inf
+   London soil beta=31.0: Hcrit = inf
+   London soil beta=32.5: Hcrit = 3153.3571 (I, theta1=1.4573 theta2=1.6659 L/H=0.0063)
+   London soil beta=33.0: Hcrit = 1128.0917 (I, theta1=1.4075 theta2=1.6976 L/H=0.0121)
+   London soil beta=35.0: Hcrit = 229.1080 (I, theta1=1.2783 theta2=1.7561 L/H=0.0329)
+====================================================================================================
+11) Fig. 9 smoke test: alpha = 1, H = 5, c = 10, phi = 30, gamma = 20, h_w = H, analytical v'_opt field
+    (dashed curve of Fig. 9, paper_fig9.csv; digitisation uncertainty ~0.002-0.02)
+====================================================================================================
+ beta gamma_w  Gamma ours    paper ours/paper mech   theta1   theta2  eta|d/H    P_gamma        P_u   spread   time
+   30    9.81     3.57876   3.4895     1.0256    I   0.9101   2.0975   1.0000   -64.6379   271.9059  2.7e-15   19.1
+   35    9.81     2.67684   2.6350     1.0159    I   0.7349   2.0654   1.0000   -10.4605   206.4487  1.1e-15   19.4
+   40    9.81     2.20044   2.1728     1.0127    I   0.5827   2.0192   1.0000    17.6587   164.6406  1.1e-15   16.7
+   45    9.81     1.90448   1.8875     1.0090    I   0.4483   1.9643   1.0000    33.6584   136.5340  4.4e-16   20.0
+   45    9.80     1.90567   1.8875     1.0096    I   0.4488   1.9641   1.0000    33.7296   136.4095  2.7e-15   19.8
+   50    9.81     1.70067   1.6805     1.0120    I   0.3313   1.9039   1.0000    43.9100   117.0261  8.9e-16   20.1
+   55    9.81     1.54937   1.5407     1.0056    I   0.2377   1.8396   1.0000    51.9008   103.4255  6.7e-16   20.8
+   60    9.81     1.42889   1.4228     1.0043    I   0.1871   1.7725   1.0000    60.5692    94.6867  1.3e-15   18.1
+   60    9.80     1.42923   1.4228     1.0045    I   0.1879   1.7723   1.0000    60.6816    94.6124  1.1e-15   18.1
+   65    9.81     1.32147   1.3129     1.0065    I   0.2296   1.7031   1.0000    75.0664    92.5114  2.2e-16   19.9
+   70    9.81     1.19887   1.1913     1.0064    I   0.4138   1.6329   1.0000   105.8325   107.7436  6.7e-16   21.0
+   75    9.81     1.02512   1.0233     1.0018    I   0.6502   1.5629   1.0000   161.6449   171.5660  2.2e-16   21.0
+   80    9.81     0.79229   0.7943     0.9975    I   0.8594   1.4817   1.0000   264.8513   376.8593  2.0e-15   20.7
+   85    9.81     0.67841   0.6677     1.0160    I   0.9095   1.3985   1.0000   370.1700   534.4977  3.8e-15   16.8
+   90    9.81     0.60143   0.6046     0.9948    I   0.9342   1.3156   1.0000   519.7240   713.8660  8.9e-16   16.4
+   90    9.80     0.60154   0.6046     0.9949    I   0.9341   1.3154   1.0000   520.3806   713.0737  1.8e-15   16.2
+total time 747.5 s

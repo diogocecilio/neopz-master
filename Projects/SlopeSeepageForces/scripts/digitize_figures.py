@@ -26,17 +26,25 @@ Two independent extraction paths are implemented:
              width, lie exactly on the plotted polyline (vertices recovered by a
              continuous piecewise-linear fit).  Axes maps from the vector ticks.
 
+Fig. 9 is read from the embedded bitmap itself (extracted with pdfimages: the
+original 300-ppi pixels, no resampling); the 450-dpi render and 300 / 600-dpi
+page renders are traced with the same pipeline and their spread enters the
+per-point uncertainty.
+
 Outputs (in --out-dir): paper_fig5.csv, paper_fig8.csv (vector values),
 paper_fig9.csv (raster), paper_fig5_raster.csv / paper_fig8_raster.csv (raster
-values of the vector figures, for validation), paper_fig8_vertices.csv (all
-recovered polyline vertices of Fig. 8), digitize_check_fig{5,8,9}.png
-(overlays) and digitize_meta.json (uncertainties, omitted/hidden points,
-validation statistics).  With --no-vector the raster values go to the main
-CSV names.
+values of the vector figures, for validation), raw vertices per curve
+(paper_fig5_vertices.csv = fill_between polygon vertices, paper_fig8_vertices.csv
+= recovered polyline vertices, paper_fig9_vertices.csv = 5-deg polyline nodes
+with per-point uncertainty, hidden ones flagged visible=0),
+digitize_check_fig{5,8,9}.png (overlays) and digitize_meta.json
+(uncertainties, omitted/hidden points, validation statistics).  With
+--no-vector the raster values go to the main CSV names.
 
 Usage:  python3 digitize_figures.py [--paper-dir DIR] [--out-dir DIR]
         DIR must contain paper.pdf; hi-09.png / hi-13.png (450-dpi renders of
         PDF pages 9 and 13) are rendered with pdftoppm when missing.
+        Needs poppler-utils (pdftocairo, pdfimages, pdftoppm), numpy and PIL.
 """
 
 import argparse
@@ -1282,6 +1290,16 @@ def run_fig5(pdf, png, out, work, meta):
     write_csv(os.path.join(out, "paper_fig5.csv"), ["alpha", "beta_deg", "curve", "value"], rows if V else rows_r)
     if V:
         write_csv(os.path.join(out, "paper_fig5_raster.csv"), ["alpha", "beta_deg", "curve", "value"], rows_r)
+        # all vertices of the fill_between polygon (the plotted data, 0.375-deg grid minus the
+        # collinear points dropped by the plotting library's path simplification)
+        verts = []
+        for alpha, _ in FIG5_PANELS:
+            for name in ("J_FE", "minus_Jstar_opt"):
+                bx, by = V[alpha]["vals"][name]["_dense"]
+                if np.any(np.diff(bx) <= 1e-6):
+                    raise RuntimeError("Fig. 5 alpha=%d %s: chain not strictly increasing in beta" % (alpha, name))
+                verts += [[alpha, name, fmt(x, 4), fmt(y, 5)] for x, y in zip(bx, by)]
+        write_csv(os.path.join(out, "paper_fig5_vertices.csv"), ["alpha", "curve", "beta_deg", "value"], verts)
     # overlay on the 450-dpi render
     im = Image.open(png).convert("RGB")
     d = ImageDraw.Draw(im)
@@ -1317,7 +1335,7 @@ def run_fig5(pdf, png, out, work, meta):
 def run_fig8(pdf, png, out, work, meta):
     V = fig8_vector(pdf, work) if pdf else None
     R = fig8_raster(png)
-    rows, rows_r, hidden, verts, flags = [], [], [], [], []
+    rows, rows_r, hidden, verts, flags, between = [], [], [], [], [], []
     for soil in FIG8_SOILS:
         for beta in FIG8_BETAS[soil]:
             for curve in ("vopt", "FE", "Wu_rp025"):
@@ -1338,6 +1356,8 @@ def run_fig8(pdf, png, out, work, meta):
                     H = 10 ** vc["log10H"][i]
                     if ylo <= H <= yhi:
                         rows.append([soil, beta, curve, t, fmt(H, 3)])
+                        if abs(t / vc["step"] - round(t / vc["step"])) > 1e-6:
+                            between.append("%s beta=%d %s hw/H=%g (vertex step %g)" % (soil, beta, curve, t, vc["step"]))
                     else:
                         hidden.append({"soil": soil, "beta_deg": beta, "curve": curve, "hw_over_H": t,
                                        "Hcrit_m_from_clipped_vector_geometry": round(float(H), 3),
@@ -1402,6 +1422,17 @@ def run_fig8(pdf, png, out, work, meta):
         "y_axis": "log10, ticks 10^1, 10^2 and minor ticks; axis range %.2f .. %.1f m" % tuple(
             (V or R)["London"]["ylim"]),
         "omitted_clipped_points": hidden,
+        "csv_points_between_vertices": {
+            "points": between,
+            "note": "the plotted polyline of these curves has no vertex at this h_w/H (coarsest vertex grid that "
+                    "reproduces the outline: see validation.vector_polyline_fit.vertex_step_hw); the CSV value is "
+                    "read on the straight plotted segment (log-linear interpolation between the adjacent vertices)"},
+        "hw0_consistency": ({"%s beta=%d" % (s_, b_): {
+            c_: round(float(10 ** V[s_]["curves"][(b_, c_)]["vlog10H"][0]), 3) for c_ in ("vopt", "FE")}
+            for s_ in FIG8_SOILS for b_ in FIG8_BETAS[s_]} if V else {}),
+        "hw0_consistency_note": "at h_w = 0 there is no seepage: the vopt and FE curves must start at the same "
+                                "H_crit (values from the vector vertices, including the clipped Israeli beta=35 "
+                                "ones, extrapolated along the visible part of the first segment)",
         "low_support_vertices": flags,
         "uncertainty_note": "vector values: polyline vertices recovered to <= 1.5e-4 in log10(H) (0.03 %), "
                             "axis map 2e-5; points flagged in low_support_vertices (end of a dash-dot line in a "
@@ -1416,15 +1447,43 @@ def run_fig8(pdf, png, out, work, meta):
     return V, R
 
 
-def run_fig9(png, out, meta, extra_renders=()):
-    R = fig9_raster(png)
-    # resolution check: same pipeline on other renders of the page
-    alt = []
-    for path, dpi in extra_renders:
-        ppp = dpi / 72.0
-        reg = tuple(int(v * ppp / PX_PER_PT) for v in (1700, 2700, 600, 3200))
-        alt.append((dpi, fig9_raster(path, region=reg, px_per_pt=ppp)))
-    rows, hidden, unc = [], [], {}
+def extract_fig9_bitmap(pdf, workdir, page=13):
+    """Extract the embedded Fig. 9 bitmap of the PDF page with pdfimages.
+
+    Returns (png path, pixels per PDF point) of the largest image of the page,
+    or None when pdfimages is missing / the page holds no image.  This is the
+    original pixel data of Fig. 9 (no resampling, unlike a page render)."""
+    if not (pdf and os.path.exists(pdf) and shutil.which("pdfimages")):
+        return None
+    lst = subprocess.run(["pdfimages", "-list", "-f", str(page), "-l", str(page), pdf],
+                         check=True, capture_output=True, text=True).stdout.splitlines()
+    imgs = []
+    # columns: page num type width height color comp bpc enc interp object ID x-ppi y-ppi size ratio
+    # ("object ID" is two tokens: object number and generation)
+    for line in lst[2:]:
+        t = line.split()
+        if len(t) >= 14 and t[2] == "image":
+            imgs.append((int(t[1]), int(t[3]), int(t[4]), float(t[12]), float(t[13])))
+    if not imgs:
+        return None
+    num, w, h, xppi, yppi = max(imgs, key=lambda r: r[1] * r[2])
+    root = os.path.join(workdir, "p%02d_img" % page)
+    subprocess.run(["pdfimages", "-png", "-f", str(page), "-l", str(page), pdf, root], check=True)
+    path = "%s-%03d.png" % (root, num)
+    with Image.open(path) as im:
+        if im.size != (w, h):
+            raise RuntimeError("pdfimages: unexpected size %s for image %d" % (im.size, num))
+    return path, 0.5 * (xppi + yppi) / 72.0
+
+
+def run_fig9(sources, out, meta):
+    """sources: list of dict(path, region, ppp, label); the first one is the primary
+    source of the CSV values, the others measure the sensitivity of the pipeline to
+    the pixel grid (same figure resampled at other resolutions)."""
+    prim = sources[0]
+    R = fig9_raster(prim["path"], region=prim["region"], px_per_pt=prim["ppp"])
+    alt = [(s["label"], fig9_raster(s["path"], region=s["region"], px_per_pt=s["ppp"])) for s in sources[1:]]
+    rows, hidden, unc, verts = [], [], {}, []
     for alpha in FIG9_ALPHAS:
         for curve in ("FE", "vopt"):
             c = R[alpha]["curves"][curve]
@@ -1435,55 +1494,77 @@ def run_fig9(png, out, meta, extra_renders=()):
                 spread = [a[1][alpha]["curves"][curve]["val"][i] for a in alt]
                 spread = [x for x in spread if np.isfinite(x)]
                 u = float(np.sqrt(c["sigma"][i] ** 2 + (0.5 * (max(spread + [v]) - min(spread + [v]))) ** 2))
-                if c["visible"][i]:
+                vis = bool(c["visible"][i])
+                verts.append([alpha, curve, int(b), fmt(v, 4), int(vis), fmt(u, 4),
+                              fmt(c["mismatch"][i], 4) if np.isfinite(c["mismatch"][i]) else ""])
+                if vis:
                     rows.append([alpha, int(b), curve, fmt(v, 4)])
                     unc["alpha=%d %s beta=%d" % (alpha, curve, b)] = round(u, 4)
                 else:
                     hidden.append({"alpha": alpha, "curve": curve, "beta_deg": int(b), "Gamma_extrapolated": round(float(v), 3),
+                                   "u_Gamma": round(u, 3),
                                    "note": "above the plotted range (Gamma > 5): straight-line extrapolation of the "
                                            "visible part of the adjacent polyline segment, not a visible point"})
     write_csv(os.path.join(out, "paper_fig9.csv"), ["alpha", "beta_deg", "curve", "Gamma"], rows)
-    im = Image.open(png).convert("RGB")
+    write_csv(os.path.join(out, "paper_fig9_vertices.csv"),
+              ["alpha", "curve", "beta_deg", "Gamma", "visible", "u_Gamma", "right_minus_left_segment"], verts)
+    # overlay on the primary image, enlarged to about 600 px per inch for legibility
+    S = max(1, int(round(8.33 / prim["ppp"])))
+    pt = prim["ppp"] * S                       # output pixels per PDF point
+    im = Image.open(prim["path"]).convert("RGB")
+    im = im.resize((im.width * S, im.height * S), Image.LANCZOS)
     d = ImageDraw.Draw(im)
     col = {"vopt": (0, 150, 0), "FE": (220, 0, 0)}
     for alpha in FIG9_ALPHAS:
         xm, ym = R[alpha]["xmap"], R[alpha]["ymap"]
         box = R[alpha]["box"]
+        X = lambda v: S * (xm.to_pix(v) + 0.5) - 0.5    # pixel-centre convention of the resize
+        Y = lambda v: S * (ym.to_pix(v) + 0.5) - 0.5
         for curve, c in R[alpha]["curves"].items():
-            for x, y in zip(xm.to_pix(c["beta"][::2]), ym.to_pix(c["Gamma"][::2])):
-                d.point((x, y - 14), fill=col[curve])
+            for x, y in zip(X(c["beta"][::2]), Y(c["Gamma"][::2])):
+                d.point((x, y - 2.2 * pt), fill=col[curve])
             ok = np.isfinite(c["val"])
-            draw_polyline(d, zip(xm.to_pix(c["nodes"][ok]), ym.to_pix(c["val"][ok])), col[curve], 1)
+            draw_polyline(d, zip(X(c["nodes"][ok]), Y(c["val"][ok])), col[curve], 1)
         for r in rows:
             if r[0] == alpha:
-                draw_marker(d, xm.to_pix(r[1]), ym.to_pix(float(r[3])), (255, 140, 0), r=8)
+                draw_marker(d, X(r[1]), Y(float(r[3])), (255, 140, 0), r=1.3 * pt, width=max(2, S))
         W, Hh = box["R"] - box["L"], box["B"] - box["T"]
         for (u0, u1, v0, v1) in R[alpha]["masks"]:
-            d.rectangle((box["L"] + u0 * W, box["T"] + v0 * Hh, box["L"] + u1 * W, box["T"] + v1 * Hh),
-                        outline=(255, 160, 0), width=1)
-    im.crop((850, 1820, 3010, 2620)).save(os.path.join(out, "digitize_check_fig9.png"))
+            d.rectangle((S * (box["L"] + u0 * W), S * (box["T"] + v0 * Hh), S * (box["L"] + u1 * W),
+                         S * (box["T"] + v1 * Hh)), outline=(255, 160, 0), width=1)
+    b0, b2 = R[FIG9_ALPHAS[0]]["box"], R[FIG9_ALPHAS[-1]]["box"]
+    im.crop((max(0, int(S * b0["L"] - 30 * pt)), max(0, int(S * b0["T"] - 6 * pt)),
+             min(im.width, int(S * b2["R"] + 8 * pt)), int(S * b0["B"] + 18 * pt))).save(
+        os.path.join(out, "digitize_check_fig9.png"))
     vtx = {"alpha=%d %s" % (a, k): [round(float(x - b), 3) for x, b, m in
                                      zip(R[a]["curves"][k]["xint"], R[a]["curves"][k]["nodes"],
                                          np.abs(np.diff(np.concatenate([[np.nan], [l[1] if l else np.nan for l in R[a]["curves"][k]["lines"]]]))))
                                      if np.isfinite(x) and np.isfinite(m) and m > 0.02]
            for a in FIG9_ALPHAS for k in ("FE", "vopt")}
     uv = np.array(list(unc.values()))
+    big = {k: v for k, v in unc.items() if v > 0.005}
     meta["fig9"] = {
-        "source": "raster only (Fig. 9 is an embedded 300-ppi bitmap): hi-13.png, polyline vertices at 5 deg",
+        "source": "raster only (Fig. 9 is an embedded 300-ppi bitmap, the rest of page 13 is vector): %s; "
+                  "polyline vertices at 5 deg" % prim["label"],
+        "resolution_check_sources": [lab for lab, _ in alt],
         "curves": {"FE": "solid, seepage forces -grad u'_FE", "vopt": "dashed, seepage forces K^-1 . v'_opt"},
         "method": "curves separated per column (solid = lowest run); per 5-deg interval one straight centre line "
                   "(column or row scans across the band, asymmetric edge fit insensitive to dash ends); node = "
                   "weighted mean of the two adjacent lines",
+        "axis_fit_rms_px": {str(a_): [R[a_]["xmap"].rms(), R[a_]["ymap"].rms()] for a_ in FIG9_ALPHAS},
+        "px_per_Gamma_unit": {str(a_): float(1.0 / abs(R[a_]["ymap"].b)) for a_ in FIG9_ALPHAS},
         "vertex_check_deg": "intersection abscissa of adjacent segment lines minus node, at kinks with slope "
                             "change > 0.02/deg: %s" % json.dumps(vtx),
         "uncertainty_Gamma_per_point": unc,
-        "uncertainty_note": "u = sqrt(sigma_fit^2 + (half spread over renders at %s dpi)^2); median %.4f, max %.4f. "
-                            "Method validated on Fig. 8 against the vector truth (see fig8.validation). Recommended "
-                            "+-0.005 for all points except those with a larger u listed above."
-                            % ([450] + [dd for dd, _ in alt], float(np.median(uv)), float(np.max(uv))),
+        "uncertainty_note": "u = sqrt(sigma_fit^2 + (half spread of the node value over the sources %s)^2); "
+                            "median %.4f, max %.4f; u > 0.005 only at %s (steep segments next to the top of the "
+                            "plot or dashes merged with the solid line near beta = 90 deg). Method validated on "
+                            "Fig. 8 against the vector truth (see fig8.validation)."
+                            % ([prim["label"]] + [lab for lab, _ in alt], float(np.median(uv)), float(np.max(uv)),
+                               json.dumps(big)),
         "omitted_hidden_points": hidden,
-        "overlay": "thin lines = fitted polylines (red FE, green vopt), dots 14 px above = traced run centres, "
-                   "orange circles = CSV points, orange boxes = masked label boxes",
+        "overlay": "image enlarged x%d; thin lines = fitted polylines (red FE, green vopt), dots 2.2 pt above = "
+                   "traced run centres, orange circles = CSV points, orange boxes = masked label boxes" % S,
     }
     return R, alt
 
@@ -1505,14 +1586,41 @@ def main(argv=None):
     with tempfile.TemporaryDirectory() as work:
         run_fig5(pdf if have_pdf else None, hi09, a.out_dir, work, meta)
         run_fig8(pdf if have_pdf else None, hi13, a.out_dir, work, meta)
-        extra = []
+        reg450 = (1700, 2700, 600, 3200)            # Fig. 9 rows / columns in a 450-dpi page render
+        page_src = lambda path, dpi: {"path": path, "ppp": dpi / 72.0, "label": "page render %d dpi" % dpi,
+                                      "region": tuple(int(v * dpi / DPI) for v in reg450)}
+        sources = []
+        bmp = extract_fig9_bitmap(pdf, work) if not a.no_vector else None
+        if bmp:
+            with Image.open(bmp[0]) as im:
+                sources.append({"path": bmp[0], "ppp": bmp[1], "region": (0, im.height, 0, im.width),
+                                "label": "embedded bitmap %dx%d px (%.0f ppi, pdfimages)" % (im.width, im.height,
+                                                                                         72 * bmp[1])})
+        sources.append(page_src(hi13, DPI))
         if not a.no_resolution_check and os.path.exists(pdf) and shutil.which("pdftoppm"):
             for dpi in (300, 600):
                 root = os.path.join(work, "p13_%d" % dpi)
                 subprocess.run(["pdftoppm", "-r", str(dpi), "-f", "13", "-l", "13", "-png", pdf, root], check=True)
                 f = [x for x in os.listdir(work) if x.startswith("p13_%d" % dpi) and x.endswith(".png")][0]
-                extra.append((os.path.join(work, f), dpi))
-        run_fig9(hi13, a.out_dir, meta, extra)
+                sources.append(page_src(os.path.join(work, f), dpi))
+        run_fig9(sources, a.out_dir, meta)
+    # one-line uncertainty estimate per figure (details in the per-figure sections)
+    f5 = meta["fig5"].get("uncertainty_per_alpha", {})
+    f8 = meta["fig8"].get("validation", {}).get("vector_polyline_fit", {})
+    u9 = np.array(list(meta["fig9"]["uncertainty_Gamma_per_point"].values()))
+    meta["uncertainty_summary"] = {
+        "fig5": ("max |band polygon - independent line outline| per alpha: %s (normalized functional units)"
+                 % {k: round(v["vector_band_vs_line_outline_max"], 4) for k, v in f5.items()}) if f5 else
+                "raster only: see fig5",
+        "fig8": ("vector polyline fit max residual %.1e in log10(H) (%.2f %% of H_crit) over all curves; "
+                 "low-support vertices (dash gaps) about +-0.3 %%" % (
+                     max(v["max_log10"] for v in f8.values()),
+                     100 * (10 ** max(v["max_log10"] for v in f8.values()) - 1))) if f8 else "raster only: see fig8",
+        "fig9": "per-point u_Gamma (paper_fig9_vertices.csv): median %.4f, 90th percentile %.4f, max %.4f "
+                "(1 px = %.4f Gamma in the primary source)" % (
+                    float(np.median(u9)), float(np.percentile(u9, 90)), float(np.max(u9)),
+                    1.0 / min(meta["fig9"]["px_per_Gamma_unit"].values())),
+    }
     with open(os.path.join(a.out_dir, "digitize_meta.json"), "w") as f:
         json.dump(meta, f, indent=1, default=float)
     print("wrote", ", ".join(sorted(x for x in os.listdir(a.out_dir) if x.startswith(("paper_fig", "digitize_")))))

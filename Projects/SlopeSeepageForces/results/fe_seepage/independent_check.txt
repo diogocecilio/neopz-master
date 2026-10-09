@@ -1,0 +1,44 @@
+==============================================================================================================
+A) independent P2 solver (levels 2, 3) vs fe_seepage.FESeepage (P2 ref 1 = default, ref 2), box 50/10/30 H
+   J = J/(k_h H^2 gw^2); force compared on a 0.05 H grid of soil points within 2 H of the face;
+   rel = RMS|f - f_indep| / RMS|f_indep|, also for the points farther than 0.05 H from O, W, T
+==============================================================================================================
+  beta=30 alpha= 1 hw/H=1.0 zero_lb    : J indep lev2 0.6858450 lev3 0.6858448 (ndof 153562); fe_seepage ref1 0.6858457 ref2 0.6858448; ref2 / lev3 - 1 = +9.1e-08
+      force fe_seepage ref1 vs indep lev3 (4128 pts): rel 0.053% (beyond 0.05 H of O/W/T 0.052%), max |df| 0.0078 kN/m^3 (max |f| 9.40)
+      force fe_seepage ref2 vs indep lev3 (4128 pts): rel 0.016% (beyond 0.05 H of O/W/T 0.016%), max |df| 0.0020 kN/m^3 (max |f| 9.40)
+      own discretisation: indep lev2 vs lev3 rel 0.036%
+  beta=30 alpha= 1 hw/H=1.0 impermeable: J indep lev2 0.6271952 lev3 0.6271950 (ndof 153562); fe_seepage ref1 0.6271959 ref2 0.6271950; ref2 / lev3 - 1 = +9.8e-08
+      force fe_seepage ref1 vs indep lev3 (4128 pts): rel 0.053% (beyond 0.05 H of O/W/T 0.052%), max |df| 0.0078 kN/m^3 (max |f| 9.24)
+      force fe_seepage ref2 vs indep lev3 (4128 pts): rel 0.016% (beyond 0.05 H of O/W/T 0.016%), max |df| 0.0020 kN/m^3 (max |f| 9.24)
+      own discretisation: indep lev2 vs lev3 rel 0.036%
+  beta=60 alpha= 5 hw/H=0.4 zero_lb    : J indep lev2 0.0722762 lev3 0.0722760 (ndof 175325); fe_seepage ref1 0.0722765 ref2 0.0722761; ref2 / lev3 - 1 = +3.9e-07
+      force fe_seepage ref1 vs indep lev3 (3451 pts): rel 0.127% (beyond 0.05 H of O/W/T 0.127%), max |df| 0.0171 kN/m^3 (max |f| 9.10)
+      force fe_seepage ref2 vs indep lev3 (3451 pts): rel 0.037% (beyond 0.05 H of O/W/T 0.037%), max |df| 0.0051 kN/m^3 (max |f| 9.10)
+      own discretisation: indep lev2 vs lev3 rel 0.106%
+  beta=90 alpha= 5 hw/H=1.0 zero_lb    : J indep lev2 0.3461612 lev3 0.3461598 (ndof 138328); fe_seepage ref1 0.3461672 ref2 0.3461607; ref2 / lev3 - 1 = +2.5e-06
+      force fe_seepage ref1 vs indep lev3 (3324 pts): rel 0.101% (beyond 0.05 H of O/W/T 0.099%), max |df| 0.0341 kN/m^3 (max |f| 18.72)
+      force fe_seepage ref2 vs indep lev3 (3324 pts): rel 0.031% (beyond 0.05 H of O/W/T 0.031%), max |df| 0.0081 kN/m^3 (max |f| 18.72)
+      own discretisation: indep lev2 vs lev3 rel 0.085%
+  beta=90 alpha= 1 hw/H=0.4 zero_lb    : J indep lev2 0.1972738 lev3 0.1972736 (ndof 172899); fe_seepage ref1 0.1972748 ref2 0.1972738; ref2 / lev3 - 1 = +6.5e-07
+      force fe_seepage ref1 vs indep lev3 (3324 pts): rel 0.081% (beyond 0.05 H of O/W/T 0.080%), max |df| 0.0142 kN/m^3 (max |f| 11.19)
+      force fe_seepage ref2 vs indep lev3 (3324 pts): rel 0.023% (beyond 0.05 H of O/W/T 0.023%), max |df| 0.0027 kN/m^3 (max |f| 11.19)
+      own discretisation: indep lev2 vs lev3 rel 0.057%
+==============================================================================================================
+B) Fig. 5 dashed curve (data/fig5_vector_fill_polygons.csv), h_w = H: independent solver (level 2)
+==============================================================================================================
+  alpha= 1 beta=15: paper 0.58641; indep zero_lb 0.586325 (-0.014%), impermeable 0.520502 (-11.24%)
+  alpha= 1 beta=45: paper 0.75364; indep zero_lb 0.753171 (-0.062%), impermeable 0.696518 (-7.58%)
+  alpha= 1 beta=90: paper 0.91037; indep zero_lb 0.908694 (-0.184%), impermeable 0.853605 (-6.24%)
+  alpha= 2 beta=60: paper 0.54509; indep zero_lb 0.544655 (-0.080%), impermeable 0.520375 (-4.53%)
+  alpha= 4 beta=30: paper 0.32594; indep zero_lb 0.325776 (-0.050%), impermeable 0.312894 (-4.00%)
+  alpha=10 beta=15: paper 0.17645; indep zero_lb 0.176368 (-0.046%), impermeable 0.168633 (-4.43%)
+  alpha=10 beta=90: paper 0.23091; indep zero_lb 0.230382 (-0.229%), impermeable 0.222654 (-3.58%)
+==============================================================================================================
+C) fe_seepage field API (default P2 ref 1, H = 5, beta = 60, h_w = H, alpha = 5)
+==============================================================================================================
+  1e5 random points: first call 0.10 s (incl. locator build), second 0.07 s; zero outside the box/soil: True
+  2000 points on the crest     : f = 0 at 0, u = nan at 0, max |u - Eq. 21| = 4.6e-16
+  2000 points on the face      : f = 0 at 0, u = nan at 0, max |u - Eq. 21| = 2.8e-14
+  2000 points on the toe ground: f = 0 at 0, u = nan at 0, max |u - Eq. 21| = 1.4e-14
+  output shapes for inputs (), (2,), (3, 4), (2, 1) x (1, 5): [(), (2,), (3, 4), (2, 5)]; non-finite input -> (array([-0., -0.]), array([-0., -0.]))
+total time 68.0 s

@@ -2,7 +2,12 @@
 //   -div(K grad u) = 0, K = diag(k_h, k_v), u = excess pore pressure (p = u + gamma_w y_paper = u - gamma_w y);
 //   Dirichlet on the ground surface (toe -3, crest -4, face -6): u = gamma_w max(y, -h_w) (NeoPZ y up), i.e.
 //   u = 0 on the crest, u = gamma_w y on the face above the water level and u = -gamma_w h_w below it and on the
-//   toe ground; zero flux on the base and the sides (-1, -2, -5). H1 (TPZAnisotropicDarcy), order 2 by default.
+//   toe ground. Far sides of the truncated half-space (base -1, right -2, left -5): zero flux, u = 0 or
+//   u = -gamma_w h_w per side (FarSides, presets of scripts/fe_seepage.py). Default zero_lb: u = 0 (far field still
+//   hydrostatic at the crest level) on the left side and the base, zero flux on the right side; on the paper-like box
+//   (50 H / 10 H / 30 H) it reproduces the dashed curves of Fig. 5 within 0.22 % (alpha = 1, 2, 4, 10, beta = 15..90),
+//   while the fully impermeable box gives a J 3-9 % lower. The iso-lines of u then leave the slope and end on the
+//   right side, as in Fig. 4b. H1 (TPZAnisotropicDarcy), order 2 by default.
 // Hydraulic functional J(u) = 1/2 int grad u . K grad u (and J / (k_h H^2 gamma_w^2)) and the check p >= 0.
 #ifndef SEEPAGEFE_H
 #define SEEPAGEFE_H
@@ -16,17 +21,51 @@
 #include "pzskylstrmatrix.h"
 #include "pzstepsolver.h"
 
+#include <array>
 #include <chrono>
 #include <functional>
 #include <map>
 #include <memory>
+#include <set>
+#include <string>
 
 namespace slope {
+
+/// Condition on a far side of the hydraulic box: zero flux, u = 0 (hydrostatic at the crest level) or
+/// u = -gamma_w h_w (hydrostatic at the final water level)
+enum class EFarBC { ENoFlow, EZero, EToeLevel };
+
+struct FarSides { ///< default: preset zero_lb
+    EFarBC left = EFarBC::EZero, bottom = EFarBC::EZero, right = EFarBC::ENoFlow;
+
+    /// presets of scripts/fe_seepage.py (BC_PRESETS); false if the name is unknown
+    bool SetPreset(const std::string &name) {
+        const EFarBC N = EFarBC::ENoFlow, Z = EFarBC::EZero, T = EFarBC::EToeLevel;
+        static const std::map<std::string, std::array<EFarBC, 3>> presets = {
+            {"impermeable", {N, N, N}}, {"zero_lb", {Z, Z, N}},  {"zero_b", {N, Z, N}},
+            {"zero_l", {Z, N, N}},      {"zero_lbr", {Z, Z, Z}}, {"toe_r", {Z, N, T}}};
+        auto it = presets.find(name);
+        if (it == presets.end()) return false;
+        left = it->second[0], bottom = it->second[1], right = it->second[2];
+        return true;
+    }
+    static bool Parse(const std::string &s, EFarBC &bc) {
+        if (s == "noflow") bc = EFarBC::ENoFlow;
+        else if (s == "zero") bc = EFarBC::EZero;
+        else if (s == "toe") bc = EFarBC::EToeLevel;
+        else return false;
+        return true;
+    }
+    static const char *Name(EFarBC bc) {
+        return bc == EFarBC::ENoFlow ? "noflow" : (bc == EFarBC::EZero ? "zero" : "toe");
+    }
+};
 
 struct Hydraulics {
     REAL kh = 1., kv = 1.; ///< hydraulic conductivities (only alpha = kh / kv matters for the forces)
     REAL gammaw = 9.81;    ///< unit weight of water (kN/m^3)
     int order = 2;         ///< H1 order of u (1 or 2: PoreField interpolates P2)
+    FarSides far;          ///< conditions on the left side, the base and the right side
 };
 
 /// Dirichlet data of Eq. 21 in NeoPZ coordinates, valid on the whole ground surface
@@ -60,8 +99,9 @@ inline TPZCompMesh *CreateSeepageCMesh(TPZGeoMesh *gmesh, const Hydraulics &hy, 
     return cmesh;
 }
 
-/// Assembles and solves (skyline Cholesky, bandwidth renumbering); the solution is left in cmesh
-inline int64_t SolveSeepage(TPZCompMesh *cmesh) {
+/// Assembles and solves (skyline Cholesky, bandwidth renumbering); the solution is left in cmesh. vtk: optional
+/// file of u, -grad u (seepage force) and the Darcy velocity (resolution 1)
+inline int64_t SolveSeepage(TPZCompMesh *cmesh, const std::string &vtk = "") {
     TPZLinearAnalysis an(cmesh, true);
     TPZSkylineStructMatrix<STATE> skyl(cmesh);
     an.SetStructuralMatrix(skyl);
@@ -69,6 +109,12 @@ inline int64_t SolveSeepage(TPZCompMesh *cmesh) {
     step.SetDirect(ECholesky);
     an.SetSolver(step);
     an.Run();
+    if (!vtk.empty()) {
+        TPZManVector<std::string, 1> scal = {"ExcessPorePressure"};
+        TPZManVector<std::string, 2> vec = {"SeepageForce", "DarcyVelocity"};
+        an.DefineGraphMesh(2, std::set<int>{ESoil}, scal, vec, vtk);
+        an.PostProcess(1);
+    }
     return cmesh->NEquations();
 }
 
@@ -111,13 +157,24 @@ struct SeepageResult {
     double seconds = 0.;
 };
 
-/// Drawdown seepage on gmesh (the geometric mesh is not modified; cmesh is deleted)
-inline SeepageResult DrawdownSeepage(TPZGeoMesh *gmesh, const SlopeGeometry &g, const Hydraulics &hy) {
+/// Drawdown seepage on gmesh (the geometric mesh is not modified; cmesh is deleted). Far sides with u = 0 or
+/// u = -gamma_w h_w are Dirichlet (penalty); where two Dirichlet sides meeting at a box corner carry different data
+/// (among the presets only the top right corner of zero_lbr; with per-side overrides also e.g. base zero + right toe)
+/// the two penalties average them at the corner node, whereas fe_seepage.py lets the surface win.
+inline SeepageResult DrawdownSeepage(TPZGeoMesh *gmesh, const SlopeGeometry &g, const Hydraulics &hy,
+                                     const std::string &vtk = "") {
     const auto t0 = std::chrono::steady_clock::now();
     const ScalarBC ud = [g, hy](const TPZVec<REAL> &x) { return DrawdownExcessPressure(g, hy.gammaw, x[1]); };
-    TPZCompMesh *cmesh = CreateSeepageCMesh(gmesh, hy, {{EToe, ud}, {ECrest, ud}, {EFace, ud}}, {});
+    std::map<int, ScalarBC> dirichlet = {{EToe, ud}, {ECrest, ud}, {EFace, ud}};
+    const std::pair<int, EFarBC> far[3] = {{ELeft, hy.far.left}, {EBase, hy.far.bottom}, {ERight, hy.far.right}};
+    for (auto &side : far) {
+        if (side.second == EFarBC::ENoFlow) continue;
+        const REAL v = side.second == EFarBC::EZero ? 0. : -hy.gammaw * g.hw;
+        dirichlet[side.first] = [v](const TPZVec<REAL> &) { return v; };
+    }
+    TPZCompMesh *cmesh = CreateSeepageCMesh(gmesh, hy, dirichlet, {});
     SeepageResult r;
-    r.neq = SolveSeepage(cmesh);
+    r.neq = SolveSeepage(cmesh, vtk);
     auto pf = std::make_shared<PoreField>(cmesh, ESoil, TPZAnisotropicDarcy::EExcessPorePressure);
     r.nel = pf->Triangles().size();
     r.J = HydraulicFunctional(*pf, hy);

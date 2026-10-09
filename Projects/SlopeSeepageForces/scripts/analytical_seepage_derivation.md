@@ -132,7 +132,7 @@ are reproduced at all 64 points (alpha = 1, 2, 4, 10; beta = 15..90 by 5 deg) wi
 - No flux crosses r = R_w, R, R_e. Inside r < R_e, v'_opt does not depend on L_m; only J* does, through
   zone 3: J* ~ -(k_h gamma_w^2 h_w^2/((alpha+1) pi)) ln R_e (log-divergent, as the paper notes).
 - Zone 1 is a closed flow cell: psi = -g h2 vanishes at r = 0 and r = R_w, so the net flux through the
-  upper face (and through the crest segment 0 < -x < R_w) is zero. For m < 1, v.n < 0 (inflow) on the
+  upper face (and through the crest segment 0 < -x < R_w) is zero. For m != 1 (either side of 1), v.n < 0 (inflow) on the
   face for r < s* R_w with s* = m^(1/(1-m)) (0.34 for beta = 30, alpha = 1), and the matching outflow leaves
   through the crest near O: there is a small recirculation cell at the crest edge where f = K^-1 v points
   up and away from the face. Elsewhere f points down, turns towards the face and exits upward
@@ -141,3 +141,30 @@ are reproduced at all 64 points (alpha = 1, 2, 4, 10; beta = 15..90 by 5 deg) wi
   (locally u = -gamma_w y, f = gamma_w e_y).
 - The tangential component of v jumps across r = R_w and r = R. This is allowed, because only v.n has to be continuous.
 - h_w = 0 gives v = 0 (`AnalyticalSeepage(..., hw=0).force == 0`).
+- Degenerate case: the m -> 0 field (h2 = const, h1 = a (1 - R_w/r)) is admissible in V (div-free, bounded,
+  normal flux continuous) but h1 is unbounded at r = 0, so it is the infimum of J* over the class (29), not a
+  member of it. Fields of the class with g(0) = 0 approach it from above only logarithmically (see check C).
+
+## 6. Independent (adversarial) check: `check_analytical_seepage.py`
+
+Code written separately from `analytical_seepage.py` (only the module's public API is called).
+Log: `results/analytical_seepage/independent_check_output.txt`.
+
+- A) The h2 problem was solved again by a Chebyshev-Ritz method (no ODE). F matches the module to 1e-13. m matches to 1e-8.
+  The degenerate/non-degenerate flag is the same for every beta from 15 to 90 deg (1 deg steps) at alpha = 1, 5 and 10 (option `--sweep`).
+  The small-m expansion Phi(m) = A + m (A - P) + O(m^2), with P = int_0^Theta (int_0^t d)^2 / c dt, gives the
+  threshold angles A = P: 80.761 deg (alpha = 1; analytically pi - sqrt 3), 81.101 deg (alpha = 2), 88.398 deg (alpha = 4), and none below 90 deg for alpha >= 5.
+- B) J* of the implemented field was recomputed by a 2-D quadrature of Eq. 23 (Cartesian v, Cartesian K^-1,
+  Cartesian normals, and the toe-ground angle from atan2 instead of Eq. 35). It agrees with Jstar() to 1e-12 or better.
+- C) J* was minimised directly with BFGS over a discretised class:
+  - g = r h1 as a graded C1 cubic Hermite function, with g(0) = g(R_w) = 0;
+  - h2, h3 as Chebyshev series, and r h4 as a Chebyshev series in ln(x + H).
+
+  Results in the non-degenerate cases: J*_direct lies 2e-6 to 4e-6 (relative) above Jstar() and decreases further as the mesh is refined.
+  The velocity matches to 1e-8 in zones 2 and 3, and to (1-3)e-3 of max|v| in zone 1 (discretisation error, which shrinks with refinement).
+
+  Results in the degenerate case (beta = 85, alpha = 1): with h2 = const and g(0) free, J* is reproduced to 1e-15. Inside the class
+  (g(0) = 0), J*_direct - J*(m -> 0) is about 0.072 |J*| / ln(1/s_min). It is positive and tends to zero: no discretised member of the class beats the m -> 0 value, as the analytical reduction predicts.
+- D) The printed Eq. 31 gives J* = +48.88 against -41.62 at the optimum (beta = 30, alpha = 1, h_w = H), and div v != 0.
+  Fixing only the sign gives J* = -48.03, which is BELOW the optimum. That is possible only because the field is not
+  divergence-free, so it is not admissible. Both typos must therefore be corrected.

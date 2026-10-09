@@ -1,0 +1,93 @@
+====================================================================================================
+A) h2 problem by Chebyshev-Ritz (no ODE): m, F = 1/Phi_min vs module; small-m slope A - P
+====================================================================================================
+ beta alpha     m Ritz   m module      F Ritz    F module       rel       A-P
+   15     1   0.914482   0.914482  0.50356835  0.50356835  -6.6e-15   -5.0811
+   30     1   0.859190   0.859190  0.50640472  0.50640472  -5.0e-15   -3.3632
+   60     1   0.588972   0.588972  0.52340754  0.52340754  -2.1e-15   -0.9680
+   75     1   0.238398   0.238398  0.55239016  0.55239016  -6.0e-16   -0.2189
+   80     1   0.037237   0.037237  0.57311813  0.57311813   1.4e-15   -0.0269
+   85     1   0.000000   0.000000  0.60311347  0.60311347   1.8e-16   +0.1386  degenerate (m->0)
+   90     1   0.000000   0.000000  0.63661977  0.63661977  -3.5e-16   +0.2789  degenerate (m->0)
+   30     2   0.812908   0.812908  0.34400789  0.34400789  -3.9e-14   -4.1506
+   85     2   0.000000   0.000000  0.40921852  0.40921852  -4.1e-16   +0.1415  degenerate (m->0)
+   60     4   0.572356   0.572356  0.23553716  0.23553716  -1.6e-14   -1.7852
+   85     4   0.114728   0.114728  0.24965494  0.24965494  -2.3e-14   -0.1761
+   90     4   0.000000   0.000000  0.25464791  0.25464791   0.0e+00   +0.0806  degenerate (m->0)
+   15    10   1.063426   1.063426  0.11033919  0.11033919  -2.6e-14  -34.0066
+   60    10   0.716479   0.716479  0.11759141  0.11759141   4.7e-14   -5.0013
+   90    10   0.321709   0.321709  0.11801306  0.11801306   3.8e-14   -1.2770
+  threshold beta (A = P, Phi'(0+) = 0): alpha=1: 80.761 deg;  alpha=2: 81.101 deg;  alpha=4: 88.398 deg;  alpha=5: none <90;  alpha=10: none <90;  
+  analytic alpha=1: pi - sqrt(3) = 80.761 deg
+  sweep alpha= 1, beta=15..90 by 1 deg: max rel |F_Ritz - F_module| = 7.3e-15, degenerate-flag mismatches = 0, max |m(b+1)-m(b)| = 0.0459, degenerate betas = [81, 82, 83, 84, 85, 86, 87, 88, 89, 90]
+  sweep alpha= 5, beta=15..90 by 1 deg: max rel |F_Ritz - F_module| = 1.3e-13, degenerate-flag mismatches = 0, max |m(b+1)-m(b)| = 0.0329, degenerate betas = none
+  sweep alpha=10, beta=15..90 by 1 deg: max rel |F_Ritz - F_module| = 5.5e-14, degenerate-flag mismatches = 0, max |m(b+1)-m(b)| = 0.0276, degenerate betas = none
+
+====================================================================================================
+B) J* of the IMPLEMENTED field by independent 2-D quadrature (Cartesian v, K^-1, normals) vs Jstar()
+====================================================================================================
+  beta= 30 alpha=  1 hw/H=0.5 m=0.85919: J*(quadrature) = -13.5897537573  Jstar() = -13.5897537573  rel = +9.8e-15
+  beta= 30 alpha=  1 hw/H=1.0 m=0.85919: J*(quadrature) = -41.6191492215  Jstar() = -41.6191492215  rel = +1.3e-14
+  beta= 60 alpha=  4 hw/H=1.0 m=0.57236: J*(quadrature) = -22.4028395886  Jstar() = -22.4028395886  rel = -1.1e-14
+  beta= 20 alpha= 10 hw/H=0.8 m=0.93116: J*(quadrature) = -5.0432014436  Jstar() = -5.0432014436  rel = -6.7e-13
+  beta= 75 alpha=  2 hw/H=0.3 m=0.20504: J*(quadrature) = -5.3875371204  Jstar() = -5.3875371204  rel = -1.8e-14
+  beta= 85 alpha=  1 hw/H=1.0 m=0.00000: J*(quadrature) = -56.1294630235  Jstar() = -56.1294630235  rel = +0.0e+00
+  beta= 90 alpha= 10 hw/H=0.6 m=0.32171: J*(quadrature) = -5.0794135501  Jstar() = -5.0794135501  rel = -1.7e-14
+  Fig. 5 solid curve, -J*/(k_h H^2 gw^2) by this quadrature (paper value):
+    alpha= 1  b=15: 0.3382 (0.3382)  b=45: 0.4928 (0.4928)  b=80: 0.5739 (0.5738)  b=85: 0.5832 (0.5833)  b=90: 0.5914 (0.5914)
+    alpha= 2  b=15: 0.2297 (0.2298)  b=45: 0.3399 (0.3399)  b=80: 0.3980 (0.3980)  b=85: 0.4029 (0.4029)  b=90: 0.4066 (0.4066)
+    alpha= 4  b=15: 0.1422 (0.1422)  b=45: 0.2115 (0.2115)  b=80: 0.2477 (0.2477)  b=85: 0.2493 (0.2493)  b=90: 0.2505 (0.2505)
+    alpha=10  b=15: 0.0678 (0.0678)  b=45: 0.0999 (0.0999)  b=80: 0.1171 (0.1171)  b=85: 0.1173 (0.1173)  b=90: 0.1170 (0.1171)
+
+====================================================================================================
+C) direct minimisation of J* over the discretised class (BFGS), vs Jstar() and velocity()
+====================================================================================================
+    start: J = -13.5897226532  (72 it, |grad| = 7.3e-08, Desired error not necessarily achieved due to precision loss.)
+    start: J = -13.5897226532  (85 it, |grad| = 2.9e-08, Desired error not necessarily achieved due to precision loss.)
+  beta=30 alpha=1 hw/H=0.5: grad-check 2.6e-09;  J*_direct = -13.5897226532  Jstar() = -13.5897537573  rel = +2.29e-06  (0.9 s)
+     zone 1: max |v_direct - v_module| / max|v_module| = 1.86e-03  (max pointwise rel 2.68e-02, 12 points)
+     zone 2: max |v_direct - v_module| / max|v_module| = 5.92e-09  (max pointwise rel 5.92e-09, 9 points)
+     zone 3: max |v_direct - v_module| / max|v_module| = 2.75e-09  (max pointwise rel 4.16e-09, 9 points)
+     refined mesh (sigma=0.65, 170 el.): J*_direct = -13.5897514898  rel = +1.67e-07
+     zone 1: max |v_direct - v_module| / max|v_module| = 4.61e-04  (max pointwise rel 6.65e-03, 12 points)
+    start: J = -22.4027510160  (81 it, |grad| = 3.5e-07, Desired error not necessarily achieved due to precision loss.)
+    start: J = -22.4027510160  (88 it, |grad| = 3.8e-07, Desired error not necessarily achieved due to precision loss.)
+  beta=60 alpha=4 hw/H=1.0: grad-check 2.0e-09;  J*_direct = -22.4027510160  Jstar() = -22.4028395886  rel = +3.95e-06  (0.9 s)
+     zone 1: max |v_direct - v_module| / max|v_module| = 3.23e-03  (max pointwise rel 1.82e-02, 12 points)
+     zone 3: max |v_direct - v_module| / max|v_module| = 1.06e-08  (max pointwise rel 1.06e-08, 9 points)
+    start: J = -5.0431868982  (141 it, |grad| = 2.6e-07, Desired error not necessarily achieved due to precision loss.)
+    start: J = -5.0431868982  (169 it, |grad| = 1.9e-07, Desired error not necessarily achieved due to precision loss.)
+  beta=20 alpha=10 hw/H=0.8: grad-check 5.6e-09;  J*_direct = -5.0431868982  Jstar() = -5.0432014436  rel = +2.88e-06  (1.7 s)
+     zone 1: max |v_direct - v_module| / max|v_module| = 1.13e-03  (max pointwise rel 8.22e-03, 12 points)
+     zone 2: max |v_direct - v_module| / max|v_module| = 1.35e-08  (max pointwise rel 1.55e-08, 9 points)
+     zone 3: max |v_direct - v_module| / max|v_module| = 2.10e-08  (max pointwise rel 2.10e-08, 9 points)
+    start: J = -56.0706581844  (200 it, |grad| = 2.3e-06, Desired error not necessarily achieved due to precision loss.)
+    start: J = -56.0706581844  (193 it, |grad| = 6.8e-06, Desired error not necessarily achieved due to precision loss.)
+  beta=85 alpha=1 hw/H=1.0: grad-check 2.2e-09;  J*_direct = -56.0706581844  Jstar() = -56.1294630235  rel = +1.05e-03  (1.7 s)  [module: degenerate m->0]
+     zone 1: max |v_direct - v_module| / max|v_module| = 5.92e-01  (max pointwise rel 5.92e-01, 12 points)
+     zone 3: max |v_direct - v_module| / max|v_module| = 7.26e-08  (max pointwise rel 7.26e-08, 9 points)
+     h2 = const, g(0) free (m -> 0 limit field): J*_direct = -56.1294630235  rel = +1.65e-15
+     class with g(0)=0, mesh down to s_1 = 1.8e-12: J*_direct = -55.9828307967  rel = +2.61e-03  (rel * ln(1/s_1) = 0.0706)
+     class with g(0)=0, mesh down to s_1 = 1.6e-30: J*_direct = -56.0706581844  rel = +1.05e-03  (rel * ln(1/s_1) = 0.0719)
+     class with g(0)=0, mesh down to s_1 = 1.1e-75: J*_direct = -56.1059768690  rel = +4.18e-04  (rel * ln(1/s_1) = 0.0722)
+
+====================================================================================================
+D) printed Eq. 31 vs corrected form (beta=30, alpha=1, hw=H), same quadrature as B)
+====================================================================================================
+  printed (1/(C-D), C/D in e_theta)             J* = +48.879579  (optimum -41.619149);  max|div v|/max(|v|/r) = 3.0e-01
+  sign fixed only (1/(D-C), C/D in e_theta)     J* = -48.033351  (optimum -41.619149);  max|div v|/max(|v|/r) = 3.0e-01
+  exponent fixed only (1/(C-D), sqrt)           J* = +7.115266  (optimum -41.619149);  max|div v|/max(|v|/r) = 1.0e-10
+  corrected (1/(D-C), sqrt(C/D))                J* = -41.619149  (optimum -41.619149);  max|div v|/max(|v|/r) = 1.0e-10
+
+====================================================================================================
+E) API contract of force()
+====================================================================================================
+  shapes: in (2, 2) -> out (2, 2), (2, 2); scalar -> (); broadcast (2,2)x() -> (2, 2)
+  f = K^-1 v: max |fx - vx/kh| = 0.0e+00, max |fy - alpha vy/kh| = 0.0e+00
+  outside soil (above crest/face/toe ground) and r >= R_e: f = [0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+  k_h independence of f: 4.4e-16
+  hw = 0: max|f| = 0.0e+00;  NoSeepage: (2, 2)
+  under the crest at (-3, 0.3): f = (-0.013, +2.501) kN/m^3 (y down -> downward)
+  timing: force() on 1e5 points: 16.5 ms per call; construction: 0.39 s
+
+total time 168 s
