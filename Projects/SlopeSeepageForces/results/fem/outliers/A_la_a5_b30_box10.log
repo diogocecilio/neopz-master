@@ -1,0 +1,18 @@
+inserting uniform refpattern: triangle
+inserting uniform refpattern: line
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth
+void TPZAnalysis::SetCompMeshInit(TPZCompMesh*, bool) optimizing bandwidth finished
+Entering Assemble Equations
+**********
+[Time for assembly:171.453899ms]
+Entering Solve
+[Time for solving:516.696437ms]
+limit analysis: H 5 m, beta 30 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 5; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 18.6603] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 1: 21319 equations, J/(kh H^2 gw^2) 0.22091235, 1.31 s
+Gamma = 3.786016251  (H_crit = Gamma H = 18.93008125 m, gamma H_crit / c = 37.86016251), mechanism I
+  theta1 0.9231734503, theta2 2.106637595, eta 1, theta_O 0.961249435
+  A = (-0.256434741, 0), B = (8.660254038, 5), C = (3.075705814, -4.40491152) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 5.523260466, r_h 10.93798608, L = OA 0.256434741
+  P_mr 771.9155783, P_gamma -75.05205838, P_u 278.9380238 (per unit omega, fine)
+  best by class: I 3.786016251, II 3.786016251; seed spread 6e-15; at search bound s=upper
+evaluations 30248, 1.478 s (field 1.314 s)

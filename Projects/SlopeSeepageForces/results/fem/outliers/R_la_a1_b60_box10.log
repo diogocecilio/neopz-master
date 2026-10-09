@@ -1,0 +1,14 @@
+inserting uniform refpattern: triangle
+inserting uniform refpattern: line
+*********
+[Time for assembly:96.160851ms]
+[Time for solving:343.690242ms]
+limit analysis: H 5 m, beta 60 deg, h_w / H 1, c 10 kPa, phi 30 deg, gamma 20, gamma_w 9.81 (gamma' 10.19), alpha 1; water fe, P_u boundary
+FE field: hydraulic box x in [-50, 12.8868] m, y >= -35 m, far sides left zero / base zero / right noflow, order 2, href 1: 17977 equations, J/(kh H^2 gw^2) 0.63055019, 1.02 s
+Gamma = 0.9570701262  (H_crit = Gamma H = 4.785350631 m, gamma H_crit / c = 9.570701262), mechanism I
+  theta1 0.6192175988, theta2 1.749549932, eta 1, theta_O 0.9505371401
+  A = (-1.526334355, 0), B = (2.886751346, 5), C = (1.582936949, -2.216066277) (paper coordinates, y down; NeoPZ: y = -y_paper)
+  r0 3.818182524, r_h 7.332908324, L = OA 1.526334355
+  P_mr 339.4215678, P_gamma 98.53553181, P_u 256.1109653 (per unit omega, fine)
+  best by class: I 0.9570701262, II 0.9570701262; seed spread 8.9e-16; at search bound s=upper
+evaluations 26076, 2.76 s (field 1.019 s)

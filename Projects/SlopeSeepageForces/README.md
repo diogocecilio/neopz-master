@@ -147,7 +147,7 @@ CPUS=2,3 sh scripts/run_fem_batch.sh "" 8         # lote MEF da Fig. 8 -> result
 python3 scripts/fem_batch_table.py                # MEF x análise limite x artigo -> results/cpp/comparison_fem_fig*.csv
 ```
 
-`plot_results.py` lê só CSVs versionados (`results/cpp/fig*.csv` e `python_fig9_FE_box_m.csv`,
+`plot_results.py` lê só CSVs versionados (`results/cpp/fig*.csv`, `fem_fig{8,9}.csv` e `python_fig9_FE_box_m.csv`,
 `results/reproduce_python/comparison_*.csv`, `data/paper_fig*_vertices.csv`) e regenera as figuras e as comparações
 bit a bit iguais às versionadas (3 s). Tempos de `run_cpp_figures.sh` (2 threads): `fig5 out=` 116 s, `fig9` 268 s
 (120 casos), `fig8` 405 s (92), `fig8 soil=table1` 380 s.
@@ -159,7 +159,8 @@ em H = 5 m (caixa = 10/2/6 H), γw = 9,81; Fig. 8 em H = 1 m (caixa = 50/10/30 H
 Tabela 1 trocados (London c = 11,7 kPa, φ = 24,7°; Israeli c = 6 kPa, φ = 32°; seção 5). Comparação nos vértices
 digitalizados do artigo (`data/paper_fig*_vertices.csv`; Fig. 8 interpolada em escala log); "visíveis" exclui as
 pontas cortadas do artigo, extrapoladas (*). Dados completos em `results/cpp/comparison_fig{5,8,9}.csv` e
-`comparison_summary.txt`. Nas figuras: artigo em cinza fino, C++ em traço grosso, Python em círculos vazados.
+`comparison_summary.txt`. Nas figuras: artigo em cinza fino, C++ em traço grosso, Python em círculos vazados e o
+MEF da seção 4.4 em quadrados vazados da cor da curva.
 
 ### 4.1 Fig. 5 — funcionais hidráulicos (`results/fig5.png`)
 
@@ -262,15 +263,63 @@ representam a banda de cisalhamento): λ_FEM(h) ↓ λ* ≤ Γ_LA, e o valor ext
   Na Fig. 8 o MEF roda em H_ref = H_crit da análise limite (3 algarismos; caixa 50/10/30 H_ref), para que λ ≈ 1, e
   H_crit = Γ_FEM·H_ref (semelhança: vetores de carga em H e 4 H iguais a 6·10⁻¹⁴ em `check`).
 
-**Lote de produção** (`scripts/run_fem_batch.sh`): Fig. 9, α = 1, 5, 10 × β = 30…90° de 15 em 15° × FE, vopt (30
-casos); Fig. 8, 4 painéis × h_w/H = 0; 0,2; 0,5; 1 × FE, vopt (28 rodadas). Cada linha de `results/cpp/fem_fig9.csv`
-/ `fem_fig8.csv` guarda λ e equações de todos os ciclos, os extrapolados, a zona plástica de 1 % e Γ_LA do caso.
+**Lote de produção** (`scripts/run_fem_batch.sh`, concluído; 2 CPUs por figura, Fig. 9 em 2,8 h e Fig. 8 em 2,7 h de
+parede, pilotos incluídos, `results/cpp/fem_runtimes.txt`): Fig. 9, α = 1, 5, 10 × β = 30…90° de 15 em 15° × FE, vopt
+(30 casos; 3058–10 866 equações no ciclo 3; 3–13 min por caso); Fig. 8, 4 painéis × h_w/H = 0; 0,2; 0,5; 1 × FE, vopt
+(28 rodadas: em h_w = 0 as duas curvas são a mesma rodada sem percolação; 2850–9186 equações; 2–13 min). Cada linha de
+`results/cpp/fem_fig9.csv` / `fem_fig8.csv` guarda λ e equações de todos os ciclos, os três extrapolados (ordem 1,
+Richardson de ordem observada, reta em 1/√neq), a zona plástica de 1 %, Γ_LA do caso com o mesmo campo, os tempos e
+as configurações; `python3 scripts/fem_batch_table.py` imprime as tabelas completas e escreve
+`results/cpp/comparison_fem_fig9.csv` / `comparison_fem_fig8.csv` (artigo interpolado em escala log na Fig. 8). Resumo
+abaixo: Γ_FEM = 2λ₃ − λ₂ (h → 0) / Γ_LA / artigo e, por curva, média e máximo em módulo de Γ_FEM/Γ_LA − 1 e de
+Γ_FEM/artigo − 1 (com o β ou h_w/H onde ocorre); "—": fora da escala do artigo (Fig. 9, Γ > 5; valores extrapolados
+na seção 4.2) ou ponta cortada (Israeli 35°, h_w = 0: 229,3 m extrapolado, seção 5, item 3). Nas figuras os valores
+MEF são os quadrados vazados.
 
-<!-- TODO(coordenador): substituir este bloco pelas tabelas do lote quando scripts/run_fem_batch.sh terminar. -->
-> **TODO — tabelas do lote MEF (lote em execução; não preencher à mão).** Gerar com
-> `python3 scripts/fem_batch_table.py` (escreve `results/cpp/comparison_fem_fig9.csv` e
-> `comparison_fem_fig8.csv`) e resumir aqui: Fig. 9 — Γ_FEM (h → 0), Γ_LA, artigo e Γ_FEM/Γ_LA − 1 por α, β e
-> curva; Fig. 8 — H_crit FEM, LA e artigo por painel, h_w/H e curva; máximo e média de Γ_FEM/Γ_LA − 1 por curva.
+Fig. 9 (`results/fig9.png`), Γ_FEM / Γ_LA / artigo:
+
+| α | curva | β = 30° | 45° | 60° | 75° | 90° | MEF/LA − 1: média | máx. (β) | MEF/artigo − 1: média | máx. (β) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | FE | 2,270 / 2,333 / 2,322 | 1,320 / 1,326 / 1,312 | 0,9570 / 0,9571 / 0,9557 | 0,7271 / 0,7281 / 0,7202 | 0,5532 / 0,5513 / 0,5548 | −0,59 % | −2,71 % (30°) | −0,17 % | −2,24 % (30°) |
+| 1 | vopt | 3,548 / 3,579 / 3,490 | 1,899 / 1,904 / 1,887 | 1,426 / 1,429 / 1,423 | 1,027 / 1,025 / 1,023 | 0,6062 / 0,6014 / 0,6046 | −0,07 % | −0,85 % (30°) | +0,63 % | +1,69 % (30°) |
+| 5 | FE | 3,148 / 3,786 / 3,756 | 1,807 / 1,847 / 1,837 | 1,206 / 1,207 / 1,198 | 0,8545 / 0,8508 / 0,8429 | 0,6077 / 0,6080 / 0,6088 | −3,74 % | −16,84 % (30°) | −3,19 % | −16,19 % (30°) |
+| 5 | vopt | 6,548 / 6,848 / — | 2,674 / 2,683 / 2,655 | 1,789 / 1,780 / 1,766 | 1,224 / 1,216 / 1,207 | 0,7373 / 0,7357 / 0,7348 | −0,68 % | −4,39 % (30°) | +0,93 % | +1,38 % (75°) |
+| 10 | FE | 3,535 / 4,694 / — | 2,035 / 2,130 / 2,101 | 1,297 / 1,300 / 1,288 | 0,8867 / 0,8876 / 0,8790 | 0,6274 / 0,6235 / 0,6240 | −5,77 % | −24,69 % (30°) | −0,26 % | −3,15 % (45°) |
+| 10 | vopt | 8,224 / 8,807 / — | 2,894 / 2,897 / 2,866 | 1,836 / 1,833 / 1,823 | 1,224 / 1,223 / 1,214 | 0,7783 / 0,7803 / 0,7778 | −1,36 % | −6,62 % (30°) | +0,64 % | +0,96 % (45°) |
+
+Fig. 8 (`results/fig8.png`), H_crit (m) MEF / LA / artigo:
+
+| painel | curva | h_w/H = 0 | 0,2 | 0,5 | 1 | MEF/LA − 1: média | máx. (h_w/H) | MEF/artigo − 1: média | máx. (h_w/H) |
+|---|---|---|---|---|---|---|---|---|---|
+| London 30° | vopt | 150,3 / 156,5 / 156,6 | 55,55 / 58,70 / 57,43 | 25,57 / 26,41 / 25,51 | 14,59 / 14,61 / 14,52 | −3,16 % | −5,37 % (0,2) | −1,63 % | −4,02 % (0) |
+| London 30° | FE | 150,3 / 156,5 / 156,6 | 36,47 / 37,21 / 37,24 | 15,15 / 15,13 / 15,20 | 10,64 / 10,81 / 10,77 | −1,86 % | −4,01 % (0) | −1,91 % | −4,03 % (0) |
+| London 60° | vopt | 17,90 / 17,95 / 17,95 | 10,81 / 10,72 / 10,68 | 8,698 / 8,674 / 8,625 | 8,114 / 8,127 / 8,045 | +0,19 % | +0,88 % (0,2) | +0,67 % | +1,21 % (0,2) |
+| London 60° | FE | 17,90 / 17,95 / 17,95 | 9,959 / 9,921 / 9,909 | 6,436 / 6,434 / 6,434 | 5,479 / 5,454 / 5,412 | +0,16 % | +0,46 % (1) | +0,38 % | +1,24 % (1) |
+| Israeli 35° | vopt | 203,1 / 228,8 / — | 37,49 / 38,66 / 33,49 | 14,97 / 15,46 / 14,88 | 8,739 / 8,728 / 8,563 | −4,34 % | −11,26 % (0) | +4,87 % | +11,94 % (0,2) |
+| Israeli 35° | FE | 203,1 / 228,8 / — | 22,06 / 22,30 / 27,94 | 8,588 / 8,630 / 11,78 | 6,235 / 6,336 / 7,827 | −3,60 % | −11,26 % (0) | −22,82 % | −27,07 % (0,5) |
+| Israeli 60° | vopt | 12,92 / 12,99 / 12,99 | 6,998 / 6,925 / 6,905 | 5,501 / 5,482 / 5,438 | 4,830 / 4,828 / 4,788 | +0,24 % | +1,04 % (0,2) | +0,73 % | +1,34 % (0,2) |
+| Israeli 60° | FE | 12,92 / 12,99 / 12,99 | 6,252 / 6,214 / 6,197 | 3,819 / 3,811 / 3,805 | 3,270 / 3,271 / 3,235 | +0,08 % | +0,62 % (0,2) | +0,47 % | +1,08 % (1) |
+
+* **Taludes íngremes e moderados: o MEF confirma a análise limite a ~1 %.** Fig. 9, β ≥ 60° (18 casos: as duas
+  curvas, os três α): Γ_FEM/Γ_LA − 1 entre −0,25 % e +0,79 %, média +0,16 %; vopt em β = 45°: −0,13 … −0,34 %;
+  Fig. 8, painéis de 60° (16 valores): −0,48 … +1,04 %, média +0,17 %. Em relação ao artigo os mesmos casos ficam em
+  média +0,57 % (máx. +1,38 %) na Fig. 9 e +0,56 % (máx. +1,34 %) na Fig. 8: o MEF fica onde a análise limite fica
+  (seções 4.2–4.3). Os valores até +1,0 % acima de Γ_LA (que é ≥ λ*) estão dentro da incerteza da extrapolação
+  (seção 7); λ₃ sem extrapolar fica 3–5 % (Fig. 9) e 2–4 % (Fig. 8) acima de Γ_LA nesses casos (convergência por
+  cima).
+* **Taludes abatidos (β = 30–45°): desvios maiores, em investigação.** Fig. 9, FE: β = 30°, α = 5 **−16,8 %** e
+  α = 10 **−24,7 %** (λ₃ já fica 13,6 % e 21,9 % abaixo de Γ_LA, e os três extrapolados concordam a ≤ 3,5 %:
+  3,15 / 3,17 / 3,05 e 3,54 / 3,54 / 3,44); β = 45°, α = 5 −2,2 % e α = 10 −4,4 %; α = 1, β = 30° −2,7 % (o
+  −2,0 … −2,7 % do estudo de convergência). Fig. 9, vopt, β = 30°: α = 10 −6,6 %, α = 5 −4,4 %, α = 1 −0,85 %.
+  Fig. 8: Israeli 35°, h_w = 0 −11,3 % (ciclo 0 parado no limite da continuação, λ = 100, depois 2,63 / 1,57 / 1,23:
+  sequência pré-assintótica); London 30°, h_w = 0 −4,0 %; London 30° vopt, h_w/H = 0,2 / 0,5: −5,4 / −3,2 %;
+  Israeli 35° vopt, 0,2 / 0,5: −3,0 / −3,2 %; as curvas FE dos painéis abatidos em h_w > 0 ficam a −2,0 … +0,1 %. O
+  sentido (MEF abaixo) é o esperado de Γ_LA ≥ λ*, mas acima de ~2 % passa da incerteza da extrapolação de ordem 1
+  em 4 ciclos.
+  <!-- OUTLIERS: a ser completado pelo auditor -->
+* Em relação ao artigo o MEF repete o quadro das seções 4.2–4.3: Israeli 35° FE −20 … −27 % (o valor do artigo não
+  é o colapso destes dados, seção 5, item 5) e Israeli 35° vopt +11,9 % em h_w/H = 0,2 (viés de quadratura do
+  artigo, seção 5, item 6).
 
 ## 5. Constatações sobre o artigo
 

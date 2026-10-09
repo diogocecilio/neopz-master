@@ -11,7 +11,7 @@
 // material body force m_force (which SlopeAnalysis sets to lambda (0, -gamma_ref, 0)) and lets the forcing function
 // overwrite it, so the forcing function recovers lambda = -m_force[1] / gamma_ref (as in SlopeDrawdown).
 // The factors of the refinement cycles of the plastic zone decrease towards the collapse factor with order ~1 in h
-// (each cycle halves h in the plastic zone): ExtrapolateCycles extrapolates them to h -> 0 (README, section (g)).
+// (each cycle halves h in the plastic zone): ExtrapolateCycles extrapolates them to h -> 0 (README, section 4.4).
 #ifndef FEMSTABILITY_H
 #define FEMSTABILITY_H
 

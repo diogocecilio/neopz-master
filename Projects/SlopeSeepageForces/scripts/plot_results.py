@@ -7,6 +7,8 @@ Reads the resumable CSVs of the C++ commands (results/cpp/, see scripts/run_cpp_
     fig9.csv                  SlopeSeepageForces fig9
     fig8_hw0_gammaw.csv       h_w = 0 ends with gamma_w = 9.8 and 9.81 (both soil sets)
     fig9_gammaw9.8.csv        Fig. 9 with gamma_w = 9.8
+    fem_fig9.csv, fem_fig8.csv  FEM gravity-increase check of the same cases (SlopeSeepageForces fembatch,
+                              scripts/run_fem_batch.sh): Gamma_FEM / Hcrit_FEM_m = order-1 extrapolation h -> 0
 and compares them with
     the paper  : data/paper_fig{5,8,9}_vertices.csv (digitized polylines; Fig. 8 interpolated in log scale)
     the Python : results/reproduce_python/comparison_fig{5,8_fitted,8_table1,9}.csv ("ours" columns, the verified
@@ -15,8 +17,10 @@ and compares them with
 Writes
     results/fig5.png, results/fig8.png, results/fig9.png  (paper layout: paper curves thin grey, ours bold;
         Fig. 5 solid -J*(v'_opt) / dashed J(u'_FE); Fig. 8 dashed vopt / dash-dot FE / solid Wu et al. (paper only),
-        log H_crit; Fig. 9 solid FE / dashed vopt; Python results as small open markers)
-    results/cpp/comparison_fig{5,8,8_table1,9}.csv and results/cpp/comparison_summary.txt
+        log H_crit; Fig. 9 solid FE / dashed vopt; Python results as small open circles; the FEM check as open
+        squares in the colour of the curve)
+    results/cpp/comparison_fig{5,8,8_table1,9}.csv and results/cpp/comparison_summary.txt (the FEM tables are
+        written by scripts/fem_batch_table.py, not here)
 
     python3 Projects/SlopeSeepageForces/scripts/plot_results.py
 """
@@ -77,6 +81,32 @@ def cpp_table(path, key_fields):
             print(f"   note: {os.path.basename(path)}: {k} present with several settings, the last row is used")
         out[k], settings[k] = row, row.get("settings")
     return out
+
+
+def fem_points(name, key_fields, value_field):
+    """FEM check (results/cpp/fem_fig{8,9}.csv): key (strings as 'curve'/'soil', numbers otherwise) -> value"""
+    out = {}
+    for k, r in cpp_table(os.path.join(CPP, name), key_fields).items():
+        out[tuple(v if f in ("curve", "soil") else fnum(v) for f, v in zip(key_fields, k))] = fnum(r[value_field])
+    return out
+
+
+FEM_LABEL = "FEM gravity increase, extrapolated h → 0 (colour of the curve)"
+
+
+def _fem_legend(handles, fem, ms):
+    """legend handles and labels, plus one entry with the two FEM markers when there are FEM points"""
+    from matplotlib.lines import Line2D
+    labels = [h.get_label() for h in handles]
+    if fem:
+        handles = handles + [tuple(Line2D([], [], ls="none", marker="s", ms=ms, mfc="none", mec=COL[c], mew=1.3)
+                                   for c in ("FE", "vopt"))]
+        labels.append(FEM_LABEL)
+    return handles, labels
+
+
+def _fem_markers(ax, x, y, curve, ms):
+    ax.plot(x, y, ls="none", marker="s", ms=ms, mfc="none", mec=COL[curve], mew=1.3, zorder=6)
 
 
 def polylines(name, key_fields, x_field, y_field):
@@ -272,9 +302,12 @@ def plot_fig5(rows, path):
     plt.close(fig)
 
 
-def plot_fig8(rows, path, title):
+def plot_fig8(rows, path, title, fem=None):
+    """fem: {(soil, beta, curve, hw_over_H): H_crit of the FEM check} drawn as open squares (None: no FEM points)"""
     plt = _mpl()
     from matplotlib.lines import Line2D
+    from matplotlib.legend_handler import HandlerTuple
+    fem = fem or {}
     paper = polylines("paper_fig8_vertices.csv", ("soil", "beta_deg", "curve"), "hw_over_H", "Hcrit_m")
     fig, axs = plt.subplots(1, 2, figsize=(8.6, 4.6))
     for j, soil in enumerate(("London", "Israeli")):
@@ -297,6 +330,10 @@ def plot_fig8(rows, path, title):
                 fin = np.isfinite(y)
                 ax.plot(x[fin], y[fin], ls=LS["FE8"] if c == "FE" else LS["vopt"], color=COL[c], lw=2.2, zorder=3)
                 ax.plot(x, p, ls="none", marker="o", ms=4, mfc="none", mec=COL["text2"], mew=0.8, zorder=5)
+                fp = sorted((hw, v) for (s, b, cc, hw), v in fem.items()
+                            if s == soil and b == beta and cc == c and math.isfinite(v))
+                if fp:
+                    _fem_markers(ax, [q[0] for q in fp], [q[1] for q in fp], c, 6.5)
             cs = [r for r in rows if r["soil"] == soil and r["beta_deg"] == beta and r["curve"] == "vopt"
                   and abs(r["hw_over_H"] - 1.0) < 1e-9]
             if cs and math.isfinite(cs[0]["cpp"]):
@@ -314,18 +351,23 @@ def plot_fig8(rows, path, title):
                Line2D([], [], ls="-", color=COL["paper"], lw=0.9, label="paper: " + LAB["Wu_rp025"]),
                Line2D([], [], ls=LS["vopt"], color=COL["paper"], lw=0.9, label="paper: vopt (dashed), FE (dash-dot)"),
                Line2D([], [], ls="none", marker="o", ms=4, mfc="none", mec=COL["text2"], label="Python reference")]
-    fig.legend(handles=handles, loc="lower center", ncol=3, fontsize=8)
+    handles, labels = _fem_legend(handles, fem, 6.5)
+    fig.legend(handles=handles, labels=labels, loc="lower center", ncol=3, fontsize=8,
+               handler_map={tuple: HandlerTuple(ndivide=None, pad=0.4)})
     fig.suptitle(title, fontsize=9, color=COL["text"])
     fig.tight_layout(rect=(0, 0.11, 0.97, 0.95))
     fig.savefig(path, dpi=160)
     plt.close(fig)
 
 
-def plot_fig9(rows, path):
+def plot_fig9(rows, path, fem=None):
+    """fem: {(alpha, beta, curve): Gamma of the FEM check} drawn as open squares (None: no FEM points)"""
     plt = _mpl()
     from matplotlib.lines import Line2D
+    from matplotlib.legend_handler import HandlerTuple
+    fem = fem or {}
     paper = polylines("paper_fig9_vertices.csv", ("alpha", "curve"), "beta_deg", "Gamma")
-    fig, axs = plt.subplots(1, 3, figsize=(9.4, 3.9), sharey=True)
+    fig, axs = plt.subplots(1, 3, figsize=(9.4, 4.2 if fem else 3.9), sharey=True)
     for j, a in enumerate((1, 5, 10)):
         ax = axs[j]
         _deg_axis(ax)
@@ -339,6 +381,9 @@ def plot_fig9(rows, path):
             fin = np.isfinite(y)
             ax.plot(x[fin], y[fin], ls=LS["FE9"] if c == "FE" else LS["vopt"], color=COL[c], lw=2.2, zorder=3)
             ax.plot(x, p, ls="none", marker="o", ms=4, mfc="none", mec=COL["text2"], mew=0.8, zorder=5)
+            fp = sorted((b, v) for (aa, b, cc), v in fem.items() if aa == a and cc == c and math.isfinite(v))
+            if fp:
+                _fem_markers(ax, [q[0] for q in fp], [q[1] for q in fp], c, 6.5)
         ax.set_ylim(0, 5)
         _box_label(ax, rf"$\alpha$ = {a}", x=0.07, y=0.06, va="bottom")
         if j == 0:
@@ -349,12 +394,14 @@ def plot_fig9(rows, path):
                Line2D([], [], ls=LS["vopt"], color=COL["vopt"], lw=2.2, label="C++ " + LAB["vopt"]),
                Line2D([], [], ls="-", color=COL["paper"], lw=0.9, label="paper (digitized; same line styles)"),
                Line2D([], [], ls="none", marker="o", ms=4, mfc="none", mec=COL["text2"], label="Python reference")]
-    fig.legend(handles=handles, loc="lower center", ncol=4, fontsize=8)
+    handles, labels = _fem_legend(handles, fem, 6.5)
+    fig.legend(handles=handles, labels=labels, loc="lower center", ncol=3 if fem else 4, fontsize=8,
+               handler_map={tuple: HandlerTuple(ndivide=None, pad=0.4)})
     gw = sorted({r["gamma_w"] for r in rows})
     fig.suptitle(r"Fig. 9: H = 5 m, c = 10 kPa, $\varphi$ = 30°, $\gamma$ = 20 kN/m³, $h_w = H$, $\gamma_w$ = "
                  + "/".join(f"{g:g}" for g in gw) + "; FE box 50/10/30 m — C++ (bold) vs paper (thin grey)",
                  fontsize=9, color=COL["text"])
-    fig.tight_layout(rect=(0, 0.08, 1, 0.94))
+    fig.tight_layout(rect=(0, 0.14 if fem else 0.08, 1, 0.94))
     fig.savefig(path, dpi=160)
     plt.close(fig)
 
@@ -389,7 +436,9 @@ def main():
         r8 = compare_fig8(name, py_name)
         if not r8:
             continue
-        plot_fig8(r8, os.path.join(OUT, "fig8.png" if name == "fig8.csv" else "fig8_table1.png"), title)
+        fem8 = fem_points("fem_fig8.csv", ("soil", "beta_deg", "curve", "hw_over_H"), "Hcrit_FEM_m") \
+            if name == "fig8.csv" else None   # the FEM batch runs the swapped soil set only
+        plot_fig8(r8, os.path.join(OUT, "fig8.png" if name == "fig8.csv" else "fig8_table1.png"), title, fem8)
         log("")
         log(f"Fig. 8 ({name}): H_crit, C++ vs paper (visible points, log-interpolated) and vs Python")
         for s, b in FIG8_PANELS:
@@ -399,7 +448,7 @@ def main():
                 log(f"   {'':16s}Python: {stats(g, 'rel_cpp_python')}")
     r9 = compare_fig9()
     if r9:
-        plot_fig9(r9, os.path.join(OUT, "fig9.png"))
+        plot_fig9(r9, os.path.join(OUT, "fig9.png"), fem_points("fem_fig9.csv", ("alpha", "beta_deg", "curve"), "Gamma_FEM"))
         log("")
         log("Fig. 9: Gamma, C++ vs paper (visible nodes) and vs Python (FE: box fixed in metres)")
         for a in (1, 5, 10):

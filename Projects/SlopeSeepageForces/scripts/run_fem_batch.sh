@@ -1,7 +1,7 @@
 #!/bin/sh
 # FEM gravity-increase stability factor (FEMStability.h, command 'fembatch') of the cases of the paper's Figs. 9 and 8,
 # as an independent check of the limit-analysis curves (Ceron et al., IJNAMG 2025, Sect. 4.3), with the production
-# settings of the convergence study (defaults of 'fembatch', README section (g)):
+# settings of the convergence study (defaults of 'fembatch', README section 4.4):
 #   Fig. 9: alpha = 1, 5, 10 x beta = 30, 45, 60, 75, 90 x {FE, vopt}            -> results/cpp/fem_fig9.csv (30 cases)
 #   Fig. 8: London 30/60, Israeli 35/60 ((c, phi) swapped) x h_w / H = 0, 0.2, 0.5, 1 x {FE, vopt}, h_w = 0 once
 #                                                                                -> results/cpp/fem_fig8.csv (28 runs)

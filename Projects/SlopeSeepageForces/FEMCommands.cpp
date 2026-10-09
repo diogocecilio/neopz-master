@@ -120,7 +120,7 @@ int CmdFS(Options &o) {
 
 namespace {
 
-/// FEM settings of fembatch; defaults = production settings of the convergence study (README, section (g))
+/// FEM settings of fembatch; defaults = production settings of the convergence study (README, section 4.4)
 struct FEMBatchSettings {
     DriverSettings ds;
     int nref = 3;    ///< refinement cycles of the plastic zone (nref + 1 gravity-increase analyses)
