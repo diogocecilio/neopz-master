@@ -4,3 +4,5 @@
 2026-10-09 08:02:03    [fem fig9] alpha=1 beta=60 FE: limit analysis, then 4 FEM cycles
 2026-10-09 08:05:15    [fem fig9 2] alpha=1 beta=60 FE: Gamma_FEM = 0.957031 (h -> 0; last cycle 0.992188, 3924 equations), Gamma_LA = 0.95707 (189.7 s)
 2026-10-09 08:05:15  fembatch fig=9: 2 cases run, 0 already in /home/user/neopz-master/Projects/SlopeSeepageForces/results/cpp/fem_fig9.csv, 0 failed, 362.3 s
+2026-10-09 09:21:34  fembatch fig=9: 3 alphas x 5 betas x 2 curves, H 5 m, c 10, phi 30, gamma 20, gamma_w 9.81, h_w / H 1; fem:nref=3;mark=0.05;smesh=0.25/0.25/0.25/1;sa=2;maxnewton=100;tolfs=0.002|la:box_m=50/10/30;hbc=zero/zero/noflow;horder=2;href=1;hmesh=gen/0.025/0.0625/0.15/2;lm=10;mech=I+II;seeds=0+1+2;np=40;niter=150;pools=25;q=coarse/fine;polish=1;dmax=10; out /home/user/neopz-master/Projects/SlopeSeepageForces/results/cpp/fem_fig9.csv (2 rows already there)
+2026-10-09 09:21:34    [fem fig9] alpha=1 beta=30 vopt: limit analysis, then 4 FEM cycles
