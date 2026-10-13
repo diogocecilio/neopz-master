@@ -284,6 +284,23 @@ shared machine), so that the run times follow the iterations.
 The program prints these comparisons; `embankment_summary.csv` lists every number with the value of the 2D model
 of v0.6.
 
+## Operators and local solvers (v1.0 of the article, Sect. 7.4)
+
+Parts `tangents` (modes D, sym, cont, fd) and `solvers`, one core (`embankment_tangents.csv`,
+`embankment_local_solvers.csv`; times of the machine of the v1.0 runs, about 1.7 times those of the v0.9 runs):
+
+| operator / local solver | evaluations per consolidation step (max) | global iterations | wall time (s) |
+|---|---|---|---|
+| consistent D, two unknowns | 3.56 (5) | 131 | 196.7 (201.6 in `solvers`) |
+| consistent D, four unknowns | 3.56 (5) | 131 | 198.1 |
+| central differences (fd) | 3.52 (5) | 130 | 211.7 |
+| symmetric part (sym) | 3.76 (6) | 136 | 204.6 |
+| continuum tangent (cont) | 4.36 (8) | 151 | 240.2 |
+
+The undrained increments take [5,5,4,4,4,4,4,4,4,4] evaluations with every operator. The two local solvers give the
+same iterations in every increment, settlements within 5.7e-13 m and pore pressures within 1.8e-11 kPa; their
+times differ by 2%, within the variation between repetitions.
+
 ## Comparison with Abaqus (v0.9 of the article, Sect. 6.4)
 
 The folder `reference/abaqus` holds the Abaqus/Standard analysis of the same problem (plane strain, 20 x 10 CPE8RP

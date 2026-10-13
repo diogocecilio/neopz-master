@@ -155,6 +155,23 @@ CSV files (`./AbaqusTriaxialConsolidation mesh mp fe novtk` is enough for Figs. 
 | `supplementary_abaqus_softening` | not in the article: p'0 = 20 kPa, global q (platen force) and q at A with the two meshes against the material point; deformed outer generatrix | `abaqus_smooth_600_p0_20*.csv` (`states`, `softening`) |
 | `supplementary_abaqus_tangents` | not in the article: cumulative evaluations of the residual with the five operators of Table 10, (a) tolerance 10⁻⁸ and (b) 10⁻⁹ (panel (b) only if the part `tolerance` was run) | `abaqus_tangents_evaluations.csv`, `abaqus_table10.csv` (`tangents`); `abaqus_table10_tolerance.csv`, `abaqus_rough_2x2x2_tolerance_tangent_*.csv` (`tolerance`) |
 
+## Results of the parts `tangents` and `solvers` (v1.0, Sect. 7.4)
+
+Rough platen, 2 x 2 x 2 points, 150 increments, one core (`abaqus_table10.csv`, `abaqus_local_solvers.csv`; the
+times are those of the machine of the v1.0 runs, about twice those of the v0.9 runs on the same code):
+
+| operator / local solver | evaluations per increment (max) | total | wall time (s) | end q_A (kPa) |
+|---|---|---|---|---|
+| consistent D, two unknowns | 2.73 (5) | 409 | 29.3 (28.4 in `solvers`) | 155.93776 |
+| consistent D, four unknowns | 2.73 (5) | 409 | 28.8 | 155.93776 (differs from two unknowns by 1.2e-9) |
+| central differences (fd) | 2.73 (5) | 409 | 32.7 | 155.93776 |
+| symmetric part (sym) | 5.77 (7) | 866 | 65.8 | 155.93773 |
+| continuum tangent (cont) | 9.22 (14) | 1383 | 111.1 | 155.93779 |
+| transpose (DT) | 9.18 (11) | 1377 | 110.7 | 155.93775 |
+
+The two local solvers give the same iterations in every increment and the same stresses at A to 1e-9 kPa; their
+times differ by 1%, within the variation between repetitions.
+
 ## Results
 
 All the values below are those of the files of the executable (`abaqus_table7.csv`, `abaqus_fe_numbers.csv`,
