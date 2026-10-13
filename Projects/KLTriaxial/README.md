@@ -57,7 +57,7 @@ Errors at the end of the tests (element; the material point gives the same value
 | undrained, NC: p' - p'_exact (kPa) | 1.225 | 0.115 | 0.0115 | p' = 109.60, q = 74.11, u = 115.10 kPa |
 | undrained, OCR = 10: p' - p'_exact (kPa) | -1.698 | -0.0472 | -0.00396 | p' = 831.92, q = 570.61, u = -441.72 kPa |
 
-The errors fall by a factor of 10 per decade of increments (first order), the largest difference between the
+The errors fall by a factor of 9 to 12 per decade of increments (first order; 36 between 10 and 100 increments in the undrained OCR = 10 test, whose first increment crosses the surface), the largest difference between the
 element and the material point is 1.4e-6 kPa, the spread of q over the eight integration points is at most 1e-7 kPa
 (homogeneous deformation), and no increment is bisected: 2.0 to 4.7 global evaluations per increment (the
 predictor included; 2.0 means that the predictor converges in one correction), 1.8 to 3.3 local Newton iterations
