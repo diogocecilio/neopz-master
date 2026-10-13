@@ -68,6 +68,8 @@ The class `EmbankmentConsolidation` follows the structure of the NeoPZ examples:
 ./EmbankmentConsolidation novtk               # without the VTK series
 ./EmbankmentConsolidation model elastic       # only these parts (model, elastic, tangents)
 ./EmbankmentConsolidation tangents modes=D,DT # Table 10 with these operators only (D, sym, cont, DT, fd)
+./EmbankmentConsolidation tangents solvers novtk modes=D,sym,cont,fd  # Sect. 7.4 of v1.0: operators and local solvers
+./EmbankmentConsolidation model solver=full   # any part with the four-unknown local system (default: two unknowns)
 ./EmbankmentConsolidation verbose             # one line per increment
 ```
 
@@ -105,6 +107,7 @@ Files written in the working directory:
 | `embankment_elastic_{history,convergence,types}.csv` | the same for the elastic variant |
 | `embankment_tangents.csv` | Table 10, embankment column: per operator the mean and largest evaluations per undrained increment and per consolidation step, total evaluations, global iterations (`NGlobalIterations`, failed attempts included), failed attempts (`NBisections`), run time, time per iteration, final settlement and pore pressure, largest difference of the histories from D, largest relative change of the undrained residuals from D, and the 2D values of v0.6 |
 | `embankment_tangents_iterations.csv` | evaluations of every increment of every operator |
+| `embankment_local_solvers.csv` | part `solvers` (v1.0): the Cam-Clay run with the consistent tangent and the two local solvers of the return mapping (two and four unknowns): evaluations, global iterations, run time, final settlement and pore pressure, largest differences between the two (zero to round-off) |
 | `embankment_tangents_convergence.csv` | normalized residual of every evaluation of every increment of every operator (mode, stage, increment, t, λ, evaluation, residual) |
 | `embankment_summary.csv` | every number printed by the program (quantity, value, value of the 2D model of v0.6, unit) |
 
@@ -176,7 +179,7 @@ matplotlib is needed. A figure whose CSV files are missing is skipped with a mes
 | File | Article | Data |
 |---|---|---|
 | `fig12_embankment_model` | Fig. 12: the slab in an oblique projection (x to the right, y up, z towards the reader: the faces z = 1 m, y = 10 m and x = 20 m are visible) with its 20 × 10 × 1 mesh, the load, the drained top, the boundary conditions, the settlement points and the zones pp1, pp2; on the right, the Hex20–Hex8 element with its 20 displacement nodes and 8 pore pressure nodes | `embankment_mesh_*.csv`, `embankment_monitor.csv` |
-| `fig13_embankment_history` | Fig. 13: (a) settlements at x = 0, 2, 4, 6 m and (b) pore pressures pp1, pp2 from t = 0 to 10⁸ s, with the inset of pp2 against log t (Mandel–Cryer effect); markers: FLAC3D | `embankment_history.csv`, `reference/flac_historicos_digitalizados.json`; the numbers of the discussion read from the FLAC3D histories (share of the excess pore pressure of pp2 dissipated and of the consolidation settlement at x = 0 developed at t = 2.5·10⁵ s and 10⁶ s: 47 %, 71 %, 13 %), with those of this work, are written to `fig13_flac3d_numbers.csv` |
+| `fig13_embankment_history` | Fig. 13 (v1.0: Fig. 11): (a) settlements at x = 0, 2, 4, 6 m and (b) pore pressures pp1, pp2 from t = 0 to 10⁸ s, with the inset of pp2 against log t (Mandel–Cryer effect); lines: this work and Abaqus; the FLAC3D markers are drawn only with `SHOW_FLAC3D = True` in `plot_figures.py` (v1.0 of the article compares with Abaqus only) | `embankment_history.csv`, `reference/flac_historicos_digitalizados.json`; the numbers of the discussion read from the FLAC3D histories (share of the excess pore pressure of pp2 dissipated and of the consolidation settlement at x = 0 developed at t = 2.5·10⁵ s and 10⁶ s: 47 %, 71 %, 13 %), with those of this work, are written to `fig13_flac3d_numbers.csv` |
 | `fig14_embankment_fields` | Fig. 14, on the face z = 0: excess pore pressure at the end of the undrained loading (a) and at t = 10⁶ s (b), plastic integration points of the layer z = 0.113 m (c) and settlement (d) at t = 10⁸ s | `embankment_nodal_{undrained,t1e6,t1e8}.csv`, `embankment_gauss_t1e8.csv` |
 
 The script draws the three states of the article; the fields of all 36 converged states are in the VTK series

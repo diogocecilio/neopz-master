@@ -22,6 +22,8 @@
 #include "TPZPlasticState.h"
 #include "TPZPlasticCriterion.h"
 
+#include <vector>
+
 /**
  * @ingroup material
  * @brief Modified Cam-Clay (MCC) yield criterion with the local return mapping of the article
@@ -123,6 +125,14 @@ public:
 
     /** @brief Selects the local system: reduced (two unknowns, default) or full (four unknowns, cross-check) */
     void SetLocalSolver(ELocalSolver solver) { fLocalSolver = solver; }
+
+    /**
+     * @brief Optional log of the local Newton iterations: when log is not null, every projection clears it and
+     * appends the norm of its residual at each iteration (the last entry is the converged norm). Used by the
+     * material-point studies of the convergence rate (Projects/IntegrationSchemes, Projects/YieldSurfaceProjection);
+     * the pointer is not serialized and is null by default (no cost in the finite element analyses).
+     */
+    void SetResidualLog(std::vector<REAL> *log) { fResidualLog = log; }
 
     /** @name Access to the parameters */
     /** @{ */
@@ -330,6 +340,7 @@ protected:
     REAL fNewtonTol; ///< tolerance of the local Newton method on the norm of the residual (1e-12)
     int fMaxNewton;  ///< maximum number of local Newton iterations
     ELocalSolver fLocalSolver; ///< reduced (two unknowns) or full (four unknowns) local system
+    std::vector<REAL> *fResidualLog = nullptr; ///< optional log of the residual norms of the local iterations (SetResidualLog)
 
     /**
      * @brief Jacobian of the projection in principal stresses from the derivatives of the projected coordinates

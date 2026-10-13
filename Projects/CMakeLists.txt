@@ -30,7 +30,8 @@ add_subdirectory(YieldSurfaceProjection)       # Figs. 1-2
 add_subdirectory(TaylorTest)                   # Sect. 4.5, Fig. 3; Table 10 (Taylor slopes of the operators)
 add_subdirectory(RS2Triaxial)                  # Sect. 6.1, Figs. 4 and 5, Table 2
 add_subdirectory(FrozenBulkModulus)            # Sect. 6.1, Table 3
-add_subdirectory(IntegrationSchemes)           # Sect. 6.2, Fig. 6, Table 4
+add_subdirectory(IntegrationSchemes)           # Sect. 6.2, Fig. 6, Table 4 (v1.0: Sect. 5.2, comparison of integration schemes)
+add_subdirectory(KLTriaxial)                   # v1.0: Sect. 7.1, Krabbenhoft-Lyamin triaxial tests with one element
 add_subdirectory(FLAC3DTriaxial)               # Sects. 6.3 and 6.7, Figs. 4 and 7, Tables 5 and 10
 add_subdirectory(TerzaghiConsolidation)        # Sect. 6.4, Fig. 8, Table 6
 add_subdirectory(AbaqusTriaxialConsolidation)  # Sects. 6.5 and 6.7, Figs. 9-11, Tables 7, 9 and 10

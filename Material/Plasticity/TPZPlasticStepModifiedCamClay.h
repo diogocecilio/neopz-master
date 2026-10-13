@@ -150,6 +150,8 @@ public:
 
     /** @brief Local system solved at the plastic points: reduced (two unknowns, default) or full (four unknowns) */
     void SetLocalSolver(TPZYCModifiedCamClayRHW::ELocalSolver solver) { fYC.SetLocalSolver(solver); }
+    /** @brief Optional log of the residual norms of the local Newton iterations (TPZYCModifiedCamClayRHW::SetResidualLog) */
+    void SetResidualLog(std::vector<REAL> *log) { fYC.SetResidualLog(log); }
 
     /** @brief Linear isotropic elastic model (no plasticity): \f$\sigma=\sigma_n+D_e\Delta\varepsilon\f$ */
     void SetLinearElastic(REAL E, REAL nu);

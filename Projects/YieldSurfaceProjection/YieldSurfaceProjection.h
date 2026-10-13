@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <array>
 #include <random>
+#include <chrono>
 #include <cmath>
 #include <fstream>
 #include <iomanip>
@@ -269,7 +270,68 @@ public:
     void RunProjection();
     /** @} */
 
-    /** @brief Runs Figs. 1 and 2 */
+    /** @name Two versus four unknowns (Sect. 5.1 of the article) */
+    /** @{ */
+    /** @brief One trial state of the directed sweep of SweepSolvers */
+    struct TSweepRow {
+        REAL fP = 0.;       ///< trial \f$p'\f$ (kPa, compression positive)
+        REAL fQ = 0.;       ///< trial \f$q\f$ (kPa)
+        int fRegion = 0;    ///< 1 subcritical, 2 supercritical trial state (sign of \f$\bar p_{tr}\f$)
+        bool fConvReduced = false; ///< the reduced solver converged
+        bool fConvFull = false;    ///< the full solver converged
+        int fItReduced = 0;        ///< Newton corrections of the reduced solver
+        int fItFull = 0;           ///< Newton corrections of the full solver
+        REAL fDgReduced = 0.;      ///< \f$\Delta\gamma\f$ of the reduced solution
+        REAL fDgFull = 0.;         ///< \f$\Delta\gamma\f$ of the full solution
+        REAL fPRed = 0., fQRed = 0., fARed = 0.; ///< reduced solution
+        REAL fPFull = 0., fQFull = 0., fAFull = 0.; ///< full solution
+        REAL fDproj = 0.;          ///< largest entry of \f$|D_{proj}-D_{proj,full}|\f$ (both converged)
+    };
+    /** @brief Summary of SweepSolvers and TimeSolvers for one elastic law */
+    struct TSweepSummary {
+        std::string fLaw;      ///< "linear" or "porous"
+        int fNStates = 0;      ///< trial states
+        int fFailReduced = 0, fFailFull = 0; ///< Newton failures
+        int fNegDgReduced = 0, fNegDgFull = 0; ///< converged solutions with \f$\Delta\gamma<0\f$
+        int fDisagree = 0;     ///< states where both converged to admissible solutions more than 1e-6 kPa apart
+        REAL fMeanItReduced = 0., fMeanItFull = 0.; ///< mean corrections over the states where both converged
+        int fMaxItReduced = 0, fMaxItFull = 0;     ///< largest corrections
+        REAL fDp = 0., fDq = 0., fDa = 0., fDproj = 0.; ///< largest differences between the admissible solutions
+        REAL fMicrosReduced = 0., fMicrosFull = 0.; ///< time per projection (us, median of five repetitions)
+        REAL fSpreadReduced = 0., fSpreadFull = 0.; ///< (max - min)/median of the repetitions
+    };
+    /**
+     * @brief Directed sweep of trial states for the two local solvers: \f$p'_{tr}/p_{c,n}\f$ log-spaced from 0.01
+     * to 31.6 (36 values) plus four tensile values (-0.01 to -0.3), \f$q_{tr}/a_n\f$ log-spaced from 1e-8 to 100
+     * (41 values); the states inside the surface are skipped. Both solvers are run from the same trial state
+     * (ProjectReduced and ProjectHW) and compared
+     */
+    static std::vector<TSweepRow> SweepSolvers(const TPZYCModifiedCamClayRHW &yc, REAL G, REAL v0, REAL pcn,
+                                               TSweepSummary &summary);
+    /**
+     * @brief Time per projection of the two solvers over the states of the sweep where both converged (the whole
+     * set repeated until it lasts about 0.3 s, median of five repetitions)
+     */
+    static void TimeSolvers(const TPZYCModifiedCamClayRHW &yc, REAL G, REAL v0, REAL pcn,
+                            const std::vector<TSweepRow> &rows, TSweepSummary &summary);
+    /**
+     * @brief Residual histories of the two solvers in the states of Fig. 2 (linear law) and in the same trial
+     * invariants with the porous law of the Abaqus clay: CSV two_vs_four_residuals.csv
+     */
+    void WriteResidualHistories() const;
+    /**
+     * @brief Jacobian of the projection in principal stresses by central differences of the reduced solver
+     * (step h on each trial principal stress, triaxial trial state with sigma_zz axial); used to decide which
+     * analytic Jacobian is right where the two solvers differ
+     * @return false if a perturbed projection failed
+     */
+    static bool FiniteDifferenceDproj(const TPZYCModifiedCamClayRHW &yc, REAL G, REAL v0, REAL pcn, REAL p, REAL q,
+                                      REAL h, TPZFMatrix<REAL> &D);
+    /** @brief Runs the sweep and the timings for the linear and the porous laws; CSV files two_vs_four_*.csv */
+    void RunTwoVersusFour();
+    /** @} */
+
+    /** @brief Runs Figs. 1 and 2 and the two-versus-four study */
     void RunAll();
 
     /** @name Auxiliary functions */
@@ -854,9 +916,356 @@ inline void YieldSurfaceProjection::RunProjection() {
     report("porous elasticity, Abaqus clay, p'_n = 100 kPa, p_c,n = 116.6 kPa", CrossCheckSolvers(ycp, Gp, v0p, 116.6, 2000, 2026));
 }
 
+inline std::vector<YieldSurfaceProjection::TSweepRow>
+YieldSurfaceProjection::SweepSolvers(const TPZYCModifiedCamClayRHW &yc, REAL G, REAL v0, REAL pcn,
+                                     TSweepSummary &summary) {
+    const REAL sq3 = std::sqrt(3.);
+    REAL an, H, pc;
+    yc.Hardening(pcn, 0., v0, an, H, pc);
+    std::vector<REAL> ps, qs;
+    for (int i = 0; i < 36; ++i) ps.push_back(pcn * std::pow(10., -2. + 3.5 * i / 35.));
+    // tensile trial states exist only with the linear law (the porous law gives p' > 0 for every strain)
+    if (yc.VolumetricLaw() == TPZYCModifiedCamClayRHW::ELinear)
+        for (REAL t : {-0.01, -0.03, -0.1, -0.3}) ps.push_back(t * pcn);
+    for (int j = 0; j < 41; ++j) qs.push_back(an * std::pow(10., -8. + 10. * j / 40.));
+    std::vector<TSweepRow> rows;
+    REAL sumRed = 0., sumFull = 0.;
+    int nboth = 0;
+    for (REAL p : ps)
+        for (REAL q : qs) {
+            const REAL b = yc.BFromP(-p, an);
+            if (yc.PhiCC(-p, std::sqrt(2. / 3.) * q, an, b) <= 0.) continue;
+            TSweepRow r;
+            r.fP = p;
+            r.fQ = q;
+            r.fRegion = (-p - yc.Pt() + an) < 0. ? 1 : 2; // bar p_tr < 0: subcritical side (compression)
+            summary.fNStates++;
+            TPZYCModifiedCamClayRHW::TTrial trial;
+            trial.fXiTr = -sq3 * p;
+            trial.fRhoTr = std::sqrt(2. / 3.) * q;
+            trial.fG = G;
+            trial.fV0 = v0;
+            trial.fPcn = pcn;
+            trial.fB = b;
+            TPZManVector<REAL, 4> X(4, 0.), Xf(4, 0.);
+            TPZManVector<REAL, 2> X2(2, 0.);
+            r.fConvReduced = yc.ProjectReduced(trial, X2, r.fItReduced);
+            r.fConvFull = yc.ProjectHW(trial, Xf, r.fItFull);
+            if (!r.fConvReduced) summary.fFailReduced++;
+            if (!r.fConvFull) summary.fFailFull++;
+            bool admRed = false, admFull = false;
+            if (r.fConvReduced) {
+                yc.ReducedToFull(X2, trial, X);
+                r.fDgReduced = X[3];
+                yc.Hardening(pcn, X[2], v0, r.fARed, H, pc);
+                r.fPRed = -X[0] / sq3;
+                r.fQRed = std::sqrt(1.5) * X[1];
+                admRed = X[3] >= -1.e-14;
+                if (!admRed) summary.fNegDgReduced++;
+                summary.fMaxItReduced = std::max(summary.fMaxItReduced, r.fItReduced);
+            }
+            if (r.fConvFull) {
+                r.fDgFull = Xf[3];
+                yc.Hardening(pcn, Xf[2], v0, r.fAFull, H, pc);
+                r.fPFull = -Xf[0] / sq3;
+                r.fQFull = std::sqrt(1.5) * Xf[1];
+                admFull = Xf[3] >= -1.e-14;
+                if (!admFull) summary.fNegDgFull++;
+                summary.fMaxItFull = std::max(summary.fMaxItFull, r.fItFull);
+            }
+            if (admRed && admFull) {
+                nboth++;
+                sumRed += r.fItReduced;
+                sumFull += r.fItFull;
+                const REAL dp = std::fabs(r.fPRed - r.fPFull), dq = std::fabs(r.fQRed - r.fQFull),
+                           da = std::fabs(r.fARed - r.fAFull);
+                summary.fDp = std::max(summary.fDp, dp);
+                summary.fDq = std::max(summary.fDq, dq);
+                summary.fDa = std::max(summary.fDa, da);
+                if (std::max(std::max(dp, dq), da) > 1.e-6) summary.fDisagree++;
+                TPZManVector<REAL, 3> nvec(3, 0.);
+                const bool isotropic = !(trial.fRhoTr > 1.e-14 * std::max(1., std::fabs(p)));
+                if (!isotropic) {
+                    nvec[0] = nvec[1] = 1. / std::sqrt(6.);
+                    nvec[2] = -2. / std::sqrt(6.);
+                }
+                TPZFNMatrix<9, REAL> Dr(3, 3, 0.), Df(3, 3, 0.);
+                if (yc.GradProjectionReduced(X2, trial, nvec, isotropic, Dr) &&
+                    yc.GradProjection(Xf, trial, nvec, isotropic, Df)) {
+                    for (int i = 0; i < 3; ++i)
+                        for (int j = 0; j < 3; ++j) r.fDproj = std::max(r.fDproj, std::fabs(Dr(i, j) - Df(i, j)));
+                    summary.fDproj = std::max(summary.fDproj, r.fDproj);
+                }
+            }
+            rows.push_back(r);
+        }
+    if (nboth > 0) {
+        summary.fMeanItReduced = sumRed / nboth;
+        summary.fMeanItFull = sumFull / nboth;
+    }
+    return rows;
+}
+
+inline void YieldSurfaceProjection::TimeSolvers(const TPZYCModifiedCamClayRHW &yc, REAL G, REAL v0, REAL pcn,
+                                                const std::vector<TSweepRow> &rows, TSweepSummary &summary) {
+    const REAL sq3 = std::sqrt(3.);
+    REAL an, H, pc;
+    yc.Hardening(pcn, 0., v0, an, H, pc);
+    std::vector<TPZYCModifiedCamClayRHW::TTrial> trials;
+    for (auto &r : rows) {
+        if (!r.fConvReduced || !r.fConvFull) continue;
+        TPZYCModifiedCamClayRHW::TTrial t;
+        t.fXiTr = -sq3 * r.fP;
+        t.fRhoTr = std::sqrt(2. / 3.) * r.fQ;
+        t.fG = G;
+        t.fV0 = v0;
+        t.fPcn = pcn;
+        t.fB = yc.BFromP(-r.fP, an);
+        trials.push_back(t);
+    }
+    if (trials.empty()) return;
+    for (int solver = 0; solver < 2; ++solver) {
+        TPZManVector<REAL, 4> X(4, 0.);
+        TPZManVector<REAL, 2> X2(2, 0.);
+        int it = 0;
+        volatile REAL sink = 0.; // keeps the projections alive
+        auto pass = [&]() {
+            for (auto &t : trials) {
+                if (solver == 0) {
+                    yc.ProjectReduced(t, X2, it);
+                    sink = X2[0];
+                } else {
+                    yc.ProjectHW(t, X, it);
+                    sink = X[0];
+                }
+            }
+        };
+        const auto t0 = std::chrono::steady_clock::now();
+        pass();
+        const REAL t1 = std::chrono::duration<REAL>(std::chrono::steady_clock::now() - t0).count();
+        const int reps = std::max(1, int(std::ceil(0.3 / std::max(t1, REAL(1e-7)))));
+        std::array<REAL, 5> times;
+        for (int r = 0; r < 5; ++r) {
+            const auto ta = std::chrono::steady_clock::now();
+            for (int k = 0; k < reps; ++k) pass();
+            times[r] = 1e6 * std::chrono::duration<REAL>(std::chrono::steady_clock::now() - ta).count() /
+                       (REAL(reps) * trials.size());
+        }
+        std::sort(times.begin(), times.end());
+        (solver == 0 ? summary.fMicrosReduced : summary.fMicrosFull) = times[2];
+        (solver == 0 ? summary.fSpreadReduced : summary.fSpreadFull) = (times[4] - times[0]) / times[2];
+        (void)sink;
+    }
+}
+
+inline bool YieldSurfaceProjection::FiniteDifferenceDproj(const TPZYCModifiedCamClayRHW &yc, REAL G, REAL v0,
+                                                          REAL pcn, REAL p, REAL q, REAL h, TPZFMatrix<REAL> &D) {
+    const REAL sq3 = std::sqrt(3.);
+    REAL an, H, pc;
+    yc.Hardening(pcn, 0., v0, an, H, pc);
+    // projected principal stresses of a trial principal stress (compression negative, as in the library)
+    auto project = [&](const REAL str[3], REAL sig[3]) {
+        const REAL mean = (str[0] + str[1] + str[2]) / 3.;
+        REAL dev[3], rho = 0.;
+        for (int i = 0; i < 3; ++i) {
+            dev[i] = str[i] - mean;
+            rho += dev[i] * dev[i];
+        }
+        rho = std::sqrt(rho);
+        TPZYCModifiedCamClayRHW::TTrial trial;
+        trial.fXiTr = sq3 * mean;
+        trial.fRhoTr = rho;
+        trial.fG = G;
+        trial.fV0 = v0;
+        trial.fPcn = pcn;
+        trial.fB = yc.BFromP(mean, an);
+        TPZManVector<REAL, 2> X2(2, 0.);
+        TPZManVector<REAL, 4> X(4, 0.);
+        int it = 0;
+        if (!yc.ProjectReduced(trial, X2, it)) return false;
+        yc.ReducedToFull(X2, trial, X);
+        for (int i = 0; i < 3; ++i) sig[i] = X[0] / sq3 + (rho > 0. ? X[1] * dev[i] / rho : 0.);
+        return true;
+    };
+    const REAL str0[3] = {-(p - q / 3.), -(p - q / 3.), -(p + 2. * q / 3.)};
+    D.Redim(3, 3);
+    for (int j = 0; j < 3; ++j) {
+        REAL sp[3], sm[3], strp[3], strm[3];
+        for (int i = 0; i < 3; ++i) strp[i] = strm[i] = str0[i];
+        strp[j] += h;
+        strm[j] -= h;
+        if (!project(strp, sp) || !project(strm, sm)) return false;
+        for (int i = 0; i < 3; ++i) D(i, j) = (sp[i] - sm[i]) / (2. * h);
+    }
+    return true;
+}
+
+inline void YieldSurfaceProjection::WriteResidualHistories() const {
+    std::ofstream out("two_vs_four_residuals.csv");
+    out << "law,case,solver,converged,iteration,residual,p_eff,q,a\n";
+    const REAL sq3 = std::sqrt(3.);
+    // linear law of Fig. 2 and the porous law of the Abaqus clay, with the trial invariants of the two cases of Fig. 2
+    // scaled to the preconsolidation pressure of each law
+    TPZYCModifiedCamClayRHW ycp;
+    ycp.SetUp(1., 0.174, 0.026);
+    const REAL v0p = 2.08, Kp = v0p * 100. / 0.026, Gp = 3. * (1. - 0.6) / (2. * 1.3) * Kp;
+    struct TLaw {
+        std::string fName;
+        TPZYCModifiedCamClayRHW fYC;
+        REAL fG, fV0, fPcn;
+    };
+    const std::vector<TLaw> laws = {{"linear", CreateMeridianCriterion(), fG, fV0, fPcn}, {"porous", ycp, Gp, v0p, 116.6}};
+    for (auto &law : laws) {
+        TPZYCModifiedCamClayRHW yc = law.fYC;
+        std::vector<REAL> log;
+        yc.SetResidualLog(&log);
+        REAL an, H, pc;
+        yc.Hardening(law.fPcn, 0., law.fV0, an, H, pc);
+        for (const TMeridianCase &c : MeridianCases()) {
+            TPZYCModifiedCamClayRHW::TTrial trial;
+            const REAL scale = law.fPcn / fPcn;
+            trial.fXiTr = -sq3 * c.fPTrial * scale;
+            trial.fRhoTr = std::sqrt(2. / 3.) * c.fQTrial * scale;
+            trial.fG = law.fG;
+            trial.fV0 = law.fV0;
+            trial.fPcn = law.fPcn;
+            trial.fB = yc.BFromP(-c.fPTrial * scale, an);
+            for (int solver = 0; solver < 2; ++solver) {
+                TPZManVector<REAL, 4> X(4, 0.);
+                TPZManVector<REAL, 2> X2(2, 0.);
+                int it = 0;
+                bool ok;
+                if (solver == 0) {
+                    ok = yc.ProjectReduced(trial, X2, it);
+                    if (ok) yc.ReducedToFull(X2, trial, X);
+                } else {
+                    ok = yc.ProjectHW(trial, X, it);
+                }
+                REAL a = 0.;
+                if (ok) yc.Hardening(law.fPcn, X[2], law.fV0, a, H, pc);
+                for (size_t k = 0; k < log.size(); ++k)
+                    out << law.fName << "," << c.fName << "," << (solver == 0 ? "reduced" : "full") << "," << int(ok)
+                        << "," << k << "," << std::setprecision(17) << log[k] << "," << (ok ? -X[0] / sq3 : 0.) << ","
+                        << (ok ? std::sqrt(1.5) * X[1] : 0.) << "," << a << "\n";
+            }
+        }
+    }
+}
+
+inline void YieldSurfaceProjection::RunTwoVersusFour() {
+    std::cout << "\n=== Two versus four unknowns: directed sweep of trial states, timings and residual histories ===\n";
+    TPZYCModifiedCamClayRHW ycp;
+    ycp.SetUp(1., 0.174, 0.026);
+    const REAL v0p = 2.08, Kp = v0p * 100. / 0.026, Gp = 3. * (1. - 0.6) / (2. * 1.3) * Kp;
+    struct TLaw {
+        std::string fName, fTitle;
+        TPZYCModifiedCamClayRHW fYC;
+        REAL fG, fV0, fPcn;
+    };
+    const std::vector<TLaw> laws = {
+        {"linear", "linear elasticity, K = 6 MPa, G = 3 MPa, p_c,n = 200 kPa", CreateMeridianCriterion(), fG, fV0, fPcn},
+        {"porous", "porous elasticity, Abaqus clay, p'_n = 100 kPa, p_c,n = 116.6 kPa", ycp, Gp, v0p, 116.6}};
+    std::ofstream out("two_vs_four_sweep.csv");
+    out << "law,p_trial,q_trial,region,conv_reduced,it_reduced,dg_reduced,p_reduced,q_reduced,a_reduced,conv_full,"
+           "it_full,dg_full,p_full,q_full,a_full,dproj_diff\n";
+    std::ofstream sum("two_vs_four_summary.csv");
+    sum << "law,states,fail_reduced,fail_full,neg_dg_reduced,neg_dg_full,disagree,mean_it_reduced,mean_it_full,"
+           "max_it_reduced,max_it_full,max_dp,max_dq,max_da,max_dproj,us_reduced,us_full,spread_reduced,spread_full\n";
+    for (auto &law : laws) {
+        TSweepSummary smry;
+        smry.fLaw = law.fName;
+        const std::vector<TSweepRow> rows = SweepSolvers(law.fYC, law.fG, law.fV0, law.fPcn, smry);
+        TimeSolvers(law.fYC, law.fG, law.fV0, law.fPcn, rows, smry);
+        for (auto &r : rows)
+            out << law.fName << "," << std::setprecision(17) << r.fP << "," << r.fQ << "," << r.fRegion << ","
+                << int(r.fConvReduced) << "," << r.fItReduced << "," << r.fDgReduced << "," << r.fPRed << ","
+                << r.fQRed << "," << r.fARed << "," << int(r.fConvFull) << "," << r.fItFull << "," << r.fDgFull << ","
+                << r.fPFull << "," << r.fQFull << "," << r.fAFull << "," << r.fDproj << "\n";
+        sum << law.fName << "," << smry.fNStates << "," << smry.fFailReduced << "," << smry.fFailFull << ","
+            << smry.fNegDgReduced << "," << smry.fNegDgFull << "," << smry.fDisagree << "," << std::setprecision(17)
+            << smry.fMeanItReduced << "," << smry.fMeanItFull << "," << smry.fMaxItReduced << "," << smry.fMaxItFull
+            << "," << smry.fDp << "," << smry.fDq << "," << smry.fDa << "," << smry.fDproj << "," << smry.fMicrosReduced
+            << "," << smry.fMicrosFull << "," << smry.fSpreadReduced << "," << smry.fSpreadFull << "\n";
+        std::cout << "  " << law.fTitle << ": " << smry.fNStates << " trial states outside the surface\n"
+                  << "    Newton failures: reduced " << smry.fFailReduced << ", full " << smry.fFailFull
+                  << "; converged with Delta gamma < 0: reduced " << smry.fNegDgReduced << ", full " << smry.fNegDgFull
+                  << "; admissible solutions more than 1e-6 kPa apart: " << smry.fDisagree << "\n"
+                  << std::setprecision(3) << "    corrections: reduced " << smry.fMeanItReduced << " (max "
+                  << smry.fMaxItReduced << "), full " << smry.fMeanItFull << " (max " << smry.fMaxItFull << ")\n"
+                  << std::scientific << std::setprecision(1) << "    largest differences: p' " << smry.fDp << ", q "
+                  << smry.fDq << ", a " << smry.fDa << " kPa, D_proj " << smry.fDproj << "\n"
+                  << std::fixed << std::setprecision(3) << "    time per projection: reduced " << smry.fMicrosReduced
+                  << " us (spread " << std::setprecision(0) << 100. * smry.fSpreadReduced << "%), full "
+                  << std::setprecision(3) << smry.fMicrosFull << " us (spread " << std::setprecision(0)
+                  << 100. * smry.fSpreadFull << "%)" << std::defaultfloat << std::setprecision(6) << "\n";
+        // failures and spurious solutions, listed
+        for (auto &r : rows)
+            if (!r.fConvReduced || !r.fConvFull || r.fDgReduced < -1.e-14 || r.fDgFull < -1.e-14)
+                std::cout << std::scientific << std::setprecision(2) << "    p'_tr = " << r.fP << ", q_tr = " << r.fQ
+                          << " (" << (r.fRegion == 1 ? "sub" : "super") << "critical): reduced "
+                          << (r.fConvReduced ? (r.fDgReduced < -1.e-14 ? "Delta gamma < 0" : "ok") : "FAILED")
+                          << " (" << r.fItReduced << " it), full "
+                          << (r.fConvFull ? (r.fDgFull < -1.e-14 ? "Delta gamma < 0" : "ok") : "FAILED") << " ("
+                          << r.fItFull << " it)" << std::defaultfloat << std::setprecision(6) << "\n";
+    }
+    // where the two analytic Jacobians differ most, central differences of the reduced projection decide
+    for (auto &law : laws) {
+        TSweepSummary smry;
+        const std::vector<TSweepRow> rows = SweepSolvers(law.fYC, law.fG, law.fV0, law.fPcn, smry);
+        const TSweepRow *worst = nullptr;
+        for (auto &r : rows)
+            if (r.fConvReduced && r.fConvFull && r.fDgReduced >= -1.e-14 && r.fDgFull >= -1.e-14 &&
+                (!worst || r.fDproj > worst->fDproj))
+                worst = &r;
+        if (!worst) continue;
+        REAL an, H, pc;
+        law.fYC.Hardening(law.fPcn, 0., law.fV0, an, H, pc);
+        TPZYCModifiedCamClayRHW::TTrial trial;
+        const REAL sq3 = std::sqrt(3.);
+        trial.fXiTr = -sq3 * worst->fP;
+        trial.fRhoTr = std::sqrt(2. / 3.) * worst->fQ;
+        trial.fG = law.fG;
+        trial.fV0 = law.fV0;
+        trial.fPcn = law.fPcn;
+        trial.fB = law.fYC.BFromP(-worst->fP, an);
+        TPZManVector<REAL, 4> X(4, 0.), Xf(4, 0.);
+        TPZManVector<REAL, 2> X2(2, 0.);
+        int it = 0;
+        law.fYC.ProjectReduced(trial, X2, it);
+        law.fYC.ProjectHW(trial, Xf, it);
+        TPZManVector<REAL, 3> nvec(3, 0.);
+        nvec[0] = nvec[1] = 1. / std::sqrt(6.);
+        nvec[2] = -2. / std::sqrt(6.);
+        TPZFNMatrix<9, REAL> Dr(3, 3, 0.), Df(3, 3, 0.), Dfd(3, 3, 0.);
+        law.fYC.GradProjectionReduced(X2, trial, nvec, false, Dr);
+        law.fYC.GradProjection(Xf, trial, nvec, false, Df);
+        const REAL h = 1.e-6 * (std::fabs(worst->fP) + an);
+        std::cout << std::scientific << std::setprecision(2) << "  " << law.fName
+                  << " law, state of the largest |D_proj - D_proj,full| (p'_tr = " << worst->fP << ", q_tr = "
+                  << worst->fQ << ", rho_tr/a_n = " << trial.fRhoTr / an << "): ";
+        if (FiniteDifferenceDproj(law.fYC, law.fG, law.fV0, law.fPcn, worst->fP, worst->fQ, h, Dfd)) {
+            REAL er = 0., ef = 0., scale = 0.;
+            for (int i = 0; i < 3; ++i)
+                for (int j = 0; j < 3; ++j) {
+                    er = std::max(er, std::fabs(Dr(i, j) - Dfd(i, j)));
+                    ef = std::max(ef, std::fabs(Df(i, j) - Dfd(i, j)));
+                    scale = std::max(scale, std::fabs(Dfd(i, j)));
+                }
+            std::cout << "central differences (h = " << h << " kPa): |D_reduced - D_fd| = " << er
+                      << ", |D_full - D_fd| = " << ef << " (largest entry " << scale << ")\n";
+        } else {
+            std::cout << "finite differences failed\n";
+        }
+        std::cout << std::defaultfloat << std::setprecision(6);
+    }
+    WriteResidualHistories();
+    std::cout << "  files: two_vs_four_sweep.csv, two_vs_four_summary.csv, two_vs_four_residuals.csv\n";
+}
+
 inline void YieldSurfaceProjection::RunAll() {
     RunSurface();
     RunProjection();
+    RunTwoVersusFour();
 }
 
 // --------------------------------------------------------------------------------------------- auxiliary functions

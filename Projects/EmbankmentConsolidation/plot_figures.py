@@ -340,8 +340,13 @@ def fig_embankment_model(run, out):
 
 
 # =========================================================================================== Fig. 13
+# v1.0 of the article compares this work with the Abaqus analysis only; set True to draw the FLAC3D histories too
+SHOW_FLAC3D = False
+
+
 def fig_embankment_history(run, out):
-    """Fig. 13: settlements and pore pressures against t, with the FLAC3D histories (fig_aterro_hist of figs.py)."""
+    """Fig. 13: settlements and pore pressures against t, with the Abaqus histories (and the FLAC3D histories when
+    SHOW_FLAC3D is True; fig_aterro_hist of figs.py)."""
     hc = consolidation_history(run)
     flac = reference(HERE, 'flac_historicos_digitalizados.json')
     fig, axs = plt.subplots(1, 2, figsize=(TEXTW, 2.7))
@@ -355,13 +360,16 @@ def fig_embankment_history(run, out):
         if has_abaqus:
             ta, va = aba[f's_x{x}']
             ax.plot(ta / 1e6, va, color=cols[k], lw=1.1, ls=(0, (4, 2.2)))
-        t, v = flac_history(flac, f'uz_x{x}')
-        sel = np.linspace(0, len(t) - 1, 14).astype(int)
-        ax.plot(t[sel] / 1e6, v[sel], 'o', ms=3.3, mfc='white', mec=cols[k], mew=0.8)
+        if SHOW_FLAC3D:
+            t, v = flac_history(flac, f'uz_x{x}')
+            sel = np.linspace(0, len(t) - 1, 14).astype(int)
+            ax.plot(t[sel] / 1e6, v[sel], 'o', ms=3.3, mfc='white', mec=cols[k], mew=0.8)
         hh.append(Line2D([], [], color=cols[k], lw=1.4, label=f'$x$ = {x} m'))
     hh += [Line2D([], [], color=INK2, lw=1.4, label='this work'),
-           Line2D([], [], color=INK2, lw=1.1, ls=(0, (4, 2.2)), label='Abaqus'),
-           Line2D([], [], ls='', marker='o', ms=3.3, mfc='white', mec=INK2, label='FLAC3D')]
+           Line2D([], [], color=INK2, lw=1.1, ls=(0, (4, 2.2)), label='Abaqus')]
+    if SHOW_FLAC3D:
+        hh.append(Line2D([], [], ls='', marker='o', ms=3.3, mfc='white', mec=INK2, label='FLAC3D'))
+    nleg = 3 if SHOW_FLAC3D else 2
     ax.set(xlabel='$t$ (10$^6$ s)', ylabel='settlement (m)', xlim=(0, 100), ylim=(-0.06, 0.42))
     ax.set_yticks([0, 0.1, 0.2, 0.3])
     ax.set_title('(a) surface settlement', fontsize=8)
@@ -373,31 +381,34 @@ def fig_embankment_history(run, out):
     if has_abaqus:
         lab += f'; Abaqus: {aba["s_x0"][1][-1]:.3f} m'
     ax.text(99, hc[-1, 1] + 0.012, lab, ha='right', va='bottom', fontsize=6.8, color=INK)
-    ax.text(99, s_flac + 0.010, f'FLAC3D, $x$ = 0: {s_flac:.3f} m', ha='right', va='bottom', fontsize=6.8,
-            color=INK)
+    if SHOW_FLAC3D:
+        ax.text(99, s_flac + 0.010, f'FLAC3D, $x$ = 0: {s_flac:.3f} m', ha='right', va='bottom', fontsize=6.8,
+                color=INK)
     ax = axs[1]
     for k, key in enumerate(('pp1', 'pp2')):
         ax.plot(hc[:, 0] / 1e6, hc[:, 5 + k], color=cols[k], lw=1.4)
         if has_abaqus:
             ta, va = aba[key]
             ax.plot(ta / 1e6, va, color=cols[k], lw=1.1, ls=(0, (4, 2.2)))
-        t, v = flac_history(flac, key)
-        sel = np.linspace(0, len(t) - 1, 14).astype(int)
-        ax.plot(t[sel] / 1e6, v[sel], 'o', ms=3.3, mfc='white', mec=cols[k], mew=0.8)
+        if SHOW_FLAC3D:
+            t, v = flac_history(flac, key)
+            sel = np.linspace(0, len(t) - 1, 14).astype(int)
+            ax.plot(t[sel] / 1e6, v[sel], 'o', ms=3.3, mfc='white', mec=cols[k], mew=0.8)
         ax.text(101, hc[-1, 5 + k] + (1.4 if k == 1 else -1.4), key, fontsize=7.5, va='center', color=INK)
     ax.set(xlabel='$t$ (10$^6$ s)', ylabel='pore pressure (kPa)', xlim=(0, 112), ylim=(0, 70))
     ax.set_xticks([0, 20, 40, 60, 80, 100])
     ax.set_title('(b) pore pressure in zones pp1 and pp2', fontsize=8)
-    ax.legend(handles=hh[-3:], loc='center', bbox_to_anchor=(0.62, 0.20), fontsize=6.8)
+    ax.legend(handles=hh[-nleg:], loc='center', bbox_to_anchor=(0.62, 0.20), fontsize=6.8)
     # detail in log scale: Mandel-Cryer effect in pp2 and early dissipation of FLAC3D
     axin = ax.inset_axes([0.40, 0.53, 0.57, 0.37])
     axin.semilogx(hc[1:, 0], hc[1:, 6], color=C2, lw=1.3)
     if has_abaqus:
         ta, va = aba['pp2']
         axin.semilogx(ta[ta > 0], va[ta > 0], color=C2, lw=1.0, ls=(0, (4, 2.2)))
-    t, v = flac_history(flac, 'pp2', t0=False)
-    tk = np.unique(np.searchsorted(t, np.logspace(np.log10(t[0]), 8, 9)).clip(0, len(t) - 1))
-    axin.semilogx(t[tk], v[tk], 'o', ms=3.0, mfc='white', mec=C2, mew=0.8)
+    if SHOW_FLAC3D:
+        t, v = flac_history(flac, 'pp2', t0=False)
+        tk = np.unique(np.searchsorted(t, np.logspace(np.log10(t[0]), 8, 9)).clip(0, len(t) - 1))
+        axin.semilogx(t[tk], v[tk], 'o', ms=3.0, mfc='white', mec=C2, mew=0.8)
     km = int(np.argmax(hc[:, 6]))
     axin.annotate(f'{hc[0, 6]:.1f} → {hc[km, 6]:.1f} kPa\n(Mandel–Cryer)', xy=(hc[km, 0], hc[km, 6]),
                   xytext=(2e2, 46), fontsize=6.5, color=INK, ha='left', va='top',

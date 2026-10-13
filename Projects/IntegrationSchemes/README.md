@@ -1,12 +1,14 @@
-# IntegrationSchemes: the return mapping against other integration schemes (Sect. 6.2, Table 4, Fig. 6)
+# IntegrationSchemes: the return mapping against other integration schemes (Sect. 5.2 of the article, v1.0)
 
-This example compares the return mapping of the article *"Return mapping for Modified Cam-Clay plasticity in
-rotated Haigh-Westergaard space with consistent tangent operator and coupled u-p consolidation"* (D. Lira Cecilio)
-with the integration schemes of the recent literature for the same model, in material-point tests that have
-closed-form references. It reproduces Table 4, Fig. 6 and the numbers of the text of Sect. 6.2. Up to version
-v0.6 of the article these schemes existed only in the Python code (`rivais.py` and the function `rivais()` of
-`gen_data.py`); the class `IntegrationSchemes` is their C++ transcription, and the return mapping of this work is
-also run with the library class `TPZPlasticStepModifiedCamClay`.
+This example compares the backward-Euler return mapping of the article *"Backward-Euler integration of Modified
+Cam-Clay in rotated Haigh-Westergaard space"* (D. Lira Cecilio; Sect. 5.2 of v1.0, Sect. 6.2 of v0.7) with other
+integration schemes of the same model, at a material point, in tests with closed-form references: implicit
+backward-Euler variants (this work with two and with four unknowns, the secant shear modulus of the recent implicit
+schemes, the frozen bulk modulus of Sanei et al. 2020), the generalized trapezoidal rule, explicit Euler and RK4 with
+fixed sub-steps, and the adaptive Runge-Kutta pairs ME2(1) and RKDP5(4). It measures accuracy against the number of
+increments (order), accuracy against work, computing time, robustness against the size of the increment and the
+convergence of the local Newton iterations. Up to v0.6 of the article the schemes of Table 4 existed only in the
+Python code (`rivais.py`); the class `IntegrationSchemes` is their C++ transcription, extended in v1.0.
 
 This is a material-point example: there is no finite element mesh and no VTK output.
 
@@ -21,23 +23,27 @@ with a constant specific volume v0.
 
 | scheme (name in the CSV files) | method | in the article |
 |---|---|---|
-| `exact_n` | backward Euler (BE) in tensors with the radial return (`BackwardEuler`, `be_tensor`): exact integral of the porous law, G = r K(p_n) kept in the step | this work |
-| `library_exact` | the same return mapping in rotated Haigh-Westergaard space, spectral form: `TPZPlasticStepModifiedCamClay` (`LibraryUpdate`) | this work (check) |
-| `exact_secant` | BE with the secant shear modulus G = r K_secant, K_secant = p_n (exp(-v0 x / kappa) - 1) / x, x = Delta eps_v + Delta alpha, which is the implicit system of Krabbenhoft and Lyamin 2012, Zhou et al. 2022, Lu et al. 2023 and Bui et al. 2026 at convergence; the increment is halved recursively only when the single step fails (`BackwardEulerSubstep`, `be_substep`, strategy of Bui et al.) | secant G [10-13] |
-| `frozen_n` | BE with the bulk modulus frozen at its trial value in the plastic correction (Sanei et al. 2020) | frozen K [26] |
-| `library_frozen` | the same with the option `TPZYCModifiedCamClayRHW::EFrozen` of the library | frozen K (check) |
-| `ME2(1)`, `RKDP5(4)` | explicit adaptive Runge-Kutta pairs with local error control (`RungeKutta`, `rk_update`; class `TRKModel` = `RKModel`): exact integration of the elastic part, Newton search of the intersection with the yield surface (with a bisection safeguard), one drift correction at the end of the increment, step control of Sloan et al. 2001 (the sub-step grows by up to 1.1 after an accepted one) | RK [14, 16] |
+| `library_exact` | the return mapping of this work: backward Euler (BE) in rotated Haigh-Westergaard space with the reduced local system of two unknowns (theta, Delta alpha), `TPZPlasticStepModifiedCamClay` (`LibraryUpdate`); the work is the number of local Newton iterations; the time includes the consistent tangent | this work |
+| `library_full` | the same stress update with the four-unknown local system (xi, rho, Delta alpha, Delta gamma), option `TPZYCModifiedCamClayRHW::EFull` | four unknowns |
+| `exact_n` | BE in tensors with the radial return (`BackwardEuler`, `be_tensor` of the Python code): the four-unknown system without the tangent; exact integral of the porous law, G = r K(p_n) kept in the step; same iterations as `library_full` | (check) |
+| `exact_secant` | BE with the secant shear modulus G = r K_secant, K_secant = p_n (exp(-v0 x / kappa) - 1) / x, x = Delta eps_v + Delta alpha, which is the implicit system of Krabbenhoft and Lyamin 2012, Zhou et al. 2022, Lu et al. 2023 and Bui et al. 2026 at convergence; the increment is halved recursively only when the single step fails (`BackwardEulerSubstep`, strategy of Bui et al.) | secant G |
+| `frozen_n` | BE with the bulk modulus frozen at its trial value in the plastic correction (Sanei et al. 2020); `library_frozen` is the same with the option `EFrozen` of the library | frozen K |
+| `trapezoidal` | generalized trapezoidal rule of Ortiz and Popov (1985), theta = 1/2, for the flow and hardening rules (`GeneralizedTrapezoidal`): Delta eps^p = Delta gamma [(1 - theta) N_n + theta N_n+1], Delta alpha from the same weights, yield condition at the end; exact porous law, secant shear modulus of the step, so that the elastic law is integrated to second order; N_n is evaluated at the intersection of the elastic path with the yield surface when the step starts inside it; four unknowns, Newton with partial pivoting; theta = 1 reproduces `exact_secant` (single step) | trapezoidal rule |
+| `trapezoidal_gn` | the same with G = r K(p_n) kept in the step (as this work); theta = 1 reproduces `exact_n` to round-off; first order (the deviatoric elastic law is then integrated only to first order within the step) | trapezoidal rule, G(p_n) |
+| `FE` | explicit (forward) Euler with a fixed number of equal sub-steps per increment (Nayak and Zienkiewicz 1972; Sloan 1987 for the adaptive version), elastic part up to the yield surface, drift correction back to the surface after every sub-step (`RungeKuttaFixed` with the tableau `ForwardEuler`); the work is the number of evaluations of the elastoplastic operator (one per sub-step); the state must stay admissible (p' > 0, finite) and every drift correction must converge, otherwise the increment fails | explicit Euler |
+| `RK4` | classical fourth-order Runge-Kutta with fixed sub-steps, same driver (four evaluations per sub-step) | RK4 |
+| `ME2(1)`, `RKDP5(4)` | explicit adaptive Runge-Kutta pairs with local error control (`RungeKutta`; Sloan et al. 2001, Xie et al. 2026): exact integration of the elastic part, Newton search of the intersection with the yield surface, one drift correction at the end of the increment, step control of Sloan et al. (the sub-step grows by up to 1.1 after an accepted one) | adaptive RK |
 
 The step control and model of Xie et al. 2026 (the next sub-step is the rest of the increment; void ratio updated)
 are run in test B to validate the transcription against Fig. 3 of Xie et al. (control `xie` in the CSV files).
 
-### Tests (`rivais()` of `gen_data.py`)
+### Tests
 
 | test (name in the CSV files) | material | path | error measured | runs |
 |---|---|---|---|---|
-| `xieB`: test B of Xie et al. 2026 | M = 0.896, lambda = 0.240, kappa = 0.045, v0 = 2.27 (e0 = 1.27), nu = 0.2, p'0 = p'c0 = 689.02 kPa | undrained (eps_v = 0) to eps_a = 10% | relative error of the stress, ‖sigma - sigma_exact‖ / ‖sigma_exact‖ | BE with 1, 2, 4, ..., 1024 increments; RK in one increment with tolerances 1e-1 to 1e-8 (and 1e-1 to 1e-5 with the control of Xie et al.) |
-| `kl_undrained_ocr1`, `kl_undrained_ocr10`: example 1 of Krabbenhoft and Lyamin 2012 | M = 3 sin(24°) / sqrt(3 + sin²(24°)) = 0.6858, lambda = 0.07, kappa = 0.008, v0 = 1.5, nu = 0.3, p'0 = 200 kPa | undrained, OCR = 1 to eps_a = 2.5% and OCR = 10 to 8% | p' - p'_exact and q - q_exact at the end | BE with 5 to 1000 increments; RK in 10 increments with tolerances 1e-2 to 1e-7 |
-| `kl_drained_ocr1`, `kl_drained_ocr10` | the same clay | drained, OCR = 1 and 10, to eps_a = 25% | q - q_exact and eps_v - eps_v,exact at the end, largest q | BE with 10 to 500 increments; RK with 10 to 100 increments, tolerance 1e-4 (and 1e-5, not in the Python results) |
+| `xieB`: test B of Xie et al. 2026 | M = 0.896, lambda = 0.240, kappa = 0.045, v0 = 2.27 (e0 = 1.27), nu = 0.2, p'0 = p'c0 = 689.02 kPa | undrained (eps_v = 0) to eps_a = 10% | relative error of the stress, ‖sigma - sigma_exact‖ / ‖sigma_exact‖ | implicit schemes with 1, 2, 4, ..., 1024 increments; adaptive RK in one increment with tolerances 1e-1 to 1e-8 (and 1e-1 to 1e-5 with the control of Xie et al.); FE and RK4 with one sub-step over the same increments and with 2 to 1000 (FE) or 100 (RK4) sub-steps of the single increment |
+| `kl_undrained_ocr1`, `kl_undrained_ocr10`: example 1 of Krabbenhoft and Lyamin 2012 | M = 3 sin(24°) / sqrt(3 + sin²(24°)) = 0.6858, lambda = 0.07, kappa = 0.008, v0 = 1.5, nu = 0.3, p'0 = 200 kPa | undrained, OCR = 1 to eps_a = 2.5% and OCR = 10 to 8% | p' - p'_exact and q - q_exact at the end | implicit with 1, 2, 4, 5, 10, ..., 1000 increments; adaptive RK in 10 increments with tolerances 1e-2 to 1e-7 (and with 1, 2, 4 increments, tolerance 1e-4); FE and RK4 with one sub-step over the increments and with 2 to 1000 (100) sub-steps of 10 increments |
+| `kl_drained_ocr1`, `kl_drained_ocr10` | the same clay | drained, OCR = 1 and 10, to eps_a = 25% | q - q_exact and eps_v - eps_v,exact at the end, largest q | implicit with 1, 2, 4, 10, ..., 2000 increments; adaptive RK with 10 to 100 increments, tolerance 1e-4 (and 1e-5), and with 1, 2, 4; FE and RK4 as above |
 
 The closed forms are those of Appendix B: the undrained path (B.7) with the elastic shear strain (B.9) of a
 constant Poisson ratio (`UndrainedClosed`), solved for the stress ratio at which eps_q = eps_a reaches the final
@@ -48,31 +54,45 @@ strain by Brent's method (`Brent`, transcription of `scipy.optimize.brentq`), an
 
 * **Strain control** (undrained tests, `UndrainedPath`): all the components of the strain increment are prescribed,
   Delta eps_xx = Delta eps_yy = -Delta eps_zz / 2, so the material point follows a given strain path, as each
-  integration point does within one global iteration of a finite element analysis.
+  integration point does within one global iteration of a finite element analysis. The observed orders of accuracy
+  are those of the schemes.
 * **Mixed control** (drained tests, `DrainedPath`): the lateral stress sigma_r = -p'0 is prescribed together with
   eps_zz, so the lateral strain of each increment is unknown and is found by equilibrium iterations (Newton with a
   finite-difference derivative and, if it fails, bisection in an interval where sigma_r + p'0 changes sign). The
-  strain path inside the increment is then a straight line, an error of the load stepping that is common to all
-  the schemes.
+  strain path inside the increment is then a straight line, a load-stepping error of second order that is common to
+  all the schemes: with 10 increments every explicit scheme converges to the same error (q - q_exact = -2.01 kPa in
+  the NC test and 1.59 kPa with OCR = 10) however many sub-steps it takes, and the second- and fourth-order schemes
+  show their order only with many increments (`trapezoidal` and RK4 both reach order 2 beyond about 250 increments).
 
-### Work
+### Work and time
 
-The work of a run is the sum, over its increments, of the local Newton iterations of the converged backward-Euler
-updates or of the evaluations of the elastoplastic operator in the Runge-Kutta stages; in the drained tests only
-the converged update of each increment is counted (as in the Python code).
+The work of a run is the sum, over its increments, of the local Newton iterations of the converged implicit updates
+or of the evaluations of the elastoplastic operator in the stages of the explicit ones (the drift corrections are
+counted apart, column `drift_iterations`); in the drained tests only the converged update of each increment is
+counted (as in the Python code). `RunTimingStudy` measures the wall time per increment of every scheme in test B
+(one increment), in the undrained test with OCR = 10 (10 increments) and in the drained test with OCR = 10 (10
+increments, driver included): the path is repeated until it lasts about 0.5 s, five times, and the median is kept.
+The library times include the spectral decomposition and the consistent tangent; `exact_n` is the bare
+four-unknown Newton solve.
 
-### Tolerance of the local Newton iterations
+### Robustness, local convergence and the single step
 
-`RunToleranceStudy` repeats test B with the scheme of this work, 1, 4, 16 and 64 increments and tolerances of the
-local Newton iterations from 1e-2 to 1e-14 (default 1e-12): the error of a backward-Euler step is its truncation
-error, which only smaller increments reduce.
-
-### Single step per increment
-
-The return mapping of this work uses a single backward-Euler step per increment, without sub-stepping. The program
-counts the sub-steps of the secant scheme and, in addition (`RunSecantSweep`), applies a single step of this work
-and of the secant scheme to the first increment of the drained test with OCR = 10 and 10 increments
-(Delta eps_a = 2.5%) for 2001 lateral strains in [0.010, 0.030].
+* `RunRobustness` integrates the four tests of Krabbenhoft and Lyamin in 1, 2 and 4 increments with every scheme
+  (one step per increment for the implicit ones; 1 and 10 sub-steps or the adaptive control for the explicit ones);
+  the failures are listed by scheme.
+* `RunSecantSweep` applies a single step of each implicit scheme (this work in tensors and in the library with two
+  and with four unknowns, the secant shear modulus, the frozen bulk modulus, the two trapezoidal rules) to the first
+  increment of the drained test with OCR = 10 and 10 increments (Delta eps_a = 2.5%) for 2001 lateral strains in
+  [0.010, 0.030], and counts the failures and the spurious converged states (p' = 0).
+* `RunLocalConvergence` records the norm of the residual at every local Newton iteration in four trial states:
+  (a) NC clay of test B, undrained step of 10% (subcritical); (b) OCR = 10 clay at p' = 200, q = 400 kPa (just below
+  the yield surface), undrained step of 2% (crosses the surface and softens, supercritical); (c) NC clay at the
+  compression apex, isotropic step eps_v = -1% (rho_tr = 0, return to the apex); (d) the same with a shear strain of
+  2e-7 (rho_tr/a_n = 5e-5); for this work with two unknowns (library), with four unknowns (tensors and library),
+  the secant shear modulus and the trapezoidal rule.
+* `RunToleranceStudy` repeats test B with the scheme of this work, 1, 4, 16 and 64 increments and tolerances of the
+  local Newton iterations from 1e-2 to 1e-14 (default 1e-12): the error of a backward-Euler step is its truncation
+  error, which only smaller increments reduce.
 
 ## How to run
 
@@ -82,24 +102,29 @@ The example is built with the other examples of the article (`-DBUILD_PLASTICITY
     ninja -C build IntegrationSchemes
     mkdir run_schemes && cd run_schemes && ../build/Projects/IntegrationSchemes/IntegrationSchemes
 
-The program takes no arguments, writes its files to the current directory and runs in about 0.3 s (277 runs, the
-sweep of the first increment and the tolerance study; Release build). It prints Table 4 and the numbers of the text of Sect. 6.2 next to the values of the
-article (v0.6), the check of the library against `be_tensor` and the comparison with the Python results
-(`IntegrationSchemesReference.h`, generated from `data_rivais.pkl`).
+The program takes no arguments, writes its files to the current directory and runs in about 2 min (about 750 runs
+in a few seconds; the timing study takes the rest). It prints the checks (theta = 1 of the trapezoidal rules
+against backward Euler, the library against `be_tensor`, the comparison with the Python results of v0.6), the
+observed orders, the robustness, the local convergence histories and the timings.
 
 ## Output files
 
 | file | content |
 |---|---|
-| `schemes_results.csv` | One row per run: `test, scheme, family` (BE, library, RK), `control, model` (RK), `n, tol, converged`, the values `v0, v1, v2` (xieB: relative error; undrained: p' - p'_exact, q - q_exact; drained: q - q_exact, eps_v - eps_v,exact, largest q), `work, substeps, substepped_increments, rk_attempts, rk_rejections, p_end, q_end, eps_v_end, time_s`, and for the drained tests `bisection_increments` (increments solved by the bisection safeguard of the driver), `unbalanced_increments` (bisections stopped without equilibrium) and `max_abs_sigma_r_plus_p0` (largest \|sigma_r + p'0\| of the accepted increments, kPa; nan for the other tests) |
-| `schemes_table4.csv` | Table 4: one row per scheme (and the two library checks): (a) error and work of test B in one increment; (b) p' and q errors and work of the undrained test with OCR = 10 in 10 increments; (c) q error, eps_v error (%) and work of the drained NC test in 10 increments, `c_converged` |
-| `schemes_fig05.csv` | The points of Fig. 6: `panel` (a, b, c), `test, scheme, family, n, tol, converged, work, error` (the absolute value of the error drawn) |
+| `schemes_results.csv` | One row per run: `test, scheme, family` (BE, library, explicit, RK), `control` (`-`, `fixed`, `sloan`, `xie`), `model, n, tol, converged`, the values `v0, v1, v2` (xieB: relative error; undrained: p' - p'_exact, q - q_exact; drained: q - q_exact, eps_v - eps_v,exact, largest q), `work, substeps, substepped_increments, rk_attempts, rk_rejections, p_end, q_end, eps_v_end, time_s`, for the drained tests `bisection_increments, unbalanced_increments, max_abs_sigma_r_plus_p0`, and `nsub` (sub-steps per increment of FE and RK4), `drift_iterations, message` (reason of a failure) |
+| `schemes_error_work.csv` | The points of the figure error against work: `test, scheme, family, curve` (`n`: the increments vary, one step or sub-step per increment; `tol`: the tolerances of the adaptive RK at the increments of the test; `nsub`: the sub-steps at the increments of the test), `n, nsub, tol, converged, work, error, time_s, error2` |
+| `schemes_order.csv` | Observed orders: least-squares slope of log(error) against log(n) over the four largest n with a solution (one step per increment), per test and scheme |
+| `schemes_robustness.csv` | Per test, scheme and (fixed) sub-steps: increments run, with a solution, the smallest n that converged and the failed n |
+| `schemes_local_convergence.csv` | `RunLocalConvergence`: `state, scheme, converged, iteration, residual, p_eff, q, pc` |
+| `schemes_timing.csv` | `RunTimingStudy`: `test, scheme, n, nsub, tol, converged, error, work, microseconds_per_increment, spread` ((max - min)/median of the five repetitions) |
+| `schemes_table_v1.csv` | The table of the article: one row per scheme with the errors, the work and the convergence in the four tests at the increments of the article (test B in one increment; the three tests of Krabbenhoft and Lyamin in 10) |
+| `schemes_table4.csv`, `schemes_fig05.csv` | Table 4 and Fig. 6 of v0.7 (the schemes of v0.7 only) |
 | `schemes_references.csv` | Closed-form references: `test, eps_a, eta, p_eff, q, eps_v, q_peak` |
-| `schemes_library_check.csv` | `TPZPlasticStepModifiedCamClay` (exact and frozen) against `be_tensor` for every BE run: final p', q, the largest difference along the path and the work of both |
+| `schemes_library_check.csv` | `TPZPlasticStepModifiedCamClay` (two and four unknowns, frozen) against `be_tensor` for every BE run: final p', q, the largest difference along the path and the work of both |
 | `schemes_python_comparison.csv` | Each result of `data_rivais.pkl` next to the C++ value and the difference, with the work of both |
-| `schemes_secant_first_increment_sweep.csv` | `RunSecantSweep`: `eps_r, scheme, converged, iterations, spurious_p_zero, p_eff, q, sigma_r_plus_p0` (`iterations` 0 and nan values when the step did not converge in 50 iterations) |
+| `schemes_secant_first_increment_sweep.csv` | `RunSecantSweep`: `eps_r, scheme, converged, iterations, spurious_p_zero, p_eff, q, sigma_r_plus_p0` |
 | `schemes_newton_tolerance.csv` | `RunToleranceStudy`: `n, newton_tol, converged, error, work` |
-| `schemes_paths_<test>.csv` | Paths of all the converged runs (`scheme, n, tol, increment, eps_a, p_eff, q, eps_v`) |
+| `schemes_paths_<test>.csv` | Paths of all the converged runs (`scheme, n, nsub, tol, increment, eps_a, p_eff, q, eps_v`) |
 
 ## Figures
 
@@ -109,116 +134,136 @@ python3 <neopz>/Projects/IntegrationSchemes/plot_figures.py [run directory] [-o 
 
 | File | Article | Data |
 |---|---|---|
-| `fig06_integration_schemes` | Fig. 6: error against work in the tests of Table 4, (a) test B of Xie et al., (b) undrained, OCR = 10, (c) drained, NC; port of `fig_rivais()` of `figs.py` | `schemes_fig05.csv` |
-| `supplementary_secant_first_increment` | not in the article: a single step of this work and of the secant scheme in the first increment of the drained test with OCR = 10, (a) sigma_r + p'0 against the lateral strain, with the failures and the spurious states, (b) local iterations | `schemes_secant_first_increment_sweep.csv` |
+| `fig_error_work` | error against work of every scheme: (a) test B in one increment, (b) undrained OCR = 10, (c) drained NC, (d) drained OCR = 10 | `schemes_error_work.csv` |
+| `fig_order` | error against the number of increments in the two strain-controlled tests with the slopes 1, 2 and 4 | `schemes_error_work.csv` |
+| `fig_local_convergence` | residual norm against the local iteration in the four states of `RunLocalConvergence` | `schemes_local_convergence.csv` |
+| `fig06_integration_schemes` | Fig. 6 of v0.7 (the schemes of Table 4) | `schemes_fig05.csv` |
+| `supplementary_secant_first_increment` | a single step of this work and of the secant scheme in the first increment of the drained test with OCR = 10 | `schemes_secant_first_increment_sweep.csv` |
 
-## Results
+## Results (v1.0)
 
-### Table 4 (the values of the article v0.6 in brackets)
+### Errors and work at the increments of the article
 
-| Scheme | (a) error | work | (b) Delta p' (kPa) | work | (c) Delta q (kPa) | Delta eps_v (%) | work |
+(a) test B in one increment of 10%: relative error of the stress; (b) undrained, OCR = 10, 8% in 10 increments:
+p' - p'_exact (kPa); (c) drained, NC, 25% in 10 increments: q - q_exact (kPa), eps_v - eps_v,exact (%); (d) drained,
+OCR = 10, 25% in 10 increments: the same. Work: local Newton iterations or operator evaluations.
+
+| scheme | (a) error | work | (b) Delta p' | work | (c) Delta q | Delta eps_v | work | (d) Delta q | Delta eps_v | work |
+|---|---|---|---|---|---|---|---|---|---|---|
+| this work: BE in RHW, two unknowns | 8.04e-2 | 3 | -1.70 | 26 | -3.59 | -0.087 | 30 | 6.28 | 0.145 | 33 |
+| BE in RHW, four unknowns | 8.04e-2 | 9 | -1.70 | 56 | -3.59 | -0.087 | 84 | 6.28 | 0.145 | 78 |
+| BE, secant G (sub-stepped) | 8.12e-2 | 9 | -1.61 | 56 | -3.58 | -0.087 | 85 | 5.28 | 0.122 | 79 |
+| BE, frozen K | 4.90e-2 | 9 | -28.7 | 56 | no solution | | | 7.41 | 1.92 | 78 |
+| trapezoidal rule, secant G | 4.20e-1 | 9 | 0.048 | 56 | 0.261 | 0.0063 | 85 | no solution | | |
+| trapezoidal rule, G(p_n) | 4.24e-1 | 9 | 0.045 | 56 | 0.252 | 0.0061 | 82 | -2.64 | -0.062 | 79 |
+| explicit Euler, 1 sub-step | 2.27e-1 | 1 | -46.1 | 10 | 2.29 | 0.62 | 10 | -8.90 | 1.24 | 10 |
+| explicit Euler, 10 sub-steps | 1.38e-2 | 10 | -4.25 | 100 | -2.02 | -0.010 | 100 | 0.91 | 0.113 | 100 |
+| explicit Euler, 100 sub-steps | 1.39e-3 | 100 | -0.42 | 1000 | -2.01 | -0.045 | 1000 | 1.52 | 0.044 | 1000 |
+| RK4, 1 sub-step | 1.17e-1 | 4 | -0.45 | 40 | 50.8 | 5.6 | 40 | 60.7 | 4.4 | 40 |
+| RK4, 10 sub-steps | 7.39e-4 | 40 | -4.9e-5 | 400 | -2.01 | -0.048 | 400 | 1.59 | 0.037 | 400 |
+| adaptive ME2(1), tol 1e-4 | 3.25e-5 | 288 | -0.044 | 252 | -2.01 | -0.049 | 734 | 1.60 | 0.037 | 612 |
+| adaptive RKDP5(4), tol 1e-4 | 2.35e-7 | 150 | -0.010 | 72 | -2.01 | -0.049 | 432 | 1.59 | 0.037 | 306 |
+
+The two- and the four-unknown systems give the same stresses (largest difference along all the paths 2.8e-6 kPa,
+relative 1.5e-8, accumulated over up to 2000 increments) with 2.6 to 3 times fewer local iterations
+(17151 against 26887 in the 51 runs of the library check; the four-unknown library run has exactly the iterations of
+`be_tensor` in every run). The values of the v0.7 schemes are unchanged (Table 4 of v0.7 reproduced to the last
+digit, `schemes_table4.csv`).
+
+### Orders of accuracy (strain control)
+
+Least-squares slopes over the four largest numbers of increments (`schemes_order.csv`):
+
+| test | BE (this work) | BE secant G | BE frozen K | trapezoidal, secant G | trapezoidal, G(p_n) | explicit Euler | RK4 |
 |---|---|---|---|---|---|---|---|
-| This work: BE, exact K, G(p_n) | 8.04e-2 [8.04e-2] | 9 [9] | -1.70 [-1.70] | 56 [56] | -3.59 [-3.59] | -0.09 [-0.09] | 84 [84] |
-| BE, exact K, secant G | 8.12e-2 [8.12e-2] | 9 [9] | -1.61 [-1.61] | 56 [56] | -3.58 [-3.58] | -0.09 [-0.09] | 85 [85] |
-| BE, frozen K | 4.90e-2 [4.90e-2] | 9 [9] | -28.74 [-28.74] | 56 [56] | no convergence | | |
-| RK ME2(1) | 3.25e-5 [3.25e-5] | 288 [288] | -0.044 [-0.044] | 252 [252] | -2.01 [-2.01] | -0.05 [-0.05] | 734 [734] |
-| RK RKDP5(4) | 2.35e-7 [2.35e-7] | 150 [150] | -0.010 [-0.010] | 72 [72] | -2.01 [-2.01] | -0.05 [-0.05] | 432 [432] |
+| test B, undrained NC | 1.01 | 1.01 | 0.98 | 2.00 | 1.24 | 0.99 | 3.96 |
+| undrained, NC (K&L) | 1.00 | 1.00 | 1.01 | 2.00 | 1.19 | 0.98 | 3.02 |
+| undrained, OCR = 10 | 1.07 | 1.07 | 0.98 | 2.00 | (0.12: sign change) | 1.00 | 3.99 |
 
-Every value of Table 4 and of Fig. 6 is the same as in the article: the tests are at a material point, so the
-three-dimensional finite element models of v0.7 do not change them.
+Backward Euler is first order whatever the elastic law of the correction; the trapezoidal rule is second order only
+when the deviatoric elastic law is integrated with the secant modulus (with G(p_n) its error curve bends to first
+order, 1.24 in test B and 0.12 in the OCR = 10 test, where the error changes sign); RK4 is fourth order under strain
+control. In the drained tests the mixed control limits every scheme to second order: with 250 to 4000 increments
+the errors in q of the drained NC test are 1.51e-1 to 9.6e-3 kPa for backward Euler (order 1), 1.76e-3 to 7.7e-6 kPa
+for the trapezoidal rule and 1.05e-2 to 3.3e-5 kPa for RK4 (both order 2).
 
-### Numbers of the text of Sect. 6.2
+### Robustness
 
-| quantity | this work | article v0.6 |
-|---|---|---|
-| test B, closed form at eps_q = 10% | p' = 393.0023 kPa, q = 351.3815 kPa | |
-| control of Xie et al., tolerance 1e-4: ME2(1), RKDP5(4) | 4.30e-5, 2.87e-6 | 4.30e-5, 2.87e-6 |
-| one increment: this work, secant G, frozen K | 8.04%, 8.12%, 4.90%, 9 iterations each | 8.0%, 8.1%, 4.9%, 9 |
-| 128 increments, this work | 2.30e-4 in 511 iterations | 2.3e-4, 511 |
-| RKDP5(4), tolerance 1e-3 / 1e-4 | 2.23e-6 with 126 / 2.35e-7 with 150 evaluations | 2.2e-6, 126 / 2.3e-7, 150 |
-| ME2(1), tolerance 1e-4 | 3.25e-5 with 288 evaluations | 3.2e-5, 288 |
-| drained NC, 10 increments, error in q: both RK, tolerance 1e-4 and 1e-5 | -2.01 kPa (all four) | 2.0 kPa |
-| drained NC, 10 increments, BE | -3.59 kPa | 3.6 kPa |
-| drained NC, 100 increments: RKDP5(4) / BE | -0.05 kPa with 666 evaluations / -0.37 kPa with 520 iterations | 0.05, 666 / 0.37, 520 |
-| undrained OCR = 10, error in p': frozen K / exact, 10 increments | -28.74 / -1.70 kPa | 28.7 / 1.7 |
-| undrained OCR = 10: frozen K with 1000 increments / exact with 50 | -0.38 / -0.11 kPa | 0.38 / 0.11 |
-| drained NC, frozen K | no solution with 10 increments; with 20, eps_v 7.83% against 3.96% (+3.87 points) | the same |
-| secant G against this work | errors changed by at most 2.5% in the NC tests, reduced by 1.9% to 20.1% in the OC tests | < 3%; 2 to 20% |
-| secant G, drained OCR = 10, 10 increments | the first increment needs sub-stepping (two sub-steps; 11 sub-steps in the test) | the same |
-| this work: single step per increment | 78 of 78 runs (`be_tensor` and library) | all the tests |
-| drained tests (mixed control): equilibrium of the increments | all 90 runs with a solution: every increment solved by the Newton iterations of the driver, largest \|sigma_r + p'0\| 2.0e-8 kPa | (not reported) |
+* This work (two and four unknowns, single step per increment): every run converged, in all the tests from 1 to 2000
+  increments (25% of axial strain in a single increment in the drained tests, 8% in the undrained one with OCR = 10),
+  and all the 2001 single steps of the sweep (two unknowns: 3 to 4 iterations; four unknowns: 5 to 8).
+* Secant G: the single step fails at 1255 of the 2001 lateral strains of the sweep and converges to a spurious
+  state (p' = 0) at 14; with the sub-stepping of Bui et al. the scheme solves every test (two sub-steps in the first
+  increment of the drained OCR = 10 test with 10 increments).
+* Frozen K: no solution in the drained NC test with 1, 2, 4 and 10 increments (the bound Delta alpha < kappa/v0 of
+  the frozen law); converges at the 2001 single steps of the sweep (5 to 11 iterations).
+* Trapezoidal rule with the secant G: no solution in the drained OCR = 10 test with 1, 2, 4 and 10 increments and in
+  the undrained OCR = 10 test with 1 and 2 increments; 277 of the 2001 single steps converge (33 to p' = 0,
+  1691 fail). With G(p_n): no solution in the drained OCR = 10 test with 1, 2 and 4 increments; all the 2001
+  single steps converge (6 to 8 iterations).
+* Explicit Euler with one sub-step: no solution in the undrained OCR = 10 test with 1, 2 and 4 increments and in the
+  drained OCR = 10 test with 4 (the sub-step leaves the admissible domain or the drift correction fails); with 10
+  sub-steps, no solution with 1 increment in both drained tests. RK4 with one sub-step: no solution in the drained
+  OCR = 10 test with 1 and 4 increments. The adaptive pairs solve every test (their step control sub-steps as needed).
 
-Single step in the first increment of the drained test with OCR = 10 (2001 lateral strains in [0.010, 0.030]):
-the step of this work converges at all of them, in 5 to 8 local iterations; the single secant step fails (no
-convergence in 50 iterations) at 1255, converges to the spurious state p' = 0 at 14 and converges at the other 732
-(129 of them to another branch, more than 50 kPa away from the state of this work), with up to 50 iterations. The
-single secant step converges for all the lateral strains up to 1.537%; above, it fails or ends at a spurious state
-at 87% of the points (1269 of 1463). The solution of the increment is at eps_r = 1.52% with this work and at 1.65%
-with the secant scheme, whose single step does not converge there: the sub-stepping of Bui et al. is needed.
+### Local convergence (norm of the residual at each Newton iteration)
 
-Test B with this work and the tolerance of the local Newton iterations (relative error / local iterations):
+| state | two unknowns (this work) | four unknowns | four unknowns, secant G | trapezoidal rule |
+|---|---|---|---|---|
+| (a) subcritical, test B, 10% | 1.6e-2, 8.6e-5, 6.6e-9, 3.7e-17 (3 corrections) | 6.4e2 ... 8.6e-8, 2.6e-15 (9) | 9 | 9 |
+| (b) supercritical, OCR = 10, 2% | 6.6e-3, 2.5e-5, 6.7e-9, 3.6e-16 (3) | 4.0, 0.92, 0.19, 1.7e-2, 5.6e-5, 6.9e-9, 1.6e-16 (6) | 6 | 7 |
+| (c) apex, isotropic -1% | 1.0e-2, 1.7e-18 (1) | 1.4e2 ... 1.9e-11, 1.3e-15 (8) | 8 | 8 |
+| (d) near the apex, rho_tr/a_n = 5e-5 | 1.0e-2, 4.2e-10, 4.0e-23 (2) | 8 | 8 | 8 |
 
-| increments | 1e-2 | 1e-4 | 1e-8 | 1e-12 (default) | 1e-14 |
-|---|---|---|---|---|---|
-| 1 | 8.042e-2 / 7 | 8.041e-2 / 8 | 8.041e-2 / 9 | 8.041e-2 / 9 | 8.041e-2 / 9 |
-| 4 | 1.353e-2 / 20 | 1.353e-2 / 22 | 1.353e-2 / 25 | 1.353e-2 / 28 | 1.353e-2 / 28 |
-| 16 | 2.231e-3 / 48 | 2.237e-3 / 64 | 2.237e-3 / 80 | 2.237e-3 / 80 | 2.237e-3 / 84 |
-| 64 | 3.835e-4 / 127 | 4.732e-4 / 191 | 4.734e-4 / 255 | 4.734e-4 / 256 | 4.734e-4 / 266 |
+Both systems converge quadratically at the end; the four-unknown iterations spend 4 to 6 corrections reducing the
+residual from 1e2 to 1e0 before the quadratic regime, because they start from the trial state, far from the
+surface, whereas the two-unknown iterations start on the surface at the angle of the trial state. The residuals
+have different scales (strains for the reduced system; stresses scaled by a_n for the four-unknown one).
 
-From 1e-8 to 1e-14 the error changes by less than 1e-9 in relative terms (at most 9.6e-10, with 64 increments;
-with 1e-6 the change is at most 2.0e-6) (`schemes_newton_tolerance.csv`): a tighter tolerance only solves the
-discrete equations more accurately, while the error is that of the first-order discretization of the increment.
-With the loose tolerance 1e-2 the iterations stop before convergence and the error changes by chance (by 19% with
-64 increments).
+### Computing time per increment (microseconds, median of five; Release build, one core)
 
-### The library against `be_tensor`
+| scheme | test B, 1 increment | undrained OCR = 10, 10 increments | drained OCR = 10, 10 increments (driver included) |
+|---|---|---|---|
+| this work, two unknowns (library, tangent included) | 3.6 | 3.6 | 30 |
+| four unknowns (library, tangent included) | 4.9 | 4.1 | 40 |
+| four unknowns, tensors, no tangent (`exact_n`) | 1.5 | 1.1 | 12 |
+| secant G (sub-stepped) | 1.8 | 1.3 | 24 |
+| frozen K | 1.5 | 0.9 | 9 |
+| trapezoidal, secant G / G(p_n) | 2.3 / 1.8 | 1.7 / 1.6 | - / 17 |
+| explicit Euler, 1 / 10 / 100 sub-steps | 4.6 / 7.6 / 33 | 0.6 / 3.4 / 28 | 39 / 27 / 204 |
+| RK4, 1 / 10 sub-steps | 5.0 / 9.8 | 0.8 / 6.3 | 9 / 51 |
+| ME2(1) / RKDP5(4), tolerance 1e-4 | 49 / 25 | 4.7 / 1.4 | 91 / 39 |
 
-`TPZPlasticStepModifiedCamClay` (rotated Haigh-Westergaard space, spectral decomposition) and the tensor form
-`be_tensor` give the same results in all the 39 BE runs of each variant (exact and frozen bulk modulus), with the
-same numbers of local iterations in every run; the largest difference of p' or q along the paths is 5.5e-11 kPa
-(relative 3e-13) with the exact integration and 3.7e-11 kPa with the frozen modulus.
+The spread of the five repetitions is 5 to 50% on the shared machine of the runs: only ratios larger than about 1.5
+are meaningful. The reduced system costs 15 to 25% less than the four-unknown one in the library (where the spectral
+decomposition and the tangent are a large part of the time) and 2.3 to 2.9 times less in the bare local solve
+(`Projects/YieldSurfaceProjection`, `two_vs_four_summary.csv`: 0.84 against 1.47 us with the linear law, 0.68
+against 2.08 us with the porous law).
 
-### Comparison with the Python code
+### Checks
 
-The program compares the 183 results of `data_rivais.pkl` (and the 5 closed-form references) with its own:
-
-* the work counts (iterations or evaluations) and the convergence are identical in all of them;
-* the closed-form references are identical (difference 0);
-* the largest differences of the values are 5e-15 in the relative errors of test B, 6e-12 kPa in the undrained
-  tests (p' about 830 kPa) and 2e-12 kPa in the drained tests (1.2e-11 kPa in the largest q), except in one run.
-
-The exception is the drained test with OCR = 10 with the secant G in 10 increments: q - q_exact = 5.278 kPa and
-largest q = 440.57 kPa here, against 5.316 kPa and 442.77 kPa in Python, with the same work (79) and two sub-steps
-in the first increment in both codes. In that increment the iterations of the drained driver pass through lateral
-strains where the single secant step fails or converges to spurious states (p' = 0) depending on round-off (see
-the sweep above), so that sigma_r(eps_r) + p'0 of the sub-stepped update jumps between branches. Here the Newton
-iterations of the driver converge, at eps_r = 0.016479, to an equilibrated state (|sigma_r + p'0| = 3e-14 kPa). In
-the Python run (traced with `rivais.py` of v0.6) the Newton iterations reached a spurious p' = 0 state near
-eps_r = 0.0164194 and diverged; the bisection safeguard then closed in on the jump at eps_r = 0.0164014 between the
-sub-stepped branch (sigma_r + p'0 = -2.56 kPa) and a spurious single-step branch (+202 kPa), stopped after its 200
-halvings without reaching the tolerance, and accepted the state with sigma_r + p'0 = -2.56 kPa, out of equilibrium
-(1.3% of p'0); the largest q of the Python run, 442.77 kPa, is the q of that state. The value of this program is
-therefore the solution of the drained increment and the Python value is an artefact of its driver. Both drivers
-accept the last midpoint of a bisection that does not converge; this program counts such increments
-(`unbalanced_increments` of `schemes_results.csv`) and reports the largest |sigma_r + p'0| of every drained run:
-there are none, every drained increment is solved by the Newton iterations, and the largest |sigma_r + p'0| is
-2.0e-8 kPa (the tolerance 1e-10 p'0). The run is not in Table 4 or Fig. 6; the statements of Sect. 6.2 that use it
-hold with both values (the secant G reduces the error of this work by 16% here, 15% in Python).
-
-Two details of the transcription make the comparison exact: the loading criterion of the Runge-Kutta schemes is
-evaluated in closed form, a : (lambda tr(Delta eps) m + 2G Delta eps), which is exactly zero in the isochoric first
-increment from the isotropic NC state, as the matrix product of the Python code (the increment then starts with an
-elastic part of about 3e-7 of the increment); and Brent's method is the algorithm of `scipy.optimize.brentq`.
+* theta = 1 of the trapezoidal rule with G(p_n) against `BackwardEuler` (exact K, G(p_n)) in 205 steps (the four
+  states above and 201 steps of the sweep): same convergence, same iteration counts, largest difference of the
+  stresses 2.3e-13 kPa. With the secant G the comparison is against the single secant step, whose Newton
+  iterations are chaotic where the step fails: 203 of the 205 steps agree, two differ in convergence.
+* Library (two unknowns) against `be_tensor`: 51 runs, same convergence, largest difference of p', q along the paths
+  2.8e-6 kPa (relative 1.5e-8); library with four unknowns against `be_tensor`: same iterations in every run,
+  largest difference 2.3e-10 kPa.
+* Python results of v0.6 (`data_rivais.pkl`, 188 results): the work counts and the convergence are identical in all
+  of them and the values agree to round-off, except the drained OCR = 10 test with the secant G in 10 increments
+  (q - q_exact = 5.278 kPa here against 5.316 in Python: the Python driver accepted an unbalanced first increment at
+  a jump of sigma_r(eps_r) between branches of the sub-stepped secant step; see v0.7 of this README in the history).
 
 ## Files
 
 * `IntegrationSchemes.h`: the class `IntegrationSchemes`: materials, backward-Euler schemes (`BackwardEuler`,
-  `BackwardEulerSubstep`), Runge-Kutta schemes (`TTableau`, `TRKModel`, `RungeKutta`), drivers (`UndrainedPath`,
-  `DrainedPath`), closed forms (`UndrainedClosed`, `Brent`), update functions (`BEUpdate`, `RKUpdate`,
-  `LibraryUpdate`), tests (`RunXieTestB`, `RunKLUndrained`, `RunKLDrained`, `RunSecantSweep`, `RunToleranceStudy`)
-  and post-processing.
+  `BackwardEulerSubstep`, `GeneralizedTrapezoidal`, `ElasticIntersection`), explicit schemes (`TTableau`,
+  `TRKModel`, `RungeKutta`, `RungeKuttaFixed`), drivers (`UndrainedPath`, `DrainedPath`), closed forms
+  (`UndrainedClosed`, `Brent`), update functions (`BEUpdate`, `RKUpdate`, `RKFixedUpdate`, `TrapezoidalUpdate`,
+  `LibraryUpdate`), tests (`RunXieTestB`, `RunKLUndrained`, `RunKLDrained`, `RunRobustness`, `RunSecantSweep`,
+  `RunToleranceStudy`, `RunLocalConvergence`, `RunTimingStudy`) and post-processing.
 * `IntegrationSchemesReference.h`: the results of `data_rivais.pkl` (generated by `make_reference.py`; used only
   for the comparison).
 * `make_reference.py`: writes `IntegrationSchemesReference.h` from `data_rivais.pkl` of the Python code.
 * `main.cpp`: creates the example and calls `RunAll()`.
-* `plot_figures.py`: Fig. 6 and the supplementary figure.
+* `plot_figures.py`: the figures.

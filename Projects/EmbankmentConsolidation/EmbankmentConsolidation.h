@@ -102,7 +102,8 @@ public:
         EPartModel = 1,    ///< Cam-Clay model with the consistent tangent: Table 8, Figs. 13 and 14, CSV and VTK files
         EPartElastic = 2,  ///< elastic foundation (plastic share of the settlement)
         EPartTangents = 4, ///< comparison of the tangent operators (Table 10, embankment column)
-        EPartAll = 7       ///< all of them
+        EPartSolvers = 8,  ///< return mapping with two and with four unknowns (Sect. 7.4 of v1.0)
+        EPartAll = 15      ///< all of them
     };
 
     /** @name Loading (Sect. 6.6) */
@@ -208,6 +209,8 @@ public:
         TPZPlasticStepModifiedCamClay::EFiniteDifferenceTangent};
     /** @brief Verbosity of the analysis (TPZPoroElastoPlasticUPAnalysis::SetVerbose; argument "verbose" sets 1) */
     int fVerbose = 0;
+    /** @brief Local system of the return mapping of the runs (two unknowns by default; argument "solver=full") */
+    TPZYCModifiedCamClayRHW::ELocalSolver fLocalSolver = TPZYCModifiedCamClayRHW::EReduced;
     /** @} */
 
     /**
@@ -499,6 +502,7 @@ inline TPZMultiphysicsCompMesh *EmbankmentConsolidation::CreateCompMesh(TPZGeoMe
     model.SetPorousElasticity();
     model.SetPoissonRatio(fNu);
     model.SetTangentMode(mode);
+    model.SetLocalSolver(fLocalSolver);
     mat->SetPlasticModel(model);
     mat->SetBiot(1., fPorosity / fKf);
     mat->SetPermeability(fMobility);
@@ -1348,6 +1352,47 @@ inline void EmbankmentConsolidation::RunAll() {
         }
         std::cout << "(time: run time of the C++ code, one core, including the assembly of the reactions and the "
                      "post-processing of the history; 2D v0.6 times are those of the Python code)\n";
+    }
+    // return mapping with two and with four unknowns (consistent tangent): same iterations and results, different time
+    if (fParts & EPartSolvers) {
+        using Y = TPZYCModifiedCamClayRHW;
+        const auto saved = fLocalSolver;
+        std::vector<TResult> runs;
+        for (auto solver : {Y::EReduced, Y::EFull}) {
+            fLocalSolver = solver;
+            runs.push_back(Run(ECamClay, D, false));
+            const auto &t = runs.back();
+            std::cout << "\nlocal solver " << (solver == Y::EReduced ? "two unknowns (theta, dal)" : "four unknowns (xi, rho, dal, dg)")
+                      << ": " << (t.fConverged ? "converged" : "FAILED") << ", undrained " << itslist(t.fLogUndrained)
+                      << ", consolidation " << itslist(t.fLogConsolidation) << ", " << t.fNGlobalIterations
+                      << " global iterations, " << t.fNBisections << " failed attempts, " << std::fixed
+                      << std::setprecision(1) << t.fSeconds << " s" << std::defaultfloat << std::endl;
+        }
+        fLocalSolver = saved;
+        const TResult &a = runs[0], &b = runs[1];
+        REAL ds = 0., dpp = 0.;
+        if (a.fHistory.size() == b.fHistory.size())
+            for (size_t k = 0; k < a.fHistory.size(); ++k) {
+                for (int c = 2; c <= 5; ++c) ds = std::max(ds, std::fabs(a.fHistory[k][c] - b.fHistory[k][c]));
+                for (int c = 6; c <= 7; ++c) dpp = std::max(dpp, std::fabs(a.fHistory[k][c] - b.fHistory[k][c]));
+            }
+        std::cout << std::scientific << std::setprecision(1) << "largest differences four - two unknowns: settlements "
+                  << ds << " m, pore pressures " << dpp << " kPa; time ratio four/two " << std::fixed
+                  << std::setprecision(3) << b.fSeconds / std::max(a.fSeconds, 1e-9) << std::defaultfloat << "\n";
+        std::ofstream tab("embankment_local_solvers.csv");
+        tab << "solver,undrained_mean,consolidation_mean,evaluations_total,global_iterations,failed_attempts,seconds,"
+               "converged,final_s_x0,final_pp2,maxdiff_settlement,maxdiff_pp\n"
+            << std::setprecision(12);
+        for (size_t i = 0; i < runs.size(); ++i) {
+            const TResult &t = runs[i];
+            tab << (i == 0 ? "reduced" : "full") << "," << mcc::MeanEvaluations(t.fLogUndrained) << ","
+                << mcc::MeanEvaluations(t.fLogConsolidation) << ","
+                << totalits(t.fLogUndrained) + totalits(t.fLogConsolidation) << "," << t.fNGlobalIterations << ","
+                << t.fNBisections << "," << t.fSeconds << "," << int(t.fConverged) << ","
+                << (t.fHistory.empty() ? nan : t.fHistory.back()[2]) << ","
+                << (t.fHistory.empty() ? nan : t.fHistory.back()[7]) << "," << ds << "," << dpp << "\n";
+        }
+        Summary("local_solver_time_ratio_full_over_reduced", b.fSeconds / std::max(a.fSeconds, 1e-9), nan, "");
     }
     if (!fSummary.empty()) {
         Summary("run_time_total", std::chrono::duration<double>(std::chrono::steady_clock::now() - clock0).count(), nan, "s");

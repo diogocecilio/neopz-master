@@ -64,6 +64,8 @@ public:
         int fIntegration = 3; ///< integration order: 3 -> 2 x 2 x 2 (reduced), 4 -> 3 x 3 x 3 (full) points
         /** @brief operator returned by the stress update (consistent tangent D by default) */
         ETangentMode fTangent = TPZPlasticStepModifiedCamClay::EConsistentTangent;
+        /** @brief local system of the return mapping: two unknowns (default) or four (TPZYCModifiedCamClayRHW::EFull) */
+        TPZYCModifiedCamClayRHW::ELocalSolver fLocalSolver = TPZYCModifiedCamClayRHW::EReduced;
         int fNSteps = 150;    ///< number of increments
         REAL fP0 = 100.;      ///< initial isotropic effective stress = cell pressure (kPa)
         int fNc = 2;          ///< divisions of the central square and along each outer arc
@@ -135,7 +137,8 @@ public:
     bool fWriteVTK = true;
 
     /** @brief The plastic model of the benchmark with the given tangent operator */
-    mcc::TPlastic Model(ETangentMode tangent = TPZPlasticStepModifiedCamClay::EConsistentTangent) const;
+    mcc::TPlastic Model(ETangentMode tangent = TPZPlasticStepModifiedCamClay::EConsistentTangent,
+                        TPZYCModifiedCamClayRHW::ELocalSolver solver = TPZYCModifiedCamClayRHW::EReduced) const;
 
     /** @brief Geometric mesh: quarter of cylinder with fNc x fNr x fNz divisions and its boundary faces */
     TPZGeoMesh *CreateGeoMesh(const TConfig &cfg);
@@ -173,6 +176,12 @@ public:
      * times of the solutions, TResult::fCPUTime, which do not depend on the load of the machine)
      */
     void TangentOperators();
+    /**
+     * @brief Sect. 7.4 (v1.0): the rough platen run (2 x 2 x 2 points, 150 increments, consistent tangent) with the
+     * two local solvers of the return mapping, two unknowns (theta, Delta alpha) and four (xi, rho, Delta alpha,
+     * Delta gamma): the global iterations and the results must coincide; the times differ. File abaqus_local_solvers.csv
+     */
+    void LocalSolvers();
 
     /**
      * @brief Sect. 6.7, sensitivity of Table 10 to the tolerance of the global iterations: the five operators of
@@ -229,13 +238,15 @@ protected:
                              const std::vector<std::tuple<std::string, REAL, std::string>> &numbers);
 };
 
-inline mcc::TPlastic AbaqusTriaxialConsolidation::Model(ETangentMode tangent) const {
+inline mcc::TPlastic AbaqusTriaxialConsolidation::Model(ETangentMode tangent,
+                                                        TPZYCModifiedCamClayRHW::ELocalSolver solver) const {
     mcc::TPlastic model;
     model.SetModifiedCamClay(fM, fLambda, fKappa);
     model.SetPoissonRatio(fNu);
     model.SetPorousElasticity();
     model.SetDefaultSpecificVolume(fV0);
     model.SetTangentMode(tangent);
+    model.SetLocalSolver(solver);
     return model;
 }
 
@@ -273,7 +284,7 @@ inline TPZMultiphysicsCompMesh *AbaqusTriaxialConsolidation::CreateCompMesh(TPZG
     TPZMultiphysicsCompMesh *mphys = new TPZMultiphysicsCompMesh(gmesh);
     mphys->SetDimModel(dim);
     mat = new mcc::TPoroMaterial(EMatId, TPZMatPoroElastoPlasticUPBase::EThreeDimensional);
-    mat->SetPlasticModel(Model(cfg.fTangent));
+    mat->SetPlasticModel(Model(cfg.fTangent, cfg.fLocalSolver));
     mat->SetBiot(1., 0.);
     mat->SetPermeability(fPerm);
     mat->SetIntegrationOrder(cfg.fIntegration);
@@ -805,6 +816,46 @@ inline void AbaqusTriaxialConsolidation::TangentOperators() {
     mcc::WriteCSV("abaqus_table9.csv", {"increment", "delta_H", "transposed", "iteration", "residual"}, t9);
 }
 
+inline void AbaqusTriaxialConsolidation::LocalSolvers() {
+    std::cout << "\nSect. 7.4: rough platen (2 x 2 x 2 points, 150 increments), consistent tangent, return mapping with "
+                 "two and with four unknowns\n";
+    using Y = TPZYCModifiedCamClayRHW;
+    std::vector<std::pair<TConfig, TResult>> runs;
+    for (auto solver : {Y::EReduced, Y::EFull}) {
+        TConfig cfg;
+        cfg.fRough = true;
+        cfg.fVTKStride = 0;
+        cfg.fLocalSolver = solver;
+        cfg.fName = std::string("rough_2x2x2_solver_") + (solver == Y::EReduced ? "reduced" : "full");
+        runs.emplace_back(cfg, Run(cfg));
+        const TResult &r = runs.back().second;
+        std::cout << "  " << (solver == Y::EReduced ? "two unknowns (theta, dal)        " : "four unknowns (xi, rho, dal, dg)")
+                  << ": " << r.fMeanEvaluations << " evaluations per increment (max " << r.fMaxEvaluations
+                  << "), total " << r.fNGlobalIterations << ", bisections " << r.fNBisections << ", " << r.fWallTime
+                  << " s (processor " << r.fCPUTime << " s), end q_A = " << std::setprecision(10)
+                  << r.fHistory.back()[EQA] << std::setprecision(6) << (r.fCompleted ? "" : " (stopped)") << "\n";
+    }
+    const TResult &a = runs[0].second, &b = runs[1].second;
+    REAL dq = 0., dp = 0.;
+    int dits = 0;
+    for (size_t k = 0; k < a.fHistory.size() && k < b.fHistory.size(); ++k) {
+        dq = std::max(dq, std::fabs(a.fHistory[k][EQA] - b.fHistory[k][EQA]));
+        dp = std::max(dp, std::fabs(a.fHistory[k][EPA] - b.fHistory[k][EPA]));
+        if (a.fHistory[k][EEvaluations] != b.fHistory[k][EEvaluations]) dits++;
+    }
+    std::cout << std::scientific << std::setprecision(1) << "  largest |q_A - q_A,full| along the path " << dq
+              << " kPa, |p'_A - p'_A,full| " << dp << " kPa; increments with a different number of evaluations: "
+              << dits << "; time ratio four/two " << std::fixed << std::setprecision(3) << b.fWallTime / a.fWallTime
+              << std::defaultfloat << std::setprecision(6) << "\n";
+    WriteSummary("abaqus_local_solvers.csv", runs);
+    std::vector<std::vector<REAL>> rows;
+    for (size_t k = 0; k < a.fHistory.size() && k < b.fHistory.size(); ++k)
+        rows.push_back({REAL(k), a.fHistory[k][EDH], a.fHistory[k][EEvaluations], b.fHistory[k][EEvaluations],
+                        a.fHistory[k][EQA], b.fHistory[k][EQA]});
+    mcc::WriteCSV("abaqus_local_solvers_increments.csv",
+                  {"increment", "delta_H", "evaluations_reduced", "evaluations_full", "q_A_reduced", "q_A_full"}, rows);
+}
+
 inline void AbaqusTriaxialConsolidation::ToleranceSensitivity() {
     std::cout << "\nSect. 6.7: Table 10 with the tolerance " << fToleranceSensitivity
               << " (rough platen, 2 x 2 x 2 points, 150 increments)\n";
@@ -906,10 +957,12 @@ inline void AbaqusTriaxialConsolidation::Softening() {
 
 inline void AbaqusTriaxialConsolidation::RunAll(const std::vector<std::string> &parts) {
     std::cout << std::setprecision(6);
-    const std::vector<std::string> known = {"all", "mesh", "mp", "fe", "tangents", "tolerance", "states", "softening"};
+    const std::vector<std::string> known = {"all", "mesh", "mp", "fe", "tangents", "solvers", "tolerance", "states",
+                                           "softening"};
     for (auto &p : parts)
         if (std::find(known.begin(), known.end(), p) == known.end())
-            std::cout << "unknown part \"" << p << "\" (parts: mesh mp fe tangents tolerance states softening all)\n";
+            std::cout << "unknown part \"" << p
+                      << "\" (parts: mesh mp fe tangents solvers tolerance states softening all)\n";
     auto want = [&parts](const std::string &p) {
         return std::find(parts.begin(), parts.end(), p) != parts.end() ||
                std::find(parts.begin(), parts.end(), "all") != parts.end();
@@ -921,6 +974,7 @@ inline void AbaqusTriaxialConsolidation::RunAll(const std::vector<std::string> &
     }
     if (want("fe")) FiniteElementModels();
     if (want("tangents")) TangentOperators();
+    if (want("solvers")) LocalSolvers();
     if (want("tolerance")) ToleranceSensitivity();
     if (want("states")) States();
     if (want("softening")) Softening();

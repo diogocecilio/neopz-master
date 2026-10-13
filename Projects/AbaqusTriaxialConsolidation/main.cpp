@@ -3,7 +3,7 @@
  * @brief Abaqus benchmark 1.15.2: consolidation of a triaxial specimen with the Hex20-Hex8 model (Sects. 6.5
  * and 6.7 of the article).
  *
- * Usage: AbaqusTriaxialConsolidation [mesh] [mp] [fe] [tangents] [tolerance] [states] [softening] [novtk]
+ * Usage: AbaqusTriaxialConsolidation [mesh] [mp] [fe] [tangents] [solvers] [tolerance] [states] [softening] [novtk]
  * (default: all the parts).
  * The finite element runs of the parts fe, states and softening write the VTK file series of their increments in
  * vtk/\<run name\>; "novtk" disables them.

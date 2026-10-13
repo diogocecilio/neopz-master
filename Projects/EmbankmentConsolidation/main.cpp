@@ -4,12 +4,14 @@
  * 20 x 10 x 1 Hex20-Hex8 u-p slab in plane strain (Sect. 6.6, Figs. 12 to 14, Table 8 and the embankment
  * column of Table 10), with the elastic variant and the comparison of the tangent operators.
  *
- * Usage: EmbankmentConsolidation [novtk] [verbose] [model] [elastic] [tangents] [modes=D,sym,cont,DT,fd]
+ * Usage: EmbankmentConsolidation [novtk] [verbose] [model] [elastic] [tangents] [solvers] [modes=D,sym,cont,DT,fd]
+ *        [solver=reduced|full]
  *  - novtk: do not write the VTK file series of every converged state (vtk/embankment and
  *    vtk/embankment_elastic); the CSV files and the VTK files of the three states of Fig. 14 are always written;
  *  - verbose: one line per increment of the analyses;
- *  - model, elastic, tangents: run only these parts (default: all of them; see EmbankmentConsolidation::EPart);
- *  - modes=...: tangent operators of the comparison (default D,sym,cont,DT,fd).
+ *  - model, elastic, tangents, solvers: run only these parts (default: all of them; see EmbankmentConsolidation::EPart);
+ *  - modes=...: tangent operators of the comparison (default D,sym,cont,DT,fd);
+ *  - solver=full: four-unknown local system in the runs of the other parts (default: two unknowns).
  */
 #include "EmbankmentConsolidation.h"
 
@@ -23,6 +25,9 @@ int main(int argc, char *argv[]) {
         else if (arg == "model") parts |= EmbankmentConsolidation::EPartModel;
         else if (arg == "elastic") parts |= EmbankmentConsolidation::EPartElastic;
         else if (arg == "tangents") parts |= EmbankmentConsolidation::EPartTangents;
+        else if (arg == "solvers") parts |= EmbankmentConsolidation::EPartSolvers;
+        else if (arg == "solver=full") example.fLocalSolver = TPZYCModifiedCamClayRHW::EFull;
+        else if (arg == "solver=reduced") example.fLocalSolver = TPZYCModifiedCamClayRHW::EReduced;
         else if (arg.rfind("modes=", 0) == 0) {
             example.fTangentModes.clear();
             std::stringstream list(arg.substr(6));
@@ -42,7 +47,8 @@ int main(int argc, char *argv[]) {
                 }
             }
         } else {
-            std::cerr << "usage: " << argv[0] << " [novtk] [verbose] [model] [elastic] [tangents] [modes=D,sym,cont,DT,fd]"
+            std::cerr << "usage: " << argv[0]
+                      << " [novtk] [verbose] [model] [elastic] [tangents] [solvers] [modes=D,sym,cont,DT,fd] [solver=full]"
                       << std::endl;
             return 1;
         }

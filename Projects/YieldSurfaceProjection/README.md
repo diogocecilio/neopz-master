@@ -164,6 +164,43 @@ Python values come from `camclay_hw.apply_strain` with the same trial stress (p'
 The tangent entries agree to a relative difference of at most 3.4e-15. D(xx,zz) and D(zz,xx) differ from each
 other: the consistent tangent of the MCC model is not symmetric (Sect. 3 of the article).
 
+## Two versus four unknowns (v1.0)
+
+`RunTwoVersusFour` (Sect. 5.1 of the article) compares the two local solvers of `TPZYCModifiedCamClayRHW` in a
+directed sweep of trial states, for the linear elasticity of Fig. 2 (K = 6 MPa, G = 3 MPa, p_c,n = 200 kPa) and
+for the porous elasticity of the Abaqus clay (p'_n = 100 kPa, p_c,n = 116.6 kPa): p'_tr/p_c,n log-spaced from 0.01
+to 31.6 (36 values; plus the tensile values -0.01, -0.03, -0.1 and -0.3 with the linear law, the only one that can
+produce a tensile trial state) and q_tr/a_n log-spaced from 1e-8 to 100 (41 values), the states inside the surface
+skipped: 1015 states with the linear law and 851 with the porous one, from the apexes (q_tr/a_n = 1e-8) to states
+100 a_n away from the surface. Both solvers start from the same trial state (`ProjectReduced` from the angle of the
+trial state on the surface; `ProjectHW` from the trial state itself).
+
+| | linear law, 1015 states | porous law, 851 states |
+|---|---|---|
+| Newton failures (50 iterations) | two unknowns 0, four unknowns 4 | 0, 0 |
+| converged to Delta gamma < 0 (rejected) | 0, 2 | 0, 0 |
+| corrections, mean (largest) | 3.85 (8), 6.04 (14) | 2.57 (5), 7.73 (17) |
+| largest difference of the admissible solutions | p' 5.5e-9, q 8.0e-9, a 2.7e-9 kPa | 1.8e-9, 6.9e-9, 8.6e-10 kPa |
+| largest difference of D_proj | 5.7e-8 | 1.2e-10 |
+| time per projection, median of five (spread) | 0.84 us (3%), 1.47 us (23%) | 0.68 us (14%), 2.08 us (11%) |
+
+The six states where the four-unknown system fails or converges to a stationary point with Delta gamma < 0 are far
+from the surface on the subcritical side (p'_tr = 20 to 32 p_c,n); the reduced system solves them in 5 to 8
+corrections. Where the two Jacobians of the projection differ most (trial states on the hydrostatic axis,
+rho_tr/a_n = 1e-8), central differences of the reduced projection decide: the error of the reduced Jacobian is
+2.4e-10 and that of the full one 7.3e-8 (linear law; largest entry 0.54). The ratio rho/rho_tr of the Jacobian is
+evaluated from the plastic multiplier, 1/(1 + 6 G Delta gamma/M^2), which keeps the accuracy near the apexes where
+the angle resolves rho poorly (before this change the reduced Jacobian was off by 1e-3 there). The random check
+of v0.8 (2000 states, `CrossCheckSolvers`) is kept: 4.08 (6) against 5.68 (16) corrections with the linear law and
+2.70 (4) against 7.03 (12) with the porous law, 3 solutions with Delta gamma < 0 of the full solver, differences
+below 1e-8 kPa. The residual histories of the two solvers in the states of Fig. 2, with both laws, are written to
+`two_vs_four_residuals.csv` (the reduced system converges in 3 corrections from 1e-2 to 1e-17; the full one in 5
+to 6 from 1e0).
+
+Files: `two_vs_four_sweep.csv` (one row per trial state: both solutions, corrections, Delta gamma, D_proj
+difference), `two_vs_four_summary.csv` (the table above), `two_vs_four_residuals.csv` (`law, case, solver,
+converged, iteration, residual, p_eff, q, a`).
+
 ## Cross-check of the two local solvers (v0.8)
 
 Since v0.8 the local problem is solved with the two unknowns (θ, Δα) (`TPZYCModifiedCamClayRHW::ProjectReduced`).

@@ -159,11 +159,13 @@ bool TPZYCModifiedCamClayRHW::ProjectHW(const TTrial &trial, TPZVec<REAL> &X, in
     TPZManVector<REAL, 4> R(4, 0.);
     TPZFNMatrix<16, REAL> J(4, 4, 0.), dRdY(4, 2, 0.);
     TPZFNMatrix<4, REAL> dX(4, 1, 0.);
+    if (fResidualLog) fResidualLog->clear();
     for (niter = 0; niter < fMaxNewton; ++niter) {
         Residual(X, trial, R);
         REAL norm = 0.;
         for (int i = 0; i < 4; ++i) norm += R[i] * R[i];
         norm = std::sqrt(norm);
+        if (fResidualLog) fResidualLog->push_back(norm);
         if (!std::isfinite(norm)) return false;
         if (norm < fNewtonTol) return true;
         Jacobian(X, trial, J, dRdY);
@@ -286,7 +288,9 @@ bool TPZYCModifiedCamClayRHW::ProjectReduced(const TTrial &trial, TPZVec<REAL> &
     TPZFNMatrix<4, REAL> J(2, 2, 0.), dEdY(2, 2, 0.);
     ResidualReduced(X2, trial, E);
     REAL norm = std::hypot(E[0], E[1]);
+    if (fResidualLog) fResidualLog->clear();
     for (niter = 0; niter < fMaxNewton; ++niter) {
+        if (fResidualLog) fResidualLog->push_back(norm);
         if (!std::isfinite(norm)) return false;
         if (norm < fNewtonTol) return true;
         JacobianReduced(X2, trial, J, dEdY);
@@ -368,7 +372,11 @@ bool TPZYCModifiedCamClayRHW::GradProjectionReduced(const TPZVec<REAL> &X2, cons
     }
     TPZManVector<REAL, 4> X(4, 0.);
     ReducedToFull(X2, trial, X);
-    const REAL f = isotropic ? 1. / (1. + 6. * trial.fG * X[3] / (fM * fM)) : rho / trial.fRhoTr;
+    // ratio rho/rho_tr from the deviatoric law, 1/(1 + 6 G dg/M^2): equal to rho/rho_tr away from the apexes and
+    // accurate near them, where rho and rho_tr are both small and the angle resolves their ratio poorly (dg then
+    // comes from the hardening rule, ReducedToFull)
+    const REAL f = 1. / (1. + 6. * trial.fG * X[3] / (fM * fM));
+    (void)isotropic;
     AssembleDproj(dxiY, drhoY, f, n, Dproj);
     return true;
 }

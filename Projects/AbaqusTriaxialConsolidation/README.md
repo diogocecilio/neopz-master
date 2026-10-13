@@ -41,6 +41,7 @@ Parts (command line arguments, default `all`; `novtk` disables the VTK series):
 | `mp` | material point: drained tests from p'0 = 100 and 20 kPa with 600 increments and the closed form of Appendix B.1 (Fig. 10); the benchmark state with 30, 150 and 3000 increments (column Δδ/H = 0.02 of Table 7) | 0.3 s |
 | `fe` | 48 elements, 150 increments: smooth platen 2 × 2 × 2, rough platen 2 × 2 × 2 and 3 × 3 × 3 (Fig. 11, Table 7), comparison with the digitized Abaqus curves | 56 s (+ 98 s for the VTK series) |
 | `tangents` | rough platen 2 × 2 × 2 with the operators D, central differences (`fd`), (D + Dᵀ)/2 (`sym`), continuum tangent (`cont`) and Dᵀ (`DT`): Tables 9 and 10 (no VTK series) | 3.2 min |
+| `solvers` | the rough platen 2 × 2 × 2 run with the consistent tangent and the two local solvers of the return mapping, two unknowns (θ, Δα) and four (ξ, ρ, Δα, Δγ) (`TPZYCModifiedCamClayRHW::EFull`): the global iterations and the results coincide (q_A to 1e-9 kPa), only the time differs (Sect. 7.4 of v1.0; files `abaqus_local_solvers.csv`, `abaqus_local_solvers_increments.csv`; no VTK series) | 0.5 min |
 | `tolerance` | the five runs of `tangents` with the tolerance 10⁻⁹ instead of 10⁻⁸ (sensitivity of Table 10, see Results; no VTK series) | 4.0 min |
 | `states` | 48 elements, smooth platen, 600 increments from p'0 = 100 and 20 kPa (Sect. 6.5) | 1.7 min (+ 55 s) |
 | `softening` | p'0 = 20 kPa with the refined mesh 4 × 4 × 8, 600 increments (softening study) | 25 min (23.5 min + 1.2 min for the VTK series) |
@@ -48,6 +49,7 @@ Parts (command line arguments, default `all`; `novtk` disables the VTK series):
 ```
 ./AbaqusTriaxialConsolidation                                             # everything (about 38 min)
 ./AbaqusTriaxialConsolidation mesh mp fe tangents tolerance states novtk  # all but the refined mesh, about 10 min
+./AbaqusTriaxialConsolidation tangents solvers novtk                       # Sect. 7.4 of v1.0: operators and local solvers
 ./AbaqusTriaxialConsolidation mesh mp fe novtk                            # Figs. 9 to 11 and Table 7, about 1 min
 ```
 
@@ -80,6 +82,7 @@ of the standard set-up.
 | `abaqus_table9.csv` | Table 9: `increment`, `delta_H`, `transposed` (0 D, 1 Dᵀ), `iteration`, normalized `residual` (`tangents`) |
 | `abaqus_table10.csv` | Table 10: one row per operator (`tangent`, `tolerance`), with `mean_evaluations`, `max_evaluations`, `global_iterations` (`NGlobalIterations`), `bisections` (`NBisections`), `cpu_time_s` (processor time, the time of Table 10), `wall_time_s` and the final values (`tangents`) |
 | `abaqus_tangents_evaluations.csv` | evaluations of each increment with each operator (`tangents`) |
+| `abaqus_local_solvers.csv`, `abaqus_local_solvers_increments.csv` | the two runs of `solvers` (same columns as `abaqus_table10.csv`) and, per increment, the evaluations and q_A of both solvers |
 | `abaqus_table10_tolerance.csv` | the rows of `abaqus_table10.csv` with the tolerance 10⁻⁹ (runs `rough_2x2x2_tolerance_tangent_<D, fd, sym, cont, DT>`, whose histories give the evaluations of each increment) (`tolerance`) |
 | `abaqus_states_summary.csv`, `abaqus_states_numbers.csv`, `abaqus_softening_summary.csv`, `abaqus_softening_numbers.csv` | runs with 600 increments: peaks, final values, global q from the platen force, material point (`states`, `softening`) |
 | `abaqus_material_point_*.csv`, `abaqus_closed_form_*.csv` | material point (`mp`) |
