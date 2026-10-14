@@ -34,12 +34,23 @@ struct Water {
 };
 
 /// Toe ground (-3) and face (-6) need a pore pressure and a water load: twin boundary elements -13 and -16
+// void AddWaterLoadElements2(TPZGeoMesh *gmesh) {
+//     const int64_t nel = gmesh->NElements();
+//     for (int64_t i = 0; i < nel; i++) {
+//         TPZGeoEl *gel = gmesh->Element(i);
+//         if (gel && !gel->HasSubElement() && (gel->MaterialId() == -3 || gel->MaterialId() == -6))
+//             TPZGeoElBC(gel, gel->NSides() - 1, gel->MaterialId() - 10);
+//     }
+// }
 void AddWaterLoadElements(TPZGeoMesh *gmesh) {
     const int64_t nel = gmesh->NElements();
-    for (int64_t i = 0; i < nel; i++) {
+    for (int64_t i = 0; i < nel; ++i) {
         TPZGeoEl *gel = gmesh->Element(i);
-        if (gel && !gel->HasSubElement() && (gel->MaterialId() == -3 || gel->MaterialId() == -6))
-            TPZGeoElBC(gel, gel->NSides() - 1, gel->MaterialId() - 10);
+        if (!gel || gel->HasSubElement()) continue;
+        const int id = gel->MaterialId();
+        if (id == -3 || id == -4 || id == -6)
+            TPZGeoElBC(gel, gel->NSides() - 1, id - 10);
+        // -3 -> -13; -4 -> -14; -6 -> -16.
     }
 }
 
@@ -64,7 +75,7 @@ TPZCompMesh *CreateAtomicMesh(TPZGeoMesh *gmesh, int nstate, int order, const st
 /// face -6): p = gamma_w (H - y)+, i.e. drained above the water (the phreatic surface stays at the crest, as in
 /// the rapid drawdown of Ceron et al. 2025); water load t = -gamma_w (H - y)+ n on the twins -13 and -16.
 template <class TPlastic>
-TPZMultiphysicsCompMesh *CreateCompMesh(TPZGeoMesh *gmesh, int porder, const TPlastic &model, const Soil &s,
+TPZMultiphysicsCompMesh *CreateCompMesh2(TPZGeoMesh *gmesh, int porder, const TPlastic &model, const Soil &s,
                                         const Water &w) {
     using B = TPZMatPoroElastoPlasticUPBase;
     if (porder != 2) DebugStop(); // PoreField and the nodal Dirichlet values assume a P1 pressure
@@ -215,7 +226,7 @@ std::pair<REAL, REAL> FactorOfSafety(const TPlastic &model, const Soil &s, const
 std::vector<State> PorePressureStates(const TMCVoigt &model, const Soil &s, const Water &w, REAL Tc, int ref) {
     TPZGeoMesh *gmesh = TriGMesh(ref);
     AddWaterLoadElements(gmesh);
-    TPZMultiphysicsCompMesh *mphys = CreateCompMesh(gmesh, 2, model, s, w); // no renumbering: p after u (ELU)
+    TPZMultiphysicsCompMesh *mphys = CreateCompMesh2(gmesh, 2, model, s, w); // no renumbering: p after u (ELU)
     std::vector<State> states;
     {
         TUPAnalysis an(mphys, dynamic_cast<TPoroMC *>(mphys->FindMaterial(1)));
@@ -260,14 +271,14 @@ std::vector<State> PorePressureStates(const TMCVoigt &model, const Soil &s, cons
     delete gmesh;
     return states;
 }
-
+/*
 int main(int argc, char *argv[]) {
     int nref = 2, ref = 1;
     Soil s;
     s.nu = 0.3; // drained Poisson ratio of the skeleton (the undrained response comes from the coupling)
     Water w;
     for (int i = 1; i < argc; i++) {
-        if (!strncmp(argv[i], "nref=", 5)) nref = std::max(0, atoi(argv[i] + 5));
+        if (!strncmp(argv[i], "nref=", 5)) nref = std:: max(0, atoi(argv[i] + 5));
         else if (!strncmp(argv[i], "ref=", 4)) ref = std::max(0, atoi(argv[i] + 4));
         else if (!strncmp(argv[i], "L=", 2)) w.H1 = atof(argv[i] + 2);
     }
@@ -290,4 +301,297 @@ int main(int argc, char *argv[]) {
         std::cout << "  " << fs[i].first << "  " << fs[i].second << "\n";
     }
     return 0;
+}*/
+
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <vector>
+#include "pzpostprocanalysis.h"
+#include "pzfstrmatrix.h"
+#include "TPZVTKGeoMesh.h"
+#include <algorithm>
+#include <fstream>
+#include <string>
+
+
+
+template <class TPlastic>
+TPZMultiphysicsCompMesh *CreateCompMesh(TPZGeoMesh *gmesh, int porder,
+                                      const TPlastic &model, const Soil &s,
+                                      const Water &w) {
+    using B = TPZMatPoroElastoPlasticUPBase;
+    if (porder != 2) DebugStop();
+
+    const std::set<int> bcids = {-1, -2, -3, -4, -5, -6, -13, -14, -16};
+    TPZManVector<TPZCompMesh *, 2> meshvec = {
+        CreateAtomicMesh(gmesh, 2, porder, bcids),
+        CreateAtomicMesh(gmesh, 1, porder - 1, bcids)
+    };
+
+    auto *mat = new TPZMatPoroElastoPlasticUP<TPlastic, TPZElastoPlasticMem>(
+        1, B::EPlaneStrain);
+    mat->SetPlasticModel(model);
+    mat->SetBiot(1., 0.);
+    mat->SetPermeability(w.kh / w.gammaw);
+
+    TPZManVector<REAL, 3> body = {0., -s.gamma, 0.};
+    TPZManVector<REAL, 3> fluid = {0., -w.gammaw, 0.};
+    mat->SetBodyForce(body);
+    mat->SetFluidWeight(fluid);
+
+    auto *mphys = new TPZMultiphysicsCompMesh(gmesh);
+    mphys->SetDimModel(2);
+    mphys->InsertMaterialObject(mat);
+
+    auto pw = [mat, w](const TPZVec<REAL> &x) {
+        const REAL H = w.H0 - mat->LoadFactor() * (w.H0 - w.H1);
+        return w.gammaw * std::max<REAL>(H - x[1], 0.);
+    };
+
+    TPZFMatrix<STATE> val1(2, 2, 0.);
+    TPZManVector<STATE, 2> val2(2, 0.);
+    mphys->InsertMaterialObject(
+        mat->CreateBC(mat, -1, B::EDirichletU, val1, val2));
+
+    // Condições hidráulicas, incluindo o topo -4.
+    for (int id : {-3, -4, -6}) {
+        auto *bc = mat->CreateBC(mat, id, B::EDirichletP, val1, val2);
+        bc->SetForcingFunctionBC(
+            [pw](const TPZVec<REAL> &x, TPZVec<STATE> &v,
+                 TPZFMatrix<STATE> &) { v[0] = pw(x); });
+        mphys->InsertMaterialObject(bc);
+    }
+
+    // Trações exercidas pela água.
+    const REAL normal[2][2] = {{0., 1.}, {M_SQRT1_2, M_SQRT1_2}};
+    for (int i = 0; i < 2; ++i) {
+        auto *bc = mat->CreateBC(
+            mat, i ? -16 : -13, B::ENeumannUFixed, val1, val2);
+        const REAL nx = normal[i][0], ny = normal[i][1];
+        bc->SetForcingFunctionBC(
+            [pw, nx, ny](const TPZVec<REAL> &x, TPZVec<STATE> &v,
+                         TPZFMatrix<STATE> &) {
+                v[0] = -pw(x) * nx;
+                v[1] = -pw(x) * ny;
+            });
+        mphys->InsertMaterialObject(bc);
+    }
+
+    // Carga vertical no topo: t_y = -20 * lambda.
+    TPZManVector<STATE, 2> topLoad = {0., -20.};
+    mphys->InsertMaterialObject(mat->CreateBC(mat, -14, B::ENeumannU, val1, topLoad));
+
+    // Apoios laterais.
+    val1(0, 0) = 1.;
+    for (int id : {-2, -5})
+        mphys->InsertMaterialObject(
+            mat->CreateBC(mat, id, B::EDirichletUDirectional, val1, val2));
+
+    TPZManVector<int, 2> active(2, 1);
+    mphys->BuildMultiphysicsSpaceWithMemory(active, meshvec, {1}, bcids);
+    return mphys;
+}
+// 1. Colocar antes de Consolidation10Years.
+void PostPlasticityUP(TPZMultiphysicsCompMesh *mphys,
+                      const std::string &filename) {
+    {
+        TPZPostProcAnalysis post;
+        post.SetCompMesh(mphys);
+
+        TPZStack<std::string> scal, vec, variables;
+        scal.Push("PorePressure");
+        scal.Push("MeanEffectiveStress");
+        scal.Push("DeviatoricStress");
+        scal.Push("EffectiveStressXX");
+        scal.Push("EffectiveStressYY");
+        scal.Push("EffectiveStressZZ");
+        scal.Push("EffectiveStressXY");
+        scal.Push("VolumetricStrain");
+        scal.Push("PlasticType");
+        vec.Push("Displacement");
+
+        for (const auto &name : scal) variables.Push(name);
+        for (const auto &name : vec) variables.Push(name);
+
+        TPZManVector<int, 1> materialIds(1, 1);
+        TPZFStructMatrix<STATE> matrix(post.Mesh());
+        post.SetStructuralMatrix(matrix);
+        post.SetPostProcessVariables(materialIds, variables);
+
+        // Projeta os campos da solução e da memória dos pontos de integração.
+        post.TransferSolution();
+        post.DefineGraphMesh(2, scal, vec, filename);
+        post.PostProcess(0);
+    }
+
+    // Restaura as referências da malha usada na consolidação.
+    mphys->LoadReferences();
+
+    // // Exporta também a malha geométrica, como em slope.PostPlasticity.
+    // std::ofstream meshFile(filename);
+    // TPZVTKGeoMesh::PrintGMeshVTK(mphys->Reference(), meshFile, true);
+}
+
+
+#include <algorithm>
+#include <cmath>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <locale>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
+
+// Manter PostPlasticityUP e as demais funções do arquivo.
+bool Consolidation10Years(const TMCVoigt &model, const Soil &s,
+                          const Water &w, REAL Tc, int ref) {
+    TPZGeoMesh *gmesh = TriGMesh(ref);
+    AddWaterLoadElements(gmesh);
+    TPZMultiphysicsCompMesh *mphys = CreateCompMesh(gmesh, 2, model, s, w);
+    bool ok = false;
+
+    try {
+        TUPAnalysis an(mphys, dynamic_cast<TPoroMC *>(mphys->FindMaterial(1)));
+        TPZSkylineNSymStructMatrix<STATE> skyl(mphys);
+        an.SetStructuralMatrix(skyl);
+        TPZStepSolver<STATE> solver;
+        solver.SetDirect(ELU);
+        an.SetSolver(solver);
+        an.SetPredictor(false);
+        an.SetVerbose(1);
+
+        using TS = TUPAnalysis::TLoadState;
+        int outputStep = 0;
+        std::vector<std::pair<std::string, REAL>> vtkFrames;
+
+        auto writeSeries = [&]() {
+            std::ofstream file("drawdown.vtk.series");
+            if (!file)
+                throw std::runtime_error("Erro ao criar drawdown.vtk.series");
+
+            file.imbue(std::locale::classic());
+            file << std::setprecision(17);
+            file << "{\n"
+                 << "  \"file-series-version\": \"1.0\",\n"
+                 << "  \"files\": [\n";
+
+            for (size_t i = 0; i < vtkFrames.size(); ++i) {
+                file << "    { \"name\": \"" << vtkFrames[i].first
+                     << "\", \"time\": " << vtkFrames[i].second << " }";
+                if (i + 1 < vtkFrames.size()) file << ",";
+                file << "\n";
+            }
+            file << "  ]\n}\n";
+            file.close();
+            if (!file)
+                throw std::runtime_error("Erro ao gravar drawdown.vtk.series");
+        };
+
+        // Reinicia a lista de resultados desta execução.
+        writeSeries();
+
+        auto record = [&](const std::string &name, REAL t) {
+            std::string basename;
+            if (t < 0.) {
+                // Estado anterior ao evento em t = 0.
+                // -1 é um marcador, não um tempo físico.
+                basename = "drawdown_initial";
+            } else {
+                std::ostringstream filename;
+                filename << "drawdown_"
+                         << std::setw(6) << std::setfill('0') << outputStep;
+                basename = filename.str();
+            }
+
+            PostPlasticityUP(mphys, basename + ".vtk");
+
+            // Nome efetivamente gerado pelo escritor do NeoPZ.
+            const std::string vtkFile = basename + ".scal_vec.0.vtk";
+            std::ifstream check(vtkFile);
+            if (!check)
+                throw std::runtime_error("VTK nao encontrado: " + vtkFile);
+
+            if (t >= 0.) {
+                vtkFrames.emplace_back(vtkFile, t);
+                writeSeries();
+                ++outputStep;
+                std::cout << name << ": t = " << t << " dias"
+                          << " (" << t / 365.25 << " anos)\n";
+            } else {
+                std::cout << name << ": " << vtkFile << "\n";
+            }
+        };
+
+        // 1. Equilíbrio inicial: reservatório na crista, lambda = 0.
+        ok = an.Run({TS(0., 0., 0.)}, nullptr,
+                    TS(-1.e4 * Tc, 0., 0.));
+        if (ok) record("Inicial", -1.);
+
+        // 2. Evento instantâneo em t = 0: Dt = 0, lambda = 1.
+        // Com a carga -14 configurada anteriormente, aplica também
+        // a carga vertical de 20 kN/m antes da consolidação.
+        if (ok)
+            ok = an.Run({TS(0., 1., 0.)}, nullptr, TS(0., 0., 0.));
+        if (ok) record("Apos o rebaixamento e a carga", 0.);
+
+        // 3. Consolidação durante 10 anos.
+        if (ok) {
+            const REAL tFinal = 20. * 365.25; // 3652,5 dias
+            const int nSteps = 120;
+            const REAL tFirst = std::min<REAL>(1.e-3 * Tc, tFinal / nSteps);
+
+            std::vector<TS> steps;
+            steps.reserve(nSteps);
+            for (int j = 1; j <= nSteps; ++j) {
+                const REAL r = REAL(j - 1) / REAL(nSteps - 1);
+                const REAL t = (j == nSteps)
+                    ? tFinal
+                    : tFirst * std::pow(tFinal / tFirst, r);
+                steps.emplace_back(t, 1., 0.);
+            }
+
+            ok = an.Run(
+                steps,
+                [&](int k, const TS &st) {
+                    // k = 0 corresponde ao estado já registrado em t = 0.
+                    if (k > 0) record("Consolidacao", st.fTime);
+                },
+                TS(0., 1., 0.)
+            );
+        }
+    } catch (const std::exception &e) {
+        std::cerr << "Erro na analise ou na exportacao: " << e.what() << "\n";
+        ok = false;
+    }
+
+    TPZManVector<TPZCompMesh *, 2> atomic(mphys->MeshVector());
+    delete mphys;
+    for (auto *m : atomic) delete m;
+    delete gmesh;
+
+    if (!ok) std::cout << "Analise interrompida. Consulte as mensagens anteriores.\n";
+    return ok;
+}
+
+int main(int argc, char *argv[]) {
+    const int ref = 2;
+    Soil s;
+    s.nu = 0.3;
+    Water w;
+
+    if (w.H1 < 30. || w.H1 > w.H0) {
+        std::cout << "H1 deve estar entre 30 m e H0.\n";
+        return 1;
+    }
+
+    const TMCVoigt model = ModelVoigt(s);
+    const REAL M = s.E * (1. - s.nu) /
+                   ((1. + s.nu) * (1. - 2. * s.nu));
+    const REAL Tc = 100. / ((w.kh / w.gammaw) * M);
+
+    return Consolidation10Years(model, s, w, Tc, ref) ? 0 : 1;
 }
