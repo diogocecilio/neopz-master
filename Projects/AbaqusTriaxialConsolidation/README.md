@@ -82,6 +82,7 @@ of the standard set-up.
 | `abaqus_table9.csv` | Table 9: `increment`, `delta_H`, `transposed` (0 D, 1 Dᵀ), `iteration`, normalized `residual` (`tangents`) |
 | `abaqus_table10.csv` | Table 10: one row per operator (`tangent`, `tolerance`), with `mean_evaluations`, `max_evaluations`, `global_iterations` (`NGlobalIterations`), `bisections` (`NBisections`), `cpu_time_s` (processor time, the time of Table 10), `wall_time_s` and the final values (`tangents`) |
 | `abaqus_tangents_evaluations.csv` | evaluations of each increment with each operator (`tangents`) |
+| `abaqus_residual_histories.csv` | normalized residual of every iteration of the increments 1, 41, 76 and 150 with each operator, `mode` = index in {D, fd, sym, cont, DT} (`tangents`); figure `fig_residual_histories` of the article v1.1 |
 | `abaqus_local_solvers.csv`, `abaqus_local_solvers_increments.csv` | the two runs of `solvers` (same columns as `abaqus_table10.csv`) and, per increment, the evaluations and q_A of both solvers |
 | `abaqus_table10_tolerance.csv` | the rows of `abaqus_table10.csv` with the tolerance 10⁻⁹ (runs `rough_2x2x2_tolerance_tangent_<D, fd, sym, cont, DT>`, whose histories give the evaluations of each increment) (`tolerance`) |
 | `abaqus_states_summary.csv`, `abaqus_states_numbers.csv`, `abaqus_softening_summary.csv`, `abaqus_softening_numbers.csv` | runs with 600 increments: peaks, final values, global q from the platen force, material point (`states`, `softening`) |

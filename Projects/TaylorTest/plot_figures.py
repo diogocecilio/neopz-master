@@ -30,6 +30,7 @@ from matplotlib.patches import Polygon as MPoly
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'Common'))
 from mcc_figstyle import C1, C2, INK, INK2, TEXTW, arguments, plt, read_csv, save  # noqa: E402
+plt.rcParams['mathtext.cal'] = 'cmsy10'  # calligraphic E of the Taylor error (v1.1)
 
 KINDS = {1: 'subcritical', 2: 'supercritical'}                    # kind index of the summary -> file name
 NAMES = {1: 'subcritical (compaction)', 2: 'supercritical (dilation)'}
@@ -72,9 +73,9 @@ def fig_taylor(run, out, stream='pcg64', name='fig03_taylor_test', transpose=Fal
                      % (100 * r['asym']))
             ax.text(0.03, 0.96, info, transform=ax.transAxes, fontsize=6.8, color=INK2, va='top', ha='left',
                     bbox=dict(boxstyle='square,pad=0.2', fc='white', ec='none', alpha=0.85))
-            ax.set_xlabel('log $\\alpha$')
+            ax.set_xlabel('log $\\tau$')
             if col == 0:
-                ax.set_ylabel('log $E(\\alpha)$')
+                ax.set_ylabel('log $\\mathcal{E}(\\tau)$')
             print('Taylor %s %-13s %-3s fit %.3f, median pair slope %.4f, asym %.4f, points %d'
                   % (stream, KINDS[kind], 'D^T' if transp else 'D', b1, np.median(P['pair_slope']), r['asym'],
                      x.size))
@@ -109,7 +110,7 @@ def fig_operators(run, out):
                     va='top', ha='left', bbox=dict(boxstyle='square,pad=0.15', fc='white', ec='none', alpha=0.85))
             ax.set_title('(' + 'abcdefgh'[4 * row + col] + ') ' + label, fontsize=7.4)
             if row == 1:
-                ax.set_xlabel('log $\\alpha$')
+                ax.set_xlabel('log $\\tau$')
             if col == 0:
                 ax.set_ylabel(NAMES[kind].split(' ')[0] + '\nlog $E(\\alpha)$')
             ax.tick_params(labelsize=6.6)

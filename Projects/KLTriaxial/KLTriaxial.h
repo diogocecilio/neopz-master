@@ -116,6 +116,10 @@ public:
     int fNFigure = 100;
     /** @brief Runs the finite element solutions (false: material point only) */
     bool fFECheck = true;
+    /** @brief Tangent operator returned to the global iterations (TPZPlasticStepModifiedCamClay::SetTangentMode) */
+    TPZPlasticStepModifiedCamClay::ETangentMode fTangent = TPZPlasticStepModifiedCamClay::EConsistentTangent;
+    /** @brief Number of increments of the comparison of the tangent operators (RunTangents) */
+    int fNTangents = 100;
 
     /** @brief The four tests */
     std::vector<TCase> Cases() const;
@@ -137,6 +141,12 @@ public:
     TResult Run(const TCase &c) const;
     /** @brief Runs the four tests, prints the table and writes kl_table.csv */
     void RunAll();
+    /**
+     * @brief Global iterations of the drained tests (NC and OCR = 10, fNTangents increments) with the tangent
+     * operators D, central differences, (D + D^T)/2, the continuum tangent and D^T (Table 8 of the article, v1.1);
+     * writes kl_tangents.csv
+     */
+    void RunTangents();
 };
 
 inline std::vector<KLTriaxial::TCase> KLTriaxial::Cases() const {
@@ -153,6 +163,7 @@ inline mcc::TPlastic KLTriaxial::CreateMaterial() const {
     model.SetPorousElasticity();
     model.SetPoissonRatio(P.fNu);
     model.SetDefaultSpecificVolume(P.fV0);
+    model.SetTangentMode(fTangent);
     return model;
 }
 
@@ -457,4 +468,38 @@ inline void KLTriaxial::RunAll() {
     }
     std::cout << "\nFiles: kl_<case>_closed.csv, kl_<case>_fe_n<n>.csv, kl_table.csv and the VTK files of the "
               << fNFigure << "-increment runs\n";
+}
+
+inline void KLTriaxial::RunTangents() {
+    using P = TPZPlasticStepModifiedCamClay;
+    const P::ETangentMode modes[5] = {P::EConsistentTangent, P::EFiniteDifferenceTangent, P::ESymmetricTangent,
+                                      P::EContinuumTangent, P::ETransposedTangent};
+    std::cout << "\nGlobal iterations of the drained tests with the tangent operators (" << fNTangents
+              << " increments, one Hex20-Hex8 element)\n";
+    std::ofstream out("kl_tangents.csv");
+    out << "case,tangent,increments,converged,mean_evaluations,max_evaluations,global_iterations,bisections,wall_time_s,"
+           "q_end,p_end\n";
+    const P::ETangentMode keep = fTangent;
+    for (const TCase &c : Cases()) {
+        if (!c.fDrained) continue;
+        REAL q0 = 0.;
+        for (int m = 0; m < 5; ++m) {
+            fTangent = modes[m];
+            TRun run;
+            run.fN = fNTangents;
+            RunFiniteElement(c, run);
+            const auto &e = run.fHistory.back();
+            if (m == 0) q0 = e[2];
+            std::cout << "  " << std::setw(16) << c.fTag << std::setw(6) << P::TangentModeName(modes[m]) << ": "
+                      << std::fixed << std::setprecision(2) << run.fMeanEval << " evaluations per increment (max "
+                      << run.fMaxEval << "), global iterations " << run.fGlobalIts << ", bisections "
+                      << run.fBisections << ", " << std::setprecision(3) << run.fWall << " s; q_end - q_end(D) = "
+                      << std::scientific << std::setprecision(2) << e[2] - q0 << std::defaultfloat
+                      << (run.fConverged ? "" : "  STOPPED") << "\n";
+            out << std::setprecision(17) << c.fTag << "," << P::TangentModeName(modes[m]) << "," << run.fN << ","
+                << int(run.fConverged) << "," << run.fMeanEval << "," << run.fMaxEval << "," << run.fGlobalIts << ","
+                << run.fBisections << "," << run.fWall << "," << e[2] << "," << e[1] << "\n";
+        }
+    }
+    fTangent = keep;
 }

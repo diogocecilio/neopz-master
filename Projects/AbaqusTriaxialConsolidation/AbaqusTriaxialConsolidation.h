@@ -814,6 +814,17 @@ inline void AbaqusTriaxialConsolidation::TangentOperators() {
         }
     }
     mcc::WriteCSV("abaqus_table9.csv", {"increment", "delta_H", "transposed", "iteration", "residual"}, t9);
+    // residual histories of the same four increments with every operator (figure of Sect. 6.4 of v1.1); mode is
+    // the index in {D, fd, sym, cont, DT}
+    std::vector<std::vector<REAL>> hist;
+    for (size_t m = 0; m < runs.size(); ++m)
+        for (int inc : incs) {
+            const auto *l = entry(runs[m].second, inc);
+            if (!l) continue;
+            for (size_t it = 0; it < l->fResiduals.size(); ++it)
+                hist.push_back({REAL(inc), -l->fState.fUc / fH, REAL(m), REAL(it + 1), l->fResiduals[it]});
+        }
+    mcc::WriteCSV("abaqus_residual_histories.csv", {"increment", "delta_H", "mode", "iteration", "residual"}, hist);
 }
 
 inline void AbaqusTriaxialConsolidation::LocalSolvers() {

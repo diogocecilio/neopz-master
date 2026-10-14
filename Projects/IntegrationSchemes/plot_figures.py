@@ -72,6 +72,9 @@ STY2 = {('library_exact', 'n'): dict(color=C1, marker='o', ls='-', mfc=C1, ms=3.
                                 label='adaptive RKDP5(4)')}
 ORDER2 = [('library_exact', 'n'), ('library_full', 'n'), ('exact_secant', 'n'), ('frozen_n', 'n'),
           ('trapezoidal', 'n'), ('FE', 'nsub'), ('RK4', 'nsub'), ('ME2(1)', 'tol'), ('RKDP5(4)', 'tol')]
+# v1.1 of the article: the five schemes of Table 2 (the other curves are in plot_figures_v1.0.py)
+ORDER_V11 = [('library_exact', 'n'), ('exact_secant', 'n'), ('frozen_n', 'n'), ('trapezoidal', 'n'),
+             ('RKDP5(4)', 'tol')]
 
 
 def read_rows(path):
@@ -108,7 +111,7 @@ def fig_error_work(run, out):
     for ax, (test, title, ylabel) in zip(axs.ravel(), panels):
         sel = [r for r in rows if r['test'] == test and r['converged'] == '1']
         drained = test.startswith('kl_drained')
-        for key in ORDER2:
+        for key in ORDER_V11:
             scheme, kind = key
             if scheme in ('ME2(1)', 'RKDP5(4)') and drained:
                 kind = 'n'
@@ -135,7 +138,7 @@ def fig_error_work(run, out):
     h, lab = axs[0, 0].get_legend_handles_labels()
     fig.legend(h, lab, loc='upper center', ncol=3, fontsize=6.4, bbox_to_anchor=(0.5, 1.0), handlelength=2.6,
                columnspacing=1.0)
-    fig.tight_layout(w_pad=0.8, h_pad=0.9, rect=(0, 0, 1, 0.925))
+    fig.tight_layout(w_pad=0.8, h_pad=0.9, rect=(0, 0, 1, 0.94))
     save(fig, out, 'fig_error_work')
 
 

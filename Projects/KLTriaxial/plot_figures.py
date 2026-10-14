@@ -7,11 +7,12 @@ Usage (run the executable first; it writes its CSV files to the current director
 
 Figures produced (PDF and PNG in <run directory>/figures or in the output directory):
 
-- fig_kl_triaxial: (a) q against eps_a of the drained tests (NC and OCR = 10), (b) eps_v against eps_a of the
-  drained tests, (c) q and the excess pore pressure u against eps_a of the undrained tests, (d) effective stress
-  paths of the four tests with the initial yield surfaces and the critical state line. Lines: closed forms; markers:
-  one Hex20-Hex8 element with 100 increments (every fifth increment drawn). Files kl_<case>_closed.csv and
-  kl_<case>_fe_n100.csv.
+- fig_kl_triaxial (layout of v1.1): (a) q and (b) eps_v against eps_a of the drained tests (NC and OCR = 10),
+  (c) effective stress paths of the four tests normalized by p'_c0, with the initial yield surface (the same in
+  normalized coordinates) and the critical state line, (d) and (e) q and the excess pore pressure against eps_a of
+  the undrained tests, NC and OCR = 10, each with its own scale, (f) the legend. Lines: closed forms; markers: one
+  Hex20-Hex8 element with 100 increments (every fifth increment drawn). Files kl_<case>_closed.csv and
+  kl_<case>_fe_n100.csv. The layout of v1.0 is kept in plot_figures_v1.0.py.
 """
 import csv
 import os
@@ -37,52 +38,73 @@ def read(path):
 
 
 def fig_kl(run, out):
-    fig, axs = plt.subplots(2, 2, figsize=(TEXTW, 5.0))
-    (ax_q, ax_v), (ax_u, ax_p) = axs
+    """v1.1 layout: (a) q and (b) eps_v of the drained tests; (c) effective stress paths normalized by p'_c0, where
+    the initial yield surfaces of the NC and OCR = 10 clays coincide; (d) and (e) q and excess pore pressure of the
+    undrained tests, NC and OCR = 10, each with its own scale; (f) the legend. Lines: closed forms; markers: one
+    Hex20-Hex8 element with 100 increments (every fifth increment)."""
+    fig = plt.figure(figsize=(TEXTW, 4.35))
+    gs = fig.add_gridspec(2, 3, wspace=0.42, hspace=0.52, left=0.075, right=0.985, top=0.94, bottom=0.10)
+    ax_q, ax_v, ax_p = fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[0, 1]), fig.add_subplot(gs[0, 2])
+    ax_unc, ax_uoc, ax_leg = fig.add_subplot(gs[1, 0]), fig.add_subplot(gs[1, 1]), fig.add_subplot(gs[1, 2])
     every = 5
+    ms, mew = 3.0, 0.8
     for tag, (label, color, marker) in CASES.items():
         cl = read(os.path.join(run, f'kl_{tag}_closed.csv'))
         fe = read(os.path.join(run, f'kl_{tag}_fe_n100.csv'))
-        drained = tag.startswith('drained')
+        pc0 = (10 if tag.endswith('ocr10') else 1) * P0
         sel = slice(0, None, every)
-        if drained:
-            ax_q.plot(100 * cl['eps_a'], cl['q'], '-', color=color, lw=1.0, label=f'{label}, closed form')
-            ax_q.plot(100 * fe['eps_a'][sel], fe['q'][sel], marker, color=color, mfc='white', ms=3.2, mew=0.8,
-                      label=f'{label}, one element')
+        if tag.startswith('drained'):
+            ax_q.plot(100 * cl['eps_a'], cl['q'], '-', color=color, lw=1.0)
+            ax_q.plot(100 * fe['eps_a'][sel], fe['q'][sel], marker, color=color, mfc='white', ms=ms, mew=mew)
             ax_v.plot(100 * cl['eps_a'], 100 * cl['eps_v'], '-', color=color, lw=1.0)
-            ax_v.plot(100 * fe['eps_a'][sel], 100 * fe['eps_v'][sel], marker, color=color, mfc='white', ms=3.2, mew=0.8)
+            ax_v.plot(100 * fe['eps_a'][sel], 100 * fe['eps_v'][sel], marker, color=color, mfc='white', ms=ms, mew=mew)
         else:
-            ax_u.plot(100 * cl['eps_a'], cl['q'], '-', color=color, lw=1.0, label=f'{label}: $q$')
-            ax_u.plot(100 * fe['eps_a'][sel], fe['q'][sel], marker, color=color, mfc='white', ms=3.2, mew=0.8)
-            ax_u.plot(100 * cl['eps_a'], cl['u'], '--', color=color, lw=1.0, label=f'{label}: $u$')
-            ax_u.plot(100 * fe['eps_a'][sel], fe['u'][sel], marker, color=color, mfc=color, ms=2.6, mew=0.8)
-        ax_p.plot(cl['p_eff'], cl['q'], '-', color=color, lw=1.0, label=label)
-        ax_p.plot(fe['p_eff'][sel], fe['q'][sel], marker, color=color, mfc='white', ms=3.2, mew=0.8)
-    # initial yield surfaces and the critical state line
-    for pc0, ls in ((P0, ':'), (10 * P0, ':')):
-        p = np.linspace(0, pc0, 300)
-        q = M * np.sqrt(np.maximum(p * (pc0 - p), 0.0))
-        ax_p.plot(p, q, ls, color=MUTED, lw=0.8)
-    p = np.linspace(0, 2 * P0 * 10, 2)
-    ax_p.plot(p, M * p, '-', color=INK2, lw=0.7, label='CSL')
-    ax_p.set_xlim(0, 10 * P0)
-    ax_p.set_ylim(0, None)
-    ax_q.set_xlabel('axial strain $\\varepsilon_a$ (%)')
+            ax = ax_unc if tag == 'undrained_nc' else ax_uoc
+            ax.plot(100 * cl['eps_a'], cl['q'], '-', color=color, lw=1.0)
+            ax.plot(100 * fe['eps_a'][sel], fe['q'][sel], marker, color=color, mfc='white', ms=ms, mew=mew)
+            ax.plot(100 * cl['eps_a'], cl['u'], '--', color=color, lw=1.0)
+            ax.plot(100 * fe['eps_a'][sel], fe['u'][sel], marker, color=color, mfc=color, ms=ms - 0.4, mew=mew)
+            ax.axhline(0.0, color=MUTED, lw=0.5, zorder=0)
+        ax_p.plot(cl['p_eff'] / pc0, cl['q'] / pc0, '-', color=color, lw=1.0)
+        sp = slice(0, None, 2 * every)  # fewer markers where the paths of the OCR = 10 tests overlap
+        ax_p.plot(fe['p_eff'][sp] / pc0, fe['q'][sp] / pc0, marker, color=color, mfc='white', ms=ms - 0.4, mew=mew)
+    # initial yield surface (the same ellipse for both clays in normalized coordinates) and critical state line
+    x = np.linspace(0.0, 1.0, 400)
+    ax_p.plot(x, M * np.sqrt(np.maximum(x * (1.0 - x), 0.0)), ':', color=MUTED, lw=0.9)
+    xc = np.array([0.0, 1.4])
+    ax_p.plot(xc, M * xc, '-', color=INK2, lw=0.7)
+    ax_p.annotate('CSL', (1.30, M * 1.30), xytext=(-14, 2), textcoords='offset points', fontsize=6.4, color=INK2,
+                  ha='right')
+    ax_p.set_xlim(0.0, 1.4)
+    ax_p.set_ylim(0.0, 0.95)
+    eps = '$\\varepsilon_a$ (%)'
+    ax_q.set_xlabel('axial strain ' + eps)
     ax_q.set_ylabel('$q$ (kPa)')
     ax_q.set_title('(a) drained: deviatoric stress', fontsize=7.6)
-    ax_v.set_xlabel('axial strain $\\varepsilon_a$ (%)')
-    ax_v.set_ylabel('volumetric strain $\\varepsilon_v$ (%)')
-    ax_v.set_title('(b) drained: volumetric strain (compression positive)', fontsize=7.6)
-    ax_u.set_xlabel('axial strain $\\varepsilon_a$ (%)')
-    ax_u.set_ylabel('$q$, $u$ (kPa)')
-    ax_u.set_title('(c) undrained: deviatoric stress and excess pore pressure', fontsize=7.6)
-    ax_p.set_xlabel("$p'$ (kPa)")
-    ax_p.set_ylabel('$q$ (kPa)')
-    ax_p.set_title('(d) effective stress paths, initial surfaces (dotted)', fontsize=7.6)
-    ax_q.legend(fontsize=6.0, loc='lower right')
-    ax_u.legend(fontsize=6.0, loc='center right', ncol=1)
-    ax_p.legend(fontsize=6.0, loc='upper left')
-    fig.tight_layout(w_pad=1.0, h_pad=1.0)
+    ax_v.set_xlabel('axial strain ' + eps)
+    ax_v.set_ylabel('$\\varepsilon_v$ (%), compression positive')
+    ax_v.set_title('(b) drained: volumetric strain', fontsize=7.6)
+    ax_p.set_xlabel("$p\\,'/p\\,'_{c0}$")
+    ax_p.set_ylabel("$q/p\\,'_{c0}$")
+    ax_p.set_title("(c) effective stress paths, normalized", fontsize=7.6)
+    for ax, title in ((ax_unc, '(d) undrained, NC'), (ax_uoc, '(e) undrained, OCR = 10')):
+        ax.set_xlabel('axial strain ' + eps)
+        ax.set_ylabel('$q$, $\\Delta p_w$ (kPa)')
+        ax.set_title(title, fontsize=7.6)
+    # legend panel: colours = tests, line/marker = closed form/element, solid/dashed = q/excess pore pressure
+    ax_leg.axis('off')
+    from matplotlib.lines import Line2D
+    handles = [Line2D([], [], color=c, marker=mk, mfc='white', ms=ms, mew=mew, lw=1.0, label=lab)
+               for lab, c, mk in CASES.values()]
+    handles += [Line2D([], [], color=INK2, lw=1.0, label='closed form (Appendix B)'),
+                Line2D([], [], color=INK2, lw=0, marker='o', mfc='white', ms=ms, mew=mew,
+                       label='NeoPZ, one element, 100 increments'),
+                Line2D([], [], color=INK2, lw=1.0, ls='--', label='excess pore pressure $\\Delta p_w$ (dashed)'),
+                Line2D([], [], color=INK2, lw=0, marker='o', mfc=INK2, ms=ms - 0.4, mew=mew,
+                       label='$\\Delta p_w$ of the element (filled)'),
+                Line2D([], [], color=MUTED, lw=0.9, ls=':', label='initial yield surface')]
+    ax_leg.legend(handles=handles, loc='center left', fontsize=6.4, frameon=False, handlelength=2.4,
+                  borderaxespad=0.0)
     save(fig, out, 'fig_kl_triaxial')
 
 

@@ -488,6 +488,40 @@ def fig_tangents(run, out):
     save(fig, out, 'supplementary_abaqus_tangents')
 
 
+def fig_residual_histories(run, out):
+    """Normalized residual against the global iteration in the increments 1, 41, 76 and 150 of the rough platen
+    (2 x 2 x 2 points) with D, (D + D^T)/2, the continuum tangent and D^T (figure of Sect. 6.4 of v1.1; file
+    abaqus_residual_histories.csv of the part "tangents"; mode = index in {D, fd, sym, cont, DT})."""
+    R = read_csv(os.path.join(run, 'abaqus_residual_histories.csv'))
+    modes = {0: ('consistent $\\mathbb{D}$', C1, 'o', '-'), 2: ('symmetric part $(\\mathbb{D} + \\mathbb{D}^T)/2$', C2, 's', '-'),
+             3: ('continuum tangent', C4, 'D', '-'), 4: ('transpose $\\mathbb{D}^T$', C3, '^', '-')}
+    incs = sorted(set(int(i) for i in R['increment']))
+    fig, axs = plt.subplots(1, len(incs), figsize=(TEXTW, 2.25), sharey=True)
+    for k, (ax, inc) in enumerate(zip(axs, incs)):
+        sel = R['increment'] == inc
+        dh = R['delta_H'][sel][0]
+        nmax = 1
+        for m, (lab, col, mk, ls) in modes.items():
+            s = sel & (R['mode'] == m)
+            it, r = R['iteration'][s], R['residual'][s]
+            o = np.argsort(it)
+            ax.plot(it[o], r[o], ls, color=col, marker=mk, ms=3.0, mfc='white' if m else col, mew=0.8, lw=0.9,
+                    label=lab, zorder=5 if m == 0 else 3)
+            nmax = max(nmax, int(it.max()))
+        ax.axhline(1e-8, color=MUTED, lw=0.7, ls='--', zorder=1)
+        ax.set_yscale('log')
+        ax.set_xlim(0.5, nmax + 0.5)
+        ax.set_xticks(range(1, nmax + 1, 1 if nmax <= 8 else 2))
+        ax.set_xlabel('iteration')
+        ax.set_title('(%s) increment %d, $\\delta/H = %.3f$' % ('abcd'[k], inc, dh), fontsize=7.6)
+    axs[0].set_ylabel('normalized residual $\\bar{R}$')
+    h, lab = axs[0].get_legend_handles_labels()
+    fig.legend(h, lab, loc='upper center', ncol=4, fontsize=6.6, bbox_to_anchor=(0.5, 1.0), handlelength=2.2,
+               columnspacing=1.2)
+    fig.tight_layout(w_pad=0.6, rect=(0, 0, 1, 0.88))
+    save(fig, out, 'fig_residual_histories')
+
+
 # parts of the executable (command line arguments, in the order of the executable)
 PARTS = ('mesh', 'mp', 'fe', 'tangents', 'tolerance', 'states', 'softening')
 # (function, {CSV file: part of the executable that writes it})
@@ -501,6 +535,7 @@ FIGURES = (
     (fig_softening, {'abaqus_smooth_600_p0_20.csv': 'states', 'abaqus_smooth_600_p0_20_profile.csv': 'states',
                      'abaqus_material_point_p0_20.csv': 'mp'}),
     (fig_tangents, {'abaqus_tangents_evaluations.csv': 'tangents', 'abaqus_table10.csv': 'tangents'}),
+    (fig_residual_histories, {'abaqus_residual_histories.csv': 'tangents'}),
 )
 
 if __name__ == '__main__':

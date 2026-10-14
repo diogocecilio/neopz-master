@@ -31,7 +31,12 @@ computed from the stresses, u = p'0 + q/3 - p' (the nodal value of the pressure 
     mkdir run_kl && cd run_kl && ../build/Projects/KLTriaxial/KLTriaxial
     python3 <neopz>/Projects/KLTriaxial/plot_figures.py
 
-The program takes no arguments, writes its files to the current directory and runs in about 20 s.
+The program writes its files to the current directory and runs in about 20 s. With the argument `tangents`
+(`../build/Projects/KLTriaxial/KLTriaxial tangents`, about 6 s) it runs only the drained tests with 100 increments
+and the five tangent operators of `TPZPlasticStepModifiedCamClay::SetTangentMode` (D, fd, sym, cont, DT) and writes
+`kl_tangents.csv` (column "Drained, OCR = 10" of Table 7 of the article v1.1): with OCR = 10, 3.05 evaluations per
+increment (max 6) with D, fd, sym and DT and 9.52 (max 13) with the continuum tangent; on the NC clay 3.08 to 3.10
+with D, fd, sym and DT and 1297 evaluations in all (four bisections) with the continuum tangent.
 
 ## Output files
 
@@ -42,9 +47,11 @@ The program takes no arguments, writes its files to the current directory and ru
 | `kl_table.csv` | one row per test and number of increments: errors of q, p' and eps_v at the end (element and material point), largest \|q_FE - q_point\| along the path, spread of q over the 8 points, global evaluations per increment (mean, largest), global iterations, bisections, wall time, local Newton iterations (mean, largest), closed-form values and the peak of q |
 | `kl_<case>_fe.vtk`, `kl_<case>_fe_gauss.vtk` | last state of the 100-increment runs |
 
-Figure (`figures/fig_kl_triaxial`): (a) q against eps_a and (b) eps_v against eps_a of the drained tests, (c) q and
-u against eps_a of the undrained tests, (d) effective stress paths with the initial yield surfaces and the critical
-state line; lines are the closed forms and markers the element with 100 increments.
+Figure (`figures/fig_kl_triaxial`, layout of v1.1): (a) q and (b) eps_v against eps_a of the drained tests, (c)
+effective stress paths normalized by p'_c0 (the initial yield surfaces of both clays coincide) with the critical state
+line, (d) and (e) q and the excess pore pressure against eps_a of the undrained tests, NC and OCR = 10, each with its
+own scale, (f) the legend; lines are the closed forms and markers the element with 100 increments. The layout of v1.0
+is kept in `plot_figures_v1.0.py`.
 
 ## Results
 
