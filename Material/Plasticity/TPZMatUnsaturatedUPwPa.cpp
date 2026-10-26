@@ -297,15 +297,18 @@ void TPZMatUnsaturatedUPwPa<T, TMEM>::ContributeInternal(const TPZVec<TPZMateria
     }
     const REAL dpB = (eta != 0.) ? pB - pBn : 0.;
     const REAL X = fAlpha * dEv + eta * dpB;
-    // conductivity tensor diag(k_x, k_y) (principal axes x, y); mobilities lambda = K k_r / gamma_w (times mu_w/mu_a)
-    const REAL kk[2] = {fKx, fKy};
+    // conductivity tensor K = [k_xx k_xy; k_xy k_yy]; mobilities lambda = K k_r / gamma_w (times mu_w/mu_a)
+    const REAL kxx = fKx, kyy = fKy, kxy = fKxy;
     const REAL lw0 = 1. / fGammaW, la0 = lw0 * fMuRatio;
     const REAL lw = lw0 * hs.krw, la = la0 * hs.kra;
     const REAL dlw = lw0 * hs.dkrw * Gm, dla = la0 * hs.dkra * Gm; // d/dp_w (d/dp_a = -d/dp_w)
     const REAL hw[2] = {gpw[0] - fGammaW * fG[0], gpw[1] - fGammaW * fG[1]};
     const REAL ha[2] = {gpa[0] - fGammaA * fG[0], gpa[1] - fGammaA * fG[1]};
     const REAL Pabs = pa + fPatm, cag = 1. / Pabs;
-    const REAL Khw[2] = {kk[0] * hw[0], kk[1] * hw[1]}, Kha[2] = {kk[0] * ha[0], kk[1] * ha[1]};
+    const REAL Khw[2] = {kxx * hw[0] + kxy * hw[1], kxy * hw[0] + kyy * hw[1]};
+    const REAL Kha[2] = {kxx * ha[0] + kxy * ha[1], kxy * ha[0] + kyy * ha[1]};
+    // K (h_a + grad p_a): derivative of the advective term of the air with respect to grad p_a
+    const REAL Kag[2] = {kxx * (ha[0] + gpa[0]) + kxy * (ha[1] + gpa[1]), kxy * (ha[0] + gpa[0]) + kyy * (ha[1] + gpa[1])};
     const REAL adv = Kha[0] * gpa[0] + Kha[1] * gpa[1]; // -q_a . grad p_a / lambda_a
 
     for (int j = 0; j < np; ++j) {
@@ -342,12 +345,12 @@ void TPZMatUnsaturatedUPwPa<T, TMEM>::ContributeInternal(const TPZVec<TPZMateria
         const REAL hwj = gj0 * Khw[0] + gj1 * Khw[1], haj = gj0 * Kha[0] + gj1 * Kha[1];
         for (int k = 0; k < np; ++k) {
             const REAL Nk = dW.phi.GetVal(k, 0), gk0 = gP.GetVal(0, k), gk1 = gP.GetVal(1, k);
-            const REAL gjk = kk[0] * gj0 * gk0 + kk[1] * gj1 * gk1;
+            const REAL gjk = gj0 * (kxx * gk0 + kxy * gk1) + gj1 * (kxy * gk0 + kyy * gk1);
             REAL kww = Nj * (Gm * X + S * eta * chiw + n / fKw * (Gm * dpw + S)) * Nk + dt * (lw * gjk + dlw * hwj * Nk);
             REAL kwa = Nj * (-Gm * X + S * eta * chia - n / fKw * Gm * dpw) * Nk - dt * dlw * hwj * Nk;
             REAL kaw = Nj * (-Gm * X + Sa * eta * chiw - dt * cag * dla * adv) * Nk + dt * dla * haj * Nk;
             REAL kaa = Nj * (Gm * X + Sa * eta * chia + dt * cag * cag * la * adv + dt * cag * dla * adv) * Nk -
-                       dt * Nj * cag * la * (kk[0] * (ha[0] + gpa[0]) * gk0 + kk[1] * (ha[1] + gpa[1]) * gk1) +
+                       dt * Nj * cag * la * (Kag[0] * gk0 + Kag[1] * gk1) +
                        dt * (la * gjk - dla * haj * Nk);
             if (!lump) {
                 kww += Nj * n * Gm * Nk;
@@ -482,7 +485,7 @@ void TPZMatUnsaturatedUPwPa<T, TMEM>::Solution(const TPZVec<TPZMaterialDataT<STA
 template <class T, class TMEM>
 void TPZMatUnsaturatedUPwPa<T, TMEM>::Print(std::ostream &out) const {
     out << Name() << " id = " << this->Id() << "\n  n = " << fPorosity << " alpha = " << fAlpha << " Ks = " << fKs
-        << " Kw = " << fKw << "\n  k_x = " << fKx << " k_y = " << fKy << " gamma_w = " << fGammaW << " mu_w/mu_a = " << fMuRatio
+        << " Kw = " << fKw << "\n  k_x = " << fKx << " k_y = " << fKy << " k_xy = " << fKxy << " gamma_w = " << fGammaW << " mu_w/mu_a = " << fMuRatio
         << " gamma_a = " << fGammaA << " p_atm = " << fPatm << "\n  unit weight "
         << (fMixture ? "mixture, gamma_s = " : "constant ") << (fMixture ? fGammaS : fGamma) << "\n  chi "
         << (fBishop == EChiSaturation ? "= S_w" : "constant ") << (fBishop == EChiSaturation ? 0. : fChi)
@@ -500,7 +503,7 @@ int TPZMatUnsaturatedUPwPa<T, TMEM>::ClassId() const {
 template <class T, class TMEM>
 void TPZMatUnsaturatedUPwPa<T, TMEM>::Write(TPZStream &buf, int withclassid) const {
     TBase::Write(buf, withclassid);
-    REAL vals[] = {fPorosity, fAlpha, fKs, fKw, fKx, fKy, fGammaW, fMuRatio, fGammaA, fPatm, fGamma, fGammaS,
+    REAL vals[] = {fPorosity, fAlpha, fKs, fKw, fKx, fKy, fKxy, fGammaW, fMuRatio, fGammaA, fPatm, fGamma, fGammaS,
                    fG[0], fG[1], fG[2], fChi, fTimeStep, fGravityFactor};
     buf.Write(vals, sizeof(vals) / sizeof(REAL));
     int ints[] = {fMixture, int(fBishop), fLumped, fIntegrationOrder, fFrozen};
@@ -511,11 +514,11 @@ void TPZMatUnsaturatedUPwPa<T, TMEM>::Write(TPZStream &buf, int withclassid) con
 template <class T, class TMEM>
 void TPZMatUnsaturatedUPwPa<T, TMEM>::Read(TPZStream &buf, void *context) {
     TBase::Read(buf, context);
-    REAL vals[18];
-    buf.Read(vals, 18);
-    REAL *p[] = {&fPorosity, &fAlpha, &fKs, &fKw, &fKx, &fKy, &fGammaW, &fMuRatio, &fGammaA, &fPatm, &fGamma, &fGammaS,
+    REAL vals[19];
+    buf.Read(vals, 19);
+    REAL *p[] = {&fPorosity, &fAlpha, &fKs, &fKw, &fKx, &fKy, &fKxy, &fGammaW, &fMuRatio, &fGammaA, &fPatm, &fGamma, &fGammaS,
                  &fG[0], &fG[1], &fG[2], &fChi, &fTimeStep, &fGravityFactor};
-    for (int i = 0; i < 18; ++i) *p[i] = vals[i];
+    for (int i = 0; i < 19; ++i) *p[i] = vals[i];
     int ints[5];
     buf.Read(ints, 5);
     fMixture = ints[0];

@@ -19,7 +19,7 @@ Incógnitas (valores totais na solução): deslocamento **u** (H1, P2), pressão
 |---|---|
 | §3 sucção, saturação, p_B | `TPZUnsaturatedHydraulics`: Fredlund–Xing (C(ψ) = 1, como no artigo) ou van Genuchten; Γ = ∂S_w/∂p_w |
 | §4 equilíbrio, tensão de Bishop | σ = σ' − α p_B I, p_B = χ p_w + (1 − χ) p_a, χ = S_w (notas) ou constante (χ = tan φᵇ / tan φ' = 1 no artigo); σ' de `TPZPlasticStepVoigt<TPZYCMohrCoulombPV2>` (Mohr–Coulomb do artigo do RHW) |
-| §5 Darcy das duas fases | λ_w = **K** k_rw/γ_w, λ_a = (**K**/γ_w)(μ_w/μ_a) k_ra, **K** = diag(k_x, k_y) (anisotropia nos eixos x, y; `SetAnisotropicConductivity`; isotrópico k_x = k_y = k_s); k_rw = S_eᵖ (Leong–Rahardjo) ou Mualem; k_ra de Brooks–Corey ou Mualem; mínimos k_rw,min e k_ra,min (§13.9) |
+| §5 Darcy das duas fases | λ_w = **K** k_rw/γ_w, λ_a = (**K**/γ_w)(μ_w/μ_a) k_ra, **K** = R(θ) diag(k₁, k₂) R(θ)ᵀ (anisotropia com eixos principais girados de θ; `SetAnisotropicConductivity(k1, k2, theta)`; isotrópico k₁ = k₂ = k_s); k_rw = S_eᵖ (Leong–Rahardjo) ou Mualem; k_ra de Brooks–Corey ou Mualem; mínimos k_rw,min e k_ra,min (§13.9) |
 | §6 fluidos | água com K_w; ar ideal isotérmico, c_a = 1/p_a^abs, termo g_a = c_a q_a·∇p_a mantido |
 | §7–8 armazenamento e Biot | S_π[α Δε_v + η Δp_B] + n S_w/K_w Δp_w + ⟨n ΔS_π⟩ + ⟨n S_a/p_a^abs Δp_a⟩, η = (α − n)/K_s |
 | §9 porosidade | n constante nos coeficientes (fechamento de 1ª ordem com α = 1 e grãos incompressíveis) |
@@ -75,7 +75,7 @@ ninja SlopeRainfall
 ./SlopeRainfall I=80 gi=0 vtk=1       # só SRM; VTK (p_w, p_a, sucção, S_w, p_B, u) nos instantes do FS
 ```
 Sem MKL a análise usa `TPZSkylineNSymStructMatrix` (mais lento). Argumentos: `solo`, `alpha`, `hs`, `hw`, `I`
-(mm/h), `kx`, `ky` (condutividade saturada anisotrópica, m/s; padrão k_s do solo), `train` (h, 24), `ttotal` (h, 48), `tfs` (lista de instantes do FS, h), `passivo`, `gi`, `fs`, `vtk`,
+(mm/h), `kx`, `ky` (condutividades saturadas principais, m/s, padrão k_s do solo), `theta` (direção de `kx`, graus anti-horários a partir do eixo x), `train` (h, 24), `ttotal` (h, 48), `tfs` (lista de instantes do FS, h), `passivo`, `gi`, `fs`, `vtk`,
 `mesh`, `out`, `verbose` (0–3), `threads`.
 
 Saídas em `out/`: `fs.csv` (t, FS SRM, FS GI), `hist.csv` (chuva, infiltração, vértices alagados, p_w e p_a

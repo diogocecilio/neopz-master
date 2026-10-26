@@ -104,7 +104,8 @@ struct UnsatParams {
     REAL chi = 1.; ///< phi^b = phi'
     REAL n = 0.45, Kw = 2.2e6, gw = 9.81, ga = 1.2 * 9.81e-3, muRatio = 1.e-3 / 1.8e-5, patm = 101.325;
     REAL ks = 1.e-5; ///< saturated conductivity (m/s)
-    REAL kx = 0., ky = 0.; ///< anisotropic conductivity diag(k_x, k_y) (m/s); <= 0: k_s
+    /// anisotropic conductivity (m/s): principal values k_x (direction at theta from the x axis) and k_y; <= 0: k_s
+    REAL kx = 0., ky = 0., theta = 0.; ///< theta in degrees, counterclockwise
     TPZUnsaturatedHydraulics hydro;
     UnsatParams() {
         hydro.fRetention = TPZUnsaturatedHydraulics::EFredlundXing;
@@ -150,7 +151,7 @@ inline TPZMultiphysicsCompMesh *UnsatMesh(TPZGeoMesh *gmesh, const UnsatParams &
     mat->SetBiot(1., 0.);
     mat->SetWaterBulkModulus(p.Kw);
     mat->SetConductivity(p.ks, p.gw, p.muRatio);
-    mat->SetAnisotropicConductivity(p.kx > 0. ? p.kx : p.ks, p.ky > 0. ? p.ky : p.ks);
+    mat->SetAnisotropicConductivity(p.kx > 0. ? p.kx : p.ks, p.ky > 0. ? p.ky : p.ks, p.theta * M_PI / 180.);
     mat->SetAir(p.ga, p.patm);
     mat->SetUnitWeight(p.gamma);
     mat->SetBishop(TUnsat::EChiConstant, p.chi);

@@ -11,7 +11,10 @@
 // If the coupled transient loses equilibrium with the real strength (FS < 1), it continues with the strength
 // increased (F0) only to follow the pressures, and the time of the rupture is recorded.
 //
-// Usage: SlopeRainfall [solo=f50] [alpha=45] [hs=10] [hw=5] [I=36] [kx=k_s] [ky=k_s] [train=24] [ttotal=48] [tfs=3,6,...] [passivo=0]
+// Anisotropic conductivity: principal values kx (along the direction at theta degrees, counterclockwise from the x
+// axis) and ky (normal to it).
+//
+// Usage: SlopeRainfall [solo=f50] [alpha=45] [hs=10] [hw=5] [I=36] [kx=k_s] [ky=k_s] [theta=0] [train=24] [ttotal=48] [tfs=3,6,...] [passivo=0]
 //                      [gi=1] [fs=1] [vtk=0] [mesh=<file .msh>] [out=<folder>] [verbose=1]
 //                      [threads=0 (assembly threads)]
 // Outputs in <out>: fs.csv, hist.csv, snaps_pw.csv, snaps_pa.csv, vertices.csv, triangles.csv, outline.csv,
@@ -37,7 +40,7 @@ static const REAL BETA = 7. * M_PI / 180.;     // inclination of the initial wat
 struct Case {
     std::string solo = "f50";
     REAL alpha = 45., hs = 10., hw = 5., I = 36., train = 24., ttotal = 48.;
-    REAL kx = 0., ky = 0.; ///< anisotropic conductivity (m/s); <= 0: k_s of the soil
+    REAL kx = 0., ky = 0., theta = 0.; ///< principal conductivities (m/s; <= 0: k_s of the soil), angle of k_x (deg)
     std::vector<REAL> tfs = {3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 36, 48};
     bool passivo = false, gi = true, fs = true, vtk = false;
     std::string mesh, out = "out";
@@ -97,6 +100,7 @@ public:
         else DebugStop();
         fPar.kx = c.kx;
         fPar.ky = c.ky;
+        fPar.theta = c.theta;
         std::string mesh = c.mesh;
         if (mesh.empty()) {
             std::ostringstream s;
@@ -483,7 +487,7 @@ void RainfallSlope::Run() {
     }
     sum << "solo " << fCase.solo << "\nalpha " << fCase.alpha << "\nhs " << fCase.hs << "\nhw " << fCase.hw << "\nI "
          << fCase.I << "\nkx " << (fCase.kx > 0 ? fCase.kx : fPar.ks) << "\nky "
-        << (fCase.ky > 0 ? fCase.ky : fPar.ks) << "\ntrain " << fCase.train << "\nttotal " << fCase.ttotal << "\npassivo " << fCase.passivo
+        << (fCase.ky > 0 ? fCase.ky : fPar.ks) << "\ntheta " << fCase.theta << "\ntrain " << fCase.train << "\nttotal " << fCase.ttotal << "\npassivo " << fCase.passivo
         << "\nelements " << fGMesh->NElements() << "\nequations " << fAn->NEq() << "\nfs_ini_srm "
         << (fsHist.empty() ? -1. : fsHist[0].second.first) << "\nfs_ini_gi "
         << (fsHist.empty() ? -1. : fsHist[0].second.second) << "\nfs_min_srm " << minS << "\nt_min_srm " << tminS
@@ -506,6 +510,7 @@ int main(int argc, char *argv[]) {
         else if (is("I=")) c.I = std::atof(val("I="));
         else if (is("kx=")) c.kx = std::atof(val("kx="));
         else if (is("ky=")) c.ky = std::atof(val("ky="));
+        else if (is("theta=")) c.theta = std::atof(val("theta="));
         else if (is("train=")) c.train = std::atof(val("train="));
         else if (is("ttotal=")) c.ttotal = std::atof(val("ttotal="));
         else if (is("tfs=")) c.tfs = ParseList(val("tfs="));
