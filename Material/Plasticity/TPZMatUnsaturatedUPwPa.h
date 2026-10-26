@@ -71,7 +71,8 @@ public:
  * \f[ R_a = \int N_p\Big[S_a X - \Delta t\,c_a\lambda_a(\nabla p_a - \gamma_a\mathbf{g})\cdot\nabla p_a\Big]
  *     + \Big\langle n\Delta S_a + \frac{nS_a}{p_a^{abs}}\Delta p_a\Big\rangle
  *     + \Delta t\int\nabla N_p\cdot\lambda_a(\nabla p_a - \gamma_a\mathbf{g}) - \Delta t f_a, \f]
- * where \f$\lambda_w = k_s k_{rw}/\gamma_w\f$, \f$\lambda_a = (k_s/\gamma_w)(\mu_w/\mu_a)k_{ra}\f$,
+ * where \f$\lambda_w = \mathbf{K} k_{rw}/\gamma_w\f$, \f$\lambda_a = (\mathbf{K}/\gamma_w)(\mu_w/\mu_a)k_{ra}\f$ with the
+ * conductivity tensor \f$\mathbf{K} = \mathrm{diag}(k_x, k_y)\f$ (isotropic: \f$k_x = k_y = k_s\f$),
  * \f$c_a = 1/p_a^{abs}\f$ (ideal isothermal gas), \f$\mathbf{g}\f$ the unit vector of gravity, \f$\lambda_g\f$ the gravity
  * factor (1 in the transient analysis; the geostatic initialization scales the weight of the soil and the pore
  * pressures together, the gravity-increase factor of safety the weight and the positive pressures, see SetGravityScalesSuction) and \f$\langle\cdot\rangle\f$ the storage terms, lumped at the
@@ -144,11 +145,19 @@ public:
     void SetBiot(REAL alpha, REAL Ks) { fAlpha = alpha; fKs = Ks; }
     /** @brief Bulk modulus of the water (kPa) */
     void SetWaterBulkModulus(REAL Kw) { fKw = Kw; }
-    /** @brief Saturated hydraulic conductivity k_s (m/s), unit weight of the water and mu_w / mu_a */
+    /** @brief Saturated hydraulic conductivity k_s (m/s, isotropic), unit weight of the water and mu_w / mu_a */
     void SetConductivity(REAL ks, REAL gammaw, REAL viscosityRatio) {
-        fKs_hyd = ks;
+        fKx = fKy = ks;
         fGammaW = gammaw;
         fMuRatio = viscosityRatio;
+    }
+    /**
+     * @brief Anisotropic saturated conductivity: tensor diag(k_x, k_y) in the global axes (m/s). The relative
+     * permeabilities multiply the tensor; the air uses the same intrinsic permeability tensor (times mu_w / mu_a)
+     */
+    void SetAnisotropicConductivity(REAL kx, REAL ky) {
+        fKx = kx;
+        fKy = ky;
     }
     /** @brief Unit weight of the air (kN/m3, constant) and atmospheric pressure (kPa) */
     void SetAir(REAL gammaa, REAL patm) { fGammaA = gammaa; fPatm = patm; }
@@ -188,11 +197,10 @@ public:
     /** @} */
 
     REAL Porosity() const { return fPorosity; }
-    REAL Conductivity() const { return fKs_hyd; }
+    REAL ConductivityX() const { return fKx; }
+    REAL ConductivityY() const { return fKy; }
     REAL GammaW() const { return fGammaW; }
 
-    /** @brief Water mobility at saturation k_s / gamma_w */
-    REAL WaterMobility() const { return fKs_hyd / fGammaW; }
 
     /**
      * @brief Resets the reference of the displacements keeping the effective stress: at every integration point
@@ -243,7 +251,7 @@ protected:
     T fPlasticity;
     TPZUnsaturatedHydraulics fHydro;
     REAL fPorosity = 0.45, fAlpha = 1., fKs = 0., fKw = 2.2e6;
-    REAL fKs_hyd = 1.e-5, fGammaW = 9.81, fMuRatio = 1.e-3 / 1.8e-5;
+    REAL fKx = 1.e-5, fKy = 1.e-5, fGammaW = 9.81, fMuRatio = 1.e-3 / 1.8e-5;
     REAL fGammaA = 1.2 * 9.81e-3, fPatm = 101.325;
     REAL fGamma = 20., fGammaS = 26.;
     bool fMixture = false;

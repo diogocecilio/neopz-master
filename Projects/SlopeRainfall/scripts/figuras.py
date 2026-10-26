@@ -3,7 +3,7 @@
 O FS do artigo é o de Bishop simplificado (SEEP/W + SLOPE/W); o deste modelo é o da redução de resistência (SRM)
 com as pressões do instante congeladas. O FS por aumento da gravidade (GI) aparece tracejado onde foi calculado.
 
-Uso: python figuras.py --serie B          (A, B, C, D ou todas; grava figuras/<série>_*.png)
+Uso: python figuras.py --serie B          (A, B, C, D, B_passivo ou todas; grava figuras/<série>_*.png)
 """
 import argparse
 import glob
@@ -97,7 +97,7 @@ def ref_alphas():
     return (26.6, 33.7, 45.0, 63.4)
 
 
-def serie_B(R, pasta):
+def serie_B(R, pasta, nome="B"):
     fig, axs = plt.subplots(2, 3, figsize=(14, 7.5))
     f5 = ref.fig5b()
     for j, solo in enumerate(SOLOS):
@@ -113,7 +113,7 @@ def serie_B(R, pasta):
                 ax.plot(*f5[I], "o", mfc="w", mec=CORES[k % 8], ms=4)
         ax.axhline(1, color="#999", lw=0.6, ls=":")
         ax.set(xlabel="t (h)", ylabel="FS", xlim=(0, 48), ylim=(0.5, 2.4),
-               title=f"Série B, {ROT_SOLO[solo]} (Fig. 5)" + (" — círculos: Fig. 5b" if solo == "f50" else ""))
+               title=f"Série {nome}, {ROT_SOLO[solo]} (Fig. 5)" + (" — círculos: Fig. 5b" if solo == "f50" else ""))
         ax.legend(frameon=False, ncol=2, fontsize=6.5)
         # Fig. 7: FS mínimo x I_r com a Eq. 6
         ax = axs[1, j]
@@ -127,7 +127,7 @@ def serie_B(R, pasta):
         ax.set(xlabel="I$_r$ (mm/h)", ylabel="FS mínimo", ylim=(0.5, 2.4), title=f"{ROT_SOLO[solo]}: FS mínimo × I$_r$")
         ax.legend(frameon=False)
     fig.tight_layout()
-    fig.savefig(os.path.join(pasta, "B_fs.png"), dpi=150)
+    fig.savefig(os.path.join(pasta, f"{nome}_fs.png"), dpi=150)
     plt.close(fig)
 
 
@@ -184,12 +184,15 @@ def main():
     p.add_argument("--figuras", default="figuras")
     a = p.parse_args()
     os.makedirs(a.figuras, exist_ok=True)
-    for s in (["A", "B", "C", "D"] if a.serie == "todas" else [a.serie]):
+    for s in (["A", "B", "C", "D", "B_passivo"] if a.serie == "todas" else [a.serie]):
         R = carrega(a.resultados, s)
         if not R:
             print(f"série {s}: sem resultados")
             continue
-        {"A": serie_A, "B": serie_B, "C": serie_C, "D": serie_D}[s](R, a.figuras)
+        if s.startswith("B"):
+            serie_B(R, a.figuras, s)
+        else:
+            {"A": serie_A, "C": serie_C, "D": serie_D}[s[0]](R, a.figuras)
         tabela(R, s, a.figuras)
         print(f"série {s}: {len(R)} casos")
 
