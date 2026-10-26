@@ -213,7 +213,10 @@ void TPZPardisoSolver<TVar>::Decompose(TPZMatrix<TVar> *mat)
      */
     //fParam[4]  No user fill-in reducing permutation
     if constexpr (!is_complex<TVar>::value){
-        fParam[3] = fSystemType == MSystemType::ESymmetric ? 10*6+2 : 10*6+1;
+        // non-symmetric systems (Newton tangents of coupled problems): the CGS iteration preconditioned by the LU
+        // of a previous matrix (10*6+1) fails when the matrix changes a lot between solves, and with K = 1 the
+        // fallback numerical factorization (phase 23) is also replaced by CGS: always factorize
+        fParam[3] = fSystemType == MSystemType::ESymmetric ? 10*6+2 : 0;
         if(fProperty == MProperty::EIndefinite) fParam[4] =1;
     }else{
         fParam[3] = 0;

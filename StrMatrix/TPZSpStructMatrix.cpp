@@ -82,19 +82,21 @@ TPZSpStructMatrix<TVar,TPar>::SetupMatrixData(TPZStack<int64_t> & elgraph,
         if (!numactive) {
             continue;
         }
-		totaleq += iblsize;
+		// blocks partially removed by the equation filter (e.g. one component of a node prescribed) count only
+		// their active equations
+		totaleq += numactive;
 		const int64_t icfirst = nodegraphindex[i];
 		const int64_t iclast = nodegraphindex[i+1];
-		totalvar+=iblsize*iblsize;
+		totalvar+=numactive*numactive;
 		for(auto j=icfirst;j<iclast;j++) {
 			const int64_t col = nodegraph[j];
 			const int64_t colsize = this->fMesh->Block().Size(col);
 			const int64_t colpos = this->fMesh->Block().Position(col);
-            const int64_t numactive = this->fEquationFilter.NumActive(colpos, colpos+colsize);
-            if (!numactive) {
+            const int64_t numactivecol = this->fEquationFilter.NumActive(colpos, colpos+colsize);
+            if (!numactivecol) {
                 continue;
             }
-			totalvar += iblsize*colsize;
+			totalvar += numactive*numactivecol;
 		}
     }
 	

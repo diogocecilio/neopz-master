@@ -69,6 +69,8 @@ set(headers
     TPZPlasticStepModifiedCamClay.h
     TPZMatPoroElastoPlasticUP.h
     TPZPoroElastoPlasticUPAnalysis.h
+    TPZMatUnsaturatedUPwPa.h
+    TPZUnsaturatedHydraulics.h
     )
 
 set(sources
@@ -124,6 +126,7 @@ set(sources
     TPZPlasticStepModifiedCamClay.cpp
     TPZMatPoroElastoPlasticUP.cpp
     TPZPoroElastoPlasticUPAnalysis.cpp
+    TPZMatUnsaturatedUPwPa.cpp
     )
 
 set(PZ_FIX_PLASTIC_TRANSLATORS OFF)

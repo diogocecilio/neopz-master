@@ -44,3 +44,6 @@ add_subdirectory(SlopeDrawdown)
 
 # Seepage forces of a rapid drawdown (Ceron et al. 2025, Sect. 4.3): anisotropic steady seepage and FEM stability
 add_subdirectory(SlopeSeepageForces)
+
+# Unsaturated slope under rainfall (Rahardjo et al. 2007): u - p_w - p_a model and FS in time
+add_subdirectory(SlopeRainfall)
