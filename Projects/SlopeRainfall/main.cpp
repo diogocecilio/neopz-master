@@ -399,7 +399,10 @@ void RainfallSlope::Run() {
     // increased (F0) and then the strength reduced back to the real one; if that fails, the slope is unstable at
     // t = 0 and the transient follows the pressures with F0
     REAL tFail = -1.;
-    if (!Geostatic(1.)) {
+    // uncoupled seepage: the deformation does not change the pressures, the transient mechanics is solved with the
+    // strength increased (F = 0.25) only to keep it in equilibrium; the stability is given by the FS analyses
+    if (!fCase.acoplado) fStrength = 0.25;
+    if (!Geostatic(fStrength)) {
         fAn->Restore();
         ResetState(TPZFMatrix<STATE>(fAn->X()));
         if (!Geostatic(F0)) {
