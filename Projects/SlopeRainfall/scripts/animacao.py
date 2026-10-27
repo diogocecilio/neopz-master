@@ -66,9 +66,12 @@ def grafico_fs(ax, c, titulo=True):
     ax.axhline(1.0, color="gray", ls="--", lw=0.8)
     ax.axvline(1.0, color="gray", ls="--", lw=0.8)
     tfail = float(c["summary"].get("t_fail", -1))
-    if tfail > 0:
-        ax.axvline(tfail, color="red", lw=2)
-        ax.text(tfail, 1.0, " ruptura", color="red", va="bottom")
+    if tfail >= 0:
+        # ruptura só se o FS no instante for ~1; senão o passo acoplado apenas não convergiu (dificuldade numérica)
+        f_t = interp_fs(fs[:, 0], fs[:, 1])(tfail)
+        rot = " ruptura" if f_t < 1.05 else " transiente sem convergência"
+        ax.axvline(max(tfail, T0), color="red" if f_t < 1.05 else "orange", lw=2)
+        ax.text(max(tfail, T0), 1.0, rot, color="red" if f_t < 1.05 else "orange", va="bottom", fontsize=8)
     ax.set_xlabel("t (h)  [t = 0 desenhado em 0,01 h]")
     ax.set_ylabel("FS")
     ax.grid(False)
