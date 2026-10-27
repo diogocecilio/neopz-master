@@ -82,11 +82,14 @@ def serie_A(R, pasta):
             if (solo, I) in ref.TABELA7:
                 E, F = ref.TABELA7[(solo, I)]
                 ax.plot(al, E + F * al, "-", color=c, lw=1, label=f"{I:g} mm/h, Tabela 7")
+            if (solo, I) in ref.FIG9:
+                ax.plot(ref.FIG9_ALPHA, ref.FIG9[(solo, I)], "x--", color=c, lw=0.8, ms=6,
+                        label=f"{I:g} mm/h, Fig. 9")
             pts = sorted((d["alpha"], fs_min(d)) for d in rs if d["I"] == I)
             ax.plot(*zip(*pts), "s", color=c, label=f"{I:g} mm/h, NeoPZ")
         ax.axhline(1, color="#999", lw=0.6, ls=":")
-        ax.set(xlabel="α (graus)", title=f"Série A, solo {ROT_SOLO[solo]}: FS mínimo (Fig. 9)", ylim=(0.4, 3.0))
-        ax.legend(frameon=False, fontsize=6.5)
+        ax.set(xlabel="α (graus)", title=f"Série A, solo {ROT_SOLO[solo]}: FS mínimo (Fig. 9)", ylim=(0.2, 3.0))
+        ax.legend(frameon=False, fontsize=5.5, ncol=2, loc="lower left")
     axs[0].set_ylabel("FS")
     fig.tight_layout()
     fig.savefig(os.path.join(pasta, "A_fs_min_alpha.png"), dpi=150)

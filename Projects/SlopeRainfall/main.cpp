@@ -468,7 +468,9 @@ void RainfallSlope::Run() {
     for (auto &st : steps) {
         const REAL dt = st.first * HOUR;
         int64_t it0 = fIter;
-        if (!Advance(dt, st.second, 0, tFail >= 0. ? 5 : 2)) {
+        // a failure with 2 bisection levels may be numerical (Newton, active set of the rain): the step is tried
+        // again with 5 levels and the real strength before it is taken as the loss of equilibrium of the slope
+        if (!Advance(dt, st.second, 0, tFail >= 0. ? 5 : 2) && (tFail >= 0. || !Advance(dt, st.second, 0, 5))) {
             if (tFail >= 0.) {
                 std::cout << fCase.out << ": time step did not converge at t = " << t / HOUR << " h\n";
                 break;
