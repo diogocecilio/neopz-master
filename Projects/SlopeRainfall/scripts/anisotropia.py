@@ -149,7 +149,7 @@ def figura_rotacao(a):
         axs[1].axhline(iso[0]["fs_min_srm"], color="#1f3fa8", ls="--", lw=0.8, label="isotrópico, SRM")
         axs[1].axhline(iso[0]["fs_min_gi"], color="#1d7a1d", ls="--", lw=0.8, label="isotrópico, GI")
     axs[1].axvline(135, color="gray", ls=":", lw=0.8)
-    axs[1].text(135, axs[1].get_ylim()[1], " k$_x$ ∥ face", va="top", fontsize=7, color="gray")
+    axs[1].text(135, axs[1].get_ylim()[1], " k$_x$ paralelo à face", va="top", fontsize=7, color="gray")
     axs[1].set(xlabel="θ (graus): direção de k$_x$ a partir do eixo x", ylabel="FS mínimo", xticks=THETAS,
                title="FS mínimo × orientação do tensor")
     axs[1].legend(frameon=False, fontsize=7)
