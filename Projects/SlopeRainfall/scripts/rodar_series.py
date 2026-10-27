@@ -74,6 +74,8 @@ def main():
     p.add_argument("--chuvas", nargs="*", type=float, help="filtra as intensidades (mm/h)")
     p.add_argument("--solos", nargs="*", help="filtra os solos (f10 f50 f100)")
     p.add_argument("--passivo", action="store_true", help="p_a = 0 em todo o domínio (como o SEEP/W)")
+    p.add_argument("--desacoplado", action="store_true",
+                   help="percolação sem o acoplamento hidromecânico nas equações de massa (como o SEEP/W)")
     p.add_argument("--sem-gi", action="store_true", help="não calcula o FS por aumento da gravidade")
     p.add_argument("--rapido", action="store_true", help="poucos instantes de FS")
     p.add_argument("--vtk", action="store_true", help="grava VTK nos instantes do FS")
@@ -83,7 +85,7 @@ def main():
     series = ["A", "B", "C", "D"] if a.serie == "todas" else [a.serie]
     tarefas = []
     for s in series:
-        pasta = os.path.join(a.saida, s + ("_passivo" if a.passivo else ""))
+        pasta = os.path.join(a.saida, s + ("_passivo" if a.passivo else "") + ("_desacoplado" if a.desacoplado else ""))
         for c in casos_da_serie(s):
             if a.chuvas and c["I"] not in a.chuvas:
                 continue
@@ -96,7 +98,7 @@ def main():
                 continue
             args = [a.exe] + [f"{k}={c[k]:g}" if k != "solo" else f"solo={c[k]}" for k in
                               ("solo", "alpha", "hs", "hw", "I", "ttotal")]
-            args += ["tfs=" + ",".join(f"{t:g}" for t in c["tfs"]), f"out={out}", f"passivo={int(a.passivo)}",
+            args += ["tfs=" + ",".join(f"{t:g}" for t in c["tfs"]), f"out={out}", f"passivo={int(a.passivo)}", f"acoplado={0 if a.desacoplado else 1}",
                      f"gi={0 if a.sem_gi else 1}", f"vtk={int(a.vtk)}"]
             tarefas.append((out, args))
     print(f"{len(tarefas)} casos com {a.jobs} processo(s)")

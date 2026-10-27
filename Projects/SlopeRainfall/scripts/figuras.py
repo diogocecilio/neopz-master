@@ -184,7 +184,7 @@ def main():
     p.add_argument("--figuras", default="figuras")
     a = p.parse_args()
     os.makedirs(a.figuras, exist_ok=True)
-    for s in (["A", "B", "C", "D", "B_passivo"] if a.serie == "todas" else [a.serie]):
+    for s in (["A", "B", "C", "D", "B_passivo", "B_passivo_desacoplado"] if a.serie == "todas" else [a.serie]):
         R = carrega(a.resultados, s)
         if not R:
             print(f"série {s}: sem resultados")
