@@ -156,8 +156,8 @@ def main():
         th = max(t, T0)
         marc.set_xdata([th, th])
         f1, f2 = fsAt(t), fsGAt(t)
-        pts.set_data([th, th], [f1, f2])
-        titf.set_text(f"FS = {f1:.2f}    FSg = {f2:.2f}")
+        pts.set_data([th, th] if np.isfinite(f2) else [th], [f1, f2] if np.isfinite(f2) else [f1])
+        titf.set_text(f"FS = {f1:.2f}" + (f"    FSg = {f2:.2f}" if np.isfinite(f2) else ""))
         return []
 
     anim = animation.FuncAnimation(fig, quadro, frames=len(c["ts"]), blit=False)

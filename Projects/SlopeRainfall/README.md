@@ -102,6 +102,102 @@ pós-processamento do `SlopeDrawdown`: `wolframscript -file animacao.wl <pasta d
   p_w = 0 em magenta, setas de chuva enquanto chove; ao lado, o gráfico do FS com o marcador no instante, o FS do
   marcador interpolado linearmente em log(t) (`InterpFS`, constante se houver um só ponto).
 
-O caso `resultados/B/f50_a45_H10_Hw5_I36` traz os arquivos completos e a animação.
+Os casos `resultados/B/f50_a45_H10_Hw5_I36` (modelo completo, com FS por aumento da gravidade) e
+`resultados/B_passivo_desacoplado/f50_a45_H10_Hw5_I90` trazem os arquivos completos e as animações.
 
-RESULTADOS
+## Resultados
+
+126 casos (malha "media", 4 processos; 15–30 min por caso de 48 h com H_s = 10 m, ≈ 4 h com H_s = 40 m).
+Figuras e tabelas em `figuras/` (`python figuras.py --serie todas`); FS, histórico e resumo de cada caso em
+`resultados/<série>/<caso>/`. FS = redução de resistência (o do artigo é Bishop simplificado).
+
+Três variantes do modelo na Série B:
+
+* **B** — modelo completo: acoplamento hidromecânico (Biot) e ar ativo;
+* **B_passivo** — acoplado, p_a = 0 em todo o domínio;
+* **B_passivo_desacoplado** — p_a = 0 e percolação sem o termo S_π α Δε_v (`acoplado=0`): as hipóteses do artigo
+  (SEEP/W + análise de estabilidade com as pressões do instante).
+
+### FS inicial
+
+Coincide com o artigo em todas as geometrias: 2,119 (H_s = 10 m, α = 45°; artigo 2,11), 2,547 / 2,350 / 1,775
+(α = 26,6 / 33,7 / 63,4°; Tabela 7: 2,54 / 2,38 / 1,69), 3,211 / 1,488 / 1,125 (H_s = 5 / 20 / 40 m; Fig. 10:
+3,22 / 1,50 / 1,12), 1,800 … 2,397 com H_w (Fig. 8: 1,80 … 2,35).
+
+### Série B: FS mínimo × I_r (Fig. 7, Eq. 6)
+
+| solo | I_r (mm/h) | Eq. 6 | B (completo) | B_passivo | B_passivo_desacoplado |
+|---|---|---|---|---|---|
+| f10 | 9 / 36 / 90 | 1,89 / 1,48 / 1,05 | 1,93 / 1,57 / 1,15 | 1,93 / 1,58 / 1,16 | 1,93 / 1,58 / 1,15 |
+| f10 | 180 / 360 / 900 | 0,85 / 0,81 / 0,81 | 1,00 / 1,00 / 0,99 | 0,99 / 1,00 / 0,99 | **0,86** / 1,05* / 0,98* |
+| f50 | 3,6 / 9 / 18 | 1,98 / 1,79 / 1,49 | 1,96 / 1,74 / 1,32 | 2,01 / 1,86 / 1,62 | 2,01 / 1,85 / 1,61 |
+| f50 | 36 / 54 / 90 / 180 | 1,05 / 0,89 / 0,82 / 0,82 | 1,01 / 1,00 / 1,00 / 1,00 | 1,21 / 1,03 / 1,00 / 0,90 | 1,18 / **0,97 / 0,85 / 0,84** |
+| f100 | 0,9 / 3,6 / 9 | 2,04 / 1,88 / 1,55 | 2,01 / 1,77 / 1,36 | 2,06 / 1,95 / 1,70 | 2,06 / 1,94 / 1,69 |
+| f100 | 18 / 36 | 1,45 / 1,45 | 1,28 / 1,28 | 1,52 / 1,49 | 1,50 / 1,48 |
+
+\* a percolação parou de convergir às 8,5 h com toda a superfície alagada (chuva de 1 e 2,5 k_s no solo mais
+permeável): o mínimo está subestimado.
+
+* **Com as hipóteses do artigo** (desacoplado, ar passivo) o FS segue a sigmoide da Eq. 6 nos três solos, inclusive o
+  patamar inferior (0,84–0,86 contra 0,81–0,82) e a recuperação após a chuva da Fig. 5b.
+* **No modelo completo o FS mínimo não desce abaixo de ≈ 1,00.** O transiente acoplado nunca perde o equilíbrio: com
+  Mohr–Coulomb associativo (ψ = φ') a plastificação dilata o solo e, na percolação acoplada, isso gera sucção
+  (p_w cai) e aumenta a resistência — o talude se estabiliza no limite. Com ψ < φ' o efeito diminuiria.
+* **O ar ativo reduz o FS** nos solos menos permeáveis (f100 com 18 mm/h: 1,28 contra 1,50 com p_a = 0): o ar
+  aprisionado sob a frente de umedecimento chega a 50 kPa e eleva p_w (positivo sob a crista, com sucção ainda
+  positiva), e a tensão de Bishop com χ = 1 depende de p_w.
+
+### Séries A, C e D (modelo completo)
+
+* **A (Fig. 9)**: FS mínimo sobre os pontos da Fig. 9 nas chuvas fracas e moderadas (f10 9 mm/h: 2,37 / 2,17 / 1,93
+  / 1,61 contra 2,35 / 2,16 / 1,88 / 1,45; f50 36 mm/h α = 63,4°: 0,74 contra 0,76; f100 3,6 mm/h); nas chuvas
+  fortes, o patamar ≈ 1,0 acima. A Tabela 7 do artigo não reproduz a Fig. 9 em algumas linhas (f10 80 e 360 mm/h,
+  f100 80 mm/h); a figura mostra as duas.
+* **C (Fig. 8)**: FS inicial e FS mínimo com 9 mm/h sobre as curvas (H_w = 2,5…15 m: 1,38 / 1,74 / 2,01 / 2,17 /
+  2,31 contra 1,43 / 1,79 / 2,00 / 2,13 / 2,20); com 36 e 80 mm/h, 1,00–1,14 contra 0,81–1,29.
+* **D (Fig. 10)**: H_s = 5 / 10 / 20 / 40 m com 9 mm/h: 2,38 / 1,74 / 1,33 / 1,07 contra 2,48 / 1,79 / 1,37 / 1,08;
+  com 36 / 80 mm/h, H_s = 20 m dá 0,86 / 0,99 (artigo 0,97 / 0,88) e H_s = 40 m 1,00 / 0,995 (0,90 / 0,83).
+
+### Anisotropia da permeabilidade
+
+`scripts/anisotropia.py` (figuras `anisotropia_fs.png` e `rotacao_fs.png`): solo f50, α = 45°, 36 mm/h (= k_s),
+modelo completo; FS mínimo isotrópico 1,005.
+
+| k_x (m/s) | k_y (m/s) | FS mín SRM | FS mín GI | infiltração em 24 h (m³/m) |
+|---|---|---|---|---|
+| 1e-5 | 1e-5 | 1,005 | 1,01 | 38,4 |
+| 3e-5 | 1e-5 | 1,035 | 1,10 | 40,2 |
+| 1e-4 | 1e-5 | 1,078 | 1,25 | 42,7 |
+| 1e-5 | 1e-6 | 1,259 | 1,75 | 16,0 |
+| 1e-6 | 1e-5 | 1,002 | 1,01 | 35,5 |
+| 1e-5 | 1e-4 | 1,195 | 1,56 | 53,9 |
+
+Tensor girado (k_x = 1e-4 na direção θ, k_y = 1e-5 normal a ela; a face desce a −45°, θ = 135° é a direção da face):
+
+| θ (°) | 0 | 15 | 30 | 45 | 60 | 75 | 90 | 105 | 120 | 135 | 150 | 165 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| FS mín SRM | 1,08 | 1,19 | 1,33 | 1,33 | 1,28 | 1,24 | 1,20 | 1,16 | 1,15 | 1,18 | 1,20 | 1,11 |
+| FS mín GI | 1,24 | 1,64 | 2,21 | 2,16 | 1,95 | 1,73 | 1,55 | 1,42 | 1,37 | 1,49 | 1,60 | 1,36 |
+| infiltração (m³/m) | 43,0 | 48,1 | 52,9 | 53,8 | 53,7 | 53,7 | 53,9 | 54,8 | 56,3 | 57,9 | 57,3 | 50,0 |
+
+* k_y < k_s: a chuva infiltra menos (escoa na superfície) e o FS sobe; k_x > k_y espalha a água lateralmente e
+  a drena pela face.
+* O pior caso girado é θ = 0 (estratificação horizontal, menor infiltração vertical); o melhor, θ ≈ 30–45°
+  (direção mais permeável subindo para dentro do maciço, contrária à face): a água se afasta da face.
+
+## Limitações
+
+* Patamar FS ≈ 1 do modelo acoplado com ψ = φ' (acima); a comparação com o artigo deve usar `acoplado=0 passivo=1`.
+* Em poucos casos um passo acoplado não converge nem com 5 bissecções (FS ≈ 1,8–1,9): o instante é gravado em
+  `t_fail` e as figuras o marcam como "transiente sem convergência" (laranja), não como ruptura.
+* Porosidade constante nos coeficientes; sem histerese de retenção; FS por elementos finitos (SRM) e não por
+  equilíbrio-limite.
+* Custo: a montagem do NeoPZ (elemento multifísico de 3 espaços) domina; Pardiso (MKL) recomendado.
+
+## Alterações na biblioteca
+
+* `TPZMatUnsaturatedUPwPa`, `TPZUnsaturatedHydraulics` (novos, Material/Plasticity).
+* `TPZSpStructMatrix`: blocos parcialmente removidos pelo filtro de equações contam só as equações ativas (antes a
+  montagem abortava com um componente de um nó prescrito).
+* `TPZPardisoSolver`: matrizes não simétricas sempre fatoradas (a iteração CGS com o LU anterior falhava nas
+  tangentes de Newton e, com K = 1, também o fallback de fatoração).
