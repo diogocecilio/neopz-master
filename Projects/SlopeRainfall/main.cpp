@@ -395,9 +395,33 @@ void RainfallSlope::Run() {
     InitialPressures(X);
     for (auto &f : fFixed) X(f.first, 0) = f.second;
     fAn->Restore();
+    // weight with the real strength; if it does not converge (slope at the limit), weight with the strength
+    // increased (F0) and then the strength reduced back to the real one; if that fails, the slope is unstable at
+    // t = 0 and the transient follows the pressures with F0
+    REAL tFail = -1.;
     if (!Geostatic(1.)) {
-        std::cout << "geostatic state did not converge\n";
-        return;
+        fAn->Restore();
+        ResetState(TPZFMatrix<STATE>(fAn->X()));
+        if (!Geostatic(F0)) {
+            std::cout << "geostatic state did not converge\n";
+            return;
+        }
+        fMat->SetGravityFactor(1.);
+        const auto fx = FrozenFixed(fAn->X());
+        bool ok = true;
+        for (REAL F : {0.7, 0.8, 0.9, 0.95, 1.0}) {
+            fMat->PlasticModel().SetStrengthReductionFactor(F);
+            ok = fAn->Solve(0., fx, {}, true).conv;
+            if (!ok) break;
+            fAn->Accept();
+        }
+        if (!ok) {
+            tFail = 0.;
+            fStrength = F0;
+            fAn->Restore();
+            fMat->PlasticModel().SetStrengthReductionFactor(F0);
+            std::cout << fCase.out << ": no equilibrium with the real strength at t = 0 (FS < 1)\n";
+        }
     }
     fAn->ResetDisplacements();
     fMat->SetGravityFactor(1.);
@@ -440,7 +464,6 @@ void RainfallSlope::Run() {
         t += dt;
     }
     REAL t = 0.;
-    REAL tFail = -1.;
     int k = 1;
     for (auto &st : steps) {
         const REAL dt = st.first * HOUR;
