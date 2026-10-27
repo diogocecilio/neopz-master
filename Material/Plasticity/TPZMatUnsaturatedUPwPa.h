@@ -176,6 +176,12 @@ public:
     void SetBishop(EBishop type, REAL chi = 1.) { fBishop = type; fChi = chi; }
     /** @brief Lumped (default) or consistent storage */
     void SetLumpedStorage(bool lumped) { fLumped = lumped; }
+    /**
+     * @brief Hydro-mechanical coupling of the mass balances (default true). With false the terms
+     * \f$S_\pi(\alpha\Delta\varepsilon_v + \eta\Delta p_B)\f$ are dropped: the seepage is that of an uncoupled analysis
+     * (SEEP/W-like, rigid skeleton), the momentum balance still uses the pressures (one-way coupling)
+     */
+    void SetHydroMechanicalCoupling(bool coupled) { fCoupled = coupled; }
     /** @brief Order of the integration rule (0: NeoPZ default); must be set before the memory is created */
     void SetIntegrationOrder(int order) { fIntegrationOrder = order; }
     /** @} */
@@ -270,6 +276,7 @@ protected:
     bool fFrozen = false;
     bool fGravityOnly = false;
     bool fScaleSuction = true;
+    bool fCoupled = true;
 };
 
 #endif

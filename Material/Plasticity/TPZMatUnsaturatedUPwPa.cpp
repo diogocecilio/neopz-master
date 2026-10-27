@@ -287,7 +287,9 @@ void TPZMatUnsaturatedUPwPa<T, TMEM>::ContributeInternal(const TPZVec<TPZMateria
 
     // ---------------- mass balances of the water and of the air
     const REAL n = fPorosity, dt = fTimeStep;
-    const REAL eta = (fKs > 0.) ? (fAlpha - n) / fKs : 0.;
+    // uncoupled seepage (SetHydroMechanicalCoupling(false)): the deformation does not enter the mass balances
+    const REAL alc = fCoupled ? fAlpha : 0.;
+    const REAL eta = (fCoupled && fKs > 0.) ? (fAlpha - n) / fKs : 0.;
     const REAL dEv = eps.I1() - evn;
     const REAL dpw = pw - pwn, dpa = pa - pan;
     REAL pBn = 0., chin_w, chin_a;
@@ -296,7 +298,7 @@ void TPZMatUnsaturatedUPwPa<T, TMEM>::ContributeInternal(const TPZVec<TPZMateria
         Bishop(pwn, pan, hn.S, hn.Gamma, pBn, chin_w, chin_a);
     }
     const REAL dpB = (eta != 0.) ? pB - pBn : 0.;
-    const REAL X = fAlpha * dEv + eta * dpB;
+    const REAL X = alc * dEv + eta * dpB;
     // conductivity tensor K = [k_xx k_xy; k_xy k_yy]; mobilities lambda = K k_r / gamma_w (times mu_w/mu_a)
     const REAL kxx = fKx, kyy = fKy, kxy = fKxy;
     const REAL lw0 = 1. / fGammaW, la0 = lw0 * fMuRatio;
@@ -339,8 +341,8 @@ void TPZMatUnsaturatedUPwPa<T, TMEM>::ContributeInternal(const TPZVec<TPZMateria
         ef(oa + j, 0) -= dv * Ra;
         if (!ek) continue;
         for (int I = 0; I < nequ; ++I) {
-            (*ek)(ow + j, I) += dv * Nj * S * fAlpha * mB(I, 0);
-            (*ek)(oa + j, I) += dv * Nj * Sa * fAlpha * mB(I, 0);
+            (*ek)(ow + j, I) += dv * Nj * S * alc * mB(I, 0);
+            (*ek)(oa + j, I) += dv * Nj * Sa * alc * mB(I, 0);
         }
         const REAL hwj = gj0 * Khw[0] + gj1 * Khw[1], haj = gj0 * Kha[0] + gj1 * Kha[1];
         for (int k = 0; k < np; ++k) {
@@ -506,8 +508,8 @@ void TPZMatUnsaturatedUPwPa<T, TMEM>::Write(TPZStream &buf, int withclassid) con
     REAL vals[] = {fPorosity, fAlpha, fKs, fKw, fKx, fKy, fKxy, fGammaW, fMuRatio, fGammaA, fPatm, fGamma, fGammaS,
                    fG[0], fG[1], fG[2], fChi, fTimeStep, fGravityFactor};
     buf.Write(vals, sizeof(vals) / sizeof(REAL));
-    int ints[] = {fMixture, int(fBishop), fLumped, fIntegrationOrder, fFrozen};
-    buf.Write(ints, 5);
+    int ints[] = {fMixture, int(fBishop), fLumped, fIntegrationOrder, fFrozen, fCoupled};
+    buf.Write(ints, 6);
     fPlasticity.Write(buf, withclassid);
 }
 
@@ -519,13 +521,14 @@ void TPZMatUnsaturatedUPwPa<T, TMEM>::Read(TPZStream &buf, void *context) {
     REAL *p[] = {&fPorosity, &fAlpha, &fKs, &fKw, &fKx, &fKy, &fKxy, &fGammaW, &fMuRatio, &fGammaA, &fPatm, &fGamma, &fGammaS,
                  &fG[0], &fG[1], &fG[2], &fChi, &fTimeStep, &fGravityFactor};
     for (int i = 0; i < 19; ++i) *p[i] = vals[i];
-    int ints[5];
-    buf.Read(ints, 5);
+    int ints[6];
+    buf.Read(ints, 6);
     fMixture = ints[0];
     fBishop = EBishop(ints[1]);
     fLumped = ints[2];
     fIntegrationOrder = ints[3];
     fFrozen = ints[4];
+    fCoupled = ints[5];
     fPlasticity.Read(buf, context);
 }
 
