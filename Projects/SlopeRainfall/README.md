@@ -98,6 +98,8 @@ Outros solos, geometrias e chuvas (sem estas opções os resultados são os de a
 | `regime=<q mm/h>` | estado inicial: infiltração permanente q (pseudotransiente até o regime) |
 | `alagado=1`, `dtmax=` | superfície alagada (p_w = 0) enquanto chove (I → ∞); passos crescentes até `dtmax` h |
 | `dtchuva=` | passo durante a chuva (h, 0,25) |
+| `mecanica=0` | com `acoplado=0`: o transiente resolve só a percolação (deslocamentos fixos) |
+| `fluxonormal=1` | chuva por unidade de comprimento da superfície (como o fluxo prescrito do SEEP/W) em vez da projeção horizontal: uma face a α recebe I / cos α |
 
 Séries do artigo (em paralelo) e figuras de comparação:
 ```
