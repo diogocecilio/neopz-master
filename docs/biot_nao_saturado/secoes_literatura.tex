@@ -148,26 +148,36 @@ atingido. O c\'alculo direto usa a op\c{c}\~ao \texttt{alagado=1} ($p_w=0$ em to
 modelo do artigo (percola\c{c}\~ao desacoplada, $p_a=0$; Tabela~\ref{tab:patamar}).
 
 \begin{table}[h!]
-\centering\small
-\caption{FS (SRM) com a superf\'icie alagada desde $t=0$ e o patamar das chuvas intensas (s\'erie B desacoplada e item
-A3). Anisotropia: $k_1=10^{-4}$, $k_2=10^{-5}$~m/s.}\label{tab:patamar}
-\begin{tabular}{lcccccccc}
+\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\caption{FS (SRM) com a superf\'icie alagada desde $t=0$ (em negrito, o primeiro instante no patamar), faixa do FS
+desse instante at\'e o tempo final $t_f$ e patamar das chuvas intensas (s\'erie B desacoplada e item A3). Anisotropia:
+$k_1=10^{-4}$, $k_2=10^{-5}$~m/s.}\label{tab:patamar}
+\begin{tabular}{lccccccccc}
 \toprule
-caso & 1~h & 3~h & 6~h & 12~h & 24~h & 96~h & 192~h & patamar com chuva\\
+caso & 1~h & 3~h & 6~h & 12~h & 24~h & 96~h & 192~h & at\'e $t_f$ & com chuva\\
 \midrule
-$f_{10}$ isotr\'opico & 1,44 & 1,15 & 0,98 & \textbf{0,85} & & & & 0,86\\
-$f_{50}$ isotr\'opico & & 1,58 & 1,36 & 1,17 & \textbf{0,85} & & & 0,84--0,85\\
-$f_{100}$ isotr\'opico & & & 1,89 & & 1,49 & 1,06 & \textbf{0,85} & 1,45 (Eq.~6, 24~h)\\
-$f_{50}$, $\theta=0^\circ$ & & 1,30 & 1,21 & 1,13 & \textbf{1,05} & & & 1,05\\
-$f_{50}$, $\theta=45^\circ$ & & 1,00 & 0,88 & 0,87 & \textbf{0,87} & & & 0,87\\
-$f_{50}$, $\theta=135^\circ$ & & 1,27 & 0,63 & 0,63 & \textbf{0,63} & & & 0,63\\
+$f_{10}$ isotr\'opico & 1,44 & 1,15 & 0,98 & \textbf{0,85} & 0,84 & 0,84 & 0,85 & 0,84--0,85 (384~h) & 0,86\\
+$f_{50}$ isotr\'opico & & 1,58 & 1,36 & 1,17 & \textbf{0,85} & 0,84 & 0,85 & 0,84--0,85 (1536~h) & 0,84--0,85\\
+$f_{100}$ isotr\'opico & & & 1,88 & & 1,49 & 1,06 & \textbf{0,85} & 0,84--0,85 (6144~h) & 1,45 (Eq.~6, 24~h)\\
+$f_{50}$, $\theta=0^\circ$ & & 1,30 & 1,21 & 1,13 & \textbf{1,05} & 1,04 & 1,05 & 1,04--1,05 (768~h) & 1,05\\
+$f_{50}$, $\theta=45^\circ$ & & 1,00 & \textbf{0,88} & 0,87 & 0,87 & 0,88 & 0,88 & 0,87--0,88 (768~h) & 0,87\\
+$f_{50}$, $\theta=135^\circ$ & & 1,27 & \textbf{0,63} & 0,63 & 0,63 & 0,63 & 0,63 & 0,63 (768~h) & 0,63\\
 \bottomrule
 \end{tabular}
 \end{table}
 
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\textwidth]{figuras/patamar_alagado.png}
+\caption{FS com a superf\'icie alagada desde $t=0$ (modelo do artigo: percola\c{c}\~ao desacoplada, $p_a=0$), em tempo
+real e em tempo adimensional $k_st/H_s$. Pontilhado: patamar das chuvas intensas (s\'erie B desacoplada e item A3).}
+\label{fig:patamar}
+\end{figure}
+
 \begin{itemize}
-\item O patamar \'e o mesmo nos tr\^es solos ($\approx0{,}85$): o $f_{10}$ o atinge em $\approx12$~h, o $f_{50}$ em
-$\approx24$~h e o $f_{100}$ em $\approx190$~h. O valor 1,45 do $f_{100}$ na Eq.~6 \'e o FS ao fim de 24~h de chuva, n\~ao
+\item O patamar \'e o mesmo nos tr\^es solos (0,84--0,85) e se mant\'em at\'e o fim dos c\'alculos (384, 1536 e
+6144~h; Fig.~\ref{fig:patamar}): o $f_{10}$ o atinge em $\approx12$~h, o $f_{50}$ em $\approx24$~h e o $f_{100}$ em
+$\approx190$~h. O valor 1,45 do $f_{100}$ na Eq.~6 \'e o FS ao fim de 24~h de chuva, n\~ao
 um patamar: a ``intensidade-limite'' do artigo \'e, para o solo pouco perme\'avel, um efeito da dura\c{c}\~ao fixa.
 \item O FS com a superf\'icie alagada reproduz o patamar das chuvas intensas em todos os casos, inclusive os
 anisotr\'opicos (0,63 a 1,05): a orienta\c{c}\~ao do tensor muda a rede de fluxo do talude saturado e, com ela, o
@@ -175,12 +185,17 @@ patamar.
 \item Um teste mais simples d\'a o mesmo ordenamento: partindo da suc\c{c}\~ao nula acima do NA (FS $=1{,}11$) e sem
 chuva, o FS m\'inimo durante a drenagem foi 0,87 (isotr\'opico), 0,73 ($\theta=135^\circ$), 0,97 ($45^\circ$) e 1,07
 ($0^\circ$), um limite superior do patamar ($+0{,}02$ a $+0{,}10$, porque a superf\'icie volta a dessaturar).
-\item Consequ\^encia pr\'atica: o patamar inferior \'e calcul\'avel sem simular a chuva, e a dura\c{c}\~ao necess\'aria
-para atingi-lo escala com $1/k_s$ (Eq.~\eqref{eq:tcrit}).
+\item Consequ\^encia pr\'atica: o patamar inferior \'e calcul\'avel sem simular a chuva, com um \'unico c\'alculo com a
+superf\'icie alagada at\'e o regime permanente. O tempo para atingi-lo cresce com $1/k_s$, mas n\~ao na mesma
+propor\c{c}\~ao: do $f_{50}$ para o $f_{100}$ ele aumenta $\approx8$ vezes, do $f_{10}$ para o $f_{50}$ s\'o
+$\approx2$ (no tempo adimensional $k_st/H_s$, $\approx0{,}4$ no $f_{10}$ contra 0,07--0,09 nos outros dois;
+Fig.~\ref{fig:patamar}). Compare com a dura\c{c}\~ao cr\'itica de um volume fixo, Eq.~\eqref{eq:tcrit}.
 \end{itemize}
 
 Nos c\'alculos com a superf\'icie alagada por muito tempo o Newton da percola\c{c}\~ao deixava de convergir depois de
 atingido o regime permanente: o res\'iduo j\'a estava no n\'ivel do arredondamento e a busca linear, sem conseguir
 reduzi-lo, marcava o passo como n\~ao convergido. A busca linear agora s\'o \'e feita enquanto a corre\c{c}\~ao de
 press\~ao excede a toler\^ancia (o mesmo defeito interrompeu os casos de 360~mm/h do item A3 e de 360 e 900~mm/h do
-$f_{10}$ na S\'erie B).
+$f_{10}$ na S\'erie B). Com a corre\c{c}\~ao, os seis casos da Tabela~\ref{tab:patamar} chegaram ao tempo final, e o
+FS ficou constante dentro da resolu\c{c}\~ao do SRM ($\pm0{,}005$) por 30 a 130 vezes o tempo em que o patamar foi
+atingido.

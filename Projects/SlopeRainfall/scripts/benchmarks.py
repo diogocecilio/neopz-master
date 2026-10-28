@@ -63,7 +63,8 @@ def patamar(a, plt):
         linhas.append((nome, fs[0], fs[m].min(), t[m][np.argmin(fs[m])], fs[m][-1], t[m][-1], plat))
     axs[0].set(xlabel="tempo com a superfície alagada (h)", ylabel="FS (SRM)",
                title="Superfície alagada ($I\\to\\infty$); pontilhado: patamar com chuva (A3, série B)")
-    axs[1].set(xlabel="$k_s t / H_s$ (k_s: condutividade de referência)", ylabel="FS (SRM)", title="Tempo adimensional")
+    axs[1].set(xlabel="$k_s t / H_s$ ($k_s$: condutividade de referência, $H_s$ = 10 m)", ylabel="FS (SRM)",
+               title="Tempo adimensional")
     for ax in axs:
         ax.axhline(1, color="#999", lw=0.6, ls="--")
         ax.legend(frameon=False, fontsize=7)
