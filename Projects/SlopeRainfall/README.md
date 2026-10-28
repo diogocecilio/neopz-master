@@ -82,6 +82,23 @@ Saídas em `out/`: `fs.csv` (t, FS SRM, FS GI), `hist.csv` (chuva, infiltração
 máximos, iterações por passo), `snaps_pw.csv` e `snaps_pa.csv` (p_w e p_a nos vértices a cada hora),
 `vertices.csv`, `triangles.csv`, `outline.csv`, `summary.txt`.
 
+Outros solos, geometrias e chuvas (sem estas opções os resultados são os de antes):
+
+| opção | significado |
+|---|---|
+| `c=`, `phi=`, `gamma=`, `E=`, `nu=`, `ks=`, `poro=` | resistência (kPa, graus), peso (kN/m³), elasticidade (kPa), condutividade (m/s), porosidade |
+| `chi=1` \| `chi=<valor>` \| `chi=sw` \| `chi=se` | Bishop: constante só na sucção (tan φ^b = χ tan φ'; χ = 1 com p_w > p_a), S_w ou S_e |
+| `swcc=fx:a,n,m` \| `swcc=vg:alpha,n,swr` | retenção de Fredlund–Xing (a em kPa) ou van Genuchten (alpha em 1/kPa) |
+| `krw=pot:p` \| `krw=mualem` | permeabilidade relativa da água |
+| `camadas=<arquivo>` | uma linha por camada (material id da malha): `id chave=valor ...` com as chaves acima |
+| `mesh=<.msh>`, `na=x:y,x:y,...`, `lateral=0`, `basena=1` | malha qualquer (`scripts/malha_poligono.py`, camadas paralelas à superfície), NA poligonal, laterais fechadas, carga do NA na base |
+| `chuva=<arquivo>` | hietograma `t0,t1,I` (h, h, mm/h) |
+| `padrao=adiantado\|atrasado` | hietogramas lineares de média `I` em `train` (Tang et al. 2018) |
+| `evap=` (mm/dia), `psimin=` (kPa) | evaporação quando não chove, limitada pela sucção `psimin` |
+| `regime=<q mm/h>` | estado inicial: infiltração permanente q (pseudotransiente até o regime) |
+| `alagado=1`, `dtmax=` | superfície alagada (p_w = 0) enquanto chove (I → ∞); passos crescentes até `dtmax` h |
+| `dtchuva=` | passo durante a chuva (h, 0,25) |
+
 Séries do artigo (em paralelo) e figuras de comparação:
 ```
 cd scripts

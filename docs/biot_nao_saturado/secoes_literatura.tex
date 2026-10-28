@@ -1,0 +1,186 @@
+% Confronto com a literatura recente (nove artigos), o patamar inferior do FS e benchmarks
+%======================================================================
+\section{Confronto com a literatura recente}\label{sec:literatura}
+%======================================================================
+
+Nove trabalhos posteriores ao de Rahardjo et al.\ (2007) foram lidos integralmente e confrontados com os resultados
+das Se\c{c}\~oes~\ref{sec:rahardjo} e \ref{sec:contraexemplos}: Ali et al.\ (2014), Zhang et al.\ (2014),
+Dou et al.\ (2015), Tang et al.\ (2018), Wang, Vardon e Hicks (2018), Ran et al.\ (2018), Liu e Wang (2021),
+Wang, Idinger e Wu (2021) e Pradhan et al.\ (2022). A Tabela~\ref{tab:literatura} resume as hip\'oteses de cada um.
+
+\begin{table}[h!]
+\centering\small
+\caption{Hip\'oteses dos trabalhos analisados. $\psi$: \^angulo de dilat\^ancia; a \'ultima coluna d\'a
+$\tan\phi'/\tan\alpha$ e $c'$ (o FS de talude infinito sem suc\c{c}\~ao \'e $\tan\phi'/\tan\alpha$ com $c'=0$).}
+\label{tab:literatura}
+\begin{tabular}{p{2.5cm}p{3.6cm}p{1.2cm}p{1.5cm}p{1.6cm}p{2.4cm}}
+\toprule
+Trabalho & Modelo & $\chi$ & $\psi$ & ar & $\tan\phi'/\tan\alpha$; $c'$\\
+\midrule
+Rahardjo 2007 & SEEP/W + equil\'ibrio-limite & 1 & -- & $p_a=0$ & 0,49; 10~kPa\\
+Ali 2014 & coluna 1D (HYDRUS) + talude infinito & $S_e$ & -- & $p_a=0$ & 0,96; 0\\
+Zhang 2014 & est\'atico, GLE & 6 leis & -- & $p_a=0$ & 0,57; 10~kPa\\
+Dou 2015 & coluna 1D (FLAC) + talude infinito & $S_e$ & -- & ``ignorado'' & 0,75; 5~kPa\\
+Tang 2018 & SEEP/W + SLOPE/W & 0,639 & -- & $p_a=0$ & 0,49; 0\\
+Wang, Vardon e Hicks 2018 & MPM acoplado & $S$ & 0,1$^\circ$ & $p_a=0$ & 1,0; 20$\to$0,1~kPa\\
+Ran 2018 & Richards 3D + talude infinito & 1 & -- & $p_a=0$ & 0,82; $\approx1$~kPa\\
+Liu e Wang 2021 & Abaqus acoplado + MPM & $S_w$ & 0 & $p_a=0$ & 0,81; 0\\
+Wang 2021 & centr\'ifuga (30~$g$) & ($\approx1$) & contr\'atil & n\~ao medido & 0,62; 0\\
+Pradhan 2022 & PLAXIS acoplado & $S_e$ & n\~ao inf. & $p_a=0$ & corte 0,25; 3~kPa\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+As aparentes contradi\c{c}\~oes entre esses trabalhos, e deles com Rahardjo et al., organizam-se em seis teses.
+
+\subsection{T0. Os trabalhos est\~ao em regimes diferentes}
+
+Pelo menos seis dos nove analisam taludes que s\'o ficam de p\'e pela suc\c{c}\~ao ($c'\approx0$ e
+$\tan\phi'/\tan\alpha<1$). Nesse regime a margem at\'e a ruptura \'e de 0,2--3~kPa (Ali, Ran, Wang 2021), menor do que
+os efeitos tratados como de segunda ordem: a press\~ao do ar aprisionado (34--38~kPa no item A2), a suc\c{c}\~ao gerada
+pela dilat\^ancia e a troca da lei de $\chi$ (FS inicial de 1,28 para 1,63 na coluna de Ali). Rahardjo et al., com
+$c'=10$~kPa, est\~ao em outro regime; por isso suas conclus\~oes (geometria e NA secund\'arios, patamar de FS) n\~ao se
+transferem.
+
+\subsection{T1. A dilat\^ancia decide se o modelo acoplado prev\^e ruptura}
+
+Os modelos acoplados que rompem usam $\psi\approx0$ (Liu e Wang; Wang, Vardon e Hicks; provavelmente Pradhan, pelo
+padr\~ao do PLAXIS) e o solo dos ensaios de Wang et al.\ (2021) \'e contr\'atil. Nenhum dos nove varia $\psi$. No
+NeoPZ, o modelo acoplado com Mohr--Coulomb associativo n\~ao desce abaixo de FS $\approx1$ (item A1).
+
+\subsection{T2. As leis de dura\c{c}\~ao e de padr\~ao de chuva reduzem-se ao volume infiltrado}
+
+Ran (limiar de $\approx150$~mm acumulados de 7,5 a 80~mm/h), Tang (ruptura com 59--71~mm em todas as dura\c{c}\~oes e
+padr\~oes), Ali ($t_f\approx$ d\'eficit de armazenamento/fluxo), Dou e Pradhan (leis de dura\c{c}\~ao com
+$u_w=0$ na superf\'icie ou $I/k_s\approx2$--5) e o item A6 ($t^*\approx V/k_s$, Eq.~\eqref{eq:tcrit}) s\~ao casos da
+mesma regra: o que governa \'e o volume infiltrado, limitado por $k_s$. Tang acrescenta o centr\'oide temporal da chuva
+($\pm0{,}1$ no FS com o mesmo volume).
+
+\subsection{T3. O patamar inferior \'e do problema de contorno}
+
+A profundidade da ruptura ``profunda'' de Ali \'e a da rocha; Dou chega a FS $=0{,}27$ com rocha a 3~m e coluna 1D; Ran
+tem um segundo patamar quando a caixa fechada satura; para Zhang o piso \'e o FS com $\phi^b=0$ e o teto, o mecanismo
+profundo que busca o NA; no item A3 o patamar vai de 0,63 a 1,05 s\'o pela orienta\c{c}\~ao do tensor. A
+Se\c{c}\~ao~\ref{sec:patamar} mostra que o patamar \'e o FS do talude saturado at\'e a superf\'icie.
+
+\subsection{T4. A lei de $\chi$ \'e de primeira ordem}
+
+Cinco leis em nove trabalhos ($\chi=1$, $S_e$, $S_w$, constante, n\~ao lineares). Em Zhang et al.\ o mesmo talude vai de
+FS 0,90 a 1,92 conforme a lei. A press\~ao de entrada de ar dos solos de Rahardjo (Fredlund--Xing com
+$n=m=1$) \'e $\approx2{,}7$, 13 e 27~kPa para $a=10$, 50 e 100~kPa; pelo crit\'erio de Zhang ($\phi^b=\phi'$ s\'o com
+AEV $>200$~kPa) a hip\'otese $\chi=1$ n\~ao se justifica em nenhum dos tr\^es solos. O efeito concentra-se no FS
+inicial e no tempo at\'e a ruptura; na ruptura ($S\to1$) \'e pequeno (Ali $\approx4\%$, Ran $\le0{,}02$).
+
+\subsection{T5. Ar: todos usam $p_a=0$, quase sempre em dom\'inios fechados ao ar}
+
+Rocha na base (Ali, Dou), base e laterais imperme\'aveis (Liu, Ran, Tang, Wang e Hicks), caixa fechada (Wang 2021) e
+solo pouco perme\'avel com NA profundo (Pradhan). Em Ran, a lei de Boyle sem escape d\'a um limite superior de 50--190~kPa
+para a press\~ao do ar, contra uma margem de 2,5~kPa; em Tang, a sensibilidade $\mathrm{d}\,\mathrm{FS}/\mathrm{d}V
+\approx-0{,}004$/mm faria o efeito do item A2 ($-0{,}08$ a $-0{,}23$) multiplicar a probabilidade anual de ruptura por
+2 a 3.
+
+\subsection{Nota de m\'etodo e inconsist\^encias encontradas}
+
+Com $c'=0$, a redu\c{c}\~ao de resist\^encia por elementos finitos tende a encontrar rupturas superficiais na face assim
+que ela umedece (talude infinito sem suc\c{c}\~ao: FS $=0{,}49$ em Tang); o equil\'ibrio-limite as evita por
+restri\c{c}\~oes de busca. Pradhan et al.\ adotam $c'=3$~kPa exatamente por isso.
+
+Inconsist\^encias internas: Ali (a conclus\~ao sobre o comprimento de correla\c{c}\~ao contradiz as Figs.~8 e 17; a
+Eq.~7 conta $1/\cos\alpha$ duas vezes); Zhang (limiar de 10 e de 20~kPa usados como o mesmo); Dou (par\^ametros de van
+Genuchten incompat\'iveis com a Fig.~3); Tang (a mesma distribui\c{c}\~ao GEV nas tr\^es dura\c{c}\~oes); Wang, Vardon e
+Hicks (a permeabilidade do ensaio de Liakopoulos n\~ao reproduz a Fig.~3; a frente avan\c{c}a 4 vezes mais devagar que
+o $k$ declarado); Ran ($c'$ em Pa na tabela, mas as figuras s\'o fecham com kPa); Liu e Wang ($\phi'=30^\circ$ na tabela e
+$33^\circ$ no texto); Wang 2021 (o limiar $I$--$D$ n\~ao separa ruptura de n\~ao ruptura); Pradhan (FS $<1$ em junho,
+quando a ruptura foi em julho, e rein\'icio da simula\c{c}\~ao em 1$^\circ$ de julho).
+
+%======================================================================
+\section{Benchmarks com a literatura}\label{sec:benchmarks}
+%======================================================================
+
+As op\c{c}\~oes acrescentadas ao programa (\texttt{SlopeRainfall}) para estes casos: resist\^encia, peso,
+elasticidade, condutividade e porosidade por camada; $\chi$ constante (s\'o na suc\c{c}\~ao, isto \'e,
+$\tan\phi^b=\chi\tan\phi'$ e $\chi=1$ com $p_w>p_a$), $\chi=S_w$ ou $\chi=S_e$; curvas de Fredlund--Xing ou van
+Genuchten--Mualem; malhas poligonais com camadas paralelas \`a superf\'icie (\texttt{scripts/malha\_poligono.py}); NA
+poligonal; hietogramas lidos de arquivo e padr\~oes lineares; evapora\c{c}\~ao limitada por uma suc\c{c}\~ao m\'axima;
+infiltra\c{c}\~ao permanente como estado inicial; superf\'icie alagada ($I\to\infty$). Sem essas op\c{c}\~oes os
+resultados anteriores se repetem exatamente.
+
+\subsection{Zhang et al.\ (2014): leis de resist\^encia, casos est\'aticos}
+
+Caso A: talude de 50$^\circ$ e 30~m ($\gamma=18$~kN/m$^3$, $c'=10$~kPa, $\phi'=34^\circ$), NA profundo e poligonal;
+caso B: 30$^\circ$ e 20~m ($\phi'=24^\circ$), NA raso. Poro-press\~ao hidrost\'atica sem limite de suc\c{c}\~ao; FS por
+redu\c{c}\~ao de resist\^encia no NeoPZ e GLE (Morgenstern--Price) no artigo.
+
+\begin{table}[h!]
+\centering\small
+\caption{Zhang et al.\ (2014), Tabelas 4 e 5: FS m\'inimo do artigo e do NeoPZ.}\label{tab:zhang}
+\begin{tabular}{llccc}
+\toprule
+caso & lei & artigo & NeoPZ & diferen\c{c}a\\
+\midrule
+A & $\phi^b=0$ ($\chi=0$) & 0,898 & 0,906 & $+0{,}9\%$\\
+A & $\phi^b=15^\circ$ ($\chi=0{,}397$) & 1,414 & 1,444 & $+2{,}1\%$\\
+A & $\phi^b=\phi'$ ($\chi=1$) & 1,920 & 1,919 & $-0{,}1\%$\\
+A & Fredlund 1996, $\kappa=1$, SWCC1 ($\chi=S_w$) & 1,032 & 1,088 & $+5{,}4\%$\\
+B & $\phi^b=0$ & 1,086 & 1,044 & $-3{,}9\%$\\
+B & $\phi^b=15^\circ$ ($\chi=0{,}602$) & 1,133 & 1,100 & $-2{,}9\%$\\
+B & $\phi^b=\phi'$ & 1,159 & 1,125 & $-2{,}9\%$\\
+\midrule
+A & $\chi=1$ com a suc\c{c}\~ao limitada a 75~kPa & -- & 1,656 & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+O acordo \'e de 0--5\%; no caso de $\chi=S_w$ a diferen\c{c}a vem da curva de Fredlund--Xing sem o fator de corre\c{c}\~ao
+$C(\psi)$ no NeoPZ (o artigo usa $\psi_r=10$~kPa), que d\'a $S_w$ maior nas suc\c{c}\~oes altas. O \'ultimo caso
+mostra o peso do limite de 75~kPa de Rahardjo et al.\ num talude com NA profundo: o FS cai de 1,92 para 1,66
+($-14\%$), o mesmo efeito encontrado no item A4.
+
+%======================================================================
+\section{O patamar inferior do FS}\label{sec:patamar}
+%======================================================================
+
+Com $I_r$ acima da capacidade de infiltra\c{c}\~ao a superf\'icie alaga ($p_w=0$) e o solo abaixo dela satura
+progressivamente. O FS decresce at\'e o estado do talude saturado at\'e a superf\'icie, com a \'agua escoando por ele;
+esse estado depende da geometria, da resist\^encia, das condi\c{c}\~oes de contorno hidr\'aulicas e da forma do tensor de
+condutividades (anisotropia), mas n\~ao da magnitude de $k_s$ nem da intensidade, que s\'o determinam quando ele \'e
+atingido. O c\'alculo direto usa a op\c{c}\~ao \texttt{alagado=1} ($p_w=0$ em toda a superf\'icie, $I\to\infty$) com o
+modelo do artigo (percola\c{c}\~ao desacoplada, $p_a=0$; Tabela~\ref{tab:patamar}).
+
+\begin{table}[h!]
+\centering\small
+\caption{FS (SRM) com a superf\'icie alagada desde $t=0$ e o patamar das chuvas intensas (s\'erie B desacoplada e item
+A3). Anisotropia: $k_1=10^{-4}$, $k_2=10^{-5}$~m/s.}\label{tab:patamar}
+\begin{tabular}{lcccccccc}
+\toprule
+caso & 1~h & 3~h & 6~h & 12~h & 24~h & 96~h & 192~h & patamar com chuva\\
+\midrule
+$f_{10}$ isotr\'opico & 1,44 & 1,15 & 0,98 & \textbf{0,85} & & & & 0,86\\
+$f_{50}$ isotr\'opico & & 1,58 & 1,36 & 1,17 & \textbf{0,85} & & & 0,84--0,85\\
+$f_{100}$ isotr\'opico & & & 1,89 & & 1,49 & 1,06 & \textbf{0,85} & 1,45 (Eq.~6, 24~h)\\
+$f_{50}$, $\theta=0^\circ$ & & 1,30 & 1,21 & 1,13 & \textbf{1,05} & & & 1,05\\
+$f_{50}$, $\theta=45^\circ$ & & 1,00 & 0,88 & 0,87 & \textbf{0,87} & & & 0,87\\
+$f_{50}$, $\theta=135^\circ$ & & 1,27 & 0,63 & 0,63 & \textbf{0,63} & & & 0,63\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{itemize}
+\item O patamar \'e o mesmo nos tr\^es solos ($\approx0{,}85$): o $f_{10}$ o atinge em $\approx12$~h, o $f_{50}$ em
+$\approx24$~h e o $f_{100}$ em $\approx190$~h. O valor 1,45 do $f_{100}$ na Eq.~6 \'e o FS ao fim de 24~h de chuva, n\~ao
+um patamar: a ``intensidade-limite'' do artigo \'e, para o solo pouco perme\'avel, um efeito da dura\c{c}\~ao fixa.
+\item O FS com a superf\'icie alagada reproduz o patamar das chuvas intensas em todos os casos, inclusive os
+anisotr\'opicos (0,63 a 1,05): a orienta\c{c}\~ao do tensor muda a rede de fluxo do talude saturado e, com ela, o
+patamar.
+\item Um teste mais simples d\'a o mesmo ordenamento: partindo da suc\c{c}\~ao nula acima do NA (FS $=1{,}11$) e sem
+chuva, o FS m\'inimo durante a drenagem foi 0,87 (isotr\'opico), 0,73 ($\theta=135^\circ$), 0,97 ($45^\circ$) e 1,07
+($0^\circ$), um limite superior do patamar ($+0{,}02$ a $+0{,}10$, porque a superf\'icie volta a dessaturar).
+\item Consequ\^encia pr\'atica: o patamar inferior \'e calcul\'avel sem simular a chuva, e a dura\c{c}\~ao necess\'aria
+para atingi-lo escala com $1/k_s$ (Eq.~\eqref{eq:tcrit}).
+\end{itemize}
+
+Nos c\'alculos com a superf\'icie alagada por muito tempo o Newton da percola\c{c}\~ao deixava de convergir depois de
+atingido o regime permanente: o res\'iduo j\'a estava no n\'ivel do arredondamento e a busca linear, sem conseguir
+reduzi-lo, marcava o passo como n\~ao convergido. A busca linear agora s\'o \'e feita enquanto a corre\c{c}\~ao de
+press\~ao excede a toler\^ancia (o mesmo defeito interrompeu os casos de 360~mm/h do item A3 e de 360 e 900~mm/h do
+$f_{10}$ na S\'erie B).

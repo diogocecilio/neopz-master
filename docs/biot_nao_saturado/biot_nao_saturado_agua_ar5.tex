@@ -1,0 +1,1187 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,bm,mathtools}
+\usepackage{geometry}
+\usepackage{booktabs,array,longtable}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\geometry{margin=2.3cm}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\allowdisplaybreaks
+\numberwithin{equation}{section}
+
+\newcommand{\Div}{\operatorname{div}}
+\newcommand{\Grad}{\operatorname{grad}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\Id}{\mathbf I}
+
+\title{Formula\c{c}\~ao poroel\'astica n\~ao saturada\\
+\large Esqueleto deform\'avel, \`agua e ar\\[2pt]
+\normalsize Vers\~ao 5: implementa\c{c}\~ao no NeoPZ, reprodu\c{c}\~ao de Rahardjo et al.\ (2007), contraexemplos,
+confronto com a literatura recente e benchmarks}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-2em}
+
+\section{Hip\'oteses e vari\'aveis prim\'arias}
+
+Consideram-se pequenas deforma\c{c}\~oes, regime quase est\'atico,
+temperatura constante, esqueleto el\'astico isot\'ropo e duas fases fluidas
+(\'agua e ar) sem mudan\c{c}a de fase. O escoamento de cada fase segue
+a lei de Darcy generalizada com permeabilidade relativa. A contribui\c{c}\~ao
+das press\~oes \`a tens\~ao total utiliza a hip\'otese de Bishop
+$\chi=S_w$; trata-se de uma escolha constitutiva, n\~ao de uma identidade
+universal para todos os solos.
+
+As vari\'aveis prim\'arias s\~ao
+\begin{equation}
+\boxed{\mathbf u(\mathbf x,t),\qquad p_w(\mathbf x,t),\qquad p_a(\mathbf x,t).}
+\end{equation}
+Para explicitar as depend\^encias funcionais, define-se
+\begin{equation}
+\mathbf z=(\mathbf u,p_w,p_a),\qquad
+n(\mathbf z)=n(\mathbf u,p_w,p_a),\qquad
+\alpha(n(\mathbf z))=\alpha\bigl(n(\mathbf u,p_w,p_a)\bigr).
+\end{equation}
+As derivadas temporais das grandezas materiais s\~ao tomadas acompanhando
+o movimento do esqueleto s\'olido. No contexto de pequenas deforma\c{c}\~oes,
+usa-se o ponto para essa derivada.
+
+\section{Cinem\'atica e constantes el\'asticas}
+
+\begin{equation}
+\boxed{\boldsymbol\varepsilon(\mathbf u)=
+\frac12\left[\nabla\mathbf u+(\nabla\mathbf u)^{\mathsf T}\right],
+\qquad \varepsilon_v(\mathbf u)=\Div\mathbf u.}
+\end{equation}
+\begin{equation}
+G=\frac{E_d}{2(1+\nu_d)},\qquad
+\lambda=\frac{E_d\nu_d}{(1+\nu_d)(1-2\nu_d)},\qquad
+K_d=\frac{E_d}{3(1-2\nu_d)}.
+\end{equation}
+\begin{equation}
+\boxed{\alpha(n(\mathbf z))=1-\frac{K_d(n(\mathbf z))}{K_s}.}
+\end{equation}
+Na aproxima\c{c}\~ao el\'astica linear de refer\^encia, $E_d$, $\nu_d$
+e $\alpha=\alpha_0$ podem ser mantidos constantes. A depend\^encia de
+$K_d$ com $n(\mathbf z)$ requer calibra\c{c}\~ao experimental adicional.
+
+\section{Suc\c{c}\~ao, satura\c{c}\~ao e press\~ao equivalente}
+
+\begin{equation}
+\boxed{p_c(p_w,p_a)=p_a-p_w.}
+\end{equation}
+\begin{equation}
+\boxed{S_w(p_w,p_a)=S_w\bigl(p_c(p_w,p_a)\bigr),\qquad
+S_a(p_w,p_a)=1-S_w(p_w,p_a).}
+\end{equation}
+\begin{equation}
+\boxed{p_B(p_w,p_a)=S_w(p_w,p_a)p_w+S_a(p_w,p_a)p_a
+=p_a-S_w(p_w,p_a)p_c(p_w,p_a).}
+\end{equation}
+
+Como parametriza\c{c}\~ao experimental da reten\c{c}\~ao, pode-se empregar
+van Genuchten, para $p_c(p_w,p_a)>0$:
+\begin{align}
+m_{\mathrm{VG}}&=1-\frac{1}{b_{\mathrm{VG}}},\\
+S_e(p_w,p_a)&=\left[1+\left(a_{\mathrm{VG}}p_c(p_w,p_a)\right)^{b_{\mathrm{VG}}}\right]^{-m_{\mathrm{VG}}},\\
+\boxed{S_w(p_w,p_a)}&\boxed{=S_{wr}+(1-S_{wr})S_e(p_w,p_a).}
+\end{align}
+Para $p_c(p_w,p_a)\leq0$, adota-se $S_w(p_w,p_a)=1$ e
+$S_a(p_w,p_a)=0$. Histerese de secagem e umedecimento n\~ao est\'a
+inclu\'ida nesta primeira formula\c{c}\~ao.
+
+Para reten\c{c}\~ao independente de $n(\mathbf z)$, define-se
+\begin{equation}
+\boxed{\Gamma(p_w,p_a)=\frac{\partial S_w(p_w,p_a)}{\partial p_w}
+=-\frac{\partial S_w(p_w,p_a)}{\partial p_a}.}
+\end{equation}
+No ramo n\~ao saturado de van Genuchten:
+\begin{equation}
+\Gamma(p_w,p_a)=(1-S_{wr})m_{\mathrm{VG}}b_{\mathrm{VG}}
+a_{\mathrm{VG}}^{b_{\mathrm{VG}}}
+[p_c(p_w,p_a)]^{b_{\mathrm{VG}}-1}
+\left[1+\left(a_{\mathrm{VG}}p_c(p_w,p_a)\right)^{b_{\mathrm{VG}}}\right]^{-m_{\mathrm{VG}}-1}.
+\end{equation}
+
+\section{Equil\'ibrio mec\^anico do esqueleto}\label{sec:equilibrio}
+
+Com a conven\c{c}\~ao de tens\~oes positivas em tra\c{c}\~ao,
+\begin{equation}
+\boxed{\Div\boldsymbol\sigma(\mathbf z)+\rho_b(\mathbf z)\mathbf g=\mathbf0.}
+\end{equation}
+A tens\~ao total incremental, relativa ao estado inicial, \`e
+\begin{equation}
+\boxed{\begin{aligned}
+\boldsymbol\sigma(\mathbf z)={}&\boldsymbol\sigma_0
++2G\boldsymbol\varepsilon(\mathbf u)
++\lambda\varepsilon_v(\mathbf u)\Id\\
+&-\alpha(n(\mathbf z))
+\left[p_B(p_w,p_a)-p_{B0}\right]\Id.
+\end{aligned}}
+\end{equation}
+Com $\rho_s$ representando a massa espec\'ifica dos gr\~aos,
+\begin{equation}
+\boxed{\begin{aligned}
+\rho_b(\mathbf z)={}&[1-n(\mathbf z)]\rho_s\\
+&+n(\mathbf z)\left[
+S_w(p_w,p_a)\rho_w(p_w)+S_a(p_w,p_a)\rho_a(p_a)
+\right].
+\end{aligned}}
+\end{equation}
+O tensor $\boldsymbol\sigma_0$ representa o estado de tens\~oes inicial;
+o termo $p_{B0}$ \`e a press\~ao equivalente nesse mesmo estado.
+
+\section{Leis de Darcy para as duas fases}
+
+\begin{equation}
+\boxed{\mathbf q_w(\mathbf z)=
+-\frac{\kappa(n(\mathbf z))k_{rw}(S_w(p_w,p_a))}{\mu_w}
+\left[\nabla p_w-\rho_w(p_w)\mathbf g\right].}
+\end{equation}
+\begin{equation}
+\boxed{\mathbf q_a(\mathbf z)=
+-\frac{\kappa(n(\mathbf z))k_{ra}(S_a(p_w,p_a))}{\mu_a}
+\left[\nabla p_a-\rho_a(p_a)\mathbf g\right].}
+\end{equation}
+Os fluxos $\mathbf q_w(\mathbf z)$ e $\mathbf q_a(\mathbf z)$ s\~ao
+velocidades superficiais relativas ao esqueleto, em $\mathrm{m/s}$.
+
+Uma rela\c{c}\~ao de Kozeny--Carman para a varia\c{c}\~ao da
+permeabilidade intr\'inseca \`e
+\begin{equation}
+\boxed{\kappa(n(\mathbf z))=\kappa_0
+\left(\frac{n(\mathbf z)}{n_0}\right)^3
+\left(\frac{1-n_0}{1-n(\mathbf z)}\right)^2.}
+\end{equation}
+Para as permeabilidades relativas, uma escolha Mualem--van Genuchten \`e
+\begin{equation}
+\boxed{\begin{aligned}
+k_{rw}(S_w(p_w,p_a))={}&[S_e(p_w,p_a)]^{1/2}
+\left\{1-\left[1-[S_e(p_w,p_a)]^{1/m_{\mathrm{VG}}}\right]^{m_{\mathrm{VG}}}\right\}^{2},\\
+k_{ra}(S_a(p_w,p_a))={}&[1-S_e(p_w,p_a)]^{1/2}
+\left[1-[S_e(p_w,p_a)]^{1/m_{\mathrm{VG}}}\right]^{2m_{\mathrm{VG}}}.
+\end{aligned}}
+\end{equation}
+Essas duas curvas devem ser verificadas experimentalmente, sobretudo na
+presen\c{c}a de ar aprisionado ou satura\c{c}\~ao residual de g\'as.
+
+\section{Compressibilidade e massa espec\'ifica dos fluidos}\label{sec:fluidos}
+
+Com $K_w$ constante,
+\begin{equation}
+\boxed{\rho_w(p_w)=\rho_{w0}
+\exp\left(\frac{p_w-p_{w0}}{K_w}\right).}
+\end{equation}
+Para ar ideal isot\'ermico,
+\begin{equation}
+\boxed{\rho_a(p_a)=\rho_{a0}\frac{p_a^{\mathrm{abs}}}{p_{a0}^{\mathrm{abs}}},
+\qquad K_a(p_a)=p_a^{\mathrm{abs}}.}
+\end{equation}
+As press\~oes usadas na equa\c{c}\~ao de estado do ar s\~ao absolutas;
+as diferen\c{c}as de press\~ao na suc\c{c}\~ao independem da escolha de
+refer\^encia manom\'etrica. As viscosidades $\mu_w$ e $\mu_a$ podem ser
+consideradas constantes a temperatura fixa.
+
+\section{Armazenamento e acoplamento entre as fases}
+
+Para escrever as equa\c{c}\~oes com coeficientes dependentes do estado,
+definem-se
+\begin{equation}
+\boxed{\eta(\mathbf z)=\frac{\alpha(n(\mathbf z))-n(\mathbf z)}{K_s}.}
+\end{equation}
+\begin{equation}
+\boxed{\begin{aligned}
+D_w(\mathbf z)&=n(\mathbf z)-\eta(\mathbf z)S_w(p_w,p_a)p_c(p_w,p_a),\\
+D_a(\mathbf z)&=-n(\mathbf z)-\eta(\mathbf z)S_a(p_w,p_a)p_c(p_w,p_a).
+\end{aligned}}
+\end{equation}
+
+Os coeficientes associados \`a deforma\c{c}\~ao volum\'etrica s\~ao
+\begin{equation}
+\boxed{\begin{aligned}
+B_w(\mathbf z)&=\alpha(n(\mathbf z))S_w(p_w,p_a),\\
+B_a(\mathbf z)&=\alpha(n(\mathbf z))S_a(p_w,p_a).
+\end{aligned}}
+\end{equation}
+
+Os quatro coeficientes de armazenamento s\~ao
+\begin{equation}
+\boxed{\begin{aligned}
+C_{ww}(\mathbf z)={}&\eta(\mathbf z)[S_w(p_w,p_a)]^2
++\frac{n(\mathbf z)S_w(p_w,p_a)}{K_w}
++D_w(\mathbf z)\Gamma(p_w,p_a),\\
+C_{wa}(\mathbf z)={}&\eta(\mathbf z)S_w(p_w,p_a)S_a(p_w,p_a)
+-D_w(\mathbf z)\Gamma(p_w,p_a),\\
+C_{aw}(\mathbf z)={}&\eta(\mathbf z)S_a(p_w,p_a)S_w(p_w,p_a)
++D_a(\mathbf z)\Gamma(p_w,p_a),\\
+C_{aa}(\mathbf z)={}&\eta(\mathbf z)[S_a(p_w,p_a)]^2
++\frac{n(\mathbf z)S_a(p_w,p_a)}{K_a(p_a)}
+-D_a(\mathbf z)\Gamma(p_w,p_a).
+\end{aligned}}
+\end{equation}
+
+Essas express\~oes decorrem da forma incremental do conte\'udo de cada
+fase, para o modelo poroel\'astico adotado:
+\begin{equation}
+\dot\zeta_i=S_i\left[\alpha\dot\varepsilon_v+\eta\dot p_B\right]
++n\dot S_i+\frac{nS_i}{K_i}\dot p_i,
+\qquad i\in\{w,a\},
+\end{equation}
+com $S_a=1-S_w$ e $\dot p_B=S_w\dot p_w+S_a\dot p_a
++(p_w-p_a)\dot S_w$. Nessa \'ultima express\~ao, os coeficientes
+s\~ao tangentes avaliados no estado atual, e n\~ao derivadas de produtos
+de coeficientes secantes com incrementos acumulados.
+
+\section{Equa\c{c}\~oes de Biot para difus\~ao da \`agua e do ar}
+
+A conserva\c{c}\~ao da massa de cada fase, em forma normalizada pela
+massa espec\'ifica, fornece
+\begin{equation}
+\boxed{\begin{aligned}
+B_w(\mathbf z)\frac{\partial\varepsilon_v(\mathbf u)}{\partial t}
+&+C_{ww}(\mathbf z)\frac{\partial p_w}{\partial t}
++C_{wa}(\mathbf z)\frac{\partial p_a}{\partial t}\\
+&+\frac{1}{\rho_w(p_w)}\Div\left[\rho_w(p_w)\mathbf q_w(\mathbf z)\right]=s_w.
+\end{aligned}}
+\end{equation}
+\begin{equation}
+\boxed{\begin{aligned}
+B_a(\mathbf z)\frac{\partial\varepsilon_v(\mathbf u)}{\partial t}
+&+C_{aw}(\mathbf z)\frac{\partial p_w}{\partial t}
++C_{aa}(\mathbf z)\frac{\partial p_a}{\partial t}\\
+&+\frac{1}{\rho_a(p_a)}\Div\left[\rho_a(p_a)\mathbf q_a(\mathbf z)\right]=s_a.
+\end{aligned}}
+\end{equation}
+Os termos $s_w$ e $s_a$ representam fontes de massa de fase divididas
+pela massa espec\'ifica correspondente (unidade $\mathrm{s}^{-1}$).
+
+\section{Fechamento da porosidade}
+
+Uma aproxima\c{c}\~ao poroel\'astica linearizada em torno do estado
+inicial, consistente com a forma saturada de Biot, \`e
+\begin{equation}
+\boxed{\begin{aligned}
+n(\mathbf z)={}&n_0+(\alpha_0-n_0)\varepsilon_v(\mathbf u)\\
+&+\frac{\alpha_0-n_0}{K_s}
+\left[p_B(p_w,p_a)-p_{B0}\right].
+\end{aligned}}
+\end{equation}
+Esse fechamento \`e v\'alido em primeira ordem, com $\alpha_0$ medido
+no estado de refer\^encia. Para varia\c{c}\~oes materiais expressivas,
+deve ser substitu\'ido por uma lei de evolu\c{c}\~ao da porosidade
+calibrada em ensaios de compressibilidade e trajet\'orias de suc\c{c}\~ao.
+
+\section{Sistema acoplado final}
+
+\begin{equation}
+\boxed{\begin{aligned}
+\Div\boldsymbol\sigma(\mathbf z)+\rho_b(\mathbf z)\mathbf g&=\mathbf0,\\[2pt]
+B_w(\mathbf z)\dot\varepsilon_v(\mathbf u)
++C_{ww}(\mathbf z)\dot p_w+C_{wa}(\mathbf z)\dot p_a
++\frac{1}{\rho_w(p_w)}\Div[\rho_w(p_w)\mathbf q_w(\mathbf z)]&=s_w,\\[2pt]
+B_a(\mathbf z)\dot\varepsilon_v(\mathbf u)
++C_{aw}(\mathbf z)\dot p_w+C_{aa}(\mathbf z)\dot p_a
++\frac{1}{\rho_a(p_a)}\Div[\rho_a(p_a)\mathbf q_a(\mathbf z)]&=s_a.
+\end{aligned}}
+\end{equation}
+As tr\^es equa\c{c}\~oes s\~ao resolvidas para $\mathbf u$, $p_w$
+e $p_a$. A porosidade e as satura\c{c}\~oes n\~ao s\~ao vari\'aveis
+prim\'arias independentes: s\~ao calculadas pelas rela\c{c}\~oes
+constitutivas declaradas acima.
+
+\section{Extens\~ao: reten\c{c}\~ao dependente da porosidade}
+
+Se a curva de reten\c{c}\~ao depender tamb\'em da porosidade, escreve-se
+\begin{equation}
+\boxed{S_w(\mathbf z)=\mathcal S\bigl(p_a-p_w,n(\mathbf z)\bigr),
+\qquad S_a(\mathbf z)=1-S_w(\mathbf z).}
+\end{equation}
+Nesse caso, todas as ocorr\^encias de $S_w(p_w,p_a)$ e
+$S_a(p_w,p_a)$ nas express\~oes anteriores devem ser substitu\'idas
+por $S_w(\mathbf z)$ e $S_a(\mathbf z)$. Definem-se as derivadas totais
+de estado
+\begin{align}
+\Gamma_{\varepsilon}(\mathbf z)
+&=\frac{\partial\mathcal S}{\partial n}
+\frac{\partial n(\mathbf z)}{\partial\varepsilon_v},\\
+\Gamma_w(\mathbf z)
+&=-\frac{\partial\mathcal S}{\partial p_c}
++\frac{\partial\mathcal S}{\partial n}
+\frac{\partial n(\mathbf z)}{\partial p_w},\\
+\Gamma_a(\mathbf z)
+&=\frac{\partial\mathcal S}{\partial p_c}
++\frac{\partial\mathcal S}{\partial n}
+\frac{\partial n(\mathbf z)}{\partial p_a}.
+\end{align}
+Os coeficientes modificados ficam
+\begin{equation}
+\boxed{\begin{aligned}
+B_w(\mathbf z)&=\alpha(n(\mathbf z))S_w(\mathbf z)
++D_w(\mathbf z)\Gamma_{\varepsilon}(\mathbf z),\\
+B_a(\mathbf z)&=\alpha(n(\mathbf z))S_a(\mathbf z)
++D_a(\mathbf z)\Gamma_{\varepsilon}(\mathbf z),\\
+C_{ww}(\mathbf z)&=\eta(\mathbf z)[S_w(\mathbf z)]^2
++\frac{n(\mathbf z)S_w(\mathbf z)}{K_w}
++D_w(\mathbf z)\Gamma_w(\mathbf z),\\
+C_{wa}(\mathbf z)&=\eta(\mathbf z)S_w(\mathbf z)S_a(\mathbf z)
++D_w(\mathbf z)\Gamma_a(\mathbf z),\\
+C_{aw}(\mathbf z)&=\eta(\mathbf z)S_a(\mathbf z)S_w(\mathbf z)
++D_a(\mathbf z)\Gamma_w(\mathbf z),\\
+C_{aa}(\mathbf z)&=\eta(\mathbf z)[S_a(\mathbf z)]^2
++\frac{n(\mathbf z)S_a(\mathbf z)}{K_a(p_a)}
++D_a(\mathbf z)\Gamma_a(\mathbf z).
+\end{aligned}}
+\end{equation}
+Se $n(\mathbf z)$ tamb\'em depender de $S_w(\mathbf z)$ por meio de
+$p_B$, o fechamento local \`e impl\'icito e suas derivadas devem ser
+calculadas consistentemente (por diferencia\c{c}\~ao impl\'icita).
+
+\section{Verifica\c{c}\~ao do limite saturado}
+
+Para $S_w=1$, $S_a=0$ e derivadas de satura\c{c}\~ao nulas,
+\begin{equation}
+B_w=\alpha,\qquad
+C_{ww}=\frac{\alpha-n}{K_s}+\frac{n}{K_w}=\frac1M,\qquad
+C_{wa}=0.
+\end{equation}
+A equa\c{c}\~ao da \`agua recupera
+\begin{equation}
+\boxed{\alpha\frac{\partial}{\partial t}(\Div\mathbf u)
++\frac1M\frac{\partial p_w}{\partial t}
+-\Div\left[\frac{\kappa(n)}{\mu_w}
+(\nabla p_w-\rho_w\mathbf g)\right]=s_w,}
+\end{equation}
+na aproxima\c{c}\~ao de pequena varia\c{c}\~ao espacial de
+$\rho_w$. Quando $S_a\to0$, a press\~ao do ar deixa de ser uma vari\'avel
+independente fisicamente definida: a implementa\c{c}\~ao deve tratar
+o desaparecimento da fase gasosa.
+
+\section{Discretização por elementos finitos}
+
+\subsection{Problema de valor de contorno}
+
+Seja $\Omega\subset\mathbb R^{2}$ (estado plano de deformação, espessura
+unitária) com contorno $\Gamma$. Para cada campo, o contorno se divide em
+partes de Dirichlet e de Neumann:
+\begin{equation}
+\Gamma=\Gamma_u\cup\Gamma_t,\qquad
+\Gamma=\Gamma_p^{\pi}\cup\Gamma_q^{\pi},\qquad \pi\in\{w,a\},
+\end{equation}
+\begin{equation}
+\boxed{\begin{aligned}
+\mathbf u&=\bar{\mathbf u}\ \text{em}\ \Gamma_u, &
+\boldsymbol\sigma\mathbf n&=\bar{\mathbf t}\ \text{em}\ \Gamma_t,\\
+p_\pi&=\bar p_\pi\ \text{em}\ \Gamma_p^{\pi}, &
+\mathbf q_\pi\cdot\mathbf n&=\bar q_\pi\ \text{em}\ \Gamma_q^{\pi},
+\end{aligned}}
+\end{equation}
+com $\mathbf n$ normal unitária externa e $\bar q_\pi>0$ indicando saída
+de fluido. As condições iniciais são $\mathbf u(\mathbf x,0)=\mathbf u_0$,
+$p_\pi(\mathbf x,0)=p_{\pi0}$, compatíveis com $\boldsymbol\sigma_0$ e
+$p_{B0}$.
+
+\subsection{Forma fraca}
+
+Sejam as funções-teste $\mathbf v\in\mathcal V_u$ e $w\in\mathcal V_p$,
+nulas em $\Gamma_u$ e $\Gamma_p^{\pi}$, respectivamente.
+
+\paragraph{Equilíbrio.} Multiplicando por $\mathbf v$ e integrando por partes:
+\begin{equation}
+\boxed{\int_\Omega\boldsymbol\varepsilon(\mathbf v):\boldsymbol\sigma(\mathbf z)\,\dd\Omega
+=\int_\Omega\mathbf v\cdot\rho_b(\mathbf z)\mathbf g\,\dd\Omega
++\int_{\Gamma_t}\mathbf v\cdot\bar{\mathbf t}\,\dd\Gamma.}
+\end{equation}
+
+\paragraph{Fases fluidas.} O termo de transporte é expandido como
+\begin{equation}
+\frac{1}{\rho_\pi}\Div(\rho_\pi\mathbf q_\pi)
+=\Div\mathbf q_\pi+c_\pi\,\mathbf q_\pi\cdot\nabla p_\pi,
+\qquad
+c_\pi=\frac{1}{\rho_\pi}\frac{\dd\rho_\pi}{\dd p_\pi},
+\end{equation}
+o que, pelas equações de estado da Seção~\ref{sec:fluidos}, dá
+\begin{equation}
+c_w=\frac{1}{K_w},\qquad c_a(p_a)=\frac{1}{p_a^{\mathrm{abs}}}.
+\end{equation}
+Integrando $\Div\mathbf q_\pi$ por partes, obtém-se, para $\pi\in\{w,a\}$:
+\begin{equation}
+\boxed{\begin{aligned}
+&\int_\Omega w\left[B_\pi\dot\varepsilon_v+C_{\pi w}\dot p_w+C_{\pi a}\dot p_a\right]\dd\Omega
+-\int_\Omega\nabla w\cdot\mathbf q_\pi\,\dd\Omega
++\int_\Omega w\,c_\pi\,\mathbf q_\pi\cdot\nabla p_\pi\,\dd\Omega\\
+&\qquad=\int_\Omega w\,s_\pi\,\dd\Omega-\int_{\Gamma_q^{\pi}}w\,\bar q_\pi\,\dd\Gamma .
+\end{aligned}}
+\end{equation}
+Com a lei de Darcy, $-\nabla w\cdot\mathbf q_\pi
+=\nabla w\cdot\lambda_\pi(\nabla p_\pi-\rho_\pi\mathbf g)$, em que
+\begin{equation}
+\boxed{\lambda_\pi(\mathbf z)=\frac{\kappa(n(\mathbf z))\,k_{r\pi}(S_\pi)}{\mu_\pi}
+\qquad[\mathrm{m^2/(Pa\,s)}].}
+\end{equation}
+
+\subsection{Aproximação espacial (Galerkin)}
+
+Em cada elemento $\Omega^e$, com $n_e$ nós,
+\begin{equation}
+\boxed{\mathbf u\approx\mathbf N_u\mathbf U^e,\qquad
+p_w\approx\mathbf N_p\mathbf P_w^e,\qquad
+p_a\approx\mathbf N_p\mathbf P_a^e,}
+\end{equation}
+\begin{equation}
+\boxed{\boldsymbol\varepsilon\approx\mathbf B_u\mathbf U^e,\qquad
+\varepsilon_v\approx\mathbf m^{\mathsf T}\mathbf B_u\mathbf U^e,\qquad
+\nabla p_\pi\approx\mathbf B_p\mathbf P_\pi^e.}
+\end{equation}
+Usa-se notação de Voigt em estado plano de deformação:
+\begin{equation}
+\boldsymbol\varepsilon=\begin{Bmatrix}\varepsilon_{xx}\\ \varepsilon_{yy}\\ \gamma_{xy}\end{Bmatrix},
+\qquad
+\boldsymbol\sigma=\begin{Bmatrix}\sigma_{xx}\\ \sigma_{yy}\\ \sigma_{xy}\end{Bmatrix},
+\qquad
+\mathbf m=\begin{Bmatrix}1\\1\\0\end{Bmatrix},
+\qquad
+\mathbf D_e=\begin{bmatrix}\lambda+2G&\lambda&0\\ \lambda&\lambda+2G&0\\ 0&0&G\end{bmatrix}.
+\end{equation}
+A lei constitutiva da Seção~\ref{sec:equilibrio} fica
+\begin{equation}
+\boxed{\boldsymbol\sigma(\mathbf z)=\boldsymbol\sigma_0+\mathbf D_e\mathbf B_u\mathbf U^e
+-\alpha(n(\mathbf z))\left[p_B(p_w,p_a)-p_{B0}\right]\mathbf m,}
+\end{equation}
+e, se necessário, $\sigma_{zz}=\sigma_{zz,0}+\lambda\varepsilon_v-\alpha(p_B-p_{B0})$
+é recuperada no pós-processamento. A forma explícita de $\mathbf N_u$,
+$\mathbf B_u$, $\mathbf N_p$ e $\mathbf B_p$ para os elementos Q4 e T3
+é dada na Seção~\ref{sec:matrizes}.
+
+Os vetores globais $\mathbf U$, $\mathbf P_w$ e $\mathbf P_a$ são obtidos
+pela montagem $\mathsf A_e$ das contribuições elementares, e
+\begin{equation}
+\mathbf X=\begin{Bmatrix}\mathbf U\\ \mathbf P_w\\ \mathbf P_a\end{Bmatrix}.
+\end{equation}
+
+\subsection{Matrizes e vetores elementares}
+
+Os coeficientes são avaliados nos pontos de integração, no estado atual.
+\begin{center}
+\renewcommand{\arraystretch}{1.6}
+\begin{tabular}{p{0.30\linewidth}p{0.55\linewidth}}
+\toprule
+Grandeza & Definição\\
+\midrule
+Rigidez tangente &
+$\mathbf K=\displaystyle\int_{\Omega^e}\mathbf B_u^{\mathsf T}\mathbf D_T\mathbf B_u\,\dd\Omega$\\
+Acoplamento $\mathbf u\leftarrow p_\pi$ &
+$\mathbf Q_{u\pi}=\displaystyle\int_{\Omega^e}\mathbf B_u^{\mathsf T}\mathbf m\,\alpha\,\chi_\pi\,\mathbf N_p\,\dd\Omega$\\
+Acoplamento $p_\pi\leftarrow\mathbf u$ &
+$\mathbf Q_{\pi u}=\displaystyle\int_{\Omega^e}\mathbf N_p^{\mathsf T}B_\pi\,\mathbf m^{\mathsf T}\mathbf B_u\,\dd\Omega$\\
+Armazenamento &
+$\mathbf C_{\pi\beta}=\displaystyle\int_{\Omega^e}\mathbf N_p^{\mathsf T}C_{\pi\beta}\mathbf N_p\,\dd\Omega$,\quad $\pi,\beta\in\{w,a\}$\\
+Condução (Darcy) &
+$\mathbf H_\pi=\displaystyle\int_{\Omega^e}\mathbf B_p^{\mathsf T}\lambda_\pi\mathbf B_p\,\dd\Omega$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Nessas expressões, $\chi_\pi=\partial p_B/\partial p_\pi$ são os
+coeficientes de Bishop \emph{tangentes}:
+\begin{equation}
+\boxed{\chi_w=S_w-\Gamma\,p_c,\qquad \chi_a=S_a+\Gamma\,p_c,\qquad \chi_w+\chi_a=1,}
+\end{equation}
+e a matriz constitutiva tangente é
+\begin{equation}
+\mathbf D_T=\mathbf D_e-(p_B-p_{B0})\,\frac{\dd\alpha}{\dd n}\frac{\partial n}{\partial\varepsilon_v}\,\mathbf m\mathbf m^{\mathsf T},
+\end{equation}
+que se reduz a $\mathbf D_e$ quando $\alpha=\alpha_0$ é constante.
+Como $B_\pi=\alpha S_\pi\neq\alpha\chi_\pi$ quando $\Gamma p_c\neq0$,
+o acoplamento é em geral não simétrico ($\mathbf Q_{\pi u}\neq\mathbf Q_{u\pi}^{\mathsf T}$);
+a simetria é recuperada no limite saturado.
+
+Os vetores de forças são
+\begin{align}
+\mathbf f_u&=\int_{\Omega^e}\mathbf N_u^{\mathsf T}\rho_b(\mathbf z)\mathbf g\,\dd\Omega
++\int_{\Gamma_t^e}\mathbf N_u^{\mathsf T}\bar{\mathbf t}\,\dd\Gamma,\\
+\mathbf f_\pi&=\int_{\Omega^e}\mathbf N_p^{\mathsf T}s_\pi\,\dd\Omega
++\int_{\Omega^e}\mathbf B_p^{\mathsf T}\lambda_\pi\rho_\pi\mathbf g\,\dd\Omega
+-\int_{\Gamma_q^{\pi,e}}\mathbf N_p^{\mathsf T}\bar q_\pi\,\dd\Gamma,
+\end{align}
+e o termo de variação espacial da massa específica é
+\begin{equation}
+\mathbf g_\pi=\int_{\Omega^e}\mathbf N_p^{\mathsf T}c_\pi\,\mathbf q_\pi\cdot\nabla p_\pi\,\dd\Omega
+=-\int_{\Omega^e}\mathbf N_p^{\mathsf T}c_\pi\lambda_\pi
+(\mathbf B_p\mathbf P_\pi-\rho_\pi\mathbf g)^{\mathsf T}\mathbf B_p\mathbf P_\pi\,\dd\Omega .
+\end{equation}
+Para a água, $c_w=1/K_w$ é tão pequeno que $\mathbf g_w$ costuma ser
+desprezado; para o ar, $\mathbf g_a$ deve ser mantido.
+
+\subsection{Sistema semidiscreto}
+
+Em forma de taxas (derivando o equilíbrio no tempo, com coeficientes
+congelados), o sistema global é
+\begin{equation}
+\boxed{
+\begin{bmatrix}\mathbf K&-\mathbf Q_{uw}&-\mathbf Q_{ua}\\
+\mathbf Q_{wu}&\mathbf C_{ww}&\mathbf C_{wa}\\
+\mathbf Q_{au}&\mathbf C_{aw}&\mathbf C_{aa}\end{bmatrix}
+\begin{Bmatrix}\dot{\mathbf U}\\ \dot{\mathbf P}_w\\ \dot{\mathbf P}_a\end{Bmatrix}
++\begin{bmatrix}\mathbf 0&\mathbf 0&\mathbf 0\\ \mathbf 0&\mathbf H_w&\mathbf 0\\ \mathbf 0&\mathbf 0&\mathbf H_a\end{bmatrix}
+\begin{Bmatrix}\mathbf U\\ \mathbf P_w\\ \mathbf P_a\end{Bmatrix}
+=\begin{Bmatrix}\dot{\mathbf f}_u\\ \mathbf f_w-\mathbf g_w\\ \mathbf f_a-\mathbf g_a\end{Bmatrix}.}
+\end{equation}
+De forma compacta, $\mathbf A\dot{\mathbf X}+\mathbf H\mathbf X=\mathbf F$.
+
+\subsection{Discretização temporal}
+
+Com o método $\theta$ ($\tfrac12\leq\theta\leq1$; recomenda-se $\theta=1$,
+Euler implícito, por robustez em problemas não saturados), para um passo
+$\Delta t=t_{n+1}-t_n$ e coeficientes constantes no passo:
+\begin{equation}
+\boxed{\left(\mathbf A+\theta\Delta t\,\mathbf H\right)\Delta\mathbf X
+=\begin{Bmatrix}\Delta\mathbf f_u\\ \Delta t\,(\mathbf f_w-\mathbf g_w)^{n+\theta}\\ \Delta t\,(\mathbf f_a-\mathbf g_a)^{n+\theta}\end{Bmatrix}
+-\Delta t\,\mathbf H\mathbf X^{n},
+\qquad \mathbf X^{n+1}=\mathbf X^{n}+\Delta\mathbf X.}
+\end{equation}
+
+\subsection{Resíduo não linear e Newton--Raphson}
+
+Como $S_\pi$, $k_{r\pi}$, $\kappa$, $n$, $\rho_\pi$, $\alpha$ e os coeficientes
+$B_\pi$, $C_{\pi\beta}$ dependem de $\mathbf z$, a forma mais geral é
+a do resíduo em $t_{n+1}$ (Euler implícito), com todas as grandezas
+avaliadas em $\mathbf z^{n+1}$:
+\begin{equation}
+\boxed{\mathbf R_u(\mathbf X^{n+1})=\mathsf A_e\!\left[
+\int_{\Omega^e}\mathbf B_u^{\mathsf T}\boldsymbol\sigma(\mathbf z^{n+1})\,\dd\Omega\right]
+-\mathbf f_u^{n+1}=\mathbf 0,}
+\end{equation}
+\begin{equation}
+\boxed{\begin{aligned}
+\mathbf R_\pi(\mathbf X^{n+1})=\mathsf A_e\Bigg[
+&\int_{\Omega^e}\mathbf N_p^{\mathsf T}\,
+\frac{B_\pi\,\Delta\varepsilon_v+C_{\pi w}\,\Delta p_w+C_{\pi a}\,\Delta p_a}{\Delta t}\,\dd\Omega\\
+&+\int_{\Omega^e}\mathbf B_p^{\mathsf T}\lambda_\pi\left(\nabla p_\pi-\rho_\pi\mathbf g\right)\dd\Omega
++\mathbf g_\pi\Bigg]
+-\mathbf f_\pi^{\,s,q}=\mathbf 0,
+\end{aligned}}
+\end{equation}
+em que $\Delta(\cdot)=(\cdot)^{n+1}-(\cdot)^n$ e $\mathbf f_\pi^{\,s,q}$
+contém apenas fontes e fluxos prescritos (a parcela gravitacional de
+$\mathbf f_\pi$ já está na segunda integral).
+
+A cada iteração $k$ resolve-se
+\begin{equation}
+\boxed{\mathbf J^{k}\,\delta\mathbf X=-\mathbf R^{k},\qquad
+\mathbf X^{k+1}=\mathbf X^{k}+\delta\mathbf X,}
+\end{equation}
+com o Jacobiano por blocos
+\begin{equation}
+\boxed{\mathbf J=\begin{bmatrix}
+\mathbf K-\mathbf G_{uu}&-\mathbf Q_{uw}-\mathbf G_{uw}&-\mathbf Q_{ua}-\mathbf G_{ua}\\[3pt]
+\tfrac{1}{\Delta t}\mathbf Q_{wu}&\tfrac{1}{\Delta t}\mathbf C_{ww}+\mathbf H_w+\tilde{\mathbf H}_{ww}&\tfrac{1}{\Delta t}\mathbf C_{wa}+\tilde{\mathbf H}_{wa}\\[3pt]
+\tfrac{1}{\Delta t}\mathbf Q_{au}&\tfrac{1}{\Delta t}\mathbf C_{aw}+\tilde{\mathbf H}_{aw}&\tfrac{1}{\Delta t}\mathbf C_{aa}+\mathbf H_a+\tilde{\mathbf H}_{aa}
+\end{bmatrix}.}
+\end{equation}
+Os blocos adicionais são:
+\begin{itemize}
+\item Peso próprio dependente do estado:
+\begin{equation}
+\mathbf G_{uu}=\int_{\Omega^e}\mathbf N_u^{\mathsf T}\mathbf g\,
+\frac{\partial\rho_b}{\partial\varepsilon_v}\,\mathbf m^{\mathsf T}\mathbf B_u\,\dd\Omega,\qquad
+\mathbf G_{u\pi}=\int_{\Omega^e}\mathbf N_u^{\mathsf T}\mathbf g\,
+\frac{\partial\rho_b}{\partial p_\pi}\,\mathbf N_p\,\dd\Omega .
+\end{equation}
+\item Variação da mobilidade e da massa específica com a pressão:
+\begin{equation}
+\tilde{\mathbf H}_{\pi\beta}=\int_{\Omega^e}\mathbf B_p^{\mathsf T}
+\left(\nabla p_\pi-\rho_\pi\mathbf g\right)\frac{\partial\lambda_\pi}{\partial p_\beta}\,\mathbf N_p\,\dd\Omega
+-\delta_{\pi\beta}\int_{\Omega^e}\mathbf B_p^{\mathsf T}\lambda_\pi\frac{\dd\rho_\pi}{\dd p_\pi}\mathbf g\,\mathbf N_p\,\dd\Omega
++\frac{\partial\mathbf g_\pi}{\partial\mathbf P_\beta},
+\end{equation}
+com
+\begin{equation}
+\frac{\partial\lambda_\pi}{\partial p_\beta}
+=\frac{\kappa}{\mu_\pi}\frac{\dd k_{r\pi}}{\dd S_\pi}\frac{\partial S_\pi}{\partial p_\beta}
++\frac{k_{r\pi}}{\mu_\pi}\frac{\dd\kappa}{\dd n}\frac{\partial n}{\partial p_\beta},
+\qquad
+\frac{\partial S_w}{\partial p_w}=-\frac{\partial S_w}{\partial p_a}=\Gamma,\quad
+\frac{\partial S_a}{\partial p_\beta}=-\frac{\partial S_w}{\partial p_\beta}.
+\end{equation}
+\item Derivadas dos coeficientes $B_\pi$ e $C_{\pi\beta}$ em relação a
+$\mathbf z$, multiplicadas pelos incrementos do passo. Elas se anulam
+quando $\Delta\mathbf X\to\mathbf 0$ e podem ser omitidas
+(Newton modificado) sem alterar a solução convergida.
+\end{itemize}
+Omitir $\mathbf G$ e $\tilde{\mathbf H}$ fornece a iteração de Picard, mais
+robusta longe da solução e de convergência linear; o Jacobiano completo
+fornece convergência quadrática próximo da solução. Uma estratégia usual
+é iniciar com Picard e passar a Newton quando $\|\mathbf R\|$ cair abaixo
+de uma tolerância intermediária.
+
+\subsection{Montagem e integração numérica}
+
+As integrais elementares são calculadas por quadratura de Gauss no elemento
+de referência:
+\begin{equation}
+\int_{\Omega^e}f\,\dd\Omega\approx\sum_{g=1}^{n_g}f(\boldsymbol\xi_g)\,\det\mathbf J(\boldsymbol\xi_g)\,W_g ,
+\end{equation}
+onde $\mathbf J$ é o Jacobiano da transformação isoparamétrica
+(Seção~\ref{sec:matrizes}). Em cada ponto de Gauss calculam-se, nesta ordem:
+$\varepsilon_v$, $p_w$, $p_a$, $p_c$, $S_w$, $\Gamma$, $p_B$, $n$, $\alpha$,
+$\eta$, $D_\pi$, $B_\pi$, $C_{\pi\beta}$, $\kappa$, $k_{r\pi}$, $\lambda_\pi$,
+$\rho_\pi$, $\rho_b$ e $\boldsymbol\sigma$. Os graus de liberdade elementares
+são ordenados como
+\begin{equation}
+\mathbf X^e=\begin{Bmatrix}\mathbf U^e\\ \mathbf P_w^e\\ \mathbf P_a^e\end{Bmatrix},
+\qquad
+\dim\mathbf X^e=2n_e+n_e+n_e=4n_e,
+\end{equation}
+isto é, 16 para o Q4 e 12 para o T3. As condições de Dirichlet são impostas
+diretamente nos graus de liberdade correspondentes; as de Neumann entram
+nos vetores $\mathbf f_u$ e $\mathbf f_\pi$.
+
+\subsection{Observações sobre estabilidade}
+
+\begin{itemize}
+\item \textbf{Condição inf-sup (LBB).} Interpolações de mesma ordem para
+$\mathbf u$ e $p_\pi$ (Q4/Q4, T3/T3) não satisfazem a condição LBB no
+limite não drenado ($\Delta t\,\lambda_\pi\to0$ e $C_{\pi\beta}\to0$), o que
+produz oscilações espúrias de pressão nos primeiros passos de tempo.
+Soluções usuais: elementos mistos Taylor--Hood (Q8/Q4, Q9/Q4, T6/T3) ou
+estabilização por projeção polinomial de pressão
+(Bochev--Dohrmann), que acrescenta ao bloco $\mathbf C_{\pi\pi}$ o termo
+\begin{equation}
+\mathbf S_\pi=\frac{\tau}{2G}\int_{\Omega^e}\left(\mathbf N_p-\bar{\mathbf N}_p\right)^{\mathsf T}\left(\mathbf N_p-\bar{\mathbf N}_p\right)\dd\Omega,
+\qquad \bar{\mathbf N}_p=\frac{1}{|\Omega^e|}\int_{\Omega^e}\mathbf N_p\,\dd\Omega,
+\end{equation}
+com $\tau=\mathcal O(1)$.
+\item \textbf{Concentração de armazenamento.} Diagonalizar $\mathbf C_{\pi\beta}$
+(\emph{mass lumping}) elimina oscilações não físicas em frentes de
+saturação abruptas e preserva a positividade de $S_w$.
+\item \textbf{Passo mínimo.} Para a matriz consistente, existe um passo de
+tempo mínimo abaixo do qual surgem oscilações:
+$\Delta t\gtrsim h^2/(6D)$, com $D$ a difusividade da fase e $h$ o tamanho
+do elemento.
+\item \textbf{Desaparecimento da fase gasosa.} Quando $S_a\to0$, $\mathbf H_a$
+e $\mathbf C_{aa}$ tendem a zero e o bloco do ar fica singular. Pode-se
+adotar uma mobilidade mínima $k_{ra}\geq k_{ra}^{\min}$, ou trocar a
+variável primária localmente (por exemplo, para $p_c$ ou $S_a$).
+\item \textbf{Escalonamento.} Multiplicar as linhas de fluido por $\Delta t$
+e adimensionalizar pressões por um valor de referência melhora o
+condicionamento de $\mathbf J$.
+\end{itemize}
+
+\subsection{Forma discreta do exemplo da barragem}
+
+No exemplo da Seção~\ref{sec:barragem} sobram apenas os graus de liberdade $\mathbf P_w$.
+Com Euler implícito,
+\begin{equation}
+\boxed{\left[\frac{1}{\Delta t}\mathbf M+\mathbf H(\mathbf P_w^{n+1})\right]\mathbf P_w^{n+1}
+=\frac{1}{\Delta t}\mathbf M\,\mathbf P_w^{n}+\mathbf f_g(\mathbf P_w^{n+1})-\mathbf f_q,}
+\end{equation}
+\begin{equation}
+\mathbf M=\int_\Omega\mathbf N_p^{\mathsf T}C_{ww,0}\mathbf N_p\,\dd\Omega,\qquad
+\mathbf H=\int_\Omega\mathbf B_p^{\mathsf T}\frac{k_w(p_w)}{\gamma_w}\mathbf B_p\,\dd\Omega,
+\end{equation}
+\begin{equation}
+\mathbf f_g=\int_\Omega\mathbf B_p^{\mathsf T}\frac{k_w(p_w)}{\gamma_w}\rho_w\mathbf g\,\dd\Omega
+=-\int_\Omega\mathbf B_p^{\mathsf T}k_w(p_w)\begin{Bmatrix}0\\1\end{Bmatrix}\dd\Omega,
+\qquad
+\mathbf f_q=\int_{\Gamma_q}\mathbf N_p^{\mathsf T}\bar q_w\,\dd\Gamma .
+\end{equation}
+A face de percolação é tratada por um conjunto ativo de nós: em cada
+iteração, nós com $p_w>0$ passam a ter $p_w=0$ imposto, e nós com
+$p_w=0$ imposto cuja reação nodal indica \emph{entrada} de água voltam a
+ser de fluxo nulo. O processo é repetido até que o conjunto ativo não se
+altere dentro do passo.
+
+\section{Funções de forma e matrizes para elementos lineares}
+\label{sec:matrizes}
+
+Considera-se estado plano de deformação, com dois graus de liberdade de
+deslocamento $(u_x,u_y)$ e um grau de liberdade de cada pressão por nó.
+Os vetores elementares de incógnitas são
+\begin{equation}
+\mathbf U^e=\begin{Bmatrix}u_{x1}&u_{y1}&u_{x2}&u_{y2}&\cdots&u_{xn_e}&u_{yn_e}\end{Bmatrix}^{\mathsf T},
+\qquad
+\mathbf P_\pi^e=\begin{Bmatrix}p_{\pi1}&p_{\pi2}&\cdots&p_{\pi n_e}\end{Bmatrix}^{\mathsf T}.
+\end{equation}
+Em ambos os elementos, $N_{i,x}=\partial N_i/\partial x$ e
+$N_{i,y}=\partial N_i/\partial y$.
+
+\subsection{Estrutura geral das matrizes}
+
+Para qualquer elemento de $n_e$ nós:
+\begin{equation}
+\boxed{\mathbf N_u=\begin{bmatrix}
+N_1&0&N_2&0&\cdots&N_{n_e}&0\\
+0&N_1&0&N_2&\cdots&0&N_{n_e}
+\end{bmatrix}_{2\times2n_e},}
+\end{equation}
+\begin{equation}
+\boxed{\mathbf B_u=\begin{bmatrix}
+N_{1,x}&0&N_{2,x}&0&\cdots&N_{n_e,x}&0\\
+0&N_{1,y}&0&N_{2,y}&\cdots&0&N_{n_e,y}\\
+N_{1,y}&N_{1,x}&N_{2,y}&N_{2,x}&\cdots&N_{n_e,y}&N_{n_e,x}
+\end{bmatrix}_{3\times2n_e},}
+\end{equation}
+\begin{equation}
+\boxed{\mathbf N_p=\begin{bmatrix}N_1&N_2&\cdots&N_{n_e}\end{bmatrix}_{1\times n_e},
+\qquad
+\mathbf B_p=\begin{bmatrix}
+N_{1,x}&N_{2,x}&\cdots&N_{n_e,x}\\
+N_{1,y}&N_{2,y}&\cdots&N_{n_e,y}
+\end{bmatrix}_{2\times n_e}.}
+\end{equation}
+Consequentemente,
+\begin{equation}
+\mathbf m^{\mathsf T}\mathbf B_u=\begin{bmatrix}N_{1,x}&N_{1,y}&N_{2,x}&N_{2,y}&\cdots&N_{n_e,x}&N_{n_e,y}\end{bmatrix}_{1\times2n_e},
+\end{equation}
+de modo que $\varepsilon_v=\mathbf m^{\mathsf T}\mathbf B_u\mathbf U^e=\Div\mathbf u$.
+
+\subsection{Quadrilátero bilinear (Q4)}
+
+Nós numerados no sentido anti-horário, com coordenadas físicas
+$(x_i,y_i)$, $i=1,\dots,4$, e coordenadas naturais
+\begin{equation}
+(\xi_i,\eta_i)\in\{(-1,-1),\,(1,-1),\,(1,1),\,(-1,1)\}.
+\end{equation}
+
+\paragraph{Funções de forma.}
+\begin{equation}
+\boxed{N_i(\xi,\eta)=\frac14(1+\xi_i\xi)(1+\eta_i\eta),}
+\end{equation}
+ou seja,
+\begin{align}
+N_1&=\tfrac14(1-\xi)(1-\eta), & N_2&=\tfrac14(1+\xi)(1-\eta),\\
+N_3&=\tfrac14(1+\xi)(1+\eta), & N_4&=\tfrac14(1-\xi)(1+\eta).
+\end{align}
+
+\paragraph{Derivadas naturais.}
+\begin{equation}
+\frac{\partial N_i}{\partial\xi}=\frac{\xi_i}{4}(1+\eta_i\eta),\qquad
+\frac{\partial N_i}{\partial\eta}=\frac{\eta_i}{4}(1+\xi_i\xi),
+\end{equation}
+\begin{equation}
+\begin{bmatrix}\partial\mathbf N/\partial\xi\\ \partial\mathbf N/\partial\eta\end{bmatrix}
+=\frac14\begin{bmatrix}
+-(1-\eta)&(1-\eta)&(1+\eta)&-(1+\eta)\\
+-(1-\xi)&-(1+\xi)&(1+\xi)&(1-\xi)
+\end{bmatrix}.
+\end{equation}
+
+\paragraph{Mapeamento isoparamétrico.} $x=\sum_iN_ix_i$, $y=\sum_iN_iy_i$, e
+\begin{equation}
+\boxed{\mathbf J=\begin{bmatrix}
+\dfrac{\partial x}{\partial\xi}&\dfrac{\partial y}{\partial\xi}\\[6pt]
+\dfrac{\partial x}{\partial\eta}&\dfrac{\partial y}{\partial\eta}
+\end{bmatrix}
+=\begin{bmatrix}\partial\mathbf N/\partial\xi\\ \partial\mathbf N/\partial\eta\end{bmatrix}
+\begin{bmatrix}x_1&y_1\\x_2&y_2\\x_3&y_3\\x_4&y_4\end{bmatrix},
+\qquad
+\begin{bmatrix}N_{i,x}\\ N_{i,y}\end{bmatrix}
+=\mathbf J^{-1}
+\begin{bmatrix}\partial N_i/\partial\xi\\ \partial N_i/\partial\eta\end{bmatrix}.}
+\end{equation}
+Explicitamente, com $\det\mathbf J=J_{11}J_{22}-J_{12}J_{21}>0$,
+\begin{equation}
+N_{i,x}=\frac{J_{22}\,N_{i,\xi}-J_{12}\,N_{i,\eta}}{\det\mathbf J},\qquad
+N_{i,y}=\frac{-J_{21}\,N_{i,\xi}+J_{11}\,N_{i,\eta}}{\det\mathbf J}.
+\end{equation}
+
+\paragraph{Matrizes do Q4.}
+\begin{equation}
+\boxed{\mathbf N_u=\begin{bmatrix}
+N_1&0&N_2&0&N_3&0&N_4&0\\
+0&N_1&0&N_2&0&N_3&0&N_4
+\end{bmatrix},}
+\end{equation}
+\begin{equation}
+\boxed{\mathbf B_u=\begin{bmatrix}
+N_{1,x}&0&N_{2,x}&0&N_{3,x}&0&N_{4,x}&0\\
+0&N_{1,y}&0&N_{2,y}&0&N_{3,y}&0&N_{4,y}\\
+N_{1,y}&N_{1,x}&N_{2,y}&N_{2,x}&N_{3,y}&N_{3,x}&N_{4,y}&N_{4,x}
+\end{bmatrix},}
+\end{equation}
+\begin{equation}
+\boxed{\mathbf N_p=\begin{bmatrix}N_1&N_2&N_3&N_4\end{bmatrix},\qquad
+\mathbf B_p=\begin{bmatrix}
+N_{1,x}&N_{2,x}&N_{3,x}&N_{4,x}\\
+N_{1,y}&N_{2,y}&N_{3,y}&N_{4,y}
+\end{bmatrix}.}
+\end{equation}
+As derivadas cartesianas variam dentro do elemento (são constantes apenas
+para paralelogramos), de modo que $\mathbf B_u$ e $\mathbf B_p$ devem ser
+recalculadas em cada ponto de Gauss.
+
+\paragraph{Integração.} Quadratura de Gauss $2\times2$:
+$\xi_g,\eta_g=\pm1/\sqrt3$, $W_g=1$, e $\dd\Omega=\det\mathbf J\,\dd\xi\,\dd\eta$.
+Ela integra exatamente $\mathbf K$, $\mathbf C_{\pi\beta}$, $\mathbf Q$ e
+$\mathbf H$ para coeficientes constantes em elementos retangulares.
+Para a matriz de armazenamento concentrada, usa-se
+\begin{equation}
+\mathbf C_{\pi\beta}^{L}=\operatorname{diag}\left(\int_{\Omega^e}C_{\pi\beta}N_i\,\dd\Omega\right),
+\end{equation}
+que, para $C_{\pi\beta}$ constante e retângulo de área $A$, vale
+$C_{\pi\beta}\,(A/4)\,\mathbf I_4$.
+
+\subsection{Triângulo linear (T3)}
+
+Nós $1,2,3$ no sentido anti-horário, com coordenadas $(x_i,y_i)$.
+A área do elemento é
+\begin{equation}
+2A=\det\begin{bmatrix}1&x_1&y_1\\1&x_2&y_2\\1&x_3&y_3\end{bmatrix}
+=(x_2-x_1)(y_3-y_1)-(x_3-x_1)(y_2-y_1)>0.
+\end{equation}
+
+\paragraph{Funções de forma (coordenadas de área).}
+\begin{equation}
+\boxed{N_i(x,y)=\frac{a_i+b_ix+c_iy}{2A},\qquad i=1,2,3,}
+\end{equation}
+com os coeficientes obtidos por permutação cíclica $(i,j,k)=(1,2,3),(2,3,1),(3,1,2)$:
+\begin{equation}
+\boxed{a_i=x_jy_k-x_ky_j,\qquad b_i=y_j-y_k,\qquad c_i=x_k-x_j.}
+\end{equation}
+Explicitamente,
+\begin{align}
+b_1&=y_2-y_3, & b_2&=y_3-y_1, & b_3&=y_1-y_2,\\
+c_1&=x_3-x_2, & c_2&=x_1-x_3, & c_3&=x_2-x_1.
+\end{align}
+Em coordenadas naturais $(\xi,\eta)$ do triângulo de referência,
+$N_1=1-\xi-\eta$, $N_2=\xi$, $N_3=\eta$, e $\det\mathbf J=2A$.
+
+\paragraph{Derivadas cartesianas (constantes no elemento).}
+\begin{equation}
+N_{i,x}=\frac{b_i}{2A},\qquad N_{i,y}=\frac{c_i}{2A}.
+\end{equation}
+
+\paragraph{Matrizes do T3.}
+\begin{equation}
+\boxed{\mathbf N_u=\begin{bmatrix}
+N_1&0&N_2&0&N_3&0\\
+0&N_1&0&N_2&0&N_3
+\end{bmatrix},}
+\end{equation}
+\begin{equation}
+\boxed{\mathbf B_u=\frac{1}{2A}\begin{bmatrix}
+b_1&0&b_2&0&b_3&0\\
+0&c_1&0&c_2&0&c_3\\
+c_1&b_1&c_2&b_2&c_3&b_3
+\end{bmatrix},}
+\end{equation}
+\begin{equation}
+\boxed{\mathbf N_p=\begin{bmatrix}N_1&N_2&N_3\end{bmatrix},\qquad
+\mathbf B_p=\frac{1}{2A}\begin{bmatrix}
+b_1&b_2&b_3\\
+c_1&c_2&c_3
+\end{bmatrix}.}
+\end{equation}
+Como $\mathbf B_u$ é constante, a deformação é constante no elemento
+(elemento CST), e
+\begin{equation}
+\mathbf m^{\mathsf T}\mathbf B_u=\frac{1}{2A}\begin{bmatrix}b_1&c_1&b_2&c_2&b_3&c_3\end{bmatrix}.
+\end{equation}
+
+\paragraph{Matrizes elementares em forma fechada.} Para coeficientes
+constantes no elemento (avaliados no centroide) e com
+\begin{equation}
+\int_{\Omega^e}N_i\,\dd\Omega=\frac A3,\qquad
+\int_{\Omega^e}N_iN_j\,\dd\Omega=\frac{A}{12}(1+\delta_{ij}),
+\end{equation}
+obtém-se
+\begin{align}
+\mathbf K&=A\,\mathbf B_u^{\mathsf T}\mathbf D_T\mathbf B_u, &
+\mathbf H_\pi&=A\,\lambda_\pi\,\mathbf B_p^{\mathsf T}\mathbf B_p,\\
+\mathbf Q_{u\pi}&=\frac A3\,\alpha\chi_\pi\,\mathbf B_u^{\mathsf T}\mathbf m
+\begin{bmatrix}1&1&1\end{bmatrix}, &
+\mathbf Q_{\pi u}&=\frac A3\,B_\pi
+\begin{Bmatrix}1\\1\\1\end{Bmatrix}\mathbf m^{\mathsf T}\mathbf B_u,\\
+\mathbf C_{\pi\beta}&=\frac{A}{12}\,C_{\pi\beta}
+\begin{bmatrix}2&1&1\\1&2&1\\1&1&2\end{bmatrix}, &
+\mathbf C_{\pi\beta}^{L}&=\frac A3\,C_{\pi\beta}\,\mathbf I_3,
+\end{align}
+e o vetor gravitacional de Darcy
+$\int_{\Omega^e}\mathbf B_p^{\mathsf T}\lambda_\pi\rho_\pi\mathbf g\,\dd\Omega
+=A\,\lambda_\pi\rho_\pi\,\mathbf B_p^{\mathsf T}\mathbf g$.
+
+\paragraph{Integração.} Para coeficientes não lineares, usa-se
+quadratura de 3 pontos interiores
+$(\xi_g,\eta_g)\in\{(\tfrac16,\tfrac16),(\tfrac23,\tfrac16),(\tfrac16,\tfrac23)\}$,
+$W_g=\tfrac16$, com $\dd\Omega=2A\,\dd\xi\,\dd\eta$. A quadratura de
+1 ponto (centroide, $W=\tfrac12$) é exata para $\mathbf K$, $\mathbf H_\pi$ e $\mathbf Q$
+com coeficientes constantes, mas não para $\mathbf C_{\pi\beta}$ consistente.
+
+\subsection{Cargas de superfície em uma aresta}
+
+Em uma aresta linear de comprimento $L_e$ entre os nós $i$ e $j$, com
+coordenada $s\in[0,L_e]$, as funções de forma restritas são
+$N_i=1-s/L_e$, $N_j=s/L_e$. Para $\bar{\mathbf t}$ e $\bar q_\pi$ constantes,
+\begin{equation}
+\int_{\Gamma^e}\mathbf N_u^{\mathsf T}\bar{\mathbf t}\,\dd\Gamma
+=\frac{L_e}{2}\begin{Bmatrix}\bar t_x\\ \bar t_y\\ \bar t_x\\ \bar t_y\end{Bmatrix},
+\qquad
+\int_{\Gamma^e}\mathbf N_p^{\mathsf T}\bar q_\pi\,\dd\Gamma
+=\frac{L_e}{2}\,\bar q_\pi\begin{Bmatrix}1\\1\end{Bmatrix},
+\end{equation}
+nas posições dos graus de liberdade dos nós $i$ e $j$. Essas expressões
+valem tanto para o Q4 quanto para o T3.
+
+\section{Par\^ametros e unidades}
+
+\begin{longtable}{>{\raggedright\arraybackslash}p{0.19\linewidth}
+                  >{\raggedright\arraybackslash}p{0.58\linewidth}
+                  >{\raggedright\arraybackslash}p{0.12\linewidth}}
+\toprule
+Vari\'avel & Nome & Unidade SI\\
+\midrule
+\endfirsthead
+\toprule
+Vari\'avel & Nome & Unidade SI\\
+\midrule
+\endhead
+$\mathbf u$ & Deslocamento do esqueleto & $\mathrm m$\\
+$p_w,p_a,p_c,p_B$ & Press\~oes da \`agua, do ar, capilar e equivalente & $\mathrm{Pa}$\\
+$\varepsilon_v$ & Deforma\c{c}\~ao volum\'etrica & --\\
+$n,n_0$ & Porosidade atual e inicial & --\\
+$S_w,S_a,S_e$ & Satura\c{c}\~oes e satura\c{c}\~ao efetiva & --\\
+$E_d,G,\lambda,K_d,K_s$ & M\'odulos el\'asticos drenados e dos gr\~aos & $\mathrm{Pa}$\\
+$\alpha$ & Coeficiente de Biot & --\\
+$K_w,K_a$ & M\'odulos volum\'etricos dos fluidos & $\mathrm{Pa}$\\
+$\kappa,\kappa_0$ & Permeabilidade intr\'inseca & $\mathrm{m^2}$\\
+$k_{rw},k_{ra}$ & Permeabilidades relativas & --\\
+$\mu_w,\mu_a$ & Viscosidades din\^amicas & $\mathrm{Pa\,s}$\\
+$\rho_s,\rho_w,\rho_a,\rho_b$ & Massas espec\'ificas & $\mathrm{kg/m^3}$\\
+$\mathbf g$ & Acelera\c{c}\~ao gravitacional & $\mathrm{m/s^2}$\\
+$\mathbf q_w,\mathbf q_a$ & Fluxos volum\'etricos de Darcy & $\mathrm{m/s}$\\
+$s_w,s_a$ & Fontes de massa normalizadas pela densidade & $\mathrm{s^{-1}}$\\
+$B_w,B_a$ & Acoplamentos com a taxa de deforma\c{c}\~ao volum\'etrica & --\\
+$C_{ww},C_{wa},C_{aw},C_{aa}$ & Coeficientes de armazenamento & $\mathrm{Pa^{-1}}$\\
+$\eta$ & Compressibilidade dos poros em deforma\c{c}\~ao imposta & $\mathrm{Pa^{-1}}$\\
+$D_w,D_a$ & Coeficientes associados \`a varia\c{c}\~ao de satura\c{c}\~ao & --\\
+$\Gamma,\Gamma_w,\Gamma_a$ & Derivadas de satura\c{c}\~ao em rela\c{c}\~ao \`a press\~ao & $\mathrm{Pa^{-1}}$\\
+$a_{\mathrm{VG}}$ & Par\^ametro de reten\c{c}\~ao de van Genuchten & $\mathrm{Pa^{-1}}$\\
+$b_{\mathrm{VG}},m_{\mathrm{VG}}$ & Expoentes de reten\c{c}\~ao de van Genuchten & --\\
+$S_{wr}$ & Satura\c{c}\~ao residual de \`agua & --\\
+\bottomrule
+\end{longtable}
+
+\section{Exemplo: percola\c{c}\~ao transiente em barragem de terra}\label{sec:barragem}
+
+O exemplo do Cap\'itulo 16 de Fredlund e Rahardjo (1993) considera
+o escoamento transiente de \`agua em uma barragem com regi\~oes
+saturadas e n\~ao saturadas. A eleva\c{c}\~ao do reservat\'orio ocorre
+instantaneamente, e a superf\'icie de sa\'ida da \`agua a jusante
+pode mudar durante a simula\c{c}\~ao.
+
+\subsection{Hip\'oteses e redu\c{c}\~ao do sistema geral}
+
+Adotam-se as seguintes simplifica\c{c}\~oes:
+\begin{itemize}
+\item Esqueleto indeform\'avel:
+$\mathbf u=\mathbf0$, $\varepsilon_v(\mathbf u)=0$ e
+$n(\mathbf u,p_w,p_a)=n_0$ constante.
+\item A press\~ao do ar permanece atmosf\'erica e uniforme:
+$p_a=0$ (manom\'etrica), $\partial p_a/\partial t=0$.
+\item A equa\c{c}\~ao de conserva\c{c}\~ao do ar e a equa\c{c}\~ao de
+equil\'ibrio mec\^anico n\~ao s\~ao resolvidas. A satura\c{c}\~ao da
+\`agua, por\'em, pode variar:
+$S_w(p_w)=S_w(p_w,p_a=0)$, no ramo de suc\c{c}\~ao positiva.
+\item A massa espec\'ifica da \`agua \`e aproximadamente constante
+\emph{no termo de transporte}, e n\~ao h\'a fontes volum\'etricas:
+$s_w=0$.
+\end{itemize}
+
+A equa\c{c}\~ao de Biot para a fase aquosa,
+\begin{equation}
+B_w(\mathbf z)\frac{\partial\varepsilon_v(\mathbf u)}{\partial t}
++C_{ww}(\mathbf z)\frac{\partial p_w}{\partial t}
++C_{wa}(\mathbf z)\frac{\partial p_a}{\partial t}
++\frac{1}{\rho_w(p_w)}\Div[\rho_w(p_w)\mathbf q_w(\mathbf z)]=s_w,
+\end{equation}
+reduz-se, portanto, a uma \emph{\'unica equa\c{c}\~ao em $p_w$}:
+\begin{equation}
+\boxed{C_{ww}(p_w)\frac{\partial p_w}{\partial t}
++\Div\mathbf q_w(p_w)=0.}
+\end{equation}
+
+\begin{center}
+\begin{tabular}{p{0.35\linewidth}p{0.54\linewidth}}
+\toprule
+Grandeza do sistema geral & Hip\'otese ou fun\c{c}\~ao no exemplo \\
+\midrule
+$\mathbf u$, $\varepsilon_v(\mathbf u)$ & Nulas; sem inc\'ognitas mec\^anicas.\\
+$n(\mathbf u,p_w,p_a)$ & $n_0$ constante.\\
+$p_a$ e equa\c{c}\~ao da fase gasosa & $p_a=0$; equa\c{c}\~ao eliminada.\\
+$B_w(\mathbf z)\dot\varepsilon_v$ & Nulo porque $\dot\varepsilon_v=0$.\\
+$C_{wa}(\mathbf z)\dot p_a$ & Nulo porque $\dot p_a=0$.\\
+$C_{ww}(\mathbf z)$ & $C_{ww}(p_w)$: armazenamento h\'idrico efetivo.\\
+$\kappa$, $k_{rw}$, $\mu_w$ & Incorporados na fun\c{c}\~ao medida $k_w(p_w)$.\\
+$\alpha$, $K_d$, $K_s$, $M$ & N\~ao aparecem separadamente na equa\c{c}\~ao reduzida.\\
+$S_w(p_w)$ & Satura\c{c}\~ao vari\'avel com a press\~ao de \`agua.\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Fun\c{c}\~oes constitutivas e dados do problema}
+
+A suc\c{c}\~ao e a condutividade hidr\'aulica s\~ao escritas sempre
+em fun\c{c}\~ao da press\~ao de \`agua:
+\begin{equation}
+\boxed{s(p_w)=\max(0,-p_w),\qquad
+k_w(p_w)=k_s\,k_{rw}(S_w(p_w)).}
+\end{equation}
+A \emph{curva experimental} de $k_w(p_w)$, mostrada na
+Figura 16.6 da refer\^encia, pode ser usada diretamente no lugar
+do produto $k_s k_{rw}(S_w(p_w))$. Sua express\~ao anal\'itica
+n\~ao \`e especificada no enunciado e precisa ser interpolada ou ajustada
+para a implementa\c{c}\~ao num\'erica. O valor saturado informado \`e
+\begin{equation}
+\boxed{k_s=1{,}0\times10^{-7}\ \mathrm{m/s}.}
+\end{equation}
+
+Com $\gamma_w=\rho_w g\simeq9{,}81\ \mathrm{kPa/m}$,
+a lei de Darcy equivalente \`a adotada no sistema geral \`e
+\begin{equation}
+\boxed{\mathbf q_w(p_w)=
+-\frac{k_w(p_w)}{\gamma_w}
+\left[\nabla p_w-\rho_w\mathbf g\right].}
+\end{equation}
+Aqui, $k_w(p_w)$ \`e a \emph{condutividade hidr\'aulica} em
+$\mathrm{m/s}$, enquanto $\kappa$ no modelo geral \`e a
+\emph{permeabilidade intr\'inseca} em $\mathrm{m^2}$. A correspond\^encia \`e
+\begin{equation}
+\boxed{\frac{k_w(p_w)}{\gamma_w}
+=\frac{\kappa(n_0)k_{rw}(S_w(p_w))}{\mu_w}.}
+\end{equation}
+
+Para porosidade constante e gr\~aos considerados incompress\'iveis,
+o coeficiente de armazenamento te\'orico pode ser escrito como
+\begin{equation}
+\boxed{C_{ww}(p_w)=
+n_0\frac{\dd S_w(p_w)}{\dd p_w}
++\frac{n_0S_w(p_w)}{K_w}.}
+\end{equation}
+No exemplo, em vez de fornecer a curva completa $S_w(p_w)$ e o m\'odulo
+$K_w$ para calcular essa express\~ao, especifica-se diretamente
+o valor aproximado do \emph{armazenamento efetivo}:
+\begin{equation}
+\boxed{C_{ww}(p_w)\simeq C_{ww,0}
+=1{,}0\times10^{-3}\ \mathrm{kPa^{-1}}.}
+\end{equation}
+Essa \`e uma prescri\c{c}\~ao constitutiva do exemplo. Em particular,
+na regi\~ao estritamente saturada, a combina\c{c}\~ao idealizada
+$S_w=1$, $K_w\to\infty$, $n=n_0$ implicaria $C_{ww}=0$;
+logo, um $C_{ww,0}>0$ nessa regi\~ao representa armazenamento
+efetivo n\~ao descrito pelo limite perfeitamente incompress\'ivel.
+
+\subsection{Equa\c{c}\~ao diferencial em press\~ao de \`agua}
+
+Substituindo Darcy no balan\c{c}o de massa:
+\begin{equation}
+\boxed{C_{ww}(p_w)\frac{\partial p_w}{\partial t}
+-\Div\left[\frac{k_w(p_w)}{\gamma_w}
+\left(\nabla p_w-\rho_w\mathbf g\right)\right]=0.}
+\end{equation}
+Em duas dimens\~oes, com $y$ positivo para cima e
+$\mathbf g=-g\mathbf e_y$, a equa\c{c}\~ao fica
+\begin{equation}
+\boxed{\begin{aligned}
+C_{ww}(p_w)\frac{\partial p_w}{\partial t}
+={}&\frac{\partial}{\partial x}\left[
+\frac{k_w(p_w)}{\gamma_w}\frac{\partial p_w}{\partial x}\right]\\
+&+\frac{\partial}{\partial y}\left[
+\frac{k_w(p_w)}{\gamma_w}
+\left(\frac{\partial p_w}{\partial y}+\gamma_w\right)\right].
+\end{aligned}}
+\end{equation}
+A difusividade hidr\'aulica associada \`a parte de press\~ao \`e
+\begin{equation}
+\boxed{D(p_w)=\frac{k_w(p_w)}{\gamma_w C_{ww}(p_w)}
+\qquad[\mathrm{m^2/s}].}
+\end{equation}
+Seu valor n\~ao \`e constante, pois a condutividade hidr\'aulica
+decresce acentuadamente com o aumento da suc\c{c}\~ao.
+
+\subsection{Condi\c{c}\~oes inicial e de contorno}
+
+Seja $y$ a cota vertical em metros, medida segundo a geometria da
+figura do problema. A press\~ao imposta na parte submersa da face
+de montante \`e
+\begin{equation}
+\boxed{p_w(y,t)=\gamma_w[H_r(t)-y],\qquad
+H_r(t)=\begin{cases}
+4\ \mathrm m,&\text{estado inicial},\\
+10\ \mathrm m,&t>0.
+\end{cases}}
+\end{equation}
+O estado inicial $p_w(\mathbf x,0^-)$ \`e a solu\c{c}\~ao estacion\'aria
+com o reservat\'orio a $4\ \mathrm m$. Em $t=0$ o n\'ivel \`e elevado
+instantaneamente a $10\ \mathrm m$ e mantido at\'e
+\begin{equation}
+\boxed{t_f=19\,656\ \mathrm h=819\ \mathrm{dias}.}
+\end{equation}
+Na base imperme\'avel, $\mathbf q_w(p_w)\cdot\mathbf n=0$.
+Nas regi\~oes da face jusante em contato com a atmosfera, a face
+de percola\c{c}\~ao \`e uma fronteira livre que pode ativar-se:
+\begin{equation}
+\boxed{p_w\leq0,\qquad
+\mathbf q_w(p_w)\cdot\mathbf n\geq0,\qquad
+p_w\,[\mathbf q_w(p_w)\cdot\mathbf n]=0.}
+\end{equation}
+Assim, a parte com sa\'ida efetiva tem $p_w=0$ e fluxo normal
+n\~ao negativo; a parte sem sa\'ida tem fluxo normal nulo.
+\emph{A ativa\c{c}\~ao dessa condi\c{c}\~ao de contorno \`e a principal
+n\~ao linearidade adicional \`a depend\^encia de $k_w(p_w)$},
+e exige um tratamento num\'erico consistente.
+
+\input{secoes_rahardjo}
+
+\input{secoes_literatura}
+
+\section*{Refer\^encias para as rela\c{c}\~oes constitutivas}
+
+\begin{itemize}
+\item Lo et al. (2014), \emph{Poroelastic Theory of Consolidation in Unsaturated Soils},
+\emph{Vadose Zone Journal}, DOI: \href{https://doi.org/10.2136/vzj2013.07.0117}{10.2136/vzj2013.07.0117}.
+\item Mualem (1976), \emph{A New Model for Predicting the Hydraulic Conductivity of Unsaturated Porous Media},
+\emph{Water Resources Research}, DOI: \href{https://doi.org/10.1029/WR012i003p00513}{10.1029/WR012i003p00513}.
+\item Rela\c{c}\~oes de reten\c{c}\~ao e permeabilidade relativa:
+\href{https://documentation.pflotran.org/theory_guide/constitutive_relations.html}{PFLOTRAN, Constitutive Relations}.
+\item Fredlund e Rahardjo (1993), \emph{Soil Mechanics for Unsaturated Soils},
+Cap\'itulo 16, exemplo de escoamento transiente em barragem de terra.
+\item Rahardjo, Ong, Rezaur e Leong (2007), \emph{Factors controlling instability of homogeneous soil slopes under
+rainfall}, \emph{J.\ Geotech.\ Geoenviron.\ Eng.} 133(12):1532--1543,
+DOI: \href{https://doi.org/10.1061/(ASCE)1090-0241(2007)133:12(1532)}{10.1061/(ASCE)1090-0241(2007)133:12(1532)}.
+\item Fredlund e Xing (1994), \emph{Equations for the soil-water characteristic curve}, \emph{Can.\ Geotech.\ J.}
+31:521--532.
+\item Leong e Rahardjo (1997), \emph{Permeability functions for unsaturated soils}, \emph{J.\ Geotech.\
+Geoenviron.\ Eng.} 123(12):1118--1126.
+\item Fredlund, Morgenstern e Widger (1978), \emph{The shear strength of unsaturated soils}, \emph{Can.\ Geotech.\
+J.} 15(3):313--321.
+\item Ceron, Cec\'ilio, Linn e Maghous (2025), \emph{Stability analysis of slope subjected to seepage forces
+considering spatial variability of soil properties}, \emph{Int.\ J.\ Numer.\ Anal.\ Methods Geomech.} 49(11).
+\item Ali, Huang, Lyamin, Sloan, Griffiths, Cassidy e Li (2014), \emph{Simplified quantitative risk assessment of
+rainfall-induced landslides modelled by infinite slopes}, \emph{Eng.\ Geol.} 179:102--116.
+\item Zhang, Fredlund, Fredlund e Wilson (2014), \emph{Modeling the unsaturated soil zone in slope stability analysis},
+\emph{Can.\ Geotech.\ J.} 51:1384--1398.
+\item Dou, Han, Gong, Qiu e Li (2015), \emph{Effects of the spatial variability of permeability on rainfall-induced
+landslides}, \emph{Eng.\ Geol.} 192:92--100.
+\item Tang, Huang, Sheng e Sloan (2018), \emph{Stability analysis of unsaturated soil slopes under random rainfall
+patterns}, \emph{Eng.\ Geol.} 245:322--332.
+\item Wang, Vardon e Hicks (2018), \emph{Rainfall-induced slope collapse with coupled material point method},
+\emph{Eng.\ Geol.} 239:1--12.
+\item Ran, Hong, Li e Gao (2018), \emph{A modelling study of rainfall-induced shallow landslide mechanisms under
+different rainfall characteristics}, \emph{J.\ Hydrol.} 563:790--801.
+\item Liu e Wang (2021), \emph{Probabilistic simulation of entire process of rainfall-induced landslides using random
+finite element and material point methods with hydro-mechanical coupling}, \emph{Comput.\ Geotech.} 132:103989.
+\item Wang, Idinger e Wu (2021), \emph{Centrifuge modelling of rainfall-induced slope failure in variably saturated
+soil}, \emph{Acta Geotech.} 16:2899--2916.
+\item Pradhan, Toll, Rosser e Brain (2022), \emph{An investigation of the combined effect of rainfall and road cut on
+landsliding}, \emph{Eng.\ Geol.} 307:106787.
+\end{itemize}
+
+\end{document}

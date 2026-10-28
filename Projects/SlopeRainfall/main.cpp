@@ -33,6 +33,9 @@
 //   regime=<q mm/h>           initial state: steady infiltration q (pseudo-transient up to the steady state)
 //   alagado=0                 1: surface ponded (p_w = 0) while it rains (I -> infinity)
 //   dtmax=<h>                 time steps growing (x 1.25) up to dtmax (default: the steps of the article)
+//   dtchuva=0.25              time step during the rain (h)
+//   mecanica=1                0 (with acoplado=0): the transient solves only the seepage (displacements fixed; the
+//                             FS analyses solve the mechanics from the stress-free state with the pressures frozen)
 // Outputs in <out>: fs.csv, hist.csv, snaps_pw.csv, snaps_pa.csv, vertices.csv, triangles.csv, outline.csv,
 //                   summary.txt (and vtk/ if vtk=1). Figures and animations: scripts/*.py and mma/*.wl.
 #include "UnsatSlope.h"
@@ -70,8 +73,9 @@ struct Case {
     std::vector<std::pair<REAL, REAL>> na; ///< water table polyline
     bool lateral = true, basena = false;
     std::string chuva, padrao = "uniforme";
-    REAL evap = 0., psimin = 1.e30, regime = -1., dtmax = -1.;
+    REAL evap = 0., psimin = 1.e30, regime = -1., dtmax = -1., dtchuva = 0.25;
     bool alagado = false;
+    bool mecanica = true; ///< false (uncoupled only): displacements fixed in the transient, only the seepage is solved
 };
 
 /// Geometry of Fig. 2: crest at y = 3 Hs from x = 0 to xb, toe at y = 2 Hs from xc to L
@@ -554,7 +558,7 @@ private:
             const bool rain = fRain.Raining(t);
             REAL dt;
             if (fCase.dtmax > 0.) dt = dtprev <= 0. ? 0.25 : std::min(1.25 * dtprev, fCase.dtmax);
-            else dt = rain ? 0.25 : (t < fRain.LastRainEnd(t) + 24. - 1.e-9 ? 1. : 4.);
+            else dt = rain ? fCase.dtchuva : (t < fRain.LastRainEnd(t) + 24. - 1.e-9 ? 1. : 4.);
             dt = std::min(dt, fCase.ttotal - t);
             for (REAL b : breaks)
                 if (b > t + 1.e-9) {
@@ -568,11 +572,11 @@ private:
         return steps;
     }
 
-    /// Steady infiltration q (mm/h) from the current state: pseudo-time steps doubling from 1 h until the largest
+    /// Steady infiltration q (mm/h) from the current state: pseudo-time steps doubling from 24 h until the largest
     /// change of p_w is below 1e-3 kPa
     bool SteadyInfiltration(REAL q) {
         const REAL rate = q / 1000. / HOUR;
-        REAL dt = 1.;
+        REAL dt = 24.;
         for (int k = 0; k < 60; ++k) {
             const TPZFMatrix<STATE> x0(fAn->X());
             if (!Advance(dt * HOUR, rate, false, 0, 6)) return false;
@@ -742,6 +746,10 @@ void RainfallSlope::Run() {
     fAn->ResetDisplacements();
     fAn->SetGravityFactor(1.);
     fAn->Accept();
+    // uncoupled seepage without the transient mechanics: all the displacement equations fixed
+    if (!fCase.acoplado && !fCase.mecanica)
+        for (int64_t i = 0; i < fAn->NEq(); ++i)
+            if (!fAn->IsPressure(i)) fFixed[i] = X.GetVal(i, 0);
     // initial steady infiltration (Pradhan et al. 2022: 3.3e-8 m/s for five years)
     if (fCase.regime >= 0.) {
         if (!SteadyInfiltration(fCase.regime)) std::cout << fCase.out << ": steady infiltration did not converge\n";
@@ -846,6 +854,8 @@ void RainfallSlope::Run() {
     if (fCase.regime >= 0.) sum << "regime " << fCase.regime << "\n";
     if (fCase.alagado) sum << "alagado 1\n";
     if (fCase.dtmax > 0.) sum << "dtmax " << fCase.dtmax << "\n";
+    if (fCase.dtchuva != 0.25) sum << "dtchuva " << fCase.dtchuva << "\n";
+    if (!fCase.mecanica) sum << "mecanica 0\n";
     if (!fCase.na.empty()) sum << "na_pontos " << fCase.na.size() << "\n";
     if (!fCase.lateral) sum << "lateral 0\n";
     if (fCase.basena) sum << "basena 1\n";
@@ -903,6 +913,8 @@ int main(int argc, char *argv[]) {
         else if (is("regime=")) c.regime = std::atof(val("regime="));
         else if (is("alagado=")) c.alagado = std::atoi(val("alagado="));
         else if (is("dtmax=")) c.dtmax = std::atof(val("dtmax="));
+        else if (is("dtchuva=")) c.dtchuva = std::atof(val("dtchuva="));
+        else if (is("mecanica=")) c.mecanica = std::atoi(val("mecanica="));
         else {
             const char *e = std::strchr(a, '=');
             UnsatParams test;

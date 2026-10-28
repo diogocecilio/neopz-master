@@ -445,6 +445,36 @@ com ar ativo seria um contraexemplo direto. N\~ao requer c\'odigo novo.
 verificando se a sigmoide se desloca com $k_y$, com a condutividade normal \`a superf\'icie, com a condutividade ao
 longo da face ou com $\sqrt{k_1k_2}$. N\~ao requer c\'odigo novo ($\approx20$ casos).
 
+\textbf{Resultado} (modelo do artigo: desacoplado, $p_a=0$; $f_{50}$, $\alpha=45^\circ$, $k_1=10^{-4}$ e
+$k_2=10^{-5}$~m/s; a face desce a $-45^\circ$, logo $\theta=135^\circ$ \'e a dire\c{c}\~ao da face):
+
+\begin{table}[h!]
+\centering\small
+\caption{A3: FS m\'inimo (SRM) com o tensor girado. $^*$Percola\c{c}\~ao interrompida \`as 13--24~h.}\label{tab:A3}
+\begin{tabular}{lccccccc}
+\toprule
+$I_r$ (mm/h) & 9 & 18 & 36 & 54 & 90 & 180 & 360$^*$\\
+\midrule
+isotr\'opico $10^{-5}$ & 1,85 & 1,61 & 1,18 & 0,97 & 0,85 & 0,84 & --\\
+$\theta=0^\circ$ & 1,79 & 1,59 & 1,24 & 1,08 & 1,05 & 1,05 & 1,06\\
+$\theta=45^\circ$ & 1,86 & 1,63 & 1,35 & 1,19 & 0,92 & 0,87 & 0,87\\
+$\theta=135^\circ$ & 1,94 & 1,69 & 1,15 & 0,96 & \textbf{0,65} & \textbf{0,63} & 0,63\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+O patamar inferior da Eq.~6 n\~ao \'e uma propriedade do solo: com o mesmo $k$ m\'edio ele vai de 0,63 a 1,05 apenas
+pela orienta\c{c}\~ao do tensor (Fig.~\ref{fig:A3}). Com a dire\c{c}\~ao mais perme\'avel paralela \`a face a \'agua
+infiltrada pela crista escoa paralela \`a face e o FS fica 0,2 abaixo do isotr\'opico; com estratifica\c{c}\~ao
+horizontal fica 0,2 acima. Nas chuvas fracas a ordem se inverte (a anisotropia drena a \'agua). No modelo acoplado
+(Tabela~\ref{tab:rot}) o pior caso era $\theta=0$: o patamar FS $\approx1$ do modelo acoplado mascara a diferen\c{c}a.
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.62\textwidth]{figuras/contra_A3_anisotropia.png}
+\caption{A3: FS m\'inimo $\times$ $I_r$ com o tensor de permeabilidades girado.}\label{fig:A3}
+\end{figure}
+
 \subsection{A4. ``O len\c{c}ol fre\'atico inicial \'e secund\'ario'': efeito do limite de suc\c{c}\~ao}
 
 \textbf{Conclus\~ao do artigo:} $H_w$ s\'o define o FS inicial; o pr\'oprio artigo nota que o FS inicial deixa de
@@ -453,6 +483,33 @@ crescer acima de $H_w=7{,}5$~m por causa do limite de $-75$~kPa (Fig.~8).
 \textbf{Teste:} S\'erie C com suc\c{c}\~ao inicial limitada a 75, 150 e 300~kPa e sem limite. Se a queda de FS
 (FS inicial $-$ FS m\'inimo) passar a depender fortemente de $H_w$, o car\'ater ``secund\'ario'' do NA \'e artefato do
 limite. \emph{Requer} tornar o limite (\texttt{SMAX}) um par\^ametro.
+
+\textbf{Resultado} (Tabela~\ref{tab:A4}, Fig.~\ref{fig:A4}): o limite de 75~kPa s\'o pesa com NA profundo
+($H_w\ge7{,}5$~m). O FS inicial chega a $+51\%$ ($H_w=15$~m), mas o FS m\'inimo ganha bem menos, porque a queda
+causada pela chuva cresce com a suc\c{c}\~ao inicial (com 36~mm/h: 1,03 com 75~kPa, 1,62--1,93 com 150--300~kPa). O efeito
+n\~ao \'e monot\^onico: com $H_w=10$~m e 9~mm/h, 300~kPa d\'a o mesmo FS inicial que 150~kPa (2,92 e 2,91) e um FS
+m\'inimo menor (2,36 contra 2,51) --- come\c{c}ar mais seco nem sempre \'e mais seguro. Com uma lei $\chi(s)$ que
+satura (Vanapalli, Bao; Se\c{c}\~ao~\ref{sec:literatura}) boa parte do ganho de FS inicial desapareceria.
+
+\begin{table}[h!]
+\centering\small
+\caption{A4: FS inicial e m\'inimo com $s_{\max}=75/150/300$~kPa ($f_{50}$, $\alpha=45^\circ$).}\label{tab:A4}
+\begin{tabular}{lccccc}
+\toprule
+$H_w$ (m) & 2,5 & 5 & 7,5 & 10 & 15\\
+\midrule
+FS inicial & 1,80/1,83/1,83 & 2,12/2,20/2,20 & 2,35/2,56/2,56 & 2,40/2,91/2,92 & 2,40/3,45/3,63\\
+FS m\'in., 9~mm/h & 1,47/1,49/1,49 & 1,86/1,82/1,82 & 2,08/2,11/2,23 & 2,23/2,51/2,36 & 2,35/2,48/2,81\\
+FS m\'in., 36~mm/h & 0,95/0,98/0,98 & 1,17/1,22/1,22 & 1,39/1,43/1,44 & 1,41/1,48/1,52 & 1,54/1,83/1,70\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\textwidth]{figuras/contra_A4_succao.png}
+\caption{A4: FS inicial e m\'inimo e queda do FS em fun\c{c}\~ao de $H_w$ para tr\^es limites de suc\c{c}\~ao.}\label{fig:A4}
+\end{figure}
 
 \subsection{A5. ``O FS m\'inimo \'e linear em $\alpha$ com inclina\c{c}\~ao quase constante''}
 
@@ -464,6 +521,18 @@ limite. \emph{Requer} tornar o limite (\texttt{SMAX}) um par\^ametro.
 \textbf{Teste:} $\alpha$ de $20^\circ$ a $70^\circ$ a cada $5^\circ$ para os nove pares solo--chuva, observando
 tamb\'em a profundidade do mecanismo (zona pl\'astica rasa $\times$ profunda). N\~ao requer c\'odigo novo.
 
+\textbf{Resultado} (modelo do artigo; Fig.~\ref{fig:A5}): o FS m\'inimo cai de forma monot\^onica e quase linear com
+$\alpha$ nos tr\^es pares rodados ($f_{10}$ com 80~mm/h: 1,67 a $20^\circ$ $\to$ 0,89 a $70^\circ$; $f_{50}$ com
+36~mm/h: 1,64 $\to$ 0,89; $f_{100}$ com 9~mm/h: 2,37 $\to$ 1,17), numa faixa compar\'avel \`a do tipo de solo: a
+geometria n\~ao \'e ``secund\'aria'' para o FS m\'inimo. A queda causada pela chuva (FS inicial $-$ FS m\'inimo)
+diminui com $\alpha$ nos solos perme\'aveis (1,13 $\to$ 0,77) e \'e quase constante no $f_{100}$ (0,43--0,49).
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\textwidth]{figuras/contra_A5_angulo.png}
+\caption{A5: FS m\'inimo e sua inclina\c{c}\~ao local em fun\c{c}\~ao de $\alpha$ (pontilhado: Tabela~7 do artigo).}\label{fig:A5}
+\end{figure}
+
 \subsection{A6. Intensidade ou volume?}
 
 \textbf{Conclus\~ao do artigo:} $I_r=1k_s$ n\~ao produz necessariamente o menor FS; o volume $V_r$ \'e citado, mas
@@ -472,6 +541,36 @@ todas as chuvas t\^em 24~h.
 \textbf{Teste:} chuvas com o mesmo volume e dura\c{c}\~oes de 3, 6, 24 e 72~h. Se o FS m\'inimo depender s\'o do volume
 para solos de alto $k_s$ e s\'o da intensidade para solos de baixo $k_s$, a conclus\~ao precisa ser reformulada. N\~ao
 requer c\'odigo novo (par\^ametro \texttt{train}).
+
+\textbf{Resultado} (864~mm em 3, 6, 12, 24 e 72~h; Tabela~\ref{tab:A6}, Fig.~\ref{fig:A6}): a dura\c{c}\~ao cr\'itica
+de um volume $V$ \'e
+\begin{equation}
+t^*\approx V/k_s\qquad(I_r\approx k_s),\label{eq:tcrit}
+\end{equation}
+isto \'e, 2,4~h no $f_{10}$ (a mais curta testada), 24~h no $f_{50}$ e 240~h no $f_{100}$ (a mais longa testada). Nem
+``chuva curta e intensa'' nem ``chuva longa'' \'e o pior caso em geral: a regra $I_r\approx k_s$ do artigo reescrita
+em volume. No $f_{50}$ a infiltra\c{c}\~ao vai de 22~m$^3$/m (3~h) a 56~m$^3$/m (72~h); no $f_{10}$ tudo infiltra.
+
+\begin{table}[h!]
+\centering\small
+\caption{A6: FS m\'inimo com o mesmo volume (864~mm) em dura\c{c}\~oes diferentes.}\label{tab:A6}
+\begin{tabular}{lccccc}
+\toprule
+dura\c{c}\~ao (h) & 3 & 6 & 12 & 24 & 72\\
+$I_r$ (mm/h) & 288 & 144 & 72 & 36 & 12\\
+\midrule
+$f_{10}$ ($k_s=360$~mm/h) & \textbf{1,32} & 1,38 & 1,47 & 1,52 & 1,78\\
+$f_{50}$ ($k_s=36$~mm/h) & 1,58 & 1,37 & 1,22 & \textbf{1,17} & 1,19\\
+$f_{100}$ ($k_s=3{,}6$~mm/h) & 1,93 & 1,84 & 1,70 & 1,48 & \textbf{1,15}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\textwidth]{figuras/contra_A6_volume.png}
+\caption{A6: FS m\'inimo e volume infiltrado em fun\c{c}\~ao da dura\c{c}\~ao, com o mesmo volume de chuva.}\label{fig:A6}
+\end{figure}
 
 %======================================================================
 \section{Novas dire\c{c}\~oes}\label{sec:direcoes}

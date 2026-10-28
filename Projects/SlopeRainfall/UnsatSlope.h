@@ -386,7 +386,9 @@ public:
                 if (fIsP[i]) lastdp = std::max(lastdp, std::fabs(dx.GetVal(i, 0)));
             const REAL mref = normp;
             REAL lam = 1.;
-            const bool ls = linesearch > 0 && dt > 0. && !frozen;
+            // no line search once the pressure correction is below the tolerance (at a steady state the residual
+            // is at the round-off level and cannot decrease)
+            const bool ls = linesearch > 0 && dt > 0. && !frozen && lastdp >= fTolP;
             for (int k = 0;; ++k) {
                 TPZFMatrix<STATE> xt(x);
                 for (int64_t i = 0; i < neq; ++i) xt(i, 0) += lam * dx.GetVal(i, 0);
