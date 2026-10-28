@@ -66,3 +66,21 @@ cd ~/projects/runs
 Logs em `lote_A1.log` e `lote_A2.log`. Um lote que já está rodando não é lançado de novo e os casos com
 `summary.txt` são pulados: se a máquina for desligada, basta repetir o `rodar`. O total é de ≈ 4–5 h com 8 núcleos
 (o A1 é o mais longo).
+
+## 6. Benchmarks (Zhang, Tang, Pradhan) e patamar inferior do FS
+
+`scripts/rodar_benchmarks.py` roda os 28 casos (zhang 8, patamar 6, tang 12, pradhan 2), os mais longos primeiro, um
+núcleo por caso, e pula os que já têm `summary.txt` (depois de uma interrupção basta repetir o `rodar`). Na pasta dos
+resultados:
+```
+cd ~/projects/runs
+cmake --build <build> --target SlopeRainfall -j 8
+S=<neopz>/Projects/SlopeRainfall/scripts
+nohup python3 $S/rodar_benchmarks.py rodar --exe <build>/Projects/SlopeRainfall/SlopeRainfall --jobs 8 > benchmarks.log 2>&1 &
+python3 $S/rodar_benchmarks.py status                                  # prontos e em execução, por grupo
+python3 $S/benchmarks.py --runs benchmarks --figuras figuras           # figuras e tabelas
+zip -qr benchmarks.zip benchmarks                                      # no fim: para anexar
+```
+Para rodar só alguns grupos: `... rodar --exe ... pradhan patamar`; `lista` mostra os comandos de cada caso. Os mais
+longos são os dois casos de Pradhan (271 h de chuva em malhas de ≈ 6200 triângulos) e o patamar `f100_iso`
+(6144 h de superfície alagada).
