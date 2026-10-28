@@ -18,6 +18,9 @@ Depois: python figuras.py --serie todas ; python animacao.py resultados/B/f50_a4
 import argparse
 import os
 import subprocess
+
+# um caso por núcleo: o MKL (Pardiso) e o OpenMP/TBB não devem abrir threads em todos os núcleos em cada processo
+ENV1 = dict(os.environ, MKL_NUM_THREADS="1", OMP_NUM_THREADS="1", MKL_DYNAMIC="FALSE", TBB_NUM_THREADS="1")
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -113,7 +116,7 @@ def main():
         out, args = t
         t0 = time.time()
         with open(os.path.join(out, "log.txt"), "w") as log:
-            r = subprocess.run(args, stdout=log, stderr=subprocess.STDOUT)
+            r = subprocess.run(args, stdout=log, stderr=subprocess.STDOUT, env=ENV1)
         return out, r.returncode, (time.time() - t0) / 60
 
     falhas = []

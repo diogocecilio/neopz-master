@@ -16,6 +16,9 @@ Uso:
 import argparse
 import os
 import subprocess
+
+# um caso por núcleo: o MKL (Pardiso) e o OpenMP/TBB não devem abrir threads em todos os núcleos em cada processo
+ENV1 = dict(os.environ, MKL_NUM_THREADS="1", OMP_NUM_THREADS="1", MKL_DYNAMIC="FALSE", TBB_NUM_THREADS="1")
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import numpy as np
@@ -68,7 +71,7 @@ def rodar(a):
     def roda(t):
         _, out, args = t
         with open(os.path.join(out, "log.txt"), "w") as log:
-            return out, subprocess.run(args, stdout=log, stderr=subprocess.STDOUT).returncode
+            return out, subprocess.run(args, stdout=log, stderr=subprocess.STDOUT, env=ENV1).returncode
 
     with ThreadPoolExecutor(max_workers=a.jobs) as ex:
         for f in as_completed([ex.submit(roda, t) for t in tarefas]):
