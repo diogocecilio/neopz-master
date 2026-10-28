@@ -49,7 +49,8 @@ using TUnsat = TPZMatUnsaturatedUPwPa<TMC, TPZUnsaturatedMem>;
 /// Boundary ids of the mesh (gmsh physical groups 1..6, scripts/malha_talude.py)
 enum EBoundary { EBase = -1, ELeft = -2, ERight = -3, ECrest = -4, EFace = -5, EToe = -6 };
 
-/// Reads a gmsh 2.2 ASCII mesh of linear triangles (type 2, material 1) and lines (type 1, material -physical tag)
+/// Reads a gmsh 2.2 ASCII mesh of linear triangles (type 2, material = physical tag > 0: soil layer) and lines
+/// (type 1, material -physical tag)
 inline TPZGeoMesh *ReadMsh(const std::string &file) {
     std::ifstream in(file);
     if (!in) {
@@ -94,7 +95,8 @@ inline TPZGeoMesh *ReadMsh(const std::string &file) {
                                      (c.Coord(0) - a.Coord(0)) * (b.Coord(1) - a.Coord(1));
                     if (det < 0.) std::swap(nodes[1], nodes[2]);
                     TPZManVector<int64_t, 3> nn = {nodes[0], nodes[1], nodes[2]};
-                    new TPZGeoElRefPattern<pzgeom::TPZGeoTriangle>(nn, 1, *gmesh);
+                    new TPZGeoElRefPattern<pzgeom::TPZGeoTriangle>(nn, ntag > 0 && tags[0] > 0 ? int(tags[0]) : 1,
+                                                                    *gmesh);
                 } else if (type == 1) {
                     TPZManVector<int64_t, 2> nn = {nodes[0], nodes[1]};
                     new TPZGeoElRefPattern<pzgeom::TPZGeoLinear>(nn, -int(tags[0]), *gmesh);
@@ -110,6 +112,7 @@ inline TPZGeoMesh *ReadMsh(const std::string &file) {
 struct UnsatParams {
     REAL E = 2.e4, nu = 0.3, phi = 26. * M_PI / 180., psi = 26. * M_PI / 180., c = 10., gamma = 20.;
     REAL chi = 1.; ///< phi^b = phi'
+    TUnsat::EBishop bishop = TUnsat::EChiConstant; ///< chi constant (on the suction), chi = S_w or chi = S_e
     REAL n = 0.45, Kw = 2.2e6, gw = 9.81, ga = 1.2 * 9.81e-3, muRatio = 1.e-3 / 1.8e-5, patm = 101.325;
     REAL ks = 1.e-5; ///< saturated conductivity (m/s)
     /// anisotropic conductivity (m/s): principal values k_x (direction at theta from the x axis) and k_y; <= 0: k_s
@@ -145,14 +148,27 @@ inline TMC MohrCoulomb(const UnsatParams &p) {
 #endif
 }
 
-/// H1 atomic space with a null material on the domain and on all the boundaries
+/// Material ids (> 0) of the triangles of the mesh: the soil layers
+inline std::set<int> DomainIds(TPZGeoMesh *gmesh) {
+    std::set<int> ids;
+    for (int64_t i = 0; i < gmesh->NElements(); ++i) {
+        TPZGeoEl *gel = gmesh->Element(i);
+        if (gel && gel->Dimension() == 2) ids.insert(gel->MaterialId());
+    }
+    return ids;
+}
+
+/// H1 atomic space with a null material on the domain (each layer) and on all the boundaries
 inline TPZCompMesh *AtomicMesh(TPZGeoMesh *gmesh, int nstate, int order) {
     auto *cmesh = new TPZCompMesh(gmesh);
     cmesh->SetDimModel(2);
     cmesh->SetDefaultOrder(order);
     cmesh->SetAllCreateFunctionsContinuous();
-    auto *mat = new TPZNullMaterial<STATE>(1, 2, nstate);
-    cmesh->InsertMaterialObject(mat);
+    TPZNullMaterial<STATE> *mat = nullptr;
+    for (int id : DomainIds(gmesh)) {
+        mat = new TPZNullMaterial<STATE>(id, 2, nstate);
+        cmesh->InsertMaterialObject(mat);
+    }
     TPZFMatrix<STATE> val1(nstate, nstate, 0.);
     TPZManVector<STATE, 2> val2(nstate, 0.);
     for (int id = -6; id <= -1; ++id) cmesh->InsertMaterialObject(mat->CreateBC(mat, id, 0, val1, val2));
@@ -160,10 +176,9 @@ inline TPZCompMesh *AtomicMesh(TPZGeoMesh *gmesh, int nstate, int order) {
     return cmesh;
 }
 
-/// Multiphysics mesh u (P2) - p_w (P1) - p_a (P1) with the unsaturated material (3-point rule, 3 memory items)
-inline TPZMultiphysicsCompMesh *UnsatMesh(TPZGeoMesh *gmesh, const UnsatParams &p) {
-    TPZManVector<TPZCompMesh *, 3> meshvec = {AtomicMesh(gmesh, 2, 2), AtomicMesh(gmesh, 1, 1), AtomicMesh(gmesh, 1, 1)};
-    auto *mat = new TUnsat(1);
+/// Unsaturated material of a soil layer
+inline TUnsat *UnsatMaterial(int id, const UnsatParams &p) {
+    auto *mat = new TUnsat(id);
     mat->SetPlasticModel(MohrCoulomb(p));
     mat->SetHydraulics(p.hydro);
     mat->SetPorosity(p.n);
@@ -173,12 +188,26 @@ inline TPZMultiphysicsCompMesh *UnsatMesh(TPZGeoMesh *gmesh, const UnsatParams &
     mat->SetAnisotropicConductivity(p.kx > 0. ? p.kx : p.ks, p.ky > 0. ? p.ky : p.ks, p.theta * M_PI / 180.);
     mat->SetAir(p.ga, p.patm);
     mat->SetUnitWeight(p.gamma);
-    mat->SetBishop(TUnsat::EChiConstant, p.chi);
+    mat->SetBishop(p.bishop, p.chi);
     mat->SetLumpedStorage(true);
     mat->SetIntegrationOrder(2);
+    return mat;
+}
+
+/// Multiphysics mesh u (P2) - p_w (P1) - p_a (P1) with an unsaturated material per layer (parameters of the layer
+/// id in layers, otherwise p; 3-point rule, 3 memory items)
+inline TPZMultiphysicsCompMesh *UnsatMesh(TPZGeoMesh *gmesh, const UnsatParams &p,
+                                          const std::map<int, UnsatParams> &layers = {}) {
+    TPZManVector<TPZCompMesh *, 3> meshvec = {AtomicMesh(gmesh, 2, 2), AtomicMesh(gmesh, 1, 1), AtomicMesh(gmesh, 1, 1)};
     auto *mphys = new TPZMultiphysicsCompMesh(gmesh);
     mphys->SetDimModel(2);
-    mphys->InsertMaterialObject(mat);
+    const std::set<int> ids = DomainIds(gmesh);
+    TUnsat *mat = nullptr;
+    for (int id : ids) {
+        auto it = layers.find(id);
+        mat = UnsatMaterial(id, it == layers.end() ? p : it->second);
+        mphys->InsertMaterialObject(mat);
+    }
     TPZFMatrix<STATE> val1(2, 2, 0.);
     TPZManVector<STATE, 2> val2(2, 0.);
     std::set<int> bcids;
@@ -187,7 +216,7 @@ inline TPZMultiphysicsCompMesh *UnsatMesh(TPZGeoMesh *gmesh, const UnsatParams &
         bcids.insert(id);
     }
     TPZManVector<int, 3> active(3, 1);
-    mphys->BuildMultiphysicsSpaceWithMemory(active, meshvec, {1}, bcids);
+    mphys->BuildMultiphysicsSpaceWithMemory(active, meshvec, ids, bcids);
     return mphys;
 }
 
@@ -206,8 +235,11 @@ public:
 
     UnsatAnalysis(TPZMultiphysicsCompMesh *mesh, int nthreads = 0)
         : TPZLinearAnalysis(mesh, true), fMPhys(mesh) {
-        fMat = dynamic_cast<TUnsat *>(mesh->FindMaterial(1));
-        if (!fMat) DebugStop();
+        for (auto &m : mesh->MaterialVec())
+            if (m.first > 0)
+                if (auto *u = dynamic_cast<TUnsat *>(m.second)) fMats.push_back(u);
+        if (fMats.empty()) DebugStop();
+        fMat = fMats[0];
 #ifdef PZ_USING_MKL
         TPZSpStructMatrix<STATE> smat(mesh);
 #else
@@ -223,8 +255,41 @@ public:
         fX = mesh->Solution();
     }
 
+    /// material of the first layer, and all the layers
     TUnsat *Material() { return fMat; }
+    const std::vector<TUnsat *> &Materials() const { return fMats; }
     TPZMultiphysicsCompMesh *Mesh() { return fMPhys; }
+
+    /// settings applied to the materials of all the layers
+    void SetStrengthReductionFactor(REAL F) {
+        for (auto *m : fMats) m->PlasticModel().SetStrengthReductionFactor(F);
+    }
+    void SetGravityFactor(REAL lam) {
+        for (auto *m : fMats) m->SetGravityFactor(lam);
+    }
+    void SetGravityScalesSuction(bool b) {
+        for (auto *m : fMats) m->SetGravityScalesSuction(b);
+    }
+    void SetHydroMechanicalCoupling(bool b) {
+        for (auto *m : fMats) m->SetHydroMechanicalCoupling(b);
+    }
+    /// copies of the memory of the integration points of all the layers
+    std::vector<TPZAdmChunkVector<TPZUnsaturatedMem>> SaveMemory() {
+        std::vector<TPZAdmChunkVector<TPZUnsaturatedMem>> s;
+        for (auto *m : fMats) s.push_back(*m->GetMemory());
+        return s;
+    }
+    void RestoreMemory(const std::vector<TPZAdmChunkVector<TPZUnsaturatedMem>> &s) {
+        for (size_t i = 0; i < fMats.size(); ++i) *fMats[i]->GetMemory() = s[i];
+    }
+    /// memory back to the default (stress-free) state
+    void ResetMemory() {
+        for (auto *m : fMats) {
+            auto mem = m->GetMemory();
+            const TPZUnsaturatedMem def = m->GetDefaultMemory();
+            for (int64_t i = 0; i < mem->NElements(); ++i) (*mem)[i] = def;
+        }
+    }
 
     /// node -> equation of p_w / p_a (vertices) and of the displacement components
     const std::map<int64_t, int64_t> &WaterEq() const { return fEqW; }
@@ -261,17 +326,19 @@ public:
     StepResult Solve(REAL dt, const std::map<int64_t, REAL> &fixed, const std::map<int64_t, REAL> &fq, bool frozen,
                      int linesearch = 4) {
         StepResult res;
-        fMat->SetTimeStep(dt);
-        fMat->SetFrozenPressures(frozen);
+        for (auto *m : fMats) {
+            m->SetTimeStep(dt);
+            m->SetFrozenPressures(frozen);
+        }
         SetFilter(fixed);
         const int64_t neq = NEq();
         TPZFMatrix<STATE> x(fX);
         for (auto &f : fixed) x(f.first, 0) = f.second;
         // reference of the momentum residual: the weight of the soil
         LoadSolution(x);
-        fMat->SetAssembleGravityOnly(true);
+        for (auto *m : fMats) m->SetAssembleGravityOnly(true);
         AssembleFullResidual();
-        fMat->SetAssembleGravityOnly(false);
+        for (auto *m : fMats) m->SetAssembleGravityOnly(false);
         REAL fgrav = 0.;
         {
             TPZFMatrix<STATE> &g = Rhs();
@@ -337,9 +404,9 @@ public:
 
     /// Updates the memory with the solution loaded in the mesh and stores it as the converged state
     void Accept() {
-        fMat->SetUpdateMem(true);
+        for (auto *m : fMats) m->SetUpdateMem(true);
         AssembleFullResidual();
-        fMat->SetUpdateMem(false);
+        for (auto *m : fMats) m->SetUpdateMem(false);
         fX = fMPhys->Solution();
     }
 
@@ -363,7 +430,7 @@ public:
 
     /// u = 0 keeping the effective stress (eps_p <- eps_p - eps_t)
     void ResetDisplacements() {
-        fMat->ResetDisplacementReference();
+        for (auto *m : fMats) m->ResetDisplacementReference();
         for (int64_t i = 0; i < NEq(); ++i)
             if (!fIsP[i]) fX(i, 0) = 0.;
         LoadSolution(fX);
@@ -439,7 +506,7 @@ private:
                 if (!cel || !cel->Reference()) continue;
                 TPZGeoEl *gel = cel->Reference();
                 const int id = gel->MaterialId();
-                if (s > 0 && id == 1)
+                if (s > 0 && id > 0)
                     for (int i = 0; i < 3; ++i)
                         (s == 1 ? fEqW : fEqA)[gel->NodeIndex(i)] = Position(off[s] + cel->ConnectIndex(i));
                 if (s == 0 && (id == EBase || id == ELeft || id == ERight)) {
@@ -457,6 +524,7 @@ private:
 
     TPZMultiphysicsCompMesh *fMPhys;
     TUnsat *fMat;
+    std::vector<TUnsat *> fMats;
     std::map<int64_t, int64_t> fEqW, fEqA;
     std::map<int64_t, REAL> fFixU;
     std::vector<bool> fIsP;

@@ -108,8 +108,12 @@ public:
         EFluxA = 5         ///< inflow of air Val2[0] (m/s)
     };
 
-    /** @brief Bishop parameter: \f$\chi = S_w\f$ or constant */
-    enum EBishop { EChiSaturation = 0, EChiConstant = 1 };
+    /**
+     * @brief Bishop parameter: \f$\chi = S_w\f$, constant, or \f$\chi = S_e = (S_w - S_{wr})/(1 - S_{wr})\f$.
+     * The constant \f$\chi\f$ (\f$\tan\phi^b = \chi\tan\phi'\f$) acts on the suction only: a positive
+     * \f$p_w - p_a\f$ enters with \f$\chi = 1\f$ (Terzaghi), as in the extended Mohr-Coulomb criterion.
+     */
+    enum EBishop { EChiSaturation = 0, EChiConstant = 1, EChiEffective = 2 };
 
     /** @brief Post-processing variables */
     enum ESolutionVar {

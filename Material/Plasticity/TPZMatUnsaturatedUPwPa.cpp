@@ -98,9 +98,18 @@ template <class T, class TMEM>
 void TPZMatUnsaturatedUPwPa<T, TMEM>::Bishop(REAL pw, REAL pa, REAL S, REAL Gamma, REAL &pB, REAL &chiw,
                                              REAL &chia) const {
     if (fBishop == EChiConstant) {
-        pB = fChi * pw + (1. - fChi) * pa;
-        chiw = fChi;
-        chia = 1. - fChi;
+        // phi^b = atan(chi tan phi') on the suction; saturated (pw > pa): chi = 1
+        const REAL chi = pw > pa ? 1. : fChi;
+        pB = chi * pw + (1. - chi) * pa;
+        chiw = chi;
+        chia = 1. - chi;
+    } else if (fBishop == EChiEffective) {
+        REAL Se, dSe;
+        fHydro.Effective(S, Se, dSe);
+        if (Se <= 0. || Se >= 1.) dSe = 0.;
+        pB = Se * pw + (1. - Se) * pa;
+        chiw = Se + dSe * Gamma * (pw - pa);
+        chia = (1. - Se) - dSe * Gamma * (pw - pa);
     } else {
         pB = S * pw + (1. - S) * pa;
         chiw = S + Gamma * (pw - pa); // chi_w = S_w - Gamma p_c
@@ -492,7 +501,8 @@ void TPZMatUnsaturatedUPwPa<T, TMEM>::Print(std::ostream &out) const {
         << " Kw = " << fKw << "\n  k_x = " << fKx << " k_y = " << fKy << " k_xy = " << fKxy << " gamma_w = " << fGammaW << " mu_w/mu_a = " << fMuRatio
         << " gamma_a = " << fGammaA << " p_atm = " << fPatm << "\n  unit weight "
         << (fMixture ? "mixture, gamma_s = " : "constant ") << (fMixture ? fGammaS : fGamma) << "\n  chi "
-        << (fBishop == EChiSaturation ? "= S_w" : "constant ") << (fBishop == EChiSaturation ? 0. : fChi)
+        << (fBishop == EChiSaturation ? "= S_w" : (fBishop == EChiEffective ? "= S_e" : "constant "))
+        << (fBishop == EChiConstant ? fChi : 0.)
         << "\n  storage " << (fLumped ? "lumped" : "consistent") << " dt = " << fTimeStep
         << " gravity factor = " << fGravityFactor << (fFrozen ? " (frozen pressures)" : "") << "\n";
     fHydro.Print(out);

@@ -17,11 +17,28 @@
 // Usage: SlopeRainfall [solo=f50] [alpha=45] [hs=10] [hw=5] [I=36] [kx=k_s] [ky=k_s] [theta=0] [kramin=1e-4] [psi=phi (deg; SlopeRainfallPV)] [smax=75] [train=24] [ttotal=48] [tfs=3,6,...] [passivo=0] [acoplado=1]
 //                      [gi=1] [fs=1] [vtk=0] [mesh=<file .msh>] [out=<folder>] [verbose=1]
 //                      [threads=0 (assembly threads)]
+// Other soils and slopes (the values of solo are the defaults):
+//   c= (kPa) phi= (deg) gamma= (kN/m3) E= (kPa) nu= ks= (m/s) poro= (porosity)
+//   chi=1|<value>|sw|se       Bishop parameter: constant (on the suction; tan phi^b = chi tan phi'), S_w or S_e
+//   swcc=fx:a,n,m | vg:alpha,n,swr   retention curve (Fredlund-Xing, a in kPa; van Genuchten, alpha in 1/kPa)
+//   krw=pot:p | mualem        relative permeability of the water
+//   camadas=<file>            one line per soil layer (material id of the mesh): "id key=value ..." (same keys)
+//   na=x:y,x:y,...            water table (polyline; replaces hw and the inclined water table of the article)
+//   lateral=1                 hydrostatic p_w below the water table on the lateral boundaries (0: closed)
+//   basena=0                  1: head of the water table prescribed on the base
+// Rain:
+//   chuva=<file>              hyetograph, rows "t0,t1,I" (h, h, mm/h), replaces I and train
+//   padrao=uniforme|adiantado|atrasado   linear hyetographs of mean I during train (Tang et al. 2018)
+//   evap=0 (mm/day) psimin=  potential evaporation when it does not rain, limited by the suction psimin (kPa)
+//   regime=<q mm/h>           initial state: steady infiltration q (pseudo-transient up to the steady state)
+//   alagado=0                 1: surface ponded (p_w = 0) while it rains (I -> infinity)
+//   dtmax=<h>                 time steps growing (x 1.25) up to dtmax (default: the steps of the article)
 // Outputs in <out>: fs.csv, hist.csv, snaps_pw.csv, snaps_pa.csv, vertices.csv, triangles.csv, outline.csv,
 //                   summary.txt (and vtk/ if vtk=1). Figures and animations: scripts/*.py and mma/*.wl.
 #include "UnsatSlope.h"
 #include "TPZVTKGeoMesh.h"
 
+#include <array>
 #include <chrono>
 #include <cstring>
 #include <iomanip>
@@ -47,6 +64,14 @@ struct Case {
     bool passivo = false, gi = true, fs = true, vtk = false, acoplado = true;
     std::string mesh, out = "out";
     int verbose = 1, threads = 0;
+    /// soil options (key, value) applied over the preset of solo, in order; layers file
+    std::vector<std::pair<std::string, std::string>> soil;
+    std::string camadas;
+    std::vector<std::pair<REAL, REAL>> na; ///< water table polyline
+    bool lateral = true, basena = false;
+    std::string chuva, padrao = "uniforme";
+    REAL evap = 0., psimin = 1.e30, regime = -1., dtmax = -1.;
+    bool alagado = false;
 };
 
 /// Geometry of Fig. 2: crest at y = 3 Hs from x = 0 to xb, toe at y = 2 Hs from xc to L
@@ -62,6 +87,44 @@ static std::vector<REAL> ParseList(const char *s) {
     std::string tok;
     while (std::getline(ss, tok, ',')) v.push_back(std::atof(tok.c_str()));
     return v;
+}
+
+/// Soil option key=value (also the keys of the lines of the layers file)
+static bool SoilOption(UnsatParams &p, const std::string &k, const std::string &v) {
+    const REAL d = std::atof(v.c_str());
+    if (k == "c") p.c = d;
+    else if (k == "phi") {
+        const bool assoc = std::fabs(p.psi - p.phi) < 1.e-12;
+        p.phi = d * M_PI / 180.;
+        if (assoc) p.psi = p.phi;
+    } else if (k == "psi") p.psi = d * M_PI / 180.;
+    else if (k == "gamma") p.gamma = d;
+    else if (k == "E") p.E = d;
+    else if (k == "nu") p.nu = d;
+    else if (k == "ks") p.ks = d;
+    else if (k == "poro") p.n = d;
+    else if (k == "kx") p.kx = d;
+    else if (k == "ky") p.ky = d;
+    else if (k == "theta") p.theta = d;
+    else if (k == "chi") {
+        if (v == "sw") p.bishop = TUnsat::EChiSaturation;
+        else if (v == "se") p.bishop = TUnsat::EChiEffective;
+        else p.bishop = TUnsat::EChiConstant, p.chi = d;
+    } else if (k == "swcc") {
+        const std::vector<REAL> a = ParseList(v.c_str() + 3);
+        if (v.rfind("fx:", 0) == 0 && a.size() == 3) {
+            p.hydro.fRetention = TPZUnsaturatedHydraulics::EFredlundXing;
+            p.hydro.fA = a[0], p.hydro.fN = a[1], p.hydro.fM = a[2];
+        } else if (v.rfind("vg:", 0) == 0 && a.size() == 3) {
+            p.hydro.fRetention = TPZUnsaturatedHydraulics::EVanGenuchten;
+            p.hydro.fAVG = a[0], p.hydro.fBVG = a[1], p.hydro.fSwr = a[2];
+        } else return false;
+    } else if (k == "krw") {
+        if (v == "mualem") p.hydro.fKrw = TPZUnsaturatedHydraulics::EMualem;
+        else if (v.rfind("pot:", 0) == 0) p.hydro.fKrw = TPZUnsaturatedHydraulics::EPowerLaw, p.hydro.fPower = std::atof(v.c_str() + 4);
+        else return false;
+    } else return false;
+    return true;
 }
 
 /// Collapse search of nsat3.collapse_search: follows xs; at the first x without convergence, bisection to the
@@ -93,9 +156,78 @@ static REAL CollapseSearch(const std::function<bool(REAL)> &solveAt, REAL x0, co
     return xok;
 }
 
+/// Rainfall in time: constant I during train (the article), linear patterns, or a hyetograph read from a file
+class Rainfall {
+public:
+    Rainfall(const Case &c) : fI(c.I), fTrain(c.train), fPattern(c.padrao) {
+        if (!c.chuva.empty()) {
+            std::ifstream in(c.chuva);
+            if (!in) {
+                std::cout << "rainfall file " << c.chuva << " not found\n";
+                DebugStop();
+            }
+            std::string line;
+            while (std::getline(in, line)) {
+                if (line.empty() || line[0] == '#') continue;
+                const std::vector<REAL> v = ParseList(line.c_str());
+                if (v.size() >= 3 && v[1] > v[0]) fBlocks.push_back({v[0], v[1], v[2]});
+            }
+        } else if (fPattern != "uniforme" && fPattern != "adiantado" && fPattern != "atrasado") {
+            std::cout << "unknown rainfall pattern " << fPattern << "\n";
+            DebugStop();
+        }
+    }
+    bool Series() const { return !fBlocks.empty(); }
+    /// mean intensity (mm/h) in [t0, t1] (h)
+    REAL Mean(REAL t0, REAL t1) const {
+        if (t1 <= t0) return 0.;
+        REAL vol = 0.;
+        if (Series()) {
+            for (auto &b : fBlocks) vol += b[2] * std::max(REAL(0.), std::min(t1, b[1]) - std::max(t0, b[0]));
+        } else {
+            const REAL a = std::max(REAL(0.), t0), z = std::min(t1, fTrain);
+            if (z > a) {
+                // integral of I(t) on [a, z]
+                if (fPattern == "uniforme") vol = fI * (z - a);
+                else if (fPattern == "atrasado") vol = fI / fTrain * (z * z - a * a);
+                else vol = 2. * fI * (z - a) - fI / fTrain * (z * z - a * a);
+            }
+        }
+        return vol / (t1 - t0);
+    }
+    /// end of the rain period that contains t (or t if it does not rain at t)
+    bool Raining(REAL t) const {
+        if (!Series()) return t < fTrain - 1.e-9;
+        for (auto &b : fBlocks)
+            if (t >= b[0] - 1.e-9 && t < b[1] - 1.e-9 && b[2] > 0.) return true;
+        return false;
+    }
+    /// instants where the intensity changes
+    std::vector<REAL> Breaks() const {
+        std::vector<REAL> b;
+        if (Series())
+            for (auto &x : fBlocks) b.push_back(x[0]), b.push_back(x[1]);
+        else b.push_back(fTrain);
+        return b;
+    }
+    /// end of the last rain before t (-infinity if none)
+    REAL LastRainEnd(REAL t) const {
+        REAL e = -1.e30;
+        if (!Series()) return t >= fTrain - 1.e-9 ? fTrain : e;
+        for (auto &b : fBlocks)
+            if (b[2] > 0. && b[1] <= t + 1.e-9) e = std::max(e, b[1]);
+        return e;
+    }
+
+private:
+    REAL fI, fTrain;
+    std::string fPattern;
+    std::vector<std::array<REAL, 3>> fBlocks;
+};
+
 class RainfallSlope {
 public:
-    RainfallSlope(const Case &c) : fCase(c), fGeo(c.hs, c.alpha) {
+    RainfallSlope(const Case &c) : fCase(c), fGeo(c.hs, c.alpha), fRain(c) {
         if (c.solo == "f10") fPar.hydro.fA = 10., fPar.ks = 1.e-4;
         else if (c.solo == "f50") fPar.hydro.fA = 50., fPar.ks = 1.e-5;
         else if (c.solo == "f100") fPar.hydro.fA = 100., fPar.ks = 1.e-6;
@@ -105,6 +237,12 @@ public:
         fPar.theta = c.theta;
         fPar.hydro.fKraMin = c.kramin;
         if (c.psi >= 0.) fPar.psi = c.psi * M_PI / 180.;
+        for (auto &o : c.soil)
+            if (!SoilOption(fPar, o.first, o.second)) {
+                std::cout << "invalid soil option " << o.first << "=" << o.second << "\n";
+                DebugStop();
+            }
+        if (!c.camadas.empty()) ReadLayers(c.camadas);
         std::string mesh = c.mesh;
         if (mesh.empty()) {
             std::ostringstream s;
@@ -112,11 +250,15 @@ public:
             mesh = s.str();
         }
         fGMesh = ReadMsh(mesh);
-        fMPhys = UnsatMesh(fGMesh, fPar);
+        fXmin = 1.e30, fXmax = -1.e30;
+        for (int64_t i = 0; i < fGMesh->NNodes(); ++i) {
+            fXmin = std::min(fXmin, fGMesh->NodeVec()[i].Coord(0));
+            fXmax = std::max(fXmax, fGMesh->NodeVec()[i].Coord(0));
+        }
+        fMPhys = UnsatMesh(fGMesh, fPar, fLayers);
         fAn = new UnsatAnalysis(fMPhys, c.threads);
         fAn->SetVerbose(c.verbose > 2 ? 2 : 0);
-        fMat = fAn->Material();
-        fMat->SetHydroMechanicalCoupling(c.acoplado);
+        fAn->SetHydroMechanicalCoupling(c.acoplado);
         SetBoundary();
     }
 
@@ -131,8 +273,52 @@ public:
     void Run();
 
 private:
+    /// parameters of a material id (layer)
+    const UnsatParams &Params(int id) const {
+        auto it = fLayers.find(id);
+        return it == fLayers.end() ? fPar : it->second;
+    }
+
+    void ReadLayers(const std::string &file) {
+        std::ifstream in(file);
+        if (!in) {
+            std::cout << "layers file " << file << " not found\n";
+            DebugStop();
+        }
+        std::string line;
+        while (std::getline(in, line)) {
+            if (line.empty() || line[0] == '#') continue;
+            std::istringstream ss(line);
+            int id;
+            if (!(ss >> id)) continue;
+            UnsatParams p = fPar;
+            std::string kv;
+            while (ss >> kv) {
+                const auto e = kv.find('=');
+                if (e == std::string::npos || !SoilOption(p, kv.substr(0, e), kv.substr(e + 1))) {
+                    std::cout << "invalid layer option " << kv << "\n";
+                    DebugStop();
+                }
+            }
+            fLayers[id] = p;
+        }
+    }
+
+    /// elevation of the water table at x
+    REAL WaterTable(REAL x) const {
+        const auto &na = fCase.na;
+        if (na.empty()) return fGeo.WaterTable(fCase.hw, x);
+        if (x <= na.front().first) return na.front().second;
+        for (size_t i = 1; i < na.size(); ++i)
+            if (x <= na[i].first) {
+                const REAL s = (x - na[i - 1].first) / (na[i].first - na[i - 1].first);
+                return na[i - 1].second + s * (na[i].second - na[i - 1].second);
+            }
+        return na.back().second;
+    }
+
     void SetBoundary() {
-        std::set<int64_t> surf, left, right;
+        std::set<int64_t> surf, left, right, base;
         for (int64_t i = 0; i < fGMesh->NElements(); ++i) {
             TPZGeoEl *gel = fGMesh->Element(i);
             if (!gel || gel->Dimension() != 1) continue;
@@ -147,19 +333,20 @@ private:
                 fSupply[b] += dx / 2.;
             } else if (id == ELeft) left.insert(a), left.insert(b);
             else if (id == ERight) right.insert(a), right.insert(b);
+            else if (id == EBase) base.insert(a), base.insert(b);
         }
         fAtm.assign(surf.begin(), surf.end());
         fFixed = fAn->DisplacementConstraints();
         const REAL gw = fPar.gw;
-        const REAL hl = fGeo.WaterTable(fCase.hw, 0.), hr = fGeo.WaterTable(fCase.hw, fGeo.L);
-        for (auto n : left) {
-            const REAL y = fGMesh->NodeVec()[n].Coord(1);
-            if (y <= hl + 1.e-6) fFixed[fAn->WaterEq().at(n)] = gw * (hl - y);
-        }
-        for (auto n : right) {
-            const REAL y = fGMesh->NodeVec()[n].Coord(1);
-            if (y <= hr + 1.e-6) fFixed[fAn->WaterEq().at(n)] = gw * (hr - y);
-        }
+        auto hydrostatic = [&](const std::set<int64_t> &nodes) {
+            for (auto n : nodes) {
+                const TPZGeoNode &nd = fGMesh->NodeVec()[n];
+                const REAL h = WaterTable(nd.Coord(0)), y = nd.Coord(1);
+                if (y <= h + 1.e-6) fFixed[fAn->WaterEq().at(n)] = gw * (h - y);
+            }
+        };
+        if (fCase.lateral) hydrostatic(left), hydrostatic(right);
+        if (fCase.basena) hydrostatic(base);
         if (fCase.passivo)
             for (auto &e : fAn->AirEq()) fFixed[e.second] = 0.;
         else
@@ -170,7 +357,7 @@ private:
     void InitialPressures(TPZFMatrix<STATE> &x) {
         for (auto &e : fAn->WaterEq()) {
             const TPZGeoNode &nd = fGMesh->NodeVec()[e.first];
-            x(e.second, 0) = std::max(fPar.gw * (fGeo.WaterTable(fCase.hw, nd.Coord(0)) - nd.Coord(1)), -fCase.smax);
+            x(e.second, 0) = std::max(fPar.gw * (WaterTable(nd.Coord(0)) - nd.Coord(1)), -fCase.smax);
         }
         for (auto &e : fAn->AirEq()) x(e.second, 0) = 0.;
     }
@@ -185,10 +372,10 @@ private:
 
     /// Weight of the soil applied in 4 increments with the pressures (scaled together) frozen, strength factor F
     bool Geostatic(REAL F) {
-        fMat->PlasticModel().SetStrengthReductionFactor(F);
+        fAn->SetStrengthReductionFactor(F);
         const auto fx = FrozenFixed(fAn->X());
         for (REAL lam : {0.25, 0.5, 0.75, 1.0}) {
-            fMat->SetGravityFactor(lam);
+            fAn->SetGravityFactor(lam);
             if (!fAn->Solve(0., fx, {}, true).conv) return false;
             fAn->Accept();
         }
@@ -197,9 +384,7 @@ private:
 
     /// Resets the memory to the default (stress free) state and the displacements to zero
     void ResetState(const TPZFMatrix<STATE> &x) {
-        auto mem = fMat->GetMemory();
-        const TPZUnsaturatedMem def = fMat->GetDefaultMemory();
-        for (int64_t i = 0; i < mem->NElements(); ++i) (*mem)[i] = def;
+        fAn->ResetMemory();
         TPZFMatrix<STATE> &X = fAn->X();
         X = x;
         for (int64_t i = 0; i < fAn->NEq(); ++i)
@@ -209,17 +394,19 @@ private:
 
     /// Factors of safety (SRM, GI) with the pressures of x frozen; the transient state is restored at the end
     std::pair<REAL, REAL> FactorOfSafety(const TPZFMatrix<STATE> &x, REAL prevSRM, REAL prevGI) {
-        const TPZAdmChunkVector<TPZUnsaturatedMem> saved(*fMat->GetMemory());
+        const auto saved = fAn->SaveMemory();
         const TPZFMatrix<STATE> xsaved(fAn->X());
         const REAL Fsaved = fStrength;
 #ifdef SLOPERAINFALL_PV
         // the dilatancy acts in the coupled transient; the factor of safety is computed with psi = phi (associative),
         // the same method of the closed-form model (the strength reduction with psi < phi loses the convergence of
         // Newton before the collapse)
-        const TMC transientModel(fMat->PlasticModel());
-        {
-            TPZElasticResponse ER = fMat->PlasticModel().fER;
-            fMat->PlasticModel().fYC.SetUp(fPar.phi, fPar.phi, fPar.c, ER);
+        std::vector<TMC> transientModels;
+        for (auto *m : fAn->Materials()) {
+            transientModels.push_back(m->PlasticModel());
+            const UnsatParams &p = Params(m->Id());
+            TPZElasticResponse ER = m->PlasticModel().fER;
+            m->PlasticModel().fYC.SetUp(p.phi, p.phi, p.c, ER);
         }
 #endif
         auto around = [](REAL prev, REAL lo) {
@@ -234,13 +421,13 @@ private:
         ResetState(x);
         if (Geostatic(F0)) {
             const auto fx = FrozenFixed(fAn->X());
-            fMat->SetGravityFactor(1.);
+            fAn->SetGravityFactor(1.);
             std::vector<REAL> xs = prevSRM < 0 ? std::vector<REAL>{0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5, 3.0, 3.5, 4.0}
                                                : around(prevSRM, F0);
             if (xs.size() < 2) xs = {F0 + 0.1, F0 + 0.2};
             if (v) std::cout << "   SRM\n";
             fsSRM = CollapseSearch([&](REAL F) {
-                fMat->PlasticModel().SetStrengthReductionFactor(F);
+                fAn->SetStrengthReductionFactor(F);
                 const bool ok = fAn->Solve(0., fx, {}, true).conv;
                 if (ok) fAn->Accept();
                 else fAn->Restore();
@@ -250,8 +437,8 @@ private:
         // gravity increase from the stress-free state, real strength
         if (fCase.gi) {
             ResetState(x);
-            fMat->PlasticModel().SetStrengthReductionFactor(1.);
-            fMat->SetGravityScalesSuction(false);
+            fAn->SetStrengthReductionFactor(1.);
+            fAn->SetGravityScalesSuction(false);
             const auto fx = FrozenFixed(fAn->X());
             // increments of at most 0.5 up to the neighbourhood of the previous factor
             std::vector<REAL> xs;
@@ -261,36 +448,41 @@ private:
                 if (xs.empty() || g > xs.back()) xs.push_back(g);
             if (v) std::cout << "   GI\n";
             fsGI = CollapseSearch([&](REAL lam) {
-                fMat->SetGravityFactor(lam);
+                fAn->SetGravityFactor(lam);
                 const bool ok = fAn->Solve(0., fx, {}, true).conv;
                 if (ok) fAn->Accept();
                 else fAn->Restore();
                 return ok;
             }, 0., xs, 0.01, 20., v);
-            fMat->SetGravityScalesSuction(true);
+            fAn->SetGravityScalesSuction(true);
         }
         // transient state back
-        *fMat->GetMemory() = saved;
+        fAn->RestoreMemory(saved);
         fAn->X() = xsaved;
         fAn->Restore();
-        fMat->SetGravityFactor(1.);
+        fAn->SetGravityFactor(1.);
 #ifdef SLOPERAINFALL_PV
-        fMat->PlasticModel() = transientModel;
+        for (size_t i = 0; i < fAn->Materials().size(); ++i) fAn->Materials()[i]->PlasticModel() = transientModels[i];
 #endif
-        fMat->PlasticModel().SetStrengthReductionFactor(Fsaved);
+        fAn->SetStrengthReductionFactor(Fsaved);
         return {fsSRM, fsGI};
     }
 
-    /// One time step with the unilateral rainfall condition (active set of ponded surface vertices)
-    bool UnilateralStep(REAL dt, bool raining) {
-        const REAL rate = raining ? fCase.I / 1000. / HOUR : 0.;
-        std::set<int64_t> ponded = fPonded;
+    /**
+     * One time step with the unilateral conditions of the surface: rain (rate > 0, m/s on the horizontal projection:
+     * active set of ponded vertices, p_w <= 0, inflow <= rain) or evaporation (rate < 0: active set of dry vertices,
+     * p_w >= -psimin, outflow <= evaporation). ponded = true: the whole surface ponded (p_w = 0).
+     */
+    bool UnilateralStep(REAL dt, REAL rate, bool pondedAll = false) {
+        std::set<int64_t> ponded = fPonded, dry = rate < 0. ? fDry : std::set<int64_t>{};
+        if (pondedAll) ponded.insert(fAtm.begin(), fAtm.end());
         bool conv = false;
         for (int pass = 0; pass < 12; ++pass) {
             std::map<int64_t, REAL> fixed(fFixed), fq;
             for (auto n : ponded) fixed[fAn->WaterEq().at(n)] = 0.;
+            for (auto n : dry) fixed[fAn->WaterEq().at(n)] = -fCase.psimin;
             for (auto n : fAtm)
-                if (!ponded.count(n) && rate > 0.) fq[fAn->WaterEq().at(n)] = rate * fSupply[n];
+                if (!ponded.count(n) && !dry.count(n) && rate != 0.) fq[fAn->WaterEq().at(n)] = rate * fSupply[n];
             const auto r = fAn->Solve(dt, fixed, fq, false);
             fIter += r.iter;
             conv = r.conv;
@@ -303,32 +495,94 @@ private:
                 continue;
             }
             if (!conv) break;
-            const TPZFMatrix<STATE> &x = fMPhys->Solution();
-            std::set<int64_t> add, drop;
-            for (auto n : fAtm)
-                if (!ponded.count(n) && x.GetVal(fAn->WaterEq().at(n), 0) > 1.e-6) add.insert(n);
             fRw = fAn->FullResidual();
+            if (pondedAll) break;
+            const TPZFMatrix<STATE> &x = fMPhys->Solution();
+            std::set<int64_t> add, drop, adddry, dropdry;
+            for (auto n : fAtm) {
+                if (ponded.count(n) || dry.count(n)) continue;
+                const REAL pw = x.GetVal(fAn->WaterEq().at(n), 0);
+                if (pw > 1.e-6) add.insert(n);
+                else if (rate < 0. && pw < -fCase.psimin - 1.e-6) adddry.insert(n);
+            }
+            const REAL qin = std::max(rate, REAL(0.));
             for (auto n : ponded)
-                if (fRw.GetVal(fAn->WaterEq().at(n), 0) / dt > rate * fSupply[n] * (1. + 1.e-9) + 1.e-14) drop.insert(n);
-            if (add.empty() && drop.empty()) break;
+                if (fRw.GetVal(fAn->WaterEq().at(n), 0) / dt > qin * fSupply[n] * (1. + 1.e-9) + 1.e-14) drop.insert(n);
+            for (auto n : dry)
+                if (fRw.GetVal(fAn->WaterEq().at(n), 0) / dt < rate * fSupply[n] * (1. + 1.e-9) - 1.e-14) dropdry.insert(n);
+            if (add.empty() && drop.empty() && adddry.empty() && dropdry.empty()) break;
             for (auto n : add) ponded.insert(n);
             for (auto n : drop) ponded.erase(n);
+            for (auto n : adddry) dry.insert(n);
+            for (auto n : dropdry) dry.erase(n);
         }
         if (!conv) {
             fAn->Restore();
             return false;
         }
         fAn->Accept();
-        fPonded = ponded;
+        fPonded = pondedAll ? std::set<int64_t>(fAtm.begin(), fAtm.end()) : ponded;
+        fDry = dry;
         return true;
     }
 
     /// Step with bisection of the time step (avancar of caso.py)
-    bool Advance(REAL dt, bool raining, int depth, int maxdepth) {
-        if (UnilateralStep(dt, raining)) return true;
+    bool Advance(REAL dt, REAL rate, bool pondedAll, int depth, int maxdepth) {
+        if (UnilateralStep(dt, rate, pondedAll)) return true;
         if (depth >= maxdepth) return false;
         if (fCase.verbose > 1) std::cout << "    bisection: dt = " << dt / 2. / HOUR << " h\n";
-        return Advance(dt / 2., raining, depth + 1, maxdepth) && Advance(dt / 2., raining, depth + 1, maxdepth);
+        return Advance(dt / 2., rate, pondedAll, depth + 1, maxdepth) && Advance(dt / 2., rate, pondedAll, depth + 1, maxdepth);
+    }
+
+    /// surface flux (m/s, positive: rain) of the interval [t0, t1] (h): mean rain, or the evaporation if dry
+    REAL SurfaceRate(REAL t0, REAL t1) const {
+        const REAL r = fRain.Mean(t0, t1);
+        if (r > 0.) return r / 1000. / HOUR;
+        return fCase.evap > 0. ? -fCase.evap / 24. / 1000. / HOUR : 0.;
+    }
+
+    /// Time steps (h): 15 min during the rain, 1 h in the next 24 h, 4 h afterwards (the article); with dtmax,
+    /// steps growing 1.25x up to dtmax; aligned with the changes of the rain and the instants of the FS
+    std::vector<std::pair<REAL, bool>> TimeSteps() const {
+        std::vector<std::pair<REAL, bool>> steps;
+        std::vector<REAL> breaks = fRain.Breaks();
+        if (fRain.Series() || fCase.dtmax > 0.)
+            for (REAL tf : fCase.tfs) breaks.push_back(tf);
+        std::sort(breaks.begin(), breaks.end());
+        REAL dtprev = 0.;
+        for (REAL t = 0.; t < fCase.ttotal - 1.e-9;) {
+            const bool rain = fRain.Raining(t);
+            REAL dt;
+            if (fCase.dtmax > 0.) dt = dtprev <= 0. ? 0.25 : std::min(1.25 * dtprev, fCase.dtmax);
+            else dt = rain ? 0.25 : (t < fRain.LastRainEnd(t) + 24. - 1.e-9 ? 1. : 4.);
+            dt = std::min(dt, fCase.ttotal - t);
+            for (REAL b : breaks)
+                if (b > t + 1.e-9) {
+                    dt = std::min(dt, b - t);
+                    break;
+                }
+            steps.push_back({dt, rain});
+            dtprev = dt;
+            t += dt;
+        }
+        return steps;
+    }
+
+    /// Steady infiltration q (mm/h) from the current state: pseudo-time steps doubling from 1 h until the largest
+    /// change of p_w is below 1e-3 kPa
+    bool SteadyInfiltration(REAL q) {
+        const REAL rate = q / 1000. / HOUR;
+        REAL dt = 1.;
+        for (int k = 0; k < 60; ++k) {
+            const TPZFMatrix<STATE> x0(fAn->X());
+            if (!Advance(dt * HOUR, rate, false, 0, 6)) return false;
+            REAL dp = 0.;
+            for (auto &e : fAn->WaterEq()) dp = std::max(dp, std::fabs(fAn->X().GetVal(e.second, 0) - x0.GetVal(e.second, 0)));
+            if (fCase.verbose) std::cout << fCase.out << ": steady infiltration, dt = " << dt << " h, max |dp_w| = " << dp << " kPa\n";
+            if (dp < 1.e-3 && dt > 1.e3) return true;
+            dt = std::min(dt * 2., 1.e6);
+        }
+        return true;
     }
 
     void WriteMeshFiles();
@@ -337,15 +591,17 @@ private:
 
     Case fCase;
     Geometry fGeo;
+    Rainfall fRain;
     UnsatParams fPar;
+    std::map<int, UnsatParams> fLayers;
     TPZGeoMesh *fGMesh = nullptr;
     TPZMultiphysicsCompMesh *fMPhys = nullptr;
     UnsatAnalysis *fAn = nullptr;
-    TUnsat *fMat = nullptr;
+    REAL fXmin = 0., fXmax = 0.;
     std::map<int64_t, REAL> fFixed;
     std::map<int64_t, REAL> fSupply;
     std::vector<int64_t> fAtm;
-    std::set<int64_t> fPonded;
+    std::set<int64_t> fPonded, fDry;
     TPZFMatrix<STATE> fRw;
     REAL fStrength = 1.;
     int64_t fIter = 0;
@@ -366,12 +622,44 @@ void RainfallSlope::WriteMeshFiles() {
     t << "v0,v1,v2\n";
     for (int64_t i = 0; i < fGMesh->NElements(); ++i) {
         TPZGeoEl *gel = fGMesh->Element(i);
-        if (!gel || gel->MaterialId() != 1) continue;
+        if (!gel || gel->Dimension() != 2) continue;
         t << local[gel->NodeIndex(0)] << "," << local[gel->NodeIndex(1)] << "," << local[gel->NodeIndex(2)] << "\n";
     }
-    const REAL h = fGeo.hs;
-    o << "x,y\n" << 0. << "," << 0. << "\n" << fGeo.L << "," << 0. << "\n" << fGeo.L << "," << 2 * h << "\n"
-      << fGeo.xc << "," << 2 * h << "\n" << fGeo.xb << "," << 3 * h << "\n" << 0. << "," << 3 * h << "\n";
+    // outline: the boundary edges chained from the lowest leftmost vertex, corners only
+    std::map<int64_t, std::vector<int64_t>> adj;
+    for (int64_t i = 0; i < fGMesh->NElements(); ++i) {
+        TPZGeoEl *gel = fGMesh->Element(i);
+        if (!gel || gel->Dimension() != 1) continue;
+        adj[gel->NodeIndex(0)].push_back(gel->NodeIndex(1));
+        adj[gel->NodeIndex(1)].push_back(gel->NodeIndex(0));
+    }
+    auto X = [&](int64_t n) { return fGMesh->NodeVec()[n].Coord(0); };
+    auto Y = [&](int64_t n) { return fGMesh->NodeVec()[n].Coord(1); };
+    int64_t start = adj.begin()->first;
+    for (auto &a : adj)
+        if (X(a.first) < X(start) - 1.e-9 || (std::fabs(X(a.first) - X(start)) < 1.e-9 && Y(a.first) < Y(start))) start = a.first;
+    std::vector<int64_t> loop = {start};
+    int64_t prev = -1, cur = start;
+    while (true) {
+        int64_t next = -1;
+        for (auto n : adj[cur])
+            if (n != prev) {
+                next = n;
+                break;
+            }
+        if (next < 0 || next == start) break;
+        loop.push_back(next);
+        prev = cur;
+        cur = next;
+        if (loop.size() > adj.size()) break;
+    }
+    o << "x,y\n";
+    const size_t m = loop.size();
+    for (size_t i = 0; i < m; ++i) {
+        const int64_t a = loop[(i + m - 1) % m], b = loop[i], c = loop[(i + 1) % m];
+        const REAL cr = (X(b) - X(a)) * (Y(c) - Y(b)) - (Y(b) - Y(a)) * (X(c) - X(b));
+        if (std::fabs(cr) > 1.e-8) o << X(b) << "," << Y(b) << "\n";
+    }
     fSnapW.open(fCase.out + "/snaps_pw.csv");
     fSnapA.open(fCase.out + "/snaps_pa.csv");
     fSnapW << std::setprecision(7);
@@ -434,11 +722,11 @@ void RainfallSlope::Run() {
             std::cout << "geostatic state did not converge\n";
             return;
         }
-        fMat->SetGravityFactor(1.);
+        fAn->SetGravityFactor(1.);
         const auto fx = FrozenFixed(fAn->X());
         bool ok = true;
         for (REAL F : {0.7, 0.8, 0.9, 0.95, 1.0}) {
-            fMat->PlasticModel().SetStrengthReductionFactor(F);
+            fAn->SetStrengthReductionFactor(F);
             ok = fAn->Solve(0., fx, {}, true).conv;
             if (!ok) break;
             fAn->Accept();
@@ -447,13 +735,19 @@ void RainfallSlope::Run() {
             tFail = 0.;
             fStrength = F0;
             fAn->Restore();
-            fMat->PlasticModel().SetStrengthReductionFactor(F0);
+            fAn->SetStrengthReductionFactor(F0);
             std::cout << fCase.out << ": no equilibrium with the real strength at t = 0 (FS < 1)\n";
         }
     }
     fAn->ResetDisplacements();
-    fMat->SetGravityFactor(1.);
+    fAn->SetGravityFactor(1.);
     fAn->Accept();
+    // initial steady infiltration (Pradhan et al. 2022: 3.3e-8 m/s for five years)
+    if (fCase.regime >= 0.) {
+        if (!SteadyInfiltration(fCase.regime)) std::cout << fCase.out << ": steady infiltration did not converge\n";
+        fAn->ResetDisplacements();
+        fAn->Accept();
+    }
     auto pmax = [&](int space) {
         REAL m = -1.e300;
         for (auto &e : (space == 1 ? fAn->WaterEq() : fAn->AirEq())) m = std::max(m, X.GetVal(e.second, 0));
@@ -481,24 +775,18 @@ void RainfallSlope::Run() {
     WriteVTK(0);
     computeFS(0.);
 
-    // time steps: 15 min during the rain, 1 h in the next 24 h, 4 h afterwards
-    std::vector<std::pair<REAL, bool>> steps;
-    for (REAL t = 0.; t < fCase.ttotal - 1.e-9;) {
-        const bool rain = t < fCase.train - 1.e-9;
-        REAL dt = rain ? 0.25 : (t < fCase.train + 24. - 1.e-9 ? 1. : 4.);
-        dt = std::min(dt, fCase.ttotal - t);
-        if (rain) dt = std::min(dt, fCase.train - t);
-        steps.push_back({dt, rain});
-        t += dt;
-    }
+    const std::vector<std::pair<REAL, bool>> steps = TimeSteps();
     REAL t = 0.;
     int k = 1;
     for (auto &st : steps) {
         const REAL dt = st.first * HOUR;
+        const REAL th0 = t / HOUR;
+        const REAL rate = SurfaceRate(th0, th0 + st.first);
+        const bool pondedAll = fCase.alagado && st.second;
         int64_t it0 = fIter;
         // a failure with 2 bisection levels may be numerical (Newton, active set of the rain): the step is tried
         // again with 5 levels and the real strength before it is taken as the loss of equilibrium of the slope
-        if (!Advance(dt, st.second, 0, tFail >= 0. ? 5 : 2) && (tFail >= 0. || !Advance(dt, st.second, 0, 5))) {
+        if (!Advance(dt, rate, pondedAll, 0, tFail >= 0. ? 5 : 2) && (tFail >= 0. || !Advance(dt, rate, pondedAll, 0, 5))) {
             if (tFail >= 0.) {
                 std::cout << fCase.out << ": time step did not converge at t = " << t / HOUR << " h\n";
                 break;
@@ -506,11 +794,11 @@ void RainfallSlope::Run() {
             tFail = t / HOUR;
             if (fCase.acoplado) { // uncoupled: the mechanics already uses the increased strength (0.25)
                 fStrength = F0;
-                fMat->PlasticModel().SetStrengthReductionFactor(F0);
+                fAn->SetStrengthReductionFactor(F0);
             }
             std::cout << fCase.out << ": transient without equilibrium after t = " << tFail << " h"
                       << (fCase.acoplado ? " (FS < 1)" : " (seepage or mechanics without convergence)") << "\n";
-            if (!Advance(dt, st.second, 0, 5)) {
+            if (!Advance(dt, rate, pondedAll, 0, 5)) {
                 std::cout << fCase.out << ": time step did not converge at t = " << t / HOUR << " h\n";
                 break;
             }
@@ -519,10 +807,9 @@ void RainfallSlope::Run() {
         const REAL th = t / HOUR;
         // infiltration: rain on the flux vertices plus the inflow at the ponded ones
         REAL rain = 0., infil = 0.;
-        const REAL rate = st.second ? fCase.I / 1000. / HOUR : 0.;
         for (auto n : fAtm) {
-            rain += rate * fSupply[n];
-            if (!fPonded.count(n)) infil += rate * fSupply[n];
+            rain += std::max(rate, REAL(0.)) * fSupply[n];
+            if (!fPonded.count(n) && !fDry.count(n)) infil += rate * fSupply[n];
             else if (fRw.Rows()) infil += fRw.GetVal(fAn->WaterEq().at(n), 0) / dt;
         }
         hist << th << "," << st.first << "," << st.second << "," << rain << "," << infil << "," << fPonded.size()
@@ -543,13 +830,25 @@ void RainfallSlope::Run() {
         if (h.second.second < minG) minG = h.second.second, tminG = h.first;
     }
     sum << "solo " << fCase.solo << "\nalpha " << fCase.alpha << "\nhs " << fCase.hs << "\nhw " << fCase.hw << "\nI "
-         << fCase.I << "\nkx " << (fCase.kx > 0 ? fCase.kx : fPar.ks) << "\nky "
-        << (fCase.ky > 0 ? fCase.ky : fPar.ks) << "\ntheta " << fCase.theta << "\nkramin " << fCase.kramin << "\npsi " << fPar.psi * 180. / M_PI << "\nsmax " << fCase.smax << "\ntrain " << fCase.train << "\nttotal " << fCase.ttotal << "\npassivo " << fCase.passivo << "\nacoplado " << fCase.acoplado
+         << fCase.I << "\nkx " << (fPar.kx > 0 ? fPar.kx : fPar.ks) << "\nky "
+        << (fPar.ky > 0 ? fPar.ky : fPar.ks) << "\ntheta " << fPar.theta << "\nkramin " << fCase.kramin << "\npsi " << fPar.psi * 180. / M_PI << "\nsmax " << fCase.smax << "\ntrain " << fCase.train << "\nttotal " << fCase.ttotal << "\npassivo " << fCase.passivo << "\nacoplado " << fCase.acoplado
         << "\nelements " << fGMesh->NElements() << "\nequations " << fAn->NEq() << "\nfs_ini_srm "
         << (fsHist.empty() ? -1. : fsHist[0].second.first) << "\nfs_ini_gi "
         << (fsHist.empty() ? -1. : fsHist[0].second.second) << "\nfs_min_srm " << minS << "\nt_min_srm " << tminS
         << "\nfs_min_gi " << minG << "\nt_min_gi " << tminG << "\nt_fail " << tFail << "\nnewton_iterations " << fIter
         << "\nminutes " << elapsed() / 60. << "\n";
+    // options other than the defaults
+    for (auto &o : fCase.soil) sum << "opt_" << o.first << " " << o.second << "\n";
+    if (!fCase.camadas.empty()) sum << "camadas " << fCase.camadas << "\n";
+    if (!fCase.chuva.empty()) sum << "chuva " << fCase.chuva << "\n";
+    if (fCase.padrao != "uniforme") sum << "padrao " << fCase.padrao << "\n";
+    if (fCase.evap > 0.) sum << "evap " << fCase.evap << "\npsimin " << fCase.psimin << "\n";
+    if (fCase.regime >= 0.) sum << "regime " << fCase.regime << "\n";
+    if (fCase.alagado) sum << "alagado 1\n";
+    if (fCase.dtmax > 0.) sum << "dtmax " << fCase.dtmax << "\n";
+    if (!fCase.na.empty()) sum << "na_pontos " << fCase.na.size() << "\n";
+    if (!fCase.lateral) sum << "lateral 0\n";
+    if (fCase.basena) sum << "basena 1\n";
     std::cout << "== " << fCase.out << " finished in " << elapsed() / 60. << " min (FS min SRM " << minS << " at "
               << tminS << " h, GI " << minG << ")\n";
 }
@@ -583,9 +882,35 @@ int main(int argc, char *argv[]) {
         else if (is("out=")) c.out = val("out=");
         else if (is("verbose=")) c.verbose = std::atoi(val("verbose="));
         else if (is("threads=")) c.threads = std::atoi(val("threads="));
+        else if (is("camadas=")) c.camadas = val("camadas=");
+        else if (is("na=")) {
+            std::stringstream ss(val("na="));
+            std::string tok;
+            while (std::getline(ss, tok, ',')) {
+                const auto e = tok.find(':');
+                if (e == std::string::npos) {
+                    std::cout << "invalid water table point " << tok << "\n";
+                    return 1;
+                }
+                c.na.push_back({std::atof(tok.substr(0, e).c_str()), std::atof(tok.substr(e + 1).c_str())});
+            }
+        } else if (is("lateral=")) c.lateral = std::atoi(val("lateral="));
+        else if (is("basena=")) c.basena = std::atoi(val("basena="));
+        else if (is("chuva=")) c.chuva = val("chuva=");
+        else if (is("padrao=")) c.padrao = val("padrao=");
+        else if (is("evap=")) c.evap = std::atof(val("evap="));
+        else if (is("psimin=")) c.psimin = std::atof(val("psimin="));
+        else if (is("regime=")) c.regime = std::atof(val("regime="));
+        else if (is("alagado=")) c.alagado = std::atoi(val("alagado="));
+        else if (is("dtmax=")) c.dtmax = std::atof(val("dtmax="));
         else {
-            std::cout << "unknown argument " << a << "\n";
-            return 1;
+            const char *e = std::strchr(a, '=');
+            UnsatParams test;
+            if (e && SoilOption(test, std::string(a, e - a), e + 1)) c.soil.push_back({std::string(a, e - a), e + 1});
+            else {
+                std::cout << "unknown argument " << a << "\n";
+                return 1;
+            }
         }
     }
     RainfallSlope slope(c);
