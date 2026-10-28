@@ -1,9 +1,9 @@
-# Rodar os contraexemplos A3–A6 no seu computador
+# Rodar os contraexemplos no seu computador
 
-Divisão do trabalho: o ambiente remoto roda o A2 (fase de ar, `scripts/fase_ar.py`) e o A1 (dilatância,
-`SlopeRainfallPV`); o seu computador roda os itens **A3, A4, A5 e A6** (99 casos independentes, modelo do artigo:
-percolação desacoplada e p_a = 0). Cada caso usa 1 núcleo e leva 10–20 min; com N núcleos o total é ≈ 99 × 15 / N min
-(≈ 1,5 h com 16 núcleos).
+Os itens **A3, A4, A5 e A6** (99 casos independentes, modelo do artigo: percolação desacoplada e p_a = 0) já rodaram
+(resultados em `resultados/contraexemplos/`). Faltam o **A1** (dilatância, 15 casos, `SlopeRainfallPV`, modelo
+acoplado com ar ativo) e o **A2** (fase de ar, 22 casos, `scripts/fase_ar.py`): veja a seção 5. Cada caso usa 1
+núcleo; os do A3–A6 levam 10–40 min, os acoplados do A1 e do A2, 30–150 min.
 
 ## 1. Código
 
@@ -51,4 +51,18 @@ cd runs
 zip -r contraexemplos.zip resultados/contraexemplos -x "*/snaps_*" "*/log.txt"
 ```
 e anexe o `contraexemplos.zip` na conversa (ou faça commit de `resultados/contraexemplos` em
-`Projects/SlopeRainfall/resultados/` no branch). Os resultados remotos (A1, A2) e os seus serão reunidos no relatório.
+`Projects/SlopeRainfall/resultados/` no branch).
+
+## 5. A1 e A2
+
+`scripts/rodar_A1_A2.sh` compila `SlopeRainfall` e `SlopeRainfallPV` e lança os dois lotes em segundo plano (um caso
+por núcleo; continuam com o terminal fechado). Na pasta dos resultados:
+```
+cd ~/projects/runs
+<neopz>/Projects/SlopeRainfall/scripts/rodar_A1_A2.sh rodar <build> 4 4     # núcleos do A1 e do A2
+<neopz>/Projects/SlopeRainfall/scripts/rodar_A1_A2.sh status                # casos prontos (de 15 e 22) e em execução
+<neopz>/Projects/SlopeRainfall/scripts/rodar_A1_A2.sh zip                   # no fim: a1_a2.zip para anexar
+```
+Logs em `lote_A1.log` e `lote_A2.log`. Um lote que já está rodando não é lançado de novo e os casos com
+`summary.txt` são pulados: se a máquina for desligada, basta repetir o `rodar`. O total é de ≈ 4–5 h com 8 núcleos
+(o A1 é o mais longo).

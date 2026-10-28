@@ -185,6 +185,73 @@ Tensor girado (k_x = 1e-4 na direção θ, k_y = 1e-5 normal a ela; a face desce
 * O pior caso girado é θ = 0 (estratificação horizontal, menor infiltração vertical); o melhor, θ ≈ 30–45°
   (direção mais permeável subindo para dentro do maciço, contrária à face): a água se afasta da face.
 
+### Contraexemplos A3–A6 (modelo do artigo: desacoplado, p_a = 0)
+
+`scripts/contraexemplos.py` (99 casos; figuras `contra_A3_anisotropia.png`, `contra_A4_succao.png`,
+`contra_A5_angulo.png`, `contra_A6_volume.png` e tabelas `contra_tabela_A*.csv`; resultados em
+`resultados/contraexemplos/`). Solo f50, α = 45°, H_s = 10 m, H_w = 5 m, chuva de 24 h salvo indicação; FS mínimo
+por redução de resistência.
+
+**A3 — anisotropia e a intensidade-limite** (k_1 = 1e-4 na direção θ, k_2 = 1e-5; θ = 135° é a direção da face):
+
+| I_r (mm/h) | 9 | 18 | 36 | 54 | 90 | 180 | 360* |
+|---|---|---|---|---|---|---|---|
+| isotrópico 1e-5 (B_passivo_desacoplado) | 1,85 | 1,61 | 1,18 | 0,97 | 0,85 | 0,84 | — |
+| θ = 0° | 1,79 | 1,59 | 1,24 | 1,08 | 1,05 | 1,05 | 1,06 |
+| θ = 45° | 1,86 | 1,63 | 1,35 | 1,19 | 0,92 | 0,87 | 0,87 |
+| θ = 135° | 1,94 | 1,69 | 1,15 | 0,96 | **0,65** | **0,63** | 0,63 |
+
+\* a percolação parou de convergir às 13–24 h (toda a superfície alagada); o mínimo pode estar superestimado.
+
+* O patamar inferior da Eq. 6 (≈ 0,82) não é uma propriedade do solo: com o mesmo k_s médio vai de 0,63 a 1,05 só
+  pela orientação do tensor. Com a direção mais permeável paralela à face (θ = 135°) a água infiltrada pela crista
+  escoa paralela à face e o FS fica 0,2 abaixo do isotrópico; com estratificação horizontal (θ = 0°) fica 0,2 acima.
+* Nas chuvas fracas (≤ 18 mm/h) a ordem se inverte (θ = 135° é o mais estável): a anisotropia drena a água.
+* No modelo acoplado (seção anterior, 36 mm/h) o pior caso era θ = 0; aqui, com 36 mm/h, é θ = 135° (1,15 contra
+  1,24): o patamar FS ≈ 1 do modelo acoplado mascara a diferença.
+
+**A4 — limite da sucção inicial** (FS inicial e FS mínimo com s_max = 75 / 150 / 300 kPa):
+
+| H_w (m) | 2,5 | 5 | 7,5 | 10 | 15 |
+|---|---|---|---|---|---|
+| FS inicial | 1,80 / 1,83 / 1,83 | 2,12 / 2,20 / 2,20 | 2,35 / 2,56 / 2,56 | 2,40 / 2,91 / 2,92 | 2,40 / 3,45 / 3,63 |
+| FS mínimo, 9 mm/h | 1,47 / 1,49 / 1,49 | 1,86 / 1,82 / 1,82 | 2,08 / 2,11 / 2,23 | 2,23 / **2,51 / 2,36** | 2,35 / 2,48 / 2,81 |
+| FS mínimo, 36 mm/h | 0,95 / 0,98 / 0,98 | 1,17 / 1,22 / 1,22 | 1,39 / 1,43 / 1,44 | 1,41 / 1,48 / 1,52 | 1,54 / **1,83 / 1,70** |
+
+* O teto de 75 kPa do artigo só pesa com nível d'água profundo (H_w ≥ 7,5 m): o FS inicial chega a +51 %
+  (H_w = 15 m), mas o FS mínimo ganha bem menos (36 mm/h: 1,54 → 1,70–1,83), porque a queda pela chuva cresce
+  com a sucção inicial (1,03 → 1,62–1,93).
+* O efeito não é monotônico: com H_w = 10 m e 9 mm/h, 300 kPa dá FS inicial igual ao de 150 kPa (2,92 e 2,91) e
+  FS mínimo menor (2,36 contra 2,51). Começar mais seco nem sempre é mais seguro (hipótese: com S_w e k_rw menores a
+  água infiltrada se concentra perto da superfície).
+
+**A5 — inclinação da face** (FS inicial igual nos três solos):
+
+| α (°) | 20 | 30 | 40 | 45 | 50 | 60 | 70 |
+|---|---|---|---|---|---|---|---|
+| FS inicial | 2,80 | 2,44 | 2,21 | 2,12 | 2,02 | 1,84 | 1,66 |
+| f10, 80 mm/h | 1,67 | 1,44 | 1,26 | 1,20 | 1,11 | 1,00 | 0,89 |
+| f50, 36 mm/h | 1,64 | 1,42 | 1,24 | 1,17 | 1,06 | 1,00 | 0,89 |
+| f100, 9 mm/h | 2,37 | 2,02 | 1,73 | 1,69 | 1,47 | 1,31 | 1,17 |
+
+* O FS mínimo cai de forma monotônica e quase linear com α, numa faixa (0,8–1,2) comparável à do tipo de solo: a
+  geometria não é "secundária" para o FS mínimo. A queda causada pela chuva (FS inicial − FS mínimo) diminui com α
+  nos solos permeáveis (1,13 a 20° → 0,77 a 70°) e é quase constante no f100 (0,43–0,49).
+
+**A6 — mesmo volume (864 mm) em durações diferentes** (I_r = 864 mm / duração):
+
+| duração (h) | 3 | 6 | 12 | 24 | 72 |
+|---|---|---|---|---|---|
+| I_r (mm/h) | 288 | 144 | 72 | 36 | 12 |
+| f10 (k_s = 360 mm/h) | **1,32** | 1,38 | 1,47 | 1,52 | 1,78 |
+| f50 (k_s = 36 mm/h) | 1,58 | 1,37 | 1,22 | **1,17** | 1,19 |
+| f100 (k_s = 3,6 mm/h) | 1,93 | 1,84 | 1,70 | 1,48 | **1,15** |
+
+* A duração crítica de um volume V é t* ≈ V/k_s (I_r ≈ k_s): 2,4 h no f10 (a mais curta testada), 24 h no f50 e
+  240 h no f100 (a mais longa testada). Nem "chuva curta e intensa" nem "chuva longa" é o pior caso em geral: a regra
+  I ≈ k_s do artigo, reescrita em volume. No f50 a infiltração vai de 22 m³/m (3 h) a 56 m³/m (72 h); no f10 tudo
+  infiltra (60,5 m³/m).
+
 ## Limitações
 
 * Patamar FS ≈ 1 do modelo acoplado com ψ = φ' (acima); a comparação com o artigo deve usar `acoplado=0 passivo=1`.
