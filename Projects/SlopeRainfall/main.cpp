@@ -14,7 +14,7 @@
 // Anisotropic conductivity: principal values kx (along the direction at theta degrees, counterclockwise from the x
 // axis) and ky (normal to it).
 //
-// Usage: SlopeRainfall [solo=f50] [alpha=45] [hs=10] [hw=5] [I=36] [kx=k_s] [ky=k_s] [theta=0] [kramin=1e-4] [train=24] [ttotal=48] [tfs=3,6,...] [passivo=0] [acoplado=1]
+// Usage: SlopeRainfall [solo=f50] [alpha=45] [hs=10] [hw=5] [I=36] [kx=k_s] [ky=k_s] [theta=0] [kramin=1e-4] [psi=phi (deg; SlopeRainfallPV)] [smax=75] [train=24] [ttotal=48] [tfs=3,6,...] [passivo=0] [acoplado=1]
 //                      [gi=1] [fs=1] [vtk=0] [mesh=<file .msh>] [out=<folder>] [verbose=1]
 //                      [threads=0 (assembly threads)]
 // Outputs in <out>: fs.csv, hist.csv, snaps_pw.csv, snaps_pa.csv, vertices.csv, triangles.csv, outline.csv,
@@ -34,7 +34,6 @@
 
 static const REAL HOUR = 3600.;
 static const REAL F0 = 0.6;                    // strength increase of the geostatic state of the FS analysis
-static const REAL SMAX = 75.;                  // limit of the initial suction (kPa)
 static const REAL BETA = 7. * M_PI / 180.;     // inclination of the initial water table (Fig. 2)
 
 struct Case {
@@ -42,6 +41,8 @@ struct Case {
     REAL alpha = 45., hs = 10., hw = 5., I = 36., train = 24., ttotal = 48.;
     REAL kx = 0., ky = 0., theta = 0.; ///< principal conductivities (m/s; <= 0: k_s of the soil), angle of k_x (deg)
     REAL kramin = 1.e-4;                ///< minimum relative permeability of the air
+    REAL psi = -1.;                     ///< dilatancy angle (deg); < 0: psi = phi
+    REAL smax = 75.;                    ///< limit of the initial suction (kPa)
     std::vector<REAL> tfs = {3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 36, 48};
     bool passivo = false, gi = true, fs = true, vtk = false, acoplado = true;
     std::string mesh, out = "out";
@@ -103,6 +104,7 @@ public:
         fPar.ky = c.ky;
         fPar.theta = c.theta;
         fPar.hydro.fKraMin = c.kramin;
+        if (c.psi >= 0.) fPar.psi = c.psi * M_PI / 180.;
         std::string mesh = c.mesh;
         if (mesh.empty()) {
             std::ostringstream s;
@@ -164,11 +166,11 @@ private:
             for (auto n : surf) fFixed[fAn->AirEq().at(n)] = 0.;
     }
 
-    /// Initial pore pressures: hydrostatic below the water table, suction limited to SMAX, p_a = 0
+    /// Initial pore pressures: hydrostatic below the water table, suction limited to smax, p_a = 0
     void InitialPressures(TPZFMatrix<STATE> &x) {
         for (auto &e : fAn->WaterEq()) {
             const TPZGeoNode &nd = fGMesh->NodeVec()[e.first];
-            x(e.second, 0) = std::max(fPar.gw * (fGeo.WaterTable(fCase.hw, nd.Coord(0)) - nd.Coord(1)), -SMAX);
+            x(e.second, 0) = std::max(fPar.gw * (fGeo.WaterTable(fCase.hw, nd.Coord(0)) - nd.Coord(1)), -fCase.smax);
         }
         for (auto &e : fAn->AirEq()) x(e.second, 0) = 0.;
     }
@@ -279,6 +281,14 @@ private:
             const auto r = fAn->Solve(dt, fixed, fq, false);
             fIter += r.iter;
             conv = r.conv;
+            if (!conv && rate > 0. && ponded.size() < fAtm.size()) {
+                // rain much larger than the conductivity on a dry soil: the flux condition gives very large pressures
+                // before the active set is updated; start again with the whole surface ponded (p_w = 0) and let the
+                // active set release the vertices whose inflow would exceed the rain
+                fAn->Restore();
+                ponded.insert(fAtm.begin(), fAtm.end());
+                continue;
+            }
             if (!conv) break;
             const TPZFMatrix<STATE> &x = fMPhys->Solution();
             std::set<int64_t> add, drop;
@@ -481,9 +491,12 @@ void RainfallSlope::Run() {
                 break;
             }
             tFail = t / HOUR;
-            fStrength = F0;
-            fMat->PlasticModel().SetStrengthReductionFactor(F0);
-            std::cout << fCase.out << ": transient without equilibrium after t = " << tFail << " h (FS < 1)\n";
+            if (fCase.acoplado) { // uncoupled: the mechanics already uses the increased strength (0.25)
+                fStrength = F0;
+                fMat->PlasticModel().SetStrengthReductionFactor(F0);
+            }
+            std::cout << fCase.out << ": transient without equilibrium after t = " << tFail << " h"
+                      << (fCase.acoplado ? " (FS < 1)" : " (seepage or mechanics without convergence)") << "\n";
             if (!Advance(dt, st.second, 0, 5)) {
                 std::cout << fCase.out << ": time step did not converge at t = " << t / HOUR << " h\n";
                 break;
@@ -518,7 +531,7 @@ void RainfallSlope::Run() {
     }
     sum << "solo " << fCase.solo << "\nalpha " << fCase.alpha << "\nhs " << fCase.hs << "\nhw " << fCase.hw << "\nI "
          << fCase.I << "\nkx " << (fCase.kx > 0 ? fCase.kx : fPar.ks) << "\nky "
-        << (fCase.ky > 0 ? fCase.ky : fPar.ks) << "\ntheta " << fCase.theta << "\nkramin " << fCase.kramin << "\ntrain " << fCase.train << "\nttotal " << fCase.ttotal << "\npassivo " << fCase.passivo << "\nacoplado " << fCase.acoplado
+        << (fCase.ky > 0 ? fCase.ky : fPar.ks) << "\ntheta " << fCase.theta << "\nkramin " << fCase.kramin << "\npsi " << fPar.psi * 180. / M_PI << "\nsmax " << fCase.smax << "\ntrain " << fCase.train << "\nttotal " << fCase.ttotal << "\npassivo " << fCase.passivo << "\nacoplado " << fCase.acoplado
         << "\nelements " << fGMesh->NElements() << "\nequations " << fAn->NEq() << "\nfs_ini_srm "
         << (fsHist.empty() ? -1. : fsHist[0].second.first) << "\nfs_ini_gi "
         << (fsHist.empty() ? -1. : fsHist[0].second.second) << "\nfs_min_srm " << minS << "\nt_min_srm " << tminS
@@ -543,6 +556,8 @@ int main(int argc, char *argv[]) {
         else if (is("ky=")) c.ky = std::atof(val("ky="));
         else if (is("theta=")) c.theta = std::atof(val("theta="));
         else if (is("kramin=")) c.kramin = std::atof(val("kramin="));
+        else if (is("psi=")) c.psi = std::atof(val("psi="));
+        else if (is("smax=")) c.smax = std::atof(val("smax="));
         else if (is("train=")) c.train = std::atof(val("train="));
         else if (is("ttotal=")) c.ttotal = std::atof(val("ttotal="));
         else if (is("tfs=")) c.tfs = ParseList(val("tfs="));

@@ -9,6 +9,8 @@
 #include "Plasticity/TPZMatUnsaturatedUPwPa.h"
 #include "Plasticity/TPZPlasticStepVoigt.h"
 #include "Plasticity/TPZYCMohrCoulombPV2.h"
+#include "Plasticity/TPZPlasticStepPV.h"
+#include "Plasticity/TPZYCMohrCoulombPV.h"
 #include "TPZGeoLinear.h"
 #include "TPZLinearAnalysis.h"
 #include "TPZMultiphysicsCompMesh.h"
@@ -35,7 +37,13 @@
 #include <string>
 #include <vector>
 
+#ifdef SLOPERAINFALL_PV
+// legacy iterative Mohr-Coulomb (TPZPlasticStepPV): accepts a dilatancy angle psi != phi (executable SlopeRainfallPV)
+using TMC = TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>;
+#else
+// closed-form RHW Mohr-Coulomb with consistent tangent: associative (psi = phi)
 using TMC = TPZPlasticStepVoigt<TPZYCMohrCoulombPV2, TPZElasticResponse>;
+#endif
 using TUnsat = TPZMatUnsaturatedUPwPa<TMC, TPZUnsaturatedMem>;
 
 /// Boundary ids of the mesh (gmsh physical groups 1..6, scripts/malha_talude.py)
@@ -123,7 +131,18 @@ struct UnsatParams {
 inline TMC MohrCoulomb(const UnsatParams &p) {
     TPZElasticResponse ER;
     ER.SetEngineeringData(p.E, p.nu);
+#ifdef SLOPERAINFALL_PV
+    TMC pv;
+    pv.fYC.SetUp(p.phi, p.psi, p.c, ER);
+    pv.fER = ER;
+    return pv;
+#else
+    if (std::fabs(p.psi - p.phi) > 1.e-12) {
+        std::cout << "the closed-form Mohr-Coulomb is associative: use SlopeRainfallPV for psi != phi\n";
+        DebugStop();
+    }
     return TMC(TPZYCMohrCoulombPV2(p.phi, p.psi, p.c, ER), ER);
+#endif
 }
 
 /// H1 atomic space with a null material on the domain and on all the boundaries

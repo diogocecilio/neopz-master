@@ -6,6 +6,8 @@
 #include "TPZMatUnsaturatedUPwPa.h"
 #include "TPZPlasticStepVoigt.h"
 #include "TPZYCMohrCoulombPV2.h"
+#include "TPZPlasticStepPV.h"
+#include "TPZYCMohrCoulombPV.h"
 #include "TPZElasticResponse.h"
 #include "TPZHash.h"
 #include "TPZStream.h"
@@ -533,3 +535,5 @@ void TPZMatUnsaturatedUPwPa<T, TMEM>::Read(TPZStream &buf, void *context) {
 }
 
 template class TPZMatUnsaturatedUPwPa<TPZPlasticStepVoigt<TPZYCMohrCoulombPV2, TPZElasticResponse>, TPZUnsaturatedMem>;
+// legacy iterative Mohr-Coulomb (non-associative: psi != phi)
+template class TPZMatUnsaturatedUPwPa<TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZUnsaturatedMem>;
