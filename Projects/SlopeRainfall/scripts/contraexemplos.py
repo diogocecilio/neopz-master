@@ -82,6 +82,11 @@ def rotulo(c):
 
 
 def rodar(a):
+    exes = [a.exe] + ([a.exe + "PV"] if "A1" in getattr(a, "itens", []) else [])
+    for e in exes:
+        if not (os.path.isfile(e) and os.access(e, os.X_OK)):
+            raise SystemExit(f"executável não encontrado: {e}\ncompile antes (ninja SlopeRainfall"
+                             f"{' SlopeRainfallPV' if e.endswith('PV') else ''}) e passe o caminho em --exe")
     tarefas = []
     for c in casos(a.itens):
         out = os.path.join(a.saida, rotulo(c))

@@ -33,6 +33,11 @@ THETAS = tuple(range(0, 180, 15))
 
 
 def rodar(a):
+    exes = [a.exe] + ([a.exe + "PV"] if "A1" in getattr(a, "itens", []) else [])
+    for e in exes:
+        if not (os.path.isfile(e) and os.access(e, os.X_OK)):
+            raise SystemExit(f"executável não encontrado: {e}\ncompile antes (ninja SlopeRainfall"
+                             f"{' SlopeRainfallPV' if e.endswith('PV') else ''}) e passe o caminho em --exe")
     if a.acao == "rotacao":
         k1, k2 = (tuple(map(float, a.casos[0].split(","))) if a.casos else (1e-4, 1e-5))
         casos = [(k1, k2, th) for th in THETAS]

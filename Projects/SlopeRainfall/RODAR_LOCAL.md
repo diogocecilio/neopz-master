@@ -29,9 +29,9 @@ ninja SlopeRainfall
 ## 3. Rodar
 
 ```
-pip install numpy matplotlib
+pip install numpy matplotlib      # (use python3 se o comando python não existir)
 mkdir runs && cd runs
-python <neopz>/Projects/SlopeRainfall/scripts/contraexemplos.py rodar --itens A3 A4 A5 A6 \
+python3 <neopz>/Projects/SlopeRainfall/scripts/contraexemplos.py rodar --itens A3 A4 A5 A6 \
        --jobs <número de núcleos físicos> --exe <build>/Projects/SlopeRainfall/SlopeRainfall
 ```
 Os resultados vão para `runs/resultados/contraexemplos/<caso>/`. Casos com `summary.txt` são pulados: se a execução
@@ -40,7 +40,7 @@ for interrompida, basta rodar o mesmo comando de novo. Para ver o progresso:
 
 As figuras preliminares podem ser geradas no próprio computador:
 ```
-python <neopz>/Projects/SlopeRainfall/scripts/contraexemplos.py figuras
+python3 <neopz>/Projects/SlopeRainfall/scripts/contraexemplos.py figuras
 ```
 
 ## 4. Devolver os resultados
