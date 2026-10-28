@@ -212,6 +212,16 @@ private:
         const TPZAdmChunkVector<TPZUnsaturatedMem> saved(*fMat->GetMemory());
         const TPZFMatrix<STATE> xsaved(fAn->X());
         const REAL Fsaved = fStrength;
+#ifdef SLOPERAINFALL_PV
+        // the dilatancy acts in the coupled transient; the factor of safety is computed with psi = phi (associative),
+        // the same method of the closed-form model (the strength reduction with psi < phi loses the convergence of
+        // Newton before the collapse)
+        const TMC transientModel(fMat->PlasticModel());
+        {
+            TPZElasticResponse ER = fMat->PlasticModel().fER;
+            fMat->PlasticModel().fYC.SetUp(fPar.phi, fPar.phi, fPar.c, ER);
+        }
+#endif
         auto around = [](REAL prev, REAL lo) {
             std::vector<REAL> l;
             for (REAL d : {-0.25, -0.08, -0.02, 0.03, 0.1, 0.4})
@@ -264,6 +274,9 @@ private:
         fAn->X() = xsaved;
         fAn->Restore();
         fMat->SetGravityFactor(1.);
+#ifdef SLOPERAINFALL_PV
+        fMat->PlasticModel() = transientModel;
+#endif
         fMat->PlasticModel().SetStrengthReductionFactor(Fsaved);
         return {fsSRM, fsGI};
     }
