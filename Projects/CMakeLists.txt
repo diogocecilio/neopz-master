@@ -47,3 +47,6 @@ add_subdirectory(SlopeSeepageForces)
 
 # Unsaturated slope under rainfall (Rahardjo et al. 2007): u - p_w - p_a model and FS in time
 add_subdirectory(SlopeRainfall)
+
+# Caso A4 com a sucção inicial sem limite (programa autocontido, saída para o ParaView)
+add_subdirectory(SlopeRainfallA4)
