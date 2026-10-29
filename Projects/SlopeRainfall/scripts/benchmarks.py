@@ -148,7 +148,7 @@ def pradhan(a, plt):
     ax.axhline(1, color="#999", lw=0.6, ls=":")
     ax.set(xlabel="horas a partir de 01/07/2018", ylabel="FS", title="Pradhan et al. (2022): chuva de 1 a 12/07/2018")
     ax.set_xlim(0, 272)
-    ax.legend(frameon=False, fontsize=7, loc="center left")
+    ax.legend(frameon=False, fontsize=7, loc="lower left")
     fig.tight_layout()
     fig.savefig(os.path.join(a.figuras, "pradhan_fs.png"), dpi=150)
     plt.close(fig)
