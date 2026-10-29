@@ -6,6 +6,9 @@ I 0.9
 kx 1e-06
 ky 1e-06
 theta 0
+kramin 0.0001
+psi 26
+smax 75
 train 24
 ttotal 48
 passivo 1
@@ -20,4 +23,7 @@ fs_min_gi -1
 t_min_gi 0
 t_fail -1
 newton_iterations 483
-minutes 13.5142
+retries 0
+retries_partial 0
+active_set_unsettled 0
+minutes 14.145

@@ -141,14 +141,15 @@ artigo e do modelo completo.
 \centering
 \includegraphics[width=\textwidth]{figuras/B_variantes_fsmin.png}
 \caption{S\'erie B ($H_s=10$~m, $\alpha=45^\circ$, $H_w=5$~m, 24~h de chuva): FS m\'inimo $\times$ $I_r$ nas tr\^es
-variantes do modelo e Eq.~6 do artigo (ajuste aos seus resultados, Fig.~7). C\'irculo vazado: percola\c{c}\~ao
-interrompida antes do fim da chuva (m\'inimo superestimado).}\label{fig:Bvar}
+variantes do modelo e Eq.~6 do artigo (ajuste aos seus resultados, Fig.~7).}\label{fig:Bvar}
 \end{figure}
 
 \begin{table}[htbp]
 \centering
 \caption{S\'erie B: FS m\'inimo. Eq.~6: ajuste do artigo; (i) modelo completo; (ii) ar passivo; (iii) desacoplado
-com ar passivo (hip\'oteses do artigo). $^*$Percola\c{c}\~ao interrompida \`as 8,5~h (superf\'icie toda alagada).}
+com ar passivo (hip\'oteses do artigo). A variante (iii) foi recalculada depois das corre\c{c}\~oes do avan\c{c}o no
+tempo (limita\c{c}\~oes, Se\c{c}\~ao~\ref{sec:direcoes}) e repetiu todos os valores, exceto os marcados com
+$^*$, que antes paravam \`as 8,5~h com a superf\'icie toda alagada.}
 \label{tab:B}
 \begin{tabular}{llcccc}
 \toprule
@@ -158,8 +159,8 @@ $f_{10,-4}$ & 9 & 1,89 & 1,93 & 1,93 & 1,93\\
  & 36 & 1,48 & 1,57 & 1,58 & 1,58\\
  & 90 & 1,05 & 1,15 & 1,16 & 1,15\\
  & 180 & 0,85 & 1,00 & 0,99 & \textbf{0,86}\\
- & 360 & 0,81 & 1,00 & 1,00 & 1,05$^*$\\
- & 900 & 0,81 & 0,99 & 0,99 & 0,98$^*$\\
+ & 360 & 0,81 & 1,00 & 1,00 & \textbf{0,84}$^*$\\
+ & 900 & 0,81 & 0,99 & 0,99 & \textbf{0,84}$^*$\\
 \midrule
 $f_{50,-5}$ & 3,6 & 1,98 & 1,96 & 2,01 & 2,01\\
  & 9 & 1,79 & 1,74 & 1,86 & 1,85\\
@@ -188,7 +189,7 @@ $I_r$ (mm/h) & $t=6$~h & $t=12$~h & $t=24$~h & $t=48$~h\\
 \midrule
 9 & 2,00 / 2,00 / 2,03 & 1,92 / 1,90 / 1,96 & 1,78 / 1,74 / 1,85 & 1,85 / 1,87 / 1,91\\
 18 & 1,92 / 1,88 / 1,96 & 1,76 / 1,67 / 1,83 & 1,50 / 1,32 / 1,61 & 1,60 / 1,65 / 1,68\\
-36 & 1,72 / 1,61 / 1,82 & 1,40 / 1,18 / 1,56 & 1,04 / 1,00 / 1,18 & 1,24 / 1,51 / 1,33\\
+36 & 1,72 / 1,61 / 1,82 & 1,40 / 1,18 / 1,57 & 1,04 / 1,00 / 1,18 & 1,24 / 1,51 / 1,33\\
 54 & 1,49 / 1,36 / 1,67 & 1,20 / 1,08 / 1,32 & 0,90 / 1,00 / 0,97 & 1,15 / 1,51 / 1,19\\
 90 & 1,35 / 1,24 / 1,44 & 1,18 / 1,06 / 1,19 & 0,86 / 1,00 / 0,85 & 1,15 / 1,51 / 1,17\\
 180 & 1,33 / 1,20 / 1,37 & 1,14 / 1,06 / 1,16 & 0,82 / 1,00 / 0,84 & 1,15 / 1,52 / 1,17\\
@@ -278,7 +279,7 @@ $f_{100,-6}$ & 3,6 & 2,18 / 2,37 & 1,99 / 2,19 & 1,77 / 1,89 & 1,49 / 1,45\\
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figuras/A_fs_tempo.png}
-\caption{S\'erie A: FS($t$) at\'e 240~h (compare com a Fig.~4 do artigo).}\label{fig:A4}
+\caption{S\'erie A: FS($t$) at\'e 240~h (compare com a Fig.~4 do artigo).}\label{fig:Atempo}
 \end{figure}
 
 Nas chuvas fracas e moderadas o FS m\'inimo fica sobre a Fig.~9 (diferen\c{c}as at\'e 0,1, maiores no $f_{100}$, onde o
@@ -410,7 +411,7 @@ relaxar cada uma dessas hip\'oteses. Os itens abaixo s\~ao hip\'oteses de invest
 \textbf{Conclus\~ao do artigo:} existe uma intensidade $I_{r(\mathrm{thr})}$ acima da qual o FS m\'inimo n\~ao diminui,
 com patamar inferior 0,81--0,82 (Eq.~6, Fig.~7).
 
-\textbf{Evid\^encia:} desacoplado, o NeoPZ reproduz o patamar (0,84--0,86); acoplado, o patamar sobe para
+\textbf{Evid\^encia:} desacoplado, o NeoPZ reproduz o patamar (0,84--0,85); acoplado, o patamar sobe para
 $\approx1{,}00$ e o transiente nunca perde o equil\'ibrio (Tabela~\ref{tab:B}). O mecanismo proposto \'e a suc\c{c}\~ao
 gerada pela dilat\^ancia pl\'astica ($\psi=\phi'$) na percola\c{c}\~ao acoplada.
 
@@ -419,19 +420,146 @@ quando $\psi\to0$, a ``intensidade-limite com FS $<1$'' depende de uma hip\'otes
 artigo, e a an\'alise desacoplada \'e conservadora apenas para solos contrativos. \emph{Requer} um Mohr--Coulomb
 n\~ao associativo (o retorno anal\'itico atual exige $\psi=\phi'$; alternativa: \texttt{TPZPlasticStepPV}).
 
+\textbf{Resultado} (modelo completo: acoplado, ar ativo; $f_{50,-5}$, $\alpha=45^\circ$, $H_w=5$~m, 24~h de chuva;
+Mohr--Coulomb n\~ao associativo do execut\'avel \texttt{SlopeRainfallPV}, com $\psi$ s\'o no transiente e o FS
+calculado com $\psi=\phi'$, de modo que as diferen\c{c}as v\^em apenas dos campos de $p_w$ e $p_a$;
+Tabela~\ref{tab:A1}, Fig.~\ref{fig:A1}):
+
+\begin{table}[h!]
+\centering\small
+\caption{A1: FS m\'inimo (SRM) do modelo completo com $\psi$ no transiente; a \'ultima linha \'e a variante (iii)
+da Tabela~\ref{tab:B}. $^\dagger$Transiente sem equil\'ibrio a partir de 15,5, 12,5, 12 e 11,75~h.}\label{tab:A1}
+\begin{tabular}{lccccc}
+\toprule
+$I_r$ (mm/h) & 18 & 36 & 54 & 90 & 180\\
+\midrule
+$\psi=0$ & 1,311 & \textbf{0,962}$^\dagger$ & \textbf{0,963}$^\dagger$ & \textbf{0,960}$^\dagger$ &
+\textbf{0,958}$^\dagger$\\
+$\psi=13^\circ$ ($\phi'/2$) & 1,319 & 1,005 & 1,004 & 1,005 & 1,008\\
+$\psi=26^\circ$ ($\phi'$) & 1,319 & 1,003 & 1,000 & 1,002 & 1,002\\
+\midrule
+(iii) desacoplado, $p_a=0$ & 1,61 & 1,18 & 0,97 & 0,85 & 0,84\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{itemize}
+\item Sem dilat\^ancia o modelo acoplado rompe: com $\psi=0$ e $I_r\ge36$~mm/h o transiente perde o equil\'ibrio
+entre 11,75 e 15,5~h e o FS m\'inimo desce a 0,96 nas quatro intensidades. Nesses instantes o FS do pr\'oprio caso com
+$\psi=0$ (SRM com $\psi=\phi'$) ainda \'e 1,05--1,06 e s\'o cruza 1 entre 15,7 e 19~h (interpola\c{c}\~ao linear; o
+FS \'e calculado a cada 3~h): com $\psi=0$ o colapso vem antes,
+como se espera do escoamento n\~ao associativo (ou o Newton n\~ao associativo perde a converg\^encia perto do colapso;
+nos dois casos, ruptura iminente). Depois da perda de equil\'ibrio o transiente segue com a resist\^encia aumentada;
+os 0,96 s\~ao o FS dos campos de press\~ao desse transiente.
+\item Com $\psi=\phi'/2$ ou $\psi=\phi'$ e $I_r\ge36$~mm/h o FS aproxima-se de 1 e para em 1,000--1,008, e o
+transiente nunca perde o equil\'ibrio: metade da dilat\^ancia associativa basta para o patamar FS $\approx1$ do modelo
+acoplado. A hip\'otese do item confirma-se no sinal: a ``intensidade-limite com FS $<1$'' s\'o aparece no modelo
+acoplado com $\psi=0$; com $\psi\ge\phi'/2$ ela n\~ao existe (valores intermedi\'arios de $\psi$ n\~ao foram testados).
+\item Mas o patamar com $\psi=0$ (0,96) fica acima do 0,84--0,85 do modelo desacoplado e da Eq.~6 (0,82): a
+dilat\^ancia explica por que o modelo acoplado n\~ao rompe, n\~ao a diferen\c{c}a toda para o artigo. O restante at\'e
+o modelo desacoplado vem do acoplamento e da fase de ar, que este teste n\~ao separa; os 0,02--0,03 entre o
+desacoplado e a Eq.~6 j\'a existem sem acoplamento nem ar.
+\item Abaixo da intensidade-limite $\psi$ quase n\~ao importa: com 18~mm/h o FS m\'inimo \'e 1,311 com $\psi=0$ e
+1,319 com $\psi=\phi'/2$ e $\phi'$. A dilat\^ancia s\'o age perto da ruptura, quando h\'a escoamento pl\'astico.
+\end{itemize}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.62\textwidth]{figuras/contra_A1_dilatancia.png}
+\caption{A1: FS m\'inimo $\times$ $I_r$ do modelo completo (acoplado, ar ativo) com $\psi=0$, $\phi'/2$ e $\phi'$ no
+transiente; linha cheia: Eq.~6 do artigo.}\label{fig:A1}
+\end{figure}
+
 \subsection{A2. ``Taludes pouco perme\'aveis s\~ao seguros em chuvas curtas''}
 
 \textbf{Conclus\~ao do artigo:} solos com $k_s\le10^{-6}$~m/s n\~ao rompem em chuvas de at\'e 24~h, qualquer que seja a
 intensidade (categoria IV, sem eleva\c{c}\~ao do NA).
 
-\textbf{Evid\^encia:} com ar ativo o FS m\'inimo do $f_{100}$ cai de 1,50 (ar passivo) para 1,28 com 18~mm/h e
+\textbf{Evid\^encia:} com ar ativo o FS m\'inimo do $f_{100}$ cai de 1,50 (desacoplado, $p_a=0$) para 1,28 com 18~mm/h e
 de 1,48 para 1,28 com 36~mm/h (Tabela~\ref{tab:B}), ficando abaixo da Eq.~6 (1,45); o ar aprisionado chega a
 50~kPa e torna $p_w$ positiva sob a frente (Fig.~\ref{fig:campos}). Na S\'erie A, com ar ativo, o $f_{100}$ com
 80~mm/h chega a 1,01 em $\alpha=63{,}4^\circ$.
 
-\textbf{Teste:} $f_{100}$ com $\alpha=63{,}4^\circ$ e $H_s=20$~m, chuvas de 9 a 80~mm/h, com e sem ar ativo, e
+\textbf{Teste:} $f_{100}$ com $\alpha=63{,}4^\circ$ e $H_s=10$~m e com $\alpha=45^\circ$ e $H_s=20$~m, chuvas de 9 a
+80~mm/h, com e sem ar ativo, e
 $k_{ra}^{\min}$ variando de $10^{-6}$ a $10^{-2}$ (a sa\'ida do ar controla a pressuriza\c{c}\~ao). Um FS $<1$ apenas
 com ar ativo seria um contraexemplo direto. N\~ao requer c\'odigo novo.
+
+\textbf{Resultado} ($f_{100,-6}$, chuva de 24~h e 48~h simuladas; Tabela~\ref{tab:A2}, Figs.~\ref{fig:A2},
+\ref{fig:A2campos} e \ref{fig:A2kra}). Tr\^es grupos: G1, com $\alpha=63{,}4^\circ$ e $H_s=10$~m, nos tr\^es modelos
+(acoplado com ar ativo, acoplado com ar passivo e o do artigo, desacoplado com $p_a=0$); G2, com $\alpha=45^\circ$ e
+$H_s=20$~m, com ar ativo e no modelo do artigo; G3, o G1 com 36~mm/h e ar ativo, variando $k_{ra}^{\min}$. Em nenhum
+caso o transiente perdeu o equil\'ibrio.
+
+\begin{table}[h!]
+\centering\small
+\caption{A2: FS m\'inimo (SRM) do $f_{100,-6}$ com chuva de 24~h e volume infiltrado em 24~h. Entre par\^enteses, o
+instante do m\'inimo quando posterior ao fim da chuva; $^*$m\'inimo no \'ultimo instante calculado (48~h): o FS ainda
+ca\'ia.}\label{tab:A2}
+\begin{tabular}{llcccc}
+\toprule
+ & $I_r$ (mm/h) & 9 & 18 & 36 & 80\\
+\midrule
+G1 & desacoplado, $p_a=0$ (artigo) & 1,38 & 1,16 & 1,10 & 1,09\\
+ & acoplado, ar passivo & 1,40 & 1,20 & 1,13 & 1,12\\
+ & acoplado, ar ativo & \textbf{1,17} & \textbf{1,03} & \textbf{1,02} & \textbf{1,01}\\
+ & infiltra\c{c}\~ao (m$^3$/m), ar ativo / passivo & 10,4 / 13,5 & 11,3 / 17,0 & 11,5 / 17,7 & 11,6 / 17,9\\
+\midrule
+G2 & desacoplado, $p_a=0$ (artigo) & 1,34$^*$ & -- & 1,26$^*$ & 1,25$^*$\\
+ & acoplado, ar ativo & 1,23 (36~h) & -- & 1,18 (30~h) & 1,17 (30~h)\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{itemize}
+\item Com ar ativo o FS m\'inimo do G1 \'e 1,01--1,03 com 18 a 80~mm/h e 1,17 com 9~mm/h, contra 1,09--1,38 no modelo
+do artigo: a redu\c{c}\~ao \'e de 0,08 a 0,22 e, com $I_r\ge18$~mm/h ($5k_s$), a margem at\'e a ruptura cai para 1--3\%.
+O FS n\~ao fica abaixo de 1 em nenhum caso, de modo que o contraexemplo direto n\~ao se confirma nestas geometrias; a
+conclus\~ao do artigo s\'o se mant\'em com margem de poucos por cento no G1 com $I_r\ge18$~mm/h (com 9~mm/h e no G2 a
+margem \'e de 17 a 23\%).
+\item O mecanismo n\~ao \'e mais \'agua: com ar ativo infiltram 10,4--11,6~m$^3$/m em 24~h, contra 13,5--17,9~m$^3$/m
+com ar passivo, e a taxa de infiltra\c{c}\~ao ao fim da chuva \'e a metade. O ar aprisionado entre a frente de
+umedecimento e o NA \'e comprimido durante toda a chuva (com 36~mm/h: 19,5~kPa em 1~h, 30~kPa em 3~h e 38~kPa em
+24~h; 36--38~kPa ao fim da chuva em todos os casos com ar ativo de G1 e G2). Como a satura\c{c}\~ao depende de
+$p_a-p_w$, sob a frente
+$p_w$ sobe com $p_a$ sem que a \'agua chegue, e com $\chi=1$ \'e $p_w$ que reduz a resist\^encia: a linha $p_w=0$ sobe
+at\'e o p\'e do talude (Fig.~\ref{fig:A2campos}), o que n\~ao ocorre com ar passivo. Com ar ativo, menos \'agua d\'a FS
+menor: a regra do volume infiltrado (tese T2, Se\c{c}\~ao~\ref{sec:literatura}) s\'o compara casos do mesmo modelo
+(com ar ativo o FS m\'inimo ainda cai com o volume, de 1,17 com 10,4~m$^3$/m a 1,01 com 11,6~m$^3$/m), n\~ao modelos
+com e sem press\~ao de ar.
+\item Com ar ativo a intensidade quase n\~ao importa a partir de 18~mm/h porque a superf\'icie alaga cedo (mais de 80
+dos 96 v\'ertices em 0,75~h com 80~mm/h, em 1,5~h com 36~mm/h e em 4~h com 18~mm/h; toda a superf\'icie em 1,5, 4,5 e
+13,25~h) e, alagada, a condi\c{c}\~ao de contorno n\~ao depende mais de $I_r$. Com 9~mm/h ($2{,}5k_s$) a superf\'icie
+s\'o alaga em parte ao longo da chuva (83 de 96 v\'ertices \`as 24~h com ar ativo, 41 com ar passivo).
+\item No G2 a redu\c{c}\~ao \'e de 0,08 a 0,11: igual \`a do G1 com 36 e 80~mm/h (0,08) e menor s\'o com 9~mm/h (0,11
+contra 0,22). O FS m\'inimo com ar ativo ocorre depois da chuva (30--36~h) e o do modelo do artigo ainda n\~ao foi
+atingido \`as 48~h.
+\item G3: com $k_{ra}^{\min}=10^{-6}$ a $10^{-3}$ o FS m\'inimo (1,013--1,015) e a press\~ao do ar (37--38~kPa) n\~ao
+mudam; s\'o com $10^{-2}$ o ar escapa pela superf\'icie alagada ($p_a=28$~kPa) e o FS sobe para 1,05. A sa\'ida do ar
+s\'o controla a pressuriza\c{c}\~ao a partir de $k_{ra}^{\min}\approx10^{-2}$.
+\end{itemize}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\textwidth]{figuras/fase_ar_G1_fs_tempo.png}\\
+\includegraphics[width=\textwidth]{figuras/fase_ar_fsmin.png}
+\caption{A2: FS($t$) do G1 nos tr\^es modelos (acima) e FS m\'inimo, press\~ao m\'axima do ar e volume infiltrado em
+24~h em fun\c{c}\~ao de $I_r$ no G1 e no G2 (abaixo; marcadores: Figs.~9 e 10 do artigo).}\label{fig:A2}
+\end{figure}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.9\textwidth]{figuras/fase_ar_campos.png}
+\caption{A2: $p_w$ nos tr\^es modelos e $p_a$ no modelo com ar ativo ao fim da chuva de 36~mm/h (G1, $t=24$~h);
+linha magenta: $p_w=0$.}\label{fig:A2campos}
+\end{figure}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\textwidth]{figuras/fase_ar_G3_kramin.png}
+\caption{A2, G3: FS m\'inimo, press\~ao m\'axima do ar e FS($t$) em fun\c{c}\~ao de $k_{ra}^{\min}$ (G1, 36~mm/h, ar
+ativo).}\label{fig:A2kra}
+\end{figure}
 
 \subsection{A3. ``O controle \'e $k_s$'': com anisotropia $k_s$ n\~ao \'e um n\'umero}
 
@@ -450,15 +578,17 @@ $k_2=10^{-5}$~m/s; a face desce a $-45^\circ$, logo $\theta=135^\circ$ \'e a dir
 
 \begin{table}[h!]
 \centering\small
-\caption{A3: FS m\'inimo (SRM) com o tensor girado. $^*$Percola\c{c}\~ao interrompida \`as 13--24~h.}\label{tab:A3}
+\caption{A3: FS m\'inimo (SRM) com o tensor girado; todos os casos foram recalculados depois das tr\^es corre\c{c}\~oes
+do avan\c{c}o no tempo. $^*$Na primeira rodada, antes da corre\c{c}\~ao da busca linear
+(Se\c{c}\~ao~\ref{sec:patamar}), a percola\c{c}\~ao parava \`as 13--24~h.}\label{tab:A3}
 \begin{tabular}{lccccccc}
 \toprule
 $I_r$ (mm/h) & 9 & 18 & 36 & 54 & 90 & 180 & 360$^*$\\
 \midrule
 isotr\'opico $10^{-5}$ & 1,85 & 1,61 & 1,18 & 0,97 & 0,85 & 0,84 & --\\
-$\theta=0^\circ$ & 1,79 & 1,59 & 1,24 & 1,08 & 1,05 & 1,05 & 1,06\\
-$\theta=45^\circ$ & 1,86 & 1,63 & 1,35 & 1,19 & 0,92 & 0,87 & 0,87\\
-$\theta=135^\circ$ & 1,94 & 1,69 & 1,15 & 0,96 & \textbf{0,65} & \textbf{0,63} & 0,63\\
+$\theta=0^\circ$ & 1,79 & 1,59 & 1,24 & 1,08 & 1,05 & 1,05 & 1,05\\
+$\theta=45^\circ$ & 1,86 & 1,63 & 1,34 & 1,19 & 0,92 & 0,87 & 0,87\\
+$\theta=135^\circ$ & 1,94 & 1,69 & 1,22 & 0,96 & \textbf{0,65} & \textbf{0,63} & \textbf{0,63}\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -466,8 +596,14 @@ $\theta=135^\circ$ & 1,94 & 1,69 & 1,15 & 0,96 & \textbf{0,65} & \textbf{0,63} &
 O patamar inferior da Eq.~6 n\~ao \'e uma propriedade do solo: com o mesmo $k$ m\'edio ele vai de 0,63 a 1,05 apenas
 pela orienta\c{c}\~ao do tensor (Fig.~\ref{fig:A3}). Com a dire\c{c}\~ao mais perme\'avel paralela \`a face a \'agua
 infiltrada pela crista escoa paralela \`a face e o FS fica 0,2 abaixo do isotr\'opico; com estratifica\c{c}\~ao
-horizontal fica 0,2 acima. Nas chuvas fracas a ordem se inverte (a anisotropia drena a \'agua). No modelo acoplado
-(Tabela~\ref{tab:rot}) o pior caso era $\theta=0$: o patamar FS $\approx1$ do modelo acoplado mascara a diferen\c{c}a.
+horizontal fica 0,2 acima. Nas chuvas fracas ($I_r\le18$~mm/h) a ordem se inverte: $\theta=135^\circ$ \'e o mais
+est\'avel e $\theta=0$ fica 0,02--0,06 abaixo do isotr\'opico. As orienta\c{c}\~oes inclinadas ($\theta=45^\circ$ e
+$135^\circ$, condutividade vertical $5{,}5\times10^{-5}$~m/s) drenam a \'agua da zona rasa; a estratifica\c{c}\~ao
+horizontal, com a condutividade vertical do isotr\'opico, n\~ao. No modelo acoplado com 36~mm/h
+(Tabela~\ref{tab:rot}, c\'alculos anteriores \`as corre\c{c}\~oes do avan\c{c}o no tempo) o pior caso era $\theta=0$
+(1,08 contra 1,18 com $\theta=135^\circ$); no desacoplado, com a mesma chuva, $\theta=135^\circ$ e $\theta=0$ quase
+empatam (1,22 e 1,24), e a diferen\c{c}a grande s\'o aparece no patamar das chuvas fortes ($I_r\ge90$~mm/h), que n\~ao
+foi calculado no modelo acoplado com o tensor girado.
 
 \begin{figure}[h!]
 \centering
@@ -480,16 +616,20 @@ horizontal fica 0,2 acima. Nas chuvas fracas a ordem se inverte (a anisotropia d
 \textbf{Conclus\~ao do artigo:} $H_w$ s\'o define o FS inicial; o pr\'oprio artigo nota que o FS inicial deixa de
 crescer acima de $H_w=7{,}5$~m por causa do limite de $-75$~kPa (Fig.~8).
 
-\textbf{Teste:} S\'erie C com suc\c{c}\~ao inicial limitada a 75, 150 e 300~kPa e sem limite. Se a queda de FS
-(FS inicial $-$ FS m\'inimo) passar a depender fortemente de $H_w$, o car\'ater ``secund\'ario'' do NA \'e artefato do
-limite. \emph{Requer} tornar o limite (\texttt{SMAX}) um par\^ametro.
+\textbf{Teste:} geometria da S\'erie C ($H_w=2{,}5$ a 15~m) com o solo $f_{50}$, chuvas de 9 e 36~mm/h e o modelo do
+artigo (desacoplado, $p_a=0$), com suc\c{c}\~ao inicial limitada a 75, 150 e 300~kPa; o limite de 300~kPa n\~ao \'e
+atingido (suc\c{c}\~ao inicial m\'axima de 111 a 233~kPa) e equivale a n\~ao limitar. Se a queda de FS (FS inicial
+$-$ FS m\'inimo) passar a depender fortemente de $H_w$, o car\'ater ``secund\'ario'' do NA \'e artefato do limite. O
+limite \'e o par\^ametro \texttt{smax} (kPa) do programa.
 
-\textbf{Resultado} (Tabela~\ref{tab:A4}, Fig.~\ref{fig:A4}): o limite de 75~kPa s\'o pesa com NA profundo
-($H_w\ge7{,}5$~m). O FS inicial chega a $+51\%$ ($H_w=15$~m), mas o FS m\'inimo ganha bem menos, porque a queda
-causada pela chuva cresce com a suc\c{c}\~ao inicial (com 36~mm/h: 1,03 com 75~kPa, 1,62--1,93 com 150--300~kPa). O efeito
-n\~ao \'e monot\^onico: com $H_w=10$~m e 9~mm/h, 300~kPa d\'a o mesmo FS inicial que 150~kPa (2,92 e 2,91) e um FS
-m\'inimo menor (2,36 contra 2,51) --- come\c{c}ar mais seco nem sempre \'e mais seguro. Com uma lei $\chi(s)$ que
-satura (Vanapalli, Bao; Se\c{c}\~ao~\ref{sec:literatura}) boa parte do ganho de FS inicial desapareceria.
+\textbf{Resultado} (Tabela~\ref{tab:A4}, Fig.~\ref{fig:A4}): o limite de 75~kPa pesa sobretudo com NA profundo
+($H_w\ge7{,}5$~m). Com $H_w=15$~m o FS inicial chega a $+51\%$ (de 2,40 a 3,63), mas o FS m\'inimo ganha menos
+($+23\%$ com 36~mm/h, de 1,54 a 1,90; $+31\%$ com 9~mm/h), porque, para o mesmo $H_w$, a queda causada pela chuva
+cresce com o limite da suc\c{c}\~ao inicial (com 36~mm/h: 0,86 com 75~kPa, 1,63 com 150~kPa e 1,73 com 300~kPa). O
+efeito \'e monot\^onico: em todos os casos um limite maior d\'a FS m\'inimo maior ou igual. Com uma lei $\chi(s)$ que
+satura (por exemplo $\chi=S_w$; Se\c{c}\~ao~\ref{sec:literatura}, T4) boa parte do ganho de FS inicial deve
+desaparecer; isso n\~ao foi simulado aqui. No talude A de Zhang et al.\ (Tabela~\ref{tab:zhang}), $\chi=S_w$ d\'a FS
+1,09, contra 1,92 com $\chi=1$ sem limite e 1,66 com o limite de 75~kPa.
 
 \begin{table}[h!]
 \centering\small
@@ -499,8 +639,8 @@ satura (Vanapalli, Bao; Se\c{c}\~ao~\ref{sec:literatura}) boa parte do ganho de 
 $H_w$ (m) & 2,5 & 5 & 7,5 & 10 & 15\\
 \midrule
 FS inicial & 1,80/1,83/1,83 & 2,12/2,20/2,20 & 2,35/2,56/2,56 & 2,40/2,91/2,92 & 2,40/3,45/3,63\\
-FS m\'in., 9~mm/h & 1,47/1,49/1,49 & 1,86/1,82/1,82 & 2,08/2,11/2,23 & 2,23/2,51/2,36 & 2,35/2,48/2,81\\
-FS m\'in., 36~mm/h & 0,95/0,98/0,98 & 1,17/1,22/1,22 & 1,39/1,43/1,44 & 1,41/1,48/1,52 & 1,54/1,83/1,70\\
+FS m\'in., 9~mm/h & 1,47/1,49/1,49 & 1,86/1,91/1,91 & 2,08/2,23/2,23 & 2,23/2,51/2,53 & 2,35/2,92/3,07\\
+FS m\'in., 36~mm/h & 0,95/0,98/0,98 & 1,17/1,22/1,22 & 1,39/1,49/1,49 & 1,49/1,64/1,64 & 1,54/1,83/1,90\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -513,7 +653,8 @@ FS m\'in., 36~mm/h & 0,95/0,98/0,98 & 1,17/1,22/1,22 & 1,39/1,43/1,44 & 1,41/1,4
 
 \subsection{A5. ``O FS m\'inimo \'e linear em $\alpha$ com inclina\c{c}\~ao quase constante''}
 
-\textbf{Conclus\~ao do artigo:} $F_{s(\min)}=E+F\alpha$ com $F\approx-0{,}025$ (Tabela~7).
+\textbf{Conclus\~ao do artigo:} $F_{s(\min)}=E+F\alpha$, com $F$ ``quase constante'' segundo o artigo ($-0{,}025$ nas
+chuvas de 3,6 e 9~mm/h e de $-0{,}013$ a $-0{,}027$ nas demais linhas da Tabela~7).
 
 \textbf{Evid\^encia:} a Tabela~7 n\~ao reproduz a Fig.~9 em algumas linhas; com quatro \^angulos a linearidade n\~ao
 \'e test\'avel. No NeoPZ a inclina\c{c}\~ao muda nas chuvas fortes por causa do patamar $\approx1$.
@@ -521,16 +662,24 @@ FS m\'in., 36~mm/h & 0,95/0,98/0,98 & 1,17/1,22/1,22 & 1,39/1,43/1,44 & 1,41/1,4
 \textbf{Teste:} $\alpha$ de $20^\circ$ a $70^\circ$ a cada $5^\circ$ para os nove pares solo--chuva, observando
 tamb\'em a profundidade do mecanismo (zona pl\'astica rasa $\times$ profunda). N\~ao requer c\'odigo novo.
 
-\textbf{Resultado} (modelo do artigo; Fig.~\ref{fig:A5}): o FS m\'inimo cai de forma monot\^onica e quase linear com
-$\alpha$ nos tr\^es pares rodados ($f_{10}$ com 80~mm/h: 1,67 a $20^\circ$ $\to$ 0,89 a $70^\circ$; $f_{50}$ com
-36~mm/h: 1,64 $\to$ 0,89; $f_{100}$ com 9~mm/h: 2,37 $\to$ 1,17), numa faixa compar\'avel \`a do tipo de solo: a
-geometria n\~ao \'e ``secund\'aria'' para o FS m\'inimo. A queda causada pela chuva (FS inicial $-$ FS m\'inimo)
-diminui com $\alpha$ nos solos perme\'aveis (1,13 $\to$ 0,77) e \'e quase constante no $f_{100}$ (0,43--0,49).
+\textbf{Resultado} (modelo do artigo; Fig.~\ref{fig:A5}): o FS m\'inimo cai de forma monot\^onica com $\alpha$ nos
+tr\^es pares rodados ($f_{10}$ com 80~mm/h: 1,67 a $20^\circ$ $\to$ 0,89 a $70^\circ$; $f_{50}$ com 36~mm/h: 1,63
+$\to$ 0,89; $f_{100}$ com 9~mm/h: 2,43 $\to$ 1,30), numa faixa (0,74 a 1,13 entre $20^\circ$ e $70^\circ$)
+compar\'avel \`a separa\c{c}\~ao entre os tr\^es pares num mesmo \^angulo (0,41 a 0,79) e maior que a separa\c{c}\~ao
+entre solos sob a mesma chuva na S\'erie~B (0,24 a 0,40 a $45^\circ$, de 9 a 36~mm/h): a geometria n\~ao \'e
+``secund\'aria'' para o FS m\'inimo. A queda n\~ao \'e linear: em m\'odulo, a inclina\c{c}\~ao local cai de 0,024--0,039
+por grau entre $20^\circ$ e $25^\circ$ para 0,011--0,013 entre $65^\circ$ e $70^\circ$ (a Tabela~7 do artigo usa uma
+reta por par, com $F=-0{,}027$, $-0{,}018$ e $-0{,}025$ nos tr\^es pares rodados). A queda causada pela chuva (FS
+inicial $-$ FS m\'inimo) diminui com $\alpha$ nos solos perme\'aveis (1,13--1,16 a $20^\circ$ $\to$ 0,76--0,77 a
+$70^\circ$) e varia pouco, sem tend\^encia monot\^onica, no $f_{100}$ (0,36--0,43); no $f_{100}$ com
+$\alpha\le30^\circ$ o FS ainda ca\'ia \`as 48~h simuladas, e ali o m\'inimo \'e o do \'ultimo instante calculado.
 
 \begin{figure}[h!]
 \centering
 \includegraphics[width=\textwidth]{figuras/contra_A5_angulo.png}
-\caption{A5: FS m\'inimo e sua inclina\c{c}\~ao local em fun\c{c}\~ao de $\alpha$ (pontilhado: Tabela~7 do artigo).}\label{fig:A5}
+\caption{A5: FS inicial e m\'inimo (esquerda) e inclina\c{c}\~ao local $\mathrm{d}FS/\mathrm{d}\alpha$ (direita) em
+fun\c{c}\~ao de $\alpha$. Quadrados e c\'irculos: NeoPZ; $\times$ tracejado: Fig.~9 do artigo; pontilhado colorido e
+linha cheia preta: retas da Tabela~7 do artigo; \`a direita, a linha cinza pontilhada marca $F=-0{,}025$.}\label{fig:A5}
 \end{figure}
 
 \subsection{A6. Intensidade ou volume?}
@@ -538,30 +687,33 @@ diminui com $\alpha$ nos solos perme\'aveis (1,13 $\to$ 0,77) e \'e quase consta
 \textbf{Conclus\~ao do artigo:} $I_r=1k_s$ n\~ao produz necessariamente o menor FS; o volume $V_r$ \'e citado, mas
 todas as chuvas t\^em 24~h.
 
-\textbf{Teste:} chuvas com o mesmo volume e dura\c{c}\~oes de 3, 6, 24 e 72~h. Se o FS m\'inimo depender s\'o do volume
+\textbf{Teste:} chuvas com o mesmo volume e dura\c{c}\~oes de 3, 6, 12, 24 e 72~h. Se o FS m\'inimo depender s\'o do volume
 para solos de alto $k_s$ e s\'o da intensidade para solos de baixo $k_s$, a conclus\~ao precisa ser reformulada. N\~ao
 requer c\'odigo novo (par\^ametro \texttt{train}).
 
 \textbf{Resultado} (864~mm em 3, 6, 12, 24 e 72~h; Tabela~\ref{tab:A6}, Fig.~\ref{fig:A6}): a dura\c{c}\~ao cr\'itica
-de um volume $V$ \'e
+de um volume $V$ \'e compat\'ivel com
 \begin{equation}
 t^*\approx V/k_s\qquad(I_r\approx k_s),\label{eq:tcrit}
 \end{equation}
-isto \'e, 2,4~h no $f_{10}$ (a mais curta testada), 24~h no $f_{50}$ e 240~h no $f_{100}$ (a mais longa testada). Nem
-``chuva curta e intensa'' nem ``chuva longa'' \'e o pior caso em geral: a regra $I_r\approx k_s$ do artigo reescrita
-em volume. No $f_{50}$ a infiltra\c{c}\~ao vai de 22~m$^3$/m (3~h) a 56~m$^3$/m (72~h); no $f_{10}$ tudo infiltra.
+isto \'e, 2,4~h no $f_{10}$ (abaixo da faixa testada: o menor FS ocorre na mais curta, 3~h), 24~h no $f_{50}$ (onde
+ocorre o menor FS) e 240~h no $f_{100}$ (acima da faixa testada: o menor FS ocorre na mais longa, 72~h). Nem ``chuva
+curta e intensa'' nem ``chuva longa'' \'e o pior caso em geral: com volume fixo, o pior caso \'e a chuva com $I_r$ mais
+pr\'oximo de $k_s$ ($I_r/k_s=0{,}8$, 1 e 3,3 nos m\'inimos). No $f_{50}$ a infiltra\c{c}\~ao vai de 22~m$^3$/m (3~h) a
+58~m$^3$/m (72~h); no $f_{10}$ tudo infiltra.
 
 \begin{table}[h!]
 \centering\small
-\caption{A6: FS m\'inimo com o mesmo volume (864~mm) em dura\c{c}\~oes diferentes.}\label{tab:A6}
+\caption{A6: FS m\'inimo com o mesmo volume (864~mm) em dura\c{c}\~oes diferentes. O FS tem resolu\c{c}\~ao de cerca
+de 0,01: o mesmo caso ($f_{50}$, 36~mm/h, 24~h) d\'a 1,173 aqui e 1,176 na S\'erie~B (Tabela~\ref{tab:B}).}\label{tab:A6}
 \begin{tabular}{lccccc}
 \toprule
 dura\c{c}\~ao (h) & 3 & 6 & 12 & 24 & 72\\
 $I_r$ (mm/h) & 288 & 144 & 72 & 36 & 12\\
 \midrule
-$f_{10}$ ($k_s=360$~mm/h) & \textbf{1,32} & 1,38 & 1,47 & 1,52 & 1,78\\
-$f_{50}$ ($k_s=36$~mm/h) & 1,58 & 1,37 & 1,22 & \textbf{1,17} & 1,19\\
-$f_{100}$ ($k_s=3{,}6$~mm/h) & 1,93 & 1,84 & 1,70 & 1,48 & \textbf{1,15}\\
+$f_{10}$ ($k_s=360$~mm/h) & \textbf{1,31} & 1,38 & 1,47 & 1,57 & 1,78\\
+$f_{50}$ ($k_s=36$~mm/h) & 1,58 & 1,37 & 1,21 & \textbf{1,17} & 1,25\\
+$f_{100}$ ($k_s=3{,}6$~mm/h) & 1,93 & 1,84 & 1,70 & 1,48 & \textbf{1,16}\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -611,22 +763,49 @@ Kozeny--Carman;
 \item varia\c{c}\~ao espacial de $k_s$ e $c'$ (campos aleat\'orios), na linha de Ceron et al.\ (2025).
 \end{itemize}
 
-\subsection{Prioridades}
+\subsection{S\'intese}
 
-\begin{enumerate}
-\item A2 (ar ativo em solo pouco perme\'avel): contraexemplo mais direto, sem c\'odigo novo.
-\item A3 (anisotropia na sigmoide de $I_r$): usa o que foi implementado e pode gerar um resultado original.
-\item A1 (dilat\^ancia): explica a diferen\c{c}a entre o modelo acoplado e o artigo; requer Mohr--Coulomb n\~ao
-associativo.
-\end{enumerate}
+\begin{itemize}
+\item A1 (dilat\^ancia): no modelo acoplado a ruptura depende de $\psi$. Com $I_r\ge36$~mm/h e $\psi=\phi'/2$ ou
+$\psi=\phi'$ o FS para em 1,00--1,01; com $\psi=0$ o transiente perde o equil\'ibrio e o FS desce a 0,96, ainda acima
+do patamar do modelo desacoplado (0,84--0,85). Abaixo da intensidade-limite $\psi$ quase n\~ao importa.
+\item A2 (fase de ar): com ar ativo o $f_{100}$ do G1 ($\alpha=63{,}4^\circ$, $H_s=10$~m) fica a 1--3\% da ruptura com
+18 a 80~mm/h (FS 1,01--1,03 contra 1,09--1,16 no modelo do artigo; no G2, a 17--23\%), com menos \'agua infiltrada;
+nenhum caso rompe.
+\item A3 (anisotropia): com o mesmo $k$ m\'edio o patamar vai de 0,63 a 1,05 s\'o pela orienta\c{c}\~ao do tensor.
+\item A4 (limite de suc\c{c}\~ao): pesa sobretudo com NA profundo e de forma monot\^onica; com $H_w=15$~m o ganho no FS
+inicial de 75 para 300~kPa ($+51\%$) chega reduzido ao FS m\'inimo ($+23$ a $+31\%$).
+\item A5 (\^angulo): o FS m\'inimo cai de forma monot\^onica, mas n\~ao linear, com $\alpha$: de $20^\circ$ a $70^\circ$
+cai 0,74--1,13, mais que a diferen\c{c}a entre os tr\^es solos sob a mesma chuva (at\'e 0,40 na variante (iii) da
+S\'erie B): a geometria n\~ao \'e secund\'aria.
+\item A6 (volume): com volume fixo o pior caso testado \'e a chuva com $I_r$ mais pr\'oximo de $k_s$, compat\'ivel com
+$t^*\approx V/k_s$.
+\end{itemize}
+Das conclus\~oes do artigo, a do patamar inferior 0,81--0,82 \'e a menos robusta: ele \'e o FS do talude saturado at\'e
+a superf\'icie (Se\c{c}\~ao~\ref{sec:patamar}), muda com a anisotropia (A3) e, no modelo acoplado, com a dilat\^ancia
+(A1).
 
 \subsection{Limita\c{c}\~oes dos resultados atuais}
 
 \begin{itemize}
-\item Em dois casos acoplados um passo n\~ao converge nem com 5 bissec\c{c}\~oes (FS $\approx1{,}8$--$1{,}9$); o instante \'e
-registrado como ``transiente sem converg\^encia'', n\~ao como ruptura.
-\item Na variante desacoplada, $f_{10}$ com 360 e 900~mm/h: a percola\c{c}\~ao parou de convergir \`as 8,5~h com toda a
-superf\'icie alagada; o m\'inimo est\'a superestimado.
+\item Em tr\^es casos acoplados ($f_{100}$: S\'erie A com $\alpha=26{,}6^\circ$ e 9~mm/h; variantes (i) e (ii) da S\'erie
+B com 1,8 e 0,9~mm/h) um passo n\~ao converge nem com 5 bissec\c{c}\~oes com o FS ainda em 2,0--2,4 (FS m\'inimo
+1,84--2,06); o instante \'e gravado em \texttt{t\_fail} e as figuras o marcam como ``transiente sem converg\^encia'',
+n\~ao como ruptura.
 \item FS por elementos finitos (SRM) e n\~ao por equil\'ibrio-limite; porosidade constante; sem histerese; uma \'unica
 malha (sem estudo de converg\^encia).
+\item Tr\^es defeitos do avan\c{c}o no tempo foram corrigidos depois de parte dos c\'alculos: (a) a busca linear do
+Newton impedia a converg\^encia quando a corre\c{c}\~ao de press\~ao j\'a estava abaixo da toler\^ancia; (b) depois de
+uma tentativa com bissec\c{c}\~ao que aceitava parte do passo e falhava, a nova tentativa partia do estado parcial, e o
+estado ficava \`a frente do rel\'ogio; (c) a infiltra\c{c}\~ao dos passos subdivididos s\'o contava o \'ultimo
+subpasso. Juntos, (a) e (b) produziam saltos no transiente: no item A1 com $\psi=0$ e 18~mm/h o FS m\'inimo era 1,08
+em vez de 1,31; no A2 (G1) com 9~mm/h, 1,04 em vez de 1,17 (ar ativo); no A3 com $\theta=135^\circ$ e 36~mm/h, 1,15 em
+vez de 1,22. Com (a) j\'a corrigido, (b) mudou o FS m\'inimo em no m\'aximo 0,006 nos casos do A1 com $\psi=0$, os
+\'unicos com novas tentativas (e o FS de um instante em at\'e 0,01). Os itens A1--A6 e a variante (iii) da S\'erie B
+foram recalculados depois das tr\^es corre\c{c}\~oes (A1, A2 e A6 com uma vers\~ao de (c) que ainda n\~ao tratava os
+passos em que o conjunto alagado n\~ao se estabiliza, o que n\~ao ocorreu em nenhum dos 105 casos de A3--A5 e da
+S\'erie B); os casos de Tang, Zhang, Pradhan e do patamar (Se\c{c}\~oes~\ref{sec:benchmarks} e \ref{sec:patamar})
+depois de (a). As variantes (i) e (ii) da S\'erie B, as S\'eries A, C e D e o estudo de anisotropia s\~ao anteriores
+\`as tr\^es corre\c{c}\~oes e podem conter o mesmo erro; os tr\^es casos que n\~ao convergem (item acima) s\~ao desse
+conjunto.
 \end{itemize}

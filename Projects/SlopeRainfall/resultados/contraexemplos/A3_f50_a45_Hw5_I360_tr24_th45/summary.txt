@@ -21,6 +21,9 @@ fs_min_srm 0.8677
 t_min_srm 9
 fs_min_gi -1
 t_min_gi 0
-t_fail 13
-newton_iterations 988
-minutes 12.3731
+t_fail -1
+newton_iterations 674
+retries 0
+retries_partial 0
+active_set_unsettled 0
+minutes 13.2524

@@ -23,4 +23,7 @@ fs_min_gi -1
 t_min_gi 0
 t_fail -1
 newton_iterations 522
-minutes 14.4374
+retries 0
+retries_partial 0
+active_set_unsettled 0
+minutes 18.1092

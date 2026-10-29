@@ -37,7 +37,7 @@ As aparentes contradi\c{c}\~oes entre esses trabalhos, e deles com Rahardjo et a
 
 Pelo menos seis dos nove analisam taludes que s\'o ficam de p\'e pela suc\c{c}\~ao ($c'\approx0$ e
 $\tan\phi'/\tan\alpha<1$). Nesse regime a margem at\'e a ruptura \'e de 0,2--3~kPa (Ali, Ran, Wang 2021), menor do que
-os efeitos tratados como de segunda ordem: a press\~ao do ar aprisionado (34--38~kPa no item A2), a suc\c{c}\~ao gerada
+os efeitos tratados como de segunda ordem: a press\~ao do ar aprisionado (36--38~kPa no item A2), a suc\c{c}\~ao gerada
 pela dilat\^ancia e a troca da lei de $\chi$ (FS inicial de 1,28 para 1,63 na coluna de Ali). Rahardjo et al., com
 $c'=10$~kPa, est\~ao em outro regime; por isso suas conclus\~oes (geometria e NA secund\'arios, patamar de FS) n\~ao se
 transferem.
@@ -46,15 +46,20 @@ transferem.
 
 Os modelos acoplados que rompem usam $\psi\approx0$ (Liu e Wang; Wang, Vardon e Hicks; provavelmente Pradhan, pelo
 padr\~ao do PLAXIS) e o solo dos ensaios de Wang et al.\ (2021) \'e contr\'atil. Nenhum dos nove varia $\psi$. No
-NeoPZ, o modelo acoplado com Mohr--Coulomb associativo n\~ao desce abaixo de FS $\approx1$ (item A1).
+NeoPZ (item A1), com $I_r\ge36$~mm/h o modelo acoplado com $\psi=\phi'/2$ ou $\psi=\phi'$ para em FS 1,00--1,01 sem
+romper; com $\psi=0$ o transiente perde o equil\'ibrio entre 11,75 e 15,5~h e o FS desce a 0,96. A dilat\^ancia decide
+se h\'a ruptura, mas explica pouco do valor do patamar: sem ela o patamar desce s\'o de 1,00 a 0,96, contra 0,84--0,85
+no modelo desacoplado.
 
 \subsection{T2. As leis de dura\c{c}\~ao e de padr\~ao de chuva reduzem-se ao volume infiltrado}
 
 Ran (limiar de $\approx150$~mm acumulados de 7,5 a 80~mm/h), Tang (ruptura com 59--71~mm em todas as dura\c{c}\~oes e
-padr\~oes), Ali ($t_f\approx$ d\'eficit de armazenamento/fluxo), Dou e Pradhan (leis de dura\c{c}\~ao com
-$u_w=0$ na superf\'icie ou $I/k_s\approx2$--5) e o item A6 ($t^*\approx V/k_s$, Eq.~\eqref{eq:tcrit}) s\~ao casos da
-mesma regra: o que governa \'e o volume infiltrado, limitado por $k_s$. Tang acrescenta o centr\'oide temporal da chuva
-($\pm0{,}1$ no FS com o mesmo volume).
+nos padr\~oes t\'ipicos), Ali ($t_f\approx$ d\'eficit de armazenamento/fluxo) e Dou e Pradhan (leis de dura\c{c}\~ao com
+$u_w=0$ na superf\'icie ou $I/k_s\approx2$--5) s\~ao casos da mesma regra: o que governa \'e o volume infiltrado,
+limitado por $k_s$. Tang acrescenta o centr\'oide temporal da chuva ($\pm0{,}1$ no FS com o mesmo volume). O item A6
+restringe a regra: no $f_{10}$ os mesmos 60,5~m$^3$/m infiltram em todas as dura\c{c}\~oes e o FS m\'inimo vai de 1,31
+(3~h) a 1,78 (72~h); com volume fixo, o pior caso testado \'e a chuva com $I_r$ mais pr\'oximo de $k_s$, compat\'ivel
+com $t^*\approx V/k_s$ (Eq.~\eqref{eq:tcrit}). E no item A2, com ar ativo, menos \'agua d\'a FS menor.
 
 \subsection{T3. O patamar inferior \'e do problema de contorno}
 
@@ -71,13 +76,14 @@ $n=m=1$) \'e $\approx2{,}7$, 13 e 27~kPa para $a=10$, 50 e 100~kPa; pelo crit\'e
 AEV $>200$~kPa) a hip\'otese $\chi=1$ n\~ao se justifica em nenhum dos tr\^es solos. O efeito concentra-se no FS
 inicial e no tempo at\'e a ruptura; na ruptura ($S\to1$) \'e pequeno (Ali $\approx4\%$, Ran $\le0{,}02$).
 
-\subsection{T5. Ar: todos usam $p_a=0$, quase sempre em dom\'inios fechados ao ar}
+\subsection{T5. Ar: os modelos usam $p_a=0$, quase sempre em dom\'inios fechados ao ar}
 
-Rocha na base (Ali, Dou), base e laterais imperme\'aveis (Liu, Ran, Tang, Wang e Hicks), caixa fechada (Wang 2021) e
-solo pouco perme\'avel com NA profundo (Pradhan). Em Ran, a lei de Boyle sem escape d\'a um limite superior de 50--190~kPa
-para a press\~ao do ar, contra uma margem de 2,5~kPa; em Tang, a sensibilidade $\mathrm{d}\,\mathrm{FS}/\mathrm{d}V
-\approx-0{,}004$/mm faria o efeito do item A2 ($-0{,}08$ a $-0{,}23$) multiplicar a probabilidade anual de ruptura por
-2 a 3.
+Os modelos num\'ericos usam $p_a=0$ (o ensaio de Wang 2021 n\~ao mede $p_a$). Rocha na base (Ali, Dou), base e
+laterais imperme\'aveis (Liu, Ran, Wang e Hicks), base imperme\'avel e laterais sem fluxo acima do NA (Tang, com carga
+imposta abaixo dele), caixa fechada (Wang 2021) e solo pouco perme\'avel com NA profundo (Pradhan): em todos, o ar s\'o
+sai pela superf\'icie. Em Ran, a lei de Boyle sem escape d\'a um limite superior de 50--190~kPa para a press\~ao do ar,
+contra uma margem de 2,5~kPa; em Tang, a sensibilidade $\mathrm{d}\,\mathrm{FS}/\mathrm{d}V\approx-0{,}004$/mm faz o
+efeito do item A2 ($-0{,}08$ a $-0{,}22$) equivaler a 20--55~mm a mais de chuva.
 
 \subsection{Nota de m\'etodo e inconsist\^encias encontradas}
 
@@ -136,6 +142,114 @@ $C(\psi)$ no NeoPZ (o artigo usa $\psi_r=10$~kPa), que d\'a $S_w$ maior nas suc\
 mostra o peso do limite de 75~kPa de Rahardjo et al.\ num talude com NA profundo: o FS cai de 1,92 para 1,66
 ($-14\%$), o mesmo efeito encontrado no item A4.
 
+\subsection{Tang et al.\ (2018): chuvas com a mesma intensidade m\'edia}
+
+Talude de Rahardjo et al.\ ($H_s=10$~m, $45^\circ$, NA 5~m abaixo do p\'e com $7^\circ$ de inclina\c{c}\~ao) com o solo
+arenoso da Tabela~1 do artigo: $\gamma=20$~kN/m$^3$, $c'=0$, $\phi'=26^\circ$, $\phi^b=17{,}3^\circ$ ($\chi=0{,}639$ na
+suc\c{c}\~ao), Fredlund--Xing com $a=100$~kPa e $n=m=1$, $k_w=k_s(\theta/\theta_s)^4$ com $\theta_s=0{,}45$ e
+$k_s=2\times10^{-6}$~m/s, suc\c{c}\~ao inicial limitada a 50~kPa. Percola\c{c}\~ao desacoplada com $p_a=0$ (SEEP/W no
+artigo) e FS por redu\c{c}\~ao de resist\^encia (SLOPE/W no artigo); chuvas uniformes de 25,6~h (2 a 3,5~mm/h) e de
+6,4~h (8 a 12~mm/h) e os tr\^es padr\~oes t\'ipicos com 2,64~mm/h em 25,6~h, calculados at\'e 2,5 vezes a dura\c{c}\~ao
+da chuva (Tabela~\ref{tab:tang}, Fig.~\ref{fig:tang}).
+
+\begin{table}[h!]
+\centering\small
+\caption{Tang et al.\ (2018): FS m\'inimo (SRM) e queda por mm de chuva, medida contra o c\'alculo sem chuva no mesmo
+instante. Artigo (Figs.~9 e 10): FS inicial 1,20; FS m\'inimo $=1$ com 2,7~mm/h em 25,6~h e 9,7~mm/h em 6,4~h;
+$-0{,}0039$ e $-0{,}0047$ por mm.}\label{tab:tang}
+\begin{tabular}{lccccc}
+\toprule
+chuva & $I_a$ (mm/h) & $V$ (mm) & FS m\'inimo & instante (h) & queda por mm\\
+\midrule
+sem chuva & -- & -- & 1,32 (1,33 inicial) & 4 & --\\
+\midrule
+uniforme, 25,6~h & 2,0 & 51 & 1,27 & 25,6 & 0,0016\\
+ & 2,4 & 61 & 1,26 & 25,6 & 0,0015\\
+ & 2,7 & 69 & 1,25 & 25,6 & 0,0016\\
+ & 3,0 & 77 & 1,23 & 25,6 & 0,0016\\
+ & 3,5 & 90 & 1,21 & 25,6 & 0,0016\\
+\midrule
+uniforme, 6,4~h & 8 & 51 & 1,22 & 6,4 & 0,0020\\
+ & 10 & 64 & 1,20 & 6,4 & 0,0019\\
+ & 12 & 77 & 1,17 & 6,4 & 0,0020\\
+\midrule
+adiantado, 25,6~h & 2,64 & 68 & 1,24 & 16 & 0,0015\\
+uniforme, 25,6~h & 2,64 & 68 & 1,25 & 25,6 & 0,0016\\
+atrasado, 25,6~h & 2,64 & 68 & 1,24 & 25,6 & 0,0017\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\textwidth]{figuras/tang_fs.png}
+\caption{Tang et al.\ (2018): FS m\'inimo $\times$ $I_a$ nas chuvas uniformes (tracejado: reta da Fig.~10 do artigo) e
+FS($t$) dos tr\^es padr\~oes com 2,64~mm/h em 25,6~h (pontilhado: sem chuva).}\label{fig:tang}
+\end{figure}
+
+Os dados de entrada s\~ao os do artigo, mas os valores n\~ao se reproduzem: o FS inicial \'e 1,33 ($+11\%$) e a queda
+por mm de chuva \'e 2,3 a 2,5 vezes menor, de modo que nenhuma das chuvas testadas leva o FS a 1 (1,17--1,27). Concordam
+as tend\^encias:
+\begin{itemize}
+\item para cada dura\c{c}\~ao o FS m\'inimo \'e linear no volume (a queda por mm varia menos de 6\%);
+\item com o mesmo volume a chuva curta \'e mais eficaz: com 51 e 77~mm o FS m\'inimo \'e 0,05--0,06 menor em 6,4~h do
+que em 25,6~h (em Tang, FS $=1$ com 62~mm em 6,4~h e 69~mm em 25,6~h). Com o limite de 50~kPa a condutividade inicial
+junto \`a superf\'icie (e em toda a zona a mais de 5,1~m acima do NA) \'e $k_sS^4=3{,}9$~mm/h: o perfil drena por
+gravidade (sem chuva o FS cai de 1,33 para 1,32 em 4~h e sobe at\'e 1,38 em 64~h). As chuvas de 25,6~h (2 a 3,5~mm/h)
+s\'o reduzem essa drenagem na crista, mas umedecem o p\'e e a face por baixo (ao fim da chuva a poropress\~ao nos 3~m
+superiores do p\'e est\'a at\'e 14~kPa (2~mm/h) a 22~kPa (3,5~mm/h) acima da inicial); s\'o as de 6,4~h (8 a
+12~mm/h) criam uma frente de
+umedecimento a partir da superf\'icie;
+\item os tr\^es padr\~oes t\'ipicos d\~ao quase o mesmo FS m\'inimo (1,24--1,25; em Tang, $\approx1{,}0$ nos tr\^es,
+Fig.~10) e mudam o instante do m\'inimo (16~h no adiantado). Os padr\~oes aleat\'orios de Tang, com o mesmo volume,
+v\~ao de 0,86 a 1,05, e nos concentrados no fim da chuva o FS continua caindo at\'e 33--39~h; no NeoPZ a queda
+termina com a chuva.
+\end{itemize}
+A diferen\c{c}a no FS inicial (1,33 contra 1,20) aparece antes de qualquer chuva, com os mesmos dados de entrada e a
+mesma poropress\~ao inicial; ela est\'a, portanto, no c\'alculo do FS (redu\c{c}\~ao de resist\^encia $\times$
+equil\'ibrio-limite com $c'=0$) e possivelmente (n\~ao testado) na resolu\c{c}\~ao da malha perto da superf\'icie. A
+queda por mm 2,3 a 2,5 vezes menor pode vir tamb\'em da resposta hidr\'aulica, que n\~ao foi comparada com a do
+artigo.
+
+\subsection{Pradhan et al.\ (2022): corte de estrada sob a chuva de julho de 2018}
+
+Escorregamento de Kanglang (Nepal), em julho de 2018 (antes de 16/07, segundo o propriet\'ario; 12/07 na
+retroan\'alise do artigo), numa encosta de silte de $22^\circ$ com um corte de estrada de 4~m ($71^\circ$) no p\'e
+(geometria lida da Fig.~7 do artigo). Quatro camadas paralelas \`a superf\'icie natural da encosta (0--0,5, 0,5--1,
+1--1,5 e $>1{,}5$~m; a plataforma da estrada e quase toda a face do corte ficam na camada~4) com as propriedades da
+Tabela~2: $c'=3$~kPa, $\phi'=36^\circ$, $k_s$ de $2{,}4\times10^{-7}$ a $5{,}8\times10^{-7}$~m/s (0,9 a 2,1~mm/h), van
+Genuchten--Mualem e $\chi=S_e$. NA 15~m abaixo da superf\'icie natural (sob a plataforma da estrada, 11,7 a 15~m),
+laterais imperme\'aveis e base aberta; estado inicial de infiltra\c{c}\~ao permanente com $3{,}3\times10^{-8}$~m/s,
+como no artigo; chuva hor\'aria de 1 a 12/07/2018 (271~h, 278~mm, seis eventos principais de 27 a 60~mm)
+digitalizada da Fig.~10 e evapotranspira\c{c}\~ao de 4~mm/dia nos per\'iodos secos, limitada \`a carga de press\~ao
+de $-30$~m. O artigo usa o PLAXIS acoplado; aqui, percola\c{c}\~ao desacoplada com $p_a=0$ e FS por redu\c{c}\~ao de
+resist\^encia no estado inicial e em 14 instantes, com e sem o corte (Fig.~\ref{fig:pradhan}).
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\textwidth]{figuras/pradhan_fs.png}
+\caption{Pradhan et al.\ (2022): FS com e sem o corte de estrada (NeoPZ) e a leitura da Fig.~10 do artigo; barras:
+chuva hor\'aria digitalizada.}\label{fig:pradhan}
+\end{figure}
+
+\begin{itemize}
+\item Com o corte, o NeoPZ reproduz a forma da s\'erie (queda em cada evento, recupera\c{c}\~ao parcial nos per\'iodos
+secos e tend\^encia de queda ao longo dos 12 dias), mas fica acima do artigo: FS inicial 1,96 (1,79, $+9\%$), quedas
+de 0,18 a 0,31 por evento (com o evento 6 at\'e 267~h; 0,29 a 0,50 no artigo, isto \'e, 61 a 93\%) e m\'inimo de 1,15
+em 271~h, contra 0,97 em 267~h, quando o artigo prev\^e a ruptura.
+\item A maior queda nos dois modelos \'e a do evento 4, o de menor volume de chuva (27~mm) e maior dura\c{c}\~ao
+(15~h): nele infiltram 79\% da chuva, contra 32 a 53\% nos outros cinco eventos, mais curtos e intensos. O volume
+infiltrado sozinho, por\'em, n\~ao ordena as quedas: o evento 3 infiltra mais (24,1 contra 21,7~mm) e cai menos
+(0,28), e a queda por mm infiltrado passa de 0,010 no evento 1 a 0,021 no evento 6. O artigo l\^e o efeito como da
+dura\c{c}\~ao (Fig.~13).
+\item Sem o corte, o FS do NeoPZ cai devagar de 2,73 para 2,60 ao longo dos 12 dias, a menos de 0,04 da leitura da
+Fig.~10 do artigo (2,75 para 2,62): o corte \'e que torna a encosta sens\'ivel \`a chuva.
+\item A diferen\c{c}a inicial de 9\%, antes de qualquer chuva, pode vir da regra de escoamento: o SRM aqui \'e
+associativo, e o artigo, num silte contr\'atil, n\~ao informa $\psi$ (o padr\~ao do PLAXIS \'e $\psi=0$). Com
+$\phi'=36^\circ$ essa diferen\c{c}a pode ser relevante, mas n\~ao foi testada aqui (o SRM do NeoPZ \'e sempre
+associativo). Nas quedas por evento pesam tamb\'em o acoplamento (ausente aqui) e a leitura da chuva numa figura.
+\end{itemize}
+
 %======================================================================
 \section{O patamar inferior do FS}\label{sec:patamar}
 %======================================================================
@@ -145,42 +259,59 @@ progressivamente. O FS decresce at\'e o estado do talude saturado at\'e a superf
 esse estado depende da geometria, da resist\^encia, das condi\c{c}\~oes de contorno hidr\'aulicas e da forma do tensor de
 condutividades (anisotropia), mas n\~ao da magnitude de $k_s$ nem da intensidade, que s\'o determinam quando ele \'e
 atingido. O c\'alculo direto usa a op\c{c}\~ao \texttt{alagado=1} ($p_w=0$ em toda a superf\'icie, $I\to\infty$) com o
-modelo do artigo (percola\c{c}\~ao desacoplada, $p_a=0$; Tabela~\ref{tab:patamar}).
+modelo do artigo (percola\c{c}\~ao desacoplada, $p_a=0$) e \texttt{mecanica=0} (o transiente resolve s\'o a
+percola\c{c}\~ao e o SRM parte do estado sem tens\~oes com as press\~oes congeladas; Tabela~\ref{tab:patamar}).
 
 \begin{table}[h!]
 \centering\small
 \caption{FS (SRM) com a superf\'icie alagada desde $t=0$ e o patamar das chuvas intensas (s\'erie B desacoplada e item
-A3). Anisotropia: $k_1=10^{-4}$, $k_2=10^{-5}$~m/s.}\label{tab:patamar}
-\begin{tabular}{lcccccccc}
+A3). Anisotropia: $k_1=10^{-4}$, $k_2=10^{-5}$~m/s. Longo prazo: faixa do FS depois de atingido o patamar, at\'e o
+fim do c\'alculo (384~h no $f_{10}$, 1536~h no $f_{50}$ isotr\'opico, 6144~h no $f_{100}$ e 768~h nos anisotr\'opicos).
+Negrito: primeira sa\'ida j\'a no patamar. $^\dagger$FS m\'inimo das chuvas de 24~h, que no $f_{100}$ n\~ao atingem o
+patamar (Eq.~6: 1,45).}
+\label{tab:patamar}
+\begin{tabular}{lccccccccc}
 \toprule
-caso & 1~h & 3~h & 6~h & 12~h & 24~h & 96~h & 192~h & patamar com chuva\\
+caso & 1~h & 3~h & 6~h & 12~h & 24~h & 96~h & 192~h & longo prazo & patamar com chuva\\
 \midrule
-$f_{10}$ isotr\'opico & 1,44 & 1,15 & 0,98 & \textbf{0,85} & & & & 0,86\\
-$f_{50}$ isotr\'opico & & 1,58 & 1,36 & 1,17 & \textbf{0,85} & & & 0,84--0,85\\
-$f_{100}$ isotr\'opico & & & 1,89 & & 1,49 & 1,06 & \textbf{0,85} & 1,45 (Eq.~6, 24~h)\\
-$f_{50}$, $\theta=0^\circ$ & & 1,30 & 1,21 & 1,13 & \textbf{1,05} & & & 1,05\\
-$f_{50}$, $\theta=45^\circ$ & & 1,00 & 0,88 & 0,87 & \textbf{0,87} & & & 0,87\\
-$f_{50}$, $\theta=135^\circ$ & & 1,27 & 0,63 & 0,63 & \textbf{0,63} & & & 0,63\\
+$f_{10}$ isotr\'opico & 1,44 & 1,15 & 0,98 & \textbf{0,85} & & & & 0,84--0,85 & 0,84\\
+$f_{50}$ isotr\'opico & & 1,58 & 1,36 & 1,17 & \textbf{0,85} & & & 0,84--0,85 & 0,84--0,85\\
+$f_{100}$ isotr\'opico & & & 1,88 & & 1,49 & 1,06 & \textbf{0,85} & 0,84--0,85 & 1,48$^\dagger$\\
+$f_{50}$, $\theta=0^\circ$ & & 1,30 & 1,21 & 1,13 & \textbf{1,05} & & & 1,04--1,05 & 1,05\\
+$f_{50}$, $\theta=45^\circ$ & & 1,00 & \textbf{0,88} & 0,87 & 0,87 & & & 0,87--0,88 & 0,87\\
+$f_{50}$, $\theta=135^\circ$ & & 1,27 & \textbf{0,63} & 0,63 & 0,63 & & & 0,63 & 0,63\\
 \bottomrule
 \end{tabular}
 \end{table}
 
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\textwidth]{figuras/patamar_alagado.png}
+\caption{FS com a superf\'icie alagada ($I\to\infty$), em horas e em tempo adimensional $k_st/H_s$; pontilhado: patamar
+das chuvas intensas (s\'erie B desacoplada e item A3).}\label{fig:patamar}
+\end{figure}
+
 \begin{itemize}
-\item O patamar \'e o mesmo nos tr\^es solos ($\approx0{,}85$): o $f_{10}$ o atinge em $\approx12$~h, o $f_{50}$ em
-$\approx24$~h e o $f_{100}$ em $\approx190$~h. O valor 1,45 do $f_{100}$ na Eq.~6 \'e o FS ao fim de 24~h de chuva, n\~ao
-um patamar: a ``intensidade-limite'' do artigo \'e, para o solo pouco perme\'avel, um efeito da dura\c{c}\~ao fixa.
-\item O FS com a superf\'icie alagada reproduz o patamar das chuvas intensas em todos os casos, inclusive os
-anisotr\'opicos (0,63 a 1,05): a orienta\c{c}\~ao do tensor muda a rede de fluxo do talude saturado e, com ela, o
-patamar.
-\item Um teste mais simples d\'a o mesmo ordenamento: partindo da suc\c{c}\~ao nula acima do NA (FS $=1{,}11$) e sem
-chuva, o FS m\'inimo durante a drenagem foi 0,87 (isotr\'opico), 0,73 ($\theta=135^\circ$), 0,97 ($45^\circ$) e 1,07
-($0^\circ$), um limite superior do patamar ($+0{,}02$ a $+0{,}10$, porque a superf\'icie volta a dessaturar).
-\item Consequ\^encia pr\'atica: o patamar inferior \'e calcul\'avel sem simular a chuva, e a dura\c{c}\~ao necess\'aria
-para atingi-lo escala com $1/k_s$ (Eq.~\eqref{eq:tcrit}).
+\item O patamar \'e o mesmo nos tr\^es solos (0,84--0,85) e \'e um regime permanente: o $f_{10}$ o atinge em
+$\approx7$~h, o $f_{50}$ em $\approx24$~h e o $f_{100}$ em $\approx170$~h (in\'icio da infiltra\c{c}\~ao constante; nas
+sa\'idas do FS, entre 6 e 12~h, 12 e 24~h e 96 e 192~h), e da\'i at\'e o fim do c\'alculo (384, 1536 e 6144~h) o FS
+n\~ao sai da faixa 0,84--0,85 (Fig.~\ref{fig:patamar}). O valor 1,45 do $f_{100}$ na Eq.~6 \'e o FS ao
+fim de 24~h de chuva, n\~ao um patamar: a ``intensidade-limite'' do artigo \'e, para o solo pouco perme\'avel, um efeito
+da dura\c{c}\~ao fixa.
+\item O FS com a superf\'icie alagada reproduz o patamar das chuvas intensas nos cinco casos em que a chuva de 24~h o
+atinge ($f_{10}$, $f_{50}$ e os tr\^es anisotr\'opicos, 0,63 a 1,05) e, no $f_{100}$, o FS ao fim das 24~h (1,49 contra
+1,48--1,50): a orienta\c{c}\~ao do tensor muda a rede de fluxo do talude saturado e, com ela, o patamar.
+\item Consequ\^encia pr\'atica: o patamar inferior \'e calcul\'avel sem simular a chuva. A dura\c{c}\~ao necess\'aria
+para atingi-lo cresce com $1/k_s$, mas n\~ao na mesma propor\c{c}\~ao: em tempo adimensional $k_st/H_s$ o $f_{100}$ e o
+$f_{50}$ chegam ao patamar em $\approx0{,}06$ e $\approx0{,}09$ e o $f_{10}$ em $\approx0{,}26$, porque o volume a infiltrar at\'e o regime
+permanente depende da curva de reten\c{c}\~ao (o $f_{10}$ parte da menor satura\c{c}\~ao; Eq.~\eqref{eq:tcrit},
+$t^*\approx V/k_s$).
 \end{itemize}
 
 Nos c\'alculos com a superf\'icie alagada por muito tempo o Newton da percola\c{c}\~ao deixava de convergir depois de
 atingido o regime permanente: o res\'iduo j\'a estava no n\'ivel do arredondamento e a busca linear, sem conseguir
 reduzi-lo, marcava o passo como n\~ao convergido. A busca linear agora s\'o \'e feita enquanto a corre\c{c}\~ao de
 press\~ao excede a toler\^ancia (o mesmo defeito interrompeu os casos de 360~mm/h do item A3 e de 360 e 900~mm/h do
-$f_{10}$ na S\'erie B).
+$f_{10}$ na S\'erie B). Com a corre\c{c}\~ao, os seis c\'alculos da Tabela~\ref{tab:patamar} chegaram ao fim, e os
+cinco casos interrompidos, refeitos, ca\'iram no patamar: 0,84 no $f_{10}$ com 360 e 900~mm/h e 1,05, 0,87 e 0,63
+nos anisotr\'opicos com 360~mm/h (Tabelas~\ref{tab:B} e \ref{tab:A3}).

@@ -17,10 +17,13 @@ elements 1750
 equations 8464
 fs_ini_srm 1.84375
 fs_ini_gi -1
-fs_min_srm 1.3054
+fs_min_srm 1.4251
 t_min_srm 24
 fs_min_gi -1
 t_min_gi 0
 t_fail -1
-newton_iterations 1982
-minutes 25.2382
+newton_iterations 699
+retries 0
+retries_partial 0
+active_set_unsettled 0
+minutes 14.4139
