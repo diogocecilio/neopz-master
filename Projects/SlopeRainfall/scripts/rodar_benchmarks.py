@@ -21,7 +21,8 @@ import os
 import re
 import subprocess
 import sys
-from concurrent.futures import ThreadPoolExecutor
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 P = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 GRUPOS = ("pradhan", "patamar", "tang", "zhang")
@@ -107,10 +108,13 @@ def roda(c, exe, env):
     if os.path.exists(os.path.join(pasta, nome, "summary.txt")):
         return g, nome, "já pronto"
     os.makedirs(pasta, exist_ok=True)
+    t0 = time.time()
     with open(os.path.join(pasta, nome + ".log"), "w") as log:
         r = subprocess.run([exe] + args + [f"out={nome}"], cwd=pasta, stdout=log, stderr=subprocess.STDOUT, env=env)
     ok = os.path.exists(os.path.join(pasta, nome, "summary.txt"))
-    return g, nome, "pronto" if ok and r.returncode == 0 else f"falhou (código {r.returncode}, veja {nome}.log)"
+    dur = f"{(time.time() - t0) / 60:.1f} min"
+    return g, nome, f"pronto em {dur}" if ok and r.returncode == 0 else \
+        f"falhou em {dur} (código {r.returncode}, veja {nome}.log)"
 
 
 def main():
@@ -145,8 +149,10 @@ def main():
         exe = os.path.abspath(a.exe)
         print(f"{len(cs)} casos, {a.jobs} simultâneos, {a.threads} núcleo(s) por caso; resultados em "
               f"{os.path.abspath(a.runs)}", flush=True)
+        # submitted in the order of the list (longest first) and reported as each case ends
         with ThreadPoolExecutor(max_workers=a.jobs) as ex:
-            for g, nome, st in ex.map(lambda c: roda(c, exe, env), cs):
+            for f in as_completed([ex.submit(roda, c, exe, env) for c in cs]):
+                g, nome, st = f.result()
                 print(f"{g}/{nome}: {st}", flush=True)
 
 

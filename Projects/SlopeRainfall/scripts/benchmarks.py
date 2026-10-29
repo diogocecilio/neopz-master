@@ -12,9 +12,11 @@ import numpy as np
 # leituras dos artigos (as de figuras são aproximadas)
 ZHANG = {"A": {"chi0": 0.898, "phib15": 1.414, "chi1": 1.920, "sw_swcc1": 1.032},
          "B": {"chi0": 1.086, "phib15": 1.133, "chi1": 1.159}}
-# Tang et al. 2018: FS inicial 1,20; FSmin = 1 em Ia ~ 2,70 (uniforme, 25,6 h) e 9,84 mm/h (6,4 h); dFS/dV ~ -0,004/mm
-TANG = {"fs_ini": 1.20, "Ic": {25.6: 2.70, 6.4: 9.84}, "Ic_pad": {"adiantado": 2.77, "uniforme": 2.70, "atrasado": 2.55},
-        "dfsdv": -0.004}
+# Tang et al. 2018: FS inicial 1,20 (Fig. 9); FSmin = 1 em Ia ~ 2,70 (uniforme, 25,6 h) e 9,70 mm/h (6,4 h; a
+# probabilidade condicional de 43,2 % do texto cai em 9,65 mm/h na mesma figura); inclinação de FSmin x volume na
+# Fig. 10: -0,0039/mm (25,6 h: 1,06 em 2,0 mm/h -> 0,91 em 3,5) e -0,0047/mm (6,4 h)
+TANG = {"fs_ini": 1.20, "Ic": {25.6: 2.70, 6.4: 9.70}, "Ic_pad": {"adiantado": 2.77, "uniforme": 2.70, "atrasado": 2.55},
+        "dfsdv": {25.6: -0.0039, 6.4: -0.0047}}
 # Pradhan et al. 2022, Fig. 10 (leitura): FS com o corte e sem o corte
 PRADHAN_CORTE = [(1, 1.79), (34, 1.75), (43, 1.46), (96, 1.71), (101, 1.42), (167, 1.82), (173, 1.46), (183, 1.62),
                  (190, 1.32), (192, 1.45), (200, 1.12), (215, 1.42), (222, 1.13), (260, 1.29), (264, 1.10),
@@ -27,6 +29,8 @@ def ler_fs(pasta):
     if not os.path.exists(f):
         return None
     a = np.atleast_2d(np.loadtxt(f, delimiter=",", skiprows=1))
+    if a.size == 0:  # case still running: header only
+        return None
     return a[:, 0], a[:, 1]
 
 
@@ -46,7 +50,7 @@ def resumo(pasta):
 def patamar(a, plt):
     casos = [("f50_iso", "isotrópico $f_{50}$", 1e-5, 0.84), ("f50_th135", r"$\theta=135^\circ$ ($k_1$ paralelo à face)", 1e-5, 0.63),
              ("f50_th45", r"$\theta=45^\circ$", 1e-5, 0.87), ("f50_th0", r"$\theta=0^\circ$ (horizontal)", 1e-5, 1.05),
-             ("f10_iso", "isotrópico $f_{10}$", 1e-4, 0.86), ("f100_iso", "isotrópico $f_{100}$", 1e-6, None)]
+             ("f10_iso", "isotrópico $f_{10}$", 1e-4, 0.84), ("f100_iso", "isotrópico $f_{100}$", 1e-6, None)]
     fig, axs = plt.subplots(1, 2, figsize=(12, 4.3))
     cores = ["#1b6ca8", "#c8553d", "#e9a23b", "#2a9d8f", "#6c3483", "#555555"]
     linhas = []
@@ -107,8 +111,8 @@ def tang(a, plt):
             ax.plot(I_, fm, "o-", color="#1b6ca8", label="NeoPZ (SRM)")
             res[Dr] = pts
         Ig = np.linspace(min(Is) - 0.5, max(Is) + 0.5, 50)
-        ax.plot(Ig, 1 + TANG["dfsdv"] * Dr * (Ig - TANG["Ic"][Dr]), "k--", lw=0.8,
-                label="Tang (FS = 1 em %.2f mm/h, dFS/dV = -0,004/mm)" % TANG["Ic"][Dr])
+        ax.plot(Ig, 1 + TANG["dfsdv"][Dr] * Dr * (Ig - TANG["Ic"][Dr]), "k--", lw=0.8,
+                label="Tang, Fig. 10 (FS = 1 em %.2f mm/h, dFS/dV = %.4f/mm)" % (TANG["Ic"][Dr], TANG["dfsdv"][Dr]))
         ax.axhline(1, color="#999", lw=0.6, ls=":")
         ax.set(xlabel="$I_a$ (mm/h)", ylabel="FS mínimo", title=f"Chuva uniforme de {Dr:g} h")
         ax.legend(frameon=False, fontsize=7)
@@ -147,7 +151,7 @@ def pradhan(a, plt):
     ax.axhline(1, color="#999", lw=0.6, ls=":")
     ax.set(xlabel="horas a partir de 01/07/2018", ylabel="FS", title="Pradhan et al. (2022): chuva de 1 a 12/07/2018")
     ax.set_xlim(0, 272)
-    ax.legend(frameon=False, fontsize=7, loc="center left")
+    ax.legend(frameon=False, fontsize=7, loc="center left", bbox_to_anchor=(0.2, 0.64), ncol=2)
     fig.tight_layout()
     fig.savefig(os.path.join(a.figuras, "pradhan_fs.png"), dpi=150)
     plt.close(fig)

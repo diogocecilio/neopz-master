@@ -480,7 +480,8 @@ private:
     bool UnilateralStep(REAL dt, REAL rate, bool pondedAll = false) {
         std::set<int64_t> ponded = fPonded, dry = rate < 0. ? fDry : std::set<int64_t>{};
         if (pondedAll) ponded.insert(fAtm.begin(), fAtm.end());
-        bool conv = false;
+        bool conv = false, settled = false;
+        REAL q = 0.; // infiltration rate of the solution of the last pass, with the active set it was solved with
         for (int pass = 0; pass < 12; ++pass) {
             std::map<int64_t, REAL> fixed(fFixed), fq;
             for (auto n : ponded) fixed[fAn->WaterEq().at(n)] = 0.;
@@ -500,7 +501,16 @@ private:
             }
             if (!conv) break;
             fRw = fAn->FullResidual();
-            if (pondedAll) break;
+            // rain on the flux vertices plus the inflow at the ponded (or dry) ones
+            q = 0.;
+            for (auto n : fAtm) {
+                if (!ponded.count(n) && !dry.count(n)) q += rate * fSupply[n];
+                else q += fRw.GetVal(fAn->WaterEq().at(n), 0) / dt;
+            }
+            if (pondedAll) {
+                settled = true;
+                break;
+            }
             const TPZFMatrix<STATE> &x = fMPhys->Solution();
             std::set<int64_t> add, drop, adddry, dropdry;
             for (auto n : fAtm) {
@@ -514,7 +524,10 @@ private:
                 if (fRw.GetVal(fAn->WaterEq().at(n), 0) / dt > qin * fSupply[n] * (1. + 1.e-9) + 1.e-14) drop.insert(n);
             for (auto n : dry)
                 if (fRw.GetVal(fAn->WaterEq().at(n), 0) / dt < rate * fSupply[n] * (1. + 1.e-9) - 1.e-14) dropdry.insert(n);
-            if (add.empty() && drop.empty() && adddry.empty() && dropdry.empty()) break;
+            if (add.empty() && drop.empty() && adddry.empty() && dropdry.empty()) {
+                settled = true;
+                break;
+            }
             for (auto n : add) ponded.insert(n);
             for (auto n : drop) ponded.erase(n);
             for (auto n : adddry) dry.insert(n);
@@ -524,6 +537,11 @@ private:
             fAn->Restore();
             return false;
         }
+        // the passes may end with an active set that was changed after the last solve: the step is accepted with that
+        // solution (as before), and its infiltration is the one of the solve
+        if (!settled) ++fUnsettled;
+        // infiltration of this (sub)step added to the mean rate of the step of the main loop (fStepDt)
+        fInfil += q * (dt / fStepDt);
         fAn->Accept();
         fPonded = pondedAll ? std::set<int64_t>(fAtm.begin(), fAtm.end()) : ponded;
         fDry = dry;
@@ -607,6 +625,10 @@ private:
     std::vector<int64_t> fAtm;
     std::set<int64_t> fPonded, fDry;
     TPZFMatrix<STATE> fRw;
+    REAL fInfil = 0., fStepDt = 1.; ///< mean infiltration (m3/s per m) of the step of the main loop and its length
+    /// attempts of a step discarded (restarts from the beginning of the step), those that had accepted substeps, and
+    /// (sub)steps accepted with an active set changed after the last solve
+    int fRetries = 0, fRetriesPartial = 0, fUnsettled = 0;
     REAL fStrength = 1.;
     int64_t fIter = 0;
     std::ofstream fSnapW, fSnapA;
@@ -792,20 +814,52 @@ void RainfallSlope::Run() {
         const REAL rate = SurfaceRate(th0, th0 + st.first);
         const bool pondedAll = fCase.alagado && st.second;
         int64_t it0 = fIter;
+        // state at the beginning of the step: a failed attempt may have accepted part of its bisection substeps, and
+        // the next attempt must start again from here (not from the partially advanced state)
+        const TPZFMatrix<STATE> x0(fAn->X());
+        const auto mem0 = fAn->SaveMemory();
+        const std::set<int64_t> ponded0(fPonded), dry0(fDry);
+        auto restart = [&]() {
+            ++fRetries;
+            const TPZFMatrix<STATE> &x = fAn->X();
+            for (int64_t i = 0; i < x.Rows(); ++i)
+                if (x.GetVal(i, 0) != x0.GetVal(i, 0)) {
+                    ++fRetriesPartial;
+                    break;
+                }
+            fAn->X() = x0;
+            fAn->RestoreMemory(mem0);
+            fAn->Restore();
+            fPonded = ponded0;
+            fDry = dry0;
+            fInfil = 0.;
+        };
+        fStepDt = dt;
+        fInfil = 0.;
         // a failure with 2 bisection levels may be numerical (Newton, active set of the rain): the step is tried
         // again with 5 levels and the real strength before it is taken as the loss of equilibrium of the slope
-        if (!Advance(dt, rate, pondedAll, 0, tFail >= 0. ? 5 : 2) && (tFail >= 0. || !Advance(dt, rate, pondedAll, 0, 5))) {
+        bool ok = Advance(dt, rate, pondedAll, 0, tFail >= 0. ? 5 : 2);
+        if (!ok && tFail < 0.) {
+            restart();
+            ok = Advance(dt, rate, pondedAll, 0, 5);
+        }
+        if (!ok) {
             if (tFail >= 0.) {
                 std::cout << fCase.out << ": time step did not converge at t = " << t / HOUR << " h\n";
                 break;
             }
             tFail = t / HOUR;
-            if (fCase.acoplado) { // uncoupled: the mechanics already uses the increased strength (0.25)
-                fStrength = F0;
-                fAn->SetStrengthReductionFactor(F0);
-            }
             std::cout << fCase.out << ": transient without equilibrium after t = " << tFail << " h"
                       << (fCase.acoplado ? " (FS < 1)" : " (seepage or mechanics without convergence)") << "\n";
+            // uncoupled: the mechanics already uses the increased strength (0.25); from the restored state the attempt
+            // would only repeat the one that just failed
+            if (!fCase.acoplado) {
+                std::cout << fCase.out << ": time step did not converge at t = " << t / HOUR << " h\n";
+                break;
+            }
+            fStrength = F0;
+            fAn->SetStrengthReductionFactor(F0);
+            restart();
             if (!Advance(dt, rate, pondedAll, 0, 5)) {
                 std::cout << fCase.out << ": time step did not converge at t = " << t / HOUR << " h\n";
                 break;
@@ -813,13 +867,10 @@ void RainfallSlope::Run() {
         }
         t += dt;
         const REAL th = t / HOUR;
-        // infiltration: rain on the flux vertices plus the inflow at the ponded ones
-        REAL rain = 0., infil = 0.;
-        for (auto n : fAtm) {
-            rain += std::max(rate, REAL(0.)) * fSupply[n];
-            if (!fPonded.count(n) && !fDry.count(n)) infil += rate * fSupply[n];
-            else if (fRw.Rows()) infil += fRw.GetVal(fAn->WaterEq().at(n), 0) / dt;
-        }
+        // infiltration: mean over the step, accumulated by the substeps (UnilateralStep)
+        REAL rain = 0.;
+        for (auto n : fAtm) rain += std::max(rate, REAL(0.)) * fSupply[n];
+        const REAL infil = fInfil;
         hist << th << "," << st.first << "," << st.second << "," << rain << "," << infil << "," << fPonded.size()
              << "," << pmax(1) << "," << pmax(2) << "," << fIter - it0 << "\n";
         const bool integer = std::fabs(th - std::round(th)) < 1.e-6;
@@ -844,7 +895,8 @@ void RainfallSlope::Run() {
         << (fsHist.empty() ? -1. : fsHist[0].second.first) << "\nfs_ini_gi "
         << (fsHist.empty() ? -1. : fsHist[0].second.second) << "\nfs_min_srm " << minS << "\nt_min_srm " << tminS
         << "\nfs_min_gi " << minG << "\nt_min_gi " << tminG << "\nt_fail " << tFail << "\nnewton_iterations " << fIter
-        << "\nminutes " << elapsed() / 60. << "\n";
+        << "\nretries " << fRetries << "\nretries_partial " << fRetriesPartial << "\nactive_set_unsettled "
+        << fUnsettled << "\nminutes " << elapsed() / 60. << "\n";
     // options other than the defaults
     for (auto &o : fCase.soil) sum << "opt_" << o.first << " " << o.second << "\n";
     if (!fCase.camadas.empty()) sum << "camadas " << fCase.camadas << "\n";

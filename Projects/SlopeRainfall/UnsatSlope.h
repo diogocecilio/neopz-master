@@ -279,8 +279,13 @@ public:
         for (auto *m : fMats) s.push_back(*m->GetMemory());
         return s;
     }
+    /// element by element into the existing storage (the assignment of TPZChunkVector does not free the chunks it replaces)
     void RestoreMemory(const std::vector<TPZAdmChunkVector<TPZUnsaturatedMem>> &s) {
-        for (size_t i = 0; i < fMats.size(); ++i) *fMats[i]->GetMemory() = s[i];
+        for (size_t i = 0; i < fMats.size(); ++i) {
+            auto &mem = *fMats[i]->GetMemory();
+            if (mem.NElements() != s[i].NElements()) DebugStop();
+            for (int64_t k = 0; k < mem.NElements(); ++k) mem[k] = s[i][k];
+        }
     }
     /// memory back to the default (stress-free) state
     void ResetMemory() {
