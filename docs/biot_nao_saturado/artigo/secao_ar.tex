@@ -1,0 +1,58 @@
+% Seção 6: ar aprisionado (grupo G1 do item A2, f100, alpha = 63,4 graus; confinamento, k_ra,min, malha)
+\citet{rahardjo2007} classified the slopes with $k_s\le10^{-6}$~m/s as safe in rainfalls of up to 24~h, whatever the
+intensity, because the rain does not raise the water table. We examine the $f_{100}$ soil ($k_s=3.6\mmh$) on the
+steepest slope of their study, $\alpha=63.4^\circ$, whose initial FS is 1.775 (Fig.~\ref{fig:ar}). With the usual
+model (iii) the minimum FS under 24-h rainfalls is 1.38, 1.16, 1.10 and 1.09 for $I_r=9$, 18, 36 and 80~mm/h: the
+slope does not fail, as the classification states. With model (ii) the FS is 0.02--0.04 higher. With active air it is
+1.17, 1.03, 1.02 and 1.01: from $I_r=5k_s$ on, the slope reaches limit equilibrium at the end of the rainfall.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{ar_aprisionado.pdf}
+\caption{Soil $f_{100}$, $\alpha=63.4^\circ$, $I_r=36\mmh$ during 24~h, in models (i)--(iii). (a) FS; (b) infiltrated
+volume; (c) water (solid) and air (dashed, model i) pressures and (d) matric suction along a vertical below the
+middle of the face at $t=24$~h.}\label{fig:ar}
+\end{figure}
+
+The mechanism is not more water. With active air 10.4--11.6~m$^3$/m infiltrate in 24~h, against 13.5--17.9~m$^3$/m
+with passive air (Fig.~\ref{fig:ar}b). The air resistance slows the infiltration and the surface ponds earlier: with
+9~mm/h the first vertex ponds after 6~h with active air and after 11.75~h with passive air, and at the end of the
+rainfall 83 and 41 of the 96 surface vertices are ponded; with 36~mm/h the whole surface ponds within 4.5~h. Once
+the surface is sealed, the air between the wetting front and the water table can no longer escape and is compressed
+by the water that still enters: with 36~mm/h $p_a$ reaches 19.5~kPa after 1~h, 30~kPa after 3~h and 38~kPa after
+24~h, and averages 32~kPa between 0.5 and 5~m below the surface. The matric suction does not decrease, it increases:
+between 2 and 5~m it is 38~kPa with active air and 24~kPa with passive air (Fig.~\ref{fig:ar}d), because less water
+has arrived. What rises is the water pressure, pushed by the compressed air: $-6$ against $-24\kpa$ in the same
+layer (Fig.~\ref{fig:ar}c). With $\chi=1$ the effective stress depends only on $p_w$, and the shear strength
+decreases although the soil is drier. The usual rule that the stability depends on the infiltrated volume therefore
+compares cases of the same model only; between models, less water gives a smaller FS.
+
+The air pressure is controlled by how easily the air leaves through the ponded surface. With the minimum relative
+permeability of the air $k_{ra}^{\min}$ between $10^{-6}$ and $10^{-3}$ the minimum FS (1.013--1.015) and the
+maximum air pressure (37--38~kPa) do not change; with $10^{-2}$ the air escapes through the ponded surface, $p_a$
+falls to 28~kPa and the FS rises to 1.05.
+
+\subsection{Confinement of the air}\label{sec:confinamento}
+
+The base and the lateral boundaries are closed to the air in the reference model, as in the other studies of rainfall
+infiltration with the air phase. This is the upper bound of the entrapment through the boundaries. Opening them (atmospheric air pressure on the base
+and on the lateral boundaries) changes the minimum FS by less than 0.002: 1.017 against 1.015 for the $f_{100}$ slope
+with 36~mm/h, and 1.011 against 1.011 for the $f_{50}$ slope with 30~mm/h. The lateral boundaries are 30~m away from
+the slope and the base is below the water table; the air is sealed by the ponded surface above it, not by the
+boundaries of the domain.
+
+\subsection{Mesh}\label{sec:malha}
+
+The minimum FS of the $f_{100}$ slope with 36~mm/h decreases with the mesh: 1.0154, 1.0122 and 1.0090 with elements
+of 0.75, 0.5 and 0.35~m near the surface (1764, 3814 and 7622 triangles), without a clear sign of convergence, while
+the initial FS converges (1.775, 1.761, 1.752 and 1.748 with 0.25~m; Fig.~\ref{fig:malha}). The margin of 1.5\% of
+the standard mesh is of the order of the discretization error, and by the criterion adopted the case is imminent
+failure; whether the converged minimum FS falls below one would require finer meshes or a resolution of the shear
+band.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.5\textwidth]{malha.pdf}
+\caption{Minimum FS against the element size near the surface: $f_{100}$ slope at $63.4^\circ$ with 36~mm/h in model
+(i), and the $f_{50}$ reference slope near its critical intensities in models (i) and (iii).}\label{fig:malha}
+\end{figure}

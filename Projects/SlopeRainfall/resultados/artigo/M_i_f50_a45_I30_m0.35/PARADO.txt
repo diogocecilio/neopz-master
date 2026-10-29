@@ -1,0 +1,1 @@
+Caso encerrado manualmente em 29/10/2026 15:00, depois do último FS pedido (26 h); o transiente de 26 a 48 h não entra em nenhum resultado. Sem summary.txt: os resultados estão em fs.csv.

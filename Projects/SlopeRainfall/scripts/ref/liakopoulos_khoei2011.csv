@@ -1,0 +1,8 @@
+# Liakopoulos (1965), solução bifásica acoplada de Khoei e Mohammadnejad (2011), Fig. 1, leitura (+-0,15 kPa; +-0,03 mm)
+# t (min), p_w no topo (kPa), p_w a 0,5 m (kPa), p_a mínima (kPa), cota da p_a mínima (m), recalque do topo (mm)
+5,-6.25,-2.50,-4.40,0.91,-0.97
+10,-7.30,-3.50,-5.10,0.90,-1.26
+20,-8.00,-4.00,-5.30,0.84,-1.40
+30,-8.30,-4.15,-5.25,0.82,-1.46
+60,-8.95,-4.35,-5.00,0.79,-1.55
+120,-9.25,-4.55,-4.30,0.73,-1.60

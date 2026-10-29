@@ -40,6 +40,14 @@
 //                             horizontal projection: a face inclined at alpha receives I / cos(alpha) per horizontal area
 //   tolfs=0.01                tolerance of the bisection of the SRM: the FS written is the last strength factor that
 //                             converged, below the collapse by less than tolfs
+//   parar=0                   > 0: the run stops at the first FS (SRM) <= parar (the critical intensity only needs the
+//                             crossing); the summary is written as usual
+//   arbase=0 arlateral=0      1: p_a = 0 also on the base / on the lateral boundaries (air open there; default: the air
+//                             leaves only through the surface)
+//   tsnap=t1,t2,...           extra snapshots (h) of p_w and p_a, and of the vertical displacement (snaps_uy.csv)
+//   swcc=liak:c,b,swr krw=liak:d,e   Liakopoulos (1965): S_w = 1 - c p_c^b (p_c in kPa), k_rw = 1 - d (1 - S_w)^e,
+//                             S_e = (S_w - swr)/(1 - swr) in k_ra
+//   with basena=1, hist.csv has the column base_m3s (water inflow through the base, m3/s per m; < 0: outflow)
 // Outputs in <out>: fs.csv, hist.csv, snaps_pw.csv, snaps_pa.csv, vertices.csv, triangles.csv, outline.csv,
 //                   summary.txt (and vtk/ if vtk=1). Figures and animations: scripts/*.py and mma/*.wl.
 #include "UnsatSlope.h"
@@ -82,6 +90,9 @@ struct Case {
     bool mecanica = true; ///< false (uncoupled only): displacements fixed in the transient, only the seepage is solved
     bool fluxonormal = false; ///< rain per unit length of the surface instead of on the horizontal projection
     REAL tolfs = 0.01; ///< tolerance of the bisection of the SRM
+    REAL parar = 0.;   ///< > 0: stop at the first FS (SRM) <= parar
+    bool arbase = false, arlateral = false; ///< p_a = 0 also on the base / on the lateral boundaries
+    std::vector<REAL> tsnap;                ///< extra snapshot instants (h)
 };
 
 /// Geometry of Fig. 2: crest at y = 3 Hs from x = 0 to xb, toe at y = 2 Hs from xc to L
@@ -128,11 +139,20 @@ static bool SoilOption(UnsatParams &p, const std::string &k, const std::string &
         } else if (v.rfind("vg:", 0) == 0 && a.size() == 3) {
             p.hydro.fRetention = TPZUnsaturatedHydraulics::EVanGenuchten;
             p.hydro.fAVG = a[0], p.hydro.fBVG = a[1], p.hydro.fSwr = a[2];
+        } else if (v.rfind("liak:", 0) == 0) {
+            const std::vector<REAL> b = ParseList(v.c_str() + 5);
+            if (b.size() != 3) return false;
+            p.hydro.fRetention = TPZUnsaturatedHydraulics::ELiakopoulos;
+            p.hydro.fLC = b[0], p.hydro.fLB = b[1], p.hydro.fSwr = b[2];
         } else return false;
     } else if (k == "krw") {
         if (v == "mualem") p.hydro.fKrw = TPZUnsaturatedHydraulics::EMualem;
         else if (v.rfind("pot:", 0) == 0) p.hydro.fKrw = TPZUnsaturatedHydraulics::EPowerLaw, p.hydro.fPower = std::atof(v.c_str() + 4);
-        else return false;
+        else if (v.rfind("liak:", 0) == 0) {
+            const std::vector<REAL> b = ParseList(v.c_str() + 5);
+            if (b.size() != 2) return false;
+            p.hydro.fKrw = TPZUnsaturatedHydraulics::ELiakopoulosW, p.hydro.fLD = b[0], p.hydro.fLE = b[1];
+        } else return false;
     } else return false;
     return true;
 }
@@ -351,19 +371,28 @@ private:
         fAtm.assign(surf.begin(), surf.end());
         fFixed = fAn->DisplacementConstraints();
         const REAL gw = fPar.gw;
-        auto hydrostatic = [&](const std::set<int64_t> &nodes) {
+        auto hydrostatic = [&](const std::set<int64_t> &nodes, bool isbase) {
             for (auto n : nodes) {
                 const TPZGeoNode &nd = fGMesh->NodeVec()[n];
                 const REAL h = WaterTable(nd.Coord(0)), y = nd.Coord(1);
-                if (y <= h + 1.e-6) fFixed[fAn->WaterEq().at(n)] = gw * (h - y);
+                if (y <= h + 1.e-6) {
+                    fFixed[fAn->WaterEq().at(n)] = gw * (h - y);
+                    if (isbase) fBaseW.push_back(n);
+                }
             }
         };
-        if (fCase.lateral) hydrostatic(left), hydrostatic(right);
-        if (fCase.basena) hydrostatic(base);
+        if (fCase.lateral) hydrostatic(left, false), hydrostatic(right, false);
+        if (fCase.basena) hydrostatic(base, true);
         if (fCase.passivo)
             for (auto &e : fAn->AirEq()) fFixed[e.second] = 0.;
-        else
+        else {
             for (auto n : surf) fFixed[fAn->AirEq().at(n)] = 0.;
+            if (fCase.arbase)
+                for (auto n : base) fFixed[fAn->AirEq().at(n)] = 0.;
+            if (fCase.arlateral)
+                for (auto *side : {&left, &right})
+                    for (auto n : *side) fFixed[fAn->AirEq().at(n)] = 0.;
+        }
     }
 
     /// Initial pore pressures: hydrostatic below the water table, suction limited to smax, p_a = 0
@@ -491,6 +520,7 @@ private:
         if (pondedAll) ponded.insert(fAtm.begin(), fAtm.end());
         bool conv = false, settled = false;
         REAL q = 0.; // infiltration rate of the solution of the last pass, with the active set it was solved with
+        REAL qbase = 0.; // inflow through the base vertices with p_w prescribed
         for (int pass = 0; pass < 12; ++pass) {
             std::map<int64_t, REAL> fixed(fFixed), fq;
             for (auto n : ponded) fixed[fAn->WaterEq().at(n)] = 0.;
@@ -516,6 +546,8 @@ private:
                 if (!ponded.count(n) && !dry.count(n)) q += rate * fSupply[n];
                 else q += fRw.GetVal(fAn->WaterEq().at(n), 0) / dt;
             }
+            qbase = 0.;
+            for (auto n : fBaseW) qbase += fRw.GetVal(fAn->WaterEq().at(n), 0) / dt;
             if (pondedAll) {
                 settled = true;
                 break;
@@ -551,6 +583,7 @@ private:
         if (!settled) ++fUnsettled;
         // infiltration of this (sub)step added to the mean rate of the step of the main loop (fStepDt)
         fInfil += q * (dt / fStepDt);
+        fBaseFlow += qbase * (dt / fStepDt);
         fAn->Accept();
         fPonded = pondedAll ? std::set<int64_t>(fAtm.begin(), fAtm.end()) : ponded;
         fDry = dry;
@@ -635,6 +668,9 @@ private:
     std::set<int64_t> fPonded, fDry;
     TPZFMatrix<STATE> fRw;
     REAL fInfil = 0., fStepDt = 1.; ///< mean infiltration (m3/s per m) of the step of the main loop and its length
+    REAL fBaseFlow = 0.;            ///< mean inflow through the base (m3/s per m) of the step of the main loop
+    std::vector<int64_t> fBaseW;    ///< base vertices with p_w prescribed (basena)
+    std::ofstream fSnapU;
     /// attempts of a step discarded (restarts from the beginning of the step), those that had accepted substeps, and
     /// (sub)steps accepted with an active set changed after the last solve
     int fRetries = 0, fRetriesPartial = 0, fUnsettled = 0;
@@ -699,6 +735,10 @@ void RainfallSlope::WriteMeshFiles() {
     fSnapA.open(fCase.out + "/snaps_pa.csv");
     fSnapW << std::setprecision(7);
     fSnapA << std::setprecision(7);
+    if (!fCase.tsnap.empty()) {
+        fSnapU.open(fCase.out + "/snaps_uy.csv");
+        fSnapU << std::setprecision(7);
+    }
 }
 
 void RainfallSlope::Snapshot(REAL th) {
@@ -713,6 +753,12 @@ void RainfallSlope::Snapshot(REAL th) {
     fSnapA << "\n";
     fSnapW.flush();
     fSnapA.flush();
+    if (fSnapU.is_open()) {
+        fSnapU << th;
+        for (auto n : fNodes) fSnapU << "," << fAn->NodalDisplacement(x, n, 1);
+        fSnapU << "\n";
+        fSnapU.flush();
+    }
 }
 
 void RainfallSlope::WriteVTK(int k) {
@@ -736,7 +782,8 @@ void RainfallSlope::Run() {
     WriteMeshFiles();
     std::ofstream fs(fCase.out + "/fs.csv"), hist(fCase.out + "/hist.csv");
     fs << "t_h,fs_srm,fs_gi,ponded,pa_max\n" << std::setprecision(6);
-    hist << "t_h,dt_h,raining,rain_m3s,infil_m3s,ponded,pw_max,pa_max,iterations\n" << std::setprecision(8);
+    hist << "t_h,dt_h,raining,rain_m3s,infil_m3s,ponded,pw_max,pa_max,iterations" << (fCase.basena ? ",base_m3s" : "")
+         << "\n" << std::setprecision(8);
 
     // initial state: hydrostatic pressures with the suction limited, weight of the soil, u = 0
     TPZFMatrix<STATE> &X = fAn->X();
@@ -842,9 +889,11 @@ void RainfallSlope::Run() {
             fPonded = ponded0;
             fDry = dry0;
             fInfil = 0.;
+            fBaseFlow = 0.;
         };
         fStepDt = dt;
         fInfil = 0.;
+        fBaseFlow = 0.;
         // a failure with 2 bisection levels may be numerical (Newton, active set of the rain): the step is tried
         // again with 5 levels and the real strength before it is taken as the loss of equilibrium of the slope
         bool ok = Advance(dt, rate, pondedAll, 0, tFail >= 0. ? 5 : 2);
@@ -881,14 +930,21 @@ void RainfallSlope::Run() {
         for (auto n : fAtm) rain += std::max(rate, REAL(0.)) * fSupply[n];
         const REAL infil = fInfil;
         hist << th << "," << st.first << "," << st.second << "," << rain << "," << infil << "," << fPonded.size()
-             << "," << pmax(1) << "," << pmax(2) << "," << fIter - it0 << "\n";
-        const bool integer = std::fabs(th - std::round(th)) < 1.e-6;
-        if (integer) Snapshot(th);
+             << "," << pmax(1) << "," << pmax(2) << "," << fIter - it0;
+        if (fCase.basena) hist << "," << fBaseFlow;
+        hist << "\n";
+        bool snap = std::fabs(th - std::round(th)) < 1.e-6;
+        for (REAL ts : fCase.tsnap) snap = snap || std::fabs(th - ts) < 1.e-6;
+        if (snap) Snapshot(th);
         for (REAL tf : fCase.tfs)
             if (std::fabs(th - tf) < 1.e-6) {
                 WriteVTK(k++);
                 computeFS(th);
             }
+        if (fCase.parar > 0. && !fsHist.empty() && fsHist.back().second.first <= fCase.parar) {
+            std::cout << fCase.out << ": FS <= " << fCase.parar << " at t = " << th << " h, run stopped (parar)\n";
+            break;
+        }
     }
     // summary
     std::ofstream sum(fCase.out + "/summary.txt");
@@ -919,6 +975,9 @@ void RainfallSlope::Run() {
     if (!fCase.mecanica) sum << "mecanica 0\n";
     if (fCase.fluxonormal) sum << "fluxonormal 1\n";
     if (fCase.tolfs != 0.01) sum << "tolfs " << fCase.tolfs << "\n";
+    if (fCase.parar > 0.) sum << "parar " << fCase.parar << "\n";
+    if (fCase.arbase) sum << "arbase 1\n";
+    if (fCase.arlateral) sum << "arlateral 1\n";
     if (!fCase.na.empty()) sum << "na_pontos " << fCase.na.size() << "\n";
     if (!fCase.lateral) sum << "lateral 0\n";
     if (fCase.basena) sum << "basena 1\n";
@@ -946,6 +1005,10 @@ int main(int argc, char *argv[]) {
         else if (is("train=")) c.train = std::atof(val("train="));
         else if (is("ttotal=")) c.ttotal = std::atof(val("ttotal="));
         else if (is("tfs=")) c.tfs = ParseList(val("tfs="));
+        else if (is("tsnap=")) c.tsnap = ParseList(val("tsnap="));
+        else if (is("parar=")) c.parar = std::atof(val("parar="));
+        else if (is("arbase=")) c.arbase = std::atoi(val("arbase="));
+        else if (is("arlateral=")) c.arlateral = std::atoi(val("arlateral="));
         else if (is("passivo=")) c.passivo = std::atoi(val("passivo="));
         else if (is("acoplado=")) c.acoplado = std::atoi(val("acoplado="));
         else if (is("gi=")) c.gi = std::atoi(val("gi="));

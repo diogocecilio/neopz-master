@@ -106,6 +106,10 @@ Outros solos, geometrias e chuvas (sem estas opções os resultados são os de a
 | `mecanica=0` | com `acoplado=0`: o transiente resolve só a percolação (deslocamentos fixos) |
 | `fluxonormal=1` | chuva por unidade de comprimento da superfície (como o fluxo prescrito do SEEP/W) em vez da projeção horizontal: uma face a α recebe I / cos α |
 | `tolfs=` | tolerância da bissecção do SRM (0,01): o FS escrito é o último fator que convergiu, abaixo do colapso por menos que `tolfs` |
+| `parar=` | para o cálculo no primeiro FS ≤ `parar` (basta o cruzamento para a intensidade crítica) |
+| `arbase=1`, `arlateral=1` | p_a = 0 também na base / nas laterais (o ar sai só pela superfície por padrão) |
+| `tsnap=t1,t2,...` | instantes (h) extras de p_w e p_a e do deslocamento vertical (`snaps_uy.csv`) |
+| `swcc=liak:c,b,swr`, `krw=liak:d,e` | leis de Liakopoulos (1965): S_w = 1 − c p_c^b (kPa), k_rw = 1 − d (1 − S_w)^e; com `basena=1`, `hist.csv` ganha a coluna `base_m3s` |
 | `mesh=<arquivo.msh>` | malha gmsh (2.2) no lugar da padrão; `scripts/malha_talude.py Hs α h_sup fator_hmax saida.msh` gera a do talude com outro refinamento |
 
 Séries do artigo (em paralelo) e figuras de comparação:
@@ -362,3 +366,16 @@ A4c e A6). Texto completo na seção Discussão do documento e em `docs/biot_nao
   montagem abortava com um componente de um nó prescrito).
 * `TPZPardisoSolver`: matrizes não simétricas sempre fatoradas (a iteração CGS com o LU anterior falhava nas
   tangentes de Newton e, com K = 1, também o fallback de fatoração).
+
+### Artigo: intensidade crítica (docs/biot_nao_saturado/artigo)
+
+`scripts/artigo.py` roda os casos do artigo (decomposição do viés nos quatro modelos, generalização, malha, passo de
+tempo, ar aberto nas laterais e na base e a validação com o ensaio de Liakopoulos; resultados em
+`resultados/artigo`), e `scripts/figuras_artigo.py` gera as figuras e tabelas em `docs/biot_nao_saturado/artigo/figuras`:
+```
+cd ~/projects/runs
+python3 <neopz>/Projects/SlopeRainfall/scripts/artigo.py rodar --exe <build>/Projects/SlopeRainfall/SlopeRainfall --jobs 12
+python3 <neopz>/Projects/SlopeRainfall/scripts/figuras_artigo.py --runs ~/projects/runs/resultados
+```
+A malha da coluna é gerada por `scripts/malha_coluna.py` (sem o gmsh); as referências digitalizadas estão em
+`scripts/ref/liakopoulos_*.csv`.

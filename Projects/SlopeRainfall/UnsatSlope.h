@@ -447,6 +447,10 @@ public:
     REAL Nodal(const TPZFMatrix<STATE> &x, int64_t node, int space) const {
         return x.GetVal((space == 1 ? fEqW : fEqA).at(node), 0);
     }
+    /// displacement component (0: x, 1: y) at a vertex
+    REAL NodalDisplacement(const TPZFMatrix<STATE> &x, int64_t node, int comp) const {
+        return x.GetVal(fEqU.at(node) + comp, 0);
+    }
 
 private:
     /// Assembly of the tangent and the residual; while the equation filter is unchanged the sparse structure is
@@ -516,6 +520,8 @@ private:
                 if (s > 0 && id > 0)
                     for (int i = 0; i < 3; ++i)
                         (s == 1 ? fEqW : fEqA)[gel->NodeIndex(i)] = Position(off[s] + cel->ConnectIndex(i));
+                if (s == 0 && id > 0)
+                    for (int i = 0; i < 3; ++i) fEqU[gel->NodeIndex(i)] = Position(off[0] + cel->ConnectIndex(i));
                 if (s == 0 && (id == EBase || id == ELeft || id == ERight)) {
                     for (int i = 0; i < cel->NConnects(); ++i) {
                         const int64_t ci = off[0] + cel->ConnectIndex(i);
@@ -532,7 +538,7 @@ private:
     TPZMultiphysicsCompMesh *fMPhys;
     TUnsat *fMat;
     std::vector<TUnsat *> fMats;
-    std::map<int64_t, int64_t> fEqW, fEqA;
+    std::map<int64_t, int64_t> fEqW, fEqA, fEqU;
     std::map<int64_t, REAL> fFixU;
     std::vector<bool> fIsP;
     std::set<int64_t> fFilterKey;

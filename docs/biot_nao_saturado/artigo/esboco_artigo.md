@@ -131,60 +131,31 @@ a intensidade crítica e atrasam a ruptura; o efeito maior parece vir do ar apri
 
 ---
 
-## 4. Cálculos que faltam rodar
+## 4. Cálculos
 
-Convenções: FS de hora em hora e `tolfs=0.002` nas buscas de *I_c* (como o item A1c de `contraexemplos.py`); um caso
-por núcleo (`MKL_NUM_THREADS=1`). Modelos: (i) completo `acoplado=1 passivo=0`; (ii) `acoplado=1 passivo=1`; (iii)
-`acoplado=0 passivo=1` (o do artigo); (iv) `acoplado=0 passivo=0` (fluxo bifásico desacoplado; rodou neste ambiente:
-f50, 36 mm/h, *p_a* = 16,8 kPa e FS = 1,859 às 3 h).
+### Rodados em 29/10/2026 (`scripts/artigo.py`, 31 casos; versão do artigo em `artigo.tex`)
 
-### Código antes de rodar
+| grupo | casos | resultado |
+|---|---|---|
+| D, decomposição (f50, 45°) | (ii) ψ = φ' com 54, 66, 78; (ii) ψ = 0 com 42, 54; (iv) com 20, 25, 30, 36, 42, 48 mm/h | *I_c* = 78 (62 com FS ≤ 1,02), 53 e 25 mm/h; com (iii) 48, (i) ψ = φ' 31 e (i) ψ = 0 26: o ar reduz *I_c* à metade, o acoplamento o aumenta 4–63 % |
+| G, generalização | f10 em (i) com 100, 120, 140, 165 e em (iii) com 120, 140; f50 com χ = S_e em (i) com 24, 30, 36 e em (iii) com 36, 42, 48, 54 mm/h | f10: 135 × 139 mm/h (sem viés, *I_c* ≈ 0,4 *k_s*); χ = S_e: 48 × 30 mm/h (o viés persiste) |
+| M, malha (h_sup = 0,35 m) | (i) com 30, (iii) com 48 mm/h | FS mínimo cai 0,007 e 0,024; *I_c* ≈ 30 e 46 mm/h (razão 1,5 mantida) |
+| T, passo de tempo | (i) ψ = 0, 36 mm/h, passo 0,125 h | perda de equilíbrio às 15,6 h (15,5 h com 0,25 h) |
+| Ar, ar aberto na base e nas laterais | G1 (f100, 63,4°, 36 mm/h); f50 (i) com 30 mm/h | FS mínimo 1,017 × 1,015 e 1,011 × 1,011: o ar é vedado pela superfície alagada |
+| L, validação | coluna de Liakopoulos, ar ativo e passivo | bifásico × Khoei e Mohammadnejad (2011): p_w no topo ≤ 0,43 kPa, p_a mínima ≤ 0,3 kPa, recalque ≤ 0,07 mm; ar passivo × ensaio (vazão e p_w) |
 
-- **C1. Parada antecipada:** opção para encerrar o caso quando o FS ≤ 1,01 ou o transiente perde o equilíbrio. As
-  buscas de *I_c* não precisam do resto do transiente.
-- **C2. Busca automática de *I_c*:** script (`intensidade_critica.py`) que faz bissecção em *I_r* até 1 mm/h, no
-  lugar da grade de intensidades. São ≈ 5 casos por *I_c* em vez de 7–9.
-- **C3. Ar pelas laterais:** opção para *p_a* = 0 nas laterais acima do NA e na base (hoje o ar só sai pela
-  superfície). Serve para P2.1.
-- **C4. Coluna 1D** com o material `TPZMatUnsaturatedUPwPa` (novo projeto, por exemplo `Projects/UnsatColumn`), para
-  P1.2.
+Código acrescentado: leis de Liakopoulos em `TPZUnsaturatedHydraulics` (`swcc=liak`, `krw=liak`); opções `arbase`,
+`arlateral`, `tsnap`, `parar` e a vazão pela base em `hist.csv` (`SlopeRainfall`). O caso `M_i` foi encerrado depois do
+último FS pedido (26 h), sem `summary.txt` (`PARADO.txt`).
 
-### P1. Essenciais para a mensagem principal
+### Ainda em aberto
 
-| id | objetivo | casos | observações |
-|---|---|---|---|
-| P1.1 | **Decomposição do viés** no f50, 45°, 24 h: *I_c* e *t_f* dos modelos (ii) e (iv); completar (i) com ψ = φ'/2 (30 e 33 mm/h) | (ii): 30, 36, 42, 48, 54 mm/h; (iv): idem; (i) ψ = φ'/2: 2 → **12** | Separa acoplamento e ar. A série B† sugere que o ar domina: com 36 mm/h, 1,21 em (ii) contra 1,01 em (i). |
-| P1.2 | **Validação** da fase de ar e do acoplamento | Touma e Vauclin (1986): coluna com base fechada e aberta ao ar, 2 casos; Liakopoulos (1965): 1 caso | Precisa de C4. Sem isso o revisor questiona os 36–38 kPa. |
-| P1.3 | **Generalização** de *I_c*(i)/*I_c*(iii) por solo e por lei de χ, com α = 45° | 3 solos × 2 modelos × 2 leis (χ = 1, S_e) × ≈ 5 intensidades → **≈ 60** (≈ 24 com C2) | Refazer também as variantes (i) e (ii) da série B† (42 casos) se forem usadas. |
-| P1.4 | **Convergência de malha de *I_c*** (f50; modelos (i) e (iii)) e do FS mínimo do G1 | *h_sup* = 0,5 e 0,35 m × 2 modelos × 3 intensidades em torno de *I_c* → **12**; G1 com 0,25 m → **1** | O FS mínimo do G1 cai 0,003 por refinamento sem convergir; o FS inicial converge (1,775 → 1,748). |
-
-### P2. Importantes (fortalecem seções do artigo)
-
-| id | objetivo | casos | observações |
-|---|---|---|---|
-| P2.1 | **Confinamento do ar:** laterais e base abertas ao ar | G1 com 36 mm/h e *I_c* do f50, modelo (i) → **≈ 6** | Precisa de C3. Mostra quanto do efeito é do domínio fechado. |
-| P2.2 | **Robustez de *t_f* com ψ = 0** (parte da perda de equilíbrio pode ser numérica) | 26, 36 e 90 mm/h × `dtchuva` = 0,125 e 0,0625 h → **6** | Se *t_f* convergir com o passo, a perda de equilíbrio é física. |
-| P2.3 | **Ângulo:** *I_c*(i)/*I_c*(iii) com α = 30° e 60° (f50) | 2 ângulos × 2 modelos × ≈ 5 → **≈ 20** (≈ 8 com C2) | — |
-| P2.4 | **Limiares I–D:** *I_c* para 6, 12, 24 e 48 h nos modelos (i) e (iii), solos f50 e f100 | 3 durações novas × 2 modelos × 2 solos × ≈ 5 → **≈ 60** (≈ 24 com C2) | Figura de maior apelo prático. |
-
-### P3. Opcionais
-
-| id | objetivo | casos | observações |
-|---|---|---|---|
-| P3.1 | **SRM não associativo** (abordagem de Davis; Tschuchnigg et al. 2015) para o FS com ψ = 0 | código + ≈ 6 | Resolveria a limitação de calcular o FS com ψ = φ'. |
-| P3.2 | Anisotropia no modelo completo: *I_c* com k₁ paralelo e normal à face | **≈ 10** | Hoje só há 90 mm/h (A3c). |
-| P3.3 | Refazer as séries A, C e D e o estudo acoplado de anisotropia† | — | Só se entrarem no artigo. |
-
-**Ordem sugerida:**
-1. C1 e C2.
-2. P1.1, que confirma ou muda a mensagem.
-3. P1.4 e P1.3.
-4. C4 e P1.2.
-5. P2.
-
-Total do essencial: ≈ 90 casos com C1/C2, mais a validação 1D.
-
----
+- Validação da fase de ar em infiltração com pressão do ar medida (Touma e Vauclin 1986): o artigo não está na pasta
+  de referências.
+- Malha: o FS mínimo do G1 cai 0,003 por refinamento sem convergir (h_sup = 0,25 m não foi rodado).
+- Limiares intensidade–duração (I_c para 6, 12 e 48 h) e outros ângulos (P2.3, P2.4): não rodados.
+- SRM não associativo (P3.1) e anisotropia no modelo completo (P3.2): não feitos.
+- Conferir as referências marcadas com %VERIFICAR em `referencias.tex`; afiliação e coautores.
 
 ## 5. Referências a conferir
 

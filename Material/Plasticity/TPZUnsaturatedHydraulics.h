@@ -24,11 +24,14 @@
  *    \f$C(\psi) = 1\f$ (Fredlund and Xing 1994, as recommended by Leong and Rahardjo 1997 and used by
  *    Rahardjo et al. 2007); \f$S_w = \theta_w/\theta_s\f$;
  *  - EVanGenuchten: \f$S_e = \left[1 + (a_{VG} p_c)^{b_{VG}}\right]^{-m_{VG}}\f$, \f$m_{VG} = 1 - 1/b_{VG}\f$,
- *    \f$S_w = S_{wr} + (1 - S_{wr}) S_e\f$.
+ *    \f$S_w = S_{wr} + (1 - S_{wr}) S_e\f$;
+ *  - ELiakopoulos: \f$S_w = 1 - c_L p_c^{b_L}\f$, bounded by \f$S_{wr}\f$ (fitted to the Del Monte sand of the drainage
+ *    test of Liakopoulos 1965; \f$S_e = (S_w - S_{wr})/(1 - S_{wr})\f$ enters only the air permeability).
  *
  * Relative permeability of the water:
  *  - EPowerLaw: \f$k_{rw} = S_e^{p}\f$ (Leong and Rahardjo 1997b, \f$k_w = k_s\Theta^p\f$);
- *  - EMualem: \f$k_{rw} = S_e^{1/2}\left\{1 - \left[1 - S_e^{1/m_{VG}}\right]^{m_{VG}}\right\}^2\f$.
+ *  - EMualem: \f$k_{rw} = S_e^{1/2}\left\{1 - \left[1 - S_e^{1/m_{VG}}\right]^{m_{VG}}\right\}^2\f$;
+ *  - ELiakopoulosW: \f$k_{rw} = 1 - d_L (1 - S_w)^{e_L}\f$ (Liakopoulos 1965).
  *
  * Relative permeability of the air (non-wetting phase):
  *  - EBrooksCorey: \f$k_{ra} = (1 - S_e)^2\left(1 - S_e^{(2+\lambda)/\lambda}\right)\f$;
@@ -38,8 +41,8 @@
  * of the tangent regular where a phase disappears (Sect. 13.9 of the notes).
  */
 struct TPZUnsaturatedHydraulics {
-    enum ERetention { EFredlundXing = 0, EVanGenuchten = 1 };
-    enum EWaterPermeability { EPowerLaw = 0, EMualem = 1 };
+    enum ERetention { EFredlundXing = 0, EVanGenuchten = 1, ELiakopoulos = 2 };
+    enum EWaterPermeability { EPowerLaw = 0, EMualem = 1, ELiakopoulosW = 2 };
     enum EAirPermeability { EBrooksCorey = 0, EMualemAir = 1 };
 
     ERetention fRetention = EFredlundXing;
@@ -50,6 +53,8 @@ struct TPZUnsaturatedHydraulics {
     REAL fA = 50., fN = 1., fM = 1.;
     /** @brief van Genuchten: a_VG (1/kPa), b_VG and residual saturation S_wr */
     REAL fAVG = 0.1, fBVG = 2., fSwr = 0.;
+    /** @brief Liakopoulos: retention c_L (kPa^-b_L), b_L and water permeability d_L, e_L */
+    REAL fLC = 3.975e-4, fLB = 2.4279, fLD = 2.207, fLE = 1.0121;
     /** @brief exponent p of the power law of the water */
     REAL fPower = 4.;
     /** @brief exponent lambda of Brooks-Corey (air) */
@@ -80,6 +85,10 @@ struct TPZUnsaturatedHydraulics {
             const REAL r = pc / fA, x = std::pow(r, fN), L = std::log(M_E + x);
             S = std::pow(L, -fM);
             Gamma = fM * std::pow(L, -fM - 1.) * fN * std::pow(r, fN - 1.) / (fA * (M_E + x));
+        } else if (fRetention == ELiakopoulos) {
+            S = 1. - fLC * std::pow(pc, fLB);
+            Gamma = fLC * fLB * std::pow(pc, fLB - 1.);
+            if (S <= fSwr) S = fSwr, Gamma = 0.;
         } else {
             const REAL m = MVG(), y = std::pow(fAVG * pc, fBVG);
             const REAL Se = std::pow(1. + y, -m);
@@ -91,7 +100,7 @@ struct TPZUnsaturatedHydraulics {
 
     /** @brief Effective saturation \f$S_e\f$ and \f$dS_e/dS_w\f$ */
     void Effective(REAL S, REAL &Se, REAL &dSe) const {
-        const REAL swr = (fRetention == EVanGenuchten) ? fSwr : 0.;
+        const REAL swr = (fRetention == EVanGenuchten || fRetention == ELiakopoulos) ? fSwr : 0.;
         dSe = 1. / (1. - swr);
         Se = std::min(std::max((S - swr) * dSe, REAL(0.)), REAL(1.));
     }
@@ -104,6 +113,10 @@ struct TPZUnsaturatedHydraulics {
         if (fKrw == EPowerLaw) {
             raw = std::pow(Se, fPower);
             draw = fPower * std::pow(Se, fPower - 1.);
+        } else if (fKrw == ELiakopoulosW) { // function of S_w: the derivative is divided by dSe below
+            const REAL d = std::max(1. - S, REAL(0.));
+            raw = 1. - fLD * std::pow(d, fLE);
+            draw = d > 0. ? fLD * fLE * std::pow(d, fLE - 1.) / dSe : 0.;
         } else {
             const REAL m = MVG();
             const REAL Sec = std::min(Se, REAL(1. - 1.e-10));
@@ -158,11 +171,16 @@ struct TPZUnsaturatedHydraulics {
     }
 
     void Print(std::ostream &out) const {
-        out << "  retention " << (fRetention == EFredlundXing ? "Fredlund-Xing" : "van Genuchten");
+        out << "  retention "
+            << (fRetention == EFredlundXing ? "Fredlund-Xing" : fRetention == EVanGenuchten ? "van Genuchten" : "Liakopoulos");
         if (fRetention == EFredlundXing) out << " a = " << fA << " n = " << fN << " m = " << fM;
-        else out << " a_VG = " << fAVG << " b_VG = " << fBVG << " S_wr = " << fSwr;
-        out << "\n  k_rw " << (fKrw == EPowerLaw ? "power law p = " : "Mualem") << (fKrw == EPowerLaw ? fPower : 0.)
-            << " (min " << fKrwMin << "), k_ra " << (fKra == EBrooksCorey ? "Brooks-Corey lambda = " : "Mualem")
+        else if (fRetention == EVanGenuchten) out << " a_VG = " << fAVG << " b_VG = " << fBVG << " S_wr = " << fSwr;
+        else out << " c = " << fLC << " b = " << fLB << " S_wr = " << fSwr;
+        out << "\n  k_rw ";
+        if (fKrw == EPowerLaw) out << "power law p = " << fPower;
+        else if (fKrw == EMualem) out << "Mualem";
+        else out << "Liakopoulos d = " << fLD << " e = " << fLE;
+        out << " (min " << fKrwMin << "), k_ra " << (fKra == EBrooksCorey ? "Brooks-Corey lambda = " : "Mualem")
             << (fKra == EBrooksCorey ? fLambdaBC : 0.) << " (min " << fKraMin << ")\n";
     }
 };

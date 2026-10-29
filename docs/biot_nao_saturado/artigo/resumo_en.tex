@@ -1,0 +1,16 @@
+Physically based rainfall thresholds for unsaturated slopes usually come from uncoupled seepage analyses with
+atmospheric pore air followed by stability analyses at successive instants. We quantify how these hypotheses bias the
+rainfall that triggers failure. A coupled formulation with displacement, pore-water and pore-air pressures (Bishop's
+effective stress, Mohr--Coulomb plasticity) is implemented in the open-source library NeoPZ and validated against the
+Liakopoulos drainage test; the factor of safety (FS) is obtained by strength reduction with frozen pressures. Since
+values below one are not physical states, models are compared by the critical intensity $I_c$ of a 24-h rainfall,
+the smallest that brings the FS to one, and by the time to failure. For the slope of Rahardjo et al.\ (2007) with
+$k_s=36$~mm/h, the uncoupled, passive-air model gives $I_c=48$~mm/h ($1.3k_s$); the coupled model with active air
+gives 31~mm/h ($0.9k_s$) with an associated flow rule and 26~mm/h ($0.7k_s$) without dilatancy. The usual hypotheses
+thus overestimate the failure-triggering rainfall by 54--86\% and delay failure by up to 10~h. Their effects are
+opposite: trapped air halves $I_c$, coupling raises it by 4--63\%, and the air dominates. Once the surface ponds, the
+air below the wetting front is compressed to 36--38~kPa; less water infiltrates and the matric suction increases, but
+the pore-water pressure follows the air pressure and the effective stress drops, so that a low-permeability slope
+deemed safe under short rainfalls reaches limit equilibrium. Dilatancy shifts $I_c$ by about 20\% and decides whether
+the transient collapses. The bias persists with $\chi=S_e$ and mesh refinement and vanishes when $I_c$ is well below
+$k_s$.

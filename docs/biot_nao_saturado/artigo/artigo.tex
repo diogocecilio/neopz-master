@@ -1,0 +1,345 @@
+\documentclass[preprint,12pt,authoryear]{elsarticle}
+% Draft of the main article (see esboco_artigo.md for the outline and the list of calculations).
+% Compile: pdflatex artigo && pdflatex artigo. Figures: figuras/ (scripts/figuras_artigo.py of Projects/SlopeRainfall).
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{booktabs,multirow}
+\usepackage{graphicx}
+\usepackage[hidelinks]{hyperref}
+\usepackage{lineno}
+\usepackage{xcolor}
+\usepackage[margin=2.5cm]{geometry}
+\graphicspath{{figuras/}}
+\newcommand{\Ic}{I_c}
+\newcommand{\kpa}{\,\mathrm{kPa}}
+\newcommand{\mmh}{\,\mathrm{mm/h}}
+\newcommand{\pend}[1]{\textcolor{red}{#1}}
+\linenumbers
+
+\journal{Engineering Geology}
+
+\begin{document}
+\begin{frontmatter}
+
+\title{Critical rainfall intensity of unsaturated slopes: how much do uncoupled, passive-air analyses overestimate
+it?}
+
+\author[ufpr]{Diogo Lira Cecilio\corref{cor}}
+\ead{cecilio.diogo@gmail.com}
+\cortext[cor]{Corresponding author}
+\affiliation[ufpr]{organization={[affiliation]}, country={Brazil}}
+
+\begin{abstract}
+\input{resumo_en}
+\end{abstract}
+
+\begin{keyword}
+unsaturated slope \sep rainfall infiltration \sep pore-air pressure \sep hydro-mechanical coupling \sep dilatancy
+\sep critical rainfall intensity \sep strength reduction method
+\end{keyword}
+\end{frontmatter}
+
+%======================================================================
+\section{Introduction}
+%======================================================================
+
+Rainfall-induced landslides in residual and colluvial soils are usually triggered by the loss of matric suction and
+the rise of pore-water pressure in a shallow unsaturated zone. Warning systems rely on rainfall thresholds, empirical
+\citep{caine1980,guzzetti2008} or physically based, the latter obtained by transient seepage analyses followed by
+a stability analysis at successive instants. In engineering practice this chain is a seepage code solving Richards'
+equation on a rigid skeleton with the pore air at atmospheric pressure (SEEP/W, HYDRUS, the hydraulic module of
+PLAXIS), followed by limit equilibrium (SLOPE/W) or by strength reduction with the pore pressures of each instant
+\citep{ng1998,rahardjo2007,tang2018,pradhan2022}.
+
+The parametric study of \citet{rahardjo2007} is a reference of this approach. For a homogeneous slope they
+concluded that the saturated permeability $k_s$ controls the response: there is a limiting intensity above which the
+minimum factor of safety (FS) no longer decreases, a lower FS plateau of about 0.81--0.82, slopes with
+$k_s\le10^{-6}$~m/s do not fail in rainfalls of up to 24~h, and the slope angle, height and initial water table are
+secondary. Three hypotheses of that chain are rarely questioned together.
+\begin{enumerate}
+\item \emph{Atmospheric pore air.} When the ground surface ponds, the air between the wetting front and the water
+table can only leave through the surface and is compressed by the infiltrating water. Laboratory columns
+\citep{toumavauclin1986} and two-phase flow analyses of slopes \citep{cho2016} show that the air delays the wetting
+front and that its pressure lowers the FS; these slope analyses, however, typically solve the flow on a rigid
+skeleton and evaluate the stability by limit equilibrium.
+\item \emph{Uncoupled seepage.} The volumetric strain of the skeleton changes the pore pressures. Coupled analyses
+can give smaller FS than uncoupled ones \citep{qi2015} and have been used to back-analyse failures
+\citep{yang2017}, but the comparisons are made with the minimum FS, not with the rainfall that triggers the failure.
+\item \emph{Flow rule.} The coupled models that predict failure use non-dilatant soils
+\citep{wang2018mpm,liu2021}, while the strength reduction method is usually applied with an associated flow rule.
+Dilatancy generates suction during plastic shearing and can arrest a coupled failure; none of the studies we
+reviewed varies it.
+\end{enumerate}
+
+This paper quantifies how these three hypotheses bias the critical rainfall intensity of an unsaturated slope, that
+is, the smallest intensity of a rainfall of given duration that brings the slope to failure. A three-field
+formulation (displacement, pore-water and pore-air pressures) is implemented in the open-source finite element library
+NeoPZ \citep{devloo1997} and validated against the drainage test of \citet{liakopoulos1965}. Since a factor of
+safety below one is not a physical state, the models are compared by the critical intensity $\Ic$ and the time to
+failure, not by the minimum FS. The slope of \citet{rahardjo2007} is the reference case: the four combinations of
+coupling and air model isolate the contribution of each hypothesis, and the effect of dilatancy, of the soil
+permeability, of the Bishop parameter, of the confinement of the air and of the mesh is then assessed.
+
+%======================================================================
+\section{Formulation and implementation}\label{sec:form}
+%======================================================================
+
+\subsection{Governing equations}
+
+The soil is a deformable porous medium with two immiscible fluids, water and air, under isothermal conditions;
+grains and water are nearly incompressible and the air is an ideal gas; dissolved air and vapour are neglected.
+Small strains and quasi-static equilibrium are assumed. With tension positive and pore pressures positive in
+compression, the total stress is
+\begin{equation}
+\bm\sigma=\bm\sigma'-p_B\,\mathbf I,\qquad p_B=\chi\,p_w+(1-\chi)\,p_a, \label{eq:bishop}
+\end{equation}
+where $\bm\sigma'$ is Bishop's effective stress \citep{bishop1959} and $\chi$ the Bishop parameter. The unknowns are the
+displacement $\mathbf u$ and the gauge pressures $p_w$ and $p_a$; the capillary pressure is $p_c=p_a-p_w$. The
+balance equations of momentum, water mass and air mass are
+\begin{gather}
+\nabla\cdot\bm\sigma-\gamma\,\mathbf e_y=\mathbf 0,\\
+\frac{nS_w}{K_w}\,\dot p_w+n\,\dot S_w+S_w\,\dot\varepsilon_v+\nabla\cdot\mathbf q_w=0,\qquad
+\frac{nS_a}{p_a+p_{atm}}\,\dot p_a-n\,\dot S_w+S_a\,\dot\varepsilon_v+\nabla\cdot\mathbf q_a=0,
+\label{eq:massa}
+\end{gather}
+with $S_a=1-S_w$, $S_w=S_w(p_c)$, $\varepsilon_v$ the volumetric strain (positive in expansion), $\gamma$ the total
+unit weight, $\mathbf e_y$ the upward unit vector, a unit Biot coefficient and Darcy's law
+\begin{equation}
+\mathbf q_w=-\frac{k_{rw}}{\gamma_w}\,\mathbf K\left(\nabla p_w+\gamma_w\mathbf e_y\right),\qquad
+\mathbf q_a=-\frac{k_{ra}}{\gamma_w}\frac{\mu_w}{\mu_a}\,\mathbf K\left(\nabla p_a+\gamma_a\mathbf e_y\right),
+\end{equation}
+where $\mathbf K$ is the saturated conductivity tensor, $k_{rw}$ and $k_{ra}$ the relative permeabilities and
+$\mu_w/\mu_a=55.6$. The retention curve is that of \citet{fredlund1994} with the correction factor $C(\psi)=1$,
+$S_w=[\ln(e+(p_c/a)^n)]^{-m}$, the water permeability is $k_{rw}=S_w^{\,4}$ \citep{leong1997} and the air
+permeability follows Brooks and Corey with $\lambda=3$, $k_{ra}=(1-S_w)^2(1-S_w^{5/3})\ge k_{ra}^{\min}=10^{-4}$.
+
+The effective stress follows the Mohr--Coulomb criterion with elastic moduli $E$, $\nu$. With an associated flow rule
+($\psi=\phi'$) the return mapping is analytical, with the consistent tangent; with $\psi<\phi'$ an iterative
+non-associated return mapping is used. The strength envelope of \citet{fredlund1978} with $\phi^b$ corresponds to
+$\chi=\tan\phi^b/\tan\phi'$ on the suction; \citet{rahardjo2007} use $\phi^b=\phi'$, i.e.\ $\chi=1$, which is the
+default here; $\chi=S_e$ is the alternative examined in Section~\ref{sec:gen}.
+
+Four models are compared (Table~\ref{tab:modelos}). In the uncoupled models the terms $S_w\dot\varepsilon_v$ and
+$S_a\dot\varepsilon_v$ are removed from Eq.~\eqref{eq:massa}, i.e.\ the flow is solved on a rigid skeleton, as in a seepage code; the
+equilibrium still uses the pressures. In the passive-air models $p_a=0$ in the whole domain and the air mass balance
+is not solved. Model (iii) gathers the hypotheses of \citet{rahardjo2007} and of most of the literature.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Models compared.}\label{tab:modelos}
+\begin{tabular}{lll}
+\toprule
+model & coupling & air\\
+\midrule
+(i) complete & coupled & active ($p_a=0$ only on the ground surface)\\
+(ii) & coupled & passive ($p_a=0$)\\
+(iii) the usual one & uncoupled & passive\\
+(iv) & uncoupled & active (two-phase flow on a rigid skeleton)\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Boundary conditions}
+
+The rainfall is a flux on the horizontal projection of the ground surface with the unilateral condition $p_w\le0$,
+inflow $\le I_r$ and complementarity, solved as an active set of ponded vertices; without rainfall the same condition
+is a seepage face. The pore air is atmospheric on the ground surface and the base and lateral boundaries are closed
+to the air (the effect of opening them is examined in Section~\ref{sec:confinamento}). The water pressure is hydrostatic
+on the lateral boundaries below the water table and the boundaries are impervious above it. The base is fixed and the
+lateral boundaries are on rollers.
+
+\subsection{Discretization and solution}
+
+Displacements are interpolated by quadratic and pressures by linear triangles (Taylor--Hood), in plane strain. The
+storage terms in $\dot S_w$ and $\dot p_a$ are lumped at the vertices in the mass-conservative secant form
+$n(S^{n+1}-S^n)$ \citep{celia1990}. The equations are integrated by the implicit Euler method and solved by Newton's
+method with the complete consistent Jacobian, including the derivatives of the permeabilities, of the saturation and
+of $\chi$; Dirichlet conditions are eliminated and the linear systems are solved with Pardiso. A time step that does
+not converge is restarted from its initial state with up to five levels of bisection. The time step is 15~min during
+the rainfall, 1~h in the following 24~h and 4~h afterwards.
+
+\subsection{Factor of safety}\label{sec:fs}
+
+At selected instants an independent stability analysis is made with $p_w$ and $p_a$ frozen, as in the uncoupled
+practice: from the geostatic state with the strength increased ($c'/F_0$, $\tan\phi'/F_0$ with $F_0=0.6$) the
+strength reduction factor $F$ is increased until the equilibrium no longer converges
+\citep{zienkiewicz1975,griffiths1999}; the FS is the last converged $F$, found by bisection with a tolerance of
+0.002 in the cases near the critical intensity and 0.01 in the others. The state of the transient is restored afterwards. The strength reduction is always
+made with $\psi=\phi'$: with $\psi<\phi'$ it does not converge reliably \citep{tschuchnigg2015}. In the coupled
+transient, the loss of equilibrium with the real strength (the transient does not converge even with five
+bisections) is recorded as the time $t_f$; the transient then continues with the strength increased, only to
+follow the pore pressures.
+
+%======================================================================
+\section{Verification and validation}\label{sec:valid}
+%======================================================================
+
+\subsection{Drainage of a sand column (Liakopoulos test)}
+
+In the test of \citet{liakopoulos1965} a 1-m column of Del Monte sand, initially saturated by a steady downward flow
+with $p_w=0$ throughout, drains through its base after the inflow at the top is stopped. The test is a standard
+benchmark of coupled two-phase formulations \citep{lewis1998,schrefler2001,khoei2011} and its measured outflow and
+pore-water pressures are available \citep{callari2009}. The properties are those of \citet{lewis1998}:
+$E=1.3$~MPa, $\nu=0.4$, $n=0.2975$, intrinsic permeability $4.5\times10^{-13}$~m$^2$ ($k_s=4.41\times10^{-6}$~m/s),
+$S_w=1-0.10152\,(p_c/\gamma_w)^{2.4279}$ ($p_c/\gamma_w$ in metres), $k_{rw}=1-2.207\,(1-S_w)^{1.0121}$ and the Brooks--Corey
+air permeability with $S_r=0.2$; $\chi=S_w$, elastic soil. The air pressure is atmospheric at both ends, the water
+pressure at the base, and the top is impervious to water. The column was discretized with $2\times80$ cells of two
+triangles and time steps of 30~s.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{liakopoulos.pdf}
+\caption{Drainage of the Liakopoulos column. (a) Water and (b) air pressure profiles of the two-phase model, with the
+solution of \citet{khoei2011} (circles; water pressure at the top and at 0.5~m, minimum air pressure). (c) Water
+pressure of the passive-air model (solid) and of the two-phase model (dashed) and the measured values (squares;
+\citealp{callari2009}). (d) Outflow at the base and the measured outflow.}\label{fig:liak}
+\end{figure}
+
+\begin{table}[htbp]
+\centering\small
+\caption{Liakopoulos test, two-phase model: NeoPZ and \citet{khoei2011} (values read from their Fig.~1, uncertainty
+about 0.15~kPa and 0.03~mm).}\label{tab:liak}
+\input{figuras/tabela_liakopoulos}
+\end{table}
+
+The two-phase solution agrees with that of \citet{khoei2011} (Fig.~\ref{fig:liak}a,b; Table~\ref{tab:liak}): the
+water pressure at the top differs by 0.43~kPa (7\%) after 5~min and by less than 0.25~kPa afterwards, the minimum air
+pressure, about $-5.5$~kPa near the top where the air enters the drying sand, by less than 0.3~kPa, and the
+settlement of the top by less than 0.07~mm. The passive-air solution reproduces the measured outflow and pore
+pressures (Fig.~\ref{fig:liak}c,d), as other single-phase solutions do \citep{callari2009}. The two-phase model,
+with the usual Brooks--Corey air permeability, drains more slowly than the test; the same happens in the two-phase
+solution of \citet{khoei2011}, so this is a feature of the air permeability law and not of the implementation. The test verifies the air phase and the coupling, and shows that, even in drainage, the air resistance
+reduces the outflow by a factor of two to three between 10 and 30~min.
+
+\subsection{Reference slope}
+
+The slope of \citet{rahardjo2007} is 10~m high, inclined at $45^\circ$, with 30-m platforms at the crest and at the toe
+and the base 20~m below the toe; the initial water table is 5~m below the toe and inclined at $7^\circ$, and the
+initial suction is hydrostatic and limited to 75~kPa (Table~\ref{tab:par}, Fig.~\ref{fig:problema}). The standard
+mesh has 1684 triangles, with elements of 0.75~m down to 2~m below the surface.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\textwidth]{problema.pdf}
+\caption{Reference slope \citep{rahardjo2007}: geometry, standard mesh, initial water table and boundary
+conditions.}\label{fig:problema}
+\end{figure} The initial FS agrees with that of \citet{rahardjo2007}: 2.119 against 2.11 for the
+reference slope and differences of at most 0.05 for heights of 5 to 40~m and water tables 2.5 to 15~m deep; a
+simplified Bishop analysis with a search of circular surfaces on the same initial pressures gives 2.092. With model
+(iii) the minimum FS under 24-h rainfalls follows the sigmoid fitted by \citet{rahardjo2007} to their results (their
+Eq.~6) within 0.01--0.14, the largest differences in the transition between the upper and the lower plateau. The static benchmark of \citet{zhang2014},
+which compares six laws for the suction strength, is reproduced within 0--5\%.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Parameters of the reference slope \citep{rahardjo2007}; $E$, $\nu$, $\psi$ and the air parameters are
+assumptions of this study.}\label{tab:par}
+\begin{tabular}{p{4.6cm}p{9.6cm}}
+\toprule
+soils $f_{10}$, $f_{50}$, $f_{100}$ & $a=10$, 50, 100~kPa; $k_s=10^{-4}$, $10^{-5}$, $10^{-6}$~m/s (360, 36 and
+3.6~mm/h)\\
+retention, $k_{rw}$ & Fredlund--Xing, $n=m=1$, $\theta_s=0.45$; $k_w=k_s S_w^{\,4}$\\
+strength & $c'=10$~kPa, $\phi'=26^\circ$, $\chi=1$ ($\phi^b=\phi'$), $\gamma=20$~kN/m$^3$\\
+elasticity, dilatancy & $E=20$~MPa, $\nu=0.3$; $\psi=\phi'$ (associated) or $\psi=0$\\
+air & Brooks--Corey $\lambda=3$, $k_{ra}^{\min}=10^{-4}$, $\mu_w/\mu_a=55.6$\\
+initial state & water table 5~m below the toe, inclined at $7^\circ$; suction $\le75$~kPa\\
+rainfall & uniform, 24~h; 48~h simulated\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%======================================================================
+\section{Failure criterion and critical intensity}\label{sec:criterio}
+%======================================================================
+
+The slope fails when the FS reaches one. Since the FS of each instant is computed with the pressures of that
+instant frozen, a value below one does not describe a physical state: the slope would already have moved and
+redistributed the pressures. Below one the FS only measures how far equilibrium has been exceeded. The quantity to
+compare is therefore whether, with which rainfall and at which instant, the FS reaches one. We define the critical
+intensity $\Ic$ as the smallest intensity of a 24-h rainfall whose minimum FS is $\le1.01$, obtained by linear
+interpolation between the computed intensities that bracket it, and the time to failure as the first instant with
+FS $\le1.01$ (or $t_f$, if the coupled transient loses equilibrium earlier). The threshold 1.01 accounts for the
+resolution of the FS: the bisection tolerance (0.002) and the discretization error, about 0.01 for the standard mesh
+(Section~\ref{sec:malha}).
+
+The lower FS plateau of the intense rainfalls, the value that the usual analyses report as the minimum FS, is the FS
+of the slope saturated up to its surface with the water flowing through it. A single steady-state calculation with
+the surface ponded gives 0.84--0.85 for the three soils, the plateau of model (iii); it is reached after about 7, 24
+and 170~h of ponding in the $f_{10}$, $f_{50}$ and $f_{100}$ soils, respectively, and depends on the geometry and on
+the orientation of an anisotropic conductivity tensor (0.63--1.05), not on the magnitude of $k_s$. The value 1.45 of
+\citet{rahardjo2007} for the $f_{100}$ soil is the FS at the end of 24 h of rainfall, not a plateau. A plateau below
+one distinguishes no slopes that have already failed; it only matters when it stays above one, in which case no
+rainfall of that duration fails the slope.
+
+%======================================================================
+\section{Critical intensity of the reference slope}\label{sec:decomp}
+%======================================================================
+
+\input{secao_decomposicao}
+
+%======================================================================
+\section{Trapped air}\label{sec:ar}
+%======================================================================
+
+\input{secao_ar}
+
+%======================================================================
+\section{Dilatancy and the response after failure}\label{sec:dilat}
+%======================================================================
+
+\input{secao_dilatancia}
+
+%======================================================================
+\section{Generalization}\label{sec:gen}
+%======================================================================
+
+\input{secao_generalizacao}
+
+%======================================================================
+\section{Implications for rainfall thresholds}\label{sec:impl}
+%======================================================================
+
+\input{secao_implicacoes}
+
+%======================================================================
+\section{Limitations}\label{sec:lim}
+%======================================================================
+
+\begin{itemize}
+\item Two-dimensional, homogeneous slope with a single geometry for the decomposition; the critical intensity of
+other slopes was examined only for two soils, two Bishop laws and one steeper slope.
+\item The air leaves only through the ground surface, and once it ponds only through the minimum relative
+permeability $k_{ra}^{\min}$. Opening the base and the lateral boundaries does not change the results
+(Section~\ref{sec:confinamento}), but real slopes have macropores, cracks, vegetation and heterogeneities that let
+the air out through a ponded surface; their effect is represented here only by $k_{ra}^{\min}$, and with
+$k_{ra}^{\min}=10^{-2}$ the FS rises by 0.035.
+\item The strength reduction is associated even when the transient uses $\psi=0$; the loss of equilibrium of the
+transient is then the failure indicator, and part of it may be numerical.
+\item No hysteresis of the retention curve, constant porosity in the hydraulic coefficients, no dissolved air, no
+vapour and an isothermal ideal gas.
+\item The mesh error of the FS was assessed in three cases (Fig.~\ref{fig:malha}): with 0.35-m elements the minimum
+FS falls by 0.007--0.024 and, in the $f_{100}$ case, by about 0.003 per refinement without clear convergence; the
+critical intensities shift by 1--2~mm/h.
+\item The air phase was validated in drainage (Liakopoulos), not in infiltration with air entrapment; a validation
+against a column with measured air pressure under infiltration \citep{toumavauclin1986} is still needed.
+\end{itemize}
+
+%======================================================================
+\section{Conclusions}\label{sec:concl}
+%======================================================================
+
+\input{secao_conclusoes}
+
+\section*{Code and data availability}
+The material \texttt{TPZMatUnsaturatedUPwPa}, the program \texttt{SlopeRainfall} and the scripts that run all the
+cases and draw the figures are part of the NeoPZ library (\url{https://github.com/labmec/neopz}); the results are in
+\texttt{Projects/SlopeRainfall/resultados}.
+
+\bibliographystyle{elsarticle-harv}
+\begin{thebibliography}{99}
+\input{referencias}
+\end{thebibliography}
+
+\end{document}
