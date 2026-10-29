@@ -109,9 +109,9 @@ def tang(a, plt):
             res[Dr] = pts
         Ig = np.linspace(min(Is) - 0.5, max(Is) + 0.5, 50)
         ax.plot(Ig, 1 + TANG["dfsdv"] * Dr * (Ig - TANG["Ic"][Dr]), "k--", lw=0.8,
-                label="Tang (FS = 1 em %.2f mm/h, dFS/dV = -0,004/mm)" % TANG["Ic"][Dr])
+                label=f"Tang (FS = 1 em {TANG['Ic'][Dr]:.2f} mm/h, dFS/dV = -0,004/mm)".replace(".", ","))
         ax.axhline(1, color="#999", lw=0.6, ls=":")
-        ax.set(xlabel="$I_a$ (mm/h)", ylabel="FS mínimo", title=f"Chuva uniforme de {Dr:g} h")
+        ax.set(xlabel="$I_a$ (mm/h)", ylabel="FS mínimo", title=f"Chuva uniforme de {Dr:g} h".replace(".", ","))
         ax.legend(frameon=False, fontsize=7)
     for pad, cor in (("adiantado", "#2a9d8f"), ("uniforme", "#1b6ca8"), ("atrasado", "#c8553d")):
         r = ler_fs(os.path.join(pasta, f"{pad}25.6_I2.64"))

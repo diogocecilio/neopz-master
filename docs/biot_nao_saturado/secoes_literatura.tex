@@ -77,7 +77,8 @@ Rocha na base (Ali, Dou), base e laterais imperme\'aveis (Liu, Ran, Tang, Wang e
 solo pouco perme\'avel com NA profundo (Pradhan). Em Ran, a lei de Boyle sem escape d\'a um limite superior de 50--190~kPa
 para a press\~ao do ar, contra uma margem de 2,5~kPa; em Tang, a sensibilidade $\mathrm{d}\,\mathrm{FS}/\mathrm{d}V
 \approx-0{,}004$/mm faria o efeito do item A2 ($-0{,}08$ a $-0{,}23$) multiplicar a probabilidade anual de ruptura por
-2 a 3.
+2 a 3 (com a sensibilidade do NeoPZ para os mesmos dados, $\approx-0{,}0016$/mm, o mesmo $\Delta$FS equivale a 2,5
+vezes mais chuva; Tabela~\ref{tab:tang}).
 
 \subsection{Nota de m\'etodo e inconsist\^encias encontradas}
 
@@ -135,6 +136,81 @@ O acordo \'e de 0--5\%; no caso de $\chi=S_w$ a diferen\c{c}a vem da curva de Fr
 $C(\psi)$ no NeoPZ (o artigo usa $\psi_r=10$~kPa), que d\'a $S_w$ maior nas suc\c{c}\~oes altas. O \'ultimo caso
 mostra o peso do limite de 75~kPa de Rahardjo et al.\ num talude com NA profundo: o FS cai de 1,92 para 1,66
 ($-14\%$), o mesmo efeito encontrado no item A4.
+
+\subsection{Tang et al.\ (2018): intensidade, dura\c{c}\~ao e padr\~ao da chuva}
+
+Talude de Rahardjo et al.\ (10~m, 45$^\circ$, NA 5~m abaixo do p\'e e inclinado a 7$^\circ$) com o solo da Tabela~1 do
+artigo: $\gamma=20$~kN/m$^3$, $c'=0$, $\phi'=26^\circ$, $\phi^b=17{,}3^\circ$ ($\chi=0{,}6387$ na suc\c{c}\~ao),
+$\theta_s=0{,}45$, $k_s=2\times10^{-6}$~m/s, Fredlund--Xing com $a=100$~kPa e $n=m=1$ e $k_w=k_s\Theta^4$ (a curva de
+permeabilidade coincide com a Fig.~6 do artigo); suc\c{c}\~ao inicial limitada a 50~kPa; percola\c{c}\~ao
+desacoplada com $p_a=0$ (SEEP/W no artigo); FS por redu\c{c}\~ao de resist\^encia nos instantes da grade de tempo do
+artigo (SLOPE/W no artigo). Chuvas uniformes de 25,6 e 6,4~h e os padr\~oes lineares adiantado, uniforme e atrasado
+com a mesma m\'edia (Tabela~\ref{tab:tang}, Fig.~\ref{fig:tang}).
+
+\begin{table}[h!]
+\centering\small
+\caption{Tang et al.\ (2018): FS m\'inimo no NeoPZ (SRM) e no artigo, que d\'a a intensidade m\'edia $I_c$ (mm/h) em
+que o FS m\'inimo chega a 1,0. $V$: volume de chuva.}\label{tab:tang}
+\begin{tabular}{lcccl}
+\toprule
+chuva & $I$ (mm/h) & $V$ (mm) & FS m\'inimo NeoPZ & artigo\\
+\midrule
+sem chuva & -- & 0 & 1,331 (FS inicial) & FS inicial 1,20\\
+25,6~h, uniforme & 2,0 & 51 & 1,272 & \\
+ & 2,4 & 61 & 1,259 & \\
+ & 2,7 & 69 & 1,246 & FS $=1$ com $I_c=2{,}70$\\
+ & 3,0 & 77 & 1,234 & \\
+ & 3,5 & 90 & 1,208 & \\
+6,4~h, uniforme & 8 & 51 & 1,224 & \\
+ & 10 & 64 & 1,203 & FS $=1$ com $I_c=9{,}84$\\
+ & 12 & 77 & 1,173 & \\
+25,6~h, adiantado & 2,64 & 68 & 1,240 (em 16~h) & $I_c=2{,}77$\\
+25,6~h, uniforme & 2,64 & 68 & 1,246 & $I_c=2{,}70$\\
+25,6~h, atrasado & 2,64 & 68 & 1,240 & $I_c=2{,}55$\\
+\midrule
+25,6~h, uniforme, \texttt{fluxonormal=1} & 2,7 & 69 & 1,215 & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\textwidth]{figuras/tang_fs.png}
+\caption{Tang et al.\ (2018) no NeoPZ: FS m\'inimo em fun\c{c}\~ao da intensidade m\'edia nas chuvas de 25,6 e 6,4~h
+(tracejado: reta que passa por FS $=1$ em $I_c$ com a sensibilidade do artigo) e FS no tempo para os tr\^es padr\~oes
+com 2,64~mm/h e sem chuva.}\label{fig:tang}
+\end{figure}
+
+As tend\^encias s\~ao as do artigo (o FS cai com o volume; com o mesmo volume, a chuva mais curta reduz mais o FS), mas
+os valores n\~ao: o FS inicial \'e 11\% maior e a queda por volume de chuva \'e $\approx-0{,}0016$/mm, contra
+$\approx-0{,}003$ a $-0{,}004$/mm no artigo, de modo que nenhum caso chega a FS $=1$. As verifica\c{c}\~oes a seguir
+separam as causas:
+\begin{itemize}
+\item \emph{M\'etodo de estabilidade.} Um Bishop simplificado com busca de c\'irculos sobre o mesmo campo inicial d\'a
+2,092 no caso de Rahardjo (2,119 no SRM) e 1,298 no de Tang (1,331 no SRM). Os dois m\'etodos concordam; os 1,20 do
+artigo n\~ao saem dos par\^ametros publicados.
+\item \emph{Campo inicial.} Neste talude o FS de Bishop \'e linear no limite de suc\c{c}\~ao: 0,93, 1,06, 1,18 e 1,30
+com 20, 30, 40 e 50~kPa ($\approx0{,}012$ por kPa). O FS inicial do artigo corresponde a um limite de $\approx41$~kPa,
+e o FS $=1$ a uma perda m\'edia de $\approx16$~kPa ao longo do c\'irculo cr\'itico; no NeoPZ a perda equivalente \'e
+de $\approx7$~kPa.
+\item \emph{Percola\c{c}\~ao $\times$ estabilidade.} O Bishop aplicado aos campos de $p_w$ do NeoPZ d\'a a mesma queda
+que o SRM ($-0{,}082$ contra $-0{,}085$ ao fim da chuva de 2,7~mm/h): a diferen\c{c}a para o artigo est\'a na
+percola\c{c}\~ao, n\~ao no c\'alculo do FS.
+\item \emph{Fluxo na face.} No SEEP/W o fluxo prescrito \'e por unidade de comprimento do contorno, o que d\'a
+$1/\cos45^\circ=1{,}41$ vez mais \'agua na face do que a chuva na proje\c{c}\~ao horizontal usada aqui. Com essa
+conven\c{c}\~ao (op\c{c}\~ao \texttt{fluxonormal=1}) a queda passa de $-0{,}085$ para $-0{,}116$: um ter\c{c}o da
+diferen\c{c}a.
+\item \emph{Padr\~ao da chuva.} Com 2,64~mm/h o padr\~ao muda o instante do FS m\'inimo (16~h no adiantado, 25,6~h
+nos outros dois), mas n\~ao o seu valor (1,240 a 1,246, dentro da resolu\c{c}\~ao do SRM). No artigo o atrasado \'e
+o mais cr\'itico ($I_c$ de 2,55 contra 2,77~mm/h no adiantado) e os padr\~oes aleat\'orios espalham o FS m\'inimo de
+0,86 a 1,05; com a superf\'icie longe de saturar, a resposta do NeoPZ depende pouco da hist\'oria da intensidade.
+\end{itemize}
+H\'a ainda uma raz\~ao f\'isica para a queda pequena: com esses par\^ametros $k_w$ a 50~kPa vale $0{,}54\,k_s\approx
+3{,}9$~mm/h, acima das intensidades cr\'iticas do artigo (2,6--2,8~mm/h). A superf\'icie n\~ao satura e a perda de
+suc\c{c}\~ao \'e s\'o a do transiente, com a \'agua atravessando a zona capilar; o perfil inicial limitado a 50~kPa, que
+n\~ao est\'a em equil\'ibrio, drena sozinho (sem chuva o FS cai a 1,32 em 4~h e sobe a 1,38 em 64~h). A
+sensibilidade d\,FS/d$V$ do artigo, usada na tese T5, depende portanto do modelo de percola\c{c}\~ao: com os mesmos
+dados o NeoPZ d\'a cerca da metade dela.
 
 %======================================================================
 \section{O patamar inferior do FS}\label{sec:patamar}

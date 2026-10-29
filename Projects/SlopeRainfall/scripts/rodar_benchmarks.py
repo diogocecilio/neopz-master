@@ -3,7 +3,8 @@
 Grupos
   zhang    Zhang, Fredlund, Fredlund & Wilson (2014): casos estáticos A e B, FS inicial com as leis de chi (8 casos)
   patamar  superfície alagada (I -> infinito) até o regime permanente, modelo do artigo de Rahardjo (6 casos)
-  tang     Tang, Huang, Sheng & Sloan (2018): chuvas uniformes, adiantada e atrasada (12 casos)
+  tang     Tang, Huang, Sheng & Sloan (2018): chuvas uniformes, adiantada e atrasada; um caso com a chuva por
+           unidade de comprimento da superfície, como no SEEP/W (13 casos)
   pradhan  Pradhan et al. (2022): corte de estrada e encosta sem o corte, chuva de 1 a 12/07/2018 (2 casos)
 
 Uso, na pasta dos resultados:
@@ -86,6 +87,8 @@ def tang():
         ttotal = round(2.5 * dr, 6)
         out.append((nome, base + [f"I={I:g}", f"train={dr:g}", f"ttotal={ttotal:g}", f"padrao={pad}",
                                   f"tfs={tfs(dr, ttotal)}"]))
+    out.append(("u25.6_I2.7_fn", base + "I=2.7 train=25.6 ttotal=33.6 padrao=uniforme tfs=4,8,12,16,20,24,25.6,29.6,33.6 "
+                                        "fluxonormal=1".split()))
     return out
 
 
