@@ -36,6 +36,8 @@
 //   dtchuva=0.25              time step during the rain (h)
 //   mecanica=1                0 (with acoplado=0): the transient solves only the seepage (displacements fixed; the
 //                             FS analyses solve the mechanics from the stress-free state with the pressures frozen)
+//   fluxonormal=0             1: rain per unit length of the surface (the flux boundary of SEEP/W) instead of on the
+//                             horizontal projection: a face inclined at alpha receives I / cos(alpha) per horizontal area
 // Outputs in <out>: fs.csv, hist.csv, snaps_pw.csv, snaps_pa.csv, vertices.csv, triangles.csv, outline.csv,
 //                   summary.txt (and vtk/ if vtk=1). Figures and animations: scripts/*.py and mma/*.wl.
 #include "UnsatSlope.h"
@@ -76,6 +78,7 @@ struct Case {
     REAL evap = 0., psimin = 1.e30, regime = -1., dtmax = -1., dtchuva = 0.25;
     bool alagado = false;
     bool mecanica = true; ///< false (uncoupled only): displacements fixed in the transient, only the seepage is solved
+    bool fluxonormal = false; ///< rain per unit length of the surface instead of on the horizontal projection
 };
 
 /// Geometry of Fig. 2: crest at y = 3 Hs from x = 0 to xb, toe at y = 2 Hs from xc to L
@@ -331,8 +334,11 @@ private:
             if (id == ECrest || id == EFace || id == EToe) {
                 surf.insert(a);
                 surf.insert(b);
-                // rain on the horizontal projection, half to each vertex
-                const REAL dx = std::fabs(gel->NodePtr(1)->Coord(0) - gel->NodePtr(0)->Coord(0));
+                // rain on the horizontal projection (or per unit length with fluxonormal), half to each vertex
+                const REAL dx = fCase.fluxonormal
+                                    ? std::hypot(gel->NodePtr(1)->Coord(0) - gel->NodePtr(0)->Coord(0),
+                                                 gel->NodePtr(1)->Coord(1) - gel->NodePtr(0)->Coord(1))
+                                    : std::fabs(gel->NodePtr(1)->Coord(0) - gel->NodePtr(0)->Coord(0));
                 fSupply[a] += dx / 2.;
                 fSupply[b] += dx / 2.;
             } else if (id == ELeft) left.insert(a), left.insert(b);
@@ -908,6 +914,7 @@ void RainfallSlope::Run() {
     if (fCase.dtmax > 0.) sum << "dtmax " << fCase.dtmax << "\n";
     if (fCase.dtchuva != 0.25) sum << "dtchuva " << fCase.dtchuva << "\n";
     if (!fCase.mecanica) sum << "mecanica 0\n";
+    if (fCase.fluxonormal) sum << "fluxonormal 1\n";
     if (!fCase.na.empty()) sum << "na_pontos " << fCase.na.size() << "\n";
     if (!fCase.lateral) sum << "lateral 0\n";
     if (fCase.basena) sum << "basena 1\n";
@@ -967,6 +974,7 @@ int main(int argc, char *argv[]) {
         else if (is("dtmax=")) c.dtmax = std::atof(val("dtmax="));
         else if (is("dtchuva=")) c.dtchuva = std::atof(val("dtchuva="));
         else if (is("mecanica=")) c.mecanica = std::atoi(val("mecanica="));
+        else if (is("fluxonormal=")) c.fluxonormal = std::atoi(val("fluxonormal="));
         else {
             const char *e = std::strchr(a, '=');
             UnsatParams test;

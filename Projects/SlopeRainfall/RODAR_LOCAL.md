@@ -69,7 +69,7 @@ Logs em `lote_A1.log` e `lote_A2.log`. Um lote que já está rodando não é lan
 
 ## 6. Benchmarks (Zhang, Tang, Pradhan) e patamar inferior do FS
 
-`scripts/rodar_benchmarks.py` roda os 28 casos (zhang 8, patamar 6, tang 12, pradhan 2), os mais longos primeiro, um
+`scripts/rodar_benchmarks.py` roda os 29 casos (zhang 8, patamar 6, tang 13, pradhan 2), os mais longos primeiro, um
 núcleo por caso, e pula os que já têm `summary.txt` (depois de uma interrupção basta repetir o `rodar`). Na pasta dos
 resultados:
 ```

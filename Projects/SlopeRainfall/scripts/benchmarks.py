@@ -67,7 +67,8 @@ def patamar(a, plt):
         linhas.append((nome, fs[0], fs[m].min(), t[m][np.argmin(fs[m])], fs[m][-1], t[m][-1], plat))
     axs[0].set(xlabel="tempo com a superfície alagada (h)", ylabel="FS (SRM)",
                title="Superfície alagada ($I\\to\\infty$); pontilhado: patamar com chuva (A3, série B)")
-    axs[1].set(xlabel="$k_s t / H_s$ (k_s: condutividade de referência)", ylabel="FS (SRM)", title="Tempo adimensional")
+    axs[1].set(xlabel="$k_s t / H_s$ ($k_s$: condutividade de referência, $H_s$ = 10 m)", ylabel="FS (SRM)",
+               title="Tempo adimensional")
     for ax in axs:
         ax.axhline(1, color="#999", lw=0.6, ls="--")
         ax.legend(frameon=False, fontsize=7)
@@ -112,9 +113,10 @@ def tang(a, plt):
             res[Dr] = pts
         Ig = np.linspace(min(Is) - 0.5, max(Is) + 0.5, 50)
         ax.plot(Ig, 1 + TANG["dfsdv"][Dr] * Dr * (Ig - TANG["Ic"][Dr]), "k--", lw=0.8,
-                label="Tang, Fig. 10 (FS = 1 em %.2f mm/h, dFS/dV = %.4f/mm)" % (TANG["Ic"][Dr], TANG["dfsdv"][Dr]))
+                label="Tang, Fig. 10 (FS = 1 em %s mm/h, dFS/dV = %s/mm)"
+                      % (f"{TANG['Ic'][Dr]:.2f}".replace(".", ","), f"{TANG['dfsdv'][Dr]:.4f}".replace(".", ",")))
         ax.axhline(1, color="#999", lw=0.6, ls=":")
-        ax.set(xlabel="$I_a$ (mm/h)", ylabel="FS mínimo", title=f"Chuva uniforme de {Dr:g} h")
+        ax.set(xlabel="$I_a$ (mm/h)", ylabel="FS mínimo", title=f"Chuva uniforme de {Dr:g} h".replace(".", ","))
         ax.legend(frameon=False, fontsize=7)
     for pad, cor in (("adiantado", "#2a9d8f"), ("uniforme", "#1b6ca8"), ("atrasado", "#c8553d")):
         r = ler_fs(os.path.join(pasta, f"{pad}25.6_I2.64"))
