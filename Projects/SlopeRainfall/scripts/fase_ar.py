@@ -8,9 +8,9 @@ Grupos de casos:
   G1  alpha = 63,4 graus, Hs = 10 m, Hw = 5 m; I_r = 9, 18, 36, 80 mm/h; os três modelos
   G2  alpha = 45 graus, Hs = 20 m, Hw = 5 m; I_r = 9, 36, 80 mm/h; ativo e artigo
   G3  G1 com I_r = 36 mm/h, ar ativo, k_ra,min = 1e-6, 1e-5, 1e-4, 1e-3, 1e-2 (saída do ar)
-  G4  G1 com a malha refinada: elementos de h_sup = 0,75 (a malha padrão), 0,5, 0,35 e 0,25 m até 2 m de
-      profundidade e h_max = 0,3 Hs h_sup/0,75 (malha_talude.py, gerada em meshes/ se faltar); ativo e artigo com 36 e
-      80 mm/h e passivo com 36 mm/h (0,25 m: ativo e artigo com 36 mm/h); tolerância do SRM 0,002
+  G4  G1 com 36 mm/h e ar ativo na malha refinada: elementos de h_sup = 0,75 (a malha padrão), 0,5 e 0,35 m até 2 m
+      de profundidade e h_max = 0,3 Hs h_sup/0,75 (malha_talude.py, gerada em meshes/ se faltar); tolerância do SRM
+      0,002
 
 Uso:
   python fase_ar.py rodar --jobs 4 --exe <build>/Projects/SlopeRainfall/SlopeRainfall
@@ -18,6 +18,7 @@ Uso:
 """
 import argparse
 import os
+import re
 import subprocess
 import sys
 
@@ -46,16 +47,14 @@ def casos():
     for kr in (1e-6, 1e-5, 1e-3, 1e-2):
         out.append(dict(grupo="G3", alpha=63.4, hs=10.0, I=36.0, modo="ativo", kramin=kr))
     for h in MALHAS:
-        for I in ((36.0,) if h < 0.3 else (36.0, 80.0)):
-            for m in (("ativo", "artigo") if h < 0.3 or I != 36.0 else ("ativo", "passivo", "artigo")):
-                c = dict(grupo="G4", alpha=63.4, hs=10.0, I=I, modo=m, kramin=1e-4, malha=h, tolfs=0.002)
-                if h < 0.4:
-                    c["threads"] = 2        # as malhas mais finas são o caminho crítico do lote
-                out.append(c)
+        c = dict(grupo="G4", alpha=63.4, hs=10.0, I=36.0, modo="ativo", kramin=1e-4, malha=h, tolfs=0.002)
+        if h < 0.4:
+            c["threads"] = 2        # a malha mais fina é o caminho crítico do lote
+        out.append(c)
     return out
 
 
-MALHAS = (0.75, 0.5, 0.35, 0.25)     # h_sup (m) do G4; 0,75 é a malha padrão (h_max = 0,3 Hs)
+MALHAS = (0.75, 0.5, 0.35)     # h_sup (m) do G4; 0,75 é a malha padrão (h_max = 0,3 Hs)
 
 
 def malha(c, pasta_malhas):
@@ -85,7 +84,8 @@ def rodar(a):
     tarefas = []
     for c in casos():
         out = os.path.join(a.saida, rotulo(c))
-        if os.path.exists(os.path.join(out, "summary.txt")) and not a.refazer:
+        rodando = subprocess.run(["pgrep", "-f", f"out={re.escape(out)}( |$)"], capture_output=True).returncode == 0
+        if (os.path.exists(os.path.join(out, "summary.txt")) and not a.refazer) or rodando:
             continue
         os.makedirs(out, exist_ok=True)
         m = MODOS[c["modo"]]

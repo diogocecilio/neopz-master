@@ -157,12 +157,14 @@ com a mesma m\'edia (Tabela~\ref{tab:tang}, Fig.~\ref{fig:tang}).
 \centering\small
 \caption{Tang et al.\ (2018): FS m\'inimo no NeoPZ (SRM) e queda por mm de chuva, medida contra o c\'alculo sem chuva
 no mesmo instante; no artigo (Figs.~9 e 10, leitura), o FS inicial e a intensidade m\'edia $I_c$ (mm/h) em que o FS
-m\'inimo chega a 1,0. $V$: volume de chuva.}\label{tab:tang}
+m\'inimo chega a 1,0. $V$: volume de chuva. Sem chuva, o FS do NeoPZ \'e 1,331 no in\'icio e 1,324 em 4~h (o
+m\'inimo).}\label{tab:tang}
+\setlength{\tabcolsep}{3.5pt}
 \begin{tabular}{lccccl}
 \toprule
 chuva & $I$ (mm/h) & $V$ (mm) & FS m\'inimo NeoPZ & queda por mm & artigo\\
 \midrule
-sem chuva & -- & 0 & 1,331 (inicial); 1,324 (4~h) & -- & FS inicial 1,20\\
+sem chuva & -- & 0 & 1,324 & -- & FS inicial 1,20\\
 25,6~h, uniforme & 2,0 & 51 & 1,272 & 0,0016 & \\
  & 2,4 & 61 & 1,259 & 0,0015 & \\
  & 2,7 & 69 & 1,246 & 0,0016 & FS $=1$ com $I_c=2{,}70$\\
@@ -175,7 +177,7 @@ sem chuva & -- & 0 & 1,331 (inicial); 1,324 (4~h) & -- & FS inicial 1,20\\
 25,6~h, uniforme & 2,64 & 68 & 1,246 & 0,0016 & $I_c=2{,}70$\\
 25,6~h, atrasado & 2,64 & 68 & 1,240 & 0,0017 & $I_c=2{,}55$\\
 \midrule
-25,6~h, uniforme, \texttt{fluxonormal=1} & 2,7 & 69 & 1,215 & 0,0020 & \\
+25,6~h, \texttt{fluxonormal=1} & 2,7 & 69 & 1,215 & 0,0020 & \\
 \bottomrule
 \end{tabular}
 \end{table}

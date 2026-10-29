@@ -317,9 +317,25 @@ de 1,15 para 1,22).
 
 * A duração crítica de um volume V é compatível com t* ≈ V/k_s (I_r ≈ k_s): 2,4 h no f10 (abaixo da faixa testada:
   o menor FS é o da mais curta, 3 h), 24 h no f50 (onde está o menor FS) e 240 h no f100 (acima da faixa testada: o
-  menor FS é o da mais longa, 72 h). Nem "chuva curta e intensa" nem "chuva longa" é o pior caso em geral: com volume
+  menor FS é o da mais longa, 72 h; com as durações acrescentadas na discussão, o f10 volta a subir com 0,75 h, 1,53,
+  e o f100 chega a 0,85 com 240 h e 1,00 com 480 h). Nem "chuva curta e intensa" nem "chuva longa" é o pior caso em geral: com volume
   fixo, o pior caso é a chuva com I_r mais próximo de k_s. No f50 a infiltração vai de 22 m³/m (3 h) a 58 m³/m (72 h);
   no f10 tudo infiltra (60,5 m³/m).
+
+### Discussão dos contraexemplos (critério FS ≤ 1)
+
+Argumentos levantados sobre A1–A6 e os casos mínimos rodados para verificá-los (`contraexemplos.py`, itens A1c, A3c,
+A4c e A6; `fase_ar.py`, grupo G4; tolerância do SRM 0,002 com a opção `tolfs` em A1c, A3c e G4, e 0,01, o padrão, em
+A4c e A6). Texto completo na seção Discussão do documento e em `docs/biot_nao_saturado/relatorio_discussao.pdf`.
+
+| item | verificação | resultado |
+|---|---|---|
+| A1 | intensidade com que o FS chega a 1 (f50, 24 h) | com FS ≤ 1,01, I_c ≈ 48 mm/h no modelo do artigo (40 na curva publicada), 31 no completo com ψ = φ' e 26 com ψ = 0 (o transiente perde o equilíbrio às 21,5 h): as hipóteses do artigo superestimam em 55–86 % a chuva que rompe o talude e atrasam a ruptura em 2–10 h; a dilatância desloca I_c em ~20 % |
+| A2 | G1 com ar ativo, 36 mm/h, malhas de 0,75 / 0,5 / 0,35 m | FS mínimo 1,015 / 1,012 / 1,009: cai 0,003 por refinamento, sem convergir (o FS inicial converge); a margem é da ordem do erro de discretização: ruptura iminente. Com ar ativo a sucção é maior que com ar passivo; o que sobe é p_w, empurrada pelo ar |
+| A3 | anisotropia no modelo completo, 90 mm/h | pela intensidade crítica nenhuma orientação é pior que a isotrópica (51 mm/h; 79 com k_1 normal à face; horizontal não rompe); nas chuvas fortes k_1 paralelo à face antecipa a ruptura (11 h contra 20 h com 90 mm/h; com 180–360 mm/h o normal à face fica quase tão desfavorável); no modelo completo os dois casos param em FS ≈ 1,00, com antecipação de 8–11 h |
+| A4 | χ = S_e, H_w = 15 m, 36 mm/h | limitar a sucção continua conservador (FS mínimo 1,48 com 75 kPa, 1,73 com 300); com χ = S_e o ganho no FS inicial e a queda pela chuva sem limite (300 kPa) caem pela metade |
+| A5 | retas ajustadas (sem casos novos) | a reta erra 0,03–0,07 entre 25° e 65°; as inclinações da Fig. 9 do artigo são 17–28 % maiores; o ângulo sozinho leva à ruptura (α ≈ 60° no f10 com 80 mm/h e no f50 com 36 mm/h) |
+| A6 | f10 com 0,75 h, f100 com 240 e 480 h | mínimo perto de I_r = k_s nos três solos (t* = V/k_s), cercado pelos vizinhos: f10 1,53 com 0,75 h contra 1,31 com 3 h; f100 0,85 com 240 h contra 1,16 com 72 h e 1,00 com 480 h (equilíbrio limite) |
 
 ## Limitações
 

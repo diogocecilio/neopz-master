@@ -85,21 +85,22 @@ Para rodar só alguns grupos: `... rodar --exe ... pradhan patamar`; `lista` mos
 longos são os dois casos de Pradhan (271 h de chuva em malhas de ≈ 6200 triângulos) e o patamar `f100_iso`
 (6144 h de superfície alagada).
 
-## 7. Itens da discussão dos resultados (A1c, A3c, A4c, G4 do A2 e durações novas do A6)
+## 7. Casos da discussão dos resultados (A1c, A3c, A4c, G4 do A2 e durações novas do A6)
 
-Testes feitos para responder às objeções levantadas na discussão dos contraexemplos (seção Contraexemplos do
-documento): critério de ruptura FS ≤ 1 e intensidade crítica (A1c), anisotropia no modelo acoplado (A3c), χ = S_e no
-A4 (A4c), refinamento da malha no A2 (G4, tolerância do SRM 0,002) e durações em torno de t* = V/k_s no A6. Na pasta dos
-resultados, com os executáveis compilados:
+Casos mínimos para verificar os argumentos levantados na discussão dos contraexemplos (seção Discussão do documento e
+`docs/biot_nao_saturado/relatorio_discussao.pdf`): intensidade crítica com o critério FS ≤ 1 (A1c, 9 casos),
+anisotropia no modelo acoplado (A3c, 2), χ = S_e no A4 (A4c, 2), refinamento da malha no A2 (G4, 3; tolerância do SRM
+0,002) e durações em torno de t* = V/k_s no A6 (4). Na pasta dos resultados, com os executáveis compilados:
 ```
 cd ~/projects/runs
 S=<neopz>/Projects/SlopeRainfall/scripts
 E=<build>/Projects/SlopeRainfall/SlopeRainfall
-nohup python3 $S/contraexemplos.py rodar --itens A1c A3c A4c A6 --jobs 8 --exe $E > lote_discussao_contra.log 2>&1 &
-nohup python3 $S/fase_ar.py rodar --jobs 4 --exe $E > lote_discussao_fase_ar.log 2>&1 &
-python3 $S/contraexemplos.py figuras && python3 $S/fase_ar.py figuras     # figuras/contra_*.png, fase_ar_*.png
+nohup python3 $S/contraexemplos.py rodar --itens A1c A3c A4c A6 --jobs 9 --exe $E > lote_minimo_contra.log 2>&1 &
+nohup python3 $S/fase_ar.py rodar --jobs 3 --exe $E > lote_minimo_fase_ar.log 2>&1 &
+python3 $S/contraexemplos.py figuras --resultados <neopz>/Projects/SlopeRainfall/resultados && python3 $S/fase_ar.py figuras
 ```
-São 91 + 17 casos (≈ 7 h com as 16 threads de um i7 de 8 núcleos). Os mais longos são os do G4 com h_sup = 0,25 m
-(14 194 triângulos, 2 threads cada) e o A6 do f100 com 480 h de chuva. As malhas refinadas do G4 estão em `meshes/`
-(`talude_H10_a63.4_hsup*.msh`); se faltarem, `fase_ar.py` as gera com `malha_talude.py`, que precisa do módulo Python
-`gmsh` (`pip install gmsh`, num venv se o Python do sistema for gerenciado pela distribuição).
+Os casos que já estão rodando (de outro lote) ou que já têm `summary.txt` são pulados. O mais longo é o A6 do f100 com
+480 h de chuva (≈ 2 h). As malhas refinadas do G4 estão em `meshes/` (`talude_H10_a63.4_hsup*.msh`); se faltarem,
+`fase_ar.py` as gera com `malha_talude.py`, que precisa do módulo Python `gmsh` (`pip install gmsh`, num venv se o
+Python do sistema for gerenciado pela distribuição). `--resultados` aponta para a pasta com as séries B (a variante
+desacoplada, `B_passivo_desacoplado/f50_*`, entra na figura do A1c); a do repositório tem todas.

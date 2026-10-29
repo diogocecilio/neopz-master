@@ -11,23 +11,26 @@ resistência (SRM). Altura Hs = 10 m e Hw = 5 m salvo indicação.
   A4  limite da sucção inicial: f50, alpha = 45 graus, Hw = 2,5 / 5 / 7,5 / 10 / 15 m, I_r = 9 e 36 mm/h,
       smax = 75, 150 e 300 kPa
   A5  ângulo: alpha = 20 ... 70 graus a cada 5; (f10, 80 mm/h), (f50, 36 mm/h), (f100, 9 mm/h)
-  A6  mesmo volume (864 mm = 36 mm/h x 24 h) em 3, 6, 12, 24 e 72 h, solos f10, f50 e f100; durações acrescentadas em
-      torno de t* = V/k_s: 0,75, 1,5 e 2,4 h (f10, passo de chuva = duração/12), 18, 36 e 48 h (f50), 144, 240 e 480 h
-      (f100); f10 com 3 h e passo de 0,0625 h (verificação do passo de tempo)
-Itens da discussão dos resultados (critério de ruptura FS <= 1; tolfs = 0,002 nos casos perto de FS = 1):
-  A1c intensidade crítica: f50, alpha = 45 graus; modelo completo com psi = 0, 13 e 26 graus e I_r = 18, 22, 26, 30,
-      33, 36 e 54 mm/h; modelo do artigo com I_r = 36, 40, 44, 48, 52 e 54 mm/h; FS de hora em hora até 30 h
-  A3c anisotropia no modelo completo (acoplado, ar ativo, Mohr-Coulomb associativo): isotrópico (k_s = 1e-5) e
-      k_1 = 1e-4, k_2 = 1e-5 m/s com theta = 0, 45 e 135 graus; I_r = 9, 18, 36, 54, 90 e 180 mm/h
-  A4c o A4 com chi = S_e (para Fredlund-Xing, S_e = S_w) em vez de chi = 1 na sucção
+  A6  mesmo volume (864 mm = 36 mm/h x 24 h) em 3, 6, 12, 24 e 72 h, solos f10, f50 e f100; para testar t* = V/k_s,
+      f10 com 0,75 h (passo de chuva 0,0625 h) e f100 com 240 e 480 h, e o f10 com 3 h e passo de 0,0625 h (verificação
+      do passo de tempo)
+Casos mínimos para verificar os argumentos da discussão dos resultados (critério de ruptura FS <= 1; tolfs = 0,002
+em A1c e A3c, o padrão 0,01 em A4c e A6):
+  A1c intensidade crítica (f50, alpha = 45 graus, FS de hora em hora até 30 h): modelo completo com psi = 0 e
+      I_r = 18, 22, 26, 30, 33, 36 e 54 mm/h, com psi = 26 graus e 30 mm/h; modelo do artigo com 48 mm/h
+  A3c anisotropia no modelo completo (acoplado, ar ativo, Mohr-Coulomb associativo), 90 mm/h: isotrópico
+      (k_s = 1e-5) e k_1 = 1e-4, k_2 = 1e-5 m/s com theta = 135 graus (k_1 paralelo à face)
+  A4c o A4 com chi = S_e (para Fredlund-Xing, S_e = S_w) em vez de chi = 1: H_w = 15 m, 36 mm/h, smax = 75 e 300 kPa
 
 Uso:
   python contraexemplos.py rodar [--itens A1 A1c A3 A3c A4 A4c A5 A6] --jobs 4 --exe <build>/Projects/SlopeRainfall/SlopeRainfall
   python contraexemplos.py figuras               # figuras/contra_*.png e contra_tabela_*.csv
 """
 import argparse
+import csv
 import glob
 import os
+import re
 import subprocess
 
 # um caso por núcleo: o MKL (Pardiso) e o OpenMP/TBB não devem abrir threads em todos os núcleos em cada processo
@@ -78,7 +81,7 @@ def casos(itens):
             for a in range(20, 71, 5):
                 out.append(dict(item="A5", solo=solo, alpha=float(a), hw=5.0, I=I, **ARTIGO))
     if "A6" in itens:
-        novas = {"f10": (0.75, 1.5, 2.4), "f50": (18.0, 36.0, 48.0), "f100": (144.0, 240.0, 480.0)}
+        novas = {"f10": (0.75,), "f50": (), "f100": (240.0, 480.0)}
         for solo in ("f10", "f50", "f100"):
             for d in sorted((3.0, 6.0, 12.0, 24.0, 72.0) + novas[solo]):
                 c = dict(item="A6", solo=solo, alpha=45.0, hw=5.0, I=864.0 / d, train=d, **ARTIGO)
@@ -88,23 +91,18 @@ def casos(itens):
         out.append(dict(item="A6", solo="f10", alpha=45.0, hw=5.0, I=288.0, train=3.0, dtchuva=0.0625,
                         verif_dt=True, **ARTIGO))
     if "A1c" in itens:
-        for psi in (0.0, 13.0, 26.0):
-            for I in (18.0, 22.0, 26.0, 30.0, 33.0, 36.0, 54.0):
+        for psi, Is in ((0.0, (18.0, 22.0, 26.0, 30.0, 33.0, 36.0, 54.0)), (26.0, (30.0,))):
+            for I in Is:
                 out.append(dict(item="A1c", solo="f50", alpha=45.0, hw=5.0, I=I, psi=psi, pv=True, tolfs=TOL_FINA,
                                 horario=True, **COMPLETO))
-        for I in (36.0, 40.0, 44.0, 48.0, 52.0, 54.0):
-            out.append(dict(item="A1c", solo="f50", alpha=45.0, hw=5.0, I=I, tolfs=TOL_FINA, horario=True, **ARTIGO))
+        out.append(dict(item="A1c", solo="f50", alpha=45.0, hw=5.0, I=48.0, tolfs=TOL_FINA, horario=True, **ARTIGO))
     if "A3c" in itens:
-        for I in (9.0, 18.0, 36.0, 54.0, 90.0, 180.0):
-            out.append(dict(item="A3c", solo="f50", alpha=45.0, hw=5.0, I=I, tolfs=TOL_FINA, **COMPLETO))
-            for th in (0.0, 45.0, 135.0):
-                out.append(dict(item="A3c", solo="f50", alpha=45.0, hw=5.0, I=I, kx=1e-4, ky=1e-5, theta=th,
-                                tolfs=TOL_FINA, **COMPLETO))
+        out.append(dict(item="A3c", solo="f50", alpha=45.0, hw=5.0, I=90.0, tolfs=TOL_FINA, **COMPLETO))
+        out.append(dict(item="A3c", solo="f50", alpha=45.0, hw=5.0, I=90.0, kx=1e-4, ky=1e-5, theta=135.0,
+                        tolfs=TOL_FINA, **COMPLETO))
     if "A4c" in itens:
-        for smax in (75.0, 150.0, 300.0):
-            for hw in (2.5, 5.0, 7.5, 10.0, 15.0):
-                for I in (9.0, 36.0):
-                    out.append(dict(item="A4c", solo="f50", alpha=45.0, hw=hw, I=I, smax=smax, chi="se", **ARTIGO))
+        for smax in (75.0, 300.0):
+            out.append(dict(item="A4c", solo="f50", alpha=45.0, hw=15.0, I=36.0, smax=smax, chi="se", **ARTIGO))
     for c in out:
         c.setdefault("train", 24.0)
         c["ttotal"] = max(48.0, c["train"] + 24.0)
@@ -141,7 +139,7 @@ def rodar(a):
     tarefas = []
     for c in casos(a.itens):
         out = os.path.join(a.saida, rotulo(c))
-        if os.path.exists(os.path.join(out, "summary.txt")) and not a.refazer:
+        if (os.path.exists(os.path.join(out, "summary.txt")) and not a.refazer) or rodando(out):
             continue
         os.makedirs(out, exist_ok=True)
         exe = a.exe + ("PV" if c.get("pv") else "")
@@ -167,6 +165,11 @@ def rodar(a):
     with ThreadPoolExecutor(max_workers=a.jobs) as ex:
         for f in as_completed([ex.submit(roda, t) for t in tarefas]):
             print(*f.result(), flush=True)
+
+
+def rodando(out):
+    """o caso já está rodando (outro lote)?"""
+    return subprocess.run(["pgrep", "-f", f"out={re.escape(out)}( |$)"], capture_output=True).returncode == 0
 
 
 def ler(pasta):
@@ -334,7 +337,7 @@ def figuras(a):
         for r in rs:
             if r.get("verif_dt"):
                 axs[0].semilogx(r["train"], r["fs_min_srm"], "*", ms=10, color=cores[0], mfc="w",
-                                label=f"f10, 3 h, passo de {r['dtchuva']:g} h na chuva")
+                                label=f"f10, 3 h, passo de {r['dtchuva']:g} h na chuva".replace(".", ","))
         axs[0].axhline(1, color="#999", lw=0.6, ls=":")
         axs[2].axvline(1, color="#999", lw=0.6, ls=":")
         axs[0].set(xlabel="duração da chuva (h)  [I$_r$ = 864 mm / duração]", ylabel="FS mínimo",
@@ -346,40 +349,62 @@ def figuras(a):
         fig.tight_layout()
         fig.savefig(os.path.join(a.figuras, "contra_A6_volume.png"), dpi=150)
         plt.close(fig)
-        tabela("A6", sorted(rs, key=lambda r: (r["solo"], r["train"])), ["solo", "train", "I"])
-    # A1c: critério de ruptura FS <= 1 (intensidade crítica e instante em que o FS chega a 1)
+        for r in rs:
+            r.setdefault("dtchuva", 0.25)
+        tabela("A6", sorted(rs, key=lambda r: (r["solo"], r["train"], -r["dtchuva"])), ["solo", "train", "I", "dtchuva"])
+    # A1c: critério de ruptura FS <= 1 (intensidade crítica e instante em que o FS chega a 1), com os casos do A1
+    # (tolerância 0,01) e a variante desacoplada da série B (o modelo do artigo)
     rs = [r for r in R if r["item"] == "A1c"]
     if rs:
+        A1 = [r for r in R if r["item"] == "A1"]
+        art = base("B_passivo_desacoplado", "f50")
         fig, axs = plt.subplots(1, 2, figsize=(12, 4.3))
-        linhas = []
+        criticas, linhas = [], []
         for k, (rot, sel) in enumerate(MODELOS_A1C):
-            q = sorted((r for r in rs if sel(r)), key=lambda r: r["I"])
-            if not q:
+            fino = sorted((r for r in rs if sel(r)), key=lambda r: r["I"])
+            grosso = sorted((r["I"], r["fs_min_srm"]) for r in A1 if sel(r) and r["I"] not in [x["I"] for x in fino])
+            if rot.startswith("artigo"):
+                grosso = [x for x in art if x[0] not in [r["I"] for r in fino]]
+            pts = sorted([(r["I"], r["fs_min_srm"]) for r in fino] + grosso)
+            if not pts:
                 continue
-            I = np.array([r["I"] for r in q])
-            mn = np.array([r["fs_min_srm"] for r in q])
-            axs[0].plot(I, mn, "o-", color=cores[k], label=rot)
-            t1 = np.array([t_cruza(r, 1.0) for r in q])
-            t101 = np.array([t_cruza(r, 1.01) for r in q])
-            axs[1].plot(I, t1, "o-", color=cores[k], label=rot)
-            axs[1].plot(I, t101, "s:", color=cores[k], mfc="w")
-            for r, a1, a2 in zip(q, t1, t101):
-                linhas.append((rot, r["I"], r["fs_min_srm"], r["t_min_srm"], a1, a2, r["t_fail"]))
-            for nivel in (1.0, 1.01):
-                linhas.append((rot, f"I_c(FS={nivel:g})", intensidade_critica(I, mn, nivel), "", "", "", ""))
+            axs[0].semilogx(*zip(*pts), "-", color=cores[k], lw=1)
+            if fino:
+                axs[0].semilogx([r["I"] for r in fino], [r["fs_min_srm"] for r in fino], "o", color=cores[k],
+                                label=f"{rot} (tolerância 0,002)")
+            if grosso:
+                axs[0].semilogx(*zip(*grosso), "s", color=cores[k], mfc="w", label=f"{rot} (A1/série B, 0,01)")
+            I, mn = map(np.array, zip(*pts))
+            criticas.append((rot, intensidade_critica(I, mn, 1.0), intensidade_critica(I, mn, 1.01)))
+            for r in fino:
+                linhas.append((rot, r["I"], r["fs_min_srm"], r["t_min_srm"], t_cruza(r, 1.0), t_cruza(r, 1.01),
+                               r["t_fail"]))
         axs[0].axhline(1, color="#999", lw=0.6, ls=":")
-        axs[0].set(xlabel="I$_r$ (mm/h)", ylabel="FS mínimo (tolerância do SRM 0,002)",
-                   title="A1c: FS mínimo × I$_r$ (f$_{50}$, α = 45°, 24 h)")
-        axs[1].set(xlabel="I$_r$ (mm/h)", ylabel="t (h)", title="instante em que o FS chega a 1 (cheio) e a 1,01 (vazio)",
-                   ylim=(0, 30))
-        axs[0].legend(frameon=False, fontsize=7)
+        axs[0].set(xlabel="I$_r$ (mm/h)", ylabel="FS mínimo", title="A1c: FS mínimo × I$_r$ (f$_{50}$, α = 45°, 24 h)")
+        axs[0].legend(frameon=False, fontsize=6.5)
+        psi0 = sorted((r for r in rs if MODELOS_A1C[0][1](r)), key=lambda r: r["I"])
+        cm = plt.cm.viridis(np.linspace(0, 0.9, max(len(psi0), 1)))
+        for c_, r in zip(cm, psi0):
+            axs[1].plot(r["t"], r["fs"], "-", color=c_, label=f"{r['I']:g} mm/h")
+            if r["t_fail"] >= 0:
+                axs[1].plot(r["t_fail"], np.interp(r["t_fail"], r["t"], r["fs"]), "kx", ms=7)
+        axs[1].axvspan(0, 24, color="#e3effb", lw=0)
+        axs[1].axhline(1, color="#999", lw=0.6, ls=":")
+        axs[1].set(xlabel="t (h)", ylabel="FS (SRM, com ψ = φ')", xlim=(0, 48),
+                   title="modelo completo, ψ = 0: FS(t); × perda de equilíbrio do transiente")
+        axs[1].legend(frameon=False, fontsize=7)
         fig.tight_layout()
         fig.savefig(os.path.join(a.figuras, "contra_A1_criterio.png"), dpi=150)
         plt.close(fig)
-        with open(os.path.join(a.figuras, "contra_tabela_A1c.csv"), "w") as f:
-            f.write("modelo,I,fs_min,t_min,t_fs1,t_fs1.01,t_fail\n")
-            for l in linhas:
-                f.write(",".join(f"{x:.4g}" if isinstance(x, float) else str(x) for x in l) + "\n")
+        fmt = lambda l: [f"{x:.4g}" if isinstance(x, float) else x for x in l]
+        with open(os.path.join(a.figuras, "contra_tabela_A1c.csv"), "w", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(["modelo", "I", "fs_min", "t_min", "t_fs1", "t_fs1.01", "t_fail"])
+            w.writerows(fmt(l) for l in linhas)
+        with open(os.path.join(a.figuras, "contra_tabela_A1c_Ic.csv"), "w", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(["modelo", "Ic_fsmin_1", "Ic_fsmin_1.01"])     # menor I_r com FS mínimo <= 1 e <= 1,01
+            w.writerows(fmt(l) for l in criticas)
 
     # A3c: anisotropia no modelo completo
     rs = [r for r in R if r["item"] == "A3c"]
@@ -391,13 +416,15 @@ def figuras(a):
                 return r["kx"] == r["ky"] if th is None else (r["kx"] != r["ky"] and r["theta"] == th)
             q = sorted((r["I"], r["fs_min_srm"]) for r in rs if sel(r))
             rot = "isotrópico 1e-5" if th is None else f"θ = {th:g}°"
+            cor = "k" if th is None else cores[k - 1]       # as cores de θ da figura do A3
             if q:
-                ax.semilogx(*zip(*q), "o-", color=cores[k + 1 if th is not None else 4], label=f"acoplado, ar ativo, {rot}")
+                ax.semilogx(*zip(*q), "o-", color=cor, label=f"acoplado, ar ativo, {rot}")
             q = sorted((r["I"], r["fs_min_srm"]) for r in A3 if th is not None and r["theta"] == th)
             if q:
-                ax.semilogx(*zip(*q), "^--", color=cores[k + 1], mfc="w", lw=0.8, label=f"desacoplado, p$_a$ = 0, {rot}")
+                ax.semilogx(*zip(*q), "^--", color=cor, mfc="w", lw=0.8, label=f"desacoplado, p$_a$ = 0, {rot}")
         ax.axhline(1, color="#999", lw=0.6, ls=":")
-        ax.set(xlabel="I$_r$ (mm/h)", ylabel="FS mínimo", title="A3c: anisotropia no modelo acoplado (f$_{50}$, α = 45°)")
+        ax.set(xlabel="I$_r$ (mm/h)", ylabel="FS mínimo (tolerância do SRM: 0,002 acoplado, 0,01 desacoplado)",
+               title="A3c: anisotropia no modelo acoplado (f$_{50}$, α = 45°)")
         ax.legend(frameon=False, fontsize=6.5)
         fig.tight_layout()
         fig.savefig(os.path.join(a.figuras, "contra_A3_acoplado.png"), dpi=150)

@@ -404,7 +404,9 @@ anima\c{c}\~ao (desacoplado, 90~mm/h, $t=22$~h).}\label{fig:fstempo}
 As conclus\~oes do artigo foram obtidas com percola\c{c}\~ao desacoplada, ar passivo, solo isotr\'opico, $\chi=1$,
 suc\c{c}\~ao inicial limitada a 75~kPa e equil\'ibrio-limite com superf\'icies circulares. O modelo desta nota permite
 relaxar cada uma dessas hip\'oteses. Os itens abaixo s\~ao hip\'oteses de investiga\c{c}\~ao que podem contradizer
-(ou restringir) as conclus\~oes do artigo; para cada um indicam-se a evid\^encia j\'a obtida e o teste proposto.
+(ou restringir) as conclus\~oes do artigo; para cada um indicam-se a evid\^encia j\'a obtida e o teste proposto. A
+Se\c{c}\~ao~\ref{sec:discussao} discute os resultados: o crit\'erio de ruptura, os argumentos levantados sobre cada item
+e os c\'alculos m\'inimos feitos para verific\'a-los.
 
 \subsection{A1. O patamar de FS m\'inimo (``intensidade-limite'') depende da dilat\^ancia}
 
@@ -700,7 +702,9 @@ isto \'e, 2,4~h no $f_{10}$ (abaixo da faixa testada: o menor FS ocorre na mais 
 ocorre o menor FS) e 240~h no $f_{100}$ (acima da faixa testada: o menor FS ocorre na mais longa, 72~h). Nem ``chuva
 curta e intensa'' nem ``chuva longa'' \'e o pior caso em geral: com volume fixo, o pior caso \'e a chuva com $I_r$ mais
 pr\'oximo de $k_s$ ($I_r/k_s=0{,}8$, 1 e 3,3 nos m\'inimos). No $f_{50}$ a infiltra\c{c}\~ao vai de 22~m$^3$/m (3~h) a
-58~m$^3$/m (72~h); no $f_{10}$ tudo infiltra.
+58~m$^3$/m (72~h); no $f_{10}$ tudo infiltra. As dura\c{c}\~oes acrescentadas na discuss\~ao (Se\c{c}\~ao~\ref{sec:discussao};
+$f_{10}$ com 0,75~h, $f_{100}$ com 240 e 480~h) mostram que os m\'inimos do $f_{10}$ e do $f_{100}$ ficavam fora da faixa
+testada: o $f_{10}$ volta a subir com 0,75~h (1,53) e o $f_{100}$ chega a 0,85 com 240~h (1,00 com 480~h).
 
 \begin{table}[h!]
 \centering\small
@@ -721,7 +725,9 @@ $f_{100}$ ($k_s=3{,}6$~mm/h) & 1,93 & 1,84 & 1,70 & 1,48 & \textbf{1,16}\\
 \begin{figure}[h!]
 \centering
 \includegraphics[width=\textwidth]{figuras/contra_A6_volume.png}
-\caption{A6: FS m\'inimo e volume infiltrado em fun\c{c}\~ao da dura\c{c}\~ao, com o mesmo volume de chuva.}\label{fig:A6}
+\caption{A6: FS m\'inimo e volume infiltrado em fun\c{c}\~ao da dura\c{c}\~ao (pontilhado vertical: $t^*=V/k_s$) e FS
+m\'inimo em fun\c{c}\~ao de $I_r/k_s$, com o mesmo volume de chuva; inclui as dura\c{c}\~oes acrescentadas na
+Se\c{c}\~ao~\ref{sec:discussao} (estrela: $f_{10}$ com 3~h e passo de tempo de 0,0625~h).}\label{fig:A6}
 \end{figure}
 
 %======================================================================
@@ -780,6 +786,11 @@ cai 0,74--1,13, mais que a diferen\c{c}a entre os tr\^es solos sob a mesma chuva
 S\'erie B): a geometria n\~ao \'e secund\'aria.
 \item A6 (volume): com volume fixo o pior caso testado \'e a chuva com $I_r$ mais pr\'oximo de $k_s$, compat\'ivel com
 $t^*\approx V/k_s$.
+\item Discuss\~ao (Se\c{c}\~ao~\ref{sec:discussao}): com o crit\'erio FS $\le1$, a intensidade com que o FS chega a
+1,01 \'e $\approx48$~mm/h no modelo do artigo e 26--31~mm/h no completo; o FS m\'inimo do A2 com ar ativo cai com o
+refinamento da malha sem convergir (1,015 a 1,009); a anisotropia n\~ao muda a intensidade cr\'itica, mas $k_1$ paralelo
+\`a face antecipa a ruptura nas chuvas fortes; limitar a suc\c{c}\~ao \'e conservador; o \^angulo sozinho leva \`a ruptura;
+e o m\'inimo perto de $I_r=k_s$ do A6 \'e compat\'ivel com os tr\^es solos.
 \end{itemize}
 Das conclus\~oes do artigo, a do patamar inferior 0,81--0,82 \'e a menos robusta: ele \'e o FS do talude saturado at\'e
 a superf\'icie (Se\c{c}\~ao~\ref{sec:patamar}), muda com a anisotropia (A3) e, no modelo acoplado, com a dilat\^ancia
