@@ -8,6 +8,9 @@ Grupos de casos:
   G1  alpha = 63,4 graus, Hs = 10 m, Hw = 5 m; I_r = 9, 18, 36, 80 mm/h; os três modelos
   G2  alpha = 45 graus, Hs = 20 m, Hw = 5 m; I_r = 9, 36, 80 mm/h; ativo e artigo
   G3  G1 com I_r = 36 mm/h, ar ativo, k_ra,min = 1e-6, 1e-5, 1e-4, 1e-3, 1e-2 (saída do ar)
+  G4  G1 com a malha refinada: elementos de h_sup = 0,75 (a malha padrão), 0,5, 0,35 e 0,25 m até 2 m de
+      profundidade e h_max = 0,3 Hs h_sup/0,75 (malha_talude.py, gerada em meshes/ se faltar); ativo e artigo com 36 e
+      80 mm/h e passivo com 36 mm/h (0,25 m: ativo e artigo com 36 mm/h); tolerância do SRM 0,002
 
 Uso:
   python fase_ar.py rodar --jobs 4 --exe <build>/Projects/SlopeRainfall/SlopeRainfall
@@ -16,6 +19,7 @@ Uso:
 import argparse
 import os
 import subprocess
+import sys
 
 # um caso por núcleo: o MKL (Pardiso) e o OpenMP/TBB não devem abrir threads em todos os núcleos em cada processo
 ENV1 = dict(os.environ, MKL_NUM_THREADS="1", OMP_NUM_THREADS="1", MKL_DYNAMIC="FALSE", TBB_NUM_THREADS="1")
@@ -41,11 +45,35 @@ def casos():
             out.append(dict(grupo="G2", alpha=45.0, hs=20.0, I=I, modo=m, kramin=1e-4))
     for kr in (1e-6, 1e-5, 1e-3, 1e-2):
         out.append(dict(grupo="G3", alpha=63.4, hs=10.0, I=36.0, modo="ativo", kramin=kr))
+    for h in MALHAS:
+        for I in ((36.0,) if h < 0.3 else (36.0, 80.0)):
+            for m in (("ativo", "artigo") if h < 0.3 or I != 36.0 else ("ativo", "passivo", "artigo")):
+                c = dict(grupo="G4", alpha=63.4, hs=10.0, I=I, modo=m, kramin=1e-4, malha=h, tolfs=0.002)
+                if h < 0.4:
+                    c["threads"] = 2        # as malhas mais finas são o caminho crítico do lote
+                out.append(c)
     return out
 
 
+MALHAS = (0.75, 0.5, 0.35, 0.25)     # h_sup (m) do G4; 0,75 é a malha padrão (h_max = 0,3 Hs)
+
+
+def malha(c, pasta_malhas):
+    """arquivo da malha do G4 (None: a malha padrão do programa); gera com malha_talude.py se faltar"""
+    h = c.get("malha", 0.75)
+    if h == 0.75:
+        return None
+    arq = os.path.join(pasta_malhas, f"talude_H{c['hs']:g}_a{c['alpha']:g}_hsup{h:g}.msh")
+    if not os.path.exists(arq):
+        aqui = os.path.dirname(os.path.abspath(__file__))
+        subprocess.run([sys.executable, os.path.join(aqui, "malha_talude.py"), f"{c['hs']:g}", f"{c['alpha']:g}", f"{h:g}",
+                        f"{0.3 * h / 0.75:g}", arq], check=True)
+    return arq
+
+
 def rotulo(c):
-    return f"f100_a{c['alpha']:g}_H{c['hs']:g}_I{c['I']:g}_{c['modo']}_kra{c['kramin']:.0e}".replace("e-0", "e-")
+    r = f"f100_a{c['alpha']:g}_H{c['hs']:g}_I{c['I']:g}_{c['modo']}_kra{c['kramin']:.0e}".replace("e-0", "e-")
+    return r + (f"_m{c['malha']:g}" if "malha" in c else "")
 
 
 def rodar(a):
@@ -64,14 +92,24 @@ def rodar(a):
         args = [a.exe, "solo=f100", f"alpha={c['alpha']:g}", f"hs={c['hs']:g}", "hw=5", f"I={c['I']:g}",
                 f"passivo={m['passivo']}", f"acoplado={m['acoplado']}", f"kramin={c['kramin']:g}", "gi=0",
                 "tfs=" + ",".join(f"{t:g}" for t in TFS), f"out={out}"]
-        tarefas.append((c["hs"], out, args))
+        arq = malha(c, a.malhas)
+        if arq:
+            args.append(f"mesh={arq}")
+        if "tolfs" in c:
+            args.append(f"tolfs={c['tolfs']:g}")
+        env = ENV1
+        if "threads" in c:
+            n = str(c["threads"])
+            args.append(f"threads={n}")
+            env = dict(ENV1, MKL_NUM_THREADS=n, OMP_NUM_THREADS=n, TBB_NUM_THREADS=n)
+        tarefas.append(((c["hs"] / c.get("malha", 0.75)) ** 2, out, args, env))
     tarefas.sort(key=lambda t: -t[0])            # os casos mais pesados primeiro
     print(f"{len(tarefas)} casos")
 
     def roda(t):
-        _, out, args = t
+        _, out, args, env = t
         with open(os.path.join(out, "log.txt"), "w") as log:
-            return out, subprocess.run(args, stdout=log, stderr=subprocess.STDOUT, env=ENV1).returncode
+            return out, subprocess.run(args, stdout=log, stderr=subprocess.STDOUT, env=env).returncode
 
     with ThreadPoolExecutor(max_workers=a.jobs) as ex:
         for f in as_completed([ex.submit(roda, t) for t in tarefas]):
@@ -209,10 +247,42 @@ def figuras(a):
         fig.savefig(os.path.join(a.figuras, "fase_ar_campos.png"), dpi=150)
         plt.close(fig)
 
+    # G4: refinamento da malha
+    rs = get(grupo="G4")
+    if rs:
+        fig, axs = plt.subplots(1, 2, figsize=(12, 4.2))
+        for m in MODOS:
+            for I, ls in ((36.0, "-"), (80.0, "--")):
+                q = sorted((r["malha"], r["fs_min_srm"]) for r in rs if r["modo"] == m and r["I"] == I)
+                if q:
+                    axs[0].plot(*zip(*q), "o" + ls, color=COR_MODO[m], mfc="w" if I == 80 else COR_MODO[m],
+                                label=f"{ROT_MODO[m]}, {I:g} mm/h")
+        axs[0].invert_xaxis()
+        axs[0].axhline(1, color="#999", lw=0.6, ls=":")
+        axs[0].set(xlabel="h$_{sup}$ (m), tamanho dos elementos até 2 m de profundidade", ylabel="FS mínimo",
+                   title="G4: FS mínimo × malha (tolerância do SRM 0,002)")
+        axs[0].legend(frameon=False, fontsize=7)
+        cores = plt.cm.viridis(np.linspace(0, 0.85, len(MALHAS)))
+        for cor, h in zip(cores, MALHAS):
+            for r in rs:
+                if r["malha"] == h and r["I"] == 36.0 and r["modo"] == "ativo":
+                    axs[1].plot(r["t"], r["fs"], "-o", ms=2.5, color=cor, label=f"h$_{{sup}}$ = {h:g} m")
+        axs[1].axvspan(0, 24, color="#e3effb", lw=0)
+        axs[1].axhline(1, color="#999", lw=0.6, ls=":")
+        axs[1].set(xlabel="t (h)", ylabel="FS", title="FS(t), ar ativo, 36 mm/h", xlim=(0, 48))
+        axs[1].legend(frameon=False, fontsize=7)
+        fig.suptitle("G4: f$_{100,-6}$, α = 63,4°, H$_s$ = 10 m")
+        fig.tight_layout()
+        fig.savefig(os.path.join(a.figuras, "fase_ar_G4_malha.png"), dpi=150)
+        plt.close(fig)
+
     with open(os.path.join(a.figuras, "fase_ar_tabela.csv"), "w") as f:
-        f.write("grupo,alpha,hs,I,modo,kramin,fs_ini,fs_min,t_min,t_fail,pa_max_kPa,infil_24h_m3m,minutos\n")
-        for r in sorted(R.values(), key=lambda r: (r["grupo"], r["hs"], r["I"], r["modo"], r["kramin"])):
-            f.write(f"{r['grupo']},{r['alpha']:g},{r['hs']:g},{r['I']:g},{r['modo']},{r['kramin']:g},{r['fs'][0]:.3f},"
+        f.write("grupo,alpha,hs,I,modo,kramin,malha,elementos,fs_ini,fs_min,t_min,t_fail,pa_max_kPa,infil_24h_m3m,"
+                "minutos\n")
+        for r in sorted(R.values(), key=lambda r: (r["grupo"], r["hs"], r["I"], r["modo"], r["kramin"],
+                                                   -r.get("malha", 0.75))):
+            f.write(f"{r['grupo']},{r['alpha']:g},{r['hs']:g},{r['I']:g},{r['modo']},{r['kramin']:g},"
+                    f"{r.get('malha', 0.75):g},{r['elements']:g},{r['fs'][0]:.3f},"
                     f"{r['fs_min_srm']:.3f},{r['t_min_srm']:g},{r['t_fail']:g},{r['pa_max']:.1f},{r['infil']:.2f},"
                     f"{r['minutes']:.1f}\n")
     print(open(os.path.join(a.figuras, "fase_ar_tabela.csv")).read())
@@ -226,6 +296,7 @@ def main():
                                                   "SlopeRainfall"))
     p.add_argument("--saida", default=os.path.join("resultados", "fase_ar"))
     p.add_argument("--figuras", default="figuras")
+    p.add_argument("--malhas", default=os.path.join(aqui, "..", "meshes"), help="pasta das malhas do G4")
     p.add_argument("--jobs", type=int, default=4)
     p.add_argument("--refazer", action="store_true")
     a = p.parse_args()

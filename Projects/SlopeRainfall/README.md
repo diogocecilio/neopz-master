@@ -105,6 +105,8 @@ Outros solos, geometrias e chuvas (sem estas opções os resultados são os de a
 | `dtchuva=` | passo durante a chuva (h, 0,25) |
 | `mecanica=0` | com `acoplado=0`: o transiente resolve só a percolação (deslocamentos fixos) |
 | `fluxonormal=1` | chuva por unidade de comprimento da superfície (como o fluxo prescrito do SEEP/W) em vez da projeção horizontal: uma face a α recebe I / cos α |
+| `tolfs=` | tolerância da bissecção do SRM (0,01): o FS escrito é o último fator que convergiu, abaixo do colapso por menos que `tolfs` |
+| `mesh=<arquivo.msh>` | malha gmsh (2.2) no lugar da padrão; `scripts/malha_talude.py Hs α h_sup fator_hmax saida.msh` gera a do talude com outro refinamento |
 
 Séries do artigo (em paralelo) e figuras de comparação:
 ```

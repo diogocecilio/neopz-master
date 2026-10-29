@@ -38,6 +38,8 @@
 //                             FS analyses solve the mechanics from the stress-free state with the pressures frozen)
 //   fluxonormal=0             1: rain per unit length of the surface (the flux boundary of SEEP/W) instead of on the
 //                             horizontal projection: a face inclined at alpha receives I / cos(alpha) per horizontal area
+//   tolfs=0.01                tolerance of the bisection of the SRM: the FS written is the last strength factor that
+//                             converged, below the collapse by less than tolfs
 // Outputs in <out>: fs.csv, hist.csv, snaps_pw.csv, snaps_pa.csv, vertices.csv, triangles.csv, outline.csv,
 //                   summary.txt (and vtk/ if vtk=1). Figures and animations: scripts/*.py and mma/*.wl.
 #include "UnsatSlope.h"
@@ -79,6 +81,7 @@ struct Case {
     bool alagado = false;
     bool mecanica = true; ///< false (uncoupled only): displacements fixed in the transient, only the seepage is solved
     bool fluxonormal = false; ///< rain per unit length of the surface instead of on the horizontal projection
+    REAL tolfs = 0.01; ///< tolerance of the bisection of the SRM
 };
 
 /// Geometry of Fig. 2: crest at y = 3 Hs from x = 0 to xb, toe at y = 2 Hs from xc to L
@@ -442,7 +445,7 @@ private:
                 if (ok) fAn->Accept();
                 else fAn->Restore();
                 return ok;
-            }, F0, xs, 0.01, 20., v);
+            }, F0, xs, fCase.tolfs, 20., v);
         }
         // gravity increase from the stress-free state, real strength
         if (fCase.gi) {
@@ -915,6 +918,7 @@ void RainfallSlope::Run() {
     if (fCase.dtchuva != 0.25) sum << "dtchuva " << fCase.dtchuva << "\n";
     if (!fCase.mecanica) sum << "mecanica 0\n";
     if (fCase.fluxonormal) sum << "fluxonormal 1\n";
+    if (fCase.tolfs != 0.01) sum << "tolfs " << fCase.tolfs << "\n";
     if (!fCase.na.empty()) sum << "na_pontos " << fCase.na.size() << "\n";
     if (!fCase.lateral) sum << "lateral 0\n";
     if (fCase.basena) sum << "basena 1\n";
@@ -975,6 +979,7 @@ int main(int argc, char *argv[]) {
         else if (is("dtchuva=")) c.dtchuva = std::atof(val("dtchuva="));
         else if (is("mecanica=")) c.mecanica = std::atoi(val("mecanica="));
         else if (is("fluxonormal=")) c.fluxonormal = std::atoi(val("fluxonormal="));
+        else if (is("tolfs=")) c.tolfs = std::atof(val("tolfs="));
         else {
             const char *e = std::strchr(a, '=');
             UnsatParams test;
