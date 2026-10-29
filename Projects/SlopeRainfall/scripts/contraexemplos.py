@@ -398,11 +398,11 @@ def figuras(a):
         plt.close(fig)
         fmt = lambda l: [f"{x:.4g}" if isinstance(x, float) else x for x in l]
         with open(os.path.join(a.figuras, "contra_tabela_A1c.csv"), "w", newline="") as f:
-            w = csv.writer(f)
+            w = csv.writer(f, lineterminator="\n")
             w.writerow(["modelo", "I", "fs_min", "t_min", "t_fs1", "t_fs1.01", "t_fail"])
             w.writerows(fmt(l) for l in linhas)
         with open(os.path.join(a.figuras, "contra_tabela_A1c_Ic.csv"), "w", newline="") as f:
-            w = csv.writer(f)
+            w = csv.writer(f, lineterminator="\n")
             w.writerow(["modelo", "Ic_fsmin_1", "Ic_fsmin_1.01"])     # menor I_r com FS mínimo <= 1 e <= 1,01
             w.writerows(fmt(l) for l in criticas)
 
