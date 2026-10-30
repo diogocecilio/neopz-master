@@ -142,7 +142,7 @@ a intensidade crítica e atrasam a ruptura; o efeito maior parece vir do ar apri
 | M, malha (h_sup = 0,35 m) | (i) com 30, (iii) com 48 mm/h | FS mínimo cai 0,007 e 0,024; *I_c* ≈ 30 e 46 mm/h (razão 1,5 mantida) |
 | T, passo de tempo | (i) ψ = 0, 36 mm/h, passo 0,125 h | perda de equilíbrio às 15,6 h (15,5 h com 0,25 h) |
 | Ar, ar aberto na base e nas laterais | G1 (f100, 63,4°, 36 mm/h); f50 (i) com 30 mm/h | FS mínimo 1,017 × 1,015 e 1,011 × 1,011: o ar é vedado pela superfície alagada |
-| L, validação | coluna de Liakopoulos, ar ativo e passivo | bifásico × Khoei e Mohammadnejad (2011): p_w no topo ≤ 0,43 kPa, p_a mínima ≤ 0,3 kPa, recalque ≤ 0,07 mm; ar passivo × ensaio (vazão e p_w) |
+| L, validação | coluna de Liakopoulos, ar ativo e passivo | ar passivo × ensaio (vazão e p_w, Callari e Abati 2009, Figs. 3a, b); a comparação com Khoei e Mohammadnejad (2011) foi retirada na revisão de 30/10/2026 (PDF não disponível; ver auditoria_referencias.md) |
 
 Código acrescentado: leis de Liakopoulos em `TPZUnsaturatedHydraulics` (`swcc=liak`, `krw=liak`); opções `arbase`,
 `arlateral`, `tsnap`, `parar` e a vazão pela base em `hist.csv` (`SlopeRainfall`). O caso `M_i` foi encerrado depois do

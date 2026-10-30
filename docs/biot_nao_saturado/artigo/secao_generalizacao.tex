@@ -3,38 +3,37 @@ Table~\ref{tab:gen} extends the comparison of models (i) and (iii) to the permea
 parameter $\chi=S_e$ and to the low-permeability $f_{100}$ soil on two slopes.
 
 \begin{table}[htbp]
-\centering\small
-\caption{Critical intensity (mm/h) of 24-h rainfalls in the usual model (iii) and in the complete model (i,
-$\psi=\phi'$). $>$: no failure up to the most intense rainfall computed, whose minimum FS is given in
-parentheses; $^\ast$limit equilibrium (minimum FS $\le1.02$).}\label{tab:gen}
+\centering\footnotesize\setlength{\tabcolsep}{3.5pt}
+\caption{Critical intensity $\Icd$ (mm/h) of 24-h rainfalls in the usual model (iii) and in the complete model (i,
+$\psi=\phi'$), and the lowest minimum FS computed. $>$: no failure up to the most intense rainfall computed;
+$\le$: upper bound (the run at the upper intensity stopped at the first FS $\le1.01$, so its minimum FS is not
+known); n.c.: not computable with the runs available.}\label{tab:gen}
 \input{figuras/tabela_generalizacao}
 \end{table}
 
-\emph{Permeable soil.} In the $f_{10}$ soil ($k_s=360\mmh$) the critical intensity is 135~mm/h in model (iii) and
-139~mm/h in model (i): the bias of the usual model disappears. The critical intensities are well below $k_s$
-($0.4k_s$), the surface does not pond before the slope fails and the air escapes through it. The bias is a feature
-of the regime $\Ic\gtrsim k_s$, in which the surface seals the air: in the $f_{50}$ soil $\Ic$ of model (iii) is
-$1.3k_s$.
+\emph{Permeable soil.} In the $f_{10}$ soil ($k_s=360\mmh$) the critical intensities of models (iii) and (i) are close:
+\pend{[129 e 135 contra 129 e 139~mm/h com $\delta=0{,}02$ e 0{,}01; atualizar com as rodadas sem parada]}. The
+critical intensities are about $0.4k_s$. The surface also ponds in this soil: with 140~mm/h in model (i) the first
+vertex ponds after 6.75~h, 87 surface vertices are ponded when the FS reaches 1.01 (13~h) and the air pressure
+reaches 40~kPa. The small difference between the models is therefore not explained by the absence of ponding; the
+contributions of the air and of the coupling were not separated for this soil.
 
 \emph{Low-permeability soil.} In the $f_{100}$ soil ($k_s=3.6\mmh$) no 24-h rainfall of up to 80~mm/h brings a
-20-m, $45^\circ$ slope to failure in either model; the complete model gives a minimum FS 0.08--0.11 lower (1.17
-against 1.25 with 80~mm/h), and its minimum occurs after the rainfall, 30--36~h after its start. On the $63.4^\circ$ slope the usual model stays
-9--10\% above failure at any intensity, whereas the complete model reaches limit equilibrium (Section~\ref{sec:ar}).
-For this soil the comparison is not a shift of $\Ic$ but the difference between a safe slope and one at the limit.
+20-m, $45^\circ$ slope to failure in either model; the complete model gives a minimum FS 0.08--0.11 lower (1.172
+against 1.252 with 80~mm/h), and its minimum occurs after the rainfall, 30--36~h after its start, whereas that of
+model (iii) occurs at 48~h, the end of the simulation. On the $63.4^\circ$ slope model (iii) stays 9--10\% above
+failure at any intensity, whereas model (i) comes within 0.013--0.015 of one (Section~\ref{sec:ar}).
 
 \emph{Bishop parameter.} With $\chi=S_e$ (for the Fredlund--Xing curve with $C(\psi)=1$, $S_e=S_w$) the suction
 contributes less to the initial strength (initial FS 1.895 instead of 2.119) and the air pressure also enters the
-effective stress, through $(1-\chi)p_a$. The critical intensity of model (iii) is unchanged, 48~mm/h (minimum FS
-1.010 and 0.998 with 48 and 54~mm/h), and that of model (i) falls from 31 to 30~mm/h: the bias persists (+62\%). Near
-failure the controlling zone is nearly saturated and $\chi\to1$ in both laws, so the law of $\chi$ changes the
-initial FS much more than the critical intensity.
+effective stress, through $(1-\chi)p_a$. \pend{[$I_{c,\delta}$ de (iii) e (i) com $\chi=S_e$, atualizar com as rodadas
+sem parada]}
 
 \emph{Confinement of the air.} Opening the base and the lateral boundaries to the air changes the minimum FS by less
-than 0.002 (Section~\ref{sec:confinamento}): the air is sealed by the ponded surface, not by the boundaries of the
-domain.
+than 0.002 (Section~\ref{sec:confinamento}).
 
-\emph{Mesh.} With elements of 0.35~m instead of 0.75~m near the surface (8052 elements instead of 1834; initial FS
+\emph{Mesh.} With elements of 0.35~m instead of 0.75~m near the surface (7732 triangles instead of 1684; initial FS
 2.106 instead of 2.119), the minimum FS of model (i) with 30~mm/h falls from 1.011 to 1.005 and that of model (iii)
-with 48~mm/h from 1.010 to 0.987 (Fig.~\ref{fig:malha}). With the local slope of the minimum FS with the intensity
-these differences shift the critical intensities to about 30 and 46~mm/h; the ratio between them, 1.5, does not
+with 48~mm/h from 1.010 to 0.987 (Fig.~\ref{fig:malha}). With the local slope of the minimum FS against the intensity,
+these differences shift the critical intensities $I_{c,0.01}$ to about 30 and 46~mm/h; their ratio, 1.5, does not
 change.

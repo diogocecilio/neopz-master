@@ -1,50 +1,58 @@
 % Seção 5: intensidade crítica do talude de referência e decomposição do viés (f50, alpha = 45 graus, 24 h)
 Figure~\ref{fig:decomp} and Table~\ref{tab:decomp} give the minimum FS under 24-h rainfalls of the $f_{50}$ soil
-($k_s=36\mmh$) in the four models, the critical intensities and the times to failure. All the models have a critical
-intensity: from $\Ic$ on, the FS reaches one during the rainfall and does not rise again while it rains
-(Fig.~\ref{fig:fstempo}). In this sense the limiting intensity of \citet{rahardjo2007} exists in every model. What
-changes is its value. The usual model (iii) gives $\Ic=48\mmh$ ($1.3k_s$); the complete model (i) gives 31~mm/h
-($0.9k_s$) with an associated flow rule and 26~mm/h ($0.7k_s$) without dilatancy. The hypotheses of the usual chain
-overestimate by 54 to 86\% the rainfall that brings the slope to failure; against the sigmoid published by
-\citet{rahardjo2007}, which reaches one at about 40~mm/h, by 28 to 54\%. They also delay the failure: with 54~mm/h
-the FS of model (iii) reaches one after 22~h, against 18~h in model (i) with $\psi=\phi'$ and the loss of equilibrium
-after 12.5~h with $\psi=0$; with 90~mm/h, after 20, 18 and 12~h.
+($k_s=36\mmh$) in the four models, the critical intensities $\Icd$ and the times to failure. The usual model (iii)
+gives $\Icd=47$--49~mm/h ($1.3k_s$) for $\delta=0$--0.02. The complete model (i) gives 30, 31 and 35~mm/h with
+$\psi=\phi'$ for $\delta=0.02$, 0.01 and 0.005, and 26~mm/h with $\psi=0$ for all $\delta$; with $\psi=\phi'$ and
+$\delta=0$ it has no critical intensity, its minimum FS being 1.000--1.003 from 36 to 180~mm/h. For
+$\delta=0.005$--0.02 the hypotheses of the usual chain therefore overestimate the rainfall that brings the slope to
+failure by 40--59\% with $\psi=\phi'$ and by 85--88\% with $\psi=0$. The sigmoid of \citet[Fig.~7b]{rahardjo2007}
+reaches $1+\delta$ at 38--40~mm/h: model (iii) is 23--24\% above it, model (i) 12--22\% below it with $\psi=\phi'$
+and 33--34\% below it with $\psi=0$. The usual hypotheses also delay the failure: with 54~mm/h the FS of model (iii)
+reaches 1.01 after 22.4~h, against 17.9~h in model (i) with $\psi=\phi'$ and the loss of equilibrium after 12.5~h with
+$\psi=0$; with 90~mm/h, after 19.7, 18.3 and 12.0~h. In these cases the FS was computed every 3~h after the third
+hour, and the times are interpolated between the outputs.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{decomposicao.pdf}
 \caption{Soil $f_{50}$, $\alpha=45^\circ$, 24-h rainfalls. (a) Minimum FS against the rainfall intensity in the
-four models ($\blacktriangledown$: critical intensity, FS $=1.01$). (b) Time to failure: first instant with FS
-$\le1.01$, or loss of equilibrium of the coupled transient with $\psi=0$.}\label{fig:decomp}
+four models ($\blacktriangledown$: $I_{c,0.01}$; open symbols: runs stopped at the first FS $\le1.01$, whose minimum
+FS is lower). (b) Time to failure: first instant with FS $\le1.01$, or loss of equilibrium of the coupled transient
+with $\psi=0$.}\label{fig:decomp}
 \end{figure}
 
 \begin{table}[htbp]
-\centering\footnotesize\setlength{\tabcolsep}{4pt}
-\caption{Critical intensity ($k_s=36\mmh$) and time to failure of the reference slope. Bracket: computed intensities
-on each side of $\Ic$ (FS $\le1.01$); the column FS $\le1.02$ gives $\Ic$ with that threshold. Time to failure: first
-instant with FS $\le1.01$; --: no failure; blank: not computed. $^\dagger$Loss of equilibrium of the coupled
-transient.}\label{tab:decomp}
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\caption{Critical intensity $\Icd$ ($k_s=36\mmh$) and time to failure of the reference slope. $>$: no failure up to
+the most intense rainfall computed; $\le$: upper bound; n.c.: not computable with the runs available (run stopped at
+the first FS $\le1.01$). Bracket: computed intensities on each side of $I_{c,0.01}$. Lowest min.\ FS: smallest
+minimum FS of the runs that were not stopped. Time to failure: first instant with FS $\le1.01$; --: no failure;
+blank: not computed; $^\dagger$loss of equilibrium of the coupled transient. With $\psi=\phi'/2$ only 18 and 36~mm/h
+were computed below 54~mm/h.}\label{tab:decomp}
 \input{figuras/tabela_decomposicao}
 \end{table}
 
 The four models separate the two hypotheses (Table~\ref{tab:decomp}).
 \begin{itemize}
-\item \emph{The air lowers the critical intensity by about half}: on a rigid skeleton from 48 to 25~mm/h (passive and
-active air, models iii and iv); in the coupled models from 53 to 26~mm/h without dilatancy and from 78 to 31~mm/h
-with $\psi=\phi'$ (from 62 to 30~mm/h with the threshold 1.02).
-\item \emph{The coupling raises it}: by 4--10\% without dilatancy (from 25 to 26~mm/h with active air, from 48 to
-53~mm/h with passive air) and by 24--63\% with associated dilatancy (to 31 and 78~mm/h). The deformation of the
-skeleton during the wetting, elastic swelling as the effective stress decreases and plastic dilation in the shear
-zone, opens pore space and lowers the pore pressures.
+\item \emph{The air lowers the critical intensity by a factor of 2.0--2.5}, for the same coupling and flow rule: on a
+rigid skeleton from 47--49 to 24--25~mm/h (models iii and iv, $\delta=0$--0.02); in the coupled models from at most
+52--53 to 26~mm/h without dilatancy (models ii and i; the run of model ii with 54~mm/h stopped at 24~h, after its loss
+of equilibrium at 22.3~h) and from 62 to 30~mm/h ($\delta=0.02$) and from 78 to 31~mm/h ($\delta=0.01$) with
+$\psi=\phi'$.
+\item \emph{The coupling raises it}: without dilatancy by 5--7\% with active air (from 24--25 to 26~mm/h) and by at
+most 11\% with passive air (from 47--48 to at most 52--53~mm/h); with $\psi=\phi'$ by 22--41\% with active air and by 32\% ($\delta=0.02$)
+to 62\% ($\delta=0.01$) with passive air; with $\delta=0.005$ the critical intensity of model (ii) exceeds 90~mm/h.
+Models (iii) and (ii), and models (iv) and (i), differ only by the volumetric strain terms of Eq.~\eqref{eq:massa};
+the mechanism of the increase (elastic or plastic volume change) was not separated.
 \end{itemize}
-The two simplifications of the usual model thus have opposite effects: neglecting the deformation is conservative,
-neglecting the air is not, and the air dominates. A two-phase flow analysis on a rigid skeleton, model (iv), recovers
-the bias: its critical intensity, 25~mm/h, is 4\% below that of the complete model without dilatancy and 20\% below
-that with associated dilatancy, and its time to failure with 36~mm/h, 16.6~h, lies between those of the complete model
-with $\psi=0$ (15.5~h) and with $\psi=\phi'$ (21.3~h).
+The two simplifications of the usual model thus have opposite effects, and the effect of the air is the larger one.
+A two-phase flow analysis on a rigid skeleton, model (iv), gives a critical intensity 5--6\% below that of the complete
+model without dilatancy and 18--29\% below that with $\psi=\phi'$, and its time to failure with 36~mm/h, 16.6~h, lies
+between those of the complete model with $\psi=0$ (15.5~h) and with $\psi=\phi'$ (21.3~h).
 
-The coupled models with an associated flow rule approach one from above (1.000--1.014 for $I_r\ge\Ic$), so their
-critical intensity depends on the threshold. With FS $\le1.02$ instead of 1.01 the critical intensities change by
-less than 1~mm/h, except that of model (ii) with $\psi=\phi'$, whose minimum FS is 1.033, 1.014 and 1.010 with 54, 66
-and 78~mm/h: $\Ic=62$ instead of 78~mm/h. In this model the slope sits in limit equilibrium over a wide range of
-intensities, with plastic deformation but without loss of equilibrium.
+The coupled models with an associated flow rule approach one from above (1.000--1.014 for $I_r\ge I_{c,0.02}$), so
+their critical intensity depends on $\delta$: from $\delta=0.02$ to 0.005 that of model (i) rises from 30 to 35~mm/h
+and that of model (ii) from 62 to more than 90~mm/h, while those of the uncoupled models and of the models without
+dilatancy change by less than 1.5~mm/h. In model (ii) with $\psi=\phi'$ the minimum FS is 1.009--1.014 from 66 to
+90~mm/h: the slope is in limit equilibrium, within the resolution of the FS, over a wide range of intensities, with
+plastic deformation but without loss of equilibrium.

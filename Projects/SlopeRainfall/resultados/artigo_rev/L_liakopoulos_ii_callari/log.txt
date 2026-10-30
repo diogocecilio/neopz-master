@@ -1,0 +1,1 @@
+== /home/user/neopz-master/Projects/SlopeRainfall/resultados/artigo_rev/L_liakopoulos_ii_callari finished in 0.751565 min (FS min SRM 1e+300 at 0 h, GI 1e+300)

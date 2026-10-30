@@ -1,33 +1,36 @@
-% Seção 11: conclusões
-A coupled formulation with displacement, pore-water and pore-air pressures was implemented in NeoPZ, validated against
-the Liakopoulos drainage test and used to quantify how the hypotheses of the usual chain of analysis, uncoupled
-seepage with atmospheric pore air followed by a stability analysis with the frozen pressures, bias the rainfall that
-brings an unsaturated slope to failure. The main conclusions are the following.
+% Seção 12: conclusões
+A coupled formulation with displacement, pore-water and pore-air pressures was implemented in NeoPZ, verified against
+the Liakopoulos drainage test with passive air and used to quantify how the hypotheses of the usual chain of
+analysis, seepage on a rigid skeleton with atmospheric pore air followed by a stability analysis with the computed
+pressures, change the rainfall that brings an unsaturated slope to failure. The conclusions refer to the slope of
+\citet{rahardjo2007} and the cases computed.
 \begin{enumerate}
-\item With the failure criterion FS $\le1$, models must be compared by the critical intensity and the time to
-failure, not by the minimum FS. A minimum FS below one is the FS of the slope saturated to its surface, a property
-of the boundary-value problem that can be computed directly with the surface ponded.
-\item For the homogeneous slope of \citet{rahardjo2007} with $k_s=36\mmh$ the usual model gives a critical intensity
-of 48~mm/h ($1.3k_s$) for 24-h rainfalls, and the complete model 31~mm/h ($0.9k_s$) with an associated flow rule and
-26~mm/h ($0.7k_s$) without dilatancy. The usual hypotheses overestimate the failure-triggering rainfall by 54--86\%
-and delay the predicted failure by up to 10~h in intense rainfalls. The bias persists with $\chi=S_e$ (48 against
-30~mm/h) and with a finer mesh (about 46 against 30~mm/h).
-\item The two simplifications act in opposite directions. The trapped air halves the critical intensity; the coupling
-raises it, by 4--10\% through the elastic swelling of the skeleton and by up to 63\% when the plastic dilation of an
-associated flow rule is added. The air dominates, and a two-phase flow analysis on a rigid skeleton recovers the bias
-with a critical intensity 4--20\% below that of the complete model.
-\item The trapped air lowers the FS with less water. Once the surface ponds, the air between the wetting front and
-the water table is compressed to 36--38~kPa; less water infiltrates and the matric suction increases, but the
-pore-water pressure rises with the air pressure and the effective stress falls. A low-permeability slope
-($k_s=3.6\mmh$, $63.4^\circ$) that the usual model places 9--10\% above failure reaches limit equilibrium; the effect
-does not depend on whether the base and lateral boundaries are open to the air.
-\item Dilatancy does not decide whether a critical intensity exists but shifts it by about 20\% and decides the
-response after it is exceeded: without dilatancy the coupled transient loses equilibrium, independently of the time
-step; with $\psi\ge\phi'/2$ the slope stays at limit equilibrium.
-\item The bias concentrates in the regime $\Ic\gtrsim k_s$, in which the surface ponds and seals the air. For a
-permeable soil whose critical intensity is well below $k_s$ the usual model is adequate (135 against 139~mm/h).
+\item In the coupled models with an associated flow rule the transient is solved with the real strength, and the
+minimum FS of the strength reduction did not fall below one in the cases computed (1.000--1.014 for $I_r\ge\Ic$). The models must
+therefore be compared by the critical intensity $\Icd$ for a stated threshold $1+\delta$ and by the time to failure,
+not by the minimum FS; with $\delta=0$ the complete associated model has no critical intensity up to 180~mm/h.
+\item For $k_s=36\mmh$ and 24-h rainfalls the usual model (iii) gives $\Icd=47$--49~mm/h ($1.3k_s$) and the complete
+model (i) 30--35~mm/h with $\psi=\phi'$ and 26~mm/h with $\psi=0$ ($\delta=0.005$--0.02). The usual hypotheses
+overestimate the failure-triggering rainfall by 40--59\% with $\psi=\phi'$ and by 85--88\% with $\psi=0$, and delay
+the predicted failure by 4.5~h ($\psi=\phi'$) and 9.9~h ($\psi=0$) with 54~mm/h.
+\item The two simplifications act in opposite directions. With the same coupling, active air lowers $\Icd$ by a
+factor of 2.0--2.5 (from 48 to 25~mm/h on a rigid skeleton, $\delta=0.01$); the coupling raises it, by
+5--11\% without dilatancy (at most 11\% with passive air) and by 27--62\% with $\psi=\phi'$ ($\delta=0.01$). The air effect is the larger
+one, and a two-phase flow analysis on a rigid skeleton (model iv) gives a critical intensity below that of the
+complete model.
+\item With active air, less water infiltrates and the matric suction below the face is higher than with passive air,
+but the pore-water pressure is also higher and the FS lower. On the low-permeability slope at $63.4^\circ$
+($k_s=3.6\mmh$), which model (iii) keeps 9--10\% above failure, the complete model gives a minimum FS of 1.013--1.015
+(1.009 with the finest mesh). Opening the base and the lateral boundaries to the air does not change these results.
+\item Without dilatancy the coupled transient loses equilibrium for $I_r\ge26\mmh$; with $\psi\ge\phi'/2$ it does not
+in the range computed. Whether a coupled analysis predicts a collapse therefore depends on the flow rule.
+\item The bias persists with $\chi=S_e$ \pend{[valores]} and with a finer mesh (about 46 against 30~mm/h). In the
+permeable $f_{10}$ soil the critical intensities of models (iii) and (i) are close \pend{[valores]}, although the
+surface ponds and the air pressure rises; the reason was not established.
 \end{enumerate}
-Rainfall thresholds derived from uncoupled, passive-air analyses are therefore unconservative for slopes whose
-critical rainfall exceeds the saturated conductivity of the surface soil. The validation of the air phase in
-infiltration with measured air pressures, natural (open, heterogeneous) slopes and three-dimensional effects are the
-next steps.
+Several statements of the literature are contradicted or qualified by these results (Section~\ref{sec:lit}): the
+atmospheric pore air is not ``approximately true'' once the surface ponds; neither the passive-air assumption nor the
+uncoupled solution is generally adequate or inadequate, the answer depending on the process and on the flow rule; and
+the threshold intensity relative to $k_s$ is not ``about or slightly larger than 1'' in the study that is cited for
+it. The validation of the air phase against measured air pressures under infiltration, natural (open, heterogeneous)
+slopes and three-dimensional effects are the next steps.

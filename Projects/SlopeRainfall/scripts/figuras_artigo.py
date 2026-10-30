@@ -1,9 +1,11 @@
 """Figuras e tabelas do artigo sobre a intensidade crítica (docs/biot_nao_saturado/artigo).
 
-Lê os casos de artigo.py (resultados/artigo), de contraexemplos.py (A1, A1c), de fase_ar.py (G1, G3, G4) e da Série B
-(variante iii, resultados/B_passivo_desacoplado do repositório).
+Lê os casos de artigo.py (resultados/artigo), de contraexemplos.py (A1, A1c), de fase_ar.py (G1, G3, G4), da Série B
+(variante iii, resultados/B_passivo_desacoplado) e da revisão (resultados/artigo_rev: FS mínimo sem parada antecipada,
+Liakopoulos com a curva de retenção de Callari e Abati 2009, Eq. 58). A intensidade crítica I_c,delta é calculada para
+os limiares FS <= 1 + delta de DELTAS.
 
-Uso: python3 figuras_artigo.py --runs ~/projects/runs/resultados --figuras <pasta>
+Uso: python3 figuras_artigo.py [--runs resultados] [--figuras <pasta>]
 """
 import argparse
 import csv
@@ -20,7 +22,8 @@ import matplotlib.ticker
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 REPO_RES = os.path.normpath(os.path.join(AQUI, "..", "resultados"))
-LIMIAR = 1.01           # FS que define a ruptura (equilíbrio limite, com a resolução do SRM e da malha)
+LIMIAR = 1.01           # FS que define a ruptura (delta = 0,01, com a resolução do SRM e da malha)
+DELTAS = (0.02, 0.01, 0.005, 0.0)
 plt.rcParams.update({"font.size": 8.5, "axes.linewidth": 0.6, "legend.fontsize": 7, "axes.titlesize": 8.5,
                      "lines.linewidth": 1.1, "savefig.bbox": "tight"})
 COR = {"i": "#b2182b", "i0": "#e08214", "i13": "#f4a582", "ii": "#2166ac", "ii0": "#92c5de", "iii": "#1a1a1a",
@@ -46,6 +49,8 @@ def ler(pasta):
     s["t"], s["fs"] = fs[:, 0], fs[:, 1]
     s["pasta"] = pasta
     s["t_cruza"] = cruzamento(s["t"], s["fs"])
+    # rodada encerrada no primeiro FS <= parar: o FS mínimo dela só vale para limiares >= parar
+    s["parado"] = bool(s.get("parar", 0)) and s["t"][-1] < s.get("ttotal", 0) - 1e-6
     return s
 
 
@@ -68,6 +73,35 @@ def intensidade_critica(pares, lim=LIMIAR):
     if pares and pares[0][1] <= lim:
         return -1., (None, pares[0][0])                   # abaixo da menor intensidade calculada
     return np.inf, (pares[-1][0] if pares else None, None)  # acima da maior
+
+
+def ic_delta(L, d):
+    """I_c,delta com L = [(I, FS mínimo, parado)], interpolando o FS mínimo entre as intensidades que cercam 1 + delta.
+    Uma rodada parada no primeiro FS <= 1,01 tem FS mínimo verdadeiro <= o registrado: se o registrado já é <= 1 + delta,
+    a interpolação dá um limite superior de I_c (devolvido com cota=True); se não, I_c não é determinável (None).
+    Devolve (valor, (I abaixo, I acima), cota)."""
+    lim = 1.0 + d
+    acima = None
+    for I, F, parado in sorted(L):
+        if F > lim:
+            if parado:
+                return None, (acima[0] if acima else None, I), False
+            acima = (I, F)
+            continue
+        if acima is None:
+            return -1., (None, I), parado
+        return acima[0] + (acima[1] - lim) / (acima[1] - F) * (I - acima[0]), (acima[0], I), parado
+    return np.inf, (acima[0] if acima else None, None), False
+
+
+def texto_ic(v, br, cota=False):
+    if v is None:
+        return "n.c."
+    if np.isinf(v):
+        return f"$>{br[0]:g}$"
+    if v < 0:
+        return f"$<{br[1]:g}$"
+    return (r"$\le$" if cota else "") + f"{v:.0f}"
 
 
 # --------------------------------------------------------------------------------------------------- casos
@@ -98,11 +132,24 @@ def series(R):
         I = float(os.path.basename(p).split("_I")[1])
         if not any(abs(x[0] - I) < 1e-9 for x in S["iii"]):
             add("iii", I, ler(p))
+    rev = R.get("rev")
+    novos = {}
+    if rev:
+        for p in glob.glob(os.path.join(rev, "D_*_f50_a45_I*_semparar")):
+            b = os.path.basename(p)
+            s = ler(p)
+            if s is not None:
+                novos[(b.split("_")[1], float(b.split("_I")[1].split("_")[0]))] = s
     for p in glob.glob(os.path.join(art, "D_*_f50_a45_I*")):
         b = os.path.basename(p)
         I = float(b.split("_I")[1].split("_")[0])
         m = b.split("_")[1]
-        add(m + ("0" if b.endswith("psi0") else ""), I, ler(p))
+        k = m + ("0" if b.endswith("psi0") else "")
+        if k == m and (m, I) in novos:   # caso refeito sem parar no primeiro FS <= 1,01
+            continue
+        add(k, I, ler(p))
+    for (m, I), s in novos.items():
+        add(m, I, s)
     for k in S:
         S[k].sort(key=lambda x: x[0])
     return S
@@ -119,42 +166,46 @@ def perfil(pasta, arq, t_h):
 
 
 def fig_liakopoulos(R, saida):
-    pa_, pp_ = os.path.join(R["artigo"], "L_liakopoulos_i"), os.path.join(R["artigo"], "L_liakopoulos_ii")
+    """Coluna de Liakopoulos: modelo bifásico (i) e ar passivo (ii) com a retenção e a permeabilidade de Callari e Abati
+    (2009, Eq. 58), contra a vazão e as pressões medidas (digitalizadas das Figs. 3a e 3b de Callari e Abati 2009)."""
+    base = R.get("rev") or R["artigo"]
+    pa_, pp_ = os.path.join(base, "L_liakopoulos_i_callari"), os.path.join(base, "L_liakopoulos_ii_callari")
     if not (os.path.exists(os.path.join(pa_, "summary.txt")) and os.path.exists(os.path.join(pp_, "summary.txt"))):
         print("Liakopoulos: casos ainda não calculados")
         return
     ref = os.path.join(AQUI, "ref")
     exp_q = np.loadtxt(os.path.join(ref, "liakopoulos_vazao_exp.csv"), delimiter=",", comments="#")
     exp_p = np.loadtxt(os.path.join(ref, "liakopoulos_pw_exp.csv"), delimiter=",", comments="#")
-    kh = np.loadtxt(os.path.join(ref, "liakopoulos_khoei2011.csv"), delimiter=",", comments="#")
     fig, ax = plt.subplots(1, 4, figsize=(7.4, 2.35))
     cores = plt.cm.viridis(np.linspace(0, 0.9, 6))
     tmin = [5, 10, 20, 30, 60, 120]
     for j, tm in enumerate(tmin):
         z, p = perfil(pa_, "snaps_pw.csv", tm / 60)
         ax[0].plot(p, z, color=cores[j], label=f"{tm} min")
-        ax[0].plot(kh[j, 1], 1.0, "o", mfc="none", color=cores[j], ms=4)
-        ax[0].plot(kh[j, 2], 0.5, "o", mfc="none", color=cores[j], ms=4)
         z, a = perfil(pa_, "snaps_pa.csv", tm / 60)
         ax[1].plot(a, z, color=cores[j])
-        ax[1].plot(kh[j, 3], kh[j, 4], "o", mfc="none", color=cores[j], ms=4)
     ax[0].set(xlabel="$p_w$ (kPa)", ylabel="height (m)", title="(a) water pressure, two-phase")
     ax[0].legend(frameon=False, fontsize=6, loc="lower left")
     ax[1].set(xlabel="$p_a$ (kPa)", title="(b) air pressure, two-phase")
-    # Richards e experimento
+    erros = []
     for j, (ts, tm) in enumerate(((600, 10), (1200, 20), (1800, 30))):
         c = plt.cm.plasma(0.15 + 0.3 * j)
         z, p = perfil(pp_, "snaps_pw.csv", tm / 60)
         ax[2].plot(p, z, color=c, label=f"{ts} s, passive air")
-        z, p = perfil(pa_, "snaps_pw.csv", tm / 60)
-        ax[2].plot(p, z, color=c, ls="--", lw=0.9)
         e = exp_p[np.abs(exp_p[:, 0] - ts) < 1]
+        d = np.interp(e[:, 1], z, p) - e[:, 2]
+        z2, p2 = perfil(pa_, "snaps_pw.csv", tm / 60)
+        ax[2].plot(p2, z2, color=c, ls="--", lw=0.9)
+        d2 = np.interp(e[:, 1], z2, p2) - e[:, 2]
+        erros.append((ts, np.sqrt(np.mean(d ** 2)), np.abs(d).max(), np.sqrt(np.mean(d2 ** 2)), np.abs(d2).max()))
         ax[2].plot(e[:, 2], e[:, 1], "s", mfc="none", color=c, ms=3.5)
     ax[2].set(xlabel="$p_w$ (kPa)", title="(c) water pressure vs. test")
     ax[2].legend(frameon=False, fontsize=6, loc="lower left")
+    Q = {}
     for pasta, ls, lab in ((pp_, "-", "passive air"), (pa_, "--", "two-phase")):
         h = np.loadtxt(os.path.join(pasta, "hist.csv"), delimiter=",", skiprows=1)
-        ax[3].plot(h[:, 0] * 3600, -h[:, -1] / 0.1 * 1e6, color="k", ls=ls, label=lab)
+        Q[lab] = (h[:, 0] * 3600, -h[:, -1] / 0.1 * 1e6)
+        ax[3].plot(*Q[lab], color="k", ls=ls, label=lab)
     ax[3].plot(exp_q[:, 0], exp_q[:, 1], "s", mfc="none", color="#b2182b", ms=3.5, label="test")
     ax[3].set(xlabel="t (s)", ylabel=r"outflow ($10^{-6}$ m/s)", title="(d) outflow at the base", xlim=(0, 7500))
     ax[3].legend(frameon=False, fontsize=6)
@@ -165,29 +216,16 @@ def fig_liakopoulos(R, saida):
     fig.tight_layout(w_pad=0.6)
     fig.savefig(os.path.join(saida, "liakopoulos.pdf"))
     plt.close(fig)
-    # tabela: topo e mínimo do ar no instante de cada referência
     linhas = []
-    U = np.atleast_2d(np.loadtxt(os.path.join(pa_, "snaps_uy.csv"), delimiter=","))
-    for j, tm in enumerate(tmin):
-        z, p = perfil(pa_, "snaps_pw.csv", tm / 60)
-        z2, a = perfil(pa_, "snaps_pa.csv", tm / 60)
-        z3, u = perfil(pa_, "snaps_uy.csv", tm / 60)
-        k = int(np.argmin(a))
-        linhas.append((tm, p[-1], kh[j, 1], np.interp(0.5, z, p), kh[j, 2], a[k], kh[j, 3], z2[k], kh[j, 4],
-                       u[-1] * 1e3, kh[j, 5]))
-    with open(os.path.join(saida, "tabela_liakopoulos.csv"), "w") as f:
-        f.write("t_min,pw_topo,pw_topo_ref,pw_05,pw_05_ref,pa_min,pa_min_ref,z_pamin,z_pamin_ref,uy_topo_mm,uy_ref\n")
-        for l in linhas:
-            f.write(",".join(f"{v:.3f}" for v in l) + "\n")
-    with open(os.path.join(saida, "tabela_liakopoulos.tex"), "w") as f:
-        f.write("\\begin{tabular}{rcccccccc}\n\\toprule\n")
-        f.write("$t$ & \\multicolumn{2}{c}{$p_w$ at the top (kPa)} & \\multicolumn{2}{c}{$p_w$ at 0.5 m (kPa)} & "
-                "\\multicolumn{2}{c}{min.\\ $p_a$ (kPa)} & \\multicolumn{2}{c}{settlement (mm)}\\\\\n")
-        f.write("(min) & NeoPZ & ref. & NeoPZ & ref. & NeoPZ & ref. & NeoPZ & ref.\\\\\n\\midrule\n")
-        for l in linhas:
-            f.write(f"{l[0]:.0f} & {l[1]:.2f} & {l[2]:.2f} & {l[3]:.2f} & {l[4]:.2f} & {l[5]:.2f} & {l[6]:.2f} & "
-                    f"{-l[9]:.2f} & {-l[10]:.2f}\\\\\n")
-        f.write("\\bottomrule\n\\end{tabular}\n")
+    for lab, (t, q) in Q.items():
+        e = np.interp(exp_q[:, 0], t, q) - exp_q[:, 1]
+        linhas.append((lab, "vazão RMS", np.sqrt(np.mean(e ** 2)), "máx", np.abs(e).max()))
+    tp, qp = Q["passive air"]
+    tb, qb = Q["two-phase"]
+    for ts in (600, 1200, 1800):
+        linhas.append(("razão vazão passivo/bifásico", ts, np.interp(ts, tp, qp) / np.interp(ts, tb, qb)))
+    for e in erros:
+        linhas.append(("p_w", e[0], "RMS passivo", e[1], "máx", e[2], "RMS bifásico", e[3], "máx", e[4]))
     return linhas
 
 
@@ -202,7 +240,10 @@ def fig_decomposicao(R, saida):
             continue
         I = np.array([x[0] for x in L])
         F = np.array([x[1] for x in L])
-        ax[0].plot(I, F, "o-", color=COR[k], ms=3, label=NOME[k])
+        par = np.array([x[4]["parado"] for x in L])
+        ax[0].plot(I, F, "-", color=COR[k], label=NOME[k])
+        ax[0].plot(I[~par], F[~par], "o", color=COR[k], ms=3)
+        ax[0].plot(I[par], F[par], "o", mfc="none", color=COR[k], ms=3)
         Ic, br = intensidade_critica([(x[0], x[1]) for x in L])
         if np.isfinite(Ic) and Ic > 0:
             ax[0].plot(Ic, LIMIAR, "v", color=COR[k], ms=6)
@@ -254,12 +295,20 @@ def tabela_decomposicao(R, saida):
            "ii": r"(ii) coupled, passive, $\psi=\phi'$", "ii0": r"(ii) coupled, passive, $\psi=0$",
            "i": r"(i) coupled, active, $\psi=\phi'$", "i13": r"(i) coupled, active, $\psi=\phi'/2$",
            "i0": r"(i) coupled, active, $\psi=0$"}
-    linhas = []
+    linhas, dados = [], {}
     for k in ("iii", "iv", "ii", "ii0", "i", "i13", "i0"):
         L = S[k]
         if not L:
             continue
-        Ic, (a, b) = intensidade_critica([(x[0], x[1]) for x in L])
+        L3 = [(x[0], x[1], x[4]["parado"]) for x in L]
+        ics = {d: ic_delta(L3, d) for d in DELTAS}
+        dados[k] = {"ic": {d: v[0] for d, v in ics.items()}, "L": [(x[0], x[1], x[4]["parado"], x[2], x[3]) for x in L]}
+        Ic, (a, b), _ = ics[0.01]
+        br = f"{a:g}--{b:g}" if a is not None and b is not None else ""
+        rat = f"{Ic / ks:.2f}" if Ic is not None and np.isfinite(Ic) and Ic > 0 else ""
+        sem = [x[1] for x in L if not x[4]["parado"]]
+        fmin = f"{min(sem):.3f}" if sem else ""
+
         def tempo(I):
             for x in L:
                 if abs(x[0] - I) < 1e-9:
@@ -268,100 +317,90 @@ def tabela_decomposicao(R, saida):
                         return f"{tf:.1f}$^\\dagger$"
                     return f"{tc:.1f}" if tc >= 0 else "--"
             return ""
-        if np.isinf(Ic):
-            sic, srat = f"$>{a:g}$", f"$>{a / ks:.1f}$"
-        elif Ic < 0:
-            sic, srat = f"$<{b:g}$", f"$<{b / ks:.1f}$"
-        else:
-            sic, srat = f"{Ic:.0f}", f"{Ic / ks:.2f}"
-        br = f"{a:g}--{b:g}" if a is not None and b is not None else ""
-        Ic2, (a2, b2) = intensidade_critica([(x[0], x[1]) for x in L], lim=1.02)
-        sic2 = f"{Ic2:.0f}" if np.isfinite(Ic2) and Ic2 > 0 else (f"$<{b2:g}$" if Ic2 < 0 else f"$>{a2:g}$")
-        linhas.append(f"{rot[k]} & {sic} & {br} & {srat} & {sic2} & " + " & ".join(tempo(I) for I in (36.0, 48.0, 54.0, 90.0))
-                      + "\\\\")
+        linhas.append(f"{rot[k]} & " + " & ".join(texto_ic(*ics[d]) for d in DELTAS) + f" & {br} & {rat} & {fmin} & "
+                      + " & ".join(tempo(I) for I in (36.0, 54.0, 90.0)) + "\\\\")
     with open(os.path.join(saida, "tabela_decomposicao.tex"), "w") as f:
-        f.write("\\begin{tabular}{lcccccccc}\n\\toprule\n")
-        f.write("model & $I_c$ & bracket & $I_c/k_s$ & $I_c$ & "
-                "\\multicolumn{4}{c}{time to failure (h) for $I_r$ (mm/h) $=$}\\\\\n")
-        f.write(" & (mm/h) & (mm/h) & & FS $\\le1.02$ & 36 & 48 & 54 & 90\\\\\n\\midrule\n")
+        f.write("\\begin{tabular}{lccccccccc c}\n\\toprule\n")
+        f.write("model & \\multicolumn{4}{c}{$I_{c,\\delta}$ (mm/h) for $\\delta=$} & bracket & $I_c/k_s$ & lowest & "
+                "\\multicolumn{3}{c}{time to failure (h), $I_r=$}\\\\\n")
+        f.write(" & " + " & ".join(f"{d:g}" for d in DELTAS) + " & ($\\delta=0.01$) & & min.\\ FS & 36 & 54 & 90\\\\\n"
+                "\\midrule\n")
         f.write("\n".join(linhas) + "\n\\bottomrule\n\\end{tabular}\n")
-    return linhas
+    return linhas, dados
 
 
 def generalizacao(R):
-    """I_c dos modelos (i) e (iii) por solo e lei de chi: casos do grupo G e, no f10 (iii), a Série B (iii)"""
-    art = R["artigo"]
+    """{(caso, modelo): [(I, FS mínimo, parado)]} do grupo G, da Série B (iii, f10) e das rodadas sem parada da revisão"""
+    art, rev = R["artigo"], R.get("rev")
     out = {}
-    # f10
-    for m in ("i", "iii"):
-        pares = []
-        for p in glob.glob(os.path.join(art, f"G_{m}_f10_a45_I*")):
-            if p.endswith("chise"):
+
+    def junta(chave, padrao, filtro=lambda b: True, extra=()):
+        d = {}
+        for p in glob.glob(os.path.join(art, padrao)):
+            b = os.path.basename(p)
+            if not filtro(b):
                 continue
             s = ler(p)
             if s:
-                pares.append((float(os.path.basename(p).split("_I")[1]), s["fs_min_srm"]))
-        if m == "iii":     # Série B (iii), recalculada depois das correções do avanço no tempo
-            for I in (90.0, 180.0, 360.0):
-                s = ler(os.path.join(REPO_RES, "B_passivo_desacoplado", f"f10_a45_H10_Hw5_I{I:g}"))
-                if s:
-                    pares.append((I, s["fs_min_srm"]))
-        out[("f10", m)] = sorted(pares)
-    # f50 com chi = S_e
-    for m in ("i", "iii"):
-        pares = []
-        for p in glob.glob(os.path.join(art, f"G_{m}_f50_a45_I*_chise")):
+                d[float(b.split("_I")[1].split("_")[0])] = (s["fs_min_srm"], s["parado"])
+        for I, p in extra:
             s = ler(p)
             if s:
-                pares.append((float(os.path.basename(p).split("_I")[1].split("_")[0]), s["fs_min_srm"]))
-        out[("f50_se", m)] = sorted(pares)
+                d[I] = (s["fs_min_srm"], s["parado"])
+        out[chave] = sorted((I, v[0], v[1]) for I, v in d.items())
+
+    revf = (lambda n: os.path.join(rev, n)) if rev else (lambda n: "")
+    junta(("f10", "i"), "G_i_f10_a45_I*", lambda b: not b.endswith("chise"),
+          [(140.0, revf("G_i_f10_a45_I140_semparar"))])
+    junta(("f10", "iii"), "G_iii_f10_a45_I*", lambda b: not b.endswith("chise"),
+          [(I, os.path.join(REPO_RES, "B_passivo_desacoplado", f"f10_a45_H10_Hw5_I{I:g}")) for I in (90.0, 180.0, 360.0)]
+          + [(140.0, revf("G_iii_f10_a45_I140_semparar"))])
+    junta(("f50_se", "i"), "G_i_f50_a45_I*_chise", extra=[(30.0, revf("G_i_f50_a45_I30_chise_semparar"))])
+    junta(("f50_se", "iii"), "G_iii_f50_a45_I*_chise", extra=[(54.0, revf("G_iii_f50_a45_I54_chise_semparar"))])
+    far = R["fase_ar"]
+    for modo, m in (("artigo", "iii"), ("ativo", "i")):
+        L = []
+        for I in (9, 18, 36, 80):
+            x = ler(os.path.join(far, f"f100_a63.4_H10_I{I}_{modo}_kra1e-4"))
+            if x:
+                L.append((float(I), x["fs_min_srm"], x["parado"]))
+        out[("f100_63", m)] = L
+        L = []
+        for I in (9, 36, 80):
+            x = ler(os.path.join(far, f"f100_a45_H20_I{I}_{modo}_kra1e-4"))
+            if x:
+                L.append((float(I), x["fs_min_srm"], x["parado"]))
+        out[("f100_H20", m)] = L
     return out
 
 
 def tabela_generalizacao(R, saida):
     S = series(R)
     G = generalizacao(R)
-    far = R["fase_ar"]
-
-    def ic(L):
-        if not L:
-            return "--"
-        v, (a, b) = intensidade_critica(L)
-        if np.isinf(v):
-            m = min(x[1] for x in L)
-            return f"$>{a:g}$ ({m:.3f}" + (")$^\\ast$" if m <= 1.02 else ")")
-        if v < 0:
-            return f"$<{b:g}$"
-        return f"{v:.0f}"
-
-    def g1(modo):
-        L = []
-        for I in (9, 18, 36, 80):
-            x = ler(os.path.join(far, f"f100_a63.4_H10_I{I}_{modo}_kra1e-4"))
-            if x:
-                L.append((float(I), x["fs_min_srm"]))
-        return L
-
-    def g2(modo):
-        L = []
-        for I in (9, 36, 80):
-            x = ler(os.path.join(far, f"f100_a45_H20_I{I}_{modo}_kra1e-4"))
-            if x:
-                L.append((float(I), x["fs_min_srm"]))
-        return L
-    linhas = [
-        (r"$f_{50}$, $\alpha=45^\circ$, $\chi=1$ (reference)", 36,
-         ic([(x[0], x[1]) for x in S["iii"]]), ic([(x[0], x[1]) for x in S["i"]])),
-        (r"$f_{10}$, $\alpha=45^\circ$, $\chi=1$", 360, ic(G[("f10", "iii")]), ic(G[("f10", "i")])),
-        (r"$f_{50}$, $\alpha=45^\circ$, $\chi=S_e$", 36, ic(G[("f50_se", "iii")]), ic(G[("f50_se", "i")])),
-        (r"$f_{100}$, $\alpha=63.4^\circ$, $\chi=1$", 3.6, ic(g1("artigo")), ic(g1("ativo"))),
-        (r"$f_{100}$, $\alpha=45^\circ$, $H_s=20$~m, $\chi=1$", 3.6, ic(g2("artigo")), ic(g2("ativo"))),
-    ]
+    G[("f50", "iii")] = [(x[0], x[1], x[4]["parado"]) for x in S["iii"]]
+    G[("f50", "i")] = [(x[0], x[1], x[4]["parado"]) for x in S["i"]]
+    casos = [("f50", r"$f_{50}$, $45^\circ$, $\chi=1$ (reference)", 36),
+             ("f10", r"$f_{10}$, $45^\circ$, $\chi=1$", 360),
+             ("f50_se", r"$f_{50}$, $45^\circ$, $\chi=S_e$", 36),
+             ("f100_63", r"$f_{100}$, $63.4^\circ$, $\chi=1$", 3.6),
+             ("f100_H20", r"$f_{100}$, $45^\circ$, $H_s=20$~m, $\chi=1$", 3.6)]
+    linhas = []
+    for c, rot, ks in casos:
+        cel = []
+        for m in ("iii", "i"):
+            L = G.get((c, m), [])
+            cel += [texto_ic(*ic_delta(L, d)) for d in DELTAS]
+            sem = [x[1] for x in L if not x[2]]
+            cel.append(f"{min(sem):.3f}" if sem else "")
+        linhas.append((rot, ks, cel, {m: G.get((c, m), []) for m in ("iii", "i")}))
     with open(os.path.join(saida, "tabela_generalizacao.tex"), "w") as f:
-        f.write("\\begin{tabular}{lccc}\n\\toprule\n")
-        f.write("slope and soil & $k_s$ (mm/h) & $I_c$, model (iii) & $I_c$, model (i)\\\\\n\\midrule\n")
-        for l in linhas:
-            f.write(f"{l[0]} & {l[1]:g} & {l[2]} & {l[3]}\\\\\n")
+        f.write("\\begin{tabular}{lc ccccc ccccc}\n\\toprule\n")
+        f.write(" & & \\multicolumn{5}{c}{model (iii)} & \\multicolumn{5}{c}{model (i), $\\psi=\\phi'$}\\\\\n")
+        f.write("\\cmidrule(lr){3-7}\\cmidrule(lr){8-12}\n")
+        f.write("slope and soil & $k_s$ & " + " & ".join(f"{d:g}" for d in DELTAS) + " & min.\\ FS & "
+                + " & ".join(f"{d:g}" for d in DELTAS) + " & min.\\ FS\\\\\n\\midrule\n")
+        for rot, ks, cel, _ in linhas:
+            f.write(f"{rot} & {ks:g} & " + " & ".join(cel) + "\\\\\n")
         f.write("\\bottomrule\n\\end{tabular}\n")
     return linhas
 
@@ -386,8 +425,8 @@ def fig_ar(R, saida):
     nomes = {"artigo": ("iii", "(iii) uncoupled, passive air"), "passivo": ("ii", "(ii) coupled, passive air"),
              "ativo": ("i", "(i) coupled, active air")}
     casos = {m: os.path.join(far, f"f100_a63.4_H10_I36_{m}_kra1e-4") for m in nomes}
-    if not all(os.path.exists(os.path.join(p, "summary.txt")) for p in casos.values()):
-        print("ar: casos do G1 ausentes")
+    if not all(os.path.exists(os.path.join(p, "vertices.csv")) for p in casos.values()):
+        print("ar: instantâneos do G1 ausentes (figura mantida)")
         return
     # vertical sob o meio da face (alpha = 63,4 graus, H = 10 m): x = 30 + 5/tan(alpha), y = 25
     xm = 30 + 5 / np.tan(np.radians(63.4))
@@ -452,6 +491,9 @@ def fig_malha(R, saida):
 # --------------------------------------------------------------------------------------------------- problema
 def fig_problema(R, saida):
     p = os.path.join(R["contra"], "A1c_f50_a45_Hw5_I30_tr24_psi26")
+    if not os.path.exists(os.path.join(p, "vertices.csv")):
+        print("problema: malha da rodada ausente (figura mantida)")
+        return
     V = np.loadtxt(os.path.join(p, "vertices.csv"), delimiter=",", skiprows=1)
     T = np.loadtxt(os.path.join(p, "triangles.csv"), delimiter=",", skiprows=1, dtype=int)
     fig, ax = plt.subplots(figsize=(7.0, 2.6))
@@ -477,32 +519,29 @@ def fig_problema(R, saida):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--runs", default=os.path.expanduser("~/projects/runs/resultados"))
+    p.add_argument("--runs", default=REPO_RES)
     p.add_argument("--figuras", default=os.path.normpath(os.path.join(AQUI, "..", "..", "..", "docs",
                                                                      "biot_nao_saturado", "artigo", "figuras")))
     a = p.parse_args()
     os.makedirs(a.figuras, exist_ok=True)
     R = {"artigo": os.path.join(a.runs, "artigo"), "contra": os.path.join(a.runs, "contraexemplos"),
-         "fase_ar": os.path.join(a.runs, "fase_ar")}
+         "fase_ar": os.path.join(a.runs, "fase_ar"), "rev": os.path.join(a.runs, "artigo_rev")}
     for l in fig_liakopoulos(R, a.figuras) or []:
-        print("Liakopoulos", " ".join(f"{v:.3f}" for v in l))
+        print("Liakopoulos", *[f"{v:.3f}" if isinstance(v, float) else v for v in l])
     fig_problema(R, a.figuras)
     fig_fs_tempo(R, a.figuras)
     for k, Ic, br, L in fig_decomposicao(R, a.figuras):
-        print(f"{k:4s} I_c = {Ic:.1f} entre {br}: " + "  ".join(f"{x[0]:g}:{x[1]:.3f}" for x in L))
-    for l in tabela_decomposicao(R, a.figuras):
+        print(f"{k:4s} I_c = {Ic:.1f} entre {br}: " + "  ".join(f"{x[0]:g}:{x[1]:.4f}{'*' if x[4]['parado'] else ''}"
+                                                              for x in L))
+    linhas, dados = tabela_decomposicao(R, a.figuras)
+    for l in linhas:
         print(l)
+    for k, d in dados.items():
+        print("I_c,delta", k, "  ".join(f"{dl:g}: {v:.2f}" if v is not None else f"{dl:g}: n.c." for dl, v in d["ic"].items()))
     fig_ar(R, a.figuras)
     print("malha", fig_malha(R, a.figuras))
-    for l in tabela_generalizacao(R, a.figuras):
-        print("tabela gen.", l)
-    for k, L in generalizacao(R).items():
-        print("generalização", k, intensidade_critica(L)[0] if L else None, L)
-    for p in sorted(glob.glob(os.path.join(R["artigo"], "[TA]*"))):
-        s = ler(p)
-        if s:
-            print(os.path.basename(p), f"FS ini {s['fs_ini_srm']:.4f} FS min {s['fs_min_srm']:.4f} ({s['t_min_srm']:g} h) "
-                  f"t_cruza {s['t_cruza']:.2f} t_f {s['t_fail']:g}")
+    for rot, ks, cel, L in tabela_generalizacao(R, a.figuras):
+        print("generalização", rot, cel, L)
 
 
 if __name__ == "__main__":

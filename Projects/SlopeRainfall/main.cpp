@@ -48,6 +48,10 @@
 //   swcc=liak:c,b,swr krw=liak:d,e   Liakopoulos (1965): S_w = 1 - c p_c^b (p_c in kPa), k_rw = 1 - d (1 - S_w)^e,
 //                             S_e = (S_w - swr)/(1 - swr) in k_ra
 //   with basena=1, hist.csv has the column base_m3s (water inflow through the base, m3/s per m; < 0: outflow)
+//   balanco=0                 1: hist.csv gets the columns air_in_m3s (inflow of air through the boundaries with p_a
+//                             prescribed, as volume at the atmospheric pressure, m3/s per m; < 0: outflow; 0 with
+//                             passive air) and water_bnd_m3s (inflow of water through the lateral and base boundaries
+//                             with p_w prescribed), for the global mass balances (scripts/balanco_massa.py)
 // Outputs in <out>: fs.csv, hist.csv, snaps_pw.csv, snaps_pa.csv, vertices.csv, triangles.csv, outline.csv,
 //                   summary.txt (and vtk/ if vtk=1). Figures and animations: scripts/*.py and mma/*.wl.
 #include "UnsatSlope.h"
@@ -93,6 +97,7 @@ struct Case {
     REAL parar = 0.;   ///< > 0: stop at the first FS (SRM) <= parar
     bool arbase = false, arlateral = false; ///< p_a = 0 also on the base / on the lateral boundaries
     std::vector<REAL> tsnap;                ///< extra snapshot instants (h)
+    bool balanco = false;                   ///< boundary fluxes of air and water in hist.csv (mass balances)
 };
 
 /// Geometry of Fig. 2: crest at y = 3 Hs from x = 0 to xb, toe at y = 2 Hs from xc to L
@@ -521,6 +526,7 @@ private:
         bool conv = false, settled = false;
         REAL q = 0.; // infiltration rate of the solution of the last pass, with the active set it was solved with
         REAL qbase = 0.; // inflow through the base vertices with p_w prescribed
+        REAL qair = 0., qwbnd = 0.; // inflows through the boundaries with p_a and p_w prescribed (balanco)
         for (int pass = 0; pass < 12; ++pass) {
             std::map<int64_t, REAL> fixed(fFixed), fq;
             for (auto n : ponded) fixed[fAn->WaterEq().at(n)] = 0.;
@@ -548,6 +554,17 @@ private:
             }
             qbase = 0.;
             for (auto n : fBaseW) qbase += fRw.GetVal(fAn->WaterEq().at(n), 0) / dt;
+            // reactions of the permanent Dirichlet conditions (fFixed): air on the surface (and base and lateral
+            // boundaries), water on the lateral boundaries and on the base; the residual of a mass equation at a vertex
+            // with the pressure prescribed is the inflow times dt, as for the ponded vertices above
+            qair = 0.;
+            qwbnd = 0.;
+            if (fCase.balanco) {
+                for (auto &e : fFixed) {
+                    if (!fCase.passivo && fAirEqs.count(e.first)) qair += fRw.GetVal(e.first, 0) / dt;
+                    else if (fWaterEqs.count(e.first)) qwbnd += fRw.GetVal(e.first, 0) / dt;
+                }
+            }
             if (pondedAll) {
                 settled = true;
                 break;
@@ -584,6 +601,8 @@ private:
         // infiltration of this (sub)step added to the mean rate of the step of the main loop (fStepDt)
         fInfil += q * (dt / fStepDt);
         fBaseFlow += qbase * (dt / fStepDt);
+        fAirIn += qair * (dt / fStepDt);
+        fWaterBnd += qwbnd * (dt / fStepDt);
         fAn->Accept();
         fPonded = pondedAll ? std::set<int64_t>(fAtm.begin(), fAtm.end()) : ponded;
         fDry = dry;
@@ -669,7 +688,11 @@ private:
     TPZFMatrix<STATE> fRw;
     REAL fInfil = 0., fStepDt = 1.; ///< mean infiltration (m3/s per m) of the step of the main loop and its length
     REAL fBaseFlow = 0.;            ///< mean inflow through the base (m3/s per m) of the step of the main loop
+    /// mean inflows of the step of the main loop through the boundaries with p_a prescribed (air, volume at p_atm) and
+    /// through the lateral and base boundaries with p_w prescribed (water), m3/s per m (balanco)
+    REAL fAirIn = 0., fWaterBnd = 0.;
     std::vector<int64_t> fBaseW;    ///< base vertices with p_w prescribed (basena)
+    std::set<int64_t> fAirEqs, fWaterEqs; ///< equations of p_a and of p_w (balanco)
     std::ofstream fSnapU;
     /// attempts of a step discarded (restarts from the beginning of the step), those that had accepted substeps, and
     /// (sub)steps accepted with an active set changed after the last solve
@@ -783,7 +806,9 @@ void RainfallSlope::Run() {
     std::ofstream fs(fCase.out + "/fs.csv"), hist(fCase.out + "/hist.csv");
     fs << "t_h,fs_srm,fs_gi,ponded,pa_max\n" << std::setprecision(6);
     hist << "t_h,dt_h,raining,rain_m3s,infil_m3s,ponded,pw_max,pa_max,iterations" << (fCase.basena ? ",base_m3s" : "")
-         << "\n" << std::setprecision(8);
+         << (fCase.balanco ? ",air_in_m3s,water_bnd_m3s" : "") << "\n" << std::setprecision(8);
+    for (auto &e : fAn->AirEq()) fAirEqs.insert(e.second);
+    for (auto &e : fAn->WaterEq()) fWaterEqs.insert(e.second);
 
     // initial state: hydrostatic pressures with the suction limited, weight of the soil, u = 0
     TPZFMatrix<STATE> &X = fAn->X();
@@ -890,10 +915,14 @@ void RainfallSlope::Run() {
             fDry = dry0;
             fInfil = 0.;
             fBaseFlow = 0.;
+            fAirIn = 0.;
+            fWaterBnd = 0.;
         };
         fStepDt = dt;
         fInfil = 0.;
         fBaseFlow = 0.;
+        fAirIn = 0.;
+        fWaterBnd = 0.;
         // a failure with 2 bisection levels may be numerical (Newton, active set of the rain): the step is tried
         // again with 5 levels and the real strength before it is taken as the loss of equilibrium of the slope
         bool ok = Advance(dt, rate, pondedAll, 0, tFail >= 0. ? 5 : 2);
@@ -932,6 +961,7 @@ void RainfallSlope::Run() {
         hist << th << "," << st.first << "," << st.second << "," << rain << "," << infil << "," << fPonded.size()
              << "," << pmax(1) << "," << pmax(2) << "," << fIter - it0;
         if (fCase.basena) hist << "," << fBaseFlow;
+        if (fCase.balanco) hist << "," << fAirIn << "," << fWaterBnd;
         hist << "\n";
         bool snap = std::fabs(th - std::round(th)) < 1.e-6;
         for (REAL ts : fCase.tsnap) snap = snap || std::fabs(th - ts) < 1.e-6;
@@ -978,6 +1008,7 @@ void RainfallSlope::Run() {
     if (fCase.parar > 0.) sum << "parar " << fCase.parar << "\n";
     if (fCase.arbase) sum << "arbase 1\n";
     if (fCase.arlateral) sum << "arlateral 1\n";
+    if (fCase.balanco) sum << "balanco 1\n";
     if (!fCase.na.empty()) sum << "na_pontos " << fCase.na.size() << "\n";
     if (!fCase.lateral) sum << "lateral 0\n";
     if (fCase.basena) sum << "basena 1\n";
@@ -1009,6 +1040,7 @@ int main(int argc, char *argv[]) {
         else if (is("parar=")) c.parar = std::atof(val("parar="));
         else if (is("arbase=")) c.arbase = std::atoi(val("arbase="));
         else if (is("arlateral=")) c.arlateral = std::atoi(val("arlateral="));
+        else if (is("balanco=")) c.balanco = std::atoi(val("balanco="));
         else if (is("passivo=")) c.passivo = std::atoi(val("passivo="));
         else if (is("acoplado=")) c.acoplado = std::atoi(val("acoplado="));
         else if (is("gi=")) c.gi = std::atoi(val("gi="));

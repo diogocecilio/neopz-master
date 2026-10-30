@@ -1,24 +1,16 @@
-% Seção 9: consequências para limiares de chuva
-Physically based rainfall thresholds are the critical intensities of the analyses, for a set of durations. For the
-reference slope, the usual model places the 24-h threshold at $1.3k_s$; the complete model at $0.9k_s$ with an
-associated flow rule and $0.7k_s$ without dilatancy. A threshold derived from the usual chain is thus not
-conservative: rainfalls between the two thresholds, which the usual analysis classifies as safe, bring the slope to
-failure. In a probabilistic setting, where the annual failure probability integrates the conditional probability of
-failure over the intensity--frequency distribution of the rainfall \citep[e.g.][]{tang2018}, the shift of the
-threshold changes the exceedance probability of the failure-triggering rainfall by a factor that depends on the
-local intensity--duration--frequency curve; for a 24-h rainfall, a threshold 35--46\% lower corresponds to a much
-more frequent event.
+% Seção 10: consequências para limiares de chuva
+For the reference slope and 24-h rainfalls, the critical intensity of the usual model is $1.3k_s$ and that of the
+complete model 0.8--1.0$k_s$ with an associated flow rule and $0.7k_s$ without dilatancy ($\delta=0.005$--0.02).
+A threshold derived from the usual chain is thus not conservative for this slope: rainfalls between the two
+thresholds, which the usual analysis classifies as safe, bring the complete model to failure. On an
+intensity--duration--frequency curve a lower intensity of the same duration has a shorter return period; by how much
+depends on the local curve, which is not part of this study. \citet[p.~1541]{rahardjo2007} conclude that low
+permeability prevents the failure under short rainfalls; for the $f_{100}$ slope at $63.4^\circ$ this holds in model
+(iii) but, in model (i), only with $\delta\le0.01$ (Section~\ref{sec:ar}).
 
-Two of the conclusions of \citet{rahardjo2007} change with the failure criterion and the complete model. (1) Low
-permeability does not guarantee safety under short rainfalls: the trapped air brings the $f_{100}$ slope at
-$63.4^\circ$ to limit equilibrium in 24~h, a slope that the usual analysis places 9--10\% above failure. (2) The
-limiting intensity and the lower plateau are not properties of the soil: the plateau is the FS of the slope saturated
-to its surface and can be computed directly, with a single steady-state calculation with the surface ponded, without
-simulating the rainfall; whether the slope fails depends on whether that value is below one.
-
-When is the usual model enough? The bias comes from the air sealed below a ponded surface. For rainfall intensities
-well below $k_s$ the surface does not pond before the slope fails, the air escapes and the usual model gives the
-critical intensity of the complete one (135 and 139~mm/h for the $f_{10}$ soil). The bias concentrates in the regime
-$\Ic\gtrsim k_s$, in which the surface ponds early, which is the regime of the critical intensities of the $f_{50}$
-and $f_{100}$ soils. In that regime a two-phase flow analysis on a rigid skeleton
-recovers the bias and errs on the safe side by 4--20\% (model iv); the usual single-phase seepage analysis does not.
+The bias is not uniform. It is large in the $f_{50}$ soil and on the $f_{100}$ slope at $63.4^\circ$, and small in
+the $f_{10}$ soil, although the surface ponds and the air pressure rises in all three (Sections~\ref{sec:ar} and
+\ref{sec:gen}); the reason for the difference was not established here. A two-phase flow analysis on a rigid skeleton
+(model iv) gives a critical intensity 5--6\% below that of the complete model without dilatancy and
+18--29\% below that with an associated flow rule; the usual single-phase seepage analysis gives one 85--88\% and
+40--59\% above them.

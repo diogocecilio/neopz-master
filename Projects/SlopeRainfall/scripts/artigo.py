@@ -39,10 +39,11 @@ GRUPOS = ["D", "G", "M", "T", "Ar", "L"]
 HORARIO = list(range(1, 31)) + [33, 36, 42, 48]
 JANELA = [12, 18, 20, 21, 22, 23, 24, 25, 26]
 TFS_A2 = [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 36, 48]
-# Liakopoulos (1965), propriedades de Lewis e Schrefler (1998) como em Khoei e Mohammadnejad (2011):
-# k = 4,5e-13 m2 -> k_s = k rho_w g / mu_w; S_w = 1 - 0,10152 (p_c / rho_w g)^2,4279; k_rw = 1 - 2,207 (1 - S_w)^1,0121;
-# k_ra de Brooks-Corey com lambda = 3 e S_r = 0,2; E = 1,3 MPa, nu = 0,4, n = 0,2975, rho_s = 2000 kg/m3
-LIAK = ("E=1300 nu=0.4 c=100000 phi=30 psi=30 gamma=16.7 ks=4.4127e-6 poro=0.2975 swcc=liak:3.9748e-4,2.4279,0.2 "
+# Liakopoulos (1965), propriedades de Callari e Abati (2009), Tabela 1 e Eq. 58: E = 1300 kPa, nu = 0,4, n = 0,2975,
+# rho = 1700 kg/m3, k_w = 4,5e-7 m2/(kPa s) -> k_s = 4,41e-6 m/s; S_w = 1 - 1,9722e-11 p_c^2,4279 (p_c em Pa), isto é,
+# 3,7901e-4 com p_c em kPa (a versão anterior usava 3,9748e-4, a mesma lei escrita com p_c/gamma_w e gamma_w = 9,81);
+# k_rw = 1 - 2,207 (1 - S_w)^1,0121. Ar (Callari e Abati não o modelam): k_ra de Brooks-Corey com lambda = 3 e S_r = 0,2
+LIAK = ("E=1300 nu=0.4 c=100000 phi=30 psi=30 gamma=16.7 ks=4.4127e-6 poro=0.2975 swcc=liak:3.79010e-4,2.4279,0.2 "
         "krw=liak:2.207,1.0121 chi=sw").split()
 LIAK_T = [k / 120 for k in (10, 20, 40, 60, 120, 240)]       # 5, 10, 20, 30, 60 e 120 min
 
