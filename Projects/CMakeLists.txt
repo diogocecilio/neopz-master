@@ -44,3 +44,4 @@ add_subdirectory(UnsatAirPhase)      # teste 3: agua e ar com esqueleto rigido
 add_subdirectory(UnsatCoupled)       # testes 0 e 4: Jacobiano, Terzaghi, Mandel, Liakopoulos
 add_subdirectory(UnsatSRM)           # teste 1: reducao de resistencia em solo seco
 add_subdirectory(UnsatGIM)           # teste 1: aumento de gravidade em solo seco
+add_subdirectory(LearningTherzagui)  # projeto de estudo do autor: coluna de Terzaghi
