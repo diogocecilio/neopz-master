@@ -1,0 +1,16 @@
+
+Taylor test of the consistent tangent: TPZPlasticStepVoigt<TPZYCMohrCoulombPV2>
+  general: m_type = 1  |D-D^T|/|D| = 2.34665e-15  |E| = 1.07089e-06  order p = 1.99991
+  e2 = e3: m_type = 2  |D-D^T|/|D| = 2.39879e-15  |E| = 2.01597e-06  order p = 1.90078
+  e1 = e2: m_type = 3  |D-D^T|/|D| = 2.53756e-15  |E| = 7.86087e-07  order p = 1.99994
+  tension: m_type = -1  |D-D^T|/|D| = 0  |E| = 4.60181e-13
+  general: m_type = 1  |D-D^T|/|D| = 5.69331e-15  |E| = 1.22854e-06  order p = 1.99889
+  small: m_type = 0  |D-D^T|/|D| = 0  |E| = 4.78163e-15
+
+Taylor test of the consistent tangent: TPZPlasticStepPV<TPZYCMohrCoulombPV>
+  general: m_type = 1  |D-D^T|/|D| = 1.55794e-15  |E| = 1.07089e-06  order p = 1.99991
+  e2 = e3: m_type = 1  |D-D^T|/|D| = 1.73413e-14  |E| = 1.85263e-06  order p = 2.00009
+  e1 = e2: m_type = 1  |D-D^T|/|D| = 1.22346e-15  |E| = 7.86084e-07  order p = 1.99994
+  tension: m_type = -1  |D-D^T|/|D| = 0  |E| = 1.98991e-13
+  general: m_type = 1  |D-D^T|/|D| = 1.79789e-15  |E| = 1.22854e-06  order p = 1.99889
+  small: m_type = 0  |D-D^T|/|D| = 1.70058e-16  |E| = 7.11525e-15

@@ -1,5 +1,6 @@
 \documentclass[11pt,a4paper]{article}
-% Formulação u - p_w - p_a implementada no NeoPZ, escrita a partir do código, e plano de verificação.
+% Formulação u - p_w - p_a com Mohr-Coulomb associado (Fase 1). Base: notas biot_nao_saturado_agua_ar3.tex e
+% artigo Lira Cecílio (2026, J. Eng. Math. 157:10); cada equação confrontada com o código do NeoPZ.
 % Compilar: pdflatex formulacao && pdflatex formulacao
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
@@ -8,10 +9,9 @@
 \usepackage{amsmath,amssymb,bm,mathtools}
 \usepackage{geometry}
 \usepackage{booktabs,array,longtable,multirow}
-\usepackage{graphicx}
 \usepackage{xcolor}
 \usepackage[hidelinks]{hyperref}
-\geometry{margin=2.3cm}
+\geometry{margin=2.2cm}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{4pt}
 \allowdisplaybreaks
@@ -21,597 +21,893 @@
 \newcommand{\Div}{\operatorname{div}}
 \newcommand{\dd}{\mathrm{d}}
 \newcommand{\Id}{\mathbf I}
-\newcommand{\code}[1]{\texttt{#1}}
-% referência ao código: arquivo e linhas (estado do branch claude/relaxed-volta-1r4gog em 30/10/2026)
-\newcommand{\loc}[2]{{\footnotesize[\path{#1}:#2]}}
-\newcommand{\pend}[1]{\textcolor{red}{#1}}
 \newcommand{\eps}{\boldsymbol\varepsilon}
 \newcommand{\sig}{\boldsymbol\sigma}
 \newcommand{\pabs}{p_a^{\mathrm{abs}}}
+\newcommand{\sn}{\sin\phi}
+\newcommand{\cs}{\cos\phi}
+\newcommand{\code}[1]{\texttt{#1}}
+% fontes: notas [N] e artigo [A]
+\newcommand{\nota}[1]{{\footnotesize\textsf{[N~#1]}}}
+\newcommand{\art}[1]{{\footnotesize\textsf{[A~#1]}}}
+% trecho do código: arquivo e linhas (branch claude/relaxed-volta-1r4gog, 30/10/2026)
+\newcommand{\loc}[2]{{\footnotesize[\path{#1}:#2]}}
+% discrepância entre a formulação e o código (lista na Seção \ref{sec:disc})
+\newcommand{\disc}[1]{\textcolor{red!70!black}{\textbf{\footnotesize[#1]}}}
 
-\title{Formulação $\mathbf u$--$p_w$--$p_a$ implementada no NeoPZ:\\
-equações, discretização, Mohr--Coulomb associado e plano de verificação}
-\author{Documento de trabalho escrito a partir do código}
+\title{Formulação acoplada $\mathbf u$--$p_w$--$p_a$ com Mohr--Coulomb associado\\[3pt]
+\large equações, discretização, confronto com o que o NeoPZ resolve e plano de verificação}
+\author{Documento de trabalho, Fase 1}
 \date{30 de outubro de 2026}
 
 \begin{document}
 \maketitle
 \vspace{-1.5em}
 
-\section*{Como ler este documento}
+\section*{Resumo}
 
-Cada equação foi escrita a partir do que o código faz, não a partir das notas anteriores
-(\path{docs/biot_nao_saturado/biot_nao_saturado_agua_ar5.tex}). Ao lado de cada bloco há a referência
-\loc{arquivo}{linhas} do trecho que o implementa. Onde o código difere das notas ou do artigo em preparação,
-o documento diz qual é qual e o item entra na lista da Seção~\ref{sec:pendencias}. Afirmações sobre a literatura
-só aparecem com a página do PDF de onde foram tiradas; a revisão bibliográfica (Seção~\ref{sec:revisao}) será
-preenchida com as referências que ainda serão enviadas.
+Este documento reescreve a formulação a partir de duas fontes:
+\begin{itemize}
+\item \textbf{[N]} as notas \emph{Formulação poroelástica não saturada: esqueleto deformável, água e ar}
+(\path{docs/biot_nao_saturado/biot_nao_saturado_agua_ar3.tex}), citadas por seção, \nota{§3};
+\item \textbf{[A]} o artigo de Lira Cecílio (2026), \emph{Analytical return mapping for Mohr--Coulomb plasticity in
+rotated Haigh--Westergaard space with consistent tangent operator}, J.\ Eng.\ Math.\ 157:10, citado por equação,
+\art{Eq.~57}.
+\end{itemize}
+Ao lado de cada bloco está o trecho do NeoPZ que o resolve, \loc{arquivo}{linhas}. Onde o código difere das fontes
+há uma marca \disc{D$k$}, explicada na tabela da Seção~\ref{sec:disc}.
 
-Arquivos lidos: \path{Material/Plasticity/TPZMatUnsaturatedUPwPa.h} e \path{.cpp} (material),
-\path{Material/Plasticity/TPZUnsaturatedHydraulics.h} (leis hidráulicas),
-\path{Material/Plasticity/TPZYCMohrCoulombPV2.cpp} e \path{TPZPlasticStepVoigt.cpp} (Mohr--Coulomb),
-\path{Projects/SlopeRainfall/UnsatSlope.h} (malha, análise, Newton) e \path{Projects/SlopeRainfall/main.cpp}
-(estado inicial, chuva, SRM e GIM).
+\textbf{O que foi verificado.}
+\begin{itemize}
+\item \textbf{Mohr--Coulomb.} O programa do talude usa o passo \code{TPZPlasticStepVoigt} com o critério
+\code{TPZYCMohrCoulombPV2}, a classe do artigo. As expressões do código são iguais às Tabelas~4--6 e às Eqs.~(57)--(58) do artigo. A região escolhida pelo
+código coincide com a projeção de ponto mais próximo na norma de energia em 20\,000 estados aleatórios. O operador
+tangente passa no teste de Taylor com ordem~2 (Seção~\ref{sec:mcverif}).
+\item \textbf{Balanços de massa.} Com $\chi=S_w$, $\alpha=1$ e grãos incompressíveis, os resíduos do código são as
+equações das notas discretizadas por Euler implícito. A diferença de fundo está no armazenamento: o código usa a forma
+secante $n(S_w^{n+1}-S_w^n)$, que conserva a massa de água, e as notas usam a forma em taxa $C_{\pi\beta}\Delta p_\beta$.
+\end{itemize}
+
+\textbf{Discrepâncias que mudam resultados.}
+\begin{itemize}
+\item \disc{D1} O padrão do código é $\chi=1$ constante; as notas usam $\chi=S_w$.
+\item \disc{D9} O termo de compressibilidade do ar usa $S_a^{n+1}$ no lugar de $S_a^{n}$.
+\item \disc{D14} As rodadas com $\psi<\phi$ do manuscrito usaram a classe iterativa antiga \code{TPZYCMohrCoulombPV}, e
+não o PV2 do artigo, que é só associado.
+\item \disc{D3--D5} Porosidade, permeabilidade intrínseca e peso específico são constantes no código.
+\end{itemize}
+Três decisões ficam para você antes da Fase~2 (Seção~\ref{sec:decisoes}). O plano de testes está na
+Seção~\ref{sec:plano}.
 
 \tableofcontents
 
 %======================================================================
-\section{Convenções, unidades e hipóteses}
+\section{Hipóteses, variáveis primárias e convenções}\label{sec:hip}
 %======================================================================
 
+As notas \nota{§1} adotam pequenas deformações, regime quase estático, temperatura constante e duas fases fluidas
+imiscíveis (água e ar) sem mudança de fase. O fluxo segue Darcy generalizado com permeabilidades relativas, e a
+contribuição das pressões à tensão total segue Bishop, como escolha constitutiva. As variáveis primárias são
+\begin{equation}
+\boxed{\mathbf u(\mathbf x,t),\qquad p_w(\mathbf x,t),\qquad p_a(\mathbf x,t),}\qquad
+\mathbf z=(\mathbf u,p_w,p_a).
+\end{equation}
+
+O que o código acrescenta ou fixa:
 \begin{itemize}
-\item Unidades: kN, m, s; pressões em kPa. \loc{TPZMatUnsaturatedUPwPa.h}{57--59}
-\item Tensões positivas em tração; pressões manométricas $p_w$, $p_a$ positivas em compressão;
-  $\pabs=p_a+p_{atm}$, $p_{atm}=101{,}325$~kPa. \loc{TPZMatUnsaturatedUPwPa.h}{58, 271}
-\item Deformação plana, espessura unitária. Vetor unitário da gravidade $\mathbf g=(0,-1)$.
-  \loc{TPZMatUnsaturatedUPwPa.h}{232, 274}
-\item Notação de Voigt da biblioteca: seis componentes na ordem $(xx,xy,xz,yy,yz,zz)$, com deformação
-  cisalhante de engenharia $\gamma_{xy}=\partial u_x/\partial y+\partial u_y/\partial x$; a matriz elástica
-  $\mathbf D_e$ é a de Hooke 3D com $(1-2\nu)/2$ nos termos cisalhantes.
-  \loc{TPZMatUnsaturatedUPwPa.cpp}{186--199} \loc{TPZElasticResponse.cpp}{68--87}
-\item Pequenas deformações, regime quase estático, isotermia, água e ar imiscíveis, ar ideal, sem vapor nem ar
-  dissolvido, grãos incompressíveis ($K_s\to\infty$, $\eta=0$) e coeficiente de Biot $\alpha=1$ no talude.
-  \loc{UnsatSlope.h}{185}
-\item Porosidade $n$ constante em todos os coeficientes (não há lei de evolução da porosidade no código).
-  \loc{TPZMatUnsaturatedUPwPa.cpp}{300}
+\item \textbf{Esqueleto elastoplástico.} As notas tratam o esqueleto como elástico \nota{§2, §4}. No código a tensão
+efetiva vem do Mohr--Coulomb associado do artigo (Seção~\ref{sec:mc}).
+\item \textbf{Estado plano de deformação}, com $\varepsilon_{xz}=\varepsilon_{yz}=\varepsilon_{zz}=0$; o modelo constitutivo
+trabalha com o tensor 3D e devolve $\sigma_{zz}$. \loc{TPZMatUnsaturatedUPwPa.cpp}{185--199}
+\item \textbf{Unidades e sinais.} kN, m, s; pressões em kPa. Tensões positivas em tração; $p_w$ e $p_a$ manométricas e
+positivas em compressão. $\mathbf g=(0,-1)$ é o vetor unitário da gravidade, e o peso entra por pesos específicos
+$\gamma$ em kN/m$^3$. \loc{TPZMatUnsaturatedUPwPa.h}{57--59, 274}
+\item \textbf{Deformação em Voigt com distorção de engenharia}, na ordem $xx,xy,xz,yy,yz,zz$, igual ao mapa de
+deformação do artigo \art{Eq.~22} e à matriz elástica \art{Eq.~26}. \loc{TPZElasticResponse.cpp}{68--87, 127--140}
 \end{itemize}
 
-\textbf{Variáveis primárias.} Deslocamento $\mathbf u$ (H$^1$, P2), pressão da água $p_w$ (H$^1$, P1) e pressão
-do ar $p_a$ (H$^1$, P1), valores totais (não incrementais). \loc{UnsatSlope.h}{199--221}
-
 %======================================================================
-\section{Forma forte}\label{sec:forte}
+\section{Cinemática e constantes elásticas}\label{sec:cinem}
 %======================================================================
 
-\subsection{Equilíbrio mecânico}
-
-Tensão total, tensão efetiva de Bishop e equilíbrio com o peso próprio:
+\nota{§2}, com $K$ o módulo volumétrico drenado do esqueleto (o $K$ do artigo):
 \begin{equation}
-\boxed{\sig=\sig'-\alpha\,p_B\,\Id,\qquad p_B=\chi\,p_w+(1-\chi)\,p_a,\qquad
-\Div\sig+\gamma\,\mathbf g=\mathbf 0.}
-\label{eq:equil}
+\boxed{\eps(\mathbf u)=\tfrac12\left[\nabla\mathbf u+(\nabla\mathbf u)^{\mathsf T}\right],\qquad
+\varepsilon_v=\Div\mathbf u,}
 \end{equation}
-$\sig'$ é dada pelo modelo elastoplástico (Seção~\ref{sec:mc}) em função da deformação total $\eps(\mathbf u)$ e
-da deformação plástica armazenada no ponto de integração; $\gamma$ é o peso específico do solo, constante
-(20~kN/m$^3$ no talude) ou o da mistura $(1-n)\gamma_s+nS_w\gamma_w$ se essa opção for ligada.
-\loc{TPZMatUnsaturatedUPwPa.cpp}{120--129, 260--267}
-
-\textbf{Parâmetro de Bishop.} Três opções \loc{TPZMatUnsaturatedUPwPa.cpp}{97--118}:
-\begin{align}
-\text{(a) constante na sucção:}\quad&\chi=\begin{cases}\chi_0 & p_w\le p_a\\ 1 & p_w>p_a\end{cases},
-&\chi_w&=\chi,\ \chi_a=1-\chi;\label{eq:chiconst}\\
-\text{(b) }\chi=S_w:\quad&p_B=S_wp_w+S_ap_a,
-&\chi_w&=S_w-\Gamma p_c,\ \chi_a=S_a+\Gamma p_c;\\
-\text{(c) }\chi=S_e:\quad&p_B=S_ep_w+(1-S_e)p_a,
-&\chi_w&=S_e-\tfrac{\dd S_e}{\dd S_w}\Gamma p_c,\ \chi_a=1-\chi_w,
-\end{align}
-com $p_c=p_a-p_w$, $\Gamma=\partial S_w/\partial p_w=-\dd S_w/\dd p_c\ge0$ e $\chi_\pi=\partial p_B/\partial p_\pi$
-as derivadas usadas na tangente. A opção (a) com $\chi_0=\tan\phi^b/\tan\phi'$ reproduz a envoltória de
-Fredlund et al.\ (1978) usada por Rahardjo et al.\ (2007, p.~1533): $\phi^b=\phi'$ dá $\chi_0=1$, o padrão do
-talude. Com $\chi_0\ne1$ a opção (a) é descontínua em $p_c=0$ (Seção~\ref{sec:pendencias}).
-
-\textbf{Fatores de gravidade.} No equilíbrio discreto o peso é multiplicado por $\lambda_g$ e $p_B$ por
-$\lambda_p$: no transiente $\lambda_g=\lambda_p=1$; na inicialização geostática e no SRM os dois crescem juntos;
-no GIM $\lambda_p=\lambda_g$ só onde $p_B>0$ e $\lambda_p=1$ onde $p_B<0$ (a sucção não é escalada,
-Seção~\ref{sec:fs}). \loc{TPZMatUnsaturatedUPwPa.cpp}{233} \loc{TPZMatUnsaturatedUPwPa.h}{200--206}
-
-\subsection{Massa de água}
-
 \begin{equation}
-\boxed{S_w\big(\alpha\,\dot\varepsilon_v+\eta\,\dot p_B\big)+\frac{nS_w}{K_w}\dot p_w+n\dot S_w+\Div\mathbf q_w=0,
-\qquad
-\mathbf q_w=-\frac{k_{rw}}{\gamma_w}\,\mathbf K\,(\nabla p_w-\gamma_w\mathbf g),}
-\label{eq:agua}
+G=\frac{E}{2(1+\nu)},\qquad \lambda=\frac{E\nu}{(1+\nu)(1-2\nu)},\qquad K=\frac{E}{3(1-2\nu)},
 \end{equation}
-com $\varepsilon_v=\operatorname{tr}\eps$ (positiva em expansão), $\eta=(\alpha-n)/K_s$ ($=0$ no talude),
-$K_w=2{,}2\times10^6$~kPa, $\gamma_w=9{,}81$~kN/m$^3$ e $\mathbf K$ o tensor de condutividade saturada (m/s),
-$\mathbf K=\mathbf R(\theta)\operatorname{diag}(k_1,k_2)\mathbf R^{\mathsf T}$ (isótropo: $k_1=k_2=k_s$).
-O termo de gradiente de massa específica da água, $\mathbf q_w\cdot\nabla p_w/K_w$, não está no código.
-\loc{TPZMatUnsaturatedUPwPa.cpp}{300--329} \loc{TPZMatUnsaturatedUPwPa.h}{165--170}
-
-\subsection{Massa de ar}
-
-Balanço de massa do ar dividido por $\rho_a\propto\pabs$ (gás ideal isotérmico):
 \begin{equation}
-\boxed{S_a\big(\alpha\,\dot\varepsilon_v+\eta\,\dot p_B\big)-n\dot S_w+\frac{nS_a}{\pabs}\dot p_a
-+\Div\mathbf q_a+\frac{\mathbf q_a\cdot\nabla p_a}{\pabs}=0,
-\qquad
-\mathbf q_a=-\frac{k_{ra}}{\gamma_w}\frac{\mu_w}{\mu_a}\,\mathbf K\,(\nabla p_a-\gamma_a\mathbf g),}
-\label{eq:ar}
+\boxed{\alpha=1-\frac{K}{K_s},\qquad \eta=\frac{\alpha-n}{K_s}.}
 \end{equation}
-com $S_a=1-S_w$, $\mu_w/\mu_a=10^{-3}/1{,}8\times10^{-5}=55{,}6$ e $\gamma_a=1{,}2\times9{,}81\times10^{-3}$~kN/m$^3$.
-O último termo do lado esquerdo é $\rho_a^{-1}\Div(\rho_a\mathbf q_a)-\Div\mathbf q_a$; no código ele aparece como
-$-\Delta t\,c_a\lambda_a\,(\mathbf K\mathbf h_a)\cdot\nabla p_a$ com $c_a=1/\pabs$ e
-$\mathbf h_a=\nabla p_a-\gamma_a\mathbf g$. \loc{TPZMatUnsaturatedUPwPa.cpp}{320--330}
-O mesmo termo é o $(\dot{\mathbf w}^g/\rho_g)\cdot\nabla\rho_g$ da Eq.~35 de Ghorbani et al.\ (2018, p.~11 do
-manuscrito) e o último termo da Eq.~36 de Li et al.\ (1999, p.~139), ambos obtidos de um balanço com
-$\rho_g$ dentro do divergente (Li et al.\ 1999, Eq.~33).
+As notas admitem $\alpha(n(\mathbf z))$. O código usa $\alpha$ e $K_s$ constantes e, no talude, $\alpha=1$ com grãos
+incompressíveis ($K_s\to\infty$, logo $\eta=0$). \loc{UnsatSlope.h}{184} \loc{TPZMatUnsaturatedUPwPa.cpp}{302--303}
+\disc{D2}
 
-\subsection{Leis hidráulicas}\label{sec:hidr}
+%======================================================================
+\section{Sucção, saturação e pressão equivalente}\label{sec:succao}
+%======================================================================
 
-Todas em \path{TPZUnsaturatedHydraulics.h} (retenção 78--99, $S_e$ 101--106, $k_{rw}$ 108--136, $k_{ra}$ 138--162); $p_c\le0$ dá $S_w=1$, $\Gamma=0$.
-\begin{align}
-\text{Fredlund--Xing ($C(\psi)=1$):}\quad&S_w=\big[\ln(e+(p_c/a)^n)\big]^{-m},\notag\\
-&\Gamma=\frac{m\,n\,(p_c/a)^{n-1}}{a\,(e+(p_c/a)^n)}\big[\ln(e+(p_c/a)^n)\big]^{-m-1};\\
-\text{van Genuchten:}\quad&S_e=[1+(a_{VG}p_c)^{b_{VG}}]^{-m_{VG}},\ m_{VG}=1-1/b_{VG},\notag\\
-&S_w=S_{wr}+(1-S_{wr})S_e;\\
-\text{Liakopoulos:}\quad&S_w=1-c_Lp_c^{\,b_L}\ (\ge S_{wr});\\
-\text{$k_{rw}$ potência:}\quad&k_{rw}=S_e^{\,p},\quad S_e=\tfrac{S_w-S_{wr}}{1-S_{wr}}\ (S_{wr}=0\text{ em FX});\\
-\text{$k_{rw}$ Mualem:}\quad&k_{rw}=S_e^{1/2}\big\{1-[1-S_e^{1/m_{VG}}]^{m_{VG}}\big\}^2;\\
-\text{$k_{rw}$ Liakopoulos:}\quad&k_{rw}=1-d_L(1-S_w)^{e_L};\\
-\text{$k_{ra}$ Brooks--Corey:}\quad&k_{ra}=(1-S_e)^2\big(1-S_e^{(2+\lambda)/\lambda}\big);\\
-\text{$k_{ra}$ Mualem:}\quad&k_{ra}=(1-S_e)^{1/2}\big[1-S_e^{1/m_{VG}}\big]^{2m_{VG}}.
-\end{align}
-Limites inferiores $k_{rw}\ge10^{-12}$ e $k_{ra}\ge k_{ra}^{\min}=10^{-4}$, com derivada nula quando o limite
-atua. \loc{TPZUnsaturatedHydraulics.h}{63, 129--135, 155--161}
-No talude de Rahardjo et al.\ (2007): FX com $a=10$, 50 ou 100~kPa, $n=m=1$; $k_{rw}=S_w^4$ (Leong e Rahardjo
-1997, $k_w=k_s\Theta^p$ com $p=4$); $k_{ra}$ de Brooks--Corey com $\lambda=3$. \loc{UnsatSlope.h}{121--131}
-A forma de Brooks--Corey para o gás é a da Eq.~48 de Khoei e Saeedmonir (2021, p.~16), com $\lambda=3$ também lá.
+\nota{§3}:
+\begin{equation}
+\boxed{p_c=p_a-p_w,\qquad S_w=S_w(p_c),\qquad S_a=1-S_w,\qquad
+\Gamma=\frac{\partial S_w}{\partial p_w}=-\frac{\partial S_w}{\partial p_a}=-\frac{\dd S_w}{\dd p_c}\ge0.}
+\end{equation}
+Para $p_c\le0$, $S_w=1$ e $\Gamma=0$. \loc{TPZUnsaturatedHydraulics.h}{78--83}
 
-\subsection{Condições de contorno e iniciais do talude}\label{sec:cc}
-
+\textbf{Curvas de retenção do código} \loc{TPZUnsaturatedHydraulics.h}{78--99}:
 \begin{itemize}
-\item \textbf{Deslocamentos:} base fixa ($u_x=u_y=0$); laterais em rolete ($u_x=0$). Sem trações.
-  \loc{UnsatSlope.h}{525--533}
-\item \textbf{Água:} hidrostática nas laterais abaixo do lençol (\code{lateral=1}) e impermeável acima; base
-  impermeável (ou carga do lençol prescrita com \code{basena=1}). Na superfície (crista, face e pé) a condição
-  unilateral da chuva: em cada vértice, ou $p_w=0$ (alagado) com entrada $\le$ chuva, ou entrada igual à chuva
-  com $p_w\le0$; a chuva $I_r$ é aplicada na projeção horizontal da superfície, metade do comprimento a cada
-  vértice da aresta. \loc{main.cpp}{355--401, 523--610}
-\item \textbf{Ar:} $p_a=0$ na superfície; base e laterais fechadas ao ar (abertas com \code{arbase=1},
-  \code{arlateral=1}); ar passivo: $p_a=0$ em todo o domínio (todas as equações do ar eliminadas).
-  \loc{main.cpp}{391--400}
-\item \textbf{Estado inicial:} $p_w=\max\{\gamma_w(z_{NA}-y),\,-s_{\max}\}$ com $s_{\max}=75$~kPa
-  (Rahardjo et al.\ 2007, p.~1535), $p_a=0$; o peso próprio é aplicado em quatro incrementos com as pressões
-  congeladas e os deslocamentos são zerados mantendo as tensões (Seção~\ref{sec:fs}).
-  \loc{main.cpp}{404--410, 421--430, 813--851}
+\item van Genuchten, igual às notas \nota{§3}: $S_e=[1+(a_{\mathrm{VG}}p_c)^{b_{\mathrm{VG}}}]^{-m_{\mathrm{VG}}}$,
+$m_{\mathrm{VG}}=1-1/b_{\mathrm{VG}}$, $S_w=S_{wr}+(1-S_{wr})S_e$, com o mesmo $\Gamma$ das notas;
+\item Fredlund--Xing com fator de correção $C(\psi)=1$: $S_w=[\ln(e+(p_c/a)^n)]^{-m}$;
+\item Liakopoulos: $S_w=1-c_L\,p_c^{\,b_L}$, limitada a $S_{wr}$.
+\end{itemize}
+O padrão do programa do talude é Fredlund--Xing, e não van Genuchten. \loc{UnsatSlope.h}{121--131} \disc{D7}
+
+\textbf{Pressão equivalente.} As notas fixam $\chi=S_w$ \nota{§1, §3}:
+\begin{equation}
+\boxed{p_B=S_wp_w+S_ap_a=p_a-S_wp_c.}
+\label{eq:pB}
+\end{equation}
+O código admite três leis \loc{TPZMatUnsaturatedUPwPa.cpp}{97--118}:
+\begin{equation}
+p_B=\chi p_w+(1-\chi)p_a,\qquad
+\chi=\begin{cases}
+S_w & \text{(notas)},\\
+S_e=(S_w-S_{wr})/(1-S_{wr}),\\
+\chi_0 \text{ se } p_w\le p_a,\quad 1 \text{ se } p_w>p_a & \text{(padrão, com } \chi_0=1).
+\end{cases}
+\end{equation}
+Com o padrão, $p_B=p_w$ em toda a zona não saturada ($\phi^b=\phi'$).
+\loc{TPZMatUnsaturatedUPwPa.h}{275--276} \loc{UnsatSlope.h}{114--115} \disc{D1}
+
+\textbf{Coeficientes de Bishop tangentes} \nota{§13.4}, usados no Jacobiano:
+\begin{equation}
+\boxed{\chi_w=\frac{\partial p_B}{\partial p_w}=S_w-\Gamma p_c,\qquad
+\chi_a=\frac{\partial p_B}{\partial p_a}=S_a+\Gamma p_c,\qquad \chi_w+\chi_a=1.}
+\end{equation}
+O código calcula exatamente estes valores com $\chi=S_w$. Com $\chi=S_e$ usa
+$\chi_w=S_e-(\dd S_e/\dd S_w)\,\Gamma p_c$. Com $\chi$ constante usa $\chi_w=\chi$, que salta de $\chi_0$ para 1 em
+$p_c=0$ quando $\chi_0\neq1$. \loc{TPZMatUnsaturatedUPwPa.cpp}{100--116}
+
+%======================================================================
+\section{Equilíbrio mecânico}\label{sec:equil}
+%======================================================================
+
+\nota{§4}, tração positiva:
+\begin{equation}
+\boxed{\Div\sig+\rho_b\mathbf g=\mathbf0,\qquad \sig=\sig'-\alpha\,p_B\,\Id.}
+\end{equation}
+As notas escrevem a forma elástica incremental $\sig=\sig_0+2G\eps+\lambda\varepsilon_v\Id-\alpha(p_B-p_{B0})\Id$. No
+código, $\sig'$ é a saída do Mohr--Coulomb (Seção~\ref{sec:mc}) para a deformação total medida a partir do estado
+inicial, e $p_B$ entra com seu valor total. As duas escritas coincidem porque o estado inicial é calculado pelo próprio
+modelo (Seção~\ref{sec:cc}). O carregamento geostático equilibra o peso com as pressões iniciais; depois os
+deslocamentos são zerados sem alterar $\sig'$ ($\eps^p\leftarrow\eps^p-\eps$, $\eps\leftarrow\mathbf0$). Logo
+$\sig_0=\sig'_0-\alpha p_{B0}\Id$. \loc{TPZMatUnsaturatedUPwPa.cpp}{430--438}
+
+\textbf{Resíduo do equilíbrio no código} \loc{TPZMatUnsaturatedUPwPa.cpp}{254--267}:
+\begin{equation}
+\mathbf R_u=\int_\Omega\mathbf B_u^{\mathsf T}\sig'\,\dd\Omega
+-\lambda_p\,\alpha\int_\Omega\mathbf B_u^{\mathsf T}\mathbf m\,p_B\,\dd\Omega
+-\lambda_g\int_\Omega\mathbf N_u^{\mathsf T}\gamma\,\mathbf g\,\dd\Omega-\mathbf f_t .
+\label{eq:Ru}
+\end{equation}
+Os fatores $\lambda_g$ (peso) e $\lambda_p$ (pressão equivalente) não existem nas notas:
+\begin{itemize}
+\item no transiente, $\lambda_g=\lambda_p=1$;
+\item no carregamento geostático, $\lambda_p=\lambda_g$ cresce de 0 a 1 junto com o peso;
+\item no fator de segurança por aumento de gravidade, $\lambda_p=\lambda_g$ onde $p_B>0$ e $\lambda_p=1$ onde $p_B<0$: a
+sucção não é escalada (Seção~\ref{sec:fs}). \loc{TPZMatUnsaturatedUPwPa.cpp}{232--233}
 \end{itemize}
 
-\subsection{Submodelos}\label{sec:submodelos}
+\textbf{Peso.} As notas usam a massa específica da mistura, $\rho_b=(1-n)\rho_s+n(S_w\rho_w+S_a\rho_a)$ \nota{§4}. O
+código usa por padrão $\gamma$ constante, 20~kN/m$^3$. Como opção, usa $\gamma=(1-n)\gamma_s+nS_w\gamma_w$, sem o
+peso do ar e com $n$ constante. \loc{TPZMatUnsaturatedUPwPa.cpp}{120--129} \disc{D5}
 
+%======================================================================
+\section{Lei de Darcy e permeabilidades}\label{sec:darcy}
+%======================================================================
+
+\nota{§5}:
+\begin{equation}
+\boxed{\mathbf q_\pi=-\lambda_\pi\,(\nabla p_\pi-\rho_\pi\mathbf g),\qquad
+\lambda_\pi=\frac{\kappa\,k_{r\pi}}{\mu_\pi},\qquad \pi\in\{w,a\}.}
+\end{equation}
+O código escreve as mobilidades com a condutividade saturada $k_s$ (m/s) e o peso específico da água
+\loc{TPZMatUnsaturatedUPwPa.cpp}{313--322}:
+\begin{equation}
+\mathbf q_w=-\frac{k_{rw}}{\gamma_w}\,\mathbf K(\nabla p_w-\gamma_w\mathbf g),\qquad
+\mathbf q_a=-\frac{\mu_w}{\mu_a}\,\frac{k_{ra}}{\gamma_w}\,\mathbf K(\nabla p_a-\gamma_a\mathbf g),\qquad
+\mathbf K=k_s\Id .
+\label{eq:darcycod}
+\end{equation}
+É a forma das notas com $\kappa=k_s\mu_w/\gamma_w$ e $\rho_\pi\mathbf g=\gamma_\pi\mathbf g$. O tensor anisotrópico
+$\mathbf K=\mathbf R(\theta)\operatorname{diag}(k_1,k_2)\mathbf R(\theta)^{\mathsf T}$ é uma opção que as notas não têm.
+\loc{TPZMatUnsaturatedUPwPa.h}{159--170}
+
+Diferenças: as notas fazem $\kappa(n)$ variar com a porosidade (Kozeny--Carman), e no código $\mathbf K$ é constante
+\disc{D4}; o peso específico do ar $\gamma_a$ é constante (1,2~kg/m$^3$) e não $\rho_a(p_a)\,g$ \disc{D6}.
+
+\textbf{Permeabilidades relativas} \loc{TPZUnsaturatedHydraulics.h}{108--162}:
 \begin{center}\small
-\begin{tabular}{lll}
+\begin{tabular}{@{}p{0.09\linewidth}p{0.33\linewidth}p{0.52\linewidth}@{}}
 \toprule
-modelo & opções & efeito no código\\
+& notas \nota{§5, §13.9} & código (\textbf{padrão do talude} em negrito)\\
 \midrule
-(i) completo & \code{acoplado=1 passivo=0} & Eqs.~\eqref{eq:equil}--\eqref{eq:ar}\\
-(ii) acoplado, ar passivo & \code{passivo=1} & $p_a\equiv0$, Eq.~\eqref{eq:ar} não montada\\
-(iii) desacoplado, ar passivo & \code{acoplado=0 passivo=1} & $\alpha\to0$, $\eta\to0$ nas Eqs.~\eqref{eq:agua}--\eqref{eq:ar}\\
-(iv) desacoplado, ar ativo & \code{acoplado=0 passivo=0} & idem, com a Eq.~\eqref{eq:ar}\\
+água & Mualem: $S_e^{1/2}\{1-[1-S_e^{1/m}]^{m}\}^2$ & Mualem, igual às notas; \textbf{potência $S_e^{4}$}; Liakopoulos\\
+ar & Mualem: $(1-S_e)^{1/2}[1-S_e^{1/m}]^{2m}$ & Mualem, igual às notas; \textbf{Brooks--Corey
+$(1-S_e)^2(1-S_e^{(2+\lambda)/\lambda})$, $\lambda=3$}\\
+limites & $k_{ra}\ge k_{ra}^{\min}$ como opção & $k_{rw}\ge10^{-12}$ e $k_{ra}\ge10^{-4}$, com derivada nula no limite\\
 \bottomrule
 \end{tabular}
 \end{center}
-\loc{main.cpp}{391--392} \loc{TPZMatUnsaturatedUPwPa.cpp}{302--303}
-Nos modelos desacoplados o equilíbrio continua usando as pressões (acoplamento de uma via); o transiente
-mecânico é resolvido com a resistência aumentada ($F=0{,}25$) só para manter o equilíbrio, e a estabilidade
-vem das análises de FS. Com \code{mecanica=0} os deslocamentos ficam fixos no transiente.
-\loc{main.cpp}{822--824, 853--855}
-Solo seco: não há opção direta; equivale a congelar $p_w=p_a=0$ em todo o domínio, o que se obtém com
-\code{smax=0} e o lençol abaixo da base (\code{na=...}) com \code{passivo=1}, ou com o projeto
-\path{Projects/SlopeMohrCoulomb}, que usa o mesmo modelo constitutivo sem fluidos (Seção~\ref{sec:plano}).
+\disc{D7}
+
+%======================================================================
+\section{Compressibilidade e massa específica dos fluidos}\label{sec:fluidos}
+%======================================================================
+
+\nota{§6}: $\rho_w=\rho_{w0}\exp[(p_w-p_{w0})/K_w]$; para o ar ideal isotérmico, $\rho_a\propto\pabs$ e $K_a=\pabs$, com
+$\pabs=p_a+p_{\mathrm{atm}}$. O termo de transporte normalizado se expande como \nota{§13.2}
+\begin{equation}
+\frac{1}{\rho_\pi}\Div(\rho_\pi\mathbf q_\pi)=\Div\mathbf q_\pi+c_\pi\,\mathbf q_\pi\cdot\nabla p_\pi,\qquad
+c_w=\frac1{K_w},\qquad c_a=\frac1{\pabs}.
+\end{equation}
+No código \loc{TPZMatUnsaturatedUPwPa.cpp}{320--330}:
+\begin{itemize}
+\item a compressibilidade da água entra só pelo armazenamento $nS_w\Delta p_w/K_w$; o termo $c_w\,\mathbf q_w\cdot\nabla p_w$
+não existe, como as próprias notas admitem \nota{§13.4};
+\item o ar entra pelo armazenamento $nS_a\Delta p_a/\pabs$ e pelo termo $c_a\,\mathbf q_a\cdot\nabla p_a$, completo e com
+derivada no Jacobiano;
+\item $K_w=2{,}2\times10^6$~kPa e $p_{\mathrm{atm}}=101{,}325$~kPa. \loc{TPZMatUnsaturatedUPwPa.h}{269--271}
+\end{itemize}
+
+%======================================================================
+\section{Armazenamento e acoplamento entre as fases}\label{sec:armaz}
+%======================================================================
+
+\nota{§7}, com $D_w=n-\eta S_wp_c$ e $D_a=-n-\eta S_ap_c$:
+\begin{equation}
+\boxed{\begin{aligned}
+B_w&=\alpha S_w, & B_a&=\alpha S_a,\\
+C_{ww}&=\eta S_w^2+\frac{nS_w}{K_w}+D_w\Gamma, & C_{wa}&=\eta S_wS_a-D_w\Gamma,\\
+C_{aw}&=\eta S_aS_w+D_a\Gamma, & C_{aa}&=\eta S_a^2+\frac{nS_a}{\pabs}-D_a\Gamma,
+\end{aligned}}
+\end{equation}
+que vêm de $\dot\zeta_i=S_i(\alpha\dot\varepsilon_v+\eta\dot p_B)+n\dot S_i+(nS_i/K_i)\dot p_i$, $i\in\{w,a\}$.
+
+O código usa os mesmos termos, com $\eta\,\Delta p_B$ calculado como diferença secante $p_B^{n+1}-p_B^n$, que já
+contém a parcela $(p_w-p_a)\Delta S_w$. \loc{TPZMatUnsaturatedUPwPa.cpp}{301--312} Com os valores do talude
+($\alpha=1$, $\eta=0$, logo $D_w=n$ e $D_a=-n$):
+\begin{equation}
+B_w=S_w,\quad B_a=S_a,\quad
+C_{ww}=\frac{nS_w}{K_w}+n\Gamma,\quad C_{wa}=C_{aw}=-n\Gamma,\quad C_{aa}=\frac{nS_a}{\pabs}+n\Gamma.
+\label{eq:Creduzido}
+\end{equation}
+O acoplamento $B_w=\alpha S_w$ do balanço de massa não depende do $\chi$ escolhido para a tensão. Com $\chi=S_w$ é o par
+derivado nas notas. Com o padrão $\chi=1$, o equilíbrio usa $\chi_w=1$ e a massa usa $S_w$ \disc{D1}.
+
+%======================================================================
+\section{Balanços de massa e sistema acoplado}\label{sec:sistema}
+%======================================================================
+
+\nota{§8, §10}:
+\begin{equation}
+\boxed{\begin{aligned}
+\Div\sig+\rho_b\mathbf g&=\mathbf0,\\
+B_w\dot\varepsilon_v+C_{ww}\dot p_w+C_{wa}\dot p_a+\Div\mathbf q_w+c_w\,\mathbf q_w\cdot\nabla p_w&=s_w,\\
+B_a\dot\varepsilon_v+C_{aw}\dot p_w+C_{aa}\dot p_a+\Div\mathbf q_a+c_a\,\mathbf q_a\cdot\nabla p_a&=s_a.
+\end{aligned}}
+\label{eq:sistema}
+\end{equation}
+
+\textbf{Porosidade.} As notas fecham $n=n_0+(\alpha_0-n_0)\varepsilon_v+(\alpha_0-n_0)(p_B-p_{B0})/K_s$ em primeira
+ordem \nota{§9}. O código mantém $n=n_0$ em todos os coeficientes; a variação do volume dos poros entra só pelo termo
+$B_\pi\dot\varepsilon_v$. \loc{TPZMatUnsaturatedUPwPa.cpp}{300} \disc{D3}
+
+\textbf{Limite saturado} \nota{§12}. Com $S_w=1$ e $\Gamma=0$, a equação da água fica
+$\alpha\dot\varepsilon_v+(n/K_w)\dot p_w+\Div\mathbf q_w=0$ (com $\eta=0$), que é Biot saturado. O código reproduz
+esse limite pela Eq.~\eqref{eq:Creduzido}.
+
+\textbf{Desaparecimento do ar.} Quando $S_a\to0$, $C_{aa}$ e $\mathbf H_a$ tendem a zero \nota{§13.9}. O código adota a
+primeira saída das notas, $k_{ra}\ge k_{ra}^{\min}=10^{-4}$, e mantém $p_a$ como incógnita em todo o domínio. Na zona
+saturada a equação do ar vira uma difusão com mobilidade mínima. \loc{TPZUnsaturatedHydraulics.h}{155--161}
+
+%======================================================================
+\section{Condições de contorno e estado inicial do talude}\label{sec:cc}
+%======================================================================
+
+As notas dão a forma geral (Dirichlet e Neumann) \nota{§13.1}. No exemplo da barragem, a face de percolação é a
+complementaridade $p_w\le0$, $\mathbf q_w\cdot\mathbf n\ge0$, $p_w\,(\mathbf q_w\cdot\mathbf n)=0$ \nota{§16}. O programa
+do talude usa \loc{main.cpp}{355--401}:
+\begin{itemize}
+\item \textbf{Superfície (crista, face e pé): chuva unilateral por conjunto ativo.} Cada vértice recebe a chuva $I$ na
+projeção horizontal, metade de cada aresta vizinha. Quando $p_w$ chega a zero o vértice passa a ter $p_w=0$ prescrita,
+e volta a receber fluxo quando a vazão que entra por ele excede a chuva. É a complementaridade das notas com a chuva no
+lugar do fluxo nulo: $p_w\le0$, $q_{\mathrm{in}}\le I$, $p_w\,(I-q_{\mathrm{in}})=0$. A mesma estrutura está nas
+Eqs.~(23)--(25) de Pedroso (2015, p.~6). Até 12 passagens por passo. \loc{main.cpp}{523--610}
+\item \textbf{Ar.} Modelo ativo: $p_a=0$ em todos os vértices da superfície, inclusive os alagados. Modelo passivo:
+$p_a=0$ em todo o domínio. Base e laterais são impermeáveis ao ar, salvo opção. \loc{main.cpp}{391--399}
+\item \textbf{Água.} Pressão hidrostática prescrita nas laterais abaixo do nível d'água; base impermeável.
+\loc{main.cpp}{378--390}
+\item \textbf{Deslocamentos.} Base fixa e laterais com rolete. \loc{UnsatSlope.h}{525--532}
+\item \textbf{Estado inicial.} $p_w$ hidrostática abaixo do nível d'água e sucção limitada a $s_{\max}=75$~kPa acima;
+$p_a=0$. O peso é aplicado em quatro incrementos com as pressões congeladas; se não convergir com a resistência real, é
+aplicado com resistência aumentada ($F_0=0{,}6$) e a resistência é reduzida de volta. Depois $\mathbf u=\mathbf0$ sem
+mudar $\sig'$. \loc{main.cpp}{404--410, 813--851}
+\end{itemize}
+O campo inicial de pressões não é estacionário: a sucção limitada a 75~kPa não é solução do fluxo sem chuva \disc{D16}.
+Com $p_a=0$ fixo na superfície alagada, o aprisionamento do ar depende de $k_{ra}\to k_{ra}^{\min}$ na camada saturada
+\disc{D17}.
+
+%======================================================================
+\section{Mohr--Coulomb associado na forma do artigo}\label{sec:mc}
+%======================================================================
+
+Esta seção segue o artigo \art{Seções 2--4}. A projeção está em \path{Material/Plasticity/TPZYCMohrCoulombPV2.cpp}; o
+passo plástico e a tangente, em \path{Material/Plasticity/TPZPlasticStepVoigt.cpp}.
+
+\subsection{Critério e setor ordenado}
+Com $\sigma_1\ge\sigma_2\ge\sigma_3$ e tração positiva, só três dos seis planos podem estar ativos
+\art{Eqs.~44, 45, 49}:
+\begin{equation}
+\begin{aligned}
+\Phi_1&=(\sigma_1-\sigma_3)+(\sigma_1+\sigma_3)\sn-2c\cs,\\
+\Phi_2&=(\sigma_2-\sigma_3)+(\sigma_2+\sigma_3)\sn-2c\cs,\\
+\Phi_6&=(\sigma_1-\sigma_2)+(\sigma_1+\sigma_2)\sn-2c\cs.
+\end{aligned}
+\end{equation}
+\loc{TPZYCMohrCoulombPV2.cpp}{46--53}. As tensões principais chegam ordenadas: \code{TPZTensor} calcula os autovalores
+pela fórmula trigonométrica e para se a ordem falhar. \loc{Matrix/TPZTensor.h}{1657--1674}
+
+\subsection{Espaços de Haigh--Westergaard (HW) e HW rotacionado (RHW)}
+\art{Eqs.~1--14}: $\xi=I_1/\sqrt3$, $\rho=\sqrt{2J_2}$ e
+$\beta=\tfrac13\arccos\!\big(\tfrac{3\sqrt3}{2}J_3/J_2^{3/2}\big)\in[0,\pi/3]$, com
+\begin{equation}
+\sig^*=\begin{bmatrix}\xi\\ \rho\cos\beta\\ \rho\sin\beta\end{bmatrix}=\mathbf R\,\sig,\qquad
+\mathbf R=\begin{bmatrix}\tfrac1{\sqrt3}&\tfrac1{\sqrt3}&\tfrac1{\sqrt3}\\[2pt]
+\sqrt{\tfrac23}&-\tfrac1{\sqrt6}&-\tfrac1{\sqrt6}\\[2pt]
+0&\tfrac1{\sqrt2}&-\tfrac1{\sqrt2}\end{bmatrix},
+\end{equation}
+\begin{equation}
+\mathbf D_{RHW}=\mathbf R\,\mathbf D_{HW}\mathbf R^{\mathsf T}=\operatorname{diag}(3K,\,2G,\,2G).
+\end{equation}
+Nesta base a resposta elástica é diagonal e a parte hidrostática se separa da desviadora.
+
+\subsection{Projeção de ponto mais próximo na norma de energia}
+\art{Eqs.~15--18}: o estado projetado é o ponto admissível mais próximo da tentativa elástica na norma de energia
+complementar,
+\begin{equation}
+\sig^*_{\mathrm{proj}}=\arg\min_{\Phi(\sig^*)\le0}\ \big\|\sig^*_{\mathrm{trial}}-\sig^*\big\|_{RHW},\qquad
+\|\sig^*\|_{RHW}^2=\sig^{*\mathsf T}\mathbf D_{RHW}^{-1}\sig^*.
+\end{equation}
+Na face principal, $\Phi_1=0$ elimina $\xi$ \art{Eq.~52}:
+\begin{equation}
+\xi(\rho,\beta)=\frac{12c\cs-\sqrt6\,\rho(3+\sn)\cos\beta+3\sqrt2\,\rho(\sn-1)\sin\beta}{4\sqrt3\,\sn},
+\end{equation}
+e a projeção é o ponto estacionário da distância em $(\rho,\beta)$ \art{Eqs.~53--55}. Como a superfície é poliédrica no
+setor, o mínimo está no interior da face principal ou em uma das arestas, o que permite a atualização em forma fechada.
+
+\subsection{Atualização em forma fechada e escolha da região}\label{sec:mccand}
+\art{Seção~4.4}, implementada em \code{ProjectSigma} \loc{TPZYCMohrCoulombPV2.cpp}{265--316}:
+\begin{enumerate}
+\item \textbf{Elástico} se $\Phi_1(\sig_{\mathrm{trial}})\le0$ \art{Eq.~56}. (linhas 274--281)
+\item \textbf{Face principal} \art{Eqs.~57--58}:
+\begin{equation}
+\begin{gathered}
+\sigma_i^{\mathrm{proj}}=\frac{(\sigma_1+\sigma_3)A_{i1}+(\sigma_1-\sigma_3)A_{i2}+(\sigma_1+\sigma_2)A_{i3}+A_{i4}}{\mathcal D},\\
+\Big[\frac{\partial\sigma_i^{\mathrm{proj}}}{\partial\sigma_1},\ \frac{\partial\sigma_i^{\mathrm{proj}}}{\partial\sigma_2},\
+\frac{\partial\sigma_i^{\mathrm{proj}}}{\partial\sigma_3}\Big]=\frac1{\mathcal D}
+\big[A_{i1}+A_{i2}+A_{i3},\ \ A_{i3},\ \ A_{i1}-A_{i2}\big],
+\end{gathered}
+\label{eq:mcproj}
+\end{equation}
+com os coeficientes da Tabela~\ref{tab:A}. É aceita se preserva a ordem
+$\sigma_1^{\mathrm{proj}}\ge\sigma_2^{\mathrm{proj}}-\epsilon_{\mathrm{ord}}$ e
+$\sigma_2^{\mathrm{proj}}\ge\sigma_3^{\mathrm{proj}}-\epsilon_{\mathrm{ord}}$ \art{Eq.~59}. (linhas 95--138 e 284--290)
+\item \textbf{Aresta}, se a ordem falha. Direita ($\beta=0$, $\sigma_2=\sigma_3$) se
+$\chi_{\mathrm{MC}}=(1-\sn)\sigma_1-2\sigma_2+(1+\sn)\sigma_3>0$; esquerda ($\beta=\pi/3$, $\sigma_1=\sigma_2$) caso
+contrário \art{Eq.~60}. Usa as mesmas fórmulas \eqref{eq:mcproj} com os coeficientes de aresta da
+Tabela~\ref{tab:A}. (linhas 141--237 e 291--311)
+\item \textbf{Ápice} se a aresta também viola a ordem: $\sigma_i^{\mathrm{proj}}=c\cot\phi$ e
+$\partial\sig^{\mathrm{proj}}/\partial\sig=\mathbf0$ \art{Eq.~61}. (linhas 239--257 e 312--314)
+\end{enumerate}
+No código, $\epsilon_{\mathrm{ord}}=10^{-12}$ absoluto (função \code{IsZero}). \loc{Common/pzreal.h}{737--742}
+
+\begin{table}[htbp]\centering\footnotesize\setlength{\tabcolsep}{3.5pt}
+\caption{Coeficientes $A_{ij}$ e denominadores $\mathcal D$ das Tabelas~4--6 do artigo, com $s=\sn$ e $c_\phi=\cs$.
+Transcritos do artigo e conferidos contra o código (Seção~\ref{sec:mcverif}).}\label{tab:A}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}llllll@{}}
+\toprule
+região & $i$ & $A_{i1}$ & $A_{i2}$ & $A_{i3}$ & $A_{i4}$\\
+\midrule
+face & 1 & $-3G(s-1)$ & $(G+3K)(s-1)s$ & $0$ & $2cc_\phi[3Ks+G(3+s)]$\\
+principal & 2 & $G(s^2-3)-6Ks^2$ & $-3Ks(1+s)-G[3+(s-2)s]$ & $6G+2(G+3K)s^2$ & $(6K-4G)\,c\,c_\phi s$\\
+ & 3 & $3G(1+s)$ & $-(G+3K)s(1+s)$ & $0$ & $2cc_\phi[G(s-3)+3Ks]$\\
+\multicolumn{6}{@{}l}{\quad $\mathcal D_f=2[3G+(G+3K)s^2]$}\\
+\midrule
+aresta & 1 & $-\tfrac12(s-1)a$ & $\tfrac12(s-1)b$ & $-(s-1)d$ & $4cc_\phi d$\\
+direita & 2 e 3 & $\tfrac12(1+s)a$ & $-\tfrac12(1+s)b$ & $(1+s)d$ & $-2cc_\phi a$\\
+\multicolumn{6}{@{}l}{\quad $\mathcal D_d=9G+6Gs+Gs^2+12Ks^2$, \ $a=G(3+s)-6Ks$, \ $b=G(3+s)+12Ks$, \ $d=G(3+s)+3Ks$}\\
+\midrule
+aresta & 1 e 2 & $\tfrac12(s-1)a'$ & $-\tfrac12(s-1)a'$ & $(s-1)d'$ & $-2cc_\phi a'$\\
+esquerda & 3 & $-\tfrac12(1+s)a'$ & $\tfrac12(1+s)a'$ & $-(1+s)d'$ & $4cc_\phi d'$\\
+\multicolumn{6}{@{}l}{\quad $\mathcal D_e=9G-6Gs+Gs^2+12Ks^2$, \ $a'=G(s-3)-6Ks$, \ $d'=G(s-3)+3Ks$}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Reconstrução da tensão}
+\art{Eq.~62}: $\sig^{\mathrm{proj}}=\sum_i\sigma_i^{\mathrm{proj}}\,\mathbf v_i\mathbf v_i^{\mathsf T}$, com os autovetores
+$\mathbf v_i$ da tentativa. O código soma só a correção plástica,
+$\sig=\sig_{\mathrm{trial}}+\sum_i(\sigma_i^{\mathrm{proj}}-\sigma_i^{\mathrm{trial}})\,\mathbf v_i\mathbf v_i^{\mathsf T}$,
+que é a mesma tensão com menos arredondamento na parte elástica. \loc{TPZPlasticStepVoigt.cpp}{193--201}
+
+\subsection{Operador tangente consistente}\label{sec:mctan}
+\art{Eqs.~25--37 e 43}:
+\begin{equation}
+\mathbb D=\mathbb A+\mathbb R_V,\qquad
+\mathbb A=\Big(\sum_{i,j}D_{ij}\,\underline{\mathbf v}^{\sigma}_{ii}\,(\underline{\mathbf v}^{\varepsilon}_{jj})^{\mathsf T}\Big)\,\mathbb C,\qquad
+\mathbb R_V=2\sum_{i<j}\kappa_{ij}\,\underline{\mathbf s}_{ij}\,\underline{\mathbf s}_{ij}^{\mathsf T},\qquad
+D_{ij}=\frac{\partial\sigma_i^{\mathrm{proj}}}{\partial\sigma_j},
+\end{equation}
+\begin{equation}
+\kappa_{ij}=\frac{\sigma_i^{\mathrm{proj}}-\sigma_j^{\mathrm{proj}}}{\varepsilon_i-\varepsilon_j},
+\qquad\text{ou}\qquad
+\kappa_{ij}=G\,(D_{ii}-D_{ij}-D_{ji}+D_{jj})\quad\text{se } |\varepsilon_i-\varepsilon_j|<\epsilon_\kappa .
+\end{equation}
+Aqui $\underline{\mathbf v}^{\sigma}_{ii}=\mathsf V_\sigma[\mathbf v_i\otimes\mathbf v_i]$,
+$\underline{\mathbf v}^{\varepsilon}_{jj}=\mathsf V_\varepsilon[\mathbf v_j\otimes\mathbf v_j]$,
+$\underline{\mathbf s}_{ij}=\mathsf V_\sigma[\tfrac12(\mathbf v_i\mathbf v_j^{\mathsf T}+\mathbf v_j\mathbf v_i^{\mathsf T})]$, e
+$\varepsilon_i$ são as deformações elásticas principais da tentativa. O código monta $\mathbb A$ e $\mathbb R_V$ coluna a
+coluna, como a Listing~1 do artigo, com $\epsilon_\kappa=10^{-12}$; a Listing usa $10^{-15}$. No ápice, $\mathbb D=\mathbf0$.
+\loc{TPZPlasticStepVoigt.cpp}{214--282}
+
+\subsection{Redução de resistência}
+Não está no artigo. O código aplica, a uma cópia do critério, $c\to c/F$, $\tan\phi\to\tan\phi/F$ e
+$\tan\psi\to\tan\psi/F$. Como $\psi=\phi$, a regra continua associada para todo $F$.
+\loc{TPZYCMohrCoulombPV2.cpp}{75--81} \loc{TPZPlasticStepVoigt.cpp}{78--90}
+
+\subsection{Regra não associada}
+O PV2 é associado: o código para (\code{DebugStop}) se $\psi\neq\phi$, e o programa do talude recusa $\psi\neq\phi$.
+\loc{TPZYCMohrCoulombPV2.cpp}{273} \loc{UnsatSlope.h}{143--146} As rodadas com $\psi<\phi$ do manuscrito foram feitas
+com o executável \code{SlopeRainfallPV}, que troca o modelo pela classe iterativa antiga
+\code{TPZPlasticStepPV<TPZYCMohrCoulombPV>}. Nesse executável o FS por SRM é calculado com $\psi=\phi$.
+\loc{UnsatSlope.h}{40--46} \loc{Projects/SlopeRainfall/CMakeLists.txt}{6--8} \loc{main.cpp}{447--458} \disc{D14}
+
+\subsection{Verificação numérica do código contra o artigo}\label{sec:mcverif}
+
+\textbf{(a) Expressões e escolha da região.} O script \path{verificacao/verifica_pv2.py} lê as expressões C++ de
+\path{TPZYCMohrCoulombPV2.cpp} e as avalia em 20\,000 estados aleatórios, com $E\in[10^3,10^7]$~kPa,
+$\nu\in[0;\,0{,}49]$, $\phi\in[5^\circ,45^\circ]$ e $c\in[1,1000]$~kPa. A referência independente é a projeção de ponto
+mais próximo por enumeração de conjuntos ativos dos seis planos, com as condições de Karush--Kuhn--Tucker. Saída em
+\path{verificacao/verifica_pv2.txt}:
+\begin{center}\small
+\begin{tabular}{@{}lr@{}}
+\toprule
+comparação & diferença máxima\\
+\midrule
+tensões do código $\times$ Tabelas~4--6 e Eq.~57 (relativa) & $1{,}7\times10^{-15}$\\
+Jacobiano do código $\times$ Eq.~58 & $1{,}1\times10^{-15}$\\
+Jacobiano do código $\times$ diferenças centrais & $9{,}3\times10^{-10}$\\
+tensão escolhida pelo código $\times$ ponto mais próximo (relativa) & $7{,}1\times10^{-15}$\\
+\bottomrule
+\end{tabular}
+\end{center}
+Os estados caíram em todas as regiões: elástico 2660, face principal 6652, aresta esquerda 5431, aresta direita 2601,
+ápice 2656.
+
+\textbf{(b) Teste de Taylor} \art{Eqs.~63--65}, com o executável \code{SlopeMohrCoulomb check}; saída em
+\path{verificacao/taylor_check.txt}:
+\begin{center}\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+estado & região & ordem $p$ ou erro & $|\mathbb D-\mathbb D^{\mathsf T}|/|\mathbb D|$\\
+\midrule
+geral & face principal & 1,99991 & $2{,}3\times10^{-15}$\\
+$\varepsilon_2=\varepsilon_3$ & aresta direita & 1,90078 & $2{,}4\times10^{-15}$\\
+$\varepsilon_1=\varepsilon_2$ & aresta esquerda & 1,99994 & $2{,}5\times10^{-15}$\\
+tração & ápice & $|E|=4{,}6\times10^{-13}$ (exato) & 0\\
+geral & face principal & 1,99889 & $5{,}7\times10^{-15}$\\
+pequeno & elástico & $|E|=4{,}8\times10^{-15}$ (exato) & 0\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{(c) Observações sobre o texto do artigo.} Não afetam o código. As três primeiras já constavam do README de
+\path{Projects/SlopeMohrCoulomb}; a primeira e a quarta foram conferidas de novo para este documento.
+\begin{itemize}
+\item A Eq.~(54) vale 432 vezes o quadrado da distância; o minimizador não muda (razão 432,000000 em cinco estados,
+\path{verificacao/eq54.txt}).
+\item As Tabelas~4--6 imprimem ``$\sin\phi^2$'' onde deve ser $\sin^2\phi$.
+\item A Eq.~(28) deveria ter $(\underline{\mathbf v}^{\varepsilon}_{jj})^{\mathsf T}$, e não
+$(\underline{\mathbf v}^{\sigma}_{jj})^{\mathsf T}$, e é só a parte coaxial; a Eq.~(29), implementada, está correta.
+\item O texto após a Eq.~(14) diz $\mathbf D_{RHW}=\mathbf R^{\mathsf T}\mathbf D_{HW}\mathbf R$; com
+$\sig^*=\mathbf R\sig$ (Eq.~10) o correto é $\mathbf R\,\mathbf D_{HW}\mathbf R^{\mathsf T}$, que é a matriz diagonal da
+Eq.~(14). A outra ordem não dá matriz diagonal.
+\end{itemize}
 
 %======================================================================
 \section{Forma fraca}\label{sec:fraca}
 %======================================================================
 
-Funções-teste $\mathbf v$ (nulas onde $\mathbf u$ é prescrito) e $w$ (nulas onde a pressão é prescrita).
-Integrando por partes o equilíbrio e os divergentes dos fluxos, e mantendo o termo de gradiente de massa
-específica do ar sem integrar por partes:
-\begin{align}
-&\int_\Omega\eps(\mathbf v):\sig'\,\dd\Omega-\lambda_p\int_\Omega\alpha\,p_B\,\Div\mathbf v\,\dd\Omega
--\lambda_g\int_\Omega\gamma\,\mathbf g\cdot\mathbf v\,\dd\Omega-\int_{\Gamma_t}\bar{\mathbf t}\cdot\mathbf v\,\dd\Gamma=0,
-\label{eq:fraca_u}\\
-&\int_\Omega w\Big[S_w(\alpha\dot\varepsilon_v+\eta\dot p_B)+\frac{nS_w}{K_w}\dot p_w+n\dot S_w\Big]\dd\Omega
-\notag\\
-&\qquad+\int_\Omega\nabla w\cdot\lambda_w\mathbf K(\nabla p_w-\gamma_w\mathbf g)\,\dd\Omega
--\int_{\Gamma_q^w}w\,\bar q_w\,\dd\Gamma=0,
-\label{eq:fraca_w}\\
-&\int_\Omega w\Big[S_a(\alpha\dot\varepsilon_v+\eta\dot p_B)-n\dot S_w+\frac{nS_a}{\pabs}\dot p_a
-+\frac{\mathbf q_a\cdot\nabla p_a}{\pabs}\Big]\dd\Omega
-\notag\\
-&\qquad+\int_\Omega\nabla w\cdot\lambda_a\mathbf K(\nabla p_a-\gamma_a\mathbf g)\,\dd\Omega
--\int_{\Gamma_q^a}w\,\bar q_a\,\dd\Gamma=0,
-\label{eq:fraca_a}
-\end{align}
-com $\lambda_w=k_{rw}/\gamma_w$, $\lambda_a=k_{ra}(\mu_w/\mu_a)/\gamma_w$ e $\bar q_\pi$ a entrada de fluido
-por unidade de área (m/s, positiva entrando). As condições de Dirichlet não entram na forma fraca: são
-eliminadas pelo filtro de equações da análise (Seção~\ref{sec:newton}); as de fluxo entram como termo de
-contorno multiplicado por $\Delta t$. \loc{TPZMatUnsaturatedUPwPa.cpp}{395--428}
-
-Sinal da chuva: a entrada nodal de água é somada ao lado direito como $\Delta t\,q$ (m$^3$/s por metro),
-portanto o resíduo da água contém $-\Delta t\,\bar q_w$. \loc{UnsatSlope.h}{362--363} \loc{main.cpp}{534--535}
+\nota{§13.2}, com funções-teste $\mathbf v$ (nula em $\Gamma_u$) e $w$ (nula em $\Gamma_p^\pi$):
+\begin{equation}
+\int_\Omega\eps(\mathbf v):\sig\,\dd\Omega=\int_\Omega\mathbf v\cdot\rho_b\mathbf g\,\dd\Omega
++\int_{\Gamma_t}\mathbf v\cdot\bar{\mathbf t}\,\dd\Gamma,
+\end{equation}
+\begin{equation}
+\int_\Omega w\,[B_\pi\dot\varepsilon_v+C_{\pi w}\dot p_w+C_{\pi a}\dot p_a]\,\dd\Omega
+-\int_\Omega\nabla w\cdot\mathbf q_\pi\,\dd\Omega
++\int_\Omega w\,c_\pi\,\mathbf q_\pi\cdot\nabla p_\pi\,\dd\Omega
+=\int_\Omega w\,s_\pi\,\dd\Omega-\int_{\Gamma^\pi_q}w\,\bar q_\pi\,\dd\Gamma .
+\end{equation}
+O código usa esta forma com as equações de massa multiplicadas por $\Delta t$ (Seção~\ref{sec:temporal}). Duas
+convenções mudam. Nas notas $\bar q_\pi>0$ é saída; no código o fluxo prescrito (\code{EFluxW}, \code{EFluxA}) é positivo
+entrando. A chuva do talude entra como vazão nodal nas equações da água dos vértices da superfície.
+\loc{TPZMatUnsaturatedUPwPa.cpp}{413--419} \loc{UnsatSlope.h}{365} \disc{D20}
 
 %======================================================================
 \section{Discretização espacial}\label{sec:espacial}
 %======================================================================
 
-\textbf{Espaços.} Triângulos; $\mathbf u$ em P2 contínuo (6 nós), $p_w$ e $p_a$ em P1 contínuo (3 vértices):
-par de Taylor--Hood. Regra de integração de ordem 2 (3 pontos por triângulo), três itens de memória por
-elemento. \loc{UnsatSlope.h}{193, 199--221}
+As notas usam interpolações de mesma ordem (Q4 ou T3 para todos os campos) \nota{§13.3, §14} e alertam que elas violam
+a condição inf-sup no limite não drenado, recomendando Taylor--Hood \nota{§13.9}. O código usa Taylor--Hood em
+triângulos: $\mathbf u$ quadrático (T6), $p_w$ e $p_a$ lineares (T3). \loc{UnsatSlope.h}{199--203} \disc{D12}
 
-\textbf{Interpolação.} $\mathbf u=\mathbf N_u\mathbf U$, $p_\pi=\mathbf N_p\mathbf P_\pi$,
-$\eps=\mathbf B\mathbf U$ (Voigt com $\gamma_{xy}$), $\varepsilon_v=\mathbf m^{\mathsf T}\mathbf B\mathbf U$,
-em que $\mathbf m^{\mathsf T}\mathbf B$ é a linha dos divergentes das funções de forma do deslocamento
-(\code{mB}). \loc{TPZMatUnsaturatedUPwPa.cpp}{255--259, 270--276}
-
-\textbf{Armazenamento condensado nos vértices.} Os termos $n\Delta S_w$ e $nS_a\Delta p_a/\pabs$ não são
-integrados nos pontos de Gauss: para cada vértice $j$ do elemento P1,
+\textbf{Funções de forma}, em coordenadas de área $L_1,L_2,L_3$ ($L_1=1-\xi-\eta$, $L_2=\xi$, $L_3=\eta$):
 \begin{equation}
-\boxed{\langle f\rangle_j=\Big(\int_{\Omega^e}N_j\,\dd\Omega\Big)\,f\big(p_{w,j},p_{a,j};\,p_{w,j}^k,p_{a,j}^k\big),}
-\label{eq:lump}
+\begin{aligned}
+&\text{T6 }(\mathbf u): && N_i=L_i(2L_i-1)\ \ (i=1,2,3),\qquad N_4=4L_1L_2,\qquad N_5=4L_2L_3,\qquad N_6=4L_3L_1,\\
+&\text{T3 }(p_w,p_a): && N_i=L_i=\frac{a_i+b_ix+c_iy}{2A}\ \ (i=1,2,3).
+\end{aligned}
 \end{equation}
-com $f$ avaliada nos valores nodais das pressões (recuperados do campo P1 pela solução de um sistema
-$3\times3$, \code{VertexValues}) e nos valores nodais do passo anterior guardados na memória do ponto
-(\code{fPwV}, \code{fPaV}). Com a regra de 3 pontos, $\int_{\Omega^e}N_j\,\dd\Omega=A^e/3$. Há a opção não
-condensada (\code{SetLumpedStorage(false)}), em que os mesmos termos são avaliados no ponto de integração.
-\loc{TPZMatUnsaturatedUPwPa.cpp}{133--150, 236--240, 331--350}
+Os coeficientes $a_i,b_i,c_i$ e a área $A$ do T3 são os das notas \nota{§14}. Para o T6, as derivadas $N_{i,x}$ e
+$N_{i,y}$ são lineares no elemento e se obtêm de $\partial L_k/\partial x=b_k/2A$ e $\partial L_k/\partial y=c_k/2A$ (lados
+retos). As matrizes têm a estrutura geral das notas \nota{§14}:
+\begin{equation}
+\mathbf N_u=\begin{bmatrix}N_1&0&\cdots&N_6&0\\0&N_1&\cdots&0&N_6\end{bmatrix}_{2\times12},\quad
+\mathbf B_u=\begin{bmatrix}N_{1,x}&0&\cdots&N_{6,x}&0\\0&N_{1,y}&\cdots&0&N_{6,y}\\N_{1,y}&N_{1,x}&\cdots&N_{6,y}&N_{6,x}\end{bmatrix}_{3\times12},
+\end{equation}
+\begin{equation}
+\mathbf N_p=\begin{bmatrix}N_1&N_2&N_3\end{bmatrix},\qquad
+\mathbf B_p=\frac1{2A}\begin{bmatrix}b_1&b_2&b_3\\c_1&c_2&c_3\end{bmatrix},\qquad
+\mathbf m^{\mathsf T}\mathbf B_u\mathbf U^e=\varepsilon_v .
+\end{equation}
+No código, $\mathbf B_u$ tem seis linhas na ordem Voigt 3D, com as linhas $xz$, $yz$ e $zz$ nulas.
+\loc{TPZMatUnsaturatedUPwPa.cpp}{268--276} Cada elemento tem $12+3+3=18$ graus de liberdade.
+
+\textbf{Quadratura.} Regra de 3 pontos interiores, $(\xi,\eta)\in\{(\tfrac16,\tfrac16),(\tfrac23,\tfrac16),(\tfrac16,\tfrac23)\}$,
+peso $\tfrac16$, igual à das notas \nota{§14} e à do artigo \art{Seção~5.1}. \loc{UnsatSlope.h}{194} Ela integra
+exatamente polinômios de grau 2, logo $\mathbf K$, $\mathbf Q$, $\mathbf C$ consistente, $\mathbf H$ e o peso com
+coeficientes constantes; com coeficientes não lineares é aproximada.
+
+\textbf{Condensação do armazenamento.} As notas propõem $\mathbf C^{L}_{\pi\beta}=\operatorname{diag}(\int C_{\pi\beta}N_i\,\dd\Omega)$
+\nota{§14}. O código reconstrói as pressões nodais do P1 a partir do valor e do gradiente no ponto, avalia o termo de
+armazenamento com as pressões de cada vértice e o multiplica por $\int N_i\,\dd\Omega$. Só os termos de saturação e de
+compressibilidade do ar são condensados; o acoplamento e a compressibilidade da água ficam nos pontos de integração.
+Para $C_{\pi\beta}$ constante as duas formas coincidem. \loc{TPZMatUnsaturatedUPwPa.cpp}{132--150, 235--240, 335--350}
+\disc{D13}
+
+%======================================================================
+\section{Matrizes elementares e forma matricial}\label{sec:matriz}
+%======================================================================
+
+\nota{§13.4}, com a correspondência no código:
+\begin{center}\small
+\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{@{}p{0.17\linewidth}p{0.36\linewidth}p{0.41\linewidth}@{}}
+\toprule
+bloco & notas & código\\
+\midrule
+rigidez & $\mathbf K=\int\mathbf B_u^{\mathsf T}\mathbf D_T\mathbf B_u$ & $\int\mathbf B_u^{\mathsf T}\mathbb D\,\mathbf B_u$, com $\mathbb D$ da Seção~\ref{sec:mctan} (268--289)\\
+$\mathbf u\leftarrow p_\pi$ & $\mathbf Q_{u\pi}=\int\mathbf B_u^{\mathsf T}\mathbf m\,\alpha\chi_\pi\mathbf N_p$ & $\lambda_p\,\mathbf Q_{u\pi}$ (290--294)\\
+$p_\pi\leftarrow\mathbf u$ & $\mathbf Q_{\pi u}=\int\mathbf N_p^{\mathsf T}B_\pi\mathbf m^{\mathsf T}\mathbf B_u$ & igual, com $B_\pi=\alpha S_\pi$ (354--357)\\
+armazenamento & $\mathbf C_{\pi\beta}=\int\mathbf N_p^{\mathsf T}C_{\pi\beta}\mathbf N_p$ & forma secante condensada (Seção~\ref{sec:temporal})\\
+condução & $\mathbf H_\pi=\int\mathbf B_p^{\mathsf T}\lambda_\pi\mathbf B_p$ & $\int\mathbf B_p^{\mathsf T}\lambda_\pi\mathbf K\mathbf B_p$, $\lambda_\pi$ da Eq.~\eqref{eq:darcycod}\\
+forças & $\mathbf f_u=\int\mathbf N_u^{\mathsf T}\rho_b\mathbf g+\int_{\Gamma_t}\mathbf N_u^{\mathsf T}\bar{\mathbf t}$ & $\lambda_g\int\mathbf N_u^{\mathsf T}\gamma\mathbf g+\mathbf f_t$\\
+fluxos & $\mathbf f_\pi=\int\mathbf B_p^{\mathsf T}\lambda_\pi\rho_\pi\mathbf g-\int_{\Gamma_q}\mathbf N_p^{\mathsf T}\bar q_\pi$ & termo gravitacional dentro do resíduo; chuva nodal\\
+densidade & $\mathbf g_\pi=\int\mathbf N_p^{\mathsf T}c_\pi\,\mathbf q_\pi\cdot\nabla p_\pi$ & só o ar\\
+\bottomrule
+\end{tabular}
+\end{center}
+Números entre parênteses: linhas de \path{TPZMatUnsaturatedUPwPa.cpp}.
+
+\textbf{Sistema semidiscreto} \nota{§13.5}, com $\mathbf X=(\mathbf U,\mathbf P_w,\mathbf P_a)$:
+\begin{equation}
+\begin{bmatrix}\mathbf K&-\mathbf Q_{uw}&-\mathbf Q_{ua}\\
+\mathbf Q_{wu}&\mathbf C_{ww}&\mathbf C_{wa}\\
+\mathbf Q_{au}&\mathbf C_{aw}&\mathbf C_{aa}\end{bmatrix}
+\begin{Bmatrix}\dot{\mathbf U}\\ \dot{\mathbf P}_w\\ \dot{\mathbf P}_a\end{Bmatrix}
++\begin{bmatrix}\mathbf 0&\mathbf 0&\mathbf 0\\ \mathbf 0&\mathbf H_w&\mathbf 0\\ \mathbf 0&\mathbf 0&\mathbf H_a\end{bmatrix}
+\begin{Bmatrix}\mathbf U\\ \mathbf P_w\\ \mathbf P_a\end{Bmatrix}
+=\begin{Bmatrix}\dot{\mathbf f}_u\\ \mathbf f_w-\mathbf g_w\\ \mathbf f_a-\mathbf g_a\end{Bmatrix}.
+\end{equation}
+O código não usa esta forma linearizada. Resolve o resíduo não linear em $t_{n+1}$, como na §13.7 das notas.
 
 %======================================================================
 \section{Discretização temporal e resíduos discretos}\label{sec:temporal}
 %======================================================================
 
-Euler implícito: todas as grandezas no fim do passo $k+1$, $\Delta(\cdot)=(\cdot)^{k+1}-(\cdot)^{k}$,
-balanços de massa multiplicados por $\Delta t$. Abreviando $X=\alpha_c\Delta\varepsilon_v+\eta\Delta p_B$
-($\alpha_c=\alpha$ acoplado, $0$ desacoplado), $\mathbf h_w=\nabla p_w-\gamma_w\mathbf g$,
-$\mathbf h_a=\nabla p_a-\gamma_a\mathbf g$, $c_a=1/\pabs$, os resíduos de um elemento são
-\loc{TPZMatUnsaturatedUPwPa.cpp}{260--267, 327--352}:
+As notas usam o método $\theta$ e recomendam $\theta=1$ \nota{§13.6}; o resíduo em $t_{n+1}$ tem o armazenamento na
+forma $(B_\pi\Delta\varepsilon_v+C_{\pi w}\Delta p_w+C_{\pi a}\Delta p_a)/\Delta t$ \nota{§13.7}. O código usa Euler
+implícito e multiplica as equações de massa por $\Delta t$. Com $X=\alpha\Delta\varepsilon_v+\eta\Delta p_B$,
+$\Delta(\cdot)=(\cdot)^{n+1}-(\cdot)^n$, todos os coeficientes em $n+1$ e $\langle\cdot\rangle$ o termo condensado
+(Seção~\ref{sec:espacial}) \loc{TPZMatUnsaturatedUPwPa.cpp}{299--352}:
 \begin{align}
-\mathbf R_u&=\int_{\Omega^e}\mathbf B^{\mathsf T}\sig'\,\dd\Omega
--\lambda_p\int_{\Omega^e}\alpha\,\mathbf B^{\mathsf T}\mathbf m\,p_B\,\dd\Omega
--\lambda_g\int_{\Omega^e}\mathbf N_u^{\mathsf T}\gamma\,\mathbf g\,\dd\Omega-\mathbf f_t,
-\label{eq:Ru}\\
-R_{w,j}&=\int_{\Omega^e}N_j\Big[S_wX+\frac{nS_w}{K_w}\Delta p_w\Big]\dd\Omega
-+\big\langle n\,(S_w^{k+1}-S_w^{k})\big\rangle_j
-+\Delta t\int_{\Omega^e}\nabla N_j\cdot\lambda_w\mathbf K\mathbf h_w\,\dd\Omega-\Delta t\,f_{w,j},
+\mathbf R_w&=\mathsf A_e\Big[\int\mathbf N_p^{\mathsf T}\Big(S_wX+\frac{nS_w}{K_w}\Delta p_w\Big)
++\big\langle n\,\Delta S_w\big\rangle
++\Delta t\int\mathbf B_p^{\mathsf T}\lambda_w\mathbf K(\nabla p_w-\gamma_w\mathbf g)\Big]-\Delta t\,\mathbf f_w,
 \label{eq:Rw}\\
-R_{a,j}&=\int_{\Omega^e}N_j\Big[S_aX-\Delta t\,c_a\lambda_a(\mathbf K\mathbf h_a)\cdot\nabla p_a\Big]\dd\Omega
-+\Big\langle -n\,(S_w^{k+1}-S_w^{k})+\frac{n\,S_a^{k+1}\,\Delta p_a}{\pabs{}^{k+1}}\Big\rangle_j\notag\\
-&\quad+\Delta t\int_{\Omega^e}\nabla N_j\cdot\lambda_a\mathbf K\mathbf h_a\,\dd\Omega-\Delta t\,f_{a,j}.
+\mathbf R_a&=\mathsf A_e\Big[\int\mathbf N_p^{\mathsf T}\Big(S_aX-\Delta t\,c_a\lambda_a(\mathbf K\mathbf h_a)\cdot\nabla p_a\Big)
++\Big\langle -n\,\Delta S_w+\frac{nS_a}{\pabs}\Delta p_a\Big\rangle\notag\\
+&\qquad\quad+\Delta t\int\mathbf B_p^{\mathsf T}\lambda_a\mathbf K\mathbf h_a\Big]-\Delta t\,\mathbf f_a,
 \label{eq:Ra}
 \end{align}
-Na convenção do NeoPZ o vetor elementar é $\mathbf{ef}=-\mathbf R$ e a matriz é $\partial\mathbf R/\partial\mathbf X$.
-Com pressões congeladas (análise de FS) só $\mathbf R_u$ é montado, e com $\Delta t=0$ os fluxos saem dos
-balanços (passo não drenado). \loc{TPZMatUnsaturatedUPwPa.cpp}{297} \loc{UnsatSlope.h}{331--337}
+com $\mathbf h_a=\nabla p_a-\gamma_a\mathbf g$ e $\mathbf R_u$ da Eq.~\eqref{eq:Ru}. Na convenção do NeoPZ, o vetor
+elementar é $-\mathbf R$ e a matriz é $\partial\mathbf R/\partial\mathbf X$. Com pressões congeladas (fator de segurança),
+só $\mathbf R_u$ é montado. \loc{TPZMatUnsaturatedUPwPa.cpp}{297}
 
-\textbf{Conservação de massa.} A forma condensada $n(S_w^{k+1}-S_w^k)$ conserva exatamente o volume de água
-(forma secante). Para o ar, a massa por unidade de volume é $nS_a\pabs$ e a variação exata dividida por
-$\pabs{}^{k+1}$ é $n\Delta S_a+nS_a^{k}\Delta p_a/\pabs{}^{k+1}$; o código usa $S_a^{k+1}$ no segundo termo,
-diferença $n\,\Delta S_a\,\Delta p_a/\pabs{}^{k+1}$, de segunda ordem no passo. No balanço global do modelo
-(iv) com 36~mm/h (\path{scripts/balanco_massa.py}, rodada \path{resultados/artigo_rev/B_iv_f50_a45_I36_balanco})
-o erro de água foi $\le0{,}05\%$ do volume infiltrado e o de ar 0,25\% (24~h) e 0,34\% (48~h) do volume inicial
-de ar, 0,9--1,1\% do ar expulso.
+\textbf{Armazenamento da água.} Com $\eta=0$, as notas dão $(nS_w/K_w)\Delta p_w+n\Gamma^{n+1}(\Delta p_w-\Delta p_a)$, a
+forma em taxa. O código usa $(nS_w/K_w)\Delta p_w+n(S_w^{n+1}-S_w^n)$, a forma secante. As duas coincidem quando
+$\Delta t\to0$. A forma secante é a forma mista de Celia et al.\ (1990), referência [16] de Callari e Abati (2009,
+p.~17). Callari e Abati (2009, p.~5) registram que a discretização da forma em taxa ``can lead to unacceptable errors in
+fluid mass balance, especially in the case of strongly non-linear response, typically characterizing infiltration
+problems''. \disc{D8}
+
+\textbf{Armazenamento do ar.} A massa de ar por volume é $nS_a\rho_a$, com $\rho_a\propto\pabs$. Sua variação no passo,
+dividida por $\rho_a^{n+1}$, é $n\Delta S_a+nS_a^{n}\Delta p_a/\pabs{}^{n+1}$. O código usa $S_a^{n+1}$ no segundo termo; a
+diferença é $n\,\Delta S_a\,\Delta p_a/\pabs{}^{n+1}$, de segunda ordem no passo. No balanço global do modelo acoplado
+com ar ativo e 36~mm/h (\path{Projects/SlopeRainfall/scripts/balanco_massa.py}, rodada
+\path{resultados/artigo_rev/B_iv_f50_a45_I36_balanco}), o erro de água foi $\le0{,}05\%$ do volume infiltrado. O de
+ar foi 0,25\% (24~h) e 0,34\% (48~h) do volume inicial de ar, ou 0,9--1,1\% do ar expulso. \disc{D9}
 
 %======================================================================
-\section{Forma matricial: Jacobiano por blocos}\label{sec:matriz}
+\section{Jacobiano por blocos}\label{sec:jac}
 %======================================================================
 
-Sistema de Newton por passo,
-\begin{equation}
-\boxed{\begin{bmatrix}\mathbf K_{uu}&\mathbf K_{uw}&\mathbf K_{ua}\\
-\mathbf K_{wu}&\mathbf K_{ww}&\mathbf K_{wa}\\
-\mathbf K_{au}&\mathbf K_{aw}&\mathbf K_{aa}\end{bmatrix}
-\begin{Bmatrix}\delta\mathbf U\\ \delta\mathbf P_w\\ \delta\mathbf P_a\end{Bmatrix}
-=-\begin{Bmatrix}\mathbf R_u\\ \mathbf R_w\\ \mathbf R_a\end{Bmatrix},}
-\end{equation}
-com os blocos (derivadas exatas de \eqref{eq:Ru}--\eqref{eq:Ra}; $\gamma_{,w}=\partial\gamma/\partial p_w$,
-$\lambda_{\pi,w}=\partial\lambda_\pi/\partial p_w=\lambda_{\pi0}\,(\dd k_{r\pi}/\dd S_w)\,\Gamma$ e
-$\partial/\partial p_a=-\partial/\partial p_w$ para tudo o que depende só de $p_c$)
-\loc{TPZMatUnsaturatedUPwPa.cpp}{268--296, 343--349, 354--378}:
-\begin{align}
-\mathbf K_{uu}&=\int\mathbf B^{\mathsf T}\mathbf D_{ep}\mathbf B,\qquad
-\mathbf K_{u\pi}=\int\big[-\lambda_p\alpha\,\mathbf B^{\mathsf T}\mathbf m\,\chi_\pi
-\mp\lambda_g\mathbf N_u^{\mathsf T}\mathbf g\,\gamma_{,w}\big]\mathbf N_p
-\quad(-\text{ para }w,\ +\text{ para }a),\\
-\mathbf K_{wu}&=\int\mathbf N_p^{\mathsf T}S_w\,\alpha_c\,\mathbf m^{\mathsf T}\mathbf B,\qquad
-\mathbf K_{au}=\int\mathbf N_p^{\mathsf T}S_a\,\alpha_c\,\mathbf m^{\mathsf T}\mathbf B,\\
-K_{ww,jk}&=\int N_j\Big[\Gamma X+S_w\eta\chi_w+\frac{n}{K_w}(\Gamma\Delta p_w+S_w)\Big]N_k\notag\\
-&\quad+\Delta t\int\big[\lambda_w\nabla N_j\cdot\mathbf K\nabla N_k+\lambda_{w,w}(\nabla N_j\cdot\mathbf K\mathbf h_w)N_k\big]
-+\delta_{jk}\Big(\!\int N_j\Big)n\Gamma_j,\\
-K_{wa,jk}&=\int N_j\Big[-\Gamma X+S_w\eta\chi_a-\frac{n}{K_w}\Gamma\Delta p_w\Big]N_k
--\Delta t\int\lambda_{w,w}(\nabla N_j\cdot\mathbf K\mathbf h_w)N_k\notag\\
-&\quad-\delta_{jk}\Big(\!\int N_j\Big)n\Gamma_j,\\
-K_{aw,jk}&=\int N_j\Big[-\Gamma X+S_a\eta\chi_w-\Delta t\,c_a\lambda_{a,w}(\mathbf K\mathbf h_a)\cdot\nabla p_a\Big]N_k
-+\Delta t\int\lambda_{a,w}(\nabla N_j\cdot\mathbf K\mathbf h_a)N_k\notag\\
-&\quad-\delta_{jk}\Big(\!\int N_j\Big)n\Gamma_j\Big(1+\frac{\Delta p_{a}}{\pabs}\Big)_j,\\
-K_{aa,jk}&=\int N_j\Big[\Gamma X+S_a\eta\chi_a+\Delta t\,c_a(c_a\lambda_a+\lambda_{a,w})(\mathbf K\mathbf h_a)\cdot\nabla p_a\Big]N_k\notag\\
-&\quad-\Delta t\int N_j\,c_a\lambda_a\,\big(\mathbf K(\mathbf h_a+\nabla p_a)\big)\cdot\nabla N_k\notag\\
-&\quad+\Delta t\int\big[\lambda_a\nabla N_j\cdot\mathbf K\nabla N_k-\lambda_{a,w}(\nabla N_j\cdot\mathbf K\mathbf h_a)N_k\big]\notag\\
-&\quad+\delta_{jk}\Big(\!\int N_j\Big)n\Big[\Gamma_j\Big(1+\tfrac{\Delta p_a}{\pabs}\Big)\Big]_j
-+\delta_{jk}\Big(\!\int N_j\Big)n\Big[\tfrac{S_a}{\pabs}-\tfrac{S_a\Delta p_a}{\pabs{}^2}\Big]_j,
-\end{align}
-em que os termos com $\delta_{jk}$ são a tangente do armazenamento condensado (avaliada nos valores nodais) e
-$\mathbf D_{ep}$ é a tangente consistente do modelo elastoplástico (Seção~\ref{sec:mc}). A matriz é não
-simétrica ($\mathbf K_{wu}\ne\mathbf K_{uw}^{\mathsf T}$ em geral) e inclui as derivadas das permeabilidades, da
-saturação e de $\chi$. Não há termos omitidos em relação à derivada do resíduo (Newton completo), salvo a
-derivada de $\mathbf D_{ep}$ em relação às pressões, que não existe porque $\sig'$ depende só de $\eps$.
+As notas montam o Jacobiano com os blocos $\mathbf G$ (peso dependente do estado) e $\tilde{\mathbf H}$ (variação da
+mobilidade), e dispensam as derivadas de $B_\pi$ e $C_{\pi\beta}$ multiplicadas pelos incrementos (Newton modificado)
+\nota{§13.7}. O código monta a derivada completa dos resíduos \eqref{eq:Ru}, \eqref{eq:Rw} e \eqref{eq:Ra}
+\loc{TPZMatUnsaturatedUPwPa.cpp}{268--296, 354--378}. Com $\lambda'_\pi=\partial\lambda_\pi/\partial p_w=-\partial\lambda_\pi/\partial p_a$,
+$\mathbf h_w=\nabla p_w-\gamma_w\mathbf g$ e $\mathrm{adv}=(\mathbf K\mathbf h_a)\cdot\nabla p_a$:
+\begin{align*}
+\mathbf J_{uu}&=\int\mathbf B_u^{\mathsf T}\mathbb D\,\mathbf B_u,\qquad
+\mathbf J_{\pi u}=\int\mathbf N_p^{\mathsf T}S_\pi\,\alpha\,\mathbf m^{\mathsf T}\mathbf B_u,\\
+\mathbf J_{u\pi}&=-\int\Big[\lambda_p\alpha\,\mathbf B_u^{\mathsf T}\mathbf m\,\chi_\pi+\lambda_g\mathbf N_u^{\mathsf T}\mathbf g\,\frac{\partial\gamma}{\partial p_\pi}\Big]\mathbf N_p,\\
+\mathbf J_{ww}&=\int\mathbf N_p^{\mathsf T}\Big[\Gamma X+S_w\eta\chi_w+\frac{n}{K_w}(\Gamma\Delta p_w+S_w)\Big]\mathbf N_p
++\Delta t\int\mathbf B_p^{\mathsf T}\lambda_w\mathbf K\mathbf B_p\\
+&\quad+\Delta t\int\mathbf B_p^{\mathsf T}(\mathbf K\mathbf h_w)\lambda'_w\mathbf N_p+\langle n\Gamma\rangle,\\
+\mathbf J_{wa}&=\int\mathbf N_p^{\mathsf T}\Big[-\Gamma X+S_w\eta\chi_a-\frac{n}{K_w}\Gamma\Delta p_w\Big]\mathbf N_p
+-\Delta t\int\mathbf B_p^{\mathsf T}(\mathbf K\mathbf h_w)\lambda'_w\mathbf N_p-\langle n\Gamma\rangle,\\
+\mathbf J_{aw}&=\int\mathbf N_p^{\mathsf T}\Big[-\Gamma X+S_a\eta\chi_w-\Delta t\,c_a\lambda'_a\,\mathrm{adv}\Big]\mathbf N_p
++\Delta t\int\mathbf B_p^{\mathsf T}(\mathbf K\mathbf h_a)\lambda'_a\mathbf N_p
+-\Big\langle n\Gamma\Big(1+\frac{\Delta p_a}{\pabs}\Big)\Big\rangle,\\
+\mathbf J_{aa}&=\int\mathbf N_p^{\mathsf T}\Big[\Gamma X+S_a\eta\chi_a+\Delta t\,c_a^2\lambda_a\,\mathrm{adv}+\Delta t\,c_a\lambda'_a\,\mathrm{adv}\Big]\mathbf N_p\\
+&\quad-\Delta t\int\mathbf N_p^{\mathsf T}c_a\lambda_a\big[\mathbf K(\mathbf h_a+\nabla p_a)\big]^{\mathsf T}\mathbf B_p\\
+&\quad+\Delta t\int\mathbf B_p^{\mathsf T}\lambda_a\mathbf K\mathbf B_p
+-\Delta t\int\mathbf B_p^{\mathsf T}(\mathbf K\mathbf h_a)\lambda'_a\mathbf N_p
++\Big\langle n\Gamma\Big(1+\frac{\Delta p_a}{\pabs}\Big)+\frac{nS_a}{\pabs}-\frac{nS_a\,\Delta p_a}{(\pabs)^2}\Big\rangle .
+\end{align*}
+O Jacobiano não é simétrico, como nas notas. Em relação às notas, o código acrescenta as derivadas dos coeficientes
+vezes os incrementos (Newton completo) e não tem $\mathbf G_{uu}$, porque $n$ é constante \disc{D11}. O README do
+programa do talude afirma convergência quadrática; a conferência por teste de Taylor do elemento acoplado é o teste~0 da
+Fase~2.
 
 %======================================================================
 \section{Solução não linear}\label{sec:newton}
 %======================================================================
 
+As notas sugerem começar com Picard e passar a Newton \nota{§13.7}. O código usa Newton com o Jacobiano completo desde a
+primeira iteração \loc{UnsatSlope.h}{331--410}:
 \begin{itemize}
-\item \textbf{Eliminação de Dirichlet.} As equações prescritas (deslocamentos, pressões, vértices alagados)
-  saem do sistema pelo filtro de equações; os valores entram na solução antes da montagem.
-  \loc{UnsatSlope.h}{338--341, 479--494}
-\item \textbf{Sistema linear.} Matriz esparsa \code{TPZSpStructMatrix} com solução direta LU (MKL, quando
-  disponível; sem MKL, skyline não simétrica). \loc{UnsatSlope.h}{243--252}
-\item \textbf{Critério de convergência.} $\|\mathbf R_u\|_2/\|\mathbf f_{\gamma}\|_2<10^{-7}$ (norma do resíduo
-  de equilíbrio relativa à do peso próprio) e $\max_i|\delta p_i|<10^{-6}$~kPa na última correção; exige ao
-  menos duas iterações; máximo de 40 iterações (25 com pressões congeladas).
-  \loc{UnsatSlope.h}{343--353, 365--384, 547--548}
-\item \textbf{Busca linear.} Retrocesso por metades (até 4) sobre $\|\mathbf R_p\|_2$ (resíduo das pressões),
-  só nos passos acoplados e enquanto a correção de pressão está acima da tolerância.
-  \loc{UnsatSlope.h}{392--407}
-\item \textbf{Divergência.} Resíduo não finito ou $\|\mathbf R_u\|/\|\mathbf f_\gamma\|>10^6$ encerra a
-  tentativa. \loc{UnsatSlope.h}{380}
-\item \textbf{Passo de tempo.} 15~min durante a chuva, 1~h nas 24~h seguintes, 4~h depois, alinhado às
-  mudanças da chuva e aos instantes de FS; um passo que não converge é refeito por bissecção, 2 níveis na
-  primeira tentativa e 5 na segunda, sempre a partir do estado do início do passo.
-  \loc{main.cpp}{613--618, 629--652, 926--954}
-\item \textbf{Conjunto ativo da chuva.} Até 12 passagens por passo: vértices com $p_w>10^{-6}$ passam a
-  alagados; alagados cuja reação (resíduo da água dividido por $\Delta t$) excede a chuva voltam a fluxo
-  prescrito; o passo é aceito quando o conjunto não muda. \loc{main.cpp}{530--593}
-\item \textbf{Aceitação do passo.} A memória (estado plástico, pressões no ponto e nos vértices) só é
-  atualizada na aceitação. \loc{UnsatSlope.h}{413--418}
+\item as condições de Dirichlet eliminam equações por filtro; o sistema é esparso e resolvido por LU
+\loc{UnsatSlope.h}{244--251};
+\item convergência quando $\|\mathbf R_u\|/\|\mathbf f_{\mathrm{peso}}\|<10^{-7}$ e $\max|\delta p|<10^{-6}$~kPa, depois de
+pelo menos uma iteração; no máximo 40 iterações, ou 25 com pressões congeladas \loc{UnsatSlope.h}{381, 547--548};
+\item busca linear (até quatro meias-passadas) sobre a norma do resíduo das pressões, enquanto a correção de pressão
+for maior que a tolerância \loc{UnsatSlope.h}{396--406};
+\item se o passo não converge, o passo de tempo é dividido ao meio \loc{main.cpp}{613--619}.
 \end{itemize}
-Bergamaschi e Putti (1999, p.~1032) relacionam a estagnação de Picard na equação de Richards à ``absence of
-the derivative terms in the Jacobian matrix''; aqui o Jacobiano é o completo.
-
-%======================================================================
-\section{Mohr--Coulomb associado: projeção analítica e tangente consistente}\label{sec:mc}
-%======================================================================
-
-Modelo \code{TPZPlasticStepVoigt<TPZYCMohrCoulombPV2, TPZElasticResponse>}, elástico linear isótropo
-($E$, $\nu$) e Mohr--Coulomb perfeitamente plástico associado ($\psi=\phi$). Segundo o README de
-\path{Projects/SlopeMohrCoulomb}, a projeção é a analítica em espaço de Haigh--Westergaard rotacionado com
-tangente consistente de Lira Cecílio (\emph{J. Eng. Math.} 157:10, 2026); os comentários do código remetem às
-equações desse artigo. \pend{[Conferir as equações contra o PDF do artigo quando ele estiver nas referências.]}
-
-\subsection{Critério}
-
-Em tensões principais $\sigma_1\ge\sigma_2\ge\sigma_3$ (tração positiva), três planos
-\loc{TPZYCMohrCoulombPV2.cpp}{46--53}:
-\begin{gather}
-f_1=(\sigma_1-\sigma_3)+(\sigma_1+\sigma_3)\sin\phi-2c\cos\phi,\qquad
-f_2=(\sigma_2-\sigma_3)+(\sigma_2+\sigma_3)\sin\phi-2c\cos\phi,\notag\\
-f_3=(\sigma_1-\sigma_2)+(\sigma_1+\sigma_2)\sin\phi-2c\cos\phi.
-\end{gather}
-
-\subsection{Preditor elástico e projeção}
-
-\begin{enumerate}
-\item $\sig^{tr}=\mathbf D_e(\eps-\eps_p^{k})$; decomposição espectral de $\sig^{tr}$ (autovalores
-  ordenados $s_1\ge s_2\ge s_3$, autovetores $\mathbf n_i$). \loc{TPZPlasticStepVoigt.cpp}{177--183}
-\item Se $f_1(\mathbf s)\le0$: passo elástico, $\sig=\sig^{tr}$, $\mathbf D_{ep}=\mathbf D_e$.
-  \loc{TPZYCMohrCoulombPV2.cpp}{274--281}
-\item \textbf{Plano principal} ($f_1$ ativo). Com $G$, $K$ os módulos elásticos,
-  \loc{TPZYCMohrCoulombPV2.cpp}{95--138}
-  \begin{equation}
-  \Delta\lambda=\frac{\tfrac34\,f_1(\mathbf s)}{3G+(G+3K)\sin^2\phi},
-  \end{equation}
-  e, com $\mathcal D=6G+2(G+3K)\sin^2\phi$,
-  \begin{align}
-  \mathcal D\,\sigma_1^p&=2c\cos\phi\,[3G+(G+3K)\sin\phi]+(\sin\phi-1)[-3G(s_1+s_3)+(G+3K)(s_1-s_3)\sin\phi],\\
-  \mathcal D\,\sigma_2^p&=6Gs_2+(2G-3K)(s_1-s_3-2c\cos\phi)\sin\phi\notag\\
-  &\quad+[-3K(s_1-2s_2+s_3)+2G(s_1+s_2+s_3)]\sin^2\phi,\\
-  \mathcal D\,\sigma_3^p&=2c\cos\phi\,[-3G+(G+3K)\sin\phi]\notag\\
-  &\quad-(1+\sin\phi)[-3G(s_1+s_3)+(G+3K)(s_1-s_3)\sin\phi];
-  \end{align}
-  a projeção é aceita se $\sigma_1^p\ge\sigma_2^p\ge\sigma_3^p$.
-\item \textbf{Arestas.} Se a ordem falha, o lado é decidido por
-  $(1-\sin\phi)s_1-2s_2+(1+\sin\phi)s_3>0$: aresta direita ($\sigma_2^p=\sigma_3^p$, planos $f_1$ e $f_2$)
-  ou esquerda ($\sigma_1^p=\sigma_2^p$, planos $f_1$ e $f_3$), com dois multiplicadores e as expressões fechadas
-  do código. \loc{TPZYCMohrCoulombPV2.cpp}{141--237, 291--311}
-\item \textbf{Ápice.} Se nenhuma aresta dá ordem válida: $\sigma_i^p=c\cot\phi$ e tangente nula.
-  \loc{TPZYCMohrCoulombPV2.cpp}{239--257}
-\item Reconstrução: $\sig=\sig^{tr}+\sum_i(\sigma_i^p-s_i)\,\mathbf n_i\otimes\mathbf n_i$ (direções principais
-  mantidas, isotropia); $\eps_p^{k+1}=\eps-\mathbf D_e^{-1}\sig$. O tipo do regime ($0$ elástico, $1$ plano,
-  $2$/$3$ arestas, $-1$ ápice) fica na memória. \loc{TPZPlasticStepVoigt.cpp}{188--211}
-\end{enumerate}
-Em cada regime o código fornece também $\mathbf G=\partial\sig^p/\partial\mathbf s$ ($3\times3$, em tensões
-principais), usada na tangente.
-
-\subsection{Redução de resistência no modelo}
-
-O fator $F$ do SRM não altera o estado: a cada avaliação constrói-se uma cópia do critério com
-$c/F$, $\phi_F=\arctan(\tan\phi/F)$ e $\psi_F=\arctan(\tan\psi/F)$; propriedades por ponto
-$\{c,\phi,\psi\}$, se existirem, entram antes. Como $\psi=\phi$, o modelo reduzido continua associado.
-\loc{TPZYCMohrCoulombPV2.cpp}{75--81} \loc{TPZPlasticStepVoigt.cpp}{78--90, 188}
-
-\subsection{Tangente consistente}
-
-Forma espectral \loc{TPZPlasticStepVoigt.cpp}{214--282}: com $\mathbf m_i=\mathbf n_i\otimes\mathbf n_i$,
-deformações elásticas principais de teste $e_i=\mathbf D_e^{-1}$ aplicada a $\mathbf s$, e
-$\delta\eps$ um incremento de deformação,
-\begin{gather}
-\boxed{\mathbf D_{ep}:\delta\eps=\sum_{i,j=1}^{3}G_{ij}\,\mathbf m_i\,\big(\mathbf m_j:\mathbf D_e:\delta\eps\big)
-+\sum_{i>j}\theta_{ij}\,\big(\mathbf n_i\otimes\mathbf n_j+\mathbf n_j\otimes\mathbf n_i\big)\,
-\big(\mathbf n_j\cdot\delta\eps\,\mathbf n_i\big),}\\
-\theta_{ij}=\begin{cases}\dfrac{\sigma_i^p-\sigma_j^p}{e_i-e_j},& e_i\ne e_j,\\[6pt]
-G\,(G_{ii}-G_{ij}-G_{ji}+G_{jj}),& e_i=e_j.\end{cases}
-\end{gather}
-A primeira soma é a derivada dos autovalores projetados em relação aos de teste; a segunda é a parte de
-rotação das direções principais. O teste de Taylor do ponto material
-(\path{docs/slope_mohr_coulomb/relatorio.tex}, Seção~``Verificação do talude seco'', Tabela~\code{tab:taylor})
-registrou ordem 2,000 no plano principal e nas arestas para $\alpha\in[10^{-4},10^{-2}]$, resto no nível de
-arredondamento no regime elástico e no ápice, e simetria $|\mathbf D-\mathbf D^{\mathsf T}|/|\mathbf D|<2\times10^{-14}$;
-abaixo de $\alpha=10^{-5}$ nas arestas aparece um patamar atribuído, naquele relatório, à precisão da
-decomposição espectral. Esses resultados são de outro projeto e serão refeitos na fase~2 (Seção~\ref{sec:plano}).
+O resíduo das equações de massa não entra no critério; sua convergência é inferida da correção de pressão
+\disc{D19}.
 
 %======================================================================
 \section{Fator de segurança: SRM e GIM}\label{sec:fs}
 %======================================================================
 
-Em cada instante escolhido faz-se uma análise independente com $p_w$ e $p_a$ do instante congeladas
-(só $\mathbf R_u$ montado), guardando e restaurando a memória do transiente. \loc{main.cpp}{443--516}
+Nem as notas nem o artigo tratam do fator de segurança. O código \loc{main.cpp}{443--516}:
+\begin{itemize}
+\item \textbf{Pressões congeladas} no instante $t$: só $\mathbf R_u$ é resolvido. O estado de tensões do transiente é
+guardado e restaurado ao fim.
+\item \textbf{Redução de resistência (SRM).} A partir do estado sem tensões, o peso é aplicado com resistência
+aumentada, $F_0=0{,}6$, em quatro incrementos com as pressões \loc{main.cpp}{72, 421--431}. Depois $F$ cresce por
+uma lista de valores e, na primeira não convergência, por bisseção até a tolerância de 0,01. O FS é o último $F$ que
+convergiu. A não convergência em 25 iterações é o critério de ruptura. \loc{main.cpp}{167--192, 466--483}
+\item \textbf{Aumento de gravidade (GIM).} A partir do estado sem tensões e com a resistência real, $\lambda$ multiplica
+o peso e a parte positiva de $p_B$; a sucção fica com seu valor. Incrementos de 0,5 até 4, depois 4,5; 5; 6; 7; 8; 10;
+bisseção até 0,01. \loc{main.cpp}{485--508}
+\end{itemize}
+Duas consequências. O FS não usa o estado de tensões do transiente acoplado, só as pressões dele \disc{D18}. E o fator
+de gravidade não é o FS de redução de resistência: segundo o README de \path{Projects/SlopeMohrCoulomb}, multiplicar
+$\gamma$ por $\lambda$ equivale a dividir só $c$ por $\lambda$, logo $FS_{\mathrm{GIM}}\ge FS_{\mathrm{SRM}}$ quando
+$\phi>0$.
 
-\textbf{Estado geostático.} Memória zerada e $\mathbf u=\mathbf 0$; o peso e as pressões (escaladas juntas,
-$\lambda_p=\lambda_g$) são aplicados em $\lambda=0{,}25$, 0,5, 0,75 e 1 com o fator de resistência $F$ dado;
-no fim, $\mathbf u\leftarrow\mathbf 0$ mantendo $\sig'$ ($\eps_p\leftarrow\eps_p-\eps$, $\eps\leftarrow\mathbf 0$).
-\loc{main.cpp}{421--440} \loc{TPZMatUnsaturatedUPwPa.cpp}{430--438}
-
-\textbf{SRM.} Estado geostático com a resistência aumentada ($F_0=0{,}6$, para que FS $<1$ seja encontrável);
-depois, com $\lambda_g=1$ e as pressões congeladas, $F$ cresce por uma lista de valores (ou em torno do FS do
-instante anterior) e, na primeira falha de convergência, por bissecção até a tolerância \code{tolfs}
-(0,002 nos casos perto da intensidade crítica, 0,01 nos demais). O FS é o último $F$ convergido.
-\loc{main.cpp}{72, 167--192, 467--483}
-
-\textbf{GIM.} Do estado sem peso, com $F=1$, $\lambda$ multiplica o peso do solo e a parte positiva de $p_B$;
-a sucção fica com fator 1. $\lambda$ cresce de 0,5 em 0,5 até perto do valor anterior e depois por bissecção
-até 0,01, limite 20. O fator GIM é o último $\lambda$ convergido. \loc{main.cpp}{484--505}
-\loc{TPZMatUnsaturatedUPwPa.cpp}{233}
-
-\textbf{O que cada um mede.} O SRM dá o fator pelo qual $c$ e $\tan\phi$ podem ser divididos; o GIM dá o
-fator pelo qual o peso (e a poropressão positiva) pode ser multiplicado. São grandezas diferentes e não devem
-ser comparadas entre si. No talude de referência de Rahardjo et al.\ (2007) o estado inicial dá
-FS$_{\mathrm{SRM}}=2{,}119$ e $\lambda_{\mathrm{GIM}}=5{,}699$ (39 rodadas em \path{resultados} com
-\code{gi=1}); no talude seco de \path{Projects/SlopeMohrCoulomb} ($\nu=0{,}49$, $c=10$~kPa, $\phi=30^\circ$,
-$\gamma=20$~kN/m$^3$, 10~m a $45^\circ$) o relatório citado registra, após cinco ciclos de refinamento, 1,793
-por gravidade e 1,203 por SRM contra 1,806 e 1,206 do Bishop simplificado com busca de círculos.
-
-\textbf{Perda de equilíbrio do transiente.} Nos modelos acoplados o transiente é resolvido com a resistência
-real; se um passo não converge com 5 níveis de bissecção, o instante é gravado ($t_f$) e o transiente segue com
-$F_0$ só para acompanhar as pressões. Nos desacoplados a mecânica do transiente já usa $F=0{,}25$ e uma falha
-encerra a rodada. \loc{main.cpp}{926--954}
+\textbf{Resultados já obtidos em solo seco} (README de \path{Projects/SlopeMohrCoulomb}, ciclo de refinamento 5,
+$\nu=0{,}49$): FS por gravidade 1,793 e por SRM 1,203, contra 1,806 e 1,206 do método de Bishop simplificado.
 
 %======================================================================
-\section{Pontos a corrigir ou decidir}\label{sec:pendencias}
+\section{Discrepâncias entre a formulação e o código}\label{sec:disc}
+%======================================================================
+
+``Notas'' e ``artigo'' são as fontes [N] e [A]. Na última coluna, \emph{manter} quer dizer que a simplificação é
+aceitável e só precisa estar declarada; \emph{decidir} e \emph{corrigir} entram na Seção~\ref{sec:decisoes} e no plano.
+
+{\small
+\renewcommand{\arraystretch}{1.25}\setlength{\tabcolsep}{3pt}
+\begin{longtable}{@{}p{0.05\linewidth}p{0.15\linewidth}p{0.21\linewidth}p{0.24\linewidth}p{0.29\linewidth}@{}}
+\toprule
+& tema & fontes & NeoPZ & efeito e proposta\\
+\midrule
+\endfirsthead
+\toprule
+& tema & fontes & NeoPZ & efeito e proposta\\
+\midrule
+\endhead
+D1 & parâmetro de Bishop & $\chi=S_w$ \nota{§1, §3} & padrão $\chi_0=1$ ($\phi^b=\phi'$); opções $S_w$ e $S_e$ &
+o equilíbrio usa $\chi_w=1$ e a massa usa $B_w=S_w$, par que as notas não derivam; a sucção dá mais resistência (FS
+inicial do talude de referência 2,119 com $\chi=1$ e 1,895 com $\chi=S_e$, manuscrito,
+\path{secao_generalizacao.tex}). \textbf{Decidir.}\\
+D2 & Biot & $\alpha(n)=1-K/K_s$ & $\alpha=1$, $K_s\to\infty$, $\eta=0$ & grãos incompressíveis. \textbf{Manter.}\\
+D3 & porosidade & $n(\mathbf z)$ linearizada \nota{§9} & $n=n_0$ nos coeficientes & erro da ordem de $\varepsilon_v$ em
+$n\Delta S$ e $nS/K_w$. \textbf{Manter.}\\
+D4 & permeabilidade intrínseca & Kozeny--Carman \nota{§5} & $\mathbf K$ constante (isotrópico ou anisotrópico) & sem
+acoplamento da permeabilidade com a deformação. \textbf{Manter.}\\
+D5 & peso & $\rho_b$ da mistura \nota{§4} & $\gamma=20$~kN/m$^3$ constante; mistura sem o ar como opção & no padrão o
+peso não cresce com a infiltração. \textbf{Decidir} por teste (usar a mistura nos testes acoplados).\\
+D6 & massa específica do ar & $\rho_a(p_a)$ & $\gamma_a$ constante no termo gravitacional & $\gamma_a\approx0{,}012$~kN/m$^3$:
+efeito desprezível. \textbf{Manter.}\\
+D7 & leis hidráulicas & van Genuchten e Mualem (água e ar) & padrão Fredlund--Xing, $S_e^4$ e Brooks--Corey;
+van Genuchten e Mualem iguais às notas como opção & escolha de parâmetros, não de formulação. Usar a lei de cada
+referência nos testes.\\
+D8 & armazenamento da água & forma em taxa $C_{\pi\beta}\Delta p_\beta$ \nota{§13.7} & forma secante
+$n(S_w^{n+1}-S_w^n)$ & conserva a massa de água (erro medido $\le0{,}05\%$). \textbf{Manter} e atualizar as notas.\\
+D9 & armazenamento do ar & $C_{aa}\Delta p_a$ em taxa & $n\Delta S_a+nS_a^{n+1}\Delta p_a/\pabs$ & erro de
+segunda ordem; balanço de ar 0,25--0,34\%. \textbf{Corrigir} para $S_a^{n}$ antes do teste~3.\\
+D10 & termo $c_w\mathbf q_w\cdot\nabla p_w$ & opcional \nota{§13.4} & ausente & as notas o dispensam. Nada a fazer.\\
+D11 & Jacobiano & Newton modificado \nota{§13.7} & Newton completo, sem $\mathbf G_{uu}$ & deve dar convergência
+quadrática. \textbf{Verificar} (teste~0).\\
+D12 & interpolação & mesma ordem, Q4 ou T3 \nota{§13.3, §14} & Taylor--Hood T6/T3 & segue a recomendação das próprias
+notas \nota{§13.9}. Atualizar a §14 das notas para o T6.\\
+D13 & condensação & $\operatorname{diag}(\int C N_i)$ & valor nodal vezes $\int N_i$, só saturação e compressibilidade
+do ar & igual para coeficiente constante. \textbf{Manter.}\\
+D14 & Mohr--Coulomb não associado & artigo associado & PV2 só associado; $\psi<\phi$ só no \code{SlopeRainfallPV}, com a
+classe antiga & os resultados com $\psi<\phi$ do manuscrito não vêm do modelo do artigo. \textbf{Decidir.}\\
+D15 & redução de resistência & --- & $c/F$, $\tan\phi/F$, $\tan\psi/F$ & documentada na Seção~\ref{sec:mc}.\\
+D16 & estado inicial & $\sig_0$ e $p_{B0}$ dados & geostático pelo modelo; sucção limitada a 75~kPa & o campo de
+pressões não é estacionário em $t=0$. Medir a deriva sem chuva no teste~4.\\
+D17 & contorno do ar & --- & $p_a=0$ na superfície mesmo alagada & o aprisionamento do ar depende de $k_{ra}^{\min}$
+na camada saturada. Testar a sensibilidade a $k_{ra}^{\min}$.\\
+D18 & fator de segurança & --- & SRM a partir de $F_0$ e GIM sem escalar a sucção, com pressões congeladas & o FS não
+usa o estado de tensões do transiente. Testar a independência de $F_0$ (teste~1).\\
+D19 & critério de convergência & --- & $\|\mathbf R_u\|$ relativo e $\max|\delta p|$ & o resíduo de massa não é testado
+diretamente. Acrescentar a norma do resíduo de massa ao relatório de convergência.\\
+D20 & sinal do fluxo prescrito & $\bar q>0$ saindo & fluxo positivo entrando & só convenção.\\
+\bottomrule
+\end{longtable}
+}
+
+%======================================================================
+\section{Decisões antes da Fase 2}\label{sec:decisoes}
 %======================================================================
 
 \begin{enumerate}
-\item \textbf{Armazenamento do ar} com $S_a^{k+1}$ no termo de compressibilidade (Seção~\ref{sec:temporal}):
-  trocar por $S_a^{k}$, ou pela forma $n[S_a^{k+1}\pabs{}^{k+1}-S_a^{k}\pabs{}^{k}]/\pabs{}^{k+1}$, que conserva a
-  massa exatamente; medir o efeito no balanço (hoje 0,34\% em 48~h).
-\item \textbf{Termo de gradiente de massa específica da água} ausente; com $K_w=2{,}2\times10^6$~kPa é
-  desprezível, mas o documento deve dizê-lo e o teste de Terzaghi pode quantificar.
-\item \textbf{Descontinuidade de $\chi$ constante} em $p_c=0$ quando $\chi_0\ne1$ (Eq.~\ref{eq:chiconst});
-  com $\chi_0=1$ não há salto. Decidir se a opção fica ou se é substituída por uma transição contínua.
-\item \textbf{$k_{ra}^{\min}=10^{-4}$} entra como propriedade física do ar na superfície alagada (Seção~6 do
-  artigo); é um parâmetro numérico com efeito físico, a declarar como tal.
-\item \textbf{Porosidade constante} nos coeficientes hidráulicos, sem lei de evolução; e $\eta=0$
-  (grãos incompressíveis). Manter como hipótese declarada.
-\item \textbf{SRM a partir de $F_0=0{,}6$}: o estado geostático com resistência aumentada e a trajetória de
-  $F$ crescente tornam o FS dependente da trajetória em princípio; verificar no talude seco contra o SRM por
-  continuação de \path{Projects/SlopeMohrCoulomb} (que aplica a gravidade com a resistência real e depois reduz).
-\item \textbf{GIM com a sucção não escalada}: escolha documentada no código; declarar no texto e mostrar a
-  diferença em um caso.
-\item \textbf{Critério de convergência} só no resíduo de equilíbrio e na correção de pressão: o resíduo das
-  equações de massa não entra no critério (entra só na busca linear). Avaliar se um critério no resíduo de
-  massa muda algum resultado.
-\item \textbf{Integração de 3 pontos} para a rigidez do P2 (exata para a parte elástica) e para os termos não
-  lineares de fluxo; testar ordem 4 em um caso.
-\item \textbf{Validação do ar}: a fase ar só foi verificada pelo balanço de massa; no ensaio de Liakopoulos
-  a solução bifásica drena mais devagar que o ensaio (artigo, Seção~3).
+\item \textbf{$\chi$ dos testes (D1).} Proposta: $\chi=S_w$, como nas notas, em todos os testes de formulação. O
+$\chi=1$ fica só para a comparação com Rahardjo et al.\ (2007).
+\item \textbf{Armazenamento do ar (D9).} Proposta: trocar $S_a^{n+1}$ por $S_a^{n}$ no termo de compressibilidade, com o
+Jacobiano correspondente, e medir antes e depois com o teste de Boyle (teste~3a).
+\item \textbf{Regra não associada (D14).} O PV2 do artigo é associado. Opções: (a) restringir a análise a $\psi=\phi$
+com o PV2; (b) estender a projeção do artigo ao caso não associado, que exige outra derivação, porque a projeção
+deixa de ser a de ponto mais próximo na norma de energia; (c) manter a classe antiga só como referência.
+Proposta: (a), já que o modelo escolhido é o PV2.
 \end{enumerate}
 
 %======================================================================
-\section{Plano de verificação}\label{sec:plano}
+\section{Plano de verificação da Fase 2}\label{sec:plano}
 %======================================================================
 
-Cada teste tem o que verifica, a referência, o critério de aceitação definido antes de rodar e o que já
-existe no repositório. Os testes são feitos nesta ordem; cada um vira um commit com figura e tabela.
+Um teste por vez, com critério de aceitação fixado antes de rodar, e um commit por teste com tabela ou figura.
 
-\begin{center}\small
-\renewcommand{\arraystretch}{1.25}
-\setlength{\tabcolsep}{3pt}\begin{tabular}{p{0.04\linewidth}p{0.2\linewidth}p{0.23\linewidth}p{0.25\linewidth}p{0.19\linewidth}}
-\toprule
-& teste & verifica & referência & já existe\\
-\midrule
-2a & talude seco: GIM e SRM, malha, Taylor & projeção MC, tangente, Newton, SRM e GIM &
-Bishop simplificado independente (\path{scripts/bishop_pw.py}); valor publicado se o PDF for fornecido &
-\path{Projects/SlopeMohrCoulomb}: Taylor, refinamento, Bishop\\
-2a$'$ & mesmo talude no \code{SlopeRainfall} com $p_w=p_a=0$ congeladas & o material de três campos no caso seco &
-2a & não\\
-2b & água, ar passivo, esqueleto rígido (\code{acoplado=0 mecanica=0 passivo=1}) & Eq.~\eqref{eq:agua}, condição
-unilateral, condensação & solução semi-analítica de Philip para infiltração (usada por Callari e Abati 2009,
-Seção~4.2) e coluna com dados experimentais se houver PDF & balanço de água (0,05\%)\\
-2c & água e ar, esqueleto rígido (\code{acoplado=0 passivo=0}) & Eq.~\eqref{eq:ar} junto com \eqref{eq:agua} &
-solução exata de fluxo bifásico e coluna com $p_a$ medida, se houver PDF; ar passivo como limite &
-balanço de ar (0,34\%)\\
-2d & três campos acoplados & acoplamento $\mathbf u$--$p_w$ e $\mathbf u$--$p_w$--$p_a$ &
-Terzaghi (série exata já codificada no código comum dos projetos), Mandel (solução fechada a fornecer),
-Liakopoulos (Callari e Abati 2009, Figs.~3a, 3b), consolidação não saturada se houver PDF &
-Terzaghi com outro material (projeto \code{Terzaghi\-Consolidation}); Liakopoulos com ar passivo\\
-\bottomrule
-\end{tabular}
-\end{center}
+\textbf{Teste 0. Jacobiano do elemento acoplado.} Perturbar $\mathbf X$ numa direção aleatória e medir
+$E(\alpha)=\|\mathbf R(\mathbf X+\alpha\,\delta\mathbf X)-\mathbf R(\mathbf X)-\alpha\,\mathbf J\,\delta\mathbf X\|$, como no
+teste de Taylor do artigo \art{Eqs.~63--65}. Estados: saturado, não saturado, plástico; $\chi=S_w$ e $\chi=1$; com e sem
+condensação. \emph{Aceitação:} ordem $p\in[1{,}9;\,2{,}1]$ em todos. \emph{Situação:} a implementar.
 
-\textbf{Critérios de aceitação propostos.}
+\textbf{Teste 1. Solo seco: GIM e SRM, sem água e sem ar.}
 \begin{itemize}
-\item 2a: inclinação do teste de Taylor $\ge1{,}95$ em todos os regimes; FS do SRM e do GIM convergentes com a
-  malha e, no limite, dentro de 1\% do Bishop independente para o SRM; 2a$'$: mesmos FS que 2a na mesma malha e
-  parâmetros, dentro da tolerância da bissecção.
-\item 2b: erro RMS de $p_w$ (ou do teor de umidade) em relação à solução semi-analítica abaixo de 2\% da
-  variação total do perfil; balanço de água $\le0{,}1\%$; invariância ao passo de tempo (metade do passo muda o
-  perfil menos que o erro).
-\item 2c: com $p_a$ prescrita nula o código bifásico reproduz 2b (diferença no arredondamento); balanço de ar
-  $\le0{,}1\%$ depois da correção do item~1 da Seção~\ref{sec:pendencias}; comparação com a solução exata
-  quando disponível.
-\item 2d: Terzaghi: isócronas de $p_w/q$ dentro de 1\% da série; recalque final dentro de 0,5\%; Mandel:
-  efeito de Mandel--Cryer reproduzido com o pico dentro de 2\% da solução fechada; Liakopoulos com ar passivo
-  mantido como está (RMS 0,29$\times10^{-6}$~m/s na vazão).
+\item 1a, só mecânica (\path{Projects/SlopeMohrCoulomb}): feito; ciclo 5 com 1,793 e 1,203 contra Bishop 1,806 e 1,206.
+Falta verificar a independência do FS em relação a $F_0$.
+\item 1b, o mesmo talude no programa acoplado com $p_w=p_a=0$ congeladas: deve reproduzir 1a na mesma malha.
+\item \emph{Aceitação:} diferença entre 1a e 1b $\le0{,}01$; variação do FS com $F_0\in\{0{,}5;\,0{,}6;\,0{,}8\}$
+$\le0{,}01$; convergência com o refinamento para o valor de Bishop dentro de 1\%.
 \end{itemize}
 
-\textbf{Depois dos testes.} Só então voltar aos quatro modelos do talude e ao que o artigo afirma sobre eles.
+\textbf{Teste 2. Água com ar passivo e esqueleto rígido (equação de Richards).}
+\begin{itemize}
+\item Infiltração de Philip conforme Callari e Abati (2009, Seção~4.2, pp.~8--9): leis de van Genuchten (Eqs.~59--60),
+parâmetros da Tabela~2 (p.~8), malhas $2\times6\times60$ e $2\times2\times20$, $\Delta t=1$~s nos 1000 primeiros passos e
+10~s depois, perfil de pressão comparado em $t=21\,600$~s (Figs.~6--7).
+\item No código: deslocamentos fixos, sem acoplamento e com $p_a=0$ em todo o domínio.
+\item \emph{Aceitação:} frente de saturação dentro de um elemento da solução semianalítica; erro de balanço de água
+$\le0{,}1\%$; resultado estável com $\Delta t/2$ e com a malha refinada.
+\end{itemize}
+
+\textbf{Teste 3. Água e ar com esqueleto rígido.}
+\begin{itemize}
+\item 3a, teste de Boyle: coluna rígida com o ar fechado em todo o contorno e água injetada. A massa de ar se conserva
+e, com gás ideal isotérmico, $\pabs\,V_a$ deve ficar constante, com $V_a=\int nS_a\,\dd\Omega$. \emph{Aceitação:} variação
+relativa de $\pabs V_a$ $\le10^{-4}$ depois da correção D9. Mede diretamente o efeito de D9.
+\item 3b, limite passivo: com o ar livre nas duas extremidades, a solução com ar ativo deve tender à de ar passivo
+quando $\mu_a\to0$. \emph{Aceitação:} a diferença em $p_w$ entre as duas soluções cai quando $\mu_w/\mu_a$ cresce e,
+com $\mu_w/\mu_a$ cem vezes o valor físico, fica abaixo de 1\% da variação de $p_w$ no ensaio.
+\item 3c, balanço global de água e ar em uma infiltração com alagamento. \emph{Aceitação:} erro de ar $\le0{,}1\%$ do ar
+inicial depois de D9.
+\end{itemize}
+
+\textbf{Teste 4. Três campos acoplados.}
+\begin{itemize}
+\item 4a, Terzaghi no limite saturado ($S_w=1$): comparar com a solução em série já usada no projeto
+\path{Projects/TerzaghiConsolidation} (outro material). \emph{Aceitação:} erro máximo de $p_w/p_0\le1\%$ na malha e no passo
+refinados.
+\item 4b, Mandel, saturado: solução analítica do Apêndice~A.1 de Haghighat et al.\ (2021, p.~25), com as raízes de
+$\tan\alpha_i=\alpha_i(1-\nu)/(\nu_u-\nu)$. Verifica o efeito Mandel--Cryer com P2/P1. \emph{Aceitação:} erro de $p$ no
+centro $\le2\%$.
+\item 4c, Liakopoulos com ar passivo contra os dados experimentais: Callari e Abati (2009, Tabela~1, Eq.~58, Fig.~3:
+vazão na base e pressões a 600, 1200 e 1800~s). \emph{Aceitação:} desvio da mesma ordem que o da solução de Callari e
+Abati contra os dados.
+\item 4d, Liakopoulos com ar ativo: configuração de Haghighat et al.\ (2021, Seção~5.3, p.~23), com gás à pressão
+atmosférica no topo e na base. A referência deles é numérica, então a comparação é qualitativa.
+\item 4e, deriva do estado inicial do talude sem chuva (D16).
+\end{itemize}
 
 %======================================================================
-\section{Revisão bibliográfica}\label{sec:revisao}
+\section{Referências citadas}\label{sec:refs}
 %======================================================================
 
-A preencher com as referências a serem enviadas; cada afirmação virá com a página do PDF. O que já foi
-conferido nesta sessão, com página, está em \path{docs/biot_nao_saturado/artigo/auditoria_referencias.md} e
-é usado acima: Rahardjo et al.\ (2007) para o talude e suas hipóteses (pp.~1533--1535); Callari e Abati
-(2009) para os dados do ensaio de Liakopoulos (Tabela~1, Eq.~58, Fig.~3); Li et al.\ (1999, Eqs.~33 e 36) e
-Ghorbani et al.\ (2018, Eq.~35) para o termo de gradiente de massa específica do ar; Khoei e Saeedmonir (2021,
-Eq.~48) para a permeabilidade relativa do ar de Brooks--Corey; Bergamaschi e Putti (1999, p.~1032) para
-Newton contra Picard; Pedroso (2015, Seção~3) para as condições unilaterais da superfície.
-
-Tópicos que a revisão precisa cobrir, com as referências que você enviar: formulações de três fases e a
-hipótese de ar passivo; condições unilaterais de chuva e face de percolação; condensação dos termos de
-armazenamento; projeção analítica de Mohr--Coulomb e tangente consistente; SRM e GIM (definições, tolerâncias,
-dependência de malha); soluções de referência (Philip, Terzaghi, Mandel, Liakopoulos, fluxo bifásico).
-
-\section*{Referências conferidas}
 \begin{itemize}\small
-\item Bergamaschi, L., Putti, M., 1999. Mixed finite elements and Newton-type linearizations for the solution of
-  Richards' equation. Int. J. Numer. Meth. Engng 45, 1025--1046.
-\item Callari, C., Abati, A., 2009. Finite element methods for unsaturated porous solids and their application
-  to dam engineering problems. Computers \& Structures 87, 485--501.
-\item Ghorbani, J., Airey, D.W., El-Zein, A., 2018. Numerical framework for considering the dependency of SWCCs
-  on volume changes and their hysteretic responses in modelling elasto-plastic response of unsaturated soils.
-  Comput. Methods Appl. Mech. Engrg. (manuscrito aceito), doi:10.1016/j.cma.2018.03.008.
-\item Khoei, A.R., Saeedmonir, S., 2021. Computational homogenization of fully coupled multiphase flow in
-  deformable porous media. Comput. Methods Appl. Mech. Engrg. 376, 113660.
-\item Leong, E.C., Rahardjo, H., 1997. Permeability functions for unsaturated soils. J. Geotech. Geoenviron.
-  Eng. 123(12), 1118--1126 (conferida na lista de Rahardjo et al.\ 2007).
-\item Li, X., Thomas, H.R., Fan, Y., 1999. Finite element method and constitutive modelling and computation for
-  unsaturated soils. Comput. Methods Appl. Mech. Engrg. 169, 135--159.
-\item Lira Cecílio, D., 2026. \emph{J. Eng. Math.} 157:10 (projeção analítica de Mohr--Coulomb; citação tomada
-  do README de \path{Projects/SlopeMohrCoulomb}, PDF a conferir).
-\item Pedroso, D.M., 2015. A solution to transient seepage in unsaturated porous media. Comput. Methods Appl.
-  Mech. Engrg. 285, 791--816.
-\item Rahardjo, H., Ong, T.H., Rezaur, R.B., Leong, E.C., 2007. Factors controlling instability of homogeneous
-  soil slopes under rainfall. J. Geotech. Geoenviron. Eng. 133(12), 1532--1543.
+\item [N] Formulação poroelástica não saturada: esqueleto deformável, água e ar. Notas,
+\path{docs/biot_nao_saturado/biot_nao_saturado_agua_ar3.tex}.
+\item [A] Lira Cecílio, D., 2026. Analytical return mapping for Mohr--Coulomb plasticity in rotated Haigh--Westergaard
+space with consistent tangent operator. Journal of Engineering Mathematics 157, 10. doi:10.1007/s10665-026-10519-1.
+\item Callari, C., Abati, A., 2009. Finite element methods for unsaturated porous solids and their application to dam
+engineering problems. Computers \& Structures 87, 485--501.
+\item Celia, M.A., Bouloutas, E.T., Zarba, R.L., 1990. A general mass-conservative numerical solution for the
+unsaturated flow equation. Water Resources Research 26(7), 1483--1496. Citada pela referência [16] de Callari e Abati
+(2009, p.~17); o PDF não foi lido.
+\item Haghighat, E., Amini, D., Juanes, R., 2021. Physics-informed neural network simulation of multiphase
+poroelasticity using stress-split sequential training. arXiv:2110.03049v1.
+\item Pedroso, D.M., 2015. A solution to transient seepage in unsaturated porous media. Computer Methods in Applied
+Mechanics and Engineering 285, 791--816.
+\item Rahardjo, H., Ong, T.H., Rezaur, R.B., Leong, E.C., 2007. Factors controlling instability of homogeneous soil
+slopes under rainfall. Journal of Geotechnical and Geoenvironmental Engineering 133(12), 1532--1543.
+\end{itemize}
+
+A revisão bibliográfica com os 43 PDFs enviados é a próxima parte deste documento.
+
+\appendix
+%======================================================================
+\section{Arquivos da verificação}\label{sec:arquivos}
+%======================================================================
+
+Em \path{docs/biot_nao_saturado/formulacao/verificacao/}:
+\begin{itemize}
+\item \path{verifica_pv2.py} e \path{verifica_pv2.txt}: expressões do PV2 contra as Tabelas~4--6 do artigo, contra
+diferenças finitas e contra a projeção de ponto mais próximo por conjunto ativo. Uso:
+\texttt{python3 verifica\_pv2.py Material/Plasticity/TPZYCMohrCoulombPV2.cpp}.
+\item \path{taylor_check.txt}: saída de \code{SlopeMohrCoulomb check}, teste de Taylor da tangente.
+\item \path{eq54.py} e \path{eq54.txt}: razão entre a Eq.~(54) do artigo e o quadrado da distância.
 \end{itemize}
 
 \end{document}
