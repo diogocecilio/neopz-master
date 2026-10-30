@@ -1,52 +1,46 @@
 # @file neopz/Projects/CMakeLists.txt
-# Examples of the article "Return mapping for Modified Cam-Clay plasticity in rotated Haigh-Westergaard
-# space with consistent tangent operator and coupled u-p consolidation" (one executable per example).
+# Unsaturated soil (u - p_w - p_a, Mohr-Coulomb of Lira Cecilio, J. Eng. Math. 157:10, 2026): one test project per
+# part of the verification plan of docs/biot_nao_saturado/formulacao/formulacao.tex. Each project is a Catch2
+# executable registered in CTest (run "ctest" in the build folder of Projects; slow tests are tagged [.lento]).
 
 cmake_minimum_required(VERSION 3.14)
 
-project(MCCPaperExamples LANGUAGES CXX)
+project(UnsaturatedSoilTests LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Finding the pz package if not in neopz buildtree (NeoPZConfig.cmake provides add_pz_target)
 if(NOT CMAKE_IS_PZ_BUILDTREE)
     find_package(NeoPZ REQUIRED)
 endif()
 
-# header-only utilities shared by the examples
-add_library(mcc_paper_common INTERFACE)
-target_include_directories(mcc_paper_common INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/Common)
+# Catch2 (v2, single header)
+if(NOT TARGET Catch2::Catch2)
+    find_package(Catch2 2 QUIET)
+endif()
+if(NOT TARGET Catch2::Catch2)
+    include(FetchContent)
+    FetchContent_Declare(Catch2 GIT_REPOSITORY https://github.com/catchorg/Catch2.git GIT_TAG v2.13.10)
+    FetchContent_MakeAvailable(Catch2)
+endif()
 
-# add_mcc_example(<name> <sources...>): one executable per example, linked to pz
-function(add_mcc_example name)
+enable_testing()
+
+# header-only code shared by the tests (model, meshes, analysis, factors of safety, reference solutions)
+add_library(unsat_common INTERFACE)
+target_include_directories(unsat_common INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/UnsatCommon)
+
+# add_unsat_test(<name> <sources...>): Catch2 executable linked to pz, registered in CTest
+function(add_unsat_test name)
     add_pz_target(NAME ${name} SOURCES ${ARGN} REQUIRED PZ_BUILD_PLASTICITY_MATERIALS)
-    target_link_libraries(${name} PRIVATE mcc_paper_common)
-    set_target_properties(${name} PROPERTIES FOLDER "MCCPaper")
+    target_link_libraries(${name} PRIVATE unsat_common Catch2::Catch2)
+    target_compile_definitions(${name} PRIVATE UNSAT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+    set_target_properties(${name} PROPERTIES FOLDER "UnsaturatedSoil")
+    add_test(NAME ${name} COMMAND ${name})
 endfunction()
 
-# section, table and figure numbers of the article v0.6 (sections and tables are kept in v0.7; the figures after
-# Fig. 3 may be renumbered when the finite element meshes are added)
-add_subdirectory(YieldSurfaceProjection)       # Figs. 1-2
-add_subdirectory(TaylorTest)                   # Sect. 4.5, Fig. 3; Table 10 (Taylor slopes of the operators)
-add_subdirectory(RS2Triaxial)                  # Sect. 6.1, Figs. 4 and 5, Table 2
-add_subdirectory(FrozenBulkModulus)            # Sect. 6.1, Table 3
-add_subdirectory(IntegrationSchemes)           # Sect. 6.2, Fig. 6, Table 4
-add_subdirectory(FLAC3DTriaxial)               # Sects. 6.3 and 6.7, Figs. 4 and 7, Tables 5 and 10
-add_subdirectory(TerzaghiConsolidation)        # Sect. 6.4, Fig. 8, Table 6
-add_subdirectory(AbaqusTriaxialConsolidation)  # Sects. 6.5 and 6.7, Figs. 9-11, Tables 7, 9 and 10
-add_subdirectory(EmbankmentConsolidation)      # Sects. 6.6 and 6.7, Figs. 12-14, Tables 8 and 10
-
-# Mohr-Coulomb slope stability (RHW Mohr-Coulomb of Lira Cecilio, J Eng Math 2026): gravity increase and SRM
-add_subdirectory(SlopeMohrCoulomb)
-
-# Rapid drawdown of the reservoir: u-p (Biot) Mohr-Coulomb analysis and FS with the seepage forces
-add_subdirectory(SlopeDrawdown)
-
-# Seepage forces of a rapid drawdown (Ceron et al. 2025, Sect. 4.3): anisotropic steady seepage and FEM stability
-add_subdirectory(SlopeSeepageForces)
-
-# Unsaturated slope under rainfall (Rahardjo et al. 2007): u - p_w - p_a model and FS in time
-add_subdirectory(SlopeRainfall)
-
-# Caso A4 com a sucção inicial sem limite (programa autocontido, saída para o ParaView)
-add_subdirectory(SlopeRainfallA4)
+add_subdirectory(UnsatMaterialPoint) # ponto material: leis hidraulicas, Bishop, Mohr-Coulomb PV2 e tangente
+add_subdirectory(UnsatWaterPhase)    # teste 2: agua com ar passivo e esqueleto rigido (Richards)
+add_subdirectory(UnsatAirPhase)      # teste 3: agua e ar com esqueleto rigido
+add_subdirectory(UnsatCoupled)       # testes 0 e 4: Jacobiano, Terzaghi, Mandel, Liakopoulos
+add_subdirectory(UnsatSRM)           # teste 1: reducao de resistencia em solo seco
+add_subdirectory(UnsatGIM)           # teste 1: aumento de gravidade em solo seco

@@ -26,7 +26,9 @@
  *  - EVanGenuchten: \f$S_e = \left[1 + (a_{VG} p_c)^{b_{VG}}\right]^{-m_{VG}}\f$, \f$m_{VG} = 1 - 1/b_{VG}\f$,
  *    \f$S_w = S_{wr} + (1 - S_{wr}) S_e\f$;
  *  - ELiakopoulos: \f$S_w = 1 - c_L p_c^{b_L}\f$, bounded by \f$S_{wr}\f$ (fitted to the Del Monte sand of the drainage
- *    test of Liakopoulos 1965; \f$S_e = (S_w - S_{wr})/(1 - S_{wr})\f$ enters only the air permeability).
+ *    test of Liakopoulos 1965; \f$S_e = (S_w - S_{wr})/(1 - S_{wr})\f$ enters only the air permeability);
+ *  - EGardner: \f$S_e = \exp(-a_G p_c)\f$, \f$S_w = S_{wr} + (1 - S_{wr}) S_e\f$ (exponential model; with the power law
+ *    \f$k_{rw} = S_e\f$ it gives \f$k = k_s\exp(-a_G p_c)\f$, for which steady vertical flow has a closed form).
  *
  * Relative permeability of the water:
  *  - EPowerLaw: \f$k_{rw} = S_e^{p}\f$ (Leong and Rahardjo 1997b, \f$k_w = k_s\Theta^p\f$);
@@ -41,7 +43,7 @@
  * of the tangent regular where a phase disappears (Sect. 13.9 of the notes).
  */
 struct TPZUnsaturatedHydraulics {
-    enum ERetention { EFredlundXing = 0, EVanGenuchten = 1, ELiakopoulos = 2 };
+    enum ERetention { EFredlundXing = 0, EVanGenuchten = 1, ELiakopoulos = 2, EGardner = 3 };
     enum EWaterPermeability { EPowerLaw = 0, EMualem = 1, ELiakopoulosW = 2 };
     enum EAirPermeability { EBrooksCorey = 0, EMualemAir = 1 };
 
@@ -55,6 +57,8 @@ struct TPZUnsaturatedHydraulics {
     REAL fAVG = 0.1, fBVG = 2., fSwr = 0.;
     /** @brief Liakopoulos: retention c_L (kPa^-b_L), b_L and water permeability d_L, e_L */
     REAL fLC = 3.975e-4, fLB = 2.4279, fLD = 2.207, fLE = 1.0121;
+    /** @brief Gardner (exponential) retention: a_G (1/kPa) */
+    REAL fAG = 0.1;
     /** @brief exponent p of the power law of the water */
     REAL fPower = 4.;
     /** @brief exponent lambda of Brooks-Corey (air) */
@@ -85,6 +89,10 @@ struct TPZUnsaturatedHydraulics {
             const REAL r = pc / fA, x = std::pow(r, fN), L = std::log(M_E + x);
             S = std::pow(L, -fM);
             Gamma = fM * std::pow(L, -fM - 1.) * fN * std::pow(r, fN - 1.) / (fA * (M_E + x));
+        } else if (fRetention == EGardner) {
+            const REAL Se = std::exp(-fAG * pc);
+            S = fSwr + (1. - fSwr) * Se;
+            Gamma = (1. - fSwr) * fAG * Se;
         } else if (fRetention == ELiakopoulos) {
             S = 1. - fLC * std::pow(pc, fLB);
             Gamma = fLC * fLB * std::pow(pc, fLB - 1.);
@@ -100,7 +108,7 @@ struct TPZUnsaturatedHydraulics {
 
     /** @brief Effective saturation \f$S_e\f$ and \f$dS_e/dS_w\f$ */
     void Effective(REAL S, REAL &Se, REAL &dSe) const {
-        const REAL swr = (fRetention == EVanGenuchten || fRetention == ELiakopoulos) ? fSwr : 0.;
+        const REAL swr = (fRetention == EFredlundXing) ? 0. : fSwr;
         dSe = 1. / (1. - swr);
         Se = std::min(std::max((S - swr) * dSe, REAL(0.)), REAL(1.));
     }
@@ -172,9 +180,11 @@ struct TPZUnsaturatedHydraulics {
 
     void Print(std::ostream &out) const {
         out << "  retention "
-            << (fRetention == EFredlundXing ? "Fredlund-Xing" : fRetention == EVanGenuchten ? "van Genuchten" : "Liakopoulos");
+            << (fRetention == EFredlundXing ? "Fredlund-Xing" : fRetention == EVanGenuchten ? "van Genuchten"
+                : fRetention == EGardner ? "Gardner" : "Liakopoulos");
         if (fRetention == EFredlundXing) out << " a = " << fA << " n = " << fN << " m = " << fM;
         else if (fRetention == EVanGenuchten) out << " a_VG = " << fAVG << " b_VG = " << fBVG << " S_wr = " << fSwr;
+        else if (fRetention == EGardner) out << " a_G = " << fAG << " S_wr = " << fSwr;
         else out << " c = " << fLC << " b = " << fLB << " S_wr = " << fSwr;
         out << "\n  k_rw ";
         if (fKrw == EPowerLaw) out << "power law p = " << fPower;

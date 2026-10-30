@@ -1,8 +1,0 @@
-# Pradhan et al. (2022), Tabela 2: camadas paralelas à superfície (0-0,5 / 0,5-1 / 1-1,5 / > 1,5 m).
-# van Genuchten (curva de umedecimento): alpha (1/m) / 9,81 -> 1/kPa; S_wr = 0 (theta_r não informado);
-# porosidade pelos índices de vazios da Tabela 1 (e = 1,04 / 0,77 / 0,57); peso específico = gamma_unsat.
-# id  parametros
-1 gamma=17.4 E=6000 nu=0.35 c=3 phi=36 ks=5.8e-7 poro=0.51 swcc=vg:0.027727,1.315,0 krw=mualem chi=se
-2 gamma=17.4 E=7000 nu=0.35 c=3 phi=36 ks=2.7e-7 poro=0.435 swcc=vg:0.023038,1.405,0 krw=mualem chi=se
-3 gamma=19.1 E=7000 nu=0.35 c=3 phi=36 ks=2.6e-7 poro=0.363 swcc=vg:0.014271,1.405,0 krw=mualem chi=se
-4 gamma=20.2 E=7000 nu=0.35 c=3 phi=36 ks=2.4e-7 poro=0.363 swcc=vg:0.014271,1.405,0 krw=mualem chi=se

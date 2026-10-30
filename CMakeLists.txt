@@ -198,9 +198,9 @@ if(BUILD_PUBLICATIONS)
     add_subdirectory(Publications)
 endif()
 
-#To build the examples of the Modified Cam-Clay paper (Projects folder, one executable per example).
+#To build the unsaturated soil test projects (Projects folder, one Catch2 executable per part of the verification plan).
 #They require the plasticity materials (BUILD_PLASTICITY_MATERIALS=ON).
-option(BUILD_PROJECTS "To build the examples of the Modified Cam-Clay u-p paper (Projects folder)." ON)
+option(BUILD_PROJECTS "To build the unsaturated soil test projects (Projects folder)." ON)
 
 #To building all the performance projects developed with PZ environment
 option(BUILD_PERF_TESTS "To build the performance test." OFF)
@@ -368,7 +368,7 @@ if(BUILD_PROJECTS)
   if(BUILD_PLASTICITY_MATERIALS)
     add_subdirectory(Projects)
   else()
-    message(STATUS "BUILD_PROJECTS: the examples of the Modified Cam-Clay paper need "
+    message(STATUS "BUILD_PROJECTS: the unsaturated soil test projects need "
                    "BUILD_PLASTICITY_MATERIALS=ON; the Projects folder is not built.")
   endif()
 endif()

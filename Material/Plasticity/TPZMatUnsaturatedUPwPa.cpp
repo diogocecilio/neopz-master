@@ -324,14 +324,17 @@ void TPZMatUnsaturatedUPwPa<T, TMEM>::ContributeInternal(const TPZVec<TPZMateria
     const REAL Kag[2] = {kxx * (ha[0] + gpa[0]) + kxy * (ha[1] + gpa[1]), kxy * (ha[0] + gpa[0]) + kyy * (ha[1] + gpa[1])};
     const REAL adv = Kha[0] * gpa[0] + Kha[1] * gpa[1]; // -q_a . grad p_a / lambda_a
 
+    // saturation of the last converged step at the point (storage integrated at the points, no lumping)
+    const REAL Sn = lump ? 0. : fHydro.Evaluate(pwn, pan).S;
     for (int j = 0; j < np; ++j) {
         const REAL Nj = dW.phi.GetVal(j, 0), gj0 = gP.GetVal(0, j), gj1 = gP.GetVal(1, j);
         REAL Rw = Nj * (S * X + n * S / fKw * dpw) + dt * lw * (gj0 * Khw[0] + gj1 * Khw[1]);
         REAL Ra = Nj * (Sa * X - dt * cag * la * adv) + dt * la * (gj0 * Kha[0] + gj1 * Kha[1]);
         if (!lump) {
-            const REAL Sn = fHydro.Evaluate(pwn, pan).S;
             Rw += Nj * n * (S - Sn);
-            Ra += Nj * (-n * (S - Sn) + n * Sa * cag * dpa);
+            // air: n Delta S_a + n S_a^n Delta p_a / p_a^abs (mass of air n S_a rho_a, rho_a ~ p_a^abs, divided by
+            // rho_a^{n+1}: exactly conservative for uniform p_a)
+            Ra += Nj * (-n * (S - Sn) + n * (1. - Sn) * cag * dpa);
         } else {
             // storage at the vertex j with the vertex pressures: (int N_j) n (S(p_j) - S(p_j^n)) ...
             const TPZUnsaturatedHydraulics::TState hv = fHydro.Evaluate(vw[j], va[j]);
@@ -339,13 +342,13 @@ void TPZMatUnsaturatedUPwPa<T, TMEM>::ContributeInternal(const TPZVec<TPZMateria
             fHydro.Retention(mem.fPaV[j] - mem.fPwV[j], Svn, Gvn);
             const REAL Pv = va[j] + fPatm, dpav = va[j] - mem.fPaV[j];
             Rw += Nj * n * (hv.S - Svn);
-            Ra += Nj * (-n * (hv.S - Svn) + n * (1. - hv.S) / Pv * dpav);
+            Ra += Nj * (-n * (hv.S - Svn) + n * (1. - Svn) / Pv * dpav);
             if (ek) {
                 const REAL Gv = hv.Gamma, M = dv * Nj * n;
                 (*ek)(ow + j, ow + j) += M * Gv;
                 (*ek)(ow + j, oa + j) -= M * Gv;
-                (*ek)(oa + j, ow + j) += M * (-Gv - Gv * dpav / Pv);
-                (*ek)(oa + j, oa + j) += M * (Gv + Gv * dpav / Pv + (1. - hv.S) / Pv - (1. - hv.S) * dpav / (Pv * Pv));
+                (*ek)(oa + j, ow + j) += M * (-Gv);
+                (*ek)(oa + j, oa + j) += M * (Gv + (1. - Svn) / Pv - (1. - Svn) * dpav / (Pv * Pv));
             }
         }
         ef(ow + j, 0) -= dv * Rw;
@@ -368,8 +371,8 @@ void TPZMatUnsaturatedUPwPa<T, TMEM>::ContributeInternal(const TPZVec<TPZMateria
             if (!lump) {
                 kww += Nj * n * Gm * Nk;
                 kwa -= Nj * n * Gm * Nk;
-                kaw += Nj * (-n * Gm - n * Gm * dpa * cag) * Nk;
-                kaa += Nj * (n * Gm + n * (Gm * dpa * cag + Sa * cag - Sa * dpa * cag * cag)) * Nk;
+                kaw += Nj * (-n * Gm) * Nk;
+                kaa += Nj * (n * Gm + n * (1. - Sn) * (cag - dpa * cag * cag)) * Nk;
             }
             (*ek)(ow + j, ow + k) += dv * kww;
             (*ek)(ow + j, oa + k) += dv * kwa;

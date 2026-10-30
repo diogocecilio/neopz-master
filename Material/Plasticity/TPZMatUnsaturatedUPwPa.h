@@ -69,7 +69,7 @@ public:
  * \f[ R_w = \int N_p\Big[S_w X + \frac{nS_w}{K_w}\Delta p_w\Big] + \langle n\Delta S_w\rangle
  *     + \Delta t\int\nabla N_p\cdot\lambda_w(\nabla p_w - \gamma_w\mathbf{g}) - \Delta t f_w, \f]
  * \f[ R_a = \int N_p\Big[S_a X - \Delta t\,c_a\lambda_a(\nabla p_a - \gamma_a\mathbf{g})\cdot\nabla p_a\Big]
- *     + \Big\langle n\Delta S_a + \frac{nS_a}{p_a^{abs}}\Delta p_a\Big\rangle
+ *     + \Big\langle n\Delta S_a + \frac{nS_a^{n}}{p_a^{abs}}\Delta p_a\Big\rangle
  *     + \Delta t\int\nabla N_p\cdot\lambda_a(\nabla p_a - \gamma_a\mathbf{g}) - \Delta t f_a, \f]
  * where \f$\lambda_w = \mathbf{K} k_{rw}/\gamma_w\f$, \f$\lambda_a = (\mathbf{K}/\gamma_w)(\mu_w/\mu_a)k_{ra}\f$ with the
  * conductivity tensor \f$\mathbf{K} = R(\theta)\,\mathrm{diag}(k_1, k_2)\,R(\theta)^T\f$ (isotropic: \f$k_1 = k_2 = k_s\f$),
@@ -252,6 +252,11 @@ public:
     void Read(TPZStream &buf, void *context) override;
     /** @} */
 
+    /** @brief Equivalent pressure and its derivatives chi_w = dp_B/dp_w, chi_a = dp_B/dp_a */
+    void Bishop(REAL pw, REAL pa, REAL S, REAL Gamma, REAL &pB, REAL &chiw, REAL &chia) const;
+    /** @brief Unit weight of the soil and its derivative with respect to p_w */
+    void UnitWeight(REAL S, REAL Gamma, REAL &gamma, REAL &dgamma) const;
+
 protected:
     void ContributeInternal(const TPZVec<TPZMaterialDataT<STATE>> &datavec, REAL weight, TPZFMatrix<STATE> *ek,
                             TPZFMatrix<STATE> &ef);
@@ -259,11 +264,6 @@ protected:
                               TPZFMatrix<STATE> &ef, TPZBndCondT<STATE> &bc);
     /** @brief Global gradients (2 x n) of shape functions given in the axes of the element */
     static void GlobalGradients(const TPZMaterialDataT<STATE> &data, TPZFMatrix<REAL> &grad);
-    /** @brief Equivalent pressure and its derivatives chi_w = dp_B/dp_w, chi_a = dp_B/dp_a */
-    void Bishop(REAL pw, REAL pa, REAL S, REAL Gamma, REAL &pB, REAL &chiw, REAL &chia) const;
-    /** @brief Unit weight of the soil and its derivative with respect to p_w */
-    void UnitWeight(REAL S, REAL Gamma, REAL &gamma, REAL &dgamma) const;
-
     T fPlasticity;
     TPZUnsaturatedHydraulics fHydro;
     REAL fPorosity = 0.45, fAlpha = 1., fKs = 0., fKw = 2.2e6;
@@ -272,7 +272,7 @@ protected:
     REAL fGamma = 20., fGammaS = 26.;
     bool fMixture = false;
     REAL fG[3] = {0., -1., 0.};
-    EBishop fBishop = EChiConstant;
+    EBishop fBishop = EChiSaturation;
     REAL fChi = 1.;
     bool fLumped = true;
     int fIntegrationOrder = 0;
