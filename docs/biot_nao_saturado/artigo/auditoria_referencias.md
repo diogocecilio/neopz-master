@@ -138,6 +138,6 @@ Método:
 | G_i χ = S_e I30, G_iii χ = S_e I54 sem parada | idem, χ = S_e | 1,0035 (i) e 0,9688 (iii): superestimativa de 64–77% |
 | B_iv I36 com `balanco=1` | balanço global de água e ar (`scripts/balanco_massa.py`) | água: erro ≤ 0,05% do volume infiltrado; ar: 0,25% (24 h) e 0,34% (48 h) do volume inicial de ar |
 | L_liakopoulos_i/ii_callari | retenção de Callari e Abati (2009, Eq. 58) | vazão: RMS 0,29·10⁻⁶ m/s (ar passivo); bifásico 2,0–2,7 vezes mais lento entre 10 e 30 min |
-| C_i…C_iv sem chuva | deriva do FS sem chuva (estado inicial com sucção limitada a 75 kPa) | ver o artigo, seção 3.2 |
+| C_i…C_iv sem chuva | deriva do FS sem chuva (estado inicial com sucção limitada a 75 kPa) | FS mínimo 2,094–2,096 (ar ativo, 12 h) e 2,108 (ar passivo, 6 h), contra 2,119 inicial: variação ≤ 0,025 em 48 h |
 
 Tabelas e figuras regeneradas com `scripts/figuras_artigo.py`, que lê esses casos.
