@@ -127,3 +127,17 @@ Método:
 - **Crossref.** A consulta a api.crossref.org foi bloqueada pela política de rede do ambiente (403). Para liberar,
   adicione o domínio em *Allowed domains* nas configurações do ambiente:
   https://code.claude.com/docs/en/cloud-environments#network-access
+
+## 5. Cálculos novos desta revisão (`Projects/SlopeRainfall/resultados/artigo_rev`)
+
+| Rodada | Motivo | Resultado |
+|---|---|---|
+| D_ii I78/I90 sem parada (ψ = φ') | FS mínimo verdadeiro; as anteriores paravam em FS ≤ 1,01 | 1,0100 e 1,0093 (24 h): I_c,0,005 > 90 mm/h no modelo (ii) |
+| D_iv I25/I30 sem parada | idem | 0,9907 e 0,9647 (24 h): I_c,δ = 24,3–24,8 mm/h no modelo (iv), também com δ = 0 |
+| G_i / G_iii f10 I140 sem parada | idem, solo f10 | 1,0015 (i) e 0,970 (iii): o viés muda de sinal no f10 |
+| G_i χ = S_e I30, G_iii χ = S_e I54 sem parada | idem, χ = S_e | 1,0035 (i) e 0,9688 (iii): superestimativa de 64–77% |
+| B_iv I36 com `balanco=1` | balanço global de água e ar (`scripts/balanco_massa.py`) | água: erro ≤ 0,05% do volume infiltrado; ar: 0,25% (24 h) e 0,34% (48 h) do volume inicial de ar |
+| L_liakopoulos_i/ii_callari | retenção de Callari e Abati (2009, Eq. 58) | vazão: RMS 0,29·10⁻⁶ m/s (ar passivo); bifásico 2,0–2,7 vezes mais lento entre 10 e 30 min |
+| C_i…C_iv sem chuva | deriva do FS sem chuva (estado inicial com sucção limitada a 75 kPa) | ver o artigo, seção 3.2 |
+
+Tabelas e figuras regeneradas com `scripts/figuras_artigo.py`, que lê esses casos.
