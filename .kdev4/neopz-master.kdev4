@@ -28,7 +28,7 @@ Launch Configurations=Launch Configuration 3,Launch Configuration 4,Launch Confi
 [Launch][Launch Configuration 0]
 Configured Launch Modes=execute
 Configured Launchers=nativeAppLauncher
-Name=New Compiled Binary Launcher
+Name=unsatcoupled
 Type=Native Application
 
 [Launch][Launch Configuration 0][Data]
@@ -36,10 +36,10 @@ Arguments=
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
 EnvironmentGroup=
-Executable=file:///home/diogo/projects/neopz-master
+Executable=file:///home/diogo/projects/neopz-master-build-release/Projects/UnsatCoupled/UnsatCoupled
 External Terminal=konsole --hold -e
 Kill Before Executing Again=4194304
-Project Target=neopz-master,Projects,SlopeDrawdown,SlopeDrawdown
+Project Target=neopz-master,Projects,LearningTherzagui,LearningTherzagui
 Use External Terminal=false
 Working Directory=
 isExecutable=false
