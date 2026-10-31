@@ -56,26 +56,26 @@ enum EIds {
 // Le uma malha do Gmsh (.msh 4.1) e associa os nomes dos grupos fisicos aos ids de material.
 //   domains    : grupos de dimensao 2 (dominio)
 //   boundaries : grupos de dimensao 1 (contornos)
-// O TPZGmshReader (formato 4) cria os elementos com o numero do grupo fisico do Gmsh, sem aplicar
-// o mapa de nomes; por isso os ids sao trocados aqui pelo nome do grupo.
+// Todo elemento deve pertencer a um grupo listado nos mapas.
 TPZGeoMesh *ReadGmshMesh(const std::string &file, const std::map<std::string, int> &domains,
                          const std::map<std::string, int> &boundaries)
 {
+    TPZManVector<std::map<std::string, int>, 4> names(4);
+    for (auto &[name, id] : domains) names[2][name] = id;
+    for (auto &[name, id] : boundaries) names[1][name] = id;
     TPZGmshReader reader;
+    reader.SetDimNamePhysical(names);
     TPZGeoMesh *gmesh = reader.GeometricGmshMesh(file);
-    auto &tagName = reader.GetDimPhysicalTagName(); // [dimensao][numero do Gmsh] -> nome
     for (TPZGeoEl *gel : gmesh->ElementVec()) {
         if (!gel) continue;
         const int dim = gel->Dimension();
-        const auto &ids = (dim == 2) ? domains : boundaries;
-        auto name = tagName[dim].find(gel->MaterialId());
-        auto id = (name == tagName[dim].end()) ? ids.end() : ids.find(name->second);
-        if (dim == 0 || id == ids.end()) {
-            std::cout << "ReadGmshMesh: grupo fisico " << gel->MaterialId() << " de dimensao " << dim
-                      << " sem id de material" << std::endl;
+        bool known = false;
+        for (auto &[name, id] : names[dim]) known = known || (id == gel->MaterialId());
+        if (!known) {
+            std::cout << "ReadGmshMesh: elemento de dimensao " << dim << " com id " << gel->MaterialId()
+                      << " fora dos grupos fisicos informados" << std::endl;
             DebugStop();
         }
-        gel->SetMaterialId(id->second);
     }
     gmesh->BuildConnectivity();
     return gmesh;
