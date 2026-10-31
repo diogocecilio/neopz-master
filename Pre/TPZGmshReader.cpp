@@ -387,9 +387,18 @@ TPZGeoMesh * TPZGmshReader::GeometricGmshMesh4(std::string file_name, TPZGeoMesh
                   gmesh->SetMaxElementId(el_identifier - 1);
                 }
 
-                const int64_t physical_identifier =
+                const int64_t gmsh_physical_identifier =
                     m_dim_entity_tag_and_physical_tag[entity_dim][entity_tag]
                                                      [i_data];
+                // material id of the physical group: the user defined id when the
+                // group name was given in SetDimNamePhysical, otherwise the Gmsh
+                // physical tag
+                const auto &tag_to_matid =
+                    m_dim_physical_tag_and_physical_tag[entity_dim];
+                const auto matid = tag_to_matid.find(gmsh_physical_identifier);
+                const int64_t physical_identifier =
+                    (matid != tag_to_matid.end()) ? matid->second
+                                                  : gmsh_physical_identifier;
 
                 // std::cout << "Creating el for tag " << gmshPhysicalTagTemp <<
                 // " with physical id = " << physical_identifier << std::endl;
