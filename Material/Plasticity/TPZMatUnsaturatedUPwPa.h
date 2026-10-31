@@ -125,7 +125,18 @@ public:
         EKrw = 6,            ///< \f$k_{rw}\f$ ("RelativePermeabilityWater")
         EBishopPressure = 7, ///< \f$p_B\f$ ("BishopPressure")
         EDisplacementX = 8,  ///< ("DisplacementX")
-        EDisplacementY = 9   ///< ("DisplacementY")
+        EDisplacementY = 9,  ///< ("DisplacementY")
+        // variables of the integration points (memory of the last converged step, zero at other points; meant to be
+        // projected with TPZPostProcAnalysis); names of TPZMatElastoPlastic, stresses positive in tension
+        EStressXX = 10,         ///< effective stress \f$\sigma'_{xx}\f$ ("StressXX")
+        EStressYY = 11,         ///< ("StressYY")
+        EStressZZ = 12,         ///< ("StressZZ")
+        EStressXY = 13,         ///< ("StressXY")
+        EStrainPlastic = 14,    ///< plastic strain XX, YY, ZZ, XY, XZ, YZ, engineering shear ("StrainPlastic")
+        EStrainPlasticI1 = 15,  ///< volumetric plastic strain ("StrainPlasticI1")
+        EStrainPlasticJ2 = 16,  ///< second invariant of the deviatoric plastic strain tensor ("StrainPlasticJ2")
+        EFailureType = 17,      ///< type of the last plastic response, 0 elastic ("FailureType")
+        EHardening = 18         ///< hardening variable of the plastic step ("Hardening")
     };
 
     TPZMatUnsaturatedUPwPa();

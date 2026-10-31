@@ -454,7 +454,10 @@ int TPZMatUnsaturatedUPwPa<T, TMEM>::VariableIndex(const std::string &name) cons
     static const std::map<std::string, int> names = {
         {"Displacement", EDisplacement},   {"WaterPressure", EWaterPressure}, {"AirPressure", EAirPressure},
         {"Suction", ESuction},             {"Saturation", ESaturation},       {"RelativePermeabilityWater", EKrw},
-        {"BishopPressure", EBishopPressure}, {"DisplacementX", EDisplacementX}, {"DisplacementY", EDisplacementY}};
+        {"BishopPressure", EBishopPressure}, {"DisplacementX", EDisplacementX}, {"DisplacementY", EDisplacementY},
+        {"StressXX", EStressXX},           {"StressYY", EStressYY},           {"StressZZ", EStressZZ},
+        {"StressXY", EStressXY},           {"StrainPlastic", EStrainPlastic}, {"StrainPlasticI1", EStrainPlasticI1},
+        {"StrainPlasticJ2", EStrainPlasticJ2}, {"FailureType", EFailureType}, {"Hardening", EHardening}};
     auto it = names.find(name);
     if (it != names.end()) return it->second;
     return TBase::VariableIndex(name);
@@ -463,7 +466,8 @@ int TPZMatUnsaturatedUPwPa<T, TMEM>::VariableIndex(const std::string &name) cons
 template <class T, class TMEM>
 int TPZMatUnsaturatedUPwPa<T, TMEM>::NSolutionVariables(int var) const {
     if (var == EDisplacement) return 3;
-    if (var >= EWaterPressure && var <= EDisplacementY) return 1;
+    if (var == EStrainPlastic) return 6;
+    if (var >= EWaterPressure && var <= EHardening) return 1;
     return TBase::NSolutionVariables(var);
 }
 
@@ -493,6 +497,39 @@ void TPZMatUnsaturatedUPwPa<T, TMEM>::Solution(const TPZVec<TPZMaterialDataT<STA
         sol[0] = pB;
         break;
     }
+    default:
+        break;
+    }
+    if (var < EStressXX || var > EHardening) return;
+    // variables of the integration points: state of the last converged step in the memory
+    const int64_t ip = datavec[0].intGlobPtIndex;
+    if (ip < 0 || ip >= int64_t(this->GetMemory()->NElements())) return;
+    const TMEM &mem = this->MemItem(ip);
+    const TPZTensor<REAL> &sig = mem.m_sigma, &epsp = mem.m_elastoplastic_state.m_eps_p;
+    switch (var) {
+    case EStressXX: sol[0] = sig.XX(); break;
+    case EStressYY: sol[0] = sig.YY(); break;
+    case EStressZZ: sol[0] = sig.ZZ(); break;
+    case EStressXY: sol[0] = sig.XY(); break;
+    case EStrainPlastic:
+        sol[0] = epsp.XX();
+        sol[1] = epsp.YY();
+        sol[2] = epsp.ZZ();
+        sol[3] = epsp.XY();
+        sol[4] = epsp.XZ();
+        sol[5] = epsp.YZ();
+        break;
+    case EStrainPlasticI1: sol[0] = epsp.I1(); break;
+    case EStrainPlasticJ2: {
+        TPZTensor<REAL> eps(epsp); // engineering shear strains -> tensor components
+        eps.XY() *= 0.5;
+        eps.XZ() *= 0.5;
+        eps.YZ() *= 0.5;
+        sol[0] = eps.J2();
+        break;
+    }
+    case EFailureType: sol[0] = mem.m_elastoplastic_state.m_m_type; break;
+    case EHardening: sol[0] = mem.m_elastoplastic_state.m_hardening; break;
     default:
         break;
     }
