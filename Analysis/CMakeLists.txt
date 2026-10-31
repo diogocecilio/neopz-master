@@ -41,6 +41,13 @@ install(FILES ${public_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Analysis
 
 target_sources(pz PRIVATE ${headers} ${sources})
 
+# incremental analysis of the unsaturated u - p_w - p_a material (needs the plasticity materials)
+if(BUILD_PLASTICITY_MATERIALS)
+    target_sources(pz PRIVATE TPZUnsatAnalysis.h TPZUnsatAnalysis.cpp)
+    install(FILES TPZUnsatAnalysis.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Analysis)
+    list(APPEND public_headers TPZUnsatAnalysis.h)
+endif()
+
 #for doxygen
 foreach(header ${public_headers})
     list(APPEND PZ_PUBLIC_HEADERS " ${CMAKE_CURRENT_SOURCE_DIR}/${header}")
