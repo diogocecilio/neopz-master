@@ -95,7 +95,8 @@ public:
     /**
      * One backward-Euler step from the converged state: Newton with the equations of fixed eliminated and the
      * water inflow dt * fq (m3/s per unit thickness) added to the water equations. On convergence the solution is
-     * loaded in the mesh; the memory and fX are updated only by Accept.
+     * loaded in the mesh; the memory and fX are updated only by Accept. A failure of the linear solver (singular
+     * tangent) ends the step as not converged.
      */
     StepResult Solve(REAL dt, const std::map<int64_t, REAL> &fixed, const std::map<int64_t, REAL> &fq, bool frozen,
                      int linesearch = 4);

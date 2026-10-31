@@ -148,7 +148,13 @@ TPZUnsatAnalysis::StepResult TPZUnsatAnalysis::Solve(REAL dt, const std::map<int
             res.conv = true;
             return res;
         }
-        TPZLinearAnalysis::Solve();
+        // a singular tangent (e.g. at the collapse of a factor of safety search) makes the LU stop with an
+        // exception (DebugStop): the step is then reported as not converged
+        try {
+            TPZLinearAnalysis::Solve();
+        } catch (...) {
+            return res;
+        }
         TPZFMatrix<STATE> dx = Solution();
         lastdp = 0.;
         for (int64_t i = 0; i < fNEq; ++i)
