@@ -45,3 +45,4 @@ add_subdirectory(UnsatCoupled)       # testes 0 e 4: Jacobiano, Terzaghi, Mandel
 add_subdirectory(UnsatSRM)           # teste 1: reducao de resistencia em solo seco
 add_subdirectory(UnsatGIM)           # teste 1: aumento de gravidade em solo seco
 add_subdirectory(LearningTherzagui)  # projeto de estudo do autor: coluna de Terzaghi
+add_subdirectory(LearningMohrCoulomb) # projeto de estudo do autor: Mohr-Coulomb em sapata corrida e talude
