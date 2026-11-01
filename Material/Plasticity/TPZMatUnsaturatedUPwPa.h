@@ -51,43 +51,77 @@ public:
 
 /**
  * @ingroup matcombinedspaces
- * @brief u - p_w - p_a material of the notes "Formulação poroelástica não saturada: esqueleto deformável, água e ar"
- * (Sects. 1-13), with a Mohr-Coulomb (or any TPZPlasticStepVoigt-like) effective stress.
+ * @brief u - p_w - p_a material with a Mohr-Coulomb (or any TPZPlasticStepVoigt-like) effective stress.
  *
- * Unknowns (TOTAL values in the mesh solution): displacement u (datavec[0], H1, quadratic), water pressure p_w
- * (datavec[1], H1, linear) and air pressure p_a (datavec[2], H1, linear), gauge pressures positive in compression
- * (kPa); stresses positive in tension. Units: kN, m, s.
+ * Formulation: [F] "Formulação acoplada u-p_w-p_a com Mohr-Coulomb associado"
+ * (docs/biot_nao_saturado/formulacao/formulacao.tex, Fases 1 e 2); equation numbers below are those of [F]. [F]
+ * derives from [N] the notes "Formulação poroelástica não saturada: esqueleto deformável, água e ar"
+ * (docs/biot_nao_saturado/biot_nao_saturado_agua_ar3.tex) and [A] Lira Cecílio (2026), J. Eng. Math. 157:10.
  *
- * Effective (Bishop) stress and equivalent pressure:
- * \f[ \sigma = \sigma' - \alpha\,p_B\,I, \qquad p_B = \chi p_w + (1-\chi) p_a, \f]
- * with \f$\chi = S_w\f$ (notes) or a constant \f$\chi = \tan\phi^b/\tan\phi'\f$ (shear strength of Fredlund et al.
- * 1978 used by Rahardjo et al. 2007; \f$\phi^b = \phi'\f$ gives \f$\chi = 1\f$).
+ * Unknowns (TOTAL values in the mesh solution), Eq. (1.1): displacement u (datavec[0], H1, quadratic), water
+ * pressure p_w (datavec[1], H1, linear) and air pressure p_a (datavec[2], H1, linear); gauge pressures positive in
+ * compression, stresses positive in tension, strains in Voigt form with engineering shear (F Sect. 1). Units: kN, m, s.
  *
- * Backward-Euler residuals of the step (the mass balances are multiplied by \f$\Delta t\f$; \f$\Delta(\cdot)\f$ is the
- * increment in the step, \f$X = \alpha\Delta\varepsilon_v + \eta\Delta p_B\f$, \f$\eta=(\alpha-n)/K_s\f$):
- * \f[ R_u = \int B^T\sigma' - \lambda_g\int\alpha\,m^TB\,p_B - \lambda_g\int N_u^T\gamma\,\mathbf{g} - f_t, \f]
- * \f[ R_w = \int N_p\Big[S_w X + \frac{nS_w}{K_w}\Delta p_w\Big] + \langle n\Delta S_w\rangle
- *     + \Delta t\int\nabla N_p\cdot\lambda_w(\nabla p_w - \gamma_w\mathbf{g}) - \Delta t f_w, \f]
- * \f[ R_a = \int N_p\Big[S_a X - \Delta t\,c_a\lambda_a(\nabla p_a - \gamma_a\mathbf{g})\cdot\nabla p_a\Big]
- *     + \Big\langle n\Delta S_a + \frac{nS_a^{n}}{p_a^{abs}}\Delta p_a\Big\rangle
- *     + \Delta t\int\nabla N_p\cdot\lambda_a(\nabla p_a - \gamma_a\mathbf{g}) - \Delta t f_a, \f]
- * where \f$\lambda_w = \mathbf{K} k_{rw}/\gamma_w\f$, \f$\lambda_a = (\mathbf{K}/\gamma_w)(\mu_w/\mu_a)k_{ra}\f$ with the
- * conductivity tensor \f$\mathbf{K} = R(\theta)\,\mathrm{diag}(k_1, k_2)\,R(\theta)^T\f$ (isotropic: \f$k_1 = k_2 = k_s\f$),
- * \f$c_a = 1/p_a^{abs}\f$ (ideal isothermal gas), \f$\mathbf{g}\f$ the unit vector of gravity, \f$\lambda_g\f$ the gravity
- * factor (1 in the transient analysis; the geostatic initialization scales the weight of the soil and the pore
- * pressures together, the gravity-increase factor of safety the weight and the positive pressures, see SetGravityScalesSuction) and \f$\langle\cdot\rangle\f$ the storage terms, lumped at the
- * vertices of the P1 pressure element (\f$\int N_i\,d\Omega\f$ times the term evaluated with the vertex pressures,
- * conservative secant form \f$n(S^{n+1}-S^n)\f$) or, if lumping is disabled, integrated at the points. The porosity
- * is constant in the coefficients (first-order closure of Sect. 9 with \f$\alpha = 1\f$, incompressible grains).
- * The unit weight is constant (Rahardjo et al. 2007) or that of the mixture
- * \f$\gamma = (1-n)\gamma_s + nS_w\gamma_w\f$. The tangent is the full consistent Jacobian of these residuals.
+ * Field equations of [F] and where they enter:
+ *  - kinematics and elastic constants: Eqs. (2.1)-(2.3);
+ *  - suction, saturation and retention capacity: Eq. (3.1); retention curves (3.2)-(3.5) in TPZUnsaturatedHydraulics;
+ *  - Bishop equivalent pressure p_B: Eq. (3.6) with chi = S_w (default, EChiSaturation); the options chi = S_e and
+ *    a constant chi (tan(phi^b)/tan(phi'), Fredlund et al. 1978, as in Rahardjo et al. 2007) are kept (F Sect. 3);
+ *    tangent Bishop coefficients chi_w, chi_a: Eq. (3.7);
+ *  - equilibrium and effective stress: Eq. (4.1), with the weight factor lambda_g and the pressure factor lambda_p
+ *    of F Sect. 4 (both 1 in the transient analysis; see SetGravityFactor and SetGravityScalesSuction);
+ *  - Darcy's law with the conductivity tensor K and the mobilities: Eqs. (5.1)-(5.2); relative permeabilities
+ *    (5.3)-(5.5) in TPZUnsaturatedHydraulics;
+ *  - fluid compressibility and the air density-gradient term: Eq. (6.1);
+ *  - storage and coupling coefficients: Eqs. (7.1)-(7.3); mass balances: Eq. (8.1);
+ *  - effective stress: the plastic step T (TPZPlasticStepVoigt with the Mohr-Coulomb PV2 of [A], F Sect. 10),
+ *    with the strength reduction of F Sect. 10.7.
  *
- * With SetFrozenPressures(true) only the momentum balance is assembled (factor of safety with the pore pressures of
- * an instant; the pressure equations must then be prescribed by the analysis). The Dirichlet conditions are
- * imposed by the analysis (equation filter); ContributeBC assembles only tractions (ENeumannU) and fluid
- * fluxes (EFluxW, EFluxA).
+ * Discretization ([F] Sects. 11-20):
+ *  - weak form: Eqs. (11.1)-(11.2); Taylor-Hood triangles T6/T3 (12.1)-(12.4), u in the hierarchical quadratic basis
+ *    of NeoPZ; quadrature order set by SetIntegrationOrder (the test projects use the 3-point rule of [N] and [A]);
+ *  - storage condensed at the vertices of the P1 pressure element, the operator <.> of Eq. (13.2) with the diagonal
+ *    derivative (13.5) (SetLumpedStorage; without condensation the terms are integrated at the points);
+ *  - water storage in the secant form (14.4), which conserves the water mass exactly (14.5); air storage (15.2) with
+ *    S_a at the previous step, which conserves the air mass exactly (15.4)-(15.5);
+ *  - backward-Euler step: Eqs. (16.4)-(16.6) (Theta of (16.6) is the variable X of the code); residuals R_u, R_w, R_a
+ *    of Eqs. (16.10)-(16.12), the mass balances multiplied by Delta t; ef = -R (NeoPZ convention, table of F Sect. 16);
+ *  - tangent: the full consistent Jacobian dR/dX, Eqs. (17.1)-(17.14) (full Newton), checked by the Taylor test
+ *    (17.16); it is not symmetric (F Sect. 18), hence a non-symmetric LU in the analysis;
+ *  - Newton iteration, Dirichlet elimination and convergence criterion (19.1)-(19.3): TPZUnsatAnalysis;
+ *  - factors of safety by strength reduction (20.1) and gravity increase (20.2) with the pore pressures of an
+ *    instant frozen: SetFrozenPressures(true) assembles only the momentum rows (R_u, J_uu and the coupling J_up,
+ *    Eqs. (17.8)-(17.9)); the analysis eliminates the pressure equations, so only J_uu is solved (F Sects. 17, 20).
  *
- * As usual in NeoPZ the element vector is ef = -R and the element matrix is the tangent dR/dx.
+ * Simplifying hypotheses (the items Dk are those of the table of discrepancies, F Sect. 21):
+ *  - small strains, quasi-static loading, constant temperature, two immiscible fluid phases without phase change, Darcy
+ *    flow with relative permeabilities and Bishop effective stress [N Sect. 1] (F Sect. 1);
+ *  - elastoplastic skeleton (associated Mohr-Coulomb of [A]) instead of the elastic skeleton of the notes (F Sect. 1);
+ *  - plane strain (eps_xz = eps_yz = eps_zz = 0; the plastic step works with the 3D tensor and returns sigma_zz);
+ *  - Biot coefficient alpha and grain modulus K_s constant (D2); the tests use alpha = 1 and incompressible grains
+ *    (eta = 0);
+ *  - porosity constant in all the coefficients, n = n0: the change of the pore volume enters only through the
+ *    coupling term, and there is no geometric stiffness G_uu (D3);
+ *  - conductivity tensor K constant (isotropic k_s I or anisotropic), no Kozeny-Carman dependence on the porosity (D4);
+ *  - unit weight constant by default; optionally that of the mixture (1-n) gamma_s + n S_w gamma_w, without the weight
+ *    of the air and with n constant (D5);
+ *  - unit weight of the air constant in the gravity term of the air flux (D6);
+ *  - the water density-gradient term c_w q_w . grad p_w of Eq. (6.1) is omitted, as the notes allow (D10);
+ *  - water storage in the secant form instead of the rate form (14.3) of the notes (D8); condensed storage evaluated
+ *    with the vertex pressures instead of diag(int C N_i) (D13);
+ *  - default hydraulic laws of TPZUnsaturatedHydraulics (Fredlund-Xing retention, k_rw = S_e^4, Brooks-Corey air)
+ *    instead of the van Genuchten-Mualem of the notes, which stays available, as the Gardner law (D7);
+ *  - lower bounds k_rw >= 1e-12 and k_ra >= 1e-4 (zero derivative at the bound, D7); the air pressure is an unknown in
+ *    the whole domain, also where S_a -> 0 (F Sects. 5 and 8);
+ *  - associated Mohr-Coulomb only (psi = phi, D14); the strength reduction divides c, tan(phi) and tan(psi) by F (D15);
+ *  - the prescribed fluxes (EFluxW, EFluxA) are positive entering the domain (D20);
+ *  - in the analyses: initial state computed by the model (geostatic step with frozen pressures, displacements then
+ *    reset keeping the effective stress, ResetDisplacementReference) instead of given sigma_0 and p_B0 (D16); factors
+ *    of safety with the pore pressures of an instant frozen and, in the gravity increase, the suction not scaled
+ *    (D18); Newton convergence on the momentum residual and the pressure correction only (Eq. (19.3), D19).
+ *
+ * The Dirichlet conditions are imposed by the analysis (equation filter, TPZUnsatAnalysis); ContributeBC assembles
+ * only tractions (ENeumannU) and fluid fluxes (EFluxW, EFluxA).
  *
  * @tparam T plastic step with ApplyStrainComputeSigma(eps, sigma, tangent) in total strain (engineering shear
  * strains), e.g. TPZPlasticStepVoigt<TPZYCMohrCoulombPV2, TPZElasticResponse>
