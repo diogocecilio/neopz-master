@@ -1,0 +1,1859 @@
+% =====================================================================
+%  Solos não saturados: formulação u-pw-pa (resumo)
+%  Resume as notas "Formulação poroelástica não saturada" (v4) [N] e o
+%  documento de trabalho do NeoPZ, Fases 1 e 2 [F], com uma notação única.
+%  Compilar: pdflatex resumo_nao_saturado.tex  (duas vezes, para as referências)
+% =====================================================================
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern}
+\usepackage[a4paper,margin=2cm]{geometry}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{booktabs,tabularx,array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,decorations.pathreplacing,calc,babel}
+\usepackage[font=small,labelfont=bf,skip=4pt,hypcap=false]{caption}
+\usepackage{tcolorbox}
+\usepackage{pgfplots}
+\usepgfplotslibrary{groupplots}
+\pgfplotsset{compat=1.16}
+% código e gráficos do projeto LearningLiakopoulos (Seção~\ref{sec:liak_codigo})
+\usepackage{listings}
+\renewcommand{\lstlistingname}{Código}
+\lstdefinestyle{neopz}{language=C++,basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{blue!55!black},commentstyle=\color{black!55}\itshape,
+  stringstyle=\color{red!50!black},columns=fullflexible,keepspaces=true,showstringspaces=false,
+  backgroundcolor=\color{black!3},frame=single,rulecolor=\color{black!45},framerule=0.4pt,
+  xleftmargin=3pt,xrightmargin=3pt,aboveskip=6pt,belowskip=4pt,
+  morekeywords={REAL,STATE,int64_t}}
+\lstdefinestyle{neopzsh}{style=neopz,language=bash,morekeywords={cd,python3}}
+% cores dos casos (ordem categórica fixa) e dos instantes (rampa de um só azul, clara -> escura)
+\definecolor{casoA}{HTML}{2A78D6}  % parcialmente saturada, passos da referência
+\definecolor{casoB}{HTML}{EB6834}  % passos do artigo
+\definecolor{casoC}{HTML}{1BAF7A}  % saturada
+\definecolor{tempoA}{HTML}{86B6EF}
+\definecolor{tempoB}{HTML}{2A78D6}
+\definecolor{tempoC}{HTML}{104281}
+\definecolor{rampaA}{HTML}{86B6EF}
+\definecolor{rampaB}{HTML}{3987E5}
+\definecolor{rampaC}{HTML}{1C5CAB}
+\definecolor{rampaD}{HTML}{0D366B}
+\usepackage{microtype}
+\usepackage[colorlinks=true,linkcolor=blue!45!black,citecolor=blue!45!black,
+            urlcolor=blue!45!black]{hyperref}
+
+\usepackage{titlesec}
+\titlespacing*{\section}{0pt}{2.4ex plus 1ex minus .2ex}{1.2ex plus .2ex}
+\titlespacing*{\subsection}{0pt}{1.8ex plus .8ex minus .2ex}{0.8ex plus .2ex}
+\titlespacing*{\paragraph}{0pt}{1.4ex plus .6ex minus .2ex}{0.8em}
+\setlist{itemsep=1pt,topsep=3pt}
+\setlength{\parskip}{2pt}
+\renewcommand{\arraystretch}{1.2}
+
+% ---------------- notação ----------------
+\newcommand{\vu}{\bm u}
+\newcommand{\vq}{\bm q}
+\newcommand{\vg}{\bm g}
+\newcommand{\vt}{\bm t}
+\newcommand{\tsig}{\bm\sigma}
+\newcommand{\teps}{\bm\varepsilon}
+\newcommand{\tkap}{\bm\kappa}
+\newcommand{\tI}{\bm I}
+\newcommand{\dv}{\operatorname{div}}
+\newcommand{\patm}{p_{\mathrm{atm}}}
+\newcommand{\mt}[1]{\mathsf{#1}}
+\newcommand{\dd}{\mathrm d}
+
+\begin{document}
+
+\begin{center}
+{\Large\bfseries Solos não saturados: formulação $\vu$--$p_w$--$p_a$}\\[4pt]
+{\normalsize Resumo das notas [N] e do documento de trabalho do NeoPZ [F]}\\[2pt]
+{\small \today}
+\end{center}
+
+% =====================================================================
+\section{A ideia em poucas linhas}
+
+O solo é tratado como três fases que ocupam o mesmo ponto: o esqueleto sólido
+(os grãos), a água e o ar. Há \textbf{três incógnitas}, funções da posição e do tempo,
+\[
+\vu\ \ \text{(deslocamento do esqueleto)},\qquad
+p_w\ \ \text{(pressão da água)},\qquad
+p_a\ \ \text{(pressão do ar)},
+\]
+e \textbf{três equações}, uma por incógnita: o equilíbrio do esqueleto, a
+conservação da massa de água e a conservação da massa de ar.
+
+Todo o resto (deformação, sucção, saturação, permeabilidades, tensão efetiva,
+coeficientes de armazenamento) é \emph{calculado} a partir de $(\vu,p_w,p_a)$ e
+dos parâmetros do material. Essas grandezas não são incógnitas novas, são relações
+constitutivas. Essa é a chave para ler as notas: diante de um símbolo novo, basta
+perguntar de qual das três incógnitas ele depende (Tabela~\ref{tab:derivadas}).
+Este resumo usa uma única notação; o Apêndice~\ref{ap:notacao} a liga à de [N] e de [F].
+
+\medskip
+\noindent
+\begin{minipage}[t]{0.60\textwidth}
+\textbf{Hipóteses}
+\begin{itemize}[leftmargin=*]
+\item pequenas deformações, sem inércia (quase estático);
+\item temperatura constante, sem mudança de fase;
+\item água e ar imiscíveis, cada um com sua lei de Darcy;
+\item curva de retenção sem histerese;
+\item tensões positivas em tração;
+\item pressões manométricas (relativas à atmosfera), positivas em compressão;
+\item no código: estado plano de deformação e porosidade constante nos
+      coeficientes.
+\end{itemize}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.37\textwidth}
+\vspace{2pt}
+\centering
+\begin{tikzpicture}[font=\small]
+  \fill[black!22]  (0,0)   rectangle (1.7,1.9);
+  \fill[blue!22]   (0,1.9) rectangle (1.7,2.9);
+  \fill[orange!18] (0,2.9) rectangle (1.7,3.55);
+  \draw (0,0) rectangle (1.7,3.55);
+  \draw (0,1.9) -- (1.7,1.9);
+  \draw (0,2.9) -- (1.7,2.9);
+  \node at (0.85,0.95)  {sólidos};
+  \node at (0.85,2.40)  {água};
+  \node at (0.85,3.225) {ar};
+  \node[anchor=west] at (1.8,0.95)  {$1-n$};
+  \node[anchor=west] at (1.8,2.40)  {$n\,S_w$};
+  \node[anchor=west] at (1.8,3.225) {$n\,S_a$};
+  \draw[decorate,decoration={brace,amplitude=4pt}]
+       (-0.1,1.9) -- (-0.1,3.55) node[midway,left=5pt,align=right] {vazios\\$n$};
+  \node[anchor=north] at (0.85,-0.05) {volume total $=1$};
+\end{tikzpicture}
+\captionof{figure}{Frações de volume. $n$ é a porosidade; $S_w$ e $S_a=1-S_w$
+dividem os vazios entre água e ar.}
+\label{fig:fases}
+\end{minipage}
+
+% =====================================================================
+\section{Variáveis}
+
+\begin{center}\small
+\begin{minipage}{\textwidth}
+\captionof{table}{Grandezas calculadas a partir das incógnitas $(\vu,p_w,p_a)$.}
+\label{tab:derivadas}
+\begin{tabularx}{\textwidth}{@{}l l X@{}}
+\toprule
+Símbolo & Definição & Significado\\
+\midrule
+$\teps$, $\varepsilon_v$ & $\tfrac12(\nabla\vu+\nabla\vu^{T})$, \ $\dv\vu$
+  & deformação e deformação volumétrica ($\varepsilon_v>0$: expansão)\\
+$p_c$ & $p_a-p_w$
+  & sucção (pressão capilar); $p_c>0$ no solo não saturado\\
+$S_w$, $S_a$ & $S_w(p_c)$, \ $1-S_w$
+  & graus de saturação: fração dos vazios ocupada por água e por ar\\
+$S_e$ & $(S_w-S_{wr})/(1-S_{wr})$
+  & saturação efetiva: desconta a água residual $S_{wr}$, que não drena\\
+$C_s$ & $-\dd S_w/\dd p_c\ \ (\ge 0)$
+  & capacidade de retenção: quanto $S_w$ cai por kPa de sucção\\
+$p_B$ & $\chi\,p_w+(1-\chi)\,p_a$
+  & pressão média dos dois fluidos sobre o esqueleto (Bishop)\\
+$\tsig'$ & modelo elastoplástico
+  & tensão efetiva: governa a deformação e a ruptura do esqueleto\\
+$k_{rw}$, $k_{ra}$ & funções de $S_w$
+  & permeabilidades relativas, entre 0 e 1\\
+$\vq_w$, $\vq_a$ & lei de Darcy, Eq.~(\ref{eq:darcy})
+  & vazão de cada fluido por unidade de área (m/s), relativa ao esqueleto\\
+$K_a$ & $p_a+\patm$
+  & módulo volumétrico do ar (gás ideal isotérmico): a pressão absoluta\\
+$\zeta_w$, $\zeta_a$ & Seção~\ref{sec:zeta}
+  & volume de cada fluido que entrou no solo, por unidade de volume\\
+\bottomrule
+\end{tabularx}
+\end{minipage}
+\end{center}
+
+\begin{center}\small
+\begin{minipage}{\textwidth}
+\captionof{table}{Parâmetros do material. Unidades do código: kN, m, s; pressões e tensões em kPa.}
+\label{tab:parametros}
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+\toprule
+Símbolo & Significado\\
+\midrule
+$E$, $\nu$ & elasticidade drenada do esqueleto; deles saem $G$, a constante de Lamé
+  $\lambda$ e o módulo drenado $K_d$\\
+$c'$, $\phi'$, $\psi$ & coesão, ângulo de atrito e ângulo de dilatância do
+  Mohr--Coulomb (associado: $\psi=\phi'$)\\
+$n$ & porosidade\\
+$\alpha$ & coeficiente de Biot, $\alpha=1-K_d/K_s$ ($K_s$: módulo dos grãos);
+  com grãos incompressíveis, $\alpha=1$\\
+$1/N$ & $(\alpha-n)/K_s$: variação do volume dos poros por compressão dos grãos;
+  nula com grãos incompressíveis\\
+$K_w$ & módulo volumétrico da água ($2{,}2\times10^{6}$~kPa)\\
+$\kappa$ & permeabilidade intrínseca (m$^2$), a mesma para água e ar; pode ser um
+  tensor $\tkap$ (anisotropia)\\
+$k_s$ & condutividade hidráulica saturada (m/s), $k_s=\kappa\,\gamma_w/\mu_w$;
+  é o dado de entrada do código\\
+$\mu_w$, $\mu_a$ & viscosidades da água e do ar ($\mu_w/\mu_a\approx 55{,}6$)\\
+$a$, $b$, $S_{wr}$ & parâmetros da curva de retenção de van Genuchten e saturação residual\\
+$\gamma$, $\gamma_w$ & pesos específicos do solo ($\rho_B\,g$) e da água ($9{,}81$~kN/m$^3$)\\
+$\patm$ & pressão atmosférica ($101{,}325$~kPa), usada só no módulo do ar\\
+\bottomrule
+\end{tabularx}
+\end{minipage}
+\end{center}
+
+% =====================================================================
+\section{Relações constitutivas}
+
+\subsection{Retenção: a sucção controla a saturação}
+Com a lei de van Genuchten, para $p_c>0$,
+\begin{equation}
+S_e=\big[1+(a\,p_c)^{b}\big]^{-m},\qquad m=1-\frac1b,\qquad
+S_w=S_{wr}+(1-S_{wr})\,S_e ,
+\label{eq:vg}
+\end{equation}
+e $S_w=1$ para $p_c\le 0$. A inclinação da curva é a capacidade de retenção:
+\begin{equation}
+C_s=-\frac{\dd S_w}{\dd p_c}
+=(1-S_{wr})\,m\,b\,a^{b}\,p_c^{\,b-1}\big[1+(a\,p_c)^{b}\big]^{-m-1}\ \ge 0 .
+\label{eq:Cs}
+\end{equation}
+Como $p_c=p_a-p_w$, vale $\partial S_w/\partial p_w=C_s$ e $\partial S_w/\partial p_a=-C_s$.
+O produto $n\,C_s$ é a capacidade específica de umidade da equação de Richards
+($\dd\theta/\dd p_w$, com $\theta=n\,S_w$). O código também tem as leis de
+Fredlund--Xing, Gardner e Liakopoulos.
+
+\subsection{Fluxo: lei de Darcy em cada fase}
+\begin{equation}
+\vq_f=-\frac{k_{rf}(S_w)}{\mu_f}\,\tkap\,\big(\nabla p_f-\rho_f\,\vg\big),
+\qquad f\in\{w,a\}.
+\label{eq:darcy}
+\end{equation}
+O termo $\nabla p_f-\rho_f\vg$ é o gradiente de pressão descontada a coluna
+hidrostática da própria fase: no repouso hidrostático, $\nabla p_f=\rho_f\vg$ e não
+há fluxo. Para a água, com $\tkap=\kappa\tI$ e $y$ a cota, (\ref{eq:darcy}) é a forma
+usual $\vq_w=-k_{rw}\,k_s\,\nabla H$, com a carga total $H=y+p_w/\gamma_w$. Para o
+ar, $\kappa/\mu_a=(\mu_w/\mu_a)\,k_s/\gamma_w$. As permeabilidades relativas de
+Mualem--van Genuchten são
+\begin{equation}
+k_{rw}=S_e^{1/2}\Big[1-\big(1-S_e^{1/m}\big)^{m}\Big]^{2},\qquad
+k_{ra}=(1-S_e)^{1/2}\big(1-S_e^{1/m}\big)^{2m}.
+\label{eq:mualem}
+\end{equation}
+O código impõe mínimos ($k_{rw}\ge10^{-12}$, $k_{ra}\ge10^{-4}$) para que a equação
+de uma fase não degenere quando ela quase desaparece.
+
+\subsection{Compressibilidade dos fluidos}
+\begin{equation}
+\rho_w=\rho_{w0}\,e^{(p_w-p_{w0})/K_w},\qquad
+\rho_a=\rho_{a0}\,\frac{p_a+\patm}{p_{a0}+\patm}
+\qquad\text{(gás ideal isotérmico)},
+\label{eq:rho}
+\end{equation}
+logo $c_f\equiv\rho_f^{-1}\,\dd\rho_f/\dd p_f=1/K_f$, com $K_a=p_a+\patm$.
+Com $K_w\approx2{,}2\times10^{6}$~kPa e $K_a\approx100$~kPa, o ar é cerca de vinte
+mil vezes mais compressível que a água (consequência na Seção~\ref{sec:zeta}).
+
+\subsection{Tensão efetiva de Bishop}
+\begin{equation}
+\tsig=\tsig'-\alpha\,p_B\,\tI,\qquad
+p_B=\chi\,p_w+(1-\chi)\,p_a=p_a-\chi\,p_c .
+\label{eq:bishop}
+\end{equation}
+O padrão do código é $\chi=S_w$; então $p_B=S_w\,p_w+S_a\,p_a$ é a média das
+pressões ponderada pelas saturações. Há as opções $\chi=S_e$ e $\chi$ constante.
+Rahardjo et al.\ (2007) usam $\phi^b=\phi'$, o que equivale a $\chi=1$.
+
+\emph{Por que a sucção aumenta a resistência.} Com $\alpha=1$ e a tensão normal
+$\sigma_n$ positiva em compressão, (\ref{eq:bishop}) dá
+\[
+\sigma_n'=(\sigma_n-p_a)+\chi\,p_c
+\quad\Longrightarrow\quad
+\tau_f=c'+(\sigma_n-p_a)\tan\phi'+p_c\,\chi\tan\phi' ,
+\]
+que é a envoltória de Fredlund et al.\ (1978) com $\tan\phi^b=\chi\tan\phi'$. A sucção
+soma uma parcela de compressão à tensão efetiva. A chuva reduz $p_c$, essa parcela
+de resistência se perde e o talude pode romper. No limite saturado, $\chi=1$ e
+$p_B=p_w$: volta-se a Terzaghi e Biot.
+
+\subsection{Esqueleto}
+A tensão efetiva vem de um modelo elastoplástico, $\tsig'=\tsig'(\teps;\teps^p)$.
+Na parte elástica, $\tsig'=\lambda\,\varepsilon^e_v\,\tI+2G\,\teps^e$. A plasticidade
+é Mohr--Coulomb associado ($\psi=\phi'$), escrito em tensões efetivas; com
+$\sigma_1'\ge\sigma_2'\ge\sigma_3'$ (tração positiva),
+\[
+F(\tsig')=(\sigma_1'-\sigma_3')+(\sigma_1'+\sigma_3')\sin\phi'-2c'\cos\phi'\le 0 .
+\]
+O retorno é analítico, no espaço de Haigh--Westergaard rotacionado, com tangente
+consistente $\mathbb D=\partial\tsig'/\partial\teps$ [A]. Na formulação das notas [N]
+(Seções 1--13) o esqueleto é elástico; a implementação usa este Mohr--Coulomb.
+
+% =====================================================================
+\section{Equações de balanço}
+
+\subsection{Equilíbrio do esqueleto}
+Sem inércia, $\dv\tsig+\rho_B\,\vg=\bm 0$; com (\ref{eq:bishop}),
+\begin{equation}
+\dv\big[\tsig'(\teps)-\alpha\,p_B\,\tI\big]+\rho_B\,\vg=\bm 0,
+\qquad \rho_B=(1-n)\,\rho_s+n\,(S_w\rho_w+S_a\rho_a).
+\label{eq:equilibrio}
+\end{equation}
+As pressões dos fluidos só chegam ao esqueleto por meio de $p_B$. Por padrão, o
+código usa peso específico $\gamma=\rho_B\,g$ constante.
+
+\subsection{\texorpdfstring{Quanto fluido entra no solo: $\zeta_w$ e $\zeta_a$}{Quanto fluido entra no solo}}
+\label{sec:zeta}
+Seja $m_f=\rho_f\,n\,S_f$ a massa da fase $f$ por unidade de volume de solo. Define-se
+$\dot\zeta_f=\dot m_f/\rho_f$: a taxa de volume da fase $f$ que entra no solo. Ela tem
+três parcelas:
+\begin{equation}
+\dot\zeta_f=
+\underbrace{S_f\Big(\alpha\,\dot\varepsilon_v+\frac{\dot p_B}{N}\Big)}_{\substack{\text{(i) os poros mudam}\\\text{de volume}}}
++\underbrace{n\,\dot S_f}_{\substack{\text{(ii) ar trocado}\\\text{por água}}}
++\underbrace{\frac{n\,S_f}{K_f}\,\dot p_f}_{\substack{\text{(iii) o fluido}\\\text{se comprime}}},
+\qquad f\in\{w,a\}.
+\label{eq:zeta}
+\end{equation}
+(i) O volume dos poros varia porque o esqueleto deforma ($\alpha\,\dot\varepsilon_v$) e
+porque os grãos se comprimem ($\dot p_B/N$); a fase $f$ fica com a fração $S_f$ dessa
+variação. (ii) No mesmo poro, a água ocupa o lugar do ar, ou o contrário:
+$\dot S_a=-\dot S_w$. (iii) A própria fase se comprime.
+
+Pela regra da cadeia, $\dot S_w=C_s(\dot p_w-\dot p_a)$ e
+$\dot p_B=\chi_w\dot p_w+\chi_a\dot p_a$, com os coeficientes de Bishop \emph{tangentes}
+\begin{equation}
+\chi_w\equiv\frac{\partial p_B}{\partial p_w}=S_w-C_s\,p_c,\qquad
+\chi_a\equiv\frac{\partial p_B}{\partial p_a}=S_a+C_s\,p_c\qquad(\chi=S_w).
+\label{eq:chitan}
+\end{equation}
+O termo $C_s\,p_c$ aparece porque $p_B=S_wp_w+S_ap_a$ depende das pressões também por
+meio de $S_w$. Substituindo em (\ref{eq:zeta}),
+\begin{equation}
+\dot\zeta_f=\alpha\,S_f\,\dot\varepsilon_v+C_{fw}\,\dot p_w+C_{fa}\,\dot p_a ,
+\label{eq:zeta2}
+\end{equation}
+\begin{equation}
+\begin{bmatrix}C_{ww}&C_{wa}\\C_{aw}&C_{aa}\end{bmatrix}
+=\underbrace{\frac1N\begin{bmatrix}S_w\\S_a\end{bmatrix}\!\begin{bmatrix}\chi_w&\chi_a\end{bmatrix}}_{\text{grãos}}
++\underbrace{n\begin{bmatrix}S_w/K_w&0\\0&S_a/K_a\end{bmatrix}}_{\text{compressão dos fluidos}}
++\underbrace{n\,C_s\begin{bmatrix}1&-1\\-1&1\end{bmatrix}}_{\text{retenção}} .
+\label{eq:Cmat}
+\end{equation}
+Com grãos incompressíveis ($\alpha=1$, $1/N=0$), como na maior parte dos testes, sobra
+\begin{equation}
+\begin{bmatrix}C_{ww}&C_{wa}\\C_{aw}&C_{aa}\end{bmatrix}
+=n\begin{bmatrix}S_w/K_w+C_s&-C_s\\-C_s&S_a/K_a+C_s\end{bmatrix}.
+\label{eq:Cmat0}
+\end{equation}
+Ordens de grandeza, com $n\approx0{,}4$: $n\,S_w/K_w\sim10^{-7}$~kPa$^{-1}$;
+$n\,S_a/K_a\sim10^{-3}$~kPa$^{-1}$; $n\,C_s$ fica tipicamente entre $10^{-4}$ e
+$10^{-2}$~kPa$^{-1}$, conforme o solo e a sucção. Na água domina a retenção; no ar, a
+compressibilidade tem a mesma ordem da retenção. Por isso o ar não sai
+instantaneamente: pode ficar aprisionado e pressurizado sob uma frente de umedecimento.
+
+\subsection{Conservação da massa de cada fase}
+Dividindo o balanço de massa da fase $f$ por $\rho_f$:
+\begin{equation}
+\dot\zeta_f+\dv\vq_f+c_f\,\vq_f\cdot\nabla p_f=0 .
+\label{eq:massa}
+\end{equation}
+O último termo vem da variação de $\rho_f$ ao longo do caminho do fluxo. É desprezível
+para a água ($c_w=1/K_w$) e mantido para o ar ($c_a=1/K_a$).
+
+\subsection{Sistema final}
+Juntando (\ref{eq:equilibrio}), (\ref{eq:zeta2}) e (\ref{eq:massa}):
+
+\begin{tcolorbox}[colback=black!3,colframe=black!45,boxrule=0.5pt,arc=2pt,
+                  left=6pt,right=6pt,top=0pt,bottom=4pt]
+\begin{alignat}{2}
+&\text{equilíbrio } (\vu): &\quad&
+  \dv\big[\tsig'(\teps)-\alpha\,p_B\,\tI\big]+\rho_B\,\vg=\bm 0,\label{eq:sis1}\\
+&\text{água } (p_w): &&
+  \alpha S_w\,\dot\varepsilon_v+C_{ww}\,\dot p_w+C_{wa}\,\dot p_a+\dv\vq_w=0,\label{eq:sis2}\\
+&\text{ar } (p_a): &&
+  \alpha S_a\,\dot\varepsilon_v+C_{aw}\,\dot p_w+C_{aa}\,\dot p_a+\dv\vq_a
+  +c_a\,\vq_a\cdot\nabla p_a=0,\label{eq:sis3}
+\end{alignat}
+com $\vq_f$ de (\ref{eq:darcy}), $p_B$ de (\ref{eq:bishop}) e $C_{fg}$ de (\ref{eq:Cmat}).
+As incógnitas são $\vu$, $p_w$ e $p_a$; $S_w$, $C_s$, $k_{rw}$, $k_{ra}$, $\chi$ e $\rho_B$
+são funções de $p_c=p_a-p_w$.
+\end{tcolorbox}
+
+\begin{center}
+\begin{tikzpicture}[font=\small,
+  caixa/.style={draw=black!60, rounded corners=3pt, align=center,
+                minimum width=3.3cm, minimum height=1.15cm, fill=black!4},
+  seta/.style={-{Stealth[length=2.2mm]}, semithick}]
+  \node[caixa] (w)  at (-5.6,0) {\textbf{Massa de água}\\ incógnita $p_w$};
+  \node[caixa] (eq) at (0,0)    {\textbf{Equilíbrio}\\ incógnita $\vu$};
+  \node[caixa] (a)  at (5.6,0)  {\textbf{Massa de ar}\\ incógnita $p_a$};
+  \draw[seta] ([yshift=3mm]w.east) -- node[above]{$p_B$} ([yshift=3mm]eq.west);
+  \draw[seta] ([yshift=3mm]a.west) -- node[above]{$p_B$} ([yshift=3mm]eq.east);
+  \draw[seta] ([yshift=-3mm]eq.west) -- node[below]{$\alpha S_w\dot\varepsilon_v$} ([yshift=-3mm]w.east);
+  \draw[seta] ([yshift=-3mm]eq.east) -- node[below]{$\alpha S_a\dot\varepsilon_v$} ([yshift=-3mm]a.west);
+  \draw[{Stealth[length=2.2mm]}-{Stealth[length=2.2mm]}, semithick, rounded corners=4pt]
+     (w.south) -- ++(0,-0.75) -| node[pos=0.25, below]
+     {$C_{wa}$, $C_{aw}$: troca de ar por água (retenção, $C_s$)} (a.south);
+\end{tikzpicture}
+\captionof{figure}{Como as três equações se acoplam. Além disso, $S_w(p_c)$ entra em
+$k_{rw}$, $k_{ra}$, $\chi$ e $\rho_B$.}
+\label{fig:acoplamento}
+\end{center}
+
+\paragraph{Condições de contorno e iniciais.} Em cada campo prescreve-se, no contorno, o
+valor ($\vu$, $p_w$ ou $p_a$) ou o fluxo (tração $\bar{\vt}$ ou vazão normal $\bar q_f$).
+As condições iniciais $(\vu_0,p_{w0},p_{a0})$ devem ser compatíveis com a tensão
+inicial; no código, ela vem de um carregamento geostático com as pressões congeladas.
+Numa face de percolação a condição é unilateral: $p_w\le0$, vazão de saída $\ge0$ e
+$p_w\,(\vq_w\cdot\bm n)=0$. Sob chuva, a infiltração é no máximo a intensidade da
+chuva; onde $p_w$ chega a zero a superfície alaga e o excesso escoa.
+
+\paragraph{O que o código simplifica em relação às notas.} Porosidade constante nos
+coeficientes (sem a lei de evolução de $n$); $\kappa$ constante (sem Kozeny--Carman);
+$\alpha$ e $K_s$ constantes; $\gamma$ constante por padrão; $\rho_a\vg$ constante no
+termo gravitacional do ar; sem o termo $c_w\,\vq_w\cdot\nabla p_w$; sem histerese. Quando
+$S_a\to0$ a pressão do ar deixa de ser fisicamente definida, mas o código a mantém como
+incógnita em todo o domínio, com o mínimo de $k_{ra}$.
+
+% =====================================================================
+\section{Casos particulares}
+
+\begin{center}\small
+\begin{minipage}{\textwidth}
+\captionof{table}{O que sobra do sistema (\ref{eq:sis1})--(\ref{eq:sis3}) em casos usuais.}
+\label{tab:casos}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.6cm}
+                             >{\raggedright\arraybackslash}p{4.3cm} X@{}}
+\toprule
+Caso & Hipóteses & O que sobra\\
+\midrule
+Saturado (Biot) & $S_w=1$, $C_s=0$, $\chi=1$
+ & equilíbrio com $p_B=p_w$; água: $\alpha\,\dot\varepsilon_v+\dot p_w/M+\dv\vq_w=0$,
+   com $1/M=1/N+n/K_w$; a equação do ar desaparece\\
+Ar passivo & $p_a=0$ em todo o domínio (o ar sai livremente)
+ & equilíbrio com $p_B=S_w\,p_w$; água: $\alpha S_w\,\dot\varepsilon_v+C_{ww}\,\dot p_w+\dv\vq_w=0$,
+   com $p_c=-p_w$\\
+Desacoplado (hipóteses de Rahardjo et al., 2007)
+ & ar passivo; $\alpha$ e $1/N$ anulados só nas equações de massa
+ & fluxo em esqueleto rígido, $C_{ww}\,\dot p_w+\dv\vq_w=0$; com água incompressível é
+   a equação de Richards, $n\,\partial S_w/\partial t+\dv\vq_w=0$; o equilíbrio usa as
+   pressões obtidas (acoplamento de uma via)\\
+\bottomrule
+\end{tabularx}
+\end{minipage}
+\end{center}
+
+% =====================================================================
+\section{Discretização espacial}
+\label{sec:espacial}
+
+As equações (\ref{eq:sis1})--(\ref{eq:sis3}) são discretizadas no espaço pelo método de
+Galerkin: forma fraca, aproximação por funções de forma e integração numérica. O resultado
+é um sistema de equações diferenciais ordinárias no tempo, discretizado na
+Seção~\ref{sec:temporal} e resolvido como na Seção~\ref{sec:newton}.
+
+\subsection{Problema de valor de contorno}
+O domínio $\Omega\subset\mathbb R^2$ (estado plano de deformação, espessura unitária) tem
+contorno $\Gamma$. Para cada campo, $\Gamma$ se divide numa parte com valor prescrito e
+noutra com fluxo prescrito:
+\begin{equation}
+\begin{aligned}
+\vu&=\bar{\vu}\ \text{em }\Gamma_u, &\qquad \tsig\,\bm n&=\bar{\vt}\ \text{em }\Gamma_t,\\
+p_f&=\bar p_f\ \text{em }\Gamma_p^f, & -\vq_f\cdot\bm n&=\bar q_f\ \text{em }\Gamma_q^f,
+\end{aligned}
+\qquad f\in\{w,a\},
+\label{eq:pvc}
+\end{equation}
+com $\bm n$ a normal externa e $\bar q_f>0$ entrando, como no código (as notas usam o fluxo
+positivo saindo). As condições iniciais são $\vu(\bm x,0)=\vu_0$ e $p_f(\bm x,0)=p_{f0}$.
+
+\subsection{Forma fraca}
+Nas equações de massa é cômodo escrever a lei de Darcy (\ref{eq:darcy}) como
+\begin{equation}
+\vq_f=-\bm\Lambda_f\,\bm h_f,\qquad
+\bm\Lambda_f=\frac{k_{rf}}{\mu_f}\,\tkap,\qquad
+\bm h_f=\nabla p_f-\rho_f\,\vg ,
+\label{eq:mobilidade}
+\end{equation}
+em que $\bm\Lambda_f$ é a mobilidade da fase e $\bm h_f$ o gradiente de pressão em excesso
+ao hidrostático.
+
+\paragraph{Equilíbrio.} Multiplica-se (\ref{eq:sis1}) por um deslocamento virtual
+$\tilde{\vu}$, nulo em $\Gamma_u$, e integra-se em $\Omega$. Com
+$\dv(\tsig\tilde{\vu})=\tsig:\nabla\tilde{\vu}+\tilde{\vu}\cdot\dv\tsig$, o teorema da
+divergência e a simetria de $\tsig$, obtém-se o princípio dos trabalhos virtuais:
+\begin{equation}
+\int_\Omega\teps(\tilde{\vu}):\tsig'\,\dd\Omega
+-\int_\Omega\alpha\,p_B\,\dv\tilde{\vu}\,\dd\Omega
+=\int_\Omega\tilde{\vu}\cdot\rho_B\vg\,\dd\Omega
++\int_{\Gamma_t}\tilde{\vu}\cdot\bar{\vt}\,\dd\Gamma
+\qquad\forall\,\tilde{\vu}.
+\label{eq:fraca_u}
+\end{equation}
+
+\paragraph{Massa.} Multiplica-se (\ref{eq:sis2}) ou (\ref{eq:sis3}) por uma pressão virtual
+$\tilde p$, nula em $\Gamma_p^f$. O divergente do fluxo é integrado por partes,
+$\int_\Omega\tilde p\,\dv\vq_f\,\dd\Omega=-\int_\Omega\nabla\tilde p\cdot\vq_f\,\dd\Omega
++\int_\Gamma\tilde p\,\vq_f\cdot\bm n\,\dd\Gamma$, e em $\Gamma_q^f$ entra a vazão prescrita:
+\begin{equation}
+\int_\Omega\tilde p\,\dot\zeta_f\,\dd\Omega
++\int_\Omega\nabla\tilde p\cdot\bm\Lambda_f\bm h_f\,\dd\Omega
++\int_\Omega\tilde p\,c_f\,\vq_f\cdot\nabla p_f\,\dd\Omega
+=\int_{\Gamma_q^f}\tilde p\,\bar q_f\,\dd\Gamma
+\qquad\forall\,\tilde p .
+\label{eq:fraca_p}
+\end{equation}
+O termo com $c_f$, de primeira ordem, não é integrado por partes e só fica no ar. A forma
+fraca tem apenas derivadas primeiras: basta que $\vu$, $p_w$ e $p_a$ sejam contínuos
+(elementos $C^0$).
+
+\subsection{Elementos de Taylor--Hood}
+\label{sec:elementos}
+A malha é de triângulos, com deslocamento quadrático (P2) e pressões lineares (P1) no mesmo
+elemento (Figura~\ref{fig:th}). Com as coordenadas de área de um triângulo de vértices
+$(x_i,y_i)$,
+\begin{equation}
+L_i=\frac{a_i+b_i\,x+c_i\,y}{2A},\qquad
+a_i=x_jy_k-x_ky_j,\quad b_i=y_j-y_k,\quad c_i=x_k-x_j,
+\label{eq:area}
+\end{equation}
+com $(i,j,k)$ em permutação cíclica de $(1,2,3)$ e
+$2A=(x_2-x_1)(y_3-y_1)-(x_3-x_1)(y_2-y_1)$, as pressões usam as próprias $L_1$, $L_2$
+e $L_3$ (P1), e o deslocamento usa as funções P2
+\begin{equation}
+N_i=L_i(2L_i-1)\ \ (i=1,2,3),\qquad N_4=4L_1L_2,\qquad N_5=4L_2L_3,\qquad N_6=4L_3L_1 .
+\label{eq:formas}
+\end{equation}
+O NeoPZ usa uma base hierárquica que gera o mesmo espaço P2: as funções de vértice são as
+lineares $L_i$ e as de aresta são quadráticas e nulas nos vértices (consequências na
+Seção~\ref{sec:contorno}). Em cada elemento, $\vu=\mt N_u\mathbf U^e$ e
+$p_f=\mt N_p\mathbf P^e_f$, com
+\[
+\mt N_u=\begin{bmatrix}N_1&0&N_2&0&\cdots&N_6&0\\0&N_1&0&N_2&\cdots&0&N_6\end{bmatrix}_{2\times12},
+\qquad
+\mt N_p=\begin{bmatrix}L_1&L_2&L_3\end{bmatrix}_{1\times3}.
+\]
+As derivadas dão a deformação (em Voigt, com a distorção de engenharia) e o gradiente de
+pressão:
+\begin{equation}
+\begin{gathered}
+\teps=\begin{bmatrix}\varepsilon_{xx}\\\varepsilon_{yy}\\\gamma_{xy}\end{bmatrix}=\mt B_u\mathbf U^e,\qquad
+\mt B_u=\big[\mt B_1\ \cdots\ \mt B_6\big],\qquad
+\mt B_i=\begin{bmatrix}N_{i,x}&0\\0&N_{i,y}\\N_{i,y}&N_{i,x}\end{bmatrix},\\
+\nabla p_f=\mt B_p\mathbf P^e_f,\qquad
+\mt B_p=\frac1{2A}\begin{bmatrix}b_1&b_2&b_3\\c_1&c_2&c_3\end{bmatrix},
+\end{gathered}
+\label{eq:B}
+\end{equation}
+e $\varepsilon_v=\bm m^T\teps$, com $\bm m=[1\ 1\ 0]^T$. As derivadas das funções P2 saem
+pela regra da cadeia, $N_{i,x}=\sum_k(\partial N_i/\partial L_k)\,b_k/2A$; por exemplo,
+$\partial[L_1(2L_1-1)]/\partial x=(4L_1-1)\,b_1/2A$ e
+$\partial(4L_1L_2)/\partial x=4(L_2b_1+L_1b_2)/2A$. Assim, $\mt B_u$ varia linearmente no
+elemento (a deformação é linear, e não constante como no T3), enquanto $\mt B_p$ é
+constante. No código, a forma de Voigt tem seis componentes, na ordem $xx$, $xy$, $xz$, $yy$,
+$yz$, $zz$; as linhas $xz$, $yz$ e $zz$ de $\mt B_u$ são nulas, $\bm m=[1\,0\,0\,1\,0\,1]^T$
+e o modelo constitutivo trabalha com o tensor 3D, devolvendo também $\sigma'_{zz}$.
+
+\begin{center}
+\begin{tikzpicture}[font=\small]
+  \coordinate (A) at (0,0); \coordinate (B) at (3.2,0); \coordinate (C) at (1.1,2.1);
+  \draw[thick] (A) -- (B) -- (C) -- cycle;
+  \fill (A) circle (2.6pt); \fill (B) circle (2.6pt); \fill (C) circle (2.6pt);
+  \node[below left]  at (A) {1};
+  \node[below right] at (B) {2};
+  \node[above=2pt]   at (C) {3};
+  \draw[fill=white] ($(A)!0.5!(B)$) circle (2.6pt) node[below=3pt] {4};
+  \draw[fill=white] ($(B)!0.5!(C)$) circle (2.6pt) node[above right=1pt] {5};
+  \draw[fill=white] ($(C)!0.5!(A)$) circle (2.6pt) node[above left=1pt] {6};
+  \fill (4.5,1.4) circle (2.6pt) node[right=6pt] {vértices: $\vu$, $p_w$ e $p_a$};
+  \draw[fill=white] (4.5,0.7) circle (2.6pt) node[right=6pt] {arestas: só $\vu$};
+\end{tikzpicture}
+\captionof{figure}{Elemento de Taylor--Hood P2--P1: 12 graus de liberdade de deslocamento e
+3 de cada pressão, 18 ao todo.}
+\label{fig:th}
+\end{center}
+
+\subsection{Integração numérica}
+\label{sec:quadratura}
+As integrais de elemento usam a regra de três pontos do triângulo de referência, com
+$\dd\Omega=2A\,\dd\xi\,\dd\eta$:
+\begin{equation}
+\int_{\Omega^e}f\,\dd\Omega\approx2A\sum_{g=1}^{3}W_g\,f(\xi_g,\eta_g),\qquad
+(\xi_g,\eta_g)\in\big\{(\tfrac16,\tfrac16),\,(\tfrac23,\tfrac16),\,(\tfrac16,\tfrac23)\big\},\qquad
+W_g=\tfrac16 ,
+\label{eq:quadratura}
+\end{equation}
+exata para polinômios de grau 2. Com coeficientes constantes no elemento, ela integra
+exatamente todas as matrizes da Seção~\ref{sec:matrizes}: $\mt B_u^T\mt D\mt B_u$,
+$\mt B_u^T\bm m\mt N_p$ e $\mt N_p^T\mt N_p$ têm grau 2, e $\mt B_p^T\bm\Lambda_f\mt B_p$
+grau 0. Com $S_w$, $k_{rf}$ e $\mt D$ variando no elemento, é a aproximação usual. Em cada
+ponto de integração calcula-se, nesta ordem:
+\begin{enumerate}[label=\arabic*.,leftmargin=*,itemsep=0pt]
+\item $\teps$, $\varepsilon_v$, $p_w$, $p_a$, $\nabla p_w$ e $\nabla p_a$, a partir dos valores nodais;
+\item $p_c$, $S_w$, $C_s$, $k_{rf}$ e $k'_{rf}=\dd k_{rf}/\dd S_w$;
+\item $\chi$, $\chi_w$, $\chi_a$ e $p_B$;
+\item $\tsig'$ e $\mt D$, pelo retorno do Mohr--Coulomb a partir do estado plástico do passo
+  convergido;
+\item $\Delta\zeta_{sk}$, $c_a=1/K_a$, $\bm h_f$, $\bm\Lambda_f$ e $\vq_f$.
+\end{enumerate}
+
+\subsection{Resíduos e matrizes}
+\label{sec:matrizes}
+Com as funções teste iguais às funções de forma (Galerkin), (\ref{eq:fraca_u}) e
+(\ref{eq:fraca_p}) viram vetores de resíduo. Abaixo, $\sum_e$ indica a montagem: cada vetor
+de elemento é somado nas posições globais dos seus graus de liberdade.
+\begin{align}
+\mathbf R_u&=\sum_e\Big[\underbrace{\int\mt B_u^T\tsig'\,\dd\Omega}_{\text{forças internas}}
+-\underbrace{\int\alpha\,\mt B_u^T\bm m\,p_B\,\dd\Omega}_{\text{pressão nos poros}}
+-\underbrace{\int\mt N_u^T\rho_B\vg\,\dd\Omega}_{\text{peso, }\mathbf f_b}\Big]
+-\underbrace{\sum_e\int_{\Gamma_t}\mt N_u^T\bar{\vt}\,\dd\Gamma}_{\text{trações, }\mathbf f_t},
+\label{eq:Ru}\\
+\mathbf R_f&=\sum_e\Big[\underbrace{\int\mt N_p^T\dot\zeta_f\,\dd\Omega}_{\text{armazenamento}}
++\underbrace{\int\mt B_p^T\bm\Lambda_f\bm h_f\,\dd\Omega}_{\text{condução}}
++\underbrace{\int\mt N_p^Tc_f\,\vq_f\cdot\nabla p_f\,\dd\Omega}_{\text{só no ar, }\mathbf g_a}\Big]
+-\underbrace{\sum_e\int_{\Gamma_q^f}\mt N_p^T\bar q_f\,\dd\Gamma}_{\text{vazão prescrita, }\mathbf F_{\Gamma,f}} .
+\label{eq:Rf}
+\end{align}
+A condução se separa numa parte de pressão e numa de gravidade,
+$\int\mt B_p^T\bm\Lambda_f\bm h_f\,\dd\Omega=\mt H_f\mathbf P_f-\mathbf F_{g,f}$, com
+$\mathbf F_{g,f}=\int\mt B_p^T\bm\Lambda_f\,\rho_f\vg\,\dd\Omega$. Linearizando cada parcela
+em torno de um estado, com os coeficientes congelados, aparecem as matrizes:
+
+\begin{center}\small
+\begin{tabularx}{\textwidth}{@{}l l c X@{}}
+\toprule
+Matriz & Definição (por elemento) & Dimensão & Papel\\
+\midrule
+$\mt K$ & $\int\mt B_u^T\mt D\,\mt B_u\,\dd\Omega$ & $12\times12$
+  & rigidez tangente do esqueleto\\
+$\mt Q_{uf}$ & $\int\alpha\,\chi_f\,\mt B_u^T\bm m\,\mt N_p\,\dd\Omega$ & $12\times3$
+  & a pressão $p_f$ empurra o esqueleto, por meio de $p_B$\\
+$\mt Q_{fu}$ & $\int\alpha\,S_f\,\mt N_p^T\bm m^T\mt B_u\,\dd\Omega$ & $3\times12$
+  & a deformação muda o volume da fase $f$ nos poros\\
+$\mt C_{fg}$ & $\int C_{fg}\,\mt N_p^T\mt N_p\,\dd\Omega$ & $3\times3$
+  & armazenamento, com $C_{fg}$ de (\ref{eq:Cmat})\\
+$\mt H_f$ & $\int\mt B_p^T\bm\Lambda_f\,\mt B_p\,\dd\Omega$ & $3\times3$
+  & condução de Darcy\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Para os blocos de pressão, com coeficientes constantes no elemento de área $A$, há formas
+fechadas, úteis para conferir o código:
+\begin{equation}
+\mt C_{fg}=\frac{A}{12}\,C_{fg}\begin{bmatrix}2&1&1\\1&2&1\\1&1&2\end{bmatrix},\qquad
+\mt C^{L}_{fg}=\frac{A}{3}\,C_{fg}\,\mt I_3\ \ \text{(concentrada)},\qquad
+\mt H_f=A\,\mt B_p^T\bm\Lambda_f\,\mt B_p .
+\label{eq:T3fechadas}
+\end{equation}
+
+\subsection{Sistema semidiscreto}
+Montados os elementos, com $\mathbf d=[\mathbf U;\,\mathbf P_w;\,\mathbf P_a]$ os valores
+nodais, o problema é um sistema de equações diferenciais e algébricas: o equilíbrio não tem
+derivada no tempo e as massas têm. Por (\ref{eq:zeta2}),
+$\int\mt N_p^T\dot\zeta_f\,\dd\Omega=\mt Q_{fu}\dot{\mathbf U}+\mt C_{fw}\dot{\mathbf P}_w
++\mt C_{fa}\dot{\mathbf P}_a$. Derivando o equilíbrio no tempo com coeficientes congelados,
+$\dot{\mathbf R}_u=\mt K\dot{\mathbf U}-\mt Q_{uw}\dot{\mathbf P}_w-\mt Q_{ua}\dot{\mathbf P}_a
+-\dot{\mathbf f}_u$, e o sistema fica
+\begin{equation}
+\underbrace{\begin{bmatrix}\mt K&-\mt Q_{uw}&-\mt Q_{ua}\\\mt Q_{wu}&\mt C_{ww}&\mt C_{wa}\\
+\mt Q_{au}&\mt C_{aw}&\mt C_{aa}\end{bmatrix}}_{\mt A}
+\begin{bmatrix}\dot{\mathbf U}\\\dot{\mathbf P}_w\\\dot{\mathbf P}_a\end{bmatrix}
++\underbrace{\begin{bmatrix}\mt 0&\mt 0&\mt 0\\\mt 0&\mt H_w&\mt 0\\\mt 0&\mt 0&\mt H_a\end{bmatrix}}_{\mt H}
+\begin{bmatrix}\mathbf U\\\mathbf P_w\\\mathbf P_a\end{bmatrix}
+=\begin{bmatrix}\dot{\mathbf f}_u\\\mathbf F_w\\\mathbf F_a-\mathbf g_a\end{bmatrix},
+\label{eq:semidiscreto}
+\end{equation}
+com $\mathbf f_u=\mathbf f_b+\mathbf f_t$ e $\mathbf F_f=\mathbf F_{g,f}+\mathbf F_{\Gamma,f}$.
+A primeira linha não tem termo de $\mt H$: o esqueleto responde instantaneamente, e a
+dissipação está toda nas linhas de massa. No limite saturado, (\ref{eq:semidiscreto}) é o
+sistema $\vu$--$p$ de Biot. Quando $\Delta t\,\mt H$ é pequeno diante de $\mt A$ (passo
+curto ou solo pouco permeável), sobra a resposta não drenada, governada só por $\mt A$; é
+nesse limite que a escolha dos espaços importa (Seção~\ref{sec:estabilidade}).
+
+\subsection{Condições de contorno no sistema discreto}
+\label{sec:contorno}
+\begin{itemize}[leftmargin=*]
+\item \textbf{Valores prescritos} ($\bar{\vu}$, $\bar p_w$, $\bar p_a$) são escritos em
+  $\mathbf d$ antes das iterações, e as equações correspondentes são eliminadas por um
+  filtro; nelas $\delta\mathbf d=\mathbf 0$. O resíduo dessas equações é a reação (força ou
+  vazão nodal).
+\item \textbf{Fluxos prescritos} ($\bar{\vt}$, $\bar q_f$) entram por integrais de aresta.
+  Numa aresta de comprimento $L_e$ com $\bar q_f$ constante, as pressões P1 recebem
+  $\int\mt N_p^T\bar q_f\,\dd\Gamma=\tfrac{L_e}{2}\,\bar q_f\,[1\ \ 1]^T$. O código aceita
+  também vazões nodais da água, $\bar Q_{w,j}$, somadas direto às equações de massa.
+\item \textbf{Base hierárquica.} Como o grau de liberdade de aresta não é o deslocamento no
+  meio da aresta, um deslocamento linear prescrito numa aresta é imposto pelos valores de
+  vértice, com zero na função de aresta. A força total numa fronteira é a soma dos resíduos
+  só das funções de vértice, que formam a partição da unidade.
+\item \textbf{Condição unilateral} (face de percolação e chuva). Cada vértice da superfície é
+  \emph{de fluxo} (vazão prescrita: zero na face de percolação, a chuva na superfície) ou
+  \emph{alagado} ($p_w=0$ imposto). Depois de cada solução, um vértice de fluxo com $p_w>0$
+  passa a alagado, e um vértice alagado cuja reação indica entrada de água maior que a
+  disponível (zero na face de percolação, a chuva do vértice na superfície) volta a ser de
+  fluxo. Repete-se até o conjunto não mudar dentro do passo [N, Seções 13.10 e 17.1].
+\end{itemize}
+
+% =====================================================================
+\section{Discretização temporal}
+\label{sec:temporal}
+
+\subsection{Euler implícito e esquema monolítico}
+O método $\theta$ aplicado a (\ref{eq:semidiscreto}), com coeficientes constantes no passo
+$t_n\to t_{n+1}$, dá
+\begin{equation}
+(\mt A+\theta\,\Delta t\,\mt H)\,\Delta\mathbf d=
+\begin{bmatrix}\Delta\mathbf f_u\\\Delta t\,\mathbf F_w^{\,n+\theta}\\
+\Delta t\,(\mathbf F_a-\mathbf g_a)^{n+\theta}\end{bmatrix}
+-\Delta t\,\mt H\,\mathbf d^{n},\qquad
+\mathbf d^{n+1}=\mathbf d^{n}+\Delta\mathbf d .
+\label{eq:theta}
+\end{equation}
+O código usa $\theta=1$ (Euler implícito). É de primeira ordem, mas amortece os modos de alta
+frequência, o que evita oscilações nas frentes de umedecimento e na resposta não drenada
+inicial; com $\theta=\tfrac12$ (Crank--Nicolson) essas oscilações aparecem. As três equações
+são resolvidas juntas em cada passo (esquema monolítico), e não uma depois da outra.
+
+Como os coeficientes dependem do estado, o código não monta (\ref{eq:theta}): escreve o
+resíduo não linear em $t_{n+1}$ e o resolve por Newton (Seção~\ref{sec:newton}). A matriz
+$\mt A+\Delta t\,\mt H$ é a tangente desse Newton sem as derivadas dos coeficientes.
+Integrando a equação de massa no passo, o armazenamento sai exato,
+$\int_{t_n}^{t_{n+1}}\dot\zeta_f\,\dd t=\Delta\zeta_f$, e os fluxos são tomados em $t_{n+1}$:
+\begin{equation}
+\Delta\zeta_f+\Delta t\,\big[\dv\vq_f+c_f\,\vq_f\cdot\nabla p_f\big]^{n+1}=0 .
+\label{eq:euler}
+\end{equation}
+As equações de massa são multiplicadas por $\Delta t$, e não divididas. Assim $\Delta t=0$ é
+admissível, e o estado geostático e o fator de segurança usam isso, com as pressões
+congeladas.
+
+\subsection{Armazenamento em incrementos}
+Há duas maneiras de escrever $\Delta\zeta_f$. A forma em taxa, das notas, congela os
+coeficientes no fim do passo:
+\begin{equation}
+\Delta\zeta_f\approx\alpha S_f\,\Delta\varepsilon_v+C_{fw}^{\,n+1}\,\Delta p_w
++C_{fa}^{\,n+1}\,\Delta p_a .
+\label{eq:taxa}
+\end{equation}
+O código integra separadamente cada parcela de (\ref{eq:zeta}), na forma secante:
+\begin{equation}
+\begin{aligned}
+\Delta\zeta_w&=S_w\,\Delta\zeta_{sk}+n\,\Delta S_w+\frac{n\,S_w}{K_w}\,\Delta p_w,\\
+\Delta\zeta_a&=S_a\,\Delta\zeta_{sk}-n\,\Delta S_w+\frac{n\,S_a^{n}}{K_a}\,\Delta p_a,
+\end{aligned}
+\qquad
+\Delta\zeta_{sk}=\alpha\,\Delta\varepsilon_v+\frac{\Delta p_B}{N},\qquad
+\Delta S_w=S_w^{n+1}-S_w^{n},
+\label{eq:secante}
+\end{equation}
+com $S_w$, $S_a$ e $K_a$ em $t_{n+1}$; $\Delta\zeta_{sk}$ é a variação do volume dos poros.
+As duas formas diferem na retenção. Como $\Delta S_w=-C_s^{\,n+1}\Delta p_c+O(\Delta p_c^2)$,
+a forma em taxa erra $O(\Delta p_c^2)$ por passo. Esse erro não se cancela e vira ganho ou
+perda de massa, sobretudo nas frentes de umedecimento, onde $p_c$ muda muito num só passo
+(Celia et al., 1990; Callari e Abati, 2009). Com $n\,\Delta S_w$, a água armazenada muda
+exatamente pela vazão que entra (Seção~\ref{sec:conservacao}).
+
+\paragraph{\texorpdfstring{Por que $S_a^n$ no termo do ar.}{Por que Sa(n) no termo do ar.}}
+A massa de ar por unidade de volume é $m_a=\rho_a\,n\,S_a$, com $\rho_a\propto K_a$ (gás
+ideal isotérmico). Como $K_a^{n+1}-K_a^{n}=\Delta p_a$,
+\begin{equation}
+\frac{m_a^{n+1}-m_a^{n}}{\rho_a^{n+1}}
+=n\Big(S_a^{n+1}-S_a^{n}\,\frac{K_a^{n}}{K_a^{n+1}}\Big)
+=n\,\Delta S_a+\frac{n\,S_a^{n}}{K_a^{n+1}}\,\Delta p_a ,
+\label{eq:arexato}
+\end{equation}
+que é exatamente o par de termos de (\ref{eq:secante}), com $\Delta S_a=-\Delta S_w$. Com
+$S_a^{n+1}$ no lugar de $S_a^{n}$ apareceria, a cada passo, o termo espúrio
+$n\,\Delta S_a\,\Delta p_a/K_a$; nas rodadas registradas em [F], ele deu erro de 0,25 a
+0,34\% no balanço global de ar. Para a água, a mesma conta dá $nS_w^n\Delta p_w/K_w$ em
+primeira ordem; a diferença para $S_w^{n+1}$ é desprezível, porque $1/K_w$ é muito pequeno.
+A parcela $S_f\,\Delta\zeta_{sk}$ é consistente em primeira ordem.
+
+\subsection{Concentração nos vértices}
+Os termos de retenção ($n\,\Delta S_w$) e de compressibilidade do ar são concentrados nos
+vértices (\emph{lumping}; opção \texttt{SetLumpedStorage}). A integral de Galerkin de uma
+função não linear das pressões é trocada pelo valor no vértice vezes um volume de controle:
+\begin{equation}
+\int_\Omega L_j\,g(p_w,p_a)\,\dd\Omega\ \longrightarrow\ V_j\,g(p_{w,j},p_{a,j}),\qquad
+V_j=\int_\Omega L_j\,\dd\Omega=\sum_{e\ni j}\frac{A_e}{3}.
+\label{eq:lumping}
+\end{equation}
+É a concentração por soma de linhas: interpolando $g\approx\sum_kg_kL_k$, a integral vira
+$\sum_kM_{jk}g_k$, com $M_{jk}=\int L_jL_k\,\dd\Omega$, e somar a linha dá
+$\sum_kM_{jk}=V_j$, porque $\sum_kL_k=1$. Os vetores de armazenamento concentrado são
+\begin{equation}
+(\mathbf s_w)_j=V_j\,n\,\big(S_{w,j}-S_{w,j}^{n}\big),\qquad
+(\mathbf s_a)_j=V_j\,n\Big[-\big(S_{w,j}-S_{w,j}^{n}\big)
++S_{a,j}^{n}\,\frac{\Delta p_{a,j}}{K_{a,j}}\Big],
+\label{eq:svec}
+\end{equation}
+com $S_{w,j}=S_w(p_{a,j}-p_{w,j})$ e $K_{a,j}=p_{a,j}+\patm$. Como $(\mathbf s_f)_j$ só
+depende das pressões do próprio vértice, suas derivadas formam blocos diagonais. A
+concentração elimina oscilações não físicas nas frentes de saturação abruptas e preserva a
+positividade de $S_w$ [N, Seção 13.9]; com a matriz consistente, a frente apresenta
+ultrapassagens. No código, as pressões dos três vértices são reconstruídas a partir do valor
+e do gradiente no ponto de integração (exato para P1); o termo do vértice $j$ é somado nos
+três pontos com peso $L_j(\bm x_g)\,w_g$, e $\sum_gL_j(\bm x_g)\,w_g=A_e/3$ exatamente. As
+pressões convergidas dos vértices ficam na memória do ponto.
+
+\subsection{Conservação discreta da massa}
+\label{sec:conservacao}
+\paragraph{Água.} Com esqueleto rígido e $K_w\to\infty$, a equação da água no vértice $j$ é
+$(\mathbf s_w)_j+\Delta t\int\nabla L_j\cdot\bm\Lambda_w\bm h_w\,\dd\Omega
+-\Delta t\,\bar Q_{w,j}=0$, com $\bar Q_{w,j}$ a vazão nodal que entra. Somando em $j$ e
+usando $\sum_j\nabla L_j=\bm 0$, a condução desaparece:
+\begin{equation}
+\sum_jV_j\,n\,\big(S_{w,j}^{n+1}-S_{w,j}^{n}\big)=\Delta t\sum_j\bar Q_{w,j}.
+\label{eq:conserva_w}
+\end{equation}
+O volume armazenado $\sum_jV_jnS_{w,j}$ muda exatamente pela vazão que entra (erro relativo
+de $2\times10^{-14}$ no teste de balanço de [F]). Com a forma em taxa, o lado esquerdo seria
+$-\sum_jV_jnC_{s,j}\Delta p_{c,j}$, que não é a variação de volume algum.
+
+\paragraph{Ar.} Multiplica-se a equação do ar de cada vértice por $K_{a,j}^{n+1}$ e soma-se,
+com esqueleto rígido. Por (\ref{eq:arexato}), o armazenamento dá $\Delta M_a$, com
+$M_a=\sum_jV_jnS_{a,j}K_{a,j}$ proporcional à massa de ar. O transporte se anula no
+interior: com $K_{a,h}=\sum_jK_{a,j}L_j$, o código calcula $c_a=1/K_{a,h}$ no ponto de
+integração, logo $K_{a,h}\,c_a=1$ e $\nabla K_{a,h}=\nabla p_{a,h}$, e
+\begin{equation}
+\sum_jK_{a,j}\Big[\int L_j\,c_a\,\vq_a\cdot\nabla p_a\,\dd\Omega
+-\int\nabla L_j\cdot\vq_a\,\dd\Omega\Big]
+=\int K_{a,h}c_a\,\vq_a\cdot\nabla p_a\,\dd\Omega-\int\nabla K_{a,h}\cdot\vq_a\,\dd\Omega=0 .
+\label{eq:conserva_a}
+\end{equation}
+Portanto $M_a$ só muda pelo ar que atravessa o contorno. No teste de ar confinado (lei de
+Boyle), $M_a$ fica constante com erro de $8\times10^{-16}$ enquanto o volume de ar cai a 70\%
+[F]. É por isso que $c_a$ é calculado no ponto de integração a partir da pressão interpolada.
+
+\subsection{Resíduos discretos}
+Juntando (\ref{eq:Ru}), (\ref{eq:Rf}), (\ref{eq:secante}) e (\ref{eq:svec}), com as equações
+de massa multiplicadas por $\Delta t$ e todas as grandezas em $t_{n+1}$, salvo as de índice
+$n$:
+\begin{equation}
+\begin{aligned}
+\mathbf R_u&=\sum_e\Big[\int\mt B_u^T\tsig'(\teps;\teps^p_n)\,\dd\Omega
+-\int\alpha\,\mt B_u^T\bm m\,p_B\,\dd\Omega-\int\mt N_u^T\rho_B\vg\,\dd\Omega\Big]
+-\mathbf f_t,\\
+\mathbf R_w&=\sum_e\Big[\int\mt N_p^T\Big(S_w\Delta\zeta_{sk}+\frac{nS_w}{K_w}\Delta p_w\Big)\dd\Omega
++\Delta t\int\mt B_p^T\bm\Lambda_w\bm h_w\,\dd\Omega\Big]+\mathbf s_w
+-\Delta t\,\mathbf F_{\Gamma,w},\\
+\mathbf R_a&=\sum_e\Big[\int\mt N_p^TS_a\Delta\zeta_{sk}\,\dd\Omega
++\Delta t\int\mt B_p^T\bm\Lambda_a\bm h_a\,\dd\Omega
++\Delta t\int\mt N_p^Tc_a\,\vq_a\cdot\nabla p_a\,\dd\Omega\Big]+\mathbf s_a
+-\Delta t\,\mathbf F_{\Gamma,a},
+\end{aligned}
+\label{eq:residuos}
+\end{equation}
+com $\mathbf F_{\Gamma,f}$ as vazões prescritas (integrais de aresta e vazões nodais). Três
+observações: (i) $\tsig'$ é a saída do retorno do Mohr--Coulomb para a deformação total, a
+partir do estado plástico $\teps^p_n$ do passo convergido; não se usa a forma incremental
+$\tsig'_n+\mt D\,\Delta\teps$; (ii) as incógnitas são os valores totais $\mathbf d^{n+1}$, e
+não os incrementos; (iii) a gravidade das equações de massa está dentro de $\bm h_f$. A
+correspondência linha a linha com o código está em [F, Seção 3.4].
+
+% =====================================================================
+\section{Linearização e solução}
+\label{sec:newton}
+
+\subsection{Método de Newton}
+Em cada passo resolve-se $\mathbf R(\mathbf d)=\mathbf 0$, com
+$\mathbf R=[\mathbf R_u;\,\mathbf R_w;\,\mathbf R_a]$, iterando
+\begin{equation}
+\mt J(\mathbf d^{k})\,\delta\mathbf d=-\mathbf R(\mathbf d^{k}),\qquad
+\mathbf d^{k+1}=\mathbf d^{k}+s\,\delta\mathbf d,\qquad
+\mt J=\frac{\partial\mathbf R}{\partial\mathbf d}=
+\begin{bmatrix}\mt J_{uu}&\mt J_{uw}&\mt J_{ua}\\\mt J_{wu}&\mt J_{ww}&\mt J_{wa}\\
+\mt J_{au}&\mt J_{aw}&\mt J_{aa}\end{bmatrix},
+\label{eq:newton}
+\end{equation}
+com $s$ o passo da busca linear. Um passo de tempo segue o algoritmo:
+
+\begin{tcolorbox}[colback=black!3,colframe=black!45,boxrule=0.5pt,arc=2pt,
+                  left=6pt,right=6pt,top=3pt,bottom=3pt]
+\small
+\begin{enumerate}[label=\arabic*.,leftmargin=*,itemsep=1pt]
+\item $\mathbf d\leftarrow\mathbf d^{n}$; escrever em $\mathbf d$ os valores prescritos de $t_{n+1}$.
+\item Para $k=1,2,\ldots$ (no máximo 40 iterações):
+  \begin{enumerate}[label=(\alph*),leftmargin=*,itemsep=0pt]
+  \item em cada ponto de integração, calcular o estado (Seção~\ref{sec:quadratura}) e somar
+    as contribuições a $\mathbf R$ e a $\mt J$; somar os termos concentrados dos vértices;
+  \item eliminar as equações com valor prescrito e resolver $\mt J\,\delta\mathbf d=-\mathbf R$
+    por LU não simétrica;
+  \item busca linear, nos passos transientes em que $\max|\delta p|$ ainda supera a
+    tolerância: $s\leftarrow s/2$, até quatro vezes, enquanto a norma do resíduo das
+    pressões não diminui;
+  \item $\mathbf d\leftarrow\mathbf d+s\,\delta\mathbf d$;
+  \item convergiu se $k\ge2$, $e_u=\|\mathbf R_u\|/\|\mathbf f_b\|<10^{-7}$ e
+    $\max_i|\delta p_i|<10^{-6}$~kPa;
+  \item falhou se $e_u>10^{6}$, se aparece um valor não finito ou se a fatoração falha.
+  \end{enumerate}
+\item Se convergiu, aceitar: atualizar a memória (estado plástico e pressões convergidas nos
+  pontos e nos vértices). Se falhou, o programa do talude refaz o passo com $\Delta t/2$
+  [N, Seção 17].
+\end{enumerate}
+\end{tcolorbox}
+
+$\|\mathbf f_b\|$ é a norma do peso nas equações de deslocamento, com um mínimo para os
+testes sem peso. A norma do resíduo de massa ainda não entra no critério de convergência; é
+um item em aberto em [F]. Com as pressões congeladas (\texttt{SetFrozenPressures}: estado
+geostático e fator de segurança), só as linhas do equilíbrio são montadas, as equações de
+pressão são eliminadas e o limite é de 25 iterações.
+
+\subsection{Derivadas no ponto de integração}
+As grandezas do passo convergido ($p_f^n$, $S_w^n$, $\varepsilon_v^n$, $\teps^p_n$) são
+constantes na derivação. Com (\ref{eq:Cs}), (\ref{eq:chitan}) e (\ref{eq:B}):
+\begin{equation}
+\begin{gathered}
+\frac{\partial\teps}{\partial\mathbf U^e}=\mt B_u,\qquad
+\frac{\partial\varepsilon_v}{\partial\mathbf U^e}=\bm m^T\mt B_u,\qquad
+\frac{\partial p_f}{\partial\mathbf P_f^e}=\mt N_p,\qquad
+\frac{\partial\bm h_f}{\partial\mathbf P_f^e}=\mt B_p,\qquad
+\frac{\partial\tsig'}{\partial\teps}=\mt D,\\
+\frac{\partial S_w}{\partial p_w}=-\frac{\partial S_w}{\partial p_a}=C_s,\qquad
+\frac{\partial p_B}{\partial p_f}=\chi_f,\qquad
+\frac{\partial\Delta\zeta_{sk}}{\partial\mathbf U^e}=\alpha\,\bm m^T\mt B_u,\qquad
+\frac{\partial\Delta\zeta_{sk}}{\partial p_f}=\frac{\chi_f}{N},\\
+\frac{\partial k_{rf}}{\partial p_w}=-\frac{\partial k_{rf}}{\partial p_a}=k'_{rf}\,C_s,\qquad
+\frac{\partial c_a}{\partial p_a}=-c_a^2,\qquad
+\frac{\partial\rho_B}{\partial p_w}=-\frac{\partial\rho_B}{\partial p_a}=n\,\rho_w\,C_s .
+\end{gathered}
+\label{eq:derivadas}
+\end{equation}
+$k'_{rf}$ é nula onde o mínimo de $k_{rf}$ está ativo; a derivada de $\rho_B$ só existe com o
+peso da mistura (com $\gamma$ constante, é zero). $\mt D$ é a tangente consistente do
+Mohr--Coulomb [A]: a matriz elástica nos pontos elásticos e zero no ápice.
+
+\subsection{Blocos da tangente}
+\label{sec:blocos}
+\paragraph{Linha do equilíbrio.} Derivando $\mathbf R_u$,
+\begin{equation}
+\mt J_{uu}=\mt K=\int\mt B_u^T\mt D\,\mt B_u\,\dd\Omega,\qquad
+\mt J_{uf}=-\mt Q_{uf}-\mt G_{uf},\qquad
+\mt G_{uf}=\int\frac{\partial\rho_B}{\partial p_f}\,\mt N_u^T\vg\,\mt N_p\,\dd\Omega .
+\label{eq:Ju}
+\end{equation}
+$\mt K$ não tem a rigidez geométrica que as notas incluem, porque a porosidade é constante;
+$\mt G_{uf}$ só existe com o peso da mistura.
+
+\paragraph{Linhas de massa, colunas de deslocamento.} Só $\Delta\zeta_{sk}$ depende de
+$\mathbf U$, logo $\mt J_{fu}=\mt Q_{fu}$. No modo desacoplado esses blocos são nulos.
+
+\paragraph{Linhas de massa, colunas de pressão.} Cada bloco reúne o armazenamento nos pontos
+de integração, o armazenamento concentrado, a condução e as derivadas da mobilidade (e, no
+ar, do termo com $c_a$). Nos pontos de integração, os coeficientes de armazenamento
+tangentes são
+\begin{equation}
+\begin{aligned}
+\hat c_{ww}&=C_s\Delta\zeta_{sk}+\frac{S_w\chi_w}{N}+\frac{n}{K_w}\big(S_w+C_s\Delta p_w\big),&\quad
+\hat c_{wa}&=-C_s\Delta\zeta_{sk}+\frac{S_w\chi_a}{N}-\frac{n}{K_w}\,C_s\Delta p_w,\\
+\hat c_{aw}&=-C_s\Delta\zeta_{sk}+\frac{S_a\chi_w}{N},&
+\hat c_{aa}&=C_s\Delta\zeta_{sk}+\frac{S_a\chi_a}{N}.
+\end{aligned}
+\label{eq:chat}
+\end{equation}
+Com $\bm\Lambda'_f\equiv(k'_{rf}C_s/\mu_f)\,\tkap$ e
+$\varpi_a\equiv(\tkap\bm h_a)\cdot\nabla p_a$, de modo que
+$c_a\,\vq_a\cdot\nabla p_a=-c_a\,(k_{ra}/\mu_a)\,\varpi_a$, e omitindo $\dd\Omega$:
+\begin{align}
+\mt J_{ww}&=\int\mt N_p^T\hat c_{ww}\mt N_p+\operatorname{diag}\big(V_jnC_{s,j}\big)
++\Delta t\,\mt H_w+\Delta t\int\mt B_p^T(\bm\Lambda'_w\bm h_w)\,\mt N_p,
+\label{eq:Jww}\\
+\mt J_{wa}&=\int\mt N_p^T\hat c_{wa}\mt N_p-\operatorname{diag}\big(V_jnC_{s,j}\big)
+-\Delta t\int\mt B_p^T(\bm\Lambda'_w\bm h_w)\,\mt N_p,\\
+\mt J_{aw}&=\int\mt N_p^T\Big(\hat c_{aw}-\Delta t\,c_a\frac{k'_{ra}C_s}{\mu_a}\,\varpi_a\Big)\mt N_p
+-\operatorname{diag}\big(V_jnC_{s,j}\big)+\Delta t\int\mt B_p^T(\bm\Lambda'_a\bm h_a)\,\mt N_p,\\
+\mt J_{aa}&=\int\mt N_p^T\Big(\hat c_{aa}+\Delta t\Big(c_a^2\frac{k_{ra}}{\mu_a}
++c_a\frac{k'_{ra}C_s}{\mu_a}\Big)\varpi_a\Big)\mt N_p
++\operatorname{diag}\Big(V_jn\Big[C_s+\frac{S_a^n}{K_a}-\frac{S_a^n\,\Delta p_a}{K_a^2}\Big]_j\Big)
++\Delta t\,\mt H_a\notag\\
+&\quad-\Delta t\int\mt N_p^T\,c_a\frac{k_{ra}}{\mu_a}\big[\tkap(\bm h_a+\nabla p_a)\big]^T\mt B_p
+-\Delta t\int\mt B_p^T(\bm\Lambda'_a\bm h_a)\,\mt N_p .
+\label{eq:Jaa}
+\end{align}
+\emph{Como ler.} Os termos proporcionais aos incrementos do passo ($C_s\Delta\zeta_{sk}$,
+$C_s\Delta p_w$, $S_a^n\Delta p_a/K_a^2$) são pequenos em passos curtos. Sem eles e sem os
+termos com $k'_{rf}$ e $c_a$, cada bloco volta a $\mt C_{fg}+\Delta t\,\mt H_f\,\delta_{fg}$,
+com $C_{fg}$ de (\ref{eq:Cmat}) e as parcelas $nC_s$ e $nS_a^n/K_a$ concentradas: é a
+matriz $\mt A+\Delta t\,\mt H$ de (\ref{eq:theta}). Omitir esses termos (Newton modificado)
+não muda a solução convergida, só a velocidade de convergência, que passa de quadrática a
+linear.
+
+\subsection{Verificação da tangente: teste de Taylor}
+Para direções aleatórias $\mathbf e$,
+\begin{equation}
+E(\epsilon)=\big\|\mathbf R(\mathbf d+\epsilon\,\mathbf e)-\mathbf R(\mathbf d)
+-\epsilon\,\mt J\,\mathbf e\big\|=O(\epsilon^2),\qquad
+o=\log_2\frac{E(\epsilon)}{E(\epsilon/2)}\ \to\ 2 .
+\label{eq:taylor}
+\end{equation}
+A ordem 2 só aparece se todos os termos de (\ref{eq:Ju})--(\ref{eq:Jaa}) estiverem certos;
+um termo errado derruba a ordem para 1. Em [F] a ordem foi 2,000 na fase água (com e sem
+concentração), em água e ar, e no modelo completo com 96 pontos plásticos, em quatro
+variantes: $\chi=S_w$; $\chi$ constante; peso da mistura com $1/N>0$ e sem concentração; e
+saturado.
+
+\subsection{Não simetria}
+$\mt K$ é simétrica (Mohr--Coulomb associado), $\mt H_f$ também ($\tkap$ é simétrico), e o
+bloco concentrado de cada vértice,
+\[
+V_j\,n\begin{bmatrix}C_s&-C_s\\-C_s&C_s+S_a^n/K_a-S_a^n\Delta p_a/K_a^2\end{bmatrix},
+\]
+também. Mesmo assim, $\mt J$ não é simétrica, por três motivos:
+\begin{enumerate}[label=(\roman*),leftmargin=*]
+\item \emph{sinal das linhas de massa}: no caso saturado e linear, $\mt J_{uw}=-\mt Q$ e
+  $\mt J_{wu}=\mt Q^T$. Trocar o sinal das linhas de massa daria a forma simétrica
+  indefinida
+  $\left[\begin{smallmatrix}\mt K&-\mt Q\\-\mt Q^T&-(\mt C+\Delta t\,\mt H)\end{smallmatrix}\right]$,
+  que o código não usa;
+\item \emph{Bishop tangente}: mesmo com essa troca,
+  $\mt J_{uf}+\mt J_{fu}^T=\int\alpha\,(S_f-\chi_f)\,\mt B_u^T\bm m\,\mt N_p\,\dd\Omega-\mt G_{uf}$,
+  e $S_w-\chi_w=C_s\,p_c\neq0$ na zona não saturada;
+\item \emph{termos advectivos}: as derivadas da mobilidade têm o gradiente na função teste e o
+  valor na função de forma ($\mt B_p^T(\cdot)\mt N_p$), e o termo de $c_a$ tem o contrário
+  ($\mt N_p^T(\cdot)\mt B_p$); nenhum deles tem o transposto correspondente.
+\end{enumerate}
+Por isso o sistema linear é resolvido por LU não simétrica (Pardiso, do MKL, ou
+\emph{skyline}). No fator de segurança, com as pressões congeladas, só $\mt K$ entra e o
+sistema é simétrico.
+
+\subsection{Estabilidade}
+\label{sec:estabilidade}
+\begin{itemize}[leftmargin=*]
+\item \textbf{Condição inf-sup.} No limite não drenado ($\Delta t\,\mt H\to\mt 0$ e
+  $\mt C_{fg}\to\mt 0$), o sistema tem a forma de ponto de sela
+  $\left[\begin{smallmatrix}\mt K&-\mt Q\\\mt Q^T&\mt 0\end{smallmatrix}\right]$, estável só
+  se os espaços de $\vu$ e de $p$ satisfazem a condição inf-sup (LBB). Os pares de mesma
+  ordem (P1--P1, Q4--Q4) não a satisfazem e produzem oscilações de pressão nos primeiros
+  passos; o par de Taylor--Hood P2--P1 satisfaz. Com ordens iguais, a alternativa é a
+  estabilização por projeção polinomial de pressão (Bochev--Dohrmann), que soma
+  $\frac{\tau}{2G}\int(\mt N_p-\bar{\mt N}_p)^T(\mt N_p-\bar{\mt N}_p)\,\dd\Omega$ ao bloco
+  de pressão, com $\bar{\mt N}_p$ a média de $\mt N_p$ no elemento e $\tau=O(1)$
+  [N, Seção 13.9].
+\item \textbf{Passo mínimo.} Com o armazenamento consistente há um passo mínimo,
+  $\Delta t\gtrsim h^2/(6D)$, abaixo do qual surgem oscilações; $h$ é o tamanho do elemento e
+  $D$ a difusividade da fase, para a água $D=k_sk_{rw}/(\gamma_wC_{ww})$ [N, Seção 13.9].
+  Com o armazenamento concentrado e pressões lineares, essa restrição desaparece em malhas
+  sem ângulos obtusos (princípio do máximo discreto).
+\item \textbf{Desaparecimento do ar.} Quando $S_a\to0$, $\mt C_{aa}$ e $\mt H_a$ tendem a zero
+  e o bloco do ar fica singular. O mínimo $k_{ra}\ge10^{-4}$ o mantém regular; a alternativa
+  seria trocar localmente a variável primária ($p_c$ ou $S_a$).
+\item \textbf{Escala.} Multiplicar as linhas de massa por $\Delta t$, como faz o código, e
+  adimensionalizar as pressões por um valor de referência melhora o condicionamento de
+  $\mt J$ [N, Seção 13.9].
+\end{itemize}
+
+% =====================================================================
+\section{Fator de segurança}
+As pressões de um instante são congeladas e resolve-se só o equilíbrio (\ref{eq:sis1}).
+Na \textbf{redução de resistência (SRM)}, $c'$, $\tan\phi'$ e $\tan\psi$ são divididos por
+$F$; no \textbf{aumento da gravidade (GIM)}, o peso e a parte positiva de $p_B$ são
+multiplicados por $F_g$, sem escalar a sucção. O fator de segurança é o maior $F$ (ou
+$F_g$) com que o Newton ainda converge. No solo seco, aumentar o peso equivale a reduzir
+só a coesão, logo $\mathrm{FS}_{\mathrm{GIM}}\ge\mathrm{FS}_{\mathrm{SRM}}$; com sucção a
+diferença cresce, porque a parcela $\chi\,p_c\tan\phi'$ não cresce com o peso.
+
+% =====================================================================
+\section{Exemplo: dessaturação de uma coluna de areia}
+\label{sec:liakopoulos}
+
+Esta seção descreve o exemplo da Seção 4.1 de Callari e Abati (2009), que simula o ensaio
+de drenagem de Liakopoulos (1965), e o escreve com a notação e as hipóteses deste
+documento, como preparação para reproduzi-lo no código.
+
+\subsection{O ensaio}
+Uma coluna vertical de areia (areia \emph{Del Monte}), com 1,00~m de altura e confinada
+lateralmente por paredes rígidas e impermeáveis, recebia água continuamente pelo topo, com
+drenagem livre na base. A vazão foi regulada até que as pressões medidas fossem nulas em
+toda a coluna: um fluxo permanente para baixo, com gradiente hidráulico unitário e vazão
+igual a $k_s$. Em $t=0$ a alimentação pelo topo foi interrompida, e mediram-se a vazão que
+sai pela base e a pressão da água em várias alturas. A coluna drena por gravidade, a sucção
+cresce de baixo para cima e o esqueleto recalca, porque a tensão efetiva aumenta.
+
+\subsection{Geometria, contorno e estado inicial}
+
+\begin{center}
+\begin{tikzpicture}[font=\small,x=1cm,y=1cm]
+  \newcommand{\colunaesq}[1]{%
+    \begin{scope}[xshift=#1]
+      \fill[yellow!35] (0,0) rectangle (0.4,4);
+      \draw[thick] (0,0) rectangle (0.4,4);
+      \foreach \yy in {0.3,1.0,1.7,2.4,3.1,3.8} {
+        \draw (-0.08,\yy) circle (0.08); \draw (0.48,\yy) circle (0.08);}
+      \draw[thick] (-0.16,0) -- (-0.16,4); \draw[thick] (0.56,0) -- (0.56,4);
+      \foreach \yy in {0.15,0.45,...,3.9} {
+        \draw (-0.16,\yy) -- (-0.3,\yy-0.12); \draw (0.56,\yy) -- (0.7,\yy-0.12);}
+      \draw[thick] (-0.16,0) -- (0.56,0);
+      \foreach \xx in {-0.1,0.1,...,0.6} \draw (\xx,0) -- (\xx-0.12,-0.14);
+    \end{scope}}
+  % (a) t < 0
+  \colunaesq{0cm}
+  \node[above] at (0.2,4.5) {(a) $t<0$};
+  \draw[-{Stealth[length=2mm]}] (2.3,2.5) -- (2.3,1.5) node[midway,right=1pt] {$\vg$};
+  \node[align=center,left] at (-0.4,2.0) {$p_w=0$\\em toda\\a coluna};
+  % (b) t >= 0
+  \colunaesq{4.2cm}
+  \node[above] at (4.4,4.5) {(b) $t\ge0$};
+  \node[above] at (4.4,4.0) {\scriptsize impermeável};
+  \node[rotate=90] at (3.65,2.0) {\scriptsize impermeável};
+  \node[rotate=90] at (5.15,2.0) {\scriptsize impermeável};
+  \node[below] at (4.4,-0.2) {$p_w=0$ (drenante)};
+  % (c) malha
+  \begin{scope}[xshift=7.6cm]
+    \foreach \i in {0,...,3} \foreach \j in {0,...,39} {
+      \draw[very thin,black!55] (0.1*\i,0.1*\j) rectangle (0.1*\i+0.1,0.1*\j+0.1);
+      \draw[very thin,black!55] (0.1*\i,0.1*\j) -- (0.1*\i+0.1,0.1*\j+0.1);}
+    \draw (0,0) rectangle (0.4,4);
+    \node[above] at (0.2,4.5) {(c) malha};
+    \draw[{Stealth[length=1.6mm]}-{Stealth[length=1.6mm]}] (0.75,0) -- (0.75,4) node[midway,right] {1,00 m};
+    \draw[{Stealth[length=1.6mm]}-{Stealth[length=1.6mm]}] (0,-0.3) -- (0.4,-0.3) node[midway,below] {0,10 m};
+  \end{scope}
+\end{tikzpicture}
+\captionof{figure}{Coluna de Liakopoulos, como na Fig.~2 de Callari e Abati (2009): roletes
+nas laterais, base fixa, $4\times40$ quadrados de 0,025~m divididos em dois triângulos.}
+\label{fig:coluna}
+\end{center}
+
+\begin{center}\small
+\begin{tabularx}{\textwidth}{@{}l l X@{}}
+\toprule
+Contorno & Deslocamento & Água, para $t\ge0$\\
+\midrule
+laterais ($x=0$ e $x=0{,}10$~m) & $u_x=0$ (rolete) & impermeáveis, $\bar q_w=0$\\
+base ($y=0$) & $u_x=u_y=0$ & drenante, $p_w=0$\\
+topo ($y=1{,}00$~m) & livre, $\bar{\vt}=\bm 0$ & impermeável, $\bar q_w=0$\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Para $t<0$ impõe-se $p_w=0$ em todo o domínio. No artigo, os deslocamentos causados pelo
+peso e por essa pressão inicial são zerados, e as tensões calculadas passam a ser o estado
+inicial: é o carregamento geostático do código com as pressões congeladas, seguido de
+$\vu\leftarrow\bm 0$ com $\tsig'$ mantida. Em $t=0$ a condição $p_w=0$ é retirada, exceto na
+base. A gravidade é $\vg=-9{,}81\,\bm e_y$~m/s$^2$.
+
+O artigo usa $2\times4\times40$ triângulos de três nós, mistos, com deslocamentos e pressões
+lineares e deformação volumétrica constante (B-bar), par que não satisfaz a condição
+inf-sup. No código, a mesma malha recebe elementos de Taylor--Hood P2--P1
+(Seção~\ref{sec:elementos}). Como as laterais impedem $u_x$ e o fluxo horizontal, a solução
+não depende de $x$: o problema é unidimensional (oedométrico), e a tensão total vertical em
+cada ponto não muda no tempo, porque o peso é constante e o topo é livre. Isso permite a
+referência da Seção~\ref{sec:liak_ref}.
+
+\subsection{Parâmetros}
+\label{sec:liak_par}
+
+\begin{center}\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.6cm}
+                             >{\raggedright\arraybackslash}p{4.6cm}
+                             >{\raggedright\arraybackslash}p{2.9cm} X@{}}
+\toprule
+Grandeza & Artigo (Tabela 1 e Eq.~58) & Nesta formulação & No código (kN, m, s, kPa)\\
+\midrule
+massa específica & $\rho=1700$~kg/m$^3$ & $\gamma=\rho\,g$ & $16{,}677$~kN/m$^3$, constante\\
+elasticidade & $E_{sk}=1300$~kPa, $\nu_{sk}=0{,}4$ & $E$, $\nu$ & $1300$; $0{,}4$\\
+Biot & $b=1{,}0$ & $\alpha$ & $1$\\
+grãos & $\kappa_s=1000$~GPa & $1/N=(\alpha-n)/K_s$ & $1/N=0$ (seria $7\times10^{-10}$~kPa$^{-1}$)\\
+permeabilidade & $k_w^{sat}=4{,}5\times10^{-7}$~m$^2$/(kPa\,s), que é $\kappa/\mu_w$ & $k_s=\gamma_w\,\kappa/\mu_w$ & $4{,}4145\times10^{-6}$~m/s, isotrópica\\
+porosidade & $n_0=0{,}2975$ & $n$ (constante) & $0{,}2975$\\
+água & $\rho_w=1000$~kg/m$^3$, $\kappa_w=2{,}0$~GPa & $\gamma_w$, $K_w$ & $9{,}81$~kN/m$^3$; $2{,}0\times10^{6}$~kPa (não $2{,}2$)\\
+ar & $p_g=0$ & ar passivo & $p_a=0$ em todo o domínio\\
+retenção & $s_w=1-1{,}9722\times10^{-11}\,p_c^{2{,}4279}$, com $p_c$ em Pa & $S_w=1-c_L\,p_c^{\,b_L}$ & $c_L=3{,}7901\times10^{-4}$, $b_L=2{,}4279$ ($p_c$ em kPa)\\
+permeabilidade relativa & $k_w^{rel}=1-2{,}207\,(1-s_w)^{1{,}0121}$ & $k_{rw}=1-d_L(1-S_w)^{e_L}$ & $d_L=2{,}207$, $e_L=1{,}0121$\\
+validade das leis & $s_w>0{,}91$ e $p_c\ge0$ & $p_c<9{,}52$~kPa & conferir o maior $p_c$\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Três observações sobre a tabela. (i) O artigo não diz a unidade de $p_c$ na Eq.~(58); é o
+pascal, e a conversão para kPa dá $c_L=1{,}9722\times10^{-11}\times1000^{2{,}4279}$. A
+referência da Seção~\ref{sec:liak_ref}, com esse valor, reproduz as curvas do artigo, o que
+confirma a unidade. (ii) $k_s=9{,}81\times4{,}5\times10^{-7}=4{,}41\times10^{-6}$~m/s é
+também a vazão inicial na base (gradiente unitário), o valor de $t=0$ na Fig.~3a do artigo.
+(iii) Com esqueleto elástico e peso constante, $\gamma$ só fixa o estado inicial de tensões:
+não afeta nem a vazão nem o recalque.
+
+Grandezas derivadas úteis: o módulo oedométrico $M=E(1-\nu)/[(1+\nu)(1-2\nu)]=2786$~kPa;
+$C_s=c_Lb_Lp_c^{\,b_L-1}$ vai de $9\times10^{-4}$~kPa$^{-1}$ ($p_c=1$~kPa) a
+$2\times10^{-2}$~kPa$^{-1}$ ($p_c=9$~kPa). Com $p_c=5$~kPa, $nC_s=2{,}7\times10^{-3}$~kPa$^{-1}$,
+contra $1/M=3{,}6\times10^{-4}$ e $n/K_w=1{,}5\times10^{-7}$~kPa$^{-1}$: a retenção domina o
+armazenamento, e por isso a coluna não saturada drena muito mais devagar que a saturada.
+
+\subsection{Resultados a reproduzir}
+\label{sec:liak_res}
+\begin{enumerate}[label=(\alph*),leftmargin=*]
+\item \textbf{Vazão na base} $q_b(t)$, de 0 a 7500~s (Fig.~3a do artigo), que começa em
+  $k_s=4{,}41\times10^{-6}$~m/s. No código, a forma conservativa é pela reação da equação da
+  água nos vértices da base: $Q_b=-\frac{1}{\Delta t}\sum_{j\in\text{base}}R_{w,j}$, com
+  $\mathbf R_w$ de (\ref{eq:residuos}) sem o termo de vazão prescrita, é a vazão que sai por
+  unidade de espessura, e $q_b=Q_b/0{,}10$~m. Como o NeoPZ monta $\mathbf{ef}=-\mathbf R$,
+  $Q_b=\frac1{\Delta t}\sum_j\mathrm{ef}_j$.
+\item \textbf{Perfis de pressão} $p_w(y)$ em $t=600$, 1200 e 1800~s (Fig.~3b), em qualquer
+  vertical, por exemplo $x=0{,}05$~m.
+\item \textbf{Recalque do topo} $u_y(1{,}00\text{ m},t)$, de 0 a 6400~s (Fig.~4a), no caso
+  parcialmente saturado e no caso hipotético de coluna saturada, que no código é $c_L=0$
+  ($S_w=1$, $C_s=0$, $k_{rw}=1$).
+\item \textbf{Perfis de recalque} $u_y(y)$ em $t=300$, 1200 e 7200~s (Fig.~4b).
+\item \textbf{Iterações de Newton} (opcional): o artigo relata até 33\% menos iterações com as
+  tangentes consistentes do que com as tangentes contínuas, e 19\% com passos dez vezes menores.
+\end{enumerate}
+
+\subsection{Hipóteses do artigo e da nossa formulação}
+\label{sec:liak_hip}
+
+\begin{center}\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.5cm}
+                             >{\raggedright\arraybackslash}X
+                             >{\raggedright\arraybackslash}X
+                             >{\raggedright\arraybackslash}p{3.3cm}@{}}
+\toprule
+Aspecto & Callari e Abati (2009) & Nossa formulação e código & Efeito neste ensaio\\
+\midrule
+ar & teoria trifásica, mas $p_g=0$ no exemplo & ar passivo: $p_a=0$ em todo o domínio, só a equação da água (Tabela~\ref{tab:casos}) & nenhum\\
+tensão efetiva & $\tsig=\tsig'-b\,p_f$, com $\dot p_f\simeq\sum_\alpha s_\alpha\dot p_\alpha$ (Eq.~14) integrada como $\Delta p_f=\sum_\alpha s_\alpha^{n+1}\Delta p_\alpha$ (Eq.~47): pressão equivalente de Coussy & Bishop, $p_B=S_wp_w+S_ap_a$ ($\chi=S_w$) & $p_B-p_f=\int p_w\,\dd S_w>0$; recalque final 1,684~mm (Bishop) e 1,738~mm (Coussy)\\
+retenção & $s_w(p_c)$, independente da porosidade & igual & nenhum\\
+permeabilidade & isotrópica, $k_w^{rel}(s_w)\,k_w^{sat}$, sem dependência da deformação & $\kappa$ constante e isotrópica & nenhum\\
+água & $\rho_w$ constante no transporte; $\kappa_w=2{,}0$~GPa; armazenamento com $\theta_{w0}/\kappa_w$, $\theta_{w0}=n_0s_{w0}$ & sem o termo $c_w\,\vq_w\cdot\nabla p_w$; $nS_w/K_w$ & desprezível\\
+grãos e porosidade & $\kappa_s=1000$~GPa; $n(\teps,p_f)$ linearizada (Eq.~8) & $1/N=0$; $n$ constante & desprezível ($\Delta n\lesssim10^{-3}$)\\
+armazenamento no tempo & forma em taxa (Eq.~37), pelas tangentes citadas no exemplo (Eqs.~38--41 e 48); a forma mista conservativa aparece no exemplo~4.2 & forma secante, conservativa (Seção~\ref{sec:temporal}) & só com passos grossos (Seção~\ref{sec:liak_ref})\\
+esqueleto & elástico linear isotrópico & Mohr--Coulomb associado & usar $c'$ alto e conferir que nenhum ponto plastifica\\
+elemento & triângulo misto P1/P0 (B-bar), 320 elementos & Taylor--Hood P2--P1, mesma malha & pequeno: na referência 1D, $h=0{,}05$~m já converge\\
+tempo e Newton & Euler implícito, tangentes consistentes, critério de energia com tolerância $10^{-16}$; passo não informado & Euler implícito, Newton completo, critérios $e_u$ e $\max|\delta p|$ & os marcadores das Figs.~3a e 4a sugerem 10~s até 300~s, 100~s até 2400~s e 1000~s depois\\
+peso e estado inicial & forças de massa com $\rho$; deslocamentos iniciais zerados & $\gamma$ constante; geostático com pressões congeladas & nenhum\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Referência para conferir o código}
+\label{sec:liak_ref}
+
+\paragraph{Coluna saturada: solução analítica.} Com $S_w=1$ e $k_{rw}=1$, a drenagem é o
+adensamento de Terzaghi com excesso inicial triangular, $p_w(y,0)-p_w(y,\infty)=\gamma_wy$,
+drenagem na base e topo impermeável. Com $c_v=(k_s/\gamma_w)/(1/M+n/K_w)
+=1{,}253\times10^{-3}$~m$^2$/s, $T=c_vt/H^2$ e $m_k=(2k+1)\pi/2$,
+\begin{equation}
+w(t)=\frac{\gamma_wH^2}{2M}-\frac{2\gamma_wH^2}{M}\sum_{k\ge0}\frac{(-1)^k}{m_k^3}\,e^{-m_k^2T},\qquad
+q_b(t)=2k_s\sum_{k\ge0}\frac{(-1)^k}{m_k}\,e^{-m_k^2T},
+\label{eq:terzaghi_liak}
+\end{equation}
+com $w$ o recalque do topo. O recalque final é $\gamma_wH^2/(2M)=1{,}761$~mm, o patamar da
+curva saturada da Fig.~4a do artigo, e 90\% dele ocorre em cerca de 680~s.
+
+\paragraph{Coluna parcialmente saturada: referência 1D.} Como o problema é oedométrico, ele
+se reduz a uma equação em $p_w(y,t)$: com tensão total vertical constante,
+$\varepsilon_v=\alpha\,p_B/M$, e a equação da água (\ref{eq:sis2}) fica uma equação de Richards
+com o armazenamento do esqueleto. Resolvemos essa equação com as mesmas leis e hipóteses do
+código (ar passivo, Bishop com $\chi=S_w$, forma secante concentrada, Euler implícito, Newton),
+com 201 nós e passos de 1~s até 60~s, 5~s até 600~s, 10~s até 2000~s e 20~s depois; com
+401 nós ou com metade do passo, os valores mudam menos de 0,1\%. O caso saturado dessa
+referência coincide com (\ref{eq:terzaghi_liak}). O script \texttt{coluna\_liakopoulos\_1d.py},
+entregue junto com este documento, reproduz a tabela:
+
+\begin{center}\small
+\begin{tabular}{@{}r c c c c c c@{}}
+\toprule
+& \multicolumn{4}{c}{parcialmente saturada (referência 1D)} & \multicolumn{2}{c}{saturada (analítica)}\\
+\cmidrule(lr){2-5}\cmidrule(l){6-7}
+$t$ (s) & $q_b$ ($10^{-6}$ m/s) & $p_w$ em $y=0{,}5$ m & $p_w$ no topo & $w$ (mm) & $q_b$ ($10^{-6}$ m/s) & $w$ (mm)\\
+\midrule
+300 & $3{,}373$ & $-1{,}30$ & $-4{,}15$ & $-0{,}550$ & $2{,}223$ & $-1{,}042$\\
+600 & $2{,}726$ & $-1{,}98$ & $-5{,}22$ & $-0{,}774$ & $0{,}879$ & $-1{,}476$\\
+1200 & $2{,}011$ & $-2{,}74$ & $-6{,}41$ & $-1{,}020$ & $0{,}138$ & $-1{,}716$\\
+1800 & $1{,}578$ & $-3{,}20$ & $-7{,}13$ & $-1{,}167$ & $0{,}022$ & $-1{,}754$\\
+3600 & $0{,}877$ & $-3{,}95$ & $-8{,}31$ & $-1{,}401$ & $0{,}000$ & $-1{,}761$\\
+6400 & $0{,}411$ & $-4{,}46$ & $-9{,}10$ & $-1{,}553$ & $0{,}000$ & $-1{,}761$\\
+7500 & $0{,}312$ & $-4{,}57$ & $-9{,}27$ & $-1{,}585$ & $0{,}000$ & $-1{,}761$\\
+\bottomrule
+\end{tabular}
+\end{center}
+Pressões em kPa; $w<0$ é recalque. O maior $p_c$ ocorre no topo em 7500~s, 9,27~kPa
+($S_w=0{,}916$), ainda dentro da validade das leis.
+
+\paragraph{Comparação com o artigo.} Digitalizamos as curvas calculadas das Figs.~3 e 4 do
+artigo (pontos na Figura~\ref{fig:liak}). A referência 1D fica, em média, 0,06~kPa (cerca de 2\%)
+mais negativa nas pressões e a 0,01~mm dos recalques, e a vazão coincide até cerca de 2400~s;
+depois, a vazão do artigo é cerca de 10\% maior. Uma variante da referência com as escolhas
+aparentes do artigo (forma em taxa, pressão de Coussy e passos de 10, 100 e 1000~s) reproduz
+todas as curvas digitalizadas: em média, 0,6\% na vazão tardia, 0,004~kPa na pressão e 0,006~mm
+no recalque. Cada ingrediente pesa: sem a forma em taxa, sem os passos grossos ou com passos
+finais de 500~s, a vazão tardia volta a diferir de 3 a 10\%. A vazão tardia do artigo é,
+portanto, efeito do passo de tempo, e não da física. O que esperar do código:
+\begin{itemize}[leftmargin=*]
+\item com passos finos, a solução deve coincidir com a referência 1D convergida (tabela acima);
+\item com os passos do artigo, a vazão tardia deve ficar cerca de 3\% abaixo da do artigo, porque
+  o código usa a forma secante e a pressão de Bishop;
+\item as pressões e os recalques devem ficar a cerca de 0,1~kPa e 0,03~mm das curvas do artigo.
+\end{itemize}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=2 by 2,horizontal sep=1.7cm,vertical sep=2.0cm},
+  /pgf/number format/use comma,/pgf/number format/1000 sep={},
+  width=7.4cm,height=5.4cm,tick label style={font=\scriptsize},label style={font=\small},
+  title style={font=\small},legend style={font=\scriptsize,draw=none,fill=white,fill opacity=0.8,text opacity=1},
+  legend cell align=left]
+\nextgroupplot[title={(a) vazão na base},xlabel={$t$ (s)},ylabel={$q_b$ ($10^{-6}$ m/s)},
+  xmin=0,xmax=7500,ymin=0,ymax=4.8,legend pos=north east,scaled x ticks=false,
+  xtick={0,1500,3000,4500,6000,7500}]
+\addplot[thick,blue!70!black] coordinates {(0,4.414) (25,4.413) (50,4.38) (100,4.163) (150,3.919) (200,3.708) (300,3.373) (400,3.115) (500,2.904) (600,2.726) (800,2.436) (1000,2.204) (1200,2.011) (1500,1.772) (1800,1.578) (2100,1.415) (2400,1.276) (3000,1.051) (3600,0.8767) (4200,0.7376) (4800,0.6249) (5400,0.5321) (6000,0.455) (6600,0.3904) (7200,0.3358) (7500,0.3118)};
+\addplot[thick,dashed,black!60] coordinates {(0,4.414) (25,4.405) (50,4.362) (100,4.168) (150,3.939) (200,3.733) (300,3.398) (400,3.158) (500,2.957) (600,2.784) (800,2.496) (1000,2.264) (1200,2.069) (1500,1.828) (1800,1.63) (2100,1.464) (2400,1.321) (3000,1.135) (3600,0.9661) (4200,0.8313) (4800,0.7194) (5400,0.6189) (6000,0.5423) (6600,0.4714) (7200,0.4121) (7500,0.3827)};
+\addplot[only marks,mark=o,mark size=1.5pt,red!80!black] coordinates {(0,4.388) (100,4.155) (200,3.735) (300,3.463) (450,3.054) (600,2.793) (900,2.378) (1200,2.078) (1500,1.828) (1800,1.629) (2400,1.334) (3000,1.135) (3400,1.01) (4000,0.874) (4400,0.789) (5000,0.693) (5400,0.607) (6000,0.545)};
+\legend{referência 1D,1D com as escolhas do artigo,artigo (Fig.~3a)}
+\nextgroupplot[title={(b) pressão da água},xlabel={$p_w$ (kPa)},ylabel={$y$ (m)},
+  xmin=-8,xmax=0,ymin=0,ymax=1,legend pos=south west]
+\addplot[thick,blue!70!black] coordinates {(0,0) (-0.1876,0.05) (-0.3756,0.1) (-0.5645,0.15) (-0.7548,0.2) (-0.9472,0.25) (-1.143,0.3) (-1.342,0.35) (-1.547,0.4) (-1.758,0.45) (-1.978,0.5) (-2.208,0.55) (-2.45,0.6) (-2.708,0.65) (-2.983,0.7) (-3.279,0.75) (-3.599,0.8) (-3.948,0.85) (-4.331,0.9) (-4.752,0.95) (-5.218,1)};
+\addplot[thick,brown!80!black] coordinates {(0,0) (-0.2671,0.05) (-0.5344,0.1) (-0.8022,0.15) (-1.071,0.2) (-1.341,0.25) (-1.613,0.3) (-1.887,0.35) (-2.166,0.4) (-2.449,0.45) (-2.738,0.5) (-3.035,0.55) (-3.341,0.6) (-3.658,0.65) (-3.988,0.7) (-4.334,0.75) (-4.699,0.8) (-5.086,0.85) (-5.497,0.9) (-5.937,0.95) (-6.409,1)};
+\addplot[thick,red!80!black] coordinates {(0,0) (-0.3152,0.05) (-0.6305,0.1) (-0.9462,0.15) (-1.262,0.2) (-1.58,0.25) (-1.898,0.3) (-2.219,0.35) (-2.542,0.4) (-2.869,0.45) (-3.201,0.5) (-3.538,0.55) (-3.883,0.6) (-4.237,0.65) (-4.601,0.7) (-4.978,0.75) (-5.369,0.8) (-5.777,0.85) (-6.205,0.9) (-6.656,0.95) (-7.132,1)};
+\addplot[only marks,mark=o,mark size=1.5pt,black] coordinates {(-0.548,0.15) (-0.917,0.25) (-1.298,0.35) (-1.702,0.45) (-2.14,0.55) (-2.63,0.65) (-3.201,0.75) (-3.859,0.85) (-4.666,0.95) (-5.024,0.99)};
+\addplot[only marks,mark=o,mark size=1.5pt,black,forget plot] coordinates {(-0.784,0.15) (-1.304,0.25) (-1.846,0.35) (-2.388,0.45) (-2.97,0.55) (-3.582,0.65) (-4.251,0.75) (-4.989,0.85) (-5.854,0.95) (-6.218,0.99)};
+\addplot[only marks,mark=o,mark size=1.5pt,black,forget plot] coordinates {(-0.929,0.15) (-1.546,0.25) (-2.186,0.35) (-2.82,0.45) (-3.484,0.55) (-4.17,0.65) (-4.908,0.75) (-5.693,0.85) (-6.581,0.95) (-6.95,0.99)};
+\legend{600 s,1200 s,1800 s,artigo (Fig.~3b)}
+\nextgroupplot[title={(c) recalque do topo},xlabel={$t$ (s)},ylabel={$w$ (mm)},
+  xmin=0,xmax=6400,ymin=-2,ymax=0,legend pos=north east,scaled x ticks=false,
+  xtick={0,1600,3200,4800,6400}]
+\addplot[thick,blue!70!black] coordinates {(0,0) (25,-0.08641) (50,-0.1565) (100,-0.2717) (150,-0.3621) (200,-0.4354) (300,-0.5504) (400,-0.6394) (500,-0.7121) (600,-0.7736) (800,-0.874) (1000,-0.954) (1200,-1.02) (1500,-1.101) (1800,-1.167) (2100,-1.222) (2400,-1.269) (3000,-1.344) (3600,-1.401) (4200,-1.447) (4800,-1.484) (5400,-1.514) (6000,-1.539) (6400,-1.553)};
+\addplot[thick,dashed,black!60] coordinates {(0,0) (25,-0.08072) (50,-0.149) (100,-0.2619) (150,-0.3519) (200,-0.4259) (300,-0.5425) (400,-0.6261) (500,-0.6966) (600,-0.7574) (800,-0.8586) (1000,-0.9405) (1200,-1.009) (1500,-1.094) (1800,-1.164) (2100,-1.223) (2400,-1.273) (3000,-1.338) (3600,-1.398) (4200,-1.445) (4800,-1.484) (5400,-1.52) (6000,-1.546) (6400,-1.564)};
+\addplot[thick,red!80!black] coordinates {(0,0) (25,-0.1103) (50,-0.2202) (100,-0.4298) (150,-0.6164) (200,-0.7784) (300,-1.038) (400,-1.229) (500,-1.369) (600,-1.473) (800,-1.604) (1000,-1.676) (1200,-1.714) (1500,-1.742) (1800,-1.753) (2100,-1.758) (2400,-1.76) (3000,-1.761) (3600,-1.761) (4200,-1.761) (4800,-1.761) (5400,-1.761) (6000,-1.761) (6400,-1.761)};
+\addplot[only marks,mark=o,mark size=1.5pt,black] coordinates {(200,-0.415) (300,-0.517) (600,-0.758) (900,-0.902) (1200,-1.011) (1600,-1.12) (2000,-1.205) (2400,-1.273) (3200,-1.363) (4000,-1.43) (4800,-1.487) (6400,-1.547)};
+\addplot[only marks,mark=o,mark size=1.5pt,black,forget plot] coordinates {(200,-0.765) (300,-0.983) (600,-1.434) (900,-1.618) (1200,-1.697) (1600,-1.739) (2000,-1.754) (2400,-1.758) (3200,-1.761) (4000,-1.761) (4800,-1.761)};
+\legend{parcialmente saturada,1D com as escolhas do artigo,saturada,artigo (Fig.~4a)}
+\nextgroupplot[title={(d) perfis de recalque},xlabel={$u_y$ (mm)},ylabel={$y$ (m)},
+  xmin=-1.6,xmax=0,ymin=0,ymax=1,legend pos=south west]
+\addplot[thick,blue!70!black] coordinates {(0,0) (-0.001039,0.05) (-0.004163,0.1) (-0.00939,0.15) (-0.01675,0.2) (-0.0263,0.25) (-0.0381,0.3) (-0.05223,0.35) (-0.06881,0.4) (-0.08798,0.45) (-0.1099,0.5) (-0.1348,0.55) (-0.1629,0.6) (-0.1944,0.65) (-0.2298,0.7) (-0.2694,0.75) (-0.3138,0.8) (-0.3633,0.85) (-0.4188,0.9) (-0.4809,0.95) (-0.5504,1)};
+\addplot[thick,brown!80!black] coordinates {(0,0) (-0.002397,0.05) (-0.009589,0.1) (-0.02158,0.15) (-0.03839,0.2) (-0.06001,0.25) (-0.08649,0.3) (-0.1179,0.35) (-0.1541,0.4) (-0.1954,0.45) (-0.2418,0.5) (-0.2933,0.55) (-0.3502,0.6) (-0.4124,0.65) (-0.4804,0.7) (-0.5541,0.75) (-0.634,0.8) (-0.7202,0.85) (-0.8131,0.9) (-0.9129,0.95) (-1.02,1)};
+\addplot[thick,red!80!black] coordinates {(0,0) (-0.004067,0.05) (-0.01627,0.1) (-0.03659,0.15) (-0.06503,0.2) (-0.1016,0.25) (-0.1461,0.3) (-0.1988,0.35) (-0.2594,0.4) (-0.3279,0.45) (-0.4042,0.5) (-0.4884,0.55) (-0.5802,0.6) (-0.6796,0.65) (-0.7865,0.7) (-0.9007,0.75) (-1.022,0.8) (-1.151,0.85) (-1.286,0.9) (-1.428,0.95) (-1.577,1)};
+\addplot[only marks,mark=o,mark size=1.5pt,black] coordinates {(-0.037,0.3) (-0.068,0.4) (-0.107,0.5) (-0.159,0.6) (-0.224,0.7) (-0.308,0.8) (-0.413,0.9) (-0.533,0.99)};
+\addplot[only marks,mark=o,mark size=1.5pt,black,forget plot] coordinates {(-0.084,0.3) (-0.149,0.4) (-0.236,0.5) (-0.343,0.6) (-0.472,0.7) (-0.625,0.8) (-0.804,0.9) (-0.99,0.99)};
+\addplot[only marks,mark=o,mark size=1.5pt,black,forget plot] coordinates {(-0.145,0.3) (-0.257,0.4) (-0.399,0.5) (-0.577,0.6) (-0.785,0.7) (-1.027,0.8) (-1.299,0.9) (-1.586,0.99)};
+\legend{300 s,1200 s,7200 s,artigo (Fig.~4b)}
+\end{groupplot}
+\end{tikzpicture}
+\captionof{figure}{Referência 1D (linhas cheias) e curvas calculadas de Callari e Abati
+(2009), digitalizadas (círculos). Tracejado: a referência com a forma em taxa, a pressão de
+Coussy e os passos que os marcadores do artigo sugerem.}
+\label{fig:liak}
+\end{center}
+
+\subsection{Roteiro para o código}
+\label{sec:liak_roteiro}
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Malha.} Retângulo de $0{,}10\times1{,}00$~m com $4\times40$ quadrados, cada um
+  dividido em dois triângulos (320 elementos), com Taylor--Hood P2--P1.
+\item \textbf{Material.} Estado plano de deformação; $E=1300$~kPa, $\nu=0{,}4$, $\alpha=1$,
+  $1/N=0$, $n=0{,}2975$, $K_w=2{,}0\times10^6$~kPa, $k_s=4{,}4145\times10^{-6}$~m/s isotrópica,
+  $\gamma=16{,}677$~kN/m$^3$ constante, $\chi=S_w$. Mohr--Coulomb com $c'$ muito alto, para
+  que o esqueleto fique elástico.
+\item \textbf{Leis hidráulicas.} Liakopoulos, com $c_L=3{,}7901\times10^{-4}$, $b_L=2{,}4279$ e
+  $S_{wr}=0$ (o limite inferior não atua nesta faixa), e $k_{rw}$ com $d_L=2{,}207$ e
+  $e_L=1{,}0121$. Ar passivo: $p_a=0$ prescrito em todos os vértices.
+\item \textbf{Contorno.} $u_x=0$ nas laterais; $u_x=u_y=0$ na base; topo livre. Para
+  $t\ge0$, $p_w=0$ na base e fluxo nulo no topo e nas laterais.
+\item \textbf{Estado inicial.} $p_w=0$ em todo o domínio; carregamento geostático com as
+  pressões congeladas ($\Delta t=0$) e deslocamentos zerados ao final.
+\item \textbf{Transiente.} Até 7500~s, com os passos da referência 1D; repetir com metade do
+  passo e, para comparar com as curvas do artigo, com 10~s até 300~s, 100~s até 2400~s e
+  1000~s depois.
+\item \textbf{Saídas.} $q_b(t)$ pelas reações da base; $p_w(y)$ em 600, 1200 e 1800~s;
+  $u_y$ do topo em função de $t$; $u_y(y)$ em 300, 1200 e 7200~s. Repetir o caso saturado
+  com $c_L=0$ e comparar com (\ref{eq:terzaghi_liak}).
+\item \textbf{Conferência.} Comparar com a tabela da Seção~\ref{sec:liak_ref} e com os pontos
+  digitalizados (arquivo \texttt{callari2009\_fig3\_fig4\_digitalizado.csv}). O teste 4c de [F]
+  (projeto \texttt{UnsatCoupled}) já monta este ensaio com ar passivo e compara a vazão e as
+  pressões com a Fig.~3; o novo código pode partir dele.
+\end{enumerate}
+
+% =====================================================================
+\section{O exemplo no código: projeto \texttt{LearningLiakopoulos}}
+\label{sec:liak_codigo}
+
+O roteiro da Seção~\ref{sec:liak_roteiro} está implementado no projeto
+\texttt{Projects/LearningLiakopoulos} do NeoPZ (branch \texttt{UnsaturatedSoil}), escrito passo a
+passo como o \texttt{LearningMohrCoulomb}: malha geométrica, malha computacional, matriz estrutural
+e solver, análise e pós-processamento. O programa em C++ grava arquivos CSV, e um script em Python
+os compara com a referência 1D, com a solução analítica (\ref{eq:terzaghi_liak}) e com as curvas
+digitalizadas do artigo. Esta seção descreve o código e os resultados.
+
+\subsection{Arquivos}
+
+\begin{center}\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{7.1cm} >{\raggedright\arraybackslash}X@{}}
+\toprule
+Arquivo & Conteúdo\\
+\midrule
+\texttt{main.cpp} & o programa: malhas, material, análise, transiente e saídas\\
+\texttt{meshes/coluna.geo}, \texttt{meshes/coluna.msh} & geometria do Gmsh e a malha gerada
+  (formato 4.1), com os grupos físicos Solo, Base, Direita, Topo e Esquerda\\
+\texttt{plot\_liakopoulos.py} & pós-processamento: tabelas de comparação, \texttt{comparacao.csv} e
+  gráficos\\
+\texttt{coluna\_liakopoulos\_1d.py} & a referência 1D da Seção~\ref{sec:liak_ref}, importada pelo
+  script\\
+\texttt{data/}\allowbreak\texttt{callari2009\_fig3\_fig4\_digitalizado.csv} & curvas calculadas do artigo,
+  digitalizadas\\
+\texttt{CMakeLists.txt} & alvo \texttt{LearningLiakopoulos}: define a pasta das malhas e copia os
+  scripts e os dados para a pasta de compilação\\
+\texttt{README.md} & resumo, como rodar e resultados\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Etapas do programa}
+\label{sec:liak_etapas}
+
+Cada caso do ensaio percorre as etapas da Figura~\ref{fig:liak_etapas}; a malha geométrica é lida
+uma vez e serve aos quatro casos.
+
+\begin{center}
+\begin{tikzpicture}[font=\small,
+  caixa/.style={draw=black!60, rounded corners=3pt, align=center, text width=4.35cm,
+                minimum height=1.55cm, fill=black!4},
+  seta/.style={-{Stealth[length=2.2mm]}, semithick}]
+  \node[caixa] (g) at (0,0)      {\textbf{1. Malha geométrica}\\[1pt]
+    {\scriptsize\ttfamily ReadColumnMesh, ReadGmshMesh}\\[1pt]{\scriptsize Gmsh: 320 triângulos}};
+  \node[caixa] (c) at (5.65,0)   {\textbf{2. Malha computacional}\\[1pt]
+    {\scriptsize\ttfamily CreateColumnCompMesh, UnsatMaterial}\\[1pt]{\scriptsize $\vu$ P2, $p_w$ e $p_a$ P1}};
+  \node[caixa] (s) at (11.3,0)   {\textbf{3. Matriz e solver}\\[1pt]
+    {\scriptsize\ttfamily CreateAnalysis}\\[1pt]{\scriptsize skyline não simétrica, LU}};
+  \node[caixa] (i) at (11.3,-2.4){\textbf{4. Estado inicial}\\[1pt]
+    {\scriptsize\ttfamily InitialState}\\[1pt]{\scriptsize geostático, $\vu\leftarrow\bm 0$}};
+  \node[caixa] (t) at (5.65,-2.4){\textbf{5. Transiente}\\[1pt]
+    {\scriptsize\ttfamily RunCase}\\[1pt]{\scriptsize \texttt{Solve}, vazão, \texttt{Accept}}};
+  \node[caixa] (p) at (0,-2.4)   {\textbf{6. Pós-processamento}\\[1pt]
+    {\scriptsize\ttfamily WriteHistory, WriteProfile}\\[1pt]{\scriptsize CSV e VTK; Python}};
+  \draw[seta] (g) -- (c);
+  \draw[seta] (c) -- (s);
+  \draw[seta] (s) -- (i);
+  \draw[seta] (i) -- (t);
+  \draw[seta] (t) -- node[above,font=\scriptsize,align=center]{cada\\passo} (p);
+  \draw[seta,rounded corners=4pt] (t.south) -- ++(0,-0.45) -- ++(1.3,0) node[below,font=\scriptsize]
+    {próximo $\Delta t$} -- ++(0,0.45) -- ([xshift=1.3cm]t.south);
+\end{tikzpicture}
+\captionof{figure}{Etapas do programa e as funções de \texttt{main.cpp} que as executam.}
+\label{fig:liak_etapas}
+\end{center}
+
+\paragraph{1. Malha geométrica.} \texttt{ReadColumnMesh} chama \texttt{ReadGmshMesh}, que lê
+\texttt{meshes/coluna.msh} com o \texttt{TPZGmshReader}, associa os nomes dos grupos físicos aos ids
+do NeoPZ (Solo~$1$; Base~$-1$, Direita~$-2$, Topo~$-3$ e Esquerda~$-4$) e confere que todo elemento
+pertence a um grupo. A malha vem de \texttt{coluna.geo}, com \texttt{Transfinite Curve} de 5 e 41
+pontos e \texttt{Transfinite Surface}: 205 nós, 320 triângulos e 88 elementos de contorno, como na
+Figura~\ref{fig:coluna}c. O \texttt{TPZVTKGeoMesh} grava \texttt{coluna.vtk} para conferência.
+
+\paragraph{2. Malha computacional.} \texttt{CreateAtomicMesh} cria três malhas H1 contínuas com
+material nulo (\texttt{TPZNullMaterial}): o deslocamento, de ordem 2 e dois estados, e as duas
+pressões, de ordem 1. \texttt{CreateColumnCompMesh} insere o material
+\texttt{TPZMatUnsaturatedUPwPa} e condições \texttt{EDirichletU} na base e nas laterais, que só
+marcam os contornos, e monta a malha multifísica com memória em cada ponto de integração
+(\texttt{BuildMultiphysicsSpaceWithMemory}): Taylor--Hood P2--P1 com 1868 equações, 1458 de
+deslocamento e 205 de cada pressão. O topo e as laterais impermeáveis são a condição natural, e o topo nem
+precisa de elementos de contorno. Os parâmetros da Seção~\ref{sec:liak_par} entram assim
+(\texttt{LiakopoulosParams} e \texttt{UnsatMaterial}):
+
+\begin{center}\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.5cm} >{\raggedright\arraybackslash}X@{}}
+\toprule
+Grandeza & No código\\
+\midrule
+$E$, $\nu$, $c'$, $\phi'$ & \texttt{SetEngineeringData(1300, 0.4)};
+  \texttt{TPZYCMohrCoulombPV2}($\phi'=\psi=30^\circ$, $c'=10^5$~kPa): esqueleto elástico\\
+$n$, $\alpha$, $1/N$ & \texttt{SetPorosity(0.2975)}; \texttt{SetBiot(1, 0)} (grãos incompressíveis)\\
+$K_w$, $k_s$, $\gamma_w$ & \texttt{SetWaterBulkModulus(2e6)};
+  \texttt{SetConductivity(9.81*4.5e-7, 9.81, ...)}\\
+$\gamma$, $\chi$ & \texttt{SetUnitWeight(1700*9.81e-3)}; \texttt{SetBishop(EChiSaturation)}\\
+retenção & \texttt{ELiakopoulos} com \texttt{fLC} $=1{,}9722\times10^{-11}\times1000^{b_L}$
+  ($0$ na coluna saturada), \texttt{fLB} $=2{,}4279$ e \texttt{fSwr} $=0$\\
+$k_{rw}$ & \texttt{ELiakopoulosW} com \texttt{fLD} $=2{,}207$ e \texttt{fLE} $=1{,}0121$\\
+armazenamento e quadratura & \texttt{SetLumpedStorage(true)}, \texttt{SetHydroMechanicalCoupling(true)},
+  \texttt{SetIntegrationOrder(2)} (regra de três pontos)\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\paragraph{3. Matriz estrutural e solver.} \texttt{CreateAnalysis} cria a \texttt{TPZUnsatAnalysis}
+com os apoios, escolhe a matriz estrutural e o solver e fixa as tolerâncias do Newton da
+Seção~\ref{sec:newton}. O construtor da análise já faz as mesmas escolhas; o projeto as deixa
+explícitas (Código~\ref{lst:liak_analise}). A matriz é não simétrica porque o Jacobiano não é
+simétrico (Seção~\ref{sec:newton}).
+
+\begin{lstlisting}[style=neopz,caption={Matriz estrutural e solver (\texttt{CreateAnalysis}).},
+                   label={lst:liak_analise}]
+auto *an = new TPZUnsatAnalysis(cmesh, {{bcBase, {true, true}}, {bcDireita, {true, false}},
+                                        {bcEsquerda, {true, false}}}); // apoios: (u_x, u_y)
+#ifdef PZ_USING_MKL
+TPZSpStructMatrix<STATE> matrix(cmesh);          // esparsa, fatorada pelo Pardiso
+#else
+TPZSkylineNSymStructMatrix<STATE> matrix(cmesh); // skyline nao simetrica
+#endif
+matrix.SetNumThreads(0);
+an->SetStructuralMatrix(matrix);
+TPZStepSolver<STATE> solver;
+solver.SetDirect(ELU);                           // LU nao simetrica
+an->SetSolver(solver);
+an->SetTolerances(1.e-7, 1.e-6, 40, 25);         // e_u, max|dp| (kPa), iteracoes
+\end{lstlisting}
+
+\paragraph{4. Estado inicial.} \texttt{InitialState} zera a memória e a solução e aplica o peso em
+quatro incrementos com as pressões congeladas em zero (\texttt{Solve} com $\Delta t=0$ e
+\texttt{frozen = true}, seguido de \texttt{Accept}); depois \texttt{ResetDisplacements} faz
+$\vu\leftarrow\bm 0$ mantendo $\tsig'$, e um último \texttt{Accept} guarda esse estado na memória.
+
+\paragraph{5. Transiente.} Em $t\ge0$, as equações prescritas são as dos apoios, as de $p_a$ em
+todos os vértices (ar passivo) e as de $p_w$ nos vértices da base; o Código~\ref{lst:liak_passo}
+mostra o laço de \texttt{RunCase}. Cada passo é o algoritmo da Seção~\ref{sec:newton}; os passos
+vêm de \texttt{TimeSteps}, uma lista de fases ($t$ limite, $\Delta t$), e o último é encurtado
+para terminar em 7500~s.
+
+\begin{lstlisting}[style=neopz,caption={Contorno do transiente e laço no tempo (\texttt{RunCase}, simplificado).},
+                   label={lst:liak_passo}]
+std::map<int64_t, REAL> fixed = an->DisplacementConstraints();       // apoios
+for (auto &[node, eq] : an->AirEq()) fixed[eq] = 0.;                   // ar passivo
+for (auto &[node, len] : pr.base) fixed[an->WaterEq().at(node)] = 0.;  // base drenante
+REAL t = 0.;
+while (t < test.tEnd - 1.e-9) {
+    const REAL dt = steps.Dt(t, test.tEnd);
+    const TPZUnsatAnalysis::StepResult res = an->Solve(dt, fixed, {}, false); // Newton
+    if (!res.conv) break;
+    const REAL qb = BaseOutflow(*an, pr, dt, test.W); // reacoes, antes do Accept
+    an->Accept();                                     // memoria do passo convergido
+    t += dt;
+    WriteHistory(hist, caso, ++step, t, dt, res.iter - 1, qb, *an, pr);
+    if (isProfileTime(t)) WriteProfile(prof, caso, t, *an, pr); // e o VTK
+}
+\end{lstlisting}
+
+\paragraph{6. Pós-processamento.} A vazão na base é a da Seção~\ref{sec:liak_res}(a): o resíduo
+da equação da água nos vértices da base, onde $p_w$ é prescrita, é a vazão que entra
+(Código~\ref{lst:liak_vazao}). \texttt{FullResidual} devolve $\mathbf R=-\mathbf{ef}$ do estado
+carregado na malha e precisa ser chamada antes do \texttt{Accept}, porque o armazenamento usa o
+estado do passo anterior guardado na memória. Em $t=0$ grava-se $q_b=k_s$, a vazão do fluxo
+permanente inicial.
+
+\begin{lstlisting}[style=neopz,caption={Vazão na base pelas reações (\texttt{BaseOutflow}).},
+                   label={lst:liak_vazao}]
+REAL BaseOutflow(TPZUnsatAnalysis &an, const Probes &pr, REAL dt, REAL W)
+{
+    const TPZFMatrix<STATE> R = an.FullResidual(); // R = -ef do passo convergido
+    REAL sum = 0.;
+    for (auto &[node, len] : pr.base) sum += R.GetVal(an.WaterEq().at(node), 0);
+    return -sum / dt / W;                          // q_b = Q_b / 0,10 m
+}
+\end{lstlisting}
+
+Os perfis são lidos nos 41 nós da vertical $x=0{,}05$~m. Na base hierárquica do NeoPZ, o conector
+de um vértice guarda o valor nodal (as funções de aresta são nulas nos vértices,
+Seção~\ref{sec:contorno}): $u_y$ e $p_w$ saem direto do vetor solução, por
+\texttt{NodalDisplacement} e pelos mapas \texttt{WaterEq} e \texttt{AirEq}. \texttt{PostProcessVTK}
+projeta, com o \texttt{TPZPostProcAnalysis}, as variáveis da solução e as da memória dos pontos
+($\vu$, $p_w$, $p_c$, $S_w$, $k_{rw}$, $p_B$, $\tsig'$ e o tipo de resposta plástica). As saídas são:
+
+\begin{center}\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{4.3cm} >{\raggedright\arraybackslash}X@{}}
+\toprule
+Arquivo & Conteúdo\\
+\midrule
+\texttt{historico.csv} & uma linha por passo: \texttt{caso}, \texttt{passo}, \texttt{t\_s},
+  \texttt{dt\_s}, \texttt{newton} (soluções do sistema linear), \texttt{qb\_m\_s},
+  \texttt{w\_topo\_m}, \texttt{pw\_meio\_kPa} ($y=0{,}5$~m), \texttt{pw\_topo\_kPa} e
+  \texttt{pontos\_plasticos}\\
+\texttt{perfis.csv} & \texttt{caso}, \texttt{t\_s}, \texttt{x\_m}, \texttt{y\_m}, \texttt{pw\_kPa},
+  \texttt{uy\_m} e \texttt{Sw} em $t=0$, 300, 600, 1200, 1800, 3600, 6400, 7200 e 7500~s, quando
+  um passo cai no instante (os passos do artigo não passam por 3600 e 7200~s)\\
+\texttt{coluna\_<caso>\_pontos}\allowbreak\texttt{.scal\_vec.<k>.vtk} & casos \texttt{parcial} e \texttt{saturada}:
+  $k=0$ é o estado inicial, depois os instantes dos perfis\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+O \texttt{plot\_liakopoulos.py} roda a referência 1D com os mesmos passos de cada caso e imprime
+quatro tabelas: a da Seção~\ref{sec:liak_ref}, a diferença máxima para a referência, a
+convergência no tempo e a diferença para as curvas do artigo; grava também \texttt{comparacao.csv}
+e um gráfico como a Figura~\ref{fig:liak_neopz}.
+
+\subsection{Casos e custo}
+
+O item~6 do roteiro dá quatro casos. O tempo é o de um núcleo, com compilação \texttt{Release} e
+sem MKL; nenhum ponto plastificou em nenhum passo.
+
+\begin{center}\small
+\begin{tabularx}{\textwidth}{@{}l X r r r@{}}
+\toprule
+Caso & Passos de tempo & Passos & Newton por passo & Tempo (s)\\
+\midrule
+\texttt{parcial} & 1~s até 60~s, 5~s até 600~s, 10~s até 2000~s, 20~s depois & 583 & $2{,}91$ & 69\\
+\texttt{parcial\_meio\_passo} & a metade desses & 1166 & $2{,}72$ & 130\\
+\texttt{parcial\_passos\_artigo} & 10~s até 300~s, 100~s até 2400~s, 1000~s depois & 57 & $3{,}39$ & 8\\
+\texttt{saturada} & os da referência, com $c_L=0$ & 583 & $1{,}73$ & 52\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{Resultados}
+\label{sec:liak_resultados}
+
+A tabela da Seção~\ref{sec:liak_ref}, com o NeoPZ (passos da referência) e, entre colchetes, a
+referência 1D (coluna parcialmente saturada) e a solução analítica (\ref{eq:terzaghi_liak})
+(coluna saturada):
+
+\begin{center}\footnotesize
+\setlength{\tabcolsep}{2.6pt}
+\begin{tabular}{@{}r rl rl rl rl rl rl@{}}
+\toprule
+& \multicolumn{8}{c}{parcialmente saturada: NeoPZ [referência 1D]} &
+  \multicolumn{4}{c}{saturada: NeoPZ [Eq.~(\ref{eq:terzaghi_liak})]}\\
+\cmidrule(lr){2-9}\cmidrule(l){10-13}
+$t$ (s) & \multicolumn{2}{c}{$q_b$ ($10^{-6}$ m/s)} & \multicolumn{2}{c}{$p_w$ em $y=0{,}5$ m} &
+  \multicolumn{2}{c}{$p_w$ no topo} & \multicolumn{2}{c}{$w$ (mm)} &
+  \multicolumn{2}{c}{$q_b$ ($10^{-6}$ m/s)} & \multicolumn{2}{c}{$w$ (mm)}\\
+\midrule
+300 & $3{,}373$ & $[3{,}373]$ & $-1{,}30$ & $[-1{,}30]$ & $-4{,}15$ & $[-4{,}15]$ & $-0{,}550$ & $[-0{,}550]$ & $2{,}236$ & $[2{,}223]$ & $-1{,}038$ & $[-1{,}042]$\\
+600 & $2{,}727$ & $[2{,}726]$ & $-1{,}98$ & $[-1{,}98]$ & $-5{,}22$ & $[-5{,}22]$ & $-0{,}774$ & $[-0{,}774]$ & $0{,}891$ & $[0{,}879]$ & $-1{,}473$ & $[-1{,}476]$\\
+1200 & $2{,}011$ & $[2{,}011]$ & $-2{,}74$ & $[-2{,}74]$ & $-6{,}41$ & $[-6{,}41]$ & $-1{,}020$ & $[-1{,}020]$ & $0{,}143$ & $[0{,}138]$ & $-1{,}714$ & $[-1{,}716]$\\
+1800 & $1{,}578$ & $[1{,}578]$ & $-3{,}20$ & $[-3{,}20]$ & $-7{,}13$ & $[-7{,}13]$ & $-1{,}167$ & $[-1{,}167]$ & $0{,}023$ & $[0{,}022]$ & $-1{,}753$ & $[-1{,}754]$\\
+3600 & $0{,}877$ & $[0{,}877]$ & $-3{,}95$ & $[-3{,}95]$ & $-8{,}31$ & $[-8{,}31]$ & $-1{,}401$ & $[-1{,}401]$ & $0{,}000$ & $[0{,}000]$ & $-1{,}761$ & $[-1{,}761]$\\
+6400 & $0{,}411$ & $[0{,}411]$ & $-4{,}46$ & $[-4{,}46]$ & $-9{,}10$ & $[-9{,}10]$ & $-1{,}553$ & $[-1{,}553]$ & $0{,}000$ & $[0{,}000]$ & $-1{,}761$ & $[-1{,}761]$\\
+7500 & $0{,}312$ & $[0{,}312]$ & $-4{,}57$ & $[-4{,}57]$ & $-9{,}27$ & $[-9{,}27]$ & $-1{,}585$ & $[-1{,}585]$ & $0{,}000$ & $[0{,}000]$ & $-1{,}761$ & $[-1{,}761]$\\
+\bottomrule
+\end{tabular}
+\end{center}
+Na coluna parcialmente saturada, o NeoPZ repete a referência em todos os dígitos impressos, salvo
+$q_b$ em 600~s, uma unidade no último dígito. A Figura~\ref{fig:liak_neopz} é a
+Figura~\ref{fig:liak} com o NeoPZ.
+
+\begin{center}
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=2 by 2,horizontal sep=1.7cm,vertical sep=2.0cm},
+  /pgf/number format/use comma,/pgf/number format/1000 sep={},
+  width=7.4cm,height=5.4cm,tick label style={font=\scriptsize},label style={font=\small},
+  title style={font=\small},legend style={font=\scriptsize,draw=none,fill=white,fill opacity=0.8,text opacity=1},
+  legend cell align=left]
+\nextgroupplot[title={(a) vazão na base},xlabel={$t$ (s)},ylabel={$q_b$ ($10^{-6}$ m/s)},
+  xmin=0,xmax=7500,ymin=0,ymax=6.6,ytick={0,1,2,3,4,5,6},legend pos=north east,scaled x ticks=false,
+  xtick={0,1500,3000,4500,6000,7500}]
+\addplot[thick,casoA] coordinates {(0,4.4145) (2,4.4145) (5,4.4145) (10,4.4145) (20,4.4143) (40,4.4012) (60,4.3489) (80,4.2626) (100,4.1639) (150,3.9198) (200,3.7081) (250,3.5282) (300,3.373) (400,3.115) (500,2.9047) (600,2.7268) (700,2.5727) (800,2.4365) (1000,2.2042) (1200,2.0111) (1400,1.8466) (1600,1.7038) (1800,1.5782) (2000,1.4666) (2400,1.2765) (2800,1.12) (3200,0.98866) (3600,0.87699) (4000,0.781) (4500,0.6787) (5000,0.59223) (5500,0.51851) (6000,0.45523) (6500,0.4006) (7000,0.35323) (7500,0.31199)};
+\addplot[thick,casoB] coordinates {(0,4.4145) (10,4.4135) (20,4.4093) (30,4.3993) (40,4.3819) (50,4.3566) (60,4.3241) (70,4.2858) (80,4.2433) (90,4.1979) (100,4.151) (110,4.1033) (120,4.0556) (130,4.0085) (140,3.9622) (150,3.917) (160,3.8729) (170,3.8301) (180,3.7886) (190,3.7483) (200,3.7092) (210,3.6713) (220,3.6346) (230,3.599) (240,3.5644) (250,3.5308) (260,3.4981) (270,3.4664) (280,3.4355) (290,3.4054) (300,3.3761) (400,3.1276) (500,2.9211) (600,2.7453) (700,2.5922) (800,2.4568) (900,2.3353) (1000,2.2253) (1100,2.1249) (1200,2.0325) (1300,1.9471) (1400,1.8679) (1500,1.7939) (1600,1.7248) (1700,1.6599) (1800,1.5988) (1900,1.5411) (2000,1.4867) (2100,1.4351) (2200,1.3861) (2300,1.3396) (2400,1.2953) (3400,0.98008) (4400,0.75709) (5400,0.59293) (6400,0.46884) (7400,0.37333) (7500,0.36415)};
+\addplot[thick,casoC] coordinates {(0,4.4145) (2,4.4145) (5,4.4145) (10,4.4145) (20,4.4142) (40,4.3976) (60,4.3227) (80,4.1821) (100,4.0052) (150,3.5093) (200,3.0303) (250,2.6048) (300,2.2358) (400,1.6455) (500,1.2107) (600,0.89078) (700,0.65692) (800,0.48446) (1000,0.26348) (1200,0.14329) (1400,0.077932) (1600,0.042384) (1800,0.023051) (2000,0.012536) (2400,0.0037754) (2800,0.001137) (3200,0.0003424) (3600,0.00010312) (4000,3.1054e-05) (4500,6.9279e-06) (5000,1.5456e-06) (5500,3.4481e-07) (6000,7.6924e-08) (6500,1.7161e-08) (7000,3.8285e-09) (7500,8.5406e-10)};
+\addplot[semithick,dashed,black] coordinates {(0,4.4145) (2,4.4145) (5,4.4145) (10,4.4145) (20,4.4142) (40,4.4009) (60,4.3485) (80,4.2621) (100,4.1635) (150,3.9194) (200,3.7077) (250,3.5279) (300,3.3727) (400,3.1146) (500,2.9044) (600,2.7265) (700,2.5723) (800,2.4361) (1000,2.2039) (1200,2.0108) (1400,1.8462) (1600,1.7034) (1800,1.5778) (2000,1.4662) (2400,1.2762) (2800,1.1196) (3200,0.98834) (3600,0.87668) (4000,0.7807) (4500,0.67842) (5000,0.59196) (5500,0.51825) (6000,0.45498) (6500,0.40037) (7000,0.35302) (7500,0.31178)};
+\addplot[semithick,dashed,black,forget plot] coordinates {(0,4.4145) (10,4.4135) (20,4.4092) (30,4.3991) (40,4.3816) (50,4.3562) (60,4.3237) (70,4.2854) (80,4.2428) (90,4.1975) (100,4.1505) (110,4.1028) (120,4.0552) (130,4.0081) (140,3.9618) (150,3.9166) (160,3.8726) (170,3.8298) (180,3.7882) (190,3.7479) (200,3.7089) (210,3.671) (220,3.6343) (230,3.5986) (240,3.5641) (250,3.5305) (260,3.4978) (270,3.4661) (280,3.4352) (290,3.4051) (300,3.3758) (400,3.1273) (500,2.9208) (600,2.745) (700,2.5919) (800,2.4565) (900,2.335) (1000,2.225) (1100,2.1245) (1200,2.0322) (1300,1.9468) (1400,1.8675) (1500,1.7936) (1600,1.7244) (1700,1.6595) (1800,1.5984) (1900,1.5408) (2000,1.4863) (2100,1.4347) (2200,1.3858) (2300,1.3392) (2400,1.2949) (3400,0.97976) (4400,0.7568) (5400,0.59267) (6400,0.46861) (7400,0.37313) (7500,0.36395)};
+\addplot[semithick,densely dotted,black] coordinates {(0,4.4145) (50,4.3728) (100,4.0104) (150,3.5061) (200,3.0214) (250,2.593) (300,2.2227) (350,1.9046) (400,1.6319) (450,1.3982) (500,1.1979) (550,1.0263) (600,0.87932) (650,0.75337) (700,0.64546) (750,0.55301) (800,0.4738) (850,0.40594) (900,0.34779) (950,0.29798) (1000,0.2553) (1050,0.21873) (1100,0.1874) (1150,0.16056) (1200,0.13756) (1250,0.11786) (1300,0.10098) (1350,0.086514) (1400,0.074122) (1450,0.063506) (1500,0.05441) (1550,0.046616) (1600,0.039939) (1650,0.034219) (1700,0.029317) (1750,0.025118) (1800,0.021521) (1850,0.018438) (1900,0.015797) (1950,0.013534) (2000,0.011596) (2050,0.009935) (2100,0.008512) (2150,0.0072928) (2200,0.0062482) (2250,0.0053533) (2300,0.0045865) (2350,0.0039296) (2400,0.0033667) (2450,0.0028845) (2500,0.0024713) (2550,0.0021174) (2600,0.0018141) (2650,0.0015542) (2700,0.0013316) (2750,0.0011409) (2800,0.00097748) (2850,0.00083747) (2900,0.00071752) (2950,0.00061475) (3000,0.0005267) (3050,0.00045126) (3100,0.00038662) (3150,0.00033124) (3200,0.0002838) (3250,0.00024315) (3300,0.00020832) (3350,0.00017848) (3400,0.00015292) (3450,0.00013102) (3500,0.00011225) (3550,9.6172e-05) (3600,8.2397e-05) (3650,7.0595e-05) (3700,6.0484e-05) (3750,5.182e-05) (3800,4.4398e-05) (3850,3.8039e-05) (3900,3.259e-05) (3950,2.7922e-05) (4000,2.3923e-05) (4050,2.0496e-05) (4100,1.7561e-05) (4150,1.5045e-05) (4200,1.289e-05) (4250,1.1044e-05) (4300,9.4622e-06) (4350,8.1069e-06) (4400,6.9457e-06) (4450,5.9509e-06) (4500,5.0985e-06) (4550,4.3682e-06) (4600,3.7426e-06) (4650,3.2065e-06) (4700,2.7472e-06) (4750,2.3537e-06) (4800,2.0166e-06) (4850,1.7278e-06) (4900,1.4803e-06) (4950,1.2683e-06) (5000,1.0866e-06) (5050,9.3097e-07) (5100,7.9762e-07) (5150,6.8338e-07) (5200,5.8549e-07) (5250,5.0163e-07) (5300,4.2978e-07) (5350,3.6822e-07) (5400,3.1548e-07) (5450,2.7029e-07) (5500,2.3158e-07) (5550,1.9841e-07) (5600,1.6999e-07) (5650,1.4564e-07) (5700,1.2478e-07) (5750,1.0691e-07) (5800,9.1596e-08) (5850,7.8476e-08) (5900,6.7236e-08) (5950,5.7606e-08) (6000,4.9355e-08) (6050,4.2285e-08) (6100,3.6229e-08) (6150,3.104e-08) (6200,2.6594e-08) (6250,2.2785e-08) (6300,1.9521e-08) (6350,1.6725e-08) (6400,1.4329e-08) (6450,1.2277e-08) (6500,1.0519e-08) (6550,9.0119e-09) (6600,7.7211e-09) (6650,6.6152e-09) (6700,5.6677e-09) (6750,4.8559e-09) (6800,4.1604e-09) (6850,3.5645e-09) (6900,3.0539e-09) (6950,2.6165e-09) (7000,2.2417e-09) (7050,1.9206e-09) (7100,1.6455e-09) (7150,1.4098e-09) (7200,1.2079e-09) (7250,1.0349e-09) (7300,8.8667e-10) (7350,7.5967e-10) (7400,6.5086e-10) (7450,5.5763e-10) (7500,4.7776e-10)};
+\addplot[only marks,mark=o,mark size=1.5pt,black] coordinates {(0,4.388) (100,4.155) (200,3.735) (300,3.463) (450,3.054) (600,2.793) (900,2.378) (1200,2.078) (1500,1.828) (1800,1.629) (2400,1.334) (3000,1.135) (3400,1.01) (4000,0.874) (4400,0.789) (5000,0.693) (5400,0.607) (6000,0.545)};
+\legend{{NeoPZ, parcialmente saturada},{NeoPZ, passos do artigo},{NeoPZ, saturada},referência 1D,Eq.~(\ref{eq:terzaghi_liak}),{Callari e Abati (2009)}}
+\nextgroupplot[title={(b) pressão da água},xlabel={$p_w$ (kPa)},ylabel={$y$ (m)},
+  xmin=-8,xmax=0,ymin=0,ymax=1,legend pos=south west]
+\addplot[thick,tempoA] coordinates {(0,0) (-0.09377,0.025) (-0.18759,0.05) (-0.2815,0.075) (-0.37556,0.1) (-0.46983,0.125) (-0.56439,0.15) (-0.65929,0.175) (-0.75464,0.2) (-0.85051,0.225) (-0.94702,0.25) (-1.0443,0.275) (-1.1424,0.3) (-1.2415,0.325) (-1.3418,0.35) (-1.4434,0.375) (-1.5465,0.4) (-1.6512,0.425) (-1.7578,0.45) (-1.8665,0.475) (-1.9775,0.5) (-2.091,0.525) (-2.2074,0.55) (-2.3268,0.575) (-2.4497,0.6) (-2.5762,0.625) (-2.7068,0.65) (-2.8419,0.675) (-2.9817,0.7) (-3.1267,0.725) (-3.2774,0.75) (-3.4343,0.775) (-3.5978,0.8) (-3.7684,0.825) (-3.9467,0.85) (-4.1334,0.875) (-4.3291,0.9) (-4.5344,0.925) (-4.7501,0.95) (-4.977,0.975) (-5.2158,1)};
+\addplot[thick,tempoB] coordinates {(0,0) (-0.13352,0.025) (-0.26707,0.05) (-0.40067,0.075) (-0.53435,0.1) (-0.66815,0.125) (-0.80211,0.15) (-0.93628,0.175) (-1.0707,0.2) (-1.2055,0.225) (-1.3406,0.25) (-1.4763,0.275) (-1.6125,0.3) (-1.7494,0.325) (-1.8871,0.35) (-2.0257,0.375) (-2.1654,0.4) (-2.3062,0.425) (-2.4484,0.45) (-2.5921,0.475) (-2.7374,0.5) (-2.8847,0.525) (-3.034,0.55) (-3.1857,0.575) (-3.3399,0.6) (-3.4969,0.625) (-3.6569,0.65) (-3.8203,0.675) (-3.9873,0.7) (-4.1583,0.725) (-4.3335,0.75) (-4.5134,0.775) (-4.6982,0.8) (-4.8884,0.825) (-5.0845,0.85) (-5.2867,0.875) (-5.4956,0.9) (-5.7116,0.925) (-5.9353,0.95) (-6.1672,0.975) (-6.4078,1)};
+\addplot[thick,tempoC] coordinates {(0,0) (-0.15758,0.025) (-0.31517,0.05) (-0.47279,0.075) (-0.63047,0.1) (-0.78822,0.125) (-0.94608,0.15) (-1.1041,0.175) (-1.2623,0.2) (-1.4207,0.225) (-1.5794,0.25) (-1.7385,0.275) (-1.898,0.3) (-2.058,0.325) (-2.2185,0.35) (-2.3798,0.375) (-2.5419,0.4) (-2.7048,0.425) (-2.8688,0.45) (-3.0339,0.475) (-3.2004,0.5) (-3.3683,0.525) (-3.5379,0.55) (-3.7092,0.575) (-3.8826,0.6) (-4.0581,0.625) (-4.2361,0.65) (-4.4167,0.675) (-4.6001,0.7) (-4.7867,0.725) (-4.9767,0.75) (-5.1703,0.775) (-5.3679,0.8) (-5.5697,0.825) (-5.7762,0.85) (-5.9875,0.875) (-6.2041,0.9) (-6.4264,0.925) (-6.6547,0.95) (-6.8894,0.975) (-7.131,1)};
+\addplot[semithick,dashed,black] coordinates {(0,0) (-0.18762,0.05) (-0.37563,0.1) (-0.5645,0.15) (-0.75479,0.2) (-0.94723,0.25) (-1.1427,0.3) (-1.3421,0.35) (-1.5469,0.4) (-1.7583,0.45) (-1.978,0.5) (-2.208,0.55) (-2.4504,0.6) (-2.7076,0.65) (-2.9826,0.7) (-3.2785,0.75) (-3.599,0.8) (-3.9481,0.85) (-4.3307,0.9) (-4.7519,0.95) (-5.2179,1)};
+\addplot[semithick,dashed,black,forget plot] coordinates {(0,0) (-0.26711,0.05) (-0.53443,0.1) (-0.80223,0.15) (-1.0709,0.2) (-1.3409,0.25) (-1.6128,0.3) (-1.8874,0.35) (-2.1658,0.4) (-2.4488,0.45) (-2.7379,0.5) (-3.0346,0.55) (-3.3406,0.6) (-3.6577,0.65) (-3.9882,0.7) (-4.3345,0.75) (-4.6993,0.8) (-5.0857,0.85) (-5.4969,0.9) (-5.9368,0.95) (-6.4095,1)};
+\addplot[semithick,dashed,black,forget plot] coordinates {(0,0) (-0.3152,0.05) (-0.63055,0.1) (-0.94621,0.15) (-1.2624,0.2) (-1.5796,0.25) (-1.8982,0.3) (-2.2189,0.35) (-2.5422,0.4) (-2.8692,0.45) (-3.2009,0.5) (-3.5384,0.55) (-3.8832,0.6) (-4.2368,0.65) (-4.6009,0.7) (-4.9776,0.75) (-5.3689,0.8) (-5.7772,0.85) (-6.2053,0.9) (-6.656,0.95) (-7.1324,1)};
+\addplot[only marks,mark=o,mark size=1.5pt,black] coordinates {(-0.548,0.15) (-0.917,0.25) (-1.298,0.35) (-1.702,0.45) (-2.14,0.55) (-2.63,0.65) (-3.201,0.75) (-3.859,0.85) (-4.666,0.95) (-5.024,0.99)};
+\addplot[only marks,mark=o,mark size=1.5pt,black,forget plot] coordinates {(-0.784,0.15) (-1.304,0.25) (-1.846,0.35) (-2.388,0.45) (-2.97,0.55) (-3.582,0.65) (-4.251,0.75) (-4.989,0.85) (-5.854,0.95) (-6.218,0.99)};
+\addplot[only marks,mark=o,mark size=1.5pt,black,forget plot] coordinates {(-0.929,0.15) (-1.546,0.25) (-2.186,0.35) (-2.82,0.45) (-3.484,0.55) (-4.17,0.65) (-4.908,0.75) (-5.693,0.85) (-6.581,0.95) (-6.95,0.99)};
+\legend{600 s,1200 s,1800 s,referência 1D,artigo (Fig.~3b)}
+\nextgroupplot[title={(c) recalque do topo},xlabel={$t$ (s)},ylabel={$w$ (mm)},
+  xmin=0,xmax=7500,ymin=-2,ymax=0,legend pos=north east,scaled x ticks=false,
+  xtick={0,1500,3000,4500,6000,7500}]
+\addplot[thick,casoA] coordinates {(0,0) (2,-0.0083717) (5,-0.020001) (10,-0.038003) (20,-0.070906) (40,-0.12954) (60,-0.18185) (80,-0.22902) (100,-0.27159) (150,-0.36193) (200,-0.43532) (250,-0.49703) (300,-0.55031) (400,-0.63923) (500,-0.71194) (600,-0.77352) (700,-0.82684) (800,-0.87388) (1000,-0.95387) (1200,-1.0201) (1400,-1.0762) (1600,-1.1248) (1800,-1.1673) (2000,-1.2049) (2400,-1.2686) (2800,-1.3208) (3200,-1.3643) (3600,-1.4011) (4000,-1.4326) (4500,-1.466) (5000,-1.4941) (5500,-1.518) (6000,-1.5385) (6500,-1.5561) (7000,-1.5713) (7500,-1.5845)};
+\addplot[thick,casoB] coordinates {(0,0) (10,-0.039027) (20,-0.072341) (30,-0.10271) (40,-0.131) (50,-0.15761) (60,-0.18278) (70,-0.20663) (80,-0.22929) (90,-0.25084) (100,-0.27136) (110,-0.29093) (120,-0.30962) (130,-0.32749) (140,-0.3446) (150,-0.36101) (160,-0.37676) (170,-0.39192) (180,-0.40651) (190,-0.42057) (200,-0.43416) (210,-0.44728) (220,-0.45998) (230,-0.47229) (240,-0.48422) (250,-0.49579) (260,-0.50704) (270,-0.51797) (280,-0.52861) (290,-0.53898) (300,-0.54907) (400,-0.63544) (500,-0.70672) (600,-0.76741) (700,-0.82024) (800,-0.86697) (900,-0.90881) (1000,-0.94665) (1100,-0.98113) (1200,-1.0128) (1300,-1.0419) (1400,-1.069) (1500,-1.0941) (1600,-1.1176) (1700,-1.1396) (1800,-1.1603) (1900,-1.1798) (2000,-1.1981) (2100,-1.2155) (2200,-1.2319) (2300,-1.2475) (2400,-1.2623) (3400,-1.3671) (4400,-1.4404) (5400,-1.4939) (6400,-1.5341) (7400,-1.5649) (7500,-1.5678)};
+\addplot[thick,casoC] coordinates {(0,0) (2,-0.0088266) (5,-0.022064) (10,-0.044127) (20,-0.088253) (40,-0.17639) (60,-0.26364) (80,-0.34837) (100,-0.42981) (150,-0.61646) (200,-0.77849) (250,-0.91801) (300,-1.0378) (400,-1.2288) (500,-1.3694) (600,-1.4728) (700,-1.5484) (800,-1.6042) (1000,-1.6756) (1200,-1.7144) (1400,-1.7356) (1600,-1.7471) (1800,-1.7533) (2000,-1.7567) (2400,-1.7595) (2800,-1.7604) (3200,-1.7607) (3600,-1.7607) (4000,-1.7608) (4500,-1.7608) (5000,-1.7608) (5500,-1.7608) (6000,-1.7608) (6500,-1.7608) (7000,-1.7608) (7500,-1.7608)};
+\addplot[semithick,dashed,black] coordinates {(0,0) (2,-0.0084013) (5,-0.020056) (10,-0.038082) (20,-0.07101) (40,-0.12966) (60,-0.18198) (80,-0.22915) (100,-0.27172) (150,-0.36205) (200,-0.43544) (250,-0.49715) (300,-0.55043) (400,-0.63935) (500,-0.71207) (600,-0.77365) (700,-0.82697) (800,-0.87401) (1000,-0.95401) (1200,-1.0202) (1400,-1.0764) (1600,-1.1249) (1800,-1.1674) (2000,-1.205) (2400,-1.2687) (2800,-1.3209) (3200,-1.3644) (3600,-1.4012) (4000,-1.4327) (4500,-1.4661) (5000,-1.4942) (5500,-1.5181) (6000,-1.5386) (6500,-1.5562) (7000,-1.5714) (7500,-1.5846)};
+\addplot[semithick,dashed,black,forget plot] coordinates {(0,0) (10,-0.039094) (20,-0.072436) (30,-0.10282) (40,-0.13112) (50,-0.15774) (60,-0.1829) (70,-0.20676) (80,-0.22942) (90,-0.25097) (100,-0.27149) (110,-0.29106) (120,-0.30974) (130,-0.32761) (140,-0.34472) (150,-0.36113) (160,-0.37689) (170,-0.39204) (180,-0.40663) (190,-0.4207) (200,-0.43428) (210,-0.4474) (220,-0.46011) (230,-0.47241) (240,-0.48434) (250,-0.49592) (260,-0.50716) (270,-0.5181) (280,-0.52874) (290,-0.5391) (300,-0.5492) (400,-0.63557) (500,-0.70685) (600,-0.76754) (700,-0.82037) (800,-0.8671) (900,-0.90894) (1000,-0.94678) (1100,-0.98127) (1200,-1.0129) (1300,-1.0421) (1400,-1.0691) (1500,-1.0943) (1600,-1.1178) (1700,-1.1398) (1800,-1.1604) (1900,-1.1799) (2000,-1.1982) (2100,-1.2156) (2200,-1.232) (2300,-1.2476) (2400,-1.2625) (3400,-1.3672) (4400,-1.4405) (5400,-1.494) (6400,-1.5342) (7400,-1.5649) (7500,-1.5679)};
+\addplot[semithick,densely dotted,black] coordinates {(0,-1.7733e-12) (50,-0.22029) (100,-0.43101) (150,-0.61895) (200,-0.78187) (250,-0.92192) (300,-1.042) (350,-1.145) (400,-1.2332) (450,-1.3087) (500,-1.3735) (550,-1.429) (600,-1.4765) (650,-1.5172) (700,-1.5521) (750,-1.582) (800,-1.6076) (850,-1.6295) (900,-1.6483) (950,-1.6644) (1000,-1.6782) (1050,-1.6901) (1100,-1.7002) (1150,-1.7089) (1200,-1.7163) (1250,-1.7227) (1300,-1.7281) (1350,-1.7328) (1400,-1.7368) (1450,-1.7402) (1500,-1.7432) (1550,-1.7457) (1600,-1.7479) (1650,-1.7497) (1700,-1.7513) (1750,-1.7526) (1800,-1.7538) (1850,-1.7548) (1900,-1.7557) (1950,-1.7564) (2000,-1.757) (2050,-1.7576) (2100,-1.758) (2150,-1.7584) (2200,-1.7587) (2250,-1.759) (2300,-1.7593) (2350,-1.7595) (2400,-1.7597) (2450,-1.7598) (2500,-1.76) (2550,-1.7601) (2600,-1.7602) (2650,-1.7603) (2700,-1.7603) (2750,-1.7604) (2800,-1.7605) (2850,-1.7605) (2900,-1.7605) (2950,-1.7606) (3000,-1.7606) (3050,-1.7606) (3100,-1.7606) (3150,-1.7607) (3200,-1.7607) (3250,-1.7607) (3300,-1.7607) (3350,-1.7607) (3400,-1.7607) (3450,-1.7607) (3500,-1.7607) (3550,-1.7607) (3600,-1.7607) (3650,-1.7607) (3700,-1.7607) (3750,-1.7608) (3800,-1.7608) (3850,-1.7608) (3900,-1.7608) (3950,-1.7608) (4000,-1.7608) (4050,-1.7608) (4100,-1.7608) (4150,-1.7608) (4200,-1.7608) (4250,-1.7608) (4300,-1.7608) (4350,-1.7608) (4400,-1.7608) (4450,-1.7608) (4500,-1.7608) (4550,-1.7608) (4600,-1.7608) (4650,-1.7608) (4700,-1.7608) (4750,-1.7608) (4800,-1.7608) (4850,-1.7608) (4900,-1.7608) (4950,-1.7608) (5000,-1.7608) (5050,-1.7608) (5100,-1.7608) (5150,-1.7608) (5200,-1.7608) (5250,-1.7608) (5300,-1.7608) (5350,-1.7608) (5400,-1.7608) (5450,-1.7608) (5500,-1.7608) (5550,-1.7608) (5600,-1.7608) (5650,-1.7608) (5700,-1.7608) (5750,-1.7608) (5800,-1.7608) (5850,-1.7608) (5900,-1.7608) (5950,-1.7608) (6000,-1.7608) (6050,-1.7608) (6100,-1.7608) (6150,-1.7608) (6200,-1.7608) (6250,-1.7608) (6300,-1.7608) (6350,-1.7608) (6400,-1.7608) (6450,-1.7608) (6500,-1.7608) (6550,-1.7608) (6600,-1.7608) (6650,-1.7608) (6700,-1.7608) (6750,-1.7608) (6800,-1.7608) (6850,-1.7608) (6900,-1.7608) (6950,-1.7608) (7000,-1.7608) (7050,-1.7608) (7100,-1.7608) (7150,-1.7608) (7200,-1.7608) (7250,-1.7608) (7300,-1.7608) (7350,-1.7608) (7400,-1.7608) (7450,-1.7608) (7500,-1.7608)};
+\addplot[only marks,mark=o,mark size=1.5pt,black] coordinates {(200,-0.415) (300,-0.517) (600,-0.758) (900,-0.902) (1200,-1.011) (1600,-1.12) (2000,-1.205) (2400,-1.273) (3200,-1.363) (4000,-1.43) (4800,-1.487) (6400,-1.547)};
+\addplot[only marks,mark=o,mark size=1.5pt,black,forget plot] coordinates {(200,-0.765) (300,-0.983) (600,-1.434) (900,-1.618) (1200,-1.697) (1600,-1.739) (2000,-1.754) (2400,-1.758) (3200,-1.761) (4000,-1.761) (4800,-1.761)};
+\nextgroupplot[title={(d) perfis de recalque},xlabel={$u_y$ (mm)},ylabel={$y$ (m)},
+  xmin=-1.7,xmax=0,ymin=0,ymax=1,legend pos=south west]
+\addplot[thick,tempoA] coordinates {(0,0) (-0.0002597,0.025) (-0.0010392,0.05) (-0.0023395,0.075) (-0.0041626,0.1) (-0.0065112,0.125) (-0.0093888,0.15) (-0.0128,0.175) (-0.01675,0.2) (-0.021246,0.225) (-0.026295,0.25) (-0.031906,0.275) (-0.03809,0.3) (-0.044857,0.325) (-0.052222,0.35) (-0.060198,0.375) (-0.068801,0.4) (-0.078051,0.425) (-0.087966,0.45) (-0.098568,0.475) (-0.10988,0.5) (-0.12194,0.525) (-0.13476,0.55) (-0.14837,0.575) (-0.16283,0.6) (-0.17815,0.625) (-0.19438,0.65) (-0.21157,0.675) (-0.22977,0.7) (-0.24902,0.725) (-0.26938,0.75) (-0.29092,0.775) (-0.31369,0.8) (-0.33778,0.825) (-0.36325,0.85) (-0.39019,0.875) (-0.41869,0.9) (-0.44885,0.925) (-0.48076,0.95) (-0.51454,0.975) (-0.55031,1)};
+\addplot[thick,tempoB] coordinates {(0,0) (-0.00059914,0.025) (-0.0023967,0.05) (-0.0053929,0.075) (-0.0095882,0.1) (-0.014983,0.125) (-0.02158,0.15) (-0.029378,0.175) (-0.03838,0.2) (-0.048588,0.225) (-0.060006,0.25) (-0.072635,0.275) (-0.08648,0.3) (-0.10155,0.325) (-0.11784,0.35) (-0.13536,0.375) (-0.15412,0.4) (-0.17413,0.425) (-0.1954,0.45) (-0.21794,0.475) (-0.24176,0.5) (-0.26687,0.525) (-0.29328,0.55) (-0.32103,0.575) (-0.35011,0.6) (-0.38056,0.625) (-0.41239,0.65) (-0.44563,0.675) (-0.4803,0.7) (-0.51643,0.725) (-0.55405,0.75) (-0.59319,0.775) (-0.63389,0.8) (-0.67617,0.825) (-0.72008,0.85) (-0.76566,0.875) (-0.81295,0.9) (-0.86198,0.925) (-0.91282,0.95) (-0.96549,0.975) (-1.0201,1)};
+\addplot[thick,tempoC] coordinates {(0,0) (-0.0010167,0.025) (-0.0040667,0.05) (-0.0091498,0.075) (-0.016265,0.1) (-0.025412,0.125) (-0.036589,0.15) (-0.049794,0.175) (-0.065025,0.2) (-0.082279,0.225) (-0.10155,0.25) (-0.12284,0.275) (-0.14614,0.3) (-0.17145,0.325) (-0.19876,0.35) (-0.22806,0.375) (-0.25935,0.4) (-0.29261,0.425) (-0.32785,0.45) (-0.36506,0.475) (-0.40421,0.5) (-0.44532,0.525) (-0.48835,0.55) (-0.5333,0.575) (-0.58017,0.6) (-0.62893,0.625) (-0.67958,0.65) (-0.73209,0.675) (-0.78646,0.7) (-0.84266,0.725) (-0.90069,0.75) (-0.96052,0.775) (-1.0221,0.8) (-1.0855,0.825) (-1.1507,0.85) (-1.2175,0.875) (-1.2861,0.9) (-1.3563,0.925) (-1.4282,0.95) (-1.5017,0.975) (-1.5768,1)};
+\addplot[semithick,dashed,black] coordinates {(0,0) (-0.0010393,0.05) (-0.0041633,0.1) (-0.0093904,0.15) (-0.016753,0.2) (-0.0263,0.25) (-0.038097,0.3) (-0.052231,0.35) (-0.068814,0.4) (-0.087982,0.45) (-0.1099,0.5) (-0.13478,0.55) (-0.16286,0.6) (-0.19442,0.65) (-0.22981,0.7) (-0.26943,0.75) (-0.31375,0.8) (-0.36332,0.85) (-0.41878,0.9) (-0.48087,0.95) (-0.55043,1)};
+\addplot[semithick,dashed,black,forget plot] coordinates {(0,0) (-0.002397,0.05) (-0.0095895,0.1) (-0.021582,0.15) (-0.038385,0.2) (-0.060013,0.25) (-0.086491,0.3) (-0.11785,0.35) (-0.15414,0.4) (-0.19543,0.45) (-0.24179,0.5) (-0.29332,0.55) (-0.35016,0.6) (-0.41244,0.65) (-0.48036,0.7) (-0.55413,0.75) (-0.63397,0.8) (-0.72018,0.85) (-0.81305,0.9) (-0.91294,0.95) (-1.0202,1)};
+\addplot[semithick,dashed,black,forget plot] coordinates {(0,0) (-0.0040669,0.05) (-0.016266,0.1) (-0.036591,0.15) (-0.065028,0.2) (-0.10156,0.25) (-0.14615,0.3) (-0.19877,0.35) (-0.25936,0.4) (-0.32787,0.45) (-0.40423,0.5) (-0.48837,0.55) (-0.5802,0.6) (-0.67961,0.65) (-0.7865,0.7) (-0.90073,0.75) (-1.0222,0.8) (-1.1507,0.85) (-1.2861,0.9) (-1.4283,0.95) (-1.5769,1)};
+\addplot[only marks,mark=o,mark size=1.5pt,black] coordinates {(-0.037,0.3) (-0.068,0.4) (-0.107,0.5) (-0.159,0.6) (-0.224,0.7) (-0.308,0.8) (-0.413,0.9) (-0.533,0.99)};
+\addplot[only marks,mark=o,mark size=1.5pt,black,forget plot] coordinates {(-0.084,0.3) (-0.149,0.4) (-0.236,0.5) (-0.343,0.6) (-0.472,0.7) (-0.625,0.8) (-0.804,0.9) (-0.99,0.99)};
+\addplot[only marks,mark=o,mark size=1.5pt,black,forget plot] coordinates {(-0.145,0.3) (-0.257,0.4) (-0.399,0.5) (-0.577,0.6) (-0.785,0.7) (-1.027,0.8) (-1.299,0.9) (-1.586,0.99)};
+\legend{300 s,1200 s,7200 s,referência 1D,artigo (Fig.~4b)}
+\end{groupplot}
+\end{tikzpicture}
+\captionof{figure}{NeoPZ (linhas cheias), referência 1D com os mesmos passos de tempo (tracejado), solução
+analítica da coluna saturada (pontilhado) e curvas calculadas de Callari e Abati (2009), digitalizadas
+(círculos); a legenda de (a) vale para (c). Perfis do caso com os passos da referência, na vertical
+$x=0{,}05$~m.}
+\label{fig:liak_neopz}
+\end{center}
+
+Contra as curvas digitalizadas do artigo (médias nos pontos; incerteza de leitura de cerca de 1\%
+da faixa de cada eixo; diferença com sinal é NeoPZ menos artigo):
+
+\begin{center}\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}X *{6}{>{\centering\arraybackslash}p{1.62cm}}@{}}
+\toprule
+& $q_b$, $t<2400$~s & $q_b$, $t\ge2400$~s & $p_w$ & $w$ & $w$ saturada & $u_y$\\
+& média $|\Delta|$ & média & média (kPa) & média $|\Delta|$ (mm) & média $|\Delta|$ (mm) & média $|\Delta|$ (mm)\\
+\midrule
+NeoPZ, passos da referência & $2{,}0\%$ & $-10{,}6\%$ & $-0{,}061$ & $0{,}010$ & $0{,}015$ & $0{,}006$\\
+NeoPZ, passos do artigo & $1{,}4\%$ & $-3{,}5\%$ & $-0{,}039$ & $0{,}014$ & $0{,}015$ & $0{,}003$\\
+referência 1D, passos da referência & $2{,}0\%$ & $-10{,}7\%$ & $-0{,}062$ & $0{,}010$ & $0{,}017$\,(\ref{eq:terzaghi_liak}) & $0{,}006$\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{groupplot}[group style={group size=2 by 2,horizontal sep=1.7cm,vertical sep=2.0cm},
+  /pgf/number format/use comma,/pgf/number format/1000 sep={},
+  width=7.4cm,height=5.4cm,tick label style={font=\scriptsize},label style={font=\small},
+  title style={font=\small},legend style={font=\scriptsize,draw=none,fill=white,fill opacity=0.8,text opacity=1},
+  legend cell align=left,
+  xmode=log,xmin=1,xmax=7500,xtick={1,10,100,1000},log basis x=10]
+\nextgroupplot[title={(a) vazão: NeoPZ $-$ referência 1D},xlabel={$t$ (s)},ylabel={$|\Delta q_b|/k_s$},ymode=log,ymin=1e-8,ymax=1e-1,legend pos=north west]
+\addplot[thick,casoA] coordinates {(6,3.0559e-09) (7,8.4684e-09) (8,2.0675e-08) (9,4.4881e-08) (10,8.9938e-08) (12,2.9283e-07) (13,4.8457e-07) (15,1.155e-06) (17,2.3665e-06) (20,5.5813e-06) (22,8.8315e-06) (25,1.544e-05) (29,2.7081e-05) (33,4.0832e-05) (37,5.526e-05) (43,7.5551e-05) (48,8.9643e-05) (55,0.00010406) (65,0.00011427) (70,0.0001161) (80,0.00011611) (90,0.00011309) (105,0.00010621) (120,9.8967e-05) (135,9.2547e-05) (155,8.5745e-05) (175,8.0786e-05) (200,7.6563e-05) (230,7.3468e-05) (260,7.1721e-05) (295,7.0698e-05) (335,7.0297e-05) (385,7.0405e-05) (435,7.0847e-05) (495,7.1565e-05) (565,7.2479e-05) (640,7.3462e-05) (730,7.4502e-05) (830,7.5505e-05) (950,7.6498e-05) (1080,7.733e-05) (1230,7.8009e-05) (1400,7.847e-05) (1590,7.8662e-05) (1810,7.8541e-05) (2060,7.8054e-05) (2340,7.7153e-05) (2660,7.5799e-05) (3040,7.3867e-05) (3460,7.145e-05) (3920,6.8586e-05) (4480,6.4929e-05) (5080,6.0931e-05) (5800,5.6156e-05) (6580,5.1128e-05) (7500,4.55e-05)};
+\addplot[thick,casoB] coordinates {(10,4.7185e-06) (20,1.8072e-05) (30,3.843e-05) (40,6.0604e-05) (50,7.981e-05) (60,9.3617e-05) (70,0.00010178) (80,0.0001053) (90,0.00010551) (100,0.00010367) (110,0.00010071) (120,9.7284e-05) (130,9.3796e-05) (140,9.0477e-05) (150,8.7444e-05) (160,8.4742e-05) (170,8.2377e-05) (180,8.0332e-05) (190,7.8579e-05) (200,7.7086e-05) (210,7.5822e-05) (220,7.4756e-05) (230,7.3862e-05) (240,7.3115e-05) (250,7.2495e-05) (260,7.1983e-05) (270,7.1565e-05) (280,7.1226e-05) (290,7.0955e-05) (300,7.0743e-05) (400,7.1509e-05) (500,7.1711e-05) (600,7.245e-05) (700,7.3381e-05) (800,7.4308e-05) (900,7.5148e-05) (1000,7.587e-05) (1100,7.6468e-05) (1200,7.6945e-05) (1300,7.731e-05) (1400,7.7572e-05) (1500,7.7741e-05) (1600,7.7826e-05) (1700,7.7836e-05) (1800,7.7778e-05) (1900,7.7659e-05) (2000,7.7485e-05) (2100,7.7261e-05) (2200,7.6992e-05) (2300,7.6682e-05) (2400,7.6336e-05) (3400,7.0596e-05) (4400,6.4474e-05) (5400,5.8395e-05) (6400,5.2505e-05) (7400,4.6916e-05) (7500,4.6366e-05)};
+\addplot[thick,casoC] coordinates {(5,1.1227e-09) (6,3.3776e-09) (7,9.1124e-09) (8,2.1904e-08) (9,4.7996e-08) (10,9.6535e-08) (12,3.1745e-07) (13,5.2787e-07) (15,1.271e-06) (17,2.6316e-06) (20,6.3052e-06) (22,1.0082e-05) (25,1.79e-05) (29,3.2026e-05) (33,4.9213e-05) (37,6.7793e-05) (43,9.4933e-05) (48,0.0001146) (55,0.00013567) (65,0.00015139) (70,0.00015415) (80,0.00015348) (90,0.00014726) (105,0.00013259) (120,0.00011575) (135,9.9225e-05) (155,7.9439e-05) (175,6.2757e-05) (200,4.5929e-05) (230,3.0424e-05) (260,1.8639e-05) (295,8.1615e-06) (335,8.1504e-07) (385,8.9144e-06) (435,1.4532e-05) (495,1.8898e-05) (565,2.1633e-05) (640,2.2594e-05) (730,2.2062e-05) (830,2.0272e-05) (950,1.7399e-05) (1080,1.4141e-05) (1230,1.0732e-05) (1400,7.5943e-06) (1590,5.0096e-06) (1810,3.0089e-06) (2060,1.6445e-06) (2340,8.2117e-07) (2660,3.6308e-07) (3040,1.346e-07) (3460,4.3973e-08) (3920,1.2659e-08) (4480,2.7213e-09)};
+\legend{passos da referência,passos do artigo,saturada}
+\nextgroupplot[title={(b) recalque: NeoPZ $-$ referência 1D},xlabel={$t$ (s)},ylabel={$|\Delta w|$ (\textmu m)},ymode=log,ymin=1e-4,ymax=10,legend pos=north west]
+\addplot[thick,casoA] coordinates {(1,0.014979) (2,0.029643) (3,0.040177) (4,0.048458) (5,0.055324) (6,0.061201) (7,0.066342) (8,0.070908) (9,0.075013) (10,0.078737) (12,0.085276) (13,0.088175) (15,0.093383) (17,0.097943) (20,0.10383) (22,0.10723) (25,0.11168) (29,0.11659) (33,0.12051) (37,0.12358) (43,0.12689) (48,0.12866) (55,0.13002) (65,0.13033) (70,0.13006) (80,0.12911) (90,0.12791) (105,0.1261) (120,0.12458) (135,0.12342) (155,0.12244) (175,0.12195) (200,0.12185) (230,0.12219) (260,0.12282) (295,0.12371) (335,0.12481) (385,0.12616) (435,0.12741) (495,0.12873) (565,0.13003) (640,0.13115) (730,0.13215) (830,0.13293) (950,0.13345) (1080,0.13362) (1230,0.1334) (1400,0.13274) (1590,0.13159) (1810,0.12987) (2060,0.12753) (2340,0.12457) (2660,0.12092) (3040,0.11634) (3460,0.11113) (3920,0.10538) (4480,0.098454) (5080,0.091237) (5800,0.082957) (6580,0.074535) (7500,0.06538)};
+\addplot[thick,casoB] coordinates {(10,0.066313) (20,0.095347) (30,0.11024) (40,0.11864) (50,0.12327) (60,0.12555) (70,0.12638) (80,0.12636) (90,0.12588) (100,0.12519) (110,0.12446) (120,0.12377) (130,0.12317) (140,0.12267) (150,0.12228) (160,0.122) (170,0.12181) (180,0.1217) (190,0.12167) (200,0.1217) (210,0.12178) (220,0.1219) (230,0.12206) (240,0.12225) (250,0.12246) (260,0.12269) (270,0.12294) (280,0.12319) (290,0.12346) (300,0.12373) (400,0.12567) (500,0.12759) (600,0.1292) (700,0.13044) (800,0.13133) (900,0.13192) (1000,0.13225) (1100,0.13236) (1200,0.13228) (1300,0.13203) (1400,0.13164) (1500,0.13114) (1600,0.13053) (1700,0.12984) (1800,0.12906) (1900,0.12822) (2000,0.12733) (2100,0.12638) (2200,0.12539) (2300,0.12436) (2400,0.1233) (3400,0.11067) (4400,0.098831) (5400,0.087789) (6400,0.077596) (7400,0.068272) (7500,0.067376)};
+\addplot[thick,casoC] coordinates {(1,0.001776) (2,0.0012352) (3,0.00088711) (4,0.00070516) (5,0.00059837) (6,0.00052767) (7,0.00047672) (8,0.00043788) (9,0.00040716) (10,0.00038227) (12,0.00034521) (13,0.0003319) (15,0.0003154) (17,0.00031465) (20,0.00035549) (22,0.00042243) (25,0.000606) (29,0.0010551) (33,0.0017929) (37,0.0028543) (43,0.0050599) (48,0.0074114) (55,0.011332) (65,0.017796) (70,0.021192) (80,0.027983) (90,0.034554) (105,0.043665) (120,0.051694) (135,0.058614) (155,0.066252) (175,0.072316) (200,0.078082) (230,0.082911) (260,0.085989) (295,0.0879) (335,0.088404) (385,0.087181) (435,0.084489) (495,0.07996) (565,0.07361) (640,0.066227) (730,0.057321) (830,0.047985) (950,0.038053) (1080,0.029081) (1230,0.020952) (1400,0.014197) (1590,0.0090326) (1810,0.0052582) (2060,0.002798) (2340,0.0013667) (2660,0.00059235) (3040,0.00021582) (3460,6.9625e-05) (3920,1.9864e-05)};
+\legend{passos da referência,passos do artigo,saturada}
+\nextgroupplot[title={(c) vazão: efeito do passo de tempo},xlabel={$t$ (s)},ylabel={$|\Delta q_b|/k_s$},ymode=log,ymin=1e-6,ymax=1,legend pos=north west]
+\addplot[thick,casoA] coordinates {(5,1.8122e-09) (6,6.3427e-09) (7,1.9481e-08) (8,5.1875e-08) (9,1.2436e-07) (10,2.707e-07) (12,1.0094e-06) (13,1.7644e-06) (15,4.586e-06) (17,9.9896e-06) (20,2.4932e-05) (22,4.027e-05) (25,7.1344e-05) (29,0.00012461) (33,0.00018428) (37,0.00024234) (43,0.00031393) (48,0.00035369) (55,0.00037887) (65,0.00043622) (70,0.00046416) (80,0.00045657) (90,0.00039918) (105,0.00028018) (120,0.00016284) (135,6.4002e-05) (155,3.5738e-05) (175,0.00010521) (200,0.00016214) (230,0.00020274) (260,0.00022564) (295,0.00023991) (335,0.00024739) (385,0.00025012) (435,0.00024941) (495,0.00024659) (565,0.00024227) (640,0.00025126) (730,0.00026357) (830,0.00027121) (950,0.00027653) (1080,0.00027917) (1230,0.00027946) (1400,0.00027737) (1590,0.00027309) (1810,0.0002666) (2060,0.00026476) (2340,0.00027762) (2660,0.00028416) (3040,0.00028485) (3460,0.00028002) (3920,0.00027076) (4480,0.00025651) (5080,0.00023961) (5800,0.00021881) (6580,0.00019686) (7500,0.00017262)};
+\addplot[thick,casoB] coordinates {(10,0.00022348) (20,0.00115) (30,0.0028877) (40,0.0046553) (50,0.0057357) (60,0.0060039) (70,0.0055414) (80,0.0048293) (90,0.0040363) (100,0.0032629) (110,0.0025599) (120,0.0019468) (130,0.0014253) (140,0.0009887) (150,0.00062657) (160,0.00032793) (170,8.2417e-05) (180,0.00011911) (190,0.00028443) (200,0.00042007) (210,0.00053136) (220,0.0006227) (230,0.00069766) (240,0.00075917) (250,0.00080957) (260,0.00085081) (270,0.00088447) (280,0.00091184) (290,0.00093396) (300,0.00095173) (400,0.0031226) (500,0.0039682) (600,0.0044294) (700,0.0046949) (800,0.0048743) (900,0.0049917) (1000,0.0050644) (1100,0.0051042) (1200,0.005119) (1300,0.0051148) (1400,0.0050959) (1500,0.0050656) (1600,0.0050265) (1700,0.0049804) (1800,0.004929) (1900,0.0048735) (2000,0.0048147) (2100,0.004743) (2200,0.0046713) (2300,0.0045993) (2400,0.0045273) (3400,0.011478) (4400,0.013693) (5400,0.013953) (6400,0.013326) (7400,0.012304) (7500,0.011989)};
+\addplot[thick,casoC] coordinates {(5,1.8122e-09) (6,6.7958e-09) (7,2.1293e-08) (8,5.8667e-08) (9,1.4515e-07) (10,3.2861e-07) (12,1.345e-06) (13,2.4694e-06) (15,7.0526e-06) (17,1.6675e-05) (20,4.5812e-05) (22,7.7666e-05) (25,0.00014544) (29,0.00026778) (33,0.00041145) (37,0.00055744) (43,0.000748) (48,0.00086275) (55,0.00094807) (65,0.0012497) (70,0.0014442) (80,0.0015834) (90,0.001469) (105,0.0010194) (120,0.00043094) (135,0.00016783) (155,0.00088269) (175,0.0014642) (200,0.0020113) (230,0.0024584) (260,0.002744) (295,0.0029422) (335,0.0030536) (385,0.0030836) (435,0.0030354) (495,0.0029113) (565,0.0027106) (640,0.0026264) (730,0.002555) (830,0.0023397) (950,0.0020008) (1080,0.0016202) (1230,0.0012246) (1400,0.00086286) (1590,0.0005665) (1810,0.00033844) (2060,0.00018995) (2340,0.00010581) (2660,5.0646e-05) (3040,1.9924e-05) (3460,6.7774e-06) (3920,2.003e-06) (4480,4.3779e-07) (5080,8.3194e-08) (5800,1.1004e-08) (6580,1.1973e-09)};
+\legend{{passos da referência $-$ metade},{passos do artigo $-$ metade},{saturada $-$ Eq.~(\ref{eq:terzaghi_liak})}}
+\nextgroupplot[title={(d) grau de saturação},xlabel={$S_w$},ylabel={$y$ (m)},xmode=normal,xmin=0.9,xmax=1,ymin=0,ymax=1,xtick={0.9,0.92,0.94,0.96,0.98,1},legend pos=south west,/pgf/number format/fixed,/pgf/number format/precision=2]
+\addplot[thick,rampaA] coordinates {(1,0) (1,0.025) (1,0.05) (0.99999,0.075) (0.99999,0.1) (0.99998,0.125) (0.99997,0.15) (0.99996,0.175) (0.99994,0.2) (0.99992,0.225) (0.99989,0.25) (0.99986,0.275) (0.99983,0.3) (0.99979,0.325) (0.99974,0.35) (0.99969,0.375) (0.99963,0.4) (0.99956,0.425) (0.99948,0.45) (0.99938,0.475) (0.99928,0.5) (0.99916,0.525) (0.99903,0.55) (0.99888,0.575) (0.9987,0.6) (0.99851,0.625) (0.99828,0.65) (0.99802,0.675) (0.99773,0.7) (0.9974,0.725) (0.99702,0.75) (0.99658,0.775) (0.99608,0.8) (0.9955,0.825) (0.99483,0.85) (0.99407,0.875) (0.99318,0.9) (0.99216,0.925) (0.99098,0.95) (0.9896,0.975) (0.98801,1)};
+\addplot[thick,rampaB] coordinates {(1,0) (1,0.025) (0.99998,0.05) (0.99996,0.075) (0.99992,0.1) (0.99986,0.125) (0.99978,0.15) (0.99968,0.175) (0.99955,0.2) (0.9994,0.225) (0.99923,0.25) (0.99902,0.275) (0.99879,0.3) (0.99853,0.325) (0.99823,0.35) (0.9979,0.375) (0.99753,0.4) (0.99712,0.425) (0.99667,0.45) (0.99617,0.475) (0.99563,0.5) (0.99504,0.525) (0.99439,0.55) (0.99368,0.575) (0.99292,0.6) (0.99208,0.625) (0.99117,0.65) (0.99018,0.675) (0.98911,0.7) (0.98794,0.725) (0.98667,0.75) (0.98529,0.775) (0.98378,0.8) (0.98214,0.825) (0.98035,0.85) (0.9784,0.875) (0.97627,0.9) (0.97394,0.925) (0.97139,0.95) (0.9686,0.975) (0.96554,1)};
+\addplot[thick,rampaC] coordinates {(1,0) (0.99999,0.025) (0.99996,0.05) (0.99989,0.075) (0.99979,0.1) (0.99964,0.125) (0.99943,0.15) (0.99918,0.175) (0.99886,0.2) (0.99848,0.225) (0.99804,0.25) (0.99753,0.275) (0.99695,0.3) (0.99629,0.325) (0.99555,0.35) (0.99474,0.375) (0.99384,0.4) (0.99285,0.425) (0.99177,0.45) (0.9906,0.475) (0.98933,0.5) (0.98796,0.525) (0.98648,0.55) (0.9849,0.575) (0.9832,0.6) (0.98138,0.625) (0.97944,0.65) (0.97737,0.675) (0.97517,0.7) (0.97282,0.725) (0.97033,0.75) (0.96768,0.775) (0.96486,0.8) (0.96188,0.825) (0.95871,0.85) (0.95535,0.875) (0.95179,0.9) (0.94801,0.925) (0.94401,0.95) (0.93976,0.975) (0.93526,1)};
+\addplot[thick,rampaD] coordinates {(1,0) (0.99999,0.025) (0.99994,0.05) (0.99985,0.075) (0.9997,0.1) (0.99948,0.125) (0.99919,0.15) (0.99882,0.175) (0.99837,0.2) (0.99783,0.225) (0.9972,0.25) (0.99647,0.275) (0.99564,0.3) (0.9947,0.325) (0.99365,0.35) (0.99249,0.375) (0.99122,0.4) (0.98982,0.425) (0.9883,0.45) (0.98665,0.475) (0.98487,0.5) (0.98296,0.525) (0.9809,0.55) (0.97871,0.575) (0.97637,0.6) (0.97388,0.625) (0.97124,0.65) (0.96844,0.675) (0.96548,0.7) (0.96235,0.725) (0.95905,0.75) (0.95558,0.775) (0.95193,0.8) (0.94809,0.825) (0.94406,0.85) (0.93983,0.875) (0.93541,0.9) (0.93077,0.925) (0.92592,0.95) (0.92084,0.975) (0.91553,1)};
+\addplot[semithick,dashed,black] coordinates {(1,0) (1,0.05) (0.99999,0.1) (0.99997,0.15) (0.99994,0.2) (0.99989,0.25) (0.99983,0.3) (0.99974,0.35) (0.99963,0.4) (0.99948,0.45) (0.99928,0.5) (0.99903,0.55) (0.9987,0.6) (0.99828,0.65) (0.99773,0.7) (0.99701,0.75) (0.99607,0.8) (0.99483,0.85) (0.99317,0.9) (0.99096,0.95) (0.98799,1)};
+\addplot[semithick,dashed,black,forget plot] coordinates {(1,0) (0.99998,0.05) (0.99992,0.1) (0.99978,0.15) (0.99955,0.2) (0.99923,0.25) (0.99879,0.3) (0.99823,0.35) (0.99753,0.4) (0.99667,0.45) (0.99563,0.5) (0.99439,0.55) (0.99291,0.6) (0.99117,0.65) (0.9891,0.7) (0.98666,0.75) (0.98377,0.8) (0.98034,0.85) (0.97625,0.9) (0.97137,0.95) (0.96552,1)};
+\addplot[semithick,dashed,black,forget plot] coordinates {(1,0) (0.99996,0.05) (0.99979,0.1) (0.99943,0.15) (0.99886,0.2) (0.99804,0.25) (0.99695,0.3) (0.99555,0.35) (0.99383,0.4) (0.99177,0.45) (0.98933,0.5) (0.98648,0.55) (0.98319,0.6) (0.97943,0.65) (0.97516,0.7) (0.97032,0.75) (0.96485,0.8) (0.9587,0.85) (0.95178,0.9) (0.94399,0.95) (0.93524,1)};
+\addplot[semithick,dashed,black,forget plot] coordinates {(1,0) (0.99994,0.05) (0.9997,0.1) (0.99919,0.15) (0.99837,0.2) (0.9972,0.25) (0.99564,0.3) (0.99365,0.35) (0.99122,0.4) (0.9883,0.45) (0.98487,0.5) (0.9809,0.55) (0.97637,0.6) (0.97123,0.65) (0.96547,0.7) (0.95905,0.75) (0.95192,0.8) (0.94405,0.85) (0.9354,0.9) (0.92591,0.95) (0.91552,1)};
+\legend{300 s,1200 s,3600 s,7500 s,referência 1D}
+\end{groupplot}
+\end{tikzpicture}
+\captionof{figure}{Verificação. (a) e (b): NeoPZ contra a referência 1D rodada com os mesmos passos de
+tempo. (c): diferença para a solução com metade dos passos da referência, nos dois casos parcialmente
+saturados, e erro da coluna saturada contra a Eq.~(\ref{eq:terzaghi_liak}). (d): grau de saturação na
+vertical $x=0{,}05$~m.}
+\label{fig:liak_verif}
+\end{center}
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{Contra a referência 1D.} Com os mesmos passos de tempo, as diferenças ficam abaixo de
+  $1{,}2\times10^{-4}\,k_s$ na vazão, $0{,}14$~\textmu m no recalque e $0{,}0025$~kPa nas pressões,
+  nos três casos parcialmente saturados, e de $1{,}5\times10^{-4}\,k_s$ na coluna saturada
+  (Figura~\ref{fig:liak_verif}a,b). Elas não dependem do passo (com a metade dele são as mesmas) e
+  vêm do espaço: Taylor--Hood com $h=0{,}025$~m e $k_{rw}$ nos pontos de integração, contra 201 nós
+  e $k_{rw}$ médio dos nós na referência.
+\item \textbf{Passo de tempo.} Com metade dos passos da referência, $w$ e $p_w$ mudam menos de
+  0,07\% e a vazão até 0,25\% no fim, quando ela é pequena; em unidades de $k_s$, a diferença
+  chega a $5\times10^{-4}\,k_s$ em 75~s, onde a vazão cai mais depressa
+  (Figura~\ref{fig:liak_verif}c). A referência 1D muda exatamente o mesmo. O ``menos de 0,1\%''
+  da Seção~\ref{sec:liak_ref} vale para $w$ e $p_w$, não para a vazão tardia. Com os passos do
+  artigo, a diferença chega a $1{,}4\times10^{-2}\,k_s$ depois de 2400~s: é o efeito do passo de
+  1000~s que a Seção~\ref{sec:liak_ref} apontou na vazão tardia do artigo.
+\item \textbf{Coluna saturada.} Contra (\ref{eq:terzaghi_liak}), $w$ fica a $0{,}0043$~mm e a
+  vazão a $3\times10^{-3}\,k_s$. A diferença é o erro do Euler implícito: no modo mais lento,
+  $\lambda=m_0^2c_v/H^2=3{,}1\times10^{-3}$~s$^{-1}$, e o erro relativo da vazão é cerca de
+  $\lambda^2\Delta t\,t/2=1{,}4\%$ em 600~s, com $\Delta t=5$~s; a referência 1D com os mesmos
+  passos tem o mesmo erro.
+\item \textbf{Contra o artigo.} Com os passos do artigo, a vazão tardia fica 3,5\% abaixo, as
+  pressões 0,04~kPa mais negativas e os recalques a 0,014~mm: o que a Seção~\ref{sec:liak_ref}
+  previa (cerca de 3\%, 0,1~kPa e 0,03~mm). Com os passos da referência, o NeoPZ repete as
+  diferenças da referência 1D: 0,06~kPa nas pressões, 0,01~mm nos recalques e a vazão do artigo
+  cerca de 10\% maior depois de 2400~s.
+\item \textbf{Saturação.} O maior $p_c$ é 9,27~kPa, no topo em 7500~s, com $S_w=0{,}916$
+  (Figura~\ref{fig:liak_verif}d), dentro da validade das leis ($p_c<9{,}52$~kPa).
+\item \textbf{Newton.} A maior parte dos passos leva três iterações: a terceira correção já fica
+  abaixo de $10^{-6}$~kPa, como se espera da convergência quadrática. Com metade do passo são 6\%
+  menos iterações por passo (2,72 contra 2,91); o artigo relata 19\% com passos dez vezes menores.
+  A coluna saturada é linear e converge em uma ou duas iterações.
+\end{itemize}
+
+\subsection{Como rodar}
+O NeoPZ é configurado com os materiais plásticos e os projetos (primeira linha); o resto roda
+na pasta de compilação:
+
+\begin{lstlisting}[style=neopzsh]
+cmake -DBUILD_PLASTICITY_MATERIALS=ON -DBUILD_PROJECTS=ON <pasta do NeoPZ>
+cd Projects/LearningLiakopoulos
+./LearningLiakopoulos                    # os quatro casos, cerca de 4 min
+./LearningLiakopoulos parcial saturada   # so os casos dados
+python3 plot_liakopoulos.py              # tabelas, comparacao.csv e liakopoulos.png
+\end{lstlisting}
+O pós-processamento usa \texttt{numpy}, \texttt{scipy}, \texttt{pandas} e \texttt{matplotlib}.
+Para mudar a malha, edita-se \texttt{coluna.geo} e gera-se \texttt{coluna.msh} com
+\texttt{gmsh -2 coluna.geo -o coluna.msh}.
+
+% =====================================================================
+\appendix
+\section{Correspondência de notação}
+\label{ap:notacao}
+
+{\footnotesize
+\begin{tabularx}{\textwidth}{@{}l l l l X@{}}
+\toprule
+Este resumo & Notas [N] & Documento [F] & Código & Observação\\
+\midrule
+$n$ & $n$ & $\phi$ & \texttt{n} & porosidade\\
+$\phi'$ & $\phi'$ & $\vartheta$ & & em [F], $\phi$ é a porosidade\\
+$C_s$ & $\Gamma$ & $C_s$ & & em [N], $\Gamma$ também é o contorno\\
+$1/N=(\alpha-n)/K_s$ & $\eta$ & $1/N$ & \texttt{eta} & \\
+$K_d$, $K_s$ & $K_d$, $K_s$ & $K_B$, $K_s'$ & & módulos drenado e dos grãos\\
+$\kappa$, $k_s$ & $\kappa$, $k_s$ & $\bm k$, $K$ & & permeabilidade (m$^2$) e condutividade (m/s)\\
+$\bm\Lambda_f=\tkap\,k_{rf}/\mu_f$ & $\lambda_\pi$ & $\bm k\,k_{rf}/\mu_f$ & $k_s\cdot$\texttt{lw}, $k_s\cdot$\texttt{la} & mobilidade da fase\\
+$\zeta_f$, $\alpha S_f$ & $\zeta_i$, $B_f$ & $\zeta_f$, $\alpha S_f$ & & \\
+Eq.~(\ref{eq:Cmat}) & $C_{fg}$ com $D_w$, $D_a$ & Eq.~(1.16) & & a mesma matriz, escrita de outro modo\\
+$\chi_w$, $\chi_a$ & $\chi_\pi$ & $\chi_w$, $\chi_a$ & & coeficientes de Bishop tangentes\\
+$\Delta\zeta_{sk}$ & --- & $\Delta\zeta_{sk}$ & \texttt{X} & variação do volume dos poros\\
+$c_a$, $K_a$ & $c_a$, $K_a$ & $c_a$, $K_a$ & \texttt{cag}, \texttt{Pv} & \texttt{Pv} é $K_a$ no vértice\\
+$\bm h_f=\nabla p_f-\rho_f\vg$ & --- & $\vec h_f$ & & gradiente em excesso ao hidrostático\\
+$H=y+p_w/\gamma_w$ & --- & --- & & carga total\\
+$\tilde{\vu}$, $\tilde p$ & $\bm v$, $w$ & $\vec\varphi$, $\varphi$ & & funções teste\\
+$\mathbf U$, $\mathbf P_f$, $\mathbf d$ & $\mathbf U$, $\mathbf P_\pi$, $\mathbf X$ & $\vec u_h$, $\vec p_{f,h}$, $\vec v$ & & valores nodais\\
+$\mathbf F_{g,f}$, $\mathbf F_{\Gamma,f}$, $\mathbf g_a$ & $\mathbf f_\pi$, $\mathbf g_a$ & $\vec q_{h,f}$, $\vec q_{\Gamma,f}$, $\vec q_{c,a}$ & & vetores das equações de massa\\
+$V_j$, $\mathbf s_f$ & --- & $V_j$, $\vec s_f$ & & volume de controle e armazenamento concentrado\\
+$\varpi_a$ & --- & $\varpi_a$ & \texttt{adv} & $\texttt{adv}=(\gamma_w/\mu_w)\,\varpi_a$\\
+$F_g$ & --- & $\lambda$ ($=\lambda_g$) & & fator do peso no GIM\\
+$p_w$, $p_a$, $p_c$ & $p_w$, $p_a$, $p_c$ & $p_w$, $p_a$, $p_c$ & & $u_w$, $u_a$ e $u_a-u_w$ em Fredlund\\
+\bottomrule
+\end{tabularx}
+\par\smallskip
+Neste resumo, $\lambda$ é só a constante de Lamé. Em [N], $\lambda_\pi$ é a mobilidade;
+em [F], $\lambda_g$ e $\lambda_p$ são fatores de carga. Vetores e tensores estão em negrito
+aqui; em [F], vetores levam seta.
+}
+
+% =====================================================================
+\section*{Referências}
+{\footnotesize\raggedright
+\begin{itemize}[leftmargin=2.6em,labelsep=0.5em,itemsep=0pt]
+\item[{[N]}] Notas \emph{Formulação poroelástica não saturada: esqueleto deformável,
+  água e ar}, versão 4.
+\item[{[F]}] \emph{Simulador de meios porosos não saturados elastoplásticos:
+  formulação $\vu$--$p_w$--$p_a$}, documento de trabalho, Fases 1 e 2.
+\item[{[A]}] Lira Cecílio, D. (2026). Analytical return mapping for Mohr--Coulomb
+  plasticity in rotated Haigh--Westergaard space with consistent tangent operator.
+  \emph{J. Eng. Math.} 157:10.
+\item[] Callari e Abati (2009), elementos finitos para solos não saturados,
+  \emph{Comput. Struct.} 87:485--501.
+\item[] Celia, Bouloutas e Zarba (1990), forma conservativa da equação de Richards,
+  \emph{Water Resour. Res.} 26(7):1483--1496.
+\item[] Coussy (1995), \emph{Mechanics of porous continua}, Wiley.
+\item[] Fredlund, Morgenstern e Widger (1978), resistência de solos não saturados,
+  \emph{Can. Geotech. J.} 15(3):313--321.
+\item[] Lewis e Schrefler (1998), \emph{The finite element method in the static and dynamic
+  deformation and consolidation of porous media}, 2.\textsuperscript{a} ed., Wiley.
+\item[] Liakopoulos (1965), \emph{Transient flow through unsaturated porous media}, tese de
+  doutorado, University of California.
+\item[] Mualem (1976), permeabilidade relativa, \emph{Water Resour. Res.} 12(3):513--522.
+\item[] Rahardjo, Ong, Rezaur e Leong (2007), taludes sob chuva,
+  \emph{J. Geotech. Geoenviron. Eng.} 133(12):1532--1543.
+\item[] van Genuchten (1980), curva de retenção, \emph{Soil Sci. Soc. Am. J.}
+  44(5):892--898.
+\end{itemize}
+}
+
+\end{document}

@@ -6,6 +6,9 @@ Exemplo da Seção 10 do resumo "Solos não saturados: formulação u–p_w–p_
 estrutural e solver, análise e pós-processamento) e grava CSVs que o `plot_liakopoulos.py` compara com a referência
 1D, com a solução analítica da coluna saturada e com as curvas digitalizadas do artigo.
 
+O código e os resultados estão documentados, com gráficos, na Seção 11 do resumo
+`docs/biot_nao_saturado/resumo/resumo_nao_saturado.tex` (PDF ao lado).
+
 ## O ensaio (Seções 10.1 a 10.3 e 10.7)
 
 * Coluna de 0,10 × 1,00 m: laterais com rolete (u_x = 0) e impermeáveis, base fixa e drenante (p_w = 0), topo livre
