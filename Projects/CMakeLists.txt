@@ -46,5 +46,6 @@ add_subdirectory(UnsatSRM)           # teste 1: reducao de resistencia em solo s
 add_subdirectory(UnsatGIM)           # teste 1: aumento de gravidade em solo seco
 add_subdirectory(LearningTherzagui)  # projeto de estudo do autor: coluna de Terzaghi
 add_subdirectory(LearningMohrCoulomb) # projeto de estudo do autor: Mohr-Coulomb em sapata corrida e talude
+add_subdirectory(LearningMohrCoulomb2) # projeto de estudo do autor: Mohr-Coulomb em sapata corrida e talude
 add_subdirectory(LearningSlopeWater)  # projeto de estudo do autor: talude saturado, transiente e FS no tempo
 add_subdirectory(LearningLiakopoulos) # projeto de estudo do autor: dessaturacao da coluna de Liakopoulos
