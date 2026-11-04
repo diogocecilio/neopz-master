@@ -85,9 +85,13 @@ core: 2`), 21 processos em 22 CPUs ficam dois por núcleo físico, cada um mais 
 na sua máquina, rode-o à parte, noutra pasta, com um núcleo físico só para ele:
 
 ```bash
-NCPU=2 PARALELO=1 SAIDA=resultados_bench TF_H=6 FORCAR=1 ./submeter.sh 1
+EXCLUSIVO=1 NCPU=4 PARALELO=2 SAIDA=resultados_bench TF_H=6 FORCAR=1 ./submeter.sh 1,10
 ./status.sh resultados_bench
 ```
+
+`EXCLUSIVO=1` reserva o nó inteiro (nada divide CPU, cache e turbo), e os dois casos, um da variante (iii) e um do modelo
+completo (i), ficam cada um num núcleo físico. No fermi (Xeon Silver 4116, 12 núcleos, 2 threads por núcleo, até 3,0 GHz),
+com os 21 casos juntos o clock médio ficou em 62% do máximo.
 
 `PARALELO` é quantos casos rodam ao mesmo tempo (padrão: `NCPU`), `SAIDA` a pasta de resultados e `TF_H` as horas simuladas.
 Cada caso grava em `maquina.txt` o nó e a CPU em que rodou.

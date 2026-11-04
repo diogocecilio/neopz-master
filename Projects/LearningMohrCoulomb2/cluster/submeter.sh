@@ -7,7 +7,8 @@
 # COMPILAR=job compila num job do SLURM (job_compilar.sbatch), do qual os casos dependem.
 # Ambiente opcional: NCPU (padrao: numero de casos, limitado aos nucleos de um no); PARALELO (casos ao mesmo tempo, padrao
 # NCPU; com hyper-threading, NCPU=2*PARALELO deixa um nucleo fisico por caso); SAIDA (pasta de resultados, padrao
-# resultados); TF_H (horas simuladas, padrao 48); TEMPO (limite do job de casos, padrao
+# resultados); TF_H (horas simuladas, padrao 48); EXCLUSIVO=1 (o no inteiro so para este job, para medir tempos sem
+# dividir CPU, cache e turbo com outros jobs); TEMPO (limite do job de casos, padrao
 # 1-00:00:00; os casos sao retomaveis); RECOMPILAR=1; EMAIL=<endereco> (aviso do SLURM ao terminar ou falhar, se o cluster
 # enviar e-mail); FORCAR=1 (submete mesmo com outro job de casos na fila). Os numeros dos jobs ficam em logs/jobs.txt.
 set -euo pipefail
@@ -16,6 +17,7 @@ source ./modulos.sh
 EU="${USER:-$(id -un)}"
 P=(); [ -n "${PARTICAO:-}" ] && P=(--partition="$PARTICAO")
 MB=(); MA=()
+[ -n "${EXCLUSIVO:-}" ] && MA+=(--exclusive)
 if [ -n "${EMAIL:-}" ]; then MB=(--mail-user="$EMAIL" --mail-type=FAIL); MA=(--mail-user="$EMAIL" --mail-type=END,FAIL); fi
 LISTA="${1:-1-21}"
 NCASOS="$(echo "$LISTA" | tr ',' '\n' | awk -F- 'NF == 2 { n += $2 - $1 + 1; next } NF { n++ } END { print n + 0 }')"
@@ -75,7 +77,8 @@ else
   case "${CPN:-}" in ''|*[!0-9]*) CPN="" ;; esac
   case "${MEMN:-}" in ''|*[!0-9]*) MEMN="" ;; esac
   K="${NCPU:-$NCASOS}"
-  [ "$K" -gt "$NCASOS" ] && K="$NCASOS"
+  # sem PARALELO, CPUs alem do numero de casos ficariam ociosas; com PARALELO, NCPU > PARALELO e intencional (hyper-threading)
+  [ -z "${PARALELO:-}" ] && [ "$K" -gt "$NCASOS" ] && K="$NCASOS"
   [ -n "${CPN:-}" ] && [ "$K" -gt "$CPN" ] && K="$CPN"
   MEM=$((K * 1500))
   [ -n "${MEMN:-}" ] && [ "$MEM" -gt $((MEMN * 9 / 10)) ] && MEM=$((MEMN * 9 / 10))
