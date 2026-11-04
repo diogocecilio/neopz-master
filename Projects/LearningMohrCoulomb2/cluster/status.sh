@@ -147,6 +147,10 @@ if [ "$MODO" != csv ] && [ -f "$PKG/logs/compilar_login.pid" ]; then
     echo "compilacao no no de login ($no): rodando desde $ini $(grep -o '\[ *[0-9]*%\]' "$PKG/logs/compilar_login.log" 2>/dev/null | tail -n 1)"
   elif [ ! -x "$PKG/bin/rahardjo" ]; then
     echo "compilacao no no de login: terminou sem gerar bin/rahardjo; veja tail -30 logs/compilar_login.log"
+  elif tail -n 5 "$PKG/logs/compilar_login.log" 2>/dev/null | grep -qiE 'error|erro|refused|denied'; then
+    # a compilacao terminou, mas a submissao feita ao fim dela falhou (por exemplo uma cota do SLURM)
+    echo "compilacao no no de login terminou, mas a submissao dos casos falhou:"
+    tail -n 5 "$PKG/logs/compilar_login.log" | grep -iE 'error|erro|refused|denied' | sed 's/^/  /'
   fi
 fi
 

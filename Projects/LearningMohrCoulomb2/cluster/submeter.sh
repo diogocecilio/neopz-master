@@ -46,9 +46,19 @@ compilando_aqui() {
   [ "$no" = "$(hostname -s)" ] && kill -0 "$pid" 2>/dev/null
 }
 
+# algum fonte do NeoPZ ou do driver mais novo que bin/rahardjo (por exemplo depois de um git pull)?
+fonte_nova() {
+  find ../../.. \( -name .git -o -name build -o -name deps -o -name bin -o -name 'resultados*' -o -name .claude \) -prune -o \
+       -newer bin/rahardjo \( -name '*.cpp' -o -name '*.h' -o -name '*.hpp' -o -name CMakeLists.txt -o -name '*.cmake' \) -print \
+       2>/dev/null | head -n 1
+}
 B=""
+if [ -x bin/rahardjo ] && [ -z "${RECOMPILAR:-}" ] && [ -n "$(fonte_nova)" ]; then
+  echo "fontes mais novos que bin/rahardjo (por exemplo $(fonte_nova)): recompilando"
+  RECOMPILAR=1
+fi
 if [ -x bin/rahardjo ] && [ -z "${RECOMPILAR:-}" ]; then
-  echo "bin/rahardjo ja existe; pulando a compilacao (RECOMPILAR=1 para refazer)"
+  echo "bin/rahardjo ja existe e esta em dia com os fontes; pulando a compilacao (RECOMPILAR=1 para refazer)"
 elif [ "${COMPILAR:-job}" = login ]; then
   if compilando_aqui; then
     echo "a compilacao ja esta rodando neste no (pid $(cut -d' ' -f1 logs/compilar_login.pid)); os casos serao submetidos ao fim"

@@ -17,6 +17,10 @@ ARGS=(-S "$NEOPZ" -B "$BUILD" -DCMAKE_BUILD_TYPE=Release -DBUILD_PLASTICITY_MATE
 # Projects/CMakeLists.txt baixa o Catch2 do GitHub ao configurar, e os nos de computacao podem nao ter internet:
 # submeter.sh o baixa antes, no no de login, em deps/Catch2, e o CMake usa essa copia sem acessar a rede
 [ -f "$PKG/deps/Catch2/CMakeLists.txt" ] && ARGS+=(-DFETCHCONTENT_SOURCE_DIR_CATCH2="$PKG/deps/Catch2")
+# o MKL grava USING_LAPACK=ON no cache, que um build ja configurado com MKL manteria com USAR_MKL=OFF
+[ "$USAR_MKL" = ON ] || ARGS+=(-DUSING_LAPACK="${USAR_LAPACK:-OFF}")
+# o driver le flags.make e link.txt, que so o gerador Makefile cria (CMAKE_GENERATOR no ambiente poderia trocar o gerador)
+[ -f "$BUILD/CMakeCache.txt" ] || ARGS+=(-G "Unix Makefiles")
 cmake "${ARGS[@]}"
 cmake --build "$BUILD" --target LearningMohrCoulomb2 -j "${JOBS:-4}"
 # o driver usa as flags e a linha de ligacao geradas para o projeto
@@ -27,5 +31,7 @@ INCS="$(grep '^CXX_INCLUDES' "$D/flags.make" | sed 's/^CXX_INCLUDES = //')"
 LIBS="$(sed -E 's/.* -o LearningMohrCoulomb2 //' "$D/link.txt")"
 mkdir -p "$PKG/bin"
 cd "$P"
-eval "${CXX:-c++}" $DEFS $INCS -O3 -DNDEBUG -std=gnu++17 '"$PKG/fonte/rahardjo.cpp"' -o '"$PKG/bin/rahardjo"' $LIBS
+# o mesmo compilador que o CMake usou para a biblioteca
+CXXC="$(sed -n 's/^CMAKE_CXX_COMPILER:[A-Z]*=//p' "$BUILD/CMakeCache.txt" 2>/dev/null || true)"
+eval '"${CXXC:-${CXX:-c++}}"' $DEFS $INCS -O3 -DNDEBUG -std=gnu++17 '"$PKG/fonte/rahardjo.cpp"' -o '"$PKG/bin/rahardjo"' $LIBS
 echo "Compilado: $PKG/bin/rahardjo"

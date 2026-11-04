@@ -1,6 +1,8 @@
 #!/bin/bash
 # rodar_caso.sh <n>: roda a linha n de casos.txt num unico processo de 1 CPU: transiente ate 48 h, depois os FS.
-# Retomavel: rodar de novo pula o transiente ja concluido e os instantes ja gravados em fs.csv.
+# Retomavel: rodar de novo pula os instantes ja gravados em fs.csv e o transiente ja concluido, desde que ele tenha os
+# estados de todos os instantes pedidos (uma rodada curta com TF_H menor nao tem os estados alem de TF_H: o transiente e
+# refeito) e seja da mesma malha, passo e parametros (senao o caso para, com o aviso, para nao misturar resultados).
 # Ambiente opcional: EXE (executavel), SAIDA (pasta de resultados), TF_H (horas, padrao 48).
 # Tempos: cada fase executada acrescenta uma linha a tempos.csv (inicio, fim, segundos, maquina, job) e plano.txt guarda
 # quantos passos e instantes de FS o caso deve ter. ./status.sh le esses arquivos, balanco.csv e fs.csv.
@@ -15,7 +17,7 @@ caso="${linha%% *}"; resto="${linha#* }"
 # prioridade: t = 24 h, inicio, fim, depois preenche ate chegar a FS de 1 em 1 h
 TODAS="$(seq -s, 0 "$TF")"
 HORAS="24,0,12,48,6,18,30,36,42,3,9,15,21,27,33,39,45,$TODAS"
-HORAS_USADAS=""; MESH="$PKG/malhas/rahardjo_a45.msh"; DT=0.1
+HORAS_USADAS=""; MESH="$PKG/malhas/rahardjo_a45.msh"; DT="${DT_H:-0.1}"
 for t in $resto; do
   case "$t" in
     HORAS=*) HORAS_USADAS="${t#HORAS=}" ;;
@@ -42,12 +44,26 @@ trap 'rm -f ativo' EXIT
 marca() { echo "$1,$3,$(date '+%F %T'),$(($(date +%s) - $2)),$4,$HOST,$JOB,$CPU" >> tempos.csv; } # fase t0 inicio rc
 ENVS=(MESH="$MESH" TF_H="$TF" CADA_FS=0)
 for t in $resto; do case "$t" in HORAS=*|MALHA=*) ;; *) ENVS+=("$t") ;; esac; done
-if ! grep -q "exit=0" exit.txt 2>/dev/null; then
+# o que define o transiente: malha, passo e os parametros da linha de casos.txt, sem TF_H e sem o que so afeta os FS
+CHAVE="$(printf '%s\n' "${ENVS[@]}" | grep -vE '^(TF_H|CADA_FS|GIM_H|FS_PROJETO_H|VTK_H|FS_TOL|FS_F0|SOLVER)=' \
+  | sed 's#^MESH=.*/#MESH=#' | sort | paste -sd' ' -)"
+if [ -f transiente.chave ] && [ "$(cat transiente.chave)" != "$CHAVE" ]; then
+  echo "caso $caso: $d tem um transiente de outra malha, passo ou parametros ($(cat transiente.chave));" \
+       "use outra SAIDA ou apague a pasta" >&2
+  exit 4
+fi
+faltam=""
+for h in ${DUMP//,/ }; do
+  [ -f "state_$(awk -v h="$h" -v dt="$DT" 'BEGIN { printf "%d", h / dt + 0.5 }').bin" ] || faltam="$faltam $h"
+done
+if [ -n "$faltam" ] || ! grep -q "exit=0" exit.txt 2>/dev/null; then
+  grep -q "exit=0" exit.txt 2>/dev/null && echo "caso $caso: transiente refeito, faltavam os estados de t =$faltam h"
   rm -f exit.txt
   t0=$(date +%s); i0="$(date '+%F %T')"
   env "${ENVS[@]}" DUMP_H="$DUMP" "$EXE" > run.log 2> run.err
   rc=$?
   echo "exit=$rc" > exit.txt
+  echo "$CHAVE" > transiente.chave
   marca transiente "$t0" "$i0" "$rc"
 fi
 # FS: valem os padroes abaixo, a menos que a linha de casos.txt os redefina
