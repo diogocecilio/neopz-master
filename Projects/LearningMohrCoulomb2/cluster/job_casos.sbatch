@@ -25,8 +25,8 @@ echo "$(date '+%F %T') job $SLURM_JOB_ID em $(hostname -s): casos $(echo $casos)
 for n in $casos; do
   while [ "$(jobs -rp | wc -l)" -ge "$K" ]; do wait -n; done
   (
-    ./rodar_caso.sh "$n" > "logs/casos/$n.out" 2>&1
-    echo "$(date '+%F %T') $(tail -n 1 "logs/casos/$n.out")"
+    ./rodar_caso.sh "$n" > "logs/casos/${n}_$SLURM_JOB_ID.out" 2>&1
+    echo "$(date '+%F %T') $(tail -n 1 "logs/casos/${n}_$SLURM_JOB_ID.out")"
   ) &
 done
 wait

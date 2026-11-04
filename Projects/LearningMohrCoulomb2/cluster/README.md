@@ -54,7 +54,7 @@ os casos são retomáveis) e `MODO=array` volta ao array de `job_slurm.sbatch`.
 `./submeter.sh 3,7` roda só esses casos; se `bin/rahardjo` já existe, a compilação é pulada, e se a compilação já está na
 fila, os casos esperam por ela. Com outro job de casos na fila, `submeter.sh` não submete (as duas cópias gravariam nas
 mesmas pastas), a menos que `FORCAR=1`. Com `EMAIL=<endereço> ./submeter.sh`, o SLURM avisa por e-mail quando os casos
-terminam ou falham (se o cluster enviar e-mail). A saída de cada caso fica em `logs/casos/<n>.out`.
+terminam ou falham (se o cluster enviar e-mail). A saída de cada caso fica em `logs/casos/<n>_<job>.out`.
 
 ### Tempos e acompanhamento
 
