@@ -30,5 +30,8 @@ carregar() {
 }
 
 carregar mkl/2025.1
+# fermi: os nos de computacao nao tem cmake (o de login tem; c++ e gcc 14 no login, gcc 15 nos nos). submeter.sh compila
+# no no de login, em segundo plano, e submete os casos quando terminar. Em outro cluster: COMPILAR=job (compila num job).
+export COMPILAR="${COMPILAR:-login}"
 # export USAR_MKL=OFF      # sem MKL: descomente e comente a linha acima (skyline, mais lento)
 # export PARTICAO=normal   # particao do SLURM; vazio usa a padrao

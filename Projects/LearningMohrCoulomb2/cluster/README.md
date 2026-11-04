@@ -39,6 +39,12 @@ nano modulos.sh        # módulos (module load ...) e, se preciso, PARTICAO
 ```
 
 Depois, numa nova conexão: `./status.sh` (ver abaixo) e, se a compilação falhar, `tail logs/*build*.out`.
+No fermi os nós de computação não têm `cmake` (o de login tem), então `modulos.sh` define `COMPILAR=login`: `submeter.sh`
+compila no nó de login em segundo plano (`nohup`, ~10 min com 4 núcleos, log em `logs/compilar_login.log`) e, ao terminar,
+submete os casos sozinho; pode desconectar logo depois. O executável compilado com o gcc 14 do login roda nos nós, que têm
+gcc 15, e o job de casos confere com `ldd`, antes de começar, que o nó acha todas as bibliotecas. Em outro cluster,
+`COMPILAR=job ./submeter.sh` compila num job (`job_compilar.sbatch`), do qual os casos dependem.
+
 Os casos vão num único job (`job_casos.sbatch`), que conta como um job na cota do SLURM: no fermi, um array de 21 tarefas
 excede a cota de jobs submetidos por usuário (`QOSMaxSubmitJobPerUserLimit`). Esse job pede um nó com `NCPU` CPUs (padrão:
 uma por caso, limitado aos núcleos do nó) e roda até `NCPU` casos ao mesmo tempo, um processo de 1 CPU cada; quando um termina,
@@ -59,7 +65,7 @@ progresso enquanto o job roda. Uma conexão curta basta; conectado, `watch -n 60
 
 ```bash
 ./status.sh                   # tabela
-./status.sh --slurm           # e o sacct do último job de casos: estado, duração, memória máxima, nó
+./status.sh --slurm           # e o sacct do último job de casos (no fermi o sacct não responde)
 ./status.sh --csv > tempos_fermi.csv
 ```
 

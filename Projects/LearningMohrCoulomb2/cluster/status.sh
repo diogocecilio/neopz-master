@@ -107,6 +107,16 @@ if command -v squeue >/dev/null 2>&1; then
   fi
 fi
 
+# compilacao em segundo plano no no de login (submeter.sh com COMPILAR=login)
+if [ "$MODO" != csv ] && [ -f "$PKG/logs/compilar_login.pid" ]; then
+  read -r pid no ini < "$PKG/logs/compilar_login.pid"
+  if [ "$no" = "$(hostname -s)" ] && kill -0 "$pid" 2>/dev/null; then
+    echo "compilacao no no de login ($no): rodando desde $ini $(grep -o '\[ *[0-9]*%\]' "$PKG/logs/compilar_login.log" 2>/dev/null | tail -n 1)"
+  elif [ ! -x "$PKG/bin/rahardjo" ]; then
+    echo "compilacao no no de login: terminou sem gerar bin/rahardjo; veja tail -30 logs/compilar_login.log"
+  fi
+fi
+
 n=0
 {
   while read -r caso _; do
@@ -153,6 +163,9 @@ n=0
 if [ "$MODO" = slurm ] && command -v sacct >/dev/null 2>&1 && [ -s "$PKG/logs/jobs.txt" ]; then
   A="$(tail -n 1 "$PKG/logs/jobs.txt" | sed -n 's/.*casos=\([0-9]*\).*/\1/p')"
   echo; echo "sacct do job $A (job ou tarefa, estado, duracao, memoria maxima, no):"
-  sacct -j "$A" -n -P -o JobID,State,Elapsed,MaxRSS,NodeList 2>/dev/null | awk -F'|' '
-    $1 ~ /\.batch$/ { sub(/\.batch$/, "", $1); printf "  %-14s %-11s %-10s %-9s %s\n", $1, $2, $3, $4, $5 }'
+  if ! saida="$(sacct -j "$A" -n -P -o JobID,State,Elapsed,MaxRSS,NodeList 2>&1)" || [[ "$saida" == *error* ]]; then
+    echo "  sacct indisponivel: $(echo "$saida" | tail -n 1)"
+  else
+    echo "$saida" | awk -F'|' '$1 ~ /\.batch$/ { sub(/\.batch$/, "", $1); printf "  %-14s %-11s %-10s %-9s %s\n", $1, $2, $3, $4, $5 }'
+  fi
 fi

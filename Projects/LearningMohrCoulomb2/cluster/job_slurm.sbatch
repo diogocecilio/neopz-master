@@ -9,4 +9,10 @@
 # particao e modulos: em modulos.sh (submeter.sh passa a particao)
 cd "$SLURM_SUBMIT_DIR" || exit 1
 source ./modulos.sh
+# o executavel foi compilado no no de login: confere que este no acha todas as bibliotecas (MKL, libpz, libstdc++)
+if ! [ -x bin/rahardjo ] || ldd bin/rahardjo | grep -q "not found"; then
+  echo "$(hostname -s): bin/rahardjo ausente ou com bibliotecas faltando neste no:" >&2
+  [ -x bin/rahardjo ] && ldd bin/rahardjo | grep "not found" >&2
+  exit 1
+fi
 ./rodar_caso.sh "$SLURM_ARRAY_TASK_ID"
