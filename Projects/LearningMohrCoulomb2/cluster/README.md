@@ -39,8 +39,16 @@ nano modulos.sh        # módulos (module load ...) e, se preciso, PARTICAO
 ```
 
 Depois, numa nova conexão: `./status.sh` (ver abaixo) e, se a compilação falhar, `tail logs/*build*.out`.
-`./submeter.sh 3,7` roda só esses casos; se `bin/rahardjo` já existe, a compilação é pulada. Com
-`EMAIL=<endereço> ./submeter.sh`, o SLURM avisa por e-mail quando o array termina ou falha (se o cluster enviar e-mail).
+Os casos vão num único job (`job_casos.sbatch`), que conta como um job na cota do SLURM: no fermi, um array de 21 tarefas
+excede a cota de jobs submetidos por usuário (`QOSMaxSubmitJobPerUserLimit`). Esse job pede um nó com `NCPU` CPUs (padrão:
+uma por caso, limitado aos núcleos do nó) e roda até `NCPU` casos ao mesmo tempo, um processo de 1 CPU cada; quando um termina,
+o próximo da lista começa. `NCPU=8 ./submeter.sh` roda 8 por vez, `TEMPO=2-00:00:00` muda o limite de tempo (padrão 1 dia;
+os casos são retomáveis) e `MODO=array` volta ao array de `job_slurm.sbatch`.
+
+`./submeter.sh 3,7` roda só esses casos; se `bin/rahardjo` já existe, a compilação é pulada, e se a compilação já está na
+fila, os casos esperam por ela. Com outro job de casos na fila, `submeter.sh` não submete (as duas cópias gravariam nas
+mesmas pastas), a menos que `FORCAR=1`. Com `EMAIL=<endereço> ./submeter.sh`, o SLURM avisa por e-mail quando os casos
+terminam ou falham (se o cluster enviar e-mail). A saída de cada caso fica em `logs/casos/<n>.out`.
 
 ### Tempos e acompanhamento
 
@@ -51,7 +59,7 @@ progresso enquanto o job roda. Uma conexão curta basta; conectado, `watch -n 60
 
 ```bash
 ./status.sh                   # tabela
-./status.sh --slurm           # e o sacct do último array: estado, duração, memória máxima, nó
+./status.sh --slurm           # e o sacct do último job de casos: estado, duração, memória máxima, nó
 ./status.sh --csv > tempos_fermi.csv
 ```
 

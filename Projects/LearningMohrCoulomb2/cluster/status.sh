@@ -3,7 +3,7 @@
 # (balanco.csv a cada passo do transiente, fs.csv a cada FS). Funciona no cluster e na sua maquina; com squeue, mostra a fila.
 #   ./status.sh [pasta]           tabela (pasta de resultados; padrao ./resultados)
 #   ./status.sh --csv [pasta]     a mesma informacao em CSV, para guardar
-#   ./status.sh --slurm [pasta]   acrescenta o sacct do ultimo array submetido: estado, duracao, memoria maxima e no
+#   ./status.sh --slurm [pasta]   acrescenta o sacct do ultimo job de casos submetido: estado, duracao, memoria maxima e no
 #   ./status.sh --comparar A B    compara duas pastas de resultados (por exemplo a sua e a trazida do cluster): s/passo nos
 #                                 passos que as duas tem, s/FS nos instantes que as duas tem e a maior diferenca de FS_SRM
 set -u
@@ -89,10 +89,20 @@ fi
 SAIDA="${1:-$PKG/resultados}"
 # tarefas do array na fila: indice -> estado (squeue -r lista uma linha por tarefa)
 declare -A FILA=()
+EU="${USER:-$(id -un)}"
 if command -v squeue >/dev/null 2>&1; then
-  while read -r k e; do [ -n "$k" ] && FILA[$k]="$e"; done < <(squeue -h -r -u "${USER:-$(id -un)}" -n rahardjo45 -o "%K %T" 2>/dev/null)
+  # array (job_slurm.sbatch): uma linha por tarefa; job unico (job_casos.sbatch): logs/casos/<n>.ativo marca os casos em execucao
+  while read -r k e; do case "$k" in ''|*[!0-9]*) ;; *) FILA[$k]="$e" ;; esac; done \
+    < <(squeue -h -r -u "$EU" -n rahardjo45 -o "%K %T" 2>/dev/null)
+  VIVOS=" $(squeue -h -u "$EU" -n rahardjo45 -t RUNNING -o %i 2>/dev/null | tr '\n' ' ')"
+  for f in "$PKG"/logs/casos/*.ativo; do
+    [ -f "$f" ] || continue
+    k="$(basename "$f" .ativo)"; j="$(cut -d' ' -f1 "$f")"
+    case "$VIVOS" in *" $j "*) FILA[$k]=RUNNING ;; esac
+  done
   if [ "$MODO" != csv ]; then
-    squeue -h -u "${USER:-$(id -un)}" -n rahardjo45_build -o "compilacao: job %i %T ha %M" 2>/dev/null
+    squeue -h -u "$EU" -n rahardjo45_build,rahardjo45 -o "%j: job %i %T ha %M, %C CPUs, %R" 2>/dev/null \
+      | sed 's/^rahardjo45_build:/compilacao:/; s/^rahardjo45:/casos:/'
     [ -x "$PKG/bin/rahardjo" ] && echo "bin/rahardjo: $(date -r "$PKG/bin/rahardjo" '+%F %T')" || echo "bin/rahardjo: ainda nao compilado"
   fi
 fi
@@ -142,7 +152,7 @@ n=0
 
 if [ "$MODO" = slurm ] && command -v sacct >/dev/null 2>&1 && [ -s "$PKG/logs/jobs.txt" ]; then
   A="$(tail -n 1 "$PKG/logs/jobs.txt" | sed -n 's/.*casos=\([0-9]*\).*/\1/p')"
-  echo; echo "sacct do array $A (tarefa, estado, duracao, memoria maxima, no):"
+  echo; echo "sacct do job $A (job ou tarefa, estado, duracao, memoria maxima, no):"
   sacct -j "$A" -n -P -o JobID,State,Elapsed,MaxRSS,NodeList 2>/dev/null | awk -F'|' '
     $1 ~ /\.batch$/ { sub(/\.batch$/, "", $1); printf "  %-14s %-11s %-10s %-9s %s\n", $1, $2, $3, $4, $5 }'
 fi
