@@ -1,0 +1,5 @@
+bin/
+build/
+resultados/
+logs/*
+!logs/.gitkeep
