@@ -38,8 +38,33 @@ nano modulos.sh        # módulos (module load ...) e, se preciso, PARTICAO
 ./submeter.sh          # compila num nó e, quando terminar, roda os 21 casos; pode desligar a VPN
 ```
 
-Depois, numa nova conexão: `squeue -u $USER`, `tail logs/*build*.out`, `ls resultados/*/*/fs.csv`.
-`./submeter.sh 3,7` roda só esses casos; se `bin/rahardjo` já existe, a compilação é pulada.
+Depois, numa nova conexão: `./status.sh` (ver abaixo) e, se a compilação falhar, `tail logs/*build*.out`.
+`./submeter.sh 3,7` roda só esses casos; se `bin/rahardjo` já existe, a compilação é pulada. Com
+`EMAIL=<endereço> ./submeter.sh`, o SLURM avisa por e-mail quando o array termina ou falha (se o cluster enviar e-mail).
+
+### Tempos e acompanhamento
+
+`./status.sh` mostra, para cada linha de `casos.txt`, o estado (transiente, FS, concluído, falhou), a situação na fila do
+SLURM, os passos feitos, s/passo, iterações de Newton por passo, os FS feitos, s/FS, o tempo decorrido, quanto falta no
+ritmo atual e a máquina. Ele lê o que o cálculo grava a cada passo (`balanco.csv`) e a cada FS (`fs.csv`), então mostra o
+progresso enquanto o job roda. Uma conexão curta basta; conectado, `watch -n 60 ./status.sh` atualiza sozinho.
+
+```bash
+./status.sh                   # tabela
+./status.sh --slurm           # e o sacct do último array: estado, duração, memória máxima, nó
+./status.sh --csv > tempos_fermi.csv
+```
+
+Para comparar com a sua máquina, rode lá os mesmos casos com este pacote (`./compilar.sh`, depois `./rodar_caso.sh <n>`;
+`TF_H=6 ./rodar_caso.sh <n>` serve para um teste mais curto), traga os resultados do cluster e compare:
+
+```bash
+rsync -av <usuario>@<cluster>:neopz-master/Projects/LearningMohrCoulomb2/cluster/resultados/ resultados_cluster/
+./status.sh --comparar resultados resultados_cluster
+```
+
+A comparação usa só os passos e os instantes de FS que as duas pastas têm, e mostra s/passo, s/FS, a razão B/A e a maior
+diferença de `FS_SRM` entre as duas, que deve ser pequena se o cálculo for o mesmo.
 
 Sem SLURM, rode `./rodar_caso.sh <n>` para n = 1 a 21, com o escalonador do cluster ou dentro de `tmux`. Não rode o
 cálculo no nó de login.
@@ -51,7 +76,8 @@ de 1,3 s por passo e 80 s por FS na variante (iii). O custo do modelo completo (
 de cerca de 2 h por tarefa; o limite de `--time=06:00:00` é folgado.
 
 As tarefas podem ser retomadas: submetida de novo, cada uma pula o transiente concluído e os instantes já gravados em
-`fs.csv`. Para rodar só as que faltam: `sbatch --array=3,7 job_slurm.sbatch`.
+`fs.csv`. Para rodar só as que faltam: `./submeter.sh 3,7`. O tempo de cada passo fica em `balanco.csv` (`seg_passo`), o
+de cada FS em `fs.csv` (`seg`) e o de cada fase em `tempos.csv`; `./status.sh` resume os três.
 
 ## Resultados
 
@@ -65,6 +91,8 @@ Ficam em `resultados/<variante>/<caso>/`:
 | `nodes.csv`, `tri.csv` | Malha e equações de p_w, p_a e u em cada nó |
 | `mec_pontos.scal_vec.<passo>.vtk` | Último estado convergido da busca de SRM em t = 24 h |
 | `exit.txt`, `run.err`, `fs.err` | Situação do transiente e mensagens de erro |
+| `tempos.csv` | Uma linha por fase executada (transiente, fs): início, fim, segundos, código de saída, máquina, job, CPU |
+| `plano.txt` | Número de passos e de instantes de FS previstos para o caso |
 
 Colunas de `fs.csv`:
 
