@@ -130,14 +130,17 @@ n=0
     spp = np ? sp / np : ""; sfs = nf ? sf / nf : ""; nwm = np ? nw / np : ""
     dec = (np || nf) ? (sp + sf) / 60 : ""
     # o que falta: passos restantes no ritmo atual + FS restantes no ritmo atual ("+?" se ainda nao houve FS)
+    # sem plano.txt (resultados de versoes antigas) o total de FS e desconhecido: "?" em vez de zero
     falta = ""; mais = ""
     if (est == "concluido") falta = 0
     else if (est !~ /^falhou/ && est != "nao iniciado") {
       f = 0; ok = 1
-      if (est != "FS" && N != "") { if (np) f += (N - np) * spp; else ok = 0 }
-      if (M != "" && M - nf > 0) { if (nf) f += (M - nf) * sfs; else mais = "+?" }
+      if (est != "FS") { if (N != "" && np) f += (N - np) * spp; else ok = 0 }
+      if (M == "") mais = "+?"
+      else if (M - nf > 0) { if (nf) f += (M - nf) * sfs; else mais = "+?" }
       if (ok) falta = f / 60
     }
+    faltatxt = falta == "" ? "-" : (falta == 0 && mais != "" ? "?" : hm(falta) mais)
     if (modo == "csv") {
       if (NR == 1) print "n,caso,fila,estado,passos,passos_total,t_h,seg_transiente,seg_por_passo,newton_medio,fs,fs_total,seg_fs,seg_por_fs,decorrido_min,falta_min,host,cpu"
       printf "%d,%s,%s,%s,%d,%s,%s,%.1f,%s,%s,%d,%s,%.1f,%s,%s,%s,%s,%s\n", n, caso, fila, est, np, N, th, sp,
@@ -149,7 +152,7 @@ n=0
                         "s/passo", "newton", "FS", "s/FS", "decorrido", "falta", "maquina"
     printf "%2d %-19s %-15s %-8s %9s %5s %7s %6s %7s %6s %9s %8s %s\n", n, caso, est, fila, np "/" (N == "" ? "?" : N), th == "" ? "-" : sprintf("%.1f", th),
            np ? sprintf("%.3f", spp) : "-", np ? sprintf("%.1f", nwm) : "-", nf "/" (M == "" ? "?" : M), nf ? sprintf("%.1f", sfs) : "-",
-           hm(dec), falta == "" ? "-" : hm(falta) mais, host
+           hm(dec), faltatxt, host
     conta[est ~ /^falhou/ ? "falhou" : est]++; tot += dec; if (host != "-") maq[host] = cpu
   }
   END {
