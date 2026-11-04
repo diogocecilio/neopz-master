@@ -6,8 +6,7 @@
 #SBATCH --mem=1G
 #SBATCH --time=06:00:00
 #SBATCH --output=logs/%x_%A_%a.out
-# #SBATCH --partition=AJUSTE_AQUI
-# Carregue aqui os mesmos modulos usados na compilacao, por exemplo:
-# module load gcc cmake intel-oneapi-mkl
+# particao e modulos: em modulos.sh (submeter.sh passa a particao)
 cd "$SLURM_SUBMIT_DIR" || exit 1
+source ./modulos.sh
 ./rodar_caso.sh "$SLURM_ARRAY_TASK_ID"

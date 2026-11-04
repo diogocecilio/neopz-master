@@ -27,6 +27,20 @@ sbatch job_slurm.sbatch
 squeue -u $USER
 ```
 
+### Com a VPN ligada só por alguns minutos
+
+A compilação e os casos rodam como jobs; a VPN só precisa ficar ligada para clonar e submeter:
+
+```bash
+git clone --branch UnsaturatedSoil https://github.com/diogocecilio/neopz-master.git
+cd neopz-master/Projects/LearningMohrCoulomb2/cluster
+nano modulos.sh        # módulos (module load ...) e, se preciso, PARTICAO
+./submeter.sh          # compila num nó e, quando terminar, roda os 21 casos; pode desligar a VPN
+```
+
+Depois, numa nova conexão: `squeue -u $USER`, `tail logs/*build*.out`, `ls resultados/*/*/fs.csv`.
+`./submeter.sh 3,7` roda só esses casos; se `bin/rahardjo` já existe, a compilação é pulada.
+
 Sem SLURM, rode `./rodar_caso.sh <n>` para n = 1 a 21, com o escalonador do cluster ou dentro de `tmux`. Não rode o
 cálculo no nó de login.
 
