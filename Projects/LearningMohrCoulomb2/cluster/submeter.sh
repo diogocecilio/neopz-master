@@ -18,7 +18,7 @@ EU="${USER:-$(id -un)}"
 P=(); [ -n "${PARTICAO:-}" ] && P=(--partition="$PARTICAO")
 MB=(); MA=()
 [ -n "${EXCLUSIVO:-}" ] && MA+=(--exclusive)
-if [ -n "${EMAIL:-}" ]; then MB=(--mail-user="$EMAIL" --mail-type=FAIL); MA=(--mail-user="$EMAIL" --mail-type=END,FAIL); fi
+if [ -n "${EMAIL:-}" ]; then MB=(--mail-user="$EMAIL" --mail-type=FAIL); MA+=(--mail-user="$EMAIL" --mail-type=END,FAIL); fi
 LISTA="${1:-1-21}"
 NCASOS="$(echo "$LISTA" | tr ',' '\n' | awk -F- 'NF == 2 { n += $2 - $1 + 1; next } NF { n++ } END { print n + 0 }')"
 # dois jobs com os mesmos casos gravariam nas mesmas pastas

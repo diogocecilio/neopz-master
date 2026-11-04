@@ -37,7 +37,7 @@ JOB="${SLURM_ARRAY_JOB_ID:-${SLURM_JOB_ID:-local}}${SLURM_ARRAY_TASK_ID:+_$SLURM
 [ -s tempos.csv ] || echo "fase,inicio,fim,seg,rc,host,job,cpu" > tempos.csv
 # maquina.txt: onde e quando este caso comecou a rodar; ativo: marca o caso em execucao (status.sh confere se o job vive)
 echo "host=$HOST job=$JOB inicio=$(date '+%F_%T') cpu=$CPU" > maquina.txt
-echo "$JOB $(date '+%F %T')" > ativo
+echo "$JOB $HOST $$ $(date '+%F %T')" > ativo
 trap 'rm -f ativo' EXIT
 marca() { echo "$1,$3,$(date '+%F %T'),$(($(date +%s) - $2)),$4,$HOST,$JOB,$CPU" >> tempos.csv; } # fase t0 inicio rc
 ENVS=(MESH="$MESH" TF_H="$TF" CADA_FS=0)

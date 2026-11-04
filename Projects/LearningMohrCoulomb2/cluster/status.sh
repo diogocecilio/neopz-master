@@ -38,7 +38,8 @@ resumo() {
   [ -s "$d/balanco.csv" ] && arqs+=("$d/balanco.csv")
   [ -s "$d/fs.csv" ] && arqs+=("$d/fs.csv")
   awk -F, -v N="$N" -v M="$M" -v ex="$ex" -v host="$host" -v cpu="$cpu" '
-    FNR == 1 { tipo = (FILENAME ~ /balanco\.csv$/) ? "b" : "f"; for (i = 1; i <= NF; i++) c[tipo "," $i] = i; next }
+    FNR == 1 { tipo = (FILENAME ~ /balanco\.csv$/) ? "b" : "f"; nc[tipo] = NF; for (i = 1; i <= NF; i++) c[tipo "," $i] = i; next }
+    NF < nc[tipo] { next }   # linha incompleta: processo interrompido no meio da escrita
     tipo == "b" { np++; th = $(c["b,t_h"]); sp += $(c["b,seg_passo"]); nw += $(c["b,newton"]) }
     tipo == "f" { nf++; sf += $(c["f,seg"]) }
     END {
@@ -54,9 +55,18 @@ FMT_H='function hm(m) { if (m == "") return "-"; m = int(m + 0.5); return sprint
 
 if [ "$MODO" = comparar ]; then
   A="${1:?uso: ./status.sh --comparar <pasta A> <pasta B>}"; B="${2:?uso: ./status.sh --comparar <pasta A> <pasta B>}"
-  maq() { local f; f="$(ls "$1"/*/*/tempos.csv 2>/dev/null | head -n 1)"; [ -n "$f" ] && tail -n 1 "$f" | awk -F, '{ print $6 " (" $8 ")" }' || echo "?"; }
-  echo "A = $A: $(maq "$A")"
-  echo "B = $B: $(maq "$B")"
+  # nos e CPUs em que os casos da pasta rodaram (maquina.txt, ou a ultima fase de tempos.csv)
+  maq() {
+    local d r
+    for d in "$1"/*/*/; do
+      if [ -s "$d/maquina.txt" ]; then r="$(sed -n 's/^host=\([^ ]*\).* cpu=\(.*\)/\1 (\2)/p' "$d/maquina.txt")"
+      elif [ -f "$d/tempos.csv" ] && [ "$(wc -l < "$d/tempos.csv")" -gt 1 ]; then r="$(tail -n 1 "$d/tempos.csv" | awk -F, '{ print $6 " (" $8 ")" }')"
+      else continue; fi
+      echo "$r"
+    done | sort | uniq -c | awk '{ c = $1; $1 = ""; printf "%s%s x%d", (NR > 1 ? ";" : ""), $0, c } END { if (!NR) printf " ?" }'
+  }
+  echo "A = $A:$(maq "$A")"
+  echo "B = $B:$(maq "$B")"
   printf '%-19s %7s %9s %9s %6s %5s %8s %8s %6s %11s\n' caso passos "s/passo A" "s/passo B" "B/A" FS "s/FS A" "s/FS B" "B/A" "max|dFS|"
   while read -r caso _; do
     [ -n "$caso" ] && [ -d "$A/$caso" ] && [ -d "$B/$caso" ] || continue
@@ -64,13 +74,13 @@ if [ "$MODO" = comparar ]; then
       function le_bal(arq, p,   l, h, nh, i, v, cs, n) {
         if ((getline l < arq) <= 0) return 0
         nh = split(l, h, ","); for (i = 1; i <= nh; i++) if (h[i] == "seg_passo") cs = i
-        while ((getline l < arq) > 0) { split(l, v, ","); n++; S[p "," n] = v[cs] }
+        while ((getline l < arq) > 0) { if (split(l, v, ",") < nh) continue; n++; S[p "," n] = v[cs] }
         close(arq); return n + 0
       }
       function le_fs(arq, p,   l, h, nh, i, v, cf, cs) {
         if ((getline l < arq) <= 0) return
         nh = split(l, h, ","); for (i = 1; i <= nh; i++) { if (h[i] == "FS_SRM") cf = i; if (h[i] == "seg") cs = i }
-        while ((getline l < arq) > 0) { split(l, v, ","); F[p "," v[1]] = v[cf]; G[p "," v[1]] = v[cs]; T[v[1]] = 1 }
+        while ((getline l < arq) > 0) { if (split(l, v, ",") < nh) continue; F[p "," v[1]] = v[cf]; G[p "," v[1]] = v[cs]; T[v[1]] = 1 }
         close(arq)
       }
       function r(a, b) { return a > 0 ? sprintf("%.2f", b / a) : "-" }
@@ -91,23 +101,36 @@ fi
 
 SAIDA="${1:-$PKG/resultados}"
 # tarefas do array na fila: indice -> estado (squeue -r lista uma linha por tarefa)
-declare -A FILA=()
+declare -A FILA=() VIVO=()
 EU="${USER:-$(id -un)}"
-if command -v squeue >/dev/null 2>&1; then
+SQ=0; VIVOS=" "
+if command -v squeue >/dev/null 2>&1 && squeue -h -u "$EU" -o %i >/dev/null 2>&1; then
+  SQ=1
   # array (job_slurm.sbatch): uma linha por tarefa (%K = indice do caso)
   while read -r k e; do case "$k" in ''|*[!0-9]*) ;; *) FILA[$k]="$e" ;; esac; done \
     < <(squeue -h -r -u "$EU" -n rahardjo45 -o "%K %T" 2>/dev/null)
   VIVOS=" $(squeue -h -u "$EU" -n rahardjo45 -t RUNNING -o %i 2>/dev/null | tr '\n' ' ')"
-  # caso em execucao: <pasta do caso>/ativo (ou logs/casos/<n>.ativo, versao anterior) com o numero de um job vivo
   VIVOS="$VIVOS$(squeue -h -r -u "$EU" -n rahardjo45 -t RUNNING -o %i 2>/dev/null | tr '\n' ' ') "
-  k=0
-  while read -r caso _; do
-    k=$((k + 1)); [ -n "$caso" ] || continue
-    for f in "$SAIDA/$caso/ativo" "$PKG/logs/casos/$k.ativo"; do
-      [ -f "$f" ] || continue
-      case "$VIVOS" in *" $(cut -d' ' -f1 "$f") "*) FILA[$k]=RUNNING; break ;; esac
-    done
-  done < "$CASOS"
+fi
+# caso em execucao: <pasta do caso>/ativo ("job no pid inicio"; ou logs/casos/<n>.ativo, versao anterior) de um job vivo, ou de
+# um processo vivo neste no quando roda sem SLURM. VIVO: sim, nao (sabe-se que parou) ou ? (versao antiga, sem como saber)
+EU_NO="$(hostname -s)"
+k=0
+while read -r caso _; do
+  k=$((k + 1)); [ -n "$caso" ] || continue
+  v="?"; [ "$SQ" = 1 ] && v=nao
+  [ "${FILA[$k]:-}" = RUNNING ] && v=sim
+  [ "$v" != sim ] && [ -f "$SAIDA/$caso/maquina.txt" ] && [ ! -f "$SAIDA/$caso/ativo" ] && v=nao
+  for f in "$SAIDA/$caso/ativo" "$PKG/logs/casos/$k.ativo"; do
+    [ "$v" != sim ] && [ -f "$f" ] || continue
+    read -r j no pid _ < "$f"
+    if [ "$SQ" = 1 ] && [[ "$VIVOS" == *" $j "* ]]; then v=sim
+    elif [ "$j" = local ] && [ "$no" = "$EU_NO" ] && [[ "$pid" =~ ^[0-9]+$ ]]; then kill -0 "$pid" 2>/dev/null && v=sim || v=nao
+    fi
+  done
+  VIVO[$k]="$v"; [ "$v" = sim ] && FILA[$k]=RUNNING
+done < "$CASOS"
+if [ "$SQ" = 1 ]; then
   if [ "$MODO" != csv ]; then
     squeue -h -u "$EU" -n rahardjo45_build,rahardjo45 -o "%j: job %i %T ha %M, %C CPUs, %R" 2>/dev/null \
       | sed 's/^rahardjo45_build:/compilacao:/; s/^rahardjo45:/casos:/'
@@ -129,19 +152,21 @@ n=0
 {
   while read -r caso _; do
     n=$((n + 1)); [ -n "$caso" ] || continue
-    echo "$n,$caso,${FILA[$n]:--},$(resumo "$SAIDA/$caso")"
+    echo "$n,$caso,${FILA[$n]:--},${VIVO[$n]:-?},$(resumo "$SAIDA/$caso")"
   done < "$CASOS"
 } | awk -F, -v modo="$MODO" -v saida="$SAIDA" "$FMT_H"'
   {
-    n = $1; caso = $2; fila = $3; est = $4; np = $5; N = $6; th = $7; sp = $8; nw = $9; nf = $10; M = $11; sf = $12; host = $13
-    cpu = $14; for (i = 15; i <= NF; i++) cpu = cpu "," $i
+    n = $1; caso = $2; fila = $3; vivo = $4; est = $5; np = $6; N = $7; th = $8; sp = $9; nw = $10; nf = $11; M = $12; sf = $13
+    host = $14; cpu = $15; for (i = 16; i <= NF; i++) cpu = cpu "," $i
+    # sem processo vivo, um caso no transiente ou nos FS esta parado (job cancelado, limite de tempo, maquina desligada)
+    if (vivo == "nao" && (est == "transiente" || est == "FS" || est == "iniciando")) est = "parado"
     spp = np ? sp / np : ""; sfs = nf ? sf / nf : ""; nwm = np ? nw / np : ""
     dec = (np || nf) ? (sp + sf) / 60 : ""
     # o que falta: passos restantes no ritmo atual + FS restantes no ritmo atual ("+?" se ainda nao houve FS)
     # sem plano.txt (resultados de versoes antigas) o total de FS e desconhecido: "?" em vez de zero
     falta = ""; mais = ""
     if (est == "concluido") falta = 0
-    else if (est !~ /^falhou/ && est != "nao iniciado") {
+    else if (est !~ /^falhou/ && est != "nao iniciado" && est != "parado") {
       f = 0; ok = 1
       if (est != "FS") { if (N != "" && np) f += (N - np) * spp; else ok = 0 }
       if (M == "") mais = "+?"
@@ -165,8 +190,9 @@ n=0
   }
   END {
     if (modo == "csv") exit
-    printf "\nconcluidos %d, em FS %d, no transiente %d, iniciando %d, falharam %d, nao iniciados %d de %d; CPU usada %s\n",
-           conta["concluido"], conta["FS"], conta["transiente"], conta["iniciando"], conta["falhou"], conta["nao iniciado"], NR, hm(tot)
+    printf "\nconcluidos %d, em FS %d, no transiente %d, iniciando %d, parados %d, falharam %d, nao iniciados %d de %d; CPU usada %s\n",
+           conta["concluido"], conta["FS"], conta["transiente"], conta["iniciando"], conta["parado"], conta["falhou"], conta["nao iniciado"],
+           NR, hm(tot)
     for (h in maq) printf "  %s: %s\n", h, maq[h]
     printf "(%s; passo = passos feitos/total do transiente; FS = instantes feitos/total)\n", saida
   }'
