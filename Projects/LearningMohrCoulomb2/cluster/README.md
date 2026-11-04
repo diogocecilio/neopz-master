@@ -80,6 +80,18 @@ rsync -av <usuario>@<cluster>:neopz-master/Projects/LearningMohrCoulomb2/cluster
 A comparação usa só os passos e os instantes de FS que as duas pastas têm, e mostra s/passo, s/FS, a razão B/A e a maior
 diferença de `FS_SRM` entre as duas, que deve ser pequena se o cálculo for o mesmo.
 
+Os tempos de uma rodada com os 21 casos juntos são os de um nó cheio. Se o nó tiver hyper-threading (`lscpu`: `Thread(s) per
+core: 2`), 21 processos em 22 CPUs ficam dois por núcleo físico, cada um mais lento do que sozinho. Para medir um caso como
+na sua máquina, rode-o à parte, noutra pasta, com um núcleo físico só para ele:
+
+```bash
+NCPU=2 PARALELO=1 SAIDA=resultados_bench TF_H=6 FORCAR=1 ./submeter.sh 1
+./status.sh resultados_bench
+```
+
+`PARALELO` é quantos casos rodam ao mesmo tempo (padrão: `NCPU`), `SAIDA` a pasta de resultados e `TF_H` as horas simuladas.
+Cada caso grava em `maquina.txt` o nó e a CPU em que rodou.
+
 Sem SLURM, rode `./rodar_caso.sh <n>` para n = 1 a 21, com o escalonador do cluster ou dentro de `tmux`. Não rode o
 cálculo no nó de login.
 
@@ -107,6 +119,7 @@ Ficam em `resultados/<variante>/<caso>/`:
 | `exit.txt`, `run.err`, `fs.err` | Situação do transiente e mensagens de erro |
 | `tempos.csv` | Uma linha por fase executada (transiente, fs): início, fim, segundos, código de saída, máquina, job, CPU |
 | `plano.txt` | Número de passos e de instantes de FS previstos para o caso |
+| `maquina.txt`, `ativo` | Nó, job, início e CPU da execução; `ativo` existe enquanto o caso roda |
 
 Colunas de `fs.csv`:
 

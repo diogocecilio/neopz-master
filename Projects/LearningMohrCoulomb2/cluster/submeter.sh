@@ -5,7 +5,9 @@
 # 1 CPU cada (no fermi, um array de 21 tarefas excede a cota de jobs submetidos por usuario). MODO=array usa job_slurm.sbatch.
 # Compilacao: COMPILAR=login (padrao no fermi, em modulos.sh) compila neste no em segundo plano e submete os casos ao fim;
 # COMPILAR=job compila num job do SLURM (job_compilar.sbatch), do qual os casos dependem.
-# Ambiente opcional: NCPU (padrao: numero de casos, limitado aos nucleos de um no); TEMPO (limite do job de casos, padrao
+# Ambiente opcional: NCPU (padrao: numero de casos, limitado aos nucleos de um no); PARALELO (casos ao mesmo tempo, padrao
+# NCPU; com hyper-threading, NCPU=2*PARALELO deixa um nucleo fisico por caso); SAIDA (pasta de resultados, padrao
+# resultados); TF_H (horas simuladas, padrao 48); TEMPO (limite do job de casos, padrao
 # 1-00:00:00; os casos sao retomaveis); RECOMPILAR=1; EMAIL=<endereco> (aviso do SLURM ao terminar ou falhar, se o cluster
 # enviar e-mail); FORCAR=1 (submete mesmo com outro job de casos na fila). Os numeros dos jobs ficam em logs/jobs.txt.
 set -euo pipefail
@@ -80,7 +82,7 @@ else
   # a lista vai pelo ambiente (o sbatch exporta o ambiente todo); em --export a virgula de "3,7" separaria variaveis
   A=$(CASOS="$LISTA" sbatch --parsable ${P[@]+"${P[@]}"} ${MA[@]+"${MA[@]}"} ${DEP[@]+"${DEP[@]}"} --cpus-per-task="$K" \
       --mem="${MEM}M" --time="${TEMPO:-1-00:00:00}" job_casos.sbatch); A="${A%%;*}"
-  echo "casos: job $A ($NCASOS casos, ate $K ao mesmo tempo, 1 CPU cada; no de ${CPN:-?} nucleos e ${MEMN:-?} MB)"
+  echo "casos: job $A ($NCASOS casos, ate ${PARALELO:-$K} ao mesmo tempo em $K CPUs; no de ${CPN:-?} CPUs e ${MEMN:-?} MB)"
 fi
 echo "$(date '+%F %T') compilacao=${B:--} casos=$A lista=$LISTA" >> logs/jobs.txt
 echo "acompanhe depois com: ./status.sh   (ou ./status.sh --slurm para ver tambem duracao e memoria no sacct)"

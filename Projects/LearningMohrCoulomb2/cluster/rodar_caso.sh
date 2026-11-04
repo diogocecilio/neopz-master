@@ -35,6 +35,10 @@ HOST="$(hostname -s 2>/dev/null || hostname)"
 CPU="$(awk -F': *' '/^model name/ { print $2; exit }' /proc/cpuinfo 2>/dev/null | tr ',' ' ')"
 JOB="${SLURM_ARRAY_JOB_ID:-${SLURM_JOB_ID:-local}}${SLURM_ARRAY_TASK_ID:+_$SLURM_ARRAY_TASK_ID}"
 [ -s tempos.csv ] || echo "fase,inicio,fim,seg,rc,host,job,cpu" > tempos.csv
+# maquina.txt: onde e quando este caso comecou a rodar; ativo: marca o caso em execucao (status.sh confere se o job vive)
+echo "host=$HOST job=$JOB inicio=$(date '+%F_%T') cpu=$CPU" > maquina.txt
+echo "$JOB $(date '+%F %T')" > ativo
+trap 'rm -f ativo' EXIT
 marca() { echo "$1,$3,$(date '+%F %T'),$(($(date +%s) - $2)),$4,$HOST,$JOB,$CPU" >> tempos.csv; } # fase t0 inicio rc
 ENVS=(MESH="$MESH" TF_H="$TF" CADA_FS=0)
 for t in $resto; do case "$t" in HORAS=*|MALHA=*) ;; *) ENVS+=("$t") ;; esac; done

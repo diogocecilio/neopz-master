@@ -31,6 +31,9 @@ resumo() {
   if [ -s "$d/tempos.csv" ] && [ "$(wc -l < "$d/tempos.csv")" -gt 1 ]; then
     host="$(tail -n 1 "$d/tempos.csv" | cut -d, -f6)"
     cpu="$(tail -n 1 "$d/tempos.csv" | cut -d, -f8-)"
+  elif [ -s "$d/maquina.txt" ]; then
+    host="$(sed -n 's/^host=\([^ ]*\).*/\1/p' "$d/maquina.txt")"
+    cpu="$(sed -n 's/.* cpu=//p' "$d/maquina.txt" | tr ',' ' ')"
   fi
   [ -s "$d/balanco.csv" ] && arqs+=("$d/balanco.csv")
   [ -s "$d/fs.csv" ] && arqs+=("$d/fs.csv")
@@ -91,15 +94,20 @@ SAIDA="${1:-$PKG/resultados}"
 declare -A FILA=()
 EU="${USER:-$(id -un)}"
 if command -v squeue >/dev/null 2>&1; then
-  # array (job_slurm.sbatch): uma linha por tarefa; job unico (job_casos.sbatch): logs/casos/<n>.ativo marca os casos em execucao
+  # array (job_slurm.sbatch): uma linha por tarefa (%K = indice do caso)
   while read -r k e; do case "$k" in ''|*[!0-9]*) ;; *) FILA[$k]="$e" ;; esac; done \
     < <(squeue -h -r -u "$EU" -n rahardjo45 -o "%K %T" 2>/dev/null)
   VIVOS=" $(squeue -h -u "$EU" -n rahardjo45 -t RUNNING -o %i 2>/dev/null | tr '\n' ' ')"
-  for f in "$PKG"/logs/casos/*.ativo; do
-    [ -f "$f" ] || continue
-    k="$(basename "$f" .ativo)"; j="$(cut -d' ' -f1 "$f")"
-    case "$VIVOS" in *" $j "*) FILA[$k]=RUNNING ;; esac
-  done
+  # caso em execucao: <pasta do caso>/ativo (ou logs/casos/<n>.ativo, versao anterior) com o numero de um job vivo
+  VIVOS="$VIVOS$(squeue -h -r -u "$EU" -n rahardjo45 -t RUNNING -o %i 2>/dev/null | tr '\n' ' ') "
+  k=0
+  while read -r caso _; do
+    k=$((k + 1)); [ -n "$caso" ] || continue
+    for f in "$SAIDA/$caso/ativo" "$PKG/logs/casos/$k.ativo"; do
+      [ -f "$f" ] || continue
+      case "$VIVOS" in *" $(cut -d' ' -f1 "$f") "*) FILA[$k]=RUNNING; break ;; esac
+    done
+  done < "$CASOS"
   if [ "$MODO" != csv ]; then
     squeue -h -u "$EU" -n rahardjo45_build,rahardjo45 -o "%j: job %i %T ha %M, %C CPUs, %R" 2>/dev/null \
       | sed 's/^rahardjo45_build:/compilacao:/; s/^rahardjo45:/casos:/'
