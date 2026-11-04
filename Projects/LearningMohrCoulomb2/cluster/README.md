@@ -45,11 +45,16 @@ submete os casos sozinho; pode desconectar logo depois. O executável compilado 
 gcc 15, e o job de casos confere com `ldd`, antes de começar, que o nó acha todas as bibliotecas. Em outro cluster,
 `COMPILAR=job ./submeter.sh` compila num job (`job_compilar.sbatch`), do qual os casos dependem.
 
-Os casos vão num único job (`job_casos.sbatch`), que conta como um job na cota do SLURM: no fermi, um array de 21 tarefas
-excede a cota de jobs submetidos por usuário (`QOSMaxSubmitJobPerUserLimit`). Esse job pede um nó com `NCPU` CPUs (padrão:
-uma por caso, limitado aos núcleos do nó) e roda até `NCPU` casos ao mesmo tempo, um processo de 1 CPU cada; quando um termina,
-o próximo da lista começa. `NCPU=8 ./submeter.sh` roda 8 por vez, `TEMPO=2-00:00:00` muda o limite de tempo (padrão 1 dia;
-os casos são retomáveis) e `MODO=array` volta ao array de `job_slurm.sbatch`.
+Os casos vão em jobs `job_casos.sbatch`, um por nó, e cada job conta como um na cota do SLURM: no fermi, um array de 21 tarefas
+excede a cota de jobs submetidos por usuário (`QOSMaxSubmitJobPerUserLimit`). Cada job roda seus casos ao mesmo tempo, um
+processo de 1 CPU por caso; quando um termina, o próximo da lista começa. O padrão é um caso por núcleo físico, em quantos nós
+forem precisos: os nós do fermi têm 12 núcleos com 2 threads cada, e 21 casos viram 2 jobs, de 11 casos em 22 CPUs e de 10 em
+20. Com dois casos por núcleo (21 casos em 22 CPUs), cada um ficou 2,2 a 2,4 vezes mais lento.
+
+`NOS=1 ./submeter.sh` põe tudo num job só, um caso por núcleo, em ondas (útil se a cota de CPUs por usuário não permitir dois
+nós). `NCPU` e `PARALELO` fixam as CPUs e os casos simultâneos de cada job, `TEMPO=2-00:00:00` muda o limite de tempo (padrão
+1 dia; os casos são retomáveis, e `./submeter.sh` de novo continua de onde parou) e `MODO=array` volta ao array de
+`job_slurm.sbatch`.
 
 `./submeter.sh 3,7` roda só esses casos; se `bin/rahardjo` já existe, a compilação é pulada, e se a compilação já está na
 fila, os casos esperam por ela. Com outro job de casos na fila, `submeter.sh` não submete (as duas cópias gravariam nas

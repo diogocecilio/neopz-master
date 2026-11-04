@@ -1,12 +1,15 @@
 #!/bin/bash
 # submeter.sh [casos]: submete a compilacao (se preciso) e, depois dela, os casos de casos.txt (padrao 1-21; ex.: 3,7 ou 1-9).
 # Retorna em segundos; pode desligar a VPN logo em seguida. Os jobs seguem no cluster.
-# Os casos vao num unico job (job_casos.sbatch), que conta como 1 job na cota do SLURM e roda ate NCPU casos ao mesmo tempo,
-# 1 CPU cada (no fermi, um array de 21 tarefas excede a cota de jobs submetidos por usuario). MODO=array usa job_slurm.sbatch.
+# Os casos vao em jobs job_casos.sbatch, um por no, cada um contando como 1 job na cota do SLURM (no fermi, um array de 21
+# tarefas excede a cota de jobs submetidos por usuario). Padrao: um caso por nucleo fisico, em quantos nos forem precisos
+# (no fermi, 12 nucleos com 2 threads cada: 21 casos -> 2 jobs, de 11 e 10 casos); dois casos dividindo um nucleo ficaram
+# 2,2 a 2,4 vezes mais lentos cada. NOS=<n> fixa o numero de jobs (NOS=1: um job, um caso por nucleo, em ondas).
+# MODO=array usa job_slurm.sbatch.
 # Compilacao: COMPILAR=login (padrao no fermi, em modulos.sh) compila neste no em segundo plano e submete os casos ao fim;
 # COMPILAR=job compila num job do SLURM (job_compilar.sbatch), do qual os casos dependem.
-# Ambiente opcional: NCPU (padrao: numero de casos, limitado aos nucleos de um no); PARALELO (casos ao mesmo tempo, padrao
-# NCPU; com hyper-threading, NCPU=2*PARALELO deixa um nucleo fisico por caso); SAIDA (pasta de resultados, padrao
+# Ambiente opcional: NCPU e PARALELO trocam o padrao por um job (ou NOS jobs) com NCPU CPUs (padrao: um por caso) rodando
+# PARALELO casos ao mesmo tempo (padrao NCPU; com hyper-threading, NCPU=2*PARALELO deixa um nucleo por caso); SAIDA (pasta de resultados, padrao
 # resultados); TF_H (horas simuladas, padrao 48); EXCLUSIVO=1 (o no inteiro so para este job, para medir tempos sem
 # dividir CPU, cache e turbo com outros jobs); TEMPO (limite do job de casos, padrao
 # 1-00:00:00; os casos sao retomaveis); RECOMPILAR=1; EMAIL=<endereco> (aviso do SLURM ao terminar ou falhar, se o cluster
@@ -71,21 +74,44 @@ DEP=(); [ -n "$B" ] && DEP=(--dependency=afterok:"$B" --kill-on-invalid-dep=yes)
 if [ "${MODO:-pool}" = array ]; then
   A=$(sbatch --parsable ${P[@]+"${P[@]}"} ${MA[@]+"${MA[@]}"} ${DEP[@]+"${DEP[@]}"} --array="$LISTA" job_slurm.sbatch); A="${A%%;*}"
   echo "casos: job array $A ($LISTA)"
+  echo "$(date '+%F %T') compilacao=${B:--} casos=$A lista=$LISTA" >> logs/jobs.txt
 else
-  # o job de casos fica num no so: limita as CPUs aos nucleos e a memoria a 90% da memoria do menor no da particao
-  read -r CPN MEMN <<< "$(sinfo -h -N ${P[@]+"${P[@]}"} -o '%c %m' 2>/dev/null | tr -d '+' | sort -n | head -n 1)" || true
+  # menor no da particao: CPUs, memoria (MB) e threads por nucleo. Cada job fica num no so.
+  read -r CPN MEMN TPC <<< "$(sinfo -h -N ${P[@]+"${P[@]}"} -o '%c %m %Z' 2>/dev/null | tr -d '+' | sort -n | head -n 1)" || true
   case "${CPN:-}" in ''|*[!0-9]*) CPN="" ;; esac
   case "${MEMN:-}" in ''|*[!0-9]*) MEMN="" ;; esac
-  K="${NCPU:-$NCASOS}"
-  # sem PARALELO, CPUs alem do numero de casos ficariam ociosas; com PARALELO, NCPU > PARALELO e intencional (hyper-threading)
-  [ -z "${PARALELO:-}" ] && [ "$K" -gt "$NCASOS" ] && K="$NCASOS"
-  [ -n "${CPN:-}" ] && [ "$K" -gt "$CPN" ] && K="$CPN"
-  MEM=$((K * 1500))
-  [ -n "${MEMN:-}" ] && [ "$MEM" -gt $((MEMN * 9 / 10)) ] && MEM=$((MEMN * 9 / 10))
-  # a lista vai pelo ambiente (o sbatch exporta o ambiente todo); em --export a virgula de "3,7" separaria variaveis
-  A=$(CASOS="$LISTA" sbatch --parsable ${P[@]+"${P[@]}"} ${MA[@]+"${MA[@]}"} ${DEP[@]+"${DEP[@]}"} --cpus-per-task="$K" \
-      --mem="${MEM}M" --time="${TEMPO:-1-00:00:00}" job_casos.sbatch); A="${A%%;*}"
-  echo "casos: job $A ($NCASOS casos, ate ${PARALELO:-$K} ao mesmo tempo em $K CPUs; no de ${CPN:-?} CPUs e ${MEMN:-?} MB)"
+  case "${TPC:-}" in ''|*[!0-9]*|0) TPC=1 ;; esac
+  mapfile -t NUMS < <(echo "$LISTA" | tr ',' '\n' | awk -F- 'NF == 2 { for (i = $1; i <= $2; i++) print i; next } NF { print $1 }')
+  AUTO=""
+  if [ -z "${NCPU:-}${PARALELO:-}" ] && [ -n "$CPN" ]; then
+    AUTO=1; NUC=$((CPN / TPC)); [ "$NUC" -ge 1 ] || NUC=1
+    NJ="${NOS:-$(( (NCASOS + NUC - 1) / NUC ))}"
+  else
+    NJ="${NOS:-1}"
+  fi
+  case "$NJ" in ''|*[!0-9]*|0) NJ=1 ;; esac
+  [ "$NJ" -le "$NCASOS" ] || NJ="$NCASOS"
+  # divide a lista em NJ grupos consecutivos de tamanhos que diferem de no maximo 1
+  base=$((NCASOS / NJ)); sobra=$((NCASOS % NJ)); ini=0
+  for ((g = 0; g < NJ; g++)); do
+    sz=$((base + (g < sobra ? 1 : 0)))
+    GRUPO="$(IFS=,; echo "${NUMS[*]:ini:sz}")"; ini=$((ini + sz))
+    if [ -n "$AUTO" ]; then
+      PJ=$((sz < NUC ? sz : NUC)); K=$((PJ * TPC))
+    else
+      K="${NCPU:-$sz}"
+      # sem PARALELO, CPUs alem do numero de casos ficariam ociosas; com PARALELO, NCPU > PARALELO e intencional
+      [ -z "${PARALELO:-}" ] && [ "$K" -gt "$sz" ] && K="$sz"
+      PJ="${PARALELO:-$K}"
+    fi
+    [ -n "$CPN" ] && [ "$K" -gt "$CPN" ] && K="$CPN"
+    MEM=$((K * 1500))
+    [ -n "$MEMN" ] && [ "$MEM" -gt $((MEMN * 9 / 10)) ] && MEM=$((MEMN * 9 / 10))
+    # a lista e PARALELO vao pelo ambiente (o sbatch exporta o ambiente todo); em --export a virgula de "3,7" separaria variaveis
+    A=$(CASOS="$GRUPO" PARALELO="$PJ" sbatch --parsable ${P[@]+"${P[@]}"} ${MA[@]+"${MA[@]}"} ${DEP[@]+"${DEP[@]}"} \
+        --cpus-per-task="$K" --mem="${MEM}M" --time="${TEMPO:-1-00:00:00}" job_casos.sbatch); A="${A%%;*}"
+    echo "casos: job $A ($sz casos: $GRUPO; ate $PJ ao mesmo tempo em $K CPUs; no de ${CPN:-?} CPUs, $TPC thread(s) por nucleo)"
+    echo "$(date '+%F %T') compilacao=${B:--} casos=$A lista=$GRUPO" >> logs/jobs.txt
+  done
 fi
-echo "$(date '+%F %T') compilacao=${B:--} casos=$A lista=$LISTA" >> logs/jobs.txt
 echo "acompanhe depois com: ./status.sh   (ou ./status.sh --slurm para ver tambem duracao e memoria no sacct)"
