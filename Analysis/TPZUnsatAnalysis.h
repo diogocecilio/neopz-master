@@ -49,6 +49,12 @@ public:
     /// fixU: boundary id -> (fix u_x, fix u_y) for all the displacement connects of the boundary
     TPZUnsatAnalysis(TPZMultiphysicsCompMesh *mesh, const std::map<int, std::array<bool, 2>> &fixU);
 
+    /// Linear solver of the analyses constructed afterwards: the sparse LU of MKL PARDISO when NeoPZ is built with MKL
+    /// (default), or the skyline LU (SetUseSkyline(true), and always without MKL)
+    static void SetUseSkyline(bool skyline);
+    /// Whether the analyses constructed now use PARDISO
+    static bool UsesPardiso();
+
     const std::vector<TMat *> &Materials() const { return fMats; }
     TPZMultiphysicsCompMesh *Mesh() { return fMPhys; }
     TPZGeoMesh *GMesh() { return fMPhys->Reference(); }

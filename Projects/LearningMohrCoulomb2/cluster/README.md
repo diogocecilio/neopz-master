@@ -104,6 +104,14 @@ Cada caso grava em `maquina.txt` o nó e a CPU em que rodou.
 Sem SLURM, rode `./rodar_caso.sh <n>` para n = 1 a 21, com o escalonador do cluster ou dentro de `tmux`. Não rode o
 cálculo no nó de login.
 
+## Solver linear
+
+Com MKL, a análise usa o LU esparso do PARDISO; `SOLVER=skyline ./submeter.sh` (ou `SOLVER=skyline ./rodar_caso.sh <n>`)
+volta ao LU skyline sem recompilar. Até o commit desta nota, toda rodada usava o skyline mesmo com MKL:
+`Analysis/TPZUnsatAnalysis.cpp` escolhia o PARDISO com `#ifdef PZ_USING_MKL`, mas a própria `libpz` é compilada só com
+`USING_MKL` (`PZ_USING_MKL` vai apenas para quem liga com ela). O solver usado fica em `caso.txt` (`solver=`) e no início de
+`run.log`, e `./status.sh --comparar` o mostra para cada pasta.
+
 ## Custo
 
 Cada tarefa usa 1 CPU, menos de 1 GB de memória e um único processo. Na estação de trabalho, com carga, foram medidos cerca

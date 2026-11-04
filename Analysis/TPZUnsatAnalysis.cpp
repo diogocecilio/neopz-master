@@ -12,24 +12,44 @@
 #include <cmath>
 #include <iostream>
 
+namespace {
+bool gUseSkyline = false; // a single copy, inside libpz
+}
+
 TPZUnsatAnalysis::TPZUnsatAnalysis(TPZMultiphysicsCompMesh *mesh, const std::map<int, std::array<bool, 2>> &fixU)
     : TPZLinearAnalysis(mesh, true), fMPhys(mesh) {
     for (auto &m : mesh->MaterialVec())
         if (m.first > 0)
             if (auto *u = dynamic_cast<TMat *>(m.second)) fMats.push_back(u);
     if (fMats.empty()) DebugStop();
-#ifdef PZ_USING_MKL
-    TPZSpStructMatrix<STATE> smat(mesh);
-#else
-    TPZSkylineNSymStructMatrix<STATE> smat(mesh);
+    // libpz itself is compiled with USING_MKL; PZ_USING_MKL is only given to the targets that link to it, so testing
+    // PZ_USING_MKL alone here always selected the skyline matrix
+#if defined(PZ_USING_MKL) || defined(USING_MKL)
+    if (!gUseSkyline) {
+        TPZSpStructMatrix<STATE> smat(mesh);
+        SetStructuralMatrix(smat);
+    } else
 #endif
-    SetStructuralMatrix(smat);
+    {
+        TPZSkylineNSymStructMatrix<STATE> smat(mesh);
+        SetStructuralMatrix(smat);
+    }
     TPZStepSolver<STATE> step;
     step.SetDirect(ELU);
     SetSolver(step);
     fNEq = mesh->NEquations();
     IdentifyEquations(fixU);
     fX = mesh->Solution();
+}
+
+void TPZUnsatAnalysis::SetUseSkyline(bool skyline) { gUseSkyline = skyline; }
+
+bool TPZUnsatAnalysis::UsesPardiso() {
+#if defined(PZ_USING_MKL) || defined(USING_MKL)
+    return !gUseSkyline;
+#else
+    return false;
+#endif
 }
 
 void TPZUnsatAnalysis::SetStrengthReductionFactor(REAL F) {

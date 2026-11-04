@@ -65,8 +65,10 @@ if [ "$MODO" = comparar ]; then
       echo "$r"
     done | sort | uniq -c | awk '{ c = $1; $1 = ""; printf "%s%s x%d", (NR > 1 ? ";" : ""), $0, c } END { if (!NR) printf " ?" }'
   }
-  echo "A = $A:$(maq "$A")"
-  echo "B = $B:$(maq "$B")"
+  # solver linear registrado em caso.txt; resultados anteriores ao registro rodaram todos com o LU skyline
+  solv() { local v; v="$(cat "$1"/*/*/caso.txt 2>/dev/null | tr ' ' '\n' | sed -n 's/^solver=//p' | sort -u | paste -sd, -)"; echo "${v:-skyline (nao registrado)}"; }
+  echo "A = $A:$(maq "$A"); solver $(solv "$A")"
+  echo "B = $B:$(maq "$B"); solver $(solv "$B")"
   printf '%-19s %7s %9s %9s %6s %5s %8s %8s %6s %11s\n' caso passos "s/passo A" "s/passo B" "B/A" FS "s/FS A" "s/FS B" "B/A" "max|dFS|"
   while read -r caso _; do
     [ -n "$caso" ] && [ -d "$A/$caso" ] && [ -d "$B/$caso" ] || continue
