@@ -14,6 +14,9 @@ USAR_MKL="${USAR_MKL:-ON}"
 ARGS=(-S "$NEOPZ" -B "$BUILD" -DCMAKE_BUILD_TYPE=Release -DBUILD_PLASTICITY_MATERIALS=ON -DBUILD_PROJECTS=ON -DUSING_MKL="$USAR_MKL")
 [ -n "${MKL_ROOT:-}" ] && ARGS+=(-DMKL_ROOT="$MKL_ROOT")
 [ "$USAR_MKL" = ON ] && ARGS+=(-DMKL_THREAD_MODEL="${MKL_THREAD_MODEL:-seq}")
+# Projects/CMakeLists.txt baixa o Catch2 do GitHub ao configurar, e os nos de computacao podem nao ter internet:
+# submeter.sh o baixa antes, no no de login, em deps/Catch2, e o CMake usa essa copia sem acessar a rede
+[ -f "$PKG/deps/Catch2/CMakeLists.txt" ] && ARGS+=(-DFETCHCONTENT_SOURCE_DIR_CATCH2="$PKG/deps/Catch2")
 cmake "${ARGS[@]}"
 cmake --build "$BUILD" --target LearningMohrCoulomb2 -j "${JOBS:-4}"
 # o driver usa as flags e a linha de ligacao geradas para o projeto

@@ -15,6 +15,12 @@ if [ -x bin/rahardjo ] && [ -z "${RECOMPILAR:-}" ]; then
   DEP=()
   echo "bin/rahardjo ja existe; pulando a compilacao (RECOMPILAR=1 para refazer)"
 else
+  # o CMake baixa o Catch2 ao configurar e os nos de computacao podem nao ter internet: baixa aqui, no no de login
+  if [ ! -f deps/Catch2/CMakeLists.txt ]; then
+    rm -rf deps/Catch2
+    git -c advice.detachedHead=false clone -q --depth 1 --branch v2.13.10 https://github.com/catchorg/Catch2.git deps/Catch2
+    echo "Catch2 v2.13.10 baixado em deps/Catch2"
+  fi
   B=$(sbatch --parsable ${P[@]+"${P[@]}"} ${MB[@]+"${MB[@]}"} job_compilar.sbatch); B="${B%%;*}"
   DEP=(--dependency=afterok:"$B" --kill-on-invalid-dep=yes)
   echo "compilacao: job $B"
