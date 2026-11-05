@@ -30,6 +30,19 @@ arquivos CSV, para o pós-processamento. Uma realização interrompida continua 
     - c' e tan φ' dobram no transiente e o esqueleto não plastifica (`pl_pts` = 0 em `passos.csv`);
     - o acoplamento hidromecânico (elástico) e o ar continuam;
     - o SRM usa a resistência real, então o FS pode ficar abaixo de 1.
+  - Determinístico f50, 36 mm/h, variante i (FS em 0, 6, 12, 18, 24, 30 e 36 h):
+
+    | | 0 | 6 | 12 | 18 | 24 | 30 | 36 |
+    |---|---|---|---|---|---|---|---|
+    | `F_TRANS=1` | 2,119 | 1,475 | 1,1125 | 1,019 | **1** | 1,169 | 1,3125 |
+    | `F_TRANS=0.5` | 2,119 | 1,469 | 1,094 | 1 | **0,9625** | 1,156 | 1,306 |
+    | iii (rígido) | 2,119 | 1,75 | 1,425 | 1,206 | 1,0625 | 1,131 | 1,1875 |
+
+    - Quase toda a diferença para a iii vem do acoplamento elástico (dε_v/dt e o ar), não da plasticidade.
+    - Com `F_TRANS=1`, o transiente começa a plastificar em 6 h. No fim da chuva são 893 pontos e 19 cm de
+      deslocamento, acelerando (10,8 cm em 18 h, 14,0 cm em 21 h, 18,8 cm em 24 h): o talude escoa no limite.
+    - Com `F_TRANS=0.5`, nenhum ponto plastifica, e os 6 cm de deslocamento elástico voltam depois da chuva.
+    - `F_TRANS=0.3` dá os mesmos FS de 0,5: o transiente já é elástico, e o valor não importa abaixo disso.
   - Numa fila: `COMBS="f50:36:F_TRANS=0.5"`, com resultados na pasta `f50_I36_i_ftrans0.5`.
   - Com dados de `F_TRANS=1`, a ruptura é "chegou ao limite": `posprocessa_mc.py <pasta> --limite 1.01`, ou seja,
     FS_min ≤ 1,00625.
