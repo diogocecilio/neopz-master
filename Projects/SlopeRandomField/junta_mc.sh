@@ -17,7 +17,7 @@ export LC_ALL=C # numeros com ponto decimal em qualquer locale (awk, printf)
 junta() {
     local saida="$1"
     shift
-    [ $# -gt 0 ] || { rm -f "$saida"; return 0; }
+    [ $# -gt 0 ] || return 0 # sem realizacoes (por exemplo so os mc_*.csv baixados): mantem o que existe
     awk -F, '
         passo == 1 {
             if (FNR == 1) { n = split($0, h, ","); for (i = 1; i <= n; i++) if (h[i] != "real" && !(h[i] in pos)) { pos[h[i]] = ++nu; uni[nu] = h[i] } }

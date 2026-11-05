@@ -371,6 +371,19 @@ as realizações de uma combinação saíram do mesmo programa.
   - O instante padrão é o do FS mínimo.
 - `plot_campos.py <campos.csv>` desenha os três campos de uma realização.
 - `sensibilidade_mc.py <pasta> [<pasta> ...]`: a análise de sensibilidade (seção acima).
+- `posprocessa_mc.py <pasta> [--mapas]`: o pós-processamento completo de uma combinação, em `<pasta>/posproc/`:
+  - convergência do Monte Carlo: P_f com IC de 95%, CoV(P_f), média e desvio contra o número de realizações;
+  - estatísticas por instante (`estatisticas.csv`);
+  - densidade e distribuição acumulada do FS, também em cada instante;
+  - FS(t) com faixas de percentis e o determinístico, e P_f(t);
+  - Spearman de 1ª e 2ª ordem, no FS mínimo e em cada instante;
+  - dispersão do FS contra c', φ' e k;
+  - mecanismo de ruptura, hidráulica e diagnóstico numérico;
+  - `relatorio.md`.
+  - Com `--mapas`, lê os CSV de cada realização e desenha a frequência de cada ponto na banda de ruptura e o p_w médio
+    e o desvio no instante do FS mínimo. Nos resultados de uma versão anterior, sem as colunas da massa, estima o k da
+    massa pela geometria da banda.
+  - O caso determinístico (`<pasta>_det`) entra sozinho, se existir.
 - **ParaView:**
   - `campos.vtk` mostra os campos aleatórios de uma realização: colorir por `coesao_kPa`, `atrito_graus` ou `log10_k_v`.
   - `ruptura_pontos.scal_vec.<passo>.vtk` mostra o último estado que convergiu na busca do SRM, com c'/F e tan φ'/F.
