@@ -25,6 +25,7 @@ void TPZUnsaturatedMem::Write(TPZStream &buf, int withclassid) const {
     buf.Write(&fS);
     buf.Write(fPwV, 3);
     buf.Write(fPaV, 3);
+    buf.Write(&fKMult);
 }
 
 void TPZUnsaturatedMem::Read(TPZStream &buf, void *context) {
@@ -34,12 +35,15 @@ void TPZUnsaturatedMem::Read(TPZStream &buf, void *context) {
     buf.Read(&fS);
     buf.Read(fPwV, 3);
     buf.Read(fPaV, 3);
+    buf.Read(&fKMult);
 }
 
 void TPZUnsaturatedMem::Print(std::ostream &out) const {
     TPZElastoPlasticMem::Print(out);
     out << " p_w = " << fPw << " p_a = " << fPa << " S_w = " << fS << " vertices p_w = {" << fPwV[0] << ", "
-        << fPwV[1] << ", " << fPwV[2] << "} p_a = {" << fPaV[0] << ", " << fPaV[1] << ", " << fPaV[2] << "}\n";
+        << fPwV[1] << ", " << fPwV[2] << "} p_a = {" << fPaV[0] << ", " << fPaV[1] << ", " << fPaV[2] << "}";
+    if (fKMult != 1.) out << " k multiplier = " << fKMult;
+    out << "\n";
 }
 
 // ---------------------------------------------------------------- material
@@ -310,8 +314,9 @@ void TPZMatUnsaturatedUPwPa<T, TMEM>::ContributeInternal(const TPZVec<TPZMateria
     }
     const REAL dpB = (eta != 0.) ? pB - pBn : 0.;
     const REAL X = alc * dEv + eta * dpB;
-    // conductivity tensor K = [k_xx k_xy; k_xy k_yy]; mobilities lambda = K k_r / gamma_w (times mu_w/mu_a)
-    const REAL kxx = fKx, kyy = fKy, kxy = fKxy;
+    // conductivity tensor K = [k_xx k_xy; k_xy k_yy], times the point multiplier (random permeability fields);
+    // mobilities lambda = K k_r / gamma_w (times mu_w/mu_a)
+    const REAL kxx = mem.fKMult * fKx, kyy = mem.fKMult * fKy, kxy = mem.fKMult * fKxy;
     const REAL lw0 = 1. / fGammaW, la0 = lw0 * fMuRatio;
     const REAL lw = lw0 * hs.krw, la = la0 * hs.kra;
     const REAL dlw = lw0 * hs.dkrw * Gm, dla = la0 * hs.dkra * Gm; // d/dp_w (d/dp_a = -d/dp_w)

@@ -38,6 +38,12 @@ public:
     REAL fS = 1.;
     /** @brief p_w and p_a at the three vertices of the (P1) pressure element, last converged step */
     REAL fPwV[3], fPaV[3];
+    /**
+     * @brief Multiplier of the material's saturated conductivity tensor at this point (random permeability fields;
+     * 1 = homogeneous). Together with the point strength in m_elastoplastic_state.fmatprop = {c, phi, psi}, it is a
+     * property of the point: TPZUnsatAnalysis::ResetMemory keeps both.
+     */
+    REAL fKMult = 1.;
 
     int ClassId() const override;
     void Write(TPZStream &buf, int withclassid) const override;

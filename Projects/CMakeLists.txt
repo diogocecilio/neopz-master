@@ -49,3 +49,4 @@ add_subdirectory(LearningMohrCoulomb) # projeto de estudo do autor: Mohr-Coulomb
 add_subdirectory(LearningMohrCoulomb2) # projeto de estudo do autor: Mohr-Coulomb em sapata corrida e talude
 add_subdirectory(LearningSlopeWater)  # projeto de estudo do autor: talude saturado, transiente e FS no tempo
 add_subdirectory(LearningLiakopoulos) # projeto de estudo do autor: dessaturacao da coluna de Liakopoulos
+add_subdirectory(SlopeRandomField)    # talude de Rahardjo sob chuva com campos aleatorios (Karhunen-Loeve) e Monte Carlo

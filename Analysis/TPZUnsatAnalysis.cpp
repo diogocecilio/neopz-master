@@ -81,7 +81,16 @@ void TPZUnsatAnalysis::ResetMemory() {
     for (auto *m : fMats) {
         auto mem = m->GetMemory();
         const TPZUnsaturatedMem def = m->GetDefaultMemory();
-        for (int64_t i = 0; i < mem->NElements(); ++i) (*mem)[i] = def;
+        for (int64_t i = 0; i < mem->NElements(); ++i) {
+            // the properties of the point (random fields: strength {c, phi, psi} and the conductivity multiplier)
+            // survive; the state (stresses, strains, pressures) goes back to the default
+            TPZUnsaturatedMem &it = (*mem)[i];
+            const TPZVec<REAL> prop = it.m_elastoplastic_state.fmatprop;
+            const REAL kmult = it.fKMult;
+            it = def;
+            it.m_elastoplastic_state.fmatprop = prop;
+            it.fKMult = kmult;
+        }
     }
 }
 
