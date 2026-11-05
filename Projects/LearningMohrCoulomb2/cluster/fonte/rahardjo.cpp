@@ -172,7 +172,11 @@ int main() {
     // solver linear: PARDISO (padrao, com MKL) ou SOLVER=skyline, o LU usado por todas as rodadas anteriores
     TPZUnsatAnalysis::SetUseSkyline(envs("SOLVER", "pardiso") == "skyline");
     auto *anslope = new TPZUnsatAnalysis(cslope, {{bcBase, {true, true}}, {bcDireita, {true, false}}, {bcEsquerda, {true, false}}});
-    std::cout << "solver: " << (TPZUnsatAnalysis::UsesPardiso() ? "pardiso" : "skyline") << std::endl;
+    // pardiso-metis (padrao) ou pardiso-nativa (PZ_PARDISO_ORDEM=nativa, a ordem das rodadas anteriores, registradas so como "pardiso")
+    const char *ordemPardiso = std::getenv("PZ_PARDISO_ORDEM");
+    const std::string solverTxt = !TPZUnsatAnalysis::UsesPardiso() ? "skyline"
+        : (ordemPardiso && std::string(ordemPardiso) == "nativa") ? "pardiso-nativa" : "pardiso-metis";
+    std::cout << "solver: " << solverTxt << std::endl;
     anslope->SetTolerances(envd("TOLU", 1.e-7), envd("TOLP", 1.e-6), envi("MAXIT", 40), envi("MAXIT_FROZEN", 25));
     auto *reservatorio = dynamic_cast<TUnsat *>(cslope->FindMaterial(matSolo));
     if (!reservatorio) DebugStop();
@@ -324,7 +328,7 @@ int main() {
         c << "solo=" << solo << " variante=" << variante << " I_mm_h=" << I_mm_h << " Tchuva_h=" << Tchuva / hora << " Tf_h=" << Tf / hora
           << " Dt_h=" << Dt / hora << " hl=" << hl << " hr=" << hr << " sucMax=" << sucMax << " neq=" << anslope->NEq()
           << " chuva_vertical=" << verticalRain << " E=" << p.E << " nu=" << p.nu << " c=" << p.c << " phi=" << p.phi * 180. / M_PI
-          << " a=" << p.hydro.fA << " ks=" << p.ks << " solver=" << (TPZUnsatAnalysis::UsesPardiso() ? "pardiso" : "skyline") << '\n';
+          << " a=" << p.hydro.fA << " ks=" << p.ks << " solver=" << solverTxt << '\n';
     }
 
     std::ofstream csv("chuva.csv");

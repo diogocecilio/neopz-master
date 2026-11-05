@@ -6,6 +6,8 @@
 //
 //
 
+#include <cstdlib>
+#include <string>
 #include "TPZPardisoSolver.h"
 
 #include "pzsysmp.h"
@@ -141,6 +143,18 @@ void TPZPardisoSolver<TVar>::Decompose()
     }
 }
 
+namespace {
+/// PZ_PARDISO_ORDEM=nativa: factorize in NeoPZ's own equation numbering (the identity permutation), as before; it is a
+/// bandwidth ordering made for skyline matrices and leaves much more fill-in in the sparse LU than METIS
+bool PardisoOrdemNativa() {
+    static const bool nativa = [] {
+        const char *v = std::getenv("PZ_PARDISO_ORDEM");
+        return v && std::string(v) == "nativa";
+    }();
+    return nativa;
+}
+}
+
 template<class TVar>
 void TPZPardisoSolver<TVar>::Decompose(TPZMatrix<TVar> *mat)
 {
@@ -211,13 +225,16 @@ void TPZPardisoSolver<TVar>::Decompose(TPZMatrix<TVar> *mat)
              (the first step or last step with a failure)
              in a sequence of solutions needed for identical sparsity patterns. 
      */
-    //fParam[4]  No user fill-in reducing permutation
+    //fParam[4]  0: PARDISO computes the fill-in reducing ordering of fParam[1] (METIS); 1: use perm (identity)
     if constexpr (!is_complex<TVar>::value){
         // non-symmetric systems (Newton tangents of coupled problems): the CGS iteration preconditioned by the LU
         // of a previous matrix (10*6+1) fails when the matrix changes a lot between solves, and with K = 1 the
         // fallback numerical factorization (phase 23) is also replaced by CGS: always factorize
         fParam[3] = fSystemType == MSystemType::ESymmetric ? 10*6+2 : 0;
-        if(fProperty == MProperty::EIndefinite) fParam[4] =1;
+        // indefinite matrices used the identity permutation, so METIS was never applied to them. With METIS the
+        // unsaturated slope analysis kept the same factors of safety and spent 7% (coarse mesh) to 28% (fine mesh)
+        // less time in the factor-of-safety search, with less memory. PZ_PARDISO_ORDEM=nativa restores the identity.
+        fParam[4] = (fProperty == MProperty::EIndefinite && PardisoOrdemNativa()) ? 1 : 0;
     }else{
         fParam[3] = 0;
         fParam[4] = 0;

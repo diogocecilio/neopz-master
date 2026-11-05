@@ -106,8 +106,11 @@ cálculo no nó de login.
 
 ## Solver linear
 
-Com MKL, a análise usa o LU esparso do PARDISO; `SOLVER=skyline ./submeter.sh` (ou `SOLVER=skyline ./rodar_caso.sh <n>`)
-volta ao LU skyline sem recompilar. Até o commit desta nota, toda rodada usava o skyline mesmo com MKL:
+Com MKL, a análise usa o LU esparso do PARDISO, com a ordenação METIS do próprio MKL (a opção `USING_METIS` do NeoPZ é
+outra coisa e não precisa ser ligada). `PZ_PARDISO_ORDEM=nativa` volta à ordem anterior do PARDISO (a numeração do NeoPZ,
+feita para a skyline) e `SOLVER=skyline ./submeter.sh` (ou `SOLVER=skyline ./rodar_caso.sh <n>`) ao LU skyline, sem
+recompilar. Em `caso.txt`, `solver=` vale `pardiso-metis`, `pardiso-nativa` ou `skyline`; `solver=pardiso`, sem sufixo,
+são rodadas feitas antes da ordenação METIS, com a ordem nativa. Até o commit desta nota, toda rodada usava o skyline mesmo com MKL:
 `Analysis/TPZUnsatAnalysis.cpp` escolhia o PARDISO com `#ifdef PZ_USING_MKL`, mas a própria `libpz` é compilada só com
 `USING_MKL` (`PZ_USING_MKL` vai apenas para quem liga com ela). O solver usado fica em `caso.txt` (`solver=`) e no início de
 `run.log`, e `./status.sh --comparar` o mostra para cada pasta.
