@@ -89,6 +89,9 @@ Variáveis de ambiente:
 | `SEMENTE`, `REAL` | 20250416, n | semente e número da realização; a mesma dupla gera o mesmo campo |
 | `CAMPOS` | 1 | 0 roda o caso determinístico |
 | `CAMPOS_CSV` | 0 | 1 grava os campos de cada ponto em `campos.csv` (`plot_campos.py` desenha) |
+| `CAMPOS_VTK` | 0 | 1 grava `campos.vtk` (ParaView): c', φ', k_v, log₁₀ k_v e k_h por triângulo (média dos seus 3 pontos) |
+| `VTK_H` | vazio | instantes (h) em que o mecanismo de ruptura do SRM vai para `ruptura_pontos.scal_vec.<passo>.vtk` |
+| `SO_CAMPOS` | 0 | 1 só gera os campos (`campos.vtk` e `campos.csv`), sem simular; com a mesma `SEMENTE` e o mesmo `REAL`, o campo é o mesmo |
 | `PARALELO` | núcleos físicos | realizações ao mesmo tempo |
 | `MAX_CORTES` | 4 | divisões de um passo que não converge |
 
@@ -111,3 +114,8 @@ Em `resultados_mc/<solo>_I<chuva>_<variante>/`:
 - `./resumo_mc.sh` calcula, por instante, a média, o desvio e o CoV do FS, P_f = P(FS < 1) e o CoV de P_f,
   √((1 − P_f)/(N P_f)) (Ceron, eq. 68).
 - `plot_mc.py` desenha FS(t) de cada realização, o histograma do FS mínimo e P_f(t).
+- **ParaView:**
+  - `campos.vtk` mostra os campos aleatórios de uma realização: colorir por `coesao_kPa`, `atrito_graus` ou `log10_k_v`.
+  - `ruptura_pontos.scal_vec.<passo>.vtk` mostra o último estado que convergiu na busca do SRM, com c'/F e tan φ'/F.
+    `StrainPlasticJ2` mostra a superfície de ruptura.
+  - Para gerar os campos de realizações já rodadas sem simular de novo: `SO_CAMPOS=1 SOLO=f50 I_MM_H=36 ./rodar_mc.sh 0 6`.

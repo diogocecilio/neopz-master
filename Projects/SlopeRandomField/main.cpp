@@ -15,6 +15,7 @@
 
 #include "KLSeparavel.h"
 
+#include <array>
 #include <chrono>
 #include <cstdlib>
 #include <functional>
@@ -136,7 +137,7 @@ int main() {
     if (borda.empty()) DebugStop();
 
     // ---- pontos de integracao do solo: indice de memoria e coordenadas
-    std::vector<int64_t> ips;
+    std::vector<int64_t> ips, ipel; // indice de memoria e elemento geometrico de cada ponto
     std::vector<double> xs, ys;
     for (TPZCompEl *cel : cmesh->ElementVec()) {
         if (!cel || !cel->Reference() || cel->Reference()->MaterialId() != matSolo) continue;
@@ -150,6 +151,7 @@ int main() {
             rule.Point(i, qsi, w);
             cel->Reference()->X(qsi, x);
             ips.push_back(idx[i]);
+            ipel.push_back(cel->Reference()->Index());
             xs.push_back(x[0]);
             ys.push_back(x[1]);
         }
@@ -185,6 +187,40 @@ int main() {
             sc += c; sphi += phi * 180. / M_PI; sk += km;
             if (fc.is_open()) fc << ips[i] << ',' << xs[i] << ',' << ys[i] << ',' << c << ',' << phi * 180. / M_PI << ',' << km << '\n';
         }
+        if (envi("CAMPOS_VTK", 0)) {
+            // um valor por triangulo, a media dos seus pontos de integracao, sobre a malha geometrica (cantos)
+            std::map<int64_t, std::array<double, 4>> soma; // c, phi, k_mult, numero de pontos
+            for (size_t i = 0; i < ips.size(); ++i) {
+                const auto &mp = (*mem)[ips[i]].m_elastoplastic_state.fmatprop;
+                auto &a = soma[ipel[i]];
+                a[0] += mp[0]; a[1] += mp[1] * 180. / M_PI; a[2] += (*mem)[ips[i]].fKMult; a[3] += 1.;
+            }
+            std::ofstream v("campos.vtk");
+            v << "# vtk DataFile Version 3.0\nSlopeRandomField realizacao " << real << "\nASCII\nDATASET UNSTRUCTURED_GRID\n";
+            v << std::setprecision(8) << "POINTS " << gmesh->NNodes() << " double\n";
+            for (int64_t i = 0; i < gmesh->NNodes(); ++i) {
+                TPZManVector<REAL, 3> c(3, 0.);
+                gmesh->NodeVec()[i].GetCoordinates(c);
+                v << c[0] << ' ' << c[1] << " 0\n";
+            }
+            v << "CELLS " << soma.size() << ' ' << 4 * soma.size() << '\n';
+            for (const auto &e : soma) {
+                TPZGeoEl *g = gmesh->Element(e.first);
+                v << "3 " << g->NodeIndex(0) << ' ' << g->NodeIndex(1) << ' ' << g->NodeIndex(2) << '\n';
+            }
+            v << "CELL_TYPES " << soma.size() << '\n';
+            for (size_t i = 0; i < soma.size(); ++i) v << "5\n";
+            v << "CELL_DATA " << soma.size() << '\n';
+            auto escalar = [&](const char *nome, auto f) {
+                v << "SCALARS " << nome << " double 1\nLOOKUP_TABLE default\n";
+                for (const auto &e : soma) v << f(e.second) << '\n';
+            };
+            escalar("coesao_kPa", [](const std::array<double, 4> &a) { return a[0] / a[3]; });
+            escalar("atrito_graus", [](const std::array<double, 4> &a) { return a[1] / a[3]; });
+            escalar("k_v_m_s", [&](const std::array<double, 4> &a) { return p.ks * a[2] / a[3]; });
+            escalar("log10_k_v", [&](const std::array<double, 4> &a) { return std::log10(p.ks * a[2] / a[3]); });
+            escalar("k_h_m_s", [&](const std::array<double, 4> &a) { return alfa * p.ks * a[2] / a[3]; });
+        }
         const double np = double(ips.size());
         info << " KL_M=" << kl.M() << " KL_variancia=" << kl.fracao << " Lx=" << Lx << " Ly=" << Ly << " alfa=" << alfa
              << " cov_c=" << covC << " cov_phi=" << covPhi << " cov_k=" << covK << " media_c=" << sc / np
@@ -192,6 +228,12 @@ int main() {
     }
     info << '\n';
     info.close();
+    if (envi("SO_CAMPOS", 0)) { // so os campos (campos.csv/campos.vtk), sem simulacao: a mesma SEMENTE e REAL refazem o campo
+        delete an;
+        DeleteCompMesh(cmesh);
+        delete gmesh;
+        return 0;
+    }
 
     // ---- estado inicial (como no driver de Rahardjo): hidrostatico com succao limitada; equilibrio com a resistencia real
     TPZFMatrix<STATE> x(cmesh->NEquations(), 1, 0.);
@@ -286,8 +328,11 @@ int main() {
     std::ofstream fs("fs.csv");
     fs << "t_h,FS_SRM,seg\n" << std::setprecision(10);
     const int nsteps = int(std::lround(Tf / Dt));
-    std::set<int> fsSteps;
+    std::set<int> fsSteps, vtkSteps;
     for (double h : fsH) fsSteps.insert(int(std::lround(h * hora / Dt)));
+    // VTK_H: instantes em que o ultimo estado convergido da busca do SRM (o mecanismo de ruptura, com c'/F e tan(phi')/F)
+    // vai para ruptura_pontos.scal_vec.<passo>.vtk, como no driver de Rahardjo
+    for (double h : envhoras("VTK_H", "")) vtkSteps.insert(int(std::lround(h * hora / Dt)));
     REAL t = 0., fsMin = 1.e30, tMin = -1.;
     std::string situacao = "ok";
     for (int step = 0; step <= nsteps; step++) {
@@ -305,6 +350,10 @@ int main() {
             const auto memoria = an->SaveMemory();
             const REAL dtAnterior = solomat->TimeStep();
             const REAL F = FactorSRMRetry(*an, estado, F0, fsTol, Fdenso);
+            if (vtkSteps.count(step) && F > 0.) {
+                an->SetStrengthReductionFactor(F);
+                PostProcessVTK(*an, "ruptura", step);
+            }
             an->SetStrengthReductionFactor(1.);
             an->SetGravityFactor(1.);
             an->SetGravityScalesSuction(true);

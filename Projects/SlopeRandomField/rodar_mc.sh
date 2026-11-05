@@ -7,10 +7,12 @@
 # resultado.txt sao puladas. ./resumo_mc.sh <pasta da combinacao> calcula P_f e a estatistica do FS.
 # Ambiente: SOLO (f10|f50|f100), I_MM_H (9, 80 ou o k_s do solo em mm/h: 360, 36, 3.6), VARIANTE (iii, i), MALHA
 # (rahardjo_a45.msh ou rahardjo_a45_fina.msh), FS_H (instantes do FS, horas), COV_C, COV_PHI, COV_K, LX, LY, ALFA, KL_M,
-# SEMENTE, CAMPOS=0 (deterministico), EXE, SAIDA, PARALELO, COMB (nome da combinacao).
+# SEMENTE, CAMPOS=0 (deterministico), EXE, SAIDA, PARALELO, COMB (nome da combinacao). Pos-processamento: CAMPOS_VTK=1
+# grava campos.vtk de cada realizacao, VTK_H=24 grava o mecanismo de ruptura em t = 24 h, e SO_CAMPOS=1 so gera os campos
+# (campos.vtk e campos.csv) das realizacoes pedidas, sem simular: a mesma SEMENTE e o mesmo numero refazem o mesmo campo.
 set -u
 PKG="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-[ $# -eq 2 ] || { sed -n '2,12p' "$0"; exit 2; }
+[ $# -eq 2 ] || { sed -n '2,14p' "$0"; exit 2; }
 export EXE="${EXE:-$PKG/bin/SlopeRandomField}"
 [ -x "$EXE" ] || { echo "executavel $EXE nao encontrado (compile o alvo SlopeRandomField; ver README.md)" >&2; exit 2; }
 export MESH="${MESH:-$PKG/../LearningMohrCoulomb2/cluster/malhas/${MALHA:-rahardjo_a45.msh}}"
@@ -31,6 +33,10 @@ uma() {
     local n="$1" r
     r="$D/$(printf 'r%05d' "$n")"
     mkdir -p "$r" && cd "$r" || return 1
+    if [ "${SO_CAMPOS:-0}" = 1 ]; then # so os campos desta realizacao, em VTK e CSV, sem simulacao
+        REAL="$n" CAMPOS_VTK=1 CAMPOS_CSV=1 "$EXE" > campos.log 2>&1 && echo "real $n: campos em $r/campos.vtk"
+        return 0
+    fi
     [ -s resultado.txt ] && return 0
     REAL="$n" "$EXE" > run.log 2> run.err
     [ -s resultado.txt ] || { echo "real $n: sem resultado.txt (veja $r/run.err)" >&2; return 1; }
