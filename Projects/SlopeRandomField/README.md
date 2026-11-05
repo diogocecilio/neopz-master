@@ -39,9 +39,11 @@ arquivos CSV, para o pós-processamento. Uma realização interrompida continua 
     | iii (rígido) | 2,119 | 1,75 | 1,425 | 1,206 | 1,0625 | 1,131 | 1,1875 |
 
     - Quase toda a diferença para a iii vem do acoplamento elástico (dε_v/dt e o ar), não da plasticidade.
-    - Com `F_TRANS=1`, o transiente começa a plastificar em 6 h. No fim da chuva são 893 pontos e 19 cm de
-      deslocamento, acelerando (10,8 cm em 18 h, 14,0 cm em 21 h, 18,8 cm em 24 h): o talude escoa no limite.
-    - Com `F_TRANS=0.5`, nenhum ponto plastifica, e os 6 cm de deslocamento elástico voltam depois da chuva.
+    - Com `F_TRANS=1`, o transiente plastifica desde as primeiras horas da chuva: 126 pontos no passo em 5 h, 240 em
+      6 h. No fim da chuva são 893 pontos, √J2 da deformação plástica acumulada de 0,16 e 19 cm de deslocamento,
+      acelerando (10,8 cm em 18 h, 14,0 cm em 21 h, 18,8 cm em 24 h): o talude escoa no limite.
+    - Com `F_TRANS=0.5`, nenhum ponto plastifica (√J2 da plástica ~1e-16), e os 6 cm de deslocamento elástico voltam
+      depois da chuva.
     - `F_TRANS=0.3` dá os mesmos FS de 0,5: o transiente já é elástico, e o valor não importa abaixo disso.
   - Numa fila: `COMBS="f50:36:F_TRANS=0.5"`, com resultados na pasta `f50_I36_i_ftrans0.5`.
   - Com dados de `F_TRANS=1`, a ruptura é "chegou ao limite": FS_min ≤ 1,00625, ou seja, FS < 1,01 na grade da busca.
