@@ -92,6 +92,12 @@ if [ -n "$motivo" ]; then
         rm -rf "$C2"
         git -c advice.detachedHead=false clone -q --depth 1 --branch v2.13.10 https://github.com/catchorg/Catch2.git "$C2"
     fi
+    # este pedido de submissao e um pedido de recomeco: um PARAR de antes sai agora (a cadeia, ao fim da compilacao, so
+    # encontra um PARAR criado durante ela, e esse ela respeita)
+    if [ -z "${CADEIA_MC:-}" ] && [ -e "$SAIDA/PARAR" ]; then
+        rm -f "$SAIDA/PARAR"
+        echo "apagado $SAIDA/PARAR: a campanha volta a rodar ao fim da compilacao"
+    fi
     # nohup + setsid: continua depois que voce desconectar. Ao fim, o executavel fica com a data do inicio da compilacao
     # (um fonte trocado durante ela, por um git pull, continua mais novo e e recompilado) e os jobs sao submetidos
     echo "$NOS no(s), COMBS=\"$COMBS\", realizacoes $PRIMEIRA..$ULTIMA, DET=$DET, SAIDA=$SAIDA" > logs/compilar_mc.pedido

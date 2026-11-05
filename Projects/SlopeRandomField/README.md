@@ -241,7 +241,8 @@ Parar sem perder nada:
 - ou `scancel -n slopeRF`: as interrompidas continuam do checkpoint;
 - e, se uma compilação em segundo plano ainda vai submeter jobs, `kill -- -<pid>` com o pid de `logs/compilar_mc.pid`.
 
-Para retomar: `./submeter_mc.sh <nós>`. Ele apaga o `PARAR`.
+Para retomar, ou para trocar de campanha: `./submeter_mc.sh <nós>`. Ele apaga o `PARAR`, também quando precisa
+compilar antes; só um `PARAR` criado durante a compilação faz a cadeia não submeter.
 
 Baixar para o PC: o `status_mc.sh` mostra no fim o comando `rsync`, com o caminho de `$DATA` no fermi. Rode-o no PC,
 não no fermi. Pode ser no meio da rodada; o `rsync` só traz o que mudou. Ele tem esta forma:
