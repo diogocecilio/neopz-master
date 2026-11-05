@@ -23,7 +23,9 @@
 #include <array>
 #include <chrono>
 #include <cstdlib>
+#include <fcntl.h>
 #include <filesystem>
+#include <unistd.h>
 #include <functional>
 #include <sstream>
 
@@ -50,6 +52,21 @@ static double PicoMemoriaMB() {
     return -1.;
 }
 
+// o arquivo termina com o int64 m (o checkpoint grava o numero magico por ultimo: um arquivo truncado nao termina nele)
+static bool TerminaCom(const std::string &arq, int64_t m) {
+    std::ifstream f(arq, std::ios::binary | std::ios::ate);
+    if (!f || f.tellg() < (std::streamoff)(2 * sizeof(int64_t))) return false;
+    f.seekg(-(std::streamoff)sizeof(int64_t), std::ios::end);
+    int64_t v = 0;
+    f.read(reinterpret_cast<char *>(&v), sizeof(v));
+    return f.good() && v == m;
+}
+// grava no disco o que o sistema guardou em memoria (antes de um rename que substitui um arquivo bom)
+static void Sincroniza(const std::string &arq) {
+    const int fd = ::open(arq.c_str(), O_RDONLY);
+    if (fd >= 0) { ::fsync(fd); ::close(fd); }
+}
+
 static std::string Num(double v) { std::ostringstream o; o << std::setprecision(10) << v; return o.str(); }
 
 static std::vector<std::string> SeparaCsv(const std::string &l) {
@@ -72,9 +89,10 @@ struct TentativaSRM {
 };
 
 // FactorSRM do projeto + nova tentativa do F que falhou, agora com incremento < tol (como em cluster/fonte/rahardjo.cpp).
-// Fparada: o F em que o FactorSRM do projeto pararia, sem a nova tentativa; tent: cada solucao tentada
+// Fparada: o F em que o FactorSRM do projeto pararia, sem a nova tentativa; tent: cada solucao tentada; Xant: o estado
+// aceito antes do ultimo (o ultimo, com F = FS, fica em an.X()): a diferenca e o incremento de deslocamento do mecanismo
 static REAL FactorSRMRetry(TPZUnsatAnalysis &an, const TPZFMatrix<STATE> &x, REAL F0, REAL tol, const std::vector<REAL> &Fs,
-                           REAL &Fparada, std::vector<TentativaSRM> &tent)
+                           REAL &Fparada, std::vector<TentativaSRM> &tent, TPZFMatrix<STATE> &Xant)
 {
     an.ResetMemory(); // mantem as propriedades de cada ponto (os campos)
     TPZFMatrix<STATE> &X = an.X();
@@ -86,6 +104,7 @@ static REAL FactorSRMRetry(TPZUnsatAnalysis &an, const TPZFMatrix<STATE> &x, REA
     an.SetStrengthReductionFactor(F0);
     an.SetGravityScalesSuction(true);
     Fparada = -1.;
+    Xant = X;
     const int n = 4;
     for (int k = 1; k <= n; k++) {
         an.SetGravityFactor(REAL(k) / n);
@@ -93,6 +112,7 @@ static REAL FactorSRMRetry(TPZUnsatAnalysis &an, const TPZFMatrix<STATE> &x, REA
         const auto r = an.Solve(0., fixed, {}, true);
         tent.push_back({"gravidade", REAL(k) / n, F0, r.conv, false, r.iter, Segundos(t0)});
         if (!r.conv) return -1.; // sem equilibrio nem com c'/F0, tan(phi')/F0: FS < F0
+        Xant = an.X();
         an.Accept();
     }
     REAL Fok = F0, Ffail = -1.;
@@ -116,6 +136,7 @@ static REAL FactorSRMRetry(TPZUnsatAnalysis &an, const TPZFMatrix<STATE> &x, REA
         const auto r = an.Solve(0., fixed, {}, true);
         tent.push_back({"srm", 1., F, r.conv, retry, r.iter, Segundos(t0)});
         if (r.conv) {
+            Xant = an.X();
             an.Accept();
             Fok = F;
             if (retry) Ffail = -1.;
@@ -152,6 +173,9 @@ int main() {
     const int pwCsv = envi("PW_CSV", 1), mecCsv = envi("MEC_CSV", 1), camposCsv = envi("CAMPOS_CSV", 1);
     // mecanismo.csv: pontos com sqrt(J2(eps_p)) >= MEC_LIMIAR * maximo; banda de ruptura (fs.csv): >= BANDA_LIMIAR * maximo
     const REAL mecLimiar = envd("MEC_LIMIAR", 0.01), bandaLimiar = envd("BANDA_LIMIAR", 0.1);
+    // massa que desliza (fs.csv): pontos com |du| >= MASSA_LIMIAR * maximo, du o incremento de deslocamento entre os dois
+    // ultimos estados convergidos do SRM (reduzir a resistencia nao muda a parte elastica: du e o do mecanismo)
+    const REAL massaLimiar = envd("MASSA_LIMIAR", 0.5);
 
     // ---- solo (Rahardjo et al. 2007, Tabela 1): c' = 10 kPa, phi' = phi^b = 26 graus, gamma = 20 kN/m3, n = 0.45;
     // Fredlund-Xing com a = 10/50/100 kPa, m = n = 1; k_w = k_s Theta^4 com k_s = 1e-4/1e-5/1e-6 m/s
@@ -229,8 +253,9 @@ int main() {
     auto kPonto = [&](size_t i) { return (*mem)[ips[i]].fKMult; };
 
     // ---- campos de Karhunen-Loeve no retangulo que contem a malha, aplicados a cada ponto
-    std::ofstream info("realizacao.txt");
-    info << std::setprecision(10) << "solo=" << solo << " I_mm_h=" << I_mm_h << " variante=" << variante
+    std::ofstream info(envi("SO_CAMPOS", 0) ? "realizacao_campos.txt" : "realizacao.txt");
+    const std::string versao = envs("SRF_VERSAO", "-"); // o commit compilado (rodar_mc.sh le bin/versao.txt)
+    info << std::setprecision(10) << "versao=" << versao << " solo=" << solo << " I_mm_h=" << I_mm_h << " variante=" << variante
          << " solver=" << (TPZUnsatAnalysis::UsesPardiso() ? "pardiso" : "skyline") << " neq=" << an->NEq()
          << " pontos=" << ips.size() << " real=" << real << " campos=" << campos;
     int Musado = 0;
@@ -398,11 +423,11 @@ int main() {
          "V_agua_m3,face_nos,its_face,newton,normp,eu,pw_min_kPa,pw_max_kPa,seg", true, 10},
         {"fs.csv", &ffs,
          "t_h,FS_SRM,FS_parada,tentativas,newton_fs,u_max_m,pl_pts,epsp_max,banda_pts,banda_area_m2,banda_xc,banda_yc,"
-         "banda_xmin,banda_xmax,banda_ymin,banda_ymax,banda_c,banda_phi_deg,banda_k_mult,inf_acum_m3,V_agua_m3,pw_max_kPa,"
-         "face_nos,seg", true, 10},
+         "banda_xmin,banda_xmax,banda_ymin,banda_ymax,banda_c,banda_phi_deg,banda_k_mult,du_max_m,massa_pts,massa_area_m2,"
+         "massa_xc,massa_yc,massa_c,massa_phi_deg,massa_k_mult,inf_acum_m3,V_agua_m3,pw_max_kPa,face_nos,seg", true, 10},
         {"fs_tentativas.csv", &ften, "t_h,ordem,fase,g,F,convergiu,newton,nova_tentativa,seg", true, 10},
         {"pw.csv", &fpw, "t_h,no,x,y,pw_kPa,pa_kPa,S,superficie,face", pwCsv != 0, 7},
-        {"mecanismo.csv", &fmec, "t_h,FS,ip,x,y,epsp_raizJ2,epsp_xx,epsp_yy,epsp_xy,plastico,c,phi_deg,k_mult", mecCsv != 0, 7}};
+        {"mecanismo.csv", &fmec, "t_h,FS,ip,x,y,epsp_raizJ2,epsp_xx,epsp_yy,epsp_xy,plastico,du_m,c,phi_deg,k_mult", mecCsv != 0, 7}};
 
     // ---- um passo de chuva de t0 a t1, com a face de percolacao (o que estiver com p_w > 0 na superficie fica em p_w = 0
     // enquanto a infiltracao exigida for menor que a chuva); em caso de falha, volta ao estado de t0. Cada passo aceito
@@ -495,7 +520,7 @@ int main() {
         std::string malha = envs("MESH", "");
         malha = malha.substr(malha.find_last_of('/') + 1);
         std::ostringstream a;
-        a << std::setprecision(15) << "v2 solo=" << solo << " I=" << I_mm_h << " variante=" << variante << " malha=" << malha
+        a << std::setprecision(15) << "v3 solo=" << solo << " I=" << I_mm_h << " variante=" << variante << " malha=" << malha
           << " Dt=" << Dt << " Tchuva=" << Tchuva << " Tf=" << Tf << " FS_H=";
         for (double h : fsH) a << h << ';';
         a << " fs=" << fsTol << ',' << F0 << " hl=" << hl << " hr=" << hr << " sucMax=" << sucMax << " vertical=" << verticalRain
@@ -511,7 +536,7 @@ int main() {
         const auto s = sfs::file_size(a, ec);
         return ec ? -1 : (int64_t)s;
     };
-    const int64_t magico = 0x5352464b43484b32LL; // "SRFKCHK2"
+    const int64_t magico = 0x5352464b43484b33LL; // "SRFKCHK3"
     double segAntes = 0.; // tempo das execucoes anteriores desta realizacao, ate o checkpoint de onde esta retomou
     auto salvaCheckpoint = [&](int step, REAL tt) {
         for (const auto &c : csvs) if (c.ativo) c.o->flush();
@@ -540,11 +565,22 @@ int main() {
             f.Write(&magico);
             arq.CloseWrite();
         }
+        // so substitui o checkpoint anterior por um completo e ja no disco (disco cheio, cota, queda de energia)
+        if (!TerminaCom(ckArq + ".tmp", magico)) {
+            std::cerr << "checkpoint.bin.tmp incompleto (disco cheio?): o checkpoint anterior fica\n";
+            std::remove((ckArq + ".tmp").c_str());
+            return;
+        }
+        Sincroniza(ckArq + ".tmp");
         std::rename((ckArq + ".tmp").c_str(), ckArq.c_str());
     };
     std::vector<int64_t> tamanhosCk; // tamanho de cada CSV no checkpoint lido
     auto leCheckpoint = [&](int &step, REAL &tt) -> bool {
         if (tamanho(ckArq.c_str()) < 64) return false;
+        if (!TerminaCom(ckArq, magico)) { // truncado (ou de outra versao): nem tenta ler
+            std::cerr << "checkpoint.bin incompleto ou de outra versao: ignorado\n";
+            return false;
+        }
         TPZBFileStream arq;
         arq.OpenRead(ckArq);
         TPZStream &f = arq;
@@ -622,11 +658,42 @@ int main() {
     // sao os pontos com sqrt(J2) >= BANDA_LIMIAR * maximo (area, centroide, extensao e propriedades medias, ponderadas
     // pela area); os pontos com sqrt(J2) >= MEC_LIMIAR * maximo vao para mecanismo.csv
     struct Banda {
-        int64_t n = 0, pl = 0;
+        int64_t n = 0, pl = 0, mn = 0;
         double epsMax = 0., area = 0., xc = 0., yc = 0., xmin = 0., xmax = 0., ymin = 0., ymax = 0., c = 0., phi = 0., k = 0.;
+        double duMax = 0., marea = 0., mxc = 0., myc = 0., mc = 0., mphi = 0., mk = 0.; // massa que desliza
     };
-    auto analisaMecanismo = [&](REAL th, REAL F) {
+    // du em cada ponto: a media de |du| nos 3 vertices do seu triangulo
+    auto incrementoPontos = [&](const TPZFMatrix<STATE> &X1, const TPZFMatrix<STATE> &X0) {
+        std::map<int64_t, double> no;
+        for (const auto &e : an->DispEq())
+            no[e.first] = std::hypot(an->NodalDisplacement(X1, e.first, 0) - an->NodalDisplacement(X0, e.first, 0),
+                                     an->NodalDisplacement(X1, e.first, 1) - an->NodalDisplacement(X0, e.first, 1));
+        std::vector<double> du(ips.size(), 0.);
+        for (size_t i = 0; i < ips.size(); ++i) {
+            TPZGeoEl *g = gmesh->Element(ipel[i]);
+            double s = 0.;
+            for (int k = 0; k < 3; ++k) {
+                const auto it = no.find(g->NodeIndex(k));
+                if (it != no.end()) s += it->second;
+            }
+            du[i] = s / 3.;
+        }
+        return du;
+    };
+    auto analisaMecanismo = [&](REAL th, REAL F, const std::vector<double> &du) {
         Banda b;
+        for (size_t i = 0; i < ips.size(); ++i) b.duMax = std::max(b.duMax, du[i]);
+        if (b.duMax > 0.) {
+            for (size_t i = 0; i < ips.size(); ++i) {
+                if (du[i] < massaLimiar * b.duMax) continue;
+                const double a = area[i];
+                b.mn++;
+                b.marea += a;
+                b.mxc += a * xs[i]; b.myc += a * ys[i];
+                b.mc += a * cPonto(i); b.mphi += a * phiPonto(i); b.mk += a * kPonto(i);
+            }
+            b.mxc /= b.marea; b.myc /= b.marea; b.mc /= b.marea; b.mphi /= b.marea; b.mk /= b.marea;
+        }
         std::vector<double> r(ips.size());
         for (size_t i = 0; i < ips.size(); ++i) {
             const auto &st = (*mem)[ips[i]].m_elastoplastic_state;
@@ -645,8 +712,8 @@ int main() {
             if (fmec.is_open() && r[i] >= mecLimiar * b.epsMax) {
                 const auto &st = (*mem)[ips[i]].m_elastoplastic_state;
                 fmec << th << ',' << F << ',' << ips[i] << ',' << xs[i] << ',' << ys[i] << ',' << r[i] << ',' << st.m_eps_p.XX()
-                     << ',' << st.m_eps_p.YY() << ',' << st.m_eps_p.XY() << ',' << st.m_m_type << ',' << cPonto(i) << ','
-                     << phiPonto(i) << ',' << kPonto(i) << '\n';
+                     << ',' << st.m_eps_p.YY() << ',' << st.m_eps_p.XY() << ',' << st.m_m_type << ',' << du[i] << ','
+                     << cPonto(i) << ',' << phiPonto(i) << ',' << kPonto(i) << '\n';
             }
             if (r[i] < bandaLimiar * b.epsMax) continue;
             const double a = area[i];
@@ -713,7 +780,8 @@ int main() {
             }
             std::vector<TentativaSRM> tent;
             REAL Fparada = -1.;
-            const REAL F = FactorSRMRetry(*an, estado, F0, fsTol, Fdenso, Fparada, tent);
+            TPZFMatrix<STATE> Xant;
+            const REAL F = FactorSRMRetry(*an, estado, F0, fsTol, Fdenso, Fparada, tent, Xant);
             int newtonF = 0;
             for (size_t k = 0; k < tent.size(); ++k) {
                 const auto &q = tent[k];
@@ -725,7 +793,7 @@ int main() {
             Banda b;
             REAL uMax = -1.;
             if (F > 0.) { // o ultimo estado convergido da busca, com F = FS
-                b = analisaMecanismo(t / hora, F);
+                b = analisaMecanismo(t / hora, F, incrementoPontos(an->X(), Xant));
                 uMax = 0.;
                 for (const auto &e : an->DispEq())
                     uMax = std::max(uMax, std::hypot(an->NodalDisplacement(an->X(), e.first, 0),
@@ -745,12 +813,14 @@ int main() {
             solomat->SetFrozenPressures(false);
             const double seg = Segundos(t0);
             auto se = [](bool ok, double v) { return ok ? Num(v) : std::string(); };
-            const bool mec = F > 0., banda = b.n > 0;
+            const bool mec = F > 0., banda = b.n > 0, massa = b.mn > 0;
             ffs << t / hora << ',' << F << ',' << Fparada << ',' << tent.size() << ',' << newtonF << ',' << se(mec, uMax) << ','
                 << se(mec, b.pl) << ',' << se(mec, b.epsMax) << ',' << se(mec, b.n) << ',' << se(banda, b.area) << ','
                 << se(banda, b.xc) << ',' << se(banda, b.yc) << ',' << se(banda, b.xmin) << ',' << se(banda, b.xmax) << ','
                 << se(banda, b.ymin) << ',' << se(banda, b.ymax) << ',' << se(banda, b.c) << ',' << se(banda, b.phi) << ','
-                << se(banda, b.k) << ',' << infAcum << ',' << Vagua << ',' << pwMax << ',' << saida.size() << ',' << seg << '\n';
+                << se(banda, b.k) << ',' << se(mec, b.duMax) << ',' << se(mec, b.mn) << ',' << se(massa, b.marea) << ','
+                << se(massa, b.mxc) << ',' << se(massa, b.myc) << ',' << se(massa, b.mc) << ',' << se(massa, b.mphi) << ','
+                << se(massa, b.mk) << ',' << infAcum << ',' << Vagua << ',' << pwMax << ',' << saida.size() << ',' << seg << '\n';
             ffs.flush();
             std::cout << "t = " << t / hora << " h: FS = " << F << " (" << seg << " s)" << std::endl;
         }
@@ -760,11 +830,11 @@ int main() {
         }
     }
     for (const auto &c : csvs) if (c.ativo) c.o->close();
-    std::remove(ckArq.c_str());
     const double total = segAntes + Segundos(inicio);
 
     // ---- resumo da realizacao: resumo.csv (cabecalho e uma linha) e resultado.txt; o FS de cada instante e a banda de
-    // ruptura do FS minimo vem de fs.csv, completo tambem depois de retomadas
+    // ruptura do FS minimo vem de fs.csv, completo tambem depois de retomadas. Os dois sao gravados num .tmp renomeado
+    // (resultado.txt marca a realizacao como concluida: nunca fica pela metade) e so depois o checkpoint e apagado
     std::vector<std::string> cab;
     std::vector<std::vector<std::string>> linhas;
     {
@@ -802,7 +872,8 @@ int main() {
     }
     r.push_back({"FS_min", valor(iMin, "FS_SRM")});
     r.push_back({"t_min_h", valor(iMin, "t_h")});
-    for (const char *c : {"banda_area_m2", "banda_xc", "banda_yc", "banda_ymin", "banda_c", "banda_phi_deg", "banda_k_mult"})
+    for (const char *c : {"banda_area_m2", "banda_xc", "banda_yc", "banda_ymin", "banda_c", "banda_phi_deg", "banda_k_mult",
+                          "massa_area_m2", "massa_xc", "massa_yc", "massa_c", "massa_phi_deg", "massa_k_mult"})
         r.push_back({c, valor(iMin, c)});
     int64_t newtonFS = 0;
     for (int i = 0; i < (int)linhas.size(); ++i) newtonFS += std::atol(valor(i, "newton_fs").c_str());
@@ -816,16 +887,27 @@ int main() {
     r.push_back({"seg", Num(total)});
     r.push_back({"memoria_MB", Num(PicoMemoriaMB())});
     {
-        std::ofstream o("resumo.csv");
+        std::string v = versao;
+        std::replace(v.begin(), v.end(), ',', ';');
+        std::replace(v.begin(), v.end(), ' ', '_');
+        r.push_back({"versao", v});
+    }
+    {
+        std::ofstream o("resumo.csv.tmp");
         for (size_t i = 0; i < r.size(); ++i) o << (i ? "," : "") << r[i].first;
         o << '\n';
         for (size_t i = 0; i < r.size(); ++i) o << (i ? "," : "") << r[i].second;
         o << '\n';
     }
+    std::rename("resumo.csv.tmp", "resumo.csv");
     const std::string fsMin = valor(iMin, "FS_SRM"), tMin = valor(iMin, "t_h");
-    std::ofstream res("resultado.txt");
-    res << "real=" << real << " FS_min=" << fsMin << " t_min_h=" << tMin << " situacao=" << situacao << " passos=" << nPassos
-        << " cortes=" << nCortes << " newton=" << newtonTotal << " seg=" << Num(total) << '\n';
+    {
+        std::ofstream res("resultado.txt.tmp");
+        res << "real=" << real << " FS_min=" << fsMin << " t_min_h=" << tMin << " situacao=" << situacao << " passos=" << nPassos
+            << " cortes=" << nCortes << " newton=" << newtonTotal << " seg=" << Num(total) << '\n';
+    }
+    std::rename("resultado.txt.tmp", "resultado.txt");
+    std::remove(ckArq.c_str());
     std::cout << "real " << real << ": FS_min = " << fsMin << " em t = " << tMin << " h, " << situacao << ", " << total << " s"
               << std::endl;
     delete an;

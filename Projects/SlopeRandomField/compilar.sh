@@ -14,10 +14,32 @@ if [ "$USAR_MKL" = ON ]; then ARGS+=(-DMKL_THREAD_MODEL="${MKL_THREAD_MODEL:-seq
 CATCH2="$PKG/../LearningMohrCoulomb2/cluster/deps/Catch2"
 [ -f "$CATCH2/CMakeLists.txt" ] && ARGS+=(-DFETCHCONTENT_SOURCE_DIR_CATCH2="$CATCH2")
 [ -f "$BUILD/CMakeCache.txt" ] || ARGS+=(-G "Unix Makefiles")
+# o executavel em bin/ carrega a libpz.so de $BUILD: recompilar com realizacoes rodando (aqui ou em jobs) as deixaria com
+# a biblioteca nova e o executavel velho. FORCAR=1 compila mesmo assim
+if [ -z "${FORCAR:-}" ]; then
+    if pgrep -f "$PKG/bin/SlopeRandomField" > /dev/null 2>&1; then
+        echo "ha realizacoes rodando nesta maquina com $PKG/bin/SlopeRandomField: espere terminarem (ou FORCAR=1)" >&2
+        exit 1
+    fi
+    if command -v squeue > /dev/null; then
+        if ! fila="$(squeue -h -u "${USER:-$(id -un)}" -n slopeRF -o %i 2>&1)"; then
+            echo "o squeue nao respondeu ($fila): sem saber se ha jobs usando a libpz.so de $BUILD, nao compila (ou FORCAR=1)" >&2
+            exit 1
+        fi
+        if [ -n "$fila" ]; then
+            echo "ha jobs slopeRF no SLURM usando a libpz.so de $BUILD: espere terminarem (ou FORCAR=1)" >&2
+            exit 1
+        fi
+    fi
+fi
 cmake "${ARGS[@]}"
 cmake --build "$BUILD" --target SlopeRandomField -j "${JOBS:-4}"
 # troca atomica: realizacoes rodando continuam com o executavel antigo
 mkdir -p "$PKG/bin"
 cp "$BUILD/Projects/SlopeRandomField/SlopeRandomField" "$PKG/bin/.SlopeRandomField.novo"
 mv -f "$PKG/bin/.SlopeRandomField.novo" "$PKG/bin/SlopeRandomField"
+# a versao: o commit do git (com "+mod" se havia alteracoes locais) e a data; vai para o resumo.csv de cada realizacao
+v="$(git -C "$NEOPZ" rev-parse --short HEAD 2>/dev/null || echo sem_git)"
+[ -n "$(git -C "$NEOPZ" status --porcelain --untracked-files=no 2>/dev/null)" ] && v="$v+mod"
+echo "$v $(date '+%F_%T')" > "$PKG/bin/versao.txt"
 echo "Compilado: $PKG/bin/SlopeRandomField"

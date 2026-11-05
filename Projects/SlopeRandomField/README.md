@@ -67,10 +67,14 @@ que já estão rodando continuam com o executável antigo.
 ```bash
 SOLO=f50 I_MM_H=36 ./rodar_mc.sh 0 9            # 10 realizacoes, uma por nucleo fisico
 CAMPOS=0 SOLO=f50 I_MM_H=36 ./rodar_mc.sh 0 0   # caso deterministico (medias), para comparar
+COMBS="f10:9 f50:80" DET=1 ./rodar_mc.sh 0 99   # varias combinacoes numa fila so, com os deterministicos
 ./resumo_mc.sh resultados_mc/f50_I36_iii        # P_f, estatistica do FS e correlacoes
 python3 plot_mc.py resultados_mc/f50_I36_iii resultados_mc/f50_I36_iii_det
 python3 plot_realizacao.py resultados_mc/f50_I36_iii/r00003
 ```
+
+Com `COMBS`, as realizações das combinações vão intercaladas (a 0 de todas, depois a 1...): se a rodada for cortada,
+todas as combinações ficam com o mesmo número de realizações. `DET=1` põe antes o caso determinístico de cada uma.
 
 Os casos de Rahardjo (Série A, 45°):
 
@@ -86,6 +90,33 @@ Cada combinação tem o seu próprio Monte Carlo, porque cada uma é um problema
 
 - `rodar_mc.sh` pula as realizações que já têm `resultado.txt`. Para continuar um Monte Carlo interrompido (Ctrl-C,
   queda de energia, reinício da máquina), rode o mesmo comando de novo.
+- Cada realização em andamento tem um dono: `r<nnnnn>/.ativo/dono` guarda a máquina, o processo e o job do SLURM.
+  - Uma realização com dono vivo é pulada, então vários `rodar_mc.sh` ou vários jobs, em nós diferentes, podem dividir a
+    mesma fila sem repetir nada.
+  - A de um dono morto volta para a fila e continua do checkpoint: um processo que caiu (inclusive um zumbi ainda não
+    recolhido), uma máquina reiniciada ou um job que acabou.
+  - Um job que o SLURM dá como acabado só conta como morto depois de `INATIVO_MIN` minutos (padrão 30) sem mudança na
+    pasta da realização. Um nó que perdeu contato com o controlador (`NODE_FAIL`) pode estar com os processos vivos,
+    gravando.
+  - Um job que o SLURM recoloca na fila (mesmo número, outra vez) retoma as próprias realizações.
+  - Sem resposta do `squeue`, nenhuma trava é tomada, e a fila espera.
+  - Cada processo só apaga a própria trava.
+  - A trava é um `mkdir`, atômico também no NFS e no GlusterFS do fermi.
+- Uma realização que termina com erro (sem `resultado.txt`) volta para a fila. Na `MAX_FALHAS`-ésima vez (padrão 3),
+  fica marcada em `falhou.txt` e não é mais tentada.
+  - Ctrl-C, o limite de tempo do job e o `scancel` não contam como falha.
+  - Um SIGKILL só no programa conta, em geral o OOM killer, por falta de memória.
+  - Para tentar de novo: `find <SAIDA> -name falhou.txt -delete; find <SAIDA> -name falhas -delete`.
+- **Disjuntor:** muitas falhas seguidas numa máquina, sem nenhum sucesso (2 × `PARALELO`, ou `DISJUNTOR`), indicam um
+  problema do ambiente (executável, malha, bibliotecas, disco), não das realizações. A instância para de pegar
+  realizações, antes de marcar a fila, e mostra o fim do `run.err`.
+- **Parâmetros:** cada combinação guarda em `parametros.txt` os parâmetros do programa com que foi rodada. Outra rodada
+  na mesma pasta com outros parâmetros (malha, `FS_H`, CoV, semente...) misturaria resultados e é recusada. Use outra
+  `SAIDA`, ou uma entrada de `COMBS` com as trocas (abaixo).
+- **Recompilar:** o executável em `bin/` carrega a `libpz.so` de `build/`, então não recompile com realizações rodando.
+  `compilar.sh` e `submeter_mc.sh` recusam enquanto houver (`FORCAR=1` passa por cima).
+- Com o arquivo `resultados_mc/PARAR`, nenhuma realização nova começa: as que estão rodando terminam, e o
+  `rodar_mc.sh` acaba. Para retomar, apague-o e rode o mesmo comando de novo. No fermi, o `submeter_mc.sh` apaga sozinho.
 - Uma realização interrompida no meio continua do seu `checkpoint.bin`, sem refazer o que já foi calculado. O
   checkpoint é gravado depois de cada FS e a cada `CHECKPOINT_MIN` minutos (padrão 5). Ele guarda a solução, a memória
   de todos os pontos de integração (tensões, deformações plásticas, c', φ', k), a face de percolação, o tempo, os
@@ -115,14 +146,135 @@ Cada combinação tem o seu próprio Monte Carlo, porque cada uma é um problema
 | `CAMPOS_VTK` | 0 | 1 grava `campos.vtk` (ParaView): c', φ', k_v, log₁₀ k_v e k_h por triângulo (média dos seus 3 pontos) |
 | `VTK_H` | vazio | instantes (h) em que o mecanismo de ruptura do SRM vai para `ruptura_pontos.scal_vec.<passo>.vtk` |
 | `SO_CAMPOS` | 0 | 1 só gera os campos (`campos.vtk` e `campos.csv`), sem simular; com a mesma `SEMENTE` e o mesmo `REAL`, o campo é o mesmo |
+| `COMBS`, `DET` | `SOLO:I_MM_H`, 0 | combinações (`solo:chuva[:VAR=valor,...]`, separadas por espaço) numa fila só; 1 inclui os determinísticos |
+| `MASSA_LIMIAR` | 0.5 | a massa que desliza: pontos com \|Δu\| ≥ limiar × máximo (Δu: o último incremento do SRM) |
 | `PARALELO` | núcleos físicos | realizações ao mesmo tempo |
 | `MAX_CORTES` | 4 | divisões de um passo que não converge |
+| `MAX_FALHAS` | 3 | tentativas de uma realização que termina com erro, antes de marcá-la em `falhou.txt` |
+| `ABANDONO_H` | 6 | dono em outra máquina, fora do SLURM: abandonado depois de tantas horas sem mudança na pasta |
+| `INATIVO_MIN` | 30 | dono de um job que o SLURM dá como acabado: morto depois de tantos minutos sem mudança na pasta |
 
-No fermi, cada combinação vai num job de um nó:
+## Rodar no fermi
+
+Os casos de Rahardjo vão todos numa fila só, que os jobs (um nó inteiro cada, 12 realizações ao mesmo tempo) dividem.
+Por padrão são as 8 combinações além de f50:36, com 1000 realizações cada, mais os determinísticos.
+`submeter_mc.sh` faz tudo e volta em segundos:
+- compila no nó de login, em segundo plano, se o executável não existe ou é mais velho que os fontes; os nós de
+  computação não têm cmake;
+- depois submete os jobs.
 
 ```bash
-SOLO=f50 I_MM_H=36 PRIMEIRA=0 ULTIMA=99 sbatch job_mc.sbatch
+cd ~/neopz-master && git pull origin UnsaturatedSoil && cd Projects/SlopeRandomField
 ```
+
+```bash
+./submeter_mc.sh 4
+```
+
+- **Quantos nós:** o argumento é o número de jobs (nós), padrão 4. Os que a cota de CPUs não deixar rodar ficam
+  esperando (`QOSMaxCpuPerUserLimit`) e entram quando outro acabar.
+- **Mais nós depois:** rodar `submeter_mc.sh` de novo acrescenta jobs à mesma fila. Se um `git pull` tiver trazido
+  fontes novos, ele recusa recompilar com jobs na fila (a `libpz.so` deles mudaria). Para acrescentar nós com o
+  executável atual: `FORCAR_SEM_COMPILAR=1 ./submeter_mc.sh 2`.
+- **Na primeira vez:** ele compila em segundo plano. Um segundo pedido durante a compilação é recusado (só o primeiro
+  é submetido ao fim): repita-o depois. Um fonte trocado durante a compilação faz a cadeia compilar de novo antes de
+  submeter.
+- **Avisos:** o que impediu jobs de rodar fica em `$DATA/monte_carlo/AVISOS`, que o `status_mc.sh` mostra:
+  - a cota recusou a submissão ou a continuação;
+  - os parâmetros diferem dos de `parametros.txt`;
+  - faltam bibliotecas num nó;
+  - o disjuntor parou uma instância.
+- **Cota de jobs:** se o SLURM recusar um job (`QOSMaxSubmitJobPerUserLimit`), os já aceitos seguem.
+- **Limite de tempo:** cada job vai até 4 dias (`TEMPO`, o máximo da partição `short`). Quando faltam 15 min, deixa de
+  começar realizações e submete a sua continuação, que espera ele acabar e retoma as interrompidas dos checkpoints.
+  - Uma interrompida só fica livre 30 min depois de parar (`INATIVO_MIN`). A continuação roda primeiro o resto da fila
+    e a pega na passada seguinte; até lá, o status a mostra como interrompida.
+  - Se a cota recusar a continuação, o `status_mc.sh` avisa. Basta rodar `submeter_mc.sh` de novo quando houver vaga.
+- **Estimativa:** uma realização leva cerca de 20 min no fermi. Um nó faz cerca de 36 por hora, e as 8000 realizações
+  dão uns 9 dias-nó: 2,3 dias com 4 nós rodando juntos e 4,6 dias com 2.
+- **Onde ficam os resultados:** em `$DATA/monte_carlo`. O manual do fermi manda rodar os jobs a partir de `$DATA`, a
+  partição de dados. Ela é temporária e sem backup: copie os resultados para o PC (ou para o `$HOME`) ao terminar. Sem
+  `$DATA`, ficam em `resultados_mc` nesta pasta, e `SAIDA` troca o lugar.
+- **Disco:** cerca de 10 GB, 1,2 MB por realização. A cota é de 512 GB em `$DATA` e em `$HOME` (`quota -s`).
+
+Acompanhar (por combinação: concluídas, rodando, esperando, falhas, tempo por realização, FS mínimo médio, P_f até
+agora e o fim estimado):
+
+```bash
+./status_mc.sh
+```
+
+Parar sem perder nada:
+- `touch $DATA/monte_carlo/PARAR`: nenhuma realização nova começa, e os jobs terminam as que estão rodando e acabam;
+- ou `scancel -n slopeRF`: as interrompidas continuam do checkpoint;
+- e, se uma compilação em segundo plano ainda vai submeter jobs, `kill -- -<pid>` com o pid de `logs/compilar_mc.pid`.
+
+Para retomar: `./submeter_mc.sh <nós>`. Ele apaga o `PARAR`.
+
+Baixar para o PC: o `status_mc.sh` mostra no fim o comando `rsync`, com o caminho de `$DATA` no fermi. Rode-o no PC,
+não no fermi. Pode ser no meio da rodada; o `rsync` só traz o que mudou. Ele tem esta forma:
+
+```bash
+rsync -av --exclude checkpoint.bin --exclude .ativo --exclude .tomada --exclude '.parar.*' --exclude /PARAR --exclude /execucoes.txt --exclude /campanha.txt diogo@fermi.cesup.ufrgs.br:<$DATA>/monte_carlo/ ~/projects/runs/monte_carlo/
+```
+
+A realização n usa os mesmos números aleatórios em todas as combinações: os mesmos campos de c' e φ' e o mesmo
+multiplicador k/k_s em f10, f50 e f100, com qualquer chuva. As diferenças de P_f entre combinações vêm então do solo e
+da chuva, não de amostras diferentes.
+
+Variáveis (vão para os jobs): `COMBS`, `PRIMEIRA`, `ULTIMA` (padrão 0..999), `DET` (padrão 1), `SAIDA` (padrão
+`$DATA/monte_carlo`), `TEMPO`, `PARTICAO`, `RECOMPILAR=1` e as do programa (`VARIANTE`, `MALHA`, `FS_H`, ...). A mão, um job:
+`COMBS="f10:9 f50:80" PRIMEIRA=0 ULTIMA=999 DET=1 sbatch job_mc.sbatch`.
+
+## Análise de sensibilidade
+
+A seção 6 de Vargas Ceron et al. (2025), adaptada à chuva:
+
+| Seção | Estudo | Como |
+|---|---|---|
+| 6.1 | correlação de Spearman entre o FS e c', φ', k | `sensibilidade_mc.py`, com os CSV de qualquer campanha |
+| 6.2 | efeito do CoV de c' (10 a 70%), φ' (5 a 20%) e k_v (0 a 100%) | uma entrada de `COMBS` por caso, `COV_C`, `COV_PHI`, `COV_K` |
+| 6.3 | distâncias de autocorrelação (L_x, L_y) = s × (20 m, 2 m), s de 1 a 400 | `LX`, `LY` |
+| 6.4 | anisotropia α = k_h/k_v | `ALFA` |
+
+**Correlação de Spearman (6.1):**
+- Como em Hu et al. e no Ceron, cada campo vira um valor por realização:
+  - c' e φ' médios ao longo da superfície de ruptura, que é a banda de deformação plástica (`banda_c`, `banda_phi_deg`);
+  - k médio da massa acima dela, a massa que desliza (`massa_k_mult`).
+- A massa são os pontos com o maior incremento de deslocamento entre os dois últimos estados convergidos do SRM.
+  Reduzir a resistência não muda a parte elástica, então esse incremento é o do mecanismo.
+- `sensibilidade_mc.py <pasta>` dá:
+  - a correlação de postos de 1ª ordem e a parcial de 2ª ordem, controlando as outras duas (eqs. 70-71, Fig. 26), com
+    o intervalo de 95%;
+  - para comparar, o mesmo com as médias no solo inteiro.
+- `--t 24` usa o FS em t = 24 h, em vez do FS mínimo.
+
+**Casos de CoV, L e α (6.2 a 6.4):**
+- Cada caso é uma entrada de `COMBS` com as suas trocas e vai para a sua pasta. Os casos de uma combinação dividem uma
+  fila só:
+
+```bash
+SAIDA=$DATA/sensibilidade COMBS="f50:36 f50:36:COV_C=0.1 f50:36:COV_C=0.5 f50:36:COV_C=0.7 f50:36:COV_PHI=0.05 f50:36:COV_PHI=0.15 f50:36:COV_PHI=0.2 f50:36:COV_K=0 f50:36:COV_K=0.75 f50:36:COV_K=0.9 f50:36:COV_K=1" PRIMEIRA=0 ULTIMA=499 DET=0 FS_H=24 ./submeter_mc.sh 4
+```
+
+```bash
+SAIDA=$DATA/sensibilidade ./status_mc.sh
+```
+
+- Use uma `SAIDA` própria, para não se misturar com a campanha principal no `status_mc.sh`.
+- O caso de referência (a entrada sem trocas, `f50:36`) vai junto, com o mesmo `FS_H`.
+- `sensibilidade_mc.py <pasta> <pasta> ...` dá a tabela por caso (N, média, desvio e CoV do FS, P_f e CoV(P_f), como nas
+  tabelas 3 a 5) e a densidade do FS de cada caso (Fig. 27).
+- A realização n usa os mesmos números aleatórios em todos os casos, então as diferenças entre casos têm muito menos
+  ruído que cada P_f sozinho.
+- **Custo:**
+  - Uma realização leva cerca de 20 min no fermi, contra segundos na análise limite do Ceron. Os 10 000 ciclos por caso
+    dele não cabem aqui.
+  - Com `FS_H=24`, o transiente vai só até 24 h e há um FS só: cerca de 8 min. Vale se o FS mínimo da combinação cai
+    em 24 h, o fim da chuva; confira `t_min_h` no `mc_resumo.csv` da campanha principal. Foi o caso em todos os testes
+    de f50 com 36 mm/h.
+  - 500 realizações por caso bastam para as correlações (IC de ±0,09) e para P_f a partir de ~5% (CoV(P_f) de ~20%).
+  - Os 20 casos de 6.2 a 6.4 dão então ~4,6 dias-nó: pouco mais de 1 dia com 4 nós.
 
 ## Saídas
 
@@ -138,11 +290,11 @@ tempos em horas e durações (`seg`) em segundos.
 | `fs_tentativas.csv` | solução da busca do SRM | `t_h`, `ordem`, `fase` (`gravidade`: os 4 passos de carga com c'/0,6; `srm`: cada F), `g`, `F`, `convergiu`, `newton`, `nova_tentativa`, `seg` |
 | `passos.csv` | passo do transiente | balanço de água e convergência (abaixo) |
 | `pw.csv` | nó e instante do FS | `t_h`, `no`, `x`, `y`, `pw_kPa`, `pa_kPa`, `S` (saturação), `superficie` (1 = nó da superfície), `face` (1 = na face de percolação, p_w = 0 imposto) |
-| `mecanismo.csv` | ponto plastificado e instante do FS | o último estado convergido do SRM (F = FS): `t_h`, `FS`, `ip`, `x`, `y`, `epsp_raizJ2` (√J2 da deformação plástica), `epsp_xx`, `epsp_yy`, `epsp_xy` (distorção de engenharia), `plastico` (tipo de retorno no último passo; 0 = elástico), `c`, `phi_deg`, `k_mult`; só os pontos com √J2 ≥ `MEC_LIMIAR` × máximo |
+| `mecanismo.csv` | ponto plastificado e instante do FS | o último estado convergido do SRM (F = FS): `t_h`, `FS`, `ip`, `x`, `y`, `epsp_raizJ2` (√J2 da deformação plástica), `epsp_xx`, `epsp_yy`, `epsp_xy` (distorção de engenharia), `plastico` (tipo de retorno no último passo; 0 = elástico), `du_m` (\|Δu\| do último incremento do SRM), `c`, `phi_deg`, `k_mult`; só os pontos com √J2 ≥ `MEC_LIMIAR` × máximo |
 | `campos.csv` | ponto de integração | `ip`, `x`, `y`, `area` (peso × det J, m²), `c`, `phi_deg`, `k_mult` |
 | `triangulos.csv` | triângulo da malha | `n0`, `n1`, `n2`: os nós (de `pw.csv`) de cada triângulo |
 | `resultado.txt` | | FS mínimo e situação, em `chave=valor`; marca a realização como concluída |
-| `realizacao.txt` | | parâmetros, termos de KL, variância retida e médias dos campos |
+| `realizacao.txt` | | versão do programa, parâmetros, termos de KL, variância retida e médias dos campos |
 | `run.log`, `run.err` | | saída do programa |
 
 Com a malha padrão e 5 instantes de FS, uma realização ocupa cerca de 1,2 MB, ou 1,2 GB a cada 1000 realizações:
@@ -156,9 +308,12 @@ Os campos de qualquer realização podem ser refeitos depois com `SO_CAMPOS=1`.
 **`resumo.csv`**: `real`, `solo`, `I_mm_h`, `variante`, `campos`, `semente`, `KL_M`, `KL_variancia`, `cov_c`, `cov_phi`,
 `cov_k`, `Lx`, `Ly`, `alfa`, `area_solo_m2`; média, desvio, mínimo e máximo de cada campo no solo, ponderados pela
 área (`c_med`, `c_dp`, `c_min`, `c_max`, e o mesmo para `phi` e `k_mult`); `FS_<t>h` em cada instante; `FS_min` e
-`t_min_h`; a banda de ruptura no instante do FS mínimo (`banda_area_m2`, `banda_xc`, `banda_yc`, `banda_ymin`,
-`banda_c`, `banda_phi_deg`, `banda_k_mult`); `inf_total_m3`; `situacao`; `passos`, `cortes`, `newton` (transiente) e
-`newton_fs`; `retomadas`; `seg` (o tempo de cálculo, somando as execuções retomadas); `memoria_MB` (pico).
+`t_min_h`; a banda de ruptura e a massa que desliza no instante do FS mínimo (`banda_area_m2`, `banda_xc`, `banda_yc`,
+`banda_ymin`, `banda_c`, `banda_phi_deg`, `banda_k_mult`, `massa_area_m2`, `massa_xc`, `massa_yc`, `massa_c`,
+`massa_phi_deg`, `massa_k_mult`); `inf_total_m3`; `situacao`; `passos`, `cortes`, `newton` (transiente) e
+`newton_fs`; `retomadas`; `seg` (o tempo de cálculo, somando as execuções retomadas); `memoria_MB` (pico); `versao`
+(o commit compilado, de `bin/versao.txt`, com `+mod` se havia alterações locais). Pela `versao` dá para ver se todas
+as realizações de uma combinação saíram do mesmo programa.
 
 **`fs.csv`**:
 - `t_h`, `FS_SRM` (−1: sem equilíbrio nem com c'/0,6 e tan φ'/0,6), `FS_parada` (onde o SRM sem nova tentativa
@@ -170,6 +325,11 @@ Os campos de qualquer realização podem ser refeitos depois com `SO_CAMPOS=1`.
     - número de pontos (`banda_pts`), área (`banda_area_m2`) e centroide (`banda_xc`, `banda_yc`);
     - extensão (`banda_xmin`, `banda_xmax`, `banda_ymin`, `banda_ymax`);
     - c', φ' e k médios na banda (`banda_c`, `banda_phi_deg`, `banda_k_mult`).
+  - A massa que desliza, os pontos com \|Δu\| ≥ `MASSA_LIMIAR` × máximo. Δu é o incremento de deslocamento entre os dois
+    últimos estados convergidos do SRM, que fica concentrado no bloco em rotação acima da banda:
+    - `du_max_m`, o maior \|Δu\|;
+    - número de pontos (`massa_pts`), área (`massa_area_m2`) e centroide (`massa_xc`, `massa_yc`);
+    - c', φ' e k médios na massa (`massa_c`, `massa_phi_deg`, `massa_k_mult`).
 - O estado hidráulico no instante: `inf_acum_m3`, `V_agua_m3` (água no solo), `pw_max_kPa` e `face_nos`.
 - `seg`.
 
@@ -210,6 +370,7 @@ Os campos de qualquer realização podem ser refeitos depois com `SO_CAMPOS=1`.
   - c' com a banda e o mecanismo (√J2).
   - O instante padrão é o do FS mínimo.
 - `plot_campos.py <campos.csv>` desenha os três campos de uma realização.
+- `sensibilidade_mc.py <pasta> [<pasta> ...]`: a análise de sensibilidade (seção acima).
 - **ParaView:**
   - `campos.vtk` mostra os campos aleatórios de uma realização: colorir por `coesao_kPa`, `atrito_graus` ou `log10_k_v`.
   - `ruptura_pontos.scal_vec.<passo>.vtk` mostra o último estado que convergiu na busca do SRM, com c'/F e tan φ'/F.

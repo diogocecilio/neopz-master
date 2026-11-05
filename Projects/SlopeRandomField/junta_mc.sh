@@ -9,6 +9,9 @@
 # Refeito do zero a partir das pastas a cada chamada (troca atomica), entao pode rodar durante o Monte Carlo;
 # rodar_mc.sh, resumo_mc.sh e plot_mc.py o chamam.
 set -u
+MAQ="$(hostname -s 2>/dev/null || uname -n)"
+MAQ="${MAQ%%.*}"
+export LC_ALL=C # numeros com ponto decimal em qualquer locale (awk, printf)
 # junta <saida> <arquivos...>: dois passes do awk, o 1o so le os cabecalhos (uniao das
 # colunas, na ordem em que aparecem) e o 2o escreve cada linha nessa ordem
 junta() {
@@ -27,7 +30,7 @@ junta() {
             for (j = 1; j <= nu; j++) o[j] = ""
             for (i = 1; i <= nc && i <= nv; i++) if (nome[i] in pos) o[pos[nome[i]]] = v[i]
             printf "%d", r; for (j = 1; j <= nu; j++) printf ",%s", o[j]; printf "\n"
-        }' passo=1 "$@" passo=2 "$@" > "$saida.tmp" && mv -f "$saida.tmp" "$saida"
+        }' passo=1 "$@" passo=2 "$@" > "$saida.tmp.$MAQ.$$" && mv -f "$saida.tmp.$MAQ.$$" "$saida"
 }
 for D in "$@"; do
     [ -d "$D" ] || { echo "$D: nao e uma pasta" >&2; continue; }

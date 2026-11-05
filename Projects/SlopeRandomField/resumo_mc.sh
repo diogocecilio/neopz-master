@@ -4,6 +4,7 @@
 # CoV da estimativa, sqrt((1 - P_f) / (N P_f)) (Vargas Ceron et al. 2025, eq. 68); depois o mesmo para o FS minimo de
 # cada realizacao e a correlacao (Pearson) do FS minimo com as medias dos campos no solo e na banda de ruptura. FS = -1
 # (sem equilibrio nem com c'/0.6) conta como ruptura e fica fora da media e das correlacoes.
+export LC_ALL=C # numeros com ponto decimal em qualquer locale (awk, printf)
 PKG="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 for D in "$@"; do
     "$PKG/junta_mc.sh" "$D" > /dev/null
@@ -28,8 +29,8 @@ for D in "$@"; do
         }
         {
             if ($(c["FS_min"]) == "") next
+            if ($(c["situacao"]) != "ok") { nok++; next } # transiente interrompido: o FS_min e o de antes da parada
             F = $(c["FS_min"]) + 0; N++; if (F < 1) f++
-            if ($(c["situacao"]) != "ok") nok++
             seg += $(c["seg"]); cortes += $(c["cortes"]); if ("retomadas" in c) ret += $(c["retomadas"])
             if (F <= 0) next
             m++; s += F; q += F * F
@@ -43,7 +44,7 @@ for D in "$@"; do
             mu = m ? s / m : 0; dp = m > 1 ? sqrt((q - m * mu * mu) / (m - 1)) : 0; pf = N ? f / N : 0
             printf "FS minimo de cada realizacao: media %.4f, desvio %.4f; P_f = %.4f", mu, dp, pf
             if (pf > 0) printf " (CoV %.3f)", sqrt((1 - pf) / (N * pf))
-            printf "\n%d realizacoes, %d com o transiente interrompido, %d cortes de passo, %d retomadas; %.1f min por realizacao\n",
+            printf "\n%d realizacoes (mais %d com o transiente interrompido, fora desta conta), %d cortes de passo, %d retomadas; %.1f min por realizacao\n",
                    N, nok, cortes, ret, N ? seg / N / 60 : 0
             linha = ""
             for (j = 1; j <= nv; j++) {
