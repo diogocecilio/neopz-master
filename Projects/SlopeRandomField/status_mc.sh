@@ -65,7 +65,7 @@ estado_dono() {
     else echo morto
     fi
 }
-det_c=0 det_f=0 det_t=0 tot_inc=0
+det_c=0 det_f=0 det_t=0 tot_inc=0 limite=()
 printf '%-24s %8s %7s %7s %7s %9s %6s %6s %8s %8s %7s\n' combinacao "FS det" concl rodando espera "(interr.)" falhou total \
     "min/real" "FS_min" P_f
 tot_c=0 tot_r=0 tot_e=0 tot_f=0 tot_t=0 soma_min=0 nmin=0
@@ -102,7 +102,7 @@ while read -r sc D DD; do
                       n = v["real"] + 0; if (n < a || n > b) next
                       if (v["seg"] != "") { s += v["seg"]; ns++ }
                       if (v["situacao"] != "" && v["situacao"] != "ok") { inc++; next }
-                      if (v["FS_min"] != "") { F = v["FS_min"] + 0; nf++; if (F < 1) pf++; if (F > 0) { sf += F; nfs++ } } next }
+                      if (v["FS_min"] != "") { F = v["FS_min"] + 0; nf++; if (F < 1) pf++; if (F < 1.01) pl++; if (F > 0) { sf += F; nfs++ } } next }
         END {
             for (n = a; n <= b; n++) {
                 if (n in ok) c++
@@ -110,10 +110,13 @@ while read -r sc D DD; do
                 else if ((n in dono) && dono[n] != "morto") r++
                 else { e++; if (n in ck) it++ }
             }
-            printf "%d %d %d %d %d %d %.1f %d %s %s %d\n", c, r, e, it, f, b - a + 1, ns ? s / ns / 60 : 0, ns,
-                   nfs ? sprintf("%.4f", sf / nfs) : "-", nf ? sprintf("%.4f", pf / nf) : "-", inc
+            printf "%d %d %d %d %d %d %.1f %d %s %s %d %s\n", c, r, e, it, f, b - a + 1, ns ? s / ns / 60 : 0, ns,
+                   nfs ? sprintf("%.4f", sf / nfs) : "-", nf ? sprintf("%.4f", pf / nf) : "-", inc, nf ? sprintf("%.4f", pl / nf) : "-"
         }')"
-    read -r c r e it f t mmin nmn fsm pf inc <<< "$linha"
+    read -r c r e it f t mmin nmn fsm pf inc plim <<< "$linha"
+    # variantes acopladas com a resistencia real no transiente (F_TRANS = 1, o padrao): o FS do SRM nao cai abaixo de 1
+    ft="$(sed -n 's/^F_TRANS=//p' "$D/parametros.txt" 2>/dev/null)"
+    case "$VARIANTE" in i | ii) if [ -z "$ft" ] || [ "$ft" = 1 ]; then [ "$plim" != - ] && limite+=("$(basename "$D") $plim"); fi ;; esac
     tot_inc=$((tot_inc + inc))
     printf '%-24s %8s %7d %7d %7d %9s %6d %6d %8s %8s %7s\n' "$(basename "$D")" "$fsdet" "$c" "$r" "$e" "($it)" "$f" "$t" \
         "$([ "$nmn" -gt 0 ] && echo "$mmin" || echo -)" "$fsm" "$pf"
@@ -123,6 +126,11 @@ done < <(COMBS="$COMBS" DET="$DET" VARIANTE="$VARIANTE" SAIDA="$SAIDA" ./rodar_m
 media="$(awk -v s="$soma_min" -v k="$nmin" 'BEGIN { if (k) printf "%.1f", s / k; else print "-" }')"
 echo "total: $tot_c de $tot_t concluidas, $tot_r rodando, $tot_e esperando, $tot_f falharam; $media min por realizacao"
 [ "$det_t" -gt 0 ] && echo "deterministicos: $det_c de $det_t concluidos, $det_f falharam"
+if [ ${#limite[@]} -gt 0 ]; then
+    echo "variante $VARIANTE com F_TRANS = 1: o FS do SRM nao cai abaixo de 1 (o transiente segura o talude no limite), entao"
+    echo "  P_f = P(FS_min < 1) subestima a ruptura. Chegaram ao limite, P(FS_min < 1.01): $(printf '%s, ' "${limite[@]}" |
+        sed 's/, $//'). Ver F_TRANS no README.md"
+fi
 [ "$tot_inc" -gt 0 ] && echo "$tot_inc realizacoes concluidas com o transiente interrompido (situacao != ok; * no FS det):" \
     "fora do FS_min e de P_f (veja run.err delas)"
 ntent="$(find "$SAIDA" -mindepth 3 -maxdepth 3 -name falhas 2>/dev/null | wc -l)"

@@ -167,6 +167,14 @@ int main() {
     const REAL hl = envd("HL", ytoe - Hw + (xtoe - xl) * std::tan(beta)), hr = envd("HR", ytoe - Hw + (xtoe - xr) * std::tan(beta));
     const int verticalRain = envi("CHUVA_VERTICAL", 0);
     const REAL fsTol = envd("FS_TOL", 0.01), F0 = envd("FS_F0", 0.6);
+    // F_TRANS: fator de reducao de resistencia durante o transiente das variantes acopladas (i e ii; na iii o esqueleto e
+    // rigido e nao plastifica). 1: a resistencia real. Entao cada estado do transiente esta em equilibrio com ela e, com
+    // fluxo associado (teorema do limite inferior), o FS do SRM com essas pressoes fica >= 1: quando a chuva levaria o
+    // talude abaixo de 1, ele plastifica, a dilatancia (psi = phi') baixa p_w na zona de ruptura (a succao sobe) e o segura
+    // no limite. < 1 (por exemplo 0.5, c' e tan(phi') dobrados): o esqueleto nao plastifica no transiente, o acoplamento
+    // hidromecanico (elastico) e o ar continuam, e o SRM depois usa a resistencia real: o FS pode ficar abaixo de 1
+    const REAL fTrans = envd("F_TRANS", 1.);
+    if (!(fTrans > 0.)) { std::cerr << "F_TRANS deve ser > 0\n"; return 2; }
     const int maxCortes = envi("MAX_CORTES", 4);      // passo que nao converge: ate 2^MAX_CORTES subpassos
     const double ckMin = envd("CHECKPOINT_MIN", 5.); // checkpoint a cada CHECKPOINT_MIN minutos e depois de cada FS
     // CSV opcionais (1 = grava): p_w nos nos, pontos do mecanismo e campos nos pontos de integracao
@@ -256,8 +264,8 @@ int main() {
     std::ofstream info(envi("SO_CAMPOS", 0) ? "realizacao_campos.txt" : "realizacao.txt");
     const std::string versao = envs("SRF_VERSAO", "-"); // o commit compilado (rodar_mc.sh le bin/versao.txt)
     info << std::setprecision(10) << "versao=" << versao << " solo=" << solo << " I_mm_h=" << I_mm_h << " variante=" << variante
-         << " solver=" << (TPZUnsatAnalysis::UsesPardiso() ? "pardiso" : "skyline") << " neq=" << an->NEq()
-         << " pontos=" << ips.size() << " real=" << real << " campos=" << campos;
+         << " f_trans=" << fTrans << " solver=" << (TPZUnsatAnalysis::UsesPardiso() ? "pardiso" : "skyline")
+         << " neq=" << an->NEq() << " pontos=" << ips.size() << " real=" << real << " campos=" << campos;
     int Musado = 0;
     double fracUsada = 0.;
     if (campos) {
@@ -420,7 +428,7 @@ int main() {
     const std::vector<Csv> csvs = {
         {"passos.csv", &fpas,
          "passo,t_h,dt_h,nivel,chuva_mm_h,chuva_m3,inf_fluxo_m3,inf_face_m3,esq_m3,dir_m3,dV_m3,residuo_m3,inf_acum_m3,"
-         "V_agua_m3,face_nos,its_face,newton,normp,eu,pw_min_kPa,pw_max_kPa,seg", true, 10},
+         "V_agua_m3,face_nos,its_face,newton,normp,eu,pw_min_kPa,pw_max_kPa,seg,u_max_m,pl_pts,epsp_max", true, 10},
         {"fs.csv", &ffs,
          "t_h,FS_SRM,FS_parada,tentativas,newton_fs,u_max_m,pl_pts,epsp_max,banda_pts,banda_area_m2,banda_xc,banda_yc,"
          "banda_xmin,banda_xmax,banda_ymin,banda_ymax,banda_c,banda_phi_deg,banda_k_mult,du_max_m,massa_pts,massa_area_m2,"
@@ -491,7 +499,24 @@ int main() {
                      << chuvaPot << ',' << infFluxo << ',' << infFace << ',' << qEsq << ',' << qDir << ',' << somaR << ','
                      << somaR - infFluxo - infFace - qEsq - qDir << ',' << infAcum << ',' << V << ',' << saida.size() << ','
                      << it + 1 << ',' << newtonPasso << ',' << sr.normp << ',' << sr.eu << ',' << pwmin << ',' << pwmax << ','
-                     << Segundos(relogio0) << '\n';
+                     << Segundos(relogio0);
+                // estado mecanico do transiente: |u| maximo (desde o estado inicial), pontos plastificando neste passo e o
+                // maior sqrt(J2) da deformacao plastica acumulada (com F_TRANS = 1, o talude no limite segue plastificando)
+                REAL uT = 0., epsT = 0.;
+                int64_t plT = 0;
+                for (const auto &e : an->DispEq())
+                    uT = std::max(uT, std::hypot(an->NodalDisplacement(an->X(), e.first, 0),
+                                                 an->NodalDisplacement(an->X(), e.first, 1)));
+                for (size_t i = 0; i < ips.size(); ++i) {
+                    const auto &st = (*mem)[ips[i]].m_elastoplastic_state;
+                    if (st.m_m_type != 0) plT++;
+                    TPZTensor<REAL> ep(st.m_eps_p); // distorcoes de engenharia -> componentes do tensor
+                    ep.XY() *= 0.5;
+                    ep.XZ() *= 0.5;
+                    ep.YZ() *= 0.5;
+                    epsT = std::max(epsT, std::sqrt(std::max(REAL(0), ep.J2())));
+                }
+                fpas << ',' << uT << ',' << plT << ',' << epsT << '\n';
                 fpas.flush();
                 return true;
             }
@@ -520,7 +545,9 @@ int main() {
         std::string malha = envs("MESH", "");
         malha = malha.substr(malha.find_last_of('/') + 1);
         std::ostringstream a;
-        a << std::setprecision(15) << "v3 solo=" << solo << " I=" << I_mm_h << " variante=" << variante << " malha=" << malha
+        // v4: passos.csv com u_max_m, pl_pts e epsp_max (um checkpoint v3 nao e retomado: os CSV teriam outras colunas)
+        a << std::setprecision(15) << "v4 solo=" << solo << " I=" << I_mm_h << " variante=" << variante << " f_trans=" << fTrans
+          << " malha=" << malha
           << " Dt=" << Dt << " Tchuva=" << Tchuva << " Tf=" << Tf << " FS_H=";
         for (double h : fsH) a << h << ';';
         a << " fs=" << fsTol << ',' << F0 << " hl=" << hl << " hr=" << hr << " sucMax=" << sucMax << " vertical=" << verticalRain
@@ -750,6 +777,9 @@ int main() {
     if (retomou) std::cout << "retomando do checkpoint: t = " << t / hora << " h (passo " << step0 << ")" << std::endl;
     auto ultimoCk = Relogio::now();
     std::string situacao = "ok";
+    // o transiente com c'/F_TRANS e tan(phi')/F_TRANS (o estado inicial e o SRM usam os seus proprios fatores)
+    an->SetStrengthReductionFactor(fTrans);
+    if (fTrans != 1.) std::cout << "transiente com F_TRANS = " << fTrans << std::endl;
     for (int step = retomou ? step0 + 1 : 0; step <= nsteps; step++) {
         stepAtual = step;
         if (step > 0) {
@@ -803,7 +833,7 @@ int main() {
                     PostProcessVTK(*an, "ruptura", step);
                 }
             }
-            an->SetStrengthReductionFactor(1.);
+            an->SetStrengthReductionFactor(fTrans);
             an->SetGravityFactor(1.);
             an->SetGravityScalesSuction(true);
             an->RestoreMemory(memoria);
@@ -857,8 +887,9 @@ int main() {
         if (iMin < 0 || std::atof(valor(i, "FS_SRM").c_str()) < std::atof(valor(iMin, "FS_SRM").c_str())) iMin = i;
     std::vector<std::pair<std::string, std::string>> r = {
         {"real", std::to_string(real)}, {"solo", solo}, {"I_mm_h", Num(I_mm_h)}, {"variante", variante},
-        {"campos", std::to_string(campos)}, {"semente", std::to_string(semente)}, {"KL_M", std::to_string(Musado)},
-        {"KL_variancia", campos ? Num(fracUsada) : ""}, {"cov_c", Num(covC)}, {"cov_phi", Num(covPhi)},
+        {"f_trans", Num(fTrans)}, {"campos", std::to_string(campos)}, {"semente", std::to_string(semente)},
+        {"KL_M", std::to_string(Musado)}, {"KL_variancia", campos ? Num(fracUsada) : ""}, {"cov_c", Num(covC)},
+        {"cov_phi", Num(covPhi)},
         {"cov_k", Num(covK)}, {"Lx", Num(Lx)}, {"Ly", Num(Ly)}, {"alfa", Num(alfa)}, {"area_solo_m2", Num(areaSolo)},
         {"c_med", Num(ec.media)}, {"c_dp", Num(ec.dp)}, {"c_min", Num(ec.min)}, {"c_max", Num(ec.max)},
         {"phi_med", Num(ephi.media)}, {"phi_dp", Num(ephi.dp)}, {"phi_min", Num(ephi.min)}, {"phi_max", Num(ephi.max)},

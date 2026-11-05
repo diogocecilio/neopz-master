@@ -14,7 +14,25 @@ arquivos CSV, para o pós-processamento. Uma realização interrompida continua 
 - Os solos vêm da Tabela 1 de Rahardjo: f10, f50 e f100, com a de Fredlund-Xing = 10/50/100 kPa, m = n = 1,
   θs = 0,45, k_w = k_s Θ⁴ e k_s = 10⁻⁴/10⁻⁵/10⁻⁶ m/s. A resistência é c' = 10 kPa, φ' = φb = 26° e γ = 20 kN/m³.
 - `VARIANTE=iii` (padrão) usa as hipóteses do artigo: esqueleto rígido e só a percolação, como no SEEP/W. `VARIANTE=i`
-  usa o modelo completo, com u, p_w e p_a acoplados.
+  usa o modelo completo, com u, p_w e p_a acoplados; `VARIANTE=ii`, o mesmo com o ar passivo (p_a = 0).
+- **Nas variantes acopladas (i e ii), o FS do SRM não cai abaixo de 1 com a resistência real no transiente.**
+  - O transiente resolve a mecânica junto com o fluxo, com c' e φ' reais, a cada passo. Todo estado aceito está em
+    equilíbrio com F = 1 para as suas poropressões. Se não estivesse, o passo não convergiria e a realização terminaria
+    com `situacao=transiente_nao_convergiu`.
+  - O Mohr-Coulomb é associado (ψ = φ'). Pelo teorema do limite inferior, o SRM com essas mesmas pressões dá FS ≥ 1, a
+    menos da resolução da busca (0,00625).
+  - Quando a chuva levaria o talude abaixo de 1, ele plastifica. A dilatância (ψ = φ' = 26°) entra nos balanços de massa,
+    baixa p_w na zona de ruptura e sobe a sucção; com χ = 1, a resistência sobe. O talude fica no limite, em vez de romper.
+  - O FS_min fica censurado em 1, e P(FS_min < 1) não mede a ruptura. No Monte Carlo f50, 36 mm/h, variante i: 48 de 91
+    realizações com FS_min entre 0,99375 e 1,00625, nenhuma abaixo; o determinístico vai de 1,1125 (12 h) a 1,01875
+    (18 h) e 1 (24 h).
+  - `F_TRANS` (padrão 1) é o fator de redução de resistência só do transiente (c'/F, tan φ'/F). Com `F_TRANS=0.5`:
+    - c' e tan φ' dobram no transiente e o esqueleto não plastifica (`pl_pts` = 0 em `passos.csv`);
+    - o acoplamento hidromecânico (elástico) e o ar continuam;
+    - o SRM usa a resistência real, então o FS pode ficar abaixo de 1.
+  - Numa fila: `COMBS="f50:36:F_TRANS=0.5"`, com resultados na pasta `f50_I36_i_ftrans0.5`.
+  - Com dados de `F_TRANS=1`, a ruptura é "chegou ao limite": `posprocessa_mc.py <pasta> --limite 1.01`, ou seja,
+    FS_min ≤ 1,00625.
 - O FS vem do SRM com nova tentativa do F que falhou (a mesma `FactorSRMRetry` do driver de Rahardjo), nos instantes
   `FS_H` (padrão 0, 12, 24, 36 e 48 h).
 - Um passo do transiente que não converge é dividido ao meio até `MAX_CORTES` vezes (padrão 4). Com permeabilidade
@@ -133,6 +151,7 @@ Cada combinação tem o seu próprio Monte Carlo, porque cada uma é um problema
 | Variável | Padrão | O que é |
 |---|---|---|
 | `SOLO`, `I_MM_H`, `VARIANTE` | f50, 36, iii | solo, chuva (mm/h) e variante |
+| `F_TRANS` | 1 | variantes i e ii: redução de resistência só no transiente; 0.5 o deixa elástico e o FS livre abaixo de 1 (ver Modelo) |
 | `MALHA` | `rahardjo_a45.msh` | ou `rahardjo_a45_fina.msh` (elementos de 0,375 m perto da face) |
 | `FS_H` | 0,12,24,36,48 | instantes do FS (h); o transiente vai até o maior |
 | `COV_C`, `COV_PHI`, `COV_K` | 0.3, 0.1, 0.6 | coeficientes de variação de c', φ' e k_v |
@@ -348,6 +367,11 @@ as realizações de uma combinação saíram do mesmo programa.
   - `its_face`, iterações da face de percolação; `newton`, iterações de Newton;
   - `normp` e `eu`, os resíduos finais.
 - `pw_min_kPa`, `pw_max_kPa` e `seg`.
+- Mecânica do transiente (nas variantes i e ii):
+  - `u_max_m`, o maior |u| desde o estado inicial;
+  - `pl_pts`, os pontos que plastificaram no passo;
+  - `epsp_max`, o maior √J2(ε_p) acumulado.
+  - Com `F_TRANS=1`, um talude no limite segue plastificando passo a passo.
 
 ### A combinação inteira: `resultados_mc/<solo>_I<chuva>_<variante>/`
 

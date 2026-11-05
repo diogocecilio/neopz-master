@@ -5,7 +5,10 @@
 # COMBS="f10:9 f50:80 ..." (solo:chuva), em ordem intercalada (a realizacao 0 de todas, depois a 1, ...); DET=1 poe antes
 # o caso deterministico (CAMPOS=0, as medias) de cada uma, e CAMPOS=0 roda so os deterministicos. Uma entrada pode trocar
 # parametros so para ela (estudos de sensibilidade), em pasta propria: COMBS="f50:36:COV_C=0.5 f50:36:LX=40,LY=4
-# f50:36:ALFA=2" (COV_C, COV_PHI, COV_K, LX, LY, ALFA, KL_M; o deterministico so muda com ALFA).
+# f50:36:ALFA=2" (COV_C, COV_PHI, COV_K, LX, LY, ALFA, KL_M, F_TRANS; o deterministico so muda com ALFA e F_TRANS).
+# F_TRANS (variantes acopladas i e ii): a resistencia do transiente e c'/F_TRANS, tan(phi')/F_TRANS. Com 1 (o padrao) o
+# FS do SRM nao cai abaixo de 1 (o transiente esta sempre em equilibrio, e a dilatancia segura o talude no limite);
+# F_TRANS=0.5 deixa o esqueleto elastico no transiente e o FS livre: COMBS="f50:36:F_TRANS=0.5" (ver README.md).
 # Cada realizacao fica em $SAIDA/<combinacao>/r<nnnnn>/ (resumo.csv, fs.csv, passos.csv, ...; ver README.md); no fim,
 # junta_mc.sh junta as concluidas em mc_resumo.csv e mc_fs.csv de cada combinacao. ./resumo_mc.sh <pasta> calcula P_f.
 # Retomavel, e seguro com varios processos ou jobs (em nos diferentes) na mesma fila: cada realizacao em andamento tem um
@@ -16,7 +19,7 @@
 # rodar_mc.sh --faltam <primeira> <ultima>: so conta as realizacoes ainda nao concluidas nem marcadas como falhas;
 # --pastas: as pastas de cada entrada de COMBS; --verifica: so confere COMBS e os parametros.txt das combinacoes.
 # Avisos (parametros recusados, disjuntor) tambem vao para $SAIDA/AVISOS, que status_mc.sh mostra.
-# Ambiente: VARIANTE (iii, i), MALHA (rahardjo_a45.msh ou rahardjo_a45_fina.msh), FS_H, COV_C, COV_PHI, COV_K, LX, LY,
+# Ambiente: VARIANTE (iii, ii, i), MALHA (rahardjo_a45.msh ou rahardjo_a45_fina.msh), FS_H, COV_C, COV_PHI, COV_K, LX, LY,
 # ALFA, KL_M, SEMENTE, EXE, SAIDA, PARALELO, COMB (nome da pasta, com uma combinacao so). CSV opcionais: PW_CSV,
 # MEC_CSV, CAMPOS_CSV (1 = grava, o padrao). VTK: CAMPOS_VTK=1 grava campos.vtk, VTK_H=24 o mecanismo de ruptura em
 # t = 24 h; SO_CAMPOS=1 so gera os campos (campos.vtk e campos.csv) das realizacoes pedidas, sem simular.
@@ -39,7 +42,7 @@ export SAIDA_MC="${SAIDA:-$PKG/resultados_mc}"
 # entradas de COMBS: <solo>:<chuva>[:VAR=valor,...], separadas por espaco (ou por virgula antes do solo); VAR troca um
 # parametro do programa so nessa entrada, que vai para a sua propria pasta (f50:36:COV_C=0.5 -> f50_I36_iii_covc0.5)
 COMBS="$(echo ${COMBS:-${SOLO:-f50}:${I_MM_H:-36}} | sed -E 's/,(f10|f50|f100):/ \1:/g')"
-VARS_MC='COV_C|COV_PHI|COV_K|LX|LY|ALFA|KL_M'
+VARS_MC='COV_C|COV_PHI|COV_K|LX|LY|ALFA|KL_M|F_TRANS'
 NUM_MC='[0-9]+([.][0-9]+)?'
 RE_MC="^(f10|f50|f100):$NUM_MC(:($VARS_MC)=$NUM_MC(,($VARS_MC)=$NUM_MC)*)?$"
 for sc in $COMBS; do
@@ -58,12 +61,14 @@ BOOT_MC="$(cat /proc/sys/kernel/random/boot_id 2>/dev/null || echo -)"
 export BOOT_MC
 [ "$MODO" = rodar ] && mkdir -p "$SAIDA_MC"
 
-# partes <entrada>: s (solo), i (chuva), x (as trocas VAR=valor, ou -) e xd (as que mudam o deterministico: ALFA)
+# partes <entrada>: s (solo), i (chuva), x (as trocas VAR=valor, ou -) e xd (as que mudam o deterministico: ALFA e
+# F_TRANS)
 partes() {
-    local r="${1#*:}" e
+    local r="${1#*:}" e d=""
     s="${1%%:*}" i="${r%%:*}" x=- xd=-
     [ "$r" != "$i" ] && x="${r#*:}"
-    for e in ${x//,/ }; do [ "${e%%=*}" = ALFA ] && xd="$e"; done
+    for e in ${x//,/ }; do case "${e%%=*}" in ALFA | F_TRANS) d="${d:+$d,}$e" ;; esac; done
+    xd="${d:--}"
 }
 # pasta <solo> <chuva> <campos> [<trocas>]: a pasta da combinacao (o deterministico em <combinacao>_det)
 pasta() {
@@ -312,13 +317,16 @@ trap 'rm -rf "$INST_MC"' EXIT
 # com que as suas realizacoes foram rodadas. Outra rodada na mesma pasta com outros parametros misturaria resultados:
 # recusada (use outra SAIDA, ou uma entrada de COMBS com as trocas)
 VARS_PARAM="MESH TCHUVA_H DT_H FS_H TF_H XL XR HW BETA_DEG SUCMAX XTOE YTOE HL HR CHUVA_VERTICAL FS_TOL FS_F0 MAX_CORTES E NU
-COES PHI_DEG GAMMA KS POROS SEMENTE COV_C COV_PHI COV_K LX LY ALFA KL_M KL_FRAC SOLVER TOLU TOLP MAXIT MAXIT_FROZEN"
+COES PHI_DEG GAMMA KS POROS SEMENTE COV_C COV_PHI COV_K LX LY ALFA KL_M KL_FRAC SOLVER TOLU TOLP MAXIT MAXIT_FROZEN F_TRANS"
+# variaveis acrescentadas depois: so entram em parametros.txt quando definidas, para as pastas de antes continuarem valendo
+VARS_PARAM_NOVAS=" F_TRANS "
 parametros() { # parametros <trocas>: uma linha por variavel, VAR=valor (- se nao definida, o padrao do programa)
     local v val e
     for v in $VARS_PARAM; do
         val="${!v:--}"
         for e in ${1//,/ }; do [ "${e%%=*}" = "$v" ] && val="${e#*=}"; done
         [ "$v" = MESH ] && val="${val##*/}"
+        [ "$val" = - ] && [[ "$VARS_PARAM_NOVAS" == *" $v "* ]] && continue
         echo "$v=$val"
     done
 }
