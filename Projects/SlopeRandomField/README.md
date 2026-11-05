@@ -145,9 +145,13 @@ tempos em horas e durações (`seg`) em segundos.
 | `realizacao.txt` | | parâmetros, termos de KL, variância retida e médias dos campos |
 | `run.log`, `run.err` | | saída do programa |
 
-Com a malha padrão e 5 instantes de FS, uma realização ocupa cerca de 1 MB, ou 1 GB a cada 1000 realizações. Sem
-`campos.csv`, `pw.csv` e `mecanismo.csv`, cai para cerca de 0,1 MB. Os campos de qualquer realização podem ser refeitos
-depois com `SO_CAMPOS=1`.
+Com a malha padrão e 5 instantes de FS, uma realização ocupa cerca de 1,2 MB, ou 1,2 GB a cada 1000 realizações:
+`mecanismo.csv` tem 0,5 MB, `campos.csv` 0,3 MB e `pw.csv` 0,2 MB. Para gastar menos disco:
+- `MEC_LIMIAR=0.1` grava só a banda de ruptura;
+- `CAMPOS_CSV=0`, `PW_CSV=0` ou `MEC_CSV=0` deixam de gravar esses arquivos. Sem os três, uma realização cai para
+  0,1 MB.
+
+Os campos de qualquer realização podem ser refeitos depois com `SO_CAMPOS=1`.
 
 **`resumo.csv`**: `real`, `solo`, `I_mm_h`, `variante`, `campos`, `semente`, `KL_M`, `KL_variancia`, `cov_c`, `cov_phi`,
 `cov_k`, `Lx`, `Ly`, `alfa`, `area_solo_m2`; média, desvio, mínimo e máximo de cada campo no solo, ponderados pela
