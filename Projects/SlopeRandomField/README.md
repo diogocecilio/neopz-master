@@ -37,8 +37,15 @@ arquivos CSV, para o pós-processamento. Uma realização interrompida continua 
     | `F_TRANS=1` | 2,119 | 1,475 | 1,1125 | 1,019 | **1** | 1,169 | 1,3125 |
     | `F_TRANS=0.5` | 2,119 | 1,469 | 1,094 | 1 | **0,9625** | 1,156 | 1,306 |
     | iii (rígido) | 2,119 | 1,75 | 1,425 | 1,206 | 1,0625 | 1,131 | 1,1875 |
+    | ii (ar livre), `F_TRANS=0.5` | 2,119 | 1,756 | 1,4375 | 1,225 | 1,081 | 1,156 | 1,206 |
 
-    - Quase toda a diferença para a iii vem do acoplamento elástico (dε_v/dt e o ar), não da plasticidade.
+    - Quase toda a diferença entre i e iii vem do ar, não da mecânica. A ii, acoplada mas com p_a = 0, fica com a
+      iii (+0,01 a +0,02).
+    - Na i, a chuva fecha a superfície, a única saída do ar, e ele se comprime: p_a de 30 a 50 kPa. Base e laterais são
+      fechadas ao ar.
+    - Com χ = 1, isso põe p_w positivo com o solo não saturado: na zona de ruptura em 24 h, p_w = +10,5 kPa com
+      S = 0,86 na i, contra +2,3 kPa com S = 1,0 na ii.
+    - Esse resultado depende das condições de contorno do ar e do k_ra. O SEEP/W de Rahardjo e Ceron não tem ar.
     - Com `F_TRANS=1`, o transiente plastifica desde as primeiras horas da chuva: 126 pontos no passo em 5 h, 240 em
       6 h. No fim da chuva são 893 pontos, √J2 da deformação plástica acumulada de 0,16 e 19 cm de deslocamento,
       acelerando (10,8 cm em 18 h, 14,0 cm em 21 h, 18,8 cm em 24 h): o talude escoa no limite.
