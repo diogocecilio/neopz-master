@@ -44,8 +44,13 @@ arquivos CSV, para o pós-processamento. Uma realização interrompida continua 
     - Com `F_TRANS=0.5`, nenhum ponto plastifica, e os 6 cm de deslocamento elástico voltam depois da chuva.
     - `F_TRANS=0.3` dá os mesmos FS de 0,5: o transiente já é elástico, e o valor não importa abaixo disso.
   - Numa fila: `COMBS="f50:36:F_TRANS=0.5"`, com resultados na pasta `f50_I36_i_ftrans0.5`.
-  - Com dados de `F_TRANS=1`, a ruptura é "chegou ao limite": `posprocessa_mc.py <pasta> --limite 1.01`, ou seja,
-    FS_min ≤ 1,00625.
+  - Com dados de `F_TRANS=1`, a ruptura é "chegou ao limite": FS_min ≤ 1,00625, ou seja, FS < 1,01 na grade da busca.
+    - Os valores 0,99375, 1 e 1,00625 são uma classe só, a dos taludes no limite. Os 0,99375 não são FS < 1: são
+      falhas do Newton do SRM em F = 1, num estado que o transiente já mostrou estar em equilíbrio.
+    - Use `posprocessa_mc.py <pasta> --limite 1.01`, ou `LIMITE_FS=1.01` em `resumo_mc.sh`, `plot_mc.py`,
+      `sensibilidade_mc.py` e `posprocessa_mc.py`.
+    - Uma realização com `situacao` diferente de ok (o transiente parou de convergir) pode ser uma ruptura durante o
+      transiente. Ela fica fora dessas estatísticas; `status_mc.sh` conta essas realizações ao lado de P(FS_min < 1,01).
 - O FS vem do SRM com nova tentativa do F que falhou (a mesma `FactorSRMRetry` do driver de Rahardjo), nos instantes
   `FS_H` (padrão 0, 12, 24, 36 e 48 h).
 - Um passo do transiente que não converge é dividido ao meio até `MAX_CORTES` vezes (padrão 4). Com permeabilidade
@@ -180,6 +185,7 @@ Cada combinação tem o seu próprio Monte Carlo, porque cada uma é um problema
 | `SO_CAMPOS` | 0 | 1 só gera os campos (`campos.vtk` e `campos.csv`), sem simular; com a mesma `SEMENTE` e o mesmo `REAL`, o campo é o mesmo |
 | `COMBS`, `DET` | `SOLO:I_MM_H`, 0 | combinações (`solo:chuva[:VAR=valor,...]`, separadas por espaço) numa fila só; 1 inclui os determinísticos |
 | `MASSA_LIMIAR` | 0.5 | a massa que desliza: pontos com \|Δu\| ≥ limiar × máximo (Δu: o último incremento do SRM) |
+| `LIMITE_FS` | 1 | pós-processamento: P_f = P(FS < limiar); 1.01 com dados de `F_TRANS=1` (ver Modelo) |
 | `PARALELO` | núcleos físicos | realizações ao mesmo tempo |
 | `MAX_CORTES` | 4 | divisões de um passo que não converge |
 | `MAX_FALHAS` | 3 | tentativas de uma realização que termina com erro, antes de marcá-la em `falhou.txt` |
@@ -409,7 +415,8 @@ as realizações de uma combinação saíram do mesmo programa.
   - O instante padrão é o do FS mínimo.
 - `plot_campos.py <campos.csv>` desenha os três campos de uma realização.
 - `sensibilidade_mc.py <pasta> [<pasta> ...]`: a análise de sensibilidade (seção acima).
-- `posprocessa_mc.py <pasta> [--mapas]`: o pós-processamento completo de uma combinação, em `<pasta>/posproc/`:
+- `posprocessa_mc.py <pasta> [--mapas] [--limite <FS>]`: o pós-processamento completo de uma combinação, em
+  `<pasta>/posproc/`. P_f = P(FS < limite), com limite 1, `LIMITE_FS` ou `--limite`. O pós-processamento inclui:
   - convergência do Monte Carlo: P_f com IC de 95%, CoV(P_f), média e desvio contra o número de realizações;
   - estatísticas por instante (`estatisticas.csv`);
   - densidade e distribuição acumulada do FS, também em cada instante;

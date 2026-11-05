@@ -46,11 +46,22 @@ VARS_MC='COV_C|COV_PHI|COV_K|LX|LY|ALFA|KL_M|F_TRANS'
 NUM_MC='[0-9]+([.][0-9]+)?'
 RE_MC="^(f10|f50|f100):$NUM_MC(:($VARS_MC)=$NUM_MC(,($VARS_MC)=$NUM_MC)*)?$"
 for sc in $COMBS; do
-    [[ "$sc" =~ $RE_MC ]] && continue
+    if [[ "$sc" =~ $RE_MC ]]; then
+        # F_TRANS = 0 seria recusado pelo programa em cada realizacao: recusado aqui, antes de submeter
+        for e in ${sc//[:,]/ }; do
+            [ "${e%%=*}" = F_TRANS ] && ! awk -v v="${e#*=}" 'BEGIN { exit !(v + 0 > 0) }' &&
+                { echo "COMBS: \"$sc\": F_TRANS deve ser > 0" >&2; exit 2; }
+        done
+        continue
+    fi
     echo "COMBS: \"$sc\" nao e <solo>:<chuva em mm/h>[:VAR=valor,...] com solo f10, f50 ou f100 e VAR entre" \
         "${VARS_MC//|/, } (exemplos: COMBS=\"f10:9 f50:80\", COMBS=\"f50:36:COV_C=0.5 f50:36:LX=40,LY=4\")" >&2
     exit 2
 done
+if [ -n "${F_TRANS:-}" ] && ! awk -v v="$F_TRANS" 'BEGIN { exit !(v + 0 > 0) }'; then
+    echo "F_TRANS=$F_TRANS: deve ser > 0" >&2
+    exit 2
+fi
 # COMB (nome da pasta) so vale com uma combinacao
 COMB_UNICA=""
 [ "$(echo $COMBS | wc -w)" -eq 1 ] && COMB_UNICA="${COMB:-}"
@@ -67,7 +78,9 @@ partes() {
     local r="${1#*:}" e d=""
     s="${1%%:*}" i="${r%%:*}" x=- xd=-
     [ "$r" != "$i" ] && x="${r#*:}"
-    for e in ${x//,/ }; do case "${e%%=*}" in ALFA | F_TRANS) d="${d:+$d,}$e" ;; esac; done
+    # ordem fixa (ALFA, depois F_TRANS): o mesmo deterministico tem o mesmo nome, em qualquer ordem da entrada
+    for e in ${x//,/ }; do [ "${e%%=*}" = ALFA ] && d="${d:+$d,}$e"; done
+    for e in ${x//,/ }; do [ "${e%%=*}" = F_TRANS ] && d="${d:+$d,}$e"; done
     xd="${d:--}"
 }
 # pasta <solo> <chuva> <campos> [<trocas>]: a pasta da combinacao (o deterministico em <combinacao>_det)

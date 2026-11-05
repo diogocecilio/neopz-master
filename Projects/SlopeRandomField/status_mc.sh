@@ -116,7 +116,12 @@ while read -r sc D DD; do
     read -r c r e it f t mmin nmn fsm pf inc plim <<< "$linha"
     # variantes acopladas com a resistencia real no transiente (F_TRANS = 1, o padrao): o FS do SRM nao cai abaixo de 1
     ft="$(sed -n 's/^F_TRANS=//p' "$D/parametros.txt" 2>/dev/null)"
-    case "$VARIANTE" in i | ii) if [ -z "$ft" ] || [ "$ft" = 1 ]; then [ "$plim" != - ] && limite+=("$(basename "$D") $plim"); fi ;; esac
+    # (F_TRANS >= 1: o FS fica >= F_TRANS); as interrompidas (situacao != ok) podem ser rupturas no transiente
+    case "$VARIANTE" in i | ii)
+        if awk -v v="$ft" 'BEGIN { exit !(v == "" || v + 0 >= 1) }' && [ "$plim" != - ]; then
+            limite+=("$(basename "$D") $plim$([ "${inc:-0}" -gt 0 ] && echo " (mais $inc com o transiente interrompido)")")
+        fi ;;
+    esac
     tot_inc=$((tot_inc + inc))
     printf '%-24s %8s %7d %7d %7d %9s %6d %6d %8s %8s %7s\n' "$(basename "$D")" "$fsdet" "$c" "$r" "$e" "($it)" "$f" "$t" \
         "$([ "$nmn" -gt 0 ] && echo "$mmin" || echo -)" "$fsm" "$pf"
@@ -127,7 +132,7 @@ media="$(awk -v s="$soma_min" -v k="$nmin" 'BEGIN { if (k) printf "%.1f", s / k;
 echo "total: $tot_c de $tot_t concluidas, $tot_r rodando, $tot_e esperando, $tot_f falharam; $media min por realizacao"
 [ "$det_t" -gt 0 ] && echo "deterministicos: $det_c de $det_t concluidos, $det_f falharam"
 if [ ${#limite[@]} -gt 0 ]; then
-    echo "variante $VARIANTE com F_TRANS = 1: o FS do SRM nao cai abaixo de 1 (o transiente segura o talude no limite), entao"
+    echo "variante $VARIANTE com F_TRANS >= 1: o FS do SRM nao cai abaixo de 1 (o transiente segura o talude no limite), entao"
     echo "  P_f = P(FS_min < 1) subestima a ruptura. Chegaram ao limite, P(FS_min < 1.01): $(printf '%s, ' "${limite[@]}" |
         sed 's/, $//'). Ver F_TRANS no README.md"
 fi

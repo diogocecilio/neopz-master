@@ -121,7 +121,8 @@ def parciais(F, cols, nomes):
 
 def main():
     args = sys.argv[1:]
-    D, det, saida, mapas, limite = None, None, None, False, 1.0
+    # o limiar de P_f: --limite, ou LIMITE_FS (como em resumo_mc.sh, plot_mc.py e sensibilidade_mc.py), ou 1
+    D, det, saida, mapas, limite = None, None, None, False, float(os.environ.get("LIMITE_FS", "1"))
     while args:
         a = args.pop(0)
         if a == "--det":

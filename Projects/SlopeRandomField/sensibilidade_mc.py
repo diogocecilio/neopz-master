@@ -172,7 +172,8 @@ def casos(pastas, t, prefixo):
         if n == 0:
             continue
         pos = fs[fs > 0]
-        pf = float(np.mean(fs < 1))
+        # LIMITE_FS (padrao 1): 1.01 nas variantes acopladas com F_TRANS = 1, em que o FS nao cai abaixo de 1
+        pf = float(np.mean(fs < float(os.environ.get("LIMITE_FS", "1"))))
         tab.append((os.path.basename(os.path.normpath(D)), n, np.mean(pos), np.std(pos, ddof=1) if len(pos) > 1 else np.nan,
                     pf, np.sqrt((1 - pf) / (n * pf)) if pf > 0 else np.nan, pos))
     print(f"{'caso':32s} {'N':>5s} {'media':>8s} {'desvio':>8s} {'CoV':>7s} {'P_f':>8s} {'CoV(P_f)':>9s}")
@@ -202,7 +203,7 @@ def casos(pastas, t, prefixo):
     cv = np.array([x[5] for x in tab])
     ax[1].errorbar(i, pf, yerr=1.96 * cv * pf, fmt="o", color="#0b0b0b", ecolor=CINZA, capsize=3)
     ax[1].set_xticks(i, [x[0] for x in tab], rotation=30, ha="right", fontsize=8)
-    ax[1].set_ylabel("P_f = P(FS < 1) (barras: 95%)")
+    ax[1].set_ylabel(f"P_f = P(FS < {float(os.environ.get('LIMITE_FS', '1')):g}) (barras: 95%)")
     ax[1].set_ylim(bottom=0)
     for a in ax:
         a.grid(color="0.9", lw=0.6)

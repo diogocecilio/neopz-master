@@ -381,6 +381,17 @@ int main() {
         if (ok) an->ResetDisplacements();
         else std::cerr << "estado inicial sem equilibrio com a resistencia desta realizacao\n";
     }
+    // plastificacao do transiente (passos.csv): ResetDisplacements troca a referencia (eps_p -= eps_t, eps_t = 0), entao a
+    // deformacao plastica acumulada no transiente e m_eps_p - epsRef; epsAnt e a do ultimo passo aceito (os pontos que
+    // plastificaram no passo sao os em que ela mudou). O estado inicial e refeito igual numa retomada, e epsRef tambem
+    std::vector<TPZTensor<REAL>> epsRef(ips.size()), epsAnt;
+    for (size_t i = 0; i < ips.size(); ++i) epsRef[i] = (*mem)[ips[i]].m_elastoplastic_state.m_eps_p;
+    auto raizJ2 = [](TPZTensor<REAL> d) { // distorcoes de engenharia -> componentes do tensor
+        d.XY() *= 0.5;
+        d.XZ() *= 0.5;
+        d.YZ() *= 0.5;
+        return std::sqrt(std::max(REAL(0), d.J2()));
+    };
 
     // ---- contornos da percolacao (como no driver de Rahardjo); eqEsq/eqDir: nos com p_w imposto nas laterais
     auto contorno = variante == "iii" ? an->AllDisplacements(an->X()) : an->DisplacementConstraints();
@@ -500,21 +511,23 @@ int main() {
                      << somaR - infFluxo - infFace - qEsq - qDir << ',' << infAcum << ',' << V << ',' << saida.size() << ','
                      << it + 1 << ',' << newtonPasso << ',' << sr.normp << ',' << sr.eu << ',' << pwmin << ',' << pwmax << ','
                      << Segundos(relogio0);
-                // estado mecanico do transiente: |u| maximo (desde o estado inicial), pontos plastificando neste passo e o
-                // maior sqrt(J2) da deformacao plastica acumulada (com F_TRANS = 1, o talude no limite segue plastificando)
+                // estado mecanico do transiente: |u| maximo (desde o estado inicial), pontos que plastificaram neste passo
+                // (a deformacao plastica mudou mais que 1e-10) e o maior sqrt(J2) da deformacao plastica acumulada no
+                // transiente (com F_TRANS = 1, o talude no limite segue plastificando passo a passo)
                 REAL uT = 0., epsT = 0.;
                 int64_t plT = 0;
                 for (const auto &e : an->DispEq())
                     uT = std::max(uT, std::hypot(an->NodalDisplacement(an->X(), e.first, 0),
                                                  an->NodalDisplacement(an->X(), e.first, 1)));
                 for (size_t i = 0; i < ips.size(); ++i) {
-                    const auto &st = (*mem)[ips[i]].m_elastoplastic_state;
-                    if (st.m_m_type != 0) plT++;
-                    TPZTensor<REAL> ep(st.m_eps_p); // distorcoes de engenharia -> componentes do tensor
-                    ep.XY() *= 0.5;
-                    ep.XZ() *= 0.5;
-                    ep.YZ() *= 0.5;
-                    epsT = std::max(epsT, std::sqrt(std::max(REAL(0), ep.J2())));
+                    const TPZTensor<REAL> &ep = (*mem)[ips[i]].m_elastoplastic_state.m_eps_p;
+                    TPZTensor<REAL> d(ep);
+                    d -= epsAnt[i];
+                    if (raizJ2(d) > 1.e-10) plT++;
+                    d = ep;
+                    d -= epsRef[i];
+                    epsT = std::max(epsT, raizJ2(d));
+                    epsAnt[i] = ep;
                 }
                 fpas << ',' << uT << ',' << plT << ',' << epsT << '\n';
                 fpas.flush();
@@ -780,6 +793,8 @@ int main() {
     // o transiente com c'/F_TRANS e tan(phi')/F_TRANS (o estado inicial e o SRM usam os seus proprios fatores)
     an->SetStrengthReductionFactor(fTrans);
     if (fTrans != 1.) std::cout << "transiente com F_TRANS = " << fTrans << std::endl;
+    epsAnt.resize(ips.size()); // o estado de partida: o inicial ou o do checkpoint
+    for (size_t i = 0; i < ips.size(); ++i) epsAnt[i] = (*mem)[ips[i]].m_elastoplastic_state.m_eps_p;
     for (int step = retomou ? step0 + 1 : 0; step <= nsteps; step++) {
         stepAtual = step;
         if (step > 0) {
