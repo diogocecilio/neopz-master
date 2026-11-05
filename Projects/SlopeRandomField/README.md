@@ -438,6 +438,13 @@ as realizações de uma combinação saíram do mesmo programa.
     e o desvio no instante do FS mínimo. Nos resultados de uma versão anterior, sem as colunas da massa, estima o k da
     massa pela geometria da banda.
   - O caso determinístico (`<pasta>_det`) entra sozinho, se existir.
+- `compara_mc.py <pasta de referência> <pasta> [...] [--rotulos A,B,...]`: compara Monte Carlos realização a
+  realização (a mesma realização tem os mesmos campos em todas as pastas; muda só o modelo), em `comparacao/`:
+  - FS_min de cada pasta contra o da referência, com os quadrantes de ruptura;
+  - a diferença do FS_min e se ela depende do campo (correlação com c', φ' e k médios);
+  - FS(t) e P(FS(t) < 1) médios nas realizações comuns;
+  - P(FS_min < 1) e P(FS_min < 1,01) por pasta, e a tabela de rupturas pareada com o teste de McNemar.
+  - Exemplo: `compara_mc.py f50_I36_iii f50_I36_i_ftrans0.5 f50_I36_i --rotulos "iii,i F_TRANS=0.5,i F_TRANS=1"`.
 - **ParaView:**
   - `campos.vtk` mostra os campos aleatórios de uma realização: colorir por `coesao_kPa`, `atrito_graus` ou `log10_k_v`.
   - `ruptura_pontos.scal_vec.<passo>.vtk` mostra o último estado que convergiu na busca do SRM, com c'/F e tan φ'/F.
