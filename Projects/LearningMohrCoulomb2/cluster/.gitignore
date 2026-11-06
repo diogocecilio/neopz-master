@@ -1,6 +1,0 @@
-bin/
-build/
-deps/
-resultados*/
-logs/*
-!logs/.gitkeep
