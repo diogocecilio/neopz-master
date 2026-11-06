@@ -42,7 +42,7 @@ export SAIDA_MC="${SAIDA:-$PKG/resultados_mc}"
 # entradas de COMBS: <solo>:<chuva>[:VAR=valor,...], separadas por espaco (ou por virgula antes do solo); VAR troca um
 # parametro do programa so nessa entrada, que vai para a sua propria pasta (f50:36:COV_C=0.5 -> f50_I36_iii_covc0.5)
 COMBS="$(echo ${COMBS:-${SOLO:-f50}:${I_MM_H:-36}} | sed -E 's/,(f10|f50|f100):/ \1:/g')"
-VARS_MC='COV_C|COV_PHI|COV_K|LX|LY|ALFA|KL_M|F_TRANS'
+VARS_MC='COV_C|COV_PHI|COV_K|LX|LY|ALFA|KL_M|F_TRANS|KRA_MIN|AR_LATERAIS'
 NUM_MC='[0-9]+([.][0-9]+)?'
 RE_MC="^(f10|f50|f100):$NUM_MC(:($VARS_MC)=$NUM_MC(,($VARS_MC)=$NUM_MC)*)?$"
 for sc in $COMBS; do
@@ -72,8 +72,8 @@ BOOT_MC="$(cat /proc/sys/kernel/random/boot_id 2>/dev/null || echo -)"
 export BOOT_MC
 [ "$MODO" = rodar ] && mkdir -p "$SAIDA_MC"
 
-# partes <entrada>: s (solo), i (chuva), x (as trocas VAR=valor, ou -) e xd (as que mudam o deterministico: ALFA e
-# F_TRANS)
+# partes <entrada>: s (solo), i (chuva), x (as trocas VAR=valor, ou -) e xd (as que mudam o deterministico: ALFA,
+# F_TRANS, KRA_MIN e AR_LATERAIS)
 partes() {
     local r="${1#*:}" e d=""
     s="${1%%:*}" i="${r%%:*}" x=- xd=-
@@ -81,6 +81,8 @@ partes() {
     # ordem fixa (ALFA, depois F_TRANS): o mesmo deterministico tem o mesmo nome, em qualquer ordem da entrada
     for e in ${x//,/ }; do [ "${e%%=*}" = ALFA ] && d="${d:+$d,}$e"; done
     for e in ${x//,/ }; do [ "${e%%=*}" = F_TRANS ] && d="${d:+$d,}$e"; done
+    for e in ${x//,/ }; do [ "${e%%=*}" = KRA_MIN ] && d="${d:+$d,}$e"; done
+    for e in ${x//,/ }; do [ "${e%%=*}" = AR_LATERAIS ] && d="${d:+$d,}$e"; done
     xd="${d:--}"
 }
 # pasta <solo> <chuva> <campos> [<trocas>]: a pasta da combinacao (o deterministico em <combinacao>_det)
@@ -330,9 +332,10 @@ trap 'rm -rf "$INST_MC"' EXIT
 # com que as suas realizacoes foram rodadas. Outra rodada na mesma pasta com outros parametros misturaria resultados:
 # recusada (use outra SAIDA, ou uma entrada de COMBS com as trocas)
 VARS_PARAM="MESH TCHUVA_H DT_H FS_H TF_H XL XR HW BETA_DEG SUCMAX XTOE YTOE HL HR CHUVA_VERTICAL FS_TOL FS_F0 MAX_CORTES E NU
-COES PHI_DEG GAMMA KS POROS SEMENTE COV_C COV_PHI COV_K LX LY ALFA KL_M KL_FRAC SOLVER TOLU TOLP MAXIT MAXIT_FROZEN F_TRANS"
+COES PHI_DEG GAMMA KS POROS SEMENTE COV_C COV_PHI COV_K LX LY ALFA KL_M KL_FRAC SOLVER TOLU TOLP MAXIT MAXIT_FROZEN F_TRANS
+KRA_MIN AR_LATERAIS"
 # variaveis acrescentadas depois: so entram em parametros.txt quando definidas, para as pastas de antes continuarem valendo
-VARS_PARAM_NOVAS=" F_TRANS "
+VARS_PARAM_NOVAS=" F_TRANS KRA_MIN AR_LATERAIS "
 parametros() { # parametros <trocas>: uma linha por variavel, VAR=valor (- se nao definida, o padrao do programa)
     local v val e
     for v in $VARS_PARAM; do

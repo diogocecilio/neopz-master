@@ -46,6 +46,20 @@ arquivos CSV, para o pós-processamento. Uma realização interrompida continua 
     - Com χ = 1, isso põe p_w positivo com o solo não saturado: na zona de ruptura em 24 h, p_w = +10,5 kPa com
       S = 0,86 na i, contra +2,3 kPa com S = 1,0 na ii.
     - Esse resultado depende das condições de contorno do ar e do k_ra. O SEEP/W de Rahardjo e Ceron não tem ar.
+  - Sensibilidade do ar preso (determinístico, variante i, `F_TRANS=0.5`; p_a na zona de ruptura em 24 h):
+
+    | | 6 h | 12 h | 18 h | 24 h | p_a |
+    |---|---|---|---|---|---|
+    | base: `KRA_MIN=1e-4`, laterais fechadas | 1,469 | 1,094 | 1 | 0,9625 | 35,5 kPa |
+    | `KRA_MIN=0.01` (o piso de Laloui et al. 2003) | 1,55 | 1,175 | 1,056 | 1,006 | 19,9 kPa |
+    | `AR_LATERAIS=1` (laterais abertas ao ar) | 1,4625 | 1,094 | 1 | 0,9625 | 35,5 kPa |
+    | as duas | 1,55 | 1,181 | 1,0625 | 1,0125 | 19,2 kPa |
+    | ii (p_a = 0) | 1,756 | 1,4375 | 1,225 | 1,081 | 0 |
+
+    - Abrir as laterais não muda nada: o ar fica preso entre a frente de molhamento e o nível d'água, longe delas.
+    - O piso de k_ra muda o tamanho do efeito: com 1% o ar sai mais fácil, p_a cai à metade e o FS em 24 h sobe
+      0,044. O efeito do ar diminui de −0,12 para −0,075, mas continua grande.
+    - Na coluna de Liakopoulos (projeto V1 do branch `Verificacao`), o piso de 1e-4 é o que reproduz o benchmark.
     - Com `F_TRANS=1`, o transiente plastifica desde as primeiras horas da chuva: 126 pontos no passo em 5 h, 240 em
       6 h. No fim da chuva são 893 pontos, √J2 da deformação plástica acumulada de 0,16 e 19 cm de deslocamento,
       acelerando (10,8 cm em 18 h, 14,0 cm em 21 h, 18,8 cm em 24 h): o talude escoa no limite.
@@ -179,6 +193,8 @@ Cada combinação tem o seu próprio Monte Carlo, porque cada uma é um problema
 |---|---|---|
 | `SOLO`, `I_MM_H`, `VARIANTE` | f50, 36, iii | solo, chuva (mm/h) e variante |
 | `F_TRANS` | 1 | variantes i e ii: redução de resistência só no transiente; 0.5 o deixa elástico e o FS livre abaixo de 1 (ver Modelo) |
+| `KRA_MIN` | 1e-4 | variante i: piso da permeabilidade relativa do ar (1e-4, a lei do benchmark ALERT; 0.01, a de Laloui et al. 2003) |
+| `AR_LATERAIS` | 0 | variante i: 1 abre as laterais ao ar (p_a = 0), além da superfície |
 | `MALHA` | `rahardjo_a45.msh` | ou `rahardjo_a45_fina.msh` (elementos de 0,375 m perto da face) |
 | `FS_H` | 0,12,24,36,48 | instantes do FS (h); o transiente vai até o maior |
 | `COV_C`, `COV_PHI`, `COV_K` | 0.3, 0.1, 0.6 | coeficientes de variação de c', φ' e k_v |

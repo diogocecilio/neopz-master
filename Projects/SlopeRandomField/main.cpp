@@ -175,6 +175,9 @@ int main() {
     // hidromecanico (elastico) e o ar continuam, e o SRM depois usa a resistencia real: o FS pode ficar abaixo de 1
     const REAL fTrans = envd("F_TRANS", 1.);
     if (!(fTrans > 0.)) { std::cerr << "F_TRANS deve ser > 0\n"; return 2; }
+    // AR_LATERAIS=1 (variante i): p_a = 0 tambem nas laterais, como num talude que continua alem do modelo e deixa o ar
+    // sair por elas; o padrao (0) deixa so a superficie aberta ao ar (base e laterais fechadas: o ar fica preso)
+    const int arLaterais = envi("AR_LATERAIS", 0);
     const int maxCortes = envi("MAX_CORTES", 4);      // passo que nao converge: ate 2^MAX_CORTES subpassos
     const double ckMin = envd("CHECKPOINT_MIN", 5.); // checkpoint a cada CHECKPOINT_MIN minutos e depois de cada FS
     // CSV opcionais (1 = grava): p_w nos nos, pontos do mecanismo e campos nos pontos de integracao
@@ -197,6 +200,10 @@ int main() {
     p.hydro.fRetention = TPZUnsaturatedHydraulics::EFredlundXing;
     p.hydro.fKrw = TPZUnsaturatedHydraulics::EPowerLaw;
     p.hydro.fKra = TPZUnsaturatedHydraulics::EBrooksCorey;
+    // KRA_MIN: piso da permeabilidade relativa do ar (variante i). O padrao, 1e-4, e a lei do benchmark ALERT, com que a
+    // coluna de Liakopoulos reproduz as pressoes de ar publicadas; com 1e-2 (o piso de Laloui et al. 2003), o ar escapa
+    // muito mais facil e as pressoes de ar preso caem cerca de 10 vezes (projeto V1 do branch Verificacao)
+    p.hydro.fKraMin = envd("KRA_MIN", p.hydro.fKraMin);
     p.hydro.fA = aFX, p.hydro.fN = 1., p.hydro.fM = 1., p.hydro.fPower = 4.;
     p.bishop = TUnsat::EChiConstant, p.chi = 1.; // phi^b = phi' em cada ponto
     p.coupled = variante == "i" || variante == "ii";
@@ -264,7 +271,8 @@ int main() {
     std::ofstream info(envi("SO_CAMPOS", 0) ? "realizacao_campos.txt" : "realizacao.txt");
     const std::string versao = envs("SRF_VERSAO", "-"); // o commit compilado (rodar_mc.sh le bin/versao.txt)
     info << std::setprecision(10) << "versao=" << versao << " solo=" << solo << " I_mm_h=" << I_mm_h << " variante=" << variante
-         << " f_trans=" << fTrans << " solver=" << (TPZUnsatAnalysis::UsesPardiso() ? "pardiso" : "skyline")
+         << " f_trans=" << fTrans << " kra_min=" << p.hydro.fKraMin << " ar_laterais=" << arLaterais
+         << " solver=" << (TPZUnsatAnalysis::UsesPardiso() ? "pardiso" : "skyline")
          << " neq=" << an->NEq() << " pontos=" << ips.size() << " real=" << real << " campos=" << campos;
     int Musado = 0;
     double fracUsada = 0.;
@@ -407,6 +415,9 @@ int main() {
         }
     }
     for (const auto &b : borda) contorno[an->AirEq().at(b.first)] = 0.;
+    if (arLaterais) // p_a = 0 tambem nas laterais (AR_LATERAIS=1)
+        for (const int id : {bcEsquerda, bcDireita})
+            for (const auto &b : an->BoundaryNodes(id)) contorno[an->AirEq().at(b.first)] = 0.;
     if (variante != "i") for (const auto &e : an->AirEq()) contorno[e.second] = 0.;
 
     // volume de agua no solo (m3 por metro de talude), com a massa concentrada de cada vertice (area/3 dos triangulos);
@@ -559,7 +570,11 @@ int main() {
         malha = malha.substr(malha.find_last_of('/') + 1);
         std::ostringstream a;
         // v4: passos.csv com u_max_m, pl_pts e epsp_max (um checkpoint v3 nao e retomado: os CSV teriam outras colunas)
-        a << std::setprecision(15) << "v4 solo=" << solo << " I=" << I_mm_h << " variante=" << variante << " f_trans=" << fTrans
+        a << std::setprecision(15) << "v4 solo=" << solo << " I=" << I_mm_h << " variante=" << variante << " f_trans=" << fTrans;
+        // so quando diferentes do padrao: os checkpoints das rodadas de antes continuam valendo
+        if (p.hydro.fKraMin != 1.e-4) a << " kra_min=" << p.hydro.fKraMin;
+        if (arLaterais) a << " ar_laterais=1";
+        a
           << " malha=" << malha
           << " Dt=" << Dt << " Tchuva=" << Tchuva << " Tf=" << Tf << " FS_H=";
         for (double h : fsH) a << h << ';';
@@ -902,7 +917,8 @@ int main() {
         if (iMin < 0 || std::atof(valor(i, "FS_SRM").c_str()) < std::atof(valor(iMin, "FS_SRM").c_str())) iMin = i;
     std::vector<std::pair<std::string, std::string>> r = {
         {"real", std::to_string(real)}, {"solo", solo}, {"I_mm_h", Num(I_mm_h)}, {"variante", variante},
-        {"f_trans", Num(fTrans)}, {"campos", std::to_string(campos)}, {"semente", std::to_string(semente)},
+        {"f_trans", Num(fTrans)}, {"kra_min", Num(p.hydro.fKraMin)}, {"ar_laterais", std::to_string(arLaterais)},
+        {"campos", std::to_string(campos)}, {"semente", std::to_string(semente)},
         {"KL_M", std::to_string(Musado)}, {"KL_variancia", campos ? Num(fracUsada) : ""}, {"cov_c", Num(covC)},
         {"cov_phi", Num(covPhi)},
         {"cov_k", Num(covK)}, {"Lx", Num(Lx)}, {"Ly", Num(Ly)}, {"alfa", Num(alfa)}, {"area_solo_m2", Num(areaSolo)},
