@@ -1,0 +1,25 @@
+# Sharma, Fujisawa & Murakami (2021), FEAD 197:103632, Fig. 14: linha freatica final ("Present", ST/FEM) da barragem
+# de face a jusante inclinada (base 7 m, crista 2 m, montante 5 m, jusante 1 m). Digitalizado, aproximado: pagina 8 do
+# PDF renderizada a 400 dpi, eixos calibrados pelas retas x = 0, x = 7, y = 0 e y = 5 do quadro; em cada x, o centro da
+# sequencia de pixels da linha continua (fora dos marcadores). Incerteza da leitura ~0,05 m; na figura a face a jusante
+# aparece ~0,05 m acima de y = 7 - x e a linha encontra a face perto de (3,7; 3,3), um pouco abaixo dos 3,4 m do texto.
+# O ultimo ponto e o ponto de saida do texto (y = 3,4 m na face y = 7 - x), nao uma leitura da figura.
+x_m,y_m
+0.00,5.00
+0.20,4.97
+0.45,4.90
+0.70,4.81
+0.90,4.74
+1.10,4.67
+1.20,4.63
+1.60,4.46
+1.90,4.33
+2.00,4.27
+2.10,4.22
+2.20,4.17
+2.50,4.01
+2.60,3.96
+2.90,3.79
+3.20,3.62
+3.55,3.38
+3.60,3.40

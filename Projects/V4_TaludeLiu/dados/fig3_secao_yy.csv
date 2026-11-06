@@ -1,0 +1,20 @@
+# Liu et al. (2024), Fig. 3(b): poropressao (kPa) x cota (m) na secao Y-Y (x = 15 m, vertical pelo ponto I da meia
+# altura da face; o terreno esta em z = 7,5 m), regime permanente com q/k_s = 0.01 ("This study"). Digitalizado,
+# aproximado: centros dos marcadores na pagina renderizada a 300 dpi (scripts/digitaliza_fig3.py), incerteza ~0,3 kPa.
+z_m,pw_kPa
+0.0,44.1
+0.5,39.2
+1.0,34.35
+1.5,29.5
+2.0,24.6
+2.5,19.8
+3.0,14.9
+3.5,10.1
+4.0,5.3
+4.5,0.5
+5.0,-4.2
+5.5,-8.6
+6.0,-12.2
+6.5,-13.7
+7.0,-14.0
+7.5,-14.15

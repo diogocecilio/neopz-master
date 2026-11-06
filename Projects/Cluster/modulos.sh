@@ -1,4 +1,5 @@
-# Ajuste para o seu cluster (veja `module avail`). Lido por submeter.sh, pela compilacao e pelos jobs.
+# Ajuste para o seu cluster (veja `module avail`). Lido por compilar.sh, pelos submeter_*.sh e pelos jobs (*.sbatch)
+# deste pacote; antes de compilar a mao: source modulos.sh.
 # fermi (CESUP/UFRGS): gcc do sistema + MKL do oneAPI 2025.1 (o modulo define MKLROOT, que o FindMKL usa).
 
 # Em shells nao interativos o comando module pode nao estar definido
@@ -30,8 +31,7 @@ carregar() {
 }
 
 carregar mkl/2025.1
-# fermi: os nos de computacao nao tem cmake (o de login tem; c++ e gcc 14 no login, gcc 15 nos nos). submeter.sh compila
-# no no de login, em segundo plano, e submete os casos quando terminar. Em outro cluster: COMPILAR=job (compila num job).
-export COMPILAR="${COMPILAR:-login}"
+# fermi: os nos de computacao nao tem cmake (o de login tem; c++ e gcc 14 no login, gcc 15 nos nos). Os submeter_*.sh
+# compilam no no de login, em segundo plano, e submetem quando terminar; testes.sbatch roda os testes ja compilados.
 # export USAR_MKL=OFF      # sem MKL: descomente e comente a linha acima (skyline, mais lento)
 # export PARTICAO=normal   # particao do SLURM; vazio usa a padrao

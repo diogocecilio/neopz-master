@@ -1,0 +1,1063 @@
+# Monte Carlo local do cho1 (V2_TaludesCho, SEMENTE 20241220, KL_FRAC 0,95, KL_MARGEM 0): FS censurado em 1
+# (FS_MAX = 1: FS = 1 quer dizer FS >= 1). nucleo gauss: M = 9; exp: M = 133. c_med: media de c_u na secao.
+nucleo,h_malha,real,FS,c_med,origem
+gauss,0.5,1,1.0,23.0147,cluster/rodar_v2.sh
+gauss,0.5,2,0.9125,16.4576,cluster/rodar_v2.sh
+gauss,0.5,3,1.0,25.9214,cluster/rodar_v2.sh
+gauss,0.5,4,1.0,27.3172,cluster/rodar_v2.sh
+gauss,0.5,5,1.0,22.7222,cluster/rodar_v2.sh
+gauss,0.5,6,1.0,24.5980,cluster/rodar_v2.sh
+gauss,0.5,7,1.0,25.2832,cluster/rodar_v2.sh
+gauss,0.5,8,1.0,30.5838,cluster/rodar_v2.sh
+gauss,0.5,9,0.94375,16.9084,cluster/rodar_v2.sh
+gauss,0.5,10,1.0,25.1016,cluster/rodar_v2.sh
+gauss,0.5,11,1.0,22.2746,cluster/rodar_v2.sh
+gauss,0.5,12,1.0,19.6431,cluster/rodar_v2.sh
+gauss,0.5,13,1.0,19.2552,cluster/rodar_v2.sh
+gauss,0.5,14,1.0,27.2227,cluster/rodar_v2.sh
+gauss,0.5,15,1.0,25.4267,cluster/rodar_v2.sh
+gauss,0.5,16,1.0,27.7930,cluster/rodar_v2.sh
+gauss,0.5,17,1.0,21.5303,cluster/rodar_v2.sh
+gauss,0.5,18,1.0,27.8154,cluster/rodar_v2.sh
+gauss,0.5,19,1.0,27.9948,cluster/rodar_v2.sh
+gauss,0.5,20,1.0,28.3287,cluster/rodar_v2.sh
+gauss,0.5,21,1.0,24.6698,cluster/rodar_v2.sh
+gauss,0.5,22,0.93125,16.9987,cluster/rodar_v2.sh
+gauss,0.5,23,1.0,21.6952,cluster/rodar_v2.sh
+gauss,0.5,24,1.0,24.3030,cluster/rodar_v2.sh
+gauss,0.5,25,1.0,23.9494,cluster/rodar_v2.sh
+gauss,0.5,26,1.0,23.4637,cluster/rodar_v2.sh
+gauss,0.5,27,1.0,30.3142,cluster/rodar_v2.sh
+gauss,0.5,28,1.0,18.6622,cluster/rodar_v2.sh
+gauss,0.5,29,1.0,21.1470,cluster/rodar_v2.sh
+gauss,0.5,30,1.0,20.6379,cluster/rodar_v2.sh
+gauss,0.5,31,0.95,17.7690,cluster/rodar_v2.sh
+gauss,0.5,32,1.0,24.6931,cluster/rodar_v2.sh
+gauss,0.5,33,1.0,22.0279,cluster/rodar_v2.sh
+gauss,0.5,34,1.0,35.1532,cluster/rodar_v2.sh
+gauss,0.5,35,1.0,21.5898,cluster/rodar_v2.sh
+gauss,0.5,36,1.0,25.4544,cluster/rodar_v2.sh
+gauss,0.5,37,1.0,23.7560,cluster/rodar_v2.sh
+gauss,0.5,38,1.0,20.4209,cluster/rodar_v2.sh
+gauss,0.5,39,1.0,22.2359,cluster/rodar_v2.sh
+gauss,0.5,40,1.0,26.4324,cluster/rodar_v2.sh
+gauss,0.5,41,1.0,34.8473,cluster/rodar_v2.sh
+gauss,0.5,42,1.0,19.6317,cluster/rodar_v2.sh
+gauss,0.5,43,1.0,20.7285,cluster/rodar_v2.sh
+gauss,0.5,44,1.0,28.8150,cluster/rodar_v2.sh
+gauss,0.5,45,1.0,27.9921,cluster/rodar_v2.sh
+gauss,0.5,46,1.0,17.1377,cluster/rodar_v2.sh
+gauss,0.5,47,1.0,19.6285,cluster/rodar_v2.sh
+gauss,0.5,48,1.0,18.5959,cluster/rodar_v2.sh
+gauss,0.5,49,1.0,24.6965,cluster/rodar_v2.sh
+gauss,0.5,50,1.0,24.9712,cluster/rodar_v2.sh
+gauss,0.5,51,1.0,28.6251,cluster/rodar_v2.sh
+gauss,0.5,52,1.0,24.6633,cluster/rodar_v2.sh
+gauss,0.5,53,1.0,21.8550,cluster/rodar_v2.sh
+gauss,0.5,54,1.0,21.9992,cluster/rodar_v2.sh
+gauss,0.5,55,1.0,19.9020,cluster/rodar_v2.sh
+gauss,0.5,56,1.0,21.0511,cluster/rodar_v2.sh
+gauss,0.5,57,1.0,20.8962,cluster/rodar_v2.sh
+gauss,0.5,58,1.0,22.6433,cluster/rodar_v2.sh
+gauss,0.5,59,1.0,26.8887,cluster/rodar_v2.sh
+gauss,0.5,60,0.90625,16.1904,cluster/rodar_v2.sh
+gauss,1.0,1,1.0,23.0147,teste [.lento]
+gauss,1.0,2,0.91875,16.4576,teste [.lento]
+gauss,1.0,3,1.0,25.9214,teste [.lento]
+gauss,1.0,4,1.0,27.3173,teste [.lento]
+gauss,1.0,5,1.0,22.7221,teste [.lento]
+gauss,1.0,6,1.0,24.5979,teste [.lento]
+gauss,1.0,7,1.0,25.2831,teste [.lento]
+gauss,1.0,8,1.0,30.5838,teste [.lento]
+gauss,1.0,9,0.95625,16.9084,teste [.lento]
+gauss,1.0,10,1.0,25.1015,teste [.lento]
+gauss,1.0,11,1.0,22.2746,teste [.lento]
+gauss,1.0,12,1.0,19.6432,teste [.lento]
+gauss,1.0,13,1.0,19.2552,teste [.lento]
+gauss,1.0,14,1.0,27.2227,teste [.lento]
+gauss,1.0,15,1.0,25.4267,teste [.lento]
+gauss,1.0,16,1.0,27.7930,teste [.lento]
+gauss,1.0,17,1.0,21.5303,teste [.lento]
+gauss,1.0,18,1.0,27.8153,teste [.lento]
+gauss,1.0,19,1.0,27.9947,teste [.lento]
+gauss,1.0,20,1.0,28.3287,teste [.lento]
+gauss,1.0,21,1.0,24.6698,teste [.lento]
+gauss,1.0,22,0.9375,16.9988,teste [.lento]
+gauss,1.0,23,1.0,21.6952,teste [.lento]
+gauss,1.0,24,1.0,24.3029,teste [.lento]
+gauss,1.0,25,1.0,23.9494,teste [.lento]
+gauss,1.0,26,1.0,23.4638,teste [.lento]
+gauss,1.0,27,1.0,30.3141,teste [.lento]
+gauss,1.0,28,1.0,18.6623,teste [.lento]
+gauss,1.0,29,1.0,21.1470,teste [.lento]
+gauss,1.0,30,1.0,20.6379,teste [.lento]
+gauss,1.0,31,0.95625,17.7690,teste [.lento]
+gauss,1.0,32,1.0,24.6931,teste [.lento]
+gauss,1.0,33,1.0,22.0280,teste [.lento]
+gauss,1.0,34,1.0,35.1532,teste [.lento]
+gauss,1.0,35,1.0,21.5899,teste [.lento]
+gauss,1.0,36,1.0,25.4544,teste [.lento]
+gauss,1.0,37,1.0,23.7560,teste [.lento]
+gauss,1.0,38,1.0,20.4210,teste [.lento]
+gauss,1.0,39,1.0,22.2359,teste [.lento]
+gauss,1.0,40,1.0,26.4324,teste [.lento]
+gauss,1.0,41,1.0,34.8472,teste [.lento]
+gauss,1.0,42,1.0,19.6317,teste [.lento]
+gauss,1.0,43,1.0,20.7286,teste [.lento]
+gauss,1.0,44,1.0,28.8149,teste [.lento]
+gauss,1.0,45,1.0,27.9920,teste [.lento]
+gauss,1.0,46,1.0,17.1377,teste [.lento]
+gauss,1.0,47,1.0,19.6285,teste [.lento]
+gauss,1.0,48,1.0,18.5959,teste [.lento]
+gauss,1.0,49,1.0,24.6964,teste [.lento]
+gauss,1.0,50,1.0,24.9711,teste [.lento]
+gauss,1.0,51,1.0,28.6251,teste [.lento]
+gauss,1.0,52,1.0,24.6634,teste [.lento]
+gauss,1.0,53,1.0,21.8550,teste [.lento]
+gauss,1.0,54,1.0,21.9993,teste [.lento]
+gauss,1.0,55,1.0,19.9020,teste [.lento]
+gauss,1.0,56,1.0,21.0511,teste [.lento]
+gauss,1.0,57,1.0,20.8962,teste [.lento]
+gauss,1.0,58,1.0,22.6433,teste [.lento]
+gauss,1.0,59,1.0,26.8888,teste [.lento]
+gauss,1.0,60,0.90625,16.1904,teste [.lento]
+gauss,1.0,61,1.0,24.0977,teste [.lento]
+gauss,1.0,62,1.0,20.7851,teste [.lento]
+gauss,1.0,63,1.0,18.9883,teste [.lento]
+gauss,1.0,64,1.0,23.1534,teste [.lento]
+gauss,1.0,65,1.0,21.2094,teste [.lento]
+gauss,1.0,66,1.0,25.3985,teste [.lento]
+gauss,1.0,67,1.0,27.5751,teste [.lento]
+gauss,1.0,68,1.0,22.9219,teste [.lento]
+gauss,1.0,69,1.0,19.8009,teste [.lento]
+gauss,1.0,70,1.0,29.1200,teste [.lento]
+gauss,1.0,71,1.0,17.7102,teste [.lento]
+gauss,1.0,72,1.0,20.2815,teste [.lento]
+gauss,1.0,73,1.0,22.4486,teste [.lento]
+gauss,1.0,74,1.0,21.6320,teste [.lento]
+gauss,1.0,75,1.0,20.7726,teste [.lento]
+gauss,1.0,76,1.0,28.8524,teste [.lento]
+gauss,1.0,77,1.0,22.8286,teste [.lento]
+gauss,1.0,78,0.9875,17.1498,teste [.lento]
+gauss,1.0,79,1.0,26.5630,teste [.lento]
+gauss,1.0,80,1.0,26.7017,teste [.lento]
+gauss,1.0,81,1.0,23.8669,teste [.lento]
+gauss,1.0,82,1.0,21.2745,teste [.lento]
+gauss,1.0,83,1.0,30.5972,teste [.lento]
+gauss,1.0,84,1.0,24.1831,teste [.lento]
+gauss,1.0,85,1.0,21.4041,teste [.lento]
+gauss,1.0,86,1.0,27.7261,teste [.lento]
+gauss,1.0,87,1.0,22.0167,teste [.lento]
+gauss,1.0,88,1.0,27.3134,teste [.lento]
+gauss,1.0,89,1.0,27.7088,teste [.lento]
+gauss,1.0,90,1.0,29.2671,teste [.lento]
+gauss,1.0,91,1.0,21.8497,teste [.lento]
+gauss,1.0,92,1.0,21.7461,teste [.lento]
+gauss,1.0,93,1.0,24.9606,teste [.lento]
+gauss,1.0,94,1.0,23.3981,teste [.lento]
+gauss,1.0,95,0.8875,16.4002,teste [.lento]
+gauss,1.0,96,1.0,19.4444,teste [.lento]
+gauss,1.0,97,1.0,28.0013,teste [.lento]
+gauss,1.0,98,1.0,18.0512,teste [.lento]
+gauss,1.0,99,1.0,26.2279,teste [.lento]
+gauss,1.0,100,1.0,27.2962,teste [.lento]
+gauss,1.0,101,1.0,25.1149,teste [.lento]
+gauss,1.0,102,1.0,27.5052,teste [.lento]
+gauss,1.0,103,0.99375,17.9614,teste [.lento]
+gauss,1.0,104,0.9125,18.9995,teste [.lento]
+gauss,1.0,105,1.0,22.2180,teste [.lento]
+gauss,1.0,106,1.0,19.2834,teste [.lento]
+gauss,1.0,107,1.0,18.0626,teste [.lento]
+gauss,1.0,108,1.0,25.0473,teste [.lento]
+gauss,1.0,109,1.0,28.2088,teste [.lento]
+gauss,1.0,110,1.0,19.0458,teste [.lento]
+gauss,1.0,111,1.0,23.5717,teste [.lento]
+gauss,1.0,112,1.0,23.2408,teste [.lento]
+gauss,1.0,113,0.79375,14.3225,teste [.lento]
+gauss,1.0,114,1.0,25.5179,teste [.lento]
+gauss,1.0,115,1.0,25.4918,teste [.lento]
+gauss,1.0,116,1.0,23.2607,teste [.lento]
+gauss,1.0,117,1.0,22.2913,teste [.lento]
+gauss,1.0,118,0.99375,18.7289,teste [.lento]
+gauss,1.0,119,1.0,20.7818,teste [.lento]
+gauss,1.0,120,1.0,22.7785,teste [.lento]
+gauss,1.0,121,1.0,23.0125,teste [.lento]
+gauss,1.0,122,1.0,24.3148,teste [.lento]
+gauss,1.0,123,1.0,20.9826,teste [.lento]
+gauss,1.0,124,1.0,24.9334,teste [.lento]
+gauss,1.0,125,1.0,19.6489,teste [.lento]
+gauss,1.0,126,1.0,31.4918,teste [.lento]
+gauss,1.0,127,1.0,28.2278,teste [.lento]
+gauss,1.0,128,1.0,24.2067,teste [.lento]
+gauss,1.0,129,1.0,21.2266,teste [.lento]
+gauss,1.0,130,1.0,25.4418,teste [.lento]
+gauss,1.0,131,1.0,23.5643,teste [.lento]
+gauss,1.0,132,1.0,27.2595,teste [.lento]
+gauss,1.0,133,1.0,22.9640,teste [.lento]
+gauss,1.0,134,1.0,20.5240,teste [.lento]
+gauss,1.0,135,0.8625,15.4237,teste [.lento]
+gauss,1.0,136,1.0,28.1048,teste [.lento]
+gauss,1.0,137,1.0,25.6443,teste [.lento]
+gauss,1.0,138,1.0,20.7168,teste [.lento]
+gauss,1.0,139,1.0,26.6135,teste [.lento]
+gauss,1.0,140,0.85,14.8700,teste [.lento]
+gauss,1.0,141,1.0,21.7869,teste [.lento]
+gauss,1.0,142,1.0,21.0622,teste [.lento]
+gauss,1.0,143,1.0,24.1581,teste [.lento]
+gauss,1.0,144,1.0,28.5638,teste [.lento]
+gauss,1.0,145,1.0,28.0236,teste [.lento]
+gauss,1.0,146,1.0,22.7518,teste [.lento]
+gauss,1.0,147,1.0,28.2217,teste [.lento]
+gauss,1.0,148,1.0,22.2935,teste [.lento]
+gauss,1.0,149,1.0,26.5125,teste [.lento]
+gauss,1.0,150,1.0,20.8872,teste [.lento]
+gauss,1.0,151,1.0,18.7357,teste [.lento]
+gauss,1.0,152,1.0,23.5853,teste [.lento]
+gauss,1.0,153,1.0,20.8271,teste [.lento]
+gauss,1.0,154,1.0,20.6023,teste [.lento]
+gauss,1.0,155,1.0,26.6169,teste [.lento]
+gauss,1.0,156,1.0,23.7356,teste [.lento]
+gauss,1.0,157,0.84375,15.8911,teste [.lento]
+gauss,1.0,158,1.0,33.0681,teste [.lento]
+gauss,1.0,159,0.775,15.5033,teste [.lento]
+gauss,1.0,160,0.95,18.2743,teste [.lento]
+gauss,1.0,161,1.0,23.1787,teste [.lento]
+gauss,1.0,162,1.0,27.1883,teste [.lento]
+gauss,1.0,163,1.0,24.1713,teste [.lento]
+gauss,1.0,164,1.0,26.6206,teste [.lento]
+gauss,1.0,165,1.0,19.5816,teste [.lento]
+gauss,1.0,166,1.0,27.2546,teste [.lento]
+gauss,1.0,167,1.0,22.8653,teste [.lento]
+gauss,1.0,168,1.0,22.4823,teste [.lento]
+gauss,1.0,169,1.0,22.7246,teste [.lento]
+gauss,1.0,170,1.0,23.4498,teste [.lento]
+gauss,1.0,171,1.0,21.7880,teste [.lento]
+gauss,1.0,172,1.0,23.0917,teste [.lento]
+gauss,1.0,173,1.0,25.7688,teste [.lento]
+gauss,1.0,174,1.0,22.4336,teste [.lento]
+gauss,1.0,175,1.0,23.1793,teste [.lento]
+gauss,1.0,176,1.0,21.7147,teste [.lento]
+gauss,1.0,177,1.0,26.5530,teste [.lento]
+gauss,1.0,178,1.0,22.9311,teste [.lento]
+gauss,1.0,179,1.0,26.5527,teste [.lento]
+gauss,1.0,180,0.975,17.8091,teste [.lento]
+gauss,1.0,181,1.0,27.5272,teste [.lento]
+gauss,1.0,182,1.0,20.6082,teste [.lento]
+gauss,1.0,183,1.0,26.6005,teste [.lento]
+gauss,1.0,184,1.0,20.1620,teste [.lento]
+gauss,1.0,185,1.0,22.9506,teste [.lento]
+gauss,1.0,186,1.0,23.1324,teste [.lento]
+gauss,1.0,187,0.8875,16.6772,teste [.lento]
+gauss,1.0,188,1.0,20.3258,teste [.lento]
+gauss,1.0,189,1.0,26.1706,teste [.lento]
+gauss,1.0,190,1.0,20.4739,teste [.lento]
+gauss,1.0,191,1.0,30.5250,teste [.lento]
+gauss,1.0,192,1.0,19.0935,teste [.lento]
+gauss,1.0,193,1.0,24.7409,teste [.lento]
+gauss,1.0,194,1.0,22.7632,teste [.lento]
+gauss,1.0,195,1.0,22.4677,teste [.lento]
+gauss,1.0,196,1.0,23.4707,teste [.lento]
+gauss,1.0,197,1.0,18.5752,teste [.lento]
+gauss,1.0,198,0.96875,16.7026,teste [.lento]
+gauss,1.0,199,1.0,28.5319,teste [.lento]
+gauss,1.0,200,1.0,27.1335,teste [.lento]
+gauss,1.0,201,1.0,30.2072,cluster/rodar_v2.sh
+gauss,1.0,202,1.0,22.6583,cluster/rodar_v2.sh
+gauss,1.0,203,1.0,20.2988,cluster/rodar_v2.sh
+gauss,1.0,204,1.0,27.0728,cluster/rodar_v2.sh
+gauss,1.0,205,1.0,27.0428,cluster/rodar_v2.sh
+gauss,1.0,206,1.0,19.3139,cluster/rodar_v2.sh
+gauss,1.0,207,1.0,17.7844,cluster/rodar_v2.sh
+gauss,1.0,208,1.0,19.6195,cluster/rodar_v2.sh
+gauss,1.0,209,1.0,27.3776,cluster/rodar_v2.sh
+gauss,1.0,210,1.0,33.5917,cluster/rodar_v2.sh
+gauss,1.0,211,1.0,21.3534,cluster/rodar_v2.sh
+gauss,1.0,212,1.0,22.0991,cluster/rodar_v2.sh
+gauss,1.0,213,1.0,23.4932,cluster/rodar_v2.sh
+gauss,1.0,214,1.0,24.6239,cluster/rodar_v2.sh
+gauss,1.0,215,1.0,20.2930,cluster/rodar_v2.sh
+gauss,1.0,216,1.0,22.5160,cluster/rodar_v2.sh
+gauss,1.0,217,1.0,20.9373,cluster/rodar_v2.sh
+gauss,1.0,218,1.0,20.3547,cluster/rodar_v2.sh
+gauss,1.0,219,0.99375,17.9074,cluster/rodar_v2.sh
+gauss,1.0,220,1.0,20.0927,cluster/rodar_v2.sh
+gauss,1.0,221,1.0,27.4881,cluster/rodar_v2.sh
+gauss,1.0,222,1.0,27.4997,cluster/rodar_v2.sh
+gauss,1.0,223,1.0,27.4042,cluster/rodar_v2.sh
+gauss,1.0,224,1.0,22.3382,cluster/rodar_v2.sh
+gauss,1.0,225,0.90625,16.5410,cluster/rodar_v2.sh
+gauss,1.0,226,1.0,25.7227,cluster/rodar_v2.sh
+gauss,1.0,227,1.0,22.9063,cluster/rodar_v2.sh
+gauss,1.0,228,1.0,18.9154,cluster/rodar_v2.sh
+gauss,1.0,229,1.0,25.3108,cluster/rodar_v2.sh
+gauss,1.0,230,1.0,19.2113,cluster/rodar_v2.sh
+gauss,1.0,231,1.0,22.5387,cluster/rodar_v2.sh
+gauss,1.0,232,1.0,20.2583,cluster/rodar_v2.sh
+gauss,1.0,233,0.90625,18.1861,cluster/rodar_v2.sh
+gauss,1.0,234,1.0,22.0415,cluster/rodar_v2.sh
+gauss,1.0,235,1.0,30.8504,cluster/rodar_v2.sh
+gauss,1.0,236,1.0,20.4076,cluster/rodar_v2.sh
+gauss,1.0,237,1.0,22.4682,cluster/rodar_v2.sh
+gauss,1.0,238,1.0,21.7291,cluster/rodar_v2.sh
+gauss,1.0,239,1.0,25.9851,cluster/rodar_v2.sh
+gauss,1.0,240,1.0,26.0743,cluster/rodar_v2.sh
+gauss,1.0,241,1.0,19.9449,cluster/rodar_v2.sh
+gauss,1.0,242,1.0,22.2659,cluster/rodar_v2.sh
+gauss,1.0,243,1.0,22.3763,cluster/rodar_v2.sh
+gauss,1.0,244,1.0,23.8511,cluster/rodar_v2.sh
+gauss,1.0,245,1.0,21.9798,cluster/rodar_v2.sh
+gauss,1.0,246,1.0,21.1765,cluster/rodar_v2.sh
+gauss,1.0,247,1.0,21.4281,cluster/rodar_v2.sh
+gauss,1.0,248,1.0,20.3931,cluster/rodar_v2.sh
+gauss,1.0,249,1.0,31.9395,cluster/rodar_v2.sh
+gauss,1.0,250,0.975,17.0618,cluster/rodar_v2.sh
+gauss,1.0,251,1.0,29.3936,cluster/rodar_v2.sh
+gauss,1.0,252,1.0,26.6491,cluster/rodar_v2.sh
+gauss,1.0,253,1.0,23.3922,cluster/rodar_v2.sh
+gauss,1.0,254,1.0,28.7038,cluster/rodar_v2.sh
+gauss,1.0,255,1.0,24.5053,cluster/rodar_v2.sh
+gauss,1.0,256,1.0,19.1327,cluster/rodar_v2.sh
+gauss,1.0,257,0.99375,17.6160,cluster/rodar_v2.sh
+gauss,1.0,258,1.0,18.4889,cluster/rodar_v2.sh
+gauss,1.0,259,1.0,22.2668,cluster/rodar_v2.sh
+gauss,1.0,260,0.96875,19.4467,cluster/rodar_v2.sh
+gauss,1.0,261,1.0,20.7090,cluster/rodar_v2.sh
+gauss,1.0,262,1.0,21.7129,cluster/rodar_v2.sh
+gauss,1.0,263,1.0,31.6374,cluster/rodar_v2.sh
+gauss,1.0,264,1.0,30.9665,cluster/rodar_v2.sh
+gauss,1.0,265,0.99375,17.4158,cluster/rodar_v2.sh
+gauss,1.0,266,0.85,15.5291,cluster/rodar_v2.sh
+gauss,1.0,267,1.0,21.0552,cluster/rodar_v2.sh
+gauss,1.0,268,1.0,28.6933,cluster/rodar_v2.sh
+gauss,1.0,269,1.0,21.1618,cluster/rodar_v2.sh
+gauss,1.0,270,1.0,24.7326,cluster/rodar_v2.sh
+gauss,1.0,271,0.95,17.3251,cluster/rodar_v2.sh
+gauss,1.0,272,1.0,32.1440,cluster/rodar_v2.sh
+gauss,1.0,273,1.0,25.7798,cluster/rodar_v2.sh
+gauss,1.0,274,1.0,22.3475,cluster/rodar_v2.sh
+gauss,1.0,275,1.0,20.4915,cluster/rodar_v2.sh
+gauss,1.0,276,1.0,27.4371,cluster/rodar_v2.sh
+gauss,1.0,277,0.8,14.3625,cluster/rodar_v2.sh
+gauss,1.0,278,1.0,19.7706,cluster/rodar_v2.sh
+gauss,1.0,279,1.0,24.3169,cluster/rodar_v2.sh
+gauss,1.0,280,1.0,29.0630,cluster/rodar_v2.sh
+gauss,1.0,281,1.0,20.8032,cluster/rodar_v2.sh
+gauss,1.0,282,0.98125,17.1561,cluster/rodar_v2.sh
+gauss,1.0,283,1.0,18.9683,cluster/rodar_v2.sh
+gauss,1.0,284,1.0,18.0570,cluster/rodar_v2.sh
+gauss,1.0,285,1.0,25.7818,cluster/rodar_v2.sh
+gauss,1.0,286,1.0,24.0852,cluster/rodar_v2.sh
+gauss,1.0,287,1.0,22.8597,cluster/rodar_v2.sh
+gauss,1.0,288,1.0,29.0967,cluster/rodar_v2.sh
+gauss,1.0,289,0.98125,16.8810,cluster/rodar_v2.sh
+gauss,1.0,290,1.0,25.6823,cluster/rodar_v2.sh
+gauss,1.0,291,1.0,27.2139,cluster/rodar_v2.sh
+gauss,1.0,292,1.0,23.9078,cluster/rodar_v2.sh
+gauss,1.0,293,1.0,22.7713,cluster/rodar_v2.sh
+gauss,1.0,294,0.7875,14.0529,cluster/rodar_v2.sh
+gauss,1.0,295,1.0,18.6756,cluster/rodar_v2.sh
+gauss,1.0,296,1.0,30.5442,cluster/rodar_v2.sh
+gauss,1.0,297,1.0,31.4070,cluster/rodar_v2.sh
+gauss,1.0,298,0.9,15.8438,cluster/rodar_v2.sh
+gauss,1.0,299,1.0,27.2802,cluster/rodar_v2.sh
+gauss,1.0,300,1.0,20.7835,cluster/rodar_v2.sh
+gauss,1.0,301,0.8625,15.1236,cluster/rodar_v2.sh
+gauss,1.0,302,1.0,22.2358,cluster/rodar_v2.sh
+gauss,1.0,303,1.0,19.6692,cluster/rodar_v2.sh
+gauss,1.0,304,1.0,19.0504,cluster/rodar_v2.sh
+gauss,1.0,305,1.0,26.4064,cluster/rodar_v2.sh
+gauss,1.0,306,1.0,22.1497,cluster/rodar_v2.sh
+gauss,1.0,307,1.0,18.6617,cluster/rodar_v2.sh
+gauss,1.0,308,1.0,23.8878,cluster/rodar_v2.sh
+gauss,1.0,309,1.0,28.0522,cluster/rodar_v2.sh
+gauss,1.0,310,1.0,19.4473,cluster/rodar_v2.sh
+gauss,1.0,311,1.0,21.1737,cluster/rodar_v2.sh
+gauss,1.0,312,1.0,27.3952,cluster/rodar_v2.sh
+gauss,1.0,313,1.0,32.2921,cluster/rodar_v2.sh
+gauss,1.0,314,1.0,24.4152,cluster/rodar_v2.sh
+gauss,1.0,315,1.0,23.6621,cluster/rodar_v2.sh
+gauss,1.0,316,0.9875,17.6322,cluster/rodar_v2.sh
+gauss,1.0,317,1.0,28.1020,cluster/rodar_v2.sh
+gauss,1.0,318,1.0,24.3353,cluster/rodar_v2.sh
+gauss,1.0,319,1.0,32.5848,cluster/rodar_v2.sh
+gauss,1.0,320,1.0,27.5271,cluster/rodar_v2.sh
+gauss,1.0,321,1.0,22.7750,cluster/rodar_v2.sh
+gauss,1.0,322,1.0,26.0890,cluster/rodar_v2.sh
+gauss,1.0,323,1.0,24.5869,cluster/rodar_v2.sh
+gauss,1.0,324,1.0,21.0271,cluster/rodar_v2.sh
+gauss,1.0,325,1.0,28.1490,cluster/rodar_v2.sh
+gauss,1.0,326,1.0,22.6083,cluster/rodar_v2.sh
+gauss,1.0,327,0.95625,18.7003,cluster/rodar_v2.sh
+gauss,1.0,328,0.83125,15.3750,cluster/rodar_v2.sh
+gauss,1.0,329,0.9875,17.2345,cluster/rodar_v2.sh
+gauss,1.0,330,1.0,21.0219,cluster/rodar_v2.sh
+gauss,1.0,331,1.0,28.0571,cluster/rodar_v2.sh
+gauss,1.0,332,1.0,20.7760,cluster/rodar_v2.sh
+gauss,1.0,333,1.0,25.6105,cluster/rodar_v2.sh
+gauss,1.0,334,1.0,21.4011,cluster/rodar_v2.sh
+gauss,1.0,335,1.0,18.2121,cluster/rodar_v2.sh
+gauss,1.0,336,1.0,23.0280,cluster/rodar_v2.sh
+gauss,1.0,337,1.0,22.6100,cluster/rodar_v2.sh
+gauss,1.0,338,1.0,25.6023,cluster/rodar_v2.sh
+gauss,1.0,339,1.0,19.4498,cluster/rodar_v2.sh
+gauss,1.0,340,1.0,24.8103,cluster/rodar_v2.sh
+gauss,1.0,341,1.0,19.4295,cluster/rodar_v2.sh
+gauss,1.0,342,1.0,21.1464,cluster/rodar_v2.sh
+gauss,1.0,343,1.0,19.9206,cluster/rodar_v2.sh
+gauss,1.0,344,1.0,20.0971,cluster/rodar_v2.sh
+gauss,1.0,345,1.0,20.3358,cluster/rodar_v2.sh
+gauss,1.0,346,1.0,20.8141,cluster/rodar_v2.sh
+gauss,1.0,347,1.0,22.5560,cluster/rodar_v2.sh
+gauss,1.0,348,1.0,32.0564,cluster/rodar_v2.sh
+gauss,1.0,349,0.975,18.2259,cluster/rodar_v2.sh
+gauss,1.0,350,1.0,21.8727,cluster/rodar_v2.sh
+gauss,1.0,351,0.875,16.2872,cluster/rodar_v2.sh
+gauss,1.0,352,1.0,26.2260,cluster/rodar_v2.sh
+gauss,1.0,353,1.0,20.8192,cluster/rodar_v2.sh
+gauss,1.0,354,1.0,18.7804,cluster/rodar_v2.sh
+gauss,1.0,355,1.0,25.9579,cluster/rodar_v2.sh
+gauss,1.0,356,1.0,19.7633,cluster/rodar_v2.sh
+gauss,1.0,357,1.0,22.6047,cluster/rodar_v2.sh
+gauss,1.0,358,1.0,19.3004,cluster/rodar_v2.sh
+gauss,1.0,359,0.94375,17.0478,cluster/rodar_v2.sh
+gauss,1.0,360,1.0,26.3321,cluster/rodar_v2.sh
+gauss,1.0,361,1.0,20.6519,cluster/rodar_v2.sh
+gauss,1.0,362,1.0,23.1787,cluster/rodar_v2.sh
+gauss,1.0,363,1.0,28.0998,cluster/rodar_v2.sh
+gauss,1.0,364,1.0,28.1303,cluster/rodar_v2.sh
+gauss,1.0,365,1.0,25.1768,cluster/rodar_v2.sh
+gauss,1.0,366,0.95,17.1715,cluster/rodar_v2.sh
+gauss,1.0,367,1.0,17.9254,cluster/rodar_v2.sh
+gauss,1.0,368,1.0,22.5511,cluster/rodar_v2.sh
+gauss,1.0,369,1.0,20.8147,cluster/rodar_v2.sh
+gauss,1.0,370,1.0,22.5148,cluster/rodar_v2.sh
+gauss,1.0,371,1.0,25.9322,cluster/rodar_v2.sh
+gauss,1.0,372,1.0,26.0069,cluster/rodar_v2.sh
+gauss,1.0,373,1.0,20.6983,cluster/rodar_v2.sh
+gauss,1.0,374,1.0,28.6710,cluster/rodar_v2.sh
+gauss,1.0,375,1.0,26.9091,cluster/rodar_v2.sh
+gauss,1.0,376,1.0,21.7395,cluster/rodar_v2.sh
+gauss,1.0,377,1.0,16.7321,cluster/rodar_v2.sh
+gauss,1.0,378,1.0,20.6940,cluster/rodar_v2.sh
+gauss,1.0,379,1.0,29.5197,cluster/rodar_v2.sh
+gauss,1.0,380,1.0,23.9779,cluster/rodar_v2.sh
+gauss,1.0,381,1.0,27.0853,cluster/rodar_v2.sh
+gauss,1.0,382,1.0,31.4505,cluster/rodar_v2.sh
+gauss,1.0,383,1.0,21.9413,cluster/rodar_v2.sh
+gauss,1.0,384,1.0,27.9652,cluster/rodar_v2.sh
+gauss,1.0,385,1.0,20.3546,cluster/rodar_v2.sh
+gauss,1.0,386,1.0,18.0177,cluster/rodar_v2.sh
+gauss,1.0,387,1.0,30.7633,cluster/rodar_v2.sh
+gauss,1.0,388,0.8875,15.6938,cluster/rodar_v2.sh
+gauss,1.0,389,1.0,23.3639,cluster/rodar_v2.sh
+gauss,1.0,390,0.925,15.9025,cluster/rodar_v2.sh
+gauss,1.0,391,1.0,21.7841,cluster/rodar_v2.sh
+gauss,1.0,392,1.0,26.1179,cluster/rodar_v2.sh
+gauss,1.0,393,1.0,21.9184,cluster/rodar_v2.sh
+gauss,1.0,394,1.0,27.6509,cluster/rodar_v2.sh
+gauss,1.0,395,1.0,23.7776,cluster/rodar_v2.sh
+gauss,1.0,396,1.0,28.2237,cluster/rodar_v2.sh
+gauss,1.0,397,1.0,35.2164,cluster/rodar_v2.sh
+gauss,1.0,398,1.0,30.6776,cluster/rodar_v2.sh
+gauss,1.0,399,1.0,29.7290,cluster/rodar_v2.sh
+gauss,1.0,400,1.0,22.0652,cluster/rodar_v2.sh
+gauss,1.0,401,1.0,21.5196,cluster/rodar_v2.sh
+gauss,1.0,402,1.0,25.8198,cluster/rodar_v2.sh
+gauss,1.0,403,1.0,25.3881,cluster/rodar_v2.sh
+gauss,1.0,404,1.0,18.9349,cluster/rodar_v2.sh
+gauss,1.0,405,0.88125,16.2836,cluster/rodar_v2.sh
+gauss,1.0,406,1.0,18.0315,cluster/rodar_v2.sh
+gauss,1.0,407,1.0,24.0302,cluster/rodar_v2.sh
+gauss,1.0,408,1.0,22.0787,cluster/rodar_v2.sh
+gauss,1.0,409,1.0,22.7786,cluster/rodar_v2.sh
+gauss,1.0,410,1.0,23.7851,cluster/rodar_v2.sh
+gauss,1.0,411,1.0,19.9196,cluster/rodar_v2.sh
+gauss,1.0,412,1.0,26.5869,cluster/rodar_v2.sh
+gauss,1.0,413,1.0,19.6535,cluster/rodar_v2.sh
+gauss,1.0,414,1.0,28.4205,cluster/rodar_v2.sh
+gauss,1.0,415,1.0,20.4697,cluster/rodar_v2.sh
+gauss,1.0,416,0.96875,18.3877,cluster/rodar_v2.sh
+gauss,1.0,417,1.0,29.0704,cluster/rodar_v2.sh
+gauss,1.0,418,0.975,17.6000,cluster/rodar_v2.sh
+gauss,1.0,419,1.0,20.8821,cluster/rodar_v2.sh
+gauss,1.0,420,1.0,19.0141,cluster/rodar_v2.sh
+gauss,1.0,421,1.0,26.5403,cluster/rodar_v2.sh
+gauss,1.0,422,1.0,26.4717,cluster/rodar_v2.sh
+gauss,1.0,423,1.0,23.5509,cluster/rodar_v2.sh
+gauss,1.0,424,1.0,19.7100,cluster/rodar_v2.sh
+gauss,1.0,425,1.0,25.1382,cluster/rodar_v2.sh
+gauss,1.0,426,1.0,31.7151,cluster/rodar_v2.sh
+gauss,1.0,427,1.0,25.2542,cluster/rodar_v2.sh
+gauss,1.0,428,1.0,25.7909,cluster/rodar_v2.sh
+gauss,1.0,429,1.0,23.8082,cluster/rodar_v2.sh
+gauss,1.0,430,1.0,21.7380,cluster/rodar_v2.sh
+gauss,1.0,431,1.0,31.5076,cluster/rodar_v2.sh
+gauss,1.0,432,1.0,26.7858,cluster/rodar_v2.sh
+gauss,1.0,433,1.0,18.8952,cluster/rodar_v2.sh
+gauss,1.0,434,1.0,19.3057,cluster/rodar_v2.sh
+gauss,1.0,435,1.0,18.9573,cluster/rodar_v2.sh
+gauss,1.0,436,1.0,29.0348,cluster/rodar_v2.sh
+gauss,1.0,437,1.0,27.2661,cluster/rodar_v2.sh
+gauss,1.0,438,1.0,21.1170,cluster/rodar_v2.sh
+gauss,1.0,439,1.0,38.1217,cluster/rodar_v2.sh
+gauss,1.0,440,1.0,22.7309,cluster/rodar_v2.sh
+gauss,1.0,441,1.0,24.7939,cluster/rodar_v2.sh
+gauss,1.0,442,1.0,24.6835,cluster/rodar_v2.sh
+gauss,1.0,443,1.0,30.3070,cluster/rodar_v2.sh
+gauss,1.0,444,1.0,26.2943,cluster/rodar_v2.sh
+gauss,1.0,445,1.0,20.4788,cluster/rodar_v2.sh
+gauss,1.0,446,1.0,18.7515,cluster/rodar_v2.sh
+gauss,1.0,447,1.0,25.5627,cluster/rodar_v2.sh
+gauss,1.0,448,1.0,21.4855,cluster/rodar_v2.sh
+gauss,1.0,449,1.0,22.0490,cluster/rodar_v2.sh
+gauss,1.0,450,1.0,29.6052,cluster/rodar_v2.sh
+gauss,1.0,451,1.0,26.5533,cluster/rodar_v2.sh
+gauss,1.0,452,0.975,16.9739,cluster/rodar_v2.sh
+gauss,1.0,453,1.0,25.0521,cluster/rodar_v2.sh
+gauss,1.0,454,1.0,21.8888,cluster/rodar_v2.sh
+gauss,1.0,455,1.0,25.7649,cluster/rodar_v2.sh
+gauss,1.0,456,1.0,26.1158,cluster/rodar_v2.sh
+gauss,1.0,457,1.0,20.1347,cluster/rodar_v2.sh
+gauss,1.0,458,1.0,26.8287,cluster/rodar_v2.sh
+gauss,1.0,459,1.0,23.6960,cluster/rodar_v2.sh
+gauss,1.0,460,1.0,21.9109,cluster/rodar_v2.sh
+gauss,1.0,461,1.0,22.9837,cluster/rodar_v2.sh
+gauss,1.0,462,1.0,20.0381,cluster/rodar_v2.sh
+gauss,1.0,463,1.0,22.9845,cluster/rodar_v2.sh
+gauss,1.0,464,1.0,25.9978,cluster/rodar_v2.sh
+gauss,1.0,465,1.0,23.4340,cluster/rodar_v2.sh
+gauss,1.0,466,1.0,26.5550,cluster/rodar_v2.sh
+gauss,1.0,467,1.0,24.7837,cluster/rodar_v2.sh
+gauss,1.0,468,1.0,20.6197,cluster/rodar_v2.sh
+gauss,1.0,469,1.0,20.6521,cluster/rodar_v2.sh
+gauss,1.0,470,1.0,23.3172,cluster/rodar_v2.sh
+gauss,1.0,471,1.0,19.4917,cluster/rodar_v2.sh
+gauss,1.0,472,1.0,20.8367,cluster/rodar_v2.sh
+gauss,1.0,473,1.0,26.7157,cluster/rodar_v2.sh
+gauss,1.0,474,1.0,19.9081,cluster/rodar_v2.sh
+gauss,1.0,475,1.0,19.6302,cluster/rodar_v2.sh
+gauss,1.0,476,1.0,26.1791,cluster/rodar_v2.sh
+gauss,1.0,477,1.0,18.7641,cluster/rodar_v2.sh
+gauss,1.0,478,0.8875,15.9131,cluster/rodar_v2.sh
+gauss,1.0,479,1.0,23.3246,cluster/rodar_v2.sh
+gauss,1.0,480,1.0,23.3582,cluster/rodar_v2.sh
+gauss,1.0,481,1.0,20.7413,cluster/rodar_v2.sh
+gauss,1.0,482,1.0,31.0431,cluster/rodar_v2.sh
+gauss,1.0,483,1.0,24.8355,cluster/rodar_v2.sh
+gauss,1.0,484,1.0,20.5464,cluster/rodar_v2.sh
+gauss,1.0,485,0.975,17.8341,cluster/rodar_v2.sh
+gauss,1.0,486,0.8625,16.2552,cluster/rodar_v2.sh
+gauss,1.0,487,1.0,24.6253,cluster/rodar_v2.sh
+gauss,1.0,488,1.0,30.8645,cluster/rodar_v2.sh
+gauss,1.0,489,1.0,24.6876,cluster/rodar_v2.sh
+gauss,1.0,490,1.0,31.4214,cluster/rodar_v2.sh
+gauss,1.0,491,0.94375,16.1754,cluster/rodar_v2.sh
+gauss,1.0,492,1.0,19.6120,cluster/rodar_v2.sh
+gauss,1.0,493,1.0,20.0287,cluster/rodar_v2.sh
+gauss,1.0,494,0.94375,17.1479,cluster/rodar_v2.sh
+gauss,1.0,495,1.0,20.6950,cluster/rodar_v2.sh
+gauss,1.0,496,1.0,28.6022,cluster/rodar_v2.sh
+gauss,1.0,497,1.0,20.9423,cluster/rodar_v2.sh
+gauss,1.0,498,1.0,30.5462,cluster/rodar_v2.sh
+gauss,1.0,499,1.0,21.7684,cluster/rodar_v2.sh
+gauss,1.0,500,1.0,24.8275,cluster/rodar_v2.sh
+gauss,1.0,501,1.0,32.1615,cluster/rodar_v2.sh
+gauss,1.0,502,1.0,21.5051,cluster/rodar_v2.sh
+gauss,1.0,503,1.0,28.5459,cluster/rodar_v2.sh
+gauss,1.0,504,1.0,21.9492,cluster/rodar_v2.sh
+gauss,1.0,505,1.0,23.9414,cluster/rodar_v2.sh
+gauss,1.0,506,1.0,27.7138,cluster/rodar_v2.sh
+gauss,1.0,507,1.0,24.6478,cluster/rodar_v2.sh
+gauss,1.0,508,1.0,27.9856,cluster/rodar_v2.sh
+gauss,1.0,509,1.0,22.8070,cluster/rodar_v2.sh
+gauss,1.0,510,1.0,23.9257,cluster/rodar_v2.sh
+gauss,1.0,511,1.0,18.2928,cluster/rodar_v2.sh
+gauss,1.0,512,1.0,23.3546,cluster/rodar_v2.sh
+gauss,1.0,513,1.0,20.9216,cluster/rodar_v2.sh
+gauss,1.0,514,1.0,24.4052,cluster/rodar_v2.sh
+gauss,1.0,515,1.0,22.4383,cluster/rodar_v2.sh
+gauss,1.0,516,1.0,21.5252,cluster/rodar_v2.sh
+gauss,1.0,517,1.0,19.1485,cluster/rodar_v2.sh
+gauss,1.0,518,1.0,26.4778,cluster/rodar_v2.sh
+gauss,1.0,519,1.0,20.8949,cluster/rodar_v2.sh
+gauss,1.0,520,1.0,31.4080,cluster/rodar_v2.sh
+gauss,1.0,521,1.0,20.8813,cluster/rodar_v2.sh
+gauss,1.0,522,1.0,20.8913,cluster/rodar_v2.sh
+gauss,1.0,523,1.0,21.5673,cluster/rodar_v2.sh
+gauss,1.0,524,1.0,23.9856,cluster/rodar_v2.sh
+gauss,1.0,525,1.0,23.4539,cluster/rodar_v2.sh
+gauss,1.0,526,1.0,26.4167,cluster/rodar_v2.sh
+gauss,1.0,527,1.0,25.9662,cluster/rodar_v2.sh
+gauss,1.0,528,0.91875,17.7108,cluster/rodar_v2.sh
+gauss,1.0,529,0.9,16.7333,cluster/rodar_v2.sh
+gauss,1.0,530,1.0,21.4155,cluster/rodar_v2.sh
+gauss,1.0,531,0.86875,15.7034,cluster/rodar_v2.sh
+gauss,1.0,532,1.0,26.5685,cluster/rodar_v2.sh
+gauss,1.0,533,1.0,25.2463,cluster/rodar_v2.sh
+gauss,1.0,534,1.0,21.9392,cluster/rodar_v2.sh
+gauss,1.0,535,1.0,20.8871,cluster/rodar_v2.sh
+gauss,1.0,536,1.0,19.7161,cluster/rodar_v2.sh
+gauss,1.0,537,1.0,31.2635,cluster/rodar_v2.sh
+gauss,1.0,538,1.0,26.9694,cluster/rodar_v2.sh
+gauss,1.0,539,1.0,22.9744,cluster/rodar_v2.sh
+gauss,1.0,540,1.0,25.3908,cluster/rodar_v2.sh
+gauss,1.0,541,1.0,27.3234,cluster/rodar_v2.sh
+gauss,1.0,542,1.0,24.4094,cluster/rodar_v2.sh
+gauss,1.0,543,1.0,19.6312,cluster/rodar_v2.sh
+gauss,1.0,544,1.0,26.5831,cluster/rodar_v2.sh
+gauss,1.0,545,1.0,20.0472,cluster/rodar_v2.sh
+gauss,1.0,546,1.0,21.9537,cluster/rodar_v2.sh
+gauss,1.0,547,1.0,32.6036,cluster/rodar_v2.sh
+gauss,1.0,548,1.0,31.9891,cluster/rodar_v2.sh
+gauss,1.0,549,1.0,31.0564,cluster/rodar_v2.sh
+gauss,1.0,550,1.0,23.1249,cluster/rodar_v2.sh
+gauss,1.0,551,1.0,23.4681,cluster/rodar_v2.sh
+gauss,1.0,552,1.0,18.8311,cluster/rodar_v2.sh
+gauss,1.0,553,1.0,19.9802,cluster/rodar_v2.sh
+gauss,1.0,554,1.0,21.2378,cluster/rodar_v2.sh
+gauss,1.0,555,1.0,23.2629,cluster/rodar_v2.sh
+gauss,1.0,556,1.0,20.5978,cluster/rodar_v2.sh
+gauss,1.0,557,1.0,23.1194,cluster/rodar_v2.sh
+gauss,1.0,558,1.0,21.6547,cluster/rodar_v2.sh
+gauss,1.0,559,0.94375,16.3425,cluster/rodar_v2.sh
+gauss,1.0,560,1.0,22.7331,cluster/rodar_v2.sh
+gauss,1.0,561,1.0,21.4020,cluster/rodar_v2.sh
+gauss,1.0,562,1.0,23.2589,cluster/rodar_v2.sh
+gauss,1.0,563,1.0,25.8581,cluster/rodar_v2.sh
+gauss,1.0,564,1.0,28.7177,cluster/rodar_v2.sh
+gauss,1.0,565,1.0,33.1428,cluster/rodar_v2.sh
+gauss,1.0,566,1.0,30.3509,cluster/rodar_v2.sh
+gauss,1.0,567,0.85625,15.4205,cluster/rodar_v2.sh
+gauss,1.0,568,1.0,24.8992,cluster/rodar_v2.sh
+gauss,1.0,569,1.0,22.6943,cluster/rodar_v2.sh
+gauss,1.0,570,1.0,26.9987,cluster/rodar_v2.sh
+gauss,1.0,571,1.0,24.8609,cluster/rodar_v2.sh
+gauss,1.0,572,1.0,34.9243,cluster/rodar_v2.sh
+gauss,1.0,573,1.0,29.1340,cluster/rodar_v2.sh
+gauss,1.0,574,1.0,26.4401,cluster/rodar_v2.sh
+gauss,1.0,575,1.0,20.9029,cluster/rodar_v2.sh
+gauss,1.0,576,1.0,29.0238,cluster/rodar_v2.sh
+gauss,1.0,577,0.99375,18.6884,cluster/rodar_v2.sh
+gauss,1.0,578,1.0,20.0691,cluster/rodar_v2.sh
+gauss,1.0,579,1.0,25.8324,cluster/rodar_v2.sh
+gauss,1.0,580,1.0,23.8755,cluster/rodar_v2.sh
+gauss,1.0,581,1.0,19.7766,cluster/rodar_v2.sh
+gauss,1.0,582,1.0,18.1553,cluster/rodar_v2.sh
+gauss,1.0,583,1.0,24.7908,cluster/rodar_v2.sh
+gauss,1.0,584,1.0,30.2328,cluster/rodar_v2.sh
+gauss,1.0,585,1.0,32.1823,cluster/rodar_v2.sh
+gauss,1.0,586,1.0,27.5315,cluster/rodar_v2.sh
+gauss,1.0,587,1.0,20.3276,cluster/rodar_v2.sh
+gauss,1.0,588,1.0,20.9789,cluster/rodar_v2.sh
+gauss,1.0,589,1.0,21.9399,cluster/rodar_v2.sh
+gauss,1.0,590,1.0,21.4347,cluster/rodar_v2.sh
+gauss,1.0,591,1.0,18.1062,cluster/rodar_v2.sh
+gauss,1.0,592,1.0,20.0152,cluster/rodar_v2.sh
+gauss,1.0,593,1.0,18.5566,cluster/rodar_v2.sh
+gauss,1.0,594,1.0,22.8365,cluster/rodar_v2.sh
+gauss,1.0,595,1.0,20.0141,cluster/rodar_v2.sh
+gauss,1.0,596,1.0,21.5875,cluster/rodar_v2.sh
+gauss,1.0,597,1.0,19.1494,cluster/rodar_v2.sh
+gauss,1.0,598,1.0,22.0595,cluster/rodar_v2.sh
+gauss,1.0,599,1.0,23.1173,cluster/rodar_v2.sh
+gauss,1.0,600,0.975,16.5172,cluster/rodar_v2.sh
+gauss,1.0,601,1.0,28.8614,cluster/rodar_v2.sh
+gauss,1.0,602,1.0,18.7501,cluster/rodar_v2.sh
+gauss,1.0,603,1.0,20.6202,cluster/rodar_v2.sh
+gauss,1.0,604,1.0,23.8781,cluster/rodar_v2.sh
+gauss,1.0,605,1.0,23.0854,cluster/rodar_v2.sh
+gauss,1.0,606,1.0,26.1292,cluster/rodar_v2.sh
+gauss,1.0,607,1.0,21.0529,cluster/rodar_v2.sh
+gauss,1.0,608,1.0,18.0851,cluster/rodar_v2.sh
+gauss,1.0,609,1.0,22.4359,cluster/rodar_v2.sh
+gauss,1.0,610,1.0,25.5759,cluster/rodar_v2.sh
+gauss,1.0,611,1.0,28.1898,cluster/rodar_v2.sh
+gauss,1.0,612,1.0,27.3411,cluster/rodar_v2.sh
+gauss,1.0,613,1.0,19.3389,cluster/rodar_v2.sh
+gauss,1.0,614,1.0,21.0334,cluster/rodar_v2.sh
+gauss,1.0,615,1.0,20.5453,cluster/rodar_v2.sh
+gauss,1.0,616,1.0,21.2434,cluster/rodar_v2.sh
+gauss,1.0,617,1.0,26.9727,cluster/rodar_v2.sh
+gauss,1.0,618,1.0,25.8261,cluster/rodar_v2.sh
+gauss,1.0,619,0.9875,17.4349,cluster/rodar_v2.sh
+gauss,1.0,620,1.0,20.7150,cluster/rodar_v2.sh
+gauss,1.0,621,1.0,24.1831,cluster/rodar_v2.sh
+gauss,1.0,622,1.0,23.0052,cluster/rodar_v2.sh
+gauss,1.0,623,1.0,21.1865,cluster/rodar_v2.sh
+gauss,1.0,624,1.0,19.6978,cluster/rodar_v2.sh
+gauss,1.0,625,0.9375,18.2161,cluster/rodar_v2.sh
+gauss,1.0,626,1.0,27.7862,cluster/rodar_v2.sh
+gauss,1.0,627,1.0,22.0609,cluster/rodar_v2.sh
+gauss,1.0,628,1.0,25.0373,cluster/rodar_v2.sh
+gauss,1.0,629,1.0,20.2668,cluster/rodar_v2.sh
+gauss,1.0,630,1.0,26.7442,cluster/rodar_v2.sh
+gauss,1.0,631,1.0,22.8774,cluster/rodar_v2.sh
+gauss,1.0,632,1.0,30.2433,cluster/rodar_v2.sh
+gauss,1.0,633,1.0,21.1100,cluster/rodar_v2.sh
+gauss,1.0,634,1.0,17.6125,cluster/rodar_v2.sh
+gauss,1.0,635,1.0,22.3523,cluster/rodar_v2.sh
+gauss,1.0,636,1.0,19.5651,cluster/rodar_v2.sh
+gauss,1.0,637,1.0,20.0433,cluster/rodar_v2.sh
+gauss,1.0,638,1.0,27.0839,cluster/rodar_v2.sh
+gauss,1.0,639,1.0,29.2877,cluster/rodar_v2.sh
+gauss,1.0,640,1.0,24.3919,cluster/rodar_v2.sh
+gauss,1.0,641,1.0,33.3161,cluster/rodar_v2.sh
+gauss,1.0,642,0.90625,17.2677,cluster/rodar_v2.sh
+gauss,1.0,643,1.0,21.4504,cluster/rodar_v2.sh
+gauss,1.0,644,1.0,19.2180,cluster/rodar_v2.sh
+gauss,1.0,645,1.0,17.8466,cluster/rodar_v2.sh
+gauss,1.0,646,1.0,20.3080,cluster/rodar_v2.sh
+gauss,1.0,647,1.0,26.3767,cluster/rodar_v2.sh
+gauss,1.0,648,1.0,19.0667,cluster/rodar_v2.sh
+gauss,1.0,649,1.0,23.8383,cluster/rodar_v2.sh
+gauss,1.0,650,1.0,29.0034,cluster/rodar_v2.sh
+gauss,1.0,651,1.0,26.8834,cluster/rodar_v2.sh
+gauss,1.0,652,1.0,26.3773,cluster/rodar_v2.sh
+gauss,1.0,653,1.0,23.3230,cluster/rodar_v2.sh
+gauss,1.0,654,1.0,22.3882,cluster/rodar_v2.sh
+gauss,1.0,655,1.0,22.4342,cluster/rodar_v2.sh
+gauss,1.0,656,1.0,27.0217,cluster/rodar_v2.sh
+gauss,1.0,657,1.0,17.5682,cluster/rodar_v2.sh
+gauss,1.0,658,1.0,19.7394,cluster/rodar_v2.sh
+gauss,1.0,659,1.0,23.5943,cluster/rodar_v2.sh
+gauss,1.0,660,1.0,24.6836,cluster/rodar_v2.sh
+gauss,1.0,661,1.0,23.7479,cluster/rodar_v2.sh
+gauss,1.0,662,1.0,26.9172,cluster/rodar_v2.sh
+gauss,1.0,663,1.0,19.6677,cluster/rodar_v2.sh
+gauss,1.0,664,1.0,30.1777,cluster/rodar_v2.sh
+gauss,1.0,665,1.0,19.2644,cluster/rodar_v2.sh
+gauss,1.0,666,1.0,38.0872,cluster/rodar_v2.sh
+gauss,1.0,667,0.96875,18.2177,cluster/rodar_v2.sh
+gauss,1.0,668,1.0,21.2067,cluster/rodar_v2.sh
+gauss,1.0,669,1.0,24.9570,cluster/rodar_v2.sh
+gauss,1.0,670,1.0,20.5960,cluster/rodar_v2.sh
+gauss,1.0,671,1.0,35.5210,cluster/rodar_v2.sh
+gauss,1.0,672,1.0,25.9172,cluster/rodar_v2.sh
+gauss,1.0,673,1.0,19.2480,cluster/rodar_v2.sh
+gauss,1.0,674,1.0,21.3646,cluster/rodar_v2.sh
+gauss,1.0,675,1.0,25.4772,cluster/rodar_v2.sh
+gauss,1.0,676,1.0,29.0780,cluster/rodar_v2.sh
+gauss,1.0,677,1.0,26.6864,cluster/rodar_v2.sh
+gauss,1.0,678,1.0,19.4668,cluster/rodar_v2.sh
+gauss,1.0,679,1.0,25.2833,cluster/rodar_v2.sh
+gauss,1.0,680,1.0,26.2624,cluster/rodar_v2.sh
+gauss,1.0,681,1.0,19.6052,cluster/rodar_v2.sh
+gauss,1.0,682,1.0,23.3815,cluster/rodar_v2.sh
+gauss,1.0,683,1.0,25.7454,cluster/rodar_v2.sh
+gauss,1.0,684,1.0,19.8518,cluster/rodar_v2.sh
+gauss,1.0,685,1.0,20.6242,cluster/rodar_v2.sh
+gauss,1.0,686,1.0,25.7531,cluster/rodar_v2.sh
+gauss,1.0,687,1.0,22.3050,cluster/rodar_v2.sh
+gauss,1.0,688,1.0,19.6312,cluster/rodar_v2.sh
+gauss,1.0,689,1.0,26.3767,cluster/rodar_v2.sh
+gauss,1.0,690,1.0,27.6713,cluster/rodar_v2.sh
+gauss,1.0,691,1.0,21.3373,cluster/rodar_v2.sh
+gauss,1.0,692,1.0,19.0156,cluster/rodar_v2.sh
+gauss,1.0,693,1.0,21.9774,cluster/rodar_v2.sh
+gauss,1.0,694,1.0,22.7005,cluster/rodar_v2.sh
+gauss,1.0,695,1.0,24.6640,cluster/rodar_v2.sh
+gauss,1.0,696,1.0,18.3280,cluster/rodar_v2.sh
+gauss,1.0,697,1.0,19.4412,cluster/rodar_v2.sh
+gauss,1.0,698,1.0,29.4799,cluster/rodar_v2.sh
+gauss,1.0,699,1.0,21.3841,cluster/rodar_v2.sh
+gauss,1.0,700,1.0,31.0164,cluster/rodar_v2.sh
+gauss,1.0,701,1.0,27.7866,cluster/rodar_v2.sh
+gauss,1.0,702,1.0,21.8594,cluster/rodar_v2.sh
+gauss,1.0,703,1.0,23.1956,cluster/rodar_v2.sh
+gauss,1.0,704,1.0,22.7078,cluster/rodar_v2.sh
+gauss,1.0,705,1.0,19.6408,cluster/rodar_v2.sh
+gauss,1.0,706,1.0,24.7321,cluster/rodar_v2.sh
+gauss,1.0,707,1.0,21.6824,cluster/rodar_v2.sh
+gauss,1.0,708,1.0,27.5699,cluster/rodar_v2.sh
+gauss,1.0,709,0.9625,19.2729,cluster/rodar_v2.sh
+gauss,1.0,710,1.0,23.8308,cluster/rodar_v2.sh
+gauss,1.0,711,1.0,22.0223,cluster/rodar_v2.sh
+gauss,1.0,712,1.0,23.6560,cluster/rodar_v2.sh
+gauss,1.0,713,1.0,24.2239,cluster/rodar_v2.sh
+gauss,1.0,714,1.0,27.4495,cluster/rodar_v2.sh
+gauss,1.0,715,1.0,19.4944,cluster/rodar_v2.sh
+gauss,1.0,716,1.0,25.6443,cluster/rodar_v2.sh
+gauss,1.0,717,1.0,20.8576,cluster/rodar_v2.sh
+gauss,1.0,718,1.0,21.8417,cluster/rodar_v2.sh
+gauss,1.0,719,1.0,20.4699,cluster/rodar_v2.sh
+gauss,1.0,720,1.0,20.6925,cluster/rodar_v2.sh
+gauss,1.0,721,1.0,19.5131,cluster/rodar_v2.sh
+gauss,1.0,722,1.0,19.3867,cluster/rodar_v2.sh
+gauss,1.0,723,1.0,19.2121,cluster/rodar_v2.sh
+gauss,1.0,724,0.9125,16.4124,cluster/rodar_v2.sh
+gauss,1.0,725,1.0,20.1446,cluster/rodar_v2.sh
+gauss,1.0,726,1.0,30.2872,cluster/rodar_v2.sh
+gauss,1.0,727,1.0,23.5486,cluster/rodar_v2.sh
+gauss,1.0,728,1.0,23.1295,cluster/rodar_v2.sh
+gauss,1.0,729,1.0,29.3426,cluster/rodar_v2.sh
+gauss,1.0,730,1.0,19.8888,cluster/rodar_v2.sh
+gauss,1.0,731,1.0,20.4311,cluster/rodar_v2.sh
+gauss,1.0,732,1.0,26.6208,cluster/rodar_v2.sh
+gauss,1.0,733,1.0,23.1698,cluster/rodar_v2.sh
+gauss,1.0,734,1.0,24.7234,cluster/rodar_v2.sh
+gauss,1.0,735,1.0,32.0464,cluster/rodar_v2.sh
+gauss,1.0,736,1.0,21.9935,cluster/rodar_v2.sh
+gauss,1.0,737,1.0,28.7730,cluster/rodar_v2.sh
+gauss,1.0,738,0.84375,15.5831,cluster/rodar_v2.sh
+gauss,1.0,739,1.0,21.2497,cluster/rodar_v2.sh
+gauss,1.0,740,1.0,25.6326,cluster/rodar_v2.sh
+gauss,1.0,741,1.0,25.6698,cluster/rodar_v2.sh
+gauss,1.0,742,1.0,29.7499,cluster/rodar_v2.sh
+gauss,1.0,743,1.0,19.8392,cluster/rodar_v2.sh
+gauss,1.0,744,1.0,30.7223,cluster/rodar_v2.sh
+gauss,1.0,745,0.95,17.5658,cluster/rodar_v2.sh
+gauss,1.0,746,1.0,16.8645,cluster/rodar_v2.sh
+gauss,1.0,747,1.0,20.4910,cluster/rodar_v2.sh
+gauss,1.0,748,1.0,31.2111,cluster/rodar_v2.sh
+gauss,1.0,749,1.0,18.4664,cluster/rodar_v2.sh
+gauss,1.0,750,0.99375,17.8134,cluster/rodar_v2.sh
+gauss,1.0,751,1.0,23.7943,cluster/rodar_v2.sh
+gauss,1.0,752,0.9375,16.6479,cluster/rodar_v2.sh
+gauss,1.0,753,1.0,20.4501,cluster/rodar_v2.sh
+gauss,1.0,754,1.0,23.7979,cluster/rodar_v2.sh
+gauss,1.0,755,1.0,26.9737,cluster/rodar_v2.sh
+gauss,1.0,756,1.0,19.3578,cluster/rodar_v2.sh
+gauss,1.0,757,1.0,24.3232,cluster/rodar_v2.sh
+gauss,1.0,758,1.0,18.5571,cluster/rodar_v2.sh
+gauss,1.0,759,1.0,18.7841,cluster/rodar_v2.sh
+gauss,1.0,760,1.0,24.0930,cluster/rodar_v2.sh
+gauss,1.0,761,1.0,23.5518,cluster/rodar_v2.sh
+gauss,1.0,762,1.0,25.5891,cluster/rodar_v2.sh
+gauss,1.0,763,1.0,20.1445,cluster/rodar_v2.sh
+gauss,1.0,764,1.0,17.1043,cluster/rodar_v2.sh
+gauss,1.0,765,1.0,23.3383,cluster/rodar_v2.sh
+gauss,1.0,766,1.0,29.0527,cluster/rodar_v2.sh
+gauss,1.0,767,1.0,28.8907,cluster/rodar_v2.sh
+gauss,1.0,768,1.0,19.6003,cluster/rodar_v2.sh
+gauss,1.0,769,0.98125,17.9464,cluster/rodar_v2.sh
+gauss,1.0,770,1.0,18.5695,cluster/rodar_v2.sh
+gauss,1.0,771,0.975,17.1076,cluster/rodar_v2.sh
+gauss,1.0,772,1.0,19.8063,cluster/rodar_v2.sh
+gauss,1.0,773,1.0,21.2351,cluster/rodar_v2.sh
+gauss,1.0,774,0.81875,15.5281,cluster/rodar_v2.sh
+gauss,1.0,775,1.0,25.7808,cluster/rodar_v2.sh
+gauss,1.0,776,1.0,25.8334,cluster/rodar_v2.sh
+gauss,1.0,777,1.0,29.3223,cluster/rodar_v2.sh
+gauss,1.0,778,1.0,23.7979,cluster/rodar_v2.sh
+gauss,1.0,779,0.94375,16.9713,cluster/rodar_v2.sh
+gauss,1.0,780,1.0,25.5745,cluster/rodar_v2.sh
+gauss,1.0,781,1.0,24.5866,cluster/rodar_v2.sh
+gauss,1.0,782,1.0,30.2051,cluster/rodar_v2.sh
+gauss,1.0,783,1.0,21.3294,cluster/rodar_v2.sh
+gauss,1.0,784,1.0,21.5652,cluster/rodar_v2.sh
+gauss,1.0,785,1.0,21.2642,cluster/rodar_v2.sh
+gauss,1.0,786,1.0,34.2025,cluster/rodar_v2.sh
+gauss,1.0,787,1.0,26.4095,cluster/rodar_v2.sh
+gauss,1.0,788,0.95625,17.2252,cluster/rodar_v2.sh
+gauss,1.0,789,1.0,19.1373,cluster/rodar_v2.sh
+gauss,1.0,790,1.0,21.8331,cluster/rodar_v2.sh
+gauss,1.0,791,1.0,27.4770,cluster/rodar_v2.sh
+gauss,1.0,792,1.0,19.8454,cluster/rodar_v2.sh
+gauss,1.0,793,1.0,19.0467,cluster/rodar_v2.sh
+gauss,1.0,794,1.0,23.5149,cluster/rodar_v2.sh
+gauss,1.0,795,1.0,21.3184,cluster/rodar_v2.sh
+gauss,1.0,796,1.0,25.4519,cluster/rodar_v2.sh
+gauss,1.0,797,1.0,26.8756,cluster/rodar_v2.sh
+gauss,1.0,798,1.0,20.3591,cluster/rodar_v2.sh
+gauss,1.0,799,1.0,33.8399,cluster/rodar_v2.sh
+gauss,1.0,800,1.0,21.1456,cluster/rodar_v2.sh
+exp,1.0,1,1.0,22.2780,teste [.lento]
+exp,1.0,2,0.93125,17.2365,teste [.lento]
+exp,1.0,3,1.0,26.6536,teste [.lento]
+exp,1.0,4,1.0,27.2016,teste [.lento]
+exp,1.0,5,1.0,21.5159,teste [.lento]
+exp,1.0,6,1.0,24.1421,teste [.lento]
+exp,1.0,7,1.0,24.5329,teste [.lento]
+exp,1.0,8,1.0,30.1854,teste [.lento]
+exp,1.0,9,1.0,18.0715,teste [.lento]
+exp,1.0,10,1.0,25.4630,teste [.lento]
+exp,1.0,11,1.0,22.9309,teste [.lento]
+exp,1.0,12,1.0,20.3290,teste [.lento]
+exp,1.0,13,1.0,20.2169,teste [.lento]
+exp,1.0,14,1.0,25.8416,teste [.lento]
+exp,1.0,15,1.0,24.9048,teste [.lento]
+exp,1.0,16,1.0,27.6843,teste [.lento]
+exp,1.0,17,1.0,19.6768,teste [.lento]
+exp,1.0,18,1.0,26.9150,teste [.lento]
+exp,1.0,19,1.0,27.5343,teste [.lento]
+exp,1.0,20,1.0,27.9680,teste [.lento]
+exp,1.0,21,1.0,25.3651,teste [.lento]
+exp,1.0,22,1.0,19.2777,teste [.lento]
+exp,1.0,23,1.0,22.0843,teste [.lento]
+exp,1.0,24,1.0,23.5775,teste [.lento]
+exp,1.0,25,1.0,21.6672,teste [.lento]
+exp,1.0,26,1.0,23.3188,teste [.lento]
+exp,1.0,27,1.0,28.9306,teste [.lento]
+exp,1.0,28,1.0,18.6820,teste [.lento]
+exp,1.0,29,1.0,21.4022,teste [.lento]
+exp,1.0,30,1.0,19.3719,teste [.lento]
+exp,1.0,31,0.8875,17.1863,teste [.lento]
+exp,1.0,32,1.0,24.9006,teste [.lento]
+exp,1.0,33,1.0,24.3962,teste [.lento]
+exp,1.0,34,1.0,32.0976,teste [.lento]
+exp,1.0,35,1.0,22.7386,teste [.lento]
+exp,1.0,36,1.0,26.1439,teste [.lento]
+exp,1.0,37,1.0,22.9989,teste [.lento]
+exp,1.0,38,1.0,21.9185,teste [.lento]
+exp,1.0,39,1.0,21.8709,teste [.lento]
+exp,1.0,40,1.0,26.5318,teste [.lento]
+exp,1.0,41,1.0,34.9544,teste [.lento]
+exp,1.0,42,0.975,18.4350,teste [.lento]
+exp,1.0,43,1.0,22.0214,teste [.lento]
+exp,1.0,44,1.0,28.1455,teste [.lento]
+exp,1.0,45,1.0,27.1608,teste [.lento]
+exp,1.0,46,0.94375,17.8232,teste [.lento]
+exp,1.0,47,1.0,20.3733,teste [.lento]
+exp,1.0,48,1.0,19.3127,teste [.lento]
+exp,1.0,49,1.0,24.8914,teste [.lento]
+exp,1.0,50,1.0,25.3640,teste [.lento]
+exp,1.0,51,1.0,26.8512,teste [.lento]
+exp,1.0,52,1.0,25.8114,teste [.lento]
+exp,1.0,53,1.0,22.0978,teste [.lento]
+exp,1.0,54,1.0,21.8967,teste [.lento]
+exp,1.0,55,1.0,20.2023,teste [.lento]
+exp,1.0,56,1.0,20.6986,teste [.lento]
+exp,1.0,57,1.0,20.3437,teste [.lento]
+exp,1.0,58,1.0,21.6032,teste [.lento]
+exp,1.0,59,1.0,27.1991,teste [.lento]
+exp,1.0,60,0.81875,15.5017,teste [.lento]
+exp,1.0,61,1.0,23.5941,teste [.lento]
+exp,1.0,62,1.0,21.0277,teste [.lento]
+exp,1.0,63,1.0,19.1116,teste [.lento]
+exp,1.0,64,1.0,25.1712,teste [.lento]
+exp,1.0,65,1.0,21.3635,teste [.lento]
+exp,1.0,66,1.0,23.7436,teste [.lento]
+exp,1.0,67,1.0,27.2883,teste [.lento]
+exp,1.0,68,1.0,22.0940,teste [.lento]
+exp,1.0,69,1.0,18.7111,teste [.lento]
+exp,1.0,70,1.0,27.9517,teste [.lento]
+exp,1.0,71,1.0,18.7625,teste [.lento]
+exp,1.0,72,1.0,19.4177,teste [.lento]
+exp,1.0,73,1.0,22.7387,teste [.lento]
+exp,1.0,74,1.0,21.9972,teste [.lento]
+exp,1.0,75,1.0,20.4636,teste [.lento]
+exp,1.0,76,1.0,27.0053,teste [.lento]
+exp,1.0,77,1.0,24.3973,teste [.lento]
+exp,1.0,78,1.0,19.4857,teste [.lento]
+exp,1.0,79,1.0,25.9217,teste [.lento]
+exp,1.0,80,1.0,26.7750,teste [.lento]
+exp,1.0,81,1.0,23.6114,teste [.lento]
+exp,1.0,82,1.0,21.4576,teste [.lento]
+exp,1.0,83,1.0,30.5340,teste [.lento]
+exp,1.0,84,1.0,23.9478,teste [.lento]
+exp,1.0,85,1.0,21.1684,teste [.lento]
+exp,1.0,86,1.0,27.3788,teste [.lento]
+exp,1.0,87,1.0,22.6877,teste [.lento]
+exp,1.0,88,1.0,26.4325,teste [.lento]
+exp,1.0,89,1.0,23.7938,teste [.lento]
+exp,1.0,90,1.0,26.8655,teste [.lento]
+exp,1.0,91,1.0,21.7386,teste [.lento]
+exp,1.0,92,1.0,21.8156,teste [.lento]
+exp,1.0,93,1.0,24.5981,teste [.lento]
+exp,1.0,94,1.0,22.0941,teste [.lento]
+exp,1.0,95,1.0,17.1778,teste [.lento]
+exp,1.0,96,1.0,20.7128,teste [.lento]
+exp,1.0,97,1.0,27.1332,teste [.lento]
+exp,1.0,98,1.0,18.6296,teste [.lento]
+exp,1.0,99,1.0,26.5745,teste [.lento]
+exp,1.0,100,1.0,28.3179,teste [.lento]
+exp,1.0,101,1.0,24.9654,teste [.lento]
+exp,1.0,102,1.0,26.2208,teste [.lento]
+exp,1.0,103,1.0,18.8085,teste [.lento]
+exp,1.0,104,1.0,20.6449,teste [.lento]
+exp,1.0,105,1.0,22.9818,teste [.lento]
+exp,1.0,106,1.0,21.2028,teste [.lento]
+exp,1.0,107,1.0,19.5232,teste [.lento]
+exp,1.0,108,1.0,22.8747,teste [.lento]
+exp,1.0,109,1.0,26.6002,teste [.lento]
+exp,1.0,110,1.0,20.0403,teste [.lento]
+exp,1.0,111,1.0,23.7522,teste [.lento]
+exp,1.0,112,1.0,22.5942,teste [.lento]
+exp,1.0,113,0.80625,14.1914,teste [.lento]
+exp,1.0,114,1.0,24.5308,teste [.lento]
+exp,1.0,115,1.0,25.3846,teste [.lento]
+exp,1.0,116,1.0,21.5209,teste [.lento]
+exp,1.0,117,1.0,21.6614,teste [.lento]
+exp,1.0,118,1.0,21.1920,teste [.lento]
+exp,1.0,119,1.0,22.7081,teste [.lento]
+exp,1.0,120,1.0,20.5215,teste [.lento]
+exp,1.0,121,1.0,23.1236,teste [.lento]
+exp,1.0,122,1.0,24.7341,teste [.lento]
+exp,1.0,123,1.0,22.1386,teste [.lento]
+exp,1.0,124,1.0,26.3582,teste [.lento]
+exp,1.0,125,1.0,20.4513,teste [.lento]
+exp,1.0,126,1.0,30.0885,teste [.lento]
+exp,1.0,127,1.0,27.5379,teste [.lento]
+exp,1.0,128,1.0,22.7121,teste [.lento]
+exp,1.0,129,1.0,20.7255,teste [.lento]
+exp,1.0,130,1.0,25.0716,teste [.lento]
+exp,1.0,131,1.0,23.5445,teste [.lento]
+exp,1.0,132,1.0,26.3849,teste [.lento]
+exp,1.0,133,1.0,22.8908,teste [.lento]
+exp,1.0,134,1.0,20.7693,teste [.lento]
+exp,1.0,135,0.86875,16.4938,teste [.lento]
+exp,1.0,136,1.0,27.5557,teste [.lento]
+exp,1.0,137,1.0,27.4882,teste [.lento]
+exp,1.0,138,1.0,22.2625,teste [.lento]
+exp,1.0,139,1.0,25.6846,teste [.lento]
+exp,1.0,140,0.88125,16.1341,teste [.lento]
+exp,1.0,141,1.0,20.6612,teste [.lento]
+exp,1.0,142,1.0,20.3440,teste [.lento]
+exp,1.0,143,1.0,23.9043,teste [.lento]
+exp,1.0,144,1.0,29.0900,teste [.lento]
+exp,1.0,145,1.0,26.2775,teste [.lento]
+exp,1.0,146,1.0,23.2357,teste [.lento]
+exp,1.0,147,1.0,25.9162,teste [.lento]
+exp,1.0,148,1.0,22.4004,teste [.lento]
+exp,1.0,149,1.0,25.9577,teste [.lento]
+exp,1.0,150,1.0,20.9381,teste [.lento]
+exp,1.0,151,1.0,19.2284,teste [.lento]
+exp,1.0,152,1.0,23.9583,teste [.lento]
+exp,1.0,153,1.0,22.1174,teste [.lento]
+exp,1.0,154,1.0,21.7605,teste [.lento]
+exp,1.0,155,1.0,27.5803,teste [.lento]
+exp,1.0,156,1.0,24.1036,teste [.lento]
+exp,1.0,157,0.89375,16.8440,teste [.lento]
+exp,1.0,158,1.0,31.0588,teste [.lento]
+exp,1.0,159,0.80625,15.9125,teste [.lento]
+exp,1.0,160,1.0,18.7145,teste [.lento]
+exp,1.0,161,1.0,23.1497,teste [.lento]
+exp,1.0,162,1.0,27.7907,teste [.lento]
+exp,1.0,163,1.0,25.2426,teste [.lento]
+exp,1.0,164,1.0,26.0828,teste [.lento]
+exp,1.0,165,1.0,19.8249,teste [.lento]
+exp,1.0,166,1.0,23.4559,teste [.lento]
+exp,1.0,167,1.0,22.2032,teste [.lento]
+exp,1.0,168,1.0,21.9244,teste [.lento]
+exp,1.0,169,1.0,23.3106,teste [.lento]
+exp,1.0,170,1.0,24.3412,teste [.lento]
+exp,1.0,171,1.0,22.4214,teste [.lento]
+exp,1.0,172,1.0,22.5742,teste [.lento]
+exp,1.0,173,1.0,25.9241,teste [.lento]
+exp,1.0,174,1.0,22.9395,teste [.lento]
+exp,1.0,175,1.0,22.0720,teste [.lento]
+exp,1.0,176,1.0,20.5842,teste [.lento]
+exp,1.0,177,1.0,28.4306,teste [.lento]
+exp,1.0,178,1.0,24.8110,teste [.lento]
+exp,1.0,179,1.0,26.5247,teste [.lento]
+exp,1.0,180,0.96875,18.6261,teste [.lento]
+exp,1.0,181,1.0,27.2925,teste [.lento]
+exp,1.0,182,1.0,20.8084,teste [.lento]
+exp,1.0,183,1.0,26.2594,teste [.lento]
+exp,1.0,184,1.0,20.6199,teste [.lento]
+exp,1.0,185,1.0,23.1185,teste [.lento]
+exp,1.0,186,1.0,22.6584,teste [.lento]
+exp,1.0,187,1.0,18.1137,teste [.lento]
+exp,1.0,188,1.0,20.4262,teste [.lento]
+exp,1.0,189,1.0,25.6226,teste [.lento]
+exp,1.0,190,1.0,21.5647,teste [.lento]
+exp,1.0,191,1.0,30.8318,teste [.lento]
+exp,1.0,192,1.0,18.7992,teste [.lento]
+exp,1.0,193,1.0,24.1269,teste [.lento]
+exp,1.0,194,1.0,22.6484,teste [.lento]
+exp,1.0,195,1.0,21.7611,teste [.lento]
+exp,1.0,196,1.0,21.2642,teste [.lento]
+exp,1.0,197,1.0,19.6334,teste [.lento]
+exp,1.0,198,0.99375,17.1122,teste [.lento]
+exp,1.0,199,1.0,29.2867,teste [.lento]
+exp,1.0,200,1.0,28.5808,teste [.lento]

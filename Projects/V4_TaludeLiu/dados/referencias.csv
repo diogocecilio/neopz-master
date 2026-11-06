@@ -1,0 +1,35 @@
+# Liu et al. (2024): valores de referencia usados na comparacao. fonte = onde esta no artigo; "digitalizado, aproximado"
+# = lido de figura; "calculado" = derivado de valores impressos (ver README.md). Cenarios: 1 = so k_s aleatorio,
+# 2 = c' e phi' aleatorios, 3 = os tres (Tabela 3); angulo do acamamento alfa em graus; q/k_s = 0.01.
+grandeza,cenario,alfa,valor,fonte,nota
+FS_Bishop,det,-,1.525,sec. 3.1 (texto),impresso; Bishop simplificado (SLOPE/W) com Entry and Exit
+Pf,1,0,0,Tabela 4,impresso
+beta,1,0,15.27,Tabela 4,impresso
+Pf,2,0,4.08e-5,Tabela 4,impresso (lognormal ajustada eq. 12)
+beta,2,0,3.95,Tabela 4,impresso (eq. 13)
+Pf,3,0,1.19e-4,Tabela 4,impresso
+beta,3,0,3.68,Tabela 4,impresso
+dp_FS,1,0,0.041,Fig. 11,digitalizado aproximado
+dp_FS,2,0,0.149,Fig. 11,digitalizado aproximado
+dp_FS,3,0,0.156,Fig. 11,digitalizado aproximado
+mediana_FS,1,0,1.51,Fig. 11,digitalizado aproximado
+mediana_FS,2,0,1.48,Fig. 11,digitalizado aproximado (1.47 a 1.49)
+mediana_FS,3,0,1.48,Fig. 11,digitalizado aproximado (1.47 a 1.49)
+media_FS,1,0,1.52,Tabela 4 + Fig. 11,calculado: beta da eq. 13 invertida com o dp da Fig. 11
+media_FS,2,0,1.49,Tabela 4 + Fig. 11,calculado
+media_FS,3,0,1.48,Tabela 4 + Fig. 11,calculado
+media_area_m2,1,0,40.1,Fig. 8(a),digitalizado aproximado
+dp_area_m2,1,0,1.0,Fig. 8(a),digitalizado aproximado
+media_area_m2,2,0,48.0,Fig. 8(a),digitalizado aproximado
+dp_area_m2,2,0,19.9,Fig. 8(a),digitalizado aproximado
+media_area_m2,3,0,47.6,Fig. 8(a),digitalizado aproximado
+dp_area_m2,3,0,19.6,Fig. 8(a),digitalizado aproximado
+beta,2,90,5.70,Fig. 12,digitalizado aproximado
+Pf,2,90,7e-9,Fig. 12,digitalizado aproximado
+beta,3,90,5.14,Fig. 12,digitalizado aproximado
+Pf,3,90,1.4e-7,Fig. 12,digitalizado aproximado
+base_ruptura_de_2000,1,0,1990,Fig. 10(a),digitalizado aproximado
+base_ruptura_de_2000,2,0,1360,Fig. 10(a),digitalizado aproximado
+base_ruptura_de_2000,3,0,1330,Fig. 10(a),digitalizado aproximado
+Pf,3_rho-0.1,0,3.0e-3,Fig. 19,digitalizado aproximado (rho = -0.1)
+Pf,3_rho+0.1,0,6.4e-3,Fig. 19,digitalizado aproximado (rho = +0.1)

@@ -1,0 +1,10 @@
+# gerados no cluster (ou no PC) pelos scripts deste pacote: ver README.md
+bin/
+build/
+build_*/
+deps/
+logs/*
+!logs/.gitkeep
+resultados_mc/
+resultados_casos/
+__pycache__/

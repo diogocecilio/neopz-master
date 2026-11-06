@@ -1,0 +1,1 @@
+caso=fig9 LFS_medio_0h=2.3315803 LFS_medio_lim3_0h=1.9350406 A_LFS_0h=0 LFS_medio_7.5h=2.2760059 LFS_medio_lim3_7.5h=1.8805016 A_LFS_7.5h=0.52524038 LFS_medio_15h=2.0499251 LFS_medio_lim3_15h=1.7399551 A_LFS_15h=1.0272436 situacao=ok seg=674.192

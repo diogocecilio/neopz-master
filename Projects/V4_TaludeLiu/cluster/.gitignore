@@ -1,0 +1,5 @@
+# gerados no cluster por compilar_v4.sh, job_v4.sbatch e rodar_v4.sh
+build/
+bin/
+logs/
+resultados/

@@ -1,0 +1,62 @@
+# Laloui, Klubertanz e Vulliet (2003), Fig. 6a: pressao do ar p_a x altura em t = 30 min, benchmark europeu ALERT
+# (Jommi e Vaunat 1997) com as equipes EPFL, LCPC, LIEGE, UPD e UPC. Digitalizado, aproximado: lido do bitmap de 300 dpi
+# da figura (eixos calibrados pelas marcas; 43,45 px/kPa e 490 px/m). Incerteza de leitura ~0,1 kPa e ~0,01 m; os
+# marcadores tem ~0,15 kPa de largura e alargam a envoltoria nessa medida.
+# "envoltoria min" e "envoltoria max": menor e maior p_a das cinco curvas em cada altura (tinta mais a esquerda e mais a
+# direita na linha; a legenda e o texto "t = 30 min" mascarados). "minimo <equipe>": o marcador de menor p_a da curva.
+figura,curva,variavel_x,x,variavel_y,y
+6a,envoltoria min,p_a (kPa),0.00,y (m),0.00
+6a,envoltoria min,p_a (kPa),-0.54,y (m),0.05
+6a,envoltoria min,p_a (kPa),-0.96,y (m),0.10
+6a,envoltoria min,p_a (kPa),-1.39,y (m),0.15
+6a,envoltoria min,p_a (kPa),-1.74,y (m),0.20
+6a,envoltoria min,p_a (kPa),-2.18,y (m),0.25
+6a,envoltoria min,p_a (kPa),-2.61,y (m),0.30
+6a,envoltoria min,p_a (kPa),-3.01,y (m),0.35
+6a,envoltoria min,p_a (kPa),-3.42,y (m),0.40
+6a,envoltoria min,p_a (kPa),-3.83,y (m),0.45
+6a,envoltoria min,p_a (kPa),-4.27,y (m),0.50
+6a,envoltoria min,p_a (kPa),-4.69,y (m),0.55
+6a,envoltoria min,p_a (kPa),-4.96,y (m),0.60
+6a,envoltoria min,p_a (kPa),-5.38,y (m),0.65
+6a,envoltoria min,p_a (kPa),-5.95,y (m),0.70
+6a,envoltoria min,p_a (kPa),-6.37,y (m),0.75
+6a,envoltoria min,p_a (kPa),-6.76,y (m),0.80
+6a,envoltoria min,p_a (kPa),-6.94,y (m),0.84
+6a,envoltoria min,p_a (kPa),-7.06,y (m),0.86
+6a,envoltoria min,p_a (kPa),-6.16,y (m),0.88
+6a,envoltoria min,p_a (kPa),-6.37,y (m),0.90
+6a,envoltoria min,p_a (kPa),-4.99,y (m),0.92
+6a,envoltoria min,p_a (kPa),-3.30,y (m),0.95
+6a,envoltoria min,p_a (kPa),-1.44,y (m),0.98
+6a,envoltoria min,p_a (kPa),0.00,y (m),1.00
+6a,envoltoria max,p_a (kPa),0.00,y (m),0.00
+6a,envoltoria max,p_a (kPa),-0.11,y (m),0.05
+6a,envoltoria max,p_a (kPa),-0.24,y (m),0.10
+6a,envoltoria max,p_a (kPa),-0.64,y (m),0.15
+6a,envoltoria max,p_a (kPa),-0.82,y (m),0.20
+6a,envoltoria max,p_a (kPa),-1.28,y (m),0.25
+6a,envoltoria max,p_a (kPa),-1.53,y (m),0.30
+6a,envoltoria max,p_a (kPa),-1.97,y (m),0.35
+6a,envoltoria max,p_a (kPa),-2.22,y (m),0.40
+6a,envoltoria max,p_a (kPa),-2.73,y (m),0.45
+6a,envoltoria max,p_a (kPa),-3.01,y (m),0.50
+6a,envoltoria max,p_a (kPa),-3.47,y (m),0.55
+6a,envoltoria max,p_a (kPa),-3.74,y (m),0.60
+6a,envoltoria max,p_a (kPa),-4.23,y (m),0.65
+6a,envoltoria max,p_a (kPa),-4.50,y (m),0.70
+6a,envoltoria max,p_a (kPa),-5.01,y (m),0.75
+6a,envoltoria max,p_a (kPa),-5.12,y (m),0.80
+6a,envoltoria max,p_a (kPa),-5.31,y (m),0.84
+6a,envoltoria max,p_a (kPa),-5.26,y (m),0.86
+6a,envoltoria max,p_a (kPa),-4.87,y (m),0.88
+6a,envoltoria max,p_a (kPa),-4.23,y (m),0.90
+6a,envoltoria max,p_a (kPa),-2.96,y (m),0.92
+6a,envoltoria max,p_a (kPa),-1.16,y (m),0.95
+6a,envoltoria max,p_a (kPa),-0.54,y (m),0.98
+6a,envoltoria max,p_a (kPa),0.00,y (m),1.00
+6a,minimo EPFL,p_a (kPa),-6.04,y (m),0.80
+6a,minimo LCPC,p_a (kPa),-6.95,y (m),0.86
+6a,minimo LIEGE,p_a (kPa),-5.58,y (m),0.81
+6a,minimo UPD,p_a (kPa),-5.28,y (m),0.81
+6a,minimo UPC,p_a (kPa),-6.35,y (m),0.90

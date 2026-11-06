@@ -1,0 +1,30 @@
+# Autovalores da KL (nucleo da autocorrelacao) e fracao acumulada epsilon (eq. 4) de Liao et al. (2025), Fig. 3
+# (exemplo 1, cho1) e Fig. 8 (exemplo 2, cho2). Digitalizado, aproximado (pagina renderizada a 300 dpi; leitura dos
+# centros dos marcadores, incerteza de cerca de +-0,5 no autovalor e +-0,005 em epsilon).
+caso,M,autovalor,epsilon
+cho1,1,100.2,0.317
+cho1,2,74.7,0.551
+cho1,3,46.3,0.695
+cho1,4,23.9,0.769
+cho1,5,20.2,0.833
+cho1,6,15.1,0.880
+cho1,7,10.4,0.913
+cho1,8,9.3,0.944
+cho1,9,4.7,0.961
+cho1,10,3.8,0.971
+cho2,1,78.2,0.167
+cho2,2,70.8,0.317
+cho2,3,59.9,0.443
+cho2,4,47.4,0.545
+cho2,5,35.2,0.620
+cho2,6,24.4,
+cho2,7,22.4,
+cho2,8,20.1,
+cho2,9,17.1,
+cho2,10,15.9,
+cho2,11,13.6,
+cho2,12,10.1,
+cho2,13,9.8,
+cho2,14,6.9,
+cho2,15,5.7,
+cho2,16,4.5,

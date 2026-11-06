@@ -1,0 +1,5 @@
+# Abbasov et al. (2024), Fig. 14 (caso da Tabela 4: nu = 0,3, phi' = 35 graus, c' = 4,5 kPa, K_s(l) = 0,05 cm/h; o resto da Tabela 3): LFS medio (eq. 11) e area com LFS < 1 (eq. 12) na zona de investigacao, valor deterministico e media das 500 simulacoes com o PCE. Digitalizado, aproximado: face frontal das barras 3D, +-0,005 no LFS e +-0,05 m2 na area. A legenda diz t = 15 h, mas ha barras para 0, 7,5 e 15 h. O texto (sec. 4.6) da A_LFS deterministico = 14,9 m2 a 15 h.
+t_h,LFS_medio_det,LFS_medio_estoc,A_LFS_det_m2,A_LFS_estoc_m2
+0,1.684,1.691,14.77,14.19
+7.5,1.626,1.629,15.19,14.58
+15,1.512,1.509,14.89,14.35

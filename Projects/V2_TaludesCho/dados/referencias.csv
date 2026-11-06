@@ -1,0 +1,14 @@
+# Valores publicados usados na comparacao (Liao et al. 2025, Comput. Geotech. 179:107022)
+grandeza,caso,valor,fonte,nota
+FS,cho1,1.369,Liao 2025 sec. 4.1,SIGMA/W + SLOPE/W (tensoes do MEF em superficies de deslizamento); c_u medio
+FS,cho1,1.366,Jiang et al. 2014 (citado em Liao sec. 4.1),
+Pf,cho1,0.1012,Liao 2025 Tabela 2,MCS 10000 realizacoes (MEF)
+Pf,cho1,0.1017,Liao 2025 Tabela 2,AL-BPCE 64 chamadas
+Pf,cho1,0.1156,Liao 2025 Tabela 2 (Jiang et al. 2014),PCE 286 chamadas
+Pf,cho1,0.110,Liao 2025 Tabela 2 (Ding et al. 2023),MCS 1000
+FS,cho2,1.205,Liao 2025 sec. 4.2,equilibrio limite (Bishop)
+FS,cho2,1.204,Cho 2010 (citado em Liao sec. 4.2),equilibrio limite (Bishop)
+FS,cho2,1.284,Liao 2025 sec. 4.2,elementos finitos (metodo nao informado)
+Pf,cho2,0.0012,Liao 2025 Tabela 4,MCS 100000 (MEF)
+Pf,cho2,0.0186,Liao 2025 Tabela 4,MCS 10000 (equilibrio limite; nucleo exponencial rho1 com M = 130)
+Pf,cho2,0.0171,Liao 2025 Tabela 4 (Cho 2010),MCS 50000 (equilibrio limite)

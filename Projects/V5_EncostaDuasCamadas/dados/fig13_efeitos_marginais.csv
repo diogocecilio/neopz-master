@@ -1,0 +1,20 @@
+# Abbasov et al. (2024), Fig. 13: efeitos marginais (curvas do PCE) do LFS medio e da area com LFS < 1, cada parametro variando na sua faixa (Tabela 3) e os outros na media da faixa (nu = 0,3, phi' = 35 graus, c' = 4,5 kPa, K_s(l) = 0,055 cm/h). O instante nao e dito (o PCE da Fig. 8 e de 15 h; os valores na media batem com a Fig. 14 a 15 h). Digitalizado, aproximado: +-0,02 no LFS e +-1 m2 na area.
+parametro,valor,LFS_medio,A_LFS_m2
+nu,0.2,0.99,63.8
+nu,0.25,1.27,33.6
+nu,0.3,1.55,12.4
+nu,0.35,1.77,1.8
+nu,0.4,1.95,0.4
+phi,25,1.22,36.8
+phi,30,1.41,22.8
+phi,35,1.53,12.4
+phi,40,1.67,5.2
+phi,45,1.76,1.9
+c,3,1.44,17.3
+c,4,1.51,14.0
+c,4.5,1.54,12.3
+c,5,1.57,10.6
+c,6,1.635,7.3
+ks_inf,0.01,1.15,41.6
+ks_inf,0.05,1.54,14.0
+ks_inf,0.1,1.62,4.5

@@ -1,0 +1,29 @@
+# Sharma, Fujisawa & Murakami (2021), FEAD 197:103632, Fig. 17: linha freatica final ("Present", ST/FEM) da barragem
+# retangular 5 x 10 m em dois blocos (k esquerdo = k direito / 10, interface em x = 2,5 m; montante 10 m, jusante 2 m).
+# Digitalizado, aproximado: pagina 9 do PDF renderizada a 400 dpi, eixos calibrados pelas retas x = 0, x = 5, y = 0 e
+# y = 10 do quadro, leitura a olho numa grade de 0,25 m (incerteza ~0,1 m; no trecho quase vertical junto a interface,
+# ~0,05 m em x). As outras referencias da Fig. 17 diferem desta no bloco direito: Darbandi et al. e Lacy e Prevost
+# descem pela interface ate y ~ 5,5 e ~ 4,6 m, e Lacy e Prevost fica ate ~1 m abaixo para 3 < x < 4,5 m.
+# O ultimo ponto e o ponto de saida do texto (0,46 m acima do nivel de jusante), nao uma leitura da figura.
+x_m,y_m
+0.00,10.00
+0.50,9.83
+1.00,9.55
+1.50,9.22
+2.00,8.80
+2.25,8.55
+2.40,8.35
+2.50,8.15
+2.55,7.50
+2.65,6.75
+2.75,6.10
+2.90,5.40
+3.00,4.95
+3.25,4.40
+3.50,4.00
+3.75,3.75
+4.00,3.55
+4.25,3.30
+4.50,3.00
+4.75,2.75
+5.00,2.46

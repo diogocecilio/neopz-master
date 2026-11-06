@@ -1,0 +1,17 @@
+# Laloui, Klubertanz e Vulliet (2003): recalque do topo da coluna. Digitalizado, aproximado (bitmap de 300 dpi).
+# 6b: benchmark ALERT, deslocamento do topo x tempo (mm, negativo para baixo): os valores em 30, 120 e 600 min. Quatro
+#     equipes (EPFL, LCPC, LIEGE, UPD) ficam juntas entre -3,23 e -3,47 mm (lidas como a faixa "4 equipes min/max");
+#     a UPC sobe ate -2,44 mm em 600 min. Incerteza ~0,05 mm.
+# 8a: perfil de deslocamento: o topo em 600 min chega ao fim do eixo, 1,6 mm (lido a olho; o eixo vai de 0 a 1,6 mm).
+#     A Fig. 8a (cerca de 1,6 mm) e a Fig. 6b (cerca de 3,3 mm, EPFL) do mesmo artigo nao concordam.
+figura,curva,variavel_x,x,variavel_y,y
+6b,4 equipes max,t (min),30,w topo (mm),-3.23
+6b,4 equipes max,t (min),120,w topo (mm),-3.29
+6b,4 equipes max,t (min),600,w topo (mm),-3.29
+6b,4 equipes min,t (min),30,w topo (mm),-3.30
+6b,4 equipes min,t (min),120,w topo (mm),-3.40
+6b,4 equipes min,t (min),600,w topo (mm),-3.47
+6b,UPC,t (min),30,w topo (mm),-2.83
+6b,UPC,t (min),120,w topo (mm),-2.71
+6b,UPC,t (min),600,w topo (mm),-2.44
+8a,topo,t (min),600,w topo (mm),-1.6

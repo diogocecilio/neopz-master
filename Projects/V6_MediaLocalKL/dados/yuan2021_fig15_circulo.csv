@@ -1,0 +1,49 @@
+# Yuan et al. (2021), Fig. 15 (Least Squares Circle): digitalizado, aproximado. Pagina 8 do PDF renderizada a 400 dpi;
+# eixos calibrados pelas marcas (-75 a 100 em x, 0 a 120 em y; residuo < 0,5 px, ~0,08 m); 1 px = 0,164 m. O talude da
+# figura tem H = 50 m e face a 45 graus (borda da crista em x = 50 m), isto e o caso h50_b45 da Tabela 6.
+# tipo=centro: o ponto vermelho (centro do circulo ajustado pelo artigo); tipo=pe e tipo=saida: as extremidades do arco
+# (a saida e calculada pela Eq. 6 com o centro lido: c = sqrt(a^2 + b^2 - (H - b)^2) + a); tipo=no: os pontos pretos
+# (nos de maior deformacao plastica de cada linha da malha) detectados automaticamente (alguns podem ser pedacos do arco
+# desenhado). O circulo por minimos quadrados desses pontos forcado a passar pelo pe tem centro (-47,25; 112,42).
+tipo,x_m,y_m
+centro,-46.02,116.06
+pe,0.00,0.00
+saida,59.92,50.00
+no,1.088,0.526
+no,7.372,5.096
+no,8.977,6.787
+no,16.822,8.222
+no,12.705,8.467
+no,16.404,10.096
+no,20.575,10.416
+no,18.022,11.715
+no,22.734,11.922
+no,21.622,13.298
+no,25.017,13.420
+no,25.303,15.062
+no,26.751,16.695
+no,28.349,18.306
+no,31.889,18.497
+no,31.913,20.003
+no,33.770,20.052
+no,35.284,21.393
+no,33.386,21.640
+no,36.876,23.122
+no,38.679,24.473
+no,38.354,24.956
+no,39.783,26.643
+no,41.241,28.295
+no,40.954,29.974
+no,44.307,31.637
+no,45.819,33.156
+no,45.510,34.912
+no,47.011,36.549
+no,48.584,38.126
+no,50.158,39.913
+no,51.701,41.487
+no,53.199,43.099
+no,54.664,44.753
+no,56.202,46.451
+no,56.179,48.115
+no,59.580,49.649
+no,57.713,49.793

@@ -1,0 +1,44 @@
+# Sharma, Fujisawa & Murakami (2021), FEAD 197:103632, Fig. 7: linha freatica final ("Present", ST/FEM) da barragem
+# retangular 16 x 24 m com agua a jusante (montante 24 m, jusante 4 m). Digitalizado, aproximado: pagina 6 do PDF
+# renderizada a 400 dpi, eixos calibrados pelas retas x = 0, x = 16, y = 0 e y = 24 do quadro; em cada x, o centro da
+# sequencia de pixels da linha continua (nos x dos marcadores das outras referencias a linha fica encoberta, por isso
+# os x nao sao regulares). Incerteza da leitura ~0,05 m. O ultimo ponto e o ponto de saida do texto (y_s = 8,9 m acima
+# do nivel de jusante, y = 12,9 m), nao uma leitura da figura.
+x_m,y_m
+0.00,24.00
+0.75,23.96
+1.25,23.77
+1.75,23.60
+2.00,23.48
+2.75,23.21
+3.75,22.83
+4.00,22.70
+4.25,22.57
+4.75,22.31
+5.75,21.82
+6.00,21.69
+7.00,21.12
+7.25,20.99
+8.00,20.50
+8.25,20.35
+9.25,19.69
+9.75,19.31
+10.00,19.14
+10.25,18.97
+10.75,18.58
+11.00,18.40
+11.25,18.19
+11.75,17.77
+12.00,17.58
+12.25,17.31
+12.75,16.90
+13.00,16.67
+13.75,15.87
+14.00,15.58
+14.25,15.35
+14.75,14.84
+15.10,14.37
+15.50,13.73
+15.60,13.62
+15.75,13.33
+16.00,12.90

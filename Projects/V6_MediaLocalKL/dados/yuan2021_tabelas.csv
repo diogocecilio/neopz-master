@@ -1,0 +1,14 @@
+# Yuan et al. (2021), Comput. Geotech. 137:104247. Valores impressos (nao digitalizados): Tabela 5 (beta = 40 graus) e
+# Tabela 6 (H = 50 m): desvios reduzidos sigma_cL (kPa) e sigma_phiL (graus) da media no arco (Eq. 15); Tabelas 7 e 8: FS
+# do SRM (ABAQUS, psi = 0) com as medias c = 36,9 kPa e phi = 22,6 graus. sigma_c = 8,68 kPa e sigma_phi = 2,99 graus
+# (Tabela 2). O talude H = 50 m, beta = 40 graus aparece nas duas series (b40_h50).
+caso,H_m,beta_graus,sigma_cL,sigma_phiL,FS,fonte
+b40_h10,10,40,2.46,0.901,2.210,Tabelas 5 e 7
+b40_h20,20,40,1.88,0.599,1.546,Tabelas 5 e 7
+b40_h30,30,40,1.53,0.571,1.300,Tabelas 5 e 7
+b40_h40,40,40,1.356,0.462,1.167,Tabelas 5 e 7
+b40_h50,50,40,1.23,0.413,0.9938,Tabelas 5 a 8
+h50_b30,50,30,0.971,0.344,1.318,Tabelas 6 e 8
+h50_b35,50,35,1.12,0.355,1.191,Tabelas 6 e 8
+h50_b45,50,45,1.28,0.412,0.8752,Tabelas 6 e 8
+h50_b50,50,50,1.29,0.432,0.8023,Tabelas 6 e 8

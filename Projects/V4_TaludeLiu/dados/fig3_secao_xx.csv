@@ -1,0 +1,25 @@
+# Liu et al. (2024), Fig. 3(a): poropressao (kPa) x cota (m) na secao X-X (x = 10 m, vertical pela crista H), regime
+# permanente com q/k_s = 0.01 ("This study", que coincide com Jiang et al. 2014). Digitalizado, aproximado: centros dos
+# marcadores na pagina renderizada a 300 dpi (scripts/digitaliza_fig3.py), incerteza de leitura ~0,3 kPa.
+z_m,pw_kPa
+0.0,49.1
+0.5,44.9
+1.0,39.9
+1.5,35.2
+2.0,30.2
+2.5,25.35
+3.0,20.4
+3.5,15.65
+4.0,10.8
+4.5,6.0
+5.0,1.2
+5.5,-3.75
+6.0,-8.2
+6.5,-12.0
+7.0,-13.6
+7.5,-14.1
+8.0,-14.3
+8.5,-14.4
+9.0,-14.5
+9.5,-14.6
+10.0,-14.6

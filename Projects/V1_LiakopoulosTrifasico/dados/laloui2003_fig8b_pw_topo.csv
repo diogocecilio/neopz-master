@@ -1,0 +1,17 @@
+# Laloui, Klubertanz e Vulliet (2003), Fig. 8b: p_w no topo da coluna (y = 0,99 m, a primeira coluna de pixels dentro do
+# quadro) para os modelos de duas fases (ar passivo) e de tres fases (ar ativo). Digitalizado, aproximado (bitmap de
+# 300 dpi; 37,9 px/kPa): incerteza de leitura ~0,05 kPa. A legenda da figura diz duas fases = linha cheia e tres fases =
+# tracejada (o titulo da figura diz o contrario; aqui vale a legenda do grafico, coerente com a Fig. 5a, em
+# que o modelo de tres fases chega a -5,7, -7,4 e -9,0 kPa no topo em 5, 10 e 30 min). A identificacao das curvas de
+# 30 e 120 min (-8,56 e -8,72 kPa) e das de 120 e 600 min (-9,26, -9,55 e -9,66 kPa) e incerta.
+figura,curva,variavel_x,x,variavel_y,y
+8b,duas fases,t (min),5,p_w topo (kPa),-3.85
+8b,duas fases,t (min),10,p_w topo (kPa),-5.03
+8b,duas fases,t (min),30,p_w topo (kPa),-6.50
+8b,duas fases,t (min),120,p_w topo (kPa),-8.72
+8b,duas fases,t (min),600,p_w topo (kPa),-9.66
+8b,tres fases,t (min),5,p_w topo (kPa),-5.70
+8b,tres fases,t (min),10,p_w topo (kPa),-7.39
+8b,tres fases,t (min),30,p_w topo (kPa),-8.56
+8b,tres fases,t (min),120,p_w topo (kPa),-9.26
+8b,tres fases,t (min),600,p_w topo (kPa),-9.55

@@ -1,13 +1,15 @@
 #!/bin/bash
-# junta_mc.sh <pasta da combinacao> [...]: junta os CSV das realizacoes concluidas (pastas r<nnnnn>/ com resultado.txt):
+# junta_mc.sh <pasta> [...]: junta os CSV das realizacoes concluidas de uma pasta do Monte Carlo
+# ($SAIDA/<projeto>/<caso>[_trocas][_det], com as realizacoes em r<nnnnn>/ e resultado.txt):
 #   mc_resumo.csv     <- resumo.csv de cada realizacao (uma linha por realizacao)
-#   mc_fs.csv         <- fs.csv (uma linha por realizacao e instante do FS)
+#   mc_fs.csv         <- fs.csv (uma linha por realizacao e instante do FS; num talude seco ou num regime permanente,
+#                        um instante so)
 #   mc_passos.csv     <- passos.csv (uma linha por realizacao e passo do transiente), so com TUDO=1
 #   mc_tentativas.csv <- fs_tentativas.csv (cada solucao da busca do SRM), so com TUDO=1
 # A primeira coluna e a realizacao (o numero da pasta). As colunas sao a uniao das colunas de todas as realizacoes: as de
-# uma versao anterior do programa (sem resumo.csv, com fs.csv de 3 colunas) entram com o que tiverem, e o resto vazio.
-# Refeito do zero a partir das pastas a cada chamada (troca atomica), entao pode rodar durante o Monte Carlo;
-# rodar_mc.sh, resumo_mc.sh e plot_mc.py o chamam.
+# uma versao anterior do programa (com outras colunas, ou sem resumo.csv: entao ele vem de resultado.txt) entram com o
+# que tiverem, e o resto vazio. Refeito do zero a partir das pastas a cada chamada (troca atomica), entao pode rodar
+# durante o Monte Carlo; rodar_mc.sh, resumo_mc.sh, posprocessa_mc.py, compara_mc.py e sensibilidade_mc.py o chamam.
 set -u
 MAQ="$(hostname -s 2>/dev/null || uname -n)"
 MAQ="${MAQ%%.*}"

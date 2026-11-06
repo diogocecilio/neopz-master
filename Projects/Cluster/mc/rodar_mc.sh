@@ -1,126 +1,156 @@
 #!/bin/bash
-# rodar_mc.sh <primeira> <ultima>: roda as realizacoes primeira..ultima do Monte Carlo, cada uma num processo de 1 CPU,
-# PARALELO ao mesmo tempo (padrao: os nucleos fisicos da maquina; com hyper-threading, dois processos por nucleo deixam
-# cada um ~2x mais lento). Uma combinacao (SOLO e I_MM_H, padrao f50 e 36) ou varias numa fila so, com
-# COMBS="f10:9 f50:80 ..." (solo:chuva), em ordem intercalada (a realizacao 0 de todas, depois a 1, ...); DET=1 poe antes
-# o caso deterministico (CAMPOS=0, as medias) de cada uma, e CAMPOS=0 roda so os deterministicos. Uma entrada pode trocar
-# parametros so para ela (estudos de sensibilidade), em pasta propria: COMBS="f50:36:COV_C=0.5 f50:36:LX=40,LY=4
-# f50:36:ALFA=2" (COV_C, COV_PHI, COV_K, LX, LY, ALFA, KL_M, F_TRANS; o deterministico so muda com ALFA e F_TRANS).
-# F_TRANS (variantes acopladas i e ii): a resistencia do transiente e c'/F_TRANS, tan(phi')/F_TRANS. Com 1 (o padrao) o
-# FS do SRM nao cai abaixo de 1 (o transiente esta sempre em equilibrio, e a dilatancia segura o talude no limite);
-# F_TRANS=0.5 deixa o esqueleto elastico no transiente e o FS livre: COMBS="f50:36:F_TRANS=0.5" (ver README.md).
-# Cada realizacao fica em $SAIDA/<combinacao>/r<nnnnn>/ (resumo.csv, fs.csv, passos.csv, ...; ver README.md); no fim,
-# junta_mc.sh junta as concluidas em mc_resumo.csv e mc_fs.csv de cada combinacao. ./resumo_mc.sh <pasta> calcula P_f.
+# rodar_mc.sh <primeira> <ultima>: roda as realizacoes primeira..ultima do Monte Carlo de um projeto de verificacao
+# (PROJETO=V2_TaludesCho ou V4_TaludeLiu, ou so V2 ou V4; ver projetos.sh), cada uma num processo de 1 CPU, PARALELO ao
+# mesmo tempo (padrao: os nucleos fisicos da maquina; com hyper-threading, dois processos por nucleo deixam cada um ~2x
+# mais lento). Os casos vao numa fila so, CASOS="<caso>[:VAR=valor,...] ..." (padrao: a campanha do artigo, em
+# projetos.sh), em ordem intercalada (a realizacao primeira de todos, depois a seguinte, ...); DET=1 poe antes o caso
+# deterministico (CAMPOS=0, as medias) de cada entrada, e CAMPOS=0 roda so os deterministicos. VAR=valor troca um
+# parametro do programa so nessa entrada, que vai para a sua propria pasta (estudos de sensibilidade):
+# CASOS="cho1 cho1:NUCLEO=exp cho1:COV_C=0.5,LX=40" (VAR: os parametros de projetos.sh; valor: letras, numeros, . _ + -).
+# Cada realizacao fica em $SAIDA/<projeto>/<caso>[_trocas]/r<nnnnn>/ (as trocas em ordem alfabetica, cada uma com o nome
+# da variavel em minusculas e sem _ seguido do valor: cho1:LX=40,COV_C=0.5 -> cho1_covc0.5_lx40), e o deterministico em
+# <caso>[_trocas]_det/r00000/, sem as trocas que so mudam os campos (que ele ignora: cho1:COV_C=0.5 usa cho1_det). No
+# fim, junta_mc.sh junta as concluidas em mc_resumo.csv e mc_fs.csv de cada pasta; ./resumo_mc.sh <pasta> mostra P_f, e
+# posprocessa_mc.py faz o pos-processamento completo.
 # Retomavel, e seguro com varios processos ou jobs (em nos diferentes) na mesma fila: cada realizacao em andamento tem um
 # dono (r<nnnnn>/.ativo: maquina, processo e job do SLURM). As concluidas (resultado.txt) e as de um dono vivo sao
-# puladas; a de um dono morto (job que acabou, processo que caiu, maquina reiniciada) continua do seu checkpoint.bin.
-# Uma realizacao que termina com erro MAX_FALHAS vezes (padrao 3) fica marcada (falhou.txt) e e pulada. Com o arquivo
-# $SAIDA/PARAR, nenhuma realizacao nova comeca (as em andamento terminam).
+# puladas; a de um dono morto (job que acabou, processo que caiu, maquina reiniciada) volta para a fila (e continua do
+# seu checkpoint.bin, se o programa gravar um). Uma realizacao que termina com erro (sem resultado.txt) MAX_FALHAS vezes
+# (padrao 3) fica marcada (falhou.txt) e e pulada. Com o arquivo $SAIDA/PARAR (todos os projetos) ou
+# $SAIDA/<projeto>/PARAR, nenhuma realizacao nova comeca (as em andamento terminam).
 # rodar_mc.sh --faltam <primeira> <ultima>: so conta as realizacoes ainda nao concluidas nem marcadas como falhas;
-# --pastas: as pastas de cada entrada de COMBS; --verifica: so confere COMBS e os parametros.txt das combinacoes.
-# Avisos (parametros recusados, disjuntor) tambem vao para $SAIDA/AVISOS, que status_mc.sh mostra.
-# Ambiente: VARIANTE (iii, ii, i), MALHA (rahardjo_a45.msh ou rahardjo_a45_fina.msh), FS_H, COV_C, COV_PHI, COV_K, LX, LY,
-# ALFA, KL_M, SEMENTE, EXE, SAIDA, PARALELO, COMB (nome da pasta, com uma combinacao so). CSV opcionais: PW_CSV,
-# MEC_CSV, CAMPOS_CSV (1 = grava, o padrao). VTK: CAMPOS_VTK=1 grava campos.vtk, VTK_H=24 o mecanismo de ruptura em
-# t = 24 h; SO_CAMPOS=1 so gera os campos (campos.vtk e campos.csv) das realizacoes pedidas, sem simular.
+# --pastas: "<entrada> <pasta> <pasta do deterministico ou ->" (separados por tabulacao) de cada entrada de CASOS;
+# --verifica: so confere CASOS e os parametros.txt das pastas.
+# Avisos (parametros recusados, disjuntor) tambem vao para $SAIDA/<projeto>/AVISOS, que status_mc.sh mostra.
+# Ambiente: PROJETO, CASOS, DET, CAMPOS, SAIDA (padrao ../resultados_mc), EXE (padrao ../bin/<executavel>), PARALELO,
+# MAX_FALHAS, DISJUNTOR, INATIVO_MIN, ABANDONO_H, ESPERA_S, SO_CAMPOS=1 (so os campos das realizacoes pedidas, sem
+# simular, nos projetos que o tem) e qualquer parametro do programa (vale para todas as entradas; vai para parametros.txt).
 set -u
 export LC_ALL=C # numeros com ponto decimal em qualquer locale (awk, printf)
-PKG="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PKG="$(cd "$MC/.." && pwd)"
 MODO=rodar
 case "${1:-}" in --faltam) MODO=faltam; shift ;; --pastas) MODO=pastas; set -- 0 0 ;; --verifica) MODO=verifica; set -- 0 0 ;; esac
 [ $# -eq 2 ] || { sed -n '2,/^set -u/{/^#/p}' "$0"; exit 2; }
-export EXE="${EXE:-$PKG/bin/SlopeRandomField}"
-# a versao do programa (gravada por compilar.sh), que vai para o resumo.csv de cada realizacao
-export SRF_VERSAO="$(cat "$(dirname "$EXE")/versao.txt" 2>/dev/null || echo -)"
+[[ "$1" =~ ^[0-9]+$ && "$2" =~ ^[0-9]+$ ]] || { echo "<primeira> e <ultima> devem ser inteiros >= 0 (recebi '$1' e '$2')" >&2; exit 2; }
+# shellcheck source=../comum.sh
+source "$PKG/comum.sh"
+# shellcheck source=projetos.sh
+source "$MC/projetos.sh"
+[ -n "${PROJETO:-}" ] || { echo "defina PROJETO (os de Monte Carlo: $(mc_projetos); V2 e V4 bastam)" >&2; exit 2; }
+mc_projeto "$PROJETO" || exit 2
+export EXE="${EXE:-$PKG/bin/$MC_EXE}"
+# a versao do programa (gravada por compilar.sh em bin/versao.txt), que ele grava no resumo.csv de cada realizacao
+[ -n "${!MC_VAR_VERSAO:-}" ] || export "$MC_VAR_VERSAO=$(versao_de "$EXE")"
 if [ "$MODO" = rodar ] && ! [ -x "$EXE" ]; then
-    echo "executavel $EXE nao encontrado (compile o alvo SlopeRandomField; ver README.md)" >&2
+    echo "executavel $EXE nao encontrado (compile com ../compilar.sh no no de login; ver ../README.md)" >&2
     exit 2
 fi
-export MESH="${MESH:-$PKG/../LearningMohrCoulomb2/cluster/malhas/${MALHA:-rahardjo_a45.msh}}"
-export VARIANTE="${VARIANTE:-iii}" MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 MAX_FALHAS="${MAX_FALHAS:-3}"
-export SAIDA_MC="${SAIDA:-$PKG/resultados_mc}"
-# entradas de COMBS: <solo>:<chuva>[:VAR=valor,...], separadas por espaco (ou por virgula antes do solo); VAR troca um
-# parametro do programa so nessa entrada, que vai para a sua propria pasta (f50:36:COV_C=0.5 -> f50_I36_iii_covc0.5)
-COMBS="$(echo ${COMBS:-${SOLO:-f50}:${I_MM_H:-36}} | sed -E 's/,(f10|f50|f100):/ \1:/g')"
-VARS_MC='COV_C|COV_PHI|COV_K|LX|LY|ALFA|KL_M|F_TRANS'
-NUM_MC='[0-9]+([.][0-9]+)?'
-RE_MC="^(f10|f50|f100):$NUM_MC(:($VARS_MC)=$NUM_MC(,($VARS_MC)=$NUM_MC)*)?$"
-for sc in $COMBS; do
-    if [[ "$sc" =~ $RE_MC ]]; then
-        # F_TRANS = 0 seria recusado pelo programa em cada realizacao: recusado aqui, antes de submeter
-        for e in ${sc//[:,]/ }; do
-            [ "${e%%=*}" = F_TRANS ] && ! awk -v v="${e#*=}" 'BEGIN { exit !(v + 0 > 0) }' &&
-                { echo "COMBS: \"$sc\": F_TRANS deve ser > 0" >&2; exit 2; }
-        done
-        continue
-    fi
-    echo "COMBS: \"$sc\" nao e <solo>:<chuva em mm/h>[:VAR=valor,...] com solo f10, f50 ou f100 e VAR entre" \
-        "${VARS_MC//|/, } (exemplos: COMBS=\"f10:9 f50:80\", COMBS=\"f50:36:COV_C=0.5 f50:36:LX=40,LY=4\")" >&2
-    exit 2
-done
-if [ -n "${F_TRANS:-}" ] && ! awk -v v="$F_TRANS" 'BEGIN { exit !(v + 0 > 0) }'; then
-    echo "F_TRANS=$F_TRANS: deve ser > 0" >&2
-    exit 2
-fi
-# COMB (nome da pasta) so vale com uma combinacao
-COMB_UNICA=""
-[ "$(echo $COMBS | wc -w)" -eq 1 ] && COMB_UNICA="${COMB:-}"
-HOST_MC="$(hostname -s 2>/dev/null || uname -n)"
-HOST_MC="${HOST_MC%%.*}"
-export COMB_UNICA CAMPOS_TODOS="${CAMPOS:-1}" HOST_MC="${HOST_MC:-sem_nome}"
-BOOT_MC="$(cat /proc/sys/kernel/random/boot_id 2>/dev/null || echo -)"
-export BOOT_MC
-[ "$MODO" = rodar ] && mkdir -p "$SAIDA_MC"
+export MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 MAX_FALHAS="${MAX_FALHAS:-3}"
+SAIDA_BASE="${SAIDA:-$PKG/resultados_mc}"
+export SAIDA_BASE SAIDA_MC="$SAIDA_BASE/$MC_PROJETO"
+CASOS="$(echo ${CASOS:-$MC_CASOS_PADRAO})"
+export CAMPOS_TODOS="${CAMPOS:-1}" HOST_MC="$VERIF_MAQ" BOOT_MC="$VERIF_BOOT"
+[ "$CAMPOS_TODOS" = 0 ] || [ "$CAMPOS_TODOS" = 1 ] || { echo "CAMPOS deve ser 0 ou 1" >&2; exit 2; }
 
-# partes <entrada>: s (solo), i (chuva), x (as trocas VAR=valor, ou -) e xd (as que mudam o deterministico: ALFA e
-# F_TRANS)
-partes() {
-    local r="${1#*:}" e d=""
-    s="${1%%:*}" i="${r%%:*}" x=- xd=-
-    [ "$r" != "$i" ] && x="${r#*:}"
-    # ordem fixa (ALFA, depois F_TRANS): o mesmo deterministico tem o mesmo nome, em qualquer ordem da entrada
-    for e in ${x//,/ }; do [ "${e%%=*}" = ALFA ] && d="${d:+$d,}$e"; done
-    for e in ${x//,/ }; do [ "${e%%=*}" = F_TRANS ] && d="${d:+$d,}$e"; done
-    xd="${d:--}"
-}
-# pasta <solo> <chuva> <campos> [<trocas>]: a pasta da combinacao (o deterministico em <combinacao>_det)
+# ---------------------------------------------------------------- as entradas de CASOS
+# pasta <caso> <campos> <trocas>: poe em PASTA a pasta da entrada ($SAIDA/<projeto>/<caso>[_trocas][_det])
 pasta() {
-    local c="${COMB_UNICA:-${1}_I${2}_${VARIANTE}}" e
-    if [ "${4:--}" != - ]; then
-        for e in ${4//,/ }; do c="${c}_$(echo "${e%%=*}" | tr -d _ | tr 'A-Z' 'a-z')${e#*=}"; done
+    local c="$SAIDA_MC/$1" e v
+    if [ "${3:--}" != - ]; then
+        for e in ${3//,/ }; do v="${e%%=*}"; v="${v//_/}"; c="${c}_${v,,}${e#*=}"; done
     fi
-    if [ "$3" = 0 ] && ! { [ "$CAMPOS_TODOS" = 0 ] && [ -n "$COMB_UNICA" ]; }; then c="${c}_det"; fi
-    echo "$SAIDA_MC/$c"
+    [ "$2" = 0 ] && c="${c}_det"
+    PASTA="$c"
 }
-# tarefas <primeira> <ultima>: uma linha por realizacao, "<solo> <chuva> <campos> <n> <trocas>"; os deterministicos,
-# um por solo, chuva e ALFA (as outras trocas nao mudam o caso com as medias)
-tarefas() {
-    local sc n s i x xd vistos=" "
-    if [ "$CAMPOS_TODOS" = 0 ]; then
-        for n in $(seq "$1" "$2"); do for sc in $COMBS; do partes "$sc"; echo "$s $i 0 $n $xd"; done; done
-        return
+# sem_campo <trocas>: as trocas sem as que so mudam os campos (as do deterministico), ou -
+sem_campo() {
+    local e d=""
+    if [ "${1:--}" != - ]; then
+        for e in ${1//,/ }; do [[ " $MC_VARS_CAMPO " == *" ${e%%=*} "* ]] || d="${d:+$d,}$e"; done
     fi
-    if [ "${DET:-0}" = 1 ]; then
-        for sc in $COMBS; do
-            partes "$sc"
-            case "$vistos" in *" $s:$i:$xd "*) continue ;; esac
-            vistos="$vistos$s:$i:$xd "
-            echo "$s $i 0 0 $xd"
+    echo "${d:--}"
+}
+# valida_entrada <entrada>: a mensagem de erro (vazia: a entrada e valida)
+valida_entrada() {
+    local e="$1" c="${1%%:*}" x="" t v vistos=" "
+    [[ "$c" =~ $MC_CASOS_RE ]] || { echo "\"$e\": caso \"$c\" desconhecido em $MC_PROJETO (aceitos: $MC_CASOS_RE)"; return; }
+    [[ "$e" == *:* ]] || return 0
+    x="${e#*:}"
+    [ -n "$x" ] || { echo "\"$e\": nada depois de ':'"; return; }
+    for t in ${x//,/ }; do
+        v="${t%%=*}"
+        [[ "$t" == *=* ]] || { echo "\"$e\": \"$t\" nao e VAR=valor"; return; }
+        [[ " $MC_VARS " == *" $v "* ]] || { echo "\"$e\": $v nao e um parametro de $MC_PROJETO (aceitos: $MC_VARS)"; return; }
+        [[ "${t#*=}" =~ ^[A-Za-z0-9._+-]+$ ]] || { echo "\"$e\": valor \"${t#*=}\" de $v (so letras, numeros e . _ + -)"; return; }
+        [[ "$vistos" == *" $v "* ]] && { echo "\"$e\": $v repetido"; return; }
+        vistos="$vistos$v "
+    done
+}
+# as entradas, uma vez: E_C (caso), E_X (trocas em ordem alfabetica, ou -), E_XD (as do deterministico), E_D (pasta) e
+# E_DD (pasta do deterministico)
+E_C=() E_X=() E_XD=() E_D=() E_DD=() E_ENT=()
+for e in $CASOS; do
+    m="$(valida_entrada "$e")"
+    if [ -n "$m" ]; then
+        echo "CASOS: $m" >&2
+        echo "(formato: CASOS=\"<caso>[:VAR=valor,...] ...\", por exemplo CASOS=\"$MC_CASOS_PADRAO\")" >&2
+        exit 2
+    fi
+    x=-
+    [[ "$e" == *:* ]] && x="$(printf '%s\n' $(echo "${e#*:}" | tr ',' ' ') | sort -t= -k1,1 | paste -sd, -)"
+    xd="$(sem_campo "$x")"
+    pasta "${e%%:*}" 1 "$x"
+    for k in "${!E_D[@]}"; do
+        [ "${E_D[$k]}" = "$PASTA" ] && { echo "CASOS: \"${E_ENT[$k]}\" e \"$e\" vao para a mesma pasta ($PASTA)" >&2; exit 2; }
+    done
+    E_ENT+=("$e") E_C+=("${e%%:*}") E_X+=("$x") E_XD+=("$xd") E_D+=("$PASTA")
+    pasta "${e%%:*}" 0 "$xd"
+    E_DD+=("$PASTA")
+done
+[ ${#E_C[@]} -gt 0 ] || { echo "CASOS vazio" >&2; exit 2; }
+if [ "${SO_CAMPOS:-0}" = 1 ] && [ "$MC_SO_CAMPOS" != 1 ]; then
+    echo "SO_CAMPOS=1: $MC_PROJETO nao tem esse modo (o programa rodaria a realizacao inteira)" >&2
+    exit 2
+fi
+if [ "$MODO" = pastas ]; then # "<entrada> <pasta> <pasta do deterministico ou ->", para status_mc.sh e submeter_mc.sh
+    for k in "${!E_C[@]}"; do
+        dd=-
+        { [ "${DET:-0}" = 1 ] || [ "$CAMPOS_TODOS" = 0 ]; } && dd="${E_DD[$k]}"
+        printf '%s\t%s\t%s\n' "${E_ENT[$k]}" "${E_D[$k]}" "$dd"
+    done
+    exit 0
+fi
+
+# tarefas <primeira> <ultima>: uma linha por realizacao, "<caso> <campos> <n> <trocas>": antes os deterministicos (com
+# DET=1, um por pasta), depois as realizacoes intercaladas
+tarefas() {
+    local k n vistos=" "
+    if [ "${DET:-0}" = 1 ] || [ "$CAMPOS_TODOS" = 0 ]; then
+        for k in "${!E_C[@]}"; do
+            case "$vistos" in *" ${E_C[$k]}:${E_XD[$k]} "*) continue ;; esac
+            vistos="$vistos${E_C[$k]}:${E_XD[$k]} "
+            echo "${E_C[$k]} 0 0 ${E_XD[$k]}"
         done
     fi
-    for n in $(seq "$1" "$2"); do for sc in $COMBS; do partes "$sc"; echo "$s $i 1 $n $x"; done; done
+    [ "$CAMPOS_TODOS" = 0 ] && return
+    for n in $(seq "$1" "$2"); do
+        for k in "${!E_C[@]}"; do echo "${E_C[$k]} 1 $n ${E_X[$k]}"; done
+    done
 }
 # pendentes <primeira> <ultima>: as tarefas sem resultado.txt nem falhou.txt
 pendentes() {
-    local s i c n x r
-    tarefas "$1" "$2" | while read -r s i c n x; do
-        r="$(pasta "$s" "$i" "$c" "$x")/$(printf 'r%05d' "$n")"
-        [ -s "$r/resultado.txt" ] || [ -e "$r/falhou.txt" ] || echo "$s $i $c $n $x"
+    local c cp n x r
+    tarefas "$1" "$2" | while read -r c cp n x; do
+        pasta "$c" "$cp" "$x"
+        printf -v r '%s/r%05d' "$PASTA" "$n"
+        [ -s "$r/resultado.txt" ] || [ -e "$r/falhou.txt" ] || echo "$c $cp $n $x"
     done
 }
 aviso_mc() { echo "$(date '+%F %T') $HOST_MC${SLURM_JOB_ID:+ job $SLURM_JOB_ID}: $*" >> "$SAIDA_MC/AVISOS"; }
 parar() {
-    [ -e "$SAIDA_MC/PARAR" ] || [ -e "$INST_MC/parar" ] || { [ -n "${SLURM_JOB_ID:-}" ] && [ -e "$SAIDA_MC/.parar.$SLURM_JOB_ID" ]; }
+    [ -e "$SAIDA_BASE/PARAR" ] || [ -e "$SAIDA_MC/PARAR" ] || [ -e "$INST_MC/parar" ] ||
+        { [ -n "${SLURM_JOB_ID:-}" ] && [ -e "$SAIDA_MC/.parar.$SLURM_JOB_ID" ]; }
 }
 # job_vivo <id>: 0 se o job esta vivo, 1 se acabou, 2 se esta acabando (COMPLETING: os processos estao sendo mortos),
 # 3 se o SLURM nao respondeu
@@ -180,7 +210,7 @@ dono_vivo() {
         return $e
     fi
     if [ "$h" = "$HOST_MC" ]; then [ "$b" = "$BOOT_MC" ] && pid_vivo "$p"; return; fi
-    # outra maquina, fora do SLURM: viva enquanto a realizacao muda (passos.csv, a cada passo)
+    # outra maquina, fora do SLURM: viva enquanto a realizacao muda
     ativa "$r" "$((${ABANDONO_H:-6} * 60))"
 }
 # escreve_dono <r/.ativo>: "<maquina> <pid> <job>.<vez> <boot> <inicio>" (job "-" fora do SLURM; vez: SLURM_RESTART_COUNT)
@@ -224,20 +254,20 @@ reivindica() {
     rmdir "$r/.tomada" 2>/dev/null
     return $ok
 }
-# uma <solo> <chuva> <campos> <n> <trocas>: uma realizacao, na sua pasta; a saida do programa vai para run.log e run.err
+# uma <caso> <campos> <n> <trocas>: uma realizacao, na sua pasta; a saida do programa vai para run.log e run.err
 uma() {
-    local solo="$1" imm="$2" campos="$3" n="$4" x="${5:--}" d r rc nf nome
-    local -a ev=()
+    local caso="$1" campos="$2" n="$3" x="${4:--}" d r rc nf nome dica
+    local -a ev=() ex=()
     [ "$x" != - ] && ev=(${x//,/ })
-    d="$(pasta "$solo" "$imm" "$campos" "$x")"
-    r="$d/$(printf 'r%05d' "$n")"
-    nome="$(basename "$d")/$(basename "$r")"
-    if [ "${SO_CAMPOS:-0}" = 1 ]; then # so os campos desta realizacao, em VTK e CSV, sem simulacao
+    pasta "$caso" "$campos" "$x"
+    d="$PASTA"
+    printf -v r '%s/r%05d' "$d" "$n"
+    nome="${d##*/}/${r##*/}"
+    if [ "${SO_CAMPOS:-0}" = 1 ]; then # so os campos desta realizacao (campos.csv), sem simulacao
         [ "$campos" = 1 ] || return 0
         mkdir -p "$r" && cd "$r" || return 1
-        if env ${ev[@]+"${ev[@]}"} SOLO="$solo" I_MM_H="$imm" CAMPOS=1 REAL="$n" CAMPOS_VTK=1 CAMPOS_CSV=1 SO_CAMPOS=1 \
-            "$EXE" > campos.log 2>&1; then
-            echo "$nome: campos em $r/campos.vtk"
+        if env ${ev[@]+"${ev[@]}"} CASO="$caso" CAMPOS=1 REAL="$n" CAMPOS_CSV=1 SO_CAMPOS=1 "$EXE" > campos.log 2>&1; then
+            echo "$nome: campos em $r/campos.csv"
         else
             echo "$nome: erro ao gerar os campos; veja $r/campos.log" >&2
         fi
@@ -251,7 +281,11 @@ uma() {
     # terminou, ou foi marcada como falha, entre o teste e a trava
     if [ -s "$r/resultado.txt" ] || [ -e "$r/falhou.txt" ]; then libera "$r"; return 0; fi
     [ -s "$r/checkpoint.bin" ] && echo "$(date '+%F %T') $nome: retomando do checkpoint"
-    (cd "$r" && env ${ev[@]+"${ev[@]}"} SOLO="$solo" I_MM_H="$imm" CAMPOS="$campos" REAL="$n" "$EXE" >> run.log 2>> run.err)
+    # variaveis a mais do projeto (projetos.sh: mc_extra), com a pasta do deterministico desta entrada
+    pasta "$caso" 0 "$(sem_campo "$x")"
+    mapfile -t ex < <(mc_extra "$caso" "$campos" "$PASTA")
+    (cd "$r" && env ${ev[@]+"${ev[@]}"} ${ex[@]+"${ex[@]}"} CASO="$caso" CAMPOS="$campos" REAL="$n" "$EXE" \
+        >> run.log 2>> run.err)
     rc=$?
     if [ -s "$r/resultado.txt" ]; then
         rm -f "$r/checkpoint.bin" "$r/checkpoint.bin.tmp" # sobra de uma queda entre o resultado e a limpeza
@@ -259,14 +293,14 @@ uma() {
         echo "$(date '+%F %T') $nome: $(cat "$r/resultado.txt")"
     elif [ $rc -eq 129 ] || [ $rc -eq 130 ]; then
         # Ctrl-C ou terminal fechado (o trabalhador sobreviveu): interrupcao, nao falha
-        echo "$(date '+%F %T') $nome: interrompida (sinal $((rc - 128))); continua do checkpoint" >&2
+        echo "$(date '+%F %T') $nome: interrompida (sinal $((rc - 128))); volta para a fila" >&2
     else
         # falha: inclusive um SIGKILL/SIGTERM so no programa (o limite de tempo, o scancel e o Ctrl-C matam tambem o
         # trabalhador, que entao nem chega aqui): em geral o OOM killer
         nf=$(($(cat "$r/falhas" 2>/dev/null || echo 0) + 1))
         echo "$nf" > "$r/falhas"
         dica=""
-        [ $rc -eq 137 ] && dica=" (SIGKILL: falta de memoria? veja memoria_MB nos resumo.csv)"
+        [ $rc -eq 137 ] && dica=" (SIGKILL: falta de memoria?)"
         if [ "$nf" -ge "$MAX_FALHAS" ]; then
             echo "$(date '+%F %T') $HOST_MC codigo $rc em $nf tentativas$dica" > "$r/falhou.txt"
             echo "$(date '+%F %T') $nome: falhou $nf vezes (codigo $rc$dica), marcada em falhou.txt; veja $r/run.err" >&2
@@ -274,7 +308,7 @@ uma() {
             echo "$(date '+%F %T') $nome: terminou com codigo $rc$dica sem resultado.txt (tentativa $nf de $MAX_FALHAS)" >&2
         fi
         # disjuntor: falhas seguidas demais nesta instancia, sem nenhum sucesso no meio, indicam um problema do ambiente
-        # (executavel, malha, bibliotecas, disco) e nao das realizacoes: para de pegar realizacoes antes de marcar a fila
+        # (executavel, bibliotecas, malha, disco) e nao das realizacoes: para de pegar realizacoes antes de marcar a fila
         local k
         k="$( (flock 9; k=$(($(cat "$INST_MC/seguidas" 2>/dev/null || echo 0) + 1)); echo $k > "$INST_MC/seguidas"; echo $k) 9> "$INST_MC/trava")"
         if [ "${k:-0}" -ge "$DISJUNTOR_MC" ] && ! [ -e "$INST_MC/parar" ]; then
@@ -290,14 +324,15 @@ uma() {
     fi
     libera "$r"
 }
-export -f aviso_mc partes pasta parar job_vivo pid_vivo ativa dono_vivo escreve_dono libera reivindica uma
+export -f pasta sem_campo aviso_mc parar job_vivo pid_vivo ativa dono_vivo escreve_dono libera reivindica uma
 # disponiveis <primeira> <ultima>: "<livres> <esperando>": as tarefas pendentes sem dono ou com dono morto (que uma nova
 # passada pode rodar) e as que ficam livres em breve (jobs acabando ou que acabaram ha pouco, troca de dono em andamento,
 # SLURM sem responder)
 disponiveis() {
-    local s i c n x r e
-    pendentes "$1" "$2" | while read -r s i c n x; do
-        r="$(pasta "$s" "$i" "$c" "$x")/$(printf 'r%05d' "$n")"
+    local c cp n x r e
+    pendentes "$1" "$2" | while read -r c cp n x; do
+        pasta "$c" "$cp" "$x"
+        printf -v r '%s/r%05d' "$PASTA" "$n"
         e=1
         if [ -d "$r/.tomada" ]; then e=2
         elif [ -d "$r/.ativo" ]; then dono_vivo "$r/.ativo"; e=$?
@@ -310,65 +345,58 @@ if [ "$MODO" = faltam ]; then
     pendentes "$1" "$2" | wc -l
     exit 0
 fi
-if [ "$MODO" = pastas ]; then # "<entrada> <pasta> <pasta do deterministico ou ->", para status_mc.sh
-    for sc in $COMBS; do
-        partes "$sc"
-        dd=-
-        [ "${DET:-0}" = 1 ] && dd="$(pasta "$s" "$i" 0 "$xd")"
-        echo "$sc $(pasta "$s" "$i" 1 "$x") $dd"
-    done
-    exit 0
-fi
-NUC="$(lscpu -p=CORE,SOCKET 2>/dev/null | grep -v '^#' | sort -u | wc -l)"
-P="${PARALELO:-${NUC:-1}}"
+P="${PARALELO:-$(nucleos_fisicos)}"
 [ "$P" -ge 1 ] 2>/dev/null || P=1
 # estado desta instancia (as falhas seguidas, para o disjuntor), apagado no fim
 INST_MC="$(mktemp -d)"
 export INST_MC DISJUNTOR_MC="${DISJUNTOR:-$((2 * P > MAX_FALHAS + 2 ? 2 * P : MAX_FALHAS + 2))}"
 trap 'rm -rf "$INST_MC"' EXIT
-# parametros.txt de cada combinacao: os parametros do programa (fora solo, chuva e variante, que estao no nome da pasta)
-# com que as suas realizacoes foram rodadas. Outra rodada na mesma pasta com outros parametros misturaria resultados:
-# recusada (use outra SAIDA, ou uma entrada de COMBS com as trocas)
-VARS_PARAM="MESH TCHUVA_H DT_H FS_H TF_H XL XR HW BETA_DEG SUCMAX XTOE YTOE HL HR CHUVA_VERTICAL FS_TOL FS_F0 MAX_CORTES E NU
-COES PHI_DEG GAMMA KS POROS SEMENTE COV_C COV_PHI COV_K LX LY ALFA KL_M KL_FRAC SOLVER TOLU TOLP MAXIT MAXIT_FROZEN F_TRANS"
-# variaveis acrescentadas depois: so entram em parametros.txt quando definidas, para as pastas de antes continuarem valendo
-VARS_PARAM_NOVAS=" F_TRANS "
-parametros() { # parametros <trocas>: uma linha por variavel, VAR=valor (- se nao definida, o padrao do programa)
+# parametros.txt de cada pasta: os parametros do programa (MC_VARS de projetos.sh; o caso e as trocas tambem estao no nome
+# da pasta) com que as suas realizacoes foram rodadas. Outra rodada na mesma pasta com outros parametros misturaria
+# resultados: recusada (use outra SAIDA, ou uma entrada de CASOS com as trocas). O deterministico ignora os parametros
+# dos campos, que ficam fora do parametros.txt dele.
+VARS_PARAM_NOVAS=" " # variaveis acrescentadas depois: so entram quando definidas, para as pastas de antes valerem
+parametros() { # parametros <trocas> <campos>: uma linha por variavel, VAR=valor (- se nao definida: o padrao do programa)
     local v val e
-    for v in $VARS_PARAM; do
+    for v in $MC_VARS; do
+        [ "$2" = 0 ] && [[ " $MC_VARS_CAMPO " == *" $v "* ]] && continue
         val="${!v:--}"
         for e in ${1//,/ }; do [ "${e%%=*}" = "$v" ] && val="${e#*=}"; done
-        [ "$v" = MESH ] && val="${val##*/}"
+        [[ "$val" == */* ]] && val="${val##*/}" # um caminho: so o nome do arquivo (o mesmo no PC e no cluster)
         [ "$val" = - ] && [[ "$VARS_PARAM_NOVAS" == *" $v "* ]] && continue
         echo "$v=$val"
     done
 }
-if [ "${SO_CAMPOS:-0}" != 1 ] && { [ "$MODO" = rodar ] || [ "$MODO" = verifica ]; }; then
-    mkdir -p "$SAIDA_MC"
-    for sc in $COMBS; do
-        partes "$sc"
-        for c in 1 0; do
-            [ $c = 0 ] && [ "${DET:-0}" != 1 ] && [ "$CAMPOS_TODOS" != 0 ] && continue
-            [ $c = 1 ] && [ "$CAMPOS_TODOS" = 0 ] && continue
-            [ $c = 0 ] && xx="$xd" || xx="$x"
-            d="$(pasta "$s" "$i" "$c" "$xx")"
-            novo="$(parametros "$xx")"
+if [ "${SO_CAMPOS:-0}" != 1 ]; then
+    [ "$MODO" = rodar ] && mkdir -p "$SAIDA_MC"
+    for k in "${!E_C[@]}"; do
+        for cp in 1 0; do
+            [ $cp = 0 ] && [ "${DET:-0}" != 1 ] && [ "$CAMPOS_TODOS" != 0 ] && continue
+            [ $cp = 1 ] && [ "$CAMPOS_TODOS" = 0 ] && continue
+            if [ $cp = 1 ]; then d="${E_D[$k]}" xx="${E_X[$k]}"; else d="${E_DD[$k]}" xx="${E_XD[$k]}"; fi
+            novo="$(parametros "$xx" $cp)"
             if [ -f "$d/parametros.txt" ]; then
                 if [ "$(cat "$d/parametros.txt")" != "$novo" ]; then
                     dif="$(diff <(cat "$d/parametros.txt") <(echo "$novo") | grep '^[<>]' | sed 's/^</antes:/; s/^>/agora:/' | tr '\n' ' ')"
                     echo "$d ja tem realizacoes rodadas com outros parametros: $dif" >&2
-                    echo "Use outra SAIDA (ou uma entrada de COMBS com as trocas, como f50:36:COV_C=0.5)." >&2
-                    [ "$MODO" = rodar ] && aviso_mc "recusado: $(basename "$d") ja tem realizacoes com outros parametros: $dif"
+                    echo "Use outra SAIDA (ou uma entrada de CASOS com as trocas, como ${E_C[$k]}:COV_C=0.5)." >&2
+                    [ "$MODO" = rodar ] && aviso_mc "recusado: ${d##*/} ja tem realizacoes com outros parametros: $dif"
                     exit 2
                 fi
-            else
+            elif [ "$MODO" = rodar ]; then
                 mkdir -p "$d" && echo "$novo" > "$d/parametros.txt"
+            fi
+            # a pasta do deterministico desta entrada (para posprocessa_mc.py)
+            if [ "$MODO" = rodar ] && [ $cp = 1 ] && [ "${DET:-0}" = 1 ] &&
+                [ "$(cat "$d/deterministico.txt" 2>/dev/null)" != "${E_DD[$k]##*/}" ]; then
+                echo "${E_DD[$k]##*/}" > "$d/deterministico.txt"
             fi
         done
     done
 fi
 [ "$MODO" = verifica ] && exit 0
-echo "$(date '+%F %T') $(echo $COMBS)$([ "${DET:-0}" = 1 ] && echo ' (e deterministicos)'): realizacoes $1..$2, $P ao" \
+mkdir -p "$SAIDA_MC"
+echo "$(date '+%F %T') $MC_PROJETO $CASOS$([ "${DET:-0}" = 1 ] && echo ' (e deterministicos)'): realizacoes $1..$2, $P ao" \
     "mesmo tempo, $HOST_MC${SLURM_JOB_ID:+, job $SLURM_JOB_ID}" | tee -a "$SAIDA_MC/execucoes.txt"
 # passadas pela fila: depois de cada uma, as realizacoes de donos que morreram nesse meio tempo (ou que falharam menos
 # de MAX_FALHAS vezes) voltam para a fila. As de um job que esta acabando (por exemplo o job anterior, de que esta
@@ -401,11 +429,8 @@ while :; do
     fi
 done
 if [ "${SO_CAMPOS:-0}" != 1 ]; then
-    for sc in $COMBS; do
-        partes "$sc"
-        for d in "$(pasta "$s" "$i" 1 "$x")" "$(pasta "$s" "$i" 0 "$xd")"; do
-            [ -d "$d" ] && "$PKG/junta_mc.sh" "$d"
-        done
+    printf '%s\n' "${E_D[@]}" "${E_DD[@]}" | sort -u | while IFS= read -r d; do
+        if [ -d "$d" ]; then "$MC/junta_mc.sh" "$d"; fi
     done
 fi
-echo "$(date '+%F %T') $(echo $COMBS): fim${SLURM_JOB_ID:+ do job $SLURM_JOB_ID}" | tee -a "$SAIDA_MC/execucoes.txt"
+echo "$(date '+%F %T') $MC_PROJETO $CASOS: fim${SLURM_JOB_ID:+ do job $SLURM_JOB_ID}" | tee -a "$SAIDA_MC/execucoes.txt"

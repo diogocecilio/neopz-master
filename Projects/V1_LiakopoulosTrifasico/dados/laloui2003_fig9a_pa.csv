@@ -1,0 +1,34 @@
+# Laloui, Klubertanz e Vulliet (2003), Fig. 9a: pressao do ar p_a x altura, modelo de tres fases (EPFL), em t = 5, 10,
+# 30, 60, 120 e 600 min. Digitalizado, aproximado (bitmap de 300 dpi; 44,83 px/kPa e 637 px/m): incerteza de leitura
+# ~0,15 kPa e ~0,02 m; a identificacao das curvas no feixe inferior (10, 30 e 60 min quase se sobrepoem abaixo de 0,6 m)
+# e a da altura do minimo de 60 min sao as mais incertas. "minimo t=<n> min": o ponto de menor p_a de cada curva.
+figura,curva,variavel_x,x,variavel_y,y
+9a,minimo t=5 min,p_a (kPa),-4.65,y (m),0.94
+9a,minimo t=10 min,p_a (kPa),-6.17,y (m),0.88
+9a,minimo t=30 min,p_a (kPa),-6.80,y (m),0.82
+9a,minimo t=60 min,p_a (kPa),-6.25,y (m),0.745
+9a,minimo t=120 min,p_a (kPa),-5.25,y (m),0.65
+9a,minimo t=600 min,p_a (kPa),-1.89,y (m),0.42
+9a,t=30 min,p_a (kPa),0.00,y (m),0.00
+9a,t=30 min,p_a (kPa),-0.72,y (m),0.10
+9a,t=30 min,p_a (kPa),-1.39,y (m),0.20
+9a,t=30 min,p_a (kPa),-2.20,y (m),0.30
+9a,t=30 min,p_a (kPa),-3.06,y (m),0.40
+9a,t=30 min,p_a (kPa),-4.06,y (m),0.50
+9a,t=30 min,p_a (kPa),-5.06,y (m),0.60
+9a,t=30 min,p_a (kPa),-6.07,y (m),0.70
+9a,t=30 min,p_a (kPa),-6.76,y (m),0.80
+9a,t=30 min,p_a (kPa),-6.67,y (m),0.85
+9a,t=30 min,p_a (kPa),-6.22,y (m),0.87
+9a,t=600 min,p_a (kPa),0.00,y (m),0.00
+9a,t=600 min,p_a (kPa),-0.50,y (m),0.09
+9a,t=600 min,p_a (kPa),-1.06,y (m),0.165
+9a,t=600 min,p_a (kPa),-1.56,y (m),0.27
+9a,t=600 min,p_a (kPa),-1.78,y (m),0.34
+9a,t=600 min,p_a (kPa),-1.89,y (m),0.41
+9a,t=600 min,p_a (kPa),-1.83,y (m),0.50
+9a,t=600 min,p_a (kPa),-1.67,y (m),0.60
+9a,t=600 min,p_a (kPa),-1.39,y (m),0.70
+9a,t=600 min,p_a (kPa),-1.00,y (m),0.80
+9a,t=600 min,p_a (kPa),-0.52,y (m),0.90
+9a,t=600 min,p_a (kPa),0.00,y (m),1.00

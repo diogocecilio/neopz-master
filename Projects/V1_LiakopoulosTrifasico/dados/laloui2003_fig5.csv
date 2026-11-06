@@ -1,0 +1,81 @@
+# Laloui, Klubertanz e Vulliet (2003), Fig. 5. Digitalizado, aproximado (bitmap de 300 dpi).
+# 5a: p_w x altura; experimento de Liakopoulos (1965) (marcadores) em t = 5, 10, 20, 30 e 600 min e o modelo de tres
+#     fases (linha cheia) no topo (y = 0,996 m). Incerteza ~0,1 kPa. O marcador de 10 min em y = 0,1 m e o de 20 min no
+#     mesmo ponto nao se distinguem (lido como o de 20 min).
+# 5b: vazao de agua na base (1e-6 m/s) x tempo: experimento (marcadores) e o calculo de tres fases (linha). O eixo diz
+#     "Time [s]", mas a vazao do ensaio de Liakopoulos cai em horas (Callari e Abati 2009: 1,6e-6 m/s em 30 min): aqui o
+#     eixo e lido em minutos. Incerteza ~0,05e-6 m/s e ~1 min.
+figura,curva,variavel_x,x,variavel_y,y
+5a,experimento t=5 min,y (m),0.9,p_w (kPa),-1.27
+5a,experimento t=5 min,y (m),0.8,p_w (kPa),-0.73
+5a,experimento t=5 min,y (m),0.7,p_w (kPa),-0.60
+5a,experimento t=5 min,y (m),0.6,p_w (kPa),-0.16
+5a,experimento t=5 min,y (m),0.5,p_w (kPa),-0.07
+5a,experimento t=5 min,y (m),0.4,p_w (kPa),-0.02
+5a,experimento t=5 min,y (m),0.3,p_w (kPa),-0.02
+5a,experimento t=5 min,y (m),0.2,p_w (kPa),0.00
+5a,experimento t=10 min,y (m),0.8,p_w (kPa),-3.08
+5a,experimento t=10 min,y (m),0.7,p_w (kPa),-2.60
+5a,experimento t=10 min,y (m),0.6,p_w (kPa),-1.92
+5a,experimento t=10 min,y (m),0.5,p_w (kPa),-1.22
+5a,experimento t=10 min,y (m),0.4,p_w (kPa),-1.04
+5a,experimento t=10 min,y (m),0.3,p_w (kPa),-0.60
+5a,experimento t=20 min,y (m),0.8,p_w (kPa),-5.14
+5a,experimento t=20 min,y (m),0.7,p_w (kPa),-4.61
+5a,experimento t=20 min,y (m),0.6,p_w (kPa),-3.79
+5a,experimento t=20 min,y (m),0.5,p_w (kPa),-2.80
+5a,experimento t=20 min,y (m),0.4,p_w (kPa),-2.24
+5a,experimento t=20 min,y (m),0.3,p_w (kPa),-1.72
+5a,experimento t=20 min,y (m),0.2,p_w (kPa),-0.88
+5a,experimento t=20 min,y (m),0.1,p_w (kPa),-0.50
+5a,experimento t=30 min,y (m),0.8,p_w (kPa),-6.03
+5a,experimento t=30 min,y (m),0.7,p_w (kPa),-5.28
+5a,experimento t=30 min,y (m),0.6,p_w (kPa),-4.40
+5a,experimento t=30 min,y (m),0.5,p_w (kPa),-3.46
+5a,experimento t=30 min,y (m),0.4,p_w (kPa),-2.78
+5a,experimento t=30 min,y (m),0.3,p_w (kPa),-2.10
+5a,experimento t=30 min,y (m),0.2,p_w (kPa),-1.29
+5a,experimento t=30 min,y (m),0.1,p_w (kPa),-0.77
+5a,experimento t=600 min,y (m),0.9,p_w (kPa),-8.77
+5a,experimento t=600 min,y (m),0.8,p_w (kPa),-7.52
+5a,experimento t=600 min,y (m),0.7,p_w (kPa),-6.76
+5a,experimento t=600 min,y (m),0.6,p_w (kPa),-5.85
+5a,experimento t=600 min,y (m),0.5,p_w (kPa),-4.84
+5a,experimento t=600 min,y (m),0.4,p_w (kPa),-4.00
+5a,experimento t=600 min,y (m),0.3,p_w (kPa),-2.94
+5a,experimento t=600 min,y (m),0.2,p_w (kPa),-1.83
+5a,experimento t=600 min,y (m),0.1,p_w (kPa),-1.04
+5a,tres fases topo,t (min),5,p_w (kPa),-5.70
+5a,tres fases topo,t (min),10,p_w (kPa),-7.43
+5a,tres fases topo,t (min),20,p_w (kPa),-8.58
+5a,tres fases topo,t (min),30,p_w (kPa),-8.96
+5a,tres fases topo,t (min),600,p_w (kPa),-9.62
+5b,experimento,t (min),0.6,q_b (1e-6 m/s),4.81
+5b,experimento,t (min),4.6,q_b (1e-6 m/s),4.09
+5b,experimento,t (min),7.0,q_b (1e-6 m/s),3.83
+5b,experimento,t (min),7.8,q_b (1e-6 m/s),3.32
+5b,experimento,t (min),12.8,q_b (1e-6 m/s),2.37
+5b,experimento,t (min),15.7,q_b (1e-6 m/s),1.86
+5b,experimento,t (min),19.4,q_b (1e-6 m/s),1.59
+5b,experimento,t (min),35.9,q_b (1e-6 m/s),0.98
+5b,experimento,t (min),52.5,q_b (1e-6 m/s),0.82
+5b,experimento,t (min),59.1,q_b (1e-6 m/s),0.61
+5b,experimento,t (min),120.6,q_b (1e-6 m/s),0.33
+5b,experimento,t (min),180.0,q_b (1e-6 m/s),0.08
+5b,experimento,t (min),239.0,q_b (1e-6 m/s),0.09
+5b,experimento,t (min),300.0,q_b (1e-6 m/s),0.06
+5b,experimento,t (min),400.0,q_b (1e-6 m/s),0.06
+5b,tres fases,t (min),0.0,q_b (1e-6 m/s),5.00
+5b,tres fases,t (min),2.6,q_b (1e-6 m/s),3.73
+5b,tres fases,t (min),4.6,q_b (1e-6 m/s),3.00
+5b,tres fases,t (min),7.0,q_b (1e-6 m/s),2.25
+5b,tres fases,t (min),11.3,q_b (1e-6 m/s),1.46
+5b,tres fases,t (min),15.7,q_b (1e-6 m/s),0.98
+5b,tres fases,t (min),18.6,q_b (1e-6 m/s),0.67
+5b,tres fases,t (min),25.8,q_b (1e-6 m/s),0.46
+5b,tres fases,t (min),38.9,q_b (1e-6 m/s),0.31
+5b,tres fases,t (min),50.4,q_b (1e-6 m/s),0.27
+5b,tres fases,t (min),73.6,q_b (1e-6 m/s),0.18
+5b,tres fases,t (min),96.8,q_b (1e-6 m/s),0.15
+5b,tres fases,t (min),123.0,q_b (1e-6 m/s),0.13
+5b,tres fases,t (min),192.0,q_b (1e-6 m/s),0.12
