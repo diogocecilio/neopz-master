@@ -343,6 +343,95 @@ SAIDA=$DATA/sensibilidade ./status_mc.sh
   - 500 realizações por caso bastam para as correlações (IC de ±0,09) e para P_f a partir de ~5% (CoV(P_f) de ~20%).
   - Os 20 casos de 6.2 a 6.4 dão então ~4,6 dias-nó: pouco mais de 1 dia com 4 nós.
 
+### Resultados: f50, 36 mm/h, variante i, `F_TRANS=0.5` (fase 2)
+
+17 casos × 300 realizações (0 a 299), FS em 24 h (o mínimo, `t_min_h = 24` em todas as 5100), 9 min por realização no
+fermi. A base é idêntica à campanha principal: nas realizações 0 a 142, os mesmos campos e o mesmo FS em 143 de 143.
+Comparação pareada com a base (as mesmas normais em todos os casos; na família s os campos mudam, porque a base da KL é
+outra, e o pareamento é mais fraco): McNemar exato com correção de Holm nas 16 comparações, IC de ΔP_f pelo método 10 de
+Newcombe. Os números do Ceron são das Tabelas 3 a 5 (10 000 a 90 000 ciclos; o α = 10 não está lá).
+
+| caso | P_f (IC 95%) | ΔP_f (IC 95%) | McNemar, Holm | FS médio | dp do FS | ΔFS médio | P(FS < 0,9) | Ceron: P_f, μ |
+|---|---|---|---|---|---|---|---|---|
+| base (CoV 0,3 / 0,1 / 0,6; L 20 × 2 m; α = 1) | 63,7% [58,1; 68,9] | — | — | 0,972 | 0,090 | — | 21,3% | 11,5%; 1,353 |
+| CoV c' 0,1 | 64,3% [58,8; 69,5] | +0,7 [-3,9; +5,3] pp | 1,00 | 0,978 | 0,063 | +0,005 | 8,7% | 0,45%; 1,367 |
+| CoV c' 0,5 | 64,7% [59,1; 69,9] | +1,0 [-2,1; +4,1] pp | 1,00 | 0,959 | 0,122 | -0,014 | 31,3% | 25,78%; 1,324 |
+| CoV c' 0,7 | 67,3% [61,8; 72,4] | +3,7 [+0,2; +7,2] pp | 0,55 | 0,939 | 0,148 | -0,034 | 42,3% | 36,34%; 1,296 |
+| CoV φ' 0,05 | 64,0% [58,4; 69,2] | +0,3 [-2,9; +3,6] pp | 1,00 | 0,976 | 0,085 | +0,004 | 15,3% | 10,2%; 1,351 |
+| CoV φ' 0,15 | 65,7% [60,1; 70,8] | +2,0 [-0,3; +4,3] pp | 0,88 | 0,967 | 0,098 | -0,005 | 25,0% | 12,71%; 1,357 |
+| CoV φ' 0,2 | 66,3% [60,8; 71,4] | +2,7 [-0,7; +6,0] pp | 0,88 | 0,960 | 0,108 | -0,012 | 28,0% | 15,18%; 1,361 |
+| CoV k_v 0 | 74,7% [69,5; 79,3] | +11,0 [+6,6; +15,4] pp | 2,2e-05 | 0,952 | 0,075 | -0,021 | 24,7% | 11,21%; 1,329 |
+| CoV k_v 0,75 | 59,0% [53,4; 64,4] | -4,7 [-7,1; -2,3] pp | 1,2e-03 | 0,984 | 0,096 | +0,011 | 18,7% | 11,41%; 1,375 |
+| CoV k_v 0,9 | 52,7% [47,0; 58,2] | -11,0 [-14,5; -7,4] pp | 2,8e-09 | 0,995 | 0,103 | +0,023 | 16,0% | 11,63%; 1,378 |
+| CoV k_v 1 | 49,7% [44,0; 55,3] | -14,0 [-17,9; -10,0] pp | < 1e-9 | 1,004 | 0,107 | +0,031 | 14,0% | 11,44%; 1,391 |
+| s = 2 | 60,0% [54,4; 65,4] | -3,7 [-9,2; +1,9] pp | 0,97 | 0,975 | 0,117 | +0,002 | 27,0% | 14,99%; 1,361 |
+| s = 5 | 58,7% [53,0; 64,1] | -5,0 [-10,6; +0,7] pp | 0,77 | 0,978 | 0,135 | +0,006 | 28,0% | 18,93%; 1,35 |
+| s = 400 | 57,3% [51,7; 62,8] | -6,3 [-12,7; +0,1] pp | 0,55 | 0,993 | 0,157 | +0,020 | 27,0% | 21,93%; 1,348 |
+| α = 2 | 45,7% [40,1; 51,3] | -18,0 [-22,2; -13,6] pp | < 1e-9 | 1,012 | 0,086 | +0,039 | 8,0% | 3,9%; 1,562 |
+| α = 5 | 25,3% [20,7; 30,5] | -38,3 [-43,6; -32,6] pp | < 1e-9 | 1,055 | 0,083 | +0,082 | 2,3% | 0,63%; 1,91 |
+| α = 10 | 16,0% [12,3; 20,6] | -47,7 [-53,0; -41,7] pp | < 1e-9 | 1,077 | 0,082 | +0,104 | 1,3% | —; — |
+
+Resultados (análise pareada dos `mc_resumo.csv`, mais rodadas determinísticas para o mecanismo de α):
+- **Anisotropia α = k_h/k_v: o efeito mais forte, como no Ceron.** O FS sobe em 300 de 300 realizações, e nenhuma
+  realização passa a romper. A causa é a anisotropia da água: o material usa um só tensor para a água e o ar, mas um
+  binário de diagnóstico com α só na água reproduz todo o ganho (FS determinístico 0,9625 → 1,08125), e com α só no ar
+  ganha 0,0125. O fluxo horizontal leva para as laterais de carga fixa a água que, com α = 1, sobe o lençol sob o talude
+  (a carga na base sob o talude sobe de 0,5 a 0,9 m com α = 10, contra 3 a 4,8 m com α = 1, nas três variantes), e o
+  p_w médio na banda de ruptura cai (o FS das 12 rodadas
+  determinísticas segue FS = 1,110 − 0,0184 p̄_w, R² = 0,997). O ar preso descomprime por consequência. O ganho é de
+  +0,12 com ar (i), +0,09 em ii e +0,10 em iii. Ele depende do domínio: sem chuva, α = 10 baixa o FS (o estado inicial
+  não é permanente e relaxa mais depressa), e as laterais de carga fixa (x = 0 e 70 m) devem influir no tamanho do
+  efeito (não testado).
+- **CoV de k_v: efeito forte aqui, nulo no Ceron.** Com a média fixa, mais variabilidade deixa entrar menos água
+  (38,2 → 33,2 m³/m em 24 h), e o FS sobe. A infiltração é a de um talude uniforme com k igual à média geométrica do campo,
+  e não à média harmônica (o controle por camadas de baixo k explica pouco). O efeito médio esconde uma divisão: 23% das
+  realizações perdem FS com a heterogeneidade, as que têm a massa que desliza numa zona permeável. No Ceron o fluxo é
+  permanente com pressões prescritas em todo o contorno, e o nível de k não importa.
+- **CoV de c' e de φ': P_f quase não muda, mas a distribuição muda muito.** Com CoV de c' 0,7, o desvio do FS passa de
+  0,090 a 0,148, a média cai 0,034 e P(FS < 0,9) dobra (21% → 42%), enquanto P(FS < 1) só vai de 63,7% a 67,3%, sem
+  significância depois de Holm. A superfície de ruptura procura as zonas fracas (c' médio da banda 7,98 kPa contra 10 do
+  campo), e a massa encolhe 24%. P(FS < 1) é insensível porque a mediana do FS fica abaixo de 1: a dispersão maior empurra
+  P_f para 50%, a média menor o empurra para cima, e os dois se compensam (decomposição de Shapley: a dispersão cancela de
+  50 a 76% da parte da média). No Ceron a referência fica do outro lado (P_f = 11,5%), e os dois efeitos somam.
+- **Distâncias de autocorrelação: o desvio do FS quase dobra (0,090 → 0,157).** P_f cai de 3,7 a 6,3 pontos, sem
+  resolver (p ≈ 0,05 a 0,07), e em s = 400 a média sobe 0,020: com campos quase uniformes a superfície deixa de achar o
+  caminho fraco (c' da banda volta ao do campo). No Ceron P_f sobe com s (11,5 → 21,9%): a dispersão cresce com a média
+  fixa, e a referência dele está abaixo de 50%. Aqui a dispersão maior empurra P_f para 50%, e em s = 400 a média também
+  sobe.
+  Numa métrica de cauda comparável à do Ceron (P(FS ≤ 0,875), 12,7% na base), os sentidos concordam com o P_f dele em 10
+  a 12 dos 15 níveis e nunca se opõem; a exceção física é o CoV de k_v.
+- **Spearman parcial de 2ª ordem (banda e massa):** c' +0,80, φ' +0,50, k_v −0,54, contra +0,88, +0,51 e −0,04 no
+  Ceron (Fig. 26, digitalizado). Os sinais e o primeiro lugar de c' coincidem. O k pesa 15 vezes mais na chuva, porque o
+  k absoluto da massa controla a água que entra. O que `sensibilidade_mc.py` chama de "1ª ordem" é a correlação simples,
+  e não a parcial de 1ª ordem das eqs. 70-71.
+- **A aproximação normal subestima P_f** em 15 de 17 casos (+1,6 pontos em média): o FS tem assimetria positiva
+  (0,15 a 0,73). A lognormal erra menos.
+
+Ressalvas:
+- **Amostra:** com N = 300 o erro-padrão de P_f é ~2,8 pontos. Pareando, efeitos menores que ~3 a 4 pontos (CoV de c'
+  e de φ') ou ~6 (família s) não se resolvem. "Não significativo" não quer dizer sem efeito.
+- **Resolução do FS:** a bissecção do SRM (`FactorSRMRetry`, resolução 0,00625, com 1 na lista) não enviesa
+  P(FS < 1), mas a média do FS é uma cota inferior (~−0,003). FS = 1 exato aparece em 1 a 4% das realizações, e
+  "< 1" contra "≤ 1" muda P_f nessa medida.
+- **Escala:** o talude de Rahardjo tem H = 10 m, o do Ceron 5 m. Em relação a H, a nossa base corresponde ao s = 0,5 dele,
+  e o nosso s = 2 à referência dele. A KL retém 96,4% da variância na base e ~100% em s = 400 (o campo não é reescalado).
+- **Só em 24 h:** que o mínimo do FS cai em 24 h foi verificado na base (campanha principal); nos casos α = 10, CoV k_v 1
+  e s = 400 é provável, mas não verificado.
+- **SRM nos instantes intermediários:** nas rodadas determinísticas com FS em 6 a 18 h, o Newton falhou de forma
+  espúria em alguns F, e a nova tentativa mudou o FS em até 0,375. Em 24 h, `FS_parada = FS` em todas as rodadas.
+
+### Outros solos com 36 mm/h (determinístico, FS mínimo em 24 h)
+
+| solo | i (com ar), `F_TRANS=0.5` | iii (rígido, sem ar) | i − iii |
+|---|---|---|---|
+| f10 (k_s = 360 mm/h) | 1,5125 | 1,51875 | ≈ 0 |
+| f50 (k_s = 36 mm/h) | 0,9625 | 1,0625 | −0,10 |
+| f100 (k_s = 3,6 mm/h) | 1,2625 | 1,475 | −0,21 |
+
+O efeito do ar preso cresce com I/k_s: no f10 a chuva é menor que k_s, a superfície não fecha e o ar sai; no f100 a
+superfície encharca logo e prende o ar. A campanha do f100 com 36 mm/h (os mesmos 17 casos, mais 9, 80 e 3,6 mm/h e
+`KRA_MIN=0.01`) está em `$DATA/f100` desde 7/11.
+
 ## Saídas
 
 Volumes em m³ por metro de talude (o problema é plano), pressões em kPa, c' em kPa, φ' em graus, k_mult = k/k_s,
