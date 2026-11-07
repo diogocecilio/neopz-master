@@ -1,6 +1,5 @@
-// LearningMohrCoulomb: verificacao do Mohr-Coulomb (PV2) em deformacao plana, passo a passo
-// (projeto de estudo): capacidade de carga de uma sapata corrida e estabilidade de um talude com o material
-// nao saturado u - p_w - p_a (TUnsat), em tres etapas: solo seco, com agua e com agua e ar.
+// LearningMohrCoulomb2: reproducao de Rahardjo et al. (2007), passo a passo (projeto de estudo): estabilidade de um
+// talude sob chuva com o material nao saturado u - p_w - p_a (TUnsat) e Mohr-Coulomb (PV2) em deformacao plana.
 
 // geometria
 #include "TPZGmshReader.h"
@@ -9,7 +8,6 @@
 #include "pzfstrmatrix.h"
 #include "pzpostprocanalysis.h"
 // malhas computacionais
-#include "TPZBndCondT.h"
 #include "TPZMultiphysicsCompMesh.h"
 #include "TPZNullMaterial.h"
 #include "pzcmesh.h"
@@ -23,15 +21,11 @@
 // analise incremental (Newton, filtro de equacoes, memoria do estado convergido)
 #include "TPZUnsatAnalysis.h"
 
-// pos-processamento
-#include "TPZVTKGeoMesh.h"
-
 #include <algorithm>
 #include <iomanip>
 #include <array>
 #include <cmath>
 #include <fstream>
-#include <functional>
 #include <iostream>
 #include <map>
 #include <set>
@@ -63,13 +57,6 @@ struct UnsatParams {
     }
 };
 
-// Talude (de Souza Neto et al., Fig. 8.30): fluxo associado (psi = phi), gravidade em -y
-UnsatParams SlopeUnsatParams()
-{
-    UnsatParams p;
-    p.E = 2.e4, p.nu = 0.49, p.c = 50., p.phi = 20. * M_PI / 180., p.gamma = 20.;
-    return p;
-}
 // Solo f50,-5 de Rahardjo et al. (2007), Tabela 1 (E e nu nao estao no artigo: hipotese)
 UnsatParams Soilf505()
 {
@@ -101,122 +88,33 @@ UnsatParams Soilf505()
     return p;
 }
 
-// Solo f10,-4 da Tabela 1: so a e k_s mudam em relacao ao f50,-5
-UnsatParams Soilf104()
-{
-    UnsatParams p = Soilf505();
-    p.hydro.fA = 10.; // Fredlund-Xing parameter A (kPa)
-    p.ks = 1.e-4; // saturated hydraulic conductivity (m/s)
-    return p;
-}
-
-// Solo f100,-6 da Tabela 1: so a e k_s mudam em relacao ao f50,-5
-UnsatParams Soilf1006()
-{
-    UnsatParams p = Soilf505();
-    p.hydro.fA = 100.; // Fredlund-Xing parameter A (kPa)
-    p.ks = 1.e-6; // saturated hydraulic conductivity (m/s)
-    return p;
-}
-
-// ids de material: grupos fisicos das malhas do Gmsh (meshes/rahardjo_a45.geo e meshes/sapata.geo)
+// ids de material: grupos fisicos da malha do Gmsh (meshes/rahardjo_a45.geo)
 enum EIds {
     matSolo = 1,       // solo (dominio)
     bcBase = -1,       // base
     bcDireita = -2,    // lateral direita
     bcSuperficie = -3, // superficie livre do terreno
-    bcEsquerda = -4,   // lateral esquerda (talude) ou eixo de simetria (sapata)
-    bcSapata = -5      // contato da sapata
+    bcEsquerda = -4    // lateral esquerda
 };
 
 TPZGeoMesh *ReadGmshMesh(const std::string &file, const std::map<std::string, int> &domains,
                          const std::map<std::string, int> &boundaries);
 // Talude de Rahardjo et al. (2007), Fig. 2: 70 m x 30/20 m, H_s = 10 m, alfa = 45 graus
 TPZGeoMesh *ReadSlopeMesh();
-// Sapata corrida: 5 m x 5 m, meia sapata de 0,5 m com simetria em x = 0
-TPZGeoMesh *ReadFootingMesh();
 
 TUnsat *UnsatMaterial(int id, const UnsatParams &p);
 
 TPZCompMesh *CreateAtomicMesh(TPZGeoMesh *gmesh, int nstate, int order, const std::set<int> &bcids);
 TPZMultiphysicsCompMesh *CreateSlopeCompMesh(TPZGeoMesh *gmesh, int porder, const UnsatParams &p);
-TPZMultiphysicsCompMesh *CreateFootingCompMesh(TPZGeoMesh *gmesh, int porder, const UnsatParams &p, REAL q);
 // Apaga a malha multifisica e as suas malhas atomicas (depois da analise que as usa)
 void DeleteCompMesh(TPZMultiphysicsCompMesh *mphys);
 
-// Fator de seguranca por reducao de resistencia com as pressoes de x congeladas (seco: x com pressoes nulas)
-// xGeo (opcional) recebe o estado geostatico, de onde parte a reducao da resistencia
-REAL FactorSRM(TPZUnsatAnalysis &an, const TPZFMatrix<STATE> &x, TPZFMatrix<STATE> *xGeo = nullptr, REAL F0 = 0.6, REAL tol = 0.01,
-               const std::vector<REAL> &Fs = {0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5, 3.0, 3.5, 4.0});
-// Parametros do caminho de equilibrio com arc-length (FactorSRMArc e FactorGIM). Os comprimentos sao relativos a |u_ref|:
-// no SRM, o deslocamento do estado geostatico; no GIM, o do primeiro passo. Os valores vem do estudo de sensibilidade
-// (relatorio_fs.tex, em ~/projects/runs/arc_length_sensibilidade); ParamsSRM traz o que muda no SRM.
-struct ParamsArco {
-    std::vector<REAL> lista;  // SRM com alpha = 0: F prescritos antes do arco
-    REAL F0 = 0.6;            // SRM: F do estado geostatico
-    REAL F0Min = 0.4;         // SRM: F do estado geostatico se F0 nao convergir (FS abaixo de F0)
-    REAL lam0 = 0.5;          // GIM: lambda do primeiro passo, prescrito
-    int criterio = 0;         // parada. 0: dF < tol, com dF medido no l pedido; 1: (dF / l) * s < tol, s = |u - u_ref|
-    REAL tol = 0.001;
-    int alvo = 10;            // iteracoes de Newton desejadas por incremento: l varia com sqrt(alvo / iteracoes)
-    REAL cresceMax = 2.;      // maior aumento de l de um incremento para o seguinte
-    REAL reduzMax = 0.5;      // maior reducao de l de um incremento para o seguinte
-    REAL corte = 0.5;         // reducao de l quando o incremento falha
-    REAL l0 = 0.25;           // l inicial / |u_ref|, se nao ha incremento anterior
-    REAL l0Inc = 0.5;         // l inicial / |ultimo incremento prescrito|
-    REAL lMax = 2.;           // maior l / |u_ref|
-    REAL lMin = 1.e-4;        // menor l / |u_ref|: abaixo dele o caminho termina
-    REAL alpha = 0.;          // alpha / |u_ref|, na restricao Du^T Du + alpha^2 dF^2 = l^2 (0: cilindrica)
-    bool secante = true;      // preditor pela secante, em vez de pela tangente
-    int maxIt = 12;           // limite de iteracoes de Newton por incremento
-    int maxPassos = 100;      // limite de incrementos
-    REAL fatorMax = 10.;      // acima deste fator o caminho termina: FS >= fatorMax (GIM em talude pouco inclinado nao tem limite)
-};
-inline ParamsArco ParamsSRM()
-{
-    ParamsArco p;
-    p.alpha = 0.1; // sem lista: dF <= l / (alpha |u_ref|)
-    p.l0 = 0.01;   // dF de cerca de 0,1 no trecho elastico
-    p.lMax = 0.5;
-    return p;
-}
-inline ParamsArco ParamsGIM() { return ParamsArco(); }
-// Resumo do caminho: incrementos aceitos, cortes de l, iteracoes de Newton e por que terminou
-struct SaidaArco {
-    int incrementos = 0, cortes = 0, iteracoes = 0;
-    REAL uRef = 0., lFinal = 0., inclinacao = 0., s = 0.;
-    std::string motivo = "maxPassos";
-};
-// Fator de seguranca por reducao de resistencia com o arc-length, em vez da bissecao: o maior F do caminho de equilibrio.
-// xGeo (opcional) recebe o estado geostatico
-REAL FactorSRMArc(TPZUnsatAnalysis &an, const TPZFMatrix<STATE> &x, TPZFMatrix<STATE> *xGeo = nullptr, const ParamsArco &p = ParamsSRM(),
-                  SaidaArco *saida = nullptr);
-// Fator de seguranca por aumento da gravidade com as pressoes de x congeladas (seco: x com pressoes nulas): o maior
-// lambda do caminho de equilibrio, tracado com o arc-length cilindrico
-REAL FactorGIM(TPZUnsatAnalysis &an, const TPZFMatrix<STATE> &x, const ParamsArco &p = ParamsGIM(), SaidaArco *saida = nullptr);
-// Fator de seguranca por aumento da carga de superficie do contorno bcid (sapata) com as pressoes de x congeladas
-REAL FactorLoad(TPZUnsatAnalysis &an, const TPZFMatrix<STATE> &x, int bcid, REAL tol = 0.01,
-                const std::vector<REAL> &lams = {0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 6.0, 7.0, 8.0, 10.0});
+// Norma nas equacoes livres
+static REAL NormaLivre(const TPZFMatrix<STATE> &v, const std::map<int64_t, REAL> &fixed, int64_t neq);
 
 // Pos-processamento do estado carregado na malha (solucao e memoria dos pontos de integracao),
 // projetado em <nome>_pontos.scal_vec.<step>.vtk. O CSV associa step ao tempo fisico.
 void PostProcessVTK(TPZUnsatAnalysis &an, const std::string &nome, int step = 0);
-
-// Funcao da carga externa do reservatorio: nivel e lido por referencia a cada avaliacao.
-// O objeto nivel e o material devem existir enquanto a CC estiver em uso.
-auto CargaReservatorio(const REAL &nivel, TUnsat *reservatorio)
-{
-    return [&nivel, reservatorio](const TPZVec<REAL> &x, TPZVec<STATE> &tracao,
-                                  TPZFMatrix<STATE> &) {
-        const REAL pressao = reservatorio->GravityFactor() * reservatorio->GammaW()
-                           * std::max(nivel-x[1], REAL(0));
-        // talude.geo: face a 45 graus; patamares horizontais na crista e no pe.
-        const bool face = x[0] > 35. && x[0] < 45. && x[1] > 30. && x[1] < 40.;
-        tracao.Resize(2);
-        tracao[0] = face ? -pressao/std::sqrt(2.) : 0.;
-        tracao[1] = face ? -pressao/std::sqrt(2.) : -pressao;
-    };
-}
 
 // Arquivos lidos por animacao.py: pressoes e saturacao nos vertices em cada chamada de GravaPressoesCsv e, em cada calculo
 // do FS, o ultimo estado convergido do SRM (deslocamentos nos vertices e plasticidade nos pontos de integracao)
@@ -362,10 +260,6 @@ for (int it = 1; it <= timesteps; it++)
     }
 }
 
-
-
-
-
     delete analysis;
     DeleteCompMesh(multiphysicscmesh);
     delete gmesh;
@@ -376,10 +270,58 @@ for (int it = 1; it <= timesteps; it++)
 REAL calculaFS(const std::string &nome, TPZUnsatAnalysis *analysis, REAL t_h, SaidaAnimacao &s) {
     const TPZFMatrix<STATE> estado = analysis->X();
     const auto memoria = analysis->SaveMemory();
-    TPZFMatrix<STATE> xGeo;
-    //const REAL FS = FactorSRM(*analysis, estado, &xGeo);
-    const REAL FS = FactorSRMArc(*analysis, estado, &xGeo);
-    // const REAL FS = FactorGIM(*analysis, estado);
+    TPZFMatrix<STATE> &X = analysis->X();
+
+    // 1. estado sem tensoes, com u = 0 e as pressoes deste instante congeladas
+    analysis->ResetMemory();
+    X = estado;
+    for (int64_t i = 0; i < analysis->NEq(); i++)
+        if (!analysis->IsPressure(i)) X(i, 0) = 0.;
+    analysis->Restore();
+    const auto fixed = analysis->FrozenFixed(X);
+
+    // 2. estado geostatico: peso em 4 incrementos, com a resistencia aumentada
+    REAL F = 0.6;
+    bool geostatico = true;
+    analysis->SetStrengthReductionFactor(F);
+    analysis->SetGravityScalesSuction(true);
+    for (int k = 1; k <= 4 && geostatico; k++) {
+        analysis->SetGravityFactor(REAL(k) / 4.);
+        geostatico = analysis->Solve(0., fixed, {}, true).conv;
+        if (geostatico) analysis->Accept();
+    }
+    const TPZFMatrix<STATE> xGeo = X;
+    const REAL uRef = NormaLivre(xGeo, fixed, analysis->NEq());
+
+    // 3. caminho de equilibrio, um ArcLengthStepSRM por incremento. Parametros: estudo de sensibilidade,
+    // docs/fs_arc_length/relatorio_fs.tex
+    TPZUnsatAnalysis::ArcLengthOptions opcoes;
+    opcoes.alpha = 0.1 * uRef;
+    opcoes.secantPredictor = true;
+    opcoes.maxit = 12;
+    const REAL lMax = 0.5 * uRef, lMin = 1.e-4 * uRef, tol = 0.01;
+    REAL l = 0.01 * uRef, lPedido = l; // lPedido: o l de antes dos cortes deste incremento
+    REAL dF = 0., FS = geostatico ? F : -1.;
+    TPZFMatrix<STATE> dun; // incremento anterior; vazio no primeiro
+    for (int n = 1; geostatico && n <= 100; n++) {
+        const auto r = analysis->ArcLengthStepSRM(fixed, F, l, dun, dF, opcoes);
+        if (!r.conv) { // volta ao ultimo estado aceito e tenta com l menor
+            std::cout << "SRM: l = " << l << " nao convergiu (" << r.iter << " iteracoes)" << std::endl;
+            analysis->Restore();
+            l *= 0.5;
+            if (l < lMin) break;
+            continue;
+        }
+        analysis->Accept();
+        dF = r.lambda - F;
+        F = r.lambda;
+        dun = r.du;
+        FS = std::max(FS, F);
+        std::cout << "SRM: F = " << F << " dF = " << dF << " l = " << l << " (" << r.iter << " iteracoes)" << std::endl;
+        if (dF * lPedido / l < tol) break; // parada: dF medido no l pedido
+        l = std::min(lMax, l * std::min(2., std::max(0.5, std::sqrt(10. / r.iter)))); // cerca de 10 iteracoes por incremento
+        lPedido = l;
+    }
 
     std::cout << nome << ": FS = " << FS << std::endl;
     s.fs << t_h << ',' << FS << std::endl;
@@ -481,76 +423,6 @@ void GravaSRMCsv(SaidaAnimacao &s, REAL t_h, TPZUnsatAnalysis *analysis, const T
 }
 
 
-// Fator de seguranca por reducao de resistencia (SRM) com as pressoes de x congeladas (so o equilibrio e
-// resolvido): serve as tres etapas, com x = pressoes nulas (seco), p_w de um instante (com agua) ou p_w e p_a de um
-// instante (com agua e ar). Parte do estado sem tensoes (memoria inicial, u = 0); estado geostatico com a
-// resistencia aumentada (F0 < 1, peso e sucao em 4 incrementos); depois F cresce pela lista Fs, sempre a partir do
-// ultimo estado convergido; no primeiro F sem convergencia, bissecao entre o ultimo F convergido e ele ate a
-// diferenca ser menor que tol. Entao, nova tentativa do F que falhou, agora com incremento < tol: se convergir, a
-// falha era do tamanho do salto (o Newton pode divergir num salto grande mesmo havendo equilibrio) e a busca continua
-// pela lista; se falhar de novo, e a ruptura. Retorna o ultimo F convergido (-1 se o estado geostatico nao convergir).
-REAL FactorSRM(TPZUnsatAnalysis &an, const TPZFMatrix<STATE> &x, TPZFMatrix<STATE> *xGeo, REAL F0, REAL tol,
-               const std::vector<REAL> &Fs)
-{
-    // estado sem tensoes com as pressoes de x
-    an.ResetMemory();
-    TPZFMatrix<STATE> &X = an.X();
-    X = x;
-    for (int64_t i = 0; i < an.NEq(); i++)
-        if (!an.IsPressure(i)) X(i, 0) = 0.;
-    an.Restore();
-    const auto fixed = an.FrozenFixed(X); // apoios = 0 e todas as pressoes nos valores de x
-
-    // estado geostatico: peso (e sucao) em incrementos, resistencia aumentada
-    an.SetStrengthReductionFactor(F0);
-    an.SetGravityScalesSuction(true);
-    const int n = 4;
-    for (int k = 1; k <= n; k++) {
-        an.SetGravityFactor(REAL(k) / n);
-        if (!an.Solve(0., fixed, {}, true).conv) {
-            std::cout << "\nSRM: estado geostatico nao convergiu" << std::endl;
-            return -1.;
-        }
-        an.Accept();
-    }
-    if (xGeo) *xGeo = an.X();
-
-    // reducao da resistencia
-    REAL Fok = F0, Ffail = -1.;
-    size_t next = 0;
-    while (true) {
-        REAL F;
-        bool retry = false;
-        if (Ffail > 0.) {
-            if (Ffail - Fok < tol) {
-                F = Ffail;
-                retry = true;
-            } else {
-                F = 0.5 * (Fok + Ffail);
-            }
-        } else {
-            while (next < Fs.size() && Fs[next] <= Fok) next++;
-            if (next == Fs.size()) break;
-            F = Fs[next];
-        }
-        an.SetStrengthReductionFactor(F);
-        const auto r = an.Solve(0., fixed, {}, true);
-        std::cout << "\nSRM: F = " << F << (r.conv ? " convergiu" : " nao convergiu") << " (" << r.iter << " iteracoes)"
-                  << (retry ? " [nova tentativa]" : "") << std::endl;
-        if (r.conv) {
-            an.Accept();
-            Fok = F;
-            if (retry) Ffail = -1.;
-        } else {
-            an.Restore();
-            if (retry) break;
-            Ffail = F;
-        }
-    }
-    an.SetStrengthReductionFactor(1.);
-    return Fok;
-}
-
 // Norma nas equacoes livres
 static REAL NormaLivre(const TPZFMatrix<STATE> &v, const std::map<int64_t, REAL> &fixed, int64_t neq)
 {
@@ -558,296 +430,6 @@ static REAL NormaLivre(const TPZFMatrix<STATE> &v, const std::map<int64_t, REAL>
     for (int64_t i = 0; i < neq; i++)
         if (!fixed.count(i)) s += v.GetVal(i, 0) * v.GetVal(i, 0);
     return std::sqrt(s);
-}
-
-// Traca o caminho de equilibrio com arc-length a partir do estado convergido X() com fator lam, ate a parada. O comprimento
-// l se ajusta para cerca de p.alvo iteracoes por incremento, entre lMin e lMax; se o incremento falha, l e cortado.
-//  - passo: um incremento de arc-length (fator, l, incremento anterior, variacao anterior do fator);
-//  - vertical: sem ponto plastico e com restricao cilindrica; deve avancar o fator com valor prescrito (false: termina).
-// Parada: p.criterio. dF e medido no l da primeira tentativa do incremento: um corte de l nao parece um caminho plano.
-// Termina tambem em p.fatorMax, em l < lMin e em p.maxPassos, e entao avisa. Retorna o maior fator do caminho.
-static REAL SegueCaminho(TPZUnsatAnalysis &an, const std::map<int64_t, REAL> &fixed, REAL lam, TPZFMatrix<STATE> dun, REAL dlamn, REAL l,
-                         REAL uRef, const TPZFMatrix<STATE> &xRef, const ParamsArco &p, SaidaArco &saida, const std::string &nome,
-                         const std::function<TPZUnsatAnalysis::ArcLengthResult(REAL, REAL, const TPZFMatrix<STATE> &, REAL)> &passo,
-                         const std::function<bool(REAL &, TPZFMatrix<STATE> &, REAL &, REAL &)> &vertical)
-{
-    const REAL lMax = p.lMax * uRef, lMin = p.lMin * uRef;
-    l = std::min(lMax, std::max(lMin, l));
-    saida.uRef = uRef;
-    REAL lamMax = lam;
-    REAL lPedido = l; // l da primeira tentativa do incremento
-    for (int n = 1; n <= p.maxPassos; n++) {
-        const auto r = passo(lam, l, dun, dlamn);
-        saida.iteracoes += r.iter;
-        saida.lFinal = l;
-        if (!r.conv) {
-            std::cout << "\n" << nome << ": l = " << l << (r.noRoot ? " sem raiz real" : (r.vertical ? " sem ponto plastico" : " nao convergiu"))
-                      << " (" << r.iter << " iteracoes)" << std::endl;
-            an.Restore();
-            if (r.vertical) {
-                if (!vertical(lam, dun, dlamn, l)) {
-                    saida.motivo = "vertical";
-                    break;
-                }
-                lamMax = std::max(lamMax, lam);
-                l = std::min(lMax, std::max(lMin, l));
-                lPedido = l;
-                continue;
-            }
-            saida.cortes++;
-            l *= p.corte;
-            if (l < lMin) {
-                saida.motivo = "lMin";
-                break;
-            }
-            continue;
-        }
-        an.Accept();
-        saida.incrementos++;
-        dlamn = r.lambda - lam;
-        const REAL rigidez = dlamn / l;
-        lam = r.lambda;
-        dun = r.du;
-        lamMax = std::max(lamMax, lam);
-        TPZFMatrix<STATE> distancia(an.X());
-        distancia -= xRef;
-        saida.s = NormaLivre(distancia, fixed, an.NEq());
-        saida.inclinacao = rigidez;
-        std::cout << "\n" << nome << ": fator = " << lam << " d = " << dlamn << " l = " << l << " (" << r.iter << " iteracoes)" << std::endl;
-        const REAL medida = p.criterio == 0 ? dlamn * lPedido / l : rigidez * saida.s;
-        if (medida < p.tol) {
-            saida.motivo = "parada";
-            break;
-        }
-        if (lam >= p.fatorMax) {
-            saida.motivo = "fatorMax";
-            break;
-        }
-        const REAL fator = std::min(p.cresceMax, std::max(p.reduzMax, std::sqrt(REAL(p.alvo) / r.iter)));
-        l = std::min(lMax, l * fator);
-        lPedido = l;
-    }
-    if (saida.motivo != "parada")
-        std::cout << "\n" << nome << ": terminou sem atingir o criterio de parada (" << saida.motivo << ")" << std::endl;
-    return lamMax;
-}
-
-// Fator de seguranca por reducao de resistencia com o arc-length (TPZUnsatAnalysis::ArcLengthStepSRM), com as pressoes
-// de x congeladas. Depois do estado geostatico, SegueCaminho. Com poucos pontos plasticos o caminho e quase vertical (u
-// quase nao muda com F), e sem nenhum e vertical; com alpha > 0, o padrao, isso nao e problema: dF fica limitado por
-// l / (alpha |u_ref|) e a lista fica vazia. So com alpha = 0: F sobe antes pela p.lista, com valor prescrito, e, se o
-// arco achar o caminho vertical, com valor prescrito de novo: bissecao com o que falhou, ou 25% se nada falhou.
-// Retorna o maior F do caminho, ou -1 se o estado geostatico nao convergir.
-REAL FactorSRMArc(TPZUnsatAnalysis &an, const TPZFMatrix<STATE> &x, TPZFMatrix<STATE> *xGeo, const ParamsArco &p, SaidaArco *saida)
-{
-    SaidaArco resumo;
-    TPZFMatrix<STATE> &X = an.X();
-    std::map<int64_t, REAL> fixed; // apoios = 0 e todas as pressoes nos valores de x
-    // estado geostatico a partir do estado sem tensoes: peso (e sucao) em incrementos, resistencia aumentada
-    auto geostatico = [&](REAL F0) {
-        an.ResetMemory();
-        X = x;
-        for (int64_t i = 0; i < an.NEq(); i++)
-            if (!an.IsPressure(i)) X(i, 0) = 0.;
-        an.Restore();
-        fixed = an.FrozenFixed(X);
-        an.SetStrengthReductionFactor(F0);
-        an.SetGravityScalesSuction(true);
-        const int n = 4;
-        for (int k = 1; k <= n; k++) {
-            an.SetGravityFactor(REAL(k) / n);
-            if (!an.Solve(0., fixed, {}, true).conv) return false;
-            an.Accept();
-        }
-        return true;
-    };
-    REAL F0 = p.F0;
-    bool convergiu = geostatico(F0);
-    if (!convergiu && p.F0Min < F0) {
-        F0 = p.F0Min;
-        convergiu = geostatico(F0);
-    }
-    if (!convergiu) {
-        std::cout << "\nSRM: estado geostatico nao convergiu" << std::endl;
-        resumo.motivo = "geostatico";
-        if (saida) *saida = resumo;
-        return -1.;
-    }
-    if (xGeo) *xGeo = an.X();
-    const TPZFMatrix<STATE> xRef = an.X();
-    const REAL uRef = NormaLivre(xRef, fixed, an.NEq());
-
-    REAL F = F0, Ffalhou = -1., dFn = 0.;
-    TPZFMatrix<STATE> dun; // incremento anterior; vazio se ainda nao houve incremento
-    // F prescrito: aceita o estado da malha e guarda o incremento. Retorna false se a Newton nao convergir
-    auto prescrito = [&](REAL Fi) {
-        an.SetStrengthReductionFactor(Fi);
-        const auto r = an.Solve(0., fixed, {}, true);
-        std::cout << "\nSRM: F = " << Fi << (r.conv ? " convergiu" : " nao convergiu") << " (" << r.iter << " iteracoes)" << std::endl;
-        resumo.iteracoes += r.iter;
-        if (!r.conv) {
-            an.Restore();
-            return false;
-        }
-        dun = X;
-        an.Accept();
-        dun *= -1.;
-        dun += X;
-        dFn = Fi - F;
-        F = Fi;
-        return true;
-    };
-    const int itAntes = an.MaxItFrozen();
-    an.SetMaxItFrozen(p.maxIt);
-    for (const REAL Fi : p.lista) {
-        if (Fi <= F) continue;
-        if (!prescrito(Fi)) {
-            Ffalhou = Fi;
-            break;
-        }
-    }
-    auto comprimento = [&]() {
-        return dun.Rows() ? p.l0Inc * NormaLivre(dun, fixed, an.NEq()) : p.l0 * uRef;
-    };
-
-    TPZUnsatAnalysis::ArcLengthOptions opcoes;
-    opcoes.alpha = p.alpha * uRef;
-    opcoes.secantPredictor = p.secante;
-    opcoes.maxit = p.maxIt;
-    const REAL Fmax = SegueCaminho(an, fixed, F, dun, dFn, comprimento(), uRef, xRef, p, resumo, "SRM",
-        [&](REAL Fn, REAL l, const TPZFMatrix<STATE> &d, REAL dF) { return an.ArcLengthStepSRM(fixed, Fn, l, d, dF, opcoes); },
-        [&](REAL &Fn, TPZFMatrix<STATE> &d, REAL &dF, REAL &l) {
-            // sem ponto plastico: u nao depende de F
-            if (Ffalhou > 0. && Ffalhou - F < p.tol) return false;
-            const REAL Fi = Ffalhou > 0. ? 0.5 * (F + Ffalhou) : 1.25 * F;
-            if (prescrito(Fi)) l = comprimento();
-            else Ffalhou = Fi;
-            Fn = F;
-            d = dun;
-            dF = dFn;
-            return true;
-        });
-    an.SetMaxItFrozen(itAntes);
-    an.SetStrengthReductionFactor(1.);
-    if (saida) *saida = resumo;
-    return Fmax;
-}
-
-// Fator de seguranca por aumento da gravidade (GIM) com as pressoes de x congeladas: parte do estado sem tensoes,
-// com a resistencia real (F = 1): lambda multiplica o peso e a parte positiva da pressao equivalente;
-// a sucao fica com o valor de x. CargaReservatorio tambem usa lambda na tracao externa.
-// O caminho de equilibrio e tracado com o arc-length (de Souza Neto, Peric e Owen 2008, Box 4.4;
-// TPZUnsatAnalysis::ArcLengthStep), que nao depende de a Newton convergir com lambda prescrito perto do limite. O primeiro
-// passo tem lambda prescrito (p.lam0, reduzido se nao convergir): a sucao entra toda nele, entao ele nao e proporcional, e
-// o sinal do primeiro incremento nao vem do criterio da secante: lambda cresce. Depois, SegueCaminho. Retorna o maior
-// lambda do caminho.
-REAL FactorGIM(TPZUnsatAnalysis &an, const TPZFMatrix<STATE> &x, const ParamsArco &p, SaidaArco *saida)
-{
-    SaidaArco resumo;
-    // estado sem tensoes com as pressoes de x
-    an.ResetMemory();
-    TPZFMatrix<STATE> &X = an.X();
-    X = x;
-    for (int64_t i = 0; i < an.NEq(); i++)
-        if (!an.IsPressure(i)) X(i, 0) = 0.;
-    an.Restore();
-    const auto fixed = an.FrozenFixed(X); // apoios = 0 e todas as pressoes nos valores de x
-    const TPZFMatrix<STATE> xRef = X;
-
-    an.SetStrengthReductionFactor(1.);
-    an.SetGravityScalesSuction(false); // peso e pressao equivalente positiva escalados; sucao preservada
-    const int itAntes = an.MaxItFrozen();
-    an.SetMaxItFrozen(p.maxIt);
-    auto termina = [&](REAL resultado) {
-        an.SetMaxItFrozen(itAntes);
-        an.SetGravityScalesSuction(true);
-        an.SetGravityFactor(1.);
-        an.SetStrengthReductionFactor(1.);
-        if (saida) *saida = resumo;
-        return resultado;
-    };
-
-    // primeiro passo, com lambda prescrito
-    REAL lam = p.lam0;
-    while (true) {
-        an.SetGravityFactor(lam);
-        const auto r = an.Solve(0., fixed, {}, true);
-        std::cout << "\nGIM: lambda = " << lam << (r.conv ? " convergiu" : " nao convergiu") << " (" << r.iter << " iteracoes)" << std::endl;
-        resumo.iteracoes += r.iter;
-        if (r.conv) break;
-        an.Restore();
-        lam *= 0.5;
-        if (lam < 0.01) {
-            resumo.motivo = "lam0";
-            return termina(0.);
-        }
-    }
-    an.Accept();
-
-    // comprimento inicial e carga por unidade de lambda
-    const REAL uRef = NormaLivre(X, fixed, an.NEq());
-    const TPZFMatrix<STATE> fbar = an.LoadVector(X);
-    an.Restore();
-
-    TPZUnsatAnalysis::ArcLengthOptions opcoes;
-    opcoes.alpha = p.alpha * uRef;
-    opcoes.secantPredictor = p.secante;
-    opcoes.maxit = p.maxIt;
-    const REAL lamMax = SegueCaminho(an, fixed, lam, TPZFMatrix<STATE>(), 0., p.l0 * uRef, uRef, xRef, p, resumo, "GIM",
-        [&](REAL ln, REAL l, const TPZFMatrix<STATE> &d, REAL dl) { return an.ArcLengthStep(fixed, fbar, ln, l, d, dl, opcoes); },
-        [](REAL &, TPZFMatrix<STATE> &, REAL &, REAL &) { return false; });
-    return termina(lamMax);
-}
-
-// Fator de seguranca por aumento da carga de superficie (sapata): como o GIM, mas o fator lambda multiplica a
-// tracao do contorno bcid (ENeumannU, Val2) em vez do peso. Parte do estado sem tensoes, com a resistencia real e as
-// pressoes de x congeladas; lambda cresce pela lista lams, sempre a partir do ultimo estado convergido; no primeiro
-// lambda sem convergencia, bissecao ate a diferenca ser menor que tol. Retorna o ultimo lambda convergido; ao final
-// a tracao volta ao valor original.
-REAL FactorLoad(TPZUnsatAnalysis &an, const TPZFMatrix<STATE> &x, int bcid, REAL tol, const std::vector<REAL> &lams)
-{
-    auto *bc = dynamic_cast<TPZBndCondT<STATE> *>(an.Mesh()->FindMaterial(bcid));
-    if (!bc) DebugStop();
-    const TPZManVector<STATE, 2> t0(bc->Val2());
-
-    // estado sem tensoes com as pressoes de x
-    an.ResetMemory();
-    TPZFMatrix<STATE> &X = an.X();
-    X = x;
-    for (int64_t i = 0; i < an.NEq(); i++)
-        if (!an.IsPressure(i)) X(i, 0) = 0.;
-    an.Restore();
-    const auto fixed = an.FrozenFixed(X); // apoios = 0 e todas as pressoes nos valores de x
-
-    an.SetStrengthReductionFactor(1.);
-    REAL lok = 0., lfail = -1.;
-    size_t next = 0;
-    while (true) {
-        REAL lam;
-        if (lfail > 0.) {
-            if (lfail - lok < tol) break;
-            lam = 0.5 * (lok + lfail);
-        } else {
-            while (next < lams.size() && lams[next] <= lok) next++;
-            if (next == lams.size()) break;
-            lam = lams[next];
-        }
-        TPZManVector<STATE, 2> t(t0);
-        for (auto &v : t) v *= lam;
-        bc->SetVal2(t);
-        const auto r = an.Solve(0., fixed, {}, true);
-        std::cout << "Carga: lambda = " << lam << (r.conv ? " convergiu" : " nao convergiu") << " (" << r.iter
-                  << " iteracoes)" << std::endl;
-        if (r.conv) {
-            an.Accept();
-            lok = lam;
-        } else {
-            an.Restore();
-            lfail = lam;
-        }
-    }
-    bc->SetVal2(t0);
-    return lok;
 }
 
 // Pos-processamento VTK do estado carregado na malha (ultimo estado convergido): todas as variaveis projetadas
@@ -895,14 +477,14 @@ TPZCompMesh *CreateAtomicMesh(TPZGeoMesh *gmesh, int nstate, int order, const st
     return cmesh;
 }
 
-// Talude com o TUnsat: mesmos apoios; bcSuperficie recebe a pressao externa do reservatorio.
+// Talude com o TUnsat. bcSuperficie e um contorno de Neumann sem carga: a chuva entra como fluxo nodal, em main.
 // Espacos: u de ordem porder (2 = triangulo de 6 nos), p_w e p_a de ordem porder - 1 (1: P1).
 // Apoios impostos pela analise (TPZUnsatAnalysis,
 // fixU = {{bcBase, {true, true}}, {bcDireita, {true, false}}, {bcEsquerda, {true, false}}}):
 // as condicoes EDirichletU do TUnsat nao contribuem, so marcam os contornos.
 TPZMultiphysicsCompMesh *CreateSlopeCompMesh(TPZGeoMesh *gmesh, int porder, const UnsatParams &p)
 {
-    const std::set<int> bcids = {bcBase, bcDireita, bcEsquerda, bcSuperficie}; // ADICAO: reservatorio
+    const std::set<int> bcids = {bcBase, bcDireita, bcEsquerda, bcSuperficie};
     TPZManVector<TPZCompMesh *, 3> meshvec = {CreateAtomicMesh(gmesh, 2, porder, bcids),
                                               CreateAtomicMesh(gmesh, 1, porder - 1, bcids),
                                               CreateAtomicMesh(gmesh, 1, porder - 1, bcids)};
@@ -985,12 +567,4 @@ TPZGeoMesh *ReadSlopeMesh()
 {
     return ReadGmshMesh(std::string(MESH_DIR) + "/rahardjo_a45.msh", {{"Solo", matSolo}},
                         {{"Base", bcBase}, {"Direita", bcDireita}, {"Superficie", bcSuperficie}, {"Esquerda", bcEsquerda}});
-}
-
-// Sapata corrida: 5 m x 5 m, meia sapata de 0,5 m com simetria em x = 0
-TPZGeoMesh *ReadFootingMesh()
-{
-    return ReadGmshMesh(std::string(MESH_DIR) + "/sapata.msh", {{"Solo", matSolo}},
-                        {{"Base", bcBase}, {"Direita", bcDireita}, {"Superficie", bcSuperficie},
-                         {"Simetria", bcEsquerda}, {"Sapata", bcSapata}});
 }
