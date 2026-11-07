@@ -206,6 +206,180 @@ TPZUnsatAnalysis::StepResult TPZUnsatAnalysis::Solve(REAL dt, const std::map<int
     return res;
 }
 
+TPZFMatrix<STATE> TPZUnsatAnalysis::LoadVector(const TPZFMatrix<STATE> &x) {
+    SetGravityFactor(0.);
+    TPZFMatrix<STATE> fbar = Residual(x, 0., true);
+    SetGravityFactor(1.);
+    fbar -= Residual(x, 0., true);
+    return fbar;
+}
+
+TPZUnsatAnalysis::ArcLengthResult TPZUnsatAnalysis::ArcLengthStep(const std::map<int64_t, REAL> &fixed,
+                                                                  const TPZFMatrix<STATE> &fbar, REAL lambdan, REAL l,
+                                                                  const TPZFMatrix<STATE> &dun, REAL dlambdan,
+                                                                  const ArcLengthOptions &options) {
+    REAL fnorm = 0.;
+    for (int64_t i = 0; i < fNEq; ++i)
+        if (!fixed.count(i)) fnorm += fbar.GetVal(i, 0) * fbar.GetVal(i, 0);
+    // the factor does not move the yield surface; for the predictor the surface itself is shrunk a little
+    return ArcLengthIterate(fixed, lambdan, l, dun, dlambdan, options, std::sqrt(fnorm), 0.,
+                            [this](REAL lam, bool predictor) {
+                                SetGravityFactor(lam);
+                                SetStrengthReductionFactor(predictor ? 1. + 1.e-6 : 1.);
+                            },
+                            [&fbar](REAL, const TPZFMatrix<STATE> &, TPZFMatrix<STATE> &f) { f = fbar; });
+}
+
+TPZUnsatAnalysis::ArcLengthResult TPZUnsatAnalysis::ArcLengthStepSRM(const std::map<int64_t, REAL> &fixed, REAL Fn, REAL l,
+                                                                     const TPZFMatrix<STATE> &dun, REAL dFn,
+                                                                     const ArcLengthOptions &options) {
+    // reference of the residual: the weight, as in Solve
+    LoadSolution(fX);
+    for (auto *m : fMats) m->SetAssembleGravityOnly(true);
+    AssembleFullResidual();
+    for (auto *m : fMats) m->SetAssembleGravityOnly(false);
+    REAL fref = 0.;
+    {
+        TPZFMatrix<STATE> &g = Rhs();
+        for (int64_t i = 0; i < fNEq; ++i)
+            if (!fIsP[i]) fref += g.GetVal(i, 0) * g.GetVal(i, 0);
+    }
+    fref = std::max(std::sqrt(fref), fForceRef);
+    return ArcLengthIterate(fixed, Fn, l, dun, dFn, options, fref, 1.e-6, [this](REAL F, bool) { SetStrengthReductionFactor(F); },
+                            [this](REAL F, const TPZFMatrix<STATE> &rhsF, TPZFMatrix<STATE> &f) {
+                                // rhs = -R, so -dR/dF = (rhs(F + h) - rhs(F)) / h
+                                const REAL h = 1.e-6 * F;
+                                SetStrengthReductionFactor(F + h);
+                                AssembleFullResidual();
+                                SetStrengthReductionFactor(F);
+                                f = Rhs();
+                                f -= rhsF;
+                                f *= 1. / h;
+                            });
+}
+
+TPZUnsatAnalysis::ArcLengthResult TPZUnsatAnalysis::ArcLengthIterate(
+    const std::map<int64_t, REAL> &fixed, REAL lambdan, REAL l, const TPZFMatrix<STATE> &dun, REAL dlambdan,
+    const ArcLengthOptions &options, REAL fref, REAL predictorShift, const std::function<void(REAL, bool)> &setFactor,
+    const std::function<void(REAL, const TPZFMatrix<STATE> &, TPZFMatrix<STATE> &)> &tangentLoad) {
+    ArcLengthResult res;
+    res.lambda = lambdan;
+    res.du.Redim(fNEq, 1);
+    for (auto *m : fMats) {
+        m->SetTimeStep(0.);
+        m->SetFrozenPressures(true);
+    }
+    SetFilter(fixed);
+    std::vector<int64_t> free;
+    for (int64_t i = 0; i < fNEq; ++i)
+        if (!fixed.count(i)) free.push_back(i);
+    auto dot = [&free](const TPZFMatrix<STATE> &a, const TPZFMatrix<STATE> &b) {
+        REAL s = 0.;
+        for (const int64_t i : free) s += a.GetVal(i, 0) * b.GetVal(i, 0);
+        return s;
+    };
+    if (!(fref > 0.)) return res;
+
+    TPZFMatrix<STATE> x(fX);
+    for (auto &f : fixed) x(f.first, 0) = f.second;
+    TPZFMatrix<STATE> &Du = res.du; // (i) Delta u^(0) = 0, lambda^(0) = lambda_n
+    REAL lambda = lambdan;
+    const REAL alpha2 = options.alpha * options.alpha;
+    const int maxit = options.maxit > 0 ? options.maxit : fMaxItFrozen;
+    const bool hasPrevious = dun.Rows() == fNEq;
+    int kfirst = 1;
+    if (options.secantPredictor && hasPrevious) {
+        // the previous increment scaled to the length l; not extrapolated by more than 100 times
+        const REAL previous2 = dot(dun, dun) + alpha2 * dlambdan * dlambdan;
+        if (previous2 > 0. && l * l < 1.e4 * previous2) {
+            const REAL scale = l / std::sqrt(previous2);
+            for (const int64_t i : free) {
+                x(i, 0) += scale * dun.GetVal(i, 0);
+                Du(i, 0) = scale * dun.GetVal(i, 0);
+            }
+            lambda += scale * dlambdan;
+            res.lambda = lambda;
+            kfirst = 2;
+        }
+    }
+    for (int k = kfirst; k <= maxit; ++k) {
+        res.iter = k - kfirst + 1;
+        // a factor that is not positive has no meaning, and F <= 0 stops the program in ChangeLocalMatParameters
+        if (!(lambda > 0.)) return res;
+        // (ii) K_T(u^(k-1)); the assembled right-hand side is -r^(k-1)
+        const bool predictor = k == 1 && options.plasticPredictor;
+        const REAL lambdak = predictor ? lambda * (1. + predictorShift) : lambda;
+        setFactor(lambdak, predictor);
+        LoadSolution(x);
+        AssembleSystem();
+        const TPZFMatrix<STATE> rhsk = Rhs();
+        // (ix) of the previous iteration: at least one correction after the predictor
+        res.eu = std::sqrt(dot(rhsk, rhsk)) / fref;
+        if (fVerbose)
+            std::cout << "      arc it " << k << " lambda = " << lambdak << " |r|/ref = " << res.eu
+                      << " |Du| = " << std::sqrt(dot(Du, Du)) << " l = " << l << "\n";
+        if (!std::isfinite(res.eu) || res.eu > 1.e6) return res;
+        if (k > 1 && res.eu < fTolU) {
+            res.conv = true;
+            return res;
+        }
+        // the vector of the tangential solution, while the mesh holds the iterate: a linear solve loads its result in the
+        // mesh, and a residual assembled after it would be evaluated at the correction
+        TPZFMatrix<STATE> fbar;
+        tangentLoad(lambdak, rhsk, fbar);
+        // (iii) K_T dustar = -r and K_T dubar = fbar, with the same factorization. A singular tangent makes the LU stop
+        // with an exception (DebugStop): the increment is then reported as not converged
+        TPZFMatrix<STATE> dustar, dubar;
+        try {
+            TPZFMatrix<STATE> &rhs = Rhs();
+            rhs = rhsk;
+            TPZLinearAnalysis::Solve();
+            dustar = Solution();
+            rhs = fbar;
+            TPZLinearAnalysis::Solve();
+            dubar = Solution();
+        } catch (...) {
+            return res;
+        }
+        // (iv) iterative load factor
+        const REAL a = dot(dubar, dubar) + alpha2;
+        if (a == 0.) res.vertical = true;
+        if (!(a > 0.) || !std::isfinite(a)) return res;
+        const REAL Dlambda = lambda - lambdan;
+        REAL dlambda;
+        if (k == 1) {
+            // predictor, Eq. (4.120), with the sign of the secant criterion (4.123)
+            const REAL sign = hasPrevious && dot(dun, dubar) + alpha2 * dlambdan < 0. ? -1. : 1.;
+            dlambda = sign * l / std::sqrt(a);
+        } else {
+            // constraint (4.116)-(4.117), with w = Delta u^(k-1) + dustar and the term of alpha
+            TPZFMatrix<STATE> w(Du);
+            w += dustar;
+            const REAL b = 2. * (dot(w, dubar) + alpha2 * Dlambda), c = dot(w, w) + alpha2 * Dlambda * Dlambda - l * l;
+            const REAL disc = b * b - 4. * a * c;
+            if (disc < 0.) {
+                res.noRoot = true;
+                return res;
+            }
+            // the two roots without cancellation
+            const REAL q = -0.5 * (b + (b >= 0. ? 1. : -1.) * std::sqrt(disc));
+            const REAL r1 = q / a, r2 = q != 0. ? c / q : r1;
+            // Eq. (4.118): the root with the smallest angle between Delta u^(k-1) and Delta u^(k)
+            const REAL direction = dot(dubar, Du) + alpha2 * Dlambda;
+            dlambda = r1 * direction >= r2 * direction ? r1 : r2;
+        }
+        // (v)-(vii) corrections of the load factor and of the total and incremental displacements
+        lambda += dlambda;
+        res.lambda = lambda;
+        for (const int64_t i : free) {
+            const REAL d = dustar.GetVal(i, 0) + dlambda * dubar.GetVal(i, 0);
+            x(i, 0) += d;
+            Du(i, 0) += d;
+        }
+    }
+    return res;
+}
+
 void TPZUnsatAnalysis::Accept() {
     for (auto *m : fMats) m->SetUpdateMem(true);
     AssembleFullResidual();
