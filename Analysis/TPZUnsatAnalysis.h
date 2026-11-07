@@ -18,6 +18,7 @@
 #include "Plasticity/TPZYCMohrCoulombPV2.h"
 
 #include <array>
+#include <functional>
 #include <map>
 #include <set>
 #include <vector>
@@ -94,6 +95,9 @@ public:
         fMaxItFrozen = maxitfrozen;
     }
     void SetVerbose(int v) { fVerbose = v; }
+    /// limit of Newton iterations with frozen pressures
+    int MaxItFrozen() const { return fMaxItFrozen; }
+    void SetMaxItFrozen(int maxit) { fMaxItFrozen = maxit; }
 
     /// converged solution (total u, p_w, p_a)
     TPZFMatrix<STATE> &X() { return fX; }
@@ -106,6 +110,66 @@ public:
      */
     StepResult Solve(REAL dt, const std::map<int64_t, REAL> &fixed, const std::map<int64_t, REAL> &fq, bool frozen,
                      int linesearch = 4);
+
+    /// Result of one increment of ArcLengthStep
+    struct ArcLengthResult {
+        bool conv = false;
+        bool noRoot = false; ///< the constraint equation had no real root
+        bool vertical = false; ///< null tangential solution: no point is plastic and u does not depend on the factor
+        int iter = 0;
+        REAL eu = 0.;        ///< last |r| / |fbar| on the free equations
+        REAL lambda = 0.;    ///< load factor at the end of the increment
+        TPZFMatrix<STATE> du; ///< incremental displacement of the increment (all the equations)
+    };
+
+    /// Options of an arc-length increment
+    struct ArcLengthOptions {
+        /// scale of the factor in the constraint Delta u^T Delta u + alpha^2 Delta lambda^2 = l^2, in units of displacement;
+        /// 0 is the cylindrical constraint of Box 4.4
+        REAL alpha;
+        /// start from the previous increment scaled to the length l, instead of the tangent predictor
+        bool secantPredictor;
+        /// limit of Newton iterations; 0: the frozen limit of SetTolerances
+        int maxit;
+        /// evaluate the tangent predictor with the yield surface slightly shrunk: at the converged state the plastic
+        /// points are exactly on the surface, and round-off alone decides between the elastic and the plastic tangent there
+        bool plasticPredictor;
+        ArcLengthOptions() : alpha(0.), secantPredictor(false), maxit(0), plasticPredictor(true) {}
+    };
+
+    /**
+     * External load per unit of load factor with frozen pressures, fbar = R(x, lambda = 0) - R(x, lambda = 1) on all the
+     * equations, so that R(x, lambda) = R(x, 0) - lambda fbar. The load factor is the gravity factor of the material:
+     * fbar is the weight and the part of the equivalent pressure that the factor scales (SetGravityScalesSuction).
+     * The gravity factor must be set again by the caller.
+     */
+    TPZFMatrix<STATE> LoadVector(const TPZFMatrix<STATE> &x);
+
+    /**
+     * One increment of the combined Newton-Raphson/cylindrical arc-length scheme, de Souza Neto, Peric and Owen,
+     * Computational Methods for Plasticity (2008), Box 4.4, from the converged state X() with load factor lambdan:
+     * finds u and lambda with R(u, lambda) = 0 and Delta u^T Delta u = l^2 on the free equations. All the pressures must
+     * be in fixed (frozen pressures). The tangential solution is K_T dubar = +fbar, as in Eq. (4.115) (Box 4.4 prints it
+     * with the opposite sign, which contradicts Eqs. 4.112 and 4.113). The sign of the predictor comes from the secant
+     * criterion (4.123) with the previous incremental displacement dun and factor dlambdan; with no dun (0 rows), lambda
+     * increases.
+     * On convergence the solution is loaded in the mesh; the memory and X() are updated only by Accept.
+     */
+    ArcLengthResult ArcLengthStep(const std::map<int64_t, REAL> &fixed, const TPZFMatrix<STATE> &fbar, REAL lambdan, REAL l,
+                                  const TPZFMatrix<STATE> &dun, REAL dlambdan = 0.,
+                                  const ArcLengthOptions &options = ArcLengthOptions());
+
+    /**
+     * The same increment with the strength reduction factor F as the path parameter, from the converged state X() with
+     * factor Fn: finds u and F with R(u, F) = 0 and Delta u^T Delta u = l^2. R is not linear in F, so the vector fbar of
+     * Box 4.4 becomes fbar = -dR/dF at the current iterate, by a forward difference (one more residual assembly per
+     * iteration). It only has contributions of the plastic points: where no point is plastic, u does not depend on F, the
+     * path is vertical and the increment ends as not converged. Convergence as in Solve: |r| / |weight| < tolu.
+     * The predictor is evaluated just above Fn: at Fn itself the points that were plastic in the converged state are
+     * exactly on the yield surface and the tangent is elastic there, although they load plastically as F grows.
+     */
+    ArcLengthResult ArcLengthStepSRM(const std::map<int64_t, REAL> &fixed, REAL Fn, REAL l, const TPZFMatrix<STATE> &dun,
+                                     REAL dFn = 0., const ArcLengthOptions &options = ArcLengthOptions());
 
     /// Updates the memory with the solution loaded in the mesh and stores it as the converged state
     void Accept();
@@ -137,6 +201,17 @@ public:
     void SetForceReference(REAL f) { fForceRef = f; }
 
 private:
+    /**
+     * Newton iterations of the arc-length increment (Box 4.4). setFactor sets the path parameter in the material.
+     * tangentLoad(lambda, rhs, fbar) returns the vector -dR/dlambda of the current iterate in fbar, given rhs = -R at
+     * lambda; it may assemble residuals, and must leave the factor at lambda. fref is the reference of the residual.
+     * predictorShift: the predictor (first iteration) is evaluated at lambda_n (1 + predictorShift); setFactor is told
+     * whether it is the predictor.
+     */
+    ArcLengthResult ArcLengthIterate(const std::map<int64_t, REAL> &fixed, REAL lambdan, REAL l, const TPZFMatrix<STATE> &dun,
+                                     REAL dlambdan, const ArcLengthOptions &options, REAL fref, REAL predictorShift,
+                                     const std::function<void(REAL, bool)> &setFactor,
+                                     const std::function<void(REAL, const TPZFMatrix<STATE> &, TPZFMatrix<STATE> &)> &tangentLoad);
     void AssembleSystem();
     void AssembleFullResidual();
     void SetFilter(const std::map<int64_t, REAL> &fixed);
