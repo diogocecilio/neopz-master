@@ -382,13 +382,15 @@ struct ResultadoArco {
  * padrao dele (ParamsSRM, ParamsGIM, do estudo de sensibilidade de 43 casos). O FS e o maior fator do caminho de
  * equilibrio, nao o ultimo F em que a Newton convergiu com F prescrito. As propriedades de cada ponto (os campos) ficam:
  * ResetMemory as mantem. fatorMax > 0: o caminho termina ao passar desse fator (com 1, a indicadora FS < 1 e a mesma
- * do caminho completo, como FS_MAX na bissecao).
+ * do caminho completo, como FS_MAX na bissecao). tol > 0 troca a tolerancia da parada (padrao 0,001: dF < tol no
+ * incremento); ela so decide onde o caminho para, entao com tol maior o caminho e um prefixo do de tol menor.
  */
-inline ResultadoArco FatorArco(TPZUnsatAnalysis &an, bool gim, double fatorMax = 0.) {
+inline ResultadoArco FatorArco(TPZUnsatAnalysis &an, bool gim, double fatorMax = 0., double tol = 0.) {
     const auto t0 = Relogio::now();
     ResultadoArco r;
     ParamsArco p = gim ? ParamsGIM() : ParamsSRM();
     if (fatorMax > 0.) p.fatorMax = fatorMax;
+    if (tol > 0.) p.tol = tol;
     const TPZFMatrix<STATE> x(an.NEq(), 1, 0.); // seco: deslocamentos e pressoes nulos
     r.FS = gim ? FactorGIM(an, x, p, &r.saida) : FactorSRMArc(an, x, nullptr, p, &r.saida);
     r.seg = Segundos(t0);
@@ -417,6 +419,7 @@ struct Config {
     /// "bissecao": FatorSRMSeco (lista, bissecao e nova tentativa; usa FS_TOL, FS_F0 e MAXIT_FROZEN); "arco": SRM por
     /// arc-length (FatorArco, com os parametros de ParamsSRM: F0 = 0,6, parada com dF < 0,001, 12 iteracoes por incremento)
     std::string metodo = "bissecao";
+    double arcoTol = 0.; ///< FS_ARCO_TOL: tolerancia da parada do arc-length (0: a de ParamsSRM, 0,001)
     int maxitFrozen = 25; ///< iteracoes de Newton antes de declarar a falta de convergencia num F
     double klMargem = 0.; ///< o retangulo da KL e [-m, L + m] x [-m, zc + m] (m = 0,25 m: o de Liao, ver README)
     double c = 23., phiGraus = 0., E = 1.e5, nu = 0.3, gamma = 20.;
@@ -452,6 +455,7 @@ struct Config {
         cf.fsTol = EnvD("FS_TOL", cf.fsTol);
         cf.fsMax = EnvD("FS_MAX", cf.fsMax);
         cf.metodo = EnvS("FS_METODO", cf.metodo);
+        cf.arcoTol = EnvD("FS_ARCO_TOL", cf.arcoTol);
         cf.klMargem = EnvD("KL_MARGEM", cf.klMargem);
         cf.F0 = EnvD("FS_F0", cf.F0);
         cf.maxitFrozen = EnvI("MAXIT_FROZEN", cf.maxitFrozen);
@@ -480,6 +484,7 @@ struct Config {
         if (!(fsTol > 0.) || !(F0 > 0.) || maxitFrozen < 2) return "FS_TOL > 0, FS_F0 > 0, MAXIT_FROZEN >= 2";
         if (fsMax < 0. || (fsMax > 0. && fsMax <= F0)) return "FS_MAX deve ser 0 (sem limite) ou maior que FS_F0";
         if (metodo != "bissecao" && metodo != "arco") return "FS_METODO deve ser bissecao ou arco";
+        if (arcoTol < 0.) return "FS_ARCO_TOL deve ser >= 0 (0: a de ParamsSRM)";
         if (!(klMargem >= 0.)) return "KL_MARGEM deve ser >= 0";
         if (!(c > 0.) || !(phiGraus >= 0. && phiGraus < 89.) || !(E > 0.) || !(nu > -1. && nu < 0.5) || !(gamma > 0.))
             return "COES > 0, 0 <= PHI_DEG < 89, E > 0, -1 < NU < 0,5 e GAMMA > 0";
@@ -614,7 +619,7 @@ public:
         r.phi = Estatistica(phiG, mod->area);
         r.metodo = cfg.metodo;
         if (cfg.metodo == "arco") {
-            r.arco = FatorArco(*mod->an, false, cfg.fsMax);
+            r.arco = FatorArco(*mod->an, false, cfg.fsMax, cfg.arcoTol);
             r.srm.FS = r.srm.Fparada = r.arco.FS;
             r.srm.F0 = ParamsSRM().F0;
             r.srm.newton = r.arco.saida.iteracoes;

@@ -121,12 +121,14 @@ cenário 2 o determinístico roda antes e as realizações leem o seu `pw.csv`. 
 | seções X-X e Y-Y | [V4] | p_w do permanente (malha de 1 m) × Fig. 3 digitalizada a cada 0,5 m; balanço de água | 1,5 kPa abaixo do lençol (hidrostático; leitura e malha); 2 kPa acima (o ψ_aev desconhecido move o patamar da FXH de 12,5 a 15,6 kPa); lençol a 0,15 m; balanço a 1 % da chuva | passou (23 s) |
 | FS determinístico | [V4] | FS do SRM × 1,525 (Bishop); modo e área da massa × Fig. 2 | ±6 % (SRM × equilíbrio limite em taludes c'-φ', ~5 %, mais ~1 % da sucção menor); ruptura de base; área a 20 % de 44,5 m² | passou (junto com o anterior) |
 | FS por arc-length | [V4] | FS do SRM por arc-length (`FactorSRMArc` de `Comum/RahardjoDriver.h`, o código de 2f92365 do `LearningMohrCoulomb2`), com as mesmas poropressões congeladas, × 1,525 e × a bissecção na mesma malha | ±6 % (as parcelas do teste anterior); arco − bissecção entre −0,5 % e 0,01 + 0,5 % (a bissecção fica até FS_TOL = 0,01 abaixo do limite discreto, o arco até 0,46 % abaixo, o pior caso do estudo de 43 casos de 2f92365) | passou: 1,5932 (22 incrementos, 4 cortes, 122 iterações no caminho, 13 s) contra 1,59375 da bissecção (135 iterações, com as do estado geostático; 13 s) |
+| tolerância do arc-length | [V4] | o mesmo FS com a tolerância de parada 0,01 em vez de 0,001 (o padrão) | só a identidade de prefixo: FS(0,01) ≤ FS(0,001), exatamente | passou: **0,8096** (19 it., 2 s) contra 1,5932 (122 it., 14 s): o caminho para cedo demais |
+| critérios de parada do arc-length | [V4][.lento] | `criterio` 0 e 1 do `ParamsArco`, com tol 0,001 e 0,01, contra a bissecção | só informa | passou (37 s): critério 0: 1,5932 e 0,8096; critério 1: 0,7 com as duas tolerâncias (para no primeiro incremento) |
 | campos de KL | [V4] | qual propriedade varia em cada cenário (Tabela 3); L = √π θ/2 e a troca com α = 90°; média e desvio de ln c', ln φ', ln k num ponto em 400 realizações; correlação com `RHO=-0.5`; reprodutibilidade | 4 erros padrão (desvio esperado = o alvo × √(variância de KL no ponto)); correlação ±0,15 | passou (4 s) |
 | fumaça do Monte Carlo | [V4] | uma realização s3 (α = 0) e uma s2 (α = 90°, permanente lido) pelo contrato (variáveis de ambiente, arquivos e chaves) | FS na faixa dos FS dos cenários 2 e 3 da Fig. 11 (1,0 a 2,3) | passou (36 s) |
-| malha de 0,5 m | [V4][.lento] | os três testes determinísticos (seções, FS por bissecção e por arc-length) na malha do artigo | as mesmas | passou: arc-length 1,5825, bissecção 1,5875 (141 s) |
+| malha de 0,5 m | [V4][.lento] | os três testes determinísticos (seções, FS por bissecção e por arc-length) na malha do artigo | as mesmas | passou: arc-length 1,5825 (155 it., 64 s), bissecção 1,5875 (129 it., 46 s), arc-length com tol 0,01: 0,8071 (149 s) |
 | Monte Carlo curto | [V4][.lento] | 16 realizações de s1 e de s2 (com `RHO=-0.5`) a α = 0, malha de 1 m: média e desvio do FS × Fig. 11 | média: a do artigo vezes o viés determinístico (FS_det/1,525), a 3 erros padrão + 0,02; desvio entre 0,5 e 2 vezes o do artigo | passou (550 s) |
 
-Total dos padrão: ~70 s (6 testes, 162 verificações, todos passaram). Os demorados: `V4_testes "[.lento]"` (~10,5 min,
+Total dos padrão: ~80 s (7 testes, 164 verificações, todos passaram). Os demorados: `V4_testes "[.lento]"` (~10,5 min,
 2 testes, 123 verificações, todos passaram). Tempos nesta máquina, 1 CPU compartilhada.
 
 ## Resultados: artigo × nosso
@@ -168,7 +170,11 @@ Discussão:
   caminho de equilíbrio, em vez do último F convergido com F prescrito) dá 1,593 e 1,582: 0,04 % e 0,32 % abaixo da
   bissecção. Como o F da bissecção convergiu, o limite discreto está acima dele, e a diferença é o erro da parada do
   arc-length (dF < 0,001 por incremento), dentro do pior caso de −0,46 % do estudo de 2f92365. Com a malha de 1 m o
-  custo é o mesmo: 13 s, e 122 iterações no caminho contra 135 da bissecção, contadas com as do estado geostático.
+  custo é o mesmo: 13 s, e 122 iterações no caminho contra 135 da bissecção, contadas com as do estado geostático. Com a
+  malha de 0,5 m o arc-length é mais lento (64 s contra 46 s). Com a tolerância de parada 0,01 em vez de 0,001, o caminho
+  para no início da plastificação: FS = 0,81 com as duas malhas, metade do valor certo. Ali o arco corta o comprimento l
+  várias vezes, os incrementos seguintes sobem só 0,006 a 0,008 em F porque l ficou pequeno, e o critério dF < tol os
+  toma pelo patamar do limite (a discussão completa, com 30 realizações do talude de Cho, está no V2).
 - **Área da massa:** depende do limiar em |du| (de 41 a 55 m² entre 0,5 e 0,1), porque a banda de cisalhamento do MEF
   tem 1-2 elementos de espessura; com 0,5 (o meio da banda) a área fica entre as duas referências do artigo, que já
   diferem entre si (44,5 m² da superfície da Fig. 2 e 40 m² da média do cenário 1).

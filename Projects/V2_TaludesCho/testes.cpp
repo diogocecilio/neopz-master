@@ -415,6 +415,75 @@ TEST_CASE("V2: Monte Carlo: FS_METODO=arco no contrato e na mesma realizacao da 
     CHECK((c.srm.FS < 1.) == (FSa < 1.));
 }
 
+// [.lento] A tolerancia da parada do arc-length: tol = 0,01 contra 0,001 (o padrao de ParamsSRM, do estudo de 2f92365),
+// e os dois contra a bissecao. A tolerancia so decide onde o caminho para (com alpha > 0 no SRM o caminho nunca e
+// vertical): o caminho de tol = 0,01 e um prefixo do de 0,001, entao FS(0,01) <= FS(0,001) e ha menos iteracoes,
+// exatamente (as verificacoes). (1) Deterministico na malha de Liao (h = 0,5 m), cho1 e cho2. (2) As realizacoes 1 a
+// V2_NTOL (padrao 30) do cho1 com h = 1 m: a diferenca de FS realizacao a realizacao, o tempo e quantas trocam de lado
+// em FS = 1. As iteracoes da bissecao sao contadas sem as do estado geostatico, como as do arc-length. Grava
+// tolerancia_arco.csv na pasta corrente.
+TEST_CASE("V2: tolerancia do arc-length (0,01 contra 0,001) e a bissecao", "[V2][.lento]") {
+    struct Linha {
+        std::string caso;
+        int real;
+        double fs[3], seg[3];
+        int it[3];
+    };
+    std::vector<Linha> L;
+    auto itSRM = [](const v2::ResultadoSRM &r) {
+        int n = 0;
+        for (const auto &t : r.tent) if (t.fase == "srm") n += t.iter;
+        return n;
+    };
+    auto roda = [&](v2::Simulador &sim, const std::string &caso, int real, bool campos) {
+        const auto b = sim.Roda(real, campos);
+        REQUIRE(b.situacao == "ok");
+        const auto a3 = v2::FatorArco(*sim.mod->an, false, 0., 0.001);
+        const auto a2 = v2::FatorArco(*sim.mod->an, false, 0., 0.01);
+        CHECK(a2.FS <= a3.FS + 1.e-12);
+        CHECK(a2.saida.iteracoes <= a3.saida.iteracoes);
+        L.push_back({caso, real, {b.srm.FS, a3.FS, a2.FS}, {b.srm.seg, a3.seg, a2.seg},
+                     {itSRM(b.srm), a3.saida.iteracoes, a2.saida.iteracoes}});
+    };
+    for (const std::string caso : {"cho1", "cho2"}) {
+        v2::Simulador sim(CfgTeste(caso, 0.5));
+        roda(sim, caso, 0, false);
+        const auto &l = L.back();
+        WARN(caso << ", h = 0,5 m: bissecao " << l.fs[0] << " (" << l.it[0] << " it., " << l.seg[0] << " s); arco tol 0,001 "
+             << l.fs[1] << " (" << l.it[1] << " it., " << l.seg[1] << " s); arco tol 0,01 " << l.fs[2] << " (" << l.it[2]
+             << " it., " << l.seg[2] << " s)");
+    }
+    const int N = v2::EnvI("V2_NTOL", 30);
+    {
+        auto cf = CfgTeste("cho1", 1.0);
+        v2::Simulador sim(cf);
+        for (int r = 1; r <= N; ++r) roda(sim, "cho1_mc", r, true);
+    }
+    std::ofstream o("tolerancia_arco.csv");
+    o << "caso,real,FS_bissecao,FS_arco_tol0.001,FS_arco_tol0.01,it_bissecao_srm,it_arco_tol0.001,it_arco_tol0.01,"
+         "seg_bissecao,seg_arco_tol0.001,seg_arco_tol0.01\n" << std::setprecision(10);
+    for (const auto &l : L)
+        o << l.caso << ',' << l.real << ',' << l.fs[0] << ',' << l.fs[1] << ',' << l.fs[2] << ',' << l.it[0] << ','
+          << l.it[1] << ',' << l.it[2] << ',' << l.seg[0] << ',' << l.seg[1] << ',' << l.seg[2] << '\n';
+    // resumo do Monte Carlo: diferencas relativas ao FS da bissecao, tempos e trocas de lado em FS = 1
+    double d3 = 0., d2 = 0., m3 = 1.e9, m2 = 1.e9, M3 = -1.e9, M2 = -1.e9, sb = 0., s3 = 0., s2 = 0.;
+    int ib = 0, i3 = 0, i2 = 0, t3 = 0, t2 = 0, n = 0;
+    for (const auto &l : L) {
+        if (l.caso != "cho1_mc") continue;
+        ++n;
+        const double a = (l.fs[1] - l.fs[0]) / l.fs[0], b = (l.fs[2] - l.fs[0]) / l.fs[0];
+        d3 += a, d2 += b, m3 = std::min(m3, a), m2 = std::min(m2, b), M3 = std::max(M3, a), M2 = std::max(M2, b);
+        sb += l.seg[0], s3 += l.seg[1], s2 += l.seg[2], ib += l.it[0], i3 += l.it[1], i2 += l.it[2];
+        t3 += (l.fs[1] < 1.) != (l.fs[0] < 1.);
+        t2 += (l.fs[2] < 1.) != (l.fs[0] < 1.);
+    }
+    REQUIRE(n == N);
+    WARN("cho1, h = 1 m, " << n << " realizacoes, arco - bissecao (relativo): tol 0,001 media " << 100. * d3 / n << "% [" << 100. * m3
+         << "; " << 100. * M3 << "]; tol 0,01 media " << 100. * d2 / n << "% [" << 100. * m2 << "; " << 100. * M2
+         << "]. Tempo total: bissecao " << sb << " s, tol 0,001 " << s3 << " s, tol 0,01 " << s2 << " s. Iteracoes: "
+         << ib << ", " << i3 << ", " << i2 << ". Trocam de lado em FS = 1: tol 0,001 " << t3 << ", tol 0,01 " << t2);
+}
+
 // P_f do cho1 contra 10,12% (Liao, Tabela 2: Monte Carlo simples com 10 000 realizacoes do MEF): V2_NMC realizacoes
 // (padrao 200) por nucleo, malha V2_HMC (padrao 1 m, para caber num PC; o executavel do cluster usa 0,5 m) e a busca do
 // FS censurada em 1 (FS_MAX = 1: a indicadora FS < 1 e a mesma da busca completa). O nucleo gaussiano e o do artigo:

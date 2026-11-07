@@ -691,13 +691,17 @@ public:
     /// FS por SRM com arc-length (FactorSRMArc de Comum/RahardjoDriver.h, o codigo do LearningMohrCoulomb2 do branch
     /// UnsaturatedSoil, commit 2f92365, com os seus parametros padrao, ParamsSRM) e as poropressoes do estado convergido
     /// congeladas, como em FS(), que usa a bissecao. O FS e o maior F do caminho de equilibrio. Sem o mecanismo. Volta ao
-    /// estado de antes no fim (solucao e memoria).
-    InfoFSArco FSArco() {
+    /// estado de antes no fim (solucao e memoria). tol > 0 troca a tolerancia da parada (padrao 0,001); criterio >= 0 troca
+    /// o criterio de parada (ParamsArco::criterio; padrao 0, dF < tol; 1, (dF / l) s < tol).
+    InfoFSArco FSArco(double tol = 0., int criterio = -1) {
         const auto t0 = Relogio::now();
         InfoFSArco r;
         const auto estado = an->X();
         const auto memoria = an->SaveMemory();
-        r.FS = FactorSRMArc(*an, estado, nullptr, ParamsSRM(), &r.saida);
+        ParamsArco par = ParamsSRM();
+        if (tol > 0.) par.tol = tol;
+        if (criterio >= 0) par.criterio = criterio;
+        r.FS = FactorSRMArc(*an, estado, nullptr, par, &r.saida);
         an->SetStrengthReductionFactor(1.);
         an->SetGravityFactor(1.);
         an->SetGravityScalesSuction(true);

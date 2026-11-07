@@ -115,6 +115,7 @@ CASO=cho1 CAMPOS=0 FS_METODO=arco ../V2_TaludesCho       # o mesmo, com o SRM po
 | `H_MALHA`, `ORDEM` | 0,5; 2 | espaçamento da malha (m) e ordem de u |
 | `FS_TOL`, `FS_F0`, `MAXIT_FROZEN` | 0,01; 0,5; 25 | bissecção, fator do estado geostático e iterações de Newton por F |
 | `FS_MAX` | 0 | > 0: busca censurada em FS_MAX (com 1, a indicadora FS < 1 é a mesma; o FS informado é min(FS, 1)); no arc-length, o caminho termina ao passar de FS_MAX |
+| `FS_ARCO_TOL` | 0 | tolerância da parada do arc-length (0: a de `ParamsSRM`, 0,001); ver a discussão: 0,01 não serve |
 | `FS_METODO` | bissecao | `bissecao` (lista, bissecção e nova tentativa) ou `arco` (SRM por arc-length, `ParamsSRM`: F0 = 0,6, parada com dF < 0,001, 12 iterações por incremento; não usa `FS_TOL`, `FS_F0` nem `MAXIT_FROZEN`; se nem com F0 = 0,4 houver equilíbrio geostático, `situacao=sem_equilibrio_geostatico`, contada como ruptura) |
 | `COES`, `PHI_DEG`, `E`, `NU`, `GAMMA` | do caso | o solo |
 | `CAMPOS_CSV` | 0 | 1 grava `campos.csv` (c e φ em cada ponto de integração) |
@@ -168,6 +169,7 @@ testado num cluster.
 | φ = 0 (Tresca) | FS com φ = 0 e φ = 0,001°; FS(2 c_u) = 2 FS(c_u) (h = 1 m) | 0,01 (bissecção); 2,5% na razão | passou: 1,35625, 1,350, 2,7125 (razão 2,000) (44 s) |
 | fumaça do Monte Carlo | contrato do executável numa pasta temporária; 2 realizações do cho1 e 1 do cho2 (h = 1 m) | arquivos e chaves; FS entre 0,5 e 3; campos reprodutíveis | passou: FS = 1,331, 0,919, 1,481; cho2 1,419 (49 s) |
 | Monte Carlo com `FS_METODO=arco` | o contrato com o arc-length (cho1, REAL = 1, h = 1 m) e o FS da mesma realização contra o da bissecção; com FS_MAX = 1, a mesma indicadora FS < 1 | as faixas do cho1 determinístico | passou: arco 1,3303 contra 1,3313 da bissecção na mesma realização (−0,07%); censurado em 1, o arco para em 1,088 (37 iterações) |
+| tolerância do arc-length `[.lento]` | `tol` = 0,001 (padrão) × 0,01 × a bissecção: cho1 e cho2 com h = 0,5 m e as realizações 1 a 30 do cho1 com h = 1 m (`V2_NTOL`); grava `tolerancia_arco.csv` | só a identidade de prefixo: a tolerância só decide onde o caminho para, então FS(0,01) ≤ FS(0,001) e há menos iterações, exatamente; o resto é informado | passou (19 min): ver a discussão |
 | P_f do cho1 `[.lento]` | V2_NMC realizações (200) por núcleo, h = 1 m, FS_MAX = 1 | 10,12% dentro do intervalo de Wilson de 95% (gauss); exp só informado | passou: gauss 9,5% (19/200), Wilson [6,2%; 14,4%]; exp 6,0% (12/200), [3,5%; 10,2%] (1319 s) |
 
 Total do padrão: 11 testes, 345 asserções, todos passaram em 6 min 17 s (no `ctest -j 4`, com os outros projetos ao mesmo
@@ -235,6 +237,28 @@ associado). No cho2 o GIM dá 1,873, 54% acima do SRM: com atrito, aumentar o pe
 atrito, e só a coesão resiste ao aumento (c/(λγH) = N(φ) no GIM e (c/F)/(γH) = N(φ_F) no SRM, com N decrescente
 em φ). O GIM por bissecção antigo (agora `FactorGIMBissecao`) não foi rodado aqui: no estudo de 2f92365 ele chegou a
 −26,9% do limite.
+
+**Tolerância da parada do arc-length.** O `ParamsSRM` para quando um incremento sobe menos que `tol` em F
+(`criterio = 0`). Com 0,001, o padrão do estudo de 2f92365, e com 0,01:
+
+| | bissecção | arco, tol 0,001 | arco, tol 0,01 |
+|---|---|---|---|
+| cho1, h = 0,5 m | 1,34375 (180 it., 60 s) | 1,3414 (129 it., 48 s) | 1,3365 (108 it., 40 s) |
+| cho2, h = 0,5 m | 1,21875 (165 it., 47 s) | 1,2177 (82 it., 29 s) | 1,2158 (72 it., 26 s) |
+| cho1, h = 1 m, 30 realizações: FS − bissecção | — | −0,30% em média (−1,00% a +0,36%) | −9,5% em média (−54,6% a −0,2%) |
+| idem: tempo total; iterações | 458 s; 5143 | 278 s; 2872 | 176 s; 1809 |
+| idem: realizações que trocam de lado em FS = 1 | — | 0 | 3 |
+
+(As iterações da bissecção são contadas sem as do estado geostático, como as do arc-length.) Com 0,01 o caminho para
+cedo demais em 6 das 30 realizações, em F ≈ 0,61, logo depois do estado geostático (F0 = 0,6): o FS sai 34 a 55% abaixo,
+e três realizações que não rompem passam a romper. O critério confunde um incremento pequeno com o patamar do limite, e
+um incremento pode ser pequeno só porque o comprimento l é pequeno: no início do caminho, ou depois de cortes de l
+quando a plastificação começa (no talude de Liu, V4, o mesmo erro dá FS = 0,81 em vez de 1,59). O ganho de tempo de
+0,01 não compensa. Com 0,001, nenhum caso falhou, mas a margem é estreita: no V4 os incrementos depois dos cortes
+tinham dF de 0,006 a 0,008, só 6 a 8 vezes acima de 0,001. O `criterio = 1` do `ParamsArco` não resolve no SRM: ele
+para no primeiro incremento, porque no trecho elástico o deslocamento quase não muda com F. Um critério que não
+dependa do tamanho do passo, como a rigidez corrente relativa (Bergan): (dF/l)/(dF/l) do primeiro incremento < tol,
+evitaria os dois problemas.
 
 **φ = 0.** O Mohr-Coulomb PV2 associado funciona no limite de Tresca: o retorno ao plano principal e às arestas não
 usa cot φ (só o retorno ao ápice usa, e o ápice não existe no Tresca), o FS com φ = 0 e com φ = 0,001° coincide a menos

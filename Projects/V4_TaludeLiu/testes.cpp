@@ -47,6 +47,7 @@ struct Deterministico {
     v4::InfoPermanente perm;
     v4::InfoFS fs;
     v4::InfoFSArco fsArco; ///< o mesmo FS por arc-length
+    v4::InfoFSArco fsArco2; ///< o arc-length com a tolerancia de parada 0,01 (o padrao e 0,001)
     std::vector<std::pair<double, double>> xx, yy; ///< (z, p_w) nas secoes X-X e Y-Y
     std::string pw;                                ///< pw.csv do permanente (para o teste do Monte Carlo)
 };
@@ -63,6 +64,7 @@ const Deterministico &CasoDeterministico(const std::string &malha) {
     t.GravaPw(d.pw);
     d.fs = t.FS();
     d.fsArco = t.FSArco();
+    d.fsArco2 = t.FSArco(0.01);
     return cache[malha] = d;
 }
 
@@ -197,6 +199,40 @@ TEST_CASE("V4: FS por SRM com arc-length contra Bishop (1,525) e contra a bissec
     CHECK(a.FS - d.fs.FS < 0.01 + 0.005 * d.fs.FS);
 }
 
+// A tolerancia da parada do arc-length, 0,01 contra 0,001 (o padrao, do estudo de 2f92365): ela so decide onde o caminho
+// para (no SRM, alpha > 0, o caminho nunca e vertical), entao o caminho de 0,01 e um prefixo do de 0,001 e
+// FS(0,01) <= FS(0,001), com menos iteracoes, exatamente (as verificacoes). A diferenca e o tempo sao informados.
+TEST_CASE("V4: tolerancia do arc-length (0,01 contra 0,001)", "[V4]") {
+    const auto &d = CasoDeterministico("talude_liu_h10.msh");
+    WARN("malha de 1 m: arco tol 0,001 " << d.fsArco.FS << " (" << d.fsArco.saida.iteracoes << " it., " << d.fsArco.seg
+         << " s); tol 0,01 " << d.fsArco2.FS << " (" << d.fsArco2.saida.iteracoes << " it., " << d.fsArco2.seg
+         << " s); bissecao " << d.fs.FS << " (" << d.fs.newton << " it. com o estado geostatico, " << d.fs.seg << " s)");
+    CHECK(d.fsArco2.FS <= d.fsArco.FS + 1.e-12);
+    CHECK(d.fsArco2.saida.iteracoes <= d.fsArco.saida.iteracoes);
+}
+
+// [.lento] Os dois criterios de parada do arc-length (ParamsArco::criterio) com tol = 0,001 e 0,01, na malha de 1 m:
+// 0, dF < tol (o padrao), e 1, (dF / l) s < tol, com s a distancia ao estado geostatico. So informa (FS, iteracoes, tempo,
+// motivo da parada), contra a bissecao; a unica verificacao e a de prefixo do criterio 0 (FS(0,01) <= FS(0,001)).
+TEST_CASE("V4: criterios de parada do arc-length", "[V4][.lento]") {
+    v4::Talude t(ConfigTeste("talude_liu_h10.msh"));
+    REQUIRE(t.Permanente().ok);
+    const auto b = t.FS();
+    std::ostringstream o;
+    o << "malha de 1 m: bissecao " << b.FS << " (" << b.newton << " it. com o geostatico, " << b.seg << " s)";
+    double fs0[2] = {0., 0.};
+    for (int criterio : {0, 1})
+        for (int k = 0; k < 2; ++k) {
+            const double tol = k ? 0.01 : 0.001;
+            const auto a = t.FSArco(tol, criterio);
+            if (criterio == 0) fs0[k] = a.FS;
+            o << "; criterio " << criterio << ", tol " << tol << ": " << a.FS << " (" << a.saida.iteracoes << " it., "
+              << a.saida.incrementos << " incrementos, " << a.saida.cortes << " cortes, " << a.saida.motivo << ", " << a.seg << " s)";
+        }
+    WARN(o.str());
+    CHECK(fs0[1] <= fs0[0] + 1.e-12);
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Verificacao 4: os campos aleatorios de cada cenario (Tabela 3) e a sua estatistica (Tabela 1). s1: so k_s; s2: c' e
 // phi'; s3: os tres. Comprimentos do nucleo exponencial: L = sqrt(pi) theta / 2 (26,59 m e 2,659 m), trocados com
@@ -316,8 +352,11 @@ TEST_CASE("V4: secoes e FS na malha de 0,5 m do artigo", "[V4][.lento]") {
     REQUIRE(d.perm.ok);
     ComparaPerfil(d.xx, LeRef("fig3_secao_xx.csv"), 1.5, 2.0, "X-X (h = 0,5 m)");
     ComparaPerfil(d.yy, LeRef("fig3_secao_yy.csv"), 1.5, 2.0, "Y-Y (h = 0,5 m)");
-    WARN("h = 0,5 m: FS (SRM) = " << d.fs.FS << ", massa " << d.fs.massaArea << " m2, D_f = " << d.fs.Df << " m; por arc-length "
-         << d.fsArco.FS << " (" << d.fsArco.saida.motivo << ")");
+    WARN("h = 0,5 m: FS (SRM) = " << d.fs.FS << " (" << d.fs.newton << " it., " << d.fs.seg << " s), massa " << d.fs.massaArea
+         << " m2, D_f = " << d.fs.Df << " m; por arc-length " << d.fsArco.FS << " (" << d.fsArco.saida.motivo << ", "
+         << d.fsArco.saida.iteracoes << " it., " << d.fsArco.seg << " s); tol 0,01 " << d.fsArco2.FS << " ("
+         << d.fsArco2.saida.iteracoes << " it., " << d.fsArco2.seg << " s)");
+    CHECK(d.fsArco2.FS <= d.fsArco.FS + 1.e-12);
     CHECK(d.fsArco.FS >= 1.525 * 0.94);
     CHECK(d.fsArco.FS <= 1.525 * 1.06);
     CHECK(d.fsArco.FS - d.fs.FS > -0.005 * d.fs.FS);
