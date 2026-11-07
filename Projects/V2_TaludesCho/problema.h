@@ -17,7 +17,8 @@
 // total). Geometria lida das Figs. 2 e 6 (coordenadas no README.md): malha estruturada de triangulos (u quadratico,
 // T6) com espacamento h (0,5 m, o da grade de Liao). Apoios: base fixa nas duas direcoes, laterais fixas na
 // horizontal (Liao, secs. 4.1 e 4.2). O FS e o do SRM do projeto (c/F e tan(phi)/F, fluxo associado), com a nova
-// tentativa do F que falhou do projeto SlopeRandomField (branch UnsaturatedSoil).
+// tentativa do F que falhou do projeto SlopeRandomField (branch UnsaturatedSoil), ou, com FS_METODO=arco, o do SRM por
+// arc-length de LearningMohrCoulomb2 (UnsaturatedSoil, 2f92365); os testes conferem tambem o GIM por arc-length.
 #include "RahardjoDriver.h" // UnsatParams, UnsatMaterial, CreateSlopeCompMesh, DeleteCompMesh, ids dos contornos
 #include "KLGauss.h"        // KL separavel com o nucleo gaussiano (Nystrom) e o exponencial (forma fechada)
 
@@ -366,6 +367,34 @@ inline ResultadoSRM FatorSRMSeco(TPZUnsatAnalysis &an, double F0, double tol, do
     return r;
 }
 
+// ------------------------------------------------------------------------------------------------- FS por arc-length
+
+/// Resultado de FatorArco: o FS e o resumo do caminho (incrementos, cortes de l, iteracoes de Newton, motivo da parada)
+struct ResultadoArco {
+    double FS = -1.; ///< o maior fator do caminho de equilibrio (-1: sem estado geostatico no SRM)
+    SaidaArco saida;
+    double seg = 0.;
+};
+
+/**
+ * FS seco (pressoes nulas e congeladas) por arc-length: FactorSRMArc (gim = false) ou FactorGIM (gim = true) de
+ * Comum/RahardjoDriver.h, o codigo do LearningMohrCoulomb2 (branch UnsaturatedSoil, commit 2f92365), com os parametros
+ * padrao dele (ParamsSRM, ParamsGIM, do estudo de sensibilidade de 43 casos). O FS e o maior fator do caminho de
+ * equilibrio, nao o ultimo F em que a Newton convergiu com F prescrito. As propriedades de cada ponto (os campos) ficam:
+ * ResetMemory as mantem. fatorMax > 0: o caminho termina ao passar desse fator (com 1, a indicadora FS < 1 e a mesma
+ * do caminho completo, como FS_MAX na bissecao).
+ */
+inline ResultadoArco FatorArco(TPZUnsatAnalysis &an, bool gim, double fatorMax = 0.) {
+    const auto t0 = Relogio::now();
+    ResultadoArco r;
+    ParamsArco p = gim ? ParamsGIM() : ParamsSRM();
+    if (fatorMax > 0.) p.fatorMax = fatorMax;
+    const TPZFMatrix<STATE> x(an.NEq(), 1, 0.); // seco: deslocamentos e pressoes nulos
+    r.FS = gim ? FactorGIM(an, x, p, &r.saida) : FactorSRMArc(an, x, nullptr, p, &r.saida);
+    r.seg = Segundos(t0);
+    return r;
+}
+
 // ------------------------------------------------------------------------------------------------------- configuracao
 
 inline double EnvD(const char *k, double d) { const char *v = std::getenv(k); return v && *v ? std::atof(v) : d; }
@@ -385,6 +414,9 @@ struct Config {
     int porder = 2;       ///< ordem de u (2: T6)
     double fsTol = 0.01, F0 = 0.5;
     double fsMax = 0.;    ///< > 0: busca do FS censurada nesse valor (FS_MAX=1 basta para P_f; padrao: sem limite)
+    /// "bissecao": FatorSRMSeco (lista, bissecao e nova tentativa; usa FS_TOL, FS_F0 e MAXIT_FROZEN); "arco": SRM por
+    /// arc-length (FatorArco, com os parametros de ParamsSRM: F0 = 0,6, parada com dF < 0,001, 12 iteracoes por incremento)
+    std::string metodo = "bissecao";
     int maxitFrozen = 25; ///< iteracoes de Newton antes de declarar a falta de convergencia num F
     double klMargem = 0.; ///< o retangulo da KL e [-m, L + m] x [-m, zc + m] (m = 0,25 m: o de Liao, ver README)
     double c = 23., phiGraus = 0., E = 1.e5, nu = 0.3, gamma = 20.;
@@ -419,6 +451,7 @@ struct Config {
         cf.porder = EnvI("ORDEM", cf.porder);
         cf.fsTol = EnvD("FS_TOL", cf.fsTol);
         cf.fsMax = EnvD("FS_MAX", cf.fsMax);
+        cf.metodo = EnvS("FS_METODO", cf.metodo);
         cf.klMargem = EnvD("KL_MARGEM", cf.klMargem);
         cf.F0 = EnvD("FS_F0", cf.F0);
         cf.maxitFrozen = EnvI("MAXIT_FROZEN", cf.maxitFrozen);
@@ -446,6 +479,7 @@ struct Config {
         if (porder < 2) return "ORDEM deve ser >= 2";
         if (!(fsTol > 0.) || !(F0 > 0.) || maxitFrozen < 2) return "FS_TOL > 0, FS_F0 > 0, MAXIT_FROZEN >= 2";
         if (fsMax < 0. || (fsMax > 0. && fsMax <= F0)) return "FS_MAX deve ser 0 (sem limite) ou maior que FS_F0";
+        if (metodo != "bissecao" && metodo != "arco") return "FS_METODO deve ser bissecao ou arco";
         if (!(klMargem >= 0.)) return "KL_MARGEM deve ser >= 0";
         if (!(c > 0.) || !(phiGraus >= 0. && phiGraus < 89.) || !(E > 0.) || !(nu > -1. && nu < 0.5) || !(gamma > 0.))
             return "COES > 0, 0 <= PHI_DEG < 89, E > 0, -1 < NU < 0,5 e GAMMA > 0";
@@ -535,7 +569,9 @@ public:
 struct Realizacao {
     int real = 0;
     bool campos = false;
-    ResultadoSRM srm;
+    std::string metodo = "bissecao";
+    ResultadoSRM srm; ///< com metodo = arco: FS, F0, iteracoes de Newton e tempo do caminho (sem tentativas)
+    ResultadoArco arco;
     Estat c, phi; ///< phi em graus
     std::string situacao = "ok";
     double seg = 0.;
@@ -576,7 +612,14 @@ public:
         for (size_t i = 0; i < phi.size(); ++i) phiG[i] = phi[i] * 180. / M_PI;
         r.c = Estatistica(c, mod->area);
         r.phi = Estatistica(phiG, mod->area);
-        r.srm = FatorSRMSeco(*mod->an, cfg.F0, cfg.fsTol, cfg.fsMax);
+        r.metodo = cfg.metodo;
+        if (cfg.metodo == "arco") {
+            r.arco = FatorArco(*mod->an, false, cfg.fsMax);
+            r.srm.FS = r.srm.Fparada = r.arco.FS;
+            r.srm.F0 = ParamsSRM().F0;
+            r.srm.newton = r.arco.saida.iteracoes;
+            r.srm.seg = r.arco.seg;
+        } else r.srm = FatorSRMSeco(*mod->an, cfg.F0, cfg.fsTol, cfg.fsMax);
         if (!(r.srm.FS > 0.)) r.situacao = "sem_equilibrio_geostatico";
         r.seg = Segundos(t0);
         return r;
@@ -673,7 +716,11 @@ inline int RodaExecucao(const Config &cfg, const std::filesystem::path &pasta = 
         {"phi_med", Num(r.phi.media)}, {"phi_dp", Num(r.phi.dp)}, {"phi_min", Num(r.phi.min)},
         {"phi_max", Num(r.phi.max)}, {"FS_min", Num(r.srm.FS)}, {"FS_parada", Num(r.srm.Fparada)},
         {"F0", Num(r.srm.F0)}, {"FS_max", Num(cfg.fsMax)}, {"tentativas", std::to_string(r.srm.tent.size())},
-        {"newton", std::to_string(r.srm.newton)}, {"situacao", r.situacao}, {"seg", Num(seg)}, {"versao", v}};
+        {"newton", std::to_string(r.srm.newton)}, {"metodo", r.metodo},
+        {"arco_incrementos", r.metodo == "arco" ? std::to_string(r.arco.saida.incrementos) : ""},
+        {"arco_cortes", r.metodo == "arco" ? std::to_string(r.arco.saida.cortes) : ""},
+        {"arco_motivo", r.metodo == "arco" ? r.arco.saida.motivo : ""},
+        {"situacao", r.situacao}, {"seg", Num(seg)}, {"versao", v}};
     std::ostringstream cab, lin;
     for (size_t i = 0; i < res.size(); ++i) {
         cab << (i ? "," : "") << res[i].first;
@@ -683,10 +730,10 @@ inline int RodaExecucao(const Config &cfg, const std::filesystem::path &pasta = 
     std::ostringstream txt;
     txt << "real=" << cfg.real << " FS_min=" << Num(r.srm.FS) << " situacao=" << r.situacao << " seg=" << Num(seg)
         << " caso=" << cfg.caso << " nucleo=" << cfg.nucleo << " campos=" << cfg.campos << " KL_M=" << Musado
-        << " newton=" << r.srm.newton << '\n';
+        << " newton=" << r.srm.newton << " metodo=" << r.metodo << '\n';
     ok = GravaAtomico(pasta / "resultado.txt", txt.str()) && ok; // por ultimo
-    std::cout << "V2 " << cfg.caso << " real " << cfg.real << " (campos " << cfg.campos << ", " << cfg.nucleo
-              << "): FS = " << r.srm.FS << ", " << r.situacao << ", " << seg << " s" << std::endl;
+    std::cout << "V2 " << cfg.caso << " real " << cfg.real << " (campos " << cfg.campos << ", " << cfg.nucleo << ", "
+              << r.metodo << "): FS = " << r.srm.FS << ", " << r.situacao << ", " << seg << " s" << std::endl;
     return ok && r.situacao == "ok" ? 0 : 1;
 }
 

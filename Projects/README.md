@@ -22,11 +22,14 @@ de segurança por redução de resistência (SRM), os campos aleatórios de Karh
 | V1 | o mesmo, com os dados do ar impressos (k_ra ≥ 1%) | −6,95 a −5,28 kPa | −0,58 kPa (10× menor) | não reproduz; teste `[!shouldfail]` |
 | V2 | FS do talude não drenado de Cho (SRM) | 1,369 | 1,344 (−1,8%) | ok |
 | V2 | FS do talude c-φ (SRM) | 1,205 (Bishop); 1,284 (MEF) | 1,219 (+1,2%); o 1,284 não é reproduzido | ok / diferença |
+| V2 | SRM por arc-length (2f92365) nos dois taludes, contra a bissecção | 1,369; 1,205 | 1,341 (−2,0%); 1,218 (+1,1%); −0,17% e −0,09% da bissecção, com 23% e 38% menos tempo | ok |
+| V2 | GIM por arc-length (2f92365): φ = 0 tem o mesmo limite do SRM; com atrito, GIM > SRM | GIM = SRM (teoria) | 1,342 contra 1,341 (+0,06%); c-φ: 1,873 contra 1,218 | ok |
 | V2 | P_f do talude não drenado, campo gaussiano | 10,12% (10.000 simulações) | 9,38%, IC 95% [7,5; 11,6]% (800 simulações) | ok |
 | V3 | vazão da barragem retangular contra Dupuit-Charny (exato) | 1,7168e-2 m³/s/m | +0,31% (efeito da franja capilar; 0,005% com a identidade corrigida) | ok |
 | V3 | ponto de saída, barragens retangular e inclinada | 12,9 m; 3,4 m | 12,5 a 13,0 m; 3,375 a 3,5 m (com a = 2/kPa) | ok |
 | V4 | poropressões permanentes e nível d'água nas seções X-X e Y-Y | Fig. 3 | nível d'água ±0,02 m; sucção na crista 10% menor (permeabilidade FXH aproximada) | ok, com ressalva |
 | V4 | FS determinístico (SRM contra Bishop) | 1,525 | 1,588 (+4,1%) | ok |
+| V4 | o mesmo pelo SRM por arc-length (2f92365) | 1,525 | 1,582 (+3,8%; −0,32% da bissecção) | ok |
 | V5 | mapas de umidade, sucção e LFS (Figs. 4 a 6) | mapas | RMS de θ 0,004 a 0,008; perfis do LFS a 0,02 a 0,05 | ok |
 | V5 | área com LFS < 1 em 15 h | 14,9 m² | 22,8 m² (+53%) | diferença aberta |
 | V6 | desvio da média do campo KL num arco contra a Eq. 14 | Eq. 14 | −0,23% a −0,30% (truncamento de 90%), Monte Carlo dentro de 1,9 erros-padrão | ok |
@@ -53,8 +56,10 @@ pacote `Cluster/`, que compila uma vez para todos.
 - `Comum/`: código compartilhado, só cabeçalhos.
   - `UnsatModel.h`, `UnsatAnalysis.h`, `UnsatProblem.h`, `UnsatFS.h`, `UnsatReference.h` e `UnsatTaylor.h`: o
     modelo, as malhas estruturadas, a análise e os fatores de segurança.
-  - `RahardjoDriver.h`: parâmetros do solo, leitura de malha Gmsh, malhas computacionais, `FactorSRM`, `FactorGIM`,
-    `FactorLoad` e VTK. É o antigo driver do talude de Rahardjo; inclua-o num único `.cpp` por executável.
+  - `RahardjoDriver.h`: parâmetros do solo, leitura de malha Gmsh, malhas computacionais, `FactorSRM` (bissecção),
+    `FactorSRMArc` e `FactorGIM` (arc-length, copiados sem mudanças do `LearningMohrCoulomb2` do branch
+    `UnsaturatedSoil`, commit 2f92365), `FactorGIMBissecao` (o GIM antigo, para comparar), `FactorLoad` e VTK. É o
+    antigo driver do talude de Rahardjo; inclua-o num único `.cpp` por executável.
   - `KLSeparavel.h`: campos de Karhunen-Loève com covariância exponencial separável.
   - `malhas/`: as malhas do talude de Rahardjo.
 - `Cluster/`: scripts para o fermi (SLURM).
@@ -81,4 +86,6 @@ Os testes demorados têm a marca `[.lento]` e ficam fora do `ctest` padrão. Par
 ./V1_LiakopoulosTrifasico/V1_testes "[.lento]"
 ```
 
-Os projetos de antes (Learning*, Unsat*, SlopeRandomField) continuam no branch `UnsaturatedSoil`.
+Os projetos de antes (Learning*, Unsat*, SlopeRandomField) continuam no branch `UnsaturatedSoil`. A biblioteca
+deste branch acompanha a de lá: as mudanças em `Analysis/` e `Material/` entram por merge do `UnsaturatedSoil` (o
+último trouxe o arc-length de `TPZUnsatAnalysis`, commit 2f92365), e os projetos de lá continuam apagados aqui.

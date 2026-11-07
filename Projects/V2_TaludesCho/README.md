@@ -57,12 +57,15 @@ lado do T6) e 2400 no cho2. Liao usou quadriláteros e triângulos do GeoStudio 
 Escolhas nossas, que o artigo não fixa: SRM com c/F e tan φ/F (o FS de Liao vem de outro método), estado geostático
 com F0 = 0,5, lista de F de 0,1 em 0,1 com bissecção até 0,01 e nova tentativa do F que falhou (`FatorSRM` em
 `problema.h`, o `FactorSRMRetry` do `SlopeRandomField`), 25 iterações de Newton por F, semente 20241220. Como cada uma
-afeta a comparação está na discussão.
+afeta a comparação está na discussão. Com `FS_METODO=arco`, o FS vem do SRM por arc-length do `LearningMohrCoulomb2`
+(branch `UnsaturatedSoil`, commit 2f92365), com os parâmetros padrão dele (`ParamsSRM`); os testes conferem também o
+GIM por arc-length.
 
 ## O que o código faz
 
 - `problema.h`: os casos (`Cho1`, `Cho2`), a malha, o modelo (`CreateSlopeCompMesh` e `UnsatMaterial` de
-  `Comum/RahardjoDriver.h`, os pontos de integração com coordenadas e área), o SRM seco, o gerador de campos
+  `Comum/RahardjoDriver.h`, os pontos de integração com coordenadas e área), o SRM seco por bissecção (`FatorSRM`) e
+  por arc-length (`FatorArco`, que chama `FactorSRMArc` ou `FactorGIM` de `Comum/RahardjoDriver.h`), o gerador de campos
   (`GeradorCampos`: KL no retângulo, lognormal, correlação cruzada), o `Simulador` (monta tudo uma vez e roda
   realizações), a execução do contrato (`RodaExecucao`) e o intervalo de Wilson.
 - `KLGauss.h`: KL separável com bases 1D quaisquer. O núcleo **gaussiano** ρ2 = exp(−(dx/h_x)² − (dz/h_z)²) =
@@ -88,10 +91,11 @@ Na pasta de build já configurada (`-DBUILD_PLASTICITY_MATERIALS=ON -DBUILD_PROJ
 ```bash
 cmake --build <build> --target V2_TaludesCho V2_testes -j 2
 cd <build>/Projects/V2_TaludesCho
-./V2_testes                      # os testes padrão (~3,5 min)
+./V2_testes                      # os testes padrão (~6 min)
 V2_NMC=200 ./V2_testes "[.lento]" # P_f do cho1 com os dois núcleos (22 min com 200 realizações cada)
 mkdir r1 && cd r1 && CASO=cho1 REAL=1 ../V2_TaludesCho   # uma realização (~1 min com h = 0,5 m)
 CASO=cho2 CAMPOS=0 ../V2_TaludesCho                      # o caso determinístico (as médias)
+CASO=cho1 CAMPOS=0 FS_METODO=arco ../V2_TaludesCho       # o mesmo, com o SRM por arc-length
 ```
 
 ### Executável: variáveis de ambiente e saídas (o contrato de Monte Carlo)
@@ -110,16 +114,18 @@ CASO=cho2 CAMPOS=0 ../V2_TaludesCho                      # o caso determinístic
 | `KL_MARGEM` | 0 | o retângulo da KL vira [−m, L + m] × [−m, z_c + m] (0,25: o de Liao) |
 | `H_MALHA`, `ORDEM` | 0,5; 2 | espaçamento da malha (m) e ordem de u |
 | `FS_TOL`, `FS_F0`, `MAXIT_FROZEN` | 0,01; 0,5; 25 | bissecção, fator do estado geostático e iterações de Newton por F |
-| `FS_MAX` | 0 | > 0: busca censurada em FS_MAX (com 1, a indicadora FS < 1 é a mesma; o FS informado é min(FS, 1)) |
+| `FS_MAX` | 0 | > 0: busca censurada em FS_MAX (com 1, a indicadora FS < 1 é a mesma; o FS informado é min(FS, 1)); no arc-length, o caminho termina ao passar de FS_MAX |
+| `FS_METODO` | bissecao | `bissecao` (lista, bissecção e nova tentativa) ou `arco` (SRM por arc-length, `ParamsSRM`: F0 = 0,6, parada com dF < 0,001, 12 iterações por incremento; não usa `FS_TOL`, `FS_F0` nem `MAXIT_FROZEN`; se nem com F0 = 0,4 houver equilíbrio geostático, `situacao=sem_equilibrio_geostatico`, contada como ruptura) |
 | `COES`, `PHI_DEG`, `E`, `NU`, `GAMMA` | do caso | o solo |
 | `CAMPOS_CSV` | 0 | 1 grava `campos.csv` (c e φ em cada ponto de integração) |
 | `SO_CAMPOS` | 0 | 1 só grava `campos.csv` da realização (sem SRM nem `resultado.txt`), para ver os campos |
 | `VERBOSO` | 1 | 0 silencia a linha de cada tentativa do SRM |
 
 Saídas na pasta corrente: `fs.csv` (`t_h = 0`, `FS_SRM`, `FS_parada`, `F0`, tentativas, iterações de Newton, s),
-`fs_tentativas.csv` (cada solução da busca), `resumo.csv` (cabeçalho e uma linha: `real`, `caso`, `nucleo`, `KL_M`,
-estatística dos campos, `FS_min`, `situacao`, `seg`, ...) e, por último, `resultado.txt` (gravado num `.tmp`
-renomeado: `real=… FS_min=… situacao=ok seg=… caso=… nucleo=…`). Código de saída 0 em sucesso. Se nem com
+`fs_tentativas.csv` (cada solução da busca; vazio com `FS_METODO=arco`), `resumo.csv` (cabeçalho e uma linha: `real`,
+`caso`, `nucleo`, `KL_M`, estatística dos campos, `FS_min`, `metodo`, os incrementos, cortes e o motivo da parada do
+arc-length, `situacao`, `seg`, ...) e, por último, `resultado.txt` (gravado num `.tmp` renomeado:
+`real=… FS_min=… situacao=ok seg=… caso=… nucleo=… metodo=…`). Código de saída 0 em sucesso. Se nem com
 c/F0 e tan φ/F0 (F0 = 0,5, 0,25 e 0,1) houver equilíbrio geostático, `situacao=sem_equilibrio_geostatico`, `FS_min=-1`
 e código 1: é uma ruptura (FS < 0,1), e `cluster/pf_v2.py` a conta como tal (não ocorreu em nenhuma realização).
 
@@ -157,11 +163,15 @@ testado num cluster.
 | campos: média, CoV, correlação | 20 000 realizações em 6 pontos (defasagens dx = 5, 10 m; dz = 0,5, 1, 2,5 m), núcleos gauss e exp, cho1 e cho2 | 5 erros-padrão contra a expansão truncada; contra o núcleo exato, a cota de Cauchy-Schwarz do resto truncado √((1−v_p)(1−v_q)) mais 5 erros-padrão; r = −0,5 a 5 erros-padrão | passou (0,5 s) |
 | cho1 determinístico | FS do SRM (h = 0,5 m) contra 1,369 e 1,366 | 3%: ~1% método (círculo × SRM), ~1% malha, ~0,7% bissecção; contra o nosso LEM 1,354: 2% | passou: 1,344 (63 s) |
 | cho2 determinístico | FS do SRM (h = 0,5 m) contra 1,205 (Bishop); abaixo de 1,284 (MEF) | 3% em torno de 1,205; 2% em torno do nosso Bishop 1,215 | passou: 1,219 (51 s) |
+| cho1 por arc-length | SRM e GIM por arc-length (h = 0,5 m) contra 1,369 e 1,366, contra a bissecção na mesma malha e entre si | 3% (método e malha); arco − bissecção entre −0,5% e 0,01 + 0,5% (a bissecção fica até 0,01 abaixo do limite discreto, o arco até 0,46% abaixo, o pior caso do estudo de 2f92365); GIM = SRM a 1% (φ = 0: o mesmo limite, e 0,46% + 0,41% das duas paradas) | passou: SRM 1,3414 (129 iterações no caminho, 47 s), GIM 1,3422 (108 iterações, 30 s), bissecção 1,34375 (192 iterações, 12 delas no estado geostático; 61 s) |
+| cho2 por arc-length | o mesmo no c-φ, contra 1,205 (Bishop) e abaixo de 1,284; GIM > SRM | 3%; as faixas do cho1; com atrito e FS > 1, F_SRM < λ_GIM (Taylor: o colapso só depende de c/(γH) e φ) | passou: SRM 1,2177 (82 iterações no caminho, 29 s), GIM 1,8728 (99 iterações, 21 s), bissecção 1,21875 (173 iterações, 8 no estado geostático; 47 s) |
 | φ = 0 (Tresca) | FS com φ = 0 e φ = 0,001°; FS(2 c_u) = 2 FS(c_u) (h = 1 m) | 0,01 (bissecção); 2,5% na razão | passou: 1,35625, 1,350, 2,7125 (razão 2,000) (44 s) |
 | fumaça do Monte Carlo | contrato do executável numa pasta temporária; 2 realizações do cho1 e 1 do cho2 (h = 1 m) | arquivos e chaves; FS entre 0,5 e 3; campos reprodutíveis | passou: FS = 1,331, 0,919, 1,481; cho2 1,419 (49 s) |
+| Monte Carlo com `FS_METODO=arco` | o contrato com o arc-length (cho1, REAL = 1, h = 1 m) e o FS da mesma realização contra o da bissecção; com FS_MAX = 1, a mesma indicadora FS < 1 | as faixas do cho1 determinístico | passou: arco 1,3303 contra 1,3313 da bissecção na mesma realização (−0,07%); censurado em 1, o arco para em 1,088 (37 iterações) |
 | P_f do cho1 `[.lento]` | V2_NMC realizações (200) por núcleo, h = 1 m, FS_MAX = 1 | 10,12% dentro do intervalo de Wilson de 95% (gauss); exp só informado | passou: gauss 9,5% (19/200), Wilson [6,2%; 14,4%]; exp 6,0% (12/200), [3,5%; 10,2%] (1319 s) |
 
-Total do padrão: 8 testes, 321 asserções, todos passaram em 3 min 34 s (num núcleo compartilhado com outras rodadas).
+Total do padrão: 11 testes, 345 asserções, todos passaram em 6 min 17 s (no `ctest -j 4`, com os outros projetos ao mesmo
+tempo).
 
 ## Artigo × nosso resultado
 
@@ -170,7 +180,11 @@ Total do padrão: 8 testes, 321 asserções, todos passaram em 3 min 34 s (num n
 | FS cho1 | 1,369 (Liao); 1,366 (Jiang) | 1,344 (h = 0,5 m) | −1,8%; −1,6% | Liao, seção 4.1 |
 | FS cho1, malhas h = 1; 0,5; 0,25 m | — | 1,356; 1,344; 1,3375 (extrapolado ≈ 1,33) | −2,8% (h = 0,25) | — |
 | FS cho1, equilíbrio limite circular (nosso script) | 1,369 | 1,354 (círculo tangente à base, centro (15, 15), R = 15 m) | −1,1% | — |
+| FS cho1, SRM por arc-length | 1,369 | 1,341 (h = 0,5 m; bissecção 1,344) | −2,0% | Liao, seção 4.1 |
+| FS cho1, GIM por arc-length | — (φ = 0: igual ao SRM) | 1,342 (h = 0,5 m) | +0,06% contra o nosso SRM por arc-length | — |
 | FS cho2 | 1,205 (Bishop); 1,284 (MEF) | 1,219 (h = 0,5 m) | +1,2%; −5,1% | Liao, seção 4.2 |
+| FS cho2, SRM por arc-length | 1,205 (Bishop) | 1,218 (h = 0,5 m; bissecção 1,219) | +1,1% | Liao, seção 4.2 |
+| FS cho2, GIM por arc-length | — | 1,873 (h = 0,5 m) | 1,54 vezes o SRM (com atrito, GIM > SRM) | — |
 | FS cho2, malhas h = 1; 0,5; 0,25 m | — | 1,2375; 1,219; 1,206 | +0,1% (h = 0,25, contra Bishop) | — |
 | FS cho2, Bishop (nosso script) | 1,205; 1,204 (Cho) | 1,215 (centro (22,2; 20,0), R = 15,0 m) | +0,8% | — |
 | autovalores da KL, cho1 | 100,2; 74,7; 46,3; 23,9; 20,2 (Fig. 3) | 100,0; 74,7; 46,3; 24,0; 20,4 (30,5 × 10,5); 98,1; 71,6; 42,6; 20,9; 19,5 (30 × 10) | < 2% (30,5 × 10,5) | Fig. 3, digitalizado |
@@ -201,6 +215,26 @@ SIGMA/W + SLOPE/W, tensões do MEF em superfícies de deslizamento, que num talu
 Bishop); não é um FS de redução de resistência. A consequência esperada para o Monte Carlo do cho2 (não rodado): com
 o FS médio no nível do Bishop, a P_f do nosso SRM deve ficar muito acima de 0,12%, na ordem da do equilíbrio limite
 (1,86%, que porém usou o núcleo ρ1).
+
+**SRM e GIM por arc-length.** O `FactorSRMArc` e o `FactorGIM` do commit 2f92365 (`LearningMohrCoulomb2`, branch
+`UnsaturatedSoil`; copiados sem mudanças em `Comum/RahardjoDriver.h`) seguem o caminho de equilíbrio com o
+arc-length de de Souza Neto et al. (Box 4.4) e dão o maior fator do caminho, em vez do último F em que a Newton
+convergiu com F prescrito. Na malha de Liao, o SRM por arc-length fica 0,17% (cho1: 1,3414 contra 1,34375) e 0,09%
+(cho2: 1,2177 contra 1,21875) abaixo da bissecção. Como a bissecção dá um F convergido, o limite discreto está acima
+dele, e a diferença é o erro da parada do arc-length (dF < 0,001 por incremento), dentro do pior caso de −0,46% do
+estudo de 43 casos de 2f92365. Contra Liao, o arc-length dá −2,0% (cho1) e +1,1% (cho2), os mesmos desvios da
+bissecção. O ganho é de custo: depois do estado geostático, 28% e 50% menos iterações de Newton (129 contra 180; 82
+contra 165) e, no total, 23% e 38% menos tempo (cada iteração do arc-length monta um resíduo a mais, a derivada em F
+por diferença finita). A bissecção gasta 79 e 73 dessas iterações nos F que falham (4 e 5 tentativas), e o arc-length
+não tem F que falham. O GIM tem aqui uma verificação que
+independe do artigo: sem atrito, se σ equilibra o peso λγ com c_u, σ/λ equilibra γ com c_u/λ, e o critério de
+Tresca é homogêneo de grau 1 em σ e c_u. Logo o GIM e o SRM têm o mesmo limite, também no problema discreto. No cho1,
+o GIM por arc-length dá 1,3422, 0,06% acima do SRM por arc-length (o caminho do GIM parte do estado sem tensões, o do
+SRM do geostático com F0 = 0,6: o limite não depende do caminho, como deve ser num material perfeitamente plástico
+associado). No cho2 o GIM dá 1,873, 54% acima do SRM: com atrito, aumentar o peso aumenta também a resistência por
+atrito, e só a coesão resiste ao aumento (c/(λγH) = N(φ) no GIM e (c/F)/(γH) = N(φ_F) no SRM, com N decrescente
+em φ). O GIM por bissecção antigo (agora `FactorGIMBissecao`) não foi rodado aqui: no estudo de 2f92365 ele chegou a
+−26,9% do limite.
 
 **φ = 0.** O Mohr-Coulomb PV2 associado funciona no limite de Tresca: o retorno ao plano principal e às arestas não
 usa cot φ (só o retorno ao ápice usa, e o ápice não existe no Tresca), o FS com φ = 0 e com φ = 0,001° coincide a menos
@@ -244,7 +278,8 @@ não a usa com pressões congeladas). Um passo grande de F pode divergir mesmo h
 F = 1,2 a partir de 1,1 não convergiu, mas convergiu depois da bissecção (incrementos menores). O `FactorSRM` de
 `Comum/RahardjoDriver.h`, sem a nova tentativa do F que falhou, pararia em 1,194 (`FS_parada` em `fs.csv`) em vez de
 1,344, 11% abaixo. Por isso usamos a busca com nova tentativa (`FatorSRM` em `problema.h`). As tentativas que falham
-custam 19-25 iterações e dominam o tempo (~50-65 s por realização com h = 0,5 m).
+custam 19-25 iterações e dominam o tempo (~50-65 s por realização com h = 0,5 m). O SRM por arc-length
+(`FS_METODO=arco`) não tem tentativas que falham com F prescrito: no determinístico com h = 0,5 m, 29 a 47 s.
 
 ## O que precisaria mudar fora do projeto (não alterado aqui)
 
@@ -254,6 +289,10 @@ custam 19-25 iterações e dominam o tempo (~50-65 s por realização com h = 0,
 - `Analysis/TPZUnsatAnalysis.cpp`, `Solve`: com pressões congeladas não há busca linear (ela exige dt > 0 e
   `!frozen`) nem parada por divergência ou estagnação; os passos grandes de F divergem mesmo havendo equilíbrio, e cada
   F que falha gasta 19-25 iterações, a maior parte do tempo do SRM.
+- `FactorSRMArc`, `FactorGIM` e `SegueCaminho` estão em dois lugares: no `LearningMohrCoulomb2/main.cpp` do branch
+  `UnsaturatedSoil` e na cópia de `Comum/RahardjoDriver.h` deste branch. Uma mudança num deles precisa ir para o outro;
+  o melhor seria levá-los para a biblioteca (junto de `ArcLengthStepSRM` em `TPZUnsatAnalysis`) ou para um cabeçalho
+  comum aos dois branches.
 - `Projects/Cluster/mc`: a fila é a do `SlopeRandomField` (executável `bin/SlopeRandomField`, combinações SOLO:chuva,
   `../LearningMohrCoulomb2/cluster/modulos.sh`, que não existe neste branch); para rodar o V2 (e o V4) precisa receber o
   executável, o CASO e trocas VAR=valor livres pelo contrato. Até lá, `V2_TaludesCho/cluster` tem um kit mínimo.

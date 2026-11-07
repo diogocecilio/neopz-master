@@ -315,6 +315,12 @@ struct InfoFS {
     std::string modo;
 };
 
+/// fator de seguranca por SRM com arc-length (FactorSRMArc): o FS e o resumo do caminho de equilibrio
+struct InfoFSArco {
+    double FS = -1., seg = 0.;
+    SaidaArco saida; ///< incrementos, cortes de l, iteracoes de Newton e por que o caminho terminou
+};
+
 /// O talude: malha, analise e as rotinas do caso (contornos, campos, permanente, secoes e FS)
 class Talude {
 public:
@@ -671,6 +677,27 @@ public:
                 PostProcessVTK(*an, "ruptura", 0);
             }
         }
+        an->SetStrengthReductionFactor(1.);
+        an->SetGravityFactor(1.);
+        an->SetGravityScalesSuction(true);
+        an->RestoreMemory(memoria);
+        an->X() = estado;
+        an->Restore();
+        solo->SetFrozenPressures(false);
+        r.seg = Segundos(t0);
+        return r;
+    }
+
+    /// FS por SRM com arc-length (FactorSRMArc de Comum/RahardjoDriver.h, o codigo do LearningMohrCoulomb2 do branch
+    /// UnsaturatedSoil, commit 2f92365, com os seus parametros padrao, ParamsSRM) e as poropressoes do estado convergido
+    /// congeladas, como em FS(), que usa a bissecao. O FS e o maior F do caminho de equilibrio. Sem o mecanismo. Volta ao
+    /// estado de antes no fim (solucao e memoria).
+    InfoFSArco FSArco() {
+        const auto t0 = Relogio::now();
+        InfoFSArco r;
+        const auto estado = an->X();
+        const auto memoria = an->SaveMemory();
+        r.FS = FactorSRMArc(*an, estado, nullptr, ParamsSRM(), &r.saida);
         an->SetStrengthReductionFactor(1.);
         an->SetGravityFactor(1.);
         an->SetGravityScalesSuction(true);

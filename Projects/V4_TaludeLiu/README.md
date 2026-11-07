@@ -120,12 +120,13 @@ cenário 2 o determinístico roda antes e as realizações leem o seu `pw.csv`. 
 | retenção e k_r | [V4] | S da biblioteca × eq. 7 (com C(ψ)); k_r = S^5,57 × FXH (ψ_aev = 2,58 kPa) de 3 a 20 kPa; o patamar k_r = q/k_s | \|ΔS\| ≤ 0,002 (C ≥ 0,9989); \|Δlog₁₀ k_r\| ≤ 0,05 (o resíduo do ajuste é ≤ 9 %); patamar a 5 % | passou (0,2 s) |
 | seções X-X e Y-Y | [V4] | p_w do permanente (malha de 1 m) × Fig. 3 digitalizada a cada 0,5 m; balanço de água | 1,5 kPa abaixo do lençol (hidrostático; leitura e malha); 2 kPa acima (o ψ_aev desconhecido move o patamar da FXH de 12,5 a 15,6 kPa); lençol a 0,15 m; balanço a 1 % da chuva | passou (23 s) |
 | FS determinístico | [V4] | FS do SRM × 1,525 (Bishop); modo e área da massa × Fig. 2 | ±6 % (SRM × equilíbrio limite em taludes c'-φ', ~5 %, mais ~1 % da sucção menor); ruptura de base; área a 20 % de 44,5 m² | passou (junto com o anterior) |
+| FS por arc-length | [V4] | FS do SRM por arc-length (`FactorSRMArc` de `Comum/RahardjoDriver.h`, o código de 2f92365 do `LearningMohrCoulomb2`), com as mesmas poropressões congeladas, × 1,525 e × a bissecção na mesma malha | ±6 % (as parcelas do teste anterior); arco − bissecção entre −0,5 % e 0,01 + 0,5 % (a bissecção fica até FS_TOL = 0,01 abaixo do limite discreto, o arco até 0,46 % abaixo, o pior caso do estudo de 43 casos de 2f92365) | passou: 1,5932 (22 incrementos, 4 cortes, 122 iterações no caminho, 13 s) contra 1,59375 da bissecção (135 iterações, com as do estado geostático; 13 s) |
 | campos de KL | [V4] | qual propriedade varia em cada cenário (Tabela 3); L = √π θ/2 e a troca com α = 90°; média e desvio de ln c', ln φ', ln k num ponto em 400 realizações; correlação com `RHO=-0.5`; reprodutibilidade | 4 erros padrão (desvio esperado = o alvo × √(variância de KL no ponto)); correlação ±0,15 | passou (4 s) |
 | fumaça do Monte Carlo | [V4] | uma realização s3 (α = 0) e uma s2 (α = 90°, permanente lido) pelo contrato (variáveis de ambiente, arquivos e chaves) | FS na faixa dos FS dos cenários 2 e 3 da Fig. 11 (1,0 a 2,3) | passou (36 s) |
-| malha de 0,5 m | [V4][.lento] | os dois testes determinísticos na malha do artigo | as mesmas | passou (82 s) |
+| malha de 0,5 m | [V4][.lento] | os três testes determinísticos (seções, FS por bissecção e por arc-length) na malha do artigo | as mesmas | passou: arc-length 1,5825, bissecção 1,5875 (141 s) |
 | Monte Carlo curto | [V4][.lento] | 16 realizações de s1 e de s2 (com `RHO=-0.5`) a α = 0, malha de 1 m: média e desvio do FS × Fig. 11 | média: a do artigo vezes o viés determinístico (FS_det/1,525), a 3 erros padrão + 0,02; desvio entre 0,5 e 2 vezes o do artigo | passou (550 s) |
 
-Total dos padrão: ~65 s (5 testes, 157 verificações, todos passaram). Os demorados: `V4_testes "[.lento]"` (~10,5 min,
+Total dos padrão: ~70 s (6 testes, 162 verificações, todos passaram). Os demorados: `V4_testes "[.lento]"` (~10,5 min,
 2 testes, 123 verificações, todos passaram). Tempos nesta máquina, 1 CPU compartilhada.
 
 ## Resultados: artigo × nosso
@@ -144,6 +145,7 @@ Total dos padrão: ~65 s (5 testes, 157 verificações, todos passaram). Os demo
 | maior diferença acima / abaixo do lençol, X-X | — | 1,47 / 0,67 kPa | 1,46 / 0,64 kPa | |
 | maior diferença acima / abaixo do lençol, Y-Y | — | 1,24 / 0,24 kPa | 1,23 / 0,28 kPa | |
 | FS | 1,525 (Bishop) | **1,588** (SRM) | 1,594 | **+4,1 %** (+4,5 %) |
+| FS, SRM por arc-length | 1,525 (Bishop) | 1,582 | 1,593 | +3,8 % (+4,5 %); −0,32 % (−0,04 %) contra a bissecção |
 | superfície crítica: entrada, saída, ponto mais baixo | x = 6,8 m, x ≈ 21 m, (15,9; 2,89) m (Fig. 2, digitalizado) | x = 7,1 m, 21,4 m, z = 3,44 m (|du| ≥ 0,5 max); x = 6,4 m, 21,9 m, z = 3,01 m (≥ 0,2) | — | a mesma ruptura de base |
 | D_f e modo | 7,1 m, base | 6,56 m, base (6,99 m com o limiar 0,2) | 6,56 m, base | |
 | área da massa que desliza | 44,5 m² (Fig. 2, digitalizado); 40,1 m² (média do cenário 1, Fig. 8a) | 40,7 m² (limiar 0,5); 46,3 (0,3); 49,7 (0,2); 54,5 (0,1) | 41,3 m² | −9 % e +2 % |
@@ -162,7 +164,11 @@ Discussão:
   ~0,4 m, ponto mais baixo 0,1-0,5 m mais alto, conforme o limiar). A diferença é a esperada entre SRM em elementos
   finitos (Mohr-Coulomb associado, critério de não convergência com 25 iterações) e o equilíbrio limite de Bishop
   simplificado (que despreza as forças cisalhantes entre fatias); a nossa sucção menor puxaria o FS ~1 % para baixo. A
-  malha quase não muda o FS (1,594 com 1 m, 1,588 com 0,5 m).
+  malha quase não muda o FS (1,594 com 1 m, 1,588 com 0,5 m). O SRM por arc-length do commit 2f92365 (o maior F do
+  caminho de equilíbrio, em vez do último F convergido com F prescrito) dá 1,593 e 1,582: 0,04 % e 0,32 % abaixo da
+  bissecção. Como o F da bissecção convergiu, o limite discreto está acima dele, e a diferença é o erro da parada do
+  arc-length (dF < 0,001 por incremento), dentro do pior caso de −0,46 % do estudo de 2f92365. Com a malha de 1 m o
+  custo é o mesmo: 13 s, e 122 iterações no caminho contra 135 da bissecção, contadas com as do estado geostático.
 - **Área da massa:** depende do limiar em |du| (de 41 a 55 m² entre 0,5 e 0,1), porque a banda de cisalhamento do MEF
   tem 1-2 elementos de espessura; com 0,5 (o meio da banda) a área fica entre as duas referências do artigo, que já
   diferem entre si (44,5 m² da superfície da Fig. 2 e 40 m² da média do cenário 1).

@@ -128,6 +128,7 @@ ambiente, e grava CSVs na pasta corrente, com `resultado.txt` por último. Uma e
 mc/submeter_mc.sh V2 4                                       # a campanha padrao do V2 em 4 nos
 CASOS="cho1 cho1:NUCLEO=exp" ULTIMA=2000 mc/submeter_mc.sh V2 2
 CASOS="cho2:FS_MAX=1" mc/submeter_mc.sh V2 2                  # so P_f (busca do FS censurada em 1)
+CASOS="cho1 cho1:FS_METODO=arco" mc/submeter_mc.sh V2 2       # bissecao x SRM por arc-length, mesmas realizacoes
 mc/submeter_mc.sh V4 4                                       # s1, s2 e s3 com ANGULO 0 e 90
 CASOS="s3 s3:RHO=-0.5 s2:ANGULO=90,RHO=-0.5" mc/submeter_mc.sh V4 2
 ```

@@ -26,6 +26,19 @@ double FSDeterministico(const v2::Config &cf, double *seg = nullptr) {
     return r.srm.FS;
 }
 
+// O caso deterministico do SRM por bissecao com a malha de Liao (h = 0,5 m), calculado uma vez por processo: os testes
+// do valor publicado e os do arc-length comparam com ele
+const v2::Realizacao &DeterministicoBissecao(const std::string &caso) {
+    static std::map<std::string, v2::Realizacao> cache;
+    auto it = cache.find(caso);
+    if (it == cache.end()) {
+        v2::Simulador sim(CfgTeste(caso, 0.5));
+        it = cache.emplace(caso, sim.Roda(0, false)).first;
+    }
+    REQUIRE(it->second.situacao == "ok");
+    return it->second;
+}
+
 // dados/autovalores_liao.csv: caso -> autovalores e epsilon (digitalizados das Figs. 3 e 8)
 std::map<std::string, std::vector<std::pair<double, double>>> AutovaloresLiao() {
     std::map<std::string, std::vector<std::pair<double, double>>> m;
@@ -206,8 +219,8 @@ TEST_CASE("V2: malha: os nos da grade de Liao e a area da secao", "[V2]") {
 // ~1% da diferenca de metodo (LEM circular x SRM), ~1% da discretizacao (de h = 1 para 0,5 m o FS caiu 0,9%; ver
 // README) e ~0,7% da bissecao (FS_TOL = 0,01). Contra o nosso LEM: 2%.
 TEST_CASE("V2: cho1 deterministico: FS por SRM contra 1,369 (Liao) e 1,366 (Jiang)", "[V2]") {
-    double seg = 0.;
-    const double FS = FSDeterministico(CfgTeste("cho1", 0.5), &seg);
+    const auto &r = DeterministicoBissecao("cho1");
+    const double FS = r.srm.FS, seg = r.seg;
     WARN("cho1, h = 0,5 m: FS = " << FS << " (" << seg << " s); Liao 1,369, Jiang 1,366, LEM circular 1,354");
     CHECK(FS == Approx(1.369).epsilon(0.03));
     CHECK(FS == Approx(1.366).epsilon(0.03));
@@ -220,13 +233,71 @@ TEST_CASE("V2: cho1 deterministico: FS por SRM contra 1,369 (Liao) e 1,366 (Jian
 // parcelas do cho1). O valor de 1,284 nao e alcancado: o SRM fica ~5% abaixo dele (ver a discussao no README); o
 // teste so confere que o nosso FS esta entre o Bishop menos 3% e esse valor.
 TEST_CASE("V2: cho2 deterministico: FS por SRM contra 1,205 (Bishop) e 1,284 (MEF)", "[V2]") {
-    double seg = 0.;
-    const double FS = FSDeterministico(CfgTeste("cho2", 0.5), &seg);
+    const auto &r = DeterministicoBissecao("cho2");
+    const double FS = r.srm.FS, seg = r.seg;
     WARN("cho2, h = 0,5 m: FS = " << FS << " (" << seg << " s); Liao Bishop 1,205, MEF 1,284; nosso Bishop 1,215");
     CHECK(FS == Approx(1.205).epsilon(0.03));
     CHECK(FS == Approx(1.215).epsilon(0.02));
     CHECK(FS > 1.205 * 0.97);
     CHECK(FS < 1.284);
+}
+
+// ------------------------------------------------------------------------------- FS por arc-length (SRM e GIM)
+
+// O SRM e o GIM por arc-length (FactorSRMArc e FactorGIM de Comum/RahardjoDriver.h, o codigo do LearningMohrCoulomb2
+// do branch UnsaturatedSoil, commit 2f92365, com os seus parametros padrao) no cho1, malha de Liao (h = 0,5 m):
+// (1) SRM contra 1,369 e 1,366: 3%, as parcelas do teste da bissecao (metodo e malha; a da parada agora e 0,1%).
+// (2) SRM contra a bissecao na mesma malha, que tem o mesmo limite discreto F*: a bissecao da o ultimo F convergido,
+//     em [F* - 0,01, F*] se as falhas sao genuinas (FS_TOL = 0,01); o arco da o maior F do caminho, abaixo de F* pelo
+//     erro da parada (dF < 0,001 por incremento; no estudo de 43 casos de 2f92365, -0,46% no pior caso). Logo
+//     FS_arco - FS_bissecao fica entre -0,5% FS e 0,01 + 0,5% FS.
+// (3) Sem atrito, GIM e SRM tem o mesmo limite, tambem no problema discreto: se sigma equilibra o peso lambda gamma com
+//     c_u, sigma / lambda equilibra gamma com c_u / lambda (o criterio de Tresca e homogeneo de grau 1 em sigma e c_u, e
+//     o limite de um material perfeitamente plastico associado nao depende do caminho). A diferenca vem das duas paradas:
+//     1% (0,46% + 0,41%, os piores erros do SRM e do GIM no estudo de 2f92365).
+TEST_CASE("V2: cho1: SRM e GIM por arc-length contra 1,369, a bissecao e entre si (phi = 0)", "[V2]") {
+    const double FSb = DeterministicoBissecao("cho1").srm.FS;
+    v2::Simulador sim(CfgTeste("cho1", 0.5));
+    sim.mod->PropriedadesMedias();
+    const auto srm = v2::FatorArco(*sim.mod->an, false);
+    const auto gim = v2::FatorArco(*sim.mod->an, true);
+    WARN("cho1, h = 0,5 m: SRM por arco " << srm.FS << " (" << srm.saida.incrementos << " incrementos, " << srm.saida.cortes
+         << " cortes, " << srm.saida.iteracoes << " iteracoes, " << srm.saida.motivo << ", " << srm.seg << " s); GIM por arco "
+         << gim.FS << " (" << gim.saida.incrementos << " incrementos, " << gim.saida.cortes << " cortes, "
+         << gim.saida.iteracoes << " iteracoes, " << gim.saida.motivo << ", " << gim.seg << " s); bissecao " << FSb << " ("
+         << DeterministicoBissecao("cho1").srm.newton << " iteracoes); Liao 1,369");
+    CHECK(srm.saida.motivo == "parada");
+    CHECK(gim.saida.motivo == "parada");
+    CHECK(srm.FS == Approx(1.369).epsilon(0.03));
+    CHECK(srm.FS == Approx(1.366).epsilon(0.03));
+    CHECK(srm.FS - FSb > -0.005 * FSb);
+    CHECK(srm.FS - FSb < 0.01 + 0.005 * FSb);
+    CHECK(gim.FS == Approx(srm.FS).epsilon(0.01));
+}
+
+// cho2 (c-phi), malha de Liao: (1) SRM por arc-length contra 1,205 (Bishop), 3% como no teste da bissecao, e abaixo de
+// 1,284 (MEF); (2) contra a bissecao na mesma malha, com as faixas do cho1. (3) GIM > SRM: o colapso de um talude
+// homogeneo so depende de c/(gamma H) e de phi (Taylor): c / (lambda gamma H) = N(phi) no GIM e (c / F) / (gamma H) =
+// N(phi_F) no SRM, com tan(phi_F) = tan(phi) / F e N decrescente em phi; com F > 1, phi_F < phi e F < lambda (com
+// atrito, aumentar o peso aumenta tambem a resistencia por atrito, e so a coesao resiste ao aumento).
+TEST_CASE("V2: cho2: SRM e GIM por arc-length contra 1,205, a bissecao e GIM > SRM (c-phi)", "[V2]") {
+    const double FSb = DeterministicoBissecao("cho2").srm.FS;
+    v2::Simulador sim(CfgTeste("cho2", 0.5));
+    sim.mod->PropriedadesMedias();
+    const auto srm = v2::FatorArco(*sim.mod->an, false);
+    const auto gim = v2::FatorArco(*sim.mod->an, true);
+    WARN("cho2, h = 0,5 m: SRM por arco " << srm.FS << " (" << srm.saida.incrementos << " incrementos, " << srm.saida.cortes
+         << " cortes, " << srm.saida.iteracoes << " iteracoes, " << srm.saida.motivo << ", " << srm.seg << " s); GIM por arco "
+         << gim.FS << " (" << gim.saida.incrementos << " incrementos, " << gim.saida.cortes << " cortes, "
+         << gim.saida.iteracoes << " iteracoes, " << gim.saida.motivo << ", " << gim.seg << " s); bissecao " << FSb << " ("
+         << DeterministicoBissecao("cho2").srm.newton << " iteracoes); Liao Bishop 1,205, MEF 1,284");
+    CHECK(srm.saida.motivo == "parada");
+    CHECK(gim.saida.motivo == "parada");
+    CHECK(srm.FS == Approx(1.205).epsilon(0.03));
+    CHECK(srm.FS < 1.284);
+    CHECK(srm.FS - FSb > -0.005 * FSb);
+    CHECK(srm.FS - FSb < 0.01 + 0.005 * FSb);
+    CHECK(gim.FS > srm.FS);
 }
 
 // phi = 0 (Tresca, o limite do Mohr-Coulomb associado PV2): (1) o FS com phi = 0 e o com phi = 0,001 grau coincidem
@@ -306,6 +377,42 @@ TEST_CASE("V2: Monte Carlo: fumaca (contrato do executavel e realizacoes)", "[V2
     CHECK(q.situacao == "ok");
     CHECK(q.phi.max - q.phi.min > 5.);
     CHECK(q.srm.FS > 0.5);
+}
+
+// O contrato com FS_METODO=arco (malha de 1 m, cho1, REAL = 1): resultado.txt com metodo=arco e situacao=ok, e o FS da
+// mesma realizacao (o mesmo campo) contra o da bissecao com as faixas do teste deterministico do cho1 (-0,5% a
+// 0,01 + 0,5%). Com FS_MAX = 1 o caminho termina ao passar de 1: a indicadora FS < 1 e a mesma do caminho completo.
+TEST_CASE("V2: Monte Carlo: FS_METODO=arco no contrato e na mesma realizacao da bissecao", "[V2]") {
+    namespace fs = std::filesystem;
+    const fs::path pasta = fs::temp_directory_path() / ("v2_arco_" + std::to_string(::getpid()));
+    fs::create_directories(pasta);
+    auto cf = CfgTeste("cho1", 1.0);
+    cf.real = 1;
+    cf.campos = 1;
+    cf.metodo = "arco";
+    REQUIRE(v2::RodaExecucao(cf, pasta) == 0);
+    std::ifstream f(pasta / "resultado.txt");
+    std::stringstream ss;
+    ss << f.rdbuf();
+    const std::string res = ss.str();
+    INFO(res);
+    CHECK(res.find(" situacao=ok ") != std::string::npos);
+    CHECK(res.find(" metodo=arco") != std::string::npos);
+    const double FSa = std::atof(res.substr(res.find("FS_min=") + 7).c_str());
+    fs::remove_all(pasta);
+
+    cf.metodo = "bissecao";
+    v2::Simulador sim(cf);
+    const auto b = sim.Roda(1, true);
+    cf.metodo = "arco";
+    cf.fsMax = 1.;
+    v2::Simulador sa(cf);
+    const auto c = sa.Roda(1, true);
+    WARN("cho1, h = 1 m, real 1: FS por arco " << FSa << ", por bissecao " << b.srm.FS << " (" << b.srm.newton
+         << " iteracoes contra " << c.srm.newton << " do arco censurado em 1, que da " << c.srm.FS << ")");
+    CHECK(FSa - b.srm.FS > -0.005 * b.srm.FS);
+    CHECK(FSa - b.srm.FS < 0.01 + 0.005 * b.srm.FS);
+    CHECK((c.srm.FS < 1.) == (FSa < 1.));
 }
 
 // P_f do cho1 contra 10,12% (Liao, Tabela 2: Monte Carlo simples com 10 000 realizacoes do MEF): V2_NMC realizacoes

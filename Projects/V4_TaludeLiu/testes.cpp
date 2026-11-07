@@ -46,6 +46,7 @@ v4::Config ConfigTeste(const std::string &malha) {
 struct Deterministico {
     v4::InfoPermanente perm;
     v4::InfoFS fs;
+    v4::InfoFSArco fsArco; ///< o mesmo FS por arc-length
     std::vector<std::pair<double, double>> xx, yy; ///< (z, p_w) nas secoes X-X e Y-Y
     std::string pw;                                ///< pw.csv do permanente (para o teste do Monte Carlo)
 };
@@ -61,6 +62,7 @@ const Deterministico &CasoDeterministico(const std::string &malha) {
     d.pw = (std::filesystem::temp_directory_path() / ("v4_pw_" + malha + ".csv")).string();
     t.GravaPw(d.pw);
     d.fs = t.FS();
+    d.fsArco = t.FSArco();
     return cache[malha] = d;
 }
 
@@ -174,6 +176,25 @@ TEST_CASE("V4: FS deterministico por SRM contra Bishop (1,525)", "[V4]") {
     CHECK(d.fs.modo == "base");
     CHECK(d.fs.Df <= 8.5);
     CHECK(std::fabs(d.fs.massaArea / 44.5 - 1.) <= 0.20);
+}
+
+// Verificacao 3b: o FS por SRM com arc-length (FactorSRMArc de Comum/RahardjoDriver.h, o codigo do LearningMohrCoulomb2
+// do branch UnsaturatedSoil, commit 2f92365) com as mesmas poropressoes congeladas: (1) contra Bishop, a faixa de +-6 % do
+// teste da bissecao (as mesmas parcelas: metodo e succao); (2) contra a bissecao na mesma malha, que tem o mesmo limite
+// discreto F*: a bissecao da o ultimo F convergido, em [F* - 0,01, F*] (FS_TOL) se as falhas sao genuinas; o arco da o
+// maior F do caminho, abaixo de F* pelo erro da parada (dF < 0,001; -0,46 % no pior caso do estudo de 43 casos de
+// 2f92365). Logo FS_arco - FS_bissecao fica entre -0,5 % e 0,01 + 0,5 %.
+TEST_CASE("V4: FS por SRM com arc-length contra Bishop (1,525) e contra a bissecao", "[V4]") {
+    const auto &d = CasoDeterministico("talude_liu_h10.msh");
+    const auto &a = d.fsArco;
+    WARN("FS (SRM por arc-length) = " << a.FS << " (" << a.saida.incrementos << " incrementos, " << a.saida.cortes
+         << " cortes, " << a.saida.iteracoes << " iteracoes, " << a.saida.motivo << ", " << a.seg << " s); bissecao "
+         << d.fs.FS << " (" << d.fs.newton << " iteracoes, " << d.fs.seg << " s); Bishop 1,525");
+    CHECK(a.saida.motivo == "parada");
+    CHECK(a.FS >= 1.525 * 0.94);
+    CHECK(a.FS <= 1.525 * 1.06);
+    CHECK(a.FS - d.fs.FS > -0.005 * d.fs.FS);
+    CHECK(a.FS - d.fs.FS < 0.01 + 0.005 * d.fs.FS);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -295,7 +316,12 @@ TEST_CASE("V4: secoes e FS na malha de 0,5 m do artigo", "[V4][.lento]") {
     REQUIRE(d.perm.ok);
     ComparaPerfil(d.xx, LeRef("fig3_secao_xx.csv"), 1.5, 2.0, "X-X (h = 0,5 m)");
     ComparaPerfil(d.yy, LeRef("fig3_secao_yy.csv"), 1.5, 2.0, "Y-Y (h = 0,5 m)");
-    WARN("h = 0,5 m: FS (SRM) = " << d.fs.FS << ", massa " << d.fs.massaArea << " m2, D_f = " << d.fs.Df << " m");
+    WARN("h = 0,5 m: FS (SRM) = " << d.fs.FS << ", massa " << d.fs.massaArea << " m2, D_f = " << d.fs.Df << " m; por arc-length "
+         << d.fsArco.FS << " (" << d.fsArco.saida.motivo << ")");
+    CHECK(d.fsArco.FS >= 1.525 * 0.94);
+    CHECK(d.fsArco.FS <= 1.525 * 1.06);
+    CHECK(d.fsArco.FS - d.fs.FS > -0.005 * d.fs.FS);
+    CHECK(d.fsArco.FS - d.fs.FS < 0.01 + 0.005 * d.fs.FS);
     CHECK(d.fs.FS >= 1.525 * 0.94);
     CHECK(d.fs.FS <= 1.525 * 1.06);
     CHECK(d.fs.modo == "base");
