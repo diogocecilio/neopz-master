@@ -276,7 +276,10 @@ Para retomar, ou para trocar de campanha: `./submeter_mc.sh <nós>`. Ele apaga o
 compilar antes; só um `PARAR` criado durante a compilação faz a cadeia não submeter.
 
 Baixar para o PC: o `status_mc.sh` mostra no fim o comando `rsync`, com o caminho de `$DATA` no fermi. Rode-o no PC,
-não no fermi. Pode ser no meio da rodada; o `rsync` só traz o que mudou. Ele tem esta forma:
+não no fermi. Pode ser no meio da rodada; o `rsync` só traz o que mudou. O destino no PC tem o nome da pasta de
+`SAIDA` (`~/projects/runs/sensibilidade/` com `SAIDA=$DATA/sensibilidade`): as pastas das combinações de uma `SAIDA`
+própria podem ter o mesmo nome que as da campanha principal (`f50_I36_i`) e não podem cair na mesma pasta. Ele tem esta
+forma:
 
 ```bash
 rsync -av --exclude checkpoint.bin --exclude .ativo --exclude .tomada --exclude '.parar.*' --exclude /PARAR --exclude /execucoes.txt --exclude /campanha.txt diogo@fermi.cesup.ufrgs.br:<$DATA>/monte_carlo/ ~/projects/runs/monte_carlo/

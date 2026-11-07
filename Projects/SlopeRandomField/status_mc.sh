@@ -154,9 +154,13 @@ if [ -s "$SAIDA/CONTINUACAO_PENDENTE" ]; then
     echo "ATENCAO: o SLURM recusou a continuacao de um job; quando houver vaga na cota, rode ./submeter_mc.sh <nos>:"
     sed 's/^/  /' "$SAIDA/CONTINUACAO_PENDENTE"
 fi
+# destino no PC com o nome da pasta de SAIDA: com um destino fixo, uma SAIDA propria (como a da sensibilidade) cairia na
+# pasta da campanha principal, e uma pasta de mesmo nome (f50_I36_i) sobrescreveria as realizacoes dela
+saida_real="$(cd "$SAIDA" && pwd -P)"
 echo "resultados em $SAIDA; para baixar, rode NO PC (pode ser no meio da rodada, so vem o que mudou):"
 echo "  rsync -av --exclude checkpoint.bin --exclude .ativo --exclude .tomada --exclude '.parar.*' --exclude /PARAR" \
-    "--exclude /execucoes.txt --exclude /campanha.txt $EU@fermi.cesup.ufrgs.br:$(printf %q "$(cd "$SAIDA" && pwd -P)/") ~/projects/runs/monte_carlo/"
+    "--exclude /execucoes.txt --exclude /campanha.txt $EU@fermi.cesup.ufrgs.br:$(printf %q "$saida_real/")" \
+    "~/projects/runs/$(printf %q "$(basename "$saida_real")")/"
 if [ "${1:-}" = --resumo ]; then
     COMBS="$COMBS" DET=0 VARIANTE="$VARIANTE" SAIDA="$SAIDA" ./rodar_mc.sh --pastas | while read -r sc D DD; do
         [ -d "$D" ] && ./resumo_mc.sh "$D"
