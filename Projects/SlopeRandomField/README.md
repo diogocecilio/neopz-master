@@ -398,9 +398,29 @@ rode o mesmo script num job (o comando está no cabeçalho dele).
 
 - **Precisão:** quem manda é o tamanho dos elementos na região das bandas. A focada de 0,375 m dá o mesmo Γ da malha base,
   com 35% menos equações; a de 0,25 m dá o mesmo da uniforme de 0,1875 m (1,3626 e 1,3632), com 35% das equações.
-- **Arc-length contra bissecção:** de 30 a 60% menos iterações de Newton. Mais rápido até a focada de 0,1875 m; nas
-  maiores (uniforme de 0,1875 m e focada de 0,125 m), 10% mais lento, porque cada iteração do arco custa mais. O valor
-  difere menos de 0,6%, e o da bissecção vem na resolução de 0,00625.
+- **Arc-length contra bissecção:** de 30 a 60% menos iterações de Newton. Com o skyline, mais rápido até a focada de
+  0,1875 m; nas maiores (uniforme de 0,1875 m e focada de 0,125 m), 10% mais lento. Com o PARDISO, no fermi (tabela
+  abaixo), mais rápido em todas. O valor difere menos de 0,6%, e o da bissecção vem na resolução de 0,00625.
+
+No fermi, com o PARDISO, uma rodada por vez (job 14166, `tempos_malhas.sh`, o executável de 93bcac0):
+
+| malha | equações | GIM | Γ (0,01 h) | tempo do fator (s) | iterações de Newton | soluções | tempo total (s) |
+|---|---|---|---|---|---|---|---|
+| focada 0,375 m | 3808 | bissecção | 1,4000 | 14,3 | 120 | 16 | 16,1 |
+| | | arc-length | 1,3981 | 11,7 | 69 | 12 | 13,5 |
+| uniforme 0,375 m (base) | 5858 | bissecção | 1,4062 | 37,6 | 158 | 16 | 40,4 |
+| | | arc-length | 1,4022 | 15,8 | 80 | 13 | 18,5 |
+| focada 0,25 m | 7898 | bissecção | 1,3625 | 49,4 | 144 | 15 | 53,1 |
+| | | arc-length | 1,3626 | 30,5 | 92 | 14 | 34,2 |
+| focada 0,1875 m | 14960 | bissecção | 1,3563 | 81,8 | 171 | 15 | 90,8 |
+| | | arc-length | 1,3576 | 55,9 | 101 | 15 | 65,0 |
+| focada 0,125 m | 27650 | bissecção | 1,3375 | 184,7 | 155 | 15 | 198,0 |
+| | | arc-length | 1,3352 | 107,4 | 93 | 12 | 120,6 |
+
+- Os valores repetem os da máquina sem MKL; só a bissecção na malha base difere, 1,4062 contra 1,4000, um passo da
+  bissecção.
+- O arc-length leva de 18% (focada de 0,375 m) a 58% (base) menos tempo no fator que a bissecção; na focada de
+  0,125 m, 42%.
 
 ### As três fases no fermi (Seções 6.1 a 6.5 do Ceron)
 
