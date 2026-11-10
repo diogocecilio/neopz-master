@@ -352,6 +352,10 @@ int main() {
     // entrando ou saindo, como na Eq. (1) de Vargas Ceron et al. (2025); no lugar da face de percolacao (p_w = 0 so onde a
     // agua sai) e da chuva
     const int superficieP0 = envi("SUPERFICIE_P0", 0);
+    // LATERAIS_SEM_FLUXO=1: as duas laterais sem fluxo, como a base, como no dominio das realizacoes de Vargas Ceron et al.
+    // (2025), Secao 5.2 (Figs. 12 e 13: 20 m x 10 m, com p imposto so no contorno da Eq. 1); HL e HR ficam so no estado
+    // inicial, e a lateral direita nao segue o reservatorio (DIREITA_RES nao vale)
+    const int lateraisSemFluxo = envi("LATERAIS_SEM_FLUXO", 0);
     if (reservatorio && !(Trebaix >= 0.)) { std::cerr << "T_REBAIX_H deve ser >= 0\n"; return 2; }
     // o nivel do reservatorio no instante tt (o de t = 0 e o inicial; no rebaixamento instantaneo, o final logo depois)
     auto nivelEm = [&](REAL tt) -> REAL {
@@ -512,6 +516,7 @@ int main() {
     if (gim) info << " fator=" << fator;
     if (saturado) info << " saturado=1";
     if (superficieP0) info << " superficie_p0=1";
+    if (lateraisSemFluxo) info << " laterais_sem_fluxo=1";
     if (std::getenv("KW")) info << " kw=" << p.Kw;
     if (reservatorio)
         info << " nivel_inicial=" << nivel0 << " nivel_final=" << nivelF << " t_rebaix_h=" << Trebaix / hora
@@ -650,7 +655,7 @@ int main() {
         const REAL h = id == bcEsquerda ? hl : hr;
         for (const auto &b : an->BoundaryNodes(id)) {
             const REAL y = an->Coord(b.first, 1);
-            if (y <= h) {
+            if (!lateraisSemFluxo && y <= h) {
                 contorno[an->WaterEq().at(b.first)] = p.gw * (h - y);
                 (id == bcEsquerda ? eqEsq : eqDir).insert(an->WaterEq().at(b.first));
             }
@@ -728,7 +733,7 @@ int main() {
         }
         // lateral direita com o reservatorio: p_w hidrostatico abaixo do nivel, fluxo nulo acima
         std::set<int64_t> eqDirPasso = eqDir;
-        if (reservatorio && direitaRes) {
+        if (reservatorio && direitaRes && !lateraisSemFluxo) {
             eqDirPasso.clear();
             for (const auto &b : ladoDir) // o canto que tambem e superficie submersa conta so em res_m3
                 if (an->Coord(b.first, 1) <= nivelRes && !(borda.count(b.first) && submerso(b.first)))
@@ -737,7 +742,7 @@ int main() {
         int newtonPasso = 0;
         for (int it = 0; it < 40; it++) {
             auto fixed = contorno;
-            if (reservatorio && direitaRes)
+            if (reservatorio && direitaRes && !lateraisSemFluxo)
                 for (const auto &b : ladoDir) {
                     const int64_t eq = an->WaterEq().at(b.first);
                     const REAL y = an->Coord(b.first, 1);
@@ -859,6 +864,7 @@ int main() {
               << ycrista;
         if (saturado) a << " saturado=1";
         if (superficieP0) a << " superficie_p0=1";
+        if (lateraisSemFluxo) a << " laterais_sem_fluxo=1";
         if (std::getenv("KW")) a << " kw=" << p.Kw;
         a
           << " malha=" << malha

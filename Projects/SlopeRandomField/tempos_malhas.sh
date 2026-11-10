@@ -5,8 +5,8 @@
 # arc-length (gim_arco). Uma rodada por vez, para os tempos serem comparaveis. No fim, a tabela (tambem em
 # <saida>/tempos.md): malha, numero de equacoes, fator, valor, tempo do calculo do fator, iteracoes de Newton do fator,
 # solucoes tentadas (passos da busca ou incrementos do arco) e tempo total da rodada (com o transiente e a montagem).
-# Ambiente: FATORES (padrao "gim gim_arco"), FS_H (padrao 0.01), DT_H (padrao 0.01), SOLVER, EXE; SATURADO, SUPERFICIE_P0
-# e KW passam ao programa (README, "Validacao no limite saturado"); a ultima coluna mostra as que ele aplicou, lidas de
+# Ambiente: FATORES (padrao "gim gim_arco"), FS_H (padrao 0.01), DT_H (padrao 0.01), SOLVER, EXE; SATURADO, SUPERFICIE_P0,
+# KW e LATERAIS_SEM_FLUXO passam ao programa (README, "Validacao no limite saturado"); a ultima coluna mostra as que ele aplicou, lidas de
 # realizacao.txt (um executavel de antes de ef0712b as ignora). No fermi, num job:
 #   sbatch -J tempos -N 1 -n 1 -c 2 --time=04:00:00 -o tempos_%j.out --wrap "source ../LearningMohrCoulomb2/cluster/modulos.sh && ./tempos_malhas.sh \$DATA/tempos_malhas ceron_h5_a45 ceron_h5_a45_fina"
 set -u
@@ -43,7 +43,7 @@ for m in "$@"; do
         fi
         neq="$(grep -o 'neq=[0-9]*' "$d/realizacao.txt" | cut -d= -f2)"
         # as opcoes que o programa aplicou (realizacao.txt so as tem quando as leu: um executavel de antes as ignora)
-        opc="$(grep -o 'saturado=[^ ]*\|superficie_p0=[^ ]*\|kw=[^ ]*' "$d/realizacao.txt" | tr '\n' ' ' | sed 's/ $//')"
+        opc="$(grep -o 'saturado=[^ ]*\|superficie_p0=[^ ]*\|kw=[^ ]*\|laterais_sem_fluxo=[^ ]*' "$d/realizacao.txt" | tr '\n' ' ' | sed 's/ $//')"
         # o fator, o tempo do calculo do fator (ultima coluna de fs.csv) e as iteracoes e tentativas da busca
         read -r fs segf <<< "$(awk -F, 'NR > 1 { v = $2; s = $NF } END { print v, s }' "$d/fs.csv")"
         read -r it nt <<< "$(awk -F, 'NR > 1 { i += $7; n++ } END { print i + 0, n + 0 }' "$d/fs_tentativas.csv")"

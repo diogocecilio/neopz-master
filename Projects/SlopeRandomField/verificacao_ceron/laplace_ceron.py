@@ -4,9 +4,10 @@ h = y + p/gamma_w com div(k grad h) = 0 e k constante, e o contorno da rodada:
   superficie (superficie=1 em pw.csv): p = gamma_w max(nivel - y, 0)  (p = 0 acima do nivel, SUPERFICIE_P0=1);
   lateral esquerda (x = xl), y <= hl: p = gamma_w (hl - y);
   lateral direita (x = xr), y <= nivel: p = gamma_w (nivel - y);
-  base: fluxo nulo.
+  base: fluxo nulo;
+  com o ultimo argumento 'fluxo0' (LATERAIS_SEM_FLUXO=1), as laterais tambem sem fluxo.
 Compara p nos nos com o pw_kPa de pw.csv no instante pedido.
-Uso: python3 -I laplace_ceron.py <pasta da rodada> [t_h=0.01] [nivel=5] [hl=10] [xl=0] [xr=25]"""
+Uso: python3 -I laplace_ceron.py <pasta da rodada> [t_h=0.01] [nivel=5] [hl=10] [xl=0] [xr=25] [fluxo0]"""
 import csv
 import sys
 
@@ -20,6 +21,7 @@ nivel = float(sys.argv[3]) if len(sys.argv) > 3 else 5.
 hl = float(sys.argv[4]) if len(sys.argv) > 4 else 10.
 xl = float(sys.argv[5]) if len(sys.argv) > 5 else 0.
 xr = float(sys.argv[6]) if len(sys.argv) > 6 else 25.
+lateraisSemFluxo = len(sys.argv) > 7 and sys.argv[7] == 'fluxo0'
 gw = 9.81
 
 nos = {}
@@ -54,6 +56,8 @@ fix = {}
 for i in range(N):
     if sup[i]:
         fix[i] = Y[i] + max(nivel - Y[i], 0.)        # h = y + p/gw
+    if lateraisSemFluxo:
+        continue
     if abs(X[i] - xl) < tol and Y[i] <= hl + tol:
         fix[i] = hl
     if abs(X[i] - xr) < tol and Y[i] <= nivel + tol:
