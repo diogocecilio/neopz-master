@@ -401,9 +401,13 @@ rode o mesmo script num job (o comando está no cabeçalho dele).
 
 ### As três fases no fermi (Seções 6.1 a 6.5 do Ceron)
 
-A malha, o instante e o número de realizações ficam a escolher pela verificação acima: o Γ cai com a malha, e o de
-0,01 h é o que fica perto do estado do Ceron. Os comandos abaixo usam a malha de 0,375 m e 0,1 h; para a malha fina, troque
-`MALHA=ceron_h5_a45_fina.msh` (de 4 a 10 vezes mais cara por realização), e para 0,01 h, `FS_H=0.01 DT_H=0.01`.
+Pela verificação acima, os comandos usam:
+- a malha focada de 0,25 m (`ceron_h5_a45_foco25`), com Γ 2% acima do valor da malha mais fina, a cerca de 2 vezes o
+  custo da malha base;
+- o GIM com arc-length (`FATOR=gim_arco`);
+- o fator em 0,01 h (`FS_H=0.01 DT_H=0.01`), o instante que fica perto do estado do Ceron.
+
+Para medir antes o custo de cada malha no fermi, `tempos_malhas.sh` num job (o comando está no cabeçalho dele).
 
 Cada fase numa `SAIDA` própria, 1000 realizações por caso. A realização n usa os mesmos números aleatórios em todos os
 casos. Ao fim de cada fase, `status_mc.sh` com a mesma `SAIDA` mostra o andamento.
@@ -427,7 +431,7 @@ source ../LearningMohrCoulomb2/cluster/modulos.sh && ./compilar.sh && cat bin/ve
 As variáveis comuns às três fases:
 
 ```bash
-export VARIANTE=iii PRIMEIRA=0 ULTIMA=999 DET=1 MALHA=ceron_h5_a45.msh PHI_DEG=30 HL=10 HR=10 XL=0 XR=25 XTOE=15 YTOE=5 XCRISTA=10 YCRISTA=10 NIVEL_FINAL=5 T_REBAIX_H=0 FATOR=gim FS_H=0.1
+export VARIANTE=iii PRIMEIRA=0 ULTIMA=999 DET=1 MALHA=ceron_h5_a45_foco25.msh PHI_DEG=30 HL=10 HR=10 XL=0 XR=25 XTOE=15 YTOE=5 XCRISTA=10 YCRISTA=10 NIVEL_FINAL=5 T_REBAIX_H=0 FATOR=gim_arco FS_H=0.01 DT_H=0.01
 ```
 
 ```bash
@@ -452,11 +456,11 @@ SAIDA=$DATA/ceron_fase1 ./status_mc.sh
 - **Pastas:** `f50_I0_iii` (referência), `f50_I0_iii_<troca>` (por exemplo `f50_I0_iii_covk0.75`,
   `f50_I0_iii_lx40_ly4`, `f50_I0_iii_nivelfinal7.5`) e os determinísticos em `<pasta>_det`. As trocas de 6.2 e 6.3 não
   mudam o determinístico, que é o de `f50_I0_iii_det`.
-- **Custo:** uma realização (um passo de 0,1 h e uma busca do GIM) levou de 50 a 60 s numa máquina sem MKL. Com 48 ao
-  mesmo tempo (4 nós), estimam-se 20 min para a fase 1, 7 h para a fase 2 e 2 h para a fase 3. Os jobs que a cota não
-  deixar rodar esperam os anteriores.
+- **Custo:** o caso determinístico na malha focada de 0,25 m levou 50 s numa máquina sem MKL (tabela acima), 2,2 vezes
+  o da malha base. O custo real no fermi aparece na coluna `min/real` do `status_mc.sh` depois de uns 30 min da fase 1.
+  Os jobs que a cota não deixar rodar esperam os anteriores.
 - **Se a queda instantânea não convergir em muitas realizações** (`situacao` diferente de ok): rode com
-  `T_REBAIX_H=0.1` e `FS_H=0.2` numa outra `SAIDA`.
+  `T_REBAIX_H=0.01` e `FS_H=0.02` numa outra `SAIDA`.
 
 ## Análise de sensibilidade
 
