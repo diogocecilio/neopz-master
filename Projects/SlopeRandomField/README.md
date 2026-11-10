@@ -365,6 +365,40 @@ Casos determinísticos (valores médios), rodados numa máquina sem MKL, nas mal
 - O Γ = 1,336 do Ceron fica perto do nosso fator em 0,01 h, extrapolado na malha. O de 0,1 h é 8% maior: a face já
   drenou.
 
+### Malhas focadas: tempo e precisão
+
+As malhas `ceron_h5_a45_foco*` são grossas fora da região das superfícies críticas. Dentro dela, mais uma folga de
+0,75 m, usam o tamanho hFoco. A região são as bandas de ruptura (√J2 ≥ 0,1 do máximo) do caso determinístico e das
+realizações 0 a 31, calculadas com o GIM com arc-length em 0,01 h na malha `ceron_h5_a45`: x de 8,15 a 16,76 m e y de
+4,26 a 9,95 m. As `ceron_h5_a45_h025` e `_h0125` são as uniformes perto da superfície, como a base.
+
+Caso determinístico do exemplo (rebaixamento até o pé, Γ em 0,01 h), rodado com `tempos_malhas.sh` numa máquina sem MKL
+(solver skyline), duas rodadas ao mesmo tempo. Os tempos servem para comparar as linhas entre si; no fermi, com o PARDISO,
+rode o mesmo script num job (o comando está no cabeçalho dele).
+
+| malha | triângulos | equações | GIM | Γ (0,01 h) | erro vs Ceron (1,336) | tempo do fator (s) | iterações de Newton | soluções | tempo total (s) |
+|---|---|---|---|---|---|---|---|---|---|
+| focada 0,375 m (`foco375`) | 720 | 3808 | bissecção | 1,4000 | +4,8% | 19,3 | 162 | 16 | 20,5 |
+| | | | arc-length | 1,3981 | +4,6% | 10,0 | 69 | 12 | 11,2 |
+| uniforme 0,375 m (base) | 1103 | 5858 | bissecção | 1,4000 | +4,8% | 37,7 | 188 | 16 | 39,4 |
+| | | | arc-length | 1,4022 | +5,0% | 21,0 | 80 | 13 | 22,8 |
+| focada 0,25 m (`foco25`) | 1520 | 7898 | bissecção | 1,3625 | +2,0% | 66,9 | 179 | 15 | 69,9 |
+| | | | arc-length | 1,3626 | +2,0% | 46,7 | 92 | 14 | 49,6 |
+| uniforme 0,25 m (`h025`) | 2458 | 12798 | bissecção | 1,3813 | +3,4% | 121,8 | 161 | 15 | 128,3 |
+| | | | arc-length | 1,3781 | +3,2% | 121,9 | 109 | 16 | 128,6 |
+| focada 0,1875 m (`foco1875`) | 2906 | 14960 | bissecção | 1,3562 | +1,5% | 184,3 | 170 | 15 | 193,1 |
+| | | | arc-length | 1,3576 | +1,6% | 160,8 | 101 | 15 | 169,6 |
+| uniforme 0,1875 m (`fina`) | 4377 | 22558 | bissecção | 1,3687 | +2,5% | 329,7 | 155 | 15 | 344,6 |
+| | | | arc-length | 1,3632 | +2,0% | 367,5 | 109 | 14 | 381,4 |
+| focada 0,125 m (`foco125`) | 5426 | 27650 | bissecção | 1,3375 | +0,1% | 469,7 | 132 | 15 | 492,0 |
+| | | | arc-length | 1,3352 | −0,1% | 525,0 | 93 | 12 | 546,5 |
+
+- **Precisão:** quem manda é o tamanho dos elementos na região das bandas. A focada de 0,375 m dá o mesmo Γ da malha base,
+  com 35% menos equações; a de 0,25 m dá o mesmo da uniforme de 0,1875 m (1,3626 e 1,3632), com 35% das equações.
+- **Arc-length contra bissecção:** de 30 a 60% menos iterações de Newton. Mais rápido até a focada de 0,1875 m; nas
+  maiores (uniforme de 0,1875 m e focada de 0,125 m), 10% mais lento, porque cada iteração do arco custa mais. O valor
+  difere menos de 0,6%, e o da bissecção vem na resolução de 0,00625.
+
 ### As três fases no fermi (Seções 6.1 a 6.5 do Ceron)
 
 A malha, o instante e o número de realizações ficam a escolher pela verificação acima: o Γ cai com a malha, e o de
