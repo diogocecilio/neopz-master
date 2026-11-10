@@ -5,7 +5,8 @@
 # arc-length (gim_arco). Uma rodada por vez, para os tempos serem comparaveis. No fim, a tabela (tambem em
 # <saida>/tempos.md): malha, numero de equacoes, fator, valor, tempo do calculo do fator, iteracoes de Newton do fator,
 # solucoes tentadas (passos da busca ou incrementos do arco) e tempo total da rodada (com o transiente e a montagem).
-# Ambiente: FATORES (padrao "gim gim_arco"), FS_H (padrao 0.01), DT_H (padrao 0.01), SOLVER, EXE. No fermi, num job:
+# Ambiente: FATORES (padrao "gim gim_arco"), FS_H (padrao 0.01), DT_H (padrao 0.01), SOLVER, EXE; SATURADO, SUPERFICIE_P0
+# e KW passam ao programa (README, "Validacao no limite saturado"). No fermi, num job:
 #   sbatch -J tempos -N 1 -n 1 -c 2 --time=04:00:00 -o tempos_%j.out --wrap "source ../LearningMohrCoulomb2/cluster/modulos.sh && ./tempos_malhas.sh \$DATA/tempos_malhas ceron_h5_a45 ceron_h5_a45_fina"
 set -u
 PKG="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -46,6 +47,8 @@ for m in "$@"; do
     done
 done
 {
+    echo "SATURADO=${SATURADO:-0} SUPERFICIE_P0=${SUPERFICIE_P0:-0} KW=${KW:-padrao} FS_H=$FS_H DT_H=$DT_H"
+    echo
     echo "| malha | equações | fator | valor | tempo do fator (s) | iterações de Newton do fator | soluções tentadas | tempo total (s) |"
     echo "|---|---|---|---|---|---|---|---|"
     printf '%s\n' "${linhas[@]}"

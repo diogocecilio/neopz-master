@@ -199,6 +199,9 @@ Cada combinação tem o seu próprio Monte Carlo, porque cada uma é um problema
 | `NIVEL_FINAL` | vazio | reservatório: com ele definido, o nível d'água externo cai de `NIVEL_INICIAL` (padrão `HR`) a `NIVEL_FINAL` (m) em `T_REBAIX_H` horas (padrão 0: de uma vez, logo depois de t = 0); ver "Exemplo do Ceron" |
 | `XCRISTA`, `YCRISTA`, `XTOE`, `YTOE` | 30, 30, 40, 20 | reservatório: a crista e o pé, vértices da superfície da malha; a carga da água na face é normal a ela |
 | `DIREITA_RES` | 1 | reservatório: 1 põe a lateral direita, abaixo do nível, com p_w hidrostático do reservatório; 0 a deixa com a carga `HR` do início |
+| `SUPERFICIE_P0` | 0 | 1 impõe p_w = 0 em toda a superfície acima do nível do reservatório (sem reservatório, em toda ela), com a água entrando ou saindo, no lugar da face de percolação e da chuva (Eq. 1 do Ceron) |
+| `SATURADO` | 0 | 1 deixa o solo saturado em qualquer pressão: S_w = 1, dS_w/dp_w = 0 e k_rw = 1 (Gardner com a_G = 0); o `SOLO` só dá k_s, e o GIM escala também p_w < 0 (ver "Validação no limite saturado") |
+| `KW` | 2.2e6 | módulo volumétrico da água (kPa); 1e30 a deixa incompressível |
 | `FS_H` | 0,12,24,36,48 | instantes do FS (h); o transiente vai até o maior |
 | `COV_C`, `COV_PHI`, `COV_K` | 0.3, 0.1, 0.6 | coeficientes de variação de c', φ' e k_v |
 | `LX`, `LY`, `ALFA` | 20, 2, 1 | distâncias de autocorrelação (m) e k_h/k_v |

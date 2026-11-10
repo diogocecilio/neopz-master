@@ -154,11 +154,13 @@ static REAL FactorSRMRetry(TPZUnsatAnalysis &an, const TPZFMatrix<STATE> &x, REA
 // GIM (aumento da gravidade, Eq. 20.2 da formulacao do material), o fator de estabilidade Gamma de Vargas Ceron et al.
 // (2025): um multiplicador das cargas. Parte do estado sem tensoes, com a resistencia real e as pressoes de x congeladas;
 // lambda multiplica o peso, a pressao equivalente positiva (p_B > 0: as forcas de percolacao na zona saturada) e a carga
-// do reservatorio, e a succao fica como esta (SetGravityScalesSuction(false), como FactorGIM do projeto). lambda percorre
-// a lista lams; no primeiro que falha, bissecao ate a diferenca ser menor que tol, com a nova tentativa do lambda que
-// falhou (como FactorSRMRetry). Lparada, tent e Xant como em FactorSRMRetry (tent: fase "gim", g = lambda)
+// do reservatorio, e a succao fica como esta (SetGravityScalesSuction(false), como FactorGIM do projeto); com escalaSuccao
+// (SATURADO=1), lambda multiplica toda a pressao, tambem p_w < 0, como o Gamma do Ceron (Eq. 54: o peso e as forcas de
+// percolacao, -grad p, juntos). lambda percorre a lista lams; no primeiro que falha, bissecao ate a diferenca ser menor
+// que tol, com a nova tentativa do lambda que falhou (como FactorSRMRetry). Lparada, tent e Xant como em FactorSRMRetry
+// (tent: fase "gim", g = lambda)
 static REAL FactorGIMRetry(TPZUnsatAnalysis &an, const TPZFMatrix<STATE> &x, REAL tol, const std::vector<REAL> &lams,
-                           REAL &Lparada, std::vector<TentativaSRM> &tent, TPZFMatrix<STATE> &Xant)
+                           REAL &Lparada, std::vector<TentativaSRM> &tent, TPZFMatrix<STATE> &Xant, bool escalaSuccao)
 {
     an.ResetMemory(); // mantem as propriedades de cada ponto (os campos)
     TPZFMatrix<STATE> &X = an.X();
@@ -168,7 +170,7 @@ static REAL FactorGIMRetry(TPZUnsatAnalysis &an, const TPZFMatrix<STATE> &x, REA
     an.Restore();
     const auto fixed = an.FrozenFixed(X);
     an.SetStrengthReductionFactor(1.);
-    an.SetGravityScalesSuction(false);
+    an.SetGravityScalesSuction(escalaSuccao);
     Lparada = -1.;
     Xant = X;
     REAL lok = 0., lfail = -1.;
@@ -224,10 +226,11 @@ static REAL NormaLivreArco(const TPZFMatrix<STATE> &v, const std::map<int64_t, R
 // 4.4), com o comprimento l ajustado para cerca de 10 iteracoes por incremento, ate a parada (d lambda < 0,001, medido no l
 // pedido), lambda >= 10, l < 1e-4 |u_ref| ou 100 incrementos. O fator e o maior lambda do caminho, que nao depende de a
 // Newton convergir com lambda prescrito perto do limite. Como em FactorGIMRetry, lambda multiplica o peso, a pressao
-// equivalente positiva e a carga do reservatorio, e a succao fica. Lparada: o lambda no fim do caminho; motivo: por que
-// terminou; tent e Xant como em FactorGIMRetry (fase "gim_arco", g = lambda de cada incremento)
+// equivalente positiva e a carga do reservatorio, e a succao fica (com escalaSuccao, toda a pressao escala). Lparada: o
+// lambda no fim do caminho; motivo: por que terminou; tent e Xant como em FactorGIMRetry (fase "gim_arco", g = lambda de
+// cada incremento)
 static REAL FactorGIMArco(TPZUnsatAnalysis &an, const TPZFMatrix<STATE> &x, REAL &Lparada, std::vector<TentativaSRM> &tent,
-                          TPZFMatrix<STATE> &Xant, std::string &motivo)
+                          TPZFMatrix<STATE> &Xant, std::string &motivo, bool escalaSuccao)
 {
     const REAL lam0 = 0.5, tol = 0.001, l0 = 0.25, lMaxR = 2., lMinR = 1.e-4, fatorMax = 10.;
     const REAL cresceMax = 2., reduzMax = 0.5, corte = 0.5;
@@ -240,7 +243,7 @@ static REAL FactorGIMArco(TPZUnsatAnalysis &an, const TPZFMatrix<STATE> &x, REAL
     an.Restore();
     const auto fixed = an.FrozenFixed(X);
     an.SetStrengthReductionFactor(1.);
-    an.SetGravityScalesSuction(false);
+    an.SetGravityScalesSuction(escalaSuccao);
     const int itAntes = an.MaxItFrozen();
     an.SetMaxItFrozen(maxIt);
     Lparada = -1.;
@@ -345,6 +348,10 @@ int main() {
     const REAL Trebaix = envd("T_REBAIX_H", 0.) * hora;
     const REAL xcrista = envd("XCRISTA", 30.), ycrista = envd("YCRISTA", 30.);
     const int direitaRes = envi("DIREITA_RES", 1);
+    // SUPERFICIE_P0=1: p_w = 0 em toda a superficie acima do nivel do reservatorio (sem reservatorio, em toda ela), com a agua
+    // entrando ou saindo, como na Eq. (1) de Vargas Ceron et al. (2025); no lugar da face de percolacao (p_w = 0 so onde a
+    // agua sai) e da chuva
+    const int superficieP0 = envi("SUPERFICIE_P0", 0);
     if (reservatorio && !(Trebaix >= 0.)) { std::cerr << "T_REBAIX_H deve ser >= 0\n"; return 2; }
     // o nivel do reservatorio no instante tt (o de t = 0 e o inicial; no rebaixamento instantaneo, o final logo depois)
     auto nivelEm = [&](REAL tt) -> REAL {
@@ -403,6 +410,15 @@ int main() {
     p.coupled = variante == "i" || variante == "ii";
     p.E = envd("E", p.E); p.nu = envd("NU", p.nu); p.c = envd("COES", p.c); p.phi = envd("PHI_DEG", p.phi * 180. / M_PI) * M_PI / 180.;
     p.gamma = envd("GAMMA", p.gamma); p.ks = envd("KS", p.ks); p.n = envd("POROS", p.n);
+    // SATURADO=1: o mesmo material com o solo saturado em qualquer pressao, S_w = 1, dS_w/dp_w = 0 e k_rw = 1 (Gardner com
+    // a_G = 0); com chi = 1, a tensao efetiva e a de Terzaghi tambem com p_w < 0, como no solo saturado de Vargas Ceron et
+    // al. (2025). O SOLO so da k_s. KW: o modulo volumetrico da agua (kPa); muito grande (1e30), a agua e incompressivel e,
+    // com SATURADO=1 e a variante iii, nao ha armazenamento: cada passo da a percolacao permanente com o contorno do fim do
+    // passo, o problema hidraulico do Ceron (Eqs. 19 e 20)
+    const int saturado = envi("SATURADO", 0);
+    if (saturado) p.hydro.fRetention = TPZUnsaturatedHydraulics::EGardner, p.hydro.fAG = 0., p.hydro.fSwr = 0.;
+    p.Kw = envd("KW", p.Kw);
+    if (!(p.Kw > 0.)) { std::cerr << "KW deve ser > 0\n"; return 2; }
 
     // ---- estatistica dos campos (Vargas Ceron et al. 2025, Tabela 2): CoV(c') 30%, CoV(phi') 10%, CoV(k_v) 60%,
     // Lx = 20 m, Ly = 2 m, alpha = k_h/k_v = 1; medias de c', phi' e k_s do solo de Rahardjo; M = 2000 termos de KL
@@ -494,6 +510,9 @@ int main() {
          << " solver=" << (TPZUnsatAnalysis::UsesPardiso() ? "pardiso" : "skyline")
          << " neq=" << an->NEq() << " pontos=" << ips.size() << " real=" << real << " campos=" << campos;
     if (gim) info << " fator=" << fator;
+    if (saturado) info << " saturado=1";
+    if (superficieP0) info << " superficie_p0=1";
+    if (std::getenv("KW")) info << " kw=" << p.Kw;
     if (reservatorio)
         info << " nivel_inicial=" << nivel0 << " nivel_final=" << nivelF << " t_rebaix_h=" << Trebaix / hora
              << " direita_res=" << direitaRes;
@@ -705,7 +724,7 @@ int main() {
         auto tentativa = saida;
         for (const auto &b : borda) {
             if (submerso(b.first)) tentativa.erase(b.first);
-            else if (an->X().GetVal(an->WaterEq().at(b.first), 0) > tolP) tentativa.insert(b.first);
+            else if (superficieP0 || an->X().GetVal(an->WaterEq().at(b.first), 0) > tolP) tentativa.insert(b.first);
         }
         // lateral direita com o reservatorio: p_w hidrostatico abaixo do nivel, fluxo nulo acima
         std::set<int64_t> eqDirPasso = eqDir;
@@ -740,7 +759,7 @@ int main() {
             const TPZFMatrix<STATE> sol = cmesh->Solution();
             auto nova = tentativa;
             for (const auto &b : borda) {
-                if (submerso(b.first)) continue;
+                if (submerso(b.first) || superficieP0) continue; // SUPERFICIE_P0: a superficie fica em p_w = 0
                 const int64_t eq = an->WaterEq().at(b.first);
                 if (tentativa.count(b.first)) {
                     if (R.GetVal(eq, 0) / (dt * b.second) > chuva + tolQ) nova.erase(b.first);
@@ -756,13 +775,16 @@ int main() {
                     pwmax = std::max(pwmax, pw);
                 }
                 for (const auto &b : borda) {
+                    const int64_t eqb = an->WaterEq().at(b.first);
+                    const bool canto = eqEsq.count(eqb) > 0; // o canto com a lateral esquerda conta so em esq_m3
                     if (submerso(b.first)) { // a chuva sobre o reservatorio nao entra no solo
-                        qRes += R.GetVal(an->WaterEq().at(b.first), 0);
+                        if (!canto) qRes += R.GetVal(eqb, 0);
                         continue;
                     }
                     chuvaPot += chuva * b.second * dt;
-                    if (tentativa.count(b.first)) infFace += R.GetVal(an->WaterEq().at(b.first), 0);
-                    else infFluxo += chuva * b.second * dt;
+                    if (tentativa.count(b.first)) {
+                        if (!canto) infFace += R.GetVal(eqb, 0);
+                    } else infFluxo += chuva * b.second * dt;
                 }
                 for (auto e : eqEsq) qEsq += R.GetVal(e, 0);
                 for (auto e : eqDirPasso) qDir += R.GetVal(e, 0);
@@ -1104,8 +1126,8 @@ int main() {
             REAL Fparada = -1.;
             TPZFMatrix<STATE> Xant;
             std::string motivoArco;
-            const REAL F = arco ? FactorGIMArco(*an, estado, Fparada, tent, Xant, motivoArco)
-                         : gim  ? FactorGIMRetry(*an, estado, fsTol, Ldenso, Fparada, tent, Xant)
+            const REAL F = arco ? FactorGIMArco(*an, estado, Fparada, tent, Xant, motivoArco, saturado != 0)
+                         : gim  ? FactorGIMRetry(*an, estado, fsTol, Ldenso, Fparada, tent, Xant, saturado != 0)
                                 : FactorSRMRetry(*an, estado, F0, fsTol, Fdenso, Fparada, tent, Xant);
             if (arco && motivoArco != "parada")
                 std::cerr << "t = " << t / hora << " h: o caminho do GIM terminou sem o criterio de parada (" << motivoArco << ")\n";
@@ -1127,7 +1149,7 @@ int main() {
                                                      an->NodalDisplacement(an->X(), e.first, 1)));
                 if (vtkSteps.count(step)) {
                     if (gim) {
-                        an->SetGravityScalesSuction(false);
+                        an->SetGravityScalesSuction(saturado != 0);
                         an->SetGravityFactor(F);
                     } else an->SetStrengthReductionFactor(F);
                     PostProcessVTK(*an, "ruptura", step);
