@@ -319,29 +319,78 @@ O caso de referência da Seção 6 de Vargas Ceron et al. (2025), com o material
 - **Diferenças em relação ao artigo:** o Ceron resolve o fluxo permanente saturado, com p = 0 imposto na crista e na
   face. Aqui o fluxo é transiente e não saturado: a crista é face de percolação, e o solo acima da superfície freática
   dessatura.
-- **Instantes do FS:** `FS_H=0,0.1,1,6,24`. t = 0 é antes do rebaixamento, com a água sobre o talude. t = 0,1 h é logo
-  depois; o solo saturado é incompressível, então as pressões já são as do fluxo com o nível novo, como no artigo. Os
-  outros instantes acompanham a drenagem.
+- **Fator:** o Γ do Ceron é um multiplicador das cargas, Γ = P_mr / (P_γ + P_u). Por isso o caso roda com `FATOR=gim`:
+  o aumento da gravidade multiplica o peso, a pressão equivalente positiva (as forças de percolação na zona saturada) e a
+  carga do reservatório, e a sucção fica como está, como no `FactorGIM` do projeto. O padrão, `FATOR=srm`, é o fator de
+  segurança por redução de resistência das campanhas de chuva.
+  - Com o GIM, as colunas `FS_SRM` e `FS_parada` de `fs.csv` e o FS de `resumo.csv` e `resultado.txt` guardam o fator do
+    GIM: os nomes ficam, para o pós-processamento. `resumo.csv` ganha a coluna `fator`.
+- **Instante:** um só, como no Ceron, `FS_H=0.1` (0,1 h depois da queda, com o passo de tempo padrão de 0,1 h).
+  - Logo depois da queda, o fator sobe sem patamar. No caso determinístico (valores médios), com o SRM: 2,325 antes do
+    rebaixamento; 1,063 (0,001 h), 1,156 (0,003 h), 1,206 (0,01 h), 1,225 (0,03 h), 1,244 (0,1 h), 1,306 (1 h),
+    1,413 (6 h) e 1,469 (24 h). Cada valor até 0,1 h foi calculado com um passo só até o instante; com passos de
+    0,01 h, o de 0,1 h dá 1,25.
+  - Com o GIM, o determinístico dá 1,40 em 0,01 h e 1,525 em 0,1 h; o Ceron tem Γ = 1,336.
+  - Até uns 0,01 h, a pressão no solo saturado ainda está se ajustando ao nível novo, e o volume de água quase não
+    muda. Depois, a face drena, e o volume cai dez vezes mais rápido de 0,01 a 0,1 h.
+  - Para ter também 0,01 h: `FS_H=0.01,0.1` com `DT_H=0.01`, ao dobro do custo.
 - **Resultados:** `passos.csv` ganha no fim `nivel_m` (o nível do reservatório) e `res_m3` (a água que entra pelo
   reservatório no passo, negativa se sai), que entra também no resíduo do balanço.
 
-No fermi, 1000 realizações e o determinístico, numa `SAIDA` própria:
+### As três fases no fermi (Seções 6.1 a 6.5 do Ceron)
+
+Cada fase numa `SAIDA` própria, 1000 realizações por caso. A realização n usa os mesmos números aleatórios em todos os
+casos. Ao fim de cada fase, `status_mc.sh` com a mesma `SAIDA` mostra o andamento.
+
+| fase | `SAIDA` | casos | seções do Ceron |
+|---|---|---|---|
+| 1 | `$DATA/ceron_fase1` | referência (h_w/H = 1) e o determinístico | Fig. 24, Fig. 25 e 6.1 (Spearman) |
+| 2 | `$DATA/ceron_fase2` | CoV(k_v) 0; 0,75; 0,9; 1. CoV(c) 0,1; 0,5; 0,7. CoV(φ) 0,05; 0,15; 0,2. s = 1,5; 2; 5; 10; 20; 400. α = 2; 3; 4; 5 (com os determinísticos) | 6.2, 6.3 e 6.4 |
+| 3 | `$DATA/ceron_fase3` | h_w/H = 0,5; 0,6; 0,7; 0,8; 0,9 (nível final de 7,5 a 5,5 m, com os determinísticos) | 6.5 |
 
 ```bash
 cd ~/neopz-master && git pull origin UnsaturatedSoil && cd Projects/SlopeRandomField
 ```
 
+Compilar antes, no nó de login (1 a 2 min: só o programa mudou), e conferir que `bin/versao.txt` tem o commit novo:
+
 ```bash
-SAIDA=$DATA/ceron COMBS="f50:0" VARIANTE=iii PRIMEIRA=0 ULTIMA=999 DET=1 MALHA=ceron_h5_a45.msh PHI_DEG=30 HL=10 HR=10 XL=0 XR=25 XTOE=15 YTOE=5 XCRISTA=10 YCRISTA=10 NIVEL_FINAL=5 T_REBAIX_H=0 FS_H=0,0.1,1,6,24 ./submeter_mc.sh 4
+source ../LearningMohrCoulomb2/cluster/modulos.sh && ./compilar.sh && cat bin/versao.txt
+```
+
+As variáveis comuns às três fases:
+
+```bash
+export VARIANTE=iii PRIMEIRA=0 ULTIMA=999 DET=1 MALHA=ceron_h5_a45.msh PHI_DEG=30 HL=10 HR=10 XL=0 XR=25 XTOE=15 YTOE=5 XCRISTA=10 YCRISTA=10 NIVEL_FINAL=5 T_REBAIX_H=0 FATOR=gim FS_H=0.1
 ```
 
 ```bash
-SAIDA=$DATA/ceron ./status_mc.sh
+SAIDA=$DATA/ceron_fase1 COMBS="f50:0" FORCAR_SEM_COMPILAR=1 ./submeter_mc.sh 4
 ```
 
-A pasta da combinação é `f50_I0_iii`, e a do determinístico, `f50_I0_iii_det`. Se o passo logo depois do rebaixamento
-instantâneo não convergir (`situacao` diferente de ok no `resumo.csv`), use outra `SAIDA` com o rebaixamento gradual,
-por exemplo `T_REBAIX_H=1` com `FS_H=0,1,2,6,24`.
+```bash
+SAIDA=$DATA/ceron_fase2 COMBS="f50:0:COV_K=0 f50:0:COV_K=0.75 f50:0:COV_K=0.9 f50:0:COV_K=1 f50:0:COV_C=0.1 f50:0:COV_C=0.5 f50:0:COV_C=0.7 f50:0:COV_PHI=0.05 f50:0:COV_PHI=0.15 f50:0:COV_PHI=0.2 f50:0:LX=30,LY=3 f50:0:LX=40,LY=4 f50:0:LX=100,LY=10 f50:0:LX=200,LY=20 f50:0:LX=400,LY=40 f50:0:LX=8000,LY=800 f50:0:ALFA=2 f50:0:ALFA=3 f50:0:ALFA=4 f50:0:ALFA=5" FORCAR_SEM_COMPILAR=1 ./submeter_mc.sh 4
+```
+
+```bash
+SAIDA=$DATA/ceron_fase3 COMBS="f50:0:NIVEL_FINAL=7.5 f50:0:NIVEL_FINAL=7 f50:0:NIVEL_FINAL=6.5 f50:0:NIVEL_FINAL=6 f50:0:NIVEL_FINAL=5.5" FORCAR_SEM_COMPILAR=1 ./submeter_mc.sh 4
+```
+
+```bash
+SAIDA=$DATA/ceron_fase1 ./status_mc.sh
+```
+
+- **Compilação:** com o executável já compilado, as três fases são submetidas com `FORCAR_SEM_COMPILAR=1`. Assim,
+  nenhum job começa com um executável velho, que ignoraria o reservatório e o GIM. A coluna `versao` do `resumo.csv` de
+  cada realização mostra o commit com que ela rodou.
+- **Pastas:** `f50_I0_iii` (referência), `f50_I0_iii_<troca>` (por exemplo `f50_I0_iii_covk0.75`,
+  `f50_I0_iii_lx40_ly4`, `f50_I0_iii_nivelfinal7.5`) e os determinísticos em `<pasta>_det`. As trocas de 6.2 e 6.3 não
+  mudam o determinístico, que é o de `f50_I0_iii_det`.
+- **Custo:** uma realização (um passo de 0,1 h e uma busca do GIM) levou de 50 a 60 s numa máquina sem MKL. Com 48 ao
+  mesmo tempo (4 nós), estimam-se 20 min para a fase 1, 7 h para a fase 2 e 2 h para a fase 3. Os jobs que a cota não
+  deixar rodar esperam os anteriores.
+- **Se a queda instantânea não convergir em muitas realizações** (`situacao` diferente de ok): rode com
+  `T_REBAIX_H=0.1` e `FS_H=0.2` numa outra `SAIDA`.
 
 ## Análise de sensibilidade
 

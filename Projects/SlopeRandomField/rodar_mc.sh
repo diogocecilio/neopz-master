@@ -5,7 +5,8 @@
 # COMBS="f10:9 f50:80 ..." (solo:chuva), em ordem intercalada (a realizacao 0 de todas, depois a 1, ...); DET=1 poe antes
 # o caso deterministico (CAMPOS=0, as medias) de cada uma, e CAMPOS=0 roda so os deterministicos. Uma entrada pode trocar
 # parametros so para ela (estudos de sensibilidade), em pasta propria: COMBS="f50:36:COV_C=0.5 f50:36:LX=40,LY=4
-# f50:36:ALFA=2" (COV_C, COV_PHI, COV_K, LX, LY, ALFA, KL_M, F_TRANS; o deterministico so muda com ALFA e F_TRANS).
+# f50:36:ALFA=2" (COV_C, COV_PHI, COV_K, LX, LY, ALFA, KL_M, F_TRANS, KRA_MIN, AR_LATERAIS, NIVEL_FINAL; o deterministico
+# so muda com ALFA, F_TRANS, KRA_MIN, AR_LATERAIS e NIVEL_FINAL).
 # F_TRANS (variantes acopladas i e ii): a resistencia do transiente e c'/F_TRANS, tan(phi')/F_TRANS. Com 1 (o padrao) o
 # FS do SRM nao cai abaixo de 1 (o transiente esta sempre em equilibrio, e a dilatancia segura o talude no limite);
 # F_TRANS=0.5 deixa o esqueleto elastico no transiente e o FS livre: COMBS="f50:36:F_TRANS=0.5" (ver README.md).
@@ -21,7 +22,7 @@
 # Avisos (parametros recusados, disjuntor) tambem vao para $SAIDA/AVISOS, que status_mc.sh mostra.
 # Ambiente: VARIANTE (iii, ii, i), MALHA (rahardjo_a45.msh ou rahardjo_a45_fina.msh), FS_H, COV_C, COV_PHI, COV_K, LX, LY,
 # ALFA, KL_M, SEMENTE, EXE, SAIDA, PARALELO, COMB (nome da pasta, com uma combinacao so); reservatorio (o exemplo do
-# Ceron, README.md): NIVEL_INICIAL, NIVEL_FINAL, T_REBAIX_H, XCRISTA, YCRISTA, DIREITA_RES. CSV opcionais: PW_CSV,
+# Ceron, README.md): NIVEL_INICIAL, NIVEL_FINAL, T_REBAIX_H, XCRISTA, YCRISTA, DIREITA_RES; FATOR (srm ou gim). CSV opcionais: PW_CSV,
 # MEC_CSV, CAMPOS_CSV (1 = grava, o padrao). VTK: CAMPOS_VTK=1 grava campos.vtk, VTK_H=24 o mecanismo de ruptura em
 # t = 24 h; SO_CAMPOS=1 so gera os campos (campos.vtk e campos.csv) das realizacoes pedidas, sem simular.
 set -u
@@ -43,7 +44,7 @@ export SAIDA_MC="${SAIDA:-$PKG/resultados_mc}"
 # entradas de COMBS: <solo>:<chuva>[:VAR=valor,...], separadas por espaco (ou por virgula antes do solo); VAR troca um
 # parametro do programa so nessa entrada, que vai para a sua propria pasta (f50:36:COV_C=0.5 -> f50_I36_iii_covc0.5)
 COMBS="$(echo ${COMBS:-${SOLO:-f50}:${I_MM_H:-36}} | sed -E 's/,(f10|f50|f100):/ \1:/g')"
-VARS_MC='COV_C|COV_PHI|COV_K|LX|LY|ALFA|KL_M|F_TRANS|KRA_MIN|AR_LATERAIS'
+VARS_MC='COV_C|COV_PHI|COV_K|LX|LY|ALFA|KL_M|F_TRANS|KRA_MIN|AR_LATERAIS|NIVEL_FINAL'
 NUM_MC='[0-9]+([.][0-9]+)?'
 RE_MC="^(f10|f50|f100):$NUM_MC(:($VARS_MC)=$NUM_MC(,($VARS_MC)=$NUM_MC)*)?$"
 for sc in $COMBS; do
@@ -74,7 +75,7 @@ export BOOT_MC
 [ "$MODO" = rodar ] && mkdir -p "$SAIDA_MC"
 
 # partes <entrada>: s (solo), i (chuva), x (as trocas VAR=valor, ou -) e xd (as que mudam o deterministico: ALFA,
-# F_TRANS, KRA_MIN e AR_LATERAIS)
+# F_TRANS, KRA_MIN, AR_LATERAIS e NIVEL_FINAL)
 partes() {
     local r="${1#*:}" e d=""
     s="${1%%:*}" i="${r%%:*}" x=- xd=-
@@ -84,6 +85,7 @@ partes() {
     for e in ${x//,/ }; do [ "${e%%=*}" = F_TRANS ] && d="${d:+$d,}$e"; done
     for e in ${x//,/ }; do [ "${e%%=*}" = KRA_MIN ] && d="${d:+$d,}$e"; done
     for e in ${x//,/ }; do [ "${e%%=*}" = AR_LATERAIS ] && d="${d:+$d,}$e"; done
+    for e in ${x//,/ }; do [ "${e%%=*}" = NIVEL_FINAL ] && d="${d:+$d,}$e"; done
     xd="${d:--}"
 }
 # pasta <solo> <chuva> <campos> [<trocas>]: a pasta da combinacao (o deterministico em <combinacao>_det)
@@ -334,9 +336,9 @@ trap 'rm -rf "$INST_MC"' EXIT
 # recusada (use outra SAIDA, ou uma entrada de COMBS com as trocas)
 VARS_PARAM="MESH TCHUVA_H DT_H FS_H TF_H XL XR HW BETA_DEG SUCMAX XTOE YTOE HL HR CHUVA_VERTICAL FS_TOL FS_F0 MAX_CORTES E NU
 COES PHI_DEG GAMMA KS POROS SEMENTE COV_C COV_PHI COV_K LX LY ALFA KL_M KL_FRAC SOLVER TOLU TOLP MAXIT MAXIT_FROZEN F_TRANS
-KRA_MIN AR_LATERAIS NIVEL_INICIAL NIVEL_FINAL T_REBAIX_H XCRISTA YCRISTA DIREITA_RES"
+KRA_MIN AR_LATERAIS NIVEL_INICIAL NIVEL_FINAL T_REBAIX_H XCRISTA YCRISTA DIREITA_RES FATOR"
 # variaveis acrescentadas depois: so entram em parametros.txt quando definidas, para as pastas de antes continuarem valendo
-VARS_PARAM_NOVAS=" F_TRANS KRA_MIN AR_LATERAIS NIVEL_INICIAL NIVEL_FINAL T_REBAIX_H XCRISTA YCRISTA DIREITA_RES "
+VARS_PARAM_NOVAS=" F_TRANS KRA_MIN AR_LATERAIS NIVEL_INICIAL NIVEL_FINAL T_REBAIX_H XCRISTA YCRISTA DIREITA_RES FATOR "
 parametros() { # parametros <trocas>: uma linha por variavel, VAR=valor (- se nao definida, o padrao do programa)
     local v val e
     for v in $VARS_PARAM; do

@@ -151,6 +151,63 @@ static REAL FactorSRMRetry(TPZUnsatAnalysis &an, const TPZFMatrix<STATE> &x, REA
     return Fok;
 }
 
+// GIM (aumento da gravidade, Eq. 20.2 da formulacao do material), o fator de estabilidade Gamma de Vargas Ceron et al.
+// (2025): um multiplicador das cargas. Parte do estado sem tensoes, com a resistencia real e as pressoes de x congeladas;
+// lambda multiplica o peso, a pressao equivalente positiva (p_B > 0: as forcas de percolacao na zona saturada) e a carga
+// do reservatorio, e a succao fica como esta (SetGravityScalesSuction(false), como FactorGIM do projeto). lambda percorre
+// a lista lams; no primeiro que falha, bissecao ate a diferenca ser menor que tol, com a nova tentativa do lambda que
+// falhou (como FactorSRMRetry). Lparada, tent e Xant como em FactorSRMRetry (tent: fase "gim", g = lambda)
+static REAL FactorGIMRetry(TPZUnsatAnalysis &an, const TPZFMatrix<STATE> &x, REAL tol, const std::vector<REAL> &lams,
+                           REAL &Lparada, std::vector<TentativaSRM> &tent, TPZFMatrix<STATE> &Xant)
+{
+    an.ResetMemory(); // mantem as propriedades de cada ponto (os campos)
+    TPZFMatrix<STATE> &X = an.X();
+    X = x;
+    for (int64_t i = 0; i < an.NEq(); i++)
+        if (!an.IsPressure(i)) X(i, 0) = 0.;
+    an.Restore();
+    const auto fixed = an.FrozenFixed(X);
+    an.SetStrengthReductionFactor(1.);
+    an.SetGravityScalesSuction(false);
+    Lparada = -1.;
+    Xant = X;
+    REAL lok = 0., lfail = -1.;
+    size_t next = 0;
+    while (true) {
+        REAL lam;
+        bool retry = false;
+        if (lfail > 0.) {
+            if (lfail - lok < tol) {
+                if (Lparada < 0.) Lparada = lok;
+                lam = lfail;
+                retry = true;
+            } else lam = 0.5 * (lok + lfail);
+        } else {
+            while (next < lams.size() && lams[next] <= lok) next++;
+            if (next == lams.size()) break;
+            lam = lams[next];
+        }
+        an.SetGravityFactor(lam);
+        const auto t0 = Relogio::now();
+        const auto r = an.Solve(0., fixed, {}, true);
+        tent.push_back({"gim", lam, 1., r.conv, retry, r.iter, Segundos(t0)});
+        if (r.conv) {
+            Xant = an.X();
+            an.Accept();
+            lok = lam;
+            if (retry) lfail = -1.;
+        } else {
+            an.Restore();
+            if (retry) break;
+            lfail = lam;
+        }
+    }
+    if (Lparada < 0.) Lparada = lok;
+    an.SetGravityScalesSuction(true);
+    an.SetGravityFactor(1.);
+    return lok;
+}
+
 int main() {
     const auto inicio = Relogio::now();
     const int porder = 2;
@@ -186,6 +243,12 @@ int main() {
     REAL nivelRes = nivel0; // o nivel do ultimo estado aceito, lido pela carga da superficie (SRM e variantes acopladas)
     const int verticalRain = envi("CHUVA_VERTICAL", 0);
     const REAL fsTol = envd("FS_TOL", 0.01), F0 = envd("FS_F0", 0.6);
+    // FATOR: srm (padrao), o fator de seguranca por reducao de resistencia; gim, o fator de estabilidade por aumento das
+    // cargas (o Gamma de Vargas Ceron et al. 2025). Com gim, as colunas FS_SRM e FS_parada de fs.csv e o FS de resumo.csv
+    // e resultado.txt guardam o fator do GIM (os nomes ficam, para o pos-processamento)
+    const std::string fator = envs("FATOR", "srm");
+    if (fator != "srm" && fator != "gim") { std::cerr << "FATOR deve ser srm ou gim\n"; return 2; }
+    const bool gim = fator == "gim";
     // F_TRANS: fator de reducao de resistencia durante o transiente das variantes acopladas (i e ii; na iii o esqueleto e
     // rigido e nao plastifica). 1: a resistencia real. Entao cada estado do transiente esta em equilibrio com ela e, com
     // fluxo associado (teorema do limite inferior), o FS do SRM com essas pressoes fica >= 1: quando a chuva levaria o
@@ -318,6 +381,7 @@ int main() {
          << " f_trans=" << fTrans << " kra_min=" << p.hydro.fKraMin << " ar_laterais=" << arLaterais
          << " solver=" << (TPZUnsatAnalysis::UsesPardiso() ? "pardiso" : "skyline")
          << " neq=" << an->NEq() << " pontos=" << ips.size() << " real=" << real << " campos=" << campos;
+    if (gim) info << " fator=gim";
     if (reservatorio)
         info << " nivel_inicial=" << nivel0 << " nivel_final=" << nivelF << " t_rebaix_h=" << Trebaix / hora
              << " direita_res=" << direitaRes;
@@ -785,6 +849,10 @@ int main() {
     for (REAL f = 0.7; f < 3.05; f += 0.1) Fdenso.push_back(std::round(f * 10.) / 10.);
     Fdenso.push_back(3.5);
     Fdenso.push_back(4.);
+    // GIM: a partir do estado sem tensoes, lambda = 0,25 e 0,5 antes da lista do SRM; acima de 4, 5, 6, 8 e 10
+    std::vector<REAL> Ldenso = {0.25, 0.5};
+    Ldenso.insert(Ldenso.end(), Fdenso.begin(), Fdenso.end());
+    for (REAL l : {5., 6., 8., 10.}) Ldenso.push_back(l);
     const int nsteps = int(std::lround(Tf / Dt));
     std::set<int> fsSteps, vtkSteps;
     for (double h : fsH) fsSteps.insert(int(std::lround(h * hora / Dt)));
@@ -923,7 +991,8 @@ int main() {
             std::vector<TentativaSRM> tent;
             REAL Fparada = -1.;
             TPZFMatrix<STATE> Xant;
-            const REAL F = FactorSRMRetry(*an, estado, F0, fsTol, Fdenso, Fparada, tent, Xant);
+            const REAL F = gim ? FactorGIMRetry(*an, estado, fsTol, Ldenso, Fparada, tent, Xant)
+                               : FactorSRMRetry(*an, estado, F0, fsTol, Fdenso, Fparada, tent, Xant);
             int newtonF = 0;
             for (size_t k = 0; k < tent.size(); ++k) {
                 const auto &q = tent[k];
@@ -941,7 +1010,10 @@ int main() {
                     uMax = std::max(uMax, std::hypot(an->NodalDisplacement(an->X(), e.first, 0),
                                                      an->NodalDisplacement(an->X(), e.first, 1)));
                 if (vtkSteps.count(step)) {
-                    an->SetStrengthReductionFactor(F);
+                    if (gim) {
+                        an->SetGravityScalesSuction(false);
+                        an->SetGravityFactor(F);
+                    } else an->SetStrengthReductionFactor(F);
                     PostProcessVTK(*an, "ruptura", step);
                 }
             }
@@ -1008,6 +1080,7 @@ int main() {
         {"phi_med", Num(ephi.media)}, {"phi_dp", Num(ephi.dp)}, {"phi_min", Num(ephi.min)}, {"phi_max", Num(ephi.max)},
         {"k_mult_med", Num(ek.media)}, {"k_mult_dp", Num(ek.dp)}, {"k_mult_min", Num(ek.min)},
         {"k_mult_max", Num(ek.max)}};
+    if (gim) r.insert(r.begin() + 4, {"fator", fator}); // com o GIM, os FS de resumo.csv sao o fator do GIM
     for (double h : fsH) {
         std::string v;
         for (int i = 0; i < (int)linhas.size(); ++i)
