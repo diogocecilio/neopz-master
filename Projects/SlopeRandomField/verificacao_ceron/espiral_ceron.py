@@ -113,6 +113,23 @@ def gamma_mecanismo(Ox, Oy, Bx, By, c, phi, g, pres, n=600):
     return Pmr / (Pg + Pu)
 
 
+def curva_mecanismo(Ox, Oy, Bx, By, phi, n=200):
+    """os pontos da espiral do mecanismo (de A, na superficie, ate B), para desenhar; None se nao for admissivel"""
+    tp = np.tan(phi)
+    thB = np.arctan2(By - Oy, Bx - Ox)
+    if thB > 0:
+        thB -= 2 * np.pi
+    rB = np.hypot(Bx - Ox, By - Oy)
+    ths = thB - np.linspace(0., np.pi, 4001)[1:]
+    rsp = rB * np.exp((ths - thB) * tp)
+    fora = ~(rsp > superficie_raio(Ox, Oy, ths))
+    if not fora.any() or int(np.argmax(fora)) == 0:
+        return None
+    th = np.linspace(ths[int(np.argmax(fora))], thB, n)
+    r = rB * np.exp((th - thB) * tp)
+    return Ox + r * np.cos(th), Oy + r * np.sin(th)
+
+
 def ponto_B(s):
     """s em [0, 1): na face, do pe (0) a crista; s em [-1, 0): no terreno do pe, x = 15 - 8 s"""
     if s >= 0:
