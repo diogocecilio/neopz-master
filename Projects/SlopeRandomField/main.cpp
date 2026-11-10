@@ -208,6 +208,117 @@ static REAL FactorGIMRetry(TPZUnsatAnalysis &an, const TPZFMatrix<STATE> &x, REA
     return lok;
 }
 
+// norma das equacoes livres (fora de fixed)
+static REAL NormaLivreArco(const TPZFMatrix<STATE> &v, const std::map<int64_t, REAL> &fixed, int64_t neq)
+{
+    REAL s = 0.;
+    for (int64_t i = 0; i < neq; i++)
+        if (!fixed.count(i)) s += v.GetVal(i, 0) * v.GetVal(i, 0);
+    return std::sqrt(s);
+}
+
+// GIM com arc-length: FactorGIM e SegueCaminho de LearningMohrCoulomb2/main.cpp (commit 2f92365), com os parametros de
+// ParamsGIM (estudo de sensibilidade de docs/fs_arc_length/relatorio_fs.tex). Do estado sem tensoes, com a resistencia
+// real e as pressoes de x congeladas, um primeiro passo com lambda = 0,5 prescrito (cortado ao meio se nao convergir) e
+// depois o caminho de equilibrio com o arc-length cilindrico (TPZUnsatAnalysis::ArcLengthStep, de Souza Neto et al., Box
+// 4.4), com o comprimento l ajustado para cerca de 10 iteracoes por incremento, ate a parada (d lambda < 0,001, medido no l
+// pedido), lambda >= 10, l < 1e-4 |u_ref| ou 100 incrementos. O fator e o maior lambda do caminho, que nao depende de a
+// Newton convergir com lambda prescrito perto do limite. Como em FactorGIMRetry, lambda multiplica o peso, a pressao
+// equivalente positiva e a carga do reservatorio, e a succao fica. Lparada: o lambda no fim do caminho; motivo: por que
+// terminou; tent e Xant como em FactorGIMRetry (fase "gim_arco", g = lambda de cada incremento)
+static REAL FactorGIMArco(TPZUnsatAnalysis &an, const TPZFMatrix<STATE> &x, REAL &Lparada, std::vector<TentativaSRM> &tent,
+                          TPZFMatrix<STATE> &Xant, std::string &motivo)
+{
+    const REAL lam0 = 0.5, tol = 0.001, l0 = 0.25, lMaxR = 2., lMinR = 1.e-4, fatorMax = 10.;
+    const REAL cresceMax = 2., reduzMax = 0.5, corte = 0.5;
+    const int alvo = 10, maxIt = 12, maxPassos = 100;
+    an.ResetMemory(); // mantem as propriedades de cada ponto (os campos)
+    TPZFMatrix<STATE> &X = an.X();
+    X = x;
+    for (int64_t i = 0; i < an.NEq(); i++)
+        if (!an.IsPressure(i)) X(i, 0) = 0.;
+    an.Restore();
+    const auto fixed = an.FrozenFixed(X);
+    an.SetStrengthReductionFactor(1.);
+    an.SetGravityScalesSuction(false);
+    const int itAntes = an.MaxItFrozen();
+    an.SetMaxItFrozen(maxIt);
+    Lparada = -1.;
+    motivo = "maxPassos";
+    Xant = X;
+    auto termina = [&](REAL resultado) {
+        an.SetMaxItFrozen(itAntes);
+        an.SetGravityScalesSuction(true);
+        an.SetGravityFactor(1.);
+        an.SetStrengthReductionFactor(1.);
+        return resultado;
+    };
+    // primeiro passo, com lambda prescrito
+    REAL lam = lam0;
+    while (true) {
+        an.SetGravityFactor(lam);
+        const auto t0 = Relogio::now();
+        const auto r = an.Solve(0., fixed, {}, true);
+        tent.push_back({"gim_arco", lam, 1., r.conv, false, r.iter, Segundos(t0)});
+        if (r.conv) break;
+        an.Restore();
+        lam *= 0.5;
+        if (lam < 0.01) {
+            motivo = "lam0";
+            return termina(0.);
+        }
+    }
+    Xant = an.X();
+    an.Accept();
+    // comprimento de referencia e carga por unidade de lambda
+    const REAL uRef = NormaLivreArco(X, fixed, an.NEq());
+    const TPZFMatrix<STATE> fbar = an.LoadVector(X);
+    an.Restore();
+    TPZUnsatAnalysis::ArcLengthOptions opcoes;
+    opcoes.alpha = 0.;
+    opcoes.secantPredictor = true;
+    opcoes.maxit = maxIt;
+    const REAL lMax = lMaxR * uRef, lMin = lMinR * uRef;
+    REAL l = std::min(lMax, std::max(lMin, l0 * uRef)), lPedido = l, lamMax = lam, dlamn = 0.;
+    TPZFMatrix<STATE> dun; // incremento anterior; vazio no primeiro
+    for (int n = 1; n <= maxPassos; n++) {
+        const auto t0 = Relogio::now();
+        const auto r = an.ArcLengthStep(fixed, fbar, lam, l, dun, dlamn, opcoes);
+        tent.push_back({"gim_arco", r.conv ? r.lambda : lam, 1., r.conv, false, r.iter, Segundos(t0)});
+        if (!r.conv) {
+            an.Restore();
+            if (r.vertical) {
+                motivo = "vertical";
+                break;
+            }
+            l *= corte;
+            if (l < lMin) {
+                motivo = "lMin";
+                break;
+            }
+            continue;
+        }
+        Xant = an.X();
+        an.Accept();
+        dlamn = r.lambda - lam;
+        lam = r.lambda;
+        dun = r.du;
+        lamMax = std::max(lamMax, lam);
+        if (dlamn * lPedido / l < tol) {
+            motivo = "parada";
+            break;
+        }
+        if (lam >= fatorMax) {
+            motivo = "fatorMax";
+            break;
+        }
+        l = std::min(lMax, l * std::min(cresceMax, std::max(reduzMax, std::sqrt(REAL(alvo) / r.iter))));
+        lPedido = l;
+    }
+    Lparada = lam;
+    return termina(lamMax);
+}
+
 int main() {
     const auto inicio = Relogio::now();
     const int porder = 2;
@@ -244,11 +355,12 @@ int main() {
     const int verticalRain = envi("CHUVA_VERTICAL", 0);
     const REAL fsTol = envd("FS_TOL", 0.01), F0 = envd("FS_F0", 0.6);
     // FATOR: srm (padrao), o fator de seguranca por reducao de resistencia; gim, o fator de estabilidade por aumento das
-    // cargas (o Gamma de Vargas Ceron et al. 2025). Com gim, as colunas FS_SRM e FS_parada de fs.csv e o FS de resumo.csv
-    // e resultado.txt guardam o fator do GIM (os nomes ficam, para o pos-processamento)
+    // cargas (o Gamma de Vargas Ceron et al. 2025), por lista e bissecao; gim_arco, o mesmo pelo caminho de equilibrio com
+    // arc-length. Com gim e gim_arco, as colunas FS_SRM e FS_parada de fs.csv e o FS de resumo.csv e resultado.txt guardam
+    // o fator do GIM (os nomes ficam, para o pos-processamento)
     const std::string fator = envs("FATOR", "srm");
-    if (fator != "srm" && fator != "gim") { std::cerr << "FATOR deve ser srm ou gim\n"; return 2; }
-    const bool gim = fator == "gim";
+    if (fator != "srm" && fator != "gim" && fator != "gim_arco") { std::cerr << "FATOR deve ser srm, gim ou gim_arco\n"; return 2; }
+    const bool gim = fator != "srm", arco = fator == "gim_arco";
     // F_TRANS: fator de reducao de resistencia durante o transiente das variantes acopladas (i e ii; na iii o esqueleto e
     // rigido e nao plastifica). 1: a resistencia real. Entao cada estado do transiente esta em equilibrio com ela e, com
     // fluxo associado (teorema do limite inferior), o FS do SRM com essas pressoes fica >= 1: quando a chuva levaria o
@@ -381,7 +493,7 @@ int main() {
          << " f_trans=" << fTrans << " kra_min=" << p.hydro.fKraMin << " ar_laterais=" << arLaterais
          << " solver=" << (TPZUnsatAnalysis::UsesPardiso() ? "pardiso" : "skyline")
          << " neq=" << an->NEq() << " pontos=" << ips.size() << " real=" << real << " campos=" << campos;
-    if (gim) info << " fator=gim";
+    if (gim) info << " fator=" << fator;
     if (reservatorio)
         info << " nivel_inicial=" << nivel0 << " nivel_final=" << nivelF << " t_rebaix_h=" << Trebaix / hora
              << " direita_res=" << direitaRes;
@@ -991,8 +1103,12 @@ int main() {
             std::vector<TentativaSRM> tent;
             REAL Fparada = -1.;
             TPZFMatrix<STATE> Xant;
-            const REAL F = gim ? FactorGIMRetry(*an, estado, fsTol, Ldenso, Fparada, tent, Xant)
-                               : FactorSRMRetry(*an, estado, F0, fsTol, Fdenso, Fparada, tent, Xant);
+            std::string motivoArco;
+            const REAL F = arco ? FactorGIMArco(*an, estado, Fparada, tent, Xant, motivoArco)
+                         : gim  ? FactorGIMRetry(*an, estado, fsTol, Ldenso, Fparada, tent, Xant)
+                                : FactorSRMRetry(*an, estado, F0, fsTol, Fdenso, Fparada, tent, Xant);
+            if (arco && motivoArco != "parada")
+                std::cerr << "t = " << t / hora << " h: o caminho do GIM terminou sem o criterio de parada (" << motivoArco << ")\n";
             int newtonF = 0;
             for (size_t k = 0; k < tent.size(); ++k) {
                 const auto &q = tent[k];

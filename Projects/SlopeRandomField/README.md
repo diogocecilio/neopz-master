@@ -337,7 +337,39 @@ O caso de referência da Seção 6 de Vargas Ceron et al. (2025), com o material
 - **Resultados:** `passos.csv` ganha no fim `nivel_m` (o nível do reservatório) e `res_m3` (a água que entra pelo
   reservatório no passo, negativa se sai), que entra também no resíduo do balanço.
 
+### Verificação: malha, fator e instante
+
+Casos determinísticos (valores médios), rodados numa máquina sem MKL, nas malhas de 0,375 m (`ceron_h5_a45`), 0,25 m e
+0,1875 m (`ceron_h5_a45_fina`) perto da superfície. `FATOR=gim_arco` é o GIM com arc-length de LearningMohrCoulomb2
+(commit 2f92365, parâmetros de `ParamsGIM`); `FATOR=gim`, por lista e bissecção.
+
+| caso | 0,375 m | 0,25 m | 0,1875 m | referência |
+|---|---|---|---|---|
+| seco, c/(γH) = 0,05: GIM com arc-length | 2,030 | 1,945 | 1,907 | Γ = 1,777 (Ceron); 1,81 (Bishop, fator só na coesão) |
+| seco, c/(γH) = 0,05: GIM por bissecção | 2,019 | | | |
+| seco, c/(γH) = 0,05: SRM | 1,244 | 1,225 | 1,219 | F_s = 1,203 (Ceron), 1,204 (Cho), 1,209 (Bishop) |
+| seco, c/(γH) = 0,1: GIM por bissecção | 4,07 | 3,89 | 3,82 | 3,62 (Bishop, fator só na coesão) |
+| seco, c/(γH) = 0,1: SRM | 1,644 | 1,625 | 1,619 | 1,60 (Bishop) |
+| rebaixamento, 0,01 h: GIM com arc-length | 1,402 | 1,378 | 1,363 | Γ = 1,336 (Ceron) |
+| rebaixamento, 0,01 h: GIM por bissecção | 1,40 | 1,381 | 1,369 | |
+| rebaixamento, 0,1 h: GIM com arc-length | 1,525 | 1,497 | 1,483 | |
+
+- O exemplo seco da Seção 5.3.2 do Ceron (Γ = 1,777 e F_s = 1,203) corresponde a c/(γH) = 0,05: com c' = 10 kPa,
+  γ = 20 kN/m³ e H = 5 m (c/(γH) = 0,1), o Bishop dá 1,60 e 3,62. Os casos secos com c/(γH) = 0,05 rodaram na malha de
+  H = 5 m com c' = 5 kPa, o mesmo problema por semelhança.
+- Bishop simplificado: superfícies circulares, busca em grade; o "fator só na coesão" (c/F com φ' inteiro) é o
+  multiplicador da gravidade.
+- O GIM e o SRM caem com a malha. No seco com c/(γH) = 0,05, a extrapolação das três malhas (ordem ajustada de 1 a 1,4)
+  dá Γ de 1,79 a 1,83, e o SRM fica perto de 1,21.
+- O GIM com arc-length e o por bissecção diferem menos de 0,6% nesses casos.
+- O Γ = 1,336 do Ceron fica perto do nosso fator em 0,01 h, extrapolado na malha. O de 0,1 h é 8% maior: a face já
+  drenou.
+
 ### As três fases no fermi (Seções 6.1 a 6.5 do Ceron)
+
+A malha, o instante e o número de realizações ficam a escolher pela verificação acima: o Γ cai com a malha, e o de
+0,01 h é o que fica perto do estado do Ceron. Os comandos abaixo usam a malha de 0,375 m e 0,1 h; para a malha fina, troque
+`MALHA=ceron_h5_a45_fina.msh` (de 4 a 10 vezes mais cara por realização), e para 0,01 h, `FS_H=0.01 DT_H=0.01`.
 
 Cada fase numa `SAIDA` própria, 1000 realizações por caso. A realização n usa os mesmos números aleatórios em todos os
 casos. Ao fim de cada fase, `status_mc.sh` com a mesma `SAIDA` mostra o andamento.
