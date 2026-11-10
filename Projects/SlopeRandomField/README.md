@@ -320,8 +320,9 @@ O caso de referência da Seção 6 de Vargas Ceron et al. (2025), com o material
   - A lateral direita, abaixo do nível, acompanha o reservatório. A esquerda fica com a carga inicial (10 m), como o
     campo distante do artigo (u = 0). A base é impermeável.
 - **Diferenças em relação ao artigo:** o Ceron resolve o fluxo permanente saturado, com p = 0 imposto na crista e na
-  face. Aqui o fluxo é transiente e não saturado: a crista é face de percolação, e o solo acima da superfície freática
-  dessatura.
+  face. Por padrão, aqui o fluxo é transiente e não saturado: a crista é face de percolação, e o solo acima da
+  superfície freática dessatura. Com `SATURADO=1 SUPERFICIE_P0=1 KW=1e30`, o material resolve o problema do Ceron (ver
+  "Validação no limite saturado").
 - **Fator:** o Γ do Ceron é um multiplicador das cargas, Γ = P_mr / (P_γ + P_u). Por isso o caso roda com `FATOR=gim`:
   o aumento da gravidade multiplica o peso, a pressão equivalente positiva (as forças de percolação na zona saturada) e a
   carga do reservatório, e a sucção fica como está, como no `FactorGIM` do projeto. O padrão, `FATOR=srm`, é o fator de
@@ -366,7 +367,8 @@ Casos determinísticos (valores médios), rodados numa máquina sem MKL, nas mal
   dá Γ de 1,79 a 1,83, e o SRM fica perto de 1,21.
 - O GIM com arc-length e o por bissecção diferem menos de 0,6% nesses casos.
 - O Γ = 1,336 do Ceron fica perto do nosso fator em 0,01 h, extrapolado na malha. O de 0,1 h é 8% maior: a face já
-  drenou.
+  drenou. Mas o instante de 0,01 h ainda está no ajuste da água ao nível novo, e o problema do Ceron é o permanente
+  saturado: a comparação direta com ele é a de "Validação no limite saturado".
 
 ### Malhas focadas: tempo e precisão
 
@@ -422,24 +424,100 @@ No fermi, com o PARDISO, uma rodada por vez (job 14166, `tempos_malhas.sh`, o ex
 - O arc-length leva de 18% (focada de 0,375 m) a 58% (base) menos tempo no fator que a bissecção; na focada de
   0,125 m, 42%.
 
+### Validação no limite saturado (`SATURADO=1`)
+
+O Ceron resolve a água com o problema permanente saturado do acoplamento de uma via (Eqs. 19 a 21): div v = 0, com o
+sólido e a água incompressíveis e sem a deformação do esqueleto. O contorno é p = 0 na crista e na face acima do nível
+novo, e p hidrostático do nível novo abaixo dele (Eq. 1). O material não saturado reproduz esse problema no seu limite
+saturado, com três variáveis:
+- `SATURADO=1`: S_w = 1, dS_w/dp_w = 0 e k_rw = 1 em qualquer pressão (Gardner com a_G = 0). Com χ = 1, a tensão efetiva
+  é a de Terzaghi também com p_w < 0, como no solo saturado do Ceron. O `SOLO` só dá k_s.
+- `KW=1e30`: a água incompressível. Com a variante iii (esqueleto rígido na percolação), não sobra armazenamento: cada
+  passo dá a percolação permanente com o contorno do fim do passo, e o fator não depende do instante.
+- `SUPERFICIE_P0=1`: p_w = 0 em toda a superfície acima do nível, com a água entrando ou saindo. Sem ele, a superfície é
+  face de percolação (p_w = 0 só onde a água sai), e a crista fica com p_w < 0.
+- Com `SATURADO=1`, o GIM multiplica toda a pressão, também p_w < 0: o Γ = P_mr / (P_γ + P_u) da Eq. (54) multiplica o
+  peso e as forças de percolação −grad p juntos.
+- As laterais e a base ficam como no exemplo: a esquerda com a carga inicial (u = 0), a direita com o reservatório, e a
+  base impermeável.
+
+Os scripts de `verificacao_ceron/` (Python com numpy, scipy, matplotlib e, o último, gmsh) refazem a verificação:
+- `laplace_ceron.py <pasta> [t_h nível hl xl xr]`: resolve à parte a percolação permanente P1 (Eq. 20) nos triângulos
+  de uma rodada (`triangulos.csv`), com o contorno dela, e compara com o `pw.csv`;
+- `espiral_ceron.py seco <c> <φ> <γ>` ou `espiral_ceron.py <pasta> <t_h> <c> <φ> <γ>`: o Γ pelo método do próprio Ceron,
+  mecanismos rotacionais em espiral logarítmica (Eqs. 42 a 56), minimizados sobre o centro e a ponta da espiral, com a
+  p_w de uma rodada (`pw.csv`) ou sem água;
+- `dominio_ceron.py <atrás> <abaixo> <frente> <contorno>`: gera com o gmsh um domínio de outro tamanho, resolve nele a
+  percolação permanente e calcula o Γ pelo método do Ceron (contorno de cada borda distante: sem fluxo, carga 10 m ou
+  carga 5 m).
+
+Caso determinístico (rebaixamento até o pé), `SATURADO=1 SUPERFICIE_P0=1 KW=1e30`, GIM com arc-length, numa máquina sem
+MKL:
+
+| verificação | resultado |
+|---|---|
+| p_w do material contra a solução P1 do Laplace nos mesmos triângulos | diferença máxima de 4,5e-5 kPa na focada de 0,25 m, 6,3e-5 kPa na de 0,125 m e 9,3e-5 kPa no domínio grande (abaixo), de 2e-7 a 7e-7 do máximo |
+| p_w no solo | de 0 ao máximo hidrostático: sem p_w < 0 |
+| Γ em 0,01 h e em 0,1 h (focada de 0,25 m) | 1,4210 e 1,4210 |
+| Γ com o K_w padrão (2,2e6 kPa) no lugar de `KW=1e30` | 1,3538 em 0,01 h (a água ainda se ajustando ao nível novo); 1,4210 em 0,1 h |
+| Γ sem `SUPERFICIE_P0` (face de percolação) | 2,633: a crista fica com p_w até −21 kPa |
+| método do Ceron no exemplo seco da Seção 5.3.2 (c/(γH) = 0,05) | 1,7770; o artigo tem 1,777 |
+
+O Γ do GIM e o do método do Ceron com a p_w da mesma rodada:
+
+| malha | GIM (elementos finitos) | método do Ceron |
+|---|---|---|
+| focada 0,375 m | 1,4633 | 1,3750 |
+| focada 0,25 m | 1,4210 | 1,3738 |
+| focada 0,1875 m | 1,4138 | |
+| focada 0,125 m | 1,3910 | 1,3724 |
+| domínio grande, 0,25 m na região das bandas (`ceron_grande`, abaixo) | 1,4608 | 1,4070 |
+| artigo | | 1,336 |
+
+- O GIM cai com a malha em direção ao Γ do método do Ceron com a mesma pressão: na focada de 0,125 m, fica 1,4% acima
+  de 1,372. O método do Ceron é um limite superior, e o GIM com deslocamentos quadráticos também converge por cima.
+- Com a malha de 0,25 m na região das bandas, o GIM fica cerca de 3,5% acima do método do Ceron nos dois domínios
+  (1,4210 contra 1,3738 e 1,4608 contra 1,4070).
+- A banda de ruptura do caso saturado (x de 9,1 a 15,3 m, y de 4,8 a 9,0 m na focada de 0,25 m) fica dentro da região
+  refinada das malhas focadas.
+
+O Γ do método do Ceron depende do contorno distante da percolação, que o artigo não dá na Seção 6. O artigo só diz que
+a zona de fluxo vai até R_e = √(H² + (L_m + H/tan β)²), com L_m = 10H (cerca de 55 m), e que ∂Ω_v = ∅ (Eqs. 20 e 21).
+Com `dominio_ceron.py`, na focada de 0,25 m em torno do talude (distâncias em m a partir da crista, para trás, do pé, para
+baixo, e do pé, para a frente):
+
+| domínio | esquerda carga 10 m, base sem fluxo, direita 5 m (o do exemplo) | sem fluxo nas três bordas | esquerda e base com carga 10 m (u = 0), direita 5 m |
+|---|---|---|---|
+| 10, 5, 10 (o do exemplo) | 1,3742 | 1,4120 | 1,1066 |
+| 25, 15, 25 | 1,4027 | 1,4127 | 1,2738 |
+| 50, 50, 50 | 1,4074 | 1,4139 | 1,3689 |
+| 100, 100, 100 | 1,4101 | 1,4120 | |
+
+- Com a solução da percolação no semi-infinito (só o contorno da Eq. 1, as bordas distantes longe), o método do Ceron dá
+  1,41. As bordas sem fluxo são a truncagem coerente com a zona de fluxo do artigo (v = 0 além de R_e).
+- O 1,336 do artigo fica entre os valores com u = 0 nas bordas distantes de um domínio de 25 a 50 m (1,27 a 1,37). No
+  nosso domínio, 1,374.
+- `ceron_grande.msh` (de `ceron_grande.geo`, ao lado das outras malhas): 50 m de crista antes da face, 50 m de terreno
+  depois do pé e a base 50 m abaixo da crista, com 0,25 m na região das bandas; 4109 triângulos e 21338 equações.
+
 ### As três fases no fermi (Seções 6.1 a 6.5 do Ceron)
 
-Pela verificação acima, os comandos usam:
-- a malha focada de 0,25 m (`ceron_h5_a45_foco25`), com Γ 2% acima do valor da malha mais fina, a cerca de 2 vezes o
-  custo da malha base;
-- o GIM com arc-length (`FATOR=gim_arco`);
-- o fator em 0,01 h (`FS_H=0.01 DT_H=0.01`), o instante que fica perto do estado do Ceron.
-
-Para medir antes o custo de cada malha no fermi, `tempos_malhas.sh` num job (o comando está no cabeçalho dele).
+Para a validação no limite saturado (seção acima), os comandos usam:
+- o problema do Ceron, `SATURADO=1 SUPERFICIE_P0=1 KW=1e30`;
+- o GIM com arc-length (`FATOR=gim_arco`), mais rápido que a bissecção em todas as malhas no fermi;
+- o fator em 0,01 h, com um passo (`FS_H=0.01 DT_H=0.01`): com a água incompressível, é o regime permanente;
+- a malha focada de 0,25 m (`ceron_h5_a45_foco25`) em todas as fases. Na fase 1, também a de 0,125 m
+  (`ceron_h5_a45_foco125`), para medir o efeito da malha na distribuição. No determinístico, o GIM dá 1,4210 e 1,3910, e
+  o método do Ceron com a mesma pressão, 1,372.
 
 Cada fase numa `SAIDA` própria, 1000 realizações por caso. A realização n usa os mesmos números aleatórios em todos os
-casos. Ao fim de cada fase, `status_mc.sh` com a mesma `SAIDA` mostra o andamento.
+casos e nas duas malhas. Ao fim de cada fase, `status_mc.sh` com a mesma `SAIDA` mostra o andamento.
 
 | fase | `SAIDA` | casos | seções do Ceron |
 |---|---|---|---|
-| 1 | `$DATA/ceron_fase1` | referência (h_w/H = 1) e o determinístico | Fig. 24, Fig. 25 e 6.1 (Spearman) |
-| 2 | `$DATA/ceron_fase2` | CoV(k_v) 0; 0,75; 0,9; 1. CoV(c) 0,1; 0,5; 0,7. CoV(φ) 0,05; 0,15; 0,2. s = 1,5; 2; 5; 10; 20; 400. α = 2; 3; 4; 5 (com os determinísticos) | 6.2, 6.3 e 6.4 |
-| 3 | `$DATA/ceron_fase3` | h_w/H = 0,5; 0,6; 0,7; 0,8; 0,9 (nível final de 7,5 a 5,5 m, com os determinísticos) | 6.5 |
+| 1 | `$DATA/ceron_sat_fase1` e `$DATA/ceron_sat_fase1_foco125` | referência (h_w/H = 1) e o determinístico | Fig. 24, Fig. 25 e 6.1 (Spearman) |
+| 2 | `$DATA/ceron_sat_fase2` | CoV(k_v) 0; 0,75; 0,9; 1. CoV(c) 0,1; 0,5; 0,7. CoV(φ) 0,05; 0,15; 0,2. s = 1,5; 2; 5; 10; 20; 400. α = 2; 3; 4; 5 (com os determinísticos) | 6.2, 6.3 e 6.4 |
+| 3 | `$DATA/ceron_sat_fase3` | h_w/H = 0,5; 0,6; 0,7; 0,8; 0,9 (nível final de 7,5 a 5,5 m, com os determinísticos) | 6.5 |
 
 ```bash
 cd ~/neopz-master && git pull origin UnsaturatedSoil && cd Projects/SlopeRandomField
@@ -454,36 +532,45 @@ source ../LearningMohrCoulomb2/cluster/modulos.sh && ./compilar.sh && cat bin/ve
 As variáveis comuns às três fases:
 
 ```bash
-export VARIANTE=iii PRIMEIRA=0 ULTIMA=999 DET=1 MALHA=ceron_h5_a45_foco25.msh PHI_DEG=30 HL=10 HR=10 XL=0 XR=25 XTOE=15 YTOE=5 XCRISTA=10 YCRISTA=10 NIVEL_FINAL=5 T_REBAIX_H=0 FATOR=gim_arco FS_H=0.01 DT_H=0.01
+export VARIANTE=iii PRIMEIRA=0 ULTIMA=999 DET=1 MALHA=ceron_h5_a45_foco25.msh PHI_DEG=30 HL=10 HR=10 XL=0 XR=25 XTOE=15 YTOE=5 XCRISTA=10 YCRISTA=10 NIVEL_FINAL=5 T_REBAIX_H=0 FATOR=gim_arco FS_H=0.01 DT_H=0.01 SATURADO=1 SUPERFICIE_P0=1 KW=1e30
+```
+
+Na ordem de prioridade (os jobs que a cota não deixar rodar esperam os anteriores):
+
+```bash
+SAIDA=$DATA/ceron_sat_fase1 COMBS="f50:0" FORCAR_SEM_COMPILAR=1 ./submeter_mc.sh 4
 ```
 
 ```bash
-SAIDA=$DATA/ceron_fase1 COMBS="f50:0" FORCAR_SEM_COMPILAR=1 ./submeter_mc.sh 4
+MALHA=ceron_h5_a45_foco125.msh SAIDA=$DATA/ceron_sat_fase1_foco125 COMBS="f50:0" FORCAR_SEM_COMPILAR=1 ./submeter_mc.sh 4
 ```
 
 ```bash
-SAIDA=$DATA/ceron_fase2 COMBS="f50:0:COV_K=0 f50:0:COV_K=0.75 f50:0:COV_K=0.9 f50:0:COV_K=1 f50:0:COV_C=0.1 f50:0:COV_C=0.5 f50:0:COV_C=0.7 f50:0:COV_PHI=0.05 f50:0:COV_PHI=0.15 f50:0:COV_PHI=0.2 f50:0:LX=30,LY=3 f50:0:LX=40,LY=4 f50:0:LX=100,LY=10 f50:0:LX=200,LY=20 f50:0:LX=400,LY=40 f50:0:LX=8000,LY=800 f50:0:ALFA=2 f50:0:ALFA=3 f50:0:ALFA=4 f50:0:ALFA=5" FORCAR_SEM_COMPILAR=1 ./submeter_mc.sh 4
+SAIDA=$DATA/ceron_sat_fase3 COMBS="f50:0:NIVEL_FINAL=7.5 f50:0:NIVEL_FINAL=7 f50:0:NIVEL_FINAL=6.5 f50:0:NIVEL_FINAL=6 f50:0:NIVEL_FINAL=5.5" FORCAR_SEM_COMPILAR=1 ./submeter_mc.sh 4
 ```
 
 ```bash
-SAIDA=$DATA/ceron_fase3 COMBS="f50:0:NIVEL_FINAL=7.5 f50:0:NIVEL_FINAL=7 f50:0:NIVEL_FINAL=6.5 f50:0:NIVEL_FINAL=6 f50:0:NIVEL_FINAL=5.5" FORCAR_SEM_COMPILAR=1 ./submeter_mc.sh 4
+SAIDA=$DATA/ceron_sat_fase2 COMBS="f50:0:COV_K=0 f50:0:COV_K=0.75 f50:0:COV_K=0.9 f50:0:COV_K=1 f50:0:COV_C=0.1 f50:0:COV_C=0.5 f50:0:COV_C=0.7 f50:0:COV_PHI=0.05 f50:0:COV_PHI=0.15 f50:0:COV_PHI=0.2 f50:0:LX=30,LY=3 f50:0:LX=40,LY=4 f50:0:LX=100,LY=10 f50:0:LX=200,LY=20 f50:0:LX=400,LY=40 f50:0:LX=8000,LY=800 f50:0:ALFA=2 f50:0:ALFA=3 f50:0:ALFA=4 f50:0:ALFA=5" FORCAR_SEM_COMPILAR=1 ./submeter_mc.sh 4
 ```
 
 ```bash
-SAIDA=$DATA/ceron_fase1 ./status_mc.sh
+SAIDA=$DATA/ceron_sat_fase1 ./status_mc.sh
 ```
 
-- **Compilação:** com o executável já compilado, as três fases são submetidas com `FORCAR_SEM_COMPILAR=1`. Assim,
-  nenhum job começa com um executável velho, que ignoraria o reservatório e o GIM. A coluna `versao` do `resumo.csv` de
-  cada realização mostra o commit com que ela rodou.
+- **Compilação:** com o executável já compilado, as fases são submetidas com `FORCAR_SEM_COMPILAR=1`. Assim, nenhum job
+  começa com um executável velho, que ignoraria `SATURADO`, `SUPERFICIE_P0` e `KW` sem aviso. A coluna `versao` do
+  `resumo.csv` de cada realização mostra o commit com que ela rodou, e o `realizacao.txt` dela tem `saturado=1
+  superficie_p0=1 kw=1e+30` quando o programa aplicou as três.
 - **Pastas:** `f50_I0_iii` (referência), `f50_I0_iii_<troca>` (por exemplo `f50_I0_iii_covk0.75`,
   `f50_I0_iii_lx40_ly4`, `f50_I0_iii_nivelfinal7.5`) e os determinísticos em `<pasta>_det`. As trocas de 6.2 e 6.3 não
-  mudam o determinístico, que é o de `f50_I0_iii_det`.
-- **Custo:** o caso determinístico na malha focada de 0,25 m levou 50 s numa máquina sem MKL (tabela acima), 2,2 vezes
-  o da malha base. O custo real no fermi aparece na coluna `min/real` do `status_mc.sh` depois de uns 30 min da fase 1.
-  Os jobs que a cota não deixar rodar esperam os anteriores.
-- **Se a queda instantânea não convergir em muitas realizações** (`situacao` diferente de ok): rode com
-  `T_REBAIX_H=0.01` e `FS_H=0.02` numa outra `SAIDA`.
+  mudam o determinístico, que é o de `f50_I0_iii_det`. O `parametros.txt` de cada pasta guarda `SATURADO`,
+  `SUPERFICIE_P0` e `KW`: uma rodada com outros valores na mesma `SAIDA` é recusada.
+- **Custo no fermi** (tabela de tempos acima, com as realizações 13% mais lentas que o determinístico, como nas 32 da
+  máquina sem MKL, e 4 jobs de 12 realizações): cerca de 39 s por realização na focada de 0,25 m e 136 s na de 0,125 m.
+  Fase 1: 0,2 h e 0,8 h. Fase 3: 1,1 h. Fase 2: 4,5 h. O custo real aparece na coluna `min/real` do `status_mc.sh`
+  depois de uns 30 min.
+- O não saturado (o padrão, sem as três variáveis) segue possível nas pastas `ceron_fase*`, com o fator em 0,01 h ainda
+  no transiente da água (ver "Verificação: malha, fator e instante").
 
 ## Análise de sensibilidade
 

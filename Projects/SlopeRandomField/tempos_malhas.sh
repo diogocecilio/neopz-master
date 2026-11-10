@@ -6,7 +6,8 @@
 # <saida>/tempos.md): malha, numero de equacoes, fator, valor, tempo do calculo do fator, iteracoes de Newton do fator,
 # solucoes tentadas (passos da busca ou incrementos do arco) e tempo total da rodada (com o transiente e a montagem).
 # Ambiente: FATORES (padrao "gim gim_arco"), FS_H (padrao 0.01), DT_H (padrao 0.01), SOLVER, EXE; SATURADO, SUPERFICIE_P0
-# e KW passam ao programa (README, "Validacao no limite saturado"). No fermi, num job:
+# e KW passam ao programa (README, "Validacao no limite saturado"); a ultima coluna mostra as que ele aplicou, lidas de
+# realizacao.txt (um executavel de antes de ef0712b as ignora). No fermi, num job:
 #   sbatch -J tempos -N 1 -n 1 -c 2 --time=04:00:00 -o tempos_%j.out --wrap "source ../LearningMohrCoulomb2/cluster/modulos.sh && ./tempos_malhas.sh \$DATA/tempos_malhas ceron_h5_a45 ceron_h5_a45_fina"
 set -u
 PKG="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -16,6 +17,8 @@ EXE="${EXE:-$PKG/bin/SlopeRandomField}"
 [ -x "$EXE" ] || { echo "executavel $EXE nao encontrado (./compilar.sh)" >&2; exit 2; }
 FATORES="${FATORES:-gim gim_arco}"
 FS_H="${FS_H:-0.01}" DT_H="${DT_H:-0.01}"
+# a versao do executavel (o commit de compilar.sh), que vai para o resumo.csv de cada rodada
+VERSAO="$(cut -d' ' -f1 "$PKG/bin/versao.txt" 2>/dev/null)"
 mkdir -p "$SAIDA" || exit 1
 SAIDA="$(cd "$SAIDA" && pwd)"
 linhas=()
@@ -32,24 +35,26 @@ for m in "$@"; do
         rm -rf "$d" && mkdir -p "$d" || exit 1
         echo "$(date '+%F %T') $nome $f" >&2
         (cd "$d" && env SOLO=f50 I_MM_H=0 VARIANTE=iii CAMPOS=0 MESH="$msh" PHI_DEG=30 HL=10 HR=10 XL=0 XR=25 XTOE=15 YTOE=5 \
-            XCRISTA=10 YCRISTA=10 NIVEL_FINAL=5 T_REBAIX_H=0 FS_H="$FS_H" DT_H="$DT_H" FATOR="$f" SRF_VERSAO=tempos \
+            XCRISTA=10 YCRISTA=10 NIVEL_FINAL=5 T_REBAIX_H=0 FS_H="$FS_H" DT_H="$DT_H" FATOR="$f" SRF_VERSAO="${VERSAO:-tempos}" \
             MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 "$EXE" > run.log 2> run.err)
         if [ ! -s "$d/resultado.txt" ]; then
-            linhas+=("| $nome | - | $f | falhou | | | | |")
+            linhas+=("| $nome | - | $f | falhou | | | | | |")
             continue
         fi
         neq="$(grep -o 'neq=[0-9]*' "$d/realizacao.txt" | cut -d= -f2)"
+        # as opcoes que o programa aplicou (realizacao.txt so as tem quando as leu: um executavel de antes as ignora)
+        opc="$(grep -o 'saturado=[^ ]*\|superficie_p0=[^ ]*\|kw=[^ ]*' "$d/realizacao.txt" | tr '\n' ' ' | sed 's/ $//')"
         # o fator, o tempo do calculo do fator (ultima coluna de fs.csv) e as iteracoes e tentativas da busca
         read -r fs segf <<< "$(awk -F, 'NR > 1 { v = $2; s = $NF } END { print v, s }' "$d/fs.csv")"
         read -r it nt <<< "$(awk -F, 'NR > 1 { i += $7; n++ } END { print i + 0, n + 0 }' "$d/fs_tentativas.csv")"
         tot="$(grep -o 'seg=[0-9.]*' "$d/resultado.txt" | cut -d= -f2)"
-        linhas+=("$(printf '| %s | %s | %s | %.4f | %.1f | %d | %d | %.1f |' "$nome" "$neq" "$f" "$fs" "$segf" "$it" "$nt" "$tot")")
+        linhas+=("$(printf '| %s | %s | %s | %.4f | %.1f | %d | %d | %.1f | %s |' "$nome" "$neq" "$f" "$fs" "$segf" "$it" "$nt" "$tot" "${opc:--}")")
     done
 done
 {
-    echo "SATURADO=${SATURADO:-0} SUPERFICIE_P0=${SUPERFICIE_P0:-0} KW=${KW:-padrao} FS_H=$FS_H DT_H=$DT_H"
+    echo "executável ${VERSAO:-sem versao.txt}; pedido: SATURADO=${SATURADO:-0} SUPERFICIE_P0=${SUPERFICIE_P0:-0} KW=${KW:-padrao} FS_H=$FS_H DT_H=$DT_H"
     echo
-    echo "| malha | equações | fator | valor | tempo do fator (s) | iterações de Newton do fator | soluções tentadas | tempo total (s) |"
-    echo "|---|---|---|---|---|---|---|---|"
+    echo "| malha | equações | fator | valor | tempo do fator (s) | iterações de Newton do fator | soluções tentadas | tempo total (s) | opções aplicadas |"
+    echo "|---|---|---|---|---|---|---|---|---|"
     printf '%s\n' "${linhas[@]}"
 } | tee "$SAIDA/tempos.md"

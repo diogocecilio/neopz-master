@@ -853,6 +853,13 @@ int main() {
         // so quando diferentes do padrao: os checkpoints das rodadas de antes continuam valendo
         if (p.hydro.fKraMin != 1.e-4) a << " kra_min=" << p.hydro.fKraMin;
         if (arLaterais) a << " ar_laterais=1";
+        if (gim) a << " fator=" << fator;
+        if (reservatorio)
+            a << " reservatorio=" << nivel0 << ',' << nivelF << ',' << Trebaix << ',' << direitaRes << ',' << xcrista << ','
+              << ycrista;
+        if (saturado) a << " saturado=1";
+        if (superficieP0) a << " superficie_p0=1";
+        if (std::getenv("KW")) a << " kw=" << p.Kw;
         a
           << " malha=" << malha
           << " Dt=" << Dt << " Tchuva=" << Tchuva << " Tf=" << Tf << " FS_H=";
