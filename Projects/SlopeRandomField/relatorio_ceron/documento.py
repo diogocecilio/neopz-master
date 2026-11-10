@@ -569,6 +569,8 @@ def cov_pf_resumo(S, ids):
     partes = []
     if len(abaixo) == n:
         partes.append(f"$CoV(P_f) < 5\\%$ em todos os {n} casos")
+    elif len(acima) == n:
+        partes.append(f"$CoV(P_f) \\geq 5\\%$ em todos os {n} casos")
     else:
         if abaixo:
             partes.append(f"$CoV(P_f) < 5\\%$ em {len(abaixo)} dos {n} casos")
@@ -1418,11 +1420,11 @@ referência.<<comp>> A Tabela~\ref{tab:<<solo>>_tab3} (análoga à Tabela~3 do C
         out.append(neg)
     out.append(tabela(f"{solo}_tab3", 3, "Efeito do coeficiente de variação (arquivo ausente)."))
     out.append(T(r"""A Figura~\ref{fig:<<solo>>_fig27} mostra a função densidade de probabilidade do $\FS$ (log-normal
-ajustada) para os valores de $CoV$ da permeabilidade vertical (a), da coesão (b) e do ângulo de atrito (c). Coeficiente
-de variação e moda das distribuições ajustadas:""", solo=solo))
+ajustada) para os valores de $CoV$ da permeabilidade vertical (a), da coesão (b) e do ângulo de atrito (c). Moda das
+distribuições ajustadas (o coeficiente de variação $CoV(\FS)$ de cada uma está na Tabela~\ref{tab:<<solo>>_tab3} e na
+Figura~\ref{fig:<<solo>>_fig30}):""", solo=solo))
     out.append(figura(solo, "27", notas_fig))
-    out.append(_lista_series(S, [("covk", "cov"), ("covk", "moda"), ("covc", "cov"), ("covc", "moda"),
-                                 ("covphi", "cov"), ("covphi", "moda")]))
+    out.append(_lista_series(S, [("covk", "moda"), ("covc", "moda"), ("covphi", "moda")]))
     out.append(T(r"""A Figura~\ref{fig:<<solo>>_fig28} mostra a probabilidade de falha $P_f$ em função do coeficiente de
 variação de cada propriedade, com o caso de referência:""", solo=solo))
     out.append(figura(solo, "28", notas_fig))
