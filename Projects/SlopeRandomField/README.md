@@ -196,6 +196,9 @@ Cada combinação tem o seu próprio Monte Carlo, porque cada uma é um problema
 | `KRA_MIN` | 1e-4 | variante i: piso da permeabilidade relativa do ar (1e-4, a lei do benchmark ALERT; 0.01, a de Laloui et al. 2003) |
 | `AR_LATERAIS` | 0 | variante i: 1 abre as laterais ao ar (p_a = 0), além da superfície |
 | `MALHA` | `rahardjo_a45.msh` | ou `rahardjo_a45_fina.msh` (elementos de 0,375 m perto da face) |
+| `NIVEL_FINAL` | vazio | reservatório: com ele definido, o nível d'água externo cai de `NIVEL_INICIAL` (padrão `HR`) a `NIVEL_FINAL` (m) em `T_REBAIX_H` horas (padrão 0: de uma vez, logo depois de t = 0); ver "Exemplo do Ceron" |
+| `XCRISTA`, `YCRISTA`, `XTOE`, `YTOE` | 30, 30, 40, 20 | reservatório: a crista e o pé, vértices da superfície da malha; a carga da água na face é normal a ela |
+| `DIREITA_RES` | 1 | reservatório: 1 põe a lateral direita, abaixo do nível, com p_w hidrostático do reservatório; 0 a deixa com a carga `HR` do início |
 | `FS_H` | 0,12,24,36,48 | instantes do FS (h); o transiente vai até o maior |
 | `COV_C`, `COV_PHI`, `COV_K` | 0.3, 0.1, 0.6 | coeficientes de variação de c', φ' e k_v |
 | `LX`, `LY`, `ALFA` | 20, 2, 1 | distâncias de autocorrelação (m) e k_h/k_v |
@@ -292,6 +295,53 @@ da chuva, não de amostras diferentes.
 Variáveis (vão para os jobs): `COMBS`, `PRIMEIRA`, `ULTIMA` (padrão 0..999), `DET` (padrão 1), `SAIDA` (padrão
 `$DATA/monte_carlo`), `TEMPO`, `PARTICAO`, `RECOMPILAR=1` e as do programa (`VARIANTE`, `MALHA`, `FS_H`, ...). A mão, um job:
 `COMBS="f10:9 f50:80" PRIMEIRA=0 ULTIMA=999 DET=1 sbatch job_mc.sbatch`.
+
+## Exemplo do Ceron: rebaixamento do reservatório
+
+O caso de referência da Seção 6 de Vargas Ceron et al. (2025), com o material `TPZMatUnsaturatedUPwPa` e a variante iii
+(esqueleto rígido, acoplamento de uma via, como no artigo):
+- **Geometria** (`ceron_h5_a45.msh`, de `LearningMohrCoulomb2/cluster/malhas/ceron_h5_a45.geo`): talude de H = 5 m e
+  45°, com a crista em (10, 10) e o pé em (15, 5). O domínio vai de x = 0 a 25 m, com a base em y = 0; é o dos exemplos
+  da Seção 5.3 do artigo (Figs. 15 e 19), porque a Seção 6 não dá o tamanho do domínio.
+- **Solo:** o f50 com φ' = 30° (`PHI_DEG=30`): c' = 10 kPa, γ = 20 kN/m³ e k_s = 1e-5 m/s, com Fredlund-Xing a = 50 kPa,
+  n = m = 1, k_rw = Θ⁴, χ = 1. Os campos aleatórios têm a estatística padrão, a da Tabela 2 do artigo: CoV de 30% em c',
+  10% em φ' e 60% em k; L_x = 20 m; L_y = 2 m; α = 1.
+  - O k_v do Ceron, 1e-6 m⁴/(kN s), dá k = 9,81e-6 m/s; os 2% de diferença só mudam a escala de tempo do transiente.
+- **Água:**
+  - No início, o nível d'água está na crista (`HL=HR=10`): pressão hidrostática em todo o solo, e a água do reservatório
+    sobre a face e o terreno do pé.
+  - Em t = 0, o reservatório cai até o pé (`NIVEL_FINAL=5`, h_w = H). Com `T_REBAIX_H=0` a queda é de uma vez; com
+    `T_REBAIX_H` > 0, linear nesse número de horas.
+  - Abaixo do nível, a superfície fica com p_w = γ_w (nível − y) e com a carga da água, que entra também no SRM. Acima,
+    é face de percolação, sem chuva (`I_MM_H=0`).
+  - A lateral direita, abaixo do nível, acompanha o reservatório. A esquerda fica com a carga inicial (10 m), como o
+    campo distante do artigo (u = 0). A base é impermeável.
+- **Diferenças em relação ao artigo:** o Ceron resolve o fluxo permanente saturado, com p = 0 imposto na crista e na
+  face. Aqui o fluxo é transiente e não saturado: a crista é face de percolação, e o solo acima da superfície freática
+  dessatura.
+- **Instantes do FS:** `FS_H=0,0.1,1,6,24`. t = 0 é antes do rebaixamento, com a água sobre o talude. t = 0,1 h é logo
+  depois; o solo saturado é incompressível, então as pressões já são as do fluxo com o nível novo, como no artigo. Os
+  outros instantes acompanham a drenagem.
+- **Resultados:** `passos.csv` ganha no fim `nivel_m` (o nível do reservatório) e `res_m3` (a água que entra pelo
+  reservatório no passo, negativa se sai), que entra também no resíduo do balanço.
+
+No fermi, 1000 realizações e o determinístico, numa `SAIDA` própria:
+
+```bash
+cd ~/neopz-master && git pull origin UnsaturatedSoil && cd Projects/SlopeRandomField
+```
+
+```bash
+SAIDA=$DATA/ceron COMBS="f50:0" VARIANTE=iii PRIMEIRA=0 ULTIMA=999 DET=1 MALHA=ceron_h5_a45.msh PHI_DEG=30 HL=10 HR=10 XL=0 XR=25 XTOE=15 YTOE=5 XCRISTA=10 YCRISTA=10 NIVEL_FINAL=5 T_REBAIX_H=0 FS_H=0,0.1,1,6,24 ./submeter_mc.sh 4
+```
+
+```bash
+SAIDA=$DATA/ceron ./status_mc.sh
+```
+
+A pasta da combinação é `f50_I0_iii`, e a do determinístico, `f50_I0_iii_det`. Se o passo logo depois do rebaixamento
+instantâneo não convergir (`situacao` diferente de ok no `resumo.csv`), use outra `SAIDA` com o rebaixamento gradual,
+por exemplo `T_REBAIX_H=1` com `FS_H=0,1,2,6,24`.
 
 ## Análise de sensibilidade
 

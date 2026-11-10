@@ -165,6 +165,25 @@ int main() {
     const REAL Hw = envd("HW", 5.), beta = envd("BETA_DEG", 7.) * M_PI / 180., sucMax = envd("SUCMAX", 75.);
     const REAL xtoe = envd("XTOE", 40.), ytoe = envd("YTOE", 20.);
     const REAL hl = envd("HL", ytoe - Hw + (xtoe - xl) * std::tan(beta)), hr = envd("HR", ytoe - Hw + (xtoe - xr) * std::tan(beta));
+    // ---- reservatorio (o exemplo da Secao 6 de Vargas Ceron et al. 2025: rebaixamento do nivel d'agua externo). Com
+    // NIVEL_FINAL definido, o nivel externo cai de NIVEL_INICIAL (padrao: HR) a NIVEL_FINAL em T_REBAIX_H horas (0: de
+    // uma vez, logo depois de t = 0). A superficie abaixo do nivel fica com p_w = gamma_w (nivel - y) e com a carga da
+    // agua (tracao -gamma_w (nivel - y) n, tambem no SRM); a parte acima e face de percolacao (chuva I_MM_H, em geral 0).
+    // DIREITA_RES=1 (padrao): a lateral direita, abaixo do nivel, fica com p_w hidrostatico do reservatorio; 0: com a carga
+    // HR do inicio, como sem reservatorio. A esquerda fica com HL. A carga na face (entre a crista (XCRISTA, YCRISTA) e o
+    // pe (XTOE, YTOE)) e normal a ela; na crista e no terreno do pe, vertical
+    const bool reservatorio = std::getenv("NIVEL_FINAL") != nullptr;
+    const REAL nivel0 = envd("NIVEL_INICIAL", hr), nivelF = envd("NIVEL_FINAL", nivel0);
+    const REAL Trebaix = envd("T_REBAIX_H", 0.) * hora;
+    const REAL xcrista = envd("XCRISTA", 30.), ycrista = envd("YCRISTA", 30.);
+    const int direitaRes = envi("DIREITA_RES", 1);
+    if (reservatorio && !(Trebaix >= 0.)) { std::cerr << "T_REBAIX_H deve ser >= 0\n"; return 2; }
+    // o nivel do reservatorio no instante tt (o de t = 0 e o inicial; no rebaixamento instantaneo, o final logo depois)
+    auto nivelEm = [&](REAL tt) -> REAL {
+        if (!reservatorio || tt <= 0.) return nivel0;
+        return Trebaix > 0. ? nivel0 + (nivelF - nivel0) * std::min(tt / Trebaix, REAL(1)) : nivelF;
+    };
+    REAL nivelRes = nivel0; // o nivel do ultimo estado aceito, lido pela carga da superficie (SRM e variantes acopladas)
     const int verticalRain = envi("CHUVA_VERTICAL", 0);
     const REAL fsTol = envd("FS_TOL", 0.01), F0 = envd("FS_F0", 0.6);
     // F_TRANS: fator de reducao de resistencia durante o transiente das variantes acopladas (i e ii; na iii o esqueleto e
@@ -231,6 +250,31 @@ int main() {
     solomat->SetAnisotropicConductivity(alfa * p.ks, p.ks, 0.);
     const auto borda = an->BoundaryNodes(bcSuperficie, verticalRain != 0);
     if (borda.empty()) DebugStop();
+    const auto ladoDir = an->BoundaryNodes(bcDireita);
+    if (reservatorio) {
+        // a crista e o pe dados tem de ser vertices da superficie da malha (senao a carga da face teria a direcao errada)
+        for (const auto &v : {std::array<REAL, 2>{xcrista, ycrista}, std::array<REAL, 2>{xtoe, ytoe}}) {
+            REAL d = 1.e300;
+            for (const auto &b : borda) d = std::min(d, std::hypot(an->Coord(b.first, 0) - v[0], an->Coord(b.first, 1) - v[1]));
+            if (d > 1.e-6) {
+                std::cerr << "(" << v[0] << ", " << v[1] << ") nao e um no da superficie da malha: confira XCRISTA, YCRISTA, XTOE e "
+                             "YTOE\n";
+                return 2;
+            }
+        }
+        auto *bcSup = dynamic_cast<TPZBndCondT<STATE> *>(cmesh->FindMaterial(bcSuperficie));
+        if (!bcSup) DebugStop();
+        // normal externa da face (da crista para o pe, girada); a pressao acompanha o fator da gravidade, como p_w
+        const REAL nx = ycrista - ytoe, ny = xtoe - xcrista, nl = std::hypot(nx, ny);
+        const REAL xa = std::min(xcrista, xtoe), xb = std::max(xcrista, xtoe);
+        bcSup->SetForcingFunctionBC([&nivelRes, solomat, nx, ny, nl, xa, xb](const TPZVec<REAL> &x, TPZVec<STATE> &tracao,
+                                                                           TPZFMatrix<STATE> &) {
+            const REAL pr = solomat->GravityFactor() * solomat->GammaW() * std::max(nivelRes - x[1], REAL(0));
+            const bool face = x[0] > xa + 1.e-9 && x[0] < xb - 1.e-9;
+            tracao[0] = face ? -pr * nx / nl : 0.;
+            tracao[1] = face ? -pr * ny / nl : -pr;
+        });
+    }
 
     // ---- pontos de integracao do solo: indice de memoria, elemento, coordenadas e area (peso vezes det J)
     std::vector<int64_t> ips, ipel;
@@ -274,6 +318,9 @@ int main() {
          << " f_trans=" << fTrans << " kra_min=" << p.hydro.fKraMin << " ar_laterais=" << arLaterais
          << " solver=" << (TPZUnsatAnalysis::UsesPardiso() ? "pardiso" : "skyline")
          << " neq=" << an->NEq() << " pontos=" << ips.size() << " real=" << real << " campos=" << campos;
+    if (reservatorio)
+        info << " nivel_inicial=" << nivel0 << " nivel_final=" << nivelF << " t_rebaix_h=" << Trebaix / hora
+             << " direita_res=" << direitaRes;
     int Musado = 0;
     double fracUsada = 0.;
     if (campos) {
@@ -447,10 +494,13 @@ int main() {
     // ---- arquivos CSV: abertos depois de ler o checkpoint (na retomada, cortados no tamanho que tinham nele)
     std::ofstream fpas, ffs, ften, fpw, fmec;
     struct Csv { const char *nome; std::ofstream *o; const char *cab; bool ativo; int prec; };
+    // com reservatorio, passos.csv ganha no fim o nivel do reservatorio e a agua que entra por ele (res_m3, negativa se sai)
+    const std::string cabPassos =
+        std::string("passo,t_h,dt_h,nivel,chuva_mm_h,chuva_m3,inf_fluxo_m3,inf_face_m3,esq_m3,dir_m3,dV_m3,residuo_m3,inf_acum_m3,"
+                    "V_agua_m3,face_nos,its_face,newton,normp,eu,pw_min_kPa,pw_max_kPa,seg,u_max_m,pl_pts,epsp_max") +
+        (reservatorio ? ",nivel_m,res_m3" : "");
     const std::vector<Csv> csvs = {
-        {"passos.csv", &fpas,
-         "passo,t_h,dt_h,nivel,chuva_mm_h,chuva_m3,inf_fluxo_m3,inf_face_m3,esq_m3,dir_m3,dV_m3,residuo_m3,inf_acum_m3,"
-         "V_agua_m3,face_nos,its_face,newton,normp,eu,pw_min_kPa,pw_max_kPa,seg,u_max_m,pl_pts,epsp_max", true, 10},
+        {"passos.csv", &fpas, cabPassos.c_str(), true, 10},
         {"fs.csv", &ffs,
          "t_h,FS_SRM,FS_parada,tentativas,newton_fs,u_max_m,pl_pts,epsp_max,banda_pts,banda_area_m2,banda_xc,banda_yc,"
          "banda_xmin,banda_xmax,banda_ymin,banda_ymax,banda_c,banda_phi_deg,banda_k_mult,du_max_m,massa_pts,massa_area_m2,"
@@ -471,16 +521,39 @@ int main() {
     auto passo = [&](REAL t0, REAL t1, int nivel) -> bool {
         const auto relogio0 = Relogio::now();
         const REAL dt = t1 - t0, chuva = Ir * std::max(REAL(0), std::min(t1, Tchuva) - t0) / dt;
+        // reservatorio: o nivel no fim do passo (volta ao anterior se o passo falhar); os nos da superficie abaixo dele
+        // ficam com p_w hidrostatico e saem da face de percolacao
+        const REAL nivelAnt = nivelRes;
+        if (reservatorio) nivelRes = nivelEm(t1);
+        auto submerso = [&](int64_t no) { return reservatorio && an->Coord(no, 1) <= nivelRes + 1.e-9; };
         auto tentativa = saida;
-        for (const auto &b : borda)
-            if (an->X().GetVal(an->WaterEq().at(b.first), 0) > tolP) tentativa.insert(b.first);
+        for (const auto &b : borda) {
+            if (submerso(b.first)) tentativa.erase(b.first);
+            else if (an->X().GetVal(an->WaterEq().at(b.first), 0) > tolP) tentativa.insert(b.first);
+        }
+        // lateral direita com o reservatorio: p_w hidrostatico abaixo do nivel, fluxo nulo acima
+        std::set<int64_t> eqDirPasso = eqDir;
+        if (reservatorio && direitaRes) {
+            eqDirPasso.clear();
+            for (const auto &b : ladoDir) // o canto que tambem e superficie submersa conta so em res_m3
+                if (an->Coord(b.first, 1) <= nivelRes && !(borda.count(b.first) && submerso(b.first)))
+                    eqDirPasso.insert(an->WaterEq().at(b.first));
+        }
         int newtonPasso = 0;
         for (int it = 0; it < 40; it++) {
             auto fixed = contorno;
+            if (reservatorio && direitaRes)
+                for (const auto &b : ladoDir) {
+                    const int64_t eq = an->WaterEq().at(b.first);
+                    const REAL y = an->Coord(b.first, 1);
+                    if (y <= nivelRes) fixed[eq] = p.gw * (nivelRes - y);
+                    else fixed.erase(eq);
+                }
             std::map<int64_t, REAL> fq;
             for (const auto &b : borda) {
                 const int64_t eq = an->WaterEq().at(b.first);
-                if (tentativa.count(b.first)) fixed[eq] = 0.;
+                if (submerso(b.first)) fixed[eq] = p.gw * (nivelRes - an->Coord(b.first, 1));
+                else if (tentativa.count(b.first)) fixed[eq] = 0.;
                 else fq[eq] = chuva * b.second;
             }
             const auto sr = an->Solve(dt, fixed, fq, false);
@@ -491,13 +564,14 @@ int main() {
             const TPZFMatrix<STATE> sol = cmesh->Solution();
             auto nova = tentativa;
             for (const auto &b : borda) {
+                if (submerso(b.first)) continue;
                 const int64_t eq = an->WaterEq().at(b.first);
                 if (tentativa.count(b.first)) {
                     if (R.GetVal(eq, 0) / (dt * b.second) > chuva + tolQ) nova.erase(b.first);
                 } else if (sol.GetVal(eq, 0) > tolP) nova.insert(b.first);
             }
             if (nova == tentativa) {
-                REAL somaR = 0., chuvaPot = 0., infFluxo = 0., infFace = 0., qEsq = 0., qDir = 0.;
+                REAL somaR = 0., chuvaPot = 0., infFluxo = 0., infFace = 0., qEsq = 0., qDir = 0., qRes = 0.;
                 REAL pwmin = 1.e300, pwmax = -1.e300;
                 for (const auto &e : an->WaterEq()) {
                     somaR += R.GetVal(e.second, 0);
@@ -506,12 +580,16 @@ int main() {
                     pwmax = std::max(pwmax, pw);
                 }
                 for (const auto &b : borda) {
+                    if (submerso(b.first)) { // a chuva sobre o reservatorio nao entra no solo
+                        qRes += R.GetVal(an->WaterEq().at(b.first), 0);
+                        continue;
+                    }
                     chuvaPot += chuva * b.second * dt;
                     if (tentativa.count(b.first)) infFace += R.GetVal(an->WaterEq().at(b.first), 0);
                     else infFluxo += chuva * b.second * dt;
                 }
                 for (auto e : eqEsq) qEsq += R.GetVal(e, 0);
-                for (auto e : eqDir) qDir += R.GetVal(e, 0);
+                for (auto e : eqDirPasso) qDir += R.GetVal(e, 0);
                 const REAL V = VolumeAgua(sol);
                 an->Accept();
                 saida = tentativa;
@@ -519,7 +597,7 @@ int main() {
                 infAcum += infFluxo + infFace;
                 fpas << stepAtual << ',' << t1 / hora << ',' << dt / hora << ',' << nivel << ',' << chuva * 1000. * hora << ','
                      << chuvaPot << ',' << infFluxo << ',' << infFace << ',' << qEsq << ',' << qDir << ',' << somaR << ','
-                     << somaR - infFluxo - infFace - qEsq - qDir << ',' << infAcum << ',' << V << ',' << saida.size() << ','
+                     << somaR - infFluxo - infFace - qEsq - qDir - qRes << ',' << infAcum << ',' << V << ',' << saida.size() << ','
                      << it + 1 << ',' << newtonPasso << ',' << sr.normp << ',' << sr.eu << ',' << pwmin << ',' << pwmax << ','
                      << Segundos(relogio0);
                 // estado mecanico do transiente: |u| maximo (desde o estado inicial), pontos que plastificaram neste passo
@@ -540,13 +618,16 @@ int main() {
                     epsT = std::max(epsT, raizJ2(d));
                     epsAnt[i] = ep;
                 }
-                fpas << ',' << uT << ',' << plT << ',' << epsT << '\n';
+                fpas << ',' << uT << ',' << plT << ',' << epsT;
+                if (reservatorio) fpas << ',' << nivelRes << ',' << qRes;
+                fpas << '\n';
                 fpas.flush();
                 return true;
             }
             tentativa = nova;
         }
         an->Restore();
+        nivelRes = nivelAnt;
         return false;
     };
     // avanca de t0 a t1, dividindo ao meio o passo que nao converge (ate maxCortes niveis)
@@ -787,6 +868,7 @@ int main() {
     REAL t = 0.;
     int step0 = 0;
     const bool retomou = leCheckpoint(step0, t);
+    nivelRes = nivelEm(t); // na retomada, o nivel do reservatorio no instante do checkpoint
     for (size_t k = 0; k < csvs.size(); ++k) {
         const auto &c = csvs[k];
         if (!c.ativo) {

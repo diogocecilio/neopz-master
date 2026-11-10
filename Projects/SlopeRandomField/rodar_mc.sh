@@ -20,7 +20,8 @@
 # --pastas: as pastas de cada entrada de COMBS; --verifica: so confere COMBS e os parametros.txt das combinacoes.
 # Avisos (parametros recusados, disjuntor) tambem vao para $SAIDA/AVISOS, que status_mc.sh mostra.
 # Ambiente: VARIANTE (iii, ii, i), MALHA (rahardjo_a45.msh ou rahardjo_a45_fina.msh), FS_H, COV_C, COV_PHI, COV_K, LX, LY,
-# ALFA, KL_M, SEMENTE, EXE, SAIDA, PARALELO, COMB (nome da pasta, com uma combinacao so). CSV opcionais: PW_CSV,
+# ALFA, KL_M, SEMENTE, EXE, SAIDA, PARALELO, COMB (nome da pasta, com uma combinacao so); reservatorio (o exemplo do
+# Ceron, README.md): NIVEL_INICIAL, NIVEL_FINAL, T_REBAIX_H, XCRISTA, YCRISTA, DIREITA_RES. CSV opcionais: PW_CSV,
 # MEC_CSV, CAMPOS_CSV (1 = grava, o padrao). VTK: CAMPOS_VTK=1 grava campos.vtk, VTK_H=24 o mecanismo de ruptura em
 # t = 24 h; SO_CAMPOS=1 so gera os campos (campos.vtk e campos.csv) das realizacoes pedidas, sem simular.
 set -u
@@ -333,9 +334,9 @@ trap 'rm -rf "$INST_MC"' EXIT
 # recusada (use outra SAIDA, ou uma entrada de COMBS com as trocas)
 VARS_PARAM="MESH TCHUVA_H DT_H FS_H TF_H XL XR HW BETA_DEG SUCMAX XTOE YTOE HL HR CHUVA_VERTICAL FS_TOL FS_F0 MAX_CORTES E NU
 COES PHI_DEG GAMMA KS POROS SEMENTE COV_C COV_PHI COV_K LX LY ALFA KL_M KL_FRAC SOLVER TOLU TOLP MAXIT MAXIT_FROZEN F_TRANS
-KRA_MIN AR_LATERAIS"
+KRA_MIN AR_LATERAIS NIVEL_INICIAL NIVEL_FINAL T_REBAIX_H XCRISTA YCRISTA DIREITA_RES"
 # variaveis acrescentadas depois: so entram em parametros.txt quando definidas, para as pastas de antes continuarem valendo
-VARS_PARAM_NOVAS=" F_TRANS KRA_MIN AR_LATERAIS "
+VARS_PARAM_NOVAS=" F_TRANS KRA_MIN AR_LATERAIS NIVEL_INICIAL NIVEL_FINAL T_REBAIX_H XCRISTA YCRISTA DIREITA_RES "
 parametros() { # parametros <trocas>: uma linha por variavel, VAR=valor (- se nao definida, o padrao do programa)
     local v val e
     for v in $VARS_PARAM; do
