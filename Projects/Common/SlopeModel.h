@@ -40,6 +40,29 @@ struct Data {
     REAL Nivel() const { return yCrista - hw; } // cota do nivel externo depois do rebaixamento
 };
 
+// Chuva de Rahardjo et al. (2007), Serie A: solo, chuva e estado inicial (kPa, m, s; tempos em horas). Padrao: solo f50,-5
+// da Tabela 1 sob I_r = 1 k_s = 36 mm/h durante 24 h, com o nivel d'agua inicial H_w = 5 m abaixo do pe (Fig. 2)
+struct RainData {
+    // solo: retencao de Fredlund-Xing com C(psi) = 1 (a em kPa) e k_w = k_s Theta^p (Leong e Rahardjo 1997)
+    REAL ks = 1.e-5;                // condutividade hidraulica saturada (m/s)
+    REAL n = 0.45;                  // porosidade
+    REAL aFX = 50., nFX = 1., mFX = 1., power = 4.;
+    REAL phib = 26. * M_PI / 180.;  // phi^b da Eq. 5 (resistencia da succao): chi = tan(phi^b) / tan(phi')
+    REAL Kw = 2.2e6;                // modulo volumetrico da agua (kPa)
+    // chuva
+    REAL intensity = 36.;           // I_r (mm/h)
+    REAL duration = 24.;            // horas de chuva
+    REAL dt = 0.1;                  // passo de tempo (h)
+    std::vector<REAL> times = {0., 6., 12., 18., 24., 36., 48.}; // instantes do fator (h); o transiente vai ate o ultimo
+    // estado inicial: hidrostatico abaixo do nivel d'agua (reta que sobe para a esquerda), succao limitada a suctionMax
+    REAL xToe = 40., yToe = 20.;    // pe do talude
+    REAL Hw = 5.;                   // profundidade do nivel abaixo do pe (m)
+    REAL betaW = 7. * M_PI / 180.;  // inclinacao do nivel
+    REAL suctionMax = 75.;          // kPa
+    REAL WaterLevel(REAL x) const { return yToe - Hw + (xToe - x) * std::tan(betaW); }
+    REAL Intensity() const { return intensity / 3.6e6; } // m/s
+};
+
 // Poropressao imposta no contorno id (Eq. 1 do artigo; laterais: hidrostatica da crista e do reservatorio)
 REAL ContourPressure(int id, REAL y, const Data &d);
 // Excesso de poropressao u (Eq. 2)
@@ -93,6 +116,9 @@ TPZMultiphysicsCompMesh *CreateUPCompMesh(TPZGeoMesh *gmesh, int porder, const D
 // Malha nao saturada (solo saturado em qualquer pressao); unitWeight: peso especifico (gamma ou o submerso)
 TPZMultiphysicsCompMesh *CreateUnsatCompMesh(TPZGeoMesh *gmesh, int porder, const Data &d, REAL unitWeight,
                                              const std::vector<int> &ordens = {});
+// Malha nao saturada do solo da chuva (RainData): retencao, k_w e phi^b do solo, esqueleto rigido na percolacao
+TPZMultiphysicsCompMesh *CreateRainCompMesh(TPZGeoMesh *gmesh, int porder, const Data &d, const RainData &r,
+                                            const std::vector<int> &ordens = {});
 void EraseMesh(TPZMultiphysicsCompMesh *mphys);
 
 // Poropressao imposta em cada no da superficie e das laterais (a base fica sem fluxo)

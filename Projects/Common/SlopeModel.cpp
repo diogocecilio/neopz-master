@@ -89,13 +89,29 @@ TPZMultiphysicsCompMesh *CreateUPCompMesh(TPZGeoMesh *gmesh, int porder, const D
     return mphys;
 }
 
-TPZMultiphysicsCompMesh *CreateUnsatCompMesh(TPZGeoMesh *gmesh, int porder, const Data &d, REAL unitWeight,
-                                             const std::vector<int> &ordens)
+// Malha multifisica u-p_w-p_a com o material ja configurado: u de ordem porder (ou a de cada elemento), pressoes P1
+static TPZMultiphysicsCompMesh *BuildUnsatMesh(TPZGeoMesh *gmesh, int porder, MatUnsat *mat, const std::vector<int> &ordens)
 {
     const std::set<int> bcids = {bcBase, bcDireita, bcSuperficie, bcEsquerda};
     TPZManVector<TPZCompMesh *, 3> meshvec = {CreateAtomicCompMesh(gmesh, 2, porder, bcids, ordens), // u
                                               CreateAtomicCompMesh(gmesh, 1, porder - 1, bcids),     // p_w
                                               CreateAtomicCompMesh(gmesh, 1, porder - 1, bcids)};    // p_a
+    auto *mphys = new TPZMultiphysicsCompMesh(gmesh);
+    mphys->SetDimModel(2);
+    mphys->InsertMaterialObject(mat);
+    TPZFMatrix<STATE> val1(2, 2, 0.);
+    TPZManVector<STATE, 2> val2(2, 0.);
+    for (int id : {bcBase, bcDireita, bcEsquerda}) // os apoios sao impostos pela analise; so marcam o contorno
+        mphys->InsertMaterialObject(mat->CreateBC(mat, id, TUnsat::EDirichletU, val1, val2));
+    mphys->InsertMaterialObject(mat->CreateBC(mat, bcSuperficie, TUnsat::ENeumannU, val1, val2)); // chuva: fluxo nodal
+    TPZManVector<int, 3> active(3, 1);
+    mphys->BuildMultiphysicsSpaceWithMemory(active, meshvec, {matSolo}, bcids);
+    return mphys;
+}
+
+TPZMultiphysicsCompMesh *CreateUnsatCompMesh(TPZGeoMesh *gmesh, int porder, const Data &d, REAL unitWeight,
+                                             const std::vector<int> &ordens)
+{
     auto *mat = new MatUnsat(matSolo);
     mat->SetPlasticModel(MohrCoulomb(d));
     TPZUnsaturatedHydraulics h; // Gardner com a_G = 0: S_w = 1 e k_rw = 1 em qualquer pressao
@@ -112,18 +128,31 @@ TPZMultiphysicsCompMesh *CreateUnsatCompMesh(TPZGeoMesh *gmesh, int porder, cons
     mat->SetUnitWeight(unitWeight);
     mat->SetLumpedStorage(true);
     mat->SetHydroMechanicalCoupling(false);
+    return BuildUnsatMesh(gmesh, porder, mat, ordens);
+}
 
-    auto *mphys = new TPZMultiphysicsCompMesh(gmesh);
-    mphys->SetDimModel(2);
-    mphys->InsertMaterialObject(mat);
-    TPZFMatrix<STATE> val1(2, 2, 0.);
-    TPZManVector<STATE, 2> val2(2, 0.);
-    for (int id : {bcBase, bcDireita, bcEsquerda}) // os apoios sao impostos pela analise; so marcam o contorno
-        mphys->InsertMaterialObject(mat->CreateBC(mat, id, TUnsat::EDirichletU, val1, val2));
-    mphys->InsertMaterialObject(mat->CreateBC(mat, bcSuperficie, TUnsat::ENeumannU, val1, val2));
-    TPZManVector<int, 3> active(3, 1);
-    mphys->BuildMultiphysicsSpaceWithMemory(active, meshvec, {matSolo}, bcids);
-    return mphys;
+TPZMultiphysicsCompMesh *CreateRainCompMesh(TPZGeoMesh *gmesh, int porder, const Data &d, const RainData &r,
+                                            const std::vector<int> &ordens)
+{
+    auto *mat = new MatUnsat(matSolo);
+    mat->SetPlasticModel(MohrCoulomb(d));
+    TPZUnsaturatedHydraulics h;
+    h.fRetention = TPZUnsaturatedHydraulics::EFredlundXing; // S_w(p_c), Eq. 1 do artigo com C(psi) = 1
+    h.fA = r.aFX, h.fN = r.nFX, h.fM = r.mFX;
+    h.fKrw = TPZUnsaturatedHydraulics::EPowerLaw;           // k_w = k_s Theta^p
+    h.fPower = r.power;
+    h.fKra = TPZUnsaturatedHydraulics::EBrooksCorey;        // o ar fica passivo (p_a = 0): nao entra
+    mat->SetHydraulics(h);
+    mat->SetBishop(TUnsat::EChiConstant, std::tan(r.phib) / std::tan(d.phi)); // Eq. 5: (u_a - u_w) tan(phi^b)
+    mat->SetPorosity(r.n);
+    mat->SetBiot(1., 0.);
+    mat->SetWaterBulkModulus(r.Kw);
+    mat->SetConductivity(r.ks, d.gammaw, 1.e-3 / 1.8e-5);
+    mat->SetAir(1.2 * 9.81e-3, 101.325);
+    mat->SetUnitWeight(d.gamma);
+    mat->SetLumpedStorage(true);
+    mat->SetHydroMechanicalCoupling(false); // esqueleto rigido na percolacao, como no SEEP/W do artigo
+    return BuildUnsatMesh(gmesh, porder, mat, ordens);
 }
 
 void EraseMesh(TPZMultiphysicsCompMesh *mphys)

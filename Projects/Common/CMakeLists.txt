@@ -1,8 +1,8 @@
 # Biblioteca comum dos projetos de talude: malhas e refinamento hp, materiais, caminho de equilibrio (GIM e SRM, por
-# arc-length ou bisseccao) e a classe SlopeAnalysis
+# arc-length ou bisseccao), o transiente da chuva, os campos aleatorios (Karhunen-Loeve) e a classe SlopeAnalysis
 add_library(slope_common STATIC
-    SlopeMesh.cpp SlopeModel.cpp SlopeSolver.cpp SlopeAnalysis.cpp
-    SlopeMesh.h SlopeModel.h SlopeSolver.h SlopeAnalysis.h)
+    SlopeMesh.cpp SlopeModel.cpp SlopeSolver.cpp SlopeRain.cpp SlopeFields.cpp SlopeAnalysis.cpp
+    SlopeMesh.h SlopeModel.h SlopeSolver.h SlopeRain.h SlopeFields.h KLSeparavel.h SlopeAnalysis.h)
 target_include_directories(slope_common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 if(CMAKE_IS_PZ_BUILDTREE)
     target_link_libraries(slope_common PUBLIC pz)

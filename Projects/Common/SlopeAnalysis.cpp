@@ -1,4 +1,5 @@
 #include "SlopeAnalysis.h"
+#include "SlopeRain.h"
 
 #include "TPZSpStructMatrix.h"
 #include "TPZUnsatAnalysis.h"
@@ -24,11 +25,10 @@ const char *Name(WaterModel w)
 SlopeAnalysis::SlopeAnalysis(const Data &d, MaterialKind kind, WaterModel water, FactorMethod factor)
     : fData(d), fKind(kind), fWater(water), fFactor(factor)
 {
-    if (water == WaterModel::Rain) {
-        std::cerr << "SlopeAnalysis: a chuva (transiente do material nao saturado) ainda nao esta implementada\n";
+    if (water == WaterModel::Rain && kind != MaterialKind::Unsat) { // a chuva precisa da succao e da saturacao
+        std::cerr << "SlopeAnalysis: a chuva so existe no material nao saturado\n";
         DebugStop();
     }
-    if (water == WaterModel::Rain && kind != MaterialKind::Unsat) DebugStop();
 }
 
 namespace {
@@ -99,6 +99,10 @@ SlopeAnalysis::LevelResult SlopeAnalysis::SolveLevelUP(TPZGeoMesh *gmesh, const 
     auto *mat = dynamic_cast<MatUP *>(cmesh->FindMaterial(matSolo));
     if (!mat) DebugStop();
     ApplyProperties(cmesh, mat, fProps);
+    if (fPerm) { // o TPZMatPoroElastoPlasticUP nao tem condutividade por ponto
+        std::cerr << "SlopeAnalysis: o campo de permeabilidade so existe no material nao saturado\n";
+        DebugStop();
+    }
     LevelResult res;
     {
         TPZPoroElastoPlasticUPAnalysis an(cmesh, mat);
@@ -170,11 +174,16 @@ SlopeAnalysis::LevelResult SlopeAnalysis::SolveLevelUnsat(TPZGeoMesh *gmesh, con
                                                           const std::string &header, const std::string &base)
 {
     const Data &d = fData;
+    const bool chuva = fWater == WaterModel::Rain;
+    const bool gim = fFactor == FactorMethod::GIMArcLength || fFactor == FactorMethod::GIMBisection;
     const REAL peso = UsesForce() ? d.gamma - d.gammaw : d.gamma;
-    TPZMultiphysicsCompMesh *cmesh = CreateUnsatCompMesh(gmesh, 2, d, peso, ordens);
+    TPZMultiphysicsCompMesh *cmesh = chuva ? CreateRainCompMesh(gmesh, 2, d, fRain, ordens)
+                                           : CreateUnsatCompMesh(gmesh, 2, d, peso, ordens);
     auto *mat = dynamic_cast<MatUnsat *>(cmesh->FindMaterial(matSolo));
     if (!mat) DebugStop();
     ApplyProperties(cmesh, mat, fProps);
+    if (fPerm) // k do ponto = k medio x fKMult (o ResetMemory antes do fator preserva fKMult e fmatprop)
+        ForEachPoint(cmesh, [&](TPZCompEl *, const TPZVec<REAL> &x, int64_t im) { mat->MemItem(im).fKMult = fPerm(x); });
     LevelResult res;
     {
         // analise antes da matriz: o construtor renumera as equacoes
@@ -192,55 +201,119 @@ SlopeAnalysis::LevelResult SlopeAnalysis::SolveLevelUnsat(TPZGeoMesh *gmesh, con
         res.nfree = livres.size();
         PrintLevelHeader(header, res.neq, res.nfree);
 
-        TPZFMatrix<STATE> x0(res.neq, 1, 0.);
-        if (fWater == WaterModel::Drawdown || fWater == WaterModel::DrawdownForce) {
-            auto fixas = an.AllDisplacements(an.X()); // percolacao: u = 0, p_a = 0 e p_w do contorno fixos
-            for (const auto &[no, eq] : an.AirEq()) fixas[eq] = 0.;
-            for (const auto &[no, v] : BoundaryPressures(gmesh, d)) fixas[an.WaterEq().at(no)] = v;
-            {
-                QuietCout q;
-                if (!an.Solve(1., fixas, {}, false).conv) DebugStop(); // sem armazenamento: o permanente
-                an.Accept();
+        // Fator com as pressoes de x0 congeladas, a partir do estado sem tensoes (memoria zerada antes). O estado do
+        // fim do caminho fica na memoria (indicador plastico)
+        auto fator = [&](const TPZFMatrix<STATE> &x0) {
+            // lambda escala o peso e toda a pressao (o Gamma do artigo de Vargas Ceron); na chuva o GIM nao escala a
+            // succao, que nao vem do peso (senao a resistencia cresceria com lambda)
+            an.SetGravityScalesSuction(!(chuva && gim));
+            for (auto *m : an.Materials()) {
+                m->SetTimeStep(0.);
+                m->SetFrozenPressures(true); // so o equilibrio
             }
-            x0 = an.X();
-            an.ResetMemory(); // o fator parte do estado sem tensoes (as propriedades dos pontos ficam)
-            for (int64_t no = 0; no < gmesh->NNodes(); no++) res.pw.push_back(an.Nodal(x0, no, 1));
-            PrintSeepage(res.pw);
-            if (fWater == WaterModel::DrawdownForce) {
-                SetPointForces(cmesh, mat, [&](TPZCompEl *cel, const TPZVec<REAL> &) {
-                    return ForceFromNodal(cel->Reference(), res.pw, d.gammaw);
-                });
-                x0.Zero();
-            }
-        } else if (fWater == WaterModel::ForceField) {
-            if (!fForce) DebugStop();
-            SetPointForces(cmesh, mat, [&](TPZCompEl *, const TPZVec<REAL> &x) { return fForce(x); });
-        }
-        an.SetGravityScalesSuction(true); // lambda escala o peso e toda a pressao (o Gamma do artigo)
-        for (auto *m : an.Materials()) {
-            m->SetTimeStep(0.);
-            m->SetFrozenPressures(true); // so o equilibrio
-        }
-        PathProblem p;
-        p.an = &an;
-        p.x0 = x0;
-        p.scaleFixed = false; // o material escala as pressoes congeladas
-        p.free = livres;
-        p.setLambda = [&an, mat](REAL lam) {
-            an.SetGravityFactor(lam);
-            mat->fForceFactor = lam;
+            PathProblem p;
+            p.an = &an;
+            p.x0 = x0;
+            p.scaleFixed = false; // o material escala as pressoes congeladas
+            p.free = livres;
+            p.setLambda = [&an, mat](REAL lam) {
+                an.SetGravityFactor(lam);
+                mat->fForceFactor = lam;
+            };
+            p.setReduction = [&an](REAL F) { an.SetStrengthReductionFactor(F); };
+            p.accept = [&an]() { QuietCout q; an.Accept(); };
+            SetFreeEquations(an, p.free);
+            return ComputeFactor(p, res.neq, fFactor);
         };
-        p.setReduction = [&an](REAL F) { an.SetStrengthReductionFactor(F); };
-        p.accept = [&an]() { QuietCout q; an.Accept(); };
-        SetFreeEquations(an, p.free);
-        const FactorResult f = ComputeFactor(p, res.neq, fFactor);
-        res.value = f.value, res.steps = f.steps, res.end = f.end;
+
+        if (chuva) {
+            // transiente da chuva e, em cada instante pedido, o fator com as pressoes daquele instante
+            RainTransient transiente(an, fRain, d.gammaw);
+            transiente.InitialState();
+            Print("    chuva: I_r = %.1f mm/h durante %.0f h, dt = %.2f h; %s em %zu instantes ate %.0f h", fRain.intensity,
+                  fRain.duration, fRain.dt, gim ? "Gamma" : "FS", fRain.times.size(), fRain.times.back());
+            for (REAL t : fRain.times) {
+                const auto tt = Clock::now();
+                bool avancou;
+                {
+                    QuietCout q; // a montagem serial imprime '*' a cada 1000 elementos, em todo passo
+                    avancou = transiente.AdvanceTo(t);
+                }
+                if (!avancou) {
+                    Print("    o passo depois de t = %.2f h nao convergiu: a chuva para aqui", transiente.Time());
+                    if (res.end.empty()) res.end = "transiente parou";
+                    break;
+                }
+                const auto [pmin, pmax] = transiente.PressureRange();
+                Print("\n    t = %5.1f h | %lld passos, %lld iteracoes de Newton | face de percolacao: %zu nos | p_w de "
+                      "%.1f a %.1f kPa | %.1f s",
+                      t, (long long)transiente.Steps(), (long long)transiente.NewtonIterations(), transiente.FaceNodes(),
+                      pmin, pmax, Seconds(tt));
+                const TPZFMatrix<STATE> x = an.X(); // estado do transiente (u = 0)
+                const auto memoria = an.SaveMemory();
+                an.ResetMemory(); // o fator parte do estado sem tensoes (as propriedades dos pontos ficam)
+                const FactorResult f = fator(x);
+                std::vector<REAL> pw(gmesh->NNodes()), sw(gmesh->NNodes());
+                for (int64_t no = 0; no < gmesh->NNodes(); no++) {
+                    pw[no] = an.Nodal(x, no, 1);
+                    sw[no] = mat->Hydraulics().Evaluate(pw[no], an.Nodal(x, no, 2)).S;
+                }
+                res.history.push_back({t, f.value});
+                res.pwt.push_back(pw);
+                res.swt.push_back(sw);
+                Print("    => t = %5.1f h: %s = %.5f | %d passos, fim: %s | %.1f s", t, gim ? "Gamma" : "FS", f.value,
+                      f.steps, f.end.c_str(), Seconds(tt));
+                if (res.history.size() == 1 || f.value < res.value) { // o instante critico guia o refinamento
+                    res.value = f.value, res.steps = f.steps, res.end = f.end, res.tcrit = t;
+                    res.fmc = MaxYield(mat, d);
+                    res.ind = PlasticIndicator(cmesh, mat);
+                    res.pw = pw;
+                    if (!base.empty()) WritePlasticPoints(cmesh, mat, base + "_pontos.csv");
+                }
+                // de volta ao transiente: memoria, estado e o filtro de equacoes, que o fator trocou por fora da
+                // TPZUnsatAnalysis (sem o Reset, o Solve seguinte acharia o filtro antigo ainda valido)
+                an.RestoreMemory(memoria);
+                an.X() = x;
+                an.Restore();
+                an.SetGravityScalesSuction(true);
+                an.StructMatrix()->EquationFilter().Reset();
+            }
+        } else {
+            TPZFMatrix<STATE> x0(res.neq, 1, 0.);
+            if (fWater == WaterModel::Drawdown || fWater == WaterModel::DrawdownForce) {
+                auto fixas = an.AllDisplacements(an.X()); // percolacao: u = 0, p_a = 0 e p_w do contorno fixos
+                for (const auto &[no, eq] : an.AirEq()) fixas[eq] = 0.;
+                for (const auto &[no, v] : BoundaryPressures(gmesh, d)) fixas[an.WaterEq().at(no)] = v;
+                {
+                    QuietCout q;
+                    if (!an.Solve(1., fixas, {}, false).conv) DebugStop(); // sem armazenamento: o permanente
+                    an.Accept();
+                }
+                x0 = an.X();
+                an.ResetMemory(); // o fator parte do estado sem tensoes (as propriedades dos pontos ficam)
+                for (int64_t no = 0; no < gmesh->NNodes(); no++) res.pw.push_back(an.Nodal(x0, no, 1));
+                PrintSeepage(res.pw);
+                if (fWater == WaterModel::DrawdownForce) {
+                    SetPointForces(cmesh, mat, [&](TPZCompEl *cel, const TPZVec<REAL> &) {
+                        return ForceFromNodal(cel->Reference(), res.pw, d.gammaw);
+                    });
+                    x0.Zero();
+                }
+            } else if (fWater == WaterModel::ForceField) {
+                if (!fForce) DebugStop();
+                SetPointForces(cmesh, mat, [&](TPZCompEl *, const TPZVec<REAL> &x) { return fForce(x); });
+            }
+            const FactorResult f = fator(x0);
+            res.value = f.value, res.steps = f.steps, res.end = f.end;
+        }
     }
-    res.fmc = MaxYield(mat, d);
-    res.ind = PlasticIndicator(cmesh, mat);
-    if (!base.empty()) {
-        WritePlasticPoints(cmesh, mat, base + "_pontos.csv");
-        WritePointForces(cmesh, mat, base + "_forca.csv");
+    if (!chuva) { // na chuva, ja guardados no instante critico
+        res.fmc = MaxYield(mat, d);
+        res.ind = PlasticIndicator(cmesh, mat);
+        if (!base.empty()) {
+            WritePlasticPoints(cmesh, mat, base + "_pontos.csv");
+            WritePointForces(cmesh, mat, base + "_forca.csv");
+        }
     }
     EraseMesh(cmesh);
     return res;
@@ -275,8 +348,11 @@ std::vector<LevelSummary> SlopeAnalysis::Run(FlatMesh m)
                                                         : SolveLevelUnsat(gmesh, m.order, header, nivel);
         delete gmesh;
         ls.neq = r.neq, ls.nfree = r.nfree, ls.value = r.value, ls.steps = r.steps, ls.seconds = Seconds(tk);
+        ls.history = r.history;
         niveis.push_back(ls);
+        const bool chuva = fWater == WaterModel::Rain;
         const REAL erro = fTarget > 0. ? 100. * (r.value / fTarget - 1.) : 0.;
+        if (chuva) Print("\n    menor fator da chuva: t = %.1f h", r.tcrit);
         Print("    => %s = %.5f (erro %+.2f%%) | %d passos, fim: %s | f_MC max %.0e | %.1f s (total %.1f s)",
               gim ? "Gamma" : "FS", r.value, erro, r.steps, r.end.c_str(), r.fmc, Seconds(tk), Seconds(t0));
         if (!base.empty()) {
@@ -284,9 +360,21 @@ std::vector<LevelSummary> SlopeAnalysis::Run(FlatMesh m)
             std::map<std::string, std::vector<REAL>> pontos;
             if (!r.pw.empty()) {
                 pontos["p_w"] = r.pw;
-                std::vector<REAL> u(m.nodes.size());
-                for (size_t i = 0; i < u.size(); i++) u[i] = ExcessPorePressure(r.pw[i], m.nodes[i][1], fData);
-                pontos["u_excesso"] = u;
+                if (!chuva) {
+                    std::vector<REAL> u(m.nodes.size());
+                    for (size_t i = 0; i < u.size(); i++) u[i] = ExcessPorePressure(r.pw[i], m.nodes[i][1], fData);
+                    pontos["u_excesso"] = u;
+                }
+            }
+            if (chuva) { // fator de cada instante e p_w e S_w de cada instante (a frente de molhamento no ParaView)
+                std::ofstream fs(nivel + "_chuva.csv");
+                fs << "t_h," << (gim ? "gamma" : "FS") << "\n";
+                for (size_t i = 0; i < r.history.size(); i++) {
+                    fs << r.history[i][0] << "," << r.history[i][1] << "\n";
+                    char tnome[32];
+                    std::snprintf(tnome, sizeof tnome, "_t%05.1fh.vtk", r.history[i][0]);
+                    WriteFlatVTK(m, {}, {{"p_w", r.pwt[i]}, {"S_w", r.swt[i]}}, nivel + tnome);
+                }
             }
             WriteFlatVTK(m, {{"sqrtJ2_eps_p", std::vector<REAL>(r.ind.begin(), r.ind.begin() + m.tri.size())},
                              {"ordem_u", ordem}},
@@ -331,13 +419,13 @@ void PrintSummary(const std::string &title, const std::vector<SummaryRun> &runs,
                 std::snprintf(buf, sizeof buf, " %6d", it == l.orders.end() ? 0 : it->second);
                 std::cout << buf;
             }
-            Print(" %10.5f %6.3f %+8.2f%% %7d %10.1f", l.value, r.target, 100. * (l.value / r.target - 1.), l.steps,
-                  l.seconds);
+            Print(" %10.5f %6.3f %+8.2f%% %7d %10.1f", l.value, r.target,
+                  r.target > 0. ? 100. * (l.value / r.target - 1.) : 0., l.steps, l.seconds);
         }
     std::cout << traco << "\n";
     for (const auto &r : runs)
         Print(" final %-*s %.5f (alvo %.3f, %+.2f%%)", (int)wnome, r.name.c_str(), r.levels.back().value, r.target,
-              100. * (r.levels.back().value / r.target - 1.));
+              r.target > 0. ? 100. * (r.levels.back().value / r.target - 1.) : 0.);
     Print(" tempo total: %.1f s", total);
     std::cout << duplo << std::endl;
 }
