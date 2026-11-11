@@ -1,0 +1,9 @@
+pontos_foco375,2160,triangulos,720,nos,395
+analitica_erro_rel_max_programa_python_foco375,3.3669243284215468e-06,1.1105249601400875e-06,7.686675115609532e-06,dif_c_simulacao_compara,0.0
+pontos_refinada,7632,triangulos,2544,nos,1318
+analitica_erro_rel_max_programa_python_refinada,4.031864893028427e-06,1.2523711092371508e-06,7.275398185083116e-06,dif_c_simulacao_compara,0.0
+analitica_pontos_comuns,6,max_dif_c_kPa,0.0,max_dif_phi,0.0
+p1_foco375,395,erro_mq_M200,0.12833436807317733,lambda1,48.82484891879677
+p1_refinada,1318,erro_mq_M200,0.1266188671235946,lambda1,48.83033961245352
+p1_rms_dif_relativa,0.6596714167548977,alinhado,0.288043455563992,correlacao_alinhado,0.84556736060592
+p1_correlacao_sem_alinhar,0.633556790406612,modos_com_sinal_trocado,97,produto_interno_min_abs_k1a20,0.8071485051213904

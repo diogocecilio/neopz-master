@@ -194,6 +194,7 @@ def estado_inicial(ts):
             t.estado = "feito"
         elif t.pai is not None and os.path.isfile(t.arq("sem_banda.txt")):
             t.estado = "sem_banda"
+            t.motivo = "a pai %s nao tem banda" % t.config_pai
         else:
             t.estado = "pendente"
 
@@ -368,6 +369,7 @@ class Campanha:
             with self.trava_filhos:
                 del self.filhos[p.pid]
                 _, status, uso = os.wait4(p.pid, 0)
+        os.remove(os.path.join(pasta, "pid.txt"))
         p.returncode = os.waitstatus_to_exitcode(status)
         return p.returncode, t0, t1, uso.ru_utime + uso.ru_stime
 
@@ -402,8 +404,11 @@ class Campanha:
         if t.pai is None:
             for ext in (".geo", ".msh"):
                 shutil.copy2(base_geo[:-4] + ext, t.arq("malha" + ext))
-            escreve(t.arq("malha.txt"), "malha=%s triangulos=%d\n" % (
-                os.path.basename(base_geo[:-4]) + ".msh", refina_banda.triangulos(t.arq("malha.msh"))))
+            try:
+                tri = "%d" % refina_banda.triangulos(t.arq("malha.msh"))
+            except (OSError, ValueError, IndexError):  # um .msh que nao se le: o programa vai falhar e dizer por que
+                tri = "-"
+            escreve(t.arq("malha.txt"), "malha=%s triangulos=%s\n" % (os.path.basename(base_geo[:-4]) + ".msh", tri))
         else:
             # o refina_banda.py (com o gmsh): a banda da pai, a base e a malha inicial da cadeia
             c0 = compara.carga()
@@ -437,7 +442,7 @@ class Campanha:
             if self.interrompido(rc):
                 return "interrompido"
             return self.falhou(t, "programa", rc, "run.err")
-        for f in ("checkpoint.bin", "checkpoint.bin.tmp", "pid.txt"):
+        for f in ("checkpoint.bin", "checkpoint.bin.tmp"):
             if os.path.exists(t.arq(f)):
                 os.remove(t.arq(f))
         # tempo.txt por ultimo: com resultado.txt, marca a tarefa como feita
