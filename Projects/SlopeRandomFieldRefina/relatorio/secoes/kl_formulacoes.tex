@@ -57,11 +57,12 @@ $|\Omega| = \SI{187.5}{m^2}$):
   \item Na KL do retângulo $R$ restrita ao talude, as $f_k$ não são ortonormais em $\Omega$, mas a
     Eq.~\eqref{eq:kl:variancia} continua valendo em cada ponto de $\Omega \subset R$, e
     $\varepsilon_M = 1 - \sum_{k \le M} \lambda_k^R \int_\Omega (f_k^R)^2 \, d\mathbf{x} / |\Omega|$.
-  \item Otimalidade: entre todas as expansões de $M$ termos $\sum_{k \le M} \eta_k g_k(\mathbf{x})$ com $g_k$ ortonormais em
-    $L^2(\Omega)$, a KL de $\Omega$ é a que minimiza $\int_\Omega \mathrm{E}[(Z - Z_M)^2] \, d\mathbf{x}$ (Ghanem e
-    Spanos, 1991). A KL do retângulo restrita ao talude é uma dessas expansões (os seus $M$ termos geram um subespaço
-    de dimensão $M$ de $L^2(\Omega)$): para cada $M$, o seu $\varepsilon_M$ é maior ou igual ao da KL exata do talude.
-    A otimalidade é por termo; com $M \to \infty$, as duas reproduzem a covariância no talude.
+  \item Otimalidade: entre todas as aproximações $\sum_{k \le M} \eta_k g_k(\mathbf{x})$ de $Z$ com $M$ funções $g_k$
+    ortonormais em $L^2(\Omega)$ e coeficientes aleatórios $\eta_k$ quaisquer, a KL de $\Omega$ é a que minimiza
+    $\int_\Omega \mathrm{E}[(Z - Z_M)^2] \, d\mathbf{x}$ (Ghanem e Spanos, 1991). A KL do retângulo restrita ao
+    talude é uma dessas aproximações (basta reescrevê-la numa base ortonormal em $\Omega$ do subespaço gerado pelos
+    seus $M$ modos): para cada $M$, o seu $\varepsilon_M$ é maior ou igual ao da KL exata do talude. A otimalidade é
+    por termo; com $M \to \infty$, as duas reproduzem a covariância no talude.
   \item Na KL numérica (Galerkin), $\varepsilon_M$ é calculado com os autovalores numéricos,
     $1 - \sum_{k \le M} \lambda_k^h / |\Omega|$; esse valor não inclui a diferença entre os modos numéricos e os exatos,
     e $\sigma_M^2$ pode passar de 1.
@@ -229,10 +230,14 @@ a última a fórmula de interpolação de Nyström, que dá os modos em qualquer
 numpy/scipy, sem o NeoPZ), a grade é uniforme com passo $h = 5/n$ (nós $(ih, jh)$), de modo que as dobras do núcleo
 ($x = x'$, $y = y'$) ficam nas arestas das células; a regra é o trapézio tensorial nos quadrados e a regra dos vértices
 ($h^2/6$ por vértice) nos meios-quadrados ao longo da face $x + y = 20$. O produto por $\mathbf{K}$ não monta a matriz:
-na grade do retângulo envolvente, o núcleo separável é $\mathbf{K}_y \mathbf{U} \mathbf{K}_x^T$, e os maiores
-autovalores saem por Lanczos (\texttt{eigsh}). Com $n = 10$ a 320 (até 770 mil nós) e extrapolação de Richardson em
+com o vetor arrumado como matriz $\mathbf{U}$ na grade do retângulo envolvente ($y$ nas linhas, $x$ nas colunas, zero
+fora do talude) e as matrizes 1D $(\mathbf{K}_x)_{ab} = e^{-|x_a - x_b|/L_x}$ e
+$(\mathbf{K}_y)_{ab} = e^{-|y_a - y_b|/L_y}$, o núcleo separável dá $\mathbf{K}_y \mathbf{U} \mathbf{K}_x^T$, e os
+maiores autovalores saem por Lanczos (\texttt{eigsh}). Com $n = 10$ a 320 (até 770 mil nós) e extrapolação de Richardson em
 $h^2$ e $h^4$, o mesmo esquema reproduz no retângulo a forma fechada ($\lambda_1$ e $\lambda_{10}$ com diferença menor
 que $10^{-9}$; $1 - \sum_{k \le 200} \lambda_k / 250$ com diferença de $3{,}6 \times 10^{-7}$), e no talude as
 extrapolações com $n = 40, 80, 160$ e $80, 160, 320$ diferem em até $1{,}5 \times 10^{-8}$ nos 10 maiores autovalores
 (README, Seção~4). É a ``KL exata do talude'' das comparações. Com $n = 160$ (193\,041 nós, 210 autopares) o cálculo levou
-81~s e 1,4~GB (\texttt{dados/kl\_nystrom\_custo.csv}); por isso a referência de Nyström vai até $M = 200$.
+81~s e 1,4~GB (\texttt{dados/kl\_nystrom\_custo.csv}); por isso a referência de Nyström vai até $M = 200$. Nas figuras,
+os 210 autovalores são os extrapolados de $n = 80$, 160 e 320; a diferença para a extrapolação de $n = 40$, 80 e 160,
+tomada como a incerteza da referência, é de até 1,3\,\% de $k = 50$ a 100.

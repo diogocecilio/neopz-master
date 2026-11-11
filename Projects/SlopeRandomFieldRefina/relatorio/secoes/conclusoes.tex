@@ -1,0 +1,50 @@
+\section{Conclusões}\label{sec:conclusoes}
+
+\paragraph{Refinamento por realização (Seções~\ref{sec:ref:metodo} e~\ref{sec:ref:niveis}).}
+\begin{itemize}
+\item Contra a \texttt{foco125}, nos nove casos, um passo de refinamento a partir da \texttt{foco375} dá diferença média
+  de $+2{,}55\,\%$ com $h = 0{,}25$~m, $+1{,}49\,\%$ com $h = 0{,}1875$~m e $+0{,}14\,\%$ com $h = 0{,}125$~m (média de
+  $|e|$ de $0{,}23\,\%$, máxima de $0{,}49\,\%$), este último a cerca de 30\,\% do tempo de CPU da \texttt{foco125}
+  (Tabela~\ref{tab:niv:resumo}).
+\item Só o nível de $0{,}125$~m deixa o viés no $P_f$ ($-1\,\%$) abaixo do erro amostral do Monte Carlo (coeficiente
+  de variação de $9{,}1\,\%$ com 1000 realizações e $4{,}1\,\%$ com 5000); os níveis de $0{,}25$ e $0{,}1875$~m
+  subestimam o $P_f$ em cerca de 17 e 10\,\% (Tabela~\ref{tab:niv:pf}).
+\item A malha inicial mais grossa (\texttt{g15}, 126 triângulos) dá praticamente os mesmos erros em cada nível e reduz a
+  etapa 1 de cerca de 11~s para 1~s. Mas a banda que ela encontra é mais larga: com $h = 0{,}125$~m a malha refinada
+  fica maior (3009 triângulos em média, contra 2385), o custo sobe, e até $4{,}6\,\%$ dos pontos da banda final ficam
+  fora da zona refinada (Fig.~\ref{fig:niv:contencao}). Ela só compensa nos níveis mais grossos.
+\item Recomendação: a \texttt{foco375} como malha inicial e um passo até $h = 0{,}125$~m (a \texttt{refinada} da
+  comparação). As horas estimadas no fermi estão na Tabela~\ref{tab:niv:fermi}.
+\item A \texttt{foco125} não está convergida: a extrapolação com $p = 2$ indica que ela superestima $\Gamma$ em cerca
+  de 1\,\%, o que deslocaria o $P_f$ em cerca de $+9\,\%$. As diferenças acima são relativas a ela.
+\end{itemize}
+
+\paragraph{Karhunen-Loève (Seções~\ref{sec:kl:form} a~\ref{sec:kl:tal}).}
+\begin{itemize}
+\item A forma fechada do retângulo envolvente, restrita ao talude, tem no talude a covariância pedida quando
+  $M\to\infty$, porque o talude está dentro do retângulo e o campo do talude é a restrição do campo do retângulo. Com
+  $M = 2000$, o erro médio quadrático de truncamento no talude é $\varepsilon_M = 0{,}0079$, abaixo do que o Galerkin no
+  talude atingiu em qualquer malha testada (cerca de $0{,}029$, limitado pela malha), a um custo de 1,3~s contra 260~s.
+  Para o Monte Carlo no talude do Ceron, com o núcleo exponencial separável, a sua conclusão vale: não há motivo para
+  usar a numérica.
+\item O campo da forma fechada é uma função avaliada em cada ponto de integração: a qualidade dele não depende da malha,
+  e os mesmos $\xi_k$ dão o mesmo campo em qualquer malha com o mesmo retângulo envolvente
+  (Seção~\ref{kl:tal:resposta}). É isso que torna consistente o refinamento por realização. A malha continua importando
+  para a solução de elementos finitos ($\Gamma$ e a banda) e para o quanto o modelo resolve a variabilidade: na banda,
+  $h = 0{,}125$ a $0{,}375$~m é bem menor que $L_y = 2$~m.
+\item Por termo, a base do retângulo é menos eficiente que a do talude (63 termos do retângulo para igualar 50 do talude;
+  253 a 254 para igualar 200). Isso só pesa quando o número de variáveis aleatórias importa (FORM/SORM, caos
+  polinomial, metamodelos), não no Monte Carlo.
+\item A formulação numérica continua necessária para núcleos sem forma fechada, como o exponencial isotrópico do meio
+  cilindro de Mika et al.\ (2021), para domínios muito menores que o retângulo envolvente ou não convexos, e quando se
+  quer o menor número de variáveis aleatórias.
+\item No meio cilindro, o Galerkin do NeoPZ com geometria exata converge com taxa $h^4$ e, na malha $24\times3\times12$
+  com $5^3$ pontos de Gauss, fica no nível do Galerkin~2 de Mika et al. Os autovalores guardados no notebook
+  \texttt{randomfied-v2.nb} não se reproduzem a partir do código dele e não devem ser usados como referência.
+\end{itemize}
+
+\paragraph{Limitações.}
+Para caber em uma hora, o estudo dos níveis usou os nove casos já existentes (o determinístico e as realizações 0 a 7)
+e mediu o erro contra a \texttt{foco125}, que não está convergida; a referência mais fina ($h = 0{,}0625$~m) e o
+refinamento em dois níveis não foram rodados. A rodada nova usou 3 processos ao mesmo tempo, e a comparação anterior 2;
+por isso os custos são comparados pelo tempo de CPU.

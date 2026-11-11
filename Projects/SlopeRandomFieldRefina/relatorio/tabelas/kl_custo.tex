@@ -1,11 +1,12 @@
-% Tabela (agente kl_talude): custo das formulacoes no talude. Fontes: Galerkin, arquivos b_elem_talude.csv e
-% b_o10_talude.csv da repeticao desta sessao (KLTaludeCeron, 1 thread, maquina com outra campanha rodando);
+% Tabela (agente kl_talude): custo das formulacoes no talude. Fontes: Galerkin, dados/kl_galerkin_talude_regra_elemento.csv e
+% dados/kl_galerkin_talude_ordem10.csv (rodadas refeitas para o relatorio, KLTaludeCeron, 1 thread);
 % Nystrom, dados/kl_nystrom_custo.csv; forma fechada, README do KLCilindroMika, secao 4.
 \begin{table}[H]
   \centering
   \caption{Custo de cada formulação no talude (uma thread). Galerkin: KL numérica do NeoPZ (\texttt{KLTaludeCeron}), tempo
-    de montagem de $\mathbf{C}$, do problema de autovalores com autovetores e total, e memória máxima; a máquina rodava
-    outra campanha em paralelo (o README registra 260~s e 650~MB para a malha de 5085 equações com a regra de ordem 10).
+    de montagem de $\mathbf{C}$, do problema de autovalores com autovetores e total, e memória máxima, nas rodadas refeitas
+    para este relatório; os tempos dependem da carga da máquina (o README registra 260~s e 650~MB para a malha de 5085
+    equações com a regra de ordem 10).
     Nyström: $n = 160$, 210 autopares. Forma fechada: 20\,000 termos e as integrais de cada modo no talude.}
   \label{tab:kl:custo}
   \footnotesize

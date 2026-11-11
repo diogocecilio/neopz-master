@@ -1,6 +1,7 @@
 % Secao: KL no talude, analitica contra numerica (agente kl_talude). Sem preambulo; \input no relatorio.
-% Fontes: Projects/KLCilindroMika/README.md (secao 4), relatorio/dados/kl_*.csv, as rodadas do KLTaludeCeron desta
-% sessao (autovalores e sigma_M^2 nos pontos) e Projects/KLCilindroMika/figuras/talude_figuras.py e malhas_campos.py.
+% Fontes: Projects/KLCilindroMika/README.md (secao 4), relatorio/dados/kl_*.csv (kl_truncamento, kl_espectros: todos os
+% autovalores de Galerkin; kl_galerkin_talude_*: resumo por M das rodadas do KLTaludeCeron refeitas para o relatorio) e
+% Projects/KLCilindroMika/figuras/talude_figuras.py e malhas_campos.py.
 \section{Karhunen-Loève no talude: analítica contra numérica}\label{sec:kl:tal}
 
 O \texttt{SlopeRandomField} gera os campos com a forma fechada do retângulo envolvente $R = [0, 25] \times [0, 10]$,
@@ -19,7 +20,9 @@ valores do README.
 Os 10 maiores autovalores da KL exata do talude são 48,810; 26,730; 16,911; 10,824; 9,572; 6,824; 4,719; 4,519; 3,829 e
 3,349; os da forma fechada no retângulo, 57,155; 36,231; 21,400; 13,120; 13,046; 8,570; 8,270; 5,939; 4,885 e 4,511
 (README, Seção~4). Os dois conjuntos não são comparáveis termo a termo: a soma de todos os autovalores é a área do
-domínio (187,5 no talude e 250 no retângulo), e os modos do retângulo não são ortogonais no talude. A
+domínio (187,5 no talude e 250 no retângulo), e os modos do retângulo não são ortogonais no talude. Os modos do talude
+(Figura~\ref{fig:kl:modostal}) se parecem com os do retângulo (Figura~\ref{fig:kl:modosret}) longe da face e se
+deformam perto dela: não são produtos $f_i(x) g_j(y)$. A
 Figura~\ref{fig:kl:espectros}(a) mostra os espectros. Os autovalores de Galerkin acompanham os do talude nos primeiros
 modos e, perto do número de equações $N$, caem rapidamente: a malha só tem $N$ autovalores, e a sua soma (o traço
 numérico) fica abaixo da área (0,9713 da área em P2 \texttt{\_h025} com a regra de ordem 10). A
@@ -34,12 +37,21 @@ termos) e não são resolvidos pelos elementos de 0,75 a \SI{1.5}{m} longe da su
 
 \begin{figure}[H]
   \centering
+  \includegraphics[width=\textwidth]{kl_modos_talude.png}
+  \caption{Os 9 primeiros modos da KL exata do talude (Nyström, grade $n = 160$, modos nos nós de uma grade de
+    \SI{0.25}{m}; $\lambda_k$ extrapolados). Dados \texttt{dados/kl\_nystrom\_modos.csv}; scripts \texttt{nystrom.py} e
+    \texttt{talude\_figuras.py}.}
+  \label{fig:kl:modostal}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
   \includegraphics[width=\textwidth]{kl_espectros.pdf}
   \caption{(a) Autovalores $\lambda_k$: forma fechada no retângulo $R$, KL exata do talude (Nyström, 210 autovalores,
     extrapolação de Richardson das grades $n = 80$, 160 e 320) e KL de Galerkin no talude. (b) Diferença relativa dos
-    autovalores de Galerkin contra os de Nyström; a faixa cinza é a diferença entre as extrapolações com $n = 40$, 80, 160
-    e com $n = 80$, 160, 320 (incerteza da referência), que limita a comparação a $k \lesssim 30$. Script
-    \texttt{talude\_figuras.py}.}
+    autovalores de Galerkin contra os de Nyström, $k \le 100$; a faixa cinza é a diferença entre as extrapolações com
+    $n = 40$, 80, 160 e com $n = 80$, 160, 320 (incerteza da referência): diferenças abaixo dela não são resolvidas.
+    Script \texttt{talude\_figuras.py}.}
   \label{fig:kl:espectros}
 \end{figure}
 
@@ -103,8 +115,9 @@ erros maiores que os das duas ($8{,}5 \times 10^{-3}$).
 \subsection{Custo}
 
 A forma fechada com 20\,000 termos e as integrais de cada modo no talude levou 1,3~s (README, Seção~4). A KL de Galerkin
-tem memória $O(N^2)$ e solução $O(N^3)$: na malha de 5085 equações, 260~s e 650~MB no README e 216~s e 653~MB na
-repetição desta sessão (Tabela~\ref{tab:kl:custo}), quase todo o tempo no problema de autovalores denso. O Nyström de
+tem memória $O(N^2)$ e solução $O(N^3)$: na malha de 5085 equações, 260~s e 650~MB no README e 216~s e 653~MB nas
+rodadas refeitas para este relatório (Tabela~\ref{tab:kl:custo}), quase todo o tempo no problema de autovalores denso; com a regra
+de ordem 10 em P1, a montagem de $\mathbf{C}$ pesa mais (62~s de 77~s na malha \texttt{\_fina}). O Nyström de
 referência ($n = 160$, 193\,041 nós) levou 81~s e 1,4~GB para 210 autopares.
 
 \input{tabelas/kl_custo}
@@ -125,13 +138,13 @@ nos pontos de cada malha (\texttt{dados/kl\_malha\_resumo.csv}):
   \item KL numérica (contraste): uma KL de Galerkin P1 em numpy (\texttt{galerkin\_p1.py}, $M = 200$) em cada malha, com
     os mesmos $\xi$ de $c'$. Os autovalores e o erro de truncamento quase não mudam ($\lambda_1 = 48{,}825$ e $48{,}830$;
     $\varepsilon_{200} = 0{,}128$ e $0{,}127$), mas o campo muda: nos pontos da malha refinada, a diferença RMS relativa
-    entre os dois campos é 0,66 (correlação 0,63), porque 97 dos 200 modos saem do solver com o sinal trocado; alinhando
-    o sinal de cada modo (o que só é possível tendo as duas malhas), ainda sobra 0,29 (correlação 0,85), porque os modos
-    de mesmo índice deixam de coincidir: $|\int f_k^{\mathrm{foco375}} f_k^{\mathrm{ref}}| \ge 0{,}81$ até $k = 20$,
+    entre os dois campos é 0,66 (correlação 0,63), em parte porque o sinal de cada autovetor é arbitrário (97 dos 200
+    produtos internos entre modos de mesmo índice são negativos); alinhando o sinal de cada modo (o que só é possível
+    tendo as duas malhas), ainda sobra 0,29 (correlação 0,85), porque os modos de mesmo índice deixam de coincidir: $|\int f_k^{\mathrm{foco375}} f_k^{\mathrm{ref}}| \ge 0{,}81$ até $k = 20$,
     0,58 em $k = 40$ e, a partir de $k \approx 50$, valores espalhados entre 0 e 0,7.
 \end{itemize}
 
-\begin{figure}[H]
+\begin{figure}[tbp]
   \centering
   \includegraphics[width=\textwidth]{kl_malha_independencia.png}
   \caption{O mesmo campo em duas malhas. (a, b) $c'$ da KL analítica do programa ($M = 2000$) na malha
@@ -157,23 +170,26 @@ e custa 1,3~s contra 216 a 260~s e 650~MB da KL numérica de 5085 equações. Co
 (0,0079) é menor que o que a KL numérica atingiu em qualquer das malhas testadas, mesmo com todos os modos (0,0287 na
 mais fina com a regra de ordem 10; os 0,0190 da regra do elemento vêm de autovalores inflados pela quadratura): a
 numérica fica limitada pela malha, e baixar esse limite exige malhas mais finas, com memória $O(N^2)$ e tempo $O(N^3)$.
-Com $M \ge 1000$, a variância pontual e os erros da covariância também favorecem a forma fechada
-(Tabela~\ref{tab:kl:variancia}).
+Os erros da covariância também favorecem a forma fechada já com $M = 200$ (os quatro erros da
+Tabela~\ref{tab:kl:variancia} são menores que os da KL numérica da malha mais fina), e com $M \ge 1000$ a diferença é
+de uma ordem de grandeza; só com $M = 50$ a KL numérica é melhor nesses erros.
 
 O que a forma fechada perde é a eficiência por termo: a KL do próprio talude é ótima para cada $M$, e o retângulo precisa
 de 63 termos para o erro de 50 termos da KL exata do talude e de 253 a 254 para o de 200 (26 a 27\,\% a mais). Isso
 só pesa quando o número de variáveis aleatórias é o custo: FORM/SORM, caos polinomial, colocação estocástica,
-metamodelos. Em Monte Carlo, como aqui, o custo de cada realização é a solução por elementos finitos, e somar 2000
-termos nos pontos de integração é desprezível. Neste problema (núcleo exponencial separável, talude dentro de um
+metamodelos. Em Monte Carlo, como aqui, o custo de cada realização é a solução por elementos finitos; somar 2000
+termos nos pontos de integração (cerca de $5 \times 10^7$ multiplicações para os três campos nos 7632 pontos da malha
+refinada) é desprezível diante dela. Neste problema (núcleo exponencial separável, talude dentro de um
 retângulo, Monte Carlo), usar a KL numérica não traz ganho; nas malhas testadas, ela é menos precisa com $M = 2000$.
 
 \paragraph{Quando a KL numérica continua necessária.}
 \begin{itemize}
   \item Núcleos sem forma fechada no domínio, como o exponencial isotrópico $\exp(-r/L)$ do cilindro de Mika et al.\
     (Seção~\ref{sec:kl:cil}), o de Matérn, ou campos não estacionários.
-  \item Domínios muito menores que a sua caixa envolvente (a perda por termo cresce com a fração da caixa fora do domínio;
-    aqui, $|\Omega|/|R| = 0{,}75$) e domínios não convexos em que a correlação deve ser medida dentro do domínio (por
-    exemplo, através de uma escavação ou de uma trinca), onde o núcleo euclidiano restrito não é o modelo pretendido.
+  \item Domínios muito menores que a sua caixa envolvente, em que a perda por termo tende a crescer, porque parte da
+    variância de cada modo do retângulo cai fora do domínio (aqui, $|\Omega|/|R| = 0{,}75$ e a perda é de 26 a 27\,\%),
+    e domínios não convexos em que a correlação deve ser medida dentro do domínio (por exemplo, através de uma escavação
+    ou de uma trinca), onde o núcleo euclidiano restrito não é o modelo pretendido.
   \item Quando o número de variáveis aleatórias precisa ser o menor possível (os métodos acima).
 \end{itemize}
 
@@ -191,7 +207,7 @@ fixa, e interpolar o campo nas malhas de análise.
 \paragraph{O que a malha ainda controla.}
 \begin{itemize}
   \item A solução por elementos finitos: o fator de segurança e a banda de cisalhamento, que são o objeto do refinamento
-    (seções anteriores).
+    (Seções~\ref{sec:ref:metodo} e~\ref{sec:ref:niveis}).
   \item Como o modelo mecânico resolve a variabilidade: as propriedades entram nos pontos de integração, e um elemento
     de tamanho $h$ só amostra o campo nos seus pontos. Na banda, $h = 0{,}125$ a \SI{0.375}{m}, bem menor que
     $L_y = \SI{2}{m}$; longe do talude, os elementos chegam a \SI{3}{m} (\texttt{hMax} da malha refinada), maiores que

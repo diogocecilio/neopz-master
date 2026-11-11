@@ -7,12 +7,18 @@ ao talude, a do SlopeRandomField), a KL de Galerkin do NeoPZ no talude (KLTalude
                       de n = 80, 160, 320) e Galerkin, 1 - sum_{k<=M} lambda_k / 187,5 com os autovalores de cada malha/regra
   kl_espectros.pdf    lambda_k contra k: retangulo (forma fechada), talude (Nystrom n = 160) e Galerkin; e a diferenca
                       relativa dos autovalores de Galerkin contra os de Nystrom, k <= 200
+  kl_modos_talude.png os 9 primeiros modos da KL exata do talude (Nystrom, dados/kl_nystrom_modos.csv)
+  dados/kl_truncamento.csv e dados/kl_espectros.csv: os valores das duas primeiras figuras
   kl_variancia.png    sigma_M^2 com M = 200 e 2000: forma fechada restrita ao talude contra Galerkin P2 ceron_h5_a45_h025
                       (regra de ordem 10), nos pontos da rede de 15 pontos de cada triangulo (pt_*.csv do KLTaludeCeron),
                       escala divergente centrada em 1
 
 Dados (so leitura): $KL_SCRATCH/kl_rel_tal/galerkin/av_<malha>_p<P>_o<ordem>.txt (todos os autovalores de Galerkin, um por
-linha), pt_ceron_h5_a45_h025_p2_o10.csv (sigma_M^2 nos pontos) e nystrom_n160_lam.npy (210 autovalores de Nystrom, n = 160).
+linha), pt_ceron_h5_a45_h025_p2_o10.csv (sigma_M^2 nos pontos), $KL_SCRATCH/verif_kl/mf_talude_n<n>_k210.npy (210
+autovalores de Nystrom com n = 40, 80, 160, 320, da verificacao independente; sem eles, kl_rel_tal/nystrom_n160_lam.npy)
+e ../../SlopeRandomFieldRefina/relatorio/dados/kl_nystrom_modos.csv. Os autovalores ficam guardados em dados/kl_espectros.csv.
+
+Uso: talude_figuras.py [truncamento] [espectros] [variancia] [modos] [dados]   (padrao: todos)
 """
 import os
 import sys
@@ -183,8 +189,72 @@ def variancia():
     E.salva(fig, "kl_variancia", png=True, dpi=200)
 
 
+def modos_talude(lam_ny, nmodos=9):
+    """os 9 primeiros modos da KL exata do talude (Nystrom, dados/kl_nystrom_modos.csv, grade de 0,25 m), no mesmo
+    formato de kl_modos_retangulo.png (analitica.py)"""
+    d = np.genfromtxt(os.path.join(E.DADOS, "kl_nystrom_modos.csv"), delimiter=",", names=True)
+    xs, ys = np.unique(d["x"]), np.unique(d["y"])
+    ix = np.searchsorted(xs, d["x"])
+    iy = np.searchsorted(ys, d["y"])
+    fig, axs = plt.subplots(3, 3, figsize=(E.LARGURA, 3.55), sharex=True, sharey=True)
+    for k, ax in enumerate(axs.flat[:nmodos]):
+        Z = np.full((len(ys), len(xs)), np.nan)
+        Z[iy, ix] = d["phi%d" % (k + 1)]
+        imx = np.unravel_index(np.nanargmax(np.abs(Z)), Z.shape)
+        if Z[imx] < 0:
+            Z = -Z
+        v = np.nanmax(np.abs(Z))
+        ax.pcolormesh(xs, ys, np.ma.masked_invalid(Z), cmap=E.DIVERGENTE, vmin=-v, vmax=v, shading="gouraud",
+                      rasterized=True)
+        E.contorno_talude(ax, lw=0.7)
+        ax.set_aspect("equal")
+        ax.grid(False)
+        ax.set_xlim(0, 25)
+        ax.set_ylim(0, 10)
+        ax.set_title(r"$k$ = %d, $\lambda_k$ = %s" % (k + 1, E.num(lam_ny[k], casas=2)), fontsize=7, loc="left", pad=2)
+        ax.set_xticks([0, 10, 15, 25])
+        ax.set_yticks([0, 5, 10])
+        ax.tick_params(labelsize=6.5, length=2)
+    for ax in axs[-1]:
+        ax.set_xlabel("x (m)", fontsize=7)
+    for ax in axs[:, 0]:
+        ax.set_ylabel("y (m)", fontsize=7)
+    fig.tight_layout(w_pad=0.3, h_pad=0.25)
+    E.salva(fig, "kl_modos_talude", png=True)
+
+
+def grava_dados(kl, lam_ny, inc):
+    """dados/kl_truncamento.csv (epsilon_M por M) e dados/kl_espectros.csv (lambda_k por k) das figuras"""
+    casos = CASOS_ELEM + CASOS_O10
+    lams = {nome: autovalores(nome) for nome, _, _, _ in casos}
+    eps_ret = kl.erro_talude()
+    Ms = sorted(set(list(range(1, 101)) + list(range(110, 1001, 10)) + list(range(1100, 20001, 100))))
+    with open(os.path.join(E.DADOS, "kl_truncamento.csv"), "w") as f:
+        f.write("M,forma_fechada_R_no_talude,nystrom_talude," + ",".join("galerkin_" + n for n, _, _, _ in casos) + "\n")
+        for m in Ms:
+            lin = [str(m), "%.6g" % eps_ret[m - 1], "%.6g" % (1. - lam_ny[:m].sum() / AREA_TALUDE) if m <= len(lam_ny) else ""]
+            for nome, _, _, _ in casos:
+                lam = lams[nome]
+                lin.append("%.6g" % (1. - lam[:m].sum() / AREA_TALUDE) if m <= len(lam) else "")
+            f.write(",".join(lin) + "\n")
+    K = 6000
+    with open(os.path.join(E.DADOS, "kl_espectros.csv"), "w") as f:
+        f.write("k,retangulo_forma_fechada,nystrom_talude,incerteza_nystrom," +
+                ",".join("galerkin_" + n for n, _, _, _ in casos) + "\n")
+        for k in range(1, K + 1):
+            lin = [str(k), "%.8g" % kl.lam[k - 1]]
+            lin += ["%.8g" % lam_ny[k - 1], "%.2g" % inc[k - 1]] if (k <= len(lam_ny) and inc is not None) else ["", ""]
+            for nome, _, _, _ in casos:
+                lam = lams[nome]
+                lin.append("%.8g" % lam[k - 1] if k <= len(lam) else "")
+            f.write(",".join(lin) + "\n")
+    print("  dados/kl_truncamento.csv, dados/kl_espectros.csv")
+    if inc is not None:
+        print("  incerteza da referencia, k = 50 a 100: max %.1e" % inc[49:100].max())
+
+
 if __name__ == "__main__":
-    etapas = sys.argv[1:] or ["truncamento", "espectros", "variancia"]
+    etapas = sys.argv[1:] or ["truncamento", "espectros", "variancia", "modos", "dados"]
     lam_ny, inc, rot_ny = nystrom()
     print("  referencia:", rot_ny, "lambda_1..3 =", lam_ny[:3])
     kl = KL2D(20000) if ("truncamento" in etapas or "espectros" in etapas) else None
@@ -194,3 +264,7 @@ if __name__ == "__main__":
         espectros(kl, lam_ny, inc)
     if "variancia" in etapas:
         variancia()
+    if "modos" in etapas:
+        modos_talude(lam_ny)
+    if "dados" in etapas:
+        grava_dados(kl if kl is not None else KL2D(20000), lam_ny, inc)

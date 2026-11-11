@@ -42,6 +42,7 @@ CINZA = "#7a7a7a"
 # fase 1 no fermi (foco375, 1000 realizacoes): ajuste lognormal e P_f por contagem
 FERMI_MEDIA, FERMI_DP, FERMI_PF_CONT = 1.457, 0.355, 0.0760
 FERMI_SEG_REAL, FERMI_SIMULT = 17.4, 96
+FERMI_S_TRI, FERMI_FATOR_MC = 0.02, 1.29  # fermi (PARDISO): s por triangulo isolado; fator das fases de Monte Carlo
 
 
 def chaves(arq):
@@ -453,12 +454,28 @@ def main():
          r"\bottomrule", r"\end{tabular}"]
     open(os.path.join(AQUI, "tabelas", "niv_etapa1.tex"), "w").write("\n".join(L) + "\n")
 
-    # niv_fermi: horas no fermi
-    L = [r"\begin{tabular}{@{}l r r r@{}}", r"\toprule",
-         r"Configuração & $R$ & \num{1000} realizações (h) & \num{5000} realizações (h) \\", r"\midrule"]
+    # niv_fermi: horas no fermi. No fermi (PARDISO) o tempo de uma rodada isolada e quase linear nos triangulos (cerca
+    # de 0,02 s por triangulo: foco375 11,7 s, foco25 30,5 s, foco1875 55,9 s e foco125 107,4 s, exemplo insaturado) e,
+    # nas fases de Monte Carlo, 1,29 vez o isolado (foco375: 17,4 s contra 13,5 s). Tempo por realizacao estimado:
+    # 1,29 x 0,02 s x (triangulos da etapa 1 + triangulos medios da refinada). O CPU local (skyline) cresce mais que
+    # linearmente com a malha e nao serve para escalar o tempo do fermi.
+    tri_ini = {"foco375": resumo["foco375"]["triangulos"], "g15": resumo["g15"]["triangulos"]}
+
+    def tri_fermi(k):
+        if FAM[k] in ("fixa", "g15i"):
+            return resumo[k]["triangulos"]
+        return tri_ini["foco375" if k.startswith("foco375") else "g15"] + resumo[k]["triangulos"]
+
+    t_fermi = lambda k: FERMI_FATOR_MC * FERMI_S_TRI * tri_fermi(k)
+    horas_f = lambda k, n: n * t_fermi(k) / FERMI_SIMULT / 3600.
+    L = [r"\begin{tabular}{@{}l r r r r r r@{}}", r"\toprule",
+         r" & & \multicolumn{2}{c}{fermi (estimado)} & local & \multicolumn{2}{c}{horas no fermi} \\",
+         r"\cmidrule(lr){3-4}\cmidrule(lr){5-5}\cmidrule(l){6-7}",
+         r"Configuração & triângulos & $t$ (s) & razão & $R/R_{125}$ & \num{1000} real. & \num{5000} real. \\",
+         r"\midrule"]
     for k in ("foco375", "foco375_h0.1875", "foco375_h0.125", "g15_h0.125", "foco125"):
-        L.append(" & ".join([ROT[k], f(resumo[k]["R"], 2), f(horas(resumo[k]["R"], 1000), 2),
-                             f(horas(resumo[k]["R"], 5000), 2)]) + r" \\")
+        L.append(" & ".join([ROT[k], "%d" % round(tri_fermi(k)), f(t_fermi(k), 1), f(t_fermi(k) / t_fermi("foco125"), 2),
+                             f(resumo[k]["R125"], 2), f(horas_f(k, 1000), 2), f(horas_f(k, 5000), 2)]) + r" \\")
     L += [r"\bottomrule", r"\end{tabular}"]
     open(os.path.join(AQUI, "tabelas", "niv_fermi.tex"), "w").write("\n".join(L) + "\n")
 
@@ -495,6 +512,15 @@ def main():
     M["nivAreaF"] = ft(media([area_banda(os.path.join(NIV, "foco375", "inicial", c)) for c in casos]), 1)
     M["nivAreaG"] = ft(media([area_banda(os.path.join(NIV, "g15", "inicial", c)) for c in casos]), 1)
     M["nivCpuGI"] = ft(resumo["g15"]["cpu"], 1)
+    efc = [dados["foco375_h0.125", c]["e"] for c in casos]
+    sg = lambda x: ("$-$" if x < 0 else "$+$") + ft(100 * abs(x), 2)
+    M["nivFCEminS"] = sg(min(efc))
+    M["nivFCEmaxS"] = sg(max(efc))
+    for nome, nm in (("foco375", "F"), ("g15", "G"), ("fixas", "X")):
+        rr = [(ext[nome, c]["g"][0] - ext[nome, c]["g"][1]) / (ext[nome, c]["g"][1] - ext[nome, c]["g"][2])
+              if ext[nome, c]["g"][1] != ext[nome, c]["g"][2] else float("inf") for c in casos]
+        M["nivQueda%s" % nm] = "%d" % sum(1 for r in rr if 0 <= r < 1.)
+        M["nivSemSol%s" % nm] = "%d" % sum(1 for c in casos if ext[nome, c]["p"] is None)
     M["nivRazEtapaGF"] = ft(cpu375["nova"] / resumo["g15"]["cpu"], 0)
     for k, nm in (("foco375_h0.125", "FC"), ("g15_h0.125", "GC"), ("foco375_h0.1875", "FB"), ("g15_h0.25", "GA"),
                   ("foco375_h0.25", "FA"), ("g15_h0.1875", "GB")):
@@ -567,6 +593,14 @@ def main():
     dpf = (pf_config(eps) - pf_config(-eps)) / (2 * eps) / pf_ref
     M["nivSensPf"] = ft(abs(dpf), 1)
     M["nivFermiFoco"] = ft(FERMI_SEG_REAL * 1000 / FERMI_SIMULT / 60., 1)
+    for k, nm in nomes.items():
+        M["nivFermiT%s" % nm] = ft(t_fermi(k), 0)
+        M["nivFermiTri%s" % nm] = "%d" % round(tri_fermi(k))
+        M["nivFermiRaz%s" % nm] = ft(t_fermi(k) / t_fermi("foco125"), 2)
+        M["nivFermiHmil%s" % nm] = ft(horas_f(k, 1000), 2)
+        M["nivFermiHcinco%s" % nm] = ft(horas_f(k, 5000), 2)
+    M["nivCpuTriA"] = ft(resumo["foco375"]["cpu"] / resumo["foco375"]["triangulos"], 3)
+    M["nivCpuTriD"] = ft(resumo["foco125"]["cpu"] / resumo["foco125"]["triangulos"], 3)
     with open(os.path.join(AQUI, "secoes", "refino_niveis_valores.tex"), "w") as fh:
         fh.write("%% gerado por analise_niveis.py: os numeros citados em refino_niveis.tex\n")
         for k in sorted(M):
@@ -736,7 +770,7 @@ def main():
         m_ln, s_ln, pf_ln375, pf_ref, cv(pf_ref, 1000), cv(pf_ref, 5000)))
     for k, bx, pf, dpf_, rel in pf_rows:
         print("  %-18s b %+.4f%%  P_f %.4f%%  dP_f %+.4f pp  rel %+.2f%%  fermi 1000: %.2f h 5000: %.2f h" % (
-            k, 100 * bx, 100 * pf, 100 * dpf_, 100 * rel, horas(resumo[k]["R"], 1000), horas(resumo[k]["R"], 5000)))
+            k, 100 * bx, 100 * pf, 100 * dpf_, 100 * rel, horas_f(k, 1000), horas_f(k, 5000)))
     print("g15 vs foco375 em h=0,125: media %.3f%% max %.3f%%; 0,1875 max %.3f%%; 0,25 max %.3f%%" % (
         100 * media(dgc), 100 * max(abs(x) for x in dgc), 100 * max(abs(x) for x in dgb), 100 * max(abs(x) for x in dga)))
 

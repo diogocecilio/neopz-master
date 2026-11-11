@@ -4,7 +4,7 @@
 
 \section{Níveis de refinamento e malha inicial}\label{sec:ref:niveis}
 
-O método de duas etapas da Seção~\ref{sec:ref:metodo} tem três escolhas em aberto: o tamanho $h$ dos elementos em
+O refinamento por realização da Seção~\ref{sec:ref:metodo} tem três escolhas em aberto: o tamanho $h$ dos elementos em
 volta da banda, a malha inicial da etapa~1 (que só precisa localizar a banda) e o número de passos de refinamento.
 Esta seção mede o erro e o custo de cada escolha nos mesmos casos da comparação
 (Seção~\ref{sec:ref:comparacao}) para decidir a configuração do Monte Carlo no \emph{cluster} fermi.
@@ -38,7 +38,7 @@ caso é o da cadeia: a etapa~1, o \texttt{refina\_\allowbreak banda.py} (com o \
 parede e em tempo de CPU (usuário + sistema). A comparação rodou com \texttt{PARALELO=2}, outro \emph{build} do
 programa e mais carga na máquina (carga média de 1\,min de \nivCargaComp{} contra \nivCargaNova{} nesta campanha). A
 Tabela~\ref{tab:niv:etapa1} confere as duas campanhas na mesma rodada, a foco375 da etapa~1: o fator de segurança é
-idêntico (diferença máxima \nivDifEtapaUm{} nos \nivNcasosEtapaUm{} casos), mas o CPU desta campanha é
+o mesmo nos \nivNcasosEtapaUm{} casos (diferença relativa máxima \nivDifEtapaUm), mas o CPU desta campanha é
 \nivRazEtapa{} vezes o da comparação (de \nivRazEtapaMin{} a \nivRazEtapaMax{} por caso). Por isso o custo é
 comparado dentro de cada campanha: $R$ é o CPU médio da cadeia dividido pelo CPU médio da foco375 da mesma campanha, e
 o ``CPU equivalente'' das figuras é $R$ vezes o CPU médio da foco375 desta campanha (\nivCpuNova\,s). Essa
@@ -53,21 +53,22 @@ normalização supõe que a diferença entre as campanhas é a mesma para as rod
 
 \paragraph{Referência.} O erro de cada configuração é $e = \Gamma/\Gamma_\text{foco125} - 1$, com a foco125 fixa
 (5426 triângulos) do mesmo caso. A foco125 não está convergida: a refinada da comparação, também com 0,125\,m na
-banda, difere dela de $-0{,}21$\,\% a $+0{,}49$\,\%, e a referência mais fina prevista no \texttt{niveis.py}
+banda, difere dela de \nivFCEminS\,\% a \nivFCEmaxS\,\% nos casos usados aqui, e a referência mais fina prevista no \texttt{niveis.py}
 ($h = 0{,}0625$\,m) foi cortada para economizar tempo. Assim, $e$ mede a distância até a foco125, não até a solução
 exata; a Seção~\ref{sec:ref:niveis:conv} estima essa distância por extrapolação.
 
-\paragraph{Casos usados.} Os resultados a seguir usam os casos com todas as configurações terminadas:
-\nivCasos{} (\nivNcasos{} casos).
+\paragraph{Casos usados.} A campanha terminou com as 63 rodadas feitas, sem falhas nem rodadas sem banda; os
+resultados a seguir usam os casos com todas as configurações: \nivCasos{} (\nivNcasos{} casos).
 
 \subsection{Erro e custo}\label{sec:ref:niveis:resultados}
 
 A Tabela~\ref{tab:niv:resumo} resume cada configuração e a Tabela~\ref{tab:niv:casos} dá $\Gamma$ e $e$ por caso. Nas
-duas cadeias o erro cai com $h$ e é sempre positivo (a malha mais grossa superestima $\Gamma$): $\overline{|e|}$ vai de
+duas cadeias o erro cai com $h$ e, em $h = 0{,}25$ e $0{,}1875$, é positivo em todos os casos (a malha mais grossa
+superestima $\Gamma$): $\overline{|e|}$ vai de
 \nivFAEabs\,\% ($h = 0{,}25$) a \nivFBEabs\,\% ($0{,}1875$) e \nivFCEabs\,\% ($0{,}125$) na cadeia da foco375 e de
-\nivGAEabs\,\% a \nivGBEabs\,\% e \nivGCEabs\,\% na da g15. Com o mesmo $h$, as duas malhas iniciais dão quase o mesmo
-fator: as diferenças entre as cadeias chegam a \nivDgaMax\,\%, \nivDgbMax\,\% e \nivDgcMax\,\% em $h = 0{,}25$,
-$0{,}1875$ e $0{,}125$. A g15 sozinha erra muito ($\bar e = $ \nivGIEmed\,\%), mas serve para localizar a banda.
+\nivGAEabs\,\% a \nivGBEabs\,\% e \nivGCEabs\,\% na da g15. Com o mesmo $h$, as duas malhas iniciais dão erros médios
+parecidos, mas os fatores das duas cadeias diferem caso a caso em até \nivDgaMax\,\%, \nivDgbMax\,\% e
+\nivDgcMax\,\% em $h = 0{,}25$, $0{,}1875$ e $0{,}125$. A g15 sozinha erra muito ($\bar e = $ \nivGIEmed\,\%), mas serve para localizar a banda.
 
 \begin{table}[H]
   \centering\footnotesize
@@ -90,9 +91,12 @@ $0{,}1875$ e $0{,}125$. A g15 sozinha erra muito ($\bar e = $ \nivGIEmed\,\%), m
 \end{table}
 
 A Figura~\ref{fig:niv:erro_tempo} põe o erro contra o custo. Com o mesmo $h$ na banda, a malha refinada por
-realização tem o erro da malha fixa por uma fração do custo: foco375 $\to$ 0,1875 custa $R/R_{125} = $ \nivFBRcent{}
-contra \nivFfixCRcent{} da foco1875, e foco375 $\to$ 0,125 custa \nivFCRcent{} da foco125, com
-$\overline{|e|} = $ \nivFCEabs\,\% e $\max|e| = $ \nivFCEmax\,\%. A Figura~\ref{fig:niv:etapas} separa o custo por
+realização tem erro próximo ao da malha fixa. Em $h = 0{,}25$ o ganho é pequeno: foco375 $\to$ 0,25 custa
+$R/R_{125} = $ \nivFARcent{} contra \nivFfixBRcent{} da foco25, com erro um pouco maior
+($\overline{|e|} = $ \nivFAEabs\,\% contra \nivFfixBEabs\,\%). A vantagem aparece nos níveis finos, em que a malha
+fixa refina todo o foco: foco375 $\to$ 0,1875 custa \nivFBRcent{} contra \nivFfixCRcent{} da foco1875, e
+foco375 $\to$ 0,125 custa \nivFCRcent{} da foco125, com $\overline{|e|} = $ \nivFCEabs\,\% e
+$\max|e| = $ \nivFCEmax\,\%. A Figura~\ref{fig:niv:etapas} separa o custo por
 etapa: a rodada refinada domina, e o \texttt{refina\_\allowbreak banda.py} com o \texttt{gmsh} é desprezível. A etapa~1 da g15 é
 cerca de \nivRazEtapaGF{} vezes mais barata que a da foco375 (\nivCpuGI\,s contra \nivCpuNova\,s de CPU), mas em $h = 0{,}125$ a malha refinada da g15 é maior
 (\nivGCTri{} contra \nivFCTri{} triângulos em média), porque a banda localizada com elementos de 1,5\,m
@@ -139,11 +143,14 @@ coincidência de $\Gamma$ com a cadeia da foco375 nestes casos não garante o me
 A Figura~\ref{fig:niv:convergencia} mostra $\Gamma/\Gamma_\text{foco125} - 1$ contra $h$ em cada caso, nas duas
 cadeias e nas malhas fixas. Com três níveis ($h_1, h_2, h_3$) = (0,25; 0,1875; 0,125)\,m de cada cadeia, o modelo
 $\Gamma(h) = \Gamma_0 + C h^p$ dá $p$ pela razão
-$(\Gamma_1 - \Gamma_2)/(\Gamma_2 - \Gamma_3) = (h_1^p - h_2^p)/(h_2^p - h_3^p)$. Os ajustes são erráticos
-(Tabela~\ref{tab:niv:extrap}): na maioria dos casos a queda de 0,1875 para 0,125 é maior que a de 0,25 para 0,1875,
-o que não tem solução com $p > 0$ (o limite da razão para $p \to 0$ é 0,71) ou dá $p$ pequeno; os $p$ obtidos vão de
-\nivPFMin{} a \nivPFMax{} na cadeia da foco375 (\nivPFN{} casos), de \nivPGMin{} a \nivPGMax{} na da g15 (\nivPGN{}
-casos) e de \nivPXMin{} a \nivPXMax{} nas malhas fixas (\nivPXN{} casos). As malhas não estão no regime assintótico, e
+$(\Gamma_1 - \Gamma_2)/(\Gamma_2 - \Gamma_3) = (h_1^p - h_2^p)/(h_2^p - h_3^p)$. Como os dois passos têm o mesmo
+$\Delta h = 0{,}0625$\,m, uma queda maior no segundo passo (razão menor que 1) implica $p < 1$, e uma razão menor que
+0,71 (o limite para $p \to 0$) não tem solução com $p > 0$. Os ajustes são erráticos (Tabela~\ref{tab:niv:extrap}): a
+queda de 0,1875 para 0,125 é maior que a de 0,25 para 0,1875 em \nivQuedaF{} dos \nivNcasos{} casos na cadeia da
+foco375, em \nivQuedaG{} na da g15 e em \nivQuedaX{} nas malhas fixas; não há solução com $0{,}05 < p < 12$ (ou a
+sequência não é monótona) em \nivSemSolF, \nivSemSolG{} e \nivSemSolX{} casos, respectivamente; nos casos com solução, $p$ vai
+de \nivPFMin{} a \nivPFMax{} na cadeia da foco375 (\nivPFN{} casos) e de \nivPGMin{} a \nivPGMax{} na da g15
+(\nivPGN{} casos); nas malhas fixas só r3 tem solução ($p = $ \nivPXMin). As malhas não estão no regime assintótico, e
 os $p$ observados não servem para extrapolar. Com $p = 2$ como limite (com $p$ menor a correção seria maior), a
 extrapolação pelos dois níveis mais finos, $\Gamma_0^{(2)} = \Gamma_3 - 0{,}8\,(\Gamma_2 - \Gamma_3)$, fica em média
 \nivBFMed\,\% (cadeia foco375), \nivBGMed\,\% (g15) e \nivBXMed\,\% (malhas fixas) em relação à foco125. É uma
@@ -203,14 +210,16 @@ padrões de \texttt{srf\_refinado.sh}), isto é, a configuração ``refinada'' d
   \item \textbf{erro}: $\overline{|e|} = $ \nivFCEabs\,\% e $\max|e| = $ \nivFCEmax\,\% em relação à foco125, com viés
         médio \nivFCEmed\,\%; o desvio de $P_f$ (\nivFCDpfAbs\,\%) é muito menor que o erro de amostragem
         (\nivCvCinco\,\% com $N = 5000$). Os níveis $h = 0{,}25$ e $0{,}1875$ deixam um viés de \nivFAEmed\,\% e
-        \nivFBEmed\,\%, que muda $P_f$ mais que o erro de amostragem;
+        \nivFBEmed\,\%, que muda $P_f$ em \nivFADpfAbs\,\% e \nivFBDpfAbs\,\%, mais que o erro de amostragem com
+        $N = 5000$;
   \item \textbf{custo}: \nivFCRpct\,\% do CPU da foco125 ($R = $ \nivFCR{} rodadas foco375 por realização);
   \item \textbf{contenção}: nenhum ponto da banda refinada fora da folga em nenhum caso ($d_{\max} \le$
         \nivFCDist\,m).
 \end{itemize}
 A g15 não é recomendada: a etapa~1 é mais barata, mas em $h = 0{,}125$ a cadeia custa mais (\nivGCRpct\,\% da
-foco125), o erro não é menor e a banda refinada sai da região refinada em parte dos casos. Dois passos de refinamento
-não foram testados.
+foco125), o erro é um pouco maior ($\overline{|e|} = $ \nivGCEabs\,\% e $\max|e| = $ \nivGCEmax\,\%) e a banda
+refinada sai da região refinada em parte dos casos, o que deixa o erro sem controle nas realizações em que a banda da
+malha grossa estiver mais deslocada. Dois passos de refinamento (g15 $\to$ 0,25 $\to$ 0,125) não foram rodados.
 
 \paragraph{Horas no fermi.} Na fase~1 a foco375 levou 17,4\,s por realização, com até $8 \times 12 = 96$ realizações
 ao mesmo tempo, isto é, cerca de \nivFermiFoco\,min por 1000 realizações. Escalando pelo $R$ de cada configuração

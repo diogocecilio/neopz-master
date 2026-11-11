@@ -37,7 +37,7 @@ COR_BANDA1 = '#2a78d6'   # banda da etapa 1 (pontos que guiaram o refino)
 def fmt(v, nd=3, sinal=False):
     """Numero com virgula decimal (pt-BR)."""
     s = f'{v:+.{nd}f}' if sinal else f'{v:.{nd}f}'
-    return s.replace('.', ',')
+    return s.replace('.', ',').replace('-', '\u2212')  # sinal de menos tipografico
 
 
 def ler_msh(caminho):
