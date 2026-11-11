@@ -3,8 +3,8 @@
 ao talude, a do SlopeRandomField), a KL de Galerkin do NeoPZ no talude (KLTaludeCeron) e a KL exata do talude (Nystrom).
 
   kl_truncamento.pdf  epsilon_M = 1 - media de sigma_M^2 no talude contra M (log-log): forma fechada restrita ao talude
-                      (klfechada.KL2D.erro_talude, integrais exatas, M = 1 a 20000), Nystrom n = 160 (M <= 210, sem
-                      extrapolacao) e Galerkin, 1 - sum_{k<=M} lambda_k / 187,5 com os autovalores de cada malha/regra
+                      (klfechada.KL2D.erro_talude, integrais exatas, M = 1 a 20000), Nystrom (M <= 210, extrapolado
+                      de n = 80, 160, 320) e Galerkin, 1 - sum_{k<=M} lambda_k / 187,5 com os autovalores de cada malha/regra
   kl_espectros.pdf    lambda_k contra k: retangulo (forma fechada), talude (Nystrom n = 160) e Galerkin; e a diferenca
                       relativa dos autovalores de Galerkin contra os de Nystrom, k <= 200
   kl_variancia.png    sigma_M^2 com M = 200 e 2000: forma fechada restrita ao talude contra Galerkin P2 ceron_h5_a45_h025
@@ -38,6 +38,24 @@ CASOS_O10 = [("ceron_h5_a45_fina_p1_o10", "P1, fina (2301 eq.)", E.PALETA[1], "-
              ("ceron_h5_a45_h025_p2_o10", "P2, h025 (5085 eq.)", E.PALETA[0], "-")]
 
 
+def nystrom():
+    """autovalores de Nystrom do talude: extrapolacao de Richardson em h^2 e h^4 com n = 80, 160, 320 (rodadas da
+    verificacao independente, $KL_SCRATCH/verif_kl/mf_talude_n<n>_k210.npy); a diferenca para a extrapolacao com
+    n = 40, 80, 160 e a incerteza da referencia. Sem esses arquivos, usa a grade n = 160 sem extrapolar."""
+    arqs = [os.path.join(E.SCRATCH, "verif_kl", "mf_talude_n%d_k210.npy" % n) for n in (40, 80, 160, 320)]
+    if not all(os.path.exists(a) for a in arqs):
+        lam = np.sort(np.load(os.path.join(BASE, "nystrom_n160_lam.npy")))[::-1]
+        return lam, None, "Nyström, n = 160"
+    l40, l80, l160, l320 = [np.sort(np.load(a))[::-1] for a in arqs]
+
+    def extrap(a, b, c):  # a: h, b: 2h, c: 4h
+        r1, r2 = (4. * a - b) / 3., (4. * b - c) / 3.
+        return (16. * r1 - r2) / 15.
+    L = extrap(l320, l160, l80)
+    Lb = extrap(l160, l80, l40)
+    return L, np.abs(Lb / L - 1.), "Nyström extrapolado"
+
+
 def autovalores(nome):
     lam = np.loadtxt(os.path.join(GAL, "av_%s.txt" % nome))
     return np.sort(lam)[::-1]
@@ -56,13 +74,13 @@ def truncamento(kl, lam_ny):
             ax.plot(np.arange(1, len(e) + 1), e, ls, color=cor, lw=1.1, label=rot)
         ax.plot(M, eps_ret, color=E.TINTA, lw=1.5, label="forma fechada de R, restrita a Ω")
         ax.plot(np.arange(1, len(eps_ny) + 1), eps_ny, "--", color=E.NEUTRO, lw=1.5, dashes=(3, 1.5),
-                label="exata do talude (Nyström)")
+                label="exata do talude (Nyström)", zorder=5)
         ax.axvline(2000, color=E.TINTA2, lw=0.6, ls=":")
         ax.text(2000 * 1.1, 0.25, "M = 2000", fontsize=6.5, color=E.TINTA2, rotation=90, va="center")
         ax.set_xscale("log")
         ax.set_yscale("log")
         ax.set_xlim(1, 2.0e4)
-        ax.set_ylim(3e-3, 1.0)
+        ax.set_ylim(1e-3, 1.0)
         E.eixo_log(ax)
         ax.set_xlabel("número de termos M")
         ax.set_title(titulo, loc="left", fontsize=7.5)
@@ -74,10 +92,10 @@ def truncamento(kl, lam_ny):
     for m in (50, 200, 1000, 2000, 20000):
         print("  forma fechada: eps_%d = %.4f" % (m, eps_ret[m - 1]))
     for m in (50, 200):
-        print("  Nystrom n=160: eps_%d = %.4f" % (m, eps_ny[m - 1]))
+        print("  Nystrom: eps_%d = %.4f" % (m, eps_ny[m - 1]))
 
 
-def espectros(kl, lam_ny):
+def espectros(kl, lam_ny, inc):
     fig, axs = plt.subplots(1, 2, figsize=(E.LARGURA, 2.9))
     ax = axs[0]
     k = np.arange(1, kl.M + 1)
@@ -98,24 +116,29 @@ def espectros(kl, lam_ny):
     ax.set_title("(a) autovalores", loc="left", fontsize=7.5)
     ax.legend(loc="lower left", fontsize=6.2)
     ax = axs[1]
-    kk = np.arange(1, 201)
+    KMAX = 100
+    kk = np.arange(1, KMAX + 1)
     for casos in (CASOS_ELEM, CASOS_O10):
         for nome, rot, cor, ls in casos:
             if nome in ("ceron_h5_a45_p1_o2", "ceron_h5_a45_h025_p1_o2"):
                 continue
-            lam = autovalores(nome)[:200]
-            d = np.abs(lam / lam_ny[:200] - 1.)
+            lam = autovalores(nome)[:KMAX]
+            d = np.abs(lam / lam_ny[:KMAX] - 1.)
             o10 = nome.endswith("o10")
             ax.plot(kk, d, color=cor, lw=1.0, ls="--" if o10 else "-",
                     label="%s, %s" % (rot.split(" (")[0], "ordem 10" if o10 else "ordem 2P"))
+    if inc is not None:
+        ax.fill_between(kk, 1e-7, np.maximum(inc[:KMAX], 1e-7), color=E.NEUTRO, alpha=0.25, lw=0,
+                        label="incerteza da referência")
     ax.set_xscale("log")
     ax.set_yscale("log")
-    ax.set_xlim(1, 200)
+    ax.set_xlim(1, KMAX)
+    ax.set_ylim(1e-6, 30)
     E.eixo_log(ax)
     ax.set_xlabel("índice k")
     ax.set_ylabel(r"$|\lambda_k^h / \lambda_k - 1|$ (Nyström como referência)")
     ax.set_title("(b) Galerkin no talude contra a KL exata do talude", loc="left", fontsize=7.5)
-    ax.legend(loc="upper left", fontsize=5.8, ncol=2, handlelength=1.6, columnspacing=0.8)
+    ax.legend(loc="upper left", fontsize=5.6, ncol=3, handlelength=1.6, columnspacing=0.8)
     fig.tight_layout(w_pad=0.8)
     E.salva(fig, "kl_espectros")
 
@@ -162,12 +185,12 @@ def variancia():
 
 if __name__ == "__main__":
     etapas = sys.argv[1:] or ["truncamento", "espectros", "variancia"]
-    lam_ny = np.load(os.path.join(BASE, "nystrom_n160_lam.npy"))
-    lam_ny = np.sort(lam_ny)[::-1]
+    lam_ny, inc, rot_ny = nystrom()
+    print("  referencia:", rot_ny, "lambda_1..3 =", lam_ny[:3])
     kl = KL2D(20000) if ("truncamento" in etapas or "espectros" in etapas) else None
     if "truncamento" in etapas:
         truncamento(kl, lam_ny)
     if "espectros" in etapas:
-        espectros(kl, lam_ny)
+        espectros(kl, lam_ny, inc)
     if "variancia" in etapas:
         variancia()

@@ -404,6 +404,9 @@ def main():
         if k in ("foco375_h0.25", "g15"):
             L.append(r"\midrule")
         L.append(" & ".join([ROT[k], fp(bx, 2, True), fp(pf, 2), fp(dpf, 2, True), fp(rel, 1, True)]) + r" \\")
+    pf0 = pf_config(b125_0)
+    L += [r"\midrule", " & ".join([r"$\Gamma_0$ estimado ($p = 2$, fixas)", fp(b125_0, 2, True), fp(pf0, 2),
+                                    fp(pf0 - pf_ref, 2, True), fp(pf0 / pf_ref - 1., 1, True)]) + r" \\"]
     L += [r"\midrule",
           r"\multicolumn{5}{@{}l}{\emph{Coeficiente de variação de Monte Carlo de $P_f$ (com $P_f$ = %s\,\%%)}} \\"
           % fp(pf_ref, 2)]
@@ -450,8 +453,30 @@ def main():
          r"\bottomrule", r"\end{tabular}"]
     open(os.path.join(AQUI, "tabelas", "niv_etapa1.tex"), "w").write("\n".join(L) + "\n")
 
+    # niv_fermi: horas no fermi
+    L = [r"\begin{tabular}{@{}l r r r@{}}", r"\toprule",
+         r"Configuração & $R$ & \num{1000} realizações (h) & \num{5000} realizações (h) \\", r"\midrule"]
+    for k in ("foco375", "foco375_h0.1875", "foco375_h0.125", "g15_h0.125", "foco125"):
+        L.append(" & ".join([ROT[k], f(resumo[k]["R"], 2), f(horas(resumo[k]["R"], 1000), 2),
+                             f(horas(resumo[k]["R"], 5000), 2)]) + r" \\")
+    L += [r"\bottomrule", r"\end{tabular}"]
+    open(os.path.join(AQUI, "tabelas", "niv_fermi.tex"), "w").write("\n".join(L) + "\n")
+
     # ----- macros para o texto
     M = {}
+    dif1 = [abs(dados["foco375_ini", c]["fator"] / dados["foco375", c]["fator"] - 1.) for c in CASOS
+            if ("foco375_ini", c) in dados and ("foco375", c) in dados]
+    M["nivDifEtapaUm"] = "%.1e" % max(dif1)
+    M["nivNcasosEtapaUm"] = "%d" % len(dif1)
+    pf0 = pf_config(b125_0)
+    M["nivPfZero"] = ft(100 * pf0, 2)
+    M["nivDpfZero"] = ft(100 * (pf0 / pf_ref - 1.), 1)
+    M["nivPfCont"] = ft(100 * FERMI_PF_CONT, 2)
+    M["nivCvMilCont"] = ft(100 * cv(FERMI_PF_CONT, 1000), 1)
+    M["nivCvCincoCont"] = ft(100 * cv(FERMI_PF_CONT, 5000), 1)
+    for k, nm in (("foco375_h0.125", "FC"), ("g15_h0.125", "GC"), ("foco375_h0.1875", "FB"), ("g15_h0.25", "GA"),
+                  ("foco375_h0.25", "FA"), ("g15_h0.1875", "GB")):
+        M["niv%sCel" % nm] = "%d" % round(media([dados[k, c].get("celulas_banda") for c in casos]))
     M["nivNcasos"] = "%d" % len(casos)
     M["nivCasos"] = ", ".join(ROT_CASO[c] for c in casos)
     M["nivCpuNova"] = ft(cpu375["nova"], 1)
