@@ -19,7 +19,8 @@ carregar() {
     if module load "$alvo" 2>"$err"; then
       pilha="${pilha#"$alvo"}"; pilha="${pilha# }"
     else
-      dep="$(awk '/must be loaded/ { getline; print $1; exit }' "$err")"
+      # o Lmod quebra a mensagem na largura do terminal ("must be\nloaded:"): junta as linhas antes de procurar
+      dep="$(tr -s ' \t\n' ' ' < "$err" | sed -n 's/.*must be loaded: *\([^ ]*\).*/\1/p')"
       [ -n "$dep" ] || break
       pilha="$dep $pilha"
     fi
