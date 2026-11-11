@@ -1,0 +1,34 @@
+% Tabela (agente kl_talude): erro medio quadratico de truncamento no talude. Fonte: Projects/KLCilindroMika/README.md,
+% secao 4 (tabelas "Erro medio quadratico de truncamento no talude" e "Termos da forma fechada com o mesmo erro").
+\begin{table}[H]
+  \centering
+  \caption{Erro médio quadrático de truncamento no talude, $\varepsilon_M$ (Eq.~\ref{eq:kl:erro}), e número de termos
+    $M_R$ da forma fechada do retângulo com o mesmo $\varepsilon$ que a KL do talude com $M$ termos. Galerkin: KL numérica
+    do NeoPZ no talude (malhas \texttt{ceron\_h5\_a45}: $h = 0{,}375$ e \SI{1.5}{m} até \SI{1}{m} e a partir de
+    \SI{6}{m} da superfície; \texttt{\_h025}: 0,25 e \SI{1}{m}; \texttt{\_fina}: 0,1875 e \SI{0.75}{m}); regra: ordem/pontos
+    da regra do triângulo (2/3 e 4/6: a regra do elemento, ordem $2P$); ``todos'': $1 - \text{traço}/|\Omega|$ com todos os
+    autovalores numéricos. Na KL numérica, $\varepsilon_M$ sai dos autovalores numéricos. Nyström: KL exata do talude,
+    extrapolada. Fonte: README do \texttt{KLCilindroMika}, Seção~4.}
+  \label{tab:kl:truncamento}
+  \footnotesize
+  \setlength{\tabcolsep}{3.6pt}
+  \begin{tabular}{llcrcccccccccc}
+    \toprule
+    KL & malha & $P$ & eq. & regra & todos & \multicolumn{4}{c}{$\varepsilon_M$} & \multicolumn{4}{c}{$M_R$} \\
+    \cmidrule(lr){7-10}\cmidrule(lr){11-14}
+     & & & & & & $M = 50$ & 200 & 1000 & 2000 & 50 & 200 & 1000 & 2000 \\
+    \midrule
+    Galerkin & \texttt{a45}  & 1 &  609 & 2/3   & 0,0715 & 0,1149 & 0,0767 & --     & --     & 51 &  92 & --  & --  \\
+    Galerkin & \texttt{h025} & 1 & 1314 & 2/3   & 0,0500 & 0,1060 & 0,0608 & 0,0502 & --     & 57 & 129 & 169 & --  \\
+    Galerkin & \texttt{fina} & 1 & 2301 & 2/3   & 0,0382 & 0,1021 & 0,0524 & 0,0390 & 0,0382 & 60 & 159 & 240 & 247 \\
+    Galerkin & \texttt{a45}  & 2 & 2320 & 4/6   & 0,0273 & 0,0995 & 0,0463 & 0,0286 & 0,0273 & 63 & 189 & 368 & 391 \\
+    Galerkin & \texttt{h025} & 2 & 5085 & 4/6   & 0,0190 & 0,0990 & 0,0421 & 0,0224 & 0,0198 & 63 & 216 & 512 & 604 \\
+    Galerkin & \texttt{fina} & 1 & 2301 & 10/25 & 0,0444 & 0,1039 & 0,0560 & 0,0449 & 0,0444 & 59 & 144 & 198 & 200 \\
+    Galerkin & \texttt{a45}  & 2 & 2320 & 10/25 & 0,0419 & 0,1030 & 0,0547 & 0,0426 & 0,0419 & 60 & 150 & 213 & 217 \\
+    Galerkin & \texttt{h025} & 2 & 5085 & 10/25 & 0,0287 & 0,1002 & 0,0460 & 0,0305 & 0,0291 & 62 & 191 & 337 & 360 \\
+    \midrule
+    \multicolumn{5}{l}{forma fechada do retângulo $R$, restrita a $\Omega$} & -- & 0,1150 & 0,0444 & 0,0135 & 0,0079 & 50 & 200 & 1000 & 2000 \\
+    \multicolumn{5}{l}{exata do talude (Nyström)} & 0 & 0,0993 & 0,0375 & -- & -- & 63 & 253--254 & -- & -- \\
+    \bottomrule
+  \end{tabular}
+\end{table}

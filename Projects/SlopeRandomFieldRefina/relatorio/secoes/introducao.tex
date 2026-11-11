@@ -1,0 +1,22 @@
+\section{Introdução}\label{sec:introducao}
+
+Este relatório responde a dois grupos de perguntas sobre o Monte Carlo do talude de Vargas Ceron et al.\ (2025), em que
+o fator de segurança $\Gamma$ de cada realização é calculado pelo GIM.
+
+O primeiro grupo é o do \emph{refinamento por realização}: cada realização é calculada numa malha grossa, a malha é
+refinada em volta da banda de ruptura dessa realização e $\Gamma$ é calculado de novo na malha refinada. Foram pedidas
+as malhas refinadas, os tempos e os erros. A Seção~\ref{sec:ref:metodo} descreve o método e a comparação com as malhas
+fixas (as malhas refinadas, os tempos e as diferenças de $\Gamma$, caso a caso). A Seção~\ref{sec:ref:niveis} trata dos
+níveis de refinamento e de uma malha inicial mais grossa. O prazo para todo o trabalho foi de uma hora; por isso, o estudo
+de níveis usou os casos já disponíveis (o determinístico e as realizações 0 a 7) e tomou a malha \texttt{foco125} como
+referência, sem rodar uma malha mais fina que ela. As diferenças são, portanto, diferenças para a \texttt{foco125}, e não
+o erro em relação ao $\Gamma$ convergido.
+
+O segundo grupo é o da expansão de Karhunen-Loève (KL) que gera os campos aleatórios: as formulações disponíveis, com
+figuras e tabelas de erros, e como funciona a KL analítica (Seção~\ref{sec:kl:form}); a verificação no meio cilindro
+vazado de Mika et al.\ (2021), um exemplo de referência da KL numérica (Seção~\ref{sec:kl:cil}); e a aplicação ao talude (Seção~\ref{sec:kl:tal}). Esta última responde também à
+observação \emph{``se ela serve para o talude não faz sentido usar a numérica, e nem importa o nível de refinamento da
+malha para a qualidade dos campos estocásticos''}: verifica se a KL analítica serve para o domínio do talude e se a
+malha de elementos finitos muda os campos.
+
+A Seção~\ref{sec:conclusoes} reúne as respostas.

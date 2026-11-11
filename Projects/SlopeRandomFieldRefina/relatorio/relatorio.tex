@@ -1,0 +1,31 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[brazil]{babel}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{booktabs,graphicx,caption,subcaption,float,amsmath,amssymb,bm,xcolor,array}
+\usepackage[output-decimal-marker={,}]{siunitx}
+\usepackage[hidelinks]{hyperref}
+\graphicspath{{figuras/}}
+
+\title{Refinamento por realização e Karhunen-Loève no talude de Vargas Ceron et al.\ (2025)}
+\date{11 de novembro de 2026}
+\author{}
+\setlength{\emergencystretch}{2em}
+
+% Cada seção fica em secoes/<nome>.tex; sem o arquivo, entra só o título (com o rótulo), e o documento compila.
+\newcommand{\secao}[3]{\IfFileExists{secoes/#1.tex}{\input{secoes/#1}}{\section{#2}\label{#3}\textit{(em preparação)}}}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\secao{introducao}{Introdução}{sec:introducao}
+\secao{refino_metodo}{O refinamento por realização}{sec:ref:metodo}
+\secao{refino_niveis}{Níveis de refinamento e malha inicial mais grossa}{sec:ref:niveis}
+\secao{kl_formulacoes}{As formulações de Karhunen-Loève}{sec:kl:form}
+\secao{kl_cilindro}{Karhunen-Loève no cilindro de Mika et al.\ (2021)}{sec:kl:cil}
+\secao{kl_talude}{Karhunen-Loève no talude}{sec:kl:tal}
+\secao{conclusoes}{Conclusões}{sec:conclusoes}
+
+\end{document}

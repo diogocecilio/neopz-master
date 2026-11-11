@@ -1,0 +1,233 @@
+% Secao: formulacoes do Karhunen-Loeve (agente kl_talude). Sem preambulo; \input no relatorio.
+% Fontes dos numeros: Projects/KLCilindroMika/README.md (secoes 3 e 4), Projects/SlopeRandomField/KLSeparavel.h e
+% main.cpp, relatorio/dados/kl_*.csv. Scripts das figuras: Projects/KLCilindroMika/figuras/*.py.
+\section{Formulações do Karhunen-Loève}\label{sec:kl:form}
+
+Os três parâmetros aleatórios do talude ($c'$, $\phi'$ e o multiplicador $k$ da condutividade) são campos lognormais
+independentes, $H(\mathbf{x}) = \exp\left(\mu_{\ln} + \sigma_{\ln} Z(\mathbf{x})\right)$, com
+$\sigma_{\ln}^2 = \ln(1 + \mathrm{CoV}^2)$ e $\mu_{\ln} = \ln\left(\mu / \sqrt{1 + \mathrm{CoV}^2}\right)$
+(Vargas Ceron et al., 2025, eqs.~65--66), em que $Z$ é um campo gaussiano de média nula, variância unitária e covariância
+exponencial separável (Vargas Ceron et al., 2025, eq.~64)
+\begin{equation}
+  C(\mathbf{x}, \mathbf{x}') = \exp\left(-\frac{|x - x'|}{L_x} - \frac{|y - y'|}{L_y}\right),
+  \qquad L_x = \SI{20}{m}, \quad L_y = \SI{2}{m}.
+  \label{eq:kl:nucleo}
+\end{equation}
+Cada $Z$ é gerado por uma expansão de Karhunen-Loève (KL). Esta seção apresenta a expansão, as medidas de erro usadas
+na comparação e as três formas de calcular os seus autopares: a forma fechada no retângulo, que o programa do talude
+(\texttt{SlopeRandomField}) usa; a KL de Galerkin por elementos finitos do NeoPZ; e o método de Nyström, usado como
+referência independente. A comparação no talude está na Seção~\ref{sec:kl:tal}.
+
+\subsection{A expansão e as medidas de erro}\label{kl:form:erro}
+
+Num domínio $D$, os autopares $(\lambda_k, f_k)$ da covariância são as soluções da equação integral de Fredholm
+homogênea de segunda espécie
+\begin{equation}
+  \int_D C(\mathbf{x}, \mathbf{x}') \, f_k(\mathbf{x}') \, d\mathbf{x}' = \lambda_k \, f_k(\mathbf{x}),
+  \qquad \int_D f_k f_l \, d\mathbf{x} = \delta_{kl}.
+  \label{eq:kl:fredholm}
+\end{equation}
+Como $C$ é simétrica e positiva definida, os autovalores são positivos (ordenados de forma decrescente), as autofunções
+formam uma base ortonormal de $L^2(D)$ e vale o teorema de Mercer,
+$C(\mathbf{x}, \mathbf{x}') = \sum_k \lambda_k f_k(\mathbf{x}) f_k(\mathbf{x}')$. O campo e a sua truncação em $M$ termos são
+\begin{equation}
+  Z(\mathbf{x}) = \sum_{k=1}^{\infty} \sqrt{\lambda_k} \, \xi_k \, f_k(\mathbf{x}),
+  \qquad
+  Z_M(\mathbf{x}) = \sum_{k=1}^{M} \sqrt{\lambda_k} \, \xi_k \, f_k(\mathbf{x}),
+  \label{eq:kl:expansao}
+\end{equation}
+com $\xi_k$ normais padrão independentes. A variância do campo truncado e o erro em cada ponto são
+\begin{equation}
+  \sigma_M^2(\mathbf{x}) = \sum_{k=1}^{M} \lambda_k f_k^2(\mathbf{x}) \le 1,
+  \qquad
+  \mathrm{E}\left[(Z - Z_M)^2\right](\mathbf{x}) = \sum_{k > M} \lambda_k f_k^2(\mathbf{x}) = 1 - \sigma_M^2(\mathbf{x}),
+  \label{eq:kl:variancia}
+\end{equation}
+pois $Z - Z_M$ é independente de $Z_M$ e, por Mercer, $\sum_k \lambda_k f_k^2(\mathbf{x}) = C(\mathbf{x}, \mathbf{x}) = 1$.
+A medida global usada aqui é o erro médio quadrático de truncamento no talude $\Omega$ (área
+$|\Omega| = \SI{187.5}{m^2}$):
+\begin{equation}
+  \varepsilon_M = 1 - \frac{1}{|\Omega|} \int_{\Omega} \sigma_M^2(\mathbf{x}) \, d\mathbf{x}
+  = \frac{1}{|\Omega|} \int_{\Omega} \mathrm{E}\left[(Z - Z_M)^2\right] d\mathbf{x}.
+  \label{eq:kl:erro}
+\end{equation}
+\begin{itemize}
+  \item Na KL do próprio talude ($D = \Omega$), $\int_\Omega f_k^2 = 1$ e $\varepsilon_M = 1 - \sum_{k \le M} \lambda_k / |\Omega|$:
+    a soma de todos os autovalores é o traço, $\int_\Omega C(\mathbf{x}, \mathbf{x}) \, d\mathbf{x} = |\Omega|$.
+  \item Na KL do retângulo $R$ restrita ao talude, as $f_k$ não são ortonormais em $\Omega$, mas a
+    Eq.~\eqref{eq:kl:variancia} continua valendo em cada ponto de $\Omega \subset R$, e
+    $\varepsilon_M = 1 - \sum_{k \le M} \lambda_k^R \int_\Omega (f_k^R)^2 \, d\mathbf{x} / |\Omega|$.
+  \item Otimalidade: entre todas as expansões de $M$ termos $\sum_{k \le M} \eta_k g_k(\mathbf{x})$ com $g_k$ ortonormais em
+    $L^2(\Omega)$, a KL de $\Omega$ é a que minimiza $\int_\Omega \mathrm{E}[(Z - Z_M)^2] \, d\mathbf{x}$ (Ghanem e
+    Spanos, 1991). A KL do retângulo restrita ao talude é uma dessas expansões (os seus $M$ termos geram um subespaço
+    de dimensão $M$ de $L^2(\Omega)$): para cada $M$, o seu $\varepsilon_M$ é maior ou igual ao da KL exata do talude.
+    A otimalidade é por termo; com $M \to \infty$, as duas reproduzem a covariância no talude.
+  \item Na KL numérica (Galerkin), $\varepsilon_M$ é calculado com os autovalores numéricos,
+    $1 - \sum_{k \le M} \lambda_k^h / |\Omega|$; esse valor não inclui a diferença entre os modos numéricos e os exatos,
+    e $\sigma_M^2$ pode passar de 1.
+\end{itemize}
+Além de $\varepsilon_M$, a comparação usa o intervalo de $\sigma_M^2(\mathbf{x})$ nos pontos do talude e o erro da
+covariância truncada $C_M(\mathbf{x}, \mathbf{x}') = \sum_{k \le M} \lambda_k f_k(\mathbf{x}) f_k(\mathbf{x}')$ contra a
+Eq.~\eqref{eq:kl:nucleo}, máximo e médio em módulo, em 500 pares de pontos uniformes no talude e em 500 pares próximos
+(o segundo ponto a até $L_x/10 = \SI{2}{m}$ em $x$ e $L_y/4 = \SI{0.5}{m}$ em $y$ do primeiro), os mesmos pares em
+todas as formulações (\texttt{talude.cpp}, gerador \texttt{std::mt19937\_64} com a semente 1, refeito em Python em
+\texttt{pares.py}).
+
+\subsection{Forma fechada no retângulo envolvente}\label{kl:form:analitica}
+
+\paragraph{Problema unidimensional.}
+Em $[-a, a]$, com o núcleo $e^{-c|s - t|}$ e $c = 1/L$, a Eq.~\eqref{eq:kl:fredholm} se escreve
+\begin{equation}
+  \lambda f(s) = \int_{-a}^{s} e^{-c(s - t)} f(t) \, dt + \int_{s}^{a} e^{-c(t - s)} f(t) \, dt .
+\end{equation}
+Derivando uma vez,
+$\lambda f'(s) = -c \int_{-a}^{s} e^{-c(s - t)} f \, dt + c \int_{s}^{a} e^{-c(t - s)} f \, dt$, e derivando de novo
+(os termos de fronteira em $t = s$ somam $-2c f(s)$),
+\begin{equation}
+  \lambda f''(s) = c^2 \lambda f(s) - 2 c f(s)
+  \quad\Longrightarrow\quad
+  f'' + \omega^2 f = 0, \qquad \omega^2 = \frac{2c - c^2 \lambda}{\lambda}, \qquad
+  \lambda = \frac{2c}{\omega^2 + c^2}.
+  \label{eq:kl:edo}
+\end{equation}
+Em $s = \pm a$ só uma das integrais sobra; comparando $\lambda f$ e $\lambda f'$ nesses pontos saem as condições de Robin
+\begin{equation}
+  f'(a) + c f(a) = 0, \qquad f'(-a) - c f(-a) = 0 .
+\end{equation}
+Com $f = A \cos \omega s + B \sin \omega s$, as condições separam as soluções em pares e ímpares:
+\begin{align}
+  \text{pares:} \quad & \omega \tan(\omega a) = c, &
+    f(s) &= \frac{\cos \omega s}{\sqrt{a + \sin(2 \omega a)/(2\omega)}}, &
+    \omega &\in \left(\tfrac{(k-1)\pi}{a}, \tfrac{(k - 1/2)\pi}{a}\right), \label{eq:kl:par}\\
+  \text{ímpares:} \quad & \omega + c \tan(\omega a) = 0, &
+    f(s) &= \frac{\sin \omega s}{\sqrt{a - \sin(2 \omega a)/(2\omega)}}, &
+    \omega &\in \left(\tfrac{(k-1/2)\pi}{a}, \tfrac{k\pi}{a}\right), \label{eq:kl:impar}
+\end{align}
+$k = 1, 2, \ldots$, normalizadas com $\int_{-a}^{a} f^2 \, ds = 1$ (Ghanem e Spanos, 1991, Seção~2.3.3). Cada
+intervalo contém exatamente uma raiz; como $\lambda$ decresce com $\omega$, os modos se alternam par, ímpar, par\ldots
+A Figura~\ref{fig:kl:analitica1d} mostra as duas equações, as raízes e os primeiros modos nas duas direções do talude:
+em $x$, $a = \SI{12.5}{m}$ e $c = 1/20$; em $y$, $a = \SI{5}{m}$ e $c = 1/2$ (o retângulo tem $\SI{25}{m} \times
+\SI{10}{m}$; a coordenada é deslocada para o centro, $s = x - (x_0 + D_x/2)$). Como $c a = 0{,}625$ em $x$ e $2{,}5$
+em $y$, os autovalores decaem devagar em $y$: no conjunto dos 2000 maiores termos 2D, o índice 1D vai até 166 em $x$ e
+477 em $y$ (README do \texttt{KLCilindroMika}, Seção~3).
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{kl_analitica_1d.pdf}
+  \caption{KL em forma fechada em uma dimensão: as equações transcendentes \eqref{eq:kl:par} e \eqref{eq:kl:impar} com
+    as raízes, as primeiras autofunções e $\lambda = 2c/(\omega^2 + c^2)$, em $x$ ($L = \SI{20}{m}$, $a = \SI{12.5}{m}$)
+    e em $y$ ($L = \SI{2}{m}$, $a = \SI{5}{m}$). Raízes e autovalores em \texttt{dados/kl\_modos\_1d.csv};
+    script \texttt{analitica.py}.}
+  \label{fig:kl:analitica1d}
+\end{figure}
+
+\paragraph{Retângulo.}
+O núcleo~\eqref{eq:kl:nucleo} é o produto de dois núcleos 1D, e o retângulo $R = [x_0, x_0 + D_x] \times [y_0, y_0 + D_y]$
+é um produto de intervalos: os autopares em $R$ são os produtos
+\begin{equation}
+  \lambda_{ij} = \lambda_i^x \lambda_j^y, \qquad f_{ij}(x, y) = f_i(x) \, g_j(y),
+  \label{eq:kl:produto}
+\end{equation}
+e $\sum_{ij} \lambda_{ij} = D_x D_y$. A KL truncada usa os $M$ maiores produtos. No retângulo
+$R = [0, 25] \times [0, 10]$, $\lambda_1 = 57{,}1548$, $\lambda_{10} = 4{,}5114$, $\lambda_{20} = 1{,}6741$, e a fração
+de variância retida em $R$, $\sum_{k \le M} \lambda_k / 250$, é 0,7947 com 20 termos, 0,8849 com 50, 0,9556 com 200,
+0,9865 com 1000 e 0,9920 com 2000 (README, Seção~3). A Figura~\ref{fig:kl:modosret} mostra os primeiros modos 2D e o
+talude dentro do retângulo.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{kl_modos_retangulo.png}
+  \caption{Os primeiros modos $f_i(x) g_j(y)$ da forma fechada no retângulo $[0, 25] \times [0, 10]$ (\si{m}), em
+    ordem decrescente de $\lambda_i^x \lambda_j^y$, com o contorno do talude. Script \texttt{analitica.py}.}
+  \label{fig:kl:modosret}
+\end{figure}
+
+\paragraph{O que o programa do talude faz.}
+O \texttt{SlopeRandomField} (\texttt{main.cpp}) toma como $R$ a caixa dos nós da malha (no talude de Vargas Ceron et al.,
+$[0, 25] \times [0, 10]$, para qualquer malha) e chama \texttt{klsep::KL2D} (\texttt{KLSeparavel.h}) com
+$M = 2000$ (variável \texttt{KL\_M}). Essa classe:
+\begin{enumerate}
+  \item calcula as $M$ primeiras raízes de cada direção por bisseção, uma em cada intervalo de~\eqref{eq:kl:par}
+    e~\eqref{eq:kl:impar}, onde a função é monótona e muda de sinal;
+  \item monta os candidatos $(i, j)$ com $(i + 1)(j + 1) \le M$ (índices a partir de zero): se $(i, j)$ está entre os $M$
+    maiores produtos, os $(i + 1)(j + 1)$ pares com $i' \le i$ e $j' \le j$ também estão, pois os $\lambda$ 1D são
+    decrescentes; são cerca de $M \ln M$ candidatos, ordenados por $\lambda_i^x \lambda_j^y$, dos quais ficam os $M$
+    primeiros;
+  \item avalia $f_i(x_p)$ e $g_j(y_p)$ dos modos 1D usados nos pontos de integração $\mathbf{x}_p$ da malha
+    (\texttt{PreparaPontos}), acumula ali a variância truncada $\sigma_M^2(\mathbf{x}_p)$ e soma
+    $Z_M(\mathbf{x}_p) = \sum_{k \le M} \sqrt{\lambda_k} \, \xi_k \, f_{i_k}(x_p) g_{j_k}(y_p)$ (\texttt{Campo}).
+\end{enumerate}
+Os três campos usam sequências $\xi$ independentes, de sementes derivadas de (\texttt{SEMENTE}, \texttt{REAL}, campo)
+(gerador \texttt{xoshiro256**} semeado por \texttt{splitmix64}, normais por Box-Muller), e passam pela transformação
+lognormal acima em cada ponto de integração ($k$ com média 1). O programa grava $M$ e a fração retida em $R$
+(\texttt{KL\_variancia} = 0,9920 com $M = 2000$); o campo não é reescalado para variância unitária, de modo que a
+variância de $Z_M$ em cada ponto é $\sigma_M^2(\mathbf{x}) < 1$. O campo é uma função em forma fechada de $\mathbf{x}$,
+avaliada onde a malha pede: a malha não entra no cálculo dos autopares.
+
+\subsection{KL de Galerkin por elementos finitos (NeoPZ)}\label{kl:form:galerkin}
+
+Com $f \approx \sum_j a_j N_j$ (funções de forma $H^1$ contínuas da malha de $\Omega$) e o resíduo da
+Eq.~\eqref{eq:kl:fredholm} ortogonal às $N_i$, o problema vira o problema de autovalores generalizado simétrico
+\begin{equation}
+  \mathbf{C} \mathbf{a} = \lambda \mathbf{B} \mathbf{a}, \qquad
+  B_{ij} = \int_\Omega N_i N_j \, d\mathbf{x}, \qquad
+  C_{ij} = \int_\Omega \int_\Omega N_i(\mathbf{x}) \, C(\mathbf{x}, \mathbf{x}') \, N_j(\mathbf{x}') \, d\mathbf{x}' \, d\mathbf{x}.
+  \label{eq:kl:galerkin}
+\end{equation}
+No NeoPZ, o material é o \texttt{TPZKarhunenLoeveMat} (núcleo sem a variância: os autovalores são os de
+$\sigma^2 = 1$); $\mathbf{B}$ vem de \texttt{TPZInterpolationSpace::CalcStiffB}, com a regra do elemento (ordem $2P$),
+e $\mathbf{C}$ é montada par a par de elementos $(e_1, e_2)$, com $e_1 \le e_2$ (simetria), por
+\texttt{ContributeC} a partir dos dados de cada elemento nos pontos da sua regra (coordenadas, peso vezes $|\det J|$ e
+funções de forma, \texttt{KLPointData}), calculados uma vez por elemento (programa \texttt{KLTaludeCeron},
+\texttt{talude.cpp}; os defeitos corrigidos na biblioteca estão no README do \texttt{KLCilindroMika}). As duas matrizes
+são densas; os autopares saem do Eigen por Cholesky $\mathbf{B} = \mathbf{L}\mathbf{L}^T$ e do problema simétrico
+padrão $\mathbf{L}^{-1} \mathbf{C} \mathbf{L}^{-T}$, com autovetores $\mathbf{B}$-ortonormais ($\int_\Omega f_k^2 = 1$).
+Com $N$ equações, a montagem custa $O(N^2)$ avaliações do núcleo vezes o número de pontos por par de elementos, a
+memória é $O(N^2)$ e a solução densa é $O(N^3)$: na malha de 5085 equações (P2, \texttt{ceron\_h5\_a45\_h025}), 260~s
+(242~s no problema de autovalores com autovetores) e 650~MB (README, Seção~4).
+
+\paragraph{Quadratura.}
+Com integração exata, os autovalores de Galerkin seriam limites inferiores dos exatos (princípio do min-max). Mas o
+núcleo exponencial não é derivável em $x = x'$ e, no separável, também não em $y = y'$, separadamente: a dobra está em
+todos os pares de elementos cujas faixas de $x$ (ou de $y$) se sobrepõem, tenham nó em comum ou não, e a regra de Gauss
+não integra esses pares com a precisão da sua ordem. No retângulo $[0, 25] \times [0, 10]$, onde a forma fechada é
+exata (README, Seção~3):
+\begin{itemize}
+  \item com a regra do elemento (ordem $2P$), os autovalores ficam acima dos exatos e o erro de $\lambda_1$ cai com
+    $h^2$: $2{,}9 \times 10^{-3}$, $7{,}1 \times 10^{-4}$ e $1{,}8 \times 10^{-4}$ em P1 com $h = 1$; 0,5 e
+    \SI{0.25}{m};
+  \item na malha $25 \times 10$ P1, subir a ordem da regra de 2 para 6, 8, 16 e 21 leva o erro de $\lambda_1$ de
+    $2{,}9 \times 10^{-3}$ a $4{,}3 \times 10^{-4}$, $2{,}1 \times 10^{-4}$, $8{,}0 \times 10^{-5}$ e
+    $5{,}5 \times 10^{-5}$; subir a ordem só nos pares com nó em comum e no próprio elemento quase não muda
+    ($2{,}4 \times 10^{-3}$), justamente porque a dobra também está nos pares sem nó em comum;
+  \item a regra de 25 pontos (ordem 10) reduz o erro de $\lambda_1$ 13 vezes em P1 e 7,5 vezes em P2 (malha
+    $50 \times 20$), ao custo de montar $\mathbf{C}$ dez vezes mais devagar (P1 $50 \times 20$: 16,7~s contra 0,50~s).
+\end{itemize}
+A regra do elemento aumenta os autovalores e o traço (soma de todos): em P2 $50 \times 20$, o traço$/250$ é 0,9850 com
+ela e 0,9736 com 25 pontos, e $\sum_{k \le 200} \lambda_k / 250 = 0{,}9585$ passa do valor exato (0,9556). Por isso, na
+comparação do talude, os erros de truncamento da KL numérica com a regra do elemento podem ficar abaixo do mínimo
+teórico (Seção~\ref{sec:kl:tal}).
+
+\subsection{Método de Nyström (referência independente)}\label{kl:form:nystrom}
+
+O método de Nyström substitui a integral da Eq.~\eqref{eq:kl:fredholm} por uma quadratura de pontos $\mathbf{x}_j$ e
+pesos $w_j$ e impõe a equação nos próprios pontos:
+$\sum_j w_j C(\mathbf{x}_i, \mathbf{x}_j) f(\mathbf{x}_j) = \lambda f(\mathbf{x}_i)$. Com
+$\mathbf{K}_{ij} = C(\mathbf{x}_i, \mathbf{x}_j)$ e $\mathbf{W} = \mathrm{diag}(w_j)$, a forma simétrica é
+\begin{equation}
+  \mathbf{W}^{1/2} \mathbf{K} \mathbf{W}^{1/2} \mathbf{y} = \lambda \mathbf{y}, \qquad
+  f(\mathbf{x}_j) = y_j / \sqrt{w_j}, \qquad
+  f(\mathbf{x}) = \frac{1}{\lambda} \sum_j w_j \, C(\mathbf{x}, \mathbf{x}_j) \, f(\mathbf{x}_j),
+  \label{eq:kl:nystrom}
+\end{equation}
+a última a fórmula de interpolação de Nyström, que dá os modos em qualquer ponto. No talude (\texttt{nystrom.py}, em
+numpy/scipy, sem o NeoPZ), a grade é uniforme com passo $h = 5/n$ (nós $(ih, jh)$), de modo que as dobras do núcleo
+($x = x'$, $y = y'$) ficam nas arestas das células; a regra é o trapézio tensorial nos quadrados e a regra dos vértices
+($h^2/6$ por vértice) nos meios-quadrados ao longo da face $x + y = 20$. O produto por $\mathbf{K}$ não monta a matriz:
+na grade do retângulo envolvente, o núcleo separável é $\mathbf{K}_y \mathbf{U} \mathbf{K}_x^T$, e os maiores
+autovalores saem por Lanczos (\texttt{eigsh}). Com $n = 10$ a 320 (até 770 mil nós) e extrapolação de Richardson em
+$h^2$ e $h^4$, o mesmo esquema reproduz no retângulo a forma fechada ($\lambda_1$ e $\lambda_{10}$ com diferença menor
+que $10^{-9}$; $1 - \sum_{k \le 200} \lambda_k / 250$ com diferença de $3{,}6 \times 10^{-7}$), e no talude as
+extrapolações com $n = 40, 80, 160$ e $80, 160, 320$ diferem em até $1{,}5 \times 10^{-8}$ nos 10 maiores autovalores
+(README, Seção~4). É a ``KL exata do talude'' das comparações. Com $n = 160$ (193\,041 nós, 210 autopares) o cálculo levou
+81~s e 1,4~GB (\texttt{dados/kl\_nystrom\_custo.csv}); por isso a referência de Nyström vai até $M = 200$.

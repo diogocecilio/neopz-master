@@ -1,0 +1,29 @@
+% Tabela (agente kl_talude): custo das formulacoes no talude. Fontes: Galerkin, arquivos b_elem_talude.csv e
+% b_o10_talude.csv da repeticao desta sessao (KLTaludeCeron, 1 thread, maquina com outra campanha rodando);
+% Nystrom, dados/kl_nystrom_custo.csv; forma fechada, README do KLCilindroMika, secao 4.
+\begin{table}[H]
+  \centering
+  \caption{Custo de cada formulação no talude (uma thread). Galerkin: KL numérica do NeoPZ (\texttt{KLTaludeCeron}), tempo
+    de montagem de $\mathbf{C}$, do problema de autovalores com autovetores e total, e memória máxima; a máquina rodava
+    outra campanha em paralelo (o README registra 260~s e 650~MB para a malha de 5085 equações com a regra de ordem 10).
+    Nyström: $n = 160$, 210 autopares. Forma fechada: 20\,000 termos e as integrais de cada modo no talude.}
+  \label{tab:kl:custo}
+  \small
+  \begin{tabular}{llcrrrrr}
+    \toprule
+    formulação & malha & $P$/regra & incógnitas & $\mathbf{C}$ (s) & autopares (s) & total (s) & memória (MB) \\
+    \midrule
+    Galerkin & \texttt{ceron\_h5\_a45}      & 1 / 2  &    609 &  0,11 &   0,22 &   0,71 &  61 \\
+    Galerkin & \texttt{ceron\_h5\_a45\_h025} & 1 / 2  &   1314 &  0,58 &   1,99 &   3,36 &  91 \\
+    Galerkin & \texttt{ceron\_h5\_a45\_fina} & 1 / 2  &   2301 &  2,39 &  12,03 &  16,10 & 206 \\
+    Galerkin & \texttt{ceron\_h5\_a45}      & 2 / 4  &   2320 &  0,46 &  12,24 &  13,33 & 209 \\
+    Galerkin & \texttt{ceron\_h5\_a45\_h025} & 2 / 4  &   5085 &  2,96 & 199,83 & 204,06 & 646 \\
+    Galerkin & \texttt{ceron\_h5\_a45\_fina} & 1 / 10 &   2301 & 62,15 &  10,84 &  76,67 & 204 \\
+    Galerkin & \texttt{ceron\_h5\_a45}      & 2 / 10 &   2320 &  4,43 &  12,10 &  17,55 & 204 \\
+    Galerkin & \texttt{ceron\_h5\_a45\_h025} & 2 / 10 &   5085 & 22,44 & 190,99 & 215,57 & 653 \\
+    \midrule
+    Nyström  & grade $h = \SI{3.125}{cm}$    & --     & 193\,041 & --  &  77,3  &  80,9  & 1414 \\
+    forma fechada & --                       & --     & --     & --    & --     &   1,3  & -- \\
+    \bottomrule
+  \end{tabular}
+\end{table}

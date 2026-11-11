@@ -172,10 +172,10 @@ def figura():
     todos = np.concatenate([dd[m][2]["c_programa"] for m in MALHAS] + [dd[m][2]["c_p1_propria"] for m in MALHAS])
     vmin, vmax = np.percentile(todos, [0.5, 99.5])
     fig = plt.figure(figsize=(E.LARGURA, 6.3))
-    gs = fig.add_gridspec(3, 6, height_ratios=[1, 1, 1.45], hspace=0.55, wspace=1.1)
-    nomes = {"foco375": "foco375 (720 triângulos)", "refinada": "refinada, realização 0 (2544 triângulos)"}
-    for lin, (col, titulo) in enumerate((("c_programa", "KL analítica (SlopeRandomField, M = 2000)"),
-                                          ("c_p1_propria", "KL numérica P1 na própria malha (M = %d)" % M_NUM))):
+    gs = fig.add_gridspec(3, 6, height_ratios=[1, 1, 1.45], hspace=0.55, wspace=1.1, right=0.89)
+    nomes = {"foco375": "foco375 (720 tri.)", "refinada": "refinada r0 (2544 tri.)"}
+    for lin, (col, titulo) in enumerate((("c_programa", "analítica, M = 2000"),
+                                          ("c_p1_propria", "numérica P1, M = %d" % M_NUM))):
         for j, m in enumerate(MALHAS):
             X, T, c = dd[m]
             ax = fig.add_subplot(gs[lin, 3 * j:3 * j + 3])
@@ -191,10 +191,10 @@ def figura():
             ax.set_xticks([0, 5, 10, 15, 20, 25])
             ax.set_yticks([0, 5, 10])
             ax.tick_params(labelsize=6.5, length=2)
-            ax.set_title("(%s) %s: %s" % ("abcd"[2 * lin + j], titulo.split(" (")[0], nomes[m]), fontsize=7, loc="left",
+            ax.set_title("(%s) %s; %s" % ("abcd"[2 * lin + j], titulo, nomes[m]), fontsize=7, loc="left",
                          pad=2)
         if lin == 0:
-            cax = fig.add_axes([0.92, 0.555, 0.012, 0.36])
+            cax = fig.add_axes([0.915, 0.43, 0.012, 0.45])
             cb = fig.colorbar(im, cax=cax)
             cb.set_label("c' (kPa)", fontsize=7)
             cb.ax.tick_params(labelsize=6.5)
@@ -231,7 +231,7 @@ def figura():
     ax.set_aspect("equal")
     ax.set_xlabel("c' da KL P1 da foco375 (kPa)", fontsize=7)
     ax.set_ylabel("c' da KL P1 da refinada (kPa)", fontsize=7)
-    ax.set_title("(f) numérica: mesmos pontos e mesmos ξ", fontsize=7, loc="left", pad=2)
+    ax.set_title("(f) numérica: mesmos ξ", fontsize=7, loc="left", pad=2)
     ax.legend(loc="lower right", fontsize=6.3, markerscale=2.5, handletextpad=0.2, borderaxespad=0.2)
     E.virgula(ax)
     ax.tick_params(labelsize=6.5)
@@ -245,7 +245,7 @@ def figura():
     ax.yaxis.set_major_formatter(E.fmt_virgula())
     ax.set_xlabel("índice do modo k", fontsize=7)
     ax.set_ylabel(r"$|\int f_k^{foco375}\, f_k^{ref}\, d\Omega|$", fontsize=7)
-    ax.set_title("(g) numérica: modos das duas malhas", fontsize=7, loc="left", pad=2)
+    ax.set_title("(g) numérica: modos", fontsize=7, loc="left", pad=2)
     ax.tick_params(labelsize=6.5)
     E.salva(fig, "kl_malha_independencia", png=True)
 
