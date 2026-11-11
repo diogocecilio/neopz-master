@@ -64,6 +64,10 @@ onde refinar: o resultado da realização é o da malha grossa, copiado para a p
   (de uma queda entre o `resultado.txt` e a limpeza do programa) são apagados. O `.geo` fica: se a realização for
   rodada de novo (com `resultado.txt` apagado), a malha é refeita dele. Se `refino.csv` também for apagado, a etapa 1 é
   refeita, porque a banda já não existe.
+- Uma janela que fica: uma queda nos milissegundos entre o programa da etapa 3 gravar `resultado.txt` e o
+  `srf_refinado.sh` regravar `refino.csv` deixa a realização concluída (o fator é o da malha refinada), mas com o
+  `refino.csv` sem as colunas da etapa 3 e com `malha_refinada.msh` e `grossa/mecanismo.csv` ainda na pasta. O fator, o
+  tempo e as equações dessa etapa estão em `resultado.txt` e `realizacao.txt`.
 - Os `REFINA_*` de uma combinação ficam em `refino_parametros.txt`, na pasta da combinação (ao lado do
   `parametros.txt` do `rodar_mc.sh`). Outra rodada na mesma pasta com outros valores é recusada: use outra `SAIDA`.
 
@@ -155,6 +159,8 @@ srun -n 1 python3 ../SlopeRandomFieldRefina/refina_banda.py --gmsh
 - O `--gmsh` mostra o módulo e o python que o carrega, ou o executável. O `pip install --user` instala o módulo para a
   versão do python3 que o rodou (em `~/.local/lib/python3.X`): um nó de computação com outra versão do python3 não o
   encontra.
+- A roda do pip do gmsh 4.15.2 é `manylinux_2_24`: precisa da glibc 2.24 ou mais nova e de um pip recente. Num
+  sistema mais antigo, o pip não acha versão que instale.
 - O `libgmsh.so` do pacote do pip (4.15.2) depende de bibliotecas do X e do OpenGL (libGLU, libGL, libX11, libXrender,
   libXcursor, libXfixes, libXext, libXft, libXinerama e libfontconfig). Sem uma delas o módulo não carrega, e o
   `--gmsh` mostra a mensagem do carregador, com o nome da biblioteca.
@@ -331,9 +337,9 @@ As tabelas são as de `compara.py tabela` (com `--csv`, os dados de cada caso nu
 Uma campanha pequena, com a mesma cópia do executável da comparação (`SRF_BIN` e `LD_LIBRARY_PATH`) e os scripts antes
 das duas últimas mudanças (a tolerância do instante da banda em `refina_banda.py` e a limpeza de
 `grossa/checkpoint.bin`, que não mudam este caso): o exemplo saturado do Ceron (as variáveis de "Localmente"), com
-`COMBS="f50:0" DET=1 PARALELO=2` e `./rodar_mc.sh 0 1` (o determinístico e as realizações 0 e 1). O `rodar_mc.sh` rodou numa sessão própria, e cada sinal
-foi para o grupo de processos inteiro, como num terminal. A campanha foi interrompida duas vezes e retomada com o mesmo
-comando:
+`COMBS="f50:0" DET=1 PARALELO=2` e `./rodar_mc.sh 0 1` (o determinístico e as realizações 0 e 1). O `rodar_mc.sh`
+rodou numa sessão própria, e cada sinal foi para o grupo de processos inteiro, como num terminal. A campanha foi
+interrompida duas vezes e retomada com o mesmo comando:
 
 1. `kill -9` no grupo (como uma queda da máquina), 30 s depois de o determinístico e a realização 0 entrarem na etapa 3.
    Ficaram as travas `.ativo`, `malha_refinada.msh` e o `refino.csv` sem as colunas da etapa 3. Na retomada, os dois
@@ -376,6 +382,12 @@ depois do primeiro. Um `kill -9` no grupo durante o segundo fator da etapa 1 e o
 3: na retomada, cada etapa continuou do seu checkpoint (`retomando do checkpoint: t = 0.01 h` em `grossa/run.log` e em
 `run.log`; `retomadas` = 1 e 2 passos em `grossa/resumo.csv` e em `resumo.csv`), com a `malha_refinada.geo` e o fator
 (1,085179691) da comparação.
+
+Com o executável atual de `../SlopeRandomField/bin`, sem `SRF_BIN` nem `LD_LIBRARY_PATH` (a versão
+`ddfe3bb+mod 2026-11-11_02:09:10`, com a `libpz.so` do build com as mudanças do `TPZKarhunenLoeveMat` e do
+`TPZInterpolationSpace`), `./rodar_mc.sh 7 7` (`DET=0`, `PARALELO=1`) deu os fatores da comparação (1,111594024 na
+malha grossa e 1,085179691 na refinada), a mesma `malha_refinada.geo`, o mesmo `fs.csv` (fora a coluna `seg`) e a
+`versao` desse executável em `resumo.csv`.
 
 Sem gmsh (um python sem o módulo e nenhum executável `gmsh` no `PATH`), com o executável falso descrito abaixo,
 `PARALELO=2` e as realizações 0 a 9: cada realização saiu com código 2 antes da malha grossa, com a mensagem no
