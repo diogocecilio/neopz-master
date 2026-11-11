@@ -2,8 +2,8 @@
 """cilindro.py: figuras, tabelas e dados da secao do meio cilindro de Mika et al. (2021), Secao 6.2, Exemplo 1-1.
 
 Le os resultados do KLCilindroMika (CSV de uma linha por malha), a referencia de Nystrom da verificacao independente
-(verif_kl/cil_referencia.npy e reta15_referencia.npy: linha 0 os 20 autovalores, linha 1 a dispersao absoluta entre
-as quatro extrapolacoes), os autovalores guardados no notebook randomfied-v2.nb e as contas em numpy de
+(verif_kl/cil_referencia.npy e reta15_referencia.npy: linha 0 os 20 autovalores, linha 1 a dispersao entre
+as extrapolacoes, absoluta no cilindro e relativa na malha reta), os autovalores guardados no notebook randomfied-v2.nb e as contas em numpy de
 ../confere_notebook.py (q2 com 3 e 5 pontos, s20 com 5). Grava em ../../SlopeRandomFieldRefina/relatorio:
   dados/kl_cil_neopz.csv          uma linha por malha e regra (malha exata) e as duas contas da malha do notebook
   dados/kl_cil_autovalores.csv    por modo: Mika Galerkin 1 e 2, Nystrom, NeoPZ 24x3x12 (5^3 pontos)
@@ -85,7 +85,7 @@ def gera_dados():
     fino = [r for r in cil if r["malha"] == "24x3x12" and r["ng"] == 5][0]
     with open(os.path.join(E.DADOS, "kl_cil_autovalores.csv"), "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["modo", "mika_galerkin1", "mika_galerkin2", "nystrom", "nystrom_dispersao", "neopz_24x3x12_ng5",
+        w.writerow(["modo", "mika_galerkin1", "mika_galerkin2", "nystrom", "nystrom_dispersao_abs", "neopz_24x3x12_ng5",
                     "notebook_guardado"])
         for k in range(20):
             w.writerow([k + 1, "%.10g" % G1[k], "%.10g" % G2[k], "%.8f" % ref[k], "%.2e" % disp[k],
@@ -94,7 +94,7 @@ def gera_dados():
     nb5 = [r for r in nb if r["ng"] == 5][0]
     with open(os.path.join(E.DADOS, "kl_cil_notebook.csv"), "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["modo", "nystrom_semianel_poligonal", "nystrom_dispersao", "neopz_q2_ng3", "neopz_q2_ng5",
+        w.writerow(["modo", "nystrom_semianel_poligonal", "nystrom_dispersao_rel", "neopz_q2_ng3", "neopz_q2_ng5",
                     "numpy_q2_ng3", "numpy_q2_ng5", "numpy_s20_ng5", "notebook_guardado"])
         for k in range(20):
             w.writerow([k + 1, "%.8f" % ref_reta[k], "%.2e" % disp_reta[k], "%.9f" % nb3["lam"][k],
@@ -242,8 +242,8 @@ def tab_autovalores(d):
 def tab_convergencia(d):
     ref = d["ref"]
     L = [r"\begin{tabular}{c r r c c c c r r r}", r"\toprule",
-         r"malha & elem. & $N$ & pontos & máx. erro & erro & $\sum\lambda/(270\pi)$ & $C$ (s) & autoval. (s) & "
-         r"memória (MB) \\",
+         r"malha & elem. & $N$ & pontos & máx. erro & erro & $\sum\lambda/(270\pi)$ & $\mathbf{C}$ (s) & aut. (s) & "
+         r"mem. (MB) \\",
          r"$n_\theta\times n_\rho\times n_z$ & & & & $k \le 20$ & $\lambda_1$ & & & & \\", r"\midrule"]
     rs = sorted(d["cil"], key=lambda r: (r["ng"], r["equacoes"]))
     for i, r in enumerate(rs):

@@ -153,9 +153,12 @@ $M = 2000$ (variável \texttt{KL\_M}). Essa classe:
     maiores produtos, os $(i + 1)(j + 1)$ pares com $i' \le i$ e $j' \le j$ também estão, pois os $\lambda$ 1D são
     decrescentes; são cerca de $M \ln M$ candidatos, ordenados por $\lambda_i^x \lambda_j^y$, dos quais ficam os $M$
     primeiros;
-  \item avalia $f_i(x_p)$ e $g_j(y_p)$ dos modos 1D usados nos pontos de integração $\mathbf{x}_p$ da malha
-    (\texttt{PreparaPontos}), acumula ali a variância truncada $\sigma_M^2(\mathbf{x}_p)$ e soma
-    $Z_M(\mathbf{x}_p) = \sum_{k \le M} \sqrt{\lambda_k} \, \xi_k \, f_{i_k}(x_p) g_{j_k}(y_p)$ (\texttt{Campo}).
+  \item avalia $f_i(x_p)$ e $g_j(y_p)$ dos modos 1D usados nos pontos de integração $\mathbf{x}_p$ da malha e
+    acumula ali a variância truncada $\sigma_M^2(\mathbf{x}_p)$ (função \texttt{PreparaPontos}); para cada
+    sequência $\xi$, soma (função \texttt{Campo})
+    \begin{equation*}
+      Z_M(\mathbf{x}_p) = \sum_{k = 1}^{M} \sqrt{\lambda_k} \, \xi_k \, f_{i_k}(x_p) \, g_{j_k}(y_p).
+    \end{equation*}
 \end{enumerate}
 Os três campos usam sequências $\xi$ independentes, de sementes derivadas de (\texttt{SEMENTE}, \texttt{REAL}, campo)
 (gerador \texttt{xoshiro256**} semeado por \texttt{splitmix64}, normais por Box-Muller), e passam pela transformação
@@ -182,8 +185,9 @@ funções de forma, \texttt{KLPointData}), calculados uma vez por elemento (prog
 \texttt{talude.cpp}; os defeitos corrigidos na biblioteca estão no README do \texttt{KLCilindroMika}). As duas matrizes
 são densas; os autopares saem do Eigen por Cholesky $\mathbf{B} = \mathbf{L}\mathbf{L}^T$ e do problema simétrico
 padrão $\mathbf{L}^{-1} \mathbf{C} \mathbf{L}^{-T}$, com autovetores $\mathbf{B}$-ortonormais ($\int_\Omega f_k^2 = 1$).
-Com $N$ equações, a montagem custa $O(N^2)$ avaliações do núcleo vezes o número de pontos por par de elementos, a
-memória é $O(N^2)$ e a solução densa é $O(N^3)$: na malha de 5085 equações (P2, \texttt{ceron\_h5\_a45\_h025}), 260~s
+A montagem de $\mathbf{C}$ avalia o núcleo $n_p^2$ vezes em cada um dos cerca de $N_e^2/2$ pares de elementos
+($n_p$ pontos por elemento, $N_e$ elementos), isto é, $O(N^2)$ com $N$ equações; a memória é $O(N^2)$ e a solução
+densa, $O(N^3)$: na malha de 5085 equações (P2, \texttt{ceron\_h5\_a45\_h025}), 260~s
 (242~s no problema de autovalores com autovetores) e 650~MB (README, Seção~4).
 
 \paragraph{Quadratura.}
@@ -201,7 +205,8 @@ exata (README, Seção~3):
     $5{,}5 \times 10^{-5}$; subir a ordem só nos pares com nó em comum e no próprio elemento quase não muda
     ($2{,}4 \times 10^{-3}$), justamente porque a dobra também está nos pares sem nó em comum;
   \item a regra de 25 pontos (ordem 10) reduz o erro de $\lambda_1$ 13 vezes em P1 e 7,5 vezes em P2 (malha
-    $50 \times 20$), ao custo de montar $\mathbf{C}$ dez vezes mais devagar (P1 $50 \times 20$: 16,7~s contra 0,50~s).
+    $50 \times 20$), ao custo de montar $\mathbf{C}$ cerca de 30 vezes mais devagar (P1 $50 \times 20$: 16,7~s
+    contra 0,50~s).
 \end{itemize}
 A regra do elemento aumenta os autovalores e o traço (soma de todos): em P2 $50 \times 20$, o traço$/250$ é 0,9850 com
 ela e 0,9736 com 25 pontos, e $\sum_{k \le 200} \lambda_k / 250 = 0{,}9585$ passa do valor exato (0,9556). Por isso, na

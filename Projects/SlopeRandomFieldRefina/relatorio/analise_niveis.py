@@ -363,7 +363,7 @@ def main():
     # ----- tabelas
     # niv_resumo
     L = [r"\begin{tabular}{@{}l r r r r r r r r r@{}}", r"\toprule",
-         r" & & \multicolumn{3}{c}{$e$ (\%)} & \multicolumn{3}{c}{tempo da cadeia por caso} & "
+         r" & & \multicolumn{3}{c}{$e$ (\%)} & \multicolumn{3}{c}{custo da cadeia por caso} & "
          r"\multicolumn{2}{c}{contenção da banda} \\",
          r"\cmidrule(lr){3-5}\cmidrule(lr){6-8}\cmidrule(l){9-10}",
          r"Configuração & triâng. & $\overline{|e|}$ & $\max|e|$ & $\bar e$ & CPU (s) & parede (s) & "
@@ -466,7 +466,18 @@ def main():
     M = {}
     dif1 = [abs(dados["foco375_ini", c]["fator"] / dados["foco375", c]["fator"] - 1.) for c in CASOS
             if ("foco375_ini", c) in dados and ("foco375", c) in dados]
-    M["nivDifEtapaUm"] = "%.1e" % max(dif1)
+    M["nivDifEtapaUm"] = ("%.1e" % max(dif1)).replace(".", ",") if max(dif1) > 0 else "0"
+    def carga(pasta):
+        t = chaves(os.path.join(pasta, "tempo.txt"))
+        v = [x for x in (num(t, "carga_inicio"), num(t, "carga_fim")) if x is not None]
+        return media(v)
+    cg_n = [carga(os.path.join(NIV, ini, cfg, c)) for ini in ("foco375", "g15")
+            for cfg in ("inicial", "um_passo_h0.25", "um_passo_h0.1875", "um_passo_h0.125") for c in CASOS
+            if os.path.isfile(os.path.join(NIV, ini, cfg, c, "tempo.txt"))]
+    cg_c = [carga(os.path.join(COMP, m, c)) for m in ("foco375", "foco25", "foco1875", "foco125", "refinada")
+            for c in CASOS if os.path.isfile(os.path.join(COMP, m, c, "tempo.txt"))]
+    M["nivCargaNova"] = ft(media([x for x in cg_n if x is not None]), 1)
+    M["nivCargaComp"] = ft(media([x for x in cg_c if x is not None]), 1)
     M["nivNcasosEtapaUm"] = "%d" % len(dif1)
     pf0 = pf_config(b125_0)
     M["nivPfZero"] = ft(100 * pf0, 2)
@@ -474,6 +485,17 @@ def main():
     M["nivPfCont"] = ft(100 * FERMI_PF_CONT, 2)
     M["nivCvMilCont"] = ft(100 * cv(FERMI_PF_CONT, 1000), 1)
     M["nivCvCincoCont"] = ft(100 * cv(FERMI_PF_CONT, 5000), 1)
+    def area_banda(pasta):
+        try:
+            with open(os.path.join(pasta, "fs.csv")) as fh:
+                fs = [r for r in csv.DictReader(fh) if r.get("FS_SRM")]
+            return float(min(fs, key=lambda r: float(r["FS_SRM"]))["banda_area_m2"])
+        except (OSError, ValueError, KeyError):
+            return None
+    M["nivAreaF"] = ft(media([area_banda(os.path.join(NIV, "foco375", "inicial", c)) for c in casos]), 1)
+    M["nivAreaG"] = ft(media([area_banda(os.path.join(NIV, "g15", "inicial", c)) for c in casos]), 1)
+    M["nivCpuGI"] = ft(resumo["g15"]["cpu"], 1)
+    M["nivRazEtapaGF"] = ft(cpu375["nova"] / resumo["g15"]["cpu"], 0)
     for k, nm in (("foco375_h0.125", "FC"), ("g15_h0.125", "GC"), ("foco375_h0.1875", "FB"), ("g15_h0.25", "GA"),
                   ("foco375_h0.25", "FA"), ("g15_h0.1875", "GB")):
         M["niv%sCel" % nm] = "%d" % round(media([dados[k, c].get("celulas_banda") for c in casos]))
@@ -616,7 +638,8 @@ def main():
         ax.plot([0., 0.125], [100 * (g0 / dados["foco125", c]["fator"] - 1.), 0.], ":", color=CINZA, lw=0.9)
         ax.axhline(0, color="#999999", lw=0.6)
         ax.set_title(ROT_CASO[c] + "   (Γ$_{125}$ = %s)" % virg(dados["foco125", c]["fator"], 3), fontsize=8)
-        todos = [100 * dados[k, c]["e"] for k in cadeias["foco375"] + cadeias["g15"] + ["foco25", "foco1875"]]
+        todos = [100 * dados[k, c]["e"] for k in cadeias["foco375"] + cadeias["g15"] + ["foco25", "foco1875"]] + \
+            [100 * (ext[nm, c]["g0_2"] / dados["foco125", c]["fator"] - 1.) for nm in cadeias]
         lo, hi = min(todos + [-0.3]), max(todos + [0.3])
         mg = 0.15 * (hi - lo)
         ax.set_ylim(lo - mg, hi + mg)
@@ -626,7 +649,7 @@ def main():
                         arrowprops=dict(arrowstyle="->", color="#999999", lw=0.6))
         ax.set_xlim(-0.015, 0.39)
         ax.set_xticks([0, 0.125, 0.1875, 0.25, 0.375])
-        ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _p: virg(x, 3).rstrip("0").rstrip(",") if x else "0"))
+        ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _p: virg(x, 4).rstrip("0").rstrip(",") if x else "0"))
         ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _p: virg(y, 1)))
         ax.tick_params(labelsize=7)
         if i % nc == 0:
@@ -642,33 +665,30 @@ def main():
     fig.savefig(os.path.join(AQUI, "figuras", "niv_convergencia.pdf"))
     plt.close(fig)
 
-    # niv_etapas: barras empilhadas do CPU medio por etapa (escala da campanha nova)
-    ks = [k for k, *_ in CONFIGS]
-    fig, ax = plt.subplots(figsize=(7.2, 3.0))
-    xs = np.arange(len(ks))
+    # niv_etapas: barras horizontais empilhadas do CPU medio por etapa (escala da campanha nova)
+    ks = [k for k, *_ in CONFIGS][::-1]
+    fig, ax = plt.subplots(figsize=(7.2, 3.6))
+    ys = np.arange(len(ks))
     a = np.array([resumo[k]["cpu1_eq"] for k in ks])
     b = np.array([resumo[k]["cpu_malha_eq"] for k in ks])
     cc = np.array([resumo[k]["cpu_run_eq"] for k in ks])
-    ax.bar(xs, a, color=[CINZA if FAM[k] == "fixa" else CORES[2] for k in ks], width=0.7,
-           label="etapa 1 (malha inicial) / malha fixa")
-    ax.bar(xs, b, bottom=a, color=CORES[3], width=0.7, label="refina_banda.py + gmsh")
-    ax.bar(xs, cc, bottom=a + b, color=[ordem_cor.get(k, CINZA) for k in ks], width=0.7,
-           label="rodada refinada")
-    for x, k in zip(xs, ks):
+    ax.barh(ys, a, color=[CINZA if FAM[k] == "fixa" else CORES[2] for k in ks], height=0.68)
+    ax.barh(ys, b, left=a, color=CORES[3], height=0.68)
+    ax.barh(ys, cc, left=a + b, color=[ordem_cor.get(k, CINZA) for k in ks], height=0.68)
+    for y, k in zip(ys, ks):
         tot = resumo[k]["cpu_eq"]
-        ax.text(x, tot, virg(tot, 1), ha="center", va="bottom", fontsize=6.5)
-    ax.set_yscale("log")
-    ax.set_ylim(0.5, max(resumo[k]["cpu_eq"] for k in ks) * 2)
-    ax.set_xticks(xs)
-    ax.set_xticklabels([CURTO[k] for k in ks], rotation=35, ha="right", fontsize=7)
-    ax.set_ylabel("CPU médio por caso (s)")
-    ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _p: virg(y, 0) if y >= 1 else virg(y, 1)))
+        ax.text(tot + 3, y, virg(tot, 1), ha="left", va="center", fontsize=7)
+    ax.set_yticks(ys)
+    ax.set_yticklabels([CURTO[k] for k in ks], fontsize=7.5)
+    ax.set_xlabel("CPU médio por caso (s, escala da campanha nova)")
+    ax.set_xlim(0, max(resumo[k]["cpu_eq"] for k in ks) * 1.12)
+    ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _p: virg(x, 0)))
     from matplotlib.patches import Patch
     ax.legend(handles=[Patch(color=CINZA, label="malha fixa"), Patch(color=CORES[2], label="etapa 1 (malha inicial)"),
                        Patch(color=CORES[3], label="refina_banda.py + gmsh"),
                        Patch(color=CORES[0], label="rodada refinada (foco375 → h)"),
-                       Patch(color=CORES[1], label="rodada refinada (g15 → h)")], fontsize=6.5, loc="upper left", ncol=2)
-    ax.grid(axis="x", visible=False)
+                       Patch(color=CORES[1], label="rodada refinada (g15 → h)")], fontsize=7, loc="lower right")
+    ax.grid(axis="y", visible=False)
     fig.tight_layout()
     fig.savefig(os.path.join(AQUI, "figuras", "niv_etapas.pdf"))
     plt.close(fig)
@@ -684,13 +704,14 @@ def main():
         ax.bar(np.arange(len(casos)) - 0.4 + (j + 0.5) * larg, [y if y is not None else 0 for y in ys], width=larg,
                color=cor, alpha=alfa, label=CURTO[k])
     ax.axhline(FOLGA, color=CORES[7], ls="--", lw=1)
-    ax.text(len(casos) - 0.5, FOLGA, "folga 0,375 m", color=CORES[7], fontsize=7, ha="right", va="bottom")
+    ax.text(-0.45, FOLGA + 0.005, "folga 0,375 m", color=CORES[7], fontsize=7, ha="left", va="bottom")
     ax.set_xticks(np.arange(len(casos)))
     ax.set_xticklabels([ROT_CASO[c] for c in casos])
     ax.set_ylabel("$d_{\\max}$ (m)")
     ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _p: virg(y, 2)))
-    ax.legend(fontsize=6.5, ncol=3, loc="upper left")
-    ax.set_ylim(0, max(FOLGA * 1.6, max(dados[k, c].get("dist") or 0 for k in kr for c in casos) * 1.35))
+    ax.legend(fontsize=6.5, ncol=6, loc="upper center", bbox_to_anchor=(0.5, 1.13), handlelength=1.2,
+              columnspacing=0.8)
+    ax.set_ylim(0, max(FOLGA * 1.25, max(dados[k, c].get("dist") or 0 for k in kr for c in casos) * 1.35))
     ax.grid(axis="x", visible=False)
     fig.tight_layout()
     fig.savefig(os.path.join(AQUI, "figuras", "niv_contencao.pdf"))

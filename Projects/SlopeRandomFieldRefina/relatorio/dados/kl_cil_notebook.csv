@@ -1,4 +1,4 @@
-modo,nystrom_semianel_poligonal,nystrom_dispersao,neopz_q2_ng3,neopz_q2_ng5,numpy_q2_ng3,numpy_q2_ng5,numpy_s20_ng5,notebook_guardado
+modo,nystrom_semianel_poligonal,nystrom_dispersao_rel,neopz_q2_ng3,neopz_q2_ng5,numpy_q2_ng3,numpy_q2_ng5,numpy_s20_ng5,notebook_guardado
 1,162.06865985,7.80e-08,162.178029671,162.087120389,162.1780297,162.0871204,162.0871169,163.970508266
 2,90.77610294,1.63e-07,90.884934296,90.794527625,90.8849343,90.7945276,90.7945219,92.8766417405
 3,57.32728421,2.45e-07,57.441302343,57.342508640,57.4413023,57.3425086,57.3424316,56.1742887275

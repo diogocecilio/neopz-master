@@ -1,0 +1,206 @@
+% Secao: KL no talude, analitica contra numerica (agente kl_talude). Sem preambulo; \input no relatorio.
+% Fontes: Projects/KLCilindroMika/README.md (secao 4), relatorio/dados/kl_*.csv, as rodadas do KLTaludeCeron desta
+% sessao (autovalores e sigma_M^2 nos pontos) e Projects/KLCilindroMika/figuras/talude_figuras.py e malhas_campos.py.
+\section{Karhunen-Loève no talude: analítica contra numérica}\label{sec:kl:tal}
+
+O \texttt{SlopeRandomField} gera os campos com a forma fechada do retângulo envolvente $R = [0, 25] \times [0, 10]$,
+avaliada no talude $\Omega$ (Seção~\ref{kl:form:analitica}). Vargas Ceron et al.\ (2025) obtêm a KL ``from
+discretization of the actual soil mass slope'', isto é, numericamente no próprio talude. Esta seção compara as duas, com
+a KL exata do talude (Nyström, Seção~\ref{kl:form:nystrom}) como referência. A KL numérica é a de Galerkin do NeoPZ
+(Seção~\ref{kl:form:galerkin}, programa \texttt{KLTaludeCeron}) em três malhas de triângulos do talude
+(\texttt{ceron\_h5\_a45}, \texttt{\_h025} e \texttt{\_fina}, com $h$ de 0,375, 0,25 e \SI{0.1875}{m} até \SI{1}{m} da
+superfície), P1 e P2, com a regra do elemento (ordem $2P$) e com a regra de ordem 10 (25 pontos). Os números são os do
+README do \texttt{KLCilindroMika} (Seção~4), conferidos de forma independente em numpy/scipy; as figuras usam as
+rodadas do \texttt{KLTaludeCeron} refeitas para este relatório (script \texttt{talude\_figuras.py}), que repetem os
+valores do README.
+
+\subsection{Autovalores}
+
+Os 10 maiores autovalores da KL exata do talude são 48,810; 26,730; 16,911; 10,824; 9,572; 6,824; 4,719; 4,519; 3,829 e
+3,349; os da forma fechada no retângulo, 57,155; 36,231; 21,400; 13,120; 13,046; 8,570; 8,270; 5,939; 4,885 e 4,511
+(README, Seção~4). Os dois conjuntos não são comparáveis termo a termo: a soma de todos os autovalores é a área do
+domínio (187,5 no talude e 250 no retângulo), e os modos do retângulo não são ortogonais no talude. A
+Figura~\ref{fig:kl:espectros}(a) mostra os espectros. Os autovalores de Galerkin acompanham os do talude nos primeiros
+modos e, perto do número de equações $N$, caem rapidamente: a malha só tem $N$ autovalores, e a sua soma (o traço
+numérico) fica abaixo da área (0,9713 da área em P2 \texttt{\_h025} com a regra de ordem 10). A
+Figura~\ref{fig:kl:espectros}(b) compara os autovalores de Galerkin com os de Nyström. Nos 10 primeiros modos, com a
+regra de ordem 10, a diferença relativa vai de $-2{,}6 \times 10^{-5}$ a $+3{,}0 \times 10^{-5}$ em P2
+\texttt{\_h025} e chega a $-1{,}6 \times 10^{-3}$ em P1 \texttt{\_fina}; com a regra do elemento, os autovalores
+ficam acima dos exatos (de $+4{,}3 \times 10^{-5}$ a $+8{,}2 \times 10^{-4}$ em P2 \texttt{\_h025}). A diferença
+cresce com o índice do modo: de $k = 50$ a 100, a sua mediana vai de 5\,\% (P2 \texttt{\_h025}, regra do elemento)
+a 18\,\% (P1 \texttt{\_fina} e P2 \texttt{ceron\_h5\_a45}, regra de ordem 10), acima da incerteza da referência.
+Esses modos variam depressa em $y$ ($L_y = \SI{2}{m}$; no retângulo, o índice 1D em $y$ chega a 477 nos 2000 maiores
+termos) e não são resolvidos pelos elementos de 0,75 a \SI{1.5}{m} longe da superfície.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{kl_espectros.pdf}
+  \caption{(a) Autovalores $\lambda_k$: forma fechada no retângulo $R$, KL exata do talude (Nyström, 210 autovalores,
+    extrapolação de Richardson das grades $n = 80$, 160 e 320) e KL de Galerkin no talude. (b) Diferença relativa dos
+    autovalores de Galerkin contra os de Nyström; a faixa cinza é a diferença entre as extrapolações com $n = 40$, 80, 160
+    e com $n = 80$, 160, 320 (incerteza da referência), que limita a comparação a $k \lesssim 30$. Script
+    \texttt{talude\_figuras.py}.}
+  \label{fig:kl:espectros}
+\end{figure}
+
+\subsection{Erro de truncamento}
+
+A Figura~\ref{fig:kl:truncamento} e a Tabela~\ref{tab:kl:truncamento} dão $\varepsilon_M$ (Eq.~\ref{eq:kl:erro}).
+\begin{itemize}
+  \item Com $M = 50$, a KL numérica no talude tem $\varepsilon_M$ de 0,099 a 0,104 (P1 \texttt{\_fina} e P2, com as duas
+    regras), contra 0,1150 da forma fechada do retângulo; a KL exata do talude dá 0,0993, e a forma fechada precisa de
+    63 termos para esse erro.
+  \item Com $M = 200$, a KL numérica ainda muda com a malha (P2 com a regra de ordem 10: 0,0547 com 2320 equações e
+    0,0460 com 5085); a forma fechada dá 0,0444 e a KL exata do talude, 0,0375 (a forma fechada precisa de 253 a 254
+    termos para esse erro). Nenhuma das malhas chega a 0,0375 com $M = 200$ (o menor valor é 0,0421).
+  \item Com $M = 1000$ e 2000, a KL numérica para no erro da malha: $1 - \text{traço}/|\Omega| = 0{,}0287$ na malha mais
+    fina com a regra de ordem 10. A forma fechada continua caindo: 0,0135 com 1000 termos, 0,0079 com 2000 (o $M$ do
+    programa) e 0,0013 com 20\,000 (\texttt{talude\_figuras.py}).
+  \item A regra do elemento dá erros menores que a de 25 pontos na mesma malha porque aumenta os autovalores
+    (Seção~\ref{kl:form:galerkin}): com ela, $\varepsilon_{50} = 0{,}0990$ em P2 \texttt{\_h025}, abaixo do mínimo
+    teórico (0,0993, o da KL exata do talude). Esses valores medem a soma dos autovalores numéricos, não a qualidade dos
+    modos.
+\end{itemize}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{kl_truncamento.pdf}
+  \caption{Erro médio quadrático de truncamento no talude, $\varepsilon_M$, contra o número de termos: forma fechada do
+    retângulo restrita ao talude (integrais exatas de cada modo no talude, até 20\,000 termos), KL exata do talude
+    (Nyström extrapolado, até 210 termos) e KL de Galerkin no talude ($1 - \sum_{k \le M} \lambda_k^h / 187{,}5$, com
+    todos os autovalores de cada malha), (a) com a regra do elemento e (b) com a de ordem 10. Script
+    \texttt{talude\_figuras.py}.}
+  \label{fig:kl:truncamento}
+\end{figure}
+
+\input{tabelas/kl_truncamento}
+
+\subsection{Variância pontual e covariância}
+
+A Figura~\ref{fig:kl:variancia} e a Tabela~\ref{tab:kl:variancia} mostram como as duas KL distribuem o erro no talude.
+A variância $\sigma_M^2$ da forma fechada fica abaixo de 1 em todos os pontos, é suave e o seu intervalo encolhe com $M$
+(0,884 a 0,959 com 200 termos; 0,977 a 0,992 com 2000). A da KL numérica passa de 1 e tem a marca dos elementos: com
+$M = 2000$, vai de 0,915 a 1,111 na malha mais fina, e de 0,848 a 1,165 em P1 \texttt{\_fina} com a regra do elemento;
+com todos os modos, $\sigma^2$ é a diagonal do núcleo projetado na malha, não 1. Os erros da covariância da forma fechada
+caem com $M$ (pares próximos, erro médio: $2{,}5 \times 10^{-2}$ com 50 termos e $2{,}8 \times 10^{-4}$ com 2000); os da
+KL numérica quase não mudam de $M = 200$ a 2000 ($8{,}5 \times 10^{-3}$ e $7{,}7 \times 10^{-3}$). Com 50 e 200
+termos, a KL exata do talude tem os quatro erros da covariância menores que os da forma fechada (com $M = 200$, pares
+próximos, erro médio de $3{,}8 \times 10^{-3}$ contra $4{,}9 \times 10^{-3}$), e a KL numérica da malha mais fina tem
+erros maiores que os das duas ($8{,}5 \times 10^{-3}$).
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{kl_variancia.png}
+  \caption{Variância truncada $\sigma_M^2(\mathbf{x})$ com $M = 200$ e 2000: forma fechada do retângulo restrita ao
+    talude (a, c) e KL de Galerkin no talude, P2, \texttt{ceron\_h5\_a45\_h025}, regra de ordem 10 (b, d), na rede de 15
+    pontos de cada triângulo; escala divergente centrada em 1 e, no título, o mínimo e o máximo. Script
+    \texttt{talude\_figuras.py}.}
+  \label{fig:kl:variancia}
+\end{figure}
+
+\input{tabelas/kl_variancia_cov}
+
+\subsection{Custo}
+
+A forma fechada com 20\,000 termos e as integrais de cada modo no talude levou 1,3~s (README, Seção~4). A KL de Galerkin
+tem memória $O(N^2)$ e solução $O(N^3)$: na malha de 5085 equações, 260~s e 650~MB no README e 216~s e 653~MB na
+repetição desta sessão (Tabela~\ref{tab:kl:custo}), quase todo o tempo no problema de autovalores denso. O Nyström de
+referência ($n = 160$, 193\,041 nós) levou 81~s e 1,4~GB para 210 autopares.
+
+\input{tabelas/kl_custo}
+
+\subsection{O mesmo campo em duas malhas}
+
+A Figura~\ref{fig:kl:malha} mostra o campo $c'$ da mesma realização (\texttt{SEMENTE} padrão, \texttt{REAL=0}) em duas
+malhas: a \texttt{ceron\_h5\_a45\_foco375} (720 triângulos, 2160 pontos de integração) e a malha refinada da realização 0
+do método de duas etapas (2544 triângulos, 7632 pontos; $h = \SI{0.125}{m}$ na banda, \SI{0.375}{m} no foco e até
+\SI{3}{m} longe do talude). O programa grava os campos nos pontos de integração (\texttt{SO\_CAMPOS=1}), e o mesmo campo
+é refeito em Python (\texttt{klfechada.py}: forma fechada, os $\xi$ do gerador do programa e a transformação lognormal)
+nos pontos de cada malha (\texttt{dados/kl\_malha\_resumo.csv}):
+\begin{itemize}
+  \item KL analítica: a maior diferença relativa entre o programa e a função é $3{,}4 \times 10^{-6}$ na
+    \texttt{foco375} e $4{,}0 \times 10^{-6}$ na refinada (os 7 algarismos do arquivo), em $c'$, $\phi'$ e $k$; nos 6
+    pontos de integração que as duas malhas têm em comum, $c'$ e $\phi'$ são iguais (diferença 0); e o campo da rodada
+    só de campos é o mesmo da simulação completa na mesma malha (diferença 0). As duas malhas veem a mesma função.
+  \item KL numérica (contraste): uma KL de Galerkin P1 em numpy (\texttt{galerkin\_p1.py}, $M = 200$) em cada malha, com
+    os mesmos $\xi$ de $c'$. Os autovalores e o erro de truncamento quase não mudam ($\lambda_1 = 48{,}825$ e $48{,}830$;
+    $\varepsilon_{200} = 0{,}128$ e $0{,}127$), mas o campo muda: nos pontos da malha refinada, a diferença RMS relativa
+    entre os dois campos é 0,66 (correlação 0,63), porque 97 dos 200 modos saem do solver com o sinal trocado; alinhando
+    o sinal de cada modo (o que só é possível tendo as duas malhas), ainda sobra 0,29 (correlação 0,85), porque os modos
+    de mesmo índice deixam de coincidir: $|\int f_k^{\mathrm{foco375}} f_k^{\mathrm{ref}}| \ge 0{,}81$ até $k = 20$,
+    0,58 em $k = 40$ e, a partir de $k \approx 50$, valores espalhados entre 0 e 0,7.
+\end{itemize}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{kl_malha_independencia.png}
+  \caption{O mesmo campo em duas malhas. (a, b) $c'$ da KL analítica do programa ($M = 2000$) na malha
+    \texttt{foco375} e na refinada da realização 0 (média dos pontos de integração de cada triângulo). (c, d) $c'$ de uma
+    KL numérica P1 em cada malha ($M = 200$), com os mesmos $\xi$. (e) Programa contra a forma fechada em Python nos
+    pontos das duas malhas. (f) Os dois campos numéricos nos mesmos pontos, com o sinal do solver e com o sinal de cada
+    modo alinhado. (g) Produto interno dos modos numéricos de mesmo índice das duas malhas. Dados
+    \texttt{dados/kl\_malha\_*.csv}; script \texttt{malhas\_campos.py}.}
+  \label{fig:kl:malha}
+\end{figure}
+
+\subsection{Analítica ou numérica no talude? E a malha?}\label{kl:tal:resposta}
+
+A observação foi: ``se ela [a forma fechada] serve para o talude, não faz sentido usar a numérica, e nem importa o
+nível de refinamento da malha para a qualidade dos campos estocásticos''. Os resultados acima a confirmam para este
+problema, com as ressalvas abaixo.
+
+\paragraph{A forma fechada serve para o talude.}
+Um campo definido no retângulo com covariância $C$ tem, restrito ao talude, exatamente a covariância $C$ no talude: a
+covariância é uma propriedade de pares de pontos, e restringir o domínio não a muda. A KL do retângulo, avaliada no
+talude, converge para o campo-alvo com $M \to \infty$ ($\varepsilon_M = 0{,}0079$ com 2000 termos e 0,0013 com 20\,000),
+e custa 1,3~s contra 216 a 260~s e 650~MB da KL numérica de 5085 equações. Com $M = 2000$, o seu erro de truncamento
+(0,0079) é menor que o que a KL numérica atingiu em qualquer das malhas testadas, mesmo com todos os modos (0,0287 na
+mais fina com a regra de ordem 10; os 0,0190 da regra do elemento vêm de autovalores inflados pela quadratura): a
+numérica fica limitada pela malha, e baixar esse limite exige malhas mais finas, com memória $O(N^2)$ e tempo $O(N^3)$.
+Com $M \ge 1000$, a variância pontual e os erros da covariância também favorecem a forma fechada
+(Tabela~\ref{tab:kl:variancia}).
+
+O que a forma fechada perde é a eficiência por termo: a KL do próprio talude é ótima para cada $M$, e o retângulo precisa
+de 63 termos para o erro de 50 termos da KL exata do talude e de 253 a 254 para o de 200 (26 a 27\,\% a mais). Isso
+só pesa quando o número de variáveis aleatórias é o custo: FORM/SORM, caos polinomial, colocação estocástica,
+metamodelos. Em Monte Carlo, como aqui, o custo de cada realização é a solução por elementos finitos, e somar 2000
+termos nos pontos de integração é desprezível. Neste problema (núcleo exponencial separável, talude dentro de um
+retângulo, Monte Carlo), usar a KL numérica não traz ganho; nas malhas testadas, ela é menos precisa com $M = 2000$.
+
+\paragraph{Quando a KL numérica continua necessária.}
+\begin{itemize}
+  \item Núcleos sem forma fechada no domínio, como o exponencial isotrópico $\exp(-r/L)$ do cilindro de Mika et al.\
+    (Seção~\ref{sec:kl:cil}), o de Matérn, ou campos não estacionários.
+  \item Domínios muito menores que a sua caixa envolvente (a perda por termo cresce com a fração da caixa fora do domínio;
+    aqui, $|\Omega|/|R| = 0{,}75$) e domínios não convexos em que a correlação deve ser medida dentro do domínio (por
+    exemplo, através de uma escavação ou de uma trinca), onde o núcleo euclidiano restrito não é o modelo pretendido.
+  \item Quando o número de variáveis aleatórias precisa ser o menor possível (os métodos acima).
+\end{itemize}
+
+\paragraph{A malha e a qualidade dos campos.}
+Com a KL analítica, o campo é uma função em forma fechada de $\mathbf{x}$, avaliada em cada ponto de integração: a sua
+qualidade ($\varepsilon_M$, $\sigma_M^2$, $C_M$) não depende da malha, e os mesmos $\xi$ dão o mesmo campo em qualquer
+malha com o mesmo retângulo envolvente (Figura~\ref{fig:kl:malha}: diferença no nível dos algarismos gravados, e valores
+iguais nos pontos comuns). É essa propriedade que torna consistente o refinamento por realização: a malha refinada
+amostra a mesma realização da malha grossa. O retângulo é a caixa dos nós; uma malha com outra caixa daria outra
+expansão (no talude, todas as malhas têm a caixa $[0, 25] \times [0, 10]$). Com a KL numérica, as autofunções, e com
+elas o campo para os mesmos $\xi$, mudam com a malha (Figura~\ref{fig:kl:malha}c, d, f, g): refinar a malha durante
+uma realização mudaria a própria realização, e um esquema de refinamento teria de calcular a KL uma vez, numa malha
+fixa, e interpolar o campo nas malhas de análise.
+
+\paragraph{O que a malha ainda controla.}
+\begin{itemize}
+  \item A solução por elementos finitos: o fator de segurança e a banda de cisalhamento, que são o objeto do refinamento
+    (seções anteriores).
+  \item Como o modelo mecânico resolve a variabilidade: as propriedades entram nos pontos de integração, e um elemento
+    de tamanho $h$ só amostra o campo nos seus pontos. Na banda, $h = 0{,}125$ a \SI{0.375}{m}, bem menor que
+    $L_y = \SI{2}{m}$; longe do talude, os elementos chegam a \SI{3}{m} (\texttt{hMax} da malha refinada), maiores que
+    $L_y$, e não resolvem as flutuações verticais, mas ali o material fica no regime elástico e pesa pouco na ruptura
+    (efeito não quantificado aqui) --- mais uma razão para refinar onde a banda passa.
+  \item Nada na malha corrige o déficit de variância da truncação: com $M = 2000$, $\sigma_M^2$ vai de 0,977 a 0,992 no
+    talude (média 0,9921), isto é, o desvio padrão de $Z_M$ fica 0,4 a 1,2\,\% abaixo do alvo, em qualquer malha. O
+    programa não reescala o campo (\texttt{KL\_variancia} registra a fração retida no retângulo, 0,9920). Se esse déficit
+    importar, há duas saídas: aumentar $M$ (o custo por ponto cresce linearmente com $M$) ou dividir $Z_M(\mathbf{x})$
+    por $\sigma_M(\mathbf{x})$, que o programa já calcula em cada ponto (\texttt{PreparaPontos}), o que torna exatas as
+    marginais lognormais ao custo de uma pequena alteração da correlação.
+\end{itemize}

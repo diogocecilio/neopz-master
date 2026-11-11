@@ -270,10 +270,32 @@ def niveis():
         print(caminho)
 
 
+def tabela_malhas_comparacao():
+    """dados/malhas_comparacao.csv: estatisticas das malhas fixas e das refinadas (regeneradas) da comparacao."""
+    linhas = []
+    for nome in H_FIXAS:
+        est = mm.estatisticas(*mm.ler_msh(os.path.join(MALHAS, f'ceron_h5_a45_{nome}.msh')))
+        linhas.append(dict(malha=nome, caso='', **est, banda_etapa1_pts='', gamma=''))
+    for caso in CASOS:
+        d = os.path.join(COMP, 'refinada', caso)
+        est = mm.estatisticas(*malha_refinada_comp(caso))
+        linhas.append(dict(malha='refinada', caso=caso, **est,
+                           banda_etapa1_pts=len(mm.pontos_banda_geo(os.path.join(d, 'malha_refinada.geo'))),
+                           gamma=kv(os.path.join(d, 'resultado.txt'))['FS_min']))
+    caminho = os.path.join(DADOS, 'malhas_comparacao.csv')
+    with open(caminho, 'w', newline='') as f:
+        w = csv.DictWriter(f, fieldnames=list(linhas[0]))
+        w.writeheader()
+        for r in linhas:
+            w.writerow({k: (f'{v:.6g}' if isinstance(v, float) else v) for k, v in r.items()})
+    print(caminho)
+
+
 def comparacao():
     fig_malhas_fixas()
     fig_metodo_det()
     fig_refinadas()
+    tabela_malhas_comparacao()
 
 
 if __name__ == '__main__':

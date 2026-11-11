@@ -1,0 +1,225 @@
+% secoes/kl_cilindro.tex -- KL de Galerkin do NeoPZ no meio cilindro de Mika et al. (2021), Secao 6.2, Exemplo 1-1,
+% e a conferencia do notebook randomfied-v2.nb. Figuras e tabelas: Projects/KLCilindroMika/figuras/cilindro.py;
+% resultados e procedimento: Projects/KLCilindroMika/README.md.
+\section{Karhunen-Loève no meio cilindro de Mika et al. (2021)}\label{sec:kl:cil}
+
+\subsection{O problema}\label{sec:kl:cil:problema}
+
+O Exemplo 1-1 da Seção~6.2 de Mika, Hughes, Schillinger, Wriggers e Hiemstra (2021, CMAME 379:113730) é um campo
+aleatório com variância $\sigma^2 = 1$ e núcleo exponencial isotrópico
+\begin{equation}
+  C(\mathbf{x}, \mathbf{x}') = \exp\left(-\frac{\lVert \mathbf{x} - \mathbf{x}' \rVert}{5}\right)
+  \label{eq:kl:cil:nucleo}
+\end{equation}
+(distância euclidiana, comprimento de correlação de 5~m) no meio cilindro vazado
+$D = \{8 \le \rho \le 10,\ 0 \le \theta \le \pi,\ 0 \le z \le 15\}$ (m), de volume $|D| = 270\pi = 848{,}2300$~m$^3$
+(Figura~\ref{fig:kl:cil:geometria}). Com $\sigma^2 = 1$, a soma de todos os autovalores exatos é
+$\int_D C(\mathbf{x}, \mathbf{x})\,d\mathbf{x} = 270\pi$. O exemplo é útil como teste da KL de Galerkin do NeoPZ em
+3D com geometria curva, porque o artigo publica os 20 maiores autovalores (Tabela~4) com o custo de cada cálculo. O
+programa é o \texttt{KLCilindroMika} (\texttt{Projects/KLCilindroMika/main.cpp}); os números desta seção estão no
+README desse diretório e em \texttt{dados/kl\_cil\_*.csv}.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.6\linewidth]{kl_cil_geometria.pdf}
+  \caption{O meio cilindro vazado de Mika et al.\ (2021) com as arestas da malha $12 \times 2 \times 6$
+    ($n_\theta \times n_\rho \times n_z$, 144 hexaedros) na superfície, desenhadas pelo mapa cilíndrico exato.}
+  \label{fig:kl:cil:geometria}
+\end{figure}
+
+\subsection{As formulações de Mika et al.}\label{sec:kl:cil:mika}
+
+O artigo propõe um método de Galerkin isogeométrico sem montagem de matrizes (\emph{matrix-free}) para a KL, com três
+ingredientes: (1) uma quadratura baseada em interpolação (IBQ): o núcleo é interpolado num espaço de \emph{splines}
+produto tensorial (o ``espaço de interpolação''), o que reduz a integral dupla a contrações tensoriais com matrizes
+univariadas e minimiza o número de pontos de quadratura; (2) uma reformulação barata do problema generalizado num
+problema padrão; (3) um produto matriz-vetor sem matriz, paralelo, dentro do Lanczos. A geometria é representada
+exatamente por dois \emph{patches} NURBS (graus $\{2, 1, 1\}$, vetores de nós
+$\Xi_1 = (0, 0, 0, 0{,}5, 0{,}5, 1, 1, 1)$, $\Xi_2 = \Xi_3 = (0, 0, 1, 1)$), com continuidade $C^0$ entre os dois.
+A Tabela~4 do artigo traz três casos da IBQ (espaço de solução de 256 elementos e 1050 graus de liberdade; espaços de
+interpolação de 1980, 8990 e 16\,770 graus de liberdade) e duas soluções de referência pelo Galerkin isogeométrico
+padrão de Rahman (2018, CMAME 338:533--561), com o núcleo exato, espaços NURBS de grau $(2, 2, 2)$ e montagem elemento a elemento com
+quadratura de Gauss completa:
+\begin{itemize}
+  \item \textbf{Galerkin 1}: 256 elementos, 1050 graus de liberdade, $h = 2{,}857$; formação e montagem 4,86~min,
+    solução 0,09~s;
+  \item \textbf{Galerkin 2}: 3800 elementos, 6642 graus de liberdade, $h = 1{,}073$; formação e montagem 17,3~h,
+    solução (Lanczos, 63 iterações) 6,21~s, 1,566~GB; um núcleo de processador.
+\end{itemize}
+Galerkin 2 é a coluna mais precisa da tabela. Aqui as duas são comparadas com uma referência de Nyström convergida
+(Seção~\ref{sec:kl:cil:nystrom}).
+
+\subsection{A KL de Galerkin 3D do NeoPZ}\label{sec:kl:cil:galerkin}
+
+A formulação é a da Seção~\ref{kl:form:galerkin}: $\mathbf{C}\mathbf{a} = \lambda \mathbf{B}\mathbf{a}$ com
+$\mathbf{B}$ e $\mathbf{C}$ densas. As particularidades do caso 3D são:
+\begin{itemize}
+  \item \textbf{Espaço e geometria}: hexaedros de ordem 2 (Q2, 27 funções por elemento, $H^1$ contínuo) numa malha
+    estruturada $n_\theta \times n_\rho \times n_z$; a geometria é exata (\texttt{TPZGeoBlend} com \texttt{TPZArc3D}
+    nas arestas circunferenciais): a soma dos pesos vezes $|\det J|$ dá $270\pi$ com erro relativo
+    $1{,}5 \times 10^{-15}$, e os pontos mapeados diferem do mapa cilíndrico exato em até $5{,}3 \times 10^{-15}$~m
+    (malha $4 \times 1 \times 2$). As malhas são $8 \times 1 \times 4$, $12 \times 2 \times 6$, $16 \times 2 \times 8$ e
+    $24 \times 3 \times 12$ (32 a 864 elementos, 459 a 8575 equações).
+  \item \textbf{Quadratura}: $\mathbf{B}$ com a regra do elemento; em $\mathbf{C}$, cada par de elementos
+    $(e_1, e_2)$ é integrado com a regra de Gauss produto de cada elemento, com $3^3$ pontos (a regra do elemento,
+    $P + 1$ pontos por direção) ou com $5^3$ pontos em todos os pares (\texttt{NG=5}): são $27^2$ ou $125^2$
+    avaliações do núcleo por par. O núcleo~\eqref{eq:kl:cil:nucleo} não é derivável na diagonal
+    $\mathbf{x} = \mathbf{x}'$, que fica nos pares de um elemento com ele mesmo (e toca os vizinhos nas faces comuns);
+    a regra de Gauss não integra esses pares com a precisão da sua ordem.
+  \item \textbf{Montagem e solução}: só os pares $e_1 \le e_2$ (simetria), com 2 threads; os autovalores saem do
+    Eigen (Cholesky de $\mathbf{B}$ e \texttt{SelfAdjointEigenSolver}, todos os $N$ autovalores, 1 thread). O custo é
+    $O(N^2)$ em memória e $O(N^3)$ em tempo: com 8575 equações, 337~s no problema de autovalores e 1,7~GB; a montagem de
+    $\mathbf{C}$ levou 6,5~s com $3^3$ pontos e 78~s com $5^3$.
+\end{itemize}
+A conferência \texttt{VALIDAR=1} (malha $4 \times 1 \times 2$) compara o \texttt{CalcStiffC} corrigido com o
+algoritmo anterior em pares de elementos iguais ($1{,}4 \times 10^{-15}$), a simetria
+$\mathbf{C}(e_1, e_2) = \mathbf{C}(e_2, e_1)^T$ ($3{,}4 \times 10^{-16}$) e a matriz montada pelos dados dos pontos
+com \texttt{CalcStiffC} par a par ($1{,}2 \times 10^{-16}$).
+
+\paragraph{Defeitos corrigidos na biblioteca.}
+Em \texttt{TPZKarhunenLoeveMat}: \texttt{Dimension()} devolvia 2 para qualquer malha; o núcleo gaussiano (tipo 2) não
+tinha \texttt{break} e devolvia o exponencial separável; um tipo de núcleo não definido devolvia 0; construtores
+deixavam $L_x$, $L_y$, $L_z$, o tipo e a dimensão sem valor; \texttt{NSolutionVariables}, \texttt{SetData} e
+\texttt{SetLinearContext} chamavam a si mesmos; \texttt{Solution} sobrescrevia \texttt{data.sol[0]}. Em
+\texttt{TPZInterpolationSpace::CalcStiffC}: a regra de integração do primeiro elemento era usada também no segundo,
+a matriz do par tinha $n_\text{shape}(e_1)$ colunas em vez de $n_\text{shape}(e_2)$, e os dados do segundo elemento
+eram recalculados para cada par de pontos ($n_{p1} n_{p2}$ chamadas, agora $n_{p1} + n_{p2}$). Foram acrescentados
+\texttt{KLPointData}, \texttt{CalcStiffC} com uma regra por elemento e \texttt{ContributeC} a partir dos dados dos
+pontos.
+
+\subsection{Referência de Nyström}\label{sec:kl:cil:nystrom}
+
+A referência é o método de Nyström da Seção~\ref{kl:form:nystrom}, em numpy/scipy, sem o NeoPZ: Gauss-Legendre
+composto em $(\rho, \theta, z)$ com pesos $\rho\,d\rho\,d\theta\,dz$, na forma simétrica
+$\mathbf{W}^{1/2}\mathbf{K}\mathbf{W}^{1/2}$. As simetrias $\theta \to \pi - \theta$ e $z \to 15 - z$ separam o
+problema em 4 classes, cada uma no quarto $0 \le \theta \le \pi/2$, $0 \le z \le 7{,}5$ com o núcleo somado nas
+imagens; os maiores autovalores de cada classe saem do Lanczos (\texttt{eigsh}). O quarto tem
+$m \times 7m \times 4m$ painéis em $\rho \times \theta \times z$ com $q$ pontos por painel e direção: $m = 1$ a 4 com
+$q = 2$ (até 14\,336 pontos por classe), $m = 1$ a 3 com $q = 3$ (até 20\,412) e $m = 1$ e 2 com $q = 4$. Os
+autovalores convergem com $h^4$ ($q = 2$, $m = 2, 3, 4$: as diferenças sucessivas de $\lambda_1$ caem 5,80 vezes;
+$h^4$ dá 5,94). A referência é a média de quatro extrapolações de Richardson ($h^4 + h^5$ e $h^4 + h^6$, com $q = 2$
+em $m = 2, 3, 4$ e com $q = 3$ em $m = 1, 2, 3$); as quatro diferem em no máximo $4{,}2 \times 10^{-7}$ do valor
+($\lambda_1$: $5{,}9 \times 10^{-9}$), e a soma dos traços das 4 classes é $270\pi$. Resultado:
+$\lambda_1 = 162{,}796422$, \ldots, $\lambda_{20} = 5{,}761164$ (Tabela~\ref{tab:kl:cil:autovalores}).
+
+\paragraph{Por que não há forma fechada.}
+No talude, o núcleo é separável, $\exp(-|x - x'|/L_x - |y - y'|/L_y)$: é o produto de dois núcleos exponenciais 1D,
+cada um com KL em forma fechada no intervalo (a equação integral vira uma EDO de segunda ordem com condições de Robin),
+e no retângulo os autopares 2D são os produtos dos 1D (Seção~\ref{kl:form:analitica}). O núcleo
+\eqref{eq:kl:cil:nucleo} usa a distância euclidiana e não é produto de núcleos 1D em nenhum sistema de coordenadas: em
+coordenadas cilíndricas,
+$\lVert \mathbf{x} - \mathbf{x}' \rVert^2 = \rho^2 + \rho'^2 - 2\rho\rho'\cos(\theta - \theta') + (z - z')^2$, que
+não separa as variáveis. Em $\mathbb{R}^3$, $e^{-r/b}$ é, a menos de constante, a função de Green de
+$(1 - b^2\Delta)^2$, mas restrito a um domínio limitado as condições de contorno equivalentes são não locais; e o meio
+anel ($0 \le \theta \le \pi$) não tem a invariância por rotação que daria modos de Fourier em $\theta$. Por isso a
+referência é numérica.
+
+\subsection{Resultados}\label{sec:kl:cil:resultados}
+
+A Tabela~\ref{tab:kl:cil:convergencia} e a Figura~\ref{fig:kl:cil:convergencia} mostram o erro relativo dos
+autovalores do NeoPZ contra a referência de Nyström; a Tabela~\ref{tab:kl:cil:autovalores} e a
+Figura~\ref{fig:kl:cil:espectro}, os 20 autovalores.
+\begin{itemize}
+  \item Nas oito contas, os 20 autovalores do NeoPZ ficam acima da referência. Como, com integração exata, os
+    autovalores de Galerkin seriam limites inferiores dos exatos (princípio do min-max), o erro medido vem da
+    quadratura de $\mathbf{C}$. Com $5^3$ pontos, o erro cai, na mesma malha, 6,0 a 6,3 vezes em $\lambda_1$ e 6,7 a
+    8,7 vezes no máximo dos 20 modos; a malha $16 \times 2 \times 8$ com $5^3$ pontos (2805 equações,
+    $1{,}6 \times 10^{-4}$) já fica abaixo da $24 \times 3 \times 12$ com $3^3$ ($2{,}2 \times 10^{-4}$).
+  \item O erro cai com $h^4$: de $16 \times 2 \times 8$ para $24 \times 3 \times 12$ ($h$ dividido por 1,5 nas três
+    direções), o de $\lambda_1$ cai 5,0 vezes com as duas regras ($1{,}5^4 = 5{,}06$), uma inclinação de 1,43 a 1,44
+    em $N$ (as equações crescem 3,06 vezes, menos que $1{,}5^3$, pelos nós do contorno).
+  \item A malha $24 \times 3 \times 12$ com $5^3$ pontos (8575 equações) fica a $3{,}3 \times 10^{-5}$ da referência
+    nos 20 modos ($\lambda_1$: $1{,}2 \times 10^{-6}$), no nível de Galerkin 2 (6642 graus de liberdade:
+    $2{,}7 \times 10^{-5}$ e $9{,}7 \times 10^{-7}$); Galerkin 1 (1050) fica a $4{,}6 \times 10^{-4}$ e
+    $1{,}7 \times 10^{-5}$. Galerkin 1 e 2 também ficam acima da referência nos 20 modos, de
+    $9{,}7 \times 10^{-7}$ ($\lambda_1$) a $2{,}7 \times 10^{-5}$ ($\lambda_{20}$) em Galerkin 2.
+  \item A soma de todos os autovalores (o traço de $\mathbf{B}^{-1}\mathbf{C}$, a integral em $D$ da diagonal do
+    núcleo projetado no espaço da malha) fica abaixo de $270\pi$ e sobe com a malha: 0,9489 a 0,9782 de $270\pi$ com
+    $3^3$ pontos e 0,8956 a 0,9634 com $5^3$. Na mesma malha, a regra de $3^3$ pontos dá o traço maior.
+  \item Custo: o problema de autovalores denso domina (337 a 339~s e 1,7~GB com 8575 equações, todos os autovalores);
+    a montagem de $\mathbf{C}$ leva 6,5~s ($3^3$) ou 78~s ($5^3$) com 2 threads. Galerkin 2 levou 17,3~h de formação
+    e montagem num núcleo (máquinas diferentes; os tempos não são diretamente comparáveis).
+\end{itemize}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{kl_cil_convergencia.pdf}
+  \caption{Erro relativo dos autovalores do NeoPZ (Q2, geometria exata) contra a referência de Nyström, em função do
+    número de equações: máximo nos 20 maiores modos (linhas cheias) e $\lambda_1$ (tracejadas), com $3^3$ e $5^3$
+    pontos de Gauss por elemento em $\mathbf{C}$. Linhas pontilhadas: o erro máximo de Galerkin 1 e Galerkin 2 de
+    Mika et al.\ (2021, Tabela~4); as estrelas marcam os seus graus de liberdade. A reta tem a inclinação de $h^4$
+    ($N \propto h^{-3}$).}
+  \label{fig:kl:cil:convergencia}
+\end{figure}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption{Meio cilindro: erro relativo contra a referência de Nyström (máximo nos 20 maiores modos e em
+    $\lambda_1$; todos positivos), soma de todos os autovalores, tempos de montagem de $\mathbf{C}$ (2 threads) e do
+    problema de autovalores (todos, 1 thread) e pico de memória. Q2, geometria exata.}
+  \label{tab:kl:cil:convergencia}
+  \setlength{\tabcolsep}{3.5pt}
+  \input{tabelas/kl_cil_convergencia.tex}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption{Os 20 maiores autovalores no meio cilindro: Galerkin 1 e Galerkin 2 de Mika et al.\ (2021, Tabela~4),
+    NeoPZ na malha $24 \times 3 \times 12$ com $5^3$ pontos de Gauss e a referência de Nyström, e o erro relativo de
+    cada um contra a referência.}
+  \label{tab:kl:cil:autovalores}
+  \input{tabelas/kl_cil_autovalores.tex}
+\end{table}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{kl_cil_espectro.pdf}
+  \caption{Esquerda: os 20 maiores autovalores (Nyström; Galerkin 1 e 2 de Mika et al.; NeoPZ $24 \times 3 \times 12$
+    com $5^3$ pontos; valores guardados no notebook \texttt{randomfied-v2.nb}). Direita: diferença relativa de cada um
+    para a referência de Nyström do cilindro. O notebook usa o semi-anel poligonal, cujos autovalores exatos ficam
+    0,35\% a 1,2\% abaixo dos do cilindro (Seção~\ref{sec:kl:cil:notebook}).}
+  \label{fig:kl:cil:espectro}
+\end{figure}
+
+\subsection{O notebook \texttt{randomfied-v2.nb}}\label{sec:kl:cil:notebook}
+
+\begin{sloppypar}
+O notebook (Mathematica) monta $\mathbf{B}$ e $\mathbf{C}$ com hexaedros retos de 20 nós (\emph{serendipity} do
+pacote \texttt{NDSolve`FEM}, com \texttt{MeshOrderAlteration} de ordem 2) numa malha de $16 \times 2 \times 4$ nós em
+$\theta \times \rho \times z$ ($15 \times 1 \times 3$ elementos), com os nós em $(\rho\cos\theta, \rho\sin\theta, z)$:
+o domínio é o semi-anel poligonal, de volume 842,0423 (contra $270\pi = 848{,}2300$). $\mathbf{C}$ usa
+\texttt{ElementIntegrationPoints[HexahedronElement, 5]} em cada elemento do par e $\mathbf{B}$ a de 6. A mesma malha foi
+calculada no NeoPZ (\texttt{GEOMETRIA=reta MALHAS=15x1x3}: 45 hexaedros Q2, 651 equações) e, de forma independente, em
+numpy/scipy (\texttt{confere\_notebook.py}), em Q2 e no \emph{serendipity} de 20 nós do notebook (408 equações). A
+referência é o Nyström refeito no semi-anel poligonal (os 15 hexaedros retos, só a simetria $z \to 15 - z$; as
+estimativas extrapoladas diferem em até $6{,}2 \times 10^{-6}$ do valor). A Tabela~\ref{tab:kl:cil:notebook} resume:
+\end{sloppypar}
+\begin{itemize}
+  \item o Q2 do numpy e o do NeoPZ dão os mesmos 20 autovalores com $3^3$ e $5^3$ pontos (diferença máxima de
+    $4{,}9 \times 10^{-8}$, o arredondamento da 7.\textsuperscript{a} casa) e a mesma soma (804,0538099 e
+    755,2080374); o \emph{serendipity} difere do Q2 em até $4{,}5 \times 10^{-4}$ (relativo);
+  \item contra o Nyström do semi-anel, o NeoPZ com $5^3$ pontos fica de $-1{,}1 \times 10^{-2}$ a
+    $+2{,}8 \times 10^{-3}$ (abaixo só nos modos 16 e 18); os valores guardados no notebook ficam de
+    $-2{,}0 \times 10^{-2}$ a $+5{,}5 \times 10^{-1}$ (modo 9: 24,83 contra 15,97), e os seus modos 8 e 9 (24,8308 e
+    24,8281) são quase iguais;
+  \item o notebook guarda, logo depois dos autovalores, \texttt{Length[vec[[1]]]} = 92: os autovetores guardados têm
+    92 componentes, enquanto a malha $15 \times 1 \times 3$ do código guardado tem 408 nós. A malha de
+    $8 \times 2 \times 2$ nós ($7 \times 1 \times 1$ elementos de 20 nós) tem 92 nós, mas também não reproduz os
+    valores ($\lambda_1 = 160{,}33$ com $5^3$ pontos em $\mathbf{C}$ e 167,48 com $2^3$).
+\end{itemize}
+Os autovalores guardados no notebook não saem do código guardado nele e não devem ser usados como referência; refeita,
+a conta do notebook concorda com o NeoPZ.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \caption{Malha do notebook ($15 \times 1 \times 3$ hexaedros retos, semi-anel poligonal): referência de Nyström no
+    semi-anel, Q2 do NeoPZ ($3^3$ e $5^3$ pontos em $\mathbf{C}$), Q2 do numpy ($5^3$), \emph{serendipity} de 20 nós
+    (numpy, $5^3$), os valores guardados no notebook e os erros relativos contra a referência. Os autovetores guardados
+    no notebook têm 92 componentes.}
+  \label{tab:kl:cil:notebook}
+  \input{tabelas/kl_cil_notebook.tex}
+\end{table}

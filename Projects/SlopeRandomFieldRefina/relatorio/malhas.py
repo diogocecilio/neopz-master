@@ -243,11 +243,11 @@ def _main(argv=None):
         z = args.zoom
         lx, ly = (z[1] - z[0], z[3] - z[2]) if z else (25.6, 10.6)
         fig, ax = plt.subplots(figsize=(args.largura, args.largura * ly / lx + 0.5))
-        if args.pontos_geo:
-            p = pontos_banda_geo(args.pontos_geo)
-            desenhar(ax, xy, tri, (p[:, 0], p[:, 1]), zoom=z, cor_banda=COR_BANDA1, marcador='s')
         b = banda(args.mecanismo, args.fs, args.limiar) if args.mecanismo else None
         desenhar(ax, xy, tri, b, zoom=z, titulo=args.titulo or f'{len(tri)} triângulos')
+        if args.pontos_geo:  # pontos da banda da etapa 1 gravados no .geo, por baixo da banda da rodada
+            p = pontos_banda_geo(args.pontos_geo)
+            ax.scatter(p[:, 0], p[:, 1], s=4, c=COR_BANDA1, marker='s', linewidths=0, zorder=2.5)
         ax.set_xlabel('x (m)', fontsize=8)
         ax.set_ylabel('y (m)', fontsize=8)
         fig.tight_layout()

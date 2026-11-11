@@ -8,10 +8,11 @@
     outra campanha em paralelo (o README registra 260~s e 650~MB para a malha de 5085 equações com a regra de ordem 10).
     Nyström: $n = 160$, 210 autopares. Forma fechada: 20\,000 termos e as integrais de cada modo no talude.}
   \label{tab:kl:custo}
-  \small
+  \footnotesize
+  \setlength{\tabcolsep}{4pt}
   \begin{tabular}{llcrrrrr}
     \toprule
-    formulação & malha & $P$/regra & incógnitas & $\mathbf{C}$ (s) & autopares (s) & total (s) & memória (MB) \\
+    KL & malha & $P$ / regra & incógnitas & $\mathbf{C}$ (s) & autopares (s) & total (s) & memória (MB) \\
     \midrule
     Galerkin & \texttt{ceron\_h5\_a45}      & 1 / 2  &    609 &  0,11 &   0,22 &   0,71 &  61 \\
     Galerkin & \texttt{ceron\_h5\_a45\_h025} & 1 / 2  &   1314 &  0,58 &   1,99 &   3,36 &  91 \\
