@@ -190,7 +190,7 @@ def banda(pasta, limiar=0.1):
     fs = [r for r in csv.DictReader(open(os.path.join(pasta, "fs.csv"))) if r.get("FS_SRM")]
     t = float(min(fs, key=lambda r: float(r["FS_SRM"]))["t_h"])
     pts = [(float(r["x"]), float(r["y"]), float(r["epsp_raizJ2"]))
-           for r in csv.DictReader(open(os.path.join(pasta, "mecanismo.csv"))) if abs(float(r["t_h"]) - t) < 1e-9]
+           for r in csv.DictReader(open(os.path.join(pasta, "mecanismo.csv"))) if abs(float(r["t_h"]) - t) <= 1e-6 * abs(t)]
     mx = max(e for _, _, e in pts)
     return [(x, y) for x, y, e in pts if e >= limiar * mx]
 

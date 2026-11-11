@@ -89,7 +89,7 @@ std::string envs(const char *k, const std::string &d) { const char *v = std::get
 using Relogio = std::chrono::steady_clock;
 double Segundos(Relogio::time_point t0) { return std::chrono::duration<double>(Relogio::now() - t0).count(); }
 
-// pico da memoria residente do processo (VmHWM), em MB
+// pico da memoria residente do processo (VmHWM), em MB, desde o ultimo ZeraPicoMemoria
 double PicoMemoriaMB() {
     std::ifstream f("/proc/self/status");
     std::string l;
@@ -97,6 +97,9 @@ double PicoMemoriaMB() {
         if (l.rfind("VmHWM:", 0) == 0) return std::atof(l.c_str() + 6) / 1024.;
     return -1.;
 }
+
+// recomeca o pico de memoria (Linux: "5" em /proc/self/clear_refs), para medir cada malha separadamente
+void ZeraPicoMemoria() { std::ofstream("/proc/self/clear_refs") << "5"; }
 
 struct Malha { int nt = 0, nr = 0, nz = 0; };
 
@@ -415,6 +418,7 @@ Resultado Resolve(const Malha &m, bool reta, int p, int ng, int ngv, int ngp, in
     Resultado res;
     res.m = m;
     res.reta = reta;
+    ZeraPicoMemoria();
     res.volumeDominio = reta ? VolumeReto(m.nt) : kVolume;
     const auto t0 = Relogio::now();
 

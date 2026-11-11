@@ -45,8 +45,10 @@ def banda(rodada, limiar):
     if not fator > 0:
         raise SemBanda("fator %g em t = %g h em %s" % (fator, t_fs, rodada))
     pts = []
+    # o t_h de mecanismo.csv tem 7 algarismos significativos e o de fs.csv 10 (0.01666667 e 0.01666666667 com
+    # DT_H=1/60, por exemplo): o mesmo instante, com uma tolerancia relativa de 1e-6
     for r in csv.DictReader(open(os.path.join(rodada, "mecanismo.csv"))):
-        if abs(float(r["t_h"]) - t_fs) < 1e-9:
+        if abs(float(r["t_h"]) - t_fs) <= 1e-6 * abs(t_fs):
             pts.append((float(r["x"]), float(r["y"]), float(r["epsp_raizJ2"])))
     mx = max((p[2] for p in pts), default=0.)
     if not mx > 0:
@@ -96,8 +98,8 @@ def executavel_gmsh():
     if not g:
         return None, "sem o executavel gmsh no PATH"
     try:
-        r = subprocess.run([g, "-version"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-                           errors="replace", timeout=120)
+        r = subprocess.run([g, "-version"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                           universal_newlines=True, errors="replace", timeout=120)
     except (OSError, subprocess.SubprocessError) as e:
         return None, "o executavel %s nao roda: %s" % (g, e)
     if r.returncode != 0:  # a ultima linha da saida: o erro (de um script python, a ultima do traceback)
@@ -130,8 +132,8 @@ def qual_gmsh():
 def gera_msh(geo, msh):
     g = qual_gmsh()
     if g[0] == "executavel":
-        r = subprocess.run([g[1], "-2", geo, "-o", msh], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-                           errors="replace")
+        r = subprocess.run([g[1], "-2", geo, "-o", msh], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                           universal_newlines=True, errors="replace")
         if r.returncode != 0 or not os.path.isfile(msh):
             raise SystemExit("refina_banda: gmsh falhou:\n" + r.stdout[-2000:])
         return

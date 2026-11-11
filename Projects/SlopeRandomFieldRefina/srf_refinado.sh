@@ -16,8 +16,10 @@
 # triangulos da malha refinada e o tempo do gmsh (escrito antes da etapa 3) e, ao fim, o fator, o tempo e as equacoes na
 # malha refinada e o tempo total das tres etapas.
 # Retomavel: cada etapa pula o que ja esta feito, e uma rodada do programa interrompida continua do seu checkpoint.bin.
-# Um sinal (Ctrl-C, scancel, kill) sai com o codigo do programa (128 + sinal), que rodar_mc.sh nao conta como falha.
-# Depois do sucesso, apaga malha_refinada.msh (refeita do .geo, se a realizacao for rodada de novo) e grossa/mecanismo.csv.
+# Um sinal no programa ou no refina_banda.py (Ctrl-C, scancel, kill) sai com o codigo dele (128 + sinal), sem mensagem;
+# rodar_mc.sh o trata como o do programa: 129 e 130 (terminal fechado, Ctrl-C) nao contam como falha.
+# Depois do sucesso, apaga malha_refinada.msh (refeita do .geo, se a realizacao for rodada de novo), grossa/mecanismo.csv e
+# um checkpoint que tenha ficado em grossa/ (de uma queda entre o resultado.txt e a limpeza do programa).
 # Ambiente: SRF_BIN (padrao ../SlopeRandomField/bin/SlopeRandomField), REFINA_H (0.125), REFINA_FOLGA (0.375),
 # REFINA_LIMIAR (0.1), PYTHON (python3; com o modulo python gmsh ou, sem ele, um executavel gmsh no PATH que rode). Os
 # REFINA_* de uma combinacao ficam em ../refino_parametros.txt; outra rodada na mesma pasta de combinacao com outros
@@ -167,6 +169,6 @@ else
     # resultado.txt por ultimo: marca a realizacao como concluida
     cp -f grossa/resultado.txt resultado.txt.tmp && mv -f resultado.txt.tmp resultado.txt
 fi
-rm -f malha_refinada.msh grossa/mecanismo.csv
+rm -f malha_refinada.msh grossa/mecanismo.csv grossa/checkpoint.bin grossa/checkpoint.bin.tmp
 echo "$(date '+%F %T') fim: fator $fator ($metodo), $fator_g na malha grossa; $seg_t s nas tres etapas"
 exit $rc
