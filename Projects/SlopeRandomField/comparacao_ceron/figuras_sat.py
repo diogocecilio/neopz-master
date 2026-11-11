@@ -313,7 +313,7 @@ def figura26(est, cer, saida):
     ax.set_xticks(np.arange(-1.0, 1.01, 0.25))
     ax.axvline(0, color=TINTA2, lw=0.8)
     ax.set_xlabel(r"Spearman parcial de 2ª ordem, $\rho_{X\Gamma,YZ}$")
-    ax.legend(loc="lower right")
+    ax.legend(loc="lower left")
     arq = os.path.join(saida, "fig26.pdf")
     fig.savefig(arq)
     plt.close(fig)
@@ -348,13 +348,22 @@ def figura24(est, cer, espiral_nossa, saida):
     return arq
 
 
+def tem_dados(est, fam):
+    """se ha algum caso da familia (alem da referencia) com estatisticas"""
+    return any(c["familia"] == fam and c.get("estat") for c in est["casos"])
+
+
 def todas(est, cer, espiral_nossa, saida):
+    """as figuras das familias com dados; as outras ficam de fora (o relatorio diz quais)"""
     os.makedirs(saida, exist_ok=True)
     amp = Ampliacoes()
     arqs = {"24": figura24(est, cer, espiral_nossa, saida), "25": figura25(est, cer, saida, amp),
-            "26": figura26(est, cer, saida), "27": figura27(est, cer, saida, amp)}
-    for n, ch in ((28, "pf"), (29, "mu"), (30, "cov")):
-        arqs[str(n)] = figura_escalar_cov(n, ch, est, cer, saida, amp)
+            "26": figura26(est, cer, saida)}
+    if any(tem_dados(est, f) for f in ("covk", "covc", "covphi")):
+        arqs["27"] = figura27(est, cer, saida, amp)
+        for n, ch in ((28, "pf"), (29, "mu"), (30, "cov")):
+            arqs[str(n)] = figura_escalar_cov(n, ch, est, cer, saida, amp)
     for fam in ("s", "alfa", "hw"):
-        arqs[PAINEIS[fam][0][:2]] = figura_familia_pdf_escalares(fam, est, cer, saida, amp)
+        if tem_dados(est, fam):
+            arqs[PAINEIS[fam][0][:2]] = figura_familia_pdf_escalares(fam, est, cer, saida, amp)
     return arqs, amp.notas

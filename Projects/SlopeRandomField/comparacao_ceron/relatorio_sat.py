@@ -99,6 +99,17 @@ def figura(arq, legenda, rotulo, notas=None, largura=r"\linewidth"):
                       r"\caption{%s%s}\label{%s}" % (legenda, extra, rotulo), r"\end{figure}"])
 
 
+SEM_DADOS = (r"Não há resultados deste trabalho para estes casos no conjunto de dados lido (ver os avisos no "
+             r"apêndice).")
+
+
+def tex_seguro(t):
+    """texto qualquer como texto do LaTeX (um passe so, para nao reescapar o que ja foi escapado)"""
+    mapa = {"\\": r"\textbackslash{}", "_": r"\_", "%": r"\%", "&": r"\&", "#": r"\#", "$": r"\$", "{": r"\{",
+            "}": r"\}", "~": r"\textasciitilde{}", "^": r"\textasciicircum{}"}
+    return "".join(mapa.get(ch, ch) for ch in t)
+
+
 def documento(est, cer, esp, figs, notas, rotulo_malha):
     ref = next(c for c in est["casos"] if c["familia"] == "ref")
     e = ref["estat"]
@@ -112,6 +123,7 @@ def documento(est, cer, esp, figs, notas, rotulo_malha):
 \usepackage[margin=2.2cm]{geometry}\usepackage{booktabs}\usepackage{graphicx}\usepackage{caption}
 \usepackage{float}\usepackage[hidelinks]{hyperref}\usepackage{amsmath}
 \captionsetup{font=small}
+\author{SlopeRandomField, \texttt{comparacao\_ceron}}
 \title{Exemplo da Seção 6 de Vargas Ceron et al.\ (2025) com o material \texttt{TPZMatUnsaturatedUPwPa} no limite
 saturado: comparação}
 \date{}
@@ -190,11 +202,17 @@ $\varphi'$ médios na banda de ruptura e $k$ médio na massa que desliza; e as m
     A(figura("figs/fig26.pdf", r"Spearman parcial de 2ª ordem (Fig.~26 do artigo e este trabalho).", "fig:26",
              largura=r"0.7\linewidth"))
     A(r"\section{Coeficientes de variação (Seção 6.2, Figs.~27 a 30)}")
+    if "27" not in figs:
+        A(SEM_DADOS)
     for fam in ("covk", "covc", "covphi"):
-        A(tabela_familia(fam, est, cer))
-    A(figura("figs/fig27.pdf", r"Densidades log-normais de $\Gamma$ com o $CoV$ de $k_v$ (a), $c$ (b) e $\varphi$ (c). "
+        if figuras_sat.tem_dados(est, fam):
+            A(tabela_familia(fam, est, cer))
+    if "27" in figs:
+        A(figura("figs/fig27.pdf", r"Densidades log-normais de $\Gamma$ com o $CoV$ de $k_v$ (a), $c$ (b) e $\varphi$ (c). "
              r"Tracejado: Ceron et al.; cheio: este trabalho.", "fig:27", notas.get("27")))
     for nf, txt in ((28, r"$P_f$"), (29, r"$\mu(\Gamma)$"), (30, r"$CoV(\Gamma)$")):
+        if str(nf) not in figs:
+            continue
         A(figura("figs/fig%d.pdf" % nf, txt + r" contra o $CoV$ de $k_v$ (a), $c$ (b) e $\varphi$ (c). O valor fora da "
                  r"faixa do eixo x do artigo ($CoV(k_v) = 0$) aparece como linha horizontal, como no artigo.",
                  "fig:%d" % nf, notas.get(str(nf))))
@@ -202,6 +220,9 @@ $\varphi'$ médios na banda de ruptura e $k$ médio na massa que desliza; e as m
                               ("alfa", 32, "6.4", "anisotropia da permeabilidade"),
                               ("hw", 33, "6.5", "altura do rebaixamento")):
         A(r"\section{%s%s (Seção %s, Fig.~%d)}" % (txt[0].upper(), txt[1:], sec, nf))
+        if str(nf) not in figs:
+            A(SEM_DADOS)
+            continue
         A(tabela_familia(fam, est, cer))
         A(figura("figs/fig%d.pdf" % nf, r"(a) Densidades log-normais de $\Gamma$; (b) $P_f$; (c) $CoV(\Gamma)$; "
                  r"(d) $\mu(\Gamma)$, com %s." % NOME_TEX[fam] +
@@ -213,8 +234,19 @@ $\varphi'$ médios na banda de ruptura e $k$ médio na massa que desliza; e as m
         A("Fora: " + "; ".join(r"%s: %d" % (i.replace("_", r"\_"), k) for i, k in excl) + ".")
     else:
         A("Todas as realizações entraram.")
-    if est.get("avisos"):
-        A(r"\par Avisos da leitura: " + "; ".join(a.replace("_", r"\_") for a in est["avisos"]) + ".")
+    sem = list(dict.fromkeys(a.split(":")[0] for a in est.get("avisos", []) if a.split(":", 1)[-1].startswith(" sem ")))
+    if sem:
+        A(r"\par Sem resultados no conjunto lido: " + ", ".join(tex_seguro(x) for x in sem) + ".")
+    outros = [a for a in est.get("avisos", []) if a.split(":")[0] not in sem]
+    if outros:
+        A(r"\par Outros avisos da leitura: " + "; ".join(tex_seguro(a) for a in outros) + ".")
+    for fase in (1, 2, 3):
+        arq = os.path.join(est["raiz"], "%s_fase%d" % (est["prefixo"], fase), "AVISOS")
+        if os.path.isfile(arq):
+            linhas = [l.strip() for l in open(arq, errors="replace") if l.strip()]
+            A(r"\par Avisos da submissão da fase %d (\texttt{AVISOS}):" % fase)
+            A(r"\begin{itemize}\small\raggedright" + "".join(r"\item \texttt{%s}" % tex_seguro(l) for l in linhas[:10]) +
+              r"\end{itemize}")
     A(r"""\par As curvas do artigo foram extraídas dos objetos vetoriais do PDF (ver \texttt{ceron\_dig.json} e os
 arquivos de extração), e os valores escalares vêm das Tabelas 3 a 6. Onde uma densidade do artigo não foi extraída, a
 figura usa a log-normal com o $\mu$ e o $\sigma$ da tabela (o artigo desenha as log-normais ajustadas).
@@ -233,8 +265,8 @@ def main():
         json.dump(dados_sat._limpa(est), f)
     cer = ceron_dig.carrega(None if digit == "-" else digit)
     esp = espiral_da_referencia(est, raiz)
-    _, notas = figuras_sat.todas(est, cer, esp, os.path.join(saida, "figs"))
-    tex = documento(est, cer, esp, None, notas, rot_malha)
+    figs, notas = figuras_sat.todas(est, cer, esp, os.path.join(saida, "figs"))
+    tex = documento(est, cer, esp, figs, notas, rot_malha)
     with open(os.path.join(saida, "relatorio.tex"), "w") as f:
         f.write(tex)
     for _ in range(2):
