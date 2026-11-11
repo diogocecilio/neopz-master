@@ -121,8 +121,8 @@ autovalores do NeoPZ contra a referência de Nyström; a Tabela~\ref{tab:kl:cil:
 Figura~\ref{fig:kl:cil:espectro}, os 20 autovalores.
 \begin{itemize}
   \item Nas oito contas, os 20 autovalores do NeoPZ ficam acima da referência. Como, com integração exata, os
-    autovalores de Galerkin seriam limites inferiores dos exatos (princípio do min-max), o erro medido vem da
-    quadratura de $\mathbf{C}$. Com $5^3$ pontos, o erro cai, na mesma malha, 6,0 a 6,3 vezes em $\lambda_1$ e 6,7 a
+    autovalores de Galerkin seriam limites inferiores dos exatos (princípio do min-max), o erro medido é dominado
+    pela quadratura de $\mathbf{C}$ (positiva), maior que o erro de discretização (negativo). Com $5^3$ pontos, o erro cai, na mesma malha, 6,0 a 6,3 vezes em $\lambda_1$ e 6,7 a
     8,7 vezes no máximo dos 20 modos; a malha $16 \times 2 \times 8$ com $5^3$ pontos (2805 equações,
     $1{,}6 \times 10^{-4}$) já fica abaixo da $24 \times 3 \times 12$ com $3^3$ ($2{,}2 \times 10^{-4}$).
   \item O erro cai com $h^4$: de $16 \times 2 \times 8$ para $24 \times 3 \times 12$ ($h$ dividido por 1,5 nas três

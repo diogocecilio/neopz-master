@@ -412,3 +412,21 @@ verificações deram certo:
 - sem o módulo `gmsh`, com um executável `gmsh` que roda: a mesma `malha_refinada.geo` e os mesmos 2580 triângulos;
 - sem o módulo `gmsh`, com o executável do pip num `PATH` sem `python`: código 2 antes da malha grossa, com
   `nao roda (codigo 127)` no `run.err`.
+
+## Estudo dos níveis de refinamento e relatório
+
+`niveis.py` roda o estudo dos níveis (o tamanho `h` na banda e a malha inicial da etapa 1) no exemplo saturado do
+Ceron, nos mesmos 9 casos da comparação (det e realizações 0 a 7), com um executável congelado e o tempo medido como em
+`compara.py`. A rodada do relatório usou as malhas iniciais `foco375` e `ceron_h5_a45_g15` (126 triângulos, nova em
+`../LearningMohrCoulomb2/cluster/malhas`) e os níveis 0,25, 0,1875 e 0,125 m, com 3 processos ao mesmo tempo:
+
+```bash
+python3 niveis.py rodar <pasta> --paralelo 3 --sem-extra --configs foco375/um_passo_h0.25,foco375/um_passo_h0.1875,g15/um_passo_h0.25,g15/um_passo_h0.1875,g15/um_passo_h0.125
+```
+
+O relatório (`relatorio/relatorio.pdf`, fontes em `relatorio/`) junta a comparação, os níveis e o Karhunen-Loève
+(formulações, meio cilindro de Mika et al. 2021 e talude). Recomendação: a `foco375` como malha inicial e um passo até
+h = 0,125 m (a configuração padrão de `srf_refinado.sh`). Para refazer as tabelas e figuras: `python3
+relatorio/analise_niveis.py`, `python3 relatorio/figuras_malhas.py todas`, `python3 relatorio/tabelas_comparacao.py` e
+os scripts de `../KLCilindroMika/figuras/` (leem os dados das rodadas, que ficaram fora do repositório; os valores das
+figuras e tabelas estão em `relatorio/dados/`). Compilar com `pdflatex relatorio.tex` (duas vezes) dentro de `relatorio/`.
