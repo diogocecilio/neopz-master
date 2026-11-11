@@ -29,6 +29,19 @@
 //class TPZIntPoints;
 
 /**
+ * @brief Data of one element at the points of an integration rule, used in the double integral of the
+ * Karhunen-Loeve matrix C (see TPZInterpolationSpace::KLPointData and TPZKarhunenLoeveMat::ContributeC).
+ */
+struct TPZKLPointData {
+    /** @brief Coordinates of the points (3 x npoints) */
+    TPZFMatrix<REAL> fX;
+    /** @brief Weights of the rule multiplied by |det J| (npoints) */
+    TPZManVector<REAL,27> fW;
+    /** @brief Shape functions at the points (nshape x npoints) */
+    TPZFMatrix<REAL> fPhi;
+};
+
+/**
  * @ingroup material
  * @brief This abstract class defines the behaviour which each derived class needs to implement
  */
@@ -101,8 +114,8 @@ public:
     /** @brief Returns the name of the material */
     std::string Name()  const override { return "Karhunen Loeve material"; }
     
-    /** @brief Returns the integrable dimension of the material */
-	int Dimension() const  override { return 2;}
+    /** @brief Returns the integrable dimension of the material (fDim, 2 unless given in the constructor or SetDim) */
+	int Dimension() const  override { return fDim;}
     
     
     void SetDim(int dim)
@@ -154,8 +167,15 @@ public:
     virtual void ContributeB(TPZMaterialData &data, REAL weight, TPZFMatrix<STATE> &ek);
 	
 	virtual void ContributeC(TPZMaterialData &data1,TPZMaterialData &data2, REAL w1,REAL w2, TPZFMatrix<STATE> &ek);
-    
-	REAL AutocorrelationFunc ( TPZManVector<REAL,3>  x1, TPZManVector<REAL,3>  x2 );
+
+	/**
+	 * @brief Computes ek(i,j) = sum_p sum_q w1_p w2_q phi1_i(x_p) G(x_p,x_q) phi2_j(x_q), the double integral of the
+	 * matrix C between two elements, from their point data (ek is resized to nshape1 x nshape2)
+	 */
+	void ContributeC(const TPZKLPointData &data1, const TPZKLPointData &data2, TPZFMatrix<STATE> &ek) const;
+
+	/** @brief Autocorrelation function G(x1,x2), without the variance (type 1 to 4, see the implementation) */
+	REAL AutocorrelationFunc ( const TPZVec<REAL> &x1, const TPZVec<REAL> &x2 ) const;
 
 	/** @brief Calculates the element stiffness matrix */
 	void Contribute(const TPZMaterialDataT<STATE> &data, STATE weight,
@@ -173,7 +193,9 @@ public:
     /** @brief Reads data of the material from a istream (file data)*/
     virtual void SetData(std::istream &data)
 	{
-		SetData(data);
+		// before, this method called itself (infinite recursion)
+		PZError << __PRETTY_FUNCTION__ << " not implemented\n";
+		DebugStop();
 	}
     
     /** @brief To return a numerical flux type to apply over the interfaces of the elements */
@@ -189,7 +211,9 @@ public:
     /** @brief Sets fLinearContext attribute */
     void SetLinearContext(bool IsLinear)
 	{
-		SetLinearContext(IsLinear);
+		// before, this method called itself (infinite recursion)
+		PZError << __PRETTY_FUNCTION__ << " not implemented\n";
+		DebugStop();
 	}
     
     /** @{

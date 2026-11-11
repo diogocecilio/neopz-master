@@ -50,3 +50,4 @@ add_subdirectory(LearningMohrCoulomb2) # projeto de estudo do autor: Mohr-Coulom
 add_subdirectory(LearningSlopeWater)  # projeto de estudo do autor: talude saturado, transiente e FS no tempo
 add_subdirectory(LearningLiakopoulos) # projeto de estudo do autor: dessaturacao da coluna de Liakopoulos
 add_subdirectory(SlopeRandomField)    # talude de Rahardjo sob chuva com campos aleatorios (Karhunen-Loeve) e Monte Carlo
+add_subdirectory(KLCilindroMika)      # Karhunen-Loeve de Galerkin no meio cilindro vazado de Mika et al. (2021), Secao 6.2

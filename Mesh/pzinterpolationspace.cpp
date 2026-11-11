@@ -1810,66 +1810,77 @@ void TPZInterpolationSpace::InitializeElementMatrix(TPZElementMatrix &ef){
         (ef.fConnect)[i] = ConnectIndex(i);
     }
 }//void
+// Corrections in CalcStiffC (before, with the same results only when the two elements had the same type and order):
+// - the points of jel came from the integration rule of this element (wrong for elements of different type or order);
+// - ce had nshape(this) columns, instead of nshape(jel);
+// - the data of jel were computed again for each pair of points (np1*np2 calls of ComputeRequiredData, now np1 + np2).
+// The solution at the points is not needed (fNeedsSol = false).
 void TPZInterpolationSpace::CalcStiffC(TPZCompEl *jel, TPZElementMatrixT<REAL> &ce)
 {
-    TPZInterpolationSpace *intspace2  = dynamic_cast <TPZInterpolationSpace *>(jel);
-    TPZFMatrix<REAL> elmatt,elmat;
-    auto* material =dynamic_cast<TPZKarhunenLoeveMat *>(this->Material());
-    TPZElementMatrixT<REAL> fe,cet;
-    this->InitializeElementMatrix(ce,fe);
-    this->InitializeElementMatrix(cet,fe);
-    if (this->NConnects() == 0) return;//boundary discontinuous elements have this characteristic
+    TPZInterpolationSpace *intspace2 = dynamic_cast<TPZInterpolationSpace *>(jel);
+    if (!intspace2) {
+        PZError << __PRETTY_FUNCTION__ << " jel is not a TPZInterpolationSpace\n";
+        DebugStop();
+    }
+    TPZAutoPointer<TPZIntPoints> intrule1 = this->GetIntegrationRule().Clone();
+    TPZAutoPointer<TPZIntPoints> intrule2 = intspace2->GetIntegrationRule().Clone();
+    CalcStiffC(jel, *intrule1, *intrule2, ce);
+}
 
-    TPZMaterialDataT<REAL> data1,data2;
-    this->InitMaterialData(data1);
-    intspace2->InitMaterialData(data2);
+void TPZInterpolationSpace::CalcStiffC(TPZCompEl *jel, const TPZIntPoints &rule1, const TPZIntPoints &rule2,
+                                       TPZElementMatrixT<REAL> &ce)
+{
+    TPZInterpolationSpace *intspace2 = dynamic_cast<TPZInterpolationSpace *>(jel);
+    auto *material = dynamic_cast<TPZKarhunenLoeveMat *>(this->Material());
+    if (!intspace2 || !material) {
+        PZError << __PRETTY_FUNCTION__ << " needs two TPZInterpolationSpace elements and a TPZKarhunenLoeveMat\n";
+        DebugStop();
+    }
+    TPZElementMatrixT<REAL> fe;
+    this->InitializeElementMatrix(ce, fe);
+    if (this->NConnects() == 0 || intspace2->NConnects() == 0) return;//boundary discontinuous elements have this characteristic
+    TPZKLPointData data1, data2;
+    this->KLPointData(rule1, data1);
+    intspace2->KLPointData(rule2, data2);
+    material->ContributeC(data1, data2, ce.fMat);
+}
 
-
-    data1.p = this->MaxOrder();
-    data2.p = intspace2->MaxOrder();
-
-    int dim = Dimension();
-    TPZManVector<REAL,3> intpoint1(dim,0.);
-    TPZManVector<REAL,3> intpoint2(dim,0.);
-    REAL weight1 = 0.,weight2=0.;
-
-    TPZAutoPointer<TPZIntPoints> intrule = GetIntegrationRule().Clone();
-    TPZAutoPointer<TPZIntPoints> intrule2 = GetIntegrationRule().Clone();
-
-// 	int order = material->IntegrationRuleOrder(data1.p);
-// 	int order2 = material->IntegrationRuleOrder(data2.p);
-// 	TPZManVector<int,3> intorder(dim,order);
-// 	intrule->SetOrder(intorder);
-// 	TPZManVector<int,3> intorder2(dim,order2);
-// 	intrule2->SetOrder(intorder2);
-// 	//std::cout << " intrulepoints " << intrule->NPoints() <<std::endl;
-
-    int intrulepoints = intrule->NPoints();
-    for(int int_ind = 0; int_ind < intrulepoints; int_ind++){
-
-        intrule->Point(int_ind,intpoint1,weight1);
-        data1.intLocPtIndex = int_ind;
-        this->ComputeRequiredData(data1, intpoint1);
-        weight1 *= fabs(data1.detjac);
-        for(int int_jnd=0;int_jnd<intrulepoints;int_jnd++)
-        {
-          intrule2->Point(int_jnd,intpoint2,weight2);
-          data2.intLocPtIndex = int_jnd;
-          //this->ComputeRequiredData(data2, intpoint2);
-          intspace2->ComputeRequiredData(data2, intpoint2);
-          weight2 *= fabs(data2.detjac);
-          material->ContributeC(data1,data2, weight1,weight2, cet.fMat);
-          //cet.fMat.Print(std::cout);
-          ce.fMat+=cet.fMat;
-        }
-
-}//loop over integratin points
+void TPZInterpolationSpace::KLPointData(const TPZIntPoints &rule, TPZKLPointData &pd)
+{
+    if (this->Material()->NStateVariables() != 1) {
+        PZError << __PRETTY_FUNCTION__ << " the Karhunen-Loeve matrices are defined for one state variable\n";
+        DebugStop();
+    }
+    TPZMaterialDataT<REAL> data;
+    this->InitMaterialData(data);
+    data.fNeedsSol = false;
+    data.p = this->MaxOrder();
+    const int dim = Dimension();
+    const int npoints = rule.NPoints();
+    const int64_t nshape = this->NShapeF();
+    pd.fX.Redim(3, npoints);
+    pd.fW.Resize(npoints);
+    pd.fPhi.Redim(nshape, npoints);
+    TPZManVector<REAL,3> intpoint(dim, 0.);
+    REAL weight = 0.;
+    for (int ip = 0; ip < npoints; ip++) {
+        rule.Point(ip, intpoint, weight);
+        data.intLocPtIndex = ip;
+        this->ComputeRequiredData(data, intpoint);
+        pd.fW[ip] = weight * fabs(data.detjac);
+        for (int k = 0; k < 3; k++) pd.fX(k, ip) = data.x[k];
+        for (int64_t is = 0; is < nshape; is++) pd.fPhi(is, ip) = data.phi(is, 0);
+    }
 }
 
 void TPZInterpolationSpace::CalcStiffB(TPZElementMatrixT<REAL> &be)
 {
     auto* material =
     dynamic_cast<TPZKarhunenLoeveMat *>(this->Material());
+    if (!material) {
+        PZError << __PRETTY_FUNCTION__ << " needs a TPZKarhunenLoeveMat\n";
+        DebugStop();
+    }
     TPZElementMatrixT<REAL> ef,bet;
     this->InitializeElementMatrix(be,ef);
     this->InitializeElementMatrix(bet,ef);
@@ -1879,6 +1890,7 @@ void TPZInterpolationSpace::CalcStiffB(TPZElementMatrixT<REAL> &be)
     TPZMaterialDataT<REAL> data;
     //data.p = this->MaxOrder();
     this->InitMaterialData(data);
+    data.fNeedsSol = false; // the solution at the points is not needed
     data.p = this->MaxOrder();
 
     int dim = Dimension();

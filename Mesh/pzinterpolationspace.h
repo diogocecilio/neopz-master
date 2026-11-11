@@ -364,10 +364,22 @@ public:
 	 */
 	void BuildTransferMatrix(TPZInterpolationSpace &coarsel, TPZTransform<> &t, TPZTransfer<STATE> &transfer);
 
+	/** @brief Karhunen-Loeve mass matrix of the element, B_ij = int N_i N_j, with the element integration rule */
 	void CalcStiffB(TPZElementMatrixT<REAL> &be);
 
+	/**
+	 * @brief Karhunen-Loeve matrix of an element pair, C_ij = int int N_i(x) G(x,x') N_j(x') dx dx', with x in this
+	 * element and x' in jel. Rows: shape functions of this element (ce has its connects); columns: shape functions of
+	 * jel. Each element is integrated with its own integration rule.
+	 */
 	void CalcStiffC(TPZCompEl *jel, TPZElementMatrixT<REAL> &ce);
-	
+
+	/** @brief The same as CalcStiffC(jel,ce), with rule1 for this element and rule2 for jel */
+	void CalcStiffC(TPZCompEl *jel, const TPZIntPoints &rule1, const TPZIntPoints &rule2, TPZElementMatrixT<REAL> &ce);
+
+	/** @brief Coordinates, weights times |det J| and shape functions of this element at the points of rule (see CalcStiffC) */
+	void KLPointData(const TPZIntPoints &rule, TPZKLPointData &pd);
+
 protected:
     template<class TVar>
     void CalcStiffInternal(TPZElementMatrixT<TVar> &ek, TPZElementMatrixT<TVar> &ef);
