@@ -1,0 +1,129 @@
+VerifyRandomFields: campo de coesao do talude por Galerkin (G), forma fechada do retangulo (A) e Nystrom (N)
+  nucleo C = exp(-|dx| / Lx - |dy| / Ly), Lx = 20 m, Ly = 2 m; coesao lognormal, media 10 kPa, CoV 0.3
+  malha /home/user/neopz-master/Projects/VerifyRandomFields/malhas/talude_uniforme_h05.msh
+  Galerkin: 1813 triangulos, ordem 1, 975 equacoes, maior aresta 0.596 m; regra de C: ordem 6 (12 pontos por triangulo) em todos os pares
+    tempos (s): B 0.01, C 1.05 (4 threads), reducao 0.15, tridiagonalizacao 0.14, 975 vetores 0.33, conferencia 0.14
+  Nystrom: celulas de cerca de 0.5 m, 3 x 3 pontos de Gauss-Legendre por celula, integracao-produto em y na linha de celulas; retangulo 50 x 10 celulas, trapezio 30 x 10 (s x y), 7200 nos, soma dos pesos 187.5000000000
+    tempos (s): matriz 0.96, tridiagonalizacao 100.07, 1000 vetores 8.86, conferencia 8.70 (em paralelo com Galerkin: 1.9 s e 118.7 s)
+  autovalores (G: Galerkin no talude; N: Nystrom no talude; A: forma fechada do retangulo [0,25] x [0,10])
+     k       lambda_G       lambda_N      (N-G)/G      lambda_A
+     1      48.812890      48.810617    -4.66e-05     57.154776
+     2      26.731898      26.730260    -6.12e-05     36.231368
+     3      16.913018      16.911614    -8.30e-05     21.400327
+     4      10.825384      10.824930    -4.20e-05     13.120322
+     5       9.572761       9.571936    -8.61e-05     13.046415
+     6       6.824992       6.824104    -1.30e-04      8.570408
+     7       4.719047       4.718770    -5.88e-05      8.270341
+     8       4.518894       4.518848    -1.02e-05      5.939450
+     9       3.829710       3.829874     4.30e-05      4.884938
+    10       3.348767       3.349212     1.33e-04      4.511364
+    11       2.702063       2.702208     5.39e-05      4.321943
+    12       2.541647       2.543717     8.14e-04      3.270510
+    13       2.055491       2.057776     1.11e-03      2.994906
+    14       1.818903       1.819982     5.93e-04      2.859829
+    15       1.709218       1.709613     2.31e-04      2.553985
+    16       1.601861       1.607207     3.34e-03      2.170359
+    17       1.516675       1.516812     9.02e-05      2.046093
+    18       1.292196       1.298935     5.22e-03      1.956321
+    19       1.182386       1.182664     2.35e-04      1.689179
+    20       1.094462       1.104579     9.24e-03      1.674077
+  soma de todos os autovalores / 187,5: G 0.952425 (975), N 0.978584 (7200; traco da matriz / 187,5 = 0.978584)
+  fracao de variancia sum_{k<=20} lambda_k / 187,5: G 0.819265, N 0.819380
+  fracao de variancia sum_{k<=200} lambda_k / 187,5: G 0.943507, N 0.958584
+  conferencia dos autopares (max ||A v - lambda v|| / lambda_1; max |V^T V - I|): G 1.80e-15, 1.39e-13; N 4.67e-15, 1.01e-13
+
+Pontos de integracao da malha de Galerkin (regra de cada elemento: ordem 2, 3 pontos por triangulo): 5439 pontos; soma dos pesos w |det J| = 187.499999999996 (187,5; diferenca -3.52e-12)
+  sinal dos modos de Galerkin: int f_k p > 0, p = exp((x - 12,5) / 10 + (y - 5) / 4); menor |int f_k p| / ||p|| nos 975 modos: 9.71e-09; modos com |int f_k p| / ||p|| < 1e-3: 839 (71 nos 200 primeiros), < 1e-4: 520 (6) (sinais que podem mudar com a malha ou ORDEM; G e N da mesma corrida tem sinais alinhados)
+  modos de Nystrom interpolados nos proprios nos contra os valores nodais, max |dif| / max |f_k|: modos 1-20 2.20e-03, modos 1-200 5.13e-01 (com a integracao-produto, a interpolacao aplica a integral exata em y a representacao polinomial da linha de celulas e difere dos valores nodais pelo erro dessa representacao; com NYS_PRODUTO=0 a diferenca e so de arredondamento)
+  forma fechada: o campo A2000 pela matriz de modos contra klsep::KL2D::Campo (o calculo do SlopeRandomField): max |dZ| = 2.40e-14
+
+Concordancia dos modos de Galerkin e de Nystrom nos pontos de integracao, |<f_k^G, f_k^N>| / (||f_k^G|| ||f_k^N||) (modos de Nystrom com o sinal alinhado):
+     k  lambda_G     (N-G)/G     acordo       melhor j  |cos(G_k, N_j)|  ||f^N||
+     1   48.81289   -4.66e-05    0.99999993       1      1.000000    0.999985
+     2   26.73190   -6.12e-05    0.99999953       2      1.000000    0.999991
+     3   16.91302   -8.30e-05    0.99999733       3      0.999997    0.999985
+     4   10.82538   -4.20e-05    0.99999724       4      0.999997    0.999950
+     5    9.57276   -8.61e-05    0.99999165       5      0.999992    0.999961
+     6    6.82499   -1.30e-04    0.99997204       6      0.999972    0.999974
+     7    4.71905   -5.88e-05    0.99997322       7      0.999973    0.999953
+     8    4.51889   -1.02e-05    0.99994239       8      0.999942    0.999948
+     9    3.82971    4.30e-05    0.99997427       9      0.999974    0.999848
+    10    3.34877    1.33e-04    0.99986379      10      0.999864    0.999949
+    11    2.70206    5.39e-05    0.99997528      11      0.999975    0.999881
+    12    2.54165    8.14e-04    0.99962993      12      0.999630    0.999945
+    13    2.05549    1.11e-03    0.99953628      13      0.999536    0.999928
+    14    1.81890    5.93e-04    0.99970949      14      0.999709    0.999856
+    15    1.70922    2.31e-04    0.99991735      15      0.999917    0.999663
+    16    1.60186    3.34e-03    0.99868365      16      0.998684    0.999952
+    17    1.51667    9.02e-05    0.99986520      17      0.999865    0.999834
+    18    1.29220    5.22e-03    0.99796053      18      0.997961    1.000115
+    19    1.18239    2.35e-04    0.99985178      19      0.999852    0.999655
+    20    1.09446    9.24e-03    0.99593621      20      0.995936    0.999938
+    21    1.02846    6.88e-04    0.99940815      21      0.999408    0.999754
+    22    0.91984    7.86e-03    0.98459096      22      0.984591    1.000134
+    23    0.87754    8.49e-03    0.98262380      23      0.982624    1.000062
+    24    0.83172    2.63e-04    0.99986808      24      0.999868    0.999445
+    25    0.77458    1.97e-02    0.98902049      25      0.989020    1.000021
+    26    0.72239    6.00e-04    0.99919735      26      0.999197    0.999355
+    27    0.65858    3.24e-02    0.97586928      27      0.975869    1.000588
+    28    0.64223    1.06e-04    0.99930137      28      0.999301    0.999660
+    29    0.59616    2.25e-02    0.67356651      30      0.711894    0.999795
+    30    0.59270    3.40e-03    0.70009283      30      0.700093    0.999381
+  primeiro modo com acordo < 0,999: 16; < 0,99: 22; < 0,9: 29
+  modos 1-20: acordo >= 0,99 em 20, >= 0,9 em 20; menor acordo 0.9959
+  modos 1-50: acordo >= 0,99 em 24, >= 0,9 em 30; menor acordo 0.0030
+  modos 1-100: acordo >= 0,99 em 24, >= 0,9 em 30; menor acordo 0.0002
+  modos 1-200: acordo >= 0,99 em 24, >= 0,9 em 30; menor acordo 0.0001
+  modos 1-500: acordo >= 0,99 em 24, >= 0,9 em 30; menor acordo 0.0000
+
+Realizacao REAL = 0 (SEMENTE = 20250416), M = 200 termos (A2000: 2000 termos), coesao em kPa, estatisticas ponderadas pela area
+  campo   media      desvio     minimo     maximo
+  c_G       10.0815     2.9875     3.9455    17.6498
+  c_N       10.0681     3.0360     4.0772    18.8042
+  c_A       11.4813     3.9078     5.5583    23.2615
+  c_A2000   11.4594     3.9255     5.0761    24.2774
+  diferenca        RMS        max |.|    correlacao dos campos
+  c_G - c_N          1.3190     7.0212      0.9042
+  c_G - c_A          3.8256    12.2312      0.4934
+  c_N - c_A          3.8947    12.9476      0.4769
+  c_G - c_A2000      3.8558    13.1599      0.4846
+  diferenca esperada sobre as realizacoes (exata), RMS na area de sqrt(E[(Z_1 - Z_2)^2]) (Z normal padrao): G-N 0.3877, G-A 1.1154, N-A 1.1224
+  o mesmo para a coesao, por Monte Carlo (R = 1000), RMS na area de sqrt(E[(c_1 - c_2)^2]) (kPa): G-N 1.1735, G-A 3.3378, N-A 3.3610
+  c_G - c_N com M = 20 (M_VERIF; menor acordo dos modos 1-20: 0.995936): RMS 0.03061, max |.| 0.1251, correlacao 0.99994270; RMS na area de sqrt(E[(Z_G - Z_N)^2]) 0.01202 (campo dGN_M20)
+
+Variancia truncada sigma_M^2(x) = sum_{k<M} lambda_k f_k(x)^2 (alvo 1) nos pontos, M = 200
+  campo   1 - media  minimo     maximo     RMS(sigma^2 - 1)   1 - sum_{k<M} lambda_k / area
+  G         0.05649    0.90488    0.98151     0.05887       0.05649
+  N         0.03946    0.93713    0.96786     0.03964       0.04142
+  A         0.04432    0.92413    0.95860     0.04447       0.04443 (area do retangulo, 250.0)
+  A2000     0.00794    0.98906    0.99239     0.00795       0.00795 (idem)
+  1 - media de sigma_M^2 = (1 - sum_{k<M} lambda_k / 187,5) - sum_{k<M} lambda_k (||f_k||^2 - 1) / 187,5, com as normas nos pontos de integracao: o segundo termo e -8.54e-16 em G e 0.00196 em N (modos interpolados de Nystrom sem norma 1)
+  ortonormalidade dos modos nos pontos de integracao, max |F^T W F - I|: G 7.18e-16 (M = 20), 3.01e-14 (M = 200); N 6.91e-04 (M = 20), 5.46e-01 (M = 200)
+  ||f_k^N|| nos pontos: 0.9854 a 1.0364 (k = 1..100), 0.9699 a 1.2433 (k = 101..200); ||f_k^G||: 1.000000000000 a 1.000000000000
+
+Covariancia truncada com os pontos de referencia, sum_{k<M} lambda_k f_k(x) f_k(x_r), contra o nucleo C(x, x_r), M = 200: RMS na area / max |erro|
+  (5; 2.5):  G 5.0967e-03 / 4.3655e-02  N 1.4082e-03 / 2.2770e-02  A 1.7889e-03 / 3.1138e-02
+  (12; 6):  G 4.9592e-03 / 6.4905e-02  N 1.1188e-03 / 2.3993e-02  A 1.3716e-03 / 3.0398e-02
+  (20; 4):  G 6.4492e-03 / 7.8057e-02  N 1.5055e-03 / 3.2857e-02  A 1.7804e-03 / 4.0702e-02
+
+Monte Carlo, R = 1000 realizacoes (REAL = 0..999, os mesmos xi nos tres metodos), M = 200 (A2000: 2000): RMS na area e max |.| (kPa) dos erros da media e do desvio de c em cada ponto
+  (ruido amostral esperado: erro padrao da media 0.095 kPa; do desvio cerca de 0.090 kPa)
+  campo   media - 10     media - E_M[c]    desvio - 3     desvio - DP_M[c]
+  G        0.1021 / 0.263   0.0837 / 0.235    0.1611 / 0.427   0.0962 / 0.293   (media na area: media 9.9177, desvio 2.8689)
+  N        0.0965 / 0.246   0.0839 / 0.230    0.1353 / 0.381   0.0961 / 0.308   (media na area: media 9.9249, desvio 2.8991)
+  A        0.0899 / 0.253   0.0790 / 0.235    0.1108 / 0.286   0.0752 / 0.220   (media na area: media 9.9420, desvio 2.9192)
+  A2000    0.0833 / 0.238   0.0816 / 0.234    0.0816 / 0.252   0.0795 / 0.251   (media na area: media 9.9572, desvio 2.9815)
+
+Varredura em M (realizacao REAL = 0; RMS na area e max |.| das diferencas de coesao, kPa; E[dZ]: RMS na area da diferenca esperada dos campos Z; 1 - media de sigma_M^2)
+      M  c_G-c_N RMS/max     c_G-c_A RMS/max     c_N-c_A RMS/max     E[dZ] G-N  G-A    N-A     1-s2 G  N       A       desvio c_G   1-sum lambda/187,5 G  N
+     10    0.0078/0.041       3.3121/7.157       3.3118/7.156       0.0037  0.873  0.873   0.2741  0.2742  0.3069    2.8060        0.2741  0.2742
+     20    0.0306/0.125       3.4241/7.425       3.4244/7.396       0.0120  0.986  0.986   0.1807  0.1807  0.2052    2.8592        0.1807  0.1806
+     50    0.7697/2.934       3.5737/8.324       3.5955/8.894       0.2181  1.062  1.062   0.1012  0.0993  0.1149    2.9164        0.1012  0.0994
+    100    1.1479/4.395       3.7522/11.201      3.7872/11.905      0.3377  1.096  1.100   0.0705  0.0619  0.0720    2.9577        0.0705  0.0625
+    200    1.3190/7.021       3.8256/12.231      3.8947/12.948      0.3877  1.115  1.122   0.0565  0.0395  0.0443    2.9875        0.0565  0.0414
+    500    1.3943/6.269       3.8395/13.957      3.9068/14.027      0.4127  1.128  1.138   0.0490  0.0267  0.0228    3.0023        0.0490  0.0285
+    975    1.4100/7.112       3.8487/14.183      3.9220/14.436      0.4189  1.133  1.143   0.0476  0.0231  0.0138    3.0049        0.0476  0.0243
+
+Tempos (s): pontos e modos de Galerkin 0.08, Nystrom nos pontos 3.42, forma fechada 0.15, Monte Carlo 0.85; total ate aqui 123.4; pico de memoria 1087 MB
+VTK: 33 campos em campos_pontos.vtk e campos_elementos.vtk; 18 arquivos campos_elementos_<campo>.vtk (0.1 s)
+Saidas em saida_h05: pontos.csv, modos.csv, varredura.csv, resumo.txt, *.vtk; tempo total 123.6 s
