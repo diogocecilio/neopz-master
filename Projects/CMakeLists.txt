@@ -51,3 +51,6 @@ add_subdirectory(LearningSlopeWater)  # projeto de estudo do autor: talude satur
 add_subdirectory(LearningLiakopoulos) # projeto de estudo do autor: dessaturacao da coluna de Liakopoulos
 add_subdirectory(SlopeRandomField)    # talude de Rahardjo sob chuva com campos aleatorios (Karhunen-Loeve) e Monte Carlo
 add_subdirectory(KLCilindroMika)      # Karhunen-Loeve de Galerkin: meio cilindro de Mika et al. (2021) e talude de Ceron (2025)
+add_subdirectory(SlopeRandomFieldRefinement) # talude com campos aleatorios e refinamento
+add_subdirectory(Common)             # biblioteca comum dos taludes (SlopeAnalysis: malhas hp, GIM e SRM) e teste dos metodos
+add_subdirectory(SlopeSemiAnalytical) # campo de percolacao semi-analitico de Vargas Ceron et al. (2025) no GIM
