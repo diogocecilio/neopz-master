@@ -1,1 +1,4 @@
 resultados*/
+cluster/build/
+cluster/bin/
+cluster/logs/

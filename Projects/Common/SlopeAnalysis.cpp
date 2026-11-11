@@ -225,6 +225,24 @@ SlopeAnalysis::LevelResult SlopeAnalysis::SolveLevelUnsat(TPZGeoMesh *gmesh, con
             SetFreeEquations(an, p.free);
             return ComputeFactor(p, res.neq, fFactor);
         };
+        // Estado de cada ponto no fim do caminho do fator (com a memoria ainda dele): |du| e a media dos vertices
+        auto registra = [&](const FactorResult &f) {
+            res.points.clear();
+            if (!fRecordPoints) return;
+            const bool temDu = f.du.Rows() == res.neq;
+            ForEachPointArea(cmesh, [&](TPZCompEl *cel, const TPZVec<REAL> &x, int64_t im, REAL area) {
+                const TPZUnsaturatedMem &m = mat->MemItem(im);
+                const auto &prop = m.m_elastoplastic_state.fmatprop;
+                REAL du = 0.;
+                if (temDu)
+                    for (int k = 0; k < 3; k++) {
+                        const int64_t no = cel->Reference()->NodeIndex(k);
+                        du += std::hypot(an.NodalDisplacement(f.du, no, 0), an.NodalDisplacement(f.du, no, 1)) / 3.;
+                    }
+                res.points.push_back({x[0], x[1], area, SqrtJ2Plastic(m), prop.size() >= 2 ? prop[0] : d.c,
+                                      prop.size() >= 2 ? prop[1] : d.phi, m.fKMult, du});
+            });
+        };
 
         if (chuva) {
             // transiente da chuva e, em cada instante pedido, o fator com as pressoes daquele instante
@@ -265,6 +283,7 @@ SlopeAnalysis::LevelResult SlopeAnalysis::SolveLevelUnsat(TPZGeoMesh *gmesh, con
                       f.steps, f.end.c_str(), Seconds(tt));
                 if (res.history.size() == 1 || f.value < res.value) { // o instante critico guia o refinamento
                     res.value = f.value, res.steps = f.steps, res.end = f.end, res.tcrit = t;
+                    registra(f);
                     res.fmc = MaxYield(mat, d);
                     res.ind = PlasticIndicator(cmesh, mat);
                     res.pw = pw;
@@ -305,6 +324,7 @@ SlopeAnalysis::LevelResult SlopeAnalysis::SolveLevelUnsat(TPZGeoMesh *gmesh, con
             }
             const FactorResult f = fator(x0);
             res.value = f.value, res.steps = f.steps, res.end = f.end;
+            registra(f);
         }
     }
     if (!chuva) { // na chuva, ja guardados no instante critico
@@ -348,7 +368,9 @@ std::vector<LevelSummary> SlopeAnalysis::Run(FlatMesh m)
                                                         : SolveLevelUnsat(gmesh, m.order, header, nivel);
         delete gmesh;
         ls.neq = r.neq, ls.nfree = r.nfree, ls.value = r.value, ls.steps = r.steps, ls.seconds = Seconds(tk);
+        ls.end = r.end;
         ls.history = r.history;
+        ls.points = r.points;
         niveis.push_back(ls);
         const bool chuva = fWater == WaterModel::Rain;
         const REAL erro = fTarget > 0. ? 100. * (r.value / fTarget - 1.) : 0.;

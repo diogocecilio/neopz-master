@@ -58,6 +58,10 @@ TPZCompMesh *CreateAtomicCompMesh(TPZGeoMesh *gmesh, int nstate, int ordem, cons
 TPZMultiphysicsCompMesh *CreateUPCompMesh(TPZGeoMesh *gmesh, int porder, const Data &d, const std::vector<int> &ordens)
 {
     using B = TPZMatPoroElastoPlasticUPBase;
+    if (d.alpha != 1. || d.Reservoir()) { // so o material nao saturado tem a anisotropia e a carga do reservatorio
+        std::cerr << "CreateUPCompMesh: anisotropia e rebaixamento parcial so no material nao saturado\n";
+        DebugStop();
+    }
     const std::set<int> bcids = {bcBase, bcDireita, bcSuperficie, bcEsquerda, bcDireitaP, bcEsquerdaP};
     TPZManVector<TPZCompMesh *, 2> meshvec = {CreateAtomicCompMesh(gmesh, 2, porder, bcids, ordens), // u
                                               CreateAtomicCompMesh(gmesh, 1, porder - 1, bcids)};    // p_w
@@ -89,8 +93,24 @@ TPZMultiphysicsCompMesh *CreateUPCompMesh(TPZGeoMesh *gmesh, int porder, const D
     return mphys;
 }
 
-// Malha multifisica u-p_w-p_a com o material ja configurado: u de ordem porder (ou a de cada elemento), pressoes P1
-static TPZMultiphysicsCompMesh *BuildUnsatMesh(TPZGeoMesh *gmesh, int porder, MatUnsat *mat, const std::vector<int> &ordens)
+// Pressao da agua do reservatorio na superficie submersa (rebaixamento parcial), como tracao -p n: p = lambda gamma_w
+// (nivel - y), com o lambda do GIM (o fator da gravidade do material), como as poropressoes; n e a normal externa da face
+// (entre a crista e o pe) ou a vertical (terreno do pe)
+static void SetReservoirTraction(TPZBndCondT<STATE> *bct, MatUnsat *mat, const Data &d)
+{
+    const REAL xPe = d.xCrista + d.H / std::tan(d.beta), nx = std::sin(d.beta), ny = std::cos(d.beta);
+    bct->SetForcingFunctionBC([mat, d, xPe, nx, ny](const TPZVec<REAL> &x, TPZVec<STATE> &t, TPZFMatrix<STATE> &) {
+        const REAL p = mat->GravityFactor() * d.gammaw * std::max(d.Nivel() - x[1], REAL(0));
+        const bool face = x[0] > d.xCrista + 1.e-9 && x[0] < xPe - 1.e-9;
+        t[0] = face ? -p * nx : 0.;
+        t[1] = face ? -p * ny : -p;
+    });
+}
+
+// Malha multifisica u-p_w-p_a com o material ja configurado: u de ordem porder (ou a de cada elemento), pressoes P1;
+// reservoir: os dados do talude, se a agua do reservatorio carrega a superficie
+static TPZMultiphysicsCompMesh *BuildUnsatMesh(TPZGeoMesh *gmesh, int porder, MatUnsat *mat, const std::vector<int> &ordens,
+                                               const Data *reservoir = nullptr)
 {
     const std::set<int> bcids = {bcBase, bcDireita, bcSuperficie, bcEsquerda};
     TPZManVector<TPZCompMesh *, 3> meshvec = {CreateAtomicCompMesh(gmesh, 2, porder, bcids, ordens), // u
@@ -103,7 +123,9 @@ static TPZMultiphysicsCompMesh *BuildUnsatMesh(TPZGeoMesh *gmesh, int porder, Ma
     TPZManVector<STATE, 2> val2(2, 0.);
     for (int id : {bcBase, bcDireita, bcEsquerda}) // os apoios sao impostos pela analise; so marcam o contorno
         mphys->InsertMaterialObject(mat->CreateBC(mat, id, TUnsat::EDirichletU, val1, val2));
-    mphys->InsertMaterialObject(mat->CreateBC(mat, bcSuperficie, TUnsat::ENeumannU, val1, val2)); // chuva: fluxo nodal
+    auto *sup = mat->CreateBC(mat, bcSuperficie, TUnsat::ENeumannU, val1, val2); // chuva: fluxo nodal
+    if (reservoir) SetReservoirTraction(sup, mat, *reservoir);
+    mphys->InsertMaterialObject(sup);
     TPZManVector<int, 3> active(3, 1);
     mphys->BuildMultiphysicsSpaceWithMemory(active, meshvec, {matSolo}, bcids);
     return mphys;
@@ -124,11 +146,12 @@ TPZMultiphysicsCompMesh *CreateUnsatCompMesh(TPZGeoMesh *gmesh, int porder, cons
     mat->SetBiot(1., 0.);
     mat->SetWaterBulkModulus(1.e30);          // sem armazenamento: percolacao permanente
     mat->SetConductivity(d.kv * d.gammaw, d.gammaw, 1.e-3 / 1.8e-5);
+    if (d.alpha != 1.) mat->SetAnisotropicConductivity(d.alpha * d.kv * d.gammaw, d.kv * d.gammaw); // k_h = alpha k_v
     mat->SetAir(1.2 * 9.81e-3, 101.325);
     mat->SetUnitWeight(unitWeight);
     mat->SetLumpedStorage(true);
     mat->SetHydroMechanicalCoupling(false);
-    return BuildUnsatMesh(gmesh, porder, mat, ordens);
+    return BuildUnsatMesh(gmesh, porder, mat, ordens, d.Reservoir() ? &d : nullptr);
 }
 
 TPZMultiphysicsCompMesh *CreateRainCompMesh(TPZGeoMesh *gmesh, int porder, const Data &d, const RainData &r,
@@ -189,6 +212,12 @@ int RuleOrder(TPZCompEl *cel)
 void ForEachPoint(TPZMultiphysicsCompMesh *cmesh,
                   const std::function<void(TPZCompEl *, const TPZVec<REAL> &, int64_t)> &f)
 {
+    ForEachPointArea(cmesh, [&f](TPZCompEl *cel, const TPZVec<REAL> &x, int64_t im, REAL) { f(cel, x, im); });
+}
+
+void ForEachPointArea(TPZMultiphysicsCompMesh *cmesh,
+                      const std::function<void(TPZCompEl *, const TPZVec<REAL> &, int64_t, REAL)> &f)
+{
     for (TPZCompEl *cel : cmesh->ElementVec()) {
         if (!cel || !cel->Reference() || cel->Reference()->MaterialId() != matSolo) continue;
         TPZGeoEl *gel = cel->Reference();
@@ -201,10 +230,12 @@ void ForEachPoint(TPZMultiphysicsCompMesh *cmesh,
         if (mem.size() != rule->NPoints()) DebugStop(); // a memoria segue a ordem dos pontos da regra
         for (int ip = 0; ip < rule->NPoints(); ip++) {
             TPZManVector<REAL, 3> qsi(2), x(3);
-            REAL w;
+            TPZFNMatrix<9, REAL> jac, axes, jacinv;
+            REAL w, detjac;
             rule->Point(ip, qsi, w);
             gel->X(qsi, x);
-            f(cel, x, mem[ip]);
+            gel->Jacobian(qsi, jac, axes, detjac, jacinv);
+            f(cel, x, mem[ip], w * std::fabs(detjac));
         }
     }
 }

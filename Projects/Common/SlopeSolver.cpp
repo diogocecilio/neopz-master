@@ -213,6 +213,7 @@ static std::string Delta(REAL d)
 static FactorResult Continuation(PathProblem &p, TPZFMatrix<STATE> &X, REAL fref, const std::function<void(REAL)> &set,
                                  REAL v, REAL dv, REAL vmax, Clock::time_point t0, int &steps)
 {
+    TPZFMatrix<STATE> ultimo;
     while (v < vmax && dv > 2.e-3 * std::max(v, REAL(1.e-2))) {
         const REAL vt = std::min(v + dv, vmax);
         set(vt);
@@ -222,6 +223,8 @@ static FactorResult Continuation(PathProblem &p, TPZFMatrix<STATE> &X, REAL fref
         Row(++steps, vt, ok ? Delta(vt - v).c_str() : "", it, 0., t0, ok);
         if (ok) {
             p.accept();
+            ultimo = x;
+            ultimo -= X;
             X = x;
             v = vt;
             if (it <= 8) dv *= 1.5;
@@ -230,7 +233,7 @@ static FactorResult Continuation(PathProblem &p, TPZFMatrix<STATE> &X, REAL fref
         }
     }
     set(v);
-    return {v, steps, v >= vmax ? "limite" : "bisseccao"};
+    return {v, steps, v >= vmax ? "limite" : "bisseccao", ultimo};
 }
 
 // Arc-length com os parametros do FactorGIMArco do SlopeRandomField: l ajustado para ~10 iteracoes, ate d v < 0,001 (no
@@ -243,7 +246,7 @@ static FactorResult ArcLengthPath(PathProblem &p, const PathParam &pp, TPZFMatri
     const int alvo = 10, maxIt = 12, maxPassos = 100;
     const REAL uRef = std::sqrt(p.Dot(X, X)), lMax = lMaxR * uRef, lMin = lMinR * uRef;
     REAL l = std::min(lMax, std::max(lMin, l0 * uRef)), lPedido = l, vMax = v, dvn = 0.;
-    TPZFMatrix<STATE> dun;
+    TPZFMatrix<STATE> dun, ultimo; // ultimo: o incremento do ultimo estado aceito
     std::string fim = "maxPassos";
     for (int passo = 0, verticais = 0; passo < maxPassos; passo++) {
         const ArcResult r = ArcLengthStep(p, pp, X, fref, v, l, dun, dvn, maxIt);
@@ -259,6 +262,8 @@ static FactorResult ArcLengthPath(PathProblem &p, const PathParam &pp, TPZFMatri
             }
             Row(++steps, vt, Delta(vt - v).c_str(), it, 0., t0, true);
             p.accept();
+            ultimo = x;
+            ultimo -= X;
             X = x;
             v = vt, vMax = std::max(vMax, v), dun = TPZFMatrix<STATE>();
             continue;
@@ -276,6 +281,7 @@ static FactorResult ArcLengthPath(PathProblem &p, const PathParam &pp, TPZFMatri
         dvn = r.value - v;
         v = r.value;
         dun = r.du;
+        ultimo = r.du;
         vMax = std::max(vMax, v);
         if (dvn * lPedido / l < tol) {
             fim = "patamar";
@@ -288,7 +294,7 @@ static FactorResult ArcLengthPath(PathProblem &p, const PathParam &pp, TPZFMatri
         l = std::min(lMax, l * std::min(2., std::max(0.5, std::sqrt(REAL(alvo) / r.iter))));
         lPedido = l;
     }
-    return {vMax, steps, fim};
+    return {vMax, steps, fim, ultimo};
 }
 
 FactorResult ComputeFactor(PathProblem &p, int64_t neq, FactorMethod method)

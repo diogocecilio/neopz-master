@@ -37,7 +37,11 @@ struct Data {
     REAL xCrista = 10.;           // borda da crista (o ponto O do artigo)
     REAL yCrista = 10.;
     REAL hw = 5.;                 // rebaixamento h_w (m)
+    REAL alpha = 1.;              // anisotropia k_h / k_v (Secao 6.4); so o material nao saturado
     REAL Nivel() const { return yCrista - hw; } // cota do nivel externo depois do rebaixamento
+    REAL yPe() const { return yCrista - H; }    // cota do pe
+    // rebaixamento parcial (h_w < H): o reservatorio ainda cobre o pe e parte da face
+    bool Reservoir() const { return Nivel() > yPe() + 1.e-9; }
 };
 
 // Chuva de Rahardjo et al. (2007), Serie A: solo, chuva e estado inicial (kPa, m, s; tempos em horas). Padrao: solo f50,-5
@@ -113,7 +117,8 @@ TPZCompMesh *CreateAtomicCompMesh(TPZGeoMesh *gmesh, int nstate, int ordem, cons
                                   const std::vector<int> &ordens = {});
 // Malha u-p: base engastada, laterais com u_x = 0, poropressao do contorno (EDirichletP) na superficie e nos gemeos
 TPZMultiphysicsCompMesh *CreateUPCompMesh(TPZGeoMesh *gmesh, int porder, const Data &d, const std::vector<int> &ordens = {});
-// Malha nao saturada (solo saturado em qualquer pressao); unitWeight: peso especifico (gamma ou o submerso)
+// Malha nao saturada (solo saturado em qualquer pressao); unitWeight: peso especifico (gamma ou o submerso). Com
+// d.alpha != 1, K = k_v diag(alpha, 1); no rebaixamento parcial, a agua do reservatorio carrega a superficie submersa
 TPZMultiphysicsCompMesh *CreateUnsatCompMesh(TPZGeoMesh *gmesh, int porder, const Data &d, REAL unitWeight,
                                              const std::vector<int> &ordens = {});
 // Malha nao saturada do solo da chuva (RainData): retencao, k_w e phi^b do solo, esqueleto rigido na percolacao
@@ -126,6 +131,9 @@ std::map<int64_t, REAL> BoundaryPressures(TPZGeoMesh *gmesh, const Data &d);
 
 // Pontos de integracao do solo: f(elemento, x, indice do item de memoria), na ordem da regra de cada elemento
 int RuleOrder(TPZCompEl *cel);
+// o mesmo com a area de cada ponto (peso x |det J|): f(elemento, x, indice do item de memoria, area)
+void ForEachPointArea(TPZMultiphysicsCompMesh *cmesh,
+                      const std::function<void(TPZCompEl *, const TPZVec<REAL> &, int64_t, REAL)> &f);
 void ForEachPoint(TPZMultiphysicsCompMesh *cmesh,
                   const std::function<void(TPZCompEl *, const TPZVec<REAL> &, int64_t)> &f);
 

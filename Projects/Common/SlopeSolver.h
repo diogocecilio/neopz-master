@@ -59,6 +59,7 @@ struct FactorResult {
     REAL value = 0.; // Gamma (GIM) ou FS (SRM)
     int steps = 0;
     std::string end; // por que o caminho terminou
+    TPZFMatrix<STATE> du; // incremento entre os dois ultimos estados aceitos (o mecanismo perto do colapso)
 };
 
 // Fator de seguranca a partir do estado sem tensoes (x0 nas fixas); imprime uma linha por passo

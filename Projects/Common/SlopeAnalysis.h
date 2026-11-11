@@ -31,6 +31,12 @@ struct Refinement {
     REAL mark = 0.1; // marca os triangulos com sqrt(J2(eps_p)) >= mark x maximo
 };
 
+// Estado de um ponto de integracao no fim do caminho do fator (SetRecordPoints): posicao, area (peso x |det J|), sqrt(J2)
+// da deformacao plastica, propriedades do ponto e |du| do ultimo incremento (media dos 3 vertices do triangulo)
+struct PointState {
+    REAL x, y, area, sqrtJ2, c, phi, kmult, du; // phi em rad
+};
+
 // Uma linha da tabela final
 struct LevelSummary {
     int level = 0;
@@ -38,8 +44,10 @@ struct LevelSummary {
     std::map<int, int> orders; // ordem de u -> triangulos
     REAL value = 0.;           // Gamma (GIM) ou FS (SRM); na chuva, o menor dos instantes
     int steps = 0;
+    std::string end; // por que o caminho do fator terminou
     double seconds = 0.;
     std::vector<std::array<REAL, 2>> history; // chuva: (t em h, fator) de cada instante
+    std::vector<PointState> points;           // com SetRecordPoints (so o material nao saturado)
 };
 
 class SlopeAnalysis {
@@ -56,6 +64,7 @@ public:
     void SetPointProperties(const PointProperties &f) { fProps = f; }
     void SetPointPermeability(const PointPermeability &f) { fPerm = f; }
     void SetRain(const RainData &r) { fRain = r; } // WaterModel::Rain
+    void SetRecordPoints(bool b) { fRecordPoints = b; } // LevelSummary::points (banda de ruptura, massa que desliza)
     void SetOutputPrefix(const std::string &prefix) { fPrefix = prefix; } // arquivos por nivel; vazio: nenhum
     void SetTarget(REAL target) { fTarget = target; }                     // para o erro impresso
     // nivel 0: m0 com nunif refinamentos uniformes; depois nref niveis com h e p nos marcados
@@ -72,6 +81,7 @@ private:
         std::vector<std::array<REAL, 2>> history;
         std::vector<std::vector<REAL>> pwt, swt;
         REAL tcrit = 0.;
+        std::vector<PointState> points;
     };
     LevelResult SolveLevelUP(TPZGeoMesh *gmesh, const std::vector<int> &ordens, const std::string &header,
                              const std::string &base);
@@ -90,6 +100,7 @@ private:
     RainData fRain;
     std::string fPrefix;
     REAL fTarget = 0.;
+    bool fRecordPoints = false;
 };
 
 // Uma rodada da tabela final: nome, alvo (para o erro) e os niveis
