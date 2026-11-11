@@ -28,6 +28,11 @@
 //   RET_MAX=20000         termos da forma fechada usados para achar o M equivalente do retangulo
 //   THREADS=2             threads na montagem de C
 //   CSV_RET=, CSV_TALUDE= arquivos CSV onde acrescentar os resultados de (a) e de (b)
+//   AUTOVALORES=          prefixo: grava todos os autovalores numericos de cada malha, decrescentes, um por linha, em
+//                         <prefixo>_ret_<nx>x<ny>_p<P>_o<ordem>.txt (a) e <prefixo>_<malha>_p<P>_o<ordem>.txt (b)
+//   PONTOS=               prefixo: grava, para cada malha do talude, <prefixo>_<malha>_p<P>_o<ordem>.csv com os pontos da
+//                         rede de cada elemento (x, y), sigma_M^2 da KL numerica e da forma fechada para cada M e os
+//                         PONTOS_MODOS (9) primeiros modos numericos phi_k (B-ortonormais, sinal arbitrario)
 // Ver README.md.
 #include <Eigen/Dense>
 
@@ -557,6 +562,20 @@ double IntegralNoTalude(const klsep::KL2D &kl, int i, int j, const std::vector<d
 
 double Quadrado(double v) { return v * v; }
 
+// nome do arquivo sem o caminho e sem a extensao .msh
+std::string Base(const std::string &caminho) {
+    std::string b = Nome(caminho);
+    if (b.size() > 4 && b.compare(b.size() - 4, 4, ".msh") == 0) b.resize(b.size() - 4);
+    return b;
+}
+
+// AUTOVALORES: todos os autovalores numericos, decrescentes, um por linha
+void GravaAutovalores(const std::string &arquivo, const Eigen::VectorXd &lambda) {
+    std::ofstream f(arquivo);
+    f << std::setprecision(17);
+    for (int64_t k = 0; k < lambda.size(); k++) f << lambda(k) << '\n';
+}
+
 // ---- (a) retangulo ----
 
 struct ResultadoRet {
@@ -590,6 +609,11 @@ ResultadoRet ParteA(const MalhaRet &m, double Lx, double Ly, const std::vector<d
     r.tAuto = kl.tAuto;
     r.tTotal = Segundos(t0);
     r.memoria = PicoMemoriaMB();
+    const std::string prefixoAuto = envs("AUTOVALORES", "");
+    if (!prefixoAuto.empty())
+        GravaAutovalores(prefixoAuto + "_ret_" + std::to_string(m.nx) + "x" + std::to_string(m.ny) + "_p" +
+                             std::to_string(m.p) + "_o" + std::to_string(kl.ordem) + ".txt",
+                         kl.lambda);
 
     std::cout << "\nRetangulo " << m.nx << " x " << m.ny << " celulas (" << r.nel << " triangulos), ordem " << m.p << ": "
               << r.neq << " equacoes, maior aresta " << std::setprecision(4) << r.hmax << " m; area (soma dos pesos) "
@@ -728,6 +752,10 @@ ResultadoTalude ParteB(const MalhaTalude &m, double Lx, double Ly, const std::ve
     std::vector<double> quadG(nM, 0.), quadR(nM, 0.);
     std::vector<double> xs, ys;     // pontos da rede
     std::vector<double> xq, yq, wq; // pontos e pesos x |det J| da regra ORDEM
+    // PONTOS (opcional): sigma_M^2 nos pontos da rede, numerica e forma fechada ([ponto * nM + im]), e os primeiros modos
+    const std::string prefixoPontos = envs("PONTOS", "");
+    const int64_t nModosPontos = prefixoPontos.empty() ? 0 : std::min<int64_t>(std::max(0, envi("PONTOS_MODOS", 9)), nv);
+    std::vector<double> s2RedeG, s2RedeR, modosRede;
     {
         TPZMaterialDataT<REAL> data;
         std::vector<double> phi;
@@ -756,7 +784,9 @@ ResultadoTalude ParteB(const MalhaTalude &m, double Lx, double Ly, const std::ve
                 acumula([&](size_t im, double v) {
                     s2minG[im] = std::min(s2minG[im], v);
                     s2maxG[im] = std::max(s2maxG[im], v);
+                    if (!prefixoPontos.empty()) s2RedeG.push_back(v);
                 });
+                for (int64_t k = 0; k < nModosPontos; k++) modosRede.push_back(phi[k]);
                 xs.push_back(data.x[0]);
                 ys.push_back(data.x[1]);
             }
@@ -790,9 +820,12 @@ ResultadoTalude ParteB(const MalhaTalude &m, double Lx, double Ly, const std::ve
             }
         }
     };
-    formaFechada(xs, ys, [&](size_t im, size_t, const std::vector<double> &v) {
+    if (!prefixoPontos.empty()) s2RedeR.assign(xs.size() * nM, 0.);
+    formaFechada(xs, ys, [&](size_t im, size_t p0, const std::vector<double> &v) {
         s2minR[im] = std::min(s2minR[im], *std::min_element(v.begin(), v.end()));
         s2maxR[im] = std::max(s2maxR[im], *std::max_element(v.begin(), v.end()));
+        if (!s2RedeR.empty())
+            for (size_t q = 0; q < v.size(); q++) s2RedeR[(p0 + q) * nM + im] = v[q];
     });
     formaFechada(xq, yq, [&](size_t im, size_t p0, const std::vector<double> &v) {
         for (size_t q = 0; q < v.size(); q++) quadR[im] += wq[p0 + q] * v[q];
@@ -890,6 +923,29 @@ ResultadoTalude ParteB(const MalhaTalude &m, double Lx, double Ly, const std::ve
     r.tAvalia = Segundos(ta);
     r.tTotal = Segundos(t0);
     r.memoria = PicoMemoriaMB();
+    // saidas opcionais (depois das medidas de tempo e de memoria)
+    const std::string sufixo = "_" + Base(m.arquivo) + "_p" + std::to_string(m.p) + "_o" + std::to_string(kl.ordem);
+    const std::string prefixoAuto = envs("AUTOVALORES", "");
+    if (!prefixoAuto.empty()) GravaAutovalores(prefixoAuto + sufixo + ".txt", kl.lambda);
+    if (!prefixoPontos.empty()) {
+        if (s2RedeG.size() != xs.size() * nM || modosRede.size() != xs.size() * (size_t)nModosPontos) {
+            std::cerr << "PONTOS: numero de valores inesperado\n";
+            std::exit(1);
+        }
+        std::ofstream f(prefixoPontos + sufixo + ".csv");
+        f << "x,y";
+        for (int M : Mv) f << ",s2_num_M" << M;
+        for (int M : Mv) f << ",s2_ret_M" << M;
+        for (int64_t k = 0; k < nModosPontos; k++) f << ",phi" << k + 1;
+        f << '\n' << std::setprecision(10);
+        for (size_t p = 0; p < xs.size(); p++) {
+            f << xs[p] << ',' << ys[p];
+            for (size_t im = 0; im < nM; im++) f << ',' << s2RedeG[p * nM + im];
+            for (size_t im = 0; im < nM; im++) f << ',' << s2RedeR[p * nM + im];
+            for (int64_t k = 0; k < nModosPontos; k++) f << ',' << modosRede[p * nModosPontos + k];
+            f << '\n';
+        }
+    }
 
     std::cout << "\nTalude " << Nome(m.arquivo) << ", ordem " << m.p << ": " << r.nel << " triangulos, " << r.neq
               << " equacoes, maior aresta " << std::setprecision(4) << r.hmax << " m; area (soma dos pesos) "
