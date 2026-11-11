@@ -14,7 +14,9 @@
   fica maior (3009 triângulos em média, contra 2385), o custo sobe, e até $4{,}6\,\%$ dos pontos da banda final ficam
   fora da zona refinada (Fig.~\ref{fig:niv:contencao}). Ela só compensa nos níveis mais grossos.
 \item Recomendação: a \texttt{foco375} como malha inicial e um passo até $h = 0{,}125$~m (a \texttt{refinada} da
-  comparação). As horas estimadas no fermi estão na Tabela~\ref{tab:niv:fermi}.
+  comparação). No fermi, onde o PARDISO escala quase linearmente com a malha, a estimativa é de cerca de 80~s por
+  realização (57\,\% da \texttt{foco125}, e não 30\,\% como aqui com o skyline): cerca de 1,2~h por caso com 5000
+  realizações e 96 realizações ao mesmo tempo (Tabela~\ref{tab:niv:fermi}).
 \item A \texttt{foco125} não está convergida: a extrapolação com $p = 2$ indica que ela superestima $\Gamma$ em cerca
   de 1\,\%, o que deslocaria o $P_f$ em cerca de $+9\,\%$. As diferenças acima são relativas a ela.
 \end{itemize}

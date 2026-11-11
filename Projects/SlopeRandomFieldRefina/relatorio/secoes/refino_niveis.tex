@@ -42,7 +42,11 @@ o mesmo nos \nivNcasosEtapaUm{} casos (diferença relativa máxima \nivDifEtapaU
 \nivRazEtapa{} vezes o da comparação (de \nivRazEtapaMin{} a \nivRazEtapaMax{} por caso). Por isso o custo é
 comparado dentro de cada campanha: $R$ é o CPU médio da cadeia dividido pelo CPU médio da foco375 da mesma campanha, e
 o ``CPU equivalente'' das figuras é $R$ vezes o CPU médio da foco375 desta campanha (\nivCpuNova\,s). Essa
-normalização supõe que a diferença entre as campanhas é a mesma para as rodadas maiores; é uma aproximação.
+normalização supõe que a diferença entre as campanhas é a mesma para as rodadas maiores; é uma aproximação. Os
+custos locais são os do \emph{solver} \emph{skyline}, cujo custo cresce mais que linearmente com a malha (na
+comparação, \nivCpuTriA\,s de CPU por triângulo na foco375 e \nivCpuTriD\,s na foco125); no fermi, com o PARDISO, o
+tempo é quase linear nos triângulos, e as razões de custo locais não valem lá
+(Seção~\ref{sec:ref:niveis:recomendacao}).
 
 \begin{table}[H]
   \centering\small
@@ -212,25 +216,36 @@ padrões de \texttt{srf\_refinado.sh}), isto é, a configuração ``refinada'' d
         (\nivCvCinco\,\% com $N = 5000$). Os níveis $h = 0{,}25$ e $0{,}1875$ deixam um viés de \nivFAEmed\,\% e
         \nivFBEmed\,\%, que muda $P_f$ em \nivFADpfAbs\,\% e \nivFBDpfAbs\,\%, mais que o erro de amostragem com
         $N = 5000$;
-  \item \textbf{custo}: \nivFCRpct\,\% do CPU da foco125 ($R = $ \nivFCR{} rodadas foco375 por realização);
+  \item \textbf{custo}: localmente, com o \emph{skyline}, \nivFCRpct\,\% do CPU da foco125; no fermi, com o PARDISO
+        (tempo quase linear nos triângulos), a estimativa é de \nivFermiRazFC{} do tempo da foco125 (cerca de
+        \nivFermiTFC\,s contra \nivFermiTFfixD\,s por realização);
   \item \textbf{contenção}: nenhum ponto da banda refinada fora da folga em nenhum caso ($d_{\max} \le$
         \nivFCDist\,m).
 \end{itemize}
-A g15 não é recomendada: a etapa~1 é mais barata, mas em $h = 0{,}125$ a cadeia custa mais (\nivGCRpct\,\% da
-foco125), o erro é um pouco maior ($\overline{|e|} = $ \nivGCEabs\,\% e $\max|e| = $ \nivGCEmax\,\%) e a banda
+A g15 não é recomendada: a etapa~1 é mais barata, mas em $h = 0{,}125$ a cadeia não sai mais barata (localmente
+\nivGCRpct\,\% da foco125 contra \nivFCRpct\,\%; no fermi, com quase o mesmo total de triângulos, cerca de
+\nivFermiTGC\,s contra \nivFermiTFC\,s por realização), o erro é um pouco maior ($\overline{|e|} = $ \nivGCEabs\,\% e $\max|e| = $ \nivGCEmax\,\%) e a banda
 refinada sai da região refinada em parte dos casos, o que deixa o erro sem controle nas realizações em que a banda da
 malha grossa estiver mais deslocada. Dois passos de refinamento (g15 $\to$ 0,25 $\to$ 0,125) não foram rodados.
 
-\paragraph{Horas no fermi.} Na fase~1 a foco375 levou 17,4\,s por realização, com até $8 \times 12 = 96$ realizações
-ao mesmo tempo, isto é, cerca de \nivFermiFoco\,min por 1000 realizações. Escalando pelo $R$ de cada configuração
-(Tabela~\ref{tab:niv:fermi}), a recomendada leva cerca de \nivFCHmil\,h por 1000 realizações e \nivFCHcinco\,h por
-5000, contra \nivFfixDHmil\,h e \nivFfixDHcinco\,h com a foco125. A estimativa supõe que a razão de CPU medida aqui
-vale no fermi e ignora a fila e a leitura e escrita dos arquivos.
+\paragraph{Horas no fermi.} O CPU local não serve para escalar o tempo no fermi: o \emph{skyline} local cresce mais
+que linearmente com a malha, e o fermi usa o PARDISO. Medidas isoladas no fermi (GIM com \emph{arc-length}, no
+exemplo insaturado anterior, tempos indicativos) deram 11,7\,s na foco375 (720 triângulos), 30,5\,s na foco25 (1520),
+55,9\,s na foco1875 (2906) e 107,4\,s na foco125 (5426), cerca de 0,02\,s por triângulo; nas fases de Monte Carlo o
+tempo por realização foi 1,29 vez o isolado (foco375: 17,4\,s contra 13,5\,s). O tempo por realização é então
+estimado como $t \approx 1{,}29 \times 0{,}02\,\text{s} \times (n_1 + n_r)$, com $n_1$ os triângulos da malha da
+etapa~1 e $n_r$ a média dos da malha refinada, e as horas como $N\,t/96/3600$, com até $8 \times 12 = 96$ realizações
+ao mesmo tempo (Tabela~\ref{tab:niv:fermi}). A configuração recomendada fica em cerca de \nivFermiTFC\,s por
+realização, \nivFermiHmilFC\,h por 1000 realizações e \nivFermiHcincoFC\,h por 5000, contra \nivFermiTFfixD\,s,
+\nivFermiHmilFfixD\,h e \nivFermiHcincoFfixD\,h com a foco125. Assim, a razão de custo para a foco125, que localmente é
+\nivFCRcent{} (\emph{skyline}), deve ser de \nivFermiRazFC{} no fermi (PARDISO, linear). São estimativas: os tempos do
+fermi são de outro exemplo, e a estimativa ignora a fila e a leitura e escrita dos arquivos.
 
 \begin{table}[H]
   \centering\small
-  \caption{Estimativa das horas no fermi (96 realizações ao mesmo tempo, 17,4\,s por realização na foco375),
-  escaladas pelo custo relativo $R$ (CPU da cadeia em rodadas foco375 da mesma campanha).}
+  \caption{Estimativa do custo no fermi: triângulos da cadeia ($n_1 + n_r$), tempo por realização
+  $t \approx 1{,}29 \times 0{,}02\,\text{s} \times (n_1 + n_r)$ e sua razão para a foco125, a razão de CPU local
+  ($R/R_{125}$, \emph{skyline}) para comparação, e as horas para 1000 e 5000 realizações com 96 ao mesmo tempo.}
   \label{tab:niv:fermi}
   \input{tabelas/niv_fermi}
 \end{table}
