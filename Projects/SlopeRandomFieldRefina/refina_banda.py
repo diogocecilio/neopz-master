@@ -1,45 +1,55 @@
 #!/usr/bin/env python3
 """refina_banda.py <rodada grossa> <malha grossa .msh ou .geo> <saida sem extensao> [h] [folga] [limiar]
+refina_banda.py --malha <saida sem extensao>: so gera <saida>.msh de novo, a partir de <saida>.geo
+refina_banda.py --gmsh: so mostra qual gmsh sera usado (codigo 2 se nao ha nenhum)
 
-A segunda etapa do refinamento por realizacao (REFINA_BANDA=1 em rodar_mc.sh): uma malha conforme refinada so em volta
-da banda de ruptura que a rodada na malha grossa encontrou, gerada pelo gmsh a partir do .geo da malha grossa.
+A segunda etapa de srf_refinado.sh: uma malha conforme refinada so em volta da banda de ruptura que a rodada na malha
+grossa encontrou, gerada pelo gmsh a partir do .geo da malha grossa.
 
 - A banda: os pontos de integracao com sqrt(J2(eps_p)) >= limiar x maximo (padrao 0,1, o BANDA_LIMIAR do programa) no
-  instante do fator (o menor FS de fs.csv), lidos de <rodada grossa>/mecanismo.csv e arredondados numa grade de h/1 m.
+  instante do fator (o menor FS de fs.csv), lidos de <rodada grossa>/mecanismo.csv e arredondados numa grade de h.
 - O .geo novo e o da malha grossa (mesma geometria, mesmos grupos fisicos, mesmos campos de tamanho) com mais um campo:
   elementos de tamanho h (padrao 0,125 m) ate 'folga' (padrao 0,375 m) dos pontos da banda, crescendo ate o hMax da malha
   grossa a folga + 3 m; o campo de fundo passa a ser o minimo do antigo e deste. Assim o contorno, e com ele o retangulo
   do Karhunen-Loeve, nao muda, e a realizacao tem o mesmo campo aleatorio nas duas malhas.
 - O gmsh: o executavel gmsh, se estiver no PATH; senao o modulo python gmsh (python3 -m pip install --user gmsh).
 
-Escreve <saida>.geo e <saida>.msh e imprime o numero de triangulos."""
+Escreve <saida>.geo e <saida>.msh (cada um com troca atomica) e imprime uma linha chave=valor: triangulos,
+celulas_banda, fator_grossa (o fator no instante da banda), t_h, h, folga e limiar.
+Codigos de saida: 0 ok; 1 erro; 2 uso errado ou sem gmsh; 3 a rodada grossa nao tem banda (sem fator positivo no
+instante do menor FS, ou sem deformacao plastica)."""
 
 import csv
-import math
 import os
 import re
 import shutil
 import subprocess
 import sys
 
+SEM_BANDA = 3
+
+
+class SemBanda(Exception):
+    pass
+
 
 def banda(rodada, limiar):
-    fs = os.path.join(rodada, "fs.csv")
-    t_fs = None
-    if os.path.isfile(fs):
-        linhas = [r for r in csv.DictReader(open(fs)) if r.get("FS_SRM")]
-        if linhas:
-            t_fs = float(min(linhas, key=lambda r: float(r["FS_SRM"]))["t_h"])
+    """(pontos da banda, fator, instante) da rodada grossa"""
+    linhas = [r for r in csv.DictReader(open(os.path.join(rodada, "fs.csv"))) if r.get("FS_SRM")]
+    if not linhas:
+        raise SemBanda("fs.csv sem fator em " + rodada)
+    menor = min(linhas, key=lambda r: float(r["FS_SRM"]))
+    fator, t_fs = float(menor["FS_SRM"]), float(menor["t_h"])
+    if not fator > 0:
+        raise SemBanda("fator %g em t = %g h em %s" % (fator, t_fs, rodada))
     pts = []
     for r in csv.DictReader(open(os.path.join(rodada, "mecanismo.csv"))):
-        if t_fs is None or abs(float(r["t_h"]) - t_fs) < 1e-9:
+        if abs(float(r["t_h"]) - t_fs) < 1e-9:
             pts.append((float(r["x"]), float(r["y"]), float(r["epsp_raizJ2"])))
-    if not pts:
-        raise SystemExit("refina_banda: mecanismo.csv sem pontos no instante do fator em " + rodada)
-    mx = max(p[2] for p in pts)
+    mx = max((p[2] for p in pts), default=0.)
     if not mx > 0:
-        raise SystemExit("refina_banda: sem deformacao plastica em " + rodada)
-    return [(x, y) for x, y, e in pts if e >= limiar * mx]
+        raise SemBanda("sem deformacao plastica em t = %g h em %s" % (t_fs, rodada))
+    return [(x, y) for x, y, e in pts if e >= limiar * mx], fator, t_fs
 
 
 def geo_refinado(geo_grosso, pontos, h, folga):
@@ -67,6 +77,31 @@ def geo_refinado(geo_grosso, pontos, h, folga):
     return txt[:m.start()] + "\n".join(novo) + "\n" + txt[m.end():]
 
 
+SEM_GMSH = "refina_banda: nem o executavel gmsh no PATH nem o modulo python gmsh (python3 -m pip install --user gmsh)"
+
+
+def modulo_gmsh():
+    """o modulo python gmsh, ou sai com codigo 2 (sem o modulo, ou sem as bibliotecas de que ele depende)"""
+    try:
+        import gmsh
+    except ImportError:
+        print(SEM_GMSH, file=sys.stderr)
+        sys.exit(2)
+    except OSError as e:  # o libgmsh.so do pip depende de bibliotecas do X e do OpenGL (libGLU, libXft, ...)
+        print("refina_banda: o modulo python gmsh nao carrega: %s" % e, file=sys.stderr)
+        sys.exit(2)
+    return gmsh
+
+
+def qual_gmsh():
+    """'executavel <caminho>' ou 'modulo <caminho> (versao)'; sai com codigo 2 se nao ha nenhum"""
+    g = shutil.which("gmsh")
+    if g:
+        return "executavel " + g
+    gmsh = modulo_gmsh()
+    return "modulo %s (%s)" % (gmsh.__file__, gmsh.__version__)
+
+
 def gera_msh(geo, msh):
     if shutil.which("gmsh"):
         r = subprocess.run(["gmsh", "-2", geo, "-o", msh], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
@@ -74,11 +109,7 @@ def gera_msh(geo, msh):
         if r.returncode != 0 or not os.path.isfile(msh):
             raise SystemExit("refina_banda: gmsh falhou:\n" + r.stdout[-2000:])
         return
-    try:
-        import gmsh
-    except ImportError:
-        raise SystemExit("refina_banda: nem o executavel gmsh nem o modulo python gmsh "
-                         "(python3 -m pip install --user gmsh)")
+    gmsh = modulo_gmsh()
     gmsh.initialize()
     try:
         gmsh.option.setNumber("General.Terminal", 0)
@@ -87,6 +118,12 @@ def gera_msh(geo, msh):
         gmsh.write(msh)
     finally:
         gmsh.finalize()
+
+
+def msh_atomico(saida):
+    """<saida>.msh a partir de <saida>.geo, com troca atomica (uma queda no meio nao deixa .msh incompleto)"""
+    gera_msh(saida + ".geo", saida + ".msh.tmp.msh")
+    os.replace(saida + ".msh.tmp.msh", saida + ".msh")
 
 
 def triangulos(msh):
@@ -106,8 +143,17 @@ def triangulos(msh):
 
 
 def main():
+    if len(sys.argv) == 2 and sys.argv[1] == "--gmsh":
+        print(qual_gmsh())
+        return
+    if len(sys.argv) == 3 and sys.argv[1] == "--malha":
+        saida = sys.argv[2]
+        msh_atomico(saida)
+        print("malha=%s.msh triangulos=%d" % (saida, triangulos(saida + ".msh")))
+        return
     if len(sys.argv) < 4:
-        sys.exit(__doc__)
+        print(__doc__, file=sys.stderr)
+        sys.exit(2)
     rodada, grossa, saida = sys.argv[1], sys.argv[2], sys.argv[3]
     h = float(sys.argv[4]) if len(sys.argv) > 4 else 0.125
     folga = float(sys.argv[5]) if len(sys.argv) > 5 else 0.375
@@ -115,15 +161,18 @@ def main():
     geo_grosso = os.path.splitext(grossa)[0] + ".geo"
     if not os.path.isfile(geo_grosso):
         sys.exit("refina_banda: falta o .geo da malha grossa: " + geo_grosso)
-    celula = h
-    pts = sorted({(round(x / celula) * celula, round(y / celula) * celula) for x, y in banda(rodada, limiar)})
+    try:
+        pontos, fator, t_fs = banda(rodada, limiar)
+    except SemBanda as e:
+        print("refina_banda: sem banda de ruptura: %s" % e, file=sys.stderr)
+        sys.exit(SEM_BANDA)
+    pts = sorted({(round(x / h) * h, round(y / h) * h) for x, y in pontos})
     with open(saida + ".geo.tmp", "w") as f:
         f.write(geo_refinado(geo_grosso, pts, h, folga))
     os.replace(saida + ".geo.tmp", saida + ".geo")
-    gera_msh(saida + ".geo", saida + ".msh.tmp.msh")
-    os.replace(saida + ".msh.tmp.msh", saida + ".msh")
-    print("%s.msh: %d triangulos, %d pontos de banda (h = %g, folga = %g, limiar = %g)" % (
-        saida, triangulos(saida + ".msh"), len(pts), h, folga, limiar))
+    msh_atomico(saida)
+    print("malha=%s.msh triangulos=%d celulas_banda=%d fator_grossa=%.10g t_h=%g h=%g folga=%g limiar=%g" % (
+        saida, triangulos(saida + ".msh"), len(pts), fator, t_fs, h, folga, limiar))
 
 
 if __name__ == "__main__":
