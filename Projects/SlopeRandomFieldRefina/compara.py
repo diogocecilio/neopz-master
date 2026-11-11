@@ -14,9 +14,10 @@ compara.py rodar <pasta> [--casos det,0-7] [--metodos foco125,refinada,foco1875,
       inicio e no fim. Um caso com resultado.txt e tempo.txt e pulado; um caso sem tempo.txt comeca do zero (a pasta e
       apagada), para o tempo ser o de uma execucao inteira. Ctrl-C para tudo; rodar de novo continua.
 compara.py tabela <pasta> [--ref foco125] [--csv <arquivo>]
-    Tabelas em Markdown (decimais com virgula): o fator de cada metodo e a diferenca para a referencia, caso a caso; e, por
-    metodo, triangulos, equacoes, diferenca media, maxima e media com sinal, tempo de parede e de CPU por caso, a razao
-    para o tempo da referencia e o numero medio de processos da fila rodando junto. --csv grava os dados de cada caso.
+    Tabelas em Markdown (decimais com virgula): o fator de cada metodo e a diferenca para a referencia, caso a caso; o
+    tempo de parede de cada caso (no metodo de duas etapas, tambem o de cada etapa); e, por metodo, triangulos, equacoes,
+    diferenca media, maxima e media com sinal, tempo de parede e de CPU por caso, a razao para o tempo da referencia e o
+    numero medio de processos da fila rodando junto. --csv grava os dados de cada caso.
 Ambiente: SRF_BIN (o executavel, padrao ../SlopeRandomField/bin/SlopeRandomField), SOLVER (passado ao programa se
 definido), MALHA_GROSSA e os REFINA_* de srf_refinado.sh."""
 
@@ -288,6 +289,23 @@ def tabela(a):
                 cel.append(fmt(v["fator"]))
             else:
                 cel.append("%s (%s%%)" % (fmt(v["fator"]), fmt(100 * v["dif"], 2, True)))
+        print("| %s | %s |" % (c, " | ".join(cel)))
+    print("\nTempo de parede de cada caso (s)%s:\n" % (
+        "; no método de duas etapas, entre parênteses, as etapas: malha grossa + gmsh + malha refinada"
+        if "refinada" in ordem else ""))
+    print("| caso | " + " | ".join(ordem) + " |")
+    print("|---|" + "---|" * len(ordem))
+    for c in cs:
+        cel = []
+        for m in ordem:
+            v = dados.get((m, c))
+            if v is None or v["parede_s"] is None:
+                cel.append("-")
+            elif m == "refinada" and v["seg_grossa"] is not None:
+                cel.append("%s (%s + %s + %s)" % (fmt(v["parede_s"], 1), fmt(v["seg_grossa"], 1), fmt(v["seg_malha"], 1),
+                                                  fmt(v["seg_fina"], 1)))
+            else:
+                cel.append(fmt(v["parede_s"], 1))
         print("| %s | %s |" % (c, " | ".join(cel)))
     print("\nResumo por método (%d casos: %s):\n" % (len(cs), ", ".join(cs)))
     print("| método | triângulos | equações | dif. média | dif. máxima | dif. média com sinal | Γ < 1 | "

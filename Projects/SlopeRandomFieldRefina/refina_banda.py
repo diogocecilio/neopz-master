@@ -12,7 +12,9 @@ grossa encontrou, gerada pelo gmsh a partir do .geo da malha grossa.
   elementos de tamanho h (padrao 0,125 m) ate 'folga' (padrao 0,375 m) dos pontos da banda, crescendo ate o hMax da malha
   grossa a folga + 3 m; o campo de fundo passa a ser o minimo do antigo e deste. Assim o contorno, e com ele o retangulo
   do Karhunen-Loeve, nao muda, e a realizacao tem o mesmo campo aleatorio nas duas malhas.
-- O gmsh: o executavel gmsh, se estiver no PATH; senao o modulo python gmsh (python3 -m pip install --user gmsh).
+- O gmsh: o modulo python gmsh deste python (python3 -m pip install --user gmsh); sem ele, ou se ele nao carrega, o
+  executavel gmsh do PATH, se ele roda (gmsh -version). O executavel gmsh que o pip instala junto com o modulo e um
+  script com '#!/usr/bin/env python', que nao roda onde nao ha um 'python' no PATH; por isso o modulo vem primeiro.
 
 Escreve <saida>.geo e <saida>.msh (cada um com troca atomica) e imprime uma linha chave=valor: triangulos,
 celulas_banda, fator_grossa (o fator no instante da banda), t_h, h, folga e limiar.
@@ -77,39 +79,63 @@ def geo_refinado(geo_grosso, pontos, h, folga):
     return txt[:m.start()] + "\n".join(novo) + "\n" + txt[m.end():]
 
 
-SEM_GMSH = "refina_banda: nem o executavel gmsh no PATH nem o modulo python gmsh (python3 -m pip install --user gmsh)"
-
-
 def modulo_gmsh():
-    """o modulo python gmsh, ou sai com codigo 2 (sem o modulo, ou sem as bibliotecas de que ele depende)"""
+    """(o modulo python gmsh, None), ou (None, motivo) sem o modulo ou sem as bibliotecas de que ele depende"""
     try:
         import gmsh
     except ImportError:
-        print(SEM_GMSH, file=sys.stderr)
-        sys.exit(2)
+        return None, "sem o modulo python gmsh em %s" % sys.executable
     except OSError as e:  # o libgmsh.so do pip depende de bibliotecas do X e do OpenGL (libGLU, libXft, ...)
-        print("refina_banda: o modulo python gmsh nao carrega: %s" % e, file=sys.stderr)
-        sys.exit(2)
-    return gmsh
+        return None, "o modulo python gmsh nao carrega: %s" % e
+    return gmsh, None
+
+
+def executavel_gmsh():
+    """(caminho, versao) do executavel gmsh do PATH, se 'gmsh -version' roda; ou (None, motivo)"""
+    g = shutil.which("gmsh")
+    if not g:
+        return None, "sem o executavel gmsh no PATH"
+    try:
+        r = subprocess.run([g, "-version"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                           errors="replace", timeout=120)
+    except (OSError, subprocess.SubprocessError) as e:
+        return None, "o executavel %s nao roda: %s" % (g, e)
+    if r.returncode != 0:  # a ultima linha da saida: o erro (de um script python, a ultima do traceback)
+        fim = r.stdout.strip().splitlines()[-1] if r.stdout.strip() else ""
+        return None, "o executavel %s nao roda (codigo %d): %s" % (g, r.returncode, fim)
+    return g, r.stdout.strip().splitlines()[-1] if r.stdout.strip() else "-"
+
+
+_GMSH = []
 
 
 def qual_gmsh():
-    """'executavel <caminho>' ou 'modulo <caminho> (versao)'; sai com codigo 2 se nao ha nenhum"""
-    g = shutil.which("gmsh")
-    if g:
-        return "executavel " + g
-    gmsh = modulo_gmsh()
-    return "modulo %s (%s)" % (gmsh.__file__, gmsh.__version__)
+    """('modulo', modulo) ou ('executavel', caminho, versao): o modulo python gmsh ou, sem ele, o executavel gmsh do
+    PATH que roda; sai com codigo 2 se nao ha nenhum"""
+    if not _GMSH:
+        mod, motivo_mod = modulo_gmsh()
+        if mod:
+            _GMSH.append(("modulo", mod))
+        else:
+            exe, info = executavel_gmsh()
+            if not exe:
+                print("refina_banda: sem gmsh: %s; %s. Instale o modulo (%s -m pip install --user gmsh) ou ponha no "
+                      "PATH um executavel gmsh que rode" % (motivo_mod, info, os.path.basename(sys.executable)),
+                      file=sys.stderr)
+                sys.exit(2)
+            _GMSH.append(("executavel", exe, info))
+    return _GMSH[0]
 
 
 def gera_msh(geo, msh):
-    if shutil.which("gmsh"):
-        r = subprocess.run(["gmsh", "-2", geo, "-o", msh], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+    g = qual_gmsh()
+    if g[0] == "executavel":
+        r = subprocess.run([g[1], "-2", geo, "-o", msh], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
                            errors="replace")
         if r.returncode != 0 or not os.path.isfile(msh):
             raise SystemExit("refina_banda: gmsh falhou:\n" + r.stdout[-2000:])
         return
-    gmsh = modulo_gmsh()
+    gmsh = g[1]
     gmsh.initialize()
     try:
         gmsh.option.setNumber("General.Terminal", 0)
@@ -144,7 +170,11 @@ def triangulos(msh):
 
 def main():
     if len(sys.argv) == 2 and sys.argv[1] == "--gmsh":
-        print(qual_gmsh())
+        g = qual_gmsh()
+        if g[0] == "modulo":
+            print("modulo %s (%s), em %s" % (g[1].__file__, g[1].__version__, sys.executable))
+        else:
+            print("executavel %s (%s)" % (g[1], g[2]))
         return
     if len(sys.argv) == 3 and sys.argv[1] == "--malha":
         saida = sys.argv[2]

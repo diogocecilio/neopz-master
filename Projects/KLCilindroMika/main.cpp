@@ -7,9 +7,12 @@
 // pares de elementos; os autovalores saem do Eigen (Cholesky de B e autovalores da matriz simetrica L^-1 C L^-T).
 //
 // Malha: hexaedros H1 de ordem P em theta x rho x z, com a geometria exata do cilindro (TPZGeoBlend com TPZArc3D em
-// todas as arestas circunferenciais). Parametros (variaveis de ambiente):
+// todas as arestas circunferenciais) ou, com GEOMETRIA=reta, hexaedros retos (TPZGeoCube, mapa trilinear) com os nos em
+// (rho cos theta, rho sin theta, z), como a malha do notebook randomfied-v2.nb (Mathematica, NDSolve`FEM`: 16 x 2 x 4
+// nos, isto e, MALHAS=15x1x3). Parametros (variaveis de ambiente):
 //   P=2                 ordem dos elementos (1 ou 2)
 //   MALHAS=8x1x4,...    malhas nt x nr x nz (elementos em theta, rho e z), resolvidas em sequencia
+//   GEOMETRIA=exata     exata (arcos) ou reta (hexaedros retos; o volume e o do semi-anel poligonal)
 //   NG=0                pontos de Gauss por direcao nos pares de elementos sem no em comum (0: regra do elemento, P+1)
 //   NG_VIZINHO=0        idem, nos pares de elementos distintos com no em comum (0: o mesmo de NG)
 //   NG_PROPRIO=0        idem, no par de um elemento com ele mesmo (0: o mesmo de NG)
@@ -67,6 +70,19 @@ const double kGalerkin1[kNModos] = {162.7991539, 91.43063070, 57.56702901, 51.09
     25.05611145, 19.36893419, 16.15700369, 15.79530798, 15.14622914, 11.21328690, 10.17896939, 9.693564320,
     8.054783080, 7.578085990, 6.722378350, 6.445576690, 6.177345410, 5.763786920};
 
+// Notebook randomfied-v2.nb (implementacao em Mathematica): os 20 maiores autovalores na malha de 15 x 1 x 3 hexaedros
+// retos de 20 nos (serendipity de ordem 2 do NDSolve`FEM`), nucleo exp(-d/5); C integrada com
+// ElementIntegrationPoints[HexahedronElement, 5] em cada elemento e B com ElementIntegrationPoints[HexahedronElement, 6]
+const double kNotebook[kNModos] = {163.970508265661, 92.8766417405491, 56.1742887274958, 53.2844242959394,
+    37.8917704868271, 31.2590736524724, 30.6433599849792, 24.8307964691619, 24.8280714472055, 19.4531265296256,
+    18.2604845296221, 16.1117372629815, 13.6925059410356, 12.2071164563951, 10.8495198540395, 9.75519091851045,
+    8.34361784946862, 7.55505625308225, 6.94248999057834, 6.3017818247747};
+
+// volume do semi-anel poligonal (cordas no lugar dos arcos) com nt segmentos em theta: o dominio da malha reta
+double VolumeReto(int nt) {
+    return 0.5 * (kRaioExterno * kRaioExterno - kRaioInterno * kRaioInterno) * nt * std::sin(M_PI / nt) * kAltura;
+}
+
 int envi(const char *k, int d) { const char *v = std::getenv(k); return v ? std::atoi(v) : d; }
 std::string envs(const char *k, const std::string &d) { const char *v = std::getenv(k); return v ? std::string(v) : d; }
 
@@ -115,8 +131,9 @@ TPZIntCube3D RegraCubo(int n) {
 // No (i, j, k): theta_i = pi i / nt, rho_j = r + (R - r) j / nr, z_k = H k / nz. Hexaedro (i, j, k) com xi -> rho,
 // eta -> theta e zeta -> z (jacobiano positivo). Cada aresta circunferencial e um TPZArc3D (com um no no meio do arco),
 // vizinho dos hexaedros TPZGeoBlend que a contem: o mapa do hexaedro fica rho(xi) (cos theta(eta), sin theta(eta)) +
-// z(zeta) e_z, o do cilindro, com rho, theta e z lineares nas coordenadas de referencia (conferido em VerificaGeometria).
-TPZGeoMesh *MalhaMeioCilindro(const Malha &m, std::vector<std::array<int, 3>> &celula) {
+// z(zeta) e_z, o do cilindro, com rho, theta e z lineares nas coordenadas de referencia (conferido em Resolve).
+// reta: hexaedros TPZGeoCube com os mesmos 8 nos, sem arcos (mapa trilinear; secao transversal poligonal).
+TPZGeoMesh *MalhaMeioCilindro(const Malha &m, bool reta, std::vector<std::array<int, 3>> &celula) {
     auto *gmesh = new TPZGeoMesh;
     gmesh->SetDimension(3);
     const REAL dr = (kRaioExterno - kRaioInterno) / m.nr, dt = M_PI / m.nt, dz = kAltura / m.nz;
@@ -141,6 +158,7 @@ TPZGeoMesh *MalhaMeioCilindro(const Malha &m, std::vector<std::array<int, 3>> &c
                 no[(size_t)i + (m.nt + 1) * ((size_t)j + (m.nr + 1) * (size_t)k)] = novoNo(rho(j), 2 * i, zz(k));
 
     using Hexa = TPZGeoElRefPattern<pzgeom::TPZGeoBlend<pzgeom::TPZGeoCube>>;
+    using HexaReto = TPZGeoElRefPattern<pzgeom::TPZGeoCube>;
     using Arco = TPZGeoElRefPattern<pzgeom::TPZArc3D>;
     celula.assign(0, {0, 0, 0});
     for (int k = 0; k < m.nz; k++)
@@ -148,10 +166,15 @@ TPZGeoMesh *MalhaMeioCilindro(const Malha &m, std::vector<std::array<int, 3>> &c
             for (int i = 0; i < m.nt; i++) {
                 TPZManVector<int64_t, 8> nos = {id(i, j, k), id(i, j + 1, k), id(i + 1, j + 1, k), id(i + 1, j, k),
                     id(i, j, k + 1), id(i, j + 1, k + 1), id(i + 1, j + 1, k + 1), id(i + 1, j, k + 1)};
-                auto *gel = new Hexa(nos, kMatVolume, *gmesh);
+                TPZGeoEl *gel = reta ? (TPZGeoEl *)new HexaReto(nos, kMatVolume, *gmesh)
+                                     : (TPZGeoEl *)new Hexa(nos, kMatVolume, *gmesh);
                 if ((int64_t)celula.size() <= gel->Index()) celula.resize(gel->Index() + 1, {-1, -1, -1});
                 celula[gel->Index()] = {i, j, k};
             }
+    if (reta) {
+        gmesh->BuildConnectivity();
+        return gmesh;
+    }
     // arcos: nos (inicio, fim, ponto no meio do arco)
     for (int k = 0; k <= m.nz; k++)
         for (int j = 0; j <= m.nr; j++)
@@ -226,6 +249,26 @@ void MapaExato(const Malha &m, const std::array<int, 3> &c, const TPZVec<REAL> &
     x[1] = rho * std::sin(th);
     x[2] = z;
     detjac = rho * dr * dt * dz / 8.;
+}
+
+// mapa trilinear do hexaedro reto a partir dos seus 8 nos (ordem dos nos do TPZGeoCube) e |det J| no ponto qsi
+void MapaTrilinear(TPZGeoEl *gel, const TPZVec<REAL> &qsi, REAL x[3], REAL &detjac) {
+    static const int s[8][3] = {{-1, -1, -1}, {1, -1, -1}, {1, 1, -1}, {-1, 1, -1},
+                                {-1, -1, 1},  {1, -1, 1},  {1, 1, 1},  {-1, 1, 1}};
+    REAL J[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+    x[0] = x[1] = x[2] = 0.;
+    for (int a = 0; a < 8; a++) {
+        TPZManVector<REAL, 3> X(3);
+        gel->Node(a).GetCoordinates(X);
+        const REAL f[3] = {0.5 * (1. + s[a][0] * qsi[0]), 0.5 * (1. + s[a][1] * qsi[1]), 0.5 * (1. + s[a][2] * qsi[2])};
+        const REAL dN[3] = {0.5 * s[a][0] * f[1] * f[2], 0.5 * s[a][1] * f[0] * f[2], 0.5 * s[a][2] * f[0] * f[1]};
+        for (int k = 0; k < 3; k++) {
+            x[k] += f[0] * f[1] * f[2] * X[k];
+            for (int d = 0; d < 3; d++) J[d][k] += dN[d] * X[k];
+        }
+    }
+    detjac = std::fabs(J[0][0] * (J[1][1] * J[2][2] - J[1][2] * J[2][1]) - J[0][1] * (J[1][0] * J[2][2] - J[1][2] * J[2][0]) +
+                       J[0][2] * (J[1][0] * J[2][1] - J[1][1] * J[2][0]));
 }
 
 // o CalcStiffC antes desta correcao: a regra do primeiro elemento tambem no segundo, e os dados do segundo elemento
@@ -356,21 +399,28 @@ void ValidaCaso2D() {
 
 struct Resultado {
     Malha m;
+    bool reta = false;
     int64_t nel = 0, neq = 0;
     double h = 0.;
+    double volumeDominio = 0.; // 270 pi (geometria exata) ou o volume do semi-anel poligonal (reta)
     std::vector<double> lambda; // os kNModos maiores, em ordem decrescente
     double soma = 0., traco = 0., menor = 0.;
     double tMalha = 0., tPontos = 0., tB = 0., tC = 0., tAuto = 0., tTotal = 0., memoria = 0.;
 };
 
-Resultado Resolve(const Malha &m, int p, int ng, int ngv, int ngp, int nthreads, bool validar) {
+// a malha do notebook: 15 x 1 x 3 hexaedros retos de ordem 2
+bool MalhaDoNotebook(const Malha &m, bool reta, int p) { return reta && p == 2 && m.nt == 15 && m.nr == 1 && m.nz == 3; }
+
+Resultado Resolve(const Malha &m, bool reta, int p, int ng, int ngv, int ngp, int nthreads, bool validar) {
     Resultado res;
     res.m = m;
+    res.reta = reta;
+    res.volumeDominio = reta ? VolumeReto(m.nt) : kVolume;
     const auto t0 = Relogio::now();
 
     // ---- malhas ----
     std::vector<std::array<int, 3>> celula;
-    TPZGeoMesh *gmesh = MalhaMeioCilindro(m, celula);
+    TPZGeoMesh *gmesh = MalhaMeioCilindro(m, reta, celula);
     auto *cmesh = new TPZCompMesh(gmesh);
     cmesh->SetDefaultOrder(p);
     cmesh->SetDimModel(3);
@@ -436,13 +486,14 @@ Resultado Resolve(const Malha &m, int p, int ng, int ngv, int ngp, int nthreads,
         e.fonteProprio = ngp == ng ? 0 : (ngp == ngv ? 1 : 2);
         if (e.fonteVizinho == 1) e.intel->KLPointData(regraV, e.pontosVizinho);
         if (e.fonteProprio == 2) e.intel->KLPointData(regraP, e.pontosProprio);
-        // geometria: pontos e |det J| contra o mapa exato do cilindro
+        // geometria: pontos e |det J| contra o mapa exato do cilindro (ou o trilinear dos 8 nos, na malha reta)
         TPZManVector<REAL, 3> qsi(3);
         REAL w;
         for (int ip = 0; ip < regra.NPoints(); ip++) {
             regra.Point(ip, qsi, w);
             REAL x[3], dj;
-            MapaExato(m, e.celula, qsi, x, dj);
+            if (reta) MapaTrilinear(e.intel->Reference(), qsi, x, dj);
+            else MapaExato(m, e.celula, qsi, x, dj);
             for (int k = 0; k < 3; k++) erroX = std::max(erroX, std::fabs(e.pontos.fX(k, ip) - x[k]));
             erroW = std::max(erroW, std::fabs(e.pontos.fW[ip] - w * dj) / (w * dj));
             volume += e.pontos.fW[ip];
@@ -460,13 +511,21 @@ Resultado Resolve(const Malha &m, int p, int ng, int ngv, int ngp, int nthreads,
     }
     res.tB = Segundos(t2);
 
-    std::cout << "\nMalha " << m.nt << " x " << m.nr << " x " << m.nz << " (theta x rho x z), ordem " << p << ": " << nel
-              << " elementos, " << neq << " equacoes, maior diagonal " << std::setprecision(4) << res.h << "\n";
-    std::cout << std::setprecision(10) << "  volume (soma dos pesos x |det J|) = " << volume << ", 270 pi = " << kVolume
-              << ", erro relativo " << std::setprecision(2) << std::scientific << (volume - kVolume) / kVolume
-              << std::defaultfloat << "\n";
-    std::cout << "  geometria contra o mapa exato do cilindro: max |x - x_exato| = " << std::setprecision(2)
-              << std::scientific << erroX << ", max erro relativo de |det J| = " << erroW << std::defaultfloat << "\n";
+    std::cout << "\nMalha " << m.nt << " x " << m.nr << " x " << m.nz << " (theta x rho x z), "
+              << (reta ? "hexaedros retos" : "geometria exata") << ", ordem " << p << ": " << nel << " elementos, " << neq
+              << " equacoes, maior diagonal " << std::setprecision(4) << res.h << "\n";
+    if (reta)
+        std::cout << std::setprecision(10) << "  volume (soma dos pesos x |det J|) = " << volume
+                  << ", semi-anel poligonal = " << res.volumeDominio << ", erro relativo " << std::setprecision(2)
+                  << std::scientific << (volume - res.volumeDominio) / res.volumeDominio << std::defaultfloat
+                  << "; 270 pi = " << std::setprecision(10) << kVolume << "\n";
+    else
+        std::cout << std::setprecision(10) << "  volume (soma dos pesos x |det J|) = " << volume << ", 270 pi = " << kVolume
+                  << ", erro relativo " << std::setprecision(2) << std::scientific << (volume - kVolume) / kVolume
+                  << std::defaultfloat << "\n";
+    std::cout << "  geometria contra o mapa " << (reta ? "trilinear dos 8 nos" : "exato do cilindro")
+              << ": max |x - x_mapa| = " << std::setprecision(2) << std::scientific << erroX
+              << ", max erro relativo de |det J| = " << erroW << std::defaultfloat << "\n";
     std::cout << "  pontos de Gauss por direcao: " << ng << " (pares sem no em comum), " << ngv
               << " (pares com no em comum), " << ngp << " (elemento com ele mesmo)" << std::endl;
 
@@ -573,16 +632,31 @@ Resultado Resolve(const Malha &m, int p, int ng, int ngv, int ngp, int nthreads,
     res.tTotal = Segundos(t0);
     res.memoria = PicoMemoriaMB();
 
-    std::cout << "  modo    NeoPZ            Galerkin 2       erro rel.     Galerkin 1       (G1-G2)/G2\n";
-    for (int k = 0; k < (int)res.lambda.size(); k++)
-        std::cout << "  " << std::setw(4) << k + 1 << std::fixed << std::setprecision(7) << std::setw(17) << res.lambda[k]
-                  << std::setw(17) << kGalerkin2[k] << std::scientific << std::setprecision(2) << std::setw(13)
-                  << (res.lambda[k] - kGalerkin2[k]) / kGalerkin2[k] << std::fixed << std::setprecision(7)
-                  << std::setw(17) << kGalerkin1[k] << std::scientific << std::setprecision(2) << std::setw(13)
-                  << (kGalerkin1[k] - kGalerkin2[k]) / kGalerkin2[k] << std::defaultfloat << "\n";
+    if (MalhaDoNotebook(m, reta, p)) {
+        // a malha do notebook: NeoPZ (Q2, 27 funcoes por hexaedro) contra o notebook (serendipity de 20 nos)
+        std::cout << "  modo    NeoPZ            notebook         (NeoPZ-nb)/nb   Galerkin 2       (NeoPZ-G2)/G2  "
+                     "(nb-G2)/G2\n";
+        for (int k = 0; k < (int)res.lambda.size(); k++)
+            std::cout << "  " << std::setw(4) << k + 1 << std::fixed << std::setprecision(7) << std::setw(17)
+                      << res.lambda[k] << std::setw(17) << kNotebook[k] << std::scientific << std::setprecision(2)
+                      << std::setw(15) << (res.lambda[k] - kNotebook[k]) / kNotebook[k] << std::fixed
+                      << std::setprecision(7) << std::setw(17) << kGalerkin2[k] << std::scientific
+                      << std::setprecision(2) << std::setw(15) << (res.lambda[k] - kGalerkin2[k]) / kGalerkin2[k]
+                      << std::setw(13) << (kNotebook[k] - kGalerkin2[k]) / kGalerkin2[k] << std::defaultfloat << "\n";
+    } else {
+        std::cout << "  modo    NeoPZ            Galerkin 2       erro rel.     Galerkin 1       (G1-G2)/G2\n";
+        for (int k = 0; k < (int)res.lambda.size(); k++)
+            std::cout << "  " << std::setw(4) << k + 1 << std::fixed << std::setprecision(7) << std::setw(17)
+                      << res.lambda[k] << std::setw(17) << kGalerkin2[k] << std::scientific << std::setprecision(2)
+                      << std::setw(13) << (res.lambda[k] - kGalerkin2[k]) / kGalerkin2[k] << std::fixed
+                      << std::setprecision(7) << std::setw(17) << kGalerkin1[k] << std::scientific
+                      << std::setprecision(2) << std::setw(13) << (kGalerkin1[k] - kGalerkin2[k]) / kGalerkin2[k]
+                      << std::defaultfloat << "\n";
+    }
     std::cout << std::setprecision(10) << "  soma de todos os autovalores = " << res.soma << " (traco de L^-1 C L^-T = "
-              << res.traco << "); sigma^2 |D| = 270 pi = " << kVolume << "; razao " << std::setprecision(6)
-              << res.soma / kVolume << "\n";
+              << res.traco << "); sigma^2 |D| = " << res.volumeDominio
+              << (reta ? " (semi-anel poligonal)" : " (270 pi)") << "; razao " << std::setprecision(6)
+              << res.soma / res.volumeDominio << "\n";
     std::cout << "  menor autovalor = " << std::setprecision(3) << std::scientific << res.menor << std::defaultfloat
               << "\n";
     std::cout << std::fixed << std::setprecision(2) << "  tempos (s): malhas " << res.tMalha << ", pontos " << res.tPontos
@@ -604,7 +678,13 @@ int main() {
         std::cerr << "P deve ser 1, 2 ou 3\n";
         return 2;
     }
-    const std::string padrao = p == 1 ? "16x2x8,24x3x12,32x4x16" : "8x1x4,12x2x6,16x2x8";
+    const std::string geometria = envs("GEOMETRIA", "exata");
+    if (geometria != "exata" && geometria != "reta") {
+        std::cerr << "GEOMETRIA deve ser exata ou reta\n";
+        return 2;
+    }
+    const bool reta = geometria == "reta";
+    const std::string padrao = reta ? "15x1x3" : (p == 1 ? "16x2x8,24x3x12,32x4x16" : "8x1x4,12x2x6,16x2x8");
     const std::vector<Malha> malhas = LeMalhas(envs("MALHAS", padrao));
     const int ng = envi("NG", 0), ngv = envi("NG_VIZINHO", 0), ngp = envi("NG_PROPRIO", 0);
     const int nthreads = envi("THREADS", 2);
@@ -613,34 +693,38 @@ int main() {
 
     std::cout << "Karhunen-Loeve de Galerkin no meio cilindro vazado de Mika et al. (2021), Secao 6.2, Exemplo 1-1\n"
               << "  8 <= rho <= 10, 0 <= theta <= pi, 0 <= z <= 15; G = exp(-|x - x'| / 5), sigma^2 = 1\n"
-              << "  referencia: Galerkin 2 da Tabela 4 (NURBS p = 2, 3800 elementos, 6642 graus de liberdade)\n";
+              << "  referencia: Galerkin 2 da Tabela 4 (NURBS p = 2, 3800 elementos, 6642 graus de liberdade)\n"
+              << "  geometria: " << (reta ? "hexaedros retos (nos em (rho cos theta, rho sin theta, z), como no notebook)"
+                                          : "exata (arcos nas arestas circunferenciais)") << "\n";
 
     std::vector<Resultado> res;
     for (const auto &m : malhas) {
-        res.push_back(Resolve(m, p, ng, ngv, ngp, nthreads, validar));
+        res.push_back(Resolve(m, reta, p, ng, ngv, ngp, nthreads, validar));
         if (!csv.empty()) {
             const bool novo = !std::ifstream(csv).good();
             std::ofstream f(csv, std::ios::app);
             if (novo) {
-                f << "p,nt,nr,nz,elementos,equacoes,h,ng,ng_vizinho,ng_proprio";
+                f << "geometria,p,nt,nr,nz,elementos,equacoes,h,ng,ng_vizinho,ng_proprio";
                 for (int k = 1; k <= kNModos; k++) f << ",lambda" << k;
-                f << ",soma,menor,t_pontos,t_B,t_C,t_autovalores,t_total,threads,memoria_MB\n";
+                f << ",soma,volume_dominio,menor,t_pontos,t_B,t_C,t_autovalores,t_total,threads,memoria_MB\n";
             }
             const Resultado &r = res.back();
             const int ngE = ng > 0 ? ng : p + 1;
-            f << p << ',' << m.nt << ',' << m.nr << ',' << m.nz << ',' << r.nel << ',' << r.neq << ','
+            f << geometria << ',' << p << ',' << m.nt << ',' << m.nr << ',' << m.nz << ',' << r.nel << ',' << r.neq << ','
               << std::setprecision(6) << r.h << ',' << ngE << ',' << (ngv > 0 ? ngv : ngE) << ','
               << (ngp > 0 ? ngp : ngE) << std::setprecision(12);
             for (double l : r.lambda) f << ',' << l;
-            f << ',' << r.soma << ',' << r.menor << std::setprecision(6) << ',' << r.tPontos << ',' << r.tB << ','
+            f << ',' << r.soma << ',' << r.volumeDominio << ',' << r.menor << std::setprecision(6) << ',' << r.tPontos
+              << ',' << r.tB << ','
               << r.tC << ',' << r.tAuto << ',' << r.tTotal << ',' << nthreads << ',' << r.memoria << '\n';
         }
     }
 
     // ---- resumo da convergencia ----
-    std::cout << "\nResumo (erros relativos contra Galerkin 2; soma dos autovalores / 270 pi)\n"
+    std::cout << "\nResumo (erros relativos contra Galerkin 2; soma dos autovalores / volume do dominio da malha, "
+              << (reta ? "o semi-anel poligonal" : "270 pi") << ")\n"
               << "  malha        elementos  equacoes  lambda_1       lambda_10      lambda_20      max |erro| 1-20  "
-                 "soma/270pi  tempo (s)\n";
+                 "soma/|D|    tempo (s)\n";
     for (const auto &r : res) {
         double emax = 0.;
         for (int k = 0; k < (int)r.lambda.size(); k++)
@@ -651,7 +735,7 @@ int main() {
         std::cout << "  " << std::left << std::setw(12) << nome.str() << std::right << std::setw(10) << r.nel
                   << std::setw(10) << r.neq << std::scientific << std::setprecision(3) << std::setw(15) << erro(0)
                   << std::setw(15) << erro(9) << std::setw(15) << erro(19) << std::setw(17) << emax << std::fixed
-                  << std::setprecision(5) << std::setw(12) << r.soma / kVolume << std::setprecision(1) << std::setw(11)
+                  << std::setprecision(5) << std::setw(12) << r.soma / r.volumeDominio << std::setprecision(1) << std::setw(11)
                   << r.tTotal << std::defaultfloat << "\n";
     }
     return 0;

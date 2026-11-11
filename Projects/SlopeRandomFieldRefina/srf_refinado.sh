@@ -19,8 +19,9 @@
 # Um sinal (Ctrl-C, scancel, kill) sai com o codigo do programa (128 + sinal), que rodar_mc.sh nao conta como falha.
 # Depois do sucesso, apaga malha_refinada.msh (refeita do .geo, se a realizacao for rodada de novo) e grossa/mecanismo.csv.
 # Ambiente: SRF_BIN (padrao ../SlopeRandomField/bin/SlopeRandomField), REFINA_H (0.125), REFINA_FOLGA (0.375),
-# REFINA_LIMIAR (0.1), PYTHON (python3; com o executavel gmsh no PATH ou o modulo python gmsh). Os REFINA_* de uma
-# combinacao ficam em ../refino_parametros.txt; outra rodada na mesma pasta de combinacao com outros valores e recusada.
+# REFINA_LIMIAR (0.1), PYTHON (python3; com o modulo python gmsh ou, sem ele, um executavel gmsh no PATH que rode). Os
+# REFINA_* de uma combinacao ficam em ../refino_parametros.txt; outra rodada na mesma pasta de combinacao com outros
+# valores e recusada.
 set -u
 export LC_ALL=C # numeros com ponto decimal em qualquer locale (awk, printf)
 dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -96,8 +97,8 @@ mkdir -p grossa || exit 1
 if ! [ -s grossa/resultado.txt ]; then
     # sem gmsh, a etapa 2 nao teria como rodar: o erro sai ja aqui
     if ! "$py" "$refina" --gmsh > /dev/null; then
-        echo "srf_refinado: sem gmsh para $py: ponha o executavel gmsh no PATH ou instale o modulo" \
-            "($py -m pip install --user gmsh)" >&2
+        echo "srf_refinado: sem gmsh para $py: instale o modulo ($py -m pip install --user gmsh) ou ponha no PATH" \
+            "um executavel gmsh que rode" >&2
         exit 2
     fi
     echo "$(date '+%F %T') etapa 1: malha grossa $(basename "$malha_g")"
