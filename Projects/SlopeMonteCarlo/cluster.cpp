@@ -1,7 +1,9 @@
 // cluster.cpp (alvo SlopeMonteCarloCluster): as Secoes 6.1 a 6.5 de Vargas Ceron et al. (2025) no cluster (fermi), com o
-// mesmo modelo do main.cpp deste projeto: malha ceron_h5_a45_g15, refinamento adaptativo em h (nunif = 0, nref = 3,
+// mesmo modelo do main.cpp deste projeto: malha ceron_h5_a45_g15, refinamento adaptativo em h (nunif = 0, nref = 4,
 // pmax = 2), percolacao permanente do rebaixamento e Gamma pelo GIM com arc-length no material nao saturado, campos
 // lognormais de c', phi' e k_v por Karhunen-Loeve (M = 2000). Ruptura: Gamma < 1.
+// Os niveis de refinamento adaptativo (nref) vem de SMC_NREF. Cada pasta de saida e de uma configuracao so: a que ja tem
+// resultados de outro nref (ou de outra malha) e recusada, para as realizacoes de malhas diferentes nao se misturarem.
 //
 // Os casos sao os das Tabelas 3 a 6 do artigo, e as pastas e arquivos sao os do exemplo do fermi (campanha ceron_sat do
 // SlopeRandomField), para que SlopeRandomField/comparacao_ceron/dados_sat.py e relatorio_sat.py os leiam sem mudancas:
@@ -13,22 +15,28 @@
 // deterministico proprio (referencia, alfa e h_w): <caso>_det/r00000/ com resumo.csv, mecanismo.csv e resultado.txt.
 //
 // Uso: SlopeMonteCarloCluster casos [casos = todos]
+//      SlopeMonteCarloCluster confere <raiz> [casos = todos]
 //      SlopeMonteCarloCluster rodar <raiz> <primeira> <ultima> <k> <K> [casos = todos]
 //      SlopeMonteCarloCluster junta <raiz>
 //      SlopeMonteCarloCluster resumo <raiz>
 // rodar: o processo k de K faz as tarefas i com i % K == k de uma fila com os deterministicos primeiro e depois as
 // realizacoes primeira..ultima dos casos, intercaladas (a 0 de todos, depois a 1, ...). Pula as que ja estao em algum
 // partes/*.csv do caso: rodar de novo continua, e com <ultima> maior acrescenta realizacoes. Com o arquivo <raiz>/PARAR,
-// nenhuma tarefa nova comeca. casos: ids separados por virgulas (ref, covk=0.75, covc=0.5, covphi=0.2, s=2, alfa=3,
-// hw=0.5), fases (fase1, fase2, fase3) ou todos.
+// ou depois de um SIGUSR1 (o aviso do limite de tempo do job), nenhuma tarefa nova comeca. A tarefa que termina numa
+// excecao (um DebugStop do NeoPZ) fica sem resultado, com uma linha ERRO no log: a fila segue, e a proxima submissao
+// tenta de novo. casos: ids separados por virgulas (ref, covk=0.75, covc=0.5, covphi=0.2, s=2, alfa=3, hw=0.5), fases
+// (fase1, fase2, fase3) ou todos.
+// confere: a lista de casos e a configuracao das pastas que ja existem em <raiz> (o que o rodar confere ao comecar).
 // junta: o mc_resumo.csv de cada caso. resumo: junta e compara cada caso com o artigo (o Spearman da 6.1 e as figuras
 // ficam com o dados_sat.py e o relatorio_sat.py).
-// Ambiente: SMC_PREFIXO (padrao ceron_mc) e SMC_VERSAO (vai para a coluna versao).
+// Ambiente: SMC_NREF (niveis de refinamento adaptativo, padrao 4), SMC_PREFIXO (padrao ceron_mc) e SMC_VERSAO (vai para
+// a coluna versao).
 #include "SlopeAnalysis.h"
 #include "SlopeFields.h"
 
 #include <algorithm>
 #include <cmath>
+#include <csignal>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -44,9 +52,25 @@ namespace fs = std::filesystem;
 
 // ---- o modelo da ultima simulacao (main.cpp)
 const char *kMalha = "ceron_h5_a45_g15.msh";
-const int kNunif = 0, kNref = 3, kPmax = 2;
+const int kNunif = 0, kNrefPadrao = 4, kPmax = 2;
 const uint64_t kSemente = 20250416; // a realizacao n tem os mesmos numeros aleatorios em todos os casos
 const std::string kBase = "f50_I0_iii";
+
+// Niveis de refinamento adaptativo: SMC_NREF (o NREF do submeter.sh). O Gamma da realizacao e o do ultimo nivel
+int Nref()
+{
+    static const int n = [] {
+        const char *p = std::getenv("SMC_NREF");
+        if (!p || !*p) return kNrefPadrao;
+        char *fim = nullptr;
+        const long v = std::strtol(p, &fim, 10);
+        if (*fim || v < 0 || v > 9) throw std::runtime_error(std::string("SMC_NREF invalido: ") + p + " (de 0 a 9)");
+        return (int)v;
+    }();
+    return n;
+}
+
+volatile std::sig_atomic_t gParar = 0; // SIGUSR1: o processo termina a tarefa corrente e nao comeca outra
 
 // ---- um caso: o que muda em relacao a referencia (Tabela 2) e os valores do artigo
 struct Caso {
@@ -219,16 +243,57 @@ void GravaAtomico(const std::string &arq, const std::string &conteudo) // tmp + 
     fs::rename(tmp, arq);
 }
 
-void GravaParametros(const std::string &pasta, const Caso &c)
+// parametros.txt de um caso: a configuracao (malha, refinamento, modelo) e o que o caso muda
+std::string TextoParametros(const Caso &c)
 {
-    fs::create_directories(pasta);
     std::ostringstream o;
-    o << "MESH=" << kMalha << "\nNUNIF=" << kNunif << "\nNREF=" << kNref << "\nPMAX=" << kPmax
+    o << "MESH=" << kMalha << "\nNUNIF=" << kNunif << "\nNREF=" << Nref() << "\nPMAX=" << kPmax
       << "\nFATOR=gim_arco\nAGUA=percolacao_permanente\nMATERIAL=nao_saturado\nCOES=10\nPHI_DEG=30\nGAMMA=20\nKV=1e-6\n"
       << "H=5\nBETA_DEG=45\nXCRISTA=10\nYCRISTA=10\nXTOE=15\nYTOE=5\nCOV_C=" << c.covC << "\nCOV_PHI=" << c.covPhi
       << "\nCOV_K=" << c.covK << "\nLX=" << 20. * c.s << "\nLY=" << 2. * c.s << "\nALFA=" << c.alfa << "\nHW_H=" << c.hwH
       << "\nNIVEL_FINAL=" << DadosCaso(c).Nivel() << "\nKL_M=" << FieldStats().M << "\nSEMENTE=" << kSemente << "\n";
-    GravaAtomico(pasta + "/parametros.txt", o.str());
+    return o.str();
+}
+
+// As linhas chave=valor de um texto
+std::map<std::string, std::string> ChavesValores(std::istream &in)
+{
+    std::map<std::string, std::string> p;
+    std::string l;
+    while (std::getline(in, l)) {
+        const auto i = l.find('=');
+        if (i != std::string::npos) p[l.substr(0, i)] = l.substr(i + 1);
+    }
+    return p;
+}
+std::map<std::string, std::string> LeParametros(const std::string &arq)
+{
+    std::ifstream in(arq);
+    return ChavesValores(in);
+}
+
+// Uma pasta so recebe resultados de uma configuracao: se ja tem parametros.txt, as chaves dele conferem com as de agora.
+// Senao as realizacoes de outro NREF (ou de outra malha) entrariam nos mesmos partes/*.csv e na mesma estatistica
+void ConfereParametros(const std::string &pasta, const Caso &c)
+{
+    const auto antes = LeParametros(pasta + "/parametros.txt");
+    std::istringstream agora(TextoParametros(c));
+    std::string dif;
+    for (const auto &[k, v] : ChavesValores(agora)) {
+        const auto it = antes.find(k);
+        if (it != antes.end() && it->second != v)
+            dif += (dif.empty() ? "" : ", ") + k + "=" + it->second + " (agora " + v + ")";
+    }
+    if (!dif.empty())
+        throw std::runtime_error(pasta + " tem resultados de outra configuracao: " + dif +
+                                 ". Use outra pasta de saida (SAIDA), ou a configuracao daquela (NREF)");
+}
+
+void GravaParametros(const std::string &pasta, const Caso &c)
+{
+    ConfereParametros(pasta, c);
+    fs::create_directories(pasta);
+    GravaAtomico(pasta + "/parametros.txt", TextoParametros(c));
 }
 
 // As linhas completas de partes/*.csv de um caso, por realizacao (a primeira de cada uma), e o cabecalho. Uma linha com
@@ -270,7 +335,7 @@ Tarefa RodaTarefa(const Caso &c, int64_t real, const FlatMesh &m0, const std::st
     const auto t0 = Clock::now();
     const Data d = DadosCaso(c);
     SlopeAnalysis an(d, MaterialKind::Unsat, WaterModel::Drawdown, FactorMethod::GIMArcLength);
-    an.SetRefinement({kNunif, kNref, kPmax, 0.1});
+    an.SetRefinement({kNunif, Nref(), kPmax, 0.1});
     an.SetRecordPoints(true);
     std::unique_ptr<RandomFields> rf;
     if (real >= 0) {
@@ -336,6 +401,7 @@ std::vector<Caso> Seleciona(const std::string &lista)
 // ---- rodar: a fila de tarefas deste processo
 int Rodar(const std::string &raiz, int64_t primeira, int64_t ultima, int k, int K, const std::vector<Caso> &casos)
 {
+    std::signal(SIGUSR1, [](int) { gParar = 1; }); // o job avisa 15 min antes do limite de tempo
     FlatMesh m0;
     {
         QuietCout q; // o leitor do gmsh imprime cada grupo fisico
@@ -350,17 +416,21 @@ int Rodar(const std::string &raiz, int64_t primeira, int64_t ultima, int k, int 
     for (int64_t r = primeira; r <= ultima; r++)
         for (size_t i = 0; i < casos.size(); i++) fila.push_back({i, r});
     std::vector<std::set<int64_t>> feitas;
-    for (const auto &c : casos) {
+    for (const auto &c : casos) { // antes de qualquer conta: com a pasta de outra configuracao, o processo sai aqui
         GravaParametros(Pasta(raiz, c), c);
         if (c.detProprio) GravaParametros(Pasta(raiz, c) + "_det", c);
         feitas.push_back(Feitas(Pasta(raiz, c)));
     }
-    Print("processo %d de %d | %zu casos | realizacoes %lld..%lld | %zu tarefas na fila, %zu deste processo", k, K,
-          casos.size(), (long long)primeira, (long long)ultima, fila.size(),
+    Print("processo %d de %d | %zu casos | realizacoes %lld..%lld | %d niveis adapt. | %zu tarefas na fila, %zu deste "
+          "processo", k, K, casos.size(), (long long)primeira, (long long)ultima, Nref(), fila.size(),
           fila.size() > (size_t)k ? (fila.size() - k + K - 1) / K : 0);
     int feitasAgora = 0;
     const auto t0 = Clock::now();
     for (size_t i = k; i < fila.size(); i += K) {
+        if (gParar) {
+            std::cout << "SIGUSR1 (limite de tempo do job): nenhuma tarefa nova" << std::endl;
+            break;
+        }
         if (fs::exists(raiz + "/PARAR")) {
             Print("%s/PARAR existe: nenhuma tarefa nova", raiz.c_str());
             break;
@@ -371,7 +441,20 @@ int Rodar(const std::string &raiz, int64_t primeira, int64_t ultima, int k, int 
         if (r < 0 ? fs::exists(PastaDet(raiz, c) + "/resultado.txt") : feitas[fila[i].first].count(r) > 0) continue;
         if (r < 0) fs::create_directories(PastaDet(raiz, c));
         const auto tr = Clock::now();
-        const Tarefa t = RodaTarefa(c, r, m0, raiz);
+        Tarefa t;
+        std::string erro;
+        try {
+            t = RodaTarefa(c, r, m0, raiz);
+        } catch (const std::exception &e) { // um DebugStop do NeoPZ, por exemplo
+            erro = e.what();
+        } catch (...) {
+            erro = "excecao desconhecida";
+        }
+        if (!erro.empty()) { // a tarefa fica sem resultado (a proxima submissao tenta de novo) e a fila do processo segue
+            Print("%-12s %s %6lld | ERRO: %s | %.1f s | sem resultado", c.id.c_str(), r < 0 ? "det " : "real",
+                  (long long)(r < 0 ? 0 : r), erro.c_str(), Seconds(tr));
+            continue;
+        }
         REAL gamma = 0.;
         for (const auto &[n, v] : t.linha)
             if (n == "FS_min") gamma = std::atof(v.c_str());
@@ -440,9 +523,18 @@ std::map<std::string, std::vector<std::string>> LeCsv(const std::string &arq)
 void Resumo(const std::string &raiz)
 {
     Junta(raiz);
+    // a configuracao e a dos resultados (o parametros.txt do primeiro caso que existe), nao a de SMC_NREF
+    std::string config = std::string(kMalha) + ", " + std::to_string(kNunif) + " unif. + " + std::to_string(Nref()) +
+                         " adapt., u ate P" + std::to_string(kPmax);
+    for (const auto &c : Casos()) {
+        const auto p = LeParametros(Pasta(raiz, c) + "/parametros.txt");
+        if (!p.count("MESH") || !p.count("NUNIF") || !p.count("NREF") || !p.count("PMAX")) continue;
+        config = p.at("MESH") + ", " + p.at("NUNIF") + " unif. + " + p.at("NREF") + " adapt., u ate P" + p.at("PMAX");
+        break;
+    }
     const std::string linha(132, '=');
-    std::cout << linha << "\n MONTE CARLO DO CERON | " << raiz << " | " << Prefixo() << "_fase{1,2,3} | malha " << kMalha
-              << ", " << kNunif << " unif. + " << kNref << " adapt., u ate P" << kPmax << "\n" << linha << "\n";
+    std::cout << linha << "\n MONTE CARLO DO CERON | " << raiz << " | " << Prefixo() << "_fase{1,2,3} | malha " << config
+              << "\n" << linha << "\n";
     Print(" %-12s %6s %5s %8s %8s %7s %7s %6s %8s | %7s %7s %6s %8s %8s", "caso", "S", "n_f", "P_f", "CoV(P_f)", "media",
           "desvio", "CoV", "det", "media", "desvio", "CoV", "P_f", "det");
     Print(" %-12s %54s %8s | %47s", "", "este trabalho", "", "artigo (Tabelas 3 a 6)");
@@ -480,7 +572,7 @@ void Resumo(const std::string &raiz)
     std::cout << linha << "\n media e desvio: os da lognormal ajustada (como no artigo); det: o Gamma com as medias (o da"
                           " referencia nos casos de CoV e s, que nao o mudam)\n";
     if (std::isfinite(detRef))
-        Print(" deterministico da referencia: %.4f (artigo 1,336, %+.1f%%): o vies da malha, que desloca a media de cada caso",
+        Print(" deterministico da referencia: %.4f (artigo 1,336, %+.1f%%): a diferenca desloca a media de cada caso",
               detRef, 100. * (detRef / 1.336 - 1.));
     std::cout << linha << std::endl;
 }
@@ -493,6 +585,16 @@ int main(int argc, char *argv[])
             for (const auto &c : Seleciona(argc > 2 ? argv[2] : "todos"))
                 Print("%-12s fase %d  %s%s%s", c.id.c_str(), c.fase, kBase.c_str(), c.sufixo.c_str(),
                       c.detProprio ? "  (com deterministico proprio)" : "");
+            return 0;
+        }
+        if (modo == "confere" && argc >= 3) { // antes de submeter: os casos e as pastas que ja existem em <raiz>
+            const auto casos = Seleciona(argc > 3 ? argv[3] : "todos");
+            for (const auto &c : casos) {
+                ConfereParametros(Pasta(argv[2], c), c);
+                if (c.detProprio) ConfereParametros(Pasta(argv[2], c) + "_det", c);
+            }
+            Print("%zu casos | malha %s, %d unif. + %d adapt., u ate P%d | %s", casos.size(), kMalha, kNunif, Nref(),
+                  kPmax, argv[2]);
             return 0;
         }
         if (modo == "rodar" && argc >= 7) {
@@ -514,6 +616,7 @@ int main(int argc, char *argv[])
         return 2;
     }
     std::cerr << "Uso: SlopeMonteCarloCluster casos [casos = todos]\n"
+                 "     SlopeMonteCarloCluster confere <raiz> [casos = todos]\n"
                  "     SlopeMonteCarloCluster rodar <raiz> <primeira> <ultima> <k> <K> [casos = todos]\n"
                  "     SlopeMonteCarloCluster junta <raiz>\n"
                  "     SlopeMonteCarloCluster resumo <raiz>\n";

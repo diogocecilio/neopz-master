@@ -9,8 +9,8 @@
 // Ruptura: Gamma < 1 (Eq. 59). P_f = n_f / S (Eq. 67) e CoV(P_f) = sqrt((1 - P_f) / (S P_f)) (Eq. 68).
 // Artigo: S = 10000, P_f = 11,50 % (CoV 2,77 %); Gamma lognormal com media 1,353, mediana 1,313 e CoV 23,54 %.
 //
-// Uso: SlopeMonteCarlo [nreal = 100] [primeira = 0] [nunif = 0] [nref = 3] [pmax = 2]
-//      SlopeMonteCarlo resumo [nunif = 0] [nref = 3] [pmax = 2]
+// Uso: SlopeMonteCarlo [nreal = 100] [primeira = 0] [nunif = 0] [nref = 4] [pmax = 2]
+//      SlopeMonteCarlo resumo [nunif = 0] [nref = 4] [pmax = 2]
 // Roda as realizacoes primeira .. primeira + nreal - 1 e grava uma linha por realizacao em
 // mc_u<nunif>h<nref>p<pmax>_<primeira>_<ultima>.csv, na pasta corrente. A realizacao -1 e o deterministico (as medias),
 // rodado pelo bloco que comeca em 0. Retomavel: as realizacoes que ja estao em algum mc_u..h..p.._*.csv da pasta sao
@@ -101,11 +101,11 @@ int main(int argc, char *argv[])
     const int nreal = !resumo && argc > 1 ? std::atoi(argv[1]) : 100;
     const int64_t primeira = !resumo && argc > 2 ? std::atoll(argv[2]) : 0;
     const int nunif = argc > a ? std::atoi(argv[a]) : 0;    // refinamentos uniformes da malha inicial
-    const int nref = argc > a + 1 ? std::atoi(argv[a + 1]) : 3; // niveis de refinamento adaptativo
+    const int nref = argc > a + 1 ? std::atoi(argv[a + 1]) : 4; // niveis de refinamento adaptativo
     const int pmax = argc > a + 2 ? std::atoi(argv[a + 2]) : 2; // ordem maxima de u (2: so h)
     if (nreal < 0 || primeira < 0 || nunif < 0 || nref < 0 || pmax < 2) {
-        std::cerr << "Uso: SlopeMonteCarlo [nreal = 100] [primeira = 0] [nunif = 0] [nref = 3] [pmax = 2]\n"
-                     "     SlopeMonteCarlo resumo [nunif = 0] [nref = 3] [pmax = 2]\n";
+        std::cerr << "Uso: SlopeMonteCarlo [nreal = 100] [primeira = 0] [nunif = 0] [nref = 4] [pmax = 2]\n"
+                     "     SlopeMonteCarlo resumo [nunif = 0] [nref = 4] [pmax = 2]\n";
         return 1;
     }
     const std::string config = "u" + std::to_string(nunif) + "h" + std::to_string(nref) + "p" + std::to_string(pmax);

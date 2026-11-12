@@ -3,7 +3,7 @@
   (a) histograma de Gamma com o ajuste lognormal deste Monte Carlo e o lognormal do artigo (media 1,353, CoV 23,54 %);
   (b) P_f = n_f / S nas S primeiras realizacoes (em ordem de numero), com a faixa de +-2 desvios (Eq. 68) e os 11,50 %
       do artigo.
-Uso: figuras_mc.py [pasta = .] [config = u0h3p2]   ->   <pasta>/mc_<config>.png
+Uso: figuras_mc.py [pasta = .] [config = u0h4p2]   ->   <pasta>/mc_<config>.png
 """
 import glob
 import math
@@ -18,7 +18,7 @@ import numpy as np
 from scipy import stats
 
 pasta = sys.argv[1] if len(sys.argv) > 1 else "."
-config = sys.argv[2] if len(sys.argv) > 2 else "u0h3p2"
+config = sys.argv[2] if len(sys.argv) > 2 else "u0h4p2"
 
 gamma = {}
 for arq in glob.glob(os.path.join(pasta, f"mc_{config}_*.csv")):

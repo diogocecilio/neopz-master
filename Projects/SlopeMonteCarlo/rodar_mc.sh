@@ -3,11 +3,11 @@
 # pasta corrente (os CSV e os logs ficam nela). Retomavel e extensivel: cada processo pula as realizacoes que ja estao em
 # algum CSV da mesma configuracao na pasta (rodar de novo com N maior acrescenta realizacoes). Espera os processos e
 # imprime o resumo de tudo.
-# Uso: rodar_mc.sh [N = 1000] [P = nucleos fisicos] [nunif = 0] [nref = 3] [pmax = 2]
+# Uso: rodar_mc.sh [N = 10000] [P = nucleos fisicos] [nunif = 0] [nref = 4] [pmax = 2]
 #      EXE=<executavel> rodar_mc.sh ...   (padrao: o da pasta de build release ao lado do repositorio)
-N=${1:-1000}
+N=${1:-10000}
 P=${2:-$(lscpu -p=core,socket | grep -v '^#' | sort -u | wc -l)}
-NUNIF=${3:-0}; NREF=${4:-3}; PMAX=${5:-2}
+NUNIF=${3:-0}; NREF=${4:-4}; PMAX=${5:-2}
 DIR=$(cd "$(dirname "$0")" && pwd)
 EXE=${EXE:-$DIR/../../../neopz-master-build-release/Projects/SlopeMonteCarlo/SlopeMonteCarlo}
 [ -x "$EXE" ] || { echo "executavel nao encontrado: $EXE (defina EXE)"; exit 1; }
