@@ -130,7 +130,9 @@ Mostra os jobs, as últimas linhas dos logs e, por caso, as tarefas feitas, as r
   `SlopeRainMonteCarlo` em `$SAIDA/<caso>`.
 - **Ordem:** o bloco 0 de todos os casos, depois o 1, ..., para que os casos andem juntos.
 - **Divisão entre processos:** cada processo (`tarefas.sh`; o `job.sbatch` roda `PARALELO` por nó) pega a próxima
-  tarefa livre com `mkdir $SAIDA/<caso>/.tarefas/<a>_<z>`, que é atômico também entre nós.
+  tarefa livre criando o arquivo `$SAIDA/<caso>/.tarefas/<a>_<z>` com o `noclobber` do bash (`O_EXCL`), que só um
+  processo consegue, também entre nós. Não é `mkdir`: o coreutils em Rust (uutils) de Ubuntu recente não cria
+  diretórios de forma atômica, e no teste dois processos pegavam a mesma tarefa.
 - **Fim de uma tarefa:** a tarefa está feita quando existe `mc_mapa_<a>_<z>.csv`, gravado só no fim da rodada.
 - **Bloco 0 de cada caso:** roda também o determinístico (`det=1`) e grava os campos dele (`mc_real-1/`), de onde sai a
   figura da banda do mecanismo.

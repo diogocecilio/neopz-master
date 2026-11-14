@@ -45,11 +45,10 @@ fila="$(squeue -h -u "${USER:-$(id -un)}" -n chuvaMC -o %i)" || { echo "o squeue
 if [ -z "$fila" ]; then
     # nenhum job na fila: uma trava sem o mapa e de uma tarefa interrompida (fim do tempo, queda do no): libera
     n=0
-    for d in "$SAIDA"/*/.tarefas/*/; do
-        [ -d "$d" ] || continue
-        t="$(basename "$d")" caso="$(dirname "$(dirname "$d")")"
-        [ -f "$caso/mc_mapa_$t.csv" ] || { rm -rf "$d"; n=$((n + 1)); }
-    done
+    while IFS= read -r -d '' trava; do
+        t="$(basename "$trava")" caso="$(dirname "$(dirname "$trava")")"
+        [ -f "$caso/mc_mapa_$t.csv" ] || { rm -rf "$trava"; n=$((n + 1)); }
+    done < <(find "$SAIDA" -path '*/.tarefas/*' -mindepth 1 -print0 2> /dev/null)
     [ "$n" -eq 0 ] || echo "liberadas $n tarefas interrompidas (serao refeitas)"
 else
     echo "ha $(echo "$fila" | wc -l) job(s) chuvaMC na fila: os novos entram na mesma fila de tarefas"

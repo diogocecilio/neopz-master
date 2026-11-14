@@ -65,6 +65,9 @@ public:
     // reduzir a resistencia (o estado geostatico: o mecanismo e o deslocamento a partir dele)
     const TPZFMatrix<STATE> &PathState() const { return fX; }
     const TPZFMatrix<STATE> &WeightState() const { return fXPeso; }
+    // incremento do ultimo passo aceito do caminho, so nas livres (vazio se o ultimo passo foi vertical): perto do
+    // colapso e a forma do mecanismo (a "velocidade" da massa que desliza)
+    const TPZFMatrix<STATE> &PathIncrement() const { return fDu; }
     // Equilibrio com lambda fixo: Newton nos deslocamentos livres a partir de x (chute inicial e solucao), com as
     // pressoes congeladas e o Dirichlet de u. Converge com |R| < 1e-7 |fbar| nas livres; iter = correcoes feitas.
     // A memoria dos pontos nao muda (so com AcceptSolution); a solucao convergida fica carregada na malha

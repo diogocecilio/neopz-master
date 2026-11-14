@@ -9,6 +9,7 @@
 
 #include "KLSeparavel.h"
 
+#include <array>
 #include <cstdint>
 #include <vector>
 
@@ -34,10 +35,24 @@ public:
     // Valores de todos os campos no ponto (na ordem dos campos do construtor)
     std::vector<double> At(double x, double y) const;
 
+    // ---- amostragem por importancia: deslocamento da media no espaco dos xi
+    // Direcao unitaria d de um conjunto de pontos {x, y, peso}: d ~ a, com a_k = sqrt(lambda_k) f_k(x) g_k(y) na media
+    // ponderada dos pontos, o gradiente da media do campo gaussiano Z nesses pontos em relacao aos xi (a mesma nos
+    // campos, que usam os mesmos modos). Vazia se |a| = 0
+    std::vector<double> Direction(const std::vector<std::array<double, 3>> &pontos) const;
+    // Desloca a media de cada campo c: xi_c ~ N(s_c d, I) no Sample. s vazio volta ao sorteio sem deslocamento
+    void SetShift(const std::vector<double> &d, const std::vector<double> &s);
+    // ln do peso da ultima realizacao, ln(phi(xi) / phi(xi - mu)) = sum_c (-xi_c . mu_c + |mu_c|^2 / 2): com ele o
+    // estimador da probabilidade e sem vies (0 sem deslocamento)
+    double LogWeight() const;
+    // Projecao xi_c . d de cada campo na ultima realizacao
+    std::vector<double> Projection(const std::vector<double> &d) const;
+
 private:
     klsep::KL2D fKL;
     std::vector<int> fUsadosX, fUsadosY; // modos 1D usados por algum termo
     std::vector<int> fColX, fColY;       // modo 1D -> posicao em fUsadosX / fUsadosY
     std::vector<klsep::Lognormal> fLog;  // transformacao de cada campo
     std::vector<std::vector<double>> fXi; // xi de cada campo (tamanho M)
+    std::vector<std::vector<double>> fMu; // deslocamento da media de cada campo (vazio: sem deslocamento)
 };

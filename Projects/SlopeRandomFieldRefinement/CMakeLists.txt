@@ -16,6 +16,14 @@ add_pz_target(NAME SlopeRahardjo
                       RainTransient.cpp RainTransient.h AnimationFiles.h PointLocator.h
               REQUIRED PZ_BUILD_PLASTICITY_MATERIALS)
 
+# Monte Carlo do rebaixamento rapido do Ceron com o transiente (Secoes 6.1 a 6.5 do artigo): o TransientDrawDown do
+# main.cpp com campos aleatorios e Gamma (GIM) no fim do rebaixamento
+add_pz_target(NAME SlopeDrawdownMonteCarlo
+              SOURCES rebaixamento_mc.cpp UnsatModel.cpp UnsatModel.h UnsatAnalysis.cpp UnsatAnalysis.h HPMaterial.h
+                      RandomField.cpp RandomField.h KLSeparavel.h DrawdownTransient.cpp DrawdownTransient.h
+                      AnimationFiles.h PointLocator.h
+              REQUIRED PZ_BUILD_PLASTICITY_MATERIALS)
+
 # Monte Carlo com chuva: campos aleatorios de c', phi' e k (KL analitico), transiente numa malha uniforme e o fator
 # Gamma numa malha refinada em h, com as pressoes transferidas entre as duas (as malhas: TriGMesh ou em camadas,
 # LayerGMesh). Nao usa o Common

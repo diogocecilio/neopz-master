@@ -19,7 +19,7 @@ while read -r id fase n opc; do
     d="$SAIDA/$id"
     [ -d "$d" ] || continue
     feitas=$(ls "$d"/mc_mapa_*.csv 2> /dev/null | wc -l)
-    travas=$(ls -d "$d"/.tarefas/*/ 2> /dev/null | wc -l)
+    travas=$(ls "$d"/.tarefas/ 2> /dev/null | wc -l)
     # realizacoes aleatorias (real >= 0) em 24 h com situacao ok; falha: FS_min < 1
     ls "$d"/mc_[0-9]*_[0-9]*.csv > /dev/null 2>&1 || { printf "%-12s %8d %8d\n" "$id" "$feitas" $((travas - feitas)); continue; }
     awk -F, -v id="$id" -v feitas="$feitas" -v rodando=$((travas - feitas)) '
