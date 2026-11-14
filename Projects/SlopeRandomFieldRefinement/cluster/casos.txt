@@ -1,0 +1,37 @@
+# Casos do Monte Carlo da chuva no fermi: o analogo das Secoes 6.1 a 6.5 de Vargas Ceron et al. (2025) no talude de
+# Rahardjo et al. (2007), solo f50 (k_s = 1e-5 m/s), FS pelo SRM. Uma linha por caso:
+#   id   fase   N   opcoes do SlopeRainMonteCarlo (alem de n, primeira e saida, que o tarefas.sh poe)
+# id: o nome da pasta do caso em $SAIDA (o posproc/dados_chuva.py tira dele a familia e o valor).
+# fase: 1 = referencia (6.1), 2 = CoV, s e alfa (6.2 a 6.4), 3 = intensidade (6.5); CASOS=fase1 roda so a fase 1.
+# N: realizacoes do caso (ULTIMA=<n> no submeter.sh troca por n + 1 em todos os casos escolhidos).
+# IREF: a intensidade de referencia (submeter.sh, padrao 31,05 mm/h: Gamma = 1,333 pelo GIM, o do Ceron).
+# O bloco que comeca na realizacao 0 de cada caso roda tambem o deterministico (det=1) e grava os campos dele
+# (figuras=-1). Os instantes: 24 h (fim da chuva) em todos; 0 h onde c' ou phi' mudam (FS antes da chuva); a referencia
+# tambem em 6, 12 e 18 h (a duracao da chuva), todos com refinamento do zero.
+ref           1  5000  I=IREF tempos=0,6,12,18,24
+covk=0        2  2000  I=IREF tempos=24 covk=0
+covk=0.75     2  2000  I=IREF tempos=24 covk=0.75
+covk=0.9      2  2000  I=IREF tempos=24 covk=0.9
+covk=1        2  2000  I=IREF tempos=24 covk=1
+covc=0.1      2  2000  I=IREF tempos=0,24 covc=0.1
+covc=0.5      2  2000  I=IREF tempos=0,24 covc=0.5
+covc=0.7      2  2000  I=IREF tempos=0,24 covc=0.7
+covphi=0.05   2  2000  I=IREF tempos=0,24 covphi=0.05
+covphi=0.15   2  2000  I=IREF tempos=0,24 covphi=0.15
+covphi=0.2    2  2000  I=IREF tempos=0,24 covphi=0.2
+s=1.5         2  2000  I=IREF tempos=0,24 s=1.5
+s=2           2  2000  I=IREF tempos=0,24 s=2
+s=5           2  2000  I=IREF tempos=0,24 s=5
+s=10          2  2000  I=IREF tempos=0,24 s=10
+s=20          2  2000  I=IREF tempos=0,24 s=20
+s=400         2  2000  I=IREF tempos=0,24 s=400
+alfa=2        2  2000  I=IREF tempos=24 alfa=2
+alfa=3        2  2000  I=IREF tempos=24 alfa=3
+alfa=4        2  2000  I=IREF tempos=24 alfa=4
+alfa=5        2  2000  I=IREF tempos=24 alfa=5
+I=24          3  2000  I=24 tempos=24
+I=27          3  2000  I=27 tempos=24
+I=29          3  2000  I=29 tempos=24
+I=33          3  2000  I=33 tempos=24
+I=36          3  2000  I=36 tempos=24
+I=45          3  2000  I=45 tempos=24

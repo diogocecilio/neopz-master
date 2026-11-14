@@ -1,193 +1,524 @@
-// Talude do relatorio (Vargas Ceron et al. 2025) passo a passo, com a biblioteca Common (slope::SlopeAnalysis):
-//   passo 1: malha geometrica do gmsh;
-//   passo 2: malhas computacionais dos dois materiais (TPZMatPoroElastoPlasticUP e TPZMatUnsaturatedUPwPa);
-//   passo 3 (seco) e 4 (rebaixamento total): GIM com arc-length e refinamento adaptativo hp, nos dois materiais;
-//   passo 5: chuva de Rahardjo et al. (2007), solo f50,-5 e alfa = 45 graus: transiente nao saturado e FS ao longo do tempo.
-// Uso: SlopeRandomFieldRefinement [ceron | talude10 | ceron10H] [seco | rebaix] [nunif = 1] [nref = 3] [pmax = 3]
-//      SlopeRandomFieldRefinement rahardjo [I_r = 36 mm/h] [nunif = 0] [nref = 0] [pmax = 3]
-#include "SlopeAnalysis.h"
-
-#include "TPZVTKGeoMesh.h"
 
 #include <cmath>
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <map>
+#include "UnsatAnalysis.h"
+#include "UnsatModel.h"
+#include "Plasticity/TPZElasticResponse.h"
+#include "Plasticity/TPZMatPoroElastoPlasticUP.h"
+#include "Plasticity/TPZMatUnsaturatedUPwPa.h"
+#include "Plasticity/TPZPlasticStepVoigt.h"
+#include "Plasticity/TPZYCMohrCoulombPV2.h"
 
-using namespace slope;
+#include "TPZGeoLinear.h"
+#include "pzcmesh.h"
+#include "pzgeotriangle.h"
+#include "tpzgeoelrefpattern.h"
+#include "TPZVTKGeoMesh.h"
+#include "TPZMultiphysicsCompMesh.h"
+#include "TPZNullMaterial.h"
+#include "HPMaterial.h"
+#include "AnimationFiles.h"
+#include "DrawdownTransient.h"
+#include "PointLocator.h"
+#include "TPZSpStructMatrix.h"
+#include "pzstepsolver.h"
 
-// ---- passo 5: chuva de Rahardjo et al. (2007), Serie A, solo f50,-5 e alfa = 45 graus (Fig. 4c2)
-// Talude da Fig. 2 (malha rahardjo_a45 do LearningMohrCoulomb2): H_s = 10 m, pe em (40, 20), crista em (30, 30), 70 m de
-// largura, laterais de 30 m e 20 m. Resistencia da Eq. 5: c' = 10 kPa, phi' = phi^b = 26 graus; gamma = 20 kN/m3; E e nu
-// nao estao no artigo (2e4 kPa e 0,3; nao mudam o FS). Solo, chuva e nivel d'agua inicial: RainData (o padrao e o f50,-5).
-// O FS do artigo e o de Bishop simplificado (SLOPE/W) com as pressoes do SEEP/W; o equivalente aqui e o SRM: em cada
-// instante, as pressoes do transiente ficam congeladas e c' e tan(phi') (e com eles a parcela da succao) sao divididos por F.
-// Referencias do FS x t para cada I_r (mm/h), em t (h): o artigo, lido da Fig. 4c2 (+-0,03), e o driver antigo do
-// LearningMohrCoulomb2 (cluster/fonte/rahardjo.cpp, variante iii = as mesmas hipoteses; SRM por bisseccao, tolerancia 0,01)
-const std::map<int, std::map<int, REAL>> kArtigo = {
-    {9, {{0, 2.12}, {24, 1.78}}}, {36, {{0, 2.12}, {24, 1.05}, {48, 1.23}}}, {80, {{0, 2.12}, {24, 0.83}}}};
-const std::map<int, std::map<int, REAL>> kCluster = {
-    {9, {{0, 2.11875}, {6, 2.01875}, {12, 1.94375}, {18, 1.875}, {24, 1.8125}, {36, 1.85}, {48, 1.875}}},
-    {36, {{0, 2.11875}, {6, 1.75}, {12, 1.425}, {18, 1.20625}, {24, 1.0625}, {36, 1.1875}, {48, 1.28125}}},
-    {80, {{0, 2.11875}, {6, 1.39375}, {12, 1.175}, {18, 1.05}, {24, 0.85}, {36, 1.0625}, {48, 1.175}}}};
-
-// Valor de referencia em t para a chuva I, ou "-"
-static std::string Reference(const std::map<int, std::map<int, REAL>> &tabela, int I, REAL t)
-{
-    char buf[16] = "        -";
-    const long h = std::lround(t);
-    if (tabela.count(I) && std::fabs(t - h) < 1.e-6 && tabela.at(I).count(h))
-        std::snprintf(buf, sizeof buf, "%9.3f", tabela.at(I).at(h));
-    return buf;
-}
-
-int Passo5Chuva(int argc, char *argv[])
-{
-    const REAL intensidade = argc > 2 ? std::atof(argv[2]) : 36.; // I_r (mm/h); 36 = 1 k_s do f50,-5
-    const int nunif = argc > 3 ? std::atoi(argv[3]) : 0;
-    const int nref = argc > 4 ? std::atoi(argv[4]) : 0;
-    const int pmax = argc > 5 ? std::atoi(argv[5]) : 3;
-    if (!(intensidade >= 0.) || nunif < 0 || nref < 0 || pmax < 2) {
-        std::cerr << "Uso: SlopeRandomFieldRefinement rahardjo [I_r = 36 mm/h] [nunif = 0] [nref = 0] [pmax = 3]\n";
-        return 1;
-    }
-    Data d; // resistencia e peso do solo; a agua vem toda da RainData
-    d.c = 10.;
-    d.phi = 26. * M_PI / 180.;
-    d.gamma = 20.;
-    d.H = 10., d.xCrista = 30., d.yCrista = 30.;
-    RainData chuva; // solo f50,-5, 24 h de chuva, nivel inicial 5 m abaixo do pe com 7 graus, succao ate 75 kPa
-    chuva.intensity = intensidade;
-
-    const std::string arquivo = std::string(MESH_DIR) + "/rahardjo_a45.msh";
-    std::cout << "Caso rahardjo: lendo " << arquivo << "\n";
-    TPZGeoMesh *gmesh = ReadGMesh(arquivo);
-    const FlatMesh m0 = FromGeoMesh(gmesh);
-    delete gmesh;
-    Print("solo f50,-5: k_s = %.0e m/s, Fredlund-Xing a = %.0f kPa (n = m = 1), k_w = k_s Theta^%.0f, phi^b = %.0f graus, "
-          "n = %.2f", chuva.ks, chuva.aFX, chuva.power, chuva.phib * 180. / M_PI, chuva.n);
-    Print("nivel inicial: y = %.2f m em x = 0 e %.2f m em x = 70; succao ate %.0f kPa", chuva.WaterLevel(0.),
-          chuva.WaterLevel(70.), chuva.suctionMax);
-
-    const int I = int(std::lround(intensidade));
-    const REAL alvo = kArtigo.count(I) && kArtigo.at(I).count(24) ? kArtigo.at(I).at(24) : 0.; // FS_min do artigo
-    char titulo[160];
-    std::snprintf(titulo, sizeof titulo, "rahardjo f50,-5, alfa = 45 | I_r = %g mm/h por %g h | %d unif. + %d adapt., u ate P%d",
-                  intensidade, chuva.duration, nunif, nref, pmax);
-    const std::string prefixo = "chuva_rahardjo_I" + std::to_string(I) + "_u" + std::to_string(nunif) + "h" +
-                                std::to_string(nref) + "p" + std::to_string(pmax);
-    const std::string linha(100, '=');
-    std::cout << "\n" << linha << "\n SRM ao longo da chuva | " << titulo << " | alvo FS_min (artigo, t = 24 h) = " << alvo
-              << "\n" << linha << std::endl;
-    const auto t0 = Clock::now();
-    SlopeAnalysis a(d, MaterialKind::Unsat, WaterModel::Rain, FactorMethod::SRMArcLength);
-    a.SetRain(chuva);
-    a.SetRefinement({nunif, nref, pmax, 0.1}); // o refinamento segue a zona plastica do instante de menor FS
-    a.SetTarget(alvo);
-    a.SetOutputPrefix(prefixo); // <prefixo>_unsat_nivel<k>_chuva.csv (FS x t) e _t<h>h.vtk (p_w e S_w)
-    const std::vector<SummaryRun> runs = {{"unsat SRM", alvo, a.Run(m0)}};
-    PrintSummary(titulo, runs, Seconds(t0));
-
-    // FS x t de cada nivel, com as referencias
-    const auto &niveis = runs[0].levels;
-    std::cout << "\n FS x t | artigo: lido da Fig. 4c2 (+-0,03) | cluster: driver antigo (LearningMohrCoulomb2)\n";
-    std::string cab = "   t (h)";
-    for (const auto &l : niveis) cab += "   nivel " + std::to_string(l.level);
-    std::cout << cab << "   artigo  cluster\n";
-    for (size_t i = 0; i < niveis[0].history.size(); i++) {
-        const REAL t = niveis[0].history[i][0];
-        char buf[32];
-        std::snprintf(buf, sizeof buf, "%8.1f", t);
-        std::string lin = buf;
-        for (const auto &l : niveis) {
-            if (i >= l.history.size()) std::snprintf(buf, sizeof buf, "%10s", "-");
-            else if (l.history[i][1] <= 0.) std::snprintf(buf, sizeof buf, "%10s", "< 1"); // SRM sem o peso total
-            else std::snprintf(buf, sizeof buf, "%10.4f", l.history[i][1]);
-            lin += buf;
-        }
-        std::cout << lin << Reference(kArtigo, I, t) << Reference(kCluster, I, t) << "\n";
-    }
-    return 0;
-}
-
-
-
-// Casos (argumento do programa): malha, geometria e alvos. Seco: o 1,777 da Secao 5.3.2, que e do talude de H = 10 m
-// da Fig. 19 (o texto diz 5 m); como Gamma = N c / (gamma H), com H = 5 m o alvo e 2 x 1,777 = 3,554. Rebaixamento
-// total (h_w = H): Gamma = 1,336 (Tabelas 5 e 6); no talude10 so 1,336 / 2 (Gamma ~ 1/H), indicativo
-struct Case {
-    std::string mesh;
-    REAL H, xCrista, yCrista, targetDry, targetDrawdown;
+#include <algorithm>
+#include <chrono>
+#include <cstdio>
+#include <set>
+#include <string>
+#include <vector>
+// materiais: u-p saturado (TMat) e nao saturado (TUnsat) com Mohr-Coulomb; o main usa o nao saturado com a regra de
+// integracao do hp (TUnsatHP)
+using TMC = TPZPlasticStepVoigt<TPZYCMohrCoulombPV2, TPZElasticResponse>;
+using TMat = TPZMatPoroElastoPlasticUP<TMC, TPZElastoPlasticMem>;
+using TUnsat = TPZMatUnsaturatedUPwPa<TMC, TPZUnsaturatedMem>;
+using TUnsatHP = HPMaterial<TUnsat>; // regra de integracao 2 (p_u - 1) em cada elemento
+/// Slope 70 x 40 m, height 10 m at 45 degrees. BC ids: -1 base, -2 right, -3 topright,
+/// -4 topleft, -5 left, -6 face. ref = uniform refinements.
+enum EIds {
+    matSolo = 1,
+    base = -1,
+    right = -2,
+    topright = -3,
+    topleft = -4,
+    left=-5,
+    face=-6
 };
-const std::map<std::string, Case> kCases = {
-    {"ceron", {std::string(MESH_DIR) + "/ceron_h5_a45_g15.msh", 5., 10., 10., 3.554, 1.336}},          // relatorio
-    {"talude10", {std::string(PROJECT_DIR) + "/malhas/talude_h10_grossa.msh", 10., 35., 40., 1.777, 0.668}}, // Fig. 8.30
-    {"ceron10H", {std::string(PROJECT_DIR) + "/malhas/ceron_h5_a45_10H.msh", 5., 50., 55., 3.554, 1.336}}};  // 10H
 
-int main(int argc, char *argv[])
+#include "LayerGMesh.h"
+TPZGeoMesh *Camadas(REAL h, bool quad);
+
+TPZGeoMesh *TriGMesh(const std::vector<std::vector<REAL>> &points, int ref);
+
+// Poropressao hidrostatica de um NA na cota nivel (kPa): gamma_w (nivel - y) abaixo do NA e 0 acima.
+// So depende de y; o contorno so escolhe o nivel. v2[0] = p_w no ponto x (nivel e gammaw ficam guardados no lambda)
+ForcingFunctionBCType<STATE> HydrostaticPressure(REAL nivel, REAL gammaw)
 {
-    if (argc > 1 && std::string(argv[1]) == "rahardjo") return Passo5Chuva(argc, argv); // passo 5: chuva
-    const std::string caso = argc > 1 ? argv[1] : "ceron";
-    const std::string modo = argc > 2 ? argv[2] : "rebaix";
-    const int nunif = argc > 3 ? std::atoi(argv[3]) : 1; // refinamentos uniformes da malha inicial
-    const int nref = argc > 4 ? std::atoi(argv[4]) : 3;  // niveis de refinamento adaptativo
-    const int pmax = argc > 5 ? std::atoi(argv[5]) : 3;  // ordem maxima de u no refinamento p
-    if (!kCases.count(caso) || (modo != "seco" && modo != "rebaix") || nunif < 0 || nref < 0 || pmax < 2) {
-        std::cerr << "Uso: SlopeRandomFieldRefinement [ceron | talude10 | ceron10H] [seco | rebaix] [nunif = 1] "
-                     "[nref = 3] [pmax = 3]\n     SlopeRandomFieldRefinement rahardjo [I_r = 36 mm/h] [nunif = 0] "
-                     "[nref = 0] [pmax = 3]\n";
-        return 1;
+    return [nivel, gammaw](const TPZVec<REAL> &x, TPZVec<STATE> &v2, TPZFMatrix<STATE> &) {
+        v2[0] = gammaw * std::max(REAL(0), nivel - x[1]); // x[1] = y
+    };
+}
+
+/// Parameters of a soil (units kN, m, s, kPa); defaults: chi = S_w (notes), van Genuchten - Mualem
+struct UnsatParams {
+    REAL E = 20000., nu = 0.3, phi = 30. * M_PI / 180., c = 10.;
+    REAL gamma = 20.;            ///< constant unit weight (kN/m3)
+    bool mixture = false;        ///< unit weight of the mixture (1-n) gamma_s + n S_w gamma_w
+    REAL gammas =30.;           ///< unit weight of the grains (mixture)
+    TUnsat::EBishop bishop = TUnsat::EChiSaturation;
+    REAL chi = 1.;               ///< constant chi (bishop = EChiConstant)
+    REAL n = 0.45, Kw = 2.2e6, gw = 9.81, ga = 1.2 * 9.81e-3, muRatio = 1.e-3 / 1.8e-5, patm = 101.325;
+    REAL ks = 1.e-5;             ///< saturated hydraulic conductivity (m/s)
+    REAL alpha = 1., Ks = 0.;    ///< Biot coefficient and bulk modulus of the grains (<= 0: incompressible)
+    bool coupled = true;         ///< hydro-mechanical coupling of the mass balances
+    bool lumped = true;          ///< lumped storage
+    std::array<REAL, 3> g = {0., -1., 0.}; ///< unit vector of gravity
+    TPZUnsaturatedHydraulics hydro;
+    UnsatParams() {
+        hydro.fRetention = TPZUnsaturatedHydraulics::EVanGenuchten;
+        hydro.fKrw = TPZUnsaturatedHydraulics::EMualem;
+        hydro.fKra = TPZUnsaturatedHydraulics::EMualemAir;
     }
-    const Case &cs = kCases.at(caso);
-    const bool rebaix = modo == "rebaix";
-    const REAL alvo = rebaix ? cs.targetDrawdown : cs.targetDry;
+};
+// Material TUnsat com Mohr-Coulomb associado (psi = phi) a partir dos parametros (copia de UnsatModel.h), com a regra
+// de integracao do hp (HPMaterial)
+TUnsatHP *UnsatMaterial(int id, const UnsatParams &p)
+{
+    TPZElasticResponse ER;
+    ER.SetEngineeringData(p.E, p.nu);
+    auto *mat = new TUnsatHP(id);
+    mat->SetPlasticModel(TMC(TPZYCMohrCoulombPV2(p.phi, p.phi, p.c, ER), ER));
+    mat->SetHydraulics(p.hydro);
+    mat->SetPorosity(p.n);
+    mat->SetBiot(p.alpha, p.Ks);
+    mat->SetWaterBulkModulus(p.Kw);
+    mat->SetConductivity(p.ks, p.gw, p.muRatio);
+    mat->SetAir(p.ga, p.patm);
+    if (p.mixture) mat->SetUnitWeightMixture(p.gammas);
+    else mat->SetUnitWeight(p.gamma);
+    mat->SetGravityDirection(TPZManVector<REAL, 3>({p.g[0], p.g[1], p.g[2]}));
+    mat->SetBishop(p.bishop, p.chi);
+    mat->SetLumpedStorage(p.lumped);
+    mat->SetHydroMechanicalCoupling(p.coupled);
+    // regra de integracao: a do HPMaterial, ordem 2 (p_u - 1) em cada elemento (3 pontos em P2, 6 em P3)
+    return mat;
+}
 
-    // ---- passo 1: malha geometrica
-    const std::string nome = cs.mesh.substr(cs.mesh.rfind('/') + 1);
-    std::cout << "Caso " << caso << ": lendo " << cs.mesh << "\n";
+// points: os 6 cantos do talude (veja TriGMesh)
+void SolveDrawDown(const std::vector<std::vector<REAL>> &points)
+{
+    const int nref = 5; // niveis depois do nivel 0
+    const int pmax = 2; // maior ordem de u (2: so h)
+    TPZGeoMesh *gmesh = TriGMesh(points, 1);
 
+    std::vector<int> ordens(gmesh->NElements(), 2); // ordem de u de cada elemento da malha geo do nivel
 
-    TPZGeoMesh *gmesh = ReadGMesh(cs.mesh);
+    // uma linha da tabela final por nivel
+    struct Linha {
+        int nivel;
+        int64_t ntri, neq;
+        std::map<int, int> ordens; // ordem de u -> triangulos
+        REAL gamma;
+        double segundos;
+    };
 
-    const std::string vtk = "malha_" + nome.substr(0, nome.rfind('.')) + ".vtk";
-    std::ofstream out(vtk);
-    TPZVTKGeoMesh::PrintGMeshVTK(gmesh, out, true); // cada elemento com o seu id de material
-    std::cout << "Gravado " << vtk << " (abra no ParaView)\n";
-    DuplicateBoundaryBC(gmesh); // gemeos -12 e -14, antes das malhas computacionais
-
-    // ---- passo 2: malhas computacionais com os dois materiais
-    Data d;
-    d.H = cs.H, d.xCrista = cs.xCrista, d.yCrista = cs.yCrista;
-    d.hw = cs.H; // rebaixamento total
-    std::cout << "\nMalha u-p (TPZMatPoroElastoPlasticUP):\n";
-    TPZMultiphysicsCompMesh *malhaUP = CreateUPCompMesh(gmesh, 2, d);
-
-    std::cout << "\nMalha u-p_w-p_a (TPZMatUnsaturatedUPwPa):\n";
-    TPZMultiphysicsCompMesh *malhaUnsat = CreateUnsatCompMesh(gmesh, 2, d, d.gamma);
-
-    EraseMesh(malhaUP);
-    EraseMesh(malhaUnsat);
-
-    // ---- passo 3 (seco) e 4 (rebaixamento): GIM com arc-length e refinamento adaptativo hp
-    const FlatMesh m0 = FromGeoMesh(gmesh); // sem os gemeos; os refinamentos uniformes ficam com a SlopeAnalysis
-    delete gmesh;
-    const std::string config = std::to_string(nunif) + " unif. + " + std::to_string(nref) + " adapt., u ate P" +
-                               std::to_string(pmax);
-    const std::string titulo = "caso " + caso + " | " + (rebaix ? "rebaixamento (h_w = H)" : "seco") + " | " + config;
-    const std::string prefixo = "gim_" + modo + "_" + caso + "_u" + std::to_string(nunif) + "h" + std::to_string(nref) +
-                                "p" + std::to_string(pmax);
-    const std::string linha(100, '=');
-    std::cout << "\n" << linha << "\n GIM | " << titulo << " | alvo Gamma = " << alvo << "\n" << linha << std::endl;
-    std::vector<SummaryRun> runs;
+    std::vector<Linha> tabela;
+    using Clock = std::chrono::steady_clock;
     const auto t0 = Clock::now();
-    for (MaterialKind kind : {MaterialKind::UP, MaterialKind::Unsat}) {
-        std::cout << "\n--- material " << Name(kind) << " ---" << std::endl;
-        SlopeAnalysis a(d, kind, rebaix ? WaterModel::Drawdown : WaterModel::Dry, FactorMethod::GIMArcLength);
-        a.SetRefinement({nunif, nref, pmax, 0.1});
-        a.SetTarget(alvo);
-        a.SetOutputPrefix(prefixo); // arquivos <prefixo>_<up|unsat>... para o figuras_gim.py
-        runs.push_back({Name(kind), alvo, a.Run(m0)});
+
+    for (int nivel = 0;; nivel++) {
+        const auto tn = Clock::now();
+        UnsatModel<TUnsatHP> model;
+        model.SetGeoMesh(gmesh); // malha geo do nivel
+
+        // u: base engastada, laterais presas so em x
+        int displacement=0;
+        int xrestriction=0;
+        int yrestriction=1;
+        model.AddDirichletBC(right, TUnsat::EDirichletU, displacement, {xrestriction});
+        model.AddDirichletBC(left, TUnsat::EDirichletU, displacement, {xrestriction});
+        model.AddDirichletBC(base, TUnsat::EDirichletU, displacement, {xrestriction,yrestriction});
+
+        // Rebaixamento rapido do Ceron (Eq. 1 de Vargas Ceron et al. 2025): antes, NA externo na crista; com h_w = H
+        // (total) ele desce ate o pe. A base fica sem BC de pressao: fluxo nulo (natural).
+        // Um id pode ter BC de u e de p_w (left, right)
+        int waterpressure=1;
+        REAL gammaw=9.81;      // kN/m3
+        REAL yCrista=points[4][1];            // NA antes do rebaixamento: na crista
+        REAL hw=points[4][1]-points[3][1];    // rebaixamento h_w = H: o NA desce ate o pe
+        REAL nivelNA=yCrista-hw; // NA externo depois do rebaixamento
+        model.AddDirichletBC(left, TUnsat::EDirichletPw, waterpressure, {0}, HydrostaticPressure(yCrista, gammaw)); // macico
+        for (int id : {right, topright, face, topleft}) // lado do pe e superficie (0 acima do NA)
+            model.AddDirichletBC(id, TUnsat::EDirichletPw, waterpressure, {0}, HydrostaticPressure(nivelNA, gammaw));
+
+            // material do solo (do problema) e a malha comp: u com a ordem de cada elemento (P2 ou mais), p_w e p_a P1
+        UnsatParams p;
+        model.SetMaterial(UnsatMaterial(matSolo, p));
+        model.CreateCompMesh({{2, 2}, {1, 1}, {1, 1}}, ordens); // malha comp
+
+        UnsatAnalysis<TUnsatHP> an(model); // analysis
+        an.SolveSeepage();                 // solve
+        TUnsatHP *mat = model.Material();
+        an.SetLoadFactorFunction([mat](REAL l) { mat->SetGravityFactor(l); }, false);
+        an.SetStrengthReductionFunction([mat](REAL F) { mat->PlasticModel().SetStrengthReductionFactor(F); });
+        REAL gamma = an.GIMArcLength();
+        an.PostProcess("gim_nivel" + std::to_string(nivel),
+                           {"WaterPressure", "AirPressure", "Suction", "Saturation", "RelativePermeabilityWater",
+                               "BishopPressure", "DisplacementX", "DisplacementY"},
+                           {"Displacement"});
+
+        Linha l{nivel, 0, model.CompMesh()->NEquations(), {}, gamma, 0.};
+
+        for (TPZGeoEl *gel : gmesh->ElementVec())
+        {
+            if (gel && gel->Dimension() == 2) l.ntri++, l.ordens[ordens[gel->Index()]]++;
+        }
+
+        l.segundos = std::chrono::duration<double>(Clock::now() - tn).count();
+        tabela.push_back(l);
+
+        std::cout << "nivel " << nivel << ": Gamma = " << gamma << ", " << l.neq << " equacoes, " << l.segundos << " s"
+        << std::endl;
+
+        if (nivel == nref) break;
+
+        // marca os triangulos com sqrt(J2(eps_p)) >= 0,1 do maior; p: ordem + 1 nos marcados (ate pmax)
+        std::vector<REAL> ind = an.PlasticIndicator();
+        REAL vmax = *std::max_element(ind.begin(), ind.end());
+        std::set<int64_t> marcados;
+        for (TPZGeoEl *gel : gmesh->ElementVec())
+        {
+            if (gel && gel->Dimension() == 2 && ind[gel->Index()] >= 0.1 * vmax) marcados.insert(gel->Index());
+        }
+
+        for (int64_t i : marcados) ordens[i] = std::min(ordens[i] + 1, pmax);
+
+        // h: malha nova; cada elemento novo herda a ordem do elemento de onde veio (pai)
+        std::vector<int64_t> pai;
+        gmesh = model.RefinedGeoMesh(marcados, pai);
+        std::ofstream meshFile("geoc.vtk");
+        TPZVTKGeoMesh::PrintGMeshVTK(gmesh, meshFile, true);
+        std::vector<int> novas(pai.size());
+        for (size_t j = 0; j < pai.size(); j++) novas[j] = ordens[pai[j]];
+        ordens = novas;
     }
-    PrintSummary(titulo, runs, Seconds(t0));
+
+    // ---- tabela final
+    std::printf("\n nivel triangulos equacoes  ordens de u         Gamma  tempo (s)\n");
+    for (const Linha &l : tabela)
+    {
+        std::string o;
+        for (const auto &[ordem, n] : l.ordens) o += "P" + std::to_string(ordem) + ":" + std::to_string(n) + " ";
+        std::printf(" %5d %10lld %8lld  %-17s %8.5f %9.1f\n", l.nivel, (long long)l.ntri, (long long)l.neq, o.c_str(),
+                    l.gamma, l.segundos);
+    }
+    std::printf(" total: %.1f s\n", std::chrono::duration<double>(Clock::now() - t0).count());
+}
+
+void InsertBC(UnsatModel<TUnsatHP> &model,const std::vector<std::vector<REAL>> &points)
+{
+
+    int displacement=0;
+    int xrestriction=0;
+    int yrestriction=1;
+    model.AddDirichletBC(right, TUnsat::EDirichletU, displacement, {xrestriction});
+    model.AddDirichletBC(left, TUnsat::EDirichletU, displacement, {xrestriction});
+    model.AddDirichletBC(base, TUnsat::EDirichletU, displacement, {xrestriction,yrestriction});
+
+    int waterpressure=1;
+    REAL gammaw=9.81;      // kN/m3
+    REAL yCrista=points[4][1];            // NA antes do rebaixamento: na crista
+    REAL hw=points[4][1]-points[3][1];    // rebaixamento h_w = H: o NA desce ate o pe
+    REAL nivelNA=yCrista-hw; // NA externo depois do rebaixamento
+    model.AddDirichletBC(left, TUnsat::EDirichletPw, waterpressure, {0}, HydrostaticPressure(yCrista, gammaw)); // macico
+    for (int id : {right, topright, face, topleft})
+    {// lado do pe e superficie (0 acima do NA)
+        model.AddDirichletBC(id, TUnsat::EDirichletPw, waterpressure, {0}, HydrostaticPressure(nivelNA, gammaw));
+    }
+}
+
+// points: os 6 cantos do talude (veja TriGMesh)
+void SolveDrawDownTransient(const std::vector<std::vector<REAL>> &points)
+{
+    const int nref = 5; // niveis depois do nivel 0
+    const int pmax = 2; // maior ordem de u (2: so h)
+    TPZGeoMesh *gmesh = TriGMesh(points, 1);
+    std::vector<int> ordens(gmesh->NElements(), 2);
+
+    TPZVec<std::string> scalnames ={"WaterPressure", "AirPressure", "Suction", "Saturation", "RelativePermeabilityWater","BishopPressure"};
+    TPZVec<std::string> vecnames ={"Displacement"};
+    using Clock = std::chrono::steady_clock;
+    const auto t0 = Clock::now();
+
+    for (int nivel = 0;; nivel++) {
+        const auto tn = Clock::now();
+
+        UnsatModel<TUnsatHP> model;
+
+        model.SetGeoMesh(gmesh); // malha geo do nivel
+
+        InsertBC(model,points);
+
+        // material do solo (do problema) e a malha comp: u com a ordem de cada elemento (P2 ou mais), p_w e p_a P1
+        UnsatParams p;
+        p.ks = 1.e-6;
+        model.SetMaterial(UnsatMaterial(matSolo, p));
+        model.CreateCompMesh({{2, 2}, {1, 1}, {1, 1}}, ordens); // malha comp
+
+        UnsatAnalysis<TUnsatHP> an(model); // analysis
+
+        an.SolveSeepage();                 // solve
+        TUnsatHP *mat = model.Material();
+        an.SetLoadFactorFunction([mat](REAL l) { mat->SetGravityFactor(l); }, false);
+        an.SetStrengthReductionFunction([mat](REAL F) { mat->PlasticModel().SetStrengthReductionFactor(F); });
+
+        REAL gamma = an.GIMArcLength();
+
+        an.PostProcess("gim_nivel" + std::to_string(nivel),scalnames,vecnames);
+
+
+        std::cout << "nivel " << nivel << ": Gamma = " << gamma << ", " << " time: " << std::chrono::duration<double>(Clock::now() - tn).count()
+            << std::endl;
+
+        if (nivel == nref) break;
+
+            // marca os triangulos com sqrt(J2(eps_p)) >= 0,1 do maior; p: ordem + 1 nos marcados (ate pmax)
+        std::vector<REAL> ind = an.PlasticIndicator();
+        REAL vmax = *std::max_element(ind.begin(), ind.end());
+
+        std::set<int64_t> marcados;
+        for (TPZGeoEl *gel : gmesh->ElementVec())
+        {
+            if (gel && gel->Dimension() == 2 && ind[gel->Index()] >= 0.1 * vmax) marcados.insert(gel->Index());
+        }
+
+        // h: malha nova; cada elemento novo herda a ordem do elemento de onde veio (pai)
+        std::vector<int64_t> pai;
+        gmesh = model.RefinedGeoMesh(marcados, pai);
+        std::ofstream meshFile("geoc.vtk");
+        TPZVTKGeoMesh::PrintGMeshVTK(gmesh, meshFile, true);
+    }
+
+    std::printf(" total: %.1f s\n", std::chrono::duration<double>(Clock::now() - t0).count());
+}
+
+
+// Malha refinada para o mecanismo do rebaixamento total (o estado mais critico): o laco do SolveDrawDown, sem tabela.
+// Devolve duas copias iguais (mesma numeracao de nos): uma para o transiente e outra para o fator de seguranca
+std::pair<TPZGeoMesh *, TPZGeoMesh *> MalhaDoRebaixamento(const std::vector<std::vector<REAL>> &points, int nref)
+{
+    TPZGeoMesh *gmesh = TriGMesh(points, 1);
+    for (int nivel = 0;; nivel++) {
+        UnsatModel<TUnsatHP> model;
+        model.SetGeoMesh(gmesh);
+        InsertBC(model, points);
+        UnsatParams p;
+        model.SetMaterial(UnsatMaterial(matSolo, p));
+        model.CreateCompMesh({{2, 2}, {1, 1}, {1, 1}});
+        UnsatAnalysis<TUnsatHP> an(model);
+        an.SetVerbose(false);
+        an.SolveSeepage();
+        TUnsatHP *mat = model.Material();
+        an.SetLoadFactorFunction([mat](REAL l) { mat->SetGravityFactor(l); }, false);
+        std::cout << "malha, nivel " << nivel << ": Gamma = " << an.GIMArcLength() << std::endl;
+        std::vector<int64_t> pai;
+        if (nivel == nref) return {model.RefinedGeoMesh({}, pai), model.RefinedGeoMesh({}, pai)};
+        std::vector<REAL> ind = an.PlasticIndicator();
+        REAL vmax = *std::max_element(ind.begin(), ind.end());
+        std::set<int64_t> marcados;
+        for (TPZGeoEl *gel : gmesh->ElementVec())
+            if (gel && gel->Dimension() == 2 && ind[gel->Index()] >= 0.1 * vmax) marcados.insert(gel->Index());
+        gmesh = model.RefinedGeoMesh(marcados, pai);
+    }
+}
+
+// Transiente do rebaixamento: o reservatorio desce em linha reta da crista ate o pe em horasRebaixamento e fica parado
+// por horasDepois; esqueleto rigido (so a agua percola). De hora em hora, o fator Gamma (GIM) com as pressoes do
+// instante. Grava a pasta "rebaixamento" para o animacao_rebaixamento.py
+void TransientDrawDown(const std::vector<std::vector<REAL>> &points)
+{
+    const int nref = 3;                 // niveis de refinamento da malha (a mesma no transiente e no fator)
+    const REAL horasRebaixamento = 0.1; // duracao da descida do reservatorio (h)
+    const REAL horasDepois = 24.;       // transiente depois do rebaixamento (h)
+    const REAL dtGravar = 0.1;          // intervalo entre os instantes gravados (h); o fator, de hora em hora e no fim da descida
+
+    auto [gT, gF] = MalhaDoRebaixamento(points, nref);
+    UnsatParams p;
+    p.ks = 1.e-6; // k do Ceron (m/s): antes da copia pT, para valer no transiente
+
+    // transiente: so a agua (sem acoplamento); u preso como no fator
+    UnsatModel<TUnsatHP> mT;
+    mT.SetGeoMesh(gT);
+    mT.AddDirichletBC(base, TUnsat::EDirichletU, 0, {0, 1});
+    mT.AddDirichletBC(left, TUnsat::EDirichletU, 0, {0});
+    mT.AddDirichletBC(right, TUnsat::EDirichletU, 0, {0});
+    UnsatParams pT = p;
+    pT.coupled = false;
+    mT.SetMaterial(UnsatMaterial(matSolo, pT));
+    mT.CreateCompMesh({{2, 2}, {1, 1}, {1, 1}});
+    TPZUnsatAnalysis aT(mT.CompMesh(), {{base, {true, true}}, {right, {true, false}}, {left, {true, false}}});
+    TPZSpStructMatrix<STATE> strmat(mT.CompMesh());
+    strmat.SetNumThreads(std::getenv("PZ_THREADS") ? std::atoi(std::getenv("PZ_THREADS")) : 8); // como na UnsatAnalysis
+    aT.SetStructuralMatrix(strmat);
+    TPZStepSolver<STATE> solver;
+    solver.SetDirect(ELU);
+    aT.SetSolver(solver);
+    DrawdownData d;
+    d.nivelInicial = points[4][1]; // reservatorio cheio: na crista
+    d.nivelFinal = points[3][1];   // vazio: no pe
+    d.nivelMacico = points[4][1];  // NA do macico (lateral esquerda), fixo
+    d.tRebaixamento = horasRebaixamento;
+    DrawdownTransient rebaixamento(aT, d, left, {right, topright, face, topleft});
+    rebaixamento.InitialState();
+    const PointLocator loc(mT.GeoMesh());
+
+    // fator de seguranca: GIM com as pressoes do transiente congeladas
+    UnsatModel<TUnsatHP> mF;
+    mF.SetGeoMesh(gF);
+    InsertBC(mF, points);
+    // agua do reservatorio sobre o talude submerso: pressao gamma_w (nivel - y) normal a face e ao terreno do pe, que
+    // cresce com o fator do GIM como o peso (fator e nivel mudam ao longo da conta: a funcao le os dois)
+    REAL fator = 1., nivel = d.nivelInicial;
+    auto pressaoReservatorio = [&](REAL nx, REAL ny) { // normal para fora do solo
+        return [&fator, &nivel, nx, ny, gw = d.gammaw](const TPZVec<REAL> &x, TPZVec<STATE> &v2, TPZFMatrix<STATE> &) {
+            const REAL pr = fator * gw * std::max(REAL(0), nivel - x[1]);
+            v2[0] = -pr * nx, v2[1] = -pr * ny;
+        };
+    };
+    const REAL dx = points[3][0] - points[4][0], dy = points[4][1] - points[3][1], L = std::hypot(dx, dy);
+    mF.AddNaturalBC(face, TUnsat::ENeumannU, {0., 0.}, pressaoReservatorio(dy / L, dx / L));
+    mF.AddNaturalBC(topright, TUnsat::ENeumannU, {0., 0.}, pressaoReservatorio(0., 1.));
+    mF.SetMaterial(UnsatMaterial(matSolo, p));
+    mF.CreateCompMesh({{2, 2}, {1, 1}, {1, 1}});
+    UnsatAnalysis<TUnsatHP> aF(mF);
+    aF.SetVerbose(false);
+    TUnsatHP *mat = mF.Material();
+    aF.SetLoadFactorFunction([mat, &fator](REAL l) { mat->SetGravityFactor(l), fator = l; }, false);
+
+    AnimationFiles<TUnsatHP> anim("rebaixamento", mF);
+    anim.Summary(horasRebaixamento, d.nivelInicial, d.nivelFinal);
+    const int n = int(std::lround((horasRebaixamento + horasDepois) / dtGravar));
+    for (int k = 0; k <= n; k++) {
+        const REAL t = k * dtGravar;
+        if (!rebaixamento.AdvanceTo(t)) {
+            std::cout << "o transiente parou em t = " << rebaixamento.Time() << " h" << std::endl;
+            break;
+        }
+        const std::vector<REAL> pw = rebaixamento.NodalWaterPressure();
+        anim.Snapshot(t, pw, rebaixamento.Level(), mT.Material()->Hydraulics());
+        // o fator de hora em hora e tambem no fim da descida
+        if (std::abs(t - std::round(t)) > 1.e-9 && std::abs(t - horasRebaixamento) > 1.e-9) continue;
+        mat->ResetMemory(); // estado sem tensoes
+        nivel = rebaixamento.Level();
+        aF.SetFrozenPressures([&](int espaco, const TPZVec<REAL> &x) {
+            return espaco == 1 ? loc.Interpolate(x[0], x[1], pw) : 0.;
+        });
+        const REAL gamma = aF.GIMArcLength();
+        anim.FactorOfSafety(t, gamma);
+        std::cout << "t = " << t << " h, nivel = " << rebaixamento.Level() << " m: Gamma = " << gamma << std::endl;
+    }
+}
+
+int main()
+{
+    // cantos do talude no sentido anti-horario: base esquerda, base direita, terreno do pe a direita, pe, crista, crista
+    // a esquerda
+    const std::vector<std::vector<REAL>> talude10 = {{0, 0}, {70, 0}, {70, 30}, {40, 30}, {30, 40}, {0, 40}}; // H = 10 m
+    const std::vector<std::vector<REAL>> ceron = {{0, 0}, {25, 0}, {25, 5}, {15, 5}, {10, 10}, {0, 10}}; // H = 5 m, Fig. 24]
+    const std::vector<std::vector<REAL>> ceron2 = {{0, 0}, {70, 0}, {70, 30}, {40, 30}, {35, 35}, {0, 35}}; // H = 5 m, Fig. 24
+    // ---- niveis de refinamento: h nos triangulos marcados e, com pmax > 2, tambem p (hp)
+     SolveDrawDown(ceron2);
+    //TransientDrawDown(ceron2);
     return 0;
+}
+
+/// Talude de 6 cantos no sentido anti-horario: base esquerda, base direita, terreno do pe a direita, pe, crista, crista
+/// a esquerda. Ex.: {{0, 0}, {70, 0}, {70, 30}, {40, 30}, {30, 40}, {0, 40}} (H = 10 m a 45 graus; a malha antiga) ou o do
+/// Ceron {{0, 0}, {25, 0}, {25, 5}, {15, 5}, {10, 10}, {0, 10}} (H = 5 m). Malha estruturada com passo perto da altura H
+/// do talude: cada trecho horizontal e vertical e dividido em round(comprimento / H) partes iguais, cada retangulo em
+/// dois triangulos (diagonal do canto inferior direito ao superior esquerdo) e a cunha da face (pe, crista e o ponto
+/// abaixo da crista) num triangulo so. BC ids: -1 base, -2 right, -3 top right, -4 top left, -5 left, -6 face.
+/// ref = refinamentos uniformes.
+TPZGeoMesh *TriGMesh(const std::vector<std::vector<REAL>> &points, int ref) {
+    if (points.size() != 6) DebugStop();
+    const REAL x0 = points[0][0], y0 = points[0][1], L = points[1][0], yPe = points[2][1];
+    const REAL xPe = points[3][0], xCr = points[4][0], yCr = points[4][1];
+    // a forma: base e terrenos horizontais, laterais verticais, crista a esquerda e acima do pe
+    if (points[1][1] != y0 || points[2][0] != L || points[3][1] != yPe || points[5][0] != x0 || points[5][1] != yCr ||
+        !(x0 < xCr && xCr < xPe && xPe < L && y0 < yPe && yPe < yCr))
+        DebugStop();
+    const REAL H = yCr - yPe; // altura do talude: o passo da malha
+    // pontos de a ate b em partes iguais de umas H (pelo menos uma)
+    auto divide = [H](REAL a, REAL b) {
+        const int n = std::max(1, int(std::lround((b - a) / H)));
+        std::vector<REAL> v(n + 1);
+        for (int k = 0; k <= n; k++) v[k] = a + (b - a) * k / n;
+        return v;
+    };
+    std::vector<REAL> xs = divide(x0, xCr); // ate a crista; a cunha (crista ao pe) e uma divisao so
+    const int iCr = int(xs.size()) - 1, iPe = iCr + 1;
+    for (REAL x : divide(xPe, L)) xs.push_back(x); // do pe ate a lateral direita
+    const std::vector<REAL> ys = divide(y0, yPe);  // ate o pe; a camada da crista (pe a crista) e uma divisao so
+    const int nx = int(xs.size()) - 1, ny = int(ys.size()) - 1;
+
+    // nos: as linhas ate o pe com todas as colunas e a linha da crista com as colunas ate a crista
+    auto no = [nx](int i, int j) { return int64_t(j) * (nx + 1) + i; };
+    auto topo = [nx, ny](int i) { return int64_t(ny + 1) * (nx + 1) + i; };
+    auto *gmesh = new TPZGeoMesh();
+    gmesh->SetDimension(2);
+    gmesh->NodeVec().Resize(topo(iCr) + 1);
+    auto poeNo = [gmesh](int64_t id, REAL x, REAL y) {
+        TPZManVector<REAL, 3> c = {x, y, 0.};
+        gmesh->NodeVec()[id] = TPZGeoNode(id, c, *gmesh);
+    };
+    for (int j = 0; j <= ny; j++)
+        for (int i = 0; i <= nx; i++) poeNo(no(i, j), xs[i], ys[j]);
+    for (int i = 0; i <= iCr; i++) poeNo(topo(i), xs[i], yCr);
+
+    // triangulos: cada retangulo (a, b, c, e anti-horario a partir do canto inferior esquerdo) em {a, b, e} e {b, c, e}
+    auto triangulo = [gmesh](int64_t a, int64_t b, int64_t c) {
+        TPZManVector<int64_t, 3> nodes = {a, b, c};
+        new TPZGeoElRefPattern<pzgeom::TPZGeoTriangle>(nodes, matSolo, *gmesh);
+    };
+    for (int j = 0; j < ny; j++)
+        for (int i = 0; i < nx; i++) {
+            triangulo(no(i, j), no(i + 1, j), no(i, j + 1));
+            triangulo(no(i + 1, j), no(i + 1, j + 1), no(i, j + 1));
+        }
+    for (int i = 0; i < iCr; i++) { // camada da crista
+        triangulo(no(i, ny), no(i + 1, ny), topo(i));
+        triangulo(no(i + 1, ny), topo(i + 1), topo(i));
+    }
+    triangulo(no(iCr, ny), no(iPe, ny), topo(iCr)); // cunha da face
+
+    // contornos no sentido anti-horario
+    auto linha = [gmesh](int64_t a, int64_t b, int id) {
+        TPZManVector<int64_t, 2> nodes = {a, b};
+        new TPZGeoElRefPattern<pzgeom::TPZGeoLinear>(nodes, id, *gmesh);
+    };
+    for (int i = 0; i < nx; i++) linha(no(i, 0), no(i + 1, 0), base);
+    for (int j = 0; j < ny; j++) linha(no(nx, j), no(nx, j + 1), right);
+    for (int i = nx; i > iPe; i--) linha(no(i, ny), no(i - 1, ny), topright);
+    for (int i = iCr; i > 0; i--) linha(topo(i), topo(i - 1), topleft);
+    linha(topo(0), no(0, ny), left);
+    for (int j = ny; j > 0; j--) linha(no(0, j), no(0, j - 1), left);
+    linha(no(iPe, ny), topo(iCr), face);
+
+    gmesh->BuildConnectivity();
+    for (int d = 0; d < ref; d++) {
+        const int64_t nel = gmesh->NElements();
+        TPZManVector<TPZGeoEl *> sub;
+        for (int64_t iel = 0; iel < nel; iel++)
+            if (!gmesh->Element(iel)->HasSubElement()) gmesh->Element(iel)->Divide(sub);
+    }
+
+    std::ofstream meshFile("geo.vtk");
+    TPZVTKGeoMesh::PrintGMeshVTK(gmesh, meshFile, true);
+
+    return gmesh;
 }

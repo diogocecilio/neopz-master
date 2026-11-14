@@ -1,0 +1,15 @@
+# fermi: build, executavel, logs dos jobs, teste e resultados (os resultados ficam em $DATA/chuva_mc)
+cluster/build/
+cluster/bin/
+cluster/logs/*
+!cluster/logs/.gitkeep
+cluster/teste/
+cluster/resultados*/
+cluster/compilar.log
+# relatorio: auxiliares do LaTeX
+relatorio/*.aux
+relatorio/*.log
+relatorio/*.out
+relatorio/*.toc
+relatorio/*.synctex.gz
+__pycache__/
