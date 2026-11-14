@@ -11,13 +11,19 @@ Figuras (PDF em <figs>):
   fig_gim_srm      FS do SRM e Gamma do GIM no tempo (f50 e f10) e com o nivel de refinamento (f50, 24 h)
   fig_intensidade  FS(24 h) deterministico com I (SRM, GIM e a sigmoide da Fig. 7b do Rahardjo); pilotos; FS(24 h)
                    com k/k_s no solo homogeneo
+  fig_ai           amostragem por importancia: realizacoes para CoV(P_f) = 5% com P_f (Monte Carlo direto, AI no estado
+                   limite linear, FORM com campos) e o piloto do rebaixamento do Ceron no plano das projecoes na banda
+A secao da amostragem por importancia le o Monte Carlo do rebaixamento do Ceron com o transiente rodado no PC
+(SlopeDrawdownMonteCarlo, pasta ~/projects/runs/ceron_transiente: direto/ e a conferencia dos pesos em verificacao/).
 Na tela: as linhas LaTeX das tabelas do relatorio (copiadas para o .tex) e os numeros do texto, cada um com o arquivo de
 onde sai. Os unicos numeros digitados aqui sao os do artigo do Rahardjo (leituras da Fig. 5 a olho, +-0,02; F_ini da
 Tabela 7; a sigmoide e a intensidade limiar da Fig. 7b), os do artigo do Ceron (Gamma deterministico e P_f da Tabela 4) e o fator 2,6 entre um
 nucleo do fermi e o da estacao (medido antes).
 
 Uso: python3 -I figuras_relatorio.py [pasta do build do SlopeRandomFieldRefinement] [pasta das figuras]
-     (padrao: ../../../../neopz-master-build-release/Projects/SlopeRandomFieldRefinement e ./figs)"""
+                                    [pasta do Monte Carlo do rebaixamento]
+     (padrao: ../../../../neopz-master-build-release/Projects/SlopeRandomFieldRefinement, ./figs e
+     ~/projects/runs/ceron_transiente)"""
 
 import csv
 import glob
@@ -57,6 +63,10 @@ I_THR_F50 = 51.  # Fig. 7b (f50): intensidade limiar I_r(thr) = 51 mm/h (= 1,42 
 # Vargas Ceron et al. (2025): Gamma deterministico (Fig. 24) e P_f da Tabela 4 (s = 1 e s = 400), CoV(Gamma) em s = 1
 CERON = {"gamma_det": 1.336, "pf_s1": 11.50, "pf_s400": 21.93, "cov_s1": 23.5}
 FERMI_LENTO = 2.6  # um nucleo do fermi e 2,6 vezes mais lento que o da estacao (medido antes desta campanha)
+# amostragem por importancia: o Monte Carlo do rebaixamento do Ceron rodado no PC e o piloto fixo (as realizacoes
+# 0..N_PILOTO-1, para os numeros nao mudarem enquanto a rodada continua), K modos por campo no deslocamento por modos
+CERON_TR_PADRAO = os.path.expanduser("~/projects/runs/ceron_transiente")
+N_PILOTO, K_MODOS, N_KL = 400, 20, 3 * 2000
 
 # ---- estilo (o do posproc/figuras_chuva.py)
 PALETA = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"]
@@ -488,6 +498,162 @@ def fig_intensidade(pasta, srmI, gimI, pilotos, fsk, kmin, Iref, ks_mmh):
 
 
 # ---------------------------------------------------------------- tabelas e numeros
+# ---------------------------------------------------------------- amostragem por importancia
+def norm_cdf(x):
+    return 0.5 * math.erfc(-x / math.sqrt(2.))
+
+
+def norm_pdf(x):
+    return math.exp(-0.5 * x * x) / math.sqrt(2. * math.pi)
+
+
+def ganho_ai(p, ruido=0.):
+    """estado limite linear com P_f = p (falha: t = xi . a >= beta): o deslocamento da entropia cruzada na direcao a,
+    m = E[t | t >= beta] = phi(beta) / p, e um ruido |delta|^2 em direcoes que nao importam, que multiplica o segundo
+    momento por exp(|delta|^2). Devolve beta, m e Var(AI) / Var(MC) por realizacao, com
+    E_h[(I w)^2] = exp(m^2 + |delta|^2) Phi(-beta - m)"""
+    b = brentq(lambda x: norm_cdf(-x) - p, -10., 40.)
+    m = norm_pdf(b) / p
+    return b, m, (math.exp(m * m + ruido) * norm_cdf(-b - m) - p * p) / (p * (1. - p))
+
+
+def le_mc_pasta(pasta, ate):
+    """as linhas das realizacoes < ate (com a -1, o deterministico) dos mc_<a>_<b>.csv da pasta, por realizacao"""
+    rs = {}
+    for arq in glob.glob(os.path.join(pasta, "mc_*_*.csv")):
+        if re.search(r"/mc_\d+_\d+\.csv$", arq):
+            for r in csv.DictReader(open(arq, newline="")):
+                if int(r["real"]) < ate:
+                    rs[int(r["real"])] = r
+    return rs
+
+
+def le_chaves(arq):
+    return dict(l.strip().split("=", 1) for l in open(arq) if "=" in l and not l.startswith("#"))
+
+
+def fig_ai(pasta, piloto, s, p_piloto):
+    fig, (a, b) = plt.subplots(1, 2, figsize=(LARGURA, 2.75), gridspec_kw={"width_ratios": [1.25, 1]})
+    pf = np.logspace(-4, math.log10(0.5), 200)
+    nmc = (1 - pf) / (pf * 0.05 ** 2)
+    nai = np.array([ganho_ai(x)[2] for x in pf]) * nmc
+    a.loglog(pf, nmc, color=PALETA[0], label="Monte Carlo direto")
+    a.loglog(pf, nai, color=PALETA[1], label="AI (linear, deslocamento ótimo)")
+    a.axhline(2 * N_KL + 1, color=MUDO, ls="--", lw=1.)
+    a.text(1.3e-4, (2 * N_KL + 1) * 1.25, "FORM com campos: 1 iteração ($2n+1$, $n = %d$)" % N_KL, fontsize=6.5,
+           color=TINTA2)
+    for x, rot, dy in ((p_piloto, "piloto (PC)", -11), (CERON["pf_s1"] / 100., "Ceron", 5)):
+        y = (1 - x) / (x * 0.05 ** 2)
+        a.plot([x], [y], "o", ms=3.5, color=PALETA[0])
+        a.annotate(rot, (x, y), xytext=(-5, dy), textcoords="offset points", fontsize=6.5, ha="right",
+                   color=TINTA2)
+    a.set_xlabel("$P_f$")
+    a.set_ylabel("realizações para $CoV(P_f) = 5\\%$")
+    a.set_xlim(1e-4, 0.5)
+    a.legend(loc="lower left")
+    letra(a, "a")
+    pr = np.array([[float(r["proj_c"]), float(r["proj_phi"])] for r in piloto])
+    f = np.array([float(r["FS_min"]) < 1. for r in piloto])
+    b.scatter(pr[~f, 0], pr[~f, 1], s=4, color=MUDO, alpha=0.6, lw=0, label="$\\Gamma \\geq 1$")
+    b.scatter(pr[f, 0], pr[f, 1], s=6, color=PALETA[1], lw=0, label="$\\Gamma < 1$ (falha)")
+    b.plot([0], [0], "+", color=TINTA, ms=7)
+    b.plot([s[0]], [s[1]], "*", color=TINTA, ms=8, label="deslocamento $(s_c, s_\\varphi)$")
+    b.set_xlabel("$\\xi_c \\cdot d$")
+    b.set_ylabel("$\\xi_\\varphi \\cdot d$")
+    b.set_aspect("equal", adjustable="datalim")
+    b.legend(handles=[Line2D([], [], marker="o", ls="", color=MUDO, ms=3.5, label="$\\Gamma \\geq 1$"),
+                      Line2D([], [], marker="o", ls="", color=PALETA[1], ms=3.5, label="$\\Gamma < 1$"),
+                      Line2D([], [], marker="*", ls="", color=TINTA, ms=7, label="deslocamento")],
+             loc="lower left", bbox_to_anchor=(0., 1.0), ncol=3, fontsize=6.5, handletextpad=0.1, columnspacing=0.8,
+             borderaxespad=0.1)
+    letra(b, "b")
+    fig.tight_layout()
+    salva(fig, pasta, "fig_ai")
+
+
+def secao_ai(R, pasta):
+    """os numeros da secao da amostragem por importancia (rebaixamento do Ceron com o transiente, rodado no PC)"""
+    D = os.path.join(R, "direto", "ceron_tr_fase1", "f50_I0_iii")
+    V = os.path.join(R, "verificacao")
+    fonte = rel(D, R) + "/mc_*.csv"
+    rs = le_mc_pasta(D, N_PILOTO)
+    det = rs.pop(-1)
+    assert sorted(rs) == list(range(N_PILOTO)), "o piloto ainda nao tem as realizacoes 0..%d" % (N_PILOTO - 1)
+    num("ai_gamma_det", v(float(det["FS_min"])), fonte)
+    ok = [rs[n] for n in sorted(rs) if rs[n]["situacao"] == "ok"]
+    G = np.array([float(r["FS_min"]) for r in ok])
+    falha = G < 1.
+    nf, N = int(falha.sum()), len(G)
+    p = nf / N
+    meia = 1.96 * math.sqrt(p * (1 - p) / N)
+    num("ai_N_piloto", "%d" % N, fonte)
+    num("ai_nf_piloto", "%d" % nf, fonte)
+    num("ai_Pf_piloto_pct", v(100. * p, 1), fonte)
+    num("ai_Pf_piloto_IC95_pct", "%s-%s" % (v(100. * (p - meia), 1), v(100. * (p + meia), 1)), fonte)
+    num("ai_CoVPf_piloto_pct", v(100. * math.sqrt((1 - p) / (N * p)), 0), fonte)
+    num("ai_gamma_media", v(G.mean(), 3), fonte)
+    num("ai_gamma_cov_pct", v(100. * G.std(ddof=1) / G.mean(), 1), fonte)
+    seg = np.array([float(r["s_transiente"]) + float(r["s_fator"]) for r in ok])
+    num("ai_s_por_realizacao_PC", v(seg.mean(), 0), fonte + " (s_transiente + s_fator, 8 processos)")
+    # o deslocamento na direcao da banda: a media das projecoes das falhas (as colunas proj_* do direto)
+    proj = np.array([[float(r[c]) for c in ("proj_c", "proj_phi", "proj_k")] for r in ok])
+    s = proj[falha].mean(axis=0)
+    for c, x in zip(("c", "phi", "k"), s):
+        num("ai_s_%s" % c, v(x, 2), fonte + " (proj_*)")
+    num("ai_banda_mu2_colunas", v(float((s ** 2).sum()), 2), fonte + " (proj_*)")
+    beta, m, r = ganho_ai(p)
+    num("ai_beta_linear", v(beta, 3), "formula, P_f do piloto")
+    num("ai_m2_linear", v(m * m, 2), "formula, P_f do piloto")
+    # a conferencia dos pesos (20 000 sorteios com o deslocamento de cada tipo) e o ruido do deslocamento
+    for tipo in ("banda", "modos"):
+        d = le_chaves(glob.glob(os.path.join(V, "%s_desloc_*.txt" % tipo))[0])
+        assert int(d["falhas"]) == nf and int(d["validas"]) == N
+        mu2 = float(d["mu2"])
+        q = [x for x in csv.DictReader(open(glob.glob(os.path.join(V, "%s_proj_*.csv" % tipo))[0], newline=""))]
+        w = np.exp(np.array([float(x["log_peso"]) for x in q]))
+        f2 = "verificacao/%s_*" % tipo
+        num("ai_%s_mu2" % tipo, v(mu2, 2), f2)
+        num("ai_%s_sorteios" % tipo, "%d" % len(w), f2)
+        num("ai_%s_peso_medio" % tipo, "%s +- %s" % (v(w.mean(), 3), v(w.std(ddof=1) / math.sqrt(len(w)), 3)), f2)
+        num("ai_%s_var_peso" % tipo, "%s (teorica %s)" % (v(w.var(ddof=1), 2), v(math.exp(mu2) - 1., 2)), f2)
+        if tipo == "banda":
+            mp = [np.mean([float(x[c]) for x in q]) for c in ("proj_c", "proj_phi", "proj_k")]
+            num("ai_banda_proj_media_sorteios", "; ".join(v(x, 2) for x in mp), f2)
+            num("ai_banda_s_programa", d["s"], f2)
+    dvec = np.array([float(x["d"]) for x in csv.DictReader(open(os.path.join(V, "banda_direcao.csv"), newline=""))])
+    num("ai_direcao_termos", "%d" % len(dvec), "verificacao/banda_direcao.csv")
+    num("ai_direcao_K%d_pct" % K_MODOS, v(100. * float((dvec[:K_MODOS] ** 2).sum()), 0), "verificacao/banda_direcao.csv")
+    num("ai_ruido_banda", v(3. / nf, 2), "3 / n_f")
+    num("ai_ruido_modos", v(3. * K_MODOS / nf, 2), "3K / n_f")
+    nf_fermi = 1000 * p
+    num("ai_nf_piloto_fermi", "%d" % round(nf_fermi), "1000 P_f")
+    num("ai_ruido_modos_fermi", v(3. * K_MODOS / nf_fermi, 2), "3K / (1000 P_f)")
+    num("ai_fator_ruido_modos_fermi", v(math.exp(3. * K_MODOS / nf_fermi), 2), "exp(3K / (1000 P_f))")
+    # o ganho esperado (estado limite linear, deslocamento otimo): a tabela
+    linhas = []
+    for x, rot in ((p, "piloto do rebaixamento (PC)"), (CERON["pf_s1"] / 100., "Ceron, Tabela 4"), (0.01, ""),
+                   (0.001, "")):
+        b_, m_, r_ = ganho_ai(x)
+        nmc = (1 - x) / (x * 0.05 ** 2)
+        mil = lambda n: ("{:,}".format(int(round(n))).replace(",", r"\,") if n >= 1e4  # noqa: E731
+                         else "%d" % round(n))
+        linhas.append(r"%s & %s & %s & %s & %s & %s & %s \\" % (
+            v(100. * x, 1 if x >= 0.01 else 2), rot, v(b_, 2), v(m_ * m_, 2), mil(nmc), mil(r_ * nmc),
+            v(1. / r_, 1) if 1. / r_ < 100. else "%d" % round(1. / r_)))
+    tabela("ganho da AI (secao 7)", linhas)
+    # a campanha no fermi (casos_ceron.txt)
+    for linha in texto(os.path.join(PROJ, "cluster", "casos_ceron.txt")).splitlines():
+        if linha.strip() and not linha.startswith("#"):
+            c = linha.split()
+            num("ai_fermi_N_%s" % c[0], "%d" % int(c[2]), "cluster/casos_ceron.txt")
+    Nt = sum(int(l.split()[2]) for l in texto(os.path.join(PROJ, "cluster", "casos_ceron.txt")).splitlines()
+             if l.strip() and not l.startswith("#"))
+    cpu = Nt * seg.mean() * FERMI_LENTO / 3600.
+    num("ai_fermi_cpu_h", "%d" % round(cpu), "casos_ceron.txt + custo do PC x 2,6")
+    num("ai_fermi_relogio_h", v(cpu / 48., 0), "4 nos x 12 processos")
+    fig_ai(pasta, ok, s, p)
+
+
 def tabela(nome, linhas):
     print("\n%% ---- tabela: %s" % nome)
     for linha in linhas:
@@ -631,15 +797,16 @@ def main(argv):
         num("gim_I%g" % I, v(gimI[I]), fontesI[("gim", I)])
     num("gim_I31.3", v(gimI[31.3]), fontesI[("gim", 31.3)])
     num("gim_I36", v(gimI[36.]), fontesI[("gim", 36.)])
-    # referencia da campanha (submeter.sh) e k_s do f50 (mc_parametros.txt de um caso)
+    # referencia da campanha da chuva (os padroes do campanha.sh e do submeter.sh) e k_s do f50 (mc_parametros.txt)
     sub = texto(os.path.join(PROJ, "cluster", "submeter.sh"))
-    Iref = float(re.search(r'IREF="\$\{IREF:-([\d.]+)\}"', sub)[1])
+    cam = re.search(r"^chuva\)(.*?);;", texto(os.path.join(PROJ, "cluster", "campanha.sh")), re.M | re.S)[1]
+    Iref = float(re.search(r"IREF_PADRAO=([\d.]+)", cam)[1])
     nos = int(re.search(r'NOS="\$\{1:-(\d+)\}"', sub)[1])
     paralelo = int(re.search(r'PARALELO="\$\{PARALELO:-(\d+)\}"', sub)[1])
-    bloco = int(re.search(r'BLOCO="\$\{BLOCO:-(\d+)\}"', sub)[1])
-    num("Iref", g(Iref), "cluster/submeter.sh")
+    bloco = int(re.search(r"BLOCO_PADRAO=(\d+)", cam)[1])
+    num("Iref", g(Iref), "cluster/campanha.sh")
     num("nos_x_processos", "%d x %d" % (nos, paralelo), "cluster/submeter.sh")
-    num("bloco", "%d" % bloco, "cluster/submeter.sh")
+    num("bloco", "%d" % bloco, "cluster/campanha.sh")
     jt = re.search(r"#SBATCH --time=(\S+)", texto(os.path.join(PROJ, "cluster", "job.sbatch")))[1]
     num("job_tempo", jt, "cluster/job.sbatch")
     te = re.search(r"FS\(0 h\) ~([\d,]+) e FS\(24 h\) ~([\d,]+)", texto(os.path.join(PROJ, "cluster", "teste.sbatch")))
@@ -827,6 +994,7 @@ def main(argv):
     fig_validacao(pasta, logs)
     fig_gim_srm(pasta, logs["f50"], gim50, logs["f10"], gim10)
     fig_intensidade(pasta, srmI, gimI, desenho, fsk, kmin, Iref, ks_mmh)
+    secao_ai(os.path.abspath(argv[3]) if len(argv) > 3 else CERON_TR_PADRAO, pasta)
 
     print("\n% ---- numeros do texto (chave: valor  [arquivo])")
     for chave, valor, fonte in NUMEROS:

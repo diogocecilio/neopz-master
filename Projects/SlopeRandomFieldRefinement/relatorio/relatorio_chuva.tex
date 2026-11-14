@@ -5,13 +5,14 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage[T1]{fontenc}\usepackage[utf8]{inputenc}\usepackage[brazilian]{babel}\usepackage{lmodern}
 \usepackage[margin=2.2cm]{geometry}\usepackage{booktabs}\usepackage{graphicx}\usepackage{caption}
-\usepackage{float}\usepackage[hidelinks]{hyperref}\usepackage{amsmath}\usepackage{microtype}
+\usepackage{float}\usepackage[hidelinks]{hyperref}\usepackage{amsmath}\usepackage{amssymb}\usepackage{microtype}
+\usepackage{array}
 \captionsetup{font=small}
 % mais floats por pagina de texto e paginas so de floats so quando cheias
 \renewcommand{\topfraction}{0.9}\renewcommand{\bottomfraction}{0.8}\renewcommand{\textfraction}{0.07}
 \renewcommand{\floatpagefraction}{0.75}
 \graphicspath{{figs/}}
-\author{SlopeRandomFieldRefinement (\texttt{rahardjo.cpp}, \texttt{montecarlo.cpp}, \texttt{form\_variaveis.py})}
+\author{SlopeRandomFieldRefinement\\ \small(\texttt{rahardjo.cpp}, \texttt{montecarlo.cpp}, \texttt{form\_variaveis.py}, \texttt{rebaixamento\_mc.cpp})}
 \title{Monte Carlo da chuva no talude de Rahardjo et al.\ (2007) com o método estocástico de Vargas Ceron et al.\
 (2025): validação, escolhas e campanha no fermi}
 \date{14 de novembro de 2026}
@@ -33,9 +34,12 @@ O plano segue a ordem deste relatório:
 \item escolher a intensidade de referência e conferir o Monte Carlo com pilotos de 8 a 10 realizações
 (Seção~\ref{sec:intensidade});
 \item estimar $P_f$ pelo FORM com variáveis aleatórias e ver o que o FORM pediria com campos (Seção~\ref{sec:form});
+\item testar a amostragem por importância no rebaixamento do Ceron, onde há um Monte Carlo direto para comparar
+(Seção~\ref{sec:ai});
 \item rodar a campanha no fermi (Seção~\ref{sec:fermi}).
 \end{enumerate}
-Os passos 1 a 4 estão feitos; a campanha está pronta para submeter. As figuras e as tabelas saem de
+Os passos 1 a 4 estão feitos. O passo 5 está rodando no PC e vai para o fermi. A campanha da chuva está pronta para
+submeter. As figuras e as tabelas saem de
 \texttt{relatorio/figuras\_relatorio.py}. Ele lê os arquivos gravados pelos programas (logs do \texttt{SlopeRahardjo},
 CSVs do \texttt{SlopeRainMonteCarlo} e o \texttt{form.json} do \texttt{form\_variaveis.py}) e imprime cada número do
 texto com o arquivo de onde ele sai. O Apêndice~\ref{sec:arquivos} lista os arquivos.
@@ -383,7 +387,209 @@ serve para $P_f$ pequenas.
 Há duas opções para os campos: (i) KL truncada (50 a 200 termos) com amostragem por importância centrada no ponto de
 projeto; (ii) simulação por subconjuntos na KL inteira, sem truncar. Para a campanha fica o Monte Carlo: a $P_f$ esperada
 vai de 1\% a dezenas de por cento, e as realizações são independentes, o que paraleliza sem perda no fermi. O ganho do
-FORM é o ponto de projeto e as importâncias.
+FORM é o ponto de projeto e as importâncias. A Seção~\ref{sec:ai} mostra uma terceira opção: a amostragem por
+importância sem o ponto de projeto, com o deslocamento tirado das falhas de um piloto.
+
+\section{Amostragem por importância}\label{sec:ai}
+A $P_f$ é uma integral em $n = 6000$ dimensões: os coeficientes $\xi$ da KL dos três campos, 2000 por campo. Cada ponto
+da integral é uma análise por elementos finitos. Há três maneiras de calculá-la: Monte Carlo direto, FORM e amostragem
+por importância (AI). A Tab.~\ref{tab:metodos} resume as três. Esta seção explica a AI, por que ela entra no estudo e
+como ela foi testada no rebaixamento rápido do Ceron com o transiente (\texttt{rebaixamento\_mc.cpp}), onde há um
+Monte Carlo direto para comparar.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{Os três métodos para a $P_f$ com $n = 6000$ variáveis (os $\xi$ da KL), com uma análise por elementos finitos
+em cada avaliação. Os números de realizações são para $CoV(P_f) = 5\%$.}\label{tab:metodos}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\begin{tabular}{@{}L{1.9cm}L{3.5cm}L{4.6cm}L{5.3cm}@{}}\toprule
+Método & Custo & Vantagens & Desvantagens \\\midrule
+Monte Carlo direto & $N \approx (1 - P_f)/(0{,}0025\,P_f)$: 1762 com $P_f = 18{,}5\%$ e 39\,600 com 1\% &
+sem viés e sem hipótese sobre a região de falha; vale com vários mecanismos; paraleliza sem perda; dá também a
+distribuição de $\Gamma$ e os mecanismos & o custo cresce com $1/P_f$ \\\addlinespace
+FORM & $2n + 1$ análises por iteração: 7 com 3 variáveis, 12\,001 com os campos & ponto de projeto e importâncias
+$\alpha^2$; barato com poucas variáveis & erro da linearização sem estimativa; um ponto de projeto só; diferenças
+finitas sobre o ruído do $FS$; inviável com 6000 variáveis \\\addlinespace
+Amostragem por importância & um piloto e de 3,5 a 288 vezes menos realizações que o direto
+(Tab.~\ref{tab:ganho}) & sem viés com o peso exato; não precisa de gradiente; ganho grande com $P_f$ pequena; o mesmo
+peso em todos os instantes & precisa de um piloto com falhas; o deslocamento tem de estar certo e sem ruído; um
+mecanismo longe do deslocamento aumenta a variância \\
+\bottomrule\end{tabular}\end{table}
+
+\subsection{Monte Carlo direto e FORM}
+O Monte Carlo direto sorteia $\xi \sim N(0, I)$ e conta as falhas: $\hat P_f = n_f/N$, com
+$CoV(\hat P_f) = \sqrt{(1 - P_f)/(N P_f)}$ (Eq.~68 do Ceron).
+\begin{itemize}
+\item \textbf{Vantagens:}
+  \begin{itemize}
+  \item não tem viés nem hipótese sobre a região de falha: vale com vários mecanismos e com um $FS$ não linear e com
+  ruído;
+  \item as realizações são independentes e paralelizam sem perda;
+  \item além da $P_f$, dá a distribuição de $\Gamma$, os mecanismos e as correlações (Spearman, mapa da banda).
+  \end{itemize}
+\item \textbf{Desvantagem:} o custo cresce com $1/P_f$. Para $CoV(P_f) = 5\%$ são precisas
+$N \approx (1 - P_f)/(0{,}0025\,P_f)$ realizações: 1762 com $P_f = 18{,}5\%$, 39\,600 com 1\% e 399\,600 com 0,1\%
+(Tab.~\ref{tab:ganho}).
+\end{itemize}
+
+O FORM troca a integral pelo ponto de projeto $u^*$, o ponto da superfície de falha mais perto da origem, e dá
+$P_f \approx \Phi(-\beta)$, com $\beta = |u^*|$ (Seção~\ref{sec:form}).
+\begin{itemize}
+\item \textbf{Vantagens:} com poucas variáveis, é barato (35 avaliações na Seção~\ref{sec:form}); dá o ponto de
+projeto e as importâncias $\alpha^2$, que dizem qual variável pesa.
+\item \textbf{Desvantagens:}
+  \begin{itemize}
+  \item o gradiente por diferenças centrais custa $2n + 1 = 12\,001$ análises por iteração com $n = 6000$, mais que o
+  Monte Carlo inteiro da referência;
+  \item o $FS$ tem ruído de uns 0,001 (a tolerância do método e a malha adaptativa, que muda de uma avaliação para
+  outra), o que pede passos grandes nas diferenças;
+  \item o erro da linearização não tem estimativa: na Seção~\ref{sec:form}, o mínimo do $FS$ em $k$ deu
+  $\alpha_k^2 \approx 0$, embora $k$ mude o $FS$;
+  \item há um ponto de projeto só: um segundo mecanismo, com outra superfície de ruptura, fica de fora.
+  \end{itemize}
+\end{itemize}
+
+\subsection{O estimador da amostragem por importância}
+A AI sorteia os $\xi$ de outra densidade, a normal deslocada $h(\xi) = \varphi_n(\xi - \mu)$, mais perto da falha, e
+corrige cada realização com um peso:
+\begin{equation}
+P_f = \int I[\Gamma(\xi) < 1]\, \varphi_n(\xi)\, d\xi = \mathrm{E}_h\big[I\, w\big], \qquad
+w(\xi) = \frac{\varphi_n(\xi)}{\varphi_n(\xi - \mu)} = \exp\!\big(-\xi \cdot \mu + \tfrac12 |\mu|^2\big),
+\end{equation}
+\begin{equation}
+\hat P_f = \frac1N \sum_{i=1}^N I_i\, w_i, \qquad CoV(\hat P_f) = \frac{s_q}{\sqrt N\, \hat P_f},
+\end{equation}
+com $s_q$ o desvio padrão amostral de $q_i = I_i w_i$.
+
+\paragraph{Não há viés.} A primeira igualdade é uma troca de variável exata, e $h > 0$ em todo o espaço: a média de
+$\hat P_f$ é $P_f$ para qualquer $\mu$. O $\mu$ só muda a variância. Duas condições garantem isso no programa:
+\begin{itemize}
+\item o peso é o exato, calculado com o $\mu$ usado no sorteio (coluna \texttt{log\_peso});
+\item o $\mu$ é fixado antes da amostra e não depende dela: ele sai de um piloto, com outra semente.
+\end{itemize}
+A conferência usa 20\,000 sorteios sem elementos finitos (\path|verificacao/|):
+\begin{itemize}
+\item a média dos pesos é $1{,}007 \pm 0{,}020$ com o deslocamento na banda e $1{,}008 \pm 0{,}020$ com o
+deslocamento por modos;
+\item a variância deles é 8,21 e 8,07, contra $e^{|\mu|^2} - 1 = 7{,}54$ e 7,59;
+\item a média das projeções sorteadas, $(-1{,}23;\ -0{,}60;\ -0{,}52)$, é o deslocamento pedido.
+\end{itemize}
+
+\paragraph{Alta dimensão.} Com $\xi \sim h$, $\mathrm{E}_h[w^2] = e^{|\mu|^2}$, qualquer que seja $n$: a AI funciona com
+6000 variáveis se o deslocamento for o certo. Um deslocamento com ruído $\delta$ em direções que não importam
+multiplica o segundo momento por $e^{|\delta|^2}$ (Au e Beck, 2003). Por isso a covariância de $h$ fica a identidade, e
+o deslocamento tem de ter poucos graus de liberdade.
+
+\subsection{O deslocamento sem gradiente: entropia cruzada}
+Entre as normais $N(\mu, I)$, a melhor no sentido da entropia cruzada (Rubinstein e Kroese, 2004) tem
+$\mu^* = \mathrm{E}[\xi \mid \Gamma < 1]$, a média dos $\xi$ das realizações que falham. Ela sai de um piloto de Monte
+Carlo direto; os $\xi$ das falhas são sorteados de novo pela semente, sem custo. A média crua dos 6000 componentes
+teria ruído $|\delta|^2 \approx 6000/n_f$. O programa a regulariza de dois jeitos (\texttt{ai=banda} ou
+\texttt{ai=modos}):
+\begin{itemize}
+\item \textbf{Na direção da banda.} $d$ é o vetor unitário do gradiente, em relação aos $\xi$, da média do campo
+gaussiano nos pontos da banda de ruptura do determinístico. O deslocamento é $\mu_c = s_c\, d$, com $s_c$ a média de
+$\xi_c \cdot d$ nas falhas: três números, um por campo, e ruído $3/n_f$.
+\item \textbf{Nos primeiros modos.} A média dos $K = 20$ primeiros modos de cada campo (a proposta da nota
+\texttt{form\_MIS}): 60 números e ruído $60/n_f$. Ela só alcança a parte da direção útil que está nesses modos: 65\% de
+$|d|^2$.
+\end{itemize}
+O ponto de projeto do FORM também serviria de $\mu$, como em Ji et al.\ (2024); aqui ele custaria as iterações do
+gradiente, e um ponto de projeto impreciso põe ruído no deslocamento.
+
+\paragraph{O piloto do rebaixamento.} As 400 primeiras realizações do Monte Carlo direto no PC têm 74 falhas
+($P_f = 18{,}5\%$).
+\begin{itemize}
+\item O deslocamento na banda é $s = (-1{,}22;\ -0{,}62;\ -0{,}52)$ para $c'$, $\varphi'$ e $k_v$
+(Fig.~\ref{fig:ai}b). As falhas têm $c'$, $\varphi'$ e $k_v$ menores ao longo da banda: uma banda mais fraca e uma
+dissipação mais lenta da pressão da água depois do rebaixamento.
+\item $|\mu|^2 = 2{,}15$, perto do $m^2 = 2{,}08$ de um estado limite linear com a mesma $P_f$ (Tab.~\ref{tab:ganho}):
+a direção da banda explica a falha.
+\item Com 74 falhas, o ruído é $3/n_f = 0{,}04$ na banda e $60/n_f = 0{,}81$ por modos. No piloto do fermi (1000
+realizações, umas 185 falhas), o ruído por modos cai para 0,32, um fator $e^{0{,}32} = 1{,}38$ no segundo momento.
+\end{itemize}
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\linewidth]{fig_ai.pdf}
+\caption{(a) Realizações para $CoV(P_f) = 5\%$ pelo Monte Carlo direto e pela AI num estado limite linear com o
+deslocamento ótimo. A linha tracejada é uma iteração do FORM com os campos. Os pontos são a $P_f$ do piloto do
+rebaixamento e a do Ceron. (b) O piloto do rebaixamento (400 realizações) no plano das projeções na direção da banda,
+$\xi_c \cdot d$ e $\xi_\varphi \cdot d$: as falhas ($\Gamma < 1$) e o deslocamento $(s_c, s_\varphi)$.}\label{fig:ai}
+\end{figure}
+
+\subsection{O ganho esperado}
+Num estado limite linear, o deslocamento ótimo da entropia cruzada é $m = \varphi(\beta)/P_f$ na direção da falha. O
+segundo momento é então $e^{m^2}\Phi(-\beta - m)$, e a razão das variâncias por realização sai em forma fechada
+(Tab.~\ref{tab:ganho} e Fig.~\ref{fig:ai}a). É o melhor caso: o $\Gamma$ não é linear, e a direção da banda é uma
+aproximação.
+\begin{itemize}
+\item Com $P_f = 18{,}5\%$, a AI precisa de 505 realizações em vez de 1762 para $CoV(P_f) = 5\%$: 3,5 vezes menos.
+\item Com $P_f = 1\%$, 1057 em vez de 39\,600 (37,5 vezes); com 0,1\%, 1388 em vez de 399\,600 (288 vezes).
+\end{itemize}
+Com a $P_f$ da referência, o ganho é modesto, e o Monte Carlo direto basta. A AI compensa quando a $P_f$ é pequena:
+\begin{itemize}
+\item casos de sensibilidade com CoV pequeno ou intensidades menores;
+\item o começo da curva $P_f(t)$ da chuva;
+\item probabilidades de projeto.
+\end{itemize}
+Na chuva há mais uma vantagem: o peso não depende do instante, então uma amostra dá $P_f(t)$ em todos eles.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{Ganho da AI num estado limite linear com o deslocamento ótimo da entropia cruzada: $\beta$, $m^2 = |\mu|^2$,
+realizações para $CoV(P_f) = 5\%$ pelo Monte Carlo direto e pela AI, e a razão entre elas.}\label{tab:ganho}
+\begin{tabular}{rlrrrrr}\toprule
+$P_f$ (\%) & & $\beta$ & $m^2$ & $N$ direto & $N$ AI & razão \\\midrule
+18,5 & piloto do rebaixamento (PC) & 0,90 & 2,08 & 1762 & 505 & 3,5 \\
+11,5 & Ceron, Tabela 4 & 1,20 & 2,85 & 3078 & 612 & 5,0 \\
+1,0 &  & 2,33 & 7,10 & 39\,600 & 1057 & 37,5 \\
+0,10 &  & 3,09 & 11,34 & 399\,600 & 1388 & 288 \\
+\bottomrule\end{tabular}\end{table}
+
+\paragraph{O risco.} Se a região de falha tem uma parte longe do deslocamento (outro mecanismo), o estimador continua
+sem viés, mas essa parte aparece pouco e com pesos grandes. A variância sobe e, com $N$ finito, a $P_f$ tende a sair
+baixa. Por isso a AI é conferida contra o Monte Carlo direto e acompanhada pelo tamanho efetivo da amostra.
+
+\subsection{Teste no rebaixamento do Ceron}
+O Monte Carlo direto do rebaixamento com o transiente dá, nas 400 primeiras realizações:
+\begin{itemize}
+\item $P_f = 18{,}5\%$ (IC 95\%: 14,7 a 22,3\%), contra 11,50\% do Ceron;
+\item $\bar\Gamma = 1{,}278$ e $CoV(\Gamma) = 24{,}3\%$, contra o CoV de 23,5\% do Ceron;
+\item $\Gamma = 1{,}3253$ no determinístico, contra 1,336 do Ceron.
+\end{itemize}
+O transiente baixa a média de $\Gamma$, e a dispersão fica a mesma. A diferença de $P_f$ ainda será conferida com mais
+realizações.
+
+Duas rodadas comparam a AI com o Monte Carlo direto:
+\begin{itemize}
+\item \textbf{PC:} 2000 realizações diretas e, depois, 1000 com cada deslocamento, calculado pelas 2000.
+\item \textbf{fermi} (\texttt{cluster/casos\_ceron.txt}, \texttt{CAMPANHA=ceron}): 10\,000 realizações diretas e
+5000 com cada deslocamento, com sementes diferentes.
+  \begin{itemize}
+  \item As AI começam quando as realizações 0 a 999 do direto, o piloto, terminam, e cada bloco calcula o mesmo
+  deslocamento.
+  \item São umas 481~h de CPU (33~s por realização no PC, com 8 processos, e 2,6 vezes isso no fermi): cerca de 10~h com 4 nós.
+  \end{itemize}
+\end{itemize}
+O resultado esperado tem duas partes:
+\begin{itemize}
+\item a conferência do viés: as $P_f$ da AI dentro de dois desvios da $P_f$ do direto;
+\item o ganho medido: quantas realizações diretas dão o mesmo CoV que as da AI.
+\end{itemize}
+
+\subsection{Quando usar cada um}
+\begin{itemize}
+\item \textbf{$P_f \gtrsim 5\%$ (a referência):} Monte Carlo direto. A AI ganha de 3 a 5 vezes, se o deslocamento
+estiver certo.
+\item \textbf{$P_f \lesssim 1\%$:} AI com o deslocamento pela entropia cruzada na direção da banda, com ganho de
+dezenas a centenas de vezes.
+  \begin{itemize}
+  \item Se o piloto tiver poucas falhas, o conjunto elite são os 10\% de menor $\Gamma$, um nível intermediário (opção
+  \texttt{elite}).
+  \item Com mecanismos múltiplos, a simulação por subconjuntos (Santoso et al., 2011) não precisa de deslocamento.
+  \end{itemize}
+\item \textbf{FORM:} com poucas variáveis aleatórias, para o ponto de projeto e as importâncias
+(Seção~\ref{sec:form}). Com campos, só com a KL truncada e como ponto de partida.
+\end{itemize}
+
 
 \section{Campanha no fermi}\label{sec:fermi}
 \subsection{Casos e custo}
@@ -469,19 +675,19 @@ Parar, retomar e estender estão no README: as tarefas feitas são puladas, e as
 \begin{itemize}
 \item Rodar a fase~1 e conferir, no relatório parcial, a $P_f$ da referência e o CoV de $FS$ contra os pilotos.
 \item Estender $N$ onde a $P_f$ for pequena. Para $CoV(P_f) = 5\%$ com $P_f = 1\%$ são precisas 39\,600 realizações
-(com 10\%, 3600), o que fica caro. Para $P_f$ pequenas, a simulação por subconjuntos (Santoso et al., 2011) é a
-alternativa.
+(com 10\%, 3600), o que fica caro. Para $P_f$ pequenas, as alternativas são a amostragem por importância
+(Seção~\ref{sec:ai}) e a simulação por subconjuntos (Santoso et al., 2011).
 \item Comparar o caso $s = 400$ com o FORM ($P_f = 24{,}8\%$) e, se a diferença pedir, fazer o SORM em $k$.
-\item FORM com campos (KL truncada e amostragem por importância, como Ji et al., 2024), como conferência e para ter o
-ponto de projeto.
+\item Concluir a comparação da amostragem por importância com o Monte Carlo direto no rebaixamento (PC e fermi) e
+usá-la nos casos da chuva com $P_f$ pequena, com um piloto por caso (\texttt{piloto=} no \texttt{casos.txt}).
 \item Ar ativo: o material já tem $p_a$; o transiente atual usa ar passivo ($p_a = 0$), como o SEEP/W do artigo.
 \end{itemize}
 
 \appendix
 \section{Arquivos lidos}\label{sec:arquivos}
 \sloppy Os caminhos são relativos à pasta do build do projeto, a do executável \texttt{SlopeRainMonteCarlo}. Das
-fontes são lidos \texttt{montecarlo.cpp}, \texttt{RainTransient.h}, \texttt{casos.txt}, \texttt{submeter.sh},
-\texttt{job.sbatch} e \texttt{teste.sbatch}.
+fontes são lidos \texttt{montecarlo.cpp}, \texttt{RainTransient.h}, \texttt{casos.txt}, \texttt{casos\_ceron.txt},
+\texttt{campanha.sh}, \texttt{submeter.sh}, \texttt{job.sbatch} e \texttt{teste.sbatch}.
 \begin{itemize}\small
 \item Seção~\ref{sec:modelo}: \path|mc/valida_0_-1.csv|, \path|mc/semchuva_0_-1.csv|, \path|mc/varre_I36_0_-1.csv|,
 \path|mc/teste_casos/ref/mc_real-1/| (malha), \path|mc/gim_I/gim_I31.05_parametros.txt|.
@@ -495,8 +701,12 @@ fontes são lidos \texttt{montecarlo.cpp}, \texttt{RainTransient.h}, \texttt{cas
 \path|mc/form/v_<c>,<phi>,<k>_0_-1.csv|.
 \item Seção~\ref{sec:form}: \path|mc/form/trabalho_I31.05/form.json|, \path|mc/form/v_10.1,26,1_0_-1.csv| e
 \path|mc/form/v_10.2,26,1_0_-1.csv|; a Tab.~\ref{tab:kl} é calculada.
-\item Seção~\ref{sec:fermi}: \texttt{casos.txt}, \texttt{submeter.sh}, \texttt{job.sbatch}, \texttt{teste.sbatch},
-\path|mc/serial_I24.log|,
+\item Seção~\ref{sec:ai}: na pasta \path|~/projects/runs/ceron_transiente|, as realizações 0 a 399 de
+\path|direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv| (o piloto), \path|verificacao/banda_*| e \path|verificacao/modos_*|
+(os sorteios com os pesos, \path|verificacao/LEIAME.txt|) e \path|verificacao/banda_direcao.csv|; das fontes,
+\texttt{cluster/casos\_ceron.txt}. A Tab.~\ref{tab:ganho} é calculada.
+\item Seção~\ref{sec:fermi}: \texttt{casos.txt}, \texttt{campanha.sh}, \texttt{submeter.sh}, \texttt{job.sbatch},
+\texttt{teste.sbatch}, \path|mc/serial_I24.log|,
 \path|mc/serial_I24_0_0.csv|.
 \end{itemize}
 Digitados no script: as leituras da Fig.~5, o $F_{ini}$ da Tabela~7, a sigmoide e o $I_{thr}$ da Fig.~7b do Rahardjo; o
@@ -505,6 +715,8 @@ determinístico (Fig.~24), os $P_f$ e o $CoV(\Gamma)$ da Tabela~4 do Ceron; e o 
 estação.
 
 \begin{thebibliography}{9}
+\bibitem{au2003} Au e Beck (2003). Importance sampling in high dimensions. \emph{Structural Safety} 25(2):139--163.
+doi:10.1016/S0167-4730(02)00047-4.
 \bibitem{ji2024} Ji, Liao, Hu e Lü (2024). Integrated reliability analysis procedure for spatially variable soil slopes
 using recursive FORM algorithm enhanced by importance sampling: Abaqus via Python implementations. \emph{Georisk}
 18(2):346--360. doi:10.1080/17499518.2023.2283857.
@@ -514,6 +726,8 @@ doi:10.1016/j.compgeo.2020.103903.
 \bibitem{rahardjo2007} Rahardjo, Ong, Rezaur e Leong (2007). Factors controlling instability of homogeneous soil slopes
 under rainfall. \emph{Journal of Geotechnical and Geoenvironmental Engineering} 133(12):1532--1543.
 doi:10.1061/(ASCE)1090-0241(2007)133:12(1532).
+\bibitem{rubinstein2004} Rubinstein e Kroese (2004). \emph{The Cross-Entropy Method}. Springer, Nova York.
+doi:10.1007/978-1-4757-4321-0.
 \bibitem{santoso2011} Santoso, Phoon e Quek (2011). Effects of soil spatial variability on rainfall-induced landslides.
 \emph{Computers \& Structures} 89(11--12):893--900. doi:10.1016/j.compstruc.2011.02.016.
 \bibitem{siacara2020} Siacara, Beck e Futai (2020). Reliability analysis of rapid drawdown of an earth dam using direct

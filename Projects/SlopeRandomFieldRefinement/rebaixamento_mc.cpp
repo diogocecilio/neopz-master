@@ -30,8 +30,9 @@
 //                          arquivo (um numero por linha; as que falharam no piloto): o deslocamento da entropia
 //                          cruzada regularizado nos K primeiros modos, gravado em <saida>_desloc_modos.csv
 //   desloc_modos (<arquivo>) desloca a media dos xi pelo <saida>_desloc_modos.csv (termo,c,phi,k)
-//   so_projecoes (0)       1: so sorteia os campos e grava as projecoes xi . d e o log_peso (<saida>_proj_<faixa>.csv),
-//                          sem elementos finitos (para estimar o deslocamento pelas falhas de um piloto)
+//   so_projecoes (0)       1: so sorteia os campos e grava as projecoes xi . d e o log_peso (<saida>_proj_<faixa>.csv)
+//                          e a direcao d (<saida>_direcao.csv), sem elementos finitos (para conferir os pesos e estimar
+//                          o deslocamento pelas falhas de um piloto)
 //   piloto (<pasta>)       o deslocamento sai de um Monte Carlo direto ja feito (o piloto: as realizacoes
 //                          0..piloto_n-1 dos arquivos <prefixo>_<a>_<b>.csv da pasta), pela entropia cruzada: a media
 //                          dos xi do conjunto elite (as que falharam ou, se forem menos que a fracao elite das validas,
@@ -817,6 +818,9 @@ int main(int argc, char *argv[])
             pj << n << "," << campos.LogWeight() << "," << pr[0] << "," << pr[1] << "," << pr[2] << "\n";
         }
         std::printf("  projecoes em %s\n", (op.saida + "_proj_" + faixa + ".csv").c_str());
+        std::ofstream dd(op.saida + "_direcao.csv"); // a direcao unitaria d da banda, por termo da KL
+        dd << "termo,d\n" << std::setprecision(10);
+        for (size_t k = 0; k < dir.size(); k++) dd << k << "," << dir[k] << "\n";
         return 0;
     }
     std::vector<int> realizacoes;
