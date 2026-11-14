@@ -25,6 +25,11 @@
 //   banda (<arquivo>)      o mecanismo.csv do deterministico: os pontos com sqrt(J2) >= 0,1 do maior dao a direcao
 //                          d dos xi (o gradiente da media do campo gaussiano na banda)
 //   desloc (s_c,s_phi,s_k) desloca a media dos xi de cada campo para s d; o arquivo ganha log_peso
+//   semente (20250416)     semente dos campos (outra para uma amostra independente de outra rodada)
+//   media_falhas (<arquivo>), modos (30)   so a media dos modos 1..K de cada campo nas realizacoes listadas no
+//                          arquivo (um numero por linha; as que falharam no piloto): o deslocamento da entropia
+//                          cruzada regularizado nos K primeiros modos, gravado em <saida>_desloc_modos.csv
+//   desloc_modos (<arquivo>) desloca a media dos xi pelo <saida>_desloc_modos.csv (termo,c,phi,k)
 //   so_projecoes (0)       1: so sorteia os campos e grava as projecoes xi . d e o log_peso (<saida>_proj_<faixa>.csv),
 //                          sem elementos finitos (para estimar o deslocamento pelas falhas de um piloto)
 //   saida (mc)             prefixo dos arquivos
@@ -104,6 +109,8 @@ struct Opcoes {
     std::vector<REAL> valores;
     std::string banda;          // amostragem por importancia: o mecanismo.csv da banda
     std::vector<REAL> desloc;   // s_c, s_phi, s_k
+    std::string mediaFalhas, deslocModos; // deslocamento nos K primeiros modos
+    int modos = 30;
     bool soProjecoes = false;
 };
 
@@ -121,7 +128,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
 {
     const std::set<std::string> chaves = {"n",    "primeira", "det",        "valores", "hw",   "trebaix", "covc",
                                           "covphi", "covk",   "s",          "alfa",    "transiente", "fator", "nref",
-                                          "figuras", "saida", "banda", "desloc", "so_projecoes"};
+                                          "figuras", "saida", "banda", "desloc", "so_projecoes", "semente", "media_falhas", "modos", "desloc_modos"};
     std::map<std::string, std::string> kv;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
@@ -152,6 +159,14 @@ Opcoes LeOpcoes(int argc, char *argv[])
         for (REAL v : Lista(kv["figuras"])) op.figuras.insert(int(v));
     if (tem("saida")) op.saida = kv["saida"];
     if (tem("banda")) op.banda = kv["banda"];
+    if (tem("semente")) op.campos.semente = std::stoull(kv["semente"]);
+    if (tem("media_falhas")) op.mediaFalhas = kv["media_falhas"];
+    if (tem("modos")) op.modos = std::stoi(kv["modos"]);
+    if (tem("desloc_modos")) op.deslocModos = kv["desloc_modos"];
+    if (!op.deslocModos.empty() && !op.desloc.empty()) {
+        std::fprintf(stderr, "desloc e desloc_modos: um ou outro\n");
+        std::exit(1);
+    }
     if (tem("desloc")) op.desloc = Lista(kv["desloc"]);
     if (tem("so_projecoes")) op.soProjecoes = std::stoi(kv["so_projecoes"]) != 0;
     if ((!op.desloc.empty() || op.soProjecoes) && op.banda.empty()) {
@@ -601,6 +616,49 @@ int main(int argc, char *argv[])
     std::vector<REAL> gammas;
     double somaT = 0., somaF = 0.;
 
+    if (!op.mediaFalhas.empty()) { // so a media dos K primeiros modos de cada campo nas realizacoes listadas
+        std::ifstream lf(op.mediaFalhas);
+        std::vector<std::vector<double>> soma(3, std::vector<double>(op.modos, 0.));
+        int nf = 0;
+        for (int64_t r; lf >> r; nf++) {
+            campos.Sample(cp.semente, r);
+            for (int c = 0; c < 3; c++)
+                for (int k = 0; k < op.modos && k < campos.M(); k++) soma[c][k] += campos.Xi()[c][k];
+        }
+        if (!nf) {
+            std::fprintf(stderr, "nenhuma realizacao em %s\n", op.mediaFalhas.c_str());
+            return 1;
+        }
+        std::ofstream df(op.saida + "_desloc_modos.csv");
+        df << "termo,c,phi,k\n" << std::setprecision(10);
+        double n2 = 0.;
+        for (int k = 0; k < op.modos && k < campos.M(); k++) {
+            df << k;
+            for (int c = 0; c < 3; c++) df << "," << soma[c][k] / nf, n2 += std::pow(soma[c][k] / nf, 2);
+            df << "\n";
+        }
+        std::printf("  media de %d realizacoes nos %d primeiros modos: |mu|^2 = %.3f; %s\n", nf, op.modos, n2,
+                    (op.saida + "_desloc_modos.csv").c_str());
+        return 0;
+    }
+    if (!op.deslocModos.empty()) { // deslocamento por modo, do arquivo
+        std::ifstream df(op.deslocModos);
+        std::string linha;
+        std::getline(df, linha);
+        std::vector<std::vector<double>> mu(3);
+        while (std::getline(df, linha)) {
+            std::stringstream sl(linha);
+            std::string v;
+            std::getline(sl, v, ','); // termo
+            for (int c = 0; c < 3 && std::getline(sl, v, ','); c++) mu[c].push_back(std::stod(v));
+        }
+        campos.SetShift(mu);
+        double n2 = 0.;
+        for (const auto &m : mu)
+            for (double v : m) n2 += v * v;
+        std::printf("  amostragem por importancia: deslocamento por modo de %s (%zu termos, |mu|^2 = %.3f)\n",
+                    op.deslocModos.c_str(), mu[0].size(), n2);
+    }
     if (op.soProjecoes) { // so os campos: as projecoes e o peso de cada realizacao
         std::ofstream pj(op.saida + "_proj_" + faixa + ".csv");
         pj << "real,log_peso,proj_c,proj_phi,proj_k\n" << std::setprecision(10);

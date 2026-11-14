@@ -51,6 +51,13 @@ void RandomField::SetShift(const std::vector<double> &d, const std::vector<doubl
         for (int k = 0; k < fKL.M(); k++) fMu[c][k] = s[c] * d[k];
 }
 
+void RandomField::SetShift(const std::vector<std::vector<double>> &mu)
+{
+    fMu.assign(fXi.size(), std::vector<double>(fKL.M(), 0.));
+    for (size_t c = 0; c < fXi.size() && c < mu.size(); c++)
+        for (int k = 0; k < fKL.M() && k < (int)mu[c].size(); k++) fMu[c][k] = mu[c][k];
+}
+
 double RandomField::LogWeight() const
 {
     double lw = 0.;

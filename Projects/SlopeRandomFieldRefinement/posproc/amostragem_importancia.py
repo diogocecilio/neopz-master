@@ -10,9 +10,10 @@ variancia: o melhor e o centro da regiao de falha. Aqui ele vem de um piloto de 
 cruzada restrita a direcao d: s_c = media de xi_c . d nas realizacoes do piloto que falharam.
 
 Uso:
-  python3 -I amostragem_importancia.py desloc <pasta do piloto> <projecoes.csv>
-      <pasta do piloto>: as partes mc_<a>_<b>.csv do Monte Carlo direto (FS_min = Gamma); <projecoes.csv>: o
-      <saida>_proj_<a>_<b>.csv do programa com so_projecoes=1 e banda=, para as mesmas realizacoes. Imprime s_c, s_phi,
+  python3 -I amostragem_importancia.py desloc <pasta do piloto> [<projecoes.csv>]
+      <pasta do piloto>: as partes mc_<a>_<b>.csv do Monte Carlo direto (FS_min = Gamma), rodado com banda= (as
+      colunas proj_*) ou, sem elas, com o <projecoes.csv> do programa com so_projecoes=1 e banda= para as mesmas
+      realizacoes. Imprime s_c, s_phi,
       s_k (para desloc=) e quantas falhas o piloto tem.
   python3 -I amostragem_importancia.py estima <pasta da AI> [<pasta do Monte Carlo direto>]
       P_f ponderado, o seu CoV, o tamanho efetivo da amostra (ESS = (sum w)^2 / sum w^2) e, com a segunda pasta, o P_f
@@ -38,9 +39,10 @@ def linhas(pasta):
     return vistas
 
 
-def desloc(pasta, arq_proj):
+def desloc(pasta, arq_proj=None):
     rs = linhas(pasta)
-    proj = {int(r["real"]): r for r in csv.DictReader(open(arq_proj, newline=""))}
+    # as projecoes: do arquivo do so_projecoes ou das proprias linhas do piloto (rodado com banda=)
+    proj = {int(r["real"]): r for r in csv.DictReader(open(arq_proj, newline=""))} if arq_proj else rs
     falhas = [n for n, r in rs.items() if float(r["FS_min"]) < 1. and n in proj]
     if not falhas:
         sys.exit("o piloto ainda nao tem falhas com projecao")
@@ -83,8 +85,8 @@ def estima(pasta, direta=None):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) >= 4 and sys.argv[1] == "desloc":
-        desloc(sys.argv[2], sys.argv[3])
+    if len(sys.argv) >= 3 and sys.argv[1] == "desloc":
+        desloc(sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else None)
     elif len(sys.argv) >= 3 and sys.argv[1] == "estima":
         estima(sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else None)
     else:

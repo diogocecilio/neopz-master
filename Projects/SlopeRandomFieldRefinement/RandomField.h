@@ -42,6 +42,10 @@ public:
     std::vector<double> Direction(const std::vector<std::array<double, 3>> &pontos) const;
     // Desloca a media de cada campo c: xi_c ~ N(s_c d, I) no Sample. s vazio volta ao sorteio sem deslocamento
     void SetShift(const std::vector<double> &d, const std::vector<double> &s);
+    // O mesmo com o deslocamento de cada termo de cada campo dado (mu[c][k]; termos que faltam ficam em 0)
+    void SetShift(const std::vector<std::vector<double>> &mu);
+    // Os xi da ultima realizacao (com o deslocamento), por campo
+    const std::vector<std::vector<double>> &Xi() const { return fXi; }
     // ln do peso da ultima realizacao, ln(phi(xi) / phi(xi - mu)) = sum_c (-xi_c . mu_c + |mu_c|^2 / 2): com ele o
     // estimador da probabilidade e sem vies (0 sem deslocamento)
     double LogWeight() const;
