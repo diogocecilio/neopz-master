@@ -4,7 +4,7 @@
 # id: o nome da pasta do caso em $SAIDA (o posproc/dados_chuva.py tira dele a familia e o valor).
 # fase: 1 = referencia (6.1), 2 = CoV, s e alfa (6.2 a 6.4), 3 = intensidade (6.5); CASOS=fase1 roda so a fase 1.
 # N: realizacoes do caso (ULTIMA=<n> no submeter.sh troca por n + 1 em todos os casos escolhidos).
-# IREF: a intensidade de referencia (submeter.sh, padrao 31,05 mm/h: Gamma = 1,333 pelo GIM, o do Ceron).
+# IREF: a intensidade de referencia (submeter.sh, padrao 31,05 mm/h: Gamma = 1,3345 pelo GIM, perto do 1,336 do Ceron).
 # O bloco que comeca na realizacao 0 de cada caso roda tambem o deterministico (det=1) e grava os campos dele
 # (figuras=-1). Os instantes: 24 h (fim da chuva) em todos; 0 h onde c' ou phi' mudam (FS antes da chuva); a referencia
 # tambem em 6, 12 e 18 h (a duracao da chuva), todos com refinamento do zero.

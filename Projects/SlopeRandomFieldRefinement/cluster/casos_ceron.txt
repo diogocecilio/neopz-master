@@ -1,0 +1,18 @@
+# Casos do Monte Carlo do rebaixamento rapido do Ceron com o transiente (CAMPANHA=ceron; SlopeDrawdownMonteCarlo, o
+# rebaixamento_mc.cpp): a referencia da Secao 6.1 de Vargas Ceron et al. (2025), h_w/H = 1, rebaixamento em 0,1 h,
+# k_v = 1e-6 m/s, c', phi' e k_v lognormais da Tabela 2 (KL com M = 2000), Gamma pelo GIM. Uma linha por caso:
+#   id   fase   N   opcoes do SlopeDrawdownMonteCarlo (alem de n, primeira e saida, que o tarefas.sh poe)
+# @SAIDA@ vira a pasta da campanha. O bloco que comeca na realizacao 0 de cada caso roda tambem o deterministico.
+# Amostragem por importancia (AI): um caso com piloto= so comeca quando as realizacoes 0..piloto_n-1 do piloto acabaram;
+# cada bloco calcula entao o deslocamento da media dos xi pela entropia cruzada, com as falhas dessas realizacoes (o
+# mesmo deslocamento em todos os blocos, gravado em mc_desloc_<a>_<z>.txt). O peso exato de cada realizacao vai na
+# coluna log_peso, e P_f = soma(peso * falha) / N nao tem vies (posproc/amostragem_importancia.py estima).
+#  - ref_direto: Monte Carlo direto; e o piloto das AI e a referencia para conferir que elas nao tem vies (10 000
+#    realizacoes, um bloco do Ceron);
+#  - ref_ai_banda: deslocamento s_c d por campo, com d a direcao da banda de ruptura do deterministico (o gradiente da
+#    media do campo gaussiano na banda);
+#  - ref_ai_modos: deslocamento nos 20 primeiros modos de cada campo (UnsaturatedSoil/formulacao/form_MIS).
+# As sementes sao diferentes: as tres amostras sao independentes.
+ref_direto    1  10000
+ref_ai_banda  1  5000   piloto=@SAIDA@/ref_direto piloto_n=1000 ai=banda banda=@SAIDA@/ref_direto/mc_real-1/mecanismo.csv semente=1
+ref_ai_modos  1  5000   piloto=@SAIDA@/ref_direto piloto_n=1000 ai=modos modos=20 banda=@SAIDA@/ref_direto/mc_real-1/mecanismo.csv semente=2

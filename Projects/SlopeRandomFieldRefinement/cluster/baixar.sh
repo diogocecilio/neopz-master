@@ -1,15 +1,18 @@
 #!/bin/bash
-# baixar.sh (roda no PC, com a VPN da UFRGS ligada): mostra os jobs chuvaMC no fermi, baixa $DATA/chuva_mc e os logs do
-# SLURM, mostra a tabela por caso e gera o relatorio PDF (posproc/). Pede a senha do fermi uma vez so.
-#   ./baixar.sh [destino]        destino padrao: ~/projects/runs/fermi_chuva
-#   SEM_BAIXAR=1 ./baixar.sh     so o relatorio, com os dados ja baixados (sem VPN)
-# O relatorio vai para <destino>/relatorio_parcial enquanto ha jobs na fila e para <destino>/relatorio quando acabaram.
-# Ambiente: FERMI (padrao diogo@fermi.cesup.ufrgs.br), REMOTO (padrao /mnt/data/diogo/chuva_mc).
+# baixar.sh (roda no PC, com a VPN da UFRGS ligada): mostra os jobs da campanha no fermi, baixa a pasta dela em $DATA e
+# os logs do SLURM, mostra a tabela por caso e faz o pos-processamento. Pede a senha do fermi uma vez so.
+#   ./baixar.sh [destino]                 chuva: destino padrao ~/projects/runs/fermi_chuva; relatorio PDF (posproc/)
+#   CAMPANHA=ceron ./baixar.sh [destino]  Ceron: ~/projects/runs/fermi_ceron_ai; P_f de cada amostragem por
+#                                         importancia contra o Monte Carlo direto (<destino>/resultado.txt)
+#   SEM_BAIXAR=1 ./baixar.sh     so o pos-processamento, com os dados ja baixados (sem VPN)
+# Chuva: o relatorio vai para <destino>/relatorio_parcial enquanto ha jobs na fila e para <destino>/relatorio depois.
+# Ambiente: CAMPANHA, FERMI (padrao diogo@fermi.cesup.ufrgs.br), REMOTO (padrao /mnt/data/diogo/<pasta da campanha>).
 set -euo pipefail
 AQUI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DEST="${1:-$HOME/projects/runs/fermi_chuva}"
+source "$AQUI/campanha.sh"
+DEST="${1:-$HOME/projects/runs/$DESTINO}"
 HOST="${FERMI:-diogo@fermi.cesup.ufrgs.br}"
-REMOTO="${REMOTO:-/mnt/data/diogo/chuva_mc}"
+REMOTO="${REMOTO:-/mnt/data/diogo/$PASTA}"
 POS="$AQUI/../posproc"
 mkdir -p "$DEST"
 
@@ -22,10 +25,11 @@ if [ -z "${SEM_BAIXAR:-}" ]; then
     ssh -o ControlMaster=yes -o ControlPath="$TMP/s" -o ControlPersist=yes -fN "$HOST"
 
     echo "== jobs no fermi =="
-    FILA="$("${SSH[@]}" "$HOST" 'squeue -h -u $USER -n chuvaMC -o "%.8i %.2t %.12M %R"')"
-    if [ -n "$FILA" ]; then echo "$FILA"; else echo "nenhum job chuvaMC na fila"; fi
+    FILA="$("${SSH[@]}" "$HOST" "squeue -h -u \$USER -n $NOME -o '%.8i %.2t %.12M %R'")"
+    if [ -n "$FILA" ]; then echo "$FILA"; else echo "nenhum job $NOME na fila"; fi
     echo "== tabela no fermi =="
-    "${SSH[@]}" "$HOST" "SAIDA=$REMOTO neopz-master/Projects/SlopeRandomFieldRefinement/cluster/status.sh" | tail -n +2 || true
+    "${SSH[@]}" "$HOST" "CAMPANHA=$CAMPANHA SAIDA=$REMOTO neopz-master/Projects/SlopeRandomFieldRefinement/cluster/status.sh" |
+        tail -n +2 || true
 
     echo "== baixando para $DEST =="
     rsync -az --info=progress2 -e "${SSH[*]}" --exclude .tarefas/ "$HOST:$REMOTO" \
@@ -36,6 +40,23 @@ if [ -z "${SEM_BAIXAR:-}" ]; then
     }
 fi
 
+if [ "$CAMPANHA" = ceron ]; then
+    # cada caso com piloto= (amostragem por importancia) contra o seu piloto (o Monte Carlo direto)
+    R="$DEST/resultado.txt"
+    : > "$R"
+    while read -r id fase n opc; do
+        [[ -z "$id" || "$id" == \#* ]] && continue
+        [[ " $opc " =~ \ piloto=@SAIDA@/([^ ]+)\  ]] || continue
+        [ -d "$DEST/$(basename "$REMOTO")/$id" ] || continue
+        { echo "== $id (piloto e direto: ${BASH_REMATCH[1]})"
+          python3 -I -B "$POS/amostragem_importancia.py" estima "$DEST/$(basename "$REMOTO")/$id" \
+              "$DEST/$(basename "$REMOTO")/${BASH_REMATCH[1]}" 2>&1
+          echo; } >> "$R"
+    done < "$AQUI/$CASOS_TXT"
+    cat "$R"
+    echo "pronto: $R"
+    exit 0
+fi
 if [ -n "${SEM_BAIXAR:-}" ] || [ -n "$FILA" ]; then SAIDA="$DEST/relatorio_parcial"; else SAIDA="$DEST/relatorio"; fi
 mkdir -p "$SAIDA"
 echo "== estatisticas e relatorio em $SAIDA =="

@@ -32,6 +32,15 @@
 //   desloc_modos (<arquivo>) desloca a media dos xi pelo <saida>_desloc_modos.csv (termo,c,phi,k)
 //   so_projecoes (0)       1: so sorteia os campos e grava as projecoes xi . d e o log_peso (<saida>_proj_<faixa>.csv),
 //                          sem elementos finitos (para estimar o deslocamento pelas falhas de um piloto)
+//   piloto (<pasta>)       o deslocamento sai de um Monte Carlo direto ja feito (o piloto: as realizacoes
+//                          0..piloto_n-1 dos arquivos <prefixo>_<a>_<b>.csv da pasta), pela entropia cruzada: a media
+//                          dos xi do conjunto elite (as que falharam ou, se forem menos que a fracao elite das validas,
+//                          as de menor Gamma), sorteados de novo com a semente do piloto. Todos os blocos que leem o
+//                          mesmo piloto completo calculam o mesmo deslocamento (gravado em <saida>_desloc_<faixa>.txt).
+//                          Sai com o codigo 3 se o piloto tiver menos de 90% das realizacoes
+//   piloto_n (1000), piloto_semente (20250416), elite (0.1)
+//   ai (banda)             com piloto: banda (s_c = media de xi_c . d, a direcao da banda; precisa de banda=) ou modos
+//                          (a media dos modos 1..K de cada campo, K = modos)
 //   saida (mc)             prefixo dos arquivos
 // Saidas (<faixa> = primeira_ultima): <saida>_<faixa>.csv (uma linha por realizacao, com as colunas do mc_resumo.csv da
 // campanha do rebaixamento: FS_min = Gamma, banda_*, massa_*, *_med, parametros), <saida>_mapa_<faixa>.csv (frequencia
@@ -54,6 +63,8 @@
 #include "pzgeotriangle.h"
 #include "pzstepsolver.h"
 #include "tpzgeoelrefpattern.h"
+
+#include <dirent.h>
 
 #include <algorithm>
 #include <array>
@@ -112,6 +123,10 @@ struct Opcoes {
     std::string mediaFalhas, deslocModos; // deslocamento nos K primeiros modos
     int modos = 30;
     bool soProjecoes = false;
+    std::string piloto, ai = "banda"; // deslocamento pelo piloto: a pasta do Monte Carlo direto e o tipo
+    int pilotoN = 1000;
+    uint64_t pilotoSemente = Campos{}.semente;
+    double elite = 0.1;
 };
 
 std::vector<REAL> Lista(const std::string &s)
@@ -128,7 +143,8 @@ Opcoes LeOpcoes(int argc, char *argv[])
 {
     const std::set<std::string> chaves = {"n",    "primeira", "det",        "valores", "hw",   "trebaix", "covc",
                                           "covphi", "covk",   "s",          "alfa",    "transiente", "fator", "nref",
-                                          "figuras", "saida", "banda", "desloc", "so_projecoes", "semente", "media_falhas", "modos", "desloc_modos"};
+                                          "figuras", "saida", "banda", "desloc", "so_projecoes", "semente", "media_falhas", "modos", "desloc_modos",
+                                          "piloto", "piloto_n", "piloto_semente", "ai", "elite"};
     std::map<std::string, std::string> kv;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
@@ -163,14 +179,23 @@ Opcoes LeOpcoes(int argc, char *argv[])
     if (tem("media_falhas")) op.mediaFalhas = kv["media_falhas"];
     if (tem("modos")) op.modos = std::stoi(kv["modos"]);
     if (tem("desloc_modos")) op.deslocModos = kv["desloc_modos"];
-    if (!op.deslocModos.empty() && !op.desloc.empty()) {
-        std::fprintf(stderr, "desloc e desloc_modos: um ou outro\n");
-        std::exit(1);
-    }
     if (tem("desloc")) op.desloc = Lista(kv["desloc"]);
     if (tem("so_projecoes")) op.soProjecoes = std::stoi(kv["so_projecoes"]) != 0;
-    if ((!op.desloc.empty() || op.soProjecoes) && op.banda.empty()) {
-        std::fprintf(stderr, "desloc e so_projecoes precisam de banda=<mecanismo.csv>\n");
+    if (tem("piloto")) op.piloto = kv["piloto"];
+    if (tem("piloto_n")) op.pilotoN = std::stoi(kv["piloto_n"]);
+    if (tem("piloto_semente")) op.pilotoSemente = std::stoull(kv["piloto_semente"]);
+    if (tem("ai")) op.ai = kv["ai"];
+    if (tem("elite")) op.elite = std::stod(kv["elite"]);
+    if (int(!op.desloc.empty()) + int(!op.deslocModos.empty()) + int(!op.piloto.empty()) > 1) {
+        std::fprintf(stderr, "desloc, desloc_modos e piloto: so um deles\n");
+        std::exit(1);
+    }
+    if (op.ai != "banda" && op.ai != "modos") {
+        std::fprintf(stderr, "ai=%s: banda ou modos\n", op.ai.c_str());
+        std::exit(1);
+    }
+    if ((!op.desloc.empty() || op.soProjecoes || (!op.piloto.empty() && op.ai == "banda")) && op.banda.empty()) {
+        std::fprintf(stderr, "desloc, so_projecoes e piloto com ai=banda precisam de banda=<mecanismo.csv>\n");
         std::exit(1);
     }
     if (tem("valores")) {
@@ -568,6 +593,77 @@ std::vector<std::array<double, 3>> LeBanda(const std::string &arq)
     return banda;
 }
 
+// os campos de uma linha de CSV
+std::vector<std::string> Divide(const std::string &linha)
+{
+    std::vector<std::string> v;
+    std::stringstream sl(linha);
+    for (std::string c; std::getline(sl, c, ',');) v.push_back(c);
+    return v;
+}
+
+// O piloto da amostragem por importancia: as realizacoes 0..np-1 do Monte Carlo direto da pasta (os <prefixo>_<a>_<b>.csv
+// da fila do cluster, com as colunas real, FS_min e situacao) e o conjunto elite da entropia cruzada (Rubinstein e Kroese,
+// 2004): as que falharam (Gamma < 1) ou, se forem menos que a fracao rho das validas, as rho com menor Gamma (um nivel
+// intermediario: Gamma <= nivel). Ordenado por (Gamma, realizacao): o mesmo em todos os blocos
+struct Piloto {
+    int presentes = 0, validas = 0, falhas = 0;
+    double nivel = 1.;
+    std::vector<int64_t> elite;
+};
+
+Piloto LePiloto(const std::string &pasta, int np, double rho)
+{
+    std::map<int64_t, double> g; // realizacao -> Gamma (-1: a analise nao terminou)
+    DIR *d = opendir(pasta.c_str());
+    if (!d) {
+        std::fprintf(stderr, "piloto: nao abri a pasta %s\n", pasta.c_str());
+        std::exit(1);
+    }
+    for (dirent *e; (e = readdir(d));) {
+        const std::string nome = e->d_name;
+        // <prefixo>_<a>_<b>.csv com o prefixo sem '_' (nao pega mc_mapa_*, mc_proj_*)
+        if (nome.size() < 5 || nome.compare(nome.size() - 4, 4, ".csv")) continue;
+        const std::string base = nome.substr(0, nome.size() - 4);
+        const size_t u = base.find('_');
+        if (u == std::string::npos || std::count(base.begin(), base.end(), '_') != 2 ||
+            base.find_first_not_of("0123456789_", u) != std::string::npos)
+            continue;
+        std::ifstream f(pasta + "/" + nome);
+        std::string linha;
+        if (!std::getline(f, linha)) continue;
+        const std::vector<std::string> cab = Divide(linha);
+        auto col = [&cab](const char *c) { return int(std::find(cab.begin(), cab.end(), c) - cab.begin()); };
+        const int ir = col("real"), ig = col("FS_min"), is = col("situacao");
+        if (std::max({ir, ig, is}) >= int(cab.size())) continue;
+        while (std::getline(f, linha)) {
+            const std::vector<std::string> v = Divide(linha);
+            if (int(v.size()) <= std::max({ir, ig, is})) continue; // linha incompleta
+            try {
+                const int64_t r = std::stoll(v[ir]);
+                if (r < 0 || r >= np) continue;
+                const double gamma = std::stod(v[ig]);
+                g[r] = v[is] == "ok" && gamma > 0. ? gamma : -1.;
+            } catch (const std::exception &) {
+            }
+        }
+    }
+    closedir(d);
+    Piloto p;
+    p.presentes = g.size();
+    std::vector<std::pair<double, int64_t>> v;
+    for (const auto &x : g)
+        if (x.second > 0.) v.push_back({x.second, x.first});
+    std::sort(v.begin(), v.end());
+    p.validas = v.size();
+    p.falhas = std::count_if(v.begin(), v.end(), [](const std::pair<double, int64_t> &x) { return x.first < 1.; });
+    const int m = std::min(p.validas, std::max(1, int(std::ceil(rho * p.validas))));
+    const int ne = p.falhas >= m ? p.falhas : m;
+    for (int i = 0; i < ne; i++) p.elite.push_back(v[i].second);
+    if (p.falhas < m && m > 0) p.nivel = v[m - 1].first;
+    return p;
+}
+
 int main(int argc, char *argv[])
 {
     const Opcoes op = LeOpcoes(argc, argv);
@@ -610,7 +706,15 @@ int main(int argc, char *argv[])
            << "\nLY=" << cp.Ly << "\nALFA=" << op.alfa << "\nKL_M=" << campos.M()
            << "\nKL_VARIANCIA=" << campos.VarianceFraction() << "\nSEMENTE=" << cp.semente
            << "\nMALHA_TRANSIENTE=" << op.malhaT << "\nMALHA_FATOR=" << op.malhaF << "\nNREF=" << op.nref
-           << "\nFATOR=gim_arco\n";
+           << "\nFATOR=gim_arco\nAI="
+           << (!op.piloto.empty()      ? op.ai + "_piloto"
+               : !op.desloc.empty()    ? std::string("banda_fixo")
+               : !op.deslocModos.empty() ? std::string("modos_fixo")
+                                         : std::string("nenhuma"))
+           << "\n";
+        if (!op.piloto.empty())
+            pa << "PILOTO=" << op.piloto << "\nPILOTO_N=" << op.pilotoN << "\nPILOTO_SEMENTE=" << op.pilotoSemente
+               << "\nELITE=" << op.elite << "\nMODOS=" << op.modos << "\n";
     }
     Mapa mapa;
     std::vector<REAL> gammas;
@@ -658,6 +762,51 @@ int main(int argc, char *argv[])
             for (double v : m) n2 += v * v;
         std::printf("  amostragem por importancia: deslocamento por modo de %s (%zu termos, |mu|^2 = %.3f)\n",
                     op.deslocModos.c_str(), mu[0].size(), n2);
+    }
+    if (!op.piloto.empty()) { // deslocamento da entropia cruzada no conjunto elite do piloto
+        const Piloto pl = LePiloto(op.piloto, op.pilotoN, op.elite);
+        if (pl.presentes < 0.9 * op.pilotoN || pl.elite.empty()) {
+            std::fprintf(stderr, "piloto incompleto em %s: %d das realizacoes 0..%d, %d validas\n", op.piloto.c_str(),
+                         pl.presentes, op.pilotoN - 1, pl.validas);
+            return 3;
+        }
+        const double ne = pl.elite.size();
+        double mu2 = 0.;
+        std::ostringstream reg; // o registro do deslocamento
+        reg << std::setprecision(10);
+        if (op.ai == "banda") { // s_c = media de xi_c . d
+            std::vector<double> s(3, 0.);
+            for (int64_t r : pl.elite) {
+                campos.Sample(op.pilotoSemente, r); // sem deslocamento ainda: os xi do piloto
+                const std::vector<double> pr = campos.Projection(dir);
+                for (int c = 0; c < 3; c++) s[c] += pr[c] / ne;
+            }
+            campos.SetShift(dir, s);
+            for (double x : s) mu2 += x * x;
+            reg << "s=" << s[0] << "," << s[1] << "," << s[2] << "\nmu2=" << mu2 << "\n";
+        } else { // a media dos K primeiros modos de cada campo
+            const int K = std::min(op.modos, campos.M());
+            std::vector<std::vector<double>> mu(3, std::vector<double>(K, 0.));
+            for (int64_t r : pl.elite) {
+                campos.Sample(op.pilotoSemente, r);
+                for (int c = 0; c < 3; c++)
+                    for (int k = 0; k < K; k++) mu[c][k] += campos.Xi()[c][k] / ne;
+            }
+            campos.SetShift(mu);
+            for (const auto &m : mu)
+                for (double x : m) mu2 += x * x;
+            reg << "modos=" << K << "\nmu2=" << mu2 << "\ntermo,c,phi,k\n";
+            for (int k = 0; k < K; k++) reg << k << "," << mu[0][k] << "," << mu[1][k] << "," << mu[2][k] << "\n";
+        }
+        std::ofstream df(op.saida + "_desloc_" + faixa + ".txt");
+        df << "# deslocamento da amostragem por importancia: a media dos xi do conjunto elite do piloto\nai=" << op.ai
+           << "\npiloto=" << op.piloto << "\npiloto_n=" << op.pilotoN << "\npiloto_semente=" << op.pilotoSemente
+           << "\npresentes=" << pl.presentes << "\nvalidas=" << pl.validas << "\nfalhas=" << pl.falhas
+           << "\nelite=" << pl.elite.size() << "\nnivel=" << pl.nivel << "\n"
+           << reg.str();
+        std::printf("  amostragem por importancia (%s) pelo piloto %s: %d validas de %d, %d falhas, elite de %zu "
+                    "(Gamma < %.4f); |mu|^2 = %.4f\n",
+                    op.ai.c_str(), op.piloto.c_str(), pl.validas, op.pilotoN, pl.falhas, pl.elite.size(), pl.nivel, mu2);
     }
     if (op.soProjecoes) { // so os campos: as projecoes e o peso de cada realizacao
         std::ofstream pj(op.saida + "_proj_" + faixa + ".csv");

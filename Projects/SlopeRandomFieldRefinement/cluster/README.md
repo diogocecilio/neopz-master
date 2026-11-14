@@ -1,4 +1,14 @@
-# Monte Carlo da chuva no fermi
+# Monte Carlo no fermi: chuva (Rahardjo) e rebaixamento do Ceron
+
+Esta pasta roda duas campanhas, escolhidas pela variável `CAMPANHA` (veja `campanha.sh`):
+- `chuva` (padrão): o Monte Carlo da chuva, descrito logo abaixo;
+- `ceron`: o rebaixamento rápido do Ceron com o transiente, com Monte Carlo direto e amostragem por importância
+  (seção [Rebaixamento do Ceron com amostragem por importância](#rebaixamento-do-ceron-com-amostragem-por-importância)).
+
+As duas usam a mesma fila de tarefas (`tarefas.sh`), a mesma compilação e os mesmos comandos, com
+`CAMPANHA=ceron` na frente para a segunda.
+
+## Chuva
 
 O `montecarlo.cpp` (alvo `SlopeRainMonteCarlo`) roda o Monte Carlo do talude de Rahardjo et al. (2007) sob chuva:
 - talude da Fig. 2 do Rahardjo, com H = 10 m a 45°, na `TriGMesh`;
@@ -13,7 +23,7 @@ A realização n tem os mesmos números aleatórios em todos os casos. Os casos 
 
 | Fase | Casos | Instantes do FS | N |
 |---|---|---|---|
-| 1 (6.1) | referência, I = I_ref (padrão 31,05 mm/h, onde o GIM dá Γ = 1,333, o do Ceron) | 0, 6, 12, 18 e 24 h | 5 000 |
+| 1 (6.1) | referência, I = I_ref (padrão 31,05 mm/h, onde o GIM dá Γ = 1,3345, perto do 1,336 do Ceron) | 0, 6, 12, 18 e 24 h | 5 000 |
 | 2 (6.2) | CoV(k_s) 0; 0,75; 0,9; 1 · CoV(c') 0,1; 0,5; 0,7 · CoV(φ') 0,05; 0,15; 0,2 | 24 h (k) ou 0 e 24 h | 2 000 |
 | 2 (6.3) | s = 1,5; 2; 5; 10; 20; 400 (L_x = 20s m, L_y = 2s m) | 0 e 24 h | 2 000 |
 | 2 (6.4) | α = k_h/k_v = 2, 3, 4, 5 | 24 h | 2 000 |
@@ -29,7 +39,8 @@ instantes; núcleo do fermi ~2,6 vezes mais lento):
 | 3 | ~650 h | ~14 h |
 | Total | ~4 400 h | ~3,8 dias |
 
-Com `PARALELO=24` (hyperthreading) deve render mais por nó; não foi medido.
+As horas com 4 nós são a CPU dividida por 48. No relógio, a fase 1 leva ~21 h: são 250 tarefas de ~3,5 h para 48
+processos. Com `PARALELO=24` (hyperthreading) deve render mais por nó; não foi medido.
 
 ## Rodar
 
@@ -85,7 +96,7 @@ Use 4 nós com 12 processos cada (o limite é de 4 jobs rodando por usuário):
 ssh diogo@fermi.cesup.ufrgs.br 'cd neopz-master/Projects/SlopeRandomFieldRefinement/cluster && ./submeter.sh 4'
 ```
 
-Para começar só pela referência, que dá ~18 h:
+Para começar só pela referência, que dá ~21 h:
 
 ```bash
 ssh diogo@fermi.cesup.ufrgs.br 'cd neopz-master/Projects/SlopeRandomFieldRefinement/cluster && CASOS=fase1 ./submeter.sh 4'
@@ -124,6 +135,71 @@ Mostra os jobs, as últimas linhas dos logs e, por caso, as tarefas feitas, as r
 - **Estender:** `ULTIMA=9999 CASOS=ref ./submeter.sh 4` leva a referência a 10 000 realizações. O Ceron usou blocos de
   10 000 até CoV(P_f) < 5 %. Com P_f ≈ 1 %, isso pede ~40 000 realizações; com 10 %, ~3 600.
 
+## Rebaixamento do Ceron com amostragem por importância
+
+O `rebaixamento_mc.cpp` (alvo `SlopeDrawdownMonteCarlo`) roda o Monte Carlo do rebaixamento rápido de Vargas Ceron et
+al. (2025), Seção 6.1:
+- talude de 5 m a 45°;
+- transiente do `main.cpp`: o reservatório desce da crista ao pé em 0,1 h, com k_v = 1e-6 m/s;
+- Γ pelo GIM no fim do rebaixamento, com refinamento adaptativo (`TriGMesh(1)` + 3 níveis);
+- c', φ' e k_v lognormais da Tabela 2 do Ceron (KL com M = 2000).
+
+O determinístico dá Γ = 1,3253 (o artigo dá 1,336). No PC, com 486 realizações, P_f ≈ 18,5% (Ceron: 11,5%).
+
+Casos (`casos_ceron.txt`):
+
+| Caso | N | O que é |
+|---|---|---|
+| `ref_direto` | 10 000 | Monte Carlo direto: o piloto das amostragens e a referência para conferir que elas não têm viés |
+| `ref_ai_banda` | 5 000 | amostragem por importância com a média dos ξ deslocada na direção da banda de ruptura do determinístico (um escalar por campo) |
+| `ref_ai_modos` | 5 000 | amostragem por importância com o deslocamento nos 20 primeiros modos de cada campo (`UnsaturatedSoil/formulacao/form_MIS`) |
+
+Como funciona a amostragem por importância:
+- **Piloto:** os dois casos `ref_ai_*` só começam quando as realizações 0 a 999 do `ref_direto` acabaram. Até lá, os
+  processos adiantam o direto.
+- **Deslocamento:** cada bloco calcula a média dos ξ das realizações do piloto que falharam (entropia cruzada), sorteando
+  de novo os ξ delas pela semente. O resultado é o mesmo em todos os blocos e fica em `mc_desloc_<a>_<z>.txt`.
+- **Peso:** cada realização grava o peso exato na coluna `log_peso`. P_f = Σ peso × falha / N não tem viés.
+- **Independência:** as sementes são diferentes, então as três amostras são independentes.
+
+**Custo:** ~30 s por realização no PC, ~80 s no fermi. As 20 000 realizações são ~440 h de CPU, ou ~10 h com 4 nós.
+
+**Comandos**, do PC, com a VPN ligada. Os passos 0 a 2 são os da chuva e compilam os dois programas:
+
+```bash
+cd ~/projects/neopz-master && git push origin UnsaturatedSoil
+ssh diogo@fermi.cesup.ufrgs.br 'cd neopz-master && git pull origin UnsaturatedSoil'
+ssh diogo@fermi.cesup.ufrgs.br 'cd neopz-master/Projects/SlopeRandomFieldRefinement/cluster && nohup ./compilar.sh > compilar.log 2>&1 &'
+ssh diogo@fermi.cesup.ufrgs.br 'tail -n 3 neopz-master/Projects/SlopeRandomFieldRefinement/cluster/compilar.log'
+ssh diogo@fermi.cesup.ufrgs.br 'cd neopz-master/Projects/SlopeRandomFieldRefinement/cluster && CAMPANHA=ceron sbatch teste.sbatch'
+ssh diogo@fermi.cesup.ufrgs.br 'cat neopz-master/Projects/SlopeRandomFieldRefinement/cluster/logs/chuvaTeste_*.out'
+ssh diogo@fermi.cesup.ufrgs.br 'cd neopz-master/Projects/SlopeRandomFieldRefinement/cluster && CAMPANHA=ceron ./submeter.sh 4'
+ssh diogo@fermi.cesup.ufrgs.br 'CAMPANHA=ceron neopz-master/Projects/SlopeRandomFieldRefinement/cluster/status.sh'
+CAMPANHA=ceron ~/projects/neopz-master/Projects/SlopeRandomFieldRefinement/cluster/baixar.sh
+```
+
+- **Compilar:** a última linha do log deve ser `Compilado: .../bin/SlopeRainMonteCarlo e SlopeDrawdownMonteCarlo (...)`.
+- **Teste:** ~5 min; o determinístico deve dar Γ ≈ 1,325.
+- **Status:** P_f ponderado de cada caso e o CoV dele.
+- **Baixar:** baixa `$DATA/ceron_ai` para `~/projects/runs/fermi_ceron_ai` e grava em `resultado.txt` o P_f de cada
+  amostragem contra o direto, o CoV e quantas realizações diretas dariam o mesmo CoV.
+
+Parar e retomar como na chuva: `touch /mnt/data/diogo/ceron_ai/PARAR`, `scancel -n ceronMC`, ou
+`CAMPANHA=ceron ./submeter.sh 4` de novo.
+
+**Mais casos (Seções 6.2 a 6.5):** acrescente em `casos_ceron.txt` um par direto + amostragem para cada caso. O direto
+também é o piloto, por exemplo:
+
+```
+covc=0.1_direto  2  2000  covc=0.1
+covc=0.1_ai      2  2000  covc=0.1 piloto=@SAIDA@/covc=0.1_direto piloto_n=1000 ai=banda banda=@SAIDA@/covc=0.1_direto/mc_real-1/mecanismo.csv semente=1
+```
+
+Depois, submeta de novo: a fila pega os casos novos.
+
+Com P_f pequeno, o piloto tem poucas falhas. Nesse caso, o conjunto elite são os 10% com menor Γ (opção `elite`): é um
+nível intermediário da entropia cruzada, com um deslocamento menor que o ótimo, mas ainda sem viés.
+
 ## Como funciona
 
 - **Tarefa:** um bloco de `BLOCO` realizações (padrão 20, umas 2 h no fermi) de um caso. Cada uma é uma rodada do
@@ -133,7 +209,12 @@ Mostra os jobs, as últimas linhas dos logs e, por caso, as tarefas feitas, as r
   tarefa livre criando o arquivo `$SAIDA/<caso>/.tarefas/<a>_<z>` com o `noclobber` do bash (`O_EXCL`), que só um
   processo consegue, também entre nós. Não é `mkdir`: o coreutils em Rust (uutils) de Ubuntu recente não cria
   diretórios de forma atômica, e no teste dois processos pegavam a mesma tarefa.
-- **Fim de uma tarefa:** a tarefa está feita quando existe `mc_mapa_<a>_<z>.csv`, gravado só no fim da rodada.
+- **Fim de uma tarefa:** a tarefa está feita quando existe `mc_mapa_<a>_<z>.csv`, gravado só no fim da rodada. Se a
+  rodada termina com erro, a trava ganha uma linha `ERRO`. A tarefa fica parada até a limpeza do `submeter.sh`, sem
+  jobs na fila, e então é refeita.
+- **Dependência:** um caso com `piloto=@SAIDA@/<id> piloto_n=<n>` só começa quando os blocos das realizações 0..n−1 do
+  caso `<id>` acabaram. Sem outra tarefa livre, o processo espera 60 s por vez, até `ESPERA_MAX` (3 h).
+- **Opções:** nas opções dos casos, `@SAIDA@` vira a pasta da campanha e `IREF` vira a intensidade de referência.
 - **Bloco 0 de cada caso:** roda também o determinístico (`det=1`) e grava os campos dele (`mc_real-1/`), de onde sai a
   figura da banda do mecanismo.
 - **`$SAIDA/campanha.txt`:** guarda `IREF` e `BLOCO`, que definem os arquivos. `submeter.sh` recusa outros valores

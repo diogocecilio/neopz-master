@@ -17,7 +17,9 @@ Uso:
       s_k (para desloc=) e quantas falhas o piloto tem.
   python3 -I amostragem_importancia.py estima <pasta da AI> [<pasta do Monte Carlo direto>]
       P_f ponderado, o seu CoV, o tamanho efetivo da amostra (ESS = (sum w)^2 / sum w^2) e, com a segunda pasta, o P_f
-      do Monte Carlo direto e o CoV que ele teria com o mesmo numero de realizacoes (o ganho da AI)."""
+      do Monte Carlo direto e o CoV que ele teria com o mesmo numero de realizacoes (o ganho da AI). Com o deslocamento
+      calculado pelo programa (opcao piloto=, a campanha CAMPANHA=ceron do cluster), confere tambem que todos os blocos
+      usaram o mesmo (arquivos mc_desloc_<a>_<b>.txt)."""
 import csv
 import glob
 import math
@@ -54,10 +56,27 @@ def desloc(pasta, arq_proj=None):
     print(f"|mu|^2 = {sum(v * v for v in s):.3f}: a variancia dos pesos e exp(|mu|^2) - 1 = {math.exp(sum(v * v for v in s)) - 1:.2f}")
 
 
+def deslocamentos(pasta):
+    """os deslocamentos que os blocos com piloto= gravaram (mc_desloc_<a>_<b>.txt): tem de ser o mesmo em todos"""
+    arqs = sorted(glob.glob(os.path.join(pasta, "mc_desloc_*_*.txt")))
+    if not arqs:
+        return
+    textos = {}
+    for a in arqs:
+        textos.setdefault("".join(l for l in open(a) if not l.startswith("#")), []).append(os.path.basename(a))
+    d = dict(l.split("=", 1) for l in next(iter(textos)).splitlines() if "=" in l)
+    print(f"deslocamento ({d.get('ai')}, pelo piloto): {len(arqs)} blocos, "
+          + ("o mesmo em todos" if len(textos) == 1 else f"ATENCAO: {len(textos)} deslocamentos diferentes") + "; "
+          f"piloto com {d.get('validas')} realizacoes validas, {d.get('falhas')} falhas, elite de {d.get('elite')} "
+          f"(Gamma < {float(d.get('nivel', 'nan')):.4f}), |mu|^2 = {float(d.get('mu2', 'nan')):.3f}"
+          + (f", s = {d['s']}" if "s" in d else ""))
+
+
 def estima(pasta, direta=None):
     rs = linhas(pasta)
     if not rs:
         sys.exit(f"nenhuma realizacao em {pasta}")
+    deslocamentos(pasta)
     w = [math.exp(float(r["log_peso"])) for r in rs.values()]
     f = [1. if float(r["FS_min"]) < 1. else 0. for r in rs.values()]
     n = len(w)

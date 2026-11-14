@@ -4,6 +4,7 @@ cluster/bin/
 cluster/logs/*
 !cluster/logs/.gitkeep
 cluster/teste/
+cluster/teste_ceron/
 cluster/resultados*/
 cluster/compilar.log
 # relatorio: auxiliares do LaTeX
