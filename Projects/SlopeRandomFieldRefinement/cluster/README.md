@@ -3,7 +3,11 @@
 Esta pasta roda duas campanhas, escolhidas pela variável `CAMPANHA` (veja `campanha.sh`):
 - `chuva` (padrão): o Monte Carlo da chuva, descrito logo abaixo;
 - `ceron`: o rebaixamento rápido do Ceron com o transiente, com Monte Carlo direto e amostragem por importância
-  (seção [Rebaixamento do Ceron com amostragem por importância](#rebaixamento-do-ceron-com-amostragem-por-importância)).
+  (seção [Rebaixamento do Ceron com amostragem por importância](#rebaixamento-do-ceron-com-amostragem-por-importância));
+- `chuva_ai`: a chuva com amostragem por importância, com o FS de 6 em 6 h até 48 h
+  (seção [Chuva com amostragem por importância](#chuva-com-amostragem-por-importância));
+- `solos`: os três solos do Rahardjo com I = 1 k_s, Monte Carlo direto com o FS de 6 em 6 h até 48 h
+  (seção [Os três solos](#os-três-solos)).
 
 As duas usam a mesma fila de tarefas (`tarefas.sh`), a mesma compilação e os mesmos comandos, com
 `CAMPANHA=ceron` na frente para a segunda.
@@ -108,7 +112,8 @@ ssh diogo@fermi.cesup.ufrgs.br 'cd neopz-master/Projects/SlopeRandomFieldRefinem
 ssh diogo@fermi.cesup.ufrgs.br 'neopz-master/Projects/SlopeRandomFieldRefinement/cluster/status.sh'
 ```
 
-Mostra os jobs, as últimas linhas dos logs e, por caso, as tarefas feitas, as realizações e o P_f contado em 24 h.
+Mostra os jobs, as últimas linhas dos logs e, por caso, as tarefas feitas, as realizações e o P_f do menor FS dos
+instantes (em 24 h nos casos com 0 e 24 h).
 
 ### 6. Baixar e gerar o relatório, no PC
 
@@ -200,6 +205,69 @@ Depois, submeta de novo: a fila pega os casos novos.
 Com P_f pequeno, o piloto tem poucas falhas. Nesse caso, o conjunto elite são os 10% com menor Γ (opção `elite`): é um
 nível intermediário da entropia cruzada, com um deslocamento menor que o ótimo, mas ainda sem viés.
 
+## Os três solos
+
+O `casos_solos.txt` roda os três solos da Tabela 1 do Rahardjo com a chuva da Fig. 5: I = 1 k_s por 24 h (f10 a
+360 mm/h, f50 a 36 mm/h, f100 a 3,6 mm/h).
+- **Amostra:** Monte Carlo direto, com 1000 realizações por solo e o FS de 6 em 6 h até 48 h. O FS em 0 h fica só no
+  f50, porque no determinístico ele é o mesmo nos três.
+- **Comparação pareada:** a realização n tem os mesmos campos nos três solos.
+- **Determinístico:** o f10 fica abaixo de 1 de ~6 h a ~26 h, o mínimo do f50 é 1,035 em 24 h e o do f100 é 1,886 em
+  32 h. Por isso o P_f vai de quase 100% (f10) a quase 0 (f100). O que se compara é o FS(t) com a sua dispersão.
+
+**Custo:** ~22 min por realização no fermi; as 3000 realizações levam ~1 dia com 4 nós. Os blocos têm 5 realizações.
+
+```bash
+ssh diogo@fermi.cesup.ufrgs.br 'cd neopz-master/Projects/SlopeRandomFieldRefinement/cluster && CAMPANHA=solos ./submeter.sh 4'
+ssh diogo@fermi.cesup.ufrgs.br 'CAMPANHA=solos neopz-master/Projects/SlopeRandomFieldRefinement/cluster/status.sh'
+CAMPANHA=solos ~/projects/neopz-master/Projects/SlopeRandomFieldRefinement/cluster/baixar.sh
+```
+
+O `baixar.sh` grava em `~/projects/runs/fermi_chuva_solos/resultado.txt` o resumo de cada solo
+(`posproc/resumo_tempos.py`):
+- em cada instante: o FS médio, o CoV, P(FS < 1) e a P_f do ajuste lognormal;
+- no menor FS dos instantes: a P_f e o instante em que o mínimo ocorre.
+
+## Chuva com amostragem por importância
+
+A referência da chuva (f50, I = 31,05 mm/h) tem P_f ≈ 1% em 24 h, pelos pilotos. Com isso, o Monte Carlo direto vê
+poucas falhas: 5000 realizações dão CoV(P_f) ≈ 14%. A amostragem por importância (`montecarlo.cpp` com `piloto=`; a
+lógica está em `ImportanceSampling.h`) precisa de bem menos realizações (Seção 7 do `relatorio/relatorio_chuva.pdf`).
+
+Por que até 48 h:
+- dependendo do k, o FS mínimo não ocorre em 24 h: com k baixo, ele vem depois da chuva (no f100 determinístico, às
+  32 h);
+- a falha passa a ser FS < 1 em algum dos instantes 6, 12, ..., 48 h (o mínimo no tempo);
+- o peso de cada realização não depende do instante: a mesma amostra dá a P_f(t) e a P_f do mínimo.
+
+Casos (`casos_chuva_ai.txt`):
+
+| Caso | N | O que é |
+|---|---|---|
+| `ref48_piloto` | 200 | Monte Carlo direto, o piloto. Com poucas falhas, o conjunto elite são os 10% de menor FS |
+| `ref48_ai` | 200 | amostragem por importância com o deslocamento na direção da banda do determinístico em 24 h; começa quando o piloto acaba |
+
+**Custo:** ~17 min por realização no fermi (o transiente até 48 h e 8 instantes do SRM). Os blocos têm 1 realização,
+para os 48 processos trabalharem; as 400 realizações levam ~2,5 h com 4 nós.
+
+**Precisão esperada** com P_f ≈ 1%: CoV(P_f) de ~14% (estado limite linear) a ~25% com 200 realizações. Para estender:
+`ULTIMA=999 CASOS=ref48_ai CAMPANHA=chuva_ai ./submeter.sh 4` leva a amostragem a 1000 realizações.
+
+**Comandos:** compile como na chuva e:
+
+```bash
+ssh diogo@fermi.cesup.ufrgs.br 'cd neopz-master/Projects/SlopeRandomFieldRefinement/cluster && CAMPANHA=chuva_ai ./submeter.sh 4'
+ssh diogo@fermi.cesup.ufrgs.br 'CAMPANHA=chuva_ai neopz-master/Projects/SlopeRandomFieldRefinement/cluster/status.sh'
+CAMPANHA=chuva_ai ~/projects/neopz-master/Projects/SlopeRandomFieldRefinement/cluster/baixar.sh
+```
+
+O `status.sh` mostra a P_f do mínimo no tempo, já com os pesos. O `baixar.sh` grava em
+`~/projects/runs/fermi_chuva_ai/resultado.txt` a P_f do mínimo e a de cada instante, contra o piloto.
+
+**Com a campanha do Ceron rodando:** o fermi deixa 4 jobs rodando por usuário, então os jobs `chuvaAI` esperam na fila.
+Para recompilar só o `SlopeRainMonteCarlo` com jobs `ceronMC` na fila, use `FORCAR=1 ./compilar.sh`. Isso é seguro
+enquanto a NeoPZ não muda: a `libpz.so` dos jobs fica igual, e os executáveis são trocados de forma atômica.
+
 ## Como funciona
 
 - **Tarefa:** um bloco de `BLOCO` realizações (padrão 20, umas 2 h no fermi) de um caso. Cada uma é uma rodada do
@@ -214,6 +282,8 @@ nível intermediário da entropia cruzada, com um deslocamento menor que o ótim
   jobs na fila, e então é refeita.
 - **Dependência:** um caso com `piloto=@SAIDA@/<id> piloto_n=<n>` só começa quando os blocos das realizações 0..n−1 do
   caso `<id>` acabaram. Sem outra tarefa livre, o processo espera 60 s por vez, até `ESPERA_MAX` (3 h).
+- **P_f no `status.sh`:** cada realização conta com o menor FS dos seus instantes, e só se todos tiverem fator. Na chuva
+  com 0 e 24 h, é o FS de 24 h.
 - **Opções:** nas opções dos casos, `@SAIDA@` vira a pasta da campanha e `IREF` vira a intensidade de referência.
 - **Bloco 0 de cada caso:** roda também o determinístico (`det=1`) e grava os campos dele (`mc_real-1/`), de onde sai a
   figura da banda do mecanismo.

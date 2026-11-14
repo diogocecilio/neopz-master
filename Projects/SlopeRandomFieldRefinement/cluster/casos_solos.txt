@@ -1,0 +1,10 @@
+# Os tres solos de Rahardjo et al. (2007), Tabela 1, com a chuva da Fig. 5: I = 1 k_s do solo por 24 h (o padrao do
+# SlopeRainMonteCarlo sem I=): f10 a 360 mm/h, f50 a 36 mm/h e f100 a 3,6 mm/h (CAMPANHA=solos). Monte Carlo direto com
+# os campos da Tabela 2 do Ceron e o FS pelo SRM de 6 em 6 h ate 48 h: com k baixo, o minimo vem depois da chuva (no
+# f100 deterministico, as 32 h). A realizacao n tem os mesmos campos nos tres solos (comparacao pareada). O FS em 0 h
+# (antes da chuva) so no f50: no deterministico, ele e o mesmo nos tres (2,0975). Uma linha por caso:
+#   id   fase   N   opcoes do SlopeRainMonteCarlo (alem de n, primeira e saida, que o tarefas.sh poe)
+# Pos-processamento: posproc/resumo_tempos.py (o baixar.sh roda).
+f10   1  1000  solo=f10 tempos=6,12,18,24,30,36,42,48
+f50   1  1000  solo=f50 tempos=0,6,12,18,24,30,36,42,48
+f100  1  1000  solo=f100 tempos=6,12,18,24,30,36,42,48

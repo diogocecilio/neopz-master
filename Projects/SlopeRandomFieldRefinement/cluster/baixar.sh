@@ -4,6 +4,7 @@
 #   ./baixar.sh [destino]                 chuva: destino padrao ~/projects/runs/fermi_chuva; relatorio PDF (posproc/)
 #   CAMPANHA=ceron ./baixar.sh [destino]  Ceron: ~/projects/runs/fermi_ceron_ai; P_f de cada amostragem por
 #                                         importancia contra o Monte Carlo direto (<destino>/resultado.txt)
+#   CAMPANHA=chuva_ai ./baixar.sh         o mesmo para a chuva com amostragem por importancia (~/projects/runs/fermi_chuva_ai)
 #   SEM_BAIXAR=1 ./baixar.sh     so o pos-processamento, com os dados ja baixados (sem VPN)
 # Chuva: o relatorio vai para <destino>/relatorio_parcial enquanto ha jobs na fila e para <destino>/relatorio depois.
 # Ambiente: CAMPANHA, FERMI (padrao diogo@fermi.cesup.ufrgs.br), REMOTO (padrao /mnt/data/diogo/<pasta da campanha>).
@@ -40,17 +41,19 @@ if [ -z "${SEM_BAIXAR:-}" ]; then
     }
 fi
 
-if [ "$CAMPANHA" = ceron ]; then
-    # cada caso com piloto= (amostragem por importancia) contra o seu piloto (o Monte Carlo direto)
+if [ "$CAMPANHA" != chuva ]; then
+    # o resumo instante a instante de cada caso (Monte Carlo direto) e cada caso com piloto= (amostragem por importancia)
+    # contra o seu piloto
     R="$DEST/resultado.txt"
-    : > "$R"
+    python3 -I -B "$POS/resumo_tempos.py" "$DEST/$(basename "$REMOTO")" "$AQUI/$CASOS_TXT" > "$R" 2>&1 || true
+    echo >> "$R"
     while read -r id fase n opc; do
         [[ -z "$id" || "$id" == \#* ]] && continue
         [[ " $opc " =~ \ piloto=@SAIDA@/([^ ]+)\  ]] || continue
         [ -d "$DEST/$(basename "$REMOTO")/$id" ] || continue
         { echo "== $id (piloto e direto: ${BASH_REMATCH[1]})"
           python3 -I -B "$POS/amostragem_importancia.py" estima "$DEST/$(basename "$REMOTO")/$id" \
-              "$DEST/$(basename "$REMOTO")/${BASH_REMATCH[1]}" 2>&1
+              "$DEST/$(basename "$REMOTO")/${BASH_REMATCH[1]}" 2>&1 || echo "(sem estimativa ainda)"
           echo; } >> "$R"
     done < "$AQUI/$CASOS_TXT"
     cat "$R"

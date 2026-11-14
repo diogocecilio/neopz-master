@@ -11,28 +11,48 @@
 # Nas opcoes dos casos, IREF vira $IREF e @SAIDA@ vira $SAIDA.
 # Dependencia (amostragem por importancia): um caso com piloto=@SAIDA@/<id> e piloto_n=<n> nas opcoes so comeca quando
 # os blocos das realizacoes 0..n-1 do caso <id> acabaram (mapa ou ERRO). Enquanto isso, o processo faz as outras tarefas;
-# sem nenhuma livre, espera 60 s e olha de novo, ate ESPERA_MAX s (padrao 3 h) seguidos.
+# sem nenhuma livre, espera 60 s e olha de novo, ate ESPERA_MAX s (padrao 3 h) seguidos. O piloto de um caso escolhido
+# entra na fila mesmo fora de CASOS, com o N do arquivo (sem ULTIMA): um bloco dele que precise ser refeito (ERRO limpo
+# pelo submeter.sh) roda, e a amostragem nao fica esperando.
 # Sem tarefa livre, ou com o arquivo $SAIDA/PARAR, o processo termina.
 # Ambiente (job.sbatch): SAIDA, EXE, CASOS_ARQ, CASOS (todos, ids ou fases, separados por virgula), IREF, BLOCO, ULTIMA
 # (opcional: N = ULTIMA + 1 em todos os casos escolhidos) e ESPERA_MAX (opcional)
 set -uo pipefail
 rotulo="$1"
 LOG="$SAIDA/logs/p$rotulo.txt"
-ids=() opcs=() ns=() pil=() pnp=()
-declare -A NCASO PRONTO
+# todos os casos do arquivo; os escolhidos (CASOS) e os pilotos deles
+todos_id=() todos_fase=() todos_n=() todos_opc=()
 while read -r id fase n opc; do
     [[ -z "$id" || "$id" == \#* ]] && continue
-    NCASO[$id]=$n
-    if [ "$CASOS" != todos ]; then
-        case ",$CASOS," in *",$id,"* | *",fase$fase,"*) ;; *) continue ;; esac
+    todos_id+=("$id") todos_fase+=("$fase") todos_n+=("$n") todos_opc+=("${opc//IREF/$IREF}")
+done < "$CASOS_ARQ"
+declare -A ESCOLHIDO PILOTO_EXTRA NCASO PRONTO
+for i in "${!todos_id[@]}"; do
+    if [ "$CASOS" = todos ]; then
+        ESCOLHIDO[${todos_id[$i]}]=1
+    else
+        case ",$CASOS," in *",${todos_id[$i]},"* | *",fase${todos_fase[$i]},"*) ESCOLHIDO[${todos_id[$i]}]=1 ;; esac
     fi
-    [ -n "${ULTIMA:-}" ] && n=$((ULTIMA + 1)) && NCASO[$id]=$n
-    opc="${opc//IREF/$IREF}"
+done
+for i in "${!todos_id[@]}"; do
+    [ -n "${ESCOLHIDO[${todos_id[$i]}]:-}" ] || continue
+    [[ " ${todos_opc[$i]} " =~ \ piloto=@SAIDA@/([^ ]+)\  ]] || continue
+    [ -n "${ESCOLHIDO[${BASH_REMATCH[1]}]:-}" ] || PILOTO_EXTRA[${BASH_REMATCH[1]}]=1
+done
+ids=() opcs=() ns=() pil=() pnp=()
+for i in "${!todos_id[@]}"; do
+    id=${todos_id[$i]} n=${todos_n[$i]} opc=${todos_opc[$i]}
+    NCASO[$id]=$n
+    if [ -n "${ESCOLHIDO[$id]:-}" ]; then
+        if [ -n "${ULTIMA:-}" ]; then n=$((ULTIMA + 1)) NCASO[$id]=$((ULTIMA + 1)); fi
+    elif [ -z "${PILOTO_EXTRA[$id]:-}" ]; then
+        continue
+    fi
     p="" np=1000
     [[ " $opc " =~ \ piloto=@SAIDA@/([^ ]+)\  ]] && p="${BASH_REMATCH[1]}"
     [[ " $opc " =~ \ piloto_n=([0-9]+)\  ]] && np="${BASH_REMATCH[1]}"
     ids+=("$id") opcs+=("${opc//@SAIDA@/$SAIDA}") ns+=("$n") pil+=("$p") pnp+=("$np")
-done < "$CASOS_ARQ"
+done
 for p in "${pil[@]}"; do
     [ -z "$p" ] || [ -n "${NCASO[$p]:-}" ] || { echo "$(date '+%F %T') piloto $p nao esta em $CASOS_ARQ: fim" >> "$LOG"; exit 1; }
 done

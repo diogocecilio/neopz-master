@@ -27,6 +27,20 @@
 //   figuras ()             realizacoes com os campos gravados para figuras (pasta <saida>_real<n>; nelas todos os
 //                          instantes sao adaptativos), ex.: 0,3,7
 //   saida (mc_chuva)       prefixo dos arquivos
+//   semente (2025)         semente dos campos (outra para uma amostra independente de outra rodada)
+// Amostragem por importancia (AI; ImportanceSampling.h): o deslocamento da media dos xi sai de um Monte Carlo direto ja
+// feito (o piloto) pela entropia cruzada, e cada realizacao grava o peso exato (log_peso): P_f = soma(peso * falha) / N
+// nao tem vies (posproc/amostragem_importancia.py). A falha e FS < 1 em algum instante: no piloto vale o menor FS.
+//   banda (<arquivo>), banda_t (todos)   o mecanismo.csv de um deterministico e o instante dele: os pontos com
+//                          sqrt(J2) >= 0,1 do maior dao a direcao d dos xi (o gradiente da media do campo gaussiano na
+//                          banda); com banda, o arquivo grava as projecoes xi . d (proj_c, proj_phi, proj_k)
+//   piloto (<pasta>)       a pasta do piloto (as realizacoes 0..piloto_n-1 dos <prefixo>_<a>_<b>.csv); cada bloco calcula
+//                          o mesmo deslocamento (<saida>_desloc_<faixa>.txt). Sai com o codigo 3 se o piloto tiver menos
+//                          de 90% das realizacoes
+//   piloto_n (1000), piloto_semente (2025), elite (0.1)   o conjunto elite: as falhas do piloto ou, se forem menos que a
+//                          fracao elite, as de menor FS
+//   ai (banda), modos (30) banda: s_c d por campo, com s_c a media de xi_c . d no conjunto elite (precisa de banda);
+//                          modos: a media dos 'modos' primeiros modos de cada campo
 // Saidas (<faixa> = primeira_ultima):
 //   <saida>_<faixa>.csv       uma linha por realizacao e instante, com as colunas do mc_resumo.csv do rebaixamento
 //                             (FS_min, situacao, banda_*, massa_*, c_med, phi_med, k_mult_med, parametros do caso) e as da
@@ -39,6 +53,7 @@
 //                             k nos nos) e mecanismo.csv (pontos com sqrt(J2) >= 1% do maior, como no rebaixamento)
 #include "AnimationFiles.h"
 #include "HPMaterial.h"
+#include "ImportanceSampling.h"
 #include "LayerGMesh.h"
 #include "PointLocator.h"
 #include "RainTransient.h"
@@ -115,6 +130,9 @@ struct Opcoes {
     int uT = 2, nref = 4;
     std::set<int> figuras;
     std::vector<REAL> valores; // deterministica com c' (kPa), phi' (graus) e k / k_s dados (vazio: as medias)
+    std::string banda;         // amostragem por importancia: o mecanismo.csv da banda e o instante dela
+    REAL bandaT = -1.;
+    ai::Opcoes ai;             // o deslocamento pelo piloto
 };
 
 std::vector<REAL> Lista(const std::string &s)
@@ -131,7 +149,9 @@ Opcoes LeOpcoes(int argc, char *argv[])
 {
     const std::set<std::string> chaves = {"n",      "primeira", "det",  "solo", "I",          "chuva", "hw",
                                           "tempos", "adapta",   "metodo", "covc", "covphi",   "covk",  "s",
-                                          "alfa",   "transiente", "uT", "fator", "nref",      "figuras", "saida", "valores"};
+                                          "alfa",   "transiente", "uT", "fator", "nref",      "figuras", "saida", "valores",
+                                          "semente", "banda", "banda_t", "piloto", "piloto_n", "piloto_semente",
+                                          "ai", "elite", "modos"};
     std::map<std::string, std::string> kv;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
@@ -190,6 +210,23 @@ Opcoes LeOpcoes(int argc, char *argv[])
     if (tem("figuras"))
         for (REAL v : Lista(kv["figuras"])) op.figuras.insert(int(v));
     if (tem("saida")) op.saida = kv["saida"];
+    if (tem("semente")) op.campos.semente = std::stoull(kv["semente"]);
+    if (tem("banda")) op.banda = kv["banda"];
+    if (tem("banda_t")) op.bandaT = std::stod(kv["banda_t"]);
+    op.ai.semente = tem("piloto_semente") ? std::stoull(kv["piloto_semente"]) : Campos{}.semente;
+    if (tem("piloto")) op.ai.piloto = kv["piloto"];
+    if (tem("piloto_n")) op.ai.n = std::stoi(kv["piloto_n"]);
+    if (tem("ai")) op.ai.tipo = kv["ai"];
+    if (tem("elite")) op.ai.elite = std::stod(kv["elite"]);
+    if (tem("modos")) op.ai.modos = std::stoi(kv["modos"]);
+    if (op.ai.tipo != "banda" && op.ai.tipo != "modos") {
+        std::fprintf(stderr, "ai=%s: banda ou modos\n", op.ai.tipo.c_str());
+        std::exit(1);
+    }
+    if (!op.ai.piloto.empty() && op.ai.tipo == "banda" && op.banda.empty()) {
+        std::fprintf(stderr, "piloto com ai=banda precisa de banda=<mecanismo.csv>\n");
+        std::exit(1);
+    }
     if (tem("valores")) {
         op.valores = Lista(kv["valores"]);
         if (op.valores.size() != 3) {
@@ -587,9 +624,10 @@ const char *kCabecalho =
     "real,t_h,FS_min,situacao,adaptativo,niveis,eq_fator,s_fator,eq_transiente,s_transiente,pw_min,pw_max,nos_face,"
     "nivel_x30,nivel_x35,nivel_x40,banda_area_m2,banda_prof,banda_xmin,banda_xmax,banda_xc,banda_yc,banda_ymin,banda_pw,"
     "banda_c,banda_phi_deg,banda_k_mult,massa_area_m2,massa_xc,massa_yc,massa_c,massa_phi_deg,massa_k_mult,c_med,phi_med,"
-    "k_mult_med,solo,I,chuva,hw,metodo,cov_c,cov_phi,cov_k,Lx,Ly,alfa,KL_variancia\n";
+    "k_mult_med,solo,I,chuva,hw,metodo,cov_c,cov_phi,cov_k,Lx,Ly,alfa,KL_variancia,log_peso,proj_c,proj_phi,proj_k\n";
 
-void Grava(std::ofstream &csv, const Linha &l, const Opcoes &op, REAL klVariancia)
+void Grava(std::ofstream &csv, const Linha &l, const Opcoes &op, REAL klVariancia, double logPeso,
+           const std::vector<double> &proj)
 {
     const Mecanismo &d = l.mec;
     std::ostringstream s;
@@ -601,7 +639,8 @@ void Grava(std::ofstream &csv, const Linha &l, const Opcoes &op, REAL klVarianci
       << d.mXc << "," << d.mYc << "," << d.mC << "," << d.mPhi << "," << d.mK << "," << d.cMed << "," << d.phiMed << ","
       << d.kMed << "," << op.solo.nome << "," << op.I << "," << op.chuva << "," << op.hw << ","
       << (op.gim ? "gim" : "srm") << "," << op.campos.covC << "," << op.campos.covPhi << "," << op.campos.covK << ","
-      << op.campos.Lx << "," << op.campos.Ly << "," << op.alfa << "," << klVariancia << "\n";
+      << op.campos.Lx << "," << op.campos.Ly << "," << op.alfa << "," << klVariancia << "," << std::setprecision(10)
+      << logPeso << "," << proj[0] << "," << proj[1] << "," << proj[2] << "\n";
     csv << s.str();
     csv.flush();
 }
@@ -621,7 +660,12 @@ void GravaParametros(const std::string &arq, const Opcoes &op, const RandomField
       << "\nLX=" << op.campos.Lx << "\nLY=" << op.campos.Ly << "\nALFA=" << op.alfa << "\nKL_M=" << campos.M()
       << "\nKL_VARIANCIA=" << campos.VarianceFraction() << "\nSEMENTE=" << op.campos.semente
       << "\nMALHA_TRANSIENTE=" << op.malhaT << "\nUT=" << op.uT << "\nMALHA_FATOR=" << op.malhaF
-      << "\nNREF=" << op.nref << "\nTEMPOS=" << lista(op.tempos) << "\nADAPTA=" << lista(op.adapta) << "\n";
+      << "\nNREF=" << op.nref << "\nTEMPOS=" << lista(op.tempos) << "\nADAPTA=" << lista(op.adapta)
+      << "\nAI=" << (op.ai.piloto.empty() ? "nenhuma" : op.ai.tipo + "_piloto") << "\n";
+    if (!op.ai.piloto.empty())
+        p << "PILOTO=" << op.ai.piloto << "\nPILOTO_N=" << op.ai.n << "\nPILOTO_SEMENTE=" << op.ai.semente
+          << "\nELITE=" << op.ai.elite << "\nMODOS=" << op.ai.modos << "\nBANDA=" << op.banda << "\nBANDA_T=" << op.bandaT
+          << "\n";
 }
 
 // mapa da faixa do mecanismo: celulas de 1 m no retangulo do talude, por instante
@@ -670,6 +714,17 @@ int main(int argc, char *argv[])
                 100. * campos.VarianceFraction(), op.malhaT.c_str(), op.uT, op.malhaF.c_str(), op.nref);
 
     const std::string faixa = std::to_string(op.primeira) + "_" + std::to_string(op.primeira + op.n - 1);
+    // amostragem por importancia: a direcao da banda (projecoes) e o deslocamento pelo piloto
+    std::vector<double> dir;
+    if (!op.banda.empty()) {
+        dir = campos.Direction(ai::LeBanda(op.banda, op.bandaT));
+        if (dir.empty()) {
+            std::fprintf(stderr, "banda sem pontos: %s (instante %g)\n", op.banda.c_str(), op.bandaT);
+            return 1;
+        }
+    }
+    if (!op.ai.piloto.empty() && !ai::DeslocaPeloPiloto(campos, dir, op.ai, op.saida + "_desloc_" + faixa + ".txt"))
+        return 3;
     const std::string arq = op.saida + "_" + faixa + ".csv";
     std::ofstream csv(arq);
     csv << kCabecalho;
@@ -677,6 +732,9 @@ int main(int argc, char *argv[])
     if (op.primeira == 0) GravaParametros(op.saida + "_parametros.txt", op, campos);
     Mapa mapa;
     std::map<REAL, std::vector<REAL>> fsInstante; // so as realizacoes aleatorias
+    std::map<REAL, double> pesoFalha;             // AI: soma de peso * (FS < 1) por instante
+    double pesoFalhaMin = 0.;                     // e com o menor FS dos instantes
+    int nPesadas = 0;                             // realizacoes com todos os instantes ok
     double somaT = 0., somaF = 0.;
 
     std::vector<int> realizacoes;
@@ -687,6 +745,9 @@ int main(int argc, char *argv[])
         const auto t0 = Clock::now();
         const bool deterministica = n < 0;
         if (!deterministica) campos.Sample(cp.semente, n);
+        // o peso da amostragem por importancia (0 sem deslocamento) e as projecoes na direcao da banda
+        const double logPeso = deterministica ? 0. : campos.LogWeight();
+        const std::vector<double> proj = deterministica ? std::vector<double>(3, 0.) : campos.Projection(dir);
         // propriedades de cada ponto: o campo da realizacao; na deterministica, as medias ou os valores dados
         const Campo *cf = deterministica ? (op.valores.empty() ? nullptr : &campoFixo) : &campoAleatorio;
 
@@ -796,12 +857,20 @@ int main(int argc, char *argv[])
         }
 
         // 3. arquivo, mapa e resumo da realizacao
+        bool todosOk = true;
+        REAL fsMin = 1e30;
         for (const auto &[t, l] : linhas) {
-            Grava(csv, l, op, campos.VarianceFraction());
+            Grava(csv, l, op, campos.VarianceFraction(), logPeso, proj);
             if (!deterministica && l.situacao == "ok") {
                 fsInstante[t].push_back(l.fs);
                 mapa.Soma(t, l.mec, l.fs < 1.);
             }
+            todosOk = todosOk && l.situacao == "ok", fsMin = std::min(fsMin, l.fs);
+        }
+        if (!deterministica && todosOk) {
+            nPesadas++;
+            for (const auto &[t, l] : linhas) pesoFalha[t] += (l.fs < 1.) * std::exp(logPeso);
+            pesoFalhaMin += (fsMin < 1.) * std::exp(logPeso);
         }
         if (!deterministica) mapa.nReal++, somaT += sT, somaF += sF;
         std::printf("  realizacao %4d: FS", n);
@@ -824,6 +893,11 @@ int main(int argc, char *argv[])
         const REAL pfLog = dl > 0. ? 0.5 * std::erfc(ml / dl / std::sqrt(2.)) : REAL(ml < 0.);
         std::printf("  %5g   %8.4f   %6.4f   %6.4f   %6.2f%%     %6.2f%%\n", t, m, dp,
                     *std::min_element(g.begin(), g.end()), 100. * falhas / g.size(), 100. * pfLog);
+    }
+    if (!op.ai.piloto.empty() && nPesadas) { // a P_f da amostragem por importancia, so deste bloco
+        std::printf("\n  amostragem por importancia (%d realizacoes com todos os instantes): P_f ponderada", nPesadas);
+        for (const auto &[t, w] : pesoFalha) std::printf(" %g h: %.3f%%", t, 100. * w / nPesadas);
+        std::printf("; no menor FS: %.3f%%\n", 100. * pesoFalhaMin / nPesadas);
     }
     if (mapa.nReal)
         std::printf("\n  tempo medio por realizacao: transiente %.1f s, fator %.1f s\n", somaT / mapa.nReal,

@@ -1,0 +1,14 @@
+# Casos da chuva com amostragem por importancia (CAMPANHA=chuva_ai; SlopeRainMonteCarlo, o montecarlo.cpp): o solo f50 a
+# I = IREF (31,05 mm/h), com o FS de 6 em 6 h ate 48 h. A falha e FS < 1 em algum instante (o minimo no tempo): com k
+# baixo, o minimo vem depois da chuva (no f100 deterministico, as 32 h). Uma linha por caso:
+#   id   fase   N   opcoes do SlopeRainMonteCarlo (alem de n, primeira e saida, que o tarefas.sh poe)
+# @SAIDA@ vira a pasta da campanha. O bloco que comeca na realizacao 0 de cada caso roda tambem o deterministico.
+#  - ref48_piloto: Monte Carlo direto, o piloto. Com P_f ~1%, tem poucas falhas: o conjunto elite sao os 10% de menor FS
+#    (um nivel intermediario da entropia cruzada);
+#  - ref48_ai: amostragem por importancia com a media dos xi deslocada na direcao da banda do deterministico em 24 h, pelo
+#    conjunto elite do piloto; comeca quando o piloto acaba. O peso (log_peso) vale para todos os instantes: a mesma
+#    amostra da P_f(t) e a P_f do minimo no tempo (posproc/amostragem_importancia.py estima).
+# Blocos de 1 realizacao (campanha.sh): com ~17 min por realizacao no fermi, os 48 processos de 4 nos ficam ocupados.
+# Para mais realizacoes: ULTIMA=<n-1> CASOS=ref48_ai CAMPANHA=chuva_ai ./submeter.sh 4.
+ref48_piloto  1  200  I=IREF tempos=6,12,18,24,30,36,42,48
+ref48_ai      1  200  I=IREF tempos=6,12,18,24,30,36,42,48 piloto=@SAIDA@/ref48_piloto piloto_n=200 ai=banda banda=@SAIDA@/ref48_piloto/mc_real-1/mecanismo.csv banda_t=24 semente=1

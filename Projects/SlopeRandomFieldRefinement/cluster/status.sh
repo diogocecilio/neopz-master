@@ -1,9 +1,9 @@
 #!/bin/bash
 # status.sh: os jobs da campanha na fila, as ultimas linhas dos logs dos processos e, por caso, as tarefas feitas, rodando
-# e com erro, as realizacoes ja calculadas e o P_f ate agora (so com bash e awk: roda no fermi). Cada realizacao conta no
-# ultimo instante dela (24 h na chuva; o fim do rebaixamento no Ceron), com situacao ok; falha: FS_min < 1. Com a coluna
-# log_peso (amostragem por importancia), P_f = soma(peso * falha) / N, e o CoV vem da amostra. CAMPANHA e SAIDA como em
-# submeter.sh.
+# e com erro, as realizacoes ja calculadas e o P_f ate agora (so com bash e awk: roda no fermi). Cada realizacao conta com
+# o menor FS_min dos seus instantes (na chuva com 0 e 24 h, o de 24 h; no Ceron, o unico) e so se todos tiverem situacao
+# ok; falha: FS < 1. Com a coluna log_peso (amostragem por importancia), P_f = soma(peso * falha) / N, e o CoV vem da
+# amostra. CAMPANHA e SAIDA como em submeter.sh.
 cd "$(dirname "${BASH_SOURCE[0]}")"
 source ./campanha.sh
 SAIDA="${SAIDA:-${DATA:+$DATA/$PASTA}}"
@@ -30,13 +30,14 @@ while read -r id fase n opc; do
     awk -F, -v id="$id" -v feitas="$feitas" -v rodando="$rodando" -v erros="$erros" '
         FNR == 1 { delete c; for (i = 1; i <= NF; i++) c[$i] = i; next }
         {
-            r = $c["real"] + 0; t = $c["t_h"] + 0
-            if (r < 0 || ((r in tt) && t < tt[r])) next
-            tt[r] = t; fs[r] = $c["FS_min"] + 0; ok[r] = ($c["situacao"] == "ok" && fs[r] > 0)
+            r = $c["real"] + 0; x = $c["FS_min"] + 0
+            if (r < 0) next
+            if (!(r in fs) || x < fs[r]) fs[r] = x
+            if ($c["situacao"] != "ok" || x <= 0) ruim[r] = 1
             lw[r] = ("log_peso" in c) ? $c["log_peso"] + 0 : 0
         }
         END {
-            for (r in tt) if (ok[r]) { n++; q = (fs[r] < 1) ? exp(lw[r]) : 0; f += (fs[r] < 1); s += q; s2 += q * q }
+            for (r in fs) if (!(r in ruim)) { n++; q = (fs[r] < 1) ? exp(lw[r]) : 0; f += (fs[r] < 1); s += q; s2 += q * q }
             p = n ? s / n : 0
             cv = (n > 1 && p > 0) ? 100 * sqrt((s2 - n * p * p) / (n - 1) / n) / p : 0
             printf "%-14s %7d %7d %5d %7d %7d %8.2f %7.1f\n", id, feitas, rodando, erros, n, f, 100 * p, cv
