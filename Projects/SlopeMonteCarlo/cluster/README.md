@@ -129,7 +129,14 @@ Em `<caso>_det/r00000/`:
 
 ## Relatório
 
-Traga `$DATA/ceron_mc_h4` para o PC e rode os scripts do SlopeRandomField:
+No PC, com a VPN ligada, `./baixar.sh [destino]` faz tudo, pedindo a senha uma vez:
+- mostra os jobs na fila;
+- baixa `ceron_mc` e os logs para `~/projects/runs/fermi_ceron`;
+- mostra a tabela;
+- gera o PDF em `relatorio_parcial/` (jobs ainda na fila) ou em `relatorio/` (jobs terminados).
+
+`SEM_BAIXAR=1 ./baixar.sh` refaz só a tabela e o PDF. À mão, traga `$DATA/ceron_mc_h4` para o PC e rode os scripts do
+SlopeRandomField:
 
 ```bash
 rsync -av <usuario>@fermi:<DATA>/ceron_mc_h4/ ceron_mc_h4/
