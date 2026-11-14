@@ -1,0 +1,14 @@
+\begin{tabular}{@{}l r r r r@{}}
+\toprule
+ & \multicolumn{2}{c}{Cenário A} & \multicolumn{2}{c@{}}{Cenário B} \\
+\cmidrule(lr){2-3}\cmidrule(l){4-5}
+Transformação usada no FORM & $\beta$ & $P_f$ do FORM & $\beta$ & $P_f$ do FORM \\
+\midrule
+correta (Nataf, $u = L^{-1} z$) & $3{,}5414$ & $1{,}99\times 10^{-4}$ & $1{,}0781$ & $0{,}140$ \\
+com o erro do \texttt{FromXtoY} ($L$ no lugar de $L^{-1}$) & $2{,}5112$ & $6{,}02\times 10^{-3}$ & $0{,}8076$ & $0{,}210$ \\
+sem a correção de Nataf ($R_Z = R_X$) & $3{,}5239$ & $2{,}13\times 10^{-4}$ & $1{,}0733$ & $0{,}142$ \\
+\midrule
+$c'$ e $\phi'$ independentes ($\rho = 0$), FORM & $3{,}0658$ & $1{,}09\times 10^{-3}$ & $0{,}9468$ & $0{,}172$ \\
+$c'$ e $\phi'$ independentes, referência & $3{,}1067$ & $9{,}46\times 10^{-4}$ & $0{,}9995$ & $0{,}159$ \\
+\bottomrule
+\end{tabular}

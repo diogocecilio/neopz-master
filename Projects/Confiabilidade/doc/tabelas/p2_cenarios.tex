@@ -1,0 +1,19 @@
+\begin{tabular}{@{}l r r r r r r@{}}
+\toprule
+ & \multicolumn{3}{c}{Cenário A: $\mu_h = -2{,}0$\,m} & \multicolumn{3}{c@{}}{Cenário B: $\mu_h = -0{,}5$\,m} \\
+\cmidrule(lr){2-4}\cmidrule(l){5-7}
+Método & $N$ & $P_f$ & CoV ou erro & $N$ & $P_f$ & CoV ou erro \\
+\midrule
+Referência (integração) & --- & $1{,}535\times 10^{-4}$ & --- & --- & $0{,}1215$ & --- \\
+FORM (HL-RF com Armijo) & 149 & $1{,}990\times 10^{-4}$ & $29{,}7\,\%$ & 49 & $0{,}1405$ & $15{,}7\,\%$ \\
+Monte Carlo & $10^{3}$ & $0$ & --- & $10^{3}$ & $0{,}115$ & $8{,}8\,\%$ \\
+Monte Carlo & $10^{6}$ & $1{,}45\times 10^{-4}$ & $8{,}3\,\%$ & $10^{6}$ & $0{,}121$ & $0{,}3\,\%$ \\
+Importância (ponto de projeto) & $10^{3}$ & $1{,}512\times 10^{-4}$ & $7{,}0\,\%$ & $10^{3}$ & $0{,}1200$ & $4{,}3\,\%$ \\
+Importância (ponto de projeto) & $10^{4}$ & $1{,}509\times 10^{-4}$ & $2{,}2\,\%$ & $10^{4}$ & $0{,}1208$ & $1{,}3\,\%$ \\
+\midrule
+$\beta$ do FORM & & $3{,}5414$ & & & $1{,}0781$ & \\
+FS com as médias & & $1{,}644$ & & & $1{,}219$ & \\
+$\alpha^2$ de $c'$, $\phi'$, $h$ & & \multicolumn{2}{l}{$0{,}13;\ 0{,}18;\ 0{,}69$} & & \multicolumn{2}{l@{}}{$0{,}23;\ 0{,}12;\ 0{,}65$} \\
+Ponto de projeto $x^*$ & & \multicolumn{2}{l}{$6{,}60\,\mathrm{kPa};\ 28{,}0^\circ;\ -0{,}53\,\mathrm{m}$} & & \multicolumn{2}{l@{}}{$8{,}22\,\mathrm{kPa};\ 29{,}7^\circ;\ -0{,}07\,\mathrm{m}$} \\
+\bottomrule
+\end{tabular}
