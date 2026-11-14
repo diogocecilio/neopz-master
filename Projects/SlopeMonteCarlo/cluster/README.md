@@ -131,9 +131,11 @@ Em `<caso>_det/r00000/`:
 
 No PC, com a VPN ligada, `./baixar.sh [destino]` faz tudo, pedindo a senha uma vez:
 - mostra os jobs na fila;
-- baixa `ceron_mc` e os logs para `~/projects/runs/fermi_ceron`;
+- baixa a campanha de 4 níveis (`ceron_mc_h4`) e os logs para `~/projects/runs/fermi_ceron`; `NREF=3 ./baixar.sh` baixa
+  a de 3 níveis (`ceron_mc`);
 - mostra a tabela;
-- gera o PDF em `relatorio_parcial/` (jobs ainda na fila) ou em `relatorio/` (jobs terminados).
+- gera o PDF em `relatorio_parcial_h4/` (jobs ainda na fila) ou em `relatorio_h4/` (jobs terminados); na de 3 níveis,
+  em `relatorio_parcial/` e `relatorio/`.
 
 `SEM_BAIXAR=1 ./baixar.sh` refaz só a tabela e o PDF. À mão, traga `$DATA/ceron_mc_h4` para o PC e rode os scripts do
 SlopeRandomField:
