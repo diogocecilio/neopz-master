@@ -493,11 +493,13 @@ void TPZUnsatAnalysis::IdentifyEquations(const std::map<int, std::array<bool, 2>
             if (!cel || !cel->Reference()) continue;
             TPZGeoEl *gel = cel->Reference();
             const int id = gel->MaterialId();
+            // the first NCornerNodes() connects are the vertex ones (3 in triangles, 4 in quadrilaterals)
             if (s > 0 && id > 0)
-                for (int i = 0; i < 3; ++i)
+                for (int i = 0; i < gel->NCornerNodes(); ++i)
                     (s == 1 ? fEqW : fEqA)[gel->NodeIndex(i)] = Position(off[s] + cel->ConnectIndex(i));
             if (s == 0 && id > 0)
-                for (int i = 0; i < 3; ++i) fEqU[gel->NodeIndex(i)] = Position(off[0] + cel->ConnectIndex(i));
+                for (int i = 0; i < gel->NCornerNodes(); ++i)
+                    fEqU[gel->NodeIndex(i)] = Position(off[0] + cel->ConnectIndex(i));
             auto it = fixU.find(id);
             if (s == 0 && id < 0 && it != fixU.end())
                 for (int i = 0; i < cel->NConnects(); ++i) {

@@ -676,14 +676,51 @@ void TPZFMatrix<double>::MultAdd(const TPZFMatrix<double> &x,const TPZFMatrix<do
     if (Rows() == 0 || Cols() == 0 || x.Rows() == 0 || x.Cols() == 0) {
         return;
     }
-    if (!opt) {
-        cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, this->Rows(), x.Cols(), this->Cols(),
-                    alpha, this->fElem, this->Rows(), x.fElem, x.Rows(), beta, z.fElem, z.Rows());
-    } else {
-        cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, this->Cols(), x.Cols(), this->Rows(),
-                    alpha, this->fElem, this->Rows(), x.fElem, x.Rows(), beta, z.fElem, z.Rows());
+    // Small products (element matrices, 6x6 constitutive tensors, jacobians and side transforms): a plain loop. For
+    // them the overhead of the cblas_dgemm call (argument checks, dispatch) costs more than the arithmetic: in the
+    // unsaturated slope analyses ~37 million such calls took 16% of the run time. Same results up to the order of the
+    // floating-point sums.
+    const int64_t m = this->Rows(), k = this->Cols(), n = x.Cols(), ldb = x.Rows(), ldc = z.Rows();
+    const double *A = this->fElem, *B = x.fElem;
+    double *C = z.fElem;
+    if (m * k * n <= 2048) {
+        if (!opt) { // C (m x n) = alpha A B + beta C
+            for (int64_t j = 0; j < n; ++j) {
+                if (m <= 64) {
+                    double acc[64];
+                    for (int64_t i = 0; i < m; ++i) acc[i] = 0.;
+                    for (int64_t l = 0; l < k; ++l) {
+                        const double b = B[l + j * ldb];
+                        const double *a = A + l * m;
+                        for (int64_t i = 0; i < m; ++i) acc[i] += a[i] * b;
+                    }
+                    for (int64_t i = 0; i < m; ++i)
+                        C[i + j * ldc] = alpha * acc[i] + (beta != 0. ? beta * C[i + j * ldc] : 0.);
+                } else {
+                    for (int64_t i = 0; i < m; ++i) {
+                        double s = 0.;
+                        for (int64_t l = 0; l < k; ++l) s += A[i + l * m] * B[l + j * ldb];
+                        C[i + j * ldc] = alpha * s + (beta != 0. ? beta * C[i + j * ldc] : 0.);
+                    }
+                }
+            }
+        } else { // C (k x n) = alpha A^T B + beta C, with A (m x k)
+            for (int64_t j = 0; j < n; ++j)
+                for (int64_t i = 0; i < k; ++i) {
+                    double s = 0.;
+                    const double *a = A + i * m, *b = B + j * ldb;
+                    for (int64_t l = 0; l < m; ++l) s += a[l] * b[l];
+                    C[i + j * ldc] = alpha * s + (beta != 0. ? beta * C[i + j * ldc] : 0.);
+                }
+        }
+        return;
     }
-    
+    if (!opt) {
+        cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, m, n, k, alpha, A, m, B, ldb, beta, C, ldc);
+    } else {
+        cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, k, n, m, alpha, A, m, B, ldb, beta, C, ldc);
+    }
+
 }
 template<>
 void TPZFMatrix<float>::MultAdd(const TPZFMatrix<float> &x,const TPZFMatrix<float> &y, TPZFMatrix<float> &z,
