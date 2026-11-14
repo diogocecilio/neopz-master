@@ -1,0 +1,28 @@
+\section{A evolução da formulação (pasta \texttt{depricated})}
+\label{sec:historia}
+
+Em ordem de data. Os zips da pasta são cópias das pastas extraídas.
+\begin{enumerate}
+  \item \textbf{16/10}, \path{formulacao_cam_clay}: Biot saturado e $\bm u$--$p_w$ com ar passivo, $\chi = S_r$,
+    van Genuchten e Cam-Clay modificado com endurecimento por sucção.
+  \item \textbf{16/10}, \path{formulacao_mohr_coulomb}: troca para Mohr--Coulomb clássico, com o retorno em valores
+    principais e o SRM de Griffiths--Lane. Traz a hierarquia de modelos M0 a M4 (M2 com ar passivo, M4 Richards). Uma
+    variante acrescenta o sistema adimensional, ramo que não continuou.
+  \item \textbf{19/10}, \path{formulacao_mohr_coulomb_atualizado}: acrescenta a percolação permanente, verificada
+    na barragem de Lam (1984) e Fredlund--Rahardjo (1993), com código em Python e Mathematica.
+  \item \textbf{22/10}, \path{formulacao_usat}: recomeço só com as equações de campo de água e ar, esqueleto elástico,
+    e o exemplo da barragem em regime transiente.
+  \item \textbf{25/10}, versão \texttt{bousineq}: a redução 1D de Boussinesq, com ponto de saída móvel (inequação
+    variacional e conjunto ativo).
+  \item \textbf{26/10}, \path{biot_nao_saturado_agua_ar3}: sai Boussinesq e entra o MEF (Galerkin, Euler
+    implícito, Newton). É a fonte [N] do documento atual.
+  \item \textbf{28/10}, \texttt{ar4} e \path{secoes_rahardjo}: a implementação no NeoPZ (PV2, Fredlund--Xing,
+    $\chi = 1$) e a reprodução do Rahardjo: 144 casos, FS inicial de 2,119, SRM por bisseção, chuva na projeção
+    horizontal. Inclui os contraexemplos A1 a A6.
+  \item \textbf{30/10}, \path{formulacao_fase1}: a primeira versão do documento atual, com 3 decisões em aberto. No
+    mesmo dia, a versão atual aplica as decisões e acrescenta os resíduos, o Jacobiano e a verificação. Em 1/11 vem a
+    versão \texttt{verick}.
+\end{enumerate}
+Em uma frase: de Cam-Clay com $\bm u$--$p_w$, passando pelo Mohr--Coulomb clássico com a barragem e pelo recomeço
+poroelástico com água e ar, até o NeoPZ com PV2, a reprodução do Rahardjo e a formulação $\bm u$--$p_w$--$p_a$
+confrontada com o código e verificada.

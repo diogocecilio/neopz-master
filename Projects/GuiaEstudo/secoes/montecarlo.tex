@@ -1,0 +1,37 @@
+\section{Monte Carlo e refinamento por realização}
+\label{sec:mc}
+
+\paragraph{O estimador.}
+\begin{equation}
+  \hat P_f = \frac{n_f}{S}, \qquad \mathrm{CoV}(\hat P_f) = \sqrt{\frac{1 - P_f}{S\, P_f}} .
+\end{equation}
+Com $P_f \approx 11\,\%$, 1000 realizações dão um CoV de 9\,\%, e 10\,000 dão 2,8\,\%. O ajuste lognormal de $\Gamma$ dá
+uma segunda estimativa, $P(\Gamma < 1)$, que depende do modelo de distribuição.
+
+\paragraph{Refinamento por realização} (\texttt{SlopeRandomFieldRefina}, relatório de 11/11).
+\begin{enumerate}
+  \item \textbf{Etapa 1:} GIM na malha grossa.
+  \item \textbf{Etapa 2:} a banda de ruptura, $\sqrt{J_2(\bm\varepsilon_p)} \geq 0{,}1 \max$, define um campo de tamanhos
+    para o \texttt{gmsh}.
+  \item \textbf{Etapa 3:} GIM na malha refinada.
+\end{enumerate}
+O contorno é o mesmo, então o retângulo da KL e o campo também são os mesmos. Os resultados:
+\begin{itemize}
+  \item \textbf{Malha recomendada:} a \texttt{foco375} mais um passo até $h = 0{,}125$\,m. A diferença média em
+    $\Gamma$ contra a \texttt{foco125} é de $+0{,}14\,\%$, e o viés em $P_f$, de $-1\,\%$, fica abaixo do erro de Monte
+    Carlo. Os passos até 0,25 e 0,1875\,m subestimam $P_f$ em 17 e 10\,\%.
+  \item \textbf{Malha inicial mais grossa} (\texttt{g15}): dá os mesmos erros por nível, mas a banda é mais larga, e só
+    compensa nos níveis grossos.
+  \item \textbf{A \texttt{foco125} não está convergida:} a extrapolação indica $\Gamma$ cerca de 1\,\% alto, o que
+    deslocaria $P_f$ em cerca de $+9\,\%$.
+\end{itemize}
+
+\paragraph{O pipeline atual} (\path{Projects/Common} e \texttt{SlopeMonteCarlo}, commits de 11 e 12/11).
+\begin{itemize}
+  \item \textbf{Em cada realização:} percolação permanente com o $k_v$ da realização, depois $\Gamma$ pelo GIM com
+    arc-length e as pressões congeladas, com refinamento adaptativo hp da zona plástica em 4 níveis.
+  \item \textbf{Campanha:} 10\,000 realizações por caso, para os 26 casos das Seções 6.1 a 6.5 do artigo, com
+    continuação automática dos jobs no fermi; cerca de 95\,s por tarefa.
+  \item \textbf{Saídas:} o $\Gamma$ de cada nível, a banda e a massa que desliza, com $c'$, $\phi'$ e $k$ médios para o
+    Spearman da Seção 6.1.
+\end{itemize}

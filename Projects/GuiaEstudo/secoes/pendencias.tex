@@ -1,0 +1,68 @@
+\section{O que está pronto e o que falta}
+\label{sec:pendencias}
+
+\paragraph{Pronto e verificado.}
+\begin{itemize}
+  \item O modelo $\bm u$--$p_w$--$p_a$ com o PV2:
+    \begin{itemize}
+      \item Jacobiano de ordem 2;
+      \item conservação de massa exata;
+      \item Terzaghi, Mandel, Philip e Gardner;
+      \item Liakopoulos com ar passivo;
+      \item talude seco a 0,5\,\% do Bishop.
+    \end{itemize}
+  \item O FS por arc-length, com os parâmetros escolhidos em 43 casos (erro $\leq 0{,}5\,\%$).
+  \item A reprodução determinística do Rahardjo, a cerca de 2\,\%.
+  \item As três formas da KL, comparadas entre si (\texttt{VerifyRandomFields}).
+  \item O refinamento por realização e a escolha da malha.
+  \item O Monte Carlo do Ceron com 3 níveis, que dá $P_f = 10{,}3\,\%$ contra 11,5\,\%.
+\end{itemize}
+
+\paragraph{Para rodar.}
+\begin{itemize}
+  \item A campanha do Ceron: 26 casos $\times$ 10\,000 realizações com 4 níveis, cerca de 6 dias com 4 nós.
+  \item A campanha da chuva: 27 casos, 57\,000 realizações, cerca de 3,8 dias, com o código que precisa ir para o
+    repositório antes.
+\end{itemize}
+
+\paragraph{Pendências, por prioridade.}
+\begin{enumerate}
+  \item \textbf{Colocar no repositório o código do relatório da chuva}: \texttt{rahardjo.cpp}, \texttt{montecarlo.cpp},
+    \texttt{RainTransient.h}, \path{form_variaveis.py} e \path{cluster/}. Sem ele, os resultados não são
+    reproduzíveis, e a versão do repositório é outra.
+  \item \textbf{Alinhar as tolerâncias do FS}:
+    \begin{itemize}
+      \item o \texttt{calculaFS} do \texttt{LearningMohrCoulomb2} usa tol $= 0{,}01$, e o recomendado é 0,001;
+      \item o \texttt{SRMArcLength} do \texttt{Common} não segue o \texttt{ParamsSRM} e não dá FS $< 1$;
+      \item o padrão do \texttt{SlopeRandomField} ainda é a lista do SRM.
+    \end{itemize}
+  \item \textbf{Chuva com $P_f \approx 1\,\%$}:
+    \begin{itemize}
+      \item o Monte Carlo precisa de cerca de $10^4$ a $4\times10^4$ realizações por caso;
+      \item ou amostragem por importância com o deslocamento das realizações que falham, ou a simulação por
+        subconjuntos. O \texttt{RandomFields::Sample} recebe a mudança.
+    \end{itemize}
+  \item \textbf{A escala dos campos na chuva} ($L_x$, $L_y$ contra $H = 10$\,m) e a chuva na superfície inclinada ou na
+    projeção horizontal: decidir e documentar.
+  \item \textbf{A diferença para o artigo do Ceron}: $\Gamma$ de 1,373 contra 1,336 (o contorno distante da percolação)
+    e $P_f$ de 10,3 contra 11,5\,\%.
+  \item \textbf{A KL}: decidir entre a forma fechada (a atual) e o Nyström (a sua preferência). A estatística é a mesma;
+    o Nyström precisa de menos termos.
+  \item \textbf{Em aberto na formulação}:
+    \begin{itemize}
+      \item D16: o estado inicial do talude, com o teto de sucção;
+      \item D17: o ar na superfície alagada;
+      \item D19: a norma da massa no critério de convergência;
+      \item $p_a$ quando $S_a \to 0$;
+      \item o teste de Taylor com $\chi = S_e$;
+      \item a classe Mohr--Coulomb antiga, ainda instanciada.
+    \end{itemize}
+  \item \textbf{Validação do ar ativo}: só qualitativa. A revisão sugere Touma e Vauclin (1986).
+  \item \textbf{Documentação}:
+    \begin{itemize}
+      \item as linhas do código citadas estão defasadas;
+      \item a revisão descreve a versão anterior ($\chi = 1$ como padrão);
+      \item os resumos apresentam van Genuchten--Mualem, e o padrão do código é Fredlund--Xing;
+      \item a notação muda entre os documentos.
+    \end{itemize}
+\end{enumerate}

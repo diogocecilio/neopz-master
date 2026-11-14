@@ -1,0 +1,135 @@
+\section{Formulação do solo não saturado (modelo \texorpdfstring{$\bm u$--$p_w$--$p_a$}{u-pw-pa})}
+\label{sec:formulacao}
+
+\paragraph{Os documentos.}
+\begin{itemize}
+  \item \textbf{\texttt{formulacao.tex}} (30/10, 25 páginas; igual a \path{docs/biot_nao_saturado/formulacao}): o
+    documento de trabalho das Fases 1 e 2. Para cada bloco ele traz as equações, a discretização, os resíduos e o
+    Jacobiano, cita o arquivo e as linhas do código e numera as discrepâncias (D1 a D20).
+  \item \textbf{\path{formulacao_verick.tex}} (01/11, 31 páginas; só no zip): o mesmo conteúdo, na ordem e na notação
+    da tese de Santos (2009), \emph{Simulador de meios porosos saturados elastoplásticos}. Acrescenta a contagem das
+    25 variáveis e 25 equações, o problema poroelastoplástico explícito e a D21 (desacoplamento). Os números de
+    verificação são os mesmos.
+  \item \textbf{\path{resumo_nao_saturado.tex}}: a versão compacta (01/11, 13 páginas, com a tabela de
+    correspondência de notação) e a versão com o exemplo de Liakopoulos e o projeto \texttt{LearningLiakopoulos}
+    (02/11, 24 páginas; igual a \path{docs/biot_nao_saturado/resumo}).
+  \item \textbf{Fontes:} as notas [N] (\path{biot_nao_saturado_agua_ar3} e \texttt{ar4}) e o artigo [A], Lira
+    Cecílio (2026), \emph{J.\ Eng.\ Math.}\ 157:10, com o retorno analítico do Mohr--Coulomb PV2.
+\end{itemize}
+Cuidado com a notação, que muda entre os documentos (tese de Santos $\leftrightarrow$ \texttt{formulacao.tex}):
+porosidade $\phi \leftrightarrow n$, atrito $\vartheta \leftrightarrow \phi'$, $C_s \leftrightarrow \Gamma$,
+$1/N \leftrightarrow \eta$, $K_a \leftrightarrow P$ e $\Delta\zeta_{sk} \leftrightarrow \Theta$. Abaixo uso a do
+\texttt{formulacao.tex}, que é a do cabeçalho do material.
+
+\paragraph{Hipóteses.}
+\begin{itemize}
+  \item \textbf{Regime:} pequenas deformações, quase estático, isotérmico; água e ar imiscíveis, sem mudança de fase;
+    Darcy com permeabilidades relativas; estado plano de deformação.
+  \item \textbf{Sinais:} pressões manométricas positivas em compressão; tensões positivas em tração.
+  \item \textbf{Constantes:} $\alpha$, $K_s$, $n$, $\bm K$ e $\gamma$ são constantes, e não há rigidez geométrica.
+  \item \textbf{Ar:} $p_a$ é incógnita em todo o domínio.
+\end{itemize}
+
+\paragraph{Leis constitutivas.}
+\begin{itemize}
+  \item \textbf{Tensão efetiva de Bishop:} $\bm\sigma = \bm\sigma' - \alpha p_B \bm I$, com
+    $p_B = \chi p_w + (1 - \chi) p_a$ e $p_c = p_a - p_w$.
+    \begin{itemize}
+      \item O padrão do material é $\chi = S_w$, que dá $p_B = p_a - S_w p_c$.
+      \item As aplicações de talude usam $\chi$ constante, igual a 1 ou a $\tan\phi^b/\tan\phi'$.
+    \end{itemize}
+  \item \textbf{Retenção} $S_w(p_c)$, com $\Gamma = -dS_w/dp_c \geq 0$: van Genuchten, Fredlund--Xing (o padrão do
+    código, com $a = 50$\,kPa), Liakopoulos e Gardner.
+  \item \textbf{Permeabilidades relativas:} Mualem, $S_e^p$ e Brooks--Corey, com $k_{rw} \geq 10^{-12}$ e
+    $k_{ra} \geq 10^{-4}$.
+  \item \textbf{Fluidos:} a água com módulo $K_w$; o ar como gás ideal isotérmico, com $K_a = P = p_a + p_{atm}$.
+  \item \textbf{Esqueleto:} Mohr--Coulomb associado ($\psi = \phi'$), o PV2 do artigo [A].
+    \begin{itemize}
+      \item Retorno analítico por setor: elástico, face, aresta direita, aresta esquerda e ápice.
+      \item Tangente consistente em forma fechada.
+      \item Com $\psi \neq \phi'$, o código para (\texttt{DebugStop}).
+    \end{itemize}
+\end{itemize}
+
+\paragraph{Equações de campo.}
+\begin{gather}
+  \operatorname{div}\bm\sigma + \rho_b \bm g = \bm 0, \qquad
+  \bm q_\pi = -\lambda_\pi \bm K (\nabla p_\pi - \gamma_\pi \bm g), \quad
+  \lambda_w = \frac{k_{rw}}{\gamma_w}, \ \lambda_a = \frac{\mu_w}{\mu_a}\frac{k_{ra}}{\gamma_w}, \\
+  \dot\zeta_\pi = S_\pi(\alpha\dot\varepsilon_v + \eta\dot p_B) + n\dot S_\pi + \frac{nS_\pi}{K_\pi}\dot p_\pi, \qquad
+  \dot\zeta_\pi + \operatorname{div}\bm q_\pi + c_\pi\, \bm q_\pi\cdot\nabla p_\pi = 0, \qquad \pi \in \{w, a\},
+\end{gather}
+com $\eta = (\alpha - n)/K_s$ e $c_a = 1/P$. O termo de $c_w$ não existe no código. Os coeficientes tangentes de
+Bishop são $\chi_w = \partial p_B/\partial p_w = S_w - \Gamma p_c$ e $\chi_a = S_a + \Gamma p_c$, com soma 1.
+
+\paragraph{Discretização.}
+\begin{itemize}
+  \item \textbf{Espaço:} Taylor--Hood: $\bm u$ em P2 e $p_w$, $p_a$ em P1, que satisfaz a condição inf-sup. A regra tem
+    3 pontos.
+  \item \textbf{Armazenamento:} as parcelas de saturação e de compressibilidade do ar ficam concentradas nos vértices,
+    com $m_j = \int N_j$.
+  \item \textbf{Tempo:} Euler implícito, monolítico. As equações de massa são multiplicadas por $\Delta t$, então
+    $\Delta t = 0$ vale e é usado no estado geostático e no FS, com as pressões congeladas.
+  \item \textbf{Armazenamento secante}, que é conservativo:
+    \begin{equation}
+      \Delta\zeta_w = S_w^{n+1}\Theta + n\Delta S_w + \frac{nS_w^{n+1}}{K_w}\Delta p_w, \qquad
+      \Delta\zeta_a = S_a^{n+1}\Theta - n\Delta S_w + \frac{nS_a^{n}}{P^{n+1}}\Delta p_a, \qquad
+      \Theta = \alpha\Delta\varepsilon_v + \eta\Delta p_B .
+    \end{equation}
+    \begin{itemize}
+      \item A forma em taxa erra $O(\Delta p_c^2)$ por passo.
+      \item Com $S_a^{n+1}$ no lugar de $S_a^n$, o balanço do ar erra 0,25 a 0,34\,\%.
+      \item Com a forma secante, a água fecha com $2\times10^{-14}$ e o ar com $8\times10^{-16}$.
+    \end{itemize}
+  \item \textbf{Newton completo}, com Jacobiano consistente:
+    \begin{itemize}
+      \item busca linear (o passo é dividido por 2 até 4 vezes);
+      \item convergência quando $\|\bm R_u\|/\|\bm F_g\| < 10^{-7}$ e $\max|\delta p| < 10^{-6}$\,kPa, a partir da 2.ª
+        iteração;
+      \item no máximo 40 iterações (25 com as pressões congeladas);
+      \item se falha, o passo é refeito com $\Delta t/2$.
+    \end{itemize}
+  \item \textbf{Não simetria:} o Jacobiano não é simétrico, pelo sinal das linhas de massa, por $S_\pi \neq \chi_\pi$ e
+    pelos termos advectivos. A LU é não simétrica (PARDISO, ou skyline). No FS só entra $\bm J_{uu}$, que é simétrico.
+  \item \textbf{Estrutura, sem plasticidade} (método $\theta$ com $\theta = 1$):
+    \[
+      \begin{bmatrix} \bm K & -\bm Q_{uw} & -\bm Q_{ua} \\ \bm Q_{wu} & \bm C_{ww} + \Delta t\,\bm H_w & \bm C_{wa} \\
+      \bm Q_{au} & \bm C_{aw} & \bm C_{aa} + \Delta t\,\bm H_a \end{bmatrix}
+      \begin{bmatrix} \delta\bm u \\ \delta\bm p_w \\ \delta\bm p_a \end{bmatrix} = -\bm R .
+    \]
+  \item \textbf{Contorno:} a percolação e a chuva usam uma condição unilateral. Cada vértice alterna entre ``de fluxo'' e
+    ``alagado'' até o conjunto não mudar.
+  \item \textbf{Estado inicial:} carregamento geostático com as pressões congeladas; depois $\bm u$ é zerado e
+    $\bm\sigma'$ é mantido.
+\end{itemize}
+
+\paragraph{Casos particulares.}
+\begin{itemize}
+  \item saturado (Biot), com $1/M = 1/N + n/K_w$;
+  \item ar passivo, $p_a = 0$;
+  \item desacoplado, como em Rahardjo: Richards com o esqueleto rígido e acoplamento de uma via.
+\end{itemize}
+
+\paragraph{Decisões aplicadas no código.}
+\begin{itemize}
+  \item $\chi = S_w$ é o padrão;
+  \item o armazenamento do ar usa $S_a^n$;
+  \item só o PV2 com $\psi = \phi'$.
+\end{itemize}
+Depois dos documentos, o código ganhou:
+\begin{itemize}
+  \item o multiplicador de condutividade e a resistência por ponto, para os campos aleatórios;
+  \item o PARDISO;
+  \item o FS por arc-length;
+  \item a chuva do \texttt{Common} (\texttt{SlopeRain}), com o esqueleto rígido e o ar passivo.
+\end{itemize}
+
+\paragraph{Pendências de documentação.}
+\begin{itemize}
+  \item As linhas do código citadas nos dois documentos estão defasadas.
+  \item O \texttt{formulacao.tex} diz ``área'' onde o código usa o comprimento de influência.
+  \item A classe Mohr--Coulomb antiga ainda é instanciada no material, embora nenhum projeto a use.
+  \item O teste de Taylor não cobre $\chi = S_e$.
+  \item Em aberto: D16 (estado inicial do talude), D17 (o ar na superfície alagada) e D19 (o critério de convergência
+    sem a norma da massa).
+\end{itemize}

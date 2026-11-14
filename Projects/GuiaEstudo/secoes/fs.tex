@@ -1,0 +1,100 @@
+\section{Fator de segurança: SRM, GIM e arc-length}
+\label{sec:fs}
+
+Fonte: o relatório \emph{Cálculo do fator de segurança de um talude não saturado sob chuva: SRM e GIM, com e sem
+arc-length}, de 7/11, com 34 páginas (\path{arclength/relatorio_fs}, igual a \path{docs/fs_arc_length}). O
+objetivo é escolher o método e os parâmetros do FS que o Monte Carlo vai calcular milhares de vezes. Os três
+critérios: o método tem de responder sempre, ficar perto do valor verdadeiro e custar pouco.
+
+\paragraph{Definições.} Em ambos, as pressões ficam congeladas: o estado é salvo, $p_w$ e $p_a$ são fixados, e só o
+equilíbrio é resolvido, a partir de tensão nula.
+\begin{itemize}
+  \item \textbf{SRM:} o fator $F$ divide $c'$, $\tan\phi'$ e $\tan\psi$, e só $\bm f_{int}$ depende dele.
+  \item \textbf{GIM:} o fator $\lambda$ multiplica o peso e a parte positiva de $p_B$. A sucção fica inteira, porque é
+    resistência, e a resistência é a real. Só $\bm f_{ext}$ depende de $\lambda$, e linearmente.
+  \item \textbf{O que é o FS:} o maior fator para o qual existe equilíbrio.
+    \begin{itemize}
+      \item O SRM e o GIM medem coisas diferentes: os valores não se comparam, só o lado de 1 em que ficam.
+      \item O $\Gamma$ do Ceron é o fator do GIM. O README do \texttt{SlopeRandomField} o escreve como
+        $\Gamma = P_{mr}/(P_\gamma + P_u)$.
+    \end{itemize}
+  \item \textbf{Hipótese de trabalho} (Sysala et al., 2025): com fluxo associado e sem história plástica, o fator cresce
+    monotonamente ao longo do caminho. Então todo equilíbrio convergido é uma cota inferior do FS.
+\end{itemize}
+
+\paragraph{O problema do método antigo.} O método antigo usava uma lista de fatores com bisseção e tomava a falha da
+Newton como ruptura. Uma falha não distingue ``não há equilíbrio'' de ``o salto foi grande demais''. No GIM em 24\,h,
+isso deu 0,992 em vez de 1,154, um valor abaixo de 1 que contraria a cota inferior.
+
+\paragraph{Arc-length.} O fator $\Lambda$ passa a ser incógnita, e o comprimento do passo no espaço $(\bm u, \Lambda)$ é
+prescrito. O método traça o trecho íngreme, o joelho e o patamar, e o FS é o maior $\Lambda$ do caminho.
+\begin{gather}
+  \bm r(\bm u, \Lambda) = \bm f_{int}(\bm u, \Lambda) - \bm f_{ext}(\Lambda), \qquad
+  \bm K_T\,\delta\bm u - \bar{\bm f}\,\delta\Lambda = -\bm r, \qquad
+  \delta\bm u = \delta\bm u^* + \delta\Lambda\,\delta\bar{\bm u}, \\
+  \bm K_T\,\delta\bm u^* = -\bm r, \qquad \bm K_T\,\delta\bar{\bm u} = \bar{\bm f}, \qquad
+  \Delta\bm u\cdot\Delta\bm u + \alpha_e^2\,\Delta\Lambda^2 = l^2 .
+\end{gather}
+\begin{itemize}
+  \item \textbf{Vetor de referência:} no GIM, $\bar{\bm f} = \bm r(\bm u, 0) - \bm r(\bm u, 1)$, constante. No SRM,
+    $\bar{\bm f}$ é calculado por diferença finita em $F$, e só os pontos plásticos contribuem.
+  \item \textbf{Termo $\alpha$:} sem ele, o SRM no trecho elástico tem $\bar{\bm f} = \bm 0$ e o passo não controla $F$.
+    O termo $\alpha_e^2 \Delta\Lambda^2$ dá $\Delta F = l/\alpha_e$ e dispensa a lista.
+  \item \textbf{Corretor:} uma equação do segundo grau em $\delta\Lambda$. Fica a raiz de menor ângulo com o incremento;
+    sem raiz real, $l$ é cortado.
+  \item \textbf{Preditores:} tangente, com a superfície de escoamento encolhida em $10^{-6}$ (é essencial), ou secante.
+  \item \textbf{Comprimento adaptativo:} $l_{n+1} = l_n \min(2, \max(0{,}5, \sqrt{10/\mathrm{iter}_n}))$.
+  \item \textbf{Parada:} $\Delta\Lambda\, l_{pedido}/l < \mathrm{tol}$. Assim, um corte de $l$ não se confunde com o
+    patamar.
+\end{itemize}
+
+\paragraph{Resultados.} São 43 casos, mais de 1600 rodadas, e 38 casos nas tabelas finais. O erro é medido contra o
+maior equilíbrio achado por qualquer método.
+\begin{itemize}
+  \item \textbf{Configuração final:}
+    \begin{itemize}
+      \item o pior erro é de $-0{,}46\,\%$ no SRM e $-0{,}41\,\%$ no GIM;
+      \item contra o método antigo, as iterações caem 35\,\% no SRM e 7\,\% no GIM;
+      \item o GIM antigo chegava a $-26{,}9\,\%$, com 18 de 35 casos acima de 1\,\%;
+      \item com a tolerância de 0,01, o SRM chega a $-4{,}85\,\%$.
+    \end{itemize}
+  \item \textbf{FS ao longo do tempo no caso base} ($H = 10$\,m, $45^\circ$, solo f50, chuva de 36\,mm/h por 24\,h):
+    \begin{itemize}
+      \item no SRM, de 2,116 em 0\,h a 1,060 em 24\,h, voltando a 1,280 em 48\,h;
+      \item no GIM, de 5,696 a 1,153 e depois a 2,010.
+    \end{itemize}
+  \item \textbf{Modelo acoplado com ar ativo:}
+    \begin{itemize}
+      \item o mínimo em 24\,h é de 1,005 no SRM e 1,018 no GIM, ambos $\geq 1$, como a cota inferior prevê;
+      \item o ar faz o FS cair mais cedo: 1,110 contra 1,426 em 12\,h;
+      \item esse efeito depende do piso de $k_{ra}$, então FS $< 1$ nesse modelo não é conclusão firme.
+    \end{itemize}
+\end{itemize}
+
+\paragraph{Parâmetros recomendados} (\texttt{ParamsSRM} e \texttt{ParamsGIM}).
+\begin{itemize}
+  \item \textbf{Comuns:} tol $= 0{,}001$, preditor secante, superfície encolhida em $10^{-6}$, alvo de 10 iterações,
+    maxIt $= 12$, fatorMax $= 10$.
+  \item \textbf{SRM:} $\alpha = 0{,}1$, sem lista, $l_0 = 0{,}01$, $F_0 = 0{,}6$, com reinício em 0,4.
+  \item \textbf{GIM:} $\alpha = 0$, $\lambda_0 = 0{,}5$, $l_0 = 0{,}25$, $l_{max} = 2$.
+\end{itemize}
+
+\paragraph{No código.}
+\begin{itemize}
+  \item \textbf{Arc-length:} \texttt{TPZUnsatAnalysis} (\texttt{ArcLengthStep}, \texttt{ArcLengthStepSRM},
+    \texttt{ArcLengthIterate}).
+  \item \textbf{\texttt{SlopeRandomField}:} \path{FATOR=gim_arco} usa o GIM com arc-length, mas o padrão continua
+    sendo a lista do SRM.
+  \item \textbf{\path{Projects/Common/SlopeSolver}:} \texttt{ComputeFactor} oferece os dois métodos, com e sem
+    arc-length, e é usado pelo \texttt{SlopeMonteCarlo}.
+  \item \textbf{\texttt{UnsatSRM} e \texttt{UnsatGIM}:} testam o talude seco contra Bishop (FS$_{SRM} = 1{,}2109$ e
+    FS$_{GIM} = 1{,}8146$, contra 1,206 e 1,806), com lista e bisseção.
+\end{itemize}
+
+\paragraph{Divergências entre o relatório e o código.}
+\begin{itemize}
+  \item O \texttt{calculaFS} do \texttt{LearningMohrCoulomb2} usa tol $= 0{,}01$, e não 0,001.
+  \item O \texttt{SRMArcLength} do \texttt{Common} não segue o \texttt{ParamsSRM}: parte de $F = 1$ e não consegue dar
+    FS $< 1$.
+  \item O código do estudo de sensibilidade não está no repositório.
+\end{itemize}

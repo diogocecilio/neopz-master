@@ -1,0 +1,80 @@
+\section{Verificação do modelo}
+\label{sec:verificacao}
+
+\paragraph{A ordem.} A revisão bibliográfica (31/10, 20 páginas, 35 trabalhos) conclui que nenhuma referência traz
+$\bm u$, $p_w$ e $p_a$ medidos junto com uma solução analítica do problema não linear com Mohr--Coulomb. Por isso a
+verificação vai por etapas: Richards, Biot saturado, Liakopoulos com ar passivo, dois fluidos, centrífuga, e só depois
+as aplicações. O fator de segurança e a variabilidade espacial vêm depois de verificar a conservação de massa, a chuva
+e a resposta constitutiva.
+
+\paragraph{Resultados} (\path{Projects/README.md} e os README dos projetos; todos os testes rápidos passam).
+
+\begin{center}\small
+\begin{longtable}{@{}L{3.8cm} L{4.8cm} L{7.0cm}@{}}
+\toprule
+Projeto & O que verifica & Resultado \\
+\midrule
+\endhead
+\texttt{UnsatMaterialPoint} & leis hidráulicas, Bishop, Mohr--Coulomb PV2, tangente &
+  408 verificações; PV2 contra o artigo e contra a projeção KKT em 20\,000 estados; tangente de ordem 2 \\
+\texttt{UnsatWaterPhase} & água com ar passivo e esqueleto rígido &
+  hidrostático $1{,}8\times10^{-15}$\,kPa; Gardner 0,0015\,kPa; balanço $2\times10^{-14}$; infiltração de Philip a
+  2,0\,mm da solução semianalítica \\
+\texttt{UnsatAirPhase} & água e ar com esqueleto rígido &
+  Boyle $8\times10^{-16}$; o limite de ar passivo converge com a mobilidade do ar; ar livre $5\times10^{-16}$ \\
+\texttt{UnsatCoupled} & o modelo completo &
+  Jacobiano de ordem 2,000 com 96 pontos plásticos; Terzaghi $\leq 0{,}0028\,p_0$; Mandel até $0{,}0038\,p_0$;
+  Liakopoulos com ar passivo contra o experimento: RMS da vazão de $0{,}225\times10^{-6}$\,m/s e de $p_w$ de 0,44\,kPa,
+  contra 0,227 e 0,48 da solução de Callari e Abati \\
+\texttt{UnsatSRM}, \texttt{UnsatGIM} & talude seco contra Bishop &
+  FS$_{SRM} = 1{,}2109$ e FS$_{GIM} = 1{,}8146$, contra 1,206 e 1,806 (malha nf $= 80$) \\
+\texttt{LearningLiakopoulos} & a coluna contra uma referência 1D e o artigo &
+  iguais em todos os dígitos impressos à referência 1D. A vazão tardia fica 10\,\% abaixo das curvas calculadas de
+  Callari; com o passo de tempo do artigo, a referência reproduz o artigo, então a diferença vem do passo \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\paragraph{A coluna de Liakopoulos} (Callari e Abati, 2009).
+\begin{itemize}
+  \item \textbf{O ensaio:} areia de 1\,m de altura. Antes de $t = 0$ há fluxo permanente para baixo com $p_w = 0$ em
+    toda a coluna, o que não é um estado hidrostático. Em $t = 0$ a alimentação é cortada, e a coluna drena pela base.
+  \item \textbf{Os parâmetros:} $E = 1300$\,kPa, $\nu = 0{,}4$, $n = 0{,}2975$, $k_s = 4{,}41\times10^{-6}$\,m/s,
+    $S_w = 1 - c_L p_c^{b_L}$ e $k_{rw} = 1 - 2{,}207(1 - S_w)^{1{,}0121}$, válidas para $S_w > 0{,}91$.
+  \item \textbf{O que domina:} o armazenamento é dominado pela retenção,
+    $nC_s \approx 2{,}7\times10^{-3} \gg 1/M = 3{,}6\times10^{-4} \gg n/K_w$ (kPa$^{-1}$). Por isso a coluna parcialmente
+    saturada drena muito mais devagar que a saturada: a saturada recalca 1,761\,mm, com 90\,\% em cerca de 680\,s; a
+    parcial ainda está em 1,585\,mm aos 7500\,s.
+  \item \textbf{Diferenças em relação ao artigo:} o artigo usa a pressão de Coussy, o armazenamento em taxa e elementos
+    P1/P0. O código usa Bishop com $\chi = S_w$, o armazenamento secante (conservativo) e Taylor--Hood P2--P1.
+  \item \textbf{O que $p_a = 0$ não testa:} o transporte do ar. O ar ativo reduz a vazão (2,51 contra
+    $3{,}38\times10^{-6}$\,m/s em 300\,s), mas não há $p_a$ medido para validá-lo.
+\end{itemize}
+
+\paragraph{Cuidados que a revisão aponta.}
+\begin{itemize}
+  \item \textbf{$\chi$ muda o problema.} Rahardjo equivale a $\chi = 1$, e o $\chi = S_w$ do material já é outro caso.
+    O \texttt{SlopeRandomField} usa $\chi = 1$, como o Ceron e o Rahardjo.
+  \item \textbf{Os métodos não são intercambiáveis.} SRM, GIM, equilíbrio limite e limite superior medem coisas
+    diferentes. Uma falha da Newton não prova ruptura física.
+  \item \textbf{Erros nas referências.} O Mandel de Haghighat et al.\ usa $K_{dr}$ no lugar de $K_{dr} + 4G/3$ (com ele,
+    o erro chega a $0{,}23\,p_0$), e a Eq.\ 9 de Li et al.\ (Gardner) tem o sinal de $Q$ trocado.
+  \item \textbf{Critérios de concordância:} três malhas e três passos de tempo, erros $L_2$ e máximo, a tolerância da
+    Newton bem abaixo do erro de discretização, e o balanço de massa por fase. A massa de ar é
+    $\int \rho_a n S_a\, dV$.
+\end{itemize}
+
+\paragraph{Pendências da verificação.}
+\begin{itemize}
+  \item A norma do resíduo de massa ainda não entra no critério de convergência.
+  \item $p_a$ fica mal definida quando $S_a \to 0$.
+  \item Ficam em aberto o estado inicial do talude (o teto de sucção de 75\,kPa) e a condição do ar na superfície
+    alagada.
+  \item Bergamaschi--Putti, Barry--Mercer, Xie et al.\ e a centrífuga de Wang et al.\ ainda não foram implementados.
+  \item Há divergências de documentação:
+    \begin{itemize}
+      \item a revisão descreve a versão anterior ($\chi = 1$ como padrão);
+      \item os resumos apresentam van Genuchten--Mualem, mas o padrão do \texttt{TPZUnsaturatedHydraulics} é
+        Fredlund--Xing com $k_{rw} = S_e^4$; os testes fixam van Genuchten explicitamente.
+    \end{itemize}
+\end{itemize}

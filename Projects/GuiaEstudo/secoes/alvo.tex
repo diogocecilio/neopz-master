@@ -1,0 +1,50 @@
+\section{O problema-alvo e os números de referência}
+\label{sec:alvo}
+
+Dois problemas de referência guiam o trabalho. O primeiro dá a parte estocástica, o segundo a parte da chuva.
+
+\paragraph{Vargas Ceron et al.\ (2025), Seção 6: o talude com campos aleatórios.}
+\begin{itemize}
+  \item \textbf{Geometria e carregamento:} talude de $H = 5$\,m e $45^\circ$, com rebaixamento total ($h_w = H$).
+  \item \textbf{Cálculo do fator:} percolação permanente com o $k_v$ da realização, e $\Gamma$ pelo método de aumento
+    da gravidade (GIM), com as pressões congeladas.
+  \item \textbf{Campos lognormais independentes} (Tabela 2):
+    \begin{itemize}
+      \item $c'$: 10\,kPa, CoV 30\,\%;
+      \item $\phi'$: $30^\circ$, CoV 10\,\%;
+      \item $k_v$: CoV 60\,\%.
+    \end{itemize}
+    Os três têm o núcleo exponencial separável, com $L_x = 20$\,m e $L_y = 2$\,m, e são gerados por Karhunen-Loève com
+    $M = 2000$ termos.
+  \item \textbf{Ruptura e probabilidade:} a ruptura é $\Gamma < 1$, e $P_f = n_f/S$.
+  \item \textbf{Resultados do artigo:} com $S = 10\,000$, $P_f = 11{,}50\,\%$ (CoV 2,77\,\%). $\Gamma$ é lognormal, com
+    média 1,353, mediana 1,313 e CoV 23,5\,\%.
+\end{itemize}
+
+\paragraph{Rahardjo et al.\ (2007), Série A: o talude sob chuva.}
+\begin{itemize}
+  \item \textbf{Geometria e solo:} talude de $45^\circ$, $c' = 10$\,kPa, $\phi' = \phi^b = 26^\circ$, $\gamma = 20$\,kN/m$^3$
+    e $n = 0{,}45$.
+  \item \textbf{Hidráulica:} curva de retenção de Fredlund--Xing com $a = 10$, 50 ou 100\,kPa e $k_s = 10^{-4}$, $10^{-5}$
+    ou $10^{-6}$\,m/s.
+  \item \textbf{Uso:} é o transiente de chuva do \texttt{SlopeRandomField}, do relatório da chuva
+    (Seção~\ref{sec:chuva}) e do artigo em preparação sobre a intensidade crítica de chuva.
+\end{itemize}
+
+\paragraph{Onde estamos} (números do repositório, branch \texttt{UnsaturatedSoil}).
+\begin{itemize}
+  \item \textbf{Determinístico do Ceron} (\texttt{SlopeMonteCarlo}, GIM adaptativo hp):
+    \begin{itemize}
+      \item nos níveis 0 a 4, $\Gamma = 1{,}7444$; 1,5559; 1,4488; 1,4032; 1,3850, com 126 a 1314 triângulos;
+      \item a sequência extrapola para cerca de 1,373, o mesmo $\Gamma$ que o método do Ceron dá neste domínio (1,374);
+      \item o artigo dá 1,336. Segundo o README do \texttt{SlopeMonteCarlo}, a diferença vem do contorno distante da
+        percolação e não muda com a malha.
+    \end{itemize}
+  \item \textbf{Monte Carlo:}
+    \begin{itemize}
+      \item com 3 níveis e 1000 realizações, $P_f = 10{,}3\,\%$ (o artigo dá 11,5\,\%), com média lognormal de 1,398;
+      \item no estudo de refinamento do \texttt{SlopeRandomFieldRefina}, $P_f = 10{,}8\,\%$ na malha de referência
+        \texttt{foco125}, com CoV de 9,1\,\% para 1000 realizações;
+      \item a campanha de 10\,000 realizações com 4 níveis, cerca de 95\,s por tarefa no fermi, está pronta para rodar.
+    \end{itemize}
+\end{itemize}

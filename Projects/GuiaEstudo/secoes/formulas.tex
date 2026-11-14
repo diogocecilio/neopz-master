@@ -1,0 +1,48 @@
+\section{Folha de fórmulas}
+\label{sec:formulas}
+
+\paragraph{Solo não saturado.}
+\begin{gather*}
+  \bm\sigma = \bm\sigma' - \alpha p_B\bm I, \quad p_B = \chi p_w + (1 - \chi)p_a, \quad p_c = p_a - p_w, \quad
+  \chi_w = S_w - \Gamma p_c, \ \chi_a = S_a + \Gamma p_c \\
+  S_e = [1 + (a p_c)^b]^{-m} \ \text{(van Genuchten)}, \qquad
+  \Theta = [\ln(e + (\psi/a)^n)]^{-m}, \ k_w = k_s\Theta^p \ \text{(Fredlund--Xing)} \\
+  \operatorname{div}\bm\sigma + \rho_b\bm g = \bm 0, \qquad \bm q_\pi = -\lambda_\pi\bm K(\nabla p_\pi - \gamma_\pi\bm g),
+  \qquad \dot\zeta_\pi + \operatorname{div}\bm q_\pi + c_\pi\bm q_\pi\cdot\nabla p_\pi = 0 \\
+  \Delta\zeta_w = S_w\Theta + n\Delta S_w + \tfrac{nS_w}{K_w}\Delta p_w, \quad
+  \Delta\zeta_a = S_a\Theta - n\Delta S_w + \tfrac{nS_a^n}{P}\Delta p_a, \quad \Theta = \alpha\Delta\varepsilon_v +
+  \eta\Delta p_B \\
+  \tau_f = c' + (\sigma_n - u_a)\tan\phi' + (u_a - u_w)\tan\phi^b \quad (\chi = 1 \Leftrightarrow \phi^b = \phi')
+\end{gather*}
+
+\paragraph{Fator de segurança.}
+\begin{gather*}
+  \text{SRM: } c'/F,\ \tan\phi'/F,\ \tan\psi/F; \qquad
+  \text{GIM: } \lambda\,(\text{peso} + \langle p_B\rangle_+), \text{ sucção fixa}; \qquad
+  \text{FS} = \max\{\Lambda : \text{há equilíbrio}\} \\
+  \bm K_T\delta\bm u - \bar{\bm f}\delta\Lambda = -\bm r, \qquad
+  \Delta\bm u\cdot\Delta\bm u + \alpha_e^2\Delta\Lambda^2 = l^2, \qquad
+  \text{parada: } \Delta\Lambda\, l_{pedido}/l < 10^{-3}
+\end{gather*}
+
+\paragraph{Chuva.} Em cada nó da superfície: $q_{in} = I$ com $p_w \leq 0$, ou $p_w = 0$ com $q_{in} \leq I$.
+
+\paragraph{Campos aleatórios.}
+\begin{gather*}
+  C = e^{-|\Delta x|/L_x - |\Delta y|/L_y}, \qquad c' = e^{\mu_{\ln} + \sigma_{\ln}Z}, \quad
+  \sigma_{\ln}^2 = \ln(1 + \mathrm{CoV}^2), \quad \mu_{\ln} = \ln\mu - \tfrac12\sigma_{\ln}^2 \\
+  Z = \sum_{k \leq M}\sqrt{\lambda_k}\,\xi_k f_k, \qquad \int_D C f_k = \lambda_k f_k, \qquad
+  \varepsilon_M = 1 - \sum_{k \leq M}\lambda_k/|D| \\
+  \text{1D: } \omega\tan(\omega a) = c \ \text{(pares)}, \ \omega + c\tan(\omega a) = 0 \ \text{(ímpares)}, \
+  \lambda = \tfrac{2c}{\omega^2 + c^2} \\
+  \text{Nyström: } W^{1/2}KW^{1/2}\bm v = \lambda\bm v, \ f_k(\bm x_j) = v_j/\sqrt{w_j}
+\end{gather*}
+
+\paragraph{Probabilidade de falha.}
+\begin{gather*}
+  \hat P_f = n_f/N, \quad \mathrm{CoV} = \sqrt{(1 - P_f)/(NP_f)} \\
+  \text{FORM: } \beta = \|\bm u^*\|, \ P_f \approx \Phi(-\beta), \quad
+  \bm u_{k+1} = \tfrac{\nabla G_k\cdot\bm u_k - G_k}{\|\nabla G_k\|^2}\nabla G_k \\
+  \text{Importância: } w = e^{-\bm v\cdot\bm u^* + \|\bm u^*\|^2/2}, \quad \hat P_f = \tfrac1N\sum I[G \leq 0]\,w \\
+  \text{Nataf (LN--LN): } \rho_Z = \tfrac{\ln(1 + \rho\,\delta_i\delta_j)}{\zeta_i\zeta_j}
+\end{gather*}

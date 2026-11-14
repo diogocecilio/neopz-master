@@ -1,0 +1,81 @@
+\section{O mapa do trabalho}
+\label{sec:mapa}
+
+\paragraph{O objetivo.} Calcular a probabilidade de ruptura de um talude não saturado, sob chuva ou rebaixamento, com a
+resistência e a permeabilidade como campos aleatórios. Os alvos são reproduzir a Seção 6 de Vargas Ceron et al.\ (2025)
+e, depois, a chuva de Rahardjo et al.\ (2007), com o modelo acoplado do NeoPZ.
+
+\paragraph{A cadeia.} Cada elo depende do anterior e tem um documento e um código.
+\begin{itemize}
+  \item a física do solo não saturado;
+  \item a discretização e a sua verificação;
+  \item o fator de segurança;
+  \item o cenário hidráulico;
+  \item a incerteza espacial;
+  \item a propagação por Monte Carlo;
+  \item a probabilidade de falha.
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  caixa/.style={draw, rounded corners=2pt, fill=#1, text width=15.2cm, inner sep=4pt, font=\small, align=left},
+  caixa/.default={gray!8}, seta/.style={-Stealth, thick, gray!70!black}, node distance=2.5mm]
+  \node[caixa=blue!6] (f) {\textbf{1.\ Formulação $\bm u$--$p_w$--$p_a$}: Bishop, retenção, Darcy, Mohr--Coulomb PV2,
+    Euler implícito, Newton.\\
+    \emph{Documentos:} \texttt{formulacao}, \path{formulacao_verick}, \path{resumo_nao_saturado}.
+    \emph{Código:} \texttt{TPZMatUnsaturatedUPwPa}, \texttt{TPZUnsatAnalysis} (Seção~\ref{sec:formulacao}).};
+  \node[caixa=blue!6, below=of f] (v) {\textbf{2.\ Verificação}: ponto material, água, ar, Terzaghi, Mandel,
+    Liakopoulos, talude seco contra Bishop.\\
+    \emph{Documentos:} revisão bibliográfica e resumo com Liakopoulos. \emph{Código:} \texttt{Unsat*},
+    \texttt{LearningLiakopoulos} (Seção~\ref{sec:verificacao}).};
+  \node[caixa=green!6, below=of v] (s) {\textbf{3.\ Fator de segurança}: SRM e GIM com as pressões congeladas;
+    arc-length.\\
+    \emph{Documento:} \path{relatorio_fs}. \emph{Código:} \texttt{TPZUnsatAnalysis::ArcLength*},
+    \path{Common/SlopeSolver} (Seção~\ref{sec:fs}).};
+  \node[caixa=green!6, below=of s] (c) {\textbf{4.\ Cenário hidráulico}: chuva (Rahardjo, transiente de Richards) ou
+    rebaixamento (Ceron, percolação permanente).\\
+    \emph{Documentos:} \path{relatorio_chuva} e o artigo da intensidade crítica. \emph{Código:}
+    \path{Common/SlopeRain}, \texttt{SlopeModel}, \texttt{SlopeRandomField} (Seção~\ref{sec:chuva}).};
+  \node[caixa=orange!8, below=of c] (k) {\textbf{5.\ Campos aleatórios}: Karhunen--Loève de $c'$, $\phi'$ e $k$:
+    forma fechada, Galerkin e Nyström.\\
+    \emph{Documentos:} o relatório de 11/11 (\texttt{relatorio-2}) e o \texttt{nymstron.nb}. \emph{Código:}
+    \texttt{KLSeparavel.h}, \path{Common/SlopeFields}, \texttt{KLCilindroMika}, \texttt{VerifyRandomFields}
+    (Seção~\ref{sec:campos}).};
+  \node[caixa=orange!8, below=of k] (m) {\textbf{6.\ Monte Carlo}: refinamento por realização, níveis de malha,
+    campanhas no fermi.\\
+    \emph{Documento:} o relatório de 11/11. \emph{Código:} \texttt{SlopeRandomFieldRefina}, \texttt{SlopeMonteCarlo}
+    (Seção~\ref{sec:mc}).};
+  \node[caixa=red!6, below=of m] (r) {\textbf{7.\ Confiabilidade}: $P_f$ e o seu CoV; FORM e amostragem por
+    importância para $P_f$ pequenos.\\
+    \emph{Documento:} \texttt{confiabilidade} (pasta \path{form_MIS}). \emph{Código:} \texttt{Confiabilidade}
+    (Seção~\ref{sec:confiab}).};
+  \foreach \a/\b in {f/v, v/s, s/c, c/k, k/m, m/r} \draw[seta] (\a.south) -- (\b.north);
+\end{tikzpicture}
+\caption{A cadeia do trabalho. Azul: o modelo; verde: a estabilidade sob um cenário; laranja: a incerteza;
+  vermelho: o resultado.}
+\label{fig:mapa}
+\end{figure}
+
+\paragraph{Os documentos do zip e onde estão no repositório.}
+\begin{center}\small
+\begin{longtable}{@{}L{5.6cm} L{2.6cm} L{7.4cm}@{}}
+\toprule
+Arquivo do zip & Data, páginas & No repositório \\
+\midrule
+\endhead
+\path{formulacao/formulacao.tex} & 30/10, 25 p. & \path{docs/biot_nao_saturado/formulacao} (idêntico) \\
+\path{formulacao/formulacao_verick.tex} & 01/11, 31 p. & não está \\
+\path{formulacao/resumo_nao_saturado.tex} & 01/11, 13 p. & não está (versão curta) \\
+\path{Liakopoulos/resumo/resumo_nao_saturado.tex} & 02/11, 24 p. & \path{docs/biot_nao_saturado/resumo} (idêntico) \\
+\path{revisao_bibliografica_nao_saturado_neopz.pdf} & 31/10, 20 p. & não está \\
+\path{arclength/relatorio_fs.tex} & 07/11, 34 p. & \path{docs/fs_arc_length} (idêntico) \\
+\path{relatorio_form/relatorio_chuva.tex} & 14/11, 12 p. & não está, nem o código dele \\
+\path{formulacao_random_fields/relatorio-2.pdf} & 11/11, 36 p. & \path{SlopeRandomFieldRefina/relatorio} \\
+\path{formulacao_random_fields/nymstron.nb} & 14/11 & não está (o seu caderno do Nyström) \\
+\path{form_MIS/confiabilidade.*} & 14/11, 19 p. & \path{Projects/Confiabilidade}. Na sua cópia do \texttt{.wl}, o esboço
+  \texttt{gTalude} da Seção 7 está descomentado: só define a função, e chamá-la exige um executável que ainda não existe \\
+\path{depricated/} & 16/10 a 30/10 & a evolução da formulação (Apêndice~\ref{sec:historia}) \\
+\bottomrule
+\end{longtable}
+\end{center}

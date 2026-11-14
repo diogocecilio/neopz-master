@@ -1,0 +1,100 @@
+\section{A chuva: o talude de Rahardjo et al.\ (2007)}
+\label{sec:chuva}
+
+A linha da chuva tem três produtos.
+\begin{enumerate}
+  \item \textbf{A reprodução determinística do Rahardjo} (notas \texttt{ar4} e \path{secoes_rahardjo}, 28/10; o
+    relatório \emph{Contraexemplos a Rahardjo et al.\ (2007)}, 29/10, em \path{docs/biot_nao_saturado}).
+  \item \textbf{O artigo em preparação}, \emph{Critical rainfall intensity of unsaturated slopes}
+    (\path{docs/biot_nao_saturado/artigo}). Ele mede quanto as hipóteses usuais (esqueleto rígido, ar passivo,
+    desacoplado) superestimam a chuva que leva à ruptura.
+  \item \textbf{O relatório da chuva} (\path{relatorio_form/relatorio_chuva}, 14/11, 12 páginas): o Monte Carlo da
+    chuva com o método estocástico do Ceron. Está só no zip.
+\end{enumerate}
+
+\paragraph{O modelo do relatório.}
+\begin{itemize}
+  \item \textbf{Geometria:} domínio de 70\,m; o talude tem $H = 10$\,m e $45^\circ$. O nível d'água fica 5\,m abaixo
+    do pé e sobe $7^\circ$ para dentro do maciço. Acima dele a pressão é hidrostática, com a sucção limitada a 75\,kPa.
+  \item \textbf{Solo:} $c' = 10$\,kPa, $\phi' = \phi^b = 26^\circ$, $\gamma = 20$\,kN/m$^3$, com três versões: f10
+    ($a = 10$\,kPa e $k_s = 360$\,mm/h), f50 (50 e 36\,mm/h) e f100 (100 e 3,6\,mm/h).
+  \item \textbf{Hidráulica:} Fredlund--Xing com $C(\psi) = 1$ e $k_w = k_s\,\Theta^4$:
+    \[
+      \Theta = \theta_w/\theta_s = \big[\ln\big(e + (\psi/a)^n\big)\big]^{-m}, \qquad \psi = u_a - u_w = -p_w .
+    \]
+  \item \textbf{Transiente}, com as hipóteses do SEEP/W: esqueleto rígido e ar passivo, isto é, Richards em $p_w$, o
+    material com o acoplamento desligado. Euler implícito com $\Delta t = 0{,}1$\,h.
+  \item \textbf{Chuva:} intensidade $I$ por 24\,h. Em cada nó da superfície vale uma de duas condições: $q_{in} = I$ com
+    $p_w \leq 0$, ou $p_w = 0$ com $q_{in} \leq I$ (face de percolação). O conjunto de nós da face é iterado dentro do
+    passo até se repetir.
+  \item \textbf{Fator de segurança:}
+    \begin{itemize}
+      \item em cada instante, $p_w$ é congelada e interpolada para uma malha do fator, refinada em 4 níveis na zona
+        plástica;
+      \item o SRM usa $\chi = 1$, com $\tau_f = c' + (\sigma_n - u_a)\tan\phi' + (u_a - u_w)\tan\phi^b$;
+      \item o caminho é o peso de 0 a 1, seguido de arc-length em $F$.
+    \end{itemize}
+  \item \textbf{Campos:} $c'$, $\phi'$ e $k_s$ lognormais (CoV 0,3, 0,1 e 0,6), KL analítica no retângulo de
+    $70 \times 30$\,m com $M = 2000$, que retém 96,4\,\% da variância.
+\end{itemize}
+
+\paragraph{Resultados do relatório.}
+\begin{itemize}
+  \item \textbf{Validação contra a Fig.\ 5 do Rahardjo:}
+    \begin{itemize}
+      \item FS$(0) = 2{,}0975$, 1\,\% abaixo dos 2,118 do artigo;
+      \item a diferença média é de $+1{,}6\,\%$ no f10, $0{,}0\,\%$ no f50 e $-0{,}2\,\%$ no f100;
+      \item o f50 chega ao mínimo de 1,0346 em 24\,h (o artigo dá 1,03);
+      \item o f10 cruza 1 em 5,85\,h.
+    \end{itemize}
+    Durante a chuva o FS só cai, e por isso a campanha usa FS(24\,h).
+  \item \textbf{GIM contra SRM:} antes da chuva $\Gamma \approx 2{,}5\,$FS (5,28 contra 2,10), porque a sucção fica
+    inteira no GIM. Em 24\,h os dois quase coincidem (1,088 contra 1,035). O relatório escolhe o SRM, que é menos
+    ruidoso, embora custe cerca do dobro.
+  \item \textbf{Intensidade de referência:} $I_{ref} = 31{,}05$\,mm/h dá $\Gamma = 1{,}3345$, o mesmo dos 1,336 do Ceron.
+  \item \textbf{FS(24\,h) em função de $k$:} tem a forma de U, com o mínimo em $k \approx I$.
+  \item \textbf{Pilotos} (8 a 10 realizações): o CoV de FS(24\,h) é de 5,6 a 7,6\,\% no SRM, contra 23,5\,\% do $\Gamma$ do
+    Ceron. Nenhuma realização rompeu, e o ajuste lognormal sugere $P_f \approx 1\,\%$.
+  \item \textbf{FORM com variáveis}, num solo homogêneo, sem campos: $\beta = 0{,}681$ e $P_f = 24{,}8\,\%$. Sem a média
+    espacial, o fator espalha muito mais. É o limite de comprimento de correlação infinito.
+  \item \textbf{Campanha:} 27 casos e 57\,000 realizações, cerca de 3,8 dias no fermi. Está pronta, mas não rodou.
+\end{itemize}
+
+\paragraph{O artigo: conclusões.} Elas valem para o talude do Rahardjo e os casos calculados.
+\begin{itemize}
+  \item \textbf{O critério de comparação.} Nos modelos acoplados com fluxo associado, o FS mínimo não cai abaixo de 1.
+    Por isso os modelos são comparados pela intensidade crítica $I_{c,\delta}$, a que leva o FS mínimo a $1 + \delta$,
+    e não pelo FS mínimo.
+  \item \textbf{Quanto as hipóteses usuais erram.} Com $k_s = 36$\,mm/h:
+    \begin{itemize}
+      \item o modelo usual dá $I_{c,\delta} = 47$ a 49\,mm/h;
+      \item o modelo completo dá 30 a 35\,mm/h com $\psi = \phi'$, e 26\,mm/h com $\psi = 0$;
+      \item as hipóteses usuais superestimam a chuva crítica em 40 a 59\,\% e em 85 a 88\,\%, e atrasam a ruptura em
+        4,5 e 9,9\,h.
+    \end{itemize}
+  \item \textbf{Ar e acoplamento.} O ar ativo reduz $I_{c,\delta}$ por um fator de 2 a 2,5; o acoplamento a aumenta. Sem
+    dilatância, o transiente acoplado colapsa.
+  \item \textbf{Robustez.} O viés persiste com $\chi = S_e$ e com a malha fina, e muda de sinal no solo permeável f10.
+\end{itemize}
+
+\paragraph{Pendências e cuidados.}
+\begin{itemize}
+  \item \textbf{O código do relatório da chuva não está no repositório.} Faltam \texttt{rahardjo.cpp},
+    \texttt{montecarlo.cpp}, \texttt{RainTransient.h} e \path{form_variaveis.py}. A versão do repositório é anterior
+    e dá FS 2,116 e 1,060, contra 2,0975 e 1,0346.
+  \item \textbf{Escala dos campos.} $L_x = 20$\,m e $L_y = 2$\,m são do talude do Ceron, com $H = 5$\,m. Em relação a
+    $H = 10$\,m, a referência equivale a metade da escala do Ceron, e o relatório compara $P_f$ com o Ceron sem
+    comentar isso.
+  \item \textbf{Chuva inclinada ou horizontal.} O relatório aplica a chuva por metro de superfície inclinada; as notas
+    de 28/10 a aplicavam na projeção horizontal. Na face a $45^\circ$, a diferença é um fator $\sqrt 2$.
+  \item \textbf{$I_{ref}$.} Foi calibrado com o $\Gamma$ do GIM, que não é o fator da campanha, e dentro do ruído do GIM.
+  \item \textbf{Os mínimos depois da chuva.} O Monte Carlo para em 24\,h e não vê mínimos posteriores, como o do f100.
+  \item \textbf{Os próximos passos do relatório:}
+    \begin{itemize}
+      \item rodar a campanha;
+      \item com $P_f \approx 1\,\%$, aumentar $N$ (39\,600 realizações para um CoV de 5\,\%) ou usar a simulação por
+        subconjuntos;
+      \item o FORM com os campos, com a KL truncada e a amostragem por importância (Seção~\ref{sec:confiab});
+      \item o ar ativo.
+    \end{itemize}
+\end{itemize}

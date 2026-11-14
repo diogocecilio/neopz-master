@@ -1,0 +1,54 @@
+\section{Confiabilidade: FORM, Monte Carlo e amostragem por importância}
+\label{sec:confiab}
+
+Fonte: \path{Projects/Confiabilidade} (relatório \texttt{confiabilidade.pdf} e código \texttt{confiabilidade.wl}).
+
+\paragraph{Espaços e transformação.}
+\begin{itemize}
+  \item $\bm X$, as variáveis físicas, vão para $\bm Z$, normais correlacionadas, por $z_i = \Phi^{-1}(F_i(x_i))$.
+  \item $\bm Z$ vai para $\bm U$, normais padrão independentes, por $\bm u = L^{-1}\bm z$, com $R_Z = LL^T$.
+  \item Com marginais lognormais, $\rho_Z = \ln(1 + \rho\,\delta_i\delta_j)/(\zeta_i\zeta_j)$ (Nataf).
+  \item No talude com KL, os $\xi_k$ já são o espaço $\bm U$, e $G(\bm u) = \Gamma - 1$.
+\end{itemize}
+
+\paragraph{FORM.} O ponto de projeto é $\bm u^* = \arg\min\{\|\bm u\| : G(\bm u) = 0\}$, com $\beta = \|\bm u^*\|$ e
+$P_f \approx \Phi(-\beta)$. Os fatores $\alpha_i^2$ dizem quanto cada variável pesa.
+\begin{itemize}
+  \item O algoritmo é o HL-RF:
+    $\bm u_{k+1} = \dfrac{\nabla G_k\cdot\bm u_k - G_k}{\|\nabla G_k\|^2}\,\nabla G_k$. É preciso a busca de Armijo, ou o
+    método oscila nos casos secos.
+  \item O FORM aproxima a superfície pelo plano tangente: o erro depende da curvatura e não é conhecido.
+\end{itemize}
+
+\paragraph{Amostragem por importância.} A densidade é $h = \varphi_n(\bm v - \bm u^*)$, o peso
+$w = \exp(-\bm v\cdot\bm u^* + \tfrac12\|\bm u^*\|^2)$, e $\hat P_f = \frac1N\sum I[G \leq 0]\,w$, com o CoV da amostra.
+\begin{itemize}
+  \item A estimativa não tem viés.
+  \item A eficiência não piora com a dimensão, desde que o deslocamento esteja certo e a covariância não mude.
+\end{itemize}
+
+\paragraph{Resultados.}
+\begin{itemize}
+  \item \textbf{Seu código original} ($g = X_1X_2 - X_3$):
+    \begin{itemize}
+      \item o $\beta = 3{,}049$ estava certo;
+      \item mas $L$ e $L^{-1}$ estavam trocados na transformação, e a volta $z \to x$ estava errada. Isso só aparece
+        com correlação;
+      \item com $P_f = 1{,}18\times10^{-3}$, Monte Carlo com 1000 amostras tem CoV de 92\,\%. A amostragem por
+        importância com 1000 amostras tem CoV de 6\,\%.
+    \end{itemize}
+  \item \textbf{Talude infinito sob chuva} (parâmetros do Ceron, carga de pressão $h$ como a variável da chuva):
+    \begin{itemize}
+      \item $P_f$ vai de $10^{-12}$ a 0,6 ao longo dos cenários;
+      \item o FORM superestima $P_f$ em 6 a 42\,\%;
+      \item a carga de pressão domina ($\alpha_h^2 \approx 0{,}65$ a $0{,}69$);
+      \item a correlação negativa entre $c'$ e $\phi'$ reduz $P_f$.
+    \end{itemize}
+  \item \textbf{No talude de elementos finitos:}
+    \begin{itemize}
+      \item com $P_f \approx 11\,\%$, Monte Carlo basta;
+      \item abaixo de cerca de $10^{-2}$, use amostragem por importância, com o deslocamento igual à média dos $\bm\xi$ das
+        realizações que falham, restrita aos primeiros modos;
+      \item o FORM direto não é viável: o gradiente custa $2n$ análises, com $n = 6000$.
+    \end{itemize}
+\end{itemize}

@@ -1,0 +1,60 @@
+\section{Roteiro de estudo}
+\label{sec:roteiro}
+
+\paragraph{A ordem de leitura.} Para cada etapa, o que dominar.
+\begin{enumerate}
+  \item \textbf{Revisão bibliográfica} (20 p.). Por que verificar por etapas; por que $\chi$ muda o problema; por que
+    SRM e GIM não são intercambiáveis.
+  \item \textbf{Resumo do não saturado} (13 p.), depois \textbf{\texttt{formulacao}} (25 p.), ou o \texttt{verick} se
+    preferir a ordem da tese de Santos. A dominar: as equações de campo, o armazenamento secante, os resíduos e a
+    estrutura do Jacobiano.
+  \item \textbf{Liakopoulos}: o resumo de 24 p., Seções 10 e 11, e a tabela de verificação do
+    \path{Projects/README.md}. A dominar: o que cada teste verifica e o que não verifica.
+  \item \textbf{\path{relatorio_fs}} (34 p.). As definições do SRM e do GIM, o arc-length, os critérios de parada e
+    os parâmetros recomendados.
+  \item \textbf{A chuva}: o \path{relatorio_chuva} (12 p.) e as conclusões do artigo. O transiente, a condição de
+    superfície, FS($t$) e a intensidade crítica.
+  \item \textbf{Campos aleatórios}: o relatório de 11/11 (Seções 4 a 6), o README do \texttt{VerifyRandomFields} e o
+    seu \texttt{nymstron.nb}.
+  \item \textbf{Monte Carlo}: o relatório de 11/11 (Seções 2 e 3) e o README do \path{SlopeMonteCarlo/cluster}.
+  \item \textbf{Confiabilidade}: o \texttt{confiabilidade.pdf}.
+\end{enumerate}
+
+\paragraph{Perguntas para testar o entendimento}, com a resposta curta.
+\begin{enumerate}[label=\textbf{P\arabic*.}, leftmargin=2.2em]
+  \item \emph{Por que o armazenamento secante, $n\Delta S_w$, e não $n\Gamma\Delta p_c$?} Somando as equações nodais, ele
+    dá a variação exata do volume armazenado (erro de $2\times10^{-14}$). A forma em taxa erra $O(\Delta p_c^2)$ por
+    passo.
+  \item \emph{Por que $S_a^n$ no termo do ar?} Porque $(m_a^{n+1} - m_a^n)/\rho_a^{n+1}$ fica exato. Com $S_a^{n+1}$
+    sobra um termo espúrio (erro de 0,25 a 0,34\,\%).
+  \item \emph{Por que o Jacobiano não é simétrico?} Pelo sinal das linhas de massa, por $S_\pi \neq \chi_\pi$
+    ($\chi_w = S_w - \Gamma p_c$) e pelos termos advectivos. No FS só entra $\bm J_{uu}$, que é simétrico.
+  \item \emph{Por que FS$_{GIM} \geq$ FS$_{SRM}$ no talude seco?} O Mohr--Coulomb é homogêneo de grau 1 em
+    $(\bm\sigma, c)$. Aumentar o peso equivale a reduzir só a coesão; o SRM reduz $c$ e $\tan\phi$.
+  \item \emph{Por que a coluna parcialmente saturada drena mais devagar?} O armazenamento da retenção,
+    $nC_s \approx 2{,}7\times10^{-3}$\,kPa$^{-1}$, domina $1/M$ e $n/K_w$.
+  \item \emph{O que $p_a = 0$ não testa?} O transporte do ar.
+  \item \emph{Por que o SRM com $\alpha = 0$ precisava de lista?} No trecho elástico, $\bar{\bm f} = \bm 0$. O termo
+    $\alpha_e^2\Delta\Lambda^2$ dá $\Delta F = l/\alpha_e$.
+  \item \emph{Por que $\Delta\Lambda < $ tol pode parar cedo?} Porque $\Delta\Lambda$ depende de $l$: um passo cortado
+    parece o patamar. A correção é medir no $l$ pedido.
+  \item \emph{Por que FS $\geq 1$ no modelo acoplado?} Cada estado do transiente já está em equilíbrio com a resistência
+    real, e todo equilíbrio é cota inferior. Um 0,992 é falha da busca.
+  \item \emph{Por que $\Gamma \approx 2{,}5\,$FS antes da chuva e $\approx$ FS no fim?} Com a sucção fixa, mais peso
+    aumenta também o atrito, e o GIM só vence a coesão e a sucção. Na ruptura, os dois indicam o mesmo evento.
+  \item \emph{Por que FS(24\,h) tem mínimo em $k \approx I$?} Com $k < I$, a superfície satura e a infiltração fica
+    limitada por $k$. Com $k > I$, a água entra toda, mas drena rápido.
+  \item \emph{Por que $P_f \approx 1\,\%$ na chuva, contra 24,8\,\% no FORM com variáveis?} Com campos, a superfície de
+    ruptura passa por zonas fracas e fortes e faz média. Sem campos, não há média.
+  \item \emph{Por que o campo da forma fechada não depende da malha, e o que isso permite?} Porque ele é avaliado ponto
+    a ponto. Os mesmos $\xi_k$ dão o mesmo campo em qualquer malha, e por isso o refinamento por realização é
+    consistente.
+  \item \emph{Os mesmos $\xi_k$ dão a mesma realização?} Só na mesma base: Galerkin e Nyström, sim; a forma fechada do
+    retângulo, não, mas a estatística é a mesma.
+  \item \emph{Por que com $P_f \approx 11\,\%$ basta Monte Carlo e com 1\,\% não?} Porque
+    $\mathrm{CoV} = \sqrt{(1 - P_f)/(NP_f)}$: com 1000 realizações, 9\,\% e 31\,\%.
+  \item \emph{Por que o FORM não dá a solução?} Ele troca a superfície pelo plano tangente. O erro depende da curvatura
+    e não é conhecido; a amostragem por importância o corrige.
+  \item \emph{Por que a amostragem por importância funciona com 6000 variáveis?} O peso depende só da projeção
+    $\bm v\cdot\bm u^*$. Mas o deslocamento tem de estar certo: ruído em direções que não importam explode a variância.
+\end{enumerate}

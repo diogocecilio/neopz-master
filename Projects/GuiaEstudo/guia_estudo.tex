@@ -1,0 +1,42 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{mathptmx}
+\usepackage[scaled=0.92]{helvet}
+\usepackage{courier}
+\usepackage[utf8]{inputenc}
+\usepackage[brazil]{babel}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{booktabs,graphicx,caption,float,amsmath,amssymb,bm,xcolor,array,enumitem,tikz,longtable}
+\usepackage[hidelinks]{hyperref}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\setlist{itemsep=1pt, topsep=3pt}
+\setlength{\emergencystretch}{3em}
+\sloppy
+\makeatletter\g@addto@macro\UrlBreaks{\do\_}\makeatother
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\title{Guia de estudo\\[3pt]\large Talude não saturado sob chuva com campos aleatórios no NeoPZ:\\
+  formulação, verificação, estabilidade, incerteza e confiabilidade}
+\author{}
+\date{14 de novembro de 2026}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\input{secoes/mapa}
+\input{secoes/alvo}
+\input{secoes/formulacao}
+\input{secoes/verificacao}
+\input{secoes/fs}
+\input{secoes/chuva}
+\input{secoes/campos}
+\input{secoes/montecarlo}
+\input{secoes/confiab}
+\input{secoes/pendencias}
+\input{secoes/roteiro}
+\appendix
+\input{secoes/historia}
+\input{secoes/formulas}
+
+\end{document}

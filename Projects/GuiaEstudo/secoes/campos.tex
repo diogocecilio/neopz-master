@@ -1,0 +1,85 @@
+\section{Campos aleatórios: Karhunen-Loève}
+\label{sec:campos}
+
+\paragraph{O campo.} Cada propriedade (por exemplo, $c'$) é lognormal:
+\begin{equation}
+  c'(\bm x) = \exp\big(\mu_{\ln} + \sigma_{\ln} Z(\bm x)\big), \qquad
+  \sigma_{\ln}^2 = \ln(1 + \mathrm{CoV}^2), \quad \mu_{\ln} = \ln\mu - \tfrac12 \sigma_{\ln}^2 ,
+\end{equation}
+em que $Z$ é um campo gaussiano de média 0 e variância 1 com o núcleo separável do Ceron:
+\begin{equation}
+  C(\bm x, \bm x') = \exp\!\left(-\frac{|x - x'|}{L_x} - \frac{|y - y'|}{L_y}\right).
+\end{equation}
+
+\paragraph{A expansão de Karhunen-Loève (KL).}
+\begin{equation}
+  Z(\bm x) \approx \sum_{k=1}^{M} \sqrt{\lambda_k}\, \xi_k\, f_k(\bm x), \qquad
+  \int_D C(\bm x, \bm x') f_k(\bm x')\, d\bm x' = \lambda_k f_k(\bm x), \qquad \xi_k \sim \mathcal N(0,1)
+  \ \text{independentes}.
+\end{equation}
+\begin{itemize}
+  \item Os autovalores somam a área: $\sum_k \lambda_k = |D|$.
+  \item O erro médio de truncamento é $\varepsilon_M = 1 - \sum_{k\leq M} \lambda_k/|D|$, e a variância truncada em
+    cada ponto é $\sigma_M^2(\bm x) = \sum_{k\leq M} \lambda_k f_k(\bm x)^2 < 1$.
+  \item Os $\xi_k$ são as variáveis aleatórias do problema: $n = 3M$, ou seja, 6000 com $M = 2000$.
+\end{itemize}
+
+\paragraph{Três formas de obter os autopares.}
+\begin{enumerate}
+  \item \textbf{Forma fechada no retângulo que contém o domínio} (\texttt{KLSeparavel.h}; é a que o \texttt{SlopeMonteCarlo}
+    usa hoje).
+    \begin{itemize}
+      \item O problema 1D com o núcleo $e^{-c|s - t|}$ em $[-a, a]$ tem modos pares, com $\omega \tan(\omega a) = c$, e
+        ímpares, com $\omega + c\tan(\omega a) = 0$; o autovalor é $\lambda = 2c/(\omega^2 + c^2)$.
+      \item Os modos 2D são os produtos $f_i(x)\,g_j(y)$ com $\lambda_i^x \lambda_j^y$, e ficam os $M$ maiores.
+      \item O campo é avaliado ponto a ponto, nos pontos de integração.
+    \end{itemize}
+  \item \textbf{Galerkin} (NeoPZ, \texttt{TPZKarhunenLoeveMat}): $C\bm v = \lambda B \bm v$, com
+    $B_{ij} = \int N_i N_j$ e $C_{ij} = \iint N_i(\bm x)\, C(\bm x, \bm x')\, N_j(\bm x')$. É a KL do próprio domínio, e a
+    sua qualidade depende da malha e da ordem da integração dupla.
+  \item \textbf{Nyström}: uma quadratura $(\bm x_j, w_j)$ do domínio, com a matriz simétrica $W^{1/2} K W^{1/2}$,
+    $K_{ij} = C(\bm x_i, \bm x_j)$. A interpolação é
+    $f_k(\bm x) = \lambda_k^{-1} \sum_j w_j\, C(\bm x, \bm x_j)\, f_k(\bm x_j)$.
+    \begin{itemize}
+      \item O seu caderno \texttt{nymstron.nb} faz a versão nodal, com os pesos de massa concentrada: a área de cada
+        elemento dividida igualmente entre os seus nós, com $\sum w = |D|$.
+      \item Sem os pesos, os autovalores de $K$ saem com a escala errada: $\mathrm{tr}\,K = n$ em vez de $|D|$.
+    \end{itemize}
+\end{enumerate}
+
+\paragraph{O que se concluiu.}
+\begin{itemize}
+  \item \textbf{Autovalores do talude do Ceron:} $\lambda_1 = 48{,}81$, convergido pelo Galerkin, pelo Nyström e por uma
+    referência extrapolada.
+  \item \textbf{O retângulo restrito ao talude tem a covariância certa.} Quando $M \to \infty$, a forma fechada do
+    retângulo, restrita ao talude, tem a covariância pedida: o campo do talude é a restrição de um campo estacionário.
+    \begin{itemize}
+      \item Os autovalores são outros, porque a base é a do retângulo, mas a estatística no talude é a mesma.
+      \item Com $M = 2000$, $\varepsilon_M = 0{,}0079$, em 1,3\,s; o Galerkin no talude parou em cerca de 0,029, limitado
+        pela malha, em 260\,s.
+      \item Por termo, a base do retângulo é menos eficiente: 63 termos para igualar 50 do talude.
+    \end{itemize}
+  \item \textbf{Mesmos $\xi_k$ e a mesma realização} (\texttt{VerifyRandomFields}, branch próprio: coesão nos 21\,069
+    pontos de integração de uma malha uniforme de 0,25\,m):
+    \begin{itemize}
+      \item \emph{Galerkin $\times$ Nyström}: é a mesma realização. A diferença RMS é de 0,0018\,kPa com 10 termos e
+        0,0055\,kPa com 20, para um desvio do campo de cerca de 3\,kPa. Com 200 termos, sobe para 0,59\,kPa, porque
+        nenhuma das duas resolve os modos de ordem acima de 25 a 40.
+      \item \emph{Galerkin $\times$ forma fechada}: a diferença RMS é de 3,85\,kPa, com correlação 0,49. É outra
+        realização da mesma estatística, não um erro.
+      \item \emph{Estatística igual nos três}: com 200 termos, o déficit de variância é de 0,042, 0,039 e 0,044 (o exato
+        é 0,0375). A covariância difere do núcleo em $10^{-3}$ a $2\times 10^{-3}$, e a média e o desvio de Monte Carlo
+        ficam dentro do ruído amostral.
+    \end{itemize}
+  \item \textbf{GSTools} (método da randomização): com o espectro produto de duas Cauchy, ele reproduz o núcleo
+    separável. O \texttt{gs.Exponential} anisotrópico usa a distância euclidiana escalada, que é outro núcleo.
+  \item \textbf{Mika et al.\ (2021)} (\texttt{KLCilindroMika}): o Galerkin do NeoPZ com a geometria exata do meio
+    cilindro converge com taxa $h^4$. Os autovalores do caderno \texttt{randomfied-v2.nb} não se reproduzem.
+  \item \textbf{A escolha que está em aberto:}
+    \begin{itemize}
+      \item você prefere o Nyström, que é a KL do próprio domínio;
+      \item a forma fechada é estatisticamente equivalente e mais barata;
+      \item a escolha muda a realização, não a estatística;
+      \item o Nyström precisa de menos termos para a mesma variância, e isso importa para o FORM e para metamodelos.
+    \end{itemize}
+\end{itemize}
