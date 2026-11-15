@@ -24,3 +24,7 @@ r07_ai        2  1000  rcphi=-0.7 fator=tri2 nref=4 piloto=@SAIDA@/r07_direto pi
 r05_antigo    1  1000  rcphi=-0.5 fator=tri2 nref=4 srm_f0=1 par=r05_direto
 chuva_antigo  1  600   prog=SlopeRainMonteCarlo solo=f50 tempos=24 srm_f0=1
 chuva_novo    1  600   prog=SlopeRainMonteCarlo solo=f50 tempos=24 par=chuva_antigo
+#
+# Etapa 2 (M = 10 e 20; o 50 e o 100 sairam do plano): a AI com o ponto de projeto do FORM M = 20, com a MESMA semente
+# (3) da r05_ai_form (M = 10): numeros aleatorios comuns, para comparar o ganho dos dois deslocamentos.
+r05_ai_form20 2  1000  rcphi=-0.5 fator=tri2 nref=4 desloc_xi=@SAIDA@/form_M20/ustar.txt semente=3 espera=@SAIDA@/form_M20/ustar.txt ref=r05_direto
