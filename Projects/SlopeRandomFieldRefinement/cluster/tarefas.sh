@@ -100,6 +100,23 @@ arquivos_prontos() {
 }
 declare -A DE_FORA
 
+# pega a trava <arquivo>: cria o arquivo so se ele ainda nao existe (noclobber, atomico). 0: pegou; 1: outro processo
+# pegou. Se a criacao falha e o arquivo nao existe (o sistema de arquivos falhou, ou a pasta .tarefas ainda estava sendo
+# criada por outro processo), tenta de novo, ate 5 vezes: antes, essa falha passava por "outro pegou", e o bloco ficava
+# sem ninguem ate o fim da passada (na etapa1, o bloco 10..19 do piloto do r05_ai)
+pega_trava() {
+    local t
+    for t in 1 2 3 4 5; do
+        mkdir -p "$(dirname "$1")" 2> /dev/null
+        ( set -o noclobber; echo "$(hostname -s) job ${SLURM_JOB_ID:-local} p$rotulo $(date '+%F %T')" > "$1" ) 2> /dev/null &&
+            return 0
+        [ -e "$1" ] && return 1
+        echo "$(date '+%F %T') a trava $1 nao foi criada (tentativa $t)" >> "$LOG"
+        sleep 1
+    done
+    return 1
+}
+
 desde="" # inicio da espera pelos pilotos e arquivos
 while :; do
     espera=0 fez=0
@@ -129,10 +146,7 @@ while :; do
                     continue ;;
                 esac
             fi
-            mkdir -p "$dir/.tarefas"
-            # a trava: criar o arquivo, so se ainda nao existe (atomico); senao outro processo ja pegou
-            ( set -o noclobber; echo "$(hostname -s) job ${SLURM_JOB_ID:-local} p$rotulo $(date '+%F %T')" \
-                > "$dir/.tarefas/${a}_${z}" ) 2> /dev/null || continue
+            pega_trava "$dir/.tarefas/${a}_${z}" || continue
             fez=1 desde=""
             extra=()
             ((a == 0)) && extra=(det=1 figuras=-1)
@@ -148,11 +162,12 @@ while :; do
                 echo "ERRO $(date '+%F %T') codigo $c" >> "$dir/.tarefas/${a}_${z}"
                 echo "$(date '+%F %T') ${ids[$i]} $a..$z: ERRO (codigo $c), veja $dir/mc_${a}_${z}.log" >> "$LOG"
             fi
+            break 2 # depois de cada tarefa, a busca recomeca do bloco 0: um bloco pulado e os pilotos vem primeiro
         done
         ((resta)) || break
     done
-    ((espera)) || break # nada esperando um piloto ou arquivo: acabou
-    ((fez)) && continue # fez alguma tarefa: olha a fila de novo
+    ((fez)) && continue # fez uma tarefa: olha a fila de novo, do bloco 0
+    ((espera)) || break # nada feito e nada esperando um piloto ou arquivo: acabou
     if [ -z "$desde" ]; then
         desde=$(date +%s)
         echo "$(date '+%F %T') esperando os pilotos ou os arquivos de espera= (as outras tarefas estao feitas ou com outros" \
