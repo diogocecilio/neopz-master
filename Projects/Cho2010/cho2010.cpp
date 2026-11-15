@@ -30,6 +30,9 @@
 //   desloc_xi (<arquivo>)  amostragem por importancia com o deslocamento dado termo a termo: 2K numeros (os K de c' e
 //                          depois os K de phi', como o ponto de projeto u* do form_kl.py com M = K); os outros termos
 //                          ficam sem deslocamento. Use com outra semente=
+//   linear (0), alfa ()    teste da amostragem SEM elementos finitos: com linear=beta e alfa=<arquivo> (2K numeros, os K de
+//                          c' e os K de phi', normalizados aqui), a falha e alfa . xi > beta, com P_f exata = Phi(-beta);
+//                          FS_min = 1 + beta - alfa . xi. Usa o mesmo sorteio (semente, desloc_xi, piloto) e o mesmo peso
 //   xi (<arquivo>)         os xi dados, sem sorteio (um ponto do FORM: form_kl.py): 2M numeros, os M de c' e depois os M de
 //                          phi'; com n = 1, a realizacao primeira usa esses xi
 //   banda (<arquivo>)      mecanismo.csv de um deterministico: a direcao d dos xi e as projecoes proj_* no CSV
@@ -100,6 +103,8 @@ struct Opcoes {
     int n = 10, primeira = 0, nref = 4;
     bool det = false, gim = false;
     REAL srmF0 = 0.8;
+    REAL linearBeta = 0.; // linear=: teste sem elementos finitos
+    std::string alfa;
     Campos campos;
     std::string malhaF = "tri1", saida = "mc", banda, xi, deslocXi;
     std::set<int> figuras;
@@ -122,7 +127,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
     const std::set<std::string> chaves = {"n",     "primeira", "det",   "valores", "metodo", "covc",     "covphi",
                                           "rcphi", "lh",       "lv",    "M",       "fator",  "nref",     "figuras",
                                           "saida", "semente",  "banda", "piloto",  "piloto_n", "piloto_semente",
-                                          "ai",    "elite",    "modos", "xi",       "desloc_xi", "srm_f0"};
+                                          "ai",    "elite",    "modos", "xi",       "desloc_xi", "srm_f0", "linear", "alfa"};
     std::map<std::string, std::string> kv;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
@@ -160,6 +165,12 @@ Opcoes LeOpcoes(int argc, char *argv[])
     if (tem("banda")) op.banda = kv["banda"];
     if (tem("xi")) op.xi = kv["xi"];
     if (tem("srm_f0")) op.srmF0 = std::stod(kv["srm_f0"]);
+    if (tem("linear")) op.linearBeta = std::stod(kv["linear"]);
+    if (tem("alfa")) op.alfa = kv["alfa"];
+    if (op.linearBeta > 0. && op.alfa.empty()) {
+        std::fprintf(stderr, "linear= precisa de alfa=<arquivo com 2K numeros>\n");
+        std::exit(1);
+    }
     if (tem("desloc_xi")) op.deslocXi = kv["desloc_xi"];
     op.ai.semente = tem("piloto_semente") ? std::stoull(kv["piloto_semente"]) : Campos{}.semente;
     if (tem("piloto")) op.ai.piloto = kv["piloto"];
@@ -628,8 +639,25 @@ int main(int argc, char *argv[])
         }
         xiDados = {std::vector<double>(v.begin(), v.begin() + campos.M()), std::vector<double>(v.begin() + campos.M(), v.end())};
     }
+    std::vector<std::vector<double>> alfa; // linear=: a direcao unitaria
+    if (op.linearBeta > 0.) {
+        std::ifstream fa(op.alfa);
+        std::vector<double> v;
+        for (double x; fa >> x;) v.push_back(x);
+        double nv = 0.;
+        for (double x : v) nv += x * x;
+        if (v.empty() || v.size() % 2 || int(v.size() / 2) > campos.M() || !(nv > 0.)) {
+            std::fprintf(stderr, "alfa: %s precisa de 2K numeros nao todos nulos, com K <= M\n", op.alfa.c_str());
+            return 1;
+        }
+        for (double &x : v) x /= std::sqrt(nv);
+        const size_t K = v.size() / 2;
+        alfa = {std::vector<double>(v.begin(), v.begin() + K), std::vector<double>(v.begin() + K, v.end())};
+        std::printf("  teste linear: falha se alfa . xi > %.3f (P_f exata = %.4e), %zu termos por campo\n", op.linearBeta,
+                    0.5 * std::erfc(op.linearBeta / std::sqrt(2.)), K);
+    }
     std::vector<int> realizacoes;
-    if (op.det) realizacoes.push_back(-1);
+    if (op.det && op.linearBeta <= 0.) realizacoes.push_back(-1);
     for (int n = op.primeira; n < op.primeira + op.n; n++) realizacoes.push_back(n);
     for (int n : realizacoes) {
         const auto t0 = Clock::now();
@@ -642,6 +670,17 @@ int main(int argc, char *argv[])
         l.real = n;
         if (!deterministico) l.logPeso = campos.LogWeight(), l.proj = campos.Projection(dir);
         if (l.proj.size() < 2) l.proj.resize(2, 0.);
+        if (op.linearBeta > 0.) { // sem elementos finitos
+            double t = 0.;
+            for (size_t c = 0; c < 2; c++)
+                for (size_t k = 0; k < alfa[c].size(); k++) t += alfa[c][k] * campos.Xi()[c][k];
+            l.fs = 1. + op.linearBeta - t;
+            Grava(csv, l, op, campos);
+            fss.push_back(l.fs);
+            somaPesoFalha += (l.fs < 1.) * std::exp(l.logPeso);
+            mapa.nReal++;
+            continue;
+        }
         const Campo *cf = deterministico ? (op.valores.empty() ? nullptr : &campoFixo) : &campoAleatorio;
         Fator f;
         std::vector<REAL> niveis;
