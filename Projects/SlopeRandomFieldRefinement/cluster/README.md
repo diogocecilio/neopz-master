@@ -285,13 +285,15 @@ avaliações ao mesmo tempo, ~1,5 h) e depois entra na fila. O `r05_ai_form` esp
 (`espera=@SAIDA@/form_M10/ustar.txt`). Ao todo são ~290 h de núcleo, umas 6 a 7 h com 4 nós.
 
 ```bash
-ssh diogo@fermi.cesup.ufrgs.br 'cd neopz-master && git pull && cd Projects/SlopeRandomFieldRefinement/cluster && ./compilar.sh && python3 --version && CAMPANHA=etapa1 ./submeter.sh 4'
+ssh diogo@fermi.cesup.ufrgs.br 'cd neopz-master && git pull origin UnsaturatedSoil && cd Projects/SlopeRandomFieldRefinement/cluster && nohup setsid bash -c "python3 --version; ./compilar.sh && CAMPANHA=etapa1 ./submeter.sh 4" > etapa1.log 2>&1 < /dev/null &'
+ssh diogo@fermi.cesup.ufrgs.br 'tail -n 8 neopz-master/Projects/SlopeRandomFieldRefinement/cluster/etapa1.log'
 ssh diogo@fermi.cesup.ufrgs.br 'CAMPANHA=etapa1 neopz-master/Projects/SlopeRandomFieldRefinement/cluster/status.sh'
 CAMPANHA=etapa1 ~/projects/neopz-master/Projects/SlopeRandomFieldRefinement/cluster/baixar.sh
 ```
 
-O `status.sh` mostra também a última iteração de cada FORM. `FORM_M=` (vazio) no `submeter.sh` não roda os FORM, e
-`FORM_M="10"` roda só um.
+O primeiro comando compila e submete em segundo plano: pode desconectar. O `status.sh` mostra também a última iteração
+de cada FORM. `FORM_M=` (vazio) no `submeter.sh` não roda os FORM, e `FORM_M="10"` roda só um. Sem `python3` no nó,
+o FORM grava o `.ERRO`, o `r05_ai_form` fica de fora e o resto roda.
 
 ## Como funciona
 
