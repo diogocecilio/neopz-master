@@ -18,6 +18,7 @@
 //   tempos (0,24)          instantes do fator (h, separados por virgula); o transiente vai ate o ultimo
 //   adapta (os tempos)     instantes com refinamento do zero; os outros usam a malha do adaptativo mais proximo
 //   metodo (srm)           srm ou gim (aumento do peso; a succao fica fixa)
+//   srm_f0 (0.8)           F do peso no SRM, o inicio do caminho de F (1: o SRM antigo, com o buraco logo abaixo de FS = 1)
 //   covc (0.3), covphi (0.1), covk (0.6)   CoV de c', phi' e k_s
 //   s (1)                  escala das distancias de autocorrelacao: 20 s (horizontal) e 2 s (vertical), em m
 //   alfa (1)               anisotropia k_h / k_v (k_v e o do campo)
@@ -131,7 +132,7 @@ struct Opcoes {
     std::set<int> figuras;
     std::vector<REAL> valores; // deterministica com c' (kPa), phi' (graus) e k / k_s dados (vazio: as medias)
     std::string banda;         // amostragem por importancia: o mecanismo.csv da banda e o instante dela
-    REAL bandaT = -1.;
+    REAL bandaT = -1., srmF0 = 0.8;
     ai::Opcoes ai;             // o deslocamento pelo piloto
 };
 
@@ -151,7 +152,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
                                           "tempos", "adapta",   "metodo", "covc", "covphi",   "covk",  "s",
                                           "alfa",   "transiente", "uT", "fator", "nref",      "figuras", "saida", "valores",
                                           "semente", "banda", "banda_t", "piloto", "piloto_n", "piloto_semente",
-                                          "ai", "elite", "modos"};
+                                          "ai", "elite", "modos", "srm_f0"};
     std::map<std::string, std::string> kv;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
@@ -213,6 +214,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
     if (tem("semente")) op.campos.semente = std::stoull(kv["semente"]);
     if (tem("banda")) op.banda = kv["banda"];
     if (tem("banda_t")) op.bandaT = std::stod(kv["banda_t"]);
+    if (tem("srm_f0")) op.srmF0 = std::stod(kv["srm_f0"]);
     op.ai.semente = tem("piloto_semente") ? std::stoull(kv["piloto_semente"]) : Campos{}.semente;
     if (tem("piloto")) op.ai.piloto = kv["piloto"];
     if (tem("piloto_n")) op.ai.n = std::stoi(kv["piloto_n"]);
@@ -445,6 +447,7 @@ void NovoFator(Fator &f, TPZGeoMesh *g, const RainData &r, const Opcoes &op)
     f.a->SetVerbose(false);
     f.a->SetLoadFactorFunction([mat](REAL l) { mat->SetGravityFactor(l); }, false);
     f.a->SetStrengthReductionFunction([mat](REAL F) { mat->PlasticModel().SetStrengthReductionFactor(F); });
+    f.a->SetSRMStart(op.srmF0);
 }
 
 // FS (ou Gamma) no modelo de f com as pressoes pw (nos da malha do transiente), do estado sem tensoes, com os campos

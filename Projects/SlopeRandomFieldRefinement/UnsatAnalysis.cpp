@@ -602,15 +602,16 @@ REAL UnsatAnalysis<TMat>::SRMArcLength()
     const int64_t neq = fModel.CompMesh()->NEquations();
     fSRM = false;
 
-    // 1. peso todo; F = 1 e, se o talude nao fica em pe (FS < 1), a resistencia dobrada
+    // 1. peso todo com F = F0 (abaixo de 1: o caminho de F atravessa F = 1 continuo) e, se o talude nao fica em pe
+    // (FS < F0), F0 / 2
     TPZFMatrix<STATE> x(neq, 1, 0.);
-    REAL F0 = 1.;
+    REAL F0 = fSRMStart;
     fSetReduction(F0);
     while (!ApplyWeight(x)) {
         if (fVerbose) std::printf("  SRM: o talude nao fica em pe com o peso todo e F = %g\n", F0);
         F0 *= 0.5;
         if (F0 < 0.2) {
-            std::cout << "  SRM: sem equilibrio com o peso todo nem com F = 0,25" << std::endl;
+            std::cout << "  SRM: sem equilibrio com o peso todo nem com F = " << 2. * F0 << std::endl;
             fSetReduction(1.);
             return 0.;
         }

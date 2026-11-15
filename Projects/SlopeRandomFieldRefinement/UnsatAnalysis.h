@@ -54,13 +54,17 @@ public:
     // Fator FS do SRM (o fator do equilibrio limite: Bishop, Rahardjo et al. 2007): peso todo (lambda = 1) com as
     // pressoes congeladas e c' / F, tan(phi') / F ate o colapso. A parcela da succao, chi s tan(phi'), cai junto: e o
     // tan(phi^b) / F do Bishop. Precisa da SetStrengthReductionFunction (e da SetLoadFactorFunction, para o peso).
-    //  1. peso: lambda de 0 a 1 com F = 1, a partir do estado de partida (ApplyWeight); se o talude nao fica em pe com a
-    //     resistencia real (FS < 1), de novo do estado de partida com F = 0,5 (resistencia dobrada) e, se preciso, 0,25
+    //  1. peso: lambda de 0 a 1 com F = F0 (SetSRMStart, padrao 0,8), a partir do estado de partida (ApplyWeight); se o
+    //     talude nao fica em pe (FS < F0), de novo do estado de partida com F0 / 2 e, se preciso, F0 / 4. Com F0 < 1, um FS
+    //     um pouco abaixo de 1 e achado pelo caminho de F, continuo: com F0 = 1 (o antigo), o peso as vezes convergia com
+    //     F = 1 num talude com FS logo abaixo de 1, e o FS saia >= 1 (um buraco no histograma logo abaixo de 1)
     //  2. caminho de F por arc-length, o mesmo do GIM, com a carga tangente -dR/dF por diferenca finita (ReductionLoad).
     //     Com nenhum ou poucos pontos plasticos essa carga e nula ou pequena (o caminho fica vertical: o preditor pediria
     //     um salto de F maior que 25%): Newton com F 10% maior, e metade disso quando o Newton nao converge
     // Devolve o maior F do caminho. Como o SRM do Common (que deu 2,116 e 1,060 no f50,-5 do Rahardjo em 0 e 24 h)
     REAL SRMArcLength();
+    // F do peso no SRM (o inicio do caminho de F): padrao 0,8; 1 reproduz o SRM antigo
+    void SetSRMStart(REAL F0) { fSRMStart = F0; }
     // Estados do ultimo caminho: o aceito no fim (o que fica carregado na malha) e, no SRM, o do fim do peso, antes de
     // reduzir a resistencia (o estado geostatico: o mecanismo e o deslocamento a partir dele)
     const TPZFMatrix<STATE> &PathState() const { return fX; }
@@ -155,6 +159,7 @@ private:
     bool fScaleFrozen = true;
     std::function<void(REAL)> fSetReduction; // opcional (vazio: sem reducao no preditor)
     bool fVerbose = true;
+    REAL fSRMStart = 0.8; // F do peso no SRM (SetSRMStart)
 
     // estado do caminho do arc-length (GIMArcLength e SRMArcLength)
     bool fSRM = false;       // parametro do caminho: lambda (GIM) ou F (SRM)

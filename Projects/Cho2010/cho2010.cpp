@@ -21,6 +21,7 @@
 //   det (0)                1: antes, o deterministico (as medias), como a realizacao -1
 //   valores ()             c,phi: o deterministico com esses valores em todo o solo (kPa, graus)
 //   metodo (srm)           srm ou gim
+//   srm_f0 (0.8)           F do peso no SRM, o inicio do caminho de F (1: o SRM antigo, com o buraco logo abaixo de FS = 1)
 //   covc (0.3), covphi (0.2), rcphi (-0.5)   CoV de c' e phi' e a correlacao cruzada dos campos gaussianos
 //   lh (20), lv (2), M (2000)                distancias de autocorrelacao (m) e termos da KL
 //   fator (tri1), nref (4) malha grossa (TriGMesh com K divisoes: lado H / 2^K) e niveis de refinamento
@@ -98,6 +99,7 @@ struct Campos {
 struct Opcoes {
     int n = 10, primeira = 0, nref = 4;
     bool det = false, gim = false;
+    REAL srmF0 = 0.8;
     Campos campos;
     std::string malhaF = "tri1", saida = "mc", banda, xi, deslocXi;
     std::set<int> figuras;
@@ -120,7 +122,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
     const std::set<std::string> chaves = {"n",     "primeira", "det",   "valores", "metodo", "covc",     "covphi",
                                           "rcphi", "lh",       "lv",    "M",       "fator",  "nref",     "figuras",
                                           "saida", "semente",  "banda", "piloto",  "piloto_n", "piloto_semente",
-                                          "ai",    "elite",    "modos", "xi",       "desloc_xi"};
+                                          "ai",    "elite",    "modos", "xi",       "desloc_xi", "srm_f0"};
     std::map<std::string, std::string> kv;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
@@ -157,6 +159,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
     if (tem("saida")) op.saida = kv["saida"];
     if (tem("banda")) op.banda = kv["banda"];
     if (tem("xi")) op.xi = kv["xi"];
+    if (tem("srm_f0")) op.srmF0 = std::stod(kv["srm_f0"]);
     if (tem("desloc_xi")) op.deslocXi = kv["desloc_xi"];
     if (!op.deslocXi.empty() && !op.ai.piloto.empty()) {
         std::fprintf(stderr, "desloc_xi e piloto: um ou outro\n");
@@ -349,6 +352,7 @@ void NovoFator(Fator &f, TPZGeoMesh *g, const Opcoes &op)
     f.a->SetVerbose(false);
     f.a->SetLoadFactorFunction([mat](REAL l) { mat->SetGravityFactor(l); }, false);
     f.a->SetStrengthReductionFunction([mat](REAL F) { mat->PlasticModel().SetStrengthReductionFactor(F); });
+    f.a->SetSRMStart(op.srmF0);
 }
 
 REAL CalculaFator(Fator &f, const Campo *campos, bool gim)
@@ -526,7 +530,7 @@ void GravaParametros(const std::string &arq, const Opcoes &op, const RandomField
     p << "EXEMPLO=Cho2010_2\nC=" << s.c << "\nPHI=" << s.phiDeg << "\nGAMMA=" << s.gamma << "\nE=" << s.E << "\nNU=" << s.nu
       << "\nCOV_C=" << cp.covC << "\nCOV_PHI=" << cp.covPhi << "\nR_CPHI=" << cp.rcphi << "\nLH=" << cp.lh << "\nLV="
       << cp.lv << "\nKL_M=" << campos.M() << "\nKL_VARIANCIA=" << campos.VarianceFraction() << "\nSEMENTE=" << cp.semente
-      << "\nMETODO=" << (op.gim ? "gim" : "srm") << "\nMALHA_FATOR=" << op.malhaF << "\nNREF=" << op.nref
+      << "\nMETODO=" << (op.gim ? "gim" : "srm") << "\nSRM_F0=" << op.srmF0 << "\nMALHA_FATOR=" << op.malhaF << "\nNREF=" << op.nref
       << "\nAI=" << (!op.deslocXi.empty() ? std::string("dado:") + op.deslocXi
                      : op.ai.piloto.empty() ? std::string("nenhuma") : op.ai.tipo + "_piloto") << "\n";
     if (!op.ai.piloto.empty())

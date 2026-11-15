@@ -1,0 +1,12 @@
+# deslocamento da amostragem por importancia: a media dos xi do conjunto elite do piloto
+ai=banda
+piloto=/mnt/data/diogo/chuva_ai/ref48_piloto
+piloto_n=200
+piloto_semente=2025
+presentes=200
+validas=200
+falhas=13
+elite=20
+nivel=1.00795
+s=-1.26262994,-0.8012252826,-0.1263174957
+mu2=2.252152429

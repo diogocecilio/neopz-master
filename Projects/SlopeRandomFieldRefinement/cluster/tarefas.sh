@@ -8,7 +8,8 @@
 # qualquer momento). Nao usa mkdir: o mkdir do coreutils em Rust (uutils, Ubuntu recente) nao e atomico, e dois processos
 # pegavam a mesma tarefa. A tarefa esta feita quando existe mc_mapa_<a>_<z>.csv, gravado no fim da rodada. Se a rodada
 # termina com erro, a trava ganha uma linha ERRO e a tarefa fica parada ate a limpeza do submeter.sh (sem jobs na fila).
-# Nas opcoes dos casos, IREF vira $IREF e @SAIDA@ vira $SAIDA.
+# Nas opcoes dos casos, IREF vira $IREF e @SAIDA@ vira $SAIDA. A opcao prog=<nome> troca o programa do caso pelo
+# <nome> da mesma pasta do EXE (ex.: prog=SlopeRainMonteCarlo numa campanha do Cho2010) e nao e passada a ele.
 # Dependencia (amostragem por importancia): um caso com piloto=@SAIDA@/<id> e piloto_n=<n> nas opcoes so comeca quando
 # os blocos das realizacoes 0..n-1 do caso <id> acabaram (mapa ou ERRO). Enquanto isso, o processo faz as outras tarefas;
 # sem nenhuma livre, espera 60 s e olha de novo, ate ESPERA_MAX s (padrao 3 h) seguidos. O piloto de um caso escolhido
@@ -39,7 +40,7 @@ for i in "${!todos_id[@]}"; do
     [[ " ${todos_opc[$i]} " =~ \ piloto=@SAIDA@/([^ ]+)\  ]] || continue
     [ -n "${ESCOLHIDO[${BASH_REMATCH[1]}]:-}" ] || PILOTO_EXTRA[${BASH_REMATCH[1]}]=1
 done
-ids=() opcs=() ns=() pil=() pnp=()
+ids=() opcs=() ns=() pil=() pnp=() exes=()
 for i in "${!todos_id[@]}"; do
     id=${todos_id[$i]} n=${todos_n[$i]} opc=${todos_opc[$i]}
     NCASO[$id]=$n
@@ -51,7 +52,12 @@ for i in "${!todos_id[@]}"; do
     p="" np=1000
     [[ " $opc " =~ \ piloto=@SAIDA@/([^ ]+)\  ]] && p="${BASH_REMATCH[1]}"
     [[ " $opc " =~ \ piloto_n=([0-9]+)\  ]] && np="${BASH_REMATCH[1]}"
-    ids+=("$id") opcs+=("${opc//@SAIDA@/$SAIDA}") ns+=("$n") pil+=("$p") pnp+=("$np")
+    exe="$EXE"
+    if [[ " $opc " =~ \ prog=([^ ]+)\  ]]; then
+        exe="$(dirname "$EXE")/${BASH_REMATCH[1]}"
+        opc="$(echo " $opc " | sed -e "s| prog=${BASH_REMATCH[1]} | |" -e 's/^ *//' -e 's/ *$//')"
+    fi
+    ids+=("$id") opcs+=("${opc//@SAIDA@/$SAIDA}") ns+=("$n") pil+=("$p") pnp+=("$np") exes+=("$exe")
 done
 for p in "${pil[@]}"; do
     [ -z "$p" ] || [ -n "${NCASO[$p]:-}" ] || { echo "$(date '+%F %T') piloto $p nao esta em $CASOS_ARQ: fim" >> "$LOG"; exit 1; }
@@ -99,7 +105,7 @@ while :; do
             t0=$(date +%s)
             echo "$(date '+%F %T') ${ids[$i]} $a..$z: inicio" >> "$LOG"
             # shellcheck disable=SC2086  # as opcoes do caso se separam nos espacos
-            (cd "$dir" && "$EXE" n=$((z - a + 1)) primeira=$a saida=mc ${opcs[$i]} ${extra[@]+"${extra[@]}"} \
+            (cd "$dir" && "${exes[$i]}" n=$((z - a + 1)) primeira=$a saida=mc ${opcs[$i]} ${extra[@]+"${extra[@]}"} \
                 > "mc_${a}_${z}.log" 2>&1)
             c=$?
             if ((c == 0)); then

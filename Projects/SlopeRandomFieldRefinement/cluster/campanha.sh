@@ -7,6 +7,8 @@
 #                   (SlopeRainMonteCarlo, casos_chuva_ai.txt; blocos de 1 realizacao)
 #   solos           os tres solos do Rahardjo com I = 1 k_s (a Fig. 5), Monte Carlo direto com o FS de 6 em 6 h ate
 #                   48 h (SlopeRainMonteCarlo, casos_solos.txt; blocos de 5 realizacoes)
+#   etapa1          etapa 1 do plano de trabalho (Projects/PlanoDeTrabalho): o SRM novo contra o antigo e a malha de teste
+#                   do Cho2010 (Cho2010 e, com prog=, SlopeRainMonteCarlo; casos_etapa1.txt; blocos de 10)
 # Define NOME (jobs no SLURM), PROG (executavel em bin/), CASOS_TXT, PASTA (em $DATA), IREF_PADRAO, BLOCO_PADRAO e DESTINO
 # (pasta no PC, em ~/projects/runs)
 CAMPANHA="${CAMPANHA:-chuva}"
@@ -19,8 +21,10 @@ chuva_ai) NOME=chuvaAI PROG=SlopeRainMonteCarlo CASOS_TXT=casos_chuva_ai.txt PAS
     BLOCO_PADRAO=1 DESTINO=fermi_chuva_ai ;;
 solos) NOME=solosMC PROG=SlopeRainMonteCarlo CASOS_TXT=casos_solos.txt PASTA=chuva_solos IREF_PADRAO=0
     BLOCO_PADRAO=5 DESTINO=fermi_chuva_solos ;;
-*) echo "CAMPANHA=$CAMPANHA desconhecida: chuva, ceron, chuva_ai ou solos" >&2; exit 2 ;;
+etapa1) NOME=etapa1 PROG=Cho2010 CASOS_TXT=casos_etapa1.txt PASTA=etapa1 IREF_PADRAO=0 BLOCO_PADRAO=10
+    DESTINO=fermi_etapa1 ;;
+*) echo "CAMPANHA=$CAMPANHA desconhecida: chuva, ceron, chuva_ai, solos ou etapa1" >&2; exit 2 ;;
 esac
 export CAMPANHA
 # todos os nomes de job (o compilar.sh espera todos acabarem: a libpz.so e a mesma)
-NOMES_TODOS=chuvaMC,ceronMC,chuvaAI,solosMC
+NOMES_TODOS=chuvaMC,ceronMC,chuvaAI,solosMC,etapa1

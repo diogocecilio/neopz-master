@@ -1,0 +1,14 @@
+# Etapa 1 do plano de trabalho (Projects/PlanoDeTrabalho/README.md), CAMPANHA=etapa1: o SRM novo (o caminho de F comeca em
+# F0 = 0,8) contra o antigo (srm_f0=1) e a malha de teste do Cho2010. Uma linha por caso:
+#   id   fase   N   opcoes (prog= troca o programa; o padrao da campanha e o Cho2010)
+# Cho2010 (talude c-phi seco do Cho 2010, r(c, phi) = -0,5): as mesmas realizacoes (semente 2010) em todos os casos.
+#  - cho_tri24_antigo e cho_tri24: o SRM antigo e o novo na malha tri2 + 4 niveis (a dos numeros finais);
+#  - cho_tri23, cho_tri14, cho_tri13: o SRM novo em malhas mais baratas, para escolher a malha de teste dos metodos.
+cho_tri24_antigo  1  400  fator=tri2 nref=4 rcphi=-0.5 srm_f0=1
+cho_tri24         1  400  fator=tri2 nref=4 rcphi=-0.5
+cho_tri23         1  200  fator=tri2 nref=3 rcphi=-0.5
+cho_tri14         1  200  fator=tri1 nref=4 rcphi=-0.5
+cho_tri13         1  200  fator=tri1 nref=3 rcphi=-0.5
+# Chuva: o f50 de Rahardjo com I = 1 k_s (36 mm/h), o FS em 24 h com o SRM novo. As realizacoes sao as da campanha dos
+# tres solos (semente 2025), que usou o SRM antigo: a comparacao pareada mostra se o buraco logo abaixo de FS = 1 sumiu.
+chuva_f50_24h     1  600  prog=SlopeRainMonteCarlo solo=f50 tempos=24

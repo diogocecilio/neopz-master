@@ -1,0 +1,35 @@
+== ref48_piloto: 200 realizacoes com todos os instantes ok
+   t (h)   FS medio   CoV (%)   P(FS < 1) (%)   IC 95% (%)      P_f lognormal (%)
+       6     1.7670       6.1            0.00     0.0 a   1.9         0.00
+      12     1.4788       6.7            0.00     0.0 a   1.9         0.00
+      18     1.2664       7.1            0.00     0.0 a   1.9         0.05
+      24     1.1297       7.7            6.50     3.8 a  10.8         6.03
+      30     1.1979       7.0            0.50     0.1 a   2.8         0.53
+      36     1.2447       6.9            0.00     0.0 a   1.9         0.08
+      42     1.2824       6.8            0.00     0.0 a   1.9         0.01
+      48     1.3162       6.7            0.00     0.0 a   1.9         0.00
+   menor FS: media 1.1297, P_f = 6.50% (IC 95% 3.8 a 10.8%), lognormal 6.02%
+   instante do menor FS: 24 h: 199, 30 h: 1
+== ref48_ai: 200 realizacoes com todos os instantes ok
+   ATENCAO: o caso tem pesos de amostragem por importancia; os numeros abaixo nao sao a P_f
+   t (h)   FS medio   CoV (%)   P(FS < 1) (%)   IC 95% (%)      P_f lognormal (%)
+       6     1.6426       6.1            0.00     0.0 a   1.9         0.00
+      12     1.3621       6.9            0.00     0.0 a   1.9         0.00
+      18     1.1627       7.3            1.50     0.5 a   4.3         2.06
+      24     1.0303       8.0           38.50    32.0 a  45.4        36.84
+      30     1.1002       7.4            7.50     4.6 a  12.0        10.20
+      36     1.1454       7.3            2.00     0.8 a   5.0         3.21
+      42     1.1825       7.2            1.00     0.3 a   3.6         1.05
+      48     1.2163       7.2            0.50     0.1 a   2.8         0.34
+   menor FS: media 1.0303, P_f = 38.50% (IC 95% 32.0 a 45.4%), lognormal 36.84%
+   instante do menor FS: 24 h: 200
+
+== ref48_ai (piloto e direto: ref48_piloto)
+deslocamento (banda, pelo piloto): 200 blocos, o mesmo em todos; piloto com 200 realizacoes validas, 13 falhas, elite de 20 (fator < 1.0079), |mu|^2 = 2.252, s = -1.26262994,-0.8012252826,-0.1263174957
+AI: N = 200, falhas sorteadas = 77 (38.5%), media dos pesos = 0.939, ESS = 49
+    P_f (menor FS de 6, 12, 18, 24, 30, 36, 42, 48 h) = 6.219%  CoV(P_f) = 13.6%  IC 95% ~ [4.566; 7.872]%
+    por instante: 6 h: 0.000% (CoV inf%)  12 h: 0.000% (CoV inf%)  18 h: 0.014% (CoV 61%)  24 h: 6.219% (CoV 14%)  30 h: 0.370% (CoV 31%)  36 h: 0.035% (CoV 64%)  42 h: 0.011% (CoV 73%)  48 h: 0.004% (CoV 100%)
+direto: N = 200, falhas = 13, P_f (menor FS de 6, 12, 18, 24, 30, 36, 42, 48 h) = 6.500%  CoV(P_f) = 26.9%
+    com N = 200 e P_f = 6.219%, o direto teria CoV(P_f) = 27.5%: a AI precisa de 0.24 vezes as realizacoes do direto para o mesmo CoV
+    diferenca AI - direto = -0.281 pontos percentuais (-0.14 desvios-padrao)
+
