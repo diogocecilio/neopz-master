@@ -1,14 +1,26 @@
-# Etapa 1 do plano de trabalho (Projects/PlanoDeTrabalho/README.md), CAMPANHA=etapa1: o SRM novo (o caminho de F comeca em
-# F0 = 0,8) contra o antigo (srm_f0=1) e a malha de teste do Cho2010. Uma linha por caso:
-#   id   fase   N   opcoes (prog= troca o programa; o padrao da campanha e o Cho2010)
-# Cho2010 (talude c-phi seco do Cho 2010, r(c, phi) = -0,5): as mesmas realizacoes (semente 2010) em todos os casos.
-#  - cho_tri24_antigo e cho_tri24: o SRM antigo e o novo na malha tri2 + 4 niveis (a dos numeros finais);
-#  - cho_tri23, cho_tri14, cho_tri13: o SRM novo em malhas mais baratas, para escolher a malha de teste dos metodos.
-cho_tri24_antigo  1  400  fator=tri2 nref=4 rcphi=-0.5 srm_f0=1
-cho_tri24         1  400  fator=tri2 nref=4 rcphi=-0.5
-cho_tri23         1  200  fator=tri2 nref=3 rcphi=-0.5
-cho_tri14         1  200  fator=tri1 nref=4 rcphi=-0.5
-cho_tri13         1  200  fator=tri1 nref=3 rcphi=-0.5
-# Chuva: o f50 de Rahardjo com I = 1 k_s (36 mm/h), o FS em 24 h com o SRM novo. As realizacoes sao as da campanha dos
-# tres solos (semente 2025), que usou o SRM antigo: a comparacao pareada mostra se o buraco logo abaixo de FS = 1 sumiu.
-chuva_f50_24h     1  600  prog=SlopeRainMonteCarlo solo=f50 tempos=24
+# Etapas 0 e 1 do plano de trabalho (Projects/PlanoDeTrabalho/README.md), CAMPANHA=etapa1, com o SRM novo: o caminho de F
+# comeca em F0 = 0,8 (srm_f0=1 e o antigo, com o buraco logo abaixo de FS = 1). Uma linha por caso:
+#   id   fase   N   opcoes (do Cho2010, o programa da campanha, ou do programa de prog=)
+# Opcoes da fila, que nao vao para o programa (tarefas.sh): prog=, espera=, ref= e par=.
+#
+# Etapa 0: o Exemplo 2 de Cho (2010), que rodava no PC (talude c-phi seco, SRM com tri2 + 4 niveis; Cho: P_f = 0,0171
+# com r = -0,5 e ~0,004 com r = -0,7). Nos diretos, os campos tem a semente 2010 (o padrao): a realizacao n e a mesma em
+# todos os casos diretos.
+#  - r05_direto: Monte Carlo direto com r(c, phi) = -0,5; as 1000 primeiras sao o piloto da AI, e as 4000, a referencia;
+#  - r05_ai: AI na direcao da banda, pela entropia cruzada no piloto, com a semente 1;
+#  - r05_ai_form: AI com o ponto de projeto do FORM de M = 10 termos por campo como deslocamento, com a semente 3. O
+#    FORM (form_M10, e tambem o form_M20) roda no primeiro job, antes da fila (FORM_PADRAO no campanha.sh);
+#  - r07_direto e r07_ai: o mesmo com r = -0,7 (P_f ~0,4%: o conjunto elite sao os 10% de menor FS).
+r05_direto    1  4000  rcphi=-0.5 fator=tri2 nref=4
+r05_ai        2  1000  rcphi=-0.5 fator=tri2 nref=4 piloto=@SAIDA@/r05_direto piloto_n=1000 ai=banda banda=@SAIDA@/r05_direto/mc_real-1/mecanismo.csv semente=1
+r05_ai_form   2  1000  rcphi=-0.5 fator=tri2 nref=4 desloc_xi=@SAIDA@/form_M10/ustar.txt banda=@SAIDA@/r05_direto/mc_real-1/mecanismo.csv semente=3 espera=@SAIDA@/form_M10/ustar.txt,@SAIDA@/r05_direto/mc_real-1/mecanismo.csv ref=r05_direto
+r07_direto    1  1000  rcphi=-0.7 fator=tri2 nref=4
+r07_ai        2  1000  rcphi=-0.7 fator=tri2 nref=4 piloto=@SAIDA@/r07_direto piloto_n=1000 ai=banda banda=@SAIDA@/r07_direto/mc_real-1/mecanismo.csv semente=1
+#
+# Etapa 1: o SRM antigo contra o novo, nas mesmas realizacoes e com as mesmas opcoes (so o srm_f0 muda):
+#  - r05_antigo: as 1000 primeiras do r05_direto com o SRM antigo;
+#  - chuva_antigo e chuva_novo: o f50 de Rahardjo com I = 1 k_s (36 mm/h, o padrao sem I=) e o FS em 24 h, nas
+#    realizacoes da campanha dos tres solos (semente 2025), onde o buraco logo abaixo de FS = 1 apareceu.
+r05_antigo    1  1000  rcphi=-0.5 fator=tri2 nref=4 srm_f0=1 par=r05_direto
+chuva_antigo  1  600   prog=SlopeRainMonteCarlo solo=f50 tempos=24 srm_f0=1
+chuva_novo    1  600   prog=SlopeRainMonteCarlo solo=f50 tempos=24 par=chuva_antigo

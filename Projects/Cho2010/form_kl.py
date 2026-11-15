@@ -8,12 +8,15 @@ com o FS do Cho2010 (SRM com refinamento adaptativo) nos xi dados (opcao xi=).
   - gradiente por diferencas centrais com passo h em u: 2n + 1 avaliacoes por iteracao (n = 2M), em paralelo. O FS tem
     ruido de uns 0,001 (malha adaptativa e patamar do arc-length): o passo e grande de proposito;
   - passo HL-RF u_{k+1} = (grad . u_k - g) / |grad|^2 grad, com amortecimento (metade do passo) quando |g| mais que dobra;
-  - para quando |g| < 0,005 e |u_{k+1} - u_k| < 0,05, ou no limite de iteracoes.
+  - para quando |g| < tol_g (0,001) e o beta do ponto novo muda menos que tol_beta (0,01), ou no limite de iteracoes. O
+    passo |u_{k+1} - u_k| nao serve de criterio: o ruido do FS nos termos fracos o mantem em ~0,1 (mais com M grande);
+  - o beta corrigido, a distancia da origem ao plano tangente no ultimo ponto (|u| + g / |grad| com u alinhado ao
+    gradiente: o ponto ainda nao esta em g = 0), vai junto no form.json.
 Saida: <pasta>/form.json (beta, P_f = Phi(-beta), u*, alfa e alfa^2 por modo e por campo, o historico) e o historico na
 tela.
 
-Uso: python3 -I form_kl.py <exe Cho2010> <pasta de trabalho> [M=20] [rcphi=-0.5] [h=0.5] [paralelos=2] [iteracoes=5]
-     [fator=tri2] [nref=4]"""
+Uso: python3 -I form_kl.py <exe Cho2010> <pasta de trabalho> [M=20] [rcphi=-0.5] [h=0.5] [paralelos=2] [iteracoes=10]
+     [fator=tri2] [nref=4] [srm_f0=0.8] [tol_g=0.001] [tol_beta=0.01]"""
 import concurrent.futures as cf
 import csv
 import json
@@ -24,7 +27,8 @@ import sys
 
 
 def parametros(argv):
-    p = {"M": 20, "rcphi": -0.5, "h": 0.5, "paralelos": 2, "iteracoes": 5, "fator": "tri2", "nref": 4}
+    p = {"M": 20, "rcphi": -0.5, "h": 0.5, "paralelos": 2, "iteracoes": 10, "fator": "tri2", "nref": 4, "srm_f0": 0.8,
+         "tol_g": 0.001, "tol_beta": 0.01}
     for a in argv:
         k, v = a.split("=", 1)
         if k not in p:
@@ -45,7 +49,7 @@ class Problema:
         with open(arq, "w") as f:
             f.write("\n".join(repr(x) for x in u) + "\n")
         cmd = [self.exe, "n=1", "primeira=0", f"xi={arq}", f"M={self.p['M']}", f"rcphi={self.p['rcphi']}",
-               f"fator={self.p['fator']}", f"nref={self.p['nref']}", f"saida={rotulo}"]
+               f"fator={self.p['fator']}", f"nref={self.p['nref']}", f"srm_f0={self.p['srm_f0']}", f"saida={rotulo}"]
         env = dict(os.environ, PZ_THREADS="0", OMP_NUM_THREADS="1", MKL_NUM_THREADS="1")
         subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env, cwd=self.pasta)
         with open(os.path.join(self.pasta, rotulo + "_0_0.csv"), newline="") as f:
@@ -100,8 +104,8 @@ def main():
             json.dump({"parametros": p, "historico": hist, "avaliacoes": prob.n}, f, indent=1)
         gu = sum(gi * ui for gi, ui in zip(grad, u))
         novo = [(gu - g) / n2 * gi for gi in grad]
-        passo = math.sqrt(sum((a - b) ** 2 for a, b in zip(novo, u)))
-        if it > 0 and abs(g) < 5.e-3 and passo < 5.e-2:
+        beta_novo = math.sqrt(sum(x * x for x in novo))
+        if it > 0 and abs(g) < p["tol_g"] and abs(beta_novo - beta) < p["tol_beta"]:
             break
         if gAnterior is not None and abs(g) > 2. * abs(gAnterior) and it > 1:
             novo = [ui + 0.5 * (ni - ui) for ui, ni in zip(u, novo)]  # amortece: metade do passo
@@ -111,11 +115,14 @@ def main():
     n = math.sqrt(sum(x * x for x in grad))
     alfa = [-x / n for x in grad]
     a2 = [x * x for x in alfa]
-    res = {"parametros": p, "beta": beta, "P_f": phi_normal(-beta), "u": u, "alfa": alfa, "alfa2": a2,
+    beta_corr = beta_novo  # distancia ao plano tangente no ultimo ponto avaliado (o proximo passo do HL-RF)
+    res = {"parametros": p, "beta": beta, "P_f": phi_normal(-beta), "beta_corrigido": beta_corr,
+           "P_f_corrigida": phi_normal(-beta_corr), "iteracoes": len(hist), "u": u, "alfa": alfa, "alfa2": a2,
            "alfa2_c": sum(a2[:M]), "alfa2_phi": sum(a2[M:]), "avaliacoes": prob.n, "historico": hist}
     with open(os.path.join(pasta, "form.json"), "w") as f:
         json.dump(res, f, indent=1)
     print(f"\n  beta = {beta:.4f}  P_f = Phi(-beta) = {100 * res['P_f']:.3f}%  ({prob.n} avaliacoes do FS)")
+    print(f"  beta corrigido = {beta_corr:.4f}  P_f = {100 * res['P_f_corrigida']:.3f}%")
     print(f"  importancia por campo: c' {res['alfa2_c']:.3f}, phi' {res['alfa2_phi']:.3f}")
 
 

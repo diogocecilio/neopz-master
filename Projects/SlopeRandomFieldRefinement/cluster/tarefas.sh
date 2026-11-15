@@ -8,8 +8,12 @@
 # qualquer momento). Nao usa mkdir: o mkdir do coreutils em Rust (uutils, Ubuntu recente) nao e atomico, e dois processos
 # pegavam a mesma tarefa. A tarefa esta feita quando existe mc_mapa_<a>_<z>.csv, gravado no fim da rodada. Se a rodada
 # termina com erro, a trava ganha uma linha ERRO e a tarefa fica parada ate a limpeza do submeter.sh (sem jobs na fila).
-# Nas opcoes dos casos, IREF vira $IREF e @SAIDA@ vira $SAIDA. A opcao prog=<nome> troca o programa do caso pelo
-# <nome> da mesma pasta do EXE (ex.: prog=SlopeRainMonteCarlo numa campanha do Cho2010) e nao e passada a ele.
+# Nas opcoes dos casos, IREF vira $IREF e @SAIDA@ vira $SAIDA. Opcoes da fila, que nao vao para o programa:
+#   prog=<nome>      o programa do caso e o <nome> da mesma pasta do EXE (ex.: prog=SlopeRainMonteCarlo numa campanha
+#                    do Cho2010)
+#   espera=<a>,<b>   o caso so comeca quando os arquivos existem (ex.: o ponto de projeto que o form.sh grava); com um
+#                    <arquivo>.ERRO (quem o fazia desistiu), o caso fica de fora
+#   ref=<id>, par=<id>  o Monte Carlo direto de referencia e o caso da comparacao pareada (so para o baixar.sh)
 # Dependencia (amostragem por importancia): um caso com piloto=@SAIDA@/<id> e piloto_n=<n> nas opcoes so comeca quando
 # os blocos das realizacoes 0..n-1 do caso <id> acabaram (mapa ou ERRO). Enquanto isso, o processo faz as outras tarefas;
 # sem nenhuma livre, espera 60 s e olha de novo, ate ESPERA_MAX s (padrao 3 h) seguidos. O piloto de um caso escolhido
@@ -40,7 +44,7 @@ for i in "${!todos_id[@]}"; do
     [[ " ${todos_opc[$i]} " =~ \ piloto=@SAIDA@/([^ ]+)\  ]] || continue
     [ -n "${ESCOLHIDO[${BASH_REMATCH[1]}]:-}" ] || PILOTO_EXTRA[${BASH_REMATCH[1]}]=1
 done
-ids=() opcs=() ns=() pil=() pnp=() exes=()
+ids=() opcs=() ns=() pil=() pnp=() exes=() esps=()
 for i in "${!todos_id[@]}"; do
     id=${todos_id[$i]} n=${todos_n[$i]} opc=${todos_opc[$i]}
     NCASO[$id]=$n
@@ -52,12 +56,20 @@ for i in "${!todos_id[@]}"; do
     p="" np=1000
     [[ " $opc " =~ \ piloto=@SAIDA@/([^ ]+)\  ]] && p="${BASH_REMATCH[1]}"
     [[ " $opc " =~ \ piloto_n=([0-9]+)\  ]] && np="${BASH_REMATCH[1]}"
-    exe="$EXE"
-    if [[ " $opc " =~ \ prog=([^ ]+)\  ]]; then
-        exe="$(dirname "$EXE")/${BASH_REMATCH[1]}"
-        opc="$(echo " $opc " | sed -e "s| prog=${BASH_REMATCH[1]} | |" -e 's/^ *//' -e 's/ *$//')"
-    fi
-    ids+=("$id") opcs+=("${opc//@SAIDA@/$SAIDA}") ns+=("$n") pil+=("$p") pnp+=("$np") exes+=("$exe")
+    # as opcoes da fila saem daqui
+    exe="$EXE" esp="" resto=""
+    set -f
+    for w in $opc; do
+        case "$w" in
+        prog=*) exe="$(dirname "$EXE")/${w#prog=}" ;;
+        espera=*) esp="${w#espera=}" ;;
+        ref=* | par=*) ;;
+        *) resto+="${resto:+ }$w" ;;
+        esac
+    done
+    set +f
+    ids+=("$id") opcs+=("${resto//@SAIDA@/$SAIDA}") ns+=("$n") pil+=("$p") pnp+=("$np") exes+=("$exe")
+    esps+=("${esp//@SAIDA@/$SAIDA}")
 done
 for p in "${pil[@]}"; do
     [ -z "$p" ] || [ -n "${NCASO[$p]:-}" ] || { echo "$(date '+%F %T') piloto $p nao esta em $CASOS_ARQ: fim" >> "$LOG"; exit 1; }
@@ -75,7 +87,20 @@ piloto_pronto() {
     PRONTO[$1]=1
 }
 
-desde="" # inicio da espera pelos pilotos
+# os arquivos de espera= (separados por virgula): 0 se existem todos, 1 se falta algum, 2 se algum tem o <arquivo>.ERRO
+arquivos_prontos() {
+    local f r=0
+    local -a fs
+    IFS=, read -ra fs <<< "$1"
+    for f in "${fs[@]}"; do
+        [ -e "$f.ERRO" ] && return 2
+        [ -e "$f" ] || r=1
+    done
+    return $r
+}
+declare -A DE_FORA
+
+desde="" # inicio da espera pelos pilotos e arquivos
 while :; do
     espera=0 fez=0
     for ((b = 0; ; b++)); do
@@ -94,6 +119,15 @@ while :; do
             if [ -n "${pil[$i]}" ] && ! piloto_pronto "${pil[$i]}" "${pnp[$i]}"; then
                 espera=1
                 continue
+            fi
+            if [ -n "${esps[$i]}" ]; then
+                arquivos_prontos "${esps[$i]}"
+                case $? in
+                1) espera=1; continue ;;
+                2) [ -n "${DE_FORA[$i]:-}" ] || echo "$(date '+%F %T') ${ids[$i]}: ha um .ERRO em ${esps[$i]}: fica de fora" >> "$LOG"
+                    DE_FORA[$i]=1
+                    continue ;;
+                esac
             fi
             mkdir -p "$dir/.tarefas"
             # a trava: criar o arquivo, so se ainda nao existe (atomico); senao outro processo ja pegou
@@ -117,13 +151,14 @@ while :; do
         done
         ((resta)) || break
     done
-    ((espera)) || break # nada esperando um piloto: acabou
+    ((espera)) || break # nada esperando um piloto ou arquivo: acabou
     ((fez)) && continue # fez alguma tarefa: olha a fila de novo
     if [ -z "$desde" ]; then
         desde=$(date +%s)
-        echo "$(date '+%F %T') esperando os pilotos (as outras tarefas estao feitas ou com outros processos)" >> "$LOG"
+        echo "$(date '+%F %T') esperando os pilotos ou os arquivos de espera= (as outras tarefas estao feitas ou com outros" \
+            "processos)" >> "$LOG"
     elif (($(date +%s) - desde > ${ESPERA_MAX:-10800})); then
-        echo "$(date '+%F %T') os pilotos nao acabaram em ${ESPERA_MAX:-10800} s: fim" >> "$LOG"
+        echo "$(date '+%F %T') os pilotos ou arquivos nao ficaram prontos em ${ESPERA_MAX:-10800} s: fim" >> "$LOG"
         break
     fi
     sleep 60

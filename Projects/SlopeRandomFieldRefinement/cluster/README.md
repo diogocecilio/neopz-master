@@ -268,6 +268,31 @@ O `status.sh` mostra a P_f do mínimo no tempo, já com os pesos. O `baixar.sh` 
 Para recompilar só o `SlopeRainMonteCarlo` com jobs `ceronMC` na fila, use `FORCAR=1 ./compilar.sh`. Isso é seguro
 enquanto a NeoPZ não muda: a `libpz.so` dos jobs fica igual, e os executáveis são trocados de forma atômica.
 
+## Etapas 0 e 1 do plano de trabalho (`CAMPANHA=etapa1`)
+
+O plano está em `Projects/PlanoDeTrabalho/README.md`. Os casos ficam em `casos_etapa1.txt`, todos com o SRM novo
+(`srm_f0`, padrão 0,8: o caminho de F começa abaixo de 1):
+- **Etapa 0:** o Cho (2010) que rodava no PC:
+  - Monte Carlo direto com r = −0,5 (4000) e r = −0,7 (1000);
+  - a AI pela banda (1000 cada);
+  - a AI com o ponto de projeto do FORM de 10 termos por campo (`r05_ai_form`, 1000).
+- **Etapa 1:** o SRM antigo (`srm_f0=1`) contra o novo nas mesmas realizações:
+  - as 1000 primeiras do Cho2010 (`r05_antigo`);
+  - o f50 da chuva em 24 h, 600 em cada versão.
+
+O primeiro job roda antes da fila os FORM com M = 10 e 20 (`form.sh`, com o `Projects/Cho2010/form_kl.py`; 12
+avaliações ao mesmo tempo, ~1,5 h) e depois entra na fila. O `r05_ai_form` espera o ponto de projeto
+(`espera=@SAIDA@/form_M10/ustar.txt`). Ao todo são ~290 h de núcleo, umas 6 a 7 h com 4 nós.
+
+```bash
+ssh diogo@fermi.cesup.ufrgs.br 'cd neopz-master && git pull && cd Projects/SlopeRandomFieldRefinement/cluster && ./compilar.sh && python3 --version && CAMPANHA=etapa1 ./submeter.sh 4'
+ssh diogo@fermi.cesup.ufrgs.br 'CAMPANHA=etapa1 neopz-master/Projects/SlopeRandomFieldRefinement/cluster/status.sh'
+CAMPANHA=etapa1 ~/projects/neopz-master/Projects/SlopeRandomFieldRefinement/cluster/baixar.sh
+```
+
+O `status.sh` mostra também a última iteração de cada FORM. `FORM_M=` (vazio) no `submeter.sh` não roda os FORM, e
+`FORM_M="10"` roda só um.
+
 ## Como funciona
 
 - **Tarefa:** um bloco de `BLOCO` realizações (padrão 20, umas 2 h no fermi) de um caso. Cada uma é uma rodada do
@@ -281,7 +306,13 @@ enquanto a NeoPZ não muda: a `libpz.so` dos jobs fica igual, e os executáveis 
   rodada termina com erro, a trava ganha uma linha `ERRO`. A tarefa fica parada até a limpeza do `submeter.sh`, sem
   jobs na fila, e então é refeita.
 - **Dependência:** um caso com `piloto=@SAIDA@/<id> piloto_n=<n>` só começa quando os blocos das realizações 0..n−1 do
-  caso `<id>` acabaram. Sem outra tarefa livre, o processo espera 60 s por vez, até `ESPERA_MAX` (3 h).
+  caso `<id>` acabaram. Um caso com `espera=<arquivo>,<arquivo>` só começa quando os arquivos existem. Se um deles tem
+  um `<arquivo>.ERRO` (o `form.sh` grava um quando o FORM falha), o caso fica de fora. Sem outra tarefa livre, o
+  processo espera 60 s por vez, até `ESPERA_MAX` (3 h).
+- **Opções da fila**, que não vão para o programa:
+  - `prog=<nome>` troca o programa do caso por outro de `bin/`;
+  - `espera=` (acima);
+  - `ref=<id>` e `par=<id>` marcam o direto de referência e a comparação pareada para o pós-processamento.
 - **P_f no `status.sh`:** cada realização conta com o menor FS dos seus instantes, e só se todos tiverem fator. Na chuva
   com 0 e 24 h, é o FS de 24 h.
 - **Opções:** nas opções dos casos, `@SAIDA@` vira a pasta da campanha e `IREF` vira a intensidade de referência.

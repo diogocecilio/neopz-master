@@ -7,11 +7,13 @@
 #                   (SlopeRainMonteCarlo, casos_chuva_ai.txt; blocos de 1 realizacao)
 #   solos           os tres solos do Rahardjo com I = 1 k_s (a Fig. 5), Monte Carlo direto com o FS de 6 em 6 h ate
 #                   48 h (SlopeRainMonteCarlo, casos_solos.txt; blocos de 5 realizacoes)
-#   etapa1          etapa 1 do plano de trabalho (Projects/PlanoDeTrabalho): o SRM novo contra o antigo e a malha de teste
-#                   do Cho2010 (Cho2010 e, com prog=, SlopeRainMonteCarlo; casos_etapa1.txt; blocos de 10)
-# Define NOME (jobs no SLURM), PROG (executavel em bin/), CASOS_TXT, PASTA (em $DATA), IREF_PADRAO, BLOCO_PADRAO e DESTINO
-# (pasta no PC, em ~/projects/runs)
+#   etapa1          etapas 0 e 1 do plano de trabalho (Projects/PlanoDeTrabalho): o Cho2010 (Monte Carlo direto, AI pela
+#                   banda e pelo ponto de projeto do FORM, que o primeiro job roda antes) e o SRM antigo contra o novo no
+#                   Cho2010 e na chuva (Cho2010 e, com prog=, SlopeRainMonteCarlo; casos_etapa1.txt; blocos de 10)
+# Define NOME (jobs no SLURM), PROG (executavel em bin/), CASOS_TXT, PASTA (em $DATA), IREF_PADRAO, BLOCO_PADRAO, DESTINO
+# (pasta no PC, em ~/projects/runs) e, para os FORM do form.sh, FORM_PADRAO (os M) e FORM_OPCOES (do form_kl.py)
 CAMPANHA="${CAMPANHA:-chuva}"
+FORM_PADRAO="" FORM_OPCOES=""
 case "$CAMPANHA" in
 chuva) NOME=chuvaMC PROG=SlopeRainMonteCarlo CASOS_TXT=casos.txt PASTA=chuva_mc IREF_PADRAO=31.05 BLOCO_PADRAO=20
     DESTINO=fermi_chuva ;;
@@ -22,7 +24,7 @@ chuva_ai) NOME=chuvaAI PROG=SlopeRainMonteCarlo CASOS_TXT=casos_chuva_ai.txt PAS
 solos) NOME=solosMC PROG=SlopeRainMonteCarlo CASOS_TXT=casos_solos.txt PASTA=chuva_solos IREF_PADRAO=0
     BLOCO_PADRAO=5 DESTINO=fermi_chuva_solos ;;
 etapa1) NOME=etapa1 PROG=Cho2010 CASOS_TXT=casos_etapa1.txt PASTA=etapa1 IREF_PADRAO=0 BLOCO_PADRAO=10
-    DESTINO=fermi_etapa1 ;;
+    DESTINO=fermi_etapa1 FORM_PADRAO="10 20" FORM_OPCOES="rcphi=-0.5 h=0.5 iteracoes=10 fator=tri2 nref=4" ;;
 *) echo "CAMPANHA=$CAMPANHA desconhecida: chuva, ceron, chuva_ai, solos ou etapa1" >&2; exit 2 ;;
 esac
 export CAMPANHA

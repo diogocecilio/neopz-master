@@ -12,6 +12,8 @@
 #   BLOCO     realizacoes por tarefa (padrao 20, umas 2 h no fermi); tambem fixo por SAIDA
 #   ULTIMA    ultima realizacao de todos os casos escolhidos (ex.: ULTIMA=9999 CASOS=ref acrescenta realizacoes)
 #   PARALELO  processos por no (padrao 12, os nucleos fisicos; 24 usa o hyperthreading)
+#   FORM_M    os FORM do Cho2010 que o primeiro job roda antes da fila (form.sh; padrao: FORM_PADRAO da campanha, ex.
+#             "10 20" no etapa1; os ja prontos sao pulados; FORM_M= vazio nao roda nenhum)
 #   TEMPO     limite de cada job (padrao 2-00:00:00), PARTICAO
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
@@ -23,6 +25,7 @@ SAIDA="${SAIDA:-${DATA:+$DATA/$PASTA}}"
 export SAIDA="${SAIDA:-$PWD/resultados_$CAMPANHA}" CASOS="${CASOS:-todos}" IREF="${IREF:-$IREF_PADRAO}"
 export BLOCO="${BLOCO:-$BLOCO_PADRAO}"
 export PARALELO="${PARALELO:-12}"
+FORM_M="${FORM_M-$FORM_PADRAO}"
 [ -n "${ULTIMA:-}" ] && export ULTIMA
 [ -x "bin/$PROG" ] || { echo "compile antes, no no de login: ./compilar.sh" >&2; exit 1; }
 
@@ -55,17 +58,26 @@ if [ -z "$fila" ]; then
         [ -f "$caso/mc_mapa_$t.csv" ] || { rm -rf "$trava"; n=$((n + 1)); }
     done < <(find "$SAIDA" -path '*/.tarefas/*' -mindepth 1 -print0 2> /dev/null)
     [ "$n" -eq 0 ] || echo "liberadas $n tarefas interrompidas (serao refeitas)"
+    # um FORM sem o ponto de projeto, com a trava (job interrompido) ou com ERRO: refeito pelo primeiro job
+    for t in "$SAIDA"/form_M*/trava; do
+        [ -e "$t" ] || continue
+        d="$(dirname "$t")"
+        [ -s "$d/ustar.txt" ] || { rm -f "$t" "$d/ustar.txt.ERRO"; echo "o FORM $(basename "$d") sera refeito"; }
+    done
 else
     echo "ha $(echo "$fila" | wc -l) job(s) $NOME na fila: os novos entram na mesma fila de tarefas"
 fi
 rm -f "$SAIDA/PARAR"
 for ((no = 0; no < NOS; no++)); do
-    j="$(sbatch --parsable --job-name="$NOME" ${PARTICAO:+--partition="$PARTICAO"} ${TEMPO:+--time="$TEMPO"} job.sbatch)" || {
+    fm=""
+    ((no == 0)) && fm="$FORM_M"
+    j="$(FORM_M="$fm" sbatch --parsable --job-name="$NOME" ${PARTICAO:+--partition="$PARTICAO"} ${TEMPO:+--time="$TEMPO"} \
+        job.sbatch)" || {
         echo "o SLURM recusou o job $no (cota?): os ja submetidos seguem; submeta o resto depois" >&2
         break
     }
-    echo "job ${j%%;*} ($((no + 1)) de $NOS)"
-    echo "$(date '+%F %T') ${j%%;*} CAMPANHA=$CAMPANHA PARALELO=$PARALELO CASOS=$CASOS IREF=$IREF BLOCO=$BLOCO${ULTIMA:+ ULTIMA=$ULTIMA} SAIDA=$SAIDA" \
+    echo "job ${j%%;*} ($((no + 1)) de $NOS)${fm:+: antes da fila, FORM com M = $fm}"
+    echo "$(date '+%F %T') ${j%%;*} CAMPANHA=$CAMPANHA PARALELO=$PARALELO CASOS=$CASOS IREF=$IREF BLOCO=$BLOCO${ULTIMA:+ ULTIMA=$ULTIMA}${fm:+ FORM_M=\"$fm\"} SAIDA=$SAIDA" \
         >> logs/jobs.txt
 done
 echo "resultados em $SAIDA; acompanhe com CAMPANHA=$CAMPANHA ./status.sh"

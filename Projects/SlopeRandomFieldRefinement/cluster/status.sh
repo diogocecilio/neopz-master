@@ -17,6 +17,13 @@ if [ -d "$SAIDA/logs" ]; then
     for f in "$SAIDA"/logs/p*.txt; do [ -e "$f" ] && echo "  $(basename "$f" .txt): $(tail -n 1 "$f")"; done | sort -V | tail -n 6
     echo "erros: $(cat "$SAIDA"/logs/p*.txt 2> /dev/null | grep -c ERRO)"
 fi
+# os FORM do form.sh: a ultima iteracao e, no fim, o beta
+for f in "$SAIDA"/form_M*/form.log; do
+    [ -e "$f" ] || continue
+    d="$(dirname "$f")"
+    if [ -s "$d/ustar.txt" ]; then e=pronto; elif [ -e "$d/ustar.txt.ERRO" ]; then e=ERRO; else e=rodando; fi
+    echo "$(basename "$d") ($e): $(grep -E '^ +[0-9]+ +[-+]' "$f" | tail -n 1 | tr -s ' ')$(grep -m 1 'beta corrigido' "$f" | tr -s ' ')"
+done
 printf "\n%-14s %7s %7s %5s %7s %7s %8s %7s\n" caso tarefas rodando erros real falhas "P_f(%)" "CoV(%)"
 while read -r id fase n opc; do
     [[ -z "$id" || "$id" == \#* ]] && continue
