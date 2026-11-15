@@ -32,7 +32,7 @@
 //                          ficam sem deslocamento. Use com outra semente=
 //   linear (0), alfa ()    teste da amostragem SEM elementos finitos: com linear=beta e alfa=<arquivo> (2K numeros, os K de
 //                          c' e os K de phi', normalizados aqui), a falha e alfa . xi > beta, com P_f exata = Phi(-beta);
-//                          FS_min = 1 + beta - alfa . xi. Usa o mesmo sorteio (semente, desloc_xi, piloto) e o mesmo peso
+//                          FS_min = exp(beta - alfa . xi). Usa o mesmo sorteio (semente, desloc_xi, piloto) e o mesmo peso
 //   xi (<arquivo>)         os xi dados, sem sorteio (um ponto do FORM: form_kl.py): 2M numeros, os M de c' e depois os M de
 //                          phi'; com n = 1, a realizacao primeira usa esses xi
 //   banda (<arquivo>)      mecanismo.csv de um deterministico: a direcao d dos xi e as projecoes proj_* no CSV
@@ -674,7 +674,7 @@ int main(int argc, char *argv[])
             double t = 0.;
             for (size_t c = 0; c < 2; c++)
                 for (size_t k = 0; k < alfa[c].size(); k++) t += alfa[c][k] * campos.Xi()[c][k];
-            l.fs = 1. + op.linearBeta - t;
+            l.fs = std::exp(op.linearBeta - t); // > 0 sempre (o pos-processamento descarta FS <= 0)
             Grava(csv, l, op, campos);
             fss.push_back(l.fs);
             somaPesoFalha += (l.fs < 1.) * std::exp(l.logPeso);
