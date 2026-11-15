@@ -1,0 +1,80 @@
+\section{FORM com a base da Karhunen-Loève}
+\label{sec:formkl}
+
+\paragraph{As variáveis.} Com $j \in \{c', \phi', k\}$,
+\begin{equation}
+  Z_j(\bm x) = \sum_{k=1}^{M} \sqrt{\lambda_k}\,\xi_{jk}\, f_k(\bm x), \qquad
+  p_j(\bm x) = \exp\big(\mu_j + \sigma_j Z_j(\bm x)\big), \qquad \xi_{jk} \sim \mathcal N(0,1).
+\end{equation}
+\begin{itemize}
+  \item Os $\xi_{jk}$ já são o espaço $\bm U$: não precisa de Nataf.
+  \item Para correlacionar $c'$ e $\phi'$, faz-se em cada modo $(\xi_{c,k}, \xi_{\phi,k})^T = L_2 (\eta_{1,k}, \eta_{2,k})^T$,
+    com $L_2L_2^T = \begin{bmatrix}1 & \rho_Z\\ \rho_Z & 1\end{bmatrix}$.
+  \item A função de falha é $G(\bm\xi) = \Gamma(\bm\xi) - 1$. O FORM procura
+    $\bm\xi^* = \arg\min\{\|\bm\xi\| : G = 0\}$, com $\beta = \|\bm\xi^*\|$, e usa o HL-RF da
+    Seção~\ref{sec:confiab}.
+\end{itemize}
+
+\paragraph{O gradiente é a projeção da sensibilidade nos modos.} Com $s_j(\bm x) = \partial\Gamma/\partial p_j(\bm x)$ e
+$\tilde s_j = s_j\,\sigma_j\,p_j$:
+\begin{equation}
+  \frac{\partial G}{\partial \xi_{jk}} = \int_\Omega \tilde s_j(\bm x)\,\sqrt{\lambda_k}\, f_k(\bm x)\, d\bm x
+  \;\approx\; \sum_q w_q\, \tilde s_j(\bm x_q)\,\sqrt{\lambda_k}\, f_k(\bm x_q).
+\end{equation}
+
+\paragraph{O ponto de projeto é o campo de ruptura mais provável.} Com $\bm\xi^* = \beta\bm\alpha$,
+$\bm\alpha = -\nabla G/\|\nabla G\|$ e $\sum_k \lambda_k f_k(\bm x) f_k(\bm x') = C(\bm x, \bm x')$:
+\begin{equation}
+  Z_j^*(\bm x) \;\propto\; -\sum_k \lambda_k f_k(\bm x)\,\langle \tilde s_j, f_k\rangle
+  = -\int_\Omega C(\bm x, \bm x')\,\tilde s_j(\bm x')\, d\bm x' .
+\end{equation}
+É a sensibilidade suavizada pela covariância. No talude, isso dá uma faixa fraca ao longo da superfície de ruptura,
+longa em $x$ ($L_x = 20$\,m) e estreita em $y$ ($L_y = 2$\,m).
+
+\paragraph{Importância e média espacial.}
+\begin{equation}
+  \alpha_{jk}^2 \propto \lambda_k \langle \tilde s_j, f_k\rangle^2, \qquad
+  \mathrm{Var}(G) \approx \iint \tilde s(\bm x)\, C(\bm x, \bm x')\, \tilde s(\bm x')\, d\bm x\, d\bm x'
+  \;\leq\; \Big(\int |\tilde s|\Big)^2 .
+\end{equation}
+O limite da direita é o solo homogêneo ($C \equiv 1$). Com campos, a superfície de ruptura faz média, e por isso o
+relatório da chuva tem $P_f = 24{,}8\,\%$ com variáveis homogêneas e cerca de 1\,\% com campos.
+
+\paragraph{Truncamento.} Como $G_{M+1}(\bm\xi_M^*, 0) = G_M(\bm\xi_M^*) = 0$, vale $\beta_{M+1} \leq \beta_M$.
+Truncar superestima $\beta$, o que é inseguro. É preciso conferir a convergência de $\beta$ com $M$.
+
+\paragraph{Custo do gradiente.}
+\begin{itemize}
+  \item \textbf{Diferenças finitas:} $n + 1$ ou $2n$ análises por iteração, com $n = 3M$. Com $M = 2000$ são cerca de
+    6,6 dias por iteração; com 20 a 50 modos por campo, de 61 a 151 análises.
+  \item \textbf{Atalho para a coesão}, pelo limite superior com Mohr--Coulomb associado. Com
+    $D = c'\,\dot\varepsilon_v^p\cot\phi'$ e $\Gamma = P_{mr}/(P_\gamma + P_u)$,
+    \begin{equation}
+      \frac{\partial\Gamma}{\partial c'(\bm x)} \approx \frac{\dot\varepsilon_v^p(\bm x)\cot\phi'(\bm x)}{P_\gamma + P_u},
+    \end{equation}
+    calculado com o mecanismo de colapso do GIM. Para $\phi'$ e $k$ seria preciso o método direto ou o adjunto.
+\end{itemize}
+
+\paragraph{O caminho proposto.} FORM nos $K$ primeiros modos de cada campo, para achar $\bm\xi^*$. Depois, amostragem
+por importância com os $M = 2000$ modos, deslocada só nos $K$ primeiros:
+\begin{equation}
+  w(\bm v) = \exp\big(-\bm v\cdot\bm\xi^* + \tfrac12\|\bm\xi^*\|^2\big), \qquad
+  \hat P_f = \frac1N\sum_i I[G(\bm v_i) \leq 0]\, w(\bm v_i).
+\end{equation}
+
+\paragraph{De onde vem.} Citadas de memória, a conferir antes de usar em publicação.
+\begin{itemize}
+  \item \textbf{KL:} Ghanem e Spanos (1991), \emph{Stochastic Finite Elements: A Spectral Approach}.
+  \item \textbf{FORM com campos discretizados e o gradiente pela regra da cadeia:} Der Kiureghian e Ke (1988),
+    \emph{Probabilistic Engineering Mechanics} 3(2), 83--91; Li e Der Kiureghian (1993), \emph{Journal of Engineering
+    Mechanics} 119(6), 1136--1154; Sudret e Der Kiureghian (2000), relatório UCB/SEMM-2000/08.
+  \item \textbf{O ponto de projeto como a realização mais provável:} Der Kiureghian (2000), \emph{Probabilistic
+    Engineering Mechanics} 15(1), 81--90, onde é a \emph{design-point excitation} em vibrações aleatórias.
+  \item \textbf{Sensibilidade analítica:} Kleiber et al.\ (1997), \emph{Parameter Sensitivity in Nonlinear Mechanics};
+    Haukaas e Der Kiureghian (2005), \emph{Journal of Engineering Mechanics} 131(10).
+  \item \textbf{Amostragem por importância em dimensão alta:} Au e Beck (2003), \emph{Structural Safety} 25(2),
+    139--163.
+  \item \textbf{Média espacial:} Vanmarcke (1983), \emph{Random Fields}.
+  \item \textbf{Deduções feitas aqui, sem fonte conhecida nessa forma:} a desigualdade $\beta_{M+1} \leq \beta_M$ e o
+    atalho da dissipação para $\partial\Gamma/\partial c'$, que vem da análise limite de Chen (1975).
+\end{itemize}
