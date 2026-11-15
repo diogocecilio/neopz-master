@@ -8,6 +8,9 @@ r07_direto     1  6000  rcphi=-0.7 fator=tri2 nref=4
 r07_ai_form10  2  1000  rcphi=-0.7 fator=tri2 nref=4 desloc_xi=@SAIDA@/form_M10/ustar.txt semente=3 espera=@SAIDA@/form_M10/ustar.txt ref=r07_direto
 r07_ai_form20  2  1000  rcphi=-0.7 fator=tri2 nref=4 desloc_xi=@SAIDA@/form_M20/ustar.txt semente=3 espera=@SAIDA@/form_M20/ustar.txt ref=r07_direto
 #
-# Referencia da etapa 4 (validar FORM e AI na chuva): o f50 de Rahardjo a 31,05 mm/h (IREF), o FS so em 24 h (o minimo cai
-# em 24 h em 199 das 200 do piloto do chuva_ai), Monte Carlo direto de 2000 (P_f ~6%, CoV ~9%), semente 2025 (o padrao).
-chuva31_24h    1  2000  prog=SlopeRainMonteCarlo solo=f50 I=IREF tempos=24
+# Etapa 4 (validar FORM e AI na chuva): o f50 de Rahardjo a 31,05 mm/h (IREF), o FS so em 24 h (o minimo cai em 24 h em
+# 199 das 200 do piloto do chuva_ai).
+#  - chuva31_24h: Monte Carlo direto de 4000 (P_f ~6%, CoV ~6%), semente 2025 (o padrao), a referencia;
+#  - chuva31_ai: AI na direcao da banda (entropia cruzada), com as 1000 primeiras do direto como piloto, semente 1.
+chuva31_24h    1  4000  prog=SlopeRainMonteCarlo solo=f50 I=IREF tempos=24
+chuva31_ai     2  1000  prog=SlopeRainMonteCarlo solo=f50 I=IREF tempos=24 piloto=@SAIDA@/chuva31_24h piloto_n=1000 ai=banda banda=@SAIDA@/chuva31_24h/mc_real-1/mecanismo.csv banda_t=24 semente=1
