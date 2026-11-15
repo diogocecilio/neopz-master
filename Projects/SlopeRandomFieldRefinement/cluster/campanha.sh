@@ -10,6 +10,9 @@
 #   etapa1          etapas 0 e 1 do plano de trabalho (Projects/PlanoDeTrabalho): o Cho2010 (Monte Carlo direto, AI pela
 #                   banda e pelo ponto de projeto do FORM, que o primeiro job roda antes) e o SRM antigo contra o novo no
 #                   Cho2010 e na chuva (Cho2010 e, com prog=, SlopeRainMonteCarlo; casos_etapa1.txt; blocos de 10)
+#   etapa3          noite de 15/11: etapa 3 do plano (P_f pequena, r = -0,7: direto de 6000, FORM M = 10 e 20 no
+#                   primeiro job e a AI com cada ponto de projeto) e a referencia da etapa 4 (chuva f50 a 31,05 mm/h, FS
+#                   em 24 h, direto de 2000) (Cho2010 e, com prog=, SlopeRainMonteCarlo; casos_etapa3.txt; blocos de 10)
 # Define NOME (jobs no SLURM), PROG (executavel em bin/), CASOS_TXT, PASTA (em $DATA), IREF_PADRAO, BLOCO_PADRAO, DESTINO
 # (pasta no PC, em ~/projects/runs) e, para os FORM do form.sh, FORM_PADRAO (os M) e FORM_OPCOES (do form_kl.py)
 CAMPANHA="${CAMPANHA:-chuva}"
@@ -25,8 +28,10 @@ solos) NOME=solosMC PROG=SlopeRainMonteCarlo CASOS_TXT=casos_solos.txt PASTA=chu
     BLOCO_PADRAO=5 DESTINO=fermi_chuva_solos ;;
 etapa1) NOME=etapa1 PROG=Cho2010 CASOS_TXT=casos_etapa1.txt PASTA=etapa1 IREF_PADRAO=0 BLOCO_PADRAO=10
     DESTINO=fermi_etapa1 FORM_PADRAO="10 20" FORM_OPCOES="rcphi=-0.5 h=0.5 iteracoes=10 fator=tri2 nref=4" ;;
-*) echo "CAMPANHA=$CAMPANHA desconhecida: chuva, ceron, chuva_ai, solos ou etapa1" >&2; exit 2 ;;
+etapa3) NOME=etapa3 PROG=Cho2010 CASOS_TXT=casos_etapa3.txt PASTA=etapa3 IREF_PADRAO=31.05 BLOCO_PADRAO=10
+    DESTINO=fermi_etapa3 FORM_PADRAO="10 20" FORM_OPCOES="rcphi=-0.7 h=0.5 iteracoes=10 fator=tri2 nref=4" ;;
+*) echo "CAMPANHA=$CAMPANHA desconhecida: chuva, ceron, chuva_ai, solos, etapa1 ou etapa3" >&2; exit 2 ;;
 esac
 export CAMPANHA
 # todos os nomes de job (o compilar.sh espera todos acabarem: a libpz.so e a mesma)
-NOMES_TODOS=chuvaMC,ceronMC,chuvaAI,solosMC,etapa1
+NOMES_TODOS=chuvaMC,ceronMC,chuvaAI,solosMC,etapa1,etapa3

@@ -1,0 +1,13 @@
+# Noite de 15/11 (CAMPANHA=etapa3), com o SRM novo. Uma linha por caso: id fase N opcoes (prog=, espera=, ref=: tarefas.sh).
+# Etapa 3 do plano de trabalho: P_f pequena, o Cho (2010) com r(c, phi) = -0,7 (Cho: P_f ~0,4%).
+#  - r07_direto: Monte Carlo direto de 6000 (~25 falhas, CoV ~20%), a referencia. As 1000 primeiras sao as mesmas
+#    realizacoes do r07_direto da etapa1 (semente 2010): conferencia de que a versao nova do programa reproduz a antiga;
+#  - r07_ai_form10 e r07_ai_form20: AI com o ponto de projeto do FORM com M = 10 e 20 termos por campo (o primeiro job roda
+#    os dois FORM com r = -0,7 antes da fila: FORM_PADRAO e FORM_OPCOES no campanha.sh), a mesma semente 3 nas duas.
+r07_direto     1  6000  rcphi=-0.7 fator=tri2 nref=4
+r07_ai_form10  2  1000  rcphi=-0.7 fator=tri2 nref=4 desloc_xi=@SAIDA@/form_M10/ustar.txt semente=3 espera=@SAIDA@/form_M10/ustar.txt ref=r07_direto
+r07_ai_form20  2  1000  rcphi=-0.7 fator=tri2 nref=4 desloc_xi=@SAIDA@/form_M20/ustar.txt semente=3 espera=@SAIDA@/form_M20/ustar.txt ref=r07_direto
+#
+# Referencia da etapa 4 (validar FORM e AI na chuva): o f50 de Rahardjo a 31,05 mm/h (IREF), o FS so em 24 h (o minimo cai
+# em 24 h em 199 das 200 do piloto do chuva_ai), Monte Carlo direto de 2000 (P_f ~6%, CoV ~9%), semente 2025 (o padrao).
+chuva31_24h    1  2000  prog=SlopeRainMonteCarlo solo=f50 I=IREF tempos=24
