@@ -1,5 +1,7 @@
 #include "RandomField.h"
 
+#include <cmath>
+
 RandomField::RandomField(double x0, double y0, double Dx, double Dy, double Lx, double Ly, int M,
                          const std::vector<Stats> &campos)
     : fKL(x0, y0, Dx, Dy, Lx, Ly, 1., M)
@@ -87,6 +89,16 @@ std::vector<double> RandomField::At(double x, double y) const
         const double w = fKL.raiz[k] * f[fColX[fKL.ix[k]]] * g[fColY[fKL.iy[k]]];
         for (size_t c = 0; c < fXi.size(); c++) z[c] += w * fXi[c][k];
     }
+    if (fCorrB >= 0) z[fCorrB] = fRho * z[fCorrA] + std::sqrt(1. - fRho * fRho) * z[fCorrB];
     for (size_t c = 0; c < fXi.size(); c++) z[c] = fLog[c](z[c]);
     return z;
+}
+
+void RandomField::SetCrossCorrelation(int a, int b, double rho)
+{
+    if (a < 0 || b < 0 || a == b || a >= NCampos() || b >= NCampos() || !(std::abs(rho) < 1.)) {
+        fCorrA = fCorrB = -1, fRho = 0.;
+        return;
+    }
+    fCorrA = a, fCorrB = b, fRho = rho;
 }

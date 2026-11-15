@@ -35,6 +35,11 @@ public:
     // Valores de todos os campos no ponto (na ordem dos campos do construtor)
     std::vector<double> At(double x, double y) const;
 
+    // Correlacao cruzada rho entre os campos gaussianos a e b (antes da transformacao lognormal; como em Cho 2010, Eq. 11):
+    // o campo b passa a ser rho Z_a + sqrt(1 - rho^2) Z_b, com a mesma covariancia espacial (os campos usam os mesmos
+    // modos). Os xi continuam independentes: o sorteio, o deslocamento e o peso da amostragem por importancia nao mudam
+    void SetCrossCorrelation(int a, int b, double rho);
+
     // ---- amostragem por importancia: deslocamento da media no espaco dos xi
     // Direcao unitaria d de um conjunto de pontos {x, y, peso}: d ~ a, com a_k = sqrt(lambda_k) f_k(x) g_k(y) na media
     // ponderada dos pontos, o gradiente da media do campo gaussiano Z nesses pontos em relacao aos xi (a mesma nos
@@ -59,4 +64,6 @@ private:
     std::vector<klsep::Lognormal> fLog;  // transformacao de cada campo
     std::vector<std::vector<double>> fXi; // xi de cada campo (tamanho M)
     std::vector<std::vector<double>> fMu; // deslocamento da media de cada campo (vazio: sem deslocamento)
+    int fCorrA = -1, fCorrB = -1;         // correlacao cruzada entre os campos gaussianos fCorrA e fCorrB
+    double fRho = 0.;
 };

@@ -53,5 +53,6 @@ add_subdirectory(SlopeRandomField)    # talude de Rahardjo sob chuva com campos 
 add_subdirectory(KLCilindroMika)      # Karhunen-Loeve de Galerkin: meio cilindro de Mika et al. (2021) e talude de Ceron (2025)
 add_subdirectory(Common)             # biblioteca comum dos taludes (SlopeAnalysis: malhas hp, GIM e SRM) e teste dos metodos
 add_subdirectory(SlopeRandomFieldRefinement) # talude com campos aleatorios e refinamento (usa a Common)
+add_subdirectory(Cho2010)            # Cho (2010), Exemplo 2: talude c-phi com campos correlacionados e amostragem por importancia
 add_subdirectory(SlopeSemiAnalytical) # campo de percolacao semi-analitico de Vargas Ceron et al. (2025) no GIM
 add_subdirectory(SlopeMonteCarlo)     # Monte Carlo do talude do Ceron com campos aleatorios e refinamento (usa a Common)
