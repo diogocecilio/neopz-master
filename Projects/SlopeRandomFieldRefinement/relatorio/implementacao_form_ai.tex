@@ -1,0 +1,207 @@
+% Resumo de como o FORM e a amostragem por importancia foram implementados no projeto SlopeRandomFieldRefinement (NeoPZ).
+% Para compilar: pdflatex implementacao_form_ai.tex (duas vezes)
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}\usepackage[utf8]{inputenc}\usepackage[brazilian]{babel}\usepackage{lmodern}
+\usepackage[margin=2.2cm]{geometry}\usepackage{booktabs}\usepackage{amsmath}\usepackage{array}
+\usepackage[hidelinks]{hyperref}\usepackage{microtype}\usepackage{float}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+% o resultado do rebaixamento (posproc/amostragem_importancia.py estima, 14/11/2026 21h: as 1000 realizacoes da AI)
+\newcommand{\AIresultado}{o Monte Carlo direto, com 2000 realizações, dá $P_f = 15{,}70\%$ (IC~95\%: 14,2 a 17,4\%).
+A AI na direção da banda, com 1000 realizações, dá $P_f = 15{,}87\%$ (IC~95\%: 14,5 a 17,2\%). A diferença, 0,17 ponto
+percentual, é 0,16 desvio-padrão da diferença (que soma os erros das duas estimativas): não há viés. Para a mesma
+precisão, a AI precisa de 0,37 vez as realizações do direto, cerca de 2,7 vezes menos, com $P_f \approx 16\%$. O ganho
+cresce quando a $P_f$ é menor. O deslocamento dessa rodada, $s = (-1{,}30;\ -0{,}49;\ -0{,}36)$, saiu das colunas
+\texttt{proj\_*} das 314 falhas do direto, pelo \texttt{amostragem\_importancia.py desloc}, e foi passado com
+\texttt{desloc=}; é a mesma conta que \texttt{piloto=} faz.}
+\title{FORM e amostragem por importância no NeoPZ: como foram implementados}
+\author{SlopeRandomFieldRefinement}
+\date{14 de novembro de 2026}
+\begin{document}\maketitle
+
+\section{Visão geral}
+A probabilidade de ruptura é $P_f = P[FS < 1]$ (ou $P[\Gamma < 1]$ no rebaixamento, com o GIM). As variáveis aleatórias
+são $c'$, $\varphi'$ e $k$: como variáveis (solo homogêneo) ou como campos de Karhunen--Loève (KL), com 2000 termos por
+campo. Cada avaliação de $FS$ é uma análise por elementos finitos no NeoPZ. Os dois métodos ficam em lugares
+diferentes (Tab.~\ref{tab:onde}):
+\begin{itemize}
+\item o \textbf{FORM} é um programa em Python que chama o executável \texttt{SlopeRainMonteCarlo} (\texttt{montecarlo.cpp},
+do projeto) a cada avaliação de $FS$. A biblioteca NeoPZ não mudou; o \texttt{montecarlo.cpp} só ganhou a opção
+\texttt{valores=} (com \texttt{det=1}, o determinístico com esses valores em todo o solo);
+\item a \textbf{amostragem por importância} (AI) está em C++, dentro do projeto: no sorteio dos campos
+(\texttt{RandomField}), na escolha do deslocamento (\texttt{ImportanceSampling.h} e \texttt{rebaixamento\_mc.cpp}) e nas
+opções dos dois programas de Monte Carlo. A fila do cluster e um script de pós-processamento completam.
+\end{itemize}
+
+\begin{table}[htbp]\centering\small
+\caption{Onde está cada método (pasta \texttt{Projects/SlopeRandomFieldRefinement}).}\label{tab:onde}
+\begin{tabular}{@{}L{2.6cm}L{6.4cm}L{6.6cm}@{}}\toprule
+Método & Arquivos & O que fazem \\\midrule
+FORM & \texttt{form\_variaveis.py} & HL-RF no espaço normal padrão; cada $FS$ é uma rodada do \texttt{SlopeRainMonteCarlo} \\
+\addlinespace
+AI & \texttt{RandomField.h/.cpp} & sorteio deslocado dos $\xi$, peso exato, direção da banda, projeções \\
+ & \texttt{ImportanceSampling.h}, \texttt{rebaixamento\_mc.cpp} & banda do determinístico, piloto e deslocamento
+ pela entropia cruzada \\
+ & \texttt{montecarlo.cpp}, \texttt{rebaixamento\_mc.cpp} & opções na linha de comando e as colunas
+ \texttt{log\_peso}, \texttt{proj\_*} \\
+ & \texttt{cluster/tarefas.sh} & a amostragem só começa quando as realizações do piloto acabam \\
+ & \texttt{posproc/amostragem\_importancia.py} & $P_f$ ponderada, CoV, comparação com o direto \\
+\bottomrule\end{tabular}\end{table}
+
+\section{FORM}
+\subsection{Variáveis e transformação}
+O \texttt{form\_variaveis.py} trata $c'$, $\varphi'$ e $k/k_s$ como variáveis log-normais, com as médias 10~kPa, $26^\circ$
+e 1 e os CoV 0,3, 0,1 e 0,6 (os dos campos). O solo é homogêneo em cada avaliação: é o limite $s \to \infty$ dos
+campos. Cada variável vai para o espaço normal padrão pela transformação exata:
+\[
+u_i = \frac{\ln x_i - \mu_{\ln,i}}{\sigma_{\ln,i}}, \qquad \sigma_{\ln} = \sqrt{\ln(1 + CoV^2)}, \qquad
+\mu_{\ln} = \ln(\text{média}) - \tfrac12 \sigma_{\ln}^2 .
+\]
+
+\subsection{Função de estado limite}
+$g(u) = FS(24\text{ h}) - 1$. Cada avaliação é uma rodada do executável do NeoPZ:
+\begin{center}
+\texttt{SlopeRainMonteCarlo n=0 det=1 I=31.05 solo=f50 tempos=24 valores=}$c',\varphi',k$
+\end{center}
+Ela roda o transiente da chuva e o SRM adaptativo com esses valores em todo o solo e grava o $FS$ num CSV, que o
+script lê.
+
+\subsection{Algoritmo}
+\begin{itemize}
+\item \textbf{Gradiente:} diferenças centrais com passo $h = 0{,}2$ em $u$. São $2n + 1 = 7$ avaliações por iteração,
+rodadas em paralelo. O passo é grande de propósito: o $FS$ tem ruído de uns 0,001 (o arc-length e a malha adaptativa).
+\item \textbf{Passo HL-RF:} $u_{k+1} = \dfrac{\nabla g \cdot u_k - g}{|\nabla g|^2}\, \nabla g$. Se $|g|$ mais que
+dobra de uma iteração para outra, o passo é dado pela metade.
+\item \textbf{Parada:} $|g| < 0{,}005$ e $|u_{k+1} - u_k| < 0{,}02$, com no máximo 15 iterações.
+\item \textbf{Saída} (\texttt{form.json}): $\beta = |u^*|$, $P_f = \Phi(-\beta)$, o ponto de projeto $x^*$, os cossenos
+diretores $\alpha = -\nabla g/|\nabla g|$ e as importâncias $\alpha^2$, com o histórico.
+\end{itemize}
+
+\subsection{Resultado e limites}
+Na chuva de referência ($I = 31{,}05$~mm/h, solo f50), o FORM convergiu em 5 iterações e 35 avaliações:
+$\beta = 0{,}681$, $P_f = 24{,}8\%$, ponto de projeto $c' = 8{,}15$~kPa, $\varphi' = 24{,}85^\circ$, $k/k_s = 0{,}853$, e
+$\alpha^2 = 0{,}637$ ($c'$), $0{,}362$ ($\varphi'$) e $0{,}000$ ($k$). O $\alpha_k^2 \approx 0$ vem do mínimo do $FS$ em
+$k \approx 0{,}85\,k_s$: o FORM lineariza e perde essa curvatura.
+
+O FORM não foi usado com os campos: as variáveis seriam os $3 \times 2000$ coeficientes da KL, e cada iteração custaria
+$2 \cdot 6000 + 1 = 12\,001$ análises (Seção~6 do \texttt{relatorio\_chuva.pdf}).
+
+\section{Amostragem por importância}
+\subsection{Os campos e o sorteio}
+Cada campo é $Z(x, y) = \sum_k \sqrt{\lambda_k}\, \xi_k f_k(x) g_k(y)$, com a KL analítica da correlação exponencial
+separável (\texttt{KLSeparavel.h}), seguido da transformação log-normal. No Monte Carlo direto,
+$\xi \sim N(0, I)$ em cada campo. \texttt{RandomField::Sample(semente, realizacao)} sorteia os $\xi$ de uma sequência
+que depende só da semente, da realização e do campo. Assim, qualquer realização pode ser sorteada de novo sem rodar os
+elementos finitos.
+
+\subsection{O deslocamento e o peso (\texttt{RandomField})}
+A AI sorteia $\xi_c \sim N(\mu_c, I)$ em cada campo $c$, em vez de $N(0, I)$. Isso entrou no \texttt{RandomField} com
+cinco funções:
+\begin{itemize}
+\item \texttt{SetShift(d, s)}: o deslocamento $\mu_c = s_c\, d$, um escalar por campo numa direção $d$;
+\texttt{SetShift(mu)}: um deslocamento dado termo a termo;
+\item \texttt{Sample}: soma $\mu_c$ aos $\xi_c$ sorteados;
+\item \texttt{LogWeight()}: o logaritmo do peso exato da realização,
+\[
+\ln w = \ln \frac{\varphi_n(\xi)}{\varphi_n(\xi - \mu)} = \sum_c \left(-\xi_c \cdot \mu_c + \tfrac12 |\mu_c|^2\right);
+\]
+\item \texttt{Direction(pontos)}: o vetor unitário $d$ com $d_k \propto \sqrt{\lambda_k}\,\overline{f_k g_k}$, a média
+nos pontos dados. É o gradiente, em relação aos $\xi$, da média do campo gaussiano nesses pontos;
+\item \texttt{Projection(d)}: as projeções $\xi_c \cdot d$. Com \texttt{ai=banda}, $s_c$ é a média delas no conjunto
+elite. Elas também vão para o CSV (\texttt{proj\_*}), e com elas o \texttt{amostragem\_importancia.py desloc} calcula o
+deslocamento sem \texttt{piloto=}.
+\end{itemize}
+Com o peso exato, $\hat P_f = \frac1N \sum_i w_i\, I[FS_i < 1]$ não tem viés para qualquer $\mu$ fixado antes da amostra.
+O $\mu$ só muda a variância (Seção~7 do \texttt{relatorio\_chuva.pdf}).
+
+\subsection{Como o deslocamento é escolhido}
+O deslocamento ótimo de uma normal $N(\mu, I)$, pela entropia cruzada, é a média dos $\xi$ das realizações que falham.
+O programa o estima sem gradiente e sem rodar elementos finitos a mais:
+\begin{enumerate}
+\item \textbf{Banda:} lê o \texttt{mecanismo.csv} de um determinístico. Os pontos com
+$\sqrt{J_2(\varepsilon_p)} \geq 0{,}1$ do maior dão a direção $d$ (\texttt{Direction}).
+\item \textbf{Piloto:} lê os CSVs de um Monte Carlo direto já feito, as realizações $0..N_p - 1$. Com vários instantes
+(chuva), vale o menor $FS$ de cada realização.
+\item \textbf{Conjunto elite:} as realizações que falharam. Se forem menos que 10\% das válidas, entram as 10\% de menor
+$FS$, um nível intermediário da entropia cruzada (opção \texttt{elite}).
+\item \textbf{Deslocamento:} os $\xi$ do conjunto elite são sorteados de novo pela semente do piloto. Com
+\texttt{ai=banda}, $s_c$ é a média de $\xi_c \cdot d$: três números e pouco ruído. Com \texttt{ai=modos}, é a média dos
+$K$ primeiros modos de cada campo.
+\end{enumerate}
+Cada bloco de realizações refaz essa conta com o mesmo piloto completo e chega ao mesmo deslocamento. Ele fica gravado em
+\texttt{<saida>\_desloc\_<a>\_<b>.txt} (\texttt{mc\_desloc\_...} na fila, que usa \texttt{saida=mc}), e o pós-processamento
+confere que é o mesmo em todos os blocos.
+
+Dois cuidados:
+\begin{itemize}
+\item \textbf{Semente:} a amostra da AI tem de usar outra semente, dada com \texttt{semente=} (os casos do cluster usam
+1 e 2). O padrão de \texttt{semente=} é o mesmo de \texttt{piloto\_semente=}, e o programa não confere isso. Com outra
+semente, a amostra é independente do piloto.
+\item \textbf{Nomes:} o piloto só lê arquivos \texttt{<prefixo>\_<a>\_<b>.csv} com o prefixo sem ``\_'', e o
+pós-processamento, só \texttt{mc\_<a>\_<b>.csv}. Fora da fila, rode o piloto e a AI com \texttt{saida=mc}; o padrão da
+chuva, \texttt{mc\_chuva}, não é lido.
+\end{itemize}
+
+\subsection{Opções dos programas}
+As opções da AI estão na Tab.~\ref{tab:opcoes}; as outras opções estão no cabeçalho de cada programa.
+\begin{table}[H]\centering\small
+\caption{Opções da AI no \texttt{SlopeDrawdownMonteCarlo} (rebaixamento) e no \texttt{SlopeRainMonteCarlo} (chuva).}
+\label{tab:opcoes}
+\begin{tabular}{@{}L{4.4cm}L{11.2cm}@{}}\toprule
+Opção & O que faz \\\midrule
+\texttt{banda=}\textit{arquivo} & \texttt{mecanismo.csv} do determinístico: a direção $d$ e as projeções no CSV \\
+\texttt{banda\_t=} (chuva) & o instante da banda (ex.: 24 h) \\
+\texttt{piloto=}\textit{pasta}, \texttt{piloto\_n=} & o Monte Carlo direto que dá o deslocamento e quantas realizações
+dele; sai com o código 3 se o piloto tiver menos de 90\% delas \\
+\texttt{ai=banda} ou \texttt{modos}, \texttt{modos=}$K$ & o tipo de deslocamento \\
+\texttt{elite=} (0,1) & a fração mínima do conjunto elite \\
+\texttt{piloto\_semente=}, \texttt{semente=} & a semente do piloto e a da amostra (outra, para ser independente) \\
+\texttt{desloc=}, \texttt{desloc\_modos=} (rebaixamento) & um deslocamento dado à mão, sem piloto \\
+\texttt{media\_falhas=}, \texttt{so\_projecoes=} (rebaixamento) & ferramentas: a média dos modos numa lista de
+realizações; só o sorteio dos campos, sem elementos finitos (para conferir os pesos) \\
+\bottomrule\end{tabular}\end{table}
+
+\subsection{Saída e estimador}
+Cada realização grava \texttt{log\_peso} e as projeções \texttt{proj\_c}, \texttt{proj\_phi} e \texttt{proj\_k}. Na chuva, o
+mesmo peso vale para todos os instantes da realização. O \texttt{posproc/amostragem\_importancia.py estima} dá:
+\begin{itemize}
+\item $\hat P_f$ ponderada (na chuva, a falha é $FS < 1$ em algum instante, e há também a $P_f$ de cada instante);
+\item $CoV(\hat P_f) = s_q / (\sqrt N\, \hat P_f)$, com $s_q$ o desvio de $q_i = w_i I_i$, e o tamanho efetivo da
+amostra $(\sum w)^2 / \sum w^2$;
+\item contra o Monte Carlo direto: a diferença em desvios-padrão da diferença e quantas vezes as realizações do direto a
+AI precisa para o mesmo CoV (a partir do CoV que o direto teria com o mesmo $N$).
+\end{itemize}
+
+\subsection{No cluster}
+Na fila do cluster (\texttt{cluster/tarefas.sh}), um caso com \texttt{piloto=@SAIDA@/<caso> piloto\_n=<n>} só começa quando
+os blocos das realizações $0..n-1$ de \texttt{<caso>} acabaram (com o mapa ou com ERRO na trava); o resto de
+\texttt{<caso>} pode continuar rodando. Até lá, os processos fazem as outras tarefas. As campanhas prontas são
+\texttt{CAMPANHA=ceron} (rebaixamento) e \texttt{CAMPANHA=chuva\_ai} (chuva com o $FS$ de 6 em 6~h até 48~h); os comandos
+estão no \texttt{cluster/README.md}.
+
+\subsection{Conferências}
+\begin{itemize}
+\item \textbf{Pesos, sem elementos finitos:} com 20\,000 sorteios, a média dos pesos é $1{,}007 \pm 0{,}020$ (banda) e
+$1{,}008 \pm 0{,}020$ (modos), e a variância bate com $e^{|\mu|^2} - 1$. A média das projeções sorteadas é o deslocamento
+pedido.
+\item \textbf{Fila:} com o programa de verdade, a AI começou logo depois do piloto, sem bloco repetido e com o mesmo
+deslocamento em todos os blocos.
+\item \textbf{Rebaixamento do Ceron (6.1) com o transiente, no PC:} \AIresultado
+\end{itemize}
+
+\section{Como usar}
+Rebaixamento, no PC, numa pasta de rodadas fora do código e com o piloto e a AI em pastas separadas (o piloto lê todos
+os \texttt{mc\_<a>\_<b>.csv} da pasta dele): o direto, que serve de piloto, e depois a AI com o deslocamento tirado dele.
+\begin{verbatim}
+B=~/projects/neopz-master-build-release/Projects/SlopeRandomFieldRefinement
+P=~/projects/neopz-master/Projects/SlopeRandomFieldRefinement
+mkdir direto ai
+cd direto && $B/SlopeDrawdownMonteCarlo n=2000 det=1 figuras=-1 saida=mc && cd ..
+cd ai && $B/SlopeDrawdownMonteCarlo n=1000 piloto=../direto piloto_n=2000 ai=banda \
+    banda=../direto/mc_real-1/mecanismo.csv semente=1 saida=mc && cd ..
+python3 -I $P/posproc/amostragem_importancia.py estima ai direto
+\end{verbatim}
+No cluster, a fila faz isso sozinha: \texttt{CAMPANHA=chuva\_ai ./submeter.sh 4} (ou \texttt{CAMPANHA=ceron}). As
+realizações $0..\texttt{piloto\_n}-1$ do piloto rodam primeiro, e a amostragem começa quando elas acabam (no
+\texttt{ceron}, as 1000 primeiras das 10\,000 do direto).
+
+\end{document}
