@@ -27,6 +27,7 @@ crítica estatística e uma de custo) e a decisão de rodar tudo no fermi.
 | 0 | O Cho2010 que rodava no PC: direto, AI pela banda e AI pelo ponto de projeto do FORM M = 10 | campanha `etapa1` | rodando | `ETAPA0/` |
 | 1 | SRM corrigido (`srm_f0` = 0,8): o antigo contra o novo nas mesmas realizações, no Cho2010 e na chuva | campanha `etapa1` | rodando | `ETAPA1/` |
 | 2 | FORM com M = 10, 20, 50 e 100 termos por campo; AI pelo ponto de projeto | 4 FORM em paralelo e uma campanha | depois da 1 | `ETAPA2/` |
+| 2b | Base de Nyström contra a analítica: β(M), ganho da AI e direto de referência próprio | uma campanha e FORM | junto com a 2 | `ETAPA2/` |
 | 3 | AI pela entropia cruzada: tamanho do piloto e P_f menor (r = −0,7) | uma campanha | depois da 2 | `ETAPA3/` |
 | 4 | Validar FORM e AI na chuva (f50, FS em 24 h) | código novo e uma campanha | depois da 3 | `ETAPA4/` |
 | 5 | Investigar a chuva: P_f(t), fragilidade P_f(I), solos, k e duração | campanhas | depois da 4 | `ETAPA5/` |
@@ -90,6 +91,32 @@ núcleo, ou 6 a 7 h em 4 nós. O primeiro nó roda antes os FORM com M = 10 e 20
 - **AI:** com o ponto de projeto de M = 10 e com o do maior M, com a mesma semente (números aleatórios comuns).
   - Métrica: o custo total para um CoV alvo, com o FORM incluído: N_FORM + N_AI (CoV/CoV_alvo)².
   - Previsão a testar: Var(M)/Var(M') ≈ exp(β_M² − β_M'²).
+
+### Etapa 2b: base de Nyström contra a analítica
+
+- **Hipótese:** a KL de Nyström do próprio talude precisa de menos termos que a base do retângulo para a mesma variância.
+  Com isso, ela deixa o FORM mais barato e faz o deslocamento pelos primeiros modos funcionar.
+  - No Mathematica, com a falha simplificada, os 10 primeiros modos de Nyström deram ganho de 30×.
+  - No Ceron, com a base do retângulo, deram 1,2×.
+- **Protótipo no Mathematica, já feito:**
+  - `Projects/Cho2010/nystrom_ai`: a AI com Nyström e uma falha simplificada;
+  - `~/Dropbox/UnsaturatedSoil/mathematica/talude_nystrom/talude_nystrom.wl`: o talude do `poro_plastic.nb` (o do Cho)
+    com c′ e φ′ por ponto de integração e o SRM com bissecção. Dá FS determinístico de 1,258 e ~1 min por
+    realização.
+- **Pontos abertos do protótipo:**
+  - com M = 60, só 64% da variância é retida: subir M ou restringir a KL à região do mecanismo;
+  - a malha é grossa: FS 1,258 contra 1,205 no NeoPZ.
+- **No NeoPZ:**
+  - uma classe de campo de Nyström ao lado do `RandomField`, sem mexer nele, com a mesma interface (`At`, `SetShift`,
+    `LogWeight`, `Direction`);
+  - a interpolação de Nyström nos pontos de integração da malha adaptativa.
+- **Comparação no Cho2010** (r = −0,5), cada base com o seu próprio direto de referência no fermi, porque a mesma
+  semente dá outras realizações:
+  - variância retida por M;
+  - β(M) do FORM;
+  - ganho da AI pelo ponto de projeto, pela banda e pelos primeiros modos.
+- **Critério:** as duas bases dão a mesma P_f, dentro do erro dos diretos; a melhor é a de menor custo total para um CoV
+  alvo, com o FORM incluído.
 
 ### Etapa 3: AI pela entropia cruzada
 
