@@ -11,7 +11,9 @@ Uma realizacao entra se tem fator (situacao ok, FS > 0) nas duas pastas. Imprime
   - as falhas (FS < 1) de cada um nas realizacoes em comum e os pares discordantes, com o teste de McNemar exato
     (binomial com p = 1/2 nos discordantes);
   - o histograma de FS de 0,990 a 1,010 em faixas de 0,001: o buraco do SRM antigo e uma faixa vazia logo abaixo de 1
-    e um acumulo logo acima."""
+    e um acumulo logo acima;
+  - o tempo do fator (coluna s_fator, somada nos instantes), longe e perto de 1: o SRM novo anda o caminho de F desde
+    0,8, e perto de 1 o antigo parava logo em F = 1."""
 import csv
 import glob
 import math
@@ -21,8 +23,8 @@ import sys
 
 
 def le(pasta, t):
-    """{realizacao: FS} das realizacoes com fator em todos os instantes (ou no instante t)"""
-    fs, ruins = {}, set()
+    """{realizacao: FS} das realizacoes com fator em todos os instantes (ou no instante t), {realizacao: s do fator}"""
+    fs, seg, ruins = {}, {}, set()
     arqs = [a for a in glob.glob(os.path.join(pasta, "mc_*_*.csv")) if re.search(r"/mc_-?\d+_-?\d+\.csv$", a)]
     if not arqs:
         sys.exit(f"nenhum mc_<a>_<b>.csv em {pasta}")
@@ -39,9 +41,13 @@ def le(pasta, t):
                 ruins.add(n)
                 continue
             fs[n] = min(x, fs.get(n, math.inf))
+            try:
+                seg[n] = seg.get(n, 0.) + float(r.get("s_fator") or "nan")
+            except ValueError:
+                seg[n] = math.nan
     for n in ruins:
         fs.pop(n, None)
-    return fs, len(ruins)
+    return fs, len(ruins), seg
 
 
 def mcnemar(n01, n10):
@@ -77,8 +83,8 @@ def main():
         else:
             sys.exit(f"opcao desconhecida: {a}")
     ra, rb = rot if rot else (os.path.basename(os.path.normpath(pa)), os.path.basename(os.path.normpath(pb)))
-    A, ruinsA = le(pa, t)
-    B, ruinsB = le(pb, t)
+    A, ruinsA, sA = le(pa, t)
+    B, ruinsB, sB = le(pb, t)
     comuns = sorted(set(A) & set(B))
     print(f"A = {ra} ({pa})\nB = {rb} ({pb})")
     print(f"FS: {'instante t = %g h' % t if t is not None else 'o menor dos instantes'}")
@@ -114,6 +120,15 @@ def main():
         if conj:
             print(f"  {nome}: " + ", ".join(f"{n} ({A[n]:.4f} -> {B[n]:.4f})" for n in conj[:12]) +
                   (" ..." if len(conj) > 12 else ""))
+
+    print("\ntempo do fator por realizacao (s_fator, somado nos instantes), media:")
+    for nome, sel in (("todas", comuns), ("|FS_A - 1| > 0,03", [n for n in comuns if abs(A[n] - 1.) > 0.03]),
+                      ("|FS_A - 1| <= 0,03", [n for n in comuns if abs(A[n] - 1.) <= 0.03])):
+        ta = [sA[n] for n in sel if not math.isnan(sA.get(n, math.nan))]
+        tb = [sB[n] for n in sel if not math.isnan(sB.get(n, math.nan))]
+        if ta and tb:
+            ma, mb = sum(ta) / len(ta), sum(tb) / len(tb)
+            print(f"  {nome} ({len(sel)}): A {ma:.1f} s, B {mb:.1f} s, B / A = {mb / ma:.2f}")
 
     print("\nhistograma de FS perto de 1 (faixas de 0,001):")
     print(f"  {'faixa':>17}  {ra[:10]:>10}  {rb[:10]:>10}")
