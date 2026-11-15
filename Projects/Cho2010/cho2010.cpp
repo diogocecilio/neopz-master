@@ -26,6 +26,8 @@
 //   fator (tri1), nref (4) malha grossa (TriGMesh com K divisoes: lado H / 2^K) e niveis de refinamento
 //   figuras ()             realizacoes com mecanismo.csv e campos.csv (pasta <saida>_real<n>), ex.: -1,0
 //   saida (mc), semente (2010)
+//   xi (<arquivo>)         os xi dados, sem sorteio (um ponto do FORM: form_kl.py): 2M numeros, os M de c' e depois os M de
+//                          phi'; com n = 1, a realizacao primeira usa esses xi
 //   banda (<arquivo>)      mecanismo.csv de um deterministico: a direcao d dos xi e as projecoes proj_* no CSV
 //   piloto (<pasta>), piloto_n (1000), piloto_semente (2010), ai (banda), elite (0.1), modos (30)
 //                          amostragem por importancia pelo piloto (veja ImportanceSampling.h); sai com o codigo 3 se o
@@ -94,7 +96,7 @@ struct Opcoes {
     int n = 10, primeira = 0, nref = 4;
     bool det = false, gim = false;
     Campos campos;
-    std::string malhaF = "tri1", saida = "mc", banda;
+    std::string malhaF = "tri1", saida = "mc", banda, xi;
     std::set<int> figuras;
     std::vector<REAL> valores; // deterministico com c' e phi' dados (vazio: as medias)
     ai::Opcoes ai;
@@ -115,7 +117,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
     const std::set<std::string> chaves = {"n",     "primeira", "det",   "valores", "metodo", "covc",     "covphi",
                                           "rcphi", "lh",       "lv",    "M",       "fator",  "nref",     "figuras",
                                           "saida", "semente",  "banda", "piloto",  "piloto_n", "piloto_semente",
-                                          "ai",    "elite",    "modos"};
+                                          "ai",    "elite",    "modos", "xi"};
     std::map<std::string, std::string> kv;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
@@ -151,6 +153,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
         for (REAL v : Lista(kv["figuras"])) op.figuras.insert(int(v));
     if (tem("saida")) op.saida = kv["saida"];
     if (tem("banda")) op.banda = kv["banda"];
+    if (tem("xi")) op.xi = kv["xi"];
     op.ai.semente = tem("piloto_semente") ? std::stoull(kv["piloto_semente"]) : Campos{}.semente;
     if (tem("piloto")) op.ai.piloto = kv["piloto"];
     if (tem("piloto_n")) op.ai.n = std::stoi(kv["piloto_n"]);
@@ -580,13 +583,27 @@ int main(int argc, char *argv[])
     std::vector<REAL> fss;
     double somaPesoFalha = 0., somaF = 0.;
 
+    std::vector<std::vector<double>> xiDados; // opcao xi=: os M de c' e os M de phi'
+    if (!op.xi.empty()) {
+        std::ifstream fx(op.xi);
+        std::vector<double> v;
+        for (double x; fx >> x;) v.push_back(x);
+        if (int(v.size()) != 2 * campos.M()) {
+            std::fprintf(stderr, "xi: %s tem %zu numeros, e precisa de 2M = %d\n", op.xi.c_str(), v.size(), 2 * campos.M());
+            return 1;
+        }
+        xiDados = {std::vector<double>(v.begin(), v.begin() + campos.M()), std::vector<double>(v.begin() + campos.M(), v.end())};
+    }
     std::vector<int> realizacoes;
     if (op.det) realizacoes.push_back(-1);
     for (int n = op.primeira; n < op.primeira + op.n; n++) realizacoes.push_back(n);
     for (int n : realizacoes) {
         const auto t0 = Clock::now();
         const bool deterministico = n < 0;
-        if (!deterministico) campos.Sample(cp.semente, n);
+        if (!deterministico) {
+            if (xiDados.empty()) campos.Sample(cp.semente, n);
+            else campos.SetXi(xiDados);
+        }
         Linha l;
         l.real = n;
         if (!deterministico) l.logPeso = campos.LogWeight(), l.proj = campos.Projection(dir);

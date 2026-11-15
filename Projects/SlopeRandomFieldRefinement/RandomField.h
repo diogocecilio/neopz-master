@@ -51,6 +51,8 @@ public:
     void SetShift(const std::vector<std::vector<double>> &mu);
     // Os xi da ultima realizacao (com o deslocamento), por campo
     const std::vector<std::vector<double>> &Xi() const { return fXi; }
+    // Os xi de todos os campos dados, sem sorteio (ex.: um ponto do FORM): ate M valores por campo, o resto 0
+    void SetXi(const std::vector<std::vector<double>> &xi);
     // ln do peso da ultima realizacao, ln(phi(xi) / phi(xi - mu)) = sum_c (-xi_c . mu_c + |mu_c|^2 / 2): com ele o
     // estimador da probabilidade e sem vies (0 sem deslocamento)
     double LogWeight() const;

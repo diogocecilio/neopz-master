@@ -1,5 +1,6 @@
 #include "RandomField.h"
 
+#include <algorithm>
 #include <cmath>
 
 RandomField::RandomField(double x0, double y0, double Dx, double Dy, double Lx, double Ly, int M,
@@ -58,6 +59,15 @@ void RandomField::SetShift(const std::vector<std::vector<double>> &mu)
     fMu.assign(fXi.size(), std::vector<double>(fKL.M(), 0.));
     for (size_t c = 0; c < fXi.size() && c < mu.size(); c++)
         for (int k = 0; k < fKL.M() && k < (int)mu[c].size(); k++) fMu[c][k] = mu[c][k];
+}
+
+void RandomField::SetXi(const std::vector<std::vector<double>> &xi)
+{
+    for (size_t c = 0; c < fXi.size(); c++) {
+        std::fill(fXi[c].begin(), fXi[c].end(), 0.);
+        if (c < xi.size())
+            for (int k = 0; k < fKL.M() && k < (int)xi[c].size(); k++) fXi[c][k] = xi[c][k];
+    }
 }
 
 double RandomField::LogWeight() const
