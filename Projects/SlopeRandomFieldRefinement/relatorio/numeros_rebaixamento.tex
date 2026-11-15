@@ -1,10 +1,10 @@
-% gerado por figuras_rebaixamento.py em 14/11/2026 21:45: nao edite (rode o script de novo)
+% gerado por figuras_rebaixamento.py em 15/11/2026 00:37: nao edite (rode o script de novo)
 \newif\ifaipronto \aiprontotrue
 \newif\ifmodosdesloc \modosdesloctrue
-\newif\ifmodospronto \modosprontofalse
+\newif\ifmodospronto \modosprontotrue
 \newif\ifmodosiniciado \modosiniciadotrue
-\newif\ifkfixopronto \kfixoprontofalse
-\newif\ifkfixoiniciado \kfixoiniciadofalse
+\newif\ifkfixopronto \kfixoprontotrue
+\newif\ifkfixoiniciado \kfixoiniciadotrue
 \newcommand{\DomX}{70} % rebaixamento_mc.cpp (kTalude)
 \newcommand{\DomY}{35} % rebaixamento_mc.cpp (kTalude)
 \newcommand{\AlturaH}{5} % rebaixamento_mc.cpp (kTalude)
@@ -260,49 +260,49 @@
 \newcommand{\PesoVerifSeModos}{0{,}020} % verificacao/modos_*
 \newcommand{\VarVerifModos}{8{,}07} % verificacao/modos_*
 \newcommand{\VarTeorModos}{7{,}59} % verificacao/modos_* (exp(|mu|^2) - 1)
-\newcommand{\NModos}{748} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
+\newcommand{\NModos}{1000} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
 \newcommand{\SemFatorModos}{0} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
-\newcommand{\PfModos}{18{,}14} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv (soma(peso * falha) / N)
-\newcommand{\CovPfModos}{7{,}4} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
-\newcommand{\NfModos}{378} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
+\newcommand{\PfModos}{17{,}89} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv (soma(peso * falha) / N)
+\newcommand{\CovPfModos}{6{,}2} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
+\newcommand{\NfModos}{509} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
 \newcommand{\FracFalhaModos}{51} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
-\newcommand{\PesoMedioModos}{0{,}915} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
-\newcommand{\PesoMedioModosSe}{0{,}057} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
-\newcommand{\EssModos}{190} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
-\newcommand{\PesoFalhaModos}{0{,}36} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
+\newcommand{\PesoMedioModos}{0{,}933} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
+\newcommand{\PesoMedioModosSe}{0{,}050} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
+\newcommand{\EssModos}{262} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
+\newcommand{\PesoFalhaModos}{0{,}35} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
 \newcommand{\PesoMaxModos}{4{,}28} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
-\newcommand{\DifModos}{1{,}56} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv e direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (desvios)
-\newcommand{\GanhoModos}{1{,}1} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
-\newcommand{\CovDiretoMesmoNModos}{7{,}8} % Eq. 68 com N e P_f da AI
+\newcommand{\DifModos}{1{,}58} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv e direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (desvios)
+\newcommand{\GanhoModos}{1{,}2} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
+\newcommand{\CovDiretoMesmoNModos}{6{,}8} % Eq. 68 com N e P_f da AI
 \newcommand{\ViesModos}{sem sinal de viés, abaixo de dois desvios} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
 \newcommand{\ComparaGanho}{menor que} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv e ai/ceron_tr_fase1_ai/f50_I0_iii/mc_*.csv
 \newcommand{\InicioModos}{20h54} % ai_modos/logs/pp*.txt
-\newcommand{\FimModos}{22h15} % ai_modos/logs/pp*.txt (estimado)
+\newcommand{\FimModos}{22h13} % ai_modos/logs/pp*.txt
 \newcommand{\NAlvoKfixo}{2000} % covk0/casos.txt
 \newcommand{\CovKfixo}{0} % covk0/casos.txt
-\newcommand{\KNPar}{--} % o k fixo ainda nao tem realizacoes
-\newcommand{\KSemFator}{--} % o k fixo ainda nao tem realizacoes
-\newcommand{\KPfFixo}{--} % o k fixo ainda nao tem realizacoes
-\newcommand{\KPfFixoLo}{--} % o k fixo ainda nao tem realizacoes
-\newcommand{\KPfFixoHi}{--} % o k fixo ainda nao tem realizacoes
-\newcommand{\KPfAleat}{--} % o k fixo ainda nao tem realizacoes
-\newcommand{\KPfAleatLo}{--} % o k fixo ainda nao tem realizacoes
-\newcommand{\KPfAleatHi}{--} % o k fixo ainda nao tem realizacoes
-\newcommand{\KNzu}{--} % o k fixo ainda nao tem realizacoes
-\newcommand{\KNuz}{--} % o k fixo ainda nao tem realizacoes
-\newcommand{\KMcNemar}{--} % o k fixo ainda nao tem realizacoes
-\newcommand{\KDifPf}{--} % o k fixo ainda nao tem realizacoes
-\newcommand{\KDifPfSe}{--} % o k fixo ainda nao tem realizacoes
-\newcommand{\KDifGamma}{--} % o k fixo ainda nao tem realizacoes
-\newcommand{\KDifGammaSe}{--} % o k fixo ainda nao tem realizacoes
-\newcommand{\KDifGammaMediana}{--} % o k fixo ainda nao tem realizacoes
-\newcommand{\KMaisAleat}{--} % o k fixo ainda nao tem realizacoes
-\newcommand{\KRhoBanda}{--} % o k fixo ainda nao tem realizacoes
-\newcommand{\KRhoSolo}{--} % o k fixo ainda nao tem realizacoes
-\newcommand{\KGammaDet}{--} % o k fixo ainda nao tem realizacoes
-\newcommand{\KConclusao}{--} % o k fixo ainda nao tem realizacoes
-\newcommand{\InicioKfixo}{22h15} % covk0/cadeia3.log (estimado)
-\newcommand{\FimKfixo}{0h50 de 15/11} % inicio + o relogio do direto (estimado)
+\newcommand{\KNPar}{2000} % covk0/ceron_tr_covk0/f50_I0_iii/mc_*.csv e direto
+\newcommand{\KSemFator}{0} % covk0/ceron_tr_covk0/f50_I0_iii/mc_*.csv
+\newcommand{\KPfFixo}{13{,}80} % covk0/ceron_tr_covk0/f50_I0_iii/mc_*.csv e direto
+\newcommand{\KPfFixoLo}{12{,}4} % covk0/ceron_tr_covk0/f50_I0_iii/mc_*.csv e direto (Wilson)
+\newcommand{\KPfFixoHi}{15{,}4} % covk0/ceron_tr_covk0/f50_I0_iii/mc_*.csv e direto (Wilson)
+\newcommand{\KPfAleat}{15{,}70} % covk0/ceron_tr_covk0/f50_I0_iii/mc_*.csv e direto
+\newcommand{\KPfAleatLo}{14{,}2} % covk0/ceron_tr_covk0/f50_I0_iii/mc_*.csv e direto (Wilson)
+\newcommand{\KPfAleatHi}{17{,}4} % covk0/ceron_tr_covk0/f50_I0_iii/mc_*.csv e direto (Wilson)
+\newcommand{\KNzu}{88} % covk0/ceron_tr_covk0/f50_I0_iii/mc_*.csv e direto (so com k aleatorio)
+\newcommand{\KNuz}{50} % covk0/ceron_tr_covk0/f50_I0_iii/mc_*.csv e direto (so com k fixo)
+\newcommand{\KMcNemar}{= 0{,}002} % covk0/ceron_tr_covk0/f50_I0_iii/mc_*.csv e direto (McNemar, com a relacao)
+\newcommand{\KDifPf}{1{,}90} % covk0/ceron_tr_covk0/f50_I0_iii/mc_*.csv e direto (pontos)
+\newcommand{\KDifPfSe}{0{,}59} % covk0/ceron_tr_covk0/f50_I0_iii/mc_*.csv e direto (pontos)
+\newcommand{\KDifGamma}{0{,}0037} % covk0/ceron_tr_covk0/f50_I0_iii/mc_*.csv e direto
+\newcommand{\KDifGammaSe}{0{,}0026} % covk0/ceron_tr_covk0/f50_I0_iii/mc_*.csv e direto
+\newcommand{\KDifGammaMediana}{\ensuremath{-}0{,}0057} % covk0/ceron_tr_covk0/f50_I0_iii/mc_*.csv e direto
+\newcommand{\KMaisAleat}{47} % covk0/ceron_tr_covk0/f50_I0_iii/mc_*.csv e direto (\% com Gamma maior com k aleatorio)
+\newcommand{\KRhoBanda}{0{,}63} % covk0/ceron_tr_covk0/f50_I0_iii/mc_*.csv e direto (Spearman da diferenca com banda_k_mult)
+\newcommand{\KRhoSolo}{0{,}11} % covk0/ceron_tr_covk0/f50_I0_iii/mc_*.csv e direto (Spearman da diferenca com k_mult_med)
+\newcommand{\KGammaDet}{1{,}3253} % covk0/ceron_tr_covk0/f50_I0_iii/mc_0_49.csv
+\newcommand{\KConclusao}{A diferença é significativa: com o $k_v$ aleatório a $P_f$ sobe, e o $k_v$ explica parte da $P_f$ maior do transiente.} % covk0/ceron_tr_covk0/f50_I0_iii/mc_*.csv e direto (McNemar p < 0,05?)
+\newcommand{\InicioKfixo}{22h13} % covk0/cadeia3.log
+\newcommand{\FimKfixo}{0h37 de 15/11} % covk0/cadeia3.log
 \newcommand{\SolosHora}{20h24} % status.sh no fermi as 20h24 (digitado)
 \newcommand{\SolosInicio}{19h21} % status.sh no fermi as 20h24 (digitado)
 \newcommand{\SolosNos}{4} % status.sh no fermi as 20h24 (digitado)
