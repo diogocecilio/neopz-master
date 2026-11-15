@@ -110,7 +110,16 @@ pega_trava() {
         mkdir -p "$(dirname "$1")" 2> /dev/null
         ( set -o noclobber; echo "$(hostname -s) job ${SLURM_JOB_ID:-local} p$rotulo $(date '+%F %T')" > "$1" ) 2> /dev/null &&
             return 0
-        [ -e "$1" ] && return 1
+        if [ -e "$1" ]; then
+            # uma trava VAZIA e com mais de 10 min nunca foi de ninguem: o sistema de arquivos de rede criou o arquivo e
+            # devolveu erro (na etapa1, "Stale file handle" no bloco 10..19, parado 7 h). Remove e tenta de novo
+            if [ -n "$(find "$1" -maxdepth 0 -empty -mmin +10 2> /dev/null)" ]; then
+                rm -f "$1"
+                echo "$(date '+%F %T') trava vazia e antiga removida: $1" >> "$LOG"
+                continue
+            fi
+            return 1
+        fi
         echo "$(date '+%F %T') a trava $1 nao foi criada (tentativa $t)" >> "$LOG"
         sleep 1
     done
