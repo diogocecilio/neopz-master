@@ -1,0 +1,403 @@
+% Relatorio da etapa 0 do plano de trabalho (../README.md): fechar o que ja rodava antes das etapas no fermi. Para refazer:
+% ./atualiza.sh, que roda
+%   python3 -I figuras_etapa0.py   (figuras em figs/fig_e0_*.pdf e numeros_etapa0.tex; imprime cada numero com o arquivo
+%                                   de onde sai)
+% e compila este arquivo duas vezes numa pasta temporaria. Nenhum numero dos dados esta escrito aqui: todos vem das macros
+% do numeros_etapa0.tex.
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}\usepackage[utf8]{inputenc}\usepackage[brazilian]{babel}\usepackage{lmodern}
+\usepackage[margin=2.2cm]{geometry}\usepackage{booktabs}\usepackage{graphicx}\usepackage{caption}
+\usepackage{float}\usepackage[hidelinks]{hyperref}\usepackage{amsmath}\usepackage{amssymb}\usepackage{microtype}
+\usepackage{array}
+\captionsetup{font=small}
+\renewcommand{\topfraction}{0.9}\renewcommand{\bottomfraction}{0.8}\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.75}
+\graphicspath{{figs/}}
+\input{numeros_etapa0}
+\newcommand{\naoRodou}{não rodou no PC: vai para o fermi, com o SRM novo, na campanha \texttt{etapa1}}
+
+\author{Plano de trabalho, etapa 0\\ \small(\texttt{ETAPA0/figuras\_etapa0.py})}
+\title{Etapa 0: a chuva com amostragem por importância no fermi e a prévia do Cho (2010) no PC}
+\date{15 de novembro de 2026\\ \small dados lidos em \HoraDados}
+\begin{document}\maketitle
+
+\section*{Resumo}
+\begin{itemize}
+\item \textbf{Chuva com AI no fermi (pronta).} No solo \ChSolo{} com $I = \ChI$~mm/h, o piloto de Monte Carlo direto dá
+$P_f = \ChPPf\%$ (\ChPNf{} falhas em \ChNP; $CoV = \ChPCov\%$), e a amostragem por importância (AI) na direção da banda
+dá \ChAPf\% ($CoV = \ChACov\%$) com o mesmo número de realizações: \ChDif{} desvio do direto, \ChVies. O direto
+precisaria de \ChGanho{} vezes mais realizações para o mesmo CoV; o ótimo de um estado limite linear seria
+\ChGanhoLinear.
+\item \textbf{A $P_f$ é de uns \ChAPfArred\%, e não de \ChPfEsperada\%.} O piloto antigo, que sugeria \ChPfEsperada\%, é
+feito das \ChVelhoN{} primeiras realizações daqui, que espalham pouco por acaso: $CoV(FS) = \ChOitoCov\%$, contra \ChDuzCov\%
+nas \ChNP.
+\item \textbf{Cho (2010), prévia com o SRM antigo.} O determinístico dá $FS = \ChoDetTriDois$ (Cho: \ChoBishop).
+\ifpcparou O PC parou às \PcParou; até lá\else Até \ChoHoraDados,\fi{} o direto deu $P_f = \ChoCincoPf\%$ com
+$r = \ChoRCinco$ (\ChoCincoN{} realizações; Cho: \ChoPfCinco\%) e \ChoSetePf\% com $r = \ChoRSete$ (\ChoSeteN; Cho:
+$\approx\ChoPfSete\%$). O FORM com $M = \FormDezM$ termos por campo chegou a $\beta = \FormDezBeta$ ($P_f = \FormDezPf\%$),
+e o $\varphi'$ leva \FormDezAlfaPhi{} da soma dos $\alpha^2$. \ifchoaicincoiniciado A AI do Cho está na
+Seção~\ref{sec:choai}.\else\ifpcparou As AI não rodaram no PC: elas vão para o fermi, com o SRM novo.\else A AI do Cho
+começa por volta das \ChoInicioAI.\fi\fi
+\item \textbf{Balanço.} Nos \BalNCasos{} casos completos, a AI concorda com o direto (\BalVies), mas o teste de dois
+desvios só pega, metade das vezes, um viés de \RbVmdBanda\% a \ChVmd\% da $P_f$. Na direção da banda, a AI precisa de \BalGanhoMin{} a
+\BalGanhoMax{} vezes menos realizações, \BalFracMin\% a \BalFracMax\% do ótimo linear.
+\item \textbf{Ressalva.} O SRM antigo empurra um $FS$ um pouco abaixo de 1 para logo acima de 1: a $P_f$ absoluta sai
+baixa, mas o direto e a AI têm o mesmo viés, e a comparação entre eles vale. A etapa~1 testa o SRM corrigido.
+\end{itemize}
+
+\section{O que é a etapa 0}\label{sec:etapa0}
+O plano de trabalho (\texttt{PlanoDeTrabalho/README.md}) serve a dois artigos, o da AI e o da chuva em solo não
+saturado. Ele valida as ferramentas estatísticas (Monte Carlo direto, AI e FORM) antes de usá-las na chuva, uma etapa
+por vez, tudo no fermi. Na versão 2 do plano, a etapa~0 é o Cho2010 que rodava no PC (direto, AI pela banda e AI pelo
+ponto de projeto do FORM), repetido no fermi com o SRM novo, na campanha \texttt{etapa1}, junto com a etapa~1. Este
+relatório fecha o que rodou antes disso: a campanha \texttt{chuva\_ai} no fermi, que terminou (Seção~\ref{sec:chuva}), e
+a prévia do Cho no PC, com o SRM antigo (Seção~\ref{sec:cho}). A Seção~\ref{sec:balanco} junta essas validações da AI às
+do rebaixamento rápido de Vargas Ceron et al.\ (2025), e a Seção~\ref{sec:etapa1} diz o que passa para a etapa~1. Os
+números saem do \texttt{figuras\_etapa0.py}, que imprime cada um com o arquivo de onde sai (Apêndice~\ref{sec:arquivos}).
+Com menos de \MinWilson{} falhas no direto, o intervalo de 95\% é o exato (Clopper--Pearson), como pede o plano.
+
+\paragraph{Ressalva: o SRM antigo.} O \texttt{SRMArcLength} aplica primeiro o peso todo com $F = 1$. Se o Newton
+converge, o caminho começa em $F = 1$, e o $FS$ devolvido é o maior $F$ dele: $FS \geq 1$. Então uma realização com $FS$
+um pouco abaixo de 1 sai com $FS$ logo acima de 1. Na campanha dos três solos (\texttt{relatorio\_solos.pdf}), o
+$f_{50}$ tem \SoBuracoAbaixo{} realizações em \SoBuracoFaixaAbaixo{} contra \SoBuracoAcima{} em \SoBuracoFaixaAcima, e a
+$P_f$ pode estar subestimada em até \SoBuracoPontos{} ponto. Um buraco assim aparece como uma faixa \BuracoFaixa{} com
+menos realizações que as vizinhas; a Tab.~\ref{tab:buraco} tem as contagens daqui. \ifchoburaco No Cho com
+$r = \ChoRCinco$, a faixa \BuracoFaixa{} tem \ChoBuracoAbaixo{} realizações, contra \ChoBuracoViz{} nas vizinhas, o
+padrão do buraco\else No Cho com $r = \ChoRCinco$, a faixa \BuracoFaixa{} tem \ChoBuracoAbaixo{} realizações, contra
+\ChoBuracoViz{} nas vizinhas: o buraco não aparece\fi; na chuva, com \ChNP{} realizações, a contagem não separa o buraco
+do ruído. O direto e a AI usam o mesmo $FS$ e
+estimam a mesma probabilidade, com o mesmo viés: a comparação entre eles vale. A $P_f$ absoluta sai baixa, e a
+comparação com o Cho fica para depois da correção (o caminho de $F$ começando em $F_0 = \EtapaUmFzero$, etapa~1).
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{Realizações com o $FS$ (o mínimo no tempo, na chuva) em cada faixa em volta de 1; na AI, sem peso.}
+\label{tab:buraco}
+\begin{tabular}{lrrrrr}\toprule
+amostra & $N$ & \BuracoCab \\\midrule
+\BuracoLinhas
+\bottomrule\end{tabular}\end{table}
+
+\section{Chuva com amostragem por importância no fermi}\label{sec:chuva}
+\subsection{O caso e as rodadas}
+\begin{itemize}
+\item \textbf{Chuva e fator:} o talude homogêneo de Rahardjo et al.\ (2007) com o solo \ChSolo, $I = \ChI$~mm/h por
+\ChChuva~h e o nível d'água \ChHw~m abaixo do pé. O $FS$ é o do SRM, de \ChTempoPasso{} em \ChTempoPasso~h até
+\ChTempoFim~h, e a falha é $FS < 1$ em algum desses \ChNTempos{} instantes. O determinístico tem o menor $FS$ em
+\ChDetT~h: \ChDetMin.
+\item \textbf{Campos e malhas:} $c'$, $\varphi'$ e $k$ log-normais e independentes, com CoV de \ChCovC, \ChCovPhi{} e
+\ChCovK; correlação exponencial com $L_x = \ChLx$~m e $L_y = \ChLy$~m; KL com \ChKLM{} termos por campo (\ChKLvar\% da
+variância). O transiente usa \texttt{\ChMalhaT} ($u$ de ordem \ChUt), e o fator, \texttt{\ChMalhaF} com \ChNref{}
+níveis de refinamento.
+\item \textbf{Rodadas} (\texttt{cluster/casos\_chuva\_ai.txt}): o piloto de Monte Carlo direto, com \ChNAlvoP{}
+realizações (semente \ChSementeP), e a AI, com \ChNAlvoA{} (semente \ChSementeA), que começa quando o piloto acaba. Foram
+\ChNos{} nós e \ChProcessos{} processos, das \ChInicio{} às \ChFim{} (\ChRelogio), com \ChCustoP~s por realização no
+piloto, \ChCustoA~s na AI e \ChCpu~h de CPU.
+\end{itemize}
+
+\subsection{O deslocamento}
+O piloto tem \ChPNf{} falhas, menos que \ChEliteFrac\% das \ChNP{} realizações. Então o conjunto elite são as
+\ChElite{} de menor $FS$, até $FS < \ChNivel$: um nível intermediário da entropia cruzada (Rubinstein e Kroese, 2004). O
+deslocamento é $\mu_c = s_c\,d$, com $d$ a direção da banda do determinístico em \ChBandaT~h e $s_c$ a média de
+$\xi_c \cdot d$ no elite: $s = (\ChSC;\ \ChSPhi;\ \ChSK)$ para $c'$, $\varphi'$ e $k$, e $|\mu|^2 = \ChMuDois$. Os
+\ChDeslocBlocos{} blocos da AI gravaram \ChDeslocIguais{} deslocamento, e a média das projeções sorteadas,
+$(\ChProjMedia)$, fica a até \ChProjMaxDif{} desvios dele ($1/\sqrt N = \ChProjSe$; o maior, no \ChProjMaxCampo,
+e \ChProjOutrasDif{} nos outros): com três campos, isso ainda é compatível com o acaso. O elite tem $c'$ e $\varphi'$
+menores na banda, e o $k$ quase não muda ($s_k = \ChSK$, contra \RbSK{} no rebaixamento): o $FS$ da chuva tem um mínimo
+perto do $k$ médio (\texttt{relatorio\_chuva.pdf}, ``$FS$ e a permeabilidade''), então $k$ maior ou menor sobe o $FS$.
+
+\subsection{Resultados}
+A Tab.~\ref{tab:chuva} e a Fig.~\ref{fig:chuva} resumem as duas amostras:
+\begin{itemize}
+\item a AI dá $P_f = \ChAPf\%$ (faixa de 95\% de \ChALo\% a \ChAHi\%), e o piloto, \ChPPf\% (IC \ChPIC: \ChPLo\% a
+\ChPHi\%). A diferença é de \ChDifPontos{} ponto, ou \ChDif{} desvio: \ChVies;
+\item a AI sorteou \ChANf{} falhas (\ChAFrac\%), contra \ChPNf{} no piloto. Os pesos das falhas são pequenos (média
+\ChAPesoFalha, maior \ChAPesoFalhaMax): o tamanho efetivo das falhas, $ESS_F = (\sum wI)^2/\sum (wI)^2$, é \ChAEssF, e a
+maior falha responde por \ChAParcela\% da soma, abaixo do alerta de \AlertaParcela\% do plano. O peso médio de todas é
+$\ChAPesoMedio \pm \ChAPesoSe$, \ChAPesoCompat; o ESS de todos os pesos, \ChAEss, cai por causa das realizações seguras
+do lado oposto ao deslocamento, com peso de até \ChAPesoMax{} (Fig.~\ref{fig:chuva}c), que não entram na $P_f$;
+\item \textbf{ganho:} com o mesmo $N$ e essa $P_f$, o direto teria $CoV = \ChCovMesmoN\%$. Para o CoV da AI, ele
+precisaria de \ChNParaCov{} realizações: a AI usa \ChRazao{} vez as do direto, um ganho de \ChGanho.
+\end{itemize}
+
+\begin{table}[htbp]\centering\footnotesize\setlength{\tabcolsep}{4.5pt}
+\caption{Chuva, \ChSolo{} a \ChI~mm/h. Falhas: realizações sorteadas com $FS < 1$ em algum instante;
+$ESS_F = (\sum q)^2/\sum q^2$ e maior parcela $\max q/\sum q$, com $q = w\,I$; IC: exato no direto e
+$P_f(1 \pm 1{,}96\,CoV)$ na AI; $CoV = s_q/(\sqrt N P_f)$; diferença: $(P_f^{AI} - P_f^{dir})$ em desvios; ganho:
+quantas vezes mais realizações o direto pediria para o mesmo $CoV$.}\label{tab:chuva}
+\begin{tabular}{lrrrrrrrrr}\toprule
+método & $N$ & falhas & $ESS_F$ & parcela (\%) & $P_f$ (\%) & IC (\%) & $CoV$ (\%) & diferença & ganho \\\midrule
+piloto (direto) & \ChNP & \ChPNf & \ChPEssF & \ChPParcela & \ChPPf & \ChPLo--\ChPHi & \ChPCov & -- & 1 \\
+AI na banda & \ChNA & \ChANf & \ChAEssF & \ChAParcela & \ChAPf & \ChALo--\ChAHi & \ChACov & \ChDif & \ChGanho \\
+estado limite linear & -- & -- & -- & -- & -- & -- & -- & -- & \ChGanhoLinear \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\linewidth]{fig_e0_chuva.pdf}
+\caption{Chuva: (a) $P(FS < 1)$ em cada instante, na AI (barras: $P_f(1 \pm 1{,}96\,CoV)$, cortadas no fundo do eixo
+quando a ponta de baixo é negativa) e no direto onde ele tem falhas (IC exato), com o limite de 95\% do direto sem
+falhas; (b) $P_f$ com o número de realizações e a faixa de 95\%; (c) peso de cada realização da AI contra o $FS$
+mínimo.}\label{fig:chuva}
+\end{figure}
+
+\paragraph{A $P_f$ em cada instante.} O peso não depende do instante, então a mesma amostra dá a $P_f$ de cada um
+(Tab.~\ref{tab:instantes}, Fig.~\ref{fig:chuva}a). A $P_f$ do mínimo é a de \ChDetT~h: o mínimo cai em \ChDetT~h em
+\ChMinNoDet{} das \ChNP{} realizações do piloto, e \ChFalhaForaFrase{} noutro instante sem falhar em \ChDetT~h. A AI vê
+o que o direto não vê: $P_f = \ChPfADezoito\%$ em \ChTDezoito~h, \ChPfATrinta\% em \ChTTrinta~h e \ChPfATrintaSeis\% em
+\ChTTrintaSeis~h, com CoV de \ChCovADezoito\%, \ChCovATrinta\% e \ChCovATrintaSeis\%. O direto tem \ChFalhasPTrinta{} em
+\ChTTrinta~h e \ChFalhasPDezoito{} em \ChTDezoito{} e \ChTTrintaSeis~h, onde só diz que a $P_f$ fica abaixo de
+\ChZeroHi\%. Em \ChZerosA~h, nenhuma realização da AI falha.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{Chuva, instante a instante: o $FS$ do determinístico, a média e o CoV do $FS$ e as falhas no piloto, e a
+$P_f$ do piloto e da AI.}\label{tab:instantes}
+\begin{tabular}{rrrrrrrr}\toprule
+& & \multicolumn{4}{c}{piloto (direto)} & \multicolumn{2}{c}{AI} \\\cmidrule(lr){3-6}\cmidrule(lr){7-8}
+$t$ (h) & $FS_{det}$ & $\overline{FS}$ & $CoV(FS)$ (\%) & falhas & $P_f$ (\%) & $P_f$ (\%) & $CoV$ (\%) \\\midrule
+\ChLinhasInstantes
+\bottomrule\end{tabular}\end{table}
+
+\subsection{Ganho e teoria}
+Num estado limite linear com $P_f = \ChAPf\%$ ($\beta = \ChBeta$), o deslocamento ótimo da entropia cruzada tem
+$m^2 = \ChMdois$, e o ganho seria \ChGanhoLinear{} (Seção~7 do \texttt{relatorio\_chuva.pdf}: $m = \varphi(\beta)/P_f$
+e segundo momento $e^{m^2}\Phi(-\beta - m)$). Com o $|\mu|^2 = \ChMuDois$ usado, na direção exata, ainda seria
+\ChGanhoLinearMu: o tamanho do deslocamento quase não importa. A AI mediu \ChGanho, \ChFracGanho\% do ótimo
+(Fig.~\ref{fig:amostra}c). A perda vem da direção: a banda do determinístico aproxima o mecanismo, e o $FS$ não é
+linear nos $\xi$. No rebaixamento, a mesma AI fez \RbFracGanhoBanda\% do ótimo (\RbGanhoBanda{} de \RbGanhoLinear).
+
+\subsection{Por que a \texorpdfstring{$P_f$}{Pf} é de uns \ChAPfArred\% e não de \ChPfEsperada\%}
+O \texttt{relatorio\_chuva.pdf} esperava $P_f \approx \ChPfEsperada\%$ pelo piloto antigo, de \ChVelhoN{} realizações e
+\ChVelhoNf{} falhas: $\overline{FS} = \ChVelhoMedia$ em \ChDetT~h, $CoV = \ChVelhoCov\%$ e $P_f = \ChVelhoLogn\%$ no ajuste
+log-normal. Essas \ChVelhoN{} são as realizações \ChVelhoPrimeira{} a \ChVelhoUltima{} daqui (a mesma semente e o mesmo
+caso), e o $FS(\ChDetT\text{ h})$ delas muda no máximo \ChVelhoDifMax. O que mudou foi o tamanho da amostra
+(Fig.~\ref{fig:amostra}b):
+\begin{itemize}
+\item as \ChNP{} espalham mais: $CoV = \ChDuzCov\%$, contra \ChOitoCov\% nas \ChVelhoN{} primeiras; a média muda pouco
+(\ChDuzMedia{} contra \ChOitoMedia). O ajuste log-normal das \ChNP{} dá \ChDuzLogn\%, perto dos \ChPPf\% contados;
+\item o espalhamento pesa mais que a média: com a média das \ChNP{} e o espalhamento das \ChVelhoN, a log-normal daria
+\ChCruzA\%; com a média das \ChVelhoN{} e o espalhamento das \ChNP, \ChCruzB\%;
+\item com \ChVelhoNf{} falhas em \ChVelhoN, o intervalo exato de 95\% ia até \ChVelhoHi\%: o piloto antigo não separava
+\ChPfEsperada\% de \ChAPfArred\%.
+\end{itemize}
+Com uns \ChAPfArred\%, o direto já vê falhas: para $CoV(P_f) = \ChCovAlvo\%$, ele pede umas \ChNAlvoCov{} realizações,
+\ChCpuAlvo~h de CPU no fermi (\ChRelogioAlvo~h com \ChProcessos{} processos).
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\linewidth]{fig_e0_amostra.pdf}
+\caption{Chuva: (a) $FS$ mínimo no piloto e na AI (sem peso), com o nível do conjunto elite; (b) distribuição do
+$FS$ em \ChDetT~h nas \ChNP{} realizações do piloto e nas \ChVelhoN{} do piloto antigo, com as log-normais ajustadas;
+(c) $CoV(P_f)$ com o número de realizações, com o direto na teoria e a AI ótima de um estado limite linear, as duas
+com a $P_f$ da AI.}\label{fig:amostra}
+\end{figure}
+
+\section{Cho (2010): a prévia do PC}\label{sec:cho}
+\subsection{O problema e as rodadas}
+\begin{itemize}
+\item \textbf{Problema:} o talude seco do Exemplo~2 de Cho (2010), com $c'$ log-normal de média \ChoC~kPa e
+$CoV = \ChoCovC$, $\varphi'$ log-normal de média $\ChoPhi^\circ$ e $CoV = \ChoCovPhi$, e $\gamma = \ChoGamma$~kN/m$^3$.
+Aqui o solo é Mohr--Coulomb associado, com $E = \ChoE$~MPa e $\nu = \ChoNu$, e o fator é o do SRM com \texttt{\ChoMalha} e
+\ChoNref{} níveis de refinamento.
+\item \textbf{Campos:} correlação exponencial com $l_h = \ChoLh$~m e $l_v = \ChoLv$~m e KL com \ChoKLM{} termos por campo
+(\ChoKLvar\% da variância). A correlação cruzada $r$ entra nos campos gaussianos: o de $\varphi'$ é
+$r\,Z_c + \sqrt{1 - r^2}\,Z_\varphi$, com os mesmos modos, e os $\xi$ continuam independentes.
+\item \textbf{Cho:} Bishop com busca da superfície crítica e Monte Carlo com \ChoNmc{} realizações: $FS = \ChoBishop$,
+$P_f = \ChoPfCinco\%$ com $r = \ChoRCinco$ (Tabela~5) e $\approx\ChoPfSete\%$ com $r = \ChoRSete$ (Fig.~9).
+\item \textbf{Rodadas no PC} (Tab.~\ref{tab:chomc}): o direto com $r = \ChoRCinco$ (alvo de \ChoCincoAlvo; as
+\ChoPilotoN{} primeiras são o piloto), a AI dele (\ChoAICincoAlvo), o direto com $r = \ChoRSete$ (\ChoSeteAlvo) e a AI
+dele (\ChoAISeteAlvo), na fila do \texttt{cluster/tarefas.sh}, com \ChoProcessos{} processos desde as \ChoInicio{} e
+blocos de \ChoBloco; ao lado, os dois FORM. \ifpcparou O PC parou às \PcParou{} (plano, versão 2). A fila faz todos os
+blocos do direto antes dos da AI (cada processo só volta aos blocos que esperam o piloto no fim da fila), então as AI não
+começaram. O que rodou fica como prévia, com o SRM antigo.\fi
+\end{itemize}
+
+\subsection{Determinístico e malha}\label{sec:chomalha}
+Com \texttt{tri2} e \ChoNivTriDois{} níveis (\ChoEqTriDois{} equações), o $FS$ é \ChoDetTriDois, a \ChoDifTriDois\% do
+Bishop do Cho. Com \ChoNivTriDoisTres{} níveis, ele é \ChoDetTriDoisTres{} (\ChoDifTriDoisTres\%), e com \texttt{tri1}
+e \ChoNivTriUm{} níveis (\ChoEqTriUm{} equações), \ChoDetTriUm{} (\ChoDifTriUm\%): o último nível ainda muda o $FS$ em
+\ChoUltNivTriDois\% na \texttt{tri2} e \ChoUltNivTriUm\% na \texttt{tri1} (Fig.~\ref{fig:cho}a). Nas realizações, a coluna
+\texttt{niveis} dá o mesmo teste: com $r = \ChoRCinco$, o $FS$ do penúltimo nível fica $\ChoCincoNivDif \pm
+\ChoCincoNivDp$ acima do último, e as falhas são as mesmas (\ChoCincoNivNf{} contra \ChoCincoNf; \ChoCincoNivTrocas{}
+trocas de lado). Com $r = \ChoRSete$, não: \ChoSeteNivNf{} contra \ChoSeteNf{} falhas, \ChoSeteNivTrocas{} troca de
+lado. O GIM dá $\Gamma = \ChoDetGim$: num solo $c$--$\varphi$, a
+gravidade maior aumenta também a resistência por atrito, e $\Gamma$ é outro fator; a $P_f$ é a mesma, porque $\Gamma < 1$
+e $FS < 1$ dizem as duas que o talude não se sustenta. No centro do FORM ($\xi = 0$: as medianas, $c' = \FormCentroC$~kPa
+e $\varphi' = \FormCentroPhi^\circ$), $FS = \FormCentroFS$, abaixo do determinístico com as médias.
+
+\subsection{Monte Carlo direto}\label{sec:chodir}
+\ifchocincopronto As \ChoCincoN{} realizações com $r = \ChoRCinco$\else\ifpcparou O PC fez \ChoCincoN{} das
+\ChoCincoAlvo{} realizações com $r = \ChoRCinco$. Elas\else Até \ChoHoraDados, \ChoCincoN{} das \ChoCincoAlvo{}
+realizações com $r = \ChoRCinco$ estavam prontas. Elas\fi\fi{} dão (Tab.~\ref{tab:chomc}, Fig.~\ref{fig:cho}):
+\begin{itemize}
+\item $P_f = \ChoCincoPf\%$, com \ChoCincoFalhas{} e intervalo \ChoCincoIC{} de \ChoCincoLo\% a \ChoCincoHi\%: os
+\ChoPfCinco\% do Cho ficam \ChoCincoDentro{} dele. O $\overline{FS}$ é \ChoCincoMedia, com $CoV(FS) = \ChoCincoCovFS\%$, e
+o ajuste log-normal dá \ChoCincoLogn\%;
+\item com $r = \ChoRSete$, $P_f = \ChoSetePf\%$ (\ChoSeteFalhas{} em \ChoSeteN; intervalo \ChoSeteIC{} de \ChoSeteLo\% a
+\ChoSeteHi\%), com o $\approx\ChoPfSete\%$ do Cho \ChoSeteDentro{} do intervalo. O $CoV(FS)$ é \ChoSeteCovFS\%: com $r$
+mais negativo, $c'$ e $\varphi'$ baixos juntos ficam mais raros;
+\ifchocincopronto\else
+\item \ifpcparou as \ChoCincoEmCurso{} realizações com $r = \ChoRCinco$ em curso quando o PC parou se perderam
+(e \ChoSeteEmCurso{} com $r = \ChoRSete$)\else os números parciais tendem um pouco para baixo\fi: uma falha leva
+\ChoCustoFalha~s, contra \ChoCustoOutras~s das outras (\ChoCustoRazao{} vezes), então uma realização em curso tem mais
+chance de ser falha: \ChoCincoFracCurso\% com $r = \ChoRCinco$, contra \ChoCincoPf\% na amostra. O efeito esperado é de
+\ChoCincoFalhasCurso{} falha, menos de meia;
+\fi
+\item a concordância com o Cho é boa, mas mistura o modelo (elementos finitos contra Bishop), a malha e o viés do SRM
+antigo; o plano usa o valor publicado só como plausibilidade.
+\end{itemize}
+
+\begin{table}[htbp]\centering\footnotesize\setlength{\tabcolsep}{4.5pt}
+\caption{Cho (2010) no PC, SRM antigo: realizações, falhas sorteadas, $P_f$ com o IC de 95\% (exato no direto,
+$P_f(1 \pm 1{,}96\,CoV)$ na AI), $CoV = s_q/(\sqrt N P_f)$ e a $P_f$ do Cho.}\label{tab:chomc}
+\begin{tabular}{llrrrrrr}\toprule
+caso & método & $N$ & falhas & $P_f$ (\%) & IC (\%) & $CoV$ (\%) & Cho (\%) \\\midrule
+\ChoLinhas
+\bottomrule\end{tabular}\end{table}
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\linewidth]{fig_e0_cho.pdf}
+\caption{Cho (2010): (a) $FS$ determinístico por nível de refinamento, com o Bishop do Cho; (b, c) $P_f$ do direto com
+o número de realizações e a faixa de 95\%, com a $P_f$ do Cho.}\label{fig:cho}
+\end{figure}
+
+\subsection{AI na banda}\label{sec:choai}
+\ifchoaicincoiniciado
+\ifchoaicincopronto As \ChoAICincoN{} realizações da AI com $r = \ChoRCinco$\else As \ChoAICincoN{} realizações da AI com
+$r = \ChoRCinco$ feitas até agora (de \ChoAICincoAlvo)\fi{} \ifchoaicincofalhas dão $P_f = \ChoAICincoPf\%$ com
+$CoV = \ChoAICincoCov\%$: \ChoAICincoDif{} desvio do direto, com ganho de \ChoAICincoGanho{} (o ótimo linear é
+\ChoGanhoLinCinco)\else ainda não sortearam falha\fi. O conjunto elite são as \ChoAICincoElite{} de menor $FS$, até
+$FS < \ChoAICincoNivel$; $s = (\ChoAICincoS)$ para $c'$ e $\varphi'$ e $|\mu|^2 = \ChoAICincoMuDois$. A AI sorteou
+\ChoAICincoFalhas, com peso médio \ChoAICincoPeso{} e ESS de \ChoAICincoEss.
+\ifchoaiseteiniciado\ifchoaisetefalhas Com $r = \ChoRSete$, a AI dá $P_f = \ChoAISetePf\%$ ($CoV = \ChoAISeteCov\%$,
+\ChoAISeteN{} realizações), \ChoAISeteDif{} desvio do direto, com ganho de \ChoAISeteGanho{} (o ótimo linear é
+\ChoGanhoLinSete).\else Com $r = \ChoRSete$, a AI ainda não sorteou falha.\fi\fi
+\else\ifpcparou
+A AI \naoRodou. Com o piloto de \ChoPilotoN{} realizações e uns \ChoCincoPf\% de falhas, o conjunto elite serão as
+\ChoEliteN{} de menor $FS$ (menos falhas que \ChoEliteFrac\% do piloto), como na chuva.
+\else
+Pendente: a fila faz antes todo o direto. Com \ChoCustoMedio~s por realização, a AI começa por volta das \ChoInicioAI,
+o direto acaba por volta das \ChoFimDireto, e a campanha não acaba antes das \ChoFimMin.
+\fi\fi
+
+\subsection{FORM com \texorpdfstring{$M$}{M} termos por campo}
+O \texttt{form\_kl.py} faz o FORM (HL-RF) com $g = FS - 1$ e $r = \ChoRCinco$ nos $2M$ primeiros $\xi$ da KL dos dois
+campos, com os outros em zero. $M = \FormDezM$ retém \FormDezVar\% da variância, e $M = \FormVinteM$, \FormVinteVar\%
+(contra \ChoKLvar\% no Monte Carlo). O gradiente é por diferenças centrais com passo $h = \FormH$ em $u$: $4M + 1$
+avaliações do $FS$ por iteração (\FormDezAvalIt{} e \FormVinteAvalIt). O \texttt{form\_kl.py} para com $|g| < \FormTolG$
+e passo menor que \FormTolP; a etapa~2 do plano pede $|g| < \FormTolGNovo$ e $\beta$ mudando menos que \FormTolBNovo{}
+(Tab.~\ref{tab:form}, Fig.~\ref{fig:form}).
+\begin{itemize}
+\item \ifformdezpronto Com $M = \FormDezM$, o FORM \FormDezConvergiu{} (\FormDezAval{} avaliações):
+$\beta = \FormDezBeta$ e $P_f = \Phi(-\beta) = \FormDezPf\%$.\else Com $M = \FormDezM$, o FORM \ifpcparou parou com o PC
+na\else está na\fi{} iteração \FormDezItAtual{} (\FormDezFeitas{} de \FormDezAvalIt{} avaliações). Na iteração
+\FormDezUltIt, $g = \FormDezG$ e $\beta = \FormDezBeta$, ou $P_f = \Phi(-\beta) = \FormDezPf\%$; $\beta$ mudou
+\FormDezDBeta{} na última iteração, e o critério da etapa~2 \FormDezCritNovo.\fi{}
+\ifformdezpassoacima O critério do \texttt{form\_kl.py} não pararia: o passo em $u$ fica em \FormDezPassoMin{} a
+\FormDezPasso{} desde a iteração 3, por ruído do gradiente ($h = \FormH$), acima da tolerância \FormTolP.\fi
+\item \ifformvintepronto Com $M = \FormVinteM$, o FORM \FormVinteConvergiu{} (\FormVinteAval{} avaliações):
+$\beta = \FormVinteBeta$ e $P_f = \FormVintePf\%$.\else Com $M = \FormVinteM$, o FORM \ifpcparou parou com o PC
+na\else está na\fi{} iteração \FormVinteItAtual{} (\FormVinteFeitas{} de \FormVinteAvalIt{} avaliações). Na iteração
+\FormVinteUltIt, $g = \FormVinteG$ e $\beta = \FormVinteBeta$ ($P_f = \FormVintePf\%$); $\beta$ mudou \FormVinteDBeta, e o
+critério da etapa~2 \FormVinteCritNovo{} (o próximo passo iria a $\beta = \FormVinteBetaProx$).\fi{}
+\ifformdezpronto\ifformvintepronto Com mais termos, $\beta$ fica \FormCompara.\fi\fi
+\ifpcparou\ifformvintepronto\else Com mais termos, $\beta$ cai de \FormDezBeta{} para \FormVinteBeta, como o plano
+espera, mas sem convergência com $M = \FormVinteM$.\fi\fi
+\item A $P_f$ do Cho corresponde a $\beta = \ChoBetaCinco$, e a do direto, a $\beta = \ChoBetaDireto$. O FORM vê só
+parte da variância e lineariza o $FS$; a AI com o ponto de projeto diz quanto isso pesa.
+\item \textbf{Importâncias.} Os maiores $\alpha^2$ com $M = \FormDezM$ são \FormDezTop; por campo, o $\varphi'$ leva
+\FormDezAlfaPhi{} e o $c'$, \FormDezAlfaC{} (com $M = \FormVinteM$: \FormVinteAlfaPhi{} e \FormVinteAlfaC). O $c'$ pesa
+pouco por causa da correlação cruzada negativa: o $\xi$ do primeiro termo de $c'$ sobe o $c'$ e, com $r = \ChoRCinco$,
+baixa o $\varphi'$. Pela regra da cadeia, o efeito dele no $FS$ é de \FormViaC{} por unidade pelo $c'$ e de
+\FormViaPhi{} pelo $\varphi'$: sobra \FormGradC, contra \FormGradPhi{} do primeiro termo de $\varphi'$.
+\item \textbf{A AI com o ponto de projeto} \ifaiforminiciado (\AIFormN{} realizações) \ifaiformfalhas dá
+$P_f = \AIFormPf\%$ ($CoV = \AIFormCov\%$), \AIFormDif{} desvio do direto, com ganho de \AIFormGanho{} e
+$|\mu|^2 = \AIFormMuDois$.\else ainda não sorteou falha.\fi\else\ifpcparou \naoRodou; lá, o FORM roda antes da
+fila. \else espera o fim do FORM com $M = \FormDezM$. \fi O deslocamento terá $|\mu|^2 = \beta^2 \approx \AIFormMuDois$, e
+a variância dos pesos, $e^{|\mu|^2} - 1 \approx \AIFormVarPeso$, contra \ChVarPeso{} na chuva.\fi
+\end{itemize}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{FORM do Cho (2010) com $r = \ChoRCinco$: $g = FS - 1$ no ponto de cada iteração e $\beta = |u|$.}
+\label{tab:form}
+\begin{tabular}{rrrrr}\toprule
+& \multicolumn{2}{c}{$M = \FormDezM$} & \multicolumn{2}{c}{$M = \FormVinteM$} \\\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+iteração & $g$ & $\beta$ & $g$ & $\beta$ \\\midrule
+\FormLinhas
+\bottomrule\end{tabular}\end{table}
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\linewidth]{fig_e0_form.pdf}
+\caption{FORM do Cho (2010): (a) $\beta$ por iteração (círculo vazado: o próximo ponto do HL-RF, sem avaliar), com o
+$\beta$ da $P_f$ do Cho; (b, c) $\alpha^2$ de cada termo na última iteração, com $M = \FormDezM$ e
+$M = \FormVinteM$.}\label{fig:form}
+\end{figure}
+
+\section{Balanço das validações da AI até aqui}\label{sec:balanco}
+A Tab.~\ref{tab:balanco} junta os casos; o rebaixamento rápido (Seção~6.1 do Ceron, com o transiente) vem do
+\texttt{relatorio\_rebaixamento.pdf}.
+\begin{itemize}
+\item \textbf{Sem sinal de viés, mas o teste é fraco.} Nos \BalNCasos{} casos completos, a maior diferença entre a AI e o
+direto é de \BalMaxDif{} desvio (\BalVies). O teste de dois desvios só pega metade das vezes um viés de 1,96 desvio da
+diferença: \RbVmdBanda\% da $P_f$ no rebaixamento com a banda e \ChVmd\% na chuva, que tem só \ChNP{} realizações diretas.
+\item \textbf{A direção da banda rende \BalFracMin\% a \BalFracMax\% do ótimo linear.} Os primeiros modos rendem bem
+menos (\RbGanhoModos{} contra \RbGanhoBanda{} no rebaixamento): o deslocamento de \RbKModos{} modos por campo tem ruído
+em direções que não importam.
+\item \textbf{O ganho cresce quando a $P_f$ cai:} \RbGanhoBanda{} com $P_f = \RbPfDireto\%$ e \ChGanho{} com \ChAPf\%.
+O Cho, com $P_f$ de uns \ChoCincoPf\% e \ChoSetePf\%, tem ótimo linear de \ChoGanhoLinCinco{} e \ChoGanhoLinSete{}
+vezes: é onde a AI deve compensar, e é o que falta medir.
+\item \textbf{O $k$ aleatório.} No rebaixamento, com $k_v$ fixo, a $P_f$ das mesmas \RbKNPar{} realizações cai de
+\RbKPfAleat\% para \RbKPfFixo\% (McNemar $p \RbKMcNemar$): lá o $k$ pesa. Na chuva, o deslocamento quase não mexe no $k$.
+\end{itemize}
+
+\begin{table}[htbp]\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\caption{As validações da AI: $P_f$ (\%) do direto e da AI, com $N$ ($^\dagger$: parcial); diferença em desvios; viés
+mínimo detectável (o que o teste de dois desvios pega metade das vezes, em \% da $P_f$); ganho medido e o ótimo de um
+estado limite linear com a mesma $P_f$ (no Cho, a do direto).}\label{tab:balanco}
+\begin{tabular}{llrrrrrr}\toprule
+caso & deslocamento & direto & AI & diferença & viés mín. & ganho & ótimo \\\midrule
+\BalLinhas
+\bottomrule\end{tabular}\end{table}
+
+\section{O que passa para a etapa 1}\label{sec:etapa1}
+A etapa~1 do plano compara o SRM antigo com o corrigido (o caminho de $F$ começa em $F_0 = \EtapaUmFzero$) nas mesmas
+realizações, no fermi: as \EtapaUmPar{} primeiras do Cho com $r = \ChoRCinco$ e \EtapaUmChuva{} da chuva. Ela roda com
+os casos do Cho da etapa~0 na campanha \texttt{etapa1} (\texttt{cluster/casos\_etapa1.txt}). A etapa~0 deixa para ela:
+\begin{enumerate}
+\item \textbf{A conferência entre máquinas.} As \ChoAntesN{} realizações do PC com $r = \ChoRCinco$ (SRM antigo) estão
+entre as \EtapaUmPar{} do \texttt{r05\_antigo}: o $FS$ tem de ser o mesmo. Nelas há \ChoAntesNf{} falhas e
+\ChoAntesPerto{} realizações com $FS$ em \ChoAntesFaixa, as candidatas a mudar de lado com o SRM novo.
+\item \textbf{A malha e o buraco.} O último nível muda o $FS$ em \ChoCincoNivDif{} (Seção~\ref{sec:chomalha});
+com $r = \ChoRCinco$, as falhas são as mesmas, mas, com $r = \ChoRSete$, \ChoSeteNivTrocas{} das \ChoSeteNf{} falhas troca
+de lado: com $P_f$ pequena, a malha de teste pode mudar a $P_f$. A malha de teste sai da coluna \texttt{niveis}. A Tab.~\ref{tab:buraco} é a linha de base do
+histograma antigo.
+\item \textbf{O FORM e a chuva.} O $\beta$ do Cho com o SRM antigo (\FormDezBeta, que \FormDezCritNovo{} no critério da etapa~2, e
+\FormVinteBeta\ifformvintepronto\else, ainda sem convergir\fi) é a referência dos FORM da etapa~2. Na chuva, a $P_f$ é de uns \ChAPfArred\%, e o mínimo no tempo cai em \ChDetT~h em \ChMinNoDet{} de \ChNP,
+o que apoia o $FS$ em \ChDetT~h da etapa~4.
+\end{enumerate}
+
+\appendix
+\section{Arquivos lidos e como atualizar}\label{sec:arquivos}
+{\raggedright\small
+\textbf{Chuva:} \path|~/projects/runs/fermi_chuva_ai| (\path|chuva_ai/ref48_piloto/|, \path|chuva_ai/ref48_ai/|,
+\path|chuva_ai/logs/| e \path|resultado.txt|), \path|cluster/casos_chuva_ai.txt| e \path|cluster/README.md|, e o piloto
+antigo, no build (\path|mc/gim_I/piloto_srm_I31.05_0_7.csv|). \textbf{Cho:} \path|~/projects/runs/cho2010|
+(\path|casos.txt|, \path|rodar.sh|, \path|cadeia_form.sh|, \path|campanha/|, \path|det/|, \path|form_M10_r05/|,
+\path|form_M20_r05/| e \path|campanha_form/|) e \path|Projects/Cho2010/| (\path|README.md| e \path|cho2010.cpp|).
+\textbf{Contexto:} \path|numeros_rebaixamento.tex|, \path|numeros_solos.tex|, \path|cluster/casos_etapa1.txt| e
+\path|PlanoDeTrabalho/README.md|. O script imprime o arquivo de cada número; os resumos pequenos ficam em
+\path|ETAPA0/resultados/|. Para atualizar, \texttt{./atualiza.sh} roda o script e compila o relatório numa pasta
+temporária; as chaves \texttt{\textbackslash if...pronto}, \texttt{\textbackslash if...iniciado} e \texttt{\textbackslash
+ifpcparou} trocam o texto quando uma rodada começa, acaba ou para.\par}
+
+\begin{thebibliography}{9}\small\setlength{\itemsep}{0pt}
+\bibitem{cho2010} Cho (2010). Probabilistic assessment of slope stability that considers the spatial variability of
+soil properties. \emph{Journal of Geotechnical and Geoenvironmental Engineering} 136(7):975--984.
+doi:10.1061/(ASCE)GT.1943-5606.0000309.
+\bibitem{rahardjo2007} Rahardjo, Ong, Rezaur e Leong (2007). Factors controlling instability of homogeneous soil slopes
+under rainfall. \emph{Journal of Geotechnical and Geoenvironmental Engineering} 133(12):1532--1543.
+doi:10.1061/(ASCE)1090-0241(2007)133:12(1532).
+\bibitem{rubinstein2004} Rubinstein e Kroese (2004). \emph{The Cross-Entropy Method}. Springer, Nova York.
+doi:10.1007/978-1-4757-4321-0.
+\bibitem{ceron2025} Vargas Ceron, Cecílio, Linn e Maghous (2025). Stability analysis of slope subjected to seepage forces
+considering spatial variability of soil properties. \emph{International Journal for Numerical and Analytical Methods in
+Geomechanics} 49(11):2459--2491. doi:10.1002/nag.3993.
+\end{thebibliography}
+\end{document}

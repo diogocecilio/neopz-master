@@ -1,0 +1,480 @@
+% gerado por figuras_etapa0.py em 15/11/2026 12:16: nao edite (rode o script de novo)
+\newif\ifchofim \chofimfalse
+\newif\ifpcparou \pcparoutrue
+\newif\ifchocincopronto \chocincoprontofalse
+\newif\ifchocincopiloto \chocincopilotofalse
+\newif\ifchoaicincoiniciado \choaicincoiniciadofalse
+\newif\ifchoaicincopronto \choaicincoprontofalse
+\newif\ifchoaicincofalhas \choaicincofalhasfalse
+\newif\ifchosetepronto \choseteprontofalse
+\newif\ifchosetepiloto \chosetepilotofalse
+\newif\ifchoaiseteiniciado \choaiseteiniciadofalse
+\newif\ifchoaisetepronto \choaiseteprontofalse
+\newif\ifchoaisetefalhas \choaisetefalhasfalse
+\newif\ifformdezpronto \formdezprontofalse
+\newif\ifformdezpassoacima \formdezpassoacimatrue
+\newif\ifformvintepronto \formvinteprontofalse
+\newif\ifformvintepassoacima \formvintepassoacimatrue
+\newif\ifaiforminiciado \aiforminiciadofalse
+\newif\ifaiformfalhas \aiformfalhasfalse
+\newif\ifaiformpronto \aiformprontofalse
+\newif\ifchoburaco \choburacotrue
+\newcommand{\HoraDados}{15/11/2026, 12h16} % relogio do PC ao rodar o script
+\newcommand{\MinWilson}{20} % ../README.md (criterios gerais)
+\newcommand{\RbNDireto}{2000} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbNfDireto}{314} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbPfDireto}{15{,}70} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbCovPfDireto}{5{,}2} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbNBanda}{1000} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbPfBanda}{15{,}87} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbCovPfBanda}{4{,}4} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbDifBanda}{0{,}16} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbGanhoBanda}{2{,}7} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbGanhoLinear}{4{,}0} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbFracGanhoBanda}{69} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbMuDoisBanda}{2{,}06} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbSC}{\ensuremath{-}1{,}30} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbSPhi}{\ensuremath{-}0{,}49} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbSK}{\ensuremath{-}0{,}36} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbKModos}{20} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbNModos}{1000} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbPfModos}{17{,}89} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbCovPfModos}{6{,}2} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbDifModos}{1{,}58} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbGanhoModos}{1{,}2} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbKNPar}{2000} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbKPfFixo}{13{,}80} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbKPfAleat}{15{,}70} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\RbKMcNemar}{= 0{,}002} % numeros_rebaixamento.tex (relatorio_rebaixamento.pdf)
+\newcommand{\SoBuracoAbaixo}{0} % numeros_solos.tex (relatorio_solos.pdf)
+\newcommand{\SoBuracoAcima}{15} % numeros_solos.tex (relatorio_solos.pdf)
+\newcommand{\SoBuracoFaixaAbaixo}{$[0{,}9975;\, 1)$} % numeros_solos.tex (relatorio_solos.pdf)
+\newcommand{\SoBuracoFaixaAcima}{$[1;\, 1{,}0025)$} % numeros_solos.tex (relatorio_solos.pdf)
+\newcommand{\SoBuracoPontos}{1{,}0} % numeros_solos.tex (relatorio_solos.pdf)
+\newcommand{\SoBuracoFalta}{10} % numeros_solos.tex (relatorio_solos.pdf)
+\newcommand{\SoNCinquenta}{1000} % numeros_solos.tex (relatorio_solos.pdf)
+\newcommand{\ChSolo}{f50} % chuva_ai/ref48_piloto/mc_parametros.txt
+\newcommand{\ChI}{31{,}05} % chuva_ai/ref48_piloto/mc_parametros.txt
+\newcommand{\ChChuva}{24} % chuva_ai/ref48_piloto/mc_parametros.txt
+\newcommand{\ChHw}{5} % chuva_ai/ref48_piloto/mc_parametros.txt
+\newcommand{\ChTempoPasso}{6} % chuva_ai/ref48_piloto/mc_parametros.txt
+\newcommand{\ChTempoFim}{48} % chuva_ai/ref48_piloto/mc_parametros.txt
+\newcommand{\ChNTempos}{8} % chuva_ai/ref48_piloto/mc_parametros.txt
+\newcommand{\ChCovC}{0{,}3} % chuva_ai/ref48_piloto/mc_parametros.txt
+\newcommand{\ChCovPhi}{0{,}1} % chuva_ai/ref48_piloto/mc_parametros.txt
+\newcommand{\ChCovK}{0{,}6} % chuva_ai/ref48_piloto/mc_parametros.txt
+\newcommand{\ChLx}{20} % chuva_ai/ref48_piloto/mc_parametros.txt
+\newcommand{\ChLy}{2} % chuva_ai/ref48_piloto/mc_parametros.txt
+\newcommand{\ChKLM}{2000} % chuva_ai/ref48_piloto/mc_parametros.txt
+\newcommand{\ChKLvar}{96{,}4} % chuva_ai/ref48_piloto/mc_parametros.txt
+\newcommand{\ChMalhaT}{tri2} % chuva_ai/ref48_piloto/mc_parametros.txt
+\newcommand{\ChMalhaF}{tri1} % chuva_ai/ref48_piloto/mc_parametros.txt
+\newcommand{\ChNref}{4} % chuva_ai/ref48_piloto/mc_parametros.txt
+\newcommand{\ChUt}{2} % chuva_ai/ref48_piloto/mc_parametros.txt
+\newcommand{\ChSementeP}{2025} % chuva_ai/ref48_piloto/mc_parametros.txt
+\newcommand{\ChSementeA}{1} % chuva_ai/ref48_ai/mc_parametros.txt
+\newcommand{\ChBandaT}{24} % chuva_ai/ref48_ai/mc_parametros.txt
+\newcommand{\ChEliteFrac}{10} % chuva_ai/ref48_ai/mc_parametros.txt
+\newcommand{\ChNAlvoP}{200} % cluster/casos_chuva_ai.txt
+\newcommand{\ChNAlvoA}{200} % cluster/casos_chuva_ai.txt
+\newcommand{\ChDetMin}{1{,}1251} % chuva_ai/ref48_piloto/mc_0_0.csv (realizacao -1)
+\newcommand{\ChDetT}{24} % chuva_ai/ref48_piloto/mc_0_0.csv (realizacao -1)
+\newcommand{\ChForaP}{0} % chuva_ai/ref48_piloto/mc_*.csv (sem fator ou sem algum instante)
+\newcommand{\ChForaA}{0} % chuva_ai/ref48_ai/mc_*.csv (sem fator ou sem algum instante)
+\newcommand{\ChPIC}{exato} % IC do piloto (13 falhas)
+\newcommand{\ChNP}{200} % chuva_ai/ref48_piloto/mc_*.csv
+\newcommand{\ChPNf}{13} % chuva_ai/ref48_piloto/mc_*.csv (FS < 1 em algum instante)
+\newcommand{\ChPPf}{6{,}50} % chuva_ai/ref48_piloto/mc_*.csv
+\newcommand{\ChPLo}{3{,}5} % chuva_ai/ref48_piloto/mc_*.csv (IC exato)
+\newcommand{\ChPHi}{10{,}9} % chuva_ai/ref48_piloto/mc_*.csv (IC exato)
+\newcommand{\ChPCov}{26{,}9} % chuva_ai/ref48_piloto/mc_*.csv (s_q / (raiz(N) P_f))
+\newcommand{\ChMinNoDet}{199} % chuva_ai/ref48_piloto/mc_*.csv (realizacoes com o minimo no instante do deterministico)
+\newcommand{\ChFalhaFora}{0} % chuva_ai/ref48_piloto/mc_*.csv e chuva_ai/ref48_ai/mc_*.csv (FS < 1 noutro instante e >= 1 em 24 h)
+\newcommand{\ChFalhaForaFrase}{nenhuma realização das duas amostras falha} % chuva_ai/ref48_piloto/mc_*.csv e chuva_ai/ref48_ai/mc_*.csv
+\newcommand{\ChNA}{200} % chuva_ai/ref48_ai/mc_*.csv
+\newcommand{\ChANf}{77} % chuva_ai/ref48_ai/mc_*.csv (falhas sorteadas)
+\newcommand{\ChAFrac}{38} % chuva_ai/ref48_ai/mc_*.csv
+\newcommand{\ChAPf}{6{,}22} % chuva_ai/ref48_ai/mc_*.csv (soma(w I) / N)
+\newcommand{\ChAPfArred}{6} % chuva_ai/ref48_ai/mc_*.csv (arredondada)
+\newcommand{\ChACov}{13{,}6} % chuva_ai/ref48_ai/mc_*.csv (s_q / (raiz(N) P_f))
+\newcommand{\ChALo}{4{,}6} % chuva_ai/ref48_ai/mc_*.csv (P_f (1 - 1,96 CoV))
+\newcommand{\ChAHi}{7{,}9} % chuva_ai/ref48_ai/mc_*.csv (P_f (1 + 1,96 CoV))
+\newcommand{\ChAPesoMedio}{0{,}939} % chuva_ai/ref48_ai/mc_*.csv
+\newcommand{\ChAPesoSe}{0{,}117} % chuva_ai/ref48_ai/mc_*.csv (desvio da media)
+\newcommand{\ChAPesoCompat}{compatível com 1} % chuva_ai/ref48_ai/mc_*.csv (|media - 1| / desvio = 0.52)
+\newcommand{\ChAEss}{49} % chuva_ai/ref48_ai/mc_*.csv ((soma w)^2 / soma w^2)
+\newcommand{\ChAEssF}{43} % chuva_ai/ref48_ai/mc_*.csv (ESS das falhas: (soma q)^2 / soma q^2)
+\newcommand{\ChPEssF}{13} % chuva_ai/ref48_piloto/mc_*.csv (ESS das falhas: no direto, n_f)
+\newcommand{\ChPParcela}{8} % chuva_ai/ref48_piloto/mc_*.csv (maior parcela: no direto, 1 / n_f)
+\newcommand{\AlertaParcela}{10} % ../README.md (criterios gerais)
+\newcommand{\ChAPesoFalha}{0{,}16} % chuva_ai/ref48_ai/mc_*.csv (peso medio nas falhas)
+\newcommand{\ChAPesoFalhaMax}{0{,}67} % chuva_ai/ref48_ai/mc_*.csv (maior peso nas falhas)
+\newcommand{\ChAPesoMax}{9{,}8} % chuva_ai/ref48_ai/mc_*.csv (maior peso)
+\newcommand{\ChAParcela}{5} % chuva_ai/ref48_ai/mc_*.csv (maior w I / soma w I)
+\newcommand{\ChDif}{\ensuremath{-}0{,}14} % chuva_ai/ref48_ai/mc_*.csv e chuva_ai/ref48_piloto/mc_*.csv (desvios)
+\newcommand{\ChDifPontos}{\ensuremath{-}0{,}28} % chuva_ai/ref48_ai/mc_*.csv e chuva_ai/ref48_piloto/mc_*.csv
+\newcommand{\ChGanho}{4{,}1} % chuva_ai/ref48_ai/mc_*.csv ((CoV do direto com N e P_f da AI / CoV da AI)^2)
+\newcommand{\ChRazao}{0{,}24} % chuva_ai/ref48_ai/mc_*.csv (1 / ganho)
+\newcommand{\ChCovMesmoN}{27{,}5} % raiz((1 - P_f) / (N P_f)) com N e P_f da AI
+\newcommand{\ChNParaCov}{820} % (1 - P_f) / (P_f CoV^2) com os da AI
+\newcommand{\ChVies}{sem sinal de viés} % chuva_ai/ref48_ai/mc_*.csv
+\newcommand{\ChTSeis}{6} % chuva_ai/ref48_piloto/mc_parametros.txt (TEMPOS)
+\newcommand{\ChPfASeis}{0{,}00} % chuva_ai/ref48_ai/mc_*.csv (P_f em 6 h)
+\newcommand{\ChCovASeis}{--} % chuva_ai/ref48_ai/mc_*.csv (CoV em 6 h)
+\newcommand{\ChNfPSeis}{0} % chuva_ai/ref48_piloto/mc_*.csv (FS < 1 em 6 h)
+\newcommand{\ChFalhasPSeis}{nenhuma falha} % chuva_ai/ref48_piloto/mc_*.csv (FS < 1 em 6 h)
+\newcommand{\ChTDoze}{12} % chuva_ai/ref48_piloto/mc_parametros.txt (TEMPOS)
+\newcommand{\ChPfADoze}{0{,}00} % chuva_ai/ref48_ai/mc_*.csv (P_f em 12 h)
+\newcommand{\ChCovADoze}{--} % chuva_ai/ref48_ai/mc_*.csv (CoV em 12 h)
+\newcommand{\ChNfPDoze}{0} % chuva_ai/ref48_piloto/mc_*.csv (FS < 1 em 12 h)
+\newcommand{\ChFalhasPDoze}{nenhuma falha} % chuva_ai/ref48_piloto/mc_*.csv (FS < 1 em 12 h)
+\newcommand{\ChTDezoito}{18} % chuva_ai/ref48_piloto/mc_parametros.txt (TEMPOS)
+\newcommand{\ChPfADezoito}{0{,}014} % chuva_ai/ref48_ai/mc_*.csv (P_f em 18 h)
+\newcommand{\ChCovADezoito}{61} % chuva_ai/ref48_ai/mc_*.csv (CoV em 18 h)
+\newcommand{\ChNfPDezoito}{0} % chuva_ai/ref48_piloto/mc_*.csv (FS < 1 em 18 h)
+\newcommand{\ChFalhasPDezoito}{nenhuma falha} % chuva_ai/ref48_piloto/mc_*.csv (FS < 1 em 18 h)
+\newcommand{\ChTVinteQuatro}{24} % chuva_ai/ref48_piloto/mc_parametros.txt (TEMPOS)
+\newcommand{\ChPfAVinteQuatro}{6{,}22} % chuva_ai/ref48_ai/mc_*.csv (P_f em 24 h)
+\newcommand{\ChCovAVinteQuatro}{14} % chuva_ai/ref48_ai/mc_*.csv (CoV em 24 h)
+\newcommand{\ChNfPVinteQuatro}{13} % chuva_ai/ref48_piloto/mc_*.csv (FS < 1 em 24 h)
+\newcommand{\ChFalhasPVinteQuatro}{13 falhas} % chuva_ai/ref48_piloto/mc_*.csv (FS < 1 em 24 h)
+\newcommand{\ChTTrinta}{30} % chuva_ai/ref48_piloto/mc_parametros.txt (TEMPOS)
+\newcommand{\ChPfATrinta}{0{,}37} % chuva_ai/ref48_ai/mc_*.csv (P_f em 30 h)
+\newcommand{\ChCovATrinta}{31} % chuva_ai/ref48_ai/mc_*.csv (CoV em 30 h)
+\newcommand{\ChNfPTrinta}{1} % chuva_ai/ref48_piloto/mc_*.csv (FS < 1 em 30 h)
+\newcommand{\ChFalhasPTrinta}{1 falha} % chuva_ai/ref48_piloto/mc_*.csv (FS < 1 em 30 h)
+\newcommand{\ChTTrintaSeis}{36} % chuva_ai/ref48_piloto/mc_parametros.txt (TEMPOS)
+\newcommand{\ChPfATrintaSeis}{0{,}035} % chuva_ai/ref48_ai/mc_*.csv (P_f em 36 h)
+\newcommand{\ChCovATrintaSeis}{64} % chuva_ai/ref48_ai/mc_*.csv (CoV em 36 h)
+\newcommand{\ChNfPTrintaSeis}{0} % chuva_ai/ref48_piloto/mc_*.csv (FS < 1 em 36 h)
+\newcommand{\ChFalhasPTrintaSeis}{nenhuma falha} % chuva_ai/ref48_piloto/mc_*.csv (FS < 1 em 36 h)
+\newcommand{\ChTQuarentaDois}{42} % chuva_ai/ref48_piloto/mc_parametros.txt (TEMPOS)
+\newcommand{\ChPfAQuarentaDois}{0{,}011} % chuva_ai/ref48_ai/mc_*.csv (P_f em 42 h)
+\newcommand{\ChCovAQuarentaDois}{73} % chuva_ai/ref48_ai/mc_*.csv (CoV em 42 h)
+\newcommand{\ChNfPQuarentaDois}{0} % chuva_ai/ref48_piloto/mc_*.csv (FS < 1 em 42 h)
+\newcommand{\ChFalhasPQuarentaDois}{nenhuma falha} % chuva_ai/ref48_piloto/mc_*.csv (FS < 1 em 42 h)
+\newcommand{\ChTQuarentaOito}{48} % chuva_ai/ref48_piloto/mc_parametros.txt (TEMPOS)
+\newcommand{\ChPfAQuarentaOito}{0{,}004} % chuva_ai/ref48_ai/mc_*.csv (P_f em 48 h)
+\newcommand{\ChCovAQuarentaOito}{100} % chuva_ai/ref48_ai/mc_*.csv (CoV em 48 h)
+\newcommand{\ChNfPQuarentaOito}{0} % chuva_ai/ref48_piloto/mc_*.csv (FS < 1 em 48 h)
+\newcommand{\ChFalhasPQuarentaOito}{nenhuma falha} % chuva_ai/ref48_piloto/mc_*.csv (FS < 1 em 48 h)
+\newcommand{\ChLinhasInstantes}{6 & 1{,}7777 & 1{,}7670 & 6{,}1 & 0 & 0 & 0 & -- \\
+  12 & 1{,}4983 & 1{,}4788 & 6{,}7 & 0 & 0 & 0 & -- \\
+  18 & 1{,}2751 & 1{,}2664 & 7{,}1 & 0 & 0 & 0{,}014 & 61 \\
+  24 & 1{,}1251 & 1{,}1297 & 7{,}7 & 13 & 6{,}50 & 6{,}22 & 14 \\
+  30 & 1{,}1973 & 1{,}1979 & 7{,}0 & 1 & 0{,}50 & 0{,}37 & 31 \\
+  36 & 1{,}2501 & 1{,}2447 & 6{,}9 & 0 & 0 & 0{,}035 & 64 \\
+  42 & 1{,}2894 & 1{,}2824 & 6{,}8 & 0 & 0 & 0{,}011 & 73 \\
+  48 & 1{,}3225 & 1{,}3162 & 6{,}7 & 0 & 0 & 0{,}004 & 100 \\} % chuva_ai/ref48_piloto/mc_*.csv, chuva_ai/ref48_ai/mc_*.csv (por instante)
+\newcommand{\ChZerosA}{6 e 12} % chuva_ai/ref48_ai/mc_*.csv (instantes sem falha sorteada)
+\newcommand{\ChZeroHi}{1{,}8} % IC exato com 0 falhas em 200
+\newcommand{\ChDeslocBlocos}{200} % chuva_ai/ref48_ai/mc_desloc_*.txt
+\newcommand{\ChDeslocIguais}{o mesmo} % chuva_ai/ref48_ai/mc_desloc_*.txt
+\newcommand{\ChElite}{20} % chuva_ai/ref48_ai/mc_desloc_*.txt
+\newcommand{\ChNivel}{1{,}0079} % chuva_ai/ref48_ai/mc_desloc_*.txt (FS do conjunto elite)
+\newcommand{\ChPilotoFalhas}{13} % chuva_ai/ref48_ai/mc_desloc_*.txt
+\newcommand{\ChSC}{\ensuremath{-}1{,}26} % chuva_ai/ref48_ai/mc_desloc_*.txt
+\newcommand{\ChSPhi}{\ensuremath{-}0{,}80} % chuva_ai/ref48_ai/mc_desloc_*.txt
+\newcommand{\ChSK}{\ensuremath{-}0{,}13} % chuva_ai/ref48_ai/mc_desloc_*.txt
+\newcommand{\ChMuDois}{2{,}25} % chuva_ai/ref48_ai/mc_desloc_*.txt
+\newcommand{\ChVarPeso}{8{,}5} % exp(|mu|^2) - 1
+\newcommand{\ChProjMedia}{\ensuremath{\ensuremath{-}1{,}23;\ \ensuremath{-}0{,}76;\ \ensuremath{-}0{,}28}} % chuva_ai/ref48_ai/mc_*.csv (media de proj_* sorteadas)
+\newcommand{\ChProjSe}{0{,}07} % 1 / raiz(N)
+\newcommand{\ChProjMaxDif}{2{,}12} % chuva_ai/ref48_ai/mc_*.csv e chuva_ai/ref48_ai/mc_desloc_*.txt (desvios, o maior dos tres campos)
+\newcommand{\ChProjMaxCampo}{$k$} % chuva_ai/ref48_ai/mc_*.csv (o campo da maior diferenca)
+\newcommand{\ChProjOutrasDif}{0{,}46 e 0{,}63} % chuva_ai/ref48_ai/mc_*.csv (os outros dois campos)
+\newcommand{\ChBeta}{1{,}54} % formula, P_f da AI
+\newcommand{\ChMdois}{3{,}88} % formula, P_f da AI (m = phi(beta) / P_f)
+\newcommand{\ChGanhoLinear}{8{,}2} % formula, P_f da AI (exp(m^2) Phi(-beta - m))
+\newcommand{\ChGanhoLinearMu}{7{,}8} % formula, P_f da AI e |mu| do deslocamento usado
+\newcommand{\ChFracGanho}{50} % ganho medido / ganho linear
+\newcommand{\ChProcessos}{48} % chuva_ai/logs/p*.txt
+\newcommand{\ChNos}{4} % chuva_ai/logs/p*.txt (nos)
+\newcommand{\ChInicio}{8h47} % chuva_ai/logs/p*.txt
+\newcommand{\ChFim}{10h21} % chuva_ai/logs/p*.txt
+\newcommand{\ChRelogio}{1~h 34~min} % chuva_ai/logs/p*.txt
+\newcommand{\ChCustoP}{531} % chuva_ai/logs/p*.txt (s por realizacao, piloto)
+\newcommand{\ChCustoA}{575} % chuva_ai/logs/p*.txt (s por realizacao, AI)
+\newcommand{\ChCpu}{61} % chuva_ai/logs/p*.txt (soma dos tempos, h)
+\newcommand{\ChVelhoN}{8} % Projects/SlopeRandomFieldRefinement/mc/gim_I/piloto_srm_I31.05_0_7.csv
+\newcommand{\ChVelhoPrimeira}{0} % Projects/SlopeRandomFieldRefinement/mc/gim_I/piloto_srm_I31.05_0_7.csv
+\newcommand{\ChVelhoUltima}{7} % Projects/SlopeRandomFieldRefinement/mc/gim_I/piloto_srm_I31.05_0_7.csv
+\newcommand{\ChVelhoMedia}{1{,}1431} % Projects/SlopeRandomFieldRefinement/mc/gim_I/piloto_srm_I31.05_0_7.csv
+\newcommand{\ChVelhoCov}{5{,}6} % Projects/SlopeRandomFieldRefinement/mc/gim_I/piloto_srm_I31.05_0_7.csv
+\newcommand{\ChVelhoMin}{1{,}0339} % Projects/SlopeRandomFieldRefinement/mc/gim_I/piloto_srm_I31.05_0_7.csv
+\newcommand{\ChVelhoLogn}{0{,}90} % Projects/SlopeRandomFieldRefinement/mc/gim_I/piloto_srm_I31.05_0_7.csv (ajuste log-normal)
+\newcommand{\ChVelhoNf}{0} % Projects/SlopeRandomFieldRefinement/mc/gim_I/piloto_srm_I31.05_0_7.csv (FS < 1)
+\newcommand{\ChVelhoHi}{37} % IC exato com 0 falhas em 8
+\newcommand{\ChVelhoDifMax}{0{,}0015} % chuva_ai/ref48_piloto/mc_*.csv e Projects/SlopeRandomFieldRefinement/mc/gim_I/piloto_srm_I31.05_0_7.csv (maior |diferenca| de FS(24 h))
+\newcommand{\ChOitoMedia}{1{,}1429} % chuva_ai/ref48_piloto/mc_*.csv (realizacoes 0..7, FS(24 h))
+\newcommand{\ChOitoCov}{5{,}6} % chuva_ai/ref48_piloto/mc_*.csv (realizacoes 0..7)
+\newcommand{\ChDuzMedia}{1{,}1297} % chuva_ai/ref48_piloto/mc_*.csv (FS(24 h))
+\newcommand{\ChDuzCov}{7{,}7} % chuva_ai/ref48_piloto/mc_*.csv (FS(24 h))
+\newcommand{\ChDuzLogn}{6{,}03} % chuva_ai/ref48_piloto/mc_*.csv (ajuste log-normal de FS(24 h))
+\newcommand{\ChCruzA}{1{,}7} % log-normal: media de ln FS das 200, desvio das 8
+\newcommand{\ChCruzB}{4{,}2} % log-normal: media de ln FS das 8, desvio das 200
+\newcommand{\ChPfEsperada}{1} % cluster/README.md (pilotos do relatorio_chuva.tex)
+\newcommand{\ChCovEspLin}{14} % cluster/README.md
+\newcommand{\ChCovEspMax}{25} % cluster/README.md
+\newcommand{\ChCovAlvo}{10} % COV_ALVO do script
+\newcommand{\ChNAlvoCov}{1500} % (1 - P_f) / (P_f CoV^2) com a P_f da AI, em centenas
+\newcommand{\ChCpuAlvo}{221} % N (em centenas) x custo do piloto no fermi
+\newcommand{\ChRelogioAlvo}{4{,}6} % N (em centenas) x custo do piloto / processos
+\newcommand{\ChoBloco}{50} % rodar.sh
+\newcommand{\ChoC}{10} % campanha/r05_direto/mc_parametros.txt
+\newcommand{\ChoPhi}{30} % campanha/r05_direto/mc_parametros.txt
+\newcommand{\ChoGamma}{20} % campanha/r05_direto/mc_parametros.txt
+\newcommand{\ChoE}{20} % campanha/r05_direto/mc_parametros.txt (MPa)
+\newcommand{\ChoNu}{0{,}3} % campanha/r05_direto/mc_parametros.txt
+\newcommand{\ChoCovC}{0{,}3} % campanha/r05_direto/mc_parametros.txt
+\newcommand{\ChoCovPhi}{0{,}2} % campanha/r05_direto/mc_parametros.txt
+\newcommand{\ChoLh}{20} % campanha/r05_direto/mc_parametros.txt
+\newcommand{\ChoLv}{2} % campanha/r05_direto/mc_parametros.txt
+\newcommand{\ChoKLM}{2000} % campanha/r05_direto/mc_parametros.txt
+\newcommand{\ChoKLvar}{98{,}8} % campanha/r05_direto/mc_parametros.txt
+\newcommand{\ChoSemente}{2010} % campanha/r05_direto/mc_parametros.txt
+\newcommand{\ChoMalha}{tri2} % campanha/r05_direto/mc_parametros.txt
+\newcommand{\ChoNref}{4} % campanha/r05_direto/mc_parametros.txt
+\newcommand{\ChoBishop}{1{,}204} % Projects/Cho2010/README.md (Cho 2010)
+\newcommand{\ChoPfCinco}{1{,}71} % Projects/Cho2010/README.md (Cho 2010): Tabela 5
+\newcommand{\ChoPfSete}{0{,}4} % Projects/Cho2010/README.md (Cho 2010): Fig. 9 (aproximado)
+\newcommand{\ChoNmc}{50\,000} % Projects/Cho2010/README.md (Cho 2010)
+\newcommand{\ChoBetaCinco}{2{,}12} % -Phi^-1(P_f do Cho)
+\newcommand{\ChoRCinco}{\ensuremath{-}0{,}5} % casos.txt
+\newcommand{\ChoRSete}{\ensuremath{-}0{,}7} % casos.txt
+\newcommand{\ChoRaiz}{0{,}866} % raiz(1 - r^2)
+\newcommand{\ChoEliteFrac}{10} % cho2010.cpp (padrao de elite)
+\newcommand{\ChoPilotoN}{1000} % casos.txt (piloto_n)
+\newcommand{\ChoEliteN}{100} % elite x piloto_n
+\newcommand{\ChoDetTriUm}{1{,}2097} % det/srm_fator_tri1_nref_4_0_-1.csv
+\newcommand{\ChoEqTriUm}{4298} % det/srm_fator_tri1_nref_4_0_-1.csv (equacoes no ultimo nivel)
+\newcommand{\ChoNivTriUm}{4} % det/srm_fator_tri1_nref_4_0_-1.csv (niveis)
+\newcommand{\ChoDifTriUm}{+0{,}48} % det/srm_fator_tri1_nref_4_0_-1.csv e Projects/Cho2010/README.md (Cho 2010)
+\newcommand{\ChoDetTriDoisTres}{1{,}2101} % det/srm_fator_tri2_nref_3_0_-1.csv
+\newcommand{\ChoEqTriDoisTres}{4492} % det/srm_fator_tri2_nref_3_0_-1.csv (equacoes no ultimo nivel)
+\newcommand{\ChoNivTriDoisTres}{3} % det/srm_fator_tri2_nref_3_0_-1.csv (niveis)
+\newcommand{\ChoDifTriDoisTres}{+0{,}51} % det/srm_fator_tri2_nref_3_0_-1.csv e Projects/Cho2010/README.md (Cho 2010)
+\newcommand{\ChoDetTriDois}{1{,}2047} % det/srm_fator_tri2_nref_4_0_-1.csv
+\newcommand{\ChoEqTriDois}{7744} % det/srm_fator_tri2_nref_4_0_-1.csv (equacoes no ultimo nivel)
+\newcommand{\ChoNivTriDois}{4} % det/srm_fator_tri2_nref_4_0_-1.csv (niveis)
+\newcommand{\ChoDifTriDois}{+0{,}06} % det/srm_fator_tri2_nref_4_0_-1.csv e Projects/Cho2010/README.md (Cho 2010)
+\newcommand{\ChoDetGim}{1{,}7899} % det/gim_0_-1.csv
+\newcommand{\ChoEqGim}{8606} % det/gim_0_-1.csv (equacoes no ultimo nivel)
+\newcommand{\ChoNivGim}{4} % det/gim_0_-1.csv (niveis)
+\newcommand{\ChoUltNivTriDois}{\ensuremath{-}0{,}45} % det/srm_fator_tri2_nref_4 (niveis)
+\newcommand{\ChoUltNivTriUm}{\ensuremath{-}0{,}81} % det/srm_fator_tri1_nref_4 (niveis)
+\newcommand{\ChoProcessos}{14} % campanha/logs/pp*.txt
+\newcommand{\ChoInicio}{9h12} % campanha/logs/pp*.txt
+\newcommand{\ChoHoraDados}{11h32} % campanha/*/mc_*.csv (o mais novo)
+\newcommand{\ChoCustoFalha}{393} % campanha/r0*_direto/mc_*.log (s, falhas)
+\newcommand{\ChoCustoOutras}{94} % campanha/r0*_direto/mc_*.log (s, as outras)
+\newcommand{\ChoCustoMedio}{97} % campanha/r0*_direto/mc_*.log (s)
+\newcommand{\ChoCustoRazao}{4{,}2} % campanha/r0*_direto/mc_*.log
+\newcommand{\ChoFeitas}{1213} % campanha/*/mc_*.csv
+\newcommand{\ChoTotal}{7000} % casos.txt
+\newcommand{\PcParou}{11h33} % ../README.md
+\newcommand{\ChoFimDireto}{--} % fila simulada (estimativa)
+\newcommand{\ChoInicioAI}{--} % fila simulada (estimativa)
+\newcommand{\ChoFimMin}{--} % fila simulada (limite de baixo)
+\newcommand{\ChoEmCurso}{14} % campanha/logs/pp*.txt (blocos em curso)
+\newcommand{\ChoCincoEmCurso}{7} % campanha/logs/pp*.txt (blocos de r05_direto em curso, uma realizacao cada)
+\newcommand{\ChoSeteEmCurso}{7} % campanha/logs/pp*.txt (blocos de r07_direto em curso, uma realizacao cada)
+\newcommand{\ChoCincoIC}{exato} % campanha/r05_direto/mc_*.csv (10 falhas)
+\newcommand{\ChoCincoN}{599} % campanha/r05_direto/mc_*.csv
+\newcommand{\ChoCincoAlvo}{4000} % casos.txt
+\newcommand{\ChoCincoNf}{10} % campanha/r05_direto/mc_*.csv (FS < 1)
+\newcommand{\ChoCincoFalhas}{10 falhas} % campanha/r05_direto/mc_*.csv (FS < 1)
+\newcommand{\ChoCincoPf}{1{,}67} % campanha/r05_direto/mc_*.csv
+\newcommand{\ChoCincoLo}{0{,}80} % campanha/r05_direto/mc_*.csv (IC exato)
+\newcommand{\ChoCincoHi}{3{,}05} % campanha/r05_direto/mc_*.csv (IC exato)
+\newcommand{\ChoCincoNivDif}{0{,}0049} % campanha/r05_direto/mc_*.csv (FS do nivel 3 - FS do nivel 4, media)
+\newcommand{\ChoCincoNivDp}{0{,}0021} % campanha/r05_direto/mc_*.csv (o mesmo, desvio)
+\newcommand{\ChoCincoNivNf}{10} % campanha/r05_direto/mc_*.csv (FS < 1 no penultimo nivel)
+\newcommand{\ChoCincoNivTrocas}{0} % campanha/r05_direto/mc_*.csv (realizacoes que trocam de lado entre os dois niveis)
+\newcommand{\ChoCincoCov}{31} % campanha/r05_direto/mc_*.csv (s_q / (raiz(N) P_f))
+\newcommand{\ChoCincoMedia}{1{,}1885} % campanha/r05_direto/mc_*.csv
+\newcommand{\ChoCincoCovFS}{8{,}1} % campanha/r05_direto/mc_*.csv
+\newcommand{\ChoCincoLogn}{1{,}80} % campanha/r05_direto/mc_*.csv (ajuste log-normal)
+\newcommand{\ChoCincoDentro}{dentro} % campanha/r05_direto/mc_*.csv e Projects/Cho2010/README.md (Cho 2010)
+\newcommand{\ChoCincoFracCurso}{7} % P_f t_falha / (P_f t_falha + (1 - P_f) t_outras)
+\newcommand{\ChoCincoFalhasCurso}{0{,}46} % realizacoes em curso x fracao esperada de falhas
+\newcommand{\ChoAICincoAlvo}{1000} % casos.txt
+\newcommand{\ChoAICincoSemente}{1} % casos.txt
+\newcommand{\ChoAICincoElite}{--} % a AI ainda nao gravou o deslocamento
+\newcommand{\ChoAICincoNivel}{--} % a AI ainda nao gravou o deslocamento
+\newcommand{\ChoAICincoPilFalhas}{--} % a AI ainda nao gravou o deslocamento
+\newcommand{\ChoAICincoMuDois}{--} % a AI ainda nao gravou o deslocamento
+\newcommand{\ChoAICincoS}{--} % a AI ainda nao gravou o deslocamento
+\newcommand{\ChoAICincoIguais}{--} % a AI ainda nao gravou o deslocamento
+\newcommand{\ChoAICincoN}{--} % a AI ainda nao tem realizacoes
+\newcommand{\ChoAICincoNf}{--} % a AI ainda nao tem realizacoes
+\newcommand{\ChoAICincoFalhas}{--} % a AI ainda nao tem realizacoes
+\newcommand{\ChoAICincoPf}{--} % a AI ainda nao tem realizacoes
+\newcommand{\ChoAICincoCov}{--} % a AI ainda nao tem realizacoes
+\newcommand{\ChoAICincoLo}{--} % a AI ainda nao tem realizacoes
+\newcommand{\ChoAICincoHi}{--} % a AI ainda nao tem realizacoes
+\newcommand{\ChoAICincoDif}{--} % a AI ainda nao tem realizacoes
+\newcommand{\ChoAICincoGanho}{--} % a AI ainda nao tem realizacoes
+\newcommand{\ChoAICincoPeso}{--} % a AI ainda nao tem realizacoes
+\newcommand{\ChoAICincoEss}{--} % a AI ainda nao tem realizacoes
+\newcommand{\ChoGanhoLinCinco}{24} % formula, P_f da AI (ou do direto, sem a AI)
+\newcommand{\ChoSeteIC}{exato} % campanha/r07_direto/mc_*.csv (2 falhas)
+\newcommand{\ChoSeteN}{614} % campanha/r07_direto/mc_*.csv
+\newcommand{\ChoSeteAlvo}{1000} % casos.txt
+\newcommand{\ChoSeteNf}{2} % campanha/r07_direto/mc_*.csv (FS < 1)
+\newcommand{\ChoSeteFalhas}{2 falhas} % campanha/r07_direto/mc_*.csv (FS < 1)
+\newcommand{\ChoSetePf}{0{,}33} % campanha/r07_direto/mc_*.csv
+\newcommand{\ChoSeteLo}{0{,}04} % campanha/r07_direto/mc_*.csv (IC exato)
+\newcommand{\ChoSeteHi}{1{,}17} % campanha/r07_direto/mc_*.csv (IC exato)
+\newcommand{\ChoSeteNivDif}{0{,}0049} % campanha/r07_direto/mc_*.csv (FS do nivel 3 - FS do nivel 4, media)
+\newcommand{\ChoSeteNivDp}{0{,}0020} % campanha/r07_direto/mc_*.csv (o mesmo, desvio)
+\newcommand{\ChoSeteNivNf}{1} % campanha/r07_direto/mc_*.csv (FS < 1 no penultimo nivel)
+\newcommand{\ChoSeteNivTrocas}{1} % campanha/r07_direto/mc_*.csv (realizacoes que trocam de lado entre os dois niveis)
+\newcommand{\ChoSeteCov}{71} % campanha/r07_direto/mc_*.csv (s_q / (raiz(N) P_f))
+\newcommand{\ChoSeteMedia}{1{,}1933} % campanha/r07_direto/mc_*.csv
+\newcommand{\ChoSeteCovFS}{6{,}7} % campanha/r07_direto/mc_*.csv
+\newcommand{\ChoSeteLogn}{0{,}45} % campanha/r07_direto/mc_*.csv (ajuste log-normal)
+\newcommand{\ChoSeteDentro}{dentro} % campanha/r07_direto/mc_*.csv e Projects/Cho2010/README.md (Cho 2010)
+\newcommand{\ChoSeteFracCurso}{1} % P_f t_falha / (P_f t_falha + (1 - P_f) t_outras)
+\newcommand{\ChoSeteFalhasCurso}{0{,}09} % realizacoes em curso x fracao esperada de falhas
+\newcommand{\ChoAISeteAlvo}{1000} % casos.txt
+\newcommand{\ChoAISeteSemente}{1} % casos.txt
+\newcommand{\ChoAISeteElite}{--} % a AI ainda nao gravou o deslocamento
+\newcommand{\ChoAISeteNivel}{--} % a AI ainda nao gravou o deslocamento
+\newcommand{\ChoAISetePilFalhas}{--} % a AI ainda nao gravou o deslocamento
+\newcommand{\ChoAISeteMuDois}{--} % a AI ainda nao gravou o deslocamento
+\newcommand{\ChoAISeteS}{--} % a AI ainda nao gravou o deslocamento
+\newcommand{\ChoAISeteIguais}{--} % a AI ainda nao gravou o deslocamento
+\newcommand{\ChoAISeteN}{--} % a AI ainda nao tem realizacoes
+\newcommand{\ChoAISeteNf}{--} % a AI ainda nao tem realizacoes
+\newcommand{\ChoAISeteFalhas}{--} % a AI ainda nao tem realizacoes
+\newcommand{\ChoAISetePf}{--} % a AI ainda nao tem realizacoes
+\newcommand{\ChoAISeteCov}{--} % a AI ainda nao tem realizacoes
+\newcommand{\ChoAISeteLo}{--} % a AI ainda nao tem realizacoes
+\newcommand{\ChoAISeteHi}{--} % a AI ainda nao tem realizacoes
+\newcommand{\ChoAISeteDif}{--} % a AI ainda nao tem realizacoes
+\newcommand{\ChoAISeteGanho}{--} % a AI ainda nao tem realizacoes
+\newcommand{\ChoAISetePeso}{--} % a AI ainda nao tem realizacoes
+\newcommand{\ChoAISeteEss}{--} % a AI ainda nao tem realizacoes
+\newcommand{\ChoGanhoLinSete}{100} % formula, P_f da AI (ou do direto, sem a AI)
+\newcommand{\EtapaUmPar}{1000} % cluster/casos_etapa1.txt (r05_antigo)
+\newcommand{\EtapaUmChuva}{600} % cluster/casos_etapa1.txt (chuva_antigo)
+\newcommand{\EtapaUmFzero}{0{,}8} % cluster/casos_etapa1.txt
+\newcommand{\ChoAntesN}{599} % campanha/r05_direto/mc_*.csv (realizacoes 0..999)
+\newcommand{\ChoAntesNf}{10} % campanha/r05_direto/mc_*.csv (0..999, FS < 1)
+\newcommand{\ChoAntesPerto}{8} % campanha/r05_direto/mc_*.csv (FS em [1; 1.02))
+\newcommand{\ChoAntesFaixa}{$[1;\ 1{,}02)$} % FAIXAS do script
+\newcommand{\FormTolGNovo}{0{,}001} % ../README.md (etapa 2)
+\newcommand{\FormTolBNovo}{0{,}01} % ../README.md (etapa 2)
+\newcommand{\FormDezM}{10} % form_M10_r05/form_parcial.json
+\newcommand{\FormDezVar}{60{,}1} % form_M10_r05/it0_centro_parametros.txt
+\newcommand{\FormDezAvalIt}{41} % 4M + 1
+\newcommand{\FormDezIt}{5} % form_M10_r05/form_parcial.json (iteracoes completas)
+\newcommand{\FormDezUltIt}{4} % form_M10_r05/form_parcial.json
+\newcommand{\FormDezAval}{205} % form_M10_r05/form_parcial.json
+\newcommand{\FormDezItAtual}{5} % form_M10_r05/it*_0_0.csv
+\newcommand{\FormDezFeitas}{8} % form_M10_r05/it5_*_0_0.csv
+\newcommand{\FormDezBeta}{2{,}13} % form_M10_r05/form_parcial.json
+\newcommand{\FormDezG}{0{,}0004} % form_M10_r05/form_parcial.json (g da ultima iteracao)
+\newcommand{\FormDezPf}{1{,}66} % form_M10_r05/form_parcial.json (Phi(-beta))
+\newcommand{\FormDezBetaProx}{2{,}13} % form_M10_r05/form_parcial.json (proximo ponto do HL-RF)
+\newcommand{\FormDezPfProx}{1{,}65} % form_M10_r05/form_parcial.json (Phi(-beta) do proximo ponto)
+\newcommand{\FormDezAlfaC}{0{,}07} % form_M10_r05/form_parcial.json (soma dos alfa^2 de c')
+\newcommand{\FormDezAlfaPhi}{0{,}93} % form_M10_r05/form_parcial.json (soma dos alfa^2 de phi')
+\newcommand{\FormDezTop}{$\varphi'_{0}$ (0{,}74), $\varphi'_{2}$ (0{,}13), $c'_{0}$ (0{,}05)} % form_M10_r05/form_parcial.json (maiores alfa^2)
+\newcommand{\FormDezConvergiu}{--} % form_M10_r05/form_parcial.json
+\newcommand{\FormDezSobe}{sobe} % form_M10_r05/form_parcial.json
+\newcommand{\FormDezDBeta}{0{,}005} % form_M10_r05/form_parcial.json (mudanca de beta na ultima iteracao)
+\newcommand{\FormDezPasso}{0{,}11} % form_M10_r05/form_parcial.json (|u_k - u_k-1| na ultima iteracao)
+\newcommand{\FormDezPassoMin}{0{,}10} % form_M10_r05/form_parcial.json (menor |du| depois da iteracao 2)
+\newcommand{\FormDezCritNovo}{já passa} % form_M10_r05/form_parcial.json e ../README.md (|g| = 0.0004, mudanca de beta = 0.0049)
+\newcommand{\FormDezParalelos}{4} % form_M10_r05/form_parcial.json
+\newcommand{\FormDezItMax}{6} % form_M10_r05/form_parcial.json
+\newcommand{\FormVinteM}{20} % form_M20_r05/form_parcial.json
+\newcommand{\FormVinteVar}{72{,}1} % form_M20_r05/it0_centro_parametros.txt
+\newcommand{\FormVinteAvalIt}{81} % 4M + 1
+\newcommand{\FormVinteIt}{3} % form_M20_r05/form_parcial.json (iteracoes completas)
+\newcommand{\FormVinteUltIt}{2} % form_M20_r05/form_parcial.json
+\newcommand{\FormVinteAval}{243} % form_M20_r05/form_parcial.json
+\newcommand{\FormVinteItAtual}{3} % form_M20_r05/it*_0_0.csv
+\newcommand{\FormVinteFeitas}{41} % form_M20_r05/it3_*_0_0.csv
+\newcommand{\FormVinteBeta}{2{,}01} % form_M20_r05/form_parcial.json
+\newcommand{\FormVinteG}{0{,}0016} % form_M20_r05/form_parcial.json (g da ultima iteracao)
+\newcommand{\FormVintePf}{2{,}24} % form_M20_r05/form_parcial.json (Phi(-beta))
+\newcommand{\FormVinteBetaProx}{2{,}02} % form_M20_r05/form_parcial.json (proximo ponto do HL-RF)
+\newcommand{\FormVintePfProx}{2{,}15} % form_M20_r05/form_parcial.json (Phi(-beta) do proximo ponto)
+\newcommand{\FormVinteAlfaC}{0{,}06} % form_M20_r05/form_parcial.json (soma dos alfa^2 de c')
+\newcommand{\FormVinteAlfaPhi}{0{,}94} % form_M20_r05/form_parcial.json (soma dos alfa^2 de phi')
+\newcommand{\FormVinteTop}{$\varphi'_{0}$ (0{,}67), $\varphi'_{2}$ (0{,}13), $\varphi'_{12}$ (0{,}07)} % form_M20_r05/form_parcial.json (maiores alfa^2)
+\newcommand{\FormVinteConvergiu}{--} % form_M20_r05/form_parcial.json
+\newcommand{\FormVinteSobe}{sobe} % form_M20_r05/form_parcial.json
+\newcommand{\FormVinteDBeta}{0{,}188} % form_M20_r05/form_parcial.json (mudanca de beta na ultima iteracao)
+\newcommand{\FormVintePasso}{0{,}32} % form_M20_r05/form_parcial.json (|u_k - u_k-1| na ultima iteracao)
+\newcommand{\FormVintePassoMin}{0{,}32} % form_M20_r05/form_parcial.json (menor |du| depois da iteracao 2)
+\newcommand{\FormVinteCritNovo}{ainda não passa} % form_M20_r05/form_parcial.json e ../README.md (|g| = 0.0016, mudanca de beta = 0.1885)
+\newcommand{\FormVinteParalelos}{4} % form_M20_r05/form_parcial.json
+\newcommand{\FormVinteItMax}{5} % form_M20_r05/form_parcial.json
+\newcommand{\FormH}{0{,}5} % form_M10_r05/form_parcial.json (h)
+\newcommand{\FormTolG}{0{,}005} % form_kl.py
+\newcommand{\FormTolP}{0{,}05} % form_kl.py
+\newcommand{\FormCentroFS}{1{,}1686} % form_M10_r05/it0_centro_0_0.csv
+\newcommand{\FormCentroC}{9{,}58} % form_M10_r05/it0_centro_0_0.csv (c_med)
+\newcommand{\FormCentroPhi}{29{,}4} % form_M10_r05/it0_centro_0_0.csv (phi_med)
+\newcommand{\FormGradC}{0{,}016} % form_M10_r05: gradiente em c'_0
+\newcommand{\FormGradPhi}{0{,}062} % form_M10_r05: gradiente em phi'_0
+\newcommand{\FormViaC}{0{,}052} % regra da cadeia: o efeito do xi de c'_0 pelo c'
+\newcommand{\FormViaPhi}{\ensuremath{-}0{,}036} % regra da cadeia: o mesmo xi pelo phi' (r B)
+\newcommand{\ChoBetaDireto}{2{,}13} % -Phi^-1(P_f do direto ate agora)
+\newcommand{\FormCompara}{--} % os dois FORM ainda nao terminaram
+\newcommand{\AIFormAlvo}{1000} % cadeia_form.sh
+\newcommand{\AIFormSemente}{3} % cadeia_form.sh
+\newcommand{\AIFormProc}{4} % cadeia_form.sh (processos no comeco)
+\newcommand{\AIFormProcMais}{10} % cadeia_form.sh (processos depois do rodar.sh)
+\newcommand{\AIFormMuDois}{4{,}54} % form_M10_r05/form_parcial.json (beta previsto ao quadrado)
+\newcommand{\AIFormVarPeso}{93} % exp(beta^2) - 1, previsto
+\newcommand{\AIFormN}{--} % a AI com o ponto de projeto ainda nao tem realizacoes
+\newcommand{\AIFormNf}{--} % a AI com o ponto de projeto ainda nao tem realizacoes
+\newcommand{\AIFormFalhas}{--} % a AI com o ponto de projeto ainda nao tem realizacoes
+\newcommand{\AIFormPf}{--} % a AI com o ponto de projeto ainda nao tem realizacoes
+\newcommand{\AIFormCov}{--} % a AI com o ponto de projeto ainda nao tem realizacoes
+\newcommand{\AIFormLo}{--} % a AI com o ponto de projeto ainda nao tem realizacoes
+\newcommand{\AIFormHi}{--} % a AI com o ponto de projeto ainda nao tem realizacoes
+\newcommand{\AIFormDif}{--} % a AI com o ponto de projeto ainda nao tem realizacoes
+\newcommand{\AIFormGanho}{--} % a AI com o ponto de projeto ainda nao tem realizacoes
+\newcommand{\AIFormPeso}{--} % a AI com o ponto de projeto ainda nao tem realizacoes
+\newcommand{\AIFormEss}{--} % a AI com o ponto de projeto ainda nao tem realizacoes
+\newcommand{\RbVmdBanda}{13} % numeros_rebaixamento.tex (P_f e CoV citados)
+\newcommand{\RbVmdModos}{17} % numeros_rebaixamento.tex (P_f e CoV citados)
+\newcommand{\ChVmd}{59} % chuva_ai (P_f e CoV do piloto e da AI)
+\newcommand{\BalLinhas}{rebaixamento & banda & \RbPfDireto{} (\RbNDireto) & \RbPfBanda{} (\RbNBanda) & \RbDifBanda & \RbVmdBanda & \RbGanhoBanda & \RbGanhoLinear \\
+  rebaixamento & \RbKModos{} modos & \RbPfDireto{} (\RbNDireto) & \RbPfModos{} (\RbNModos) & \RbDifModos & \RbVmdModos & \RbGanhoModos & \RbGanhoLinear \\
+  chuva (\ChSolo) & banda (elite) & \ChPPf{} (\ChNP) & \ChAPf{} (\ChNA) & \ChDif & \ChVmd & \ChGanho & \ChGanhoLinear \\
+  Cho, $r = \ChoRCinco$ & banda (elite) & \ChoCincoPf{} (\ChoCincoN)$^\dagger$ & \multicolumn{4}{l}{não rodou no PC} & \ChoGanhoLinCinco \\
+  Cho, $r = \ChoRSete$ & banda (elite) & \ChoSetePf{} (\ChoSeteN)$^\dagger$ & \multicolumn{4}{l}{não rodou no PC} & \ChoGanhoLinSete \\
+  Cho, $r = \ChoRCinco$ & ponto de projeto & \ChoCincoPf{} (\ChoCincoN)$^\dagger$ & \multicolumn{4}{l}{não rodou no PC} & \ChoGanhoLinCinco \\} % as macros das linhas
+\newcommand{\BalNCasos}{3} % casos completos do balanco
+\newcommand{\BalMaxDif}{1{,}58} % o maior |diferenca| dos casos completos (desvios)
+\newcommand{\BalVies}{todas abaixo de dois desvios} % casos completos do balanco
+\newcommand{\BalGanhoMin}{2{,}7} % ganhos medidos na banda
+\newcommand{\BalGanhoMax}{4{,}1} % ganhos medidos na banda
+\newcommand{\BalFracMin}{50} % ganho medido / ganho linear, na banda
+\newcommand{\BalFracMax}{69} % ganho medido / ganho linear, na banda
+\newcommand{\BuracoFaixa}{$[0{,}99;\ 1)$} % FAIXAS do script
+\newcommand{\BuracoCab}{$[0{,}98;\ 0{,}99)$ & $[0{,}99;\ 1)$ & $[1;\ 1{,}01)$ & $[1{,}01;\ 1{,}02)$} % FAIXAS do script
+\newcommand{\ChoBuracoAbaixo}{0} % campanha/r05_direto/mc_*.csv (FS na faixa (0.99, 1.0))
+\newcommand{\ChoBuracoViz}{4 e 5} % campanha/r05_direto/mc_*.csv (faixas (0.98, 0.99) e (1.0, 1.01))
+\newcommand{\BuracoLinhas}{chuva: piloto (direto) & 200 & 1 & 2 & 7 & 2 \\
+  chuva: AI (sem peso) & 200 & 7 & 6 & 7 & 11 \\
+  Cho, $r = \ChoRCinco$: direto (parcial) & 599 & 4 & 0 & 5 & 3 \\
+  Cho, $r = \ChoRSete$: direto (parcial) & 614 & 0 & 1 & 3 & 2 \\} % contagens de FS nas faixas [(0.98, 0.99), (0.99, 1.0), (1.0, 1.01), (1.01, 1.02)]
+\newcommand{\FormLinhas}{0 & 0{,}1686 & 0{,}0000 & 0{,}1686 & 0{,}0000 \\
+  1 & 0{,}0153 & 1{,}9196 & 0{,}0156 & 1{,}8183 \\
+  2 & 0{,}0008 & 2{,}1156 & 0{,}0016 & 2{,}0068 \\
+  3 & 0{,}0005 & 2{,}1247 &  &  \\
+  4 & 0{,}0004 & 2{,}1296 &  &  \\} % form_M*_r05/form*.json (historico)
+\newcommand{\ChoLinhas}{$r = \ChoRCinco$ & direto & \ChoCincoN{} de \ChoCincoAlvo & \ChoCincoNf & \ChoCincoPf & \ChoCincoLo--\ChoCincoHi & \ChoCincoCov & \ChoPfCinco \\
+   & AI na banda & \multicolumn{6}{l}{não rodou no PC (vai para o fermi)} \\
+   & AI no ponto de projeto & \multicolumn{6}{l}{não rodou no PC (vai para o fermi)} \\
+  \addlinespace
+  $r = \ChoRSete$ & direto & \ChoSeteN{} de \ChoSeteAlvo & \ChoSeteNf & \ChoSetePf & \ChoSeteLo--\ChoSeteHi & \ChoSeteCov & $\approx$\ChoPfSete \\
+   & AI na banda & \multicolumn{6}{l}{não rodou no PC (vai para o fermi)} \\} % as macros das linhas

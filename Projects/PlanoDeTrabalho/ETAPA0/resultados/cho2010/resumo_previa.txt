@@ -1,0 +1,5 @@
+# Cho2010 no PC, SRM antigo: o Monte Carlo direto ate 15/11/2026 12:16 (parcial)
+# gerado por figuras_etapa0.py a partir de /home/diogo/projects/runs/cho2010/campanha/r0*_direto/mc_*.csv
+caso             N   alvo  falhas   P_f(%)   CoV(%)      IC IC 95% (%)
+r05_direto     599   4000      10    1.669     31.4   exato 0.803 a 3.049
+r07_direto     614   1000       2    0.326     70.7   exato 0.039 a 1.172
