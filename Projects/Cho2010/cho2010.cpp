@@ -26,6 +26,9 @@
 //   fator (tri1), nref (4) malha grossa (TriGMesh com K divisoes: lado H / 2^K) e niveis de refinamento
 //   figuras ()             realizacoes com mecanismo.csv e campos.csv (pasta <saida>_real<n>), ex.: -1,0
 //   saida (mc), semente (2010)
+//   desloc_xi (<arquivo>)  amostragem por importancia com o deslocamento dado termo a termo: 2K numeros (os K de c' e
+//                          depois os K de phi', como o ponto de projeto u* do form_kl.py com M = K); os outros termos
+//                          ficam sem deslocamento. Use com outra semente=
 //   xi (<arquivo>)         os xi dados, sem sorteio (um ponto do FORM: form_kl.py): 2M numeros, os M de c' e depois os M de
 //                          phi'; com n = 1, a realizacao primeira usa esses xi
 //   banda (<arquivo>)      mecanismo.csv de um deterministico: a direcao d dos xi e as projecoes proj_* no CSV
@@ -96,7 +99,7 @@ struct Opcoes {
     int n = 10, primeira = 0, nref = 4;
     bool det = false, gim = false;
     Campos campos;
-    std::string malhaF = "tri1", saida = "mc", banda, xi;
+    std::string malhaF = "tri1", saida = "mc", banda, xi, deslocXi;
     std::set<int> figuras;
     std::vector<REAL> valores; // deterministico com c' e phi' dados (vazio: as medias)
     ai::Opcoes ai;
@@ -117,7 +120,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
     const std::set<std::string> chaves = {"n",     "primeira", "det",   "valores", "metodo", "covc",     "covphi",
                                           "rcphi", "lh",       "lv",    "M",       "fator",  "nref",     "figuras",
                                           "saida", "semente",  "banda", "piloto",  "piloto_n", "piloto_semente",
-                                          "ai",    "elite",    "modos", "xi"};
+                                          "ai",    "elite",    "modos", "xi",       "desloc_xi"};
     std::map<std::string, std::string> kv;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
@@ -154,6 +157,11 @@ Opcoes LeOpcoes(int argc, char *argv[])
     if (tem("saida")) op.saida = kv["saida"];
     if (tem("banda")) op.banda = kv["banda"];
     if (tem("xi")) op.xi = kv["xi"];
+    if (tem("desloc_xi")) op.deslocXi = kv["desloc_xi"];
+    if (!op.deslocXi.empty() && !op.ai.piloto.empty()) {
+        std::fprintf(stderr, "desloc_xi e piloto: um ou outro\n");
+        std::exit(1);
+    }
     op.ai.semente = tem("piloto_semente") ? std::stoull(kv["piloto_semente"]) : Campos{}.semente;
     if (tem("piloto")) op.ai.piloto = kv["piloto"];
     if (tem("piloto_n")) op.ai.n = std::stoi(kv["piloto_n"]);
@@ -519,7 +527,8 @@ void GravaParametros(const std::string &arq, const Opcoes &op, const RandomField
       << "\nCOV_C=" << cp.covC << "\nCOV_PHI=" << cp.covPhi << "\nR_CPHI=" << cp.rcphi << "\nLH=" << cp.lh << "\nLV="
       << cp.lv << "\nKL_M=" << campos.M() << "\nKL_VARIANCIA=" << campos.VarianceFraction() << "\nSEMENTE=" << cp.semente
       << "\nMETODO=" << (op.gim ? "gim" : "srm") << "\nMALHA_FATOR=" << op.malhaF << "\nNREF=" << op.nref
-      << "\nAI=" << (op.ai.piloto.empty() ? "nenhuma" : op.ai.tipo + "_piloto") << "\n";
+      << "\nAI=" << (!op.deslocXi.empty() ? std::string("dado:") + op.deslocXi
+                     : op.ai.piloto.empty() ? std::string("nenhuma") : op.ai.tipo + "_piloto") << "\n";
     if (!op.ai.piloto.empty())
         p << "PILOTO=" << op.ai.piloto << "\nPILOTO_N=" << op.ai.n << "\nPILOTO_SEMENTE=" << op.ai.semente
           << "\nELITE=" << op.ai.elite << "\nBANDA=" << op.banda << "\n";
@@ -575,6 +584,27 @@ int main(int argc, char *argv[])
     }
     if (!op.ai.piloto.empty() && !ai::DeslocaPeloPiloto(campos, dir, op.ai, op.saida + "_desloc_" + faixa + ".txt"))
         return 3;
+    if (!op.deslocXi.empty()) { // deslocamento dado termo a termo (ex.: o ponto de projeto do FORM)
+        std::ifstream fd(op.deslocXi);
+        std::vector<double> v;
+        for (double x; fd >> x;) v.push_back(x);
+        if (v.empty() || v.size() % 2 || int(v.size() / 2) > campos.M()) {
+            std::fprintf(stderr, "desloc_xi: %s precisa de 2K numeros, com K <= M\n", op.deslocXi.c_str());
+            return 1;
+        }
+        const size_t K = v.size() / 2;
+        const std::vector<std::vector<double>> mu = {std::vector<double>(v.begin(), v.begin() + K),
+                                                     std::vector<double>(v.begin() + K, v.end())};
+        campos.SetShift(mu);
+        double mu2 = 0.;
+        for (double x : v) mu2 += x * x;
+        std::ofstream df(op.saida + "_desloc_" + faixa + ".txt");
+        df << std::setprecision(10) << "# deslocamento da amostragem por importancia dado termo a termo\nai=dado\narquivo="
+           << op.deslocXi << "\nmodos=" << K << "\nmu2=" << mu2 << "\ntermo,c,phi\n";
+        for (size_t k = 0; k < K; k++) df << k << "," << mu[0][k] << "," << mu[1][k] << "\n";
+        std::printf("  amostragem por importancia: deslocamento dado em %s (%zu termos por campo, |mu|^2 = %.4f)\n",
+                    op.deslocXi.c_str(), K, mu2);
+    }
     const std::string arq = op.saida + "_" + faixa + ".csv";
     std::ofstream csv(arq);
     csv << kCabecalho;
@@ -652,7 +682,8 @@ int main(int argc, char *argv[])
         const int falhas = std::count_if(fss.begin(), fss.end(), [](REAL x) { return x < 1.; });
         std::printf("\n  %zu realizacoes: FS medio %.4f, desvio %.4f, P(FS < 1) contada = %.2f%%", fss.size(), m,
                     fss.size() > 1 ? std::sqrt(v / (fss.size() - 1)) : 0., 100. * falhas / fss.size());
-        if (!op.ai.piloto.empty()) std::printf(", P_f ponderada = %.3f%%", 100. * somaPesoFalha / fss.size());
+        if (!op.ai.piloto.empty() || !op.deslocXi.empty())
+            std::printf(", P_f ponderada = %.3f%%", 100. * somaPesoFalha / fss.size());
         std::printf("\n  tempo medio por realizacao: %.1f s\n", somaF / mapa.nReal);
     }
     std::printf("  arquivos: %s e %s\n", arq.c_str(), (op.saida + "_mapa_" + faixa + ".csv").c_str());
