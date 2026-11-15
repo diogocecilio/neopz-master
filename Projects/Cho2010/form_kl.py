@@ -91,6 +91,7 @@ def main():
           f"passo h = {p['h']} em u, {2 * 2 * M + 1} avaliacoes por iteracao, {p['paralelos']} em paralelo", flush=True)
     print("  it   g = FS - 1    beta     |grad|   maiores alfa^2 (campo, termo)", flush=True)
     gAnterior = None
+    convergiu = False
     for it in range(p["iteracoes"]):
         g, grad, fs = prob.g_e_gradiente(u, it)
         beta = math.sqrt(sum(x * x for x in u))
@@ -106,6 +107,7 @@ def main():
         novo = [(gu - g) / n2 * gi for gi in grad]
         beta_novo = math.sqrt(sum(x * x for x in novo))
         if it > 0 and abs(g) < p["tol_g"] and abs(beta_novo - beta) < p["tol_beta"]:
+            convergiu = True
             break
         if gAnterior is not None and abs(g) > 2. * abs(gAnterior) and it > 1:
             novo = [ui + 0.5 * (ni - ui) for ui, ni in zip(u, novo)]  # amortece: metade do passo
@@ -117,12 +119,13 @@ def main():
     a2 = [x * x for x in alfa]
     beta_corr = beta_novo  # distancia ao plano tangente no ultimo ponto avaliado (o proximo passo do HL-RF)
     res = {"parametros": p, "beta": beta, "P_f": phi_normal(-beta), "beta_corrigido": beta_corr,
-           "P_f_corrigida": phi_normal(-beta_corr), "iteracoes": len(hist), "u": u, "alfa": alfa, "alfa2": a2,
+           "P_f_corrigida": phi_normal(-beta_corr), "convergiu": convergiu, "iteracoes": len(hist), "u": u, "alfa": alfa, "alfa2": a2,
            "alfa2_c": sum(a2[:M]), "alfa2_phi": sum(a2[M:]), "avaliacoes": prob.n, "historico": hist}
     with open(os.path.join(pasta, "form.json"), "w") as f:
         json.dump(res, f, indent=1)
     print(f"\n  beta = {beta:.4f}  P_f = Phi(-beta) = {100 * res['P_f']:.3f}%  ({prob.n} avaliacoes do FS)")
     print(f"  beta corrigido = {beta_corr:.4f}  P_f = {100 * res['P_f_corrigida']:.3f}%")
+    print("  convergiu" if convergiu else f"  NAO convergiu em {p['iteracoes']} iteracoes")
     print(f"  importancia por campo: c' {res['alfa2_c']:.3f}, phi' {res['alfa2_phi']:.3f}")
 
 

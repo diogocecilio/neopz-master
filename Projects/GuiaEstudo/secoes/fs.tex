@@ -93,7 +93,9 @@ maior equilíbrio achado por qualquer método.
 
 \paragraph{Mudança de 15/11.} O \texttt{UnsatAnalysis::SRMArcLength} do \path{SlopeRandomFieldRefinement} aplicava o
 peso com $F = 1$, e isso criava um buraco logo abaixo de 1. Agora o padrão é $F_0 = 0{,}8$ (\texttt{SetSRMStart},
-\texttt{srm\_f0}). O \texttt{SRMArcLength} do \texttt{Common} é outra classe.
+\texttt{srm\_f0}). O \texttt{SRMArcLength} do \texttt{Common} é outra classe. O buraco subestima a $P_f$ em até cerca de 1 ponto, e
+todos os números da chuva até aqui são do SRM antigo. A etapa 1 do plano de trabalho compara as duas versões nas
+mesmas realizações.
 
 \paragraph{Divergências entre o relatório e o código.}
 \begin{itemize}

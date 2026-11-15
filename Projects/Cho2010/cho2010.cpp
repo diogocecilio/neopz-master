@@ -161,13 +161,13 @@ Opcoes LeOpcoes(int argc, char *argv[])
     if (tem("xi")) op.xi = kv["xi"];
     if (tem("srm_f0")) op.srmF0 = std::stod(kv["srm_f0"]);
     if (tem("desloc_xi")) op.deslocXi = kv["desloc_xi"];
+    op.ai.semente = tem("piloto_semente") ? std::stoull(kv["piloto_semente"]) : Campos{}.semente;
+    if (tem("piloto")) op.ai.piloto = kv["piloto"];
+    if (tem("piloto_n")) op.ai.n = std::stoi(kv["piloto_n"]);
     if (!op.deslocXi.empty() && !op.ai.piloto.empty()) {
         std::fprintf(stderr, "desloc_xi e piloto: um ou outro\n");
         std::exit(1);
     }
-    op.ai.semente = tem("piloto_semente") ? std::stoull(kv["piloto_semente"]) : Campos{}.semente;
-    if (tem("piloto")) op.ai.piloto = kv["piloto"];
-    if (tem("piloto_n")) op.ai.n = std::stoi(kv["piloto_n"]);
     if (tem("ai")) op.ai.tipo = kv["ai"];
     if (tem("elite")) op.ai.elite = std::stod(kv["elite"]);
     if (tem("modos")) op.ai.modos = std::stoi(kv["modos"]);

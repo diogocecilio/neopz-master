@@ -51,6 +51,7 @@ $w = \exp(-\bm v\cdot\bm u^* + \tfrac12\|\bm u^*\|^2)$, e $\hat P_f = \frac1N\su
         O deslocamento na \emph{direção da banda} deu ganho de 2,7 a 4,1 vezes; nos 20 primeiros modos, só 1,2
         (Seção~\ref{sec:estado});
       \item o FORM com os 6000 coeficientes não é viável. Com a KL truncada ($M = 10$ e 20), ele está implementado no
-        Cho2010 (\path{form_kl.py}).
+        Cho2010 (\path{form_kl.py}). O gradiente é por diferenças centrais ($h = 0{,}5$, $4M + 1$ análises por
+        iteração), e não há busca de Armijo: quando $|G|$ mais que dobra, o passo cai pela metade.
     \end{itemize}
 \end{itemize}
