@@ -1,0 +1,411 @@
+% gerado por figuras_rebaixamento.py em 14/11/2026 21:45: nao edite (rode o script de novo)
+\newif\ifaipronto \aiprontotrue
+\newif\ifmodosdesloc \modosdesloctrue
+\newif\ifmodospronto \modosprontofalse
+\newif\ifmodosiniciado \modosiniciadotrue
+\newif\ifkfixopronto \kfixoprontofalse
+\newif\ifkfixoiniciado \kfixoiniciadofalse
+\newcommand{\DomX}{70} % rebaixamento_mc.cpp (kTalude)
+\newcommand{\DomY}{35} % rebaixamento_mc.cpp (kTalude)
+\newcommand{\AlturaH}{5} % rebaixamento_mc.cpp (kTalude)
+\newcommand{\Inclinacao}{45} % rebaixamento_mc.cpp (kTalude)
+\newcommand{\CristaX}{35} % rebaixamento_mc.cpp (kTalude)
+\newcommand{\PeX}{40} % rebaixamento_mc.cpp (kTalude)
+\newcommand{\CristaY}{35} % rebaixamento_mc.cpp (kTalude)
+\newcommand{\PeY}{30} % rebaixamento_mc.cpp (kTalude)
+\newcommand{\Coesao}{10} % rebaixamento_mc.cpp (Solo)
+\newcommand{\Atrito}{30} % rebaixamento_mc.cpp (Solo)
+\newcommand{\PesoSolo}{20} % rebaixamento_mc.cpp (Solo)
+\newcommand{\ModuloE}{20} % rebaixamento_mc.cpp (Solo, MPa)
+\newcommand{\Poisson}{0{,}3} % rebaixamento_mc.cpp (Solo)
+\newcommand{\Porosidade}{0{,}45} % rebaixamento_mc.cpp (Solo)
+\newcommand{\Kv}{10^{-6}} % rebaixamento_mc.cpp (Solo)
+\newcommand{\ModuloAgua}{2{,}2} % rebaixamento_mc.cpp (Solo, GPa)
+\newcommand{\GammaMain}{1{,}3339} % rebaixamento_mc.cpp (cabecalho: TransientDrawDown do main.cpp)
+\newcommand{\NivelMain}{3} % rebaixamento_mc.cpp (cabecalho)
+\newcommand{\CovC}{0{,}3} % direto/ceron_tr_fase1/f50_I0_iii/mc_parametros.txt
+\newcommand{\CovPhi}{0{,}1} % direto/ceron_tr_fase1/f50_I0_iii/mc_parametros.txt
+\newcommand{\CovK}{0{,}6} % direto/ceron_tr_fase1/f50_I0_iii/mc_parametros.txt
+\newcommand{\Lx}{20} % direto/ceron_tr_fase1/f50_I0_iii/mc_parametros.txt
+\newcommand{\Ly}{2} % direto/ceron_tr_fase1/f50_I0_iii/mc_parametros.txt
+\newcommand{\KLM}{2000} % direto/ceron_tr_fase1/f50_I0_iii/mc_parametros.txt
+\newcommand{\NVarKL}{6000} % direto/ceron_tr_fase1/f50_I0_iii/mc_parametros.txt (3 campos x KL_M)
+\newcommand{\KLvar}{95{,}97} % direto/ceron_tr_fase1/f50_I0_iii/mc_parametros.txt
+\newcommand{\Semente}{20250416} % direto/ceron_tr_fase1/f50_I0_iii/mc_parametros.txt
+\newcommand{\Trebaix}{0{,}1} % direto/ceron_tr_fase1/f50_I0_iii/mc_parametros.txt
+\newcommand{\NivelFinal}{30} % direto/ceron_tr_fase1/f50_I0_iii/mc_parametros.txt
+\newcommand{\HwH}{1} % direto/ceron_tr_fase1/f50_I0_iii/mc_parametros.txt
+\newcommand{\Nref}{3} % direto/ceron_tr_fase1/f50_I0_iii/mc_parametros.txt
+\newcommand{\MalhaT}{tri3} % direto/ceron_tr_fase1/f50_I0_iii/mc_parametros.txt
+\newcommand{\MalhaF}{tri1} % direto/ceron_tr_fase1/f50_I0_iii/mc_parametros.txt
+\newcommand{\LimiarBanda}{0{,}1} % rebaixamento_mc.cpp (FatorAdaptativo)
+\newcommand{\DtTrans}{0{,}1} % DrawdownTransient.h (DrawdownData::dt)
+\newcommand{\PassosTrans}{1} % TREBAIX / dt
+\newcommand{\TriTrans}{11712} % direto/det/mc_real-1/triangles.csv
+\newcommand{\LadoTrans}{0{,}625} % direto/det/mc_real-1/triangles.csv (menor aresta)
+\newcommand{\PassoMalha}{5} % direto/det/mc_real-1/triangles.csv (lado x 2^3)
+\newcommand{\LadoFator}{2{,}5} % passo / 2^1
+\newcommand{\LadoBanda}{0{,}31} % passo / 2^1 / 2^NREF
+\newcommand{\GammaDet}{1{,}3253} % direto/det/mc_0_-1.csv
+\newcommand{\NiveisDet}{1{,}9137; 1{,}5800; 1{,}3957; 1{,}3253} % direto/det/mc_0_-1.csv
+\newcommand{\EqFatorDet}{5786} % direto/det/mc_0_-1.csv
+\newcommand{\DifDetCeron}{\ensuremath{-}0{,}80} % direto/det/mc_0_-1.csv e Ceron (Fig. 24)
+\newcommand{\GammaCeron}{1{,}336} % Ceron, Fig. 24 (digitado)
+\newcommand{\PfCeron}{11{,}50} % Ceron, Tabela 4 (digitado)
+\newcommand{\PfCeronS}{21{,}93} % Ceron, Tabela 4 (digitado)
+\newcommand{\CovCeron}{23{,}5} % Ceron, Tabela 4 (digitado)
+\newcommand{\NCeron}{10\,000} % Ceron, Secao 6.1 (S = 10 000 simulacoes; digitado)
+\newcommand{\CovPfCeron}{2{,}77} % Ceron, Secao 6.1 e Tabela 4 (digitado)
+\newcommand{\PfCeronLo}{10{,}9} % Ceron, P_f e S (Wilson)
+\newcommand{\PfCeronHi}{12{,}1} % Ceron, P_f e S (Wilson)
+\newcommand{\GammaMediaCeron}{1{,}353} % Ceron, Tabela 4 (digitado)
+\newcommand{\GammaDPCeron}{0{,}318} % Ceron, Tabela 4 (digitado)
+\newcommand{\MediaSobreDetCeron}{1{,}3} % Ceron, Tabela 4 e Fig. 24
+\newcommand{\PosicaoCeron}{1{,}3\% acima} % Ceron, Tabela 4 e Fig. 24
+\newcommand{\PfCeronKfixo}{11{,}21} % Ceron, Tabela 3, CoV(k_v) = 0 (digitado)
+\newcommand{\GammaMediaCeronKfixo}{1{,}329} % Ceron, Tabela 3, CoV(k_v) = 0 (digitado)
+\newcommand{\CeronDifK}{0{,}29} % Ceron, Tabelas 3 e 4 (pontos)
+\newcommand{\NDireto}{2000} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv
+\newcommand{\NfDireto}{314} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv
+\newcommand{\PfDireto}{15{,}70} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv
+\newcommand{\PfDiretoLo}{14{,}2} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (Wilson)
+\newcommand{\PfDiretoHi}{17{,}4} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (Wilson)
+\newcommand{\CovPfDireto}{5{,}2} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (Eq. 68 do Ceron)
+\newcommand{\GammaMedia}{1{,}2941} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv
+\newcommand{\GammaMediana}{1{,}2586} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv
+\newcommand{\GammaDP}{0{,}3092} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv
+\newcommand{\GammaCoV}{23{,}9} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv
+\newcommand{\GammaMin}{0{,}5835} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv
+\newcommand{\GammaMax}{3{,}0044} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv
+\newcommand{\MediaSobreDet}{\ensuremath{-}2{,}4} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv
+\newcommand{\PosicaoDireto}{2{,}4\% abaixo} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv e direto/det/mc_0_-1.csv
+\newcommand{\MediaContraCeron}{4{,}4\% abaixo} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv e Ceron (Tabela 4)
+\newcommand{\LnMu}{0{,}2305} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv
+\newcommand{\LnSigma}{0{,}2330} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv
+\newcommand{\PfLogn}{16{,}13} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (ajuste log-normal)
+\newcommand{\PfLognCeron}{12{,}2} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (CoV) e Ceron (media, Tabela 4): log-normal
+\newcommand{\LillieB}{2000} % bootstrap parametrico (script)
+\newcommand{\KSlogD}{0{,}0118} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (Kolmogorov-Smirnov, log-normal)
+\newcommand{\KSlogP}{\approx 0{,}76} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (Lilliefors, 2000 amostras)
+\newcommand{\KSCritico}{0{,}0202} % Lilliefors: D de 5\% (2000 amostras de n = 2000)
+\newcommand{\KSnormD}{0{,}0556} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (Kolmogorov-Smirnov, normal)
+\newcommand{\KSnormP}{< 0{,}001} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (Lilliefors, 2000 amostras)
+\newcommand{\NPrimeirasQuatrocentas}{400} % janela escolhida no script
+\newcommand{\PfPrimeirasQuatrocentas}{18{,}5} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (realizacoes 0..399)
+\newcommand{\NPrimeirasMil}{1000} % janela escolhida no script
+\newcommand{\PfPrimeirasMil}{16{,}6} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (realizacoes 0..999)
+\newcommand{\RhoC}{0{,}85} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (Spearman de Gamma com banda_c)
+\newcommand{\FalhaC}{6{,}96} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (media de banda_c nas falhas)
+\newcommand{\OutrasC}{9{,}89} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (media de banda_c nas outras)
+\newcommand{\DetC}{10{,}00} % direto/det/mc_0_-1.csv (banda_c)
+\newcommand{\RhoPhi}{0{,}34} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (Spearman de Gamma com banda_phi_deg)
+\newcommand{\FalhaPhi}{28{,}74} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (media de banda_phi_deg nas falhas)
+\newcommand{\OutrasPhi}{30{,}00} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (media de banda_phi_deg nas outras)
+\newcommand{\DetPhi}{30{,}00} % direto/det/mc_0_-1.csv (banda_phi_deg)
+\newcommand{\RhoK}{0{,}22} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (Spearman de Gamma com banda_k_mult)
+\newcommand{\FalhaK}{0{,}826} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (media de banda_k_mult nas falhas)
+\newcommand{\OutrasK}{0{,}995} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (media de banda_k_mult nas outras)
+\newcommand{\DetK}{1{,}000} % direto/det/mc_0_-1.csv (banda_k_mult)
+\newcommand{\RhoPw}{\ensuremath{-}0{,}42} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (Spearman de Gamma com banda_pw)
+\newcommand{\FalhaPw}{13{,}72} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (media de banda_pw nas falhas)
+\newcommand{\OutrasPw}{12{,}09} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (media de banda_pw nas outras)
+\newcommand{\DetPw}{12{,}34} % direto/det/mc_0_-1.csv (banda_pw)
+\newcommand{\RhoProf}{\ensuremath{-}0{,}33} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (Spearman de Gamma com banda_prof)
+\newcommand{\FalhaProf}{2{,}93} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (media de banda_prof nas falhas)
+\newcommand{\OutrasProf}{2{,}77} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (media de banda_prof nas outras)
+\newcommand{\DetProf}{2{,}66} % direto/det/mc_0_-1.csv (banda_prof)
+\newcommand{\ParcC}{0{,}91} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (Spearman parcial de 2a ordem, Eqs. 70-71 do Ceron)
+\newcommand{\ParcPhi}{0{,}65} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (Spearman parcial de 2a ordem, Eqs. 70-71 do Ceron)
+\newcommand{\ParcK}{0{,}45} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (Spearman parcial de 2a ordem, Eqs. 70-71 do Ceron)
+\newcommand{\RhoKPw}{\ensuremath{-}0{,}42} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (Spearman de banda_k_mult com banda_pw)
+\newcommand{\RhoPwProf}{0{,}79} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (Spearman de banda_pw com banda_prof)
+\newcommand{\MediaNivelZero}{1{,}7984} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (niveis)
+\newcommand{\PfNivelZero}{0{,}65} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (niveis)
+\newcommand{\DetNivelZero}{1{,}9137} % direto/det/mc_0_-1.csv (niveis)
+\newcommand{\MediaNivelUm}{1{,}4899} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (niveis)
+\newcommand{\PfNivelUm}{6{,}05} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (niveis)
+\newcommand{\DetNivelUm}{1{,}5800} % direto/det/mc_0_-1.csv (niveis)
+\newcommand{\MediaNivelDois}{1{,}3503} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (niveis)
+\newcommand{\PfNivelDois}{11{,}80} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (niveis)
+\newcommand{\DetNivelDois}{1{,}3957} % direto/det/mc_0_-1.csv (niveis)
+\newcommand{\MediaNivelTres}{1{,}2941} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (niveis)
+\newcommand{\PfNivelTres}{15{,}70} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (niveis)
+\newcommand{\DetNivelTres}{1{,}3253} % direto/det/mc_0_-1.csv (niveis)
+\newcommand{\UltimoNivel}{\ensuremath{-}4{,}1} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (Gamma_3 / Gamma_2 - 1, media)
+\newcommand{\UltimoNivelDet}{\ensuremath{-}5{,}0} % direto/det/mc_0_-1.csv
+\newcommand{\RazaoNiveis}{0{,}40} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (razao das duas ultimas variacoes da media)
+\newcommand{\ExtrapQuatro}{\ensuremath{-}1{,}7} % extrapolacao geometrica das medias por nivel
+\newcommand{\ExtrapLimite}{\ensuremath{-}2{,}9} % extrapolacao geometrica das medias por nivel
+\newcommand{\PfExtrapQuatro}{17{,}8} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (Gamma x (1 + extrapolacao) < 1)
+\newcommand{\PfExtrapLimite}{19{,}6} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (Gamma x (1 + extrapolacao) < 1)
+\newcommand{\PfMenosUm}{16{,}7} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (Gamma x 0.99 < 1)
+\newcommand{\PfMenosDois}{18{,}1} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (Gamma x 0.98 < 1)
+\newcommand{\EqFatorMin}{4978} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv
+\newcommand{\EqFatorMax}{8078} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv
+\newcommand{\EqTrans}{59548} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv
+\newcommand{\CustoReal}{37{,}2} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.log (tempo por realizacao)
+\newcommand{\CustoMediana}{35{,}4} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.log
+\newcommand{\CustoTrans}{15{,}0} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.log (transiente)
+\newcommand{\CustoFator}{20{,}7} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (s_fator)
+\newcommand{\CustoResto}{1{,}5} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.log e mc_*.csv (total - transiente - s_fator)
+\newcommand{\CustoPrimeiras}{34{,}7} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.log (realizacoes 0..399)
+\newcommand{\CustoUltimas}{38{,}2} % direto/ceron_tr_fase1/f50_I0_iii/mc_*.log (realizacoes 1600..1999)
+\newcommand{\ProcPC}{8} % direto/rodar.sh
+\newcommand{\RelogioDireto}{2~h 37~min} % direto/logs/pp*.txt
+\newcommand{\InicioDireto}{16h57} % direto/logs/pp*.txt
+\newcommand{\FimDireto}{19h34} % direto/logs/pp*.txt
+\newcommand{\RelogioPorReal}{4{,}7} % direto/logs/pp*.txt / N
+\newcommand{\CelulasMapa}{44} % direto/ceron_tr_fase1/f50_I0_iii/mc_mapa_*.csv
+\newcommand{\CelulasMetade}{11} % direto/ceron_tr_fase1/f50_I0_iii/mc_mapa_*.csv (celulas com a banda em >= 50\% das realizacoes)
+\newcommand{\CelulasMetadeFalha}{11} % direto/ceron_tr_fase1/f50_I0_iii/mc_mapa_*.csv (o mesmo nas falhas)
+\newcommand{\DifDetMain}{\ensuremath{-}0{,}64} % direto/det/mc_0_-1.csv e rebaixamento_mc.cpp
+\newcommand{\AguaAntiga}{percolacao\_permanente} % ceron_mc/ceron_mc_fase1/f50_I0_iii/parametros.txt
+\newcommand{\MalhaAntiga}{ceron\_h5\_a45\_g15.msh} % ceron_mc/ceron_mc_fase1/f50_I0_iii/parametros.txt
+\newcommand{\NrefAntiga}{3} % ceron_mc/ceron_mc_fase1/f50_I0_iii/parametros.txt
+\newcommand{\PmaxAntiga}{2} % ceron_mc/ceron_mc_fase1/f50_I0_iii/parametros.txt
+\newcommand{\NAntiga}{5770} % ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv
+\newcommand{\NfAntiga}{540} % ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv
+\newcommand{\PfAntiga}{9{,}36} % ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv
+\newcommand{\PfAntigaLo}{8{,}6} % ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv (Wilson)
+\newcommand{\PfAntigaHi}{10{,}1} % ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv (Wilson)
+\newcommand{\GammaMediaAntiga}{1{,}3958} % ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv
+\newcommand{\GammaCoVAntiga}{24{,}2} % ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv
+\newcommand{\GammaMedianaAntiga}{1{,}3539} % ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv
+\newcommand{\GammaDetAntiga}{1{,}4032} % ceron_mc/ceron_mc_fase1/f50_I0_iii_det/r00000/gim_unsat.csv
+\newcommand{\MediaSobreDetAntiga}{\ensuremath{-}0{,}5} % ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv
+\newcommand{\DomXAntiga}{25} % Projects/LearningMohrCoulomb2/cluster/malhas/ceron_h5_a45_g15.msh (caixa dos nos)
+\newcommand{\DomYAntiga}{10} % Projects/LearningMohrCoulomb2/cluster/malhas/ceron_h5_a45_g15.msh (caixa dos nos)
+\newcommand{\KLvarAntiga}{99{,}20} % ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv (KL_variancia)
+\newcommand{\AreaAntiga}{187{,}5} % ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv (area_solo_m2)
+\newcommand{\NComuns}{2000} % ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv e direto
+\newcommand{\CorrCmed}{0{,}92} % ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv e direto (Pearson de c_med, mesmo n)
+\newcommand{\CorrPhimed}{0{,}93} % ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv e direto (Pearson de phi_med, mesmo n)
+\newcommand{\CorrKmed}{0{,}92} % ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv e direto (Pearson de k_mult_med, mesmo n)
+\newcommand{\CorrBandaC}{0{,}03} % ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv e direto (Pearson de banda_c, mesmo n)
+\newcommand{\CorrGamma}{0{,}08} % ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv e direto (Pearson de FS_min, mesmo n)
+\newcommand{\PfAntigaComuns}{9{,}55} % ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv (as realizacoes 0..1999)
+\newcommand{\PfAntigaNivelZero}{1{,}18} % ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv (gamma_nivel0)
+\newcommand{\PfAntigaNivelUm}{4{,}09} % ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv (gamma_nivel1)
+\newcommand{\PfAntigaNivelDois}{7{,}37} % ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv (gamma_nivel2)
+\newcommand{\PfAntigaNivelTres}{9{,}36} % ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv (gamma_nivel3)
+\newcommand{\AntNPar}{5709} % ceron_mc/ceron_mc_fase2/f50_I0_iii_covk0/mc_resumo.csv e ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv
+\newcommand{\AntPfFixo}{9{,}13} % ceron_mc/ceron_mc_fase2/f50_I0_iii_covk0/mc_resumo.csv e ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv
+\newcommand{\AntPfAleat}{9{,}32} % ceron_mc/ceron_mc_fase2/f50_I0_iii_covk0/mc_resumo.csv e ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv
+\newcommand{\AntNzu}{119} % ceron_mc/ceron_mc_fase2/f50_I0_iii_covk0/mc_resumo.csv e ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv (so com k aleatorio)
+\newcommand{\AntNuz}{108} % ceron_mc/ceron_mc_fase2/f50_I0_iii_covk0/mc_resumo.csv e ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv (so com k fixo)
+\newcommand{\AntMcNemar}{= 0{,}51} % ceron_mc/ceron_mc_fase2/f50_I0_iii_covk0/mc_resumo.csv e ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv (McNemar)
+\newcommand{\AntDifGamma}{0{,}0186} % ceron_mc/ceron_mc_fase2/f50_I0_iii_covk0/mc_resumo.csv e ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv (Gamma(aleatorio) - Gamma(fixo))
+\newcommand{\AntDifGammaSe}{0{,}0015} % ceron_mc/ceron_mc_fase2/f50_I0_iii_covk0/mc_resumo.csv e ceron_mc/ceron_mc_fase1/f50_I0_iii/mc_resumo.csv
+\newcommand{\BetaLinear}{1{,}01} % formula (relatorio_chuva.tex, Secao 7), P_f do direto
+\newcommand{\MdoisLinear}{2{,}34} % formula, P_f do direto
+\newcommand{\GanhoLinear}{4{,}0} % formula, P_f do direto
+\newcommand{\PfChuva}{1} % cluster/README.md (pilotos do relatorio_chuva.tex)
+\newcommand{\GanhoLinearUm}{37{,}5} % formula, P_f da chuva
+\newcommand{\SC}{\ensuremath{-}1{,}30} % ai/desloc.txt
+\newcommand{\SPhi}{\ensuremath{-}0{,}49} % ai/desloc.txt
+\newcommand{\SK}{\ensuremath{-}0{,}36} % ai/desloc.txt
+\newcommand{\MuDoisBanda}{2{,}06} % ai/desloc.txt
+\newcommand{\VarPesoBanda}{6{,}89} % exp(|mu|^2) - 1
+\newcommand{\RuidoBanda}{0{,}010} % 3 / n_f
+\newcommand{\NAlvoBanda}{1000} % ai/casos.txt
+\newcommand{\SementeBanda}{1} % ai/casos.txt
+\newcommand{\GammaDetBanda}{1{,}3253} % ai/ceron_tr_fase1_ai/f50_I0_iii/mc_0_49.csv
+\newcommand{\NBanda}{1000} % ai/ceron_tr_fase1_ai/f50_I0_iii/mc_*.csv
+\newcommand{\SemFatorBanda}{0} % ai/ceron_tr_fase1_ai/f50_I0_iii/mc_*.csv
+\newcommand{\PfBanda}{15{,}87} % ai/ceron_tr_fase1_ai/f50_I0_iii/mc_*.csv (soma(peso * falha) / N)
+\newcommand{\CovPfBanda}{4{,}4} % ai/ceron_tr_fase1_ai/f50_I0_iii/mc_*.csv
+\newcommand{\PfBandaLo}{14{,}5} % ai/ceron_tr_fase1_ai/f50_I0_iii/mc_*.csv (P_f (1 -+ 1,96 CoV))
+\newcommand{\PfBandaHi}{17{,}2} % ai/ceron_tr_fase1_ai/f50_I0_iii/mc_*.csv
+\newcommand{\NfBanda}{626} % ai/ceron_tr_fase1_ai/f50_I0_iii/mc_*.csv (falhas sorteadas)
+\newcommand{\FracFalhaBanda}{63} % ai/ceron_tr_fase1_ai/f50_I0_iii/mc_*.csv
+\newcommand{\PesoMedioBanda}{0{,}945} % ai/ceron_tr_fase1_ai/f50_I0_iii/mc_*.csv
+\newcommand{\PesoMedioBandaSe}{0{,}060} % ai/ceron_tr_fase1_ai/f50_I0_iii/mc_*.csv
+\newcommand{\EssBanda}{201} % ai/ceron_tr_fase1_ai/f50_I0_iii/mc_*.csv ((soma w)^2 / soma w^2)
+\newcommand{\PesoFalhaBanda}{0{,}25} % ai/ceron_tr_fase1_ai/f50_I0_iii/mc_*.csv (peso medio nas falhas)
+\newcommand{\PesoMaxBanda}{1{,}45} % ai/ceron_tr_fase1_ai/f50_I0_iii/mc_*.csv (maior peso nas falhas)
+\newcommand{\ProjMediaBanda}{\ensuremath{-1{,}30;\ -0{,}46;\ -0{,}35}} % ai/ceron_tr_fase1_ai/f50_I0_iii/mc_*.csv (media de proj_* sorteadas)
+\newcommand{\DifBanda}{0{,}16} % ai/ceron_tr_fase1_ai/f50_I0_iii/mc_*.csv e direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (desvios)
+\newcommand{\DifBandaPontos}{0{,}17} % ai/ceron_tr_fase1_ai/f50_I0_iii/mc_*.csv e direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv
+\newcommand{\GanhoBanda}{2{,}7} % ai/ceron_tr_fase1_ai/f50_I0_iii/mc_*.csv ((CoV do direto com N e P_f da AI / CoV da AI)^2)
+\newcommand{\CovDiretoMesmoNBanda}{7{,}3} % Eq. 68 com N e P_f da AI
+\newcommand{\FracGanhoBanda}{69} % ganho medido / ganho linear
+\newcommand{\NDiretoParaCovBanda}{2711} % Eq. 68 com o CoV da AI
+\newcommand{\ViesBanda}{sem sinal de viés, abaixo de dois desvios} % ai/ceron_tr_fase1_ai/f50_I0_iii/mc_*.csv
+\newcommand{\CustoBanda}{31{,}1} % ai/ceron_tr_fase1_ai/f50_I0_iii/mc_*.log
+\newcommand{\InicioBanda}{19h35} % ai/logs/pp*.txt
+\newcommand{\FimBanda}{20h53} % ai/logs/pp*.txt
+\newcommand{\RelogioBanda}{1~h 18~min} % ai/logs/pp*.txt
+\newcommand{\KModos}{20} % ai_modos/cadeia2.sh
+\newcommand{\NAlvoModos}{1000} % ai_modos/cadeia2.sh
+\newcommand{\SementeModos}{2} % ai_modos/cadeia2.sh
+\newcommand{\RuidoModos}{0{,}19} % 3K / n_f
+\newcommand{\FatorRuidoModos}{1{,}21} % exp(3K / n_f)
+\newcommand{\DirecaoK}{65} % verificacao/banda_direcao.csv
+\newcommand{\MuDoisModos}{1{,}67} % ai_modos/modos_desloc_modos.csv
+\newcommand{\MuDoisModosUtil}{0{,}92} % ai_modos/modos_desloc_modos.csv e verificacao/banda_direcao.csv
+\newcommand{\MuDoisModosResto}{0{,}75} % ai_modos/modos_desloc_modos.csv e verificacao/banda_direcao.csv
+\newcommand{\FatorRestoModos}{2{,}1} % exp(resto)
+\newcommand{\FalhasModos}{314} % ai_modos/falhas.txt
+\newcommand{\MuDoisVerif}{2{,}15} % verificacao/modos_desloc_1000000_1019999.txt
+\newcommand{\MuDoisVerifUtil}{0{,}94} % verificacao/modos_desloc_1000000_1019999.txt e banda_direcao.csv
+\newcommand{\PilotoVerif}{400} % verificacao/modos_desloc_1000000_1019999.txt
+\newcommand{\FalhasVerif}{74} % verificacao/modos_desloc_1000000_1019999.txt
+\newcommand{\SorteiosBanda}{20\,000} % verificacao/banda_*
+\newcommand{\PesoVerifBanda}{1{,}007} % verificacao/banda_*
+\newcommand{\PesoVerifSeBanda}{0{,}020} % verificacao/banda_*
+\newcommand{\VarVerifBanda}{8{,}21} % verificacao/banda_*
+\newcommand{\VarTeorBanda}{7{,}54} % verificacao/banda_* (exp(|mu|^2) - 1)
+\newcommand{\SorteiosModos}{20\,000} % verificacao/modos_*
+\newcommand{\PesoVerifModos}{1{,}008} % verificacao/modos_*
+\newcommand{\PesoVerifSeModos}{0{,}020} % verificacao/modos_*
+\newcommand{\VarVerifModos}{8{,}07} % verificacao/modos_*
+\newcommand{\VarTeorModos}{7{,}59} % verificacao/modos_* (exp(|mu|^2) - 1)
+\newcommand{\NModos}{748} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
+\newcommand{\SemFatorModos}{0} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
+\newcommand{\PfModos}{18{,}14} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv (soma(peso * falha) / N)
+\newcommand{\CovPfModos}{7{,}4} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
+\newcommand{\NfModos}{378} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
+\newcommand{\FracFalhaModos}{51} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
+\newcommand{\PesoMedioModos}{0{,}915} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
+\newcommand{\PesoMedioModosSe}{0{,}057} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
+\newcommand{\EssModos}{190} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
+\newcommand{\PesoFalhaModos}{0{,}36} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
+\newcommand{\PesoMaxModos}{4{,}28} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
+\newcommand{\DifModos}{1{,}56} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv e direto/ceron_tr_fase1/f50_I0_iii/mc_*.csv (desvios)
+\newcommand{\GanhoModos}{1{,}1} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
+\newcommand{\CovDiretoMesmoNModos}{7{,}8} % Eq. 68 com N e P_f da AI
+\newcommand{\ViesModos}{sem sinal de viés, abaixo de dois desvios} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv
+\newcommand{\ComparaGanho}{menor que} % ai_modos/ceron_tr_fase1_ai_modos/f50_I0_iii/mc_*.csv e ai/ceron_tr_fase1_ai/f50_I0_iii/mc_*.csv
+\newcommand{\InicioModos}{20h54} % ai_modos/logs/pp*.txt
+\newcommand{\FimModos}{22h15} % ai_modos/logs/pp*.txt (estimado)
+\newcommand{\NAlvoKfixo}{2000} % covk0/casos.txt
+\newcommand{\CovKfixo}{0} % covk0/casos.txt
+\newcommand{\KNPar}{--} % o k fixo ainda nao tem realizacoes
+\newcommand{\KSemFator}{--} % o k fixo ainda nao tem realizacoes
+\newcommand{\KPfFixo}{--} % o k fixo ainda nao tem realizacoes
+\newcommand{\KPfFixoLo}{--} % o k fixo ainda nao tem realizacoes
+\newcommand{\KPfFixoHi}{--} % o k fixo ainda nao tem realizacoes
+\newcommand{\KPfAleat}{--} % o k fixo ainda nao tem realizacoes
+\newcommand{\KPfAleatLo}{--} % o k fixo ainda nao tem realizacoes
+\newcommand{\KPfAleatHi}{--} % o k fixo ainda nao tem realizacoes
+\newcommand{\KNzu}{--} % o k fixo ainda nao tem realizacoes
+\newcommand{\KNuz}{--} % o k fixo ainda nao tem realizacoes
+\newcommand{\KMcNemar}{--} % o k fixo ainda nao tem realizacoes
+\newcommand{\KDifPf}{--} % o k fixo ainda nao tem realizacoes
+\newcommand{\KDifPfSe}{--} % o k fixo ainda nao tem realizacoes
+\newcommand{\KDifGamma}{--} % o k fixo ainda nao tem realizacoes
+\newcommand{\KDifGammaSe}{--} % o k fixo ainda nao tem realizacoes
+\newcommand{\KDifGammaMediana}{--} % o k fixo ainda nao tem realizacoes
+\newcommand{\KMaisAleat}{--} % o k fixo ainda nao tem realizacoes
+\newcommand{\KRhoBanda}{--} % o k fixo ainda nao tem realizacoes
+\newcommand{\KRhoSolo}{--} % o k fixo ainda nao tem realizacoes
+\newcommand{\KGammaDet}{--} % o k fixo ainda nao tem realizacoes
+\newcommand{\KConclusao}{--} % o k fixo ainda nao tem realizacoes
+\newcommand{\InicioKfixo}{22h15} % covk0/cadeia3.log (estimado)
+\newcommand{\FimKfixo}{0h50 de 15/11} % inicio + o relogio do direto (estimado)
+\newcommand{\SolosHora}{20h24} % status.sh no fermi as 20h24 (digitado)
+\newcommand{\SolosInicio}{19h21} % status.sh no fermi as 20h24 (digitado)
+\newcommand{\SolosNos}{4} % status.sh no fermi as 20h24 (digitado)
+\newcommand{\SolosPrevMin}{17} % status.sh no fermi as 20h24 (digitado)
+\newcommand{\SolosPrevMax}{20} % status.sh no fermi as 20h24 (digitado)
+\newcommand{\SolosFimFaixa}{13h30 e 16h30 de 15/11} % status.sh no fermi as 20h24 (digitado) + previsao
+\newcommand{\SolosNDez}{1000} % cluster/casos_solos.txt
+\newcommand{\SolosTemposDez}{6, 12, 18, 24, 30, 36, 42, 48} % cluster/casos_solos.txt
+\newcommand{\SolosFeitasDez}{63} % status.sh no fermi as 20h24 (digitado)
+\newcommand{\SolosFalhasDez}{61} % status.sh no fermi as 20h24 (digitado)
+\newcommand{\SolosPfDez}{96{,}83} % status.sh no fermi as 20h24 (digitado)
+\newcommand{\SolosLoDez}{89{,}1} % status.sh no fermi as 20h24 (digitado) (Wilson)
+\newcommand{\SolosHiDez}{99{,}1} % status.sh no fermi as 20h24 (digitado) (Wilson)
+\newcommand{\SolosDetDez}{0{,}832} % status.sh no fermi as 20h24 (digitado)
+\newcommand{\SolosTdetDez}{12 a 24~h} % status.sh no fermi as 20h24 (digitado)
+\newcommand{\SolosNCinquenta}{1000} % cluster/casos_solos.txt
+\newcommand{\SolosTemposCinquenta}{0, 6, 12, 18, 24, 30, 36, 42, 48} % cluster/casos_solos.txt
+\newcommand{\SolosFeitasCinquenta}{81} % status.sh no fermi as 20h24 (digitado)
+\newcommand{\SolosFalhasCinquenta}{14} % status.sh no fermi as 20h24 (digitado)
+\newcommand{\SolosPfCinquenta}{17{,}28} % status.sh no fermi as 20h24 (digitado)
+\newcommand{\SolosLoCinquenta}{10{,}6} % status.sh no fermi as 20h24 (digitado) (Wilson)
+\newcommand{\SolosHiCinquenta}{26{,}9} % status.sh no fermi as 20h24 (digitado) (Wilson)
+\newcommand{\SolosDetCinquenta}{1{,}035} % status.sh no fermi as 20h24 (digitado)
+\newcommand{\SolosTdetCinquenta}{24~h} % status.sh no fermi as 20h24 (digitado)
+\newcommand{\SolosNCem}{1000} % cluster/casos_solos.txt
+\newcommand{\SolosTemposCem}{6, 12, 18, 24, 30, 36, 42, 48} % cluster/casos_solos.txt
+\newcommand{\SolosFeitasCem}{75} % status.sh no fermi as 20h24 (digitado)
+\newcommand{\SolosFalhasCem}{0} % status.sh no fermi as 20h24 (digitado)
+\newcommand{\SolosPfCem}{0{,}00} % status.sh no fermi as 20h24 (digitado)
+\newcommand{\SolosLoCem}{0{,}0} % status.sh no fermi as 20h24 (digitado) (Wilson)
+\newcommand{\SolosHiCem}{4{,}9} % status.sh no fermi as 20h24 (digitado) (Wilson)
+\newcommand{\SolosDetCem}{1{,}881} % status.sh no fermi as 20h24 (digitado)
+\newcommand{\SolosTdetCem}{36~h} % status.sh no fermi as 20h24 (digitado)
+\newcommand{\SolosIks}{1} % cluster/casos_solos.txt
+\newcommand{\SolosDuracao}{24} % cluster/casos_solos.txt
+\newcommand{\SolosPasso}{6} % cluster/casos_solos.txt (tempos)
+\newcommand{\SolosFim}{48} % cluster/casos_solos.txt (tempos)
+\newcommand{\SolosIDez}{360} % cluster/casos_solos.txt
+\newcommand{\SolosICinquenta}{36} % cluster/casos_solos.txt
+\newcommand{\SolosICem}{3{,}6} % cluster/casos_solos.txt
+\newcommand{\SolosTotal}{3000} % cluster/casos_solos.txt
+\newcommand{\SolosFeitasTotal}{219} % status.sh no fermi as 20h24 (digitado)
+\newcommand{\SolosMinReal}{22} % cluster/README.md
+\newcommand{\Nos}{4} % cluster/submeter.sh
+\newcommand{\Paralelo}{12} % cluster/submeter.sh
+\newcommand{\FermiLento}{2{,}6} % medido antes (digitado)
+\newcommand{\CustoFermi}{97} % custo do PC x 2,6
+\newcommand{\CeronDireto}{10\,000} % cluster/casos_ceron.txt
+\newcommand{\CeronBanda}{5000} % cluster/casos_ceron.txt
+\newcommand{\CeronModos}{5000} % cluster/casos_ceron.txt
+\newcommand{\CeronTotal}{20\,000} % cluster/casos_ceron.txt
+\newcommand{\CeronCpu}{537} % casos_ceron.txt x custo no fermi
+\newcommand{\CeronRelogio}{11} % CPU / (4 x 12)
+\newcommand{\CeronPiloto}{1000} % cluster/casos_ceron.txt
+\newcommand{\CeronPilotoFalhas}{157} % piloto_n x P_f do direto (esperado)
+\newcommand{\ChuvaAIPiloto}{200} % cluster/casos_chuva_ai.txt
+\newcommand{\ChuvaAIN}{200} % cluster/casos_chuva_ai.txt
+\newcommand{\ChuvaAITempos}{6 a 48} % cluster/casos_chuva_ai.txt
+\newcommand{\ChuvaAIPasso}{6} % cluster/casos_chuva_ai.txt
+\newcommand{\ChuvaAIFim}{48} % cluster/casos_chuva_ai.txt
+\newcommand{\ChuvaAIMin}{17} % cluster/casos_chuva_ai.txt
+\newcommand{\ChuvaAIRodadas}{10} % casos_chuva_ai.txt: ceil(piloto / 48) + ceil(AI / 48)
+\newcommand{\ChuvaAIRelogio}{2{,}8} % rodadas x 17 min
+\newcommand{\ChuvaAICovLin}{14} % cluster/README.md
+\newcommand{\ChuvaAICovMax}{25} % cluster/README.md
+\newcommand{\Iref}{31{,}05} % cluster/campanha.sh
+\newcommand{\ChuvaRefTempos}{0 a 24} % cluster/casos.txt (ref)
+\newcommand{\ChuvaFaseUmN}{5000} % cluster/casos.txt
+\newcommand{\ChuvaFaseUmCasos}{1} % cluster/casos.txt
+\newcommand{\ChuvaFaseUmCpu}{866} % cluster/casos.txt + mc/serial_I24.log x 2,6
+\newcommand{\ChuvaFaseUmRelogio}{18{,}0} % CPU / 48 processos
+\newcommand{\ChuvaFaseDoisN}{40\,000} % cluster/casos.txt
+\newcommand{\ChuvaFaseDoisCasos}{20} % cluster/casos.txt
+\newcommand{\ChuvaFaseDoisCpu}{2891} % cluster/casos.txt + mc/serial_I24.log x 2,6
+\newcommand{\ChuvaFaseDoisRelogio}{60{,}2} % CPU / 48 processos
+\newcommand{\ChuvaFaseTresN}{12\,000} % cluster/casos.txt
+\newcommand{\ChuvaFaseTresCasos}{6} % cluster/casos.txt
+\newcommand{\ChuvaFaseTresCpu}{653} % cluster/casos.txt + mc/serial_I24.log x 2,6
+\newcommand{\ChuvaFaseTresRelogio}{13{,}6} % CPU / 48 processos
+\newcommand{\ChuvaTotalDias}{3{,}8} % cluster/casos.txt + mc/serial_I24.log
+\newcommand{\ChuvaRelogioFaseUmReadme}{21} % cluster/README.md
+\newcommand{\SugCasos}{21} % pastas f50_I0_iii_* da campanha antiga, sem os covk*
+\newcommand{\SugNporCaso}{2000} % sugestao
+\newcommand{\SugBCpu}{1127} % casos x 2000 x custo no fermi (nref = 3)
+\newcommand{\SugBRelogio}{23} % CPU / 48 processos
+\newcommand{\SugBCpuQuatro}{1800} % o mesmo com o custo de nref = 4 (estimado)
+\newcommand{\SugBRelogioQuatro}{37} % CPU / 48 processos
+\newcommand{\SugLimiar}{3} % sugestao
+\newcommand{\SugPequenos}{5} % campanha antiga: P_f < 3\%
+\newcommand{\SugPequenosLista}{$CoV(c') = 0{,}1$ com 0{,}16\%, $h_w/H = 0{,}5$ com 1{,}20\%, $\alpha = 5$ com 1{,}54\%, $\alpha = 4$ com 1{,}85\% e $\alpha = 3$ com 2{,}67\%} % campanha antiga (mc_resumo.csv de cada caso)
+\newcommand{\SugDiretos}{16} % campanha antiga: P_f >= 3\%
+\newcommand{\SugPfMaxAntiga}{37{,}5} % campanha antiga
+\newcommand{\SugPfMinDireto}{3{,}4} % campanha antiga
+\newcommand{\SugCovPfMax}{12} % Eq. 68, N = 2000
+\newcommand{\SugMalhaN}{50} % sugestao
+\newcommand{\SugMalhaBloco}{7} % ceil(50 / 8 processos)
+\newcommand{\SugMalhaCusto}{58} % custo do PC com o fator 2 vezes mais caro (estimado)
+\newcommand{\SugMalhaRelogio}{8} % (BLOCO + o deterministico) x custo
+\newcommand{\SugKLista}{0{,}3; 0{,}75; 0{,}9 e 1} % 0,3 e as pastas covk* da campanha antiga
+\newcommand{\SugKCasos}{4} % 0,3 e as pastas covk* da campanha antiga
+\newcommand{\SugKPontos}{6} % com o k_v fixo (0) e o direto (0,6)
+\newcommand{\SugKN}{8000} % sugestao: 4 casos x 2000
+\newcommand{\SugKRelogioPC}{10{,}3} % custo do PC / 8 processos
+\newcommand{\SugKRelogioFermi}{4{,}5} % custo no fermi / 48 processos
+\newcommand{\SugFragI}{5} % sugestao
+\newcommand{\SugFragRelogio}{12} % 42 rodadas de 17 min
