@@ -1,6 +1,8 @@
 \section{O que está pronto e o que falta}
 \label{sec:pendencias}
 
+Atualizado em 15/11, com os commits do plano v2 (Seção~\ref{sec:estado}).
+
 \paragraph{Pronto e verificado.}
 \begin{itemize}
   \item O modelo $\bm u$--$p_w$--$p_a$ com o PV2:
@@ -9,60 +11,62 @@
       \item conservação de massa exata;
       \item Terzaghi, Mandel, Philip e Gardner;
       \item Liakopoulos com ar passivo;
-      \item talude seco a 0,5\,\% do Bishop.
+      \item talude seco a 0,5\,\% do Bishop; no Cho2010, o FS fica a 0,06\,\% do publicado.
     \end{itemize}
-  \item O FS por arc-length, com os parâmetros escolhidos em 43 casos (erro $\leq 0{,}5\,\%$).
+  \item O FS por arc-length, com os parâmetros escolhidos em 43 casos.
   \item A reprodução determinística do Rahardjo, a cerca de 2\,\%.
-  \item As três formas da KL, comparadas entre si (\texttt{VerifyRandomFields}).
-  \item O refinamento por realização e a escolha da malha.
-  \item O Monte Carlo do Ceron com 3 níveis, que dá $P_f = 10{,}3\,\%$ contra 11,5\,\%.
+  \item As três formas da KL, comparadas entre si.
+  \item O refinamento por realização.
+  \item A amostragem por importância por entropia cruzada, validada contra o Monte Carlo direto em três casos (desvios
+    abaixo de 2 desvios padrão, ganho de 2,7 a 4,1 vezes na banda).
+  \item O FORM com a KL truncada no Cho2010 ($\beta = 2{,}130$ com $M = 10$).
+  \item O código da chuva no repositório.
+  \item As campanhas \texttt{solos} e \texttt{chuva\_ai} no fermi.
 \end{itemize}
 
-\paragraph{Para rodar.}
+\paragraph{Em andamento ou para rodar.}
 \begin{itemize}
-  \item A campanha do Ceron: 26 casos $\times$ 10\,000 realizações com 4 níveis, cerca de 6 dias com 4 nós.
-  \item A campanha da chuva: 27 casos, 57\,000 realizações, cerca de 3,8 dias, com o código que precisa ir para o
-    repositório antes.
+  \item Etapa 1: o SRM novo ($F_0 = 0{,}8$) contra o antigo, nas mesmas realizações; e o Cho2010 no fermi (direto, AI
+    pela banda e AI pelo ponto de projeto).
+  \item Etapas 2 a 5 do plano: o FORM com $M = 10$ a 100, a AI por entropia cruzada, o FORM e a AI na chuva, e a
+    investigação da chuva.
+  \item As campanhas \texttt{chuva} (27 casos) e \texttt{ceron}, que estão prontas, e a do Ceron com 4 níveis.
 \end{itemize}
 
 \paragraph{Pendências, por prioridade.}
 \begin{enumerate}
-  \item \textbf{Colocar no repositório o código do relatório da chuva}: \texttt{rahardjo.cpp}, \texttt{montecarlo.cpp},
-    \texttt{RainTransient.h}, \path{form_variaveis.py} e \path{cluster/}. Sem ele, os resultados não são
-    reproduzíveis, e a versão do repositório é outra.
-  \item \textbf{Alinhar as tolerâncias do FS}:
+  \item \textbf{O buraco do SRM antigo logo abaixo de 1}, que subestima a $P_f$ em até cerca de 1 ponto. Todos os números
+    da chuva são do SRM antigo, e a etapa 1 mede isso.
+  \item \textbf{A $P_f$ do rebaixamento ainda depende da malha} (de 11,8 para 15,7\,\% no último nível). Rodar o nível
+    $\texttt{nref} = 4$ e acrescentar a opção \texttt{dt=} no \texttt{rebaixamento\_mc}.
+  \item \textbf{A diferença para o Ceron:} 15,70\,\% com o transiente, contra 11,5\,\%. Antes, com a percolação
+    permanente, eram 9,36\,\% ($N = 5770$, no relatório do rebaixamento) e 10,3\,\% (3 níveis, $N = 1000$, no
+    \texttt{SlopeMonteCarlo}): são duas rodadas diferentes.
+  \item \textbf{Tolerâncias do FS:} o \texttt{calculaFS} do \texttt{LearningMohrCoulomb2} usa 0,01, e o recomendado é
+    0,001. O \texttt{SRMArcLength} do \texttt{Common} parte de $F = 1$.
+  \item \textbf{Código:}
     \begin{itemize}
-      \item o \texttt{calculaFS} do \texttt{LearningMohrCoulomb2} usa tol $= 0{,}01$, e o recomendado é 0,001;
-      \item o \texttt{SRMArcLength} do \texttt{Common} não segue o \texttt{ParamsSRM} e não dá FS $< 1$;
-      \item o padrão do \texttt{SlopeRandomField} ainda é a lista do SRM.
+      \item juntar a lógica da AI do \texttt{rebaixamento\_mc} com a do \path{ImportanceSampling.h};
+      \item no Cho2010, o teste que recusa \texttt{desloc\_xi} junto com \texttt{piloto} nunca dispara;
+      \item o \texttt{form.sh} grava o \texttt{ustar.txt} mesmo quando o FORM não converge.
     \end{itemize}
-  \item \textbf{Chuva com $P_f \approx 1\,\%$}:
+  \item \textbf{Escala dos campos na chuva} ($L_x$, $L_y$ contra $H = 10$\,m) e a chuva na superfície inclinada:
+    decidir e documentar.
+  \item \textbf{A KL:} a forma fechada (a atual) ou o Nyström.
+  \item \textbf{Em aberto na formulação:}
     \begin{itemize}
-      \item o Monte Carlo precisa de cerca de $10^4$ a $4\times10^4$ realizações por caso;
-      \item ou amostragem por importância com o deslocamento das realizações que falham, ou a simulação por
-        subconjuntos. O \texttt{RandomFields::Sample} recebe a mudança.
-    \end{itemize}
-  \item \textbf{A escala dos campos na chuva} ($L_x$, $L_y$ contra $H = 10$\,m) e a chuva na superfície inclinada ou na
-    projeção horizontal: decidir e documentar.
-  \item \textbf{A diferença para o artigo do Ceron}: $\Gamma$ de 1,373 contra 1,336 (o contorno distante da percolação)
-    e $P_f$ de 10,3 contra 11,5\,\%.
-  \item \textbf{A KL}: decidir entre a forma fechada (a atual) e o Nyström (a sua preferência). A estatística é a mesma;
-    o Nyström precisa de menos termos.
-  \item \textbf{Em aberto na formulação}:
-    \begin{itemize}
-      \item D16: o estado inicial do talude, com o teto de sucção;
+      \item D16: o estado inicial do talude;
       \item D17: o ar na superfície alagada;
       \item D19: a norma da massa no critério de convergência;
       \item $p_a$ quando $S_a \to 0$;
-      \item o teste de Taylor com $\chi = S_e$;
-      \item a classe Mohr--Coulomb antiga, ainda instanciada.
+      \item o teste de Taylor com $\chi = S_e$.
     \end{itemize}
-  \item \textbf{Validação do ar ativo}: só qualitativa. A revisão sugere Touma e Vauclin (1986).
-  \item \textbf{Documentação}:
+  \item \textbf{O ar ativo:} validação só qualitativa.
+  \item \textbf{Documentação:}
     \begin{itemize}
-      \item as linhas do código citadas estão defasadas;
-      \item a revisão descreve a versão anterior ($\chi = 1$ como padrão);
-      \item os resumos apresentam van Genuchten--Mualem, e o padrão do código é Fredlund--Xing;
-      \item a notação muda entre os documentos.
+      \item as linhas do código citadas nos documentos estão defasadas;
+      \item a revisão bibliográfica descreve a versão anterior;
+      \item o README do Cho2010 não menciona o FORM nem a AI;
+      \item a Seção 3.3 do relatório da chuva descreve o SRM antigo.
     \end{itemize}
 \end{enumerate}

@@ -91,6 +91,10 @@ maior equilíbrio achado por qualquer método.
     FS$_{GIM} = 1{,}8146$, contra 1,206 e 1,806), com lista e bisseção.
 \end{itemize}
 
+\paragraph{Mudança de 15/11.} O \texttt{UnsatAnalysis::SRMArcLength} do \path{SlopeRandomFieldRefinement} aplicava o
+peso com $F = 1$, e isso criava um buraco logo abaixo de 1. Agora o padrão é $F_0 = 0{,}8$ (\texttt{SetSRMStart},
+\texttt{srm\_f0}). O \texttt{SRMArcLength} do \texttt{Common} é outra classe.
+
 \paragraph{Divergências entre o relatório e o código.}
 \begin{itemize}
   \item O \texttt{calculaFS} do \texttt{LearningMohrCoulomb2} usa tol $= 0{,}01$, e não 0,001.

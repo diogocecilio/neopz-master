@@ -47,8 +47,10 @@ $w = \exp(-\bm v\cdot\bm u^* + \tfrac12\|\bm u^*\|^2)$, e $\hat P_f = \frac1N\su
   \item \textbf{No talude de elementos finitos:}
     \begin{itemize}
       \item com $P_f \approx 11\,\%$, Monte Carlo basta;
-      \item abaixo de cerca de $10^{-2}$, use amostragem por importância, com o deslocamento igual à média dos $\bm\xi$ das
-        realizações que falham, restrita aos primeiros modos;
-      \item o FORM direto não é viável: o gradiente custa $2n$ análises, com $n = 6000$.
+      \item abaixo de cerca de $10^{-2}$, use amostragem por importância por entropia cruzada. Ela já está implementada.
+        O deslocamento na \emph{direção da banda} deu ganho de 2,7 a 4,1 vezes; nos 20 primeiros modos, só 1,2
+        (Seção~\ref{sec:estado});
+      \item o FORM com os 6000 coeficientes não é viável. Com a KL truncada ($M = 10$ e 20), ele está implementado no
+        Cho2010 (\path{form_kl.py}).
     \end{itemize}
 \end{itemize}

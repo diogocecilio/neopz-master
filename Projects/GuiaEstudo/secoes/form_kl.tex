@@ -38,7 +38,7 @@ longa em $x$ ($L_x = 20$\,m) e estreita em $y$ ($L_y = 2$\,m).
   \;\leq\; \Big(\int |\tilde s|\Big)^2 .
 \end{equation}
 O limite da direita é o solo homogêneo ($C \equiv 1$). Com campos, a superfície de ruptura faz média, e por isso o
-relatório da chuva tem $P_f = 24{,}8\,\%$ com variáveis homogêneas e cerca de 1\,\% com campos.
+relatório da chuva tem $P_f = 24{,}8\,\%$ com variáveis homogêneas e cerca de 6\,\% com campos (200 realizações).
 
 \paragraph{Truncamento.} Como $G_{M+1}(\bm\xi_M^*, 0) = G_M(\bm\xi_M^*) = 0$, vale $\beta_{M+1} \leq \beta_M$.
 Truncar superestima $\beta$, o que é inseguro. É preciso conferir a convergência de $\beta$ com $M$.
@@ -55,7 +55,8 @@ Truncar superestima $\beta$, o que é inseguro. É preciso conferir a convergên
     calculado com o mecanismo de colapso do GIM. Para $\phi'$ e $k$ seria preciso o método direto ou o adjunto.
 \end{itemize}
 
-\paragraph{O caminho proposto.} FORM nos $K$ primeiros modos de cada campo, para achar $\bm\xi^*$. Depois, amostragem
+\paragraph{O caminho proposto, já implementado no Cho2010} (\path{form_kl.py}, \texttt{desloc\_xi=};
+Seção~\ref{sec:estado}). FORM nos $K$ primeiros modos de cada campo, para achar $\bm\xi^*$. Depois, amostragem
 por importância com os $M = 2000$ modos, deslocada só nos $K$ primeiros:
 \begin{equation}
   w(\bm v) = \exp\big(-\bm v\cdot\bm\xi^* + \tfrac12\|\bm\xi^*\|^2\big), \qquad

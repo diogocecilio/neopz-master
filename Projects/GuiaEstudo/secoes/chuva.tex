@@ -9,7 +9,9 @@ A linha da chuva tem três produtos.
     (\path{docs/biot_nao_saturado/artigo}). Ele mede quanto as hipóteses usuais (esqueleto rígido, ar passivo,
     desacoplado) superestimam a chuva que leva à ruptura.
   \item \textbf{O relatório da chuva} (\path{relatorio_form/relatorio_chuva}, 14/11, 12 páginas): o Monte Carlo da
-    chuva com o método estocástico do Ceron. Está só no zip.
+    chuva com o método estocástico do Ceron. Hoje está em
+    \path{Projects/SlopeRandomFieldRefinement/relatorio}, com 16 páginas e uma seção nova sobre amostragem por
+    importância (Seção~\ref{sec:estado}).
 \end{enumerate}
 
 \paragraph{O modelo do relatório.}
@@ -43,7 +45,7 @@ A linha da chuva tem três produtos.
   \item \textbf{Validação contra a Fig.\ 5 do Rahardjo:}
     \begin{itemize}
       \item FS$(0) = 2{,}0975$, 1\,\% abaixo dos 2,118 do artigo;
-      \item a diferença média é de $+1{,}6\,\%$ no f10, $0{,}0\,\%$ no f50 e $-0{,}2\,\%$ no f100;
+      \item a diferença média é de $+1{,}6\,\%$ no f10, $+0{,}7\,\%$ no f50 e $-0{,}2\,\%$ no f100;
       \item o f50 chega ao mínimo de 1,0346 em 24\,h (o artigo dá 1,03);
       \item o f10 cruza 1 em 5,85\,h.
     \end{itemize}
@@ -54,7 +56,8 @@ A linha da chuva tem três produtos.
   \item \textbf{Intensidade de referência:} $I_{ref} = 31{,}05$\,mm/h dá $\Gamma = 1{,}3345$, o mesmo dos 1,336 do Ceron.
   \item \textbf{FS(24\,h) em função de $k$:} tem a forma de U, com o mínimo em $k \approx I$.
   \item \textbf{Pilotos} (8 a 10 realizações): o CoV de FS(24\,h) é de 5,6 a 7,6\,\% no SRM, contra 23,5\,\% do $\Gamma$ do
-    Ceron. Nenhuma realização rompeu, e o ajuste lognormal sugere $P_f \approx 1\,\%$.
+    Ceron. Nenhuma realização rompeu. \textbf{Superado:} com 200 realizações, $P_f \approx 6\,\%$
+    (Seção~\ref{sec:estado}).
   \item \textbf{FORM com variáveis}, num solo homogêneo, sem campos: $\beta = 0{,}681$ e $P_f = 24{,}8\,\%$. Sem a média
     espacial, o fator espalha muito mais. É o limite de comprimento de correlação infinito.
   \item \textbf{Campanha:} 27 casos e 57\,000 realizações, cerca de 3,8 dias no fermi. Está pronta, mas não rodou.
@@ -77,24 +80,17 @@ A linha da chuva tem três produtos.
   \item \textbf{Robustez.} O viés persiste com $\chi = S_e$ e com a malha fina, e muda de sinal no solo permeável f10.
 \end{itemize}
 
-\paragraph{Pendências e cuidados.}
+\paragraph{Pendências e cuidados} (atualizado em 15/11).
 \begin{itemize}
-  \item \textbf{O código do relatório da chuva não está no repositório.} Faltam \texttt{rahardjo.cpp},
-    \texttt{montecarlo.cpp}, \texttt{RainTransient.h} e \path{form_variaveis.py}. A versão do repositório é anterior
-    e dá FS 2,116 e 1,060, contra 2,0975 e 1,0346.
-  \item \textbf{Escala dos campos.} $L_x = 20$\,m e $L_y = 2$\,m são do talude do Ceron, com $H = 5$\,m. Em relação a
-    $H = 10$\,m, a referência equivale a metade da escala do Ceron, e o relatório compara $P_f$ com o Ceron sem
-    comentar isso.
-  \item \textbf{Chuva inclinada ou horizontal.} O relatório aplica a chuva por metro de superfície inclinada; as notas
-    de 28/10 a aplicavam na projeção horizontal. Na face a $45^\circ$, a diferença é um fator $\sqrt 2$.
-  \item \textbf{$I_{ref}$.} Foi calibrado com o $\Gamma$ do GIM, que não é o fator da campanha, e dentro do ruído do GIM.
-  \item \textbf{Os mínimos depois da chuva.} O Monte Carlo para em 24\,h e não vê mínimos posteriores, como o do f100.
-  \item \textbf{Os próximos passos do relatório:}
-    \begin{itemize}
-      \item rodar a campanha;
-      \item com $P_f \approx 1\,\%$, aumentar $N$ (39\,600 realizações para um CoV de 5\,\%) ou usar a simulação por
-        subconjuntos;
-      \item o FORM com os campos, com a KL truncada e a amostragem por importância (Seção~\ref{sec:confiab});
-      \item o ar ativo.
-    \end{itemize}
+  \item \textbf{O código já está no repositório}, em \path{Projects/SlopeRandomFieldRefinement}: \texttt{rahardjo.cpp},
+    \texttt{montecarlo.cpp}, \texttt{RainTransient}, \path{form_variaveis.py} e \path{cluster/}.
+  \item \textbf{O SRM mudou.} O peso agora é aplicado com $F_0 = 0{,}8$, e não mais com $F = 1$. Os números desta seção
+    são do SRM antigo, que tem um buraco logo abaixo de 1. A etapa 1 compara as duas versões.
+  \item \textbf{Escala dos campos.} $L_x = 20$\,m e $L_y = 2$\,m são do talude do Ceron, com $H = 5$\,m; aplicados a
+    $H = 10$\,m, a referência equivale a metade da escala do Ceron.
+  \item \textbf{Chuva inclinada ou horizontal.} A chuva é aplicada por metro de superfície inclinada, um fator $\sqrt2$ na
+    face a $45^\circ$ em relação à projeção horizontal.
+  \item \textbf{Intervalo de tempo.} As campanhas novas (\texttt{solos} e \texttt{chuva\_ai}) vão até 48\,h, com falha
+    em qualquer instante.
+  \item \textbf{Falta rodar:} a campanha \texttt{chuva}, com 27 casos; a fragilidade $P_f(I)$; e o ar ativo.
 \end{itemize}
