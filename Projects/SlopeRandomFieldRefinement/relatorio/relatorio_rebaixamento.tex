@@ -373,7 +373,45 @@ lado do $k_v$ aleatório.
 \fi
 
 \section{Campanhas no fermi}\label{sec:fermi}
-\subsection{Os três solos (rodando)}
+% o estado no titulo (texto simples, para servir tambem ao marcador do PDF)
+\ifsolosbaixados\ifsolosprontos\newcommand{\solosEstado}{campanha terminada}\else
+\newcommand{\solosEstado}{campanha quase terminada}\fi\else\newcommand{\solosEstado}{rodando}\fi
+\subsection{Os três solos (\solosEstado)}
+\ifsolosbaixados
+Os três solos de Rahardjo et al.\ (2007) rodaram no fermi das \SolosInicioLog{} às \SolosUltimo, com \SolosNos{} nós
+(\texttt{CAMPANHA=solos}): Monte Carlo direto com $I = \SolosIks\,k_s$ por \SolosDuracao~h e o $FS$ do SRM (redução
+da resistência) de \SolosPasso{} em \SolosPasso~h até \SolosFim~h. A realização $n$ tem os mesmos campos nos três
+solos. \ifsolosprontos A campanha terminou.\else A campanha está quase pronta: quando os arquivos foram baixados,
+\SolosRodando{} dos \SolosTarefas{} blocos ainda rodavam (devem acabar por volta das \SolosPrevFimFinal).\fi{} A
+Tab.~\ref{tab:solos} tem os números finais, lidos desses arquivos; a análise completa está no
+\texttt{relatorio\_solos.pdf}. A Tab.~\ref{tab:campanhas} e a Seção~\ref{sec:sugestoes} ainda usam a previsão do
+\texttt{status.sh} das \SolosHora.
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{Os três solos no fermi (os arquivos baixados): realizações pedidas e válidas (todos os instantes calculados),
+falhas ($FS < 1$ em algum instante), $P_f$ com o IC de Wilson de 95\% e o mínimo do $FS$ determinístico na mesma malha
+do Monte Carlo.}\label{tab:solos}
+\begin{tabular}{lrrrrrr}\toprule
+solo & $I$ (mm/h) & $N$ & válidas & falhas & $P_f$ (\%) & $FS_{det}$ mínimo \\\midrule
+$f_{10,-4}$ & \SolosIDez & \SolosNDez & \SolosValidasDez & \SolosNfDez & \SolosPfFinalDez{}
+(\SolosPfFinalLoDez--\SolosPfFinalHiDez) & \SolosDetFinalDez{} (\SolosTdetFinalDez) \\
+$f_{50,-5}$ & \SolosICinquenta & \SolosNCinquenta & \SolosValidasCinquenta & \SolosNfCinquenta &
+\SolosPfFinalCinquenta{} (\SolosPfFinalLoCinquenta--\SolosPfFinalHiCinquenta) & \SolosDetFinalCinquenta{}
+(\SolosTdetFinalCinquenta) \\
+$f_{100,-6}$ & \SolosICem & \SolosNCem & \SolosValidasCem & \SolosNfCem & \SolosPfFinalCem{}
+(\SolosPfFinalLoCem--\SolosPfFinalHiCem) & \SolosDetFinalCem{} (\SolosTdetFinalCem) \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{itemize}
+\item São \SolosValidasTotal{} realizações válidas de \SolosTotal.\ifsolosprontos\else{} Faltam \SolosFaltamTotal{}
+(\SolosFaltamLista), dos blocos que ainda rodavam.\fi{} No f10, o transiente parou em \SolosExcluidasDez{} realizações a
+\SolosIDez~mm/h; elas saem da conta, e \SolosExcluidasFalhamDez{} delas já tinham $FS < 1$ antes de parar.
+\item O esperado se confirmou: o f10 rompe quase sempre (o determinístico fica abaixo de 1), o f100 quase nunca, e o
+f50 é o caso que discrimina.
+\item Custo medido: \SolosMinMedido~min por realização no fermi (o \texttt{README.md} estimava \SolosMinReal~min),
+\SolosCpuFinal~h de CPU e \SolosRelogioFinal{} de relógio.
+\end{itemize}
+\else
 Os três solos de Rahardjo et al.\ (2007) rodam no fermi desde as \SolosInicio, com \SolosNos{} nós
 (\texttt{CAMPANHA=solos}): Monte Carlo direto com $I = \SolosIks\,k_s$ por \SolosDuracao~h e o $FS$ do SRM (redução
 da resistência) de \SolosPasso{} em \SolosPasso~h até \SolosFim~h. A
@@ -400,6 +438,8 @@ realizações em curso com os instantes já calculados. Nelas, o menor $FS$ aind
 \item O esperado já aparece: o f10 rompe quase sempre (o determinístico fica abaixo de 1), o f100 quase nunca, e o f50
 é o caso que discrimina.
 \end{itemize}
+
+\fi
 
 \subsection{Campanhas prontas}
 Os casos estão nos arquivos \texttt{cluster/casos*.txt}, e os comandos no \texttt{cluster/README.md}

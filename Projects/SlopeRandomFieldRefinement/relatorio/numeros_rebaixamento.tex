@@ -1,10 +1,12 @@
-% gerado por figuras_rebaixamento.py em 15/11/2026 00:37: nao edite (rode o script de novo)
+% gerado por figuras_rebaixamento.py em 15/11/2026 10:05: nao edite (rode o script de novo)
 \newif\ifaipronto \aiprontotrue
 \newif\ifmodosdesloc \modosdesloctrue
 \newif\ifmodospronto \modosprontotrue
 \newif\ifmodosiniciado \modosiniciadotrue
 \newif\ifkfixopronto \kfixoprontotrue
 \newif\ifkfixoiniciado \kfixoiniciadotrue
+\newif\ifsolosbaixados \solosbaixadostrue
+\newif\ifsolosprontos \solosprontosfalse
 \newcommand{\DomX}{70} % rebaixamento_mc.cpp (kTalude)
 \newcommand{\DomY}{35} % rebaixamento_mc.cpp (kTalude)
 \newcommand{\AlturaH}{5} % rebaixamento_mc.cpp (kTalude)
@@ -346,6 +348,50 @@
 \newcommand{\SolosTotal}{3000} % cluster/casos_solos.txt
 \newcommand{\SolosFeitasTotal}{219} % status.sh no fermi as 20h24 (digitado)
 \newcommand{\SolosMinReal}{22} % cluster/README.md
+\newcommand{\SolosValidasDez}{993} % chuva_solos/f10/mc_*.csv (todos os instantes ok)
+\newcommand{\SolosCompletasDez}{996} % chuva_solos/f10/mc_*.csv (todos os instantes)
+\newcommand{\SolosExcluidasDez}{3} % chuva_solos/f10/mc_*.csv (situacao diferente de ok)
+\newcommand{\SolosExcluidasFalhamDez}{3} % chuva_solos/f10/mc_*.csv (as excluidas com FS < 1 antes de parar)
+\newcommand{\SolosFaltamDez}{4} % chuva_solos/f10/mc_*.csv (sem todas as linhas)
+\newcommand{\SolosNfDez}{973} % chuva_solos/f10/mc_*.csv (FS < 1 em algum instante)
+\newcommand{\SolosPfFinalDez}{97{,}99} % chuva_solos/f10/mc_*.csv
+\newcommand{\SolosPfFinalLoDez}{96{,}9} % chuva_solos/f10/mc_*.csv (Wilson)
+\newcommand{\SolosPfFinalHiDez}{98{,}7} % chuva_solos/f10/mc_*.csv (Wilson)
+\newcommand{\SolosDetFinalDez}{0{,}832} % chuva_solos/f10/mc_0_4.csv (real -1, menor FS)
+\newcommand{\SolosTdetFinalDez}{12, 18 e 24~h} % chuva_solos/f10/mc_0_4.csv (real -1, instante do menor FS)
+\newcommand{\SolosValidasCinquenta}{1000} % chuva_solos/f50/mc_*.csv (todos os instantes ok)
+\newcommand{\SolosCompletasCinquenta}{1000} % chuva_solos/f50/mc_*.csv (todos os instantes)
+\newcommand{\SolosExcluidasCinquenta}{0} % chuva_solos/f50/mc_*.csv (situacao diferente de ok)
+\newcommand{\SolosExcluidasFalhamCinquenta}{0} % chuva_solos/f50/mc_*.csv (as excluidas com FS < 1 antes de parar)
+\newcommand{\SolosFaltamCinquenta}{0} % chuva_solos/f50/mc_*.csv (sem todas as linhas)
+\newcommand{\SolosNfCinquenta}{224} % chuva_solos/f50/mc_*.csv (FS < 1 em algum instante)
+\newcommand{\SolosPfFinalCinquenta}{22{,}40} % chuva_solos/f50/mc_*.csv
+\newcommand{\SolosPfFinalLoCinquenta}{19{,}9} % chuva_solos/f50/mc_*.csv (Wilson)
+\newcommand{\SolosPfFinalHiCinquenta}{25{,}1} % chuva_solos/f50/mc_*.csv (Wilson)
+\newcommand{\SolosDetFinalCinquenta}{1{,}034} % chuva_solos/f50/mc_0_4.csv (real -1, menor FS)
+\newcommand{\SolosTdetFinalCinquenta}{24~h} % chuva_solos/f50/mc_0_4.csv (real -1, instante do menor FS)
+\newcommand{\SolosValidasCem}{999} % chuva_solos/f100/mc_*.csv (todos os instantes ok)
+\newcommand{\SolosCompletasCem}{999} % chuva_solos/f100/mc_*.csv (todos os instantes)
+\newcommand{\SolosExcluidasCem}{0} % chuva_solos/f100/mc_*.csv (situacao diferente de ok)
+\newcommand{\SolosExcluidasFalhamCem}{0} % chuva_solos/f100/mc_*.csv (as excluidas com FS < 1 antes de parar)
+\newcommand{\SolosFaltamCem}{1} % chuva_solos/f100/mc_*.csv (sem todas as linhas)
+\newcommand{\SolosNfCem}{0} % chuva_solos/f100/mc_*.csv (FS < 1 em algum instante)
+\newcommand{\SolosPfFinalCem}{0{,}00} % chuva_solos/f100/mc_*.csv
+\newcommand{\SolosPfFinalLoCem}{0{,}0} % chuva_solos/f100/mc_*.csv (Wilson)
+\newcommand{\SolosPfFinalHiCem}{0{,}4} % chuva_solos/f100/mc_*.csv (Wilson)
+\newcommand{\SolosDetFinalCem}{1{,}881} % chuva_solos/f100/mc_0_4.csv (real -1, menor FS)
+\newcommand{\SolosTdetFinalCem}{36~h} % chuva_solos/f100/mc_0_4.csv (real -1, instante do menor FS)
+\newcommand{\SolosValidasTotal}{2992} % chuva_solos/*/mc_*.csv
+\newcommand{\SolosFaltamTotal}{5} % chuva_solos/*/mc_*.csv
+\newcommand{\SolosFaltamLista}{979, 984, 994 e 999 no f10 e 999 no f100} % chuva_solos/*/mc_*.csv
+\newcommand{\SolosInicioLog}{19h21} % chuva_solos/logs/p*.txt
+\newcommand{\SolosUltimo}{8h40 de 15/11} % chuva_solos/logs/p*.txt (fim da ultima tarefa terminada)
+\newcommand{\SolosRelogioFinal}{13~h 20~min} % chuva_solos/logs/p*.txt
+\newcommand{\SolosCpuFinal}{616} % chuva_solos/logs/p*.txt (soma das tarefas terminadas)
+\newcommand{\SolosMinMedido}{12{,}4} % chuva_solos/logs/p*.txt (CPU / realizacoes)
+\newcommand{\SolosRodando}{5} % chuva_solos/logs/p*.txt (inicio sem fim)
+\newcommand{\SolosTarefas}{600} % casos_solos.txt e campanha.txt
+\newcommand{\SolosPrevFimFinal}{9h00 de 15/11} % chuva_solos/logs/p*.txt (inicio + duracao media das tarefas do solo, estimado)
 \newcommand{\Nos}{4} % cluster/submeter.sh
 \newcommand{\Paralelo}{12} % cluster/submeter.sh
 \newcommand{\FermiLento}{2{,}6} % medido antes (digitado)

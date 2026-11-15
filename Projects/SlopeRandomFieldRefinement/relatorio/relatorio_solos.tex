@@ -1,0 +1,322 @@
+% Relatorio do Monte Carlo dos tres solos de Rahardjo et al. (2007) sob chuva (I = 1 k_s por 24 h), rodado no fermi
+% (CAMPANHA=solos) em 14 e 15/11/2026. Para refazer (as realizacoes que faltavam entram sozinhas depois do baixar.sh):
+%   python3 -I figuras_solos.py   (figuras em figs/fig_solos_*.pdf e numeros_solos.tex; imprime cada numero com o
+%                                  arquivo de onde sai)
+%   pdflatex relatorio_solos.tex  (duas vezes)
+% Nenhum numero dos dados esta escrito aqui: todos vem das macros do numeros_solos.tex. A chave \ifsolosprontos (de la)
+% fica verdadeira com todas as realizacoes nos arquivos e nenhum bloco rodando: ai o texto deixa de falar do que falta.
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}\usepackage[utf8]{inputenc}\usepackage[brazilian]{babel}\usepackage{lmodern}
+\usepackage[margin=2.2cm]{geometry}\usepackage{booktabs}\usepackage{graphicx}\usepackage{caption}
+\usepackage{float}\usepackage[hidelinks]{hyperref}\usepackage{amsmath}\usepackage{amssymb}\usepackage{microtype}
+\usepackage{array}
+\captionsetup{font=small}
+\renewcommand{\topfraction}{0.9}\renewcommand{\bottomfraction}{0.8}\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.75}
+\graphicspath{{figs/}}
+\input{numeros_solos}
+% \m{Nome}: a macro \Nome do numeros_solos.tex, com erro se ela nao existe (o \csname sozinho daria vazio)
+\newcommand{\m}[1]{\ifcsname #1\endcsname\csname #1\endcsname\else\errmessage{falta a macro #1}\fi}
+% uma linha da Tab. 2 (solo, instante, t): media, CoV, P(FS < 1), IC, deterministico, media/det - 1 e rahardjo.cpp
+\newcommand{\linha}[3]{#3 & \m{Media#1#2} & \m{Cov#1#2} & \m{Pf#1#2} & \m{Lo#1#2}--\m{Hi#1#2} & \m{Det#1#2} &
+\m{Dif#1#2} & \m{Log#1#2} \\}
+\newcommand{\linhaMin}[1]{mínimo & \m{MediaMin#1} & \m{CovMin#1} & \m{PfMin#1} & \m{LoMin#1}--\m{HiMin#1} &
+\m{DetMin#1} & \m{DifMin#1} & \m{LogMin#1} \\}
+
+\author{SlopeRandomFieldRefinement\\ \small(\texttt{montecarlo.cpp}, \texttt{figuras\_solos.py})}
+\title{Os três solos de Rahardjo et al.\ (2007) sob chuva: Monte Carlo no fermi}
+\date{15 de novembro de 2026}
+\begin{document}\maketitle
+
+\section*{Resumo}
+\begin{itemize}
+\item Os três solos da Tabela~1 de Rahardjo et al.\ (2007) receberam a chuva da Fig.~5 do artigo, $I = 1\,k_s$ por
+\Chuva~h, com $c'$, $\varphi'$ e $k$ aleatórios como na Tabela~2 de Vargas Ceron et al.\ (2025). Foram pedidas
+\NPlanDez{} realizações por solo no fermi, com o $FS$ do SRM de \Passo{} em \Passo~h até \Fim~h. Entram \NDez{} (f10),
+\NCinquenta{} (f50) e \NCem{} (f100).
+\item Falha é $FS < 1$ em algum instante. A $P_f$ é de \PfMinDez\% no f10, \PfMinCinquenta\% no f50 (IC~95\%:
+\LoMinCinquenta\% a \HiMinCinquenta\%) e \PfMinCem\% no f100 (IC~95\% até \HiMinCem\%). O SRM quase não devolve $FS$
+logo abaixo de 1; por isso, a $P_f$ do f50 pode estar subestimada em até \BuracoPontos{} ponto (Seção~\ref{sec:solos}).
+\item O instante do menor $FS$ depende de $k_s$: de \QuandoFaixaDez~h no f10 (o talude satura), em 24~h no f50
+(\QuandoPctCinquentaVinteQuatro\% das realizações) e depois da chuva no f100 (\DepoisPctCem\%).
+\item A comparação é pareada. Nas \NComuns{} realizações válidas nos três solos, o menor $FS$ do f10 é sempre menor
+que o do f50, e este, menor que o do f100. As \NfComunsCinquenta{} falhas do f50 também falham no f10.
+\item No f50 em 24~h, o $c'$ na banda de ruptura é o que mais pesa (Spearman \RhoC), depois o $\varphi'$ (\RhoPhi). O
+$k$ na banda pesa pouco (\RhoK).
+\item A média do f50 em 24~h (\MediaCinquentaVinteQuatro) fica \PosCinquentaVinteQuatro{} do determinístico na mesma
+malha (\DetCinquentaVinteQuatro): com o $k$ aleatório, a água sobe menos na média.
+\item Perto de $I = k_s$, a $P_f$ muda muito com $I$. Em \Iref~mm/h, os pilotos deram $P_f \approx \PfChuvaPiloto\%$
+(ajuste lognormal de \NPiloto{} realizações, sem falha), mas essas \NPiloto{} espalham pouco. Uma extrapolação grosseira
+pelas mesmas realizações (a mesma subida do $FS$ em todas) dá de \PfEstMin\% a \PfEstMax\%, conforme a subida usada
+(Seção~\ref{sec:conclusoes}). A campanha \texttt{chuva\_ai} vai medir.
+\end{itemize}
+
+\section{Objetivo e configuração}\label{sec:config}
+O objetivo é ver como o tipo de solo muda a resposta estatística do talude à chuva. O determinístico da Fig.~5 do
+Rahardjo já foi reproduzido (\texttt{relatorio\_chuva.pdf}); aqui entram os campos aleatórios. O caso é o do
+\texttt{montecarlo.cpp} (\texttt{CAMPANHA=solos}):
+\begin{itemize}
+\item \textbf{Talude:} $H = \AlturaH$~m a $\Inclinacao^\circ$ (Fig.~2 do Rahardjo), num domínio de \DomX~m $\times$
+\DomY~m, com o nível d'água inicial \Hw~m abaixo do pé. Nos três solos, $c' = \Coesao$~kPa, $\varphi' = \Atrito^\circ$
+e $\gamma = \PesoSolo$~kN/m$^3$.
+\item \textbf{Solos e chuva} (Tab.~\ref{tab:config}): o $a$ de Fredlund--Xing e o $k_s$ da Tabela~1 do Rahardjo, e
+$I = k_s$ por \Chuva~h, como na Fig.~5 do artigo.
+\item \textbf{Campos} (Tabela~2 do Ceron): $c'$, $\varphi'$ e $k$ log-normais e independentes, com CoV de \CovC,
+\CovPhi{} e \CovK. O $k$ multiplica o $k_s$ do solo e tem média 1. A correlação é exponencial, com $L_x = \Lx$~m e
+$L_y = \Ly$~m, e a expansão de Karhunen--Loève tem \KLM{} termos (\KLvar\% da variância). Com a semente \Semente, a
+realização $n$ tem os mesmos campos nos três solos: a comparação entre eles é pareada.
+\item \textbf{Transiente:} esqueleto rígido e ar passivo, como o SEEP/W do artigo, na \texttt{TriGMesh(\RefMC)}
+(\TriTrans{} triângulos de lado \LadoTrans~m e \EqTrans{} equações), até \Fim~h.
+\item \textbf{Fator:} SRM (redução de $c'$ e $\tan\varphi'$) com refinamento adaptativo em $h$, refeito do zero em cada
+instante: a \texttt{\MalhaF} (lado de \LadoFator~m) e \Nref{} níveis nos triângulos com
+$\sqrt{J_2(\varepsilon_p)} \geq \LimiarBanda$ do maior, até uns \LadoBanda~m na banda. O $FS$ sai de \Passo{} em
+\Passo~h até \Fim~h; no f50, também em 0~h (antes da chuva o determinístico é o mesmo nos três solos).
+\item \textbf{Falha:} $FS < 1$ em algum instante (o mínimo no tempo); $P_f = n_f/N$, com o intervalo de Wilson de 95\%.
+Só entram as realizações com todos os instantes calculados.
+\end{itemize}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{Os três solos: parâmetros (Tabela~1 do Rahardjo), instantes do $FS$, realizações pedidas, completas e
+válidas, e o custo médio por realização no fermi (transiente + fator, \texttt{s\_transiente} + \texttt{s\_fator}).}
+\label{tab:config}
+\begin{tabular}{lrrrrrrrr}\toprule
+solo & $a$ (kPa) & $k_s$ (m/s) & $I$ (mm/h) & instantes (h) & $N$ & completas & válidas & custo (min) \\\midrule
+$f_{10,-4}$ & \ADez & $\KsDez$ & \IDez & \TemposFaixaDez & \NPlanDez & \CompletasDez & \NDez & \CustoTotalDez \\
+$f_{50,-5}$ & \ACinquenta & $\KsCinquenta$ & \ICinquenta & \TemposFaixaCinquenta & \NPlanCinquenta &
+\CompletasCinquenta & \NCinquenta & \CustoTotalCinquenta \\
+$f_{100,-6}$ & \ACem & $\KsCem$ & \ICem & \TemposFaixaCem & \NPlanCem & \CompletasCem & \NCem & \CustoTotalCem \\
+\bottomrule\end{tabular}\end{table}
+
+\paragraph{Custo e cluster.} O transiente leva \CustoTransDez~s por realização no f10 (\CustoTransCem~s no f100) e o
+resto é o fator, de \CustoFatorInstCinquenta~s (f50) a \CustoFatorInstDez~s (f10) por instante. A campanha rodou em
+\Nos{} nós com \ProcNo{} processos cada, em blocos de \Bloco{} realizações, das \Inicio{} às \UltimaTarefa{} de 15/11:
+\Relogio{} de relógio e \CpuHoras~h de CPU, ou \MinPorReal~min por realização (o \texttt{README.md} estimava
+\MinReadme~min).
+
+\paragraph{O que falta e o que sai.} \ifsolosprontos Todas as \NPlanTotal{} realizações foram baixadas.\else
+\FaltamFrase\fi{} No f10, o transiente parou em \RuinsDez{} realizações a \IDez~mm/h (\RuinsListaDez, em
+\RuinsParouDez). \RuinsFraseDez
+
+\section{Resultados por solo}\label{sec:solos}
+A Tab.~\ref{tab:solos} e as Figs.~\ref{fig:fs} e~\ref{fig:pf} resumem cada solo:
+\begin{itemize}
+\item \textbf{f10} (\IDez~mm/h). O $FS$ cai rápido: a média é \MediaDezSeis{} em 6~h, quando \PfDezSeis\% das
+realizações já estão abaixo de 1, e fica num patamar de \MediaDezDoze{} a \MediaDezVinteQuatro{} de 12 a 24~h, com o
+talude saturado. No patamar o $FS$ quase não muda: o de 18~h é igual ao de 24~h em \PatamarIgual{} das \NDez{}
+realizações. Por isso o instante do mínimo é mal definido (12~h em \QuandoDezDoze, 18~h em \QuandoDezDezoito{} e 24~h
+em \QuandoDezVinteQuatro). Depois da chuva o talude drena depressa: \MediaDezTrinta{} em 30~h e \MediaDezQuarentaOito{}
+em 48~h. $P_f = \PfMinDez\%$.
+\item \textbf{f50} (\ICinquenta~mm/h). O $FS$ cai durante toda a chuva, de \MediaCinquentaZero{} (0~h) a
+\MediaCinquentaVinteQuatro{} (24~h). A $P(FS < 1)$ vai de \PfCinquentaDezoito\% em 18~h a \PfCinquentaVinteQuatro\% em
+24~h, e volta a \PfCinquentaTrinta\% em 30~h e \PfCinquentaTrintaSeis\% em 36~h. O mínimo é em 24~h em
+\QuandoCinquentaVinteQuatro{} das \NCinquenta{} realizações, e \FalhaForaFraseCinquenta: a $P_f$ do mínimo é
+\PfMinCinquenta\%, e a de 24~h, \PfCinquentaVinteQuatro\%.
+\item \textbf{Um buraco logo abaixo de 1.} No f50 em 24~h, \BuracoAbaixo{} realizações têm $FS$ em \BuracoFaixaAbaixo,
+contra \BuracoAcima{} em \BuracoFaixaAcima{} e \BuracoVizAbaixo{} e \BuracoVizAcima{} nas faixas vizinhas, de mesma
+largura; a \BuracoExato{} dá $FS = 1$ exato. O \texttt{SRMArcLength} aplica o peso com $F = 1$ e, se o Newton converge,
+começa o caminho em $F = 1$ e devolve o maior $F$ dele: $FS \geq 1$. Então um $FS$ um pouco menor que 1 parece sair como
+$FS \geq 1$. Pelas faixas vizinhas, faltam umas \BuracoFalta{} realizações logo abaixo de 1: a $P_f$ pode estar
+subestimada em até \BuracoPontos{} ponto.
+\item \textbf{f100} (\ICem~mm/h). O $FS$ cai devagar, de \MediaCemSeis{} em 6~h a \MediaCemVinteQuatro{} em 24~h, e
+continua caindo um pouco depois da chuva: o mínimo vem depois de 24~h em \DepoisCem{} das \NCem{} realizações. Na média
+das \NCem, o menor $FS$ fica \AbaixoMediaCem\% abaixo do $FS(24\text{ h})$ (até \AbaixoMaxCem\%). Com \NfMinCem{}
+falhas, $P_f = \PfMinCem\%$ (IC~95\% até \HiMinCem\%).
+\item \textbf{Dispersão.} A chuva espalha o $FS$. No f50, o $CoV$ vai de \CovCinquentaZero\% antes da chuva a
+\CovCinquentaVinteQuatro\% no fim dela; no f10, chega a \CovFaixaMaxDez\%. No f100, que quase não molha, fica entre
+\CovFaixaMinCem\% e \CovFaixaMaxCem\%.
+\end{itemize}
+
+\begin{table}[htbp]\centering\footnotesize\setlength{\tabcolsep}{4.5pt}
+\caption{$FS$ em cada instante: média e $CoV$ das realizações válidas, $P(FS < 1)$ com o intervalo de Wilson de 95\%,
+o determinístico na mesma malha do Monte Carlo ($FS_{det}$, a realização $-1$), a diferença média$/FS_{det} - 1$ e o
+determinístico de hora em hora do \texttt{rahardjo.cpp} (transiente na \texttt{TriGMesh(\RefRahardjo)}). Na linha
+``mínimo'': o menor $FS$ de cada realização no tempo (a falha) e o menor dos determinísticos, que vem em
+\TDetMinDez{} no f10, \TDetMinCinquenta{} no f50 e \TDetMinCem{} no f100 (no \texttt{rahardjo.cpp}, \TLogMinDez{} no
+f10, \TLogMinCinquenta{} no f50 e \TLogMinCem{} no f100).}\label{tab:solos}
+\begin{tabular}{rrrrrrrr}\toprule
+$t$ (h) & $FS$ médio & $CoV$ (\%) & $P(FS < 1)$ (\%) & IC (\%) & $FS_{det}$ & média$/FS_{det} - 1$ (\%) &
+\texttt{rahardjo.cpp} \\\midrule
+\multicolumn{8}{l}{$f_{10,-4}$: $I = \IDez$~mm/h, $N = \NDez$} \\
+\linha{Dez}{Seis}{6}\linha{Dez}{Doze}{12}\linha{Dez}{Dezoito}{18}\linha{Dez}{VinteQuatro}{24}
+\linha{Dez}{Trinta}{30}\linha{Dez}{TrintaSeis}{36}\linha{Dez}{QuarentaDois}{42}\linha{Dez}{QuarentaOito}{48}
+\linhaMin{Dez}\midrule
+\multicolumn{8}{l}{$f_{50,-5}$: $I = \ICinquenta$~mm/h, $N = \NCinquenta$} \\
+\linha{Cinquenta}{Zero}{0}\linha{Cinquenta}{Seis}{6}\linha{Cinquenta}{Doze}{12}\linha{Cinquenta}{Dezoito}{18}
+\linha{Cinquenta}{VinteQuatro}{24}\linha{Cinquenta}{Trinta}{30}\linha{Cinquenta}{TrintaSeis}{36}
+\linha{Cinquenta}{QuarentaDois}{42}\linha{Cinquenta}{QuarentaOito}{48}
+\linhaMin{Cinquenta}\midrule
+\multicolumn{8}{l}{$f_{100,-6}$: $I = \ICem$~mm/h, $N = \NCem$} \\
+\linha{Cem}{Seis}{6}\linha{Cem}{Doze}{12}\linha{Cem}{Dezoito}{18}\linha{Cem}{VinteQuatro}{24}
+\linha{Cem}{Trinta}{30}\linha{Cem}{TrintaSeis}{36}\linha{Cem}{QuarentaDois}{42}\linha{Cem}{QuarentaOito}{48}
+\linhaMin{Cem}
+\bottomrule\end{tabular}\end{table}
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\linewidth]{fig_solos_fs.pdf}
+\caption{$FS(t)$ de cada solo: média do Monte Carlo e faixa de 5\% a 95\% das realizações, o determinístico na mesma
+malha (quadrados), o \texttt{rahardjo.cpp} de hora em hora e as leituras da Fig.~5 do Rahardjo (a olho,
+$\pm \LeituraFig$).
+Fundo cinza: a chuva. As escalas de $FS$ são diferentes.}\label{fig:fs}
+\end{figure}
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\linewidth]{fig_solos_pf.pdf}
+\caption{(a) $P(FS < 1)$ em cada instante, com a faixa de Wilson de 95\%; (b) o instante do menor $FS$ de cada
+realização (no empate, o primeiro).}\label{fig:pf}
+\end{figure}
+
+\section{Comparação pareada entre os solos}\label{sec:pareado}
+A realização $n$ tem os mesmos campos nos três solos. Então dá para comparar realização a realização
+(Fig.~\ref{fig:pareado}):
+\begin{itemize}
+\item \textbf{A ordem.} Nas \NComuns{} realizações válidas nos três solos, o menor $FS$ segue f10 $<$ f50 $<$ f100 em
+todas (\Ordem). A ordem vale também em cada instante até \OrdemAte~h. Depois da chuva, o f10 drena mais depressa: em
+30~h, o $FS$ dele já passa o do f50 em \InverteTrinta{} realizações; em 48~h, em todas (\InverteQuarentaOito).
+\item \textbf{A correlação.} As realizações fracas são as mesmas nos três solos. O Spearman do menor $FS$ é de
+\RhoDezCinquenta{} entre f10 e f50, \RhoCinquentaCem{} entre f50 e f100 e \RhoDezCem{} entre f10 e f100. O $c'$ e o
+$\varphi'$ são os mesmos; o que muda é a água, e a correlação é maior entre os solos em que a água age de forma
+parecida.
+\item \textbf{As falhas.} As \NfComunsCinquenta{} falhas do f50 nas realizações comuns também falham no f10, que tem
+mais \NfSoDez{} falhas só dele. As outras \NfCinquentaFora{} falhas do f50 são as realizações \CinquentaFora.
+\item \textbf{Quando o f10 rompe.} O primeiro instante com $FS < 1$ é 6~h em \PrimeiroSeis{} realizações
+(\PrimeiroPctSeis\%), 12~h em \PrimeiroDoze{} (\PrimeiroPctDoze\%), 18~h em \PrimeiroDezoito{} e 24~h em
+\PrimeiroVinteQuatro. Só \Nunca{} (\NuncaPct\%) nunca ficam abaixo de 1, com menor $FS$ de \NuncaMin{} a \NuncaMax.
+O determinístico na mesma malha só fica abaixo de 1 em \DetPrimeiroDez~h ($FS(6\text{ h}) = \DetDezSeis$), e o
+\texttt{rahardjo.cpp} cruza 1 em \CruzaLogDez~h. A última passagem por $FS < 1$ é em 24~h (\UltimoVinteQuatro) ou
+30~h (\UltimoTrinta).
+\end{itemize}
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\linewidth]{fig_solos_pareado.pdf}
+\caption{Comparação pareada: o menor $FS$ de cada realização (a) no f10 e no f50 e (b) no f50 e no f100, com a reta
+1:1 e as falhas; (c) o primeiro instante com $FS < 1$ no f10.}\label{fig:pareado}
+\end{figure}
+
+\section{O que leva à falha (f50 em 24 h)}\label{sec:mecanismo}
+Cada realização grava as médias dos campos na banda de ruptura ($\sqrt{J_2(\varepsilon_p)} \geq \LimiarBanda$ do maior)
+e na massa que desliza, a profundidade da banda e o nível d'água na crista, no meio da face e no pé. No f50 em 24~h, com
+\NfMec{} falhas em \NMec{} (Tab.~\ref{tab:mecanismo}, Fig.~\ref{fig:mecanismo}):
+\begin{itemize}
+\item \textbf{O $c'$ na banda domina:} Spearman de \RhoC{} com o $FS$ (\ParcC{} descontados $\varphi'$ e $k$). As falhas
+têm \FalhaC~kPa na banda, contra \OutrasC~kPa nas outras. O $\varphi'$ vem depois (\RhoPhi; parcial \ParcPhi). É o
+quadro do rebaixamento do Ceron (\texttt{relatorio\_rebaixamento.pdf}).
+\item \textbf{O $k$ quase não pesa na banda} (\RhoK; parcial \ParcK): as falhas têm \FalhaK{} da média ali, como as
+outras (\OutrasK). Na massa que desliza o sinal é mais claro (\RhoKMassa; \FalhaKMassa{} da média nas falhas,
+contra \OutrasKMassa): um $k$ maior ali deixa entrar mais água.
+\item \textbf{A água pesa pelo nível.} O Spearman do $FS$ com o nível no meio da face ($x = \XMeio$~m) é
+\RhoNivelMeio. Pelas categorias da Tabela~3 do Rahardjo (lidas como no \texttt{posproc/dados\_chuva.py}), \CatDois{}
+realizações estão na II (o nível chega à superfície no meio da face), com $P_f = \CatPfDois\%$, e \CatTres{} na III (só
+no pé), com $P_f = \CatPfTres\%$. O determinístico está na \CatDet. As falhas também têm $p_w$ maior na banda
+(\FalhaPw{} contra \OutrasPw~kPa) e a banda um pouco mais rasa (\FalhaProf{} contra \OutrasProf~m).
+\item \textbf{Um só mecanismo.} O mapa da banda é o mesmo nas falhas e em todas as realizações: uma banda rasa,
+paralela à face, que chega ao pé, como a do determinístico (\ProfDetMec~m de profundidade). As células com a banda em
+pelo menos metade das realizações são \CelulasMetade{} em todas e \CelulasMetadeFalha{} nas falhas.
+\end{itemize}
+
+\begin{table}[htbp]\centering\footnotesize
+\caption{f50 em 24~h: Spearman do $FS$ com cada média, Spearman parcial de 2ª ordem (Eqs.~70 e 71 do Ceron: cada campo
+na banda descontados os outros dois) e as médias nas falhas, nas outras realizações e no determinístico.}
+\label{tab:mecanismo}
+\begin{tabular}{lrrrrr}\toprule
+média & Spearman & parcial & falhas & outras & determinístico \\\midrule
+$c'$ na banda (kPa) & \RhoC & \ParcC & \FalhaC & \OutrasC & \DetC \\
+$\varphi'$ na banda (graus) & \RhoPhi & \ParcPhi & \FalhaPhi & \OutrasPhi & \DetPhi \\
+$k$ na banda (multiplicador) & \RhoK & \ParcK & \FalhaK & \OutrasK & \DetK \\
+$k$ na massa (multiplicador) & \RhoKMassa & -- & \FalhaKMassa & \OutrasKMassa & \DetKMassa \\
+profundidade da banda (m) & \RhoProf & -- & \FalhaProf & \OutrasProf & \DetProf \\
+$p_w$ na banda (kPa) & \RhoPw & -- & \FalhaPw & \OutrasPw & \DetPw \\
+nível em $x = \XMeio$~m (m) & \RhoNivelMeio & -- & \NivelMeioFalhas & \NivelMeioOutras & \NivelMeioDet \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\linewidth]{fig_solos_mecanismo.pdf}
+\caption{f50 em 24~h: fração das realizações com a banda em cada célula de 1~m (\texttt{mc\_mapa\_*.csv}) em (a) todas,
+com os pontos da banda do determinístico, e (b) nas falhas; (c) Spearman do $FS$ com as médias na banda e na massa.}
+\label{fig:mecanismo}
+\end{figure}
+
+\section{Contra o determinístico}\label{sec:det}
+\begin{itemize}
+\item \textbf{Qual determinístico.} A comparação justa é com o determinístico do próprio Monte Carlo (a realização
+$-1$, com as médias em todo o solo): mesma malha do transiente e mesmo caminho do fator. O \texttt{rahardjo.cpp} usou
+um transiente mais fino, a \texttt{TriGMesh(\RefRahardjo)} (lado de \LadoRahardjo~m, contra \LadoTrans~m). Os dois
+diferem em até \DifLogMaxDez\% (f10 em \DifLogMaxTDez~h, com a frente de saturação) e em até \DifLogResto\% no resto
+(Tab.~\ref{tab:solos}). É a ordem das diferenças entre a média e o determinístico: misturar as malhas confundiria a
+malha com o efeito da variabilidade.
+\item \textbf{f50 em 24~h:} a média, \MediaCinquentaVinteQuatro, fica \PosCinquentaVinteQuatro{} do determinístico
+(\DetCinquentaVinteQuatro; o \texttt{rahardjo.cpp} dá \LogCinquentaVinteQuatro). Antes da chuva ela fica
+\PosCinquentaZero: as zonas fracas de $c'$ e $\varphi'$ baixam o $FS$, como no rebaixamento. Então a
+chuva baixa menos o $FS$ na média: \QuedaMedia{} de 0 a 24~h, contra \QuedaDet{} no determinístico (a queda é menor em
+\QuedaMenor{} das \NCinquenta{} realizações).
+\item \textbf{A razão é a água.} O transiente só depende de $k$. Em 24~h, o nível no meio da face fica em média a
+\NivelMeio~m, contra \NivelMeioDet~m no determinístico (a superfície está a \CotaMeio~m), e \CatTres{} das
+\NMec{} realizações ficam na categoria III. Com o $k$ aleatório, de média 1, a água sobe menos na média que no solo
+homogêneo. O mesmo acontece no f10 em 6~h (média \PosDezSeis{} do determinístico; nível no meio da face
+\NivelMeioDezSeis{} contra \NivelDetMeioDezSeis~m).
+\item \textbf{Quando a água muda pouco}, a média fica abaixo do determinístico: no f100, de \DifFaixaMinCem\% a
+\DifFaixaMaxCem\% em todos os instantes. No f10, depois da chuva, ela chega a ficar \PosDezQuarentaOito{} dele
+(48~h), e a água desce um pouco mais devagar (nível na crista \NivelCristaDezQuarentaOito{} contra
+\NivelDetCristaDezQuarentaOito~m).
+\end{itemize}
+
+\section{Conclusões e próximos passos}\label{sec:conclusoes}
+\begin{itemize}
+\item \textbf{O solo decide quando o talude é mais fraco.} Com $I = k_s$, o mínimo vem de \QuandoFaixaDez~h no f10, no
+fim da chuva no f50 e quase sempre depois dela no f100 (\DepoisPctCem\%). Para o artigo: o $FS$ só em 24~h basta
+para o f10 e o f50, mas não para solos como o f100.
+\item \textbf{O mínimo no tempo importa nos solos de $k$ baixo.} No f100, o menor $FS$ fica em média \AbaixoMediaCem\%
+abaixo do $FS(24\text{ h})$ (até \AbaixoMaxCem\%). Aqui a $P_f$ é \PfMinCem\% de qualquer jeito, mas num solo como o
+f100 com $FS$ perto de 1 o evento ``$FS < 1$ em algum instante'' teria falhas que o $FS(24\text{ h})$ não vê. No f10 e
+no f50, \FalhaForaDois. A campanha \texttt{chuva\_ai} já usa o mínimo de \ChuvaAITempos~h.
+\item \textbf{Perto de $I = k_s$, a $P_f$ é muito sensível a $I$.} Com o $FS(24\text{ h})$ de todas as realizações 1\%
+maior, a $P_f$ do f50 cairia de \PfMinCinquenta\% para \PfMaisUm\%; 1\% menor, subiria para \PfMenosUm\% (parte
+dessa assimetria vem do buraco logo abaixo de 1). As \NPiloto{} realizações do piloto de \Iref~mm/h
+(\texttt{relatorio\_chuva.pdf}) são as realizações \PilotoReais{} daqui (mesma semente e mesmo caso). De \ICinquenta{}
+para \Iref~mm/h, o $FS(24\text{ h})$ delas sobe de \SobeMin\% a \SobeMax\% (média \SobeMedia\%), menos que os \SobeDet\%
+do determinístico (\DetCinquentaVinteQuatro{} para \DetIref). Com a mesma subida em todas as realizações daqui, a $P_f$
+em \Iref~mm/h seria de \PfEstMedia\% com a subida média, \PfEstDet\% com a do determinístico, e \PfEstSobeMax\% e
+\PfEstSobeMin\% com a maior e a menor subida das \NPiloto. São extrapolações grosseiras, não limites. Todas ficam
+acima do $\approx\PfChuvaPiloto\%$ dos pilotos (o ajuste lognormal das \NPiloto{} realizações, sem falha, dá
+\PilotoLognormal\%), que espalham pouco: em \ICinquenta~mm/h, o $CoV$ delas é \PilotoCovAqui\%, contra
+\CovCinquentaVinteQuatro\% nas \NCinquenta{} (em \Iref~mm/h foi \PilotoCov\%).
+\item \textbf{Próximos passos.} (1)~Conferir o buraco logo abaixo de 1: a \texttt{chuva\_ai} usa o mesmo
+\texttt{SRMArcLength}, e com $P_f$ de poucos por cento um viés de até \BuracoPontos{} ponto pesa mais. Basta rodar no
+PC a realização \BuracoExato{} do f50 em 24~h com o fator em modo verbose (o \texttt{NovoFator} do
+\texttt{montecarlo.cpp} usa \texttt{SetVerbose(false)}) e ver se o peso todo converge com $F = 1$. (2)~A campanha
+\texttt{chuva\_ai} ($I = \Iref$~mm/h, $FS$ de \ChuvaAITempos~h, piloto de \ChuvaAIPiloto{} e AI de \ChuvaAIN) está na
+fila do fermi e vai medir a $P_f$ nessa intensidade. Com a $P_f$ das extrapolações acima, o piloto teria de
+\FalhasPilotoMin{} a \FalhasPilotoMax{} falhas, e a AI renderia menos que o previsto para \PfChuvaPiloto\%. (3)~A curva
+de fragilidade $P_f(I)$ do f50 entre \Iref{} e \ICinquenta~mm/h, onde a $P_f$ deve ir de alguns por cento a
+\PfMinCinquenta\%.\ifsolosprontos\else{} (4)~Baixar o resto da campanha e refazer o relatório (os comandos estão no
+Apêndice~\ref{sec:arquivos}).\fi
+\end{itemize}
+
+\appendix
+\section{Arquivos lidos e como atualizar}\label{sec:arquivos}
+\raggedright A campanha baixada está em \path|~/projects/runs/fermi_chuva_solos| (os caminhos abaixo são relativos a
+ela): \path|chuva_solos/f10/|, \path|chuva_solos/f50/| e \path|chuva_solos/f100/| (\path|mc_*.csv|, \path|mc_*.log|,
+\path|mc_mapa_*.csv|, \path|mc_parametros.txt| e \path|mc_real-1/|), \path|chuva_solos/logs/| (início e fim de cada
+bloco), \path|chuva_solos/campanha.txt| e \path|logs/| (a saída dos jobs). Do build: \path|rahardjo_f10.log|,
+\path|rahardjo_f50.log| e \path|rahardjo_f100.log| (o determinístico de hora em hora) e, em \path|mc/gim_I/|, o
+determinístico e o piloto do f50 com $I = \Iref$~mm/h. Das fontes: \texttt{montecarlo.cpp}, \texttt{rahardjo.cpp},
+\texttt{posproc/dados\_chuva.py} e, em \texttt{cluster/}, \texttt{casos\_solos.txt}, \texttt{casos\_chuva\_ai.txt},
+\texttt{campanha.sh} e \texttt{README.md}. As leituras da Fig.~5 do Rahardjo vêm do \texttt{figuras\_relatorio.py}
+(\texttt{RAHARDJO\_FIG5}); nenhum resultado é digitado.
+
+\paragraph{Como atualizar.} Na pasta \texttt{relatorio/} (o \texttt{baixar.sh} pede a VPN e a senha do fermi):
+\begin{verbatim}
+CAMPANHA=solos ../cluster/baixar.sh
+python3 -I figuras_solos.py
+pdflatex relatorio_solos.tex && pdflatex relatorio_solos.tex
+\end{verbatim}
+O script refaz as figuras e o \texttt{numeros\_solos.tex} e imprime cada número com o arquivo de onde sai.
+
+\begin{thebibliography}{9}
+\bibitem{rahardjo2007} Rahardjo, Ong, Rezaur e Leong (2007). Factors controlling instability of homogeneous soil slopes
+under rainfall. \emph{Journal of Geotechnical and Geoenvironmental Engineering} 133(12):1532--1543.
+doi:10.1061/(ASCE)1090-0241(2007)133:12(1532).
+\bibitem{ceron2025} Vargas Ceron, Cecílio, Linn e Maghous (2025). Stability analysis of slope subjected to seepage
+forces considering spatial variability of soil properties. \emph{International Journal for Numerical and Analytical
+Methods in Geomechanics} 49(11):2459--2491. doi:10.1002/nag.3993.
+\end{thebibliography}
+\end{document}

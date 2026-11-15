@@ -8,6 +8,8 @@ So le arquivos; nao roda nenhum programa e nao escreve nas pastas das rodadas:
     finitos);
   - a campanha antiga do rebaixamento (percolacao permanente, cluster): ~/projects/runs/fermi_ceron/ceron_mc;
   - o custo da chuva no build (mc/serial_I24.log, para a campanha da chuva no fermi);
+  - os tres solos baixados do fermi (CAMPANHA=solos, ~/projects/runs/fermi_chuva_solos), se a pasta existe: as
+    realizacoes, as falhas e a P_f finais da Secao 6.1 (as regras do figuras_solos.py, que faz o relatorio_solos.tex);
   - as fontes desta pasta (rebaixamento_mc.cpp, DrawdownTransient.h e cluster/).
 
 Escreve:
@@ -20,11 +22,13 @@ resultados no lugar de "pendente".
 Os unicos numeros digitados aqui sao: os do artigo do Ceron (Gamma deterministico da Fig. 24, as S = 10 000 simulacoes
 da Secao 6.1, a linha s = 1 da Tabela 4 e a linha CoV(k_v) = 0 da Tabela 3), o fator 2,6 entre um nucleo do fermi e o
 do PC (medido antes desta campanha) e o status dos tres solos no fermi, colado pelo usuario as 20h24 (saida do
-status.sh, que nao esta neste PC).
+status.sh, que nao esta neste PC); com a campanha dos solos baixada, a Secao 6.1 usa os arquivos dela
+(\\ifsolosbaixados).
 
 Uso: python3 -I figuras_rebaixamento.py [rodadas do PC] [campanha antiga] [build do SlopeRandomFieldRefinement]
-     (padrao: ~/projects/runs/ceron_transiente, ~/projects/runs/fermi_ceron/ceron_mc e
-     ../../../../neopz-master-build-release/Projects/SlopeRandomFieldRefinement)"""
+                                         [tres solos baixados]
+     (padrao: ~/projects/runs/ceron_transiente, ~/projects/runs/fermi_ceron/ceron_mc,
+     ../../../../neopz-master-build-release/Projects/SlopeRandomFieldRefinement e ~/projects/runs/fermi_chuva_solos)"""
 
 import csv
 import datetime as dt
@@ -52,6 +56,7 @@ R_PADRAO = os.path.join(RUNS, "ceron_transiente")
 ANTIGA_PADRAO = os.path.join(RUNS, "fermi_ceron", "ceron_mc")
 BUILD_PADRAO = os.path.join(os.path.dirname(NEOPZ), "neopz-master-build-release", "Projects",
                             "SlopeRandomFieldRefinement")
+SOLOS_PADRAO = os.path.join(RUNS, "fermi_chuva_solos")  # a campanha dos tres solos baixada pelo cluster/baixar.sh
 DATA_RELATORIO = dt.date(2026, 11, 14)
 
 # ---- o que e digitado
@@ -68,6 +73,12 @@ SOLOS = {"hora": (20, 24), "inicio": (19, 21), "nos": 4, "previsao_h": (17, 20),
                    "f50": {"n": 81, "nf": 14, "det": 1.035, "tdet": "24~h"},
                    "f100": {"n": 75, "nf": 0, "det": 1.881, "tdet": "36~h"}}}
 FONTE_SOLOS = "status.sh no fermi as 20h24 (digitado)"
+# as macros da campanha dos solos baixada (com '--' quando a pasta nao existe)
+MACROS_SOLOS_BAIXADOS = ["Solos%s%s" % (a, b) for a in ("Validas", "Completas", "Excluidas", "ExcluidasFalham",
+                                                        "Faltam", "Nf", "PfFinal", "PfFinalLo", "PfFinalHi", "DetFinal",
+                                                        "TdetFinal") for b in ("Dez", "Cinquenta", "Cem")] + \
+    ["SolosValidasTotal", "SolosFaltamTotal", "SolosFaltamLista", "SolosInicioLog", "SolosUltimo", "SolosRelogioFinal",
+     "SolosCpuFinal", "SolosMinMedido", "SolosRodando", "SolosTarefas", "SolosPrevFimFinal"]
 
 # ---- estilo (o do figuras_relatorio.py)
 PALETA = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"]
@@ -1175,8 +1186,112 @@ def kfixo(R, md, fim_m, T_ref):
         (np.array([float(al[n]["FS_min"]) for n in com]) if par else None), fim_k
 
 
-def fermi(B, md):
-    """os tres solos (status digitado) e as campanhas prontas (casos e custos)"""
+RX_TAREFA_SOLOS = re.compile(r"^(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d) (\S+) (\d+)\.\.(\d+): (inicio|fim em (\d+) s)", re.M)
+
+
+def solos_baixados(SD):
+    """os tres solos baixados do fermi (CAMPANHA=solos), com as regras do figuras_solos.py (relatorio_solos.tex): entram
+    as realizacoes com todos os instantes ok; a falha e FS < 1 em algum instante; o deterministico e a realizacao -1, na
+    mesma malha. Sem a pasta, as macros ficam com '--' e a Secao 6.1 usa o status digitado"""
+    R = os.path.join(SD, "chuva_solos")
+    tem = os.path.isdir(R)
+    flag("solosbaixados", tem, R if tem else "sem a pasta " + R)
+    if not tem:
+        flag("solosprontos", False, "sem a pasta " + R)
+        for mac in MACROS_SOLOS_BAIXADOS:
+            txt(mac, "--", "sem a campanha dos solos baixada")
+        return
+    casos = {}
+    for linha in texto(os.path.join(PROJ, "cluster", "casos_solos.txt")).splitlines():
+        if linha.strip() and not linha.startswith("#"):
+            c = linha.split()
+            casos[c[0]] = int(c[2])
+    faltam_t, val_t, falt_n = [], 0, 0
+    for sid, mac in (("f10", "Dez"), ("f50", "Cinquenta"), ("f100", "Cem")):
+        pasta = os.path.join(R, sid)
+        fonte = "chuva_solos/%s/mc_*.csv" % sid
+        ts = [float(x) for x in le_chaves(os.path.join(pasta, "mc_parametros.txt"))["TEMPOS"].split(",")]
+        per = {}
+        for arq in sorted(glob.glob(os.path.join(pasta, "mc_*_*.csv"))):
+            if not re.search(r"/mc_-?\d+_-?\d+\.csv$", arq):
+                continue  # mapas
+            with open(arq, newline="") as f:
+                for r in csv.DictReader(f):
+                    try:
+                        n, t = int(r["real"]), float(r["t_h"])
+                        float(r["FS_min"]), float(r["proj_k"])  # a linha chegou ao fim
+                    except (TypeError, ValueError, KeyError):
+                        continue
+                    per.setdefault(n, {})[t] = r
+        det = per.pop(-1)
+        comp = {n: d for n, d in per.items() if all(t in d for t in ts)}
+        ok = lambda r: r["situacao"] == "ok" and float(r["FS_min"]) > 0  # noqa: E731
+        ruins = [n for n, d in comp.items() if not all(ok(d[t]) for t in ts)]
+        mins = [min(float(d[t]["FS_min"]) for t in ts) for n, d in comp.items() if n not in ruins]
+        N, nf = len(mins), sum(x < 1. for x in mins)
+        lo, hi = wilson(nf, N)
+        falham = sum(min([float(comp[n][t]["FS_min"]) for t in ts if ok(comp[n][t])] or [math.inf]) < 1. for n in ruins)
+        faltam = sorted(set(range(casos[sid])) - set(comp))
+        num("SolosValidas" + mac, "%d" % N, fonte + " (todos os instantes ok)")
+        num("SolosCompletas" + mac, "%d" % len(comp), fonte + " (todos os instantes)")
+        num("SolosExcluidas" + mac, "%d" % len(ruins), fonte + " (situacao diferente de ok)")
+        num("SolosExcluidasFalham" + mac, "%d" % falham, fonte + " (as excluidas com FS < 1 antes de parar)")
+        num("SolosFaltam" + mac, "%d" % len(faltam), fonte + " (sem todas as linhas)")
+        num("SolosNf" + mac, "%d" % nf, fonte + " (FS < 1 em algum instante)")
+        num("SolosPfFinal" + mac, v(100. * nf / N, 2), fonte)
+        num("SolosPfFinalLo" + mac, v(100. * lo, 1), fonte + " (Wilson)")
+        num("SolosPfFinalHi" + mac, v(100. * hi, 1), fonte + " (Wilson)")
+        dt_ = [float(det[t]["FS_min"]) for t in ts]
+        dmin = min(dt_)
+        tdet = ["%g" % t for t, x in zip(ts, dt_) if x <= dmin * (1. + 1e-6)]
+        num("SolosDetFinal" + mac, v(dmin, 3), "chuva_solos/%s/mc_0_4.csv (real -1, menor FS)" % sid)
+        txt("SolosTdetFinal" + mac, (", ".join(tdet[:-1]) + " e " + tdet[-1] if len(tdet) > 1 else tdet[0]) + "~h",
+            "chuva_solos/%s/mc_0_4.csv (real -1, instante do menor FS)" % sid)
+        val_t += N
+        falt_n += len(faltam)
+        if faltam:
+            faltam_t.append("%s no %s" % (", ".join(map(str, faltam[:-1])) + " e " + str(faltam[-1])
+                                          if len(faltam) > 1 else str(faltam[0]), sid))
+    num("SolosValidasTotal", "%d" % val_t, "chuva_solos/*/mc_*.csv")
+    num("SolosFaltamTotal", "%d" % falt_n, "chuva_solos/*/mc_*.csv")
+    txt("SolosFaltamLista", " e ".join(faltam_t) if faltam_t else "nenhuma", "chuva_solos/*/mc_*.csv")
+    # as tarefas (logs do cluster/tarefas.sh): inicio, fim, CPU e as que ainda rodavam quando a pasta foi baixada
+    tar = {}
+    for arq in glob.glob(os.path.join(R, "logs", "*.txt")):
+        for m in RX_TAREFA_SOLOS.finditer(texto(arq)):
+            x = tar.setdefault((m[2], int(m[3]), int(m[4])), [None, None, None])
+            t = dt.datetime.strptime(m[1], "%Y-%m-%d %H:%M:%S")
+            if m[5] == "inicio":
+                x[0] = t
+            else:
+                x[1], x[2] = t, int(m[6])
+    feitas = {k: x for k, x in tar.items() if x[1]}
+    rodando = {k: x for k, x in tar.items() if not x[1]}
+    ini = min(x[0] for x in tar.values() if x[0])
+    fim = max(x[1] for x in feitas.values())
+    bloco = int(texto(os.path.join(R, "campanha.txt")).split()[1])
+    ftar = "chuva_solos/logs/p*.txt"
+    txt("SolosInicioLog", hora(ini), ftar)
+    txt("SolosUltimo", hora(fim), ftar + " (fim da ultima tarefa terminada)")
+    txt("SolosRelogioFinal", duracao(fim - ini), ftar)
+    cpu = sum(x[2] for x in feitas.values()) / 3600.
+    num("SolosCpuFinal", "%d" % round(cpu), ftar + " (soma das tarefas terminadas)")
+    num("SolosMinMedido", v(cpu * 60. / sum(k[2] - k[1] + 1 for k in feitas), 1), ftar + " (CPU / realizacoes)")
+    num("SolosRodando", "%d" % len(rodando), ftar + " (inicio sem fim)")
+    num("SolosTarefas", "%d" % sum(math.ceil(n / bloco) for n in casos.values()), "casos_solos.txt e campanha.txt")
+    if rodando:  # inicio + a duracao media das tarefas do mesmo solo
+        med = {sid: np.mean([x[2] for k, x in feitas.items() if k[0] == sid]) for sid in casos}
+        prev = max(x[0] + dt.timedelta(seconds=med[k[0]]) for k, x in rodando.items())
+        txt("SolosPrevFimFinal", hora(prev, 5), ftar + " (inicio + duracao media das tarefas do solo, estimado)")
+    else:
+        txt("SolosPrevFimFinal", "--", ftar)
+    flag("solosprontos", falt_n == 0 and not rodando, "chuva_solos: todas as realizacoes e nenhuma tarefa rodando")
+    print("tres solos baixados: %d realizacoes validas, faltam %d, %d tarefas rodando" % (val_t, falt_n, len(rodando)))
+
+
+def fermi(B, md, SD):
+    """os tres solos (os arquivos baixados, se existem; o status digitado sempre, para o texto sem eles) e as campanhas
+    prontas (casos e custos)"""
     S = SOLOS
     h0 = dt.datetime.combine(DATA_RELATORIO, dt.time(*S["hora"]))
     i0 = dt.datetime.combine(DATA_RELATORIO, dt.time(*S["inicio"]))
@@ -1224,6 +1339,7 @@ def fermi(B, md):
     readme = texto(os.path.join(PROJ, "cluster", "README.md"))
     num("SolosMinReal", re.search(r"~(\d+) min por realização no fermi; as \d+ realizações", readme)[1],
         "cluster/README.md")
+    solos_baixados(SD)
     # submeter.sh: nos x processos
     sub = texto(os.path.join(PROJ, "cluster", "submeter.sh"))
     nos = int(re.search(r'NOS="\$\{1:-(\d+)\}"', sub)[1])
@@ -1388,6 +1504,7 @@ def main(argv):
     R = os.path.abspath(argv[1]) if len(argv) > 1 else R_PADRAO
     ANT = os.path.abspath(argv[2]) if len(argv) > 2 else ANTIGA_PADRAO
     B = os.path.abspath(argv[3]) if len(argv) > 3 else BUILD_PADRAO
+    SD = os.path.abspath(argv[4]) if len(argv) > 4 else SOLOS_PADRAO
     pasta = os.path.join(AQUI, "figs")
     os.makedirs(pasta, exist_ok=True)
     D = os.path.join(R, "direto", "ceron_tr_fase1", "f50_I0_iii")
@@ -1398,7 +1515,7 @@ def main(argv):
     an = antiga(ANT, md)
     ra = ai(R, md)
     par_k, a_k, b_k, fim_k = kfixo(R, md, ra["fim_m"], md["T2000"])
-    fr = fermi(B, md)
+    fr = fermi(B, md, SD)
     sugestoes(md, fr, ANT)
     # ---- figuras
     fig_mc(pasta, md["G"], md["gdet"], md["lnmu"], md["lnsig"], an["G"], md["n"], md["pfn"], md["sen"], an["p"],

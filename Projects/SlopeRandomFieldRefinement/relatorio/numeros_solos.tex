@@ -1,0 +1,652 @@
+% gerado por figuras_solos.py em 15/11/2026 10:07: nao edite (rode o script de novo)
+\newif\ifsolosprontos\solosprontosfalse % chuva_solos/logs/p*.txt e chuva_solos/*/mc_*.csv
+\newcommand{\LeituraFig}{0{,}02} % figuras_relatorio.py (precisao das leituras da Fig. 5)
+\newcommand{\AlturaH}{10} % montecarlo.cpp (kTalude)
+\newcommand{\Inclinacao}{45} % montecarlo.cpp (kTalude)
+\newcommand{\DomX}{70} % montecarlo.cpp (kTalude)
+\newcommand{\DomY}{30} % montecarlo.cpp (kTalude)
+\newcommand{\Coesao}{10} % montecarlo.cpp (Resistencia)
+\newcommand{\Atrito}{26} % montecarlo.cpp (Resistencia)
+\newcommand{\PesoSolo}{20} % montecarlo.cpp (Resistencia)
+\newcommand{\LimiarBanda}{0{,}1} % montecarlo.cpp (Mecanismo: banda)
+\newcommand{\ADez}{10} % chuva_solos/f10/mc_parametros.txt
+\newcommand{\KsDez}{10^{-4}} % chuva_solos/f10/mc_parametros.txt
+\newcommand{\IDez}{360} % chuva_solos/f10/mc_parametros.txt
+\newcommand{\RazaoDez}{1} % chuva_solos/f10/mc_parametros.txt (I / k_s)
+\newcommand{\NPlanDez}{1000} % cluster/casos_solos.txt
+\newcommand{\NInstDez}{8} % chuva_solos/f10/mc_parametros.txt (TEMPOS)
+\newcommand{\TemposFaixaDez}{6 a 48} % chuva_solos/f10/mc_parametros.txt (TEMPOS)
+\newcommand{\ACinquenta}{50} % chuva_solos/f50/mc_parametros.txt
+\newcommand{\KsCinquenta}{10^{-5}} % chuva_solos/f50/mc_parametros.txt
+\newcommand{\ICinquenta}{36} % chuva_solos/f50/mc_parametros.txt
+\newcommand{\RazaoCinquenta}{1} % chuva_solos/f50/mc_parametros.txt (I / k_s)
+\newcommand{\NPlanCinquenta}{1000} % cluster/casos_solos.txt
+\newcommand{\NInstCinquenta}{9} % chuva_solos/f50/mc_parametros.txt (TEMPOS)
+\newcommand{\TemposFaixaCinquenta}{0 a 48} % chuva_solos/f50/mc_parametros.txt (TEMPOS)
+\newcommand{\ACem}{100} % chuva_solos/f100/mc_parametros.txt
+\newcommand{\KsCem}{10^{-6}} % chuva_solos/f100/mc_parametros.txt
+\newcommand{\ICem}{3{,}6} % chuva_solos/f100/mc_parametros.txt
+\newcommand{\RazaoCem}{1} % chuva_solos/f100/mc_parametros.txt (I / k_s)
+\newcommand{\NPlanCem}{1000} % cluster/casos_solos.txt
+\newcommand{\NInstCem}{8} % chuva_solos/f100/mc_parametros.txt (TEMPOS)
+\newcommand{\TemposFaixaCem}{6 a 48} % chuva_solos/f100/mc_parametros.txt (TEMPOS)
+\newcommand{\Chuva}{24} % chuva_solos/f50/mc_parametros.txt
+\newcommand{\Hw}{5} % chuva_solos/f50/mc_parametros.txt
+\newcommand{\CovC}{0{,}3} % chuva_solos/f50/mc_parametros.txt
+\newcommand{\CovPhi}{0{,}1} % chuva_solos/f50/mc_parametros.txt
+\newcommand{\CovK}{0{,}6} % chuva_solos/f50/mc_parametros.txt
+\newcommand{\Lx}{20} % chuva_solos/f50/mc_parametros.txt
+\newcommand{\Ly}{2} % chuva_solos/f50/mc_parametros.txt
+\newcommand{\KLM}{2000} % chuva_solos/f50/mc_parametros.txt
+\newcommand{\KLvar}{96{,}38} % chuva_solos/f50/mc_parametros.txt
+\newcommand{\Semente}{2025} % chuva_solos/f50/mc_parametros.txt
+\newcommand{\MalhaT}{tri2} % chuva_solos/f50/mc_parametros.txt
+\newcommand{\MalhaF}{tri1} % chuva_solos/f50/mc_parametros.txt
+\newcommand{\Nref}{4} % chuva_solos/f50/mc_parametros.txt
+\newcommand{\UT}{2} % chuva_solos/f50/mc_parametros.txt
+\newcommand{\Passo}{6} % chuva_solos/f10/mc_parametros.txt (TEMPOS)
+\newcommand{\Fim}{48} % chuva_solos/f10/mc_parametros.txt (TEMPOS)
+\newcommand{\TriTrans}{560} % chuva_solos/f50/mc_real-1/triangles.csv
+\newcommand{\LadoTrans}{2{,}5} % chuva_solos/f50/mc_real-1/triangles.csv (menor aresta)
+\newcommand{\LadoFator}{5} % passo H / 2^1
+\newcommand{\LadoBanda}{0{,}31} % passo H / 2^1 / 2^NREF
+\newcommand{\EqTrans}{3032} % chuva_solos/*/mc_*.csv (eq_transiente)
+\newcommand{\RefRahardjo}{3} % rahardjo.cpp (refTransiente)
+\newcommand{\LadoRahardjo}{1{,}25} % passo H / 2^refTransiente
+\newcommand{\RefMC}{2} % chuva_solos/f50/mc_parametros.txt (MALHA_TRANSIENTE)
+\newcommand{\NDez}{993} % chuva_solos/f10/mc_*.csv (realizacoes com todos os instantes ok)
+\newcommand{\CompletasDez}{996} % chuva_solos/f10/mc_*.csv (realizacoes com todos os instantes)
+\newcommand{\RuinsDez}{3} % chuva_solos/f10/mc_*.csv (situacao diferente de ok)
+\newcommand{\FaltamDez}{4} % chuva_solos/f10/mc_*.csv (0..N-1 sem todas as linhas)
+\newcommand{\FaltamListaDez}{979, 984, 994 e 999} % chuva_solos/f10/mc_*.csv
+\newcommand{\MediaDezSeis}{1{,}0324} % chuva_solos/f10/mc_*.csv
+\newcommand{\CovDezSeis}{9{,}3} % chuva_solos/f10/mc_*.csv
+\newcommand{\NfDezSeis}{366} % chuva_solos/f10/mc_*.csv
+\newcommand{\PfDezSeis}{36{,}86} % chuva_solos/f10/mc_*.csv
+\newcommand{\LoDezSeis}{33{,}9} % chuva_solos/f10/mc_*.csv (Wilson)
+\newcommand{\HiDezSeis}{39{,}9} % chuva_solos/f10/mc_*.csv (Wilson)
+\newcommand{\DetDezSeis}{1{,}0069} % chuva_solos/f10/mc_0_4.csv (real -1)
+\newcommand{\DifDezSeis}{\ensuremath{+}2{,}5} % chuva_solos/f10/mc_*.csv e chuva_solos/f10/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosDezSeis}{2{,}5\% acima} % chuva_solos/f10/mc_*.csv e chuva_solos/f10/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogDezSeis}{0{,}9916} % rahardjo_f10.log
+\newcommand{\DifLogDezSeis}{\ensuremath{+}1{,}5} % chuva_solos/f10/mc_0_4.csv (real -1) e rahardjo_f10.log (det MC / log - 1, \%)
+\newcommand{\MediaDezDoze}{0{,}8410} % chuva_solos/f10/mc_*.csv
+\newcommand{\CovDezDoze}{10{,}8} % chuva_solos/f10/mc_*.csv
+\newcommand{\NfDezDoze}{932} % chuva_solos/f10/mc_*.csv
+\newcommand{\PfDezDoze}{93{,}86} % chuva_solos/f10/mc_*.csv
+\newcommand{\LoDezDoze}{92{,}2} % chuva_solos/f10/mc_*.csv (Wilson)
+\newcommand{\HiDezDoze}{95{,}2} % chuva_solos/f10/mc_*.csv (Wilson)
+\newcommand{\DetDezDoze}{0{,}8321} % chuva_solos/f10/mc_0_4.csv (real -1)
+\newcommand{\DifDezDoze}{\ensuremath{+}1{,}1} % chuva_solos/f10/mc_*.csv e chuva_solos/f10/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosDezDoze}{1{,}1\% acima} % chuva_solos/f10/mc_*.csv e chuva_solos/f10/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogDezDoze}{0{,}8284} % rahardjo_f10.log
+\newcommand{\DifLogDezDoze}{\ensuremath{+}0{,}4} % chuva_solos/f10/mc_0_4.csv (real -1) e rahardjo_f10.log (det MC / log - 1, \%)
+\newcommand{\MediaDezDezoito}{0{,}8265} % chuva_solos/f10/mc_*.csv
+\newcommand{\CovDezDezoito}{9{,}5} % chuva_solos/f10/mc_*.csv
+\newcommand{\NfDezDezoito}{969} % chuva_solos/f10/mc_*.csv
+\newcommand{\PfDezDezoito}{97{,}58} % chuva_solos/f10/mc_*.csv
+\newcommand{\LoDezDezoito}{96{,}4} % chuva_solos/f10/mc_*.csv (Wilson)
+\newcommand{\HiDezDezoito}{98{,}4} % chuva_solos/f10/mc_*.csv (Wilson)
+\newcommand{\DetDezDezoito}{0{,}8321} % chuva_solos/f10/mc_0_4.csv (real -1)
+\newcommand{\DifDezDezoito}{\ensuremath{-}0{,}7} % chuva_solos/f10/mc_*.csv e chuva_solos/f10/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosDezDezoito}{0{,}7\% abaixo} % chuva_solos/f10/mc_*.csv e chuva_solos/f10/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogDezDezoito}{0{,}8284} % rahardjo_f10.log
+\newcommand{\DifLogDezDezoito}{\ensuremath{+}0{,}4} % chuva_solos/f10/mc_0_4.csv (real -1) e rahardjo_f10.log (det MC / log - 1, \%)
+\newcommand{\MediaDezVinteQuatro}{0{,}8251} % chuva_solos/f10/mc_*.csv
+\newcommand{\CovDezVinteQuatro}{9{,}3} % chuva_solos/f10/mc_*.csv
+\newcommand{\NfDezVinteQuatro}{973} % chuva_solos/f10/mc_*.csv
+\newcommand{\PfDezVinteQuatro}{97{,}99} % chuva_solos/f10/mc_*.csv
+\newcommand{\LoDezVinteQuatro}{96{,}9} % chuva_solos/f10/mc_*.csv (Wilson)
+\newcommand{\HiDezVinteQuatro}{98{,}7} % chuva_solos/f10/mc_*.csv (Wilson)
+\newcommand{\DetDezVinteQuatro}{0{,}8321} % chuva_solos/f10/mc_0_4.csv (real -1)
+\newcommand{\DifDezVinteQuatro}{\ensuremath{-}0{,}8} % chuva_solos/f10/mc_*.csv e chuva_solos/f10/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosDezVinteQuatro}{0{,}8\% abaixo} % chuva_solos/f10/mc_*.csv e chuva_solos/f10/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogDezVinteQuatro}{0{,}8284} % rahardjo_f10.log
+\newcommand{\DifLogDezVinteQuatro}{\ensuremath{+}0{,}4} % chuva_solos/f10/mc_0_4.csv (real -1) e rahardjo_f10.log (det MC / log - 1, \%)
+\newcommand{\MediaDezTrinta}{1{,}1159} % chuva_solos/f10/mc_*.csv
+\newcommand{\CovDezTrinta}{7{,}4} % chuva_solos/f10/mc_*.csv
+\newcommand{\NfDezTrinta}{79} % chuva_solos/f10/mc_*.csv
+\newcommand{\PfDezTrinta}{7{,}96} % chuva_solos/f10/mc_*.csv
+\newcommand{\LoDezTrinta}{6{,}4} % chuva_solos/f10/mc_*.csv (Wilson)
+\newcommand{\HiDezTrinta}{9{,}8} % chuva_solos/f10/mc_*.csv (Wilson)
+\newcommand{\DetDezTrinta}{1{,}1479} % chuva_solos/f10/mc_0_4.csv (real -1)
+\newcommand{\DifDezTrinta}{\ensuremath{-}2{,}8} % chuva_solos/f10/mc_*.csv e chuva_solos/f10/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosDezTrinta}{2{,}8\% abaixo} % chuva_solos/f10/mc_*.csv e chuva_solos/f10/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogDezTrinta}{1{,}1417} % rahardjo_f10.log
+\newcommand{\DifLogDezTrinta}{\ensuremath{+}0{,}5} % chuva_solos/f10/mc_0_4.csv (real -1) e rahardjo_f10.log (det MC / log - 1, \%)
+\newcommand{\MediaDezTrintaSeis}{1{,}2788} % chuva_solos/f10/mc_*.csv
+\newcommand{\CovDezTrintaSeis}{7{,}2} % chuva_solos/f10/mc_*.csv
+\newcommand{\NfDezTrintaSeis}{0} % chuva_solos/f10/mc_*.csv
+\newcommand{\PfDezTrintaSeis}{0{,}00} % chuva_solos/f10/mc_*.csv
+\newcommand{\LoDezTrintaSeis}{0{,}0} % chuva_solos/f10/mc_*.csv (Wilson)
+\newcommand{\HiDezTrintaSeis}{0{,}4} % chuva_solos/f10/mc_*.csv (Wilson)
+\newcommand{\DetDezTrintaSeis}{1{,}3217} % chuva_solos/f10/mc_0_4.csv (real -1)
+\newcommand{\DifDezTrintaSeis}{\ensuremath{-}3{,}2} % chuva_solos/f10/mc_*.csv e chuva_solos/f10/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosDezTrintaSeis}{3{,}2\% abaixo} % chuva_solos/f10/mc_*.csv e chuva_solos/f10/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogDezTrintaSeis}{1{,}3229} % rahardjo_f10.log
+\newcommand{\DifLogDezTrintaSeis}{\ensuremath{-}0{,}1} % chuva_solos/f10/mc_0_4.csv (real -1) e rahardjo_f10.log (det MC / log - 1, \%)
+\newcommand{\MediaDezQuarentaDois}{1{,}4148} % chuva_solos/f10/mc_*.csv
+\newcommand{\CovDezQuarentaDois}{7{,}3} % chuva_solos/f10/mc_*.csv
+\newcommand{\NfDezQuarentaDois}{0} % chuva_solos/f10/mc_*.csv
+\newcommand{\PfDezQuarentaDois}{0{,}00} % chuva_solos/f10/mc_*.csv
+\newcommand{\LoDezQuarentaDois}{0{,}0} % chuva_solos/f10/mc_*.csv (Wilson)
+\newcommand{\HiDezQuarentaDois}{0{,}4} % chuva_solos/f10/mc_*.csv (Wilson)
+\newcommand{\DetDezQuarentaDois}{1{,}4728} % chuva_solos/f10/mc_0_4.csv (real -1)
+\newcommand{\DifDezQuarentaDois}{\ensuremath{-}3{,}9} % chuva_solos/f10/mc_*.csv e chuva_solos/f10/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosDezQuarentaDois}{3{,}9\% abaixo} % chuva_solos/f10/mc_*.csv e chuva_solos/f10/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogDezQuarentaDois}{1{,}4757} % rahardjo_f10.log
+\newcommand{\DifLogDezQuarentaDois}{\ensuremath{-}0{,}2} % chuva_solos/f10/mc_0_4.csv (real -1) e rahardjo_f10.log (det MC / log - 1, \%)
+\newcommand{\MediaDezQuarentaOito}{1{,}5275} % chuva_solos/f10/mc_*.csv
+\newcommand{\CovDezQuarentaOito}{7{,}2} % chuva_solos/f10/mc_*.csv
+\newcommand{\NfDezQuarentaOito}{0} % chuva_solos/f10/mc_*.csv
+\newcommand{\PfDezQuarentaOito}{0{,}00} % chuva_solos/f10/mc_*.csv
+\newcommand{\LoDezQuarentaOito}{0{,}0} % chuva_solos/f10/mc_*.csv (Wilson)
+\newcommand{\HiDezQuarentaOito}{0{,}4} % chuva_solos/f10/mc_*.csv (Wilson)
+\newcommand{\DetDezQuarentaOito}{1{,}5943} % chuva_solos/f10/mc_0_4.csv (real -1)
+\newcommand{\DifDezQuarentaOito}{\ensuremath{-}4{,}2} % chuva_solos/f10/mc_*.csv e chuva_solos/f10/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosDezQuarentaOito}{4{,}2\% abaixo} % chuva_solos/f10/mc_*.csv e chuva_solos/f10/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogDezQuarentaOito}{1{,}5938} % rahardjo_f10.log
+\newcommand{\DifLogDezQuarentaOito}{0{,}0} % chuva_solos/f10/mc_0_4.csv (real -1) e rahardjo_f10.log (det MC / log - 1, \%)
+\newcommand{\DifFaixaMinDez}{\ensuremath{-}4{,}2} % chuva_solos/f10/mc_*.csv e chuva_solos/f10/mc_0_4.csv (real -1) (menor media / det - 1)
+\newcommand{\DifFaixaMaxDez}{\ensuremath{+}2{,}5} % chuva_solos/f10/mc_*.csv e chuva_solos/f10/mc_0_4.csv (real -1) (maior media / det - 1)
+\newcommand{\MediaMinDez}{0{,}8251} % chuva_solos/f10/mc_*.csv (menor FS de cada realizacao)
+\newcommand{\CovMinDez}{9{,}3} % chuva_solos/f10/mc_*.csv
+\newcommand{\NfMinDez}{973} % chuva_solos/f10/mc_*.csv (FS < 1 em algum instante)
+\newcommand{\PfMinDez}{97{,}99} % chuva_solos/f10/mc_*.csv
+\newcommand{\LoMinDez}{96{,}9} % chuva_solos/f10/mc_*.csv (Wilson)
+\newcommand{\HiMinDez}{98{,}7} % chuva_solos/f10/mc_*.csv (Wilson)
+\newcommand{\DetMinDez}{0{,}8321} % chuva_solos/f10/mc_0_4.csv (real -1) (menor FS)
+\newcommand{\TDetMinDez}{12, 18 e 24~h} % chuva_solos/f10/mc_0_4.csv (real -1) (instante do menor FS)
+\newcommand{\DifMinDez}{\ensuremath{-}0{,}8} % chuva_solos/f10/mc_*.csv e chuva_solos/f10/mc_0_4.csv (real -1)
+\newcommand{\LogMinDez}{0{,}8284} % rahardjo_f10.log (menor FS de hora em hora)
+\newcommand{\TLogMinDez}{de 8 a 24~h} % rahardjo_f10.log (instantes do menor FS, com os empates)
+\newcommand{\DifLogMinDez}{\ensuremath{+}0{,}4} % chuva_solos/f10/mc_0_4.csv (real -1) e rahardjo_f10.log
+\newcommand{\QuandoFaixaDez}{12 a 24} % chuva_solos/f10/mc_*.csv (instantes em que o menor FS ocorre)
+\newcommand{\QuandoDezSeis}{0} % chuva_solos/f10/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctDezSeis}{0{,}0} % chuva_solos/f10/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoDezDoze}{542} % chuva_solos/f10/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctDezDoze}{54{,}6} % chuva_solos/f10/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoDezDezoito}{277} % chuva_solos/f10/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctDezDezoito}{27{,}9} % chuva_solos/f10/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoDezVinteQuatro}{174} % chuva_solos/f10/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctDezVinteQuatro}{17{,}5} % chuva_solos/f10/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoDezTrinta}{0} % chuva_solos/f10/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctDezTrinta}{0{,}0} % chuva_solos/f10/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoDezTrintaSeis}{0} % chuva_solos/f10/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctDezTrintaSeis}{0{,}0} % chuva_solos/f10/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoDezQuarentaDois}{0} % chuva_solos/f10/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctDezQuarentaDois}{0{,}0} % chuva_solos/f10/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoDezQuarentaOito}{0} % chuva_solos/f10/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctDezQuarentaOito}{0{,}0} % chuva_solos/f10/mc_*.csv (instante do menor FS)
+\newcommand{\FalhaForaDez}{0} % chuva_solos/f10/mc_*.csv (FS < 1 em algum instante e FS(24 h) >= 1)
+\newcommand{\FalhaForaFraseDez}{nenhuma realização falha só fora de 24~h} % chuva_solos/f10/mc_*.csv (FS < 1 em algum instante e FS(24 h) >= 1)
+\newcommand{\CovFaixaMinDez}{7{,}2} % chuva_solos/f10/mc_*.csv (menor CoV dos instantes)
+\newcommand{\CovFaixaMaxDez}{10{,}8} % chuva_solos/f10/mc_*.csv (maior CoV dos instantes)
+\newcommand{\RuinsListaDez}{386, 456 e 880} % chuva_solos/f10/mc_*.csv
+\newcommand{\RuinsParouDez}{24,0; 6,3 e 7,4~h} % chuva_solos/f10/mc_*.log
+\newcommand{\RuinsFSDez}{0,875; 0,814 e 0,939} % chuva_solos/f10/mc_*.csv (menor FS antes de parar)
+\newcommand{\RuinsFalhamDez}{3} % chuva_solos/f10/mc_*.csv (FS < 1 antes de parar)
+\newcommand{\PfComRuinsDez}{97{,}99} % chuva_solos/f10/mc_*.csv (as que pararam com FS < 1 como falhas)
+\newcommand{\NComRuinsDez}{996} % chuva_solos/f10/mc_*.csv
+\newcommand{\NfComRuinsDez}{976} % chuva_solos/f10/mc_*.csv
+\newcommand{\RuinsFraseDez}{Elas saem da conta, mas já tinham $FS < 1$ antes de parar (0,875; 0,814 e 0,939): contadas como falhas, a $P_f$ do f10 continua 97{,}99\% (976 de 996).} % chuva_solos/f10/mc_*.csv e chuva_solos/f10/mc_*.log (as que pararam)
+\newcommand{\CustoTransDez}{132} % chuva_solos/f10/mc_*.csv (s_transiente no ultimo instante)
+\newcommand{\CustoFatorDez}{729} % chuva_solos/f10/mc_*.csv (soma de s_fator)
+\newcommand{\CustoFatorInstDez}{91} % chuva_solos/f10/mc_*.csv (s_fator por instante)
+\newcommand{\CustoTotalDez}{14{,}4} % chuva_solos/f10/mc_*.csv (s_transiente + s_fator, min)
+\newcommand{\NCinquenta}{1000} % chuva_solos/f50/mc_*.csv (realizacoes com todos os instantes ok)
+\newcommand{\CompletasCinquenta}{1000} % chuva_solos/f50/mc_*.csv (realizacoes com todos os instantes)
+\newcommand{\RuinsCinquenta}{0} % chuva_solos/f50/mc_*.csv (situacao diferente de ok)
+\newcommand{\FaltamCinquenta}{0} % chuva_solos/f50/mc_*.csv (0..N-1 sem todas as linhas)
+\newcommand{\FaltamListaCinquenta}{nenhuma} % chuva_solos/f50/mc_*.csv
+\newcommand{\MediaCinquentaZero}{2{,}0571} % chuva_solos/f50/mc_*.csv
+\newcommand{\CovCinquentaZero}{5{,}8} % chuva_solos/f50/mc_*.csv
+\newcommand{\NfCinquentaZero}{0} % chuva_solos/f50/mc_*.csv
+\newcommand{\PfCinquentaZero}{0{,}00} % chuva_solos/f50/mc_*.csv
+\newcommand{\LoCinquentaZero}{0{,}0} % chuva_solos/f50/mc_*.csv (Wilson)
+\newcommand{\HiCinquentaZero}{0{,}4} % chuva_solos/f50/mc_*.csv (Wilson)
+\newcommand{\DetCinquentaZero}{2{,}0939} % chuva_solos/f50/mc_0_4.csv (real -1)
+\newcommand{\DifCinquentaZero}{\ensuremath{-}1{,}8} % chuva_solos/f50/mc_*.csv e chuva_solos/f50/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosCinquentaZero}{1{,}8\% abaixo} % chuva_solos/f50/mc_*.csv e chuva_solos/f50/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogCinquentaZero}{2{,}0975} % rahardjo_f50.log
+\newcommand{\DifLogCinquentaZero}{\ensuremath{-}0{,}2} % chuva_solos/f50/mc_0_4.csv (real -1) e rahardjo_f50.log (det MC / log - 1, \%)
+\newcommand{\MediaCinquentaSeis}{1{,}7113} % chuva_solos/f50/mc_*.csv
+\newcommand{\CovCinquentaSeis}{6{,}1} % chuva_solos/f50/mc_*.csv
+\newcommand{\NfCinquentaSeis}{0} % chuva_solos/f50/mc_*.csv
+\newcommand{\PfCinquentaSeis}{0{,}00} % chuva_solos/f50/mc_*.csv
+\newcommand{\LoCinquentaSeis}{0{,}0} % chuva_solos/f50/mc_*.csv (Wilson)
+\newcommand{\HiCinquentaSeis}{0{,}4} % chuva_solos/f50/mc_*.csv (Wilson)
+\newcommand{\DetCinquentaSeis}{1{,}7255} % chuva_solos/f50/mc_0_4.csv (real -1)
+\newcommand{\DifCinquentaSeis}{\ensuremath{-}0{,}8} % chuva_solos/f50/mc_*.csv e chuva_solos/f50/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosCinquentaSeis}{0{,}8\% abaixo} % chuva_solos/f50/mc_*.csv e chuva_solos/f50/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogCinquentaSeis}{1{,}7231} % rahardjo_f50.log
+\newcommand{\DifLogCinquentaSeis}{\ensuremath{+}0{,}1} % chuva_solos/f50/mc_0_4.csv (real -1) e rahardjo_f50.log (det MC / log - 1, \%)
+\newcommand{\MediaCinquentaDoze}{1{,}3890} % chuva_solos/f50/mc_*.csv
+\newcommand{\CovCinquentaDoze}{6{,}8} % chuva_solos/f50/mc_*.csv
+\newcommand{\NfCinquentaDoze}{0} % chuva_solos/f50/mc_*.csv
+\newcommand{\PfCinquentaDoze}{0{,}00} % chuva_solos/f50/mc_*.csv
+\newcommand{\LoCinquentaDoze}{0{,}0} % chuva_solos/f50/mc_*.csv (Wilson)
+\newcommand{\HiCinquentaDoze}{0{,}4} % chuva_solos/f50/mc_*.csv (Wilson)
+\newcommand{\DetCinquentaDoze}{1{,}3983} % chuva_solos/f50/mc_0_4.csv (real -1)
+\newcommand{\DifCinquentaDoze}{\ensuremath{-}0{,}7} % chuva_solos/f50/mc_*.csv e chuva_solos/f50/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosCinquentaDoze}{0{,}7\% abaixo} % chuva_solos/f50/mc_*.csv e chuva_solos/f50/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogCinquentaDoze}{1{,}3983} % rahardjo_f50.log
+\newcommand{\DifLogCinquentaDoze}{0{,}0} % chuva_solos/f50/mc_0_4.csv (real -1) e rahardjo_f50.log (det MC / log - 1, \%)
+\newcommand{\MediaCinquentaDezoito}{1{,}1935} % chuva_solos/f50/mc_*.csv
+\newcommand{\CovCinquentaDezoito}{7{,}4} % chuva_solos/f50/mc_*.csv
+\newcommand{\NfCinquentaDezoito}{7} % chuva_solos/f50/mc_*.csv
+\newcommand{\PfCinquentaDezoito}{0{,}70} % chuva_solos/f50/mc_*.csv
+\newcommand{\LoCinquentaDezoito}{0{,}3} % chuva_solos/f50/mc_*.csv (Wilson)
+\newcommand{\HiCinquentaDezoito}{1{,}4} % chuva_solos/f50/mc_*.csv (Wilson)
+\newcommand{\DetCinquentaDezoito}{1{,}1797} % chuva_solos/f50/mc_0_4.csv (real -1)
+\newcommand{\DifCinquentaDezoito}{\ensuremath{+}1{,}2} % chuva_solos/f50/mc_*.csv e chuva_solos/f50/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosCinquentaDezoito}{1{,}2\% acima} % chuva_solos/f50/mc_*.csv e chuva_solos/f50/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogCinquentaDezoito}{1{,}1786} % rahardjo_f50.log
+\newcommand{\DifLogCinquentaDezoito}{\ensuremath{+}0{,}1} % chuva_solos/f50/mc_0_4.csv (real -1) e rahardjo_f50.log (det MC / log - 1, \%)
+\newcommand{\MediaCinquentaVinteQuatro}{1{,}0666} % chuva_solos/f50/mc_*.csv
+\newcommand{\CovCinquentaVinteQuatro}{8{,}4} % chuva_solos/f50/mc_*.csv
+\newcommand{\NfCinquentaVinteQuatro}{224} % chuva_solos/f50/mc_*.csv
+\newcommand{\PfCinquentaVinteQuatro}{22{,}40} % chuva_solos/f50/mc_*.csv
+\newcommand{\LoCinquentaVinteQuatro}{19{,}9} % chuva_solos/f50/mc_*.csv (Wilson)
+\newcommand{\HiCinquentaVinteQuatro}{25{,}1} % chuva_solos/f50/mc_*.csv (Wilson)
+\newcommand{\DetCinquentaVinteQuatro}{1{,}0338} % chuva_solos/f50/mc_0_4.csv (real -1)
+\newcommand{\DifCinquentaVinteQuatro}{\ensuremath{+}3{,}2} % chuva_solos/f50/mc_*.csv e chuva_solos/f50/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosCinquentaVinteQuatro}{3{,}2\% acima} % chuva_solos/f50/mc_*.csv e chuva_solos/f50/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogCinquentaVinteQuatro}{1{,}0346} % rahardjo_f50.log
+\newcommand{\DifLogCinquentaVinteQuatro}{\ensuremath{-}0{,}1} % chuva_solos/f50/mc_0_4.csv (real -1) e rahardjo_f50.log (det MC / log - 1, \%)
+\newcommand{\MediaCinquentaTrinta}{1{,}1377} % chuva_solos/f50/mc_*.csv
+\newcommand{\CovCinquentaTrinta}{7{,}5} % chuva_solos/f50/mc_*.csv
+\newcommand{\NfCinquentaTrinta}{47} % chuva_solos/f50/mc_*.csv
+\newcommand{\PfCinquentaTrinta}{4{,}70} % chuva_solos/f50/mc_*.csv
+\newcommand{\LoCinquentaTrinta}{3{,}6} % chuva_solos/f50/mc_*.csv (Wilson)
+\newcommand{\HiCinquentaTrinta}{6{,}2} % chuva_solos/f50/mc_*.csv (Wilson)
+\newcommand{\DetCinquentaTrinta}{1{,}1156} % chuva_solos/f50/mc_0_4.csv (real -1)
+\newcommand{\DifCinquentaTrinta}{\ensuremath{+}2{,}0} % chuva_solos/f50/mc_*.csv e chuva_solos/f50/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosCinquentaTrinta}{2{,}0\% acima} % chuva_solos/f50/mc_*.csv e chuva_solos/f50/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogCinquentaTrinta}{1{,}1093} % rahardjo_f50.log
+\newcommand{\DifLogCinquentaTrinta}{\ensuremath{+}0{,}6} % chuva_solos/f50/mc_0_4.csv (real -1) e rahardjo_f50.log (det MC / log - 1, \%)
+\newcommand{\MediaCinquentaTrintaSeis}{1{,}1861} % chuva_solos/f50/mc_*.csv
+\newcommand{\CovCinquentaTrintaSeis}{7{,}2} % chuva_solos/f50/mc_*.csv
+\newcommand{\NfCinquentaTrintaSeis}{6} % chuva_solos/f50/mc_*.csv
+\newcommand{\PfCinquentaTrintaSeis}{0{,}60} % chuva_solos/f50/mc_*.csv
+\newcommand{\LoCinquentaTrintaSeis}{0{,}3} % chuva_solos/f50/mc_*.csv (Wilson)
+\newcommand{\HiCinquentaTrintaSeis}{1{,}3} % chuva_solos/f50/mc_*.csv (Wilson)
+\newcommand{\DetCinquentaTrintaSeis}{1{,}1748} % chuva_solos/f50/mc_0_4.csv (real -1)
+\newcommand{\DifCinquentaTrintaSeis}{\ensuremath{+}1{,}0} % chuva_solos/f50/mc_*.csv e chuva_solos/f50/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosCinquentaTrintaSeis}{1{,}0\% acima} % chuva_solos/f50/mc_*.csv e chuva_solos/f50/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogCinquentaTrintaSeis}{1{,}1696} % rahardjo_f50.log
+\newcommand{\DifLogCinquentaTrintaSeis}{\ensuremath{+}0{,}4} % chuva_solos/f50/mc_0_4.csv (real -1) e rahardjo_f50.log (det MC / log - 1, \%)
+\newcommand{\MediaCinquentaQuarentaDois}{1{,}2275} % chuva_solos/f50/mc_*.csv
+\newcommand{\CovCinquentaQuarentaDois}{7{,}0} % chuva_solos/f50/mc_*.csv
+\newcommand{\NfCinquentaQuarentaDois}{0} % chuva_solos/f50/mc_*.csv
+\newcommand{\PfCinquentaQuarentaDois}{0{,}00} % chuva_solos/f50/mc_*.csv
+\newcommand{\LoCinquentaQuarentaDois}{0{,}0} % chuva_solos/f50/mc_*.csv (Wilson)
+\newcommand{\HiCinquentaQuarentaDois}{0{,}4} % chuva_solos/f50/mc_*.csv (Wilson)
+\newcommand{\DetCinquentaQuarentaDois}{1{,}2262} % chuva_solos/f50/mc_0_4.csv (real -1)
+\newcommand{\DifCinquentaQuarentaDois}{\ensuremath{+}0{,}1} % chuva_solos/f50/mc_*.csv e chuva_solos/f50/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosCinquentaQuarentaDois}{0{,}1\% acima} % chuva_solos/f50/mc_*.csv e chuva_solos/f50/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogCinquentaQuarentaDois}{1{,}2199} % rahardjo_f50.log
+\newcommand{\DifLogCinquentaQuarentaDois}{\ensuremath{+}0{,}5} % chuva_solos/f50/mc_0_4.csv (real -1) e rahardjo_f50.log (det MC / log - 1, \%)
+\newcommand{\MediaCinquentaQuarentaOito}{1{,}2643} % chuva_solos/f50/mc_*.csv
+\newcommand{\CovCinquentaQuarentaOito}{6{,}9} % chuva_solos/f50/mc_*.csv
+\newcommand{\NfCinquentaQuarentaOito}{0} % chuva_solos/f50/mc_*.csv
+\newcommand{\PfCinquentaQuarentaOito}{0{,}00} % chuva_solos/f50/mc_*.csv
+\newcommand{\LoCinquentaQuarentaOito}{0{,}0} % chuva_solos/f50/mc_*.csv (Wilson)
+\newcommand{\HiCinquentaQuarentaOito}{0{,}4} % chuva_solos/f50/mc_*.csv (Wilson)
+\newcommand{\DetCinquentaQuarentaOito}{1{,}2687} % chuva_solos/f50/mc_0_4.csv (real -1)
+\newcommand{\DifCinquentaQuarentaOito}{\ensuremath{-}0{,}3} % chuva_solos/f50/mc_*.csv e chuva_solos/f50/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosCinquentaQuarentaOito}{0{,}3\% abaixo} % chuva_solos/f50/mc_*.csv e chuva_solos/f50/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogCinquentaQuarentaOito}{1{,}2640} % rahardjo_f50.log
+\newcommand{\DifLogCinquentaQuarentaOito}{\ensuremath{+}0{,}4} % chuva_solos/f50/mc_0_4.csv (real -1) e rahardjo_f50.log (det MC / log - 1, \%)
+\newcommand{\DifFaixaMinCinquenta}{\ensuremath{-}1{,}8} % chuva_solos/f50/mc_*.csv e chuva_solos/f50/mc_0_4.csv (real -1) (menor media / det - 1)
+\newcommand{\DifFaixaMaxCinquenta}{\ensuremath{+}3{,}2} % chuva_solos/f50/mc_*.csv e chuva_solos/f50/mc_0_4.csv (real -1) (maior media / det - 1)
+\newcommand{\MediaMinCinquenta}{1{,}0665} % chuva_solos/f50/mc_*.csv (menor FS de cada realizacao)
+\newcommand{\CovMinCinquenta}{8{,}4} % chuva_solos/f50/mc_*.csv
+\newcommand{\NfMinCinquenta}{224} % chuva_solos/f50/mc_*.csv (FS < 1 em algum instante)
+\newcommand{\PfMinCinquenta}{22{,}40} % chuva_solos/f50/mc_*.csv
+\newcommand{\LoMinCinquenta}{19{,}9} % chuva_solos/f50/mc_*.csv (Wilson)
+\newcommand{\HiMinCinquenta}{25{,}1} % chuva_solos/f50/mc_*.csv (Wilson)
+\newcommand{\DetMinCinquenta}{1{,}0338} % chuva_solos/f50/mc_0_4.csv (real -1) (menor FS)
+\newcommand{\TDetMinCinquenta}{24~h} % chuva_solos/f50/mc_0_4.csv (real -1) (instante do menor FS)
+\newcommand{\DifMinCinquenta}{\ensuremath{+}3{,}2} % chuva_solos/f50/mc_*.csv e chuva_solos/f50/mc_0_4.csv (real -1)
+\newcommand{\LogMinCinquenta}{1{,}0346} % rahardjo_f50.log (menor FS de hora em hora)
+\newcommand{\TLogMinCinquenta}{em 24~h} % rahardjo_f50.log (instantes do menor FS, com os empates)
+\newcommand{\DifLogMinCinquenta}{\ensuremath{-}0{,}1} % chuva_solos/f50/mc_0_4.csv (real -1) e rahardjo_f50.log
+\newcommand{\QuandoFaixaCinquenta}{24 a 36} % chuva_solos/f50/mc_*.csv (instantes em que o menor FS ocorre)
+\newcommand{\QuandoCinquentaZero}{0} % chuva_solos/f50/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctCinquentaZero}{0{,}0} % chuva_solos/f50/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoCinquentaSeis}{0} % chuva_solos/f50/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctCinquentaSeis}{0{,}0} % chuva_solos/f50/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoCinquentaDoze}{0} % chuva_solos/f50/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctCinquentaDoze}{0{,}0} % chuva_solos/f50/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoCinquentaDezoito}{0} % chuva_solos/f50/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctCinquentaDezoito}{0{,}0} % chuva_solos/f50/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoCinquentaVinteQuatro}{993} % chuva_solos/f50/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctCinquentaVinteQuatro}{99{,}3} % chuva_solos/f50/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoCinquentaTrinta}{6} % chuva_solos/f50/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctCinquentaTrinta}{0{,}6} % chuva_solos/f50/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoCinquentaTrintaSeis}{1} % chuva_solos/f50/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctCinquentaTrintaSeis}{0{,}1} % chuva_solos/f50/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoCinquentaQuarentaDois}{0} % chuva_solos/f50/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctCinquentaQuarentaDois}{0{,}0} % chuva_solos/f50/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoCinquentaQuarentaOito}{0} % chuva_solos/f50/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctCinquentaQuarentaOito}{0{,}0} % chuva_solos/f50/mc_*.csv (instante do menor FS)
+\newcommand{\FalhaForaCinquenta}{0} % chuva_solos/f50/mc_*.csv (FS < 1 em algum instante e FS(24 h) >= 1)
+\newcommand{\FalhaForaFraseCinquenta}{nenhuma realização falha só fora de 24~h} % chuva_solos/f50/mc_*.csv (FS < 1 em algum instante e FS(24 h) >= 1)
+\newcommand{\CovFaixaMinCinquenta}{5{,}8} % chuva_solos/f50/mc_*.csv (menor CoV dos instantes)
+\newcommand{\CovFaixaMaxCinquenta}{8{,}4} % chuva_solos/f50/mc_*.csv (maior CoV dos instantes)
+\newcommand{\RuinsListaCinquenta}{nenhuma} % chuva_solos/f50/mc_*.csv
+\newcommand{\CustoTransCinquenta}{132} % chuva_solos/f50/mc_*.csv (s_transiente no ultimo instante)
+\newcommand{\CustoFatorCinquenta}{509} % chuva_solos/f50/mc_*.csv (soma de s_fator)
+\newcommand{\CustoFatorInstCinquenta}{57} % chuva_solos/f50/mc_*.csv (s_fator por instante)
+\newcommand{\CustoTotalCinquenta}{10{,}7} % chuva_solos/f50/mc_*.csv (s_transiente + s_fator, min)
+\newcommand{\NCem}{999} % chuva_solos/f100/mc_*.csv (realizacoes com todos os instantes ok)
+\newcommand{\CompletasCem}{999} % chuva_solos/f100/mc_*.csv (realizacoes com todos os instantes)
+\newcommand{\RuinsCem}{0} % chuva_solos/f100/mc_*.csv (situacao diferente de ok)
+\newcommand{\FaltamCem}{1} % chuva_solos/f100/mc_*.csv (0..N-1 sem todas as linhas)
+\newcommand{\FaltamListaCem}{999} % chuva_solos/f100/mc_*.csv
+\newcommand{\MediaCemSeis}{2{,}0099} % chuva_solos/f100/mc_*.csv
+\newcommand{\CovCemSeis}{5{,}8} % chuva_solos/f100/mc_*.csv
+\newcommand{\NfCemSeis}{0} % chuva_solos/f100/mc_*.csv
+\newcommand{\PfCemSeis}{0{,}00} % chuva_solos/f100/mc_*.csv
+\newcommand{\LoCemSeis}{0{,}0} % chuva_solos/f100/mc_*.csv (Wilson)
+\newcommand{\HiCemSeis}{0{,}4} % chuva_solos/f100/mc_*.csv (Wilson)
+\newcommand{\DetCemSeis}{2{,}0435} % chuva_solos/f100/mc_0_4.csv (real -1)
+\newcommand{\DifCemSeis}{\ensuremath{-}1{,}6} % chuva_solos/f100/mc_*.csv e chuva_solos/f100/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosCemSeis}{1{,}6\% abaixo} % chuva_solos/f100/mc_*.csv e chuva_solos/f100/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogCemSeis}{2{,}0456} % rahardjo_f100.log
+\newcommand{\DifLogCemSeis}{\ensuremath{-}0{,}1} % chuva_solos/f100/mc_0_4.csv (real -1) e rahardjo_f100.log (det MC / log - 1, \%)
+\newcommand{\MediaCemDoze}{1{,}9632} % chuva_solos/f100/mc_*.csv
+\newcommand{\CovCemDoze}{5{,}9} % chuva_solos/f100/mc_*.csv
+\newcommand{\NfCemDoze}{0} % chuva_solos/f100/mc_*.csv
+\newcommand{\PfCemDoze}{0{,}00} % chuva_solos/f100/mc_*.csv
+\newcommand{\LoCemDoze}{0{,}0} % chuva_solos/f100/mc_*.csv (Wilson)
+\newcommand{\HiCemDoze}{0{,}4} % chuva_solos/f100/mc_*.csv (Wilson)
+\newcommand{\DetCemDoze}{1{,}9937} % chuva_solos/f100/mc_0_4.csv (real -1)
+\newcommand{\DifCemDoze}{\ensuremath{-}1{,}5} % chuva_solos/f100/mc_*.csv e chuva_solos/f100/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosCemDoze}{1{,}5\% abaixo} % chuva_solos/f100/mc_*.csv e chuva_solos/f100/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogCemDoze}{1{,}9967} % rahardjo_f100.log
+\newcommand{\DifLogCemDoze}{\ensuremath{-}0{,}1} % chuva_solos/f100/mc_0_4.csv (real -1) e rahardjo_f100.log (det MC / log - 1, \%)
+\newcommand{\MediaCemDezoito}{1{,}9151} % chuva_solos/f100/mc_*.csv
+\newcommand{\CovCemDezoito}{5{,}9} % chuva_solos/f100/mc_*.csv
+\newcommand{\NfCemDezoito}{0} % chuva_solos/f100/mc_*.csv
+\newcommand{\PfCemDezoito}{0{,}00} % chuva_solos/f100/mc_*.csv
+\newcommand{\LoCemDezoito}{0{,}0} % chuva_solos/f100/mc_*.csv (Wilson)
+\newcommand{\HiCemDezoito}{0{,}4} % chuva_solos/f100/mc_*.csv (Wilson)
+\newcommand{\DetCemDezoito}{1{,}9427} % chuva_solos/f100/mc_0_4.csv (real -1)
+\newcommand{\DifCemDezoito}{\ensuremath{-}1{,}4} % chuva_solos/f100/mc_*.csv e chuva_solos/f100/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosCemDezoito}{1{,}4\% abaixo} % chuva_solos/f100/mc_*.csv e chuva_solos/f100/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogCemDezoito}{1{,}9452} % rahardjo_f100.log
+\newcommand{\DifLogCemDezoito}{\ensuremath{-}0{,}1} % chuva_solos/f100/mc_0_4.csv (real -1) e rahardjo_f100.log (det MC / log - 1, \%)
+\newcommand{\MediaCemVinteQuatro}{1{,}8657} % chuva_solos/f100/mc_*.csv
+\newcommand{\CovCemVinteQuatro}{5{,}9} % chuva_solos/f100/mc_*.csv
+\newcommand{\NfCemVinteQuatro}{0} % chuva_solos/f100/mc_*.csv
+\newcommand{\PfCemVinteQuatro}{0{,}00} % chuva_solos/f100/mc_*.csv
+\newcommand{\LoCemVinteQuatro}{0{,}0} % chuva_solos/f100/mc_*.csv (Wilson)
+\newcommand{\HiCemVinteQuatro}{0{,}4} % chuva_solos/f100/mc_*.csv (Wilson)
+\newcommand{\DetCemVinteQuatro}{1{,}8893} % chuva_solos/f100/mc_0_4.csv (real -1)
+\newcommand{\DifCemVinteQuatro}{\ensuremath{-}1{,}2} % chuva_solos/f100/mc_*.csv e chuva_solos/f100/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosCemVinteQuatro}{1{,}2\% abaixo} % chuva_solos/f100/mc_*.csv e chuva_solos/f100/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogCemVinteQuatro}{1{,}8916} % rahardjo_f100.log
+\newcommand{\DifLogCemVinteQuatro}{\ensuremath{-}0{,}1} % chuva_solos/f100/mc_0_4.csv (real -1) e rahardjo_f100.log (det MC / log - 1, \%)
+\newcommand{\MediaCemTrinta}{1{,}8590} % chuva_solos/f100/mc_*.csv
+\newcommand{\CovCemTrinta}{5{,}9} % chuva_solos/f100/mc_*.csv
+\newcommand{\NfCemTrinta}{0} % chuva_solos/f100/mc_*.csv
+\newcommand{\PfCemTrinta}{0{,}00} % chuva_solos/f100/mc_*.csv
+\newcommand{\LoCemTrinta}{0{,}0} % chuva_solos/f100/mc_*.csv (Wilson)
+\newcommand{\HiCemTrinta}{0{,}4} % chuva_solos/f100/mc_*.csv (Wilson)
+\newcommand{\DetCemTrinta}{1{,}8825} % chuva_solos/f100/mc_0_4.csv (real -1)
+\newcommand{\DifCemTrinta}{\ensuremath{-}1{,}3} % chuva_solos/f100/mc_*.csv e chuva_solos/f100/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosCemTrinta}{1{,}3\% abaixo} % chuva_solos/f100/mc_*.csv e chuva_solos/f100/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogCemTrinta}{1{,}8864} % rahardjo_f100.log
+\newcommand{\DifLogCemTrinta}{\ensuremath{-}0{,}2} % chuva_solos/f100/mc_0_4.csv (real -1) e rahardjo_f100.log (det MC / log - 1, \%)
+\newcommand{\MediaCemTrintaSeis}{1{,}8575} % chuva_solos/f100/mc_*.csv
+\newcommand{\CovCemTrintaSeis}{5{,}9} % chuva_solos/f100/mc_*.csv
+\newcommand{\NfCemTrintaSeis}{0} % chuva_solos/f100/mc_*.csv
+\newcommand{\PfCemTrintaSeis}{0{,}00} % chuva_solos/f100/mc_*.csv
+\newcommand{\LoCemTrintaSeis}{0{,}0} % chuva_solos/f100/mc_*.csv (Wilson)
+\newcommand{\HiCemTrintaSeis}{0{,}4} % chuva_solos/f100/mc_*.csv (Wilson)
+\newcommand{\DetCemTrintaSeis}{1{,}8807} % chuva_solos/f100/mc_0_4.csv (real -1)
+\newcommand{\DifCemTrintaSeis}{\ensuremath{-}1{,}2} % chuva_solos/f100/mc_*.csv e chuva_solos/f100/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosCemTrintaSeis}{1{,}2\% abaixo} % chuva_solos/f100/mc_*.csv e chuva_solos/f100/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogCemTrintaSeis}{1{,}8864} % rahardjo_f100.log
+\newcommand{\DifLogCemTrintaSeis}{\ensuremath{-}0{,}3} % chuva_solos/f100/mc_0_4.csv (real -1) e rahardjo_f100.log (det MC / log - 1, \%)
+\newcommand{\MediaCemQuarentaDois}{1{,}8588} % chuva_solos/f100/mc_*.csv
+\newcommand{\CovCemQuarentaDois}{5{,}9} % chuva_solos/f100/mc_*.csv
+\newcommand{\NfCemQuarentaDois}{0} % chuva_solos/f100/mc_*.csv
+\newcommand{\PfCemQuarentaDois}{0{,}00} % chuva_solos/f100/mc_*.csv
+\newcommand{\LoCemQuarentaDois}{0{,}0} % chuva_solos/f100/mc_*.csv (Wilson)
+\newcommand{\HiCemQuarentaDois}{0{,}4} % chuva_solos/f100/mc_*.csv (Wilson)
+\newcommand{\DetCemQuarentaDois}{1{,}8853} % chuva_solos/f100/mc_0_4.csv (real -1)
+\newcommand{\DifCemQuarentaDois}{\ensuremath{-}1{,}4} % chuva_solos/f100/mc_*.csv e chuva_solos/f100/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosCemQuarentaDois}{1{,}4\% abaixo} % chuva_solos/f100/mc_*.csv e chuva_solos/f100/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogCemQuarentaDois}{1{,}8909} % rahardjo_f100.log
+\newcommand{\DifLogCemQuarentaDois}{\ensuremath{-}0{,}3} % chuva_solos/f100/mc_0_4.csv (real -1) e rahardjo_f100.log (det MC / log - 1, \%)
+\newcommand{\MediaCemQuarentaOito}{1{,}8613} % chuva_solos/f100/mc_*.csv
+\newcommand{\CovCemQuarentaOito}{5{,}9} % chuva_solos/f100/mc_*.csv
+\newcommand{\NfCemQuarentaOito}{0} % chuva_solos/f100/mc_*.csv
+\newcommand{\PfCemQuarentaOito}{0{,}00} % chuva_solos/f100/mc_*.csv
+\newcommand{\LoCemQuarentaOito}{0{,}0} % chuva_solos/f100/mc_*.csv (Wilson)
+\newcommand{\HiCemQuarentaOito}{0{,}4} % chuva_solos/f100/mc_*.csv (Wilson)
+\newcommand{\DetCemQuarentaOito}{1{,}8900} % chuva_solos/f100/mc_0_4.csv (real -1)
+\newcommand{\DifCemQuarentaOito}{\ensuremath{-}1{,}5} % chuva_solos/f100/mc_*.csv e chuva_solos/f100/mc_0_4.csv (real -1) (media / det - 1, \%)
+\newcommand{\PosCemQuarentaOito}{1{,}5\% abaixo} % chuva_solos/f100/mc_*.csv e chuva_solos/f100/mc_0_4.csv (real -1) (media / det - 1)
+\newcommand{\LogCemQuarentaOito}{1{,}8962} % rahardjo_f100.log
+\newcommand{\DifLogCemQuarentaOito}{\ensuremath{-}0{,}3} % chuva_solos/f100/mc_0_4.csv (real -1) e rahardjo_f100.log (det MC / log - 1, \%)
+\newcommand{\DifFaixaMinCem}{\ensuremath{-}1{,}6} % chuva_solos/f100/mc_*.csv e chuva_solos/f100/mc_0_4.csv (real -1) (menor media / det - 1)
+\newcommand{\DifFaixaMaxCem}{\ensuremath{-}1{,}2} % chuva_solos/f100/mc_*.csv e chuva_solos/f100/mc_0_4.csv (real -1) (maior media / det - 1)
+\newcommand{\MediaMinCem}{1{,}8557} % chuva_solos/f100/mc_*.csv (menor FS de cada realizacao)
+\newcommand{\CovMinCem}{5{,}9} % chuva_solos/f100/mc_*.csv
+\newcommand{\NfMinCem}{0} % chuva_solos/f100/mc_*.csv (FS < 1 em algum instante)
+\newcommand{\PfMinCem}{0{,}00} % chuva_solos/f100/mc_*.csv
+\newcommand{\LoMinCem}{0{,}0} % chuva_solos/f100/mc_*.csv (Wilson)
+\newcommand{\HiMinCem}{0{,}4} % chuva_solos/f100/mc_*.csv (Wilson)
+\newcommand{\DetMinCem}{1{,}8807} % chuva_solos/f100/mc_0_4.csv (real -1) (menor FS)
+\newcommand{\TDetMinCem}{36~h} % chuva_solos/f100/mc_0_4.csv (real -1) (instante do menor FS)
+\newcommand{\DifMinCem}{\ensuremath{-}1{,}3} % chuva_solos/f100/mc_*.csv e chuva_solos/f100/mc_0_4.csv (real -1)
+\newcommand{\LogMinCem}{1{,}8857} % rahardjo_f100.log (menor FS de hora em hora)
+\newcommand{\TLogMinCem}{em 32 e 33~h} % rahardjo_f100.log (instantes do menor FS, com os empates)
+\newcommand{\DifLogMinCem}{\ensuremath{-}0{,}3} % chuva_solos/f100/mc_0_4.csv (real -1) e rahardjo_f100.log
+\newcommand{\QuandoFaixaCem}{24 a 48} % chuva_solos/f100/mc_*.csv (instantes em que o menor FS ocorre)
+\newcommand{\QuandoCemSeis}{0} % chuva_solos/f100/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctCemSeis}{0{,}0} % chuva_solos/f100/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoCemDoze}{0} % chuva_solos/f100/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctCemDoze}{0{,}0} % chuva_solos/f100/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoCemDezoito}{0} % chuva_solos/f100/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctCemDezoito}{0{,}0} % chuva_solos/f100/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoCemVinteQuatro}{39} % chuva_solos/f100/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctCemVinteQuatro}{3{,}9} % chuva_solos/f100/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoCemTrinta}{241} % chuva_solos/f100/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctCemTrinta}{24{,}1} % chuva_solos/f100/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoCemTrintaSeis}{309} % chuva_solos/f100/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctCemTrintaSeis}{30{,}9} % chuva_solos/f100/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoCemQuarentaDois}{185} % chuva_solos/f100/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctCemQuarentaDois}{18{,}5} % chuva_solos/f100/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoCemQuarentaOito}{225} % chuva_solos/f100/mc_*.csv (instante do menor FS)
+\newcommand{\QuandoPctCemQuarentaOito}{22{,}5} % chuva_solos/f100/mc_*.csv (instante do menor FS)
+\newcommand{\FalhaForaCem}{0} % chuva_solos/f100/mc_*.csv (FS < 1 em algum instante e FS(24 h) >= 1)
+\newcommand{\FalhaForaFraseCem}{nenhuma realização falha só fora de 24~h} % chuva_solos/f100/mc_*.csv (FS < 1 em algum instante e FS(24 h) >= 1)
+\newcommand{\CovFaixaMinCem}{5{,}8} % chuva_solos/f100/mc_*.csv (menor CoV dos instantes)
+\newcommand{\CovFaixaMaxCem}{5{,}9} % chuva_solos/f100/mc_*.csv (maior CoV dos instantes)
+\newcommand{\RuinsListaCem}{nenhuma} % chuva_solos/f100/mc_*.csv
+\newcommand{\CustoTransCem}{120} % chuva_solos/f100/mc_*.csv (s_transiente no ultimo instante)
+\newcommand{\CustoFatorCem}{611} % chuva_solos/f100/mc_*.csv (soma de s_fator)
+\newcommand{\CustoFatorInstCem}{76} % chuva_solos/f100/mc_*.csv (s_fator por instante)
+\newcommand{\CustoTotalCem}{12{,}2} % chuva_solos/f100/mc_*.csv (s_transiente + s_fator, min)
+\newcommand{\FalhaForaDois}{nenhuma realização falha só fora de 24~h} % chuva_solos/f10 e f50/mc_*.csv (FS < 1 em algum instante e FS(24 h) >= 1)
+\newcommand{\PatamarIgual}{814} % chuva_solos/f10/mc_*.csv (FS(18 h) = FS(24 h) a 1e-6)
+\newcommand{\PatamarMil}{634} % chuva_solos/f10/mc_*.csv (FS de 12, 18 e 24 h a 0,1\%)
+\newcommand{\DepoisCem}{960} % chuva_solos/f100/mc_*.csv (menor FS depois de 24 h)
+\newcommand{\DepoisPctCem}{96{,}1} % chuva_solos/f100/mc_*.csv
+\newcommand{\AbaixoMediaCem}{0{,}53} % chuva_solos/f100/mc_*.csv (1 - menor FS / FS(24 h), media, \%)
+\newcommand{\AbaixoMaxCem}{2{,}0} % chuva_solos/f100/mc_*.csv (o mesmo, maior, \%)
+\newcommand{\BuracoFaixaAbaixo}{$[0{,}9975;\, 1)$} % LARG_BURACO do figuras_solos.py
+\newcommand{\BuracoFaixaAcima}{$[1;\, 1{,}0025)$} % LARG_BURACO do figuras_solos.py
+\newcommand{\BuracoAbaixo}{0} % chuva_solos/f50/mc_*.csv (FS(24 h) em [0.9975, 1))
+\newcommand{\BuracoAcima}{15} % chuva_solos/f50/mc_*.csv (FS(24 h) em [1, 1.0025))
+\newcommand{\BuracoVizAbaixo}{7} % chuva_solos/f50/mc_*.csv (FS(24 h) em [0.995, 0.9975))
+\newcommand{\BuracoVizAcima}{13} % chuva_solos/f50/mc_*.csv (FS(24 h) em [1.0025, 1.005))
+\newcommand{\BuracoFalta}{10} % media das faixas vizinhas - [0.9975, 1)
+\newcommand{\BuracoPontos}{1{,}0} % o mesmo / N, em pontos percentuais
+\newcommand{\BuracoExato}{12} % chuva_solos/f50/mc_*.csv (FS(24 h) em 1 a 1e-6: a realizacao)
+\newcommand{\NComuns}{993} % chuva_solos/{f10,f50,f100}/mc_*.csv (validas nos tres solos)
+\newcommand{\Ordem}{993} % chuva_solos/{f10,f50,f100}/mc_*.csv (menor FS: f10 < f50 < f100)
+\newcommand{\OrdemAte}{24} % chuva_solos/{f10,f50,f100}/mc_*.csv (ultimo instante ate o qual a ordem vale em todas)
+\newcommand{\InverteQuarentaOito}{993} % chuva_solos/{f10,f50,f100}/mc_*.csv (FS(48 h): f10 > f50)
+\newcommand{\InverteTrinta}{391} % chuva_solos/{f10,f50,f100}/mc_*.csv (FS(30 h): f10 > f50)
+\newcommand{\RhoDezCinquenta}{0{,}88} % chuva_solos/{f10,f50,f100}/mc_*.csv (Spearman do menor FS)
+\newcommand{\RhoCinquentaCem}{0{,}72} % chuva_solos/{f10,f50,f100}/mc_*.csv (Spearman do menor FS)
+\newcommand{\RhoDezCem}{0{,}66} % chuva_solos/{f10,f50,f100}/mc_*.csv (Spearman do menor FS)
+\newcommand{\RhoDezCinquentaVinteQuatro}{0{,}88} % chuva_solos/{f10,f50,f100}/mc_*.csv (Spearman de FS(24 h))
+\newcommand{\NfComunsDez}{973} % chuva_solos/{f10,f50,f100}/mc_*.csv
+\newcommand{\NfComunsCinquenta}{221} % chuva_solos/{f10,f50,f100}/mc_*.csv
+\newcommand{\NfComunsCem}{0} % chuva_solos/{f10,f50,f100}/mc_*.csv
+\newcommand{\NfCinquentaEDez}{221} % chuva_solos/{f10,f50,f100}/mc_*.csv (falhas do f50 que falham no f10)
+\newcommand{\NfSoDez}{752} % chuva_solos/{f10,f50,f100}/mc_*.csv (so o f10 falha)
+\newcommand{\NfCinquentaFora}{3} % chuva_solos/f50/mc_*.csv (falhas do f50 fora das comuns)
+\newcommand{\CinquentaFora}{456 e 880 (o transiente do f10 parou depois de $FS < 1$: 0,814 e 0,939); 979 (ainda rodava no f10)} % chuva_solos/f10 e f50/mc_*.csv
+\newcommand{\PrimeiroSeis}{366} % chuva_solos/f10/mc_*.csv (primeiro instante com FS < 1)
+\newcommand{\PrimeiroPctSeis}{36{,}9} % chuva_solos/f10/mc_*.csv
+\newcommand{\UltimoSeis}{0} % chuva_solos/f10/mc_*.csv (ultimo instante com FS < 1)
+\newcommand{\PrimeiroDoze}{566} % chuva_solos/f10/mc_*.csv (primeiro instante com FS < 1)
+\newcommand{\PrimeiroPctDoze}{57{,}0} % chuva_solos/f10/mc_*.csv
+\newcommand{\UltimoDoze}{0} % chuva_solos/f10/mc_*.csv (ultimo instante com FS < 1)
+\newcommand{\PrimeiroDezoito}{37} % chuva_solos/f10/mc_*.csv (primeiro instante com FS < 1)
+\newcommand{\PrimeiroPctDezoito}{3{,}7} % chuva_solos/f10/mc_*.csv
+\newcommand{\UltimoDezoito}{0} % chuva_solos/f10/mc_*.csv (ultimo instante com FS < 1)
+\newcommand{\PrimeiroVinteQuatro}{4} % chuva_solos/f10/mc_*.csv (primeiro instante com FS < 1)
+\newcommand{\PrimeiroPctVinteQuatro}{0{,}4} % chuva_solos/f10/mc_*.csv
+\newcommand{\UltimoVinteQuatro}{894} % chuva_solos/f10/mc_*.csv (ultimo instante com FS < 1)
+\newcommand{\PrimeiroTrinta}{0} % chuva_solos/f10/mc_*.csv (primeiro instante com FS < 1)
+\newcommand{\PrimeiroPctTrinta}{0{,}0} % chuva_solos/f10/mc_*.csv
+\newcommand{\UltimoTrinta}{79} % chuva_solos/f10/mc_*.csv (ultimo instante com FS < 1)
+\newcommand{\PrimeiroTrintaSeis}{0} % chuva_solos/f10/mc_*.csv (primeiro instante com FS < 1)
+\newcommand{\PrimeiroPctTrintaSeis}{0{,}0} % chuva_solos/f10/mc_*.csv
+\newcommand{\UltimoTrintaSeis}{0} % chuva_solos/f10/mc_*.csv (ultimo instante com FS < 1)
+\newcommand{\PrimeiroQuarentaDois}{0} % chuva_solos/f10/mc_*.csv (primeiro instante com FS < 1)
+\newcommand{\PrimeiroPctQuarentaDois}{0{,}0} % chuva_solos/f10/mc_*.csv
+\newcommand{\UltimoQuarentaDois}{0} % chuva_solos/f10/mc_*.csv (ultimo instante com FS < 1)
+\newcommand{\PrimeiroQuarentaOito}{0} % chuva_solos/f10/mc_*.csv (primeiro instante com FS < 1)
+\newcommand{\PrimeiroPctQuarentaOito}{0{,}0} % chuva_solos/f10/mc_*.csv
+\newcommand{\UltimoQuarentaOito}{0} % chuva_solos/f10/mc_*.csv (ultimo instante com FS < 1)
+\newcommand{\Nunca}{20} % chuva_solos/f10/mc_*.csv (FS >= 1 em todos os instantes)
+\newcommand{\NuncaPct}{2{,}0} % chuva_solos/f10/mc_*.csv
+\newcommand{\NuncaMin}{1{,}000} % chuva_solos/f10/mc_*.csv (menor FS das que nunca falham)
+\newcommand{\NuncaMax}{1{,}138} % chuva_solos/f10/mc_*.csv (o maior deles)
+\newcommand{\DetPrimeiroDez}{12} % chuva_solos/f10/mc_0_4.csv (real -1: primeiro instante com FS < 1)
+\newcommand{\CruzaLogDez}{5{,}9} % rahardjo_f10.log (FS = 1 descendo, interpolado)
+\newcommand{\NfMec}{224} % chuva_solos/f50/mc_*.csv (24 h)
+\newcommand{\NMec}{1000} % chuva_solos/f50/mc_*.csv (24 h)
+\newcommand{\RhoC}{0{,}62} % chuva_solos/f50/mc_*.csv (24 h) (Spearman de FS com banda_c)
+\newcommand{\FalhaC}{7{,}66} % chuva_solos/f50/mc_*.csv (24 h) (media de banda_c nas falhas)
+\newcommand{\OutrasC}{9{,}85} % chuva_solos/f50/mc_*.csv (24 h) (media de banda_c nas outras)
+\newcommand{\DetC}{10{,}00} % chuva_solos/f50/mc_0_4.csv (real -1, 24 h) (banda_c)
+\newcommand{\RhoPhi}{0{,}39} % chuva_solos/f50/mc_*.csv (24 h) (Spearman de FS com banda_phi_deg)
+\newcommand{\FalhaPhi}{24{,}7} % chuva_solos/f50/mc_*.csv (24 h) (media de banda_phi_deg nas falhas)
+\newcommand{\OutrasPhi}{25{,}9} % chuva_solos/f50/mc_*.csv (24 h) (media de banda_phi_deg nas outras)
+\newcommand{\DetPhi}{26{,}0} % chuva_solos/f50/mc_0_4.csv (real -1, 24 h) (banda_phi_deg)
+\newcommand{\RhoK}{\ensuremath{-}0{,}11} % chuva_solos/f50/mc_*.csv (24 h) (Spearman de FS com banda_k_mult)
+\newcommand{\FalhaK}{0{,}973} % chuva_solos/f50/mc_*.csv (24 h) (media de banda_k_mult nas falhas)
+\newcommand{\OutrasK}{0{,}969} % chuva_solos/f50/mc_*.csv (24 h) (media de banda_k_mult nas outras)
+\newcommand{\DetK}{1{,}000} % chuva_solos/f50/mc_0_4.csv (real -1, 24 h) (banda_k_mult)
+\newcommand{\RhoKMassa}{\ensuremath{-}0{,}20} % chuva_solos/f50/mc_*.csv (24 h) (Spearman de FS com massa_k_mult)
+\newcommand{\FalhaKMassa}{1{,}047} % chuva_solos/f50/mc_*.csv (24 h) (media de massa_k_mult nas falhas)
+\newcommand{\OutrasKMassa}{0{,}982} % chuva_solos/f50/mc_*.csv (24 h) (media de massa_k_mult nas outras)
+\newcommand{\DetKMassa}{1{,}000} % chuva_solos/f50/mc_0_4.csv (real -1, 24 h) (massa_k_mult)
+\newcommand{\RhoProf}{0{,}23} % chuva_solos/f50/mc_*.csv (24 h) (Spearman de FS com banda_prof)
+\newcommand{\FalhaProf}{3{,}98} % chuva_solos/f50/mc_*.csv (24 h) (media de banda_prof nas falhas)
+\newcommand{\OutrasProf}{4{,}22} % chuva_solos/f50/mc_*.csv (24 h) (media de banda_prof nas outras)
+\newcommand{\DetProf}{4{,}06} % chuva_solos/f50/mc_0_4.csv (real -1, 24 h) (banda_prof)
+\newcommand{\RhoPw}{\ensuremath{-}0{,}31} % chuva_solos/f50/mc_*.csv (24 h) (Spearman de FS com banda_pw)
+\newcommand{\FalhaPw}{6{,}6} % chuva_solos/f50/mc_*.csv (24 h) (media de banda_pw nas falhas)
+\newcommand{\OutrasPw}{4{,}6} % chuva_solos/f50/mc_*.csv (24 h) (media de banda_pw nas outras)
+\newcommand{\DetPw}{7{,}5} % chuva_solos/f50/mc_0_4.csv (real -1, 24 h) (banda_pw)
+\newcommand{\ParcC}{0{,}68} % chuva_solos/f50/mc_*.csv (24 h) (Spearman parcial de 2a ordem, Eqs. 70-71 do Ceron)
+\newcommand{\ParcPhi}{0{,}51} % chuva_solos/f50/mc_*.csv (24 h) (Spearman parcial de 2a ordem, Eqs. 70-71 do Ceron)
+\newcommand{\ParcK}{\ensuremath{-}0{,}17} % chuva_solos/f50/mc_*.csv (24 h) (Spearman parcial de 2a ordem, Eqs. 70-71 do Ceron)
+\newcommand{\RhoKPw}{0{,}36} % chuva_solos/f50/mc_*.csv (24 h) (Spearman de banda_k_mult com banda_pw)
+\newcommand{\TolNivel}{0{,}15} % posproc/dados_chuva.py (TOL_NIVEL)
+\newcommand{\CatUm}{0} % chuva_solos/f50/mc_*.csv (24 h) (categoria I do nivel d'agua)
+\newcommand{\CatNfUm}{0} % chuva_solos/f50/mc_*.csv (24 h) (falhas na categoria I)
+\newcommand{\CatPfUm}{--} % chuva_solos/f50/mc_*.csv (24 h) (P_f na categoria I)
+\newcommand{\CatDois}{507} % chuva_solos/f50/mc_*.csv (24 h) (categoria II do nivel d'agua)
+\newcommand{\CatNfDois}{153} % chuva_solos/f50/mc_*.csv (24 h) (falhas na categoria II)
+\newcommand{\CatPfDois}{30{,}2} % chuva_solos/f50/mc_*.csv (24 h) (P_f na categoria II)
+\newcommand{\CatTres}{493} % chuva_solos/f50/mc_*.csv (24 h) (categoria III do nivel d'agua)
+\newcommand{\CatNfTres}{71} % chuva_solos/f50/mc_*.csv (24 h) (falhas na categoria III)
+\newcommand{\CatPfTres}{14{,}4} % chuva_solos/f50/mc_*.csv (24 h) (P_f na categoria III)
+\newcommand{\CatQuatro}{0} % chuva_solos/f50/mc_*.csv (24 h) (categoria IV do nivel d'agua)
+\newcommand{\CatNfQuatro}{0} % chuva_solos/f50/mc_*.csv (24 h) (falhas na categoria IV)
+\newcommand{\CatPfQuatro}{--} % chuva_solos/f50/mc_*.csv (24 h) (P_f na categoria IV)
+\newcommand{\CatDet}{II} % chuva_solos/f50/mc_0_4.csv (real -1, 24 h) (categoria do deterministico)
+\newcommand{\NivelMeio}{23{,}5} % chuva_solos/f50/mc_*.csv (24 h) (media de nivel_x35)
+\newcommand{\NivelMeioFalhas}{24{,}2} % chuva_solos/f50/mc_*.csv (24 h) (nivel_x35 nas falhas)
+\newcommand{\NivelMeioOutras}{23{,}3} % chuva_solos/f50/mc_*.csv (24 h) (nivel_x35 nas outras)
+\newcommand{\NivelMeioDet}{24{,}9} % chuva_solos/f50/mc_0_4.csv (real -1, 24 h) (nivel_x35)
+\newcommand{\CotaMeio}{25} % montecarlo.cpp (kTalude: meio da face)
+\newcommand{\XMeio}{35} % montecarlo.cpp (kTalude: meio da face)
+\newcommand{\RhoNivelMeio}{\ensuremath{-}0{,}34} % chuva_solos/f50/mc_*.csv (24 h) (Spearman de FS com nivel_x35)
+\newcommand{\RhoNivelK}{0{,}10} % chuva_solos/f50/mc_*.csv (24 h) (Spearman de nivel_x35 com k_mult_med)
+\newcommand{\CelulasMapa}{87} % chuva_solos/f50/mc_mapa_*.csv (24 h)
+\newcommand{\CelulasMetade}{16} % chuva_solos/f50/mc_mapa_*.csv (24 h) (banda em >= 50\% de todas)
+\newcommand{\CelulasMetadeFalha}{15} % chuva_solos/f50/mc_mapa_*.csv (24 h) (banda em >= 50\% das falhas)
+\newcommand{\ProfDetMec}{4{,}1} % chuva_solos/f50/mc_0_4.csv (real -1, 24 h) (banda_prof)
+\newcommand{\QuedaMedia}{0{,}991} % chuva_solos/f50/mc_*.csv (FS(0 h) - FS(24 h), media)
+\newcommand{\QuedaDet}{1{,}060} % chuva_solos/f50/mc_0_4.csv (real -1) (FS(0 h) - FS(24 h))
+\newcommand{\QuedaMenor}{782} % chuva_solos/f50/mc_*.csv (queda menor que a do det)
+\newcommand{\DifLogMaxDez}{1{,}5} % chuva_solos/f10/mc_0_4.csv e rahardjo_f10.log
+\newcommand{\DifLogMaxTDez}{6} % chuva_solos/f10/mc_0_4.csv e rahardjo_f10.log
+\newcommand{\DifLogMaxCinquenta}{0{,}6} % chuva_solos/f50/mc_0_4.csv e rahardjo_f50.log
+\newcommand{\DifLogMaxTCinquenta}{30} % chuva_solos/f50/mc_0_4.csv e rahardjo_f50.log
+\newcommand{\DifLogMaxCem}{0{,}3} % chuva_solos/f100/mc_0_4.csv e rahardjo_f100.log
+\newcommand{\DifLogMaxTCem}{48} % chuva_solos/f100/mc_0_4.csv e rahardjo_f100.log
+\newcommand{\NivelMeioDezSeis}{22{,}3} % chuva_solos/f10/mc_*.csv (nivel_x35 em 6 h, media)
+\newcommand{\NivelDetMeioDezSeis}{24{,}9} % chuva_solos/f10/mc_0_4.csv (real -1, nivel_x35 em 6 h)
+\newcommand{\NivelCristaDezQuarentaOito}{19{,}9} % chuva_solos/f10/mc_*.csv (nivel_x30 em 48 h, media)
+\newcommand{\NivelDetCristaDezQuarentaOito}{19{,}7} % chuva_solos/f10/mc_0_4.csv (real -1, nivel_x30 em 48 h)
+\newcommand{\DifLogResto}{0{,}6} % chuva_solos/*/mc_0_4.csv e rahardjo_*.log (sem o f10 em 6 h)
+\newcommand{\PfChuvaPiloto}{1} % cluster/README.md (pilotos do relatorio_chuva.tex)
+\newcommand{\Iref}{31{,}05} % cluster/campanha.sh (chuva_ai)
+\newcommand{\ChuvaAITempos}{6 a 48} % cluster/casos_chuva_ai.txt
+\newcommand{\ChuvaAIPiloto}{200} % cluster/casos_chuva_ai.txt
+\newcommand{\ChuvaAIN}{200} % cluster/casos_chuva_ai.txt
+\newcommand{\DetIref}{1{,}1255} % mc/gim_I/srm_I31.05_0_-1.csv (real -1, 24 h)
+\newcommand{\RazaoDet}{1{,}089} % mc/gim_I/srm_I31.05_0_-1.csv e chuva_solos/f50/mc_0_4.csv (det 31,05 / det 36)
+\newcommand{\SobeDet}{8{,}9} % o mesmo, em \%
+\newcommand{\NPiloto}{8} % mc/gim_I/piloto_srm_I31.05_0_7.csv (as mesmas realizacoes daqui)
+\newcommand{\PilotoReais}{0 a 7} % mc/gim_I/piloto_srm_I31.05_0_7.csv
+\newcommand{\PilotoCov}{5{,}6} % mc/gim_I/piloto_srm_I31.05_0_7.csv (CoV de FS(24 h) em 31,05 mm/h)
+\newcommand{\PilotoCovAqui}{5{,}4} % chuva_solos/f50/mc_*.csv (CoV de FS(24 h) dessas realizacoes em 36 mm/h)
+\newcommand{\SobeMin}{2{,}0} % mc/gim_I/piloto_srm_I31.05_0_7.csv e chuva_solos/f50 (FS31 / FS36 - 1, menor, \%)
+\newcommand{\SobeMax}{7{,}8} % mc/gim_I/piloto_srm_I31.05_0_7.csv e chuva_solos/f50 (o maior, \%)
+\newcommand{\SobeMedia}{4{,}4} % mc/gim_I/piloto_srm_I31.05_0_7.csv e chuva_solos/f50 (a media, \%)
+\newcommand{\PfEstMedia}{10{,}0} % chuva_solos/f50/mc_*.csv (FS(24 h) x razao < 1)
+\newcommand{\PfEstDet}{3{,}3} % chuva_solos/f50/mc_*.csv (FS(24 h) x razao < 1)
+\newcommand{\PfEstSobeMin}{16{,}5} % chuva_solos/f50/mc_*.csv (FS(24 h) x razao < 1)
+\newcommand{\PfEstSobeMax}{4{,}8} % chuva_solos/f50/mc_*.csv (FS(24 h) x razao < 1)
+\newcommand{\PfEstMin}{3{,}3} % chuva_solos/f50/mc_*.csv (FS(24 h) x razao < 1) (a menor das extrapolacoes)
+\newcommand{\PfEstMax}{16{,}5} % chuva_solos/f50/mc_*.csv (FS(24 h) x razao < 1) (a maior das extrapolacoes)
+\newcommand{\FalhasPilotoMin}{7} % piloto da chuva_ai x a menor P_f extrapolada
+\newcommand{\FalhasPilotoMax}{33} % piloto da chuva_ai x a maior P_f extrapolada
+\newcommand{\PilotoLognormal}{0{,}90} % mc/gim_I/piloto_srm.log (P_f lognormal)
+\newcommand{\PfMaisUm}{20{,}2} % chuva_solos/f50/mc_*.csv (FS(24 h) x 1.01 < 1)
+\newcommand{\PfMenosUm}{27{,}2} % chuva_solos/f50/mc_*.csv (FS(24 h) x 0.99 < 1)
+\newcommand{\Nos}{4} % logs/solosMC_*.out (nos dos jobs)
+\newcommand{\ProcNo}{12} % logs/solosMC_*.out (processos por no)
+\newcommand{\Proc}{48} % nos x processos
+\newcommand{\Bloco}{5} % chuva_solos/campanha.txt
+\newcommand{\Inicio}{19h21 de 14/11} % chuva_solos/logs/p*.txt
+\newcommand{\UltimaTarefa}{8h40} % chuva_solos/logs/p*.txt (fim da ultima tarefa terminada)
+\newcommand{\Relogio}{13~h 20~min} % chuva_solos/logs/p*.txt
+\newcommand{\RelogioHoras}{13{,}3} % chuva_solos/logs/p*.txt
+\newcommand{\Tarefas}{600} % cluster/casos_solos.txt e campanha.txt (N / BLOCO)
+\newcommand{\TarefasFeitas}{595} % chuva_solos/logs/p*.txt
+\newcommand{\TarefasRodando}{5} % chuva_solos/logs/p*.txt (inicio sem fim)
+\newcommand{\CpuHoras}{616} % chuva_solos/logs/p*.txt (soma das tarefas terminadas)
+\newcommand{\MinPorReal}{12{,}4} % chuva_solos/logs/p*.txt (CPU / realizacoes das tarefas terminadas)
+\newcommand{\MinReadme}{22} % cluster/README.md (estimativa)
+\newcommand{\PrevFim}{9h00} % chuva_solos/logs/p*.txt (inicio + duracao media das tarefas do solo, estimado)
+\newcommand{\FaltamFrase}{Quando os dados foram baixados, 5 dos 600 blocos ainda rodavam (devem acabar por volta das 9h00). Faltam 5 realizações: 979, 984, 994 e 999 no f10 e 999 no f100.} % chuva_solos/logs/p*.txt e chuva_solos/*/mc_*.csv (blocos rodando e realizacoes que faltam)
+\newcommand{\NValidasTotal}{2992} % soma das validas
+\newcommand{\NPlanTotal}{3000} % cluster/casos_solos.txt
+\newcommand{\FaltamTotal}{5} % soma das que faltam
