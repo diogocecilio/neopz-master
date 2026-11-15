@@ -79,6 +79,11 @@ def deslocamentos(pasta):
     for a in arqs:
         textos.setdefault("".join(l for l in open(a) if not l.startswith("#")), []).append(os.path.basename(a))
     d = dict(l.split("=", 1) for l in next(iter(textos)).splitlines() if "=" in l)
+    if d.get("ai") == "dado":  # desloc_xi= (o ponto de projeto do FORM, por exemplo): sem piloto
+        print(f"deslocamento dado termo a termo ({d.get('modos')} termos por campo, {d.get('arquivo')}): {len(arqs)} blocos, "
+              + ("o mesmo em todos" if len(textos) == 1 else f"ATENCAO: {len(textos)} deslocamentos diferentes")
+              + f"; |mu|^2 = {float(d.get('mu2', 'nan')):.3f}")
+        return
     print(f"deslocamento ({d.get('ai')}, pelo piloto): {len(arqs)} blocos, "
           + ("o mesmo em todos" if len(textos) == 1 else f"ATENCAO: {len(textos)} deslocamentos diferentes") + "; "
           f"piloto com {d.get('validas')} realizacoes validas, {d.get('falhas')} falhas, elite de {d.get('elite')} "

@@ -5,6 +5,8 @@
 #   CAMPANHA=ceron ./baixar.sh [destino]  Ceron: ~/projects/runs/fermi_ceron_ai; P_f de cada amostragem por
 #                                         importancia contra o Monte Carlo direto (<destino>/resultado.txt)
 #   CAMPANHA=chuva_ai ./baixar.sh         o mesmo para a chuva com amostragem por importancia (~/projects/runs/fermi_chuva_ai)
+#   CAMPANHA=etapa1 ./baixar.sh           etapas 0 e 1 (~/projects/runs/fermi_etapa1): tambem as comparacoes pareadas (par=)
+#                                         e os FORM
 #   SEM_BAIXAR=1 ./baixar.sh     so o pos-processamento, com os dados ja baixados (sem VPN)
 # Chuva: o relatorio vai para <destino>/relatorio_parcial enquanto ha jobs na fila e para <destino>/relatorio depois.
 # Ambiente: CAMPANHA, FERMI (padrao diogo@fermi.cesup.ufrgs.br), REMOTO (padrao /mnt/data/diogo/<pasta da campanha>).
@@ -42,20 +44,33 @@ if [ -z "${SEM_BAIXAR:-}" ]; then
 fi
 
 if [ "$CAMPANHA" != chuva ]; then
-    # o resumo instante a instante de cada caso (Monte Carlo direto) e cada caso com piloto= (amostragem por importancia)
-    # contra o seu piloto
-    R="$DEST/resultado.txt"
-    python3 -I -B "$POS/resumo_tempos.py" "$DEST/$(basename "$REMOTO")" "$AQUI/$CASOS_TXT" > "$R" 2>&1 || true
+    # o resumo instante a instante de cada caso (Monte Carlo direto); cada amostragem por importancia contra o Monte Carlo
+    # direto de referencia (o piloto=, ou o ref= das opcoes da fila); cada caso com par= contra o seu par, realizacao a
+    # realizacao (compara_pares.py); e os FORM (form_M*, do form.sh)
+    R="$DEST/resultado.txt" D="$DEST/$(basename "$REMOTO")"
+    python3 -I -B "$POS/resumo_tempos.py" "$D" "$AQUI/$CASOS_TXT" > "$R" 2>&1 || true
     echo >> "$R"
     while read -r id fase n opc; do
         [[ -z "$id" || "$id" == \#* ]] && continue
-        [[ " $opc " =~ \ piloto=@SAIDA@/([^ ]+)\  ]] || continue
-        [ -d "$DEST/$(basename "$REMOTO")/$id" ] || continue
-        { echo "== $id (piloto e direto: ${BASH_REMATCH[1]})"
-          python3 -I -B "$POS/amostragem_importancia.py" estima "$DEST/$(basename "$REMOTO")/$id" \
-              "$DEST/$(basename "$REMOTO")/${BASH_REMATCH[1]}" 2>&1 || echo "(sem estimativa ainda)"
-          echo; } >> "$R"
+        [ -d "$D/$id" ] || continue
+        ref="" par=""
+        [[ " $opc " =~ \ piloto=@SAIDA@/([^ ]+)\  ]] && ref="${BASH_REMATCH[1]}"
+        [[ " $opc " =~ \ ref=([^ ]+)\  ]] && ref="${BASH_REMATCH[1]}"
+        [[ " $opc " =~ \ par=([^ ]+)\  ]] && par="${BASH_REMATCH[1]}"
+        if [ -n "$ref" ] && [ -d "$D/$ref" ]; then
+            { echo "== $id (Monte Carlo direto de referencia: $ref)"
+              python3 -I -B "$POS/amostragem_importancia.py" estima "$D/$id" "$D/$ref" 2>&1 || echo "(sem estimativa ainda)"
+              echo; } >> "$R"
+        fi
+        if [ -n "$par" ] && [ -d "$D/$par" ]; then
+            { echo "== $id contra $par, realizacao a realizacao"
+              python3 -I -B "$POS/compara_pares.py" "$D/$par" "$D/$id" 2>&1 || echo "(sem comparacao ainda)"
+              echo; } >> "$R"
+        fi
     done < "$AQUI/$CASOS_TXT"
+    if ls -d "$D"/form_M* > /dev/null 2>&1; then
+        { echo "== FORM"; python3 -I -B "$POS/resumo_form.py" "$D"/form_M* 2>&1; echo; } >> "$R"
+    fi
     cat "$R"
     echo "pronto: $R"
     exit 0
