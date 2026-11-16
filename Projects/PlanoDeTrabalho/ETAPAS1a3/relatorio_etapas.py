@@ -285,6 +285,98 @@ lin_txt = None
 if os.path.exists(f"{LIN}/resultado.txt"):
     lin_txt = open(f"{LIN}/resultado.txt").read()
 
+# ===================== teste linear (tabela) =====================
+def linear_tab():
+    if not os.path.isdir(LIN):
+        return None
+    lin = []
+    for b in (2, 3, 4):
+        ex = phi(-b)
+        lin_d = None
+        try:
+            txt = open(f"{LIN}/b{b}/direto.log").read()
+            m = re.search(r"P\(FS < 1\) contada = ([\d.]+)%", txt)
+            lin_d = float(m.group(1)) / 100 if m else None
+        except OSError:
+            pass
+        linha = {"b": b, "ex": ex, "d": lin_d}
+        for a in ("ai20", "ai10"):
+            w = []
+            for f in glob.glob(f"{LIN}/b{b}/{a}/mc_*_*.csv"):
+                if "mapa" in f:
+                    continue
+                w += [math.exp(float(r["log_peso"])) * (float(r["FS_min"]) < 1) for r in csv.DictReader(open(f))]
+            n = len(w)
+            pp = sum(w) / n
+            sd = math.sqrt((sum(x * x for x in w) / n - pp * pp) / (n - 1))
+            linha[a] = (pp, sd / pp, (pp - ex) / sd)
+        lin.append(linha)
+    a10 = [float(x) for x in open(f"{LIN}/alfa_M10.txt").read().split()]
+    a20 = [float(x) for x in open(f"{LIN}/alfa_M20.txt").read().split()]
+    cosang = sum(a10[k] * a20[k] for k in range(10)) + sum(a10[10 + k] * a20[20 + k] for k in range(10))
+    return lin, cosang
+
+
+LINTAB = linear_tab()
+
+
+# ===================== tamanho do piloto: sub-pilotos disjuntos do direto =====================
+def projecoes(nome, n, ustar, banda, rc):
+    """proj_c e proj_phi das realizacoes 0..n-1 (o modo linear do Cho2010, sem elementos finitos, com banda=)"""
+    pasta = f"{tmp}/proj_{nome}"
+    os.makedirs(pasta, exist_ok=True)
+    if not glob.glob(f"{pasta}/mc_*_*.csv"):
+        subprocess.run([CHO2010, f"n={n}", "linear=1", f"alfa={ustar}", f"banda={banda}", f"rcphi={rc}",
+                        f"saida={pasta}/mc"], check=True, stdout=subprocess.DEVNULL)
+    return {k: (float(r["proj_c"]), float(r["proj_phi"])) for k, r in le(pasta).items()}
+
+
+def subpilotos(dd, proj, nmax):
+    out = []
+    for m in (100, 250, 500, 1000):
+        ss = []
+        for c0 in range(0, nmax - m + 1, m):
+            grupo = [k for k in range(c0, c0 + m) if k in dd]
+            fs = sorted(grupo, key=lambda k: float(dd[k]["FS_min"]))
+            nf = sum(float(dd[k]["FS_min"]) < 1 for k in grupo)
+            nel = max(nf, round(0.1 * len(grupo)))
+            el = fs[:nel]
+            sc = sum(proj[k][0] for k in el) / nel
+            sp = sum(proj[k][1] for k in el) / nel
+            ss.append((sc, sp, sc * sc + sp * sp))
+        mu = [sum(x[i] for x in ss) / len(ss) for i in range(3)]
+        sd = [math.sqrt(sum((x[i] - mu[i]) ** 2 for x in ss) / (len(ss) - 1)) if len(ss) > 1 else 0. for i in range(3)]
+        out.append((m, len(ss), mu, sd, ss[0]))
+    return out
+
+
+SUB = {
+    "r05": subpilotos(le(f"{E1}/r05_direto"), projecoes("r05", 4000, f"{E1}/form_M20/ustar.txt",
+                                                         f"{E1}/r05_direto/mc_real-1/mecanismo.csv", "-0.5"), 4000),
+    "r07": subpilotos(le(f"{E3}/r07_direto"), projecoes("r07", 6000, f"{E3}/form_M20/ustar.txt",
+                                                         f"{E3}/r07_direto/mc_real-1/mecanismo.csv", "-0.7"), 6000),
+}
+
+
+# ===================== custo total para CoV(P_f) = 10% =====================
+def custo_tab(d, casos, extra):
+    """[(metodo, N para CoV 10%, custo extra, total)]"""
+    nd = (1 - d["p"]) / (d["p"] * 0.01)
+    linhas = [("Monte Carlo direto", nd, 0, nd)]
+    for (rot, a), ex in zip(casos, extra):
+        na = a["n"] * (a["cov"] / 0.10) ** 2
+        linhas.append((rot, na, ex, na + ex))
+    return linhas
+
+
+CUSTO05 = custo_tab(d05, a05[:3], [1000, f05[0]["n"], f05[1]["n"]])
+CUSTO07 = custo_tab(d07, a07[:3], [1000, f07[0]["n"], f07[1]["n"]])
+
+# ===================== previsao: Var(M = 10) / Var(M = 20) ~ exp(beta10^2 - beta20^2) =====================
+PREV = []
+for nome, f, a10_, a20_ in (("$r = -0{,}5$", f05, a05[1][1], a05[2][1]), ("$r = -0{,}7$", f07, a07[1][1], a07[2][1])):
+    PREV.append((nome, math.exp(f[0]["bc"] ** 2 - f[1]["bc"] ** 2), (a10_["cov"] / a20_["cov"]) ** 2))
+
 # ===================== LaTeX =====================
 def tab_simples(cab, linhas, fmt):
     return "\\resizebox{\\textwidth}{!}{%\n" + "\n".join([r"\begin{tabular}{" + fmt + "}", r"\toprule", cab + r" \\", r"\midrule"] +
@@ -370,10 +462,30 @@ o mesmo CoV. O FORM com $M = 10$ e $M = 20$ convergiu em 3 iterações.}
 \caption{$P_f$ e IC 95\,\%. A faixa cinza é o IC do direto; a linha tracejada, o valor do Cho.}\end{figure}
 
 \paragraph{O teste linear (sem elementos finitos).}
-""" + (r"\begin{verbatim}" + "\n" + lin_txt + r"\end{verbatim}" if lin_txt else
-       r"""A primeira rodada saiu viciada por um defeito do próprio teste: o FS $\le 0$ era descartado. A rodada corrigida ainda não
-foi baixada (\texttt{rsync} de \texttt{\$DATA/etapa2\_linear}).""") + r"""
-
+""" + (r"""O Cho2010 sorteia os campos como sempre, com a mesma semente, o mesmo deslocamento e o mesmo peso, mas troca o FS por
+$\exp(\beta - \bm\alpha\cdot\bm\xi)$. A falha é $\bm\alpha\cdot\bm\xi > \beta$, com $P_f = \Phi(-\beta)$ exata. A direção
+$\bm\alpha$ é a do ponto de projeto do FORM com $M = 20$. A AI ``M = 20'' desloca exatamente nessa direção. A AI ``M = 10'' usa
+a direção do FORM com $M = 10$, a """ + num(math.degrees(math.acos(LINTAB[1])), 1) + r"""$^\circ$ da correta. Cada AI tem
+$10^4$ realizações, e o direto, $10^6$.
+\begin{table}[H]\centering\small
+""" + tab_simples(r"$\beta$ & $P_f$ exata & direto ($10^6$) & AI $M = 20$: erro (desvios) & AI $M = 10$: erro (desvios)",
+                  [f"{x['b']} & {x['ex']:.3e} & " + (f"{pct(x['d'])}\\,\\%" if x['d'] else "---") +
+                   f" & {num(100 * (x['ai20'][0] / x['ex'] - 1), 1)}\\,\\% ({num(x['ai20'][2], 1)}) & "
+                   f"{num(100 * (x['ai10'][0] / x['ex'] - 1), 1)}\\,\\% ({num(x['ai10'][2], 1)})" for x in LINTAB[0]],
+                  "rrrrr") + r"""
+\caption{O teste linear.}
+\end{table}
+\begin{itemize}
+  \item \textbf{O código da AI está certo:} com o deslocamento na direção exata, o erro fica abaixo de 1\,\% até
+    $P_f = 3\times10^{-5}$.
+  \item \textbf{Com o deslocamento um pouco fora da direção, a AI sai baixa,} e mais baixa quando $P_f$ cai. O estimador
+    não tem viés, mas a região que mais pesa fica na cauda do sorteio: poucas amostras, com pesos enormes. Com $N$ finito,
+    a estimativa típica fica abaixo do valor certo, e o CoV calculado subestima o erro.
+  \item Isso explica a AI pelo FORM um pouco abaixo do direto no elementos finitos (Tabelas 2 e 3): o ponto de projeto
+    nunca está exatamente na direção ótima.
+\end{itemize}
+""" if LINTAB else r"""O resultado corrigido ainda não foi baixado.
+""") + r"""
 \section{Etapa 3: $P_f$ pequena, $r = -0{,}7$ ($P_f \approx 0{,}4\,\%$)}
 \begin{table}[H]\centering\small
 """ + tabela_ai("r07", d07, a07, *f07) + r"""
@@ -401,6 +513,52 @@ projeto do FORM ($M = 20$).
 \begin{figure}[H]\centering\includegraphics[width=\textwidth]{figs/modo.pdf}
 \caption{$t = \bm\alpha\cdot\bm\xi$ nas realizações do direto. As falhas (vermelho) ficam todas à direita, perto ou além de
 $\beta$.}\end{figure}
+
+\section{Pós-processamento}
+\subsection*{Tamanho do piloto (AI pela banda)}
+O deslocamento da AI pela banda é $\bm\mu = s_c\,\bm d_c + s_\varphi\,\bm d_\varphi$, com $s$ = a média de $\bm\xi\cdot\bm d$ no
+conjunto elite do piloto (os 10\,\% de menor FS, ou as falhas se forem mais). Para ver quanto $s$ depende do tamanho do
+piloto, o direto foi dividido em sub-pilotos disjuntos de 100, 250, 500 e 1000 realizações. As projeções foram refeitas
+sem elementos finitos, pelo modo \texttt{linear} com \texttt{banda=}. O sub-piloto 0--999 reproduz o deslocamento que o
+programa usou no fermi: $s = (""" + num(SUB['r05'][3][4][0], 3) + "; " + num(SUB['r05'][3][4][1], 3) + r""")$.
+\begin{table}[H]\centering\small
+""" + tab_simples(r"caso & piloto & sub-pilotos & $s_c$: média (dp) & $s_\varphi$: média (dp) & $|\bm\mu|^2$: média (dp)",
+                  [f"{nome} & {m} & {k} & {num(mu[0], 2)} ({num(sd[0], 2)}) & {num(mu[1], 2)} ({num(sd[1], 2)}) & "
+                   f"{num(mu[2], 2)} ({num(sd[2], 2)})" for nome, rot in (("r05", "$r = -0{,}5$"), ("r07", "$r = -0{,}7$"))
+                   for (m, k, mu, sd, _) in SUB[nome] for nome in [rot]], "lrrrrr") + r"""
+\caption{O deslocamento da banda com pilotos de tamanhos diferentes.}
+\end{table}
+A média de $s$ não depende do tamanho do piloto; só a dispersão cai. Um erro $\bm\delta$ no deslocamento multiplica a
+variância da AI por cerca de $e^{|\bm\delta|^2}$. Com piloto de 100, $|\bm\delta|^2 \approx """ + \
+    num(SUB['r05'][0][3][0] ** 2 + SUB['r05'][0][3][1] ** 2, 2) + r"""$ (variância $\times""" + \
+    num(math.exp(SUB['r05'][0][3][0] ** 2 + SUB['r05'][0][3][1] ** 2), 2) + r"""$); com 250, $""" + \
+    num(SUB['r05'][1][3][0] ** 2 + SUB['r05'][1][3][1] ** 2, 2) + r"""$ ($\times""" + \
+    num(math.exp(SUB['r05'][1][3][0] ** 2 + SUB['r05'][1][3][1] ** 2), 2) + r"""$). Valores com $r = -0{,}5$. Um piloto de 250 basta.
+
+\subsection*{Custo total para CoV$(P_f) = 10\,\%$}
+O número de análises para chegar a CoV de 10\,\% é $N\,(\mathrm{CoV}/0{,}10)^2$. A ele soma-se o custo fixo de cada método:
+o piloto de 1000 na banda e as análises do FORM.
+\begin{table}[H]\centering\small
+""" + tab_simples(r"Método & $r = -0{,}5$: amostragem & + fixo & total & $r = -0{,}7$: amostragem & + fixo & total",
+                  [f"{a[0]} & {a[1]:.0f} & {a[2]} & {a[3]:.0f} & {b[1]:.0f} & {b[2]} & {b[3]:.0f}" for a, b in zip(CUSTO05, CUSTO07)],
+                  "lrrrrrr") + r"""
+\caption{Análises de elementos finitos para CoV$(P_f) = 10\,\%$.}
+\end{table}
+Mesmo pagando o FORM, a AI pelo ponto de projeto custa de """ + num(CUSTO05[0][3] / CUSTO05[2][3], 0) + " a " + \
+    num(CUSTO07[0][3] / CUSTO07[3][3], 0) + r""" vezes menos que o direto. A vantagem cresce quando a $P_f$ cai. O piloto de
+1000 da banda pesa muito. Com um piloto de 250, que basta (tabela anterior), a banda iria a """ + \
+    f"{CUSTO05[1][1] + 250:.0f}" + " e " + f"{CUSTO07[1][1] + 250:.0f}" + r""" análises, ainda 1,5 a 3 vezes o FORM.
+
+\subsection*{A previsão teórica: $M = 10$ contra $M = 20$}
+No modelo linear, deslocar para o ponto de projeto truncado multiplica a variância da AI por cerca de
+$\exp(\beta_{10}^2 - \beta_{20}^2)$. As duas AI de cada $r$ usam a mesma semente (números aleatórios comuns).
+\begin{table}[H]\centering\small
+""" + tab_simples(r"caso & previsto: $\exp(\beta_{10}^2-\beta_{20}^2)$ & medido: $(\mathrm{CoV}_{10}/\mathrm{CoV}_{20})^2$",
+                  [f"{n} & {num(pv, 2)} & {num(md, 2)}" for n, pv, md in PREV], "lrr") + r"""
+\caption{A razão das variâncias das AI com o ponto de projeto de $M = 10$ e de $M = 20$.}
+\end{table}
+A ordem de grandeza confere: o $M = 20$ reduz a variância à metade. Com 1000 amostras, o próprio CoV tem cerca de 10\,\% de
+erro, e as razões medidas são compatíveis com as previstas.
 
 \section{Etapa 4: a referência da chuva}
 O caso é o f50 de Rahardjo a 31,05\,mm/h, com o FS só em 24\,h.
