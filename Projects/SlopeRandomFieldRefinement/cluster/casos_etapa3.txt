@@ -24,3 +24,12 @@ r07_ai_form20_s4  3  1000  rcphi=-0.7 fator=tri2 nref=4 desloc_xi=@SAIDA@/form_M
 r07_ai_form20_s5  3  1000  rcphi=-0.7 fator=tri2 nref=4 desloc_xi=@SAIDA@/form_M20/ustar.txt semente=5 ref=r07_direto
 r07_ai_banda_s4   3  1000  rcphi=-0.7 fator=tri2 nref=4 piloto=@SAIDA@/r07_direto piloto_n=1000 ai=banda banda=@SAIDA@/r07_direto/mc_real-1/mecanismo.csv semente=4
 chuva31_ai_s2     3  1000  prog=SlopeRainMonteCarlo solo=f50 I=IREF tempos=24 piloto=@SAIDA@/chuva31_24h piloto_n=1000 ai=banda banda=@SAIDA@/chuva31_24h/mc_real-1/mecanismo.csv banda_t=24 semente=2
+#
+# 16/11, noite: as AI do PC com sementes proprias (independentes da semente 3). Os pontos de projeto (FORM com o gradiente
+# modal, calculados no PC) e a base de Nystrom ficam em @SAIDA@/pontos (copiados do PC por rsync).
+piloto_tri1          3  1000  rcphi=-0.5 fator=tri1 nref=0
+ai_banda_tri1_s10    3  1000  rcphi=-0.5 fator=tri2 nref=4 piloto=@SAIDA@/piloto_tri1 piloto_n=1000 ai=banda banda=@SAIDA@/piloto_tri1/mc_real-1/mecanismo.csv semente=10
+ai_form100_modal_s6  3  1000  rcphi=-0.5 fator=tri2 nref=4 desloc_xi=@SAIDA@/pontos/ustar_M100_modal.txt semente=6
+ai_form200_modal_s7  3  1000  rcphi=-0.5 fator=tri2 nref=4 desloc_xi=@SAIDA@/pontos/ustar_M200_modal.txt semente=7
+ai_nys_form20_s8     3  1000  rcphi=-0.5 fator=tri2 nref=4 nystrom=@SAIDA@/pontos/base_nystrom.txt M=200 desloc_xi=@SAIDA@/pontos/ustar_nys_M20.txt semente=8
+ai_nys_form200_s9    3  1000  rcphi=-0.5 fator=tri2 nref=4 nystrom=@SAIDA@/pontos/base_nystrom.txt M=200 desloc_xi=@SAIDA@/pontos/ustar_nys_M200.txt semente=9
