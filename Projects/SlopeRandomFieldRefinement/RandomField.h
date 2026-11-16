@@ -11,6 +11,7 @@
 
 #include <array>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 class RandomField {
@@ -24,9 +25,22 @@ public:
     // (calculados uma vez); campos: media e CoV de cada campo
     RandomField(double x0, double y0, double Dx, double Dy, double Lx, double Ly, int M, const std::vector<Stats> &campos);
 
-    int M() const { return fKL.M(); }
+    int M() const { return fM; }
     int NCampos() const { return fLog.size(); }
-    double VarianceFraction() const { return fKL.fracao; } // variancia retida, media no retangulo
+    double VarianceFraction() const { return Nystrom() ? fNysFrac : fKL.fracao; } // variancia retida (media no dominio)
+
+    // Base de Nystrom no lugar da analitica (arquivo do Projects/Cho2010/nystrom_base.py: os nos de quadratura x, y, w, os
+    // autovalores e f_k nos nos): os M primeiros modos (M <= os do arquivo). O campo num ponto qualquer sai da interpolacao
+    // de Nystrom, Z(x) = sum_j C(x, x_j) a_j, com a_j = w_j sum_k xi_k f_k(x_j) / sqrt(lambda_k) calculado uma vez por
+    // realizacao. O kernel e o mesmo (Lx, Ly do construtor); o sorteio, o deslocamento e o peso nao mudam
+    void UseNystrom(const std::string &arquivo, int M);
+    bool Nystrom() const { return !fNysLam.empty(); }
+    // sqrt(lambda_k) f_k(x, y) dos K primeiros termos (K <= M; a mesma base em todos os campos): dZ/dxi_k no ponto
+    std::vector<double> ModeValues(double x, double y, int K) const;
+    double SigmaLn(int c) const { return fLog[c].sigma_ln; }
+    int CorrA() const { return fCorrA; }
+    int CorrB() const { return fCorrB; }
+    double Rho() const { return fRho; }
 
     // Sorteia a realizacao: uma sequencia normal padrao por campo, com semente derivada de (semente, realizacao, campo).
     // Com 3 campos, a mesma formula do SlopeFields do Common: a realizacao n e a mesma de la
@@ -68,4 +82,13 @@ private:
     std::vector<std::vector<double>> fMu; // deslocamento da media de cada campo (vazio: sem deslocamento)
     int fCorrA = -1, fCorrB = -1;         // correlacao cruzada entre os campos gaussianos fCorrA e fCorrB
     double fRho = 0.;
+    int fM = 0;                           // termos usados
+    double fLx = 1., fLy = 1.;            // distancias de autocorrelacao (o kernel do Nystrom)
+    // base de Nystrom (vazia: a analitica)
+    std::vector<std::array<double, 3>> fNysNos;           // x, y, peso
+    std::vector<double> fNysLam;                          // autovalores (fM)
+    std::vector<std::vector<double>> fNysF;               // f_k nos nos: [no][k]
+    double fNysFrac = 0.;                                  // sum lambda / area
+    mutable std::vector<std::vector<double>> fNysA;       // a_j de cada campo na realizacao atual
+    mutable bool fNysSujo = true;                          // os xi mudaram: refazer fNysA
 };

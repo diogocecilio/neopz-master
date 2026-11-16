@@ -16,7 +16,7 @@ Saida: <pasta>/form.json (beta, P_f = Phi(-beta), u*, alfa e alfa^2 por modo e p
 tela.
 
 Uso: python3 -I form_kl.py <exe Cho2010> <pasta de trabalho> [M=20] [rcphi=-0.5] [h=0.5] [paralelos=2] [iteracoes=10]
-     [fator=tri2] [nref=4] [srm_f0=0.8] [tol_g=0.001] [tol_beta=0.01] [gradiente=dif|modal]
+     [fator=tri2] [nref=4] [srm_f0=0.8] [tol_g=0.001] [tol_beta=0.01] [gradiente=dif|modal] [nystrom=<base>]
 gradiente=modal: uma analise por iteracao, com o gradiente pela projecao modal da sensibilidade de limite superior
 (Cho2010 gradiente=M), em vez das 4M + 1 das diferencas centrais."""
 import concurrent.futures as cf
@@ -30,7 +30,7 @@ import sys
 
 def parametros(argv):
     p = {"M": 20, "rcphi": -0.5, "h": 0.5, "paralelos": 2, "iteracoes": 10, "fator": "tri2", "nref": 4, "srm_f0": 0.8,
-         "tol_g": 0.001, "tol_beta": 0.01, "gradiente": "dif"}
+         "tol_g": 0.001, "tol_beta": 0.01, "gradiente": "dif", "nystrom": ""}
     for a in argv:
         k, v = a.split("=", 1)
         if k not in p:
@@ -51,7 +51,8 @@ class Problema:
         with open(arq, "w") as f:
             f.write("\n".join(repr(x) for x in u) + "\n")
         cmd = [self.exe, "n=1", "primeira=0", f"xi={arq}", f"M={self.p['M']}", f"rcphi={self.p['rcphi']}",
-               f"fator={self.p['fator']}", f"nref={self.p['nref']}", f"srm_f0={self.p['srm_f0']}", f"saida={rotulo}"]
+               f"fator={self.p['fator']}", f"nref={self.p['nref']}", f"srm_f0={self.p['srm_f0']}", f"saida={rotulo}"] + \
+              ([f"nystrom={self.p['nystrom']}"] if self.p["nystrom"] else [])
         env = dict(os.environ, PZ_THREADS="0", OMP_NUM_THREADS="1", MKL_NUM_THREADS="1")
         subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env, cwd=self.pasta)
         with open(os.path.join(self.pasta, rotulo + "_0_0.csv"), newline="") as f:
@@ -68,7 +69,7 @@ class Problema:
             f.write("\n".join(repr(x) for x in u) + "\n")
         cmd = [self.exe, "n=1", "primeira=0", f"xi={arq}", f"M={self.p['M']}", f"rcphi={self.p['rcphi']}",
                f"fator={self.p['fator']}", f"nref={self.p['nref']}", f"srm_f0={self.p['srm_f0']}",
-               f"gradiente={self.p['M']}", f"saida={rotulo}"]
+               f"gradiente={self.p['M']}", f"saida={rotulo}"] + ([f"nystrom={self.p['nystrom']}"] if self.p["nystrom"] else [])
         env = dict(os.environ, PZ_THREADS="0", OMP_NUM_THREADS="1", MKL_NUM_THREADS="1")
         subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env, cwd=self.pasta)
         v = [float(x) for x in open(os.path.join(self.pasta, rotulo + "_grad_0.txt")).read().split("\n")[1:] if x.strip()]

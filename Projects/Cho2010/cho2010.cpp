@@ -33,6 +33,8 @@
 //   linear (0), alfa ()    teste da amostragem SEM elementos finitos: com linear=beta e alfa=<arquivo> (2K numeros, os K de
 //                          c' e os K de phi', normalizados aqui), a falha e alfa . xi > beta, com P_f exata = Phi(-beta);
 //                          FS_min = exp(beta - alfa . xi). Usa o mesmo sorteio (semente, desloc_xi, piloto) e o mesmo peso
+//   nystrom (<arquivo>)    a base de Karhunen-Loeve de Nystrom do proprio talude (Projects/Cho2010/nystrom_base.py) no lugar
+//                          da analitica do retangulo: os M primeiros modos do arquivo (M <= os do arquivo)
 //   gradiente (0)          K > 0: depois do FS de cada realizacao, o gradiente dFS/dxi nos K primeiros termos de cada campo
 //                          pela projecao modal da sensibilidade de limite superior (Mohr-Coulomb associado) no estado de
 //                          colapso do SRM, sem novas analises: <saida>_grad_<real>.txt (FS e os 2K numeros, c' e phi')
@@ -107,6 +109,7 @@ struct Opcoes {
     bool det = false, gim = false;
     REAL srmF0 = 0.8;
     REAL linearBeta = 0.; // linear=: teste sem elementos finitos
+    std::string nystrom;   // nystrom=<arquivo>: a base de Nystrom (nystrom_base.py) no lugar da analitica
     int gradiente = 0;     // gradiente=K: o gradiente do FS pela projecao modal (limite superior), nos K primeiros termos
     std::string alfa;
     Campos campos;
@@ -131,7 +134,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
     const std::set<std::string> chaves = {"n",     "primeira", "det",   "valores", "metodo", "covc",     "covphi",
                                           "rcphi", "lh",       "lv",    "M",       "fator",  "nref",     "figuras",
                                           "saida", "semente",  "banda", "piloto",  "piloto_n", "piloto_semente",
-                                          "ai",    "elite",    "modos", "xi",       "desloc_xi", "srm_f0", "linear", "alfa", "gradiente"};
+                                          "ai",    "elite",    "modos", "xi",       "desloc_xi", "srm_f0", "linear", "alfa", "gradiente", "nystrom"};
     std::map<std::string, std::string> kv;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
@@ -172,6 +175,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
     if (tem("linear")) op.linearBeta = std::stod(kv["linear"]);
     if (tem("alfa")) op.alfa = kv["alfa"];
     if (tem("gradiente")) op.gradiente = std::stoi(kv["gradiente"]);
+    if (tem("nystrom")) op.nystrom = kv["nystrom"];
     if (op.linearBeta > 0. && op.alfa.empty()) {
         std::fprintf(stderr, "linear= precisa de alfa=<arquivo com 2K numeros>\n");
         std::exit(1);
@@ -577,27 +581,21 @@ std::vector<double> GradienteModal(Fator &f, RandomField &campos, int K, REAL F)
     }
     std::vector<double> g(2 * K, 0.);
     if (ps.empty() || !(std::abs(den) > 0.)) return g;
-    // dln(c')/dxi_j e dln(phi')/dxi_j por diferenca exata (lineares em xi): o campo com xi + e_j menos o campo com xi
-    const std::vector<std::vector<double>> xi0 = campos.Xi();
-    std::vector<double> lc0(ps.size()), lf0(ps.size());
+    // dln(c')/dxi e dln(phi')/dxi exatas: ln c' = mu_c + s_c Z_c e ln phi' = mu_f + s_f (rho Z_c + sqrt(1 - rho^2) Z_f),
+    // com dZ/dxi_k = sqrt(lambda_k) f_k(x) (ModeValues; as mesmas nas duas bases)
+    const double sc = campos.SigmaLn(0), sf = campos.SigmaLn(1);
+    const double rho = (campos.CorrA() == 0 && campos.CorrB() == 1) ? campos.Rho() : 0.;
+    const double r2 = std::sqrt(1. - rho * rho);
     for (size_t i = 0; i < ps.size(); i++) {
-        const std::vector<double> v = campos.At(ps[i].x, ps[i].y);
-        lc0[i] = std::log(v[0]), lf0[i] = std::log(v[1]);
-    }
-    for (int j = 0; j < 2 * K; j++) {
-        std::vector<std::vector<double>> xi = xi0;
-        xi[j < K ? 0 : 1][j % K] += 1.;
-        campos.SetXi(xi);
-        double soma = 0.;
-        for (size_t i = 0; i < ps.size(); i++) {
-            const std::vector<double> v = campos.At(ps[i].x, ps[i].y);
-            const double dlc = std::log(v[0]) - lc0[i], dlf = std::log(v[1]) - lf0[i];
-            const double sec2 = 1. / (std::cos(ps[i].phi) * std::cos(ps[i].phi));
-            soma += ps[i].w * (ps[i].gc / den * ps[i].c * dlc + ps[i].gt / den * sec2 * ps[i].phi * dlf);
+        const std::vector<double> mv = campos.ModeValues(ps[i].x, ps[i].y, K);
+        const double sec2 = 1. / (std::cos(ps[i].phi) * std::cos(ps[i].phi));
+        const double ac = ps[i].w * ps[i].gc / den * ps[i].c;          // dF/dln(c') do ponto
+        const double af = ps[i].w * ps[i].gt / den * sec2 * ps[i].phi; // dF/dln(phi') do ponto
+        for (int k = 0; k < K; k++) {
+            g[k] += (ac * sc + af * sf * rho) * mv[k];
+            g[K + k] += af * sf * r2 * mv[k];
         }
-        g[j] = soma;
     }
-    campos.SetXi(xi0);
     return g;
 }
 
@@ -673,6 +671,11 @@ int main(int argc, char *argv[])
     RandomField campos(p[0][0], p[0][1], p[1][0] - p[0][0], p[4][1] - p[0][1], cp.lh, cp.lv, cp.M,
                        {{res.c, cp.covC}, {res.phiDeg, cp.covPhi}}); // c' (kPa), phi' (graus)
     campos.SetCrossCorrelation(0, 1, cp.rcphi);
+    if (!op.nystrom.empty()) {
+        campos.UseNystrom(op.nystrom, cp.M);
+        std::printf("  base de Nystrom %s: %d termos, variancia retida %.3f\n", op.nystrom.c_str(), campos.M(),
+                    campos.VarianceFraction());
+    }
     const Campo campoAleatorio = [&campos](double x, double y) { return campos.At(x, y); };
     const Campo campoFixo = [v = op.valores](double, double) { return std::vector<double>(v.begin(), v.end()); };
     std::printf("Cho (2010), Exemplo 2: talude 1:1, H = 10 m, seco | %s com %s + %d niveis | realizacoes %d..%d%s\n"

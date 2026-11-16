@@ -249,10 +249,14 @@ diag = {}
 for nome, pasta_d, ustar, rc, n in (("r05", f"{E1}/r05_direto", f"{E1}/form_M20/ustar.txt", "-0.5", d05["n"]),
                                    ("r07", f"{E3}/r07_direto", f"{E3}/form_M20/ustar.txt", "-0.7", d07["n"])):
     os.makedirs(f"{tmp}/{nome}", exist_ok=True)
-    if not glob.glob(f"{tmp}/{nome}/mc_*_*.csv"):
+    n = max(le(pasta_d)) + 1  # o maior indice (os blocos em andamento deixam buracos)
+    lin = le(f"{tmp}/{nome}")
+    if len(lin) < n:  # o direto cresceu: refaz (sem elementos finitos, segundos)
+        for a_ in glob.glob(f"{tmp}/{nome}/mc_*"):
+            os.remove(a_)
         subprocess.run([CHO2010, f"n={n}", "linear=1", f"alfa={ustar}", f"rcphi={rc}", f"saida={tmp}/{nome}/mc"],
                        check=True, stdout=subprocess.DEVNULL)
-    lin = le(f"{tmp}/{nome}")
+        lin = le(f"{tmp}/{nome}")
     t = {k: 1 - math.log(float(r["FS_min"])) for k, r in lin.items()}
     dd = le(pasta_d)
     fal = [k for k, r in dd.items() if float(r["FS_min"]) < 1]
