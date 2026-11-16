@@ -16,7 +16,9 @@ Saida: <pasta>/form.json (beta, P_f = Phi(-beta), u*, alfa e alfa^2 por modo e p
 tela.
 
 Uso: python3 -I form_kl.py <exe Cho2010> <pasta de trabalho> [M=20] [rcphi=-0.5] [h=0.5] [paralelos=2] [iteracoes=10]
-     [fator=tri2] [nref=4] [srm_f0=0.8] [tol_g=0.001] [tol_beta=0.01]"""
+     [fator=tri2] [nref=4] [srm_f0=0.8] [tol_g=0.001] [tol_beta=0.01] [gradiente=dif|modal]
+gradiente=modal: uma analise por iteracao, com o gradiente pela projecao modal da sensibilidade de limite superior
+(Cho2010 gradiente=M), em vez das 4M + 1 das diferencas centrais."""
 import concurrent.futures as cf
 import csv
 import json
@@ -28,7 +30,7 @@ import sys
 
 def parametros(argv):
     p = {"M": 20, "rcphi": -0.5, "h": 0.5, "paralelos": 2, "iteracoes": 10, "fator": "tri2", "nref": 4, "srm_f0": 0.8,
-         "tol_g": 0.001, "tol_beta": 0.01}
+         "tol_g": 0.001, "tol_beta": 0.01, "gradiente": "dif"}
     for a in argv:
         k, v = a.split("=", 1)
         if k not in p:
@@ -58,7 +60,24 @@ class Problema:
             raise RuntimeError(f"{rotulo}: situacao {linha['situacao']}")
         return float(linha["FS_min"])
 
+    def g_modal(self, u, it):
+        """uma analise: o FS e o gradiente pela projecao modal (Cho2010 gradiente=M: limite superior no colapso do SRM)"""
+        rotulo = f"it{it}_centro"
+        arq = os.path.join(self.pasta, rotulo + ".xi")
+        with open(arq, "w") as f:
+            f.write("\n".join(repr(x) for x in u) + "\n")
+        cmd = [self.exe, "n=1", "primeira=0", f"xi={arq}", f"M={self.p['M']}", f"rcphi={self.p['rcphi']}",
+               f"fator={self.p['fator']}", f"nref={self.p['nref']}", f"srm_f0={self.p['srm_f0']}",
+               f"gradiente={self.p['M']}", f"saida={rotulo}"]
+        env = dict(os.environ, PZ_THREADS="0", OMP_NUM_THREADS="1", MKL_NUM_THREADS="1")
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env, cwd=self.pasta)
+        v = [float(x) for x in open(os.path.join(self.pasta, rotulo + "_grad_0.txt")).read().split("\n")[1:] if x.strip()]
+        self.n += 1
+        return v[0] - 1., v[1:], [v[0]]
+
     def g_e_gradiente(self, u, it):
+        if self.p["gradiente"] == "modal":
+            return self.g_modal(u, it)
         h = self.p["h"]
         pontos = [("centro", list(u))]
         for i in range(len(u)):

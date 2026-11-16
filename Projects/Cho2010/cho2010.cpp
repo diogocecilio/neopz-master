@@ -33,6 +33,9 @@
 //   linear (0), alfa ()    teste da amostragem SEM elementos finitos: com linear=beta e alfa=<arquivo> (2K numeros, os K de
 //                          c' e os K de phi', normalizados aqui), a falha e alfa . xi > beta, com P_f exata = Phi(-beta);
 //                          FS_min = exp(beta - alfa . xi). Usa o mesmo sorteio (semente, desloc_xi, piloto) e o mesmo peso
+//   gradiente (0)          K > 0: depois do FS de cada realizacao, o gradiente dFS/dxi nos K primeiros termos de cada campo
+//                          pela projecao modal da sensibilidade de limite superior (Mohr-Coulomb associado) no estado de
+//                          colapso do SRM, sem novas analises: <saida>_grad_<real>.txt (FS e os 2K numeros, c' e phi')
 //   xi (<arquivo>)         os xi dados, sem sorteio (um ponto do FORM: form_kl.py): 2M numeros, os M de c' e depois os M de
 //                          phi'; com n = 1, a realizacao primeira usa esses xi
 //   banda (<arquivo>)      mecanismo.csv de um deterministico: a direcao d dos xi e as projecoes proj_* no CSV
@@ -104,6 +107,7 @@ struct Opcoes {
     bool det = false, gim = false;
     REAL srmF0 = 0.8;
     REAL linearBeta = 0.; // linear=: teste sem elementos finitos
+    int gradiente = 0;     // gradiente=K: o gradiente do FS pela projecao modal (limite superior), nos K primeiros termos
     std::string alfa;
     Campos campos;
     std::string malhaF = "tri1", saida = "mc", banda, xi, deslocXi;
@@ -127,7 +131,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
     const std::set<std::string> chaves = {"n",     "primeira", "det",   "valores", "metodo", "covc",     "covphi",
                                           "rcphi", "lh",       "lv",    "M",       "fator",  "nref",     "figuras",
                                           "saida", "semente",  "banda", "piloto",  "piloto_n", "piloto_semente",
-                                          "ai",    "elite",    "modos", "xi",       "desloc_xi", "srm_f0", "linear", "alfa"};
+                                          "ai",    "elite",    "modos", "xi",       "desloc_xi", "srm_f0", "linear", "alfa", "gradiente"};
     std::map<std::string, std::string> kv;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
@@ -167,6 +171,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
     if (tem("srm_f0")) op.srmF0 = std::stod(kv["srm_f0"]);
     if (tem("linear")) op.linearBeta = std::stod(kv["linear"]);
     if (tem("alfa")) op.alfa = kv["alfa"];
+    if (tem("gradiente")) op.gradiente = std::stoi(kv["gradiente"]);
     if (op.linearBeta > 0. && op.alfa.empty()) {
         std::fprintf(stderr, "linear= precisa de alfa=<arquivo com 2K numeros>\n");
         std::exit(1);
@@ -507,6 +512,95 @@ const char *kCabecalho =
     "banda_ymin,banda_c,banda_phi_deg,massa_area_m2,massa_xc,massa_yc,massa_c,massa_phi_deg,c_med,phi_med,metodo,cov_c,"
     "cov_phi,r_cphi,lh,lv,KL_M,KL_variancia,log_peso,proj_c,proj_phi,proj_k\n";
 
+// ---- gradiente do FS pela projecao modal (equacao 14 do guia de estudo, estendida ao phi')
+// No colapso do SRM (c* = c'/F, tan(phi*) = tan(phi')/F), pelo limite superior com Mohr-Coulomb associado e o teorema do
+// envelope, a dissipacao D(eps_dot; c, phi) tem derivadas (f = (s1 - s3) + (s1 + s3) sin(phi) - 2 c cos(phi), tracao
+// positiva; eps_v = 2 mu sin(phi)):
+//   dD/dc   = eps_v cot(phi*)                                          (a equacao 14 do guia)
+//   dD/dphi = -(eps_v / (2 sin(phi*))) ((s1 + s3) cos(phi*) + 2 c* sin(phi*))
+// e, como a carga limite do peso e 1 no colapso (dF/dp = -(dL/dp)/(dL/dF)):
+//   dF/dc'(x)      = dD/dc / Den,   dF/dtan(phi')(x) = dD/dphi cos^2(phi*) / Den,
+//   Den = integral de (dD/dc c* + dD/dphi sin(phi*) cos(phi*))
+// A taxa eps_v do mecanismo e aproximada pelo traco da deformacao plastica no colapso (a escala se cancela). A projecao
+// nos modos: dF/dxi_j = soma_p w_p (dF/dc' c' dln(c')/dxi_j + dF/dtan(phi') sec^2(phi') phi' dln(phi')/dxi_j), com
+// dln/dxi exata (os campos sao lognormais: ln c' e ln phi' sao lineares em xi).
+std::vector<double> GradienteModal(Fator &f, RandomField &campos, int K, REAL F)
+{
+    UnsatModel<TUnsatHP> &m = *f.m;
+    TUnsatHP *mat = m.Material();
+    struct P {
+        REAL x, y, w, gc, gt; // gc = dF/dc'(x), gt = dF/dtan(phi')(x), por unidade de area
+        REAL c, phi;          // c' (kPa) e phi' (rad) do ponto
+    };
+    std::vector<P> ps;
+    REAL den = 0.;
+    for (TPZCompEl *cel : m.CompMesh()->ElementVec()) {
+        if (!cel || !cel->Reference() || cel->Reference()->MaterialId() != mat->Id()) continue;
+        TPZGeoEl *gel = cel->Reference();
+        auto *mf = dynamic_cast<TPZMultiphysicsElement *>(cel);
+        TPZManVector<int, 3> ordens(mf->NMeshes(), 0);
+        for (int i = 0; i < mf->NMeshes(); i++)
+            if (auto *sp = dynamic_cast<TPZInterpolationSpace *>(mf->Element(i))) ordens[i] = sp->MaxOrder();
+        const int o = mat->IntegrationRuleOrder(ordens);
+        std::unique_ptr<TPZIntPoints> regra(gel->CreateSideIntegrationRule(gel->NSides() - 1, o));
+        TPZManVector<int, 3> ordem(gel->Dimension(), o);
+        regra->SetOrder(ordem);
+        TPZManVector<int64_t> mem;
+        cel->GetMemoryIndices(mem);
+        for (int ip = 0; ip < regra->NPoints(); ip++) {
+            TPZManVector<REAL, 3> qsi(gel->Dimension()), x(3, 0.);
+            REAL w;
+            regra->Point(ip, qsi, w);
+            gel->X(qsi, x);
+            TPZFNMatrix<9, REAL> jac(2, 2), axes(2, 3), jacinv(2, 2);
+            REAL detjac;
+            gel->Jacobian(qsi, jac, axes, detjac, jacinv);
+            const TPZUnsaturatedMem &me = mat->MemItem(mem[ip]);
+            const auto &pr = me.m_elastoplastic_state.fmatprop;
+            if (pr.size() < 2) continue;
+            const TPZTensor<REAL> &ep = me.m_elastoplastic_state.m_eps_p;
+            const REAL ev = ep.XX() + ep.YY() + ep.ZZ();
+            if (!(ev > 0.)) continue; // ponto elastico (ou sem dilatancia): nao dissipa
+            const TPZTensor<REAL> &sg = me.m_sigma;
+            const REAL cen = 0.5 * (sg.XX() + sg.YY()), r = std::hypot(0.5 * (sg.XX() - sg.YY()), sg.XY());
+            const REAL s1 = std::max({cen + r, cen - r, sg.ZZ()}), s3 = std::min({cen + r, cen - r, sg.ZZ()});
+            const REAL c = pr[0], phi = pr[1];
+            const REAL cs = c / F, phs = std::atan(std::tan(phi) / F);
+            const REAL dDc = ev / std::tan(phs);
+            const REAL dDp = -(ev / (2. * std::sin(phs))) * ((s1 + s3) * std::cos(phs) + 2. * cs * std::sin(phs));
+            P p;
+            p.x = x[0], p.y = x[1], p.w = w * std::abs(detjac), p.c = c, p.phi = phi;
+            p.gc = dDc, p.gt = dDp * std::cos(phs) * std::cos(phs);
+            den += p.w * (dDc * cs + dDp * std::sin(phs) * std::cos(phs));
+            ps.push_back(p);
+        }
+    }
+    std::vector<double> g(2 * K, 0.);
+    if (ps.empty() || !(std::abs(den) > 0.)) return g;
+    // dln(c')/dxi_j e dln(phi')/dxi_j por diferenca exata (lineares em xi): o campo com xi + e_j menos o campo com xi
+    const std::vector<std::vector<double>> xi0 = campos.Xi();
+    std::vector<double> lc0(ps.size()), lf0(ps.size());
+    for (size_t i = 0; i < ps.size(); i++) {
+        const std::vector<double> v = campos.At(ps[i].x, ps[i].y);
+        lc0[i] = std::log(v[0]), lf0[i] = std::log(v[1]);
+    }
+    for (int j = 0; j < 2 * K; j++) {
+        std::vector<std::vector<double>> xi = xi0;
+        xi[j < K ? 0 : 1][j % K] += 1.;
+        campos.SetXi(xi);
+        double soma = 0.;
+        for (size_t i = 0; i < ps.size(); i++) {
+            const std::vector<double> v = campos.At(ps[i].x, ps[i].y);
+            const double dlc = std::log(v[0]) - lc0[i], dlf = std::log(v[1]) - lf0[i];
+            const double sec2 = 1. / (std::cos(ps[i].phi) * std::cos(ps[i].phi));
+            soma += ps[i].w * (ps[i].gc / den * ps[i].c * dlc + ps[i].gt / den * sec2 * ps[i].phi * dlf);
+        }
+        g[j] = soma;
+    }
+    campos.SetXi(xi0);
+    return g;
+}
+
 struct Linha {
     int real = 0;
     REAL fs = 0.;
@@ -689,6 +783,12 @@ int main(int argc, char *argv[])
         if (!(l.fs > 0.)) l.situacao = "fator";
         for (size_t i = 0; i < niveis.size(); i++) l.niveis += (i ? ";" : "") + std::to_string(niveis[i]).substr(0, 7);
         l.mec = DescreveMecanismo(f);
+        if (op.gradiente > 0 && !deterministico) {
+            const std::vector<double> gr = GradienteModal(f, campos, std::min(op.gradiente, campos.M()), l.fs);
+            std::ofstream gf(op.saida + "_grad_" + std::to_string(n) + ".txt");
+            gf << std::setprecision(10) << "# FS e o gradiente dFS/dxi (os K de c' e os K de phi'), projecao modal\n" << l.fs << "\n";
+            for (double x : gr) gf << x << "\n";
+        }
         if (op.figuras.count(n)) { // o mecanismo e os campos num reticulado de 0,5 m
             const std::string pasta = op.saida + "_real" + std::to_string(n);
             mkdir(pasta.c_str(), 0775);
