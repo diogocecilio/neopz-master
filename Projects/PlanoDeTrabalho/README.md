@@ -28,6 +28,7 @@ crítica estatística e uma de custo) e a decisão de rodar tudo no fermi.
 | 1 | SRM corrigido (`srm_f0` = 0,8): o antigo contra o novo nas mesmas realizações, no Cho2010 e na chuva | campanha `etapa1` | rodando | `ETAPA1/` |
 | 2 | FORM com M = 10, 20, 50 e 100 termos por campo; AI pelo ponto de projeto | 4 FORM em paralelo e uma campanha | depois da 1 | `ETAPA2/` |
 | 2b | Base de Nyström contra a analítica: β(M), ganho da AI e direto de referência próprio | uma campanha e FORM | junto com a 2 | `ETAPA2/` |
+| 2c | Gradiente do FORM pela projeção modal (sensibilidade no colapso do SRM), validado contra as diferenças centrais | FORM | junto com a 2 | `ETAPA2/` |
 | 3 | AI pela entropia cruzada: tamanho do piloto e P_f menor (r = −0,7) | uma campanha | depois da 2 | `ETAPA3/` |
 | 4 | Validar FORM e AI na chuva (f50, FS em 24 h) | código novo e uma campanha | depois da 3 | `ETAPA4/` |
 | 5 | Investigar a chuva: P_f(t), fragilidade P_f(I), solos, k e duração | campanhas | depois da 4 | `ETAPA5/` |
@@ -117,6 +118,34 @@ núcleo, ou 6 a 7 h em 4 nós. O primeiro nó roda antes os FORM com M = 10 e 20
   - ganho da AI pelo ponto de projeto, pela banda e pelos primeiros modos.
 - **Critério:** as duas bases dão a mesma P_f, dentro do erro dos diretos; a melhor é a de menor custo total para um CoV
   alvo, com o FORM incluído.
+
+### Etapa 2c: o gradiente do FORM pela projeção modal
+
+- **O problema:** o `form_kl.py` calcula o gradiente por diferenças centrais (h = 0,5), com 4M + 1 análises do SRM por
+  iteração (121 com M = 30). Os termos fracos (|∂FS/∂u| de 0,001 a 0,003) ficam dominados pelo ruído do FS (~0,001), e a
+  direção sai torta: a do M = 10 fica a 17,6° da do M = 20.
+- **Por que importa:** o teste linear (etapa 2) mostrou que a AI com o deslocamento fora de direção sai baixa, com −3%,
+  −5% e −9% para β = 2, 3 e 4. Uma direção mais certa melhora a AI pelo FORM, justo onde a P_f é pequena.
+- **A ideia:** no colapso, o FS do SRM é um ponto limite, e a sua derivada usa só o modo de colapso φ, o incremento do
+  último passo do arco. Com fluxo associado (o caso do Cho2010), a tangente é simétrica:
+  ∂FS/∂ξₖ = − (φᵀ ∂R/∂ξₖ) / (φᵀ ∂R/∂F).
+  - ∂R/∂F já é calculado no caminho de F (`ReductionLoad`).
+  - ∂R/∂ξₖ é a variação do resíduo quando o termo k da KL muda c′ e φ′ nos pontos de integração, com os deslocamentos
+    congelados: uma montagem por termo, sem resolver nada.
+  - É a projeção da sensibilidade nos modos, que o guia de estudo descreve (seção do FORM com a KL).
+- **Custo por gradiente:** 1 análise do SRM e 2M montagens do resíduo, contra 4M + 1 análises. Fica viável até com os 2000
+  termos de cada campo, e sem o ruído das diferenças.
+- **Implementação, sem mexer no material não saturado:**
+  1. o `UnsatAnalysis` guarda o modo de colapso φ e ∂R/∂F no fim do `SRMArcLength`;
+  2. o Cho2010 ganha a opção `gradiente=`, que monta ∂R/∂ξₖ por diferença no resíduo, com o campo perturbado no termo k;
+  3. o `form_kl.py` ganha a opção de pedir o gradiente ao programa, em vez das diferenças centrais.
+- **Validação:**
+  - no ponto de projeto do M = 10 e do M = 20 (r = −0,5), comparar o gradiente modal com o das diferenças centrais, que
+    já está no `form.json`. Os termos fortes (φ′₀, φ′₂, c′₀) têm de bater a menos de 5%;
+  - o FORM com o gradiente modal tem de dar o mesmo β, com a mesma tolerância;
+  - depois, FORM com M = 30, 100 e 2000, a curva β(M) e a AI com cada ponto.
+- **Limitação:** é uma aproximação de análise limite. Ela ignora a dependência do caminho elastoplástico, que a validação
+  mede.
 
 ### Etapa 3: AI pela entropia cruzada
 
