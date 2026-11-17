@@ -151,12 +151,12 @@ tivesse. Se a densidade de amostragem quase não visita uma parte da região de 
 ponto de projeto), a estimativa sai quase sempre baixa, e o CoV estimado fica menor que o verdadeiro. O direto permite
 testar isso sem nenhuma análise nova (\path{Projects/Cho2010/diagnostico_ai.py}):
 \begin{enumerate}
-  \item \textbf{Os $\bm y$ de cada realização} saem de uma cópia do gerador do \texttt{RandomField} em Python
-    (xoshiro256** e Box--Muller, uma semente por realização e campo). A cópia confere com o peso de cada amostra de cada
+  \item \textbf{Os $\bm\xi$ de cada realização} saem de uma cópia, em Python, do gerador do \texttt{RandomField}:
+    xoshiro256** e Box--Muller, com uma semente por realização e campo. A cópia confere com o peso de cada amostra de cada
     AI (erro $\le 5\times10^{-9}$). Junto com a KL analítica em Python, ela
     também confere com o campo que o programa grava (diferença $\le 5\times10^{-6}$, a precisão do CSV).
   \item \textbf{Modo de ruptura fora da AI.} As 408 falhas do direto, projetadas na direção
-    do ponto de projeto ($t = \bm y\cdot\bm y^*/\beta$), ficam todas onde a AI amostra (Figura~\ref{fig:vies_t}). Na direção
+    do ponto de projeto ($t = \bm\xi\cdot\bm\xi^*/\beta$), ficam todas onde a AI amostra (Figura~\ref{fig:vies_t}). Na direção
     modal, o menor $t$ é 0{,}80, e só 3 falhas ficam abaixo de
     1,5. A variância verdadeira de cada AI sai do direto pela identidade $E_h[I w^2] = E_\varphi[I w]$, com as falhas do
     direto, e é a que a AI estima (``CoV verd.'' na Tabela~\ref{tab:vies05}): 6{,}2\,\% contra 6{,}9\,\% no modal $M = 100$. Só a direção errada da Tri(0)
@@ -173,7 +173,7 @@ testar isso sem nenhuma análise nova (\path{Projects/Cho2010/diagnostico_ai.py}
     (CoV de 2{,}4\,\%), o equivalente a 104\,015 realizações.
 \end{enumerate}
 \begin{figure}[H]\centering\includegraphics[width=\textwidth]{figs/vies_t.pdf}
-\caption{A chance de falha do direto em cada faixa de $t = \bm y\cdot\bm y^*/\beta$ (barras) e as densidades de $t$ no
+\caption{A chance de falha do direto em cada faixa de $t = \bm\xi\cdot\bm\xi^*/\beta$ (barras) e as densidades de $t$ no
 direto e na AI (curvas, em escala). A AI amostra toda a região onde o direto falha.}\label{fig:vies_t}\end{figure}
 \begin{table}[H]\centering\small
 \resizebox{\ifdim\width>\textwidth\textwidth\else\width\fi}{!}{%
@@ -245,6 +245,70 @@ FORM $M = 20$, dif. centrais & KL & 5 & 1000 & 0{,}380 & 8{,}4 & 7{,}6 & 2{,}20 
   \item As repetições da fase 4 no fermi fecham a questão: 10 sementes do FORM modal analítico e 10 do de Nyström, com as
     mesmas sementes nas duas bases. Elas dão a distribuição do estimador.
   \item A variável de controle é um ganho à parte, sem custo: de 1{,}7 a 3{,}2 vezes menos realizações nas AI e 4{,}3 no direto.
+\end{itemize}
+
+\subsection{A variável de controle com o que se tem na prática}\label{sec:cvlocal}
+O diagnóstico da Seção~\ref{sec:vies} ajusta o substituto (formulação, Seção~\ref{F-sec:controle}) no direto inteiro, que
+não existe num problema real: se existisse, a AI não faria falta. O teste com o que se tem na prática
+(\path{Projects/Cho2010/teste_controle.py}, no PC, sem análises novas):
+\begin{enumerate}
+  \item \textbf{O direto em lotes.} As 24\,000 realizações do direto de
+    $r = -0{,}5$ em 24 lotes de 1000 (o tamanho de uma
+    AI). Em cada lote, a $P$ do lote e a $P_{cv}$ com o substituto ajustado só no próprio lote (5 dobras, $K$ termos por
+    campo) ou fora dele (o ideal, $K = 200$). O desvio entre os lotes é o verdadeiro (Tabela~\ref{tab:cvlotes}).
+  \item \textbf{As AI}, com o substituto ajustado na própria amostra de 1000 (5 dobras, $K = 50$) e, para comparar, no
+    direto inteiro (Tabela~\ref{tab:cvai}).
+\end{enumerate}
+\begin{table}[H]\centering\small
+\resizebox{\ifdim\width>\textwidth\textwidth\else\width\fi}{!}{%
+\begin{tabular}{lrrrrr}
+\toprule
+Estimador & média (\%) & desvio verdadeiro (\%) & desvio estimado (\%) & ganho & $\rho$ \\
+\midrule
+P & 1{,}700 & 0{,}438 & 0{,}409 & 1{,}00 & --- \\
+próprio lote, $K$ = 10 & 1{,}677 & 0{,}347 & 0{,}293 & 1{,}60 & 0{,}68 \\
+próprio lote, $K$ = 20 & 1{,}673 & 0{,}299 & 0{,}250 & 2{,}14 & 0{,}78 \\
+próprio lote, $K$ = 50 & 1{,}712 & 0{,}265 & 0{,}223 & 2{,}74 & 0{,}83 \\
+fora do lote, $K$ = 200 & 1{,}698 & 0{,}260 & 0{,}192 & 2{,}84 & 0{,}87 \\
+\bottomrule
+\end{tabular}}
+\caption{O direto de $r = -0{,}5$ em lotes de 1000. O ganho é a razão das variâncias entre os
+lotes. A $P_f$ do direto inteiro é 1{,}700\,\%.}\label{tab:cvlotes}
+\end{table}
+\begin{table}[H]\centering\small
+\resizebox{\ifdim\width>\textwidth\textwidth\else\width\fi}{!}{%
+\begin{tabular}{lrrrr}
+\toprule
+AI ($r = -0{,}5$) & semente & $P$ (\%) & própria amostra, $K = 50$ (\%) & substituto do direto (\%) \\
+\midrule
+FORM $M = 10$, dif. centrais & 3 & 1{,}537 $\pm$ 0{,}135 & 1{,}644 $\pm$ 0{,}110 & 1{,}659 $\pm$ 0{,}075 \\
+FORM $M = 20$, dif. centrais & 3 & 1{,}535 $\pm$ 0{,}097 & 1{,}609 $\pm$ 0{,}077 & 1{,}599 $\pm$ 0{,}069 \\
+FORM $M = 20$, dif. centrais & 4 & 1{,}725 $\pm$ 0{,}102 & 1{,}626 $\pm$ 0{,}073 & 1{,}636 $\pm$ 0{,}069 \\
+FORM $M = 20$, dif. centrais & 5 & 1{,}896 $\pm$ 0{,}115 & 1{,}777 $\pm$ 0{,}090 & 1{,}761 $\pm$ 0{,}081 \\
+FORM modal $M = 100$ & 3 & 1{,}574 $\pm$ 0{,}109 & 1{,}621 $\pm$ 0{,}092 & 1{,}604 $\pm$ 0{,}081 \\
+FORM modal $M = 200$ & 3 & 1{,}570 $\pm$ 0{,}106 & 1{,}614 $\pm$ 0{,}090 & 1{,}604 $\pm$ 0{,}080 \\
+FORM modal $M = 200$, campo de 200 termos & 3 & 1{,}562 $\pm$ 0{,}105 & 1{,}611 $\pm$ 0{,}088 & 1{,}595 $\pm$ 0{,}080 \\
+FORM modal $M = 100$ & 6 & 1{,}664 $\pm$ 0{,}096 & 1{,}653 $\pm$ 0{,}068 & 1{,}646 $\pm$ 0{,}068 \\
+FORM modal $M = 200$ & 7 & 1{,}782 $\pm$ 0{,}106 & 1{,}709 $\pm$ 0{,}084 & 1{,}746 $\pm$ 0{,}081 \\
+direção da Tri(0), $M = 100$ & 3 & 1{,}362 $\pm$ 0{,}126 & 1{,}381 $\pm$ 0{,}115 & 1{,}567 $\pm$ 0{,}084 \\
+FORM modal $M = 20$ (Nyström) & 3 & 1{,}570 $\pm$ 0{,}097 & 1{,}671 $\pm$ 0{,}067 & 1{,}625 $\pm$ 0{,}061 \\
+FORM modal $M = 200$ (Nyström) & 3 & 1{,}527 $\pm$ 0{,}092 & 1{,}637 $\pm$ 0{,}069 & 1{,}600 $\pm$ 0{,}064 \\
+\bottomrule
+\end{tabular}}
+\caption{As AI de $r = -0{,}5$ com a variável de controle: o substituto ajustado na própria amostra (5 dobras, $K = 50$
+por campo) e no direto inteiro (o ideal). A semente 3 é a mesma em várias linhas.}\label{tab:cvai}
+\end{table}
+\begin{itemize}
+  \item \textbf{Sem viés:} as médias dos lotes ficam todas perto da $P_f$ do direto inteiro.
+  \item \textbf{O ganho realista depende de $K$:} 1{,}6 com $K = 10$, 2{,}1 com $K = 20$, 2{,}7 com $K = 50$,
+    contra 2{,}8 do ideal. Com 800 realizações por ajuste, os $2K + 1 = 101$
+    coeficientes de $K = 50$ ainda cabem.
+  \item \textbf{O desvio estimado da $P_{cv}$ sai menor que o verdadeiro} (de 15 a 26\,\%), enquanto o da
+    $P$ bate. Com 24 lotes, o desvio verdadeiro tem uma incerteza de ≈15\,\%:
+    a confirmar com as 10 sementes da fase 4. Até lá, o desvio da $P_{cv}$ é otimista.
+  \item \textbf{Nas AI,} o substituto da própria amostra dá ganho de 1{,}4 a 2{,}1, contra 1{,}7 a 3{,}2 com o
+    do direto. A direção errada da Tri(0) não se corrige com o substituto da própria amostra: ele só vê a região que a AI
+    amostra.
 \end{itemize}
 
 \subsection{Comparação das bases com a mesma variância}
@@ -323,7 +387,7 @@ $\beta$ & $P_f$ exata & direto ($10^6$) & AI na direção exata & AI a 17{,}6$^\
 4 & 3.167e-05 & --- & \textcolor{azul}{\textbf{1{,}0\,\% (0{,}4)}} & \textcolor{verm}{\textbf{-9{,}1\,\% (-2{,}6)}} \\
 \bottomrule
 \end{tabular}}
-\caption{Falha quando $\bm e\cdot\bm y > \beta$, com $\bm e$ unitário e $P_f = \Phi(-\beta)$ exata. Erro relativo, com o erro em desvios entre parênteses.}
+\caption{Falha quando $\bm e\cdot\bm\xi > \beta$, com $\bm e$ unitário e $P_f = \Phi(-\beta)$ exata. Erro relativo, com o erro em desvios entre parênteses.}
 \end{table}
 Com o deslocamento na direção exata, a AI acerta até $3\times10^{-5}$. Com a direção um pouco errada, ela sai baixa, e
 mais baixa quando $\beta$ cresce.
@@ -332,6 +396,11 @@ mais baixa quando $\beta$ cresce.
 \begin{itemize}
   \item \textbf{Validação do gradiente modal} nos pontos de projeto do fermi: ele fica a 9,6$^\circ$ ($M = 10$) e
     8,9$^\circ$ ($M = 20$) do gradiente das diferenças centrais, e o termo dominante ($\varphi'_0$) bate a menos de 4\,\%.
+  \item \textbf{O gradiente modal do GIM} (\path{Projects/Cho2010/valida_gradiente.py}), no PC: fica a 3{,}1$^\circ$ das diferenças centrais em $\bm\xi = \bm 0$ ($\Gamma = 1{,}616$) e a 5{,}5$^\circ$ no ponto de projeto
+    do SRM com $M = 10$, onde o modal do SRM fica a 11{,}2$^\circ$. O termo
+    dominante ($\varphi'_0$) sai 0{,}2 e 5{,}8\,\% acima. Nesse ponto, $\Gamma = 0{,}998$, e as diferenças centrais do GIM e do SRM ficam a 2{,}7$^\circ$ uma da outra: as duas são normais à mesma superfície de falha ($\Gamma < 1$ se e só se
+    $\mathrm{FS} < 1$). O FORM do GIM com o gradiente modal converge em 5 análises: $\beta = 2{,}134$ ($M = 10$), $2{,}026$ ($M = 20$) e $1{,}985$ ($M = 100$), mais perto das diferenças centrais
+    do SRM (2,115 e 2,012) que o modal do SRM (Tabela~\ref{tab:form}).
 \end{itemize}
 \begin{table}[H]\centering\small
 \resizebox{\ifdim\width>\textwidth\textwidth\else\width\fi}{!}{%
@@ -346,8 +415,8 @@ $M$ & variância retida (Nyström) & $\beta$ analítica & $\beta$ Nyström & an�
 200 & 0{,}970 & 1{,}999 & 1{,}999 & 3 \\
 \bottomrule
 \end{tabular}}
-\caption{$\beta$ do FORM com o gradiente modal na malha usual. Com diferenças centrais: 2,115 ($M = 10$, 123 análises) e
-2,012 ($M = 20$, 243).}
+\caption{$\beta$ do FORM do SRM com o gradiente modal na malha usual. Com diferenças centrais: 2,115 ($M = 10$, 123
+análises) e 2,012 ($M = 20$, 243).}\label{tab:form}
 \end{table}
 \begin{figure}[H]\centering\includegraphics[width=0.6\textwidth]{figs/beta_M.pdf}\caption{$\beta(M)$: a base de
 Nyström converge com menos termos.}\end{figure}
@@ -367,7 +436,7 @@ Com o gradiente modal (formulação, Seção~\ref{F-sec:form}), o FORM converge 
     em $\varphi'$; os maiores termos são $\varphi'_{1}$ (0{,}40), $\varphi'_{2}$ (0{,}31), $\varphi'_{9}$ (0{,}08). Os 10 primeiros somam 0{,}95.
 \end{itemize}
 Os coeficientes são outros, mas o ponto é o mesmo. Levado para as coordenadas de Nyström por $T$, o ponto analítico
-tem $|\bm u| = 1{,}993$ e fica a 3{,}2$^\circ$ do de
+tem $|\bm\xi| = 1{,}993$ e fica a 3{,}2$^\circ$ do de
 Nyström. O campo mais provável de ruptura é uma camada fraca horizontal sob a face do talude:
 \begin{itemize}
   \item $\varphi'$ mínimo de 23,4$^\circ$ em $y \approx 6{,}6$\,m, 1,6\,m acima do pé;
@@ -399,7 +468,7 @@ AI pela banda, semente 2 & 1000 & 5{,}74 & \textcolor{verm}{\textbf{8{,}2}} & \t
   \item A AI não tem viés com qualquer deslocamento fixado antes; o deslocamento só muda a variância (teste linear e Ceron).
   \item O SRM antigo tinha um buraco logo abaixo de FS = 1; o efeito na $P_f$ é pequeno.
   \item \textbf{Há um só modo de ruptura} no Cho2010, nas duas bases: todas as falhas do direto ficam onde a AI pelo
-    FORM amostra ($t = \bm y\cdot\bm y^*/\beta \ge 0{,}80$ na direção modal, com só
+    FORM amostra ($t = \bm\xi\cdot\bm\xi^*/\beta \ge 0{,}80$ na direção modal, com só
     3 das 408 abaixo de 1,5;
     $t \ge 2{,}20$ com $r = -0{,}7$), e a variância verdadeira da AI,
     calculada pelas falhas do direto, é a que a AI estima (Seção~\ref{sec:vies}). A banda de ruptura das falhas é a mesma
@@ -414,8 +483,8 @@ AI pela banda, semente 2 & 1000 & 5{,}74 & \textcolor{verm}{\textbf{8{,}2}} & \t
   \item \textbf{O piloto pode rodar em malha grossa:} o elite é escolhido por ordem, e a ordem das realizações quase não
     muda. Com o piloto na Tri(0) (300 vezes mais barata), a AI pela banda acertou o direto ($-0{,}2$ desvio), com o mesmo
     CoV do piloto na malha usual. Tri(1) e Tri(2) também estão nas tabelas.
-  \item \textbf{O gradiente modal dá a direção do FORM com 1 análise,} a menos de ≈9$^\circ$ das diferenças centrais, e o
-    FORM converge em 3 análises.
+  \item \textbf{O gradiente modal dá a direção do FORM com 1 análise,} a menos de ≈9 a 11$^\circ$ das diferenças centrais
+    no SRM e de 3 a 6$^\circ$ no GIM, e o FORM converge em 3 a 5 análises.
   \item \textbf{A base de Nyström precisa de menos termos} que a analítica para o mesmo $\beta$.
   \item \textbf{A AI pelo FORM não tem viés} ($r = -0{,}5$), nas duas bases (Seção~\ref{sec:vies}). Com a semente 3, as AI saem todas em ≈1,55\,\% (os sorteios são os mesmos). As 5 sementes independentes da KL dão, em média, 1{,}728\,\% contra 1{,}700\,\% do direto e, com a variável de controle, 1{,}679 $\pm$ 0{,}034\,\% contra 1{,}705 $\pm$ 0{,}040\,\% ($-0{,}5$ desvio). A direção errada da Tri(0) é a única que subestima o próprio CoV (9{,}3 contra 12{,}3\,\%); com o CoV verdadeiro, o seu desvio cai de $-2{,}2$ para $-1{,}5$.
   \item \textbf{A AI pelo FORM com $r = -0{,}7$ também não tem viés detectável:} as sementes 3, 4 e 5, corrigidas, dão 0{,}351, 0{,}333, 0{,}364\,\%, contra 0{,}380 $\pm$ 0{,}025\,\% do direto corrigido (25\,000 realizações, 93 falhas): $-1{,}0$ desvio.
@@ -441,8 +510,12 @@ AI pela banda, semente 2 & 1000 & 5{,}74 & \textcolor{verm}{\textbf{8{,}2}} & \t
     bases. Dão a distribuição do estimador e fecham a questão do viés (Seção~\ref{sec:vies}).
   \item \textbf{Etapa 4:} o FORM com gradiente modal e a AI pelo ponto de projeto na chuva, contra o direto de 10\,000
     (terminando no fermi).
-  \item \textbf{Variável de controle} nas AI pela banda e na chuva. Para o artigo da AI: o ganho contra o custo total
-    (FORM, piloto e controle), de $P_f \approx 2\,\%$ a $0{,}4\,\%$.
+  \item \textbf{Variável de controle realista} (Seção~\ref{sec:cvlocal}): o substituto ajustado na própria amostra
+    ($K = 50$, 5 dobras) em todas as AI, inclusive pela banda e na chuva; conferir o desvio estimado com as 10 sementes da
+    fase 4. Para o artigo da AI: o ganho contra o custo total (FORM, piloto e controle), de $P_f \approx 2\,\%$ a
+    $0{,}4\,\%$.
+  \item \textbf{O FORM da chuva pelo GIM?} O gradiente modal do GIM é mais preciso que o do SRM (5,5 contra
+    11,2$^\circ$ no mesmo ponto), e a região de falha é a mesma. Testar se vale na chuva, com as pressões do transiente.
 \end{enumerate}
 
 \section{Mapa dos documentos}\label{sec:mapa}
@@ -463,7 +536,7 @@ Documento & p. & O que tem \\
 \path{docs/talude_srm/slope_mohr_coulomb/nota_uqp.pdf} & 6 & nota: formulação de três campos u--q--p \\
 \path{docs/talude_srm/fs_arc_length/relatorio_fs.pdf} & 34 & FS de talude não saturado sob chuva: SRM e GIM com e sem arc-length, sensibilidade e parâmetros \\
 \multicolumn{3}{p{0.96\textwidth}}{\textbf{Formulação: campos aleatórios, FORM e amostragem por importância (docs/confiabilidade\_campos)}} \\
-\path{docs/confiabilidade_campos/formulacao/formulacao.pdf} & 4 & o modelo, as duas bases de Karhunen--Loève (analítica e Nyström) e a mudança de base, o Monte Carlo, a AI, a variável de controle e o FORM com o gradiente modal \\
+\path{docs/confiabilidade_campos/formulacao/formulacao.pdf} & 20 & o modelo, as duas bases de Karhunen--Loève (analítica e Nyström) e a mudança de base, o Monte Carlo, a AI, a variável de controle e o FORM com o gradiente modal (SRM e GIM); no apêndice, um exemplo de uma variável em Mathematica (exemplo\_1d.wl) \\
 \path{docs/confiabilidade_campos/implementacao_form_ai/implementacao_form_ai.pdf} & 5 & como o FORM e a AI foram implementados no NeoPZ \\
 \path{docs/confiabilidade_campos/ai_nystrom/ai_nystrom.pdf} & 5 & AI com a KL de Nyström, um roteiro testado em Mathematica \\
 \path{docs/confiabilidade_campos/confiabilidade/confiabilidade.pdf} & 19 & FORM, Monte Carlo e AI em variáveis: a revisão de um código Mathematica e um talude infinito sob chuva (os números saem de Projects/Confiabilidade) \\

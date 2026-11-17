@@ -243,7 +243,7 @@ Regras:
 
 | Documento | Páginas | O que tem |
 |---|---:|---|
-| `docs/confiabilidade_campos/formulacao/formulacao.pdf` | 15 | o modelo, as duas bases de Karhunen–Loève (analítica e Nyström) e a mudança de base, o Monte Carlo, a AI, a variável de controle e o FORM com o gradiente modal |
+| `docs/confiabilidade_campos/formulacao/formulacao.pdf` | 20 | o modelo, as duas bases de Karhunen–Loève (analítica e Nyström) e a mudança de base, o Monte Carlo, a AI, a variável de controle e o FORM com o gradiente modal (SRM e GIM); no apêndice, um exemplo de uma variável em Mathematica (exemplo_1d.wl) |
 | `docs/confiabilidade_campos/implementacao_form_ai/implementacao_form_ai.pdf` | 5 | como o FORM e a AI foram implementados no NeoPZ |
 | `docs/confiabilidade_campos/ai_nystrom/ai_nystrom.pdf` | 5 | AI com a KL de Nyström, um roteiro testado em Mathematica |
 | `docs/confiabilidade_campos/confiabilidade/confiabilidade.pdf` | 19 | FORM, Monte Carlo e AI em variáveis: a revisão de um código Mathematica e um talude infinito sob chuva (os números saem de Projects/Confiabilidade) |
@@ -255,7 +255,7 @@ Regras:
 | Documento | Páginas | O que tem |
 |---|---:|---|
 | `Projects/PlanoDeTrabalho/README.md` |  | o plano de trabalho (etapas 0 a 5, 2b e 2c), as regras dos documentos e este índice |
-| `Projects/PlanoDeTrabalho/situacao/situacao.pdf` | 12 | a situação: o plano, os resultados, as hipóteses e os próximos passos (o consolidado) |
+| `Projects/PlanoDeTrabalho/situacao/situacao.pdf` | 13 | a situação: o plano, os resultados, as hipóteses e os próximos passos (o consolidado) |
 | `Projects/PlanoDeTrabalho/ETAPA0/relatorio_etapa0.pdf` | 9 | etapa 0: a AI da chuva no fermi e a prévia do Cho2010 (SRM antigo; superado pelo das etapas 1 a 3) |
 | `Projects/PlanoDeTrabalho/ETAPAS1a3/relatorio_etapas.pdf` | 6 | etapas 1 a 3: SRM corrigido, FORM e AI, P_f pequena, teste linear, piloto e custo |
 | `Projects/PlanoDeTrabalho/arquivo/` |  | cópias datadas (AAAA-MM-DD_nome.pdf), nunca editadas: 2026-11-17_relatorio_parcial.pdf |
