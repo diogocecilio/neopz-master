@@ -34,13 +34,45 @@ d05, a05, d07, a07, dch, ach = E["d05"], E["a05"], E["d07"], E["a07"], E["dch"],
 # rodadas do PC: AI com o piloto e o FORM na malha Tri(0) e com o gradiente modal
 G = f"{RUNS}/cho2010/grossa/campanha"
 pc = []
-for c, rot in (("ai_banda_tri0", "AI pela banda, piloto na Tri(0)"), ("ai_form100_tri0", "AI pelo FORM $M = 100$, direção da Tri(0)"),
-               ("ai_form100_modal", "AI pelo FORM $M = 100$, gradiente modal"),
-               ("ai_form200_modal", "AI pelo FORM $M = 200$, gradiente modal")):
+for c, rot in (("ai_banda_tri0", "AI pela banda, piloto na Tri(0) [PC]"), ("ai_banda_tri1", "AI pela banda, piloto na Tri(1) [PC]"),
+               ("ai_banda_tri2", "AI pela banda, piloto na Tri(2) [PC]"),
+               ("ai_form100_tri0", "AI pelo FORM $M = 100$, direção da Tri(0) [PC]"),
+               ("ai_form100_modal", "AI pelo FORM $M = 100$, gradiente modal [PC]"),
+               ("ai_form200_modal", "AI pelo FORM $M = 200$, gradiente modal [PC]")):
     if glob.glob(f"{G}/{c}/mc_*_*.csv"):
         pc.append((rot, ai(f"{G}/{c}")))
     else:
         pc.append((rot, None))
+# as novas do fermi (sementes proprias)
+E3 = f"{RUNS}/fermi_etapa3/etapa3"
+for c, rot in (("ai_form100_modal_s6", "AI pelo FORM $M = 100$ modal, semente 6 [fermi]"),
+               ("ai_form200_modal_s7", "AI pelo FORM $M = 200$ modal, semente 7 [fermi]"),
+               ("ai_banda_tri1_s10", "AI pela banda, piloto Tri(1), semente 10 [fermi]")):
+    if glob.glob(f"{E3}/{c}/mc_*_*.csv"):
+        pc.append((rot, ai(f"{E3}/{c}")))
+# campos com a mesma variancia (~0,93): Nystrom 200 e a analitica truncada em 200
+iguais = []
+for c, rot in (("ai_nys_form200", "Nyström, 200 termos (ponto do FORM modal Nyström $M = 200$)"),
+               ("ai_nys_form20", "Nyström, 200 termos (ponto do FORM modal Nyström $M = 20$)"),
+               ("ai_form200_trunc", "analítica truncada em 200 termos (ponto do FORM modal $M = 200$)")):
+    iguais.append((rot, ai(f"{G}/{c}") if glob.glob(f"{G}/{c}/mc_*_*.csv") else None))
+
+
+# media das sementes do FORM M = 20 (independentes)
+def media_sementes(casos):
+    v = [a for a in casos if a]
+    if not v:
+        return None
+    p = sum(a["p"] for a in v) / len(v)
+    sd = math.sqrt(sum(a["sd"] ** 2 for a in v)) / len(v)
+    return dict(p=p, sd=sd, k=len(v))
+
+
+SEM05 = [E["ai"](f"{E['E1']}/r05_ai_form20")] + [E["ai"](f"{E3}/r05_ai_form20_s{k}") for k in (4, 5)
+                                                  if glob.glob(f"{E3}/r05_ai_form20_s{k}/mc_*_*.csv")]
+SEM07 = [E["ai"](f"{E3}/r07_ai_form20")] + [E["ai"](f"{E3}/r07_ai_form20_s{k}") for k in (4, 5)
+                                             if glob.glob(f"{E3}/r07_ai_form20_s{k}/mc_*_*.csv")]
+M05, M07 = media_sementes(SEM05), media_sementes(SEM07)
 
 
 # FORM com o gradiente modal: as duas bases
@@ -277,6 +309,44 @@ $-$ direto em desvios. As linhas com ``Tri(0)'' e ``modal'' são do PC.}
 \caption{$r = -0{,}7$ (Cho: $P_f \approx 0{,}4\,\%$).}
 \end{table}
 
+\subsection{A semente 3 e as repetições independentes}
+As primeiras AI pelo FORM usavam todas a semente 3 (números aleatórios comuns): com pontos de projeto quase iguais, elas dão
+quase a mesma estimativa e não são independentes. As repetições com as sementes 4 e 5 separam o acaso do viés:
+\begin{table}[H]\centering\small
+""" + tabela("Caso & sementes & $P_f$ de cada (\\%) & média (\\%) & direto (\\%) & dif. (desvios)",
+             [f"$r = -0{{,}}5$, FORM $M = 20$ & {M05['k']} & " + ", ".join(pct(a['p']) for a in SEM05 if a) +
+              f" & {pct(M05['p'])} & {pct(d05['p'])} & {num((M05['p'] - d05['p']) / math.hypot(M05['sd'], d05['p'] * d05['cov']), 1)} \\\\",
+              f"$r = -0{{,}}7$, FORM $M = 20$ & {M07['k']} & " + ", ".join(pct(a['p']) for a in SEM07 if a) +
+              f" & {pct(M07['p'])} & {pct(d07['p'])} & {num((M07['p'] - d07['p']) / math.hypot(M07['sd'], d07['p'] * d07['cov']), 1)} \\\\"],
+             "lrrrrr") + r"""
+\caption{AI pelo FORM $M = 20$ com sementes independentes (as repetições podem estar incompletas).}
+\end{table}
+
+\subsection{Comparação das bases com a mesma variância}
+A variância do campo nos pontos do talude depende da base e de $M$ (\path{runs/cho2010/nystrom/variancia_bases.py}):
+\begin{table}[H]\centering\small
+""" + tabela("$M$ & analítica (retângulo) & Nyström (talude)",
+             ["10 & 0,60 & 0,65 \\\\", "20 & 0,72 & 0,76 \\\\", "50 & 0,84 & 0,86 \\\\", "100 & 0,90 & 0,90 \\\\",
+              "200 & 0,935 & 0,931 \\\\", "400 & 0,96 & 0,94 \\\\", "2000 & 0,99 & 0,95 (teto) \\\\"], "rrr") + r"""
+\caption{Variância média do campo nos pontos do talude (alvo 1). O teto de Nyström vem da quadratura de 2400 nós: a
+interpolação entre os nós não reproduz o bico do kernel exponencial.}
+\end{table}
+Com poucos termos, Nyström retém mais variância; em $M \approx 200$ as duas se igualam (~0,93). A AI analítica usa 2000
+termos (0,99), e a de Nyström 200 (0,93): são modelos de campo diferentes, e a $P_f$ esperada do campo com 0,93 é de
+~1,3--1,4\,\%. A comparação justa das bases usa os dois campos com a mesma variância:
+\begin{table}[H]\centering\small
+""" + tabela("Campo (variância ~0,93) & $N$ & $P_f$ (\\%) & CoV (\\%)",
+             [f"{r} & " + (f"{a['n']} & {pct(a['p'])} & {num(100 * a['cov'], 1)}" if a else "--- & na fila & ---") + " \\\\"
+              for r, a in iguais], "lrrr") + r"""
+\caption{AI no PC, semente 3. A referência de 24\,000 é do campo completo (2000 termos) e não vale aqui.}
+\end{table}
+
+\subsection{O piso do SRM em $F_0 = 0{,}8$}
+Nenhuma realização das AI deu FS abaixo de 0,8 (o mínimo foi 0,802). É o mesmo mecanismo do buraco em $F = 1$: um talude
+com FS verdadeiro logo abaixo de $F_0$ às vezes converge o peso com $F_0$ e devolve $\approx F_0$. Para a $P_f$ não muda
+nada (o FS continua $< 1$), mas a cauda inferior do FS fica distorcida (~1 realização em 1000). Correção proposta:
+recomeçar de $F_0/2$ quando o caminho de $F$ colapsa logo no início.
+
 \subsection{Custo total para CoV$(P_f) = 10\,\%$}
 \begin{table}[H]\centering\small
 """ + T_CUSTO + r"""
@@ -324,7 +394,8 @@ linearizar uma superfície de falha curva. Por isso o FORM entra só como desloc
     a banda de ruptura das falhas é a mesma no direto e na AI.
   \item \textbf{O piloto pode ser pequeno:} com 250 realizações, o deslocamento da banda custa só ~5\,\% de variância.
   \item \textbf{O piloto pode rodar em malha grossa:} o elite é escolhido por ordem, e a ordem das realizações quase não
-    muda. No nível 0 da tri2 (1/20 do custo), a perda é de 1,5 a 4\,\% de variância.
+    muda. Com o piloto na Tri(0) (300 vezes mais barata), a AI pela banda acertou o direto ($-0{,}2$ desvio), com o mesmo
+    CoV do piloto na malha usual. Tri(1) e Tri(2) também estão nas tabelas.
   \item \textbf{O gradiente modal dá a direção do FORM com 1 análise,} a menos de ~9$^\circ$ das diferenças centrais, e o
     FORM converge em 3 análises.
   \item \textbf{A base de Nyström precisa de menos termos} que a analítica para o mesmo $\beta$.
@@ -337,13 +408,11 @@ linearizar uma superfície de falha curva. Por isso o FORM entra só como desloc
 \end{itemize}
 \subsection*{Sob investigação}
 \begin{itemize}
-  \item \textbf{A AI pelo FORM sai um pouco abaixo do direto} (de $-0{,}9$ a $-1{,}5$ desvio nos quatro casos). Explicação
-    provável, pelo teste linear: o ponto de projeto fica um pouco fora da direção ótima, e com $N$ finito a estimativa
-    típica fica baixa. Testes em andamento:
-    \begin{itemize}
-      \item repetições com sementes novas, independentes (fermi, na fila);
-      \item AI com o ponto do gradiente modal, de direção mais certa (PC, rodando).
-    \end{itemize}
+  \item \textbf{A AI pelo FORM sai um pouco abaixo do direto?} Com $r = -0{,}5$, \textbf{não}: as AI com a semente 3 saem
+    todas em ~1,5\,\% (os sorteios são os mesmos), mas as sementes 4 e 5 dão valores acima, e a média das sementes bate
+    com o direto. Com $r = -0{,}7$ as sementes seguem um pouco abaixo; o direto de referência tem só ~26 falhas e está
+    sendo estendido para 25\,000. A direção errada (Tri(0), 31,7$^\circ$) produz de fato um desvio para baixo
+    ($-2{,}2$), como o teste linear prevê.
   \item \textbf{A AI pela banda com o piloto na Tri(0)} (PC, rodando): a parcial está abaixo do direto.
   \item \textbf{O campo de $k$ na chuva:} o gradiente modal pega $c'$ e $\varphi'$; o $k$ age pelo transiente e
     precisaria do adjunto. Hoje o $k$ pesa pouco na chuva f50 ($\alpha^2_k \approx 0$), e a AI continua sem viés sem
