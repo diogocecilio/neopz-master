@@ -174,7 +174,7 @@ for ax, (fim, rot) in zip(axs, (("ai_form100_modal", "KL analítica, FORM modal 
     ax.plot(tt, np.exp(-tt ** 2 / 2), color="0.4", lw=1.2, label="densidade do direto (escala)")
     ax.plot(tt, np.exp(-(tt - a["mu"]) ** 2 / 2), color="tab:blue", lw=1.2, label="densidade da AI (escala)")
     ax.set_title(rot + f"; t mínimo das falhas: {a['t_min']:.2f}".replace(".", ","), fontsize=8)
-    ax.set_xlabel(r"$t = \alpha\cdot\xi$")
+    ax.set_xlabel(r"$t = \mathbf{y}\cdot\mathbf{y}^*/\beta$")
     ax.grid(alpha=0.3)
 axs[0].legend(fontsize=6.5, loc="upper left")
 fig.tight_layout()
@@ -524,19 +524,19 @@ tivesse. Se a densidade de amostragem quase não visita uma parte da região de 
 ponto de projeto), a estimativa sai quase sempre baixa, e o CoV estimado fica menor que o verdadeiro. O direto permite
 testar isso sem nenhuma análise nova (\path{Projects/Cho2010/diagnostico_ai.py}):
 \begin{enumerate}
-  \item \textbf{Os $\bm\xi$ de cada realização} saem de uma cópia do gerador do \texttt{RandomField} em Python
+  \item \textbf{Os $\bm y$ de cada realização} saem de uma cópia do gerador do \texttt{RandomField} em Python
     (xoshiro256** e Box--Muller, uma semente por realização e campo). A cópia confere com o peso de cada amostra de cada
     AI (erro $\le """ + cient(max(a["erro_peso"] for a in DG["ai"])) + r"""$). Junto com a KL analítica em Python, ela
     também confere com o campo que o programa grava (diferença $\le 5\times10^{-6}$, a precisão do CSV).
   \item \textbf{Modo de ruptura fora da AI.} As """ + str(DD5["falhas"]) + r""" falhas do direto, projetadas na direção
-    do ponto de projeto ($t = \bm\alpha\cdot\bm\xi$), ficam todas onde a AI amostra (Figura~\ref{fig:vies_t}). Na direção
+    do ponto de projeto ($t = \bm y\cdot\bm y^*/\beta$), ficam todas onde a AI amostra (Figura~\ref{fig:vies_t}). Na direção
     modal, o menor $t$ é """ + num(AM["t_min"], 2) + r""", e só """ + str(AM["abaixo_15"]) + r""" falhas ficam abaixo de
     1,5. A variância verdadeira de cada AI sai do direto pela identidade $E_h[I w^2] = E_\varphi[I w]$, com as falhas do
     direto, e é a que a AI estima (``CoV verd.'' na Tabela~\ref{tab:vies05}): """ + num(100 * AM["cov_verdadeiro"], 1) +
     r"""\,\% contra """ + num(100 * AM["sd"] / AM["p"], 1) + r"""\,\% no modal $M = 100$. Só a direção errada da Tri(0)
     subestima o próprio CoV (""" + num(100 * AT0["sd"] / AT0["p"], 1) + r"""\,\% estimado contra """ +
     num(100 * AT0["cov_verdadeiro"], 1) + r"""\,\% verdadeiro): o $-2{,}2$ desvio da Tabela~1 vinha daí.
-  \item \textbf{Base de Nyström.} Com $T$ (formulação, Seção~\ref{F-sec:kl}), as realizações do direto vão para as coordenadas de
+  \item \textbf{Base de Nyström.} Com $T$ (formulação, Seção~\ref{F-sec:mudanca}), as realizações do direto vão para as coordenadas de
     Nyström, e o mesmo teste vale para as AI de Nyström: $t \ge """ + num(min(AN20["t_min"], AN200["t_min"]), 2) + r"""$, e
     CoV verdadeiro de """ + num(100 * min(AN20["cov_verdadeiro"], AN200["cov_verdadeiro"]), 1) + r""" a """ +
     num(100 * max(AN20["cov_verdadeiro"], AN200["cov_verdadeiro"]), 1) + r"""\,\%, contra """ +
@@ -553,7 +553,7 @@ testar isso sem nenhuma análise nova (\path{Projects/Cho2010/diagnostico_ai.py}
     f"{DD5['n_equiv']:,.0f}".replace(",", "\\,") + r""" realizações.
 \end{enumerate}
 \begin{figure}[H]\centering\includegraphics[width=\textwidth]{figs/vies_t.pdf}
-\caption{A chance de falha do direto em cada faixa de $t = \bm\alpha\cdot\bm\xi$ (barras) e as densidades de $t$ no
+\caption{A chance de falha do direto em cada faixa de $t = \bm y\cdot\bm y^*/\beta$ (barras) e as densidades de $t$ no
 direto e na AI (curvas, em escala). A AI amostra toda a região onde o direto falha.}\label{fig:vies_t}\end{figure}
 \begin{table}[H]\centering\small
 """ + T_VIES05 + r"""
@@ -632,7 +632,7 @@ recomeçar de $F_0/2$ quando o caminho de $F$ colapsa logo no início.
 \subsection{O teste linear (sem elementos finitos)}
 \begin{table}[H]\centering\small
 """ + T_LIN + r"""
-\caption{Falha $\bm\alpha\cdot\bm\xi > \beta$, com $P_f$ exata. Erro relativo, com o erro em desvios entre parênteses.}
+\caption{Falha quando $\bm e\cdot\bm y > \beta$, com $\bm e$ unitário e $P_f = \Phi(-\beta)$ exata. Erro relativo, com o erro em desvios entre parênteses.}
 \end{table}
 Com o deslocamento na direção exata, a AI acerta até $3\times10^{-5}$. Com a direção um pouco errada, ela sai baixa, e
 mais baixa quando $\beta$ cresce.
@@ -688,7 +688,7 @@ embaixo), com as mesmas escalas de cor.}\label{fig:pp}\end{figure}
   \item A AI não tem viés com qualquer deslocamento fixado antes; o deslocamento só muda a variância (teste linear e Ceron).
   \item O SRM antigo tinha um buraco logo abaixo de FS = 1; o efeito na $P_f$ é pequeno.
   \item \textbf{Há um só modo de ruptura} no Cho2010, nas duas bases: todas as falhas do direto ficam onde a AI pelo
-    FORM amostra ($t = \bm\alpha\cdot\bm\xi \ge """ + num(AM["t_min"], 2) + r"""$ na direção modal, com só
+    FORM amostra ($t = \bm y\cdot\bm y^*/\beta \ge """ + num(AM["t_min"], 2) + r"""$ na direção modal, com só
     """ + str(AM["abaixo_15"]) + r""" das """ + str(DD5["falhas"]) + r""" abaixo de 1,5;
     $t \ge """ + num(A07[0]["t_min"], 2) + r"""$ com $r = -0{,}7$), e a variância verdadeira da AI,
     calculada pelas falhas do direto, é a que a AI estima (Seção~\ref{sec:vies}). A banda de ruptura das falhas é a mesma
