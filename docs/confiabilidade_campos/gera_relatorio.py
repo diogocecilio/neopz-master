@@ -7,6 +7,7 @@ import glob
 import json
 import math
 import os
+import re
 import runpy
 import shutil
 
@@ -50,7 +51,7 @@ for c, rot in (("ai_form100_modal_s6", "AI pelo FORM $M = 100$ modal, semente 6 
                ("ai_banda_tri1_s10", "AI pela banda, piloto Tri(1), semente 10 [fermi]")):
     if glob.glob(f"{E3}/{c}/mc_*_*.csv"):
         pc.append((rot, ai(f"{E3}/{c}")))
-# campos com a mesma variancia (~0,93): Nystrom 200 e a analitica truncada em 200
+# campos com a mesma variancia (≈0,93): Nystrom 200 e a analitica truncada em 200
 iguais = []
 for c, rot in (("ai_nys_form200", "Nyström, 200 termos (ponto do FORM modal Nyström $M = 200$)"),
                ("ai_nys_form20", "Nyström, 200 termos (ponto do FORM modal Nyström $M = 20$)"),
@@ -83,7 +84,7 @@ def dif_media(m, d):
     return (m["p"] - d["p"]) / math.hypot(m["sd"], d["p"] * d["cov"])
 
 
-HIP05 = (r"  \item \textbf{A AI pelo FORM não tem viés} ($r = -0{,}5$): as AI com a semente 3 saem todas em ~1,5\,\% (os "
+HIP05 = (r"  \item \textbf{A AI pelo FORM não tem viés} ($r = -0{,}5$): as AI com a semente 3 saem todas em ≈1,5\,\% (os "
          r"sorteios são os mesmos), mas as " + str(M05T["k"]) + " sementes independentes dão de " +
          pct(min(a["p"] for a in SEM05T)) + " a " + pct(max(a["p"] for a in SEM05T)) + r"\,\%, com média " +
          pct(M05T["p"]) + r"\,\% contra " + pct(d05["p"]) + r"\,\% do direto. O ponto do gradiente modal também acerta "
@@ -136,20 +137,82 @@ def linha_ai(rot, a, d):
             f"{num(ganho(a, d), 1)} \\\\")
 
 
+def valor(cel):
+    """o primeiro numero de uma celula ('1{,}70', '-1{,}3', '0{,}8\\,\\% (0{,}5)'); None se a celula nao comeca por um"""
+    m = re.match(r"\s*\$?(-?\d+(?:(?:\{,\}|,)\d+)?)", cel)
+    return float(m.group(1).replace("{,}", ".").replace(",", ".")) if m else None
+
+
+def pinta(tab, grupo, regra):
+    """entre as celulas (linha, coluna) do grupo, o melhor valor fica azul e o pior vermelho. regra 'min': o menor e o
+    melhor; 'max': o maior; 'abs': o menor em modulo. A comparacao usa o valor impresso, e os empates ganham a mesma cor."""
+    vals = {}
+    for i, c in grupo:
+        v = valor(tab[i][c])
+        if v is not None:
+            vals[(i, c)] = abs(v) if regra == "abs" else v
+    if len(set(vals.values())) < 2:
+        return
+    lo, hi = min(vals.values()), max(vals.values())
+    melhor, pior = (hi, lo) if regra == "max" else (lo, hi)
+    for (i, c), v in vals.items():
+        if v in (melhor, pior):
+            tab[i][c] = "\\textcolor{" + ("azul" if v == melhor else "verm") + "}{\\textbf{" + tab[i][c].strip() + "}}"
+
+
+def separa(linhas):
+    tab = []
+    for l in linhas:
+        l = l.rstrip()
+        assert l.endswith("\\\\"), l
+        tab.append(l[:-2].rstrip().split(" & "))
+    return tab
+
+
+def junta(tab):
+    return [" & ".join(c) + " \\\\" for c in tab]
+
+
+def destaca_colunas(linhas, regras, entra):
+    """regras = {coluna: 'min' | 'max' | 'abs'}; entra(i, celulas) diz se a linha entra na comparacao"""
+    tab = separa(linhas)
+    for c, regra in regras.items():
+        pinta(tab, [(i, c) for i, cels in enumerate(tab) if entra(i, cels)], regra)
+    return junta(tab)
+
+
+def destaca_linhas(linhas, colunas, regra):
+    """a comparacao e entre as colunas, linha a linha (os metodos estao nas colunas)"""
+    tab = separa(linhas)
+    for i in range(len(tab)):
+        pinta(tab, [(i, c) for c in colunas], regra)
+    return junta(tab)
+
+
+def completa(i, cels):
+    """as AI completas: o direto (linha 0) e a referencia, e as parciais e as da fila ficam de fora"""
+    return i > 0 and cels[1].strip().isdigit() and int(cels[1]) >= 1000
+
+
+def destaca_ai(linhas):
+    """tabelas de AI: CoV (o menor), dif. (o menor em modulo) e ganho (o maior)"""
+    return destaca_colunas(linhas, {3: "min", 4: "abs", 5: "max"}, completa)
+
+
 def tabela(cab, linhas, fmt):
-    return ("\\resizebox{\\textwidth}{!}{%\n\\begin{tabular}{" + fmt + "}\n\\toprule\n" + cab + " \\\\\n\\midrule\n" +
+    return ("\\resizebox{\\ifdim\\width>\\textwidth\\textwidth\\else\\width\\fi}{!}{%\n\\begin{tabular}{" + fmt + "}\n\\toprule\n" + cab + " \\\\\n\\midrule\n" +
             "\n".join(linhas) + "\n\\bottomrule\n\\end{tabular}}")
 
 
 T_R05 = tabela("Método & $N$ & $P_f$ (\\%) & CoV (\\%) & dif. (desvios) & ganho",
-               [f"Monte Carlo direto (fermi) & {d05['n']} & {pct(d05['p'])} & {num(100 * d05['cov'], 1)} & --- & 1 \\\\"] +
-               [linha_ai(r, a, d05) for r, a in a05] + [linha_ai(r, a, d05) for r, a in pc], "lrrrrr")
+               destaca_ai([f"Monte Carlo direto (fermi) & {d05['n']} & {pct(d05['p'])} & {num(100 * d05['cov'], 1)} & --- & 1 \\\\"] +
+               [linha_ai(r, a, d05) for r, a in a05] + [linha_ai(r, a, d05) for r, a in pc]), "lrrrrr")
 T_R07 = tabela("Método & $N$ & $P_f$ (\\%) & CoV (\\%) & dif. (desvios) & ganho",
-               [f"Monte Carlo direto (fermi) & {d07['n']} & {pct(d07['p'])} & {num(100 * d07['cov'], 1)} & --- & 1 \\\\"] +
-               [linha_ai(r, a, d07) for r, a in a07], "lrrrrr")
+               destaca_ai([f"Monte Carlo direto (fermi) & {d07['n']} & {pct(d07['p'])} & {num(100 * d07['cov'], 1)} & --- & 1 \\\\"] +
+               [linha_ai(r, a, d07) for r, a in a07]), "lrrrrr")
 T_CH = tabela("Método & $N$ & $P_f$ (\\%) & CoV (\\%) & dif. (desvios) & ganho",
-              [f"Monte Carlo direto (fermi) & {dch['n']} & {pct(dch['p'])} & {num(100 * dch['cov'], 1)} & --- & 1 \\\\"] +
-              [linha_ai(r, a, dch) for r, a in ach], "lrrrrr")
+              destaca_ai([f"Monte Carlo direto (fermi) & {dch['n']} & {pct(dch['p'])} & {num(100 * dch['cov'], 1)} & --- & 1 \\\\"] +
+              [linha_ai(r, a, dch) for r, a in ach]), "lrrrrr")
 T_FORM = tabela("$M$ & variância retida (Nyström) & $\\beta$ analítica & $\\beta$ Nyström & análises por FORM",
                 [f"{M} & {num(VAR_NY[M], 3)} & " + (num(FM[M][0]['b'], 3) if FM[M][0] else "---") + " & " +
                  (num(FM[M][1]['b'], 3) if FM[M][1] else "---") + " & " +
@@ -157,13 +220,15 @@ T_FORM = tabela("$M$ & variância retida (Nyström) & $\\beta$ analítica & $\\b
 L = E["LINTAB"]
 T_LIN = tabela("$\\beta$ & $P_f$ exata & direto ($10^6$) & AI na direção exata & AI a " +
                num(math.degrees(math.acos(L[1])), 1) + "$^\\circ$ da direção",
-               [f"{x['b']} & {x['ex']:.3e} & " + (f"{pct(x['d'])}\\,\\%" if x['d'] else "---") +
+               destaca_linhas([f"{x['b']} & {x['ex']:.3e} & " + (f"{pct(x['d'])}\\,\\%" if x['d'] else "---") +
                 f" & {num(100 * (x['ai20'][0] / x['ex'] - 1), 1)}\\,\\% ({num(x['ai20'][2], 1)}) & "
                 f"{num(100 * (x['ai10'][0] / x['ex'] - 1), 1)}\\,\\% ({num(x['ai10'][2], 1)})" + " \\\\" for x in L[0]],
+                [3, 4], "abs"),
                "rrrrr") if L else "(teste linear não baixado)"
 C05, C07 = E["CUSTO05"], E["CUSTO07"]
 T_CUSTO = tabela("Método & $r = -0{,}5$ & $r = -0{,}7$",
-                 [f"{a[0]} & {a[3]:.0f} & {b[3]:.0f} \\\\" for a, b in zip(C05, C07)], "lrr")
+                 destaca_colunas([f"{a[0]} & {a[3]:.0f} & {b[3]:.0f} \\\\" for a, b in zip(C05, C07)],
+                                 {1: "min", 2: "min"}, lambda i, c: i > 0), "lrr")
 cho, chuva, mc = E["cho"], E["chuva"], E["mcnemar"]
 
 MAPA = r"""
@@ -199,12 +264,16 @@ Documento & O que tem \\
 
 tex = r"""\documentclass[11pt,a4paper]{article}
 \usepackage[utf8]{inputenc}
+\DeclareUnicodeCharacter{2248}{\ensuremath{\approx}}
 \usepackage[T1]{fontenc}
 \usepackage[brazil]{babel}
 \usepackage{lmodern}
 \usepackage[margin=2cm]{geometry}
 \usepackage{amsmath,amssymb,bm}
 \usepackage{graphicx,booktabs,float,longtable,url}
+\usepackage{xcolor}
+\definecolor{azul}{RGB}{0,70,200}
+\definecolor{verm}{RGB}{200,0,0}
 \usepackage[hidelinks]{hyperref}
 \title{Confiabilidade de taludes com campos aleatórios no NeoPZ\\\large Relatório parcial: plano de trabalho, formulações,
 testes, hipóteses e o mapa dos relatórios}
@@ -272,7 +341,7 @@ $l_v = 2$\,m no Cho):
 O FORM usa o algoritmo HL-RF nos $2M$ coeficientes $\bm\xi$ (os $M$ primeiros de cada campo), com $g = \mathrm{FS} - 1$.
 \begin{itemize}
   \item \textbf{Diferenças centrais} (\texttt{form\_kl.py}): $4M + 1$ análises do SRM por iteração, com $h = 0{,}5$. Os
-    termos fracos ficam dominados pelo ruído do FS (~0,001).
+    termos fracos ficam dominados pelo ruído do FS (≈0,001).
   \item \textbf{Projeção modal} (etapa 2c, \texttt{gradiente=} no Cho2010): o limite superior com Mohr--Coulomb associado
     e o teorema do envelope dão, no colapso do SRM ($c^* = c'/F$, $\tan\varphi^* = \tan\varphi'/F$),
     \begin{equation*}
@@ -294,15 +363,21 @@ O FORM usa o algoritmo HL-RF nos $2M$ coeficientes $\bm\xi$ (os $M$ primeiros de
 """ + tabela("Etapa & O quê & Situação",
              ["0 & Cho2010 no fermi: direto, AI pela banda e pelo FORM & pronta \\\\",
               "1 & SRM corrigido ($F_0 = 0{,}8$): o antigo contra o novo nas mesmas realizações & pronta \\\\",
-              "2 & FORM ($M = 10$, 20) e AI pelo ponto de projeto; teste linear sem MEF & pronta; repetições com sementes novas na fila \\\\",
+              "2 & FORM ($M = 10$, 20) e AI pelo ponto de projeto; teste linear sem MEF & pronta; as repetições com sementes novas também \\\\",
               "2b & base de Nyström contra a analítica & FORM feito no PC (Seção~\\ref{sec:nystrom}) \\\\",
-              "2c & gradiente do FORM pela projeção modal & validado no PC; AI com o ponto modal rodando \\\\",
-              "3 & $P_f$ pequena ($r = -0{,}7$), tamanho do piloto, custo & pronta; repetições na fila \\\\",
+              "2c & gradiente do FORM pela projeção modal & validado; AI com o ponto modal pronta no fermi (sementes 6 e 7) \\\\",
+              "3 & $P_f$ pequena ($r = -0{,}7$), tamanho do piloto, custo & pronta; o direto de 25\\,000 roda esta noite \\\\",
               "4 & FORM e AI na chuva & referência pronta (direto 4000); falta o código do FORM na chuva \\\\",
               "5 & investigação da chuva & não começou \\\\"], "lp{0.55\\textwidth}p{0.3\\textwidth}") + r"""
 \end{table}
 
 \section{Testes e resultados}
+\textbf{Cores nas tabelas:} em cada coluna de desempenho, \textcolor{azul}{\textbf{azul}} é o melhor valor e
+\textcolor{verm}{\textbf{vermelho}} o pior. CoV e custo: o menor é o melhor; ganho: o maior; dif.: o menor em módulo. Só
+entram as AI completas (1000 realizações): o direto é a referência, e as parciais e as da fila ficam de fora. No teste
+linear, a comparação é entre as duas direções, linha a linha. Atenção: um $|$dif.$|$ abaixo de 2 é compatível com o
+acaso; o azul na dif. não quer dizer que o método é mais exato, e o vermelho só é um sinal quando passa de 2.
+
 \subsection{SRM corrigido (etapa 1)}
 Com as mesmas realizações nas duas versões:
 \begin{itemize}
@@ -355,27 +430,28 @@ A variância do campo nos pontos do talude depende da base e de $M$ (\path{runs/
 \caption{Variância média do campo nos pontos do talude (alvo 1). O teto de Nyström vem da quadratura de 2400 nós: a
 interpolação entre os nós não reproduz o bico do kernel exponencial.}
 \end{table}
-Com poucos termos, Nyström retém mais variância; em $M \approx 200$ as duas se igualam (~0,93). A AI analítica usa 2000
+Com poucos termos, Nyström retém mais variância; em $M \approx 200$ as duas se igualam (≈0,93). A AI analítica usa 2000
 termos (0,99), e a de Nyström 200 (0,93): são modelos de campo diferentes, e a $P_f$ esperada do campo com 0,93 é de
-~1,3--1,4\,\%. A comparação justa das bases usa os dois campos com a mesma variância:
+≈1,3--1,4\,\%. A comparação justa das bases usa os dois campos com a mesma variância:
 \begin{table}[H]\centering\small
-""" + tabela("Campo (variância ~0,93) & $N$ & $P_f$ (\\%) & CoV (\\%)",
-             [f"{r} & " + (f"{a['n']} & {pct(a['p'])} & {num(100 * a['cov'], 1)}" if a else "--- & na fila & ---") + " \\\\"
-              for r, a in iguais], "lrrr") + r"""
+""" + tabela("Campo (variância ≈0,93) & $N$ & $P_f$ (\\%) & CoV (\\%)",
+             destaca_colunas([f"{r} & " + (f"{a['n']} & {pct(a['p'])} & {num(100 * a['cov'], 1)}" if a else "--- & na fila & ---") +
+                             " \\\\" for r, a in iguais], {3: "min"}, lambda i, c: c[1].strip().isdigit() and int(c[1]) >= 1000),
+             "lrrr") + r"""
 \caption{AI no PC, semente 3. A referência de 24\,000 é do campo completo (2000 termos) e não vale aqui.}
 \end{table}
 
 \subsection{O piso do SRM em $F_0 = 0{,}8$}
 Nenhuma realização das AI deu FS abaixo de 0,8 (o mínimo foi 0,802). É o mesmo mecanismo do buraco em $F = 1$: um talude
 com FS verdadeiro logo abaixo de $F_0$ às vezes converge o peso com $F_0$ e devolve $\approx F_0$. Para a $P_f$ não muda
-nada (o FS continua $< 1$), mas a cauda inferior do FS fica distorcida (~1 realização em 1000). Correção proposta:
+nada (o FS continua $< 1$), mas a cauda inferior do FS fica distorcida (≈1 realização em 1000). Correção proposta:
 recomeçar de $F_0/2$ quando o caminho de $F$ colapsa logo no início.
 
 \subsection{Custo total para CoV$(P_f) = 10\,\%$}
 \begin{table}[H]\centering\small
 """ + T_CUSTO + r"""
 \caption{Análises de elementos finitos, com o piloto (1000) e o FORM incluídos. Com o piloto na malha grossa (custo
-1/20, Seção~\ref{sec:hip}), a AI pela banda cai para ~1300 e ~2700.}
+1/20, Seção~\ref{sec:hip}), a AI pela banda cai para ≈1300 e ≈2700.}
 \end{table}
 
 \subsection{O teste linear (sem elementos finitos)}
@@ -400,7 +476,7 @@ mais baixa quando $\beta$ cresce.
 Nyström converge com menos termos.}\end{figure}
 A base de Nyström chega mais perto do $\beta$ convergido com poucos termos ($M = 10$: 2,062 contra 2,151), e as duas
 coincidem a partir de $M = 50$. É o mesmo efeito da placa curva do \path{relatorio_kl_form}. O $\beta$ converge para
-$\approx 2{,}00$, mas a $P_f$ do FORM sozinho ($\approx 2{,}3\,\%$) superestima a do direto em ~30\,\%: é o erro de
+$\approx 2{,}00$, mas a $P_f$ do FORM sozinho ($\approx 2{,}3\,\%$) superestima a do direto em ≈30\,\%: é o erro de
 linearizar uma superfície de falha curva. Por isso o FORM entra só como deslocamento da AI.
 
 \subsection{A referência da chuva (etapa 4)}
@@ -416,11 +492,11 @@ linearizar uma superfície de falha curva. Por isso o FORM entra só como desloc
   \item O SRM antigo tinha um buraco logo abaixo de FS = 1; o efeito na $P_f$ é pequeno.
   \item \textbf{Há um só modo de ruptura} no Cho2010: todas as falhas do direto têm $t = \bm\alpha\cdot\bm\xi \ge 1{,}6$, e
     a banda de ruptura das falhas é a mesma no direto e na AI.
-  \item \textbf{O piloto pode ser pequeno:} com 250 realizações, o deslocamento da banda custa só ~5\,\% de variância.
+  \item \textbf{O piloto pode ser pequeno:} com 250 realizações, o deslocamento da banda custa só ≈5\,\% de variância.
   \item \textbf{O piloto pode rodar em malha grossa:} o elite é escolhido por ordem, e a ordem das realizações quase não
     muda. Com o piloto na Tri(0) (300 vezes mais barata), a AI pela banda acertou o direto ($-0{,}2$ desvio), com o mesmo
     CoV do piloto na malha usual. Tri(1) e Tri(2) também estão nas tabelas.
-  \item \textbf{O gradiente modal dá a direção do FORM com 1 análise,} a menos de ~9$^\circ$ das diferenças centrais, e o
+  \item \textbf{O gradiente modal dá a direção do FORM com 1 análise,} a menos de ≈9$^\circ$ das diferenças centrais, e o
     FORM converge em 3 análises.
   \item \textbf{A base de Nyström precisa de menos termos} que a analítica para o mesmo $\beta$.
 """ + HIP05 + r"""

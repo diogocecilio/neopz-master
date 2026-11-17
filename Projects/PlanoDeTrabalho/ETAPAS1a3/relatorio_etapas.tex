@@ -20,11 +20,11 @@
     No Cho2010, as falhas são as mesmas nas 1000 realizações pareadas. Na chuva, 4 realizações passam a falhar e 1 deixa de falhar (McNemar $p = 0{,}38$).
   \item \textbf{AI contra o direto (etapas 2 e 3):} todas as AI concordam com o Monte Carlo direto do mesmo modelo, a menos de
     1,3 desvio. O ganho cresce quando a $P_f$ cai: até 16$\times$ com
-    $P_f \approx 1{,}7\,\%$ e até 38$\times$ com $P_f \approx 0{,}4\,\%$.
+    $P_f \approx 1{,}7\,\%$ e até 51$\times$ com $P_f \approx 0{,}4\,\%$.
     O melhor deslocamento é o ponto de projeto do FORM com $M = 20$.
   \item \textbf{FORM sozinho:} com $M = 10$ ele acerta por coincidência, e com $M = 20$ superestima a $P_f$ em 30 a 45\,\%.
     Ele é bom para escolher o deslocamento da AI, mas não serve como estimativa final.
-  \item \textbf{Um modo de ruptura só:} todas as falhas do direto estão do lado do ponto de projeto ($t = \bm\alpha\cdot\bm\xi \ge 1{,}6$), e a banda de ruptura é a mesma no direto e na AI. A AI pelo
+  \item \textbf{Um modo de ruptura só:} todas as falhas do direto estão do lado do ponto de projeto ($t = \bm\alpha\cdot\bm\xi \ge 1{,}3$), e a banda de ruptura é a mesma no direto e na AI. A AI pelo
     FORM não está perdendo falhas.
 \end{itemize}
 
@@ -72,10 +72,12 @@ chuva f50, 36 mm/h, 24 h & 600 & 137 & 140 & 4 & 1 & 0{,}38 & -0{,}00007 (0{,}00
 \toprule
 Método & $N$ & $P_f$ (\%) & IC 95\% (\%) & CoV (\%) & dif. (desvios) & ESS$_F$ & ganho \\
 \midrule
-Monte Carlo direto & 4000 & 1{,}68 & 1{,}30–2{,}12 & 12{,}1 & --- & --- & 1 \\
+Monte Carlo direto & 24000 & 1{,}70 & 1{,}54–1{,}87 & 4{,}9 & --- & --- & 1 \\
 AI pela banda (entropia cruzada) & 1000 & 1{,}74 & 1{,}36–2{,}12 & 11{,}1 & 0{,}2 & 75 & 4{,}6 \\
-AI pelo FORM $M = 10$ & 1000 & 1{,}54 & 1{,}27–1{,}80 & 8{,}8 & -0{,}6 & 115 & 8{,}3 \\
-AI pelo FORM $M = 20$ & 1000 & 1{,}53 & 1{,}35–1{,}72 & 6{,}3 & -0{,}6 & 202 & 16{,}2 \\
+AI pelo FORM $M = 10$ & 1000 & 1{,}54 & 1{,}27–1{,}80 & 8{,}8 & -1{,}0 & 115 & 8{,}3 \\
+AI pelo FORM $M = 20$ & 1000 & 1{,}53 & 1{,}35–1{,}72 & 6{,}3 & -1{,}3 & 202 & 16{,}2 \\
+AI pelo FORM $M = 20$, semente 4 & 1000 & 1{,}72 & 1{,}52–1{,}92 & 5{,}9 & 0{,}2 & 222 & 16{,}3 \\
+AI pelo FORM $M = 20$, semente 5 & 1000 & 1{,}90 & 1{,}67–2{,}12 & 6{,}1 & 1{,}4 & 214 & 14{,}1 \\
 FORM, $M = 10$ ($\beta = 2{,}115$) & 123 análises & 1{,}72 & --- & --- & --- & --- & --- \\
 FORM, $M = 20$ ($\beta = 2{,}012$) & 243 análises & 2{,}21 & --- & --- & --- & --- & --- \\
 \bottomrule
@@ -127,6 +129,9 @@ Monte Carlo direto & 6000 & 0{,}43 & 0{,}28–0{,}63 & 19{,}6 & --- & --- & 1 \\
 AI pela banda (entropia cruzada) & 1000 & 0{,}45 & 0{,}31–0{,}59 & 16{,}3 & 0{,}2 & 36 & 8{,}4 \\
 AI pelo FORM $M = 10$ & 1000 & 0{,}31 & 0{,}24–0{,}38 & 11{,}6 & -1{,}3 & 69 & 23{,}5 \\
 AI pelo FORM $M = 20$ & 1000 & 0{,}35 & 0{,}29–0{,}41 & 8{,}6 & -0{,}9 & 119 & 38{,}3 \\
+AI pelo FORM $M = 20$, semente 4 & 1000 & 0{,}35 & 0{,}30–0{,}40 & 7{,}4 & -0{,}9 & 153 & 51{,}1 \\
+AI pelo FORM $M = 20$, semente 5 & 1000 & 0{,}38 & 0{,}32–0{,}44 & 8{,}4 & -0{,}6 & 123 & 36{,}9 \\
+AI pela banda, semente 4 & 1000 & 0{,}40 & 0{,}21–0{,}60 & 24{,}6 & -0{,}2 & 16 & 4{,}1 \\
 FORM, $M = 10$ ($\beta = 2{,}633$) & 164 análises & 0{,}42 & --- & --- & --- & --- & --- \\
 FORM, $M = 20$ ($\beta = 2{,}499$) & 243 análises & 0{,}62 & --- & --- & --- & --- & --- \\
 \bottomrule
@@ -143,9 +148,9 @@ Para verificar, os $\bm\xi$ das realizações do direto foram sorteados de novo,
 \texttt{linear} do Cho2010. Em cada realização calculou-se $t = \bm\alpha\cdot\bm\xi$, a coordenada na direção do ponto de
 projeto do FORM ($M = 20$).
 \begin{itemize}
-  \item \textbf{Direção:} nenhuma falha tem $t < 1$. O menor $t$ entre as falhas é 1{,}60 com $r = -0{,}5$ (67 falhas) e 2{,}29 com $r = -0{,}7$ (26 falhas).
+  \item \textbf{Direção:} nenhuma falha tem $t < 1$. O menor $t$ entre as falhas é 1{,}31 com $r = -0{,}5$ (408 falhas) e 2{,}29 com $r = -0{,}7$ (26 falhas).
   \item \textbf{Geometria:} a banda de ruptura das falhas é a mesma no direto e nas AI ponderadas: profundidade de
-    3{,}7\,m e centro em $x \approx 16{,}7$\,m.
+    3{,}7\,m e centro em $x \approx 16{,}6$\,m.
   \item \textbf{Conclusão:} há um modo só. Os desvios negativos da AI pelo FORM (de $-0{,}6$ a $-1{,}3$) são compatíveis com o
     acaso. As duas AI de cada $r$ usam a mesma semente e não são independentes. As repetições com sementes novas
     (\texttt{\_s4}, \texttt{\_s5}) vão confirmar.
@@ -191,7 +196,7 @@ o piloto de 1000 na banda e as análises do FORM.
 \toprule
 Método & $r = -0{,}5$: amostragem & + fixo & total & $r = -0{,}7$: amostragem & + fixo & total \\
 \midrule
-Monte Carlo direto & 5870 & 0 & 5870 & 22977 & 0 & 22977 \\
+Monte Carlo direto & 5782 & 0 & 5782 & 22977 & 0 & 22977 \\
 AI pela banda (entropia cruzada) & 1238 & 1000 & 2238 & 2645 & 1000 & 3645 \\
 AI pelo FORM $M = 10$ & 773 & 123 & 896 & 1354 & 164 & 1518 \\
 AI pelo FORM $M = 20$ & 396 & 243 & 639 & 741 & 243 & 984 \\
@@ -199,7 +204,7 @@ AI pelo FORM $M = 20$ & 396 & 243 & 639 & 741 & 243 & 984 \\
 \end{tabular}}
 \caption{Análises de elementos finitos para CoV$(P_f) = 10\,\%$.}
 \end{table}
-Mesmo pagando o FORM, a AI pelo ponto de projeto custa de 7 a 23 vezes menos que o direto. A vantagem cresce quando a $P_f$ cai. O piloto de
+Mesmo pagando o FORM, a AI pelo ponto de projeto custa de 6 a 23 vezes menos que o direto. A vantagem cresce quando a $P_f$ cai. O piloto de
 1000 da banda pesa muito. Com um piloto de 250, que basta (tabela anterior), a banda iria a 1488 e 2895 análises, ainda 1,5 a 3 vezes o FORM.
 
 \subsection*{A previsão teórica: $M = 10$ contra $M = 20$}
@@ -230,6 +235,7 @@ Método & $N$ & $P_f$ (\%) & IC 95\% (\%) & CoV (\%) & dif. (desvios) & ESS$_F$ 
 \midrule
 Monte Carlo direto & 4000 & 5{,}58 & 4{,}88–6{,}33 & 6{,}5 & --- & --- & 1 \\
 AI pela banda, semente 1 & 1000 & 6{,}18 & 5{,}33–7{,}03 & 7{,}0 & 1{,}1 & 168 & 3{,}1 \\
+AI pela banda, semente 2 & 1000 & 5{,}74 & 4{,}82–6{,}66 & 8{,}2 & 0{,}3 & 130 & 2{,}4 \\
 \bottomrule
 \end{tabular}}
 \caption{Chuva: o Monte Carlo direto de 4000 é a referência para validar o FORM e a AI na chuva (etapa 4).}
@@ -242,7 +248,7 @@ A AI pela banda concorda com o direto (1{,}1 desvio), com ganho de 3{,}1$\times$
   \item Juntar as repetições independentes da AI, que estão rodando no fermi, e fechar a questão do pequeno desvio da AI pelo
     FORM.
   \item Etapa 4: o código do FORM e da AI pelo ponto de projeto na chuva, validados contra o direto de 4000.
-  \item Para o artigo da AI: a AI pelo FORM $M = 20$ deu o maior ganho (até 38$\times$ com $P_f \approx 0{,}4\,\%$), contando só a amostragem. O custo do FORM é de 243 análises. Mesmo somando
+  \item Para o artigo da AI: a AI pelo FORM $M = 20$ deu o maior ganho (até 51$\times$ com $P_f \approx 0{,}4\,\%$), contando só a amostragem. O custo do FORM é de 243 análises. Mesmo somando
     esse custo, ele ainda vence a AI pela banda, que precisa de um piloto de 1000.
 \end{enumerate}
 \end{document}

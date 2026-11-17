@@ -149,7 +149,7 @@ def barras(arq, d, casos, titulo, ref=None):
     ax.axvspan(100 * d["lo"], 100 * d["hi"], color="0.85", zorder=0)
     if ref:
         ax.axvline(100 * ref, ls="--", color="tab:red", lw=1)
-        ax.text(100 * ref, -0.55, " Cho (2010)", color="tab:red", fontsize=8, va="bottom")
+        titulo += "  (tracejado vermelho: Cho, 2010)"
     ax.set_yticks(range(len(vals)))
     ax.set_yticklabels(nomes, fontsize=8)
     ax.invert_yaxis()
