@@ -1,0 +1,490 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\DeclareUnicodeCharacter{2248}{\ensuremath{\approx}}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{graphicx,booktabs,float,longtable,url}
+\usepackage{xcolor}
+\definecolor{azul}{RGB}{0,70,200}
+\definecolor{verm}{RGB}{200,0,0}
+\usepackage{xr-hyper}
+\usepackage[hidelinks]{hyperref}
+% as secoes da formulacao (docs/confiabilidade_campos/formulacao), citadas como F-<rotulo>: compile a formulacao antes
+\externaldocument[F-]{../../../docs/confiabilidade_campos/formulacao/formulacao}
+% a data e o commit vem do atualiza.sh; compilado a mao, fica so a data
+\providecommand{\versao}{17/11/2026}
+\title{Confiabilidade de taludes com campos aleatórios no NeoPZ\\\large Situação: plano de trabalho, testes e resultados,
+hipóteses e próximos passos}
+\date{\versao}
+\begin{document}
+\maketitle
+\tableofcontents
+
+\section{Objetivo e onde estamos}
+O trabalho serve a dois artigos:
+\begin{itemize}
+  \item \textbf{Amostragem por importância (AI)} para taludes com campos aleatórios no MEF. A validação é no Ceron (2025),
+    no rebaixamento, e no Cho (2010), um talude seco com $c'$ e $\varphi'$ como campos correlacionados e $P_f$ de 0,4\,\% a
+    2\,\%.
+  \item \textbf{Chuva em talude não saturado} (Rahardjo et al., 2007), com as mesmas ferramentas: Monte Carlo, FORM e AI.
+\end{itemize}
+O plano de trabalho (\path{Projects/PlanoDeTrabalho/README.md}) valida as ferramentas uma de cada vez, antes de usá-las
+na chuva. As etapas 0 a 3 estão rodadas, e a 2c (gradiente modal) foi testada no PC. A etapa 4 (FORM e AI na chuva) tem
+a referência pronta, e a etapa 5 (a investigação da chuva) ainda não começou. Tudo roda no cluster fermi (4 nós, 48
+processos); o PC serve para testes curtos.
+
+A formulação (o modelo, as duas bases de Karhunen--Loève, o Monte Carlo, a AI, a variável de controle e o FORM) está em
+\path{docs/confiabilidade_campos/formulacao/formulacao.pdf} e é citada aqui como ``formulação, Seção $n$''. Este
+relatório traz só os resultados. A Seção~\ref{sec:mapa} lista todos os documentos.
+
+\section{O plano de trabalho e a situação}
+\begin{table}[H]\centering\small
+\resizebox{\ifdim\width>\textwidth\textwidth\else\width\fi}{!}{%
+\begin{tabular}{lp{0.55\textwidth}p{0.3\textwidth}}
+\toprule
+Etapa & O quê & Situação \\
+\midrule
+0 & Cho2010 no fermi: direto, AI pela banda e pelo FORM & pronta \\
+1 & SRM corrigido ($F_0 = 0{,}8$): o antigo contra o novo nas mesmas realizações & pronta \\
+2 & FORM ($M = 10$, 20) e AI pelo ponto de projeto; teste linear sem MEF & pronta; sem viés (Seção~\ref{sec:vies}) \\
+2b & base de Nyström contra a analítica & o mesmo ponto de projeto (Seção~\ref{sec:pp}); AI de Nyström no fermi (fase 4, pausada) \\
+2c & gradiente do FORM pela projeção modal & validado; a AI modal não tem viés; 10 sementes no fermi (fase 4, pausada) \\
+3 & $P_f$ pequena ($r = -0{,}7$), tamanho do piloto, custo & o direto vai de 25\,000 (93 falhas) a 110\,000 (CoV 5\,\%), com os 4 nós do fermi \\
+4 & FORM e AI na chuva & o direto de 10\,000 está terminando; falta o código do FORM na chuva \\
+5 & investigação da chuva & não começou \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\section{Testes e resultados}
+\textbf{Cores nas tabelas:} em cada coluna de desempenho, \textcolor{azul}{\textbf{azul}} é o melhor valor e
+\textcolor{verm}{\textbf{vermelho}} o pior. CoV e custo: o menor é o melhor; ganho: o maior; dif.: o menor em módulo. Só
+entram as AI completas (1000 realizações): o direto é a referência, e as parciais e as da fila ficam de fora. No teste
+linear, a comparação é entre as duas direções, linha a linha. Atenção: um $|$dif.$|$ abaixo de 2 é compatível com o
+acaso; o azul na dif. não quer dizer que o método é mais exato, e o vermelho só é um sinal quando passa de 2.
+
+\subsection{SRM corrigido (etapa 1)}
+Com as mesmas realizações nas duas versões:
+\begin{itemize}
+  \item \textbf{Cho2010:} as falhas são idênticas (22 e 22 em 1000).
+  \item \textbf{Chuva:} 4 realizações passam a falhar e 1 deixa de falhar (McNemar $p = 0{,}38$), cerca de $+0{,}5$ ponto.
+\end{itemize}
+O efeito é pequeno, e o SRM novo é o correto. As duas versões do programa reproduzem o mesmo FS (diferença de 0,0000), e o
+PC reproduz o fermi.
+\begin{figure}[H]\centering\includegraphics[width=0.9\textwidth]{figs/srm_hist.pdf}\caption{FS perto de 1 nas duas
+versões do SRM.}\end{figure}
+
+\subsection{Cho2010, $r = -0{,}5$: AI contra o direto (etapas 0, 2 e 2c)}
+\begin{table}[H]\centering\small
+\resizebox{\ifdim\width>\textwidth\textwidth\else\width\fi}{!}{%
+\begin{tabular}{lrrrrr}
+\toprule
+Método & $N$ & $P_f$ (\%) & CoV (\%) & dif. (desvios) & ganho \\
+\midrule
+Monte Carlo direto (fermi) & 24000 & 1{,}70 & 4{,}9 & --- & 1 \\
+AI pela banda (entropia cruzada) & 1000 & 1{,}74 & \textcolor{verm}{\textbf{11{,}1}} & \textcolor{azul}{\textbf{0{,}2}} & \textcolor{verm}{\textbf{4{,}6}} \\
+AI pelo FORM $M = 10$ & 1000 & 1{,}54 & 8{,}8 & -1{,}0 & 8{,}3 \\
+AI pelo FORM $M = 20$ & 1000 & 1{,}53 & 6{,}3 & -1{,}3 & 16{,}2 \\
+AI pelo FORM $M = 20$, semente 4 & 1000 & 1{,}72 & 5{,}9 & \textcolor{azul}{\textbf{0{,}2}} & 16{,}3 \\
+AI pelo FORM $M = 20$, semente 5 & 1000 & 1{,}90 & 6{,}1 & 1{,}4 & 14{,}1 \\
+AI pela banda, piloto na Tri(0) [PC] & 1000 & 1{,}66 & 10{,}8 & \textcolor{azul}{\textbf{-0{,}2}} & 5{,}1 \\
+AI pela banda, piloto na Tri(1) [PC] & 1000 & 1{,}89 & 9{,}4 & 1{,}0 & 5{,}9 \\
+AI pela banda, piloto na Tri(2) [PC] & 1000 & 1{,}92 & 7{,}8 & 1{,}3 & 8{,}5 \\
+AI pelo FORM $M = 100$, direção da Tri(0) [PC] & 1000 & 1{,}36 & 9{,}3 & \textcolor{verm}{\textbf{-2{,}2}} & 8{,}4 \\
+AI pelo FORM $M = 100$, gradiente modal [PC] & 1000 & 1{,}57 & 6{,}9 & -0{,}9 & 12{,}9 \\
+AI pelo FORM $M = 200$, gradiente modal [PC] & 1000 & 1{,}57 & 6{,}8 & -1{,}0 & 13{,}6 \\
+AI pelo FORM $M = 100$ modal, semente 6 [fermi] & 1000 & 1{,}66 & \textcolor{azul}{\textbf{5{,}8}} & -0{,}3 & \textcolor{azul}{\textbf{17{,}6}} \\
+AI pelo FORM $M = 200$ modal, semente 7 [fermi] & 1000 & 1{,}78 & 5{,}9 & 0{,}6 & 15{,}6 \\
+AI pela banda, piloto Tri(1), semente 10 [fermi] & 1000 & 1{,}79 & 10{,}3 & 0{,}4 & 5{,}2 \\
+\bottomrule
+\end{tabular}}
+\caption{$r = -0{,}5$ (Cho: $P_f = 1{,}71\,\%$). O direto terminou: 24\,000 realizações. ``dif.'' é a diferença AI
+$-$ direto em desvios. Sem indicação, o FORM usa a semente 3 e a banda a semente 1; [PC] e [fermi] dizem onde rodou.}
+\end{table}
+\begin{figure}[H]\centering\includegraphics[width=0.75\textwidth]{figs/pf_r05.pdf}\caption{$P_f$ e IC 95\,\%, $r = -0{,}5$.}\end{figure}
+
+\subsection{$P_f$ pequena, $r = -0{,}7$ (etapa 3)}
+\begin{table}[H]\centering\small
+\resizebox{\ifdim\width>\textwidth\textwidth\else\width\fi}{!}{%
+\begin{tabular}{lrrrrr}
+\toprule
+Método & $N$ & $P_f$ (\%) & CoV (\%) & dif. (desvios) & ganho \\
+\midrule
+Monte Carlo direto (fermi) & 25000 & 0{,}37 & 10{,}4 & --- & 1 \\
+AI pela banda (entropia cruzada) & 1000 & 0{,}45 & 16{,}3 & 0{,}9 & 8{,}4 \\
+AI pelo FORM $M = 10$ & 1000 & 0{,}31 & 11{,}6 & \textcolor{verm}{\textbf{-1{,}1}} & 23{,}5 \\
+AI pelo FORM $M = 20$ & 1000 & 0{,}35 & 8{,}6 & -0{,}4 & 38{,}3 \\
+AI pelo FORM $M = 20$, semente 4 & 1000 & 0{,}35 & \textcolor{azul}{\textbf{7{,}4}} & -0{,}4 & \textcolor{azul}{\textbf{51{,}1}} \\
+AI pelo FORM $M = 20$, semente 5 & 1000 & 0{,}38 & 8{,}4 & \textcolor{azul}{\textbf{0{,}2}} & 36{,}9 \\
+AI pela banda, semente 4 & 1000 & 0{,}40 & \textcolor{verm}{\textbf{24{,}6}} & 0{,}3 & \textcolor{verm}{\textbf{4{,}1}} \\
+\bottomrule
+\end{tabular}}
+\caption{$r = -0{,}7$ (Cho: $P_f \approx 0{,}4\,\%$).}
+\end{table}
+
+\subsection{A semente 3 e as repetições independentes}
+As primeiras AI pelo FORM usavam todas a semente 3 (números aleatórios comuns): com pontos de projeto quase iguais, elas dão
+quase a mesma estimativa e não são independentes. As repetições com as sementes 4 e 5 (FORM $M = 20$) e 6 e 7 (FORM
+modal, $M = 100$ e 200) separam o acaso do viés:
+\begin{table}[H]\centering\small
+\resizebox{\ifdim\width>\textwidth\textwidth\else\width\fi}{!}{%
+\begin{tabular}{lrrrrr}
+\toprule
+Caso & sementes & $P_f$ de cada (\%) & média (\%) & direto (\%) & dif. (desvios) \\
+\midrule
+$r = -0{,}5$, FORM $M = 20$ & 3 & 1{,}53, 1{,}72, 1{,}90 & 1{,}72 & 1{,}70 & 0{,}2 \\
+$r = -0{,}5$, FORM $M = 20$, 100 e 200 modal & 5 & 1{,}53, 1{,}72, 1{,}90, 1{,}66, 1{,}78 & 1{,}72 & 1{,}70 & 0{,}2 \\
+$r = -0{,}7$, FORM $M = 20$ & 3 & 0{,}35, 0{,}35, 0{,}38 & 0{,}36 & 0{,}37 & -0{,}3 \\
+\bottomrule
+\end{tabular}}
+\caption{AI pelo FORM com sementes independentes, 1000 realizações cada. A dif. usa o desvio da média,
+$\sqrt{\sum s_i^2}/k$, e o do direto.}
+\end{table}
+
+\subsection{A AI pelo FORM tem viés? O teste com o próprio direto (KL e Nyström)}\label{sec:vies}
+Com a semente 3, todas as AI pelo FORM ficaram abaixo do direto (1,53 a 1,57\,\% contra 1,70\,\%), e a AI modal, a mais
+eficiente, parecia convergir para o valor errado. Uma AI com deslocamento fixo não tem viés, mas pode se comportar como se
+tivesse. Se a densidade de amostragem quase não visita uma parte da região de falha (outro modo de ruptura, longe do
+ponto de projeto), a estimativa sai quase sempre baixa, e o CoV estimado fica menor que o verdadeiro. O direto permite
+testar isso sem nenhuma análise nova (\path{Projects/Cho2010/diagnostico_ai.py}):
+\begin{enumerate}
+  \item \textbf{Os $\bm\xi$ de cada realização} saem de uma cópia do gerador do \texttt{RandomField} em Python
+    (xoshiro256** e Box--Muller, uma semente por realização e campo). A cópia confere com o peso de cada amostra de cada
+    AI (erro $\le 5\times10^{-9}$). Junto com a KL analítica em Python, ela
+    também confere com o campo que o programa grava (diferença $\le 5\times10^{-6}$, a precisão do CSV).
+  \item \textbf{Modo de ruptura fora da AI.} As 408 falhas do direto, projetadas na direção
+    do ponto de projeto ($t = \bm\alpha\cdot\bm\xi$), ficam todas onde a AI amostra (Figura~\ref{fig:vies_t}). Na direção
+    modal, o menor $t$ é 0{,}80, e só 3 falhas ficam abaixo de
+    1,5. A variância verdadeira de cada AI sai do direto pela identidade $E_h[I w^2] = E_\varphi[I w]$, com as falhas do
+    direto, e é a que a AI estima (``CoV verd.'' na Tabela~\ref{tab:vies05}): 6{,}2\,\% contra 6{,}9\,\% no modal $M = 100$. Só a direção errada da Tri(0)
+    subestima o próprio CoV (9{,}3\,\% estimado contra 12{,}3\,\% verdadeiro): o $-2{,}2$ desvio da Tabela~1 vinha daí.
+  \item \textbf{Base de Nyström.} Com $T$ (formulação, Seção~\ref{F-sec:kl}), as realizações do direto vão para as coordenadas de
+    Nyström, e o mesmo teste vale para as AI de Nyström: $t \ge 0{,}91$, e
+    CoV verdadeiro de 6{,}1 a 6{,}3\,\%, contra 6{,}0 a 6{,}2\,\% estimados. Os FS são os do campo
+    analítico, uma aproximação: o campo de Nyström é a projeção dele. A regressão de $\ln\mathrm{FS}$ explica o mesmo nas
+    duas bases ($R^2 = 0{,}965$ e $0{,}965$).
+  \item \textbf{A sorte de cada amostra.} A variável de controle mede a sorte de cada amostra no que a regressão explica.
+    A amostra da semente 3 é azarada: o controle fica em 98\,\% da sua média exata na
+    AI modal, 96\,\% no FORM $M = 20$ e 95\,\%
+    no Nyström $M = 200$. Corrigida, a AI modal da semente 3 vai de 1{,}57 para 1{,}60\,\%. O direto corrigido fica em 1{,}705 $\pm$ 0{,}040\,\%
+    (CoV de 2{,}4\,\%), o equivalente a 104\,015 realizações.
+\end{enumerate}
+\begin{figure}[H]\centering\includegraphics[width=\textwidth]{figs/vies_t.pdf}
+\caption{A chance de falha do direto em cada faixa de $t = \bm\alpha\cdot\bm\xi$ (barras) e as densidades de $t$ no
+direto e na AI (curvas, em escala). A AI amostra toda a região onde o direto falha.}\label{fig:vies_t}\end{figure}
+\begin{table}[H]\centering\small
+\resizebox{\ifdim\width>\textwidth\textwidth\else\width\fi}{!}{%
+\begin{tabular}{llrrrrrrrr}
+\toprule
+AI & base & semente & $N$ & $P_f$ (\%) & CoV (\%) & CoV verd. (\%) & $t_{\min}$ & $P_f$ corr. (\%) & CoV corr. (\%) \\
+\midrule
+Monte Carlo direto & --- & 2010 & 24000 & 1{,}70 & 4{,}9 & --- & --- & 1{,}71 & 2{,}4 \\
+FORM $M = 10$, dif. centrais & KL & 3 & 1000 & 1{,}54 & 8{,}8 & 7{,}8 & 0{,}62 & 1{,}66 & 4{,}5 \\
+FORM $M = 20$, dif. centrais & KL & 3 & 1000 & 1{,}53 & 6{,}3 & 5{,}9 & 1{,}31 & 1{,}60 & 4{,}3 \\
+FORM $M = 20$, dif. centrais & KL & 4 & 1000 & 1{,}72 & 5{,}9 & 5{,}9 & 1{,}31 & 1{,}64 & 4{,}2 \\
+FORM $M = 20$, dif. centrais & KL & 5 & 1000 & 1{,}90 & 6{,}1 & 5{,}9 & 1{,}31 & 1{,}76 & 4{,}6 \\
+FORM modal $M = 100$ & KL & 3 & 1000 & 1{,}57 & 6{,}9 & 6{,}2 & 0{,}80 & 1{,}60 & 5{,}1 \\
+FORM modal $M = 200$ & KL & 3 & 1000 & 1{,}57 & 6{,}8 & 6{,}0 & 0{,}93 & 1{,}60 & 5{,}0 \\
+FORM modal $M = 200$, campo de 200 termos & KL & 3 & 1000 & 1{,}56 & 6{,}8 & 6{,}0 & 0{,}93 & 1{,}59 & 5{,}0 \\
+FORM modal $M = 100$ & KL & 6 & 1000 & 1{,}66 & \textcolor{azul}{\textbf{5{,}8}} & 6{,}2 & 0{,}80 & 1{,}65 & 4{,}1 \\
+FORM modal $M = 200$ & KL & 7 & 1000 & 1{,}78 & 5{,}9 & 6{,}0 & 0{,}93 & 1{,}75 & 4{,}6 \\
+direção da Tri(0), $M = 100$ & KL & 3 & 1000 & 1{,}36 & \textcolor{verm}{\textbf{9{,}3}} & 12{,}3 & 0{,}58 & 1{,}57 & \textcolor{verm}{\textbf{5{,}4}} \\
+FORM modal $M = 20$ & Nyström & 3 & 1000 & 1{,}57 & 6{,}2 & 6{,}3 & 1{,}02 & 1{,}62 & \textcolor{azul}{\textbf{3{,}8}} \\
+FORM modal $M = 200$ & Nyström & 3 & 1000 & 1{,}53 & 6{,}0 & 6{,}1 & 0{,}91 & 1{,}60 & 4{,}0 \\
+\bottomrule
+\end{tabular}}
+\caption{$r = -0{,}5$: as AI pelo ponto de projeto. ``CoV verd.'' é o CoV verdadeiro de cada AI, calculado pelas falhas
+do direto; $t_{\min}$ é o menor $t$ entre as falhas do direto; ``corr.'' é a estimativa com a variável de controle.
+Em Nyström, o direto vai para a base de Nyström pela mudança de base.}\label{tab:vies05}
+\end{table}
+\begin{table}[H]\centering\small
+\resizebox{\ifdim\width>\textwidth\textwidth\else\width\fi}{!}{%
+\begin{tabular}{lrrrrrr}
+\toprule
+Grupo & sementes & $P_f$ média (\%) & dif. & $P_f$ corr. média (\%) & dif. & desvio entre sementes / estimado \\
+\midrule
+$r = -0{,}5$, KL (modal; $M = 20$ em s4 e s5) & 5 & 1{,}728 $\pm$ 0{,}047 & $0{,}3$ & 1{,}679 $\pm$ 0{,}034 & $-0{,}5$ & 0{,}122 / 0{,}106 \\
+$r = -0{,}5$, Nyström (modal) & 1 & 1{,}527 $\pm$ 0{,}092 & $-1{,}4$ & 1{,}600 $\pm$ 0{,}064 & $-1{,}4$ & --- \\
+$r = -0{,}7$, KL ($M = 20$) & 3 & 0{,}361 $\pm$ 0{,}017 & $-0{,}3$ & 0{,}350 $\pm$ 0{,}015 & $-1{,}0$ & 0{,}016 / 0{,}030 \\
+\bottomrule
+\end{tabular}}
+\caption{As sementes independentes (uma AI por semente; a 3 é a do PC). A dif. é a diferença para o direto, em desvios;
+a corrigida usa o direto corrigido. A última coluna compara a dispersão real entre as sementes com o desvio que cada AI
+estima.}\label{tab:sementes}
+\end{table}
+\begin{figure}[H]\centering\includegraphics[width=\textwidth]{figs/vies_sementes.pdf}
+\caption{Uma AI por semente, com IC 95\,\%: vazado, a estimativa da AI; cheio, a corrigida. As faixas são o IC 95\,\% do
+direto (claro) e do direto corrigido (escuro).}\label{fig:vies_sementes}\end{figure}
+\textbf{$r = -0{,}7$} (direto de 25\,000, 93
+falhas): $t \ge 2{,}20$ na direção do FORM $M = 20$ (1{,}23
+no $M = 10$). O CoV verdadeiro é 7{,}6\,\%, e as AI estimam de 7{,}4 a 8{,}6\,\%.
+As sementes 3, 4 e 5, corrigidas, dão 0{,}351, 0{,}333, 0{,}364\,\%, contra 0{,}380 $\pm$ 0{,}025\,\% do direto corrigido ($-1{,}0$ desvio).
+\begin{table}[H]\centering\small
+\resizebox{\ifdim\width>\textwidth\textwidth\else\width\fi}{!}{%
+\begin{tabular}{llrrrrrrrr}
+\toprule
+AI & base & semente & $N$ & $P_f$ (\%) & CoV (\%) & CoV verd. (\%) & $t_{\min}$ & $P_f$ corr. (\%) & CoV corr. (\%) \\
+\midrule
+Monte Carlo direto & --- & 2010 & 25000 & 0{,}372 & 10{,}4 & --- & --- & 0{,}380 & 6{,}6 \\
+FORM $M = 10$, dif. centrais & KL & 3 & 1000 & 0{,}313 & \textcolor{verm}{\textbf{11{,}6}} & 12{,}2 & 1{,}23 & 0{,}324 & \textcolor{verm}{\textbf{9{,}3}} \\
+FORM $M = 20$, dif. centrais & KL & 3 & 1000 & 0{,}351 & 8{,}6 & 7{,}6 & 2{,}20 & 0{,}351 & 7{,}8 \\
+FORM $M = 20$, dif. centrais & KL & 4 & 1000 & 0{,}353 & \textcolor{azul}{\textbf{7{,}4}} & 7{,}6 & 2{,}20 & 0{,}333 & \textcolor{azul}{\textbf{6{,}3}} \\
+FORM $M = 20$, dif. centrais & KL & 5 & 1000 & 0{,}380 & 8{,}4 & 7{,}6 & 2{,}20 & 0{,}364 & 7{,}9 \\
+\bottomrule
+\end{tabular}}
+\caption{$r = -0{,}7$: as AI pelo ponto de projeto, como na Tabela~\ref{tab:vies05}.}\label{tab:vies07}
+\end{table}
+\textbf{Conclusão.}
+\begin{itemize}
+  \item Nenhum modo de ruptura fica fora da AI, e a variância verdadeira é a estimada.
+  \item As sementes independentes acertam o direto, nas duas bases. A semente 3 é uma tiragem baixa, comum a todas as
+    AI que a usam.
+  \item As repetições da fase 4 no fermi fecham a questão: 10 sementes do FORM modal analítico e 10 do de Nyström, com as
+    mesmas sementes nas duas bases. Elas dão a distribuição do estimador.
+  \item A variável de controle é um ganho à parte, sem custo: de 1{,}7 a 3{,}2 vezes menos realizações nas AI e 4{,}3 no direto.
+\end{itemize}
+
+\subsection{Comparação das bases com a mesma variância}
+A variância do campo nos pontos do talude depende da base e de $M$ (\path{runs/cho2010/nystrom/variancia_bases.py}):
+\begin{table}[H]\centering\small
+\resizebox{\ifdim\width>\textwidth\textwidth\else\width\fi}{!}{%
+\begin{tabular}{rrr}
+\toprule
+$M$ & analítica (retângulo) & Nyström (talude) \\
+\midrule
+10 & 0,60 & 0,65 \\
+20 & 0,72 & 0,76 \\
+50 & 0,84 & 0,86 \\
+100 & 0,90 & 0,90 \\
+200 & 0,935 & 0,931 \\
+400 & 0,96 & 0,94 \\
+2000 & 0,99 & 0,95 (teto) \\
+\bottomrule
+\end{tabular}}
+\caption{Variância média do campo nos pontos do talude (alvo 1). O teto de Nyström vem da quadratura de 2400 nós: a
+interpolação entre os nós não reproduz o bico do kernel exponencial.}
+\end{table}
+Com poucos termos, Nyström retém mais variância; em $M \approx 200$ as duas se igualam (≈0,93). A AI analítica usa 2000
+termos (0,99), e a de Nyström 200 (0,93): são modelos de campo diferentes. Mas a variância que falta está nos modos
+altos, que quase não mudam o FS (a média ao longo da banda de ruptura os filtra): o $\beta$ do FORM vai de 2,001
+($M = 100$) para 1,999 ($M = 200$). Por isso a $P_f$ do campo com 0,93 deve ficar perto da do campo completo; a
+estimativa inicial, de 1,3 a 1,4\,\% pela variância, estava errada. A comparação justa das bases usa os dois campos
+com a mesma variância:
+\begin{table}[H]\centering\small
+\resizebox{\ifdim\width>\textwidth\textwidth\else\width\fi}{!}{%
+\begin{tabular}{lrrr}
+\toprule
+Campo (variância ≈0,93) & $N$ & $P_f$ (\%) & CoV (\%) \\
+\midrule
+Nyström, 200 termos (ponto do FORM modal Nyström $M = 200$) & 1000 & 1{,}53 & \textcolor{azul}{\textbf{6{,}0}} \\
+Nyström, 200 termos (ponto do FORM modal Nyström $M = 20$) & 1000 & 1{,}57 & 6{,}2 \\
+analítica truncada em 200 termos (ponto do FORM modal $M = 200$) & 1000 & 1{,}56 & \textcolor{verm}{\textbf{6{,}8}} \\
+\bottomrule
+\end{tabular}}
+\caption{AI no PC, semente 3, a mesma das AI analíticas da Tabela 1 (os sorteios são os mesmos). A referência de
+24\,000 é do campo completo (2000 termos) e só vale aproximadamente aqui.}
+\end{table}
+
+\subsection{O piso do SRM em $F_0 = 0{,}8$}
+Nenhuma realização das AI deu FS abaixo de 0,8 (o mínimo foi 0,802). É o mesmo mecanismo do buraco em $F = 1$: um talude
+com FS verdadeiro logo abaixo de $F_0$ às vezes converge o peso com $F_0$ e devolve $\approx F_0$. Para a $P_f$ não muda
+nada (o FS continua $< 1$), mas a cauda inferior do FS fica distorcida (≈1 realização em 1000). Correção proposta:
+recomeçar de $F_0/2$ quando o caminho de $F$ colapsa logo no início.
+
+\subsection{Custo total para CoV$(P_f) = 10\,\%$}
+\begin{table}[H]\centering\small
+\resizebox{\ifdim\width>\textwidth\textwidth\else\width\fi}{!}{%
+\begin{tabular}{lrr}
+\toprule
+Método & $r = -0{,}5$ & $r = -0{,}7$ \\
+\midrule
+Monte Carlo direto & 5782 & 26782 \\
+AI pela banda (entropia cruzada) & \textcolor{verm}{\textbf{2238}} & \textcolor{verm}{\textbf{3645}} \\
+AI pelo FORM $M = 10$ & 896 & 1518 \\
+AI pelo FORM $M = 20$ & \textcolor{azul}{\textbf{639}} & \textcolor{azul}{\textbf{984}} \\
+\bottomrule
+\end{tabular}}
+\caption{Análises de elementos finitos, com o piloto (1000) e o FORM incluídos. Com o piloto na malha grossa (custo
+1/20, Seção~\ref{sec:hip}), a AI pela banda cai para ≈1300 e ≈2700.}
+\end{table}
+
+\subsection{O teste linear (sem elementos finitos)}
+\begin{table}[H]\centering\small
+\resizebox{\ifdim\width>\textwidth\textwidth\else\width\fi}{!}{%
+\begin{tabular}{rrrrr}
+\toprule
+$\beta$ & $P_f$ exata & direto ($10^6$) & AI na direção exata & AI a 17{,}6$^\circ$ da direção \\
+\midrule
+2 & 2.275e-02 & 2{,}27\,\% & \textcolor{azul}{\textbf{0{,}8\,\% (0{,}5)}} & \textcolor{verm}{\textbf{-2{,}9\,\% (-1{,}6)}} \\
+3 & 1.350e-03 & 0{,}13\,\% & \textcolor{azul}{\textbf{0{,}9\,\% (0{,}5)}} & \textcolor{verm}{\textbf{-4{,}7\,\% (-1{,}7)}} \\
+4 & 3.167e-05 & --- & \textcolor{azul}{\textbf{1{,}0\,\% (0{,}4)}} & \textcolor{verm}{\textbf{-9{,}1\,\% (-2{,}6)}} \\
+\bottomrule
+\end{tabular}}
+\caption{Falha $\bm\alpha\cdot\bm\xi > \beta$, com $P_f$ exata. Erro relativo, com o erro em desvios entre parênteses.}
+\end{table}
+Com o deslocamento na direção exata, a AI acerta até $3\times10^{-5}$. Com a direção um pouco errada, ela sai baixa, e
+mais baixa quando $\beta$ cresce.
+
+\subsection{FORM: gradiente modal e as duas bases (etapas 2b e 2c)}\label{sec:nystrom}
+\begin{itemize}
+  \item \textbf{Validação do gradiente modal} nos pontos de projeto do fermi: ele fica a 9,6$^\circ$ ($M = 10$) e
+    8,9$^\circ$ ($M = 20$) do gradiente das diferenças centrais, e o termo dominante ($\varphi'_0$) bate a menos de 4\,\%.
+\end{itemize}
+\begin{table}[H]\centering\small
+\resizebox{\ifdim\width>\textwidth\textwidth\else\width\fi}{!}{%
+\begin{tabular}{rrrrr}
+\toprule
+$M$ & variância retida (Nyström) & $\beta$ analítica & $\beta$ Nyström & análises por FORM \\
+\midrule
+10 & 0{,}655 & 2{,}151 & 2{,}062 & 4 \\
+20 & 0{,}769 & 2{,}040 & 2{,}020 & 3 \\
+50 & 0{,}876 & 2{,}009 & 2{,}009 & 3 \\
+100 & 0{,}933 & 2{,}001 & 2{,}002 & 3 \\
+200 & 0{,}970 & 1{,}999 & 1{,}999 & 3 \\
+\bottomrule
+\end{tabular}}
+\caption{$\beta$ do FORM com o gradiente modal na malha usual. Com diferenças centrais: 2,115 ($M = 10$, 123 análises) e
+2,012 ($M = 20$, 243).}
+\end{table}
+\begin{figure}[H]\centering\includegraphics[width=0.6\textwidth]{figs/beta_M.pdf}\caption{$\beta(M)$: a base de
+Nyström converge com menos termos.}\end{figure}
+A base de Nyström chega mais perto do $\beta$ convergido com poucos termos ($M = 10$: 2,062 contra 2,151), e as duas
+coincidem a partir de $M = 50$. É o mesmo efeito da placa curva do estudo do Ghanem \& Spanos (\path{docs/confiabilidade_campos/kl_form_placas}). O $\beta$ converge para
+$\approx 2{,}00$, mas a $P_f$ do FORM sozinho ($\approx 2{,}3\,\%$) superestima a do direto em ≈30\,\%: é o erro de
+linearizar uma superfície de falha curva. Por isso o FORM entra só como deslocamento da AI.
+
+\subsection{O ponto de projeto nas duas bases}\label{sec:pp}
+Com o gradiente modal (formulação, Seção~\ref{F-sec:form}), o FORM converge em 3 análises nas duas bases
+(Figura~\ref{fig:pp}).
+\begin{itemize}
+  \item \emph{Analítica} ($M = 100$): $\beta = 2{,}001$, com 0{,}95
+    de $\alpha^2$ em $\varphi'$; os maiores termos são $\varphi'_{1}$ (0{,}67), $\varphi'_{3}$ (0{,}14), $\varphi'_{13}$ (0{,}05). Os 10 primeiros modos de cada campo somam
+    0{,}89.
+  \item \emph{Nyström} ($M = 200$): $\beta = 1{,}999$, com 0{,}95
+    em $\varphi'$; os maiores termos são $\varphi'_{1}$ (0{,}40), $\varphi'_{2}$ (0{,}31), $\varphi'_{9}$ (0{,}08). Os 10 primeiros somam 0{,}95.
+\end{itemize}
+Os coeficientes são outros, mas o ponto é o mesmo. Levado para as coordenadas de Nyström por $T$, o ponto analítico
+tem $|\bm u| = 1{,}993$ e fica a 3{,}2$^\circ$ do de
+Nyström. O campo mais provável de ruptura é uma camada fraca horizontal sob a face do talude:
+\begin{itemize}
+  \item $\varphi'$ mínimo de 23,4$^\circ$ em $y \approx 6{,}6$\,m, 1,6\,m acima do pé;
+  \item $c'$ quase uniforme, de 8,6 a 9,6\,kPa;
+  \item os perfis de $\varphi'$ das duas bases diferem em menos de 0,1$^\circ$.
+\end{itemize}
+\begin{figure}[H]\centering\includegraphics[width=\textwidth]{figs/ponto_projeto.pdf}
+\caption{$c'$ e $\varphi'$ no ponto de projeto do FORM modal: KL analítica ($M = 100$, em cima) e Nyström ($M = 200$,
+embaixo), com as mesmas escalas de cor.}\label{fig:pp}\end{figure}
+
+\subsection{A referência da chuva (etapa 4)}
+\begin{table}[H]\centering\small
+\resizebox{\ifdim\width>\textwidth\textwidth\else\width\fi}{!}{%
+\begin{tabular}{lrrrrr}
+\toprule
+Método & $N$ & $P_f$ (\%) & CoV (\%) & dif. (desvios) & ganho \\
+\midrule
+Monte Carlo direto (fermi) & 9093 & 5{,}45 & 4{,}4 & --- & 1 \\
+AI pela banda, semente 1 & 1000 & 6{,}18 & \textcolor{azul}{\textbf{7{,}0}} & \textcolor{verm}{\textbf{1{,}5}} & \textcolor{azul}{\textbf{3{,}1}} \\
+AI pela banda, semente 2 & 1000 & 5{,}74 & \textcolor{verm}{\textbf{8{,}2}} & \textcolor{azul}{\textbf{0{,}5}} & \textcolor{verm}{\textbf{2{,}4}} \\
+\bottomrule
+\end{tabular}}
+\caption{f50 a 31,05\,mm/h, FS em 24\,h.}
+\end{table}
+
+\section{Hipóteses}\label{sec:hip}
+\subsection*{Confirmadas}
+\begin{itemize}
+  \item A AI não tem viés com qualquer deslocamento fixado antes; o deslocamento só muda a variância (teste linear e Ceron).
+  \item O SRM antigo tinha um buraco logo abaixo de FS = 1; o efeito na $P_f$ é pequeno.
+  \item \textbf{Há um só modo de ruptura} no Cho2010, nas duas bases: todas as falhas do direto ficam onde a AI pelo
+    FORM amostra ($t = \bm\alpha\cdot\bm\xi \ge 0{,}80$ na direção modal, com só
+    3 das 408 abaixo de 1,5;
+    $t \ge 2{,}20$ com $r = -0{,}7$), e a variância verdadeira da AI,
+    calculada pelas falhas do direto, é a que a AI estima (Seção~\ref{sec:vies}). A banda de ruptura das falhas é a mesma
+    no direto e na AI.
+  \item \textbf{O ponto de projeto é o mesmo nas duas bases:} levado para as coordenadas de Nyström, o ponto analítico
+    fica a 3{,}2$^\circ$ do de Nyström, e os campos de $\varphi'$ diferem em
+    menos de 0,1$^\circ$ (Figura~\ref{fig:pp}).
+  \item \textbf{A variável de controle dá um ganho extra sem custo:} de 1{,}7 a
+    3{,}2 nas AI de $r = -0{,}5$ e 4{,}3
+    no direto, cuja referência vai a 1{,}705 $\pm$ 0{,}040\,\%.
+  \item \textbf{O piloto pode ser pequeno:} com 250 realizações, o deslocamento da banda custa só ≈5\,\% de variância.
+  \item \textbf{O piloto pode rodar em malha grossa:} o elite é escolhido por ordem, e a ordem das realizações quase não
+    muda. Com o piloto na Tri(0) (300 vezes mais barata), a AI pela banda acertou o direto ($-0{,}2$ desvio), com o mesmo
+    CoV do piloto na malha usual. Tri(1) e Tri(2) também estão nas tabelas.
+  \item \textbf{O gradiente modal dá a direção do FORM com 1 análise,} a menos de ≈9$^\circ$ das diferenças centrais, e o
+    FORM converge em 3 análises.
+  \item \textbf{A base de Nyström precisa de menos termos} que a analítica para o mesmo $\beta$.
+  \item \textbf{A AI pelo FORM não tem viés} ($r = -0{,}5$), nas duas bases (Seção~\ref{sec:vies}). Com a semente 3, as AI saem todas em ≈1,55\,\% (os sorteios são os mesmos). As 5 sementes independentes da KL dão, em média, 1{,}728\,\% contra 1{,}700\,\% do direto e, com a variável de controle, 1{,}679 $\pm$ 0{,}034\,\% contra 1{,}705 $\pm$ 0{,}040\,\% ($-0{,}5$ desvio). A direção errada da Tri(0) é a única que subestima o próprio CoV (9{,}3 contra 12{,}3\,\%); com o CoV verdadeiro, o seu desvio cai de $-2{,}2$ para $-1{,}5$.
+  \item \textbf{A AI pelo FORM com $r = -0{,}7$ também não tem viés detectável:} as sementes 3, 4 e 5, corrigidas, dão 0{,}351, 0{,}333, 0{,}364\,\%, contra 0{,}380 $\pm$ 0{,}025\,\% do direto corrigido (25\,000 realizações, 93 falhas): $-1{,}0$ desvio.
+\end{itemize}
+\subsection*{Descartadas}
+\begin{itemize}
+  \item \textbf{O FORM na malha Tri(0)} (76 equações, FS 1,47 contra 1,20): $\beta = 4{,}08$ e direção a 31,7$^\circ$ da
+    certa. O erro da malha desloca o ponto de projeto, e não só o FS. Com a direção da Tri(0) e a distância da malha usual
+    ($\beta = 2{,}32$), a AI funciona, mas pior que o FORM na malha usual.
+\end{itemize}
+\subsection*{Sob investigação}
+\begin{itemize}
+  \item \textbf{O campo de $k$ na chuva:} o gradiente modal pega $c'$ e $\varphi'$; o $k$ age pelo transiente e
+    precisaria do adjunto. Hoje o $k$ pesa pouco na chuva f50 ($\alpha^2_k \approx 0$), e a AI continua sem viés sem
+    deslocá-lo.
+\end{itemize}
+
+\section{Próximos passos}
+\begin{enumerate}
+  \item \textbf{Direto de $r = -0{,}7$ até 110\,000} (CoV de 5\,\%; com os 4 nós do fermi, ≈33\,h). A fase 4 fica
+    pausada até ele acabar.
+  \item \textbf{Fase 4 no fermi} (≈8\,h): 10 sementes do FORM modal analítico e 10 do de Nyström, as mesmas nas duas
+    bases. Dão a distribuição do estimador e fecham a questão do viés (Seção~\ref{sec:vies}).
+  \item \textbf{Etapa 4:} o FORM com gradiente modal e a AI pelo ponto de projeto na chuva, contra o direto de 10\,000
+    (terminando no fermi).
+  \item \textbf{Variável de controle} nas AI pela banda e na chuva. Para o artigo da AI: o ganho contra o custo total
+    (FORM, piloto e controle), de $P_f \approx 2\,\%$ a $0{,}4\,\%$.
+\end{enumerate}
+
+\section{Mapa dos documentos}\label{sec:mapa}
+É a mesma lista do índice do \path{Projects/PlanoDeTrabalho/README.md}: as duas saem de
+\path{Projects/PlanoDeTrabalho/documentos.py}. Os caminhos relativos são a partir de \path{~/projects/neopz-master}.
+\begin{longtable}{p{0.44\textwidth}rp{0.46\textwidth}}
+\toprule
+Documento & p. & O que tem \\
+\midrule
+\endhead
+\multicolumn{3}{p{0.96\textwidth}}{\textbf{Formulação: o solo não saturado e o fator de segurança (docs/)}} \\
+\path{docs/nao_saturado/biot_nao_saturado_agua_ar5.pdf} & 49 & formulação poroelástica não saturada (esqueleto, água e ar), a implementação no NeoPZ, Rahardjo et al. (2007) e benchmarks; a versão 4 está ao lado \\
+\path{docs/nao_saturado/formulacao/formulacao.pdf} & 25 & formulação acoplada u--pw--pa com Mohr--Coulomb associado: discretização, resíduos e jacobiano \\
+\path{docs/nao_saturado/resumo/resumo_nao_saturado.pdf} & 24 & resumo da formulação u--pw--pa \\
+\path{docs/nao_saturado/relatorio_discussao.pdf} & 7 & contraexemplos a Rahardjo et al. (2007): discussão dos resultados, argumentos e verificação \\
+\path{docs/nao_saturado/artigo/artigo.pdf} & 19 & artigo: a intensidade crítica de chuva em taludes não saturados, e quanto as análises desacopladas e com ar passivo a superestimam \\
+\path{docs/talude_srm/slope_mohr_coulomb/relatorio.pdf} & 18 & talude Mohr--Coulomb no NeoPZ: correções da plasticidade, FS e rebaixamento \\
+\path{docs/talude_srm/slope_mohr_coulomb/nota_uqp.pdf} & 6 & nota: formulação de três campos u--q--p \\
+\path{docs/talude_srm/fs_arc_length/relatorio_fs.pdf} & 34 & FS de talude não saturado sob chuva: SRM e GIM com e sem arc-length, sensibilidade e parâmetros \\
+\multicolumn{3}{p{0.96\textwidth}}{\textbf{Formulação: campos aleatórios, FORM e amostragem por importância (docs/confiabilidade\_campos)}} \\
+\path{docs/confiabilidade_campos/formulacao/formulacao.pdf} & 4 & o modelo, as duas bases de Karhunen--Loève (analítica e Nyström) e a mudança de base, o Monte Carlo, a AI, a variável de controle e o FORM com o gradiente modal \\
+\path{docs/confiabilidade_campos/implementacao_form_ai/implementacao_form_ai.pdf} & 5 & como o FORM e a AI foram implementados no NeoPZ \\
+\path{docs/confiabilidade_campos/ai_nystrom/ai_nystrom.pdf} & 5 & AI com a KL de Nyström, um roteiro testado em Mathematica \\
+\path{docs/confiabilidade_campos/confiabilidade/confiabilidade.pdf} & 19 & FORM, Monte Carlo e AI em variáveis: a revisão de um código Mathematica e um talude infinito sob chuva (os números saem de Projects/Confiabilidade) \\
+\path{docs/confiabilidade_campos/kl_form_placas/relatorio.pdf} & 26 & estudo do Ghanem \& Spanos (Seção 5.3): KL analítica, Nyström e Galerkin, Monte Carlo e FORM nas placas quadrada e curva \\
+\path{docs/confiabilidade_campos/guia_estudo/guia_estudo.pdf} & 22 & guia de estudo que liga tudo (inclui o FORM com a base da KL, Eq. 14) \\
+\multicolumn{3}{p{0.96\textwidth}}{\textbf{Resultados: o plano de trabalho (Projects/PlanoDeTrabalho)}} \\
+\path{Projects/PlanoDeTrabalho/README.md} &  & o plano de trabalho (etapas 0 a 5, 2b e 2c), as regras dos documentos e este índice \\
+\path{Projects/PlanoDeTrabalho/situacao/situacao.pdf} & --- & a situação: o plano, os resultados, as hipóteses e os próximos passos (o consolidado) (este) \\
+\path{Projects/PlanoDeTrabalho/ETAPA0/relatorio_etapa0.pdf} & 9 & etapa 0: a AI da chuva no fermi e a prévia do Cho2010 (SRM antigo; superado pelo das etapas 1 a 3) \\
+\path{Projects/PlanoDeTrabalho/ETAPAS1a3/relatorio_etapas.pdf} & 6 & etapas 1 a 3: SRM corrigido, FORM e AI, P\_f pequena, teste linear, piloto e custo \\
+\path{Projects/PlanoDeTrabalho/arquivo/} &  & cópias datadas (AAAA-MM-DD\_nome.pdf), nunca editadas: 2026-11-17\_relatorio\_parcial.pdf \\
+\multicolumn{3}{p{0.96\textwidth}}{\textbf{Resultados: as campanhas}} \\
+\path{Projects/PlanoDeTrabalho/campanhas/relatorio_chuva.pdf} & 16 & Monte Carlo da chuva (Rahardjo); a Seção 7 é a AI \\
+\path{Projects/PlanoDeTrabalho/campanhas/relatorio_rebaixamento.pdf} & 11 & rebaixamento do Ceron: Monte Carlo direto e AI (validação: 15,70\,\% contra 15,87\,\%) \\
+\path{Projects/PlanoDeTrabalho/campanhas/relatorio_solos.pdf} & 7 & os três solos do Rahardjo sob chuva \\
+\path{Projects/SlopeRandomFieldRefina/relatorio/relatorio.pdf} & 36 & refinamento por realização e Karhunen--Loève no talude do Ceron (2025); fica com o programa, porque os scripts dele e os do KLCilindroMika gravam nesta pasta \\
+\multicolumn{3}{p{0.96\textwidth}}{\textbf{Fora do repositório}} \\
+\path{~/Dropbox/UnsaturatedSoil/referencias/} &  & artigos de terceiros (Cho 2010, Ceron 2025, a tese do Santos, ...) \\
+\path{~/projects/runs/} &  & os dados brutos das rodadas, uma pasta por campanha \\
+\bottomrule
+\end{longtable}
+Como usar cada programa: o README.md da pasta dele, em Projects/<programa>/ (fica com o código).
+
+\end{document}

@@ -2,7 +2,8 @@
 
 Este plano serve a dois artigos: o da amostragem por importância (AI) e o da chuva em solo não saturado. Ele valida as
 ferramentas estatísticas antes de usá-las na chuva. É a versão 2, de 15/11/2026. Ela junta a revisão independente (uma
-crítica estatística e uma de custo) e a decisão de rodar tudo no fermi.
+crítica estatística e uma de custo) e a decisão de rodar tudo no fermi. O índice de todos os documentos (formulação e
+resultados) está no fim, na seção [Documentos](#documentos).
 
 ## Princípios
 
@@ -100,7 +101,7 @@ núcleo, ou 6 a 7 h em 4 nós. O primeiro nó roda antes os FORM com M = 10 e 20
   - No Mathematica, com a falha simplificada, os 10 primeiros modos de Nyström deram ganho de 30×.
   - No Ceron, com a base do retângulo, deram 1,2×.
 - **Protótipo no Mathematica, já feito:**
-  - `Projects/Cho2010/nystrom_ai`: a AI com Nyström e uma falha simplificada;
+  - `docs/confiabilidade_campos/ai_nystrom`: a AI com Nyström e uma falha simplificada;
   - `~/Dropbox/UnsaturatedSoil/mathematica/talude_nystrom/talude_nystrom.wl`: o talude do `poro_plastic.nb` (o do Cho)
     com c′ e φ′ por ponto de integração e o SRM com bissecção. Dá FS determinístico de 1,258 e ~1 min por
     realização.
@@ -191,3 +192,90 @@ núcleo, ou 6 a 7 h em 4 nós. O primeiro nó roda antes os FORM com M = 10 e 20
 
 Cada pasta `ETAPAn/` guarda os resultados resumidos (`resultados/`) e o relatório da etapa. Os dados brutos ficam em
 `~/projects/runs` (os do fermi em `~/projects/runs/fermi_<campanha>`).
+
+## Documentos
+
+Cada documento mora num lugar só, conforme a natureza:
+
+- `docs/<tema>/`: a **formulação**, que muda pouco e é a base dos artigos. Os temas são `nao_saturado`, `talude_srm` e
+  `confiabilidade_campos`.
+- `Projects/PlanoDeTrabalho/`: os **resultados**, gerados das rodadas:
+  - `situacao/`: o consolidado;
+  - `ETAPA0/`, `ETAPAS1a3/`, ...: um relatório por etapa;
+  - `campanhas/`: chuva, rebaixamento e solos;
+  - `arquivo/`: as cópias datadas.
+- `Projects/<programa>/README.md`: como usar cada programa. Fica junto do código.
+- Fora do repositório:
+  - `~/Dropbox/UnsaturatedSoil/referencias/`: os artigos de terceiros;
+  - `~/projects/runs/<campanha>/`: os dados brutos.
+
+Regras:
+
+1. O relatório de resultados não repete a formulação. Ele cita a seção do documento de formulação.
+2. Cada documento é uma pasta com:
+   - o gerador (`gera_*.py` ou `atualiza.sh`);
+   - o `.tex` e o `.pdf`;
+   - a pasta `figs/`.
+
+   O PDF vai para o git; os arquivos auxiliares do LaTeX não vão.
+3. O documento vivo não tem data no nome; a capa traz a data e o commit. Antes de uma reunião ou de um envio, guarde uma
+   cópia datada em `arquivo/` (`AAAA-MM-DD_nome.pdf`).
+4. O índice abaixo sai da mesma lista que o "Mapa dos documentos" do relatório de situação (`documentos.py`). Para
+   mudar, edite a lista e rode `python3 -I documentos.py`. O relatório de situação se atualiza com
+   `situacao/atualiza.sh`.
+
+<!-- indice: gerado por documentos.py; nao edite a mao -->
+
+### Formulação: o solo não saturado e o fator de segurança (docs/)
+
+| Documento | Páginas | O que tem |
+|---|---:|---|
+| `docs/nao_saturado/biot_nao_saturado_agua_ar5.pdf` | 49 | formulação poroelástica não saturada (esqueleto, água e ar), a implementação no NeoPZ, Rahardjo et al. (2007) e benchmarks; a versão 4 está ao lado |
+| `docs/nao_saturado/formulacao/formulacao.pdf` | 25 | formulação acoplada u–pw–pa com Mohr–Coulomb associado: discretização, resíduos e jacobiano |
+| `docs/nao_saturado/resumo/resumo_nao_saturado.pdf` | 24 | resumo da formulação u–pw–pa |
+| `docs/nao_saturado/relatorio_discussao.pdf` | 7 | contraexemplos a Rahardjo et al. (2007): discussão dos resultados, argumentos e verificação |
+| `docs/nao_saturado/artigo/artigo.pdf` | 19 | artigo: a intensidade crítica de chuva em taludes não saturados, e quanto as análises desacopladas e com ar passivo a superestimam |
+| `docs/talude_srm/slope_mohr_coulomb/relatorio.pdf` | 18 | talude Mohr–Coulomb no NeoPZ: correções da plasticidade, FS e rebaixamento |
+| `docs/talude_srm/slope_mohr_coulomb/nota_uqp.pdf` | 6 | nota: formulação de três campos u–q–p |
+| `docs/talude_srm/fs_arc_length/relatorio_fs.pdf` | 34 | FS de talude não saturado sob chuva: SRM e GIM com e sem arc-length, sensibilidade e parâmetros |
+
+### Formulação: campos aleatórios, FORM e amostragem por importância (docs/confiabilidade_campos)
+
+| Documento | Páginas | O que tem |
+|---|---:|---|
+| `docs/confiabilidade_campos/formulacao/formulacao.pdf` | 4 | o modelo, as duas bases de Karhunen–Loève (analítica e Nyström) e a mudança de base, o Monte Carlo, a AI, a variável de controle e o FORM com o gradiente modal |
+| `docs/confiabilidade_campos/implementacao_form_ai/implementacao_form_ai.pdf` | 5 | como o FORM e a AI foram implementados no NeoPZ |
+| `docs/confiabilidade_campos/ai_nystrom/ai_nystrom.pdf` | 5 | AI com a KL de Nyström, um roteiro testado em Mathematica |
+| `docs/confiabilidade_campos/confiabilidade/confiabilidade.pdf` | 19 | FORM, Monte Carlo e AI em variáveis: a revisão de um código Mathematica e um talude infinito sob chuva (os números saem de Projects/Confiabilidade) |
+| `docs/confiabilidade_campos/kl_form_placas/relatorio.pdf` | 26 | estudo do Ghanem & Spanos (Seção 5.3): KL analítica, Nyström e Galerkin, Monte Carlo e FORM nas placas quadrada e curva |
+| `docs/confiabilidade_campos/guia_estudo/guia_estudo.pdf` | 22 | guia de estudo que liga tudo (inclui o FORM com a base da KL, Eq. 14) |
+
+### Resultados: o plano de trabalho (Projects/PlanoDeTrabalho)
+
+| Documento | Páginas | O que tem |
+|---|---:|---|
+| `Projects/PlanoDeTrabalho/README.md` |  | o plano de trabalho (etapas 0 a 5, 2b e 2c), as regras dos documentos e este índice |
+| `Projects/PlanoDeTrabalho/situacao/situacao.pdf` | 12 | a situação: o plano, os resultados, as hipóteses e os próximos passos (o consolidado) |
+| `Projects/PlanoDeTrabalho/ETAPA0/relatorio_etapa0.pdf` | 9 | etapa 0: a AI da chuva no fermi e a prévia do Cho2010 (SRM antigo; superado pelo das etapas 1 a 3) |
+| `Projects/PlanoDeTrabalho/ETAPAS1a3/relatorio_etapas.pdf` | 6 | etapas 1 a 3: SRM corrigido, FORM e AI, P_f pequena, teste linear, piloto e custo |
+| `Projects/PlanoDeTrabalho/arquivo/` |  | cópias datadas (AAAA-MM-DD_nome.pdf), nunca editadas: 2026-11-17_relatorio_parcial.pdf |
+
+### Resultados: as campanhas
+
+| Documento | Páginas | O que tem |
+|---|---:|---|
+| `Projects/PlanoDeTrabalho/campanhas/relatorio_chuva.pdf` | 16 | Monte Carlo da chuva (Rahardjo); a Seção 7 é a AI |
+| `Projects/PlanoDeTrabalho/campanhas/relatorio_rebaixamento.pdf` | 11 | rebaixamento do Ceron: Monte Carlo direto e AI (validação: 15,70% contra 15,87%) |
+| `Projects/PlanoDeTrabalho/campanhas/relatorio_solos.pdf` | 7 | os três solos do Rahardjo sob chuva |
+| `Projects/SlopeRandomFieldRefina/relatorio/relatorio.pdf` | 36 | refinamento por realização e Karhunen–Loève no talude do Ceron (2025); fica com o programa, porque os scripts dele e os do KLCilindroMika gravam nesta pasta |
+
+### Fora do repositório
+
+| Documento | Páginas | O que tem |
+|---|---:|---|
+| `~/Dropbox/UnsaturatedSoil/referencias/` |  | artigos de terceiros (Cho 2010, Ceron 2025, a tese do Santos, ...) |
+| `~/projects/runs/` |  | os dados brutos das rodadas, uma pasta por campanha |
+
+Como usar cada programa: o README.md da pasta dele, em Projects/<programa>/ (fica com o código).
+
+<!-- fim do indice -->

@@ -7,7 +7,7 @@ estrutural e solver, análise e pós-processamento) e grava CSVs que o `plot_lia
 1D, com a solução analítica da coluna saturada e com as curvas digitalizadas do artigo.
 
 O código e os resultados estão documentados, com gráficos, na Seção 11 do resumo
-`docs/biot_nao_saturado/resumo/resumo_nao_saturado.tex` (PDF ao lado).
+`docs/nao_saturado/resumo/resumo_nao_saturado.tex` (PDF ao lado).
 
 ## O ensaio (Seções 10.1 a 10.3 e 10.7)
 

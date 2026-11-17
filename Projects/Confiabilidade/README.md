@@ -1,7 +1,7 @@
 # Confiabilidade: FORM, Monte Carlo e amostragem por importância
 
 Este projeto revisa um código Mathematica de confiabilidade e propõe um segundo problema. O documento completo é
-`doc/confiabilidade.pdf`.
+`docs/confiabilidade_campos/confiabilidade/confiabilidade.pdf`.
 
 O código original calcula, para g = X1 X2 − X3 com três normais:
 - o FORM, pelo `NMinimize`;
@@ -18,9 +18,9 @@ O problema proposto é um talude infinito não saturado sob chuva, com os parâm
 |---|---|
 | `confiabilidade.wl` | o código Mathematica revisado, para abrir e usar *Run All Code*. Comentários só em ASCII |
 | `python/confiab.py` | o mesmo algoritmo em Python: Nataf, HL-RF com Armijo, Monte Carlo e importância |
-| `python/problemas.py` | os dois problemas. Gera `doc/tabelas`, `doc/figuras` e `dados/p2_fragilidade.csv` (cerca de 2 min) |
+| `python/problemas.py` | os dois problemas. Gera as tabelas e as figuras do documento e `dados/p2_fragilidade.csv` (cerca de 2 min) |
 | `mathics/roda_mathics.sh` | o teste do `.wl` no Mathics, um interpretador livre da linguagem (`pip install mathics3`). Usa substitutos das funções estatísticas e leva cerca de 1 min |
-| `doc/confiabilidade.tex` | o documento: `cd doc && latexmk -pdf confiabilidade.tex` |
+| `docs/confiabilidade_campos/confiabilidade/` | o documento (na raiz do repositório): `cd docs/confiabilidade_campos/confiabilidade && latexmk -pdf confiabilidade.tex` |
 
 ## O que foi corrigido no código original
 

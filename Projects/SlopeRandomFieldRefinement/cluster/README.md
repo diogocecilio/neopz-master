@@ -23,7 +23,7 @@ O `montecarlo.cpp` (alvo `SlopeRainMonteCarlo`) roda o Monte Carlo do talude de 
   (2025).
 
 A realização n tem os mesmos números aleatórios em todos os casos. Os casos são o análogo das Seções 6.1 a 6.5 do Ceron
-(veja `casos.txt` e o relatório em `../relatorio/`):
+(veja `casos.txt` e o relatório em `Projects/PlanoDeTrabalho/campanhas/`):
 
 | Fase | Casos | Instantes do FS | N |
 |---|---|---|---|
@@ -232,7 +232,7 @@ O `baixar.sh` grava em `~/projects/runs/fermi_chuva_solos/resultado.txt` o resum
 
 A referência da chuva (f50, I = 31,05 mm/h) tem P_f ≈ 1% em 24 h, pelos pilotos. Com isso, o Monte Carlo direto vê
 poucas falhas: 5000 realizações dão CoV(P_f) ≈ 14%. A amostragem por importância (`montecarlo.cpp` com `piloto=`; a
-lógica está em `ImportanceSampling.h`) precisa de bem menos realizações (Seção 7 do `relatorio/relatorio_chuva.pdf`).
+lógica está em `ImportanceSampling.h`) precisa de bem menos realizações (Seção 7 do `Projects/PlanoDeTrabalho/campanhas/relatorio_chuva.pdf`).
 
 Por que até 48 h:
 - dependendo do k, o FS mínimo não ocorre em 24 h: com k baixo, ele vem depois da chuva (no f100 determinístico, às

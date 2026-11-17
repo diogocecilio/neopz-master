@@ -1,6 +1,6 @@
 // Unsaturated soil (u - p_w - p_a) with the closed-form Mohr-Coulomb of Lira Cecilio (J. Eng. Math. 157:10, 2026):
 // parameters, material, structured meshes and the multiphysics mesh shared by the test projects.
-// Formulation: docs/biot_nao_saturado/formulacao/formulacao.tex.
+// Formulation: docs/nao_saturado/formulacao/formulacao.tex.
 #ifndef UNSATMODEL_H
 #define UNSATMODEL_H
 
@@ -147,7 +147,7 @@ inline TPZGeoMesh *RectangleMesh(REAL W, REAL H, int nx, int ny, std::vector<REA
 }
 
 /**
- * Slope of SlopeMohrCoulomb (Lira Cecilio 2026 implementation, docs/slope_mohr_coulomb): domain 70 m wide, crest at
+ * Slope of SlopeMohrCoulomb (Lira Cecilio 2026 implementation, docs/talude_srm/slope_mohr_coulomb): domain 70 m wide, crest at
  * y = 40 m for x <= 30 m, face at 45 degrees down to the toe at y = 30 m for x >= 40 m. Graded towards the face.
  */
 inline TPZGeoMesh *SlopeMesh(int level, REAL surface = 0.6) {

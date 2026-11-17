@@ -1,4 +1,4 @@
-"""problemas.py: os resultados do documento doc/confiabilidade.tex, com a biblioteca confiab.py.
+"""problemas.py: os resultados do documento docs/confiabilidade_campos/confiabilidade/confiabilidade.tex, com a biblioteca confiab.py.
 
 Problema 1 (o do codigo original): g = X1 X2 - X3, normais independentes N(40; 5), N(50; 2,5), N(1000; 200).
 Problema 2 (proposto): talude infinito sob chuva, com os parametros do talude de Vargas Ceron et al. (2025): c' e phi'
@@ -6,7 +6,7 @@ lognormais correlacionados e a carga de pressao h no plano de ruptura normal, co
 
 Para cada um: probabilidade de falha de referencia (integracao numerica), FORM (HL-RF com e sem busca de Armijo), Monte
 Carlo e amostragem por importancia no ponto de projeto; no problema 2, tambem o efeito dos erros do codigo original e a
-curva de fragilidade P_f(mu_h). Grava doc/tabelas/*.tex, doc/figuras/*.pdf e dados/*.csv.
+curva de fragilidade P_f(mu_h). Grava tabelas/*.tex e figuras/*.pdf do documento e dados/*.csv.
 Uso: python3 problemas.py   (cerca de 1 min)
 """
 import os
@@ -25,7 +25,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.ticker import FuncFormatter  # noqa: E402
 
-DOC = os.path.join(AQUI, "..", "doc")
+DOC = os.path.join(AQUI, "..", "..", "..", "docs", "confiabilidade_campos", "confiabilidade")  # o documento
 FIG, TAB, DADOS = os.path.join(DOC, "figuras"), os.path.join(DOC, "tabelas"), os.path.join(AQUI, "..", "dados")
 for d in (FIG, TAB, DADOS):
     os.makedirs(d, exist_ok=True)

@@ -299,7 +299,7 @@ REAL calculaFS(const std::string &nome, TPZUnsatAnalysis *analysis, REAL t_h, Sa
     const REAL uRef = NormaLivre(xGeo, fixed, analysis->NEq());
 
     // 3. caminho de equilibrio, um ArcLengthStepSRM por incremento. Parametros: estudo de sensibilidade,
-    // docs/fs_arc_length/relatorio_fs.tex
+    // docs/talude_srm/fs_arc_length/relatorio_fs.tex
     TPZUnsatAnalysis::ArcLengthOptions opcoes;
     opcoes.alpha = 0.1 * uRef;
     opcoes.secantPredictor = true;

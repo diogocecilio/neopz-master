@@ -1,5 +1,5 @@
 // Malha FINA: a de rahardjo_a45.geo com metade do tamanho dos elementos (a 'malha fina' do estudo do arc-length,
-// docs/fs_arc_length). Gerar com: gmsh -2 rahardjo_a45_fina.geo -o rahardjo_a45_fina.msh
+// docs/talude_srm/fs_arc_length). Gerar com: gmsh -2 rahardjo_a45_fina.geo -o rahardjo_a45_fina.msh
 // Talude homogeneo de Rahardjo et al. (2007), Fig. 2: Hs = 10 m, alpha = 45 graus, plato de 3Hs na crista e no pe,
 // base em y = 0, pe em y = 2Hs, crista em y = 3Hs. Mesmo refinamento da malha "media" de talude3f/malha_talude.py:
 // hSup ate 2 m de profundidade, crescendo ate hMax a 2 m + Hs. Grupos fisicos com os nomes usados em ReadGmshMesh.

@@ -1,0 +1,114 @@
+\section{Estado em 15/11: plano de trabalho v2 e etapa 0}
+\label{sec:estado}
+
+Fontes: \path{Projects/PlanoDeTrabalho} (README e \path{ETAPA0/relatorio_etapa0}), \path{Projects/Cho2010} e os
+relatórios em \path{Projects/PlanoDeTrabalho/campanhas}: \texttt{relatorio\_chuva} (16 p.),
+\texttt{relatorio\_rebaixamento}, \texttt{relatorio\_solos} e \texttt{implementacao\_form\_ai}.
+
+\paragraph{O plano v2.} Antes de usar Monte Carlo, amostragem por importância (AI) e FORM na chuva, cada ferramenta é
+validada num problema de teste, uma etapa por vez, com hipótese, teste barato e critério de aceite.
+\begin{itemize}
+  \item \textbf{Objetivo:} dois artigos, um sobre a AI e outro sobre a chuva em solo não saturado.
+  \item \textbf{Onde roda:} tudo no fermi, comparando sempre a mesma versão do código, o mesmo SRM e a mesma malha.
+  \item \textbf{Etapas:}
+    \begin{itemize}
+      \item etapa 0: o Cho2010 com direto, AI pela banda e AI pelo ponto de projeto;
+      \item etapa 1: o SRM novo contra o antigo;
+      \item etapa 2: o FORM com $M = 10$ a 100;
+      \item etapa 3: a AI por entropia cruzada;
+      \item etapa 4: FORM e AI na chuva;
+      \item etapa 5: a investigação da chuva, com $P_f(t)$, fragilidade, solos e $k$.
+    \end{itemize}
+  \item \textbf{Critérios:}
+    \begin{itemize}
+      \item o viés mínimo detectável;
+      \item Clopper--Pearson com menos de cerca de 20 falhas;
+      \item diagnósticos da AI: $\mathrm{ESS}_F$, a maior parcela $\max(wI)/\sum wI$ (alerta acima de 10\,\%) e a fração de
+        falhas sorteadas;
+      \item testes de outro modo de ruptura.
+    \end{itemize}
+  \item \textbf{FORM com a KL aninhada:} $\beta$ não pode crescer com $M$ (Seção~\ref{sec:formkl}).
+\end{itemize}
+
+\paragraph{O problema de teste: Cho (2010), exemplo 2.} Talude seco 1:1, $H = 10$\,m, com $c'$ LN(10\,kPa; 0,3) e $\phi'$
+LN($30^\circ$; 0,2), $l_h = 20$\,m, $l_v = 2$\,m e correlação cruzada $r = -0{,}5$ ou $-0{,}7$. A referência é
+FS $= 1{,}204$, com $P_f = 1{,}71\,\%$ e cerca de 0,4\,\%.
+\begin{itemize}
+  \item \textbf{Determinístico} (malha tri2 + 4 níveis): 1,2047, a 0,06\,\% do Cho.
+  \item \textbf{Direto} (prévia no PC, com o SRM antigo):
+    \begin{itemize}
+      \item $r = -0{,}5$: $P_f = 1{,}67\,\%$, com 599 realizações (IC 0,80--3,05\,\%);
+      \item $r = -0{,}7$: $P_f = 0{,}33\,\%$, com 614 realizações.
+    \end{itemize}
+  \item \textbf{FORM} (\texttt{form\_kl.py}): HL-RF nos $2M$ coeficientes $\xi$, com os demais termos em zero.
+    \begin{itemize}
+      \item O gradiente é por diferenças centrais com passo 0,5, porque o FS tem ruído de cerca de 0,001. São $4M + 1$
+        avaliações por iteração, em paralelo.
+      \item Não há Armijo, só um amortecimento de meio passo.
+      \item A parada é $|g| < 0{,}001$ e $\Delta\beta < 0{,}01$.
+      \item Com $M = 10$: $\beta = 2{,}130$ e $P_f = 1{,}66\,\%$, em 205 avaliações. Com $M = 20$: $\beta = 2{,}01$, ainda sem
+        convergir.
+      \item Os fatores de importância dão $\alpha^2_{\phi'} = 0{,}93$: com a correlação negativa, $c'$ pesa pouco.
+    \end{itemize}
+  \item \textbf{Correlação cruzada} no código:
+    $Z_\phi \leftarrow rZ_c + \sqrt{1 - r^2}\,Z_\phi$. Os $\xi$ continuam independentes.
+  \item \textbf{AI pelo ponto de projeto} (\texttt{desloc\_xi=}): desloca os $K$ primeiros termos de cada campo na KL de
+    2000 termos, com peso exato. Ainda não rodou.
+\end{itemize}
+
+\paragraph{Como a AI foi implementada} (\texttt{RandomField::SetShift}, \texttt{LogWeight},
+\path{ImportanceSampling.h}).
+\begin{itemize}
+  \item \textbf{Peso:} $\ln w = \sum_c(-\bm\xi_c\cdot\bm\mu_c + \frac12\|\bm\mu_c\|^2)$, gravado por realização.
+  \item \textbf{Deslocamento por entropia cruzada:} a média dos $\bm\xi$ do conjunto elite do piloto. O elite são as
+    falhas, ou os 10\,\% de menor FS se houver menos falhas que isso.
+  \item \textbf{Três formas de deslocar:}
+    \begin{itemize}
+      \item \emph{banda}: um escalar por campo, na direção $d_k \propto \sqrt{\lambda_k}\,\overline{f_k g_k}$ da banda de
+        ruptura do determinístico;
+      \item \emph{modos}: os $K$ primeiros modos;
+      \item \emph{ponto de projeto}: só no Cho2010.
+    \end{itemize}
+  \item \textbf{Chuva:} a falha é FS $< 1$ em qualquer instante até 48\,h. O mesmo peso vale para todos os instantes,
+    então a mesma amostra dá $P_f(t)$.
+\end{itemize}
+
+\paragraph{Resultados.}
+\begin{center}\small
+\begin{longtable}{@{}L{4.3cm} L{11.3cm}@{}}
+\toprule
+Caso & Resultado \\
+\midrule
+\endhead
+Rebaixamento do Ceron com o transiente (PC) &
+  $\Gamma_{det} = 1{,}3253$ (o Ceron dá 1,336). Direto com $N = 2000$: $P_f = 15{,}70\,\%$ (IC 14,2--17,4\,\%;
+  o Ceron dá 11,5\,\%), com CoV($\Gamma$) de 23,9\,\%. \\
+& AI na banda: 15,87\,\%, ganho de 2,7 vezes. AI nos 20 modos: 17,89\,\%, ganho de só 1,2 vez. \\
+& Com $k_v$ fixo, 13,80\,\% (McNemar $p = 0{,}002$): o $k_v$ explica parte da diferença. \\
+& A $P_f$ ainda depende da malha: 0,65, 6,05, 11,80 e 15,70\,\% nos níveis 0 a 3. \\
+& A campanha antiga, com percolação permanente: 9,36\,\% ($N = 5770$). \\
+Chuva, f50, $I = 31{,}05$\,mm/h (\texttt{chuva\_ai}, fermi) &
+  Piloto direto ($N = 200$): $P_f = 6{,}50\,\%$. AI na banda ($N = 200$): 6,22\,\%, com CoV de 13,6\,\% e ganho de cerca
+  de 4. A $P_f$ é de cerca de 6\,\%, e não de 1\,\%: o piloto antigo de 8 realizações espalhou pouco por acaso. \\
+Três solos com $I = k_s$ (\texttt{solos}, fermi) &
+  f10: 97,99\,\%; f50: 22,40\,\%; f100: 0\,\%. A ordem f10 $<$ f50 $<$ f100 vale em todas as realizações pareadas. No f100,
+  o mínimo vem depois da chuva. Custo: 12,4\,min por realização. \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+\paragraph{O SRM começava em $F = 1$ e criava um buraco.} O SRM aplicava o peso com $F = 1$. Isso deixa um buraco logo
+abaixo de 1: nos solos, nenhuma realização caiu em $[0{,}9975; 1)$, contra 15 em $[1; 1{,}0025)$. A $P_f$ fica
+subestimada em até cerca de 1 ponto.
+\begin{itemize}
+  \item Agora o padrão é \texttt{srm\_f0} $= 0{,}8$ (\texttt{SetSRMStart}).
+  \item A etapa 1 compara as duas versões nas mesmas realizações.
+  \item Os números da chuva e dos solos acima são do SRM antigo.
+\end{itemize}
+
+\paragraph{Campanhas.}
+\begin{itemize}
+  \item \textbf{Rodaram:} \texttt{solos} e \texttt{chuva\_ai}.
+  \item \textbf{Em andamento:} a \texttt{etapa1}, com o Cho2010 e o SRM novo contra o antigo.
+  \item \textbf{Prontas, mas não rodaram:} a \texttt{chuva}, com 27 casos e 57\,000 realizações, e a \texttt{ceron}.
+\end{itemize}

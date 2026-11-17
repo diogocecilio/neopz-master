@@ -1,6 +1,6 @@
 # @file neopz/Projects/CMakeLists.txt
 # Unsaturated soil (u - p_w - p_a, Mohr-Coulomb of Lira Cecilio, J. Eng. Math. 157:10, 2026): one test project per
-# part of the verification plan of docs/biot_nao_saturado/formulacao/formulacao.tex. Each project is a Catch2
+# part of the verification plan of docs/nao_saturado/formulacao/formulacao.tex. Each project is a Catch2
 # executable registered in CTest (run "ctest" in the build folder of Projects; slow tests are tagged [.lento]).
 
 cmake_minimum_required(VERSION 3.14)

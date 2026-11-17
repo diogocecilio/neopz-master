@@ -1,6 +1,6 @@
 """confiab.py: FORM (HL-RF com busca de Armijo), Monte Carlo e amostragem por importancia no espaco normal padrao, com a
 transformacao de Nataf (marginais com correlacao). E o mesmo algoritmo do confiabilidade.wl (Mathematica), em Python, para
-gerar os numeros e as figuras do documento (doc/confiabilidade.tex) e para conferir o codigo do Mathematica.
+gerar os numeros e as figuras do documento (docs/confiabilidade_campos/confiabilidade/confiabilidade.tex) e para conferir o codigo do Mathematica.
 
 Convencoes (as do documento):
   X  variaveis fisicas, com marginais F_i e correlacao RX;

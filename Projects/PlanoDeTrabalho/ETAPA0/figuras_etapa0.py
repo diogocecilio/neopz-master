@@ -7,7 +7,7 @@ trabalho (../README.md): fechar o que ja rodava antes das etapas no fermi.
      Carlo direto e a AI com r(c, phi) = -0,5 e -0,7, o FORM com M = 10 e 20 termos por campo e a AI com o ponto de
      projeto do FORM. O PC parou em 15/11 (plano, versao 2); os casos rodam de novo no fermi (campanha etapa1);
   C) o contexto ja validado, citado sem recalcular: as macros do numeros_rebaixamento.tex (relatorio_rebaixamento.pdf) e
-     do numeros_solos.tex (relatorio_solos.pdf), em Projects/SlopeRandomFieldRefinement/relatorio.
+     do numeros_solos.tex (relatorio_solos.pdf), em Projects/PlanoDeTrabalho/campanhas.
 So le arquivos: nao roda nenhum programa e nao escreve nas pastas das rodadas. As contas da AI sao as do
 posproc/amostragem_importancia.py: peso w = exp(log_peso), P_f = soma(w I) / N e CoV = s_q / (raiz(N) P_f).
 
@@ -54,7 +54,7 @@ PLANO = os.path.dirname(AQUI)
 NEOPZ = os.path.dirname(os.path.dirname(PLANO))
 SRF = os.path.join(NEOPZ, "Projects", "SlopeRandomFieldRefinement")
 CHO_SRC = os.path.join(NEOPZ, "Projects", "Cho2010")
-REL = os.path.join(SRF, "relatorio")
+REL = os.path.join(PLANO, "campanhas")  # os relatorios das campanhas (numeros_*.tex)
 RUNS = os.path.expanduser("~/projects/runs")
 CHUVA_PADRAO = os.path.join(RUNS, "fermi_chuva_ai")
 CHO_PADRAO = os.path.join(RUNS, "cho2010")

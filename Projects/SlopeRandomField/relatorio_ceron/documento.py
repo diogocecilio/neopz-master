@@ -1678,7 +1678,7 @@ DOI: \href{https://doi.org/10.1002/nag.3993}{10.1002/nag.3993}.
 def _autor():
     """o nome do usuario, se aparecer na documentacao do repositorio (autor do artigo em docs/); senao, vazio"""
     raiz = os.path.dirname(os.path.dirname(_PAI))  # neopz-master
-    arq = os.path.join(raiz, "docs", "biot_nao_saturado", "artigo", "artigo.tex")
+    arq = os.path.join(raiz, "docs", "nao_saturado", "artigo", "artigo.tex")
     try:
         with open(arq, encoding="utf-8") as f:
             txt = f.read()

@@ -1,0 +1,181 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\DeclareUnicodeCharacter{2248}{\ensuremath{\approx}}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern}
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{graphicx,booktabs,float,url}
+\usepackage[hidelinks]{hyperref}
+% a data e o commit vem do atualiza.sh (Projects/PlanoDeTrabalho/situacao); compilado a mao, fica so a data
+\providecommand{\versao}{17/11/2026}
+\title{Confiabilidade de taludes com campos aleatórios no NeoPZ\\\large Formulação: o modelo, as duas bases de
+Karhunen--Loève, o Monte Carlo, a amostragem por importância e o FORM}
+\date{\versao}
+\begin{document}
+\maketitle
+\tableofcontents
+
+\section*{Sobre este documento}
+Este documento reúne a formulação usada nos dois artigos (amostragem por importância e chuva em talude não saturado). Os
+resultados ficam no relatório de situação (\path{Projects/PlanoDeTrabalho/situacao/situacao.pdf}), que cita as seções
+daqui. O índice de todos os documentos está em \path{Projects/PlanoDeTrabalho/README.md}. A formulação do solo não
+saturado ($u$--$p_w$--$p_a$) está em \path{docs/nao_saturado}, e a do fator de segurança (SRM e GIM com arc-length), em
+\path{docs/talude_srm}.
+
+\section{O modelo mecânico e o fator de segurança}
+\begin{itemize}
+  \item \textbf{Material:} Mohr--Coulomb elastoplástico com fluxo associado, dentro do material não saturado
+    \texttt{TPZMatUnsaturatedUPwPa} ($u$--$p_w$--$p_a$; \path{docs/nao_saturado}, \path{formulacao.pdf}). No talude
+    seco, as pressões ficam congeladas em zero.
+  \item \textbf{FS pelo SRM:} $c'/F$ e $\tan\varphi'/F$ até o colapso, com arc-length no parâmetro $F$ e refinamento
+    adaptativo em $h$ (tri2 + 4 níveis; \path{docs/talude_srm/fs_arc_length}). Esse FS é o do equilíbrio limite (Ceron 2025, Eq.~58).
+  \item \textbf{Correção do SRM (etapa 1):} o peso é aplicado com $F_0 = 0{,}8$, e não com 1. Com 1, o peso às vezes
+    convergia num talude com FS logo abaixo de 1, e o FS saía $\ge 1$, o que deixava um buraco no histograma.
+\end{itemize}
+
+\section{Campos aleatórios: as duas bases de Karhunen--Loève}\label{sec:kl}
+Os parâmetros de resistência são campos lognormais, com correlação cruzada $\rho = r(c, \varphi)$ entre os campos
+gaussianos:
+\begin{equation}
+  \ln c'(\bm x) = \mu_c + \sigma_c Z_c(\bm x), \qquad
+  \ln\varphi'(\bm x) = \mu_\varphi + \sigma_\varphi\big[\rho\, Z_c(\bm x) + \sqrt{1-\rho^2}\, Z_\varphi(\bm x)\big],
+\end{equation}
+com $\sigma^2 = \ln(1 + \mathrm{CoV}^2)$ e $\mu = \ln m - \sigma^2/2$ (médias $m$ de 10\,kPa e 30$^\circ$, CoV de 0,3 e
+0,2). $Z_c$ e $Z_\varphi$ são campos gaussianos padrão independentes, com a covariância exponencial separável
+$C(\bm x, \bm x') = \exp(-|x - x'|/l_h - |y - y'|/l_v)$, $l_h = 20$\,m e $l_v = 2$\,m. Cada um é uma expansão de
+Karhunen--Loève truncada:
+\begin{equation}
+  Z(\bm x) = \sum_{k=1}^{M} \psi_k(\bm x)\,\xi_k, \qquad \psi_k(\bm x) = \sqrt{\lambda_k}\, f_k(\bm x), \qquad
+  \xi_k \sim N(0, 1) \text{ independentes},
+  \label{eq:kl}
+\end{equation}
+em que $(\lambda_k, f_k)$ são os autopares da covariância num domínio $D$,
+$\int_D C(\bm x, \bm x') f_k(\bm x')\,d\bm x' = \lambda_k f_k(\bm x)$, com $\int_D f_k f_l\,d\bm x = \delta_{kl}$. Uma
+realização é o vetor $\bm\xi = (\bm\xi_c, \bm\xi_\varphi) \in \mathbb R^{2M}$, e a base entra só pelas funções $\psi_k$
+nos pontos de integração. As duas bases diferem no domínio e no cálculo dos autopares.
+
+\paragraph{KL analítica} (\texttt{KLSeparavel.h}, \texttt{RandomField}). $D$ é o retângulo $[0, 30]\times[0, 15]$\,m
+que contém o talude. O kernel é o produto de dois kernels exponenciais 1D, então os autopares 2D são produtos dos 1D,
+$f_k(x, y) = f^x_i(x - x_c)\, f^y_j(y - y_c)$ e $\lambda_k = \lambda^x_i \lambda^y_j$, em ordem decrescente de
+$\lambda$ ($x_c$, $y_c$: o centro do retângulo). Para o kernel $e^{-|s - t|/L}$ em $[-a, a]$, com $c = 1/L$, os
+autopares têm forma fechada (Ghanem e Spanos, 1991):
+\begin{equation*}
+  f(s) = \frac{\cos\omega s}{\sqrt{a + \frac{\sin 2\omega a}{2\omega}}}, \ \ \omega\tan\omega a = c; \qquad
+  f(s) = \frac{\sin\omega s}{\sqrt{a - \frac{\sin 2\omega a}{2\omega}}}, \ \ \omega + c\tan\omega a = 0; \qquad
+  \lambda = \frac{2c}{\omega^2 + c^2}.
+\end{equation*}
+Com $M = 2000$, a variância retida é 0,988 (média no retângulo). Parte da base descreve a região fora do talude, que não
+pesa no FS: é por isso que ela precisa de mais termos.
+
+\paragraph{KL de Nyström} (\path{Projects/Cho2010/nystrom_base.py}). $D$ é o próprio talude $\Omega$. A quadratura do
+ponto médio numa grade de $0{,}5\times0{,}25$\,m dá $n = 2400$ nós $\bm x_j$, com pesos $w_j$ (a área da célula), e a
+equação integral vira um problema de autovalores simétrico:
+\begin{equation*}
+  W^{1/2} C W^{1/2}\,\bm v_k = \lambda_k\,\bm v_k, \qquad C_{ij} = C(\bm x_i, \bm x_j), \qquad
+  f_k(\bm x_j) = v_{kj}/\sqrt{w_j}, \qquad \textstyle\sum_j w_j f_k(\bm x_j) f_l(\bm x_j) = \delta_{kl}.
+\end{equation*}
+Fora dos nós, a fórmula de Nyström interpola a autofunção pelo próprio kernel:
+\begin{equation}
+  f_k(\bm x) = \frac{1}{\lambda_k}\sum_{j=1}^{n} w_j\, C(\bm x, \bm x_j)\, f_k(\bm x_j), \qquad
+  \psi_k(\bm x) = \frac{1}{\sqrt{\lambda_k}}\sum_{j=1}^{n} w_j\, C(\bm x, \bm x_j)\, f_k(\bm x_j).
+  \label{eq:nystrom}
+\end{equation}
+O \texttt{RandomField} usa $M = 200$ (variância retida 0,97 pela soma dos $\lambda$ e 0,93 nos pontos do talude). Em cada
+realização, o campo sai de $Z(\bm x) = \sum_j C(\bm x, \bm x_j)\, a_j$, com
+$a_j = w_j \sum_k \xi_k f_k(\bm x_j)/\sqrt{\lambda_k}$ calculado uma vez.
+
+\paragraph{Derivadas em relação a $\bm\xi$.} Nas duas bases, $\ln c'$ e $\ln\varphi'$ são lineares em $\bm\xi$, e as
+derivadas são exatas:
+\begin{equation}
+  \frac{\partial \ln c'}{\partial \xi_{c,k}} = \sigma_c\,\psi_k, \qquad
+  \frac{\partial \ln\varphi'}{\partial \xi_{c,k}} = \sigma_\varphi\,\rho\,\psi_k, \qquad
+  \frac{\partial \ln\varphi'}{\partial \xi_{\varphi,k}} = \sigma_\varphi\sqrt{1 - \rho^2}\,\psi_k, \qquad
+  \frac{\partial \ln c'}{\partial \xi_{\varphi,k}} = 0.
+  \label{eq:dlnxi}
+\end{equation}
+
+\paragraph{Mudança de base.} Uma realização da analítica, restrita ao talude, tem coordenadas de Nyström
+$\xi^N_k = \lambda_k^{-1/2}\sum_j w_j f_k(\bm x_j)\, Z_a(\bm x_j)$, ou seja, $\bm\xi^N = T\bm\xi^a$, com
+$T = \Lambda^{-1/2} F^{T} W \Psi_a$ ($200\times2000$; $\Psi_a$ tem as $\psi_k$ analíticas nos nós). Se as duas bases
+representam o mesmo campo no talude, $TT^T = I$. A diagonal fica entre 0{,}998 e 1 nos 10
+primeiros modos, em 0{,}980 no modo 100 e em 0{,}928 no 200 (o fim
+da base de Nyström). Fora da diagonal, fica abaixo de 0{,}003. O teste de viés do relatório de situação usa $T$ para levar as
+realizações do direto para a base de Nyström.
+
+\section{Monte Carlo direto e amostragem por importância}
+\begin{itemize}
+  \item \textbf{Direto:} $\hat P_f = \frac1N\sum I(\mathrm{FS}_i < 1)$, com CoV $= \sqrt{(1-P_f)/(N P_f)}$.
+  \item \textbf{AI:} sorteia $\bm\xi \sim N(\bm\mu, I)$ e usa o peso exato
+    $w = \exp(-\bm\xi\cdot\bm\mu + \tfrac12|\bm\mu|^2)$, com $\hat P_f = \frac1N \sum I_i w_i$. A estimativa não tem viés
+    para qualquer $\bm\mu$ fixado antes; $\bm\mu$ só muda a variância.
+  \item \textbf{Deslocamentos:}
+    \begin{itemize}
+      \item \emph{pela banda} (entropia cruzada): $\bm\mu = s\,\bm d$, com $\bm d$ a direção da banda de ruptura do
+        determinístico e $s$ a média de $\bm\xi\cdot\bm d$ no conjunto elite de um piloto direto (as falhas, ou os 10\,\%
+        de menor FS);
+      \item \emph{pelo FORM}: $\bm\mu = \bm u^*$, o ponto de projeto (Seção~\ref{sec:form}).
+    \end{itemize}
+  \item \textbf{Variável de controle} (nova; o teste está no relatório de situação): $h(\bm\xi) = \Phi\big((-\hat g(\bm\xi) - c)/s\big)$,
+    com $\hat g = a + \bm b\cdot\bm\xi$ a regressão de $\ln\mathrm{FS}$ nos 400 primeiros $\xi$ e $(c, s)$ o probit das
+    falhas, os dois ajustados no direto. Como $\bm b\cdot\bm\xi \sim N(0, |\bm b|^2)$, a média de $h$ é exata:
+    $E[h] = \Phi\big((-a - c)/\sqrt{s^2 + |\bm b|^2}\big)$. A estimativa
+    $\hat P_f^{\,cv} = \frac1N\sum_i (I_i - \hat\gamma\, h_i)\, w_i + \hat\gamma\, E[h]$, com $\hat\gamma$ o coeficiente
+    da regressão de $I w$ em $h w$, tem o mesmo valor esperado e tira a parte do acaso que $h$ explica.
+  \item \textbf{Diagnósticos:} o CoV, o ESS das falhas e a maior parcela de peso.
+\end{itemize}
+
+\section{O FORM}\label{sec:form}
+\begin{itemize}
+  \item \textbf{Variáveis:} $\bm u = (\xi_{c,1}, \dots, \xi_{c,M}, \xi_{\varphi,1}, \dots, \xi_{\varphi,M}) \in
+    \mathbb R^{2M}$, os $M$ primeiros coeficientes de cada campo (os outros ficam em 0). Como os $\xi$ já são normais
+    padrão independentes, não há transformação de Nataf: a passagem para o espaço físico é a KL e a transformação
+    lognormal da Seção~\ref{sec:kl}.
+  \item \textbf{Estado limite:} $g(\bm u) = \mathrm{FS}(\bm u) - 1$, com o FS do SRM. Cada avaliação é uma análise com
+    refinamento adaptativo.
+  \item \textbf{Ponto de projeto:} o ponto de falha mais provável, $\bm u^* = \arg\min\{|\bm u| : g(\bm u) \le 0\}$, com
+    $\beta = |\bm u^*|$, $\bm\alpha = -\nabla g(\bm u^*)/|\nabla g(\bm u^*)|$, $\bm u^* = \beta\bm\alpha$ e
+    $P_f^{\mathrm{FORM}} = \Phi(-\beta)$.
+  \item \textbf{HL-RF} (\path{Projects/Cho2010/form_kl.py}):
+    $\bm u_{k+1} = \dfrac{\nabla g_k\cdot\bm u_k - g_k}{|\nabla g_k|^2}\,\nabla g_k$, com meio passo quando $|g|$ mais
+    que dobra. Para quando $|g| < 0{,}001$ e $\beta$ muda menos de 0,01. O $\beta$ final é a distância ao plano
+    tangente no último ponto.
+  \item \textbf{Gradiente por diferenças centrais:} $4M + 1$ análises por iteração, com passo $h = 0{,}5$ em $\bm u$. Os
+    termos fracos ficam dominados pelo ruído do FS (≈0,001, da malha adaptativa e do arc-length).
+  \item \textbf{Gradiente pela projeção modal} (etapa 2c, \texttt{gradiente=} no Cho2010): o limite superior com
+    Mohr--Coulomb associado e o teorema do envelope dão, no colapso do SRM ($c^* = c'/F$, $\tan\varphi^* = \tan\varphi'/F$),
+    \begin{equation*}
+      D_c = \frac{\partial D}{\partial c} = \dot\varepsilon_v\cot\varphi^*, \qquad
+      D_\varphi = \frac{\partial D}{\partial \varphi} = -\frac{\dot\varepsilon_v}{2\sin\varphi^*}\big[(\sigma_1+\sigma_3)
+      \cos\varphi^* + 2c^*\sin\varphi^*\big].
+    \end{equation*}
+    A primeira é a Eq.~14 do guia de estudo, a versão contínua da potência resistente da Eq.~48 do Ceron (2025). A
+    segunda a estende ao $\varphi'$, com as tensões de colapso. Com $F$ definido por $\Gamma(c/F, \varphi^*) = 1$ (Ceron,
+    Eq.~58), $\partial F/\partial c'(\bm x) = D_c/\mathrm{Den}$ e
+    $\partial F/\partial\tan\varphi'(\bm x) = D_\varphi\cos^2\varphi^*/\mathrm{Den}$, com
+    $\mathrm{Den} = \int (D_c c^* + D_\varphi\sin\varphi^*\cos\varphi^*)$. A taxa $\dot\varepsilon_v$ do mecanismo é
+    aproximada pela deformação plástica volumétrica no colapso, e a escala se cancela. A regra da cadeia com
+    \eqref{eq:dlnxi} dá o gradiente nos modos:
+    \begin{equation}
+      \frac{\partial g}{\partial \xi_{c,k}} = \sum_p W_p\big[\sigma_c\, a_c(\bm x_p) + \sigma_\varphi\rho\,
+      a_\varphi(\bm x_p)\big]\,\psi_k(\bm x_p), \qquad
+      \frac{\partial g}{\partial \xi_{\varphi,k}} = \sum_p W_p\,\sigma_\varphi\sqrt{1 - \rho^2}\,
+      a_\varphi(\bm x_p)\,\psi_k(\bm x_p),
+      \label{eq:gradmodal}
+    \end{equation}
+    com $a_c = c'\,\partial F/\partial c'$ e $a_\varphi = \varphi'\sec^2\varphi'\,\partial F/\partial\tan\varphi'$ (as
+    sensibilidades do FS a $\ln c'$ e a $\ln\varphi'$, por unidade de área). A soma corre nos pontos de integração $p$ que
+    plastificam ($\dot\varepsilon_v > 0$), com peso $W_p$. \textbf{A base entra só por $\psi_k(\bm x_p)$:}
+    \begin{equation*}
+      \text{analítica: } \psi_k(\bm x_p) = \sqrt{\lambda^x_i\lambda^y_j}\; f^x_i(x_p - x_c)\, f^y_j(y_p - y_c); \qquad
+      \text{Nyström: } \psi_k(\bm x_p) = \lambda_k^{-1/2}\textstyle\sum_j w_j\, C(\bm x_p, \bm x_j)\, f_k(\bm x_j)
+      \ \ \eqref{eq:nystrom}.
+    \end{equation*}
+    O mesmo código (\texttt{RandomField::ModeValues}) dá o gradiente nas duas bases. Custa \textbf{uma} análise por
+    iteração, qualquer que seja $M$, contra $4M + 1$.
+  \item \textbf{A AI pelo ponto de projeto:} $\bm\xi \sim N(\bm u^*, I)$ nos $2M$ primeiros termos (os outros, $N(0, 1)$),
+    com o peso $w = \exp(-\bm u^*\cdot\bm\xi + \beta^2/2)$.
+\end{itemize}
+
+\end{document}

@@ -220,7 +220,7 @@ static REAL NormaLivreArco(const TPZFMatrix<STATE> &v, const std::map<int64_t, R
 }
 
 // GIM com arc-length: FactorGIM e SegueCaminho de LearningMohrCoulomb2/main.cpp (commit 2f92365), com os parametros de
-// ParamsGIM (estudo de sensibilidade de docs/fs_arc_length/relatorio_fs.tex). Do estado sem tensoes, com a resistencia
+// ParamsGIM (estudo de sensibilidade de docs/talude_srm/fs_arc_length/relatorio_fs.tex). Do estado sem tensoes, com a resistencia
 // real e as pressoes de x congeladas, um primeiro passo com lambda = 0,5 prescrito (cortado ao meio se nao convergir) e
 // depois o caminho de equilibrio com o arc-length cilindrico (TPZUnsatAnalysis::ArcLengthStep, de Souza Neto et al., Box
 // 4.4), com o comprimento l ajustado para cerca de 10 iteracoes por incremento, ate a parada (d lambda < 0,001, medido no l

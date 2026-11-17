@@ -5,7 +5,7 @@
 
 
 (* ::Text:: *)
-(*Versao revisada do codigo original: a lista dos erros corrigidos e a teoria estao em doc/confiabilidade.pdf.*)
+(*Versao revisada do codigo original: a lista dos erros corrigidos e a teoria estao em docs/confiabilidade_campos/confiabilidade/confiabilidade.pdf.*)
 (*Convencoes:*)
 (*  X  variaveis fisicas, com marginais F_i e correlacao RX;*)
 (*  Z  normais padrao correlacionadas, z_i = Phi^-1(F_i(x_i)), com correlacao RZ (a de Nataf);*)

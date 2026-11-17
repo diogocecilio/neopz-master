@@ -1,6 +1,6 @@
 // Ponto material: leis hidraulicas, pressao de Bishop (chi = S_w), Mohr-Coulomb PV2 do artigo (Tabelas 4-6,
 // projecao de ponto mais proximo, Jacobiano) e tangente consistente (teste de Taylor, Eqs. 63-65 do artigo).
-// Documento: docs/biot_nao_saturado/formulacao/formulacao.tex, Secoes 3, 5 e 10.
+// Documento: docs/nao_saturado/formulacao/formulacao.tex, Secoes 3, 5 e 10.
 #define CATCH_CONFIG_MAIN
 #include <catch2/catch.hpp>
 

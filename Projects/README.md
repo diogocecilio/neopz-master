@@ -3,7 +3,7 @@
 Modelo acoplado u–p_w–p_a com Mohr–Coulomb associado PV2 (Lira Cecílio, J. Eng. Math. 157:10, 2026):
 `TPZMatUnsaturatedUPwPa<TPZPlasticStepVoigt<TPZYCMohrCoulombPV2, TPZElasticResponse>, TPZUnsaturatedMem>`.
 A formulação, os resíduos, o Jacobiano e os resultados estão em
-`docs/biot_nao_saturado/formulacao/formulacao.tex`. Os projetos antigos foram apagados neste branch; cada parte do
+`docs/nao_saturado/formulacao/formulacao.tex`. Os projetos antigos foram apagados neste branch; cada parte do
 plano de verificação tem agora o seu projeto, com testes Catch2 registrados no CTest.
 
 | projeto | parte do plano | o que verifica | tempo |

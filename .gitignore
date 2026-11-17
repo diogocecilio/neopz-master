@@ -39,6 +39,11 @@ docs/**/*.aux
 docs/**/*.log
 docs/**/*.out
 docs/**/*.toc
+# the same for the result reports in Projects/PlanoDeTrabalho
+Projects/PlanoDeTrabalho/**/*.aux
+Projects/PlanoDeTrabalho/**/*.log
+Projects/PlanoDeTrabalho/**/*.out
+Projects/PlanoDeTrabalho/**/*.toc
 docs/**/*.synctex.gz
 docs/**/*.fls
 docs/**/*.fdb_latexmk
