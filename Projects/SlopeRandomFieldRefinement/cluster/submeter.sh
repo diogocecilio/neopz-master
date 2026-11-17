@@ -32,7 +32,7 @@ FORM_M="${FORM_M-$FORM_PADRAO}"
 # os casos pedidos existem?
 if [ "$CASOS" != todos ]; then
     for c in ${CASOS//,/ }; do
-        [[ "$c" == fase[123] ]] && continue
+        [[ "$c" =~ ^fase[0-9]+$ ]] && continue
         awk -v c="$c" '$1 == c { achou = 1 } END { exit !achou }' "$CASOS_TXT" || { echo "caso desconhecido: $c" >&2; exit 2; }
     done
 fi
