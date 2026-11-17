@@ -1,13 +1,15 @@
 #!/bin/bash
-# atualiza.sh: regenera o relatorio de situacao com os dados baixados (gera_situacao.py, que tambem refaz os numeros e as
-# figuras das etapas 1 a 3), o indice do README (../documentos.py) e compila tres PDFs: a formulacao
-# (docs/confiabilidade_campos/formulacao, antes, porque a situacao cita as secoes dela pelo .aux), a situacao e o relatorio
-# das etapas 1 a 3. Na capa da formulacao e da situacao: a data e o commit, com + se as fontes delas mudaram desde ele
-# (fontes: o formulacao.tex, o gerador, o documentos.py; o situacao.tex, os PDFs e as figuras sao saidas).
+# atualiza.sh: regenera os relatorios com os dados baixados (gera_situacao.py roda o ../ETAPAS1a3/relatorio_etapas.py, que
+# refaz os numeros, as figuras e o relatorio das etapas com todos os resultados), o indice do README (../documentos.py) e
+# compila tres PDFs, nesta ordem, porque cada um cita os anteriores pelo .aux: a formulacao
+# (docs/confiabilidade_campos/formulacao), o relatorio das etapas e a situacao. Na capa dos tres: a data e o commit, com +
+# se as fontes mudaram desde ele (fontes: o formulacao.tex, os dois geradores, o documentos.py; os .tex dos relatorios, os
+# PDFs e as figuras sao saidas).
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 F=../../../docs/confiabilidade_campos/formulacao
-mudou="$(git status --porcelain -- . "$F" ../documentos.py | grep -v -E 'situacao\.(tex|pdf)$|formulacao\.pdf$|/figs/' || true)"
+mudou="$(git status --porcelain -- . "$F" ../documentos.py ../ETAPAS1a3 |
+    grep -v -E 'situacao\.(tex|pdf)$|relatorio_etapas\.(tex|pdf)$|formulacao\.pdf$|/figs/' || true)"
 V="$(date +%d/%m/%Y), commit $(git log -1 --format=%h)${mudou:++}"
 
 python3 -I gera_situacao.py
@@ -30,9 +32,6 @@ compila() {
     echo "$d/$n.pdf: $(pdfinfo "$d/$n.pdf" | awk '/^Pages/ {print $2}') paginas"
 }
 compila "$F" formulacao "$V"
+compila ../ETAPAS1a3 relatorio_etapas "$V"
 compila . situacao "$V"
-# o das etapas so quando o texto dele mudou (os numeros vem dos mesmos dados): evita um PDF novo igual ao anterior
-if ! git diff --quiet -- ../ETAPAS1a3/relatorio_etapas.tex || [ ! -f ../ETAPAS1a3/relatorio_etapas.pdf ]; then
-    compila ../ETAPAS1a3 relatorio_etapas
-fi
 python3 -I ../documentos.py # de novo: as paginas dos PDFs novos

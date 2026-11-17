@@ -58,11 +58,14 @@ DOCUMENTOS = [
         ("Projects/PlanoDeTrabalho/README.md",
          "o plano de trabalho (etapas 0 a 5, 2b e 2c), as regras dos documentos e este índice"),
         ("Projects/PlanoDeTrabalho/situacao/situacao.pdf",
-         "a situação: o plano, os resultados, as hipóteses e os próximos passos (o consolidado)"),
+         "a situação: o plano, os resultados principais (com as seções do relatório das etapas), as hipóteses e os "
+         "próximos passos"),
         ("Projects/PlanoDeTrabalho/ETAPA0/relatorio_etapa0.pdf",
          "etapa 0: a AI da chuva no fermi e a prévia do Cho2010 (SRM antigo; superado pelo das etapas 1 a 3)"),
         ("Projects/PlanoDeTrabalho/ETAPAS1a3/relatorio_etapas.pdf",
-         "etapas 1 a 3: SRM corrigido, FORM e AI, P_f pequena, teste linear, piloto e custo"),
+         "todos os resultados das etapas 0 a 3 e a referência da chuva: SRM corrigido, AI contra o direto, teste linear, "
+         "as duas bases, o gradiente modal (SRM e GIM), o viés, a variável de controle, a fase 4 parcial, o piloto e o "
+         "custo"),
         ("Projects/PlanoDeTrabalho/arquivo/", "cópias datadas (AAAA-MM-DD_nome.pdf), nunca editadas"),
     ]),
     ("Resultados: as campanhas", [

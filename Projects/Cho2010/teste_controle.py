@@ -16,6 +16,7 @@ inteiro (25 000 realizacoes), que na pratica nao existe: se existisse, nao preci
    K termos por campo) e, para comparar, no direto inteiro (o ideal). Na AI, o controle de cada realizacao e
    H_j(xi) w - E[H_j], com H_j ajustado sem a dobra j: tem media zero sob h, entao a estimativa continua sem vies.
 Uso: python3 -I teste_controle.py  (grava <runs>/cho2010/diagnostico/teste_controle.json e a tabela na tela)"""
+import glob
 import json
 import math
 import os
@@ -107,7 +108,9 @@ def main():
     print(f"\n  AI de r = -0,5 (P_f do direto {100 * P:.3f}%): P, e P_cv com o substituto da propria amostra (K termos) "
           f"e do direto inteiro")
     for r, base, rot, pasta in D["casos"]():
-        if r != "r05":
+        if r != "r05" or len(glob.glob(f"{pasta}/mc_[0-9]*_[0-9]*.csv")) == 0:
+            continue
+        if len(D["realizacoes"](pasta)) < 1000:  # so as AI completas (a fase 4 parcial tem ~65 por semente)
             continue
         par = D["parametros"](pasta)
         sem = int(par["SEMENTE"])
