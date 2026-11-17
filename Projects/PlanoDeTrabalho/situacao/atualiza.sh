@@ -2,11 +2,12 @@
 # atualiza.sh: regenera o relatorio de situacao com os dados baixados (gera_situacao.py, que tambem refaz os numeros e as
 # figuras das etapas 1 a 3), o indice do README (../documentos.py) e compila tres PDFs: a formulacao
 # (docs/confiabilidade_campos/formulacao, antes, porque a situacao cita as secoes dela pelo .aux), a situacao e o relatorio
-# das etapas 1 a 3. Na capa da formulacao e da situacao: a data e o commit, com + se as fontes delas mudaram desde ele.
+# das etapas 1 a 3. Na capa da formulacao e da situacao: a data e o commit, com + se as fontes delas mudaram desde ele
+# (fontes: o formulacao.tex, o gerador, o documentos.py; o situacao.tex, os PDFs e as figuras sao saidas).
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 F=../../../docs/confiabilidade_campos/formulacao
-mudou="$(git status --porcelain -- . "$F" ../documentos.py | grep -v -E '(situacao|formulacao)\.(tex|pdf)$|/figs/' || true)"
+mudou="$(git status --porcelain -- . "$F" ../documentos.py | grep -v -E 'situacao\.(tex|pdf)$|formulacao\.pdf$|/figs/' || true)"
 V="$(date +%d/%m/%Y), commit $(git log -1 --format=%h)${mudou:++}"
 
 python3 -I gera_situacao.py
