@@ -100,7 +100,7 @@ enum EIds {
 TPZGeoMesh *ReadGmshMesh(const std::string &file, const std::map<std::string, int> &domains,
                          const std::map<std::string, int> &boundaries);
 // Talude de Rahardjo et al. (2007), Fig. 2: 70 m x 30/20 m, H_s = 10 m, alfa = 45 graus
-TPZGeoMesh *ReadSlopeMesh();
+TPZGeoMesh *ReadSlopeMesh(const std::string &malha);
 
 TUnsat *UnsatMaterial(int id, const UnsatParams &p);
 
@@ -128,12 +128,17 @@ void IniciaSaida(SaidaAnimacao &s, TPZUnsatAnalysis *analysis);
 void GravaPressoesCsv(SaidaAnimacao &s, REAL t_h, TPZUnsatAnalysis *analysis);
 void GravaSRMCsv(SaidaAnimacao &s, REAL t_h, TPZUnsatAnalysis *analysis, const TPZFMatrix<STATE> &xGeo);
 REAL calculaFS(const std::string &nome, TPZUnsatAnalysis *analysis, REAL t_h, SaidaAnimacao &s);
-int main()
+// Uso: LearningMohrCoulomb2 [malha], malha = fina (padrao, meshes/rahardjo_a45_fina.msh) ou base (rahardjo_a45.msh)
+int main(int argc, char *argv[])
 {
-
-    std::cout << "Starting LearningMohrCoulomb2 analysis..." << std::endl;
+    const std::string malha = argc > 1 ? argv[1] : "fina";
+    if (malha != "fina" && malha != "base") {
+        std::cerr << "Uso: LearningMohrCoulomb2 [fina|base]" << std::endl;
+        return 1;
+    }
+    std::cout << "Starting LearningMohrCoulomb2 analysis (malha " << malha << ")..." << std::endl;
     UnsatParams soilA = Soilf505();
-    TPZGeoMesh * gmesh = ReadSlopeMesh();
+    TPZGeoMesh * gmesh = ReadSlopeMesh(malha);
     int porder=2;
     TPZMultiphysicsCompMesh * multiphysicscmesh = CreateSlopeCompMesh(gmesh,porder, soilA);
     const std::map<int, std::array<bool, 2>> bcdisplacement = {
@@ -253,7 +258,7 @@ for (int it = 1; it <= timesteps; it++)
     }
 
     std::cout << "it/timesteps = " << it << "/" << timesteps << " t = " << it * dt / hour << " h, " << iteracoes << " iteracoes, face: " << saida.size() << " nos" << std::endl;
-    if (it % 120 == 0)
+    if (it % 10 == 0) // FS de hora em hora (dt = 0,1 h)
     {
         GravaPressoesCsv(arquivos, it * dt / hour, analysis);
         calculaFS("fs" + std::to_string(it / 10) + "h", analysis, it * dt / hour, arquivos);
@@ -299,7 +304,8 @@ REAL calculaFS(const std::string &nome, TPZUnsatAnalysis *analysis, REAL t_h, Sa
     opcoes.alpha = 0.1 * uRef;
     opcoes.secantPredictor = true;
     opcoes.maxit = 12;
-    const REAL lMax = 0.5 * uRef, lMin = 1.e-4 * uRef, tol = 0.01;
+    // tol = 0,001: o valor validado no estudo (com 0,01, o erro passa de 1% em varios casos e chega a ~5% com coesao baixa)
+    const REAL lMax = 0.5 * uRef, lMin = 1.e-4 * uRef, tol = 0.001;
     REAL l = 0.01 * uRef, lPedido = l; // lPedido: o l de antes dos cortes deste incremento
     REAL dF = 0., FS = geostatico ? F : -1.;
     TPZFMatrix<STATE> dun; // incremento anterior; vazio no primeiro
@@ -562,9 +568,11 @@ TPZGeoMesh *ReadGmshMesh(const std::string &file, const std::map<std::string, in
     return gmesh;
 }
 
-// Talude de Rahardjo et al. (2007), Fig. 2: 70 m x 30/20 m, H_s = 10 m, alfa = 45 graus
-TPZGeoMesh *ReadSlopeMesh()
+// Talude de Rahardjo et al. (2007), Fig. 2: 70 m x 30/20 m, H_s = 10 m, alfa = 45 graus. malha: "base"
+// (rahardjo_a45.msh) ou "fina" (rahardjo_a45_fina.msh, metade do tamanho dos elementos)
+TPZGeoMesh *ReadSlopeMesh(const std::string &malha)
 {
-    return ReadGmshMesh(std::string(MESH_DIR) + "/rahardjo_a45.msh", {{"Solo", matSolo}},
+    const std::string arquivo = malha == "base" ? "/rahardjo_a45.msh" : "/rahardjo_a45_fina.msh";
+    return ReadGmshMesh(std::string(MESH_DIR) + arquivo, {{"Solo", matSolo}},
                         {{"Base", bcBase}, {"Direita", bcDireita}, {"Superficie", bcSuperficie}, {"Esquerda", bcEsquerda}});
 }
