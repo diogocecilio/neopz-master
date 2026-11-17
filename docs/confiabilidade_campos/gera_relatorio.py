@@ -12,6 +12,7 @@ import runpy
 import shutil
 
 import matplotlib
+import numpy as np
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -84,16 +85,7 @@ def dif_media(m, d):
     return (m["p"] - d["p"]) / math.hypot(m["sd"], d["p"] * d["cov"])
 
 
-HIP05 = (r"  \item \textbf{A AI pelo FORM não tem viés} ($r = -0{,}5$): as AI com a semente 3 saem todas em ≈1,5\,\% (os "
-         r"sorteios são os mesmos), mas as " + str(M05T["k"]) + " sementes independentes dão de " +
-         pct(min(a["p"] for a in SEM05T)) + " a " + pct(max(a["p"] for a in SEM05T)) + r"\,\%, com média " +
-         pct(M05T["p"]) + r"\,\% contra " + pct(d05["p"]) + r"\,\% do direto. O ponto do gradiente modal também acerta "
-         r"(sementes 6 e 7). Já a direção errada (Tri(0), 31,7$^\circ$) produz de fato um desvio para baixo ($-2{,}2$), "
-         "como o teste linear prevê.")
-HIP07 = (r"  \item \textbf{A AI pelo FORM com $r = -0{,}7$:} as " + str(M07["k"]) + " sementes dão " +
-         ", ".join(pct(a["p"]) for a in SEM07 if a) + r"\,\% (média " + pct(M07["p"]) + r"\,\%), contra " +
-         pct(d07["p"]) + r"\,\% de um direto com só " + str(round(d07["p"] * d07["n"])) + " falhas ($" +
-         num(dif_media(M07, d07), 1) + r"$ desvio). O direto está sendo estendido para 25\,000 no fermi.")
+# HIP05 e HIP07: depois do diagnostico (dependem dele)
 
 
 # FORM com o gradiente modal: as duas bases
@@ -128,6 +120,121 @@ ax.legend(fontsize=7)
 fig.tight_layout()
 fig.savefig(f"{AQUI}/figs/beta_M.pdf")
 plt.close(fig)
+
+# ===================== o diagnostico da AI pelo FORM com o direto (Projects/Cho2010/diagnostico_ai.py) =====================
+DGM = runpy.run_path(f"{NEOPZ}/Projects/Cho2010/diagnostico_ai.py", run_name="diagnostico")
+DG = DGM["roda"]()
+PP = DGM["ponto_de_projeto"]()
+DD5, DD7 = DG["diretos"]["r05"], DG["diretos"]["r07"]
+TTd = DG["TT"]
+
+
+def acha(fim):
+    """a AI do diagnostico cuja pasta termina em fim"""
+    v = [a for a in DG["ai"] if a["pasta"].endswith("/" + fim)]
+    return v[0] if v else None
+
+
+# os campos no ponto de projeto, nas duas bases
+fig, axs = plt.subplots(2, 2, figsize=(7.4, 4.3), sharex=True, sharey=True)
+for i, (b, rot) in enumerate((("kl", "KL analítica"), ("nys", "Nyström"))):
+    for j, (q, un, cmap) in enumerate((("c", "kPa", "viridis"), ("phi", "graus", "magma"))):
+        ax = axs[i, j]
+        vmin = min(np.nanmin(PP[bb][q]) for bb in ("kl", "nys"))
+        vmax = max(np.nanmax(PP[bb][q]) for bb in ("kl", "nys"))
+        im = ax.pcolormesh(PP["x"], PP["y"], PP[b][q], shading="nearest", vmin=vmin, vmax=vmax, cmap=cmap,
+                           rasterized=True, linewidth=0)
+        ax.plot([0, 30, 30, 20, 10, 0, 0], [0, 0, 5, 5, 15, 15, 0], "k-", lw=0.6)
+        ax.set_aspect("equal")
+        ax.set_title(f"{rot}: " + ("$c'$" if q == "c" else r"$\varphi'$") + f" ({un}); " + r"$\beta$ = " +
+                     f"{PP[b]['beta']:.3f}".replace(".", ","), fontsize=8)
+        fig.colorbar(im, ax=ax, shrink=0.8)
+for ax in axs[1]:
+    ax.set_xlabel("x (m)")
+for ax in axs[:, 0]:
+    ax.set_ylabel("y (m)")
+fig.tight_layout()
+fig.savefig(f"{AQUI}/figs/ponto_projeto.pdf")
+plt.close(fig)
+
+# t = alfa . xi: a chance de falha do direto em cada faixa de t, e as densidades do direto e da AI
+fig, axs = plt.subplots(1, 2, figsize=(7.4, 2.7), sharey=True)
+for ax, (fim, rot) in zip(axs, (("ai_form100_modal", "KL analítica, FORM modal $M = 100$"),
+                                ("ai_nys_form200", "Nyström, FORM modal $M = 200$"))):
+    a = acha(fim)
+    h = a["hist"]
+    bd = np.array(h["bordas"]); cen = 0.5 * (bd[1:] + bd[:-1])
+    tod, fal = np.array(h["todas"]), np.array(h["falhas"])
+    ok = tod > 0
+    ax.bar(cen[ok], fal[ok] / tod[ok], width=0.25, color="tab:red", alpha=0.6, label="P(falha | t), direto")
+    tt = np.linspace(-4, 5, 300)
+    ax.plot(tt, np.exp(-tt ** 2 / 2), color="0.4", lw=1.2, label="densidade do direto (escala)")
+    ax.plot(tt, np.exp(-(tt - a["mu"]) ** 2 / 2), color="tab:blue", lw=1.2, label="densidade da AI (escala)")
+    ax.set_title(rot + f"; t mínimo das falhas: {a['t_min']:.2f}".replace(".", ","), fontsize=8)
+    ax.set_xlabel(r"$t = \alpha\cdot\xi$")
+    ax.grid(alpha=0.3)
+axs[0].legend(fontsize=6.5, loc="upper left")
+fig.tight_layout()
+fig.savefig(f"{AQUI}/figs/vies_t.pdf")
+plt.close(fig)
+
+
+# as sementes independentes: uma AI por semente
+def sementes(fins):
+    v = [acha(f) for f in fins]
+    return [a for a in v if a and a["n"] >= 1000]
+
+
+KL05 = sementes(["ai_form100_modal", "r05_ai_form20_s4", "r05_ai_form20_s5", "ai_form100_modal_s6", "ai_form200_modal_s7"] +
+                [f"ai_form100_modal_s{s}" for s in range(11, 19)])
+NY05 = sementes(["ai_nys_form200", "ai_nys_form20_s8", "ai_nys_form200_s9"] + [f"ai_nys_form200_s{s}" for s in range(11, 19)])
+KL07 = sementes(["r07_ai_form20", "r07_ai_form20_s4", "r07_ai_form20_s5"])
+
+
+def resume(v, d):
+    k = len(v)
+    p, pc = sum(a["p"] for a in v) / k, sum(a["p_cv"] for a in v) / k
+    sd, sdc = math.sqrt(sum(a["sd"] ** 2 for a in v)) / k, math.sqrt(sum(a["sd_cv"] ** 2 for a in v)) / k
+    emp = (math.sqrt(sum((a["p"] - p) ** 2 for a in v) / (k - 1)) if k > 1 else float("nan"))
+    rms = math.sqrt(sum(a["sd"] ** 2 for a in v) / k)
+    return dict(k=k, p=p, sd=sd, pc=pc, sdc=sdc, emp=emp, rms=rms, dif=(p - d["p"]) / math.hypot(sd, d["sd"]),
+                difc=(pc - d["cv"]["p"]) / math.hypot(sdc, d["cv"]["sd"]))
+
+
+RS = [("$r = -0{,}5$, KL (modal; $M = 20$ em s4 e s5)", KL05, DD5),
+      ("$r = -0{,}5$, Nyström (modal)", NY05, DD5), ("$r = -0{,}7$, KL ($M = 20$)", KL07, DD7)]
+RS = [(rot, v, d, resume(v, d)) for rot, v, d in RS if v]
+
+fig, axs = plt.subplots(1, 2, figsize=(7.4, 3.0), gridspec_kw=dict(width_ratios=[3, 1]))
+for ax, grupos, d in ((axs[0], [("KL", KL05, "tab:blue"), ("Nyström", NY05, "tab:red")], DD5), (axs[1], [("KL", KL07, "tab:blue")], DD7)):
+    x0 = 0
+    for nome, v, cor in grupos:
+        xs = np.arange(x0, x0 + len(v))
+        ax.errorbar(xs - 0.12, [100 * a["p"] for a in v], yerr=[200 * a["sd"] for a in v], fmt="o", mfc="none", color=cor,
+                    ms=4, lw=0.8, capsize=2, label=f"{nome}, AI")
+        ax.errorbar(xs + 0.12, [100 * a["p_cv"] for a in v], yerr=[200 * a["sd_cv"] for a in v], fmt="o", color=cor, ms=4,
+                    lw=0.8, capsize=2, label=f"{nome}, AI corrigida")
+        x0 += len(v) + 1
+    ax.axhspan(100 * (d["p"] - 2 * d["sd"]), 100 * (d["p"] + 2 * d["sd"]), color="0.85", zorder=0, label="direto, IC 95%")
+    ax.axhspan(100 * (d["cv"]["p"] - 2 * d["cv"]["sd"]), 100 * (d["cv"]["p"] + 2 * d["cv"]["sd"]), color="0.65", zorder=0,
+               label="direto corrigido, IC 95%")
+    ax.axhline(100 * d["p"], color="k", lw=0.6)
+    lab, pos, x0 = [], [], 0
+    for nome, v, cor in grupos:
+        pos += list(range(x0, x0 + len(v)))
+        lab += [f"s{a['semente']}" for a in v]
+        x0 += len(v) + 1
+    ax.set_xticks(pos)
+    ax.set_xticklabels(lab, fontsize=6, rotation=90)
+    ax.set_ylabel("$P_f$ (%)")
+    ax.grid(axis="y", alpha=0.3)
+axs[0].set_title("r = -0,5: uma AI por semente (KL à esquerda, Nyström à direita)", fontsize=8)
+axs[1].set_title("r = -0,7", fontsize=8)
+axs[0].legend(fontsize=6, ncol=2, loc="upper left")
+fig.tight_layout()
+fig.savefig(f"{AQUI}/figs/vies_sementes.pdf")
+plt.close(fig)
+
 
 
 def linha_ai(rot, a, d):
@@ -231,6 +338,30 @@ T_CUSTO = tabela("Método & $r = -0{,}5$ & $r = -0{,}7$",
                                  {1: "min", 2: "min"}, lambda i, c: i > 0), "lrr")
 cho, chuva, mc = E["cho"], E["chuva"], E["mcnemar"]
 
+
+def tabela_vies(r, d, dec):
+    """as AI pelo ponto de projeto de um r: o diagnostico pelo direto e a estimativa com a variavel de controle"""
+    lin = [f"Monte Carlo direto & --- & 2010 & {d['n']} & {pct(d['p'], dec)} & {num(100 * d['sd'] / d['p'], 1)} & --- & --- & "
+           f"{pct(d['cv']['p'], dec)} & {num(100 * d['cv']['sd'] / d['cv']['p'], 1)} \\\\"]
+    for a in DG["ai"]:
+        if a["r"] != r:
+            continue
+        lin.append(f"{a['rotulo']} & {'KL' if a['base'] == 'kl' else 'Nyström'} & {a['semente']} & {a['n']} & "
+                   f"{pct(a['p'], dec)} & {num(100 * a['sd'] / a['p'], 1)} & {num(100 * a['cov_verdadeiro'], 1)} & "
+                   f"{num(a['t_min'], 2)} & {pct(a['p_cv'], dec)} & {num(100 * a['sd_cv'] / a['p_cv'], 1)} \\\\")
+    return tabela("AI & base & semente & $N$ & $P_f$ (\\%) & CoV (\\%) & CoV verd. (\\%) & $t_{\\min}$ & $P_f$ corr. (\\%) & "
+                  "CoV corr. (\\%)",
+                  destaca_colunas(lin, {5: "min", 9: "min"}, lambda i, c: i > 0 and c[3].strip().isdigit() and int(c[3]) >= 1000),
+                  "llrrrrrrrr")
+
+
+T_VIES05, T_VIES07 = tabela_vies("r05", DD5, 2), tabela_vies("r07", DD7, 3)
+T_SEM = tabela("Grupo & sementes & $P_f$ média (\\%) & dif. & $P_f$ corr. média (\\%) & dif. & desvio entre sementes / estimado",
+               [f"{rot} & {s['k']} & {pct(s['p'], 3)} $\\pm$ {pct(s['sd'], 3)} & ${num(s['dif'], 1)}$ & "
+                f"{pct(s['pc'], 3)} $\\pm$ {pct(s['sdc'], 3)} & ${num(s['difc'], 1)}$ & " +
+                (f"{pct(s['emp'], 3)} / {pct(s['rms'], 3)}" if s["k"] > 2 else "---") + " \\\\" for rot, v, d, s in RS],
+               "lrrrrrr")
+
 MAPA = r"""
 \begin{longtable}{p{0.40\textwidth}p{0.55\textwidth}}
 \toprule
@@ -262,7 +393,51 @@ Documento & O que tem \\
 \end{longtable}
 """
 
-tex = r"""\documentclass[11pt,a4paper]{article}
+
+def ponto(arq):
+    """beta, a fracao de alfa^2 em phi', os 3 maiores termos e os 10 primeiros modos de cada campo"""
+    v = np.loadtxt(arq)
+    k = len(v) // 2
+    a2 = v ** 2 / (v ** 2).sum()
+    top = np.argsort(-a2)[:3]
+    txt = "os maiores termos são " + ", ".join(("$c'_{" if i < k else "$\\varphi'_{") + f"{i % k + 1}" + "}$ (" + num(a2[i], 2) + ")"
+                                             for i in top)
+    return dict(phi=a2[k:].sum(), txt=txt, dez=a2[:10].sum() + a2[k:k + 10].sum())
+
+
+UKL, UNY = ponto(f"{RUNS}/cho2010/grossa/ustar_M100_modal.txt"), ponto(f"{NY}/ustar_nys_M200.txt")
+
+
+def cient(x):
+    m, e = f"{x:.0e}".split("e")
+    return f"{m}\\times10^{{{int(e)}}}"
+
+
+AM, A20, AT0 = acha("ai_form100_modal"), acha("r05_ai_form20"), acha("ai_form100_tri0")
+AN20, AN200 = acha("ai_nys_form20"), acha("ai_nys_form200")
+A07 = [acha(f) for f in ("r07_ai_form20", "r07_ai_form20_s4", "r07_ai_form20_s5")]
+A0710 = acha("r07_ai_form10")
+GANHOS = [(a["sd"] / a["sd_cv"]) ** 2 for a in DG["ai"] if a["r"] == "r05" and a["n"] >= 1000]
+S07 = [s for rot, v, d, s in RS if v is KL07]
+S07 = S07[0] if S07 else None
+
+S05 = [s for rot, v, d, s in RS if v is KL05]
+S05 = S05[0] if S05 else None
+DIF_T0 = (AT0["p"] - DD5["p"]) / math.hypot(AT0["cov_verdadeiro"] * DD5["p"], DD5["sd"])
+HIP05 = (r"  \item \textbf{A AI pelo FORM não tem viés} ($r = -0{,}5$), nas duas bases (Seção~\ref{sec:vies}). Com a semente 3, "
+         r"as AI saem todas em ≈1,55\,\% (os sorteios são os mesmos). As " + str(S05["k"]) + " sementes independentes "
+         r"da KL dão, em média, " + pct(S05["p"], 3) + r"\,\% contra " + pct(DD5["p"], 3) + r"\,\% do direto e, com a "
+         r"variável de controle, " + pct(S05["pc"], 3) + r" $\pm$ " + pct(S05["sdc"], 3) + r"\,\% contra " +
+         pct(DD5["cv"]["p"], 3) + r" $\pm$ " + pct(DD5["cv"]["sd"], 3) + r"\,\% ($" + num(S05["difc"], 1) + "$ desvio). "
+         r"A direção errada da Tri(0) é a única que subestima o próprio CoV (" + num(100 * AT0["sd"] / AT0["p"], 1) +
+         r" contra " + num(100 * AT0["cov_verdadeiro"], 1) + r"\,\%); com o CoV verdadeiro, o seu desvio cai de $-2{,}2$ "
+         r"para $" + num(DIF_T0, 1) + "$.")
+HIP07 = (r"  \item \textbf{A AI pelo FORM com $r = -0{,}7$ também não tem viés detectável:} as sementes 3, 4 e 5, corrigidas, "
+         r"dão " + ", ".join(pct(a["p_cv"], 3) for a in A07) + r"\,\%, contra " + pct(DD7["cv"]["p"], 3) + r" $\pm$ " +
+         pct(DD7["cv"]["sd"], 3) + r"\,\% do direto corrigido (" + f"{DD7['n']:,}".replace(",", "\\,") + " realizações, " +
+         str(DD7["falhas"]) + " falhas): $" + (num(S07["difc"], 1) if S07 else "---") + "$ desvio.")
+
+tex = (r"""\documentclass[11pt,a4paper]{article}
 \usepackage[utf8]{inputenc}
 \DeclareUnicodeCharacter{2248}{\ensuremath{\approx}}
 \usepackage[T1]{fontenc}
@@ -277,7 +452,7 @@ tex = r"""\documentclass[11pt,a4paper]{article}
 \usepackage[hidelinks]{hyperref}
 \title{Confiabilidade de taludes com campos aleatórios no NeoPZ\\\large Relatório parcial: plano de trabalho, formulações,
 testes, hipóteses e o mapa dos relatórios}
-\date{16/11/2026}
+\date{17/11/2026}
 \begin{document}
 \maketitle
 \tableofcontents
@@ -307,19 +482,74 @@ processos); o PC serve para testes curtos. Este relatório reúne o que está es
     convergia num talude com FS logo abaixo de 1, e o FS saía $\ge 1$, o que deixava um buraco no histograma.
 \end{itemize}
 
-\subsection{Campos aleatórios: Karhunen--Loève}
-O campo gaussiano é $Z(\bm x) = \sum_{k=1}^M \sqrt{\lambda_k}\, f_k(\bm x)\, \xi_k$, com $\xi_k \sim N(0,1)$
-independentes, e $c' = \exp(\mu + \sigma Z_c)$, $\varphi' = \exp(\mu + \sigma(\rho Z_c + \sqrt{1-\rho^2} Z_\varphi))$.
-Sortear um campo é sortear o vetor $\bm\xi$. Há duas bases, as duas com o kernel exponencial separável ($l_h = 20$\,m,
-$l_v = 2$\,m no Cho):
-\begin{itemize}
-  \item \textbf{Analítica do retângulo} que contém o talude (\texttt{RandomField}, 2000 termos): restrita ao talude, tem a
-    covariância certa, mas precisa de mais termos que a base do próprio domínio (\path{relatorio_kl_form}, placa curva).
-  \item \textbf{Nyström no próprio talude} (novo, \path{Projects/Cho2010/nystrom_base.py}): quadratura de 2400 nós e
-    $f_k(\bm x) = \lambda_k^{-1}\sum_j w_j C(\bm x, \bm x_j) f_k(\bm x_j)$. No \texttt{RandomField}, o campo sai de
-    $Z(\bm x) = \sum_j C(\bm x, \bm x_j)\, a_j$, com $a_j = w_j \sum_k \xi_k f_k(\bm x_j)/\sqrt{\lambda_k}$ calculado uma vez
-    por realização.
-\end{itemize}
+\subsection{Campos aleatórios: as duas bases de Karhunen--Loève}\label{sec:kl}
+Os parâmetros de resistência são campos lognormais, com correlação cruzada $\rho = r(c, \varphi)$ entre os campos
+gaussianos:
+\begin{equation}
+  \ln c'(\bm x) = \mu_c + \sigma_c Z_c(\bm x), \qquad
+  \ln\varphi'(\bm x) = \mu_\varphi + \sigma_\varphi\big[\rho\, Z_c(\bm x) + \sqrt{1-\rho^2}\, Z_\varphi(\bm x)\big],
+\end{equation}
+com $\sigma^2 = \ln(1 + \mathrm{CoV}^2)$ e $\mu = \ln m - \sigma^2/2$ (médias $m$ de 10\,kPa e 30$^\circ$, CoV de 0,3 e
+0,2). $Z_c$ e $Z_\varphi$ são campos gaussianos padrão independentes, com a covariância exponencial separável
+$C(\bm x, \bm x') = \exp(-|x - x'|/l_h - |y - y'|/l_v)$, $l_h = 20$\,m e $l_v = 2$\,m. Cada um é uma expansão de
+Karhunen--Loève truncada:
+\begin{equation}
+  Z(\bm x) = \sum_{k=1}^{M} \psi_k(\bm x)\,\xi_k, \qquad \psi_k(\bm x) = \sqrt{\lambda_k}\, f_k(\bm x), \qquad
+  \xi_k \sim N(0, 1) \text{ independentes},
+  \label{eq:kl}
+\end{equation}
+em que $(\lambda_k, f_k)$ são os autopares da covariância num domínio $D$,
+$\int_D C(\bm x, \bm x') f_k(\bm x')\,d\bm x' = \lambda_k f_k(\bm x)$, com $\int_D f_k f_l\,d\bm x = \delta_{kl}$. Uma
+realização é o vetor $\bm\xi = (\bm\xi_c, \bm\xi_\varphi) \in \mathbb R^{2M}$, e a base entra só pelas funções $\psi_k$
+nos pontos de integração. As duas bases diferem no domínio e no cálculo dos autopares.
+
+\paragraph{KL analítica} (\texttt{KLSeparavel.h}, \texttt{RandomField}). $D$ é o retângulo $[0, 30]\times[0, 15]$\,m
+que contém o talude. O kernel é o produto de dois kernels exponenciais 1D, então os autopares 2D são produtos dos 1D,
+$f_k(x, y) = f^x_i(x - x_c)\, f^y_j(y - y_c)$ e $\lambda_k = \lambda^x_i \lambda^y_j$, em ordem decrescente de
+$\lambda$ ($x_c$, $y_c$: o centro do retângulo). Para o kernel $e^{-|s - t|/L}$ em $[-a, a]$, com $c = 1/L$, os
+autopares têm forma fechada (Ghanem e Spanos, 1991):
+\begin{equation*}
+  f(s) = \frac{\cos\omega s}{\sqrt{a + \frac{\sin 2\omega a}{2\omega}}}, \ \ \omega\tan\omega a = c; \qquad
+  f(s) = \frac{\sin\omega s}{\sqrt{a - \frac{\sin 2\omega a}{2\omega}}}, \ \ \omega + c\tan\omega a = 0; \qquad
+  \lambda = \frac{2c}{\omega^2 + c^2}.
+\end{equation*}
+Com $M = 2000$, a variância retida é 0,988 (média no retângulo). Parte da base descreve a região fora do talude, que não
+pesa no FS: é por isso que ela precisa de mais termos.
+
+\paragraph{KL de Nyström} (\path{Projects/Cho2010/nystrom_base.py}). $D$ é o próprio talude $\Omega$. A quadratura do
+ponto médio numa grade de $0{,}5\times0{,}25$\,m dá $n = 2400$ nós $\bm x_j$, com pesos $w_j$ (a área da célula), e a
+equação integral vira um problema de autovalores simétrico:
+\begin{equation*}
+  W^{1/2} C W^{1/2}\,\bm v_k = \lambda_k\,\bm v_k, \qquad C_{ij} = C(\bm x_i, \bm x_j), \qquad
+  f_k(\bm x_j) = v_{kj}/\sqrt{w_j}, \qquad \textstyle\sum_j w_j f_k(\bm x_j) f_l(\bm x_j) = \delta_{kl}.
+\end{equation*}
+Fora dos nós, a fórmula de Nyström interpola a autofunção pelo próprio kernel:
+\begin{equation}
+  f_k(\bm x) = \frac{1}{\lambda_k}\sum_{j=1}^{n} w_j\, C(\bm x, \bm x_j)\, f_k(\bm x_j), \qquad
+  \psi_k(\bm x) = \frac{1}{\sqrt{\lambda_k}}\sum_{j=1}^{n} w_j\, C(\bm x, \bm x_j)\, f_k(\bm x_j).
+  \label{eq:nystrom}
+\end{equation}
+O \texttt{RandomField} usa $M = 200$ (variância retida 0,97 pela soma dos $\lambda$ e 0,93 nos pontos do talude). Em cada
+realização, o campo sai de $Z(\bm x) = \sum_j C(\bm x, \bm x_j)\, a_j$, com
+$a_j = w_j \sum_k \xi_k f_k(\bm x_j)/\sqrt{\lambda_k}$ calculado uma vez.
+
+\paragraph{Derivadas em relação a $\bm\xi$.} Nas duas bases, $\ln c'$ e $\ln\varphi'$ são lineares em $\bm\xi$, e as
+derivadas são exatas:
+\begin{equation}
+  \frac{\partial \ln c'}{\partial \xi_{c,k}} = \sigma_c\,\psi_k, \qquad
+  \frac{\partial \ln\varphi'}{\partial \xi_{c,k}} = \sigma_\varphi\,\rho\,\psi_k, \qquad
+  \frac{\partial \ln\varphi'}{\partial \xi_{\varphi,k}} = \sigma_\varphi\sqrt{1 - \rho^2}\,\psi_k, \qquad
+  \frac{\partial \ln c'}{\partial \xi_{\varphi,k}} = 0.
+  \label{eq:dlnxi}
+\end{equation}
+
+\paragraph{Mudança de base.} Uma realização da analítica, restrita ao talude, tem coordenadas de Nyström
+$\xi^N_k = \lambda_k^{-1/2}\sum_j w_j f_k(\bm x_j)\, Z_a(\bm x_j)$, ou seja, $\bm\xi^N = T\bm\xi^a$, com
+$T = \Lambda^{-1/2} F^{T} W \Psi_a$ ($200\times2000$; $\Psi_a$ tem as $\psi_k$ analíticas nos nós). Se as duas bases
+representam o mesmo campo no talude, $TT^T = I$. A diagonal fica entre """ + num(TTd["d10"], 3) + r""" e 1 nos 10
+primeiros modos, em """ + num(TTd["d100"], 3) + r""" no modo 100 e em """ + num(TTd["d200"], 3) + r""" no 200 (o fim
+da base de Nyström). Fora da diagonal, fica abaixo de """ + num(max(TTd["fora"], 0.001), 3) + r""". A Seção~\ref{sec:vies}
+usa $T$ para levar as realizações do direto para a base de Nyström.
 
 \subsection{Monte Carlo direto e amostragem por importância}
 \begin{itemize}
@@ -332,42 +562,99 @@ $l_v = 2$\,m no Cho):
       \item \emph{pela banda} (entropia cruzada): $\bm\mu = s\,\bm d$, com $\bm d$ a direção da banda de ruptura do
         determinístico e $s$ a média de $\bm\xi\cdot\bm d$ no conjunto elite de um piloto direto (as falhas, ou os 10\,\%
         de menor FS);
-      \item \emph{pelo FORM}: $\bm\mu = \bm u^*$, o ponto de projeto.
+      \item \emph{pelo FORM}: $\bm\mu = \bm u^*$, o ponto de projeto (Seção~\ref{sec:form}).
     \end{itemize}
+  \item \textbf{Variável de controle} (nova; Seção~\ref{sec:vies}): $h(\bm\xi) = \Phi\big((-\hat g(\bm\xi) - c)/s\big)$,
+    com $\hat g = a + \bm b\cdot\bm\xi$ a regressão de $\ln\mathrm{FS}$ nos 400 primeiros $\xi$ e $(c, s)$ o probit das
+    falhas, os dois ajustados no direto. Como $\bm b\cdot\bm\xi \sim N(0, |\bm b|^2)$, a média de $h$ é exata:
+    $E[h] = \Phi\big((-a - c)/\sqrt{s^2 + |\bm b|^2}\big)$. A estimativa
+    $\hat P_f^{\,cv} = \frac1N\sum_i (I_i - \hat\gamma\, h_i)\, w_i + \hat\gamma\, E[h]$, com $\hat\gamma$ o coeficiente
+    da regressão de $I w$ em $h w$, tem o mesmo valor esperado e tira a parte do acaso que $h$ explica.
   \item \textbf{Diagnósticos:} o CoV, o ESS das falhas e a maior parcela de peso.
 \end{itemize}
 
-\subsection{FORM e os dois gradientes}
-O FORM usa o algoritmo HL-RF nos $2M$ coeficientes $\bm\xi$ (os $M$ primeiros de cada campo), com $g = \mathrm{FS} - 1$.
+\subsection{O FORM: o ponto de projeto nas duas bases}\label{sec:form}
 \begin{itemize}
-  \item \textbf{Diferenças centrais} (\texttt{form\_kl.py}): $4M + 1$ análises do SRM por iteração, com $h = 0{,}5$. Os
-    termos fracos ficam dominados pelo ruído do FS (≈0,001).
-  \item \textbf{Projeção modal} (etapa 2c, \texttt{gradiente=} no Cho2010): o limite superior com Mohr--Coulomb associado
-    e o teorema do envelope dão, no colapso do SRM ($c^* = c'/F$, $\tan\varphi^* = \tan\varphi'/F$),
+  \item \textbf{Variáveis:} $\bm u = (\xi_{c,1}, \dots, \xi_{c,M}, \xi_{\varphi,1}, \dots, \xi_{\varphi,M}) \in
+    \mathbb R^{2M}$, os $M$ primeiros coeficientes de cada campo (os outros ficam em 0). Como os $\xi$ já são normais
+    padrão independentes, não há transformação de Nataf: a passagem para o espaço físico é a KL e a transformação
+    lognormal da Seção~\ref{sec:kl}.
+  \item \textbf{Estado limite:} $g(\bm u) = \mathrm{FS}(\bm u) - 1$, com o FS do SRM. Cada avaliação é uma análise com
+    refinamento adaptativo.
+  \item \textbf{Ponto de projeto:} o ponto de falha mais provável, $\bm u^* = \arg\min\{|\bm u| : g(\bm u) \le 0\}$, com
+    $\beta = |\bm u^*|$, $\bm\alpha = -\nabla g(\bm u^*)/|\nabla g(\bm u^*)|$, $\bm u^* = \beta\bm\alpha$ e
+    $P_f^{\mathrm{FORM}} = \Phi(-\beta)$.
+  \item \textbf{HL-RF} (\path{Projects/Cho2010/form_kl.py}):
+    $\bm u_{k+1} = \dfrac{\nabla g_k\cdot\bm u_k - g_k}{|\nabla g_k|^2}\,\nabla g_k$, com meio passo quando $|g|$ mais
+    que dobra. Para quando $|g| < 0{,}001$ e $\beta$ muda menos de 0,01. O $\beta$ final é a distância ao plano
+    tangente no último ponto.
+  \item \textbf{Gradiente por diferenças centrais:} $4M + 1$ análises por iteração, com passo $h = 0{,}5$ em $\bm u$. Os
+    termos fracos ficam dominados pelo ruído do FS (≈0,001, da malha adaptativa e do arc-length).
+  \item \textbf{Gradiente pela projeção modal} (etapa 2c, \texttt{gradiente=} no Cho2010): o limite superior com
+    Mohr--Coulomb associado e o teorema do envelope dão, no colapso do SRM ($c^* = c'/F$, $\tan\varphi^* = \tan\varphi'/F$),
     \begin{equation*}
-      \frac{\partial D}{\partial c} = \dot\varepsilon_v\cot\varphi^*, \qquad
-      \frac{\partial D}{\partial \varphi} = -\frac{\dot\varepsilon_v}{2\sin\varphi^*}\big[(\sigma_1+\sigma_3)\cos\varphi^* +
-      2c^*\sin\varphi^*\big].
+      D_c = \frac{\partial D}{\partial c} = \dot\varepsilon_v\cot\varphi^*, \qquad
+      D_\varphi = \frac{\partial D}{\partial \varphi} = -\frac{\dot\varepsilon_v}{2\sin\varphi^*}\big[(\sigma_1+\sigma_3)
+      \cos\varphi^* + 2c^*\sin\varphi^*\big].
     \end{equation*}
-    A primeira é a Eq.~14 do guia de estudo: a versão contínua da potência resistente da Eq.~48 do Ceron (2025). A
-    segunda a estende ao $\varphi'$ com as tensões de colapso. Com $F$ definido por $\Gamma(c/F, \varphi^*) = 1$ (Ceron,
-    Eq.~58), $\partial F/\partial c'(\bm x) = D_c/\mathrm{Den}$ e $\partial F/\partial\tan\varphi'(\bm x) =
-    D_\varphi\cos^2\varphi^*/\mathrm{Den}$, com $\mathrm{Den} = \int (D_c c^* + D_\varphi\sin\varphi^*\cos\varphi^*)$. A
-    projeção nos modos usa $\partial Z/\partial\xi_k = \sqrt{\lambda_k} f_k(\bm x)$ exata. Custa \textbf{uma} análise
-    por gradiente, contra $4M + 1$. A taxa $\dot\varepsilon_v$ do mecanismo é aproximada pela deformação plástica
-    volumétrica no colapso, e a escala se cancela.
+    A primeira é a Eq.~14 do guia de estudo, a versão contínua da potência resistente da Eq.~48 do Ceron (2025). A
+    segunda a estende ao $\varphi'$, com as tensões de colapso. Com $F$ definido por $\Gamma(c/F, \varphi^*) = 1$ (Ceron,
+    Eq.~58), $\partial F/\partial c'(\bm x) = D_c/\mathrm{Den}$ e
+    $\partial F/\partial\tan\varphi'(\bm x) = D_\varphi\cos^2\varphi^*/\mathrm{Den}$, com
+    $\mathrm{Den} = \int (D_c c^* + D_\varphi\sin\varphi^*\cos\varphi^*)$. A taxa $\dot\varepsilon_v$ do mecanismo é
+    aproximada pela deformação plástica volumétrica no colapso, e a escala se cancela. A regra da cadeia com
+    \eqref{eq:dlnxi} dá o gradiente nos modos:
+    \begin{equation}
+      \frac{\partial g}{\partial \xi_{c,k}} = \sum_p W_p\big[\sigma_c\, a_c(\bm x_p) + \sigma_\varphi\rho\,
+      a_\varphi(\bm x_p)\big]\,\psi_k(\bm x_p), \qquad
+      \frac{\partial g}{\partial \xi_{\varphi,k}} = \sum_p W_p\,\sigma_\varphi\sqrt{1 - \rho^2}\,
+      a_\varphi(\bm x_p)\,\psi_k(\bm x_p),
+      \label{eq:gradmodal}
+    \end{equation}
+    com $a_c = c'\,\partial F/\partial c'$ e $a_\varphi = \varphi'\sec^2\varphi'\,\partial F/\partial\tan\varphi'$ (as
+    sensibilidades do FS a $\ln c'$ e a $\ln\varphi'$, por unidade de área). A soma corre nos pontos de integração $p$ que
+    plastificam ($\dot\varepsilon_v > 0$), com peso $W_p$. \textbf{A base entra só por $\psi_k(\bm x_p)$:}
+    \begin{equation*}
+      \text{analítica: } \psi_k(\bm x_p) = \sqrt{\lambda^x_i\lambda^y_j}\; f^x_i(x_p - x_c)\, f^y_j(y_p - y_c); \qquad
+      \text{Nyström: } \psi_k(\bm x_p) = \lambda_k^{-1/2}\textstyle\sum_j w_j\, C(\bm x_p, \bm x_j)\, f_k(\bm x_j)
+      \ \ \eqref{eq:nystrom}.
+    \end{equation*}
+    O mesmo código (\texttt{RandomField::ModeValues}) dá o gradiente nas duas bases. Custa \textbf{uma} análise por
+    iteração, qualquer que seja $M$, contra $4M + 1$.
+  \item \textbf{O ponto de projeto nas duas bases} (Figura~\ref{fig:pp}): com o gradiente modal, o FORM converge em 3
+    análises nas duas.
+    \begin{itemize}
+      \item \emph{Analítica} ($M = 100$): $\beta = """ + num(FM[100][0]["b"], 3) + r"""$, com """ + num(UKL["phi"], 2) + r"""
+        de $\alpha^2$ em $\varphi'$; """ + UKL["txt"] + r""". Os 10 primeiros modos de cada campo somam
+        """ + num(UKL["dez"], 2) + r""".
+      \item \emph{Nyström} ($M = 200$): $\beta = """ + num(FM[200][1]["b"], 3) + r"""$, com """ + num(UNY["phi"], 2) + r"""
+        em $\varphi'$; """ + UNY["txt"] + r""". Os 10 primeiros somam """ + num(UNY["dez"], 2) + r""".
+    \end{itemize}
+    Os coeficientes são outros, mas o ponto é o mesmo. Levado para as coordenadas de Nyström por $T$, o ponto analítico
+    tem $|\bm u| = """ + num(PP["beta_kl_em_nys"], 3) + r"""$ e fica a """ + num(PP["angulo"], 1) + r"""$^\circ$ do de
+    Nyström. O campo mais provável de ruptura é uma camada fraca horizontal sob a face do talude:
+    \begin{itemize}
+      \item $\varphi'$ mínimo de 23,4$^\circ$ em $y \approx 6{,}6$\,m, 1,6\,m acima do pé;
+      \item $c'$ quase uniforme, de 8,6 a 9,6\,kPa;
+      \item os perfis de $\varphi'$ das duas bases diferem em menos de 0,1$^\circ$.
+    \end{itemize}
+  \item \textbf{A AI pelo ponto de projeto:} $\bm\xi \sim N(\bm u^*, I)$ nos $2M$ primeiros termos (os outros, $N(0, 1)$),
+    com o peso $w = \exp(-\bm u^*\cdot\bm\xi + \beta^2/2)$.
 \end{itemize}
+\begin{figure}[H]\centering\includegraphics[width=\textwidth]{figs/ponto_projeto.pdf}
+\caption{$c'$ e $\varphi'$ no ponto de projeto do FORM modal: KL analítica ($M = 100$, em cima) e Nyström ($M = 200$,
+embaixo), com as mesmas escalas de cor.}\label{fig:pp}\end{figure}
 
 \section{O plano de trabalho e a situação}
 \begin{table}[H]\centering\small
 """ + tabela("Etapa & O quê & Situação",
              ["0 & Cho2010 no fermi: direto, AI pela banda e pelo FORM & pronta \\\\",
               "1 & SRM corrigido ($F_0 = 0{,}8$): o antigo contra o novo nas mesmas realizações & pronta \\\\",
-              "2 & FORM ($M = 10$, 20) e AI pelo ponto de projeto; teste linear sem MEF & pronta; as repetições com sementes novas também \\\\",
-              "2b & base de Nyström contra a analítica & FORM feito no PC (Seção~\\ref{sec:nystrom}) \\\\",
-              "2c & gradiente do FORM pela projeção modal & validado; AI com o ponto modal pronta no fermi (sementes 6 e 7) \\\\",
-              "3 & $P_f$ pequena ($r = -0{,}7$), tamanho do piloto, custo & pronta; o direto de 25\\,000 roda esta noite \\\\",
-              "4 & FORM e AI na chuva & referência pronta (direto 4000); falta o código do FORM na chuva \\\\",
+              "2 & FORM ($M = 10$, 20) e AI pelo ponto de projeto; teste linear sem MEF & pronta; sem viés (Seção~\\ref{sec:vies}) \\\\",
+              "2b & base de Nyström contra a analítica & o mesmo ponto de projeto (Seção~\\ref{sec:form}); AI de Nyström no fermi (fase 4) \\\\",
+              "2c & gradiente do FORM pela projeção modal & validado; a AI modal não tem viés; 10 sementes no fermi (fase 4) \\\\",
+              "3 & $P_f$ pequena ($r = -0{,}7$), tamanho do piloto, custo & pronta, com o direto de 25\\,000 (93 falhas) \\\\",
+              "4 & FORM e AI na chuva & o direto de 10\\,000 está terminando; falta o código do FORM na chuva \\\\",
               "5 & investigação da chuva & não começou \\\\"], "lp{0.55\\textwidth}p{0.3\\textwidth}") + r"""
 \end{table}
 
@@ -421,6 +708,81 @@ modal, $M = 100$ e 200) separam o acaso do viés:
 $\sqrt{\sum s_i^2}/k$, e o do direto.}
 \end{table}
 
+\subsection{A AI pelo FORM tem viés? O teste com o próprio direto (KL e Nyström)}\label{sec:vies}
+Com a semente 3, todas as AI pelo FORM ficaram abaixo do direto (1,53 a 1,57\,\% contra 1,70\,\%), e a AI modal, a mais
+eficiente, parecia convergir para o valor errado. Uma AI com deslocamento fixo não tem viés, mas pode se comportar como se
+tivesse. Se a densidade de amostragem quase não visita uma parte da região de falha (outro modo de ruptura, longe do
+ponto de projeto), a estimativa sai quase sempre baixa, e o CoV estimado fica menor que o verdadeiro. O direto permite
+testar isso sem nenhuma análise nova (\path{Projects/Cho2010/diagnostico_ai.py}):
+\begin{enumerate}
+  \item \textbf{Os $\bm\xi$ de cada realização} saem de uma cópia do gerador do \texttt{RandomField} em Python
+    (xoshiro256** e Box--Muller, uma semente por realização e campo). A cópia confere com o peso de cada amostra de cada
+    AI (erro $\le """ + cient(max(a["erro_peso"] for a in DG["ai"])) + r"""$). Junto com a KL analítica em Python, ela
+    também confere com o campo que o programa grava (diferença $\le 5\times10^{-6}$, a precisão do CSV).
+  \item \textbf{Modo de ruptura fora da AI.} As """ + str(DD5["falhas"]) + r""" falhas do direto, projetadas na direção
+    do ponto de projeto ($t = \bm\alpha\cdot\bm\xi$), ficam todas onde a AI amostra (Figura~\ref{fig:vies_t}). Na direção
+    modal, o menor $t$ é """ + num(AM["t_min"], 2) + r""", e só """ + str(AM["abaixo_15"]) + r""" falhas ficam abaixo de
+    1,5. A variância verdadeira de cada AI sai do direto pela identidade $E_h[I w^2] = E_\varphi[I w]$, com as falhas do
+    direto, e é a que a AI estima (``CoV verd.'' na Tabela~\ref{tab:vies05}): """ + num(100 * AM["cov_verdadeiro"], 1) +
+    r"""\,\% contra """ + num(100 * AM["sd"] / AM["p"], 1) + r"""\,\% no modal $M = 100$. Só a direção errada da Tri(0)
+    subestima o próprio CoV (""" + num(100 * AT0["sd"] / AT0["p"], 1) + r"""\,\% estimado contra """ +
+    num(100 * AT0["cov_verdadeiro"], 1) + r"""\,\% verdadeiro): o $-2{,}2$ desvio da Tabela~1 vinha daí.
+  \item \textbf{Base de Nyström.} Com $T$ (Seção~\ref{sec:kl}), as realizações do direto vão para as coordenadas de
+    Nyström, e o mesmo teste vale para as AI de Nyström: $t \ge """ + num(min(AN20["t_min"], AN200["t_min"]), 2) + r"""$, e
+    CoV verdadeiro de """ + num(100 * min(AN20["cov_verdadeiro"], AN200["cov_verdadeiro"]), 1) + r""" a """ +
+    num(100 * max(AN20["cov_verdadeiro"], AN200["cov_verdadeiro"]), 1) + r"""\,\%, contra """ +
+    num(100 * min(AN20["sd"] / AN20["p"], AN200["sd"] / AN200["p"]), 1) + r""" a """ +
+    num(100 * max(AN20["sd"] / AN20["p"], AN200["sd"] / AN200["p"]), 1) + r"""\,\% estimados. Os FS são os do campo
+    analítico, uma aproximação: o campo de Nyström é a projeção dele. A regressão de $\ln\mathrm{FS}$ explica o mesmo nas
+    duas bases ($R^2 = """ + num(DD5["r2_kl"], 3) + r"""$ e $""" + num(DD5["r2_nys"], 3) + r"""$).
+  \item \textbf{A sorte de cada amostra.} A variável de controle mede a sorte de cada amostra no que a regressão explica.
+    A amostra da semente 3 é azarada: o controle fica em """ + num(100 * AM["sorte"], 0) + r"""\,\% da sua média exata na
+    AI modal, """ + num(100 * A20["sorte"], 0) + r"""\,\% no FORM $M = 20$ e """ + num(100 * AN200["sorte"], 0) + r"""\,\%
+    no Nyström $M = 200$. Corrigida, a AI modal da semente 3 vai de """ + pct(AM["p"]) + r""" para """ + pct(AM["p_cv"]) +
+    r"""\,\%. O direto corrigido fica em """ + pct(DD5["cv"]["p"], 3) + r""" $\pm$ """ + pct(DD5["cv"]["sd"], 3) + r"""\,\%
+    (CoV de """ + num(100 * DD5["cv"]["sd"] / DD5["cv"]["p"], 1) + r"""\,\%), o equivalente a """ +
+    f"{DD5['n_equiv']:,.0f}".replace(",", "\\,") + r""" realizações.
+\end{enumerate}
+\begin{figure}[H]\centering\includegraphics[width=\textwidth]{figs/vies_t.pdf}
+\caption{A chance de falha do direto em cada faixa de $t = \bm\alpha\cdot\bm\xi$ (barras) e as densidades de $t$ no
+direto e na AI (curvas, em escala). A AI amostra toda a região onde o direto falha.}\label{fig:vies_t}\end{figure}
+\begin{table}[H]\centering\small
+""" + T_VIES05 + r"""
+\caption{$r = -0{,}5$: as AI pelo ponto de projeto. ``CoV verd.'' é o CoV verdadeiro de cada AI, calculado pelas falhas
+do direto; $t_{\min}$ é o menor $t$ entre as falhas do direto; ``corr.'' é a estimativa com a variável de controle.
+Em Nyström, o direto vai para a base de Nyström pela mudança de base.}\label{tab:vies05}
+\end{table}
+\begin{table}[H]\centering\small
+""" + T_SEM + r"""
+\caption{As sementes independentes (uma AI por semente; a 3 é a do PC). A dif. é a diferença para o direto, em desvios;
+a corrigida usa o direto corrigido. A última coluna compara a dispersão real entre as sementes com o desvio que cada AI
+estima.}\label{tab:sementes}
+\end{table}
+\begin{figure}[H]\centering\includegraphics[width=\textwidth]{figs/vies_sementes.pdf}
+\caption{Uma AI por semente, com IC 95\,\%: vazado, a estimativa da AI; cheio, a corrigida. As faixas são o IC 95\,\% do
+direto (claro) e do direto corrigido (escuro).}\label{fig:vies_sementes}\end{figure}
+\textbf{$r = -0{,}7$} (direto de """ + f"{DD7['n']:,}".replace(",", "\\,") + r""", """ + str(DD7["falhas"]) + r"""
+falhas): $t \ge """ + num(A07[0]["t_min"], 2) + r"""$ na direção do FORM $M = 20$ (""" + num(A0710["t_min"], 2) + r"""
+no $M = 10$). O CoV verdadeiro é """ + num(100 * A07[0]["cov_verdadeiro"], 1) + r"""\,\%, e as AI estimam de """ +
+num(100 * min(a["sd"] / a["p"] for a in A07), 1) + r""" a """ + num(100 * max(a["sd"] / a["p"] for a in A07), 1) + r"""\,\%.
+As sementes 3, 4 e 5, corrigidas, dão """ + ", ".join(pct(a["p_cv"], 3) for a in A07) + r"""\,\%, contra """ +
+pct(DD7["cv"]["p"], 3) + r""" $\pm$ """ + pct(DD7["cv"]["sd"], 3) + r"""\,\% do direto corrigido ($""" +
+(num(S07["difc"], 1) if S07 else "---") + r"""$ desvio).
+\begin{table}[H]\centering\small
+""" + T_VIES07 + r"""
+\caption{$r = -0{,}7$: as AI pelo ponto de projeto, como na Tabela~\ref{tab:vies05}.}\label{tab:vies07}
+\end{table}
+\textbf{Conclusão.}
+\begin{itemize}
+  \item Nenhum modo de ruptura fica fora da AI, e a variância verdadeira é a estimada.
+  \item As sementes independentes acertam o direto, nas duas bases. A semente 3 é uma tiragem baixa, comum a todas as
+    AI que a usam.
+  \item As repetições da fase 4 no fermi fecham a questão: 10 sementes do FORM modal analítico e 10 do de Nyström, com as
+    mesmas sementes nas duas bases. Elas dão a distribuição do estimador.
+  \item A variável de controle é um ganho à parte, sem custo: de """ + num(min(GANHOS), 1) + r""" a """ +
+    num(max(GANHOS), 1) + r""" vezes menos realizações nas AI e """ + num(DD5["n_equiv"] / DD5["n"], 1) + r""" no direto.
+\end{itemize}
+
 \subsection{Comparação das bases com a mesma variância}
 A variância do campo nos pontos do talude depende da base e de $M$ (\path{runs/cho2010/nystrom/variancia_bases.py}):
 \begin{table}[H]\centering\small
@@ -431,14 +793,18 @@ A variância do campo nos pontos do talude depende da base e de $M$ (\path{runs/
 interpolação entre os nós não reproduz o bico do kernel exponencial.}
 \end{table}
 Com poucos termos, Nyström retém mais variância; em $M \approx 200$ as duas se igualam (≈0,93). A AI analítica usa 2000
-termos (0,99), e a de Nyström 200 (0,93): são modelos de campo diferentes, e a $P_f$ esperada do campo com 0,93 é de
-≈1,3--1,4\,\%. A comparação justa das bases usa os dois campos com a mesma variância:
+termos (0,99), e a de Nyström 200 (0,93): são modelos de campo diferentes. Mas a variância que falta está nos modos
+altos, que quase não mudam o FS (a média ao longo da banda de ruptura os filtra): o $\beta$ do FORM vai de 2,001
+($M = 100$) para 1,999 ($M = 200$). Por isso a $P_f$ do campo com 0,93 deve ficar perto da do campo completo; a
+estimativa inicial, de 1,3 a 1,4\,\% pela variância, estava errada. A comparação justa das bases usa os dois campos
+com a mesma variância:
 \begin{table}[H]\centering\small
 """ + tabela("Campo (variância ≈0,93) & $N$ & $P_f$ (\\%) & CoV (\\%)",
              destaca_colunas([f"{r} & " + (f"{a['n']} & {pct(a['p'])} & {num(100 * a['cov'], 1)}" if a else "--- & na fila & ---") +
                              " \\\\" for r, a in iguais], {3: "min"}, lambda i, c: c[1].strip().isdigit() and int(c[1]) >= 1000),
              "lrrr") + r"""
-\caption{AI no PC, semente 3. A referência de 24\,000 é do campo completo (2000 termos) e não vale aqui.}
+\caption{AI no PC, semente 3, a mesma das AI analíticas da Tabela 1 (os sorteios são os mesmos). A referência de
+24\,000 é do campo completo (2000 termos) e só vale aproximadamente aqui.}
 \end{table}
 
 \subsection{O piso do SRM em $F_0 = 0{,}8$}
@@ -490,8 +856,18 @@ linearizar uma superfície de falha curva. Por isso o FORM entra só como desloc
 \begin{itemize}
   \item A AI não tem viés com qualquer deslocamento fixado antes; o deslocamento só muda a variância (teste linear e Ceron).
   \item O SRM antigo tinha um buraco logo abaixo de FS = 1; o efeito na $P_f$ é pequeno.
-  \item \textbf{Há um só modo de ruptura} no Cho2010: todas as falhas do direto têm $t = \bm\alpha\cdot\bm\xi \ge 1{,}6$, e
-    a banda de ruptura das falhas é a mesma no direto e na AI.
+  \item \textbf{Há um só modo de ruptura} no Cho2010, nas duas bases: todas as falhas do direto ficam onde a AI pelo
+    FORM amostra ($t = \bm\alpha\cdot\bm\xi \ge """ + num(AM["t_min"], 2) + r"""$ na direção modal, com só
+    """ + str(AM["abaixo_15"]) + r""" das """ + str(DD5["falhas"]) + r""" abaixo de 1,5;
+    $t \ge """ + num(A07[0]["t_min"], 2) + r"""$ com $r = -0{,}7$), e a variância verdadeira da AI,
+    calculada pelas falhas do direto, é a que a AI estima (Seção~\ref{sec:vies}). A banda de ruptura das falhas é a mesma
+    no direto e na AI.
+  \item \textbf{O ponto de projeto é o mesmo nas duas bases:} levado para as coordenadas de Nyström, o ponto analítico
+    fica a """ + num(PP["angulo"], 1) + r"""$^\circ$ do de Nyström, e os campos de $\varphi'$ diferem em
+    menos de 0,1$^\circ$ (Figura~\ref{fig:pp}).
+  \item \textbf{A variável de controle dá um ganho extra sem custo:} de """ + num(min(GANHOS), 1) + r""" a
+    """ + num(max(GANHOS), 1) + r""" nas AI de $r = -0{,}5$ e """ + num(DD5["n_equiv"] / DD5["n"], 1) + r"""
+    no direto, cuja referência vai a """ + pct(DD5["cv"]["p"], 3) + r""" $\pm$ """ + pct(DD5["cv"]["sd"], 3) + r"""\,\%.
   \item \textbf{O piloto pode ser pequeno:} com 250 realizações, o deslocamento da banda custa só ≈5\,\% de variância.
   \item \textbf{O piloto pode rodar em malha grossa:} o elite é escolhido por ordem, e a ordem das realizações quase não
     muda. Com o piloto na Tri(0) (300 vezes mais barata), a AI pela banda acertou o direto ($-0{,}2$ desvio), com o mesmo
@@ -500,6 +876,7 @@ linearizar uma superfície de falha curva. Por isso o FORM entra só como desloc
     FORM converge em 3 análises.
   \item \textbf{A base de Nyström precisa de menos termos} que a analítica para o mesmo $\beta$.
 """ + HIP05 + r"""
+""" + HIP07 + r"""
 \end{itemize}
 \subsection*{Descartadas}
 \begin{itemize}
@@ -509,7 +886,6 @@ linearizar uma superfície de falha curva. Por isso o FORM entra só como desloc
 \end{itemize}
 \subsection*{Sob investigação}
 \begin{itemize}
-""" + HIP07 + r"""
   \item \textbf{O campo de $k$ na chuva:} o gradiente modal pega $c'$ e $\varphi'$; o $k$ age pelo transiente e
     precisaria do adjunto. Hoje o $k$ pesa pouco na chuva f50 ($\alpha^2_k \approx 0$), e a AI continua sem viés sem
     deslocá-lo.
@@ -517,11 +893,14 @@ linearizar uma superfície de falha curva. Por isso o FORM entra só como desloc
 
 \section{Próximos passos}
 \begin{enumerate}
-  \item Fechar $r = -0{,}7$ com o direto de 25\,000 (fermi, esta noite) e as AI pela banda com piloto na Tri(2) e pela
-    analítica truncada em 200 termos (PC, esta noite).
-  \item Etapa 4: o FORM com gradiente modal e a AI pelo ponto de projeto na chuva, contra o direto de 4000.
-  \item AI com a base de Nyström e o seu próprio direto de referência (a mesma semente dá outras realizações).
-  \item Para o artigo da AI: o ganho contra o custo total (FORM e piloto incluídos), de $P_f \approx 2\,\%$ a $0{,}4\,\%$.
+  \item \textbf{Fase 4 no fermi} (≈7\,h): 10 sementes do FORM modal analítico e 10 do de Nyström, as mesmas nas duas
+    bases. Dão a distribuição do estimador e fecham a questão do viés (Seção~\ref{sec:vies}).
+  \item \textbf{Etapa 4:} o FORM com gradiente modal e a AI pelo ponto de projeto na chuva, contra o direto de 10\,000
+    (terminando no fermi).
+  \item \textbf{Variável de controle} nas AI pela banda e na chuva. Para o artigo da AI: o ganho contra o custo total
+    (FORM, piloto e controle), de $P_f \approx 2\,\%$ a $0{,}4\,\%$.
+  \item \textbf{Arquivamento dos documentos:} a formulação separada dos resultados, com um índice único (proposta em
+    discussão).
 \end{enumerate}
 
 \section{Mapa dos relatórios}\label{sec:mapa}
@@ -529,6 +908,6 @@ Os documentos estão espalhados; esta lista diz onde está cada um e o que tem. 
 \path{~/projects/neopz-master}.
 """ + MAPA + r"""
 \end{document}
-"""
+""")
 open(f"{AQUI}/relatorio_parcial.tex", "w").write(tex)
 print("ok")
