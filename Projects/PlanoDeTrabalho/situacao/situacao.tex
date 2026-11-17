@@ -151,17 +151,17 @@ tivesse. Se a densidade de amostragem quase não visita uma parte da região de 
 ponto de projeto), a estimativa sai quase sempre baixa, e o CoV estimado fica menor que o verdadeiro. O direto permite
 testar isso sem nenhuma análise nova (\path{Projects/Cho2010/diagnostico_ai.py}):
 \begin{enumerate}
-  \item \textbf{Os $\bm\xi$ de cada realização} saem de uma cópia do gerador do \texttt{RandomField} em Python
+  \item \textbf{Os $\bm y$ de cada realização} saem de uma cópia do gerador do \texttt{RandomField} em Python
     (xoshiro256** e Box--Muller, uma semente por realização e campo). A cópia confere com o peso de cada amostra de cada
     AI (erro $\le 5\times10^{-9}$). Junto com a KL analítica em Python, ela
     também confere com o campo que o programa grava (diferença $\le 5\times10^{-6}$, a precisão do CSV).
   \item \textbf{Modo de ruptura fora da AI.} As 408 falhas do direto, projetadas na direção
-    do ponto de projeto ($t = \bm\alpha\cdot\bm\xi$), ficam todas onde a AI amostra (Figura~\ref{fig:vies_t}). Na direção
+    do ponto de projeto ($t = \bm y\cdot\bm y^*/\beta$), ficam todas onde a AI amostra (Figura~\ref{fig:vies_t}). Na direção
     modal, o menor $t$ é 0{,}80, e só 3 falhas ficam abaixo de
     1,5. A variância verdadeira de cada AI sai do direto pela identidade $E_h[I w^2] = E_\varphi[I w]$, com as falhas do
     direto, e é a que a AI estima (``CoV verd.'' na Tabela~\ref{tab:vies05}): 6{,}2\,\% contra 6{,}9\,\% no modal $M = 100$. Só a direção errada da Tri(0)
     subestima o próprio CoV (9{,}3\,\% estimado contra 12{,}3\,\% verdadeiro): o $-2{,}2$ desvio da Tabela~1 vinha daí.
-  \item \textbf{Base de Nyström.} Com $T$ (formulação, Seção~\ref{F-sec:kl}), as realizações do direto vão para as coordenadas de
+  \item \textbf{Base de Nyström.} Com $T$ (formulação, Seção~\ref{F-sec:mudanca}), as realizações do direto vão para as coordenadas de
     Nyström, e o mesmo teste vale para as AI de Nyström: $t \ge 0{,}91$, e
     CoV verdadeiro de 6{,}1 a 6{,}3\,\%, contra 6{,}0 a 6{,}2\,\% estimados. Os FS são os do campo
     analítico, uma aproximação: o campo de Nyström é a projeção dele. A regressão de $\ln\mathrm{FS}$ explica o mesmo nas
@@ -173,7 +173,7 @@ testar isso sem nenhuma análise nova (\path{Projects/Cho2010/diagnostico_ai.py}
     (CoV de 2{,}4\,\%), o equivalente a 104\,015 realizações.
 \end{enumerate}
 \begin{figure}[H]\centering\includegraphics[width=\textwidth]{figs/vies_t.pdf}
-\caption{A chance de falha do direto em cada faixa de $t = \bm\alpha\cdot\bm\xi$ (barras) e as densidades de $t$ no
+\caption{A chance de falha do direto em cada faixa de $t = \bm y\cdot\bm y^*/\beta$ (barras) e as densidades de $t$ no
 direto e na AI (curvas, em escala). A AI amostra toda a região onde o direto falha.}\label{fig:vies_t}\end{figure}
 \begin{table}[H]\centering\small
 \resizebox{\ifdim\width>\textwidth\textwidth\else\width\fi}{!}{%
@@ -323,7 +323,7 @@ $\beta$ & $P_f$ exata & direto ($10^6$) & AI na direção exata & AI a 17{,}6$^\
 4 & 3.167e-05 & --- & \textcolor{azul}{\textbf{1{,}0\,\% (0{,}4)}} & \textcolor{verm}{\textbf{-9{,}1\,\% (-2{,}6)}} \\
 \bottomrule
 \end{tabular}}
-\caption{Falha $\bm\alpha\cdot\bm\xi > \beta$, com $P_f$ exata. Erro relativo, com o erro em desvios entre parênteses.}
+\caption{Falha quando $\bm e\cdot\bm y > \beta$, com $\bm e$ unitário e $P_f = \Phi(-\beta)$ exata. Erro relativo, com o erro em desvios entre parênteses.}
 \end{table}
 Com o deslocamento na direção exata, a AI acerta até $3\times10^{-5}$. Com a direção um pouco errada, ela sai baixa, e
 mais baixa quando $\beta$ cresce.
@@ -399,7 +399,7 @@ AI pela banda, semente 2 & 1000 & 5{,}74 & \textcolor{verm}{\textbf{8{,}2}} & \t
   \item A AI não tem viés com qualquer deslocamento fixado antes; o deslocamento só muda a variância (teste linear e Ceron).
   \item O SRM antigo tinha um buraco logo abaixo de FS = 1; o efeito na $P_f$ é pequeno.
   \item \textbf{Há um só modo de ruptura} no Cho2010, nas duas bases: todas as falhas do direto ficam onde a AI pelo
-    FORM amostra ($t = \bm\alpha\cdot\bm\xi \ge 0{,}80$ na direção modal, com só
+    FORM amostra ($t = \bm y\cdot\bm y^*/\beta \ge 0{,}80$ na direção modal, com só
     3 das 408 abaixo de 1,5;
     $t \ge 2{,}20$ com $r = -0{,}7$), e a variância verdadeira da AI,
     calculada pelas falhas do direto, é a que a AI estima (Seção~\ref{sec:vies}). A banda de ruptura das falhas é a mesma
