@@ -200,8 +200,9 @@ Cada documento mora num lugar só, conforme a natureza:
 - `docs/<tema>/`: a **formulação**, que muda pouco e é a base dos artigos. Os temas são `nao_saturado`, `talude_srm` e
   `confiabilidade_campos`.
 - `Projects/PlanoDeTrabalho/`: os **resultados**, gerados das rodadas:
-  - `situacao/`: o consolidado;
-  - `ETAPA0/`, `ETAPAS1a3/`, ...: um relatório por etapa;
+  - `situacao/`: a situação, com os resultados principais, as hipóteses e os próximos passos;
+  - `ETAPA0/`, `ETAPAS1a3/`, ...: os resultados completos de cada grupo de etapas (o `ETAPAS1a3` tem todos os do
+    Cho2010 e a referência da chuva);
   - `campanhas/`: chuva, rebaixamento e solos;
   - `arquivo/`: as cópias datadas.
 - `Projects/<programa>/README.md`: como usar cada programa. Fica junto do código.
@@ -221,8 +222,8 @@ Regras:
 3. O documento vivo não tem data no nome; a capa traz a data e o commit. Antes de uma reunião ou de um envio, guarde uma
    cópia datada em `arquivo/` (`AAAA-MM-DD_nome.pdf`).
 4. O índice abaixo sai da mesma lista que o "Mapa dos documentos" do relatório de situação (`documentos.py`). Para
-   mudar, edite a lista e rode `python3 -I documentos.py`. O relatório de situação se atualiza com
-   `situacao/atualiza.sh`.
+   mudar, edite a lista e rode `python3 -I documentos.py`. Os relatórios de situação e das etapas se
+   atualizam juntos com `situacao/atualiza.sh`.
 
 <!-- indice: gerado por documentos.py; nao edite a mao -->
 
@@ -255,9 +256,9 @@ Regras:
 | Documento | Páginas | O que tem |
 |---|---:|---|
 | `Projects/PlanoDeTrabalho/README.md` |  | o plano de trabalho (etapas 0 a 5, 2b e 2c), as regras dos documentos e este índice |
-| `Projects/PlanoDeTrabalho/situacao/situacao.pdf` | 13 | a situação: o plano, os resultados, as hipóteses e os próximos passos (o consolidado) |
+| `Projects/PlanoDeTrabalho/situacao/situacao.pdf` | 6 | a situação: o plano, os resultados principais (com as seções do relatório das etapas), as hipóteses e os próximos passos |
 | `Projects/PlanoDeTrabalho/ETAPA0/relatorio_etapa0.pdf` | 9 | etapa 0: a AI da chuva no fermi e a prévia do Cho2010 (SRM antigo; superado pelo das etapas 1 a 3) |
-| `Projects/PlanoDeTrabalho/ETAPAS1a3/relatorio_etapas.pdf` | 6 | etapas 1 a 3: SRM corrigido, FORM e AI, P_f pequena, teste linear, piloto e custo |
+| `Projects/PlanoDeTrabalho/ETAPAS1a3/relatorio_etapas.pdf` | 15 | todos os resultados das etapas 0 a 3 e a referência da chuva: SRM corrigido, AI contra o direto, teste linear, as duas bases, o gradiente modal (SRM e GIM), o viés, a variável de controle, a fase 4 parcial, o piloto e o custo |
 | `Projects/PlanoDeTrabalho/arquivo/` |  | cópias datadas (AAAA-MM-DD_nome.pdf), nunca editadas: 2026-11-17_relatorio_parcial.pdf |
 
 ### Resultados: as campanhas
