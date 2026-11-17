@@ -73,6 +73,26 @@ SEM05 = [E["ai"](f"{E['E1']}/r05_ai_form20")] + [E["ai"](f"{E3}/r05_ai_form20_s{
 SEM07 = [E["ai"](f"{E3}/r07_ai_form20")] + [E["ai"](f"{E3}/r07_ai_form20_s{k}") for k in (4, 5)
                                              if glob.glob(f"{E3}/r07_ai_form20_s{k}/mc_*_*.csv")]
 M05, M07 = media_sementes(SEM05), media_sementes(SEM07)
+MODAL = [E["ai"](f"{E3}/{c}") for c in ("ai_form100_modal_s6", "ai_form200_modal_s7")
+         if glob.glob(f"{E3}/{c}/mc_*_*.csv")]
+SEM05T = SEM05 + MODAL
+M05T = media_sementes(SEM05T)
+
+
+def dif_media(m, d):
+    return (m["p"] - d["p"]) / math.hypot(m["sd"], d["p"] * d["cov"])
+
+
+HIP05 = (r"  \item \textbf{A AI pelo FORM não tem viés} ($r = -0{,}5$): as AI com a semente 3 saem todas em ~1,5\,\% (os "
+         r"sorteios são os mesmos), mas as " + str(M05T["k"]) + " sementes independentes dão de " +
+         pct(min(a["p"] for a in SEM05T)) + " a " + pct(max(a["p"] for a in SEM05T)) + r"\,\%, com média " +
+         pct(M05T["p"]) + r"\,\% contra " + pct(d05["p"]) + r"\,\% do direto. O ponto do gradiente modal também acerta "
+         r"(sementes 6 e 7). Já a direção errada (Tri(0), 31,7$^\circ$) produz de fato um desvio para baixo ($-2{,}2$), "
+         "como o teste linear prevê.")
+HIP07 = (r"  \item \textbf{A AI pelo FORM com $r = -0{,}7$:} as " + str(M07["k"]) + " sementes dão " +
+         ", ".join(pct(a["p"]) for a in SEM07 if a) + r"\,\% (média " + pct(M07["p"]) + r"\,\%), contra " +
+         pct(d07["p"]) + r"\,\% de um direto com só " + str(round(d07["p"] * d07["n"])) + " falhas ($" +
+         num(dif_media(M07, d07), 1) + r"$ desvio). O direto está sendo estendido para 25\,000 no fermi.")
 
 
 # FORM com o gradiente modal: as duas bases
@@ -298,8 +318,8 @@ versões do SRM.}\end{figure}
 \subsection{Cho2010, $r = -0{,}5$: AI contra o direto (etapas 0, 2 e 2c)}
 \begin{table}[H]\centering\small
 """ + T_R05 + r"""
-\caption{$r = -0{,}5$ (Cho: $P_f = 1{,}71\,\%$). O direto ainda está rodando (meta: 24\,000). ``dif.'' é a diferença AI
-$-$ direto em desvios. As linhas com ``Tri(0)'' e ``modal'' são do PC.}
+\caption{$r = -0{,}5$ (Cho: $P_f = 1{,}71\,\%$). O direto terminou: 24\,000 realizações. ``dif.'' é a diferença AI
+$-$ direto em desvios. Sem indicação, o FORM usa a semente 3 e a banda a semente 1; [PC] e [fermi] dizem onde rodou.}
 \end{table}
 \begin{figure}[H]\centering\includegraphics[width=0.75\textwidth]{figs/pf_r05.pdf}\caption{$P_f$ e IC 95\,\%, $r = -0{,}5$.}\end{figure}
 
@@ -311,15 +331,19 @@ $-$ direto em desvios. As linhas com ``Tri(0)'' e ``modal'' são do PC.}
 
 \subsection{A semente 3 e as repetições independentes}
 As primeiras AI pelo FORM usavam todas a semente 3 (números aleatórios comuns): com pontos de projeto quase iguais, elas dão
-quase a mesma estimativa e não são independentes. As repetições com as sementes 4 e 5 separam o acaso do viés:
+quase a mesma estimativa e não são independentes. As repetições com as sementes 4 e 5 (FORM $M = 20$) e 6 e 7 (FORM
+modal, $M = 100$ e 200) separam o acaso do viés:
 \begin{table}[H]\centering\small
 """ + tabela("Caso & sementes & $P_f$ de cada (\\%) & média (\\%) & direto (\\%) & dif. (desvios)",
              [f"$r = -0{{,}}5$, FORM $M = 20$ & {M05['k']} & " + ", ".join(pct(a['p']) for a in SEM05 if a) +
               f" & {pct(M05['p'])} & {pct(d05['p'])} & {num((M05['p'] - d05['p']) / math.hypot(M05['sd'], d05['p'] * d05['cov']), 1)} \\\\",
+              f"$r = -0{{,}}5$, FORM $M = 20$, 100 e 200 modal & {M05T['k']} & " + ", ".join(pct(a['p']) for a in SEM05T if a) +
+              f" & {pct(M05T['p'])} & {pct(d05['p'])} & {num(dif_media(M05T, d05), 1)} \\\\",
               f"$r = -0{{,}}7$, FORM $M = 20$ & {M07['k']} & " + ", ".join(pct(a['p']) for a in SEM07 if a) +
               f" & {pct(M07['p'])} & {pct(d07['p'])} & {num((M07['p'] - d07['p']) / math.hypot(M07['sd'], d07['p'] * d07['cov']), 1)} \\\\"],
              "lrrrrr") + r"""
-\caption{AI pelo FORM $M = 20$ com sementes independentes (as repetições podem estar incompletas).}
+\caption{AI pelo FORM com sementes independentes, 1000 realizações cada. A dif. usa o desvio da média,
+$\sqrt{\sum s_i^2}/k$, e o do direto.}
 \end{table}
 
 \subsection{Comparação das bases com a mesma variância}
@@ -399,6 +423,7 @@ linearizar uma superfície de falha curva. Por isso o FORM entra só como desloc
   \item \textbf{O gradiente modal dá a direção do FORM com 1 análise,} a menos de ~9$^\circ$ das diferenças centrais, e o
     FORM converge em 3 análises.
   \item \textbf{A base de Nyström precisa de menos termos} que a analítica para o mesmo $\beta$.
+""" + HIP05 + r"""
 \end{itemize}
 \subsection*{Descartadas}
 \begin{itemize}
@@ -408,12 +433,7 @@ linearizar uma superfície de falha curva. Por isso o FORM entra só como desloc
 \end{itemize}
 \subsection*{Sob investigação}
 \begin{itemize}
-  \item \textbf{A AI pelo FORM sai um pouco abaixo do direto?} Com $r = -0{,}5$, \textbf{não}: as AI com a semente 3 saem
-    todas em ~1,5\,\% (os sorteios são os mesmos), mas as sementes 4 e 5 dão valores acima, e a média das sementes bate
-    com o direto. Com $r = -0{,}7$ as sementes seguem um pouco abaixo; o direto de referência tem só ~26 falhas e está
-    sendo estendido para 25\,000. A direção errada (Tri(0), 31,7$^\circ$) produz de fato um desvio para baixo
-    ($-2{,}2$), como o teste linear prevê.
-  \item \textbf{A AI pela banda com o piloto na Tri(0)} (PC, rodando): a parcial está abaixo do direto.
+""" + HIP07 + r"""
   \item \textbf{O campo de $k$ na chuva:} o gradiente modal pega $c'$ e $\varphi'$; o $k$ age pelo transiente e
     precisaria do adjunto. Hoje o $k$ pesa pouco na chuva f50 ($\alpha^2_k \approx 0$), e a AI continua sem viés sem
     deslocá-lo.
@@ -421,7 +441,8 @@ linearizar uma superfície de falha curva. Por isso o FORM entra só como desloc
 
 \section{Próximos passos}
 \begin{enumerate}
-  \item Fechar a questão do pequeno desvio da AI pelo FORM com as repetições e com a AI pelo ponto modal.
+  \item Fechar $r = -0{,}7$ com o direto de 25\,000 (fermi, esta noite) e as AI pela banda com piloto na Tri(2) e pela
+    analítica truncada em 200 termos (PC, esta noite).
   \item Etapa 4: o FORM com gradiente modal e a AI pelo ponto de projeto na chuva, contra o direto de 4000.
   \item AI com a base de Nyström e o seu próprio direto de referência (a mesma semente dá outras realizações).
   \item Para o artigo da AI: o ganho contra o custo total (FORM e piloto incluídos), de $P_f \approx 2\,\%$ a $0{,}4\,\%$.

@@ -128,25 +128,25 @@ versões do SRM.}\end{figure}
 \toprule
 Método & $N$ & $P_f$ (\%) & CoV (\%) & dif. (desvios) & ganho \\
 \midrule
-Monte Carlo direto (fermi) & 21043 & 1{,}72 & 5{,}2 & --- & 1 \\
-AI pela banda (entropia cruzada) & 1000 & 1{,}74 & 11{,}1 & 0{,}1 & 4{,}6 \\
-AI pelo FORM $M = 10$ & 1000 & 1{,}54 & 8{,}8 & -1{,}1 & 8{,}3 \\
-AI pelo FORM $M = 20$ & 1000 & 1{,}53 & 6{,}3 & -1{,}4 & 16{,}2 \\
-AI pelo FORM $M = 20$, semente 4 & 1000 & 1{,}72 & 5{,}9 & 0{,}1 & 16{,}3 \\
-AI pelo FORM $M = 20$, semente 5 & 1000 & 1{,}90 & 6{,}1 & 1{,}2 & 14{,}1 \\
-AI pela banda, piloto na Tri(0) [PC] & 1000 & 1{,}66 & 10{,}8 & -0{,}3 & 5{,}1 \\
-AI pela banda, piloto na Tri(1) [PC] & 498 & 1{,}82 & 13{,}8 & 0{,}4 & 5{,}7 \\
+Monte Carlo direto (fermi) & 24000 & 1{,}70 & 4{,}9 & --- & 1 \\
+AI pela banda (entropia cruzada) & 1000 & 1{,}74 & 11{,}1 & 0{,}2 & 4{,}6 \\
+AI pelo FORM $M = 10$ & 1000 & 1{,}54 & 8{,}8 & -1{,}0 & 8{,}3 \\
+AI pelo FORM $M = 20$ & 1000 & 1{,}53 & 6{,}3 & -1{,}3 & 16{,}2 \\
+AI pelo FORM $M = 20$, semente 4 & 1000 & 1{,}72 & 5{,}9 & 0{,}2 & 16{,}3 \\
+AI pelo FORM $M = 20$, semente 5 & 1000 & 1{,}90 & 6{,}1 & 1{,}4 & 14{,}1 \\
+AI pela banda, piloto na Tri(0) [PC] & 1000 & 1{,}66 & 10{,}8 & -0{,}2 & 5{,}1 \\
+AI pela banda, piloto na Tri(1) [PC] & 510 & 1{,}80 & 13{,}7 & 0{,}4 & 5{,}7 \\
 AI pela banda, piloto na Tri(2) [PC] & --- & na fila & --- & --- & --- \\
-AI pelo FORM $M = 100$, direção da Tri(0) [PC] & 1000 & 1{,}36 & 9{,}3 & -2{,}3 & 8{,}4 \\
-AI pelo FORM $M = 100$, gradiente modal [PC] & 587 & 1{,}50 & 7{,}9 & -1{,}5 & 18{,}0 \\
-AI pelo FORM $M = 200$, gradiente modal [PC] & 586 & 1{,}47 & 7{,}8 & -1{,}7 & 18{,}9 \\
-AI pelo FORM $M = 100$ modal, semente 6 [fermi] & 1000 & 1{,}66 & 5{,}8 & -0{,}4 & 17{,}6 \\
-AI pelo FORM $M = 200$ modal, semente 7 [fermi] & 1000 & 1{,}78 & 5{,}9 & 0{,}5 & 15{,}6 \\
+AI pelo FORM $M = 100$, direção da Tri(0) [PC] & 1000 & 1{,}36 & 9{,}3 & -2{,}2 & 8{,}4 \\
+AI pelo FORM $M = 100$, gradiente modal [PC] & 597 & 1{,}51 & 7{,}9 & -1{,}3 & 17{,}6 \\
+AI pelo FORM $M = 200$, gradiente modal [PC] & 596 & 1{,}49 & 7{,}7 & -1{,}4 & 18{,}7 \\
+AI pelo FORM $M = 100$ modal, semente 6 [fermi] & 1000 & 1{,}66 & 5{,}8 & -0{,}3 & 17{,}6 \\
+AI pelo FORM $M = 200$ modal, semente 7 [fermi] & 1000 & 1{,}78 & 5{,}9 & 0{,}6 & 15{,}6 \\
 AI pela banda, piloto Tri(1), semente 10 [fermi] & 652 & 1{,}96 & 12{,}4 & 1{,}0 & 4{,}9 \\
 \bottomrule
 \end{tabular}}
-\caption{$r = -0{,}5$ (Cho: $P_f = 1{,}71\,\%$). O direto ainda está rodando (meta: 24\,000). ``dif.'' é a diferença AI
-$-$ direto em desvios. As linhas com ``Tri(0)'' e ``modal'' são do PC.}
+\caption{$r = -0{,}5$ (Cho: $P_f = 1{,}71\,\%$). O direto terminou: 24\,000 realizações. ``dif.'' é a diferença AI
+$-$ direto em desvios. Sem indicação, o FORM usa a semente 3 e a banda a semente 1; [PC] e [fermi] dizem onde rodou.}
 \end{table}
 \begin{figure}[H]\centering\includegraphics[width=0.75\textwidth]{figs/pf_r05.pdf}\caption{$P_f$ e IC 95\,\%, $r = -0{,}5$.}\end{figure}
 
@@ -171,18 +171,21 @@ AI pela banda, semente 4 & 1000 & 0{,}40 & 24{,}6 & -0{,}2 & 4{,}1 \\
 
 \subsection{A semente 3 e as repetições independentes}
 As primeiras AI pelo FORM usavam todas a semente 3 (números aleatórios comuns): com pontos de projeto quase iguais, elas dão
-quase a mesma estimativa e não são independentes. As repetições com as sementes 4 e 5 separam o acaso do viés:
+quase a mesma estimativa e não são independentes. As repetições com as sementes 4 e 5 (FORM $M = 20$) e 6 e 7 (FORM
+modal, $M = 100$ e 200) separam o acaso do viés:
 \begin{table}[H]\centering\small
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{lrrrrr}
 \toprule
 Caso & sementes & $P_f$ de cada (\%) & média (\%) & direto (\%) & dif. (desvios) \\
 \midrule
-$r = -0{,}5$, FORM $M = 20$ & 3 & 1{,}53, 1{,}72, 1{,}90 & 1{,}72 & 1{,}72 & 0{,}0 \\
+$r = -0{,}5$, FORM $M = 20$ & 3 & 1{,}53, 1{,}72, 1{,}90 & 1{,}72 & 1{,}70 & 0{,}2 \\
+$r = -0{,}5$, FORM $M = 20$, 100 e 200 modal & 5 & 1{,}53, 1{,}72, 1{,}90, 1{,}66, 1{,}78 & 1{,}72 & 1{,}70 & 0{,}2 \\
 $r = -0{,}7$, FORM $M = 20$ & 3 & 0{,}35, 0{,}35, 0{,}38 & 0{,}36 & 0{,}43 & -0{,}8 \\
 \bottomrule
 \end{tabular}}
-\caption{AI pelo FORM $M = 20$ com sementes independentes (as repetições podem estar incompletas).}
+\caption{AI pelo FORM com sementes independentes, 1000 realizações cada. A dif. usa o desvio da média,
+$\sqrt{\sum s_i^2}/k$, e o do direto.}
 \end{table}
 
 \subsection{Comparação das bases com a mesma variância}
@@ -214,8 +217,8 @@ termos (0,99), e a de Nyström 200 (0,93): são modelos de campo diferentes, e a
 \toprule
 Campo (variância ~0,93) & $N$ & $P_f$ (\%) & CoV (\%) \\
 \midrule
-Nyström, 200 termos (ponto do FORM modal Nyström $M = 200$) & 576 & 1{,}33 & 8{,}0 \\
-Nyström, 200 termos (ponto do FORM modal Nyström $M = 20$) & 577 & 1{,}32 & 8{,}4 \\
+Nyström, 200 termos (ponto do FORM modal Nyström $M = 200$) & 589 & 1{,}35 & 7{,}8 \\
+Nyström, 200 termos (ponto do FORM modal Nyström $M = 20$) & 591 & 1{,}34 & 8{,}2 \\
 analítica truncada em 200 termos (ponto do FORM modal $M = 200$) & --- & na fila & --- \\
 \bottomrule
 \end{tabular}}
@@ -235,7 +238,7 @@ recomeçar de $F_0/2$ quando o caminho de $F$ colapsa logo no início.
 \toprule
 Método & $r = -0{,}5$ & $r = -0{,}7$ \\
 \midrule
-Monte Carlo direto & 5729 & 22977 \\
+Monte Carlo direto & 5782 & 22977 \\
 AI pela banda (entropia cruzada) & 2238 & 3645 \\
 AI pelo FORM $M = 10$ & 896 & 1518 \\
 AI pelo FORM $M = 20$ & 639 & 984 \\
@@ -319,6 +322,7 @@ AI pela banda, semente 2 & 1000 & 5{,}74 & 8{,}2 & 0{,}3 & 2{,}4 \\
   \item \textbf{O gradiente modal dá a direção do FORM com 1 análise,} a menos de ~9$^\circ$ das diferenças centrais, e o
     FORM converge em 3 análises.
   \item \textbf{A base de Nyström precisa de menos termos} que a analítica para o mesmo $\beta$.
+  \item \textbf{A AI pelo FORM não tem viés} ($r = -0{,}5$): as AI com a semente 3 saem todas em ~1,5\,\% (os sorteios são os mesmos), mas as 5 sementes independentes dão de 1{,}53 a 1{,}90\,\%, com média 1{,}72\,\% contra 1{,}70\,\% do direto. O ponto do gradiente modal também acerta (sementes 6 e 7). Já a direção errada (Tri(0), 31,7$^\circ$) produz de fato um desvio para baixo ($-2{,}2$), como o teste linear prevê.
 \end{itemize}
 \subsection*{Descartadas}
 \begin{itemize}
@@ -328,12 +332,7 @@ AI pela banda, semente 2 & 1000 & 5{,}74 & 8{,}2 & 0{,}3 & 2{,}4 \\
 \end{itemize}
 \subsection*{Sob investigação}
 \begin{itemize}
-  \item \textbf{A AI pelo FORM sai um pouco abaixo do direto?} Com $r = -0{,}5$, \textbf{não}: as AI com a semente 3 saem
-    todas em ~1,5\,\% (os sorteios são os mesmos), mas as sementes 4 e 5 dão valores acima, e a média das sementes bate
-    com o direto. Com $r = -0{,}7$ as sementes seguem um pouco abaixo; o direto de referência tem só ~26 falhas e está
-    sendo estendido para 25\,000. A direção errada (Tri(0), 31,7$^\circ$) produz de fato um desvio para baixo
-    ($-2{,}2$), como o teste linear prevê.
-  \item \textbf{A AI pela banda com o piloto na Tri(0)} (PC, rodando): a parcial está abaixo do direto.
+  \item \textbf{A AI pelo FORM com $r = -0{,}7$:} as 3 sementes dão 0{,}35, 0{,}35, 0{,}38\,\% (média 0{,}36\,\%), contra 0{,}43\,\% de um direto com só 26 falhas ($-0{,}8$ desvio). O direto está sendo estendido para 25\,000 no fermi.
   \item \textbf{O campo de $k$ na chuva:} o gradiente modal pega $c'$ e $\varphi'$; o $k$ age pelo transiente e
     precisaria do adjunto. Hoje o $k$ pesa pouco na chuva f50 ($\alpha^2_k \approx 0$), e a AI continua sem viés sem
     deslocá-lo.
@@ -341,7 +340,8 @@ AI pela banda, semente 2 & 1000 & 5{,}74 & 8{,}2 & 0{,}3 & 2{,}4 \\
 
 \section{Próximos passos}
 \begin{enumerate}
-  \item Fechar a questão do pequeno desvio da AI pelo FORM com as repetições e com a AI pelo ponto modal.
+  \item Fechar $r = -0{,}7$ com o direto de 25\,000 (fermi, esta noite) e as AI pela banda com piloto na Tri(2) e pela
+    analítica truncada em 200 termos (PC, esta noite).
   \item Etapa 4: o FORM com gradiente modal e a AI pelo ponto de projeto na chuva, contra o direto de 4000.
   \item AI com a base de Nyström e o seu próprio direto de referência (a mesma semente dá outras realizações).
   \item Para o artigo da AI: o ganho contra o custo total (FORM e piloto incluídos), de $P_f \approx 2\,\%$ a $0{,}4\,\%$.
