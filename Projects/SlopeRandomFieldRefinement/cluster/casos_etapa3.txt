@@ -33,3 +33,16 @@ ai_form100_modal_s6  3  1000  rcphi=-0.5 fator=tri2 nref=4 desloc_xi=@SAIDA@/pon
 ai_form200_modal_s7  3  1000  rcphi=-0.5 fator=tri2 nref=4 desloc_xi=@SAIDA@/pontos/ustar_M200_modal.txt semente=7
 ai_nys_form20_s8     3  1000  rcphi=-0.5 fator=tri2 nref=4 nystrom=@SAIDA@/pontos/base_nystrom.txt M=200 desloc_xi=@SAIDA@/pontos/ustar_nys_M20.txt semente=8
 ai_nys_form200_s9    3  1000  rcphi=-0.5 fator=tri2 nref=4 nystrom=@SAIDA@/pontos/base_nystrom.txt M=200 desloc_xi=@SAIDA@/pontos/ustar_nys_M200.txt semente=9
+#
+# 17/11: o FORM modal saiu abaixo do direto com a semente 3 (1,57% contra 1,70%). O diagnostico pelo direto (os xi das 408
+# falhas refeitos pelo gerador) nao acha modo de ruptura fora da AI, e a variancia verdadeira bate com a estimada; a semente
+# 3 sai baixa em todas as AI pelo FORM (M = 10, 20, modal), o que aponta para acaso. Teste direto: mais 8 sementes
+# independentes da AI modal M = 100 (s11 a s18), que, com a s3 (PC) e a s6, dao 10 estimativas do mesmo estimador.
+ai_form100_modal_s11  4  1000  rcphi=-0.5 fator=tri2 nref=4 desloc_xi=@SAIDA@/pontos/ustar_M100_modal.txt semente=11
+ai_form100_modal_s12  4  1000  rcphi=-0.5 fator=tri2 nref=4 desloc_xi=@SAIDA@/pontos/ustar_M100_modal.txt semente=12
+ai_form100_modal_s13  4  1000  rcphi=-0.5 fator=tri2 nref=4 desloc_xi=@SAIDA@/pontos/ustar_M100_modal.txt semente=13
+ai_form100_modal_s14  4  1000  rcphi=-0.5 fator=tri2 nref=4 desloc_xi=@SAIDA@/pontos/ustar_M100_modal.txt semente=14
+ai_form100_modal_s15  4  1000  rcphi=-0.5 fator=tri2 nref=4 desloc_xi=@SAIDA@/pontos/ustar_M100_modal.txt semente=15
+ai_form100_modal_s16  4  1000  rcphi=-0.5 fator=tri2 nref=4 desloc_xi=@SAIDA@/pontos/ustar_M100_modal.txt semente=16
+ai_form100_modal_s17  4  1000  rcphi=-0.5 fator=tri2 nref=4 desloc_xi=@SAIDA@/pontos/ustar_M100_modal.txt semente=17
+ai_form100_modal_s18  4  1000  rcphi=-0.5 fator=tri2 nref=4 desloc_xi=@SAIDA@/pontos/ustar_M100_modal.txt semente=18
