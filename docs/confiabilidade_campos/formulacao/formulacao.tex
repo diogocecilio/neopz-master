@@ -9,13 +9,15 @@
 \usepackage{graphicx,booktabs,float,url,array}
 \usepackage[round]{natbib}
 \usepackage{lineno}
+\usepackage{listings}
+\lstset{basicstyle=\ttfamily\scriptsize, breaklines=true, columns=fullflexible, keepspaces=true, frame=single}
 \usepackage[hidelinks]{hyperref}
 % a data e o commit vem do atualiza.sh (Projects/PlanoDeTrabalho/situacao); compilado a mao, fica so a data
 \providecommand{\versao}{17/11/2026}
 \newcommand{\X}{\mathbb{X}}
 \newcommand{\Z}{\mathbb{Z}}
 \newcommand{\Y}{\mathbb{Y}}
-\newcommand{\y}{\bm y}
+\newcommand{\xib}{\bm\xi}
 \newcommand{\FS}{\mathrm{FS}}
 \newcommand{\Fy}{\mathcal{F}}
 \title{Confiabilidade de taludes com campos aleatórios no NeoPZ\\\large Formulação: os espaços $\X$, $\Z$ e $\Y$, os
@@ -33,9 +35,11 @@ as seções daqui. O índice de todos os documentos está em \path{Projects/Plan
 não saturado ($u$--$p_w$--$p_a$) está em \path{docs/nao_saturado}, e a do fator de segurança (SRM e GIM com
 arc-length), em \path{docs/talude_srm}.
 
-A notação segue o curso de \citet{beck2014}: os três espaços $\X$, $\Z$ e $\Y$ e o ponto de projeto $\y^*$
-(Seção~\ref{sec:espacos}). Todas as equações são numeradas. Ao lado de cada uma está a fonte, com o número da equação
-no original.
+Os espaços seguem o curso de \citet{beck2014}: $\X$, $\Z$ e $\Y$ (Seção~\ref{sec:espacos}). As coordenadas do espaço
+$\Y$, que o Beck chama de $\bm y$, aqui se chamam $\xib$, como no código, e o ponto de projeto é $\xib^*$ (o $\bm y^*$ do
+Beck). Todas as equações são numeradas. Ao lado de cada uma está a fonte, com o número da equação no original. O
+Apêndice~\ref{ap:exemplo} refaz a amostragem por importância e a variável de controle num exemplo de uma variável, em
+Mathematica.
 
 \section{Notação: os três espaços}\label{sec:espacos}
 \citet[Seç.~4.3.3, Fig.~4-5]{beck2014} resolve um problema de confiabilidade em três espaços, ligados por duas
@@ -49,18 +53,19 @@ transformações, $\X \to \Z \to \Y$:
       \item No programa, são os valores nos pontos de integração.
     \end{itemize}
   \item $\Z$, \textbf{normais padrão correlacionadas}. São os campos gaussianos $Z_c(\bm x)$, $Z_\varphi(\bm x)$ e
-    $Z_k(\bm x)$, com $Z = (\ln X - \mu)/\sigma$ ponto a ponto. Cada valor é $N(0, 1)$, mas a correlação continua
+    $Z_k(\bm x)$, com $Z = (\ln X - \mu_{\ln X})/\sigma_{\ln X}$ ponto a ponto. Cada valor é $N(0, 1)$, mas a correlação continua
     (Seção~\ref{sec:xz}).
-  \item $\Y$, \textbf{normais padrão independentes}. São os coeficientes $y_{c,i}$, $y_{\varphi,i}$ e $y_{k,i}$ da
+  \item $\Y$, \textbf{normais padrão independentes}. São os coeficientes $\xi_{c,i}$, $\xi_{\varphi,i}$ e $\xi_{k,i}$ da
     expansão de Karhunen--Loève de cada campo (Seção~\ref{sec:zy}).
     \begin{itemize}
-      \item São eles que o programa sorteia.
-      \item É neles que o FORM procura o ponto de projeto $\y^*$ \citep[Alg.~44]{beck2014}.
+      \item São eles que o programa sorteia: cada um é $N(0, 1)$, e todos são independentes.
+      \item É neles que o FORM procura o ponto de projeto $\xib^*$ \citep[Alg.~44]{beck2014}.
     \end{itemize}
 \end{itemize}
-A versão anterior deste documento e o código chamam esses coeficientes de $\xi$, a notação da literatura de campos
-aleatórios, e de $\bm u$ no FORM. Aqui, tudo o que é do espaço $\Y$ se escreve $\y$: $\xi \equiv \y$ e
-$\bm u \equiv \y$. A Tabela~\ref{tab:simbolos} resume os símbolos.
+\textbf{Trabalhamos no espaço $\Y$.} O Monte Carlo, a amostragem por importância, a variável de controle e o FORM são
+todos escritos nos coeficientes. No Beck, as coordenadas de $\Y$ se chamam $\bm y$; aqui se chamam $\xib$, como no código
+e na literatura de campos aleatórios \citep{ghanem1991}, e o \path{form_kl.py} as chama de $\bm u$. Então
+$\xib \equiv \bm y$ (Beck) $\equiv \bm u$ (\path{form_kl.py}). A Tabela~\ref{tab:simbolos} resume os símbolos.
 
 \begin{table}[H]\centering\small
 \caption{Os símbolos principais.}\label{tab:simbolos}
@@ -71,20 +76,23 @@ $\bm u \equiv \y$. A Tabela~\ref{tab:simbolos} resume os símbolos.
 \bm x = (x_1, x_2) & posição no talude ($x_1$ horizontal, $x_2$ vertical) & --- \\
 c'(\bm x),\ \varphi'(\bm x),\ k_s(\bm x) & coesão, ângulo de atrito e permeabilidade saturada no ponto $\bm x$ &
   $\X$ \\
-\mu_c,\ \sigma_c\ (\text{etc.}) & média e desvio padrão de $\ln c'$ (e dos outros campos) & $\X\to\Z$ \\
+\mu_{\ln c},\ \sigma_{\ln c}\ (\text{etc.}) & média e desvio padrão de $\ln c'$ (e dos outros campos) & $\X\to\Z$ \\
 Z_c,\ Z_\varphi,\ Z_k & campos gaussianos padrão & $\Z$ \\
-\rho_Z,\ \rho_X & correlação entre $Z_c$ e $Z_\varphi$ (o $\rho$ do código); correlação entre $c'$ e $\varphi'$ &
-  $\Z$; $\X$ \\
+\rho_Z,\ \rho_X & correlação entre $Z_c$ e $Z_\varphi$ (o $\rho$, ou \texttt{rcphi}, do código); correlação entre $c'$ e
+  $\varphi'$ & $\Z$; $\X$ \\
 C(\bm x, \bm x') & correlação espacial dos campos gaussianos & $\Z$ \\
 \lambda_i,\ f_i,\ \psi_i = \sqrt{\lambda_i}\,f_i & autovalor, autofunção e modo $i$ da expansão de Karhunen--Loève &
   $\Z\to\Y$ \\
 M & número de modos de cada campo & --- \\
-y_{c,i},\ y_{\varphi,i},\ y_{k,i} & coeficiente do modo $i$ de cada campo & $\Y$ \\
-\y & vetor de todos os coeficientes; no Monte Carlo direto, $\y \sim N(\bm 0, I)$ & $\Y$ \\
-g(\y) & função de estado limite, $\FS - 1$ (ou $\Gamma - 1$); falha quando $g \le 0$ & $\Y$ \\
-\y^*,\ \beta,\ \bm\alpha & ponto de projeto, índice de confiabilidade, cossenos diretores & $\Y$ \\
-I(\y) & indicador de falha: 1 se $\FS(\y) < 1$, 0 se não & --- \\
-\bm\mu,\ h(\y),\ w(\y) & deslocamento da média, densidade de amostragem e peso da amostragem por importância & $\Y$ \\
+\xi_{c,i},\ \xi_{\varphi,i},\ \xi_{k,i} & coeficiente do modo $i$ de cada campo (os índices $c$, $\varphi$ e $k$ indicam
+  o campo) & $\Y$ \\
+\xib & vetor dos coeficientes (o $\bm y$ do Beck); no Monte Carlo direto, $\xib \sim N(\bm 0, I)$ & $\Y$ \\
+g(\xib) & função de estado limite, $\FS - 1$ (SRM) ou $\Gamma - 1$ (GIM); falha quando $g \le 0$ & $\Y$ \\
+\xib^*,\ \beta,\ \bm\alpha & ponto de projeto, índice de confiabilidade, cossenos diretores & $\Y$ \\
+I(\xib) & indicador de falha: 1 se $\FS(\xib) < 1$, 0 se não & --- \\
+\bm\mu,\ h(\xib),\ w(\xib) & deslocamento da média, densidade de amostragem e peso da amostragem por importância & $\Y$ \\
+\bm e_B & direção da banda (Seção~\ref{sec:banda}) & $\Y$ \\
+\hat g(\xib),\ H(\xib) & substituto linear de $\ln\FS$ e variável de controle (Seção~\ref{sec:controle}) & $\Y$ \\
 \FS,\ \Gamma & fator de segurança do SRM e fator de carga do GIM & --- \\
 \pi(\bm d) & potência resistente máxima por unidade de volume (a dissipação) & --- \\
 \bottomrule
@@ -99,8 +107,18 @@ I(\y) & indicador de falha: 1 se $\FS(\y) < 1$, 0 se não & --- \\
   \item \textbf{Malha.} Refinamento adaptativo em $h$: \texttt{tri2} mais 4 níveis
     (\path{docs/talude_srm/fs_arc_length}).
 \end{itemize}
-Os dois fatores, o do GIM e o do SRM, saem da análise limite. Pelo teorema cinemático, se o talude é estável, então,
-para todo mecanismo de ruptura (campo de velocidade $\bm U$ cinematicamente admissível),
+\paragraph{Os fatores são definidos pelo colapso.} Os dois fatores são definições, e não resultados da análise limite:
+\begin{itemize}
+  \item \textbf{GIM:} $\Gamma$ é o número pelo qual se multiplica o peso até o colapso, com $c'$ e $\varphi'$ reais;
+  \item \textbf{SRM:} $\FS$ é o número pelo qual se dividem $c'$ e $\tan\varphi'$ até o colapso, com o peso real.
+\end{itemize}
+No MEF, os dois saem de uma análise elastoplástica incremental (com arc-length) levada até o colapso. A análise limite
+entra porque, para um material perfeitamente plástico com fluxo associado, como o nosso, a carga de colapso dessa análise
+é a carga limite \citep{drucker1952}. Então os teoremas da análise limite dão uma outra maneira de escrever os mesmos
+fatores, sem o caminho de carga, e é essa maneira que permite derivá-los (Seção~\ref{sec:gradmodal}).
+
+\paragraph{O teorema cinemático.} Se o talude é estável, então, para todo mecanismo de ruptura (campo de velocidade
+$\bm U$ cinematicamente admissível),
 \begin{equation}
   P_{ext}(\bm U) \le P_{mr}(\bm U) \qquad \forall\,\bm U
   \label{eq:cinematico}
@@ -138,21 +156,27 @@ $\bm d$. Para Mohr--Coulomb, com tração positiva e $\sigma'_1 \ge \sigma'_3$ \
 e $\pi = +\infty$ se não. Aqui $\dot\varepsilon_v = \operatorname{tr}\bm d$ é a taxa de deformação volumétrica, e
 $d_1, d_2, d_3$ são os autovalores de $\bm d$.
 
-\paragraph{GIM.} O fator $\Gamma$ é o número pelo qual se pode multiplicar o peso até o colapso:
+\paragraph{GIM.} Pela definição, $\Gamma$ é o $\lambda$ do colapso quando o peso é multiplicado por $\lambda$. No MEF,
+$\lambda$ cresce com arc-length até o colapso, e $\Gamma$ é o $\lambda$ máximo. Pela análise limite, com o peso
+multiplicado por $\lambda$, a Eq.~\eqref{eq:cinematico} fica $\lambda P_{ext}(\bm U) \le P_{mr}(\bm U)$. Nenhum $\lambda$
+acima de $P_{mr}(\bm U)/P_{ext}(\bm U)$ é suportado, qualquer que seja o mecanismo $\bm U$, e o colapso acontece no menor
+desses valores:
 \begin{equation}
   \Gamma = \min_{\bm U}\ \frac{P_{mr}(\bm U)}{P_{ext}(\bm U)}
   \label{eq:gim}
 \end{equation}
-\citep[Eqs.~54 e 55]{ceron2025}. O mecanismo que atinge o mínimo é o de colapso, $\bm U^*$. No MEF, o peso é
-multiplicado por $\lambda$, que cresce com arc-length até o colapso, e $\Gamma$ é o $\lambda$ máximo.
+\citep[Eqs.~54 e 55]{ceron2025}. O mecanismo que atinge o mínimo é o de colapso, $\bm U^*$. A Eq.~\eqref{eq:gim} é a
+representação de $\Gamma$ pela análise limite; é ela que será derivada na Seção~\ref{sec:gradmodal}.
 
-\paragraph{SRM.} O fator de segurança $\FS$ é o número pelo qual se dividem $c'$ e $\tan\varphi'$ para levar o talude ao
-colapso com o peso real:
+\paragraph{SRM.} Pela definição, $\FS$ é o número que, dividindo $c'$ e $\tan\varphi'$, leva o talude ao colapso com o
+peso real:
 \begin{equation}
   \Gamma\big(c^* = c'/\FS,\ \varphi^* = \arctan(\tan\varphi'/\FS)\big) = 1
   \label{eq:srm}
 \end{equation}
-\citep[Eq.~58]{ceron2025}, e $\Gamma \ge 1 \Leftrightarrow \FS \ge 1$ \citep[Eq.~57]{ceron2025}.
+\citep[Eq.~58]{ceron2025}. E $\Gamma \ge 1 \Leftrightarrow \FS \ge 1$ \citep[Eq.~57]{ceron2025}: os dois fatores separam
+as mesmas realizações em falha e não falha. A região de falha é a mesma, e o ponto de projeto também
+(Seção~\ref{sec:form}). Só os valores fora de $\Gamma = \FS = 1$ diferem.
 \begin{itemize}
   \item No MEF, o arc-length corre no próprio $\FS$.
   \item A partir da etapa 1, o peso é aplicado com $\FS_0 = 0{,}8$, e não com 1. Com 1, o peso às vezes convergia num
@@ -165,20 +189,20 @@ colapso com o peso real:
 \subsection{De $\X$ para $\Z$: a transformação lognormal}\label{sec:xz}
 Cada campo é lognormal, isto é, o logaritmo dele é um campo gaussiano:
 \begin{equation}
-  \ln c'(\bm x) = \mu_c + \sigma_c Z_c(\bm x), \qquad
-  \ln\varphi'(\bm x) = \mu_\varphi + \sigma_\varphi Z_\varphi(\bm x), \qquad
-  \ln k_s(\bm x) = \mu_k + \sigma_k Z_k(\bm x).
+  \ln c'(\bm x) = \mu_{\ln c} + \sigma_{\ln c} Z_c(\bm x), \qquad
+  \ln\varphi'(\bm x) = \mu_{\ln\varphi} + \sigma_{\ln\varphi} Z_\varphi(\bm x), \qquad
+  \ln k_s(\bm x) = \mu_{\ln k} + \sigma_{\ln k} Z_k(\bm x).
   \label{eq:campos}
 \end{equation}
-Aqui $\mu$ e $\sigma$ são a média e o desvio padrão de $\ln X$. Eles saem da média $m$ e do CoV de $X$
-\citep[Eqs.~13 e 14]{cho2010}, \citep[Eq.~66]{ceron2025}:
+Aqui $\mu_{\ln X}$ e $\sigma_{\ln X}$ são a média e o desvio padrão de $\ln X$, para $X = c'$, $\varphi'$ ou $k_s$. Eles
+saem da média $m_X$ e do CoV de $X$ \citep[Eqs.~13 e 14]{cho2010}, \citep[Eq.~66]{ceron2025}:
 \begin{equation}
-  \sigma^2 = \ln(1 + \mathrm{CoV}^2), \qquad \mu = \ln m - \sigma^2/2.
+  \sigma_{\ln X}^2 = \ln(1 + \mathrm{CoV}_X^2), \qquad \mu_{\ln X} = \ln m_X - \sigma_{\ln X}^2/2.
   \label{eq:lognormal}
 \end{equation}
-Esta é a transformação $\X \to \Z$ do \citet{beck2014}. Para uma lognormal, $F_X(x) = \Phi\big((\ln x - \mu)/\sigma\big)$,
-e a transformação geral $z = \Phi^{-1}\big(F_X(x)\big)$ \citep[Eq.~4.47]{beck2014} dá $z = (\ln x - \mu)/\sigma$
-exatamente: é a Eq.~\eqref{eq:campos}. A distribuição normal equivalente do Beck (Eqs.~4.42 a 4.44) não é necessária,
+Esta é a transformação $\X \to \Z$ do \citet{beck2014}. Para uma lognormal,
+$F_X(x) = \Phi\big((\ln x - \mu_{\ln X})/\sigma_{\ln X}\big)$, e a transformação geral $z = \Phi^{-1}\big(F_X(x)\big)$
+\citep[Eq.~4.47]{beck2014} dá $z = (\ln x - \mu_{\ln X})/\sigma_{\ln X}$ exatamente: é a Eq.~\eqref{eq:campos}. A distribuição normal equivalente do Beck (Eqs.~4.42 a 4.44) não é necessária,
 porque a transformação é exata. A Tabela~\ref{tab:dados} traz os dados de cada caso.
 
 \begin{table}[H]\centering\small
@@ -217,12 +241,12 @@ $R$:
 \paragraph{$\rho_Z$ e $\rho_X$: o modelo de Nataf.} O $\rho_Z$ da Eq.~\eqref{eq:cov} é a correlação entre os campos
 gaussianos, isto é, entre $\ln c'$ e $\ln\varphi'$. A correlação entre $c'$ e $\varphi'$, $\rho_X$, é outra. Pelos
 momentos da lognormal bivariada,
-$\mathrm{Cov}[c', \varphi'] = m_c m_\varphi\,(e^{\rho_Z\sigma_c\sigma_\varphi} - 1)$ e
-$\mathrm{Var}[X] = m^2(e^{\sigma^2} - 1) = m^2\,\mathrm{CoV}^2$. Então
+$\mathrm{Cov}[c', \varphi'] = m_c m_\varphi\,(e^{\rho_Z\sigma_{\ln c}\sigma_{\ln\varphi}} - 1)$ e
+$\mathrm{Var}[X] = m_X^2(e^{\sigma_{\ln X}^2} - 1) = m_X^2\,\mathrm{CoV}_X^2$. Então
 \begin{equation}
-  \rho_X = \frac{e^{\rho_Z\sigma_c\sigma_\varphi} - 1}{\mathrm{CoV}_c\,\mathrm{CoV}_\varphi}
+  \rho_X = \frac{e^{\rho_Z\sigma_{\ln c}\sigma_{\ln\varphi}} - 1}{\mathrm{CoV}_c\,\mathrm{CoV}_\varphi}
   \qquad\Longleftrightarrow\qquad
-  \rho_Z = \frac{\ln\big(1 + \rho_X\,\mathrm{CoV}_c\,\mathrm{CoV}_\varphi\big)}{\sigma_c\,\sigma_\varphi}.
+  \rho_Z = \frac{\ln\big(1 + \rho_X\,\mathrm{CoV}_c\,\mathrm{CoV}_\varphi\big)}{\sigma_{\ln c}\,\sigma_{\ln\varphi}}.
   \label{eq:nataf}
 \end{equation}
 É a relação de Nataf entre $\rho_X$ e $\rho_Z$ \citep[Eqs.~4.53 a 4.55]{beck2014}, que, para duas lognormais, tem essa
@@ -258,22 +282,22 @@ coeficientes aleatórios independentes. As funções são as autofunções da co
 \end{equation}
 \citep[Eq.~63]{ceron2025}. O campo truncado em $M$ modos é
 \begin{equation}
-  Z(\bm x) \approx \sum_{i=1}^{M} \psi_i(\bm x)\,y_i, \qquad \psi_i(\bm x) = \sqrt{\lambda_i}\,f_i(\bm x), \qquad
-  y_i \sim N(0, 1) \text{ independentes}
+  Z(\bm x) \approx \sum_{i=1}^{M} \psi_i(\bm x)\,\xi_i, \qquad \psi_i(\bm x) = \sqrt{\lambda_i}\,f_i(\bm x), \qquad
+  \xi_i \sim N(0, 1) \text{ independentes}
   \label{eq:kl}
 \end{equation}
 \citep[Eq.~11]{cho2010}, \citep[Eq.~61]{ceron2025}.
 \begin{itemize}
-  \item \textbf{Por que os $y_i$ são independentes.} Multiplicando a Eq.~\eqref{eq:kl} por $f_i$ e integrando em $D$,
-    a ortonormalidade da Eq.~\eqref{eq:fredholm} dá $y_i = \lambda_i^{-1/2}\int_D Z f_i\,d\bm x$ (a
-    Eq.~\eqref{eq:proj} adiante). Daí sai $E[y_i y_l] = \delta_{il}$. Como os $y_i$ são gaussianos, isso basta: são
+  \item \textbf{Por que os $\xi_i$ são independentes.} Multiplicando a Eq.~\eqref{eq:kl} por $f_i$ e integrando em $D$,
+    a ortonormalidade da Eq.~\eqref{eq:fredholm} dá $\xi_i = \lambda_i^{-1/2}\int_D Z f_i\,d\bm x$ (a
+    Eq.~\eqref{eq:proj} adiante). Daí sai $E[\xi_i \xi_l] = \delta_{il}$. Como os $\xi_i$ são gaussianos, isso basta: são
     independentes.
   \item \textbf{A correlação volta certa.} $E[Z(\bm x)Z(\bm x')] = \sum_i \lambda_i f_i(\bm x)f_i(\bm x')$, que tende a
     $C(\bm x, \bm x')$ quando $M$ cresce \citep[Eq.~62]{ceron2025}.
   \item \textbf{A truncagem.} A variância do campo truncado, $\sum_i \psi_i(\bm x)^2$, é menor que 1. A fração que
     falta é a variância perdida.
   \item \textbf{O papel no Beck.} A KL é a versão contínua da decomposição ortogonal da matriz de correlação
-    \citep[Eqs.~4.56 e 4.57]{beck2014}. Lá, $\bm z = A\Lambda^{1/2}\y$, com as colunas de $A$ sendo os autovetores e
+    \citep[Eqs.~4.56 e 4.57]{beck2014}. Lá, $\bm z = A\Lambda^{1/2}\xib$, com as colunas de $A$ sendo os autovetores e
     $\Lambda$ os autovalores. Aqui, as autofunções $f_i$ fazem o papel dos autovetores, e os $\lambda_i$, o dos
     autovalores.
 \end{itemize}
@@ -282,34 +306,34 @@ coeficientes aleatórios independentes. As funções são as autofunções da co
 coeficientes independentes. A correlação $R$ da Eq.~\eqref{eq:cov} entra pelo fator de Cholesky de $R$
 \citep[Eq.~11]{cho2010}, \citep{vorechovsky2008}:
 \begin{equation}
-  Z_c = \sum_{i=1}^M \psi_i\,y_{c,i}, \qquad
-  Z_\varphi = \sum_{i=1}^M \psi_i\big(\rho_Z\,y_{c,i} + \sqrt{1 - \rho_Z^2}\,y_{\varphi,i}\big), \qquad
-  Z_k = \sum_{i=1}^M \psi_i\,y_{k,i}.
+  Z_c = \sum_{i=1}^M \psi_i\,\xi_{c,i}, \qquad
+  Z_\varphi = \sum_{i=1}^M \psi_i\big(\rho_Z\,\xi_{c,i} + \sqrt{1 - \rho_Z^2}\,\xi_{\varphi,i}\big), \qquad
+  Z_k = \sum_{i=1}^M \psi_i\,\xi_{k,i}.
   \label{eq:cholesky}
 \end{equation}
 A conferência é direta: $E[Z_c(\bm x)Z_\varphi(\bm x')] = \rho_Z\sum_i\psi_i(\bm x)\psi_i(\bm x') \to \rho_Z C$, e a
 variância de $Z_\varphi$ é $\rho_Z^2 + (1 - \rho_Z^2) = 1$ vez a de $Z_c$. É a fatoração de Cholesky do
 \citet[Eq.~4.66]{beck2014}, aplicada modo a modo.
 
-\paragraph{$\ln c'$, $\ln\varphi'$ e $\ln k_s$ em função de $\y$.} Juntando as Eqs.~\eqref{eq:campos} e
+\paragraph{$\ln c'$, $\ln\varphi'$ e $\ln k_s$ em função de $\xib$.} Juntando as Eqs.~\eqref{eq:campos} e
 \eqref{eq:cholesky}:
 \begin{align}
-  \ln c'(\bm x) &= \mu_c + \sigma_c \sum_{i=1}^M \psi_i(\bm x)\,y_{c,i}, \notag\\
-  \ln\varphi'(\bm x) &= \mu_\varphi + \sigma_\varphi \sum_{i=1}^M \psi_i(\bm x)\big(\rho_Z\,y_{c,i} +
-    \sqrt{1 - \rho_Z^2}\,y_{\varphi,i}\big), \label{eq:lny}\\
-  \ln k_s(\bm x) &= \mu_k + \sigma_k \sum_{i=1}^M \psi_i(\bm x)\,y_{k,i}. \notag
+  \ln c'(\bm x) &= \mu_{\ln c} + \sigma_{\ln c} \sum_{i=1}^M \psi_i(\bm x)\,\xi_{c,i}, \notag\\
+  \ln\varphi'(\bm x) &= \mu_{\ln\varphi} + \sigma_{\ln\varphi} \sum_{i=1}^M \psi_i(\bm x)\big(\rho_Z\,\xi_{c,i} +
+    \sqrt{1 - \rho_Z^2}\,\xi_{\varphi,i}\big), \label{eq:lny}\\
+  \ln k_s(\bm x) &= \mu_{\ln k} + \sigma_{\ln k} \sum_{i=1}^M \psi_i(\bm x)\,\xi_{k,i}. \notag
 \end{align}
-Esta é a transformação $\Y \to \X$. No Beck, é a Eq.~4.69, $x = F^{-1}\big(\Phi([L\y]_i)\big)$; para a lognormal,
-$F^{-1}(\Phi(z)) = e^{\mu + \sigma z}$. O logaritmo de cada campo é \textbf{linear} em $\y$, então as derivadas são
-exatas e não dependem de $\y$:
+Esta é a transformação $\Y \to \X$. No Beck, é a Eq.~4.69, $x = F^{-1}\big(\Phi([L\xib]_i)\big)$; para a lognormal,
+$F^{-1}(\Phi(z)) = e^{\mu_{\ln X} + \sigma_{\ln X} z}$. O logaritmo de cada campo é \textbf{linear} em $\xib$, então as derivadas são
+exatas e não dependem de $\xib$:
 \begin{equation}
-  \frac{\partial\ln c'}{\partial y_{c,i}} = \sigma_c\psi_i, \quad
-  \frac{\partial\ln\varphi'}{\partial y_{c,i}} = \sigma_\varphi\rho_Z\psi_i, \quad
-  \frac{\partial\ln\varphi'}{\partial y_{\varphi,i}} = \sigma_\varphi\sqrt{1 - \rho_Z^2}\,\psi_i, \quad
-  \frac{\partial\ln k_s}{\partial y_{k,i}} = \sigma_k\psi_i.
+  \frac{\partial\ln c'}{\partial \xi_{c,i}} = \sigma_{\ln c}\psi_i, \quad
+  \frac{\partial\ln\varphi'}{\partial \xi_{c,i}} = \sigma_{\ln\varphi}\rho_Z\psi_i, \quad
+  \frac{\partial\ln\varphi'}{\partial \xi_{\varphi,i}} = \sigma_{\ln\varphi}\sqrt{1 - \rho_Z^2}\,\psi_i, \quad
+  \frac{\partial\ln k_s}{\partial \xi_{k,i}} = \sigma_{\ln k}\psi_i.
   \label{eq:dlny}
 \end{equation}
-As outras derivadas são zero: por exemplo, $\ln c'$ não depende de $y_{\varphi,i}$. Em cada ponto $\bm x$, a
+As outras derivadas são zero: por exemplo, $\ln c'$ não depende de $\xi_{\varphi,i}$. Em cada ponto $\bm x$, a
 Eq.~\eqref{eq:dlny} é uma linha do Jacobiano $J_{xy}$ do \citet[Eq.~4.33]{beck2014}, escrito para $\ln X$.
 
 \subsection{Duas maneiras de calcular os modos: a base analítica e a base de Nyström}\label{sec:bases}
@@ -351,8 +375,10 @@ autopares são calculados numericamente \citep{betz2014}, em quatro passos.
     $\sum_{j'}\omega_{j'}C(\bm x_j, \bm x_{j'})f_i(\bm x_{j'}) = \lambda_i f_i(\bm x_j)$. Multiplicando por
     $\sqrt{\omega_j}$ e chamando $v_{ij} = \sqrt{\omega_j}\,f_i(\bm x_j)$, o problema fica simétrico:
     \begin{equation}
-      W^{1/2} C\, W^{1/2}\,\bm v_i = \lambda_i\,\bm v_i, \qquad C_{jj'} = C(\bm x_j, \bm x_{j'}), \qquad
+      \begin{gathered}
+      W^{1/2} C\, W^{1/2}\,\bm v_i = \lambda_i\,\bm v_i, \qquad C_{jj'} = C(\bm x_j, \bm x_{j'}),\\
       W = \operatorname{diag}(\omega_1, \dots, \omega_{N_q}), \qquad f_i(\bm x_j) = v_{ij}/\sqrt{\omega_j}.
+      \end{gathered}
       \label{eq:nysdisc}
     \end{equation}
     Os $\bm v_i$ ortonormais dão $\sum_j\omega_j f_i(\bm x_j)f_l(\bm x_j) = \delta_{il}$, a versão discreta da
@@ -366,7 +392,7 @@ autopares são calculados numericamente \citep{betz2014}, em quatro passos.
     \end{equation}
   \item \textbf{Uso.} O \texttt{RandomField} usa $M = 200$. A variância retida é 0,97 pela soma dos $\lambda$ e 0,93
     nos pontos do talude. Em cada realização, o campo é $Z(\bm x) = \sum_j C(\bm x, \bm x_j)\,a_j$, com
-    $a_j = \omega_j\sum_i y_i f_i(\bm x_j)/\sqrt{\lambda_i}$ calculado uma vez. Isso sai das Eqs.~\eqref{eq:kl} e
+    $a_j = \omega_j\sum_i \xi_i f_i(\bm x_j)/\sqrt{\lambda_i}$ calculado uma vez. Isso sai das Eqs.~\eqref{eq:kl} e
     \eqref{eq:nysinterp}.
 \end{enumerate}
 
@@ -385,19 +411,19 @@ tem três usos:
   \item \textbf{A projeção.} Multiplicando a Eq.~\eqref{eq:kl} por $f_i$ e integrando em $D$, a ortonormalidade deixa
     só o termo $i$:
     \begin{equation}
-      y_i = \frac{1}{\sqrt{\lambda_i}}\int_D Z(\bm x)\,f_i(\bm x)\,d\bm x.
+      \xi_i = \frac{1}{\sqrt{\lambda_i}}\int_D Z(\bm x)\,f_i(\bm x)\,d\bm x.
       \label{eq:proj}
     \end{equation}
   \item \textbf{Na base de Nyström, com um campo da analítica.} Seja $Z_a$ um campo sorteado na base analítica, com
-    coeficientes $\y^a$ (2000 por campo). Ele é projetado na base de Nyström ($D = \Omega$), com a quadratura dos nós:
+    coeficientes $\xib^a$ (2000 por campo). Ele é projetado na base de Nyström ($D = \Omega$), com a quadratura dos nós:
     \begin{equation}
-      y^N_i \approx \frac{1}{\sqrt{\lambda^N_i}}\sum_{j=1}^{N_q}\omega_j\,f^N_i(\bm x_j)\,Z_a(\bm x_j), \qquad
-      Z_a(\bm x_j) = \sum_{m=1}^{2000}\psi^a_m(\bm x_j)\,y^a_m.
+      \xi^N_i \approx \frac{1}{\sqrt{\lambda^N_i}}\sum_{j=1}^{N_q}\omega_j\,f^N_i(\bm x_j)\,Z_a(\bm x_j), \qquad
+      Z_a(\bm x_j) = \sum_{q=1}^{2000}\psi^a_q(\bm x_j)\,\xi^a_q.
       \label{eq:projq}
     \end{equation}
   \item \textbf{Em forma de matriz.} Com $f^N_i = \psi^N_i/\sqrt{\lambda^N_i}$, a Eq.~\eqref{eq:projq} fica
     \begin{equation}
-      \y^N = T\,\y^a, \qquad T = \Lambda^{-1}\,\Psi_N^{T}\,W\,\Psi_a.
+      \xib^N = T\,\xib^a, \qquad T = \Lambda^{-1}\,\Psi_N^{T}\,W\,\Psi_a.
       \label{eq:T}
     \end{equation}
     As matrizes são:
@@ -405,11 +431,11 @@ tem três usos:
       \item $\Lambda = \operatorname{diag}(\lambda^N_1, \dots, \lambda^N_{200})$, os autovalores de Nyström;
       \item $\Psi_N$ ($2400\times200$), com $(\Psi_N)_{ji} = \psi^N_i(\bm x_j)$, os modos de Nyström nos nós;
       \item $W$ ($2400\times2400$), a diagonal das áreas $\omega_j$;
-      \item $\Psi_a$ ($2400\times2000$), com $(\Psi_a)_{jm} = \psi^a_m(\bm x_j)$, os modos analíticos nos nós;
+      \item $\Psi_a$ ($2400\times2000$), com $(\Psi_a)_{jq} = \psi^a_q(\bm x_j)$, os modos analíticos nos nós;
       \item $T$ ($200\times2000$), que leva as coordenadas analíticas às de Nyström.
     \end{itemize}
-  \item \textbf{A conferência.} Se $\y^a \sim N(\bm 0, I)$, então $\y^N = T\y^a$ é normal, com covariância $TT^T$. Se
-    as duas bases representam o mesmo campo no talude, $\y^N$ tem de ser $N(\bm 0, I)$, isto é,
+  \item \textbf{A conferência.} Se $\xib^a \sim N(\bm 0, I)$, então $\xib^N = T\xib^a$ é normal, com covariância $TT^T$. Se
+    as duas bases representam o mesmo campo no talude, $\xib^N$ tem de ser $N(\bm 0, I)$, isto é,
     \begin{equation}
       T\,T^T = I.
       \label{eq:TTt}
@@ -423,17 +449,17 @@ tem três usos:
 \end{enumerate}
 
 \section{Monte Carlo direto}\label{sec:mc}
-A probabilidade de falha é a integral do indicador de falha sobre a densidade normal padrão de $\Y$
+A probabilidade de falha é a integral do indicador de falha sobre a densidade normal padrão de $\xib$ (no espaço $\Y$)
 \citep[Eq.~6.4]{beck2014}:
 \begin{equation}
-  P_f = P\big[g(\Y) \le 0\big] = \int I(\y)\,\phi_n(\y)\,d\y = E_\phi\big[I(\Y)\big], \qquad
-  \phi_n(\y) = (2\pi)^{-n/2}e^{-|\y|^2/2},
+  P_f = P\big[g(\xib) \le 0\big] = \int I(\xib)\,\phi_n(\xib)\,d\xib = E_\phi\big[I(\xib)\big], \qquad
+  \phi_n(\xib) = (2\pi)^{-n/2}e^{-|\xib|^2/2},
   \label{eq:pf}
 \end{equation}
-com $I(\y) = 1$ se $\FS(\y) < 1$, e $I(\y) = 0$ se não. A estimativa com $N$ realizações e o seu CoV são
+com $I(\xib) = 1$ se $\FS(\xib) < 1$, e $I(\xib) = 0$ se não. A estimativa com $N$ realizações e o seu CoV são
 \citep[Eqs.~6.5 a 6.7]{beck2014}
 \begin{equation}
-  \hat P_f = \frac{1}{N}\sum_{\ell=1}^{N} I(\y_\ell), \quad \y_\ell \sim N(\bm 0, I); \qquad
+  \hat P_f = \frac{1}{N}\sum_{\ell=1}^{N} I(\xib_\ell), \quad \xib_\ell \sim N(\bm 0, I); \qquad
   \mathrm{CoV}(\hat P_f) = \sqrt{\frac{1 - P_f}{N P_f}}.
   \label{eq:mcdireto}
 \end{equation}
@@ -441,166 +467,304 @@ Por exemplo, $P_f = 0{,}4\,\%$ com CoV de 5\,\% pede $N \approx 100\,000$. Cada 
 campo: 2000 na base analítica, 200 na de Nyström. Então $n = 2M$ no Cho e $n = 3M$ na chuva.
 
 \section{Amostragem por importância}\label{sec:ai}
-\paragraph{A ideia} \citep[Seç.~6.3.2]{beck2014}. Em vez de sortear $\y$ da densidade original $\phi_n$, sorteia-se de
+\paragraph{A ideia} \citep[Seç.~6.3.2]{beck2014}. Em vez de sortear $\xib$ da densidade original $\phi_n$, sorteia-se de
 uma densidade $h$ que cai mais na região de falha, e cada amostra é corrigida por um peso. Multiplicando e dividindo a
 Eq.~\eqref{eq:pf} por $h$ \citep[Eq.~6.23]{beck2014}:
 \begin{equation}
-  P_f = \int I(\y)\,\frac{\phi_n(\y)}{h(\y)}\,h(\y)\,d\y = E_h\big[I(\Y)\,w(\Y)\big], \qquad
-  w(\y) = \frac{\phi_n(\y)}{h(\y)}.
+  P_f = \int I(\xib)\,\frac{\phi_n(\xib)}{h(\xib)}\,h(\xib)\,d\xib = E_h\big[I(\xib)\,w(\xib)\big], \qquad
+  w(\xib) = \frac{\phi_n(\xib)}{h(\xib)}.
   \label{eq:aiident}
 \end{equation}
 O peso $w$ é a razão entre a densidade original e a densidade de amostragem \citep[Eq.~6.25]{beck2014}. A estimativa e a
 sua variância são \citep[Eqs.~6.24 e 6.27]{beck2014}
 \begin{equation}
-  \hat P_f = \frac{1}{N}\sum_{\ell=1}^{N} I(\y_\ell)\,w(\y_\ell), \quad \y_\ell \sim h; \qquad
+  \hat P_f = \frac{1}{N}\sum_{\ell=1}^{N} I(\xib_\ell)\,w(\xib_\ell), \quad \xib_\ell \sim h; \qquad
   \mathrm{Var}[\hat P_f] = \frac{1}{N}\Big(E_h\big[I\,w^2\big] - P_f^2\Big).
   \label{eq:aiest}
 \end{equation}
 
 \paragraph{A densidade de amostragem $N(\bm\mu, I)$.} Usamos $h = N(\bm\mu, I)$: a normal com média $\bm\mu$ e matriz
-de covariância identidade $I$. Sortear $\y \sim N(\bm\mu, I)$ é o mesmo que sortear $\bm\varepsilon \sim N(\bm 0, I)$ e
-fazer $\y = \bm\mu + \bm\varepsilon$. Cada coordenada é deslocada de $\mu_i$, e as coordenadas continuam independentes e
-com variância 1. Assim, $h(\y) = \phi_n(\y - \bm\mu)$, e o peso da Eq.~\eqref{eq:aiident} é
+de covariância identidade $I$, isto é, desvio 1 em cada coordenada e coordenadas independentes. A densidade é o produto
+das densidades de cada coordenada:
 \begin{equation}
-  w(\y) = \frac{(2\pi)^{-n/2}e^{-|\y|^2/2}}{(2\pi)^{-n/2}e^{-|\y - \bm\mu|^2/2}}
-  = \exp\Big(-\bm\mu\cdot\y + \frac{|\bm\mu|^2}{2}\Big),
+  h(\xib) = \prod_{i=1}^n \phi(\xi_i - \mu_i) = \phi_n(\xib - \bm\mu), \qquad \phi(s) = \frac{e^{-s^2/2}}{\sqrt{2\pi}}.
+  \label{eq:hdens}
+\end{equation}
+No Mathematica, cada fator é \texttt{PDF[NormalDistribution[$\mu_i$, 1], $\xi_i$]}: o desvio é 1, e só a média muda. A
+densidade original é a mesma com $\bm\mu = \bm 0$, $\phi_n(\xib) = \prod_i \phi(\xi_i)$.
+
+\paragraph{Sortear $\bm\varepsilon \sim N(\bm 0, I)$ e somar $\bm\mu$ dá $N(\bm\mu, I)$.} É assim que o programa sorteia:
+$\xib = \bm\mu + \bm\varepsilon$. A prova é uma mudança de variável. Para qualquer região $A$ do espaço,
+\begin{equation}
+  P(\xib \in A) = P(\bm\varepsilon \in A - \bm\mu) = \int_{A - \bm\mu}\phi_n(\bm\varepsilon)\,d\bm\varepsilon
+  = \int_A \phi_n(\xib - \bm\mu)\,d\xib,
+  \label{eq:translacao}
+\end{equation}
+em que $A - \bm\mu$ é a região $A$ transladada de $-\bm\mu$. A última igualdade é a mudança de variável
+$\xib = \bm\mu + \bm\varepsilon$, uma translação, com jacobiano 1. A integral da direita diz que a densidade de $\xib$ é
+$\phi_n(\xib - \bm\mu)$, a da Eq.~\eqref{eq:hdens}. Em uma variável: $P(\xi \le s) = P(\varepsilon \le s - \mu) =
+\Phi(s - \mu)$, cuja derivada em $s$ é $\phi(s - \mu)$. O Mathematica confirma:
+\texttt{TransformedDistribution[$\mu$ + e, e $\approx$ NormalDistribution[0, 1]]} dá \texttt{NormalDistribution[$\mu$,
+1]} (Apêndice~\ref{ap:exemplo}, parte 2a; o $\approx$ é o $\backslash$[Distributed] do Mathematica).
+
+\paragraph{O peso, passo a passo.} Pela Eq.~\eqref{eq:aiident}, o peso é a razão entre as duas densidades \textbf{no
+mesmo ponto} $\xib$:
+\begin{equation}
+  w(\xib) = \frac{\phi_n(\xib)}{\phi_n(\xib - \bm\mu)}
+  = \frac{(2\pi)^{-n/2}e^{-|\xib|^2/2}}{(2\pi)^{-n/2}e^{-|\xib - \bm\mu|^2/2}}
+  = \exp\Big(\frac{|\xib - \bm\mu|^2 - |\xib|^2}{2}\Big)
+  = \exp\Big(-\bm\mu\cdot\xib + \frac{|\bm\mu|^2}{2}\Big),
   \label{eq:peso}
 \end{equation}
-porque $|\y - \bm\mu|^2 - |\y|^2 = -2\bm\mu\cdot\y + |\bm\mu|^2$. O peso é \textbf{exato}: usa as mesmas densidades
-do sorteio, sem nenhuma aproximação (\texttt{RandomField::LogWeight}).
+porque $|\xib - \bm\mu|^2 = |\xib|^2 - 2\bm\mu\cdot\xib + |\bm\mu|^2$. Em uma variável, o Mathematica dá
+\texttt{PDF[NormalDistribution[0, 1], s]/PDF[NormalDistribution[$\mu$, 1], s]} $= e^{\mu(\mu - 2s)/2}$, que é a
+Eq.~\eqref{eq:peso} (parte 2b).
+
+\paragraph{A substituição $\xib = \bm\mu + \bm\varepsilon$ no peso.} Com ela, o denominador fica
+$h(\xib) = \phi_n(\xib - \bm\mu) = \phi_n(\bm\varepsilon)$: a densidade de amostragem, no ponto sorteado, é a normal
+padrão de $\bm\varepsilon$. Isso está certo, mas o peso não vira 1, porque o numerador é a densidade \textbf{original} no
+mesmo ponto, $\phi_n(\xib) = \phi_n(\bm\mu + \bm\varepsilon)$, e não $\phi_n(\bm\varepsilon)$. Escrito em
+$\bm\varepsilon$, o peso é
+\begin{equation}
+  w = \frac{\phi_n(\bm\mu + \bm\varepsilon)}{\phi_n(\bm\varepsilon)}
+  = \exp\Big(-\bm\mu\cdot\bm\varepsilon - \frac{|\bm\mu|^2}{2}\Big),
+  \label{eq:pesoeps}
+\end{equation}
+o mesmo da Eq.~\eqref{eq:peso} com $\xib = \bm\mu + \bm\varepsilon$. Por exemplo, uma amostra que cai bem no centro de
+$h$ ($\bm\varepsilon = \bm 0$) tem a maior densidade de amostragem possível, mas está em $\xib = \bm\mu$, longe da
+origem, onde a densidade original é pequena. O peso dela é $e^{-|\bm\mu|^2/2}$: pequeno, porque a amostragem visita essa
+região muito mais vezes que a densidade original (parte 2d).
+
+\paragraph{No exemplo do Apêndice~\ref{ap:exemplo}.} $X \sim N(6, 1)$, falha quando $X < 1$, e a amostragem é
+$X \sim N(2, 1)$. No espaço padrão, $\xi = X - 6$: a falha é $\xi < -5$ ($\beta = 5$), e a amostragem é $N(-4, 1)$, isto
+é, $\mu = -4$. A razão $f/h$ do código, $e^{4X - 16}$, é exatamente $e^{-\mu\xi + \mu^2/2} = e^{4\xi + 8}$: nas 10\,000
+amostras, a diferença relativa é de $5\times10^{-15}$ (parte 2c).
+
+\paragraph{O peso é exato.} A Eq.~\eqref{eq:peso} não tem aproximação: as duas densidades são as do sorteio, conhecidas em
+forma fechada. É a razão de verossimilhança da mudança da média de uma normal, a forma clássica da amostragem por
+importância \citep[Seç.~4.6.1]{glasserman2004}, a mesma da amostragem centrada no ponto de projeto da confiabilidade
+estrutural \citep[Seç.~6.3.3]{beck2014}, \citep{melchers1989, au2003}.
+\begin{itemize}
+  \item \textbf{A conferência no programa.} O programa grava o $\ln w$ de cada realização. O
+    \path{diagnostico_ai.py} sorteia de novo os $\xib$, com uma cópia do gerador, e recalcula a Eq.~\eqref{eq:peso}: a
+    maior diferença no $\ln w$ é de $2\times10^{-9}$. No código, o peso é o \texttt{RandomField::LogWeight}.
+  \item \textbf{A dimensão não atrapalha.} Só a média muda; a covariância continua $I$. Então o peso depende de $\xib$
+    só pela projeção $\bm\mu\cdot\xib$, um número, e não degenera quando $n$ cresce (aqui, milhares de coordenadas).
+    \citet{au2003} mostram que é mudar a covariância, e não a média, que faz os pesos degenerarem em dimensão alta.
+  \item \textbf{As coordenadas sem deslocamento} ($\mu_i = 0$) não entram no peso.
+\end{itemize}
 
 \paragraph{Por que não há viés.} A Eq.~\eqref{eq:aiident} vale para qualquer $h$ positiva onde
-$I\phi_n > 0$, e $N(\bm\mu, I)$ é positiva em todo lugar. Então, para qualquer $\bm\mu$ escolhido antes da amostra,
-$E_h[\hat P_f] = P_f$. O $\bm\mu$ só muda a variância: um $\bm\mu$ ruim aumenta a variância
-\citep[p.~160]{beck2014}, mas não cria viés.
+$I\phi_n > 0$ \citep[Cap.~9]{owen2013}, e $N(\bm\mu, I)$ é positiva em todo lugar. Então, para qualquer $\bm\mu$ escolhido
+antes da amostra (aqui ele vem do FORM ou do piloto, que são outras rodadas), $E_h[\hat P_f] = P_f$. O $\bm\mu$ só muda a
+variância: um $\bm\mu$ ruim aumenta a variância \citep[p.~160]{beck2014}, mas não cria viés. No exemplo de uma variável
+(parte 3), $\mu$ de $-2$ a $-7$ dá a média certa em 200 repetições de 1000 amostras, com o CoV indo de 98\,\%
+($\mu = -2$) a 7,4\,\% ($\mu = -5$). Com $\mu = 0$, que é o Monte Carlo direto, nenhuma das 200 repetições tem falha.
 
 \paragraph{O $\bm\mu$ ideal.} A densidade de variância zero é $h^* = I\phi_n/P_f$, a densidade condicionada à falha
 \citep[Eq.~6.26]{beck2014}. Ela não serve na prática, porque usa a própria $P_f$. Entre as normais $N(\bm\mu, I)$, a
-mais próxima dela tem a média condicional à falha, $\bm\mu = E[\Y \mid \text{falha}]$. É a amostragem adaptativa do
-\citet[Seç.~6.3.4, Eq.~6.31]{beck2014}, e é também o que o método da entropia cruzada estima
-\citep{rubinstein2004}. Os dois deslocamentos abaixo são duas maneiras de aproximar essa média.
+mais próxima dela (na divergência de Kullback--Leibler) tem a média condicional à falha:
+\begin{equation}
+  \bm\mu = E[\xib \mid \text{falha}] = \frac{1}{P_f}\int \xib\,I(\xib)\,\phi_n(\xib)\,d\xib.
+  \label{eq:muideal}
+\end{equation}
+É a amostragem adaptativa do \citet[Seç.~6.3.4, Eq.~6.31]{beck2014} e de \citet{bucher1988}, e é também o que o método da
+entropia cruzada estima \citep{rubinstein2004}. Os dois deslocamentos abaixo são duas maneiras de aproximar essa média.
+No exemplo de uma variável (parte 3), $E[\xi \mid \text{falha}] = -5{,}19$, o ponto de projeto é $-5$ e o $\mu$ de menor
+variância é $-5{,}10$. Os três dão o mesmo CoV, 7,5\,\% com 1000 amostras: perto do ótimo, a variância muda pouco.
 
 \paragraph{Diagnósticos:} o CoV, o tamanho efetivo das falhas e a maior parcela do peso numa só amostra.
 
 \subsection{O deslocamento pela banda (entropia cruzada)}\label{sec:banda}
+\textbf{O objetivo.} O $\bm\mu$ ideal é $E[\xib \mid \text{falha}]$ (Eq.~\ref{eq:muideal}). A entropia cruzada o
+estima com amostras: sorteia $\xib$, vê quais realizações falham e tira a média dos $\xib$ delas. Com $2M$ coordenadas e
+umas 100 falhas, porém, a média de cada coordenada tem um erro de $\approx 1/\sqrt{100} = 0{,}1$, e o erro em
+$|\bm\mu|^2$ seria de $\approx 2M\times0{,}01$, ou 4 com $2M = 400$: o $\bm\mu$ sairia dominado pelo ruído. Por isso a
+média é tirada só ao longo de uma direção por campo, escolhida pela física: a que enfraquece a faixa onde o talude rompe.
+
+\textbf{Os índices.} $c$, $\varphi$ e $k$ indicam o campo ($c$ é a coesão $c'$); $\ell$ numera as realizações; $B$ é a
+banda, com $N_B$ pontos; $E$ é o conjunto elite, com $N_E$ realizações.
 \begin{enumerate}
-  \item \textbf{A banda.} No FS determinístico, com os campos nas médias, a banda é o conjunto de pontos de integração
-    com $\sqrt{J_2(\bm\varepsilon^p)} \ge 0{,}1$ do máximo: a faixa de cisalhamento do mecanismo de ruptura
-    (\texttt{ai::LeBanda}).
-  \item \textbf{A direção da banda} (\texttt{RandomField::Direction}). Seja $\bar Z_b$ a média do campo gaussiano nos
-    $N_b$ pontos da banda. Pela Eq.~\eqref{eq:kl}, $\bar Z_b = \sum_i a_i y_i$, com
+  \item \textbf{A banda, no espaço físico.} Na análise determinística, com os campos nas medianas ($\xib = \bm 0$), a
+    banda $B$ é o conjunto dos pontos de integração com $\sqrt{J_2(\bm\varepsilon^p)} \ge 0{,}1$ do máximo: a faixa de
+    cisalhamento do mecanismo de ruptura (\texttt{ai::LeBanda}). São posições $\bm x_p$ no talude. Este passo não sorteia
+    nada e não procura nenhum $\xib$.
+  \item \textbf{A direção da banda, no espaço $\Y$} (\texttt{RandomField::Direction}). Em cada realização, a média do
+    campo gaussiano $Z$ nos pontos da banda é, pela Eq.~\eqref{eq:kl},
     \begin{equation}
-      a_i = \frac{1}{N_b}\sum_{p\,\in\,\text{banda}}\psi_i(\bm x_p), \qquad \bm e_b = \frac{\bm a}{|\bm a|} \in \mathbb R^M.
+      \bar Z_B(\xib) = \frac{1}{N_B}\sum_{p\,\in\,B} Z(\bm x_p) = \sum_{i=1}^M a_i\,\xi_i, \qquad
+      a_i = \frac{1}{N_B}\sum_{p\,\in\,B}\psi_i(\bm x_p), \qquad \bm e_B = \frac{\bm a}{|\bm a|} \in \mathbb R^M.
       \label{eq:eb}
     \end{equation}
-    O vetor $\bm a$ é o gradiente de $\bar Z_b$ em relação a $\y$, e $\bm e_b$ é a direção unitária que mais muda a
-    média do campo na banda. Andar no sentido $-\bm e_b$ enfraquece a banda. A direção é a mesma para todos os campos,
-    porque eles usam os mesmos modos.
-  \item \textbf{O piloto.} É um Monte Carlo direto já feito, com $N_p = 1000$ realizações e $\y \sim N(\bm 0, I)$. Os
-    $\y$ dessas realizações são sorteados de novo, com a semente do piloto.
-  \item \textbf{O conjunto elite.} São as realizações que falharam ($\FS < 1$). Se forem menos de 10\,\% das válidas,
-    o elite passa a ser as 10\,\% de menor FS, o que corresponde a um nível intermediário $\FS \le \gamma_e$. É o
-    passo da entropia cruzada \citep{rubinstein2004}.
-  \item \textbf{A média no elite, ao longo da banda.} Para cada campo ($c'$, $\varphi'$ e, na chuva, $k_s$), a
-    coordenada de cada realização ao longo da banda é $t_{c,\ell} = \y_{c,\ell}\cdot\bm e_b$. A média dela no elite e o
-    deslocamento são
+    O vetor $\bm a$ é o gradiente de $\bar Z_B$ em relação a $\xib$, e $\bm e_B$ é a direção unitária do espaço $\Y$ em
+    que a média do campo na banda cresce mais depressa. As componentes de $\bm e_B$ \textbf{não} são coordenadas
+    espaciais: há uma por modo $i$. Andar no sentido $-\bm e_B$ enfraquece a banda. A direção é a mesma para os três
+    campos, porque eles usam os mesmos modos.
+  \item \textbf{A projeção de uma realização na direção da banda.} Para o campo $c$ da realização $\ell$, é o número
+    $t_{c,\ell} = \xib_{c,\ell}\cdot\bm e_B$, em que $\xib_{c,\ell} \in \mathbb R^M$ são os coeficientes de $c'$. Como
+    $\bar Z_B = |\bm a|\,t$, o $t$ é a média de $Z_c$ na banda, noutra escala: $t < 0$ é uma banda mais fraca que a
+    mediana. Sob a densidade original, $t \sim N(0, 1)$, porque $\bm e_B$ é unitário. O mesmo vale para $\varphi'$ e $k_s$.
+  \item \textbf{O piloto.} É um Monte Carlo direto já feito, com $N_p = 1000$ realizações e $\xib \sim N(\bm 0, I)$, numa
+    semente própria. Os $\xib$ não ficam gravados: são sorteados de novo com a semente do piloto.
+  \item \textbf{O conjunto elite $E$.} São as realizações do piloto que falharam ($\FS < 1$). Se forem menos de 10\,\% das
+    válidas, o elite passa a ser os 10\,\% de menor FS, o nível intermediário $\FS \le \gamma_e$ da entropia cruzada
+    \citep{rubinstein2004}. Aqui, sim, entram os $\xib$ que geram realizações que (quase) falham.
+  \item \textbf{A média no elite e o deslocamento} (\texttt{ai::DeslocaPeloPiloto}). Para cada campo, a média de $t$ no
+    elite dá um número, e o deslocamento é esse número vezes $\bm e_B$:
     \begin{equation}
-      \bar t_c = \frac{1}{N_e}\sum_{\ell\,\in\,\text{elite}} \y_{c,\ell}\cdot\bm e_b, \qquad
-      \bm\mu_c = \bar t_c\,\bm e_b.
+      \begin{gathered}
+      \bar t_c = \frac{1}{N_E}\sum_{\ell\,\in\,E} \xib_{c,\ell}\cdot\bm e_B, \quad
+      \bar t_\varphi = \frac{1}{N_E}\sum_{\ell\,\in\,E} \xib_{\varphi,\ell}\cdot\bm e_B, \quad
+      \bar t_k = \frac{1}{N_E}\sum_{\ell\,\in\,E} \xib_{k,\ell}\cdot\bm e_B;\\
+      \bm\mu = \big(\bar t_c\,\bm e_B,\ \bar t_\varphi\,\bm e_B,\ \bar t_k\,\bm e_B\big).
+      \end{gathered}
       \label{eq:mubanda}
     \end{equation}
-    O $s_c$ da versão anterior e do código (\texttt{s=}) é este $\bar t_c$. Na etapa 1, por exemplo,
-    $\bar t = (-0{,}48;\ -1{,}37)$ para $(c', \varphi')$ e $|\bm\mu|^2 = 2{,}10$: ao longo da banda, $\varphi'$ cai
-    mais que $c'$.
+    O bloco $\bar t_c\,\bm e_B \in \mathbb R^M$ desloca os $M$ coeficientes de $c'$; os outros, os de $\varphi'$ e $k_s$.
+    Não é a média de $c'$, $\varphi'$ e $k_s$ na banda: é a média, no elite, de quanto cada realização enfraqueceu a banda
+    ($t$), aplicada ao longo de $\bm e_B$. O $\bar t$ é o \texttt{s=} do código. Na etapa 1, por exemplo,
+    $\bar t = (-0{,}48;\ -1{,}37)$ para $(c', \varphi')$ e $|\bm\mu|^2 = 2{,}10$: no elite, a banda enfraquece mais pelo
+    $\varphi'$ que pela $c'$.
 \end{enumerate}
-\textbf{Por que só um número por campo.} Com 100 realizações no elite, estimar as $2M$ médias de
-$E[\Y \mid \text{falha}]$ seria muito ruidoso. Ao longo de $\bm e_b$, a média sai bem estimada.
+\textbf{O $\bm\mu$ da banda é um ponto de projeto amostrado.} Ele faz o papel do ponto de projeto: um ponto do espaço
+$\Y$ perto da falha, em torno do qual se sorteia. A diferença é como se chega a ele. O FORM procura o ponto de falha mais
+perto da origem (Eq.~\ref{eq:ponto}); a banda tira a média das realizações que (quase) falharam, numa direção só. Para
+uma função de estado limite linear, $E[\xib \mid \text{falha}]$ fica um pouco além do ponto de projeto ($-5{,}19$ contra
+$-5$ no exemplo de uma variável). No talude, o $|\bm\mu| = 1{,}45$ da banda fica abaixo de $\beta \approx 2{,}1$, porque o
+elite é o nível de 10\,\%, e não a falha, e porque só uma direção por campo é usada.
 
 \subsection{O deslocamento pelo FORM}\label{sec:aiform}
-O deslocamento é o ponto de projeto: $\bm\mu = \y^*$ (Seção~\ref{sec:form}). É a amostragem por importância centrada no
+O deslocamento é o ponto de projeto: $\bm\mu = \xib^*$ (Seção~\ref{sec:form}). É a amostragem por importância centrada no
 ponto de projeto \citep[Seç.~6.3.3, Eq.~6.28]{beck2014}. Só os $M$ primeiros coeficientes de $c'$ e de $\varphi'$, os
 do FORM, são deslocados. Os outros, e todos os de $k_s$, ficam $N(0, 1)$. Isso não cria viés: nessas coordenadas
 $\mu_i = 0$, e elas não entram no peso \eqref{eq:peso}.
 
 \section{A variável de controle}\label{sec:controle}
 \paragraph{1. A motivação.} Com $N = 1000$, a estimativa $\hat P_f$ tem um erro aleatório: a sorte da amostra. Suponha
-que se conheça uma grandeza $H = h(\Y)$ que tenha duas propriedades:
+que se conheça uma grandeza $H = H(\xib)$, calculada de cada realização, com duas propriedades:
 \begin{itemize}
   \item é correlacionada com o indicador de falha $I$;
   \item tem média $E[H]$ conhecida exatamente.
 \end{itemize}
 Então a média de $H$ na amostra mede a sorte dela. Se essa média saiu acima de $E[H]$, provavelmente $\hat P_f$ também
-saiu alta, e dá para descontar isso. É a variável de controle \citep[Seç.~4.1]{glasserman2004}.
+saiu alta, e dá para descontar isso. É a variável de controle \citep[Seç.~4.1]{glasserman2004}. (O $H$ maiúsculo não tem
+relação com a densidade de amostragem $h$ da Seção~\ref{sec:ai}.)
 
 \paragraph{2. O estimador, no Monte Carlo direto.} Para qualquer $\gamma$ fixo,
 \begin{equation}
   \hat P_f^{\,cv} = \frac{1}{N}\sum_{\ell=1}^{N}\big[I_\ell - \gamma\,(H_\ell - E[H])\big]
   \label{eq:cv}
 \end{equation}
-tem o mesmo valor esperado de $\hat P_f$, porque $E[H_\ell - E[H]] = 0$. A variância de um termo é
-$\mathrm{Var}[I] - 2\gamma\,\mathrm{Cov}[I, H] + \gamma^2\mathrm{Var}[H]$. Ela é mínima em
+tem o mesmo valor esperado de $\hat P_f$, porque $E[H_\ell - E[H]] = 0$. A variância de um termo,
+$\mathrm{Var}[I - \gamma H] = \mathrm{Var}[I] - 2\gamma\,\mathrm{Cov}[I, H] + \gamma^2\,\mathrm{Var}[H]$, é uma parábola
+em $\gamma$. O mínimo e o valor nele são
 \begin{equation}
+  \begin{gathered}
   \gamma^* = \frac{\mathrm{Cov}[I, H]}{\mathrm{Var}[H]}, \qquad
-  \mathrm{Var}\big[\hat P_f^{\,cv}\big] = \big(1 - \rho_{IH}^2\big)\,\mathrm{Var}\big[\hat P_f\big],
+  \rho_{IH} = \frac{\mathrm{Cov}[I, H]}{\sqrt{\mathrm{Var}[I]\,\mathrm{Var}[H]}},\\
+  \mathrm{Var}[I - \gamma^* H] = \mathrm{Var}[I] - \frac{\mathrm{Cov}[I, H]^2}{\mathrm{Var}[H]}
+  = \big(1 - \rho_{IH}^2\big)\,\mathrm{Var}[I].
+  \end{gathered}
   \label{eq:gamma}
 \end{equation}
-com $\rho_{IH}$ a correlação entre $I$ e $H$. O ganho é $1/(1 - \rho_{IH}^2)$: com $\rho_{IH} = 0{,}7$, ele é 2.
+\begin{itemize}
+  \item $\rho_{IH}$ é o coeficiente de correlação (de Pearson) entre as variáveis aleatórias $I$ e $H$. Não é uma
+    correlação entre campos: $I$ e $H$ são dois números calculados da mesma realização $\xib$, e $\rho_{IH}$ mede o quanto
+    eles variam juntos de uma realização para outra. Com $\rho_{IH} = 1$, $H$ prevê $I$ perfeitamente; com 0, não diz
+    nada.
+  \item O ganho é $1/(1 - \rho_{IH}^2)$ vezes menos realizações para o mesmo erro: 2 com $\rho_{IH} = 0{,}7$, e 5,3 com
+    0,9.
+  \item Na prática, $\gamma^*$ e $\rho_{IH}$ são estimados na própria amostra \citep[Seç.~4.1.1]{glasserman2004}.
+\end{itemize}
 
 \paragraph{3. Com a amostragem por importância.} A média conhecida de $H\,w$ sob $h$ é a de $H$ sob $\phi_n$:
-$E_h[H w] = E_\phi[H]$. É a mesma identidade da Eq.~\eqref{eq:aiident}. Então
+$E_h[H w] = E_\phi[H]$. É a mesma identidade da Eq.~\eqref{eq:aiident}, com $H$ no lugar de $I$. Então
 \begin{equation}
-  \hat P_f^{\,cv} = \frac{1}{N}\sum_{\ell=1}^{N}\big(I_\ell - \gamma H_\ell\big)\,w_\ell + \gamma\,E[H].
+  \hat P_f^{\,cv} = \frac{1}{N}\sum_{\ell=1}^{N}\big(I_\ell - \gamma H_\ell\big)\,w_\ell + \gamma\,E_\phi[H],
   \label{eq:cvai}
 \end{equation}
-O $\gamma$ sai da regressão de $I w$ em $H w$, isto é, $\gamma = \mathrm{Cov}[Iw, Hw]/\mathrm{Var}[Hw]$ na amostra.
+e as Eqs.~\eqref{eq:gamma} valem com $I w$ e $H w$ no lugar de $I$ e $H$: $\gamma = \mathrm{Cov}[Iw, Hw]/\mathrm{Var}[Hw]$
+e $\rho$ é a correlação entre $Iw$ e $Hw$, as duas estimadas na amostra.
 
-\paragraph{4. A escolha de $h$.} Queremos $h \approx I$, mas com média exata. São três passos
-(\path{Projects/Cho2010/diagnostico_ai.py}).
+\paragraph{4. A escolha de $H$: a probabilidade de falha prevista por um substituto.} Queremos $H \approx I$, com
+$E_\phi[H]$ exata. A ideia é ter uma função de estado limite aproximada e barata, $\hat g(\xib)$, nas mesmas variáveis
+$\xib \sim N(\bm 0, I)$ da original, e tomar como $H$ a probabilidade de falha que ela prevê para cada realização. São três
+passos (\path{Projects/Cho2010/diagnostico_ai.py}).
 \begin{enumerate}
-  \item \textbf{Um substituto linear de $\ln\FS$}, ajustado por mínimos quadrados nas realizações do direto:
+  \item \textbf{Um substituto linear de $\ln\FS$.} Cada realização já calculada dá um par $(\xib_\ell, \FS_\ell)$. Com
+    eles se ajusta, por mínimos quadrados,
     \begin{equation}
-      \ln\FS(\y) \approx \hat g(\y) = b_0 + \bm b\cdot\y_{(400)}.
+      \ln\FS(\xib) \approx \hat g(\xib) = b_0 + \bm b\cdot\xib_{(400)}.
       \label{eq:surr}
     \end{equation}
-    Aqui $\y_{(400)}$ são os 200 primeiros coeficientes de $c'$ e os 200 primeiros de $\varphi'$. O ajuste explica
-    quase toda a variação de $\ln\FS$: $R^2 = 0{,}965$ em $r = -0{,}5$.
-  \item \textbf{Um indicador suavizado (probit).} Escreva $\ln\FS = \hat g + \varepsilon$. Se o resíduo $\varepsilon$
-    for normal, com média $m$ e desvio $\tau$, e independente de $\hat g$, então
-    $P(\FS < 1 \mid \y) = P(\varepsilon < -\hat g) = \Phi\big((-\hat g - m)/\tau\big)$. Daí
+    Aqui $\xib_{(400)}$ são os 200 primeiros coeficientes de $c'$ e os 200 de $\varphi'$, e $b_0$ e $\bm b$ (400 números)
+    são os coeficientes do ajuste. É uma superfície de resposta de primeira ordem \citep{bucher1990}, ajustada sem
+    nenhuma análise nova. Por que assim:
+    \begin{itemize}
+      \item \textbf{Linear em $\xib$.} Como $\xib$ é normal padrão, $\bm b\cdot\xib$ é normal, $N(0, |\bm b|^2)$. É isso
+        que dá a média exata de $H$ no passo 3. Com um $\hat g$ não linear, a média de $H$ teria de ser simulada, e a
+        variável de controle perderia o sentido.
+      \item \textbf{$\ln\FS$, e não $\FS$.} A falha $\FS < 1$ é $\ln\FS < 0$. Além disso, $\ln c'$ e $\ln\varphi'$ são
+        lineares em $\xib$ (Eq.~\ref{eq:lny}), e o FS do SRM é homogêneo de grau 1 em $(c', \tan\varphi')$:
+        multiplicar $c'$ e $\tan\varphi'$ por $k$ em todo o talude multiplica o FS por $k$ (Eq.~\ref{eq:srm}), e
+        $\ln\FS$ cresce exatamente $\ln k$. Então $\ln\FS$ fica bem mais perto de linear em $\xib$ que o FS.
+      \item \textbf{O ajuste é bom.} $R^2 = 0{,}965$ em $r = -0{,}5$. O $R^2$ é o coeficiente de determinação,
+        $R^2 = 1 - \mathrm{Var}[\ln\FS - \hat g]/\mathrm{Var}[\ln\FS]$: a fração da variância de $\ln\FS$ que $\hat g$
+        explica. Não tem relação com a matriz $R$ da Eq.~\eqref{eq:cov}.
+    \end{itemize}
+  \item \textbf{Um indicador suavizado (probit).} Escreva $\ln\FS = \hat g(\xib) + \eta$. O resíduo $\eta$ junta o que
+    $\hat g$ não vê: os modos além do 200.º, a não linearidade e o ruído do MEF. Se $\eta$ for normal, com média
+    $\bar\eta$ e desvio $\tau$, e independente de $\hat g$, então $P(\FS < 1 \mid \xib) = P(\eta < -\hat g(\xib)) =
+    \Phi\big((-\hat g(\xib) - \bar\eta)/\tau\big)$. Daí
     \begin{equation}
-      h(\y) = \Phi\Big(\frac{-\hat g(\y) - m}{\tau}\Big) = \Phi\Big(\frac{-b_0 - \bm b\cdot\y_{(400)} - m}{\tau}\Big),
-      \label{eq:h}
+      H(\xib) = \Phi\Big(\frac{-\hat g(\xib) - \bar\eta}{\tau}\Big)
+      = \Phi\Big(\frac{-b_0 - \bm b\cdot\xib_{(400)} - \bar\eta}{\tau}\Big).
+      \label{eq:H}
     \end{equation}
-    em que $m$ e $\tau$ são ajustados por máxima verossimilhança nas falhas do direto (o modelo probit). O $h$ vai de 0
-    a 1 e é uma versão suave de $I$. Na versão anterior, $m$ e $\tau$ se chamavam $c$ e $s$, e $b_0$ se chamava $a$.
-  \item \textbf{A média exata.} Seja $Z'\sim N(0, 1)$ independente de $\Y$. Então
-    $\Phi(u/\tau) = P(\tau Z' \le u)$, e
-    $E[h(\Y)] = P\big(\tau Z' + \bm b\cdot\Y_{(400)} \le -b_0 - m\big)$. Como
-    $\tau Z' + \bm b\cdot\Y_{(400)}$ é uma soma de normais independentes, $\sim N(0, \tau^2 + |\bm b|^2)$,
+    $\bar\eta$ e $\tau$ são ajustados por máxima verossimilhança nas realizações (o modelo probit: cada realização
+    contribui com $\ln H$ se falhou e com $\ln(1 - H)$ se não). O $H$ vai de 0 a 1: é a probabilidade de falha que o
+    substituto prevê para aquela realização, uma versão suave de $I$. Na versão anterior, $\bar\eta$, $\tau$ e $b_0$ se
+    chamavam $c$, $s$ e $a$.
+  \item \textbf{A média exata.} Seja $V \sim N(0, 1)$ uma variável auxiliar, independente de $\xib$. Para qualquer número
+    real $s$, $\Phi(s/\tau) = P(V \le s/\tau) = P(\tau V \le s)$. Com $s = -b_0 - \bm b\cdot\xib_{(400)} - \bar\eta$, a
+    Eq.~\eqref{eq:H} fica $H(\xib) = P\big(\tau V \le -b_0 - \bm b\cdot\xib_{(400)} - \bar\eta \mid \xib\big)$, e a média
+    em $\xib$ é a mesma probabilidade, agora sem condição:
     \begin{equation}
-      E[h(\Y)] = \Phi\Big(\frac{-b_0 - m}{\sqrt{\tau^2 + |\bm b|^2}}\Big).
+      E_\phi[H] = P\big(\tau V + \bm b\cdot\xib_{(400)} \le -b_0 - \bar\eta\big)
+      = \Phi\Big(\frac{-b_0 - \bar\eta}{\sqrt{\tau^2 + |\bm b|^2}}\Big).
       \label{eq:Eh}
     \end{equation}
-    É por isso que o substituto é linear em $\y$: $\bm b\cdot\Y$ é normal, com variância conhecida, e a média de $h$
-    sai sem simulação.
+    A segunda igualdade vem de que $\tau V + \bm b\cdot\xib_{(400)}$ é uma soma de normais independentes de média zero:
+    é normal, com variância $\tau^2 + |\bm b|^2$. No exemplo de uma variável, a Eq.~\eqref{eq:Eh} e a integração numérica
+    dão o mesmo $E[H]$, com 7 algarismos (parte 4).
 \end{enumerate}
 
-\paragraph{5. No próprio direto, com validação cruzada.} Se $h$ for ajustado com as mesmas realizações em que é usado,
-a estimativa pode ganhar viés. Por isso, no direto, as realizações são divididas em 5 dobras. O $h$ de cada dobra é
-ajustado com as outras quatro.
+\paragraph{5. Onde se ajusta o substituto.} O ajuste não pode usar as mesmas realizações em que $H$ é usado: aí $H$
+``conhece'' a amostra, e a estimativa pode ganhar viés. Há duas maneiras de evitar isso.
+\begin{itemize}
+  \item \textbf{Validação cruzada:} as realizações são divididas em 5 dobras, e o $H$ de cada dobra é ajustado com as
+    outras quatro. Cada dobra tem o seu $H$ e o seu $E_\phi[H]$, e o controle de cada realização, $H_j(\xib)\,w -
+    E_\phi[H_j]$, tem média zero.
+  \item \textbf{Um ajuste independente:} noutra amostra (no exemplo de uma variável, um piloto de 200).
+\end{itemize}
+No diagnóstico do relatório de situação, o substituto das AI foi ajustado no direto inteiro (25\,000 realizações), que
+não existiria num problema real. O teste com o que se tem na prática, o substituto ajustado na própria amostra de 1000
+em 5 dobras, está no relatório de situação.
 
 \paragraph{6. O que ela faz e o que não faz.}
 \begin{itemize}
   \item Não muda o valor esperado, nem é um modelo de $P_f$. O substituto só serve para medir a sorte da amostra.
-  \item Se $h$ fosse ruim ($\rho_{IH} \approx 0$), $\gamma$ seria $\approx 0$ e nada mudaria.
-  \item O ganho medido vai de 1,7 a 3,2 (relatório de situação).
+  \item Se $H$ fosse ruim ($\rho_{IH} \approx 0$), $\gamma$ seria $\approx 0$ e nada mudaria.
+  \item No exemplo de uma variável, com $\rho = 0{,}77$, o desvio entre 200 AI cai de $2{,}20\times10^{-8}$ para
+    $1{,}47\times10^{-8}$ (ganho 2,25; a Eq.~\eqref{eq:gamma} prevê 2,39), e a média não muda.
+  \item No talude, o ganho com o substituto do direto vai de 1,7 a 3,2 nas AI (relatório de situação).
 \end{itemize}
 
 \section{O FORM}\label{sec:form}
 \paragraph{As variáveis.} As variáveis do FORM são os $M$ primeiros coeficientes de $c'$ e de $\varphi'$, no espaço
 $\Y$:
 \begin{equation}
-  \y = (y_{c,1}, \dots, y_{c,M},\ y_{\varphi,1}, \dots, y_{\varphi,M}) \in \mathbb R^{2M}.
+  \xib = (\xi_{c,1}, \dots, \xi_{c,M},\ \xi_{\varphi,1}, \dots, \xi_{\varphi,M}) \in \mathbb R^{2M}.
   \label{eq:yform}
 \end{equation}
 \begin{itemize}
@@ -614,26 +778,28 @@ $\Y$:
 
 \paragraph{A função de estado limite.}
 \begin{equation}
-  g(\y) = \FS(\y) - 1 \quad\text{(SRM)} \qquad\text{ou}\qquad g(\y) = \Gamma(\y) - 1 \quad\text{(GIM)},
+  g(\xib) = \FS(\xib) - 1 \quad\text{(SRM)} \qquad\text{ou}\qquad g(\xib) = \Gamma(\xib) - 1 \quad\text{(GIM)},
   \label{eq:g}
 \end{equation}
 com a falha em $g \le 0$. O $g$ não tem expressão analítica: cada avaliação é uma análise de elementos finitos com
-refinamento adaptativo. É uma função implícita de $\y$, que o programa calcula ponto a ponto.
+refinamento adaptativo. É uma função implícita de $\xib$, que o programa calcula ponto a ponto. Os dois $g$ têm a mesma
+região de falha (Eq.~\ref{eq:srm}), então o mesmo ponto de projeto, mas não os mesmos valores nem o mesmo gradiente fora
+de $g = 0$. No ponto de projeto do SRM com $M = 10$ ($\FS = 1{,}0004$), o GIM dá $\Gamma = 0{,}998$.
 
 \paragraph{O ponto de projeto} \citep[Eqs.~4.10 a 4.12 e 4.23]{beck2014}. É o ponto da região de falha mais perto da
 origem:
 \begin{equation}
-  \y^* = \arg\min\big\{|\y| : g(\y) \le 0\big\}, \qquad \beta = |\y^*|, \qquad
-  \bm\alpha = \frac{\nabla g(\y^*)}{|\nabla g(\y^*)|}, \qquad \y^* = -\beta\,\bm\alpha, \qquad P_f \approx \Phi(-\beta).
+  \xib^* = \arg\min\big\{|\xib| : g(\xib) \le 0\big\}, \qquad \beta = |\xib^*|, \qquad
+  \bm\alpha = \frac{\nabla g(\xib^*)}{|\nabla g(\xib^*)|}, \qquad \xib^* = -\beta\,\bm\alpha, \qquad P_f \approx \Phi(-\beta).
   \label{eq:ponto}
 \end{equation}
 Os cossenos diretores $\bm\alpha$ seguem o Beck: apontam para onde $g$ cresce, isto é, para longe da falha. Por isso
-$\y^* = -\beta\bm\alpha$. A versão anterior usava a convenção oposta, $\bm\alpha = -\nabla g/|\nabla g|$.
+$\xib^* = -\beta\bm\alpha$. A versão anterior usava a convenção oposta, $\bm\alpha = -\nabla g/|\nabla g|$.
 
 \paragraph{O algoritmo HL-RF} (\path{Projects/Cho2010/form_kl.py}; \citealp[Eq.~4.28 e Alg.~44]{beck2014}). A cada
-iteração $t$, $g$ é linearizado em $\y^{(t)}$, e o novo ponto é o ponto do plano tangente mais perto da origem:
+iteração $t$, $g$ é linearizado em $\xib^{(t)}$, e o novo ponto é o ponto do plano tangente mais perto da origem:
 \begin{equation}
-  \y^{(t+1)} = \frac{\nabla g(\y^{(t)})\cdot\y^{(t)} - g(\y^{(t)})}{|\nabla g(\y^{(t)})|^2}\,\nabla g(\y^{(t)}).
+  \xib^{(t+1)} = \frac{\nabla g(\xib^{(t)})\cdot\xib^{(t)} - g(\xib^{(t)})}{|\nabla g(\xib^{(t)})|^2}\,\nabla g(\xib^{(t)}).
   \label{eq:hlrf}
 \end{equation}
 O código faz três ajustes ao algoritmo do Beck:
@@ -643,14 +809,15 @@ O código faz três ajustes ao algoritmo do Beck:
     direção do Beck (Alg.~44, passo 9) não serve aqui: o ruído do FS, da ordem de 0,001, mexe nos termos fracos do
     gradiente.
   \item \textbf{O $\beta$ final.} É a distância da origem ao plano tangente no último ponto,
-    $\beta^{(t)} + g(\y^{(t)})/|\nabla g(\y^{(t)})|$. É o termo entre colchetes da \citet[Eq.~4.27]{beck2014}.
+    $\beta^{(t)} + g(\xib^{(t)})/|\nabla g(\xib^{(t)})|$. É o termo entre colchetes da \citet[Eq.~4.27]{beck2014}.
 \end{itemize}
 
-\paragraph{O gradiente $\nabla g(\y)$} pode ser calculado de duas maneiras.
+\paragraph{O gradiente $\nabla g(\xib)$.} Como $g$ não tem fórmula, o gradiente também não. Ele é calculado de
+duas maneiras.
 \begin{enumerate}
-  \item \textbf{Diferenças centrais}, com passo $h = 0{,}5$ em $\y$:
+  \item \textbf{Diferenças centrais}, com passo $h = 0{,}5$ em $\xib$:
     \begin{equation}
-      \frac{\partial g}{\partial y_i} \approx \frac{g(\y + h\bm e_i) - g(\y - h\bm e_i)}{2h}.
+      \frac{\partial g}{\partial \xi_i} \approx \frac{g(\xib + h\bm e_i) - g(\xib - h\bm e_i)}{2h}.
       \label{eq:difc}
     \end{equation}
     Isso custa $2(2M) + 1 = 4M + 1$ análises por iteração, e os termos fracos ficam dominados pelo ruído do FS.
@@ -658,7 +825,7 @@ O código faz três ajustes ao algoritmo do Beck:
 \end{enumerate}
 
 \subsection{O gradiente pela projeção modal}\label{sec:gradmodal}
-A ideia é tirar o gradiente da própria análise de colapso, pela análise limite, em vez de perturbar cada $y_i$. São oito
+A ideia é tirar o gradiente da própria análise de colapso, pela análise limite, em vez de perturbar cada $\xi_i$. São oito
 passos.
 
 \paragraph{1. O que é a dissipação.} É $\pi(\bm d)$, das Eqs.~\eqref{eq:pmr} e \eqref{eq:pi}: a potência que o solo
@@ -671,11 +838,27 @@ $D_\varphi$ são as suas derivadas, $\pi_c$ e $\pi_\varphi$.
   \label{eq:gamma_colapso}
 \end{equation}
 
-\paragraph{3. O teorema do envelope.} Uma mudança pequena em $c'(\bm x)$ ou $\varphi'(\bm x)$ muda $\Gamma$ como se o
-mecanismo ficasse fixo. A mudança do próprio mecanismo só entra em segunda ordem, porque $\bm U^*$ é ótimo
-\citep{danskin1967}. O caminho seguro para escrever isso é o problema estático: $\Gamma$ é o maior fator com um campo de
-tensões em equilíbrio e $\Fy(\bm\sigma') \le 0$ em todo ponto. O multiplicador de Lagrange da restrição
-$\Fy \le 0$ é o multiplicador plástico $\dot\lambda(\bm x)$ do mecanismo de colapso, e a derivada é
+\paragraph{3. O teorema do envelope.} Escreva $R(\bm U; p) = P_{mr}(\bm U; p)/P_{ext}(\bm U)$, em que $p$ são os
+valores de $c'$ e $\varphi'$ em todos os pontos. Pela Eq.~\eqref{eq:gim}, $\Gamma(p) = R(\bm U^*(p); p)$: o mecanismo de
+colapso também depende de $p$. Mudando $p$ de $\delta p$, o mecanismo muda de $\delta\bm U$, e
+\begin{equation}
+  \Gamma(p + \delta p) = R(\bm U^* + \delta\bm U;\ p + \delta p)
+  = \Gamma(p) + \frac{\partial R}{\partial p}\,\delta p + \frac{\partial R}{\partial\bm U}\,\delta\bm U
+  + O\big(|\delta p|^2\big).
+  \label{eq:taylor}
+\end{equation}
+Como $\bm U^*$ minimiza $R$, $\partial R/\partial\bm U = 0$ em $\bm U^*$. É como no fundo de um vale: um passo para o
+lado não muda a altura em primeira ordem. O termo de $\delta\bm U$ some, e
+\begin{equation}
+  \frac{d\Gamma}{dp} = \frac{\partial R}{\partial p}\Big|_{\bm U^*\ \text{fixo}}.
+  \label{eq:danskin}
+\end{equation}
+É isso que quer dizer ``a mudança do mecanismo só entra em segunda ordem'': ela muda $\Gamma$ de algo proporcional a
+$|\delta p|^2$, que desaparece na derivada \citep{danskin1967}. Como $\pi$ não é derivável em todo lugar (vale
+$+\infty$ fora da condição da Eq.~\ref{eq:pi}), o caminho seguro para escrever a Eq.~\eqref{eq:danskin} é o problema
+estático: $\Gamma$ é o maior fator com um campo de tensões em equilíbrio e $\Fy(\bm\sigma') \le 0$ em todo ponto. O
+multiplicador de Lagrange da restrição $\Fy \le 0$ é o multiplicador plástico $\dot\lambda(\bm x)$ do mecanismo de
+colapso, e a derivada é
 \begin{equation}
   \frac{\partial\Gamma}{\partial p(\bm x)} = -\frac{\dot\lambda(\bm x)\,\partial\Fy/\partial p(\bm x)}{P_{ext}(\bm U^*)},
   \qquad p = c' \text{ ou } \varphi',
@@ -715,7 +898,8 @@ Eq.~\eqref{eq:envelope} dá
   \label{eq:dgim}
 \end{equation}
 com $c'$ e $\varphi'$ reais e as tensões e deformações do colapso do GIM. Só entram taxas de deformação, e a escala do
-mecanismo se cancela.
+mecanismo se cancela. No código, é o \texttt{GradienteModal} com \texttt{metodo=gim}: os parâmetros não são reduzidos, e
+o denominador é $P_{mr}/\Gamma$.
 
 \paragraph{6b. No SRM.} O $\FS$ é definido pela Eq.~\eqref{eq:srm}: o colapso acontece com os parâmetros reduzidos
 $c^* = c'/\FS$ e $\tan\varphi^* = \tan\varphi'/\FS$.
@@ -743,9 +927,10 @@ do mecanismo se cancelam.
   \item $\sigma'_1$ e $\sigma'_3$ são a maior e a menor tensão principal do colapso, incluindo $\sigma_{zz}$.
   \item Só entram os pontos que plastificam com dilatância ($\operatorname{tr}\bm\varepsilon^p > 0$).
   \item As integrais viram somas nos pontos de integração $p$, com peso $A_p = w_p|\det J_p|$, a área de cada ponto.
+  \item No GIM, $P_{mr} = \sum_p A_p\,c'\cot\varphi'\,\operatorname{tr}\bm\varepsilon^p$, com a mesma deformação.
 \end{itemize}
 
-\paragraph{8. A regra da cadeia até $\y$.} As sensibilidades do FS a $\ln c'$ e a $\ln\varphi'$, por unidade de área,
+\paragraph{8. A regra da cadeia até $\xib$.} As sensibilidades do FS a $\ln c'$ e a $\ln\varphi'$, por unidade de área,
 são
 \begin{equation}
   s_c(\bm x) = c'\,\frac{\partial\FS}{\partial c'}, \qquad
@@ -754,15 +939,15 @@ são
   \label{eq:sens}
 \end{equation}
 Pela regra da cadeia com a Eq.~\eqref{eq:dlny}, por exemplo,
-$\partial g/\partial y_{c,i} = \int_\Omega\big[s_c\,\partial\ln c'/\partial y_{c,i} + s_\varphi\,\partial\ln\varphi'/
-\partial y_{c,i}\big]d\Omega$, e então
+$\partial g/\partial \xi_{c,i} = \int_\Omega\big[s_c\,\partial\ln c'/\partial \xi_{c,i} + s_\varphi\,\partial\ln\varphi'/
+\partial \xi_{c,i}\big]d\Omega$, e então
 \begin{equation}
-  \frac{\partial g}{\partial y_{c,i}} = \sum_p A_p\big[\sigma_c\,s_c(\bm x_p) + \sigma_\varphi\rho_Z\,s_\varphi(\bm x_p)\big]\,
+  \frac{\partial g}{\partial \xi_{c,i}} = \sum_p A_p\big[\sigma_{\ln c}\,s_c(\bm x_p) + \sigma_{\ln\varphi}\rho_Z\,s_\varphi(\bm x_p)\big]\,
   \psi_i(\bm x_p), \qquad
-  \frac{\partial g}{\partial y_{\varphi,i}} = \sum_p A_p\,\sigma_\varphi\sqrt{1 - \rho_Z^2}\,s_\varphi(\bm x_p)\,\psi_i(\bm x_p).
+  \frac{\partial g}{\partial \xi_{\varphi,i}} = \sum_p A_p\,\sigma_{\ln\varphi}\sqrt{1 - \rho_Z^2}\,s_\varphi(\bm x_p)\,\psi_i(\bm x_p).
   \label{eq:gradmodal}
 \end{equation}
-É a transformação do gradiente de $\X$ para $\Y$ do \citet[Eq.~4.35]{beck2014}, $\nabla g(\y) = J^T\nabla g(\bm x)$.
+É a transformação do gradiente de $\X$ para $\Y$ do \citet[Eq.~4.35]{beck2014}, $\nabla g(\xib) = J^T\nabla g(\bm x)$.
 \textbf{A base entra só por $\psi_i(\bm x_p)$:}
 \begin{equation}
   \text{analítica: } \psi_i(\bm x_p) = \sqrt{\lambda^{(1)}_{i_1}\lambda^{(2)}_{i_2}}\,f^{(1)}_{i_1}(x_{1p} - x_{1c})\,
@@ -785,9 +970,14 @@ $\partial g/\partial y_{c,i} = \int_\Omega\big[s_c\,\partial\ln c'/\partial y_{c
       \item o SRM elastoplástico não é a análise limite rígido-plástica;
       \item a malha e a tolerância do arc-length dão um ruído de $\approx 0{,}001$ no FS.
     \end{itemize}
-  \item \textbf{A validação.} Nos pontos do fermi, o gradiente modal fica a 9,6$^\circ$ ($M = 10$) e 8,9$^\circ$
-    ($M = 20$) do gradiente das diferenças centrais, e o termo dominante bate a menos de 4\,\% (relatório de
-    situação).
+  \item \textbf{A validação} (relatório de situação). No SRM, nos pontos de projeto do fermi, o gradiente modal fica a
+    9,6$^\circ$ ($M = 10$) e 8,9$^\circ$ ($M = 20$) do gradiente das diferenças centrais, e o termo dominante bate a menos
+    de 4\,\%. No GIM (\path{Projects/Cho2010/valida_gradiente.py}), fica a 3,1$^\circ$ em $\xib = \bm 0$ e a 5,5$^\circ$
+    no ponto de projeto do SRM com $M = 10$, com o termo dominante (o modo 0 de $\varphi'$) 0,2\,\% e 6\,\% acima.
+    No mesmo ponto, o modal do SRM fica a 11,2$^\circ$, e as diferenças centrais do GIM e do SRM ficam a 2,7$^\circ$
+    uma da outra: as duas são normais à mesma superfície de falha. O FORM do GIM com o gradiente modal converge em 5
+    análises para $\beta = 2{,}13$ ($M = 10$), 2,03 ($M = 20$) e 1,99 ($M = 100$). Com diferenças centrais no SRM,
+    $\beta = 2{,}12$ a 2,13 ($M = 10$) e 2,01 ($M = 20$); com o modal do SRM, 2,15, 2,03 e 2,00.
   \item \textbf{O efeito no FORM.} Um gradiente aproximado muda o caminho do HL-RF. O ponto final continua com
     $g \approx 0$, mas a direção $\bm\alpha$, e portanto $\beta$, carrega um erro pequeno.
 \end{itemize}
@@ -811,24 +1001,91 @@ do problema de fluxo, que depende de $k_s$. Pelo teorema do envelope, com $\bm U
   \item Há duas opções para depois: diferenças centrais só nos primeiros modos de $k_s$, ou o adjunto.
 \end{itemize}
 
+\appendix
+\section{Um exemplo de uma variável, em Mathematica}\label{ap:exemplo}
+O código \path{exemplo_1d.wl}, nesta pasta, parte do exemplo do Diogo: $X \sim N(6, 1)$, falha quando $X < 1$,
+$P_f = \Phi(-5) = 2{,}867\times10^{-7}$, e a amostragem por importância com $h = N(2, 1)$. Para rodar:
+\texttt{wolframscript -file exemplo\_1d.wl}, ou colar parte por parte num notebook. A saída está em
+\path{exemplo_1d_saida.txt}. A Tabela~\ref{tab:exemplo} resume cada parte.
+
+\begin{table}[H]\centering\small
+\caption{O que cada parte do \texttt{exemplo\_1d.wl} mostra.}\label{tab:exemplo}
+\begin{tabular}{p{0.05\textwidth}p{0.38\textwidth}p{0.36\textwidth}p{0.10\textwidth}}
+\toprule
+Parte & O que faz & Resultado & Eq. \\
+\midrule
+1 & o código original: AI no espaço $X$, com $f = N(6, 1)$ e $h = N(2, 1)$, 10\,000 amostras & 1542 falhas;
+  $P_f = 2{,}770\times10^{-7}$ (exata $2{,}867\times10^{-7}$) & \eqref{eq:aiest} \\
+2a & a lei de $\mu + \varepsilon$, com $\varepsilon \sim N(0, 1)$ & \texttt{NormalDistribution[$\mu$, 1]} &
+  \eqref{eq:translacao} \\
+2b & $f(s)/h(s)$, simbólico & $e^{\mu(\mu - 2s)/2} = e^{-\mu s + \mu^2/2}$ & \eqref{eq:peso} \\
+2c & $f/h$ do código contra $e^{-\mu\xi + \mu^2/2}$ com $\mu = -4$, nas mesmas amostras & diferença relativa
+  $5\times10^{-15}$ & \eqref{eq:peso} \\
+2d & com $\xi = \mu + \varepsilon$: $h(\xi) = \phi(\varepsilon)$? $f(\xi) = \phi(\varepsilon)$? & sim; não;
+  $w = e^{-\mu\varepsilon - \mu^2/2}$ & \eqref{eq:pesoeps} \\
+3 & 200 repetições de 1000 amostras, com $\mu$ de 0 a $-7$ & sem viés para todo $\mu \ne 0$; o CoV na
+  Tabela~\ref{tab:mu} & \eqref{eq:aiest}, \eqref{eq:muideal} \\
+4 & variável de controle com $\ln\FS = 0{,}04(\xi + 5) + 0{,}004(\xi + 5)^2 + 0{,}002\,\zeta$; AI com $\mu = -5$ só em
+  $\xi$; substituto e probit num piloto de 200 & $\rho = 0{,}77$; em 200 AI, ganho 2,25 (previsto 2,39) e médias
+  $2{,}972$ e $2{,}949\times10^{-7}$ (exata $2{,}957\times10^{-7}$) & \eqref{eq:cvai} a \eqref{eq:Eh} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]\centering\small
+\caption{Parte 3: a média de 200 AI de 1000 amostras e o CoV de uma AI, para cada $\mu$. A $P_f$ exata é
+$2{,}867\times10^{-7}$. O CoV exato sai da Eq.~\eqref{eq:aiest} com $E_h[I w^2] = e^{\mu^2}\Phi(\mu - \beta)$ e
+$\beta = 5$.}\label{tab:mu}
+\begin{tabular}{rrrr}
+\toprule
+$\mu$ & média ($\times10^{-7}$) & CoV observado (\%) & CoV exato (\%) \\
+\midrule
+0 (direto) & 0 (nenhuma falha) & --- & 5906 \\
+$-2$ & 2,945 & 97,9 & 92,2 \\
+$-3$ & 2,886 & 24,3 & 24,6 \\
+$-4$ (o do código) & 2,860 & 10,8 & 10,6 \\
+$-5$ (ponto de projeto) & 2,842 & 7,4 & 7,5 \\
+$-6$ & 2,883 & 9,4 & 9,5 \\
+$-7$ & 2,833 & 20,6 & 20,1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+Na parte 4, o $\zeta$ faz o papel dos modos que o substituto não vê: fica $N(0, 1)$, sem deslocamento e fora do peso, como
+os modos que o FORM não desloca (Seção~\ref{sec:aiform}). O coeficiente 0,002 mede o que o substituto não vê. Com 0,01, o
+ganho cai para $\approx 1$: perto da fronteira, onde os pesos são maiores, quem decide a falha passa a ser o $\zeta$.
+
+\lstinputlisting[language={}]{exemplo_1d.wl}
+
 \begin{thebibliography}{99}
+\bibitem[Au e Beck(2003)]{au2003} S.-K. Au e J.~L. Beck. Importance sampling in high dimensions. \emph{Structural
+  Safety}, 25(2):139--163, 2003.
 \bibitem[Beck(2014)]{beck2014} A.~T. Beck. \emph{Curso de Confiabilidade Estrutural}. Notas de aula, Escola de
   Engenharia de São Carlos, Universidade de São Paulo, 2014. A numeração das páginas citadas é a impressa.
 \bibitem[Betz et~al.(2014)]{betz2014} W. Betz, I. Papaioannou e D. Straub. Numerical methods for the discretization of
   random fields by means of the Karhunen--Loève expansion. \emph{Computer Methods in Applied Mechanics and
   Engineering}, 271:109--129, 2014.
+\bibitem[Bucher(1988)]{bucher1988} C.~G. Bucher. Adaptive sampling --- an iterative fast Monte Carlo procedure.
+  \emph{Structural Safety}, 5(2):119--126, 1988.
+\bibitem[Bucher e Bourgund(1990)]{bucher1990} C.~G. Bucher e U. Bourgund. A fast and efficient response surface approach
+  for structural reliability problems. \emph{Structural Safety}, 7(1):57--66, 1990.
 \bibitem[Cho(2010)]{cho2010} S.~E. Cho. Probabilistic assessment of slope stability that considers the spatial
   variability of soil properties. \emph{Journal of Geotechnical and Geoenvironmental Engineering}, 136(7):975--984, 2010.
 \bibitem[Danskin(1967)]{danskin1967} J.~M. Danskin. \emph{The Theory of Max-Min and its Application to Weapons
   Allocation Problems}. Springer, Berlim, 1967.
 \bibitem[Der Kiureghian e Liu(1986)]{derkiureghian1986} A. Der Kiureghian e P.-L. Liu. Structural reliability under
   incomplete probability information. \emph{Journal of Engineering Mechanics}, 112(1):85--104, 1986.
+\bibitem[Drucker et~al.(1952)]{drucker1952} D.~C. Drucker, W. Prager e H.~J. Greenberg. Extended limit design theorems
+  for continuous media. \emph{Quarterly of Applied Mathematics}, 9(4):381--389, 1952.
 \bibitem[Fenton e Griffiths(2003)]{fenton2003} G.~A. Fenton e D.~V. Griffiths. Bearing capacity prediction of spatially
   random $c$--$\varphi$ soils. \emph{Canadian Geotechnical Journal}, 40(1):54--65, 2003.
 \bibitem[Ghanem e Spanos(1991)]{ghanem1991} R.~G. Ghanem e P.~D. Spanos. \emph{Stochastic Finite Elements: A Spectral
   Approach}. Springer, Nova York, 1991.
 \bibitem[Glasserman(2004)]{glasserman2004} P. Glasserman. \emph{Monte Carlo Methods in Financial Engineering}.
   Springer, Nova York, 2004.
+\bibitem[Melchers(1989)]{melchers1989} R.~E. Melchers. Importance sampling in structural systems. \emph{Structural
+  Safety}, 6(1):3--10, 1989.
+\bibitem[Owen(2013)]{owen2013} A.~B. Owen. \emph{Monte Carlo Theory, Methods and Examples}. Livro em preparação, 2013.
+  \url{https://artowen.su.domains/mc/}.
 \bibitem[Rubinstein e Kroese(2004)]{rubinstein2004} R.~Y. Rubinstein e D.~P. Kroese. \emph{The Cross-Entropy Method: A
   Unified Approach to Combinatorial Optimization, Monte-Carlo Simulation and Machine Learning}. Springer, Nova York,
   2004.

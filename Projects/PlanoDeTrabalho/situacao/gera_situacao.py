@@ -174,7 +174,7 @@ for ax, (fim, rot) in zip(axs, (("ai_form100_modal", "KL analítica, FORM modal 
     ax.plot(tt, np.exp(-tt ** 2 / 2), color="0.4", lw=1.2, label="densidade do direto (escala)")
     ax.plot(tt, np.exp(-(tt - a["mu"]) ** 2 / 2), color="tab:blue", lw=1.2, label="densidade da AI (escala)")
     ax.set_title(rot + f"; t mínimo das falhas: {a['t_min']:.2f}".replace(".", ","), fontsize=8)
-    ax.set_xlabel(r"$t = \mathbf{y}\cdot\mathbf{y}^*/\beta$")
+    ax.set_xlabel(r"$t = \xi\cdot\xi^*/\beta$")
     ax.grid(alpha=0.3)
 axs[0].legend(fontsize=6.5, loc="upper left")
 fig.tight_layout()
@@ -393,6 +393,54 @@ AN20, AN200 = acha("ai_nys_form20"), acha("ai_nys_form200")
 A07 = [acha(f) for f in ("r07_ai_form20", "r07_ai_form20_s4", "r07_ai_form20_s5")]
 A0710 = acha("r07_ai_form10")
 GANHOS = [(a["sd"] / a["sd_cv"]) ** 2 for a in DG["ai"] if a["r"] == "r05" and a["n"] >= 1000]
+
+
+# o gradiente modal do GIM (PC, 17/11): Projects/Cho2010/valida_gradiente.py e form_kl.py metodo=gim
+def le_json(a):
+    with open(a) as f:
+        return json.load(f)
+
+
+def angulo(a, b):
+    a, b = np.array(a), np.array(b)
+    return float(np.degrees(np.arccos(np.clip(a @ b / np.linalg.norm(a) / np.linalg.norm(b), -1, 1))))
+
+
+GIMD = f"{RUNS}/cho2010/gim_gradiente"
+GV0, GVU = le_json(f"{GIMD}/valida_zero/valida.json"), le_json(f"{GIMD}/valida_ustar_srm/valida.json")
+SRM_CD = le_json(f"{RUNS}/cho2010/form_M10_r05/form_parcial.json")["historico"][-1]["grad"]
+SRM_MOD = le_json(f"{GIMD}/srm_modal_ustar/srm_modal.json")["grad_modal"]
+FGIM = {M: le_json(f"{GIMD}/form_gim_M{M}_modal/form.json") for M in (10, 20, 100)}
+DOM0, DOMU = GV0["dominante"]["phi0"], GVU["dominante"]["phi0"]  # [modal, dif.]
+GIM_TXT = (r"""  \item \textbf{O gradiente modal do GIM} (\path{Projects/Cho2010/valida_gradiente.py}), no PC: fica a """ +
+           num(GV0["angulo_graus"], 1) + r"""$^\circ$ das diferenças centrais em $\bm\xi = \bm 0$ ($\Gamma = """ +
+           num(GV0["fator_modal"], 3) + r"""$) e a """ + num(GVU["angulo_graus"], 1) + r"""$^\circ$ no ponto de projeto
+    do SRM com $M = 10$, onde o modal do SRM fica a """ + num(angulo(SRM_MOD, SRM_CD), 1) + r"""$^\circ$. O termo
+    dominante ($\varphi'_0$) sai """ + num(100 * (DOM0[0] / DOM0[1] - 1), 1) + r""" e """ +
+           num(100 * (DOMU[0] / DOMU[1] - 1), 1) + r"""\,\% acima. Nesse ponto, $\Gamma = """ + num(GVU["fator_modal"], 3) +
+           r"""$, e as diferenças centrais do GIM e do SRM ficam a """ + num(angulo(GVU["grad_dif"], SRM_CD), 1) +
+           r"""$^\circ$ uma da outra: as duas são normais à mesma superfície de falha ($\Gamma < 1$ se e só se
+    $\mathrm{FS} < 1$). O FORM do GIM com o gradiente modal converge em """ + str(FGIM[10]["avaliacoes"]) +
+           r""" análises: $\beta = """ + num(FGIM[10]["beta"], 3) + r"""$ ($M = 10$), $""" + num(FGIM[20]["beta"], 3) +
+           r"""$ ($M = 20$) e $""" + num(FGIM[100]["beta"], 3) + r"""$ ($M = 100$), mais perto das diferenças centrais
+    do SRM (2,115 e 2,012) que o modal do SRM (Tabela~\ref{tab:form}).""")
+
+# a variavel de controle com o substituto ajustado na propria amostra (PC, 17/11): Projects/Cho2010/teste_controle.py
+TC = le_json(f"{RUNS}/cho2010/diagnostico/teste_controle.json")
+L = TC["lotes"]
+T_CV_LOTES = tabela("Estimador & média (\\%) & desvio verdadeiro (\\%) & desvio estimado (\\%) & ganho & $\\rho$",
+                    [f"{k.replace('realista', 'próprio lote,').replace('ideal', 'fora do lote,').replace('K=', '$K$ = ')} & "
+                     f"{num(100 * v['media'], 3)} & {num(100 * v['desvio'], 3)} & {num(100 * v['desvio_estimado'], 3)} & "
+                     f"{num(v['ganho'], 2)} & {num(v['rho'], 2) if k != 'P' else '---'} \\\\" for k, v in L.items()],
+                    "lrrrrr")
+TC_AI = [a for a in TC["ai"] if "Tri(0)" not in a["rotulo"]]
+GANHO_K50 = [(a["sd"] / a["realista"]["50"][1]) ** 2 for a in TC_AI]
+GANHO_ID = [(a["sd"] / a["ideal"][1]) ** 2 for a in TC_AI]
+T_CV_AI = tabela("AI ($r = -0{,}5$) & semente & $P$ (\\%) & própria amostra, $K = 50$ (\\%) & substituto do direto (\\%)",
+                 [f"{a['rotulo']}{' (Nyström)' if a['base'] == 'nys' else ''} & {a['semente']} & "
+                  f"{num(100 * a['p'], 3)} $\\pm$ {num(100 * a['sd'], 3)} & "
+                  f"{num(100 * a['realista']['50'][0], 3)} $\\pm$ {num(100 * a['realista']['50'][1], 3)} & "
+                  f"{num(100 * a['ideal'][0], 3)} $\\pm$ {num(100 * a['ideal'][1], 3)} \\\\" for a in TC["ai"]], "lrrrr")
 S07 = [s for rot, v, d, s in RS if v is KL07]
 S07 = S07[0] if S07 else None
 
@@ -524,12 +572,12 @@ tivesse. Se a densidade de amostragem quase não visita uma parte da região de 
 ponto de projeto), a estimativa sai quase sempre baixa, e o CoV estimado fica menor que o verdadeiro. O direto permite
 testar isso sem nenhuma análise nova (\path{Projects/Cho2010/diagnostico_ai.py}):
 \begin{enumerate}
-  \item \textbf{Os $\bm y$ de cada realização} saem de uma cópia do gerador do \texttt{RandomField} em Python
-    (xoshiro256** e Box--Muller, uma semente por realização e campo). A cópia confere com o peso de cada amostra de cada
+  \item \textbf{Os $\bm\xi$ de cada realização} saem de uma cópia, em Python, do gerador do \texttt{RandomField}:
+    xoshiro256** e Box--Muller, com uma semente por realização e campo. A cópia confere com o peso de cada amostra de cada
     AI (erro $\le """ + cient(max(a["erro_peso"] for a in DG["ai"])) + r"""$). Junto com a KL analítica em Python, ela
     também confere com o campo que o programa grava (diferença $\le 5\times10^{-6}$, a precisão do CSV).
   \item \textbf{Modo de ruptura fora da AI.} As """ + str(DD5["falhas"]) + r""" falhas do direto, projetadas na direção
-    do ponto de projeto ($t = \bm y\cdot\bm y^*/\beta$), ficam todas onde a AI amostra (Figura~\ref{fig:vies_t}). Na direção
+    do ponto de projeto ($t = \bm\xi\cdot\bm\xi^*/\beta$), ficam todas onde a AI amostra (Figura~\ref{fig:vies_t}). Na direção
     modal, o menor $t$ é """ + num(AM["t_min"], 2) + r""", e só """ + str(AM["abaixo_15"]) + r""" falhas ficam abaixo de
     1,5. A variância verdadeira de cada AI sai do direto pela identidade $E_h[I w^2] = E_\varphi[I w]$, com as falhas do
     direto, e é a que a AI estima (``CoV verd.'' na Tabela~\ref{tab:vies05}): """ + num(100 * AM["cov_verdadeiro"], 1) +
@@ -553,7 +601,7 @@ testar isso sem nenhuma análise nova (\path{Projects/Cho2010/diagnostico_ai.py}
     f"{DD5['n_equiv']:,.0f}".replace(",", "\\,") + r""" realizações.
 \end{enumerate}
 \begin{figure}[H]\centering\includegraphics[width=\textwidth]{figs/vies_t.pdf}
-\caption{A chance de falha do direto em cada faixa de $t = \bm y\cdot\bm y^*/\beta$ (barras) e as densidades de $t$ no
+\caption{A chance de falha do direto em cada faixa de $t = \bm\xi\cdot\bm\xi^*/\beta$ (barras) e as densidades de $t$ no
 direto e na AI (curvas, em escala). A AI amostra toda a região onde o direto falha.}\label{fig:vies_t}\end{figure}
 \begin{table}[H]\centering\small
 """ + T_VIES05 + r"""
@@ -590,6 +638,44 @@ pct(DD7["cv"]["p"], 3) + r""" $\pm$ """ + pct(DD7["cv"]["sd"], 3) + r"""\,\% do 
     mesmas sementes nas duas bases. Elas dão a distribuição do estimador.
   \item A variável de controle é um ganho à parte, sem custo: de """ + num(min(GANHOS), 1) + r""" a """ +
     num(max(GANHOS), 1) + r""" vezes menos realizações nas AI e """ + num(DD5["n_equiv"] / DD5["n"], 1) + r""" no direto.
+\end{itemize}
+
+\subsection{A variável de controle com o que se tem na prática}\label{sec:cvlocal}
+O diagnóstico da Seção~\ref{sec:vies} ajusta o substituto (formulação, Seção~\ref{F-sec:controle}) no direto inteiro, que
+não existe num problema real: se existisse, a AI não faria falta. O teste com o que se tem na prática
+(\path{Projects/Cho2010/teste_controle.py}, no PC, sem análises novas):
+\begin{enumerate}
+  \item \textbf{O direto em lotes.} As """ + f"{TC['n_direto']:,}".replace(",", "\\,") + r""" realizações do direto de
+    $r = -0{,}5$ em """ + str(len(L["P"]["por_lote"])) + r""" lotes de """ + str(TC["lote"]) + r""" (o tamanho de uma
+    AI). Em cada lote, a $P$ do lote e a $P_{cv}$ com o substituto ajustado só no próprio lote (5 dobras, $K$ termos por
+    campo) ou fora dele (o ideal, $K = 200$). O desvio entre os lotes é o verdadeiro (Tabela~\ref{tab:cvlotes}).
+  \item \textbf{As AI}, com o substituto ajustado na própria amostra de 1000 (5 dobras, $K = 50$) e, para comparar, no
+    direto inteiro (Tabela~\ref{tab:cvai}).
+\end{enumerate}
+\begin{table}[H]\centering\small
+""" + T_CV_LOTES + r"""
+\caption{O direto de $r = -0{,}5$ em lotes de """ + str(TC["lote"]) + r""". O ganho é a razão das variâncias entre os
+lotes. A $P_f$ do direto inteiro é """ + pct(TC["P_direto"], 3) + r"""\,\%.}\label{tab:cvlotes}
+\end{table}
+\begin{table}[H]\centering\small
+""" + T_CV_AI + r"""
+\caption{As AI de $r = -0{,}5$ com a variável de controle: o substituto ajustado na própria amostra (5 dobras, $K = 50$
+por campo) e no direto inteiro (o ideal). A semente 3 é a mesma em várias linhas.}\label{tab:cvai}
+\end{table}
+\begin{itemize}
+  \item \textbf{Sem viés:} as médias dos lotes ficam todas perto da $P_f$ do direto inteiro.
+  \item \textbf{O ganho realista depende de $K$:} """ + ", ".join(num(L[f"realista K={K}"]["ganho"], 1) + f" com $K = {K}$" for K in (10, 20, 50)) + r""",
+    contra """ + num(L["ideal K=200"]["ganho"], 1) + r""" do ideal. Com 800 realizações por ajuste, os $2K + 1 = 101$
+    coeficientes de $K = 50$ ainda cabem.
+  \item \textbf{O desvio estimado da $P_{cv}$ sai menor que o verdadeiro} (de """ +
+    num(100 * (1 - max(L[k]["desvio_estimado"] / L[k]["desvio"] for k in L if k != "P")), 0) + r""" a """ +
+    num(100 * (1 - min(L[k]["desvio_estimado"] / L[k]["desvio"] for k in L if k != "P")), 0) + r"""\,\%), enquanto o da
+    $P$ bate. Com """ + str(len(L["P"]["por_lote"])) + r""" lotes, o desvio verdadeiro tem uma incerteza de ≈15\,\%:
+    a confirmar com as 10 sementes da fase 4. Até lá, o desvio da $P_{cv}$ é otimista.
+  \item \textbf{Nas AI,} o substituto da própria amostra dá ganho de """ + num(min(GANHO_K50), 1) + r""" a """ +
+    num(max(GANHO_K50), 1) + r""", contra """ + num(min(GANHO_ID), 1) + r""" a """ + num(max(GANHO_ID), 1) + r""" com o
+    do direto. A direção errada da Tri(0) não se corrige com o substituto da própria amostra: ele só vê a região que a AI
+    amostra.
 \end{itemize}
 
 \subsection{Comparação das bases com a mesma variância}
@@ -632,7 +718,7 @@ recomeçar de $F_0/2$ quando o caminho de $F$ colapsa logo no início.
 \subsection{O teste linear (sem elementos finitos)}
 \begin{table}[H]\centering\small
 """ + T_LIN + r"""
-\caption{Falha quando $\bm e\cdot\bm y > \beta$, com $\bm e$ unitário e $P_f = \Phi(-\beta)$ exata. Erro relativo, com o erro em desvios entre parênteses.}
+\caption{Falha quando $\bm e\cdot\bm\xi > \beta$, com $\bm e$ unitário e $P_f = \Phi(-\beta)$ exata. Erro relativo, com o erro em desvios entre parênteses.}
 \end{table}
 Com o deslocamento na direção exata, a AI acerta até $3\times10^{-5}$. Com a direção um pouco errada, ela sai baixa, e
 mais baixa quando $\beta$ cresce.
@@ -641,11 +727,12 @@ mais baixa quando $\beta$ cresce.
 \begin{itemize}
   \item \textbf{Validação do gradiente modal} nos pontos de projeto do fermi: ele fica a 9,6$^\circ$ ($M = 10$) e
     8,9$^\circ$ ($M = 20$) do gradiente das diferenças centrais, e o termo dominante ($\varphi'_0$) bate a menos de 4\,\%.
+""" + GIM_TXT + r"""
 \end{itemize}
 \begin{table}[H]\centering\small
 """ + T_FORM + r"""
-\caption{$\beta$ do FORM com o gradiente modal na malha usual. Com diferenças centrais: 2,115 ($M = 10$, 123 análises) e
-2,012 ($M = 20$, 243).}
+\caption{$\beta$ do FORM do SRM com o gradiente modal na malha usual. Com diferenças centrais: 2,115 ($M = 10$, 123
+análises) e 2,012 ($M = 20$, 243).}\label{tab:form}
 \end{table}
 \begin{figure}[H]\centering\includegraphics[width=0.6\textwidth]{figs/beta_M.pdf}\caption{$\beta(M)$: a base de
 Nyström converge com menos termos.}\end{figure}
@@ -665,7 +752,7 @@ Com o gradiente modal (formulação, Seção~\ref{F-sec:form}), o FORM converge 
     em $\varphi'$; """ + UNY["txt"] + r""". Os 10 primeiros somam """ + num(UNY["dez"], 2) + r""".
 \end{itemize}
 Os coeficientes são outros, mas o ponto é o mesmo. Levado para as coordenadas de Nyström por $T$, o ponto analítico
-tem $|\bm u| = """ + num(PP["beta_kl_em_nys"], 3) + r"""$ e fica a """ + num(PP["angulo"], 1) + r"""$^\circ$ do de
+tem $|\bm\xi| = """ + num(PP["beta_kl_em_nys"], 3) + r"""$ e fica a """ + num(PP["angulo"], 1) + r"""$^\circ$ do de
 Nyström. O campo mais provável de ruptura é uma camada fraca horizontal sob a face do talude:
 \begin{itemize}
   \item $\varphi'$ mínimo de 23,4$^\circ$ em $y \approx 6{,}6$\,m, 1,6\,m acima do pé;
@@ -688,7 +775,7 @@ embaixo), com as mesmas escalas de cor.}\label{fig:pp}\end{figure}
   \item A AI não tem viés com qualquer deslocamento fixado antes; o deslocamento só muda a variância (teste linear e Ceron).
   \item O SRM antigo tinha um buraco logo abaixo de FS = 1; o efeito na $P_f$ é pequeno.
   \item \textbf{Há um só modo de ruptura} no Cho2010, nas duas bases: todas as falhas do direto ficam onde a AI pelo
-    FORM amostra ($t = \bm y\cdot\bm y^*/\beta \ge """ + num(AM["t_min"], 2) + r"""$ na direção modal, com só
+    FORM amostra ($t = \bm\xi\cdot\bm\xi^*/\beta \ge """ + num(AM["t_min"], 2) + r"""$ na direção modal, com só
     """ + str(AM["abaixo_15"]) + r""" das """ + str(DD5["falhas"]) + r""" abaixo de 1,5;
     $t \ge """ + num(A07[0]["t_min"], 2) + r"""$ com $r = -0{,}7$), e a variância verdadeira da AI,
     calculada pelas falhas do direto, é a que a AI estima (Seção~\ref{sec:vies}). A banda de ruptura das falhas é a mesma
@@ -703,8 +790,8 @@ embaixo), com as mesmas escalas de cor.}\label{fig:pp}\end{figure}
   \item \textbf{O piloto pode rodar em malha grossa:} o elite é escolhido por ordem, e a ordem das realizações quase não
     muda. Com o piloto na Tri(0) (300 vezes mais barata), a AI pela banda acertou o direto ($-0{,}2$ desvio), com o mesmo
     CoV do piloto na malha usual. Tri(1) e Tri(2) também estão nas tabelas.
-  \item \textbf{O gradiente modal dá a direção do FORM com 1 análise,} a menos de ≈9$^\circ$ das diferenças centrais, e o
-    FORM converge em 3 análises.
+  \item \textbf{O gradiente modal dá a direção do FORM com 1 análise,} a menos de ≈9 a 11$^\circ$ das diferenças centrais
+    no SRM e de 3 a 6$^\circ$ no GIM, e o FORM converge em 3 a 5 análises.
   \item \textbf{A base de Nyström precisa de menos termos} que a analítica para o mesmo $\beta$.
 """ + HIP05 + r"""
 """ + HIP07 + r"""
@@ -730,8 +817,12 @@ embaixo), com as mesmas escalas de cor.}\label{fig:pp}\end{figure}
     bases. Dão a distribuição do estimador e fecham a questão do viés (Seção~\ref{sec:vies}).
   \item \textbf{Etapa 4:} o FORM com gradiente modal e a AI pelo ponto de projeto na chuva, contra o direto de 10\,000
     (terminando no fermi).
-  \item \textbf{Variável de controle} nas AI pela banda e na chuva. Para o artigo da AI: o ganho contra o custo total
-    (FORM, piloto e controle), de $P_f \approx 2\,\%$ a $0{,}4\,\%$.
+  \item \textbf{Variável de controle realista} (Seção~\ref{sec:cvlocal}): o substituto ajustado na própria amostra
+    ($K = 50$, 5 dobras) em todas as AI, inclusive pela banda e na chuva; conferir o desvio estimado com as 10 sementes da
+    fase 4. Para o artigo da AI: o ganho contra o custo total (FORM, piloto e controle), de $P_f \approx 2\,\%$ a
+    $0{,}4\,\%$.
+  \item \textbf{O FORM da chuva pelo GIM?} O gradiente modal do GIM é mais preciso que o do SRM (5,5 contra
+    11,2$^\circ$ no mesmo ponto), e a região de falha é a mesma. Testar se vale na chuva, com as pressões do transiente.
 \end{enumerate}
 
 \section{Mapa dos documentos}\label{sec:mapa}

@@ -3,8 +3,9 @@
 
 As variaveis sao os 2M coeficientes xi da KL: normais padrao independentes (a correlacao cruzada r(c, phi) e a
 transformacao lognormal ficam dentro do Cho2010), entao nao ha transformacao de Nataf. A funcao de estado limite e
-    g(u) = FS(u) - 1,
-com o FS do Cho2010 (SRM com refinamento adaptativo) nos xi dados (opcao xi=).
+    g(u) = FS(u) - 1   (metodo=srm, o padrao)   ou   g(u) = Gamma(u) - 1   (metodo=gim),
+com o fator do Cho2010 (SRM ou GIM, com refinamento adaptativo) nos xi dados (opcao xi=). Os dois tem a mesma regiao de
+falha (FS < 1 se e so se Gamma < 1), entao o mesmo ponto de projeto; o g e o gradiente e que mudam.
   - gradiente por diferencas centrais com passo h em u: 2n + 1 avaliacoes por iteracao (n = 2M), em paralelo. O FS tem
     ruido de uns 0,001 (malha adaptativa e patamar do arc-length): o passo e grande de proposito;
   - passo HL-RF u_{k+1} = (grad . u_k - g) / |grad|^2 grad, com amortecimento (metade do passo) quando |g| mais que dobra;
@@ -17,8 +18,9 @@ tela.
 
 Uso: python3 -I form_kl.py <exe Cho2010> <pasta de trabalho> [M=20] [rcphi=-0.5] [h=0.5] [paralelos=2] [iteracoes=10]
      [fator=tri2] [nref=4] [srm_f0=0.8] [tol_g=0.001] [tol_beta=0.01] [gradiente=dif|modal] [nystrom=<base>]
+     [metodo=srm|gim]
 gradiente=modal: uma analise por iteracao, com o gradiente pela projecao modal da sensibilidade de limite superior
-(Cho2010 gradiente=M), em vez das 4M + 1 das diferencas centrais."""
+(Cho2010 gradiente=M; no colapso do SRM ou do GIM, conforme o metodo), em vez das 4M + 1 das diferencas centrais."""
 import concurrent.futures as cf
 import csv
 import json
@@ -30,7 +32,7 @@ import sys
 
 def parametros(argv):
     p = {"M": 20, "rcphi": -0.5, "h": 0.5, "paralelos": 2, "iteracoes": 10, "fator": "tri2", "nref": 4, "srm_f0": 0.8,
-         "tol_g": 0.001, "tol_beta": 0.01, "gradiente": "dif", "nystrom": ""}
+         "tol_g": 0.001, "tol_beta": 0.01, "gradiente": "dif", "nystrom": "", "metodo": "srm"}
     for a in argv:
         k, v = a.split("=", 1)
         if k not in p:
@@ -46,12 +48,13 @@ class Problema:
         os.makedirs(pasta, exist_ok=True)
 
     def fs(self, u, rotulo):
-        """FS do Cho2010 com os xi u (os M de c' e os M de phi')"""
+        """o fator do Cho2010 (FS ou Gamma) com os xi u (os M de c' e os M de phi')"""
         arq = os.path.join(self.pasta, rotulo + ".xi")
         with open(arq, "w") as f:
             f.write("\n".join(repr(x) for x in u) + "\n")
         cmd = [self.exe, "n=1", "primeira=0", f"xi={arq}", f"M={self.p['M']}", f"rcphi={self.p['rcphi']}",
-               f"fator={self.p['fator']}", f"nref={self.p['nref']}", f"srm_f0={self.p['srm_f0']}", f"saida={rotulo}"] + \
+               f"fator={self.p['fator']}", f"nref={self.p['nref']}", f"srm_f0={self.p['srm_f0']}",
+               f"metodo={self.p['metodo']}", f"saida={rotulo}"] + \
               ([f"nystrom={self.p['nystrom']}"] if self.p["nystrom"] else [])
         env = dict(os.environ, PZ_THREADS="0", OMP_NUM_THREADS="1", MKL_NUM_THREADS="1")
         subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env, cwd=self.pasta)
@@ -62,14 +65,15 @@ class Problema:
         return float(linha["FS_min"])
 
     def g_modal(self, u, it):
-        """uma analise: o FS e o gradiente pela projecao modal (Cho2010 gradiente=M: limite superior no colapso do SRM)"""
+        """uma analise: o fator e o gradiente pela projecao modal (Cho2010 gradiente=M: limite superior no colapso)"""
         rotulo = f"it{it}_centro"
         arq = os.path.join(self.pasta, rotulo + ".xi")
         with open(arq, "w") as f:
             f.write("\n".join(repr(x) for x in u) + "\n")
         cmd = [self.exe, "n=1", "primeira=0", f"xi={arq}", f"M={self.p['M']}", f"rcphi={self.p['rcphi']}",
                f"fator={self.p['fator']}", f"nref={self.p['nref']}", f"srm_f0={self.p['srm_f0']}",
-               f"gradiente={self.p['M']}", f"saida={rotulo}"] + ([f"nystrom={self.p['nystrom']}"] if self.p["nystrom"] else [])
+               f"metodo={self.p['metodo']}", f"gradiente={self.p['M']}", f"saida={rotulo}"] + \
+              ([f"nystrom={self.p['nystrom']}"] if self.p["nystrom"] else [])
         env = dict(os.environ, PZ_THREADS="0", OMP_NUM_THREADS="1", MKL_NUM_THREADS="1")
         subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env, cwd=self.pasta)
         v = [float(x) for x in open(os.path.join(self.pasta, rotulo + "_grad_0.txt")).read().split("\n")[1:] if x.strip()]
@@ -107,9 +111,11 @@ def main():
     M = p["M"]
     u = [0.] * (2 * M)
     hist = []
-    print(f"FORM do Cho (2010), Exemplo 2: KL com M = {M} termos por campo ({2 * M} variaveis), r(c, phi) = {p['rcphi']}, "
+    print(f"FORM do Cho (2010), Exemplo 2, {p['metodo'].upper()}: KL com M = {M} termos por campo ({2 * M} variaveis), "
+          f"r(c, phi) = {p['rcphi']}, "
           f"passo h = {p['h']} em u, {2 * 2 * M + 1} avaliacoes por iteracao, {p['paralelos']} em paralelo", flush=True)
-    print("  it   g = FS - 1    beta     |grad|   maiores alfa^2 (campo, termo)", flush=True)
+    print(f"  it   g = {'Gamma' if p['metodo'] == 'gim' else 'FS'} - 1    beta     |grad|   maiores alfa^2 (campo, termo)",
+          flush=True)
     gAnterior = None
     convergiu = False
     for it in range(p["iteracoes"]):

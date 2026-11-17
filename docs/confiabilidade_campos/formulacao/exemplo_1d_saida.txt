@@ -1,0 +1,22 @@
+Parte 1. AI no espaco X: 1542 falhas em 10000 amostras; P_f = 2.770e-7; exata = 2.867e-7 = Phi(-5) = 2.867e-7
+Parte 2a. a lei de mm + eps, eps ~ N(0, 1): NormalDistribution[mm, 1]
+Parte 2b. f(s)/h(s) = E^((mm*(mm - 2*s))/2)
+Parte 2c. maior diferenca relativa entre f/h e exp(-mu xi + mu^2/2): 5.3e-15
+Parte 2d. h(xi) = phi(eps)? True;  f(xi) = phi(eps)? False;  w = exp(-mu eps - mu^2/2)? True
+           P_f pela Eq. (27) no espaco padrao: 2.770e-7 (a mesma da Parte 1)
+Parte 3. 200 repeticoes de 1000 amostras, P_f exata = 2.867e-7
+  mu = 0.0: media 0,  CoV observado 0.0%,  exato 5906.4%
+  mu = -2.0: media 2.945e-7,  CoV observado 97.9%,  exato 92.2%
+  mu = -3.0: media 2.886e-7,  CoV observado 24.3%,  exato 24.6%
+  mu = -4.0: media 2.860e-7,  CoV observado 10.8%,  exato 10.6%
+  mu = -5.0: media 2.842e-7,  CoV observado 7.4%,  exato 7.5%
+  mu = -6.0: media 2.883e-7,  CoV observado 9.4%,  exato 9.5%
+  mu = -7.0: media 2.833e-7,  CoV observado 20.6%,  exato 20.1%
+  E[xi | falha] = -5.187;  o mu de menor variancia = -5.097;  o ponto de projeto = -5
+Parte 4. P_f exata (integral em xi, com zeta integrado a mao) = 2.957e-7
+  uma AI de 1000: P = 2.967e-7 +- 2.14e-8;  com controle 2.705e-7 +- 1.38e-8;  rho = 0.77
+  E[H] pela Eq. (36) = 2.153385e-7;  por integracao numerica = 2.153385e-7
+  200 AI de 1000 (cada uma com o seu piloto):
+    sem controle: media 2.972e-7, desvio entre as AI 2.20e-8 (estimado 2.31e-8)
+    com controle: media 2.949e-7, desvio entre as AI 1.47e-8 (estimado 1.49e-8)
+    ganho = razao das variancias = 2.25;  1/(1 - rho^2) com o rho medio (Eq. 32) = 2.39

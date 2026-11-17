@@ -39,7 +39,8 @@ DOCUMENTOS = [
     ("Formulação: campos aleatórios, FORM e amostragem por importância (docs/confiabilidade_campos)", [
         ("docs/confiabilidade_campos/formulacao/formulacao.pdf",
          "o modelo, as duas bases de Karhunen–Loève (analítica e Nyström) e a mudança de base, o Monte Carlo, a AI, a "
-         "variável de controle e o FORM com o gradiente modal"),
+         "variável de controle e o FORM com o gradiente modal (SRM e GIM); no apêndice, um exemplo de uma variável em "
+         "Mathematica (exemplo_1d.wl)"),
         ("docs/confiabilidade_campos/implementacao_form_ai/implementacao_form_ai.pdf",
          "como o FORM e a AI foram implementados no NeoPZ"),
         ("docs/confiabilidade_campos/ai_nystrom/ai_nystrom.pdf",

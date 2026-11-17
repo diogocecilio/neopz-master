@@ -35,9 +35,10 @@
 //                          FS_min = exp(beta - alfa . xi). Usa o mesmo sorteio (semente, desloc_xi, piloto) e o mesmo peso
 //   nystrom (<arquivo>)    a base de Karhunen-Loeve de Nystrom do proprio talude (Projects/Cho2010/nystrom_base.py) no lugar
 //                          da analitica do retangulo: os M primeiros modos do arquivo (M <= os do arquivo)
-//   gradiente (0)          K > 0: depois do FS de cada realizacao, o gradiente dFS/dxi nos K primeiros termos de cada campo
-//                          pela projecao modal da sensibilidade de limite superior (Mohr-Coulomb associado) no estado de
-//                          colapso do SRM, sem novas analises: <saida>_grad_<real>.txt (FS e os 2K numeros, c' e phi')
+//   gradiente (0)          K > 0: depois do fator de cada realizacao, o gradiente dFS/dxi (SRM) ou dGamma/dxi (GIM) nos K
+//                          primeiros termos de cada campo pela projecao modal da sensibilidade de limite superior
+//                          (Mohr-Coulomb associado) no estado de colapso do metodo, sem novas analises:
+//                          <saida>_grad_<real>.txt (o fator e os 2K numeros, c' e phi')
 //   xi (<arquivo>)         os xi dados, sem sorteio (um ponto do FORM: form_kl.py): 2M numeros, os M de c' e depois os M de
 //                          phi'; com n = 1, a realizacao primeira usa esses xi
 //   banda (<arquivo>)      mecanismo.csv de um deterministico: a direcao d dos xi e as projecoes proj_* no CSV
@@ -525,10 +526,14 @@ const char *kCabecalho =
 // e, como a carga limite do peso e 1 no colapso (dF/dp = -(dL/dp)/(dL/dF)):
 //   dF/dc'(x)      = dD/dc / Den,   dF/dtan(phi')(x) = dD/dphi cos^2(phi*) / Den,
 //   Den = integral de (dD/dc c* + dD/dphi sin(phi*) cos(phi*))
+// No GIM (gim = true, F = Gamma) os parametros sao os reais (c* = c', phi* = phi'), as tensoes sao as do colapso com o peso
+// vezes Gamma, e, pelo mesmo envelope, dGamma/dp(x) = -mu df/dp / P_ext = Gamma (dD/dp) / P_mr (P_ext = P_mr / Gamma):
+//   dGamma/dc'(x) = dD/dc / Den,   dGamma/dtan(phi')(x) = dD/dphi cos^2(phi') / Den,   Den = P_mr / Gamma,
+//   P_mr = integral de D = integral de c' cot(phi') eps_v
 // A taxa eps_v do mecanismo e aproximada pelo traco da deformacao plastica no colapso (a escala se cancela). A projecao
 // nos modos: dF/dxi_j = soma_p w_p (dF/dc' c' dln(c')/dxi_j + dF/dtan(phi') sec^2(phi') phi' dln(phi')/dxi_j), com
 // dln/dxi exata (os campos sao lognormais: ln c' e ln phi' sao lineares em xi).
-std::vector<double> GradienteModal(Fator &f, RandomField &campos, int K, REAL F)
+std::vector<double> GradienteModal(Fator &f, RandomField &campos, int K, REAL F, bool gim)
 {
     UnsatModel<TUnsatHP> &m = *f.m;
     TUnsatHP *mat = m.Material();
@@ -569,13 +574,14 @@ std::vector<double> GradienteModal(Fator &f, RandomField &campos, int K, REAL F)
             const REAL cen = 0.5 * (sg.XX() + sg.YY()), r = std::hypot(0.5 * (sg.XX() - sg.YY()), sg.XY());
             const REAL s1 = std::max({cen + r, cen - r, sg.ZZ()}), s3 = std::min({cen + r, cen - r, sg.ZZ()});
             const REAL c = pr[0], phi = pr[1];
-            const REAL cs = c / F, phs = std::atan(std::tan(phi) / F);
+            const REAL cs = gim ? c : c / F, phs = gim ? phi : std::atan(std::tan(phi) / F); // GIM: sem reducao
             const REAL dDc = ev / std::tan(phs);
             const REAL dDp = -(ev / (2. * std::sin(phs))) * ((s1 + s3) * std::cos(phs) + 2. * cs * std::sin(phs));
             P p;
             p.x = x[0], p.y = x[1], p.w = w * std::abs(detjac), p.c = c, p.phi = phi;
             p.gc = dDc, p.gt = dDp * std::cos(phs) * std::cos(phs);
-            den += p.w * (dDc * cs + dDp * std::sin(phs) * std::cos(phs));
+            den += gim ? p.w * dDc * cs / F // P_mr / Gamma
+                       : p.w * (dDc * cs + dDp * std::sin(phs) * std::cos(phs));
             ps.push_back(p);
         }
     }
@@ -787,9 +793,10 @@ int main(int argc, char *argv[])
         for (size_t i = 0; i < niveis.size(); i++) l.niveis += (i ? ";" : "") + std::to_string(niveis[i]).substr(0, 7);
         l.mec = DescreveMecanismo(f);
         if (op.gradiente > 0 && !deterministico) {
-            const std::vector<double> gr = GradienteModal(f, campos, std::min(op.gradiente, campos.M()), l.fs);
+            const std::vector<double> gr = GradienteModal(f, campos, std::min(op.gradiente, campos.M()), l.fs, op.gim);
             std::ofstream gf(op.saida + "_grad_" + std::to_string(n) + ".txt");
-            gf << std::setprecision(10) << "# FS e o gradiente dFS/dxi (os K de c' e os K de phi'), projecao modal\n" << l.fs << "\n";
+            gf << std::setprecision(10) << "# " << (op.gim ? "Gamma (GIM) e o gradiente dGamma/dxi" : "FS (SRM) e o gradiente dFS/dxi")
+               << " (os K de c' e os K de phi'), projecao modal\n" << l.fs << "\n";
             for (double x : gr) gf << x << "\n";
         }
         if (op.figuras.count(n)) { // o mecanismo e os campos num reticulado de 0,5 m
