@@ -7,6 +7,8 @@
 \usepackage[margin=2cm]{geometry}
 \usepackage{amsmath,amssymb,bm}
 \usepackage{graphicx,booktabs,float,url}
+\usepackage[round]{natbib}
+\usepackage{lineno}
 \usepackage[hidelinks]{hyperref}
 % a data e o commit vem do atualiza.sh (Projects/PlanoDeTrabalho/situacao); compilado a mao, fica so a data
 \providecommand{\versao}{17/11/2026}
@@ -16,6 +18,7 @@ Karhunen--Loève, o Monte Carlo, a amostragem por importância e o FORM}
 \begin{document}
 \maketitle
 \tableofcontents
+\linenumbers
 
 \section*{Sobre este documento}
 Este documento reúne a formulação usada nos dois artigos (amostragem por importância e chuva em talude não saturado). Os
@@ -30,22 +33,24 @@ saturado ($u$--$p_w$--$p_a$) está em \path{docs/nao_saturado}, e a do fator de 
     \texttt{TPZMatUnsaturatedUPwPa} ($u$--$p_w$--$p_a$; \path{docs/nao_saturado}, \path{formulacao.pdf}). No talude
     seco, as pressões ficam congeladas em zero.
   \item \textbf{FS pelo SRM:} $c'/F$ e $\tan\varphi'/F$ até o colapso, com arc-length no parâmetro $F$ e refinamento
-    adaptativo em $h$ (tri2 + 4 níveis; \path{docs/talude_srm/fs_arc_length}). Esse FS é o do equilíbrio limite (Ceron 2025, Eq.~58).
+    adaptativo em $h$ (tri2 + 4 níveis; \path{docs/talude_srm/fs_arc_length}). Esse FS é o do equilíbrio limite \citep[Eq.~58]{ceron2025}.
   \item \textbf{Correção do SRM (etapa 1):} o peso é aplicado com $F_0 = 0{,}8$, e não com 1. Com 1, o peso às vezes
     convergia num talude com FS logo abaixo de 1, e o FS saía $\ge 1$, o que deixava um buraco no histograma.
 \end{itemize}
 
 \section{Campos aleatórios: as duas bases de Karhunen--Loève}\label{sec:kl}
-Os parâmetros de resistência são campos lognormais, com correlação cruzada $\rho = r(c, \varphi)$ entre os campos
-gaussianos:
+Os parâmetros de resistência são campos lognormais, com correlação cruzada $\rho$ entre os campos gaussianos
+\citep[Eqs.~11 e 12]{cho2010}:
 \begin{equation}
   \ln c'(\bm x) = \mu_c + \sigma_c Z_c(\bm x), \qquad
   \ln\varphi'(\bm x) = \mu_\varphi + \sigma_\varphi\big[\rho\, Z_c(\bm x) + \sqrt{1-\rho^2}\, Z_\varphi(\bm x)\big],
+  \label{eq:campos}
 \end{equation}
-com $\sigma^2 = \ln(1 + \mathrm{CoV}^2)$ e $\mu = \ln m - \sigma^2/2$ (médias $m$ de 10\,kPa e 30$^\circ$, CoV de 0,3 e
-0,2). $Z_c$ e $Z_\varphi$ são campos gaussianos padrão independentes, com a covariância exponencial separável
-$C(\bm x, \bm x') = \exp(-|x - x'|/l_h - |y - y'|/l_v)$, $l_h = 20$\,m e $l_v = 2$\,m. Cada um é uma expansão de
-Karhunen--Loève truncada:
+com $\sigma^2 = \ln(1 + \mathrm{CoV}^2)$ e $\mu = \ln m - \sigma^2/2$ \citep[Eqs.~13 e 14]{cho2010}, as mesmas de
+\citet[Eqs.~65 e 66]{ceron2025}. As médias $m$ são de 10\,kPa e 30$^\circ$, e os CoV, de 0,3 e 0,2: é o Exemplo~2 de
+\citet[Tabela~4]{cho2010}. $Z_c$ e $Z_\varphi$ são campos gaussianos padrão independentes, com a covariância exponencial
+separável $C(\bm x, \bm x') = \exp(-|x - x'|/l_h - |y - y'|/l_v)$, $l_h = 20$\,m e $l_v = 2$\,m
+\citep[Eq.~7]{cho2010}, a mesma de \citet[Eq.~64]{ceron2025}. Cada um é uma expansão de Karhunen--Loève truncada:
 \begin{equation}
   Z(\bm x) = \sum_{k=1}^{M} \psi_k(\bm x)\,\xi_k, \qquad \psi_k(\bm x) = \sqrt{\lambda_k}\, f_k(\bm x), \qquad
   \xi_k \sim N(0, 1) \text{ independentes},
@@ -56,11 +61,42 @@ $\int_D C(\bm x, \bm x') f_k(\bm x')\,d\bm x' = \lambda_k f_k(\bm x)$, com $\int
 realização é o vetor $\bm\xi = (\bm\xi_c, \bm\xi_\varphi) \in \mathbb R^{2M}$, e a base entra só pelas funções $\psi_k$
 nos pontos de integração. As duas bases diferem no domínio e no cálculo dos autopares.
 
+\paragraph{Correlação cruzada.} Como em \citet{cho2010}, os dois campos usam as mesmas autofunções, isto é, a mesma
+autocorrelação \citep{fenton2003}, e a correlação vai nos coeficientes da expansão: os vetores $\bm\xi_c$ e
+$\bm\xi_\varphi$ são correlacionados pela matriz $\bigl(\begin{smallmatrix}1 & \rho\\ \rho & 1\end{smallmatrix}\bigr)$
+\citep{vorechovsky2008}. O fator de Cholesky dessa matriz leva os coeficientes independentes a
+$\rho\,\bm\xi_c + \sqrt{1 - \rho^2}\,\bm\xi_\varphi$. Como a expansão é linear e as autofunções são as mesmas,
+correlacionar os coeficientes é o mesmo que correlacionar os campos: é o colchete da Eq.~\eqref{eq:campos}.
+
+Assim, $\rho$ é a correlação entre $\ln c'$ e $\ln\varphi'$, e não entre $c'$ e $\varphi'$. Depois da exponencial, a
+correlação entre $c'$ e $\varphi'$ fica um pouco mais fraca (com $e^{\sigma^2} - 1 = \mathrm{CoV}^2$):
+\begin{equation}
+  r(c', \varphi') = \frac{e^{\rho\,\sigma_c\sigma_\varphi} - 1}{\sqrt{(e^{\sigma_c^2} - 1)(e^{\sigma_\varphi^2} - 1)}}
+  = \frac{e^{\rho\,\sigma_c\sigma_\varphi} - 1}{\mathrm{CoV}_c\,\mathrm{CoV}_\varphi}
+  \quad\Longleftrightarrow\quad
+  \rho = \frac{\ln\big(1 + r\,\mathrm{CoV}_c\,\mathrm{CoV}_\varphi\big)}{\sigma_c\,\sigma_\varphi}.
+  \label{eq:rlog}
+\end{equation}
+\begin{center}\small
+\begin{tabular}{rrr}
+\toprule
+$\rho$ usado (gaussiano) & $r(c', \varphi')$ resultante & $\rho$ para que $r(c', \varphi')$ seja o valor dado \\
+\midrule
+$-0{,}5$ & $-0{,}478$ & $-0{,}524$ \\
+$-0{,}7$ & $-0{,}665$ & $-0{,}738$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+\citet{cho2010} aplica o $r(c, \varphi)$ do mesmo jeito: a correlação vai nos coeficientes $\chi_{i,j}$ da Eq.~11 dele,
+antes da exponencial da Eq.~12, e o texto não fala em conversão. Por isso usamos $\rho = r(c, \varphi)$ ($-0{,}5$ e
+$-0{,}7$), como ele. Os valores de $r$ que ele cita vêm de ensaios \citep{cho2010}, ou seja, são correlações entre $c$ e
+$\varphi$; para respeitá-los à risca, o $\rho$ gaussiano seria o da última coluna.
+
 \paragraph{KL analítica} (\texttt{KLSeparavel.h}, \texttt{RandomField}). $D$ é o retângulo $[0, 30]\times[0, 15]$\,m
 que contém o talude. O kernel é o produto de dois kernels exponenciais 1D, então os autopares 2D são produtos dos 1D,
 $f_k(x, y) = f^x_i(x - x_c)\, f^y_j(y - y_c)$ e $\lambda_k = \lambda^x_i \lambda^y_j$, em ordem decrescente de
 $\lambda$ ($x_c$, $y_c$: o centro do retângulo). Para o kernel $e^{-|s - t|/L}$ em $[-a, a]$, com $c = 1/L$, os
-autopares têm forma fechada (Ghanem e Spanos, 1991):
+autopares têm forma fechada \citep{ghanem1991}:
 \begin{equation*}
   f(s) = \frac{\cos\omega s}{\sqrt{a + \frac{\sin 2\omega a}{2\omega}}}, \ \ \omega\tan\omega a = c; \qquad
   f(s) = \frac{\sin\omega s}{\sqrt{a - \frac{\sin 2\omega a}{2\omega}}}, \ \ \omega + c\tan\omega a = 0; \qquad
@@ -150,9 +186,9 @@ realizações do direto para a base de Nyström.
       D_\varphi = \frac{\partial D}{\partial \varphi} = -\frac{\dot\varepsilon_v}{2\sin\varphi^*}\big[(\sigma_1+\sigma_3)
       \cos\varphi^* + 2c^*\sin\varphi^*\big].
     \end{equation*}
-    A primeira é a Eq.~14 do guia de estudo, a versão contínua da potência resistente da Eq.~48 do Ceron (2025). A
-    segunda a estende ao $\varphi'$, com as tensões de colapso. Com $F$ definido por $\Gamma(c/F, \varphi^*) = 1$ (Ceron,
-    Eq.~58), $\partial F/\partial c'(\bm x) = D_c/\mathrm{Den}$ e
+    A primeira é a Eq.~14 do guia de estudo, a versão contínua da potência resistente da Eq.~48 de \citet{ceron2025}. A
+    segunda a estende ao $\varphi'$, com as tensões de colapso. Com $F$ definido por $\Gamma(c/F, \varphi^*) = 1$
+    \citep[Eq.~58]{ceron2025}, $\partial F/\partial c'(\bm x) = D_c/\mathrm{Den}$ e
     $\partial F/\partial\tan\varphi'(\bm x) = D_\varphi\cos^2\varphi^*/\mathrm{Den}$, com
     $\mathrm{Den} = \int (D_c c^* + D_\varphi\sin\varphi^*\cos\varphi^*)$. A taxa $\dot\varepsilon_v$ do mecanismo é
     aproximada pela deformação plástica volumétrica no colapso, e a escala se cancela. A regra da cadeia com
@@ -177,5 +213,20 @@ realizações do direto para a base de Nyström.
   \item \textbf{A AI pelo ponto de projeto:} $\bm\xi \sim N(\bm u^*, I)$ nos $2M$ primeiros termos (os outros, $N(0, 1)$),
     com o peso $w = \exp(-\bm u^*\cdot\bm\xi + \beta^2/2)$.
 \end{itemize}
+
+\begin{thebibliography}{9}
+\bibitem[Cho(2010)]{cho2010} S.~E. Cho. Probabilistic assessment of slope stability that considers the spatial
+  variability of soil properties. \emph{Journal of Geotechnical and Geoenvironmental Engineering}, 136(7):975--984, 2010.
+\bibitem[Fenton e Griffiths(2003)]{fenton2003} G.~A. Fenton e D.~V. Griffiths. Bearing capacity prediction of spatially
+  random $c$--$\varphi$ soils. \emph{Canadian Geotechnical Journal}, 40(1):54--65, 2003.
+\bibitem[Ghanem e Spanos(1991)]{ghanem1991} R.~G. Ghanem e P.~D. Spanos. \emph{Stochastic Finite Elements: A Spectral
+  Approach}. Springer, Nova York, 1991.
+\bibitem[Vargas Ceron et~al.(2025)]{ceron2025} M. Vargas Ceron, D. Lira Cecílio, R.~V. Linn e S. Maghous. Stability
+  analysis of slope subjected to seepage forces considering spatial variability of soil properties.
+  \emph{International Journal for Numerical and Analytical Methods in Geomechanics}, 49(11):2459--2491, 2025.
+  \url{https://doi.org/10.1002/nag.3993}.
+\bibitem[Vo\v{r}echovsk\'y(2008)]{vorechovsky2008} M. Vo\v{r}echovsk\'y. Simulation of simply cross correlated random
+  fields by series expansion methods. \emph{Structural Safety}, 30(4):337--363, 2008.
+\end{thebibliography}
 
 \end{document}
