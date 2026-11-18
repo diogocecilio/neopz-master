@@ -24,6 +24,8 @@ DD5, DD7, AM, AT0, A07, PP, FGIM, GV0, GVU = (E[k] for k in ("DD5", "DD7", "AM",
 S05, S07, F4, GANHOS, GANHO_K50, LOTES = (E[k] for k in ("S05", "S07", "F4", "GANHOS", "GANHO_K50", "LOTES"))
 DIF_T0, DIFS05, CUSTO05, CUSTO07, f05 = (E[k] for k in ("DIF_T0", "DIFS05", "CUSTO05", "CUSTO07", "f05"))
 SRM_MOD, SRM_CD, angulo = E["SRM_MOD"], E["SRM_CD"], E["angulo"]
+AIGIM, DIAG_BANDA, G20 = E["AIGIM"], E["DIAG_BANDA"], E["G20"]
+BANDAS_GIM = [g for rot, sem, g, s_ in AIGIM if rot.startswith("AI pela banda") and g]
 F4KL = [a for r, a in F4 if "M = 100" in r]
 F4NY = [a for r, a in F4 if "M = 200" in r]
 OTIMISMO = [100 * (1 - LOTES[k]["desvio_estimado"] / LOTES[k]["desvio"]) for k in LOTES if k != "P"]
@@ -108,7 +110,8 @@ Três documentos:
               "2b & base de Nyström contra a analítica & o mesmo ponto de projeto (etapas, Seção~\\ref{E-sec:pp}); fase 4 "
               "de Nyström parcial \\\\",
               "2c & gradiente do FORM pela projeção modal & validado no SRM e no GIM (etapas, "
-              "Seção~\\ref{E-sec:validacao}); fase 4 parcial \\\\",
+              "Seção~\\ref{E-sec:validacao}); a AI com o GIM reproduz a do SRM (Seção~\\ref{E-sec:aigim}); "
+              "fase 4 parcial \\\\",
               f"3 & $P_f$ pequena ($r = -0{{,}}7$), tamanho do piloto, custo & o direto vai "
               f"de {mil(d07['n'])} ({d07['k']} falhas) a 110\\,000 (CoV 5\\,\\%), com os 4 nós do fermi \\\\",
               f"4 & FORM e AI na chuva & o direto de {mil(dch['n'])} terminou ($P_f = {pct(dch['p'])}\\,\\%$); falta o "
@@ -139,6 +142,14 @@ Cada item cita a seção do relatório das etapas com o resultado completo.
     num(GV0["angulo_graus"], 1) + " e " + num(GVU["angulo_graus"], 1) + r"""$^\circ$. O FORM do GIM converge em 5 análises
     para $\beta = """ + num(FGIM[10]["beta_corrigido"], 3) + r"""$ ($M = 10$) e $""" + num(FGIM[20]["beta_corrigido"], 3) +
     r"""$ ($M = 20$), contra """ + num(f05[0]["bc"], 3) + " e " + num(f05[1]["bc"], 3) + r""" das diferenças centrais no SRM.
+  \item \textbf{A AI com o GIM} (etapas, Seção~\ref{E-sec:aigim}), refazendo a Tabela 2 com as mesmas sementes. Pelo
+    FORM, o GIM dá o mesmo que o SRM: as """ + str(len(G20)) + r""" sementes do FORM $M = 20$ dão, em média, """ +
+    pct(sum(g["p"] for g, s_ in G20) / len(G20), 3) + r"""\,\% (SRM: """ + pct(sum(s_["p"] for g, s_ in G20) / len(G20), 3) +
+    r"""\,\%; direto: """ + pct(d05["p"]) + r"""\,\%). A banda com o GIM sai baixa (""" +
+    " e ".join(pct(g["p"]) for g in BANDAS_GIM) + r"""\,\%): o nível intermediário de $\Gamma$ desloca a $c'$ para cima, e o
+    CoV verdadeiro da AI passa a """ + " e ".join(num(100 * d["cov"], 1) for r, d in DIAG_BANDA if r.startswith("GIM")) +
+    r"""\,\%, contra """ + num(100 * [d for r, d in DIAG_BANDA if r.startswith("SRM")][0]["cov"], 1) + r"""\,\% no SRM.
+    Com o GIM, o deslocamento deve vir do FORM.
   \item \textbf{Sem viés} (etapas, Seção~\ref{E-sec:vies}). As falhas do direto ficam todas onde a AI amostra, a
     variância verdadeira é a estimada, e as sementes independentes acertam o direto. A fase 4 parcial (etapas,
     Seção~\ref{E-sec:fase4}) dá """ + FASE4 + r""", contra """ + pct(d05['p']) + r"""\,\% do direto.
@@ -181,11 +192,16 @@ Cada item cita a seção do relatório das etapas com o resultado completo.
   \item \textbf{O gradiente modal dá a direção do FORM com 1 análise,} a menos de ≈9 a 11$^\circ$ das diferenças centrais
     no SRM e de 3 a 6$^\circ$ no GIM, e o FORM converge em 3 a 5 análises.
   \item \textbf{A base de Nyström precisa de menos termos} que a analítica para o mesmo $\beta$.
+  \item \textbf{O GIM pode substituir o SRM na AI pelo FORM:} mesma região de falha, mesmo ponto de projeto, a mesma
+    $P_f$ e o mesmo CoV com a mesma semente, nas duas bases (etapas, Seção~\ref{E-sec:aigim}).
 """ + HIP05 + r"""
 """ + HIP07 + r"""
 \end{itemize}
 \subsection*{Descartadas}
 \begin{itemize}
+  \item \textbf{A banda (entropia cruzada de um nível) com o GIM e o piloto na Tri(0):} o elite de $\Gamma$, longe de
+    $\Gamma = 1$, desloca a $c'$ para o lado errado, e a AI sai baixa e com CoV verdadeiro maior (etapas,
+    Seção~\ref{E-sec:aigim}). O piloto de 10\,000 não resolve.
   \item \textbf{O FORM na malha Tri(0)} (76 equações, FS 1,47 contra 1,20): $\beta = 4{,}08$ e direção a 31,7$^\circ$ da
     certa. O erro da malha desloca o ponto de projeto, e não só o FS. Com a direção da Tri(0) e a distância da malha usual
     ($\beta = 2{,}32$), a AI funciona, mas pior que o FORM na malha usual.

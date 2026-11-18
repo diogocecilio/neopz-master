@@ -819,14 +819,127 @@ def b_srm_dif(M):
     return f"{num(f['bc'], 3)} & {f['n']}" if f else "--- & ---"
 
 
+FGIM_NY = (le_json(f"{RUNS}/cho2010/gim_ai/form_gim_nys_M200/form.json")
+           if os.path.exists(f"{RUNS}/cho2010/gim_ai/form_gim_nys_M200/form.json") else None)
 T_GIM = tabela("$M$ & GIM, modal & análises & SRM, modal & análises & SRM, diferenças centrais & análises",
                [f"{M} & {num(FGIM[M]['beta_corrigido'], 3)} & {FGIM[M]['avaliacoes']} & " +
                 (f"{num(FM[M][0]['b'], 3)} & {FM[M][0]['n']}" if M in FM and FM[M][0] else "--- & ---") + " & " +
-                b_srm_dif(M) + " \\\\" for M in sorted(FGIM)], "rrrrrrr")
+                b_srm_dif(M) + " \\\\" for M in sorted(FGIM)] +
+               ([f"200 (Nyström) & {num(FGIM_NY['beta_corrigido'], 3)} & {FGIM_NY['avaliacoes']} & "
+                 f"{num(FM[200][1]['b'], 3)} & {FM[200][1]['n']} & --- & --- \\\\"] if FGIM_NY and FM[200][1] else []),
+               "rrrrrrr")
 T_F4 = tabela("AI (fase 4, parcial) & sementes & $N$ & $P_f$ (\\%) & CoV (\\%) & dif. (desvios)",
               [f"{r.split(', fase 4')[0].split(', semente')[0]} & {a['pastas']} & {a['n']} & {pct(a['p'])} $\\pm$ "
                f"{pct(a['sd'])} & {num(100 * a['cov'], 1)} & {num(desvios(a, d05), 1)} \\\\" for r, a in F4], "lrrrrr")
 DIFS05 = [abs(desvios(a, d05)) for r, a in a05 + pc if a and a["n"] >= 1000 and "Tri(0)" not in r]
+
+
+# a AI com o GIM no PC (17/11): a Tabela 2 refeita com o GIM, com as mesmas sementes (~/projects/runs/cho2010/gim_ai)
+GA = f"{RUNS}/cho2010/gim_ai/campanha"
+
+
+def desloc_banda(pasta):
+    """o s (um por campo), o |mu|^2, o elite e o nivel do deslocamento da banda (o primeiro mc_desloc_*.txt)"""
+    arqs = sorted(glob.glob(f"{pasta}/mc_desloc_*.txt"))
+    if not arqs:
+        return None
+    d = dict(l.strip().split("=", 1) for l in open(arqs[0]) if "=" in l and not l.startswith("#"))
+    return dict(s=[float(x) for x in d["s"].split(",")], mu2=float(d["mu2"]), elite=int(d["elite"]),
+                nivel=float(d["nivel"]), falhas=int(d["falhas"]))
+
+
+SRM_DE = dict(a05 + pc + iguais)
+AIGIM = []
+for c, rot, sem, chave in (("gim_form20_s3", "AI pelo FORM $M = 20$", 3, "AI pelo FORM $M = 20$"),
+                           ("gim_form100_s3", "AI pelo FORM modal $M = 100$", 3, "AI pelo FORM $M = 100$, gradiente modal [PC]"),
+                           ("gim_banda_tri0", "AI pela banda, piloto na Tri(0)", 1, "AI pela banda, piloto na Tri(0) [PC]"),
+                           ("gim_form20_s4", "AI pelo FORM $M = 20$", 4, "AI pelo FORM $M = 20$, semente 4"),
+                           ("gim_form20_s5", "AI pelo FORM $M = 20$", 5, "AI pelo FORM $M = 20$, semente 5"),
+                           ("gim_banda_tri0_10k", "AI pela banda, piloto de 10\\,000 na Tri(0)", 1, None),
+                           ("gim_nys_form200_s3", "Nyström, AI pelo FORM modal $M = 200$", 3,
+                            "Nyström, 200 termos (ponto do FORM modal Nyström $M = 200$)")):
+    AIGIM.append((rot, sem, ai(f"{GA}/{c}") if len(le(f"{GA}/{c}")) > 1 else None, SRM_DE.get(chave)))
+DESL_GIM, DESL_SRM = desloc_banda(f"{GA}/gim_banda_tri0"), desloc_banda(f"{G}/ai_banda_tri0")
+DESL_GIM10K = desloc_banda(f"{GA}/gim_banda_tri0_10k")
+
+
+def linha_gim(rot, sem, g, s):
+    gim = (f"{g['n']} & {pct(g['p'])} & {num(100 * g['cov'], 1)} & {num(desvios(g, d05), 1)} & {num(ganho(g, d05), 1)}"
+           if g else "--- & na fila & --- & --- & ---")
+    srm = f"{pct(s['p'])} & {num(100 * s['cov'], 1)} & {num(ganho(s, d05), 1)}" if s else "--- & --- & ---"
+    return f"{rot} & {sem} & {gim} & {srm} \\\\"
+
+
+T_AIGIM = tabela("Método & semente & $N$ & GIM: $P_f$ (\\%) & CoV (\\%) & dif. (desvios) & ganho & SRM: $P_f$ (\\%) & "
+                 "CoV (\\%) & ganho", [linha_gim(*x) for x in AIGIM], "lrrrrrrrrr")
+
+
+# a banda com o deslocamento do GIM e com o do SRM, avaliada com o proprio direto (sem elementos finitos): as falhas do
+# direto (FS < 1, o mesmo evento de Gamma < 1) projetadas na direcao de cada banda (o modo linear do Cho2010 com banda=,
+# ~/projects/runs/cho2010/gim_ai/diag) e o peso w = exp(-mu . xi + |mu|^2 / 2), com mu = (s_c d, s_phi d). A variancia
+# verdadeira de uma amostra da AI e E_phi[I w] - P_f^2 (a identidade E_h[I w^2] = E_phi[I w])
+def diag_banda(proj, desl):
+    if not desl or not glob.glob(f"{proj}/mc_*_*.csv"):
+        return None
+    pr, dd = le(proj), le(f"{E1}/r05_direto")
+    ks = [k for k in dd if k in pr]
+    sc, sp = desl["s"]
+    m2 = sc * sc + sp * sp
+    I = {k: float(dd[k]["FS_min"]) < 1 for k in ks}
+    w = {k: math.exp(-(sc * float(pr[k]["proj_c"]) + sp * float(pr[k]["proj_phi"])) + m2 / 2) for k in ks}
+    P = sum(I.values()) / len(ks)
+    EIw = sum(w[k] for k in ks if I[k]) / len(ks)
+    return dict(cov=math.sqrt(max(EIw - P * P, 0) / 1000) / P, hits=1000 * sum(1 / w[k] for k in ks if I[k]) / len(ks),
+                pesados=sum(1 for k in ks if I[k] and w[k] > 1), s=desl["s"], mu2=m2)
+
+
+GD = f"{RUNS}/cho2010/gim_ai/diag"
+DIAG_BANDA = [(r, d) for r, d in (("GIM, piloto de 1000", diag_banda(f"{GD}/proj_gim", DESL_GIM)),
+                                  ("GIM, piloto de 10\\,000", diag_banda(f"{GD}/proj_gim10k", DESL_GIM10K)),
+                                  ("SRM, piloto de 1000", diag_banda(f"{GD}/proj_srm", DESL_SRM))) if d]
+T_DIAGB = tabela("Banda (piloto na Tri(0)) & $s_c$ & $s_\\varphi$ & $|\\bm\\mu|^2$ & CoV verdadeiro com 1000 (\\%) & "
+                 "falhas esperadas em 1000 & falhas do direto com $w > 1$",
+                 [f"{r} & {num(d['s'][0], 2)} & {num(d['s'][1], 2)} & {num(d['mu2'], 2)} & {num(100 * d['cov'], 1)} & "
+                  f"{d['hits']:.0f} & {d['pesados']} \\\\" for r, d in DIAG_BANDA], "lrrrrrr")
+G20 = [(g, s) for rot, sem, g, s in AIGIM if rot == "AI pelo FORM $M = 20$" and g and g["n"] >= 1000 and s]
+if len(G20) >= 2:
+    mg, ms = sum(g["p"] for g, s in G20) / len(G20), sum(s["p"] for g, s in G20) / len(G20)
+    sg, ss = (math.sqrt(sum(g["sd"] ** 2 for g, s in G20)) / len(G20), math.sqrt(sum(s["sd"] ** 2 for g, s in G20)) /
+              len(G20))
+    SEMENTES_GIM = (f"As {len(G20)} sementes do FORM $M = 20$ dão, em média, {pct(mg, 3)} $\\pm$ {pct(sg, 3)}\\,\\% com o "
+                    f"GIM e {pct(ms, 3)} $\\pm$ {pct(ss, 3)}\\,\\% com o SRM, contra {pct(d05['p'], 3)}\\,\\% do direto.")
+else:
+    SEMENTES_GIM = "As sementes 4 e 5 do FORM $M = 20$ ainda estão rodando."
+# a dif. da banda para o direto com o CoV verdadeiro (o do teste com o direto), no lugar do estimado pela AI
+DIFV = []
+for (rot, sem, g, s_), (rd, dg) in ((x, y) for x in AIGIM for y in DIAG_BANDA):
+    if g and rd.startswith("GIM") and (("10\\,000" in rot) == ("10\\,000" in rd)) and rot.startswith("AI pela banda"):
+        sdv = dg["cov"] * math.sqrt(1000 / g["n"]) * d05["p"]
+        DIFV.append((rd, (g["p"] - d05["p"]) / math.hypot(sdv, math.sqrt(d05["p"] * (1 - d05["p"]) / d05["n"])), desvios(g, d05)))
+DIFV_TXT = ("; ".join(f"${num(e, 1)}$ com o desvio estimado e ${num(v, 1)}$ com o verdadeiro ({r.split(', ')[1]})"
+                      for r, v, e in DIFV))
+GIM_TXT_AI = (r"""\begin{itemize}
+  \item \textbf{Com o deslocamento pelo FORM, o GIM substitui o SRM sem perda.} Com a mesma semente, a AI do GIM e a do
+    SRM dão a mesma $P_f$ e o mesmo CoV: $\Gamma < 1$ e $\mathrm{FS} < 1$ separam as realizações quase do mesmo jeito, e os
+    pontos de projeto do GIM e do SRM praticamente coincidem (Tabela~\ref{tab:gim}). """ + SEMENTES_GIM + r""" O FORM do
+    GIM custa 5 análises, e o ganho é o da Tabela~\ref{tab:r05}. Em Nyström, o mesmo: o GIM e o SRM dão o mesmo valor.
+  \item \textbf{A banda com o GIM sai baixa e com CoV maior.} Na Tri(0), nenhuma realização do piloto falha, e o elite são
+    os 10\,\% de menor $\Gamma$: um nível intermediário, longe de $\Gamma = 1$, onde os níveis de $\Gamma$ e de FS são
+    conjuntos diferentes. No GIM, o elite empurra a $c'$ para cima ($s_c > 0$), ao contrário do SRM, e uma parte da região
+    de falha fica na cauda do sorteio. O teste com o próprio direto (Tabela~\ref{tab:diagbanda}) mede o efeito: o
+    deslocamento do GIM quase triplica a variância da AI, e muitas falhas do direto caem onde a AI sorteia menos que a
+    densidade original ($w > 1$). A AI continua sem viés, mas o estimador fica assimétrico: a estimativa típica sai baixa,
+    e o CoV estimado é otimista, como no teste linear (Seção~\ref{sec:linear}). A diferença da banda para o direto, em
+    desvios: """ + DIFV_TXT + r""". Com o piloto de 10\,000, o deslocamento
+    muda pouco: o problema é o nível de $\Gamma$, e não o tamanho do piloto. Com o GIM, o deslocamento deve vir do FORM,
+    ou de uma entropia cruzada em vários níveis, até $\Gamma = 1$.
+\end{itemize}
+\begin{table}[H]\centering\small
+""" + T_DIAGB + r"""
+\caption{A banda avaliada com o próprio direto de $r = -0{,}5$ (sem elementos finitos): o deslocamento $\bm\mu = (s_c\,\bm
+e_B,\ s_\varphi\,\bm e_B)$ de cada banda, o CoV verdadeiro de uma AI de 1000, as falhas esperadas nela e as falhas do
+direto onde a AI sorteia menos que a densidade original. A falha é a do direto ($\mathrm{FS} < 1$).}\label{tab:diagbanda}
+\end{table}""")
 
 tex = (r"""\documentclass[11pt,a4paper]{article}
 \usepackage[utf8]{inputenc}
@@ -1063,6 +1176,20 @@ Seção~\ref{F-sec:gradmodal}): uma análise por iteração, qualquer que seja $
 usual. GIM: $g = \Gamma - 1$; SRM: $g = \mathrm{FS} - 1$. A região de falha é a mesma nos dois, então o $\beta$ também
 deveria ser.}\label{tab:gim}
 \end{table}
+
+\subsection{A AI com o GIM: a Tabela~\ref{tab:r05} refeita}\label{sec:aigim}
+Com o GIM, a falha é $\Gamma < 1$, a mesma região de $\mathrm{FS} < 1$ (formulação, Eq.~\ref{F-eq:srm}): a referência é
+o mesmo direto do SRM, """ + pct(d05['p']) + r"""\,\%. Os deslocamentos são os pontos de projeto do FORM modal do GIM
+(Tabela~\ref{tab:gim}), e a banda usa o piloto na Tri(0), também com o GIM. Tudo na base analítica, como as linhas
+correspondentes da Tabela~\ref{tab:r05}. As sementes são as mesmas: com deslocamentos parecidos, os sorteios são quase os
+mesmos, e a diferença entre o GIM e o SRM numa linha é quase só a do método. Rodou no PC
+(\path{~/projects/runs/cho2010/gim_ai}).
+\begin{table}[H]\centering\small
+""" + T_AIGIM + r"""
+\caption{A AI com o GIM e a do SRM correspondente (Tabela~\ref{tab:r05}), com a mesma semente. A dif. e o ganho são
+contra o direto do SRM; nas de Nyström, a dif. é aproximada (Seção~\ref{sec:mesmavar}).}\label{tab:aigim}
+\end{table}
+""" + GIM_TXT_AI + r"""
 
 \subsection{A AI pelo ponto de projeto modal}\label{sec:aimodal}
 O deslocamento é o ponto de projeto do FORM modal (formulação, Seção~\ref{F-sec:aiform}). As AI estão na
