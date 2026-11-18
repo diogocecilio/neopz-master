@@ -305,11 +305,69 @@ $M$ & GIM, modal & análises & SRM, modal & análises & SRM, diferenças centrai
 10 & 2{,}131 & 5 & 2{,}151 & 4 & 2{,}115 & 123 \\
 20 & 2{,}026 & 5 & 2{,}040 & 3 & 2{,}012 & 243 \\
 100 & 1{,}982 & 5 & 2{,}001 & 3 & --- & --- \\
+200 (Nyström) & 1{,}982 & 5 & 1{,}999 & 3 & --- & --- \\
 \bottomrule
 \end{tabular}}
 \caption{$\beta$ do FORM (corrigido: a distância da origem ao plano tangente no último ponto) com cada gradiente, na malha
 usual. GIM: $g = \Gamma - 1$; SRM: $g = \mathrm{FS} - 1$. A região de falha é a mesma nos dois, então o $\beta$ também
 deveria ser.}\label{tab:gim}
+\end{table}
+
+\subsection{A AI com o GIM: a Tabela~\ref{tab:r05} refeita}\label{sec:aigim}
+Com o GIM, a falha é $\Gamma < 1$, a mesma região de $\mathrm{FS} < 1$ (formulação, Eq.~\ref{F-eq:srm}): a referência é
+o mesmo direto do SRM, 1{,}70\,\%. Os deslocamentos são os pontos de projeto do FORM modal do GIM
+(Tabela~\ref{tab:gim}), e a banda usa o piloto na Tri(0), também com o GIM. Tudo na base analítica, como as linhas
+correspondentes da Tabela~\ref{tab:r05}. As sementes são as mesmas: com deslocamentos parecidos, os sorteios são quase os
+mesmos, e a diferença entre o GIM e o SRM numa linha é quase só a do método. Rodou no PC
+(\path{~/projects/runs/cho2010/gim_ai}).
+\begin{table}[H]\centering\small
+\resizebox{\ifdim\width>\textwidth\textwidth\else\width\fi}{!}{%
+\begin{tabular}{lrrrrrrrrr}
+\toprule
+Método & semente & $N$ & GIM: $P_f$ (\%) & CoV (\%) & dif. (desvios) & ganho & SRM: $P_f$ (\%) & CoV (\%) & ganho \\
+\midrule
+AI pelo FORM $M = 20$ & 3 & 1000 & 1{,}54 & 6{,}9 & -1{,}2 & 13{,}7 & 1{,}53 & 6{,}3 & 16{,}2 \\
+AI pelo FORM modal $M = 100$ & 3 & 1000 & 1{,}55 & 6{,}1 & -1{,}2 & 17{,}3 & 1{,}57 & 6{,}9 & 12{,}9 \\
+AI pela banda, piloto na Tri(0) & 1 & 1000 & 1{,}08 & 15{,}6 & -3{,}3 & 3{,}7 & 1{,}66 & 10{,}8 & 5{,}1 \\
+AI pelo FORM $M = 20$ & 4 & 1000 & 1{,}76 & 6{,}2 & 0{,}4 & 14{,}6 & 1{,}72 & 5{,}9 & 16{,}3 \\
+AI pelo FORM $M = 20$ & 5 & 1000 & 1{,}91 & 6{,}2 & 1{,}4 & 13{,}3 & 1{,}90 & 6{,}1 & 14{,}1 \\
+AI pela banda, piloto de 10\,000 na Tri(0) & 1 & 1000 & 1{,}18 & 14{,}8 & -2{,}7 & 3{,}8 & --- & --- & --- \\
+Nyström, AI pelo FORM modal $M = 200$ & 3 & 1000 & 1{,}47 & 5{,}7 & -1{,}9 & 20{,}5 & 1{,}53 & 6{,}0 & 17{,}8 \\
+\bottomrule
+\end{tabular}}
+\caption{A AI com o GIM e a do SRM correspondente (Tabela~\ref{tab:r05}), com a mesma semente. A dif. e o ganho são
+contra o direto do SRM; nas de Nyström, a dif. é aproximada (Seção~\ref{sec:mesmavar}).}\label{tab:aigim}
+\end{table}
+\begin{itemize}
+  \item \textbf{Com o deslocamento pelo FORM, o GIM substitui o SRM sem perda.} Com a mesma semente, a AI do GIM e a do
+    SRM dão a mesma $P_f$ e o mesmo CoV: $\Gamma < 1$ e $\mathrm{FS} < 1$ separam as realizações quase do mesmo jeito, e os
+    pontos de projeto do GIM e do SRM praticamente coincidem (Tabela~\ref{tab:gim}). As 3 sementes do FORM $M = 20$ dão, em média, 1{,}735 $\pm$ 0{,}064\,\% com o GIM e 1{,}719 $\pm$ 0{,}061\,\% com o SRM, contra 1{,}700\,\% do direto. O FORM do
+    GIM custa 5 análises, e o ganho é o da Tabela~\ref{tab:r05}. Em Nyström, o mesmo: o GIM e o SRM dão o mesmo valor.
+  \item \textbf{A banda com o GIM sai baixa e com CoV maior.} Na Tri(0), nenhuma realização do piloto falha, e o elite são
+    os 10\,\% de menor $\Gamma$: um nível intermediário, longe de $\Gamma = 1$, onde os níveis de $\Gamma$ e de FS são
+    conjuntos diferentes. No GIM, o elite empurra a $c'$ para cima ($s_c > 0$), ao contrário do SRM, e uma parte da região
+    de falha fica na cauda do sorteio. O teste com o próprio direto (Tabela~\ref{tab:diagbanda}) mede o efeito: o
+    deslocamento do GIM quase triplica a variância da AI, e muitas falhas do direto caem onde a AI sorteia menos que a
+    densidade original ($w > 1$). A AI continua sem viés, mas o estimador fica assimétrico: a estimativa típica sai baixa,
+    e o CoV estimado é otimista, como no teste linear (Seção~\ref{sec:linear}). A diferença da banda para o direto, em
+    desvios: $-3{,}3$ com o desvio estimado e $-1{,}9$ com o verdadeiro (piloto de 1000); $-2{,}7$ com o desvio estimado e $-1{,}7$ com o verdadeiro (piloto de 10\,000). Com o piloto de 10\,000, o deslocamento
+    muda pouco: o problema é o nível de $\Gamma$, e não o tamanho do piloto. Com o GIM, o deslocamento deve vir do FORM,
+    ou de uma entropia cruzada em vários níveis, até $\Gamma = 1$.
+\end{itemize}
+\begin{table}[H]\centering\small
+\resizebox{\ifdim\width>\textwidth\textwidth\else\width\fi}{!}{%
+\begin{tabular}{lrrrrrr}
+\toprule
+Banda (piloto na Tri(0)) & $s_c$ & $s_\varphi$ & $|\bm\mu|^2$ & CoV verdadeiro com 1000 (\%) & falhas esperadas em 1000 & falhas do direto com $w > 1$ \\
+\midrule
+GIM, piloto de 1000 & 0{,}48 & -1{,}61 & 2{,}83 & 18{,}6 & 131 & 78 \\
+GIM, piloto de 10\,000 & 0{,}38 & -1{,}54 & 2{,}52 & 17{,}1 & 128 & 64 \\
+SRM, piloto de 1000 & -0{,}33 & -1{,}61 & 2{,}71 & 11{,}6 & 207 & 9 \\
+\bottomrule
+\end{tabular}}
+\caption{A banda avaliada com o próprio direto de $r = -0{,}5$ (sem elementos finitos): o deslocamento $\bm\mu = (s_c\,\bm
+e_B,\ s_\varphi\,\bm e_B)$ de cada banda, o CoV verdadeiro de uma AI de 1000, as falhas esperadas nela e as falhas do
+direto onde a AI sorteia menos que a densidade original. A falha é a do direto ($\mathrm{FS} < 1$).}\label{tab:diagbanda}
 \end{table}
 
 \subsection{A AI pelo ponto de projeto modal}\label{sec:aimodal}

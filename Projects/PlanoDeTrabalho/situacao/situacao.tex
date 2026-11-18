@@ -55,7 +55,7 @@ Etapa & O quê & Situação \\
 1 & SRM corrigido ($F_0 = 0{,}8$): o antigo contra o novo nas mesmas realizações & pronta (etapas, Seção~\ref{E-sec:srm}) \\
 2 & FORM ($M = 10$, 20) e AI pelo ponto de projeto; teste linear sem MEF & pronta; sem viés (etapas, Seção~\ref{E-sec:vies}) \\
 2b & base de Nyström contra a analítica & o mesmo ponto de projeto (etapas, Seção~\ref{E-sec:pp}); fase 4 de Nyström parcial \\
-2c & gradiente do FORM pela projeção modal & validado no SRM e no GIM (etapas, Seção~\ref{E-sec:validacao}); fase 4 parcial \\
+2c & gradiente do FORM pela projeção modal & validado no SRM e no GIM (etapas, Seção~\ref{E-sec:validacao}); a AI com o GIM reproduz a do SRM (Seção~\ref{E-sec:aigim}); fase 4 parcial \\
 3 & $P_f$ pequena ($r = -0{,}7$), tamanho do piloto, custo & o direto vai de 36\,385 (129 falhas) a 110\,000 (CoV 5\,\%), com os 4 nós do fermi \\
 4 & FORM e AI na chuva & o direto de 10\,000 terminou ($P_f = 5{,}51\,\%$); falta o código do FORM na chuva \\
 5 & investigação da chuva & não começou \\
@@ -79,6 +79,10 @@ Cada item cita a seção do relatório das etapas com o resultado completo.
   \item \textbf{O gradiente modal} (etapas, Seção~\ref{E-sec:validacao}). Uma análise por iteração, no lugar de $4M + 1$.
     No SRM, fica a 9 a 11$^\circ$ das diferenças centrais; no GIM, a 3{,}1 e 5{,}5$^\circ$. O FORM do GIM converge em 5 análises
     para $\beta = 2{,}131$ ($M = 10$) e $2{,}026$ ($M = 20$), contra 2{,}115 e 2{,}012 das diferenças centrais no SRM.
+  \item \textbf{A AI com o GIM} (etapas, Seção~\ref{E-sec:aigim}), refazendo a Tabela 2 com as mesmas sementes. Pelo
+    FORM, o GIM dá o mesmo que o SRM: as 3 sementes do FORM $M = 20$ dão, em média, 1{,}735\,\% (SRM: 1{,}719\,\%; direto: 1{,}70\,\%). A banda com o GIM sai baixa (1{,}08 e 1{,}18\,\%): o nível intermediário de $\Gamma$ desloca a $c'$ para cima, e o
+    CoV verdadeiro da AI passa a 18{,}6 e 17{,}1\,\%, contra 11{,}6\,\% no SRM.
+    Com o GIM, o deslocamento deve vir do FORM.
   \item \textbf{Sem viés} (etapas, Seção~\ref{E-sec:vies}). As falhas do direto ficam todas onde a AI amostra, a
     variância verdadeira é a estimada, e as sementes independentes acertam o direto. A fase 4 parcial (etapas,
     Seção~\ref{E-sec:fase4}) dá 1{,}95 $\pm$ 0{,}15\,\% (8 sementes, 529 realizações) na KL; 1{,}80 $\pm$ 0{,}13\,\% (9 sementes, 564 realizações) em Nyström, contra 1{,}70\,\% do direto.
@@ -118,11 +122,16 @@ Cada item cita a seção do relatório das etapas com o resultado completo.
   \item \textbf{O gradiente modal dá a direção do FORM com 1 análise,} a menos de ≈9 a 11$^\circ$ das diferenças centrais
     no SRM e de 3 a 6$^\circ$ no GIM, e o FORM converge em 3 a 5 análises.
   \item \textbf{A base de Nyström precisa de menos termos} que a analítica para o mesmo $\beta$.
+  \item \textbf{O GIM pode substituir o SRM na AI pelo FORM:} mesma região de falha, mesmo ponto de projeto, a mesma
+    $P_f$ e o mesmo CoV com a mesma semente, nas duas bases (etapas, Seção~\ref{E-sec:aigim}).
   \item \textbf{A AI pelo FORM não tem viés} ($r = -0{,}5$), nas duas bases (etapas, Seção~\ref{E-sec:vies}). Com a semente 3, as AI saem todas em ≈1,55\,\% (os sorteios são os mesmos). As 5 sementes independentes da KL dão, em média, 1{,}728\,\% contra 1{,}700\,\% do direto e, com a variável de controle, 1{,}679 $\pm$ 0{,}034\,\% contra 1{,}705 $\pm$ 0{,}040\,\% ($-0{,}5$ desvio). A direção errada da Tri(0) é a única que subestima o próprio CoV (9{,}3 contra 12{,}3\,\%); com o CoV verdadeiro, o seu desvio cai de $-2{,}2$ para $-1{,}5$.
   \item \textbf{A AI pelo FORM com $r = -0{,}7$ também não tem viés detectável:} as sementes 3, 4 e 5, corrigidas, dão 0{,}352, 0{,}332, 0{,}365\,\%, contra 0{,}372 $\pm$ 0{,}020\,\% do direto corrigido (36\,385 realizações, 129 falhas): $-0{,}9$ desvio.
 \end{itemize}
 \subsection*{Descartadas}
 \begin{itemize}
+  \item \textbf{A banda (entropia cruzada de um nível) com o GIM e o piloto na Tri(0):} o elite de $\Gamma$, longe de
+    $\Gamma = 1$, desloca a $c'$ para o lado errado, e a AI sai baixa e com CoV verdadeiro maior (etapas,
+    Seção~\ref{E-sec:aigim}). O piloto de 10\,000 não resolve.
   \item \textbf{O FORM na malha Tri(0)} (76 equações, FS 1,47 contra 1,20): $\beta = 4{,}08$ e direção a 31,7$^\circ$ da
     certa. O erro da malha desloca o ponto de projeto, e não só o FS. Com a direção da Tri(0) e a distância da malha usual
     ($\beta = 2{,}32$), a AI funciona, mas pior que o FORM na malha usual.
@@ -180,7 +189,7 @@ Documento & p. & O que tem \\
 \path{Projects/PlanoDeTrabalho/README.md} &  & o plano de trabalho (etapas 0 a 5, 2b e 2c), as regras dos documentos e este índice \\
 \path{Projects/PlanoDeTrabalho/situacao/situacao.pdf} & --- & a situação: o plano, os resultados principais (com as seções do relatório das etapas), as hipóteses e os próximos passos (este) \\
 \path{Projects/PlanoDeTrabalho/ETAPA0/relatorio_etapa0.pdf} & 9 & etapa 0: a AI da chuva no fermi e a prévia do Cho2010 (SRM antigo; superado pelo das etapas 1 a 3) \\
-\path{Projects/PlanoDeTrabalho/ETAPAS1a3/relatorio_etapas.pdf} & 15 & todos os resultados das etapas 0 a 3 e a referência da chuva: SRM corrigido, AI contra o direto, teste linear, as duas bases, o gradiente modal (SRM e GIM), o viés, a variável de controle, a fase 4 parcial, o piloto e o custo \\
+\path{Projects/PlanoDeTrabalho/ETAPAS1a3/relatorio_etapas.pdf} & 16 & todos os resultados das etapas 0 a 3 e a referência da chuva: SRM corrigido, AI contra o direto, teste linear, as duas bases, o gradiente modal (SRM e GIM), o viés, a variável de controle, a fase 4 parcial, o piloto e o custo \\
 \path{Projects/PlanoDeTrabalho/arquivo/} &  & cópias datadas (AAAA-MM-DD\_nome.pdf), nunca editadas: 2026-11-17\_relatorio\_parcial.pdf \\
 \multicolumn{3}{p{0.96\textwidth}}{\textbf{Resultados: as campanhas}} \\
 \path{Projects/PlanoDeTrabalho/campanhas/relatorio_chuva.pdf} & 16 & Monte Carlo da chuva (Rahardjo); a Seção 7 é a AI \\
