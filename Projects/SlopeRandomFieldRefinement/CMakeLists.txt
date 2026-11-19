@@ -32,3 +32,11 @@ add_pz_target(NAME SlopeRainMonteCarlo
                       RandomField.cpp RandomField.h KLSeparavel.h RainTransient.cpp RainTransient.h PointLocator.h
                       LayerGMesh.cpp LayerGMesh.h AnimationFiles.h ImportanceSampling.h
               REQUIRED PZ_BUILD_PLASTICITY_MATERIALS)
+
+# Caso deterministico do rebaixamento do Ceron com o fator Gamma (GIM) pelo material saturado u-p
+# (TPZMatPoroElastoPlasticUP): o mesmo transiente u-p_w-p_a do SlopeDrawdownMonteCarlo, as mesmas pressoes congeladas
+# e o mesmo refinamento adaptativo; a opcao succao diz como as pressoes negativas entram (rebaixamento_up.cpp)
+add_pz_target(NAME SlopeDrawdownUP
+              SOURCES rebaixamento_up.cpp UnsatModel.cpp UnsatModel.h UnsatAnalysis.cpp UnsatAnalysis.h HPMaterial.h
+                      DrawdownTransient.cpp DrawdownTransient.h PointLocator.h
+              REQUIRED PZ_BUILD_PLASTICITY_MATERIALS)
