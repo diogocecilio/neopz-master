@@ -31,6 +31,7 @@ resultados) está no fim, na seção [Documentos](#documentos).
 | 2b | Base de Nyström contra a analítica: β(M), ganho da AI e direto de referência próprio | uma campanha e FORM | junto com a 2 | `ETAPA2/` |
 | 2c | Gradiente do FORM pela projeção modal (sensibilidade no colapso do SRM), validado contra as diferenças centrais | FORM | junto com a 2 | `ETAPA2/` |
 | 3 | AI pela entropia cruzada: tamanho do piloto e P_f menor (r = −0,7) | uma campanha | depois da 2 | `ETAPA3/` |
+| 3b | ISMC até CoV de 5% no campo de Nyström com 2000 modos, com o centro de um FORM com poucos termos (M = 20 e 100 por diferenças centrais; M = 20 pelo GIM modal) | campanha `etapa3b` | pronta para rodar | `ETAPAS1a3/` |
 | 4 | Validar FORM e AI na chuva (f50, FS em 24 h) | código novo e uma campanha | depois da 3 | `ETAPA4/` |
 | 5 | Investigar a chuva: P_f(t), fragilidade P_f(I), solos, k e duração | campanhas | depois da 4 | `ETAPA5/` |
 
@@ -156,6 +157,55 @@ núcleo, ou 6 a 7 h em 4 nós. O primeiro nó roda antes os FORM com M = 10 e 20
   - estender o direto para ~6000 (~25 falhas, CoV ≈ 20%);
   - FORM M = 20 e a AI pelo ponto de projeto, contra a AI pela banda.
 - **Fica para depois:** o Wang 2020 (precisa da média de c' como opção e da entropia cruzada em dois níveis).
+
+### Etapa 3b: ISMC até CoV de 5% no campo de Nyström com 2000 modos
+
+- **Pergunta:** um FORM com gradiente numérico e poucos termos dá uma função de amostragem que leve a ISMC, com o campo
+  completo, à P_f do Monte Carlo direto, sem viés e com CoV baixo? Quantas realizações isso custa?
+- **Por que pode dar certo:** o peso w = φ(ξ)/h(ξ) é exato para qualquer centro, então o centro de poucos termos não cria
+  viés; ele só muda a variância. O risco prático é um centro que erre uma região de falha: os pesos ficam com cauda
+  pesada, a P_f converge devagar, e o CoV estimado sai otimista. Num exemplo de viga em Mathematica
+  (`~/Dropbox/UnsaturatedSoil/mathematica/viga_estudo_M_ISMC.txt`, seção 23), a ISMC no campo de 500 modos com o centro
+  do FORM de 20 deu a P_f do direto (z = 1,2 nas 10 sementes juntas), com o CoV verdadeiro igual ao estimado (5,35 contra
+  5,10%).
+- **A base:** Nyström na grade de 0,2 × 0,1 m (15 000 nós), com 2000 modos e 99,7% da variância (`nystrom_base.py` com
+  os autopares do `nystrom_autopares.wl`).
+  - A grade antiga (0,5 × 0,25 m, 2400 nós) erra os autovalores acima de ~50 modos: o λ₁₀₀ em 23% e o λ₁₀₀₀ em 57%,
+    contra a grade de 0,2 × 0,1 m.
+  - Os FORM leem a cópia com os 100 primeiros modos (os mesmos autovetores, com os mesmos sinais).
+  - Os pontos de projeto de Nyström antigos não servem na base nova, porque os sinais dos autovetores mudam.
+- **Referências:** os diretos da KL analítica com 2000 termos, `r05_direto` (etapa1, 24 000, P_f = 1,70%, CoV 4,9%) e
+  `r07_direto` (etapa3, 110 000, CoV ≈ 5%). É o mesmo campo, em outra base (a analítica retém 98,8% da variância).
+- **Os centros (6 FORM, antes da fila, divididos entre os jobs pelas travas; `FORM_LISTA`):**
+  - diferenças centrais (h = 0,5) com M = 20 e M = 100 por campo: 81 e 401 análises por iteração;
+  - o GIM com o gradiente modal, M = 20: uma análise por iteração;
+  - cada um para r = −0,5 e r = −0,7.
+- **A ISMC (30 casos):**
+  - o SRM (falha: FS < 1, como nos diretos), com os 2000 modos;
+  - o deslocamento é o u* nos M primeiros termos de cada campo, e os outros termos ficam sem deslocamento;
+  - 5 sementes (21 a 25) por centro e por r, as mesmas nos três centros (números aleatórios comuns).
+- **A parada:** `cov_alvo=0.05` no `tarefas.sh`.
+  - Antes de lançar um bloco, ele calcula a P_f e o CoV nas realizações já prontas, em ordem. Com CoV ≤ 5%, k ≥ 500 e
+    ≥ 100 falhas sorteadas, para.
+  - O N do caso é só o teto: 5000 com r = −0,5 e 8000 com r = −0,7.
+  - O `Cho2010/ismc_parada.py` dá o N do alvo na ordem das realizações e o N a partir do qual o CoV não volta a passar.
+    Ele também compara a P_f no ponto de parada com a P_f com todos os blocos que já rodavam: o viés da parada opcional.
+- **A conferência de versão:** as 10 primeiras realizações do `r07_ai_form20` (etapa3) refeitas com o binário novo. O FS
+  tem de ser o mesmo.
+- **A previsão (sementes 3 a 5 da etapa 3, base analítica, FORM M = 20):**
+  - N₅% ≈ 1600 com r = −0,5 e ≈ 2700 com r = −0,7;
+  - ganho ≈ 13× e ≈ 38× sobre o direto, contando as 243 análises do FORM.
+  - O FORM M = 100 custa ~1200 a 1600 análises a mais. Ele só compensa se o N₅% cair mais que isso.
+- **Critérios:**
+  - as sementes juntas contra o direto: |z| < 2. Com CoV ≈ 2,2% nas 5 juntas e ≈ 5% no direto, o viés mínimo
+    detectável é ≈ 11%;
+  - a P_f no ponto de parada e a final concordam;
+  - ESS_F e a maior parcela abaixo de 10%;
+  - o custo total (FORM + N₅%) por centro e por r.
+- **Custo:** ~64 000 realizações (~1350 h de núcleo), cerca de 1 dia nos 4 nós. Os FORM M = 100 levam umas 2 h nos
+  primeiros jobs, enquanto os outros já fazem a ISMC dos centros de M = 20.
+- **Depois:** a fase 4 pausada (`CAMPANHA=etapa3`, `CASOS=fase4,...`) entra na fila de reserva. Os casos de Nyström
+  dela usam a base antiga, de 2400 nós.
 
 ### Etapa 4: a chuva
 

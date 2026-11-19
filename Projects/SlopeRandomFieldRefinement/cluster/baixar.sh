@@ -46,7 +46,7 @@ fi
 if [ "$CAMPANHA" != chuva ]; then
     # o resumo instante a instante de cada caso (Monte Carlo direto); cada amostragem por importancia contra o Monte Carlo
     # direto de referencia (o piloto=, ou o ref= das opcoes da fila); cada caso com par= contra o seu par, realizacao a
-    # realizacao (compara_pares.py); e os FORM (form_M*, do form.sh)
+    # realizacao (compara_pares.py); e os FORM (form_*, do form.sh)
     R="$DEST/resultado.txt" D="$DEST/$(basename "$REMOTO")"
     python3 -I -B "$POS/resumo_tempos.py" "$D" "$AQUI/$CASOS_TXT" > "$R" 2>&1 || true
     echo >> "$R"
@@ -68,8 +68,13 @@ if [ "$CAMPANHA" != chuva ]; then
               echo; } >> "$R"
         fi
     done < "$AQUI/$CASOS_TXT"
-    if ls -d "$D"/form_M* > /dev/null 2>&1; then
-        { echo "== FORM"; python3 -I -B "$POS/resumo_form.py" "$D"/form_M* 2>&1; echo; } >> "$R"
+    if ls -d "$D"/form_* > /dev/null 2>&1; then
+        { echo "== FORM"; python3 -I -B "$POS/resumo_form.py" "$D"/form_* 2>&1; echo; } >> "$R"
+    fi
+    # etapa 3b: quantas realizacoes a ISMC precisa para o CoV alvo, por centro e por r, contra os diretos das etapas 1 e 3
+    if [ "$CAMPANHA" = etapa3b ]; then
+        { echo "== ISMC com parada pelo CoV (Projects/Cho2010/ismc_parada.py)"
+          python3 -I -B "$AQUI/../../Cho2010/ismc_parada.py" "$D" "$AQUI/$CASOS_TXT" 2>&1; echo; } >> "$R"
     fi
     cat "$R"
     echo "pronto: $R"

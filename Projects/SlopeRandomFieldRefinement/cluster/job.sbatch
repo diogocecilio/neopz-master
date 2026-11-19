@@ -1,7 +1,8 @@
 #!/bin/bash
 # job.sbatch: um no do Monte Carlo: PARALELO processos de 1 thread (tarefas.sh), que pegam as tarefas livres da fila em
 # $SAIDA. Submetido por submeter.sh, que fixa CAMPANHA (o executavel e os casos, campanha.sh), o nome do job, SAIDA,
-# CASOS, IREF, BLOCO, ULTIMA e PARALELO; no primeiro job, FORM_M: antes da fila, os FORM que faltam (form.sh).
+# CASOS, IREF, BLOCO, ULTIMA e PARALELO; no primeiro job, FORM_M, e em todos, a FORM_LISTA da campanha: antes da fila,
+# os FORM que faltam (form.sh; as travas dividem a lista entre os jobs).
 #SBATCH --job-name=chuvaMC
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -25,7 +26,7 @@ export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PZ_THREADS=0
 mkdir -p "$SAIDA/logs"
 echo "$(date '+%F %T') job $SLURM_JOB_ID ($CAMPANHA) em $(hostname -s): $PARALELO processos, casos $CASOS, IREF $IREF," \
     "blocos de $BLOCO${ULTIMA:+, ate a realizacao $ULTIMA}, SAIDA=$SAIDA, versao $(cat bin/versao.txt 2> /dev/null || echo -)"
-[ -n "${FORM_M:-}" ] && ./form.sh
+if [ -n "${FORM_M:-}" ] || [ -n "${FORM_LISTA:-}" ]; then ./form.sh; fi
 for ((p = 0; p < PARALELO; p++)); do
     ./tarefas.sh "${SLURM_JOB_ID}_$p" &
 done

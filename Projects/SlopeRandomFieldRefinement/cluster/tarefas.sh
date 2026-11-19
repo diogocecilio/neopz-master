@@ -14,6 +14,13 @@
 #   espera=<a>,<b>   o caso so comeca quando os arquivos existem (ex.: o ponto de projeto que o form.sh grava); com um
 #                    <arquivo>.ERRO (quem o fazia desistiu), o caso fica de fora
 #   ref=<id>, par=<id>  o Monte Carlo direto de referencia e o caso da comparacao pareada (so para o baixar.sh)
+#   cov_alvo=<cv>    parada pelo CoV (amostragem por importancia): antes de pegar um bloco novo do caso, a P_f ponderada
+#                    sum(I w) / k e o seu CoV sao calculados nas realizacoes 0..k-1 dos blocos ja prontos sem buraco (na
+#                    ordem; I = FS_min < 1, w = exp(log_peso), so as linhas com situacao ok e FS_min > 0, como o
+#                    amostragem_importancia.py). Com CoV <= cv, k >= cov_n (500) e pelo menos cov_falhas (100) falhas
+#                    sorteadas, o caso grava <caso>/ATINGIU (k, falhas, P_f, CoV, data) e nao lanca mais blocos; os que ja
+#                    rodam terminam. O N do caso vira so o teto. O N em que o CoV cruza o alvo sai depois, das realizacoes
+#                    na ordem (Projects/Cho2010/ismc_parada.py)
 # Dependencia (amostragem por importancia): um caso com piloto=@SAIDA@/<id> e piloto_n=<n> nas opcoes so comeca quando
 # os blocos das realizacoes 0..n-1 do caso <id> acabaram (mapa ou ERRO). Enquanto isso, o processo faz as outras tarefas;
 # sem nenhuma livre, espera 60 s e olha de novo, ate ESPERA_MAX s (padrao 3 h) seguidos. O piloto de um caso escolhido
@@ -44,7 +51,7 @@ for i in "${!todos_id[@]}"; do
     [[ " ${todos_opc[$i]} " =~ \ piloto=@SAIDA@/([^ ]+)\  ]] || continue
     [ -n "${ESCOLHIDO[${BASH_REMATCH[1]}]:-}" ] || PILOTO_EXTRA[${BASH_REMATCH[1]}]=1
 done
-ids=() opcs=() ns=() pil=() pnp=() exes=() esps=()
+ids=() opcs=() ns=() pil=() pnp=() exes=() esps=() cvas=() cvns=() cvfs=()
 for i in "${!todos_id[@]}"; do
     id=${todos_id[$i]} n=${todos_n[$i]} opc=${todos_opc[$i]}
     NCASO[$id]=$n
@@ -57,19 +64,22 @@ for i in "${!todos_id[@]}"; do
     [[ " $opc " =~ \ piloto=@SAIDA@/([^ ]+)\  ]] && p="${BASH_REMATCH[1]}"
     [[ " $opc " =~ \ piloto_n=([0-9]+)\  ]] && np="${BASH_REMATCH[1]}"
     # as opcoes da fila saem daqui
-    exe="$EXE" esp="" resto=""
+    exe="$EXE" esp="" resto="" cva="" cvn=500 cvf=100
     set -f
     for w in $opc; do
         case "$w" in
         prog=*) exe="$(dirname "$EXE")/${w#prog=}" ;;
         espera=*) esp="${w#espera=}" ;;
+        cov_alvo=*) cva="${w#cov_alvo=}" ;;
+        cov_n=*) cvn="${w#cov_n=}" ;;
+        cov_falhas=*) cvf="${w#cov_falhas=}" ;;
         ref=* | par=*) ;;
         *) resto+="${resto:+ }$w" ;;
         esac
     done
     set +f
     ids+=("$id") opcs+=("${resto//@SAIDA@/$SAIDA}") ns+=("$n") pil+=("$p") pnp+=("$np") exes+=("$exe")
-    esps+=("${esp//@SAIDA@/$SAIDA}")
+    esps+=("${esp//@SAIDA@/$SAIDA}") cvas+=("$cva") cvns+=("$cvn") cvfs+=("$cvf")
 done
 for p in "${pil[@]}"; do
     [ -z "$p" ] || [ -n "${NCASO[$p]:-}" ] || { echo "$(date '+%F %T') piloto $p nao esta em $CASOS_ARQ: fim" >> "$LOG"; exit 1; }
@@ -99,6 +109,42 @@ arquivos_prontos() {
     return $r
 }
 declare -A DE_FORA
+
+# o caso i ja chegou ao CoV alvo (cov_alvo=)? 0: sim (ATINGIU gravado agora ou antes); 1: ainda nao. As somas do
+# prefixo pronto (k, falhas, sum I w, sum (I w)^2) ficam guardadas por processo: cada bloco e lido uma vez so
+declare -A ATINGIU_CASO PREF_A PREF_S
+atingiu() {
+    local i=$1 dir="$SAIDA/${ids[$1]}" n=${ns[$1]} a z linha k nf s1 s2 pf cv ok
+    local -a novos=()
+    [ -n "${ATINGIU_CASO[$i]:-}" ] && return 0
+    [ -f "$dir/ATINGIU" ] && { ATINGIU_CASO[$i]=1; return 0; }
+    for ((a = ${PREF_A[$i]:-0}; a < n; a += BLOCO)); do
+        z=$(((a + BLOCO < n ? a + BLOCO : n) - 1))
+        [ -f "$dir/mc_mapa_${a}_${z}.csv" ] || break
+        [ -f "$dir/mc_${a}_${z}.csv" ] && novos+=("$dir/mc_${a}_${z}.csv")
+    done
+    ((${#novos[@]})) || return 1 # nenhum bloco novo no prefixo desde a ultima conta
+    PREF_A[$i]=$a
+    linha="$(awk -F, -v ini="${PREF_S[$i]:-0 0 0 0}" -v alvo="${cvas[$i]}" -v nmin="${cvns[$i]}" -v fmin="${cvfs[$i]}" '
+        BEGIN { split(ini, s, " "); k = s[1] + 0; nf = s[2] + 0; s1 = s[3] + 0; s2 = s[4] + 0 }
+        FNR == 1 { for (c = 1; c <= NF; c++) { if ($c == "real") cr = c; if ($c == "FS_min") cf = c
+                                                 if ($c == "log_peso") cw = c; if ($c == "situacao") cs = c }
+                   next }
+        $cr + 0 >= 0 && $cs == "ok" && $cf + 0 > 0 {
+            k++
+            if ($cf + 0 < 1) { iw = exp(cw ? $cw + 0 : 0); s1 += iw; s2 += iw * iw; nf++ } }
+        END { pf = (k > 0 ? s1 / k : 0); cv = 9
+              if (k > 1 && pf > 0) { v = (s2 - k * pf * pf) / (k - 1); cv = (v > 0 ? sqrt(v / k) : 0) / pf }
+              printf "%d %d %.17g %.17g %.6g %.4f %d\n", k, nf, s1, s2, pf, cv, (k >= nmin && nf >= fmin && cv <= alvo) }' \
+        "${novos[@]}")" || return 1
+    read -r k nf s1 s2 pf cv ok <<< "$linha"
+    PREF_S[$i]="$k $nf $s1 $s2"
+    ((ok)) || return 1
+    echo "$k $nf $pf $cv $(date '+%F %T')" > "$dir/ATINGIU"
+    echo "$(date '+%F %T') ${ids[$i]}: CoV alvo ${cvas[$i]} atingido com k = $k (falhas $nf, P_f $pf, CoV $cv)" >> "$LOG"
+    ATINGIU_CASO[$i]=1
+    return 0
+}
 
 # pega a trava <arquivo>: cria o arquivo so se ele ainda nao existe (noclobber, atomico). 0: pegou; 1: outro processo
 # pegou. Se a criacao falha e o arquivo nao existe (o sistema de arquivos falhou, ou a pasta .tarefas ainda estava sendo
@@ -155,6 +201,8 @@ while :; do
                     continue ;;
                 esac
             fi
+            # parada pelo CoV: o caso que ja chegou ao alvo nao lanca mais blocos
+            [ -n "${cvas[$i]}" ] && atingiu "$i" && continue
             pega_trava "$dir/.tarefas/${a}_${z}" || continue
             fez=1 desde=""
             extra=()

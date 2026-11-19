@@ -18,7 +18,7 @@ if [ -d "$SAIDA/logs" ]; then
     echo "erros: $(cat "$SAIDA"/logs/p*.txt 2> /dev/null | grep -c ERRO)"
 fi
 # os FORM do form.sh: a ultima iteracao e, no fim, o beta
-for f in "$SAIDA"/form_M*/form.log; do
+for f in "$SAIDA"/form_*/form.log; do
     [ -e "$f" ] || continue
     d="$(dirname "$f")"
     if [ -s "$d/ustar.txt" ]; then e=pronto; elif [ -e "$d/ustar.txt.ERRO" ]; then e=ERRO; else e=rodando; fi

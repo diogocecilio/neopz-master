@@ -58,8 +58,8 @@ if [ -z "$fila" ]; then
         [ -f "$caso/mc_mapa_$t.csv" ] || { rm -rf "$trava"; n=$((n + 1)); }
     done < <(find "$SAIDA" -path '*/.tarefas/*' -mindepth 1 -print0 2> /dev/null)
     [ "$n" -eq 0 ] || echo "liberadas $n tarefas interrompidas (serao refeitas)"
-    # um FORM sem o ponto de projeto, com a trava (job interrompido) ou com ERRO: refeito pelo primeiro job
-    for t in "$SAIDA"/form_M*/trava; do
+    # um FORM sem o ponto de projeto, com a trava (job interrompido) ou com ERRO: refeito por um job novo
+    for t in "$SAIDA"/form_*/trava; do
         [ -e "$t" ] || continue
         d="$(dirname "$t")"
         [ -s "$d/ustar.txt" ] || { rm -f "$t" "$d/ustar.txt.ERRO"; echo "o FORM $(basename "$d") sera refeito"; }

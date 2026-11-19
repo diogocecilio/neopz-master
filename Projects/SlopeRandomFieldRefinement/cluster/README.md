@@ -295,6 +295,33 @@ O primeiro comando compila e submete em segundo plano: pode desconectar. O `stat
 de cada FORM. `FORM_M=` (vazio) no `submeter.sh` não roda os FORM, e `FORM_M="10"` roda só um. Sem `python3` no nó,
 o FORM grava o `.ERRO`, o `r05_ai_form` fica de fora e o resto roda.
 
+## Etapa 3b do plano de trabalho (`CAMPANHA=etapa3b`)
+
+Quantas realizações a ISMC (amostragem por importância no ponto de projeto do FORM) precisa para CoV(P_f) = 5% com o
+campo de Nyström de 2000 modos (`casos_etapa3b.txt`; o plano em `Projects/PlanoDeTrabalho/README.md`):
+
+- **Os 6 FORM** rodam antes da fila em **todos** os jobs (`FORM_LISTA` do `campanha.sh`), e as travas os dividem:
+  - `form_r05_M100` e `form_r07_M100`: diferenças centrais com M = 100, os mais caros, primeiro;
+  - `form_r05_M20` e `form_r07_M20`: diferenças centrais com M = 20;
+  - `form_r05_gim20` e `form_r07_gim20`: GIM com o gradiente modal.
+  Eles leem a base com os 100 primeiros modos, `$SAIDA/pontos/base_nys2000_M100.txt`.
+- **As 30 ISMC:** 3 centros × 2 valores de r × 5 sementes, com os 2000 modos (`$SAIDA/pontos/base_nys2000.txt`) e
+  `cov_alvo=0.05`. Cada uma espera o seu FORM (`espera=`).
+- **A conferência de versão** (`conf_r07_s3`): as 10 primeiras realizações do `r07_ai_form20` da etapa3.
+
+A base (525 MB em texto, mais a cópia de 27 MB) vai do PC para o fermi uma vez só, antes de submeter. O rsync
+comprime no caminho:
+
+```bash
+rsync -avz --progress --rsync-path="mkdir -p /mnt/data/diogo/etapa3b/pontos && rsync" ~/projects/runs/cho2010/nystrom2000/base_nys2000.txt ~/projects/runs/cho2010/nystrom2000/base_nys2000_M100.txt diogo@fermi.cesup.ufrgs.br:/mnt/data/diogo/etapa3b/pontos/
+ssh diogo@fermi.cesup.ufrgs.br 'cd neopz-master && git pull origin UnsaturatedSoil && cd Projects/SlopeRandomFieldRefinement/cluster && nohup setsid bash -c "./compilar.sh && CAMPANHA=etapa3b ./submeter.sh 4" > etapa3b.log 2>&1 < /dev/null &'
+ssh diogo@fermi.cesup.ufrgs.br 'tail -n 8 neopz-master/Projects/SlopeRandomFieldRefinement/cluster/etapa3b.log; CAMPANHA=etapa3b neopz-master/Projects/SlopeRandomFieldRefinement/cluster/status.sh'
+CAMPANHA=etapa3b ~/projects/neopz-master/Projects/SlopeRandomFieldRefinement/cluster/baixar.sh
+```
+
+O `baixar.sh` roda o `Projects/Cho2010/ismc_parada.py`. Os diretos de referência são os já baixados das etapas 1 e 3:
+baixe o `r07_direto` de 110 000 antes, com `CAMPANHA=etapa3 baixar.sh`.
+
 ## Como funciona
 
 - **Tarefa:** um bloco de `BLOCO` realizações (padrão 20, umas 2 h no fermi) de um caso. Cada uma é uma rodada do
@@ -315,6 +342,9 @@ o FORM grava o `.ERRO`, o `r05_ai_form` fica de fora e o resto roda.
   - `prog=<nome>` troca o programa do caso por outro de `bin/`;
   - `espera=` (acima);
   - `ref=<id>` e `par=<id>` marcam o direto de referência e a comparação pareada para o pós-processamento.
+  - `cov_alvo=<cv>` para o caso quando o CoV da P_f ponderada chega a `cv`. A conta usa as realizações já prontas,
+    em ordem, com pelo menos `cov_n` (500) realizações e `cov_falhas` (100) falhas sorteadas. O caso grava
+    `ATINGIU` e não lança mais blocos; o N do caso vira só o teto.
 - **P_f no `status.sh`:** cada realização conta com o menor FS dos seus instantes, e só se todos tiverem fator. Na chuva
   com 0 e 24 h, é o FS de 24 h.
 - **Opções:** nas opções dos casos, `@SAIDA@` vira a pasta da campanha e `IREF` vira a intensidade de referência.

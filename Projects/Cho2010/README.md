@@ -61,3 +61,30 @@ Um caso sozinho:
 Cho2010 n=0 det=1 figuras=-1 fator=tri2 nref=4      # o determinístico
 Cho2010 n=50 rcphi=-0.5 fator=tri2 nref=4 saida=mc  # 50 realizações
 ```
+
+## A base de Nyström com 2000 modos
+
+O `nystrom_base.py` grava a base que a opção `nystrom=` lê. Para milhares de nós e de modos, os autopares saem do
+Mathematica (MKL, em paralelo), porque o `eigh` do Python sem threads leva horas:
+
+```bash
+python3 -I nystrom_base.py base_nys2000.txt M=2000 dx=0.2 dy=0.1 nos=base_nys2000.nos
+wolframscript -file nystrom_autopares.wl base_nys2000.nos 2000 20 2 0.02 base_nys2000
+python3 -I nystrom_base.py base_nys2000.txt M=2000 dx=0.2 dy=0.1 autopares=base_nys2000 copias=100
+```
+
+A grade de 0,2 × 0,1 m tem 15 000 nós e retém 99,7% da variância com 2000 modos. A cópia `base_nys2000_M100.txt` tem os
+100 primeiros modos, com os mesmos autovetores, para o FORM. A grade antiga, de 0,5 × 0,25 m, erra os autovalores
+acima de ~50 modos.
+
+## ISMC com parada pelo CoV (etapa 3b do plano)
+
+A campanha `etapa3b` do cluster (`casos_etapa3b.txt`) roda a amostragem por importância no ponto de projeto de seis
+FORM (M = 20 e 100 por diferenças centrais e M = 20 pelo GIM modal, r = −0,5 e −0,7) com os 2000 modos de Nyström.
+A opção de fila `cov_alvo=0.05` do `tarefas.sh` para cada caso quando o CoV da P_f chega a 5%. O `ismc_parada.py` dá,
+por semente, o N em que o CoV cruza o alvo e a P_f nesse ponto e no fim, e, por centro, a média das sementes, o z contra
+os diretos (`r05_direto` da etapa1 e `r07_direto` da etapa3), o custo com o FORM e o ganho:
+
+```bash
+python3 -I ismc_parada.py ~/projects/runs/fermi_etapa3b/etapa3b ../SlopeRandomFieldRefinement/cluster/casos_etapa3b.txt figuras=figs
+```
