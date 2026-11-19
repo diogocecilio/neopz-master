@@ -43,6 +43,14 @@
 //   ai (banda)             com piloto: banda (s_c = media de xi_c . d, a direcao da banda; precisa de banda=) ou modos
 //                          (a media dos modos 1..K de cada campo, K = modos)
 //   saida (mc)             prefixo dos arquivos
+//   xi (<arquivo>)         os xi dados, sem sorteio (um ponto do FORM, Projects/Cho2010/form_kl.py prog=rebaixamento):
+//                          3K numeros, os K de c', os K de phi' e os K de k (K <= M; os outros termos ficam em 0);
+//                          a realizacao primeira usa esses xi
+//   gradiente (0)          K > 0: depois de Gamma, o gradiente dGamma/dxi nos K primeiros termos de cada campo pela
+//                          projecao modal da sensibilidade de limite superior (GIM, Mohr-Coulomb associado, tensoes
+//                          efetivas do colapso com as pressoes do transiente congeladas): <saida>_grad_<real>.txt (Gamma
+//                          e os 3K numeros, c', phi' e k). O k so muda as pressoes, que a analise limite congela: os K
+//                          termos de k saem 0
 // Saidas (<faixa> = primeira_ultima): <saida>_<faixa>.csv (uma linha por realizacao, com as colunas do mc_resumo.csv da
 // campanha do rebaixamento: FS_min = Gamma, banda_*, massa_*, *_med, parametros), <saida>_mapa_<faixa>.csv (frequencia
 // da banda em celulas de 1 m), <saida>_parametros.txt e <saida>_real<n>/ (animacao, campos.csv e mecanismo.csv).
@@ -62,6 +70,7 @@
 #include "TPZGeoLinear.h"
 #include "TPZSpStructMatrix.h"
 #include "pzgeotriangle.h"
+#include "pzmultiphysicselement.h"
 #include "pzstepsolver.h"
 #include "tpzgeoelrefpattern.h"
 
@@ -128,6 +137,8 @@ struct Opcoes {
     int pilotoN = 1000;
     uint64_t pilotoSemente = Campos{}.semente;
     double elite = 0.1;
+    std::string xi;    // xi=: os xi dados (FORM)
+    int gradiente = 0; // gradiente=K: o gradiente modal de Gamma nos K primeiros termos
 };
 
 std::vector<REAL> Lista(const std::string &s)
@@ -145,7 +156,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
     const std::set<std::string> chaves = {"n",    "primeira", "det",        "valores", "hw",   "trebaix", "covc",
                                           "covphi", "covk",   "s",          "alfa",    "transiente", "fator", "nref",
                                           "figuras", "saida", "banda", "desloc", "so_projecoes", "semente", "media_falhas", "modos", "desloc_modos",
-                                          "piloto", "piloto_n", "piloto_semente", "ai", "elite"};
+                                          "piloto", "piloto_n", "piloto_semente", "ai", "elite", "xi", "gradiente"};
     std::map<std::string, std::string> kv;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
@@ -187,6 +198,8 @@ Opcoes LeOpcoes(int argc, char *argv[])
     if (tem("piloto_semente")) op.pilotoSemente = std::stoull(kv["piloto_semente"]);
     if (tem("ai")) op.ai = kv["ai"];
     if (tem("elite")) op.elite = std::stod(kv["elite"]);
+    if (tem("xi")) op.xi = kv["xi"];
+    if (tem("gradiente")) op.gradiente = std::stoi(kv["gradiente"]);
     if (int(!op.desloc.empty()) + int(!op.deslocModos.empty()) + int(!op.piloto.empty()) > 1) {
         std::fprintf(stderr, "desloc, desloc_modos e piloto: so um deles\n");
         std::exit(1);
@@ -512,6 +525,77 @@ Mecanismo DescreveMecanismo(Fator &f, const PointLocator &loc, const std::vector
     return d;
 }
 
+// ---- gradiente de Gamma pela projecao modal (o GradienteModal do Projects/Cho2010, ramo GIM)
+// No colapso do GIM, com Mohr-Coulomb associado e o teorema do envelope (as cargas externas, o peso e a agua do
+// reservatorio, crescem com Gamma): dGamma/dc'(x) = dD/dc / Den e dGamma/dtan(phi')(x) = dD/dphi cos^2(phi') / Den, com
+//   dD/dc = eps_v cot(phi'),  dD/dphi = -(eps_v / (2 sin(phi'))) ((s1 + s3) cos(phi') + 2 c' sin(phi')),
+//   Den = P_mr / Gamma = integral de c' cot(phi') eps_v / Gamma,
+// s1, s3 as tensoes efetivas principais do colapso (m_sigma: as do modelo plastico, ja com as pressoes congeladas) e
+// eps_v o traco da deformacao plastica. Projecao nos modos: d/dxi_j pela regra da cadeia com ln c' e ln phi' lineares em
+// xi (dZ/dxi = sqrt(lambda) f(x), ModeValues). O k nao entra na dissipacao: so nas pressoes, que aqui ficam congeladas
+std::vector<double> GradienteModal(Fator &f, RandomField &campos, int K, REAL Gamma)
+{
+    UnsatModel<TUnsatHP> &m = *f.m;
+    TUnsatHP *mat = m.Material();
+    struct P {
+        REAL x, y, w, gc, gt, c, phi;
+    };
+    std::vector<P> ps;
+    REAL den = 0.;
+    for (TPZCompEl *cel : m.CompMesh()->ElementVec()) {
+        if (!cel || !cel->Reference() || cel->Reference()->MaterialId() != mat->Id()) continue;
+        TPZGeoEl *gel = cel->Reference();
+        auto *mf = dynamic_cast<TPZMultiphysicsElement *>(cel);
+        if (!mf) continue;
+        TPZManVector<int, 3> ordens(mf->NMeshes(), 0);
+        for (int i = 0; i < mf->NMeshes(); i++)
+            if (auto *sp = dynamic_cast<TPZInterpolationSpace *>(mf->Element(i))) ordens[i] = sp->MaxOrder();
+        const int o = mat->IntegrationRuleOrder(ordens);
+        std::unique_ptr<TPZIntPoints> regra(gel->CreateSideIntegrationRule(gel->NSides() - 1, o));
+        TPZManVector<int, 3> ordem(gel->Dimension(), o);
+        regra->SetOrder(ordem);
+        TPZManVector<int64_t> mem;
+        cel->GetMemoryIndices(mem);
+        for (int ip = 0; ip < regra->NPoints(); ip++) {
+            TPZManVector<REAL, 3> qsi(gel->Dimension()), x(3, 0.);
+            REAL w;
+            regra->Point(ip, qsi, w);
+            gel->X(qsi, x);
+            TPZFNMatrix<9, REAL> jac(2, 2), axes(2, 3), jacinv(2, 2);
+            REAL detjac;
+            gel->Jacobian(qsi, jac, axes, detjac, jacinv);
+            const TPZUnsaturatedMem &me = mat->MemItem(mem[ip]);
+            const auto &pr = me.m_elastoplastic_state.fmatprop;
+            if (pr.size() < 2) continue;
+            const TPZTensor<REAL> &ep = me.m_elastoplastic_state.m_eps_p;
+            const REAL ev = ep.XX() + ep.YY() + ep.ZZ();
+            if (!(ev > 0.)) continue; // ponto elastico: nao dissipa
+            const TPZTensor<REAL> &sg = me.m_sigma;
+            const REAL cen = 0.5 * (sg.XX() + sg.YY()), r = std::hypot(0.5 * (sg.XX() - sg.YY()), sg.XY());
+            const REAL s1 = std::max({cen + r, cen - r, sg.ZZ()}), s3 = std::min({cen + r, cen - r, sg.ZZ()});
+            const REAL c = pr[0], phi = pr[1];
+            const REAL dDc = ev / std::tan(phi);
+            const REAL dDp = -(ev / (2. * std::sin(phi))) * ((s1 + s3) * std::cos(phi) + 2. * c * std::sin(phi));
+            P q;
+            q.x = x[0], q.y = x[1], q.w = w * std::abs(detjac), q.c = c, q.phi = phi;
+            q.gc = dDc, q.gt = dDp * std::cos(phi) * std::cos(phi);
+            den += q.w * dDc * c / Gamma; // P_mr / Gamma
+            ps.push_back(q);
+        }
+    }
+    std::vector<double> g(3 * K, 0.);
+    if (ps.empty() || !(std::abs(den) > 0.)) return g;
+    const double sc = campos.SigmaLn(0), sf = campos.SigmaLn(1); // c' e phi' independentes (sem correlacao cruzada)
+    for (const P &q : ps) {
+        const std::vector<double> mv = campos.ModeValues(q.x, q.y, K);
+        const double sec2 = 1. / (std::cos(q.phi) * std::cos(q.phi));
+        const double ac = q.w * q.gc / den * q.c;          // dGamma/dln(c') do ponto
+        const double af = q.w * q.gt / den * sec2 * q.phi; // dGamma/dln(phi') do ponto
+        for (int k = 0; k < K; k++) g[k] += ac * sc * mv[k], g[K + k] += af * sf * mv[k];
+    }
+    return g; // os K de k ficam 0
+}
+
 struct Linha {
     int real = 0;
     REAL fs = 0., nivel = 0.;
@@ -823,6 +907,18 @@ int main(int argc, char *argv[])
         for (size_t k = 0; k < dir.size(); k++) dd << k << "," << dir[k] << "\n";
         return 0;
     }
+    std::vector<std::vector<double>> xiDados; // opcao xi=: os K de c', de phi' e de k
+    if (!op.xi.empty()) {
+        std::ifstream fx(op.xi);
+        std::vector<double> v;
+        for (double x; fx >> x;) v.push_back(x);
+        if (v.empty() || v.size() % 3 || int(v.size() / 3) > campos.M()) {
+            std::fprintf(stderr, "xi: %s tem %zu numeros; precisa de 3K, com K <= M = %d\n", op.xi.c_str(), v.size(), campos.M());
+            return 1;
+        }
+        const size_t K = v.size() / 3;
+        for (int c = 0; c < 3; c++) xiDados.push_back(std::vector<double>(v.begin() + c * K, v.begin() + (c + 1) * K));
+    }
     std::vector<int> realizacoes;
     if (op.det) realizacoes.push_back(-1);
     for (int n = op.primeira; n < op.primeira + op.n; n++) realizacoes.push_back(n);
@@ -830,7 +926,10 @@ int main(int argc, char *argv[])
     for (int n : realizacoes) {
         const auto t0 = Clock::now();
         const bool deterministica = n < 0;
-        if (!deterministica) campos.Sample(cp.semente, n);
+        if (!deterministica) {
+            if (xiDados.empty()) campos.Sample(cp.semente, n);
+            else campos.SetXi(xiDados);
+        }
         const Campo *cf = deterministica ? (op.valores.empty() ? nullptr : &campoFixo) : &campoAleatorio;
         Linha l;
         l.real = n;
@@ -894,6 +993,13 @@ int main(int argc, char *argv[])
             if (!(l.fs > 0.)) l.situacao = "fator";
             for (size_t i = 0; i < niveis.size(); i++) l.niveis += (i ? ";" : "") + std::to_string(niveis[i]).substr(0, 7);
             l.mec = DescreveMecanismo(f, loc, pw);
+            if (op.gradiente > 0 && !deterministica && l.fs > 0.) {
+                const std::vector<double> gr = GradienteModal(f, campos, std::min(op.gradiente, campos.M()), l.fs);
+                std::ofstream gf(op.saida + "_grad_" + std::to_string(n) + ".txt");
+                gf << std::setprecision(10)
+                   << "# Gamma (GIM) e o gradiente dGamma/dxi (os K de c', de phi' e de k), projecao modal\n" << l.fs << "\n";
+                for (double x : gr) gf << x << "\n";
+            }
             if (anim) {
                 anim->FactorOfSafety(op.trebaix, l.fs, *f.m, *f.a);
                 std::ofstream mf(op.saida + "_real" + std::to_string(n) + "/mecanismo.csv");

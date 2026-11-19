@@ -19,6 +19,9 @@ tela.
 Uso: python3 -I form_kl.py <exe Cho2010> <pasta de trabalho> [M=20] [rcphi=-0.5] [h=0.5] [paralelos=2] [iteracoes=10]
      [fator=tri2] [nref=4] [srm_f0=0.8] [tol_g=0.001] [tol_beta=0.01] [gradiente=dif|modal] [nystrom=<base>]
      [metodo=srm|gim]
+prog=rebaixamento: o rebaixamento do Ceron (SlopeDrawdownMonteCarlo, Projects/SlopeRandomFieldRefinement), com 3 campos
+(c', phi' e k: 3M variaveis) e g = Gamma - 1 (GIM); as opcoes rcphi, srm_f0, metodo e nystrom nao valem, e transiente=
+escolhe a malha do transiente. O gradiente modal dele da 0 nos termos de k (a analise limite congela as pressoes).
 gradiente=modal: uma analise por iteracao, com o gradiente pela projecao modal da sensibilidade de limite superior
 (Cho2010 gradiente=M; no colapso do SRM ou do GIM, conforme o metodo), em vez das 4M + 1 das diferencas centrais."""
 import concurrent.futures as cf
@@ -32,13 +35,33 @@ import sys
 
 def parametros(argv):
     p = {"M": 20, "rcphi": -0.5, "h": 0.5, "paralelos": 2, "iteracoes": 10, "fator": "tri2", "nref": 4, "srm_f0": 0.8,
-         "tol_g": 0.001, "tol_beta": 0.01, "gradiente": "dif", "nystrom": "", "metodo": "srm"}
+         "tol_g": 0.001, "tol_beta": 0.01, "gradiente": "dif", "nystrom": "", "metodo": "srm", "prog": "cho",
+         "transiente": "tri3"}
     for a in argv:
         k, v = a.split("=", 1)
         if k not in p:
             sys.exit(f"opcao desconhecida: {a}")
         p[k] = type(p[k])(v)
+    if p["prog"] not in ("cho", "rebaixamento"):
+        sys.exit("prog=cho ou prog=rebaixamento")
+    if p["prog"] == "rebaixamento":
+        p["metodo"] = "gim"  # o fator do rebaixamento e o Gamma do GIM
     return p
+
+
+def campos(p):
+    """os nomes dos campos (a ordem dos xi: os M de cada um)"""
+    return ["c", "phi", "k"] if p["prog"] == "rebaixamento" else ["c", "phi"]
+
+
+def comando(exe, p, arq, rotulo):
+    """a linha de comando de uma analise nos xi do arquivo"""
+    if p["prog"] == "rebaixamento":
+        return [exe, "n=1", "primeira=0", f"xi={arq}", f"transiente={p['transiente']}", f"fator={p['fator']}",
+                f"nref={p['nref']}", f"saida={rotulo}"]
+    return [exe, "n=1", "primeira=0", f"xi={arq}", f"M={p['M']}", f"rcphi={p['rcphi']}", f"fator={p['fator']}",
+            f"nref={p['nref']}", f"srm_f0={p['srm_f0']}", f"metodo={p['metodo']}", f"saida={rotulo}"] + \
+        ([f"nystrom={p['nystrom']}"] if p["nystrom"] else [])
 
 
 class Problema:
@@ -52,10 +75,7 @@ class Problema:
         arq = os.path.join(self.pasta, rotulo + ".xi")
         with open(arq, "w") as f:
             f.write("\n".join(repr(x) for x in u) + "\n")
-        cmd = [self.exe, "n=1", "primeira=0", f"xi={arq}", f"M={self.p['M']}", f"rcphi={self.p['rcphi']}",
-               f"fator={self.p['fator']}", f"nref={self.p['nref']}", f"srm_f0={self.p['srm_f0']}",
-               f"metodo={self.p['metodo']}", f"saida={rotulo}"] + \
-              ([f"nystrom={self.p['nystrom']}"] if self.p["nystrom"] else [])
+        cmd = comando(self.exe, self.p, arq, rotulo)
         env = dict(os.environ, PZ_THREADS="0", OMP_NUM_THREADS="1", MKL_NUM_THREADS="1")
         subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env, cwd=self.pasta)
         with open(os.path.join(self.pasta, rotulo + "_0_0.csv"), newline="") as f:
@@ -70,10 +90,7 @@ class Problema:
         arq = os.path.join(self.pasta, rotulo + ".xi")
         with open(arq, "w") as f:
             f.write("\n".join(repr(x) for x in u) + "\n")
-        cmd = [self.exe, "n=1", "primeira=0", f"xi={arq}", f"M={self.p['M']}", f"rcphi={self.p['rcphi']}",
-               f"fator={self.p['fator']}", f"nref={self.p['nref']}", f"srm_f0={self.p['srm_f0']}",
-               f"metodo={self.p['metodo']}", f"gradiente={self.p['M']}", f"saida={rotulo}"] + \
-              ([f"nystrom={self.p['nystrom']}"] if self.p["nystrom"] else [])
+        cmd = comando(self.exe, self.p, arq, rotulo) + [f"gradiente={self.p['M']}"]
         env = dict(os.environ, PZ_THREADS="0", OMP_NUM_THREADS="1", MKL_NUM_THREADS="1")
         subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env, cwd=self.pasta)
         v = [float(x) for x in open(os.path.join(self.pasta, rotulo + "_grad_0.txt")).read().split("\n")[1:] if x.strip()]
@@ -109,11 +126,16 @@ def main():
     p = parametros(sys.argv[3:])
     prob = Problema(exe, pasta, p)
     M = p["M"]
-    u = [0.] * (2 * M)
+    nomes = campos(p)
+    nc = len(nomes)
+    u = [0.] * (nc * M)
     hist = []
-    print(f"FORM do Cho (2010), Exemplo 2, {p['metodo'].upper()}: KL com M = {M} termos por campo ({2 * M} variaveis), "
-          f"r(c, phi) = {p['rcphi']}, "
-          f"passo h = {p['h']} em u, {2 * 2 * M + 1} avaliacoes por iteracao, {p['paralelos']} em paralelo", flush=True)
+    titulo = "rebaixamento do Ceron (2025), transiente" if p["prog"] == "rebaixamento" else \
+        f"Cho (2010), Exemplo 2, r(c, phi) = {p['rcphi']}"
+    tipo = "modal (1 avaliacao por iteracao)" if p["gradiente"] == "modal" else \
+        f"por diferencas centrais (h = {p['h']}, {2 * nc * M + 1} avaliacoes por iteracao)"
+    print(f"FORM do {titulo}, {p['metodo'].upper()}: KL com M = {M} termos por campo ({nc * M} variaveis), gradiente "
+          f"{tipo}, {p['paralelos']} em paralelo", flush=True)
     print(f"  it   g = {'Gamma' if p['metodo'] == 'gim' else 'FS'} - 1    beta     |grad|   maiores alfa^2 (campo, termo)",
           flush=True)
     gAnterior = None
@@ -125,7 +147,7 @@ def main():
         alfa2 = [x * x / n2 for x in grad] if n2 > 0 else [0.] * len(grad)
         top = sorted(range(len(grad)), key=lambda i: -alfa2[i])[:4]
         print(f"  {it:2d}   {g:+.5f}    {beta:.4f}   {math.sqrt(n2):.4f}   " +
-              ", ".join(f"{'c' if i < M else 'phi'}{i % M}: {alfa2[i]:.2f}" for i in top), flush=True)
+              ", ".join(f"{nomes[i // M]}{i % M}: {alfa2[i]:.2f}" for i in top), flush=True)
         hist.append({"it": it, "u": u, "g": g, "grad": grad, "beta": beta, "fs_pontos": fs})
         with open(os.path.join(pasta, "form_parcial.json"), "w") as f:
             json.dump({"parametros": p, "historico": hist, "avaliacoes": prob.n}, f, indent=1)
@@ -146,13 +168,15 @@ def main():
     beta_corr = beta_novo  # distancia ao plano tangente no ultimo ponto avaliado (o proximo passo do HL-RF)
     res = {"parametros": p, "beta": beta, "P_f": phi_normal(-beta), "beta_corrigido": beta_corr,
            "P_f_corrigida": phi_normal(-beta_corr), "convergiu": convergiu, "iteracoes": len(hist), "u": u, "alfa": alfa, "alfa2": a2,
-           "alfa2_c": sum(a2[:M]), "alfa2_phi": sum(a2[M:]), "avaliacoes": prob.n, "historico": hist}
+           "alfa2_c": sum(a2[:M]), "alfa2_phi": sum(a2[M:2 * M]), "alfa2_k": sum(a2[2 * M:]), "avaliacoes": prob.n,
+           "historico": hist}
     with open(os.path.join(pasta, "form.json"), "w") as f:
         json.dump(res, f, indent=1)
     print(f"\n  beta = {beta:.4f}  P_f = Phi(-beta) = {100 * res['P_f']:.3f}%  ({prob.n} avaliacoes do FS)")
     print(f"  beta corrigido = {beta_corr:.4f}  P_f = {100 * res['P_f_corrigida']:.3f}%")
     print("  convergiu" if convergiu else f"  NAO convergiu em {p['iteracoes']} iteracoes")
-    print(f"  importancia por campo: c' {res['alfa2_c']:.3f}, phi' {res['alfa2_phi']:.3f}")
+    print(f"  importancia por campo: c' {res['alfa2_c']:.3f}, phi' {res['alfa2_phi']:.3f}"
+          + (f", k {res['alfa2_k']:.3f}" if nc == 3 else ""))
 
 
 if __name__ == "__main__":
