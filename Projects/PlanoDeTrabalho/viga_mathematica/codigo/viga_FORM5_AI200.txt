@@ -1,0 +1,461 @@
+<< NDSolve`FEM`
+(*Include Gaussian quadrature tools (nao e usado neste codigo)*)
+<< NumericalDifferentialEquationAnalysis`
+kernel[x1_, x2_] := Exp[-Abs[x1[[1]] - x2[[1]]]/LX - Abs[x1[[2]] - x2[[2]]]/LY];
+mesh = ToElementMesh[FullRegion[2], {{0, 5}, {0, 1}}, "MeshOrder" -> 1, MaxCellMeasure -> 0.0025];
+coords = mesh["Coordinates"];
+Nq = Length[coords];
+ct = Transpose[coords];
+CreateField[LX_, LY_, M_] := Block[{CMAT, els, w, sqrtW, KN, lambda, eigenvectors},
+  CMAT = Table[kernel[coords[[i]], ct], {i, 1, Nq}];
+  els = mesh["MeshElements"][[1, 1]];
+  w = ConstantArray[0., Nq];
+  Do[w[[t]] += Area[Polygon[coords[[t]]]]/Length[t], {t, els}];
+  sqrtW = DiagonalMatrix[Sqrt[w]];
+  KN = sqrtW . CMAT . sqrtW;
+  {lambda, eigenvectors} = Eigensystem[KN, M];
+  {w, lambda, eigenvectors}]
+data = {\[Mu]ln -> Log[mX] - \[Sigma]ln^2/2, \[Sigma]ln -> Sqrt[Log[1 + cov^2]], mX -> 200000, cov -> 0.3, \[Nu] -> 0.3};
+pasta = Quiet[Check[NotebookDirectory[], $Failed]]; If[! StringQ[pasta], pasta = Directory[]];   (*MUDOU: a pasta dos .mx*)
+
+(* =====6. O MEF=====*)
+DmatEPT[EE_, nu_] := EE/(1 - nu^2) {{1, nu, 0}, {nu, 1, 0}, {0, 0, (1 - nu)/2}}   (*estado plano de tensao:sigma_zz=0*)
+Dmat[EE_, nu_] := EE/((1 + nu) (1 - 2 nu)) {{1 - nu, nu, 0}, {nu, 1 - nu, 0}, {0, 0, (1 - 2 nu)/2}}   (*estado plano de deformacao:eps_zz=0*)
+voigt[i_, k_] := If[i == k, i, 3]
+cMat[Dm_, i_, j_] := Table[Dm[[voigt[i, k], voigt[j, l]]], {k, 1, 2}, {l, 1, 2}]
+opElast[Dm_] := Table[Sum[Inactive[Div][(-cMat[Dm, i, j]) . Inactive[Grad][{u[x, y], v[x, y]}[[j]], {x, y}], {x, y}], {j, 1, 2}], {i, 1, 2}]
+apoioV = DirichletCondition[v[x, y] == 0., x == 0 || x == 5];   (*v=0 nas faces das pontas:o apoio simples*)
+travaU = DirichletCondition[u[x, y] == 0., x == 0 && y == 0];   (*u=0 so no canto (0,0):tira a translacao horizontal*)
+meshFE = ToElementMesh[FullRegion[2], {{0, 5}, {0, 1}}, "MeshOrder" -> 2,(*a malha do MEF:ordem 2,senao a flexao fica rigida demais*)
+   MaxCellMeasure -> 0.05];
+
+(* =====Solucoes analiticas:viga biapoiada,carga q (para baixo) na face de cima=====*)
+(*x em[0,L],y em[0,h],espessura 1;devolvem v (negativo=para baixo),como o vfun*)
+(*1) Euler-Bernoulli:so flexao*)
+fEB[x_, q_, L_, h_, EE_] := -q x (L^3 - 2 L x^2 + x^3)/(24 EE h^3/12)
+(*2) viga de Timoshenko:flexao+cortante,kappa=5/6*)
+fTim[x_, q_, L_, h_, EE_, nu_] := fEB[x, q, L, h, EE] - q x (L - x)/(2 (5/6) EE/(2 (1 + nu)) h)
+(*3) Timoshenko& Goodier:elasticidade 2D exata em estado plano de tensao,v(x,y) em todo o corpo*)
+fanal[x_, y_, q_, L_, h_, EE_, nu_] := -q/(160 EE h^3) (h^4 (-15 + 2 nu) + 32 h^3 nu y +
+    192 h^2 (L x - x^2 - nu y^2) + 160 h y (3 L nu x - 3 nu x^2 + y^2 + 2 nu y^2) +
+    80 (L^3 x + x^4 + 6 nu x^2 y^2 - (1 + 2 nu) y^4 - 2 L (x^3 + 3 nu x y^2)))
+(*o deslocamento horizontal u(x,y) de Timoshenko& Goodier,para comparar com o ufun*)
+uanal[x_, y_, q_, L_, h_, EE_, nu_] := -q (L - 2 x)/(20 EE h^3) (2 h^3 - 24 h^2 y -
+    10 y (L^2 + 2 L x - 2 x^2 + 2 (2 + nu) y^2) + 5 h (L^2 + 2 L x - 2 x^2 + 6 (2 + nu) y^2))
+{ufun, vfun} = NDSolveValue[{opElast[DmatEPT[200000, 0.3]] == {0, NeumannValue[-1, 0 <= x <= 5 && y == 1]}, apoioV, travaU}, {u, v}, {x, y} \[Element] meshFE];
+Print["meio do vao (2.5, 0.5): MEF = ", vfun[2.5, 0.5], "  EB = ", fEB[2.5, 1, 5, 1, 200000],
+  "  Timoshenko = ", fTim[2.5, 1, 5, 1, 200000, 0.3], "  T&G 2D = ", fanal[2.5, 0.5, 1, 5, 1, 200000, 0.3]];
+Print["u em (0, 1): MEF = ", ufun[0, 1], "  T&G 2D = ", uanal[0, 1, 1, 5, 1, 200000, 0.3]];
+Plot[{vfun[x, 0.5], fEB[x, 1, 5, 1, 200000], fanal[x, 0.5, 1, 5, 1, 200000, 0.3]}, {x, 0, 5},
+ PlotLegends -> {"MEF", "Euler-Bernoulli", "T&G 2D"}, AxesLabel -> {"x", "v(x, 0.5)"},
+ PlotStyle -> {{Red, Dashed}, {Blue, Dotted}, {Black, Dotted}}]
+Show[{meshFE["Wireframe"["MeshElement" -> "BoundaryElements"]],
+  ElementMeshDeformation[meshFE, {ufun, vfun}, "ScalingFactor" -> 2000]["Wireframe"["ElementMeshDirective" -> Directive[EdgeForm[Red], FaceForm[]]]]}]
+
+(* =====7. O campo com M = 5 termos (o do FORM)=====*)
+M = 5;
+LX = 1;
+LY = 0.5;
+{w, lambda, eigenvectors} = CreateField[LX, LY, M];
+fNos[i_] := eigenvectors[[i]]/Sqrt[w];
+CFE = Table[kernel[p, ct], {p, meshFE["Coordinates"]}];   (*C(x_p,x_j):nos do MEF x nos de Nystrom,calculada uma vez*)
+Fmat = Table[fNos[i], {i, 1, M}];                         (*f_i(x_j):M x Nq*)
+{mu, sg} = {\[Mu]ln, \[Sigma]ln} //. data;                (*mu_ln e sigma_ln em numeros*)
+EnosDe[xi_] := Exp[mu + sg CFE . (w ((xi/Sqrt[lambda]) . Fmat))]   (*o mesmo field[p] em todos os nos do MEF*)
+flechaDe[xi_] := Module[{uu, vv, Ei = ElementMeshInterpolation[{meshFE}, EnosDe[xi]]},
+  {uu, vv} = NDSolveValue[{opElast[DmatEPT[Ei[x, y], \[Nu] /. data]] == {0, NeumannValue[-1, 0 <= x <= 5 && y == 1]}, apoioV, travaU}, {u, v}, {x, y} \[Element] meshFE];
+  -vv[2.5, 0.5]]
+If[$KernelCount == 0, LaunchKernels[]];   (*MUDOU: os kernels, com o pacote do MEF*)
+ParallelNeeds["NDSolve`FEM`"];
+DistributeDefinitions[flechaDe];          (*MUDOU: manda o campo de 5 termos aos kernels*)
+
+(* =====8. O MC cru salvo, para comparar (MUDOU: o PfMC nao existia neste codigo)=====*)
+deltaLim = 0.00075;
+pfMCde[m_] := Module[{d = Import[FileNameJoin[{pasta, "mc_M" <> ToString[m] <> "_N20000.mx"}]][[2]], pf},
+  pf = N[Count[d, dd_ /; dd > deltaLim]/Length[d]]; {pf, Sqrt[(1 - pf)/(Length[d] pf)]}]   (*{P_f, CoV} do MC cru com m termos*)
+{PfMC5, covMC5} = pfMCde[5];
+{PfMC200, covMC200} = pfMCde[200];
+
+(* =====9. O FORM no espaco dos xi (ja normais padrao):so a Eq.(hlrf)=====*)
+hDif = 0.1;                                    (*o passo das diferencas centrais em xi*)
+nAnalises = 0;                                 (*contador de analises do MEF*)
+gXi[xi_] := (nAnalises += 1; deltaLim - flechaDe[xi])   (*g(xi)=deltaLim-delta:falha se g<=0*)
+gradXi[xi_] := Module[{gs}, nAnalises += 2 M;
+  gs = ParallelMap[flechaDe, Join[Table[xi + hDif UnitVector[M, k], {k, M}], Table[xi - hDif UnitVector[M, k], {k, M}]]];   (*2M analises do MEF,em paralelo*)
+  (gs[[M + 1 ;;]] - gs[[;; M]])/(2 hDif)]      (*grad g=-grad delta,Eq.(difc)*)
+formXi[gf_, gradf_, n_, maxiter_ : 20, tol_ : 10^-6] := Module[{xi = ConstantArray[0., n], g0, g, grad, xiNovo, beta = 0.},
+  g0 = g = gf[xi];(*comeca na origem,xi=0*)
+  Do[
+   grad = gradf[xi];(*o gradiente:uma vez por iteracao*)
+   xiNovo = (grad . xi - g)/(grad . grad) grad;(*Eq.(hlrf):o ponto do plano tangente mais perto da origem*)
+   g = gf[xiNovo];
+   Print[" | iter = ", it, " | g/g0 = ", g/g0, " | beta = ", Norm[xiNovo]];
+   If[Abs[g/g0] < tol && Abs[Norm[xiNovo] - beta] < 0.001, xi = xiNovo; Break[]];(*para:g~0 e beta parado*)
+   xi = xiNovo; beta = Norm[xi], {it, maxiter}];
+  grad = gradf[xi];(*o gradiente no ponto de projeto,para o alpha*)
+  <|"xi" -> xi,(*o ponto de projeto xi**)"beta" -> Sign[g0] Norm[xi],(*beta<0 se a origem ja falha*)
+   "alpha" -> grad/Norm[grad],(*os cossenos diretores,Eq.(ponto)*)"g" -> g|>]
+{tFORM, r} = AbsoluteTiming[formXi[gXi, gradXi, M]];     (*tempo do FORM em segundos*)
+nFORM = nAnalises;
+betaF = r["beta"]; xiStar = r["xi"];                   (*xiStar tem M = 5 termos*)
+PfFORM = CDF[NormalDistribution[], -betaF];            (*Pf=Phi(-beta)*)
+Print["FORM: ", tFORM, " s,  ", nFORM, " analises do MEF,  ", tFORM/nFORM, " s por analise"];
+Take[SortBy[Transpose[{Range[M], r["alpha"]^2}], -Last[#] &], 5]   (*os 5 modos mais importantes (alpha^2)*)
+flechaDe[xiStar]                                       (*confere:deve dar~deltaLim*)
+{betaF, PfFORM, PfMC5}                                 (*FORM x Monte Carlo, os dois com M = 5*)
+
+(* =====10. Amostragem por importancia com o campo de M = 200, centrada no xi* do FORM de 5 (Secao 5.2)=====*)
+M = 200;
+LX = 1;
+LY = 0.5;
+{w, lambda, eigenvectors} = CreateField[LX, LY, M];   (*os 5 primeiros modos sao os mesmos do FORM*)
+fNos[i_] := eigenvectors[[i]]/Sqrt[w];
+Fmat = Table[fNos[i], {i, 1, M}];                      (*f_i(x_j):M x Nq (o CFE nao muda com M)*)
+DistributeDefinitions[flechaDe];                       (*MUDOU: manda o campo de 200 termos aos kernels*)
+xiC = PadRight[xiStar, M];                             (*MUDOU: o centro em 200 termos, (xi*_1..5, 0, ..., 0)*)
+nIS = 1000;                                            (*bem menos amostras que o direto*)
+SeedRandom[2];
+amostrasXih = Transpose[Table[RandomVariate[NormalDistribution[xiC[[ii]], 1], nIS], {ii, 1, M}]];   (*nIS x M:a linha k e a amostra k,xi~N(xi*,I)*)
+dispIS = ParallelMap[flechaDe, amostrasXih];           (*as flechas:uma analise do MEF por amostra*)
+pesoIS = Exp[-amostrasXih . xiC + xiC . xiC/2];        (*Eq.(peso):w=phi(xi)/h(xi), com o xiC de 200 termos*)
+Iw = (Boole[# > deltaLim] & /@ dispIS) pesoIS;         (*I w de cada amostra*)
+PfIS = Mean[Iw]                                        (*Eq.(aiest)*)
+covIS = StandardDeviation[Iw]/(Sqrt[nIS] PfIS)         (*o CoV da estimativa*)
+{Count[dispIS, dd_ /; dd > deltaLim], Total[Iw]^2/Total[Iw^2], Max[Iw]/Total[Iw]}
+(*falhas,tamanho efetivo das falhas (ESS_F) e maior parcela do peso numa so amostra*)
+zIS = (PfIS - PfMC200)/Sqrt[(covIS PfIS)^2 + (covMC200 PfMC200)^2];   (*a diferenca AI - MC cru (M = 200), em desvios padrao*)
+Print["MC cru (M = 200): ", PfMC200, " (CoV ", covMC200, ");  FORM (M = 5): ", PfFORM, ";  AI (M = 200, centro do FORM de 5): ",
+  PfIS, " (CoV ", covIS, ");  z = ", zIS, ";  analises: ", nFORM, " + ", nIS];
+{PfMC200, PfFORM, PfIS}                                (*direto x FORM x AI*)
+
+(* =====11. Pos-processamento: as figuras=====*)
+mcDados = Import[FileNameJoin[{pasta, "mc_M200_N20000.mx"}]];   (*o MC cru com M = 200: {amostras xi, flechas}*)
+xiMC = mcDados[[1]]; dMC = mcDados[[2]]; nMC = Length[dMC];
+IMC = Boole[# > deltaLim] & /@ dMC;                    (*o indicador de falha do MC*)
+kMC = Range[nMC]; kIS = Range[nIS];
+pfMCk = Accumulate[IMC]/N[kMC];                        (*a P_f acumulada do MC*)
+covMCk = MapThread[If[0 < #1 < 1, Sqrt[(1 - #1)/(#2 #1)], Indeterminate] &, {pfMCk, kMC}];
+pfISk = Accumulate[Iw]/N[kIS];                         (*a P_f acumulada da AI*)
+varISk = (Accumulate[Iw^2] - kIS pfISk^2)/(kIS - 1 /. 0 -> 1);   (*a variancia de I w ate a amostra k*)
+covISk = MapThread[If[#1 > 0 && #3 > 1, Sqrt[Max[#2, 0]/#3]/#1, Indeterminate] &, {pfISk, varISk, kIS}];
+icMC = PfMC200 (1 + {-1.96, 1.96} covMC200);           (*o IC 95% do MC*)
+falhaIS = Boole[# > deltaLim] & /@ dispIS;
+estilo = {PlotTheme -> "Scientific", ImageSize -> 520, LabelStyle -> 12};
+
+(* -- 1. a P_f acumulada contra o numero de analises do MEF: a AI comeca depois do FORM -- *)
+gPf = ListLogLinearPlot[{Transpose[{kMC, pfMCk}], Transpose[{nFORM + kIS, pfISk}]}, Joined -> True,
+  PlotStyle -> {Gray, Red}, PlotRange -> {{1, nMC}, {0, 3 PfMC200}},
+  GridLines -> {{nFORM}, {PfMC200, icMC[[1]], icMC[[2]]}},
+  GridLinesStyle -> Directive[Gray, Dashed], PlotLegends -> Placed[{"MC cru (M = 200)", "AI (M = 200, centro do FORM de 5)"}, {0.65, 0.85}],
+  FrameLabel -> {"analises do MEF", "P_f"}, PlotLabel -> "convergencia da P_f (tracejado: MC final e IC 95%)", Evaluate[estilo]]
+
+(* -- 2. o CoV contra o numero de analises: nos dois o CoV cai com 1/Sqrt[n], mas a AI fica bem abaixo -- *)
+gCoV = ListLogLogPlot[{Select[Transpose[{kMC, covMCk}], NumericQ[#[[2]]] &], Select[Transpose[{nFORM + kIS, covISk}], NumericQ[#[[2]]] &]},
+  Joined -> True, PlotStyle -> {Gray, Red}, PlotRange -> {{1, nMC}, {0.02, 1}}, GridLines -> {None, {0.05}},
+  GridLinesStyle -> Directive[Black, Dashed], PlotLegends -> Placed[{"MC cru", "AI"}, {0.85, 0.85}],
+  FrameLabel -> {"analises do MEF", "CoV da P_f"}, PlotLabel -> "CoV da P_f (tracejado: o alvo de 5%)", Evaluate[estilo]]
+
+(* -- 3. as flechas: o MC cru e as amostras da AI, deslocadas para a falha -- *)
+faixa = {0.0003, 0.0012, 0.00002};
+gHist = Show[
+  Histogram[dMC, faixa, "PDF", ChartStyle -> Directive[Opacity[0.55], Gray]],
+  Histogram[dispIS, faixa, "PDF", ChartStyle -> Directive[Opacity[0.45], Red]],
+  GridLines -> {{deltaLim}, None}, GridLinesStyle -> Directive[Black, Dashed], PlotRange -> All, Frame -> True,
+  FrameLabel -> {"flecha no meio do vao", "PDF"}, PlotLabel -> "cinza: MC cru; vermelho: amostras da AI (tracejado: deltaLim)",
+  ImageSize -> 520]
+
+(* -- 3b. a cauda: P(flecha > t) pelo MC e pela AI reponderada, com IC 95% (a AI e precisa perto e alem do deltaLim) -- *)
+tGrade = Subdivide[0.0006, 0.0011, 25];
+barra[p_, e_] := Around[p, {Min[e, 0.9 p], e}]       (*IC 95%, com o limite de baixo positivo (escala log)*)
+excMC = Select[Table[With[{p = N[Count[dMC, dd_ /; dd > t]/nMC]}, {t, barra[p, 1.96 Sqrt[p (1 - p)/nMC]]}], {t, tGrade}],
+   #[[2]]["Value"] > 0 &];
+excIS = Select[Table[With[{q = (Boole[# > t] & /@ dispIS) pesoIS}, {1.0005 t, barra[Mean[q], 1.96 StandardDeviation[q]/Sqrt[nIS]]}],
+    {t, tGrade}], #[[2]]["Value"] > 0 &];
+gExc = ListLogPlot[{excMC, excIS}, PlotStyle -> {Gray, Red}, PlotMarkers -> {Automatic, 7}, Frame -> True,
+  PlotRange -> {All, {10^-6, 0.2}},
+  GridLines -> {{deltaLim}, None}, GridLinesStyle -> Directive[Black, Dashed],
+  PlotLegends -> Placed[{"MC cru (20000)", "AI reponderada (" <> ToString[nIS] <> ")"}, {0.75, 0.85}],
+  FrameLabel -> {"t", "P(flecha > t)"}, PlotLabel -> "a cauda da flecha (tracejado: deltaLim)", ImageSize -> 520]
+
+(* -- 4. os pesos das falhas da AI: quanto cada amostra pesa na P_f -- *)
+wF = Pick[pesoIS, falhaIS, 1];                          (*os pesos das amostras que falharam*)
+parcela = Reverse[Sort[wF]]/Total[wF];
+gPesos = GraphicsRow[{
+   Histogram[Log10[wF], 30, ChartStyle -> Red, Frame -> True, FrameLabel -> {"log10 do peso", "falhas"},
+    PlotLabel -> "pesos das falhas da AI", ImageSize -> 300],
+   ListLinePlot[Accumulate[parcela], Frame -> True, PlotRange -> {All, {0, 1}}, PlotStyle -> Red,
+    GridLines -> {None, {0.5, 0.9}}, FrameLabel -> {"falhas, da mais pesada para a mais leve", "fracao da P_f"},
+    PlotLabel -> "nenhuma amostra domina", ImageSize -> 300]}, ImageSize -> 650]
+
+(* -- 5. os xi dos modos 1 e 3 (os de maior alpha^2): o MC, a AI e o ponto de projeto -- *)
+mostraMC = RandomSample[Range[nMC], 3000];
+gXi = ListPlot[{xiMC[[mostraMC, {1, 3}]], Pick[xiMC[[All, {1, 3}]], IMC, 1], amostrasXih[[All, {1, 3}]], Pick[amostrasXih[[All, {1, 3}]], falhaIS, 1], {xiStar[[{1, 3}]]}},
+  PlotStyle -> {Directive[Gray, PointSize[0.004]], Directive[Black, PointSize[0.008]], Directive[Pink, PointSize[0.004]],
+    Directive[Red, PointSize[0.007]], Directive[Blue, PointSize[0.025]]}, AspectRatio -> 1,
+  PlotLegends -> {"MC (3000)", "MC: falhas", "AI", "AI: falhas", "ponto de projeto (FORM de 5)"},
+  FrameLabel -> {"xi_1", "xi_3"}, PlotLabel -> "o MC cru e a AI nos modos 1 e 3", Frame -> True, ImageSize -> 520]
+
+(* -- 6. os alpha^2 do FORM e a P_f de cada metodo -- *)
+gAlpha = BarChart[r["alpha"]^2, ChartLabels -> Range[Length[r["alpha"]]], ChartStyle -> Blue, Frame -> True,
+  FrameLabel -> {"modo", "alpha^2"}, PlotLabel -> "importancia dos modos no FORM de 5", ImageSize -> 360]
+gMetodos = ListPlot[{{{1, Around[PfMC200, 1.96 covMC200 PfMC200]}}, {{2, PfFORM}}, {{3, Around[PfIS, 1.96 covIS PfIS]}}},
+  PlotMarkers -> {Automatic, 12}, PlotRange -> {{0.5, 3.5}, {0, 1.5 PfMC200}}, Frame -> True,
+  FrameTicks -> {{Automatic, None}, {{{1, "MC cru\n" <> ToString[nMC]}, {2, "FORM\n" <> ToString[nFORM]}, {3, "AI\n" <> ToString[nFORM] <> " + " <> ToString[nIS]}}, None}},
+  GridLines -> {None, {PfMC200}}, FrameLabel -> {"metodo (analises do MEF)", "P_f"}, PlotLabel -> "P_f e IC 95%", ImageSize -> 360]
+
+(* -- a tabela e os arquivos -- *)
+nPara5[n_, cv_] := Round[n (cv/0.05)^2];
+Grid[{{"metodo", "P_f", "CoV", "IC 95%", "analises MEF", "analises p/ CoV 5%"},
+   {"MC cru (M = 200)", PfMC200, covMC200, icMC, nMC, nPara5[nMC, covMC200]},
+   {"FORM (M = 5)", PfFORM, "-", "-", nFORM, "-"},
+   {"AI (M = 200, centro do FORM de 5)", PfIS, covIS, PfIS (1 + {-1.96, 1.96} covIS), nFORM + nIS, nFORM + nPara5[nIS, covIS]}},
+  Frame -> All, Background -> {None, {1 -> LightGray}}]
+dirFig = FileNameJoin[{pasta, "figuras_AI_M5_M200"}];
+Quiet[CreateDirectory[dirFig]];
+Do[Export[FileNameJoin[{dirFig, f[[1]] <> ".pdf"}], f[[2]]], {f, {{"pf_convergencia", gPf}, {"cov_convergencia", gCoV},
+    {"histograma_flechas", gHist}, {"cauda", gExc}, {"pesos", gPesos}, {"xi_modos_1_3", gXi}, {"alpha2", gAlpha}, {"pf_metodos", gMetodos}}}];
+Print["figuras em ", dirFig];
+
+(* =====12. O ponto otimo: analises do MEF para CoV de 5% contra o M do FORM (a AI sempre com o campo de 200)=====*)
+(*custo total = analises do FORM(M) + amostras da AI para CoV de 5%. O FORM fica mais caro com M (2M + 1 analises por
+  iteracao), e a AI fica mais barata, porque o centro melhora. O CoV verdadeiro da AI sai das falhas do MC cru de 50000,
+  sem MEF: Var_h(I w) = P_f E[w | falha] - P_f^2, e as amostras para CoV de 5% sao Var_h(I w)/(0.05 P_f)^2*)
+listaMF = {2, 3, 5, 8, 10, 15, 20, 30, 40, 60, 100, 200};   (*os M do FORM*)
+Mcampo = 200;                                          (*o campo da AI: o completo*)
+{wC, lamC, vecC} = CreateField[LX, LY, Mcampo];        (*os 200 modos; os m primeiros sao os do FORM com m termos*)
+usaModos[m_] := (M = m; w = wC; lambda = lamC[[;; m]]; Fmat = Table[vecC[[i]]/Sqrt[wC], {i, 1, m}];
+   DistributeDefinitions[flechaDe]; m)                 (*o campo com m termos, nos kernels tambem*)
+rodaFORM[m_] := Module[{arq = FileNameJoin[{pasta, "form_M" <> ToString[m] <> "_d" <> ToString[deltaLim, InputForm] <> ".mx"}], res, tF, rF},
+  usaModos[m];
+  If[FileExistsQ[arq], res = Import[arq],              (*o FORM que ja rodou vem do arquivo*)
+   nAnalises = 0;
+   {tF, rF} = AbsoluteTiming[formXi[gXi, gradXi, m]];
+   res = <|"M" -> m, "beta" -> rF["beta"], "xi" -> rF["xi"], "alpha" -> rF["alpha"], "tempo" -> tF, "analises" -> nAnalises|>;
+   Export[arq, res]];
+  res]
+formsM = AssociationMap[rodaFORM, listaMF];            (*so os M sem arquivo rodam o MEF*)
+usaModos[Mcampo];                                      (*volta ao campo de 200*)
+mc50 = Import[FileNameJoin[{pasta, "mc_M200_N50000.mx"}]];   (*o MC cru de 50000 com M = 200: {xi, flechas}*)
+IMC50 = Boole[# > deltaLim] & /@ mc50[[2]];
+pf50 = N[Mean[IMC50]]; cv50 = Sqrt[(1 - pf50)/(Length[IMC50] pf50)];
+xiFalhas = Pick[mc50[[1]], IMC50, 1];                  (*os xi das falhas do MC cru*)
+nAI5[m_] := With[{mu = PadRight[formsM[m]["xi"], Mcampo]},
+  (pf50 Mean[Exp[-xiFalhas . mu + mu . mu/2]] - pf50^2)/(0.05 pf50)^2]   (*amostras da AI para CoV de 5%, centro do FORM de m*)
+nMC5 = (1 - pf50)/(pf50 0.05^2);                       (*o MC cru para CoV de 5%*)
+custo = Table[{m, formsM[m]["analises"], nAI5[m], formsM[m]["analises"] + nAI5[m]}, {m, listaMF}];
+mOtimo = First[MinimalBy[custo, Last]];                (*{M, FORM, AI, total} do menor total*)
+(*a AI de verdade, 1000 amostras com o campo de 200 e o centro do FORM de m: carrega as que ja rodaram (estudo, secao 18),
+  roda e salva as que faltam (1000 analises do MEF cada)*)
+rodaAI[m_] := Module[{arq = FileNameJoin[{pasta, "ai_M200_f" <> ToString[m] <> "_N1000_d" <> ToString[deltaLim, InputForm] <> "_s2.mx"}],
+   mu = PadRight[formsM[m]["xi"], Mcampo], res, xs, t, ds, iw},
+  If[FileExistsQ[arq], res = Import[arq],
+   SeedRandom[2];
+   xs = (mu + #) & /@ RandomVariate[NormalDistribution[0, 1], {1000, Mcampo}];   (*xi ~ N(xi*, I)*)
+   {t, ds} = AbsoluteTiming[ParallelMap[flechaDe, xs]];
+   res = <|"M" -> Mcampo, "Mform" -> m, "flechas" -> ds, "pesos" -> Exp[-xs . mu + mu . mu/2], "tempo" -> t, "analises" -> 1000|>;
+   Export[arq, res]];
+  iw = (Boole[# > deltaLim] & /@ res["flechas"]) res["pesos"];   (*I w de cada amostra*)
+  <|"Pf" -> Mean[iw], "CoV" -> StandardDeviation[iw]/(Sqrt[1000] Mean[iw])|>]
+aiM200 = AssociationMap[rodaAI, listaMF];
+medidos = Table[{m, formsM[m]["analises"] + 1000 (aiM200[m]["CoV"]/0.05)^2}, {m, listaMF}];   (*o total pelo CoV que a AI estima*)
+gOtimo = ListLogLogPlot[{custo[[All, {1, 2}]], custo[[All, {1, 3}]], custo[[All, {1, 4}]], medidos},
+  Joined -> {True, True, True, False}, PlotMarkers -> {Automatic, Automatic, Automatic, {"\[FilledSquare]", 12}},
+  PlotStyle -> {Blue, Red, Black, Darker[Green]}, GridLines -> {{mOtimo[[1]]}, {nMC5}}, GridLinesStyle -> Directive[Gray, Dashed],
+  PlotLegends -> {"so o FORM", "AI para CoV de 5% (CoV verdadeiro)", "total: FORM + AI", "total pelo CoV da AI de 1000"},
+  Frame -> True, FrameLabel -> {"M do FORM (a AI usa o campo de 200)", "analises do MEF para CoV de 5%"},
+  PlotLabel -> "otimo: M = " <> ToString[mOtimo[[1]]] <> ", " <> ToString[Round[mOtimo[[4]]]] <> " analises (linha horizontal: MC cru, " <>
+    ToString[Round[nMC5]] <> ")", ImageSize -> 620]
+pfFORMde[m_] := CDF[NormalDistribution[], -formsM[m]["beta"]]    (*a P_f do FORM de m*)
+zDe[p_, cv_] := (p - pf50)/Sqrt[(cv p)^2 + (cv50 pf50)^2]       (*a diferenca contra o MC cru, em desvios padrao*)
+Grid[Prepend[Table[With[{m = c[[1]], a = aiM200[c[[1]]]},
+     {m, NumberForm[formsM[m]["beta"], 4], NumberForm[pfFORMde[m], 3], NumberForm[100 (pfFORMde[m]/pf50 - 1), 3], c[[2]],
+      NumberForm[a["Pf"], 3], NumberForm[100 a["CoV"], 3], NumberForm[100 (a["Pf"]/pf50 - 1), 3], NumberForm[zDe[a["Pf"], a["CoV"]], 2],
+      Round[c[[3]]], Round[c[[4]]], NumberForm[nMC5/c[[4]], 3]}], {c, custo}],
+   {"M do FORM", "beta", "P_f FORM", "erro FORM (%)", "analises do FORM", "P_f AI (1000)", "CoV AI (%)", "erro AI (%)", "z AI",
+    "AI p/ CoV 5%", "total", "ganho vs MC cru"}], Frame -> All, Background -> {None, {1 -> LightGray}}]
+Print["referencia: MC cru de 50000 com M = 200, P_f = ", pf50, " (CoV ", cv50, "); erro = P_f do metodo / P_f do cru - 1; ",
+  "|z| < 2: a diferenca e ruido"];
+Quiet[CreateDirectory[FileNameJoin[{pasta, "figuras_AI_M5_M200"}]]];
+Export[FileNameJoin[{pasta, "figuras_AI_M5_M200", "ponto_otimo.pdf"}], gOtimo];
+
+(* =====13. SORM: a curvatura da superficie de falha no ponto de projeto=====*)
+(*Perto do ponto de projeto xiStar, g(xi) ~ grad.(xi - xiStar) + (1/2)(xi - xiStar).H.(xi - xiStar). Com a normal
+  n = -grad/|grad| (da origem para a falha, xiStar = beta n) e uma base R do plano tangente, as curvaturas principais kappa_i sao os autovalores de
+  R.H.R^T/|grad| (M - 1 curvaturas). Com elas:
+    Breitung (1984):               P_f = Phi(-beta) Prod (1 + beta kappa_i)^(-1/2)
+    Hohenbichler-Rackwitz (1988):  P_f = Phi(-beta) Prod (1 + psi kappa_i)^(-1/2),  psi = phi(beta)/Phi(-beta)
+  kappa < 0: a regiao de falha e maior que o semiespaco do FORM, e a P_f do SORM fica acima da do FORM.
+  O hessiano de g = deltaLim - delta sai por diferencas finitas no ponto de projeto, com passo hS: 2M analises nos eixos
+  (o diagonal e o gradiente) e 2 por par (i, j), xi* + hS(e_i + e_j) e xi* - hS(e_i + e_j): M(M - 1) + 2M + 1 analises*)
+hS = 0.2;                                              (*o passo do hessiano em xi*)
+hessianoXi[xi_] := Module[{n = Length[xi], d0, dp, dm, ij, dpp = {}, dmm = {}, Hd},
+  d0 = flechaDe[xi];
+  {dp, dm} = Partition[ParallelMap[flechaDe, Join[Table[xi + hS UnitVector[n, k], {k, n}], Table[xi - hS UnitVector[n, k], {k, n}]]], n];
+  ij = Subsets[Range[n], {2}];                         (*os pares i < j*)
+  If[ij =!= {}, {dpp, dmm} = Partition[ParallelMap[flechaDe,
+      Join[(xi + hS (UnitVector[n, #[[1]]] + UnitVector[n, #[[2]]])) & /@ ij, (xi - hS (UnitVector[n, #[[1]]] + UnitVector[n, #[[2]]])) & /@ ij]],
+      Length[ij]]];
+  Hd = DiagonalMatrix[(dp - 2 d0 + dm)/hS^2];          (*d2 delta/dxi_i^2*)
+  Do[With[{i = ij[[k, 1]], j = ij[[k, 2]]},           (*d2 delta/dxi_i dxi_j, com erro O(hS^2)*)
+    Hd[[i, j]] = Hd[[j, i]] = (dpp[[k]] + dmm[[k]] - dp[[i]] - dm[[i]] - dp[[j]] - dm[[j]] + 2 d0)/(2 hS^2)], {k, Length[ij]}];
+  <|"Hg" -> -Hd, "grad" -> -(dp - dm)/(2 hS), "analises" -> 1 + 2 n + 2 Length[ij]|>]   (*o hessiano e o gradiente de g*)
+rodaSORM[m_] := Module[{arq = FileNameJoin[{pasta, "sorm_M" <> ToString[m] <> "_d" <> ToString[deltaLim, InputForm] <> "_h" <> ToString[hS] <> ".mx"}],
+   hs, rF = formsM[m], gr, nrm, nh, R, kap, beta, psi, phiB},
+  If[FileExistsQ[arq], hs = Import[arq], usaModos[m]; hs = hessianoXi[rF["xi"]]; Export[arq, hs]];   (*o hessiano so e calculado uma vez*)
+  beta = rF["beta"]; gr = hs["grad"]; nrm = Norm[gr];
+  nh = -gr/nrm;                                        (*a normal, da origem para a falha*)
+  R = Orthogonalize[NullSpace[{nh}]];                  (*base ortonormal do plano tangente: (M - 1) x M*)
+  kap = Eigenvalues[(# + Transpose[#])/2 &[R . hs["Hg"] . Transpose[R]/nrm]];   (*as M - 1 curvaturas principais*)
+  phiB = CDF[NormalDistribution[], -beta]; psi = PDF[NormalDistribution[], beta]/phiB;
+  <|"kappa" -> kap, "analises" -> hs["analises"],
+   "PfB" -> If[Min[1 + beta kap] > 0, phiB Times @@ ((1 + beta kap)^(-1/2)), Indeterminate],   (*Breitung*)
+   "PfHR" -> If[Min[1 + psi kap] > 0, phiB Times @@ ((1 + psi kap)^(-1/2)), Indeterminate],   (*Hohenbichler-Rackwitz*)
+   "angulo" -> ArcCos[Clip[nh . rF["xi"]/Norm[rF["xi"]], {-1, 1}]]/Degree|>]   (*confere: a normal aponta para o xi*?*)
+sormM = AssociationMap[rodaSORM, listaMF];             (*cuidado: com M = 200 sao ~40 000 analises (uns 20 a 30 min)*)
+usaModos[Mcampo];                                      (*volta ao campo de 200*)
+
+(* -- a tabela com o FORM, o SORM e a AI, todos contra o MC cru de 50000 -- *)
+erro[p_] := If[NumericQ[p], NumberForm[100 (p/pf50 - 1), 3], "-"]
+Grid[Prepend[Table[With[{m = c[[1]], a = aiM200[c[[1]]], s = sormM[c[[1]]]},
+     {m, NumberForm[formsM[m]["beta"], 4], NumberForm[pfFORMde[m], 3], erro[pfFORMde[m]],
+      NumberForm[s["PfB"], 3], erro[s["PfB"]], NumberForm[s["PfHR"], 3], erro[s["PfHR"]], c[[2]], s["analises"],
+      NumberForm[a["Pf"], 3], NumberForm[100 a["CoV"], 3], erro[a["Pf"]], NumberForm[zDe[a["Pf"], a["CoV"]], 2],
+      Round[c[[4]]], NumberForm[nMC5/c[[4]], 3]}], {c, custo}],
+   {"M", "beta", "P_f FORM", "erro FORM (%)", "P_f SORM Breitung", "erro (%)", "P_f SORM H-R", "erro (%)", "analises FORM",
+    "analises SORM (hessiano)", "P_f AI (1000)", "CoV AI (%)", "erro AI (%)", "z AI", "FORM + AI p/ CoV 5%", "ganho AI"}],
+  Frame -> All, Background -> {None, {1 -> LightGray}}]
+Print["referencia: MC cru de 50000 (M = 200), P_f = ", pf50, " (CoV ", cv50, "); erro = P_f / P_f do cru - 1"];
+Print["curvaturas (M = ", Last[listaMF], "): soma ", Total[sormM[Last[listaMF]]["kappa"]], ", as 5 maiores em modulo ",
+  Take[SortBy[sormM[Last[listaMF]]["kappa"], -Abs[#] &], UpTo[5]]];
+gSorm = ListLogLinearPlot[{Table[{m, pfFORMde[m]}, {m, listaMF}], Table[{m, sormM[m]["PfB"]}, {m, listaMF}],
+   Table[{m, sormM[m]["PfHR"]}, {m, listaMF}], Table[{m, Around[aiM200[m]["Pf"], 1.96 aiM200[m]["CoV"] aiM200[m]["Pf"]]}, {m, listaMF}]},
+  Joined -> {True, True, True, False}, PlotMarkers -> Automatic, PlotStyle -> {Blue, Orange, Purple, Red},
+  PlotRange -> {All, {0, 1.25 pf50}}, GridLines -> {None, {pf50, pf50 (1 - 1.96 cv50), pf50 (1 + 1.96 cv50)}}, GridLinesStyle -> Directive[Gray, Dashed],
+  PlotLegends -> {"FORM", "SORM (Breitung)", "SORM (Hohenbichler-Rackwitz)", "AI de 1000 (IC 95%)"}, Frame -> True,
+  FrameLabel -> {"M do FORM", "P_f"}, PlotLabel -> "FORM, SORM e AI contra o MC cru de 50000 (tracejado: P_f e IC 95%)", ImageSize -> 620]
+Export[FileNameJoin[{pasta, "figuras_AI_M5_M200", "form_sorm_ai.pdf"}], gSorm];
+
+(* =====14. AI com o SORM (M = 20): a normal centrada no xi*, com a covariancia das curvaturas=====*)
+(*Perto do ponto de projeto, a falha e u_n >= beta + (1/2) y.K.y (u_n na normal, y no plano tangente, K as curvaturas).
+  Integrando u_n, as falhas se distribuem em y como exp(-(1/2) y.(I + c K).y), com c = beta (Breitung) ou c = psi
+  (Hohenbichler-Rackwitz): uma normal com covariancia (I + c K)^-1 no plano tangente. A AI com o SORM sorteia
+  xi ~ N(xi*, Sigma), com Sigma = n n^T + R^T (I + c K)^-1 R nos mS primeiros modos (os do FORM e do SORM) e a identidade
+  nos outros. Como as curvaturas sao negativas, ela abre a amostra nas direcoes em que a falha se espalha.
+  O peso e o exato da normal: ln w = -|xi|^2/2 + |z|^2/2 + ln det(Sigma)/2, com xi = xi* + z.U e Sigma = U^T U*)
+mS = 20;                                               (*o M do FORM e do SORM*)
+sigmaSORM[m_, tipo_] := Module[{hs = Import[FileNameJoin[{pasta, "sorm_M" <> ToString[m] <> "_d" <> ToString[deltaLim, InputForm] <> "_h" <> ToString[hS] <> ".mx"}]],
+   beta = formsM[m]["beta"], gr, nrm, nh, R, At, kap, vec, c},
+  gr = hs["grad"]; nrm = Norm[gr]; nh = -gr/nrm;       (*a normal, da origem para a falha*)
+  R = Orthogonalize[NullSpace[{nh}]];                  (*base do plano tangente: (m - 1) x m*)
+  At = (# + Transpose[#])/2 &[R . hs["Hg"] . Transpose[R]/nrm];
+  {kap, vec} = Eigensystem[At];                        (*as curvaturas e as direcoes principais*)
+  c = If[tipo == "HR", PDF[NormalDistribution[], beta]/CDF[NormalDistribution[], -beta], beta];
+  (# + Transpose[#])/2 &[Outer[Times, nh, nh] + Transpose[R] . Transpose[vec] . DiagonalMatrix[1/(1 + c kap)] . vec . R]]   (*Sigma, m x m*)
+rodaAISORM[tipo_] := Module[{arq = FileNameJoin[{pasta, "ai_M200_sorm" <> ToString[mS] <> tipo <> "_N1000_d" <> ToString[deltaLim, InputForm] <> "_s2.mx"}],
+   mu = PadRight[formsM[mS]["xi"], Mcampo], S, U, Z, xs, res, t, ds, iw},
+  S = sigmaSORM[mS, tipo];
+  U = ArrayFlatten[{{CholeskyDecomposition[S], 0}, {0, IdentityMatrix[Mcampo - mS]}}];   (*Sigma de 200 = U^T U*)
+  If[FileExistsQ[arq], res = Import[arq],
+   SeedRandom[2];
+   Z = RandomVariate[NormalDistribution[0, 1], {1000, Mcampo}];   (*os mesmos z da AI pela media (numeros aleatorios comuns)*)
+   xs = (mu + #) & /@ (Z . U);                         (*xi ~ N(xi*, Sigma)*)
+   {t, ds} = AbsoluteTiming[ParallelMap[flechaDe, xs]];
+   res = <|"flechas" -> ds, "logpeso" -> -Total[xs^2, {2}]/2 + Total[Z^2, {2}]/2 + Log[Det[S]]/2, "tempo" -> t|>;   (*ln w exato*)
+   Export[arq, res]];
+  iw = (Boole[# > deltaLim] & /@ res["flechas"]) Exp[res["logpeso"]];
+  <|"Pf" -> Mean[iw], "CoV" -> StandardDeviation[iw]/(Sqrt[1000] Mean[iw]), "falhas" -> Count[res["flechas"], d_ /; d > deltaLim],
+   "ESS" -> Total[iw]^2/Total[iw^2], "maior" -> Max[iw]/Total[iw], "S" -> S|>]
+(*o CoV verdadeiro de cada densidade, pelas falhas do MC cru de 50000 (sem MEF): Var_h(I w) = P_f E[w | falha] - P_f^2*)
+nAI5gauss[mu20_, S_] := With[{x20 = xiFalhas[[All, ;; mS]], Si = Inverse[S]},
+  With[{lw = -Total[x20^2, {2}]/2 + Total[((x20 - ConstantArray[mu20, Length[x20]]) . Si) (x20 - ConstantArray[mu20, Length[x20]]), {2}]/2 + Log[Det[S]]/2},
+   (pf50 Mean[Exp[lw]] - pf50^2)/(0.05 pf50)^2]]
+usaModos[Mcampo];                                      (*a AI usa o campo de 200*)
+aiSORM = AssociationMap[rodaAISORM, {"B", "HR"}];      (*Breitung (c = beta) e Hohenbichler-Rackwitz (c = psi)*)
+nHess = sormM[mS]["analises"]; nF = formsM[mS]["analises"];
+aiMedia = With[{a = Import[FileNameJoin[{pasta, "ai_M200_f" <> ToString[mS] <> "_N1000_d" <> ToString[deltaLim, InputForm] <> "_s2.mx"}]]},
+  With[{iw = (Boole[# > deltaLim] & /@ a["flechas"]) a["pesos"]},   (*a AI pela media no xi* do FORM de 20, a da secao 12*)
+   <|"Pf" -> Mean[iw], "CoV" -> StandardDeviation[iw]/(Sqrt[1000] Mean[iw]), "falhas" -> Count[a["flechas"], d_ /; d > deltaLim],
+    "ESS" -> Total[iw]^2/Total[iw^2], "maior" -> Max[iw]/Total[iw]|>]];
+linhaAI[nome_, a_, nVerd_, extra_] := {nome, NumberForm[a["Pf"], 4], NumberForm[100 a["CoV"], 3], erro[a["Pf"]],
+   NumberForm[zDe[a["Pf"], a["CoV"]], 2], a["falhas"], Round[a["ESS"]], NumberForm[a["maior"], 2], Round[nVerd], Round[1000 (a["CoV"]/0.05)^2],
+   nF + extra, Round[nF + extra + nVerd], NumberForm[nMC5/(nF + extra + nVerd), 3]}
+Grid[{{"AI com o campo de 200 (1000 amostras)", "P_f", "CoV (%)", "erro (%)", "z", "falhas", "ESS_F", "maior parcela",
+    "N p/ CoV 5% (verdadeiro)", "N p/ CoV 5% (estimado)", "analises fixas (FORM + hessiano)", "total p/ CoV 5%", "ganho vs MC cru"},
+   linhaAI["media no xi* do FORM 20: N(xi*, I)", aiMedia, nAI5[mS], 0],
+   linhaAI["SORM 20, Breitung: N(xi*, Sigma)", aiSORM["B"], nAI5gauss[formsM[mS]["xi"], aiSORM["B"]["S"]], nHess],
+   linhaAI["SORM 20, H-R: N(xi*, Sigma)", aiSORM["HR"], nAI5gauss[formsM[mS]["xi"], aiSORM["HR"]["S"]], nHess]},
+  Frame -> All, Background -> {None, {1 -> LightGray}}]
+Print["MC cru de 50000: P_f = ", pf50, " (CoV ", cv50, "); desvios padrao de Sigma nas direcoes principais (Breitung): ",
+  Take[Reverse[Sort[Sqrt[Eigenvalues[aiSORM["B"]["S"]]]]], 5]];
+
+(* =====15. A verificacao: ISMC com o SORM contra ISMC com o FORM como funcao de amostragem=====*)
+(*FORM: xi ~ N(xi*, I). SORM: xi ~ N(xi*, Sigma), com o Sigma das curvaturas (secao 14), Breitung ou H-R. A AI usa sempre o
+  campo de 200, e as duas densidades mudam so os mS primeiros modos. Tres verificacoes:
+  a) o CoV verdadeiro de cada densidade, para cada M, pelas falhas do MC cru de 50000 (sem MEF);
+  b) 10 sementes independentes de 1000 amostras de cada densidade com M = mS, com as mesmas sementes nas tres (numeros
+     aleatorios comuns): a media, a dispersao entre as sementes, o CoV estimado e a diferenca SORM - FORM, semente a semente;
+  c) a convergencia da P_f e do CoV, com as 10 sementes em sequencia*)
+convPf[iw_] := Accumulate[iw]/N[Range[Length[iw]]]    (*a P_f acumulada*)
+convCoV[iw_] := Module[{k = Range[Length[iw]], pf = convPf[iw], vr},
+  vr = (Accumulate[iw^2] - k pf^2)/(k - 1 /. 0 -> 1);   (*a variancia amostral ate a amostra k*)
+  MapThread[If[#1 > 0 && #3 > 1, Sqrt[Max[#2, 0]/#3]/#1, Indeterminate] &, {pf, vr, k}]]
+(* -- a) o CoV verdadeiro, sem MEF -- *)
+nVerdGauss[m_, S_] := With[{x = xiFalhas[[All, ;; m]], mu = formsM[m]["xi"], Si = Inverse[S]},
+  With[{d = x - ConstantArray[mu, Length[x]]},
+   With[{lw = -Total[x^2, {2}]/2 + Total[(d . Si) d, {2}]/2 + Log[Det[S]]/2},   (*ln w de cada falha do MC cru*)
+    (pf50 Mean[Exp[lw]] - pf50^2)/(0.05 pf50)^2]]]        (*amostras da AI para CoV de 5%*)
+verdM = Table[With[{nI = nVerdGauss[m, IdentityMatrix[m]], nB = nVerdGauss[m, sigmaSORM[m, "B"]], nH = nVerdGauss[m, sigmaSORM[m, "HR"]],
+     nF0 = formsM[m]["analises"], nS0 = sormM[m]["analises"]},
+    {m, Round[nI], Round[nB], Round[nH], NumberForm[nB/nI, 3], nF0, nS0, Round[nF0 + nI], Round[nF0 + nS0 + nB]}], {m, listaMF}];
+Grid[Prepend[verdM, {"M", "N p/ CoV 5%: FORM N(xi*, I)", "SORM Breitung", "SORM H-R", "SORM B / FORM", "analises FORM",
+    "analises hessiano", "total AI-FORM", "total AI-SORM (B)"}], Frame -> All, Background -> {None, {1 -> LightGray}}]
+
+(* -- b) 10 sementes de cada densidade com M = mS -- *)
+rodaISg[tipo_, semente_] := Module[{tag = If[tipo == "FORM", "f" <> ToString[mS], "sorm" <> ToString[mS] <> tipo], arq,
+   mu = PadRight[formsM[mS]["xi"], Mcampo], S, U, Z, xs, res, t, ds, lw, iw},
+  arq = FileNameJoin[{pasta, "ai_M200_" <> tag <> "_N1000_d" <> ToString[deltaLim, InputForm] <> "_s" <> ToString[semente] <> ".mx"}];
+  S = If[tipo == "FORM", IdentityMatrix[mS], sigmaSORM[mS, tipo]];
+  If[FileExistsQ[arq], res = Import[arq],
+   U = ArrayFlatten[{{CholeskyDecomposition[S], 0}, {0, IdentityMatrix[Mcampo - mS]}}];   (*Sigma de 200 = U^T U*)
+   SeedRandom[semente]; Z = RandomVariate[NormalDistribution[0, 1], {1000, Mcampo}];
+   xs = (mu + #) & /@ (Z . U);
+   {t, ds} = AbsoluteTiming[ParallelMap[flechaDe, xs]];
+   res = <|"flechas" -> ds, "logpeso" -> -Total[xs^2, {2}]/2 + Total[Z^2, {2}]/2 + Log[Det[S]]/2, "tempo" -> t|>;
+   Export[arq, res]];
+  lw = If[KeyExistsQ[res, "logpeso"], res["logpeso"], Log[res["pesos"]]];   (*os arquivos da secao 12 guardam o peso*)
+  iw = (Boole[# > deltaLim] & /@ res["flechas"]) Exp[lw];
+  <|"iw" -> iw, "Pf" -> Mean[iw], "CoV" -> StandardDeviation[iw]/(Sqrt[1000] Mean[iw])|>]
+usaModos[Mcampo];
+sementesV = Range[301, 310];
+tiposV = {"FORM", "B", "HR"};
+nomeV = <|"FORM" -> "FORM: N(xi*, I)", "B" -> "SORM Breitung: N(xi*, Sigma)", "HR" -> "SORM H-R: N(xi*, Sigma)"|>;
+repV = AssociationMap[Function[tp, Table[rodaISg[tp, s], {s, sementesV}]], tiposV];   (*3 x 10 x 1000 analises do MEF*)
+resumoV[tp_] := With[{p = repV[tp][[All, "Pf"]], cv = repV[tp][[All, "CoV"]]},
+  With[{pm = Mean[p], cvObs = StandardDeviation[p]/Mean[p]},
+   {nomeV[tp], NumberForm[pm, 4], NumberForm[100 cvObs, 3], NumberForm[100 Mean[cv], 3], NumberForm[100 (pm/pf50 - 1), 3],
+    NumberForm[(pm - pf50)/Sqrt[(cvObs pm/Sqrt[Length[p]])^2 + (cv50 pf50)^2], 2], Round[1000 (cvObs/0.05)^2],
+    Round[1000 (Mean[cv]/0.05)^2]}]]
+Grid[Prepend[resumoV /@ tiposV, {"densidade (M = " <> ToString[mS] <> ", 10 x 1000)", "P_f (media)", "CoV entre sementes (%)",
+    "CoV estimado (media, %)", "erro vs cru (%)", "z (as 10 juntas)", "N p/ CoV 5% (pela dispersao)", "N p/ CoV 5% (pelo estimado)"}],
+  Frame -> All, Background -> {None, {1 -> LightGray}}]
+difV = Table[(repV[tp][[All, "Pf"]] - repV["FORM"][[All, "Pf"]])/repV["FORM"][[All, "Pf"]], {tp, {"B", "HR"}}];   (*SORM - FORM, semente a semente*)
+Print["diferenca relativa SORM - FORM com os mesmos z (media +- erro padrao): Breitung ", 100 Mean[difV[[1]]], " +- ",
+  100 StandardDeviation[difV[[1]]]/Sqrt[10], " %;  H-R ", 100 Mean[difV[[2]]], " +- ", 100 StandardDeviation[difV[[2]]]/Sqrt[10], " %"];
+
+(* -- c) a convergencia: as 10 sementes de cada densidade em sequencia -- *)
+convV = AssociationMap[Function[tp, With[{iw = Flatten[repV[tp][[All, "iw"]]]},
+     {Transpose[{Range[Length[iw]], convPf[iw]}], Select[Transpose[{Range[Length[iw]], convCoV[iw]}], NumericQ[#[[2]]] &]}]], tiposV];
+gVerPf = ListLogLinearPlot[Table[convV[tp][[1]], {tp, tiposV}], Joined -> True, PlotStyle -> {Red, Orange, Purple},
+  PlotRange -> {All, {0, 2 pf50}}, GridLines -> {None, {pf50, pf50 (1 - 1.96 cv50), pf50 (1 + 1.96 cv50)}}, GridLinesStyle -> Directive[Gray, Dashed],
+  PlotLegends -> (nomeV /@ tiposV), Frame -> True, FrameLabel -> {"amostras da AI (10 sementes em sequencia)", "P_f"},
+  PlotLabel -> "AI com o FORM e com o SORM (M = " <> ToString[mS] <> ") contra o MC cru de 50000", ImageSize -> 600]
+gVerCoV = ListLogLogPlot[Table[convV[tp][[2]], {tp, tiposV}], Joined -> True, PlotStyle -> {Red, Orange, Purple},
+  PlotRange -> {All, {0.01, 1}}, GridLines -> {None, {0.05}}, GridLinesStyle -> Directive[Black, Dashed],
+  PlotLegends -> (nomeV /@ tiposV), Frame -> True, FrameLabel -> {"amostras da AI", "CoV da P_f"},
+  PlotLabel -> "o CoV das tres densidades (tracejado: 5%)", ImageSize -> 600]
+gVerM = ListLogLinearPlot[{verdM[[All, {1, 2}]], verdM[[All, {1, 3}]], verdM[[All, {1, 4}]]}, Joined -> True, PlotMarkers -> Automatic,
+  PlotStyle -> {Red, Orange, Purple}, PlotLegends -> (nomeV /@ tiposV), Frame -> True,
+  FrameLabel -> {"M do FORM e do SORM", "amostras da AI para CoV de 5% (CoV verdadeiro)"},
+  PlotLabel -> "a densidade do SORM contra a do FORM, para cada M", ImageSize -> 600]
+Do[Export[FileNameJoin[{pasta, "figuras_AI_M5_M200", f[[1]] <> ".pdf"}], f[[2]]],
+  {f, {{"verif_sorm_form_pf", gVerPf}, {"verif_sorm_form_cov", gVerCoV}, {"verif_sorm_form_M", gVerM}}}];
