@@ -68,6 +68,10 @@ DOCUMENTOS = [
          "custo"),
         ("Projects/PlanoDeTrabalho/viga_mathematica/relatorio_viga.pdf",
          "a viga com campo aleatório em Mathematica (código em viga_mathematica/codigo): MC, FORM, SORM e ISMC com M, centros baratos (fórmulas de viga), o ponto ótimo do M do FORM e o SORM como função de amostragem"),
+        ("Projects/PlanoDeTrabalho/comparacao_metodos/relatorio_comparacao.pdf",
+         "comparação com os dados parciais (20/11/2026): Monte Carlo direto, ISMC e line sampling no Cho (r = -0,5 e "
+         "-0,7), no rebaixamento do Ceron e na viga; custo para CoV de 5%, convergência, sementes e direções "
+         "(comparacao_metodos/gera_relatorio.sh refaz com os dados novos)"),
         ("Projects/PlanoDeTrabalho/arquivo/", "cópias datadas (AAAA-MM-DD_nome.pdf), nunca editadas"),
     ]),
     ("Resultados: as campanhas", [

@@ -48,6 +48,8 @@ def main():
     op = {"n": 100, "semente": 7, "paralelos": 14, "tol": 0.01, "K": 2000}
     form = json.load(open(arq_form))
     p = dict(form["parametros"])
+    p.setdefault("prog", "cho")          # form.json de versoes antigas do form_kl.py (antes de prog=)
+    p.setdefault("transiente", "tri3")
     for a in sys.argv[4:]:
         k, v = a.split("=", 1)
         if k in op:

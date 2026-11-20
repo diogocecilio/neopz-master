@@ -294,7 +294,7 @@ Regras:
 
 | Documento | Páginas | O que tem |
 |---|---:|---|
-| `docs/confiabilidade_campos/formulacao/formulacao.pdf` | 20 | o modelo, as duas bases de Karhunen–Loève (analítica e Nyström) e a mudança de base, o Monte Carlo, a AI, a variável de controle e o FORM com o gradiente modal (SRM e GIM); no apêndice, um exemplo de uma variável em Mathematica (exemplo_1d.wl) |
+| `docs/confiabilidade_campos/formulacao/formulacao.pdf` | 30 | o modelo, as duas bases de Karhunen–Loève (analítica e Nyström) e a mudança de base, o Monte Carlo, a AI, a variável de controle e o FORM com o gradiente modal (SRM e GIM); no apêndice, um exemplo de uma variável em Mathematica (exemplo_1d.wl) |
 | `docs/confiabilidade_campos/implementacao_form_ai/implementacao_form_ai.pdf` | 5 | como o FORM e a AI foram implementados no NeoPZ |
 | `docs/confiabilidade_campos/ai_nystrom/ai_nystrom.pdf` | 5 | AI com a KL de Nyström, um roteiro testado em Mathematica |
 | `docs/confiabilidade_campos/confiabilidade/confiabilidade.pdf` | 19 | FORM, Monte Carlo e AI em variáveis: a revisão de um código Mathematica e um talude infinito sob chuva (os números saem de Projects/Confiabilidade) |
@@ -310,6 +310,7 @@ Regras:
 | `Projects/PlanoDeTrabalho/ETAPA0/relatorio_etapa0.pdf` | 9 | etapa 0: a AI da chuva no fermi e a prévia do Cho2010 (SRM antigo; superado pelo das etapas 1 a 3) |
 | `Projects/PlanoDeTrabalho/ETAPAS1a3/relatorio_etapas.pdf` | 16 | todos os resultados das etapas 0 a 3 e a referência da chuva: SRM corrigido, AI contra o direto, teste linear, as duas bases, o gradiente modal (SRM e GIM), o viés, a variável de controle, a fase 4 parcial, o piloto e o custo |
 | `Projects/PlanoDeTrabalho/viga_mathematica/relatorio_viga.pdf` | 9 | a viga com campo aleatório em Mathematica (código em viga_mathematica/codigo): MC, FORM, SORM e ISMC com M, centros baratos (fórmulas de viga), o ponto ótimo do M do FORM e o SORM como função de amostragem |
+| `Projects/PlanoDeTrabalho/comparacao_metodos/relatorio_comparacao.pdf` | 8 | comparação com os dados parciais (20/11/2026): Monte Carlo direto, ISMC e line sampling no Cho (r = -0,5 e -0,7), no rebaixamento do Ceron e na viga; custo para CoV de 5%, convergência, sementes e direções (comparacao_metodos/gera_relatorio.sh refaz com os dados novos) |
 | `Projects/PlanoDeTrabalho/arquivo/` |  | cópias datadas (AAAA-MM-DD_nome.pdf), nunca editadas: 2026-11-17_relatorio_parcial.pdf |
 
 ### Resultados: as campanhas

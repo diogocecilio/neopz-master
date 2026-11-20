@@ -1,0 +1,175 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{graphicx,booktabs,float,geometry,url}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric}
+\usepackage[hidelinks]{hyperref}
+\geometry{margin=2.2cm}
+\providecommand{\versao}{sem versão}
+\newcommand{\xib}{\bm\xi}
+\input{numeros.tex}
+\title{Comparação dos métodos de confiabilidade com os dados parciais:\\ Monte Carlo direto, ISMC e line sampling\\
+\large Cho ($r = -0{,}5$ e $-0{,}7$), rebaixamento do Ceron e a viga}
+\author{Diogo Cecílio}
+\date{20/11/2026 --- versão \versao}
+\begin{document}
+\maketitle
+\begin{abstract}
+Reunimos, com os dados de 20/11/2026, todos os resultados de probabilidade de falha dos três problemas de talude e da
+viga, por três métodos: o Monte Carlo direto (a referência), a amostragem por importância centrada no ponto de projeto
+do FORM (ISMC) e o line sampling (LS) na direção do FORM. A medida comum é o número de análises do MEF para CoV de 5\,\%,
+contando o FORM. O line sampling na direção do FORM modal com todos os modos foi o mais barato nos três taludes, sem viés
+detectado: \lsNCe{} análises no Ceron (direto: \refNCe; melhor ISMC: \ismcNCe), \lsNRa{} no Cho com $r = -0{,}5$ (direto:
+\refNRa; ISMC: \ismcNRa) e \lsNRb{} no Cho com $r = -0{,}7$ (direto: \refNRb; ISMC: \ismcNRb). Na viga, que não tem gradiente modal, o line
+sampling na direção do FORM adjunto precisou de 92 (direto: 18\,666). Os dados são parciais: as
+ISMC da etapa 3b ainda não chegaram ao CoV de 5\,\%, o line sampling tem uma semente só e as direções do FORM numérico com
+$M = 20$ no Cho ainda estão rodando.
+\end{abstract}
+\tableofcontents
+
+\section{O que é parcial}
+\begin{itemize}
+  \item \textbf{Monte Carlo direto:} completo nos quatro problemas (Tabela~\ref{tab:ref}).
+  \item \textbf{ISMC da etapa 3b} (Cho, no fermi): 5 sementes por centro, cerca de 1040 realizações cada, com parada
+    pelo CoV de 5\,\%. Nenhuma semente chegou ao alvo ainda (o CoV de cada uma está entre 5 e 8\,\%); os custos para
+    CoV de 5\,\% são extrapolados pelo CoV estimado. No Ceron, as duas ISMC (1000 realizações cada) terminaram.
+  \item \textbf{Line sampling:} 100 linhas por direção e uma semente só (a 7), no PC. As direções do FORM modal com 2000
+    termos (Cho) e as três do Ceron terminaram; as do FORM numérico com $M = 20$ no Cho estão rodando, e a linha
+    ``parcial'' das tabelas tem só as linhas prontas. O CoV vem da dispersão das próprias linhas e ainda não foi
+    conferido entre sementes.
+  \item \textbf{Viga:} MC direto e ISMC completos (relatório da viga); o line sampling e o FORM adjunto rodaram nas seções
+    16 e 17 do código em Mathematica (\path{viga_mathematica/codigo/viga_FORM5_AI200.txt}), ainda fora do relatório da
+    viga.
+\end{itemize}
+Tudo sai do \path{gera_dados.py}, nesta pasta, que lê os resultados em \path{~/projects/runs}: rodar de novo atualiza as
+figuras e as tabelas (\path{gera_relatorio.sh}).
+
+\section{Os métodos em uma página}
+A formulação está em \path{docs/confiabilidade_campos/formulacao} (Seções do Monte Carlo, da amostragem por importância,
+do FORM e do line sampling). Em resumo, no espaço $\mathbb{Y}$ dos coeficientes $\xib \sim N(\bm 0, I)$ da expansão de
+Karhunen--Loève:
+\begin{itemize}
+  \item \textbf{Monte Carlo direto:} $\hat P_f = \frac1N\sum I(\xib_\ell)$. Não depende de nada, mas precisa de
+    $(1 - P_f)/(0{,}05^2 P_f)$ realizações para CoV de 5\,\%: 100\,000 com $P_f = 0{,}4\,\%$.
+  \item \textbf{ISMC:} sorteia em torno do ponto de projeto, $\xib \sim N(\xib^*, I)$, e corrige cada amostra pelo peso
+    exato $w = e^{-\xib^*\cdot\xib + |\xib^*|^2/2}$.
+  \item \textbf{Line sampling:} sorteia linhas paralelas à direção $\bm e = \xib^*/\beta$ e calcula exatamente a
+    probabilidade de falha de cada uma, $p_\ell = \Phi(-\nu_\ell)$, em que $\nu_\ell$ é onde a linha entra na falha
+    (Figura~\ref{fig:esquema}). Só a curvatura da superfície de falha e os modos que a direção não vê entram na
+    variância.
+\end{itemize}
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/ls_esquema.pdf}
+\caption{O line sampling (da formulação). (a) Cada amostra é projetada no plano ortogonal a $\bm e$, e a linha que passa
+pela projeção entra na falha em $\nu_\ell$. (b) Ao longo da linha, $\nu \sim N(0, 1)$, e a probabilidade de falha da
+linha é a cauda $\Phi(-\nu_\ell)$.}\label{fig:esquema}
+\end{figure}
+
+\begin{figure}[H]\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[node distance=6mm and 4mm, every node/.style={font=\footnotesize},
+  caixa/.style={draw, rounded corners, align=center, minimum height=12mm, text width=29mm, fill=blue!6},
+  cinza/.style={draw, rounded corners, align=center, minimum height=12mm, text width=29mm, fill=orange!10},
+  seta/.style={-{Stealth[length=2.5mm]}, thick}]
+\node[caixa] (form) {\textbf{FORM modal}\\ todos os modos\\ 3 a 7 análises};
+\node[caixa, right=of form] (dir) {\textbf{direção}\\ $\bm e = \xib^*/\beta$\\ e a inclinação $s$ (2 análises)};
+\node[caixa, right=of dir] (lin) {\textbf{$N$ linhas}\\ $\nu_\ell$ pela secante\\ 2 a 3 análises cada};
+\node[caixa, right=of lin] (pf) {\textbf{$\hat P_f = \frac1N\sum\Phi(-\nu_\ell)$}\\ CoV pela dispersão\\ dos $p_\ell$};
+\draw[seta] (form) -- (dir); \draw[seta] (dir) -- (lin); \draw[seta] (lin) -- (pf);
+\node[cinza, below=of form] (form2) {\textbf{FORM}\\ (numérico ou modal)};
+\node[cinza, right=of form2] (cen) {\textbf{centro}\\ $\xib^*$};
+\node[cinza, right=of cen] (amo) {\textbf{$N$ amostras}\\ $\xib \sim N(\xib^*, I)$\\ 1 análise cada};
+\node[cinza, right=of amo] (pf2) {\textbf{$\hat P_f = \frac1N\sum I w$}\\ peso exato};
+\draw[seta] (form2) -- (cen); \draw[seta] (cen) -- (amo); \draw[seta] (amo) -- (pf2);
+\node[left=2mm of form, rotate=90, anchor=south] {\textbf{LS}};
+\node[left=2mm of form2, rotate=90, anchor=south] {\textbf{ISMC}};
+\end{tikzpicture}}
+\caption{Os dois métodos com o FORM, lado a lado. A diferença está no que se faz com o ponto de projeto: a ISMC o usa
+como centro e sorteia pontos (cada um vale 0 ou $w$); o line sampling o usa como direção e sorteia linhas (cada uma vale
+a probabilidade exata ao longo dela, entre 0 e 1).}\label{fig:fluxo}
+\end{figure}
+
+\section{Os problemas, as referências e os FORM}
+\begin{itemize}
+  \item \textbf{Cho (2010), Exemplo 2:} talude seco, $c'$ e $\varphi'$ lognormais com correlação cruzada $r = -0{,}5$ ou
+    $-0{,}7$, SRM com refinamento adaptativo (\texttt{tri2} e 4 níveis). As ISMC e o line sampling usam o campo de Nyström
+    de 2000 modos por campo (a etapa 3b); os diretos, a KL analítica (as mesmas estatísticas).
+  \item \textbf{Ceron (2025), rebaixamento rápido:} $c'$, $\varphi'$ e $k_s$ aleatórios, transiente e GIM (o fator
+    $\Gamma$), com 2000 modos por campo.
+  \item \textbf{Viga:} módulo de elasticidade lognormal (200 modos de Nyström), falha pela flecha no meio do vão.
+\end{itemize}
+
+\input{tabelas.tex}
+
+\section{Resultados}
+As Tabelas~\ref{tab:ceron}, \ref{tab:r05} e \ref{tab:r07} comparam todos os métodos em cada talude, e a
+Tabela~\ref{tab:viga}, na viga. A Figura~\ref{fig:custo} resume o custo para CoV de 5\,\%; a Figura~\ref{fig:conv}
+mostra a convergência; a Figura~\ref{fig:sementes}, a dispersão entre as sementes da ISMC e o intervalo do line sampling;
+e a Figura~\ref{fig:nu}, onde as linhas entram na falha em cada direção.
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/custo.pdf}
+\caption{Análises do MEF para CoV de 5\,\% (escala logarítmica), com o FORM. Cinza: Monte Carlo direto; laranja: ISMC;
+azul: line sampling. Na viga, a direção ``adjunto'' é o FORM com o gradiente adjunto (a viga não tem gradiente modal).
+As barras hachuradas (``parcial'') usam só as linhas prontas e são indicativas.}\label{fig:custo}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/convergencia.pdf}
+\caption{A $P_f$ acumulada (em cima) e o CoV estimado (embaixo) contra as análises do MEF, contando o FORM (por isso as
+curvas começam em pontos diferentes). Na ISMC do Cho, as 5 sementes estão em sequência. Faixa cinza: o intervalo de
+95\,\% do Monte Carlo direto; linha vertical pontilhada: o que o direto precisa para CoV de 5\,\%.}\label{fig:conv}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/sementes.pdf}
+\caption{Cho: a $P_f$ de cada semente da ISMC (círculos, 5 por centro) e do line sampling (quadrados, uma semente), com
+o intervalo de 95\,\% de cada uma. Faixa cinza: o intervalo do Monte Carlo direto. Todos se cruzam com o direto.}
+\label{fig:sementes}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/linhas_nu.pdf}
+\caption{Onde cada linha entra na falha ($\nu_\ell$), por direção. Uma direção que vê toda a falha dá todos os
+$\nu_\ell$ perto de $\beta$ (pontilhado); a dispersão vem da curvatura e dos modos que a direção não vê. No Ceron, a
+direção com 2000 termos estreita muito a distribuição.}\label{fig:nu}
+\end{figure}
+
+\section{Síntese}
+\begin{enumerate}
+  \item \textbf{Nenhum viés detectado.} Nos taludes, $|z| \le 0{,}7$ em todos os métodos (Tabelas~\ref{tab:ceron} a
+    \ref{tab:r07}); na viga, o maior é o da ISMC com o centro do FORM $M = 8$, $z = 1{,}42$ (relatório da viga), dentro da
+    flutuação esperada. As cinco sementes de cada ISMC se espalham em torno do direto (Figura~\ref{fig:sementes}). As
+    três ISMC de cada caso usam as mesmas sementes (números aleatórios comuns), então os seus erros andam juntos (a
+    semente 21 é a mais baixa nos três centros): não são três conferências independentes, mas a comparação entre os
+    centros fica mais justa. O line sampling tem uma semente só.
+  \item \textbf{O line sampling com a direção do FORM modal de todos os modos foi o mais barato em todos os taludes:}
+    \lsNCe{} análises no Ceron, \lsNRa{} no Cho $r = -0{,}5$ e \lsNRb{} no Cho $r = -0{,}7$, isto é, \lsGanhoCe, \lsGanhoRa{}
+    e \lsGanhoRb{} vezes menos que o direto, e \lsGanhoIsmcCe, \lsGanhoIsmcRa{} e \lsGanhoIsmcRb{} vezes menos que a melhor
+    ISMC. O FORM modal custa uma análise por iteração (3 a 10 análises nos três taludes; 3 a 7 com todos os modos), e esse
+    custo não cresce com o número de termos.
+  \item \textbf{A direção precisa dos modos altos quando a ruptura passa por bandas fracas locais} (Ceron): com 20 termos
+    por campo, o line sampling custa $\approx 1050$ a 1180 análises; com 2000, \lsNCe. No Cho, em que a falha depende
+    dos primeiros modos de $\varphi'$, o $\beta$ quase não muda com os modos altos (Tabela~\ref{tab:form}).
+  \item \textbf{Na ISMC, o centro do FORM com $M = 100$ não compensa:} melhora pouco a amostragem e custa 1200 a 1600
+    análises de FORM. O centro modal com 20 termos (8 a 10 análises) empata com o numérico (243).
+  \item \textbf{Viga:} o mesmo padrão; com a direção do gradiente adjunto (200 termos, 15 análises), o line sampling dá
+    CoV de 5\,\% com 92 análises, contra 18\,666 do direto.
+\end{enumerate}
+Decisão (20/11/2026): o line sampling na direção do FORM modal com todos os modos é o método padrão, com a ISMC como
+conferência, até que se prove o contrário.
+
+\section{Pendências}
+\begin{itemize}
+  \item Terminar o line sampling nas direções do FORM numérico com $M = 20$ no Cho ($r = -0{,}5$ e $-0{,}7$; rodando no PC).
+  \item Repetir o line sampling com 2 ou 3 sementes num caso (Cho $r = -0{,}7$) para conferir o CoV estimado pelas linhas
+    contra a dispersão entre sementes.
+  \item Deixar as ISMC da etapa 3b chegarem ao CoV de 5\,\% (fermi) e refazer este relatório.
+  \item Chuva: o line sampling ainda não foi testado; a direção modal não tem componente em $k_s$ e pode haver mais de um
+    mecanismo no tempo (formulação, Seção do line sampling, passo 8).
+\end{itemize}
+\end{document}

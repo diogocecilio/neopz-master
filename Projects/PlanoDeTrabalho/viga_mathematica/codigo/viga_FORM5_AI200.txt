@@ -459,3 +459,127 @@ gVerM = ListLogLinearPlot[{verdM[[All, {1, 2}]], verdM[[All, {1, 3}]], verdM[[Al
   PlotLabel -> "a densidade do SORM contra a do FORM, para cada M", ImageSize -> 600]
 Do[Export[FileNameJoin[{pasta, "figuras_AI_M5_M200", f[[1]] <> ".pdf"}], f[[2]]],
   {f, {{"verif_sorm_form_pf", gVerPf}, {"verif_sorm_form_cov", gVerCoV}, {"verif_sorm_form_M", gVerM}}}];
+
+(* =====16. Line sampling: linhas paralelas a direcao do FORM, com o campo de 200=====*)
+(*A direcao e = xi*/beta do FORM de m termos (completada com zeros ate 200). Cada amostra e uma linha: sorteia
+  z ~ N(0, I) com 200 termos, tira a componente em e (zp = z - (z.e) e) e acha, na reta zp + c e, o cStar em que a flecha
+  vale deltaLim. Como zp e a coordenada c sao independentes, P_f = E[Phi(-cStar)], e cada linha da p_i = Phi(-cStar).
+  So a variacao de cStar de uma linha para outra (a nao linearidade da superficie de falha) entra na variancia.
+  A raiz e pela secante em g(c) = ln(flecha/deltaLim), quase linear em c (a flecha ~ 1/E, E lognormal): a 1a analise em
+  c = beta, a 2a no passo de Newton com a inclinacao s medida no ponto de projeto (2 analises por direcao), e a raiz
+  da secante e aceita sem nova analise quando o passo for menor que tolLS. O estimador nao tem vies para nenhuma
+  direcao: uma direcao ruim so aumenta a dispersao das p_i*)
+nLS = 500;                                             (*linhas por direcao*)
+tolLS = 0.01;                                          (*passo da secante aceito sem nova analise (em c)*)
+listaLS = {5, 8, 20, 200};                             (*o M do FORM que da a direcao*)
+gLinha[xi_] := Log[flechaDe[xi]/deltaLim]              (*> 0: falha*)
+raizLinha[zp_, e_, c0_, s_] := Module[{ca = c0, ga, cb, gb, cn, n = 2},
+  ga = gLinha[zp + ca e];
+  cb = Clip[ca - ga/s, {-8., 12.}]; gb = gLinha[zp + cb e];   (*o passo de Newton com a inclinacao do ponto de projeto*)
+  cn = Clip[cb - gb (cb - ca)/(gb - ga), {-8., 12.}];
+  While[Abs[cn - cb] > tolLS && n < 8,                 (*secante ate o passo ficar menor que tolLS*)
+   ca = cb; ga = gb; cb = cn; gb = gLinha[zp + cb e]; n++;
+   cn = Clip[cb - gb (cb - ca)/(gb - ga), {-8., 12.}]];
+  {cn, n}]                                             (*{cStar, analises do MEF da linha}*)
+usaModos[Mcampo];
+DistributeDefinitions[gLinha, raizLinha, tolLS];
+rodaLS[m_] := Module[{arq = FileNameJoin[{pasta, "ls_M200_f" <> ToString[m] <> "_N" <> ToString[nLS] <> "_d" <> ToString[deltaLim, InputForm] <> "_s2.mx"}],
+   mu = PadRight[formsM[m]["xi"], Mcampo], beta, e, s, Z, zp, t, rs, res, p},
+  beta = Norm[mu]; e = mu/beta;
+  If[FileExistsQ[arq], res = Import[arq],
+   s = (gLinha[mu + 0.1 e] - gLinha[mu - 0.1 e])/0.2;  (*a inclinacao de g ao longo de e, no ponto de projeto*)
+   SeedRandom[2];
+   Z = RandomVariate[NormalDistribution[0, 1], {nLS, Mcampo}];   (*os mesmos z em todas as direcoes*)
+   zp = (# - (# . e) e) & /@ Z;                        (*a parte de z ortogonal a e*)
+   {t, rs} = AbsoluteTiming[ParallelMap[With[{ee = e, c0 = beta, ss = s}, raizLinha[#, ee, c0, ss] &], zp]];
+   res = <|"c" -> rs[[All, 1]], "nLinha" -> rs[[All, 2]], "s" -> s, "beta" -> beta, "tempo" -> t|>;
+   Export[arq, res]];
+  p = CDF[NormalDistribution[], -res["c"]];            (*p_i de cada linha*)
+  <|"p" -> p, "Pf" -> Mean[p], "CoV" -> StandardDeviation[p]/(Sqrt[nLS] Mean[p]), "nLinha" -> res["nLinha"],
+   "porLinha" -> N[Mean[res["nLinha"]]], "fixas" -> formsM[m]["analises"] + 2, "s" -> res["s"], "tempo" -> res["tempo"]|>]
+ls = AssociationMap[rodaLS, listaLS];                  (*~ 4 x 200 x 2,5 analises do MEF*)
+linhasLS5[m_] := nLS (ls[m]["CoV"]/0.05)^2             (*linhas para CoV de 5%*)
+totalLS5[m_] := ls[m]["fixas"] + ls[m]["porLinha"] linhasLS5[m]
+custoAI[m_] := SelectFirst[custo, First[#] == m &][[4]]   (*o total da AI pela media (secao 12)*)
+Grid[Prepend[Table[With[{a = ls[m]},
+     {m, a["fixas"], NumberForm[a["Pf"], 4], NumberForm[100 a["CoV"], 3], erro[a["Pf"]], NumberForm[zDe[a["Pf"], a["CoV"]], 2],
+      NumberForm[a["porLinha"], 3], Round[linhasLS5[m]], Round[totalLS5[m]], NumberForm[nMC5/totalLS5[m], 3], Round[custoAI[m]]}], {m, listaLS}],
+   {"direcao: FORM de M", "analises fixas (FORM + 2)", "P_f LS (" <> ToString[nLS] <> " linhas)", "CoV (%)", "erro vs cru (%)", "z",
+    "analises por linha", "linhas p/ CoV 5%", "total p/ CoV 5%", "ganho vs MC cru", "total AI (secao 12)"}],
+  Frame -> All, Background -> {None, {1 -> LightGray}}]
+Print["MC cru de 50000: P_f = ", pf50, " (CoV ", cv50, ", ", Round[nMC5], " analises p/ CoV 5%); P_f FORM: ",
+  Table[m -> pfFORMde[m], {m, listaLS}]];
+(*a convergencia contra as analises do MEF (contando o FORM): line sampling x AI pela media no mesmo xi* do FORM*)
+convLS[m_] := With[{p = ls[m]["p"], k = Range[nLS], x = ls[m]["fixas"] + Accumulate[ls[m]["nLinha"]]},
+  With[{pm = Accumulate[p]/k, vr = (Accumulate[p^2] - k (Accumulate[p]/k)^2)/(k - 1 /. 0 -> 1)},
+   {Transpose[{x, pm}], Transpose[{x, Sqrt[Clip[vr, {0, Infinity}]/k]/pm}][[3 ;;]]}]]
+convAI[m_] := Quiet@With[{a = Import[FileNameJoin[{pasta, "ai_M200_f" <> ToString[m] <> "_N1000_d" <> ToString[deltaLim, InputForm] <> "_s2.mx"}]]},
+  With[{iw = (Boole[# > deltaLim] & /@ a["flechas"]) a["pesos"], k = Range[1000]},
+   With[{pm = Accumulate[iw]/k, vr = (Accumulate[iw^2] - k (Accumulate[iw]/k)^2)/(k - 1 /. 0 -> 1)},
+    {Transpose[{formsM[m]["analises"] + k, pm}],
+     Select[Transpose[{formsM[m]["analises"] + k, Sqrt[Clip[vr, {0, Infinity}]/k]/pm}], #[[2]] > 0 &]}]]]
+mConv = {8, 20};
+gLSPf = ListLogLinearPlot[Join[convLS[#][[1]] & /@ mConv, convAI[#][[1]] & /@ mConv], Joined -> True,
+  PlotStyle -> {Blue, Darker[Green], {Red, Dashed}, {Orange, Dashed}}, PlotRange -> {All, {0, 2 pf50}},
+  GridLines -> {None, {pf50, pf50 (1 - 1.96 cv50), pf50 (1 + 1.96 cv50)}}, GridLinesStyle -> Directive[Gray, Dashed],
+  PlotLegends -> Join[("line sampling, FORM " <> ToString[#]) & /@ mConv, ("AI pela media, FORM " <> ToString[#]) & /@ mConv],
+  Frame -> True, FrameLabel -> {"analises do MEF (com o FORM)", "P_f"},
+  PlotLabel -> "line sampling x AI pela media, contra o MC cru de 50000", ImageSize -> 600]
+gLSCoV = ListLogLogPlot[Join[convLS[#][[2]] & /@ mConv, convAI[#][[2]] & /@ mConv], Joined -> True,
+  PlotStyle -> {Blue, Darker[Green], {Red, Dashed}, {Orange, Dashed}}, PlotRange -> {All, {0.01, 1}},
+  GridLines -> {{500}, {0.05}}, GridLinesStyle -> Directive[Black, Dashed],
+  PlotLegends -> Join[("line sampling, FORM " <> ToString[#]) & /@ mConv, ("AI pela media, FORM " <> ToString[#]) & /@ mConv],
+  Frame -> True, FrameLabel -> {"analises do MEF (com o FORM)", "CoV da P_f"},
+  PlotLabel -> "o CoV (tracejado: 5% e 500 analises)", ImageSize -> 600]
+gLSc = Histogram[ls[20]["p"]/pf50, 30, Frame -> True, FrameLabel -> {"p_i / P_f do cru (FORM 20)", "linhas"},
+  PlotLabel -> "a dispersao das linhas: so a nao linearidade", ImageSize -> 450]
+Do[Export[FileNameJoin[{pasta, "figuras_AI_M5_M200", f[[1]] <> ".pdf"}], f[[2]]],
+  {f, {{"ls_pf", gLSPf}, {"ls_cov", gLSCoV}, {"ls_linhas", gLSc}}}];
+
+(* =====17. O gradiente adjunto: o FORM com os 200 termos por 2 analises por iteracao, e o line sampling nessa direcao=====*)
+(*A flecha e delta = -v(2.5, 0.5). Com a carga adjunta (uma forca unitaria para baixo no ponto, aqui uma gaussiana
+  estreita), a(w, lam) = delta(w) para todo w. Derivando a(u, w) = l(w) em xi_i e tomando w = lam:
+  d delta/d xi_i = -Integral[eps(u).D'.eps(lam)], com D' = D d(ln E)/d xi_i = D sg Sqrt[lambda_i] f_i(x). Entao
+  d delta/d xi_i = -sg Sqrt[lambda_i] Sum_j w_j f_i(x_j) e(x_j), e = eps(u).D(E).eps(lam) nos nos de Nystrom: os 200 termos
+  com 2 analises (a direta e a adjunta), contra 401 das diferencas centrais. No ponto fixo do HL-RF, xi* e paralelo ao
+  gradiente, entao um erro de escala da carga adjunta nao muda o ponto de projeto*)
+sAdj = 0.15;                                           (*a largura da gaussiana da carga adjunta*)
+cargaAdj[x_, y_] := Exp[-((x - 2.5)^2 + (y - 0.5)^2)/(2 sAdj^2)]/(2 Pi sAdj^2)
+epsDe[uu_, vv_] := Transpose[{Derivative[1, 0][uu] @@@ coords, Derivative[0, 1][vv] @@@ coords,
+    (Derivative[0, 1][uu] @@@ coords) + (Derivative[1, 0][vv] @@@ coords)}]   (*eps_xx, eps_yy, gamma_xy nos nos de Nystrom*)
+gradAdj[xi_] := Module[{Ei = ElementMeshInterpolation[{meshFE}, EnosDe[xi]], uu, vv, la, lb, eu, el, En, e},
+  nAnalises += 2;
+  {uu, vv} = NDSolveValue[{opElast[DmatEPT[Ei[x, y], \[Nu] /. data]] == {0, NeumannValue[-1, 0 <= x <= 5 && y == 1]}, apoioV, travaU}, {u, v}, {x, y} \[Element] meshFE];
+  {la, lb} = NDSolveValue[{opElast[DmatEPT[Ei[x, y], \[Nu] /. data]] == {0, -cargaAdj[x, y]}, apoioV, travaU}, {u, v}, {x, y} \[Element] meshFE];
+  eu = epsDe[uu, vv]; el = epsDe[la, lb]; En = Ei @@@ coords;
+  e = MapThread[#1 . DmatEPT[#3, \[Nu] /. data] . #2 &, {eu, el, En}];   (*a densidade de energia mutua*)
+  sg Sqrt[lambda] (Fmat . (w e))]                      (*grad g = -grad delta = +sg Sqrt[lambda_i] Sum w f_i e*)
+(*confere com as diferencas centrais na origem, com M = 8*)
+usaModos[8];
+With[{ga = gradAdj[ConstantArray[0., 8]], gd = gradXi[ConstantArray[0., 8]]},
+ Print["gradiente na origem (M = 8): adjunto ", ga, "\n  diferencas ", gd, "\n  angulo (graus) ", VectorAngle[ga, gd]/Degree,
+  ", razao das normas ", Norm[ga]/Norm[gd]]];
+(*o FORM com os 200 termos*)
+rodaFORMadj[m_] := Module[{arq = FileNameJoin[{pasta, "form_adj_M" <> ToString[m] <> "_d" <> ToString[deltaLim, InputForm] <> ".mx"}], res, tF, rF},
+  usaModos[m];
+  If[FileExistsQ[arq], res = Import[arq],
+   nAnalises = 0;
+   {tF, rF} = AbsoluteTiming[formXi[gXi, gradAdj, m]];
+   res = <|"M" -> m, "beta" -> rF["beta"], "xi" -> rF["xi"], "alpha" -> rF["alpha"], "tempo" -> tF, "analises" -> nAnalises|>;
+   Export[arq, res]];
+  res]
+formsM["adj200"] = rodaFORMadj[200];
+usaModos[Mcampo];
+Print["FORM adjunto (200 termos): beta = ", formsM["adj200"]["beta"], " (diferencas: ", formsM[200]["beta"], "), ",
+  formsM["adj200"]["analises"], " analises (diferencas: ", formsM[200]["analises"], "); angulo entre os xi* = ",
+  VectorAngle[formsM["adj200"]["xi"], formsM[200]["xi"]]/Degree, " graus"];
+(*o line sampling (secao 16) e a AI pela media (secao 12, CoV verdadeiro sem MEF) com o ponto de projeto adjunto*)
+ls["adj200"] = rodaLS["adj200"];
+nAIadj = With[{mu = formsM["adj200"]["xi"]}, (pf50 Mean[Exp[-xiFalhas . mu + mu . mu/2]] - pf50^2)/(0.05 pf50)^2];
+Grid[Prepend[Table[With[{a = ls[m]},
+     {m, a["fixas"], NumberForm[a["Pf"], 4], NumberForm[100 a["CoV"], 3], erro[a["Pf"]], NumberForm[zDe[a["Pf"], a["CoV"]], 2],
+      NumberForm[a["porLinha"], 3], Round[linhasLS5[m]], Round[totalLS5[m]], NumberForm[nMC5/totalLS5[m], 3]}], {m, {8, 20, 200, "adj200"}}],
+   {"direcao: FORM", "analises fixas (FORM + 2)", "P_f LS (" <> ToString[nLS] <> " linhas)", "CoV (%)", "erro vs cru (%)", "z",
+    "analises por linha", "linhas p/ CoV 5%", "total p/ CoV 5%", "ganho vs MC cru"}], Frame -> All, Background -> {None, {1 -> LightGray}}]
+Print["AI pela media no xi* adjunto: ", Round[nAIadj], " amostras p/ CoV 5% (CoV verdadeiro) + ", formsM["adj200"]["analises"],
+  " do FORM = ", Round[nAIadj + formsM["adj200"]["analises"]]];
