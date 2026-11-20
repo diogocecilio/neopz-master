@@ -33,7 +33,7 @@ resultados) está no fim, na seção [Documentos](#documentos).
 | 3 | AI pela entropia cruzada: tamanho do piloto e P_f menor (r = −0,7) | uma campanha | depois da 2 | `ETAPA3/` |
 | 3b | ISMC até CoV de 5% no campo de Nyström com 2000 modos, com o centro de um FORM com poucos termos (M = 20 e 100 por diferenças centrais; M = 20 pelo GIM modal) | campanha `etapa3b` | rodando (~1040 por semente, CoV 5 a 8%) | `ETAPAS1a3/` |
 | 3c | Line sampling na direção do FORM modal com todos os modos (o método padrão desde 20/11/2026) | PC (e `ls_etapa3b.sbatch`) | feita; faltam 2 sementes | `comparacao_metodos/` |
-| 3d | A P_f do rebaixamento contra o Ceron (15,7% contra 11,5%): o método cinemático dele reproduzido e comparado, realização a realização, com o MEF | não (PC) | passo 1 em andamento | `Projects/CeronCinematico/` |
+| 3d | A P_f do rebaixamento contra o Ceron (15,7% contra 11,5%): o método cinemático dele reproduzido e comparado, realização a realização, com o MEF | não (PC) | passo 1 feito; decidir o campo de pressões antes do passo 2 | `Projects/CeronCinematico/` |
 | 4 | A chuva: o código (`xi=`, ISMC e gradiente modal no instante do FS mínimo) e a validação de LS e ISMC (modal) contra o direto | código novo e uma campanha | plano de 20/11/2026 | `ETAPA4/` |
 | 5 | A chuva: análise de sensibilidade como no Ceron (Seção 6), com as duas chuvas do Rahardjo (9 e 80 mm/h), por line sampling | campanhas | depois da 4 | `ETAPA5/` |
 
@@ -247,7 +247,18 @@ núcleo, ou 6 a 7 h em 4 nós. O primeiro nó roda antes os FORM com M = 10 e 20
   cada realização, e a P_f, abaixo.
 - **Os passos:**
   1. implementar o método cinemático em Python (`Projects/CeronCinematico/`), com as forças de percolação do nosso MEF,
-     e validar no determinístico (Γ = 1,336 do artigo; os exemplos da Seção 5.3); **em andamento**;
+     e validar no determinístico (Γ = 1,336 do artigo; os exemplos da Seção 5.3); **feito (20/11/2026)**:
+     - os exemplos do artigo batem: Cho coesivo 1,354 (artigo 1,354), Cho c-φ Γ 1,777 e FS 1,203 (artigo 1,777 e 1,203),
+       H_crit da Fig. 8 a menos de 1,5%; `python3 -I tests.py` passa (47 testes, 90 s);
+     - na mesma exportação do nosso transiente, o cinemático dá Γ = 1,279 e o GIM extrapolado (NREF 3/4/5: 1,3253 /
+       1,2973 / 1,2851) dá 1,276 (+0,26%); na realização 0, 1,081 contra 1,047 (+3,2%, limite superior);
+     - ~9 s por realização (minimização com ~900 avaliações de Γ): as 2000 realizações cabem em ~5 h num núcleo;
+     - **achados novos:** (a) o 1,336 do artigo é de percolação **permanente** saturada logo após o rebaixamento
+       instantâneo (Eqs. 19-21), não do transiente de 0,1 h que usamos; na nossa malha o permanente dá Γ = 1,414 (contra
+       1,279 do transiente), diferença de até 23 kPa nas pressões; (b) a Tabela 2 dá k_v = 1e-6 m⁴/(kN·s), isto é
+       k = 9,81e-6 m/s, e nós usamos 1e-6 m/s; (c) o acordo antigo 1,3339 × 1,336 foi coincidência de malha grossa;
+     - conclusão parcial: no determinístico o método cinemático **não** explica a diferença (0,3%); o candidato mais
+       forte passa a ser o **campo de pressões** (permanente × transiente, e o k); decisão pendente antes do passo 2;
   2. comparação pareada nas mesmas 2000 realizações da referência: o Γ cinemático ao lado do Γ do MEF, realização a
      realização; espera-se P_f ≈ 11,5% pelo método dele e Γ_cin ≥ Γ_MEF, com a diferença maior nas bandas fracas;
   3. o passo de tempo do transiente (`dt=` de 0,1 a 0,01, determinístico) e o MC com 4 níveis (a tendência para ~18%).

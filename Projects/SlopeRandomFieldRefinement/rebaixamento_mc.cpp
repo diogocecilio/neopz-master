@@ -1,7 +1,7 @@
 // Monte Carlo do rebaixamento rapido do talude de Vargas Ceron et al. (2025), Secoes 6.1 a 6.5, com o transiente: o
 // reservatorio desce da crista ate o nivel final em 0,1 h (k_v = 1e-6 m/s), e Gamma (GIM, como no artigo) e calculado no
 // fim do rebaixamento, com a pressao do reservatorio sobre a face e o terreno do pe crescendo com lambda como o peso. E o
-// TransientDrawDown do main.cpp (Gamma = 1,3339 no talude ceron2 com 3 niveis; o artigo da 1,336) com campos
+// TransientDrawDown do main.cpp (Gamma = 1,3339 no talude ceron2 com 3 niveis) com campos
 // aleatorios lognormais de c', phi' e k_v (RandomField: Karhunen-Loeve analitico, Tabela 2 do artigo). Em cada
 // realizacao:
 //  1. transiente na malha do transiente (esqueleto rigido, ar passivo; o k de cada ponto do campo) ate o fim do
@@ -55,6 +55,12 @@
 // campanha do rebaixamento: FS_min = Gamma, banda_*, massa_*, *_med, parametros), <saida>_mapa_<faixa>.csv (frequencia
 // da banda em celulas de 1 m), <saida>_parametros.txt e <saida>_real<n>/ (animacao, campos.csv e mecanismo.csv).
 // posproc/junta_rebaixamento.py monta com elas as pastas que o SlopeRandomField/comparacao_ceron/relatorio_sat.py le.
+//
+// [Atencao, 2026-11-20 (Projects/CeronCinematico): (1) o 1,336 do artigo e de percolacao PERMANENTE saturada logo apos
+//  um rebaixamento instantaneo (Eqs. 19-21), nao deste transiente nao saturado de 0,1 h: os dois nao se comparam. (2) o
+//  GIM com 3 niveis nao esta convergido: na exportacao det, NREF=3 da 1,3253, NREF=5 da 1,2851 e o extrapolado e ~1,276
+//  (o cinematico da 1,279); o acordo antigo 1,3339 x 1,336 foi coincidencia de malha grossa. (3) kv abaixo e usado
+//  como condutividade em m/s; a Tabela 2 do artigo da k_v = 1e-6 m^4/(kN s), isto e k = 9,81e-6 m/s.]
 #include "AnimationFiles.h"
 #include "DrawdownTransient.h"
 #include "HPMaterial.h"

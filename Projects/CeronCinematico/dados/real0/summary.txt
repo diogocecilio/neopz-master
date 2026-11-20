@@ -1,0 +1,3 @@
+trebaix 0.1
+nivel0 35
+nivel1 30
