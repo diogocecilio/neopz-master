@@ -15,7 +15,11 @@
 //   det (0)                1: antes, o caso deterministico (as medias), como a realizacao -1
 //   valores ()             c',phi',k: a deterministica com esses valores em todo o solo (c' kPa, phi' graus, k / k_v)
 //   hw (1)                 h_w / H: o rebaixamento (1: total, ate o pe; Secao 6.5 do artigo: 0,5 a 0,9)
-//   trebaix (0.1)          duracao do rebaixamento (h)
+//   trebaix (0.1)          duracao do rebaixamento (h; 1e-4 = instantaneo)
+//   tfim (trebaix)         instante (h) do Gamma e das figuras (>= trebaix: o nivel fica parado depois do rebaixamento)
+//   dt (0.1)               passo de tempo do transiente (h)
+//   agua (unsat)           unsat: van Genuchten-Mualem (a = 0,1 1/kPa); sat: solo sempre saturado (a = 1e-12, S_w = 1,
+//                          k_r = 1, chi = 1; a succao entra inteira), a agua do u-p (Darcy saturado, armazenamento n/K_w)
 //   covc (0.3), covphi (0.1), covk (0.6)   CoV de c', phi' e k_v (Secao 6.2)
 //   s (1)                  escala das distancias de autocorrelacao: 20 s e 2 s m (Secao 6.3)
 //   alfa (1)               k_h / k_v (Secao 6.4)
@@ -127,6 +131,8 @@ struct Campos { // Tabela 2 do Ceron
 
 struct Opcoes {
     int n = 10, primeira = 0;
+    REAL tfim = -1., dt = 0.1; // tfim < 0: tfim = trebaix
+    std::string agua = "unsat";
     bool det = false;
     REAL hw = 1., trebaix = 0.1, alfa = 1., s = 1.;
     Campos campos;
@@ -162,7 +168,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
     const std::set<std::string> chaves = {"n",    "primeira", "det",        "valores", "hw",   "trebaix", "covc",
                                           "covphi", "covk",   "s",          "alfa",    "transiente", "fator", "nref",
                                           "figuras", "saida", "banda", "desloc", "so_projecoes", "semente", "media_falhas", "modos", "desloc_modos",
-                                          "piloto", "piloto_n", "piloto_semente", "ai", "elite", "xi", "gradiente"};
+                                          "piloto", "piloto_n", "piloto_semente", "ai", "elite", "xi", "gradiente", "tfim", "dt", "agua"};
     std::map<std::string, std::string> kv;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
@@ -180,6 +186,11 @@ Opcoes LeOpcoes(int argc, char *argv[])
     if (tem("det")) op.det = std::stoi(kv["det"]) != 0;
     if (tem("hw")) op.hw = std::stod(kv["hw"]);
     if (tem("trebaix")) op.trebaix = std::stod(kv["trebaix"]);
+    if (tem("tfim")) op.tfim = std::stod(kv["tfim"]);
+    if (tem("dt")) op.dt = std::stod(kv["dt"]);
+    if (tem("agua")) op.agua = kv["agua"];
+    if (op.agua != "unsat" && op.agua != "sat") { std::fprintf(stderr, "agua=unsat ou agua=sat\n"); std::exit(1); }
+    if (op.tfim < op.trebaix) op.tfim = op.trebaix;
     if (tem("covc")) op.campos.covC = std::stod(kv["covc"]);
     if (tem("covphi")) op.campos.covPhi = std::stod(kv["covphi"]);
     if (tem("covk")) op.campos.covK = std::stod(kv["covk"]);
@@ -318,6 +329,8 @@ REAL Superficie(REAL x)
     return p[4][1] + (p[3][1] - p[4][1]) * (x - p[4][0]) / (p[3][0] - p[4][0]);
 }
 
+static bool gAguaSaturada = false; // agua=sat
+
 // ---- material: o UnsatMaterial do main.cpp (Mohr-Coulomb associado, van Genuchten-Mualem, chi = S_w), com k_h / k_v
 TUnsatHP *MaterialCeron(REAL alfa, bool acoplado)
 {
@@ -331,6 +344,7 @@ TUnsatHP *MaterialCeron(REAL alfa, bool acoplado)
     h.fRetention = TPZUnsaturatedHydraulics::EVanGenuchten;
     h.fKrw = TPZUnsaturatedHydraulics::EMualem;
     h.fKra = TPZUnsaturatedHydraulics::EMualemAir;
+    if (gAguaSaturada) h.fAVG = 1.e-12; // S_w = 1 e k_r = 1 para qualquer succao
     mat->SetHydraulics(h);
     mat->SetPorosity(s.n);
     mat->SetBiot(1., 0.);
@@ -758,6 +772,7 @@ Piloto LePiloto(const std::string &pasta, int np, double rho)
 int main(int argc, char *argv[])
 {
     const Opcoes op = LeOpcoes(argc, argv);
+    gAguaSaturada = op.agua == "sat";
     const Solo res;
     const Campos &cp = op.campos;
     const auto &p = kTalude;
@@ -792,7 +807,7 @@ int main(int argc, char *argv[])
     csv << kCabecalho;
     if (op.primeira == 0) { // so o bloco que comeca na realizacao 0 (no cluster, varios blocos rodam ao mesmo tempo)
         std::ofstream pa(op.saida + "_parametros.txt");
-        pa << "HW_H=" << op.hw << "\nNIVEL_FINAL=" << nivelFinal << "\nTREBAIX=" << op.trebaix << "\nKV=" << res.kv
+        pa << "HW_H=" << op.hw << "\nNIVEL_FINAL=" << nivelFinal << "\nTREBAIX=" << op.trebaix << "\nTFIM=" << op.tfim << "\nDT=" << op.dt << "\nAGUA=" << op.agua << "\nKV=" << res.kv
            << "\nCOV_C=" << cp.covC << "\nCOV_PHI=" << cp.covPhi << "\nCOV_K=" << cp.covK << "\nLX=" << cp.Lx
            << "\nLY=" << cp.Ly << "\nALFA=" << op.alfa << "\nKL_M=" << campos.M()
            << "\nKL_VARIANCIA=" << campos.VarianceFraction() << "\nSEMENTE=" << cp.semente
@@ -961,11 +976,12 @@ int main(int argc, char *argv[])
         d.nivelFinal = nivelFinal;
         d.nivelMacico = p[4][1];  // NA do macico (lateral esquerda), fixo
         d.tRebaixamento = op.trebaix;
+        d.dt = op.dt;
         DrawdownTransient rebaixamento(aT, d, left, {right, topright, face, topleft});
         rebaixamento.InitialState();
         const PointLocator loc(mT.GeoMesh());
         const auto tt = Clock::now();
-        const bool ok = rebaixamento.AdvanceTo(op.trebaix);
+        const bool ok = rebaixamento.AdvanceTo(op.tfim);
         l.sT = Seg(tt), l.eqT = mT.CompMesh()->NEquations(), l.nivel = rebaixamento.Level();
         const std::vector<REAL> pw = rebaixamento.NodalWaterPressure();
         l.pwMin = *std::min_element(pw.begin(), pw.end()), l.pwMax = *std::max_element(pw.begin(), pw.end());
@@ -980,8 +996,8 @@ int main(int argc, char *argv[])
             if (figura) {
                 const std::string pasta = op.saida + "_real" + std::to_string(n);
                 anim = std::make_unique<AnimationFiles<TUnsatHP>>(pasta, mT);
-                anim->Summary(op.trebaix, d.nivelInicial, d.nivelFinal);
-                anim->Snapshot(op.trebaix, pw, l.nivel, mT.Material()->Hydraulics());
+                anim->Summary(op.tfim, d.nivelInicial, d.nivelFinal);
+                anim->Snapshot(op.tfim, pw, l.nivel, mT.Material()->Hydraulics());
                 std::ofstream cfs(pasta + "/campos.csv");
                 cfs << "no,x,y,c,phi,k\n";
                 TPZGeoMesh *g = mT.GeoMesh();

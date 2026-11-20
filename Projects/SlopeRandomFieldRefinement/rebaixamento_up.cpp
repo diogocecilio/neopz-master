@@ -16,6 +16,8 @@
 //          integracao, com o p_w interpolado); serve de conferencia do u-p contra o u-p_w-p_a
 // Uso: SlopeDrawdownUP [chave=valor ...] (padrao entre parenteses):
 //   nref (3), fator (tri1), transiente (tri3), trebaix (0.1), dt (0.1, h), hw (1)
+//   tfim (trebaix)  instante (h) do Gamma; agua (unsat): sat = solo sempre saturado (S_w = 1, k_r = 1), como no
+//                   rebaixamento_mc.cpp
 //   succao (zero,total,sw)  lista: um fator por item, todos com o mesmo transiente
 //   saida (up)               <saida>.csv: uma linha por (succao, nivel) com Gamma, equacoes e tempo
 #include "DrawdownTransient.h"
@@ -70,13 +72,14 @@ struct Solo { // o Solo do rebaixamento_mc.cpp
 struct Opcoes {
     int nref = 3;
     std::string malhaT = "tri3", malhaF = "tri1", saida = "up";
-    REAL trebaix = 0.1, dt = 0.1, hw = 1.;
+    REAL trebaix = 0.1, dt = 0.1, hw = 1., tfim = -1.;
+    std::string agua = "unsat";
     std::vector<std::string> succao = {"zero", "total", "sw"};
 };
 
 Opcoes LeOpcoes(int argc, char *argv[])
 {
-    const std::set<std::string> chaves = {"nref", "fator", "transiente", "trebaix", "dt", "hw", "succao", "saida"};
+    const std::set<std::string> chaves = {"nref", "fator", "transiente", "trebaix", "dt", "hw", "succao", "saida", "tfim", "agua"};
     std::map<std::string, std::string> kv;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
@@ -93,6 +96,8 @@ Opcoes LeOpcoes(int argc, char *argv[])
     if (kv.count("transiente")) op.malhaT = kv["transiente"];
     if (kv.count("trebaix")) op.trebaix = std::stod(kv["trebaix"]);
     if (kv.count("dt")) op.dt = std::stod(kv["dt"]);
+    if (kv.count("tfim")) op.tfim = std::stod(kv["tfim"]);
+    if (kv.count("agua")) op.agua = kv["agua"];
     if (kv.count("hw")) op.hw = std::stod(kv["hw"]);
     if (kv.count("saida")) op.saida = kv["saida"];
     if (kv.count("succao")) {
@@ -186,12 +191,15 @@ TPZGeoMesh *Malha(const std::string &nome)
     return tmp.RefinedGeoMesh({}, pai);
 }
 
+static bool gAguaSaturada = false; // agua=sat
+
 TPZUnsaturatedHydraulics Hidraulica()
 {
     TPZUnsaturatedHydraulics h;
     h.fRetention = TPZUnsaturatedHydraulics::EVanGenuchten;
     h.fKrw = TPZUnsaturatedHydraulics::EMualem;
     h.fKra = TPZUnsaturatedHydraulics::EMualemAir;
+    if (gAguaSaturada) h.fAVG = 1.e-12; // S_w = 1 e k_r = 1
     return h;
 }
 
@@ -272,6 +280,7 @@ void NovoFatorUP(FatorUP &f, TPZGeoMesh *g, REAL nivel)
 int main(int argc, char *argv[])
 {
     const Opcoes op = LeOpcoes(argc, argv);
+    gAguaSaturada = op.agua == "sat";
     const Solo res;
     const auto &p = kTalude;
     const REAL H = p[4][1] - p[3][1], nivelFinal = p[4][1] - op.hw * H;
@@ -305,7 +314,7 @@ int main(int argc, char *argv[])
     DrawdownTransient rebaixamento(aT, d, left, {right, topright, face, topleft});
     rebaixamento.InitialState();
     const PointLocator loc(mT.GeoMesh());
-    if (!rebaixamento.AdvanceTo(op.trebaix)) {
+    if (!rebaixamento.AdvanceTo(std::max(op.tfim, op.trebaix))) {
         std::printf("o transiente parou em %.3f h\n", rebaixamento.Time());
         return 2;
     }
