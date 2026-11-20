@@ -1188,7 +1188,9 @@ Se cada instante $t$ falha para $\nu > \nu_{\ell,t}$ na linha $\ell$, a linha fa
 no ponto de projeto, com a estimativa e o CoV estimado na própria rodada contra o número de análises (parte 2). (c) Estado limite linear com $n = 2000$ termos e a
 direção truncada em $m$ termos: o CoV por linha contra $m$; os rótulos são a fração de $|\bm a|^2$ que a direção vê
 (parte 5). (d) Com o tempo: a probabilidade acumulada até $T$ pelo Monte Carlo de 200\,000 e pelo line sampling com 1000
-linhas, e a probabilidade instantânea de cada hora, exata ($\Phi(-\beta(t))$) e pelas mesmas linhas (parte 6).}\label{fig:ls_exemplos}
+linhas, e a probabilidade instantânea de cada hora, exata ($\Phi(-\beta(t))$) e pelas mesmas linhas (parte 6). As
+figuras saem do \texttt{figuras\_ls.py}, em Python, com os mesmos exemplos do \texttt{exemplo\_ls.wl} e outros sorteios; os
+números do texto são os do Mathematica.}\label{fig:ls_exemplos}
 \end{figure}
 
 \paragraph{9. No código.} O programa é o \path{Projects/Cho2010/line_sampling.py}:
@@ -1264,8 +1266,8 @@ ganho cai para $\approx 1$: perto da fronteira, onde os pesos são maiores, quem
 \lstinputlisting[language={}]{exemplo_1d.wl}
 
 \section{O line sampling em exemplos com $P_f$ exata, em Mathematica}\label{ap:ls}
-O código \path{exemplo_ls.wl}, nesta pasta, grava as Figuras~\ref{fig:ls_esquema} e \ref{fig:ls_exemplos} em
-\path{figs_ls/}. Para rodar: \texttt{wolframscript -file exemplo\_ls.wl} ($\approx 2$ min). A saída está em
+O código \path{exemplo_ls.wl}, nesta pasta, dá os números desta seção. As Figuras~\ref{fig:ls_esquema} e
+\ref{fig:ls_exemplos} saem do \path{figuras_ls.py} (Python, os mesmos exemplos com outros sorteios), em \path{figs_ls/}. Para rodar: \texttt{wolframscript -file exemplo\_ls.wl} ($\approx 2$ min). A saída está em
 \path{exemplo_ls_saida.txt}. A Tabela~\ref{tab:exls} resume cada parte.
 
 \begin{table}[H]\centering\small
