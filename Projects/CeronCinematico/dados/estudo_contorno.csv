@@ -1,0 +1,13 @@
+dominio,contorno,nos,Gamma,classe,xA
+"notebook (3,5H; 3H; 3H)",A: so crista/face/pe (resto sem fluxo; notebook cel. 1),980,1.4087510717489402,I,-0.9396217075369915
+"notebook (3,5H; 3H; 3H)","B: + esq u=0, dir u=-gw hw (notebook cel. 9)",980,1.3816785271816447,I,-0.9908629964357178
+"notebook (3,5H; 3H; 3H)","C: tudo Dirichlet (dOmega_v vazio): esq 0, base 0, dir -gw hw",980,1.268468160964557,I,-1.0625770689333063
+"notebook (3,5H; 3H; 3H)","D: esq 0, base 0, dir sem fluxo",980,1.260287424408999,I,-1.0280797544507383
+nosso transiente (7H; 6H; 6H),A: so crista/face/pe (resto sem fluxo; notebook cel. 1),1820,1.3996510780713798,I,-0.9938489816485663
+nosso transiente (7H; 6H; 6H),"B: + esq u=0, dir u=-gw hw (notebook cel. 9)",1820,1.3925209990423544,I,-1.0029138758419367
+nosso transiente (7H; 6H; 6H),"C: tudo Dirichlet (dOmega_v vazio): esq 0, base 0, dir -gw hw",1820,1.3285906917559966,I,-1.0209135123990358
+nosso transiente (7H; 6H; 6H),"D: esq 0, base 0, dir sem fluxo",1820,1.3218350112215438,I,-1.0207486625141482
+artigo Fig.4 aprox. (13H; 2H; 8H),A: so crista/face/pe (resto sem fluxo; notebook cel. 1),2310,1.3609476395089815,I,-1.010188952525076
+artigo Fig.4 aprox. (13H; 2H; 8H),"B: + esq u=0, dir u=-gw hw (notebook cel. 9)",2310,1.4328243518395676,I,-1.0072591211586746
+artigo Fig.4 aprox. (13H; 2H; 8H),"C: tudo Dirichlet (dOmega_v vazio): esq 0, base 0, dir -gw hw",2310,1.399917091191014,I,-1.0129000382889042
+artigo Fig.4 aprox. (13H; 2H; 8H),"D: esq 0, base 0, dir sem fluxo",2310,1.3275273421476632,I,-1.0128211130464124

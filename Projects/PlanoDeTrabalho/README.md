@@ -259,6 +259,14 @@ núcleo, ou 6 a 7 h em 4 nós. O primeiro nó roda antes os FORM com M = 10 e 20
        k = 9,81e-6 m/s, e nós usamos 1e-6 m/s; (c) o acordo antigo 1,3339 × 1,336 foi coincidência de malha grossa;
      - conclusão parcial: no determinístico o método cinemático **não** explica a diferença (0,3%); o candidato mais
        forte passa a ser o **campo de pressões** (permanente × transiente, e o k); decisão pendente antes do passo 2;
+  1a. **água permanente como no artigo (20/11/2026, `Projects/CeronCinematico/estudo_contorno.py`):** Darcy
+     permanente saturado (Eqs. 19-21), malha própria convergida (1,3223 / 1,3286 / 1,3299 com h = 0,25 / 0,125 /
+     0,0625 m), Γ cinemático; 3 domínios × 4 contornos dão Γ de **1,26 a 1,43** (o contorno distante pesa ±7%).
+     Com o contorno literal do artigo (∂Ω_v = ∅: tudo Dirichlet, u = 0 na lateral esquerda e na base, u = −γw·hw à
+     direita) no nosso domínio (7H, 6H, 6H): **Γ = 1,330** contra 1,336 (−0,5%). O notebook
+     `Coorientação-Mario/darcy-simulation-slope-v2.nb` usa só crista/face/pé (resto sem fluxo): 1,40 a 1,41.
+     Leitura: com a mesma água do artigo, reproduzimos o 1,336; o nosso MC usou outra água (transiente de 0,1 h,
+     Γ_∞ = 1,276), e o GIM com 3 níveis (+4%) mascarou isso no determinístico; próximo: o MC com a água permanente;
   2. comparação pareada nas mesmas 2000 realizações da referência: o Γ cinemático ao lado do Γ do MEF, realização a
      realização; espera-se P_f ≈ 11,5% pelo método dele e Γ_cin ≥ Γ_MEF, com a diferença maior nas bandas fracas;
   3. o passo de tempo do transiente (`dt=` de 0,1 a 0,01, determinístico) e o MC com 4 níveis (a tendência para ~18%).
