@@ -31,9 +31,11 @@ resultados) está no fim, na seção [Documentos](#documentos).
 | 2b | Base de Nyström contra a analítica: β(M), ganho da AI e direto de referência próprio | uma campanha e FORM | junto com a 2 | `ETAPA2/` |
 | 2c | Gradiente do FORM pela projeção modal (sensibilidade no colapso do SRM), validado contra as diferenças centrais | FORM | junto com a 2 | `ETAPA2/` |
 | 3 | AI pela entropia cruzada: tamanho do piloto e P_f menor (r = −0,7) | uma campanha | depois da 2 | `ETAPA3/` |
-| 3b | ISMC até CoV de 5% no campo de Nyström com 2000 modos, com o centro de um FORM com poucos termos (M = 20 e 100 por diferenças centrais; M = 20 pelo GIM modal) | campanha `etapa3b` | pronta para rodar | `ETAPAS1a3/` |
-| 4 | Validar FORM e AI na chuva (f50, FS em 24 h) | código novo e uma campanha | depois da 3 | `ETAPA4/` |
-| 5 | Investigar a chuva: P_f(t), fragilidade P_f(I), solos, k e duração | campanhas | depois da 4 | `ETAPA5/` |
+| 3b | ISMC até CoV de 5% no campo de Nyström com 2000 modos, com o centro de um FORM com poucos termos (M = 20 e 100 por diferenças centrais; M = 20 pelo GIM modal) | campanha `etapa3b` | rodando (~1040 por semente, CoV 5 a 8%) | `ETAPAS1a3/` |
+| 3c | Line sampling na direção do FORM modal com todos os modos (o método padrão desde 20/11/2026) | PC (e `ls_etapa3b.sbatch`) | feita; faltam 2 sementes | `comparacao_metodos/` |
+| 3d | A P_f do rebaixamento contra o Ceron (15,7% contra 11,5%): o método cinemático dele reproduzido e comparado, realização a realização, com o MEF | não (PC) | passo 1 em andamento | `Projects/CeronCinematico/` |
+| 4 | A chuva: o código (`xi=`, ISMC e gradiente modal no instante do FS mínimo) e a validação de LS e ISMC (modal) contra o direto | código novo e uma campanha | plano de 20/11/2026 | `ETAPA4/` |
+| 5 | A chuva: análise de sensibilidade como no Ceron (Seção 6), com as duas chuvas do Rahardjo (9 e 80 mm/h), por line sampling | campanhas | depois da 4 | `ETAPA5/` |
 
 As etapas 0 e 1 rodam juntas na campanha `etapa1` (`SlopeRandomFieldRefinement/cluster/casos_etapa1.txt`), com ~290 h de
 núcleo, ou 6 a 7 h em 4 nós. O primeiro nó roda antes os FORM com M = 10 e 20 (`form.sh`).
@@ -207,6 +209,51 @@ núcleo, ou 6 a 7 h em 4 nós. O primeiro nó roda antes os FORM com M = 10 e 20
 - **Depois:** a fase 4 pausada (`CAMPANHA=etapa3`, `CASOS=fase4,...`) entra na fila de reserva. Os casos de Nyström
   dela usam a base antiga, de 2400 nós.
 
+### Etapa 3c: line sampling na direção do FORM modal
+
+- **Pergunta:** o line sampling (Koutsourelakis et al. 2004) na direção do ponto de projeto chega ao CoV de 5% com menos
+  análises que a ISMC, sem viés? A formulação está em `docs/confiabilidade_campos/formulacao` (Seção do line sampling).
+- **Código:** `Projects/Cho2010/line_sampling.py` (a direção vem do `form.json`, completada com zeros até os K termos;
+  raiz pela secante protegida, 2 a 3 análises por linha; retoma; sem numpy, roda no fermi) e
+  `SlopeRandomFieldRefinement/cluster/ls_etapa3b.sbatch`.
+- **Resultados** (`comparacao_metodos/relatorio_comparacao.pdf`; análises para CoV de 5% com o FORM):
+
+  | problema | MC direto | melhor ISMC | LS, FORM M = 20 numérico | LS, FORM modal com todos os modos |
+  |---|---|---|---|---|
+  | Ceron, rebaixamento (P_f 15,7%) | 2148 | 1397 | 1183 | **313** |
+  | Cho r = −0,5 (P_f 1,70%) | 23 129 | 1409 | ~480 | **172** |
+  | Cho r = −0,7 (P_f 0,366%) | 108 781 | 2329 | (rodando) | **353** |
+  | viga (Mathematica; direção do FORM adjunto) | 18 666 | 1198 | 280 | **92** |
+
+  Nenhum viés detectado (|z| ≤ 0,7 nos taludes). No Ceron, a direção precisa dos modos altos (bandas fracas locais): com
+  20 termos o CoV por linha é ~100%, com 2000, 59%. O FORM modal custa 3 a 7 análises com qualquer número de termos.
+- **Decisão (20/11/2026):** o line sampling na direção do FORM modal com todos os modos é o método padrão, com a ISMC
+  como conferência, até que se prove o contrário.
+- **Falta:** o Cho r = −0,7 com mais 2 sementes (o CoV estimado pelas linhas contra a dispersão entre sementes).
+
+### Etapa 3d: a P_f do rebaixamento contra o Ceron
+
+- **O problema:** o Ceron (2025) dá P_f = 11,5% no rebaixamento total; o nosso MC direto (2000, GIM, refinamento
+  adaptativo com 3 níveis) dá 15,7% (IC de 95%: 14,1 a 17,3%), ~5 desvios acima.
+- **O que já foi medido:**
+  - a P_f não convergiu com a malha: 0,65 / 6,05 / 11,80 / 15,70% com 0 / 1 / 2 / 3 níveis; o Γ determinístico cai
+    1,914 / 1,580 / 1,396 / 1,325 / 1,297 com 0 a 4 níveis (extrapolado ≈ 1,28); o do Ceron, 1,336, fica entre os
+    níveis 2 e 3;
+  - o material não importa: o u-p dá o mesmo Γ do u-pw-pa até a 4ª casa (com e sem sucção), em todos os níveis.
+- **A hipótese:** o Ceron não usa o MEF na estabilidade. Ele usa a análise limite cinemática com mecanismos impostos:
+  rotação rígida com a superfície de espirais logarítmicas por trechos (comprimento ~H/100), cada trecho com o φ máximo
+  do solo que ele atravessa, e as forças de percolação do MEF (Seção 5.2 do artigo). É um limite superior dentro dessa
+  família de mecanismos, que não segue o caminho fraco do campo aleatório. O Γ dele deve ficar acima do Γ do MEF em
+  cada realização, e a P_f, abaixo.
+- **Os passos:**
+  1. implementar o método cinemático em Python (`Projects/CeronCinematico/`), com as forças de percolação do nosso MEF,
+     e validar no determinístico (Γ = 1,336 do artigo; os exemplos da Seção 5.3); **em andamento**;
+  2. comparação pareada nas mesmas 2000 realizações da referência: o Γ cinemático ao lado do Γ do MEF, realização a
+     realização; espera-se P_f ≈ 11,5% pelo método dele e Γ_cin ≥ Γ_MEF, com a diferença maior nas bandas fracas;
+  3. o passo de tempo do transiente (`dt=` de 0,1 a 0,01, determinístico) e o MC com 4 níveis (a tendência para ~18%).
+- **Por que importa:** mostra que a P_f de um método de mecanismo imposto fica abaixo da do MEF com refinamento
+  adaptativo, e quanto, num caso publicado.
+
 ### Etapa 4: a chuva
 
 - **Código antes:**
@@ -217,6 +264,50 @@ núcleo, ou 6 a 7 h em 4 nós. O primeiro nó roda antes os FORM com M = 10 e 20
   sem deslocamento.
 - **O FORM por instante** sai das mesmas análises. O teste do mínimo no tempo fica para a etapa 5, num caso em que o
   instante crítico varia (no f10 ele cai em 12, 18 e 24 h).
+- **Atualização (20/11/2026), com o line sampling como método padrão:**
+  - código: no `montecarlo.cpp`, `xi=` (3K números), `desloc_xi=` (a ISMC) e `gradiente=K` (o gradiente modal no instante
+    do FS mínimo, calculado logo depois de cada fator, com as pressões daquele instante; o k sai zero); no `form_kl.py`,
+    `prog=chuva`; no `line_sampling.py`, o FS mínimo no tempo e as raízes de cada instante (P_f(T)). Validar o gradiente
+    contra diferenças centrais e medir o peso do k (diferenças nos primeiros modos de k);
+  - a falha é o FS mínimo no tempo (primeira passagem), com o FS de 6 em 6 h até 48 h (~750 s por análise no fermi;
+    de hora em hora seria ~5,4× mais caro);
+  - âncoras de validação: o f50 a 31,05 mm/h (direto de 10 000, FS em 24 h) e o caso base a 80 mm/h (direto novo).
+
+### Etapa 5: a chuva, análise de sensibilidade (plano de 20/11/2026)
+
+- **A chuva:** as duas chuvas do Rahardjo (2007) com significado físico, por 24 h e iguais para os três solos: **9 mm/h**,
+  a de projeto (curva IDF de Singapura, 100 anos), e **80 mm/h**, a extrema (a maior intensidade registrada, Paulhus
+  1965). A chuva de 1 k_s de cada solo (360 / 36 / 3,6 mm/h), usada na campanha `solos`, não tem sentido de projeto (o
+  f10 cai com 360 mm/h, mas o FS inicial dos três solos é o mesmo, 2,10).
+- **O caso base:** talude de 45° e 10 m, nível d'água a 5 m, os campos da Tabela 2 do Ceron, solo f50 (ou f100,
+  conforme o determinístico), FS de 6 em 6 h até 48 h.
+- **A grade (como a Seção 6 do Ceron), cada caso nas duas chuvas, por line sampling:**
+
+  | # | o que varia | valores | casos × 2 chuvas | custo no fermi (48 proc.) |
+  |---|---|---|---|---|
+  | 0 | determinístico, FS de hora em hora (escolhe o caso base) | f10, f50, f100 | 3 × 2 | ~1,2 h |
+  | 1 | caso base | — | 1 × 2 | 3,3 h |
+  | 2 | CoV de k_s | 0, 75, 90, 100% | 4 × 2 | 13 h |
+  | 3 | CoV de c' | 10, 50, 70% | 3 × 2 | 10 h |
+  | 4 | CoV de φ' | 5, 15, 20% | 3 × 2 | 10 h |
+  | 5 | distâncias de autocorrelação | ×1,5, ×2, ×5 | 3 × 2 | 10 h |
+  | 6 | anisotropia k_h/k_v | 2, 3, 4, 5 | 4 × 2 | 13 h |
+  | 7 | solo | f10, f100 | 2 × 2 | 6,6 h |
+  | 8 | âncora 80 mm/h: MC direto do caso base | P_f esperada de 5 a 20% | 1 | 7 a 33 h |
+  | 9 | âncora 80 mm/h: ISMC (modal), 3 sementes | — | 1 | 26 h |
+  | 10 | âncora 80 mm/h: LS, mais 2 sementes | — | 1 | 3,3 h |
+  | 11 | caso base a 9 mm/h: ISMC (modal), 3 sementes (conferência sem direto) | — | 1 | 26 h |
+  | 12 | caso base a 9 mm/h: LS, mais 2 sementes | — | 1 | 3,3 h |
+  |  | **total** | | 40 LS + 6 ISMC + 1 direto (~30 000 análises) | **~125 a 150 h (5 a 6 dias)** |
+
+  - Cada LS: FORM modal (~6 análises), 2 da inclinação e ~150 linhas de ~2,5 análises (~380 análises, ~1,7 h). A maior
+    incerteza é o CoV por linha na chuva: de 40% (≈ metade do custo) a 100% (≈ 2,6×).
+  - Custos medidos na campanha `solos` (FS de 6 em 6 h, por realização e processo): f10 860 s, f50 641 s, f100 731 s.
+  - A 9 mm/h, com P_f ≤ 10⁻³, o direto pediria mais de 400 000 análises: ali a validação é LS contra ISMC com sementes
+    independentes.
+  - A sensibilidade das variáveis (a 6.1 do Ceron): os α² dos FORM para c' e φ'; o k pelo Spearman do direto da âncora
+    ou por diferenças nos primeiros modos de k.
+- **A linha 0 pode ir para o fermi já**, sem código novo.
 
 ## Critérios gerais (da revisão)
 
@@ -310,7 +401,7 @@ Regras:
 | `Projects/PlanoDeTrabalho/ETAPA0/relatorio_etapa0.pdf` | 9 | etapa 0: a AI da chuva no fermi e a prévia do Cho2010 (SRM antigo; superado pelo das etapas 1 a 3) |
 | `Projects/PlanoDeTrabalho/ETAPAS1a3/relatorio_etapas.pdf` | 16 | todos os resultados das etapas 0 a 3 e a referência da chuva: SRM corrigido, AI contra o direto, teste linear, as duas bases, o gradiente modal (SRM e GIM), o viés, a variável de controle, a fase 4 parcial, o piloto e o custo |
 | `Projects/PlanoDeTrabalho/viga_mathematica/relatorio_viga.pdf` | 9 | a viga com campo aleatório em Mathematica (código em viga_mathematica/codigo): MC, FORM, SORM e ISMC com M, centros baratos (fórmulas de viga), o ponto ótimo do M do FORM e o SORM como função de amostragem |
-| `Projects/PlanoDeTrabalho/comparacao_metodos/relatorio_comparacao.pdf` | 8 | comparação com os dados parciais (20/11/2026): Monte Carlo direto, ISMC e line sampling no Cho (r = -0,5 e -0,7), no rebaixamento do Ceron e na viga; custo para CoV de 5%, convergência, sementes e direções (comparacao_metodos/gera_relatorio.sh refaz com os dados novos) |
+| `Projects/PlanoDeTrabalho/comparacao_metodos/relatorio_comparacao.pdf` | 13 | comparação com os dados parciais (20/11/2026): Monte Carlo direto, ISMC e line sampling no Cho (r = -0,5 e -0,7), no rebaixamento do Ceron e na viga; custo para CoV de 5%, convergência, sementes e direções (comparacao_metodos/gera_relatorio.sh refaz com os dados novos) |
 | `Projects/PlanoDeTrabalho/arquivo/` |  | cópias datadas (AAAA-MM-DD_nome.pdf), nunca editadas: 2026-11-17_relatorio_parcial.pdf |
 
 ### Resultados: as campanhas
