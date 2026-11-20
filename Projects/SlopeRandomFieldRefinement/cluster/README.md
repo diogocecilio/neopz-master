@@ -322,6 +322,63 @@ CAMPANHA=etapa3b ~/projects/neopz-master/Projects/SlopeRandomFieldRefinement/clu
 O `baixar.sh` roda o `Projects/Cho2010/ismc_parada.py`. Os diretos de referência são os já baixados das etapas 1 e 3:
 baixe o `r07_direto` de 110 000 antes, com `CAMPANHA=etapa3 baixar.sh`.
 
+## Tabelas 4 e 5 com o GIM, pareado com o SRM (`CAMPANHA=etapa3b_gim` e `ls_gim.sbatch`)
+
+Os casos do Cho (2010) das Tabelas 4 e 5 do `relatorio_comparacao.pdf` (r = -0,5 e -0,7) com o fator pelo GIM
+(`metodo=gim`, Γ; falha: Γ < 1) em vez do SRM (FS). Base da comparação análise limite (`la_cho.sbatch`) × MEF SRM ×
+MEF GIM.
+
+- **Pareado:** as opções e as sementes são as das rodadas SRM, só com `metodo=gim` a mais. A realização n depende só
+  da semente, de n, de M e da base, então é o mesmo campo (mesmos `c_med`, `phi_med` e `log_peso` no CSV) e Γ e FS
+  se comparam realização a realização. Uma semente só por caso.
+- **Sem FORM novo:** a ISMC usa os centros u* da etapa 3b (`$DATA/etapa3b/form_*/ustar.txt`) e a base de Nyström de
+  lá (`$DATA/etapa3b/pontos/base_nys2000.txt`). O line sampling usa as direções do SRM: `form_r0x_M20` (já no fermi) e
+  `form_r0x_gim2000` (do PC: suba os dois `form.json`, primeiro comando abaixo).
+- **Sem recompilar:** o `bin/Cho2010` do fermi (commit ac5aabf) já tem `metodo=gim`, e o código do Cho2010 não mudou
+  depois.
+
+Casos (`casos_etapa3b_gim.txt`, blocos de 10 como nas referências):
+
+| Caso | O que é | Referência SRM | Análises |
+|---|---|---|---|
+| `conf_srm_r05` | SRM, realizações 0 a 9 (conferência: FS iguais) | `etapa1/r05_direto` | 10 |
+| `conf_srm_r07` | SRM, realizações 0 a 9 (conferência: FS iguais) | `etapa3/r07_direto` | 10 |
+| `r0x_nys_<M20,M100,gim20>_s21` | ISMC GIM, semente 21, CoV 5%, no mínimo 2000 (`cov_n=2000`) | `etapa3b/<mesmo id>` | ~12 300 |
+| `r05_direto_gim` | direto GIM, realizações 0 a 23 999 (o r05 todo) | `etapa1/r05_direto` | 24 000 |
+| `r07_direto_gim` | direto GIM, realizações 0 a 23 999 (das 110 000) | `etapa3/r07_direto` | 24 000 |
+| `ls_gim.sbatch` | LS GIM, semente 7, direções M20 e gim2000, CoV 5%, 100 a 600 linhas | `~/projects/runs/etapa3b_ls/ls` | ~1 800 |
+
+O `cov_n=2000` faz a ISMC GIM rodar pelo menos as 2000 realizações da ISMC da análise limite e as k da parada do SRM
+(1270 a 2120). O N em que o CoV cruza 5% sai depois, pelo `ismc_parada.py cov_n=500` (a regra do SRM), que o
+`baixar.sh` roda com os FORM da etapa 3b (custo com o FORM) e o z contra o direto GIM. O `NMIN=100` do LS cobre as
+100 linhas do SRM e da análise limite. O `ls_gim.sbatch` copia a base de Nyström (525 MB) para o disco local do nó,
+porque cada análise do LS é um processo novo que a lê.
+
+Custo (o SRM leva ~66 a 69 s por análise no fermi; o GIM, pelo PC, não mais): ~62 100 análises, ~1 190 h de núcleo.
+Com 2 jobs da campanha e o `lsGim` (3 rodando; o 3º job da campanha espera o `lsGim` acabar, com `DEPENDE`), dá
+~32 a 35 h, dentro dos 2 dias por job. Fica 1 vaga rodando para o `laCho`.
+
+Antes de submeter, confira no fermi a versão do `bin/Cho2010` (tem de ser a ac5aabf) e o `random` do python3 (o Z do
+LS tem de ser o mesmo do PC: `-0.2558802884476004 0.511431512516514`):
+
+```bash
+cd ~/projects/runs/etapa3b_ls && rsync -avR --rsync-path="mkdir -p /mnt/data/diogo/etapa3b_gim && rsync" form_r05_gim2000/form.json form_r07_gim2000/form.json diogo@fermi.cesup.ufrgs.br:/mnt/data/diogo/etapa3b_gim/
+ssh diogo@fermi.cesup.ufrgs.br 'cat neopz-master/Projects/SlopeRandomFieldRefinement/cluster/bin/versao.txt; python3 -I -c "import random;r=random.Random(7);print(repr(r.gauss(0.,1.)),repr(r.gauss(0.,1.)))"'
+ssh diogo@fermi.cesup.ufrgs.br 'cd neopz-master && git pull origin UnsaturatedSoil && cd Projects/SlopeRandomFieldRefinement/cluster && CAMPANHA=etapa3b_gim ./submeter.sh 2 && J=$(sbatch --parsable ls_gim.sbatch) && J=${J%%;*} && echo "lsGim $J" && CAMPANHA=etapa3b_gim DEPENDE=$J ./submeter.sh 1'
+ssh diogo@fermi.cesup.ufrgs.br 'squeue -u diogo; CAMPANHA=etapa3b_gim neopz-master/Projects/SlopeRandomFieldRefinement/cluster/status.sh; tail -n 4 neopz-master/Projects/SlopeRandomFieldRefinement/cluster/logs/lsGim_*.out'
+CAMPANHA=etapa3b_gim ~/projects/neopz-master/Projects/SlopeRandomFieldRefinement/cluster/baixar.sh
+```
+
+O `baixar.sh` baixa para `~/projects/runs/fermi_etapa3b_gim` (com o `ls/`) e faz o `resultado.txt`: a conferência,
+cada caso GIM contra a sua referência SRM (`Projects/Cho2010/pareado_gim.py mc`: campo igual?, falhas e P_f de cada
+um, pares discordantes, k de Γ ~ FS^k, e a tabela `pareado.csv` com real, FS_srm, Gamma_gim), o LS linha a linha
+(`pareado_gim.py ls`) e o `ismc_parada.py`. As referências SRM têm de estar baixadas em `~/projects/runs`.
+
+- **O resto do r07** (realizações 24 000 a 109 999, ~1 460 h de núcleo):
+  `CAMPANHA=etapa3b_gim CASOS=r07_direto_gim ULTIMA=109999 ./submeter.sh 3`.
+- **Γ = 0** (GIM sem equilíbrio nem com 1% da gravidade, `situacao` `fator`) conta como falha no `tarefas.sh`, no
+  `status.sh`, no `amostragem_importancia.py`, no `compara_pares.py` e no `line_sampling.py`.
+
 ## Line sampling do Ceron com a agua do artigo (`contorno=ceron`)
 
 O `ls_ceron.sbatch` calcula a P_f do rebaixamento do Ceron (2025) com os contornos do artigo (`contorno=ceron
@@ -381,7 +438,8 @@ rsync -av diogo@fermi.cesup.ufrgs.br:/mnt/data/diogo/ceron_ls/ ~/projects/runs/c
 - **`$SAIDA/campanha.txt`:** guarda `IREF` e `BLOCO`, que definem os arquivos. `submeter.sh` recusa outros valores
   na mesma `SAIDA`.
 - **Variáveis de `submeter.sh`:** `SAIDA` (padrão `$DATA/chuva_mc`), `CASOS` (`todos`, ids ou fases), `IREF`,
-  `BLOCO`, `ULTIMA`, `PARALELO`, `TEMPO` (padrão 2 dias) e `PARTICAO`.
+  `BLOCO`, `ULTIMA`, `PARALELO`, `TEMPO` (padrão 2 dias), `PARTICAO` e `DEPENDE` (o id de um job: os novos só começam
+  quando ele acabar).
 
 ## Arquivos de cada caso (`$SAIDA/<caso>/`)
 

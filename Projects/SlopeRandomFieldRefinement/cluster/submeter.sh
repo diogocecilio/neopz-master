@@ -15,6 +15,8 @@
 #   FORM_M    os FORM do Cho2010 que o primeiro job roda antes da fila (form.sh; padrao: FORM_PADRAO da campanha, ex.
 #             "10 20" no etapa1; os ja prontos sao pulados; FORM_M= vazio nao roda nenhum)
 #   TEMPO     limite de cada job (padrao 2-00:00:00), PARTICAO
+#   DEPENDE   id de um job: os jobs novos so comecam quando ele acabar (--dependency=afterany; ficam na fila como
+#             submetidos, sem ocupar vaga de job rodando)
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 source ../../LearningMohrCoulomb2/cluster/modulos.sh
@@ -72,7 +74,7 @@ for ((no = 0; no < NOS; no++)); do
     fm=""
     ((no == 0)) && fm="$FORM_M"
     j="$(FORM_M="$fm" sbatch --parsable --job-name="$NOME" ${PARTICAO:+--partition="$PARTICAO"} ${TEMPO:+--time="$TEMPO"} \
-        job.sbatch)" || {
+        ${DEPENDE:+--dependency=afterany:"$DEPENDE"} job.sbatch)" || {
         echo "o SLURM recusou o job $no (cota?): os ja submetidos seguem; submeta o resto depois" >&2
         break
     }

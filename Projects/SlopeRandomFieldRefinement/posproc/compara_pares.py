@@ -37,7 +37,8 @@ def le(pasta, t):
             if t is not None and abs(th - t) > 1e-9:
                 continue
             x = float(r["FS_min"])
-            if r["situacao"] != "ok" or not x > 0:
+            gim0 = r.get("metodo") == "gim" and r["situacao"] == "fator" and x == 0.  # GIM: Gamma = 0 e falha
+            if not gim0 and (r["situacao"] != "ok" or not x > 0):
                 ruins.add(n)
                 continue
             fs[n] = min(x, fs.get(n, math.inf))

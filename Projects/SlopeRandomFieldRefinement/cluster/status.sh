@@ -40,7 +40,9 @@ while read -r id fase n opc; do
             r = $c["real"] + 0; x = $c["FS_min"] + 0
             if (r < 0) next
             if (!(r in fs) || x < fs[r]) fs[r] = x
-            if ($c["situacao"] != "ok" || x <= 0) ruim[r] = 1
+            # no GIM, Gamma = 0 (situacao fator) e falha de verdade
+            g0 = ("metodo" in c) && $c["metodo"] == "gim" && $c["situacao"] == "fator" && $c["FS_min"] ~ /^0(\.0*)?$/
+            if (!g0 && ($c["situacao"] != "ok" || x <= 0)) ruim[r] = 1
             lw[r] = ("log_peso" in c) ? $c["log_peso"] + 0 : 0
         }
         END {

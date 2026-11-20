@@ -15,7 +15,10 @@ direto, o N do alvo (media, minimo e maximo) e o custo total (as avaliacoes do F
 direto precisaria para o mesmo CoV, (1 - P) / (P alvo^2) com a P do direto, dividido pelo custo.
 
 Uso: python3 -I ismc_parada.py <pasta da campanha> <casos_etapa3b.txt> [r05=<pasta do direto>] [r07=<pasta do direto>]
-     [figuras=<pasta>] [conf_ref=<pasta do r07_ai_form20 da etapa3>]
+     [figuras=<pasta>] [conf_ref=<pasta do r07_ai_form20 da etapa3>] [cov_n=<minimo>] [forms=<pasta>]
+cov_n= troca o cov_n dos casos (o minimo de realizacoes da regra de parada; o etapa3b_gim roda com cov_n=2000 para
+parear, e cov_n=500 da o N alvo comparavel ao da etapa 3b). forms= e a pasta com os form_*/form.json (padrao: a da
+campanha; no etapa3b_gim os FORM sao os da etapa 3b).
 Os diretos padrao sao os baixados das etapas 1 e 3: ~/projects/runs/fermi_etapa1/etapa1/r05_direto e
 ~/projects/runs/fermi_etapa3/etapa3/r07_direto."""
 import json
@@ -110,8 +113,8 @@ def main():
             print(f"direto {r}: sem a pasta {p[r]}")
     # os FORM
     forms = {}
-    for nome in sorted(os.listdir(camp)):
-        f = os.path.join(camp, nome, "form.json")
+    for nome in sorted(os.listdir(p.get("forms", camp))):
+        f = os.path.join(p.get("forms", camp), nome, "form.json")
         if nome.startswith("form_") and os.path.exists(f):
             d = json.load(open(f))
             forms[nome[5:]] = d
@@ -150,7 +153,7 @@ def main():
         pasta = os.path.join(camp, id_)
         if not os.path.isdir(pasta):
             continue
-        alvo, nmin, fmin = float(o["cov_alvo"]), int(o.get("cov_n", 500)), int(o.get("cov_falhas", 100))
+        alvo, nmin, fmin = float(o["cov_alvo"]), int(p.get("cov_n", o.get("cov_n", 500))), int(o.get("cov_falhas", 100))
         iw, nexcl = serie(pasta)
         if len(iw) < 2:
             continue
@@ -179,7 +182,7 @@ def main():
                                                     "iw": iw, "pf": pf, "cv": cv})
         curvas[id_] = (pk, cvk)
     # por centro e por r
-    print("\nPor centro e por r (as 5 sementes):")
+    print("\nPor centro e por r (as sementes):")
     print(f"  {'r':<4} {'centro':<6} {'sem.':>4} {'N alvo: media (min-max)':>24} {'P_f alvo: media (dp) %':>24} "
           f"{'P_f juntas (%)':>16} {'z':>6} {'FORM':>5} {'custo':>6} {'ganho':>6}")
     for (r, centro), gs in sorted(grupos.items()):

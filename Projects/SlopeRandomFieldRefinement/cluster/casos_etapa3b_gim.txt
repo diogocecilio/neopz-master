@@ -1,0 +1,32 @@
+# casos_etapa3b_gim.txt (CAMPANHA=etapa3b_gim): os casos das Tabelas 4 e 5 do relatorio_comparacao.pdf (Cho 2010,
+# r = -0,5 e -0,7) com o fator do MEF pelo GIM (metodo=gim, Gamma; falha: Gamma < 1) no lugar do SRM (FS), PAREADOS com
+# as rodadas SRM de referencia: as MESMAS opcoes e sementes, so com metodo=gim a mais. A realizacao n depende so da
+# semente, de n, de M e da base (RandomField::Sample), entao cada linha daqui tem o mesmo campo (mesmas c_med, phi_med e
+# log_peso no CSV) que a linha de mesmo n da referencia SRM: a comparacao Gamma x FS e realizacao a realizacao, e tambem
+# com a analise limite (la_cho.sbatch: mesmas sementes e campos). Uma semente so por caso (decisao do usuario).
+# Sem FORM novo: os centros da ISMC sao os u* ja calculados na etapa 3b ($DATA/etapa3b/form_*/ustar.txt: M20 e M100 por
+# diferencas centrais do SRM, gim20 pelo GIM com o gradiente modal), e a base de Nystrom e a da etapa 3b (nada copiado).
+# Referencias SRM (pasta no fermi -> no PC):
+#   conf_srm_r05, r05_direto_gim  etapa1/r05_direto   (24 000;  ~/projects/runs/fermi_etapa1/etapa1/r05_direto)
+#   conf_srm_r07, r07_direto_gim  etapa3/r07_direto   (110 000; ~/projects/runs/fermi_etapa3/etapa3/r07_direto)
+#   r0x_nys_<centro>_s21          etapa3b/r0x_nys_<centro>_s21 (~/projects/runs/fermi_etapa3b/etapa3b/...)
+# Fases:
+#   1  conferencia de versao: as 10 primeiras do r05_direto e do r07_direto com o SRM (o FS tem de ser o mesmo)
+#   2  ISMC com o GIM, semente 21, os 3 centros x 2 r, campo de Nystrom com 2000 modos; parada pelo CoV 5% (cov_alvo),
+#      mas com no minimo 2000 realizacoes (cov_n=2000, opcao so da fila): cobre as k da parada do SRM (1270 a 2120) e as
+#      2000 da ISMC da analise limite, para parear tudo; o N em que o CoV cruza 5% sai depois (ismc_parada.py cov_n=500,
+#      como no SRM, que o baixar.sh ja passa)
+#   3  Monte Carlo direto com o GIM nas PRIMEIRAS 24 000 realizacoes (semente 2010, KL analitica com M = 2000): o r05
+#      inteiro (24 000 = o direto SRM todo) e o r07 nas 24 000 primeiras das 110 000 (as mesmas em que a la_cho grava o
+#      FS da analise limite). O resto do r07 (24 000 a 109 999) fica para depois: ULTIMA=109999 CASOS=r07_direto_gim
+# id                    fase  N      opcoes
+conf_srm_r05            1     10     rcphi=-0.5 fator=tri2 nref=4
+conf_srm_r07            1     10     rcphi=-0.7 fator=tri2 nref=4
+r05_nys_M20_s21         2     5000   rcphi=-0.5 fator=tri2 nref=4 nystrom=@SAIDA@/../etapa3b/pontos/base_nys2000.txt M=2000 desloc_xi=@SAIDA@/../etapa3b/form_r05_M20/ustar.txt semente=21 metodo=gim cov_alvo=0.05 cov_n=2000
+r05_nys_M100_s21        2     5000   rcphi=-0.5 fator=tri2 nref=4 nystrom=@SAIDA@/../etapa3b/pontos/base_nys2000.txt M=2000 desloc_xi=@SAIDA@/../etapa3b/form_r05_M100/ustar.txt semente=21 metodo=gim cov_alvo=0.05 cov_n=2000
+r05_nys_gim20_s21       2     5000   rcphi=-0.5 fator=tri2 nref=4 nystrom=@SAIDA@/../etapa3b/pontos/base_nys2000.txt M=2000 desloc_xi=@SAIDA@/../etapa3b/form_r05_gim20/ustar.txt semente=21 metodo=gim cov_alvo=0.05 cov_n=2000
+r07_nys_M20_s21         2     8000   rcphi=-0.7 fator=tri2 nref=4 nystrom=@SAIDA@/../etapa3b/pontos/base_nys2000.txt M=2000 desloc_xi=@SAIDA@/../etapa3b/form_r07_M20/ustar.txt semente=21 metodo=gim cov_alvo=0.05 cov_n=2000
+r07_nys_M100_s21        2     8000   rcphi=-0.7 fator=tri2 nref=4 nystrom=@SAIDA@/../etapa3b/pontos/base_nys2000.txt M=2000 desloc_xi=@SAIDA@/../etapa3b/form_r07_M100/ustar.txt semente=21 metodo=gim cov_alvo=0.05 cov_n=2000
+r07_nys_gim20_s21       2     8000   rcphi=-0.7 fator=tri2 nref=4 nystrom=@SAIDA@/../etapa3b/pontos/base_nys2000.txt M=2000 desloc_xi=@SAIDA@/../etapa3b/form_r07_gim20/ustar.txt semente=21 metodo=gim cov_alvo=0.05 cov_n=2000
+r05_direto_gim          3     24000  rcphi=-0.5 fator=tri2 nref=4 metodo=gim
+r07_direto_gim          3     24000  rcphi=-0.7 fator=tri2 nref=4 metodo=gim

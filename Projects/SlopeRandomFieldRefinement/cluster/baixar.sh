@@ -76,6 +76,39 @@ if [ "$CAMPANHA" != chuva ]; then
         { echo "== ISMC com parada pelo CoV (Projects/Cho2010/ismc_parada.py)"
           python3 -I -B "$AQUI/../../Cho2010/ismc_parada.py" "$D" "$AQUI/$CASOS_TXT" 2>&1; echo; } >> "$R"
     fi
+    # etapa3b_gim: cada caso GIM contra a sua referencia SRM, realizacao a realizacao (Projects/Cho2010/pareado_gim.py;
+    # as referencias sao as ja baixadas das etapas 1, 3 e 3b), e o line sampling GIM contra o SRM, linha a linha
+    if [ "$CAMPANHA" = etapa3b_gim ]; then
+        RUNS="$HOME/projects/runs" PAR="$AQUI/../../Cho2010/pareado_gim.py"
+        { for c in conf_srm_r05:fermi_etapa1/etapa1/r05_direto conf_srm_r07:fermi_etapa3/etapa3/r07_direto; do
+              id=${c%%:*} ref=${c#*:}
+              [ -d "$D/$id" ] || continue
+              echo "== conferencia de versao: $id contra $ref (FS iguais)"
+              python3 -I -B "$POS/compara_pares.py" "$RUNS/$ref" "$D/$id" 2>&1 | head -n 12 || true
+              echo
+          done
+          for c in r05_direto_gim:fermi_etapa1/etapa1/r05_direto r07_direto_gim:fermi_etapa3/etapa3/r07_direto \
+              r05_nys_M20_s21: r05_nys_M100_s21: r05_nys_gim20_s21: r07_nys_M20_s21: r07_nys_M100_s21: r07_nys_gim20_s21:; do
+              id=${c%%:*} ref=${c#*:}
+              [ -n "$ref" ] || ref="fermi_etapa3b/etapa3b/$id"
+              [ -d "$D/$id" ] || continue
+              echo "== $id: SRM x GIM pareado"
+              python3 -I -B "$PAR" mc "$RUNS/$ref" "$D/$id" 2>&1 || true
+              echo
+          done
+          for c in r05_M20 r07_M20 r05_gim2000 r07_gim2000; do
+              [ -f "$D/ls/$c/linhas.csv" ] || continue
+              echo "== line sampling $c: SRM x GIM linha a linha"
+              python3 -I -B "$PAR" ls "$RUNS/etapa3b_ls/ls/$c" "$D/ls/$c" 2>&1 || true
+              echo
+          done
+          # N alvo com cov_n=500 (a regra do SRM na etapa 3b; a fila rodou com 2000 so para parear), o custo com os FORM
+          # da etapa 3b (os centros sao os de la) e o z contra o direto GIM (r07: so as 24 000 primeiras, CoV ~11%)
+          echo "== ISMC GIM: parada pelo CoV com cov_n=500 (como o SRM), FORM da etapa 3b, z contra o direto GIM"
+          python3 -I -B "$AQUI/../../Cho2010/ismc_parada.py" "$D" "$AQUI/$CASOS_TXT" cov_n=500 \
+              forms="$RUNS/fermi_etapa3b/etapa3b" r05="$D/r05_direto_gim" r07="$D/r07_direto_gim" 2>&1 || true
+          echo; } >> "$R"
+    fi
     cat "$R"
     echo "pronto: $R"
     exit 0

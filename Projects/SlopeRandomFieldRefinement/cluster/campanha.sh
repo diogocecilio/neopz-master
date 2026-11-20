@@ -17,6 +17,10 @@
 #                   com o campo de Nystrom de 2000 modos e o centro de um FORM com poucos termos (M = 20 e 100 por
 #                   diferencas centrais, M = 20 pelo GIM com o gradiente modal), r = -0,5 e -0,7; os 6 FORM rodam antes
 #                   da fila, em todos os jobs (FORM_LISTA); parada pelo CoV (cov_alvo=); casos_etapa3b.txt; blocos de 10
+#   etapa3b_gim     os casos das Tabelas 4 e 5 (Cho 2010) com o fator pelo GIM (Gamma) em vez do SRM, pareados com as
+#                   referencias SRM (mesmas opcoes e sementes + metodo=gim): conferencia SRM, as 6 ISMC da semente 21 (os
+#                   centros FORM da etapa 3b, sem FORM novo) e os diretos r05 e r07 nas 24 000 primeiras realizacoes;
+#                   casos_etapa3b_gim.txt; blocos de 10. O line sampling GIM e o ls_gim.sbatch
 # Define NOME (jobs no SLURM), PROG (executavel em bin/), CASOS_TXT, PASTA (em $DATA), IREF_PADRAO, BLOCO_PADRAO, DESTINO
 # (pasta no PC, em ~/projects/runs) e, para os FORM do form.sh, FORM_PADRAO (os M do primeiro job), FORM_OPCOES (do
 # form_kl.py) e FORM_LISTA (FORM com nome, em todos os jobs: veja o form.sh)
@@ -40,8 +44,10 @@ etapa3b) NOME=etapa3b PROG=Cho2010 CASOS_TXT=casos_etapa3b.txt PASTA=etapa3b IRE
     FORM_OPCOES="h=0.5 iteracoes=10 fator=tri2 nref=4 nystrom=@SAIDA@/pontos/base_nys2000_M100.txt"
     FORM_LISTA="r05_M100|M=100 rcphi=-0.5;r07_M100|M=100 rcphi=-0.7;r05_M20|M=20 rcphi=-0.5;r07_M20|M=20 rcphi=-0.7"
     FORM_LISTA+=";r05_gim20|M=20 rcphi=-0.5 metodo=gim gradiente=modal;r07_gim20|M=20 rcphi=-0.7 metodo=gim gradiente=modal" ;;
-*) echo "CAMPANHA=$CAMPANHA desconhecida: chuva, ceron, chuva_ai, solos, etapa1, etapa3 ou etapa3b" >&2; exit 2 ;;
+etapa3b_gim) NOME=e3bGim PROG=Cho2010 CASOS_TXT=casos_etapa3b_gim.txt PASTA=etapa3b_gim IREF_PADRAO=0 BLOCO_PADRAO=10
+    DESTINO=fermi_etapa3b_gim ;;
+*) echo "CAMPANHA=$CAMPANHA desconhecida: chuva, ceron, chuva_ai, solos, etapa1, etapa3, etapa3b ou etapa3b_gim" >&2; exit 2 ;;
 esac
 export CAMPANHA
 # todos os nomes de job que usam build/ e bin/ (o compilar.sh espera todos acabarem: a libpz.so e a mesma)
-NOMES_TODOS=chuvaMC,ceronMC,chuvaAI,solosMC,etapa1,etapa3,etapa3b,lsEtapa3b,susCho
+NOMES_TODOS=chuvaMC,ceronMC,chuvaAI,solosMC,etapa1,etapa3,etapa3b,lsEtapa3b,susCho,e3bGim,lsGim

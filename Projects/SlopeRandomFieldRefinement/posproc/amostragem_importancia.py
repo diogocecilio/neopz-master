@@ -42,7 +42,9 @@ def linhas(pasta):
             if n < 0:
                 continue
             fs = float(r["FS_min"])
-            if r["situacao"] != "ok" or not fs > 0:
+            # no GIM, Gamma = 0 (situacao fator: sem equilibrio nem com 1% da gravidade) e falha de verdade
+            gim0 = r.get("metodo") == "gim" and r["situacao"] == "fator" and fs == 0.
+            if not gim0 and (r["situacao"] != "ok" or not fs > 0):
                 ruins.add(n)
                 continue
             vistas.setdefault(n, dict(r, fs_t={}))["fs_t"][float(r.get("t_h") or 0.)] = fs

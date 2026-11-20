@@ -17,7 +17,7 @@
 #   cov_alvo=<cv>    parada pelo CoV (amostragem por importancia): antes de pegar um bloco novo do caso, a P_f ponderada
 #                    sum(I w) / k e o seu CoV sao calculados nas realizacoes 0..k-1 dos blocos ja prontos sem buraco (na
 #                    ordem; I = FS_min < 1, w = exp(log_peso), so as linhas com situacao ok e FS_min > 0, como o
-#                    amostragem_importancia.py). Com CoV <= cv, k >= cov_n (500) e pelo menos cov_falhas (100) falhas
+#                    amostragem_importancia.py; no GIM, Gamma = 0 conta como falha). Com CoV <= cv, k >= cov_n (500) e pelo menos cov_falhas (100) falhas
 #                    sorteadas, o caso grava <caso>/ATINGIU (k, falhas, P_f, CoV, data) e nao lanca mais blocos; os que ja
 #                    rodam terminam. O N do caso vira so o teto. O N em que o CoV cruza o alvo sai depois, das realizacoes
 #                    na ordem (Projects/Cho2010/ismc_parada.py)
@@ -128,9 +128,12 @@ atingiu() {
     linha="$(awk -F, -v ini="${PREF_S[$i]:-0 0 0 0}" -v alvo="${cvas[$i]}" -v nmin="${cvns[$i]}" -v fmin="${cvfs[$i]}" '
         BEGIN { split(ini, s, " "); k = s[1] + 0; nf = s[2] + 0; s1 = s[3] + 0; s2 = s[4] + 0 }
         FNR == 1 { for (c = 1; c <= NF; c++) { if ($c == "real") cr = c; if ($c == "FS_min") cf = c
-                                                 if ($c == "log_peso") cw = c; if ($c == "situacao") cs = c }
+                                                 if ($c == "log_peso") cw = c; if ($c == "situacao") cs = c
+                                                 if ($c == "metodo") cm = c }
                    next }
-        $cr + 0 >= 0 && $cs == "ok" && $cf + 0 > 0 {
+        # GIM com Gamma = 0 (situacao fator, sem equilibrio nem com 1% da gravidade): falha de verdade, entra
+        { ok = ($cs == "ok" && $cf + 0 > 0) || (cm && $cm == "gim" && $cs == "fator" && $cf ~ /^0(\.0*)?$/) }
+        $cr + 0 >= 0 && ok {
             k++
             if ($cf + 0 < 1) { iw = exp(cw ? $cw + 0 : 0); s1 += iw; s2 += iw * iw; nf++ } }
         END { pf = (k > 0 ? s1 / k : 0); cv = 9
