@@ -294,7 +294,7 @@ Regras:
 
 | Documento | Páginas | O que tem |
 |---|---:|---|
-| `docs/confiabilidade_campos/formulacao/formulacao.pdf` | 30 | o modelo, as duas bases de Karhunen–Loève (analítica e Nyström) e a mudança de base, o Monte Carlo, a AI, a variável de controle e o FORM com o gradiente modal (SRM e GIM); no apêndice, um exemplo de uma variável em Mathematica (exemplo_1d.wl) |
+| `docs/confiabilidade_campos/formulacao/formulacao.pdf` | 30 | o modelo, as duas bases de Karhunen–Loève (analítica e Nyström) e a mudança de base, o Monte Carlo, a AI, a variável de controle, o FORM com o gradiente modal (SRM e GIM) e o line sampling (também com o tempo, para a chuva); nos apêndices, exemplos em Mathematica (exemplo_1d.wl e exemplo_ls.wl) |
 | `docs/confiabilidade_campos/implementacao_form_ai/implementacao_form_ai.pdf` | 5 | como o FORM e a AI foram implementados no NeoPZ |
 | `docs/confiabilidade_campos/ai_nystrom/ai_nystrom.pdf` | 5 | AI com a KL de Nyström, um roteiro testado em Mathematica |
 | `docs/confiabilidade_campos/confiabilidade/confiabilidade.pdf` | 19 | FORM, Monte Carlo e AI em variáveis: a revisão de um código Mathematica e um talude infinito sob chuva (os números saem de Projects/Confiabilidade) |
