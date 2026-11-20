@@ -12,7 +12,7 @@
 \providecommand{\versao}{sem versão}
 \newcommand{\xib}{\bm\xi}
 \input{numeros.tex}
-\title{Comparação dos métodos de confiabilidade com os dados parciais:\\ Monte Carlo direto, ISMC e line sampling\\
+\title{Comparação dos métodos de confiabilidade:\\ Monte Carlo direto, ISMC e line sampling\\
 \large Cho ($r = -0{,}5$ e $-0{,}7$), rebaixamento do Ceron e a viga}
 \author{Diogo Cecílio}
 \date{20/11/2026 --- versão \versao}
@@ -25,22 +25,22 @@ do FORM (ISMC) e o line sampling (LS) na direção do FORM. A medida comum é o 
 contando o FORM. O line sampling na direção do FORM modal com todos os modos foi o mais barato nos três taludes, sem viés
 detectado: \lsNCe{} análises no Ceron (direto: \refNCe; melhor ISMC: \ismcNCe), \lsNRa{} no Cho com $r = -0{,}5$ (direto:
 \refNRa; ISMC: \ismcNRa) e \lsNRb{} no Cho com $r = -0{,}7$ (direto: \refNRb; ISMC: \ismcNRb). Na viga, que não tem gradiente modal, o line
-sampling na direção do FORM adjunto precisou de 92 (direto: 18\,666). Os dados são parciais: as
-ISMC da etapa 3b ainda não chegaram ao CoV de 5\,\%, o line sampling tem uma semente só e as direções do FORM numérico com
-$M = 20$ no Cho ainda estão rodando.
+sampling na direção do FORM adjunto precisou de 92 (direto: 18\,666). Os dados estão completos: as
+ISMC da etapa 3b chegaram ao CoV de 5\,\% em todas as sementes e todas as direções do line sampling terminaram; o line
+sampling ainda tem uma semente só.
 \end{abstract}
 \tableofcontents
 
-\section{O que é parcial}
+\section{Os dados}
 \begin{itemize}
   \item \textbf{Monte Carlo direto:} completo nos quatro problemas (Tabela~\ref{tab:ref}).
-  \item \textbf{ISMC da etapa 3b} (Cho, no fermi): 5 sementes por centro, cerca de 1040 realizações cada, com parada
-    pelo CoV de 5\,\%. Nenhuma semente chegou ao alvo ainda (o CoV de cada uma está entre 5 e 8\,\%); os custos para
-    CoV de 5\,\% são extrapolados pelo CoV estimado. No Ceron, as duas ISMC (1000 realizações cada) terminaram.
+  \item \textbf{ISMC da etapa 3b} (Cho, no fermi): 5 sementes por centro, com parada
+    pelo CoV de 5\,\%: todas as 30 sementes pararam com CoV entre 4,6 e 5,0\,\% (1160 a 2990 realizações cada); a
+    ISMC de cada centro junta as 5 sementes (CoV de 2,2\,\%), e o custo para CoV de 5\,\% vem do CoV combinado.
+    No Ceron, as duas ISMC (1000 realizações cada) terminaram.
   \item \textbf{Line sampling:} 100 linhas por direção e uma semente só (a 7), no PC. As direções do FORM modal com 2000
-    termos (Cho) e as três do Ceron terminaram; as do FORM numérico com $M = 20$ no Cho estão rodando, e a linha
-    ``parcial'' das tabelas tem só as linhas prontas. O CoV vem da dispersão das próprias linhas e ainda não foi
-    conferido entre sementes.
+    termos e do FORM numérico com $M = 20$ (Cho) e as três do Ceron terminaram. O CoV vem da dispersão das próprias
+    linhas e ainda não foi conferido entre sementes.
   \item \textbf{Viga:} MC direto e ISMC completos (relatório da viga); o line sampling e o FORM adjunto rodaram nas seções
     16 e 17 do código em Mathematica (\path{viga_mathematica/codigo/viga_FORM5_AI200.txt}), ainda fora do relatório da
     viga.
@@ -114,8 +114,7 @@ e a Figura~\ref{fig:nu}, onde as linhas entram na falha em cada direção.
 \begin{figure}[H]\centering
 \includegraphics[width=\textwidth]{figs/custo.pdf}
 \caption{Análises do MEF para CoV de 5\,\% (escala logarítmica), com o FORM. Cinza: Monte Carlo direto; laranja: ISMC;
-azul: line sampling; o número ao lado de cada barra é o custo. Na viga, a direção ``adjunto'' é o FORM com o gradiente adjunto (a viga não tem gradiente modal).
-As barras hachuradas (``parcial'') usam só as linhas prontas e são indicativas.}\label{fig:custo}
+azul: line sampling; o número ao lado de cada barra é o custo. Na viga, a direção ``adjunto'' é o FORM com o gradiente adjunto (a viga não tem gradiente modal).}\label{fig:custo}
 \end{figure}
 
 \begin{figure}[H]\centering
@@ -171,10 +170,8 @@ conferência, até que se prove o contrário.
 
 \section{Pendências}
 \begin{itemize}
-  \item Terminar o line sampling nas direções do FORM numérico com $M = 20$ no Cho ($r = -0{,}5$ e $-0{,}7$; rodando no PC).
   \item Repetir o line sampling com 2 ou 3 sementes num caso (Cho $r = -0{,}7$) para conferir o CoV estimado pelas linhas
     contra a dispersão entre sementes.
-  \item Deixar as ISMC da etapa 3b chegarem ao CoV de 5\,\% (fermi) e refazer este relatório.
   \item Chuva: o line sampling ainda não foi testado; a direção modal não tem componente em $k_s$ e pode haver mais de um
     mecanismo no tempo (formulação, Seção do line sampling, passo 8).
 \end{itemize}
