@@ -116,6 +116,37 @@ Uma avaliação de Γ leva cerca de 0,6 ms com campo uniforme e cerca de 11 ms c
   - É o esperado de um limite superior com um bloco rígido único num campo heterogêneo.
   - Os testes exigem cinemático/GIM extrapolado entre 0,99 e 1,10.
 
+## Monte Carlo rápido (Seção 6, configuração de referência)
+
+| arquivo | o que faz |
+|---|---|
+| `campos.py` | KL analítico do núcleo exp(−\|dx\|/Lx − \|dy\|/Ly) (o mesmo do `KLSeparavel.h`), M = 2000 termos por campo, lognormal; `Problema`: malha do Darcy, Darcy permanente com k heterogêneo, grade dos campos |
+| `rapido.py` | `CampoGrade` (P1 numa grade uniforme, localização por índice), marcha da espiral vetorizada, `minimizar_rapido` |
+| `mc.py` | driver com multiprocessing, um CSV com uma linha por realização, retomada, resumo (P_f, IC 95%, CoV) |
+| `conferencia.py` | `campos` (médias, CoV, correlações), `det`, `busca` (rápido × `cinematico.minimizar` nas mesmas pressões e campos) |
+
+```bash
+python3 -I mc.py n=200 primeira=0 semente=2025 procs=4 saida=resultados/mc_piloto.csv
+python3 -I mc.py saida=resultados/mc_piloto.csv resumo=1     # só o resumo
+python3 -I conferencia.py busca n=30 procs=4
+```
+
+- **Domínio e contorno:** 14H × 2,8H × 8,4H (Le = 70, Ld = 14, D = 42 m) com o contorno do Ceron.
+  - Malha do Darcy: grade tensorial graduada (0,0625 m no talude, até 0,25 m na janela, até 2 m fora), com 28 902 nós.
+  - k é constante por célula: o valor do campo no centro da célula, o mesmo nos dois triângulos.
+  - A fatoração é nova a cada realização (SuperLU, MMD_AT_PLUS_A), cerca de 0,09 s.
+- **Determinístico:** nessa malha Γ = 1,3471, e ele não muda com o refino (1,3477, 1,3471, 1,3469).
+  - A malha mapeada do `estudo_contorno.py` dá 1,3373 com h = 0,0625, mas ainda sobe com o refino: 1,3392 e 1,3426.
+  - A energia discreta da malha tensorial é menor, então ela é a mais precisa. O 1,3373 era malha grossa.
+- **Campos:** retângulo 89 × 47 m, 62 modos em x e 295 em y. A variância retida é 94,22%; o artigo diz erro < 6% com M = 2000.
+  - Com a truncagem, a correlação a 2 m na horizontal é 0,937 (núcleo: 0,905) e a 0,5 m na vertical é 0,812 (núcleo: 0,779).
+  - O CoV cai na mesma proporção: c 0,291 em vez de 0,30, phi 0,097 em vez de 0,10, k 0,58 em vez de 0,60.
+- **Grade dos campos:** h = 0,05 m na janela x ∈ [−25, 19], y ∈ [0, 15].
+  - Em 10 realizações, h = 0,05 × 0,025 difere no máximo 3e-4 em Γ; h = 0,1 × 0,025, até 1e-3.
+  - Malha do Darcy 0,25 × 0,125 na janela: até 2e-3 (média +5e-4).
+- **Rápido × exato** (30 realizações, mesmos campos): diferença máxima +7e-5 e média +2e-5. Nenhuma passa de 0,1%.
+  - Tempo: 0,66 s por realização (cerca de 240 avaliações de 2,8 ms), contra 13,9 s (830 avaliações de 17 ms).
+
 ## Pontos em aberto
 
 - O Monte Carlo (passo 2) deve guardar `n_normalidade` e `n_phi_nao_conv` de cada realização. Nos testes são zero, inclusive em 400 mecanismos sorteados na realização 0 (86 039 arcos conferidos com 200 pontos cada).
@@ -125,3 +156,17 @@ Uma avaliação de Γ leva cerca de 0,6 ms com campo uniforme e cerca de 11 ms c
 - A forma fechada do mecanismo (I) continua recusando C atrás da reta da face, porque a f3 (Eq. 53) não foi conferida nesse caso. Em 120 000 sorteios, nenhum mecanismo (I) válido caiu ali. O código geral não tem esse limite.
 - A grade de partida da minimização usa mecanismos clássicos com o φ médio. Com β = φ (por exemplo, β = 30° e φ = 30°, a ponta esquerda da Fig. 9), a grade fica vazia e `minimizar` falha.
 - v'_opt está implementado só para α = 1. Para α > 1, a energia da zona 1 tem um termo cruzado que as Eqs. 36-37 não mostram.
+
+## Piloto de 200 e retomada segura (2026-11-20)
+
+* `mc.py` grava em cada linha `semente`, `h`, `hD`, `M` e, na retomada, aborta se o arquivo for de outra semente ou
+  outra discretizacao; corta uma linha incompleta no fim do CSV antes de continuar; avisa quando uma realizacao fica
+  sem mecanismo (Gamma = NaN, fora de S). Grava tambem `max_varr` e `n_max_regra` (marchas que passaram de 15
+  varreduras e usaram a regra "so sobe").
+* `dados/partida_det_*.json` guarda a assinatura do caso (h, hD, M, hw, gamma', estatisticas, dominio, janela) e e
+  recalculado se ela nao bater.
+* `rapido.minimizar_rapido`: o Gamma final de cada classe e de uma marcha FRIA (sem o cache de phi_i), com a
+  normalidade conferida em todos os arcos e P_u na forma de volume.
+* `figura_mc.py csv=... nome=... [parede=s] [conf=...]`: figura `figs/<nome>.png/.pdf` e `dados/<nome>_resumo.txt`.
+* Piloto: `/home/diogo/projects/runs/ceron_mc_python/piloto200` (semente 2025, realizacoes 0 a 199), resumo em
+  `dados/piloto200_resumo.txt`.
