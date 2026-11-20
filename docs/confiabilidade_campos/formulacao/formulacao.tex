@@ -21,7 +21,7 @@
 \newcommand{\FS}{\mathrm{FS}}
 \newcommand{\Fy}{\mathcal{F}}
 \title{Confiabilidade de taludes com campos aleatórios no NeoPZ\\\large Formulação: os espaços $\X$, $\Z$ e $\Y$, os
-campos, o Monte Carlo, a amostragem por importância, a variável de controle e o FORM}
+campos, o Monte Carlo, a amostragem por importância, a variável de controle, o FORM e o line sampling}
 \date{\versao}
 \begin{document}
 \maketitle
@@ -39,7 +39,8 @@ Os espaços seguem o curso de \citet{beck2014}: $\X$, $\Z$ e $\Y$ (Seção~\ref{
 $\Y$, que o Beck chama de $\bm y$, aqui se chamam $\xib$, como no código, e o ponto de projeto é $\xib^*$ (o $\bm y^*$ do
 Beck). Todas as equações são numeradas. Ao lado de cada uma está a fonte, com o número da equação no original. O
 Apêndice~\ref{ap:exemplo} refaz a amostragem por importância e a variável de controle num exemplo de uma variável, em
-Mathematica.
+Mathematica, e o Apêndice~\ref{ap:ls} faz o mesmo com o line sampling (Seção~\ref{sec:ls}), em exemplos com $P_f$
+exata.
 
 \section{Notação: os três espaços}\label{sec:espacos}
 \citet[Seç.~4.3.3, Fig.~4-5]{beck2014} resolve um problema de confiabilidade em três espaços, ligados por duas
@@ -62,8 +63,8 @@ transformações, $\X \to \Z \to \Y$:
       \item É neles que o FORM procura o ponto de projeto $\xib^*$ \citep[Alg.~44]{beck2014}.
     \end{itemize}
 \end{itemize}
-\textbf{Trabalhamos no espaço $\Y$.} O Monte Carlo, a amostragem por importância, a variável de controle e o FORM são
-todos escritos nos coeficientes. No Beck, as coordenadas de $\Y$ se chamam $\bm y$; aqui se chamam $\xib$, como no código
+\textbf{Trabalhamos no espaço $\Y$.} O Monte Carlo, a amostragem por importância, a variável de controle, o FORM e o
+line sampling são todos escritos nos coeficientes. No Beck, as coordenadas de $\Y$ se chamam $\bm y$; aqui se chamam $\xib$, como no código
 e na literatura de campos aleatórios \citep{ghanem1991}, e o \path{form_kl.py} as chama de $\bm u$. Então
 $\xib \equiv \bm y$ (Beck) $\equiv \bm u$ (\path{form_kl.py}). A Tabela~\ref{tab:simbolos} resume os símbolos.
 
@@ -93,6 +94,9 @@ I(\xib) & indicador de falha: 1 se $\FS(\xib) < 1$, 0 se não & --- \\
 \bm\mu,\ h(\xib),\ w(\xib) & deslocamento da média, densidade de amostragem e peso da amostragem por importância & $\Y$ \\
 \bm e_B & direção da banda (Seção~\ref{sec:banda}) & $\Y$ \\
 \hat g(\xib),\ H(\xib) & substituto linear de $\ln\FS$ e variável de controle (Seção~\ref{sec:controle}) & $\Y$ \\
+\bm e,\ \nu,\ \xib^\perp & direção do line sampling ($\xib^*/\beta$), coordenada ao longo dela e parte ortogonal de $\xib$
+  (Seção~\ref{sec:ls}) & $\Y$ \\
+\nu_\ell,\ p_\ell & onde a linha $\ell$ entra na falha e a probabilidade de falha dela, $\Phi(-\nu_\ell)$ & $\Y$ \\
 \FS,\ \Gamma & fator de segurança do SRM e fator de carga do GIM & --- \\
 \pi(\bm d) & potência resistente máxima por unidade de volume (a dissipação) & --- \\
 \bottomrule
@@ -1002,6 +1006,208 @@ do problema de fluxo, que depende de $k_s$. Pelo teorema do envelope, com $\bm U
   \item Há duas opções para depois: diferenças centrais só nos primeiros modos de $k_s$, ou o adjunto.
 \end{itemize}
 
+\section{Line sampling (amostragem por linhas)}\label{sec:ls}
+\paragraph{1. A ideia} \citep{hohenbichler1988, koutsourelakis2004}. O FORM dá uma direção $\bm e$ do espaço $\Y$ em que a
+falha acontece. Em vez de sortear pontos, como o Monte Carlo e a amostragem por importância, o line sampling sorteia
+\textbf{linhas} paralelas a $\bm e$ e, em cada uma, calcula a probabilidade de falha \textbf{exatamente}, porque ao longo
+da linha ela é uma integral de uma variável. A Figura~\ref{fig:ls_esquema} mostra a construção.
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs_ls/ls_esquema.pdf}
+\caption{O line sampling no espaço $\Y$ (2D, para ilustrar; Apêndice~\ref{ap:ls}, parte 1). (a) Cada amostra
+$\xib_\ell \sim N(\bm 0, I)$ é projetada no plano ortogonal a $\bm e$ ($\xib^\perp_\ell$); a linha
+$\xib^\perp_\ell + \nu\,\bm e$ entra na região de falha em $\nu_\ell$ (ponto vermelho). Se a superfície de falha fosse um
+plano, todas as linhas teriam $\nu_\ell = \beta$. (b) Ao longo da linha, $\nu \sim N(0, 1)$: a probabilidade de falha da
+linha é a cauda $p_\ell = \Phi(-\nu_\ell)$, e a estimativa é a média dos $p_\ell$.}\label{fig:ls_esquema}
+\end{figure}
+
+\paragraph{2. A decomposição.} Seja $\bm e$ um vetor unitário que aponta para a falha. Com o FORM,
+$\bm e = -\bm\alpha = \xib^*/\beta$ (Eq.~\ref{eq:ponto}). Todo $\xib$ se escreve como uma parte ao longo de $\bm e$ e uma
+parte no plano ortogonal:
+\begin{equation}
+  \xib = \xib^\perp + \nu\,\bm e, \qquad \nu = \bm e\cdot\xib, \qquad \xib^\perp = \xib - (\bm e\cdot\xib)\,\bm e.
+  \label{eq:lsdecomp}
+\end{equation}
+A densidade $\phi_n$ só depende de $|\xib|^2 = |\xib^\perp|^2 + \nu^2$, então ela se fatora: $\nu \sim N(0, 1)$, $\xib^\perp$
+é normal padrão no plano ortogonal (dimensão $n - 1$), e os dois são \textbf{independentes}. A Eq.~\eqref{eq:pf} vira uma
+integral em $\xib^\perp$ de uma integral em $\nu$:
+\begin{equation}
+  P_f = \int\Big[\int_{-\infty}^{\infty} I(\xib^\perp + \nu\,\bm e)\,\phi(\nu)\,d\nu\Big]\phi_{n-1}(\xib^\perp)\,d\xib^\perp
+  = E\big[p(\xib^\perp)\big], \qquad p(\xib^\perp) = \int I(\xib^\perp + \nu\,\bm e)\,\phi(\nu)\,d\nu.
+  \label{eq:lspf}
+\end{equation}
+Se cada linha entra na falha num ponto só, $\nu(\xib^\perp)$, e fica nela daí em diante (a falha é $\nu > \nu(\xib^\perp)$),
+a integral interna é uma cauda normal:
+\begin{equation}
+  p(\xib^\perp) = \Phi\big(-\nu(\xib^\perp)\big), \qquad g\big(\xib^\perp + \nu(\xib^\perp)\,\bm e\big) = 0.
+  \label{eq:lsp}
+\end{equation}
+\paragraph{3. O estimador.} Com $N$ linhas, $\xib_\ell \sim N(\bm 0, I)$ e $\xib^\perp_\ell$ da
+Eq.~\eqref{eq:lsdecomp},
+\begin{equation}
+  \hat P_f = \frac{1}{N}\sum_{\ell=1}^{N}\Phi(-\nu_\ell), \qquad
+  \mathrm{CoV}(\hat P_f) = \frac{\mathrm{sd}(p_\ell)}{\sqrt N\,\hat P_f}, \qquad
+  N_{5\%} = N\Big(\frac{\mathrm{CoV}(\hat P_f)}{0{,}05}\Big)^2,
+  \label{eq:lsest}
+\end{equation}
+com $p_\ell = \Phi(-\nu_\ell)$ e o desvio padrão $\mathrm{sd}(p_\ell)$ estimado nas próprias linhas
+\citep{koutsourelakis2004}. $N_{5\%}$ é o número de linhas para CoV de 5\,\%. Chamamos
+$\mathrm{sd}(p_\ell)/\hat P_f$ de \textbf{CoV por linha}: é o CoV de uma linha só, e o de $N$ linhas é ele dividido por
+$\sqrt N$.
+
+\paragraph{4. Por que a variância é pequena.}
+\begin{itemize}
+  \item \textbf{Superfície plana: variância zero.} Se $g$ é linear, todas as linhas cruzam a superfície em
+    $\nu_\ell = \beta$, e uma linha só dá $P_f = \Phi(-\beta)$ exata (Apêndice~\ref{ap:ls}, parte 3, com as linhas sorteadas e as raízes
+    calculadas). A dispersão dos
+    $\nu_\ell$ vem só da curvatura da superfície de falha e dos termos que a direção $\bm e$ não vê.
+  \item \textbf{Nunca pior que o Monte Carlo direto, por linha.} $p(\xib^\perp) = E[I \mid \xib^\perp]$ é a média
+    condicional do indicador. Pela decomposição da variância,
+    $\mathrm{Var}[p] = \mathrm{Var}[I] - E\big[\mathrm{Var}(I \mid \xib^\perp)\big] \le \mathrm{Var}[I] = P_f(1 - P_f)$:
+    uma linha vale pelo menos uma realização do direto. Ela custa 2 ou 3 análises (passo 7), e não uma.
+  \item \textbf{A dimensão não atrapalha.} O peso da amostragem por importância não aparece: cada $p_\ell$ é uma
+    probabilidade, entre 0 e 1. Com milhares de coordenadas, o que importa é o quanto $g$ se afasta de linear, e não $n$
+    \citep{koutsourelakis2004, schueller2004}.
+\end{itemize}
+No exemplo de uma superfície curva com $P_f = 4{,}53\times10^{-3}$ e 200 análises (Apêndice~\ref{ap:ls}, parte 2), o
+CoV, medido em 200 repetições, é de 3,8\,\% no line sampling, 13,7\,\% na amostragem por importância centrada no ponto de
+projeto e 97\,\% no Monte Carlo direto. A Figura~\ref{fig:ls_exemplos}a e b mostra uma rodada dos dois primeiros: a
+estimativa e o CoV estimado na própria rodada, contra o número de análises. A outra alternativa para alta dimensão, a simulação por
+subconjuntos \citep{au2001}, não usa direção nenhuma. Ela foi feita para $P_f$ pequena: com $P_f$ de 0,4 a 16\,\%, como
+nos taludes aqui, tem só 1 a 3 níveis e ganha pouco. No modelo linear com $\beta = 2{,}68$, o
+\path{Projects/Cho2010/sus.py} dá CoV de 22\,\% com 1400 análises, contra 44\,\% do Monte Carlo direto com as mesmas 1400
+(um fator 4 no custo), longe do line sampling, que nesse modelo linear tem variância zero.
+
+\paragraph{5. Sem viés para qualquer direção.} A Eq.~\eqref{eq:lspf} vale para qualquer $\bm e$ unitário escolhido antes
+da amostra: $E[\hat P_f] = P_f$. Como na amostragem por importância (Seção~\ref{sec:ai}), a direção só muda a variância.
+Girando a direção de 0, 10, 20 e 30$^\circ$ em relação à normal da superfície, o erro da média de 100 rodadas (5000 linhas) fica
+em até 1,5\,\% (0,7; $-0{,}05$; 1,5 e 0,7\,\%), do tamanho do erro amostral ($1{,}05/\sqrt{5000} \approx 1{,}5\,\%$ a
+20$^\circ$), e o CoV por linha sobe de 35 para 60, 105 e 195\,\% (Apêndice~\ref{ap:ls}, parte 4). Duas ressalvas:
+\begin{itemize}
+  \item \textbf{Uma linha pode entrar e sair da falha.} Com a direção girada, a linha cruza uma superfície curva duas
+    vezes, em $\nu_1 < \nu_2$, e a Eq.~\eqref{eq:lsp} vira $p = \Phi(-\nu_1) - \Phi(-\nu_2)$ (na parte 4 isso é feito com as
+    duas raízes exatas). O \path{line_sampling.py} supõe um cruzamento só. No talude isso é razoável: andar em $\bm e$
+    enfraquece $c'$ e $\varphi'$ juntos, e o FS cai ao longo da linha.
+  \item \textbf{Vários mecanismos.} Se a falha tem duas regiões em direções diferentes, uma direção só vê bem uma delas,
+    e o CoV sobe (parte 6). Há variantes com várias direções \citep{papaioannou2021} ou que atualizam a direção durante a
+    amostragem \citep{deangelis2015}.
+\end{itemize}
+
+\paragraph{6. A direção, e por que ela precisa dos modos altos.} A direção é a do ponto de projeto do FORM,
+$\bm e = \xib^*/\beta$, com os $M$ termos do FORM e zeros nos outros. \textbf{Todos} os termos de todos os campos continuam
+aleatórios, em $\xib^\perp$: os modos além do $M$-ésimo e os de $k_s$. O FORM é feito só em $c'$ e $\varphi'$, porque a
+sensibilidade a $k_s$ (Eq.~\ref{eq:dk}) ainda não está implementada, e a direção tem zeros em $k_s$
+(Seção~\ref{sec:k}).
+\begin{itemize}
+  \item \textbf{O que a direção não vê vira dispersão entre as linhas.} Num estado limite linear com $n = 2000$
+    termos, $g = \beta - \bm a\cdot\xib$ com $|\bm a| = 1$, e uma direção truncada nos $m$ primeiros termos, o CoV por linha
+    depende só de $\beta$ e da fração $|\bm a_{(m)}|^2/|\bm a|^2$ que a direção vê, e não de $n$ nem de como os termos se
+    distribuem. Com 24\,\% ($m = 20$), ele é de 680\,\%; com 86\,\%
+    ($m = 200$), de 134\,\%; com 97\,\% ($m = 1000$), de 47\,\%; com todos, zero (Apêndice~\ref{ap:ls}, parte 5;
+    Figura~\ref{fig:ls_exemplos}c).
+  \item \textbf{O gradiente modal dá a direção com todos os modos de graça.} Ele custa uma análise por iteração,
+    qualquer que seja $M$ (Seção~\ref{sec:gradmodal}). Então o FORM com $M$ igual a todos os termos do campo (2000 por
+    campo) sai com 3 a 7 análises (3 no rebaixamento do Ceron; 5 e 7 no Cho, $r = -0{,}7$ e
+    $-0{,}5$).
+  \item \textbf{Nos taludes} (relatório das etapas). No rebaixamento do Ceron, em que a ruptura passa por bandas fracas
+    locais, a direção com 20 termos por campo dá um CoV por linha de $\approx 100\,\%$, e a com 2000, de
+    $\approx 59\,\%$: o custo para CoV de 5\,\% cai de $\approx 1050$ para $\approx 310$ análises. No Cho, em que a falha
+    depende dos primeiros modos de $\varphi'$, o $\beta$ quase não muda com os modos altos. Na mesma base de Nyström da
+    etapa 3b, o FORM modal com 2000 termos dá $\beta = 1{,}977$ ($r = -0{,}5$) e 2,463 ($r = -0{,}7$); o de 20 termos
+    por diferenças centrais, 1,978 e 2,466.
+\end{itemize}
+
+\paragraph{7. A raiz em cada linha} (\path{Projects/Cho2010/line_sampling.py}). Ao longo da linha, a função
+$\eta(\nu) = \ln\FS(\xib^\perp + \nu\,\bm e)$ (ou $\ln\Gamma$) é quase linear em $\nu$, pelo mesmo motivo da
+Seção~\ref{sec:controle}, passo 4: $\ln c'$ e $\ln\varphi'$ são lineares em $\xib$, e o FS é homogêneo de grau 1 na
+resistência. Por isso a raiz sai em 2 ou 3 análises:
+\begin{enumerate}
+  \item \textbf{A inclinação, uma vez por direção.} $s = [\eta(\beta + 0{,}1) - \eta(\beta - 0{,}1)]/0{,}2$ no ponto de
+    projeto, com $\xib^\perp = \bm 0$: 2 análises.
+  \item \textbf{Duas análises por linha.} A primeira em $\nu_0 = \beta$; a segunda no passo de Newton com essa inclinação,
+    $\nu_1 = \nu_0 - \eta(\nu_0)/s$.
+  \item \textbf{A secante,} $\nu_{k+1} = \nu_k - \eta(\nu_k)\,(\nu_k - \nu_{k-1})/(\eta(\nu_k) - \eta(\nu_{k-1}))$. Quando o passo
+    fica menor que a tolerância (0,01 em $\nu$), a raiz da secante é aceita \textbf{sem} nova análise. Se $\eta$ é linear ao
+    longo da linha com a mesma inclinação $s$ do ponto de projeto (por exemplo, $\eta$ linear em todo $\xib$), o passo de
+    Newton já cai na raiz, e isso acontece logo depois da segunda análise. Se a inclinação da linha é outra, a secante
+    acha a raiz, e uma terceira análise a confirma.
+  \item \textbf{Proteções.} Com uma análise segura ($\eta > 0$) e uma na falha ($\eta \le 0$), a raiz fica cercada, e um
+    candidato fora da cerca vira bisseção. As raízes ficam entre $-8$ e 12: uma linha que chega a $\nu = 12$ ainda segura
+    tem $p_\ell = 0$; uma que já está na falha em $\nu = -8$ tem $p_\ell = 1$. A secante para em 10 análises e aceita o último
+    candidato.
+  \item \textbf{Linhas perdidas.} Uma linha em que alguma análise não converge fica de fora: $\hat P_f$ e o CoV usam só
+    as outras, e o número delas vai em \texttt{perdidas} no \path{ls.json}. Se as perdidas se concentrarem perto da
+    falha, a estimativa fica enviesada para baixo; elas devem ser poucas (nos taludes até aqui, nenhuma).
+\end{enumerate}
+\begin{itemize}
+  \item \textbf{O erro da raiz.} Um erro $\delta\nu$ muda $p_\ell$ de $\phi(\nu_\ell)\,\delta\nu$, isto é, de
+    $\phi(\nu_\ell)/\Phi(-\nu_\ell)\,\delta\nu \approx (\nu_\ell + 1/\nu_\ell)\,\delta\nu$ em termos relativos (2,8\,\% com
+    $\nu = 2{,}5$ e $\delta\nu = 0{,}01$). Como o passo aceito é o
+    da secante, o erro real é de segunda ordem, bem menor.
+  \item \textbf{O custo.} São 2 a 3 análises por linha (2,2 a 2,7 nos taludes). As linhas são independentes e rodam em
+    paralelo. A mesma semente dá os mesmos sorteios $\xib_\ell$ em qualquer direção (com o mesmo número de termos):
+    números aleatórios comuns. As linhas mudam com $\bm e$, porque $\xib^\perp_\ell$ é a projeção de $\xib_\ell$ no plano
+    ortogonal a $\bm e$.
+\end{itemize}
+
+\paragraph{8. Com o tempo: a chuva.} Na chuva, a falha é o FS passar abaixo de 1 em algum instante até $T$ (a primeira
+passagem). O estado limite passa a ser
+\begin{equation}
+  g_T(\xib) = \ln\min_{t \le T}\FS(t; \xib), \qquad P_f(T) = P\big[g_T(\xib) \le 0\big].
+  \label{eq:lstempo}
+\end{equation}
+Se cada instante $t$ falha para $\nu > \nu_{\ell,t}$ na linha $\ell$, a linha falha até $T$ a partir da menor dessas raízes,
+\begin{equation}
+  \nu_\ell(T) = \min_{t \le T} \nu_{\ell,t}, \qquad \hat P_f(T) = \frac{1}{N}\sum_{\ell=1}^{N}\Phi\big(-\nu_\ell(T)\big), \qquad
+  \hat P(\FS(t) < 1) = \frac{1}{N}\sum_{\ell=1}^{N}\Phi(-\nu_{\ell,t}).
+  \label{eq:lstempoest}
+\end{equation}
+\begin{itemize}
+  \item \textbf{A curva inteira, com as mesmas análises.} Cada análise da linha já calcula o FS de todas as horas. A secante do
+    passo 7 itera em $g_T$ do $T$ final; a raiz $\nu_{\ell,t}$ de cada instante sai da reta de $\ln\FS(t)$ pelos mesmos
+    pontos da linha. Isso é exato quando cada $\ln\FS(t)$ é linear em $\nu$, como na parte 6 do Apêndice~\ref{ap:ls}; no
+    talude, a raiz de um instante longe desses pontos (o outro episódio) é uma extrapolação, e pode pedir uma análise a
+    mais. Com isso, uma rodada dá a curva $P_f(T)$ acumulada e a probabilidade instantânea de cada hora
+    (Figura~\ref{fig:ls_exemplos}d). O \path{line_sampling.py} ainda trata só o fator mínimo, um número por análise. Na parte 6 do
+    Apêndice~\ref{ap:ls}, com dois episódios críticos (12 e 36 h) e mecanismos em direções diferentes, 1000 linhas
+    (2000 análises) dão $P_f(48\ \mathrm h) = 1{,}86\,\%$ com CoV de 11\,\%, contra 1,72\,\% do Monte Carlo de 200\,000. A
+    probabilidade instantânea máxima (exata, às 36 h) é de 1,07\,\%: a acumulada é maior, porque soma os dois episódios.
+  \item \textbf{Uma direção por mecanismo.} A direção do instante mais crítico vê mal o outro episódio, e é daí que vem
+    o CoV de 11\,\%. Para problemas com o tempo há variantes que combinam várias direções \citep{yuan2024}, e, quando
+    cada instante é linear, o line sampling em vários domínios \citep{valdebenito2021}.
+  \item \textbf{O transiente uma vez por linha.} Enquanto o FORM for feito só em $c'$ e $\varphi'$
+    (Seção~\ref{sec:k}), a direção não tem componente em $k_s$. Então, ao longo de uma linha, o campo de $k_s$ não muda, e o transiente (as poropressões de
+    todas as horas) é o mesmo em todos os pontos da linha: só o FS precisa ser recalculado. O $k_s$ continua aleatório
+    \textbf{entre} as linhas, em $\xib^\perp$. Isso ainda não está implementado no \texttt{SlopeRainMonteCarlo}. Se a direção passar a incluir $k_s$ (pelo adjunto ou
+    por diferenças nos primeiros modos), essa economia se perde.
+\end{itemize}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs_ls/ls_exemplos.pdf}
+\caption{O line sampling nos exemplos com $P_f$ exata do Apêndice~\ref{ap:ls}. (a) e (b) Superfície curva em 2D
+($P_f = 4{,}53\times10^{-3}$): uma rodada do line sampling (2 análises por linha) e da amostragem por importância centrada
+no ponto de projeto, com a estimativa e o CoV estimado na própria rodada contra o número de análises (parte 2). (c) Estado limite linear com $n = 2000$ termos e a
+direção truncada em $m$ termos: o CoV por linha contra $m$; os rótulos são a fração de $|\bm a|^2$ que a direção vê
+(parte 5). (d) Com o tempo: a probabilidade acumulada até $T$ pelo Monte Carlo de 200\,000 e pelo line sampling com 1000
+linhas, e a probabilidade instantânea de cada hora, exata ($\Phi(-\beta(t))$) e pelas mesmas linhas (parte 6).}\label{fig:ls_exemplos}
+\end{figure}
+
+\paragraph{9. No código.} O programa é o \path{Projects/Cho2010/line_sampling.py}:
+\begin{center}
+\texttt{line\_sampling.py <exe> <form.json> <pasta> [n=100] [semente=7] [paralelos=14] [tol=0.01] [K=2000]},
+\end{center}
+mais as opções do programa a trocar (por exemplo \texttt{nystrom=<base completa> metodo=srm}).
+\begin{itemize}
+  \item A direção vem do \path{form.json} do \path{form_kl.py}, completada com zeros até os $K$ termos de cada campo:
+    $c'$ e $\varphi'$ no Cho2010; $c'$, $\varphi'$ e $k_s$ no rebaixamento. As análises usam o campo com $K$ termos e a
+    opção \texttt{xi=} do programa.
+  \item Saídas: \path{linhas.csv} ($\ell$, $\nu_\ell$, análises, $p_\ell$; nos arquivos, a coluna de $\nu$ se chama
+    \texttt{c}), \path{analises.csv} (cada análise: linha, $\nu$, fator), \path{ls.json} (o resultado) e a tabela parcial a cada 10 linhas. Retoma de onde parou.
+  \item Conferido com um executável falso de $P_f$ conhecida: linear, $\Phi(-2{,}5)$ exata; curvaturas de $\pm0{,}15$,
+    contra um Monte Carlo de 400\,000; 2 análises por linha nos três casos.
+  \item No fermi: \path{Projects/SlopeRandomFieldRefinement/cluster/ls_etapa3b.sbatch}: primeiro os FORM pelo GIM com
+    2000 termos por campo ($r = -0{,}5$ e $-0{,}7$), depois o line sampling nas direções da etapa 3b e nessas.
+\end{itemize}
+
 \appendix
 \section{Um exemplo de uma variável, em Mathematica}\label{ap:exemplo}
 O código \path{exemplo_1d.wl}, nesta pasta, parte do exemplo do Diogo: $X \sim N(6, 1)$, falha quando $X < 1$,
@@ -1057,7 +1263,48 @@ ganho cai para $\approx 1$: perto da fronteira, onde os pesos são maiores, quem
 
 \lstinputlisting[language={}]{exemplo_1d.wl}
 
+\section{O line sampling em exemplos com $P_f$ exata, em Mathematica}\label{ap:ls}
+O código \path{exemplo_ls.wl}, nesta pasta, grava as Figuras~\ref{fig:ls_esquema} e \ref{fig:ls_exemplos} em
+\path{figs_ls/}. Para rodar: \texttt{wolframscript -file exemplo\_ls.wl} ($\approx 2$ min). A saída está em
+\path{exemplo_ls_saida.txt}. A Tabela~\ref{tab:exls} resume cada parte.
+
+\begin{table}[H]\centering\small
+\caption{O que cada parte do \texttt{exemplo\_ls.wl} mostra. ``CoV por linha'' é $\mathrm{sd}(p_\ell)/P_f$
+(Eq.~\ref{eq:lsest}).}\label{tab:exls}
+\begin{tabular}{p{0.05\textwidth}p{0.40\textwidth}p{0.38\textwidth}p{0.08\textwidth}}
+\toprule
+Parte & O que faz & Resultado & Eq. \\
+\midrule
+1 & a figura do método: falha quando $\nu > 2 + 0{,}13\,s^2$, com $\nu = \bm e\cdot\xib$, $s$ a coordenada no plano
+  ortogonal e $\bm e$ a 55$^\circ$ & Figura~\ref{fig:ls_esquema} & \eqref{eq:lsdecomp},
+  \eqref{eq:lsp} \\
+2 & falha quando $\xi_2 > 2{,}5 + 0{,}15\,\xi_1^2$ ($\bm e = (0, 1)$); 200 repetições com 200 análises de cada
+  método & $P_f = 4{,}530\times
+  10^{-3}$ (FORM $6{,}21\times10^{-3}$); CoV 3,8\,\% (line sampling), 13,7\,\% (AI no ponto de projeto), 97\,\% (direto);
+  médias sem viés & \eqref{eq:lsest} \\
+3 & superfície plana $g = 2{,}5 - \xi_2$; linhas sorteadas e raízes calculadas, com $\bm e$ na normal e girada de
+  20$^\circ$ & na normal, as 250 linhas dão $\Phi(-2{,}5)$ exata (desvio zero); girada, erro da média de 0,7\,\% em 200
+  rodadas e CoV por linha de 117\,\% & \eqref{eq:lsp} \\
+4 & a direção girada de 0 a 30$^\circ$; as duas raízes da quadrática em cada linha & erro da média de até 1,5\,\%
+  (ruído amostral); CoV por linha 35, 60, 105 e 195\,\% & \eqref{eq:lspf} \\
+5 & $g = 2{,}5 - \bm a\cdot\xib$, $n = 2000$, $|\bm a| = 1$, e a direção truncada em $m$ termos; CoV exato por integração
+  & CoV por linha de 975\,\% ($m = 5$) a 47\,\% ($m = 1000$) e zero com os 2000 & \eqref{eq:lsp} \\
+6 & dependência do tempo: $g(\xib, t)$ de hora em hora em 0--48 h, dois episódios em direções diferentes; 1000 linhas
+  contra um Monte Carlo de 200\,000 & $P_f(48\ \mathrm h) = 1{,}86\,\%$ (CoV 11\,\%) contra 1,72\,\%; a curva $P_f(T)$
+  inteira e a instantânea de cada hora das mesmas análises (às 36 h, a instantânea pelas linhas é a exata, 1,07\,\%,
+  porque $\bm e$ é a normal desse instante) & \eqref{eq:lstempo}, \eqref{eq:lstempoest} \\
+\bottomrule
+\end{tabular}
+\end{table}
+Nos exemplos, $g$ é analítico, e a raiz de cada linha é calculada exatamente. Nas partes 2 e 6, cada linha conta como 2
+análises, o custo típico da secante da Seção~\ref{sec:ls}, passo 7.
+
+\lstinputlisting[language={}]{exemplo_ls.wl}
+
 \begin{thebibliography}{99}
+\bibitem[Au e Beck(2001)]{au2001} S.-K. Au e J.~L. Beck. Estimation of small failure probabilities in high dimensions
+  by subset simulation. \emph{Probabilistic Engineering Mechanics}, 16(4):263--277, 2001.
+  \url{https://doi.org/10.1016/S0266-8920(01)00019-4}.
 \bibitem[Au e Beck(2003)]{au2003} S.-K. Au e J.~L. Beck. Importance sampling in high dimensions. \emph{Structural
   Safety}, 25(2):139--163, 2003.
 \bibitem[Beck(2014)]{beck2014} A.~T. Beck. \emph{Curso de Confiabilidade Estrutural}. Notas de aula, Escola de
@@ -1073,6 +1320,9 @@ ganho cai para $\approx 1$: perto da fronteira, onde os pesos são maiores, quem
   variability of soil properties. \emph{Journal of Geotechnical and Geoenvironmental Engineering}, 136(7):975--984, 2010.
 \bibitem[Danskin(1967)]{danskin1967} J.~M. Danskin. \emph{The Theory of Max-Min and its Application to Weapons
   Allocation Problems}. Springer, Berlim, 1967.
+\bibitem[de Angelis et~al.(2015)]{deangelis2015} M. de Angelis, E. Patelli e M. Beer. Advanced line sampling for
+  efficient robust reliability analysis. \emph{Structural Safety}, 52(B):170--182, 2015.
+  \url{https://doi.org/10.1016/j.strusafe.2014.10.002}.
 \bibitem[Der Kiureghian e Liu(1986)]{derkiureghian1986} A. Der Kiureghian e P.-L. Liu. Structural reliability under
   incomplete probability information. \emph{Journal of Engineering Mechanics}, 112(1):85--104, 1986.
 \bibitem[Drucker et~al.(1952)]{drucker1952} D.~C. Drucker, W. Prager e H.~J. Greenberg. Extended limit design theorems
@@ -1083,19 +1333,37 @@ ganho cai para $\approx 1$: perto da fronteira, onde os pesos são maiores, quem
   Approach}. Springer, Nova York, 1991.
 \bibitem[Glasserman(2004)]{glasserman2004} P. Glasserman. \emph{Monte Carlo Methods in Financial Engineering}.
   Springer, Nova York, 2004.
+\bibitem[Hohenbichler e Rackwitz(1988)]{hohenbichler1988} M. Hohenbichler e R. Rackwitz. Improvement of second-order
+  reliability estimates by importance sampling. \emph{Journal of Engineering Mechanics}, 114(12):2195--2199, 1988.
+  \url{https://doi.org/10.1061/(ASCE)0733-9399(1988)114:12(2195)}.
+\bibitem[Koutsourelakis et~al.(2004)]{koutsourelakis2004} P.~S. Koutsourelakis, H.~J. Pradlwarter e G.~I. Schuëller.
+  Reliability of structures in high dimensions, part I: algorithms and applications. \emph{Probabilistic Engineering
+  Mechanics}, 19(4):409--417, 2004. \url{https://doi.org/10.1016/j.probengmech.2004.05.001}.
 \bibitem[Melchers(1989)]{melchers1989} R.~E. Melchers. Importance sampling in structural systems. \emph{Structural
   Safety}, 6(1):3--10, 1989.
 \bibitem[Owen(2013)]{owen2013} A.~B. Owen. \emph{Monte Carlo Theory, Methods and Examples}. Livro em preparação, 2013.
   \url{https://artowen.su.domains/mc/}.
+\bibitem[Papaioannou e Straub(2021)]{papaioannou2021} I. Papaioannou e D. Straub. Combination line sampling for
+  structural reliability analysis. \emph{Structural Safety}, 88:102025, 2021.
+  \url{https://doi.org/10.1016/j.strusafe.2020.102025}.
 \bibitem[Rubinstein e Kroese(2004)]{rubinstein2004} R.~Y. Rubinstein e D.~P. Kroese. \emph{The Cross-Entropy Method: A
   Unified Approach to Combinatorial Optimization, Monte-Carlo Simulation and Machine Learning}. Springer, Nova York,
   2004.
+\bibitem[Schuëller et~al.(2004)]{schueller2004} G.~I. Schuëller, H.~J. Pradlwarter e P.~S. Koutsourelakis. A critical
+  appraisal of reliability estimation procedures for high dimensions. \emph{Probabilistic Engineering Mechanics},
+  19(4):463--474, 2004. \url{https://doi.org/10.1016/j.probengmech.2004.05.004}.
+\bibitem[Valdebenito et~al.(2021)]{valdebenito2021} M.~A. Valdebenito, P. Wei, J. Song, M. Beer e M. Broggi. Failure
+  probability estimation of a class of series systems by multidomain line sampling. \emph{Reliability Engineering \&
+  System Safety}, 213:107673, 2021. \url{https://doi.org/10.1016/j.ress.2021.107673}.
 \bibitem[Vargas Ceron et~al.(2025)]{ceron2025} M. Vargas Ceron, D. Lira Cecílio, R.~V. Linn e S. Maghous. Stability
   analysis of slope subjected to seepage forces considering spatial variability of soil properties.
   \emph{International Journal for Numerical and Analytical Methods in Geomechanics}, 49(11):2459--2491, 2025.
   \url{https://doi.org/10.1002/nag.3993}.
 \bibitem[Vo\v{r}echovsk\'y(2008)]{vorechovsky2008} M. Vo\v{r}echovsk\'y. Simulation of simply cross correlated random
   fields by series expansion methods. \emph{Structural Safety}, 30(4):337--363, 2008.
+\bibitem[Yuan et~al.(2024)]{yuan2024} X. Yuan, W. Zheng, C. Zhao, M.~A. Valdebenito, M.~G.~R. Faes e Y. Dong. Line
+  sampling for time-variant failure probability estimation using an adaptive combination approach. \emph{Reliability
+  Engineering \& System Safety}, 243:109885, 2024. \url{https://doi.org/10.1016/j.ress.2023.109885}.
 \end{thebibliography}
 
 \end{document}
