@@ -22,6 +22,10 @@ Uso: python3 -I form_kl.py <exe Cho2010> <pasta de trabalho> [M=20] [rcphi=-0.5]
 prog=rebaixamento: o rebaixamento do Ceron (SlopeDrawdownMonteCarlo, Projects/SlopeRandomFieldRefinement), com 3 campos
 (c', phi' e k: 3M variaveis) e g = Gamma - 1 (GIM); as opcoes rcphi, srm_f0, metodo e nystrom nao valem, e transiente=
 escolhe a malha do transiente. O gradiente modal dele da 0 nos termos de k (a analise limite congela as pressoes).
+As opcoes do rebaixamento contorno= (reservatorio|ceron), agua= (unsat|sat), trebaix= (h), tfim= (h; -1: = trebaix),
+dt= (h) e hw= (h_w/H) tem os padroes do SlopeDrawdownMonteCarlo (os de antes) e so vao para o executavel quando
+diferentes do padrao; vao no form.json, e o line_sampling.py usa as mesmas. Ex.: a agua do artigo (percolacao
+permanente depois do rebaixamento instantaneo): contorno=ceron agua=sat trebaix=0.0001 tfim=20 dt=5.
 gradiente=modal: uma analise por iteracao, com o gradiente pela projecao modal da sensibilidade de limite superior
 (Cho2010 gradiente=M; no colapso do SRM ou do GIM, conforme o metodo), em vez das 4M + 1 das diferencas centrais."""
 import concurrent.futures as cf
@@ -32,11 +36,14 @@ import os
 import subprocess
 import sys
 
+# as opcoes do rebaixamento passadas ao SlopeDrawdownMonteCarlo, com os padroes dele (so as diferentes vao na linha)
+REBAIX_PADRAO = {"contorno": "reservatorio", "agua": "unsat", "trebaix": 0.1, "tfim": -1.0, "dt": 0.1, "hw": 1.0}
+
 
 def parametros(argv):
     p = {"M": 20, "rcphi": -0.5, "h": 0.5, "paralelos": 2, "iteracoes": 10, "fator": "tri2", "nref": 4, "srm_f0": 0.8,
          "tol_g": 0.001, "tol_beta": 0.01, "gradiente": "dif", "nystrom": "", "metodo": "srm", "prog": "cho",
-         "transiente": "tri3"}
+         "transiente": "tri3", **REBAIX_PADRAO}
     for a in argv:
         k, v = a.split("=", 1)
         if k not in p:
@@ -57,8 +64,9 @@ def campos(p):
 def comando(exe, p, arq, rotulo):
     """a linha de comando de uma analise nos xi do arquivo"""
     if p["prog"] == "rebaixamento":
+        extra = [f"{k}={p[k]}" for k, v in REBAIX_PADRAO.items() if k in p and p[k] != v]
         return [exe, "n=1", "primeira=0", f"xi={arq}", f"transiente={p['transiente']}", f"fator={p['fator']}",
-                f"nref={p['nref']}", f"saida={rotulo}"]
+                f"nref={p['nref']}"] + extra + [f"saida={rotulo}"]
     return [exe, "n=1", "primeira=0", f"xi={arq}", f"M={p['M']}", f"rcphi={p['rcphi']}", f"fator={p['fator']}",
             f"nref={p['nref']}", f"srm_f0={p['srm_f0']}", f"metodo={p['metodo']}", f"saida={rotulo}"] + \
         ([f"nystrom={p['nystrom']}"] if p["nystrom"] else [])
@@ -93,6 +101,10 @@ class Problema:
         cmd = comando(self.exe, self.p, arq, rotulo) + [f"gradiente={self.p['M']}"]
         env = dict(os.environ, PZ_THREADS="0", OMP_NUM_THREADS="1", MKL_NUM_THREADS="1")
         subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env, cwd=self.pasta)
+        with open(os.path.join(self.pasta, rotulo + "_0_0.csv"), newline="") as f:
+            linha = next(csv.DictReader(f))
+        if linha["situacao"] != "ok":  # sem o _grad_0.txt: a mensagem clara em vez de FileNotFoundError
+            raise RuntimeError(f"{rotulo}: situacao {linha['situacao']} (FS_min {linha['FS_min']}), sem gradiente")
         v = [float(x) for x in open(os.path.join(self.pasta, rotulo + "_grad_0.txt")).read().split("\n")[1:] if x.strip()]
         self.n += 1
         return v[0] - 1., v[1:], [v[0]]
@@ -130,7 +142,8 @@ def main():
     nc = len(nomes)
     u = [0.] * (nc * M)
     hist = []
-    titulo = "rebaixamento do Ceron (2025), transiente" if p["prog"] == "rebaixamento" else \
+    titulo = ("rebaixamento do Ceron (2025), " + (" ".join(comando("", p, "", "")[4:-1]) or "padrao")) \
+        if p["prog"] == "rebaixamento" else \
         f"Cho (2010), Exemplo 2, r(c, phi) = {p['rcphi']}"
     tipo = "modal (1 avaliacao por iteracao)" if p["gradiente"] == "modal" else \
         f"por diferencas centrais (h = {p['h']}, {2 * nc * M + 1} avaliacoes por iteracao)"

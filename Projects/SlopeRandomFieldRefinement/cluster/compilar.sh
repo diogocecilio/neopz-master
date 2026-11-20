@@ -7,16 +7,20 @@
 # FORCAR=1 compila assim mesmo). No fermi, no no de login (os nos de computacao nao tem
 # cmake):
 #     ./compilar.sh          (a primeira vez leva uns 15 a 30 min; depois, so o que mudou)
-# Ambiente: BUILD (./build), JOBS (4), FORCAR=1.
+# Ambiente: BUILD (./build), JOBS (4), FORCAR=1; BIN (./bin), ALVOS (os tres, "<projeto>/<alvo>" separados por espaco)
+# e NOMES (os jobs que usam esta build; padrao: os das campanhas). O compilar_ceron.sh usa outra build e outro bin.
 set -euo pipefail
 AQUI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NEOPZ="$(cd "$AQUI/../../.." && pwd)"
 BUILD="${BUILD:-$AQUI/build}"
+BIN="${BIN:-$AQUI/bin}"
+ALVOS="${ALVOS:-SlopeRandomFieldRefinement/SlopeRainMonteCarlo SlopeRandomFieldRefinement/SlopeDrawdownMonteCarlo Cho2010/Cho2010}"
 source "$NEOPZ/Projects/LearningMohrCoulomb2/cluster/modulos.sh"
 source "$AQUI/campanha.sh"
+NOMES="${NOMES:-$NOMES_TODOS}"
 if [ -z "${FORCAR:-}" ] && command -v squeue > /dev/null; then
-    fila="$(squeue -h -u "${USER:-$(id -un)}" -n "$NOMES_TODOS" -o %i)" || { echo "o squeue nao respondeu: tente de novo (ou FORCAR=1)" >&2; exit 1; }
-    [ -z "$fila" ] || { echo "ha jobs ($NOMES_TODOS) na fila usando a libpz.so de $BUILD: espere terminarem (ou FORCAR=1)" >&2; exit 1; }
+    fila="$(squeue -h -u "${USER:-$(id -un)}" -n "$NOMES" -o %i)" || { echo "o squeue nao respondeu: tente de novo (ou FORCAR=1)" >&2; exit 1; }
+    [ -z "$fila" ] || { echo "ha jobs ($NOMES) na fila usando a libpz.so de $BUILD: espere terminarem (ou FORCAR=1)" >&2; exit 1; }
 fi
 ARGS=(-S "$NEOPZ" -B "$BUILD" -DCMAKE_BUILD_TYPE=Release -DBUILD_PLASTICITY_MATERIALS=ON -DBUILD_PROJECTS=ON
       -DUSING_MKL=ON -DMKL_THREAD_MODEL=seq)
@@ -24,15 +28,14 @@ CATCH2="$NEOPZ/Projects/LearningMohrCoulomb2/cluster/deps/Catch2"
 [ -f "$CATCH2/CMakeLists.txt" ] && ARGS+=(-DFETCHCONTENT_SOURCE_DIR_CATCH2="$CATCH2")
 [ -f "$BUILD/CMakeCache.txt" ] || ARGS+=(-G "Unix Makefiles")
 cmake "${ARGS[@]}"
-mkdir -p "$AQUI/bin"
-for alvo in SlopeRandomFieldRefinement/SlopeRainMonteCarlo SlopeRandomFieldRefinement/SlopeDrawdownMonteCarlo \
-    Cho2010/Cho2010; do
+mkdir -p "$BIN"
+for alvo in $ALVOS; do
     prog="${alvo#*/}"
     cmake --build "$BUILD" --target "$prog" -j "${JOBS:-4}"
-    cp "$BUILD/Projects/$alvo" "$AQUI/bin/.$prog.novo"
-    mv -f "$AQUI/bin/.$prog.novo" "$AQUI/bin/$prog" # troca atomica
+    cp "$BUILD/Projects/$alvo" "$BIN/.$prog.novo"
+    mv -f "$BIN/.$prog.novo" "$BIN/$prog" # troca atomica
 done
 v="$(git -C "$NEOPZ" rev-parse --short HEAD 2> /dev/null || echo sem_git)"
 [ -n "$(git -C "$NEOPZ" status --porcelain --untracked-files=no 2> /dev/null)" ] && v="$v+mod"
-echo "${v}_$(date '+%F_%T')" > "$AQUI/bin/versao.txt"
-echo "Compilado: $AQUI/bin/SlopeRainMonteCarlo, SlopeDrawdownMonteCarlo e Cho2010 ($(cat "$AQUI/bin/versao.txt"))"
+echo "${v}_$(date '+%F_%T')" > "$BIN/versao.txt"
+echo "Compilado: $(for a in $ALVOS; do printf '%s ' "$BIN/${a#*/}"; done)($(cat "$BIN/versao.txt"))"

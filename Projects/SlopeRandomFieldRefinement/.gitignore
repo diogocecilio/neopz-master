@@ -1,6 +1,8 @@
 # fermi: build, executavel, logs dos jobs, teste e resultados (os resultados ficam em $DATA/chuva_mc)
 cluster/build/
 cluster/bin/
+cluster/build_ceron/
+cluster/bin_ceron/
 cluster/logs/*
 !cluster/logs/.gitkeep
 cluster/teste/

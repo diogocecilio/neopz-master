@@ -43,5 +43,5 @@ etapa3b) NOME=etapa3b PROG=Cho2010 CASOS_TXT=casos_etapa3b.txt PASTA=etapa3b IRE
 *) echo "CAMPANHA=$CAMPANHA desconhecida: chuva, ceron, chuva_ai, solos, etapa1, etapa3 ou etapa3b" >&2; exit 2 ;;
 esac
 export CAMPANHA
-# todos os nomes de job (o compilar.sh espera todos acabarem: a libpz.so e a mesma)
-NOMES_TODOS=chuvaMC,ceronMC,chuvaAI,solosMC,etapa1,etapa3,etapa3b
+# todos os nomes de job que usam build/ e bin/ (o compilar.sh espera todos acabarem: a libpz.so e a mesma)
+NOMES_TODOS=chuvaMC,ceronMC,chuvaAI,solosMC,etapa1,etapa3,etapa3b,lsEtapa3b,susCho

@@ -322,6 +322,34 @@ CAMPANHA=etapa3b ~/projects/neopz-master/Projects/SlopeRandomFieldRefinement/clu
 O `baixar.sh` roda o `Projects/Cho2010/ismc_parada.py`. Os diretos de referência são os já baixados das etapas 1 e 3:
 baixe o `r07_direto` de 110 000 antes, com `CAMPANHA=etapa3 baixar.sh`.
 
+## Line sampling do Ceron com a agua do artigo (`contorno=ceron`)
+
+O `ls_ceron.sbatch` calcula a P_f do rebaixamento do Ceron (2025) com os contornos do artigo (`contorno=ceron
+agua=sat trebaix=0.0001`: percolação saturada depois do rebaixamento instantâneo; o artigo dá P_f = 11,50%):
+- FORM com o gradiente modal e M = 2000 termos por campo (`form_kl.py prog=rebaixamento`, 1 análise por iteração, até 15);
+- line sampling na direção do FORM, com K = 2000, parando quando CoV(P_f) ≤ 5% (mínimo 30, máximo 600 linhas, 24 em
+  voo);
+- Γ no permanente: `tfim=20 dt=5` (4 passos; o mesmo Γ que `dt=0.1` até com k = 0,05 k_v no solo todo);
+- malhas: transiente `tri3`, fator `tri1` com 5 níveis (com 3 níveis o Γ fica ~4% alto e a P_f baixa).
+
+Usa uma build e um executável próprios (`build_ceron/` e `bin_ceron/`, do `compilar_ceron.sh`). Assim pode compilar e
+rodar com jobs das campanhas na fila. Resultados em `$DATA/ceron_ls` (`form/form.json`, `ls/ls.json`, `ls/linhas.csv`, `ls/perdidas.csv`).
+Linhas perdidas (transiente sem convergir ou Γ NaN) ficam fora da conta, vão para o `perdidas.csv` e são somadas no
+`ls.json` (`fracao_perdida`); o resumo avisa quando passam de 1% (a P_f pode sair baixa). Γ = 0 (GIM sem equilíbrio)
+continua como falha.
+Tempo estimado: 0,5 a 1,5 h para o FORM e 1 a 3 h para as linhas (4 a 5 h se chegar a 600).
+
+```bash
+ssh diogo@fermi.cesup.ufrgs.br 'cd neopz-master && git pull origin UnsaturatedSoil && cd Projects/SlopeRandomFieldRefinement/cluster && nohup setsid bash -c "./compilar_ceron.sh && sbatch ls_ceron.sbatch" > ceron_ls.log 2>&1 < /dev/null &'
+ssh diogo@fermi.cesup.ufrgs.br 'cd neopz-master/Projects/SlopeRandomFieldRefinement/cluster && tail -n 3 ceron_ls.log; squeue -u diogo; tail -n 6 /mnt/data/diogo/ceron_ls/form.log; tail -n 4 logs/lsCeron_*.out'
+rsync -av diogo@fermi.cesup.ufrgs.br:/mnt/data/diogo/ceron_ls/ ~/projects/runs/ceron_ls/
+```
+
+- **Parar** sem perder linhas: `ssh diogo@fermi.cesup.ufrgs.br 'touch /mnt/data/diogo/ceron_ls/ls/PARAR'`.
+- **Retomar:** `sbatch ls_ceron.sbatch` de novo (apague antes o `PARAR`, se houver). O FORM pronto é pulado e as
+  linhas feitas não são refeitas.
+- **Outro alvo:** `COV=0.03 N=1500 sbatch ls_ceron.sbatch` continua as mesmas linhas até o novo CoV.
+
 ## Como funciona
 
 - **Tarefa:** um bloco de `BLOCO` realizações (padrão 20, umas 2 h no fermi) de um caso. Cada uma é uma rodada do
