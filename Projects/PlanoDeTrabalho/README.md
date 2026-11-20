@@ -31,7 +31,7 @@ resultados) está no fim, na seção [Documentos](#documentos).
 | 2b | Base de Nyström contra a analítica: β(M), ganho da AI e direto de referência próprio | uma campanha e FORM | junto com a 2 | `ETAPA2/` |
 | 2c | Gradiente do FORM pela projeção modal (sensibilidade no colapso do SRM), validado contra as diferenças centrais | FORM | junto com a 2 | `ETAPA2/` |
 | 3 | AI pela entropia cruzada: tamanho do piloto e P_f menor (r = −0,7) | uma campanha | depois da 2 | `ETAPA3/` |
-| 3b | ISMC até CoV de 5% no campo de Nyström com 2000 modos, com o centro de um FORM com poucos termos (M = 20 e 100 por diferenças centrais; M = 20 pelo GIM modal) | campanha `etapa3b` | rodando (~1040 por semente, CoV 5 a 8%) | `ETAPAS1a3/` |
+| 3b | ISMC até CoV de 5% no campo de Nyström com 2000 modos, com o centro de um FORM com poucos termos (M = 20 e 100 por diferenças centrais; M = 20 pelo GIM modal) | campanha `etapa3b` | feita (20/11): 30 sementes com CoV 4,6 a 5,0% (1160 a 2990 realizações); `comparacao_metodos/` | `ETAPAS1a3/` |
 | 3c | Line sampling na direção do FORM modal com todos os modos (o método padrão desde 20/11/2026) | PC (e `ls_etapa3b.sbatch`) | feita; faltam 2 sementes | `comparacao_metodos/` |
 | 3d | A P_f do rebaixamento contra o Ceron (15,7% contra 11,5%): o método cinemático dele reproduzido e comparado, realização a realização, com o MEF | não (PC) | passo 1 feito; decidir o campo de pressões antes do passo 2 | `Projects/CeronCinematico/` |
 | 4 | A chuva: o código (`xi=`, ISMC e gradiente modal no instante do FS mínimo) e a validação de LS e ISMC (modal) contra o direto | código novo e uma campanha | plano de 20/11/2026 | `ETAPA4/` |
@@ -426,7 +426,8 @@ Regras:
 | `Projects/PlanoDeTrabalho/ETAPAS1a3/relatorio_etapas.pdf` | 16 | todos os resultados das etapas 0 a 3 e a referência da chuva: SRM corrigido, AI contra o direto, teste linear, as duas bases, o gradiente modal (SRM e GIM), o viés, a variável de controle, a fase 4 parcial, o piloto e o custo |
 | `Projects/PlanoDeTrabalho/viga_mathematica/relatorio_viga.pdf` | 9 | a viga com campo aleatório em Mathematica (código em viga_mathematica/codigo): MC, FORM, SORM e ISMC com M, centros baratos (fórmulas de viga), o ponto ótimo do M do FORM e o SORM como função de amostragem |
 | `Projects/PlanoDeTrabalho/comparacao_metodos/relatorio_comparacao.pdf` | 13 | comparação com os dados parciais (20/11/2026): Monte Carlo direto, ISMC e line sampling no Cho (r = -0,5 e -0,7), no rebaixamento do Ceron e na viga; custo para CoV de 5%, convergência, sementes e direções (comparacao_metodos/gera_relatorio.sh refaz com os dados novos) |
-| `Projects/PlanoDeTrabalho/arquivo/` |  | cópias datadas (AAAA-MM-DD_nome.pdf), nunca editadas: 2026-11-17_relatorio_parcial.pdf |
+| `Projects/PlanoDeTrabalho/contornos_agua/relatorio_contornos.pdf` | 20 | os contornos da água: Ceron (2025) contra o PZ 'reservatorio' e 'ceron' e a chuva do Rahardjo (2007) contra o código; esquemas em escala, as duas tabelas de contornos, o Gamma por contorno e domínio, e os próximos passos (contornos_agua/gera.sh refaz) |
+| `Projects/PlanoDeTrabalho/arquivo/` |  | cópias datadas (AAAA-MM-DD_nome.pdf), nunca editadas: 2026-11-17_relatorio_parcial.pdf, 2026-11-20_relatorio_comparacao_final.pdf |
 
 ### Resultados: as campanhas
 
