@@ -1,0 +1,37 @@
+% gerado por gera_dados.py
+\begin{landscape}
+\begin{table}[H]\centering\footnotesize
+\caption{A eficiência. $\delta_1 = \mathrm{CoV}\sqrt{n}$: o CoV de uma análise de amostragem ($n$: as análises da amostragem, sem o FORM); no direto, $\sqrt{(1 - P_f)/P_f}$. Com $\mathrm{CoV} = \delta_1/\sqrt{n}$, o $n$ para CoV de 5\,\% é $(\delta_1/0{,}05)^2$. Figura de mérito: $1/(\mathrm{CoV}^2 \times \text{custo})$; a eficiência relativa é a figura de mérito do método dividida pela do direto: por análise de amostragem, $(\delta_{1,\text{dir}}/\delta_1)^2$; com o FORM, a razão das análises para CoV de 5\,\% (o ``ganho'' das tabelas anteriores); em tempo, a razão das h$\cdot$núcleo para CoV de 5\,\% (Tabela~\ref{tab:tempo}).}\label{tab:efic}
+\begin{tabular}{lllrrrrrr}\toprule
+problema & método & centro ou direção & $n$ & CoV & $\delta_1$ & efic. por análise & efic. com o FORM & efic. em tempo \\\midrule
+Ceron, rebaixamento & MC direto & -- & 2\,000 & 5,2\,\% & 2,32 & 1,0× & 1,0× & 1,0× \\
+ & ISMC & $M = 20$, num. & 1\,000 & 5,6\,\% & 1,76 & 1,7× & 1,3× & 1,3× \\
+ & ISMC & $M = 20$, modal & 1\,000 & 5,9\,\% & 1,87 & 1,5× & 1,5× & 1,5× \\
+ & LS (100 lin.) & $M = 20$, num. & 254 & 9,0\,\% & 1,44 & 2,6× & 1,8× & 1,8× \\
+ & LS (100 lin.) & $M = 20$, modal & 243 & 10,4\,\% & 1,62 & 2,0× & 2,1× & 2,0× \\
+ & LS (100 lin.) & $M = 2000$, modal & 224 & 5,9\,\% & 0,88 & 6,9× & 6,9× & 6,8× \\
+\midrule
+Cho, $r = -0{,}5$ & MC direto & -- & 24\,000 & 4,9\,\% & 7,60 & 1,0× & 1,0× & 1,0× \\
+ & ISMC (5 sem.) & $M = 20$, num. & 6\,750 & 2,2\,\% & 1,82 & 17,4× & 14,7× & 15,7× \\
+ & ISMC (5 sem.) & $M = 100$, num. & 6\,270 & 2,2\,\% & 1,76 & 18,7× & 9,5× & 10,5× \\
+ & ISMC (5 sem.) & $M = 20$, modal & 7\,000 & 2,2\,\% & 1,85 & 16,9× & 16,8× & 17,7× \\
+ & LS (100 lin.) & $M = 20$, num. & 233 & 5,0\,\% & 0,77 & 97,6× & 48,2× & 53,1× \\
+ & LS (100 lin.) & $M = 2000$, modal & 233 & 4,2\,\% & 0,64 & 141,1× & 134,8× & 138,0× \\
+\midrule
+Cho, $r = -0{,}7$ & MC direto & -- & 110\,000 & 5,0\,\% & 16,49 & 1,0× & 1,0× & 1,0× \\
+ & ISMC (5 sem.) & $M = 20$, num. & 10\,520 & 2,2\,\% & 2,25 & 53,5× & 47,9× & 52,0× \\
+ & ISMC (5 sem.) & $M = 100$, num. & 9\,090 & 2,2\,\% & 2,10 & 61,5× & 32,3× & 36,1× \\
+ & ISMC (5 sem.) & $M = 20$, modal & 12\,490 & 2,2\,\% & 2,41 & 46,9× & 47,1× & 50,1× \\
+ & LS (100 lin.) & $M = 20$, num. & 266 & 6,8\,\% & 1,11 & 221,9× & 148,7× & 163,7× \\
+ & LS (100 lin.) & $M = 2000$, modal & 274 & 5,6\,\% & 0,93 & 311,7× & 307,8× & 327,3× \\
+\midrule
+viga (Mathematica) & MC direto & -- & 50\,000 & 3,1\,\% & 6,83 & 1,0× & 1,0× & -- \\
+ & ISMC & $M = 8$, num. & 1\,000 & 5,2\,\% & 1,64 & 17,4× & 16,1× & -- \\
+ & ISMC & $M = 20$, num. & 1\,000 & 4,8\,\% & 1,51 & 20,5× & 16,7× & -- \\
+ & ISMC & $M = 200$, num. & 1\,000 & 4,7\,\% & 1,48 & 21,2× & 6,5× & -- \\
+ & LS (500 lin.) & $M = 8$, num. & 1\,014 & 2,2\,\% & 0,70 & 96,1× & 66,5× & -- \\
+ & LS (500 lin.) & $M = 20$, num. & 1\,004 & 1,3\,\% & 0,43 & 256,9× & 66,8× & -- \\
+ & LS (500 lin.) & $M = 200$, num. & 1\,003 & 0,6\,\% & 0,19 & 1\,351,9× & 9,2× & -- \\
+ & LS (500 lin.) & $M = 200$, adjunto & 1\,006 & 1,4\,\% & 0,43 & 246,8× & 201,8× & -- \\
+\bottomrule\end{tabular}\end{table}
+\end{landscape}

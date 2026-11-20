@@ -4,7 +4,7 @@
 \usepackage[brazil]{babel}
 \usepackage{lmodern}
 \usepackage{amsmath,amssymb,bm}
-\usepackage{graphicx,booktabs,float,geometry,url,pdflscape}
+\usepackage{graphicx,booktabs,float,geometry,url,pdflscape,makecell}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,shapes.geometric}
 \usepackage[hidelinks]{hyperref}
@@ -28,6 +28,13 @@ detectado: \lsNCe{} análises no Ceron (direto: \refNCe; melhor ISMC: \ismcNCe),
 sampling na direção do FORM adjunto precisou de 92 (direto: 18\,666). Os dados estão completos: as
 ISMC da etapa 3b chegaram ao CoV de 5\,\% em todas as sementes e todas as direções do line sampling terminaram; o line
 sampling ainda tem uma semente só.
+
+Para comparar os métodos de outras formas, acrescentamos: o tempo de CPU (o line sampling modal dá CoV de 5\,\% com
+\hLsRb{} h$\cdot$núcleo no Cho com $r = -0{,}7$, contra \hIsmcRb{} da melhor ISMC e \hDirRb{} do direto); as iterações
+do FORM; a convergência do CoV com $1/\sqrt{n}$ e a eficiência relativa (figura de mérito); os pesos e o tamanho efetivo
+da amostra da ISMC; a busca de cada linha do line sampling (2 a 3 análises por linha, quase sem bissecção); e o CoV
+estimado contra o observado entre sementes, com a cobertura dos intervalos (\icDentro{} de \icTotal{} intervalos da
+ISMC contêm a $P_f$ do direto).
 \end{abstract}
 \tableofcontents
 
@@ -144,13 +151,200 @@ $\nu_\ell$ perto de $\beta$ (pontilhado); a dispersão vem da curvatura e dos mo
 direção com 2000 termos estreita muito a distribuição.}\label{fig:nu}
 \end{figure}
 
+\section{Tempo de CPU}\label{sec:tempo}
+Todos os processos rodam com uma \emph{thread} (\texttt{PZ\_THREADS=0}, OpenMP e MKL com 1), então o tempo de
+uma análise gravado no CSV (\texttt{s\_fator}, mais \texttt{s\_transiente} no Ceron) é a CPU dela. A
+Tabela~\ref{tab:tempo} soma esses tempos por método; o custo para CoV de 5\,\% em h$\cdot$núcleo é o número de análises
+da Tabela~\ref{tab:ceron}--\ref{tab:r07} vezes o custo unitário da última coluna, mais o FORM.
+\begin{itemize}
+  \item \textbf{Cho (fermi):} uma análise do SRM custa \uDirRa{}\,s no direto com $r = -0{,}5$ e \uDirRb{}\,s com
+    $r = -0{,}7$, e \uAmRa{} e \uAmRb{}\,s nas ISMC (base de Nyström). Os dois diretos gastaram \hDirTotalCho{}
+    h$\cdot$núcleo; as 30 ISMC da etapa 3b, \hIsmcTotal{} (\hIsmcBlocos{} h somando a parede dos blocos: ler a malha e
+    gravar custam uns 3\,\%). Para CoV de 5\,\%: com $r = -0{,}5$, \hDirRa{}~h no direto, \hIsmcRa{}~h na melhor ISMC e
+    \hLsRa{}~h no line sampling modal; com $r = -0{,}7$, \hDirRb{}, \hIsmcRb{} e \hLsRb{}~h.
+  \item \textbf{Line sampling:} o \texttt{line\_sampling.py} apaga os CSV de cada análise, então não há tempo por
+    análise. A estimativa usa o custo unitário das ISMC do mesmo $r$ (o mesmo SRM, a mesma malha, no fermi). A parede no
+    PC vezes os processos é só um teto (há núcleos ociosos no fim, e o PC é outra máquina).
+  \item \textbf{Ceron (PC, 8 núcleos físicos):} o direto rodou com 8 processos (\uDirCe{}\,s por análise); a ISMC e o
+    FORM numérico, com 13 ou 14 (54\,s por análise). A mesma análise do campo médio (a realização $-1$) levou 34\,s no
+    direto e 65\,s na ISMC, então a diferença é do PC, não do método: provavelmente a disputa de núcleo (14 processos em 8
+    núcleos físicos; o executável do direto também era outra cópia). Para comparar os métodos, todos usam o custo do
+    direto, \uDirCe{}\,s, inclusive o FORM numérico (363 análises $\times$ \uDirCe{}\,s; a CPU medida foi de
+    \formCeronCpu{}\,h); as horas medidas da amostragem estão na tabela só como informação.
+  \item \textbf{FORM modal:} cada análise do GIM é mais barata que a do SRM (\gimCpuIt{}\,s no PC e
+    \gimCpuItFermi{}\,s no fermi, contra uns 65\,s do SRM no fermi), mas a parede de uma iteração com 2000 modos no PC
+    foi de \gimParedeIt{} min: gerar o campo e projetar o gradiente modal
+    custam mais que a própria análise. Por isso o custo do FORM modal na tabela é a parede, não a CPU das análises.
+    Mesmo assim, o FORM modal custa 0,06 a 0,2 h, contra 4 h do numérico com $M = 20$ e 20 a 26 h com $M = 100$ (Cho).
+  \item \textbf{Viga:} uma análise leva uns 8\,ms (Mathematica); os tempos são de parede, com os \emph{kernels} em
+    paralelo, e o número de \emph{kernels} não foi gravado. Na viga, a comparação é só pelo número de análises.
+\end{itemize}
+\input{tab/tempo.tex}
+
+\section{As iterações do FORM}\label{sec:form}
+A Tabela~\ref{tab:formit} e a Figura~\ref{fig:formit} mostram o histórico de cada FORM (o \texttt{historico} do
+\texttt{form.json}). O FORM numérico (SRM) convergiu em 3 iterações (4 no $M = 100$ com $r = -0{,}7$), com
+$4M + 1$ análises por iteração. O FORM modal usa o GIM, em que $g = \Gamma - 1$ começa em 0,616 (no SRM, $g = \mathrm{FS} - 1$
+começa em 0,168): a escala é outra, e por isso a figura usa $|g/g_0|$. No Cho, o modal precisou de 5 a 10 iterações:
+$\beta$ chega ao valor final em 3 ou 4, mas $\Gamma$ oscila uns $\pm 0{,}003$ entre análises vizinhas (o ruído do
+refinamento adaptativo), e o critério $|g| < 10^{-3}$ só é atendido depois de algumas voltas. Como cada iteração custa
+uma análise, isso pouco pesa. No Ceron, os três FORM convergiram em 3 iterações. Na viga só o número de análises foi
+gravado; as 4 iterações saem da contagem, $1 + 4(2M + 1) + 2M$.
+\input{tab/form_it.tex}
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/form_iteracoes.pdf}
+\caption{O FORM iteração a iteração: $\beta$ (à esquerda) e $|g/g_0|$ (à direita, escala logarítmica). Na legenda,
+as análises de cada FORM.}\label{fig:formit}
+\end{figure}
+
+\section{Convergência e eficiência}\label{sec:efic}
+Em todos os métodos, o CoV cai como $1/\sqrt{n}$, em que $n$ é o número de análises da amostragem (amostras ou
+análises das linhas). Então $\delta_1 = \mathrm{CoV}\sqrt{n}$, o CoV que uma análise sozinha daria, resume o método: para
+CoV de 5\,\% são $(\delta_1/0{,}05)^2$ análises, mais o FORM. As Figuras~\ref{fig:eficCe}--\ref{fig:eficViga} mostram
+o CoV contra $n$ em escala log-log, com as retas $\delta_1/\sqrt{n}$ (pontilhadas), e o $\delta_1$ corrente, que fica
+constante quando a variância já está bem estimada. No direto, $\delta_1 = \sqrt{(1 - P_f)/P_f}$: 2,3 no Ceron,
+7,6 e 16,5 no Cho. Nas ISMC do Cho, $\delta_1 \approx 1{,}8$ a 2,4; no line sampling do Cho, 0,6 a 1,1.
+
+A figura de mérito usual é $1/(\mathrm{CoV}^2 \times \text{custo})$, e a eficiência relativa é a figura de mérito do método
+dividida pela do direto (Tabela~\ref{tab:efic} e Figura~\ref{fig:eficbar}). Ela tem três versões:
+\begin{itemize}
+  \item \textbf{por análise de amostragem}, $(\delta_{1,\text{dir}}/\delta_1)^2$, sem contar o FORM. É o que o método
+    faz com cada análise: até \efAIsmcRb{} vezes o direto na ISMC e \efALsRb{} no line sampling (Cho, $r = -0{,}7$);
+  \item \textbf{com o FORM, em análises}, a razão das análises para CoV de 5\,\% (o ``ganho'' das
+    Tabelas~\ref{tab:ceron}--\ref{tab:r07});
+  \item \textbf{com o FORM, em h$\cdot$núcleo}: no line sampling modal, \efHLsCe, \efHLsRa{} e \efHLsRb{} vezes o direto
+    no Ceron e no Cho. Fica perto da versão em análises, porque o FORM modal é barato e o custo de uma análise quase não
+    muda entre os métodos.
+\end{itemize}
+A diferença entre a primeira e a segunda versão é o preço do FORM. Ela é grande no FORM numérico com muitos termos: na
+viga, o line sampling com a direção do FORM numérico $M = 200$ tem o melhor $\delta_1$ de todos (0,19), mas as 2005
+análises do FORM derrubam a eficiência total para 9 vezes o direto; a direção do FORM adjunto, quase tão boa e com 15
+análises, chega a 200 vezes.
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/eficiencia_ceron.pdf}\\[2mm]
+\includegraphics[width=\textwidth]{figs/eficiencia_r05.pdf}
+\caption{Ceron e Cho com $r = -0{,}5$. À esquerda, o CoV estimado contra as análises da amostragem $n$ (sem o FORM),
+em log-log; pontilhado, a reta $\delta_1/\sqrt{n}$ com o $\delta_1$ final de cada método; linha cheia, CoV de 5\,\%.
+À direita, $\delta_1 = \mathrm{CoV}\sqrt{n}$ corrente: quanto mais baixo, mais eficiente o método por análise. Na ISMC do
+Cho, as 5 sementes em sequência.}\label{fig:eficCe}
+\end{figure}
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/eficiencia_r07.pdf}\\[2mm]
+\includegraphics[width=\textwidth]{figs/eficiencia_viga.pdf}
+\caption{Como a Figura~\ref{fig:eficCe}, no Cho com $r = -0{,}7$ e na viga (direto de 50\,000, ISMC de 1000 com uma
+semente e line sampling de 500 linhas).}\label{fig:eficViga}
+\end{figure}
+\input{tab/eficiencia.tex}
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/eficiencia_barras.pdf}
+\caption{A eficiência relativa ao Monte Carlo direto (escala logarítmica; 1 = o direto). Cinza: por análise de
+amostragem, sem o FORM; azul: com o FORM, em análises; vermelho: com o FORM, em h$\cdot$núcleo (só nos taludes).}
+\label{fig:eficbar}
+\end{figure}
+
+\section{Diagnósticos da ISMC}\label{sec:ismcdiag}
+A Tabela~\ref{tab:ismcdiag} e a Figura~\ref{fig:pesos} olham os pesos $w = e^{-\xib^*\cdot\xib + |\xib^*|^2/2}$.
+\begin{itemize}
+  \item \textbf{Média dos pesos.} Sob a densidade deslocada, $E[w] = 1$. As médias por semente ficam entre 0,77 e 1,28
+    no Cho e perto de 1,1 no Ceron: sem sinal de erro no deslocamento. Na viga, uma das 10 sementes (s110) tem média
+    2,37, puxada por um único peso de $\approx 1050$ numa amostra segura (não entra na $P_f$).
+  \item \textbf{ESS.} Com todos os pesos, o tamanho efetivo da amostra é pequeno (18 a 109 no Cho, para $N$ de
+    1160 a 2990): os pesos das amostras seguras, longe do ponto de projeto, variam muito. Mas esses não entram na $P_f$.
+    Só com $I w$, o ESS é \essIwMin{} a \essIwMax\,\% de $N$ no Cho, 22 a 25\,\% no Ceron e uns 30\,\% na viga. Este
+    número não é um diagnóstico independente: com a variância amostral, $\mathrm{ESS}(Iw)/N = 1/[1 + (N - 1)\,\mathrm{CoV}^2]
+    \approx 1/(1 + \delta_1^2)$, ou seja, é o mesmo $\delta_1$ da Seção~\ref{sec:efic} escrito de outro jeito (por isso
+    o ESS$(Iw)$ fica perto de 300 a 400 em todas as sementes do Cho, que pararam com CoV de 5\,\%: $1/0{,}05^2 = 400$).
+    O que ele acrescenta é o maior $I w$, que nunca passa de 2\,\% da soma: nenhuma amostra domina a estimativa.
+  \item \textbf{Falhas na amostra deslocada:} 42 a 45\,\% no Cho com $r = -0{,}5$, 37 a 40\,\% com $r = -0{,}7$, 48\,\%
+    no Ceron e 54\,\% na viga. Perto de 50\,\%, como se espera com o centro no ponto de projeto; um pouco menos no Cho,
+    porque a superfície de falha se curva para longe da origem (o FORM superestima a $P_f$: $\Phi(-\beta) = 2{,}4\,\%$ e
+    0,68\,\%, contra 1,70 e 0,366\,\% do direto).
+  \item \textbf{Os $\ln w$ das falhas} (Figura~\ref{fig:pesos}) ficam abaixo de 0 e numa faixa mais estreita que a
+    de todas as amostras, mas ainda larga: no Cho, $\ln w$ vai de uns $-10$ a $-1$ (os $w$ das falhas variam em 3 a 4
+    ordens de grandeza). A variância da ISMC vem de duas fontes: metade das amostras não falha (o 0) e os $w$ das que
+    falham variam muito. O line sampling elimina as duas, trocando o 0 ou $w$ de cada amostra pela probabilidade exata
+    ao longo da linha.
+\end{itemize}
+\input{tab/ismc_diag.tex}
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/ismc_pesos.pdf}
+\caption{Os pesos da ISMC, $\ln w$, por centro (no Cho, as 5 sementes juntas). Linha cheia: as amostras que falham (as
+que entram na $P_f$); pontilhada: todas. As densidades estão normalizadas separadamente.}\label{fig:pesos}
+\end{figure}
+
+\section{Diagnósticos do line sampling}\label{sec:lsdiag}
+O \texttt{analises.csv} guarda, para cada análise, a linha, o $c$ e o fator ($\Gamma$ ou FS). Com ele, a busca de cada
+linha foi refeita com a regra do \texttt{line\_sampling.py}: a 1.ª análise em $c = \beta$, a 2.ª no passo de Newton com a
+inclinação $s$, e depois secante, com bissecção só quando a secante sai da cerca. A reconstrução reproduziu todos os
+passos gravados (coluna ``conferência'' da Tabela~\ref{tab:lsdiag}).
+\begin{itemize}
+  \item \textbf{Análises por linha:} 2 ou 3 em quase todas as linhas; 4 ou 5 em poucas (até 8 de 100, no Cho com
+    $r = -0{,}7$). Nenhuma linha chegou ao máximo de 10 análises nem aos limites $(-8, 12)$, e não houve $\Gamma = 0$.
+  \item \textbf{Secante e bissecção:} todos os passos depois do 2.º foram de secante, exceto uma bissecção em cada
+    direção do Cho com $r = -0{,}7$.
+  \item \textbf{$\ln(\text{fator})$ ao longo das linhas} (Figura~\ref{fig:lscurvas}): com 2 ou 3 pontos por linha
+    não se vê a curvatura na figura; o sinal de que $\ln(\text{fator})$ é quase reto em $c$ é que, em 39 a 78\,\% das linhas dos taludes (98\,\% ou
+    mais na viga), a 2.ª análise (o passo de Newton com a inclinação $s$) já cai a menos da tolerância da raiz da
+    secante. As linhas com 4 ou 5 análises são as que começam mais longe
+    da falha.
+  \item \textbf{$\nu_\ell$ e o CoV por linha:} a dispersão de $\nu_\ell$ é o que sobra da variância. Com a direção de
+    2000 termos, o CoV de uma linha cai de 90--104\,\% para 59\,\% no Ceron, de 50 para 42\,\% no Cho com $r = -0{,}5$ e de
+    68 para 56\,\% com $r = -0{,}7$. Na viga, a direção de 200 termos dá 13\,\%.
+  \item \textbf{A inclinação $s$} (2 análises por direção) é parecida nas duas direções de cada problema. Na viga o
+    sinal é o contrário porque lá a função de estado é a flecha.
+\end{itemize}
+\input{tab/ls_diag.tex}
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/ls_curvas.pdf}
+\caption{$\ln(\text{fator})$ contra $c$ ao longo de cada linha (pontos: as análises; retas: as linhas), na direção do FORM
+modal com 2000 termos. Pontilhado vermelho: $c = \beta$, onde toda linha começa. A raiz de cada linha é onde ela cruza o
+zero.}\label{fig:lscurvas}
+\end{figure}
+
+\section{CoV estimado e CoV observado}\label{sec:covobs}
+O CoV que cada método informa vem da variância da própria amostra. Para conferir, é preciso repetir com outras sementes
+(Tabela~\ref{tab:covobs}):
+\begin{itemize}
+  \item \textbf{Cho, ISMC (5 sementes por centro):} com $r = -0{,}5$, o CoV observado entre as sementes, na parada, fica
+    entre 0,91 e 1,13 vezes o estimado (5\,\%). Com $r = -0{,}7$, entre 0,47 e 0,58: dentro da faixa de 95\,\% para 5
+    sementes (0,35 a 1,67), mas os três centros ficam abaixo. Os três usam as mesmas sementes, então não são três
+    conferências independentes; com 5 sementes, o próprio desvio padrão tem erro de uns $\pm 35\,\%$. Pode ser acaso ou
+    um CoV estimado um pouco conservador; não dá para separar com estes dados.
+  \item \textbf{Viga, ISMC (10 sementes independentes, centro do FORM $M = 200$):} razão de 0,77, dentro da faixa
+    (0,55 a 1,45).
+  \item \textbf{Line sampling e Ceron:} uma semente só por direção ou centro; o CoV observado entre sementes não existe
+    ainda (pendência).
+  \item \textbf{Cobertura:} o intervalo de 95\,\% de cada semente da ISMC (Cho e viga) contém a $P_f$ do direto em
+    \icDentro{} de \icTotal{} casos, e todas as \zTotal{} estimativas (sementes da ISMC, ISMC do Ceron, line sampling)
+    têm $|z| < 1{,}96$ contra o direto (Figura~\ref{fig:z}). O desvio quadrático médio dos $z$ é \zSd, abaixo de 1: o
+    $z$ inclui o erro do direto, que é o mesmo para todas as estimativas de um problema, e as sementes são comuns aos
+    centros. Esperava-se uns 5\,\% fora; nenhum fora é coerente com um CoV estimado correto ou um pouco conservador.
+  \item \textbf{A parada pelo CoV} (Tabela~\ref{tab:parada}): a $P_f$ na parada difere da $P_f$ com todas as realizações
+    da semente em \viesParada\,\% na média (de \viesParadaMin{} a \viesParadaMax\,\% por semente): o viés da parada
+    opcional não aparece, como esperado (ordem de $\mathrm{CoV}^2$).
+  \item \textbf{Bases diferentes:} os diretos do Cho usam a KL com variância retida de 0,9877 e as ISMC e o line
+    sampling, a base de Nyström de 2000 modos com 0,9973. As $P_f$ batem dentro do ruído ($|z| \le 0{,}75$), então a
+    diferença não aparece nesta precisão.
+\end{itemize}
+\input{tab/cov_obs.tex}
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/z_todos.pdf}
+\caption{O $z$ de cada estimativa contra o Monte Carlo direto do mesmo problema. Laranja: ISMC (no Cho e na viga, uma
+semente por ponto, na parada); azul: line sampling. Entre parênteses, quantas estimativas.}\label{fig:z}
+\end{figure}
+
+\section{Tabela-síntese}\label{sec:tabsint}
+A Tabela~\ref{tab:sintese} junta, por problema e método, as métricas das seções anteriores.
+\input{tab/sintese.tex}
+
 \section{Síntese}
 \begin{enumerate}
-  \item \textbf{Nenhum viés detectado.} Nos taludes, $|z| \le 0{,}7$ em todos os métodos (Tabelas~\ref{tab:ceron} a
+  \item \textbf{Nenhum viés detectado.} Nos taludes, $|z| \le \zMaxTaludes$ em todos os métodos (Tabelas~\ref{tab:ceron} a
     \ref{tab:r07}); na viga, o maior é o da ISMC com o centro do FORM $M = 8$, $z = 1{,}42$ (relatório da viga), dentro da
     flutuação esperada. As cinco sementes de cada ISMC se espalham em torno do direto (Figura~\ref{fig:sementes}). As
-    três ISMC de cada caso usam as mesmas sementes (números aleatórios comuns), então os seus erros andam juntos (a
-    semente 21 é a mais baixa nos três centros): não são três conferências independentes, mas a comparação entre os
+    três ISMC de cada caso usam as mesmas sementes (números aleatórios comuns), então os seus erros andam juntos (com
+    $r = -0{,}5$, a semente 21 é a mais baixa nos três centros): não são três conferências independentes, mas a comparação entre os
     centros fica mais justa. O line sampling tem uma semente só.
   \item \textbf{O line sampling com a direção do FORM modal de todos os modos foi o mais barato em todos os taludes:}
     \lsNCe{} análises no Ceron, \lsNRa{} no Cho $r = -0{,}5$ e \lsNRb{} no Cho $r = -0{,}7$, isto é, \lsGanhoCe, \lsGanhoRa{}
@@ -164,12 +358,31 @@ direção com 2000 termos estreita muito a distribuição.}\label{fig:nu}
     análises de FORM. O centro modal com 20 termos (8 a 10 análises) empata com o numérico (243).
   \item \textbf{Viga:} o mesmo padrão; com a direção do gradiente adjunto (200 termos, 15 análises), o line sampling dá
     CoV de 5\,\% com 92 análises, contra 18\,666 do direto.
+  \item \textbf{Em h$\cdot$núcleo, o quadro é o mesmo} (Seção~\ref{sec:tempo}): o custo de uma análise quase não muda
+    entre os métodos, e o FORM modal é barato (0,06 a 0,2 h, mesmo com a parede do gradiente modal). Para CoV de 5\,\%
+    no Cho com $r = -0{,}7$: \hDirRb{} h no direto, \hIsmcRb{} na melhor ISMC e \hLsRb{} no line sampling modal; a
+    etapa 3b inteira (30 ISMC) gastou \hIsmcTotal{} h$\cdot$núcleo.
+  \item \textbf{Por análise, o line sampling rende uns 5 a 8 vezes a ISMC no Cho} (Seção~\ref{sec:efic}):
+    $\delta_1 \approx 0{,}6$ a 1,1 contra 1,8 a 2,4, e a razão $(\delta_{1,\text{ISMC}}/\delta_{1,\text{LS}})^2$ é
+    \lsIsmcMelhorRa{} ($r = -0{,}5$) e \lsIsmcMelhorRb{} ($r = -0{,}7$) entre o melhor de cada método (\lsIsmcMin{} a
+    \lsIsmcMax{} entre todos os pares de centro e direção). O FORM numérico com muitos termos pode desfazer essa vantagem (viga, $M = 200$).
+  \item \textbf{Os diagnósticos não mostram problema}: médias dos pesos perto de 1 e nenhum peso dominante (o maior
+    $I w$ fica abaixo de 2\,\% da soma); no line sampling, nenhuma linha nos limites ou no máximo de análises, e só 2 bissecções em 700
+    linhas dos taludes.
+  \item \textbf{O CoV estimado é confiável ou um pouco conservador} (Seção~\ref{sec:covobs}): nas ISMC, o CoV observado
+    entre sementes fica entre 0,47 e 1,13 vezes o estimado, sempre dentro da faixa de 95\,\%; todos os intervalos
+    contêm a $P_f$ do direto, e a parada pelo CoV não deixa viés visível.
 \end{enumerate}
 Decisão (20/11/2026): o line sampling na direção do FORM modal com todos os modos é o método padrão, com a ISMC como
 conferência, até que se prove o contrário.
 
 \section{Pendências}
 \begin{itemize}
+  \item O line sampling não grava o tempo de cada análise (apaga os CSV): guardar \texttt{s\_fator} no
+    \texttt{analises.csv}, para medir o custo em vez de estimá-lo. O mesmo para o número de \emph{kernels} na viga.
+  \item A CPU oficial dos jobs da etapa 3b (o \texttt{TotalCPU} do \texttt{sacct} dos jobs 14891 a 14894) não está
+    no PC; aqui a CPU é a soma de \texttt{s\_fator}.
+  \item No Ceron, a ISMC também tem uma semente só por centro.
   \item Repetir o line sampling com 2 ou 3 sementes num caso (Cho $r = -0{,}7$) para conferir o CoV estimado pelas linhas
     contra a dispersão entre sementes.
   \item Chuva: o line sampling ainda não foi testado; a direção modal não tem componente em $k_s$ e pode haver mais de um

@@ -1,0 +1,24 @@
+% gerado por gera_dados.py
+\begin{table}[H]\centering\footnotesize
+\caption{O CoV estimado contra o observado entre sementes. Cho: as 5 sementes de cada centro, na parada (o $N$ do arquivo \texttt{ATINGIU}); viga: 10 sementes de 1000 amostras com o centro do FORM $M = 200$. Se o CoV estimado está certo, a razão observado/estimado cai, com 95\,\% de chance, na faixa da última coluna ($\sqrt{\chi^2_{k-1}/(k-1)}$).}\label{tab:covobs}
+\begin{tabular}{llrrrrrrr}\toprule
+caso & centro da ISMC & sem. & $N$ médio & $P_f$ média & \makecell{CoV\\estimado} & \makecell{CoV\\observado} & razão & \makecell{faixa\\de 95\,\%} \\\midrule
+Cho, $r = -0{,}5$ & $M = 20$, num. & 5 & 1\,334 & 1,749\,\% & 5,0\,\% & 4,5\,\% & 0,91 & 0,35--1,67 \\
+Cho, $r = -0{,}5$ & $M = 100$, num. & 5 & 1\,240 & 1,752\,\% & 5,0\,\% & 5,6\,\% & 1,13 & 0,35--1,67 \\
+Cho, $r = -0{,}5$ & $M = 20$, modal & 5 & 1\,380 & 1,718\,\% & 5,0\,\% & 4,8\,\% & 0,96 & 0,35--1,67 \\
+Cho, $r = -0{,}7$ & $M = 20$, num. & 5 & 2\,050 & 0,363\,\% & 5,0\,\% & 2,9\,\% & 0,58 & 0,35--1,67 \\
+Cho, $r = -0{,}7$ & $M = 100$, num. & 5 & 1\,786 & 0,361\,\% & 5,0\,\% & 2,5\,\% & 0,51 & 0,35--1,67 \\
+Cho, $r = -0{,}7$ & $M = 20$, modal & 5 & 2\,310 & 0,354\,\% & 5,0\,\% & 2,4\,\% & 0,47 & 0,35--1,67 \\
+viga & $M = 200$, num. & 10 & 1\,000 & 2,115\,\% & 4,8\,\% & 3,7\,\% & 0,77 & 0,55--1,45 \\
+\bottomrule\end{tabular}\end{table}
+\begin{table}[H]\centering\footnotesize
+\caption{A parada pelo CoV na ISMC do Cho: a $P_f$ na parada contra a $P_f$ com todas as realizações da mesma semente (os blocos que já rodavam terminaram depois da parada).}\label{tab:parada}
+\begin{tabular}{llrrrr}\toprule
+caso & centro & $N$ na parada & $N$ com tudo & $P_f$ na parada & $P_f$ com tudo \\\midrule
+Cho, $r = -0{,}5$ & $M = 20$, num. & 6\,670 & 6\,750 & 1,749\,\% & 1,743\,\% \\
+Cho, $r = -0{,}5$ & $M = 100$, num. & 6\,200 & 6\,270 & 1,752\,\% & 1,749\,\% \\
+Cho, $r = -0{,}5$ & $M = 20$, modal & 6\,900 & 7\,000 & 1,718\,\% & 1,721\,\% \\
+Cho, $r = -0{,}7$ & $M = 20$, num. & 10\,250 & 10\,520 & 0,363\,\% & 0,365\,\% \\
+Cho, $r = -0{,}7$ & $M = 100$, num. & 8\,930 & 9\,090 & 0,361\,\% & 0,363\,\% \\
+Cho, $r = -0{,}7$ & $M = 20$, modal & 11\,550 & 12\,490 & 0,354\,\% & 0,351\,\% \\
+\bottomrule\end{tabular}\end{table}

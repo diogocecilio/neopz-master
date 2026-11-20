@@ -1,0 +1,37 @@
+% gerado por gera_dados.py
+\begin{landscape}
+\begin{table}[p]\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\caption{Tabela-síntese: todas as métricas por método e problema. FORM: iterações/análises. $n$: análises da amostragem já feitas. $\delta_1$: o CoV de uma análise. $N_5$: análises para CoV de 5\,\%, com o FORM; $H_5$: as h$\cdot$núcleo correspondentes (Tabela~\ref{tab:tempo}; a viga só por análises). Efic.: a eficiência relativa ao direto, por análise de amostragem / com o FORM / em tempo. Diagnóstico: ESS$(Iw)/N$ na ISMC, análises por linha no LS. Na ISMC da viga, $N_5$ usa o CoV estimado da rodada (na Tabela~\ref{tab:viga}, o CoV calculado com o direto).}\label{tab:sintese}
+\begin{tabular}{lllrrrrrrrrrl}\toprule
+problema & método & centro/direção & FORM & $n$ & $P_f$ & CoV & $z$ & $\delta_1$ & $N_5$ & $H_5$ (h) & efic. & diagnóstico \\\midrule
+Ceron, rebaixamento & MC direto & -- & -- & 2\,000 & 15,700\,\% & 5,2\,\% & -- & 2,32 & 2\,148 & 21,3 & 1,0/1,0/1,0 & -- \\
+ & ISMC & $M = 20$, num. & 3/363 & 1\,000 & 16,447\,\% & 5,6\,\% & 0,61 & 1,76 & 1\,595 & 15,8 & 1,7/1,3/1,3 & ESS(Iw)/N = 25\,\% \\
+ & ISMC & $M = 20$, modal & 3/3 & 1\,000 & 16,460\,\% & 5,9\,\% & 0,60 & 1,87 & 1\,397 & 13,9 & 1,5/1,5/1,5 & ESS(Iw)/N = 22\,\% \\
+ & LS (100 lin.) & $M = 20$, num. & 3/363 & 254 & 16,566\,\% & 9,0\,\% & 0,51 & 1,44 & 1\,183 & 11,7 & 2,6/1,8/1,8 & 2,52 an./linha \\
+ & LS (100 lin.) & $M = 20$, modal & 3/3 & 243 & 16,998\,\% & 10,4\,\% & 0,67 & 1,62 & 1\,046 & 10,4 & 2,0/2,1/2,0 & 2,41 an./linha \\
+ & LS (100 lin.) & $M = 2000$, modal & 3/3 & 224 & 15,996\,\% & 5,9\,\% & 0,24 & 0,88 & 313 & 3,1 & 6,9/6,9/6,8 & 2,22 an./linha \\
+\midrule
+Cho, $r = -0{,}5$ & MC direto & -- & -- & 24\,000 & 1,700\,\% & 4,9\,\% & -- & 7,60 & 23\,129 & 444,7 & 1,0/1,0/1,0 & -- \\
+ & ISMC (5 sem.) & $M = 20$, num. & 3/243 & 6\,750 & 1,740\,\% & 2,2\,\% & 0,43 & 1,82 & 1\,570 & 28,3 & 17,4/14,7/15,7 & ESS(Iw)/N = 23\,\% \\
+ & ISMC (5 sem.) & $M = 100$, num. & 3/1203 & 6\,270 & 1,745\,\% & 2,2\,\% & 0,49 & 1,76 & 2\,439 & 42,2 & 18,7/9,5/10,5 & ESS(Iw)/N = 24\,\% \\
+ & ISMC (5 sem.) & $M = 20$, modal & 10/10 & 7\,000 & 1,718\,\% & 2,2\,\% & 0,19 & 1,85 & 1\,375 & 25,1 & 16,9/16,8/17,7 & ESS(Iw)/N = 23\,\% \\
+ & LS (100 lin.) & $M = 20$, num. & 3/243 & 233 & 1,739\,\% & 5,0\,\% & 0,32 & 0,77 & 480 & 8,4 & 97,6/48,2/53,1 & 2,31 an./linha \\
+ & LS (100 lin.) & $M = 2000$, modal & 7/7 & 233 & 1,762\,\% & 4,2\,\% & 0,56 & 0,64 & 172 & 3,2 & 141,1/134,8/138,0 & 2,31 an./linha \\
+\midrule
+Cho, $r = -0{,}7$ & MC direto & -- & -- & 110\,000 & 0,366\,\% & 5,0\,\% & -- & 16,49 & 108\,781 & 2\,061,5 & 1,0/1,0/1,0 & -- \\
+ & ISMC (5 sem.) & $M = 20$, num. & 3/243 & 10\,520 & 0,366\,\% & 2,2\,\% & -0,04 & 2,25 & 2\,270 & 39,7 & 53,5/47,9/52,0 & ESS(Iw)/N = 16\,\% \\
+ & ISMC (5 sem.) & $M = 100$, num. & 4/1604 & 9\,090 & 0,362\,\% & 2,2\,\% & -0,20 & 2,10 & 3\,369 & 57,1 & 61,5/32,3/36,1 & ESS(Iw)/N = 18\,\% \\
+ & ISMC (5 sem.) & $M = 20$, modal & 8/8 & 12\,490 & 0,352\,\% & 2,2\,\% & -0,75 & 2,41 & 2\,310 & 41,1 & 46,9/47,1/50,1 & ESS(Iw)/N = 15\,\% \\
+ & LS (100 lin.) & $M = 20$, num. & 3/243 & 266 & 0,364\,\% & 6,8\,\% & -0,07 & 1,11 & 732 & 12,6 & 221,9/148,7/163,7 & 2,64 an./linha \\
+ & LS (100 lin.) & $M = 2000$, modal & 5/5 & 274 & 0,367\,\% & 5,6\,\% & 0,01 & 0,93 & 353 & 6,3 & 311,7/307,8/327,3 & 2,72 an./linha \\
+\midrule
+viga (Mathematica) & MC direto & -- & -- & 50\,000 & 2,098\,\% & 3,1\,\% & -- & 6,83 & 18\,666 & -- & 1,0/1,0/-- & -- \\
+ & ISMC & $M = 8$, num. & 4/85 & 1\,000 & 2,289\,\% & 5,2\,\% & 1,42 & 1,64 & 1\,157 & -- & 17,4/16,1/-- & ESS(Iw)/N = 27\,\% \\
+ & ISMC & $M = 20$, num. & 4/205 & 1\,000 & 2,200\,\% & 4,8\,\% & 0,83 & 1,51 & 1\,116 & -- & 20,5/16,7/-- & ESS(Iw)/N = 31\,\% \\
+ & ISMC & $M = 200$, num. & 4/2005 & 1\,000 & 2,208\,\% & 4,7\,\% & 0,90 & 1,48 & 2\,884 & -- & 21,2/6,5/-- & ESS(Iw)/N = 31\,\% \\
+ & LS (500 lin.) & $M = 8$, num. & 4/85 & 1\,014 & 2,155\,\% & 2,2\,\% & 0,71 & 0,70 & 281 & -- & 96,1/66,5/-- & 2,02 an./linha \\
+ & LS (500 lin.) & $M = 20$, num. & 4/205 & 1\,004 & 2,104\,\% & 1,3\,\% & 0,09 & 0,43 & 280 & -- & 256,9/66,8/-- & 2,00 an./linha \\
+ & LS (500 lin.) & $M = 200$, num. & 4/2005 & 1\,003 & 2,045\,\% & 0,6\,\% & -0,81 & 0,19 & 2\,021 & -- & 1\,351,9/9,2/-- & 2,00 an./linha \\
+ & LS (500 lin.) & $M = 200$, adjunto & 4/15 & 1\,006 & 2,107\,\% & 1,4\,\% & 0,13 & 0,43 & 92 & -- & 246,8/201,8/-- & 2,01 an./linha \\
+\bottomrule\end{tabular}\end{table}
+\end{landscape}

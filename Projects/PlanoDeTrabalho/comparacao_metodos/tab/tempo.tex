@@ -1,0 +1,28 @@
+% gerado por gera_dados.py: nao editar a mao
+\begin{landscape}
+\begin{table}[H]\centering\footnotesize
+\caption{O tempo de CPU (h$\cdot$núcleo; cada processo roda com 1 \emph{thread}, então a CPU de uma análise é o seu tempo de parede). ``s/análise'': a média medida (\texttt{s\_fator}, mais \texttt{s\_transiente} no Ceron). FORM: numérico, CPU somada das análises; modal, a parede (em série; inclui o campo e o gradiente modal). No Ceron (PC), o FORM numérico e as colunas ``p/ CoV 5\,\%'' usam as análises $\times$ o custo unitário do direto, \uDirCe{}\,s (a CPU medida do FORM numérico, \formCeronCpu{}\,h, inflada pela disputa de núcleo, está na Tabela~\ref{tab:formit}); ``s/análise'' e ``amostragem'' são as medidas. Amostragem: o que já foi gasto. ``Parede dos blocos'': a soma dos tempos dos blocos nos logs do fermi (inclui ler a malha e gravar). LS: sem tempo por análise; a estimativa usa o custo unitário da última coluna, e a parede do PC $\times$ processos é um teto. ``p/ CoV 5\,\%'': o FORM mais as análises para CoV de 5\,\% vezes o custo unitário.}\label{tab:tempo}
+\begin{tabular}{llrrrrrrr}\toprule
+problema & método e centro/direção & \makecell{s/análise\\medido} & \makecell{FORM\\(h)} & \makecell{amostragem\\(h)} & \makecell{parede dos\\blocos (h)} & \makecell{PC: parede\\$\times$ proc. (h)} & \makecell{p/ CoV\\5\,\% (h)} & \makecell{custo\\unitário (s)} \\\midrule
+Ceron, rebaixamento & MC direto (2\,000) & 35,6 & -- & 19,8 & -- & -- & 21,3 & 35,6 \\
+ & ISMC, $M = 20$, num. & 54,3 & 3,59 & 15,1 & -- & -- & 15,8 & 35,6 \\
+ & ISMC, $M = 20$, modal & 54,8 & 0,06 & 15,2 & -- & -- & 13,9 & 35,6 \\
+ & LS, $M = 20$, num. & -- & 3,59 & $\approx$2,5 & -- & 4,5 (14) & 11,7 & 35,6 \\
+ & LS, $M = 20$, modal & -- & 0,06 & $\approx$2,4 & -- & 4,1 (14) & 10,4 & 35,6 \\
+ & LS, $M = 2000$, modal & -- & 0,06 & $\approx$2,2 & -- & 3,9 (14) & 3,1 & 35,6 \\
+\midrule
+Cho, $r = -0{,}5$ & MC direto (24\,000) & 69,2 & -- & 461,4 & 463,8 & -- & 444,7 & 69,2 \\
+ & ISMC, $M = 20$, num. & 65,9 & 4,04 & 123,5 & 127,2 & -- & 28,3 & 65,9 \\
+ & ISMC, $M = 100$, num. & 65,6 & 19,73 & 114,2 & 117,6 & -- & 42,2 & 65,6 \\
+ & ISMC, $M = 20$, modal & 66,0 & 0,11 & 128,4 & 132,1 & -- & 25,1 & 66,0 \\
+ & LS, $M = 20$, num. & -- & 4,04 & $\approx$4,3 & -- & 5,1 (14) & 8,4 & 65,8 \\
+ & LS, $M = 2000$, modal & -- & 0,21 & $\approx$4,3 & -- & 5,2 (14) & 3,2 & 65,8 \\
+\midrule
+Cho, $r = -0{,}7$ & MC direto (110\,000) & 68,2 & -- & 2\,084,6 & 2\,095,4 & -- & 2\,061,5 & 68,2 \\
+ & ISMC, $M = 20$, num. & 63,4 & 3,96 & 185,3 & 191,0 & -- & 39,7 & 63,4 \\
+ & ISMC, $M = 100$, num. & 63,0 & 26,20 & 159,1 & 164,0 & -- & 57,1 & 63,0 \\
+ & ISMC, $M = 20$, modal & 64,2 & 0,09 & 222,7 & 229,4 & -- & 41,1 & 64,2 \\
+ & LS, $M = 20$, num. & -- & 3,96 & $\approx$4,7 & -- & 5,7 (14) & 12,6 & 63,6 \\
+ & LS, $M = 2000$, modal & -- & 0,14 & $\approx$4,8 & -- & 5,2 (12) & 6,3 & 63,6 \\
+\bottomrule\end{tabular}\end{table}
+\end{landscape}

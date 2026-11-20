@@ -1,0 +1,21 @@
+% gerado por gera_dados.py
+\begin{table}[H]\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\caption{Os FORM, iteração a iteração resumidos: iterações, análises, $g$ inicial e final ($\mathrm{FS} - 1$ no SRM, $\Gamma - 1$ no GIM), $\beta$, a CPU das análises e a parede (do primeiro arquivo de parâmetros ao \texttt{form.json}). $\alpha^2$: a parte da variância linearizada em cada campo.}\label{tab:formit}
+\begin{tabular}{llrrrrrrrl}\toprule
+problema & FORM & it. & análises & $g_0$ & $g$ final & $\beta$ & \makecell{CPU\\(h)} & \makecell{parede\\(h)} & \makecell{$\alpha^2$\\($c'$, $\varphi'$, $k$)} \\\midrule
+Ceron, rebaixamento & $M = 20$, num. (GIM) & 3 & 363 & 0,241 & 0,0001 & 1,153 & 5,39 & 0,45 & 0,83, 0,09, 0,08 \\
+ & $M = 20$, modal (GIM) & 3 & 3 & 0,241 & -0,0002 & 1,205 & 0,05 & 0,06 & 0,89, 0,11, 0,00 \\
+ & $M = 2000$, modal (GIM) & 3 & 3 & 0,241 & 0,0003 & 0,982 & 0,06 & 0,06 & 0,88, 0,12, 0,00 \\
+Cho, $r = -0{,}5$ & $M = 20$, num. (SRM) & 3 & 243 & 0,168 & 0,0008 & 1,977 & 4,04 & 0,36 & 0,06, 0,94 \\
+ & $M = 100$, num. (SRM) & 3 & 1203 & 0,168 & 0,0009 & 1,956 & 19,73 & 1,70 & 0,07, 0,93 \\
+ & $M = 20$, modal (GIM) & 10 & 10 & 0,616 & 0,0008 & 2,003 & 0,10 & 0,11 & 0,05, 0,95 \\
+ & $M = 2000$, modal (GIM) & 7 & 7 & 0,616 & 0,0004 & 1,977 & 0,05 & 0,21 & 0,05, 0,95, 0,00 \\
+Cho, $r = -0{,}7$ & $M = 20$, num. (SRM) & 3 & 243 & 0,168 & 0,0007 & 2,466 & 3,96 & 0,35 & 0,03, 0,97 \\
+ & $M = 100$, num. (SRM) & 4 & 1604 & 0,168 & 0,0005 & 2,440 & 26,20 & 2,25 & 0,03, 0,97 \\
+ & $M = 20$, modal (GIM) & 8 & 8 & 0,616 & 0,0008 & 2,492 & 0,08 & 0,09 & 0,02, 0,98 \\
+ & $M = 2000$, modal (GIM) & 5 & 5 & 0,616 & 0,0007 & 2,463 & 0,03 & 0,14 & 0,02, 0,98, 0,00 \\
+viga & $M = 8$, num. & 4 & 85 & -- & -- & 2,149 & \multicolumn{2}{c}{1,6 s (parede)} & -- \\
+ & $M = 20$, num. & 4 & 205 & -- & -- & 2,130 & \multicolumn{2}{c}{2,7 s (parede)} & -- \\
+ & $M = 200$, num. & 4 & 2005 & -- & -- & 2,118 & \multicolumn{2}{c}{16,3 s (parede)} & -- \\
+ & $M = 200$, adjunto & 4 & 15 & -- & -- & 2,130 & \multicolumn{2}{c}{5,4 s (parede)} & -- \\
+\bottomrule\end{tabular}\end{table}

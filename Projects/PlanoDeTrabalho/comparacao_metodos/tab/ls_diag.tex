@@ -1,0 +1,19 @@
+% gerado por gera_dados.py
+\begin{landscape}
+\begin{table}[H]\centering\footnotesize
+\caption{Diagnósticos do line sampling. Análises por linha: quantas linhas pararam com 2, 3, 4 e 5 ou mais análises. A busca de cada linha foi reconstruída do \texttt{analises.csv} com a regra do \texttt{line\_sampling.py}: passos depois do 2.º (secante ou bissecção), linhas no máximo de 10 análises, nos limites $(-8, 12)$ e análises com $\Gamma = 0$ (não houve nenhuma). ``Conferência'': passos em que a reconstrução não bate com o $c$ gravado (0 = a regra foi reproduzida). $s$: a inclinação $d\ln(\text{fator})/dc$ no ponto de projeto. A viga só guardou $\nu_\ell$ e as análises por linha.}\label{tab:lsdiag}
+\begin{tabular}{llrrrrrrrrrrr}\toprule
+problema & direção & $s$ & 2 & 3 & 4 & $\ge 5$ & secante & bissecção & máx./limites & conferência & $\nu$ mín.--máx. & CoV por linha \\\midrule
+Ceron, rebaixamento & $M = 20$, num. & -0,185 & 49 & 50 & 1 & 0 & 52 & 0 & 0/0 & 0 & -0,16--3,09 & 90\,\% \\
+Ceron, rebaixamento & $M = 20$, modal & -0,181 & 59 & 41 & 0 & 0 & 41 & 0 & 0/0 & 0 & -0,66--3,35 & 104\,\% \\
+Ceron, rebaixamento & $M = 2000$, modal & -0,217 & 78 & 22 & 0 & 0 & 22 & 0 & 0/0 & 0 & 0,22--2,20 & 59\,\% \\
+Cho, $r = -0{,}5$ & $M = 20$, num. & -0,077 & 70 & 29 & 1 & 0 & 31 & 0 & 0/0 & 0 & 1,67--2,86 & 50\,\% \\
+Cho, $r = -0{,}5$ & $M = 2000$, modal & -0,077 & 72 & 25 & 3 & 0 & 31 & 0 & 0/0 & 0 & 1,74--2,86 & 42\,\% \\
+Cho, $r = -0{,}7$ & $M = 20$, num. & -0,060 & 45 & 49 & 3 & 3 & 63 & 1 & 0/0 & 0 & 2,23--3,65 & 68\,\% \\
+Cho, $r = -0{,}7$ & $M = 2000$, modal & -0,063 & 39 & 53 & 5 & 3 & 71 & 1 & 0/0 & 0 & 2,31--3,97 & 56\,\% \\
+viga (Mathematica) & $M = 8$, num. & 0,140 & 488 & 12 & 0 & 0 & -- & -- & -- & -- & 1,38--2,62 & 49\,\% \\
+viga (Mathematica) & $M = 20$, num. & 0,142 & 498 & 2 & 0 & 0 & -- & -- & -- & -- & 1,63--2,34 & 30\,\% \\
+viga (Mathematica) & $M = 200$, num. & 0,142 & 499 & 1 & 0 & 0 & -- & -- & -- & -- & 1,78--2,18 & 13\,\% \\
+viga (Mathematica) & $M = 200$, adjunto & 0,142 & 496 & 4 & 0 & 0 & -- & -- & -- & -- & 1,62--2,31 & 31\,\% \\
+\bottomrule\end{tabular}\end{table}
+\end{landscape}
