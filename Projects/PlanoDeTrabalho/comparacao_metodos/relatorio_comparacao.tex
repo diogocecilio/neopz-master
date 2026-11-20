@@ -4,7 +4,7 @@
 \usepackage[brazil]{babel}
 \usepackage{lmodern}
 \usepackage{amsmath,amssymb,bm}
-\usepackage{graphicx,booktabs,float,geometry,url}
+\usepackage{graphicx,booktabs,float,geometry,url,pdflscape}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,shapes.geometric}
 \usepackage[hidelinks]{hyperref}
@@ -114,15 +114,21 @@ e a Figura~\ref{fig:nu}, onde as linhas entram na falha em cada direção.
 \begin{figure}[H]\centering
 \includegraphics[width=\textwidth]{figs/custo.pdf}
 \caption{Análises do MEF para CoV de 5\,\% (escala logarítmica), com o FORM. Cinza: Monte Carlo direto; laranja: ISMC;
-azul: line sampling. Na viga, a direção ``adjunto'' é o FORM com o gradiente adjunto (a viga não tem gradiente modal).
+azul: line sampling; o número ao lado de cada barra é o custo. Na viga, a direção ``adjunto'' é o FORM com o gradiente adjunto (a viga não tem gradiente modal).
 As barras hachuradas (``parcial'') usam só as linhas prontas e são indicativas.}\label{fig:custo}
 \end{figure}
 
 \begin{figure}[H]\centering
-\includegraphics[width=\textwidth]{figs/convergencia.pdf}
-\caption{A $P_f$ acumulada (em cima) e o CoV estimado (embaixo) contra as análises do MEF, contando o FORM (por isso as
-curvas começam em pontos diferentes). Na ISMC do Cho, as 5 sementes estão em sequência. Faixa cinza: o intervalo de
-95\,\% do Monte Carlo direto; linha vertical pontilhada: o que o direto precisa para CoV de 5\,\%.}\label{fig:conv}
+\includegraphics[width=\textwidth]{figs/convergencia_ceron.pdf}\\[2mm]
+\includegraphics[width=\textwidth]{figs/convergencia_r05.pdf}
+\caption{A $P_f$ acumulada (à esquerda) e o CoV estimado (à direita) contra as análises do MEF, contando o FORM (por
+isso as curvas começam em pontos diferentes). Na ISMC do Cho, as 5 sementes estão em sequência. Faixa cinza: o
+intervalo de 95\,\% do Monte Carlo direto; linha vertical pontilhada: o que o direto precisa para CoV de 5\,\%. O Cho com
+$r = -0{,}7$ está na Figura~\ref{fig:conv2}.}\label{fig:conv}
+\end{figure}
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/convergencia_r07.pdf}
+\caption{Como a Figura~\ref{fig:conv}, no Cho com $r = -0{,}7$.}\label{fig:conv2}
 \end{figure}
 
 \begin{figure}[H]\centering

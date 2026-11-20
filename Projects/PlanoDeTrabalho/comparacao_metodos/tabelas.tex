@@ -26,9 +26,9 @@ Cho, $r = -0{,}7$ & FORM $M = 20$, modal & 2,492 & 0,63\,\% & 8 & ISMC \\
 Cho, $r = -0{,}7$ & FORM $M = 2000$, modal & 2,463 & 0,69\,\% & 5 & LS \\
 \bottomrule\end{tabular}\end{table}
 
+\begin{landscape}
 \begin{table}[H]\centering\small
 \caption{Ceron, rebaixamento: todos os métodos. ``Gasto'': as análises do MEF já feitas (com o FORM). ``Total p/ CoV 5\,\%'': o FORM mais as amostras ou linhas para CoV de 5\,\%, pelo CoV estimado (na ISMC, a média das sementes). $z$: a diferença contra o direto, em desvios padrão.}\label{tab:ceron}
-\resizebox{\textwidth}{!}{%
 \begin{tabular}{llrrrrrrrr}\toprule
 método & centro ou direção & FORM & gasto & $P_f$ & CoV & $z$ & total p/ CoV 5\,\% & ganho vs direto & ganho vs ISMC \\\midrule
 MC direto & -- & -- & 2\,000 & 15,700\,\% & 5,2\,\% & -- & 2\,148 & 1,0× & -- \\
@@ -37,24 +37,22 @@ ISMC & FORM $M = 20$, modal & 3 & 1\,003 & 16,460\,\% & 5,9\,\% & 0,60 & 1\,397 
 LS (100 linhas) & FORM $M = 20$, numérico & 363 & 617 & 16,566\,\% & 9,0\,\% & 0,51 & 1\,183 & 1,8× & 1,2× \\
 LS (100 linhas) & FORM $M = 20$, modal & 3 & 246 & 16,998\,\% & 10,4\,\% & 0,67 & 1\,046 & 2,1× & 1,3× \\
 LS (100 linhas) & FORM $M = 2000$, modal & 3 & 227 & 15,996\,\% & 5,9\,\% & 0,24 & \textbf{313} & \textbf{6,9×} & 4,5× \\
-\bottomrule\end{tabular}}\end{table}
+\bottomrule\end{tabular}\end{table}
 
 \begin{table}[H]\centering\small
 \caption{Cho, $r = -0{,}5$: todos os métodos. ``Gasto'': as análises do MEF já feitas (com o FORM). ``Total p/ CoV 5\,\%'': o FORM mais as amostras ou linhas para CoV de 5\,\%, pelo CoV estimado (na ISMC, a média das sementes). $z$: a diferença contra o direto, em desvios padrão.}\label{tab:r05}
-\resizebox{\textwidth}{!}{%
 \begin{tabular}{llrrrrrrrr}\toprule
 método & centro ou direção & FORM & gasto & $P_f$ & CoV & $z$ & total p/ CoV 5\,\% & ganho vs direto & ganho vs ISMC \\\midrule
 MC direto & -- & -- & 24\,000 & 1,700\,\% & 4,9\,\% & -- & 23\,129 & 1,0× & -- \\
 ISMC (5 sementes) & FORM $M = 20$, numérico & 243 & 5\,441 & 1,748\,\% & 2,5\,\% & 0,51 & 1\,591 & 14,5× & -- \\
 ISMC (5 sementes) & FORM $M = 100$, numérico & 1203 & 6\,398 & 1,758\,\% & 2,5\,\% & 0,61 & 2\,453 & 9,4× & -- \\
 ISMC (5 sementes) & FORM $M = 20$, modal & 10 & 5\,199 & 1,707\,\% & 2,6\,\% & 0,08 & 1\,409 & 16,4× & -- \\
-LS (54 linhas, parcial) & FORM $M = 20$, numérico & 243 & 374 & 1,828\,\% & 6,8\,\% & 0,85 & 469 & 49,4× & 3,0× \\
+LS (77 linhas, parcial) & FORM $M = 20$, numérico & 243 & 435 & 1,785\,\% & 5,7\,\% & 0,65 & 473 & 48,9× & 3,0× \\
 LS (100 linhas) & FORM $M = 2000$, modal & 7 & 240 & 1,762\,\% & 4,2\,\% & 0,56 & \textbf{172} & \textbf{134,8×} & 8,2× \\
-\bottomrule\end{tabular}}\end{table}
+\bottomrule\end{tabular}\end{table}
 
 \begin{table}[H]\centering\small
 \caption{Cho, $r = -0{,}7$: todos os métodos. ``Gasto'': as análises do MEF já feitas (com o FORM). ``Total p/ CoV 5\,\%'': o FORM mais as amostras ou linhas para CoV de 5\,\%, pelo CoV estimado (na ISMC, a média das sementes). $z$: a diferença contra o direto, em desvios padrão.}\label{tab:r07}
-\resizebox{\textwidth}{!}{%
 \begin{tabular}{llrrrrrrrr}\toprule
 método & centro ou direção & FORM & gasto & $P_f$ & CoV & $z$ & total p/ CoV 5\,\% & ganho vs direto & ganho vs ISMC \\\midrule
 MC direto & -- & -- & 110\,000 & 0,366\,\% & 5,0\,\% & -- & 108\,781 & 1,0× & -- \\
@@ -62,13 +60,14 @@ ISMC (5 sementes) & FORM $M = 20$, numérico & 243 & 5\,429 & 0,361\,\% & 3,2\,\
 ISMC (5 sementes) & FORM $M = 100$, numérico & 1604 & 6\,787 & 0,359\,\% & 3,0\,\% & -0,33 & 3\,437 & 31,6× & -- \\
 ISMC (5 sementes) & FORM $M = 20$, modal & 8 & 5\,187 & 0,351\,\% & 3,4\,\% & -0,69 & 2\,329 & 46,7× & -- \\
 LS (100 linhas) & FORM $M = 2000$, modal & 5 & 279 & 0,367\,\% & 5,6\,\% & 0,01 & \textbf{353} & \textbf{307,8×} & 6,6× \\
-\bottomrule\end{tabular}}\end{table}
+\bottomrule\end{tabular}\end{table}
+
+\end{landscape}
 
 \begin{table}[H]\centering\small
 \caption{A viga com campo aleatório (Mathematica). MC direto e ISMC: relatório da viga, ``O ponto ótimo do M do FORM''; na ISMC, o total usa o CoV verdadeiro, calculado com as falhas do direto de 50\,000. Line sampling e FORM adjunto: seções 16 e 17 do código \texttt{viga\_mathematica/codigo/viga\_FORM5\_AI200.txt}, ainda fora do relatório da viga. FORM: só as análises do FORM; ``gasto'' e ``total'' do line sampling incluem as 2 da inclinação.}\label{tab:viga}
-\resizebox{\textwidth}{!}{%
 \begin{tabular}{lrrrrrr}\toprule
-método & FORM & gasto & $P_f$ & CoV & total p/ CoV 5\,\% & ganho vs direto \\\midrule
+método & FORM & gasto & $P_f$ & CoV & p/ CoV 5\,\% & ganho \\\midrule
 MC direto & -- & 50\,000 & 2,098\,\% & 3,1\,\% & 18\,666 & 1,0× \\
 ISMC, centro do FORM $M = 8$ (numérico) & 85 & 1\,085 & 2,290\,\% & -- & 1\,198 & 15,6× \\
 ISMC, centro do FORM $M = 20$ (numérico) & 205 & 1\,205 & 2,200\,\% & -- & 1\,224 & 15,2× \\
@@ -76,24 +75,23 @@ LS, FORM $M = 8$ (numérico) & 85 & 1\,099 & 2,155\,\% & 2,2\,\% & 281 & 66,4× 
 LS, FORM $M = 20$ (numérico) & 205 & 1\,209 & 2,104\,\% & 1,4\,\% & 280 & 66,7× \\
 LS, FORM $M = 200$ (numérico) & 2005 & 3\,008 & 2,045\,\% & 0,6\,\% & 2\,021 & 9,2× \\
 LS, FORM $M = 200$ (adjunto) & 15 & 1\,021 & 2,107\,\% & 1,4\,\% & 92 & 202,9× \\
-\bottomrule\end{tabular}}\end{table}
+\bottomrule\end{tabular}\end{table}
 
+\begin{landscape}
 \begin{table}[H]\centering\small
 \caption{O line sampling, direção a direção: o $\nu_\ell$ de cada linha (onde ela entra na falha) e o CoV de uma linha, $\mathrm{sd}(p_\ell)/P_f$. Quanto menor a dispersão de $\nu_\ell$, melhor a direção.}\label{tab:ls}
-\resizebox{\textwidth}{!}{%
 \begin{tabular}{llrrrrrr}\toprule
 problema & direção & linhas & $\beta$ & média de $\nu_\ell$ & dp de $\nu_\ell$ & CoV por linha & análises por linha \\\midrule
 Ceron, rebaixamento & FORM $M = 20$, numérico & 100 & 1,153 & 1,21 & 0,73 & 90\,\% & 2,52 \\
 Ceron, rebaixamento & FORM $M = 20$, modal & 100 & 1,205 & 1,26 & 0,85 & 104\,\% & 2,41 \\
 Ceron, rebaixamento & FORM $M = 2000$, modal & 100 & 0,982 & 1,07 & 0,40 & 59\,\% & 2,22 \\
-Cho, $r = -0{,}5$ & FORM $M = 20$, numérico & 54 & 1,977 & 2,14 & 0,23 & 50\,\% & 2,24 \\
+Cho, $r = -0{,}5$ & FORM $M = 20$, numérico & 77 & 1,977 & 2,15 & 0,24 & 50\,\% & 2,31 \\
 Cho, $r = -0{,}5$ & FORM $M = 2000$, modal & 100 & 1,977 & 2,14 & 0,19 & 42\,\% & 2,31 \\
 Cho, $r = -0{,}7$ & FORM $M = 2000$, modal & 100 & 2,463 & 2,75 & 0,26 & 56\,\% & 2,72 \\
-\bottomrule\end{tabular}}\end{table}
+\bottomrule\end{tabular}\end{table}
 
 \begin{table}[H]\centering\small
 \caption{A ISMC da etapa 3b, semente a semente (Cho, base de Nyström de 2000 modos, sementes 21 a 25, as mesmas nos três centros). Nenhuma semente chegou ainda ao CoV de 5\,\%.}\label{tab:ismcsem}
-\resizebox{\textwidth}{!}{%
 \begin{tabular}{llrrrrrrr}\toprule
 caso & centro & $P_f$ s21 (CoV) & $P_f$ s22 (CoV) & $P_f$ s23 (CoV) & $P_f$ s24 (CoV) & $P_f$ s25 (CoV) & média & dp entre sementes \\\midrule
 Cho, $r = -0{,}5$ & FORM $M = 20$, numérico & 1,628 (5,8) & 1,819 (5,8) & 1,804 (5,5) & 1,713 (5,9) & 1,778 (5,4) & 1,748\,\% & 4,5\,\% \\
@@ -102,4 +100,5 @@ Cho, $r = -0{,}5$ & FORM $M = 20$, modal & 1,616 (6,1) & 1,774 (5,8) & 1,771 (5,
 Cho, $r = -0{,}7$ & FORM $M = 20$, numérico & 0,334 (7,3) & 0,368 (7,1) & 0,401 (7,3) & 0,343 (7,2) & 0,360 (6,8) & 0,361\,\% & 7,2\,\% \\
 Cho, $r = -0{,}7$ & FORM $M = 100$, numérico & 0,332 (6,6) & 0,364 (6,5) & 0,370 (6,5) & 0,364 (7,3) & 0,367 (6,2) & 0,359\,\% & 4,2\,\% \\
 Cho, $r = -0{,}7$ & FORM $M = 20$, modal & 0,330 (7,4) & 0,369 (7,6) & 0,380 (7,8) & 0,330 (7,6) & 0,348 (7,0) & 0,351\,\% & 6,5\,\% \\
-\bottomrule\end{tabular}}\end{table}
+\bottomrule\end{tabular}\end{table}
+\end{landscape}

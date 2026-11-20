@@ -204,12 +204,13 @@ for k in ORDEM:
         T.append(f"{P[k]['rotulo']} & {nome} & {num(fo['beta'], 3)} & {pct(cauda(fo['beta']), 2)} & {fo['n']} & "
                  f"{', '.join(sorted(uso))} \\\\\n")
 T.append("\\bottomrule\\end{tabular}\\end{table}\n\n")
-# a comparacao, um problema por tabela
+# a comparacao, um problema por tabela (numa pagina em paisagem, sem encolher)
+T.append("\\begin{landscape}\n")
 for k in ORDEM:
     T.append(f"\\begin{{table}}[H]\\centering\\small\n\\caption{{{P[k]['rotulo']}: todos os métodos. ``Gasto'': as "
              f"análises do MEF já feitas (com o FORM). ``Total p/ CoV 5\\,\\%'': o FORM mais as amostras ou linhas para "
              f"CoV de 5\\,\\%, pelo CoV estimado (na ISMC, a média das sementes). $z$: a diferença contra o direto, em "
-             f"desvios padrão.}}\\label{{tab:{k}}}\n\\resizebox{{\\textwidth}}{{!}}{{%\n"
+             f"desvios padrão.}}\\label{{tab:{k}}}\n"
              "\\begin{tabular}{llrrrrrrrr}\\toprule\nmétodo & centro ou direção & FORM & gasto & $P_f$ & CoV & $z$ & "
              "total p/ CoV 5\\,\\% & ganho vs direto & ganho vs ISMC \\\\\\midrule\n")
     for x in linhas_problema(k):
@@ -219,22 +220,24 @@ for k in ORDEM:
                  f"{pct(x['Pf'], 3)} & {pct(x['CoV'], 1)} & {num(x['z'], 2) if x['z'] is not None else '--'} & "
                  f"{b(num(x['n5']))} & {b(num(x['ganho'], 1) + chr(215))} & "
                  f"{(num(x['ganho_ismc'], 1) + chr(215)) if x['ganho_ismc'] else '--'} \\\\\n")
-    T.append("\\bottomrule\\end{tabular}}\\end{table}\n\n")
+    T.append("\\bottomrule\\end{tabular}\\end{table}\n\n")
+T.append("\\end{landscape}\n\n")
 # viga
 T.append("\\begin{table}[H]\\centering\\small\n\\caption{A viga com campo aleatório (Mathematica). MC direto e ISMC: "
          "relatório da viga, ``O ponto ótimo do M do FORM''; na ISMC, o total usa o CoV verdadeiro, calculado com as falhas "
          "do direto de 50\\,000. Line sampling e FORM adjunto: seções 16 e 17 do código "
          "\\texttt{viga\\_mathematica/codigo/viga\\_FORM5\\_AI200.txt}, ainda fora do relatório da viga. FORM: só as análises do "
          "FORM; ``gasto'' e ``total'' do line sampling incluem as 2 da inclinação.}"
-         "\\label{tab:viga}\n\\resizebox{\\textwidth}{!}{%\n\\begin{tabular}{lrrrrrr}\\toprule\nmétodo & FORM & gasto & $P_f$ & CoV & total p/ CoV 5\\,\\% & "
-         "ganho vs direto \\\\\\midrule\n")
+         "\\label{tab:viga}\n\\begin{tabular}{lrrrrrr}\\toprule\nmétodo & FORM & gasto & $P_f$ & CoV & p/ CoV 5\\,\\% & "
+         "ganho \\\\\\midrule\n")
 for nome, fo, g, p, cv, n5 in VIGA["linhas"]:
     T.append(f"{nome} & {fo} & {num(g)} & {pct(p, 3)} & {pct(cv, 1)} & {num(n5)} & {num(18666 / n5, 1)}{chr(215)} \\\\\n")
-T.append("\\bottomrule\\end{tabular}}\\end{table}\n\n")
+T.append("\\bottomrule\\end{tabular}\\end{table}\n\n")
+T.append("\\begin{landscape}\n")
 # as linhas do LS
 T.append("\\begin{table}[H]\\centering\\small\n\\caption{O line sampling, direção a direção: o $\\nu_\\ell$ de cada linha "
          "(onde ela entra na falha) e o CoV de uma linha, $\\mathrm{sd}(p_\\ell)/P_f$. Quanto menor a dispersão de "
-         "$\\nu_\\ell$, melhor a direção.}\\label{tab:ls}\n\\resizebox{\\textwidth}{!}{%\n\\begin{tabular}{llrrrrrr}\\toprule\nproblema & direção & "
+         "$\\nu_\\ell$, melhor a direção.}\\label{tab:ls}\n\\begin{tabular}{llrrrrrr}\\toprule\nproblema & direção & "
          "linhas & $\\beta$ & média de $\\nu_\\ell$ & dp de $\\nu_\\ell$ & CoV por linha & análises por linha \\\\\\midrule\n")
 for k in ORDEM:
     for d in P[k]["ls"]:
@@ -242,11 +245,11 @@ for k in ORDEM:
         sd = math.sqrt(sum((x - m) ** 2 for x in d["nu"]) / (d["N"] - 1))
         T.append(f"{P[k]['rotulo']} & {d['nome']} & {d['N']} & {num(d['beta'], 3)} & {num(m, 2)} & {num(sd, 2)} & "
                  f"{pct(d['CoVlinha'], 0)} & {num(d['porlinha'], 2)} \\\\\n")
-T.append("\\bottomrule\\end{tabular}}\\end{table}\n\n")
+T.append("\\bottomrule\\end{tabular}\\end{table}\n\n")
 # ISMC por semente (Cho)
 T.append("\\begin{table}[H]\\centering\\small\n\\caption{A ISMC da etapa 3b, semente a semente (Cho, base de Nyström de "
          "2000 modos, sementes 21 a 25, as mesmas nos três centros). Nenhuma semente chegou ainda ao CoV de 5\\,\\%.}"
-         "\\label{tab:ismcsem}\n\\resizebox{\\textwidth}{!}{%\n\\begin{tabular}{ll" + "r" * len(SEM) + "rr}\\toprule\n"
+         "\\label{tab:ismcsem}\n\\begin{tabular}{ll" + "r" * len(SEM) + "rr}\\toprule\n"
          "caso & centro & " + " & ".join(f"$P_f$ s{s} (CoV)" for s in SEM) + " & média & dp entre sementes \\\\\\midrule\n")
 for k in ("r05", "r07"):
     for d in P[k]["ismc"]:
@@ -255,7 +258,7 @@ for k in ("r05", "r07"):
         sd = math.sqrt(sum((x - m) ** 2 for x in ps) / (len(ps) - 1))
         cel = " & ".join(f"{num(100 * s['Pf'], 3)} ({num(100 * s['CoV'], 1)})" for s in d["sem"])
         T.append(f"{P[k]['rotulo']} & {d['nome']} & {cel} & {num(100 * m, 3)}\\,\\% & {num(100 * sd / m, 1)}\\,\\% \\\\\n")
-T.append("\\bottomrule\\end{tabular}}\\end{table}\n")
+T.append("\\bottomrule\\end{tabular}\\end{table}\n\\end{landscape}\n")
 open(os.path.join(AQUI, "tabelas.tex"), "w").write("".join(T))
 
 # numeros para o texto
@@ -309,93 +312,108 @@ def curvas(k):
     return out
 
 
-fig, ax = plt.subplots(2, 3, figsize=(15, 8.5))
-for j, k in enumerate(ORDEM):
+plt.rcParams.update({"font.size": 10, "axes.titlesize": 11, "axes.labelsize": 10, "legend.fontsize": 8.5,
+                     "xtick.labelsize": 9, "ytick.labelsize": 9})
+LARG = 7.2   # polegadas: ~ a largura do texto, entao as fontes saem no tamanho real
+
+
+def tit(k):
+    return P[k]["rotulo"].replace("$", "").replace("{,}", ",")
+
+
+# a convergencia: uma figura por problema, a P_f e o CoV lado a lado, a legenda embaixo
+for k in ORDEM:
     ref = P[k]["ref"]
-    a1, a2 = ax[0, j], ax[1, j]
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(LARG, 3.9))
     for nome, x, pk, cvk, c, ls_ in curvas(k):
         a1.semilogx(x, [100 * v for v in pk], ls_, color=c, lw=1.6, label=nome)
         xs = [a for a, b in zip(x, cvk) if math.isfinite(b)]
-        a2.loglog(xs, [b for b in cvk if math.isfinite(b)], ls_, color=c, lw=1.6, label=nome)
+        a2.loglog(xs, [b for b in cvk if math.isfinite(b)], ls_, color=c, lw=1.6)
     lo, hi = ref["Pf"] * (1 - 1.96 * ref["CoV"]), ref["Pf"] * (1 + 1.96 * ref["CoV"])
     a1.axhspan(100 * lo, 100 * hi, color="0.85", zorder=0)
     a1.axhline(100 * ref["Pf"], color="k", lw=1)
     a1.set_ylim(0, 100 * ref["Pf"] * 2.2)
-    a1.set_title(P[k]["rotulo"].replace("$", "").replace("{,}", ","))
     a1.set_ylabel("$P_f$ acumulada (%)")
+    a1.set_xlabel("análises do MEF")
+    a1.set_title("a estimativa (cinza: IC 95% do direto)", fontsize=10)
     a2.axhline(0.05, color="k", ls=":", lw=1)
     a2.axvline(ref["n5"], color="0.5", ls=":", lw=1)
-    a2.text(ref["n5"], 0.9, " MC direto\n p/ CoV 5%", fontsize=8, color="0.4", va="top")
+    a2.text(ref["n5"] * 0.95, 0.9, "MC direto\np/ CoV 5%", fontsize=8, color="0.35", va="top", ha="right")
     a2.set_ylim(0.02, 1.2)
-    a2.set_xlabel("análises do MEF (com o FORM)")
+    a2.set_xlabel("análises do MEF")
     a2.set_ylabel("CoV estimado")
-    a1.legend(fontsize=7, loc="upper right")
-fig.suptitle("A estimativa (em cima; faixa cinza: IC de 95% do MC direto) e o CoV (embaixo; pontilhado: 5%) contra as "
-             "análises do MEF", fontsize=11)
-fig.tight_layout()
-fig.savefig(os.path.join(FIGS, "convergencia.pdf"))
-plt.close(fig)
+    a2.set_title("o CoV (pontilhado: 5%)", fontsize=10)
+    h, l = a1.get_legend_handles_labels()
+    fig.legend(h, l, loc="lower center", ncol=2, frameon=False)
+    fig.suptitle(tit(k), fontsize=12)
+    fig.tight_layout(rect=(0, 0.03 + 0.045 * math.ceil(len(l) / 2), 1, 1))
+    fig.savefig(os.path.join(FIGS, f"convergencia_{k}.pdf"))
+    plt.close(fig)
 
-# o custo para CoV 5%
-fig, ax = plt.subplots(1, 4, figsize=(16, 4.6), sharey=True)
-grupos = [(P[k]["rotulo"].replace("$", "").replace("{,}", ","), linhas_problema(k)) for k in ORDEM]
+# o custo para CoV 5%: grade 2 x 2
+fig, ax = plt.subplots(4, 1, figsize=(LARG, 9.6))
+grupos = [(tit(k), linhas_problema(k)) for k in ORDEM]
 grupos.append(("viga (Mathematica)", [{"metodo": n.split(",")[0], "dir": n, "n5": n5,
                                         "tipo": "mc" if n.startswith("MC") else ("ls" if n.startswith("LS") else "ismc")}
                                        for n, fo, g, p, cv, n5 in VIGA["linhas"]]))
-for a, (tit, L) in zip(ax, grupos):
-    nomes = [(x["metodo"].split(" (")[0] + "\n" + x["dir"].replace("$", "").replace("FORM ", "").replace(
-        "\\,", " ").replace("ISMC, centro do ", "").replace("LS, ", "")) if x["tipo"] != "mc" else "MC direto"
-             for x in L]
+for a, (t, L) in zip(ax.flat, grupos):
+    nomes = [(x["metodo"].split(" (")[0] + ", " + x["dir"].replace("$", "").replace("FORM ", "").replace(
+        "\\,", " ").replace("ISMC, centro do ", "").replace("LS, ", "").replace("numérico", "num.")) if x["tipo"] != "mc"
+             else "MC direto" for x in L]
     cores = ["0.4" if x["tipo"] == "mc" else ("#e08214" if x["tipo"] == "ismc" else "#2166ac") for x in L]
     for i, x in enumerate(L):
-        a.bar([i], [x["n5"]], color=cores[i], hatch="//" if x.get("parcial") else None,
-              edgecolor="k" if x.get("parcial") else cores[i])
+        a.barh([i], [x["n5"]], color=cores[i], hatch="//" if x.get("parcial") else None,
+               edgecolor="k" if x.get("parcial") else cores[i])
         if x.get("parcial"):
-            nomes[i] += f"\n(parcial, {x['nlin']} linhas)"
-    for i, x in enumerate(L):
-        a.text(i, x["n5"] * 1.1, f"{x['n5']:.0f}", ha="center", fontsize=7)
-    a.set_yscale("log")
-    a.set_xticks(range(len(L)))
-    a.set_xticklabels(nomes, rotation=90, fontsize=7)
-    a.set_title(tit, fontsize=10)
-ax[0].set_ylabel("análises do MEF para CoV de 5% (com o FORM)")
+            nomes[i] += f" (parcial, {x['nlin']} lin.)"
+        a.text(x["n5"] * 1.12, i, f"{x['n5']:.0f}", va="center", fontsize=8.5)
+    a.set_xscale("log")
+    a.set_yticks(range(len(L)))
+    a.set_yticklabels(nomes, fontsize=8.5)
+    a.invert_yaxis()
+    a.set_xlim(50, 6e5)
+    a.set_title(t, fontsize=11)
+ax[-1].set_xlabel("análises do MEF para CoV de 5% (com o FORM)")
 fig.tight_layout()
 fig.savefig(os.path.join(FIGS, "custo.pdf"))
 plt.close(fig)
 
-# as linhas: o nu de cada linha, por direcao
-fig, ax = plt.subplots(1, 3, figsize=(15, 4.2))
+# as linhas: o nu de cada linha, por direcao (um problema por linha da figura)
+fig, ax = plt.subplots(3, 1, figsize=(LARG, 9.0))
 for a, k in zip(ax, ORDEM):
     for i, d in enumerate(P[k]["ls"]):
+        m = sum(d["nu"]) / d["N"]
+        sd = math.sqrt(sum((x - m) ** 2 for x in d["nu"]) / (d["N"] - 1))
         a.hist(d["nu"], bins=20, histtype="step", lw=1.8, color=COR["ls"][i % 3],
-               label=d["nome"].replace("$", "") + f" (dp {math.sqrt(sum((x - sum(d['nu']) / d['N']) ** 2 for x in d['nu']) / (d['N'] - 1)):.2f})")
-        a.axvline(d["beta"], color=COR["ls"][i % 3], ls=":", lw=1)
-    a.set_title(P[k]["rotulo"].replace("$", "").replace("{,}", ","))
-    a.set_xlabel(r"$\nu_\ell$ (onde a linha entra na falha); pontilhado: $\beta$ da direção")
+               label=d["nome"].replace("$", "") + f": dp de nu = {sd:.2f} ({d['N']} linhas)")
+        a.axvline(d["beta"], color=COR["ls"][i % 3], ls=":", lw=1.2)
+    a.set_title(tit(k), fontsize=11)
     a.set_ylabel("linhas")
-    a.legend(fontsize=7)
+    a.legend(loc="upper right")
+ax[-1].set_xlabel(r"$\nu_\ell$ (onde a linha entra na falha); pontilhado: o $\beta$ da direção")
 fig.tight_layout()
 fig.savefig(os.path.join(FIGS, "linhas_nu.pdf"))
 plt.close(fig)
 
-# ISMC: a P_f de cada semente
-fig, ax = plt.subplots(1, 2, figsize=(12, 4))
+# ISMC: a P_f de cada semente, e o LS
+fig, ax = plt.subplots(2, 1, figsize=(LARG, 7.6))
 for a, k in zip(ax, ("r05", "r07")):
     ref = P[k]["ref"]
     for i, d in enumerate(P[k]["ismc"]):
         xs = [i + 0.12 * (j - 2) for j in range(len(d["sem"]))]
         a.errorbar(xs, [100 * s["Pf"] for s in d["sem"]], yerr=[196 * s["Pf"] * s["CoV"] for s in d["sem"]], fmt="o",
-                   color=COR["ismc"][i % 3], ms=4, capsize=2)
+                   color=COR["ismc"][i % 3], ms=5, capsize=2)
     for i, d in enumerate(P[k]["ls"]):
         x = len(P[k]["ismc"]) + i
-        a.errorbar([x], [100 * d["Pf"]], yerr=[196 * d["Pf"] * d["CoV"]], fmt="s", color=COR["ls"][i % 3], ms=6, capsize=3)
+        a.errorbar([x], [100 * d["Pf"]], yerr=[196 * d["Pf"] * d["CoV"]], fmt="s", color=COR["ls"][i % 3], ms=7, capsize=3)
     a.axhspan(100 * ref["Pf"] * (1 - 1.96 * ref["CoV"]), 100 * ref["Pf"] * (1 + 1.96 * ref["CoV"]), color="0.85", zorder=0)
     a.axhline(100 * ref["Pf"], color="k", lw=1)
-    lab = [("ISMC\n" + d["nome"]) for d in P[k]["ismc"]] + [("LS\n" + d["nome"]) for d in P[k]["ls"]]
+    lab = [("ISMC\n" + d["nome"]) for d in P[k]["ismc"]] + [("LS" + (" (parcial)" if d["N"] < 100 else "") + "\n" + d["nome"])
+                                                            for d in P[k]["ls"]]
     a.set_xticks(range(len(lab)))
-    a.set_xticklabels([s.replace("$", "").replace("FORM ", "") for s in lab], fontsize=8)
-    a.set_ylabel("$P_f$ (%) e IC de 95%")
-    a.set_title(P[k]["rotulo"].replace("$", "").replace("{,}", ",") + ": ISMC (5 sementes, ~1040 cada) e LS (1 semente)")
+    a.set_xticklabels([s.replace("$", "").replace("FORM ", "").replace("numérico", "num.") for s in lab], fontsize=8.5)
+    a.set_ylabel("$P_f$ (%) e IC 95%")
+    a.set_title(tit(k) + ": ISMC (5 sementes, ~1040 cada) e LS (1 semente)", fontsize=11)
 fig.tight_layout()
 fig.savefig(os.path.join(FIGS, "sementes.pdf"))
 plt.close(fig)
