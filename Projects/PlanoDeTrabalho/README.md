@@ -33,9 +33,14 @@ resultados) está no fim, na seção [Documentos](#documentos).
 | 3 | AI pela entropia cruzada: tamanho do piloto e P_f menor (r = −0,7) | uma campanha | depois da 2 | `ETAPA3/` |
 | 3b | ISMC até CoV de 5% no campo de Nyström com 2000 modos, com o centro de um FORM com poucos termos (M = 20 e 100 por diferenças centrais; M = 20 pelo GIM modal) | campanha `etapa3b` | feita (20/11): 30 sementes com CoV 4,6 a 5,0% (1160 a 2990 realizações); `comparacao_metodos/` | `ETAPAS1a3/` |
 | 3c | Line sampling na direção do FORM modal com todos os modos (o método padrão desde 20/11/2026) | PC (e `ls_etapa3b.sbatch`) | feita; faltam 2 sementes | `comparacao_metodos/` |
-| 3d | A P_f do rebaixamento contra o Ceron (15,7% contra 11,5%): o método cinemático dele reproduzido e comparado, realização a realização, com o MEF | não (PC) | passo 1 feito; decidir o campo de pressões antes do passo 2 | `Projects/CeronCinematico/` |
-| 4 | A chuva: o código (`xi=`, ISMC e gradiente modal no instante do FS mínimo) e a validação de LS e ISMC (modal) contra o direto | código novo e uma campanha | plano de 20/11/2026 | `ETAPA4/` |
+| 3d | A P_f do rebaixamento contra o Ceron (15,7% contra 11,5%): o método cinemático dele reproduzido e comparado, realização a realização, com o MEF | LS `contorno=ceron` no fermi; MC da análise limite no PC | a água do artigo reproduzida no PZ (`contorno=ceron`, Γ 1,340); MC em preparo | `Projects/CeronCinematico/` |
+| 4 | A chuva: o código (`xi=`, ISMC e gradiente modal no instante do FS mínimo) e a validação de LS e ISMC (modal) contra o direto | código novo e uma campanha | parada: depois dos secos e do saturado; decisões D1, D2, D4, D7 pendentes | `ETAPA4/` |
 | 5 | A chuva: análise de sensibilidade como no Ceron (Seção 6), com as duas chuvas do Rahardjo (9 e 80 mm/h), por line sampling | campanhas | depois da 4 | `ETAPA5/` |
+
+**Prioridade (20/11/2026):** terminar primeiro os casos **secos** (Cho, r = −0,5 e −0,7: MEF × análise limite do Ceron)
+e o **saturado** do Ceron (rebaixamento com a água do artigo, `contorno=ceron`: line sampling no fermi e o MC de 10 000
+pela análise limite em Python, alvo P_f = 11,5%). A chuva (etapas 4 e 5) fica parada até lá; as decisões pendentes dela
+estão na etapa 4.
 
 As etapas 0 e 1 rodam juntas na campanha `etapa1` (`SlopeRandomFieldRefinement/cluster/casos_etapa1.txt`), com ~290 h de
 núcleo, ou 6 a 7 h em 4 nós. O primeiro nó roda antes os FORM com M = 10 e 20 (`form.sh`).
@@ -280,6 +285,25 @@ núcleo, ou 6 a 7 h em 4 nós. O primeiro nó roda antes os FORM com M = 10 e 20
 
 ### Etapa 4: a chuva
 
+- **Parada (20/11/2026)** até terminar os casos secos e o saturado do Ceron (ver Prioridade, acima).
+- **Decisões pendentes antes das campanhas** (levantamento do código contra o Rahardjo 2007, em
+  `contornos_agua/relatorio_contornos.pdf`; o resto do contorno já segue o artigo: geometria, NA a 7°, −75 kPa, laterais
+  com carga fixa abaixo do NA, base sem fluxo, SWCC e k):
+  - **D1, a chuva na face:** o `RainTransient` aplica q = I por metro **inclinado** da face (via `BoundaryNodes` sem
+    projeção), 41% mais água que a chuva vertical na face de 45°. O artigo diz só "q = I_r na superfície". A opção
+    `BoundaryNodes(id, true)` (projeção horizontal) existe e não é usada. Muda todos os casos: decidir e medir o efeito
+    no FS mínimo;
+  - **D2, a superfície saturada:** usamos face de percolação (p_w = 0 imposto onde empoça, o excesso escorre; nada de
+    lâmina d'água). O artigo não diz o que fez;
+  - **D3, armazenamento:** temos também a compressibilidade da água (K_w = 2,2e6 kPa); o artigo usa só m_2^w. Efeito
+    esperado desprezível, não medido;
+  - **D4, horizonte:** o artigo vai até 240 h; nós até 48 h. No f100 o FS mínimo pode cair depois de 48 h (Fig. 4c3);
+    conferir e ampliar `tempos=` se for o caso;
+  - **D7, padrão perigoso:** o `RainData` tem yToe = 30 (malha antiga); os dois drivers trocam para 20, mas um driver
+    novo que esqueça erra o NA em 10 m. Tirar o padrão (ou exigir o valor);
+  - no `montecarlo.cpp` faltam `M=`, `xi=`, `desloc_xi=` e `gradiente=K`; o FS de 6 em 6 h até 48 h é só a lista
+    `tempos=` (o padrão é 0 e 24 h).
+
 - **Código antes:**
   - levar `M=`, `xi=` e `desloc_xi=` do `cho2010.cpp` para o `montecarlo.cpp`;
   - o `form_kl.py` com 3 campos e o menor FS dos instantes.
@@ -427,7 +451,7 @@ Regras:
 | `Projects/PlanoDeTrabalho/viga_mathematica/relatorio_viga.pdf` | 9 | a viga com campo aleatório em Mathematica (código em viga_mathematica/codigo): MC, FORM, SORM e ISMC com M, centros baratos (fórmulas de viga), o ponto ótimo do M do FORM e o SORM como função de amostragem |
 | `Projects/PlanoDeTrabalho/comparacao_metodos/relatorio_comparacao.pdf` | 13 | comparação com os dados parciais (20/11/2026): Monte Carlo direto, ISMC e line sampling no Cho (r = -0,5 e -0,7), no rebaixamento do Ceron e na viga; custo para CoV de 5%, convergência, sementes e direções (comparacao_metodos/gera_relatorio.sh refaz com os dados novos) |
 | `Projects/PlanoDeTrabalho/contornos_agua/relatorio_contornos.pdf` | 20 | os contornos da água: Ceron (2025) contra o PZ 'reservatorio' e 'ceron' e a chuva do Rahardjo (2007) contra o código; esquemas em escala, as duas tabelas de contornos, o Gamma por contorno e domínio, e os próximos passos (contornos_agua/gera.sh refaz) |
-| `Projects/PlanoDeTrabalho/arquivo/` |  | cópias datadas (AAAA-MM-DD_nome.pdf), nunca editadas: 2026-11-17_relatorio_parcial.pdf, 2026-11-20_relatorio_comparacao_final.pdf |
+| `Projects/PlanoDeTrabalho/arquivo/` |  | cópias datadas (AAAA-MM-DD_nome.pdf), nunca editadas: 2026-11-17_relatorio_parcial.pdf, 2026-11-20_relatorio_comparacao_final.pdf, 2026-11-20_relatorio_contornos.pdf |
 
 ### Resultados: as campanhas
 
