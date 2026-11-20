@@ -18,8 +18,9 @@
 //   nref (3), fator (tri1), transiente (tri3), trebaix (0.1), dt (0.1, h), hw (1)
 //   tfim (trebaix)  instante (h) do Gamma; agua (unsat): sat = solo sempre saturado (S_w = 1, k_r = 1), como no
 //                   rebaixamento_mc.cpp
+//   contorno (reservatorio) reservatorio ou ceron: os contornos do transiente, como no rebaixamento_mc.cpp
 //   succao (zero,total,sw)  lista: um fator por item, todos com o mesmo transiente
-//   saida (up)               <saida>.csv: uma linha por (succao, nivel) com Gamma, equacoes e tempo
+//   saida (up)               <saida>.csv: uma linha por (succao, nivel) com Gamma, equacoes e tempo; <saida>_parametros.txt com malhas, trebaix, tfim, dt, agua e contorno
 #include "DrawdownTransient.h"
 #include "HPMaterial.h"
 #include "PointLocator.h"
@@ -74,12 +75,13 @@ struct Opcoes {
     std::string malhaT = "tri3", malhaF = "tri1", saida = "up";
     REAL trebaix = 0.1, dt = 0.1, hw = 1., tfim = -1.;
     std::string agua = "unsat";
+    std::string contorno = "reservatorio";
     std::vector<std::string> succao = {"zero", "total", "sw"};
 };
 
 Opcoes LeOpcoes(int argc, char *argv[])
 {
-    const std::set<std::string> chaves = {"nref", "fator", "transiente", "trebaix", "dt", "hw", "succao", "saida", "tfim", "agua"};
+    const std::set<std::string> chaves = {"nref", "fator", "transiente", "trebaix", "dt", "hw", "succao", "saida", "tfim", "agua", "contorno"};
     std::map<std::string, std::string> kv;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
@@ -98,6 +100,11 @@ Opcoes LeOpcoes(int argc, char *argv[])
     if (kv.count("dt")) op.dt = std::stod(kv["dt"]);
     if (kv.count("tfim")) op.tfim = std::stod(kv["tfim"]);
     if (kv.count("agua")) op.agua = kv["agua"];
+    if (kv.count("contorno")) op.contorno = kv["contorno"];
+    if (op.contorno != "reservatorio" && op.contorno != "ceron") {
+        std::fprintf(stderr, "contorno=reservatorio ou contorno=ceron\n");
+        std::exit(1);
+    }
     if (kv.count("hw")) op.hw = std::stod(kv["hw"]);
     if (kv.count("saida")) op.saida = kv["saida"];
     if (kv.count("succao")) {
@@ -285,8 +292,9 @@ int main(int argc, char *argv[])
     const auto &p = kTalude;
     const REAL H = p[4][1] - p[3][1], nivelFinal = p[4][1] - op.hw * H;
     std::printf("Rebaixamento do Ceron, deterministico, Gamma (GIM) com o u-p | transiente %s (dt = %g h, %g h), fator %s + "
-                "%d niveis, h_w/H = %g\n",
-                op.malhaT.c_str(), op.dt, op.trebaix, op.malhaF.c_str(), op.nref, op.hw);
+                "%d niveis, h_w/H = %g, agua %s, contorno %s\n",
+                op.malhaT.c_str(), op.dt, op.trebaix, op.malhaF.c_str(), op.nref, op.hw, op.agua.c_str(),
+                op.contorno.c_str());
 
     // 1. transiente (o mesmo do rebaixamento_mc.cpp)
     const auto t0 = Clock::now();
@@ -311,7 +319,11 @@ int main(int argc, char *argv[])
     d.nivelMacico = p[4][1];
     d.tRebaixamento = op.trebaix;
     d.dt = op.dt;
-    DrawdownTransient rebaixamento(aT, d, left, {right, topright, face, topleft});
+    std::unique_ptr<DrawdownTransient> rebaixamentoPtr =
+        op.contorno == "ceron"
+            ? std::make_unique<DrawdownTransient>(aT, d, DrawdownCeronIds{topleft, face, topright, base, left})
+            : std::make_unique<DrawdownTransient>(aT, d, left, std::set<int>{right, topright, face, topleft});
+    DrawdownTransient &rebaixamento = *rebaixamentoPtr;
     rebaixamento.InitialState();
     const PointLocator loc(mT.GeoMesh());
     if (!rebaixamento.AdvanceTo(std::max(op.tfim, op.trebaix))) {
@@ -327,6 +339,12 @@ int main(int argc, char *argv[])
     const TPZUnsaturatedHydraulics hidro = Hidraulica();
 
     // 2. Gamma com o u-p, um caminho adaptativo por tratamento da succao
+    {
+        std::ofstream pa(op.saida + "_parametros.txt");
+        pa << "TRANSIENTE=" << op.malhaT << "\nFATOR=" << op.malhaF << "\nNREF=" << op.nref << "\nHW_H=" << op.hw
+           << "\nNIVEL_FINAL=" << nivelFinal << "\nTREBAIX=" << op.trebaix << "\nTFIM=" << std::max(op.tfim, op.trebaix)
+           << "\nDT=" << op.dt << "\nAGUA=" << op.agua << "\nCONTORNO=" << op.contorno << "\n";
+    }
     std::ofstream csv(op.saida + ".csv");
     csv << "succao,nivel,Gamma,equacoes,triangulos,s_nivel,s_acumulado,transiente,dt,eq_transiente,s_transiente\n";
     for (const std::string &suc : op.succao) {

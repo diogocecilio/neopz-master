@@ -16,10 +16,15 @@
 //   valores ()             c',phi',k: a deterministica com esses valores em todo o solo (c' kPa, phi' graus, k / k_v)
 //   hw (1)                 h_w / H: o rebaixamento (1: total, ate o pe; Secao 6.5 do artigo: 0,5 a 0,9)
 //   trebaix (0.1)          duracao do rebaixamento (h; 1e-4 = instantaneo)
-//   tfim (trebaix)         instante (h) do Gamma e das figuras (>= trebaix: o nivel fica parado depois do rebaixamento)
+//   tfim (trebaix)         instante (h) do Gamma e das figuras (>= trebaix: o nivel fica parado depois do rebaixamento); e a coluna t_h dos CSV
 //   dt (0.1)               passo de tempo do transiente (h)
 //   agua (unsat)           unsat: van Genuchten-Mualem (a = 0,1 1/kPa); sat: solo sempre saturado (a = 1e-12, S_w = 1,
 //                          k_r = 1, chi = 1; a succao entra inteira), a agua do u-p (Darcy saturado, armazenamento n/K_w)
+//   contorno (reservatorio) reservatorio: lateral esquerda hidrostatica com o NA na crista, lado do reservatorio
+//                          hidrostatico abaixo do nivel e face de percolacao acima, base sem fluxo; ceron: os contornos
+//                          das Eqs. 19-21 do artigo (DrawdownTransient.h): crista p_w = 0, face e terreno do pe com o
+//                          nivel do instante, lateral esquerda e base com a hidrostatica da crista (Dirichlet), lateral
+//                          direita sem fluxo, sem face de percolacao
 //   covc (0.3), covphi (0.1), covk (0.6)   CoV de c', phi' e k_v (Secao 6.2)
 //   s (1)                  escala das distancias de autocorrelacao: 20 s e 2 s m (Secao 6.3)
 //   alfa (1)               k_h / k_v (Secao 6.4)
@@ -133,6 +138,7 @@ struct Opcoes {
     int n = 10, primeira = 0;
     REAL tfim = -1., dt = 0.1; // tfim < 0: tfim = trebaix
     std::string agua = "unsat";
+    std::string contorno = "reservatorio";
     bool det = false;
     REAL hw = 1., trebaix = 0.1, alfa = 1., s = 1.;
     Campos campos;
@@ -168,7 +174,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
     const std::set<std::string> chaves = {"n",    "primeira", "det",        "valores", "hw",   "trebaix", "covc",
                                           "covphi", "covk",   "s",          "alfa",    "transiente", "fator", "nref",
                                           "figuras", "saida", "banda", "desloc", "so_projecoes", "semente", "media_falhas", "modos", "desloc_modos",
-                                          "piloto", "piloto_n", "piloto_semente", "ai", "elite", "xi", "gradiente", "tfim", "dt", "agua"};
+                                          "piloto", "piloto_n", "piloto_semente", "ai", "elite", "xi", "gradiente", "tfim", "dt", "agua", "contorno"};
     std::map<std::string, std::string> kv;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
@@ -190,6 +196,11 @@ Opcoes LeOpcoes(int argc, char *argv[])
     if (tem("dt")) op.dt = std::stod(kv["dt"]);
     if (tem("agua")) op.agua = kv["agua"];
     if (op.agua != "unsat" && op.agua != "sat") { std::fprintf(stderr, "agua=unsat ou agua=sat\n"); std::exit(1); }
+    if (tem("contorno")) op.contorno = kv["contorno"];
+    if (op.contorno != "reservatorio" && op.contorno != "ceron") {
+        std::fprintf(stderr, "contorno=reservatorio ou contorno=ceron\n");
+        std::exit(1);
+    }
     if (op.tfim < op.trebaix) op.tfim = op.trebaix;
     if (tem("covc")) op.campos.covC = std::stod(kv["covc"]);
     if (tem("covphi")) op.campos.covPhi = std::stod(kv["covphi"]);
@@ -638,7 +649,7 @@ void Grava(std::ofstream &csv, const Linha &l, const Opcoes &op, REAL nivelFinal
 {
     const Mecanismo &d = l.mec;
     std::ostringstream s;
-    s << l.real << "," << op.trebaix << "," << std::setprecision(7) << l.fs << "," << l.situacao << "," << l.niveis
+    s << l.real << "," << op.tfim << "," << std::setprecision(7) << l.fs << "," << l.situacao << "," << l.niveis
       << "," << l.eqF << "," << std::setprecision(4) << l.sF << "," << l.eqT << "," << l.sT << "," << std::setprecision(6)
       << l.pwMin << "," << l.pwMax << "," << l.nivel << "," << d.bArea << "," << d.bProf << "," << d.bXmin << ","
       << d.bXmax << "," << d.bXc << "," << d.bYc << "," << d.bYmin << "," << d.bPw << "," << d.bC << "," << d.bPhi << ","
@@ -807,7 +818,7 @@ int main(int argc, char *argv[])
     csv << kCabecalho;
     if (op.primeira == 0) { // so o bloco que comeca na realizacao 0 (no cluster, varios blocos rodam ao mesmo tempo)
         std::ofstream pa(op.saida + "_parametros.txt");
-        pa << "HW_H=" << op.hw << "\nNIVEL_FINAL=" << nivelFinal << "\nTREBAIX=" << op.trebaix << "\nTFIM=" << op.tfim << "\nDT=" << op.dt << "\nAGUA=" << op.agua << "\nKV=" << res.kv
+        pa << "HW_H=" << op.hw << "\nNIVEL_FINAL=" << nivelFinal << "\nTREBAIX=" << op.trebaix << "\nTFIM=" << op.tfim << "\nDT=" << op.dt << "\nAGUA=" << op.agua << "\nCONTORNO=" << op.contorno << "\nKV=" << res.kv
            << "\nCOV_C=" << cp.covC << "\nCOV_PHI=" << cp.covPhi << "\nCOV_K=" << cp.covK << "\nLX=" << cp.Lx
            << "\nLY=" << cp.Ly << "\nALFA=" << op.alfa << "\nKL_M=" << campos.M()
            << "\nKL_VARIANCIA=" << campos.VarianceFraction() << "\nSEMENTE=" << cp.semente
@@ -977,7 +988,11 @@ int main(int argc, char *argv[])
         d.nivelMacico = p[4][1];  // NA do macico (lateral esquerda), fixo
         d.tRebaixamento = op.trebaix;
         d.dt = op.dt;
-        DrawdownTransient rebaixamento(aT, d, left, {right, topright, face, topleft});
+        std::unique_ptr<DrawdownTransient> rebaixamentoPtr =
+            op.contorno == "ceron"
+                ? std::make_unique<DrawdownTransient>(aT, d, DrawdownCeronIds{topleft, face, topright, base, left})
+                : std::make_unique<DrawdownTransient>(aT, d, left, std::set<int>{right, topright, face, topleft});
+        DrawdownTransient &rebaixamento = *rebaixamentoPtr;
         rebaixamento.InitialState();
         const PointLocator loc(mT.GeoMesh());
         const auto tt = Clock::now();
@@ -1023,11 +1038,11 @@ int main(int argc, char *argv[])
                 for (double x : gr) gf << x << "\n";
             }
             if (anim) {
-                anim->FactorOfSafety(op.trebaix, l.fs, *f.m, *f.a);
+                anim->FactorOfSafety(op.tfim, l.fs, *f.m, *f.a);
                 std::ofstream mf(op.saida + "_real" + std::to_string(n) + "/mecanismo.csv");
                 mf << "t_h,x,y,epsp_raizJ2,du,c,phi_deg,k_mult\n";
                 for (const auto &q : l.mec.pontos)
-                    mf << op.trebaix << "," << q.x << "," << q.y << "," << q.j << "," << q.du << "," << q.c << ","
+                    mf << op.tfim << "," << q.x << "," << q.y << "," << q.j << "," << q.du << "," << q.c << ","
                        << q.phi << "," << q.k << "\n";
             }
         }
@@ -1041,7 +1056,7 @@ int main(int argc, char *argv[])
                     Seg(t0), l.sT);
         std::fflush(stdout);
     }
-    mapa.Grava(op.saida + "_mapa_" + faixa + ".csv", op.trebaix);
+    mapa.Grava(op.saida + "_mapa_" + faixa + ".csv", op.tfim);
 
     if (!gammas.empty()) {
         REAL m = 0., v = 0.;

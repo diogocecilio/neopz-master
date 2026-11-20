@@ -6,14 +6,34 @@ DrawdownTransient::DrawdownTransient(TPZUnsatAnalysis &an, const DrawdownData &d
                                      const std::set<int> &idsReservatorio)
     : fAn(an), fData(d)
 {
-    fFixed = an.AllDisplacements(TPZFMatrix<STATE>(an.NEq(), 1, 0.)); // esqueleto rigido: todo u = 0
-    for (const auto &[no, eq] : an.AirEq()) fFixed[eq] = 0.;           // ar passivo
+    fData.contornoCeron = false;
+    FixedBase();
     for (const auto &[no, L] : an.BoundaryNodes(idMacico)) {           // lateral do macico abaixo do NA
         const REAL y = an.Coord(no, 1);
         if (y <= d.nivelMacico) fFixed[an.WaterEq().at(no)] = d.gammaw * (d.nivelMacico - y);
     }
     for (int id : idsReservatorio)
         for (const auto &[no, L] : an.BoundaryNodes(id)) fReservatorio.insert(no);
+}
+
+DrawdownTransient::DrawdownTransient(TPZUnsatAnalysis &an, const DrawdownData &d, const DrawdownCeronIds &ids)
+    : fAn(an), fData(d)
+{
+    fData.contornoCeron = true;
+    FixedBase();
+    const REAL ref = d.nivelInicial; // u = p_w - gamma_w (ref - y)
+    for (int id : {ids.esquerda, ids.base}) // u = 0
+        for (const auto &[no, L] : an.BoundaryNodes(id))
+            fFixed[an.WaterEq().at(no)] = d.gammaw * (ref - an.Coord(no, 1));
+    for (const auto &[no, L] : an.BoundaryNodes(ids.crista)) fFixed[an.WaterEq().at(no)] = 0.; // p_w = 0
+    for (int id : {ids.face, ids.pe})
+        for (const auto &[no, L] : an.BoundaryNodes(id)) fFaceCeron.insert(no);
+}
+
+void DrawdownTransient::FixedBase()
+{
+    fFixed = fAn.AllDisplacements(TPZFMatrix<STATE>(fAn.NEq(), 1, 0.)); // esqueleto rigido: todo u = 0
+    for (const auto &[no, eq] : fAn.AirEq()) fFixed[eq] = 0.;            // ar passivo
 }
 
 void DrawdownTransient::InitialState()
@@ -41,8 +61,24 @@ bool DrawdownTransient::AdvanceTo(REAL tHoras)
     return true;
 }
 
+bool DrawdownTransient::StepCeron(REAL dt)
+{
+    const REAL nivel = Level();
+    std::map<int64_t, REAL> fixed = fFixed;
+    for (int64_t no : fFaceCeron) // face e terreno do pe: hidrostatica do reservatorio abaixo do nivel, 0 acima
+        fixed[fAn.WaterEq().at(no)] = fData.gammaw * std::max(REAL(0), nivel - fAn.Coord(no, 1));
+    const TPZUnsatAnalysis::StepResult r = fAn.Solve(dt, fixed, {}, false);
+    if (!r.conv) {
+        fAn.Restore();
+        return false;
+    }
+    fAn.Accept();
+    return true;
+}
+
 bool DrawdownTransient::Step(REAL dt)
 {
+    if (fData.contornoCeron) return StepCeron(dt);
     const REAL tolP = 1.e-6, tolQ = 1.e-10;
     const REAL nivel = Level();
     // nos do reservatorio abaixo do nivel: hidrostatica; acima: candidatos a face de percolacao
