@@ -72,6 +72,10 @@ DOCUMENTOS = [
          "comparação com os dados parciais (20/11/2026): Monte Carlo direto, ISMC e line sampling no Cho (r = -0,5 e "
          "-0,7), no rebaixamento do Ceron e na viga; custo para CoV de 5%, convergência, sementes e direções "
          "(comparacao_metodos/gera_relatorio.sh refaz com os dados novos)"),
+        ("Projects/PlanoDeTrabalho/contornos_agua/relatorio_contornos.pdf",
+         "os contornos da água: Ceron (2025) contra o PZ 'reservatorio' e 'ceron' e a chuva do Rahardjo (2007) contra o "
+         "código; esquemas em escala, as duas tabelas de contornos, o Gamma por contorno e domínio, e os próximos passos "
+         "(contornos_agua/gera.sh refaz)"),
         ("Projects/PlanoDeTrabalho/arquivo/", "cópias datadas (AAAA-MM-DD_nome.pdf), nunca editadas"),
     ]),
     ("Resultados: as campanhas", [
