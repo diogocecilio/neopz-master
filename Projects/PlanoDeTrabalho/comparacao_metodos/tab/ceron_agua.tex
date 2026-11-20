@@ -1,0 +1,12 @@
+% gerado por gera_dados.py (ceron_agua): nao editar a mao
+\begin{table}[H]\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\caption{O rebaixamento do Ceron com a água do artigo (\texttt{agua=sat trebaix=0.0001 contorno=ceron}). IC de 95\,\%: $P_f(1 \pm 1{,}96\,\mathrm{CoV})$ (no artigo, com o CoV de 2,77\,\% que ele dá). $z$: a diferença contra o artigo, em desvios padrão. $\Gamma$ det.: o determinístico (as médias de $c'$, $\varphi'$ e $k$); $^*$: extrapolado dos níveis 3 a 5 do GIM (1,401; 1,366; 1,351). Na última linha, a referência das outras seções, com a água antiga.}\label{tab:ceronagua}
+\begin{tabular}{lrrrrr}\toprule
+método e amostra & $P_f$ & IC de 95\,\% & $z$ & $\Gamma$ det. & média de $\Gamma$ \\\midrule
+Ceron (2025): análise limite, MC de 10\,000 & 11,50\,\% & 10,88--12,12\,\% & -- & 1,336 & 1,353 \\
+MEF (GIM, 5 níveis): LS, 153 linhas e 4 + 363 análises & 11,61\,\% & 10,49--12,73\,\% & $+$0,2 & 1,340$^*$ & -- \\
+análise limite (Python): MC de 10\,000, busca rápida & 10,29\,\% & 9,69--10,89\,\% & $-$2,7 & 1,347 & 1,384 \\
+\quad e a busca exata nas 993 com $1 \le \Gamma < 1{,}1$ & 10,32\,\% & 9,72--10,92\,\% & $-$2,7 &  & 1,384 \\
+\midrule
+MEF (GIM, 3 níveis): MC direto de 2\,000, água antiga & 15,70\,\% & 14,11--17,29\,\% & $+$4,8 & 1,325 & 1,294 \\
+\bottomrule\end{tabular}\end{table}

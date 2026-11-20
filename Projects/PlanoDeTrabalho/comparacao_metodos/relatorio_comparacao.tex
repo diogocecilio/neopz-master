@@ -23,9 +23,9 @@ Reunimos, com os dados de 20/11/2026, todos os resultados de probabilidade de fa
 viga, por três métodos: o Monte Carlo direto (a referência), a amostragem por importância centrada no ponto de projeto
 do FORM (ISMC) e o line sampling (LS) na direção do FORM. A medida comum é o número de análises do MEF para CoV de 5\,\%,
 contando o FORM. O line sampling na direção do FORM modal com todos os modos foi o mais barato nos três taludes, sem viés
-detectado: \lsNCe{} análises no Ceron (direto: \refNCe; melhor ISMC: \ismcNCe), \lsNRa{} no Cho com $r = -0{,}5$ (direto:
+detectado: \lsNCe{} análises no Ceron com a água antiga (direto: \refNCe; melhor ISMC: \ismcNCe), \lsNRa{} no Cho com $r = -0{,}5$ (direto:
 \refNRa; ISMC: \ismcNRa) e \lsNRb{} no Cho com $r = -0{,}7$ (direto: \refNRb; ISMC: \ismcNRb). Na viga, que não tem gradiente modal, o line
-sampling na direção do FORM adjunto precisou de 92 (direto: 18\,666). Os dados estão completos: as
+sampling na direção do FORM adjunto precisou de 92 (direto: 18\,666). Os dados das comparações com o direto estão completos: as
 ISMC da etapa 3b chegaram ao CoV de 5\,\% em todas as sementes e todas as direções do line sampling terminaram; o line
 sampling ainda tem uma semente só.
 
@@ -35,6 +35,16 @@ do FORM; a convergência do CoV com $1/\sqrt{n}$ e a eficiência relativa (figur
 da amostra da ISMC; a busca de cada linha do line sampling (2 a 3 análises por linha, quase sem bissecção); e o CoV
 estimado contra o observado entre sementes, com a cobertura dos intervalos (\icDentro{} de \icTotal{} intervalos da
 ISMC contêm a $P_f$ do direto).
+
+Duas comparações novas. (1) O SRM contra o GIM com uma semente só, pareada: as mesmas realizações da ISMC da semente 21
+e as mesmas linhas do line sampling da semente 7 (Seção~\ref{sec:pareado}; o GIM ainda roda no fermi, e a ISMC dele é
+parcial, com \sgNmin{} a \sgNmax{} realizações por caso). As $P_f$ diferem no máximo \sgDifAbsMax\,\%, com o GIM em
+geral um pouco abaixo e sempre dentro do CoV de cada estimativa: na ISMC, só por realizações limítrofes
+($|\mathrm{FS} - 1| \le$ \sgDiscFS); no line sampling, por um deslocamento pequeno do ponto em que cada linha entra na
+falha. O GIM custa \sgEcon\,\% menos por análise (no line sampling, com mais análises por linha, o custo empata); a
+análise limite do Ceron nos mesmos casos ainda está no fermi. (2) O Ceron com a água do
+artigo (Seção~\ref{sec:ceronagua}): o line sampling do MEF dá \ceaLsPf, contra \ceaPfArt{} do artigo. As outras linhas
+do Ceron são do modelo de água antigo.
 \end{abstract}
 \tableofcontents
 
@@ -51,6 +61,13 @@ ISMC contêm a $P_f$ do direto).
   \item \textbf{Viga:} MC direto e ISMC completos (relatório da viga); o line sampling e o FORM adjunto rodaram nas seções
     16 e 17 do código em Mathematica (\path{viga_mathematica/codigo/viga_FORM5_AI200.txt}), ainda fora do relatório da
     viga.
+  \item \textbf{SRM $\times$ GIM, pareado} (Seção~\ref{sec:pareado}): a campanha \texttt{etapa3b\_gim} do fermi,
+    \textbf{ainda rodando} (dados de \sgData): a ISMC da semente 21 nos três centros e o line sampling da semente 7 nas
+    duas direções, com o GIM no lugar do SRM. \textbf{Parcial} na ISMC: \sgNmin{} a \sgNmax{} realizações por caso (a
+    campanha vai a pelo menos 2000); no line sampling, as \sglN{} linhas do SRM já têm todas o par no GIM. A análise
+    limite do Ceron (2025) nos mesmos casos também está no fermi; aqui entra só o piloto local.
+  \item \textbf{Ceron com a água do artigo} (Seção~\ref{sec:ceronagua}): o line sampling do MEF (no PC) e o MC de
+    10\,000 realizações pela análise limite em Python. As outras linhas do Ceron são do modelo de água antigo.
 \end{itemize}
 Tudo sai do \path{gera_dados.py}, nesta pasta, que lê os resultados em \path{~/projects/runs}: rodar de novo atualiza as
 figuras e as tabelas (\path{gera_relatorio.sh}).
@@ -106,7 +123,9 @@ a probabilidade exata ao longo dela, entre 0 e 1).}\label{fig:fluxo}
     $-0{,}7$, SRM com refinamento adaptativo (\texttt{tri2} e 4 níveis). As ISMC e o line sampling usam o campo de Nyström
     de 2000 modos por campo (a etapa 3b); os diretos, a KL analítica (as mesmas estatísticas).
   \item \textbf{Ceron (2025), rebaixamento rápido:} $c'$, $\varphi'$ e $k_s$ aleatórios, transiente e GIM (o fator
-    $\Gamma$), com 2000 modos por campo.
+    $\Gamma$), com 2000 modos por campo. As linhas ``Ceron (água antiga)'' das tabelas e das figuras usam o modelo de
+    água antigo (o rebaixamento em 0,1\,h, com o transiente; $P_f$ do direto de \refPfCe); com a água do artigo, o
+    line sampling do MEF dá \ceaLsPf{} (Seção~\ref{sec:ceronagua}).
   \item \textbf{Viga:} módulo de elasticidade lognormal (200 modos de Nyström), falha pela flecha no meio do vão.
 \end{itemize}
 
@@ -150,6 +169,136 @@ o intervalo de 95\,\% de cada uma. Faixa cinza: o intervalo do Monte Carlo diret
 $\nu_\ell$ perto de $\beta$ (pontilhado); a dispersão vem da curvatura e dos modos que a direção não vê. No Ceron, a
 direção com 2000 termos estreita muito a distribuição.}\label{fig:nu}
 \end{figure}
+
+\section{Uma semente, pareada: SRM \texorpdfstring{$\times$}{x} GIM \texorpdfstring{$\times$}{x} análise limite}\label{sec:pareado}
+Nas seções anteriores, cada método é comparado com o Monte Carlo direto, e a diferença mistura o método com o sorteio.
+Aqui o que se compara é o fator de segurança: o FS do SRM, o $\Gamma$ do GIM e, quando o fermi terminar, o $\Gamma$ da
+análise limite (LA: o método cinemático do Ceron 2025, \path{Projects/CeronCinematico/cho}). Os três usam as mesmas
+amostras (decisão de 20/11/2026: uma semente só, pareada):
+\begin{itemize}
+  \item \textbf{ISMC:} a semente 21, nos três centros do FORM. A realização $n$ tem os mesmos $\xib$ e o mesmo peso $w$
+    nos dois fatores: o \texttt{log\_peso} é igual em todos os pares, e as médias de $c'$ e $\varphi'$ diferem no máximo
+    \sgCampo\,\% (só porque a malha adaptativa final não é a mesma no SRM e no GIM).
+  \item \textbf{Line sampling:} a semente 7, as mesmas linhas (o mesmo $\bm z$ de cada uma) e as mesmas direções.
+  \item \textbf{Referências:} o MC direto do SRM (24\,000 e 110\,000 realizações) e as 5 sementes da ISMC do SRM
+    juntas. A conferência de versão (as 10 primeiras realizações de cada direto, refeitas com o SRM da campanha nova)
+    deu o mesmo FS em \sgConfIguais{} de \sgConfTotal.
+\end{itemize}
+\textbf{Por que parear.} Numa semente, o erro de sorteio (o CoV de \sgCovMin{} a \sgCovMax\,\% de cada $P_f$ da
+Tabela~\ref{tab:sgismc}) é o mesmo nos dois fatores, porque as realizações são as mesmas, e sai da diferença. Na ISMC,
+a diferença das $P_f$ vem só dos pares em que os fatores discordam (um falha e o outro não); no line sampling, da
+diferença $\Phi(-c_\text{GIM}) - \Phi(-c_\text{SRM})$ de cada linha. O seu erro é o erro pareado:
+$\mathrm{dp}[w\,(I_\text{GIM} - I_\text{SRM})]/\sqrt N$ na ISMC, \sgEdifMin{} a \sgEdifMax\,\% da $P_f$ (com só
+\sgDiscCasoMin{} a \sgDiscCasoMax{} pares discordantes por caso, é uma estimativa grosseira), e
+$\mathrm{dp}[\Phi(-c_\text{GIM}) - \Phi(-c_\text{SRM})]/\sqrt N$ no line sampling, \sglEdifMin{} a
+\sglEdifMax\,\%. Com sementes diferentes, uma diferença de 1 ou 2\,\% ficaria escondida no ruído de \sglCovMin{} a
+\sgCovMax\,\% de cada estimativa.
+
+\textbf{O GIM ainda é parcial.} Ele é a campanha \texttt{etapa3b\_gim} do fermi, que ainda roda: os dados são de
+\sgData, com \sgNmin{} a \sgNmax{} realizações em comum por caso (a campanha vai a pelo menos 2000) e \sglNGmin{} a
+\sglNGmax{} linhas do GIM por direção. No line sampling, entram as \sglN{} em comum com o SRM, que já estão todas
+feitas: essa parte da comparação não muda mais.
+\input{tab/srm_gim_ismc.tex}
+
+\textbf{ISMC.} Nos \sgPares{} pares (os \sgCasos{} casos juntos), só \sgDisc{} discordam: em \sgDiscSrm{} só o SRM falha
+e em \sgDiscGim{} só o GIM falha (Tabela~\ref{tab:sgismc} e Figura~\ref{fig:sg}a,b). São \sgDiscDist{} realizações
+distintas: com a mesma semente, a realização $n$ dos três centros de um $r$ tem a mesma amostra $\bm z$ (e
+$\xib = \xib^* + \bm z$ quase igual), e algumas discordam em mais de um centro. Todos têm $|\mathrm{FS} - 1| \le$
+\sgDiscFS{} e $|\Gamma - 1| \le$ \sgDiscG. Como $\Gamma \approx \mathrm{FS}^k$, com $k$ de \sgKmin{} a \sgKmax{} (perto
+de 1, uma variação relativa do FS aparece \sgKperto{} vezes maior no $\Gamma$), $|\Gamma - 1| \le$ \sgDiscG{} é no
+máximo \sgDiscGfs\,\% no FS. Os dois fatores só discordam a menos de \sgDiscGfs\,\% de 1, na precisão do fator (a tolerância de cada
+busca e a malha adaptativa), e não por uma diferença de critério. As $P_f$ diferem de \sgDifMin{} a \sgDifMax\,\%,
+sempre a menos de \sgZmax{} erros pareados; o GIM fica abaixo do SRM em \sgAbaixo{} dos \sgCasos{} casos.
+
+\textbf{Line sampling.} Nas mesmas \sglN{} linhas, a linha do GIM entra na falha um pouco mais longe:
+$\Delta c = c_\text{GIM} - c_\text{SRM}$ tem média de \sglDcMin{} a \sglDcMax{} e dp de \sglDcSdMin{} a \sglDcSdMax{}
+(Tabela~\ref{tab:sgls} e Figura~\ref{fig:sg}c,d). Ao longo da linha, $d\ln\mathrm{FS}/dc$ vale $-$\sglSmin{} a
+$-$\sglSmax{} (a inclinação $s$ do SRM, Tabela~\ref{tab:lsdiag}), então esse $\Delta c$ vale só uns \sglDfs\,\% no
+FS (no máximo). É ele que dá a diferença das $P_f$, \sglDifMin{} a \sglDifMax\,\%: o próprio $\Delta c$ prevê \sglPrevMin{} a
+\sglPrevMax\,\%, com $\Delta P_f/P_f \approx -\sum_\ell \phi(c_\ell)\,\Delta c_\ell / \sum_\ell \Phi(-c_\ell)$. Aqui o
+pareamento é ainda mais forte (cada linha dá uma probabilidade contínua, e não 0 ou $w$), e a diferença, de \sglZmin{} a
+\sglZmax{} erros pareados, é sistemática: o GIM dá a falha um pouquinho depois do SRM. É o mesmo sinal da ISMC
+(\sgDiscSrm{} pares em que só o SRM falha, contra \sgDiscGim). Mas é pequena: \sglDifMin{} a \sglDifMax\,\% da $P_f$, contra
+o CoV de \sglCovMin{} a \sglCovMax\,\% de cada estimativa.
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/srm_gim.pdf}
+\caption{SRM $\times$ GIM, pareado (\textbf{GIM parcial}, dados de \sgData). (a) ISMC da semente 21: o $\Gamma$ do GIM
+contra o FS do SRM na mesma realização, perto da falha ($0{,}9 < \mathrm{FS} < 1{,}1$, os seis casos juntos), com a
+curva $\Gamma = \mathrm{FS}^k$ ajustada perto de 1; círculos: os pares discordantes. (b) O mesmo, perto de $(1, 1)$; em
+cinza, os quadrantes em que só um dos dois falha. (c) e (d) Line sampling da semente 7: $\Delta c = c_\text{GIM} -
+c_\text{SRM}$ de cada linha contra o $c_\text{SRM}$ (onde a linha do SRM entra na falha), nas \sglN{} linhas em comum de
+cada direção; tracejado: a média de cada direção.}\label{fig:sg}
+\end{figure}
+\input{tab/srm_gim_ls.tex}
+
+\textbf{Conclusão.}
+\begin{itemize}
+  \item \textbf{O GIM e o SRM dão a mesma $P_f$ a menos de \sgDifAbsMax\,\%} (com a ISMC do GIM parcial): na ISMC,
+    \sgDifMin{} a \sgDifMax\,\%, dentro do ruído pareado, e a diferença vem só das realizações limítrofes
+    ($|\mathrm{FS} - 1| \le$ \sgDiscFS); no line sampling, mais preciso, \sglDifMin{} a \sglDifMax\,\%, de um
+    deslocamento de \sglDcMin{} a \sglDcMax{} em $c$ (uns \sglDfs\,\% no FS). O GIM fica um pouco abaixo (de forma
+    sistemática no line sampling), mas bem dentro do CoV de cada estimativa: para a confiabilidade, os dois fatores dão
+    a mesma resposta.
+  \item \textbf{A semente 21 é baixa em $r = -0{,}5$.} Das 5 sementes do SRM, ela é a mais baixa nos três centros:
+    \sUmRaMin{} a \sUmRaMax\,\% com todas as suas realizações, contra \sOutRaMin{} a \sOutRaMax\,\% das outras quatro,
+    \sJunRaMin{} a \sJunRaMax\,\% das 5 juntas e \refPfRa{} do direto (Tabela~\ref{tab:ismcsem}). Por isso o SRM e o
+    GIM da semente 21 ficam abaixo do direto: é a semente, e não o método. Em $r = -0{,}7$ ela fica no meio das 5
+    (posições \sPosRb{} nos três centros: \sUmRbMin{} a \sUmRbMax\,\%, contra \sJunRbMin{} a \sJunRbMax\,\% das 5
+    juntas). Na Tabela~\ref{tab:sgismc}, porém, entram só as realizações em comum, as primeiras da semente: nelas, o
+    SRM e o GIM dão \sgSubRaMin{} a \sgSubRaMax\,\% com $r = -0{,}5$ e \sgSubRbMin{} a \sgSubRbMax\,\% com
+    $r = -0{,}7$, abaixo da semente inteira em todos os centros. É o sorteio dessas realizações (CoV de \sgCovMin{} a
+    \sgCovMax\,\%), igual nos dois fatores, e muda quando o GIM chegar ao fim.
+  \item \textbf{Custo.} Nas mesmas realizações, uma análise do GIM leva \sgTgimMin{} a \sgTgimMax\,s no fermi, contra
+    \sgTsrmMin{} a \sgTsrmMax\,s do SRM: \sgEcon\,\% menos. No line sampling, o GIM gastou um pouco mais por linha
+    (\sglNaGimMin{} a \sglNaGimMax{} análises, contra \sglNaSrmMin{} a \sglNaSrmMax{} do SRM), e o custo por linha
+    quase empata (\sglCustoMin{} a \sglCustoMax\,\% para o GIM, com o custo por análise da ISMC). O ganho grande está
+    no FORM modal, que usa o gradiente do GIM: \fgNRa{} análises com $r = -0{,}5$ e \fgNRb{} com $r = -0{,}7$ (2000
+    modos por campo; $\beta$ = \fgBetaRa{} e \fgBetaRb), contra as \fnNRa{} do FORM numérico com $M = 20$ ($\beta$ =
+    \fnBetaRa{} e \fnBetaRb).
+  \item \textbf{Análise limite: rodando no fermi} desde 20/11/2026 às 18:06. O job 14991 faz o MC direto com
+    $r = -0{,}5$ e $-0{,}7$, pareado realização a realização com o direto do SRM (e com $r = 0$, para conferir com o
+    Ceron); às \laLogHora, tinha \laLogN{} realizações de $r$ = \laLogR. O job 14992 (o FORM, o line sampling da semente
+    7 e a ISMC da semente 21) espera vaga. A coluna ``LA'' das Tabelas~\ref{tab:sgismc} e \ref{tab:sgls} fica para
+    quando terminar. No piloto local (\path{Projects/CeronCinematico/cho/resultados/piloto_h0.025}: \laN{} realizações
+    do direto de cada $r$, grade de $h = 0{,}025$\,m), $\mathrm{FS}_\text{LA} - \mathrm{FS}_\text{MEF}$ = \laDif{} em
+    média (+\laRelMin{} e +\laRelMax\,\% nos dois $r$; de +\laRelLo{} a +\laRelHi\,\% por realização), com
+    correlação de \laCorr, e $\mathrm{FS}_\text{LA} > \mathrm{FS}_\text{MEF}$ em \laAcima{} das \laTotal{} realizações:
+    a análise limite, um limite superior com bloco rígido, fica uns 3\,\% acima do MEF, e espera-se
+    $P_f(\text{LA}) < P_f(\text{MEF})$ (no piloto, \laFalLa{} falhas na LA e \laFalMef{} no MEF, nas mesmas
+    \laTotal{} realizações).
+\end{itemize}
+
+\section{O Ceron com a água do artigo}\label{sec:ceronagua}
+As linhas do Ceron nas outras seções (Tabelas~\ref{tab:ref}, \ref{tab:form} e \ref{tab:ceron}, as seguintes e as
+figuras) usam o \textbf{modelo de água antigo}: o rebaixamento em 0,1\,h, com o transiente da água não saturada e
+os nossos contornos do reservatório (\texttt{trebaix=0.1 agua=unsat contorno=reservatorio}), e o GIM com 3 níveis de
+refinamento ($\Gamma$ determinístico de \ceaGvelho; $P_f$ do direto de \refPfCe). A comparação dos métodos continua
+valendo, porque o problema é o mesmo para todos eles, mas essa $P_f$ não é a do artigo (\ceaPfArt). Com a \textbf{água
+do artigo} (o solo saturado, o rebaixamento instantâneo e os contornos das Eqs.~19--21 do Ceron, de pressão imposta,
+sem face de percolação e com a lateral direita sem fluxo: \texttt{agua=sat trebaix=0.0001 contorno=ceron}; com a água
+saturada, praticamente sem armazenamento, o fluxo é o de Darcy permanente) e 5 níveis (Tabela~\ref{tab:ceronagua}):
+\begin{itemize}
+  \item \textbf{O determinístico:} o $\Gamma$ do GIM extrapolado dos níveis 3, 4 e 5 (\ceaGniveis) é \ceaGdetPz,
+    contra \ceaGdetArt{} do artigo e \ceaGdetLa{} da nossa análise limite em Python.
+  \item \textbf{O line sampling do MEF} (o GIM, na direção do FORM modal com 2000 termos: \ceaForm{} análises,
+    $\beta$ = \ceaBeta) parou com CoV de 5\,\% em \ceaLsN{} linhas (\ceaLsAn{} análises): $P_f$ = \ceaLsPf{} (IC de
+    95\,\%: \ceaLsLo{} a \ceaLsHi), contra \ceaPfArt{} do artigo ($z$ = \ceaLsZ).
+  \item \textbf{O MC de \ceaMcN{} realizações pela análise limite em Python} (a configuração de referência do artigo):
+    \ceaMcPf{} com a busca rápida. Refeitas com a busca exata as \ceaMcRef{} realizações com
+    $1{,}0 \le \Gamma < 1{,}10$, aparecem \ceaMcNovas{} falhas novas, e a $P_f$ vai a \ceaMcPfEx{} ($\pm$ \ceaMcIc,
+    95\,\%). A média de $\Gamma$ é \ceaGmedLa{} (artigo: \ceaGmedArt, do ajuste lognormal).
+\end{itemize}
+\input{tab/ceron_agua.tex}
+O MEF com a água do artigo reproduz a $P_f$ do artigo: \ceaLsPf{} contra \ceaPfArt, a \ceaLsDifPt{} ponto, dentro do
+IC. A nossa análise limite fica \ceaMcDifPt{} ponto abaixo do artigo, fora do IC ($z$ = \ceaMcZ), e a média de $\Gamma$
+fica acima (\ceaGmedLa{} contra \ceaGmedArt): essa diferença para o MC do artigo ainda não está explicada. A busca
+rápida não a explica: a busca exata mudou $\Gamma$ em mais de 1\,\% em só \ceaExMuda{} das \ceaMcRef{} realizações
+refeitas (no máximo \ceaExMax\,\%), e a $P_f$ subiu \ceaMcSobe{} ponto. Que a nossa análise limite dê uma $P_f$ abaixo
+da do MEF tem o sinal de um limite superior, mas isso não explica a diferença toda: no determinístico, os dois quase
+coincidem ($\Gamma$ = \ceaGdetLa{} na análise limite, contra \ceaGdetPz{} do MEF extrapolado e \ceaGnivelFim{} com os 5
+níveis que o line sampling usa), e a análise limite do artigo dá a mesma $P_f$ do nosso MEF. A diferença para a
+referência antiga (\refPfCe) é a água (e a malha: 3 níveis lá, 5 aqui).
 
 \section{Tempo de CPU}\label{sec:tempo}
 Todos os processos rodam com uma \emph{thread} (\texttt{PZ\_THREADS=0}, OpenMP e MKL com 1), então o tempo de
@@ -372,6 +521,11 @@ A Tabela~\ref{tab:sintese} junta, por problema e método, as métricas das seç�
   \item \textbf{O CoV estimado é confiável ou um pouco conservador} (Seção~\ref{sec:covobs}): nas ISMC, o CoV observado
     entre sementes fica entre 0,47 e 1,13 vezes o estimado, sempre dentro da faixa de 95\,\%; todos os intervalos
     contêm a $P_f$ do direto, e a parada pelo CoV não deixa viés visível.
+  \item \textbf{O SRM e o GIM dão a mesma $P_f$} (Seção~\ref{sec:pareado}, ISMC do GIM parcial): nas mesmas
+    realizações e nas mesmas linhas, a diferença é de no máximo \sgDifAbsMax\,\%, com o GIM um pouco abaixo (na ISMC, só
+    por realizações limítrofes), dentro do CoV de cada estimativa; o GIM é \sgEcon\,\% mais barato por análise (no line
+    sampling, empata por linha). No Ceron com a água do artigo, o line sampling do MEF dá \ceaLsPf, contra \ceaPfArt{}
+    do artigo (Seção~\ref{sec:ceronagua}).
 \end{enumerate}
 Decisão (20/11/2026): o line sampling na direção do FORM modal com todos os modos é o método padrão, com a ISMC como
 conferência, até que se prove o contrário.
@@ -387,5 +541,8 @@ conferência, até que se prove o contrário.
     contra a dispersão entre sementes.
   \item Chuva: o line sampling ainda não foi testado; a direção modal não tem componente em $k_s$ e pode haver mais de um
     mecanismo no tempo (formulação, Seção do line sampling, passo 8).
+  \item Completar a comparação pareada da Seção~\ref{sec:pareado} quando o fermi terminar (o GIM até 2000 realizações
+    por caso e a coluna da análise limite, jobs 14991 e 14992) e entender por que a análise limite em Python dá
+    \ceaMcPfEx{} no Ceron com a água do artigo, contra \ceaPfArt{} do artigo.
 \end{itemize}
 \end{document}

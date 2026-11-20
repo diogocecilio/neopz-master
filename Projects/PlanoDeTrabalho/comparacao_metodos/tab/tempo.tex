@@ -4,7 +4,7 @@
 \caption{O tempo de CPU (h$\cdot$núcleo; cada processo roda com 1 \emph{thread}, então a CPU de uma análise é o seu tempo de parede). ``s/análise'': a média medida (\texttt{s\_fator}, mais \texttt{s\_transiente} no Ceron). FORM: numérico, CPU somada das análises; modal, a parede (em série; inclui o campo e o gradiente modal). No Ceron (PC), o FORM numérico e as colunas ``p/ CoV 5\,\%'' usam as análises $\times$ o custo unitário do direto, \uDirCe{}\,s (a CPU medida do FORM numérico, \formCeronCpu{}\,h, inflada pela disputa de núcleo, está na Tabela~\ref{tab:formit}); ``s/análise'' e ``amostragem'' são as medidas. Amostragem: o que já foi gasto. ``Parede dos blocos'': a soma dos tempos dos blocos nos logs do fermi (inclui ler a malha e gravar). LS: sem tempo por análise; a estimativa usa o custo unitário da última coluna, e a parede do PC $\times$ processos é um teto. ``p/ CoV 5\,\%'': o FORM mais as análises para CoV de 5\,\% vezes o custo unitário.}\label{tab:tempo}
 \begin{tabular}{llrrrrrrr}\toprule
 problema & método e centro/direção & \makecell{s/análise\\medido} & \makecell{FORM\\(h)} & \makecell{amostragem\\(h)} & \makecell{parede dos\\blocos (h)} & \makecell{PC: parede\\$\times$ proc. (h)} & \makecell{p/ CoV\\5\,\% (h)} & \makecell{custo\\unitário (s)} \\\midrule
-Ceron, rebaixamento & MC direto (2\,000) & 35,6 & -- & 19,8 & -- & -- & 21,3 & 35,6 \\
+Ceron (água antiga) & MC direto (2\,000) & 35,6 & -- & 19,8 & -- & -- & 21,3 & 35,6 \\
  & ISMC, $M = 20$, num. & 54,3 & 3,59 & 15,1 & -- & -- & 15,8 & 35,6 \\
  & ISMC, $M = 20$, modal & 54,8 & 0,06 & 15,2 & -- & -- & 13,9 & 35,6 \\
  & LS, $M = 20$, num. & -- & 3,59 & $\approx$2,5 & -- & 4,5 (14) & 11,7 & 35,6 \\

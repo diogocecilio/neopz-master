@@ -7,12 +7,17 @@ Fontes (no PC, em ~/projects/runs; a viga vem dos relatorios em Mathematica):
       110 000); ISMC da etapa 3b (fermi_etapa3b/etapa3b/r0x_nys_<centro>_s21..25, base de Nystrom de 2000 modos); FORM
       da etapa 3b (form_r0x_<M20|M100|gim20>/form.json); line sampling no PC (etapa3b_ls/ls/r0x_<dir>/linhas.csv) com as
       direcoes etapa3b_ls/form_r0x_<gim2000|M20>/form.json.
-  Ceron (rebaixamento, Pf ~16%): direto de 2000 (ceron_transiente/direto/ceron_tr_fase1/f50_I0_iii); ISMC
+  Ceron (rebaixamento com a agua antiga, Pf ~16%): direto de 2000 (ceron_transiente/direto/ceron_tr_fase1/f50_I0_iii); ISMC
       (ceron_form/ismc_dif, ismc_modal); line sampling (ceron_form/ls_dif, ls_modal, ls_modal2000) e os FORM
       (ceron_form/form_*/form.json).
   Viga: MC direto e ISMC do relatorio da viga (viga_mathematica/relatorio_viga.tex, "O ponto otimo do M do FORM");
       line sampling e FORM adjunto das secoes 16 e 17 do codigo viga_mathematica/codigo/viga_FORM5_AI200.txt (saida do
       Mathematica de 19/11/2026, ainda fora do relatorio da viga).
+  SRM x GIM pareado (srm_gim, no fim): a campanha etapa3b_gim do fermi (fermi_etapa3b_gim/etapa3b_gim: r0x_nys_<centro>_s21
+      e ls/r0x_<dir>, PARCIAL enquanto roda) contra as mesmas realizacoes e linhas do SRM; o piloto da analise limite
+      (Projects/CeronCinematico/cho/resultados/piloto_h0.025).
+  Ceron com a agua do artigo (ceron_agua, no fim): line sampling do MEF (ceron_ls), MC de 10 000 pela analise limite em
+      Python (ceron_mc_python/mc10000) e os deterministicos do GIM (ceron_contorno).
 Uso: python3 -I gera_dados.py   (roda em segundos; refaz tudo com o que houver de dados)."""
 import csv
 import json
@@ -123,7 +128,9 @@ for r, rotulo, ref in (("r05", "Cho, $r = -0{,}5$", os.path.join(R, "fermi_etapa
                              "pasta": os.path.join(LSC, "ls", f"{r}_{dirc}"), **d})
     P[r] = pr
 CER_DIR = os.path.join(R, "ceron_transiente", "direto", "ceron_tr_fase1", "f50_I0_iii")
-pc = {"rotulo": "Ceron, rebaixamento", "ref": direto(CER_DIR), "ismc": [], "ls": [], "refpasta": CER_DIR}
+# o rotulo diz a agua: tudo do Ceron nas tabelas e figuras de antes e do modelo antigo (transiente de 0,1 h, nao saturado,
+# contorno do reservatorio, 3 niveis); com a agua do artigo, ceron_agua() no fim
+pc = {"rotulo": "Ceron (água antiga)", "ref": direto(CER_DIR), "ismc": [], "ls": [], "refpasta": CER_DIR}
 for cen, nome in (("dif", "FORM $M = 20$, numérico"), ("modal", "FORM $M = 20$, modal")):
     fo = form(os.path.join(CER, f"form_{cen}", "form.json"))
     d = ismc([os.path.join(CER, f"ismc_{cen}")])
@@ -1195,3 +1202,502 @@ for k in ORDEM:
     for x in linhas_problema(k):
         print(f"{k:6s} {x['metodo'][:22]:22s} {x['dir'][:28]:28s} Pf {100 * x['Pf']:.3f}% CoV {100 * x['CoV']:.1f}% "
               f"z {x['z'] if x['z'] is None else round(x['z'], 2)} n5 {x['n5']:.0f} ganho {x['ganho']:.1f}")
+
+
+# =====================================================================================================================
+# Uma semente, pareada: SRM x GIM x analise limite (decisao de 20/11/2026). A ISMC da semente 21 (os 3 centros, r = -0,5
+# e -0,7) e o line sampling da semente 7 (as mesmas 100 linhas e direcoes) com o fator pelo GIM (campanha etapa3b_gim do
+# fermi, ainda rodando: PARCIAL) contra as mesmas realizacoes e linhas do SRM (etapa 3b e etapa3b_ls); o MC direto do SRM
+# e as 5 sementes juntas ficam como referencia. A analise limite (Ceron 2025, Projects/CeronCinematico/cho) roda no
+# fermi: aqui so o piloto local (FS_LA x FS_MEF em 200 realizacoes do direto de cada r). E o Ceron com a agua do artigo
+# (contorno=ceron agua=sat trebaix=0.0001): o line sampling do MEF e o MC de 10 000 pela analise limite em Python.
+# Saidas: tab/srm_gim_ismc.tex, tab/srm_gim_ls.tex, tab/ceron_agua.tex, figs/srm_gim.pdf e os numeros (numeros.tex).
+# =====================================================================================================================
+import time  # noqa: E402
+
+import matplotlib.patches  # noqa: E402
+import pareado_gim as pg  # noqa: E402  (Projects/Cho2010: a leitura pareada dos mc_<a>_<b>.csv e dos linhas.csv)
+
+GIMC = os.path.join(R, "fermi_etapa3b_gim", "etapa3b_gim")
+LA_PILOTO = os.path.join(RAIZ, "Projects", "CeronCinematico", "cho", "resultados", "piloto_h0.025")
+LA_LOG = os.path.join(R, "fermi_etapa3b_gim", "logs", "laCho_14991.out")   # o MC direto da LA no fermi (job 14991)
+RTEX = {"r05": "$-0{,}5$", "r07": "$-0{,}7$", "r00": "$0$"}
+
+
+def pf_txt(x):
+    """P_f em %, com 4 algarismos significativos (1,617 ou 0,3380)"""
+    return num(100 * x, 3 if x >= 0.01 else 4)
+
+
+def sinal(x, d=1):
+    """o numero com o sinal ($-$1,7 ou $+$1,5; o zero sem sinal)"""
+    s = num(abs(x), d)
+    return s if round(abs(x), d) == 0 else ("$-$" if x < 0 else "$+$") + s
+
+
+def teto(x, d):
+    """x arredondado PARA CIMA com d casas: o numero de um limite ("todos tem |FS - 1| <= ...", "no maximo ...")"""
+    return num(math.ceil(x * 10 ** d - 1e-9) / 10 ** d, d)
+
+
+def mdp(v):
+    """media e desvio padrao amostral"""
+    n = len(v)
+    m = sum(v) / n
+    return m, (math.sqrt(sum((x - m) ** 2 for x in v) / (n - 1)) if n > 1 else 0.)
+
+
+def k_pot(pares, perto):
+    """o k de Gamma ~ FS^k (minimos quadrados de ln Gamma = k ln FS, como o pareado_gim.py): todas com |FS - 1| > 0,01
+    ou so perto de 1 (0,9 < FS < 1,1 e |FS - 1| > 0,005)"""
+    xs = [(math.log(f), math.log(g)) for f, g in pares if g > 0 and
+          ((0.9 < f < 1.1 and abs(f - 1.) > 0.005) if perto else abs(f - 1.) > 0.01)]
+    return sum(x * y for x, y in xs) / sum(x * x for x, _ in xs) if xs else float("nan")
+
+
+def srm_gim():
+    """a comparacao pareada SRM x GIM com uma semente (ISMC s21 e line sampling s7): as duas tabelas, a figura e os
+    numeros; a coluna da analise limite (LA) fica "rodando" ate o fermi terminar"""
+    ism, lin, datas = [], [], []
+    for k in ("r05", "r07"):
+        for d5 in P[k]["ismc"]:
+            pa = os.path.join(E3B, f"{k}_nys_{d5['cen']}_s21")
+            pb = os.path.join(GIMC, f"{k}_nys_{d5['cen']}_s21")
+            if not (os.path.isdir(pa) and os.path.isdir(pb)):
+                continue
+            A, _ = pg.le_mc(pa)
+            B, _ = pg.le_mc(pb)
+            com = sorted(set(A) & set(B))
+            if len(com) < 10:
+                continue
+            datas += [os.path.getmtime(a) for a in glob.glob(os.path.join(pb, "mc_*_*.csv"))]
+            w = [math.exp(A[n]["lw"]) for n in com]
+            iS = [x * (A[n]["f"] < 1.) for x, n in zip(w, com)]
+            iG = [x * (B[n]["f"] < 1.) for x, n in zip(w, com)]
+            pS, cS = est(iS)
+            pG, cG = est(iG)
+            _, sdd = mdp([g - s for g, s in zip(iG, iS)])      # o erro pareado: so os pares discordantes contam
+            pares = [(A[n]["f"], B[n]["f"]) for n in com]
+            tS = [A[n]["s"] for n in com if math.isfinite(A[n]["s"])]
+            tG = [B[n]["s"] for n in com if math.isfinite(B[n]["s"])]
+            ism.append({"k": k, "cen": d5["cen"], "nome": d5["nome"], "N": len(com), "nG": len(B), "pS": pS, "cS": cS,
+                        "pG": pG, "cG": cG, "dif": (pG - pS) / pS, "edif": sdd / math.sqrt(len(com)) / pS,
+                        "soS": [p for p in pares if p[0] < 1. <= p[1]], "soG": [p for p in pares if p[1] < 1. <= p[0]],
+                        # os numeros das realizacoes discordantes: com a mesma semente, a realizacao n dos 3 centros
+                        # tem o mesmo z (xi = xi* + z), entao a mesma realizacao pode discordar em mais de um centro
+                        "disc_n": [n for n in com if (A[n]["f"] < 1.) != (B[n]["f"] < 1.)],
+                        "dlw": max(abs(A[n]["lw"] - B[n]["lw"]) for n in com),
+                        "dcampo": max(abs(A[n][c] - B[n][c]) / max(abs(A[n][c]), abs(B[n][c]), 1e-12)
+                                      for n in com for c in ("c", "phi")),
+                        "k_longe": k_pot(pares, False), "k_perto": k_pot(pares, True), "pares": pares,
+                        "tS": sum(tS) / len(tS), "tG": sum(tG) / len(tG), "p5": d5["Pf"], "ref": P[k]["ref"]})
+    for k in ("r05", "r07"):
+        for dl in P[k]["ls"]:
+            pa = os.path.join(LSC, "ls", f"{k}_{dl['cen']}")
+            pb = os.path.join(GIMC, "ls", f"{k}_{dl['cen']}")
+            if not os.path.exists(os.path.join(pb, "linhas.csv")):
+                continue
+            A, B = pg.le_ls(pa), pg.le_ls(pb)
+            com = sorted(set(A) & set(B))
+            if len(com) < 2:
+                continue
+            datas.append(os.path.getmtime(os.path.join(pb, "linhas.csv")))
+            pS, cS = est([cauda(A[i][0]) for i in com])
+            pG, cG = est([cauda(B[i][0]) for i in com])
+            _, sdd = mdp([cauda(B[i][0]) - cauda(A[i][0]) for i in com])
+            dc = [B[i][0] - A[i][0] for i in com]
+            mdc, sdc = mdp(dc)
+            # a diferenca de P_f que o proprio Delta c preve (linearizada): -sum phi(c) Delta c / sum Phi(-c)
+            prev = -sum(math.exp(-0.5 * A[i][0] ** 2) / math.sqrt(2 * math.pi) * (B[i][0] - A[i][0]) for i in com) / sum(
+                cauda(A[i][0]) for i in com)
+            lin.append({"k": k, "cen": dl["cen"], "nome": dl["nome"], "N": len(com), "nG": len(B), "pS": pS, "cS": cS,
+                        "pG": pG, "cG": cG, "dif": (pG - pS) / pS, "edif": sdd / math.sqrt(len(com)) / pS, "prev": prev,
+                        "nS": len(A),
+                        "dc": dc, "c": [A[i][0] for i in com], "mdc": mdc, "sdc": sdc,
+                        "naS": sum(A[i][1] for i in com) / len(com), "naG": sum(B[i][1] for i in com) / len(com),
+                        "sS": dl["s"]})
+    if not ism or not lin:
+        sys.exit("srm_gim: faltam os dados do GIM em " + GIMC)
+    data = time.strftime("%d/%m/%Y %H:%M", time.localtime(max(datas)))
+    nmin, nmax = min(x["N"] for x in ism), max(x["N"] for x in ism)
+
+    def rot_r(L, i):
+        return RTEX[L[i]["k"]] if i == 0 or L[i]["k"] != L[i - 1]["k"] else ""
+
+    # ---- tabela: ISMC
+    T = ["% gerado por gera_dados.py (srm_gim): nao editar a mao\n\\begin{table}[H]\\centering\\footnotesize"
+         "\\setlength{\\tabcolsep}{3pt}\n"
+         f"\\caption{{A ISMC com uma semente (a 21), pareada: o SRM e o GIM nas mesmas realizações (Cho, base de Nyström "
+         f"de 2000 modos). \\textbf{{GIM parcial}}: dados de {data}, com $N$ = {nmin} a {nmax} realizações em comum por "
+         "caso (a campanha vai a pelo menos 2000). $P_f$ em \\%: a média de $I w$ nas realizações em comum (entre "
+         "parênteses, o CoV, "
+         "em \\%). Dif.: $(P_\\text{GIM} - P_\\text{SRM})/P_\\text{SRM}$ $\\pm$ o erro pareado, "
+         "$\\mathrm{dp}[w\\,(I_\\text{GIM} - I_\\text{SRM})]/(\\sqrt N\\,P_\\text{SRM})$. Discord.: os pares em que só o "
+         "SRM falha / só o GIM falha. Referências (SRM): as 5 sementes juntas e o MC direto. LA: a análise limite na "
+         "semente 21 (job 14992 do fermi, na fila).}\\label{tab:sgismc}\n"
+         "\\begin{tabular}{llrrrrcrrc}\\toprule\n"
+         "$r$ & centro & $N$ & \\makecell{SRM s21\\\\$P_f$ (CoV)} & \\makecell{GIM s21\\\\$P_f$ (CoV)} & "
+         "\\makecell{dif.\\\\(\\%)} & \\makecell{discord.\\\\SRM/GIM} & \\makecell{SRM\\\\5 sementes} & "
+         "\\makecell{MC\\\\direto} & \\makecell{LA\\\\s21} \\\\\\midrule\n"]
+    for i, x in enumerate(ism):
+        if i and x["k"] != ism[i - 1]["k"]:
+            T.append("\\midrule\n")
+        T.append(f"{rot_r(ism, i)} & {curto(x['nome'])} & {x['N']} & {pf_txt(x['pS'])} ({num(100 * x['cS'], 1)}) & "
+                 f"{pf_txt(x['pG'])} ({num(100 * x['cG'], 1)}) & {sinal(100 * x['dif'])} $\\pm$ {num(100 * x['edif'], 1)} & "
+                 f"{len(x['soS'])}/{len(x['soG'])} & {pf_txt(x['p5'])} & {pf_txt(x['ref']['Pf'])} & rodando \\\\\n")
+    T.append("\\bottomrule\\end{tabular}\\end{table}\n")
+    open(os.path.join(TAB, "srm_gim_ismc.tex"), "w").write("".join(T))
+    # ---- tabela: line sampling
+    T = ["% gerado por gera_dados.py (srm_gim): nao editar a mao\n\\begin{table}[H]\\centering\\footnotesize"
+         "\\setlength{\\tabcolsep}{3pt}\n"
+         f"\\caption{{O line sampling com uma semente (a 7), pareado: as mesmas linhas (o mesmo $\\bm z$ de cada uma) e as "
+         f"mesmas direções, com o SRM e com o GIM. \\textbf{{GIM parcial}}: dados de {data}; o GIM já tem "
+         f"{min(x['nG'] for x in lin)} a {max(x['nG'] for x in lin)} linhas por direção, e entram só as "
+         f"{min(x['N'] for x in lin)} em comum com o SRM"
+         + (" (todas as linhas do SRM já têm o par no GIM)" if all(x["N"] == x["nS"] for x in lin) else "")
+         + ". $P_f$ em \\% (CoV em \\%). "
+         "Dif.: como na "
+         "Tabela~\\ref{tab:sgismc}, com o erro pareado das $\\Phi(-c_\\ell)$. "
+         "$\\Delta c = c_\\text{GIM} - c_\\text{SRM}$: onde a linha entra na falha, GIM menos SRM (média e dp das linhas). "
+         "LA: o line sampling pela análise limite nas mesmas linhas (job 14992 do fermi, na fila).}\\label{tab:sgls}\n"
+         "\\begin{tabular}{llrrrrrcc}\\toprule\n"
+         "$r$ & direção & linhas & \\makecell{SRM\\\\$P_f$ (CoV)} & \\makecell{GIM\\\\$P_f$ (CoV)} & "
+         "\\makecell{dif.\\\\(\\%)} & \\makecell{$\\Delta c$\\\\média (dp)} & "
+         "\\makecell{análises por linha\\\\SRM / GIM} & LA \\\\\\midrule\n"]
+    for i, x in enumerate(lin):
+        if i and x["k"] != lin[i - 1]["k"]:
+            T.append("\\midrule\n")
+        T.append(f"{rot_r(lin, i)} & {curto(x['nome'])} & {x['N']} & {pf_txt(x['pS'])} ({num(100 * x['cS'], 1)}) & "
+                 f"{pf_txt(x['pG'])} ({num(100 * x['cG'], 1)}) & {sinal(100 * x['dif'])} $\\pm$ {num(100 * x['edif'], 1)} & "
+                 f"{sinal(x['mdc'], 3)} ({num(x['sdc'], 3)}) & {num(x['naS'], 2)} / {num(x['naG'], 2)} & rodando \\\\\n")
+    T.append("\\bottomrule\\end{tabular}\\end{table}\n")
+    open(os.path.join(TAB, "srm_gim_ls.tex"), "w").write("".join(T))
+
+    # ---- numeros para o texto
+    Nn.clear()
+    # a conferencia de versao da campanha: as 10 primeiras realizacoes de cada direto, refeitas com o SRM (o mesmo FS?)
+    iguais = total = 0
+    for k in ("r05", "r07"):
+        a, b = os.path.join(GIMC, f"conf_srm_{k}", "mc_0_9.csv"), os.path.join(P[k]["refpasta"], "mc_0_9.csv")
+        if os.path.exists(a) and os.path.exists(b):
+            fa = {int(r["real"]): float(r["FS_min"]) for r in csv.DictReader(open(a, newline="")) if int(r["real"]) >= 0}
+            fb = {int(r["real"]): float(r["FS_min"]) for r in csv.DictReader(open(b, newline="")) if int(r["real"]) >= 0}
+            total += len(set(fa) & set(fb))
+            iguais += sum(1 for n in set(fa) & set(fb) if abs(fa[n] - fb[n]) < 5e-7)
+    cmd("sgConfIguais", str(iguais))
+    cmd("sgConfTotal", str(total))
+    dd = [p for x in ism for p in x["soS"] + x["soG"]]
+    todos = [p for x in ism for p in x["pares"]]
+    kp = k_pot(todos, True)
+    ks = [x[c] for x in ism for c in ("k_longe", "k_perto")]
+    tS, tG = [x["tS"] for x in ism], [x["tG"] for x in ism]
+    cmd("sgData", data)
+    cmd("sgNmin", str(nmin))
+    cmd("sgNmax", str(nmax))
+    cmd("sgPares", num(sum(x["N"] for x in ism)))
+    cmd("sgDisc", str(len(dd)))
+    cmd("sgDiscSrm", str(sum(len(x["soS"]) for x in ism)))
+    cmd("sgDiscGim", str(sum(len(x["soG"]) for x in ism)))
+    # as realizacoes distintas (a mesma n do mesmo r e a mesma amostra z nos 3 centros) e os discordantes por caso
+    cmd("sgDiscDist", str(len({(x["k"], n) for x in ism for n in x["disc_n"]})))
+    cmd("sgDiscCasoMin", str(min(len(x["disc_n"]) for x in ism)))
+    cmd("sgDiscCasoMax", str(max(len(x["disc_n"]) for x in ism)))
+    # limites ("todos tem |FS - 1| <= ..."): arredondados para cima
+    cmd("sgDiscFS", teto(max(abs(f - 1.) for f, g in dd), 4) if dd else "--")
+    cmd("sgDiscG", teto(max(abs(g - 1.) for f, g in dd), 3) if dd else "--")
+    # o |Gamma - 1| dos discordantes em FS equivalente, Gamma^(1/k) - 1
+    cmd("sgDiscGfs", teto(100 * max(abs(g ** (1. / kp) - 1.) for f, g in dd if g > 0), 1) if dd else "--")
+    cmd("sgKmin", num(min(ks), 1))
+    cmd("sgKmax", num(max(ks), 1))
+    cmd("sgKperto", num(kp, 2))
+    cmd("sgDifMin", sinal(100 * min(x["dif"] for x in ism)))
+    cmd("sgDifMax", sinal(100 * max(x["dif"] for x in ism)))
+    cmd("sgZmax", num(max([abs(x["dif"]) / x["edif"] for x in ism if x["edif"] > 0] or [0.]), 1))
+    cmd("sgEdifMin", num(100 * min([x["edif"] for x in ism if x["edif"] > 0] or [0.]), 1))
+    cmd("sgEdifMax", num(100 * max(x["edif"] for x in ism), 1))
+    cmd("sgCovMin", num(100 * min(x["cS"] for x in ism), 1))
+    cmd("sgCovMax", num(100 * max(x["cS"] for x in ism), 1))
+    cmd("sgAbaixo", str(sum(1 for x in ism if x["dif"] < 0)))
+    cmd("sgCasos", str(len(ism)))
+    cmd("sgCampo", teto(100 * max(x["dcampo"] for x in ism), 2))
+    # a maior diferenca relativa das P_f, ISMC e line sampling
+    cmd("sgDifAbsMax", num(100 * max(abs(x["dif"]) for x in ism + lin), 1))
+    # a P_f da semente 21 nas realizacoes em comum (as primeiras da semente), SRM e GIM, por r
+    for k, sig in (("r05", "Ra"), ("r07", "Rb")):
+        sub = [p for x in ism if x["k"] == k for p in (x["pS"], x["pG"])]
+        cmd(f"sgSub{sig}Min", pf_txt(min(sub)) if sub else "--")
+        cmd(f"sgSub{sig}Max", pf_txt(max(sub)) if sub else "--")
+    cmd("sgTgimMin", num(min(tG), 0))
+    cmd("sgTgimMax", num(max(tG), 0))
+    cmd("sgTsrmMin", num(min(tS), 0))
+    cmd("sgTsrmMax", num(max(tS), 0))
+    cmd("sgEcon", num(100 * (1. - sum(tG) / sum(tS)), 0))
+    cmd("sglN", str(min(x["N"] for x in lin)))
+    cmd("sglNGmin", str(min(x["nG"] for x in lin)))
+    cmd("sglNGmax", str(max(x["nG"] for x in lin)))
+    cmd("sglDifMin", sinal(100 * min(x["dif"] for x in lin)))
+    cmd("sglDifMax", sinal(100 * max(x["dif"] for x in lin)))
+    cmd("sglPrevMin", sinal(100 * min(x["prev"] for x in lin)))
+    cmd("sglPrevMax", sinal(100 * max(x["prev"] for x in lin)))
+    cmd("sglEdifMin", num(100 * min(x["edif"] for x in lin), 1))
+    cmd("sglEdifMax", num(100 * max(x["edif"] for x in lin), 1))
+    cmd("sglZmin", num(min(abs(x["dif"]) / x["edif"] for x in lin), 0))
+    cmd("sglZmax", num(max(abs(x["dif"]) / x["edif"] for x in lin), 0))
+    cmd("sglCovMin", num(100 * min(x["cS"] for x in lin), 1))
+    cmd("sglCovMax", num(100 * max(x["cS"] for x in lin), 1))
+    cmd("sglDcMin", sinal(min(x["mdc"] for x in lin), 3))
+    cmd("sglDcMax", sinal(max(x["mdc"] for x in lin), 3))
+    cmd("sglDcSdMin", num(min(x["sdc"] for x in lin), 3))
+    cmd("sglDcSdMax", num(max(x["sdc"] for x in lin), 3))
+    cmd("sglSmin", num(min(abs(x["sS"]) for x in lin), 2))
+    cmd("sglSmax", num(max(abs(x["sS"]) for x in lin), 2))
+    cmd("sglDfs", num(100 * max(abs(x["sS"] * x["mdc"]) for x in lin), 2))   # o Delta c em ln FS: |s| Delta c
+    cmd("sglNaSrmMin", num(min(x["naS"] for x in lin), 1))
+    cmd("sglNaSrmMax", num(max(x["naS"] for x in lin), 1))
+    cmd("sglNaGimMin", num(min(x["naG"] for x in lin), 1))
+    cmd("sglNaGimMax", num(max(x["naG"] for x in lin), 1))
+    # o custo por linha (analises por linha x o custo por analise da ISMC do mesmo r, nas mesmas maquinas do fermi)
+    tr = {k: (sum(x["tS"] for x in ism if x["k"] == k), sum(x["tG"] for x in ism if x["k"] == k)) for k in ("r05", "r07")}
+    cpl = [x["naG"] * tr[x["k"]][1] / (x["naS"] * tr[x["k"]][0]) - 1. for x in lin if tr[x["k"]][0] > 0]
+    cmd("sglCustoMin", sinal(100 * min(cpl), 0))
+    cmd("sglCustoMax", sinal(100 * max(cpl), 0))
+    # o FORM modal (GIM, 2000 modos por campo) e o numerico M = 20 (SRM) que dao as direcoes do line sampling
+    for k, sig in (("r05", "Ra"), ("r07", "Rb")):
+        fg = next((d["form"] for d in P[k]["ls"] if d["cen"] == "gim2000"), None)
+        fn = next((d["form"] for d in P[k]["ls"] if d["cen"] == "M20"), None)
+        cmd(f"fgN{sig}", str(fg["n"]) if fg else "--")
+        cmd(f"fgBeta{sig}", num(fg["beta"], 3) if fg else "--")
+        cmd(f"fnN{sig}", str(fn["n"]) if fn else "--")
+        cmd(f"fnBeta{sig}", num(fn["beta"], 3) if fn else "--")
+        # a semente 21 do SRM entre as 5 (todas as realizacoes de cada semente, como na Tabela tab:ismcsem)
+        ds = P[k]["ismc"]
+        p21 = [d["sem"][0]["Pf"] for d in ds]
+        outras = [s["Pf"] for d in ds for s in d["sem"][1:]]
+        cmd(f"sUm{sig}Min", pf_txt(min(p21)))
+        cmd(f"sUm{sig}Max", pf_txt(max(p21)))
+        cmd(f"sOut{sig}Min", pf_txt(min(outras)))
+        cmd(f"sOut{sig}Max", pf_txt(max(outras)))
+        cmd(f"sJun{sig}Min", pf_txt(min(d["Pf"] for d in ds)))
+        cmd(f"sJun{sig}Max", pf_txt(max(d["Pf"] for d in ds)))
+        # a posicao da semente 21 entre as 5 de cada centro (1 = a mais baixa)
+        cmd(f"sPos{sig}", ", ".join(str(sorted(s["Pf"] for s in d["sem"]).index(d["sem"][0]["Pf"]) + 1) for d in ds))
+    # o piloto da analise limite: FS_LA x FS_MEF nas mesmas 200 realizacoes do direto de cada r
+    la = []
+    for r in ("r05", "r07"):
+        arq = os.path.join(LA_PILOTO, f"direto_{r}_pares.csv")
+        if not os.path.exists(arq):
+            continue
+        rs = [(float(x["FS_LA"]), float(x["FS_MEF"])) for x in csv.DictReader(open(arq, newline=""))]
+        ma, mb = mdp([a for a, b in rs])[0], mdp([b for a, b in rs])[0]
+        corr = sum((a - ma) * (b - mb) for a, b in rs) / math.sqrt(sum((a - ma) ** 2 for a, b in rs) *
+                                                                     sum((b - mb) ** 2 for a, b in rs))
+        la.append({"n": len(rs), "dif": sum(a - b for a, b in rs) / len(rs), "rel": sum(a / b - 1. for a, b in rs) / len(rs),
+                   "corr": corr, "acima": sum(1 for a, b in rs if a > b),
+                   "rmin": min(a / b - 1. for a, b in rs), "rmax": max(a / b - 1. for a, b in rs),
+                   "fla": sum(1 for a, b in rs if a < 1.), "fmef": sum(1 for a, b in rs if b < 1.)})
+    cmd("laN", str(min(x["n"] for x in la)) if la else "--")
+    cmd("laTotal", str(sum(x["n"] for x in la)) if la else "--")
+    cmd("laAcima", str(sum(x["acima"] for x in la)) if la else "--")
+    cmd("laDif", sinal(sum(x["dif"] * x["n"] for x in la) / sum(x["n"] for x in la), 3) if la else "--")
+    cmd("laRelMin", num(100 * min(x["rel"] for x in la), 1) if la else "--")
+    cmd("laRelMax", num(100 * max(x["rel"] for x in la), 1) if la else "--")
+    cmd("laCorr", num(min(x["corr"] for x in la), 3) if la else "--")
+    # a faixa por realizacao (FS_LA / FS_MEF - 1) e as falhas (FS < 1) de cada um no piloto
+    cmd("laRelLo", num(100 * min(x["rmin"] for x in la), 1) if la else "--")
+    cmd("laRelHi", num(100 * max(x["rmax"] for x in la), 1) if la else "--")
+    cmd("laFalLa", str(sum(x["fla"] for x in la)) if la else "--")
+    cmd("laFalMef", str(sum(x["fmef"] for x in la)) if la else "--")
+    # o andamento do MC direto da LA no fermi (o ultimo "N = " do log baixado)
+    hora, nla, rla = "--", "--", "--"
+    if os.path.exists(LA_LOG):
+        for ln in open(LA_LOG, errors="replace"):
+            m = re.search(r"===== direto (r\d\d)", ln)
+            if m:
+                rla = RTEX.get(m.group(1), m.group(1))
+            m = re.search(r"(\d\d:\d\d):\d\d N = (\d+),", ln)
+            if m:
+                hora, nla = m.group(1), num(int(m.group(2)))
+    cmd("laLogHora", hora)
+    cmd("laLogN", nla)
+    cmd("laLogR", rla)
+    open(os.path.join(AQUI, "numeros.tex"), "a").write("".join(Nn))
+
+    # ---- figura: Gamma x FS (ISMC) e Delta c x c (line sampling)
+    fig, ax = plt.subplots(2, 2, figsize=(LARG, 6.2))
+    (a1, a2), (a3, a4) = ax
+    n_s, n_g = sum(len(x["soS"]) for x in ism), sum(len(x["soG"]) for x in ism)
+    for a, (lo, hi), ms in ((a1, (0.9, 1.1), 2.0), (a2, (0.99, 1.01), 3.2)):
+        xs = [p for p in todos if lo < p[0] < hi]
+        a.plot([f for f, g in xs], [g for f, g in xs], "o", color="#b35806", ms=ms, alpha=0.45, mew=0,
+               label=f"pares ({len(xs)})")
+        fx = [lo + (hi - lo) * j / 200. for j in range(201)]
+        a.plot(fx, [f ** kp for f in fx], "-", color="k", lw=1.0,
+               label=r"$\Gamma = \mathrm{FS}^{" + f"{kp:.2f}".replace(".", "{,}") + "}$")
+        a.plot([f for f, g in dd], [g for f, g in dd], "o", mfc="none", mec="k", ms=7, mew=1.1,
+               label=f"discordantes ({len(dd)})")
+        a.axvline(1, color="0.5", ls=":", lw=0.9)
+        a.axhline(1, color="0.5", ls=":", lw=0.9)
+        a.set_xlim(lo, hi)
+        a.set_xlabel("FS do SRM")
+        a.set_ylabel(r"$\Gamma$ do GIM")
+    a2.set_ylim(0.97, 1.03)
+    for xy in ((0.99, 1.0), (1.0, 0.97)):        # os quadrantes discordantes
+        a2.add_patch(matplotlib.patches.Rectangle(xy, 0.01, 0.03, color="0.92", zorder=0, lw=0))
+    a2.text(0.9905, 1.0285, f"só o SRM falha ({n_s})", fontsize=8.5, va="top", ha="left", color="0.25")
+    a2.text(1.0095, 0.9715, f"só o GIM falha ({n_g})", fontsize=8.5, va="bottom", ha="right", color="0.25")
+    a1.legend(loc="upper left", fontsize=8.5)
+    a1.set_title(f"(a) ISMC, semente 21: os {len(ism)} casos", fontsize=10, loc="left")
+    a2.set_title("(b) o mesmo, perto de (1, 1)", fontsize=10, loc="left")
+    for a in (a1, a2):
+        a.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}".replace(".", ",")))
+        a.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}".replace(".", ",")))
+    a2.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(0.005))
+    cor_d = {"M20": "#2166ac", "gim2000": "#d6604d"}
+    mar_d = {"M20": "o", "gim2000": "^"}
+    for a, k, t in ((a3, "r05", "(c)"), (a4, "r07", "(d)")):
+        for x in [y for y in lin if y["k"] == k]:
+            a.plot(x["c"], x["dc"], mar_d.get(x["cen"], "s"), color=cor_d.get(x["cen"], "0.3"), ms=3.6, alpha=0.8, mew=0,
+                   label=curto(x["nome"]).replace("$", "") + " (média " + f"{x['mdc']:+.4f}".replace(".", ",") + ")")
+            a.axhline(x["mdc"], color=cor_d.get(x["cen"], "0.3"), ls="--", lw=1.0)
+        a.axhline(0, color="k", lw=0.8)
+        a.set_xlabel(r"$c_\mathrm{SRM}$")
+        a.set_ylabel(r"$c_\mathrm{GIM} - c_\mathrm{SRM}$")
+        a.set_title(f"{t} LS, semente 7: " + tit(k), fontsize=10, loc="left")
+        a.legend(loc="lower left", fontsize=8)
+        a.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}".replace(".", ",")))
+        a.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}".replace(".", ",")))
+    yl = max(max(abs(v) for v in x["dc"]) for x in lin) * 1.6
+    for a in (a3, a4):
+        a.set_ylim(-yl, yl)
+    fig.tight_layout()
+    fig.savefig(os.path.join(FIGS, "srm_gim.pdf"))
+    plt.close(fig)
+    for x in ism:
+        print(f"SRM x GIM ISMC {x['k']} {x['cen']:6s} N {x['N']} SRM {100 * x['pS']:.4f}% GIM {100 * x['pG']:.4f}% dif "
+              f"{100 * x['dif']:+.2f} +- {100 * x['edif']:.2f}% so SRM {len(x['soS'])} so GIM {len(x['soG'])} k "
+              f"{x['k_longe']:.2f}/{x['k_perto']:.2f} t {x['tS']:.1f}/{x['tG']:.1f} s dlw {x['dlw']:.1e} campo "
+              f"{100 * x['dcampo']:.2f}%")
+    for x in lin:
+        print(f"SRM x GIM LS {x['k']} {x['cen']:7s} {x['N']} linhas SRM {100 * x['pS']:.4f}% GIM {100 * x['pG']:.4f}% dif "
+              f"{100 * x['dif']:+.2f} +- {100 * x['edif']:.2f}% (pelo dc {100 * x['prev']:+.2f}%) dc {x['mdc']:+.4f} "
+              f"({x['sdc']:.4f}) an/linha {x['naS']:.2f}/{x['naG']:.2f}")
+
+
+# ---------------- o Ceron com a agua do artigo ----------------
+CERON_ARTIGO = {"Pf": 0.1150, "CoV": 0.0277, "N": 10000, "Gdet": 1.336, "Gmed": 1.353}   # Ceron (2025), Secao 6
+CA_LS = os.path.join(R, "ceron_ls")                    # LS do MEF (GIM) com a agua do artigo, FORM modal M = 2000
+CA_MC = os.path.join(R, "ceron_mc_python", "mc10000")  # MC de 10 000 pela analise limite em Python
+CA_DET = os.path.join(R, "ceron_contorno")             # deterministicos do GIM: sat_ceron_n5 (artigo), padrao (antiga)
+
+
+def niveis(arq):
+    """o Gamma de cada nivel de refinamento (a coluna niveis da realizacao -1, a deterministica)"""
+    return [float(x) for x in next(csv.DictReader(open(arq, newline="")))["niveis"].split(";")]
+
+
+def aitken(a, b, c):
+    """a extrapolacao de tres niveis com convergencia geometrica"""
+    q = (c - b) / (b - a)
+    return c + (c - b) * q / (1. - q)
+
+
+def ceron_agua():
+    """o rebaixamento do Ceron com a agua do artigo: tab/ceron_agua.tex e os numeros"""
+    art = CERON_ARTIGO
+    d = ls(os.path.join(CA_LS, "ls"))
+    fo = json.load(open(os.path.join(CA_LS, "form", "form.json")))
+    G = {int(r["real"]): float(r["Gamma"]) for r in csv.DictReader(open(os.path.join(CA_MC, "mc.csv"), newline=""))}
+    ex = {int(r["real"]): (float(r["G_rapido"]), float(r["G_exato"]))
+          for r in csv.DictReader(open(os.path.join(CA_MC, "exato.csv"), newline=""))}
+    Ge = dict(G)
+    Ge.update({n: b for n, (a, b) in ex.items()})          # a busca exata no lugar da rapida onde foi refeita
+    nmc = len(G)
+    p_r = sum(1 for g in G.values() if g < 1.) / nmc
+    p_e = sum(1 for g in Ge.values() if g < 1.) / nmc
+    novas = sum(1 for a, b in ex.values() if b < 1. <= a)
+    sel = [n for n, g in G.items() if 1. <= g < 1.1]
+    if any(n not in ex for n in sel):
+        print("AVISO ceron_agua: o exato.csv nao cobre todas as realizacoes com 1 <= Gamma < 1,1")
+    gla = float(re.search(r"deterministico: Gamma = ([\d.]+)", open(os.path.join(CA_MC, "rodar.log")).read()).group(1))
+    nv = niveis(os.path.join(CA_DET, "sat_ceron_n5_0_-1.csv"))
+    gpz = aitken(*nv[-3:])
+    gvelho = niveis(os.path.join(CA_DET, "padrao_0_-1.csv"))[-1]
+    ref = P["ceron"]["ref"]
+    fs_velho = [x["fs"] for x in le_mc(P["ceron"]["refpasta"])]
+
+    def cv(p, n):
+        return math.sqrt((1. - p) / (n * p))
+
+    def zart(p, c):
+        return (p - art["Pf"]) / math.sqrt((p * c) ** 2 + (art["Pf"] * art["CoV"]) ** 2)
+
+    linhas = [("Ceron (2025): análise limite, MC de " + num(art["N"]), art["Pf"], art["CoV"], None,
+               num(art["Gdet"], 3), num(art["Gmed"], 3)),
+              (f"MEF (GIM, {len(nv) - 1} níveis): LS, {d['N']} linhas e {fo['avaliacoes']} + {d['analises']} análises",
+               d["Pf"], d["CoV"], zart(d["Pf"], d["CoV"]), num(gpz, 3) + "$^*$", "--"),
+              (f"análise limite (Python): MC de {num(nmc)}, busca rápida", p_r, cv(p_r, nmc), zart(p_r, cv(p_r, nmc)),
+               num(gla, 3), num(sum(G.values()) / nmc, 3)),
+              (f"\\quad e a busca exata nas {len(ex)} com $1 \\le \\Gamma < 1{{,}}1$", p_e, cv(p_e, nmc),
+               zart(p_e, cv(p_e, nmc)), "", num(sum(Ge.values()) / nmc, 3))]
+    T = ["% gerado por gera_dados.py (ceron_agua): nao editar a mao\n\\begin{table}[H]\\centering\\footnotesize"
+         "\\setlength{\\tabcolsep}{4pt}\n"
+         "\\caption{O rebaixamento do Ceron com a água do artigo (\\texttt{agua=sat trebaix=0.0001 contorno=ceron}). "
+         "IC de 95\\,\\%: $P_f(1 \\pm 1{,}96\\,\\mathrm{CoV})$ (no artigo, com o CoV de 2,77\\,\\% que ele dá). $z$: a "
+         "diferença contra o artigo, em desvios padrão. $\\Gamma$ det.: o determinístico (as médias de $c'$, $\\varphi'$ e "
+         f"$k$); $^*$: extrapolado dos níveis {len(nv) - 3} a {len(nv) - 1} do GIM ("
+         + "; ".join(num(x, 3) for x in nv[-3:]) + "). Na última linha, a referência das outras seções, com a água "
+         "antiga.}\\label{tab:ceronagua}\n"
+         "\\begin{tabular}{lrrrrr}\\toprule\nmétodo e amostra & $P_f$ & IC de 95\\,\\% & $z$ & $\\Gamma$ det. & "
+         "média de $\\Gamma$ \\\\\\midrule\n"]
+    for nome, p, c, zz, gd, gm in linhas:
+        T.append(f"{nome} & {pct(p, 2)} & {num(100 * p * (1 - 1.96 * c), 2)}--{num(100 * p * (1 + 1.96 * c), 2)}\\,\\% & "
+                 f"{sinal(zz, 1) if zz is not None else '--'} & {gd} & {gm} \\\\\n")
+    T.append(f"\\midrule\nMEF (GIM, 3 níveis): MC direto de {num(ref['N'])}, água antiga & {pct(ref['Pf'], 2)} & "
+             f"{num(100 * ref['Pf'] * (1 - 1.96 * ref['CoV']), 2)}--{num(100 * ref['Pf'] * (1 + 1.96 * ref['CoV']), 2)}"
+             f"\\,\\% & {sinal(zart(ref['Pf'], ref['CoV']), 1)} & {num(gvelho, 3)} & "
+             f"{num(sum(fs_velho) / len(fs_velho), 3)} \\\\\n")
+    T.append("\\bottomrule\\end{tabular}\\end{table}\n")
+    open(os.path.join(TAB, "ceron_agua.tex"), "w").write("".join(T))
+    Nn.clear()
+    cmd("ceaLsPf", pct(d["Pf"], 2))
+    cmd("ceaLsLo", pct(d["Pf"] * (1 - 1.96 * d["CoV"]), 2))
+    cmd("ceaLsHi", pct(d["Pf"] * (1 + 1.96 * d["CoV"]), 2))
+    cmd("ceaLsCov", pct(d["CoV"], 1))
+    cmd("ceaLsN", str(d["N"]))
+    cmd("ceaLsAn", str(d["analises"]))
+    cmd("ceaLsZ", sinal(zart(d["Pf"], d["CoV"]), 1))
+    cmd("ceaForm", str(fo["avaliacoes"]))
+    cmd("ceaBeta", num(fo["beta"], 3))
+    cmd("ceaFormPf", pct(cauda(fo["beta"]), 1))
+    cmd("ceaMcN", num(nmc))
+    cmd("ceaMcPf", pct(p_r, 2))
+    cmd("ceaMcPfEx", pct(p_e, 2))
+    cmd("ceaMcIc", pct(1.96 * math.sqrt(p_e * (1 - p_e) / nmc), 2))
+    cmd("ceaMcRef", str(len(ex)))
+    cmd("ceaMcNovas", str(novas))
+    # quanto a busca exata mudou: (Gamma rapido - Gamma exato) / Gamma rapido; e a P_f, em pontos
+    red = [(a - b) / a for a, b in ex.values()]
+    cmd("ceaExMuda", str(sum(1 for x in red if x > 0.01)))
+    cmd("ceaExMax", num(100 * max(red), 1))
+    cmd("ceaMcSobe", num(100 * (p_e - p_r), 2))
+    cmd("ceaMcZ", sinal(zart(p_e, cv(p_e, nmc)), 1))
+    cmd("ceaGdetPz", num(gpz, 3))
+    cmd("ceaGniveis", "; ".join(num(x, 3) for x in nv[-3:]))
+    cmd("ceaGnivelFim", num(nv[-1], 3))
+    cmd("ceaGdetLa", num(gla, 3))
+    cmd("ceaGdetArt", num(art["Gdet"], 3))
+    cmd("ceaGmedLa", num(sum(G.values()) / nmc, 3))
+    cmd("ceaGmedArt", num(art["Gmed"], 3))
+    cmd("ceaPfArt", pct(art["Pf"], 2))
+    cmd("ceaGvelho", num(gvelho, 3))
+    cmd("ceaZvelho", sinal(zart(ref["Pf"], ref["CoV"]), 1))
+    cmd("ceaLsDifPt", num(100 * abs(d["Pf"] - art["Pf"]), 1))     # em pontos percentuais
+    cmd("ceaMcDifPt", num(100 * abs(p_e - art["Pf"]), 1))
+    open(os.path.join(AQUI, "numeros.tex"), "a").write("".join(Nn))
+    print(f"Ceron, agua do artigo: LS {d['N']} linhas {100 * d['Pf']:.3f}% (CoV {100 * d['CoV']:.2f}%), {d['analises']} "
+          f"analises + FORM {fo['avaliacoes']}; MC LA {nmc}: {100 * p_r:.2f}% -> exato {100 * p_e:.2f}% ({novas} novas); "
+          f"Gamma det PZ {gpz:.4f} LA {gla:.4f} artigo {art['Gdet']}")
+
+
+srm_gim()
+ceron_agua()
