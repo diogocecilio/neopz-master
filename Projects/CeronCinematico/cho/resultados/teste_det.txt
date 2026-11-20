@@ -1,0 +1,1 @@
+(2) deterministico: Gamma exato (cinematico.minimizar) 1.7770; rapido 1.7770 (pe, 0.24 s); FS rapido 1.2032 (2 minimizacoes, 0.41 s); FS classico (forma fechada) 1.2032. Artigo: 1,777 e 1,203 (Cho LEM 1,204; SRM do MEF 1,2044) -> PASSOU

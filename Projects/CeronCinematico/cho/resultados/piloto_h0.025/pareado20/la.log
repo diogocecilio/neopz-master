@@ -1,0 +1,9 @@
+mc_la: r = -0.5, campo analitico (variancia retida 0.9877), semente 2010, realizacoes 0..19, direto, cov alvo 0.0 (nmin 0), 3 processos, ja feitas 0; preparo 0.2 s
+  14:42:15 N = 11, falhas 0, P_f = 0.0000 %, CoV = inf %
+fim (n maximo), 120 s
+resultados/piloto_h0.025/pareado20/la.csv: N = 20, falhas = 0
+  P_f = 0.0000 %  CoV = inf %  IC 95 % = [0.0000, 0.0000] %  -> p/ CoV 5 %: inf realizacoes
+  Gamma: media 2.0308, dp 0.6499, min 1.2525, mediana 1.8889 (sem as 0 com Gamma = inf: nenhum mecanismo admissivel)
+  FS (20 realizacoes): media 1.2288, min 1.0760; secante do FS nao convergida em 0
+  modo (todas): pe 85.0 %, face 15.0 %, base 0.0 %, nenhum 0.0 %
+  tempo medio 17.02 s por realizacao (1 processo)

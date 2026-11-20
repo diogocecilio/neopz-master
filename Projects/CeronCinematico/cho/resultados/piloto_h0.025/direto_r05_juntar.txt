@@ -1,0 +1,9 @@
+pareado: resultados/piloto_h0.025/direto_r05.csv x /home/diogo/projects/runs/fermi_etapa1/etapa1/r05_direto: N = 200 realizacoes em comum
+  log_peso LA x MEF: dif max 0.0e+00 (as mesmas realizacoes: OK)
+  corr(Gamma_LA, FS_MEF) = 0.5889; corr(ln Gamma_LA, ln FS_MEF) = 0.8714; Spearman = 0.9295
+  Gamma_LA / FS_MEF: media 1.7323, mediana 1.5563; perto da falha (FS_MEF < 1,1, 25): media 1.1850
+  FS_LA x FS_MEF (200 com FS): corr 0.9976; FS_LA/FS_MEF media 1.0279; FS_LA - FS_MEF: media +0.0335, dp 0.0077, min +0.0201, max +0.0676; FS_LA/FS_MEF - 1: media +2.79 %; FS_LA < FS_MEF em 0
+  falhas: LA 2, MEF 5, as duas 2, so LA 0, so MEF 3
+  P_f no conjunto pareado: LA 1.0000 %, MEF 2.5000 %, razao LA/MEF 0.400
+  P_f(MEF) - P_f(LA) = 1.5000 % +- 1.6889 % (IC 95 % pareado)
+  pares em resultados/piloto_h0.025/direto_r05_pares.csv

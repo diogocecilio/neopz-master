@@ -1,0 +1,18 @@
+(1a) campo do Python x campos.csv do Cho2010 (pontos de 0,5 m no talude)
+  ana05_real0  analitico r = -0.5: 1210 pontos, erro rel max c 4.9e-06, phi 2.1e-06 (precisao do CSV ~5e-6); corr(ln c, ln phi) espacial -0.40 -> OK
+  ana05_real1  analitico r = -0.5: 1210 pontos, erro rel max c 4.8e-06, phi 2.4e-06 (precisao do CSV ~5e-6); corr(ln c, ln phi) espacial -0.65 -> OK
+  ana07_real5  analitico r = -0.7: 1210 pontos, erro rel max c 4.7e-06, phi 2.6e-06 (precisao do CSV ~5e-6); corr(ln c, ln phi) espacial -0.85 -> OK
+  nys05_real0  nystrom   r = -0.5: 1210 pontos, erro rel max c 4.9e-06, phi 2.4e-06 (precisao do CSV ~5e-6); corr(ln c, ln phi) espacial +0.15 -> OK
+(1b) grade da analise limite (h = 0,1) x formula ponto a ponto, 500 nos de solo ao acaso
+  analitico: erro rel max c 3.3e-15, phi 1.8e-15 -> OK
+  nystrom  : erro rel max c 2.0e-06, phi 9.3e-07 -> OK
+(1c) estatisticas amostrais (400 realizacoes, semente 2010, campo analitico) em 4 pontos
+  r = -0.5 ( +5.0, 10.0): media c   9.94 (teor.  9.99), CoV c 0.290 (0.298); media phi 30.25, CoV phi 0.197 (0.199); corr(ln c, ln phi) -0.488 (-0.5)
+  r = -0.5 (+10.0,  5.0): media c  10.01 (teor.  9.99), CoV c 0.298 (0.298); media phi 29.88, CoV phi 0.207 (0.199); corr(ln c, ln phi) -0.573 (-0.5)
+  r = -0.5 (+15.0, 12.0): media c  10.03 (teor.  9.99), CoV c 0.288 (0.298); media phi 30.00, CoV phi 0.197 (0.199); corr(ln c, ln phi) -0.536 (-0.5)
+  r = -0.5 ( -5.0,  2.0): media c  10.13 (teor.  9.99), CoV c 0.298 (0.298); media phi 30.28, CoV phi 0.198 (0.199); corr(ln c, ln phi) -0.495 (-0.5)
+  r = -0.7 ( +5.0, 10.0): media c   9.94 (teor.  9.99), CoV c 0.290 (0.298); media phi 30.23, CoV phi 0.197 (0.199); corr(ln c, ln phi) -0.697 (-0.7)
+  r = -0.7 (+10.0,  5.0): media c  10.01 (teor.  9.99), CoV c 0.298 (0.298); media phi 29.92, CoV phi 0.211 (0.199); corr(ln c, ln phi) -0.744 (-0.7)
+  r = -0.7 (+15.0, 12.0): media c  10.03 (teor.  9.99), CoV c 0.288 (0.298); media phi 29.97, CoV phi 0.197 (0.199); corr(ln c, ln phi) -0.723 (-0.7)
+  r = -0.7 ( -5.0,  2.0): media c  10.13 (teor.  9.99), CoV c 0.298 (0.298); media phi 30.14, CoV phi 0.198 (0.199); corr(ln c, ln phi) -0.697 (-0.7)
+TESTE DOS CAMPOS: PASSOU

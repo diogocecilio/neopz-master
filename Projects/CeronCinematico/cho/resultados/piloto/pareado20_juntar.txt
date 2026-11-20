@@ -1,0 +1,8 @@
+pareado: resultados/piloto/pareado20/la.csv x resultados/piloto/pareado20/mef.csv: N = 20 realizacoes em comum
+  corr(Gamma_LA, FS_MEF) = 0.9342; corr(ln Gamma_LA, ln FS_MEF) = 0.9556; Spearman = 0.9519
+  FS_LA x FS_MEF (20 com FS): corr 0.9992; FS_LA - FS_MEF: media +0.0205, dp 0.0051, min +0.0138, max +0.0373; FS_LA/FS_MEF - 1: media +1.70 %; FS_LA < FS_MEF em 0
+  falhas: LA 0, MEF 0, as duas 0, so LA 0, so MEF 0
+  P_f no conjunto pareado: LA 0.0000 %, MEF 0.0000 %, razao LA/MEF nan
+  pares em resultados/piloto/pareado20/pares.csv
+MEF pelo xi= (PC) x MC direto do MEF (fermi), reais 0-19: |dif FS| max 0.0
+LA busca forte x LA politica (piloto): |dif rel Gamma| max 0.004732889361844461  |dif FS| max 0.00033799999999994945

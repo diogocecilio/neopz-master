@@ -1,0 +1,6 @@
+form_la: r = -0.5, campo nystrom, M = 20 (40 variaveis), diferencas central passo 0.2, 4 processos
+  it 0: beta = 0.0000, Gamma = 1.60641, |grad ln Gamma| = 0.2942, 81 avaliacoes, 9 s
+  it 1: beta = 1.6114, Gamma = 1.09442, |grad ln Gamma| = 0.2026, 162 avaliacoes, 51 s
+  it 2: beta = 1.9903, Gamma = 1.00012, |grad ln Gamma| = 0.2032, 243 avaliacoes, 94 s
+  it 3: beta = 1.9907, Gamma = 1.00001, |grad ln Gamma| = 0.2029, 324 avaliacoes, 140 s
+form_la: beta = 1.9907, P_f FORM = 2.3259 %, convergiu True, 324 avaliacoes, alfa^2: c 0.069, phi 0.931; resultados/piloto/form_r05_M20/form.json

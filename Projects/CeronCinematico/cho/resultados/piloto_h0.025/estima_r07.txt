@@ -1,0 +1,3 @@
+piloto pareado: 200 realizacoes; ln FS_LA = +0.0236 + 1.0175 ln FS_MEF, residuo dp 0.0042; FS_LA - FS_MEF media +0.0327
+MC direto do MEF (/home/diogo/projects/runs/fermi_etapa3/etapa3/r07_direto): N = 110000, P_f(MEF) = 0.366 %
+P_f(LA) prevista = 0.107 % (razao LA/MEF 0.29); N para CoV 5 % = 373805

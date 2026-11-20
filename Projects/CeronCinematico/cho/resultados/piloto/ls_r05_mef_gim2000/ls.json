@@ -1,0 +1,19 @@
+{
+ "direcao": "/home/diogo/projects/neopz-master/Projects/CeronCinematico/cho/form_mef/form_r05_gim2000/form.json",
+ "beta": 1.9772547552206412,
+ "s": -0.20378109704308275,
+ "P_f": 0.011361068564932433,
+ "CoV": 0.15840985648805647,
+ "CoV_linha": 0.4480507349179702,
+ "linhas": 8,
+ "analises_linha": 4.875,
+ "analises": 41,
+ "analises_form": 7,
+ "analises_cov5": 400.46144906803966,
+ "motivo": "n linhas",
+ "r": -0.5,
+ "K": 2000,
+ "semente": 7,
+ "campo": "nystrom",
+ "tempo_s": 74.53979389899177
+}

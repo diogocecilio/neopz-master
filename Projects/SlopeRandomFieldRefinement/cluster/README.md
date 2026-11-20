@@ -376,6 +376,32 @@ um, pares discordantes, k de Γ ~ FS^k, e a tabela `pareado.csv` com real, FS_sr
 - **Γ = 0** (GIM sem equilíbrio nem com 1% da gravidade, `situacao` `fator`) conta como falha no `tarefas.sh`, no
   `status.sh`, no `amostragem_importancia.py`, no `compara_pares.py` e no `line_sampling.py`.
 
+## Tabelas 4 e 5 com a análise limite do Ceron (`la_cho.sbatch`)
+
+Os mesmos casos do Cho (r = -0,5 e -0,7) com a análise limite cinemática do Ceron (2025) em Python
+(`Projects/CeronCinematico/cho`), nos **mesmos campos** do MEF: o gerador, a KL analítica e a base de Nyström são
+cópias do C++, então a realização n da LA é a realização n do MEF (conferido: log_peso igual, campos até 5e-6).
+Grade dos campos na LA: h = 0,025 m (com 0,1 o Γ sai ~2,5 % baixo). Uma semente por caso (ISMC 21, LS 7).
+
+| Etapa | O que roda | Custo (estimado) |
+|---|---|---|
+| `checa` | python (venv), random.gauss, determinístico (Γ 1,777, FS 1,203), caminhos do MEF no `$DATA`, Ψ de Nyström (cache 3,9 GB, uma vez) e o tempo de 48 realizações | ~0,5 h |
+| `direto R="r05 r00 r07"` | MC direto LA até CoV 5 % (r05 ≥ 24 000, r07 ≥ 110 000: todas as do MEF, pareadas; r00 = r 0, só para o Ceron, 5,50 %). Γ em todas (~1,6 s); FS da LA (~13 s) nas 2400 primeiras e perto da falha | ~150 h de CPU |
+| `amostragem R="r05 r07"` | FORM LA (M 20 e 100), LS LA (100 linhas, semente 7) nas direções do MEF (M20, gim2000) e da LA, ISMC LA (semente 21, 2500) nos centros do MEF (M20, M100, gim20) e da LA | ~60 h de CPU |
+| `pareado` | (opcional) LA e `bin/Cho2010` nos mesmos xi, para conferir o caminho xi= | ~5 h |
+
+No fermi (uma vez: `$HOME/venv_la/bin/pip install numpy scipy matplotlib`):
+
+```bash
+cd neopz-master/Projects/SlopeRandomFieldRefinement/cluster
+J=$(ETAPA=checa sbatch --parsable la_cho.sbatch)
+ETAPA=direto R="r05 r00 r07" sbatch --dependency=afterok:$J la_cho.sbatch
+ETAPA=amostragem R="r05 r07" sbatch --dependency=afterok:$J la_cho.sbatch
+```
+
+Saídas em `$DATA/cho_la/h0.025` (direto/, form/, ls/, ismc/); o fim de cada job imprime a tabela LA × MEF
+(`resumo.py`). Baixar: `rsync -av --exclude cache diogo@fermi.cesup.ufrgs.br:/mnt/data/diogo/cho_la/ ~/projects/runs/fermi_cho_la/`.
+
 ## Line sampling do Ceron com a agua do artigo (`contorno=ceron`)
 
 O `ls_ceron.sbatch` calcula a P_f do rebaixamento do Ceron (2025) com os contornos do artigo (`contorno=ceron

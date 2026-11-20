@@ -1,0 +1,19 @@
+mc_la: r = -0.7, campo analitico (variancia retida 0.9877), semente 2010, realizacoes 0..199, direto, cov alvo 0.0 (nmin 0), 2 processos, ja feitas 0; preparo 0.2 s
+  13:24:48 N = 10, falhas 0, P_f = 0.0000 %, CoV = inf %
+  13:26:01 N = 30, falhas 0, P_f = 0.0000 %, CoV = inf %
+  13:27:10 N = 50, falhas 1, P_f = 2.0000 %, CoV = 100.00 %
+  13:28:17 N = 70, falhas 1, P_f = 1.4286 %, CoV = 100.00 %
+  13:29:26 N = 90, falhas 1, P_f = 1.1111 %, CoV = 100.00 %
+  13:30:34 N = 110, falhas 1, P_f = 0.9091 %, CoV = 100.00 %
+  13:31:46 N = 130, falhas 1, P_f = 0.7692 %, CoV = 100.00 %
+  13:33:18 N = 150, falhas 1, P_f = 0.6667 %, CoV = 100.00 %
+  13:34:36 N = 170, falhas 1, P_f = 0.5882 %, CoV = 100.00 %
+  13:35:49 N = 190, falhas 1, P_f = 0.5263 %, CoV = 100.00 %
+fim (n maximo), 751 s
+resultados/piloto/direto_r07.csv: N = 200, falhas = 1
+  P_f = 0.5000 %  CoV = 100.00 %  IC 95 % = [-0.4800, 1.4800] %  -> p/ CoV 5 %: 80000 realizacoes
+  Gamma: media 1.9879, dp 0.6823, min 0.9774, mediana 1.8373
+  FS (200 realizacoes): media 1.2209, min 0.9908
+  modo (todas): pe 92.5 %, face 7.5 %, base 0.0 %
+  modo (falhas, sem peso): pe 100.0 %, face 0.0 %, base 0.0 %
+  tempo medio 7.42 s por realizacao (1 processo)

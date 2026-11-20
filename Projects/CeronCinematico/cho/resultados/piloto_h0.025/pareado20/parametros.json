@@ -1,0 +1,14 @@
+{
+ "r": -0.5,
+ "semente": 2010,
+ "primeira": 0,
+ "n": 20,
+ "campo": "analitico",
+ "centro": "",
+ "base": "",
+ "M": 2000,
+ "fator": "tri2",
+ "nref": 4,
+ "srm_f0": 0.8,
+ "metodo": "srm"
+}

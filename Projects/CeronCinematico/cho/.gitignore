@@ -1,0 +1,5 @@
+cache/
+__pycache__/
+testes_mef/
+resultados/**/xi/
+resultados/**/mef/

@@ -1,0 +1,22 @@
+mc_la: r = -0.5, campo analitico (variancia retida 0.9877), semente 2010, realizacoes 0..199, direto, cov alvo 0.0 (nmin 0), 3 processos, ja feitas 0; preparo 0.2 s
+  14:01:54 N = 5, falhas 0, P_f = 0.0000 %, CoV = inf %
+  14:03:40 N = 25, falhas 0, P_f = 0.0000 %, CoV = inf %
+  14:05:03 N = 45, falhas 2, P_f = 4.4444 %, CoV = 69.90 %
+  14:06:06 N = 60, falhas 2, P_f = 3.3333 %, CoV = 70.11 %
+  14:07:08 N = 75, falhas 2, P_f = 2.6667 %, CoV = 70.23 %
+  14:08:19 N = 90, falhas 2, P_f = 2.2222 %, CoV = 70.31 %
+  14:09:40 N = 105, falhas 2, P_f = 1.9048 %, CoV = 70.37 %
+  14:11:05 N = 120, falhas 2, P_f = 1.6667 %, CoV = 70.41 %
+  14:12:20 N = 135, falhas 2, P_f = 1.4815 %, CoV = 70.45 %
+  14:13:23 N = 150, falhas 2, P_f = 1.3333 %, CoV = 70.47 %
+  14:14:52 N = 165, falhas 2, P_f = 1.2121 %, CoV = 70.49 %
+  14:16:05 N = 180, falhas 2, P_f = 1.1111 %, CoV = 70.51 %
+  14:17:23 N = 195, falhas 2, P_f = 1.0256 %, CoV = 70.53 %
+fim (n maximo), 1008 s
+resultados/piloto_h0.025/direto_r05.csv: N = 200, falhas = 2
+  P_f = 1.0000 %  CoV = 70.53 %  IC 95 % = [-0.3824, 2.3824] %  -> p/ CoV 5 %: 39799 realizacoes
+  Gamma: media 2.1176, dp 1.2978, min 0.9097, mediana 1.8544
+  FS (200 realizacoes): media 1.2301, min 0.9611; secante do FS nao convergida em 0
+  modo (todas): pe 86.0 %, face 13.5 %, base 0.5 %
+  modo (falhas, sem peso): pe 100.0 %, face 0.0 %, base 0.0 %
+  tempo medio 14.77 s por realizacao (1 processo)

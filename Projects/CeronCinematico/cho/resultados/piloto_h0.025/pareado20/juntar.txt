@@ -1,0 +1,7 @@
+pareado: resultados/piloto_h0.025/pareado20/la.csv x resultados/piloto_h0.025/pareado20/mef.csv: N = 20 realizacoes em comum
+  corr(Gamma_LA, FS_MEF) = 0.9196; corr(ln Gamma_LA, ln FS_MEF) = 0.9452; Spearman = 0.9474
+  Gamma_LA / FS_MEF: media 1.6695, mediana 1.5560; perto da falha (FS_MEF < 1,1, 3): media 1.2245
+  FS_LA x FS_MEF (20 com FS): corr 0.9993; FS_LA/FS_MEF media 1.0262; FS_LA - FS_MEF: media +0.0315, dp 0.0055, min +0.0256, max +0.0472; FS_LA/FS_MEF - 1: media +2.62 %; FS_LA < FS_MEF em 0
+  falhas: LA 0, MEF 0, as duas 0, so LA 0, so MEF 0
+  P_f no conjunto pareado: LA 0.0000 %, MEF 0.0000 %, razao LA/MEF nan
+  pares em resultados/piloto_h0.025/pareado20/pares.csv

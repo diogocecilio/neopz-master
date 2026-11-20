@@ -1,0 +1,41 @@
+mc_la: r = -0.7, campo analitico (variancia retida 0.9877), semente 2010, realizacoes 0..199, direto, cov alvo 0.0 (nmin 0), 3 processos, ja feitas 0; preparo 0.2 s
+  14:18:43 N = 5, falhas 0, P_f = 0.0000 %, CoV = inf %
+  14:20:05 N = 20, falhas 0, P_f = 0.0000 %, CoV = inf %
+  14:21:22 N = 40, falhas 1, P_f = 2.5000 %, CoV = 100.00 %
+  14:22:26 N = 55, falhas 1, P_f = 1.8182 %, CoV = 100.00 %
+  14:23:37 N = 65, falhas 1, P_f = 1.5385 %, CoV = 100.00 %
+  14:25:09 N = 85, falhas 1, P_f = 1.1765 %, CoV = 100.00 %
+  14:26:25 N = 100, falhas 1, P_f = 1.0000 %, CoV = 100.00 %
+  14:27:36 N = 115, falhas 1, P_f = 0.8696 %, CoV = 100.00 %
+  14:28:54 N = 130, falhas 1, P_f = 0.7692 %, CoV = 100.00 %
+  14:29:57 N = 145, falhas 1, P_f = 0.6897 %, CoV = 100.00 %
+multiprocessing.pool.RemoteTraceback: 
+"""
+Traceback (most recent call last):
+  File "/usr/lib/python3.14/multiprocessing/pool.py", line 125, in worker
+    result = (True, func(*args, **kwds))
+                    ~~~~^^^^^^^^^^^^^^^
+  File "/home/diogo/projects/neopz-master/Projects/CeronCinematico/cho/mc_la.py", line 65, in _tarefa
+    r = av.avalia(xi, fs=n < fs_ate, fs_gamma=fs_gamma)
+  File "/home/diogo/projects/neopz-master/Projects/CeronCinematico/cho/la.py", line 150, in avalia
+    r = self.minimizar(c, phi)
+  File "/home/diogo/projects/neopz-master/Projects/CeronCinematico/cho/la.py", line 95, in minimizar
+    r = rp.minimizar_rapido(cg, TALUDE, partidas=part, **BUSCA_RAPIDA)
+  File "/home/diogo/projects/neopz-master/Projects/CeronCinematico/cho/rapido.py", line 518, in minimizar_rapido
+    raise RuntimeError("nenhum mecanismo valido")
+RuntimeError: nenhum mecanismo valido
+"""
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/diogo/projects/neopz-master/Projects/CeronCinematico/cho/mc_la.py", line 223, in <module>
+    main(sys.argv[1:])
+    ~~~~^^^^^^^^^^^^^^
+  File "/home/diogo/projects/neopz-master/Projects/CeronCinematico/cho/mc_la.py", line 206, in main
+    for l in v.get():
+             ~~~~~^^
+  File "/usr/lib/python3.14/multiprocessing/pool.py", line 774, in get
+    raise self._value
+RuntimeError: nenhum mecanismo valido
+FIM
