@@ -267,6 +267,11 @@ núcleo, ou 6 a 7 h em 4 nós. O primeiro nó roda antes os FORM com M = 10 e 20
      `Coorientação-Mario/darcy-simulation-slope-v2.nb` usa só crista/face/pé (resto sem fluxo): 1,40 a 1,41.
      Leitura: com a mesma água do artigo, reproduzimos o 1,336; o nosso MC usou outra água (transiente de 0,1 h,
      Γ_∞ = 1,276), e o GIM com 3 níveis (+4%) mascarou isso no determinístico; próximo: o MC com a água permanente;
+  1b. **Fig. 4b do Ceron reproduzida** (`fig4b_ceron.py`, `figs/fig4b_reproducao.png`): os contornos coincidem com
+     lateral esquerda e base em u = 0 e lateral direita sem fluxo, domínio medido na figura ~50H × 10H × 30H. Com
+     esse contorno o Γ cresce com o domínio: 1,316 (10H×2H×6H), 1,337 (14H×2,8H×8,4H), 1,354 (20H), 1,379 (50H); o
+     1,336 corresponde a ~14H. Os notebooks do Mário (`darcy-simulation-slope-v2.nb`, `fs-water.nb`) não dão a fonte
+     das tabelas; a célula 9 do primeiro (base sem fluxo) dá 1,40;
   2. comparação pareada nas mesmas 2000 realizações da referência: o Γ cinemático ao lado do Γ do MEF, realização a
      realização; espera-se P_f ≈ 11,5% pelo método dele e Γ_cin ≥ Γ_MEF, com a diferença maior nas bandas fracas;
   3. o passo de tempo do transiente (`dt=` de 0,1 a 0,01, determinístico) e o MC com 4 níveis (a tendência para ~18%).
