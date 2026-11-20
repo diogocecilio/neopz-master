@@ -87,8 +87,7 @@ if [ "$CAMPANHA" != chuva ]; then
               python3 -I -B "$POS/compara_pares.py" "$RUNS/$ref" "$D/$id" 2>&1 | head -n 12 || true
               echo
           done
-          for c in r05_direto_gim:fermi_etapa1/etapa1/r05_direto r07_direto_gim:fermi_etapa3/etapa3/r07_direto \
-              r05_nys_M20_s21: r05_nys_M100_s21: r05_nys_gim20_s21: r07_nys_M20_s21: r07_nys_M100_s21: r07_nys_gim20_s21:; do
+          for c in r05_nys_M20_s21: r05_nys_M100_s21: r05_nys_gim20_s21: r07_nys_M20_s21: r07_nys_M100_s21: r07_nys_gim20_s21:; do
               id=${c%%:*} ref=${c#*:}
               [ -n "$ref" ] || ref="fermi_etapa3b/etapa3b/$id"
               [ -d "$D/$id" ] || continue
@@ -103,10 +102,10 @@ if [ "$CAMPANHA" != chuva ]; then
               echo
           done
           # N alvo com cov_n=500 (a regra do SRM na etapa 3b; a fila rodou com 2000 so para parear), o custo com os FORM
-          # da etapa 3b (os centros sao os de la) e o z contra o direto GIM (r07: so as 24 000 primeiras, CoV ~11%)
-          echo "== ISMC GIM: parada pelo CoV com cov_n=500 (como o SRM), FORM da etapa 3b, z contra o direto GIM"
+          # da etapa 3b (os centros sao os de la) e o z contra o direto SRM (sem direto GIM: decisao do usuario)
+          echo "== ISMC GIM: parada pelo CoV com cov_n=500 (como o SRM), FORM da etapa 3b, z contra o direto SRM"
           python3 -I -B "$AQUI/../../Cho2010/ismc_parada.py" "$D" "$AQUI/$CASOS_TXT" cov_n=500 \
-              forms="$RUNS/fermi_etapa3b/etapa3b" r05="$D/r05_direto_gim" r07="$D/r07_direto_gim" 2>&1 || true
+              forms="$RUNS/fermi_etapa3b/etapa3b" r05="$RUNS/fermi_etapa1/etapa1/r05_direto" r07="$RUNS/fermi_etapa3/etapa3/r07_direto" 2>&1 || true
           echo; } >> "$R"
     fi
     cat "$R"

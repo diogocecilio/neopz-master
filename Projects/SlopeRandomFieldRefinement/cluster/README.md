@@ -344,8 +344,6 @@ Casos (`casos_etapa3b_gim.txt`, blocos de 10 como nas referências):
 | `conf_srm_r05` | SRM, realizações 0 a 9 (conferência: FS iguais) | `etapa1/r05_direto` | 10 |
 | `conf_srm_r07` | SRM, realizações 0 a 9 (conferência: FS iguais) | `etapa3/r07_direto` | 10 |
 | `r0x_nys_<M20,M100,gim20>_s21` | ISMC GIM, semente 21, CoV 5%, no mínimo 2000 (`cov_n=2000`) | `etapa3b/<mesmo id>` | ~12 300 |
-| `r05_direto_gim` | direto GIM, realizações 0 a 23 999 (o r05 todo) | `etapa1/r05_direto` | 24 000 |
-| `r07_direto_gim` | direto GIM, realizações 0 a 23 999 (das 110 000) | `etapa3/r07_direto` | 24 000 |
 | `ls_gim.sbatch` | LS GIM, semente 7, direções M20 e gim2000, CoV 5%, 100 a 600 linhas | `~/projects/runs/etapa3b_ls/ls` | ~1 800 |
 
 O `cov_n=2000` faz a ISMC GIM rodar pelo menos as 2000 realizações da ISMC da análise limite e as k da parada do SRM
@@ -354,9 +352,10 @@ O `cov_n=2000` faz a ISMC GIM rodar pelo menos as 2000 realizações da ISMC da 
 100 linhas do SRM e da análise limite. O `ls_gim.sbatch` copia a base de Nyström (525 MB) para o disco local do nó,
 porque cada análise do LS é um processo novo que a lê.
 
-Custo (o SRM leva ~66 a 69 s por análise no fermi; o GIM, pelo PC, não mais): ~62 100 análises, ~1 190 h de núcleo.
-Com 2 jobs da campanha e o `lsGim` (3 rodando; o 3º job da campanha espera o `lsGim` acabar, com `DEPENDE`), dá
-~32 a 35 h, dentro dos 2 dias por job. Fica 1 vaga rodando para o `laCho`.
+Sem Monte Carlo direto com o GIM (decisão do usuário, 2026-11-20): a referência da P_f é o direto SRM, nas mesmas
+realizações. Custo (o SRM leva ~66 a 69 s por análise no fermi; o GIM, pelo PC, não mais): ~14 100 análises, ~270 h
+de núcleo. Com 2 jobs da campanha e o `lsGim` (3 rodando; o 3º job da campanha espera o `lsGim` acabar, com
+`DEPENDE`), dá umas 5 a 7 h. Fica 1 vaga rodando para o `laCho`.
 
 Antes de submeter, confira no fermi a versão do `bin/Cho2010` (tem de ser a ac5aabf) e o `random` do python3 (o Z do
 LS tem de ser o mesmo do PC: `-0.2558802884476004 0.511431512516514`):
@@ -374,8 +373,6 @@ cada caso GIM contra a sua referência SRM (`Projects/Cho2010/pareado_gim.py mc`
 um, pares discordantes, k de Γ ~ FS^k, e a tabela `pareado.csv` com real, FS_srm, Gamma_gim), o LS linha a linha
 (`pareado_gim.py ls`) e o `ismc_parada.py`. As referências SRM têm de estar baixadas em `~/projects/runs`.
 
-- **O resto do r07** (realizações 24 000 a 109 999, ~1 460 h de núcleo):
-  `CAMPANHA=etapa3b_gim CASOS=r07_direto_gim ULTIMA=109999 ./submeter.sh 3`.
 - **Γ = 0** (GIM sem equilíbrio nem com 1% da gravidade, `situacao` `fator`) conta como falha no `tarefas.sh`, no
   `status.sh`, no `amostragem_importancia.py`, no `compara_pares.py` e no `line_sampling.py`.
 
