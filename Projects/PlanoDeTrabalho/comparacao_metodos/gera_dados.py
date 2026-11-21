@@ -13,9 +13,12 @@ Fontes (no PC, em ~/projects/runs; a viga vem dos relatorios em Mathematica):
   Viga: MC direto e ISMC do relatorio da viga (viga_mathematica/relatorio_viga.tex, "O ponto otimo do M do FORM");
       line sampling e FORM adjunto das secoes 16 e 17 do codigo viga_mathematica/codigo/viga_FORM5_AI200.txt (saida do
       Mathematica de 19/11/2026, ainda fora do relatorio da viga).
-  SRM x GIM pareado (srm_gim, no fim): a campanha etapa3b_gim do fermi (fermi_etapa3b_gim/etapa3b_gim: r0x_nys_<centro>_s21
-      e ls/r0x_<dir>, PARCIAL enquanto roda) contra as mesmas realizacoes e linhas do SRM; o piloto da analise limite
-      (Projects/CeronCinematico/cho/resultados/piloto_h0.025).
+  SRM x GIM x analise limite, pareado (srm_gim e la_mef, no fim): a campanha etapa3b_gim do fermi, terminada
+      (fermi_etapa3b_gim/etapa3b_gim: r0x_nys_<centro>_s21 e ls/r0x_<dir>), contra as mesmas realizacoes e linhas do SRM;
+      a analise limite do fermi (fermi_cho_la/h0.025: direto, ismc, ls, form; o direto r07 ainda roda), os pilotos com
+      h = 0,1 e 0,025 (Projects/CeronCinematico/cho/resultados/piloto e piloto_h0.025) e o MC simples da analise limite
+      com o campo de Nystrom, sem deslocamento, rodado no PC (cho_la_pc/h0.025/direto_nys_r05_s4242.csv); o MEF com
+      r = 0 e o da verificacao de 21/11 V12 (constantes MEF_R0).
   Ceron com a agua do artigo (ceron_agua, no fim): line sampling do MEF (ceron_ls), MC de 10 000 pela analise limite em
       Python (ceron_mc_python/mc10000) e os deterministicos do GIM (ceron_contorno).
 Uso: python3 -I gera_dados.py   (roda em segundos; refaz tudo com o que houver de dados)."""
@@ -1207,10 +1210,11 @@ for k in ORDEM:
 # =====================================================================================================================
 # Uma semente, pareada: SRM x GIM x analise limite (decisao de 20/11/2026). A ISMC da semente 21 (os 3 centros, r = -0,5
 # e -0,7) e o line sampling da semente 7 (as mesmas 100 linhas e direcoes) com o fator pelo GIM (campanha etapa3b_gim do
-# fermi, ainda rodando: PARCIAL) contra as mesmas realizacoes e linhas do SRM (etapa 3b e etapa3b_ls); o MC direto do SRM
-# e as 5 sementes juntas ficam como referencia. A analise limite (Ceron 2025, Projects/CeronCinematico/cho) roda no
-# fermi: aqui so o piloto local (FS_LA x FS_MEF em 200 realizacoes do direto de cada r). E o Ceron com a agua do artigo
-# (contorno=ceron agua=sat trebaix=0.0001): o line sampling do MEF e o MC de 10 000 pela analise limite em Python.
+# fermi, terminada) e pela analise limite (Ceron 2025, Projects/CeronCinematico/cho; fermi_cho_la) contra as mesmas
+# realizacoes e linhas do SRM (etapa 3b e etapa3b_ls); o MC direto do SRM e as 5 sementes juntas ficam como referencia.
+# O resto da analise limite (MC direto, FORM, o deslocamento FS_LA/FS_MEF e o teste da grade) esta em la_mef, no fim. E o
+# Ceron com a agua do artigo (contorno=ceron agua=sat trebaix=0.0001): o line sampling do MEF e o MC de 10 000 pela
+# analise limite em Python.
 # Saidas: tab/srm_gim_ismc.tex, tab/srm_gim_ls.tex, tab/ceron_agua.tex, figs/srm_gim.pdf e os numeros (numeros.tex).
 # =====================================================================================================================
 import time  # noqa: E402
@@ -1220,8 +1224,42 @@ import pareado_gim as pg  # noqa: E402  (Projects/Cho2010: a leitura pareada dos
 
 GIMC = os.path.join(R, "fermi_etapa3b_gim", "etapa3b_gim")
 LA_PILOTO = os.path.join(RAIZ, "Projects", "CeronCinematico", "cho", "resultados", "piloto_h0.025")
-LA_LOG = os.path.join(R, "fermi_etapa3b_gim", "logs", "laCho_14991.out")   # o MC direto da LA no fermi (job 14991)
+LA_H01 = os.path.join(RAIZ, "Projects", "CeronCinematico", "cho", "resultados", "piloto")   # o piloto antigo, grade h = 0,1
+# a analise limite no fermi (jobs 14991 e 14992, baixados em 21/11/2026): direto/<r>.csv (KL analitica, semente 2010; o
+# r07 ainda roda), ismc/<r>_<centro>_s21.csv (Nystrom), ls/<r>_<direcao>/ (semente 7), form/<r>_M<M>/
+LA_RES = os.path.join(R, "fermi_cho_la", "h0.025")
 RTEX = {"r05": "$-0{,}5$", "r07": "$-0{,}7$", "r00": "$0$"}
+
+
+def le_la(arq):
+    """real -> {g: Gamma, fs: FS (nan sem FS), lw: log_peso, modo} de um CSV do mc_la.py ({} se nao existe; linhas cortadas
+    ou incompletas ficam de fora, como no mc_la.ler)"""
+    out = {}
+    if not os.path.exists(arq):
+        return out
+    for x in csv.DictReader(open(arq, newline="")):
+        try:
+            out[int(x["real"])] = {"g": float(x["Gamma"]), "fs": float(x["FS"]) if x.get("FS") else float("nan"),
+                                   "lw": float(x["log_peso"] or 0.), "modo": x["modo"]}
+        except (ValueError, KeyError, TypeError):
+            pass
+    return out
+
+
+def falha_la(x):
+    """falha na LA: Gamma < 1; com Gamma = inf (nenhum mecanismo admissivel) o FS decide (como o mc_la.estat)"""
+    return x["g"] < 1. or (not math.isfinite(x["g"]) and math.isfinite(x["fs"]) and x["fs"] < 1.)
+
+
+def razao(y, x):
+    """r = media(y)/media(x) nas mesmas amostras e o seu erro padrao (estimador de razao, pareado):
+    sqrt(var(y - r x)/N)/media(x)"""
+    n = len(x)
+    mx, my = sum(x) / n, sum(y) / n
+    r = my / mx
+    d = [a - r * b for a, b in zip(y, x)]
+    md = sum(d) / n
+    return r, math.sqrt(sum((t - md) ** 2 for t in d) / (n - 1) / n) / mx
 
 
 def pf_txt(x):
@@ -1256,8 +1294,8 @@ def k_pot(pares, perto):
 
 
 def srm_gim():
-    """a comparacao pareada SRM x GIM com uma semente (ISMC s21 e line sampling s7): as duas tabelas, a figura e os
-    numeros; a coluna da analise limite (LA) fica "rodando" ate o fermi terminar"""
+    """a comparacao pareada SRM x GIM x analise limite com uma semente (ISMC s21 e line sampling s7): as duas tabelas, a
+    figura e os numeros; devolve os casos (ism, lin) para o la_mef"""
     ism, lin, datas = [], [], []
     for k in ("r05", "r07"):
         for d5 in P[k]["ismc"]:
@@ -1291,6 +1329,33 @@ def srm_gim():
                                       for n in com for c in ("c", "phi")),
                         "k_longe": k_pot(pares, False), "k_perto": k_pot(pares, True), "pares": pares,
                         "tS": sum(tS) / len(tS), "tG": sum(tG) / len(tG), "p5": d5["Pf"], "ref": P[k]["ref"]})
+            # o GIM com todas as suas realizacoes (a campanha foi alem das do SRM)
+            pGa, cGa = est([math.exp(B[n]["lw"]) * (B[n]["f"] < 1.) for n in sorted(B)])
+            ism[-1].update(nGa=len(B), pGa=pGa, cGa=cGa, soS_n=[n for n in com if A[n]["f"] < 1. <= B[n]["f"]],
+                           soG_n=[n for n in com if B[n]["f"] < 1. <= A[n]["f"]])
+            # a analise limite (LA) nas mesmas realizacoes: o mesmo xi e o mesmo peso (o log_peso da LA confere com o do
+            # SRM); FS da LA so onde Gamma < 1,3 (todas as perto da falha)
+            L = le_la(os.path.join(LA_RES, "ismc", f"{k}_mef_{d5['cen']}_s21.csv"))
+            cl = [n for n in com if n in L]
+            if len(cl) >= 10:
+                wl = [math.exp(A[n]["lw"]) for n in cl]
+                iSl = [x * (A[n]["f"] < 1.) for x, n in zip(wl, cl)]
+                iL = [x * falha_la(L[n]) for x, n in zip(wl, cl)]
+                pL, cL = est(iL)
+                rL, eL = razao(iL, iSl)
+                pLa, cLa = est([math.exp(x["lw"]) * falha_la(x) for _, x in sorted(L.items())])
+                ism[-1].update(la=True, NL=len(cl), pL=pL, cL=cL, rL=rL, eL=eL, NLa=len(L), pLa=pLa, cLa=cLa,
+                               soM=sum(1 for n in cl if A[n]["f"] < 1. and not falha_la(L[n])),
+                               soL=sum(1 for n in cl if falha_la(L[n]) and not A[n]["f"] < 1.),
+                               dlwL=max(abs(A[n]["lw"] - L[n]["lw"]) for n in cl),
+                               # os pares (FS_MEF, FS_LA, Gamma_LA, w) com FS da LA, para o deslocamento
+                               parLA=[(A[n]["f"], L[n]["fs"], L[n]["g"], math.exp(A[n]["lw"])) for n in cl
+                                      if math.isfinite(L[n]["fs"])],
+                               # (FS_MEF, Gamma_LA, w) de todas, para o ajuste de ln Gamma_LA x ln FS_MEF
+                               parG=[(A[n]["f"], L[n]["g"], math.exp(A[n]["lw"])) for n in cl
+                                     if math.isfinite(L[n]["g"]) and L[n]["g"] > 0.])
+            else:
+                ism[-1].update(la=False)
     for k in ("r05", "r07"):
         for dl in P[k]["ls"]:
             pa = os.path.join(LSC, "ls", f"{k}_{dl['cen']}")
@@ -1316,6 +1381,27 @@ def srm_gim():
                         "dc": dc, "c": [A[i][0] for i in com], "mdc": mdc, "sdc": sdc,
                         "naS": sum(A[i][1] for i in com) / len(com), "naG": sum(B[i][1] for i in com) / len(com),
                         "sS": dl["s"]})
+            # o GIM com todas as linhas (parada pelo CoV de 5 % com nmin = 100; as linhas em voo terminam e entram) e o
+            # total para CoV de 5 % como nas tabelas dos metodos: FORM + 2 da inclinacao + linhas x analises por linha
+            pGa, cGa = est([cauda(B[i][0]) for i in B])
+            naGa = sum(B[i][1] for i in B) / len(B)
+            lin[-1].update(nGa=len(B), pGa=pGa, cGa=cGa, naGa=naGa, cTodasG=[B[i][0] for i in B],
+                           n5Ga=dl["form"]["n"] + 2 + naGa * len(B) * (cGa / ALVO) ** 2,
+                           n5S=dl["form"]["n"] + 2 + dl["porlinha"] * dl["N"] * (dl["CoV"] / ALVO) ** 2)
+            # a analise limite nas mesmas linhas (o mesmo z e a mesma direcao do MEF; ls_la.py, semente 7)
+            pl = os.path.join(LA_RES, "ls", f"{k}_mef_{dl['cen']}")
+            if os.path.exists(os.path.join(pl, "linhas.csv")):
+                Lc = pg.le_ls(pl)
+                cl = [i for i in com if i in Lc]
+                yL, xS = [cauda(Lc[i][0]) for i in cl], [cauda(A[i][0]) for i in cl]
+                pL, cL = est(yL)
+                rL, eL = razao(yL, xS)
+                mdl, sdl = mdp([Lc[i][0] - A[i][0] for i in cl])
+                inc = json.load(open(os.path.join(pl, "inclinacao.json")))
+                lin[-1].update(la=True, NL=len(cl), pL=pL, cL=cL, rL=rL, eL=eL, mdcL=mdl, sdcL=sdl,
+                               naL=sum(Lc[i][1] for i in cl) / len(cl), incL=inc)
+            else:
+                lin[-1].update(la=False)
     if not ism or not lin:
         sys.exit("srm_gim: faltam os dados do GIM em " + GIMC)
     data = time.strftime("%d/%m/%Y %H:%M", time.localtime(max(datas)))
@@ -1324,52 +1410,61 @@ def srm_gim():
     def rot_r(L, i):
         return RTEX[L[i]["k"]] if i == 0 or L[i]["k"] != L[i - 1]["k"] else ""
 
-    # ---- tabela: ISMC
+    # ---- tabela: ISMC (SRM x GIM x LA; numa pagina em paisagem com a do line sampling: o .tex poe as duas no
+    # mesmo landscape)
+    def cel(p, c):
+        return f"{pf_txt(p)} ({num(100 * c, 1)})"
+
     T = ["% gerado por gera_dados.py (srm_gim): nao editar a mao\n\\begin{table}[H]\\centering\\footnotesize"
          "\\setlength{\\tabcolsep}{3pt}\n"
-         f"\\caption{{A ISMC com uma semente (a 21), pareada: o SRM e o GIM nas mesmas realizações (Cho, base de Nyström "
-         f"de 2000 modos). \\textbf{{GIM parcial}}: dados de {data}, com $N$ = {nmin} a {nmax} realizações em comum por "
-         "caso (a campanha vai a pelo menos 2000). $P_f$ em \\%: a média de $I w$ nas realizações em comum (entre "
-         "parênteses, o CoV, "
-         "em \\%). Dif.: $(P_\\text{GIM} - P_\\text{SRM})/P_\\text{SRM}$ $\\pm$ o erro pareado, "
+         f"\\caption{{A ISMC com uma semente (a 21), pareada: o SRM, o GIM e a análise limite (LA) nas mesmas realizações "
+         f"(Cho, base de Nyström de 2000 modos; dados de {data}). $N$: todas as realizações do SRM na semente 21 ({nmin} a "
+         f"{nmax}), que têm todas o par no GIM e na LA. $P_f$ em \\%: a média de $I w$ (entre parênteses, o CoV, em \\%). "
+         "Dif.\\ GIM: $(P_\\text{GIM} - P_\\text{SRM})/P_\\text{SRM}$ $\\pm$ o erro pareado, "
          "$\\mathrm{dp}[w\\,(I_\\text{GIM} - I_\\text{SRM})]/(\\sqrt N\\,P_\\text{SRM})$. Discord.: os pares em que só o "
-         "SRM falha / só o GIM falha. Referências (SRM): as 5 sementes juntas e o MC direto. LA: a análise limite na "
-         "semente 21 (job 14992 do fermi, na fila).}\\label{tab:sgismc}\n"
-         "\\begin{tabular}{llrrrrcrrc}\\toprule\n"
+         "SRM falha / só o outro falha. LA/SRM: a razão das $P_f$ $\\pm$ o seu erro pareado (estimador de razão). "
+         "``GIM, todas'': a ISMC do GIM com todas as suas realizações (a campanha foi além das do SRM). Referências (SRM): "
+         "as 5 sementes juntas e o MC direto.}\\label{tab:sgismc}\n"
+         "\\begin{tabular}{llrrrrcrrcrrr}\\toprule\n"
          "$r$ & centro & $N$ & \\makecell{SRM s21\\\\$P_f$ (CoV)} & \\makecell{GIM s21\\\\$P_f$ (CoV)} & "
-         "\\makecell{dif.\\\\(\\%)} & \\makecell{discord.\\\\SRM/GIM} & \\makecell{SRM\\\\5 sementes} & "
-         "\\makecell{MC\\\\direto} & \\makecell{LA\\\\s21} \\\\\\midrule\n"]
+         "\\makecell{dif.\\ GIM\\\\(\\%)} & \\makecell{discord.\\\\SRM/GIM} & \\makecell{LA s21\\\\$P_f$ (CoV)} & "
+         "LA/SRM & \\makecell{discord.\\\\SRM/LA} & \\makecell{GIM, todas\\\\$N$: $P_f$ (CoV)} & "
+         "\\makecell{SRM\\\\5 sementes} & \\makecell{MC direto\\\\(SRM)} \\\\\\midrule\n"]
     for i, x in enumerate(ism):
         if i and x["k"] != ism[i - 1]["k"]:
             T.append("\\midrule\n")
-        T.append(f"{rot_r(ism, i)} & {curto(x['nome'])} & {x['N']} & {pf_txt(x['pS'])} ({num(100 * x['cS'], 1)}) & "
-                 f"{pf_txt(x['pG'])} ({num(100 * x['cG'], 1)}) & {sinal(100 * x['dif'])} $\\pm$ {num(100 * x['edif'], 1)} & "
-                 f"{len(x['soS'])}/{len(x['soG'])} & {pf_txt(x['p5'])} & {pf_txt(x['ref']['Pf'])} & rodando \\\\\n")
+        la_ = (f"{cel(x['pL'], x['cL'])} & {num(x['rL'], 3)} $\\pm$ {num(x['eL'], 3)} & {x['soM']}/{x['soL']}"
+               if x["la"] else "-- & -- & --")
+        T.append(f"{rot_r(ism, i)} & {curto(x['nome'])} & {x['N']} & {cel(x['pS'], x['cS'])} & {cel(x['pG'], x['cG'])} & "
+                 f"{sinal(100 * x['dif'])} $\\pm$ {num(100 * x['edif'], 1)} & {len(x['soS'])}/{len(x['soG'])} & {la_} & "
+                 f"{x['nGa']}: {cel(x['pGa'], x['cGa'])} & {pf_txt(x['p5'])} & {pf_txt(x['ref']['Pf'])} \\\\\n")
     T.append("\\bottomrule\\end{tabular}\\end{table}\n")
     open(os.path.join(TAB, "srm_gim_ismc.tex"), "w").write("".join(T))
     # ---- tabela: line sampling
     T = ["% gerado por gera_dados.py (srm_gim): nao editar a mao\n\\begin{table}[H]\\centering\\footnotesize"
-         "\\setlength{\\tabcolsep}{3pt}\n"
-         f"\\caption{{O line sampling com uma semente (a 7), pareado: as mesmas linhas (o mesmo $\\bm z$ de cada uma) e as "
-         f"mesmas direções, com o SRM e com o GIM. \\textbf{{GIM parcial}}: dados de {data}; o GIM já tem "
-         f"{min(x['nG'] for x in lin)} a {max(x['nG'] for x in lin)} linhas por direção, e entram só as "
-         f"{min(x['N'] for x in lin)} em comum com o SRM"
-         + (" (todas as linhas do SRM já têm o par no GIM)" if all(x["N"] == x["nS"] for x in lin) else "")
-         + ". $P_f$ em \\% (CoV em \\%). "
-         "Dif.: como na "
-         "Tabela~\\ref{tab:sgismc}, com o erro pareado das $\\Phi(-c_\\ell)$. "
-         "$\\Delta c = c_\\text{GIM} - c_\\text{SRM}$: onde a linha entra na falha, GIM menos SRM (média e dp das linhas). "
-         "LA: o line sampling pela análise limite nas mesmas linhas (job 14992 do fermi, na fila).}\\label{tab:sgls}\n"
-         "\\begin{tabular}{llrrrrrcc}\\toprule\n"
+         "\\setlength{\\tabcolsep}{2pt}\n"
+         f"\\caption{{O line sampling com uma semente (a 7), pareado: as mesmas {min(x['N'] for x in lin)} linhas (o mesmo "
+         "$\\bm z$ de cada uma) e as mesmas direções, com o SRM, o GIM e a análise limite (LA). $P_f$ em \\% (CoV em \\%). "
+         "Dif.\\ GIM e LA/SRM: como na Tabela~\\ref{tab:sgismc}, com as $\\Phi(-c_\\ell)$ de cada linha. "
+         "$\\Delta c$: onde a linha entra na falha, menos o $c_\\text{SRM}$ (média e dp das linhas). ``GIM, todas as "
+         "linhas'': o line sampling do GIM até o fim (parada no CoV de 5\\,\\% com pelo menos 100 linhas; as linhas "
+         "em voo terminam e entram) e o total de análises para CoV de 5\\,\\% como na Tabela~\\ref{tab:r05} (FORM, "
+         "inclinação e linhas; o do SRM, com as 100 linhas, entre parênteses).}\\label{tab:sgls}\n"
+         "\\begin{tabular}{llrrrrrrrrrr}\\toprule\n"
          "$r$ & direção & linhas & \\makecell{SRM\\\\$P_f$ (CoV)} & \\makecell{GIM\\\\$P_f$ (CoV)} & "
-         "\\makecell{dif.\\\\(\\%)} & \\makecell{$\\Delta c$\\\\média (dp)} & "
-         "\\makecell{análises por linha\\\\SRM / GIM} & LA \\\\\\midrule\n"]
+         "\\makecell{dif.\\ GIM\\\\(\\%)} & \\makecell{$\\Delta c$ GIM\\\\média (dp)} & \\makecell{LA\\\\$P_f$ (CoV)} & "
+         "LA/SRM & \\makecell{$\\Delta c$ LA\\\\média (dp)} & \\makecell{análises/linha\\\\SRM/GIM/LA} & "
+         "\\makecell{GIM, todas as linhas: linhas,\\\\$P_f$ (CoV), p/ CoV 5\\,\\% (SRM)} \\\\\\midrule\n"]
     for i, x in enumerate(lin):
         if i and x["k"] != lin[i - 1]["k"]:
             T.append("\\midrule\n")
-        T.append(f"{rot_r(lin, i)} & {curto(x['nome'])} & {x['N']} & {pf_txt(x['pS'])} ({num(100 * x['cS'], 1)}) & "
-                 f"{pf_txt(x['pG'])} ({num(100 * x['cG'], 1)}) & {sinal(100 * x['dif'])} $\\pm$ {num(100 * x['edif'], 1)} & "
-                 f"{sinal(x['mdc'], 3)} ({num(x['sdc'], 3)}) & {num(x['naS'], 2)} / {num(x['naG'], 2)} & rodando \\\\\n")
+        la_ = (f"{cel(x['pL'], x['cL'])} & {num(x['rL'], 3)} $\\pm$ {num(x['eL'], 3)} & {sinal(x['mdcL'], 3)} "
+               f"({num(x['sdcL'], 3)})" if x["la"] else "-- & -- & --")
+        naL = f"/{num(x['naL'], 2)}" if x["la"] else ""
+        T.append(f"{rot_r(lin, i)} & {curto(x['nome'])} & {x['N']} & {cel(x['pS'], x['cS'])} & {cel(x['pG'], x['cG'])} & "
+                 f"{sinal(100 * x['dif'])} $\\pm$ {num(100 * x['edif'], 1)} & {sinal(x['mdc'], 3)} ({num(x['sdc'], 3)}) & "
+                 f"{la_} & {num(x['naS'], 2)}/{num(x['naG'], 2)}{naL} & {x['nGa']}, {cel(x['pGa'], x['cGa'])}, "
+                 f"{num(x['n5Ga'])} ({num(x['n5S'])}) \\\\\n")
     T.append("\\bottomrule\\end{tabular}\\end{table}\n")
     open(os.path.join(TAB, "srm_gim_ls.tex"), "w").write("".join(T))
 
@@ -1481,45 +1576,69 @@ def srm_gim():
         cmd(f"sJun{sig}Max", pf_txt(max(d["Pf"] for d in ds)))
         # a posicao da semente 21 entre as 5 de cada centro (1 = a mais baixa)
         cmd(f"sPos{sig}", ", ".join(str(sorted(s["Pf"] for s in d["sem"]).index(d["sem"][0]["Pf"]) + 1) for d in ds))
-    # o piloto da analise limite: FS_LA x FS_MEF nas mesmas 200 realizacoes do direto de cada r
-    la = []
-    for r in ("r05", "r07"):
-        arq = os.path.join(LA_PILOTO, f"direto_{r}_pares.csv")
-        if not os.path.exists(arq):
-            continue
-        rs = [(float(x["FS_LA"]), float(x["FS_MEF"])) for x in csv.DictReader(open(arq, newline=""))]
-        ma, mb = mdp([a for a, b in rs])[0], mdp([b for a, b in rs])[0]
-        corr = sum((a - ma) * (b - mb) for a, b in rs) / math.sqrt(sum((a - ma) ** 2 for a, b in rs) *
-                                                                     sum((b - mb) ** 2 for a, b in rs))
-        la.append({"n": len(rs), "dif": sum(a - b for a, b in rs) / len(rs), "rel": sum(a / b - 1. for a, b in rs) / len(rs),
-                   "corr": corr, "acima": sum(1 for a, b in rs if a > b),
-                   "rmin": min(a / b - 1. for a, b in rs), "rmax": max(a / b - 1. for a, b in rs),
-                   "fla": sum(1 for a, b in rs if a < 1.), "fmef": sum(1 for a, b in rs if b < 1.)})
-    cmd("laN", str(min(x["n"] for x in la)) if la else "--")
-    cmd("laTotal", str(sum(x["n"] for x in la)) if la else "--")
-    cmd("laAcima", str(sum(x["acima"] for x in la)) if la else "--")
-    cmd("laDif", sinal(sum(x["dif"] * x["n"] for x in la) / sum(x["n"] for x in la), 3) if la else "--")
-    cmd("laRelMin", num(100 * min(x["rel"] for x in la), 1) if la else "--")
-    cmd("laRelMax", num(100 * max(x["rel"] for x in la), 1) if la else "--")
-    cmd("laCorr", num(min(x["corr"] for x in la), 3) if la else "--")
-    # a faixa por realizacao (FS_LA / FS_MEF - 1) e as falhas (FS < 1) de cada um no piloto
-    cmd("laRelLo", num(100 * min(x["rmin"] for x in la), 1) if la else "--")
-    cmd("laRelHi", num(100 * max(x["rmax"] for x in la), 1) if la else "--")
-    cmd("laFalLa", str(sum(x["fla"] for x in la)) if la else "--")
-    cmd("laFalMef", str(sum(x["fmef"] for x in la)) if la else "--")
-    # o andamento do MC direto da LA no fermi (o ultimo "N = " do log baixado)
-    hora, nla, rla = "--", "--", "--"
-    if os.path.exists(LA_LOG):
-        for ln in open(LA_LOG, errors="replace"):
-            m = re.search(r"===== direto (r\d\d)", ln)
-            if m:
-                rla = RTEX.get(m.group(1), m.group(1))
-            m = re.search(r"(\d\d:\d\d):\d\d N = (\d+),", ln)
-            if m:
-                hora, nla = m.group(1), num(int(m.group(2)))
-    cmd("laLogHora", hora)
-    cmd("laLogN", nla)
-    cmd("laLogR", rla)
+    # o GIM com todas as suas realizacoes (ISMC) e todas as linhas (LS): a campanha foi alem das do SRM
+    cmd("sgNRaMin", str(min(x["N"] for x in ism if x["k"] == "r05")))     # as realizacoes do SRM s21 no r = -0,5
+    cmd("sgNRaMax", str(max(x["N"] for x in ism if x["k"] == "r05")))
+    cmd("sgGaNmin", str(min(x["nGa"] for x in ism)))
+    cmd("sgGaNmax", str(max(x["nGa"] for x in ism)))
+    for k, sig in (("r05", "Ra"), ("r07", "Rb")):
+        sub = [x for x in ism if x["k"] == k]
+        cmd(f"sgGa{sig}Min", pf_txt(min(x["pGa"] for x in sub)))
+        cmd(f"sgGa{sig}Max", pf_txt(max(x["pGa"] for x in sub)))
+        cmd(f"sgGaCov{sig}Min", num(100 * min(x["cGa"] for x in sub), 1))
+        cmd(f"sgGaCov{sig}Max", num(100 * max(x["cGa"] for x in sub), 1))
+        # o z do GIM sozinho contra o MC direto do SRM
+        cmd(f"sgGaZ{sig}Max", num(max(abs(z(x["pGa"], x["cGa"], P[k]["ref"])) for x in sub), 1))
+        for x in [y for y in lin if y["k"] == k]:
+            D = {"M20": "Mv", "gim2000": "Gm"}[x["cen"]]
+            cmd(f"sglGaPf{sig}{D}", pf_txt(x["pGa"]))
+            cmd(f"sglGaN{sig}{D}", str(x["nGa"]))
+            cmd(f"sglGaCov{sig}{D}", num(100 * x["cGa"], 1))
+            cmd(f"sglGaNc{sig}{D}", num(x["n5Ga"]))
+            cmd(f"sglSNc{sig}{D}", num(x["n5S"]))
+    cmd("sgGaZMax", num(max(abs(z(x["pGa"], x["cGa"], P[x["k"]]["ref"])) for x in ism), 1))
+
+    # o custo para CoV de 5 % com todas as linhas do GIM contra o estimado com as 100 do SRM: a razao, as analises por
+    # linha (GIM com todas / SRM), o CoV de uma linha (GIM nas 100 em comum -> todas) e o erro relativo de CoV^2 que a
+    # curtose kappa das proprias 100 linhas do SRM preve, sqrt((kappa - 1)/N); e a maior curtose com todas as linhas do GIM
+    def curtose(v):
+        n = len(v)
+        m = sum(v) / n
+        m2 = sum((a - m) ** 2 for a in v) / n
+        return sum((a - m) ** 4 for a in v) / n / m2 ** 2
+
+    cmd("sglGaCustoMin", num(100 * min(x["n5Ga"] / x["n5S"] - 1. for x in lin), 0))
+    cmd("sglGaCustoMax", num(100 * max(x["n5Ga"] / x["n5S"] - 1. for x in lin), 0))
+    cmd("sglNaRazMin", num(100 * min(x["naGa"] / x["naS"] - 1. for x in lin), 0))
+    cmd("sglNaRazMax", num(100 * max(x["naGa"] / x["naS"] - 1. for x in lin), 0))
+    # o CoV^2 de uma linha: o do GIM com todas as linhas contra o do SRM com as 100 (a parte do custo que nao e analises
+    # por linha)
+    c2 = [(x["cGa"] ** 2 * x["nGa"]) / (x["cS"] ** 2 * x["N"]) - 1. for x in lin]
+    cmd("sglCovDoisMin", num(100 * min(c2), 0))
+    cmd("sglCovDoisMax", num(100 * max(c2), 0))
+    c2g = [v for v, x in zip(c2, lin) if x["cen"] == "gim2000"]          # so a direcao modal 2000 (a das tabelas)
+    cmd("sglCovDoisGmMin", num(100 * min(c2g), 0))
+    cmd("sglCovDoisGmMax", num(100 * max(c2g), 0))
+    ek = [math.sqrt((curtose([cauda(c) for c in x["c"]]) - 1.) / len(x["c"])) for x in lin]
+    cmd("sglCurtErrMin", num(100 * min(ek), 0))
+    cmd("sglCurtErrMax", num(100 * max(ek), 0))
+    for x in lin:
+        if x["k"] == "r07":
+            D = {"M20": "Mv", "gim2000": "Gm"}[x["cen"]]
+            cmd(f"sglClRb{D}Cem", num(100 * x["cG"] * math.sqrt(x["N"]), 0))
+            cmd(f"sglClRb{D}Todas", num(100 * x["cGa"] * math.sqrt(x["nGa"]), 0))
+            cmd(f"sglCurtRb{D}Todas", num(curtose([cauda(B) for B in x["cTodasG"]]), 0))
+    # os discordantes de todos os casos juntos: o sinal (so o SRM falha x so o GIM falha), em realizacoes distintas (a
+    # mesma realizacao n de um r pode discordar em mais de um centro), e a chance de um sinal tao forte com 50 % para
+    # cada lado (cauda binomial)
+    cmd("sgDiscFSmed", teto(sum(abs(f - 1.) for f, g in dd) / len(dd), 4) if dd else "--")
+    ds = {(x["k"], n) for x in ism for n in x["soS_n"]}
+    dg = {(x["k"], n) for x in ism for n in x["soG_n"]}
+    na_, nb_ = len(ds), len(dg)
+    cmd("sgDistSrm", str(na_))
+    cmd("sgDistGim", str(nb_))
+    cauda_b = sum(math.comb(na_ + nb_, j) for j in range(max(na_, nb_), na_ + nb_ + 1)) / 2 ** (na_ + nb_) if na_ + nb_ else 1.
+    cmd("sgDistP", f"{num(1e4 * cauda_b, 0)} em 10\\,000" if cauda_b < 0.01 else f"{num(100 * cauda_b, 0)}\\,\\%")
     open(os.path.join(AQUI, "numeros.tex"), "a").write("".join(Nn))
 
     # ---- figura: Gamma x FS (ISMC) e Delta c x c (line sampling)
@@ -1581,6 +1700,7 @@ def srm_gim():
         print(f"SRM x GIM LS {x['k']} {x['cen']:7s} {x['N']} linhas SRM {100 * x['pS']:.4f}% GIM {100 * x['pG']:.4f}% dif "
               f"{100 * x['dif']:+.2f} +- {100 * x['edif']:.2f}% (pelo dc {100 * x['prev']:+.2f}%) dc {x['mdc']:+.4f} "
               f"({x['sdc']:.4f}) an/linha {x['naS']:.2f}/{x['naG']:.2f}")
+    return ism, lin
 
 
 # ---------------- o Ceron com a agua do artigo ----------------
@@ -1699,5 +1819,773 @@ def ceron_agua():
           f"Gamma det PZ {gpz:.4f} LA {gla:.4f} artigo {art['Gdet']}")
 
 
-srm_gim()
+# =====================================================================================================================
+# A analise limite (LA: Ceron 2025, Projects/CeronCinematico/cho, grade h = 0,025 m) contra o MEF (SRM, tri2 + 4 niveis):
+# todos os metodos (MC direto com a KL analitica; ISMC s21, LS s7 e FORM com a base de Nystrom), o deslocamento
+# FS_LA/FS_MEF - 1 nos pares (por faixa de FS_MEF, nos dois campos), a linha do ponto de projeto, o teste da grade
+# (h = 0,1 x 0,025 nas mesmas realizacoes, pelos pilotos), a P_f da LA prevista pelo MEF deslocado e os modos de ruptura.
+# Saidas: tab/la_mef.tex, tab/la_teste.tex, tab/la_modos.tex, figs/la_mef.pdf e os numeros lm* (numeros.tex).
+# =====================================================================================================================
+FS_DET = {"LA": 1.2032, "MEF": 1.2044}      # campo medio: FS da LA (forma fechada; testes.py det) e do SRM (tri2 + 4)
+CERON_R0 = {"Pf": 0.0550, "CoV": 0.019, "N": 50000, "modos": (80.80, 19.20, 0.00)}   # Ceron (2025), Sec. 5.3.2 e Fig. 20
+CHO_R0 = 0.0637                             # o que o Ceron (2025) da como a P_f do Cho com r = 0
+# os modos do MEF pelas bandas de cisalhamento (verificacoes de 21/11, V07): (todas, falhas), cada um (pe, face, base) %
+MEF_MODOS = {"r05": ((97.99, 0.06, 1.95), (99.51, 0.00, 0.49)), "r07": ((99.26, 0.01, 0.73), (99.75, 0.00, 0.25))}
+FAIXAS = [(0., 0.95), (0.95, 1.0), (1.0, 1.05), (1.05, 1.10), (1.10, 1.20), (1.20, 9.)]
+# a LA com o campo de Nystrom SEM deslocamento: MC simples, so Gamma, r = -0,5, semente 4242 (que nenhuma outra rodada
+# usa), 1500 realizacoes, no PC em 21/11/2026 (revisao do relatorio; mc_la.py campo=nystrom sem centro=, 2 processos,
+# ~38 min; o comando esta no LEIAME.txt da pasta). A distribuicao de Gamma sem FORM nem ISMC, contra o direto analitico.
+LA_NYS_PC = os.path.join(R, "cho_la_pc", "h0.025", "direto_nys_r05_s4242.csv")
+NIV_G = (1.0, 1.05, 1.1, 1.2, 1.3, 1.4, 1.5)   # niveis de Gamma da LA
+NIV_FS = (1.0, 1.05, 1.1)                  # niveis de FS do MEF
+QS = (0.01, 0.05, 0.10, 0.25, 0.50)        # quantis de Gamma
+# o MEF com r = 0 (verificacoes de 21/11, V12/resumo_v12.txt): line sampling do SRM, base de Nystrom, semente 7, 84
+# linhas (P_f, IC 95 %, CoV); a P_f da LA prevista pela V12 com o deslocamento do piloto analitico (regressao dos 400
+# pares, ln FS_LA - ln FS_MEF = 0,0243 em FS_MEF = 1) aplicado linha a linha (e o IC das linhas); o Cho, Fig. 9
+# digitalizada na V12
+MEF_R0 = {"Pf": 0.074045, "lo": 0.06807, "hi": 0.08002, "CoV": 0.041159, "prev": 0.04783, "prev_lo": 0.04371,
+          "prev_hi": 0.05195, "cho_fig9": 0.0662}
+
+
+def modos(xs):
+    """(pe, face, base, nenhum) em % das realizacoes dadas (sem peso)"""
+    n = len(xs)
+    return tuple(100. * sum(1 for x in xs if x["modo"] == m) / n for m in ("pe", "face", "base", "nenhum")) if n else None
+
+
+def faixa_rel(pares, lo, hi):
+    """FS_LA/FS_MEF - 1 nos pares (FS_MEF, FS_LA, Gamma_LA, w) com lo <= FS_MEF < hi: n, media com peso, dp"""
+    s = [(fl / fm - 1., w) for fm, fl, g, w in pares if lo <= fm < hi and math.isfinite(fl)]
+    if len(s) < 2:
+        return None
+    sw = sum(w for _, w in s)
+    return {"n": len(s), "m": sum(v * w for v, w in s) / sw, "mu": sum(v for v, _ in s) / len(s),
+            "dp": mdp([v for v, _ in s])[1], "ess": sw * sw / sum(w * w for _, w in s)}
+
+
+def gamma_em_1(pares, lo=0.9, hi=1.1):
+    """o ajuste (minimos quadrados com o peso w) de ln Gamma_LA = a + k ln FS_MEF com lo < FS_MEF < hi: Gamma_LA quando
+    FS_MEF = 1 (exp a), k e os pares. Usa todas as realizacoes (o FS da LA so existe onde Gamma < 1,3)."""
+    s = [(math.log(f), math.log(g), w) for f, g, w in pares if lo < f < hi]
+    if len(s) < 10:
+        return None
+    sw = sum(w for _, _, w in s)
+    mx, my = sum(x * w for x, _, w in s) / sw, sum(y * w for _, y, w in s) / sw
+    k = sum(w * (x - mx) * (y - my) for x, y, w in s) / sum(w * (x - mx) ** 2 for x, _, w in s)
+    return {"g1": math.exp(my - k * mx), "k": k, "n": len(s)}
+
+
+def le_pares_la(arq):
+    """real -> (Gamma_LA, FS_LA, FS_MEF) de um *_pares.csv do pareado.py juntar"""
+    return {int(x["real"]): (float(x["Gamma_LA"]), float(x["FS_LA"]) if x["FS_LA"] else float("nan"),
+                             float(x["FS_MEF"])) for x in csv.DictReader(open(arq, newline=""))}
+
+
+def quantil(v, p):
+    """o quantil p da lista ordenada v (o valor de ordem ceil(p N))"""
+    return v[min(len(v) - 1, max(0, int(math.ceil(p * len(v))) - 1))]
+
+
+def la_mef(ism, lin):
+    """a analise limite contra o MEF: tabelas, figura e numeros (o que faltar fica de fora)"""
+    if not os.path.isdir(LA_RES):
+        print("la_mef: sem", LA_RES)
+        return
+    # ---- (1) MC direto da LA (KL analitica, semente 2010: as mesmas realizacoes do direto do MEF) e os pares
+    DIR = {}
+    for k in ("r05", "r07", "r00"):
+        L = le_la(os.path.join(LA_RES, "direto", f"{k}.csv"))
+        if not L:
+            continue
+        xs = list(L.values())
+        I = [1. * falha_la(x) for x in xs]
+        p, cv = est(I)
+        G = sorted(x["g"] for x in xs)                       # com os inf (nenhum mecanismo) no fim
+        Gf = [g for g in G if math.isfinite(g)]
+        d = {"N": len(xs), "fal": int(sum(I)), "Pf": p, "CoV": cv, "Gmed": sum(Gf) / len(Gf), "G": G,
+             "mod": modos(xs), "modf": modos([x for x in xs if falha_la(x)]), "ninf": len(G) - len(Gf)}
+        if k in P:
+            Mf, _ = pg.le_mc(P[k]["refpasta"])
+            com = sorted(set(L) & set(Mf))
+            iL = [1. * falha_la(L[n]) for n in com]
+            iM = [1. * (Mf[n]["f"] < 1.) for n in com]
+            r_, e_ = razao(iL, iM)
+            d.update(Npar=len(com), fLpar=int(sum(iL)), fMpar=int(sum(iM)), rpar=r_, epar=e_,
+                     soL=sum(1 for a, b in zip(iL, iM) if a and not b), pMpar=sum(iM) / len(com),
+                     pares=[(Mf[n]["f"], L[n]["fs"], L[n]["g"], 1.) for n in com if math.isfinite(L[n]["fs"])],
+                     parG=[(Mf[n]["f"], L[n]["g"], 1.) for n in com if math.isfinite(L[n]["g"]) and L[n]["g"] > 0.],
+                     fsM=sorted(Mf[n]["f"] for n in Mf), acima=all(L[n]["fs"] > Mf[n]["f"] for n in com
+                                                                  if math.isfinite(L[n]["fs"])),
+                     # (FS_MEF, real, tem FS da LA?, FS_LA) de todas as em comum: o FS da LA so existe nas 2400
+                     # primeiras e onde Gamma < 1,3 (r05) ou 1,1 (r07)
+                     parN=[(Mf[n]["f"], n, math.isfinite(L[n]["fs"]), L[n]["fs"]) for n in com])
+        DIR[k] = d
+    # ---- (2) ISMC da LA (semente 21, 2500 realizacoes, campo de Nystrom) nos 4 centros
+    ISM = {}
+    for k in ("r05", "r07"):
+        for cen in ("mef_M20", "mef_M100", "mef_gim20", "la_M20"):
+            L = le_la(os.path.join(LA_RES, "ismc", f"{k}_{cen}_s21.csv"))
+            if not L:
+                continue
+            xs = [L[n] for n in sorted(L)]
+            p, cv = est([math.exp(x["lw"]) * falha_la(x) for x in xs])
+            ISM[(k, cen)] = {"N": len(xs), "Pf": p, "CoV": cv, "modf": modos([x for x in xs if falha_la(x)]),
+                             "ref": next((d for d in P[k]["ismc"] if "mef_" + d["cen"] == cen), None), "xs": xs}
+    # ---- (2b) a distribuicao de Gamma da LA nas duas bases, r = -0,5: o direto analitico (fermi), o MC simples de
+    # Nystrom (PC, sem FORM nem ISMC) e, na cauda, as 4 ISMC de Nystrom com o peso (a media das 4, que tem a mesma
+    # semente: o CoV medio, sem dividir por raiz de 4); e a do FS do MEF nas duas bases (o direto analitico x as 5
+    # sementes da ISMC de Nystrom, por centro, e a media dos 3 centros)
+    DG = {}
+    Lny = le_la(LA_NYS_PC)
+    if Lny and "r05" in DIR:
+        def qic(G, p):
+            """o quantil p da lista ordenada G e o seu IC de 95 % pelas estatisticas de ordem"""
+            n = len(G)
+            h = 1.96 * math.sqrt(n * p * (1. - p))
+            return (quantil(G, p), G[max(0, int(math.floor(n * p - h)) - 1)], G[min(n - 1, int(math.ceil(n * p + h)) - 1)])
+
+        for f, G in (("an", DIR["r05"]["G"]), ("ny", sorted(x["g"] for x in Lny.values()))):
+            n = len(G)
+            lg = [math.log(g) for g in G if math.isfinite(g)]
+            m_, s_ = mdp(lg)
+            DG[f] = {"N": n, "F": {g: sum(1 for x in G if x < g) / n for g in NIV_G}, "q": {p: qic(G, p) for p in QS},
+                     "mlg": m_, "elg": s_ / math.sqrt(len(lg))}
+        I = [1. * falha_la(x) for x in Lny.values()]
+        p_, c_ = est(I)
+        DG["ny"].update(fal=int(sum(I)), Pf=p_, CoV=c_)
+        xs4 = [ISM[("r05", c)]["xs"] for c in ("mef_M20", "mef_M100", "mef_gim20", "la_M20") if ("r05", c) in ISM]
+        if xs4:
+            DG["is"] = {}
+            for g0 in NIV_G:
+                v = [est([math.exp(x["lw"]) * (x["g"] < g0) for x in xs]) for xs in xs4]
+                DG["is"][g0] = (sum(p for p, _ in v) / len(v), sum(c for _, c in v) / len(v))
+        fsM = DIR["r05"].get("fsM")
+        if fsM:
+            vals = {s: [] for s in NIV_FS}
+            for cen in ("M20", "M100", "gim20"):
+                pool = []
+                for sm in SEM:
+                    pa = os.path.join(E3B, f"r05_nys_{cen}_s{sm}")
+                    if os.path.isdir(pa):
+                        pool += list(pg.le_mc(pa)[0].values())
+                for s in NIV_FS:
+                    vals[s].append(est([math.exp(x["lw"]) * (x["f"] < s) for x in pool]))
+            DG["mef"] = {"an": {s: sum(1 for v in fsM if v < s) / len(fsM) for s in NIV_FS}, "Nan": len(fsM),
+                         "ny": {s: (sum(p for p, _ in v) / len(v), sum(c for _, c in v) / len(v)) for s, v in vals.items()}}
+    # ---- (3) line sampling da LA (100 linhas, semente 7) nas direcoes do MEF e da LA
+    LSD = {}
+    for k in ("r05", "r07"):
+        for dr in ("mef_M20", "mef_gim2000", "la_M20", "la_M100"):
+            f = os.path.join(LA_RES, "ls", f"{k}_{dr}", "ls.json")
+            if not os.path.exists(f):
+                continue
+            j = json.load(open(f))
+            LSD[(k, dr)] = {"N": j["linhas"], "Pf": j["P_f"], "CoV": j["CoV"], "na": j["analises_linha"],
+                            "beta": j["beta"], "perd": j.get("perdidas", 0),
+                            "ref": next((d for d in P[k]["ls"] if "mef_" + d["cen"] == dr), None),
+                            "par": next((x for x in lin if x["k"] == k and "mef_" + x["cen"] == dr and x.get("la")), None)}
+    # ---- (4) FORM da LA (diferencas centrais, M termos por campo) contra o FORM numerico do MEF com o mesmo M
+    FO = {}
+    for k in ("r05", "r07"):
+        for M in (20, 100):
+            fl, fm = os.path.join(LA_RES, "form", f"{k}_M{M}", "form.json"), os.path.join(E3B, f"form_{k}_M{M}", "form.json")
+            if not (os.path.exists(fl) and os.path.exists(fm)):
+                continue
+            a, b = json.load(open(fl)), json.load(open(fm))
+            cs = sum(x * y for x, y in zip(a["u"], b["u"])) / math.sqrt(sum(x * x for x in a["u"]) * sum(y * y for y in b["u"]))
+            FO[(k, M)] = {"bL": a["beta"], "nL": a["avaliacoes"], "bM": b["beta"], "nM": b["avaliacoes"], "cos": cs,
+                          "itL": a["iteracoes"]}
+    # ---- (5) o deslocamento FS_LA/FS_MEF - 1 por faixa de FS_MEF: KL analitica (direto) x Nystrom (ISMC s21, os 3
+    # centros juntos, com o peso w: estima a media sob a densidade original, como no direto)
+    PP = {("an", k): DIR[k]["pares"] for k in ("r05", "r07") if k in DIR and "pares" in DIR[k]}
+    PP.update({("ny", k): [p for x in ism if x["k"] == k and x.get("la") for p in x["parLA"]] for k in ("r05", "r07")})
+    BAND = {(f, k, i): faixa_rel(v, lo, hi) for (f, k), v in PP.items() for i, (lo, hi) in enumerate(FAIXAS)}
+    PERTO = {(f, k): faixa_rel(v, 0.95, 1.05) for (f, k), v in PP.items()}
+    PG = {("an", k): DIR[k]["parG"] for k in ("r05", "r07") if k in DIR and "parG" in DIR[k]}
+    PG.update({("ny", k): [p for x in ism if x["k"] == k and x.get("la") for p in x["parG"]] for k in ("r05", "r07")})
+    G1 = {fk: gamma_em_1(v) for fk, v in PG.items()}
+    # ---- (6) a linha do ponto de projeto do MEF (z_perp = 0: o campo so com os modos do FORM): onde a LA entra na falha,
+    # pela inclinacao medida em c = beta +- 0,1 (ln Gamma linear), contra as 100 linhas sorteadas; em FS, |s_SRM| Delta c
+    PTO = {}
+    for x in lin:
+        if x.get("la"):
+            gm, gp = math.log(x["incL"]["Gamma_m"]), math.log(x["incL"]["Gamma_p"])
+            c0 = -0.1 + 0.2 * gm / (gm - gp)
+            PTO[(x["k"], x["cen"])] = {"dc": c0, "dfs": abs(x["sS"]) * c0, "dcl": x["mdcL"], "dfsl": abs(x["sS"]) * x["mdcL"]}
+    # ---- (7) a grade: FS_LA com h = 0,1 (piloto antigo) e h = 0,025 nas mesmas realizacoes
+    GR = {"an": [], "ny": [], "ny01": [], "ny025": [], "an_fm": [], "ny_fm": []}   # *_fm: o FS do MEF das mesmas
+    GRr = {}                                  # por r (KL analitica): a razao das grades e o deslocamento em cada grade
+    for k in ("r05", "r07"):
+        a, b = os.path.join(LA_H01, f"direto_{k}_pares.csv"), os.path.join(LA_PILOTO, f"direto_{k}_pares.csv")
+        if os.path.exists(a) and os.path.exists(b):
+            A1, A2 = le_pares_la(a), le_pares_la(b)
+            g = {"an": [], "an01": [], "an025": []}
+            for n in sorted(set(A1) & set(A2)):
+                f1, f2, fm = A1[n][1], A2[n][1], A2[n][2]
+                if math.isfinite(f1) and math.isfinite(f2):
+                    g["an"].append(f1 / f2 - 1.)
+                    g["an01"].append(f1 / fm - 1.)
+                    g["an025"].append(f2 / fm - 1.)
+                    GR["an_fm"].append(fm)
+            GRr[k] = g
+            GR["an"] += g["an"]
+    a = os.path.join(LA_H01, "ismc_r05_mef_M20_s21_pares.csv")
+    L2 = le_la(os.path.join(LA_RES, "ismc", "r05_mef_M20_s21.csv"))
+    if os.path.exists(a) and L2:
+        A1 = le_pares_la(a)
+        for n in sorted(A1):
+            if n in L2 and math.isfinite(A1[n][1]) and math.isfinite(L2[n]["fs"]):
+                GR["ny"].append(A1[n][1] / L2[n]["fs"] - 1.)
+                GR["ny01"].append(A1[n][1] / A1[n][2] - 1.)
+                GR["ny025"].append(L2[n]["fs"] / A1[n][2] - 1.)
+                GR["ny_fm"].append(A1[n][2])
+    # ---- (8) a P_f da LA prevista pelo MEF: P(FS_MEF (1 + delta) < 1) no MC direto do MEF, com o delta perto da falha
+    # de cada campo, contra a P_f medida (direto analitico; a media das 3 ISMC da LA nos centros do MEF)
+    PREV = {}
+    for k in ("r05", "r07"):
+        if k not in DIR or "fsM" not in DIR[k]:
+            continue
+        fsM = DIR[k]["fsM"]
+        ny = [ISM[(k, c)] for c in ("mef_M20", "mef_M100", "mef_gim20") if (k, c) in ISM]
+        for f in ("an", "ny"):
+            if PERTO.get((f, k)):
+                dl = PERTO[(f, k)]["m"]
+                PREV[(k, f)] = {"d": dl, "p": sum(1 for v in fsM if v * (1. + dl) < 1.) / len(fsM)}
+        PREV[(k, "obs_an")] = (DIR[k]["Pf"], DIR[k]["CoV"])
+        if ny:
+            # as 3 ISMC usam a mesma semente (erros correlacionados): o CoV medio, sem dividir por raiz de 3
+            PREV[(k, "obs_ny")] = (sum(x["Pf"] for x in ny) / len(ny), sum(x["CoV"] for x in ny) / len(ny))
+    # ---- (9) r = 0 (sem MEF): o mesmo fator em Gamma que leva o direto analitico do r = -0,5 a ISMC de Nystrom
+    R0 = None
+    if "r00" in DIR and "r05" in DIR and (("r05", "obs_ny") in PREV):
+        fny = quantil(DIR["r05"]["G"], PREV[("r05", "obs_ny")][0])
+        G0 = DIR["r00"]["G"]
+        R0 = {"f": fny, "p": sum(1 for g in G0 if g < fny) / len(G0), "fc": quantil(G0, CERON_R0["Pf"])}
+
+    # ---------------- tabela: o resumo LA x MEF
+    def pc(p, c):
+        return f"{pf_txt(p)} ({num(100 * c, 1)})"
+
+    NOMEC = {"M20": "$M = 20$", "M100": "$M = 100$", "gim20": "modal 20", "gim2000": "modal 2000"}
+    T = ["% gerado por gera_dados.py (la_mef): nao editar a mao\n\\begin{table}[H]\\centering\\footnotesize"
+         "\\setlength{\\tabcolsep}{3pt}\n"
+         "\\caption{A análise limite (LA, Ceron 2025; grade de $h = 0{,}025$\\,m) contra o MEF (SRM, \\texttt{tri2} e 4 "
+         "níveis), método a método. $P_f$ em \\% (CoV em \\%). O MC direto usa a KL analítica de 2000 termos (as "
+         "realizações do direto do MEF, semente 2010); o resto, a base de Nyström de 2000 modos (a ISMC da semente 21 e o "
+         "line sampling da semente 7 do MEF, as mesmas realizações e linhas). MEF: no direto, o MC direto do SRM; na "
+         "ISMC, as 5 sementes do SRM juntas; no line sampling, o do SRM nas mesmas linhas. LA/MEF: a razão das $P_f$; "
+         "entre parênteses, a razão pareada nas mesmas amostras (Tabelas~\\ref{tab:sgismc} e~\\ref{tab:sgls}). FORM: "
+         "$\\beta$ e, entre parênteses, $\\Phi(-\\beta)$ em \\%; na última coluna, a razão dos $\\Phi(-\\beta)$ e o "
+         "cosseno entre os pontos de projeto da LA e do MEF. Com $r = 0$ não há MEF pareado: o MEF é o line sampling do "
+         "SRM das verificações de 21/11 (V12: base de Nyström, semente 7, 84 linhas), e o Ceron e o Cho são os "
+         "publicados. O direto da LA com $r = -0{,}7$ ainda roda: é parcial.}\\label{tab:lamef}\n"
+         "\\begin{tabular}{llrrrl}\\toprule\n"
+         "$r$ & método & amostra & \\makecell{LA\\\\$P_f$ (CoV)} & \\makecell{MEF\\\\$P_f$ (CoV)} & LA/MEF \\\\\\midrule\n"]
+    for k in ("r05", "r07"):
+        if k not in DIR:
+            continue
+        d = DIR[k]
+        ref = P[k]["ref"]
+        par = f" ({num(d['rpar'], 2)})" if "rpar" in d else ""
+        T.append(f"{RTEX[k]} & MC direto (KL analítica){', parcial' if k == 'r07' else ''} & {num(d['N'])} & "
+                 f"{pc(d['Pf'], d['CoV'])} & {pc(ref['Pf'], ref['CoV'])} & {num(d['Pf'] / ref['Pf'], 2)}{par} \\\\\n")
+        for cen in ("mef_M20", "mef_M100", "mef_gim20", "la_M20"):
+            x = ISM.get((k, cen))
+            if not x:
+                continue
+            pi = next((y for y in ism if y["k"] == k and "mef_" + y["cen"] == cen and y.get("la")), None)
+            nome = ("centro MEF " if cen.startswith("mef") else "centro LA ") + NOMEC[cen.split("_")[1]]
+            mef = pc(x["ref"]["Pf"], x["ref"]["CoV"]) if x["ref"] else "--"
+            rz = (num(x["Pf"] / x["ref"]["Pf"], 2) + (f" ({num(pi['rL'], 2)})" if pi else "")) if x["ref"] else "--"
+            T.append(f" & ISMC s21, {nome} & {num(x['N'])} & {pc(x['Pf'], x['CoV'])} & {mef} & {rz} \\\\\n")
+        for dr in ("mef_M20", "mef_gim2000", "la_M20", "la_M100"):
+            x = LSD.get((k, dr))
+            if not x:
+                continue
+            nome = ("direção MEF " if dr.startswith("mef") else "direção LA ") + NOMEC[dr.split("_")[1]]
+            mef = pc(x["ref"]["Pf"], x["ref"]["CoV"]) if x["ref"] else "--"
+            rz = (num(x["Pf"] / x["ref"]["Pf"], 2) + (f" ({num(x['par']['rL'], 2)})" if x["par"] else "")) if x["ref"] else "--"
+            T.append(f" & LS s7, {nome} & {x['N']} linhas & {pc(x['Pf'], x['CoV'])} & {mef} & {rz} \\\\\n")
+        for M in (20, 100):
+            x = FO.get((k, M))
+            if x:
+                T.append(f" & FORM, $M = {M}$: $\\beta$ ($\\Phi(-\\beta)$) & {x['nL']}/{x['nM']} análises & "
+                         f"{num(x['bL'], 3)} ({num(100 * cauda(x['bL']), 2)}) & {num(x['bM'], 3)} "
+                         f"({num(100 * cauda(x['bM']), 2)}) & {num(cauda(x['bL']) / cauda(x['bM']), 2)}; cos "
+                         f"{num(x['cos'], 4)} \\\\\n")
+        T.append("\\midrule\n")
+    if "r00" in DIR:
+        d = DIR["r00"]
+        T.append(f"$0$ & MC direto (KL analítica) & {num(d['N'])} & {pc(d['Pf'], d['CoV'])} & "
+                 f"\\makecell[r]{{MEF (V12): {num(100 * MEF_R0['Pf'], 2)}\\\\"
+                 f"Ceron (LA): {num(100 * CERON_R0['Pf'], 2)}\\\\Cho: {num(100 * CHO_R0, 2)}}} & "
+                 f"\\makecell[l]{{{num(d['Pf'] / MEF_R0['Pf'], 2)} (MEF)\\\\{num(d['Pf'] / CERON_R0['Pf'], 2)} (Ceron)\\\\"
+                 f"{num(d['Pf'] / CHO_R0, 2)} (Cho)}} \\\\\n")
+    T.append("\\bottomrule\\end{tabular}\\end{table}\n")
+    open(os.path.join(TAB, "la_mef.tex"), "w").write("".join(T))
+
+    # ---------------- tabela: o teste (o deslocamento por faixa, a linha do ponto de projeto, a grade) e a previsao
+    def cel_b(b):
+        return f"{sinal(100 * b['m'], 2)} ({b['n']})" if b else "--"
+
+    def cobertura(k, lo, hi):
+        """as realizacoes do direto com lo <= FS_MEF < hi: quantas, quantas sem o FS da LA, e o deslocamento medio so
+        nas 2400 primeiras (que tem FS em todas) e quantas sao"""
+        v = [x for x in DIR[k].get("parN", []) if lo <= x[0] < hi]
+        s_ = [fl / fm - 1. for fm, n, ok, fl in v if ok and n < 2400]
+        return len(v), sum(1 for x in v if not x[2]), (sum(s_) / len(s_) if s_ else float("nan")), len(s_)
+
+    c05, c07 = cobertura("r05", 0.95, 1.05), cobertura("r07", 1.0, 1.05)
+    c05b = cobertura("r05", 1.05, 1.10)
+    b05b = BAND.get(("an", "r05", 3))
+    b07 = BAND.get(("an", "r07", 2))
+    rot_f = ["$< 0{,}95$", "0,95--1,00", "1,00--1,05", "1,05--1,10", "1,10--1,20", "$\\ge 1{,}20$"]
+    T = ["% gerado por gera_dados.py (la_mef): nao editar a mao\n\\begin{table}[H]\\centering\\footnotesize"
+         "\\setlength{\\tabcolsep}{4pt}\n"
+         "\\caption{O teste com os dados: $\\mathrm{FS}_\\text{LA}/\\mathrm{FS}_\\text{MEF} - 1$ (em \\%) nas mesmas "
+         "realizações, com a KL analítica (os pares do MC direto; o FS da LA foi calculado nas 2400 primeiras e onde "
+         "$\\Gamma < 1{,}3$ no $r = -0{,}5$ e $\\Gamma < 1{,}1$ no $r = -0{,}7$) e com a base de Nyström (os pares da ISMC "
+         "da semente 21, os 3 centros juntos, com o peso $w$; FS da LA onde $\\Gamma < 1{,}3$). Entre parênteses, os "
+         f"pares. No $r = -0{{,}}5$, até 1,05 quase todas as realizações têm o FS da LA (faltam {c05[1]} das {num(c05[0])} "
+         "entre 0,95 e 1,05); acima, faltam as de $\\Gamma$ alto, e a média da faixa fica um pouco baixa (entre 1,05 e "
+         f"1,10: {sinal(100 * b05b['m'], 2) if b05b else '--'}\\,\\% com todas, {sinal(100 * c05b[2], 2)}\\,\\% só nas "
+         f"2400 primeiras, que têm FS em todas). No $r = -0{{,}}7$, o FS da LA falta já entre 1,00 e 1,05 ({c07[1]} das "
+         f"{c07[0]}), e a média dessa faixa ({sinal(100 * b07['m'], 2) if b07 else '--'}\\,\\%) também fica um pouco "
+         f"baixa: só nas 2400 primeiras, {sinal(100 * c07[2], 2)}\\,\\% ({c07[3]} pares). "
+         "$\\Gamma_\\text{LA}$ em $\\mathrm{FS}_\\text{MEF} = 1$: o ajuste de "
+         "$\\ln\\Gamma_\\text{LA} = a + k\\ln\\mathrm{FS}_\\text{MEF}$ com $0{,}9 < \\mathrm{FS}_\\text{MEF} < 1{,}1$, "
+         "com todas as realizações (e o peso $w$ na ISMC). Embaixo: o campo médio; a linha que passa pelo ponto de projeto do MEF ($\\bm z_\\perp = 0$: um campo "
+         "só com os modos do FORM), pela inclinação medida em $c = \\beta \\pm 0{,}1$, contra a média das 100 linhas "
+         "sorteadas, as duas em FS ($|s|\\,\\Delta c$, com o $s$ do SRM; direções $M = 20$ / modal 2000); e a grade "
+         "da LA ($h = 0{,}1$ e $0{,}025$\\,m nas mesmas realizações: 200 do direto de cada $r$ e 37 da ISMC do centro "
+         "$M = 20$, pelos pilotos).}\\label{tab:lateste}\n"
+         "\\begin{tabular}{lrrrr}\\toprule\n"
+         " & \\multicolumn{2}{c}{KL analítica (MC direto)} & \\multicolumn{2}{c}{Nyström (ISMC s21)} \\\\"
+         "\\cmidrule(lr){2-3}\\cmidrule(lr){4-5}\n"
+         "$\\mathrm{FS}_\\text{MEF}$ & $r = -0{,}5$ & $r = -0{,}7$ (parcial) & $r = -0{,}5$ & $r = -0{,}7$ \\\\\\midrule\n"]
+    for i, rf in enumerate(rot_f):
+        T.append(f"{rf} & {cel_b(BAND.get(('an', 'r05', i)))} & {cel_b(BAND.get(('an', 'r07', i)))} & "
+                 f"{cel_b(BAND.get(('ny', 'r05', i)))} & {cel_b(BAND.get(('ny', 'r07', i)))} \\\\\n")
+    T.append(f"\\textbf{{0,95--1,05}} & \\textbf{{{cel_b(PERTO.get(('an', 'r05')))}}} & "
+             f"\\textbf{{{cel_b(PERTO.get(('an', 'r07')))}}} & \\textbf{{{cel_b(PERTO.get(('ny', 'r05')))}}} & "
+             f"\\textbf{{{cel_b(PERTO.get(('ny', 'r07')))}}} \\\\\n")
+    def cel_g(b):
+        return f"{num(b['g1'], 3)} ({b['n']})" if b else "--"
+
+    T.append(f"$\\Gamma_\\text{{LA}}$ em $\\mathrm{{FS}}_\\text{{MEF}} = 1$ (ajuste) & {cel_g(G1.get(('an', 'r05')))} & "
+             f"{cel_g(G1.get(('an', 'r07')))} & {cel_g(G1.get(('ny', 'r05')))} & {cel_g(G1.get(('ny', 'r07')))} "
+             "\\\\\\midrule\n")
+    T.append(f"campo médio (FS {num(FS_DET['LA'], 4)} $\\times$ {num(FS_DET['MEF'], 4)}) & "
+             f"\\multicolumn{{4}}{{c}}{{{sinal(100 * (FS_DET['LA'] / FS_DET['MEF'] - 1.), 2)}}} \\\\\n")
+
+    def pto(k, campo):
+        a, b = PTO.get((k, "M20")), PTO.get((k, "gim2000"))
+        return f"{sinal(100 * a[campo], 2)} / {sinal(100 * b[campo], 2)}" if a and b else "--"
+
+    T.append(f"linha do ponto de projeto ($\\bm z_\\perp = 0$) & -- & -- & {pto('r05', 'dfs')} & {pto('r07', 'dfs')} \\\\\n")
+    T.append(f"100 linhas sorteadas (LS s7) & -- & -- & {pto('r05', 'dfsl')} & {pto('r07', 'dfsl')} \\\\\\midrule\n")
+
+    def m_(v):
+        return f"{sinal(100 * sum(v) / len(v), 2)} ({len(v)})" if v else "--"
+
+    def g_(k, c):
+        return m_(GRr[k][c]) if k in GRr else "--"
+
+    T.append(f"grade $h = 0{{,}}1$ & {g_('r05', 'an01')} & {g_('r07', 'an01')} & {m_(GR['ny01'])} & -- \\\\\n")
+    T.append(f"grade $h = 0{{,}}025$ (as mesmas) & {g_('r05', 'an025')} & {g_('r07', 'an025')} & {m_(GR['ny025'])} & "
+             "-- \\\\\n")
+    T.append(f"$\\mathrm{{FS}}_\\text{{LA}}(0{{,}}1)/\\mathrm{{FS}}_\\text{{LA}}(0{{,}}025) - 1$ & {g_('r05', 'an')} & "
+             f"{g_('r07', 'an')} & {m_(GR['ny'])} & -- \\\\\n")
+    T.append("\\bottomrule\\end{tabular}\\end{table}\n")
+    # a previsao
+    T.append("\\begin{table}[H]\\centering\\footnotesize\\setlength{\\tabcolsep}{4pt}\n"
+             "\\caption{A $P_f$ da análise limite prevista pelo MEF: $P(\\mathrm{FS}_\\text{MEF}\\,(1 + \\delta) < 1)$ no MC "
+             "direto do MEF (24\\,000 e 110\\,000 realizações), com o $\\delta$ perto da falha de cada campo "
+             "(Tabela~\\ref{tab:lateste}, linha em negrito), contra a $P_f$ medida da LA: o MC direto com a KL analítica "
+             "e a média das 3 ISMC da LA nos centros do MEF (Nyström). $P_f$ em \\%; IC de 95\\,\\% entre colchetes.}"
+             "\\label{tab:laprev}\n\\begin{tabular}{lrrrrrrr}\\toprule\n"
+             " & & \\multicolumn{3}{c}{com o $\\delta$ da KL analítica} & \\multicolumn{3}{c}{com o $\\delta$ de Nyström} \\\\"
+             "\\cmidrule(lr){3-5}\\cmidrule(lr){6-8}\n"
+             "$r$ & MEF & $\\delta$ & prevista & medida (direto) & $\\delta$ & prevista & medida (ISMC) \\\\\\midrule\n")
+    for k in ("r05", "r07"):
+        if (k, "an") not in PREV or (k, "ny") not in PREV:
+            continue
+        ref = P[k]["ref"]
+        oa, on = PREV[(k, "obs_an")], PREV.get((k, "obs_ny"), (float("nan"), float("nan")))
+        T.append(f"{RTEX[k]} & {pf_txt(ref['Pf'])} & {sinal(100 * PREV[(k, 'an')]['d'], 2)}\\,\\% & {pf_txt(PREV[(k, 'an')]['p'])} & "
+                 f"{pf_txt(oa[0])} [{pf_txt(max(0., oa[0] * (1 - 1.96 * oa[1])))}; {pf_txt(oa[0] * (1 + 1.96 * oa[1]))}]"
+                 f"{' (parcial)' if k == 'r07' else ''} & "
+                 f"{sinal(100 * PREV[(k, 'ny')]['d'], 2)}\\,\\% & {pf_txt(PREV[(k, 'ny')]['p'])} & {pf_txt(on[0])} "
+                 f"[{pf_txt(on[0] * (1 - 1.96 * on[1]))}; {pf_txt(on[0] * (1 + 1.96 * on[1]))}] \\\\\n")
+    T.append("\\bottomrule\\end{tabular}\\end{table}\n")
+    open(os.path.join(TAB, "la_teste.tex"), "w").write("".join(T))
+
+    # ---------------- tabela: a distribuicao de Gamma da LA nas duas bases, sem FORM nem ISMC (r = -0,5)
+    if DG.get("an") and DG.get("ny"):
+        def pb(F, n):
+            """P em % e o erro padrao binomial"""
+            return f"{num(100 * F, 2)} ({num(100 * math.sqrt(F * (1. - F) / n), 2)})"
+
+        def gnum(g):
+            return num(g, 3) if math.isfinite(g) else "--"
+
+        a_, b_ = DG["an"], DG["ny"]
+        T = ["% gerado por gera_dados.py (la_mef): nao editar a mao\n\\begin{table}[H]\\centering\\footnotesize"
+             "\\setlength{\\tabcolsep}{4pt}\n"
+             f"\\caption{{A distribuição de $\\Gamma$ da LA nas duas bases, com $r = -0{{,}}5$, sem FORM nem ISMC. KL "
+             f"analítica: o MC direto do fermi ({num(a_['N'])} realizações). Nyström, MC simples: {num(b_['N'])} "
+             "realizações sem deslocamento (semente 4242, só $\\Gamma$), rodadas no PC em 21/11/2026 para esta revisão. "
+             "Nyström, ISMC: a média das 4 ISMC da LA da semente 21, com o peso $w$ (só na cauda, onde estão as "
+             "amostras). $P$ em \\%; entre parênteses, o erro padrão binomial (no MC) ou o CoV em \\% (nas ISMC, o CoV "
+             "médio, porque as 4 têm a mesma semente); nos quantis, o IC de 95\\,\\% pelas estatísticas de ordem. "
+             "Embaixo, o mesmo para o FS do MEF: o MC direto (KL analítica) e as 5 sementes da ISMC de Nyström (a média "
+             "dos 3 centros).}\\label{tab:lanys}\n"
+             "\\begin{tabular}{lrrrr}\\toprule\n"
+             " & \\makecell{KL analítica\\\\MC direto} & \\makecell{Nyström\\\\MC simples} & \\makecell{Nyström\\\\4 ISMC "
+             "(com $w$)} & \\makecell{Nyström/analítica\\\\(MC simples; ISMC)} \\\\\\midrule\n"]
+        for g0 in NIV_G:
+            fa, fb = a_["F"][g0], b_["F"][g0]
+            fi = DG.get("is", {}).get(g0)
+            rz = (num(fb / fa, 2) if fa > 0 else "--") + ("; " + num(fi[0] / fa, 2) if fi and fa > 0 else "")
+            T.append(f"$P(\\Gamma < {num(g0, 2 if round(g0, 1) != g0 else 1)})$ & {pb(fa, a_['N'])} & {pb(fb, b_['N'])} & "
+                     f"{(num(100 * fi[0], 2) + ' (' + num(100 * fi[1], 1) + ')') if fi else '--'} & {rz} \\\\\n")
+        T.append("\\midrule\n")
+        for p in QS:
+            qa, qb = a_["q"][p], b_["q"][p]
+            rot = "mediana de $\\Gamma$" if p == 0.5 else f"quantil de {num(100 * p, 0)}\\,\\% de $\\Gamma$"
+            T.append(f"{rot} & {gnum(qa[0])} [{gnum(qa[1])}; {gnum(qa[2])}] & {gnum(qb[0])} [{gnum(qb[1])}; "
+                     f"{gnum(qb[2])}] & -- & {num(qb[0] / qa[0], 3)} \\\\\n")
+        T.append(f"média de $\\ln\\Gamma$ (erro padrão) & {num(a_['mlg'], 4)} ({num(a_['elg'], 4)}) & "
+                 f"{num(b_['mlg'], 4)} ({num(b_['elg'], 4)}) & -- & $\\times${num(math.exp(b_['mlg'] - a_['mlg']), 3)} "
+                 "\\\\\n")
+        if DG.get("mef"):
+            m_ = DG["mef"]
+            T.append("\\midrule\n")
+            for s in NIV_FS:
+                fa, fi = m_["an"][s], m_["ny"][s]
+                T.append(f"MEF: $P(\\mathrm{{FS}} < {num(s, 2)})$ & {pb(fa, m_['Nan'])} & -- & {num(100 * fi[0], 2)} "
+                         f"({num(100 * fi[1], 1)}) & {num(fi[0] / fa, 2)} \\\\\n")
+        T.append("\\bottomrule\\end{tabular}\\end{table}\n")
+        open(os.path.join(TAB, "la_nys.tex"), "w").write("".join(T))
+
+    # ---------------- tabela: os modos de ruptura
+    def md(t, n=3):
+        return " & ".join(num(v, 1) for v in t[:n]) if t else " & ".join(["--"] * n)
+
+    T = ["% gerado por gera_dados.py (la_mef): nao editar a mao\n\\begin{table}[H]\\centering\\footnotesize"
+         "\\setlength{\\tabcolsep}{4pt}\n"
+         "\\caption{Os modos de ruptura, em \\% (como na Fig.~20 do Ceron): pelo pé, pela face (acima do pé) e pela base "
+         "(abaixo do pé). LA: o mecanismo crítico de cada realização (sem peso na ISMC; no direto, sobram as com "
+         "nenhum mecanismo admissível, até 0,2\\,\\%). MEF: pela banda de cisalhamento (verificações de 21/11, V07; a "
+         "banda sempre pega o pé, então uma saída a poucos centímetros acima conta como pé).}\\label{tab:lamodos}\n"
+         "\\begin{tabular}{llrrrrrrr}\\toprule\n"
+         " & & & \\multicolumn{3}{c}{todas as realizações} & \\multicolumn{3}{c}{as que falham} \\\\"
+         "\\cmidrule(lr){4-6}\\cmidrule(lr){7-9}\n"
+         "$r$ & caso & $N$ (falhas) & pé & face & base & pé & face & base \\\\\\midrule\n"]
+    for k in ("r00", "r05", "r07"):
+        if k in DIR:
+            d = DIR[k]
+            T.append(f"{RTEX[k]} & LA, MC direto{' (parcial)' if k == 'r07' else ''} & {num(d['N'])} ({d['fal']}) & "
+                     f"{md(d['mod'])} & {md(d['modf'])} \\\\\n")
+        if k == "r00":
+            T.append(f" & Ceron (2025), Fig.~20 (LA) & {num(CERON_R0['N'])} & {md(CERON_R0['modos'])} & -- & -- & -- \\\\\n")
+            continue
+        xs = [ISM[(k, c)] for c in ("mef_M20", "mef_M100", "mef_gim20", "la_M20") if (k, c) in ISM]
+        if xs:
+            mf = tuple(sum(x["modf"][j] for x in xs) / len(xs) for j in range(4))
+            T.append(f" & LA, ISMC s21 (Nyström, 4 centros) & {num(sum(x['N'] for x in xs))} & -- & -- & -- & {md(mf)} \\\\\n")
+        if k in MEF_MODOS:
+            T.append(f" & MEF, MC direto (V07) & {num(P[k]['ref']['N'])} ({P[k]['ref']['falhas']}) & {md(MEF_MODOS[k][0])} & "
+                     f"{md(MEF_MODOS[k][1])} \\\\\n")
+    T.append("\\bottomrule\\end{tabular}\\end{table}\n")
+    open(os.path.join(TAB, "la_modos.tex"), "w").write("".join(T))
+
+    # ---------------- numeros para o texto
+    Nn.clear()
+    for k, sig in (("r05", "Ra"), ("r07", "Rb"), ("r00", "Z")):
+        if k not in DIR:
+            continue
+        d = DIR[k]
+        cmd(f"lmDir{sig}Pf", pct(d["Pf"], 3 if d["Pf"] < 0.01 else 2))
+        cmd(f"lmDir{sig}Cov", pct(d["CoV"], 1))
+        cmd(f"lmDir{sig}N", num(d["N"]))
+        cmd(f"lmDir{sig}Fal", str(d["fal"]))
+        cmd(f"lmDir{sig}Lo", pct(max(0., d["Pf"] * (1 - 1.96 * d["CoV"])), 2 if d["Pf"] > 0.01 else 3))
+        cmd(f"lmDir{sig}Hi", pct(d["Pf"] * (1 + 1.96 * d["CoV"]), 2 if d["Pf"] > 0.01 else 3))
+        cmd(f"lmDir{sig}Gmed", num(d["Gmed"], 3))
+        if k in P:
+            cmd(f"lmDir{sig}Raz", num(d["Pf"] / P[k]["ref"]["Pf"], 2))
+            cmd(f"lmDir{sig}ParN", num(d["Npar"]))
+            cmd(f"lmDir{sig}ParFl", str(d["fLpar"]))
+            cmd(f"lmDir{sig}ParFm", str(d["fMpar"]))
+            cmd(f"lmDir{sig}ParPm", pct(d["pMpar"], 2))
+            cmd(f"lmDir{sig}ParRaz", num(d["rpar"], 2))
+            cmd(f"lmDir{sig}ParErr", num(d["epar"], 2))
+            cmd(f"lmDir{sig}SoL", str(d["soL"]))
+        for j, m in enumerate(("Pe", "Face", "Base")):
+            cmd(f"lmModo{sig}{m}", num(d["mod"][j], 1))
+            if d["modf"]:
+                cmd(f"lmModoF{sig}{m}", num(d["modf"][j], 1))
+    cmd("lmZRazCeron", num(DIR["r00"]["Pf"] / CERON_R0["Pf"], 2) if "r00" in DIR else "--")
+    cmd("lmZz", sinal((DIR["r00"]["Pf"] - CERON_R0["Pf"]) / math.sqrt((DIR["r00"]["Pf"] * DIR["r00"]["CoV"]) ** 2 +
+                                                                      (CERON_R0["Pf"] * CERON_R0["CoV"]) ** 2), 1)
+        if "r00" in DIR else "--")
+    cmd("lmCeronPe", num(CERON_R0["modos"][0], 1))
+    cmd("lmCeronFace", num(CERON_R0["modos"][1], 1))
+    for k, sig in (("r05", "Ra"), ("r07", "Rb")):
+        xs = [ISM[(k, c)] for c in ("mef_M20", "mef_M100", "mef_gim20", "la_M20") if (k, c) in ISM]
+        if xs:
+            cmd(f"lmIs{sig}Min", pf_txt(min(x["Pf"] for x in xs)))
+            cmd(f"lmIs{sig}Max", pf_txt(max(x["Pf"] for x in xs)))
+            cmd(f"lmIsCov{sig}Min", num(100 * min(x["CoV"] for x in xs), 1))
+            cmd(f"lmIsCov{sig}Max", num(100 * max(x["CoV"] for x in xs), 1))
+            r5 = [x["Pf"] / x["ref"]["Pf"] for x in xs if x["ref"]]
+            cmd(f"lmIsRazCinco{sig}Min", num(min(r5), 2))
+            cmd(f"lmIsRazCinco{sig}Max", num(max(r5), 2))
+        pi = [y for y in ism if y["k"] == k and y.get("la")]
+        if pi:
+            cmd(f"lmIsRaz{sig}Min", num(min(y["rL"] for y in pi), 3))
+            cmd(f"lmIsRaz{sig}Max", num(max(y["rL"] for y in pi), 3))
+            cmd(f"lmIsErr{sig}Max", num(max(y["eL"] for y in pi), 3))
+            cmd(f"lmIsSoM{sig}Min", str(min(y["soM"] for y in pi)))
+            cmd(f"lmIsSoM{sig}Max", str(max(y["soM"] for y in pi)))
+        ls_ = [LSD[(k, dr)] for dr in ("mef_M20", "mef_gim2000", "la_M20", "la_M100") if (k, dr) in LSD]
+        if xs or ls_:
+            cmd(f"lmTodos{sig}Min", pf_txt(min(x["Pf"] for x in xs + ls_)))
+            cmd(f"lmTodos{sig}Max", pf_txt(max(x["Pf"] for x in xs + ls_)))
+        if ls_:
+            cmd(f"lmLs{sig}Min", pf_txt(min(x["Pf"] for x in ls_)))
+            cmd(f"lmLs{sig}Max", pf_txt(max(x["Pf"] for x in ls_)))
+            cmd(f"lmLsNa{sig}Min", num(min(x["na"] for x in ls_), 1))
+            cmd(f"lmLsNa{sig}Max", num(max(x["na"] for x in ls_), 1))
+            cmd(f"lmLsPerd{sig}", str(sum(x["perd"] for x in ls_)))
+        pl = [x for x in lin if x["k"] == k and x.get("la")]
+        if pl:
+            cmd(f"lmLsRaz{sig}Min", num(min(x["rL"] for x in pl), 3))
+            cmd(f"lmLsRaz{sig}Max", num(max(x["rL"] for x in pl), 3))
+            cmd(f"lmLsDc{sig}Min", sinal(min(x["mdcL"] for x in pl), 2))
+            cmd(f"lmLsDc{sig}Max", sinal(max(x["mdcL"] for x in pl), 2))
+            cmd(f"lmLsDfs{sig}Min", num(100 * min(abs(x["sS"]) * x["mdcL"] for x in pl), 2))
+            cmd(f"lmLsDfs{sig}Max", num(100 * max(abs(x["sS"]) * x["mdcL"] for x in pl), 2))
+            cmd(f"lmSSrm{sig}", num(abs(pl[0]["sS"]), 3))
+        for M in (20, 100):
+            x = FO.get((k, M))
+            if x:
+                cmd(f"lmBetaLa{sig}M{'v' if M == 20 else 'c'}", num(x["bL"], 3))
+                cmd(f"lmBetaMef{sig}M{'v' if M == 20 else 'c'}", num(x["bM"], 3))
+                cmd(f"lmCos{sig}M{'v' if M == 20 else 'c'}", num(x["cos"], 4))
+                cmd(f"lmPhiRaz{sig}M{'v' if M == 20 else 'c'}", num(cauda(x["bL"]) / cauda(x["bM"]), 2))
+        for f, nome in (("an", "An"), ("ny", "Ny")):
+            b = PERTO.get((f, k))
+            if b:
+                cmd(f"lmDes{nome}{sig}", sinal(100 * b["m"], 2))
+                cmd(f"lmDes{nome}{sig}N", num(b["n"]))
+                cmd(f"lmDes{nome}{sig}Dp", num(100 * b["dp"], 2))
+                cmd(f"lmDes{nome}{sig}Sp", sinal(100 * b["mu"], 2))       # sem peso
+            g1 = G1.get((f, k))
+            if g1:
+                cmd(f"lmGum{nome}{sig}", num(g1["g1"], 3))               # Gamma_LA em FS_MEF = 1 (ajuste)
+            if (k, f) in PREV:
+                cmd(f"lmPrev{nome}{sig}", pf_txt(PREV[(k, f)]["p"]))
+                cmd(f"lmPrevRaz{nome}{sig}", num(PREV[(k, f)]["p"] / P[k]["ref"]["Pf"], 2))
+        if (k, "obs_ny") in PREV:
+            cmd(f"lmObsNy{sig}", pf_txt(PREV[(k, "obs_ny")][0]))
+        a, b = PTO.get((k, "M20")), PTO.get((k, "gim2000"))
+        if a and b:
+            cmd(f"lmPtoDc{sig}Min", sinal(min(a["dc"], b["dc"]), 3))
+            cmd(f"lmPtoDc{sig}Max", sinal(max(a["dc"], b["dc"]), 3))
+            cmd(f"lmPtoFs{sig}Max", num(100 * max(a["dfs"], b["dfs"]), 2))
+    if PTO:
+        cmd("lmPtoFsMax", num(100 * max(v["dfs"] for v in PTO.values()), 2))
+        cmd("lmPtoDcMin", sinal(min(v["dc"] for v in PTO.values()), 3))
+        cmd("lmPtoDcMax", sinal(max(v["dc"] for v in PTO.values()), 3))
+    # as bandas: a faixa do deslocamento em todas as faixas de FS_MEF, por campo
+    for f, nome in (("an", "An"), ("ny", "Ny")):
+        v = [b["m"] for (ff, k, i), b in BAND.items() if ff == f and b and b["n"] >= 30]
+        if v:
+            cmd(f"lmBanda{nome}Min", sinal(100 * min(v), 1))
+            cmd(f"lmBanda{nome}Max", sinal(100 * max(v), 1))
+    cmd("lmDet", sinal(100 * (FS_DET["LA"] / FS_DET["MEF"] - 1.), 2))
+    cmd("lmFsDetLa", num(FS_DET["LA"], 4))
+    cmd("lmFsDetMef", num(FS_DET["MEF"], 4))
+    # FS_LA > FS_MEF em todos os pares com o FS da LA (o direto e as ISMC)?
+    dd_ = [x for x in DIR.values() if "acima" in x]
+    ok_is = all(fl > fm for x in ism if x.get("la") for fm, fl, g, w in x["parLA"])
+    cmd("lmAcima", "todos" if dd_ and all(x["acima"] for x in dd_) and ok_is else "quase todos")
+    if GR["an"]:
+        cmd("lmGradeAn", sinal(100 * sum(GR["an"]) / len(GR["an"]), 2))
+        cmd("lmGradeAnDp", num(100 * mdp(GR["an"])[1], 2))
+        cmd("lmGradeAnN", str(len(GR["an"])))
+        um = [v for g in GRr.values() for v in g["an01"]]
+        dois = [v for g in GRr.values() for v in g["an025"]]
+        cmd("lmGradeAnUm", sinal(100 * sum(um) / len(um), 2))
+        cmd("lmGradeAnDois", sinal(100 * sum(dois) / len(dois), 2))
+    if GR["ny"]:
+        cmd("lmGradeNy", sinal(100 * sum(GR["ny"]) / len(GR["ny"]), 2))
+        cmd("lmGradeNyDp", num(100 * mdp(GR["ny"])[1], 2))
+        cmd("lmGradeNyN", str(len(GR["ny"])))
+        cmd("lmGradeNyUm", sinal(100 * sum(GR["ny01"]) / len(GR["ny01"]), 2))
+        cmd("lmGradeNyDois", sinal(100 * sum(GR["ny025"]) / len(GR["ny025"]), 2))
+        # as faixas de FS_MEF dos pilotos (nao sao as mesmas: o analitico sao as primeiras realizacoes do direto; o de
+        # Nystrom, as primeiras da ISMC, perto da falha)
+        cmd("lmGradeNyFsMin", num(min(GR["ny_fm"]), 2))
+        cmd("lmGradeNyFsMax", num(max(GR["ny_fm"]), 2))
+    if GR["an_fm"]:
+        cmd("lmGradeAnFsMin", num(min(GR["an_fm"]), 2))
+        cmd("lmGradeAnFsMax", num(max(GR["an_fm"]), 2))
+    if R0:
+        cmd("lmZfator", num(R0["f"], 3))
+        cmd("lmZprev", pct(R0["p"], 2))
+        cmd("lmZfatorCeron", num(R0["fc"], 3))
+    # r = 0 contra o nosso MEF (V12) e a previsao da V12; o Cho (Fig. 9) digitalizado
+    if "r00" in DIR:
+        d = DIR["r00"]
+        rz = d["Pf"] / MEF_R0["Pf"]
+        cmd("lmZmef", pct(MEF_R0["Pf"], 2))
+        cmd("lmZmefLo", pct(MEF_R0["lo"], 2))
+        cmd("lmZmefHi", pct(MEF_R0["hi"], 2))
+        cmd("lmZrazMef", num(rz, 2))
+        cmd("lmZrazMefErr", num(rz * math.sqrt(d["CoV"] ** 2 + MEF_R0["CoV"] ** 2), 2))
+        cmd("lmZprevV", pct(MEF_R0["prev"], 2))
+        cmd("lmZprevVLo", pct(MEF_R0["prev_lo"], 2))
+        cmd("lmZprevVHi", pct(MEF_R0["prev_hi"], 2))
+        cmd("lmZprevVraz", num(MEF_R0["prev"] / MEF_R0["Pf"], 2))
+        cmd("lmZchoFig", pct(MEF_R0["cho_fig9"], 2))
+    # a distribuicao de Gamma da LA nas duas bases (r = -0,5) e a do FS do MEF
+    if DG.get("an") and DG.get("ny"):
+        a_, b_ = DG["an"], DG["ny"]
+        cmd("lnyN", num(b_["N"]))
+        cmd("lnyFal", str(b_["fal"]))
+        cmd("lnyPf", pct(b_["Pf"], 2))
+        cmd("lnyPfLo", pct(max(0., b_["Pf"] * (1. - 1.96 * b_["CoV"])), 2))
+        cmd("lnyPfHi", pct(b_["Pf"] * (1. + 1.96 * b_["CoV"]), 2))
+        if DG.get("is"):
+            # o MC simples de Nystrom contra a P_f das ISMC de Nystrom: z com o erro binomial do MC simples sob a P_f das
+            # ISMC e o erro das ISMC
+            fi, ci = DG["is"][1.0]
+            cmd("lnyPfIs", pct(fi, 2))
+            cmd("lnyZis", sinal((b_["Pf"] - fi) / math.sqrt(fi * (1. - fi) / b_["N"] + (fi * ci) ** 2), 1))
+            cmd("lnyEsp", num(fi * b_["N"], 0))      # as falhas que se esperariam com a P_f das ISMC
+            # Gamma < 1,05: o MC simples, as ISMC e o direto analitico
+            fb, cb = DG["is"][1.05]
+            cmd("lnyFalB", str(round(b_["F"][1.05] * b_["N"])))
+            cmd("lnyPfB", pct(b_["F"][1.05], 2))
+            cmd("lnyPfIsB", pct(fb, 2))
+            cmd("lanPfB", pct(a_["F"][1.05], 2))
+            cmd("lnyZisB", sinal((b_["F"][1.05] - fb) / math.sqrt(fb * (1. - fb) / b_["N"] + (fb * cb) ** 2), 1))
+        cauda_ = [g for g in NIV_G if g >= 1.1]          # a cauda com bastante realizacoes no MC simples
+        rr = [b_["F"][g] / a_["F"][g] for g in cauda_]
+        cmd("lnyRazMin", num(min(rr), 2))
+        cmd("lnyRazMax", num(max(rr), 2))
+        zz = [(b_["F"][g] - a_["F"][g]) / math.sqrt(a_["F"][g] * (1 - a_["F"][g]) / a_["N"] + b_["F"][g] * (1 - b_["F"][g])
+                                                    / b_["N"]) for g in cauda_]
+        cmd("lnyZmin", num(min(zz), 1))
+        cmd("lnyZmax", num(max(zz), 1))
+        if DG.get("is"):
+            ri = [DG["is"][g][0] / a_["F"][g] for g in cauda_]
+            cmd("lisRazMin", num(min(ri), 2))
+            cmd("lisRazMax", num(max(ri), 2))
+            # o MC simples de Nystrom contra as ISMC de Nystrom (a mesma base): a razao das P(Gamma < g)
+            rb = [b_["F"][g] / DG["is"][g][0] for g in cauda_]
+            cmd("lnyIsMin", num(min(rb), 2))
+            cmd("lnyIsMax", num(max(rb), 2))
+        cmd("lnyMed", sinal(100 * (b_["q"][0.5][0] / a_["q"][0.5][0] - 1.), 1))
+        cmd("lnyQvc", sinal(100 * (b_["q"][0.25][0] / a_["q"][0.25][0] - 1.), 1))      # o quantil de 25 %
+        cmd("lnyQcinco", sinal(100 * (b_["q"][0.05][0] / a_["q"][0.05][0] - 1.), 1))  # o de 5 %
+        cmd("lnyQum", sinal(100 * (b_["q"][0.01][0] / a_["q"][0.01][0] - 1.), 1))     # o de 1 %
+        cmd("lnyLg", sinal(100 * (math.exp(b_["mlg"] - a_["mlg"]) - 1.), 1))
+        cmd("lnyLgErr", num(100 * math.sqrt(a_["elg"] ** 2 + b_["elg"] ** 2), 1))
+        cmd("lnyLgZ", num(abs(b_["mlg"] - a_["mlg"]) / math.sqrt(a_["elg"] ** 2 + b_["elg"] ** 2), 1))
+        if DG.get("mef"):
+            rm = [DG["mef"]["ny"][s][0] / DG["mef"]["an"][s] for s in NIV_FS]
+            cmd("lmefRazMin", num(min(rm), 2))
+            cmd("lmefRazMax", num(max(rm), 2))
+    open(os.path.join(AQUI, "numeros.tex"), "a").write("".join(Nn))
+
+    # ---------------- figura: (a, b) o deslocamento nos pares, (c) a P_f prevista contra o delta, (d) a grade
+    fig, ax = plt.subplots(2, 2, figsize=(LARG, 6.6))
+    cor = {"an": "#7f7f7f", "ny": "#d95f02"}
+    for a, k, t in ((ax[0][0], "r05", "(a)"), (ax[0][1], "r07", "(b)")):
+        for f, rot in (("an", "KL analítica (direto)"), ("ny", "Nyström (ISMC s21)")):
+            pp = [(fm, 100 * (fl / fm - 1.)) for fm, fl, g, w in PP.get((f, k), []) if 0.85 < fm < 1.45]
+            if not pp:
+                continue
+            a.plot([x for x, _ in pp], [y for _, y in pp], ".", color=cor[f], ms=1.6, alpha=0.35, mew=0)
+            xs, ys = [], []
+            for i, (lo, hi) in enumerate(FAIXAS):
+                b = BAND.get((f, k, i))
+                if b and b["n"] >= 30:
+                    xs.append(0.5 * (max(lo, 0.85) + min(hi, 1.45)))
+                    ys.append(100 * b["m"])
+            a.plot(xs, ys, "o-", color=cor[f], lw=1.6, ms=4.5,
+                   label=rot + (f": {100 * PERTO[(f, k)]['m']:+.2f} % perto de 1".replace(".", ",") if PERTO.get((f, k)) else ""))
+        a.plot([FS_DET["MEF"]], [100 * (FS_DET["LA"] / FS_DET["MEF"] - 1.)], "*", color="k", ms=10,
+               label="campo médio (determinístico)")
+        p0 = PTO.get((k, "M20"))
+        if p0:
+            a.plot([1.0], [100 * p0["dfs"]], "D", color="#1b9e77", ms=6, label="linha do ponto de projeto (LS, $M = 20$)")
+        a.axhline(0, color="k", lw=0.7)
+        a.axvline(1, color="0.6", ls=":", lw=0.8)
+        a.set_xlim(0.85, 1.45)
+        a.set_ylim(-1, 6)
+        a.set_xlabel(r"$\mathrm{FS}_\mathrm{MEF}$")
+        a.set_ylabel(r"$\mathrm{FS}_\mathrm{LA}/\mathrm{FS}_\mathrm{MEF} - 1$ (%)")
+        a.set_title(f"{t} " + tit(k) + (" (direto parcial)" if k == "r07" else ""), fontsize=10, loc="left")
+        a.legend(loc="upper left", fontsize=7.5, framealpha=0.9)
+    a = ax[1][0]
+    for k, c in (("r05", "#2166ac"), ("r07", "#b2182b")):
+        if k not in DIR or "fsM" not in DIR[k]:
+            continue
+        fsM = DIR[k]["fsM"]
+        dls = [j * 0.0005 for j in range(0, 81)]
+        a.semilogy([100 * x for x in dls], [100 * max(sum(1 for v in fsM if v * (1 + x) < 1.) / len(fsM), 1e-5) for x in dls],
+                   "-", color=c, lw=1.5, label=tit(k) + ": MEF deslocado")
+        for f, mk in (("an", "s"), ("ny", "o")):
+            ob = PREV.get((k, "obs_an" if f == "an" else "obs_ny"))
+            if ob and PERTO.get((f, k)):
+                x = 100 * PERTO[(f, k)]["m"]
+                a.errorbar([x], [100 * ob[0]], yerr=[[100 * ob[0] * min(0.999, 1.96 * ob[1])], [100 * ob[0] * 1.96 * ob[1]]],
+                           fmt=mk, color=c, ms=6, capsize=3, mfc="white" if f == "an" else c)
+    a.plot([], [], "s", color="0.3", mfc="white", label="LA medida, KL analítica (direto)")
+    a.plot([], [], "o", color="0.3", label="LA medida, Nyström (ISMC)")
+    a.set_xlabel(r"$\delta$ (%): $\mathrm{FS}_\mathrm{LA} = \mathrm{FS}_\mathrm{MEF}\,(1 + \delta)$")
+    a.set_ylabel(r"$P(\mathrm{FS}_\mathrm{MEF}\,(1 + \delta) < 1)$ (%)")
+    a.set_title("(c) a $P_f$ da LA prevista pelo MEF", fontsize=10, loc="left")
+    a.legend(loc="lower left", fontsize=7.5)
+    a.set_xlim(0, 4)
+    a.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}".replace(".", ",")))
+    a = ax[1][1]
+    if GR["an"] and GR["ny"]:
+        bins = [-1.6 + 0.05 * j for j in range(33)]
+        a.hist([100 * v for v in GR["an"]], bins=bins, histtype="step", lw=1.6, color=cor["an"], density=True,
+               label=f"KL analítica ({len(GR['an'])}): média {100 * sum(GR['an']) / len(GR['an']):+.2f} %".replace(".", ","))
+        a.hist([100 * v for v in GR["ny"]], bins=bins, histtype="step", lw=1.6, color=cor["ny"], density=True,
+               label=f"Nyström ({len(GR['ny'])}): média {100 * sum(GR['ny']) / len(GR['ny']):+.2f} %".replace(".", ","))
+        a.axvline(0, color="k", lw=0.7)
+        a.set_xlabel(r"$\mathrm{FS}_\mathrm{LA}(h = 0{,}1)/\mathrm{FS}_\mathrm{LA}(h = 0{,}025) - 1$ (%)")
+        a.set_ylabel("densidade")
+        a.set_title("(d) a grade da LA, $h$: 0,1 x 0,025 m", fontsize=10, loc="left")
+        a.legend(loc="upper left", fontsize=7.5)
+    for a in (ax[0][0], ax[0][1], ax[1][1]):
+        a.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:g}".replace(".", ",")))
+    fig.tight_layout()
+    fig.savefig(os.path.join(FIGS, "la_mef.pdf"))
+    plt.close(fig)
+    for k in DIR:
+        d = DIR[k]
+        print(f"LA direto {k}: N {d['N']} falhas {d['fal']} P_f {100 * d['Pf']:.4f}% (CoV {100 * d['CoV']:.1f}%)"
+              + (f"; pareado {d['Npar']}: LA {d['fLpar']} MEF {d['fMpar']} razao {d['rpar']:.3f} +- {d['epar']:.3f}" if "Npar" in d else ""))
+    for (f, k), b in PERTO.items():
+        if b:
+            print(f"LA desloc perto da falha {f} {k}: n {b['n']} com peso {100 * b['m']:+.2f}% sem peso {100 * b['mu']:+.2f}% "
+                  f"dp {100 * b['dp']:.2f}% ESS {b['ess']:.0f}")
+    for kk, v in PREV.items():
+        print("LA prev", kk, v)
+    print("LA ponto de projeto", {kk: {a: round(b, 4) for a, b in v.items()} for kk, v in PTO.items()})
+    print("LA grade", {kk: (len(v), round(100 * sum(v) / len(v), 3) if v else None) for kk, v in GR.items()})
+    print("LA r = 0", R0)
+
+
+ISM_, LIN_ = srm_gim()
 ceron_agua()
+la_mef(ISM_, LIN_)

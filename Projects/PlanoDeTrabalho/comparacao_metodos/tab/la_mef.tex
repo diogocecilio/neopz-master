@@ -1,0 +1,31 @@
+% gerado por gera_dados.py (la_mef): nao editar a mao
+\begin{table}[H]\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\caption{A análise limite (LA, Ceron 2025; grade de $h = 0{,}025$\,m) contra o MEF (SRM, \texttt{tri2} e 4 níveis), método a método. $P_f$ em \% (CoV em \%). O MC direto usa a KL analítica de 2000 termos (as realizações do direto do MEF, semente 2010); o resto, a base de Nyström de 2000 modos (a ISMC da semente 21 e o line sampling da semente 7 do MEF, as mesmas realizações e linhas). MEF: no direto, o MC direto do SRM; na ISMC, as 5 sementes do SRM juntas; no line sampling, o do SRM nas mesmas linhas. LA/MEF: a razão das $P_f$; entre parênteses, a razão pareada nas mesmas amostras (Tabelas~\ref{tab:sgismc} e~\ref{tab:sgls}). FORM: $\beta$ e, entre parênteses, $\Phi(-\beta)$ em \%; na última coluna, a razão dos $\Phi(-\beta)$ e o cosseno entre os pontos de projeto da LA e do MEF. Com $r = 0$ não há MEF pareado: o MEF é o line sampling do SRM das verificações de 21/11 (V12: base de Nyström, semente 7, 84 linhas), e o Ceron e o Cho são os publicados. O direto da LA com $r = -0{,}7$ ainda roda: é parcial.}\label{tab:lamef}
+\begin{tabular}{llrrrl}\toprule
+$r$ & método & amostra & \makecell{LA\\$P_f$ (CoV)} & \makecell{MEF\\$P_f$ (CoV)} & LA/MEF \\\midrule
+$-0{,}5$ & MC direto (KL analítica) & 60\,250 & 0,6689 (5,0) & 1,700 (4,9) & 0,39 (0,40) \\
+ & ISMC s21, centro MEF $M = 20$ & 2\,500 & 0,9354 (4,2) & 1,740 (2,2) & 0,54 (0,57) \\
+ & ISMC s21, centro MEF $M = 100$ & 2\,500 & 0,9387 (4,0) & 1,745 (2,2) & 0,54 (0,56) \\
+ & ISMC s21, centro MEF modal 20 & 2\,500 & 0,9261 (4,3) & 1,718 (2,2) & 0,54 (0,56) \\
+ & ISMC s21, centro LA $M = 20$ & 2\,500 & 0,9310 (4,2) & -- & -- \\
+ & LS s7, direção MEF $M = 20$ & 100 linhas & 0,9512 (5,5) & 1,739 (5,0) & 0,55 (0,55) \\
+ & LS s7, direção MEF modal 2000 & 100 linhas & 0,9718 (4,9) & 1,762 (4,2) & 0,55 (0,55) \\
+ & LS s7, direção LA $M = 20$ & 100 linhas & 0,9436 (5,3) & -- & -- \\
+ & LS s7, direção LA $M = 100$ & 100 linhas & 0,9275 (4,0) & -- & -- \\
+ & FORM, $M = 20$: $\beta$ ($\Phi(-\beta)$) & 324/243 análises & 1,990 (2,33) & 1,977 (2,40) & 0,97; cos 0,9988 \\
+ & FORM, $M = 100$: $\beta$ ($\Phi(-\beta)$) & 1604/1203 análises & 1,966 (2,46) & 1,956 (2,52) & 0,98; cos 0,9981 \\
+\midrule
+$-0{,}7$ & MC direto (KL analítica), parcial & 7\,930 & 0,1135 (33,3) & 0,3664 (5,0) & 0,31 (0,28) \\
+ & ISMC s21, centro MEF $M = 20$ & 2\,500 & 0,1512 (5,1) & 0,3656 (2,2) & 0,41 (0,43) \\
+ & ISMC s21, centro MEF $M = 100$ & 2\,500 & 0,1472 (4,9) & 0,3625 (2,2) & 0,41 (0,41) \\
+ & ISMC s21, centro MEF modal 20 & 2\,500 & 0,1499 (5,7) & 0,3516 (2,2) & 0,43 (0,44) \\
+ & ISMC s21, centro LA $M = 20$ & 2\,500 & 0,1446 (5,1) & -- & -- \\
+ & LS s7, direção MEF $M = 20$ & 100 linhas & 0,1507 (7,7) & 0,3642 (6,8) & 0,41 (0,41) \\
+ & LS s7, direção MEF modal 2000 & 100 linhas & 0,1506 (6,9) & 0,3665 (5,6) & 0,41 (0,41) \\
+ & LS s7, direção LA $M = 20$ & 100 linhas & 0,1464 (7,2) & -- & -- \\
+ & LS s7, direção LA $M = 100$ & 100 linhas & 0,1450 (5,7) & -- & -- \\
+ & FORM, $M = 20$: $\beta$ ($\Phi(-\beta)$) & 324/243 análises & 2,484 (0,65) & 2,466 (0,68) & 0,95; cos 0,9981 \\
+ & FORM, $M = 100$: $\beta$ ($\Phi(-\beta)$) & 1604/1604 análises & 2,454 (0,71) & 2,440 (0,73) & 0,96; cos 0,9979 \\
+\midrule
+$0$ & MC direto (KL analítica) & 10\,460 & 3,910 (4,8) & \makecell[r]{MEF (V12): 7,40\\Ceron (LA): 5,50\\Cho: 6,37} & \makecell[l]{0,53 (MEF)\\0,71 (Ceron)\\0,61 (Cho)} \\
+\bottomrule\end{tabular}\end{table}

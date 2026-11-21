@@ -1,0 +1,29 @@
+% gerado por gera_dados.py (la_mef): nao editar a mao
+\begin{table}[H]\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\caption{O teste com os dados: $\mathrm{FS}_\text{LA}/\mathrm{FS}_\text{MEF} - 1$ (em \%) nas mesmas realizações, com a KL analítica (os pares do MC direto; o FS da LA foi calculado nas 2400 primeiras e onde $\Gamma < 1{,}3$ no $r = -0{,}5$ e $\Gamma < 1{,}1$ no $r = -0{,}7$) e com a base de Nyström (os pares da ISMC da semente 21, os 3 centros juntos, com o peso $w$; FS da LA onde $\Gamma < 1{,}3$). Entre parênteses, os pares. No $r = -0{,}5$, até 1,05 quase todas as realizações têm o FS da LA (faltam 10 das 1\,511 entre 0,95 e 1,05); acima, faltam as de $\Gamma$ alto, e a média da faixa fica um pouco baixa (entre 1,05 e 1,10: $+$2,54\,\% com todas, $+$2,67\,\% só nas 2400 primeiras, que têm FS em todas). No $r = -0{,}7$, o FS da LA falta já entre 1,00 e 1,05 (93 das 166), e a média dessa faixa ($+$2,55\,\%) também fica um pouco baixa: só nas 2400 primeiras, $+$2,59\,\% (58 pares). $\Gamma_\text{LA}$ em $\mathrm{FS}_\text{MEF} = 1$: o ajuste de $\ln\Gamma_\text{LA} = a + k\ln\mathrm{FS}_\text{MEF}$ com $0{,}9 < \mathrm{FS}_\text{MEF} < 1{,}1$, com todas as realizações (e o peso $w$ na ISMC). Embaixo: o campo médio; a linha que passa pelo ponto de projeto do MEF ($\bm z_\perp = 0$: um campo só com os modos do FORM), pela inclinação medida em $c = \beta \pm 0{,}1$, contra a média das 100 linhas sorteadas, as duas em FS ($|s|\,\Delta c$, com o $s$ do SRM; direções $M = 20$ / modal 2000); e a grade da LA ($h = 0{,}1$ e $0{,}025$\,m nas mesmas realizações: 200 do direto de cada $r$ e 37 da ISMC do centro $M = 20$, pelos pilotos).}\label{tab:lateste}
+\begin{tabular}{lrrrr}\toprule
+ & \multicolumn{2}{c}{KL analítica (MC direto)} & \multicolumn{2}{c}{Nyström (ISMC s21)} \\\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+$\mathrm{FS}_\text{MEF}$ & $r = -0{,}5$ & $r = -0{,}7$ (parcial) & $r = -0{,}5$ & $r = -0{,}7$ \\\midrule
+$< 0{,}95$ & $+$2,48 (64) & -- & $+$1,80 (843) & $+$1,79 (836) \\
+0,95--1,00 & $+$2,66 (344) & $+$2,64 (32) & $+$1,87 (932) & $+$1,82 (1561) \\
+1,00--1,05 & $+$2,67 (1157) & $+$2,55 (73) & $+$1,87 (979) & $+$1,80 (1749) \\
+1,05--1,10 & $+$2,54 (1069) & $+$2,56 (211) & $+$1,76 (436) & $+$1,75 (806) \\
+1,10--1,20 & $+$2,74 (906) & $+$2,67 (1039) & $+$1,46 (5) & $+$1,56 (11) \\
+$\ge 1{,}20$ & $+$2,93 (1101) & $+$2,83 (1086) & -- & -- \\
+\textbf{0,95--1,05} & \textbf{$+$2,67 (1501)} & \textbf{$+$2,58 (105)} & \textbf{$+$1,87 (1911)} & \textbf{$+$1,80 (3310)} \\
+$\Gamma_\text{LA}$ em $\mathrm{FS}_\text{MEF} = 1$ (ajuste) & 1,076 (4344) & 1,065 (907) & 1,052 (3261) & 1,046 (5264) \\\midrule
+campo médio (FS 1,2032 $\times$ 1,2044) & \multicolumn{4}{c}{$-$0,10} \\
+linha do ponto de projeto ($\bm z_\perp = 0$) & -- & -- & $+$0,12 / $+$0,04 & $+$0,15 / $+$0,13 \\
+100 linhas sorteadas (LS s7) & -- & -- & $+$1,84 / $+$1,86 & $+$1,79 / $+$1,94 \\\midrule
+grade $h = 0{,}1$ & $+$1,88 (200) & $+$1,80 (200) & $+$1,35 (37) & -- \\
+grade $h = 0{,}025$ (as mesmas) & $+$2,79 (200) & $+$2,72 (200) & $+$1,74 (37) & -- \\
+$\mathrm{FS}_\text{LA}(0{,}1)/\mathrm{FS}_\text{LA}(0{,}025) - 1$ & $-$0,89 (200) & $-$0,89 (200) & $-$0,38 (37) & -- \\
+\bottomrule\end{tabular}\end{table}
+\begin{table}[H]\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\caption{A $P_f$ da análise limite prevista pelo MEF: $P(\mathrm{FS}_\text{MEF}\,(1 + \delta) < 1)$ no MC direto do MEF (24\,000 e 110\,000 realizações), com o $\delta$ perto da falha de cada campo (Tabela~\ref{tab:lateste}, linha em negrito), contra a $P_f$ medida da LA: o MC direto com a KL analítica e a média das 3 ISMC da LA nos centros do MEF (Nyström). $P_f$ em \%; IC de 95\,\% entre colchetes.}\label{tab:laprev}
+\begin{tabular}{lrrrrrrr}\toprule
+ & & \multicolumn{3}{c}{com o $\delta$ da KL analítica} & \multicolumn{3}{c}{com o $\delta$ de Nyström} \\\cmidrule(lr){3-5}\cmidrule(lr){6-8}
+$r$ & MEF & $\delta$ & prevista & medida (direto) & $\delta$ & prevista & medida (ISMC) \\\midrule
+$-0{,}5$ & 1,700 & $+$2,67\,\% & 0,6667 & 0,6689 [0,6038; 0,7340] & $+$1,87\,\% & 0,9500 & 0,9334 [0,8578; 1,009] \\
+$-0{,}7$ & 0,3664 & $+$2,58\,\% & 0,0945 & 0,1135 [0,0394; 0,1876] (parcial) & $+$1,80\,\% & 0,1391 & 0,1494 [0,1341; 0,1648] \\
+\bottomrule\end{tabular}\end{table}

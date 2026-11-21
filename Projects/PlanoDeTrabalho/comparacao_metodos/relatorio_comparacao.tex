@@ -15,19 +15,22 @@
 \title{Comparação dos métodos de confiabilidade:\\ Monte Carlo direto, ISMC e line sampling\\
 \large Cho ($r = -0{,}5$ e $-0{,}7$), rebaixamento do Ceron e a viga}
 \author{Diogo Cecílio}
-\date{20/11/2026 --- versão \versao}
+\date{21/11/2026 --- versão \versao}
 \begin{document}
 \maketitle
 \begin{abstract}
-Reunimos, com os dados de 20/11/2026, todos os resultados de probabilidade de falha dos três problemas de talude e da
+Reunimos, com os dados de 21/11/2026, todos os resultados de probabilidade de falha dos três problemas de talude e da
 viga, por três métodos: o Monte Carlo direto (a referência), a amostragem por importância centrada no ponto de projeto
 do FORM (ISMC) e o line sampling (LS) na direção do FORM. A medida comum é o número de análises do MEF para CoV de 5\,\%,
 contando o FORM. O line sampling na direção do FORM modal com todos os modos foi o mais barato nos três taludes, sem viés
 detectado: \lsNCe{} análises no Ceron com a água antiga (direto: \refNCe; melhor ISMC: \ismcNCe), \lsNRa{} no Cho com $r = -0{,}5$ (direto:
-\refNRa; ISMC: \ismcNRa) e \lsNRb{} no Cho com $r = -0{,}7$ (direto: \refNRb; ISMC: \ismcNRb). Na viga, que não tem gradiente modal, o line
+\refNRa; ISMC: \ismcNRa) e \lsNRb{} no Cho com $r = -0{,}7$ (direto: \refNRb; ISMC: \ismcNRb). Esses custos do line
+sampling saem do CoV de 100 linhas e são um pouco otimistas: com mais linhas, o CoV$^2$ de uma linha subiu
+\sglCovDoisGmMin{} a \sglCovDoisGmMax\,\% na direção modal (as linhas a mais do GIM) e, no Cho com $r = -0{,}7$, as 300
+linhas de três sementes pedem 400 análises (V01), mas a ordem dos métodos não muda. Na viga, que não tem gradiente modal, o line
 sampling na direção do FORM adjunto precisou de 92 (direto: 18\,666). Os dados das comparações com o direto estão completos: as
 ISMC da etapa 3b chegaram ao CoV de 5\,\% em todas as sementes e todas as direções do line sampling terminaram; o line
-sampling ainda tem uma semente só.
+sampling tem uma semente só nas tabelas (três no Cho com $r = -0{,}7$, nas verificações de 21/11).
 
 Para comparar os métodos de outras formas, acrescentamos: o tempo de CPU (o line sampling modal dá CoV de 5\,\% com
 \hLsRb{} h$\cdot$núcleo no Cho com $r = -0{,}7$, contra \hIsmcRb{} da melhor ISMC e \hDirRb{} do direto); as iterações
@@ -36,15 +39,22 @@ da amostra da ISMC; a busca de cada linha do line sampling (2 a 3 análises por 
 estimado contra o observado entre sementes, com a cobertura dos intervalos (\icDentro{} de \icTotal{} intervalos da
 ISMC contêm a $P_f$ do direto).
 
-Duas comparações novas. (1) O SRM contra o GIM com uma semente só, pareada: as mesmas realizações da ISMC da semente 21
-e as mesmas linhas do line sampling da semente 7 (Seção~\ref{sec:pareado}; o GIM ainda roda no fermi, e a ISMC dele é
-parcial, com \sgNmin{} a \sgNmax{} realizações por caso). As $P_f$ diferem no máximo \sgDifAbsMax\,\%, com o GIM em
-geral um pouco abaixo e sempre dentro do CoV de cada estimativa: na ISMC, só por realizações limítrofes
-($|\mathrm{FS} - 1| \le$ \sgDiscFS); no line sampling, por um deslocamento pequeno do ponto em que cada linha entra na
-falha. O GIM custa \sgEcon\,\% menos por análise (no line sampling, com mais análises por linha, o custo empata); a
-análise limite do Ceron nos mesmos casos ainda está no fermi. (2) O Ceron com a água do
-artigo (Seção~\ref{sec:ceronagua}): o line sampling do MEF dá \ceaLsPf, contra \ceaPfArt{} do artigo. As outras linhas
-do Ceron são do modelo de água antigo.
+Duas comparações novas. (1) O SRM, o GIM e a análise limite (LA) do Ceron com uma semente só, pareada: as mesmas
+realizações da ISMC da semente 21 e as mesmas linhas do line sampling da semente 7 (Seção~\ref{sec:pareado}; dados
+completos). O GIM e o SRM dão a mesma $P_f$ a menos de \sgDifAbsMax\,\%: o GIM fica um pouco abaixo, de forma
+sistemática, mas bem dentro do CoV de cada estimativa, e custa \sgEcon\,\% menos por análise. A LA dá menos que o MEF,
+como um limite superior, mas a razão depende do campo: com $r = -0{,}5$, \lmDirRaRaz{} com a KL analítica (o MC
+direto) e \lmIsRazRaMin{} a \lmIsRazRaMax{} com a base de Nyström (a ISMC). Nos pares, o FS da LA fica \lmDesNyRa\,\%
+(Nyström) e \lmDesAnRa\,\% (analítica) acima do FS do MEF, quase por igual, e esse deslocamento reproduz as duas
+$P_f$; um MC simples da LA com Nyström (\lnyN{} realizações, sem FORM nem ISMC, rodado nesta revisão) confirma que a
+distribuição de $\Gamma$ desce com a troca de base (mediana \lnyMed\,\%), mas é curto demais para a $P_f$. A causa
+provável é a regra do máximo da LA ($\varphi_i$ = o maior $\varphi$ do trecho), que lê a pequena escala do campo, que a
+KL analítica tem mais que a base de Nyström: a grade da LA, o espectro das bases e o caso sem $\varphi$ apontam nessa
+direção, mas o teste direto (a KL analítica sem os termos curtos) não foi rodado. O FORM não vê essa diferença
+($\beta$ = \lmBetaLaRaMv{} na LA e \lmBetaMefRaMv{} no MEF). O direto da LA com $r = -0{,}7$ ainda roda
+(\lmDirRbN{} realizações: os números dele são parciais). (2) O Ceron com a água do artigo (Seção~\ref{sec:ceronagua}): o line sampling do MEF dá \ceaLsPf, contra
+\ceaPfArt{} do artigo; a nossa LA dá 10,3\,\% por causa do $\Gamma$ determinístico, 0,6 a 0,9\,\% acima do do artigo
+(verificações de 21/11). As outras linhas do Ceron são do modelo de água antigo.
 \end{abstract}
 \tableofcontents
 
@@ -57,15 +67,19 @@ do Ceron são do modelo de água antigo.
     No Ceron, as duas ISMC (1000 realizações cada) terminaram.
   \item \textbf{Line sampling:} 100 linhas por direção e uma semente só (a 7), no PC. As direções do FORM modal com 2000
     termos e do FORM numérico com $M = 20$ (Cho) e as três do Ceron terminaram. O CoV vem da dispersão das próprias
-    linhas e ainda não foi conferido entre sementes.
+    linhas; no Cho com $r = -0{,}7$, as verificações de 21/11 o conferiram com mais duas sementes
+    (Seção~\ref{sec:covobs}).
   \item \textbf{Viga:} MC direto e ISMC completos (relatório da viga); o line sampling e o FORM adjunto rodaram nas seções
     16 e 17 do código em Mathematica (\path{viga_mathematica/codigo/viga_FORM5_AI200.txt}), ainda fora do relatório da
     viga.
-  \item \textbf{SRM $\times$ GIM, pareado} (Seção~\ref{sec:pareado}): a campanha \texttt{etapa3b\_gim} do fermi,
-    \textbf{ainda rodando} (dados de \sgData): a ISMC da semente 21 nos três centros e o line sampling da semente 7 nas
-    duas direções, com o GIM no lugar do SRM. \textbf{Parcial} na ISMC: \sgNmin{} a \sgNmax{} realizações por caso (a
-    campanha vai a pelo menos 2000); no line sampling, as \sglN{} linhas do SRM já têm todas o par no GIM. A análise
-    limite do Ceron (2025) nos mesmos casos também está no fermi; aqui entra só o piloto local.
+  \item \textbf{SRM $\times$ GIM $\times$ análise limite, pareado} (Seção~\ref{sec:pareado}): a campanha
+    \texttt{etapa3b\_gim} do fermi, \textbf{terminada} (dados de \sgData): a ISMC da semente 21 nos três centros e o
+    line sampling da semente 7 nas duas direções, com o GIM no lugar do SRM; todas as realizações (\sgNmin{} a
+    \sgNmax{} por caso) e todas as linhas do SRM têm o par no GIM. A análise limite do Ceron (2025) em Python, nos
+    mesmos campos (jobs 14991 e 14992 do fermi, dados de 21/11/2026): o MC direto completo com $r = -0{,}5$ e $r = 0$ e
+    \textbf{ainda rodando} com $r = -0{,}7$ (\lmDirRbN{} realizações), a ISMC da semente 21, o line sampling da semente
+    7 e os FORM (Seção~\ref{sec:lamef}); e, no PC, nesta revisão, um MC simples da LA com o campo de Nyström
+    (\lnyN{} realizações, só $\Gamma$, em \path{~/projects/runs/cho_la_pc}).
   \item \textbf{Ceron com a água do artigo} (Seção~\ref{sec:ceronagua}): o line sampling do MEF (no PC) e o MC de
     10\,000 realizações pela análise limite em Python. As outras linhas do Ceron são do modelo de água antigo.
 \end{itemize}
@@ -117,7 +131,7 @@ como centro e sorteia pontos (cada um vale 0 ou $w$); o line sampling o usa como
 a probabilidade exata ao longo dela, entre 0 e 1).}\label{fig:fluxo}
 \end{figure}
 
-\section{Os problemas, as referências e os FORM}
+\section{Os problemas, as referências e os FORM}\label{sec:problemas}
 \begin{itemize}
   \item \textbf{Cho (2010), Exemplo 2:} talude seco, $c'$ e $\varphi'$ lognormais com correlação cruzada $r = -0{,}5$ ou
     $-0{,}7$, SRM com refinamento adaptativo (\texttt{tri2} e 4 níveis). As ISMC e o line sampling usam o campo de Nyström
@@ -127,6 +141,22 @@ a probabilidade exata ao longo dela, entre 0 e 1).}\label{fig:fluxo}
     água antigo (o rebaixamento em 0,1\,h, com o transiente; $P_f$ do direto de \refPfCe); com a água do artigo, o
     line sampling do MEF dá \ceaLsPf{} (Seção~\ref{sec:ceronagua}).
   \item \textbf{Viga:} módulo de elasticidade lognormal (200 modos de Nyström), falha pela flecha no meio do vão.
+\end{itemize}
+{\sloppy As verificações de 21/11 citadas neste relatório têm uma pasta cada (\path{V02}, \path{V03}, \ldots),
+com o \path{LEIAME.txt} e as saídas, em
+\path{~/Dropbox/UnsaturatedSoil/referencias/referencias_selecionadas_claude/propostas/verificacoes}.\par}
+
+\textbf{O Cho contra a literatura} (verificações de 21/11, V07 e V10):
+\begin{itemize}
+  \item o MC direto do MEF dá a $P_f$ do Cho (1,700 contra 1,71\,\% com $r = -0{,}5$), mas com o FS médio 0,7\,\% menor
+    (1,1908 contra 1,1991) e o desvio 5,8\,\% menor (0,0996 contra 0,1057); contra o Li et al.\ (2015), $-0{,}35$ e
+    $-2{,}3$\,\%. São diferenças reais (muitos erros padrão), do método (MEF com SRM contra equilíbrio limite com busca)
+    e do campo;
+  \item o truncamento do Cho (150 termos, 92\,\% da variância) não muda o resultado: o $\beta$ do FORM sobe 0,005 (no
+    ruído) e o line sampling com $K = 150$ dá 1,602\,\% (IC de 1,46 a 1,75\,\%), contra 1,700\,\% ($z = -0{,}9$);
+  \item a convenção do $r$ pesa muito: o nosso $r$ é entre os campos gaussianos, como no Cho e no Li; $-0{,}7$ entre os
+    lognormais (Jiang et al.\ 2015) vale $-0{,}738$ entre os gaussianos, sobe o $\beta$ de 2,463 para 2,607 e corta a
+    $P_f$ em uns 35\,\%. A comparação justa é com o Cho e o Li.
 \end{itemize}
 
 \input{tabelas.tex}
@@ -170,20 +200,29 @@ $\nu_\ell$ perto de $\beta$ (pontilhado); a dispersão vem da curvatura e dos mo
 direção com 2000 termos estreita muito a distribuição.}\label{fig:nu}
 \end{figure}
 
-\section{Uma semente, pareada: SRM \texorpdfstring{$\times$}{x} GIM \texorpdfstring{$\times$}{x} análise limite}\label{sec:pareado}
+\section{Uma semente, pareada: SRM \texorpdfstring{$\times$}{x} GIM \texorpdfstring{$\times$}{x} análise
+limite}\label{sec:pareado}
 Nas seções anteriores, cada método é comparado com o Monte Carlo direto, e a diferença mistura o método com o sorteio.
-Aqui o que se compara é o fator de segurança: o FS do SRM, o $\Gamma$ do GIM e, quando o fermi terminar, o $\Gamma$ da
-análise limite (LA: o método cinemático do Ceron 2025, \path{Projects/CeronCinematico/cho}). Os três usam as mesmas
-amostras (decisão de 20/11/2026: uma semente só, pareada):
+Aqui o que se compara é o fator de segurança: o FS do SRM, o $\Gamma$ do GIM e o $\Gamma$ da análise limite (LA: o
+método cinemático do Ceron 2025, \path{Projects/CeronCinematico/cho}). Os três usam as mesmas amostras (decisão de
+20/11/2026: uma semente só, pareada):
 \begin{itemize}
   \item \textbf{ISMC:} a semente 21, nos três centros do FORM. A realização $n$ tem os mesmos $\xib$ e o mesmo peso $w$
-    nos dois fatores: o \texttt{log\_peso} é igual em todos os pares, e as médias de $c'$ e $\varphi'$ diferem no máximo
-    \sgCampo\,\% (só porque a malha adaptativa final não é a mesma no SRM e no GIM).
+    nos três fatores: o \texttt{log\_peso} é igual em todos os pares, e as médias de $c'$ e $\varphi'$ do SRM e do GIM
+    diferem no máximo \sgCampo\,\% (só porque a malha adaptativa final não é a mesma).
   \item \textbf{Line sampling:} a semente 7, as mesmas linhas (o mesmo $\bm z$ de cada uma) e as mesmas direções.
   \item \textbf{Referências:} o MC direto do SRM (24\,000 e 110\,000 realizações) e as 5 sementes da ISMC do SRM
     juntas. A conferência de versão (as 10 primeiras realizações de cada direto, refeitas com o SRM da campanha nova)
     deu o mesmo FS em \sgConfIguais{} de \sgConfTotal.
 \end{itemize}
+\textbf{Os dados estão completos.} A campanha \texttt{etapa3b\_gim} do fermi terminou (dados de \sgData): todas as
+realizações do SRM na semente 21 (\sgNmin{} a \sgNmax{} por caso) têm o par no GIM, e o GIM seguiu até \sgGaNmin{} a
+\sgGaNmax{} realizações; no line sampling, as \sglN{} linhas do SRM têm todas o par no GIM, que seguiu até parar pelo
+CoV de 5\,\% (\sglNGmin{} a \sglNGmax{} linhas; com as linhas que estavam em voo, o CoV final ficou de
+\sglGaCovRaGm{} a \sglGaCovRaMv\,\%). A análise limite rodou no fermi (jobs 14991 e 14992, baixados em
+21/11/2026; Seção~\ref{sec:lamef}): 2500 realizações da ISMC por centro e as mesmas 100 linhas do line sampling, que
+cobrem todas as do SRM. As Tabelas~\ref{tab:sgismc} e~\ref{tab:sgls} põem os três fatores lado a lado.
+
 \textbf{Por que parear.} Numa semente, o erro de sorteio (o CoV de \sgCovMin{} a \sgCovMax\,\% de cada $P_f$ da
 Tabela~\ref{tab:sgismc}) é o mesmo nos dois fatores, porque as realizações são as mesmas, e sai da diferença. Na ISMC,
 a diferença das $P_f$ vem só dos pares em que os fatores discordam (um falha e o outro não); no line sampling, da
@@ -194,61 +233,75 @@ $\mathrm{dp}[\Phi(-c_\text{GIM}) - \Phi(-c_\text{SRM})]/\sqrt N$ no line samplin
 \sglEdifMax\,\%. Com sementes diferentes, uma diferença de 1 ou 2\,\% ficaria escondida no ruído de \sglCovMin{} a
 \sgCovMax\,\% de cada estimativa.
 
-\textbf{O GIM ainda é parcial.} Ele é a campanha \texttt{etapa3b\_gim} do fermi, que ainda roda: os dados são de
-\sgData, com \sgNmin{} a \sgNmax{} realizações em comum por caso (a campanha vai a pelo menos 2000) e \sglNGmin{} a
-\sglNGmax{} linhas do GIM por direção. No line sampling, entram as \sglN{} em comum com o SRM, que já estão todas
-feitas: essa parte da comparação não muda mais.
-\input{tab/srm_gim_ismc.tex}
-
+\subsection{SRM \texorpdfstring{$\times$}{x} GIM}\label{sec:srmgim}
 \textbf{ISMC.} Nos \sgPares{} pares (os \sgCasos{} casos juntos), só \sgDisc{} discordam: em \sgDiscSrm{} só o SRM falha
 e em \sgDiscGim{} só o GIM falha (Tabela~\ref{tab:sgismc} e Figura~\ref{fig:sg}a,b). São \sgDiscDist{} realizações
 distintas: com a mesma semente, a realização $n$ dos três centros de um $r$ tem a mesma amostra $\bm z$ (e
 $\xib = \xib^* + \bm z$ quase igual), e algumas discordam em mais de um centro. Todos têm $|\mathrm{FS} - 1| \le$
-\sgDiscFS{} e $|\Gamma - 1| \le$ \sgDiscG. Como $\Gamma \approx \mathrm{FS}^k$, com $k$ de \sgKmin{} a \sgKmax{} (perto
-de 1, uma variação relativa do FS aparece \sgKperto{} vezes maior no $\Gamma$), $|\Gamma - 1| \le$ \sgDiscG{} é no
-máximo \sgDiscGfs\,\% no FS. Os dois fatores só discordam a menos de \sgDiscGfs\,\% de 1, na precisão do fator (a tolerância de cada
-busca e a malha adaptativa), e não por uma diferença de critério. As $P_f$ diferem de \sgDifMin{} a \sgDifMax\,\%,
-sempre a menos de \sgZmax{} erros pareados; o GIM fica abaixo do SRM em \sgAbaixo{} dos \sgCasos{} casos.
+\sgDiscFS{} (\sgDiscFSmed{} em média) e $|\Gamma - 1| \le$ \sgDiscG. Como $\Gamma \approx \mathrm{FS}^k$, com $k$ de
+\sgKmin{} a \sgKmax{} (perto de 1, uma variação relativa do FS aparece \sgKperto{} vezes maior no $\Gamma$),
+$|\Gamma - 1| \le$ \sgDiscG{} é no máximo \sgDiscGfs\,\% no FS: os dois fatores só discordam a menos de \sgDiscGfs\,\%
+de 1, na precisão do fator (a tolerância de cada busca e a malha adaptativa). As $P_f$ diferem de \sgDifMin{} a
+\sgDifMax\,\%, a no máximo \sgZmax{} erros pareados, e o GIM fica abaixo do SRM em \sgAbaixo{} dos \sgCasos{} casos.
+A diferença tem sinal: são \sgDistSrm{} realizações distintas em que só o SRM falha, contra \sgDistGim{} em que só o
+GIM falha (com 50\,\% de chance para cada lado, um desequilíbrio assim teria chance de \sgDistP). O GIM dá a falha um
+pouquinho depois do SRM, como no line sampling.
 
 \textbf{Line sampling.} Nas mesmas \sglN{} linhas, a linha do GIM entra na falha um pouco mais longe:
 $\Delta c = c_\text{GIM} - c_\text{SRM}$ tem média de \sglDcMin{} a \sglDcMax{} e dp de \sglDcSdMin{} a \sglDcSdMax{}
 (Tabela~\ref{tab:sgls} e Figura~\ref{fig:sg}c,d). Ao longo da linha, $d\ln\mathrm{FS}/dc$ vale $-$\sglSmin{} a
 $-$\sglSmax{} (a inclinação $s$ do SRM, Tabela~\ref{tab:lsdiag}), então esse $\Delta c$ vale só uns \sglDfs\,\% no
-FS (no máximo). É ele que dá a diferença das $P_f$, \sglDifMin{} a \sglDifMax\,\%: o próprio $\Delta c$ prevê \sglPrevMin{} a
+FS (no máximo). É ele que dá a diferença das $P_f$, \sglDifMin{} a \sglDifMax\,\%: o próprio $\Delta c$ prevê
+\sglPrevMin{} a
 \sglPrevMax\,\%, com $\Delta P_f/P_f \approx -\sum_\ell \phi(c_\ell)\,\Delta c_\ell / \sum_\ell \Phi(-c_\ell)$. Aqui o
 pareamento é ainda mais forte (cada linha dá uma probabilidade contínua, e não 0 ou $w$), e a diferença, de \sglZmin{} a
-\sglZmax{} erros pareados, é sistemática: o GIM dá a falha um pouquinho depois do SRM. É o mesmo sinal da ISMC
-(\sgDiscSrm{} pares em que só o SRM falha, contra \sgDiscGim). Mas é pequena: \sglDifMin{} a \sglDifMax\,\% da $P_f$, contra
-o CoV de \sglCovMin{} a \sglCovMax\,\% de cada estimativa.
+\sglZmax{} erros pareados, é sistemática, com o mesmo sinal da ISMC. Mas é pequena: \sglDifMin{} a \sglDifMax\,\% da
+$P_f$, contra o CoV de \sglCovMin{} a \sglCovMax\,\% de cada estimativa.
+
+\textbf{O GIM até o fim.} Sozinho, com todas as suas realizações e linhas, o GIM dá o mesmo que as referências do SRM.
+Na ISMC (\sgGaNmin{} a \sgGaNmax{} realizações, CoV de \sgGaCovRaMin{} a \sgGaCovRbMax\,\%): \sgGaRaMin{} a
+\sgGaRaMax\,\% com $r = -0{,}5$ e \sgGaRbMin{} a \sgGaRbMax\,\% com $r = -0{,}7$, a no máximo \sgGaZMax{} desvio
+padrão do direto. No line sampling: \sglGaPfRaMv\,\% nas duas direções do $r = -0{,}5$ (\sglGaNRaMv{} linhas, CoV de
+\sglGaCovRaGm{} e \sglGaCovRaMv\,\%), e \sglGaPfRbMv\,\% (\sglGaNRbMv{} linhas, $M = 20$) e \sglGaPfRbGm\,\%
+(\sglGaNRbGm{} linhas, modal 2000) com $r = -0{,}7$. O total para CoV de 5\,\% com todas as linhas do GIM ficou
+\sglGaCustoMin{} a \sglGaCustoMax\,\% acima do estimado com as 100 do SRM (na direção modal 2000, \sglGaNcRaGm{} contra
+\sglSNcRaGm{} e \sglGaNcRbGm{} contra \sglSNcRbGm{} análises). Uma parte vem das análises a mais por linha do GIM
+(\sglNaRazMin{} a \sglNaRazMax\,\%); o resto, do CoV de uma linha, que subiu com as linhas novas (no $r = -0{,}7$, de
+\sglClRbGmCem{} para \sglClRbGmTodas\,\% na direção modal 2000 e de \sglClRbMvCem{} para \sglClRbMvTodas\,\% com
+$M = 20$): o CoV$^2$ de uma linha ficou \sglCovDoisMin{} a \sglCovDoisMax\,\% acima do das 100 linhas do SRM, contra
+um erro de uns \sglCurtErrMin{} a \sglCurtErrMax\,\% que a curtose das próprias 100 linhas prevê. As linhas novas
+mostraram uma cauda mais pesada (curtose de \sglCurtRbMvTodas{} nas \sglGaNRbMv{} linhas do $r = -0{,}7$ com $M = 20$).
+Com 100 linhas, o custo estimado tende a sair otimista.
+
+\begin{landscape}
+\input{tab/srm_gim_ismc.tex}
+\input{tab/srm_gim_ls.tex}
+\end{landscape}
 
 \begin{figure}[H]\centering
 \includegraphics[width=\textwidth]{figs/srm_gim.pdf}
-\caption{SRM $\times$ GIM, pareado (\textbf{GIM parcial}, dados de \sgData). (a) ISMC da semente 21: o $\Gamma$ do GIM
-contra o FS do SRM na mesma realização, perto da falha ($0{,}9 < \mathrm{FS} < 1{,}1$, os seis casos juntos), com a
-curva $\Gamma = \mathrm{FS}^k$ ajustada perto de 1; círculos: os pares discordantes. (b) O mesmo, perto de $(1, 1)$; em
+\caption{SRM $\times$ GIM, pareado (dados de \sgData). (a) ISMC da semente 21: o $\Gamma$ do GIM contra o FS do SRM na
+mesma realização, perto da falha ($0{,}9 < \mathrm{FS} < 1{,}1$, os seis casos juntos), com a curva
+$\Gamma = \mathrm{FS}^k$ ajustada perto de 1; círculos: os pares discordantes. (b) O mesmo, perto de $(1, 1)$; em
 cinza, os quadrantes em que só um dos dois falha. (c) e (d) Line sampling da semente 7: $\Delta c = c_\text{GIM} -
 c_\text{SRM}$ de cada linha contra o $c_\text{SRM}$ (onde a linha do SRM entra na falha), nas \sglN{} linhas em comum de
 cada direção; tracejado: a média de cada direção.}\label{fig:sg}
 \end{figure}
-\input{tab/srm_gim_ls.tex}
 
 \textbf{Conclusão.}
 \begin{itemize}
-  \item \textbf{O GIM e o SRM dão a mesma $P_f$ a menos de \sgDifAbsMax\,\%} (com a ISMC do GIM parcial): na ISMC,
-    \sgDifMin{} a \sgDifMax\,\%, dentro do ruído pareado, e a diferença vem só das realizações limítrofes
-    ($|\mathrm{FS} - 1| \le$ \sgDiscFS); no line sampling, mais preciso, \sglDifMin{} a \sglDifMax\,\%, de um
-    deslocamento de \sglDcMin{} a \sglDcMax{} em $c$ (uns \sglDfs\,\% no FS). O GIM fica um pouco abaixo (de forma
-    sistemática no line sampling), mas bem dentro do CoV de cada estimativa: para a confiabilidade, os dois fatores dão
-    a mesma resposta.
-  \item \textbf{A semente 21 é baixa em $r = -0{,}5$.} Das 5 sementes do SRM, ela é a mais baixa nos três centros:
-    \sUmRaMin{} a \sUmRaMax\,\% com todas as suas realizações, contra \sOutRaMin{} a \sOutRaMax\,\% das outras quatro,
-    \sJunRaMin{} a \sJunRaMax\,\% das 5 juntas e \refPfRa{} do direto (Tabela~\ref{tab:ismcsem}). Por isso o SRM e o
-    GIM da semente 21 ficam abaixo do direto: é a semente, e não o método. Em $r = -0{,}7$ ela fica no meio das 5
-    (posições \sPosRb{} nos três centros: \sUmRbMin{} a \sUmRbMax\,\%, contra \sJunRbMin{} a \sJunRbMax\,\% das 5
-    juntas). Na Tabela~\ref{tab:sgismc}, porém, entram só as realizações em comum, as primeiras da semente: nelas, o
-    SRM e o GIM dão \sgSubRaMin{} a \sgSubRaMax\,\% com $r = -0{,}5$ e \sgSubRbMin{} a \sgSubRbMax\,\% com
-    $r = -0{,}7$, abaixo da semente inteira em todos os centros. É o sorteio dessas realizações (CoV de \sgCovMin{} a
-    \sgCovMax\,\%), igual nos dois fatores, e muda quando o GIM chegar ao fim.
+  \item \textbf{O GIM e o SRM dão a mesma $P_f$ a menos de \sgDifAbsMax\,\%}: na ISMC, \sgDifMin{} a \sgDifMax\,\%, e a
+    diferença vem só das realizações limítrofes ($|\mathrm{FS} - 1| \le$ \sgDiscFS); no line sampling, mais preciso,
+    \sglDifMin{} a \sglDifMax\,\%, de um deslocamento de \sglDcMin{} a \sglDcMax{} em $c$ (uns \sglDfs\,\% no FS). O
+    GIM fica um pouco abaixo, de forma sistemática (\sgDistSrm{} contra \sgDistGim{} realizações discordantes), mas
+    bem dentro do CoV de 5\,\% de cada estimativa: para a confiabilidade, os dois fatores dão a mesma resposta.
+  \item \textbf{A semente 21 é baixa em $r = -0{,}5$, nas primeiras realizações.} Das 5 sementes do SRM, ela é a mais
+    baixa nos três centros: \sUmRaMin{} a \sUmRaMax\,\% com todas as suas realizações, contra \sOutRaMin{} a
+    \sOutRaMax\,\% das outras quatro, \sJunRaMin{} a \sJunRaMax\,\% das 5 juntas e \refPfRa{} do direto
+    (Tabela~\ref{tab:ismcsem}). O GIM, que seguiu na mesma semente até \sgGaNmin{} a \sgGaNmax{} realizações, volta para
+    \sgGaRaMin{} a \sgGaRaMax\,\%: eram as primeiras \sgNRaMin{} a \sgNRaMax{} realizações que estavam baixas. É o sorteio, e não o
+    método. Em $r = -0{,}7$ ela fica no meio das 5 (posições \sPosRb{} nos três centros: \sUmRbMin{} a
+    \sUmRbMax\,\%, contra \sJunRbMin{} a \sJunRbMax\,\% das 5 juntas).
   \item \textbf{Custo.} Nas mesmas realizações, uma análise do GIM leva \sgTgimMin{} a \sgTgimMax\,s no fermi, contra
     \sgTsrmMin{} a \sgTsrmMax\,s do SRM: \sgEcon\,\% menos. No line sampling, o GIM gastou um pouco mais por linha
     (\sglNaGimMin{} a \sglNaGimMax{} análises, contra \sglNaSrmMin{} a \sglNaSrmMax{} do SRM), e o custo por linha
@@ -256,17 +309,206 @@ cada direção; tracejado: a média de cada direção.}\label{fig:sg}
     no FORM modal, que usa o gradiente do GIM: \fgNRa{} análises com $r = -0{,}5$ e \fgNRb{} com $r = -0{,}7$ (2000
     modos por campo; $\beta$ = \fgBetaRa{} e \fgBetaRb), contra as \fnNRa{} do FORM numérico com $M = 20$ ($\beta$ =
     \fnBetaRa{} e \fnBetaRb).
-  \item \textbf{Análise limite: rodando no fermi} desde 20/11/2026 às 18:06. O job 14991 faz o MC direto com
-    $r = -0{,}5$ e $-0{,}7$, pareado realização a realização com o direto do SRM (e com $r = 0$, para conferir com o
-    Ceron); às \laLogHora, tinha \laLogN{} realizações de $r$ = \laLogR. O job 14992 (o FORM, o line sampling da semente
-    7 e a ISMC da semente 21) espera vaga. A coluna ``LA'' das Tabelas~\ref{tab:sgismc} e \ref{tab:sgls} fica para
-    quando terminar. No piloto local (\path{Projects/CeronCinematico/cho/resultados/piloto_h0.025}: \laN{} realizações
-    do direto de cada $r$, grade de $h = 0{,}025$\,m), $\mathrm{FS}_\text{LA} - \mathrm{FS}_\text{MEF}$ = \laDif{} em
-    média (+\laRelMin{} e +\laRelMax\,\% nos dois $r$; de +\laRelLo{} a +\laRelHi\,\% por realização), com
-    correlação de \laCorr, e $\mathrm{FS}_\text{LA} > \mathrm{FS}_\text{MEF}$ em \laAcima{} das \laTotal{} realizações:
-    a análise limite, um limite superior com bloco rígido, fica uns 3\,\% acima do MEF, e espera-se
-    $P_f(\text{LA}) < P_f(\text{MEF})$ (no piloto, \laFalLa{} falhas na LA e \laFalMef{} no MEF, nas mesmas
-    \laTotal{} realizações).
+\end{itemize}
+
+\subsection{Análise limite \texorpdfstring{$\times$}{x} MEF}\label{sec:lamef}
+A análise limite (LA) é o método cinemático do Ceron (2025), refeito em Python (\path{Projects/CeronCinematico/cho}):
+espirais logarítmicas por trechos de $H/100 = 0{,}1$\,m, com $\varphi_i$ igual ao máximo de $\varphi$ ao longo de cada
+trecho (a regra que garante a normalidade e, com ela, o limite superior), e os campos lidos numa grade de passo
+$h = 0{,}025$\,m. Os campos são os do MEF, realização a realização. No fermi (jobs 14991 e 14992, dados de 21/11/2026):
+\begin{itemize}
+  \item \textbf{MC direto} com a KL analítica (semente 2010, as mesmas realizações do direto do MEF): $r = -0{,}5$
+    até CoV de 5\,\% (\lmDirRaN{} realizações), $r = 0$ (\lmDirZN) e $r = -0{,}7$, \textbf{ainda rodando}
+    (\lmDirRbN{} realizações e \lmDirRbFal{} falhas no que foi baixado; para CoV de 5\,\% seriam uns 350\,000);
+  \item \textbf{ISMC} da semente 21 (2500 realizações, base de Nyström) nos três centros do MEF e no centro do FORM da
+    LA com $M = 20$; \textbf{line sampling} da semente 7 (100 linhas) nas duas direções do MEF e nas dos FORM da LA;
+  \item \textbf{FORM} da LA com $M = 20$ e 100 (diferenças centrais, $g = \ln\Gamma$).
+  \item No PC (21/11, nesta revisão): um \textbf{MC simples com o campo de Nyström}, sem deslocamento, $r = -0{,}5$
+    (\lnyN{} realizações, só $\Gamma$), para separar a base da amostragem.
+\end{itemize}
+\textbf{A razão $P_f(\text{LA})/P_f(\text{MEF})$.} A LA dá sempre menos que o MEF, como deve um limite superior:
+$\mathrm{FS}_\text{LA} > \mathrm{FS}_\text{MEF}$ em \lmAcima{} os pares com o FS da LA, e nenhuma realização falha só na
+LA (na ISMC, Tabela~\ref{tab:sgismc}; no direto, nenhuma das \lmDirRaParN{} realizações em comum). Mas a razão depende
+do campo. Com $r = -0{,}5$: \lmDirRaRaz{} no MC
+direto (KL analítica; \lmDirRaParRaz{} $\pm$ \lmDirRaParErr{} nas \lmDirRaParN{} realizações em comum, com
+\lmDirRaParFl{} falhas na LA e \lmDirRaParFm{} no MEF), contra \lmIsRazRaMin{} a \lmIsRazRaMax{} na ISMC e
+\lmLsRazRaMin{} a \lmLsRazRaMax{} no line sampling, pareados (Nyström). Com $r = -0{,}7$: \lmIsRazRbMin{} a
+\lmIsRazRbMax{} e \lmLsRazRbMin{} a \lmLsRazRbMax{} (Nyström), e \lmDirRbRaz{} no direto parcial (CoV de
+\lmDirRbCov). Dentro de cada campo, os métodos da LA concordam entre si: as 4 ISMC e os 4 line sampling dão
+\lmTodosRaMin{} a \lmTodosRaMax\,\% com $r = -0{,}5$ e \lmTodosRbMin{} a \lmTodosRbMax\,\% com
+$r = -0{,}7$, nos centros e nas direções do MEF e da LA. O line sampling da LA gastou \lmLsNaRaMin{} a \lmLsNaRbMax{}
+análises por linha (o dobro do
+MEF: cada linha começa em $c = \beta$, e a raiz da LA fica uns 0,24 a 0,31 mais longe), sem linha perdida.
+\input{tab/la_mef.tex}
+
+\textbf{O deslocamento nos pares.} Nas mesmas realizações, $\mathrm{FS}_\text{LA}/\mathrm{FS}_\text{MEF} - 1$ é
+quase constante (Tabela~\ref{tab:lateste} e Figura~\ref{fig:lamef}a,b): de \lmBandaAnMin{} a \lmBandaAnMax\,\% com a
+KL analítica e de \lmBandaNyMin{} a \lmBandaNyMax\,\% com Nyström, em todas as faixas de $\mathrm{FS}_\text{MEF}$ com
+pelo menos 30 pares. Perto da falha ($0{,}95 \le \mathrm{FS}_\text{MEF} < 1{,}05$): \lmDesAnRa\,\% e \lmDesAnRb\,\%
+(analítica, $r = -0{,}5$ e $-0{,}7$; o do $r = -0{,}7$ vem do direto parcial e sai um pouco baixo, porque falta o FS
+da LA em parte da faixa, Tabela~\ref{tab:lateste}) contra \lmDesNyRa\,\% e \lmDesNyRb\,\% (Nyström), com dp de
+\lmDesNyRbDp{} a \lmDesAnRaDp\,\% por realização. Em $\Gamma$, o mesmo: o ajuste de $\ln\Gamma_\text{LA}$ contra $\ln\mathrm{FS}_\text{MEF}$ (com
+$0{,}9 < \mathrm{FS}_\text{MEF} < 1{,}1$ e todas as realizações) dá $\Gamma_\text{LA}$ = \lmGumAnRa{} em
+$\mathrm{FS}_\text{MEF} = 1$ com a analítica e \lmGumNyRa{} com Nyström ($r = -0{,}5$; \lmGumAnRb{} e \lmGumNyRb{} com
+$r = -0{,}7$). Na ISMC, sem o peso $w$ a média fica quase igual (\lmDesNyRaSp{} e
+\lmDesNyRbSp\,\%): não é a densidade deslocada da ISMC que muda o resultado (o MC simples, abaixo, confirma). No line
+sampling, nas mesmas linhas, a LA
+entra na falha $\Delta c$ =
+\lmLsDcRaMin{} ($r = -0{,}5$) e \lmLsDcRbMin{} a \lmLsDcRbMax{} ($r = -0{,}7$) depois do SRM; com a inclinação do SRM,
+$|s|\,\Delta c$ = \lmLsDfsRaMin{} a \lmLsDfsRbMax\,\% no FS, o mesmo deslocamento da ISMC.
+
+\textbf{O deslocamento explica a razão.} Deslocando o FS de todo o MC direto do MEF por esse $\delta$,
+$P(\mathrm{FS}_\text{MEF}\,(1 + \delta) < 1)$ reproduz a $P_f$ medida da LA nos dois campos (Tabela~\ref{tab:laprev} e
+Figura~\ref{fig:lamef}c). Com $r = -0{,}5$: com o $\delta$ analítico, \lmPrevAnRa\,\% contra \lmDirRaPf{} do direto da
+LA; com o $\delta$ de Nyström, \lmPrevNyRa\,\% contra \lmObsNyRa\,\% das ISMC. Com $r = -0{,}7$: \lmPrevAnRb\,\% (o
+direto parcial dá \lmDirRbPf, IC de \lmDirRbLo{} a \lmDirRbHi) e \lmPrevNyRb\,\% contra \lmObsNyRb\,\%. Com a KL
+analítica, a conta usa em boa parte as mesmas realizações em que o $\delta$ foi medido, e o acordo mostra só que um
+$\delta$ constante basta; com Nyström, é uma previsão de fato (o $\delta$ das ISMC aplicado ao MEF da KL analítica,
+que quase não muda com a base). Na cauda, a
+$P_f$ é muito sensível ao $\delta$: 0,8 ponto percentual a mais no FS da LA tira uns 30\,\% da $P_f$. É isso que separa
+0,39 de 0,55: o MEF quase não muda com o campo (\refPfRa{} no direto analítico; 1,72 a 1,76\,\% nas ISMC e no line
+sampling com Nyström), e a LA muda.
+
+\textbf{A troca de base, sem FORM nem ISMC.} A comparação acima mistura a base com a amostragem: do lado analítico há
+um MC simples; do lado de Nyström, a ISMC e o line sampling. Para separar as duas coisas, esta revisão rodou no PC
+(21/11/2026, 2 processos, 39 min) um MC simples da LA com o campo de Nyström sem deslocamento: \lnyN{} realizações da
+semente 4242, só $\Gamma$ (Tabela~\ref{tab:lanys}; antes, 8 realizações da ISMC do fermi refeitas no PC deram o mesmo
+$\Gamma$, então o campo e o código são os mesmos). O corpo da distribuição desce: a mediana de $\Gamma$ fica \lnyMed\,\%
+e o quantil de 25\,\%, \lnyQvc\,\% em relação aos da KL analítica, e a média de $\ln\Gamma$, \lnyLg\,\% ($\pm$
+\lnyLgErr; $z$ = \lnyLgZ). Na cauda, entre $\Gamma$ = 1,1 e 1,5, a $P(\Gamma < \gamma)$ do MC simples fica
+\lnyRazMin{} a \lnyRazMax{} vezes a da analítica ($z$ de \lnyZmin{} a \lnyZmax) e \lnyIsMin{} a \lnyIsMax{} vezes a das
+ISMC de Nyström, que dão \lisRazMin{} a \lisRazMax{} vezes a analítica: o MC simples confirma a cauda das ISMC nessa
+faixa. No MEF, a mesma troca de base quase não mexe na cauda: a $P(\mathrm{FS} < \mathrm{fs})$ das ISMC de Nyström
+fica \lmefRazMin{} a \lmefRazMax{} vezes a do direto analítico, com fs de 1,0 a 1,1. Abaixo de $\Gamma$ = 1,1 o MC
+simples tem poucas realizações e fica abaixo das ISMC: \lnyPfB{} contra \lnyPfIsB{} com $\Gamma < 1{,}05$ ($z$ =
+\lnyZisB; \lnyFalB{} realizações) e \lnyPf{} (IC de \lnyPfLo{} a \lnyPfHi, \lnyFal{} falhas) contra \lnyPfIs{} com
+$\Gamma < 1$ ($z$ = \lnyZis; com a $P_f$ das ISMC se esperariam \lnyEsp{} falhas); os quantis de 1 e 5\,\% também não
+se separam dos da analítica (\lnyQum{} e \lnyQcinco\,\%, com IC largos). Conclusão do teste: a troca de base desloca
+a distribuição de $\Gamma$ da LA mesmo sem FORM e sem ISMC, e entre $\Gamma$ = 1,1 e 1,5 o MC simples bate com as
+ISMC; na cauda extrema, $\Gamma < 1{,}05$, ele é curto demais para confirmar ou negar a $P_f$ de Nyström (0,93 a
+0,97\,\% pelas ISMC e pelo line sampling, que concordam entre si): fica abaixo dela, mas a menos de 2 desvios.
+\input{tab/la_nys.tex}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/la_mef.pdf}
+\caption{Análise limite $\times$ MEF nas mesmas realizações. (a) e (b) $\mathrm{FS}_\text{LA}/\mathrm{FS}_\text{MEF} -
+1$ contra $\mathrm{FS}_\text{MEF}$: cinza, os pares do MC direto (KL analítica); laranja, os da ISMC da semente 21
+(Nyström, 3 centros); as linhas ligam as médias por faixa (com o peso $w$ na ISMC). Estrela: o campo médio; losango: a
+linha do line sampling que passa pelo ponto de projeto do MEF. (c) A $P_f$ da LA prevista pelo MEF deslocado,
+$P(\mathrm{FS}_\text{MEF}\,(1 + \delta) < 1)$, contra $\delta$ (linhas), e a $P_f$ medida da LA no $\delta$ medido de
+cada campo, com o IC de 95\,\% (quadrados: o direto analítico; círculos: as ISMC de Nyström). (d) O FS da mesma
+realização com a grade da LA de $h = 0{,}1$ e de $0{,}025$\,m (os pilotos): a KL analítica perde muito mais com a
+grade grossa.}\label{fig:lamef}
+\end{figure}
+
+\textbf{Por que o campo muda a LA: o teste com os dados.} A hipótese: com $\varphi_i$ igual ao máximo de $\varphi$ em
+cada trecho de 0,1\,m, a LA é sensível ao conteúdo de pequena escala do campo, que é diferente na KL analítica e na
+interpolação de Nyström. Quatro coisas, todas com dados já rodados, apontam nessa direção:
+\begin{itemize}
+  \item \textbf{A grade da LA.} Os pilotos rodaram as mesmas realizações com $h = 0{,}1$ e $0{,}025$\,m
+    (\path{Projects/CeronCinematico/cho/resultados/piloto} e \path{piloto_h0.025}; com $h = 0{,}025$, o $\Gamma$ e o FS
+    do piloto são idênticos aos do fermi; Tabela~\ref{tab:lateste} e Figura~\ref{fig:lamef}d). Com a KL analítica,
+    passar de $h = 0{,}025$ para $0{,}1$ muda
+    o FS da LA em \lmGradeAn\,\% (média; dp de \lmGradeAnDp\,\%, \lmGradeAnN{} realizações): a grade grossa não vê as
+    oscilações abaixo de 0,1\,m, e o máximo de cada trecho cai. Com Nyström, só \lmGradeNy\,\% (dp de
+    \lmGradeNyDp\,\%, \lmGradeNyN{} realizações): ali quase não há o que ver abaixo de 0,1\,m. Com
+    $h = 0{,}1$, os deslocamentos ficam em \lmGradeAnUm\,\% (analítica) e \lmGradeNyUm\,\% (Nyström); com $0{,}025$, em
+    \lmGradeAnDois\,\% e \lmGradeNyDois\,\%. A grade fina abre a diferença entre os campos de uns 0,5 para 1,0 ponto.
+    Ressalva: os pilotos não cobrem a mesma faixa ($\mathrm{FS}_\text{MEF}$ de \lmGradeAnFsMin{} a \lmGradeAnFsMax{} nos
+    analíticos, as primeiras realizações do direto, e de \lmGradeNyFsMin{} a \lmGradeNyFsMax{} no de Nyström, as
+    primeiras da ISMC), e o deslocamento analítico cresce um pouco com o FS (Tabela~\ref{tab:lateste}). A outra metade da
+    diferença pode vir das escalas entre 0,1 e 0,2\,m, que a grade de 0,1\,m ainda resolve e em que a analítica também
+    tem mais variância (abaixo); isso não foi testado.
+  \item \textbf{O espectro das duas bases} (verificações de 21/11, V11): a KL analítica de 2000 termos tem termos com
+      meia onda vertical de até
+    0,033\,m, com 1,0\,\% da variância abaixo de 0,156\,m e 0,32 a 0,36\,\% abaixo de 0,078\,m; a base de Nyström não
+    tem nada abaixo de 0,1\,m (e só 0,17\,\% da variância abaixo de 0,156\,m, na faixa de ruptura). O estimador da V11
+    não enxerga meias ondas abaixo de 0,1\,m na base de Nyström, mas a interpolação de Nyström é a do núcleo entre nós a
+    0,1\,m na vertical e 0,2\,m na horizontal: entre os nós, a variância pontual da base de Nyström cai de 0,997 (nos
+    nós) para 0,969 a 0,993 (V11), sinal de que a interpolação alisa o campo nessa escala; o teste da grade, acima, mede
+    o mesmo por outro caminho. No rebaixamento do Ceron, a V04 viu o mesmo efeito pelo outro lado: com os termos de
+    escala curta (KL com $M = 10\,000$), o $\Gamma$ da LA sobe 0,45\,\% (mediana), ``pela regra do máximo''.
+  \item \textbf{Sem $\varphi$, a escala curta não pesa} (verificações de 21/11, V09). No Cho Ex.~1 (não drenado,
+    $\varphi = 0$: só a coesão varia, e a regra do máximo não age), zerar os termos 101 a 2000 da KL (uns 7\,\% da
+    variância, as escalas curtas) não muda a $P_f$ da LA (razão pareada 0,975, IC de 0,92 a 1,03) nem a média de
+    $\Gamma$ (1,2758 contra 1,2750): a coesão entra pela integral ao longo do arco, e as oscilações se cancelam. É o que
+    se espera se a sensibilidade vier do máximo de $\varphi$, e não da coesão.
+  \item \textbf{O ponto de projeto.} Na linha que passa pelo ponto de projeto do MEF ($\bm z_\perp = 0$: um campo só
+    com os modos do FORM, liso), a LA entra na falha só \lmPtoDcMin{} a \lmPtoDcMax{} depois do MEF (no máximo
+    \lmPtoFsMax\,\% no FS); no campo médio, $\mathrm{FS}_\text{LA}$ = \lmFsDetLa{} e $\mathrm{FS}_\text{MEF}$ =
+    \lmFsDetMef{} (\lmDet\,\%). Nas 100 linhas sorteadas, em que os 4000 $\xi$ estão todos ativos, \lmLsDcRaMin{} a
+    \lmLsDcRbMax{} (\lmLsDfsRaMin{} a \lmLsDfsRbMax\,\% no FS). A diferença entre a LA e o MEF quase não aparece no
+    campo liso do ponto de projeto; aparece quando entram os outros modos. Este teste não separa as escalas grandes que a
+    direção não vê das pequenas, mas é o que a hipótese prevê (uma variação lenta dentro de um trecho de 0,1\,m não sobe
+    o máximo; uma oscilação dentro dele sobe).
+\end{itemize}
+\input{tab/la_teste.tex}
+
+\textbf{Os $\beta$ do FORM quase iguais, e o porquê.} Por isso o FORM quase não vê a diferença: $\beta$ =
+\lmBetaLaRaMv{} (LA) e \lmBetaMefRaMv{} (MEF) com $M = 20$, \lmBetaLaRaMc{} e \lmBetaMefRaMc{} com $M = 100$
+($r = -0{,}5$); \lmBetaLaRbMv{} e \lmBetaMefRbMv, \lmBetaLaRbMc{} e \lmBetaMefRbMc{} ($r = -0{,}7$). Os pontos de
+projeto quase coincidem (cosseno de \lmCosRbMc{} a \lmCosRaMv), e $\Phi(-\beta_\text{LA})/\Phi(-\beta_\text{MEF})$ =
+\lmPhiRazRbMv{} a \lmPhiRazRaMc, contra a razão pareada de \lmLsRazRbMin{} a \lmIsRazRaMax{} das $P_f$. Se a hipótese
+da pequena escala estiver certa, é a forma da região de falha:
+\begin{itemize}
+  \item o FORM acha o ponto de projeto num campo com só os $M$ primeiros modos de cada campo (os outros $\xi$ ficam em
+    zero), sem a pequena escala; ali a LA e o MEF quase coincidem;
+  \item o máximo de cada trecho é uma função convexa do campo: somar oscilações de média zero sobe o máximo, em média.
+    Então o efeito dos modos altos na LA é de segunda ordem: a superfície de falha da LA se curva para longe da origem
+    nas direções dos modos altos, cada uma um pouco. O FORM lineariza no ponto de projeto e não vê essa curvatura;
+  \item toda amostra tem a parte nos modos altos grande ($|\xib_\text{altos}|^2$ perto de 4000), e as milhares de
+    curvaturas pequenas somam um deslocamento quase igual em todas as amostras. A amostragem (MC, ISMC, line sampling)
+    vê esse deslocamento; o FORM, não.
+\end{itemize}
+No MEF esse efeito é pequeno (a resistência entra pela média ao longo da banda de ruptura, e as oscilações de
+pequena escala se cancelam; V10), e por isso o FORM do MEF dá uma boa direção: o line sampling na direção do MEF e na
+da LA dão a mesma $P_f$ da LA.
+
+\input{tab/la_modos.tex}
+\textbf{Os modos de ruptura} (Tabela~\ref{tab:lamodos}). Com $r = 0$, a LA dá \lmModoZPe\,\% das realizações pelo pé,
+\lmModoZFace\,\% pela face e \lmModoZBase\,\% pela base (nas falhas: \lmModoFZPe, \lmModoFZFace{} e \lmModoFZBase\,\%),
+contra \lmCeronPe, \lmCeronFace{} e 0\,\% da Fig.~20 do Ceron: o mesmo quadro, com uns 6 pontos a mais pela face. Com
+$r$ negativo, a face perde espaço: \lmModoRaFace\,\% ($r = -0{,}5$) e \lmModoRbFace\,\% ($r = -0{,}7$) das realizações;
+\lmModoFRaFace\,\% das falhas no $r = -0{,}5$ (e nenhuma das \lmDirRbFal{} falhas do $r = -0{,}7$ até aqui). O MEF quase
+não tem ruptura pela face (verificações de 21/11, V07: mais de 99\,\% das falhas pelo pé), mas o critério do MEF é
+outro: a banda de cisalhamento sempre pega o pé.
+
+\textbf{O $r = 0$ contra o nosso MEF, o Ceron e o Cho.} A LA dá \lmDirZPf{} (IC de \lmDirZLo{} a \lmDirZHi,
+\lmDirZN{} realizações). Com $r = 0$ não há MEF pareado; o nosso MEF é o line sampling do SRM das verificações de 21/11
+(V12: base de Nyström, 84 linhas), \lmZmef{} (IC de \lmZmefLo{} a \lmZmefHi): LA/MEF = \lmZrazMef{} $\pm$
+\lmZrazMefErr. A V12 tinha previsto a LA com o deslocamento do piloto analítico ($\ln\mathrm{FS}_\text{LA} -
+\ln\mathrm{FS}_\text{MEF} = 0{,}024$ em $\mathrm{FS}_\text{MEF} = 1$) aplicado linha a linha: \lmZprevV{} (IC das linhas
+de \lmZprevVLo{} a \lmZprevVHi; LA/MEF = \lmZprevVraz). A LA do fermi ficou abaixo da previsão (os IC não se cruzam).
+Pode ser que, com $r = 0$, o deslocamento seja maior que no $r = -0{,}5$ (com $r = 0$ a coesão pesa mais no FORM:
+$\alpha^2$ de $c'$ de 0,29, contra 0,05 no $r = -0{,}5$; V12), ou que o MEF com a KL analítica dê menos que com
+Nyström; nada disso foi medido. Contra
+os publicados: 5,50\,\% do Ceron (LA, 50\,000 realizações; razão \lmZRazCeron, $z$ = \lmZz) e 6,37\,\% que ele dá como
+do Cho (no Cho, $r = 0$ só aparece na Fig.~9: \lmZchoFig{} na digitalização da V12). O determinístico é o mesmo
+($\Gamma$ = 1,777 nos dois). O campo do Ceron é uma KL numérica por elementos finitos (pela nossa revisão do artigo:
+$M = 2000$, erro de variância abaixo de 6\,\%), que, como a base de Nyström, deve ter menos pequena escala que a nossa
+KL analítica (não verificado). Uma conta grosseira: o fator em $\Gamma$ que leva o direto analítico do $r = -0{,}5$ à
+$P_f$ das ISMC de Nyström ($\Gamma < $ \lmZfator) leva o $r = 0$ a \lmZprev; para chegar aos 5,50\,\%, o fator teria de
+ser \lmZfatorCeron, quase o dobro. Não fecha, e fica em aberto. A V09 mostra que há diferença com o Ceron mesmo sem a
+regra do $\varphi_i$, e com o sinal contrário: no Cho Ex.~1 (não drenado, $\varphi = 0$), a nossa LA dá 7,75 a 8,0\,\%,
+perto do Cho (7,60\,\%) e do Jiang (7,9\,\%), e o Ceron dá 6,5\,\%.
+
+\textbf{O que fica em aberto.}
+\begin{itemize}
+  \item \textbf{Qual campo para a LA.} Se a causa é a regra do máximo (a mais provável, pelos testes acima), a $P_f$ da
+    LA cai quando o campo ganha pequena escala, e o campo verdadeiro (núcleo exponencial, sem derivada) tem variação em
+    todas as escalas. O MEF quase não muda (V10: no
+    line sampling com a KL de $M = 150$, 1,602\,\%, contra 1,700\,\% do direto com 2000 termos, $z = -0{,}9$). Então a
+    razão LA/MEF não é só do talude: depende da base do campo e da grade da LA. Para comparar com o Ceron, o campo e a
+    grade dele pesam tanto quanto o método. O teste que fecharia a questão é rodar a LA nas mesmas realizações do
+    direto com a KL analítica sem os termos de meia onda abaixo de 0,1\,m: ele não foi rodado aqui.
+  \item \textbf{A malha do MEF também não está convergida} (verificações de 21/11, V03): a $P_f$ do MEF sobe uns 6\,\%
+    com mais um nível no $r = -0{,}5$ e uns 11\,\% até a malha convergida (16 a 24\,\% no $r = -0{,}7$). Com o MEF
+    convergido, a razão LA/MEF cairia mais uns 10 a 20\,\%.
+  \item O teste da grade com Nyström tem só \lmGradeNyN{} realizações (as do piloto) e um centro; o direto da LA com
+    $r = -0{,}7$ ainda roda (\lmDirRbN{} realizações e \lmDirRbFal{} falhas no que foi baixado: os números dele são
+    parciais).
+  \item \textbf{O $r = 0$.} A LA (\lmDirZPf) ficou abaixo do Ceron (5,50\,\%) e da previsão feita com o nosso MEF
+    (\lmZprevV, V12); não se sabe se é o deslocamento, que com $r = 0$ não foi medido nos pares, ou o campo.
 \end{itemize}
 
 \section{O Ceron com a água do artigo}\label{sec:ceronagua}
@@ -292,13 +534,33 @@ saturada, praticamente sem armazenamento, o fluxo é o de Darcy permanente) e 5 
 \input{tab/ceron_agua.tex}
 O MEF com a água do artigo reproduz a $P_f$ do artigo: \ceaLsPf{} contra \ceaPfArt, a \ceaLsDifPt{} ponto, dentro do
 IC. A nossa análise limite fica \ceaMcDifPt{} ponto abaixo do artigo, fora do IC ($z$ = \ceaMcZ), e a média de $\Gamma$
-fica acima (\ceaGmedLa{} contra \ceaGmedArt): essa diferença para o MC do artigo ainda não está explicada. A busca
-rápida não a explica: a busca exata mudou $\Gamma$ em mais de 1\,\% em só \ceaExMuda{} das \ceaMcRef{} realizações
-refeitas (no máximo \ceaExMax\,\%), e a $P_f$ subiu \ceaMcSobe{} ponto. Que a nossa análise limite dê uma $P_f$ abaixo
-da do MEF tem o sinal de um limite superior, mas isso não explica a diferença toda: no determinístico, os dois quase
-coincidem ($\Gamma$ = \ceaGdetLa{} na análise limite, contra \ceaGdetPz{} do MEF extrapolado e \ceaGnivelFim{} com os 5
-níveis que o line sampling usa), e a análise limite do artigo dá a mesma $P_f$ do nosso MEF. A diferença para a
-referência antiga (\refPfCe) é a água (e a malha: 3 níveis lá, 5 aqui).
+fica acima (\ceaGmedLa{} contra \ceaGmedArt). A busca rápida não explica isso: a busca exata mudou $\Gamma$ em mais de
+1\,\% em só \ceaExMuda{} das \ceaMcRef{} realizações refeitas (no máximo \ceaExMax\,\%), e a $P_f$ subiu \ceaMcSobe{}
+ponto. A diferença para a referência antiga (\refPfCe) é a água (e a malha: 3 níveis lá, 5 aqui).
+
+\textbf{Verificações de 21/11} (o caminho das pastas está na Seção~\ref{sec:problemas}):
+\begin{itemize}
+  \item \textbf{V04: por que a nossa análise limite dá 10,3\,\% e o artigo 11,50\,\%.} É o determinístico. O nosso
+    $\Gamma_\text{det}$ da análise limite fica 0,6 a 0,9\,\% acima do da Tabela~6 do artigo em todo $h_w/H$ (1,3471
+    contra 1,336 no caso base); só esse fator, aplicado a todos os $\Gamma$, leva a $P_f$ de 10,29 para 10,90\,\%. Com
+    $\gamma_w = 10$ ($\Gamma_\text{det}$ = 1,328, 0,6\,\% abaixo do artigo), o MC pareado dá 11,79\,\% (IC de 10,84 a
+    12,74\,\%, $z = +0{,}5$ contra o artigo): o artigo fica entre os nossos $\gamma_w$ = 9,81 e 10. O campo não é a
+    causa (com a KL de $M = 10\,000$ termos, $-0{,}13 \pm 0{,}28$ ponto), e a regra do $\varphi_i$ pesa pouco (com
+    $\varphi_i$ = a média no arco, $\Gamma$ cai 0,45\,\% e a $P_f$ sobe 0,37 ponto). Não dá para dizer se é o $\gamma_w$
+    ou o domínio e o contorno do Darcy: o artigo não dá nenhum dos dois.
+  \item \textbf{V03: a malha do MEF.} Com um nível a mais, a $P_f$ do line sampling do MEF sobe 2,7\,\% (11,61 para
+    11,92\,\%), e até a malha convergida uns 5\,\% (para uns 12,2\,\%, faixa de 12,10 a 12,24\,\%): a correção afasta um
+    pouco o MEF do artigo. O $\Gamma_\text{det}$ extrapolado na malha (1,3407) fica 0,35\,\% acima dos 1,336 do artigo,
+    no sentido contrário (daria $P_f$ menor no MEF). O efeito da malha na $P_f$ é da ordem do CoV alvo, então a $P_f$ do
+    MEF deve ser dada com o nível de malha e a correção.
+  \item \textbf{V02: o Ceron com CoV($c'$) = 10\,\%} (Tabela~3 do artigo). FORM modal com 5 análises ($\beta$ = 2,924) e
+    line sampling de 235 linhas (645 análises, parado pelo prazo, CoV de 15,6\,\%): $P_f$ = 0,474\,\% (IC de 0,329 a
+    0,618\,\%), contra 0,45\,\% do artigo ($z = +0{,}31$). Mas aqui o line sampling rendeu pouco: o gradiente modal não vê
+    o $k$ ($\alpha^2 = 0$ no $k$), e os 30 primeiros modos de $k$ explicam 63\,\% da variância das raízes das linhas. O
+    CoV de uma linha foi de 239\,\% (61\,\% no caso base); para CoV de 5\,\% seriam umas 2280 linhas (6250 análises),
+    ainda 14 vezes menos que as 90\,000 do MC do artigo. Os $\Gamma_\text{det}$ do MEF com $\alpha$ = 1 a 5 e
+    $h_w/H$ = 0,5 a 0,9 ficam a $-0{,}5$ a $+0{,}5$\,\% dos do artigo.
+\end{itemize}
 
 \section{Tempo de CPU}\label{sec:tempo}
 Todos os processos rodam com uma \emph{thread} (\texttt{PZ\_THREADS=0}, OpenMP e MKL com 1), então o tempo de
@@ -462,8 +724,11 @@ O CoV que cada método informa vem da variância da própria amostra. Para confe
     um CoV estimado um pouco conservador; não dá para separar com estes dados.
   \item \textbf{Viga, ISMC (10 sementes independentes, centro do FORM $M = 200$):} razão de 0,77, dentro da faixa
     (0,55 a 1,45).
-  \item \textbf{Line sampling e Ceron:} uma semente só por direção ou centro; o CoV observado entre sementes não existe
-    ainda (pendência).
+  \item \textbf{Line sampling:} nas tabelas, uma semente só por direção. No Cho com $r = -0{,}7$ (direção modal 2000),
+    as verificações de 21/11 rodaram mais duas sementes (V01, resumidas na V10): 0,367, 0,337 e 0,352\,\% (sementes 7, 8 e 9; as 300
+    linhas juntas, 0,352\,\% $\pm$ 0,012\,\%). O dp entre as três é de 0,015 (4\,\% da média), contra os 5,6\,\% de CoV
+    estimados pelas linhas da semente 7: coerente (com três sementes, o próprio dp tem erro de uns 50\,\%). No Ceron,
+    a ISMC e o line sampling têm uma semente só.
   \item \textbf{Cobertura:} o intervalo de 95\,\% de cada semente da ISMC (Cho e viga) contém a $P_f$ do direto em
     \icDentro{} de \icTotal{} casos, e todas as \zTotal{} estimativas (sementes da ISMC, ISMC do Ceron, line sampling)
     têm $|z| < 1{,}96$ contra o direto (Figura~\ref{fig:z}). O desvio quadrático médio dos $z$ é \zSd, abaixo de 1: o
@@ -473,8 +738,9 @@ O CoV que cada método informa vem da variância da própria amostra. Para confe
     da semente em \viesParada\,\% na média (de \viesParadaMin{} a \viesParadaMax\,\% por semente): o viés da parada
     opcional não aparece, como esperado (ordem de $\mathrm{CoV}^2$).
   \item \textbf{Bases diferentes:} os diretos do Cho usam a KL com variância retida de 0,9877 e as ISMC e o line
-    sampling, a base de Nyström de 2000 modos com 0,9973. As $P_f$ batem dentro do ruído ($|z| \le 0{,}75$), então a
-    diferença não aparece nesta precisão.
+    sampling, a base de Nyström de 2000 modos com 0,9973. As $P_f$ do MEF batem dentro do ruído ($|z| \le 0{,}75$),
+    então a diferença não aparece nesta precisão. Na análise limite, ao contrário, a base pesa muito
+    (Seção~\ref{sec:lamef}).
 \end{itemize}
 \input{tab/cov_obs.tex}
 \begin{figure}[H]\centering
@@ -494,11 +760,14 @@ A Tabela~\ref{tab:sintese} junta, por problema e método, as métricas das seç�
     flutuação esperada. As cinco sementes de cada ISMC se espalham em torno do direto (Figura~\ref{fig:sementes}). As
     três ISMC de cada caso usam as mesmas sementes (números aleatórios comuns), então os seus erros andam juntos (com
     $r = -0{,}5$, a semente 21 é a mais baixa nos três centros): não são três conferências independentes, mas a comparação entre os
-    centros fica mais justa. O line sampling tem uma semente só.
+    centros fica mais justa. O line sampling tem uma semente só nas tabelas; no Cho com $r = -0{,}7$, três sementes (V01 e V10) dão
+    uma dispersão coerente com o CoV estimado.
   \item \textbf{O line sampling com a direção do FORM modal de todos os modos foi o mais barato em todos os taludes:}
     \lsNCe{} análises no Ceron, \lsNRa{} no Cho $r = -0{,}5$ e \lsNRb{} no Cho $r = -0{,}7$, isto é, \lsGanhoCe, \lsGanhoRa{}
     e \lsGanhoRb{} vezes menos que o direto, e \lsGanhoIsmcCe, \lsGanhoIsmcRa{} e \lsGanhoIsmcRb{} vezes menos que a melhor
-    ISMC. O FORM modal custa uma análise por iteração (3 a 10 análises nos três taludes; 3 a 7 com todos os modos), e esse
+    ISMC. Esses custos vêm do CoV de 100 linhas e são um pouco otimistas (com mais linhas, o CoV$^2$ de uma linha subiu
+    \sglCovDoisGmMin{} a \sglCovDoisGmMax\,\% na direção modal; Seção~\ref{sec:srmgim}), mas a vantagem é grande demais para
+    mudar a ordem. O FORM modal custa uma análise por iteração (3 a 10 análises nos três taludes; 3 a 7 com todos os modos), e esse
     custo não cresce com o número de termos.
   \item \textbf{A direção precisa dos modos altos quando a ruptura passa por bandas fracas locais} (Ceron): com 20 termos
     por campo, o line sampling custa $\approx 1050$ a 1180 análises; com 2000, \lsNCe. No Cho, em que a falha depende
@@ -521,11 +790,32 @@ A Tabela~\ref{tab:sintese} junta, por problema e método, as métricas das seç�
   \item \textbf{O CoV estimado é confiável ou um pouco conservador} (Seção~\ref{sec:covobs}): nas ISMC, o CoV observado
     entre sementes fica entre 0,47 e 1,13 vezes o estimado, sempre dentro da faixa de 95\,\%; todos os intervalos
     contêm a $P_f$ do direto, e a parada pelo CoV não deixa viés visível.
-  \item \textbf{O SRM e o GIM dão a mesma $P_f$} (Seção~\ref{sec:pareado}, ISMC do GIM parcial): nas mesmas
-    realizações e nas mesmas linhas, a diferença é de no máximo \sgDifAbsMax\,\%, com o GIM um pouco abaixo (na ISMC, só
-    por realizações limítrofes), dentro do CoV de cada estimativa; o GIM é \sgEcon\,\% mais barato por análise (no line
-    sampling, empata por linha). No Ceron com a água do artigo, o line sampling do MEF dá \ceaLsPf, contra \ceaPfArt{}
-    do artigo (Seção~\ref{sec:ceronagua}).
+  \item \textbf{O SRM e o GIM dão a mesma $P_f$} (Seção~\ref{sec:srmgim}, dados completos): nas mesmas realizações e
+    nas mesmas linhas, a diferença é de no máximo \sgDifAbsMax\,\%, com o GIM um pouco abaixo, de forma sistemática (a
+    falha um pouquinho depois: \sgDistSrm{} contra \sgDistGim{} realizações discordantes, todas com
+    $|\mathrm{FS} - 1| \le$ \sgDiscFS), bem dentro do CoV de cada estimativa. O GIM é \sgEcon\,\% mais barato por
+    análise (no line sampling, empata por linha).
+  \item \textbf{A análise limite dá de 0,3 a 0,6 vezes a $P_f$ do MEF no Cho, e a razão depende do campo}
+    (Seção~\ref{sec:lamef}). Nas mesmas realizações, o FS da LA fica \lmDesNyRa\,\% acima do FS do MEF com a base de
+    Nyström e \lmDesAnRa\,\% com a KL analítica, quase por igual, e esse deslocamento reproduz as duas $P_f$ (razão de
+    \lmIsRazRaMin{} a \lmIsRazRaMax{} e \lmDirRaRaz{} com $r = -0{,}5$). Um MC simples da LA com Nyström, sem FORM nem
+    ISMC, confirma que a distribuição de $\Gamma$ desce com a troca de base (mediana \lnyMed\,\%) e bate com as ISMC
+    entre $\Gamma$ = 1,1 e 1,5, mas é curto demais para a $P_f$. A causa provável é a regra do máximo ($\varphi_i$ = o
+    maior $\varphi$ do trecho), que lê a pequena escala do campo: os testes com os dados apontam nessa direção, mas o
+    teste direto não foi rodado. O FORM não vê a diferença ($\beta$ quase iguais), e o MEF quase não a sente. O direto da
+    LA com $r = -0{,}7$ ainda roda (números parciais). Com $r = 0$, a LA dá \lmDirZPf, contra \lmZmef{} do nosso MEF
+    (V12) e 5,50\,\% do Ceron: em aberto.
+  \item \textbf{No Ceron com a água do artigo}, o line sampling do MEF dá \ceaLsPf, contra \ceaPfArt{} do artigo
+    (Seção~\ref{sec:ceronagua}); a nossa análise limite dá 10,3\,\% por um fator de 0,6 a 0,9\,\% no $\Gamma$
+    determinístico (V04). Lá a regra do $\varphi_i$ pesa pouco (V04: com $\varphi_i$ = a média no arco, $\Gamma$ cai
+    0,45\,\%; CoV de $\varphi'$ de 10\,\% e $P_f$ de 10\,\%); no Cho (CoV de 20\,\% e $P_f$ de 0,4 a 1,7\,\%), a
+    sensibilidade da LA à base e à grade pesa muito, e a regra do máximo é a causa provável (não testada lá com
+    $\varphi_i$ = a média).
+  \item \textbf{As referências do MEF têm um viés de malha da ordem do CoV alvo} (verificações de 21/11, V03): a $P_f$
+    sobe uns 6\,\% com um nível a mais no Cho com $r = -0{,}5$ e de 11 a 24\,\% até a malha convergida (uns 5\,\% no
+    Ceron). A comparação entre os métodos não muda (o problema é o mesmo para todos), mas a $P_f$ do artigo deve vir com
+    o nível de malha e a correção. O MEF reproduz o Cho (1,700 contra 1,71\,\%; V07), e o truncamento de 150 termos do
+    Cho não muda nada (V10).
 \end{enumerate}
 Decisão (20/11/2026): o line sampling na direção do FORM modal com todos os modos é o método padrão, com a ISMC como
 conferência, até que se prove o contrário.
@@ -537,12 +827,19 @@ conferência, até que se prove o contrário.
   \item A CPU oficial dos jobs da etapa 3b (o \texttt{TotalCPU} do \texttt{sacct} dos jobs 14891 a 14894) não está
     no PC; aqui a CPU é a soma de \texttt{s\_fator}.
   \item No Ceron, a ISMC também tem uma semente só por centro.
-  \item Repetir o line sampling com 2 ou 3 sementes num caso (Cho $r = -0{,}7$) para conferir o CoV estimado pelas linhas
-    contra a dispersão entre sementes.
+  \item Line sampling com mais sementes: feito no Cho com $r = -0{,}7$ (V01 e V10, Seção~\ref{sec:covobs}); falta no
+    $r = -0{,}5$ e no Ceron.
   \item Chuva: o line sampling ainda não foi testado; a direção modal não tem componente em $k_s$ e pode haver mais de um
-    mecanismo no tempo (formulação, Seção do line sampling, passo 8).
-  \item Completar a comparação pareada da Seção~\ref{sec:pareado} quando o fermi terminar (o GIM até 2000 realizações
-    por caso e a coluna da análise limite, jobs 14991 e 14992) e entender por que a análise limite em Python dá
-    \ceaMcPfEx{} no Ceron com a água do artigo, contra \ceaPfArt{} do artigo.
+    mecanismo no tempo (formulação, Seção do line sampling, passo 8). No Ceron com CoV($c'$) = 10\,\% (V02), o $k$ já
+    deixou o line sampling caro (CoV de 239\,\% por linha): é o mesmo problema.
+  \item Análise limite (Seção~\ref{sec:lamef}): terminar o direto com $r = -0{,}7$ (job 14991; uns 350\,000 para CoV de
+    5\,\%); fechar o teste do campo, rodando a LA nas mesmas realizações do direto com a KL analítica sem os termos de
+    meia onda abaixo de 0,1\,m (se a hipótese estiver certa, a $P_f$ sobe na direção da das ISMC de Nyström; pelo teste
+    da grade, essa escala explicaria uns metade da diferença); se for preciso a $P_f$ de Nyström sem ISMC, um MC simples
+    bem maior que o de \lnyN{} desta revisão; escolher o campo e a grade da LA para o artigo; entender o $r = 0$
+    (\lmDirZPf{} contra \lmZmef{} do nosso MEF e 5,50\,\% do Ceron) e os 6 pontos a mais pela face.
+  \item Malha (V03): dar a $P_f$ do MEF com o nível de malha e a correção até a malha convergida.
+  \item Ceron: o $\gamma_w$ e o domínio e o contorno do Darcy do artigo não estão no texto (V04); o que sobra da
+    diferença da nossa análise limite (10,3 contra 11,50\,\%) depende deles.
 \end{itemize}
 \end{document}

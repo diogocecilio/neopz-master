@@ -1,0 +1,24 @@
+% gerado por gera_dados.py (la_mef): nao editar a mao
+\begin{table}[H]\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\caption{A distribuição de $\Gamma$ da LA nas duas bases, com $r = -0{,}5$, sem FORM nem ISMC. KL analítica: o MC direto do fermi (60\,250 realizações). Nyström, MC simples: 1\,500 realizações sem deslocamento (semente 4242, só $\Gamma$), rodadas no PC em 21/11/2026 para esta revisão. Nyström, ISMC: a média das 4 ISMC da LA da semente 21, com o peso $w$ (só na cauda, onde estão as amostras). $P$ em \%; entre parênteses, o erro padrão binomial (no MC) ou o CoV em \% (nas ISMC, o CoV médio, porque as 4 têm a mesma semente); nos quantis, o IC de 95\,\% pelas estatísticas de ordem. Embaixo, o mesmo para o FS do MEF: o MC direto (KL analítica) e as 5 sementes da ISMC de Nyström (a média dos 3 centros).}\label{tab:lanys}
+\begin{tabular}{lrrrr}\toprule
+ & \makecell{KL analítica\\MC direto} & \makecell{Nyström\\MC simples} & \makecell{Nyström\\4 ISMC (com $w$)} & \makecell{Nyström/analítica\\(MC simples; ISMC)} \\\midrule
+$P(\Gamma < 1,0)$ & 0,67 (0,03) & 0,47 (0,18) & 0,93 (4,1) & 0,70; 1,39 \\
+$P(\Gamma < 1,05)$ & 1,33 (0,05) & 1,20 (0,28) & 1,77 (3,7) & 0,90; 1,33 \\
+$P(\Gamma < 1,1)$ & 2,30 (0,06) & 2,80 (0,43) & 2,75 (3,5) & 1,22; 1,20 \\
+$P(\Gamma < 1,2)$ & 5,51 (0,09) & 6,20 (0,62) & 6,50 (3,2) & 1,12; 1,18 \\
+$P(\Gamma < 1,3)$ & 10,52 (0,12) & 11,67 (0,83) & 12,76 (3,4) & 1,11; 1,21 \\
+$P(\Gamma < 1,4)$ & 17,11 (0,15) & 20,80 (1,05) & 20,95 (3,4) & 1,22; 1,22 \\
+$P(\Gamma < 1,5)$ & 24,68 (0,18) & 29,80 (1,18) & 29,34 (3,6) & 1,21; 1,19 \\
+\midrule
+quantil de 1\,\% de $\Gamma$ & 1,029 [1,023; 1,034] & 1,042 [0,997; 1,056] & -- & 1,013 \\
+quantil de 5\,\% de $\Gamma$ & 1,187 [1,182; 1,191] & 1,176 [1,139; 1,197] & -- & 0,991 \\
+quantil de 10\,\% de $\Gamma$ & 1,291 [1,287; 1,296] & 1,273 [1,244; 1,298] & -- & 0,986 \\
+quantil de 25\,\% de $\Gamma$ & 1,504 [1,499; 1,508] & 1,445 [1,426; 1,467] & -- & 0,961 \\
+mediana de $\Gamma$ & 1,826 [1,820; 1,831] & 1,757 [1,725; 1,794] & -- & 0,962 \\
+média de $\ln\Gamma$ (erro padrão) & 0,6538 (0,0015) & 0,6143 (0,0091) & -- & $\times$0,961 \\
+\midrule
+MEF: $P(\mathrm{FS} < 1,00)$ & 1,70 (0,08) & -- & 1,73 (2,2) & 1,02 \\
+MEF: $P(\mathrm{FS} < 1,05)$ & 6,56 (0,16) & -- & 6,95 (1,9) & 1,06 \\
+MEF: $P(\mathrm{FS} < 1,10)$ & 18,12 (0,25) & -- & 18,39 (1,9) & 1,01 \\
+\bottomrule\end{tabular}\end{table}
