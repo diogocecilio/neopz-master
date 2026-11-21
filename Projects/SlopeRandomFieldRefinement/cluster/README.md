@@ -502,3 +502,53 @@ Resultados:
 - a tarefa interrompida fica travada até a limpeza do `submeter.sh` e depois é refeita;
 - o determinístico sai só no bloco 0;
 - o `status.sh` mostra a tabela.
+
+## Ceron 6.1 a 6.5 com a agua do artigo: FORM modal + line sampling (`ls_ceron_casos.sbatch`)
+
+As Secoes 6.1 a 6.5 de Vargas Ceron et al. (2025) com o codigo corrigido (a agua do artigo, `contorno=ceron agua=sat
+trebaix=0.0001`, como no `ls_ceron.sbatch`), os 26 casos das Tabelas 3 a 6 (`casos_ls_ceron.txt`):
+
+| Secao | Casos |
+|---|---|
+| 6.1 | referencia |
+| 6.2 | CoV(k_v) 0; 0,75; 0,9; 1 · CoV(c') 0,1; 0,5; 0,7 · CoV(phi') 0,05; 0,15; 0,2 |
+| 6.3 | s = 1,5; 2; 5; 10; 20; 400 (L_x = 20 s m, L_y = 2 s m) |
+| 6.4 | alfa = k_h/k_v = 2, 3, 4, 5 |
+| 6.5 | h_w/H = 0,5; 0,6; 0,7; 0,8; 0,9 |
+
+Em cada caso, em tres fases (os jobs dividem tudo por travas em `$SAIDA`):
+1. **FORM** com o gradiente modal, M = 2000 termos por campo (1 analise por iteracao, ate 15) e o **deterministico**
+   (as medias, `det=1`): cada job roda ate 24 dessas tarefas ao mesmo tempo;
+2. **line sampling** na direcao do FORM (K = 2000, semente 7 em todos os casos), ate CoV(P_f) <= 5% (30 a 600
+   linhas, 24 em voo), um caso por vez;
+3. **Monte Carlo direto pareado**, 500 realizacoes por caso (a realizacao n tem os mesmos campos em todos os casos,
+   como no artigo), so para as densidades, a media e o CoV de Gamma das figuras; roda por ultimo (ou enquanto um
+   job espera FORM de outro).
+
+Base comum: `tfim=20 dt=5` (Gamma no permanente), transiente `tri3`, fator `tri1` com 5 niveis. Os deterministicos
+no PC (21/11) ja batem com o artigo: ref 1,351 (1,336), alfa 2 a 5: 1,552 / 1,692 / 1,799 / 1,885 (1,533 / 1,674 /
+1,783 / 1,872), h_w/H 0,5 a 0,9: 1,687 / 1,505 / 1,390 / 1,328 / 1,312 (1,671 / 1,494 / 1,383 / 1,322 / 1,307).
+
+**Custo estimado** (a referencia no PC: FORM em 4 analises, LS de 153 linhas e 363 analises para CoV 5%; ~2,5 min por
+analise no fermi com 24 processos por no): ~6 analises de FORM, ~360 a 1400 de LS e 500 de MC por caso, ~30 000
+analises ao todo, umas 12 a 16 h com 4 nos (o LS de todos os casos em ~8 h; o MC depois). Menos MC: `NMC=300`.
+
+```bash
+cd ~/projects/neopz-master && git push origin UnsaturatedSoil
+ssh diogo@fermi.cesup.ufrgs.br 'cd neopz-master && git pull origin UnsaturatedSoil && cd Projects/SlopeRandomFieldRefinement/cluster && nohup setsid bash -c "./compilar_ceron.sh && ./submeter_ls_ceron.sh 4" > ls_ceron_casos.log 2>&1 < /dev/null &'
+ssh diogo@fermi.cesup.ufrgs.br 'tail -n 5 neopz-master/Projects/SlopeRandomFieldRefinement/cluster/ls_ceron_casos.log; neopz-master/Projects/SlopeRandomFieldRefinement/cluster/status_ls_ceron.sh'
+~/projects/neopz-master/Projects/SlopeRandomFieldRefinement/cluster/baixar_ls_ceron.sh
+```
+
+- O `compilar_ceron.sh` recompila so o que mudou (o C++ nao mudou desde o `ls_ceron.sbatch`) e recusa compilar com
+  jobs `lsCeron` ou `lsCeronC` na fila. O `submeter_ls_ceron.sh` confere que o `bin_ceron/` tem o `contorno=ceron`.
+- `status_ls_ceron.sh`: os jobs, os ultimos eventos (`$SAIDA/eventos.log`) e a tabela por caso (deterministico,
+  FORM, LS parcial, MC) contra o artigo.
+- `baixar_ls_ceron.sh` (PC): baixa para `~/projects/runs/fermi_ceron_ls_casos`, grava `resultado.txt` e
+  `resultado.csv` e faz as figuras da Secao 6 do artigo em `figs/` (`figuras_ls_ceron.py`: Figs. 25, 27 a 33 e o
+  deterministico, com o Ceron tracejado; P_f do line sampling com IC 95%, do FORM e do MC; densidades, media e CoV
+  de Gamma do MC).
+- Parar sem perder nada: `ssh diogo@fermi.cesup.ufrgs.br 'touch /mnt/data/diogo/ceron_ls_casos/PARAR'` (as linhas e
+  os blocos em curso terminam). Voltar: apagar o `PARAR` e `./submeter_ls_ceron.sh` de novo (as travas dos jobs que
+  morreram sao liberadas; o LS continua do `linhas.csv`). Com outras campanhas rodando, submeta menos nos
+  (`./submeter_ls_ceron.sh 2`) ou com `DEPENDE=<job>`.

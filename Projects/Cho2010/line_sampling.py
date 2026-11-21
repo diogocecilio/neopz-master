@@ -8,7 +8,8 @@
 A direcao e = u*/beta vem do FORM (form_kl.py, M termos por campo: c', phi' no Cho2010; c', phi', k no rebaixamento),
 completada com zeros ate os K termos de cada campo. As analises usam o campo com K termos (M=K) e as opcoes do FORM,
 trocadas pelas chave=valor dadas (ex.: nystrom=<a base completa>, metodo=srm). No rebaixamento, as opcoes contorno=,
-agua=, trebaix=, tfim=, dt= e hw= vem do form.json (form.json antigos: os padroes do SlopeDrawdownMonteCarlo).
+agua=, trebaix=, tfim=, dt=, hw=, covc=, covphi=, covk=, s= e alfa= vem do form.json (form.json antigos: os padroes do
+SlopeDrawdownMonteCarlo).
 Cada linha: sorteia z ~ N(0, I) com nc K termos, tira a componente em e (zp = z - (z.e) e) e acha, na reta zp + c e, o
 c_i em que o fator (FS ou Gamma) vale 1. Como zp e c sao independentes, P_f = E[Phi(-c_i)], e cada linha da
 p_i = Phi(-c_i): so a variacao de c_i entre as linhas (a nao linearidade da superficie de falha) entra na variancia. O

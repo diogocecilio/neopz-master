@@ -1,0 +1,32 @@
+# casos_ls_ceron.txt: as Secoes 6.1 a 6.5 de Vargas Ceron et al. (2025) com a agua do artigo, para o
+# ls_ceron_casos.sbatch (FORM modal + line sampling + Monte Carlo pareado). Todos usam a base comum do sbatch
+# (contorno=ceron agua=sat trebaix=0.0001 tfim=20 dt=5 transiente=tri3 fator=tri1 nref=5) mais as opcoes da ultima
+# coluna ("-": nenhuma, a referencia). As colunas do artigo (Tabelas 3 a 6) so vao para o resumo e as figuras:
+# P_f (%) e CoV(P_f) (%) do Monte Carlo dele e o Gamma do deterministico (quando a tabela o tem; "-": nao tem).
+# id            secao  Pf_artigo  CoVPf_artigo  Gamma_det_artigo  opcoes
+ref             6.1    11.50      2.77          1.336             -
+covk=0          6.2    11.21      2.81          -                 covk=0
+covk=0.75       6.2    11.41      2.79          -                 covk=0.75
+covk=0.9        6.2    11.63      2.76          -                 covk=0.9
+covk=1          6.2    11.44      2.78          -                 covk=1
+covc=0.1        6.2    0.45       4.97          -                 covc=0.1
+covc=0.5        6.2    25.78      1.70          -                 covc=0.5
+covc=0.7        6.2    36.34      1.32          -                 covc=0.7
+covphi=0.05     6.2    10.20      2.97          -                 covphi=0.05
+covphi=0.15     6.2    12.71      2.62          -                 covphi=0.15
+covphi=0.2      6.2    15.18      2.36          -                 covphi=0.2
+s=1.5           6.3    13.94      2.48          -                 s=1.5
+s=2             6.3    14.99      2.38          -                 s=2
+s=5             6.3    18.93      2.07          -                 s=5
+s=10            6.3    19.85      2.01          -                 s=10
+s=20            6.3    20.23      1.99          -                 s=20
+s=400           6.3    21.93      1.89          -                 s=400
+alfa=2          6.4    3.90       3.51          1.533             alfa=2
+alfa=3          6.4    1.83       4.23          1.674             alfa=3
+alfa=4          6.4    1.00       4.98          1.783             alfa=4
+alfa=5          6.4    0.63       4.74          1.872             alfa=5
+hw=0.5          6.5    1.38       4.88          1.671             hw=0.5
+hw=0.6          6.5    4.20       4.78          1.494             hw=0.6
+hw=0.7          6.5    8.54       3.27          1.383             hw=0.7
+hw=0.8          6.5    11.99      2.71          1.322             hw=0.8
+hw=0.9          6.5    12.58      2.64          1.307             hw=0.9

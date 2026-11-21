@@ -23,9 +23,11 @@ prog=rebaixamento: o rebaixamento do Ceron (SlopeDrawdownMonteCarlo, Projects/Sl
 (c', phi' e k: 3M variaveis) e g = Gamma - 1 (GIM); as opcoes rcphi, srm_f0, metodo e nystrom nao valem, e transiente=
 escolhe a malha do transiente. O gradiente modal dele da 0 nos termos de k (a analise limite congela as pressoes).
 As opcoes do rebaixamento contorno= (reservatorio|ceron), agua= (unsat|sat), trebaix= (h), tfim= (h; -1: = trebaix),
-dt= (h) e hw= (h_w/H) tem os padroes do SlopeDrawdownMonteCarlo (os de antes) e so vao para o executavel quando
-diferentes do padrao; vao no form.json, e o line_sampling.py usa as mesmas. Ex.: a agua do artigo (percolacao
-permanente depois do rebaixamento instantaneo): contorno=ceron agua=sat trebaix=0.0001 tfim=20 dt=5.
+dt= (h) e hw= (h_w/H) e as dos casos das Secoes 6.2 a 6.4 do artigo, covc=, covphi=, covk= (CoV de c', phi' e k_v),
+s= (escala dos comprimentos de autocorrelacao: 20 s e 2 s m) e alfa= (k_h/k_v), tem os padroes do
+SlopeDrawdownMonteCarlo (os de antes) e so vao para o executavel quando diferentes do padrao; vao no form.json, e o
+line_sampling.py usa as mesmas. Ex.: a agua do artigo (percolacao permanente depois do rebaixamento instantaneo):
+contorno=ceron agua=sat trebaix=0.0001 tfim=20 dt=5.
 gradiente=modal: uma analise por iteracao, com o gradiente pela projecao modal da sensibilidade de limite superior
 (Cho2010 gradiente=M; no colapso do SRM ou do GIM, conforme o metodo), em vez das 4M + 1 das diferencas centrais."""
 import concurrent.futures as cf
@@ -37,7 +39,8 @@ import subprocess
 import sys
 
 # as opcoes do rebaixamento passadas ao SlopeDrawdownMonteCarlo, com os padroes dele (so as diferentes vao na linha)
-REBAIX_PADRAO = {"contorno": "reservatorio", "agua": "unsat", "trebaix": 0.1, "tfim": -1.0, "dt": 0.1, "hw": 1.0}
+REBAIX_PADRAO = {"contorno": "reservatorio", "agua": "unsat", "trebaix": 0.1, "tfim": -1.0, "dt": 0.1, "hw": 1.0,
+                 "covc": 0.3, "covphi": 0.1, "covk": 0.6, "s": 1.0, "alfa": 1.0}
 
 
 def parametros(argv):

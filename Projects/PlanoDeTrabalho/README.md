@@ -282,6 +282,11 @@ núcleo, ou 6 a 7 h em 4 nós. O primeiro nó roda antes os FORM com M = 10 e 20
   3. o passo de tempo do transiente (`dt=` de 0,1 a 0,01, determinístico) e o MC com 4 níveis (a tendência para ~18%).
 - **Por que importa:** mostra que a P_f de um método de mecanismo imposto fica abaixo da do MEF com refinamento
   adaptativo, e quanto, num caso publicado.
+- **As Seções 6.1 a 6.5 com a água do artigo (21/11/2026):** os 26 casos das Tabelas 3 a 6 por FORM modal + line
+  sampling (CoV 5%) e um Monte Carlo direto pareado de 500 por caso para as figuras do artigo (densidades, média e CoV
+  de Γ): campanha `lsCeronC` (`cluster/ls_ceron_casos.sbatch`, `casos_ls_ceron.txt`; figuras em
+  `SlopeRandomField/comparacao_ceron/figuras_ls_ceron.py`). Os determinísticos já batem com o artigo (+0,4 a +1,2%;
+  o efeito de α agora é o do artigo).
 
 ### Etapa 4: a chuva
 
