@@ -463,7 +463,7 @@ Regras:
 | Documento | Páginas | O que tem |
 |---|---:|---|
 | `Projects/PlanoDeTrabalho/campanhas/relatorio_chuva.pdf` | 16 | Monte Carlo da chuva (Rahardjo); a Seção 7 é a AI |
-| `Projects/PlanoDeTrabalho/campanhas/relatorio_rebaixamento.pdf` | 11 | rebaixamento do Ceron: Monte Carlo direto e AI (validação: 15,70% contra 15,87%) |
+| `Projects/PlanoDeTrabalho/campanhas/relatorio_rebaixamento.pdf` | 11 | rebaixamento do Ceron: Monte Carlo direto e AI (validação: 15,70% contra 15,87%); água antiga (transiente 0,1 h); para a comparação com o Ceron, ver contornos_agua |
 | `Projects/PlanoDeTrabalho/campanhas/relatorio_solos.pdf` | 7 | os três solos do Rahardjo sob chuva |
 | `Projects/SlopeRandomFieldRefina/relatorio/relatorio.pdf` | 36 | refinamento por realização e Karhunen–Loève no talude do Ceron (2025); fica com o programa, porque os scripts dele e os do KLCilindroMika gravam nesta pasta |
 
@@ -472,7 +472,8 @@ Regras:
 | Documento | Páginas | O que tem |
 |---|---:|---|
 | `~/Dropbox/UnsaturatedSoil/referencias/` |  | artigos de terceiros (Cho 2010, Ceron 2025, a tese do Santos, ...) |
-| `~/projects/runs/` |  | os dados brutos das rodadas, uma pasta por campanha |
+| `~/projects/runs/LEIAME.md` |  | os dados brutos das rodadas, uma pasta por campanha: o inventário em ordem cronológica (o que é cada pasta, água e contorno, resultado principal, quem lê e a situação), as três rodadas do Ceron 6.1 a 6.5 e onde está cada relatório figura a figura |
+| `~/projects/runs/_arquivo/` |  | as rodadas ultrapassadas e as de estudos concluídos, uma subpasta por data e tema, cada uma com um LEIAME; os únicos resultados probabilísticos com ar ativo estão em 2026-11-04_chuva_srm_antigo |
 
 Como usar cada programa: o README.md da pasta dele, em Projects/<programa>/ (fica com o código).
 

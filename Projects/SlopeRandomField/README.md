@@ -283,12 +283,12 @@ compilar antes; só um `PARAR` criado durante a compilação faz a cadeia não s
 
 Baixar para o PC: o `status_mc.sh` mostra no fim o comando `rsync`, com o caminho de `$DATA` no fermi. Rode-o no PC,
 não no fermi. Pode ser no meio da rodada; o `rsync` só traz o que mudou. O destino no PC tem o nome da pasta de
-`SAIDA` (`~/projects/runs/sensibilidade/` com `SAIDA=$DATA/sensibilidade`): as pastas das combinações de uma `SAIDA`
+`SAIDA` (`~/projects/runs/_arquivo/2026-11-04_chuva_srm_antigo/sensibilidade/` com `SAIDA=$DATA/sensibilidade`): as pastas das combinações de uma `SAIDA`
 própria podem ter o mesmo nome que as da campanha principal (`f50_I36_i`) e não podem cair na mesma pasta. Ele tem esta
 forma:
 
 ```bash
-rsync -av --exclude checkpoint.bin --exclude .ativo --exclude .tomada --exclude '.parar.*' --exclude /PARAR --exclude /execucoes.txt --exclude /campanha.txt diogo@fermi.cesup.ufrgs.br:<$DATA>/monte_carlo/ ~/projects/runs/monte_carlo/
+rsync -av --exclude checkpoint.bin --exclude .ativo --exclude .tomada --exclude '.parar.*' --exclude /PARAR --exclude /execucoes.txt --exclude /campanha.txt diogo@fermi.cesup.ufrgs.br:<$DATA>/monte_carlo/ ~/projects/runs/_arquivo/2026-11-04_chuva_srm_antigo/monte_carlo/
 ```
 
 A realização n usa os mesmos números aleatórios em todas as combinações: os mesmos campos de c' e φ' e o mesmo

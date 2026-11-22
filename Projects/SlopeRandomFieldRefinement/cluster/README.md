@@ -186,7 +186,7 @@ CAMPANHA=ceron ~/projects/neopz-master/Projects/SlopeRandomFieldRefinement/clust
 - **Compilar:** a última linha do log deve ser `Compilado: .../bin/SlopeRainMonteCarlo e SlopeDrawdownMonteCarlo (...)`.
 - **Teste:** ~5 min; o determinístico deve dar Γ ≈ 1,325.
 - **Status:** P_f ponderado de cada caso e o CoV dele.
-- **Baixar:** baixa `$DATA/ceron_ai` para `~/projects/runs/fermi_ceron_ai` e grava em `resultado.txt` o P_f de cada
+- **Baixar:** baixa `$DATA/ceron_ai` para `~/projects/runs/_arquivo/2026-11-14_fermi_ceron_ai/fermi_ceron_ai` e grava em `resultado.txt` o P_f de cada
   amostragem contra o direto, o CoV e quantas realizações diretas dariam o mesmo CoV.
 
 Parar e retomar como na chuva: `touch /mnt/data/diogo/ceron_ai/PARAR`, `scancel -n ceronMC`, ou

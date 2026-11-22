@@ -131,7 +131,7 @@ Em `<caso>_det/r00000/`:
 
 No PC, com a VPN ligada, `./baixar.sh [destino]` faz tudo, pedindo a senha uma vez:
 - mostra os jobs na fila;
-- baixa a campanha de 4 níveis (`ceron_mc_h4`) e os logs para `~/projects/runs/fermi_ceron`; `NREF=3 ./baixar.sh` baixa
+- baixa a campanha de 4 níveis (`ceron_mc_h4`) e os logs para `~/projects/runs/_arquivo/2026-11-11_ceron_agua_antiga/fermi_ceron`; `NREF=3 ./baixar.sh` baixa
   a de 3 níveis (`ceron_mc`);
 - mostra a tabela;
 - gera o PDF em `relatorio_parcial_h4/` (jobs ainda na fila) ou em `relatorio_h4/` (jobs terminados); na de 3 níveis,

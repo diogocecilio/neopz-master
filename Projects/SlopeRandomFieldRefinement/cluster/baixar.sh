@@ -2,7 +2,7 @@
 # baixar.sh (roda no PC, com a VPN da UFRGS ligada): mostra os jobs da campanha no fermi, baixa a pasta dela em $DATA e
 # os logs do SLURM, mostra a tabela por caso e faz o pos-processamento. Pede a senha do fermi uma vez so.
 #   ./baixar.sh [destino]                 chuva: destino padrao ~/projects/runs/fermi_chuva; relatorio PDF (posproc/)
-#   CAMPANHA=ceron ./baixar.sh [destino]  Ceron: ~/projects/runs/fermi_ceron_ai; P_f de cada amostragem por
+#   CAMPANHA=ceron ./baixar.sh [destino]  Ceron: ~/projects/runs/_arquivo/2026-11-14_fermi_ceron_ai/fermi_ceron_ai; P_f de cada amostragem por
 #                                         importancia contra o Monte Carlo direto (<destino>/resultado.txt)
 #   CAMPANHA=chuva_ai ./baixar.sh         o mesmo para a chuva com amostragem por importancia (~/projects/runs/fermi_chuva_ai)
 #   CAMPANHA=etapa1 ./baixar.sh           etapas 0 e 1 (~/projects/runs/fermi_etapa1): tambem as comparacoes pareadas (par=)

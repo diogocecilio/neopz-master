@@ -1,7 +1,7 @@
 #!/bin/bash
 # baixar.sh (roda no PC, com a VPN da UFRGS ligada): mostra os jobs slopeMC no fermi, baixa a campanha e os logs do
 # SLURM, mostra a tabela do Monte Carlo e gera o relatorio PDF. Pede a senha do fermi uma vez so.
-#   ./baixar.sh [destino]        a campanha de 4 niveis ($DATA/ceron_mc_h4); destino padrao: ~/projects/runs/fermi_ceron
+#   ./baixar.sh [destino]        a campanha de 4 niveis ($DATA/ceron_mc_h4); destino padrao: ~/projects/runs/_arquivo/2026-11-11_ceron_agua_antiga/fermi_ceron
 #   NREF=3 ./baixar.sh           a de 3 niveis ($DATA/ceron_mc)
 #   SEM_BAIXAR=1 ./baixar.sh     so a tabela e o relatorio, com os dados ja baixados (sem VPN)
 # O relatorio vai para <destino>/relatorio_parcial_h<NREF> enquanto ha jobs na fila e para <destino>/relatorio_h<NREF>
@@ -10,7 +10,7 @@ set -euo pipefail
 NREF="${NREF:-4}"
 if [ "$NREF" = 3 ]; then PASTA=ceron_mc SUF=""; else PASTA="ceron_mc_h$NREF" SUF="_h$NREF"; fi
 AQUI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DEST="${1:-$HOME/projects/runs/fermi_ceron}"
+DEST="${1:-$HOME/projects/runs/_arquivo/2026-11-11_ceron_agua_antiga/fermi_ceron}"
 HOST="${FERMI:-diogo@fermi.cesup.ufrgs.br}"
 BIN="${BIN:-$HOME/projects/neopz-master-build-release/Projects/SlopeMonteCarlo/SlopeMonteCarloCluster}"
 SCRIPTS="$AQUI/../../SlopeRandomField/comparacao_ceron"

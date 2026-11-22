@@ -30,7 +30,7 @@ case "$CAMPANHA" in
 chuva) NOME=chuvaMC PROG=SlopeRainMonteCarlo CASOS_TXT=casos.txt PASTA=chuva_mc IREF_PADRAO=31.05 BLOCO_PADRAO=20
     DESTINO=fermi_chuva ;;
 ceron) NOME=ceronMC PROG=SlopeDrawdownMonteCarlo CASOS_TXT=casos_ceron.txt PASTA=ceron_ai IREF_PADRAO=0 BLOCO_PADRAO=20
-    DESTINO=fermi_ceron_ai ;;
+    DESTINO=_arquivo/2026-11-14_fermi_ceron_ai/fermi_ceron_ai ;;
 chuva_ai) NOME=chuvaAI PROG=SlopeRainMonteCarlo CASOS_TXT=casos_chuva_ai.txt PASTA=chuva_ai IREF_PADRAO=31.05
     BLOCO_PADRAO=1 DESTINO=fermi_chuva_ai ;;
 solos) NOME=solosMC PROG=SlopeRainMonteCarlo CASOS_TXT=casos_solos.txt PASTA=chuva_solos IREF_PADRAO=0

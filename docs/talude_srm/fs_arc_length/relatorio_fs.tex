@@ -866,7 +866,7 @@ Os próximos passos naturais são testar estes parâmetros nas séries paramétr
 
 \section{Reprodução}\label{ap:reproducao}
 
-Os arquivos do estudo estão em \texttt{\textasciitilde/projects/runs/arc\_length\_sensibilidade/}, com um \texttt{README.md}:
+Os arquivos do estudo estão em \texttt{\textasciitilde/projects/runs/\_arquivo/2026-11-06\_arc\_length/arc\_length\_sensibilidade/}, com um \texttt{README.md}:
 \begin{itemize}
 \item \texttt{codigo/resultados.csv}: uma linha por rodada, com caso, método, parâmetros, FS, iterações, cortes, motivo da parada e tempos. \texttt{codigo/logs/} tem os incrementos de cada rodada.
 \item \texttt{codigo/}: o programa do estudo (\texttt{sens.cpp}, \texttt{main\_novo.cpp}, \texttt{lib/}), a verificação do código final (\texttt{verif\_final.cpp}, \texttt{final/}), o plano (\texttt{plano.py}, com os arquivos \texttt{.json} de cada etapa), os casos (\texttt{casos/}, \texttt{gera\_pw.cpp}), a compilação (\texttt{compilar.sh}) e os geradores deste relatório (\texttt{gera.py}, \texttt{numeros.py}, \texttt{monta.py}, \texttt{secoes/}).
@@ -875,7 +875,7 @@ Os arquivos do estudo estão em \texttt{\textasciitilde/projects/runs/arc\_lengt
 \end{itemize}
 Cada etapa roda com \texttt{plano.py <etapa> -{}-config <arquivo.json> -{}-procs N}. As rodadas já feitas não são repetidas. As tabelas e figuras deste relatório são geradas por \texttt{gera.py}, de \texttt{resultados.csv} e, na Seção~\ref{sec:acoplado}, dos CSV do modelo acoplado, sem números digitados à mão. O programa do estudo usa a \texttt{libpz.so} compilada do repositório, com a sua própria cópia de \texttt{TPZUnsatAnalysis}.
 
-O teste no modelo acoplado (Seção~\ref{sec:acoplado}) está em \texttt{\textasciitilde/projects/runs/arc\_length\_ar\_ativo/}, também com um \texttt{README.md}: o programa \texttt{ar\_ativo.cpp} e, em \texttt{ftrans1/} e \texttt{ftrans0.5/}, os FS (\texttt{fs\_arco.csv}, \texttt{fs\_apertado.csv}, \texttt{fs\_antigo.csv} e \texttt{mc\_fs.csv}), o transiente e os estados de cada instante. A conferência do arredondamento está em \texttt{teste\_gim\_t0/}.
+O teste no modelo acoplado (Seção~\ref{sec:acoplado}) está em \texttt{\textasciitilde/projects/runs/\_arquivo/2026-11-06\_arc\_length/arc\_length\_ar\_ativo/}, também com um \texttt{README.md}: o programa \texttt{ar\_ativo.cpp} e, em \texttt{ftrans1/} e \texttt{ftrans0.5/}, os FS (\texttt{fs\_arco.csv}, \texttt{fs\_apertado.csv}, \texttt{fs\_antigo.csv} e \texttt{mc\_fs.csv}), o transiente e os estados de cada instante. A conferência do arredondamento está em \texttt{teste\_gim\_t0/}.
 
 O código final do estudo está no commit \texttt{2f92365} do repositório e em \texttt{codigo/final/}, nestes arquivos:
 \begin{verbatim}

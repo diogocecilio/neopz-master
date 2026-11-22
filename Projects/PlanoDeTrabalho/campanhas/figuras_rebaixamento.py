@@ -6,7 +6,7 @@ So le arquivos; nao roda nenhum programa e nao escreve nas pastas das rodadas:
   - as rodadas do PC (~/projects/runs/ceron_transiente): direto/ (o Monte Carlo direto e o deterministico), ai/ (AI na
     direcao da banda), ai_modos/ (AI nos primeiros modos), covk0/ (k fixo) e verificacao/ (os pesos sem elementos
     finitos);
-  - a campanha antiga do rebaixamento (percolacao permanente, cluster): ~/projects/runs/fermi_ceron/ceron_mc;
+  - a campanha antiga do rebaixamento (percolacao permanente, cluster): ~/projects/runs/_arquivo/2026-11-11_ceron_agua_antiga/fermi_ceron/ceron_mc;
   - o custo da chuva no build (mc/serial_I24.log, para a campanha da chuva no fermi);
   - os tres solos baixados do fermi (CAMPANHA=solos, ~/projects/runs/fermi_chuva_solos), se a pasta existe: as
     realizacoes, as falhas e a P_f finais da Secao 6.1 (as regras do figuras_solos.py, que faz o relatorio_solos.tex);
@@ -27,7 +27,7 @@ status.sh, que nao esta neste PC); com a campanha dos solos baixada, a Secao 6.1
 
 Uso: python3 -I figuras_rebaixamento.py [rodadas do PC] [campanha antiga] [build do SlopeRandomFieldRefinement]
                                          [tres solos baixados]
-     (padrao: ~/projects/runs/ceron_transiente, ~/projects/runs/fermi_ceron/ceron_mc,
+     (padrao: ~/projects/runs/ceron_transiente, ~/projects/runs/_arquivo/2026-11-11_ceron_agua_antiga/fermi_ceron/ceron_mc,
      ../../../../neopz-master-build-release/Projects/SlopeRandomFieldRefinement e ~/projects/runs/fermi_chuva_solos)"""
 
 import csv
@@ -53,7 +53,7 @@ NEOPZ = os.path.dirname(os.path.dirname(os.path.dirname(AQUI)))  # AQUI: Project
 PROJ = os.path.join(NEOPZ, "Projects", "SlopeRandomFieldRefinement")  # as fontes do programa
 RUNS = os.path.expanduser("~/projects/runs")
 R_PADRAO = os.path.join(RUNS, "ceron_transiente")
-ANTIGA_PADRAO = os.path.join(RUNS, "fermi_ceron", "ceron_mc")
+ANTIGA_PADRAO = os.path.join(RUNS, "_arquivo", "2026-11-11_ceron_agua_antiga", "fermi_ceron", "ceron_mc")
 BUILD_PADRAO = os.path.join(os.path.dirname(NEOPZ), "neopz-master-build-release", "Projects",
                             "SlopeRandomFieldRefinement")
 SOLOS_PADRAO = os.path.join(RUNS, "fermi_chuva_solos")  # a campanha dos tres solos baixada pelo cluster/baixar.sh

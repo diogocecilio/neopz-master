@@ -4,8 +4,8 @@ realizacao a realizacao. A mesma realizacao (o mesmo numero, com a mesma SEMENTE
 em todas as pastas, entao a diferenca entre elas e so a do modelo (variante, F_TRANS, ...). Junta cada pasta
 (junta_mc.sh), le mc_resumo.csv e mc_fs.csv e usa so as realizacoes concluidas com o transiente completo em todas.
 Exemplo, no PC, depois do rsync:
-  python3 compara_mc.py ~/projects/runs/monte_carlo/f50_I36_iii ~/projects/runs/monte_carlo/f50_I36_i_ftrans0.5 \\
-      ~/projects/runs/monte_carlo/f50_I36_i --rotulos "iii,i F_TRANS=0.5,i F_TRANS=1"
+  python3 compara_mc.py ~/projects/runs/_arquivo/2026-11-04_chuva_srm_antigo/monte_carlo/f50_I36_iii ~/projects/runs/_arquivo/2026-11-04_chuva_srm_antigo/monte_carlo/f50_I36_i_ftrans0.5 \\
+      ~/projects/runs/_arquivo/2026-11-04_chuva_srm_antigo/monte_carlo/f50_I36_i --rotulos "iii,i F_TRANS=0.5,i F_TRANS=1"
 Gera em --saida (padrao: comparacao/ ao lado da primeira pasta):
   pareado.csv      uma linha por realizacao comum: FS_min e t_min de cada pasta (colunas com o rotulo), as medias dos
                    campos no solo
