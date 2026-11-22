@@ -32,7 +32,7 @@ superado.
 
 \section{O que foi rodado}\label{sec:rodado}
 \begin{itemize}
-  \item \textbf{O problema:} o da Seção~6 do artigo. Talude de $H = 5$~m a $45^\circ$, rebaixamento instantâneo do
+  \item \textbf{O problema:} o da Seção~6 do artigo~\cite{ceron2025}. Talude de $H = 5$~m a $45^\circ$, rebaixamento instantâneo do
     reservatório da crista até o pé ($h_w = H$), $c'$, $\varphi'$ e $k_v$ log-normais independentes com as médias, os
     $CoV$ e as distâncias de autocorrelação da Tabela~2 do artigo.
   \item \textbf{Três rodadas das Seções 6.1 a 6.5 até hoje:}
@@ -41,9 +41,9 @@ superado.
         no backup do fermi, em \path{~/projects/runs/_arquivo/2026-11-13_backup_fermi}.
       \item 11 a 13/11: o \texttt{SlopeMonteCarlo} (a131e55), com a água permanente antiga (domínio de $25 \times
         10$~m, reservatório à direita), $\Gamma_{det} = 1{,}403$ e cerca de 5800 realizações por caso. O relatório
-        figura a figura dessa rodada está em \path{~/projects/runs/_arquivo/2026-11-11_ceron_agua_antiga/fermi_ceron/relatorio_parcial/relatorio.pdf}.
+        figura a figura dessa rodada~\cite{antigo} está em \path{~/projects/runs/_arquivo/2026-11-11_ceron_agua_antiga/fermi_ceron/relatorio_parcial/relatorio.pdf}.
       \item 21/11 em diante: esta, com a água do artigo (\texttt{contorno=ceron}, commit 4842ae2), a mesma que o
-        relatório dos contornos (\path{Projects/PlanoDeTrabalho/contornos_agua}) mostrou reproduzir o
+        relatório dos contornos~\cite{contornos} (\path{Projects/PlanoDeTrabalho/contornos_agua}) mostrou reproduzir o
         $\Gamma = 1{,}336$ do artigo.
     \end{enumerate}
   \item A Tabela~\ref{tab:analises} compara as análises. As colunas ``água antiga'' das tabelas seguintes são a
@@ -73,10 +73,10 @@ código & -- & a131e55 & 0d35bca \\
 \bottomrule\end{tabular}\end{table}
 
 \begin{itemize}
-  \item \textbf{FORM modal:} HLRF com o gradiente modal do GIM (o do mecanismo de colapso), que dá zero nos termos de
+  \item \textbf{FORM modal:} HLRF~\cite{hasofer1974,rackwitz1978} com o gradiente modal do GIM~\cite{formulacao} (o do mecanismo de colapso), que dá zero nos termos de
     $k$ (as pressões ficam congeladas no fator). Convergiu nos \nCasos{} casos, com \formIt{} iterações em média e de
     \formAnMin{} a \formAnMax{} análises.
-  \item \textbf{Line sampling:} na direção do ponto de projeto, com a raiz de cada linha pelo Newton (e bisseção de
+  \item \textbf{Line sampling~\cite{koutsourelakis2004}:} na direção do ponto de projeto, com a raiz de cada linha pelo Newton (e bisseção de
     reserva); para no primeiro $N \ge 30$ com $CoV(P_f) \le 5\,\%$, até 600 linhas. Foram de \linhasMin{} a
     \linhasMax{} linhas por caso (\anLSmin{} a \anLSmax{} análises, \anPorLinha{} por linha), sem linha perdida. Três
     casos pararam nas 600 linhas.
@@ -128,7 +128,7 @@ número de simulações e o LS pelo número de análises do MEF; a linha traceja
 
 \input{tab/spearman.tex}
 \begin{itemize}
-  \item \textbf{Spearman (Fig.~26):} com as variáveis da banda de ruptura (e o $k$ da massa que desliza), a ordem é a
+  \item \textbf{Spearman (Fig.~26):} parcial de 2ª ordem~\cite{conover1999}, como nas Eqs.~70 e~71 do artigo; com as variáveis da banda de ruptura (e o $k$ da massa que desliza), a ordem é a
     do artigo: $c$ pesa mais que $\varphi$. Com as médias do campo no solo todo, as correlações caem muito, como no
     relatório de 13/11: o que conta é o valor no mecanismo.
   \item \textbf{O $k$:} aqui ele pesa (\spk{} na massa), e no artigo quase nada ($-0{,}04$). O artigo não diz como
@@ -299,6 +299,30 @@ e o índice equivalente do LS, $-\Phi^{-1}(P_f^{LS})$, na referência, na famíl
         duas variáveis do $s = 400$.
     \end{itemize}
 \end{itemize}
+
+
+\begin{thebibliography}{9}
+\bibitem{ceron2025} M.~Vargas Ceron, D.~L.~Cecílio, R.~V.~Linn, S.~Maghous. Stability analysis of slope subjected to
+  seepage forces considering spatial variability of soil properties. \emph{International Journal for Numerical and
+  Analytical Methods in Geomechanics}, 49(11):2459--2491, 2025. doi:10.1002/nag.3993.
+\bibitem{hasofer1974} A.~M.~Hasofer, N.~C.~Lind. Exact and invariant second-moment code format. \emph{Journal of the
+  Engineering Mechanics Division (ASCE)}, 100(1):111--121, 1974.
+\bibitem{rackwitz1978} R.~Rackwitz, B.~Fiessler. Structural reliability under combined random load sequences.
+  \emph{Computers \& Structures}, 9(5):489--494, 1978.
+\bibitem{koutsourelakis2004} P.~S.~Koutsourelakis, H.~J.~Pradlwarter, G.~I.~Schuëller. Reliability of structures in
+  high dimensions, part~I: algorithms and applications. \emph{Probabilistic Engineering Mechanics}, 19(4):409--417,
+  2004. doi:10.1016/j.probengmech.2004.05.001.
+\bibitem{clopper1934} C.~J.~Clopper, E.~S.~Pearson. The use of confidence or fiducial limits illustrated in the case of
+  the binomial. \emph{Biometrika}, 26(4):404--413, 1934.
+\bibitem{conover1999} W.~J.~Conover. \emph{Practical Nonparametric Statistics}. 3.\ ed. Wiley, 1999.
+\bibitem{formulacao} Campos aleatórios e confiabilidade de taludes: as bases de Karhunen--Loève (analítica e Nyström),
+  o FORM com gradiente modal (SRM e GIM) e o line sampling. Documento interno,
+  \path{docs/confiabilidade_campos/formulacao/formulacao.pdf}, 2026.
+\bibitem{contornos} Os contornos da água no rebaixamento e na chuva: Ceron (2025), o PZ e Rahardjo et al.\ (2007).
+  Documento interno, \path{Projects/PlanoDeTrabalho/contornos_agua/relatorio_contornos.pdf}, 2026.
+\bibitem{antigo} Exemplo da Seção~6 de Vargas Ceron et al.\ (2025) com a água permanente antiga: comparação.
+  Relatório interno de 13/11/2026, \path{Projects/PlanoDeTrabalho/arquivo/2026-11-13_relatorio_ceron_agua_antiga.pdf}.
+\end{thebibliography}
 
 \appendix
 \section{Arquivos e como refazer}

@@ -172,7 +172,8 @@ def tabela_ref(c, ant):
     lin = [r"\begin{table}[htbp]\centering\footnotesize",
            r"\caption{Referência (Seção 6.1). Ceron: $S = 10\,000$ simulações pela análise limite cinemática. Este "
            r"trabalho: o MEF (GIM) com a água do artigo, pelo FORM modal, pelo line sampling (LS) e pelo Monte Carlo "
-           r"direto pareado (MC, parcial; IC exato de Clopper--Pearson). Água antiga: o MC do relatório de 13/11.}"
+           r"direto pareado (MC, parcial; IC exato de Clopper--Pearson~\cite{clopper1934}). Água antiga: o MC do "
+           r"relatório de 13/11.}"
            r"\label{tab:ref}",
            r"\begin{tabular}{lrrrrr}\toprule",
            r"& Ceron & FORM modal & LS & MC & água antiga \\\midrule",
