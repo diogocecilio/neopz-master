@@ -274,7 +274,7 @@ def figura_raizes(por_id):
     plt.close(fig)
 
 
-def numeros(casos, por_id, antiga, sb, n_sp):
+def numeros(casos, por_id, antiga, sb, n_sp, tab):
     ref = por_id["ref"]
     zs = [c["z"] for c in casos if c["z"] is not None]
     n_mc = [c["mc"].get("S", 0) for c in casos]
@@ -312,6 +312,35 @@ def numeros(casos, por_id, antiga, sb, n_sp):
     if sb:
         for k in ("c", "phi", "k"):
             d[f"sp{k}"] = br(sb[k]["rho_parcial"], 2)
+    # a media do MC pareado contra a do artigo (%), por familia e no total, e contra o deterministico na referencia
+    def sinal(x):
+        return ("+" if x > 0 else "") + br(x, 1)
+    difs = {}
+    for fam, _, _ in FAMILIAS:
+        for r in tab[fam]:
+            c = caso_de(por_id, fam, r["x"])
+            if c is not None and c["mc"].get("media"):
+                difs.setdefault(fam, []).append(100. * (c["mc"]["media"] / r["mu"] - 1.))
+    nomes_fam = {"covk": "Covk", "covc": "Covc", "covphi": "Covphi", "s": "S", "alfa": "Alfa", "hw": "Hw"}
+    for fam, v in difs.items():
+        d[f"muDifMin{nomes_fam[fam]}"] = sinal(min(v))
+        d[f"muDifMax{nomes_fam[fam]}"] = sinal(max(v))
+    covs = difs.get("covk", []) + difs.get("covc", []) + difs.get("covphi", [])
+    todas = [x for v in difs.values() for x in v]
+    d["muDifMinCovs"], d["muDifMaxCovs"] = sinal(min(covs)), sinal(max(covs))
+    d["muDifMinAll"], d["muDifMaxAll"] = sinal(min(todas)), sinal(max(todas))
+    unicos = {}
+    for fam, _, _ in FAMILIAS:
+        for r in tab[fam]:
+            c = caso_de(por_id, fam, r["x"])
+            if c is not None and c["mc"].get("media"):
+                unicos[c["id"]] = 100. * (c["mc"]["media"] / r["mu"] - 1.)
+    d["nMuAbaixo"], d["nMuTotal"] = sum(1 for x in unicos.values() if x < 0), len(unicos)
+    d["muDifRef"] = sinal(100. * (ref["mc"]["media"] / 1.353 - 1.))
+    d["muVsDetRef"] = sinal(100. * (ref["mc"]["media"] / ref["det"]["Gamma"] - 1.))
+    d["cvMCCovphiII"] = pct(por_id["covphi=0.2"]["mc"].get("CoV"), 1)
+    # erro padrao do CoV amostral (em pontos), com CoV ~0,27 e o menor N do MC
+    d["cvErroPts"] = br(100. * 0.27 / math.sqrt(2. * min(n_mc)), 1)
     lin = ["% gerado por gera_dados.py; nao edite"]
     for k, v in d.items():
         assert k.isalpha(), k  # macros do LaTeX: so letras
@@ -334,7 +363,7 @@ def main():
     for nome, texto in blocos.items():
         with open(os.path.join(AQUI, "tab", nome + ".tex"), "w") as f:
             f.write("% gerado por gera_dados.py; nao edite\n" + texto)
-    texto, d = numeros(casos, por_id, antiga, sb, n_sp)
+    texto, d = numeros(casos, por_id, antiga, sb, n_sp, tab)
     with open(os.path.join(AQUI, "numeros.tex"), "w") as f:
         f.write(texto)
     est = {"casos": [{"familia": "ref", "spearman_banda": sb, "spearman_campo": sc}]}

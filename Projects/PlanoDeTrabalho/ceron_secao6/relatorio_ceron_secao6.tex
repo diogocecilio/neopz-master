@@ -111,10 +111,13 @@ código & -- & a131e55 & 0d35bca \\
     $\pfFORMref\,\%$ ($\beta = \betaFORMref$). O MC pareado dá $\pfMCref\,\%$ (\nfMCref{} falhas em \nMCref{}), dentro
     do intervalo exato, que ainda é largo. Com a água antiga, a $P_f$ era $\pfAntigaRef\,\%$.
   \item \textbf{A distribuição de $\Gamma$:} média $\muMCref$ e $CoV = \cvMCref\,\%$ no MC, contra $1{,}353$ e
-    $23{,}5\,\%$ do artigo (Figura~\ref{fig:25}a). A média fica $\approx 1{,}5\,\%$ acima, como o determinístico.
+    $23{,}5\,\%$ do artigo (Figura~\ref{fig:25}a). A média fica \muDifRef\,\% da do artigo e \muVsDetRef\,\% do nosso
+    determinístico; no artigo, a média fica 1,3\,\% acima do determinístico (1,353 contra 1,336). No nosso MEF, a
+    variabilidade espacial baixa a média de $\Gamma$, porque o mecanismo procura as zonas fracas
+    (Seção~\ref{sec:sintese}).
   \item \textbf{A malha:} a malha da campanha deixa o $\Gamma$ uns $0{,}8\,\%$ acima do limite (Seção~\ref{sec:det}).
-    Pela densidade de $\Gamma$ em 1, isso baixa a $P_f$ da referência em uns 0,6 ponto: corrigida, ela ficaria perto
-    de 12\,\%, ainda a menos de dois desvios do artigo.
+    Pela densidade de $\Gamma$ em 1, isso baixa a $P_f$ da referência em uns 0,7 ponto: corrigida, ela ficaria perto
+    de 12,2\,\%, ainda a menos de dois desvios do artigo.
 \end{itemize}
 \begin{figure}[htbp]\centering
 \includegraphics[width=\linewidth]{figs/fig25.pdf}
@@ -128,7 +131,7 @@ número de simulações e o LS pelo número de análises do MEF; a linha traceja
   \item \textbf{Spearman (Fig.~26):} com as variáveis da banda de ruptura (e o $k$ da massa que desliza), a ordem é a
     do artigo: $c$ pesa mais que $\varphi$. Com as médias do campo no solo todo, as correlações caem muito, como no
     relatório de 13/11: o que conta é o valor no mecanismo.
-  \item \textbf{O $k$:} aqui ele pesa (0,35 na massa), e no artigo quase nada ($-0{,}04$). O artigo não diz como
+  \item \textbf{O $k$:} aqui ele pesa (\spk{} na massa), e no artigo quase nada ($-0{,}04$). O artigo não diz como
     define o $k$ de cada realização, então a comparação vale com cautela. Mas o sinal combina com o resto: com a água
     do artigo, um $k$ maior na massa que desliza baixa a pressão nela e sobe o $\Gamma$.
 \end{itemize}
@@ -151,8 +154,9 @@ número de simulações e o LS pelo número de análises do MEF; a linha traceja
   \item \textbf{$CoV(k_v) = 0$:} o LS dá $\pfLSCovkZero\,\%$, contra $\pfCCovkZero\,\%$ do artigo ($z = \zCovkZero$).
     Com $k$ homogêneo, as pressões não dependem da realização, e a $P_f$ só depende de $c$ e $\varphi$.
   \item \textbf{A distribuição de $\Gamma$} (Tabelas~\ref{tab:g_covk} a \ref{tab:g_covphi}): a média fica de
-    $-1{,}4$ a $+1{,}9\,\%$ da do artigo. O $CoV$ acompanha o do artigo nas famílias de $k$ e de $c$, mas cresce mais
-    depressa com o $CoV$ de $\varphi$ (34,3 contra 28,2\,\% com 0,2). Com $\approx 170$ realizações, o $CoV$ amostral
+    \muDifMinCovs{} a \muDifMaxCovs\,\% da do artigo. O $CoV$ acompanha o do artigo nas famílias de $k$ e de $c$, mas
+    cresce mais depressa com o $CoV$ de $\varphi$ (\cvMCCovphiII{} contra 28,2\,\% com 0,2). Com $\approx \nMCmin$
+    realizações, o $CoV$ amostral
     ainda depende das poucas realizações de $\Gamma$ alto, que não pesam na $P_f$: a $P_f$ desse caso bate ($z = 1{,}0$).
 \end{itemize}
 \input{tab/g_covk.tex}
@@ -207,15 +211,16 @@ $s = 400$ aparece em (b) a (d) como linha horizontal, como no artigo.}\label{fig
 \input{tab/pf_alfa.tex}
 \input{tab/g_alfa.tex}
 \begin{itemize}
-  \item \textbf{O determinístico e a média batem:} $\Gamma_{det}$ e $\mu(\Gamma)$ ficam a menos de 1,5\,\% do artigo
-    em todos os $\alpha$ (Tabela~\ref{tab:g_alfa}).
+  \item \textbf{O determinístico bate; a média do MC, não tanto:} $\Gamma_{det}$ fica de +0,7 a +1,2\,\% do artigo,
+    e a média do MC, de \muDifMinAlfa{} a \muDifMaxAlfa\,\%, com a diferença crescendo com $\alpha$ nos dados atuais
+    (Tabela~\ref{tab:g_alfa}).
   \item \textbf{A $P_f$ não bate, e a diferença cresce com $\alpha$:} o LS dá $\pfLSAlfaII$, $\pfLSAlfaIII$,
     $\pfLSAlfaIV$ e $\pfLSAlfaV\,\%$, contra $\pfCAlfaII$, $\pfCAlfaIII$, $\pfCAlfaIV$ e $\pfCAlfaV\,\%$ do artigo
     ($z$ de \zAlfaII{} a \zAlfaV). A água antiga também dava $P_f$ acima do artigo nesta família, e mais.
   \item \textbf{O $CoV$ de $\Gamma$ é maior aqui:} no MC pareado, ele vai de $\cvMCAlfaII$ a $\cvMCAlfaV\,\%$, contra
-    24,9 a 26,4\,\% do artigo, e a diferença cresce com $\alpha$. Com a média igual, um $CoV$ maior engorda a cauda de
-    baixo, que é onde fica a $P_f$ quando ela é pequena. Com 170 realizações, o erro do $CoV$ amostral é de uns 1,5
-    ponto: o sinal é consistente nos quatro casos, mas cada um sozinho é fraco.
+    24,9 a 26,4\,\% do artigo, e a diferença cresce com $\alpha$. Média menor e $CoV$ maior engordam a cauda de baixo,
+    que é onde fica a $P_f$ quando ela é pequena. Com \nMCmin{} realizações, o erro do $CoV$ amostral é de uns
+    \cvErroPts{} ponto: o sinal é consistente nos quatro casos, mas cada um sozinho é fraco.
   \item \textbf{O FORM fica com o artigo, o LS não:} o FORM dá $\pfFORMAlfaII$, $\pfFORMAlfaIII$, $\pfFORMAlfaIV$ e
     $\pfFORMAlfaV\,\%$, quase os números do artigo. A Figura~\ref{fig:raizes} mostra por quê: as raízes das linhas
     espalham em torno do $\beta$ do FORM (de $\pm 0{,}5$), e, como $\Phi(-c)$ é convexa na cauda, a média de
@@ -249,7 +254,8 @@ e o índice equivalente do LS, $-\Phi^{-1}(P_f^{LS})$, na referência, na famíl
 \begin{itemize}
   \item \textbf{$P_f$:} os cinco casos ficam a menos de dois desvios do artigo, todos um pouco acima, e o máximo
     perto de $h_w/H = 0{,}9$ aparece como no artigo.
-  \item \textbf{$\Gamma$:} o determinístico, a média e o $CoV$ seguem o artigo, com a média de 0,8 a 1,8\,\% acima.
+  \item \textbf{$\Gamma$:} o determinístico e o $CoV$ seguem o artigo; a média do MC fica de \muDifMinHw{} a \muDifMaxHw\,\% da do
+    artigo.
 \end{itemize}
 \begin{figure}[htbp]\centering
 \includegraphics[width=\linewidth]{figs/fig33.pdf}
@@ -273,6 +279,12 @@ e o índice equivalente do LS, $-\Phi^{-1}(P_f^{LS})$, na referência, na famíl
     mecanismo livre, que acha caminhos mais fracos que a família de espirais do artigo, somado a um viés de malha de
     $+0{,}8\,\%$ no $\Gamma$, que puxa a $P_f$ para baixo e passa a dominar quando o campo fica suave. Os casos estão
     pareados (os mesmos números aleatórios), então o padrão não é uma prova estatística.
+  \item \textbf{A média de $\Gamma$ confirma a leitura:} com \nMCmin{} a \nMCmax{} realizações, a média do MC fica
+    abaixo da do artigo em \nMuAbaixo{} dos \nMuTotal{} casos (de \muDifMinAll{} a \muDifMaxAll\,\%), embora o
+    determinístico fique de +0,4 a +1,2\,\% acima. Na referência, a nossa média fica \muVsDetRef\,\% do nosso
+    determinístico, e a do artigo, 1,3\,\% acima do dele: no MEF, a variabilidade espacial baixa a média de $\Gamma$,
+    porque o mecanismo acha as zonas fracas; na família de espirais do artigo, não. Os casos estão pareados e o MC
+    ainda é parcial, então isso é uma tendência, não um teste.
   \item \textbf{O que fica aberto:} a família $\alpha$ ($z$ de \zAlfaII{} a \zAlfaV) e o $s = 400$ ($z = \zSCD$),
     com os testes das Seções~\ref{sec:s} e \ref{sec:alfa}.
   \item \textbf{O método:} o LS chegou a $CoV \le 5\,\%$ em 22 dos 26 casos, com 110 a 1083 análises; dois ficaram
