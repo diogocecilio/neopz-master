@@ -17,10 +17,10 @@ export SAIDA="${SAIDA:-${DATA:-/mnt/data/${USER:-$(id -un)}}/hu2024_ks$KS}"
 EXE=bin_hu/SlopeRainMonteCarlo
 [ -x "$EXE" ] || { echo "compile antes, no no de login: ./compilar_hu2024.sh" >&2; exit 1; }
 # o executavel tem de ter as opcoes do caso A (geometria=, vg=, pressoes=, nystrom=, gradiente=; commit COMMIT_HU)
-COMMIT_HU=PREENCHER
+COMMIT_HU=2bc901a
 v="$(cut -d_ -f1 bin_hu/versao.txt)"
 v="${v%+mod}"
-if [ "$COMMIT_HU" != PREENCHER ] && ! git merge-base --is-ancestor "$COMMIT_HU" "$v" 2> /dev/null; then
+if ! git merge-base --is-ancestor "$COMMIT_HU" "$v" 2> /dev/null; then
     echo "bin_hu/ e de $v, anterior as opcoes do caso A ($COMMIT_HU): rode ./compilar_hu2024.sh" >&2
     exit 1
 fi
