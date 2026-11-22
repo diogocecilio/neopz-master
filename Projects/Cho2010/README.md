@@ -64,8 +64,13 @@ Cho2010 n=50 rcphi=-0.5 fator=tri2 nref=4 saida=mc  # 50 realizações
 
 ## A base de Nyström com 2000 modos
 
-O `nystrom_base.py` grava a base que a opção `nystrom=` lê. Para milhares de nós e de modos, os autopares saem do
-Mathematica (MKL, em paralelo), porque o `eigh` do Python sem threads leva horas:
+O `nystrom_base.py` grava a base que a opção `nystrom=` lê (aqui e no `SlopeRainMonteCarlo`). A geometria (os 6 pontos
+do talude, `talude=`) e o núcleo (`nucleo=exp`, o padrão, ou `nucleo=gauss` com `angulo=`) são argumentos; o núcleo vai
+no cabeçalho da base, e o `RandomField` o usa na interpolação. Até ~300 modos, os autopares saem do `eigsh` do scipy com
+o produto matriz-vetor sem a matriz (núcleo separável: C = C_y ⊗ C_x na grade cheia), em segundos mesmo com 50 000 nós;
+o teste de Mercer (`mercer=`) e a comparação dos autovalores com outra base (`compara=`) estão no próprio script. Para
+milhares de modos, os autopares saem do Mathematica (MKL, em paralelo), porque o `eigh` do Python sem threads leva
+horas:
 
 ```bash
 python3 -I nystrom_base.py base_nys2000.txt M=2000 dx=0.2 dy=0.1 nos=base_nys2000.nos

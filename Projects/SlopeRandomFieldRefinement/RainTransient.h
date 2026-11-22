@@ -1,7 +1,9 @@
 // Transiente da chuva com o material nao saturado, nas hipoteses do SEEP/W de Rahardjo et al. (2007): esqueleto rigido
 // (u = 0), ar passivo (p_a = 0) e so a percolacao da agua, por Euler implicito, com o TPZUnsatAnalysis do neopz.
-// Contornos: p_w hidrostatica nas laterais abaixo do nivel d'agua inicial; base e laterais acima do nivel sem fluxo;
-// na superficie, o fluxo da chuva ou, onde a agua empocaria (p_w > 0), a face de percolacao (p_w = 0).
+// Contornos: p_w hidrostatica nas laterais abaixo do nivel d'agua inicial (ou de uma carga total dada); base e laterais
+// acima do nivel sem fluxo; na superficie, o fluxo da chuva ou, onde a agua empocaria (p_w > 0), a face de percolacao
+// (p_w = 0). A chuva entra por metro de superficie inclinada (normal a face: o "unit flux" do GeoStudio; o padrao) ou
+// por metro de projecao horizontal (chuva vertical: rainVertical).
 // E o RainTransient do Common (validado contra o Rahardjo), com os ids das laterais e da superficie como parametros
 #pragma once
 
@@ -26,6 +28,7 @@ struct RainData {
     REAL intensity = 36.; // I_r (mm/h)
     REAL duration = 24.;  // horas de chuva
     REAL dt = 0.1;        // passo de tempo (h)
+    bool rainVertical = false; // false: q = I por metro inclinado (normal a face); true: por metro de projecao horizontal
     // estado inicial: hidrostatico abaixo do nivel d'agua (reta que sobe para a esquerda), succao ate suctionMax
     REAL xToe = 40., yToe = 30.;   // pe do talude (o da TriGMesh)
     REAL Hw = 5.;                  // profundidade do nivel abaixo do pe (m)
@@ -38,9 +41,10 @@ struct RainData {
 class RainTransient {
 public:
     // an: analise da malha do transiente, com u e p_a nulos; laterais: ids das laterais (p_w hidrostatica abaixo do
-    // nivel inicial); superficie: ids da superficie (recebem a chuva)
+    // nivel inicial); superficie: ids da superficie (recebem a chuva); cargas: as laterais com uma carga total h dada (m,
+    // cota do nivel: p_w = gamma_w (h - y) abaixo de h) no lugar do nivel inicial
     RainTransient(TPZUnsatAnalysis &an, const RainData &r, REAL gammaw, const std::set<int> &laterais,
-                  const std::set<int> &superficie);
+                  const std::set<int> &superficie, const std::map<int, REAL> &cargas = {});
 
     // t = 0: p_w = gamma_w (nivel - y), com a succao limitada a suctionMax
     void InitialState();

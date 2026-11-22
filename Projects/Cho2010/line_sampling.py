@@ -5,11 +5,14 @@
                              [cov=0] [nmin=30]
                              [chave=valor das opcoes do programa: nystrom=, metodo=, srm_f0=, contorno=, tfim=, ...]
 
-A direcao e = u*/beta vem do FORM (form_kl.py, M termos por campo: c', phi' no Cho2010; c', phi', k no rebaixamento),
+A direcao e = u*/beta vem do FORM (form_kl.py, M termos por campo: c', phi' no Cho2010; c', phi', k no rebaixamento e na
+chuva),
 completada com zeros ate os K termos de cada campo. As analises usam o campo com K termos (M=K) e as opcoes do FORM,
 trocadas pelas chave=valor dadas (ex.: nystrom=<a base completa>, metodo=srm). No rebaixamento, as opcoes contorno=,
 agua=, trebaix=, tfim=, dt=, hw=, covc=, covphi=, covk=, s= e alfa= vem do form.json (form.json antigos: os padroes do
-SlopeDrawdownMonteCarlo).
+SlopeDrawdownMonteCarlo). Na chuva (prog=chuva), as opcoes do executavel vem do form.json (a lista "exe") e as
+chave=valor dadas aqui trocam ou acrescentam opcoes nela (ex.: nystrom=<outra base>, pressoes=<outro arquivo>); o fator
+de cada analise e o menor FS dos instantes (form_kl.le_fator).
 Cada linha: sorteia z ~ N(0, I) com nc K termos, tira a componente em e (zp = z - (z.e) e) e acha, na reta zp + c e, o
 c_i em que o fator (FS ou Gamma) vale 1. Como zp e c sao independentes, P_f = E[Phi(-c_i)], e cada linha da
 p_i = Phi(-c_i): so a variacao de c_i entre as linhas (a nao linearidade da superficie de falha) entra na variancia. O
@@ -31,6 +34,8 @@ parar no primeiro N com CoV <= alvo favorece amostras com P_f um pouco alta. O v
 CoV (para CoV 5%, uns 0,1 a 0,3%), desprezivel diante do proprio CoV; o nmin evita parar cedo com uma variancia
 estimada com poucas linhas (o caso em que o vies seria maior).
 
+Origem na falha (g(0) < 0, beta negativo no form.json): a direcao e -u*/|beta|, o ponto de projeto fica em c = beta < 0
+e a falha continua do lado de c grande, com a mesma formula.
 Linhas perdidas: uma analise com situacao diferente de ok tira a linha da conta (o transiente que nao convergiu, ou
 Gamma NaN). A excecao e Gamma = 0 (situacao "fator" com FS_min = 0: o GIM nao achou equilibrio nem com 1% da gravidade),
 que e falha de verdade: entra como Gamma = GAMMA_ZERO (0,005, abaixo de 0,01) e a linha segue. As perdidas vao para o
@@ -54,7 +59,7 @@ import sys
 import threading
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from form_kl import REBAIX_PADRAO, campos, comando  # noqa: E402
+from form_kl import REBAIX_PADRAO, ambiente, campos, comando, le_fator  # noqa: E402
 
 FIM = (-8., 12.)
 GAMMA_ZERO = 0.005  # Gamma = 0 (sem equilibrio nem com 1% da gravidade): falha, com ln finito para a secante
@@ -90,6 +95,8 @@ def main():
         k, v = a.split("=", 1)
         if k in op:
             op[k] = type(op[k])(v)
+        elif p["prog"] == "chuva" and k not in ("threads",):  # uma opcao do executavel: troca ou acrescenta
+            p["exe"] = [x for x in p["exe"] if not x.startswith(k + "=")] + [a]
         else:
             p[k] = type(p[k])(v) if k in p and not isinstance(p[k], str) else v
     os.makedirs(pasta, exist_ok=True)
@@ -103,6 +110,9 @@ def main():
         e[f * K:f * K + M] = u[f * M:(f + 1) * M]
     beta = math.sqrt(sum(x * x for x in e))
     e = [x / beta for x in e]
+    if form.get("beta", 1.) < 0.:  # g(0) < 0 (as medias ja falham): com -e a falha fica do lado de c grande e o ponto
+        e = [-x for x in e]        # de projeto em c = beta < 0
+        beta = -beta
     trava = threading.Lock()
     limpa_csv(os.path.join(pasta, "analises.csv"), "")
     reg = open(os.path.join(pasta, "analises.csv"), "a")
@@ -111,21 +121,25 @@ def main():
         arq = os.path.join(pasta, rotulo + ".xi")
         with open(arq, "w") as f:
             f.write("\n".join(repr(t) for t in x) + "\n")
-        env = dict(os.environ, PZ_THREADS="0", OMP_NUM_THREADS="1", MKL_NUM_THREADS="1")
         subprocess.run(comando(exe, p, arq, rotulo), check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                       env=env, cwd=pasta)
-        with open(os.path.join(pasta, rotulo + "_0_0.csv"), newline="") as f:
-            r = next(csv.DictReader(f))
-        for suf in (".xi", "_0_0.csv", "_mapa_0_0.csv", "_parametros.txt"):
-            try:
-                os.remove(os.path.join(pasta, rotulo + suf))
-            except FileNotFoundError:
-                pass
-        G = float(r["FS_min"])
-        if r["situacao"] == "fator" and G == 0.:  # GIM sem equilibrio nem com lambda < 0,01: falha
-            G = GAMMA_ZERO
-        elif r["situacao"] != "ok":
-            raise RuntimeError(f"{rotulo}: situacao {r['situacao']} (FS_min {r['FS_min']})")
+                       env=ambiente(p), cwd=pasta)
+        try:
+            if p["prog"] == "chuva":  # o menor FS dos instantes (um instante sem equilibrio e falha)
+                G = le_fator(os.path.join(pasta, rotulo + "_0_0.csv"), p)[0]
+            else:
+                with open(os.path.join(pasta, rotulo + "_0_0.csv"), newline="") as f:
+                    r = next(csv.DictReader(f))
+                G = float(r["FS_min"])
+                if r["situacao"] == "fator" and G == 0.:  # GIM sem equilibrio nem com lambda < 0,01: falha
+                    G = GAMMA_ZERO
+                elif r["situacao"] != "ok":
+                    raise RuntimeError(f"{rotulo}: situacao {r['situacao']} (FS_min {r['FS_min']})")
+        finally:
+            for suf in (".xi", "_0_0.csv", "_mapa_0_0.csv", "_parametros.txt"):
+                try:
+                    os.remove(os.path.join(pasta, rotulo + suf))
+                except FileNotFoundError:
+                    pass
         with trava:
             reg.write(f"{linha},{c!r},{G!r}\n")
             reg.flush()
@@ -148,7 +162,7 @@ def main():
     print(f"direcao: {arq_form}  beta = {beta:.4f}  P_f FORM = {cauda(beta):.4e}  d ln(fator)/dc = {s:.4f}  "
           f"(campo com {K} termos, metodo {p.get('metodo', '-')})", flush=True)
 
-    if p["prog"] == "rebaixamento":
+    if p["prog"] in ("rebaixamento", "chuva"):
         print("  comando: " + " ".join(comando(exe, p, "<x>.xi", "<rotulo>")), flush=True)
     rng = random.Random(op["semente"])
     proximo_z = [0]  # Z[i]: o i-esimo vetor da semente, gerado em ordem (so os das linhas em voo ficam na memoria)

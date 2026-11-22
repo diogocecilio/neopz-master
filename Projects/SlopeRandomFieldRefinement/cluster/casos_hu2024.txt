@@ -1,0 +1,22 @@
+# casos_hu2024.txt: o caso A (Hu et al. 2024, Comput. Geotech. 173:106546) para o hu2024_casos.sbatch: FORM modal + line
+# sampling + Monte Carlo direto, todos com o transiente calculado uma vez por caso (k_s fixo) e lido de novo
+# (pressoes=). Todos usam a base comum do sbatch (BASE: geometria, nivel, contornos, van Genuchten-Mualem, chi = S_e,
+# gamma, c', phi', CoV, r(c, phi), campos de Nystrom com M termos, malhas) e o k_s da variavel KS (uma campanha por k_s:
+# a pasta de saida leva o k_s no nome), mais as opcoes da ultima coluna (a chuva: I em mm/h e a duracao em h).
+# Colunas: id, a P(FS < 1) do artigo (primeira passagem ate 72 h; lidas dos vetores das Figs. 16 e 19, exceto a 0,7781
+# impressa), o N do Monte Carlo direto e as opcoes. O FS e calculado no fim da chuva e 6 h depois (TEMPOS do sbatch); a
+# falha e o menor FS abaixo de 1 (primeira passagem; a conferencia mc13/ mede os 13 instantes de 0 a 72 h).
+# O N do MC (22/11): o desvio do FS do nosso modelo e ~0,37 do de Hu (piloto de 10 realizacoes a 50 mm/h por 24 h: 0,063,
+# 0,034 e 0,047 em 0, 24 e 72 h, contra 0,165, 0,091 e 0,130), entao as nossas P_f ficam longe das do artigo: com o FS
+# deterministico no fim da chuva (1,296; 1,226; 1,132; 1,118; 0,908; 1,065 nos casos abaixo, transiente tri3) e esse
+# desvio, I30_D12 e I20_D24 tem beta > 5 (o FORM do I30_D12 no PC deu beta ~ 12) e o MC so confirma que nada falha (500);
+# I40_D12 e I20_D36 tem P_f ~ 1e-3 a 1e-2, e o MC fica no teto de 4000 (CoV de 20 a 50%: a referencia e o LS); o
+# I50_D24 tem P_f ~ 0,99 (300 realizacoes); o I30_D24 (artigo 0,221; P_f nossa ~ 0,05) entra como o caso em que o MC
+# direto confere o LS com CoV de 10% (2000).
+# id        Pf_artigo  N_mc   opcoes
+I30_D12     0.012      500    I=30 chuva=12
+I20_D24     0.030      500    I=20 chuva=24
+I40_D12     0.091      4000   I=40 chuva=12
+I20_D36     0.117      4000   I=20 chuva=36
+I50_D24     0.7781     300    I=50 chuva=24
+I30_D24     0.221      2000   I=30 chuva=24

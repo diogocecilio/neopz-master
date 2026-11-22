@@ -552,3 +552,64 @@ ssh diogo@fermi.cesup.ufrgs.br 'tail -n 5 neopz-master/Projects/SlopeRandomField
   os blocos em curso terminam). Voltar: apagar o `PARAR` e `./submeter_ls_ceron.sh` de novo (as travas dos jobs que
   morreram sao liberadas; o LS continua do `linhas.csv`). Com outras campanhas rodando, submeta menos nos
   (`./submeter_ls_ceron.sh 2`) ou com `DEPENDE=<job>`.
+
+## Caso A: Hu et al. (2024), FORM modal + line sampling + Monte Carlo (`hu2024_casos.sbatch`)
+
+O caso principal da verificacao da chuva (relatorio `Exemplos probabilisticos de chuva nao saturada`, Secao "A) Caso
+principal: Hu et al. (2024)"): talude de 10 m a 45 graus num dominio de 70 x 20 m, nivel d'agua horizontal na cota 5 m
+com a succao inicial limitada a 50 kPa, lateral esquerda e base fechadas, lateral direita com carga de 5 m abaixo do
+nivel, chuva por metro inclinado em toda a superficie (com a face de percolacao onde empocaria), van Genuchten-Mualem da
+Fig. 4 (theta_s 0,399, theta_r 0,024, alfa 0,0357 1/kPa, n 1,71), chi = S_e, gamma 17,8 kN/m3, c' lognormal 8 kPa (CoV
+0,15), phi' lognormal 24 graus (CoV 0,10), r(c, phi) = -0,5, k_s = 2e-5 m/s fixo. Os campos sao de Nystrom no proprio
+talude (nucleo exp(-|dx|/20 - |dy|/2), grade 0,3 x 0,1 m, 34 950 nos, M = 150 modos por campo, 86,9% da variancia). O FS
+e o SRM com as pressoes congeladas (fator `tri1` + 4 niveis); o transiente e o da `tri4`; a falha e o menor FS abaixo
+de 1 (primeira passagem).
+
+Os 6 cenarios de `casos_hu2024.txt` (os 5 do relatorio e o I30_D24, em que o MC direto confere o LS):
+
+| caso | chuva | P_f do artigo | FS deterministico no fim da chuva (tri3) | N do MC |
+|---|---|---|---|---|
+| I30_D12 | 30 mm/h por 12 h | 0,012 | 1,296 | 500 |
+| I20_D24 | 20 mm/h por 24 h | 0,030 | 1,226 | 500 |
+| I40_D12 | 40 mm/h por 12 h | 0,091 | 1,132 | 4000 |
+| I20_D36 | 20 mm/h por 36 h | 0,117 | 1,118 | 4000 |
+| I50_D24 | 50 mm/h por 24 h | 0,7781 | 0,908 | 300 |
+| I30_D24 | 30 mm/h por 24 h | 0,221 | 1,065 | 2000 |
+
+O N do MC nao e o do CoV de 10% com a P_f do artigo: no piloto de 22/11 (10 realizacoes, 50 mm/h por 24 h) o desvio do
+FS e ~0,37 do de Hu (0,063, 0,034 e 0,047 em 0, 24 e 72 h, contra 0,165, 0,091 e 0,130; as medias batem: 1,524, 0,905 e
+1,178 contra 1,58, 0,93 e 1,25), entao as nossas P_f ficam longe das do artigo. O FORM do I30_D12 no PC deu beta ~ 12
+(nao convergiu em 10 iteracoes: o FS e muito nao linear tao longe da origem). Veja o cabecalho do `casos_hu2024.txt`.
+
+Com k_s fixo, o transiente e o mesmo em todas as realizacoes: cada caso o calcula uma vez (`so_transiente=1
+grava_pressoes=`) e todas as analises o leem (`pressoes=`). Fases (os jobs dividem tudo por travas em `$SAIDA`):
+0. a base de Nystrom (com o python do venv, `$HOME/venv_la/bin/python`; uns 2 min) e o transiente de cada caso (`tri4`,
+   uns 25 min no fermi com 4 threads);
+1. o deterministico (FS de 6 em 6 h de 0 a 72 h) e o FORM com o gradiente modal (M = 150, ate 10 iteracoes de 1 analise);
+2. o line sampling na direcao do FORM ate CoV(P_f) <= 5% (30 a 600 linhas, 24 em voo), um caso por vez;
+3. o Monte Carlo direto (as N realizacoes do caso, em blocos de 10, intercalados) e a conferencia `mc13/`: as 20 primeiras
+   realizacoes de cada caso com o FS nos 13 instantes, que mede em quantas o menor FS cai no fim da chuva.
+
+Instantes (`TEMPOS=fim`, o padrao): o FS no fim da chuva D, com refinamento adaptativo, e em D + 6 h, na malha de D. O
+deterministico de todos os cenarios e as 10 realizacoes do piloto dao o menor FS em t = D (o artigo: "the FOS reaches
+minimum value when the rainfall stop"); `TEMPOS=todos` faz os 13 instantes em toda analise (13 SRM em vez de ~1,3).
+
+**Custo estimado:** uma analise (o FS em D e D + 6) leva ~24 s em serial no PC (~60 a 95 s por processo no fermi, com 24
+por no); ~11 300 do MC, ~1 200 equivalentes da conferencia e ~1 500 do LS: ~14 000 analises, umas 4 a 5 h com 4 nos
+(mais ~30 min do transiente e da base no inicio).
+
+```bash
+cd ~/projects/neopz-master && git push origin UnsaturatedSoil
+ssh diogo@fermi.cesup.ufrgs.br 'cd neopz-master && git pull origin UnsaturatedSoil && cd Projects/SlopeRandomFieldRefinement/cluster && nohup setsid bash -c "./compilar_hu2024.sh && ./submeter_hu2024.sh 4" > hu2024.log 2>&1 < /dev/null &'
+ssh diogo@fermi.cesup.ufrgs.br 'tail -n 5 neopz-master/Projects/SlopeRandomFieldRefinement/cluster/hu2024.log; neopz-master/Projects/SlopeRandomFieldRefinement/cluster/status_hu2024.sh'
+~/projects/neopz-master/Projects/SlopeRandomFieldRefinement/cluster/baixar_hu2024.sh
+```
+
+- `KS=5.2e-6` (o patamar da Fig. 4b) roda a mesma campanha com o outro k_s, numa pasta propria (`$DATA/hu2024_ks5.2e-6`):
+  `KS=5.2e-6 ./submeter_hu2024.sh 4` (e `KS=5.2e-6` nos outros comandos). O deterministico de 22/11 favorece o 2e-5
+  (FS em 24 h a 50 mm/h: 0,908 contra 1,104 com o 5,2e-6; o artigo tem 0,93).
+- `status_hu2024.sh`: os jobs, os ultimos eventos e a tabela por caso (deterministico, FORM, LS parcial, MC, conferencia)
+  contra o artigo; `baixar_hu2024.sh` (PC) baixa para `~/projects/runs/fermi_hu2024_ks2e-5` e grava `resultado.txt`,
+  `resultado.csv` e `resumo.json`.
+- Parar sem perder nada: `ssh diogo@fermi.cesup.ufrgs.br 'touch /mnt/data/diogo/hu2024_ks2e-5/PARAR'`. Voltar: apagar o
+  `PARAR` e `./submeter_hu2024.sh` de novo. Com outras campanhas rodando, submeta menos nos ou com `DEPENDE=<job>`.

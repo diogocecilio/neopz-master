@@ -1,6 +1,7 @@
 // Campos aleatorios lognormais pela expansao de Karhunen-Loeve analitica (KLSeparavel.h): covariancia exponencial
 // separavel C = exp(-|dx|/Lx - |dy|/Ly) (Vargas Ceron et al. 2025, Eq. 64) num retangulo que contem o dominio, com os
-// autopares em forma fechada, e a transformacao lognormal das Eqs. 65-66.
+// autopares em forma fechada, e a transformacao lognormal das Eqs. 65-66. Ou pela base de Nystrom do proprio dominio
+// (UseNystrom: Projects/Cho2010/nystrom_base.py), com o nucleo exponencial separavel ou o gaussiano (girado ou nao).
 // Varios campos independentes (ex.: c', phi' e k) usam os mesmos modos e cada um tem as suas variaveis normais xi.
 // O campo e avaliado em qualquer ponto (x, y): malhas diferentes (a do transiente e a do fator) veem a mesma realizacao.
 // Generico: nada de talude aqui; o problema diz o retangulo, as distancias de autocorrelacao e a media e o CoV de cada
@@ -32,9 +33,26 @@ public:
     // Base de Nystrom no lugar da analitica (arquivo do Projects/Cho2010/nystrom_base.py: os nos de quadratura x, y, w, os
     // autovalores e f_k nos nos): os M primeiros modos (M <= os do arquivo). O campo num ponto qualquer sai da interpolacao
     // de Nystrom, Z(x) = sum_j C(x, x_j) a_j, com a_j = w_j sum_k xi_k f_k(x_j) / sqrt(lambda_k) calculado uma vez por
-    // realizacao. O kernel e o mesmo (Lx, Ly do construtor); o sorteio, o deslocamento e o peso nao mudam
-    void UseNystrom(const std::string &arquivo, int M);
+    // realizacao; o sorteio, o deslocamento e o peso nao mudam. O nucleo C vem do cabecalho do arquivo (nucleo=exp ou
+    // gauss, lh, lv, angulo); sem ele (bases antigas), o exponencial com os Lx, Ly do construtor.
+    // rapido = true: com o nucleo exponencial e os nos numa grade regular (a do nystrom_base.py), a soma sobre os nos vira
+    // quatro recorrencias na grade (exp(-|dx|/L) = produto de fatores exp(-dx/L) de celula em celula), calculadas uma vez
+    // por realizacao: o campo num ponto custa O(1) em vez de O(n). E a mesma soma, em outra ordem (difere so no
+    // arredondamento, ~1e-12); false (o padrao) deixa as contas de antes, bit a bit
+    void UseNystrom(const std::string &arquivo, int M, bool rapido = false);
     bool Nystrom() const { return !fNysLam.empty(); }
+    bool FastNystrom() const { return fGrade; }
+    // o nucleo da base de Nystrom, por extenso (ex.: "exp lh=20 lv=2")
+    std::string KernelDescription() const;
+    double KernelLx() const { return fLx; }
+    double KernelLy() const { return fLy; }
+    bool GaussianKernel() const { return fNucleo == EGauss; }
+    // soma_p a_p sqrt(lambda_k) f_k(x_p) (= soma_p a_p dZ/dxi_k no ponto p) para k < K, para cada vetor de pesos a
+    // (pesos[i][p]): a projecao nos modos de uma sensibilidade dada nos pontos (o gradiente modal). Na base de Nystrom,
+    // (1/sqrt(lambda_k)) sum_j w_j f_k(x_j) b_j com b_j = sum_p a_p C(x_p, x_j): O(P n + n K) em vez dos O(P n K) do
+    // ModeValues ponto a ponto
+    std::vector<std::vector<double>> ProjectModes(const std::vector<std::array<double, 2>> &pontos,
+                                                  const std::vector<std::vector<double>> &pesos, int K) const;
     // sqrt(lambda_k) f_k(x, y) dos K primeiros termos (K <= M; a mesma base em todos os campos): dZ/dxi_k no ponto
     std::vector<double> ModeValues(double x, double y, int K) const;
     double SigmaLn(int c) const { return fLog[c].sigma_ln; }
@@ -84,6 +102,19 @@ private:
     double fRho = 0.;
     int fM = 0;                           // termos usados
     double fLx = 1., fLy = 1.;            // distancias de autocorrelacao (o kernel do Nystrom)
+    enum ENucleo { EExp = 0, EGauss = 1 };
+    ENucleo fNucleo = EExp;               // nucleo da base de Nystrom
+    double fAngulo = 0.;                  // gauss: rotacao dos eixos (rad)
+    double Kernel(double dx, double dy) const; // C(dx, dy) do nucleo da base
+    // grade regular dos nos (rapido): fGNx x fGNy celulas, centro da primeira (fGx0, fGy0), passo fGdx x fGdy; celula de
+    // cada no; e, por campo, as quatro somas acumuladas da realizacao (frente/tras em y e depois em x)
+    bool fGrade = false;
+    int fGNx = 0, fGNy = 0;
+    double fGx0 = 0., fGy0 = 0., fGdx = 1., fGdy = 1.;
+    std::vector<int64_t> fGCelula;
+    mutable std::vector<std::array<std::vector<double>, 4>> fGQ;
+    void PrepareGrid() const;              // as somas da realizacao (fNysA ja feito)
+    double GridValue(int c, double x, double y) const; // Z do campo c no ponto pelas somas
     // base de Nystrom (vazia: a analitica)
     std::vector<std::array<double, 3>> fNysNos;           // x, y, peso
     std::vector<double> fNysLam;                          // autovalores (fM)

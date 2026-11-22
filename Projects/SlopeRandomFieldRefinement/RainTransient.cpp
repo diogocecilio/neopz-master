@@ -3,19 +3,22 @@
 #include <algorithm>
 
 RainTransient::RainTransient(TPZUnsatAnalysis &an, const RainData &r, REAL gammaw, const std::set<int> &laterais,
-                             const std::set<int> &superficie)
+                             const std::set<int> &superficie, const std::map<int, REAL> &cargas)
     : fAn(an), fRain(r), fGammaW(gammaw)
 {
     fFixed = an.AllDisplacements(TPZFMatrix<STATE>(an.NEq(), 1, 0.)); // esqueleto rigido: todo u = 0
     for (const auto &[no, eq] : an.AirEq()) fFixed[eq] = 0.;           // ar passivo
-    for (int id : laterais)                                            // laterais abaixo do nivel: hidrostatica
+    for (int id : laterais) {                                          // laterais abaixo do nivel: hidrostatica
+        const auto h = cargas.find(id);
         for (const auto &[no, L] : an.BoundaryNodes(id)) {
-            const REAL nivel = r.WaterLevel(an.Coord(no, 0)), y = an.Coord(no, 1);
+            const REAL nivel = h != cargas.end() ? h->second : r.WaterLevel(an.Coord(no, 0)), y = an.Coord(no, 1);
             if (y <= nivel) fFixed[an.WaterEq().at(no)] = gammaw * (nivel - y);
         }
-    // chuva por metro de superficie (inclinada na face); um no entre dois trechos soma as metades das arestas dos dois
+    }
+    // chuva por metro de superficie (inclinada na face; ou da projecao horizontal, chuva vertical); um no entre dois
+    // trechos soma as metades das arestas dos dois
     for (int id : superficie)
-        for (const auto &[no, L] : an.BoundaryNodes(id)) fSurface[no] += L;
+        for (const auto &[no, L] : an.BoundaryNodes(id, r.rainVertical)) fSurface[no] += L;
 }
 
 void RainTransient::InitialState()

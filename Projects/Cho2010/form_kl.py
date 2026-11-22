@@ -29,7 +29,16 @@ SlopeDrawdownMonteCarlo (os de antes) e so vao para o executavel quando diferent
 line_sampling.py usa as mesmas. Ex.: a agua do artigo (percolacao permanente depois do rebaixamento instantaneo):
 contorno=ceron agua=sat trebaix=0.0001 tfim=20 dt=5.
 gradiente=modal: uma analise por iteracao, com o gradiente pela projecao modal da sensibilidade de limite superior
-(Cho2010 gradiente=M; no colapso do SRM ou do GIM, conforme o metodo), em vez das 4M + 1 das diferencas centrais."""
+(Cho2010 gradiente=M; no colapso do SRM ou do GIM, conforme o metodo), em vez das 4M + 1 das diferencas centrais.
+prog=chuva: a chuva (SlopeRainMonteCarlo, Projects/SlopeRandomFieldRefinement), com 3 campos (c', phi' e k: 3M
+variaveis) e g = (o menor FS dos instantes tempos=) - 1, a primeira passagem; o gradiente modal e o do instante do menor
+FS (o executavel com gradiente=M), e os termos de k saem 0 (o fator congela as pressoes). Aqui so M=, h=, paralelos=,
+iteracoes=, tol_g=, tol_beta=, gradiente= e threads= sao do FORM: todas as outras chave=valor vao para o executavel como
+estao (ex.: a geometria, o solo, a chuva, tempos=, nystrom=, rcphi=, pressoes=; os padroes sao os do executavel), e
+ficam no form.json para o line_sampling.py. Um instante sem fator por SRM sem equilibrio (FS_min = 0) e falha (FS =
+0,005); outro problema numa analise (o transiente que parou) e erro.
+threads (0): PZ_THREADS das analises (0: um processo serial por analise; no FORM modal, so uma analise por iteracao,
+mais threads aceleram)."""
 import concurrent.futures as cf
 import csv
 import json
@@ -41,19 +50,40 @@ import sys
 # as opcoes do rebaixamento passadas ao SlopeDrawdownMonteCarlo, com os padroes dele (so as diferentes vao na linha)
 REBAIX_PADRAO = {"contorno": "reservatorio", "agua": "unsat", "trebaix": 0.1, "tfim": -1.0, "dt": 0.1, "hw": 1.0,
                  "covc": 0.3, "covphi": 0.1, "covk": 0.6, "s": 1.0, "alfa": 1.0}
+# prog=chuva: as opcoes do FORM (as outras vao para o SlopeRainMonteCarlo) e as que o FORM poe na linha de comando
+CHUVA_FORM = {"M", "h", "paralelos", "iteracoes", "tol_g", "tol_beta", "gradiente", "prog", "threads"}
+CHUVA_RESERVADAS = {"n", "primeira", "xi", "saida", "gradiente", "det", "figuras"}
+SITUACAO_SEM_EQUILIBRIO = 0.005  # FS (ou Gamma) de um instante sem fator: o SRM (ou o GIM) sem equilibrio, falha
 
 
 def parametros(argv):
     p = {"M": 20, "rcphi": -0.5, "h": 0.5, "paralelos": 2, "iteracoes": 10, "fator": "tri2", "nref": 4, "srm_f0": 0.8,
          "tol_g": 0.001, "tol_beta": 0.01, "gradiente": "dif", "nystrom": "", "metodo": "srm", "prog": "cho",
-         "transiente": "tri3", **REBAIX_PADRAO}
+         "transiente": "tri3", "threads": 0, **REBAIX_PADRAO}
+    if "prog=chuva" in argv:  # as opcoes do FORM e, o resto, as do executavel, na ordem dada
+        p["exe"] = []
+        for a in argv:
+            k, v = a.split("=", 1)
+            if k in CHUVA_FORM:
+                p[k] = type(p[k])(v)
+            elif k in CHUVA_RESERVADAS:
+                sys.exit(f"prog=chuva: {k}= e do FORM ou da linha de comando que ele monta")
+            else:
+                p["exe"] = [x for x in p["exe"] if not x.startswith(k + "=")] + [a]
+                if k == "metodo":
+                    p["metodo"] = v
+                if k == "nystrom":
+                    p["nystrom"] = v
+        if p["metodo"] not in ("srm", "gim"):
+            sys.exit("metodo: srm ou gim")
+        return p
     for a in argv:
         k, v = a.split("=", 1)
         if k not in p:
             sys.exit(f"opcao desconhecida: {a}")
         p[k] = type(p[k])(v)
     if p["prog"] not in ("cho", "rebaixamento"):
-        sys.exit("prog=cho ou prog=rebaixamento")
+        sys.exit("prog=cho, prog=rebaixamento ou prog=chuva")
     if p["prog"] == "rebaixamento":
         p["metodo"] = "gim"  # o fator do rebaixamento e o Gamma do GIM
     return p
@@ -61,11 +91,41 @@ def parametros(argv):
 
 def campos(p):
     """os nomes dos campos (a ordem dos xi: os M de cada um)"""
-    return ["c", "phi", "k"] if p["prog"] == "rebaixamento" else ["c", "phi"]
+    return ["c", "phi", "k"] if p["prog"] in ("rebaixamento", "chuva") else ["c", "phi"]
+
+
+def ambiente(p):
+    """o ambiente de uma analise: um processo serial (ou threads= do PZ), sem threads no MKL"""
+    return dict(os.environ, PZ_THREADS=str(p.get("threads", 0)), OMP_NUM_THREADS="1", MKL_NUM_THREADS="1")
+
+
+def le_fator(arq, p):
+    """o fator de uma analise (o <rotulo>_0_0.csv): na chuva, o menor FS dos instantes (um instante sem equilibrio, com
+    situacao fator e FS_min = 0, e falha: SITUACAO_SEM_EQUILIBRIO), e o instante dele; nos outros, a linha unica"""
+    with open(arq, newline="") as f:
+        linhas = list(csv.DictReader(f))
+    if not linhas:
+        raise RuntimeError(f"{arq}: vazio")
+    if p["prog"] != "chuva":
+        if linhas[0]["situacao"] != "ok":
+            raise RuntimeError(f"{arq}: situacao {linhas[0]['situacao']} (FS_min {linhas[0]['FS_min']})")
+        return float(linhas[0]["FS_min"]), float(linhas[0]["t_h"])
+    melhor = None
+    for r in linhas:
+        fs = float(r["FS_min"])
+        if r["situacao"] == "fator" and fs == 0.:
+            fs = SITUACAO_SEM_EQUILIBRIO
+        elif r["situacao"] != "ok":
+            raise RuntimeError(f"{arq}: situacao {r['situacao']} em t = {r['t_h']} h (FS_min {r['FS_min']})")
+        if melhor is None or fs < melhor[0]:
+            melhor = (fs, float(r["t_h"]))
+    return melhor
 
 
 def comando(exe, p, arq, rotulo):
     """a linha de comando de uma analise nos xi do arquivo"""
+    if p["prog"] == "chuva":
+        return [exe, "n=1", "primeira=0", f"xi={arq}", f"M={p['M']}"] + list(p["exe"]) + [f"saida={rotulo}"]
     if p["prog"] == "rebaixamento":
         extra = [f"{k}={p[k]}" for k, v in REBAIX_PADRAO.items() if k in p and p[k] != v]
         return [exe, "n=1", "primeira=0", f"xi={arq}", f"transiente={p['transiente']}", f"fator={p['fator']}",
@@ -87,13 +147,9 @@ class Problema:
         with open(arq, "w") as f:
             f.write("\n".join(repr(x) for x in u) + "\n")
         cmd = comando(self.exe, self.p, arq, rotulo)
-        env = dict(os.environ, PZ_THREADS="0", OMP_NUM_THREADS="1", MKL_NUM_THREADS="1")
-        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env, cwd=self.pasta)
-        with open(os.path.join(self.pasta, rotulo + "_0_0.csv"), newline="") as f:
-            linha = next(csv.DictReader(f))
-        if linha["situacao"] != "ok":
-            raise RuntimeError(f"{rotulo}: situacao {linha['situacao']}")
-        return float(linha["FS_min"])
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=ambiente(self.p),
+                       cwd=self.pasta)
+        return le_fator(os.path.join(self.pasta, rotulo + "_0_0.csv"), self.p)[0]
 
     def g_modal(self, u, it):
         """uma analise: o fator e o gradiente pela projecao modal (Cho2010 gradiente=M: limite superior no colapso)"""
@@ -102,15 +158,16 @@ class Problema:
         with open(arq, "w") as f:
             f.write("\n".join(repr(x) for x in u) + "\n")
         cmd = comando(self.exe, self.p, arq, rotulo) + [f"gradiente={self.p['M']}"]
-        env = dict(os.environ, PZ_THREADS="0", OMP_NUM_THREADS="1", MKL_NUM_THREADS="1")
-        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=env, cwd=self.pasta)
-        with open(os.path.join(self.pasta, rotulo + "_0_0.csv"), newline="") as f:
-            linha = next(csv.DictReader(f))
-        if linha["situacao"] != "ok":  # sem o _grad_0.txt: a mensagem clara em vez de FileNotFoundError
-            raise RuntimeError(f"{rotulo}: situacao {linha['situacao']} (FS_min {linha['FS_min']}), sem gradiente")
-        v = [float(x) for x in open(os.path.join(self.pasta, rotulo + "_grad_0.txt")).read().split("\n")[1:] if x.strip()]
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=ambiente(self.p),
+                       cwd=self.pasta)
+        # sem o _grad_0.txt: a mensagem clara em vez de FileNotFoundError
+        fs, t = le_fator(os.path.join(self.pasta, rotulo + "_0_0.csv"), self.p)
+        arq_g = os.path.join(self.pasta, rotulo + "_grad_0.txt")
+        if not os.path.exists(arq_g):
+            raise RuntimeError(f"{rotulo}: sem o gradiente (FS {fs} em t = {t} h)")
+        v = [float(x) for x in open(arq_g).read().split("\n")[1:] if x.strip()]
         self.n += 1
-        return v[0] - 1., v[1:], [v[0]]
+        return v[0] - 1., v[1:], [v[0], t]
 
     def g_e_gradiente(self, u, it):
         if self.p["gradiente"] == "modal":
@@ -147,6 +204,8 @@ def main():
     hist = []
     titulo = ("rebaixamento do Ceron (2025), " + (" ".join(comando("", p, "", "")[4:-1]) or "padrao")) \
         if p["prog"] == "rebaixamento" else \
+        ("chuva (SlopeRainMonteCarlo), " + (" ".join(p["exe"]) or "padrao") + ", g = menor FS dos instantes - 1") \
+        if p["prog"] == "chuva" else \
         f"Cho (2010), Exemplo 2, r(c, phi) = {p['rcphi']}"
     tipo = "modal (1 avaliacao por iteracao)" if p["gradiente"] == "modal" else \
         f"por diferencas centrais (h = {p['h']}, {2 * nc * M + 1} avaliacoes por iteracao)"
@@ -182,6 +241,9 @@ def main():
     alfa = [-x / n for x in grad]
     a2 = [x * x for x in alfa]
     beta_corr = beta_novo  # distancia ao plano tangente no ultimo ponto avaliado (o proximo passo do HL-RF)
+    if hist[0]["g"] < 0.:  # a origem (as medias) ja esta na falha: beta negativo e P_f = Phi(-beta) > 1/2
+        beta, beta_corr = -beta, -beta_corr
+        print("  g(0) < 0: as medias ja falham; beta negativo (o line_sampling.py inverte a direcao)", flush=True)
     res = {"parametros": p, "beta": beta, "P_f": phi_normal(-beta), "beta_corrigido": beta_corr,
            "P_f_corrigida": phi_normal(-beta_corr), "convergiu": convergiu, "iteracoes": len(hist), "u": u, "alfa": alfa, "alfa2": a2,
            "alfa2_c": sum(a2[:M]), "alfa2_phi": sum(a2[M:2 * M]), "alfa2_k": sum(a2[2 * M:]), "avaliacoes": prob.n,

@@ -3,6 +3,8 @@ cluster/build/
 cluster/bin/
 cluster/build_ceron/
 cluster/bin_ceron/
+cluster/build_hu/
+cluster/bin_hu/
 cluster/logs/*
 !cluster/logs/.gitkeep
 cluster/teste/
