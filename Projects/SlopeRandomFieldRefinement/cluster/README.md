@@ -567,14 +567,14 @@ de 1 (primeira passagem).
 
 Os 6 cenarios de `casos_hu2024.txt` (os 5 do relatorio e o I30_D24, em que o MC direto confere o LS):
 
-| caso | chuva | P_f do artigo | FS deterministico no fim da chuva (tri3) | N do MC |
-|---|---|---|---|---|
-| I30_D12 | 30 mm/h por 12 h | 0,012 | 1,296 | 500 |
-| I20_D24 | 20 mm/h por 24 h | 0,030 | 1,226 | 500 |
-| I40_D12 | 40 mm/h por 12 h | 0,091 | 1,132 | 4000 |
-| I20_D36 | 20 mm/h por 36 h | 0,117 | 1,118 | 4000 |
-| I50_D24 | 50 mm/h por 24 h | 0,7781 | 0,908 | 300 |
-| I30_D24 | 30 mm/h por 24 h | 0,221 | 1,065 | 2000 |
+| caso | chuva | P_f do artigo | FS deterministico no fim da chuva (tri3) | N do MC | teto do LS (linhas) |
+|---|---|---|---|---|---|
+| I30_D12 | 30 mm/h por 12 h | 0,012 | 1,296 | 500 | 60 |
+| I20_D24 | 20 mm/h por 24 h | 0,030 | 1,226 | 500 | 60 |
+| I40_D12 | 40 mm/h por 12 h | 0,091 | 1,132 | 4000 | 600 |
+| I20_D36 | 20 mm/h por 36 h | 0,117 | 1,118 | 4000 | 600 |
+| I50_D24 | 50 mm/h por 24 h | 0,7781 | 0,908 | 300 | 600 |
+| I30_D24 | 30 mm/h por 24 h | 0,221 | 1,065 | 2000 | 600 |
 
 O N do MC nao e o do CoV de 10% com a P_f do artigo: no piloto de 22/11 (10 realizacoes, 50 mm/h por 24 h) o desvio do
 FS e ~0,37 do de Hu (0,063, 0,034 e 0,047 em 0, 24 e 72 h, contra 0,165, 0,091 e 0,130; as medias batem: 1,524, 0,905 e

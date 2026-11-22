@@ -9,7 +9,7 @@
 #   1. o deterministico (as medias, FS de 6 em 6 h de 0 a 72 h) e o FORM (M termos por campo, gradiente modal, ate
 #      FORM_IT iteracoes de 1 analise com FORM_THREADS threads) de cada caso;
 #   2. o line sampling de cada caso com o FORM pronto, um caso por vez com PARALELO linhas em voo, ate CoV(P_f) <= COV
-#      (no minimo NMIN e no maximo N linhas), semente 7 em todos os casos;
+#      (no minimo NMIN e no maximo o teto do caso, limitado a N linhas), semente 7 em todos os casos;
 #   3. o Monte Carlo direto: min(N_mc do caso, NMC_MAX) realizacoes por caso em blocos de BLOCO_MC, intercalados entre os
 #      casos (a realizacao n tem os mesmos numeros aleatorios em todos os casos), e a conferencia da primeira passagem:
 #      as NCHECK primeiras realizacoes de cada caso com o FS em todos os instantes (mc13/).
@@ -63,15 +63,16 @@ mkdir -p "$SAIDA"
 LOG="$SAIDA/eventos.log"
 diz() { echo "$(date '+%F %T') [$JOB] $*" | tee -a "$LOG"; }
 
-# os casos: id, P_f do artigo, N do MC e opcoes (CASOS: so os ids pedidos)
-IDS=() OPCS=() NMCS=() DS=()
-while read -r id pf nmc opc; do
+# os casos: id, P_f do artigo, N do MC, teto de linhas do LS e opcoes (CASOS: so os ids pedidos)
+IDS=() OPCS=() NMCS=() NLS=() DS=()
+while read -r id pf nmc nls opc; do
     [[ -z "$id" || "$id" == \#* ]] && continue
     if [ "$CASOS" != todos ] && [[ ",$CASOS," != *",$id,"* ]]; then continue; fi
     d="$(sed -n 's/.*chuva=\([0-9.]*\).*/\1/p' <<< "$opc")"
     [ -n "$d" ] || { echo "caso $id sem chuva= nas opcoes" >&2; exit 1; }
     [ "$nmc" -gt "$NMC_MAX" ] && nmc="$NMC_MAX"
-    IDS+=("$id") OPCS+=("$opc") NMCS+=("$nmc") DS+=("$d")
+    [ "$nls" -gt "$N" ] && nls="$N"
+    IDS+=("$id") OPCS+=("$opc") NMCS+=("$nmc") NLS+=("$nls") DS+=("$d")
 done < "$CASOS_TXT"
 [ ${#IDS[@]} -gt 0 ] || { echo "nenhum caso (CASOS=$CASOS em $CASOS_TXT)" >&2; exit 1; }
 # os instantes do caso <i> (tempos= e adapta=)
@@ -212,7 +213,7 @@ ls_caso() {
     base_local
     diz "line sampling $id"
     python3 -I "$PY/line_sampling.py" "$EXE" "$d/form/form.json" "$d/ls" K="$M" semente=7 cov="$COV" nmin="$NMIN" \
-        n="$N" paralelos="$PARALELO" threads=0 nystrom="$NYS_LOCAL" pressoes="$d/pressoes.txt" >> "$d/ls.log" 2>&1 &
+        n="${NLS[$i]}" paralelos="$PARALELO" threads=0 nystrom="$NYS_LOCAL" pressoes="$d/pressoes.txt" >> "$d/ls.log" 2>&1 &
     pid=$!
     while kill -0 "$pid" 2> /dev/null; do
         [ -e "$SAIDA/PARAR" ] && [ ! -e "$d/ls/PARAR" ] && touch "$d/ls/PARAR"

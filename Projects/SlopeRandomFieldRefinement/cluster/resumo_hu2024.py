@@ -35,10 +35,10 @@ def le_casos(arq):
         t = linha.split()
         if not t or t[0].startswith("#"):
             continue
-        opc = " ".join(t[3:])
+        opc = " ".join(t[4:])
         d = re.search(r"chuva=([0-9.]+)", opc)
         i = re.search(r"\bI=([0-9.]+)", opc)
-        casos.append({"id": t[0], "pf_artigo": num(t[1]), "n_mc": int(t[2]), "opcoes": opc,
+        casos.append({"id": t[0], "pf_artigo": num(t[1]), "n_mc": int(t[2]), "n_ls": int(t[3]), "opcoes": opc,
                       "D": float(d.group(1)) if d else None, "I": float(i.group(1)) if i else None})
     return casos
 
