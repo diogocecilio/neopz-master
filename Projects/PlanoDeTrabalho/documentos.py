@@ -76,6 +76,11 @@ DOCUMENTOS = [
          "os contornos da água: Ceron (2025) contra o PZ 'reservatorio' e 'ceron' e a chuva do Rahardjo (2007) contra o "
          "código; esquemas em escala, as duas tabelas de contornos, o Gamma por contorno e domínio, e os próximos passos "
          "(contornos_agua/gera.sh refaz)"),
+        ("Projects/PlanoDeTrabalho/ceron_secao6/relatorio_ceron_secao6.pdf",
+         "as Seções 6.1 a 6.5 do Ceron (2025) com a água do artigo, figura a figura (Figs. 25 a 33, Tabelas 3 a 6): "
+         "FORM modal, line sampling e MC pareado da campanha lsCeronC, com as colunas da água antiga; o de 13/11 está "
+         "em arquivo/2026-11-13_relatorio_ceron_agua_antiga.pdf (ceron_secao6/gera.sh refaz depois do "
+         "baixar_ls_ceron.sh)"),
         ("Projects/PlanoDeTrabalho/arquivo/", "cópias datadas (AAAA-MM-DD_nome.pdf), nunca editadas"),
     ]),
     ("Resultados: as campanhas", [
