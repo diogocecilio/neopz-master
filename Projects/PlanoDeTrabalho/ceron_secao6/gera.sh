@@ -6,6 +6,8 @@
 #   3. o LaTeX em duas passadas. A capa leva a data e o commit (+ se ha mudancas nesta pasta).
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
+# datas fixas nos PDFs do matplotlib: as figuras so mudam quando o conteudo muda (e a capa nao ganha "+" a toa)
+export SOURCE_DATE_EPOCH=1767225600
 CAMPANHA="${CAMPANHA:-$HOME/projects/runs/fermi_ceron_ls_casos}"
 SEM_BAIXAR=1 DEST="$CAMPANHA" ../../SlopeRandomFieldRefinement/cluster/baixar_ls_ceron.sh > /dev/null
 python3 -I gera_dados.py "$CAMPANHA"
