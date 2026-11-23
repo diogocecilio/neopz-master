@@ -1,0 +1,13 @@
+% gerado por gera_dados.py; nao edite
+\begin{table}[htbp]\centering\footnotesize
+\caption{O custo por cenário, em análises do MEF (uma análise: o transiente lido e o SRM no fim da chuva e 6~h depois). FORM: iterações de uma análise cada (gradiente modal). LS: linhas e análises (a parada no primeiro $N \ge 30$ com $CoV \le 5\,\%$, ou o teto). MC: realizações; mc13: as 20 primeiras com o FS de 6 em 6~h.}\label{tab:custo}
+\begin{tabular}{lrrrrrl}\toprule
+cenário & FORM & linhas & LS & MC & mc13 & parada do LS \\\midrule
+30 mm/h, 12 h & 10 & 60 & 226 & 500 & 20 & teto de 60 linhas \\
+20 mm/h, 24 h & 10 & 60 & 172 & 500 & 20 & teto de 60 linhas \\
+40 mm/h, 12 h & 10 & 600 & 1777 & 4000 & 20 & teto de 600 linhas \\
+20 mm/h, 36 h & 6 & 491 & 1365 & 4000 & 20 & $CoV \le 5\,\%$ com 468 linhas \\
+50 mm/h, 24 h & 10 & 53 & 152 & 300 & 20 & $CoV \le 5\,\%$ com 30 linhas \\
+30 mm/h, 24 h & 10 & 109 & 272 & 2000 & 20 & $CoV \le 5\,\%$ com 86 linhas \\
+\midrule total & 56 & 1373 & 3964 & 11300 & 120 & \\
+\bottomrule\end{tabular}\end{table}

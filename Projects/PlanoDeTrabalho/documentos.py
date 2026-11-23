@@ -81,6 +81,11 @@ DOCUMENTOS = [
          "FORM modal, line sampling e MC pareado da campanha lsCeronC, com as colunas da água antiga; o de 13/11 está "
          "em arquivo/2026-11-13_relatorio_ceron_agua_antiga.pdf (ceron_secao6/gera.sh refaz depois do "
          "baixar_ls_ceron.sh)"),
+        ("Projects/PlanoDeTrabalho/hu2024/relatorio_hu2024.pdf",
+         "o caso A da chuva, Hu et al. (2024), na campanha hu2024 (6 cenários, k_s = 2e-5): o determinístico contra a "
+         "média de Hu (malhas, os dois k_s, chuva inclinada e vertical), o FORM modal, o line sampling e o MC direto "
+         "contra a fragilidade do artigo, o LS contra o MC, por que as P_f de Hu não se reproduzem (o desvio do FS é "
+         "0,38 do dele e passa do limite homogêneo) e a primeira passagem (hu2024/gera.sh refaz)"),
         ("Projects/PlanoDeTrabalho/arquivo/", "cópias datadas (AAAA-MM-DD_nome.pdf), nunca editadas"),
     ]),
     ("Resultados: as campanhas", [
