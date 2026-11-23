@@ -29,16 +29,21 @@ def le_casos(arq):
         t = linha.split()
         if not t or t[0].startswith("#"):
             continue
-        casos.append({"id": t[0], "secao": t[1], "pf_artigo": num(t[2]) / 100., "cov_pf_artigo": num(t[3]) / 100.,
-                      "det_artigo": num(t[4]), "opcoes": "" if t[5] == "-" else " ".join(t[5:])})
+        # "-" nas colunas do artigo: um caso sem numero no artigo (os testes de casos_ls_ceron_testes.txt)
+        pf, cv = num(t[2]), num(t[3])
+        casos.append({"id": t[0], "secao": t[1], "pf_artigo": None if pf is None else pf / 100.,
+                      "cov_pf_artigo": None if cv is None else cv / 100., "det_artigo": num(t[4]),
+                      "opcoes": "" if t[5] == "-" else " ".join(t[5:])})
     return casos
 
 
 def familia(c):
     if c["id"] == "ref":
         return "ref", None
+    if "=" not in c["id"]:  # um teste fora das familias (ex.: alfa4_covk0)
+        return c["id"], None
     k, v = c["id"].split("=", 1)
-    return k, float(v)
+    return k, num(v)
 
 
 def le_det(d):
@@ -162,7 +167,7 @@ def main():
         fam, val = familia(c)
         det, form, ls, mc = le_det(d), le_form(d), le_ls(d), le_mc(d)
         z = None
-        if ls.get("P_f") is not None and ls.get("CoV") is not None:
+        if ls.get("P_f") is not None and ls.get("CoV") is not None and c["pf_artigo"] is not None:
             s2 = (ls["CoV"] * ls["P_f"]) ** 2 + (c["cov_pf_artigo"] * c["pf_artigo"]) ** 2
             z = (ls["P_f"] - c["pf_artigo"]) / math.sqrt(s2) if s2 > 0 else None
         tot_an += (form.get("analises") or 0) + (ls.get("analises") or 0) + mc["S"]

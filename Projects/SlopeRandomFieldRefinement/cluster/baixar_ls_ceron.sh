@@ -2,7 +2,9 @@
 # baixar_ls_ceron.sh (no PC): baixa a campanha ls_ceron_casos.sbatch ($DATA/ceron_ls_casos no fermi; pede a senha uma
 # vez) para ~/projects/runs/fermi_ceron_ls_casos, grava o resumo contra o artigo (resultado.txt, resultado.csv,
 # resumo.json; resumo_ls_ceron.py) e as figuras da Secao 6 do artigo (figs/; figuras_ls_ceron.py, com numpy e
-# matplotlib). SEM_BAIXAR=1: so o resumo e as figuras do que ja foi baixado.
+# matplotlib). SEM_BAIXAR=1: so o resumo e as figuras do que ja foi baixado. Os testes (casos_ls_ceron_testes.txt, em
+# $DATA/ceron_ls_testes): DEST=~/projects/runs/fermi_ceron_ls_testes ORIGEM=diogo@fermi.cesup.ufrgs.br:/mnt/data/diogo/
+# ceron_ls_testes/ CASOS_TXT=casos_ls_ceron_testes.txt ./baixar_ls_ceron.sh (as figuras podem falhar: so um caso).
 set -euo pipefail
 AQUI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEST="${DEST:-$HOME/projects/runs/fermi_ceron_ls_casos}"
@@ -15,7 +17,7 @@ if [ -z "${SEM_BAIXAR:-}" ]; then
         [ "$rc" = 23 ] || [ "$rc" = 24 ] || exit "$rc"
     }
 fi
-python3 -I "$AQUI/resumo_ls_ceron.py" "$DEST" "$AQUI/casos_ls_ceron.txt" --json "$DEST/resumo.json" \
+python3 -I "$AQUI/resumo_ls_ceron.py" "$DEST" "$AQUI/${CASOS_TXT:-casos_ls_ceron.txt}" --json "$DEST/resumo.json" \
     --csv "$DEST/resultado.csv" | tee "$DEST/resultado.txt"
 python3 -I "$(cd "$AQUI/../../SlopeRandomField/comparacao_ceron" && pwd)/figuras_ls_ceron.py" "$DEST/resumo.json" \
     "$DEST/figs" > "$DEST/figs.log" 2>&1 && echo "figuras em $DEST/figs" || { echo "as figuras falharam:"; tail -n 20 "$DEST/figs.log"; }

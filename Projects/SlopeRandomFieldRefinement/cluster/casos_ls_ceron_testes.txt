@@ -1,0 +1,11 @@
+# casos_ls_ceron_testes.txt: os testes da Secao 6 de Vargas Ceron et al. (2025) para o ls_ceron_casos.sbatch, fora da
+# campanha principal (casos_ls_ceron.txt), com a saida separada para nao misturar com o relatorio:
+#     SAIDA=$DATA/ceron_ls_testes CASOS_TXT=$PWD/casos_ls_ceron_testes.txt ./submeter_ls_ceron.sh 2
+# Mesmas colunas e mesma base do sbatch; "-" nas colunas do artigo: o artigo nao tem o caso (o resumo nao calcula o z).
+# O MC pareado usa as mesmas realizacoes (a semente padrao do SlopeDrawdownMonteCarlo) e o LS os mesmos Z (semente 7,
+# 3 campos de 2000 termos) que os casos da campanha principal.
+#   alfa4_covk0: alfa = 4 com k_s fixo. Na familia alfa o LS da P_f acima do artigo (alfa = 4: 1,42% contra 1,00%,
+#   z = +4,9); a direcao do FORM tem gradiente nulo em k, entao o excesso, se vier do campo de k, some aqui (o LS fica
+#   perto do alfa=4 sem k aleatorio e o MC pareado mostra quanto o k muda a P_f); se ficar, nao e do k.
+# id            secao  Pf_artigo  CoVPf_artigo  Gamma_det_artigo  opcoes
+alfa4_covk0     6.4    -          -             -                 alfa=4 covk=0
