@@ -1,0 +1,18 @@
+% gerado por gera_dados.py; nao edite
+\begin{table}[htbp]\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\caption{$P_f = P(FS < 1)$ do caso B ($\alpha = 0^\circ$, $q/k_s = 0{,}01$) por método, contra as Tabelas 2 e 4 de Liu. LS: IC de 95\,\% na escala log ($P_f\, e^{\pm 1{,}96 s}$, $s^2 = \ln(1 + CoV^2)$; o normal tem limite inferior negativo com $CoV > 51\,\%$). MC: IC de Wilson. Ajustes: a Eq.~13 de Liu (lognormal) e a normal com a média e o desvio do nosso MC. A Tabela 2 é a verificação no modelo do cenário 3.}\label{tab:pf}
+\begin{tabular}{llll}\toprule
+método & detalhe & cenário 2 ($c'$, $\varphi'$) & cenário 3 ($c'$, $\varphi'$, $k_s$) \\\midrule
+FORM modal & $\beta$; $\Phi(-\beta)$ & 4{,}82; \ensuremath{7{,}1\times 10^{-7}} & 4{,}77; \ensuremath{9{,}3\times 10^{-7}} \\
+line sampling & 600 e 600 linhas & \ensuremath{9{,}3\times 10^{-6}} ($CoV$ 54\,\%) & \ensuremath{2{,}6\times 10^{-5}} ($CoV$ 34\,\%) \\
+ & IC 95\,\% (log) & [\ensuremath{3{,}5\times 10^{-6}}; \ensuremath{2{,}5\times 10^{-5}}] & [\ensuremath{1{,}4\times 10^{-5}}; \ensuremath{5{,}0\times 10^{-5}}] \\
+ & $-\Phi^{-1}(P_f)$ & 4{,}28 & 4{,}04 \\
+MC direto & falhas & 0 em 2\,500 & 0 em 10\,000 \\
+ & IC 95\,\% (Wilson) & [0; \ensuremath{1{,}5\times 10^{-3}}] & [0; \ensuremath{3{,}8\times 10^{-4}}] \\
+ & média $\pm$ desvio do FS & 1{,}550 $\pm$ 0{,}155 & 1{,}538 $\pm$ 0{,}159 \\
+ajuste ao nosso MC & lognormal: $\beta$; $P_f$ & 4{,}35; \ensuremath{6{,}9\times 10^{-6}} & 4{,}11; \ensuremath{2{,}0\times 10^{-5}} \\
+ & normal: $P_f$ & \ensuremath{1{,}9\times 10^{-4}} & \ensuremath{3{,}7\times 10^{-4}} \\
+\midrule Liu, Tabela 4 & lognormal (2000): $\beta$; $P_f$ & 3{,}95; \ensuremath{4{,}08\times 10^{-5}} & 3{,}68; \ensuremath{1{,}19\times 10^{-4}} \\
+Liu, Tabela 2 & LHS, 2\,500 amostras & -- & \ensuremath{4{,}0\times 10^{-3}} \\
+ & CDF ajustada & -- & \ensuremath{4{,}58\times 10^{-3}} \\
+\bottomrule\end{tabular}\end{table}

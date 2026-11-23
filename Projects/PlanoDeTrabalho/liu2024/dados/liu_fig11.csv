@@ -1,0 +1,8 @@
+# Liu et al. (2024), Fig. 11, alfa = 0 graus, q/k_s = 0,01 (as 2000 realizacoes de cada cenario): o desvio do FS (os
+# triangulos, eixo da direita: 0 a 0,20) e o menor FS (o losango mais baixo do boxplot, eixo da esquerda: 0,9 a 2,4).
+# A figura do PDF e raster (pdfimages, pagina 11, 992 x 705 px): os eixos pelas molduras (y = 612,5 e 16 px); os
+# triangulos pelos pixels azuis escuros; o menor FS a olho no pixel (erro ~0,01). A media do FS nao aparece na figura.
+cenario,dp_FS,FS_min_2000
+S1,0.0413,1.38
+S2,0.1485,1.05
+S3,0.1552,1.02

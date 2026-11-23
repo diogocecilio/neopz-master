@@ -86,6 +86,11 @@ DOCUMENTOS = [
          "média de Hu (malhas, os dois k_s, chuva inclinada e vertical), o FORM modal, o line sampling e o MC direto "
          "contra a fragilidade do artigo, o LS contra o MC, por que as P_f de Hu não se reproduzem (o desvio do FS é "
          "0,38 do dele e passa do limite homogêneo) e a primeira passagem (hu2024/gera.sh refaz)"),
+        ("Projects/PlanoDeTrabalho/liu2024/relatorio_liu2024.pdf",
+         "o caso B da chuva, Liu et al. (2024), na campanha liu2024 (cenários 2 e 3, permanente com campos gaussianos): "
+         "o permanente contra a Fig. 3 e o FS contra o Bishop, o FORM modal, o line sampling e o MC direto contra as "
+         "Tabelas 2 e 4, o MC que exclui a verificação da Tabela 2, a média do FS (SRM 3,4 % acima do Bishop) que "
+         "explica a Tabela 4 e o efeito do campo de k_s (liu2024/gera.sh refaz com as linhas do LS que existirem)"),
         ("Projects/PlanoDeTrabalho/arquivo/", "cópias datadas (AAAA-MM-DD_nome.pdf), nunca editadas"),
     ]),
     ("Resultados: as campanhas", [
