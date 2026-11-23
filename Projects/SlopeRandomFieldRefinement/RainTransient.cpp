@@ -1,6 +1,8 @@
 #include "RainTransient.h"
 
 #include <algorithm>
+#include <cmath>
+#include <cstdio>
 
 RainTransient::RainTransient(TPZUnsatAnalysis &an, const RainData &r, REAL gammaw, const std::set<int> &laterais,
                              const std::set<int> &superficie, const std::map<int, REAL> &cargas)
@@ -36,16 +38,53 @@ void RainTransient::InitialState()
 
 bool RainTransient::AdvanceTo(REAL t)
 {
-    const REAL alvo = t * 3600., dt0 = fRain.dt * 3600., fim = fRain.duration * 3600.;
+    const REAL alvo = t * 3600., dt0 = fRain.dt * 3600.;
     while (fTime < alvo - 1.e-6 * dt0) {
         const REAL dt = std::min(dt0, alvo - fTime);
-        // chuva media no passo (um passo que cruza o fim da chuva recebe so a parte de antes)
-        const REAL q = fRain.Intensity() * std::max(REAL(0), std::min(fTime + dt, fim) - fTime) / dt;
-        if (!Step(dt, q)) return false;
-        fTime += dt;
-        fSteps++;
+        if (!Advance(dt)) return false;
     }
     return true;
+}
+
+bool RainTransient::Advance(REAL dt)
+{
+    const REAL fim = fRain.duration * 3600.;
+    // chuva media no passo (um passo que cruza o fim da chuva recebe so a parte de antes)
+    const REAL q = fRain.Intensity() * std::max(REAL(0), std::min(fTime + dt, fim) - fTime) / dt;
+    if (Step(dt, q)) {
+        fTime += dt;
+        fSteps++;
+        return true;
+    }
+    if (!(fRain.dtMin > 0.) || 0.5 * dt < fRain.dtMin * 3600. * (1. - 1.e-9)) return false;
+    return Advance(0.5 * dt) && Advance(0.5 * dt);
+}
+
+bool RainTransient::SteadyState(REAL q, REAL dt0, REAL tol, REAL *mudanca)
+{
+    REAL dt = dt0 * 3600., dp = 1.e300;
+    const REAL dtFim = 1.e4 * 3600., dtMax = 1.e8 * 3600.;
+    fSteadySteps = 0;
+    for (int k = 0; k < 200; k++) {
+        const TPZFMatrix<STATE> antes = fAn.X();
+        if (!Step(dt, q)) {
+            dt *= 0.5;
+            if (dt < 1.) break;
+            continue;
+        }
+        fSteadySteps++;
+        dp = 0.;
+        for (const auto &[no, eq] : fAn.WaterEq()) dp = std::max(dp, std::abs(fAn.X().GetVal(eq, 0) - antes.GetVal(eq, 0)));
+        if (dt >= dtFim && dp < tol) {
+            fTime = 0.;
+            if (mudanca) *mudanca = dp;
+            return true;
+        }
+        dt = std::min(2. * dt, dtMax);
+    }
+    fTime = 0.;
+    if (mudanca) *mudanca = dp;
+    return false;
 }
 
 bool RainTransient::Step(REAL dt, REAL q)
@@ -61,9 +100,16 @@ bool RainTransient::Step(REAL dt, REAL q)
             if (face.count(no)) fixed[eq] = 0.; // face de percolacao
             else chuva[eq] = q * L;             // vazao nodal da chuva (m3/s por metro de espessura)
         }
-        const TPZUnsatAnalysis::StepResult r = fAn.Solve(dt, fixed, chuva, false);
+        const TPZUnsatAnalysis::StepResult r = fAn.Solve(dt, fixed, chuva, false, fRain.lineSearch);
         fNewton += r.iter;
-        if (!r.conv) break;
+        if (!r.conv) {
+            char b[160];
+            std::snprintf(b, sizeof b, "Newton (dt %.5f h, %d iteracoes, |r_p| %.2e, %zu nos na face)", dt / 3600., r.iter,
+                          r.normp, face.size());
+            fFalha = b;
+            fAn.Restore();
+            return false;
+        }
         // confere a face: num no com p_w = 0 imposta, R_w / dt e a vazao que entra por ele
         const TPZFMatrix<STATE> R = fAn.FullResidual();
         const TPZFMatrix<STATE> x = fAn.Mesh()->Solution();
@@ -83,6 +129,8 @@ bool RainTransient::Step(REAL dt, REAL q)
         }
         face = nova;
     }
+    fFalha = "face de percolacao sem repetir em 40 tentativas (dt " + std::to_string(dt / 3600.) + " h, " +
+             std::to_string(face.size()) + " nos)";
     fAn.Restore();
     return false;
 }

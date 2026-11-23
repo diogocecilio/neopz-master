@@ -12,6 +12,7 @@
 #include <cmath>
 #include <map>
 #include <set>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -28,6 +29,8 @@ struct RainData {
     REAL intensity = 36.; // I_r (mm/h)
     REAL duration = 24.;  // horas de chuva
     REAL dt = 0.1;        // passo de tempo (h)
+    REAL dtMin = 0.;      // > 0: um passo que nao converge e refeito em duas metades, ate dtMin (h); 0: para (o antigo)
+    int lineSearch = 4;   // metades do passo de Newton na busca linear (a do TPZUnsatAnalysis::Solve)
     bool rainVertical = false; // false: q = I por metro inclinado (normal a face); true: por metro de projecao horizontal
     // estado inicial: hidrostatico abaixo do nivel d'agua (reta que sobe para a esquerda), succao ate suctionMax
     REAL xToe = 40., yToe = 30.;   // pe do talude (o da TriGMesh)
@@ -50,11 +53,19 @@ public:
     void InitialState();
     // Passos de dt ate o instante t (h); false se um passo nao convergiu (o estado fica no ultimo passo aceito)
     bool AdvanceTo(REAL t);
+    // Percolacao permanente com a infiltracao q (m/s, na convencao da chuva: por metro inclinado ou da projecao
+    // horizontal), a partir do estado atual: passos de Euler implicito com dt dobrando de dt0 (h) ate 1e8 h, e metade
+    // quando um passo nao converge; para quando a maior mudanca de p_w num passo com dt >= 1e4 h fica abaixo de tol
+    // (kPa). Nesses passos o armazenamento e desprezivel: o passo e a solucao permanente. O relogio volta a 0 (a chuva
+    // comeca depois). false se nao estacionou (o estado fica no ultimo passo aceito); mudanca: a ultima maior mudanca
+    bool SteadyState(REAL q, REAL dt0 = 0.1, REAL tol = 1.e-6, REAL *mudanca = nullptr);
+    int64_t SteadySteps() const { return fSteadySteps; }
 
     REAL Time() const { return fTime / 3600.; } // h
     int64_t Steps() const { return fSteps; }
     int64_t NewtonIterations() const { return fNewton; } // soma de todos os passos
     size_t FaceNodes() const { return fFace.size(); }    // nos da superficie na face de percolacao agora
+    const std::string &LastFailure() const { return fFalha; } // por que o ultimo passo nao convergiu (Newton ou face)
     std::pair<REAL, REAL> PressureRange() const;         // menor e maior p_w (kPa)
     // p_w de cada no da malha geometrica (pelo indice do no; 0 nos que nao tem p_w): o que vai para a outra malha
     std::vector<REAL> NodalWaterPressure() const;
@@ -62,6 +73,8 @@ public:
 private:
     // Um passo com a chuva media q (m/s): resolve com uma face tentativa e a corrige ate ela se repetir
     bool Step(REAL dt, REAL q);
+    // Um passo de dt a partir de fTime com a chuva media do intervalo (e, com dtMin > 0, as metades se nao convergir)
+    bool Advance(REAL dt);
 
     TPZUnsatAnalysis &fAn;
     RainData fRain;
@@ -70,5 +83,6 @@ private:
     std::map<int64_t, REAL> fSurface; // no da superficie -> comprimento de influencia (m), que recebe a chuva
     std::set<int64_t> fFace;          // nos da face de percolacao no ultimo passo aceito
     REAL fTime = 0.;                  // s
-    int64_t fSteps = 0, fNewton = 0;
+    int64_t fSteps = 0, fNewton = 0, fSteadySteps = 0;
+    std::string fFalha;
 };

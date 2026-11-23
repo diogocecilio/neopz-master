@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <vector>
 
 /**
  * @ingroup material
@@ -33,7 +34,9 @@
  * Relative permeability of the water:
  *  - EPowerLaw: \f$k_{rw} = S_e^{p}\f$ (Leong and Rahardjo 1997b, \f$k_w = k_s\Theta^p\f$);
  *  - EMualem: \f$k_{rw} = S_e^{1/2}\left\{1 - \left[1 - S_e^{1/m_{VG}}\right]^{m_{VG}}\right\}^2\f$;
- *  - ELiakopoulosW: \f$k_{rw} = 1 - d_L (1 - S_w)^{e_L}\f$ (Liakopoulos 1965).
+ *  - ELiakopoulosW: \f$k_{rw} = 1 - d_L (1 - S_w)^{e_L}\f$ (Liakopoulos 1965);
+ *  - ETabulated: \f$\ln k_{rw}\f$ tabulated against \f$S_w\f$ (fTabS increasing, fTabLnK), linear between the points
+ *    and constant outside them (e.g. the integral of Fredlund et al. 1994 evaluated by the driver).
  *
  * Relative permeability of the air (non-wetting phase):
  *  - EBrooksCorey: \f$k_{ra} = (1 - S_e)^2\left(1 - S_e^{(2+\lambda)/\lambda}\right)\f$;
@@ -44,7 +47,7 @@
  */
 struct TPZUnsaturatedHydraulics {
     enum ERetention { EFredlundXing = 0, EVanGenuchten = 1, ELiakopoulos = 2, EGardner = 3 };
-    enum EWaterPermeability { EPowerLaw = 0, EMualem = 1, ELiakopoulosW = 2 };
+    enum EWaterPermeability { EPowerLaw = 0, EMualem = 1, ELiakopoulosW = 2, ETabulated = 3 };
     enum EAirPermeability { EBrooksCorey = 0, EMualemAir = 1 };
 
     ERetention fRetention = EFredlundXing;
@@ -59,6 +62,8 @@ struct TPZUnsaturatedHydraulics {
     REAL fLC = 3.975e-4, fLB = 2.4279, fLD = 2.207, fLE = 1.0121;
     /** @brief Gardner (exponential) retention: a_G (1/kPa) */
     REAL fAG = 0.1;
+    /** @brief ETabulated: S_w (strictly increasing) and ln k_rw at those saturations */
+    std::vector<REAL> fTabS, fTabLnK;
     /** @brief exponent p of the power law of the water */
     REAL fPower = 4.;
     /** @brief exponent lambda of Brooks-Corey (air) */
@@ -121,6 +126,17 @@ struct TPZUnsaturatedHydraulics {
         if (fKrw == EPowerLaw) {
             raw = std::pow(Se, fPower);
             draw = fPower * std::pow(Se, fPower - 1.);
+        } else if (fKrw == ETabulated) { // function of S_w: the derivative is divided by dSe below
+            const size_t n = fTabS.size();
+            if (n < 2 || S <= fTabS[0] || S >= fTabS[n - 1]) {
+                raw = std::exp(n == 0 ? 0. : S <= fTabS[0] ? fTabLnK[0] : fTabLnK[n - 1]);
+                draw = 0.;
+            } else {
+                const size_t i = std::upper_bound(fTabS.begin(), fTabS.end(), S) - fTabS.begin() - 1;
+                const REAL g = (fTabLnK[i + 1] - fTabLnK[i]) / (fTabS[i + 1] - fTabS[i]);
+                raw = std::exp(fTabLnK[i] + g * (S - fTabS[i]));
+                draw = raw * g / dSe;
+            }
         } else if (fKrw == ELiakopoulosW) { // function of S_w: the derivative is divided by dSe below
             const REAL d = std::max(1. - S, REAL(0.));
             raw = 1. - fLD * std::pow(d, fLE);
@@ -189,6 +205,7 @@ struct TPZUnsaturatedHydraulics {
         out << "\n  k_rw ";
         if (fKrw == EPowerLaw) out << "power law p = " << fPower;
         else if (fKrw == EMualem) out << "Mualem";
+        else if (fKrw == ETabulated) out << "tabulated (" << fTabS.size() << " points)";
         else out << "Liakopoulos d = " << fLD << " e = " << fLE;
         out << " (min " << fKrwMin << "), k_ra " << (fKra == EBrooksCorey ? "Brooks-Corey lambda = " : "Mualem")
             << (fKra == EBrooksCorey ? fLambdaBC : 0.) << " (min " << fKraMin << ")\n";

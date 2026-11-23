@@ -50,6 +50,37 @@
 //                          (Vanapalli et al. 1996)
 //   c (10), phi (26), gamma (20), E (20000), nu (0.3)   medias de c' (kPa) e phi' (graus), peso especifico (kN/m3), E (kPa)
 //   rcphi (0)              correlacao cruzada dos campos gaussianos de c' e phi' (como no Cho 2010: -0,5 no caso A)
+//   fx ()                  a,n,m,theta_s: Fredlund-Xing (a em kPa, C(psi) = 1) no lugar do solo (porosidade = theta_s);
+//                          caso B (Liu et al. 2024): fx=5,2,1,0.4
+//   kfredlund ()           psi_aev (kPa): k_r pela integral de Fredlund et al. (1994) (Eq. 9 de Liu et al. 2024), com a
+//                          retencao com C(psi) e psi_r (psi_r=, 3000 kPa), tabelada contra S_w (TPZUnsaturatedHydraulics::
+//                          ETabulated), no lugar de k_s Theta^4; k_r = min(1, integral / a do denominador desde psi_aev)
+//   q0 (0)                 infiltracao do estado inicial (mm/h, na convencao de chuva_face=): o estado inicial passa a ser
+//                          a percolacao permanente com esse fluxo na superficie (RainTransient::SteadyState), a partir do
+//                          nivel inicial; a chuva comeca depois (t = 0). Caso B: q0=0.36 (1e-7 m/s), I=0, tempos=0
+//   q0_cov (0)             q0 normal com esse CoV, sorteado por realizacao (caso C, Liu e Wang 2023: a chuva anual de
+//                          1200 mm com CoV 0,1, q0 = 1200/8760 mm/h); truncado em 0
+//   chi (const)            tambem ponto: chi = tan(phi^b(x)) / tan(phi'(x)) em cada ponto, com phi^b = phib= (graus) ou
+//                          phib_razao= vezes phi'(x) (posto nas pressoes congeladas do fator: p_w chi(x) onde p_w < 0)
+//   phib (26), phib_razao ()   phi^b (graus) de chi=const e de chi=ponto; ou phi^b = razao phi' (chi=ponto; caso B: 2/3)
+//   dt (0.1)               passo de tempo do transiente (h)
+//   dt_min (0)             > 0: um passo do transiente que nao converge e refeito em duas metades, ate dt_min (h); 0: o
+//                          transiente para (o de antes)
+//   newton ()              tol_p,maxit[,busca]: o Newton do transiente para com |dp| < tol_p (kPa; padrao do
+//                          TPZUnsatAnalysis 1e-6) e ate maxit iteracoes (40); busca: metades da busca linear (4)
+// A chuva aleatoria (caso C):
+//   chuva_aleatoria (0)    1: I e D sorteados por realizacao (Pareto generalizada com copula de Frank, Liu e Wang 2023,
+//                          Tabela 2), com os instantes do fator 0 e D (o FS inicial e o do fim da chuva; adapta nos dois);
+//                          <saida>_chuva_<faixa>.csv tem I, D e q0 de cada realizacao. A deterministica usa I= e chuva=
+//   gpd (-0.04,3.44,5.13,0.43,5.15,0.30,-2.38)  xi_I,mu_I,sigma_I,xi_D,mu_D,sigma_D,omega (mm/h, h): as marginais e a copula;
+//                          o artigo imprime sigma_D = -0,30 h, impossivel (a escala e positiva): o padrao usa |sigma_D|
+//   crpc ()                I1,I2,... (mm/h, decrescentes): no lugar do Monte Carlo, a curva critica (CRPC, Liu e Wang 2023)
+//                          de cada realizacao: para cada I, chuva constante ate crpc_dmax h; o FS em 6, 12, 24, 48, 96, 150
+//                          e crpc_dmax h ate o primeiro abaixo de 1 e, entre os dois ultimos, bissecao nos instantes
+//                          guardados de crpc_passo em crpc_passo h; D_C por interpolacao linear do FS. Se uma I nao derruba
+//                          ate crpc_dmax, as menores nao sao feitas; FS(0) < 1: realizacao descartada (nada mais).
+//                          Saida: <saida>_crpc_<faixa>.csv (cluster/crpc_liuwang.py integra P_1)
+//   crpc_dmax (200), crpc_passo (1)
 // Os campos:
 //   M (2000)               termos da KL por campo (com nystrom=: os M primeiros da base, M <= os do arquivo)
 //   nystrom (<arquivo>)    a base de Karhunen-Loeve de Nystrom do proprio talude (Projects/Cho2010/nystrom_base.py, com a
@@ -195,6 +226,18 @@ struct Opcoes {
     // o transiente reaproveitado
     std::string pressoes, gravaPressoes;
     bool soTransiente = false;
+    // casos B e C: Fredlund-Xing dado, k de Fredlund, estado inicial permanente, chi por ponto, chuva aleatoria e CRPC
+    std::vector<REAL> fx;                  // a, n, m, theta_s (vazio: o solo)
+    REAL kFredlund = -1., psiR = 3000.;    // psi_aev (kPa; < 0: k_s Theta^4) e psi_r
+    REAL q0 = 0., q0Cov = 0.;              // infiltracao do estado inicial (mm/h) e o CoV dela
+    bool chiPonto = false;
+    REAL phibDeg = 26., phibRazao = -1.;   // phi^b (graus) ou phi^b / phi' (> 0)
+    REAL dt = 0.1, dtMin = 0.;             // passo do transiente e o menor da subdivisao (h)
+    std::vector<REAL> newton;              // tol_p, maxit do Newton do transiente (vazio: os do TPZUnsatAnalysis)
+    bool chuvaAleatoria = false;
+    std::array<REAL, 7> gpd = {-0.04, 3.44, 5.13, 0.43, 5.15, 0.30, -2.38};
+    std::vector<REAL> crpc;                // intensidades da CRPC (vazio: Monte Carlo)
+    REAL crpcDmax = 200., crpcPasso = 1.;
 };
 
 std::vector<REAL> Lista(const std::string &s)
@@ -223,7 +266,8 @@ Opcoes LeOpcoes(int argc, char *argv[])
         "geometria",  "na",         "na_beta",    "succao_max", "esquerda",   "direita",   "carga_esq", "carga_dir",
         "chuva_face", "ks",         "vg",         "chi",        "c",          "phi",       "gamma",     "E",
         "nu",         "rcphi",      "M",          "nystrom",    "xi",         "desloc_xi", "gradiente", "grava_pressoes",
-        "pressoes",   "so_transiente"};
+        "pressoes",   "so_transiente", "fx",       "kfredlund", "psi_r",     "q0",         "q0_cov",    "phib",
+        "phib_razao", "dt",         "dt_min",    "newton",         "chuva_aleatoria", "gpd",  "crpc",      "crpc_dmax", "crpc_passo"};
     std::map<std::string, std::string> kv;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
@@ -284,9 +328,54 @@ Opcoes LeOpcoes(int argc, char *argv[])
         if (!tem("solo")) op.solo.nome = "vg"; // a coluna solo do CSV
     }
     if (tem("chi")) {
-        if (kv["chi"] != "const" && kv["chi"] != "se") Erro("chi: const ou se");
+        if (kv["chi"] != "const" && kv["chi"] != "se" && kv["chi"] != "ponto") Erro("chi: const, se ou ponto");
         op.chiSe = kv["chi"] == "se";
+        op.chiPonto = kv["chi"] == "ponto";
     }
+    if (tem("phib")) op.phibDeg = std::stod(kv["phib"]);
+    if (tem("phib_razao")) op.phibRazao = std::stod(kv["phib_razao"]);
+    if (tem("phib_razao") && !(op.chiPonto && op.phibRazao > 0.)) Erro("phib_razao: > 0 e so com chi=ponto");
+    if (tem("phib") && op.chiSe) Erro("phib nao vale com chi=se");
+    if (tem("fx")) {
+        op.fx = Lista(kv["fx"]);
+        if (op.fx.size() != 4 || !(op.fx[0] > 0. && op.fx[1] > 0. && op.fx[2] > 0. && op.fx[3] > 0. && op.fx[3] < 1.))
+            Erro("fx: a,n,m,theta_s (a em kPa, todos > 0, theta_s < 1)");
+        if (tem("vg")) Erro("fx e vg: um ou outro");
+        op.solo.a = op.fx[0];
+        if (!tem("solo")) op.solo.nome = "fx";
+    }
+    if (tem("kfredlund")) op.kFredlund = std::stod(kv["kfredlund"]);
+    if (tem("kfredlund") && (op.vg.usa || !(op.kFredlund > 0.))) Erro("kfredlund: psi_aev > 0 (kPa), so com Fredlund-Xing");
+    if (tem("psi_r")) op.psiR = std::stod(kv["psi_r"]);
+    if (tem("q0")) op.q0 = std::stod(kv["q0"]);
+    if (tem("q0_cov")) op.q0Cov = std::stod(kv["q0_cov"]);
+    if (op.q0 < 0. || op.q0Cov < 0. || (op.q0Cov > 0. && op.q0 == 0.)) Erro("q0 >= 0 (mm/h) e q0_cov >= 0 (so com q0 > 0)");
+    if (tem("dt")) op.dt = std::stod(kv["dt"]);
+    if (!(op.dt > 0.)) Erro("dt > 0 (h)");
+    if (tem("dt_min")) op.dtMin = std::stod(kv["dt_min"]);
+    if (tem("newton")) {
+        op.newton = Lista(kv["newton"]);
+        if (op.newton.size() < 2 || op.newton.size() > 3 || !(op.newton[0] > 0. && op.newton[1] >= 1.))
+            Erro("newton: tol_p,maxit[,busca] (kPa, >= 1, metades da busca linear)");
+    }
+    if (tem("chuva_aleatoria")) op.chuvaAleatoria = std::stoi(kv["chuva_aleatoria"]) != 0;
+    if (tem("gpd")) {
+        const std::vector<REAL> v = Lista(kv["gpd"]);
+        if (v.size() != 7 || !(v[2] > 0. && v[5] > 0.) || v[6] == 0.)
+            Erro("gpd: xi_I,mu_I,sigma_I,xi_D,mu_D,sigma_D,omega (escalas > 0, omega != 0)");
+        std::copy(v.begin(), v.end(), op.gpd.begin());
+    }
+    if (tem("crpc")) {
+        op.crpc = Lista(kv["crpc"]);
+        if (op.crpc.empty() || !std::is_sorted(op.crpc.rbegin(), op.crpc.rend()) || !(op.crpc.back() > 0.))
+            Erro("crpc: intensidades > 0 em ordem decrescente (mm/h)");
+    }
+    if (tem("crpc_dmax")) op.crpcDmax = std::stod(kv["crpc_dmax"]);
+    if (tem("crpc_passo")) op.crpcPasso = std::stod(kv["crpc_passo"]);
+    if (!op.crpc.empty() && (op.chuvaAleatoria || tem("pressoes") || tem("grava_pressoes") || tem("gradiente")))
+        Erro("crpc: sem chuva_aleatoria, pressoes, grava_pressoes e gradiente");
+    if (op.chuvaAleatoria && (tem("pressoes") || tem("grava_pressoes")))
+        Erro("chuva_aleatoria: o transiente muda a cada realizacao (sem pressoes e grava_pressoes)");
     if (tem("c")) op.res.c = std::stod(kv["c"]);
     if (tem("phi")) op.res.phiDeg = std::stod(kv["phi"]);
     if (tem("gamma")) op.res.gamma = std::stod(kv["gamma"]);
@@ -349,7 +438,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
     if (tem("so_transiente")) op.soTransiente = std::stoi(kv["so_transiente"]) != 0;
     if (op.soTransiente && op.gravaPressoes.empty()) Erro("so_transiente=1 precisa de grava_pressoes=<arquivo>");
     if (!op.pressoes.empty() && !op.gravaPressoes.empty()) Erro("pressoes e grava_pressoes: um ou outro");
-    const bool kFixo = op.campos.covK == 0. && (op.valores.empty() || op.valores[2] == 1.);
+    const bool kFixo = op.campos.covK == 0. && (op.valores.empty() || op.valores[2] == 1.) && op.q0Cov == 0.;
     if ((!op.pressoes.empty() || !op.gravaPressoes.empty()) && !kFixo)
         Erro("pressoes/grava_pressoes so com k fixo (covk=0 e, com valores, k = 1): o transiente tem de ser o mesmo "
              "em todas as realizacoes");
@@ -490,6 +579,50 @@ REAL Superficie(REAL x)
     return p[4][1] + (p[3][1] - p[4][1]) * (x - p[4][0]) / (p[3][0] - p[4][0]);
 }
 
+// ---- k_r de Fredlund et al. (1994) (opcao kfredlund=; Liu et al. 2024, Eq. 9), tabelado contra S_w:
+//   k_r(psi) = int_{ln psi}^{ln 1e6} [theta(e^y) - theta(psi)] theta'(e^y) / e^y dy
+//            / int_{ln psi_aev}^{ln 1e6} [theta(e^y) - theta_s] theta'(e^y) / e^y dy,   limitado a 1,
+// com theta = theta_s C(psi) / ln(e + (psi/a)^n)^m e C(psi) = 1 - ln(1 + psi/psi_r) / ln(1 + 1e6/psi_r) (Eqs. 7 e 8). A
+// tabela vai em S_w da retencao do material (Fredlund-Xing com C = 1) no mesmo psi: o k e o de Eq. 9 em cada succao. As
+// integrais saem da regra do trapezio em y com 40 000 intervalos, de ln(1e-4) a ln(1e6), acumuladas de cima para baixo
+struct TabelaK {
+    std::vector<REAL> S, lnK;
+};
+TabelaK gTabelaK; // preenchida no main com kfredlund=
+
+TabelaK TabelaFredlund(REAL a, REAL n, REAL m, REAL ts, REAL psiR, REAL psiAev)
+{
+    auto C = [psiR](REAL p) { return 1. - std::log(1. + p / psiR) / std::log(1. + 1.e6 / psiR); };
+    auto theta = [&](REAL p) { return ts * C(p) / std::pow(std::log(M_E + std::pow(p / a, n)), m); };
+    auto dtheta = [&](REAL p) { const REAL h = 1.e-5 * p; return (theta(p + h) - theta(p - h)) / (2. * h); };
+    const int N = 40000;
+    const REAL y0 = std::log(1.e-4), y1 = std::log(1.e6), dy = (y1 - y0) / N;
+    // A(y) = int_y^y1 theta theta' / e^y, B(y) = int_y^y1 theta' / e^y (acumuladas do fim)
+    std::vector<REAL> A(N + 1, 0.), B(N + 1, 0.), fa(N + 1), fb(N + 1);
+    for (int i = 0; i <= N; i++) {
+        const REAL p = std::exp(y0 + i * dy), d = dtheta(p) / p;
+        fa[i] = theta(p) * d, fb[i] = d;
+    }
+    for (int i = N - 1; i >= 0; i--) A[i] = A[i + 1] + 0.5 * dy * (fa[i] + fa[i + 1]), B[i] = B[i + 1] + 0.5 * dy * (fb[i] + fb[i + 1]);
+    auto integral = [&](REAL p, REAL t) { // int_{ln p}^{y1} (theta - t) theta' / e^y, interpolado na grade
+        const REAL x = std::clamp((std::log(p) - y0) / dy, REAL(0.), REAL(N));
+        const int i = std::min(int(x), N - 1);
+        const REAL f = x - i;
+        return (1. - f) * (A[i] - t * B[i]) + f * (A[i + 1] - t * B[i + 1]);
+    };
+    const REAL den = integral(psiAev, ts);
+    TabelaK T;
+    for (int i = 0; i <= 400; i++) { // psi de 1e6 a 1e-3 kPa: S_w crescente
+        const REAL p = std::pow(10., 6. - 9. * i / 400.);
+        const REAL S = std::pow(std::log(M_E + std::pow(p / a, n)), -m); // a retencao do material (C = 1)
+        const REAL kr = std::min(REAL(1.), std::max(integral(p, theta(p)) / den, REAL(1.e-30)));
+        if (!T.S.empty() && !(S > T.S.back())) continue;
+        T.S.push_back(S), T.lnK.push_back(std::log(kr));
+    }
+    if (T.S.back() < 1.) T.S.push_back(1.), T.lnK.push_back(T.lnK.back());
+    return T;
+}
+
 // ---- material do solo (o MaterialRahardjo do rahardjo.cpp), com a anisotropia k_h / k_v; com vg=, van Genuchten-Mualem;
 // com chi=se, chi = S_e
 TUnsatHP *MaterialChuva(const RainData &r, const Opcoes &op)
@@ -510,10 +643,15 @@ TUnsatHP *MaterialChuva(const RainData &r, const Opcoes &op)
         h.fA = r.aFX, h.fN = r.nFX, h.fM = r.mFX;
         h.fKrw = TPZUnsaturatedHydraulics::EPowerLaw; // k_w = k_s Theta^p
         h.fPower = r.power;
+        if (op.kFredlund > 0.) { // k_r de Fredlund et al. (1994), tabelado
+            h.fKrw = TPZUnsaturatedHydraulics::ETabulated;
+            h.fTabS = gTabelaK.S, h.fTabLnK = gTabelaK.lnK;
+        }
     }
     h.fKra = TPZUnsaturatedHydraulics::EBrooksCorey; // o ar fica passivo (p_a = 0)
     mat->SetHydraulics(h);
     if (op.chiSe) mat->SetBishop(TUnsat::EChiEffective); // chi = S_e (Vanapalli et al. 1996)
+    else if (op.chiPonto) mat->SetBishop(TUnsat::EChiConstant, 1.); // chi(x) vai nas pressoes congeladas (CalculaFator)
     else mat->SetBishop(TUnsat::EChiConstant, std::tan(r.phib) / std::tan(phi)); // (u_a - u_w) tan(phi^b)
     mat->SetPorosity(r.n);
     mat->SetBiot(1., 0.);
@@ -571,15 +709,23 @@ void NovoFator(Fator &f, TPZGeoMesh *g, const RainData &r, const Opcoes &op)
     f.a->SetSRMStart(op.srmF0);
 }
 
-// FS (ou Gamma) no modelo de f com as pressoes pw (nos da malha do transiente), do estado sem tensoes, com os campos
-REAL CalculaFator(Fator &f, const Campo *campos, const PointLocator &loc, const std::vector<REAL> &pw, bool gim)
+// FS (ou Gamma) no modelo de f com as pressoes pw (nos da malha do transiente), do estado sem tensoes, com os campos.
+// chi=ponto: o material tem chi = 1 e a pressao congelada num no com p_w < 0 e chi(x) p_w, com chi(x) = tan(phi^b) /
+// tan(phi'(x)) e o phi' do campo no no (ou a media): a parcela da succao fica s tan(phi^b) (reduzida por F no SRM, como
+// a de tan(phi')). Com p_w P1, o produto e interpolado linearmente entre os nos
+REAL CalculaFator(Fator &f, const Campo *campos, const PointLocator &loc, const std::vector<REAL> &pw, const Opcoes &op)
 {
     f.m->Material()->ResetMemory(); // estado sem tensoes (apaga tambem c, phi e k dos pontos)
     if (campos) AplicaCampos(*f.m, *campos);
     f.a->SetFrozenPressures([&](int espaco, const TPZVec<REAL> &x) {
-        return espaco == 1 ? loc.Interpolate(x[0], x[1], pw) : 0.; // p_w do transiente; p_a = 0
+        if (espaco != 1) return 0.;                    // p_a = 0
+        const REAL p = loc.Interpolate(x[0], x[1], pw); // p_w do transiente
+        if (!op.chiPonto || p >= 0.) return p;
+        const REAL phi = (campos ? (*campos)(x[0], x[1])[1] : op.res.phiDeg) * M_PI / 180.;
+        const REAL phib = op.phibRazao > 0. ? op.phibRazao * phi : op.phibDeg * M_PI / 180.;
+        return std::tan(phib) / std::tan(phi) * p;
     });
-    return gim ? f.a->GIMArcLength() : f.a->SRMArcLength();
+    return op.gim ? f.a->GIMArcLength() : f.a->SRMArcLength();
 }
 
 // Refinamento adaptativo em h do zero: malha grossa e nref niveis (marcados: sqrt(J2(eps_p)) >= 0,1 do maior);
@@ -591,7 +737,7 @@ REAL FatorAdaptativo(Fator &f, const RainData &r, const Opcoes &op, const Campo 
     niveis.clear();
     for (int k = 0;; k++) {
         NovoFator(f, g, r, op);
-        const REAL fs = CalculaFator(f, campos, loc, pw, op.gim);
+        const REAL fs = CalculaFator(f, campos, loc, pw, op);
         niveis.push_back(fs);
         if (k == op.nref) return fs;
         const std::vector<REAL> ind = f.a->PlasticIndicator();
@@ -812,6 +958,7 @@ struct Pressoes {
     std::map<REAL, double> s;             // tempo do transiente ate o instante (s)
     REAL parou = -1.;                     // >= 0: o transiente parou nesse instante (h)
     int64_t eq = 0;                       // equacoes da malha do transiente
+    std::array<double, 3> permanente = {0., 0., 0.}; // q0 > 0: passos, ultima mudanca de p_w (kPa) e tempo (s)
 };
 
 // Os dados que definem o transiente (o que tem de ser igual para reaproveitar p_w): geometria, nivel, contornos, solo,
@@ -828,6 +975,11 @@ std::string ChaveTransiente(const Opcoes &op, const RainData &r)
     if (op.vg.usa) c << ";vg=" << op.vg.ts << "," << op.vg.tr << "," << op.vg.a << "," << op.vg.n;
     else c << ";fx=" << r.aFX << "," << r.nFX << "," << r.mFX << ";power=" << r.power;
     c << ";n=" << r.n << ";Kw=" << r.Kw << ";transiente=" << op.malhaT << ";uT=" << op.uT;
+    if (op.kFredlund > 0.) c << ";kfredlund=" << op.kFredlund << "," << op.psiR;
+    if (op.q0 > 0.) c << ";q0=" << op.q0;
+    if (op.dtMin > 0.) c << ";dt_min=" << op.dtMin;
+    if (!op.newton.empty())
+        c << ";newton=" << op.newton[0] << "," << op.newton[1] << "," << (op.newton.size() > 2 ? op.newton[2] : 4.);
     return c.str();
 }
 
@@ -842,6 +994,7 @@ Pressoes CalculaTransiente(UnsatModel<TUnsatHP> &mT, const RainData &r, const Op
     TPZStepSolver<STATE> solver;
     solver.SetDirect(ELU);
     aT.SetSolver(solver);
+    if (!op.newton.empty()) aT.SetTolerances(1.e-7, op.newton[0], int(op.newton[1]), 25);
     std::set<int> laterais;
     std::map<int, REAL> cargas;
     if (op.esqCarga) laterais.insert(left);
@@ -851,11 +1004,25 @@ Pressoes CalculaTransiente(UnsatModel<TUnsatHP> &mT, const RainData &r, const Op
     RainTransient chuva(aT, r, op.res.gammaw, laterais, {topleft, face, topright}, cargas);
     chuva.InitialState();
     P.eq = mT.CompMesh()->NEquations();
+    if (op.q0 > 0.) { // estado inicial permanente com a infiltracao q0
+        const auto tp = Clock::now();
+        REAL dp = 0.;
+        if (!chuva.SteadyState(op.q0 / 3.6e6, r.dt, 1.e-6, &dp)) {
+            std::printf("  o permanente com q0 = %g mm/h nao estacionou (%lld passos, mudanca %.2e kPa)\n", op.q0,
+                        (long long)chuva.SteadySteps(), dp);
+            P.parou = 0.;
+            return P;
+        }
+        P.permanente = {double(chuva.SteadySteps()), dp, Seg(tp)};
+        std::printf("  permanente com q0 = %g mm/h: %lld passos, ultima mudanca %.1e kPa, %.1f s\n", op.q0,
+                    (long long)chuva.SteadySteps(), dp, Seg(tp));
+    }
     double sT = 0.;
     for (REAL t : op.tempos) {
         const auto tt = Clock::now();
         if (!chuva.AdvanceTo(t)) {
             P.parou = chuva.Time();
+            std::printf("  o transiente parou em %.2f h: %s\n", P.parou, chuva.LastFailure().c_str());
             break;
         }
         sT += Seg(tt);
@@ -1003,6 +1170,17 @@ void GravaParametros(const std::string &arq, const Opcoes &op, const RandomField
       << "\nR_CPHI=" << op.campos.rcphi << "\nNYSTROM=" << (op.nystrom.empty() ? "nao" : op.nystrom)
       << "\nNUCLEO=" << (campos.Nystrom() ? campos.KernelDescription() : "exp analitico")
       << "\nPRESSOES=" << (op.pressoes.empty() ? "calculadas" : op.pressoes) << "\nSRM_F0=" << op.srmF0 << "\n";
+    // casos B e C (so quando usados)
+    if (op.chiPonto) p << "CHI=ponto\nPHIB=" << op.phibDeg << "\nPHIB_RAZAO=" << op.phibRazao << "\n";
+    if (!op.fx.empty()) p << "FX=" << lista(op.fx) << "\n";
+    if (op.kFredlund > 0.) p << "KFREDLUND=" << op.kFredlund << "\nPSI_R=" << op.psiR << "\n";
+    if (op.q0 > 0.) p << "Q0=" << op.q0 << "\nQ0_COV=" << op.q0Cov << "\n";
+    if (op.chuvaAleatoria) {
+        p << "CHUVA_ALEATORIA=1\nGPD=";
+        for (size_t i = 0; i < op.gpd.size(); i++) p << (i ? "," : "") << op.gpd[i];
+        p << "\n";
+    }
+    if (!op.crpc.empty()) p << "CRPC=" << lista(op.crpc) << "\nCRPC_DMAX=" << op.crpcDmax << "\nCRPC_PASSO=" << op.crpcPasso << "\n";
     if (!op.ai.piloto.empty())
         p << "PILOTO=" << op.ai.piloto << "\nPILOTO_N=" << op.ai.n << "\nPILOTO_SEMENTE=" << op.ai.semente
           << "\nELITE=" << op.ai.elite << "\nMODOS=" << op.ai.modos << "\nBANDA=" << op.banda << "\nBANDA_T=" << op.bandaT
@@ -1056,6 +1234,185 @@ std::vector<std::vector<double>> LeXi(const std::string &arq, int M, const char 
     return xi;
 }
 
+// ---- a chuva aleatoria e o estado inicial aleatorio (caso C): numeros da realizacao n, independentes dos campos
+// (splitmix64 de (semente, n): a realizacao n tem a mesma chuva em todos os casos com a mesma semente)
+struct Uniformes {
+    uint64_t s;
+    Uniformes(uint64_t semente, int64_t n) : s(semente * 0x9E3779B97F4A7C15ull + uint64_t(n) * 0xD1B54A32D192ED03ull + 0x632BE59BD9B4E019ull) {}
+    double Proximo() // em (0, 1)
+    {
+        s += 0x9E3779B97F4A7C15ull;
+        uint64_t z = s;
+        z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ull;
+        z = (z ^ (z >> 27)) * 0x94D049BB133111EBull;
+        z ^= z >> 31;
+        return (double(z >> 11) + 0.5) * 0x1.0p-53;
+    }
+};
+
+struct ChuvaSorteada {
+    REAL I = 0., D = 0., q0 = 0., u = 0., v = 0., z = 0.; // mm/h, h, mm/h; u = F_I(I), v = F_D(D); z: o normal de q0
+};
+
+// inversa da Pareto generalizada: x = mu + sigma ((1 - u)^(-xi) - 1) / xi (xi = 0: mu - sigma ln(1 - u))
+REAL InversaGPD(REAL u, REAL xi, REAL mu, REAL sigma)
+{
+    return std::abs(xi) < 1e-12 ? mu - sigma * std::log1p(-u) : mu + sigma * (std::pow(1. - u, -xi) - 1.) / xi;
+}
+
+// I e D da Tabela 2 de Liu e Wang (2023): u ~ U(0, 1) e v pela condicional da copula de Frank (Nelsen 2006, 4.10),
+// v = -ln(1 + w (e^-omega - 1) / (w + (1 - w) e^(-omega u))) / omega com w ~ U(0, 1); I = F_I^-1(u), D = F_D^-1(v). q0:
+// normal com media q0 e CoV q0_cov (Box-Muller), truncado em 0
+ChuvaSorteada SorteiaChuva(const Opcoes &op, int64_t n)
+{
+    Uniformes U(op.campos.semente, n);
+    const auto &g = op.gpd;
+    ChuvaSorteada c;
+    const double u = U.Proximo(), w = U.Proximo(), a = U.Proximo(), b = U.Proximo();
+    const double om = g[6];
+    c.u = u;
+    c.v = -std::log1p(w * std::expm1(-om) / (w + (1. - w) * std::exp(-om * u))) / om;
+    c.v = std::clamp(c.v, REAL(1e-16), REAL(1. - 1e-16));
+    c.I = InversaGPD(c.u, g[0], g[1], g[2]);
+    c.D = InversaGPD(c.v, g[3], g[4], g[5]);
+    c.z = std::sqrt(-2. * std::log(a)) * std::cos(2. * M_PI * b);
+    c.q0 = std::max(REAL(0.), op.q0 * (1. + op.q0Cov * c.z));
+    return c;
+}
+
+// ---- a CRPC de uma realizacao (opcao crpc=; Liu e Wang 2023, Secao 3.1): para cada I (decrescente), o estado inicial
+// permanente com q0, chuva I constante ate crpc_dmax e o primeiro instante com FS < 1 (D_C). Linhas no csv:
+// real,q0_mmh,FS0,I,DC_h,falha,t_lo,FS_lo,t_hi,FS_hi,n_srm,s_transiente,s_fator,passos_permanente,mudanca_permanente
+void CurvaCritica(int n, const Opcoes &op, const RainData &r0, const Campo *cf, std::ofstream &csv)
+{
+    REAL fs0 = -1.;
+    const std::vector<REAL> checa = {6., 12., 24., 48., 96., 150.};
+    for (REAL I : op.crpc) {
+        RainData r = r0;
+        r.intensity = I, r.duration = op.crpcDmax;
+        UnsatModel<TUnsatHP> mT;
+        mT.SetGeoMesh(Malha(op.malhaT));
+        InsertBC(mT);
+        mT.SetMaterial(MaterialChuva(r, op));
+        mT.CreateCompMesh({{2, op.uT}, {1, 1}, {1, 1}});
+        if (cf) AplicaCampos(mT, *cf);
+        TPZUnsatAnalysis aT(mT.CompMesh(), {{base, {true, true}}, {right, {true, false}}, {left, {true, false}}});
+        TPZSpStructMatrix<STATE> strmat(mT.CompMesh());
+        strmat.SetNumThreads(std::getenv("PZ_THREADS") ? std::atoi(std::getenv("PZ_THREADS")) : 8);
+        aT.SetStructuralMatrix(strmat);
+        TPZStepSolver<STATE> solver;
+        solver.SetDirect(ELU);
+        aT.SetSolver(solver);
+        if (!op.newton.empty()) aT.SetTolerances(1.e-7, op.newton[0], int(op.newton[1]), 25);
+        std::set<int> laterais;
+        std::map<int, REAL> cargas;
+        if (op.esqCarga) laterais.insert(left);
+        if (op.dirCarga) laterais.insert(right);
+        if (op.esqCarga && !std::isnan(op.cargaEsq)) cargas[left] = op.cargaEsq;
+        if (op.dirCarga && !std::isnan(op.cargaDir)) cargas[right] = op.cargaDir;
+        RainTransient chuva(aT, r, op.res.gammaw, laterais, {topleft, face, topright}, cargas);
+        chuva.InitialState();
+        const auto tt = Clock::now();
+        REAL dp = 0.;
+        if (op.q0 > 0. && !chuva.SteadyState(op.q0 / 3.6e6, r.dt, 1.e-6, &dp)) {
+            std::printf("  realizacao %d: o permanente nao estacionou\n", n);
+            csv << n << "," << op.q0 << ",-1," << I << ",-1,erro_permanente,0,0,0,0,0,0,0," << chuva.SteadySteps() << ","
+                << dp << "\n";
+            return;
+        }
+        const PointLocator loc(mT.GeoMesh());
+        double sT = Seg(tt), sF = 0.;
+        int nSrm = 0;
+        std::map<REAL, std::vector<REAL>> pw; // instante (h) -> p_w nos nos
+        std::map<REAL, REAL> fs;              // os FS calculados
+        pw[0.] = chuva.NodalWaterPressure();
+        auto fator = [&](REAL t) {
+            const auto tf = Clock::now();
+            Fator f;
+            std::vector<REAL> niveis;
+            const REAL v = FatorAdaptativo(f, r, op, cf, loc, pw.at(t), niveis);
+            sF += Seg(tf), nSrm++;
+            return fs[t] = v;
+        };
+        if (fs0 < 0.) {
+            fs0 = fator(0.);
+            if (!(fs0 >= 1.)) { // descartada (Liu e Wang 2023: as amostras com FS0 < 1 saem da conta)
+                csv << n << "," << op.q0 << "," << fs0 << "," << I << ",0,descartada,0," << fs0 << ",0," << fs0 << ","
+                    << nSrm << "," << sT << "," << sF << "," << chuva.SteadySteps() << "," << dp << "\n";
+                csv.flush();
+                std::printf("  realizacao %d: FS0 = %.4f < 1, descartada\n", n, fs0);
+                return;
+            }
+        }
+        fs[0.] = fs0;
+        // avanca de crpc_passo em crpc_passo h, guardando p_w; o FS nos instantes de checa e em crpc_dmax
+        REAL lo = 0., hi = -1., t = 0.;
+        bool parou = false;
+        std::vector<REAL> pontos;
+        for (REAL c : checa)
+            if (c < op.crpcDmax) pontos.push_back(c);
+        pontos.push_back(op.crpcDmax);
+        size_t ip = 0;
+        while (t < op.crpcDmax - 1e-9) {
+            const REAL prox = std::min(op.crpcDmax, t + op.crpcPasso);
+            const auto ta = Clock::now();
+            if (!chuva.AdvanceTo(prox)) {
+                parou = true;
+                break;
+            }
+            sT += Seg(ta);
+            t = prox;
+            pw[t] = chuva.NodalWaterPressure();
+            if (ip < pontos.size() && t >= pontos[ip] - 1e-9) {
+                ip++;
+                if (fator(t) < 1.) {
+                    hi = t;
+                    break;
+                }
+                lo = t;
+            }
+        }
+        if (parou) {
+            // t_lo e FS_lo: o ultimo instante com FS calculado (>= 1); t_hi: onde o transiente parou
+            csv << n << "," << op.q0 << "," << fs0 << "," << I << ",-1,erro_transiente," << lo << "," << fs.at(lo) << ","
+                << chuva.Time() << ",-1," << nSrm << ","
+                << sT << "," << sF << "," << chuva.SteadySteps() << "," << dp << "\n";
+            csv.flush();
+            std::printf("  realizacao %d, I = %g: o transiente parou em %.2f h: %s\n", n, I, chuva.Time(),
+                        chuva.LastFailure().c_str());
+            continue;
+        }
+        if (hi < 0.) { // nao caiu ate crpc_dmax: as I menores tambem nao (nao sao feitas)
+            csv << n << "," << op.q0 << "," << fs0 << "," << I << ",-1,nao," << lo << "," << fs.at(lo) << ",-1,-1," << nSrm
+                << "," << sT << "," << sF << "," << chuva.SteadySteps() << "," << dp << "\n";
+            csv.flush();
+            std::printf("  realizacao %d, I = %g mm/h: FS(%g h) = %.4f >= 1 (%d SRM, %.0f s + %.0f s)\n", n, I, lo,
+                        fs.at(lo), nSrm, sT, sF);
+            return;
+        }
+        // bissecao nos instantes guardados entre lo (FS >= 1) e hi (FS < 1)
+        auto instantes = [&](REAL a, REAL b) {
+            std::vector<REAL> v;
+            for (const auto &[tk, x] : pw)
+                if (tk > a + 1e-9 && tk < b - 1e-9) v.push_back(tk);
+            return v;
+        };
+        for (std::vector<REAL> v = instantes(lo, hi); !v.empty(); v = instantes(lo, hi)) {
+            const REAL m = v[v.size() / 2];
+            if (fator(m) < 1.) hi = m;
+            else lo = m;
+        }
+        const REAL flo = fs.at(lo), fhi = fs.at(hi);
+        const REAL dc = lo + (flo - 1.) / (flo - fhi) * (hi - lo);
+        csv << n << "," << op.q0 << "," << fs0 << "," << I << "," << dc << ",sim," << lo << "," << flo << "," << hi << ","
+            << fhi << "," << nSrm << "," << sT << "," << sF << "," << chuva.SteadySteps() << "," << dp << "\n";
+        csv.flush();
+        std::printf("  realizacao %d, I = %g mm/h: D_C = %.2f h (FS %.4f em %g h, %.4f em %g h; %d SRM, %.0f s + %.0f s)\n",
+                    n, I, dc, flo, lo, fhi, hi, nSrm, sT, sF);
+        std::fflush(stdout);
+    }
+}
+
 int main(int argc, char *argv[])
 {
     const Opcoes op = LeOpcoes(argc, argv);
@@ -1069,6 +1426,24 @@ int main(int argc, char *argv[])
     r.suctionMax = op.succaoMax;
     r.rainVertical = op.chuvaVertical;
     if (op.vg.usa) r.n = op.vg.ts; // porosidade = theta_s
+    if (!op.fx.empty()) r.aFX = op.fx[0], r.nFX = op.fx[1], r.mFX = op.fx[2], r.n = op.fx[3];
+    if (op.phibDeg != 26.) r.phib = op.phibDeg * M_PI / 180.;
+    if (op.dt != 0.1) r.dt = op.dt;
+    r.dtMin = op.dtMin;
+    if (op.newton.size() > 2) r.lineSearch = int(op.newton[2]);
+    if (op.kFredlund > 0.) {
+        gTabelaK = TabelaFredlund(r.aFX, r.nFX, r.mFX, r.n, op.psiR, op.kFredlund);
+        TPZUnsaturatedHydraulics h;
+        h.fA = r.aFX, h.fN = r.nFX, h.fM = r.mFX, h.fKrw = TPZUnsaturatedHydraulics::ETabulated;
+        h.fTabS = gTabelaK.S, h.fTabLnK = gTabelaK.lnK;
+        std::printf("  k_r de Fredlund (psi_aev = %g kPa, psi_r = %g kPa, %zu pontos):", op.kFredlund, op.psiR,
+                    gTabelaK.S.size());
+        for (REAL psi : {1., 2.6, 5., 10., 15., 20., 50., 100.}) {
+            const auto e = h.Evaluate(-psi, 0.);
+            std::printf(" k_r(%g) = %.4g;", psi, e.krw);
+        }
+        std::printf("\n");
+    }
     const Campos &cp = op.campos;
     RandomField campos(p[0][0], p[0][1], p[1][0] - p[0][0], p[4][1] - p[0][1], cp.Lx, cp.Ly, cp.M,
                        {{res.c, cp.covC}, {res.phiDeg, cp.covPhi}, {1., cp.covK}}); // c' (kPa), phi' (graus), k / k_s
@@ -1095,14 +1470,18 @@ int main(int argc, char *argv[])
                 "fator %s + %d niveis\n",
                 p[0][0], p[0][1], p[1][0], p[1][1], p[2][0], p[2][1], p[3][0], p[3][1], p[4][0], p[4][1], p[5][0], p[5][1],
                 op.solo.nome.c_str(), op.solo.ks, op.vg.usa ? "van Genuchten-Mualem" : "Fredlund-Xing",
-                op.chiSe ? "S_e" : "constante", op.I, op.chuva, op.chuvaVertical ? "vertical" : "por metro inclinado",
+                op.chiSe ? "S_e" : op.chiPonto ? "por ponto" : "constante", op.I, op.chuva, op.chuvaVertical ? "vertical" : "por metro inclinado",
                 op.hw, op.betaNA, op.succaoMax, op.esqCarga ? "carga" : "fechada", op.dirCarga ? "carga" : "fechada",
                 op.gim ? "GIM" : "SRM", op.primeira, op.primeira + op.n - 1, op.det ? " e a deterministica" : "", res.c,
                 cp.covC, res.phiDeg, cp.covPhi, cp.covK, cp.rcphi, cp.Lx, cp.Ly, op.alfa, campos.M(),
                 100. * campos.VarianceFraction(), op.malhaT.c_str(), op.uT, op.malhaF.c_str(), op.nref);
 
     // o transiente reaproveitado: so com k fixo (o LeOpcoes confere); lido do arquivo ou calculado uma vez (abaixo)
-    const bool kFixo = cp.covK == 0. && (op.valores.empty() || op.valores[2] == 1.);
+    const bool kFixo = cp.covK == 0. && (op.valores.empty() || op.valores[2] == 1.) && op.q0Cov == 0. &&
+                       !op.chuvaAleatoria;
+    if (op.q0 > 0.)
+        std::printf("  estado inicial: permanente com q0 = %g mm/h%s\n", op.q0,
+                    op.q0Cov > 0. ? (" (normal, CoV " + std::to_string(op.q0Cov) + ")").c_str() : "");
     const std::string chave = ChaveTransiente(op, r);
     std::unique_ptr<Pressoes> pFixas;
     if (!op.pressoes.empty()) {
@@ -1169,6 +1548,16 @@ int main(int argc, char *argv[])
     int nPesadas = 0;                             // realizacoes com todos os instantes ok
     double somaT = 0., somaF = 0.;
 
+    std::unique_ptr<std::ofstream> csvChuva, csvCrpc; // caso C: a chuva de cada realizacao e a CRPC
+    if (op.chuvaAleatoria || op.q0Cov > 0.) {
+        csvChuva = std::make_unique<std::ofstream>(op.saida + "_chuva_" + faixa + ".csv");
+        *csvChuva << "real,I_mmh,D_h,q0_mmh,u,v,z_q0\n";
+    }
+    if (!op.crpc.empty()) {
+        csvCrpc = std::make_unique<std::ofstream>(op.saida + "_crpc_" + faixa + ".csv");
+        *csvCrpc << "real,q0_mmh,FS0,I,DC_h,falha,t_lo,FS_lo,t_hi,FS_hi,n_srm,s_transiente,s_fator,passos_permanente,"
+                    "mudanca_permanente\n";
+    }
     std::vector<int> realizacoes;
     if (op.det) realizacoes.push_back(-1);
     for (int n = op.primeira; n < op.primeira + op.n; n++) realizacoes.push_back(n);
@@ -1185,6 +1574,31 @@ int main(int argc, char *argv[])
         const std::vector<double> proj = deterministica ? std::vector<double>(3, 0.) : campos.Projection(dir);
         // propriedades de cada ponto: o campo da realizacao; na deterministica, as medias ou os valores dados
         const Campo *cf = deterministica ? (op.valores.empty() ? nullptr : &campoFixo) : &campoAleatorio;
+        // caso C: a chuva (I, D) e o q0 da realizacao, numa copia das opcoes e do RainData (daqui ate o fim da realizacao,
+        // op e r sao as copias)
+        Opcoes opReal = op;
+        RainData rReal = r;
+        if (!deterministica && (op.chuvaAleatoria || op.q0Cov > 0.)) {
+            const ChuvaSorteada c = SorteiaChuva(op, n);
+            if (op.q0Cov > 0.) opReal.q0 = c.q0;
+            if (op.chuvaAleatoria) {
+                opReal.I = rReal.intensity = c.I;
+                opReal.chuva = rReal.duration = c.D;
+                opReal.tempos = opReal.adapta = {0., c.D};
+            }
+            *csvChuva << n << "," << std::setprecision(10) << (op.chuvaAleatoria ? c.I : op.I) << ","
+                      << (op.chuvaAleatoria ? c.D : op.chuva) << "," << opReal.q0 << "," << c.u << "," << c.v << "," << c.z
+                      << "\n";
+            csvChuva->flush();
+        }
+        const Opcoes &op = opReal; // NOLINT: a copia da realizacao esconde as opcoes gerais
+        const RainData &r = rReal;
+        if (!op.crpc.empty()) { // a curva critica no lugar do Monte Carlo
+            CurvaCritica(n, op, r, cf, *csvCrpc);
+            std::printf("  realizacao %d: CRPC em %.1f s\n", n, Seg(t0));
+            std::fflush(stdout);
+            continue;
+        }
 
         // 1. transiente ate o ultimo instante, guardando p_w nos instantes do fator (com k fixo: o mesmo em todas as
         // realizacoes, calculado na primeira ou lido do arquivo)
@@ -1282,7 +1696,7 @@ int main(int argc, char *argv[])
             for (const auto &[ta, f] : adaptados)
                 if (std::abs(ta - t) < std::abs(perto - t)) perto = ta;
             const auto tf = Clock::now();
-            const REAL fs = CalculaFator(adaptados[perto], cf, loc, P->pw.at(t), op.gim);
+            const REAL fs = CalculaFator(adaptados[perto], cf, loc, P->pw.at(t), op);
             adaptados[perto].t = t, malhaDe[t] = perto;
             const double s = Seg(tf);
             sF += s;
@@ -1311,7 +1725,7 @@ int main(int argc, char *argv[])
         if (op.gradiente > 0 && !deterministica && tMin >= 0.) {
             const auto tg = Clock::now();
             Fator &f = adaptados[malhaDe[tMin]];
-            if (f.t != tMin) CalculaFator(f, cf, loc, P->pw.at(tMin), op.gim), f.t = tMin;
+            if (f.t != tMin) CalculaFator(f, cf, loc, P->pw.at(tMin), op), f.t = tMin;
             const std::vector<double> gr = GradienteModal(f, campos, std::min(op.gradiente, campos.M()), fsMin, op.gim);
             std::ofstream gf(op.saida + "_grad_" + std::to_string(n) + ".txt");
             gf << std::setprecision(10) << "# "
