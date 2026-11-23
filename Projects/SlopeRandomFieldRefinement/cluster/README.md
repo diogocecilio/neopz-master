@@ -672,3 +672,39 @@ ssh diogo@fermi.cesup.ufrgs.br 'neopz-master/Projects/SlopeRandomFieldRefinement
 - Com os jobs do caso A (huA) ou do Ceron na fila: `./submeter_liu2024.sh 2` (2 nos) ou `DEPENDE=<id do ultimo huA>
   ./submeter_liu2024.sh 4` (os 4 esperam aquele job terminar). O fermi roda 4 jobs por usuario e aceita 8 na fila.
 - Parar sem perder nada: `ssh diogo@fermi.cesup.ufrgs.br 'touch /mnt/data/diogo/liu2024/PARAR'`.
+
+## Caso C: Liu e Wang (2023), chuva aleatoria e CRPC (`liuwang2023_casos.sbatch`)
+
+O terceiro caso (relatorio, Secao "C) Terceiro caso"): talude de 10 m num dominio de 74 x 30 m (pontos (0;0), (74;0),
+(74;20), (43;20), (31;30), (0;30)), cargas de 20 m e 10 m abaixo do nivel inicial reto de (0;20) a (74;10), base e
+laterais acima do nivel fechadas (suposicao: o artigo nao diz), van Genuchten-Mualem (theta_s 0,358, theta_r 0, a = 6,711
+kPa: alfa 0,149 1/kPa, n 1,289), k_s 3e-6 m/s, phi^b = 15 graus fixo (chi = tan15/tan(phi'(x)) por ponto), gamma 20, c'
+5 kPa, phi' 32 graus, campos lognormais sem correlacao cruzada, nucleo exponencial 20/2 m por Nystrom (grade 0,5 x 0,1 m,
+37 000 nos: lambda_1..200 dentro de 0,56% dos da grade de 0,2 x 0,1 m; M = 200, 84,7% da variancia). Estado inicial: o
+permanente com q0 = chuva anual / 8760 h, a chuva anual normal (1200 mm, CoV 0,1). Chuva por metro inclinado (o fluxo
+unitario do GeoStudio, setas normais a face na Fig. 5).
+
+**Ainda nao submeter (22/11): o transiente nao converge neste solo.** Com van Genuchten n = 1,289 o Newton do transiente
+entra num ciclo de 2 iteracoes (|R_p| alternando ~1e-4, a busca linear nao acha descida): no solo das medias ele para
+entre ~27 h (I = 4 mm/h) e ~70 h (I = 36 mm/h), quando a superficie toda vira face de percolacao, e com os campos ja em 2
+a 3 h de chuva (piloto do MC no PC: 1 de 2 realizacoes parou). Com n = 2 o mesmo transiente passa de 60 h; com n = 1,5
+para em 45 h. Nao resolveram: passo subdividido ate 0,00625 h (`dt_min=`), tolerancia maior e mais iteracoes (`newton=`),
+busca linear com 12 metades, k_r de Mualem suavizado perto da saturacao e uma retencao com curvatura finita na saturacao
+(testes em `~/projects/runs/liuwang2023/det`; as duas ultimas nao ficaram no codigo). O `submeter_liuwang2023.sh` so
+submete com `FORCAR=1`.
+
+**A chuva da Tabela 2 nao fecha com a P_F1 do artigo.** O artigo imprime sigma_D = -0,30 h (impossivel; Jun et al. 2017
+nao esta acessivel); com |sigma_D| = 0,30 h, P(D > 24 h) = 4,3e-4, P(D > 48 h) = 6,7e-5 e P(D > 65 h) = 3,1e-5. As CRPC do
+artigo tem D_C >= 65 h (o parametro c vai de 65,4 a 188,8 h), entao a P_F1 dessa chuva ficaria abaixo de ~3e-5, contra
+4,6e-4 a 4,8e-3 impressos. No nosso solo das medias o FS0 e 1,271 e a 36 mm/h o FS ainda esta >= 1 em 48 h, entao a
+nossa P_F1 tambem fica abaixo de ~7e-5 com essa chuva. O `gpd=` troca os parametros (ex.: o sigma_D certo, quando houver).
+
+Codigo e campanha (prontos, com a ressalva acima):
+- `chuva_aleatoria=1` (I, D da Pareto generalizada com copula de Frank, q0 normal; FS em 0 e em D; `<saida>_chuva_*.csv`);
+- `crpc=100,36,15,9,6,4,3,2,1` (CRPC por realizacao: FS em 6, 12, 24, 48, 96, 150 e 200 h ate o primeiro < 1, bissecao
+  nos instantes de 1 em 1 h, D_C por interpolacao; as I menores param depois de uma que nao derruba ate 200 h);
+- `crpc_liuwang.py`: o ajuste D_C = a I^b + c, I_lb, P_1 pela integral da densidade de (I, D) (1D na condicional da
+  copula, Simpson) e P_F1 = media de P_1 com o CoV da Eq. 14; e o MC direto com o descarte de FS0 < 1;
+- `liuwang2023_casos.sbatch` (jobs liuC): o solo fixo (CRPC, uma tarefa por intensidade) e o MC direto dos niveis baixo e
+  intermediario (5500 cada, o N do artigo), em blocos de 10; `submeter/status/baixar_liuwang2023.sh`,
+  `resumo_liuwang2023.py`. Uma analise do MC leva ~2 a 4 min no PC (dois SRM de ~40 s + o permanente + o transiente).

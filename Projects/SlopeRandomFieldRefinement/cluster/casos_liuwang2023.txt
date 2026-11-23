@@ -1,0 +1,20 @@
+# casos_liuwang2023.txt: o caso C (Liu e Wang 2023, Comput. Geotech. 162:105706) para o liuwang2023_casos.sbatch, com a
+# base comum do sbatch (BASE) e as opcoes da ultima coluna (os CoV de k_s, c' e phi' da Tabela 3 e o da chuva anual).
+# Colunas: id, tipo (crpc: a curva critica por realizacao, o metodo semi-analitico; mc: Monte Carlo direto com I, D e q0
+# sorteados), a P_F1 do artigo (por evento), N (realizacoes; 0 = o solo deterministico, as medias) e as opcoes.
+# A P_F1 do artigo: solo fixo 4,60e-4 (Fig. 12); baixa 4,18e-3 (CRPC, N = 30, CoV 0,026); intermediaria 4,62e-3 (CRPC,
+# N = 30, CoV 0,154) e 4,83e-3 (MC, 25 falhas em 5173 efetivas de 5484, CoV 0,20). O N do MC e o do artigo (5500).
+# A chuva usa |sigma_D| = 0,30 h (o artigo imprime -0,30, impossivel): veja o README.
+# ATENCAO (22/11): com este solo (van Genuchten n = 1,289) o transiente para (o Newton entra num ciclo de 2 iteracoes),
+# no solo das medias quando a superficie toda vira face de percolacao, entre ~27 h (I = 4 mm/h) e ~70 h (I = 36 mm/h),
+# e com os campos ate em 2 a 3 h de chuva (piloto do MC: 1 de 2 realizacoes parou). A CRPC, que precisa de chuva ate
+# 200 h, so chega ate ai (as linhas erro_transiente do crpc.csv guardam o ultimo FS >= 1 e o instante), e o MC perde
+# realizacoes. O submeter_liuwang2023.sh so submete com FORCAR=1 ate isso ser resolvido.
+# id        tipo   Pf_artigo  N      opcoes
+FIXO        crpc   4.60e-4    0      covk=0 covc=0 covphi=0
+BAIXA_MC    mc     4.18e-3    5500   covk=0.1 covc=0.05 covphi=0.05 q0_cov=0.1
+INTER_MC    mc     4.83e-3    5500   covk=0.5 covc=0.15 covphi=0.15 q0_cov=0.1
+# a CRPC por realizacao (o metodo semi-analitico) espera o transiente passar das ~30 h; descomente depois:
+# BAIXA     crpc   4.18e-3    30     covk=0.1 covc=0.05 covphi=0.05 q0_cov=0.1
+# INTER     crpc   4.62e-3    60     covk=0.5 covc=0.15 covphi=0.15 q0_cov=0.1
+# ALTA      crpc   3.03e-2    150    covk=1.0 covc=0.3 covphi=0.3 q0_cov=0.1
