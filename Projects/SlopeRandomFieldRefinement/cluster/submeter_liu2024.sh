@@ -6,7 +6,7 @@
 # do no); as com ERRO ficam, a menos que RETENTAR=1.
 # Ambiente: SAIDA ($DATA/liu2024), TEMPO (2-00:00:00), PARTICAO, DEPENDE (id de job: --dependency=afterany: os jobs
 # esperam esse terminar, ex. o ultimo job do caso A na fila), e as do sbatch (M, BASE_NYS, TRANS, PARALELO, COV, NMIN,
-# N, FORM_IT, FORM_THREADS, NMC_MAX, BLOCO_MC, CASOS), que vao junto (--export=ALL). O fermi roda 4 jobs por usuario e
+# N, FORM_IT, FORM_THREADS, NMC_MAX, BLOCO_MC, CASOS, LS_TETO), que vao junto (--export=ALL). O fermi roda 4 jobs por usuario e
 # aceita 8 na fila: com outras campanhas na fila, submeta menos nos (ex.: 2) ou com DEPENDE.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"

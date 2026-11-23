@@ -22,7 +22,10 @@
 # Uso: ./submeter_liu2024.sh [nos]. Ambiente: SAIDA ($DATA/liu2024), M (100), BASE_NYS ($DATA/liu2024/base_liu_M$M.txt),
 # TRANS (tri3), NREF (3: os niveis do fator; o 4o muda o FS em ~0,3% e dobra o custo), PARALELO (24), COV (0.05), NMIN
 # (30), N (600), FORM_IT (10), FORM_THREADS (4), NMC_MAX (10000), BLOCO_MC (10), CASOS (todos, ou ids separados por
-# virgulas), EXE (bin_liu/SlopeRainMonteCarlo), PYV ($HOME/venv_la/bin/python).
+# virgulas), EXE (bin_liu/SlopeRainMonteCarlo), PYV ($HOME/venv_la/bin/python), LS_TETO (vazio: o teto de linhas e o
+# da coluna, limitado a N; um numero: o teto de todos os cenarios, sem o limite N).
+# Estender o line sampling (mais linhas, mesma semente e mesmos indices: o line_sampling.py retoma do linhas.csv e so faz
+# as linhas que faltam): apague o $SAIDA/<id>/FEITO_LS e resubmeta com LS_TETO=<novo teto>; o MC pronto nao e refeito.
 #SBATCH --job-name=liuB
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -40,7 +43,7 @@ BASE_NYS="${BASE_NYS:-$DADOS/liu2024/base_liu_M$M.txt}"
 TRANS="${TRANS:-tri3}" NREF="${NREF:-3}"
 PARALELO="${PARALELO:-${SLURM_CPUS_PER_TASK:-24}}"
 COV="${COV:-0.05}" NMIN="${NMIN:-30}" N="${N:-600}" FORM_IT="${FORM_IT:-10}" FORM_THREADS="${FORM_THREADS:-4}"
-NMC_MAX="${NMC_MAX:-10000}" BLOCO_MC="${BLOCO_MC:-10}"
+NMC_MAX="${NMC_MAX:-10000}" BLOCO_MC="${BLOCO_MC:-10}" LS_TETO="${LS_TETO:-}"
 CASOS_TXT="${CASOS_TXT:-$PWD/casos_liu2024.txt}" CASOS="${CASOS:-todos}"
 EXE="${EXE:-$PWD/bin_liu/SlopeRainMonteCarlo}" PY="$(cd ../../Cho2010 && pwd)" PYV="${PYV:-$HOME/venv_la/bin/python}"
 TALUDE=0,0,30,0,30,5,20,5,10,10,0,10
@@ -67,6 +70,7 @@ while read -r id pf nmc nls opc; do
     if [ "$CASOS" != todos ] && [[ ",$CASOS," != *",$id,"* ]]; then continue; fi
     [ "$nmc" -gt "$NMC_MAX" ] && nmc="$NMC_MAX"
     [ "$nls" -gt "$N" ] && nls="$N"
+    [ -n "$LS_TETO" ] && nls="$LS_TETO" # a extensao do line sampling: o mesmo teto em todos os cenarios
     r=0; [[ " $opc " == *" covk=0 "* ]] && r=1
     IDS+=("$id") OPCS+=("$opc") NMCS+=("$nmc") NLS+=("$nls") REUSA+=("$r")
 done < "$CASOS_TXT"
@@ -293,7 +297,7 @@ mc_onda() {
 }
 
 diz "inicio em $(hostname -s): ${#IDS[@]} cenarios, M $M, malha do permanente $TRANS, PARALELO $PARALELO, CoV alvo" \
-    "$COV, linhas $NMIN a $N, FORM ate $FORM_IT iteracoes, MC ate $NMC_MAX por cenario (blocos de $BLOCO_MC)," \
+    "$COV, linhas $NMIN a ${LS_TETO:-$N}, FORM ate $FORM_IT iteracoes, MC ate $NMC_MAX por cenario (blocos de $BLOCO_MC)," \
     "executavel $(cat "$(dirname "$EXE")/versao.txt" 2> /dev/null)"
 while :; do
     [ -e "$SAIDA/PARAR" ] && { diz "achei $SAIDA/PARAR: saindo"; break; }
