@@ -613,3 +613,62 @@ ssh diogo@fermi.cesup.ufrgs.br 'tail -n 5 neopz-master/Projects/SlopeRandomField
   `resultado.csv` e `resumo.json`.
 - Parar sem perder nada: `ssh diogo@fermi.cesup.ufrgs.br 'touch /mnt/data/diogo/hu2024_ks2e-5/PARAR'`. Voltar: apagar o
   `PARAR` e `./submeter_hu2024.sh` de novo. Com outras campanhas rodando, submeta menos nos ou com `DEPENDE=<job>`.
+
+## Caso B: Liu et al. (2024), permanente com campos gaussianos (`liu2024_casos.sbatch`)
+
+O passo intermediario da verificacao (relatorio `Exemplos probabilisticos de chuva nao saturada`, Secao "B) Passo
+intermediario"): o talude de Griffiths e Fenton (5 m a 1:2; pontos (0;0), (30;0), (30;5), (20;5), (10;10), (0;10)),
+cargas de 6 m a esquerda e 1 m a direita abaixo do nivel, base e laterais acima do nivel fechadas, percolacao permanente
+com q = 1e-7 m/s (0,36 mm/h) na superficie (por metro inclinado, o fluxo unitario do GeoStudio; a Fig. 1 desenha setas
+verticais, e a chuva vertical muda o FS em +0,1%), Fredlund-Xing (a 5 kPa, n 2, m 1, theta_s 0,4) com o k pela integral de
+Fredlund (Eq. 9, com C(psi) e psi_r = 3000 kPa; psi_aev = 2,6 kPa, a tangente), k_s 1e-5 m/s (CoV 0,6), c' 10 kPa (CoV
+0,3), phi' 15 graus (CoV 0,2), r(c, phi) = -0,5, phi^b = 2 phi'/3 por ponto (chi = tan(2phi'/3)/tan(phi')), gamma 20.
+Campos de Nystrom com o nucleo gaussiano exp(-dx^2/30^2 - dy^2/3^2) (alfa = 0), grade 0,2 x 0,1 m (11 225 nos), M = 100
+modos por campo (variancia retida 1,0000: o gaussiano cai rapido; lambda_k da grade de 0,1 x 0,05 m dentro de 4% ate o
+modo 100, em que lambda_100/lambda_1 = 7e-14). O permanente e a malha `tri3` (0,625 m); o fator, `tri1` + 3 niveis.
+
+Codigo novo (`montecarlo.cpp`, `RainTransient`, `TPZUnsaturatedHydraulics.h`; os padroes antigos ficam bit a bit):
+- `q0=` (mm/h): o estado inicial e a percolacao permanente com esse fluxo (`RainTransient::SteadyState`: Euler implicito
+  com dt dobrando de 0,1 h ate 1e8 h; para quando a maior mudanca de p_w num passo com dt >= 1e4 h fica abaixo de 1e-6 kPa;
+  no caso B, 19 passos e 9 s);
+- `fx=a,n,m,theta_s` e `kfredlund=<psi_aev>` (`psi_r=`): o k_r de Fredlund tabelado contra S_w (o novo
+  `TPZUnsaturatedHydraulics::ETabulated`, opcional; o material `TPZMatUnsaturatedUPwPa` nao muda);
+- `chi=ponto` com `phib=` ou `phib_razao=`: chi(x) = tan(phi^b)/tan(phi'(x)) nas pressoes congeladas do fator.
+
+Verificacao no PC (22/11, `~/projects/runs/liu2024`):
+- nivel d'agua do permanente: y = 5,14 m na secao X-X (x = 10) e 4,56 m na Y-Y (x = 15), contra ~5,0 e ~4,5 na Fig. 3;
+  p_w na base 49,9 e 44,1 kPa (Fig. 3: 50 e ~44); succao no topo 13,2 kPa contra ~15 (o patamar de k_r = q/k_s);
+- FS deterministico 1,5764 (`tri3`, 4 niveis; 1,5785 com 3 niveis, 1,5783 na `tri4`, 1,5758 com o fator na `tri2`) contra
+  1,525 do Bishop do artigo (+3,4%); sem a parcela da succao (phi^b = 0), 1,518;
+- FORM modal do cenario 2 (4 iteracoes no PC): beta ~ 4,75 a 4,88 (o FS oscila ~0,003 entre iteracoes), contra 3,95 da
+  Tabela 4; phi' pesa 0,78 e c' 0,22;
+- piloto do cenario 3 (4 realizacoes): FS 1,40 a 1,51; uma analise leva 1,5 a 4 min em serial no PC (o SRM deste talude
+  e lento: 5 000 a 16 000 equacoes, caminho longo).
+
+Os 2 cenarios de `casos_liu2024.txt` (alfa = 0, q/k_s = 0,01):
+
+| cenario | campos | P_f do artigo (Tabela 4) | N do MC | teto do LS (linhas) |
+|---|---|---|---|---|
+| S2 | c', phi' (k_s fixo: um permanente so, lido por todas as analises) | 4,08e-5 (beta 3,95) | 2 500 | 600 |
+| S3 | k_s, c', phi' (um permanente por analise) | 1,19e-4 (beta 3,68) | 10 000 | 600 |
+
+O MC do S3 confere a verificacao da Tabela 2 (4,0e-3 por hipercubo latino com 2500 amostras, a mesma de Jiang et al.
+2014): com 10 000 realizacoes, ~40 falhas se a P_f for 4e-3 e ~1 se for 1,19e-4. As Tabelas 2 e 4 do artigo nao fecham
+(~40 vezes) para "o mesmo" modelo; o resumo mostra as duas, sem forcar nenhuma. No S3 o gradiente modal da 0 nos termos de
+k_s (o fator congela as pressoes): a direcao do FORM fica em c' e phi', e o LS continua sem vies (o artigo da beta = 15 so
+com k_s aleatorio). Fases: 0. a base (gauss, ~20 s) e o permanente do S2; 1. o deterministico e o FORM (M = 100, ate 10
+iteracoes); 2. o LS ate CoV 5% (30 a 600 linhas); 3. o MC em blocos de 10.
+
+**Custo estimado:** uma analise leva 1,5 a 4 min em serial no PC (~4 a 10 min por processo no fermi, com 24 por no): MC
+~12 500 analises, LS ~2 x 600 x 2,5, FORM ~20: ~16 000 analises, ~1,6 a 4 mil horas de CPU, ou ~17 a 40 h com 4 nos
+(NMC_MAX menor encurta; o LS do S2 sai primeiro).
+
+```bash
+ssh diogo@fermi.cesup.ufrgs.br 'cd neopz-master && git pull origin UnsaturatedSoil && cd Projects/SlopeRandomFieldRefinement/cluster && nohup setsid bash -c "./compilar_liu.sh && ./submeter_liu2024.sh 2" > liu2024.log 2>&1 < /dev/null &'
+ssh diogo@fermi.cesup.ufrgs.br 'neopz-master/Projects/SlopeRandomFieldRefinement/cluster/status_liu2024.sh'
+~/projects/neopz-master/Projects/SlopeRandomFieldRefinement/cluster/baixar_liu2024.sh
+```
+
+- Com os jobs do caso A (huA) ou do Ceron na fila: `./submeter_liu2024.sh 2` (2 nos) ou `DEPENDE=<id do ultimo huA>
+  ./submeter_liu2024.sh 4` (os 4 esperam aquele job terminar). O fermi roda 4 jobs por usuario e aceita 8 na fila.
+- Parar sem perder nada: `ssh diogo@fermi.cesup.ufrgs.br 'touch /mnt/data/diogo/liu2024/PARAR'`.

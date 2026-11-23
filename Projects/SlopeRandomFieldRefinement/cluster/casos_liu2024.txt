@@ -1,0 +1,15 @@
+# casos_liu2024.txt: o caso B (Liu, Han, Huang, Huang e Cheng 2024, Comput. Geotech. 165:105938) para o
+# liu2024_casos.sbatch: FORM modal + line sampling + Monte Carlo direto, com a base comum do sbatch (BASE: geometria,
+# cargas de 6 e 1 m, Fredlund-Xing com o k de Fredlund, q = 1e-7 m/s permanente, chi por ponto com phi^b = 2 phi'/3,
+# c', phi', r(c, phi) = -0,5, campos gaussianos 30/3 m por Nystrom com M termos, malhas) e as opcoes da ultima coluna.
+# Colunas: id, a P_f do artigo (Tabela 4, alfa = 0, q/k_s = 0,01: lognormal ajustada a 2000 realizacoes), o N do Monte
+# Carlo direto, o teto de linhas do line sampling e as opcoes. Com covk=0 (cenario 2) a solucao permanente e uma so
+# (calculada uma vez e lida: pressoes=); com covk=0.6 (cenario 3) cada analise faz a sua.
+# O N do MC: o cenario 3 e o modelo da verificacao da Tabela 2 (P_f = 4,0e-3 por hipercubo latino com 2500 amostras, a
+# mesma de Jiang et al. 2014): 10 000 realizacoes dao ~40 falhas (CoV de 16%) se a P_f for 4e-3, e ~1 se for a 1,19e-4
+# da Tabela 4 (as duas tabelas do artigo nao fecham); 25 000 (CoV de 10%) custariam ~27 h de 4 nos (uma analise leva ~2
+# a 4 min no PC: o SRM deste talude e lento). O cenario 2 (4,08e-5) so o LS alcanca; o MC de 2500 (o N do hipercubo
+# latino) so limita a P_f.
+# id   Pf_artigo  N_mc   N_ls  opcoes
+S2     4.08e-5    2500   600   covk=0
+S3     1.19e-4    10000  600   covk=0.6
