@@ -18,7 +18,12 @@ tela.
 
 Uso: python3 -I form_kl.py <exe Cho2010> <pasta de trabalho> [M=20] [rcphi=-0.5] [h=0.5] [paralelos=2] [iteracoes=10]
      [fator=tri2] [nref=4] [srm_f0=0.8] [tol_g=0.001] [tol_beta=0.01] [gradiente=dif|modal] [nystrom=<base>]
-     [metodo=srm|gim]
+     [metodo=srm|gim] [algoritmo=hlrf|ihlrf] [armijo=0.5] [meias=6]
+algoritmo=ihlrf: o HL-RF melhorado (Zhang e Der Kiureghian 1995): a direcao d e a do passo HL-RF, d = u_HLRF - u, e o
+tamanho lambda = 1, 1/2, 1/4, ... (ate meias= metades) pela regra de Armijo na funcao de merito
+m(u) = |u|^2 / 2 + c |g(u)|, com c = 2 |u| / |grad g| + 10 (c > |u| / |grad g| garante que d desce em m): aceita o
+primeiro lambda com m(u + lambda d) - m(u) <= armijo lambda grad m . d. Cada lambda tentado e uma analise (com o
+gradiente modal, a do ponto aceito ja da o gradiente da iteracao seguinte); sem o amortecimento do HL-RF.
 prog=rebaixamento: o rebaixamento do Ceron (SlopeDrawdownMonteCarlo, Projects/SlopeRandomFieldRefinement), com 3 campos
 (c', phi' e k: 3M variaveis) e g = Gamma - 1 (GIM); as opcoes rcphi, srm_f0, metodo e nystrom nao valem, e transiente=
 escolhe a malha do transiente. O gradiente modal dele da 0 nos termos de k (a analise limite congela as pressoes).
@@ -51,7 +56,8 @@ import sys
 REBAIX_PADRAO = {"contorno": "reservatorio", "agua": "unsat", "trebaix": 0.1, "tfim": -1.0, "dt": 0.1, "hw": 1.0,
                  "covc": 0.3, "covphi": 0.1, "covk": 0.6, "s": 1.0, "alfa": 1.0}
 # prog=chuva: as opcoes do FORM (as outras vao para o SlopeRainMonteCarlo) e as que o FORM poe na linha de comando
-CHUVA_FORM = {"M", "h", "paralelos", "iteracoes", "tol_g", "tol_beta", "gradiente", "prog", "threads"}
+CHUVA_FORM = {"M", "h", "paralelos", "iteracoes", "tol_g", "tol_beta", "gradiente", "prog", "threads", "algoritmo",
+              "armijo", "meias"}
 CHUVA_RESERVADAS = {"n", "primeira", "xi", "saida", "gradiente", "det", "figuras"}
 SITUACAO_SEM_EQUILIBRIO = 0.005  # FS (ou Gamma) de um instante sem fator: o SRM (ou o GIM) sem equilibrio, falha
 
@@ -59,7 +65,7 @@ SITUACAO_SEM_EQUILIBRIO = 0.005  # FS (ou Gamma) de um instante sem fator: o SRM
 def parametros(argv):
     p = {"M": 20, "rcphi": -0.5, "h": 0.5, "paralelos": 2, "iteracoes": 10, "fator": "tri2", "nref": 4, "srm_f0": 0.8,
          "tol_g": 0.001, "tol_beta": 0.01, "gradiente": "dif", "nystrom": "", "metodo": "srm", "prog": "cho",
-         "transiente": "tri3", "threads": 0, **REBAIX_PADRAO}
+         "transiente": "tri3", "threads": 0, "algoritmo": "hlrf", "armijo": 0.5, "meias": 6, **REBAIX_PADRAO}
     if "prog=chuva" in argv:  # as opcoes do FORM e, o resto, as do executavel, na ordem dada
         p["exe"] = []
         for a in argv:
@@ -76,12 +82,16 @@ def parametros(argv):
                     p["nystrom"] = v
         if p["metodo"] not in ("srm", "gim"):
             sys.exit("metodo: srm ou gim")
+        if p["algoritmo"] not in ("hlrf", "ihlrf"):
+            sys.exit("algoritmo: hlrf ou ihlrf")
         return p
     for a in argv:
         k, v = a.split("=", 1)
         if k not in p:
             sys.exit(f"opcao desconhecida: {a}")
         p[k] = type(p[k])(v)
+    if p["algoritmo"] not in ("hlrf", "ihlrf"):
+        sys.exit("algoritmo: hlrf ou ihlrf")
     if p["prog"] not in ("cho", "rebaixamento"):
         sys.exit("prog=cho, prog=rebaixamento ou prog=chuva")
     if p["prog"] == "rebaixamento":
@@ -215,8 +225,13 @@ def main():
           flush=True)
     gAnterior = None
     convergiu = False
+    aceito = None  # iHLRF com gradiente modal: (g, grad, fs) do ponto aceito na busca, ja com o gradiente
     for it in range(p["iteracoes"]):
-        g, grad, fs = prob.g_e_gradiente(u, it)
+        if aceito is not None:
+            g, grad, fs = aceito
+        else:
+            g, grad, fs = prob.g_e_gradiente(u, it)
+        aceito = None
         beta = math.sqrt(sum(x * x for x in u))
         n2 = sum(x * x for x in grad)
         alfa2 = [x * x / n2 for x in grad] if n2 > 0 else [0.] * len(grad)
@@ -232,6 +247,37 @@ def main():
         if it > 0 and abs(g) < p["tol_g"] and abs(beta_novo - beta) < p["tol_beta"]:
             convergiu = True
             break
+        if p["algoritmo"] == "ihlrf":
+            d = [ni - ui for ni, ui in zip(novo, u)]
+            c = 2. * beta / math.sqrt(n2) + 10.
+            sg = 1. if g >= 0. else -1.
+            m0 = 0.5 * beta * beta + c * abs(g)
+            dm = sum((ui + c * sg * gi) * di for ui, gi, di in zip(u, grad, d))  # grad m . d (< 0)
+            lam, busca = 1., []
+            for j in range(p["meias"] + 1):
+                ut = [ui + lam * di for ui, di in zip(u, d)]
+                rot = f"{it}l{j}"
+                if p["gradiente"] == "modal":
+                    gt, gradt, fst = prob.g_modal(ut, rot)
+                else:
+                    gt = prob.fs(ut, f"it{rot}_centro") - 1.
+                    prob.n += 1
+                    gradt = fst = None
+                mt = 0.5 * sum(x * x for x in ut) + c * abs(gt)
+                ok = mt - m0 <= p["armijo"] * lam * dm
+                busca.append({"lambda": lam, "g": gt, "merito": mt, "aceito": ok})
+                print(f"       busca: lambda {lam:.4f}  g {gt:+.5f}  merito {mt:.5f} (antes {m0:.5f}, "
+                      f"Armijo {m0 + p['armijo'] * lam * dm:.5f}) {'aceito' if ok else ''}", flush=True)
+                if ok or j == p["meias"]:
+                    if not ok:
+                        print("       busca: nenhum lambda passou na regra de Armijo; fica o menor", flush=True)
+                    if gradt is not None:
+                        aceito = (gt, gradt, fst)
+                    break
+                lam *= 0.5
+            hist[-1].update({"c": c, "merito": m0, "busca": busca})
+            u = ut
+            continue
         if gAnterior is not None and abs(g) > 2. * abs(gAnterior) and it > 1:
             novo = [ui + 0.5 * (ni - ui) for ui, ni in zip(u, novo)]  # amortece: metade do passo
         gAnterior = g
