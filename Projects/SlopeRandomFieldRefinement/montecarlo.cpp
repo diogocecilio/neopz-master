@@ -72,6 +72,8 @@
 //   dt (0.1)               passo de tempo do transiente (h)
 //   dt_min (0)             > 0: um passo do transiente que nao converge e refeito em duas metades, ate dt_min (h); 0: o
 //                          transiente para (o de antes)
+//   kw (2.2e6)             modulo volumetrico da agua no transiente (kPa): o armazenamento da zona saturada, n/K_w, com
+//                          o esqueleto rigido; menor imita a compressibilidade de um esqueleto deformavel (diagnostico)
 //   newton ()              tol_p,maxit[,busca]: o Newton do transiente para com |dp| < tol_p (kPa; padrao do
 //                          TPZUnsatAnalysis 1e-6) e ate maxit iteracoes (40); busca: metades da busca linear (4)
 //   newton_trace (<arquivo>)  diagnostico de um transiente que para: o ultimo Solve que falhou e refeito com maxit - 2,
@@ -248,6 +250,7 @@ struct Opcoes {
     bool chiPonto = false;
     REAL phibDeg = 26., phibRazao = -1.;   // phi^b (graus) ou phi^b / phi' (> 0)
     REAL dt = 0.1, dtMin = 0.;             // passo do transiente e o menor da subdivisao (h)
+    REAL kw = 0.;                          // > 0: modulo volumetrico da agua no transiente (kPa; 0: o do RainData)
     std::vector<REAL> newton;              // tol_p, maxit do Newton do transiente (vazio: os do TPZUnsatAnalysis)
     std::string newtonTrace;               // arquivo do diagnostico do Newton (vazio: sem)
     REAL faceTol = 0.;                     // folga relativa da volta da face ao fluxo
@@ -285,7 +288,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
         "nu",         "rcphi",      "M",          "nystrom",    "xi",         "desloc_xi", "gradiente", "grava_pressoes",
         "pressoes",   "so_transiente", "fx",       "kfredlund", "psi_r",     "q0",         "q0_cov",    "phib",
         "phib_razao", "dt",         "dt_min",    "newton",         "chuva_aleatoria", "gpd",  "crpc",      "crpc_dmax", "crpc_passo",
-        "vg_tab",     "vg_tab_psi", "newton_trace", "face_tol"};
+        "vg_tab",     "vg_tab_psi", "newton_trace", "face_tol", "kw"};
     std::map<std::string, std::string> kv;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
@@ -389,6 +392,10 @@ Opcoes LeOpcoes(int argc, char *argv[])
     if (tem("dt")) op.dt = std::stod(kv["dt"]);
     if (!(op.dt > 0.)) Erro("dt > 0 (h)");
     if (tem("dt_min")) op.dtMin = std::stod(kv["dt_min"]);
+    if (tem("kw")) {
+        op.kw = std::stod(kv["kw"]);
+        if (!(op.kw > 0.)) Erro("kw > 0 (kPa)");
+    }
     if (tem("newton")) {
         op.newton = Lista(kv["newton"]);
         if (op.newton.size() < 2 || op.newton.size() > 3 || !(op.newton[0] > 0. && op.newton[1] >= 1.))
@@ -1494,6 +1501,7 @@ int main(int argc, char *argv[])
     if (op.phibDeg != 26.) r.phib = op.phibDeg * M_PI / 180.;
     if (op.dt != 0.1) r.dt = op.dt;
     r.dtMin = op.dtMin;
+    if (op.kw > 0.) r.Kw = op.kw;
     if (op.newton.size() > 2) r.lineSearch = int(op.newton[2]);
     if (op.kFredlund > 0.) {
         gTabelaK = TabelaFredlund(r.aFX, r.nFX, r.mFX, r.n, op.psiR, op.kFredlund);
