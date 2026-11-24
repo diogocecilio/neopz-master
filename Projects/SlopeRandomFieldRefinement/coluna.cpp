@@ -60,6 +60,9 @@
 //                          de 24 h cai 1,5 ponto de eps 1e-3 para 1e-4 (V2.7, ~/projects/runs/coluna_estudos)
 //   vg_tab_psi ()          psi_c[,fecho]: o mesmo com eps = 1 - S_e(psi_c) (kPa); ex.: vg_tab_psi=0.01,ippisch. Um ou outro
 //   Kw (2.2e6), gw (9.81)  modulo volumetrico da agua (kPa) e peso especifico da agua (kN/m3)
+//   mv (0)                 m_v do esqueleto (1/kPa; o mv= do SlopeRainMonteCarlo): entra como K_w' = 1/(1/K_w + m_v/n),
+//                          n = theta_s, armazenamento (n/K_w + m_v) dp_w com S_w = 1 e S_w (n/K_w + m_v) dp_w abaixo; o
+//                          Kw do cabecalho e do balanco de agua passa a ser o K_w'. 0: o de antes
 // A chuva e o estado inicial:
 //   I (10.8)               intensidade (mm/h), vertical, no topo (onde a agua empocaria, a face de percolacao p_w = 0)
 //   chuva (24)             duracao (h); depois, fluxo nulo no topo
@@ -168,7 +171,7 @@ struct Opcoes {
     int ny = 80;
     bool quad = true, concentrada = false; // o quad (V2.5)
     // solo
-    REAL ts = 0.358, tr = 3.58e-4, a = 0.149, nvg = 1.289, ks = 3.e-6, Kw = 2.2e6, gw = 9.81;
+    REAL ts = 0.358, tr = 3.58e-4, a = 0.149, nvg = 1.289, ks = 3.e-6, Kw = 2.2e6, gw = 9.81, mv = 0.;
     REAL vgTab = 1.e-3, vgTabPsi = -1.; // eps do teto (0: EMualem); psi_c do vg_tab_psi (< 0: nao dado)
     EFechoVG fecho = EFechoVG::Reta;
     std::string leiK = "tab_0.001_reta";
@@ -256,7 +259,7 @@ Opcoes LeOpcoes0(int argc, char *argv[])
     const std::set<std::string> chaves = {
         "n",         "primeira",  "det",        "semente",    "saida",      "tempos",       "perfis",  "grava_xi",
         "so_campo",  "kmult",     "localiza",   "para_na_falha", "H",       "ny",           "largura", "elementos",
-        "massa",     "vg",        "ks",         "vg_tab",     "vg_tab_psi", "Kw",           "gw",      "I",
+        "massa",     "vg",        "ks",         "vg_tab",     "vg_tab_psi", "Kw",           "gw",      "I",       "mv",
         "chuva",     "succao0",   "nivel0",     "succao_max", "dt",         "dt_min",       "newton",  "solver",
         "newton_trace", "face_tol", "fs",       "beta",       "c",          "phi",          "gamma_d", "fs_peso",
         "gamma",     "fs_zmin",   "covk",       "lv",         "M",          "nystrom",      "xi",      "desloc_xi"};
@@ -353,6 +356,9 @@ Opcoes LeOpcoes0(int argc, char *argv[])
     real("Kw", op.Kw);
     real("gw", op.gw);
     if (!(op.ks > 0. && op.Kw > 0. && op.gw > 0.)) Erro("ks, Kw e gw > 0");
+    real("mv", op.mv);
+    if (!(op.mv >= 0.)) Erro("mv >= 0 (1/kPa)");
+    if (op.mv > 0.) op.Kw = 1. / (1. / op.Kw + op.mv / op.ts); // n/K_w' = n/K_w + m_v
     if (tem("vg_tab") && tem("vg_tab_psi")) Erro("vg_tab e vg_tab_psi: um ou outro");
     for (const std::string k : {"vg_tab", "vg_tab_psi"}) { // k_r de Mualem tabelado: eps (ou psi_c) e o fecho
         if (!tem(k.c_str())) continue;
@@ -746,7 +752,9 @@ void GravaParametros(const std::string &arq, const Opcoes &op, const RandomField
       << "\nlocaliza=" << op.localiza << "\npara_na_falha=" << op.paraNaFalha << "\nH=" << op.H << "\nny=" << op.ny
       << "\nlargura=" << op.largura << "\nelementos=" << (op.quad ? "quad" : "tri")
       << "\nmassa=" << (op.concentrada ? "concentrada" : "consistente") << "\nvg=" << op.ts << "," << op.tr << ","
-      << op.a << "," << op.nvg << "\nks=" << op.ks << "\nlei_k=" << op.leiK << "\nKw=" << op.Kw << "\ngw=" << op.gw
+      << op.a << "," << op.nvg << "\nks=" << op.ks << "\nlei_k=" << op.leiK << "\nKw=" << op.Kw;
+    if (op.mv > 0.) p << "\nmv=" << op.mv;
+    p << "\ngw=" << op.gw
       << "\nI=" << op.I << "\nchuva=" << op.chuva;
     if (std::isnan(op.nivel0)) p << "\nsuccao0=" << op.succao0;
     else p << "\nnivel0=" << op.nivel0 << "\nsuccao_max=" << op.succaoMax;

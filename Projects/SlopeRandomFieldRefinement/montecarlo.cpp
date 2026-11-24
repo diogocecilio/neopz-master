@@ -74,6 +74,13 @@
 //                          transiente para (o de antes)
 //   kw (2.2e6)             modulo volumetrico da agua no transiente (kPa): o armazenamento da zona saturada, n/K_w, com
 //                          o esqueleto rigido; menor imita a compressibilidade de um esqueleto deformavel (diagnostico)
+//   mv (0)                 coeficiente de compressibilidade volumetrica do esqueleto m_v (1/kPa) no transiente (o SEEP/W:
+//                          a inclinacao de theta_w(p_w) para p_w > 0 e m_v; S_s = gamma_w (m_v + n/K_w)). O material
+//                          desacoplado armazena n S_w(p_w)/K_w dp_w + n dS_w; mv entra como um K_w equivalente,
+//                          n/K_w' = n/K_w + m_v, isto e K_w' = 1/(1/K_w + m_v/n): na zona saturada (S_w = 1) e exatamente
+//                          o armazenamento (n/K_w + m_v) dp_w; na nao saturada o termo vira S_w (n/K_w + m_v) dp_w, somado
+//                          ao n dS_w/dp_w dp_w da retencao (o SEEP/W nao tem esse S_w m_v la: pequeno onde n dS_w/dp_w >>
+//                          m_v). Com kw= os dois se somam: K_w = kw primeiro, depois o m_v. 0: o de antes (bit a bit)
 //   newton ()              tol_p,maxit[,busca]: o Newton do transiente para com |dp| < tol_p (kPa; padrao do
 //                          TPZUnsatAnalysis 1e-6) e ate maxit iteracoes (40); busca: metades da busca linear (4)
 //   newton_trace (<arquivo>)  diagnostico de um transiente que para: o ultimo Solve que falhou e refeito com maxit - 2,
@@ -251,6 +258,7 @@ struct Opcoes {
     REAL phibDeg = 26., phibRazao = -1.;   // phi^b (graus) ou phi^b / phi' (> 0)
     REAL dt = 0.1, dtMin = 0.;             // passo do transiente e o menor da subdivisao (h)
     REAL kw = 0.;                          // > 0: modulo volumetrico da agua no transiente (kPa; 0: o do RainData)
+    REAL mv = 0.;                          // > 0: m_v do esqueleto no transiente (1/kPa), K_w' = 1/(1/K_w + m_v/n)
     std::vector<REAL> newton;              // tol_p, maxit do Newton do transiente (vazio: os do TPZUnsatAnalysis)
     std::string newtonTrace;               // arquivo do diagnostico do Newton (vazio: sem)
     REAL faceTol = 0.;                     // folga relativa da volta da face ao fluxo
@@ -288,7 +296,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
         "nu",         "rcphi",      "M",          "nystrom",    "xi",         "desloc_xi", "gradiente", "grava_pressoes",
         "pressoes",   "so_transiente", "fx",       "kfredlund", "psi_r",     "q0",         "q0_cov",    "phib",
         "phib_razao", "dt",         "dt_min",    "newton",         "chuva_aleatoria", "gpd",  "crpc",      "crpc_dmax", "crpc_passo",
-        "vg_tab",     "vg_tab_psi", "newton_trace", "face_tol", "kw"};
+        "vg_tab",     "vg_tab_psi", "newton_trace", "face_tol", "kw", "mv"};
     std::map<std::string, std::string> kv;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
@@ -395,6 +403,10 @@ Opcoes LeOpcoes(int argc, char *argv[])
     if (tem("kw")) {
         op.kw = std::stod(kv["kw"]);
         if (!(op.kw > 0.)) Erro("kw > 0 (kPa)");
+    }
+    if (tem("mv")) {
+        op.mv = std::stod(kv["mv"]);
+        if (!(op.mv >= 0.)) Erro("mv >= 0 (1/kPa)");
     }
     if (tem("newton")) {
         op.newton = Lista(kv["newton"]);
@@ -1026,6 +1038,7 @@ std::string ChaveTransiente(const Opcoes &op, const RainData &r)
     c << ";n=" << r.n << ";Kw=" << r.Kw << ";transiente=" << op.malhaT << ";uT=" << op.uT;
     if (op.kFredlund > 0.) c << ";kfredlund=" << op.kFredlund << "," << op.psiR;
     if (op.q0 > 0.) c << ";q0=" << op.q0;
+    if (op.mv > 0.) c << ";mv=" << op.mv;
     if (op.dtMin > 0.) c << ";dt_min=" << op.dtMin;
     if (!op.newton.empty())
         c << ";newton=" << op.newton[0] << "," << op.newton[1] << "," << (op.newton.size() > 2 ? op.newton[2] : 4.);
@@ -1502,6 +1515,7 @@ int main(int argc, char *argv[])
     if (op.dt != 0.1) r.dt = op.dt;
     r.dtMin = op.dtMin;
     if (op.kw > 0.) r.Kw = op.kw;
+    if (op.mv > 0.) r.Kw = 1. / (1. / r.Kw + op.mv / r.n); // n/K_w' = n/K_w + m_v (depois do r.n e do kw=)
     if (op.newton.size() > 2) r.lineSearch = int(op.newton[2]);
     if (op.kFredlund > 0.) {
         gTabelaK = TabelaFredlund(r.aFX, r.nFX, r.mFX, r.n, op.psiR, op.kFredlund);
