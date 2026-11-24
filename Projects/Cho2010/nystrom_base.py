@@ -44,7 +44,17 @@ A grade de 0,2 x 0,1 m (15 000 nos) retem 99,7% da variancia com 2000 modos; a d
 autovalores acima de ~50 modos (lambda_100 23% e lambda_1000 57% contra a de 0,2 x 0,1).
 Arquivo: 'n M nucleo=... lh=... lv=... [angulo=...] dx=... dy=...' (o cabecalho antigo, so 'n M', e o nucleo exp com
 as distancias do driver) e, depois, n linhas 'x y w', 1 linha com os M autovalores e n linhas com os M valores
-f_k(x_j)."""
+f_k(x_j).
+
+Coluna 1D (Cho 2014, o SlopeRainColumn): python3 -I nystrom_base.py <saida.txt | -> coluna=H [dy=H/(8M)] [nucleo=exp]
+                                [lv=2] [M=200] [copias=] [compara=] [mercer=0]
+  a base do segmento [0, H] em x = 0: nos (0, (j + 1/2) dy) com peso dy (n = H/dy nos; sem dy=, n = 8M, ex. dy = 0.0025
+  com H = 2 e M = 100) e os M maiores autopares da matriz densa w C (eigh, so o fator 1D em y do nucleo); o sinal de
+  cada modo e v_k . cos(2.345 y + 0.5) > 0 (a projecao do talude em x = 0). O cabecalho leva lh=1e+30 e dx=1.0: o nucleo
+  do RandomField fica exatamente 1D e a grade rapida roda com nx = 1. Imprime lambda_1..5, a variancia retida e, com o
+  nucleo exp, o erro contra a KL analitica do KLSeparavel.h (omega tan(omega a) = c e omega + c tan(omega a) = 0 em
+  [-a, a], lambda = 2c/(omega^2 + c^2), c = 1/lv); mercer= sorteia os pares em [0, H]. Recusa lambda_M <= 1e-12 lambda_1
+  (M menor) e as opcoes do talude (talude=, lh=, dx=, angulo=, nos=, autopares=)."""
 import math
 import sys
 import time
@@ -209,16 +219,149 @@ def mercer(talude, nuc, pts, w, lam, f, npares, Ms):
               f"{np.abs(e).mean():.4f}  {np.sqrt((e ** 2).mean()):.4f}  {np.abs(e).max():.4f}  |  {e.mean():+.4f}")
 
 
+def kl_exp_1d(H, L, n):
+    """os n maiores autovalores e as autofuncoes (em y de [0, H]) do nucleo exp(-|s - t|/L) em forma fechada, como o
+    CalculaModos1D do KLSeparavel.h (Ghanem e Spanos 1991, sec. 2.3.3): com a = H/2 e c = 1/L, os pares de
+    omega tan(omega a) = c (cos) e os impares de omega + c tan(omega a) = 0 (sin), lambda = 2c/(omega^2 + c^2)"""
+    from scipy.optimize import brentq
+    a, c, pi, e = 0.5 * H, 1. / L, math.pi, 1e-12
+    v = []
+    for k in range(1, n + 1):
+        w = brentq(lambda x: x * math.tan(x * a) - c, ((k - 1) * pi + e) / a, ((k - 0.5) * pi - e) / a, xtol=1e-15,
+                   maxiter=500)
+        v.append((2. * c / (w * w + c * c), w, 1))
+        w = brentq(lambda x: x + c * math.tan(x * a), ((k - 0.5) * pi + e) / a, (k * pi - e) / a, xtol=1e-15, maxiter=500)
+        v.append((2. * c / (w * w + c * c), w, 0))
+    v = sorted(v, key=lambda t: -t[0])[:n]
+    lam = np.array([t[0] for t in v])
+
+    def f(k, y):
+        _, w, par = v[k]
+        s2 = math.sin(2. * w * a) / (2. * w)
+        return (np.cos(w * (y - a)) / math.sqrt(a + s2)) if par else (np.sin(w * (y - a)) / math.sqrt(a - s2))
+    return lam, f
+
+
+def mercer_coluna(H, nuc, pts, w, lam, f, npares, Ms):
+    """o teste de Mercer da coluna: C_M(y, y') contra C(y, y') em pares sorteados em [0, H] (semente fixa; metade perto,
+    com |dy| < lv)"""
+    rng = np.random.default_rng(2024)
+    a = rng.uniform(0., H, npares)
+    b = np.empty(npares)
+    for i in range(npares):
+        while True:
+            b[i] = a[i] + rng.uniform(-nuc.lv, nuc.lv) if i < npares // 2 else rng.uniform(0., H)
+            if 0. <= b[i] <= H:
+                break
+    pa, pb = np.column_stack([np.zeros(npares), a]), np.column_stack([np.zeros(npares), b])
+    fa, fb = interpola(nuc, pts, w, lam, f, pa), interpola(nuc, pts, w, lam, f, pb)
+    C = nuc(0. * a, a - b)
+    print(f"  teste de Mercer ({npares} pares em [0, {H:g}]; metade perto, |dy| < lv; C medio {C.mean():.3f}):")
+    print("      M   variancia C_M(y,y) (media; min-max)   erro |C_M - C|: medio    rms     max   | (C_M - C) medio")
+    for M in Ms:
+        if M > len(lam):
+            continue
+        var = (fa[:, :M] ** 2 * lam[None, :M]).sum(axis=1)
+        CM = (fa[:, :M] * fb[:, :M] * lam[None, :M]).sum(axis=1)
+        e = CM - C
+        print(f"   {M:4d}   {var.mean():.4f} ({var.min():.4f}-{var.max():.4f})              "
+              f"{np.abs(e).mean():.4f}  {np.sqrt((e ** 2).mean()):.4f}  {np.abs(e).max():.4f}  |  {e.mean():+.4f}")
+
+
+def coluna(p, dados):
+    """a base 1D da coluna vertical [0, H] (opcao coluna=H): nos (0, (j + 1/2) dy) com peso dy, os M maiores autopares da
+    matriz densa w C e o cabecalho com lh = 1e30 e dx = 1 (o nucleo do RandomField fica 1D; a grade rapida, nx = 1)"""
+    if not p["coluna"] > 0.:
+        sys.exit("coluna=H: H > 0 (a altura da coluna, m)")
+    proibidas = sorted(dados & {"talude", "lh", "dx", "nos", "autopares"})
+    if proibidas or p["angulo"] != 0.:
+        sys.exit(f"coluna=: sem {', '.join(proibidas + (['angulo'] if p['angulo'] != 0. else []))} (a coluna fica em"
+                 f" x = 0; o cabecalho leva lh=1e+30 e dx=1.0)")
+    H, M = p["coluna"], p["M"]
+    n = max(1, int(round(H / p["dy"]))) if "dy" in dados else 8 * M
+    dy = H / n
+    if "dy" in dados and abs(dy - p["dy"]) > 1e-12 * p["dy"]:
+        print(f"  aviso: H = {H:g} nao tem um numero inteiro de celulas de {p['dy']}: uso dy = {dy:.6g}")
+    M = min(M, n)
+    if n < 8 * M:
+        print(f"  aviso: n = {n} nos < 8M = {8 * M}: os ultimos modos ficam menos precisos (o padrao e n = 8M)")
+    nuc = Nucleo(p["nucleo"], 1e30, p["lv"], 0.)
+    ys = (0. + dy / 2) + dy * np.arange(n)  # a mesma formula dos centros da grade do talude
+    pts = np.column_stack([np.zeros(n), ys])
+    w = dy
+    A = w * nuc.fator(ys[:, None] - ys[None, :], nuc.lv)
+    t0 = time.time()
+    lam, v = np.linalg.eigh(A)
+    ordem = np.argsort(lam)[::-1][:M]
+    lam, v = lam[ordem], v[:, ordem]
+    if not lam[-1] > 1e-12 * lam[0]:
+        k = int(np.argmax(~(lam > 1e-12 * lam[0])))
+        sys.exit(f"coluna=: lambda_{k + 1} = {lam[k]:.3e} <= 1e-12 lambda_1 ({lam[0]:.3e}): use M <= {k}")
+    g = np.cos(2.345 * ys + 0.5)  # sinal: v_k . g > 0 (a projecao do talude, cos(1.234 x + 2.345 y + 0.5), em x = 0)
+    proj = v.T @ g
+    v *= np.where(proj < 0., -1., 1.)[None, :]
+    res = max(np.linalg.norm((A @ v[:, k]) - lam[k] * v[:, k]) for k in (0, M // 2, M - 1))
+    f = v / math.sqrt(w)
+    cab = f"{nuc.cabecalho()} dx={1.0!r} dy={dy!r}"
+    print(f"{n} nos de dy = {dy:.6g} m na coluna de H = {H:g} m (x = 0), {cab}, M = {M}")
+    print(f"  eigh: {M} autopares em {time.time() - t0:.1f} s (residuo |A v - lambda v| <= {res:.1e}; "
+          f"sinal: min |v_k . g| = {np.abs(proj).min():.2e})")
+    print(f"  normalizacao: max |sum_j w_j f_k^2 - 1| = {np.abs((w * f * f).sum(axis=0) - 1).max():.2e}")
+    print("  lambda_1..5: " + " ".join(f"{x:.6f}" for x in lam[:5]))
+    for m in (10, 20, 50, 100, 150, 200, 500, 1000, 2000):
+        if m <= M:
+            print(f"  variancia retida com M = {m:4d}: {lam[:m].sum() / H:.4f}")
+    if M not in (10, 20, 50, 100, 150, 200, 500, 1000, 2000):
+        print(f"  variancia retida com M = {M:4d}: {lam.sum() / H:.4f}")
+    if nuc.tipo == "exp":
+        an, fan = kl_exp_1d(H, nuc.lv, M)
+        e = lam / an - 1.
+        K = min(20, M)
+        # as autofuncoes analiticas com o sinal da regra acima
+        ef = []
+        for k in range(min(5, M)):
+            fa = fan(k, ys)
+            fa *= -1. if fa @ g < 0. else 1.
+            ef.append(np.abs(f[:, k] - fa).max())
+        print(f"  KL analitica (KLSeparavel.h): erro relativo max em lambda_1..{K} = {np.abs(e[:K]).max():.2e}" +
+              (f", em lambda_1..{M} = {np.abs(e).max():.2e} (no modo {int(np.abs(e).argmax()) + 1})" if M > K else "") +
+              f"; variancia retida analitica com M = {M}: {an.sum() / H:.4f}; max |f_k - f_k analitica| "
+              f"(k = 1..{len(ef)}) = {max(ef):.2e}")
+    if p["compara"]:
+        ref = le_lambdas(p["compara"])
+        K = min(M, len(ref))
+        e = lam[:K] / ref[:K] - 1.
+        print(f"  contra {p['compara']} (lambda_1 = {ref[0]:.6g}): max |erro| em lambda_1..{K} = {100 * np.abs(e).max():.2f}%"
+              f" (no modo {int(np.abs(e).argmax()) + 1}); " +
+              ", ".join(f"lambda_{k} {100 * e[k - 1]:+.2f}%" for k in (1, 10, 50, 100, 150, 200) if k <= K))
+    if p["mercer"] > 0:
+        mercer_coluna(H, nuc, pts, np.full(n, w), lam, f, p["mercer"], sorted({20, 50, 100, M}))
+    if sys.argv[1] == "-":
+        return
+    grava(sys.argv[1], pts, np.full(n, w), lam, f, cab)
+    print(f"  gravada: {sys.argv[1]}")
+    base = sys.argv[1][:-4] if sys.argv[1].endswith(".txt") else sys.argv[1]
+    for m in (int(c) for c in p["copias"].split(",") if c):
+        if m < M:
+            grava(f"{base}_M{m}.txt", pts, np.full(n, w), lam[:m], f[:, :m], cab)
+            print(f"  copia com os {m} primeiros modos: {base}_M{m}.txt")
+
+
 def main():
     if len(sys.argv) < 2:
         sys.exit(__doc__)
     p = {"M": 200, "talude": "", "nucleo": "exp", "lh": 20., "lv": 2., "angulo": 0., "dx": 0.5, "dy": 0.25,
-         "copias": "", "nos": "", "autopares": "", "compara": "", "mercer": 0}
+         "copias": "", "nos": "", "autopares": "", "compara": "", "mercer": 0, "coluna": 0.}
+    dados = set()  # as opcoes dadas (a coluna tem outro padrao de dy)
     for a in sys.argv[2:]:
         k, v = a.split("=", 1)
         if k not in p:
             sys.exit(f"opcao desconhecida: {a}")
         p[k] = type(p[k])(v)
+        dados.add(k)
+    if "coluna" in dados:
+        coluna(p, dados)
+        return
     talude = CHO
     if p["talude"]:
         v = [float(x) for x in p["talude"].split(",")]
