@@ -46,6 +46,12 @@
 //   ks ()                  k_s (m/s) no lugar do k_s do solo
 //   vg ()                  theta_s,theta_r,alfa,n: retencao de van Genuchten (alfa em 1/kPa) com k_r de Mualem, no lugar
 //                          de Fredlund-Xing com k_s Theta^4 (porosidade = theta_s; S_wr = theta_r / theta_s)
+//   vg_tab (0)             eps[,fecho]: com vg=, o k_r de Mualem tabelado contra S_w (MualemTabelado.h) ate o teto S_e =
+//                          1 - eps (1e-5 <= eps <= 0,1) e fechado ate k_r(1) = 1 por reta (padrao), c1 ou ippisch, no lugar
+//                          do EMualem (com n < 2, dk_r/dpsi explode na saturacao e o Newton do transiente cicla); 0: o
+//                          EMualem (desligado)
+//   vg_tab_psi ()          psi_c[,fecho]: o mesmo, com eps = 1 - S_e(psi_c) (psi_c em kPa; ippisch: a entrada de ar psi_e;
+//                          ex.: vg_tab_psi=0.01,ippisch). Um ou outro
 //   chi (const)            const: chi = tan(phi^b) / tan(phi') com phi^b = 26 graus (o Rahardjo); se: chi = S_e
 //                          (Vanapalli et al. 1996)
 //   c (10), phi (26), gamma (20), E (20000), nu (0.3)   medias de c' (kPa) e phi' (graus), peso especifico (kN/m3), E (kPa)
@@ -68,6 +74,12 @@
 //                          transiente para (o de antes)
 //   newton ()              tol_p,maxit[,busca]: o Newton do transiente para com |dp| < tol_p (kPa; padrao do
 //                          TPZUnsatAnalysis 1e-6) e ate maxit iteracoes (40); busca: metades da busca linear (4)
+//   newton_trace (<arquivo>)  diagnostico de um transiente que para: o ultimo Solve que falhou e refeito com maxit - 2,
+//                          maxit - 1 e maxit iteracoes, e o arquivo ganha um bloco com os 10 nos de maior mudanca de p_w na
+//                          ultima iteracao (no, x, y, os tres p_w, superficie, face; RainTransient::SetNewtonTrace); a tela
+//                          ganha uma linha por instante de tempos= atingido (passos, iteracoes, nos na face)
+//   face_tol (0)           um no da face de percolacao so volta ao fluxo da chuva se R / (dt L) > q (1 + face_tol) + 1e-10
+//                          (0: o criterio de antes)
 // A chuva aleatoria (caso C):
 //   chuva_aleatoria (0)    1: I e D sorteados por realizacao (Pareto generalizada com copula de Frank, Liu e Wang 2023,
 //                          Tabela 2), com os instantes do fator 0 e D (o FS inicial e o do fim da chuva; adapta nos dois);
@@ -130,6 +142,7 @@
 #include "HPMaterial.h"
 #include "ImportanceSampling.h"
 #include "LayerGMesh.h"
+#include "MualemTabelado.h"
 #include "PointLocator.h"
 #include "RainTransient.h"
 #include "RandomField.h"
@@ -219,6 +232,8 @@ struct Opcoes {
     bool esqCarga = true, dirCarga = true, chuvaVertical = false, chiSe = false;
     REAL cargaEsq = std::numeric_limits<REAL>::quiet_NaN(), cargaDir = std::numeric_limits<REAL>::quiet_NaN();
     VanGenuchten vg;
+    REAL vgTab = 0.;                       // vg_tab: o eps do teto S_e = 1 - eps (0: o EMualem)
+    EFechoVG vgFecho = EFechoVG::Reta;
     Resistencia res;
     // os campos
     std::string nystrom, xi, deslocXi;
@@ -234,6 +249,8 @@ struct Opcoes {
     REAL phibDeg = 26., phibRazao = -1.;   // phi^b (graus) ou phi^b / phi' (> 0)
     REAL dt = 0.1, dtMin = 0.;             // passo do transiente e o menor da subdivisao (h)
     std::vector<REAL> newton;              // tol_p, maxit do Newton do transiente (vazio: os do TPZUnsatAnalysis)
+    std::string newtonTrace;               // arquivo do diagnostico do Newton (vazio: sem)
+    REAL faceTol = 0.;                     // folga relativa da volta da face ao fluxo
     bool chuvaAleatoria = false;
     std::array<REAL, 7> gpd = {-0.04, 3.44, 5.13, 0.43, 5.15, 0.30, -2.38};
     std::vector<REAL> crpc;                // intensidades da CRPC (vazio: Monte Carlo)
@@ -267,7 +284,8 @@ Opcoes LeOpcoes(int argc, char *argv[])
         "chuva_face", "ks",         "vg",         "chi",        "c",          "phi",       "gamma",     "E",
         "nu",         "rcphi",      "M",          "nystrom",    "xi",         "desloc_xi", "gradiente", "grava_pressoes",
         "pressoes",   "so_transiente", "fx",       "kfredlund", "psi_r",     "q0",         "q0_cov",    "phib",
-        "phib_razao", "dt",         "dt_min",    "newton",         "chuva_aleatoria", "gpd",  "crpc",      "crpc_dmax", "crpc_passo"};
+        "phib_razao", "dt",         "dt_min",    "newton",         "chuva_aleatoria", "gpd",  "crpc",      "crpc_dmax", "crpc_passo",
+        "vg_tab",     "vg_tab_psi", "newton_trace", "face_tol"};
     std::map<std::string, std::string> kv;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
@@ -327,6 +345,24 @@ Opcoes LeOpcoes(int argc, char *argv[])
         op.vg = {true, v[0], v[1], v[2], v[3]};
         if (!tem("solo")) op.solo.nome = "vg"; // a coluna solo do CSV
     }
+    if (tem("vg_tab") && tem("vg_tab_psi")) Erro("vg_tab e vg_tab_psi: um ou outro");
+    for (const std::string k : {"vg_tab", "vg_tab_psi"}) { // k_r de Mualem tabelado: eps (ou psi_c) e o fecho
+        if (!tem(k.c_str())) continue;
+        const size_t vir = kv[k].find(',');
+        const REAL x = std::stod(kv[k].substr(0, vir));
+        if (k == "vg_tab" && x == 0.) break; // vg_tab=0: desligado
+        if (!op.vg.usa) Erro(k + " precisa de vg=");
+        const std::string fecho = vir == std::string::npos ? "reta" : kv[k].substr(vir + 1);
+        if (fecho != "reta" && fecho != "c1" && fecho != "ippisch") Erro(k + ": o fecho e reta, c1 ou ippisch");
+        op.vgFecho = fecho == "reta" ? EFechoVG::Reta : fecho == "c1" ? EFechoVG::C1 : EFechoVG::Ippisch;
+        op.vgTab = k == "vg_tab" ? x : x > 0. ? EpsDePsi(op.vg.a, op.vg.n, x) : 0.;
+        if (!(op.vgTab >= 1.e-5 && op.vgTab <= 0.1)) {
+            char b[128];
+            std::snprintf(b, sizeof b, "%s: eps = %g fora de [1e-5, 0.1]%s", k.c_str(), op.vgTab,
+                          k == "vg_tab" ? "" : " (eps = 1 - S_e(psi_c))");
+            Erro(b);
+        }
+    }
     if (tem("chi")) {
         if (kv["chi"] != "const" && kv["chi"] != "se" && kv["chi"] != "ponto") Erro("chi: const, se ou ponto");
         op.chiSe = kv["chi"] == "se";
@@ -358,6 +394,9 @@ Opcoes LeOpcoes(int argc, char *argv[])
         if (op.newton.size() < 2 || op.newton.size() > 3 || !(op.newton[0] > 0. && op.newton[1] >= 1.))
             Erro("newton: tol_p,maxit[,busca] (kPa, >= 1, metades da busca linear)");
     }
+    if (tem("newton_trace")) op.newtonTrace = kv["newton_trace"];
+    if (tem("face_tol")) op.faceTol = std::stod(kv["face_tol"]);
+    if (!(op.faceTol >= 0.)) Erro("face_tol >= 0");
     if (tem("chuva_aleatoria")) op.chuvaAleatoria = std::stoi(kv["chuva_aleatoria"]) != 0;
     if (tem("gpd")) {
         const std::vector<REAL> v = Lista(kv["gpd"]);
@@ -589,6 +628,7 @@ struct TabelaK {
     std::vector<REAL> S, lnK;
 };
 TabelaK gTabelaK; // preenchida no main com kfredlund=
+TabelaVG gTabelaVG; // k_r de Mualem tabelado ate S_e = 1 - eps (MualemTabelado.h), preenchida no main com vg_tab=
 
 TabelaK TabelaFredlund(REAL a, REAL n, REAL m, REAL ts, REAL psiR, REAL psiAev)
 {
@@ -638,6 +678,7 @@ TUnsatHP *MaterialChuva(const RainData &r, const Opcoes &op)
         h.fRetention = TPZUnsaturatedHydraulics::EVanGenuchten;
         h.fAVG = op.vg.a, h.fBVG = op.vg.n, h.fSwr = op.vg.tr / op.vg.ts;
         h.fKrw = TPZUnsaturatedHydraulics::EMualem;
+        if (op.vgTab > 0.) UsaTabela(h, gTabelaVG); // vg_tab=: Mualem tabelado ate S_e = 1 - eps
     } else {
         h.fRetention = TPZUnsaturatedHydraulics::EFredlundXing; // S_w(p_c) com C(psi) = 1
         h.fA = r.aFX, h.fN = r.nFX, h.fM = r.mFX;
@@ -974,17 +1015,30 @@ std::string ChaveTransiente(const Opcoes &op, const RainData &r)
       << ";chuva_face=" << (r.rainVertical ? "vertical" : "inclinada") << ";ks=" << r.ks << ";alfa=" << op.alfa;
     if (op.vg.usa) c << ";vg=" << op.vg.ts << "," << op.vg.tr << "," << op.vg.a << "," << op.vg.n;
     else c << ";fx=" << r.aFX << "," << r.nFX << "," << r.mFX << ";power=" << r.power;
+    if (op.vgTab > 0.) c << ";vg_tab=" << op.vgTab << "," << NomeFechoVG(op.vgFecho);
     c << ";n=" << r.n << ";Kw=" << r.Kw << ";transiente=" << op.malhaT << ";uT=" << op.uT;
     if (op.kFredlund > 0.) c << ";kfredlund=" << op.kFredlund << "," << op.psiR;
     if (op.q0 > 0.) c << ";q0=" << op.q0;
     if (op.dtMin > 0.) c << ";dt_min=" << op.dtMin;
     if (!op.newton.empty())
         c << ";newton=" << op.newton[0] << "," << op.newton[1] << "," << (op.newton.size() > 2 ? op.newton[2] : 4.);
+    if (op.faceTol > 0.) c << ";face_tol=" << op.faceTol;
     return c.str();
 }
 
-// O transiente na malha de mT (com o material e os campos ja postos): ate o ultimo instante, com p_w em cada um
-Pressoes CalculaTransiente(UnsatModel<TUnsatHP> &mT, const RainData &r, const Opcoes &op)
+// newton_trace= e face_tol= num transiente (so quando pedidos). O trace recebe as tolerancias postas no TPZUnsatAnalysis:
+// as do newton= ou os padroes dele (1e-7, 1e-6, 40, 25)
+void OpcoesTransiente(RainTransient &chuva, const Opcoes &op, const std::string &rotulo)
+{
+    if (!op.newtonTrace.empty())
+        chuva.SetNewtonTrace(op.newtonTrace, 1.e-7, op.newton.empty() ? 1.e-6 : op.newton[0],
+                             op.newton.empty() ? 40 : int(op.newton[1]), 25, rotulo);
+    if (op.faceTol > 0.) chuva.SetFaceTolerance(op.faceTol);
+}
+
+// O transiente na malha de mT (com o material e os campos ja postos): ate o ultimo instante, com p_w em cada um; rotulo:
+// o transiente no arquivo do newton_trace=
+Pressoes CalculaTransiente(UnsatModel<TUnsatHP> &mT, const RainData &r, const Opcoes &op, const std::string &rotulo = "")
 {
     Pressoes P;
     TPZUnsatAnalysis aT(mT.CompMesh(), {{base, {true, true}}, {right, {true, false}}, {left, {true, false}}});
@@ -1002,6 +1056,7 @@ Pressoes CalculaTransiente(UnsatModel<TUnsatHP> &mT, const RainData &r, const Op
     if (op.esqCarga && !std::isnan(op.cargaEsq)) cargas[left] = op.cargaEsq;
     if (op.dirCarga && !std::isnan(op.cargaDir)) cargas[right] = op.cargaDir;
     RainTransient chuva(aT, r, op.res.gammaw, laterais, {topleft, face, topright}, cargas);
+    OpcoesTransiente(chuva, op, rotulo);
     chuva.InitialState();
     P.eq = mT.CompMesh()->NEquations();
     if (op.q0 > 0.) { // estado inicial permanente com a infiltracao q0
@@ -1030,6 +1085,11 @@ Pressoes CalculaTransiente(UnsatModel<TUnsatHP> &mT, const RainData &r, const Op
         P.face[t] = chuva.FaceNodes();
         P.faixa[t] = chuva.PressureRange();
         P.s[t] = sT;
+        if (!op.newtonTrace.empty()) { // newton_trace=: o progresso na tela, instante a instante
+            std::printf("  transiente em %g h: %lld passos, %lld iteracoes de Newton, %zu nos na face (%.0f s)\n", t,
+                        (long long)chuva.Steps(), (long long)chuva.NewtonIterations(), chuva.FaceNodes(), sT);
+            std::fflush(stdout);
+        }
     }
     return P;
 }
@@ -1174,6 +1234,7 @@ void GravaParametros(const std::string &arq, const Opcoes &op, const RandomField
     if (op.chiPonto) p << "CHI=ponto\nPHIB=" << op.phibDeg << "\nPHIB_RAZAO=" << op.phibRazao << "\n";
     if (!op.fx.empty()) p << "FX=" << lista(op.fx) << "\n";
     if (op.kFredlund > 0.) p << "KFREDLUND=" << op.kFredlund << "\nPSI_R=" << op.psiR << "\n";
+    if (op.vgTab > 0.) p << "VG_TAB=" << op.vgTab << "," << NomeFechoVG(op.vgFecho) << "\n";
     if (op.q0 > 0.) p << "Q0=" << op.q0 << "\nQ0_COV=" << op.q0Cov << "\n";
     if (op.chuvaAleatoria) {
         p << "CHUVA_ALEATORIA=1\nGPD=";
@@ -1311,6 +1372,9 @@ void CurvaCritica(int n, const Opcoes &op, const RainData &r0, const Campo *cf, 
         if (op.esqCarga && !std::isnan(op.cargaEsq)) cargas[left] = op.cargaEsq;
         if (op.dirCarga && !std::isnan(op.cargaDir)) cargas[right] = op.cargaDir;
         RainTransient chuva(aT, r, op.res.gammaw, laterais, {topleft, face, topright}, cargas);
+        char rotulo[64];
+        std::snprintf(rotulo, sizeof rotulo, "realizacao %d, I = %g mm/h", n, I);
+        OpcoesTransiente(chuva, op, rotulo);
         chuva.InitialState();
         const auto tt = Clock::now();
         REAL dp = 0.;
@@ -1444,6 +1508,25 @@ int main(int argc, char *argv[])
         }
         std::printf("\n");
     }
+    if (op.vgTab > 0.) { // vg_tab=: o k_r de Mualem tabelado ate S_e = 1 - eps, conferido no material contra o EMualem
+        const REAL swr = op.vg.tr / op.vg.ts;
+        gTabelaVG = MualemTabelado(op.vg.n, swr, op.vg.a, op.vgTab, op.vgFecho);
+        TPZUnsaturatedHydraulics h, hm;
+        h.fRetention = TPZUnsaturatedHydraulics::EVanGenuchten;
+        h.fAVG = op.vg.a, h.fBVG = op.vg.n, h.fSwr = swr;
+        hm = h;
+        hm.fKrw = TPZUnsaturatedHydraulics::EMualem;
+        UsaTabela(h, gTabelaVG);
+        std::printf("  k_r de Mualem tabelado (fecho %s): eps = %.3g, psi_c = %.4g kPa, k_c = %.4f, %zu pontos, erro maximo "
+                    "%.4f%% em [psi_c, 1e3 kPa];", NomeFechoVG(op.vgFecho), gTabelaVG.eps, gTabelaVG.psiC, gTabelaVG.kC,
+                    gTabelaVG.S.size(), 100. * gTabelaVG.erroMax);
+        for (REAL psi : {0.01, 0.1, 1., 10.})
+            std::printf(" k_r(%g) = %.4f (Mualem %.4f);", psi, h.Evaluate(-psi, 0.).krw, hm.Evaluate(-psi, 0.).krw);
+        std::printf("\n");
+    }
+    if (!op.newtonTrace.empty()) // um bloco por transiente que parar (RainTransient::SetNewtonTrace)
+        std::ofstream(op.newtonTrace) << "# newton_trace do SlopeRainMonteCarlo: um bloco por transiente que parou "
+                                         "(sem blocos: nenhum parou)\n";
     const Campos &cp = op.campos;
     RandomField campos(p[0][0], p[0][1], p[1][0] - p[0][0], p[4][1] - p[0][1], cp.Lx, cp.Ly, cp.M,
                        {{res.c, cp.covC}, {res.phiDeg, cp.covPhi}, {1., cp.covK}}); // c' (kPa), phi' (graus), k / k_s
@@ -1469,7 +1552,8 @@ int main(int argc, char *argv[])
                 "%g; Lx = %g m, Ly = %g m; alfa = %g; KL: %d termos, %.1f%% da variancia\n  malhas: transiente %s (u P%d), "
                 "fator %s + %d niveis\n",
                 p[0][0], p[0][1], p[1][0], p[1][1], p[2][0], p[2][1], p[3][0], p[3][1], p[4][0], p[4][1], p[5][0], p[5][1],
-                op.solo.nome.c_str(), op.solo.ks, op.vg.usa ? "van Genuchten-Mualem" : "Fredlund-Xing",
+                op.solo.nome.c_str(), op.solo.ks,
+                op.vg.usa ? (op.vgTab > 0. ? "van Genuchten-Mualem tabelado" : "van Genuchten-Mualem") : "Fredlund-Xing",
                 op.chiSe ? "S_e" : op.chiPonto ? "por ponto" : "constante", op.I, op.chuva, op.chuvaVertical ? "vertical" : "por metro inclinado",
                 op.hw, op.betaNA, op.succaoMax, op.esqCarga ? "carga" : "fechada", op.dirCarga ? "carga" : "fechada",
                 op.gim ? "GIM" : "SRM", op.primeira, op.primeira + op.n - 1, op.det ? " e a deterministica" : "", res.c,
@@ -1497,7 +1581,7 @@ int main(int argc, char *argv[])
         mT.SetMaterial(MaterialChuva(r, op));
         mT.CreateCompMesh({{2, op.uT}, {1, 1}, {1, 1}});
         const auto t0 = Clock::now();
-        const Pressoes P = CalculaTransiente(mT, r, op);
+        const Pressoes P = CalculaTransiente(mT, r, op, "so_transiente (as medias)");
         if (P.parou >= 0.) {
             std::fprintf(stderr, "o transiente parou em %.2f h: nada gravado\n", P.parou);
             return 2;
@@ -1611,7 +1695,7 @@ int main(int argc, char *argv[])
         const Pressoes *P = pFixas.get();
         if (!P) {
             if (cf) AplicaCampos(mT, *cf);
-            calc = CalculaTransiente(mT, r, op);
+            calc = CalculaTransiente(mT, r, op, "realizacao " + std::to_string(n));
             P = &calc;
             if (calc.parou >= 0.) std::printf("  realizacao %d: o transiente parou em %.2f h\n", n, calc.parou);
             if (!op.gravaPressoes.empty() && calc.parou < 0.) {

@@ -70,11 +70,40 @@ public:
     // p_w de cada no da malha geometrica (pelo indice do no; 0 nos que nao tem p_w): o que vai para a outra malha
     std::vector<REAL> NodalWaterPressure() const;
 
+    // Diagnostico do Newton (opcao newton_trace= dos drivers): quando o Advance desiste de um passo (no dt_min, ou sem
+    // subdivisao), refaz o Solve do ultimo passo que falhou, a partir do estado aceito, com maxit - 2, maxit - 1 e maxit
+    // iteracoes, e acrescenta ao arquivo arq os 10 nos com a maior |p_w(maxit) - p_w(maxit - 1)|: no, x, y, os tres p_w e
+    // se o no e da superficie e da face (um ciclo de 2 iteracoes aparece como p_w(maxit) = p_w(maxit - 2)). Uma vez por
+    // transiente. tolU, tolP, maxit e maxitFrozen sao os postos no TPZUnsatAnalysis (o newton= do driver, ou os padroes
+    // 1e-7, 1e-6, 40 e 25), que voltam no fim; rotulo identifica o transiente no arquivo
+    void SetNewtonTrace(const std::string &arq, REAL tolU, REAL tolP, int maxit, int maxitFrozen,
+                        const std::string &rotulo = "");
+    // Um no da face de percolacao so volta ao fluxo da chuva se R / (dt L) > q (1 + rel) + 1e-10 (padrao 0: o de antes)
+    void SetFaceTolerance(REAL rel) { fFaceTol = rel; }
+
+    // O estado do transiente num instante (para voltar a ele): a solucao aceita, a memoria dos pontos, a face, o relogio,
+    // os contadores e a infiltracao acumulada
+    struct Snapshot {
+        TPZFMatrix<STATE> x;
+        std::vector<TPZAdmChunkVector<TPZUnsaturatedMem>> mem;
+        std::set<int64_t> face;
+        REAL time = 0.;
+        int64_t steps = 0, newton = 0;
+        REAL infiltrated = 0.;
+    };
+    Snapshot Save() const;
+    void Load(const Snapshot &s);
+    // Agua que entrou pela superficie desde o InitialState (ou o fim do SteadyState), em m3 por metro de espessura: q L dt
+    // nos nos com a chuva e R nos da face de percolacao (R < 0: a agua sai), somados nos passos aceitos
+    REAL Infiltrated() const { return fInfiltrado; }
+
 private:
     // Um passo com a chuva media q (m/s): resolve com uma face tentativa e a corrige ate ela se repetir
     bool Step(REAL dt, REAL q);
     // Um passo de dt a partir de fTime com a chuva media do intervalo (e, com dtMin > 0, as metades se nao convergir)
     bool Advance(REAL dt);
+    // newton_trace: os tres Solve do ultimo passo que falhou e o bloco do arquivo
+    void NewtonTrace();
 
     TPZUnsatAnalysis &fAn;
     RainData fRain;
@@ -85,4 +114,13 @@ private:
     REAL fTime = 0.;                  // s
     int64_t fSteps = 0, fNewton = 0, fSteadySteps = 0;
     std::string fFalha;
+    REAL fFaceTol = 0.;               // folga relativa da volta da face ao fluxo
+    REAL fInfiltrado = 0.;            // m3 por metro de espessura
+    // newton_trace: arquivo, rotulo, tolerancias do TPZUnsatAnalysis e as entradas do ultimo Solve que falhou
+    std::string fTraceArq, fTraceRotulo;
+    REAL fTraceTolU = 1.e-7, fTraceTolP = 1.e-6, fTraceDt = 0., fTraceQ = 0.;
+    int fTraceMaxIt = 40, fTraceMaxItFrozen = 25;
+    bool fTraceFeito = false, fFalhaNewton = false; // ja gravado; a ultima falha foi do Newton (e nao da face)
+    std::map<int64_t, REAL> fTraceFixed, fTraceChuva;
+    std::set<int64_t> fTraceFace;
 };

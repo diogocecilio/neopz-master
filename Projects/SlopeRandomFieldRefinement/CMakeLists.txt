@@ -30,7 +30,7 @@ add_pz_target(NAME SlopeDrawdownMonteCarlo
 add_pz_target(NAME SlopeRainMonteCarlo
               SOURCES montecarlo.cpp UnsatModel.cpp UnsatModel.h UnsatAnalysis.cpp UnsatAnalysis.h HPMaterial.h
                       RandomField.cpp RandomField.h KLSeparavel.h RainTransient.cpp RainTransient.h PointLocator.h
-                      LayerGMesh.cpp LayerGMesh.h AnimationFiles.h ImportanceSampling.h
+                      LayerGMesh.cpp LayerGMesh.h AnimationFiles.h ImportanceSampling.h MualemTabelado.h
               REQUIRED PZ_BUILD_PLASTICITY_MATERIALS)
 
 # Caso deterministico do rebaixamento do Ceron com o fator Gamma (GIM) pelo material saturado u-p

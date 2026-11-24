@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <fstream>
+#include <iomanip>
 
 RainTransient::RainTransient(TPZUnsatAnalysis &an, const RainData &r, REAL gammaw, const std::set<int> &laterais,
                              const std::set<int> &superficie, const std::map<int, REAL> &cargas)
@@ -34,6 +36,7 @@ void RainTransient::InitialState()
     fFace.clear();
     fTime = 0.;
     fSteps = fNewton = 0;
+    fInfiltrado = 0.;
 }
 
 bool RainTransient::AdvanceTo(REAL t)
@@ -56,7 +59,10 @@ bool RainTransient::Advance(REAL dt)
         fSteps++;
         return true;
     }
-    if (!(fRain.dtMin > 0.) || 0.5 * dt < fRain.dtMin * 3600. * (1. - 1.e-9)) return false;
+    if (!(fRain.dtMin > 0.) || 0.5 * dt < fRain.dtMin * 3600. * (1. - 1.e-9)) { // desiste do passo
+        if (!fTraceArq.empty() && !fTraceFeito) NewtonTrace();
+        return false;
+    }
     return Advance(0.5 * dt) && Advance(0.5 * dt);
 }
 
@@ -77,12 +83,14 @@ bool RainTransient::SteadyState(REAL q, REAL dt0, REAL tol, REAL *mudanca)
         for (const auto &[no, eq] : fAn.WaterEq()) dp = std::max(dp, std::abs(fAn.X().GetVal(eq, 0) - antes.GetVal(eq, 0)));
         if (dt >= dtFim && dp < tol) {
             fTime = 0.;
+            fInfiltrado = 0.; // a infiltracao conta a partir daqui, como o relogio
             if (mudanca) *mudanca = dp;
             return true;
         }
         dt = std::min(2. * dt, dtMax);
     }
     fTime = 0.;
+    fInfiltrado = 0.;
     if (mudanca) *mudanca = dp;
     return false;
 }
@@ -90,6 +98,7 @@ bool RainTransient::SteadyState(REAL q, REAL dt0, REAL tol, REAL *mudanca)
 bool RainTransient::Step(REAL dt, REAL q)
 {
     const REAL tolP = 1.e-6, tolQ = 1.e-10;
+    const REAL qFace = fFaceTol > 0. ? q * (1. + fFaceTol) : q; // a vazao acima da qual um no da face volta ao fluxo
     std::set<int64_t> face = fFace; // tentativa: a face do passo anterior e os nos que ja tem p_w > 0
     for (const auto &[no, L] : fSurface)
         if (fAn.Nodal(fAn.X(), no, 1) > tolP) face.insert(no);
@@ -107,6 +116,11 @@ bool RainTransient::Step(REAL dt, REAL q)
             std::snprintf(b, sizeof b, "Newton (dt %.5f h, %d iteracoes, |r_p| %.2e, %zu nos na face)", dt / 3600., r.iter,
                           r.normp, face.size());
             fFalha = b;
+            if (!fTraceArq.empty()) { // newton_trace: as entradas deste Solve, para refaze-lo se o Advance desistir
+                fFalhaNewton = true;
+                fTraceDt = dt, fTraceQ = q;
+                fTraceFixed = fixed, fTraceChuva = chuva, fTraceFace = face;
+            }
             fAn.Restore();
             return false;
         }
@@ -117,12 +131,14 @@ bool RainTransient::Step(REAL dt, REAL q)
         for (const auto &[no, L] : fSurface) {
             const int64_t eq = fAn.WaterEq().at(no);
             if (face.count(no)) {
-                if (R.GetVal(eq, 0) / (dt * L) > q + tolQ) nova.erase(no); // absorveria mais que a chuva: volta ao fluxo
+                if (R.GetVal(eq, 0) / (dt * L) > qFace + tolQ) nova.erase(no); // absorveria mais que a chuva: volta ao fluxo
             } else if (x.GetVal(eq, 0) > tolP) {
                 nova.insert(no); // p_w > 0 sob a chuva: a agua empoca, o no vai para a face
             }
         }
         if (nova == face) {
+            for (const auto &[no, L] : fSurface) // a agua que entrou pela superficie no passo
+                fInfiltrado += face.count(no) ? R.GetVal(fAn.WaterEq().at(no), 0) : q * L * dt;
             fAn.Accept();
             fFace = face;
             return true;
@@ -131,8 +147,74 @@ bool RainTransient::Step(REAL dt, REAL q)
     }
     fFalha = "face de percolacao sem repetir em 40 tentativas (dt " + std::to_string(dt / 3600.) + " h, " +
              std::to_string(face.size()) + " nos)";
+    fFalhaNewton = false;
     fAn.Restore();
     return false;
+}
+
+void RainTransient::SetNewtonTrace(const std::string &arq, REAL tolU, REAL tolP, int maxit, int maxitFrozen,
+                                   const std::string &rotulo)
+{
+    fTraceArq = arq, fTraceRotulo = rotulo;
+    fTraceTolU = tolU, fTraceTolP = tolP, fTraceMaxIt = maxit, fTraceMaxItFrozen = maxitFrozen;
+    fTraceFeito = false;
+}
+
+void RainTransient::NewtonTrace()
+{
+    fTraceFeito = true;
+    std::ofstream f(fTraceArq, std::ios::app);
+    f << std::setprecision(10) << "# " << fTraceRotulo << (fTraceRotulo.empty() ? "" : ": ")
+      << "o transiente parou em t = " << Time() << " h: " << fFalha << "\n";
+    if (!fFalhaNewton) {
+        f << "# a ultima falha foi da face de percolacao (o Newton convergiu): sem replay\n\n";
+        return;
+    }
+    f << "# replay do ultimo Solve a partir do estado aceito (dt = " << fTraceDt / 3600. << " h, q = " << fTraceQ
+      << " m/s, " << fTraceFace.size() << " nos na face, busca linear " << fRain.lineSearch << ", tol_p " << fTraceTolP
+      << " kPa):\n";
+    std::vector<TPZFMatrix<STATE>> xs; // os iterados maxit - 2, maxit - 1 e maxit (o Solve deixa o ultimo na malha)
+    for (int k = 2; k >= 0; k--) {
+        const int maxit = std::max(1, fTraceMaxIt - k);
+        fAn.SetTolerances(fTraceTolU, fTraceTolP, maxit, fTraceMaxItFrozen);
+        const TPZUnsatAnalysis::StepResult r = fAn.Solve(fTraceDt, fTraceFixed, fTraceChuva, false, fRain.lineSearch);
+        xs.push_back(fAn.Mesh()->Solution());
+        f << "#   maxit " << maxit << ": conv " << r.conv << ", " << r.iter << " iteracoes, |r_p| " << r.normp << "\n";
+    }
+    fAn.SetTolerances(fTraceTolU, fTraceTolP, fTraceMaxIt, fTraceMaxItFrozen);
+    fAn.Restore();
+    // as 10 equacoes de p_w com a maior mudanca na ultima iteracao
+    std::vector<std::pair<REAL, int64_t>> d; // |p_w(N) - p_w(N - 1)|, no
+    for (const auto &[no, eq] : fAn.WaterEq()) d.push_back({std::abs(xs[2].GetVal(eq, 0) - xs[1].GetVal(eq, 0)), no});
+    const size_t n = std::min<size_t>(10, d.size());
+    std::partial_sort(d.begin(), d.begin() + n, d.end(), [](const auto &a, const auto &b) { return a.first > b.first; });
+    f << "no x y pw_N-2 pw_N-1 pw_N |pw_N-pw_N-1| |pw_N-pw_N-2| superficie face\n";
+    for (size_t i = 0; i < n; i++) {
+        const int64_t no = d[i].second, eq = fAn.WaterEq().at(no);
+        const REAL a = xs[0].GetVal(eq, 0), b = xs[1].GetVal(eq, 0), c = xs[2].GetVal(eq, 0);
+        f << no << " " << fAn.Coord(no, 0) << " " << fAn.Coord(no, 1) << " " << a << " " << b << " " << c << " "
+          << std::abs(c - b) << " " << std::abs(c - a) << " " << fSurface.count(no) << " " << fTraceFace.count(no) << "\n";
+    }
+    f << "\n";
+}
+
+RainTransient::Snapshot RainTransient::Save() const
+{
+    Snapshot s;
+    s.x = fAn.X();
+    s.mem = fAn.SaveMemory();
+    s.face = fFace;
+    s.time = fTime, s.steps = fSteps, s.newton = fNewton, s.infiltrated = fInfiltrado;
+    return s;
+}
+
+void RainTransient::Load(const Snapshot &s)
+{
+    fAn.X() = s.x;
+    fAn.RestoreMemory(s.mem);
+    fAn.Restore(); // a solucao aceita na malha
+    fFace = s.face;
+    fTime = s.time, fSteps = s.steps, fNewton = s.newton, fInfiltrado = s.infiltrated;
 }
 
 std::pair<REAL, REAL> RainTransient::PressureRange() const
