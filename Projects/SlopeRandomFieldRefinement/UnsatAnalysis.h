@@ -65,6 +65,25 @@ public:
     REAL SRMArcLength();
     // F do peso no SRM (o inicio do caminho de F): padrao 0,8; 1 reproduz o SRM antigo
     void SetSRMStart(REAL F0) { fSRMStart = F0; }
+    // Fim do caminho (GIM e SRM) por patamar: um passo aceito que sobe v menos que tol, medido com o arco pedido
+    // (dv lPedido / l < tol). Padrao 0,001. O criterio olha a inclinacao dv/dl, e nao se v ainda sobe: num caminho com
+    // joelho (ex.: uma faixa longa com as pontas presas, o interior desliza e as pontas ainda seguram) a inclinacao
+    // depois do joelho pode ficar abaixo de 0,001 por passo com v ainda subindo, e o caminho para antes do colapso. Com
+    // tol menor (1e-4, 1e-5) ele segue adiante; o PathHistory mostra se o fim foi um patamar (dv caindo para zero)
+    void SetPlateauTolerance(REAL tol) { fTolPatamar = tol; }
+    // Numero maximo de passos do caminho (padrao 100)
+    void SetMaxPathSteps(int n) { fMaxPassos = n; }
+    // Um passo aceito do ultimo caminho: v (lambda ou F) depois do passo, o aumento dv, o arco l usado e o pedido
+    // (l < lPedido: o arco foi cortado por passos que falharam; 0 e 0 no passo vertical do SRM) e as montagens
+    struct PathStep {
+        int passo;
+        REAL v, dv, l, lPedido;
+        int it;
+    };
+    const std::vector<PathStep> &PathHistory() const { return fCaminho; }
+    // Motivo do fim do ultimo caminho: "patamar", "F limite" ou "lambda limite", "vertical", "arco minimo",
+    // "<n> passos" (o maximo) ou "sem caminho" (o GIM ou o peso do SRM nao acharam o primeiro ponto)
+    const std::string &PathEnd() const { return fFim; }
     // Estados do ultimo caminho: o aceito no fim (o que fica carregado na malha) e, no SRM, o do fim do peso, antes de
     // reduzir a resistencia (o estado geostatico: o mecanismo e o deslocamento a partir dele)
     const TPZFMatrix<STATE> &PathState() const { return fX; }
@@ -160,6 +179,10 @@ private:
     std::function<void(REAL)> fSetReduction; // opcional (vazio: sem reducao no preditor)
     bool fVerbose = true;
     REAL fSRMStart = 0.8; // F do peso no SRM (SetSRMStart)
+    REAL fTolPatamar = 0.001; // fim do caminho por patamar (SetPlateauTolerance)
+    int fMaxPassos = 100;     // passos do caminho (SetMaxPathSteps)
+    std::vector<PathStep> fCaminho; // passos aceitos do ultimo caminho (PathHistory)
+    std::string fFim;               // motivo do fim do ultimo caminho (PathEnd)
 
     // estado do caminho do arc-length (GIMArcLength e SRMArcLength)
     bool fSRM = false;       // parametro do caminho: lambda (GIM) ou F (SRM)

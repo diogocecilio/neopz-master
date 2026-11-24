@@ -451,17 +451,20 @@ bool UnsatAnalysis<TMat>::ArcLengthStep(REAL l, TPZFMatrix<STATE> &x, REAL &v, i
 //  - passo vertical (SRM com nenhum ou poucos pontos plasticos: F quase nao muda o residuo e o arco nao anda): Newton
 //    com F 10% maior a partir do estado aceito; se o Newton nao converge, o colapso esta antes: o aumento cai pela
 //    metade (ate 0,1%: fim "vertical", FS com essa precisao). O passo seguinte volta ao preditor tangente;
-//  - fim: patamar (v cresce menos de 0,001 num passo com o l pedido), v >= 10, l < 1e-4 |u| ou 100 passos.
+//  - fim: patamar (v cresce menos de fTolPatamar, padrao 0,001, num passo com o l pedido), v >= 10, l < 1e-4 |u| ou
+//    fMaxPassos (padrao 100) passos.
+// Cada passo aceito vai para o fCaminho (PathHistory) e o motivo do fim para o fFim (PathEnd).
 template <class TMat>
 REAL UnsatAnalysis<TMat>::ArcLengthPath(std::string &fim)
 {
-    const REAL tolPatamar = 0.001, limite = 10.;
-    const int alvo = 10, maxPassos = 100;
+    const REAL tolPatamar = fTolPatamar, limite = 10.;
+    const int alvo = 10, maxPassos = fMaxPassos;
     const REAL uRef = FreeNorm(fX); // tamanho dos deslocamentos do estado inicial: a escala do arco
     const REAL lMax = 2. * uRef, lMin = 1.e-4 * uRef;
     REAL l = 0.25 * uRef, lPedido = l, maior = fV;
     REAL aumento = 0.1; // passo vertical: F cresce 10% (metade a cada Newton que falha)
-    fim = "100 passos";
+    fim = std::to_string(maxPassos) + " passos";
+    fCaminho.clear();
     for (int passo = 1; passo <= maxPassos; passo++) {
         TPZFMatrix<STATE> xn;
         REAL vn = 0.;
@@ -484,6 +487,7 @@ REAL UnsatAnalysis<TMat>::ArcLengthPath(std::string &fim)
                     continue;
                 }
                 AcceptSolution();
+                fCaminho.push_back({passo, vn, vn - fV, 0., 0., it});
                 fX = xn;
                 fV = vn;
                 fDu.Resize(0, 0);
@@ -508,6 +512,7 @@ REAL UnsatAnalysis<TMat>::ArcLengthPath(std::string &fim)
         fX = xn;
         fV = vn;
         maior = std::max(maior, fV);
+        fCaminho.push_back({passo, fV, fDv, l, lPedido, it});
         if (fVerbose) std::printf("    %5d %10.5f %+10.5f %4d %11.3e\n", passo, fV, fDv, it, l);
         if (fDv * lPedido / l < tolPatamar) { // v parou de crescer: o colapso
             fim = "patamar";
@@ -520,6 +525,7 @@ REAL UnsatAnalysis<TMat>::ArcLengthPath(std::string &fim)
         l = std::min(lMax, l * std::min(2., std::max(0.5, std::sqrt(REAL(alvo) / it))));
         lPedido = l;
     }
+    fFim = fim;
     return maior;
 }
 
@@ -535,6 +541,8 @@ REAL UnsatAnalysis<TMat>::GIMArcLength()
     }
     const int64_t neq = fModel.CompMesh()->NEquations();
     fSRM = false;
+    fCaminho.clear();
+    fFim = "sem caminho"; // ate o ArcLengthPath
 
     // 1. primeiro ponto do caminho
     TPZFMatrix<STATE> x(neq, 1, 0.);
@@ -601,6 +609,8 @@ REAL UnsatAnalysis<TMat>::SRMArcLength()
     const auto partida = *mat->GetMemory(); // estado de partida: sem tensoes (e as propriedades de cada ponto)
     const int64_t neq = fModel.CompMesh()->NEquations();
     fSRM = false;
+    fCaminho.clear();
+    fFim = "sem caminho"; // ate o ArcLengthPath
 
     // 1. peso todo com F = F0 (abaixo de 1: o caminho de F atravessa F = 1 continuo) e, se o talude nao fica em pe
     // (FS < F0), F0 / 2
