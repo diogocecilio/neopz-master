@@ -42,6 +42,14 @@ iteracoes=, tol_g=, tol_beta=, gradiente= e threads= sao do FORM: todas as outra
 estao (ex.: a geometria, o solo, a chuva, tempos=, nystrom=, rcphi=, pressoes=; os padroes sao os do executavel), e
 ficam no form.json para o line_sampling.py. Um instante sem fator por SRM sem equilibrio (FS_min = 0) e falha (FS =
 0,005); outro problema numa analise (o transiente que parou) e erro.
+prog=coluna: a coluna 1D de Cho (2014) (SlopeRainColumn, Projects/SlopeRandomFieldRefinement/coluna.cpp), com 1
+campo (k: M variaveis) e as opcoes do executavel como na chuva (as outras chave=valor vao para ele; as de cada analise,
+perfis=, grava_xi=, so_campo=, para_na_falha= e localiza=, sao recusadas), so com gradiente=dif, e a falha:
+  falha=fs (padrao) T= (18): g = FS_passagem(T) - 1, o menor FS ate T (primeira passagem; a analise roda com tempos=T);
+  falha=tempo T=: g = t_passagem / T - 1, com para_na_falha=1 chuva=2T tempos=2T acrescentados: a analise para na
+     travessia; sem travessia ate 2T o fator fica censurado em 2 (g = 1).
+Um transiente que parou (situacao transiente) so vale se a travessia veio antes da parada (t_passagem >= 0); senao e
+erro (a analise censurada, sem o sinal de g).
 threads (0): PZ_THREADS das analises (0: um processo serial por analise; no FORM modal, so uma analise por iteracao,
 mais threads aceleram)."""
 import concurrent.futures as cf
@@ -59,6 +67,10 @@ REBAIX_PADRAO = {"contorno": "reservatorio", "agua": "unsat", "trebaix": 0.1, "t
 CHUVA_FORM = {"M", "h", "paralelos", "iteracoes", "tol_g", "tol_beta", "gradiente", "prog", "threads", "algoritmo",
               "armijo", "meias"}
 CHUVA_RESERVADAS = {"n", "primeira", "xi", "saida", "gradiente", "det", "figuras"}
+# prog=coluna: as do FORM (as da chuva mais a falha e o T) e as reservadas a mais (as de cada analise)
+COLUNA_FORM = CHUVA_FORM | {"falha", "T"}
+COLUNA_RESERVADAS = {"perfis", "grava_xi", "so_campo", "para_na_falha", "localiza"}
+COLUNA_CENSURA = 2.  # falha=tempo: o fator sem travessia ate 2T
 SITUACAO_SEM_EQUILIBRIO = 0.005  # FS (ou Gamma) de um instante sem fator: o SRM (ou o GIM) sem equilibrio, falha
 
 
@@ -66,6 +78,28 @@ def parametros(argv):
     p = {"M": 20, "rcphi": -0.5, "h": 0.5, "paralelos": 2, "iteracoes": 10, "fator": "tri2", "nref": 4, "srm_f0": 0.8,
          "tol_g": 0.001, "tol_beta": 0.01, "gradiente": "dif", "nystrom": "", "metodo": "srm", "prog": "cho",
          "transiente": "tri3", "threads": 0, "algoritmo": "hlrf", "armijo": 0.5, "meias": 6, **REBAIX_PADRAO}
+    if "prog=coluna" in argv:  # como a chuva, com a falha e o T
+        p.update({"falha": "fs", "T": 18.})
+        p["exe"] = []
+        for a in argv:
+            k, v = a.split("=", 1)
+            if k in COLUNA_FORM:
+                p[k] = type(p[k])(v)
+            elif k in CHUVA_RESERVADAS | COLUNA_RESERVADAS:
+                sys.exit(f"prog=coluna: {k}= e do FORM ou da linha de comando que ele monta")
+            else:
+                p["exe"] = [x for x in p["exe"] if not x.startswith(k + "=")] + [a]
+                if k == "nystrom":
+                    p["nystrom"] = v
+        if p["falha"] not in ("fs", "tempo"):
+            sys.exit("falha: fs ou tempo")
+        if not p["T"] > 0.:
+            sys.exit("T > 0")
+        if p["gradiente"] != "dif":
+            sys.exit("prog=coluna: so gradiente=dif (o SlopeRainColumn nao tem o gradiente modal)")
+        if p["algoritmo"] not in ("hlrf", "ihlrf"):
+            sys.exit("algoritmo: hlrf ou ihlrf")
+        return p
     if "prog=chuva" in argv:  # as opcoes do FORM e, o resto, as do executavel, na ordem dada
         p["exe"] = []
         for a in argv:
@@ -93,7 +127,7 @@ def parametros(argv):
     if p["algoritmo"] not in ("hlrf", "ihlrf"):
         sys.exit("algoritmo: hlrf ou ihlrf")
     if p["prog"] not in ("cho", "rebaixamento"):
-        sys.exit("prog=cho, prog=rebaixamento ou prog=chuva")
+        sys.exit("prog=cho, prog=rebaixamento, prog=chuva ou prog=coluna")
     if p["prog"] == "rebaixamento":
         p["metodo"] = "gim"  # o fator do rebaixamento e o Gamma do GIM
     return p
@@ -101,6 +135,8 @@ def parametros(argv):
 
 def campos(p):
     """os nomes dos campos (a ordem dos xi: os M de cada um)"""
+    if p.get("prog") == "coluna":
+        return ["k"]
     return ["c", "phi", "k"] if p["prog"] in ("rebaixamento", "chuva") else ["c", "phi"]
 
 
@@ -116,6 +152,8 @@ def le_fator(arq, p):
         linhas = list(csv.DictReader(f))
     if not linhas:
         raise RuntimeError(f"{arq}: vazio")
+    if p["prog"] == "coluna":
+        return fator_coluna(arq, linhas, p)
     if p["prog"] != "chuva":
         if linhas[0]["situacao"] != "ok":
             raise RuntimeError(f"{arq}: situacao {linhas[0]['situacao']} (FS_min {linhas[0]['FS_min']})")
@@ -132,8 +170,28 @@ def le_fator(arq, p):
     return melhor
 
 
+def fator_coluna(arq, linhas, p):
+    """prog=coluna: o fator da linha do instante (T na falha=fs, 2T na falha=tempo) e esse instante. Um transiente que
+    parou antes so vale com a travessia ja localizada (t_passagem >= 0); senao e erro"""
+    T = float(p["T"])
+    tf = T if p["falha"] == "fs" else 2. * T
+    r = next((x for x in linhas if abs(float(x["t_h"]) - tf) <= 1e-9 * tf), None)
+    if r is None:
+        raise RuntimeError(f"{arq}: sem a linha de t = {tf} h")
+    tp = float(r["t_passagem"])
+    if r["situacao"] not in ("ok", "falha") and tp < 0.:
+        raise RuntimeError(f"{arq}: situacao {r['situacao']} sem travessia ate t_parou = {r['t_parou']} h (censurada)")
+    if p["falha"] == "fs":
+        return float(r["FS_passagem"]), tf
+    return (tp / T if tp >= 0. else COLUNA_CENSURA), tf
+
+
 def comando(exe, p, arq, rotulo):
     """a linha de comando de uma analise nos xi do arquivo"""
+    if p["prog"] == "coluna":
+        T = float(p["T"])
+        fim = [f"tempos={T:g}"] if p["falha"] == "fs" else ["para_na_falha=1", f"chuva={2 * T:g}", f"tempos={2 * T:g}"]
+        return [exe, "n=1", "primeira=0", f"xi={arq}", f"M={p['M']}"] + list(p["exe"]) + fim + [f"saida={rotulo}"]
     if p["prog"] == "chuva":
         return [exe, "n=1", "primeira=0", f"xi={arq}", f"M={p['M']}"] + list(p["exe"]) + [f"saida={rotulo}"]
     if p["prog"] == "rebaixamento":
@@ -216,10 +274,15 @@ def main():
         if p["prog"] == "rebaixamento" else \
         ("chuva (SlopeRainMonteCarlo), " + (" ".join(p["exe"]) or "padrao") + ", g = menor FS dos instantes - 1") \
         if p["prog"] == "chuva" else \
+        ("SlopeRainColumn (coluna de Cho 2014), " + (" ".join(p["exe"]) or "padrao") +
+         (f", g = FS_passagem({p['T']:g} h) - 1" if p["prog"] == "coluna" and p["falha"] == "fs" else
+          f", g = t_passagem / {p['T']:g} h - 1 (censura em 2T)")) \
+        if p["prog"] == "coluna" else \
         f"Cho (2010), Exemplo 2, r(c, phi) = {p['rcphi']}"
     tipo = "modal (1 avaliacao por iteracao)" if p["gradiente"] == "modal" else \
         f"por diferencas centrais (h = {p['h']}, {2 * nc * M + 1} avaliacoes por iteracao)"
-    print(f"FORM do {titulo}, {p['metodo'].upper()}: KL com M = {M} termos por campo ({nc * M} variaveis), gradiente "
+    fator = "FS" if p["prog"] == "coluna" else p["metodo"].upper()
+    print(f"FORM do {titulo}, {fator}: KL com M = {M} termos por campo ({nc * M} variaveis), gradiente "
           f"{tipo}, {p['paralelos']} em paralelo", flush=True)
     print(f"  it   g = {'Gamma' if p['metodo'] == 'gim' else 'FS'} - 1    beta     |grad|   maiores alfa^2 (campo, termo)",
           flush=True)
@@ -234,6 +297,9 @@ def main():
         aceito = None
         beta = math.sqrt(sum(x * x for x in u))
         n2 = sum(x * x for x in grad)
+        if n2 == 0. and p["prog"] == "coluna":
+            sys.exit(f"gradiente nulo na iteracao {it} (g = {g}): na falha=tempo, todas as analises sem travessia ate "
+                     "2T? (um T maior)")
         alfa2 = [x * x / n2 for x in grad] if n2 > 0 else [0.] * len(grad)
         top = sorted(range(len(grad)), key=lambda i: -alfa2[i])[:4]
         print(f"  {it:2d}   {g:+.5f}    {beta:.4f}   {math.sqrt(n2):.4f}   " +
@@ -299,8 +365,11 @@ def main():
     print(f"\n  beta = {beta:.4f}  P_f = Phi(-beta) = {100 * res['P_f']:.3f}%  ({prob.n} avaliacoes do FS)")
     print(f"  beta corrigido = {beta_corr:.4f}  P_f = {100 * res['P_f_corrigida']:.3f}%")
     print("  convergiu" if convergiu else f"  NAO convergiu em {p['iteracoes']} iteracoes")
-    print(f"  importancia por campo: c' {res['alfa2_c']:.3f}, phi' {res['alfa2_phi']:.3f}"
-          + (f", k {res['alfa2_k']:.3f}" if nc == 3 else ""))
+    if p["prog"] == "coluna":
+        print("  importancia nos termos: " + ", ".join(f"1 a {m}: {sum(a2[:m]):.3f}" for m in (10, 20, 50) if m <= M))
+    else:
+        print(f"  importancia por campo: c' {res['alfa2_c']:.3f}, phi' {res['alfa2_phi']:.3f}"
+              + (f", k {res['alfa2_k']:.3f}" if nc == 3 else ""))
 
 
 if __name__ == "__main__":

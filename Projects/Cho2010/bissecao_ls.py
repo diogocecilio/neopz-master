@@ -21,7 +21,8 @@ Este script refaz a raiz de algumas linhas por bissecao cercada, para descartar 
 Saidas na pasta de saida: bissecao.csv (linha, c_ls, c_bis, dc = c_bis - c_ls, p_ls, p_bis, a cerca final, as analises
 e a conferencia), analises.csv (linha, rotulo, c, fator) e bissecao.json (o resumo: max |dc|, a P_f do LS e a P_f com
 as raizes da bissecao no lugar das do LS). Os extras com o sinal inesperado saem na tabela (coluna extras) e no aviso.
-Gamma = 0 (sem equilibrio nem com 1% da gravidade) e falha, como no line_sampling.py. Sem numpy (roda no fermi).
+Gamma = 0 (sem equilibrio nem com 1% da gravidade) e falha, como no line_sampling.py; na coluna (prog=coluna), o
+fator e o do line_sampling.py. Sem numpy (roda no fermi).
 """
 import concurrent.futures as cf
 import csv
@@ -35,7 +36,7 @@ import threading
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from form_kl import ambiente, campos, comando, le_fator  # noqa: E402
-from line_sampling import GAMMA_ZERO, cauda  # noqa: E402
+from line_sampling import GAMMA_ZERO, SUFIXOS_COLUNA, cauda  # noqa: E402
 
 
 def main():
@@ -111,6 +112,8 @@ def main():
         try:
             if p["prog"] == "chuva":
                 G = le_fator(os.path.join(pasta, rotulo + "_0_0.csv"), p)[0]
+            elif p["prog"] == "coluna":  # como no line_sampling.py
+                G = max(le_fator(os.path.join(pasta, rotulo + "_0_0.csv"), p)[0], GAMMA_ZERO)
             else:
                 with open(os.path.join(pasta, rotulo + "_0_0.csv"), newline="") as f:
                     r = next(csv.DictReader(f))
@@ -120,7 +123,8 @@ def main():
                 elif r["situacao"] != "ok":
                     raise RuntimeError(f"{rotulo}: situacao {r['situacao']} (FS_min {r['FS_min']})")
         finally:
-            for suf in (".xi", "_0_0.csv", "_mapa_0_0.csv", "_parametros.txt"):
+            for suf in (".xi", "_0_0.csv", "_mapa_0_0.csv", "_parametros.txt") + \
+                    (SUFIXOS_COLUNA if p["prog"] == "coluna" else ()):
                 try:
                     os.remove(os.path.join(pasta, rotulo + suf))
                 except FileNotFoundError:

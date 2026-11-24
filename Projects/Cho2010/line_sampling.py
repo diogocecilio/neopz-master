@@ -43,6 +43,10 @@ perdidas.csv (linha, rotulo, motivo), nao sao refeitas na retomada (o mesmo Z da
 as de todas as rodadas (perdidas, fracao_perdida, linhas_perdidas). Se elas ficarem nos campos fracos, a P_f sai baixa:
 olhe a fracao (o aviso sai quando passa de 1%).
 
+Na coluna (prog=coluna, form_kl.py): como na chuva (as opcoes do executavel na lista "exe" do form.json, trocadas
+pelas chave=valor dadas aqui), com o fator de form_kl.le_fator (FS_passagem em T, ou t_passagem / T censurado em 2), o
+fator limitado por baixo a GAMMA_ZERO (ln finito) e os arquivos _perfil_, _xi_ e _campo_ tambem apagados.
+
 Saidas na pasta: linhas.csv (linha, c, analises, p), analises.csv (linha, c, fator), perdidas.csv e ls.json (o
 resultado, com o criterio de parada, o motivo e as linhas feitas; com menos de 2 linhas, P_f = null), com retomada (as
 linhas ja no linhas.csv ou no perdidas.csv nao sao refeitas; analises de uma linha interrompida ficam repetidas no
@@ -63,6 +67,7 @@ from form_kl import REBAIX_PADRAO, ambiente, campos, comando, le_fator  # noqa: 
 
 FIM = (-8., 12.)
 GAMMA_ZERO = 0.005  # Gamma = 0 (sem equilibrio nem com 1% da gravidade): falha, com ln finito para a secante
+SUFIXOS_COLUNA = ("_perfil_0.csv", "_xi_0.txt", "_campo_0_0.csv")  # prog=coluna: os outros arquivos da analise
 
 
 def limpa_csv(arq, cabecalho):
@@ -95,7 +100,7 @@ def main():
         k, v = a.split("=", 1)
         if k in op:
             op[k] = type(op[k])(v)
-        elif p["prog"] == "chuva" and k not in ("threads",):  # uma opcao do executavel: troca ou acrescenta
+        elif p["prog"] in ("chuva", "coluna") and k not in ("threads",):  # uma opcao do executavel: troca ou acrescenta
             p["exe"] = [x for x in p["exe"] if not x.startswith(k + "=")] + [a]
         else:
             p[k] = type(p[k])(v) if k in p and not isinstance(p[k], str) else v
@@ -126,6 +131,8 @@ def main():
         try:
             if p["prog"] == "chuva":  # o menor FS dos instantes (um instante sem equilibrio e falha)
                 G = le_fator(os.path.join(pasta, rotulo + "_0_0.csv"), p)[0]
+            elif p["prog"] == "coluna":  # FS_passagem em T ou t_passagem / T (ln finito)
+                G = max(le_fator(os.path.join(pasta, rotulo + "_0_0.csv"), p)[0], GAMMA_ZERO)
             else:
                 with open(os.path.join(pasta, rotulo + "_0_0.csv"), newline="") as f:
                     r = next(csv.DictReader(f))
@@ -135,7 +142,8 @@ def main():
                 elif r["situacao"] != "ok":
                     raise RuntimeError(f"{rotulo}: situacao {r['situacao']} (FS_min {r['FS_min']})")
         finally:
-            for suf in (".xi", "_0_0.csv", "_mapa_0_0.csv", "_parametros.txt"):
+            for suf in (".xi", "_0_0.csv", "_mapa_0_0.csv", "_parametros.txt") + \
+                    (SUFIXOS_COLUNA if p["prog"] == "coluna" else ()):
                 try:
                     os.remove(os.path.join(pasta, rotulo + suf))
                 except FileNotFoundError:
@@ -162,7 +170,7 @@ def main():
     print(f"direcao: {arq_form}  beta = {beta:.4f}  P_f FORM = {cauda(beta):.4e}  d ln(fator)/dc = {s:.4f}  "
           f"(campo com {K} termos, metodo {p.get('metodo', '-')})", flush=True)
 
-    if p["prog"] in ("rebaixamento", "chuva"):
+    if p["prog"] in ("rebaixamento", "chuva", "coluna"):
         print("  comando: " + " ".join(comando(exe, p, "<x>.xi", "<rotulo>")), flush=True)
     rng = random.Random(op["semente"])
     proximo_z = [0]  # Z[i]: o i-esimo vetor da semente, gerado em ordem (so os das linhas em voo ficam na memoria)
