@@ -2,7 +2,7 @@
 """line_sampling.py: line sampling (amostragem por linhas) na direcao do FORM, com o campo completo.
 
     python3 line_sampling.py <exe> <form.json> <pasta> [n=100] [semente=7] [paralelos=14] [tol=0.01] [K=2000]
-                             [cov=0] [nmin=30]
+                             [cov=0] [nmin=30] [busca=secante|cerca] [passo_cerca=0.25] [folga_cerca=1]
                              [chave=valor das opcoes do programa: nystrom=, metodo=, srm_f0=, contorno=, tfim=, ...]
 
 A direcao e = u*/beta vem do FORM (form_kl.py, M termos por campo: c', phi' no Cho2010; c', phi', k no rebaixamento e na
@@ -22,6 +22,28 @@ A raiz e pela secante em g(c) = ln(fator), quase linear em c: a 1a analise em c 
 inclinacao s medida no ponto de projeto (2 analises por direcao), e a raiz da secante e aceita sem nova analise quando o
 passo for menor que tol (em c). Os mesmos z para qualquer direcao com a mesma semente (numeros aleatorios comuns).
 Sem numpy (roda no fermi).
+Cuidado: esse teste mede so o passo. Com um penhasco no fator (a coluna em 24 h cai do FS ~1,03 ao patamar 0,366875
+da coluna saturada), a secante em ln(fator) fica presa numa ponta e aceita raizes que nunca foram cercadas.
+
+busca=cerca (o padrao continua busca=secante, igual bit a bit): a raiz pelo sinal de fator - 1, com a cerca garantida,
+sem as 2 analises da inclinacao (nao servem a esta busca, entao nao sao feitas).
+  1. Cerca: a 1a analise em c0 = beta; dali para fora (para c maior se c0 e seguro, para c menor se ja falha), com
+     passo crescente (passo_cerca, que dobra a cada analise), ate o sinal de fator - 1 trocar. So o sinal conta, entao
+     um patamar nao atrapalha. Da 3a analise em diante, a secante dos dois ultimos pontos mira um pouco alem da raiz
+     prevista (tol/4), entre 1/4 e 1 vez o passo da vez. Os limites FIM e a origem na falha seguem as regras de sempre:
+     segura ate FIM[1] da c = FIM[1]; falha desde FIM[0] da c = FIM[0].
+  2. Refino: ITP (Oliveira e Takahashi 2020, ACM TOMS 47:5), com a regula falsi em ln(fator) e os valores do Illinois
+     (o valor da ponta mantida duas vezes seguidas cai a metade).
+     - Se o ponto cai a menos de tol de uma ponta, vai para 0,98 tol dela, para fechar a cerca numa analise.
+     - Depois, e projetado no intervalo em torno do meio que garante o pior caso: n_1/2 + folga_cerca analises no
+       refino, com n_1/2 = ceil(log2(largura inicial / tol)), as da bissecao. Num degrau, e a bissecao + folga_cerca.
+     - Para quando a CERCA (o ultimo ponto seguro e o ultimo em falha, ja analisados) tem largura <= tol.
+  A raiz devolvida e o meio da cerca (erro <= tol/2). Sem teto de analises: o ITP ja limita o refino.
+  O linhas.csv ganha as colunas seg e fal (a cerca final; fal fica vazia na linha segura ate FIM[1], e seg na linha
+  em falha desde FIM[0]). O ls.json ganha busca, tol, passo_cerca, folga_cerca, largura_max (a maior cerca final) e
+  linhas_sem_cerca, e as analises nao somam as 2 da inclinacao (o combina_ls.py ainda soma 2 por estagio).
+  Retomada: a busca da pasta fica no busca.json (e no ls.json). Uma pasta da outra busca e recusada (a da secante tem o
+  inclinacao.json).
 
 Parada pelo CoV (cov=0.05, por exemplo): as linhas vao sendo submetidas aos poucos (no maximo 'paralelos' em voo,
 sempre a menor linha que falta) e, a cada linha concluida, se ja ha nmin linhas e o CoV(P_f) estimado e <= cov, nao
@@ -89,7 +111,8 @@ def main():
     if len(sys.argv) < 4:
         sys.exit(__doc__)
     exe, arq_form, pasta = os.path.abspath(sys.argv[1]), sys.argv[2], os.path.abspath(sys.argv[3])
-    op = {"n": 100, "semente": 7, "paralelos": 14, "tol": 0.01, "K": 2000, "cov": 0., "nmin": 30}
+    op = {"n": 100, "semente": 7, "paralelos": 14, "tol": 0.01, "K": 2000, "cov": 0., "nmin": 30, "busca": "secante",
+          "passo_cerca": 0.25, "folga_cerca": 1}
     form = json.load(open(arq_form))
     p = dict(form["parametros"])
     p.setdefault("prog", "cho")          # form.json de versoes antigas do form_kl.py (antes de prog=)
@@ -104,6 +127,11 @@ def main():
             p["exe"] = [x for x in p["exe"] if not x.startswith(k + "=")] + [a]
         else:
             p[k] = type(p[k])(v) if k in p and not isinstance(p[k], str) else v
+    if op["busca"] not in ("secante", "cerca"):
+        sys.exit("busca: secante (padrao) ou cerca")
+    cerca = op["busca"] == "cerca"
+    if cerca and (op["tol"] <= 0. or op["passo_cerca"] <= 0. or op["folga_cerca"] < 0):
+        sys.exit("busca=cerca: tol > 0, passo_cerca > 0 e folga_cerca >= 0")
     os.makedirs(pasta, exist_ok=True)
     nc = len(campos(p))
     u = form["u"]
@@ -118,6 +146,34 @@ def main():
     if form.get("beta", 1.) < 0.:  # g(0) < 0 (as medias ja falham): com -e a falha fica do lado de c grande e o ponto
         e = [-x for x in e]        # de projeto em c = beta < 0
         beta = -beta
+    # a busca da pasta (retomada): o busca.json (so a da cerca o grava), o ls.json (sem a chave: secante) ou, sem os
+    # dois, uma pasta ja usada (inclinacao.json, linhas.csv ou analises.csv) e da secante. Outra busca: recusa
+    arq_b, arq_s = os.path.join(pasta, "busca.json"), os.path.join(pasta, "inclinacao.json")
+
+    def busca_da_pasta():
+        for arq in (arq_b, os.path.join(pasta, "ls.json")):
+            try:
+                return json.load(open(arq)).get("busca", "secante")
+            except (OSError, ValueError):
+                pass
+        usada = [x for x in ("linhas.csv", "analises.csv") if os.path.exists(os.path.join(pasta, x))
+                 and os.path.getsize(os.path.join(pasta, x)) > 0]
+        return "secante" if os.path.exists(arq_s) or usada else None
+
+    anterior = busca_da_pasta()
+    if anterior is not None and anterior != op["busca"]:
+        sys.exit(f"{pasta}: pasta da busca={anterior}, esta rodada pede busca={op['busca']}: retomada recusada (use "
+                 f"outra pasta)")
+    if cerca:
+        cfg = {"busca": "cerca", "beta": beta, "tol": op["tol"], "passo_cerca": op["passo_cerca"],
+               "folga_cerca": op["folga_cerca"]}
+        if os.path.exists(arq_b):
+            antes = json.load(open(arq_b))
+            dif = [k for k in cfg if antes.get(k) != cfg[k]]
+            if dif:
+                print(f"  AVISO: retomada com {', '.join(f'{k} {antes.get(k)} -> {cfg[k]}' for k in dif)}", flush=True)
+        else:
+            json.dump(cfg, open(arq_b, "w"), indent=1)
     trava = threading.Lock()
     limpa_csv(os.path.join(pasta, "analises.csv"), "")
     reg = open(os.path.join(pasta, "analises.csv"), "a")
@@ -156,9 +212,10 @@ def main():
     def ponto(zp, c):
         return [a + c * b for a, b in zip(zp, e)]
 
-    # a inclinacao de g = ln(fator) ao longo de e, no ponto de projeto (2 analises)
-    arq_s = os.path.join(pasta, "inclinacao.json")
-    if os.path.exists(arq_s):
+    # a inclinacao de g = ln(fator) ao longo de e, no ponto de projeto (2 analises; so na busca=secante)
+    if cerca:
+        s = None
+    elif os.path.exists(arq_s):
         s = json.load(open(arq_s))["s"]
     else:
         zero = [0.] * dim
@@ -167,8 +224,14 @@ def main():
                             (0.1, -0.1))
         s = (gp - gm) / 0.2
         json.dump({"s": s, "beta": beta}, open(arq_s, "w"))
-    print(f"direcao: {arq_form}  beta = {beta:.4f}  P_f FORM = {cauda(beta):.4e}  d ln(fator)/dc = {s:.4f}  "
-          f"(campo com {K} termos, metodo {p.get('metodo', '-')})", flush=True)
+    extra = 0 if cerca else 2  # as analises fora das linhas (as 2 da inclinacao)
+    if cerca:
+        print(f"direcao: {arq_form}  beta = {beta:.4f}  P_f FORM = {cauda(beta):.4e}  busca = cerca (tol {op['tol']:g},"
+              f" passo_cerca {op['passo_cerca']:g}, folga_cerca {op['folga_cerca']}; sem a inclinacao)  "
+              f"(campo com {K} termos, metodo {p.get('metodo', '-')})", flush=True)
+    else:
+        print(f"direcao: {arq_form}  beta = {beta:.4f}  P_f FORM = {cauda(beta):.4e}  d ln(fator)/dc = {s:.4f}  "
+              f"(campo com {K} termos, metodo {p.get('metodo', '-')})", flush=True)
 
     if p["prog"] in ("rebaixamento", "chuva", "coluna"):
         print("  comando: " + " ".join(comando(exe, p, "<x>.xi", "<rotulo>")), flush=True)
@@ -225,12 +288,85 @@ def main():
             anota(cb, gb)
             n += 1
 
+    def linha_cerca(i, z):
+        """busca=cerca: (i, c, analises, seg, fal), com seg < fal a cerca final (None na linha sem troca de sinal ate
+        FIM). g = ln(fator): g > 0 seguro, g <= 0 falha (a falha do lado de c grande); a cerca usa so o sinal"""
+        ze = sum(a * b for a, b in zip(z, e))
+        zp = [a - ze * b for a, b in zip(z, e)]
+        tol, conta = op["tol"], [0]
+
+        def g(c):
+            v = math.log(fator(ponto(zp, c), f"l{i}_{conta[0]}", i, c))
+            conta[0] += 1
+            return v
+
+        # 1. a cerca: de c0 = beta para fora, com passo crescente, ate o sinal trocar
+        cu, gu = beta, g(beta)
+        if gu == 0.:
+            return i, cu, conta[0], cu, cu
+        d = 1. if gu > 0. else -1.  # c0 seguro: a falha a frente (c maior); c0 em falha: o seguro atras
+        ant, h = None, op["passo_cerca"]
+        while True:
+            if gu > 0. and cu >= FIM[1]:
+                return i, FIM[1], conta[0], cu, None   # segura ate FIM[1]
+            if gu <= 0. and cu <= FIM[0]:
+                return i, FIM[0], conta[0], None, cu   # falha desde FIM[0]
+            dc = h
+            if ant is not None and gu != ant[1]:  # a secante dos dois ultimos (do mesmo lado) mira alem da raiz
+                dist = d * (cu - gu * (cu - ant[0]) / (gu - ant[1]) - cu)
+                if dist > 0.:
+                    dc = min(max(dist + 0.25 * tol, 0.25 * h), h)
+            cn = min(max(cu + d * dc, FIM[0]), FIM[1])
+            gn = g(cn)
+            if gn == 0.:
+                return i, cn, conta[0], cn, cn
+            if (gn > 0.) != (gu > 0.):
+                break
+            ant, cu, gu, h = (cu, gu), cn, gn, 2. * h
+        a, ga, b, gb = (cu, gu, cn, gn) if d > 0. else (cn, gn, cu, gu)  # a seguro < b em falha
+        # 2. o refino (ITP): regula falsi com os valores do Illinois (fa, fb), puxada para fechar a cerca e projetada
+        # no intervalo [meio - r, meio + r] que garante largura <= tol em nmax analises
+        nmax = max(0, math.ceil(math.log2((b - a) / tol))) + op["folga_cerca"]
+        fa, fb, ult, j = ga, gb, 0, 0
+        while b - a > tol:
+            meio = 0.5 * (a + b)
+            r = max(0.5 * tol * 2. ** (nmax - j) - 0.5 * (b - a), 0.)
+            x = (a * fb - b * fa) / (fb - fa)
+            if b - a <= 1.96 * tol:  # qualquer x em [b - 0,98 tol, a + 0,98 tol] fecha a cerca
+                x = min(max(x, b - 0.98 * tol), a + 0.98 * tol)
+            elif x - a < tol:
+                x = a + 0.98 * tol
+            elif b - x < tol:
+                x = b - 0.98 * tol
+            if abs(x - meio) > r:
+                x = meio + math.copysign(r, x - meio)
+            gx = g(x)
+            if gx == 0.:
+                return i, x, conta[0], x, x
+            if gx > 0.:
+                a, fa = x, gx
+                if ult < 0:
+                    fb *= 0.5
+                ult = -1
+            else:
+                b, fb = x, gx
+                if ult > 0:
+                    fa *= 0.5
+                ult = 1
+            j += 1
+        return i, 0.5 * (a + b), conta[0], a, b
+
+    def num(x):
+        return "" if x is None else repr(x)
+
     arq_l, arq_p = os.path.join(pasta, "linhas.csv"), os.path.join(pasta, "perdidas.csv")
-    limpa_csv(arq_l, "linha,c,analises,p\n")
+    limpa_csv(arq_l, "linha,c,analises,p,seg,fal\n" if cerca else "linha,c,analises,p\n")
     limpa_csv(arq_p, "linha,motivo\n")
-    feitas, perdidas = {}, {}
+    feitas, perdidas, cercas = {}, {}, {}
     for r in csv.DictReader(open(arq_l)):
         feitas[int(r["linha"])] = (float(r["c"]), int(r["analises"]))
+        if cerca:
+            cercas[int(r["linha"])] = tuple(float(r[k]) if r[k] else None for k in ("seg", "fal"))
     for r in csv.DictReader(open(arq_p)):
         perdidas[int(r["linha"])] = r["motivo"]
     fl, fp = open(arq_l, "a"), open(arq_p, "a")
@@ -258,13 +394,18 @@ def main():
                               "regra": "para de submeter no 1o N >= nmin com CoV(P_f) <= cov_alvo (cov_alvo = 0: as "
                                        "n_max linhas); as linhas em voo terminam e entram"},
                  "motivo": motivo, "linhas_feitas": sorted(feitas), "semente": op["semente"], "K": K, "parametros": p}
+        if cerca:
+            larg = [b - a for a, b in cercas.values() if a is not None and b is not None]
+            comum.update({"busca": "cerca", "tol": op["tol"], "passo_cerca": op["passo_cerca"],
+                          "folga_cerca": op["folga_cerca"], "largura_max": max(larg) if larg else None,
+                          "linhas_sem_cerca": sum(a is None or b is None for a, b in cercas.values())})
         if final and npe:
             print(f"  linhas perdidas: {npe} ({100 * fr:.1f}%)" + ("  AVISO: mais de 1%, a P_f pode sair baixa"
                                                                  if fr > 0.01 else ""), flush=True)
         if len(pi) < 2:
             if final:
                 print(f"  so {len(pi)} linha(s): sem P_f; parada: {motivo}", flush=True)
-                json.dump(dict(comum, P_f=None, CoV=None, IC95=None, CoV_linha=None, analises=sum(na) + 2,
+                json.dump(dict(comum, P_f=None, CoV=None, IC95=None, CoV_linha=None, analises=sum(na) + extra,
                                analises_linha=None, analises_cov5=None), open(os.path.join(pasta, "ls.json"), "w"),
                           indent=1)
             return
@@ -276,15 +417,16 @@ def main():
             cov = math.inf
         nl5 = len(pi) * (cov / 0.05) ** 2
         npl = sum(na) / len(na)
-        print(f"  linhas {len(pi):4d}  analises {sum(na) + 2:5d}  P_f = {m:.4e}  CoV = {100 * cov:5.2f}%  "
+        print(f"  linhas {len(pi):4d}  analises {sum(na) + extra:5d}  P_f = {m:.4e}  CoV = {100 * cov:5.2f}%  "
               f"CoV por linha = {100 * cov * math.sqrt(len(pi)):5.1f}%  analises/linha = {npl:.2f}  "
-              f"linhas p/ CoV 5% = {nl5:5.0f}  analises p/ CoV 5% (sem o FORM) = {2 + npl * nl5:5.0f}", flush=True)
+              f"linhas p/ CoV 5% = {nl5:5.0f}  analises p/ CoV 5% (sem o FORM) = {extra + npl * nl5:5.0f}", flush=True)
         if final:
             ic = 1.96 * sd / math.sqrt(len(pi))
             print(f"  P_f = {m:.4e}, IC 95% [{m - ic:.4e}, {m + ic:.4e}]; parada: {motivo}", flush=True)
             json.dump(dict(comum, P_f=m, CoV=cov if math.isfinite(cov) else None, IC95=[m - ic, m + ic],
-                           CoV_linha=cov * math.sqrt(len(pi)) if math.isfinite(cov) else None, analises=sum(na) + 2,
-                           analises_linha=npl, analises_cov5=2 + npl * nl5 if math.isfinite(cov) else None),
+                           CoV_linha=cov * math.sqrt(len(pi)) if math.isfinite(cov) else None,
+                           analises=sum(na) + extra, analises_linha=npl,
+                           analises_cov5=extra + npl * nl5 if math.isfinite(cov) else None),
                       open(os.path.join(pasta, "ls.json"), "w"), indent=1)
 
     def parar():
@@ -304,7 +446,7 @@ def main():
                 i = next(falta, None)
                 if i is None:
                     return
-                fut = ex.submit(linha, i, z_da_linha(i))
+                fut = ex.submit(linha_cerca if cerca else linha, i, z_da_linha(i))
                 fut.linha = i
                 emvoo.add(fut)
 
@@ -314,7 +456,8 @@ def main():
             for fut in prontos:
                 emvoo.discard(fut)
                 try:
-                    i, c, n = fut.result()
+                    res = fut.result()
+                    i, c, n = res[:3]
                 except Exception as err:  # uma analise que nao convergiu: a linha fica de fora (e avisa)
                     perdidas[fut.linha] = str(err).replace(",", ";").replace("\n", " ")
                     fp.write(f"{fut.linha},{perdidas[fut.linha]}\n")
@@ -322,7 +465,11 @@ def main():
                     print(f"  linha {fut.linha} perdida: {err}", flush=True)
                     continue
                 feitas[i] = (c, n)
-                fl.write(f"{i},{c!r},{n},{cauda(c)!r}\n")
+                if cerca:
+                    cercas[i] = res[3:]
+                    fl.write(f"{i},{c!r},{n},{cauda(c)!r},{num(res[3])},{num(res[4])}\n")
+                else:
+                    fl.write(f"{i},{c!r},{n},{cauda(c)!r}\n")
                 fl.flush()
                 if len(feitas) % 10 == 0:
                     tabela()
