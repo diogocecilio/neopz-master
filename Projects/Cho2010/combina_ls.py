@@ -19,7 +19,8 @@ semente com linhas disjuntas. Isso e conferido entre as pastas e, quando o form.
 contra as fontes da direcao (semente e linhas); se falhar, para com erro.
 Analises: as das linhas mais as 2 da inclinacao de cada estagio (o FORM ou piloto nao entra; no estagio de direcao
 reestimada, as analises que fizeram a direcao sao as do estagio anterior, ja contadas). Analises p/ CoV 5% = analises
-x (CoV / 0,05)^2 (mesmas proporcoes entre estagios). mc=: a P_f e o EP do MC de referencia, para o z = (P - P_mc) /
+x (CoV / 0,05)^2 (mesmas proporcoes entre estagios); na combinada, os estagios de peso 0 (w=0,1) sao custo fixo, sem
+escalar. mc=: a P_f e o EP do MC de referencia, para o z = (P - P_mc) /
 raiz(Var + EP_mc^2) e o ganho (analises do MC bruto p/ CoV 5%, (1 - P) / (P 0,05^2), sobre as do LS).
 boot=: reamostragens (bootstrap das linhas, semente fixa) para o IC 90% do CoV por linha de cada estagio (a cauda dos
 p_i e pesada: com ~100-200 linhas o CoV por linha tem +-10-15% de erro amostral; decidir pelo IC, nao pelo valor);
@@ -125,10 +126,10 @@ def main():
         v.sort()
         return [v[int(0.05 * len(v))], v[min(int(0.95 * len(v)), len(v) - 1)]] if v else None
 
-    def linha_tab(nome, wk, P, var, N, na, sd=None):
+    def linha_tab(nome, wk, P, var, N, na, sd=None, fixo=0):
         ep = math.sqrt(var)
         cov = ep / P if P > 0 else math.inf
-        a5 = na * (cov / 0.05) ** 2
+        a5 = fixo + (na - fixo) * (cov / 0.05) ** 2
         cl = f"{sd / P:6.2f}" if sd is not None and P > 0 else "     -"
         z = f"{(P - mc[0]) / math.sqrt(var + mc[1] ** 2):+5.2f}" if mc else "    -"
         ganho = f"{(1. - mc[0]) / (mc[0] * 0.05 ** 2) / a5:6.1f}" if mc and a5 > 0 else "     -"
@@ -158,7 +159,8 @@ def main():
     P = sum(wk * e["P"] for e, wk in zip(est, w))
     var = sum(wk * wk * e["var"] for e, wk in zip(est, w))
     saida["combinada"] = linha_tab("combinada", 1., P, var, sum(e["N"] for e in est),
-                                   sum(e["analises"] for e in est))
+                                   sum(e["analises"] for e in est),
+                                   fixo=sum(e["analises"] for e, wk in zip(est, w) if wk == 0.))
     cl = [e["sd"] / e["P"] for e, wk in zip(est, w) if wk > 0. and e["P"] > 0.]
     if len(cl) > 1 and max(cl) > 2. * min(cl):
         print(f"AVISO: CoV por linha de {min(cl):.2f} a {max(cl):.2f} entre os estagios com peso > 0. O estagio de cauda "
