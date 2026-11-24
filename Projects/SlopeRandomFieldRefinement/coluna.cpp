@@ -39,10 +39,13 @@
 //   ny (80)                celulas na vertical. Os V2.5 e V2.2 (~/projects/runs/coluna_estudos): o ny 40 passa no V2.5
 //                          (as P_f de 18 e 24 h e o FS de 12 h do MC) mas erra o t_passagem em ate 0,5 h no V2.2
 //   largura (H/ny)         largura da faixa (m)
-//   elementos (tri)        tri: cada celula com as duas diagonais (4 triangulos em volta do no do centro); quad: Q1
-//   massa (concentrada)    concentrada: o armazenamento nos vertices (A/3 nos cantos internos e nos centros, A/6 nos
-//                          cantos do topo e da base; so triangulos); consistente: nos pontos de integracao (o padrao e a
-//                          unica opcao do quad)
+//   elementos (quad)       quad: Q1; tri: cada celula com as duas diagonais (4 triangulos em volta do no do centro).
+//                          O quad e o padrao de producao (decisao do usuario no V2.5): com ny 80 passa nos V2.5 e V2.2
+//                          como o tri e custa 1/3 (7 s contra 25 s por realizacao)
+//   massa (consistente     concentrada: o armazenamento nos vertices (A/3 nos cantos internos e nos centros, A/6 nos
+//          no quad,        cantos do topo e da base; so triangulos); consistente: nos pontos de integracao (a unica
+//          concentrada     opcao do quad)
+//          no tri)
 // O solo (van Genuchten-Mualem):
 //   vg (0.358,3.58e-4,0.149,1.289)   theta_s,theta_r,alfa,n (alfa em 1/kPa; porosidade = theta_s; S_wr = theta_r/theta_s)
 //   ks (3e-6)              k_s medio (m/s)
@@ -156,7 +159,7 @@ struct Opcoes {
     // malha
     REAL H = 2., largura = 0.;
     int ny = 80;
-    bool quad = false, concentrada = true;
+    bool quad = true, concentrada = false; // o quad (V2.5)
     // solo
     REAL ts = 0.358, tr = 3.58e-4, a = 0.149, nvg = 1.289, ks = 3.e-6, Kw = 2.2e6, gw = 9.81;
     REAL vgTab = 1.e-3, vgTabPsi = -1.; // eps do teto (0: EMualem); psi_c do vg_tab_psi (< 0: nao dado)

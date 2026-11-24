@@ -9,12 +9,12 @@
 #   v21  o deterministico do Cho (Fig. 3) em ny 40/80/200/400 x dt 0.1/0.05/0.025 x tri/quad x busca 4/0, contra o
 #        'coluna_ref.py det N=400 dt=0.025' nos mesmos pontos; na malha mais fina, FS +-0,003 (6 e 24 h) e +-0,01 (12 e
 #        18 h), frente +-1 elemento, t_passagem +-0,05 h; as ordens observadas
-#   v31  a Fig. 3 na malha de producao (NY, dt 0.1, tri): 1,50/1,47/1,06/0,37 +-0,02 em 0/6/18/24 h, 12 h em [1,22; 1,27],
+#   v31  a Fig. 3 na malha de producao (NY, dt 0.1, EL): 1,50/1,47/1,06/0,37 +-0,02 em 0/6/18/24 h, 12 h em [1,22; 1,27],
 #        frentes 0,60-0,65 / 1,15-1,25 / 1,75-1,85 m (usa a rodada do v21 se houver; senao, roda)
 #   v23  custo: n=20 com o campo do caso base em ny 40/80/200 x pardiso/skyline x tri/quad (s por realizacao)
 # Uso: verifica_coluna.sh <pasta> [testes...]   (padrao: v01 v03 v04 v12 v13; 'todos': os oito)
 # Variaveis: EXE (o SlopeRainColumn; padrao, o do build release), PY (python3), P (processos em paralelo; 8),
-#            NY (a malha de producao do v31; 80), PC (processos do v23; 4: o custo e medido com metade dos nucleos)
+#            NY e EL (a malha de producao do v31; 80 e quad), PC (processos do v23; 4: o custo e medido com metade dos nucleos)
 # Cada teste grava em <pasta>/<teste>/ e escreve 'Vxx passou|falhou: ...' em <pasta>/resumo.txt
 set -u
 AQUI="$(cd "$(dirname "$0")" && pwd)"
@@ -23,6 +23,7 @@ PY="${PY:-python3}"
 P="${P:-8}"
 PC="${PC:-4}"
 NY="${NY:-80}"
+EL="${EL:-quad}"
 REF="$AQUI/referencias_1d/coluna_ref.py"
 NYS="$AQUI/../Cho2010/nystrom_base.py"
 export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
@@ -230,12 +231,12 @@ print(f"V2.1 {'passou' if ok else 'falhou'}: ny 400, dt 0,025 contra o coluna_re
 EOF
 )" ;;
     v31)
-        r="../v21/tri_b4_ny${NY}_dt0.1_0_-1.csv" # a rodada do v21; sem ela, roda aqui
+        r="../v21/${EL}_b4_ny${NY}_dt0.1_0_-1.csv" # a rodada do v21; sem ela, roda aqui
         if [ ! -s "$r" ]; then
-            r="tri_b4_ny${NY}_dt0.1_0_-1.csv"
-            "$EXE" det=1 n=0 ny=$NY dt=0.1 tempos=0,6,12,18,24 saida="${r%_0_-1.csv}" solver=skyline > "${r%_0_-1.csv}.log" 2>&1
+            r="${EL}_ny${NY}_dt0.1_0_-1.csv"
+            "$EXE" det=1 n=0 ny=$NY elementos=$EL dt=0.1 tempos=0,6,12,18,24 saida="${r%_0_-1.csv}" solver=skyline > "${r%_0_-1.csv}.log" 2>&1
         fi
-        anota "$("$PY" -I - "$r" "$NY" <<'EOF'
+        anota "$("$PY" -I - "$r" "$NY" "$EL" <<'EOF'
 import csv, sys
 d = {float(r['t_h']): r for r in csv.DictReader(open(sys.argv[1]))}
 fs = {t: float(d[t]['FS_min']) for t in d}
@@ -244,7 +245,7 @@ alvo = {0.: 1.50, 6.: 1.47, 18.: 1.06, 24.: 0.37}
 ok = all(abs(fs[t] - v) <= 0.02 for t, v in alvo.items()) and 1.22 <= fs[12.] <= 1.27
 faixas = {6.: (0.60, 0.65), 12.: (1.15, 1.25), 18.: (1.75, 1.85)}
 ok = ok and all(a - 1e-9 <= fr[t] <= b + 1e-9 for t, (a, b) in faixas.items())
-print(f"V3.1 {'passou' if ok else 'falhou'}: Fig. 3 com ny = {sys.argv[2]}, dt = 0,1, tri: FS " +
+print(f"V3.1 {'passou' if ok else 'falhou'}: Fig. 3 com ny = {sys.argv[2]}, dt = 0,1, {sys.argv[3]}: FS " +
       "/".join(f"{fs[t]:.4f}" for t in (0., 6., 12., 18., 24.)) + " em 0/6/12/18/24 h; frentes " +
       "/".join(f"{fr[t]:.4f}" for t in (6., 12., 18.)) + f" m; t_passagem {float(d[24.]['t_passagem']):.4f} h")
 EOF
