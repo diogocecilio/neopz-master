@@ -46,3 +46,9 @@ add_pz_target(NAME SlopeDrawdownUP
               SOURCES rebaixamento_up.cpp UnsatModel.cpp UnsatModel.h UnsatAnalysis.cpp UnsatAnalysis.h HPMaterial.h
                       DrawdownTransient.cpp DrawdownTransient.h PointLocator.h
               REQUIRED PZ_BUILD_PLASTICITY_MATERIALS)
+
+# SRM numa faixa longa de talude infinito (passo 4): camada inclinada sobre base rigida, pontas com roletes, pressoes
+# dadas (seco, lencol paralelo ao talude ou o perfil p_w(z) do SlopeRainColumn), contra o FS fechado de Lu e Godt
+add_pz_target(NAME SlopeStripSRM
+              SOURCES faixa.cpp UnsatModel.cpp UnsatModel.h UnsatAnalysis.cpp UnsatAnalysis.h HPMaterial.h
+              REQUIRED PZ_BUILD_PLASTICITY_MATERIALS)
