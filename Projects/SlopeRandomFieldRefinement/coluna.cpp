@@ -36,7 +36,8 @@
 //                          ficam com situacao=falha e os valores do fim desse passo (FS_min < 1)
 // A malha:
 //   H (2)                  altura da coluna (m)
-//   ny (80)                celulas na vertical (provisorio: a escolha e do V2.5)
+//   ny (80)                celulas na vertical. Os V2.5 e V2.2 (~/projects/runs/coluna_estudos): o ny 40 passa no V2.5
+//                          (as P_f de 18 e 24 h e o FS de 12 h do MC) mas erra o t_passagem em ate 0,5 h no V2.2
 //   largura (H/ny)         largura da faixa (m)
 //   elementos (tri)        tri: cada celula com as duas diagonais (4 triangulos em volta do no do centro); quad: Q1
 //   massa (concentrada)    concentrada: o armazenamento nos vertices (A/3 nos cantos internos e nos centros, A/6 nos
@@ -47,7 +48,8 @@
 //   ks (3e-6)              k_s medio (m/s)
 //   vg_tab (1e-3,reta)     eps[,fecho]: o k_r de Mualem tabelado contra S_w (MualemTabelado.h) ate o teto S_e = 1 - eps
 //                          (1e-5 <= eps <= 0,1), fechado ate k_r(1) = 1 por reta, c1 ou ippisch; 0: o EMualem (com n < 2
-//                          o Newton cicla perto da saturacao: so como diagnostico)
+//                          o Newton cicla perto da saturacao: so como diagnostico). O eps e parte do modelo: no Cho, a P_f
+//                          de 24 h cai 1,5 ponto de eps 1e-3 para 1e-4 (V2.7, ~/projects/runs/coluna_estudos)
 //   vg_tab_psi ()          psi_c[,fecho]: o mesmo com eps = 1 - S_e(psi_c) (kPa); ex.: vg_tab_psi=0.01,ippisch. Um ou outro
 //   Kw (2.2e6), gw (9.81)  modulo volumetrico da agua (kPa) e peso especifico da agua (kN/m3)
 // A chuva e o estado inicial:
@@ -59,8 +61,12 @@
 //   succao_max (1e9)       kPa, so com nivel0
 // A numerica:
 //   dt (0.1), dt_min (0.00625)   passo (h) e o menor da subdivisao de um passo que nao converge (h; 0: para)
-//   newton ()              tol_p,maxit[,busca]: |dp| < tol_p (kPa; padrao do TPZUnsatAnalysis 1e-6), maxit (40) e as
-//                          metades da busca linear (4)
+//   newton (1e-6,80,1)     tol_p,maxit[,busca]: |dp| < tol_p (kPa), maxit e as metades da busca linear (se nao vier: 1).
+//                          O padrao vem do V2.6 (~/projects/runs/coluna_estudos): com o do TPZUnsatAnalysis (1e-6,40 e
+//                          busca 4) o transiente desistia do passo em 5 a 20% das realizacoes (caso base e lv 16, tri
+//                          ny 40 e 80), quando a frente chega a base (o Newton amortecido anda devagar na zona saturada);
+//                          com busca 0, em 3% (CoV 1,5: a agua empocada sobre uma camada pouco permeavel faz o Newton
+//                          oscilar). newton=1e-6,40,4 refaz o padrao antigo
 //   solver (skyline)       skyline | pardiso: o LU do TPZUnsatAnalysis (SetUseSkyline), montagem serial. O skyline e o
 //                          padrao: a matriz da faixa e de banda, o custo e o mesmo (V2.3) e nao depende das threads do MKL
 //   newton_trace (<arquivo>)  diagnostico de um transiente que para (RainTransient::SetNewtonTrace), um bloco por parada
@@ -160,7 +166,7 @@ struct Opcoes {
     REAL I = 10.8, chuva = 24., succao0 = 20., nivel0 = kNaN, succaoMax = 1.e9;
     // numerica
     REAL dt = 0.1, dtMin = 0.00625, faceTol = 0.;
-    std::vector<REAL> newton;
+    std::vector<REAL> newton = {1.e-6, 80., 1.}; // tol_p, maxit, busca (o V2.6)
     bool skyline = true; // o LU skyline (o V2.3 da o mesmo tempo do PARDISO)
     std::string newtonTrace;
     // FS
@@ -322,6 +328,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
         if (op.newton.size() < 2 || op.newton.size() > 3 || !(op.newton[0] > 0. && op.newton[1] >= 1.) ||
             (op.newton.size() > 2 && op.newton[2] < 0.))
             Erro("newton: tol_p,maxit[,busca] (kPa, >= 1, metades da busca linear >= 0)");
+        if (op.newton.size() == 2) op.newton.push_back(1.); // a busca padrao
     }
     if (tem("solver")) {
         if (kv["solver"] != "pardiso" && kv["solver"] != "skyline") Erro("solver: skyline ou pardiso");
