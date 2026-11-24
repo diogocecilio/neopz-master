@@ -3,6 +3,8 @@
 #   v01  hidrostatico parado (I=0 nivel0=1): |p_w(t) - p_w(0)| < 1e-8 kPa (UnsatWaterPhase 2.1: 1,8e-15)
 #   v03  simetria com campos (n=5, tri e quad): max |p_L - p_R| <= 1e-8 kPa e nos_face em {0, 2}
 #   v04  balanco de agua (I=5.4 e 10.8): |dW - infiltrado| <= 1e-4 infiltrado
+#   v05  parada do transiente: a realizacao 9 do caso base (lv 0,5) em tri, ny 80, com o Newton antigo 1e-6,40,4 para
+#        em ~20,83 h; o ultimo sub-passo aceito entra na travessia: t_passagem em [0, t_parou] (~20,80 h) e FS_passagem < 1
 #   v12  FS em forma fechada no estado inicial: succao 20 kPa (1,5065/z + 0,7447) e coluna cheia (0,5204/z + 0,1067),
 #        FS(2) = 1,4979 e 0,3669 +- 1e-3
 #   v13  o FS recalculado pelo 'coluna_ref.py fs' no perfil gravado: 1e-10
@@ -12,7 +14,7 @@
 #   v31  a Fig. 3 na malha de producao (NY, dt 0.1, EL): 1,50/1,47/1,06/0,37 +-0,02 em 0/6/18/24 h, 12 h em [1,22; 1,27],
 #        frentes 0,60-0,65 / 1,15-1,25 / 1,75-1,85 m (usa a rodada do v21 se houver; senao, roda)
 #   v23  custo: n=20 com o campo do caso base em ny 40/80/200 x pardiso/skyline x tri/quad (s por realizacao)
-# Uso: verifica_coluna.sh <pasta> [testes...]   (padrao: v01 v03 v04 v12 v13; 'todos': os oito)
+# Uso: verifica_coluna.sh <pasta> [testes...]   (padrao: v01 v03 v04 v05 v12 v13; 'todos': os nove)
 # Variaveis: EXE (o SlopeRainColumn; padrao, o do build release), PY (python3), P (processos em paralelo; 8),
 #            NY e EL (a malha de producao do v31; 80 e quad), PC (processos do v23; 4: o custo e medido com metade dos nucleos)
 # Cada teste grava em <pasta>/<teste>/ e escreve 'Vxx passou|falhou: ...' em <pasta>/resumo.txt
@@ -27,11 +29,11 @@ EL="${EL:-quad}"
 REF="$AQUI/referencias_1d/coluna_ref.py"
 NYS="$AQUI/../Cho2010/nystrom_base.py"
 export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
-[ $# -ge 1 ] || { sed -n '2,18p' "$0"; exit 1; }
+[ $# -ge 1 ] || { sed -n '2,20p' "$0"; exit 1; }
 PASTA="$(mkdir -p "$1" && cd "$1" && pwd)"
 shift
-TESTES="${*:-v01 v03 v04 v12 v13}"
-[ "$TESTES" = todos ] && TESTES="v01 v03 v04 v12 v13 v21 v31 v23"
+TESTES="${*:-v01 v03 v04 v05 v12 v13}"
+[ "$TESTES" = todos ] && TESTES="v01 v03 v04 v05 v12 v13 v21 v31 v23"
 [ -x "$EXE" ] || { echo "sem o executavel: $EXE"; exit 1; }
 RESUMO="$PASTA/resumo.txt"
 echo "# $(date '+%F %T') $EXE ($(md5sum < "$EXE" | cut -c1-8)), testes: $TESTES" >> "$RESUMO"
@@ -94,6 +96,18 @@ for I in ('5.4', '10.8'):
     ok = ok and m is not None and float(m.group(2)) <= 1e-4
     txt.append(f"I = {I}: |dW - infiltrado| = {m.group(1)} m3/m ({m.group(2)} de {m.group(3)})")
 print(f"V0.4 {'passou' if ok else 'falhou'}: balanco de agua em 24 h: " + "; ".join(txt))
+EOF
+)" ;;
+    v05)
+        B="$(base 0.5)"
+        "$EXE" primeira=9 n=1 nystrom=$B elementos=tri ny=80 newton=1e-6,40,4 saida=v05 solver=skyline > v05.log 2>&1
+        anota "$("$PY" -I - <<'EOF'
+import csv
+r = list(csv.DictReader(open('v05_9_9.csv')))[-1]
+tp, tq, fp = float(r['t_parou']), float(r['t_passagem']), float(r['FS_passagem'])
+ok = r['situacao'] == 'transiente' and 0. <= tq <= tp and fp < 1.
+print(f"V0.5 {'passou' if ok else 'falhou'}: parada do transiente (realizacao 9, tri ny 80, Newton 1e-6,40,4): "
+      f"t_parou {tp:.5f} h, t_passagem {tq:.4f} h (em [0, t_parou]), FS_passagem {fp:.4f} (< 1)")
 EOF
 )" ;;
     v12)
@@ -262,9 +276,14 @@ EOF
 import re, sys, itertools
 lin = []
 for e, s, ny in itertools.product(('tri', 'quad'), ('pardiso', 'skyline'), (40, 80, 200)):
-    t = re.findall(r'tempo medio por realizacao: (\S+) s', open(f'{e}_{s}_ny{ny}.log').read())
-    lin.append(f"{e}/{s}/{ny}: {float(t[0]):.1f}" if t else f"{e}/{s}/{ny}: ?")
-print(f"V2.3 (custo, {sys.argv[1]} processos juntos): s por realizacao (n = 20, CoV 0,5, lv 0,5): " + "; ".join(lin))
+    log = open(f'{e}_{s}_ny{ny}.log').read()
+    t = re.findall(r'tempo medio por realizacao: (\S+) s', log)
+    # as realizacoes cujo transiente parou (o Newton nao convergiu num sub-passo): numero e lista (real@t_parou)
+    par = re.findall(r'realizacao (\d+):.*o transiente parou em (\S+) h', log)
+    lp = f", {len(par)} paradas" + (" (" + " ".join(f"{r}@{tp}" for r, tp in par) + ")" if par else "")
+    lin.append((f"{e}/{s}/{ny}: {float(t[0]):.1f}" if t else f"{e}/{s}/{ny}: ?") + lp)
+print(f"V2.3 (custo, {sys.argv[1]} processos juntos): s por realizacao e paradas (n = 20, CoV 0,5, lv 0,5): "
+      + "; ".join(lin))
 EOF
 )" ;;
     *) echo "teste desconhecido: $T" ;;

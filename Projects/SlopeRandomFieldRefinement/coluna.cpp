@@ -9,7 +9,11 @@
 //     d'agua (nivel0); o transiente anda nos fins de passo {k dt}, os tempos e o fim da chuva, e o FS e calculado depois
 //     de cada passo. A primeira travessia de FS = 1 e localizada no tempo por bissecao (localiza=1: o estado do inicio
 //     do passo volta, 7 metades, dt/128, interpolacao linear no ultimo intervalo; depois o estado volta ao fim do passo,
-//     na grade de dt);
+//     na grade de dt). Se o transiente para (o Newton nao converge num sub-passo), o ultimo sub-passo aceito, em
+//     t_parou, e um estado convergido: o FS dele entra no FS_passagem e a travessia em [ultimo fim de passo, t_parou]
+//     e localizada do mesmo jeito (t_passagem <= t_parou). As linhas depois ficam com situacao=transiente (sem os
+//     valores do instante), mas com esse t_passagem e esse FS_passagem; com para_na_falha=1 e travessia nesse
+//     intervalo, ficam com falha e o estado de t_parou;
 //  3. uma linha do CSV por instante de tempos= (e, se pedidos, o perfil, os xi e o campo).
 // O FS (Cho 2014, Eqs. 5, 7 e 9; Lu e Godt 2008), nos nos do perfil (os cantos da lateral esquerda e os centros das
 // celulas; no quad, so os cantos), de z = H - y:
@@ -33,7 +37,8 @@
 //   kmult (1)              k_s / ks da deterministica
 //   localiza (1)           0: t_passagem pela interpolacao linear do FS no passo da travessia, sem bissecao
 //   para_na_falha (0)      1: o transiente para no passo da travessia (com t_passagem localizado); os instantes depois
-//                          ficam com situacao=falha e os valores do fim desse passo (FS_min < 1)
+//                          ficam com situacao=falha e os valores do fim desse passo (FS_min < 1). Com FS(0) < 1
+//                          (t_passagem = 0) nenhum passo e dado: os instantes t > 0 ficam com falha e o estado inicial
 // A malha:
 //   H (2)                  altura da coluna (m)
 //   ny (80)                celulas na vertical. Os V2.5 e V2.2 (~/projects/runs/coluna_estudos): o ny 40 passa no V2.5
@@ -95,9 +100,11 @@
 //                          t_passagem,frente_m,pw_base,pw_topo,nos_face,passos,newton,s_transiente,t_parou,k_mult_med,
 //                          k_mult_min,k_mult_max,log_peso,ny,dt,elementos,massa,lei_k,cov_k,lv,M,KL_variancia
 //                          situacao: ok, transiente (o transiente parou antes; t_parou) ou falha (para_na_falha=1).
-//                          FS_passagem: o menor FS ate o instante (todos os passos); t_passagem: a primeira travessia de
-//                          FS = 1 ate o instante (-1: nenhuma); frente_m: o primeiro no, de cima para baixo, com
-//                          p_w - p_w0 < 1 kPa; base: z_crit >= H - 1e-9; k_mult_*: nos pontos de integracao. Na
+//                          FS_passagem: o menor FS ate o instante (todos os passos, e o ultimo sub-passo aceito de um
+//                          transiente que parou); t_passagem: a primeira travessia de FS = 1 ate o instante (-1:
+//                          nenhuma; numa linha transiente, ate t_parou); frente_m: o primeiro no, de cima para baixo,
+//                          com p_w - p_w0 < 1 kPa (o pe da frente: no Cho, 4 a 5 cm abaixo do meio do salto, p_w =
+//                          -10 kPa; o V3.1 confere o pe da frente); base: z_crit >= H - 1e-9; k_mult_*: nos pontos de integracao. Na
 //                          deterministica cov_k, lv, M e KL_variancia sao 0
 //   <saida>_parametros.txt chave=valor do caso (so o bloco que comeca em 0, ou a deterministica sozinha)
 //   <saida>_perfil_<real>.csv, <saida>_xi_<real>.txt, <saida>_campo_<faixa>.csv   (perfis=, grava_xi=, so_campo=)
@@ -181,13 +188,41 @@ struct Opcoes {
     std::string nystrom, xi, deslocXi;
 };
 
+// numeros das opcoes: a cadeia inteira tem de ser o numero (std::stod/stoi aceitam '10.7' -> 10 e lancam excecao com
+// 'abc'); um valor invalido e um std::invalid_argument com o texto, que o LeOpcoes transforma em Erro
+REAL Numero(const std::string &s)
+{
+    size_t pos = 0;
+    REAL v = 0.;
+    try {
+        v = std::stod(s, &pos);
+    } catch (const std::exception &) {
+        throw std::invalid_argument(s);
+    }
+    if (pos != s.size()) throw std::invalid_argument(s);
+    return v;
+}
+
+int Inteiro(const std::string &s)
+{
+    size_t pos = 0;
+    int v = 0;
+    try {
+        v = std::stoi(s, &pos);
+    } catch (const std::exception &) {
+        throw std::invalid_argument(s);
+    }
+    if (pos != s.size()) throw std::invalid_argument(s);
+    return v;
+}
+
 std::vector<REAL> Lista(const std::string &s)
 {
     std::vector<REAL> v;
     std::stringstream ss(s);
     std::string item;
     while (std::getline(ss, item, ','))
-        if (!item.empty()) v.push_back(std::stod(item));
+        if (!item.empty()) v.push_back(Numero(item));
     return v;
 }
 
@@ -204,7 +239,19 @@ std::string G(REAL v) // %g, para os rotulos
     return b;
 }
 
+Opcoes LeOpcoes0(int argc, char *argv[]);
+
+// as opcoes; um numero mal formado e um Erro com a chave (e nao um abort por excecao)
 Opcoes LeOpcoes(int argc, char *argv[])
+{
+    try {
+        return LeOpcoes0(argc, argv);
+    } catch (const std::invalid_argument &x) {
+        Erro(std::string(x.what()) + ": valor invalido");
+    }
+}
+
+Opcoes LeOpcoes0(int argc, char *argv[])
 {
     const std::set<std::string> chaves = {
         "n",         "primeira",  "det",        "semente",    "saida",      "tempos",       "perfis",  "grava_xi",
@@ -228,14 +275,22 @@ Opcoes LeOpcoes(int argc, char *argv[])
         kv[k] = a.substr(eq + 1);
     }
     auto tem = [&kv](const char *k) { return kv.count(k) > 0; };
+    // um numero mal formado: invalid_argument("<chave>=<valor>"), o Erro do LeOpcoes
+    auto valor = [&](const char *k, auto conv) {
+        try {
+            return conv(kv[k]);
+        } catch (const std::invalid_argument &) {
+            throw std::invalid_argument(std::string(k) + "=" + kv[k]);
+        }
+    };
     auto real = [&](const char *k, REAL &v) {
-        if (tem(k)) v = std::stod(kv[k]);
+        if (tem(k)) v = valor(k, Numero);
     };
     auto inteiro = [&](const char *k, int &v) {
-        if (tem(k)) v = std::stoi(kv[k]);
+        if (tem(k)) v = valor(k, Inteiro);
     };
     auto logico = [&](const char *k, bool &v) {
-        if (tem(k)) v = std::stoi(kv[k]) != 0;
+        if (tem(k)) v = valor(k, Inteiro) != 0;
     };
     Opcoes op;
     inteiro("n", op.n);
@@ -246,15 +301,27 @@ Opcoes LeOpcoes(int argc, char *argv[])
     logico("so_campo", op.soCampo);
     logico("localiza", op.localiza);
     logico("para_na_falha", op.paraNaFalha);
-    if (tem("semente")) op.semente = std::stoull(kv["semente"]);
+    if (tem("semente"))
+        op.semente = valor("semente", [](const std::string &x) {
+            size_t pos = 0;
+            uint64_t v = 0;
+            try {
+                v = std::stoull(x, &pos);
+            } catch (const std::exception &) {
+                throw std::invalid_argument(x);
+            }
+            if (pos != x.size() || x.find('-') != std::string::npos) throw std::invalid_argument(x);
+            return v;
+        });
     if (tem("saida")) op.saida = kv["saida"];
-    if (tem("tempos")) op.tempos = Lista(kv["tempos"]);
+    if (tem("tempos")) op.tempos = valor("tempos", Lista);
     std::sort(op.tempos.begin(), op.tempos.end());
     op.tempos.erase(std::unique(op.tempos.begin(), op.tempos.end()), op.tempos.end());
     if (op.tempos.empty() || op.tempos.front() < 0.) Erro("tempos: instantes >= 0 (h)");
     real("kmult", op.kmult);
     if (!(op.kmult > 0.)) Erro("kmult > 0");
     if (op.n < 0) Erro("n >= 0");
+    if (op.primeira < 0) Erro("primeira >= 0 (a realizacao -1 e o rotulo da deterministica)");
     if (op.n == 0 && !op.det) Erro("nada a fazer: n = 0 e det = 0");
     // malha
     real("H", op.H);
@@ -277,7 +344,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
     }
     // solo
     if (tem("vg")) {
-        const std::vector<REAL> v = Lista(kv["vg"]);
+        const std::vector<REAL> v = valor("vg", Lista);
         if (v.size() != 4 || !(v[0] > v[1] && v[1] >= 0. && v[0] < 1. && v[2] > 0. && v[3] > 1.))
             Erro("vg: theta_s,theta_r,alfa,n com 1 > theta_s > theta_r >= 0, alfa > 0 (1/kPa) e n > 1");
         op.ts = v[0], op.tr = v[1], op.a = v[2], op.nvg = v[3];
@@ -290,7 +357,12 @@ Opcoes LeOpcoes(int argc, char *argv[])
     for (const std::string k : {"vg_tab", "vg_tab_psi"}) { // k_r de Mualem tabelado: eps (ou psi_c) e o fecho
         if (!tem(k.c_str())) continue;
         const size_t vir = kv[k].find(',');
-        const REAL x = std::stod(kv[k].substr(0, vir));
+        REAL x = 0.;
+        try {
+            x = Numero(kv[k].substr(0, vir));
+        } catch (const std::invalid_argument &) {
+            throw std::invalid_argument(k + "=" + kv[k]);
+        }
         if (k == "vg_tab" && x == 0.) { // vg_tab=0: o EMualem
             op.vgTab = 0.;
             break;
@@ -327,10 +399,11 @@ Opcoes LeOpcoes(int argc, char *argv[])
     real("dt_min", op.dtMin);
     if (!(op.dt > 0.) || op.dtMin < 0.) Erro("dt > 0 e dt_min >= 0 (h)");
     if (tem("newton")) {
-        op.newton = Lista(kv["newton"]);
+        op.newton = valor("newton", Lista);
         if (op.newton.size() < 2 || op.newton.size() > 3 || !(op.newton[0] > 0. && op.newton[1] >= 1.) ||
-            (op.newton.size() > 2 && op.newton[2] < 0.))
-            Erro("newton: tol_p,maxit[,busca] (kPa, >= 1, metades da busca linear >= 0)");
+            (op.newton.size() > 2 && op.newton[2] < 0.) || op.newton[1] != std::floor(op.newton[1]) ||
+            (op.newton.size() > 2 && op.newton[2] != std::floor(op.newton[2])))
+            Erro("newton: tol_p,maxit[,busca] (kPa, inteiro >= 1, metades da busca linear: inteiro >= 0)");
         if (op.newton.size() == 2) op.newton.push_back(1.); // a busca padrao
     }
     if (tem("solver")) {
@@ -824,6 +897,27 @@ Resumo Realizacao(const Fixos &fixos0, const Opcoes &op, const RandomField *camp
         return std::any_of(op.tempos.begin(), op.tempos.end(), [t](REAL x) { return std::abs(x - t) < 1.e-9; });
     };
 
+    // A primeira travessia de FS = 1 em [tL, tR] (FS(tL) = fL >= 1 > fR = FS(tR)), com a malha no estado de tR: bissecao
+    // a partir do estado eL de tL (localiza=1; um passo da bissecao que falha deixa o intervalo que ja se tem) e a
+    // interpolacao linear no intervalo final. A malha volta ao estado de tR.
+    auto travessia = [&](RainTransient::Snapshot eL, REAL tL, REAL fL, REAL tR, REAL fR) {
+        if (op.localiza) {
+            const RainTransient::Snapshot fim = chuva.Save();
+            liga(false);
+            for (int k = 0; k < 7; k++) {
+                const REAL tm = 0.5 * (tL + tR);
+                chuva.Load(eL);
+                if (!chuva.AdvanceTo(tm)) break; // fica o intervalo que ja se tem
+                const REAL fm = Avalia(chuva.NodalWaterPressure(), P, h, op, pw0).fs;
+                if (fm < 1.) tR = tm, fR = fm;
+                else tL = tm, fL = fm, eL = chuva.Save();
+            }
+            liga(true);
+            chuva.Load(fim);
+        }
+        return fL > fR ? tL + (fL - 1.) / (fL - fR) * (tR - tL) : tR;
+    };
+
     Estado e = avalia();
     if (op.fs) {
         fsAnt = e.fs, fsHist = e.fs;
@@ -832,35 +926,35 @@ Resumo Realizacao(const Fixos &fixos0, const Opcoes &op, const RandomField *camp
     std::set<REAL> feitos; // os tempos ja gravados
     if (ehTempo(0.)) linha(0., e, "ok"), feitos.insert(0.);
     REAL tcur = 0.;
-    bool parouNaFalha = false;
+    // para_na_falha com FS(0) < 1: a falha ja esta no estado inicial; nenhum passo, os instantes t > 0 ficam com falha
+    bool parouNaFalha = op.fs && op.paraNaFalha && tPass == 0.;
     for (REAL tn : Grade(op)) {
+        if (parouNaFalha) break;
         const RainTransient::Snapshot e0 = chuva.Save();
         const std::vector<REAL> pwAnt = pwNos;
         if (!chuva.AdvanceTo(tn)) {
+            // o transiente parou: a malha guarda o ultimo sub-passo aceito, em Time() (tcur <= Time() < tn), que e um
+            // estado convergido. O FS dele entra no FS_passagem e na regra da travessia, como num passo normal.
             res.tParou = chuva.Time();
+            if (res.tParou > tcur + 1.e-12) {
+                e = avalia();
+                compress += Compressibilidade(g, pwNos, pwAnt, h, op.ts, op.Kw);
+                if (op.fs) {
+                    if (tPass < 0. && e.fs < 1. && fsAnt >= 1.) {
+                        tPass = travessia(e0, tcur, fsAnt, res.tParou, e.fs);
+                        parouNaFalha = op.paraNaFalha;
+                    }
+                    fsHist = std::min(fsHist, e.fs);
+                    fsAnt = e.fs;
+                }
+            }
             break;
         }
         e = avalia();
         compress += Compressibilidade(g, pwNos, pwAnt, h, op.ts, op.Kw);
         if (op.fs) {
             if (tPass < 0. && e.fs < 1. && fsAnt >= 1.) { // a primeira travessia de FS = 1, neste passo
-                REAL tL = tcur, fL = fsAnt, tR = tn, fR = e.fs;
-                if (op.localiza) {
-                    const RainTransient::Snapshot fim = chuva.Save();
-                    RainTransient::Snapshot eL = e0;
-                    liga(false);
-                    for (int k = 0; k < 7; k++) {
-                        const REAL tm = 0.5 * (tL + tR);
-                        chuva.Load(eL);
-                        if (!chuva.AdvanceTo(tm)) break; // fica o intervalo que ja se tem
-                        const REAL fm = Avalia(chuva.NodalWaterPressure(), P, h, op, pw0).fs;
-                        if (fm < 1.) tR = tm, fR = fm;
-                        else tL = tm, fL = fm, eL = chuva.Save();
-                    }
-                    liga(true);
-                    chuva.Load(fim);
-                }
-                tPass = fL > fR ? tL + (fL - 1.) / (fL - fR) * (tR - tL) : tR;
+                tPass = travessia(e0, tcur, fsAnt, tn, e.fs);
                 parouNaFalha = op.paraNaFalha;
             }
             fsHist = std::min(fsHist, e.fs);
@@ -1037,6 +1131,7 @@ int main(int argc, char *argv[])
             fx.klVar = campos->VarianceFraction();
             if (op.gravaXi) {
                 std::ofstream fxi(op.saida + "_xi_" + std::to_string(n) + ".txt");
+                arquivos.push_back(op.saida + "_xi_" + std::to_string(n) + ".txt");
                 fxi << std::setprecision(17);
                 for (double x : campos->Xi()[0]) fxi << x << "\n";
             }
@@ -1057,6 +1152,7 @@ int main(int argc, char *argv[])
         std::printf("\n");
         std::fflush(stdout);
     }
+    if (!op.newtonTrace.empty()) arquivos.push_back(op.newtonTrace);
     if (nAleat) std::printf("  tempo medio por realizacao: %.2f s (%d realizacoes)\n", somaS / nAleat, nAleat);
     std::printf("  arquivos:");
     for (const std::string &a : arquivos) std::printf(" %s", a.c_str());
