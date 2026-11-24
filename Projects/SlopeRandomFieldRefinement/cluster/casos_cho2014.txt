@@ -1,0 +1,44 @@
+# casos_cho2014.txt: a coluna 1D de talude infinito sob chuva de Cho (2014, Eng. Geol. 171: 11-20) para o
+# cho2014_casos.sbatch: Monte Carlo direto com o SlopeRainColumn (coluna.cpp) e a base comum do sbatch (BASE: ny, dt,
+# dt_min, M e tempos=6,12,16,18,20,22,24; o resto sao os padroes de producao do executavel: elementos=quad com massa
+# consistente, ny 80, newton=1e-6,80,1, solver skyline, vg_tab=1e-3,reta, I = 10,8 mm/h por 24 h, succao inicial de
+# 20 kPa, beta = 40 graus, c' = 5 kPa, phi' = 32 graus, gamma_d = 16 kN/m3) mais as opcoes da ultima coluna. A base de
+# Nystrom de cada caso e a do seu lv= (o submeter_cho2014.sh faz uma por lv). A mesma semente em todos: as realizacoes
+# ficam pareadas entre os casos (a realizacao n tem os mesmos xi; com o mesmo lv, o mesmo campo padronizado).
+# Colunas: id, a P_f do artigo em 18 e 24 h (a Fig. 10 digitalizada, cho2014.md Secao 4.3, +-0,002; o texto da 0,434 em
+# 24 h no caso base; "-": sem valor do artigo), o N do Monte Carlo direto (o do artigo: 5000) e as opcoes.
+# id               Pf18   Pf24   N_mc  opcoes
+# os 15 casos da Fig. 10 (CoV x l_v)
+c05_l0.5           0.058  0.435  5000  covk=0.5 lv=0.5
+c10_l0.5           0.091  0.275  5000  covk=1.0 lv=0.5
+c15_l0.5           0.103  0.218  5000  covk=1.5 lv=0.5
+c05_l2             0.081  0.501  5000  covk=0.5 lv=2
+c10_l2             0.062  0.351  5000  covk=1.0 lv=2
+c15_l2             0.066  0.282  5000  covk=1.5 lv=2
+c05_l4             0.091  0.520  5000  covk=0.5 lv=4
+c10_l4             0.053  0.371  5000  covk=1.0 lv=4
+c15_l4             0.049  0.302  5000  covk=1.5 lv=4
+c05_l8             0.103  0.533  5000  covk=0.5 lv=8
+c10_l8             0.061  0.391  5000  covk=1.0 lv=8
+c15_l8             0.049  0.321  5000  covk=1.5 lv=8
+c05_l16            0.113  0.543  5000  covk=0.5 lv=16
+c10_l16            0.070  0.402  5000  covk=1.0 lv=16
+c15_l16            0.051  0.331  5000  covk=1.5 lv=16
+# os estudos (spec C), pareados com as 2000 ou 5000 primeiras realizacoes do caso da mesma linha:
+#  V2.5 (o ny de producao: 500 pareadas no PC, ~/projects/runs/coluna_estudos/v25): o ny 200 nos dois extremos de lv
+c05_l0.5_ny200     -      -      2000  covk=0.5 lv=0.5 ny=200
+c05_l16_ny200      -      -      2000  covk=0.5 lv=16 ny=200
+#  V2.7 (o eps do k_r tabelado: no PC, -1,5 ponto em P_f(24 h) de 1e-3 para 1e-4; aqui com o N do artigo)
+c05_l0.5_eps1e-4   -      -      5000  covk=0.5 lv=0.5 vg_tab=1e-4
+#  V3.3 (o esquema): o tri com massa concentrada (o da verificacao V2.1/V2.2) e com massa consistente (a que reproduz o
+#  undershoot da Fig. 3a); a fracao na base em 12 h contra a Fig. 9 (0,29). Pela regra do V3.3, k*(18 h) >= 8,3q em
+#  todas as variantes: o artigo e inconsistente em 18 h e nao ha linhas "como o Cho"
+c05_l0.5_tri       -      -      2000  covk=0.5 lv=0.5 elementos=tri massa=concentrada
+c05_l0.5_tricons   -      -      2000  covk=0.5 lv=0.5 elementos=tri massa=consistente
+# Q1 (o k_r de Ippisch com psi_e = 0,01 kPa, Fig. 2b): no PC, +1,04 +- 0,15 ponto em P_f(24 h) contra o eps 1e-3, menos
+# que 2 erros-padrao do MC de 5000; so com a decisao do usuario (tire o # e resubmeta: os casos novos entram na fila)
+#c05_l0.5_ip001    0.058  0.435  5000  covk=0.5 lv=0.5 vg_tab_psi=0.01,ippisch
+#c05_l2_ip001      0.081  0.501  5000  covk=0.5 lv=2 vg_tab_psi=0.01,ippisch
+#c05_l4_ip001      0.091  0.520  5000  covk=0.5 lv=4 vg_tab_psi=0.01,ippisch
+#c05_l8_ip001      0.103  0.533  5000  covk=0.5 lv=8 vg_tab_psi=0.01,ippisch
+#c05_l16_ip001     0.113  0.543  5000  covk=0.5 lv=16 vg_tab_psi=0.01,ippisch

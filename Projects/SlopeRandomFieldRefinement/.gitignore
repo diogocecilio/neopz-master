@@ -18,3 +18,7 @@ relatorio/*.out
 relatorio/*.toc
 relatorio/*.synctex.gz
 __pycache__/
+# fermi: as builds e os bin das outras campanhas (build_liu/, build_coluna/, ...) e os logs de compilacao
+cluster/build_*/
+cluster/bin_*/
+cluster/*.log

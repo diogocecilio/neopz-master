@@ -1,0 +1,13 @@
+# casos_cho2014_ls.txt: os FORM por diferencas centrais + line sampling da coluna de Cho (2014) (spec D.2) para o
+# cho2014_casos.sbatch: cada linha usa as opcoes do caso do casos_cho2014.txt (coluna caso) e roda depois que o Monte
+# Carlo desse caso termina (o MC e a referencia). form_kl.py prog=coluna gradiente=dif h=0.5 algoritmo=ihlrf M=$M, depois
+# line_sampling.py K=$M cov=$COV (ate N_ls linhas) e bissecao_ls.py nas 10 linhas de menor c.
+# A falha (form_kl.py): fs = FS_passagem(T) < 1 (o menor FS ate T, a primeira passagem; a analise roda ate T);
+# tempo = t_passagem < T (a analise roda ate a travessia, ou ate 2T sem ela: fator censurado em 2).
+# T escolhido pela referencia em Python (~/projects/runs/cho2014_python, 5000 por caso, primeira passagem): c05_l0.5
+# P(18 h) = 0,0148 e P(16 h) = 0,0028; c05_l16 P(20 h) = 0,0096 (o limite de variavel aleatoria do V3.2 da 0,0105).
+# id    caso       T   falha  N_ls
+F1a     c05_l0.5   18  fs     600
+F1b     c05_l0.5   18  tempo  600
+F2      c05_l0.5   16  fs     600
+F3      c05_l16    20  tempo  600

@@ -708,3 +708,35 @@ Codigo e campanha (prontos, com a ressalva acima):
 - `liuwang2023_casos.sbatch` (jobs liuC): o solo fixo (CRPC, uma tarefa por intensidade) e o MC direto dos niveis baixo e
   intermediario (5500 cada, o N do artigo), em blocos de 10; `submeter/status/baixar_liuwang2023.sh`,
   `resumo_liuwang2023.py`. Uma analise do MC leva ~2 a 4 min no PC (dois SRM de ~40 s + o permanente + o transiente).
+
+## Cho (2014): coluna 1D sob chuva, Monte Carlo + FORM/LS (`cho2014_casos.sbatch`)
+
+A coluna de talude infinito de Cho (2014, Eng. Geol. 171: 11-20) no `SlopeRainColumn` (`coluna.cpp`; spec dos passos 1
+a 3, Secao D): H = 2 m, k_s lognormal 1D (base de Nystrom do segmento, exp(-|dz|/lv), M = 100), van Genuchten-Mualem
+com o k_r tabelado (eps 1e-3), I = 10,8 mm/h por 24 h sobre succao inicial de 20 kPa, FS de Lu e Godt depois de cada
+passo (beta 40 graus, c' 5 kPa, phi' 32 graus). Os padroes de producao do executavel (estudos V2.x em
+`~/projects/runs/coluna_estudos`): quad com massa consistente, ny 80, dt 0,1 h, newton=1e-6,80,1, skyline.
+
+- `casos_cho2014.txt`: os 15 casos da Fig. 10 (CoV 0,5/1,0/1,5 x lv 0,5/2/4/8/16 m) com N = 5000 e as P_f do artigo
+  em 18 e 24 h; os estudos V2.5 (ny 200), V2.7 (eps 1e-4) e V3.3 (tri concentrada e consistente), pareados; as linhas
+  Ippisch (Q1) comentadas.
+- `casos_cho2014_ls.txt`: F1a/F1b (c05_l0.5 em 18 h, falha fs/tempo), F2 (16 h, fs) e F3 (c05_l16 em 20 h, tempo):
+  `form_kl.py prog=coluna gradiente=dif h=0.5 algoritmo=ihlrf` (M = 100), `line_sampling.py` ate CoV 5% e
+  `bissecao_ls.py`, depois do MC do caso (a referencia).
+- Fases do job: deterministicos; MC em blocos de 100 intercalados entre os casos; FORM/LS/bissecao de cada linha do LS
+  com o MC do caso pronto. As bases (5, uma por lv) sao feitas pelo `submeter_cho2014.sh` no no de login (segundos).
+- `resumo_cho2014.py` (status e baixar): P_f no instante e de primeira passagem com Wilson e os limites da censura, z
+  contra a Fig. 10 e contra a referencia em Python (`~/projects/runs/cho2014_python`, no PC), os alvos das Figs. 3, 5, 6,
+  7 e 9, e o LS contra o MC do mesmo caso (z, cos(alfa_FORM, xi medio das falhas), alfa^2, custo).
+
+**Custo estimado:** ~7 s por realizacao no PC (quad ny 80), ~2,6 vezes no fermi: ~530 h de CPU no MC (5,5 h com 4 nos,
+11 h com 2), mais ~0,5 h por FORM (15 iteracoes de 201 analises em 24 processos).
+
+```bash
+ssh diogo@fermi.cesup.ufrgs.br 'cd neopz-master && git pull origin UnsaturatedSoil && cd Projects/SlopeRandomFieldRefinement/cluster && nohup setsid bash -c "./compilar_coluna.sh && ./submeter_cho2014.sh 4" > cho2014.log 2>&1 < /dev/null &'
+ssh diogo@fermi.cesup.ufrgs.br 'neopz-master/Projects/SlopeRandomFieldRefinement/cluster/status_cho2014.sh'
+~/projects/neopz-master/Projects/SlopeRandomFieldRefinement/cluster/baixar_cho2014.sh
+```
+
+- Com os jobs liuB rodando, os jobs cho14 alem dos 4 por usuario esperam na fila (o fermi aceita 8).
+- Parar sem perder nada: `ssh diogo@fermi.cesup.ufrgs.br 'touch /mnt/data/diogo/cho2014/PARAR'`.
