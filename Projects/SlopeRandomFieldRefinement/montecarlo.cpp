@@ -132,7 +132,9 @@
 //                          do colapso, pressoes congeladas), no instante do menor fator: <saida>_grad_<real>.txt (o menor
 //                          fator e os 3K numeros, c', phi' e k; os de k sao 0: o k so muda as pressoes, congeladas no
 //                          fator)
-// O transiente reaproveitado (so com k fixo: covk = 0 e o k de valores = 1):
+// O transiente reaproveitado (com k fixo: covk = 0 e o k de valores = 1; ou com o k dos xi dados numa realizacao so,
+// xi= n=1 sem det e sem desloc_xi, como no line sampling da chuva, em que so c' e phi' mudam ao longo da linha: a chave
+// ganha entao o campo de k, com covk, lh, lv, M, a base e os bits dos xi de k):
 //   grava_pressoes (<arquivo>)  grava p_w nos nos da malha do transiente em cada instante do fator, com os dados do
 //                          transiente (geometria, contornos, solo, chuva, malha) para conferir na leitura; na variante i,
 //                          tambem p_a (depois de p_w, em cada instante)
@@ -190,6 +192,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <functional>
 #include <iomanip>
@@ -524,9 +527,12 @@ Opcoes LeOpcoes(int argc, char *argv[])
     if (op.soTransiente && op.gravaPressoes.empty()) Erro("so_transiente=1 precisa de grava_pressoes=<arquivo>");
     if (!op.pressoes.empty() && !op.gravaPressoes.empty()) Erro("pressoes e grava_pressoes: um ou outro");
     const bool kFixo = op.campos.covK == 0. && (op.valores.empty() || op.valores[2] == 1.) && op.q0Cov == 0.;
-    if ((!op.pressoes.empty() || !op.gravaPressoes.empty()) && !kFixo)
-        Erro("pressoes/grava_pressoes so com k fixo (covk=0 e, com valores, k = 1): o transiente tem de ser o mesmo "
-             "em todas as realizacoes");
+    // k aleatorio com os xi dados numa realizacao so: o transiente e o dessa realizacao (a chave ganha o campo de k)
+    const bool kDado = !kFixo && !op.xi.empty() && op.deslocXi.empty() && op.n == 1 && !op.det && op.q0Cov == 0.;
+    if ((!op.pressoes.empty() || !op.gravaPressoes.empty()) && !kFixo && !kDado)
+        Erro("pressoes/grava_pressoes so com k fixo (covk=0 e, com valores, k = 1) ou com os xi dados numa realizacao "
+             "so (xi= n=1, sem det e sem desloc_xi): o transiente tem de ser o mesmo em todas as realizacoes");
+    if (op.soTransiente && !kFixo) Erro("so_transiente=1 so com k fixo (e o transiente das medias)");
     if (tem("variante")) {
         op.variante = kv["variante"];
         if (op.variante != "i" && op.variante != "ii" && op.variante != "iii")
@@ -1091,8 +1097,32 @@ struct Pressoes {
     std::array<double, 3> permanente = {0., 0., 0.}; // q0 > 0: passos, ultima mudanca de p_w (kPa) e tempo (s)
 };
 
+// O campo de k de uma realizacao com os xi dados (xi=, k aleatorio): CoV, lh, lv, M, a base (o nome do arquivo de
+// Nystrom ou analitica), K e o FNV-1a de 64 bits dos bits dos K xi de k (o terco final do arquivo)
+std::string ChaveCampoK(const Opcoes &op)
+{
+    std::ifstream fx(op.xi);
+    std::vector<double> v;
+    for (double x; fx >> x;) v.push_back(x);
+    const size_t K = v.size() / 3;
+    uint64_t h = 1469598103934665603ull;
+    for (size_t i = 2 * K; i < 3 * K; i++) {
+        const double x = v[i] == 0. ? 0. : v[i]; // -0 e +0 dao o mesmo campo (o FORM modal grava os zeros de k com sinal)
+        uint64_t b;
+        std::memcpy(&b, &x, sizeof b);
+        for (int k = 0; k < 8; k++) h = (h ^ ((b >> (8 * k)) & 0xffu)) * 1099511628211ull;
+    }
+    std::string base = op.nystrom.empty() ? "analitica" : op.nystrom.substr(op.nystrom.find_last_of('/') + 1);
+    std::replace(base.begin(), base.end(), ' ', '_');
+    std::ostringstream c;
+    c << std::setprecision(12) << op.campos.covK << "," << op.campos.Lx << "," << op.campos.Ly << "," << op.campos.M << ","
+      << base << "," << K << "," << std::hex << h;
+    return c.str();
+}
+
 // Os dados que definem o transiente (o que tem de ser igual para reaproveitar p_w): geometria, nivel, contornos, solo,
-// chuva e malha. Os campos nao entram (com pressoes/grava_pressoes o k e fixo)
+// chuva e malha. Os campos so entram com k aleatorio e os xi dados (pressoes/grava_pressoes numa realizacao so: o campo
+// de k, ChaveCampoK); com k fixo, nao
 std::string ChaveTransiente(const Opcoes &op, const RainData &r)
 {
     std::ostringstream c;
@@ -1119,6 +1149,9 @@ std::string ChaveTransiente(const Opcoes &op, const RainData &r)
         if (op.chiSe) c << "se";
         else c << std::tan(r.phib) / std::tan(op.res.phiDeg * M_PI / 180.); // o chi constante do MaterialChuva
     }
+    const bool kFixo = op.campos.covK == 0. && (op.valores.empty() || op.valores[2] == 1.);
+    if (!kFixo && !op.xi.empty() && (!op.pressoes.empty() || !op.gravaPressoes.empty()))
+        c << ";campo_k=" << ChaveCampoK(op);
     return c.str();
 }
 
