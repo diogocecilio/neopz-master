@@ -332,6 +332,79 @@ caso & $t$ (h) & $F$ & mediana & $m$ & $\beta$ & assim. & $\Pf$ MC & prev.\ (med
     1000 de 1000 realizações.
 \end{itemize}
 
+\subsection{Comparação com a literatura}\label{sec:literatura}
+Uma busca nas 172 referências da pasta \path{Dropbox/UnsaturatedSoil/referencias} e em dois artigos de 2026 (Yang et
+al.; Su et al., \emph{Int.\ J.\ Numer.\ Anal.\ Methods Geomech.}) achou trabalhos anteriores próximos da proposta e
+dados publicados para testá-la. Nos testes, $m$ e $\beta$ são ajustados por nós aos números dos artigos; os valores
+lidos de figuras têm incerteza de $\pm 0{,}02$ a $\pm 0{,}05$ em $\Pf$.
+
+\paragraph{Trabalhos anteriores.}
+\begin{itemize}
+  \item \textbf{Hu et al.\ (2024)} (\emph{Comput.\ Geotech.} 173, o artigo do nosso caso A): curvas de fragilidade
+    $\Pf(I)$, superfície $\Pf(I, D)$ e fragilidade no tempo de um talude com campos aleatórios, ``não paramétricas''
+    (PDET, 180 realizações por cenário), em crítica à fragilidade \emph{lognormal em $I$} (a clássica, $\Phi(\ln(I/\theta)/
+    \beta_I)$). A proposta aqui é lognormal \emph{no FS} de cada cenário, com a forma em $I$ herdada da sigmoide
+    determinística; nos dados do próprio caso A (Tabela~\ref{tab:hu}) o FS de cada cenário é lognormal e $\beta$ é
+    constante.
+  \item \textbf{Cho (2020)} (\emph{Landslides} 17): talude infinito (Green--Ampt); a distribuição do instante de
+    ruptura $\Pf(t) = P(T < t)$, lognormal no tempo com patamar $P_{f\max}$, e limiares intensidade--duração
+    probabilísticos tirados dela. É o precedente de $\Pf(I, D) = P(T_1 \le D)$; a diferença é que lá a distribuição é
+    ajustada a cada MC, e aqui sai da superfície determinística $F(I, D)$ e de um $\beta$ (os limiares viram curvas de
+    nível do FS, Eq.~\ref{eq:limiar}).
+  \item \textbf{Tang et al.\ (2018)} (\emph{Eng.\ Geol.} 245): fragilidade em $I$ para três durações no talude de Rahardjo
+    (SEEP/W e SLOPE/W), com a incerteza no padrão temporal da chuva (cascata aleatória, $\ge 1000$ padrões por cenário) e
+    o solo fixo.
+  \item \textbf{Demisa et al.\ (2025)} (\emph{Bull.\ Eng.\ Geol.\ Environ.}): a $\Pf$ de um evento integrada sobre a
+    distribuição conjunta de intensidade e duração (probabilidade anual). Uma $\Pf(I, D)$ fechada torna essa integração
+    barata.
+  \item \textbf{Su et al.\ (2026)}: a primeira passagem (FS $< 1$ pela primeira vez, 42~h no determinístico) dispara a
+    análise pós-ruptura por MPM; sem $\Pf$ em função da chuva.
+\end{itemize}
+
+\begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\caption{A fórmula $\Pf = \Phi(-\ln mF/\beta)$ nos dados publicados (ajustes nossos; ``lido'': valor de figura).}
+\label{tab:lit}
+\begin{tabular}{p{2.6cm}p{4.2cm}p{4.6cm}p{4.2cm}}
+\toprule
+artigo & incerteza e cenários & teste & resultado\\
+\midrule
+Yang et al.\ (2026) & $c'$, $\varphi'$, $K_s$, $a$, $n$ em campos (cópulas); Bishop; MC de 4000 &
+(a) cópula gaussiana: $\mu_{FS} = 1{,}386$, $\sigma_{FS} = 0{,}147$ $\Rightarrow$ lognormal; (b) $\Pf$ contra o CoV da
+resistência com $\beta \propto$ CoV: $\Pf = \Phi(-a/\mathrm{CoV})$, $a$ no CoV 0,2 & (a) 0,12\,\% contra 0,1\,\%; (b) 25,3
+e 33,9\,\% contra 24,6 e 32,5\,\% (CoV 0,5 e 0,8)\\
+Tang et al.\ (2018) & padrão temporal da chuva aleatório, solo fixo; 3 durações $\times$ $I$; talude de Rahardjo &
+um par $(\beta, m)$ para as três durações, $F$ do padrão uniforme & $\beta = 0{,}029$, $m = 1{,}004$, erro rms 0,06 em
+$\Pf$ (máx.\ 0,18); onde o $F$ uniforme vale 1, $\Pf$ = 43--50\,\% (o centro previsto, 50\,\%)\\
+Dou et al.\ (2015) & talude infinito, $K_s$ em campo; $D$ = 6, 12, 18, 24~h &
+$F$ (texto) 1,152/1,04/0,931/0,266; $\Pf$ lido & 6--18~h: $\beta = 0{,}073$, $m = 1{,}05$ (3 pontos, 2 parâmetros);
+24~h: prevista 1,00 contra 0,84 (lençol suspenso em parte das realizações, FS bimodal)\\
+X.\ Liu et al.\ (2025) & talude infinito, $k_s$, $c'$, $\varphi'$ (posterior bayesiana) e viés de modelo; 0--24~h &
+$F$ 1,253/1,135/0,971/0,889/0,316 & 0--18~h: $\beta = 0{,}12$, $m = 0{,}93$ (0,09/0,31/0,80/0,94 contra 0,07/0,40/0,80/0,93);
+24~h: 1,00 contra 0,975\\
+Qian et al.\ (2025) & porosidade aleatória, SRM; 5 a 10 dias & $P(\mathrm{FS} < c)$ para $c$ = 1,0 a 1,3 em cada tempo
+(lido) & FS lognormal em cada tempo, $m$ = 0,95--0,97 estável, mas $\beta$ cai de 0,11 para 0,08; com um par só, 0,26
+contra 0,15 aos 10 dias\\
+Masoudian et al.\ (2019) & HM acoplado (Abaqus); 0,5--5 dias & $\Pf(t)$ lido & $m = 0{,}82$, $\beta = 0{,}16$, erro
+$\le 0{,}04$\\
+Pan et al.\ (2024) & campos e viés de modelo; chuva real; Subset & pares $F$/$\Pf$ lidos & nenhum par serve: erro de
+$\times 10$ na cauda\\
+Le et al.\ (2019) & porosidade aleatória; 5 intensidades & $\mu$ e CoV do FS (lidos) & $\beta$ varia de 0,035 a 0,13 com
+$I$ e $t$\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{itemize}
+  \item \textbf{Onde a fórmula vale:} enquanto o mecanismo não muda entre os cenários, com $m$ de 0,82 a 1,05 e $\beta$
+    de 0,03 a 0,16 (Yang, Tang, Dou e X.\ Liu até 18~h, Masoudian; e o Hu e o Liu da Seção~\ref{sec:testes}). O Tang
+    confirma a propriedade central: onde o FS determinístico vale 1, a $\Pf$ fica perto de 50\,\%. O Yang confirma a
+    dependência em $\beta$: a $\Pf$ contra o CoV inteira sai de um ponto.
+  \item \textbf{Onde quebra:} quando aparece um limiar controlado pelo $k_s$ aleatório (lençol suspenso em parte das
+    realizações: Dou e X.\ Liu em 24~h, a coluna de Cho 2014) o FS fica bimodal; e na cauda profunda (Pan).
+  \item \textbf{$\beta$ pode depender do cenário} (Qian, Le): em alguns casos será preciso $\beta(I, D)$, e não uma
+    constante; a campanha \texttt{frag} mede isso no f50 e no f100.
+\end{itemize}
+
 \subsection{As curvas de fragilidade previstas}
 \begin{figure}[H]\centering
 \includegraphics[width=0.85\textwidth]{figs/fragilidade_prevista_f50.pdf}
