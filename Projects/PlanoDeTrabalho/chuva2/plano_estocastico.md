@@ -94,3 +94,35 @@ FS mínimo determinístico, 24 h de chuva:
 6. Intensidade crítica do f50: (iii) 48 mm/h no relatório, hoje entre 36 e 54 (provavelmente ≈ 37–38); (i) 26–31,
    hoje ≈ 30.
 7. Com campo aleatório (não estava no relatório): a (i) baixa o FS de cada realização em 0,12–0,25.
+
+## Proposta (25/11): curva de fragilidade P_f(I_r) a partir da sigmoide do Rahardjo
+
+Ideia do usuário: em vez da sigmoide do FS mínimo (Eq. 6 e Figs. 6–7 do Rahardjo), uma sigmoide da probabilidade de
+FS ≤ 1 em função da chuva, ligando as constantes A, B, C, D às incertezas do Monte Carlo.
+
+1. **Determinístico.** Com F(I) = A + B / (1 + e^{-(I − C)/D}) (A: patamar superior, A + B: patamar inferior, B < 0),
+   a ruptura FS ≤ 1 ocorre a partir da intensidade crítica I_c = C − D ln(B/(1 − A) − 1), se A + B < 1 < A. O
+   análogo da Fig. 6 para FS ≤ 1 é a curva t₁(I) (primeira passagem com chuva constante): a duração que rompe o
+   talude com intensidade I, ou seja, o limiar intensidade–duração (I–D) do talude.
+2. **Probabilístico.** Com o FS mínimo lognormal de mediana F(I) (a sigmoide) e dispersão β(I) = desvio de ln FS:
+   P_f(I) = Φ(−ln F(I) / β(I)). Ela também é uma sigmoide: 50 % em I_c e, linearizando perto de I_c,
+   P_f ≈ Φ((I − I_c)/σ_I) com σ_I = β / |d ln F/dI| em I_c. A incerteza "borra" o degrau determinístico em I_c numa
+   rampa de largura σ_I. São 5 constantes: A, B, C, D (determinístico ou mediana do MC) e β (do MC).
+3. **Teste com o que já existe** (referência do f50, 31,05 mm/h, MC de 5000): β = 0,0768, ln FS quase simétrico
+   (assimetria 0,08). Com a mediana do MC (1,1271): Φ(−ln F/β) = 5,96 %, contra 5,58 % do MC (IC 95 % 5,0–6,3 %).
+   Com o FS das médias (1,1239, o determinístico): 6,41 %, 0,8 ponto acima (a mediana do FS é um pouco maior que o FS
+   das médias).
+4. **Duração de graça, pelo t₁.** Com chuva constante, uma realização que rompe em t₁ rompe também em qualquer chuva de
+   duração D ≥ t₁ com a mesma I. Então um MC por intensidade dá P_f(I, D) = P(t₁ ≤ D) para todas as durações até o
+   horizonte: a superfície de fragilidade e os limiares I–D probabilísticos (ex.: a duração com P_f = 5 %). Ressalva:
+   vale para as rupturas durante a chuva; as que ocorrem na drenagem depois da chuva dependem do fim da chuva.
+5. **O que testar:**
+   - β(I) muda com I: abaixo de k_s o k_s não pesa (Spearman ≈ 0 na referência), acima dele (alagamento) deve pesar;
+   - a mediana do FS contra o FS das médias (efeito da variabilidade espacial);
+   - a cauda lognormal;
+   - a normalização I/k_s entre os solos (a do próprio Rahardjo).
+6. **Como fazer:**
+   - A, B, C, D vêm da varredura determinística (T1 da campanha do fermi, 6–9 intensidades por solo);
+   - β vem do MC em 3–5 intensidades (a família 6.5);
+   - a validação é a P_f prevista contra um MC novo numa intensidade intermediária.
+   - Produto: uma fórmula fechada P_f(I_r) (e P_f(I, D)) para um talude e um material, com 5 constantes.
