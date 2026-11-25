@@ -77,6 +77,15 @@ public:
         for (REAL p : pw) fw << "," << p, fa << ",0", fs << "," << h.Evaluate(p, 0.).S;
         fw << "\n", fa << "\n", fs << "\n";
     }
+    // o mesmo com o ar ativo: p_a por no (a saturacao pela succao p_a - p_w)
+    void Snapshot(REAL t, const std::vector<REAL> &pw, const std::vector<REAL> &pa, const TPZUnsaturatedHydraulics &h)
+    {
+        std::ofstream fw(Arq("snaps_pw.csv"), std::ios::app), fa(Arq("snaps_pa.csv"), std::ios::app),
+            fs(Arq("snaps_sw.csv"), std::ios::app);
+        fw << t, fa << t, fs << t;
+        for (size_t i = 0; i < pw.size(); i++) fw << "," << pw[i], fa << "," << pa[i], fs << "," << h.Evaluate(pw[i], pa[i]).S;
+        fw << "\n", fa << "\n", fs << "\n";
+    }
 
     // o fator de seguranca do instante e o estado do fim do GIM (o que esta carregado na malha e na memoria)
     void FactorOfSafety(REAL t, REAL fs)

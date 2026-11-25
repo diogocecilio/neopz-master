@@ -7,12 +7,16 @@
 #include <iomanip>
 
 RainTransient::RainTransient(TPZUnsatAnalysis &an, const RainData &r, REAL gammaw, const std::set<int> &laterais,
-                             const std::set<int> &superficie, const std::map<int, REAL> &cargas)
-    : fAn(an), fRain(r), fGammaW(gammaw)
+                             const std::set<int> &superficie, const std::map<int, REAL> &cargas, ERainModel modelo)
+    : fAn(an), fRain(r), fGammaW(gammaw), fModel(modelo)
 {
-    fFixed = an.AllDisplacements(TPZFMatrix<STATE>(an.NEq(), 1, 0.)); // esqueleto rigido: todo u = 0
-    for (const auto &[no, eq] : an.AirEq()) fFixed[eq] = 0.;           // ar passivo
-    for (int id : laterais) {                                          // laterais abaixo do nivel: hidrostatica
+    if (modelo == ERainModel::EUncoupled)
+        fFixed = an.AllDisplacements(TPZFMatrix<STATE>(an.NEq(), 1, 0.)); // esqueleto rigido: todo u = 0
+    else
+        fFixed = an.DisplacementConstraints(); // acoplado: so os apoios (u = 0 neles)
+    if (modelo != ERainModel::ECoupledActiveAir)
+        for (const auto &[no, eq] : an.AirEq()) fFixed[eq] = 0.; // ar passivo
+    for (int id : laterais) {                                    // laterais abaixo do nivel: hidrostatica
         const auto h = cargas.find(id);
         for (const auto &[no, L] : an.BoundaryNodes(id)) {
             const REAL nivel = h != cargas.end() ? h->second : r.WaterLevel(an.Coord(no, 0)), y = an.Coord(no, 1);
@@ -23,9 +27,11 @@ RainTransient::RainTransient(TPZUnsatAnalysis &an, const RainData &r, REAL gamma
     // trechos soma as metades das arestas dos dois
     for (int id : superficie)
         for (const auto &[no, L] : an.BoundaryNodes(id, r.rainVertical)) fSurface[no] += L;
+    if (modelo == ERainModel::ECoupledActiveAir) // ar ativo: a atmosfera so na superficie
+        for (const auto &[no, L] : fSurface) fFixed[an.AirEq().at(no)] = 0.;
 }
 
-void RainTransient::InitialState()
+bool RainTransient::InitialState()
 {
     TPZFMatrix<STATE> x(fAn.NEq(), 1, 0.);
     for (const auto &[no, eq] : fAn.WaterEq())
@@ -37,6 +43,21 @@ void RainTransient::InitialState()
     fTime = 0.;
     fSteps = fNewton = 0;
     fInfiltrado = 0.;
+    if (fModel == ERainModel::EUncoupled) return true;
+    // acoplado: o estado geostatico (o peso todo de uma vez, com as pressoes iniciais congeladas e os apoios de u), aceito
+    // na memoria; depois u = 0 com a tensao efetiva mantida. A memoria fica com as pressoes iniciais (as do Accept)
+    const TPZUnsatAnalysis::StepResult g = fAn.Solve(0., fAn.FrozenFixed(fAn.X()), {}, true);
+    fNewton += g.iter;
+    if (!g.conv) {
+        char b[160];
+        std::snprintf(b, sizeof b, "estado geostatico sem convergir (%d iteracoes, |r_u|/|peso| %.2e)", g.iter, g.eu);
+        fFalha = b;
+        fAn.Restore();
+        return false;
+    }
+    fAn.Accept();
+    fAn.ResetDisplacements();
+    return true;
 }
 
 bool RainTransient::AdvanceTo(REAL t)
@@ -227,9 +248,34 @@ std::pair<REAL, REAL> RainTransient::PressureRange() const
     return {pmin, pmax};
 }
 
+std::pair<REAL, REAL> RainTransient::AirPressureRange() const
+{
+    REAL pmin = 1.e300, pmax = -1.e300;
+    for (const auto &[no, eq] : fAn.AirEq()) {
+        const REAL p = fAn.X().GetVal(eq, 0);
+        pmin = std::min(pmin, p), pmax = std::max(pmax, p);
+    }
+    return {pmin, pmax};
+}
+
+REAL RainTransient::MaxDisplacement() const
+{
+    REAL u = 0.;
+    for (const auto &[no, eq] : fAn.DispEq())
+        u = std::max(u, std::hypot(fAn.X().GetVal(eq, 0), fAn.X().GetVal(eq + 1, 0)));
+    return u;
+}
+
 std::vector<REAL> RainTransient::NodalWaterPressure() const
 {
     std::vector<REAL> pw(fAn.Mesh()->Reference()->NNodes(), 0.);
     for (const auto &[no, eq] : fAn.WaterEq()) pw[no] = fAn.X().GetVal(eq, 0);
     return pw;
+}
+
+std::vector<REAL> RainTransient::NodalAirPressure() const
+{
+    std::vector<REAL> pa(fAn.Mesh()->Reference()->NNodes(), 0.);
+    for (const auto &[no, eq] : fAn.AirEq()) pa[no] = fAn.X().GetVal(eq, 0);
+    return pa;
 }

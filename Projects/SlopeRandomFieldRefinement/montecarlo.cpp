@@ -2,9 +2,10 @@
 // et al. (2007) (RandomField: Karhunen-Loeve analitico; campos da Tabela 2 de Vargas Ceron et al. 2025), talude da
 // Fig. 2 do Rahardjo (H = 10 m a 45 graus) na TriGMesh do main.cpp. As opcoes da segunda lista abaixo trocam o problema
 // (ex.: o caso A, Hu et al. 2024, nos cluster/casos_hu2024.txt). Em cada realizacao:
-//  1. transiente da chuva (RainTransient: esqueleto rigido, ar passivo) na malha do transiente, com o k de cada ponto do
-//     campo, ate o ultimo instante pedido; guarda p_w em cada instante do fator. Com k fixo (covk = 0) o transiente e o
-//     mesmo em todas as realizacoes: e calculado uma vez por processo (ou lido de um arquivo, pressoes=);
+//  1. transiente da chuva (RainTransient: esqueleto rigido, ar passivo; ou um dos modelos acoplados, variante=) na malha
+//     do transiente, com o k de cada ponto do campo, ate o ultimo instante pedido; guarda p_w (e p_a, com o ar ativo) em
+//     cada instante do fator. Com k fixo (covk = 0) o transiente e o mesmo em todas as realizacoes: e calculado uma vez
+//     por processo (ou lido de um arquivo, pressoes=);
 //  2. em cada instante, o fator de seguranca (SRM: c' e tan(phi') de cada ponto divididos por F; ou GIM) com as pressoes
 //     levadas para a malha do fator (PointLocator + SetFrozenPressures), com refinamento adaptativo em h feito do zero
 //     (instantes de 'adapta') ou na malha refinada do instante adaptativo mais proximo (os outros);
@@ -55,6 +56,20 @@
 //   chi (const)            const: chi = tan(phi^b) / tan(phi') com phi^b = 26 graus (o Rahardjo); se: chi = S_e
 //                          (Vanapalli et al. 1996)
 //   c (10), phi (26), gamma (20), E (20000), nu (0.3)   medias de c' (kPa) e phi' (graus), peso especifico (kN/m3), E (kPa)
+//                          e nu: o elastico do fator e, nas variantes i e ii, o esqueleto elastico do transiente
+//   variante (iii)         o modelo do transiente, as variantes do docs/nao_saturado/secoes_rahardjo.tex:
+//                            iii: desacoplado com ar passivo: esqueleto rigido (todo u = 0), p_a = 0 e as equacoes de massa
+//                                 sem os termos de acoplamento (o SEEP/W do artigo; o de sempre, bit a bit);
+//                            ii:  acoplado com ar passivo: o equilibrio e resolvido junto (u livre com a base fixa e as
+//                                 laterais em rolete; os termos S_pi alfa d(eps_v) nas equacoes de massa), p_a = 0;
+//                            i:   o modelo completo: acoplado e com o ar ativo (p_a livre, p_a = 0 so na superficie; a
+//                                 permeabilidade ao ar de Brooks-Corey, lambda = 3, k_ra >= 1e-4).
+//                          Nas acopladas o esqueleto do transiente e elastico (E=, nu=; c' muito grande: o transiente da as
+//                          pressoes e a deformacao, e um esqueleto plastico nao passaria pelo FS < 1 em equilibrio), com o
+//                          k do campo, e parte do estado geostatico (o peso com as pressoes iniciais congeladas, depois
+//                          u = 0 com a tensao mantida). O fator e sempre o SRM (ou o GIM) com as pressoes do instante
+//                          congeladas, o mesmo da iii (na i com p_w e p_a). Nas acopladas: uT >= 2 (Taylor-Hood) e sem
+//                          crpc, mv e chi=ponto; o q0 (permanente inicial) nao foi testado
 //   rcphi (0)              correlacao cruzada dos campos gaussianos de c' e phi' (como no Cho 2010: -0,5 no caso A)
 //   fx ()                  a,n,m,theta_s: Fredlund-Xing (a em kPa, C(psi) = 1) no lugar do solo (porosidade = theta_s);
 //                          caso B (Liu et al. 2024): fx=5,2,1,0.4
@@ -119,7 +134,8 @@
 //                          fator)
 // O transiente reaproveitado (so com k fixo: covk = 0 e o k de valores = 1):
 //   grava_pressoes (<arquivo>)  grava p_w nos nos da malha do transiente em cada instante do fator, com os dados do
-//                          transiente (geometria, contornos, solo, chuva, malha) para conferir na leitura
+//                          transiente (geometria, contornos, solo, chuva, malha) para conferir na leitura; na variante i,
+//                          tambem p_a (depois de p_w, em cada instante)
 //   pressoes (<arquivo>)   le p_w desse arquivo em vez de calcular o transiente (os dados do transiente e a malha tem de ser
 //                          os mesmos; os tempos pedidos tem de estar nele)
 //   so_transiente (0)      1: so o transiente (com grava_pressoes=), sem fator
@@ -266,7 +282,18 @@ struct Opcoes {
     std::array<REAL, 7> gpd = {-0.04, 3.44, 5.13, 0.43, 5.15, 0.30, -2.38};
     std::vector<REAL> crpc;                // intensidades da CRPC (vazio: Monte Carlo)
     REAL crpcDmax = 200., crpcPasso = 1.;
+    // o modelo do transiente: iii (desacoplado, ar passivo), ii (acoplado, ar passivo) ou i (acoplado, ar ativo)
+    std::string variante = "iii";
+    bool Acoplado() const { return variante != "iii"; }
+    bool ArAtivo() const { return variante == "i"; }
 };
+
+// o modelo do RainTransient de cada variante
+ERainModel ModeloChuva(const Opcoes &op)
+{
+    return op.ArAtivo() ? ERainModel::ECoupledActiveAir
+                        : op.Acoplado() ? ERainModel::ECoupledPassiveAir : ERainModel::EUncoupled;
+}
 
 std::vector<REAL> Lista(const std::string &s)
 {
@@ -296,7 +323,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
         "nu",         "rcphi",      "M",          "nystrom",    "xi",         "desloc_xi", "gradiente", "grava_pressoes",
         "pressoes",   "so_transiente", "fx",       "kfredlund", "psi_r",     "q0",         "q0_cov",    "phib",
         "phib_razao", "dt",         "dt_min",    "newton",         "chuva_aleatoria", "gpd",  "crpc",      "crpc_dmax", "crpc_passo",
-        "vg_tab",     "vg_tab_psi", "newton_trace", "face_tol", "kw", "mv"};
+        "vg_tab",     "vg_tab_psi", "newton_trace", "face_tol", "kw", "mv", "variante"};
     std::map<std::string, std::string> kv;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
@@ -500,6 +527,18 @@ Opcoes LeOpcoes(int argc, char *argv[])
     if ((!op.pressoes.empty() || !op.gravaPressoes.empty()) && !kFixo)
         Erro("pressoes/grava_pressoes so com k fixo (covk=0 e, com valores, k = 1): o transiente tem de ser o mesmo "
              "em todas as realizacoes");
+    if (tem("variante")) {
+        op.variante = kv["variante"];
+        if (op.variante != "i" && op.variante != "ii" && op.variante != "iii")
+            Erro("variante: i (acoplado, ar ativo), ii (acoplado, ar passivo) ou iii (desacoplado, ar passivo)");
+    }
+    if (!(op.res.E > 0. && op.res.nu >= 0. && op.res.nu < 0.5)) Erro("E > 0 (kPa) e 0 <= nu < 0,5");
+    if (op.Acoplado()) {
+        if (op.uT < 2) Erro("variante=" + op.variante + ": uT >= 2 (u P2 com p P1, Taylor-Hood)");
+        if (!op.crpc.empty()) Erro("variante=" + op.variante + ": sem crpc (a CRPC so tem o transiente desacoplado)");
+        if (op.mv > 0.) Erro("variante=" + op.variante + ": sem mv (o esqueleto ja e deformavel: E= e nu=)");
+        if (op.chiPonto) Erro("variante=" + op.variante + ": sem chi=ponto (o chi(x) so entra nas pressoes do fator)");
+    }
     return op;
 }
 
@@ -736,6 +775,33 @@ void AplicaCampos(UnsatModel<TUnsatHP> &m, const Campo &f)
     });
 }
 
+// ---- o material e os campos da malha do transiente. iii: o MaterialChuva (rigido: a resistencia nao entra) e o
+// AplicaCampos, como sempre. i e ii: o acoplamento das equacoes de massa ligado e o esqueleto elastico, o mesmo
+// Mohr-Coulomb com c' = kCoesaoElastica (a superficie de escoamento fica longe de qualquer tensao do talude: a projecao e
+// sempre a elastica, sigma = D (eps - eps_p)); dos campos so o k (com fmatprop vazio, cada ponto usa o c' do material)
+const REAL kCoesaoElastica = 1.e9; // kPa
+
+TUnsatHP *MaterialTransiente(const RainData &r, const Opcoes &op)
+{
+    TUnsatHP *mat = MaterialChuva(r, op);
+    if (!op.Acoplado()) return mat;
+    const REAL phi = op.res.phiDeg * M_PI / 180.;
+    TPZElasticResponse ER;
+    ER.SetEngineeringData(op.res.E, op.res.nu);
+    mat->SetPlasticModel(TMC(TPZYCMohrCoulombPV2(phi, phi, kCoesaoElastica, ER), ER));
+    mat->SetHydroMechanicalCoupling(true); // os termos S_pi alfa d(eps_v) nas equacoes de massa
+    return mat;
+}
+
+void AplicaCamposTransiente(UnsatModel<TUnsatHP> &m, const Campo &f, const Opcoes &op)
+{
+    if (!op.Acoplado()) {
+        AplicaCampos(m, f);
+        return;
+    }
+    m.ForEachIntegrationPoint([&f](const TPZVec<REAL> &x, TPZUnsaturatedMem &mem) { mem.fKMult = f(x[0], x[1])[2]; });
+}
+
 // u: base engastada, laterais presas so em x
 void InsertBC(UnsatModel<TUnsatHP> &m)
 {
@@ -772,12 +838,15 @@ void NovoFator(Fator &f, TPZGeoMesh *g, const RainData &r, const Opcoes &op)
 // FS (ou Gamma) no modelo de f com as pressoes pw (nos da malha do transiente), do estado sem tensoes, com os campos.
 // chi=ponto: o material tem chi = 1 e a pressao congelada num no com p_w < 0 e chi(x) p_w, com chi(x) = tan(phi^b) /
 // tan(phi'(x)) e o phi' do campo no no (ou a media): a parcela da succao fica s tan(phi^b) (reduzida por F no SRM, como
-// a de tan(phi')). Com p_w P1, o produto e interpolado linearmente entre os nos
-REAL CalculaFator(Fator &f, const Campo *campos, const PointLocator &loc, const std::vector<REAL> &pw, const Opcoes &op)
+// a de tan(phi')). Com p_w P1, o produto e interpolado linearmente entre os nos. pa: p_a nos nos da malha do transiente
+// (o ar ativo, variante i; nullptr: p_a = 0)
+REAL CalculaFator(Fator &f, const Campo *campos, const PointLocator &loc, const std::vector<REAL> &pw, const Opcoes &op,
+                  const std::vector<REAL> *pa = nullptr)
 {
     f.m->Material()->ResetMemory(); // estado sem tensoes (apaga tambem c, phi e k dos pontos)
     if (campos) AplicaCampos(*f.m, *campos);
     f.a->SetFrozenPressures([&](int espaco, const TPZVec<REAL> &x) {
+        if (espaco == 2 && pa) return loc.Interpolate(x[0], x[1], *pa); // p_a do transiente (ar ativo)
         if (espaco != 1) return 0.;                    // p_a = 0
         const REAL p = loc.Interpolate(x[0], x[1], pw); // p_w do transiente
         if (!op.chiPonto || p >= 0.) return p;
@@ -789,15 +858,15 @@ REAL CalculaFator(Fator &f, const Campo *campos, const PointLocator &loc, const 
 }
 
 // Refinamento adaptativo em h do zero: malha grossa e nref niveis (marcados: sqrt(J2(eps_p)) >= 0,1 do maior);
-// niveis: o fator de cada nivel; f fica com o modelo do ultimo nivel
+// niveis: o fator de cada nivel; f fica com o modelo do ultimo nivel. pa: p_a do ar ativo (nullptr: p_a = 0)
 REAL FatorAdaptativo(Fator &f, const RainData &r, const Opcoes &op, const Campo *campos, const PointLocator &loc,
-                     const std::vector<REAL> &pw, std::vector<REAL> &niveis)
+                     const std::vector<REAL> &pw, std::vector<REAL> &niveis, const std::vector<REAL> *pa = nullptr)
 {
     TPZGeoMesh *g = Malha(op.malhaF);
     niveis.clear();
     for (int k = 0;; k++) {
         NovoFator(f, g, r, op);
-        const REAL fs = CalculaFator(f, campos, loc, pw, op);
+        const REAL fs = CalculaFator(f, campos, loc, pw, op, pa);
         niveis.push_back(fs);
         if (k == op.nref) return fs;
         const std::vector<REAL> ind = f.a->PlasticIndicator();
@@ -1013,6 +1082,7 @@ REAL NivelAgua(const PointLocator &loc, const std::vector<REAL> &pw, REAL x)
 // ---- o transiente: p_w nos nos da malha do transiente em cada instante do fator (calculado, ou lido de um arquivo)
 struct Pressoes {
     std::map<REAL, std::vector<REAL>> pw; // instante -> p_w por no (os instantes depois de uma parada nao estao)
+    std::map<REAL, std::vector<REAL>> pa; // instante -> p_a por no (so na variante i, o ar ativo)
     std::map<REAL, size_t> face;          // nos na face de percolacao
     std::map<REAL, std::pair<REAL, REAL>> faixa; // menor e maior p_w (kPa), nos nos com p_w (RainTransient)
     std::map<REAL, double> s;             // tempo do transiente ate o instante (s)
@@ -1043,7 +1113,20 @@ std::string ChaveTransiente(const Opcoes &op, const RainData &r)
     if (!op.newton.empty())
         c << ";newton=" << op.newton[0] << "," << op.newton[1] << "," << (op.newton.size() > 2 ? op.newton[2] : 4.);
     if (op.faceTol > 0.) c << ";face_tol=" << op.faceTol;
+    // as acopladas: o esqueleto (elastico) e o chi do equilibrio tambem fazem o transiente
+    if (op.Acoplado()) {
+        c << ";variante=" << op.variante << ";E=" << op.res.E << ";nu=" << op.res.nu << ";chi=";
+        if (op.chiSe) c << "se";
+        else c << std::tan(r.phib) / std::tan(op.res.phiDeg * M_PI / 180.); // o chi constante do MaterialChuva
+    }
     return c.str();
+}
+
+// o p_a de um instante, para o fator (variante i; nullptr: ar passivo, p_a = 0)
+const std::vector<REAL> *ArDe(const Pressoes &P, REAL t)
+{
+    const auto it = P.pa.find(t);
+    return it == P.pa.end() ? nullptr : &it->second;
 }
 
 // newton_trace= e face_tol= num transiente (so quando pedidos). O trace recebe as tolerancias postas no TPZUnsatAnalysis:
@@ -1075,10 +1158,14 @@ Pressoes CalculaTransiente(UnsatModel<TUnsatHP> &mT, const RainData &r, const Op
     if (op.dirCarga) laterais.insert(right);
     if (op.esqCarga && !std::isnan(op.cargaEsq)) cargas[left] = op.cargaEsq;
     if (op.dirCarga && !std::isnan(op.cargaDir)) cargas[right] = op.cargaDir;
-    RainTransient chuva(aT, r, op.res.gammaw, laterais, {topleft, face, topright}, cargas);
+    RainTransient chuva(aT, r, op.res.gammaw, laterais, {topleft, face, topright}, cargas, ModeloChuva(op));
     OpcoesTransiente(chuva, op, rotulo);
-    chuva.InitialState();
     P.eq = mT.CompMesh()->NEquations();
+    if (!chuva.InitialState()) { // so nas acopladas (o estado geostatico)
+        std::printf("  o estado inicial nao convergiu: %s\n", chuva.LastFailure().c_str());
+        P.parou = 0.;
+        return P;
+    }
     if (op.q0 > 0.) { // estado inicial permanente com a infiltracao q0
         const auto tp = Clock::now();
         REAL dp = 0.;
@@ -1102,12 +1189,21 @@ Pressoes CalculaTransiente(UnsatModel<TUnsatHP> &mT, const RainData &r, const Op
         }
         sT += Seg(tt);
         P.pw[t] = chuva.NodalWaterPressure();
+        if (op.ArAtivo()) P.pa[t] = chuva.NodalAirPressure();
         P.face[t] = chuva.FaceNodes();
         P.faixa[t] = chuva.PressureRange();
         P.s[t] = sT;
-        if (!op.newtonTrace.empty()) { // newton_trace=: o progresso na tela, instante a instante
+        if (!op.newtonTrace.empty() && !op.Acoplado()) { // newton_trace=: o progresso na tela, instante a instante
             std::printf("  transiente em %g h: %lld passos, %lld iteracoes de Newton, %zu nos na face (%.0f s)\n", t,
                         (long long)chuva.Steps(), (long long)chuva.NewtonIterations(), chuva.FaceNodes(), sT);
+            std::fflush(stdout);
+        }
+        if (op.Acoplado()) { // acopladas: sempre o progresso, com p_a e o deslocamento desde o estado geostatico
+            const auto ar = chuva.AirPressureRange();
+            std::printf("  transiente (%s) em %g h: %lld passos, %lld iteracoes de Newton, %zu nos na face, p_w %.2f a "
+                        "%.2f kPa, p_a %.3f a %.3f kPa, |u| max %.4f m (%.0f s)\n", op.variante.c_str(), t,
+                        (long long)chuva.Steps(), (long long)chuva.NewtonIterations(), chuva.FaceNodes(),
+                        P.faixa[t].first, P.faixa[t].second, ar.first, ar.second, chuva.MaxDisplacement(), sT);
             std::fflush(stdout);
         }
     }
@@ -1115,7 +1211,7 @@ Pressoes CalculaTransiente(UnsatModel<TUnsatHP> &mT, const RainData &r, const Op
 }
 
 // arquivo do grava_pressoes / pressoes: a chave do transiente, os nos (x y) e, por instante, 't <t> <face> <s> <pmin>
-// <pmax>' e p_w por no
+// <pmax>' e p_w por no (na variante i, depois p_a por no: a chave tem variante=i)
 void GravaPressoes(const std::string &arq, const std::string &chave, TPZGeoMesh *g, const Pressoes &P)
 {
     const std::string tmp = arq + ".tmp";
@@ -1131,13 +1227,17 @@ void GravaPressoes(const std::string &arq, const std::string &chave, TPZGeoMesh 
             f << "t " << t << " " << P.face.at(t) << " " << P.s.at(t) << " " << P.faixa.at(t).first << " "
               << P.faixa.at(t).second << "\n";
             for (REAL v : pw) f << v << "\n";
+            if (P.pa.count(t))
+                for (REAL v : P.pa.at(t)) f << v << "\n";
         }
         if (!f) Erro("nao consegui gravar " + tmp);
     }
     if (std::rename(tmp.c_str(), arq.c_str()) != 0) Erro("nao consegui renomear " + tmp + " para " + arq);
 }
 
-Pressoes LePressoes(const std::string &arq, const std::string &chave, TPZGeoMesh *g, const std::vector<REAL> &tempos)
+// comAr: o arquivo tem p_a depois de p_w em cada instante (variante i)
+Pressoes LePressoes(const std::string &arq, const std::string &chave, TPZGeoMesh *g, const std::vector<REAL> &tempos,
+                    bool comAr = false)
 {
     std::ifstream f(arq);
     if (!f) Erro("pressoes: nao abre " + arq);
@@ -1161,7 +1261,7 @@ Pressoes LePressoes(const std::string &arq, const std::string &chave, TPZGeoMesh
         if (!f || std::abs(x - g->NodeVec()[i].Coord(0)) > 1e-9 || std::abs(y - g->NodeVec()[i].Coord(1)) > 1e-9)
             Erro("pressoes: os nos de " + arq + " nao sao os da malha do transiente (no " + std::to_string(i) + ")");
     }
-    std::map<REAL, std::vector<REAL>> pw;
+    std::map<REAL, std::vector<REAL>> pw, pa;
     std::map<REAL, size_t> face;
     std::map<REAL, std::pair<REAL, REAL>> faixa;
     std::map<REAL, double> s;
@@ -1173,6 +1273,11 @@ Pressoes LePressoes(const std::string &arq, const std::string &chave, TPZGeoMesh
         if (!f || rot != "t") Erro("pressoes: " + arq + " incompleto (instante " + std::to_string(k) + ")");
         std::vector<REAL> v(nn);
         for (REAL &x : v) f >> x;
+        if (comAr) {
+            std::vector<REAL> va(nn);
+            for (REAL &x : va) f >> x;
+            pa[t] = std::move(va);
+        }
         if (!f) Erro("pressoes: " + arq + " incompleto no instante " + std::to_string(t));
         pw[t] = std::move(v), face[t] = nf, faixa[t] = {pmin, pmax}, s[t] = sk;
     }
@@ -1180,6 +1285,7 @@ Pressoes LePressoes(const std::string &arq, const std::string &chave, TPZGeoMesh
         auto it = std::find_if(pw.begin(), pw.end(), [t](const auto &e) { return std::abs(e.first - t) < 1e-9; });
         if (it == pw.end()) Erro("pressoes: " + arq + " nao tem o instante " + std::to_string(t) + " h");
         P.pw[t] = it->second, P.face[t] = face[it->first], P.faixa[t] = faixa[it->first], P.s[t] = s[it->first];
+        if (comAr) P.pa[t] = pa[it->first];
     }
     return P;
 }
@@ -1250,6 +1356,10 @@ void GravaParametros(const std::string &arq, const Opcoes &op, const RandomField
       << "\nR_CPHI=" << op.campos.rcphi << "\nNYSTROM=" << (op.nystrom.empty() ? "nao" : op.nystrom)
       << "\nNUCLEO=" << (campos.Nystrom() ? campos.KernelDescription() : "exp analitico")
       << "\nPRESSOES=" << (op.pressoes.empty() ? "calculadas" : op.pressoes) << "\nSRM_F0=" << op.srmF0 << "\n";
+    // as variantes acopladas (so quando usadas: a iii e o padrao)
+    if (op.Acoplado())
+        p << "VARIANTE=" << op.variante << "\nESQUELETO_TRANSIENTE=elastico (c' = " << kCoesaoElastica
+          << " kPa), E e nu acima\nESTADO_INICIAL=geostatico\nAR=" << (op.ArAtivo() ? "ativo" : "passivo") << "\n";
     // casos B e C (so quando usados)
     if (op.chiPonto) p << "CHI=ponto\nPHIB=" << op.phibDeg << "\nPHIB_RAZAO=" << op.phibRazao << "\n";
     if (!op.fx.empty()) p << "FX=" << lista(op.fx) << "\n";
@@ -1582,6 +1692,11 @@ int main(int argc, char *argv[])
                 cp.covC, res.phiDeg, cp.covPhi, cp.covK, cp.rcphi, cp.Lx, cp.Ly, op.alfa, campos.M(),
                 100. * campos.VarianceFraction(), op.malhaT.c_str(), op.uT, op.malhaF.c_str(), op.nref);
 
+    if (op.Acoplado())
+        std::printf("  transiente: variante %s (%s), esqueleto elastico E = %g kPa, nu = %g, estado inicial geostatico; "
+                    "base fixa, laterais em rolete\n", op.variante.c_str(),
+                    op.ArAtivo() ? "acoplado, ar ativo: p_a = 0 so na superficie" : "acoplado, ar passivo: p_a = 0",
+                    res.E, res.nu);
     // o transiente reaproveitado: so com k fixo (o LeOpcoes confere); lido do arquivo ou calculado uma vez (abaixo)
     const bool kFixo = cp.covK == 0. && (op.valores.empty() || op.valores[2] == 1.) && op.q0Cov == 0. &&
                        !op.chuvaAleatoria;
@@ -1593,14 +1708,14 @@ int main(int argc, char *argv[])
     if (!op.pressoes.empty()) {
         UnsatModel<TUnsatHP> mT;
         mT.SetGeoMesh(Malha(op.malhaT));
-        pFixas = std::make_unique<Pressoes>(LePressoes(op.pressoes, chave, mT.GeoMesh(), op.tempos));
+        pFixas = std::make_unique<Pressoes>(LePressoes(op.pressoes, chave, mT.GeoMesh(), op.tempos, op.ArAtivo()));
         std::printf("  pressoes do transiente lidas de %s (%zu instantes)\n", op.pressoes.c_str(), pFixas->pw.size());
     }
     if (op.soTransiente) { // so o transiente (as medias: k = 1), gravado para as outras rodadas
         UnsatModel<TUnsatHP> mT;
         mT.SetGeoMesh(Malha(op.malhaT));
         InsertBC(mT);
-        mT.SetMaterial(MaterialChuva(r, op));
+        mT.SetMaterial(MaterialTransiente(r, op));
         mT.CreateCompMesh({{2, op.uT}, {1, 1}, {1, 1}});
         const auto t0 = Clock::now();
         const Pressoes P = CalculaTransiente(mT, r, op, "so_transiente (as medias)");
@@ -1711,12 +1826,12 @@ int main(int argc, char *argv[])
         UnsatModel<TUnsatHP> mT;
         mT.SetGeoMesh(Malha(op.malhaT));
         InsertBC(mT);
-        mT.SetMaterial(MaterialChuva(r, op));
+        mT.SetMaterial(MaterialTransiente(r, op));
         mT.CreateCompMesh({{2, op.uT}, {1, 1}, {1, 1}});
         Pressoes calc;
         const Pressoes *P = pFixas.get();
         if (!P) {
-            if (cf) AplicaCampos(mT, *cf);
+            if (cf) AplicaCamposTransiente(mT, *cf, op);
             calc = CalculaTransiente(mT, r, op, "realizacao " + std::to_string(n));
             P = &calc;
             if (calc.parou >= 0.) std::printf("  realizacao %d: o transiente parou em %.2f h\n", n, calc.parou);
@@ -1759,7 +1874,8 @@ int main(int argc, char *argv[])
             l.pwMin = P->faixa.at(t).first, l.pwMax = P->faixa.at(t).second, l.face = P->face.at(t);
             l.nivel30 = NivelAgua(loc, pw, p[4][0]), l.nivel35 = NivelAgua(loc, pw, 0.5 * (p[4][0] + p[3][0]));
             l.nivel40 = NivelAgua(loc, pw, p[3][0]);
-            if (anim) anim->Snapshot(t, pw, mT.Material()->Hydraulics());
+            if (anim && ArDe(*P, t)) anim->Snapshot(t, pw, *ArDe(*P, t), mT.Material()->Hydraulics()); // ar ativo
+            else if (anim) anim->Snapshot(t, pw, mT.Material()->Hydraulics());
         }
 
         // 2. fator: primeiro os instantes adaptativos (nas realizacoes das figuras, todos), depois os outros na malha do
@@ -1790,7 +1906,7 @@ int main(int argc, char *argv[])
             if (!adapt) continue;
             const auto tf = Clock::now();
             std::vector<REAL> niveis;
-            const REAL fs = FatorAdaptativo(adaptados[t], r, op, cf, loc, P->pw.at(t), niveis);
+            const REAL fs = FatorAdaptativo(adaptados[t], r, op, cf, loc, P->pw.at(t), niveis, ArDe(*P, t));
             adaptados[t].t = t, malhaDe[t] = t;
             const double s = Seg(tf);
             sF += s;
@@ -1802,7 +1918,7 @@ int main(int argc, char *argv[])
             for (const auto &[ta, f] : adaptados)
                 if (std::abs(ta - t) < std::abs(perto - t)) perto = ta;
             const auto tf = Clock::now();
-            const REAL fs = CalculaFator(adaptados[perto], cf, loc, P->pw.at(t), op);
+            const REAL fs = CalculaFator(adaptados[perto], cf, loc, P->pw.at(t), op, ArDe(*P, t));
             adaptados[perto].t = t, malhaDe[t] = perto;
             const double s = Seg(tf);
             sF += s;
@@ -1831,7 +1947,7 @@ int main(int argc, char *argv[])
         if (op.gradiente > 0 && !deterministica && tMin >= 0.) {
             const auto tg = Clock::now();
             Fator &f = adaptados[malhaDe[tMin]];
-            if (f.t != tMin) CalculaFator(f, cf, loc, P->pw.at(tMin), op), f.t = tMin;
+            if (f.t != tMin) CalculaFator(f, cf, loc, P->pw.at(tMin), op, ArDe(*P, tMin)), f.t = tMin;
             const std::vector<double> gr = GradienteModal(f, campos, std::min(op.gradiente, campos.M()), fsMin, op.gim);
             std::ofstream gf(op.saida + "_grad_" + std::to_string(n) + ".txt");
             gf << std::setprecision(10) << "# "

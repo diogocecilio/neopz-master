@@ -4,7 +4,9 @@
 // acima do nivel sem fluxo; na superficie, o fluxo da chuva ou, onde a agua empocaria (p_w > 0), a face de percolacao
 // (p_w = 0). A chuva entra por metro de superficie inclinada (normal a face: o "unit flux" do GeoStudio; o padrao) ou
 // por metro de projecao horizontal (chuva vertical: rainVertical).
-// E o RainTransient do Common (validado contra o Rahardjo), com os ids das laterais e da superficie como parametros
+// E o RainTransient do Common (validado contra o Rahardjo), com os ids das laterais e da superficie como parametros.
+// Os modelos acoplados (ERainModel, as variantes i e ii do docs/nao_saturado/secoes_rahardjo.tex) resolvem tambem o
+// equilibrio: u livre com os apoios da analise, a partir do estado geostatico (InitialState)
 #pragma once
 
 #include "TPZUnsatAnalysis.h"
@@ -41,16 +43,32 @@ struct RainData {
     REAL Intensity() const { return intensity / 3.6e6; } // m/s
 };
 
+// O modelo do transiente: as tres variantes da comparacao com o Rahardjo (docs/nao_saturado/secoes_rahardjo.tex)
+//   EUncoupled         (iii) esqueleto rigido (todo u = 0) e ar passivo (p_a = 0 em todo o dominio): so a percolacao,
+//                      como no SEEP/W do artigo (o padrao, o de sempre)
+//   ECoupledPassiveAir (ii) o equilibrio e resolvido junto (u livre, so os apoios da analise fixos) e o ar fica passivo
+//   ECoupledActiveAir  (i) u e p_a livres, com p_a = 0 so nos nos da superficie (o ar entra e sai por ela)
+// Nos acoplados o material tem de ter o acoplamento das equacoes de massa ligado (SetHydroMechanicalCoupling(true)): o
+// RainTransient so escolhe as equacoes fixas e o estado inicial. A lei do esqueleto e a do material (o driver da chuva
+// usa um esqueleto elastico: o transiente da so as pressoes e a deformacao; um esqueleto plastico nao passa do colapso)
+enum class ERainModel { EUncoupled, ECoupledPassiveAir, ECoupledActiveAir };
+
 class RainTransient {
 public:
     // an: analise da malha do transiente, com u e p_a nulos; laterais: ids das laterais (p_w hidrostatica abaixo do
     // nivel inicial); superficie: ids da superficie (recebem a chuva); cargas: as laterais com uma carga total h dada (m,
-    // cota do nivel: p_w = gamma_w (h - y) abaixo de h) no lugar do nivel inicial
+    // cota do nivel: p_w = gamma_w (h - y) abaixo de h) no lugar do nivel inicial; modelo: rigido e ar passivo (o padrao)
+    // ou um dos acoplados
     RainTransient(TPZUnsatAnalysis &an, const RainData &r, REAL gammaw, const std::set<int> &laterais,
-                  const std::set<int> &superficie, const std::map<int, REAL> &cargas = {});
+                  const std::set<int> &superficie, const std::map<int, REAL> &cargas = {},
+                  ERainModel modelo = ERainModel::EUncoupled);
 
-    // t = 0: p_w = gamma_w (nivel - y), com a succao limitada a suctionMax
-    void InitialState();
+    // t = 0: p_w = gamma_w (nivel - y), com a succao limitada a suctionMax (e p_a = 0). Nos modelos acoplados, depois, o
+    // estado geostatico: o peso todo com essas pressoes congeladas (um Solve com os apoios de u), aceito, e u = 0 com a
+    // tensao efetiva mantida (ResetDisplacements); a deformacao do transiente parte dele. false: o geostatico nao
+    // convergiu (LastFailure diz o porque; o estado fica o de antes dele, u = 0 sem tensoes)
+    bool InitialState();
+    ERainModel Model() const { return fModel; }
     // Passos de dt ate o instante t (h); false se um passo nao convergiu (o estado fica no ultimo passo aceito)
     bool AdvanceTo(REAL t);
     // Percolacao permanente com a infiltracao q (m/s, na convencao da chuva: por metro inclinado ou da projecao
@@ -67,8 +85,12 @@ public:
     size_t FaceNodes() const { return fFace.size(); }    // nos da superficie na face de percolacao agora
     const std::string &LastFailure() const { return fFalha; } // por que o ultimo passo nao convergiu (Newton ou face)
     std::pair<REAL, REAL> PressureRange() const;         // menor e maior p_w (kPa)
+    std::pair<REAL, REAL> AirPressureRange() const;      // menor e maior p_a (kPa; 0 e 0 com o ar passivo)
+    REAL MaxDisplacement() const;                        // maior |u| nos vertices desde o InitialState (m; 0 no rigido)
     // p_w de cada no da malha geometrica (pelo indice do no; 0 nos que nao tem p_w): o que vai para a outra malha
     std::vector<REAL> NodalWaterPressure() const;
+    // o mesmo para p_a (o ar ativo; com o ar passivo, zeros)
+    std::vector<REAL> NodalAirPressure() const;
 
     // Diagnostico do Newton (opcao newton_trace= dos drivers): quando o Advance desiste de um passo (no dt_min, ou sem
     // subdivisao), refaz o Solve do ultimo passo que falhou, a partir do estado aceito, com maxit - 2, maxit - 1 e maxit
@@ -108,7 +130,10 @@ private:
     TPZUnsatAnalysis &fAn;
     RainData fRain;
     REAL fGammaW;
-    std::map<int64_t, REAL> fFixed;   // equacoes sempre impostas: u = 0, p_a = 0 e p_w das laterais
+    ERainModel fModel = ERainModel::EUncoupled;
+    // equacoes sempre impostas: u (todo u = 0 no rigido; os apoios nos acoplados), p_a = 0 (todas com o ar passivo; as
+    // da superficie com o ativo) e p_w das laterais
+    std::map<int64_t, REAL> fFixed;
     std::map<int64_t, REAL> fSurface; // no da superficie -> comprimento de influencia (m), que recebe a chuva
     std::set<int64_t> fFace;          // nos da face de percolacao no ultimo passo aceito
     REAL fTime = 0.;                  // s
