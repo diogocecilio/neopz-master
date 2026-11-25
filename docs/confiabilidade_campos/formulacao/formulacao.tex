@@ -1210,6 +1210,65 @@ mais as opções do programa a trocar (por exemplo \texttt{nystrom=<base complet
     2000 termos por campo ($r = -0{,}5$ e $-0{,}7$), depois o line sampling nas direções da etapa 3b e nessas.
 \end{itemize}
 
+\paragraph{10. Os exemplos com o MEF: a viga e a coluna de Cho.} A Figura~\ref{fig:ls_viga} mostra o line sampling na
+viga do caderno \path{nymstron_testes_v2.nb} (Seção~16 dele): campo de 200 termos, direções do FORM com $m$ termos, contra
+o Monte Carlo cru de 50\,000 e a amostragem por importância centrada no mesmo $\xib^*$.
+\begin{figure}[H]\centering
+\includegraphics[width=0.49\textwidth]{figs_ls/ls_viga_pf.pdf}\hfill
+\includegraphics[width=0.49\textwidth]{figs_ls/ls_viga_cov.pdf}
+\caption{O line sampling na viga (caderno \texttt{nymstron\_testes\_v2.nb}, Seção~16), com as direções do FORM de 8 e de 20
+termos, contra a amostragem por importância centrada no mesmo ponto de projeto. (a) A estimativa de $P_f$ contra o
+número de análises do MEF (contando o FORM); as linhas horizontais são o Monte Carlo cru de 50\,000 e o seu IC de 95\,\%.
+(b) O CoV estimado na própria rodada; as linhas tracejadas marcam 5\,\% e 500 análises.}\label{fig:ls_viga}
+\end{figure}
+
+\paragraph{11. Sem o FORM: a direção de um piloto, truncada, e em estágios.} Na coluna de Cho (2014) com o campo de $k_s$
+(100 termos), o FORM não converge em 18~h: $g$ é quase plano, porque até a frente chegar à base o FS quase não depende de
+$k_s$. O line sampling não precisa do ponto de projeto, só de uma direção, e não tem viés para nenhuma direção fixa
+\citep{koutsourelakis2004}. A Figura~\ref{fig:ls_coluna} compara quatro direções em 18~h (malha quad, $n_y = 80$),
+contra o Monte Carlo em Python de 5000 ($P_f = 1{,}48\,\%$, EP de 0,17 ponto):
+\begin{itemize}
+  \item \textbf{A média dos $\xib$ das falhas de um MC piloto} (o centro de massa da falha). Com o piloto de 5000 (74
+    falhas): $P_f = 1{,}81\,\%$ [1,40; 2,22] com 200 linhas e 4,0 análises por linha; CoV por linha de 1,65. Com o piloto de
+    500 (6 falhas), a direção é quase só ruído (56° da outra): CoV por linha de 4,1, pior que o MC cru.
+  \item \textbf{A mesma direção truncada nos primeiros modos.} Nos modos altos a média do piloto é quase só ruído. Zerando os
+    modos a partir do 10, nas mesmas 100 linhas (mesma semente) o CoV por linha cai de 1,47 para 1,03 (razão pareada de
+    0,70 [0,61; 0,82]) e a $P_f$ não muda ($-0{,}05 \pm 0{,}20$ ponto): metade das análises para o mesmo CoV.
+  \item \textbf{Em estágios, sem piloto bom.} A direção do estágio seguinte é a da média condicional da falha, estimada
+    pelas linhas do estágio anterior: ao longo da linha, $\nu \sim N(0,1)$ e a falha é $\nu > \nu_\ell$, então
+    \begin{equation}
+      \mathrm{E}\big[\xib\,\mathbb 1_{\mathrm{falha}}\big] = \mathrm{E}\big[\xib^\perp\,\Phi(-\nu_\ell) + \bm e\,\phi(\nu_\ell)\big],
+      \label{eq:lsestagio}
+    \end{equation}
+    truncada nos primeiros modos. O estágio novo usa outra semente, então os seus $\xib$ não entram na direção dele e ele
+    é um line sampling sem viés; a $P_f$ é a do último estágio, com os pesos decididos antes. Partindo das linhas 50 a 199
+    do piloto de 500 (\path{direcao_ls.py} e \path{combina_ls.py}), o 2º estágio fica a 17° da direção truncada do piloto
+    de 5000, com CoV por linha de 1,22 e $P_f = 2{,}18\,\%$ [1,66; 2,71] em 100 linhas.
+  \item \textbf{O ALS e o combination LS não ajudam aqui.} O \emph{advanced line sampling} \citep{deangelis2015} e o
+    \emph{combination line sampling} \citep{papaioannou2021} trocam a direção quando uma linha acha um ponto da superfície
+    de falha mais perto da origem que o ponto de projeto atual. Em 100 dimensões, a parte desse ponto no plano ortogonal já
+    mede $|\xib^\perp| \approx \sqrt{99} \approx 9{,}9$, muito mais que $\beta \approx 2{,}2$: em 176 linhas o menor
+    $|\xib^\perp + \nu_\ell\bm e|$ foi 8,38, e a regra não disparou nenhuma vez.
+\end{itemize}
+Todas as estimativas de line sampling em 18~h ficam um pouco acima do MC ($z$ de +0,8 a +2,2). Nas mesmas realizações, o
+FS do modelo em C++ fica só 0,0014 abaixo do Python perto de FS~$= 1$, o que explica no máximo 3 a 6\,\% da $P_f$; o MC em
+Python está sendo estendido para 55\,000 realizações para fechar a dúvida.
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs_ls/ls_coluna_cho.pdf}
+\caption{O line sampling na coluna de Cho (2014), caso base (CoV de $k_s$ 0,5, $l_v = 0{,}5$ m, 100 termos), falha em
+18~h, com direções sem o FORM. (a) A estimativa de $P_f$ contra o número de análises do \texttt{SlopeRainColumn}; a faixa
+cinza é o IC de 95\,\% do Monte Carlo em Python de 5000. (b) O CoV de uma linha, $\sigma(p_\ell)/\bar p$: é o que a
+direção melhora (as análises para um dado CoV crescem com o seu quadrado). A figura sai do
+\texttt{figs\_ls/fig\_coluna\_ls.py}.}\label{fig:ls_coluna}
+\end{figure}
+
+\paragraph{12. A busca da raiz com cerca.} Em 24~h o FS da coluna cai num degrau até o patamar de 0,3669 (a coluna
+saturada), e a secante do passo 7 aceitava raízes que nunca tinha cercado: o teste de parada media o passo, não a cerca.
+A opção \texttt{busca=cerca} do \path{line_sampling.py} primeiro cerca a raiz pelo sinal de $\FS - 1$ (o patamar não
+atrapalha), depois refina pela regula falsi com Illinois até a cerca ter largura $\le$~\texttt{tol}. Nas mesmas 48 linhas,
+a $P_f(24\ \mathrm h)$ passa de 35,75\,\% (secante) para 34,82\,\% [31,61; 38,04], igual às raízes conferidas uma a uma,
+com 9,1 análises por linha (5,5 em 18~h, contra 3,8 da secante). O padrão continua a secante, que serve quando o FS é suave.
+
 \appendix
 \section{Um exemplo de uma variável, em Mathematica}\label{ap:exemplo}
 O código \path{exemplo_1d.wl}, nesta pasta, parte do exemplo do Diogo: $X \sim N(6, 1)$, falha quando $X < 1$,
