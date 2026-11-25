@@ -1,0 +1,29 @@
+\subsection{Primeira passagem: o instante em que o FS cruza 1}\label{sec:cruza}
+O instante $t_1$ em que o FS cruza 1 pela primeira vez (interpolado linearmente entre as duas horas calculadas
+vizinhas; triângulos nas Figs.~\ref{fig:f10} a \ref{fig:f100}) é a grandeza que importa para o Monte Carlo, mais que o
+FS mínimo:
+\begin{itemize}
+  \item \textbf{É a ruptura.} Em $t_1$ o talude perde o equilíbrio; o que vem depois no cálculo (o FS descendo até o
+    mínimo e voltando acima de 1 com a drenagem) usa a geometria intacta e as pressões de um talude que já rompeu, e
+    não tem sentido físico. A falha de uma realização é o evento de primeira passagem, FS$(t) < 1$ para algum $t$, e a
+    P$_f$ é a probabilidade dele. Ela é a mesma do critério ``FS mínimo $< 1$'' quando os instantes são os mesmos, mas
+    o $t_1$ dá também a \emph{distribuição do instante de ruptura}, que o FS mínimo não dá.
+  \item \textbf{A realização pode parar em $t_1$.} No f10 com 180~mm/h a ruptura ocorre a 10,7~h: parar ali corta 78\,\%
+    do horizonte de 48~h (o transiente e as análises do fator que viriam depois). Nas realizações que não rompem, o
+    cálculo vai até o fim do horizonte de qualquer jeito.
+  \item \textbf{Precisão de $t_1$.} Com o FS de hora em hora e a interpolação linear, o erro em $t_1$ é de uma fração de
+    hora. No Monte Carlo, avaliar o FS de hora em hora custa 49 SRM por realização; a alternativa é avaliar em poucos
+    instantes e, no intervalo em que o FS cruza 1, refinar o instante por bissecção (o driver já faz isso para a curva
+    crítica de chuva, \texttt{crpc=}).
+\end{itemize}
+
+\begin{table}[H]\centering\small
+\caption{Primeira passagem: $t_1$ (o FS cruza 1 descendo), o instante em que volta a ficar acima de 1 e o tempo
+abaixo de 1 (h; interpolação linear entre as horas calculadas).}\label{tab:cruza}
+\input{tab/cruza.tex}
+\end{table}
+
+\paragraph{Observações (variante iii).} Só dois casos rompem: o f10 com 180~mm/h ($t_1 = 10{,}7$~h, 45\,\% da chuva) e
+o f50 com 90~mm/h ($t_1 = 19{,}3$~h, 80\,\% da chuva). Nos dois a ruptura ocorre \emph{durante} a chuva, bem antes do
+mínimo (24~h), e o FS fica abaixo de 1 por 13--16~h. O f50 com 36~mm/h passa a 0,034 de romper (FS 1,034 em 24~h) e
+não cruza; o f100 não chega perto de 1 com chuvas de 24~h.

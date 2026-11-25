@@ -141,6 +141,34 @@ def serie(d):
     return t, [float(d[x]["FS_min"]) for x in t]
 
 
+def cruza(d):
+    """a primeira passagem: o instante (h) em que o FS cruza 1 descendo, interpolado linearmente entre os instantes
+    calculados (0 se ja comeca abaixo; None se nunca cruza), e o instante em que volta a ficar >= 1 (None se nao volta)"""
+    t, fs = serie(d)
+    if fs[0] < 1:
+        t1 = 0.
+        i1 = 0
+    else:
+        i1 = next((i for i in range(1, len(fs)) if fs[i] < 1), None)
+        if i1 is None:
+            return None, None
+        t1 = t[i1 - 1] + (fs[i1 - 1] - 1) / (fs[i1 - 1] - fs[i1]) * (t[i1] - t[i1 - 1])
+    i2 = next((i for i in range(i1 + 1, len(fs)) if fs[i] >= 1), None)
+    t2 = None if i2 is None else t[i2 - 1] + (1 - fs[i2 - 1]) / (fs[i2] - fs[i2 - 1]) * (t[i2] - t[i2 - 1])
+    return t1, t2
+
+
+def marca_cruza(ax, d, cor, dy=10):
+    """o triangulo na linha FS = 1 no instante da primeira passagem, a linha vertical ate o eixo e o rotulo"""
+    t1, _ = cruza(d)
+    if t1 is None:
+        return
+    ax.axvline(t1, color=cor, lw=1, ls=(0, (2, 2)), zorder=2)
+    ax.plot(t1, 1.0, "v", ms=10, color=cor, mec=SUPERF, mew=1.5, zorder=5)
+    ax.annotate(f"$t_1$ = {t1:.1f} h".replace(".", ","), (t1, 1.0), textcoords="offset points", xytext=(-4, dy),
+                ha="right", fontsize=8, color=TINTA)
+
+
 def minimo(d):
     t, fs = serie(d)
     i = min(range(len(fs)), key=fs.__getitem__)
@@ -166,10 +194,12 @@ for solo, (ks, Is) in SOLOS.items():
             ax.plot(tm, fm, "o", ms=8, color=cor, mec=SUPERF, mew=2, zorder=4)
             ax.annotate(f"{fm:.2f}", (tm, fm), textcoords="offset points", xytext=(5, -11), fontsize=8, color=TINTA)
             ax.plot(24, EQ6[solo][I], "D", ms=7, mfc="none", mec=cor, mew=1.5, zorder=4)
+            marca_cruza(ax, d, cor)
             if solo == "f50":
                 tp = sorted(FIG5B[I])
                 ax.plot(tp, [FIG5B[I][x] for x in tp], "o", ms=7, mfc="none", mec=cor, mew=1.5, zorder=4)
-        extra = [plt.Line2D([], [], ls="none", marker="D", ms=6, mfc="none", mec=TINTA2, label="Eq. 6 (FS mín.)")]
+        extra = [plt.Line2D([], [], ls="none", marker="D", ms=6, mfc="none", mec=TINTA2, label="Eq. 6 (FS mín.)"),
+                 plt.Line2D([], [], ls="none", marker="v", ms=7, color=TINTA2, label="$t_1$: FS cruza 1")]
         if solo == "f50":
             extra.append(plt.Line2D([], [], ls="none", marker="o", ms=6, mfc="none", mec=TINTA2, label="Fig. 5b"))
         ax.legend(handles=hs + extra, frameon=False, fontsize=7.5, labelcolor=TINTA, loc="upper right")
@@ -189,6 +219,7 @@ for solo, (ks, Is) in (SOLOS.items() if len(VARS) > 1 else []):
                 continue
             t, fs = serie(d)
             ax.plot(t, fs, color=COR_VAR[v], ls=ESTILO_VAR[v], lw=2, zorder=3, label=NOME_VAR[v])
+            marca_cruza(ax, d, COR_VAR[v], dy=10 + 12 * VARS.index(v))
         ax.plot(24, EQ6[solo][I], "D", ms=7, mfc="none", mec=TINTA2, mew=1.5, zorder=4, label="Eq. 6 (FS mín.)")
         ax.legend(frameon=False, fontsize=7.5, labelcolor=TINTA, loc="upper right")
     fig.suptitle(f"{solo}: as três variantes do transiente", color=TINTA, x=0.01, ha="left")
@@ -423,6 +454,31 @@ cab = ("\\begin{tabular}{llc ccc c cc c c cc cc}\n\\toprule\nsolo & $I_r$ & var.
        "infiltr. & alag. & $p_a$ máx & $|u|$ máx & passos & Newton & s trans. & s total\\\\\n\\midrule\n")
 open(os.path.join(TABS, "diag.tex"), "w").write(cab + "\n".join(L[:-1]) + "\n\\bottomrule\n\\end{tabular}\n")
 
+# ---- primeira passagem
+L = []
+for solo, (ks, Is) in SOLOS.items():
+    for I in Is:
+        cel = []
+        for v in VARS:
+            d = DADOS[(solo, I, v)]
+            if not d:
+                cel += ["--"] * 3
+                continue
+            t1, t2 = cruza(d)
+            if t1 is None:
+                cel += ["não cruza", "", ""]
+            else:
+                cel += [f"{t1:.1f}".replace(".", "{,}"), "--" if t2 is None else f"{t2:.1f}".replace(".", "{,}"),
+                        "--" if t2 is None else f"{t2 - t1:.1f}".replace(".", "{,}")]
+        L.append(f"{solo} & {I.replace('.', '{,}')} & " + " & ".join(cel) + "\\\\")
+    L.append("\\midrule")
+cab = ("\\begin{tabular}{ll" + "ccc" * nv + "}\n\\toprule\n & & " +
+       " & ".join(f"\\multicolumn{{3}}{{c}}{{({v})}}" for v in VARS) + "\\\\\n" +
+       "".join(f"\\cmidrule(lr){{{3 + 3 * k}-{5 + 3 * k}}}" for k in range(nv)) + "\n" +
+       "solo & $I_r$ (mm/h) & " + " & ".join("$t_1$ (h) & volta (h) & abaixo (h)" for _ in VARS) +
+       "\\\\\n\\midrule\n")
+open(os.path.join(TABS, "cruza.tex"), "w").write(cab + "\n".join(L[:-1]) + "\n\\bottomrule\n\\end{tabular}\n")
+
 # ---- numeros citados no texto
 N = {}
 falt = [f"{s}_I{I}_{v}" for (s, I, v), d in DADOS.items() if not d]
@@ -451,5 +507,5 @@ for solo, (ks, Is) in SOLOS.items():
         s = []
         for v in VARS:
             d = DADOS[(solo, I, v)]
-            s.append("   --   " if not d else "{:.3f}@{:>2.0f}h".format(*minimo(d)[::-1]))
+            s.append("   --   " if not d else "{:.3f}@{:>2.0f}h t1={}".format(*minimo(d)[::-1], cruza(d)))
         print(f"{solo:5s} {I:>4s}  " + "  ".join(s) + f"   Eq6 {EQ6[solo][I]:.2f}  out {OUT[solo][I]}")
