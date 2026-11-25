@@ -740,3 +740,25 @@ ssh diogo@fermi.cesup.ufrgs.br 'neopz-master/Projects/SlopeRandomFieldRefinement
 
 - Com os jobs liuB rodando, os jobs cho14 alem dos 4 por usuario esperam na fila (o fermi aceita 8).
 - Parar sem perder nada: `ssh diogo@fermi.cesup.ufrgs.br 'touch /mnt/data/diogo/cho2014/PARAR'`.
+
+## Chuva2: FORM modal + line sampling (`ls_chuva2.sbatch`)
+
+O LS dos casos da chuva2 (talude de Rahardjo, variante iii), com as opcoes do caso do MC (`casos_chuva2.txt`) e a falha
+nos instantes T de `casos_chuva2_ls.txt`: `tempos=T` no lugar dos do caso, g = ln(menor FS dos instantes de T), falha
+se < 1. Referencia: `ref`, T = 24 h (o menor FS do f50 cai em 24 h em 99,3% das realizacoes). Direcao: `form_kl.py
+prog=chuva gradiente=modal` (M = 2000, o campo do MC), so em c' e phi' (o gradiente modal da 0 em k): o k_s e aleatorio
+entre as linhas, nao ao longo delas, e o LS continua sem vies. LS: `line_sampling.py busca=cerca` ate CoV 5% (30 a 600
+linhas, 24 em voo). Um no por LS (a referencia sozinha: 1 no).
+
+`REUSO=1` (padrao 0): o transiente uma vez por linha (a 1a analise grava, as outras leem; FS igual bit a bit). Precisa
+do patch do campo de k no `montecarlo.cpp` (o submeter confere `campo_k=` no executavel). No PC (25/11, serial): a
+analise com o transiente ~57 s (transiente ~38 s + fator em 24 h ~19 s), a que le ~19 s; ~5,6 analises por linha.
+
+```bash
+ssh diogo@fermi.cesup.ufrgs.br 'cd neopz-master && git pull origin UnsaturatedSoil && cd Projects/SlopeRandomFieldRefinement/cluster && nohup setsid bash -c "./compilar_ls_chuva2.sh && ./submeter_ls_chuva2.sh 1" > ls_chuva2.log 2>&1 < /dev/null &'
+ssh diogo@fermi.cesup.ufrgs.br 'neopz-master/Projects/SlopeRandomFieldRefinement/cluster/status_ls_chuva2.sh'
+~/projects/neopz-master/Projects/SlopeRandomFieldRefinement/cluster/baixar_ls_chuva2.sh
+```
+
+- O resumo (`resumo_ls_chuva2.py`) compara com o MC da chuva2 (`$DATA/chuva2`) no mesmo evento.
+- Parar: `touch /mnt/data/diogo/chuva2_ls/PARAR`. Com os 4 nos do MC ocupados, use `DEPENDE=<job>`.

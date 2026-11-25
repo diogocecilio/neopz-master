@@ -1,0 +1,10 @@
+# casos_chuva2_ls.txt: o FORM modal + line sampling da campanha chuva2 (ls_chuva2.sbatch, jobs lsChuva2). Cada linha e
+# um LS com as opcoes do caso do Monte Carlo (casos_chuva2.txt, coluna caso: as mesmas opcoes, IREF e @SAIDA@ trocados
+# como no tarefas.sh) e a falha no(s) instante(s) T: tempos=T (e adapta=T) no lugar dos do caso, g = ln(menor FS dos
+# instantes de T), falha se < 1 (primeira passagem nesses instantes). A direcao e a do FORM modal em c' e phi' (o
+# gradiente modal da 0 em k): o k_s e aleatorio entre as linhas, nao ao longo delas.
+# T da referencia: 24 h (o fim da chuva). No MC dos 3 solos de 14-15/11, o menor FS do f50 caiu em 24 h em 993 de 1000
+# realizacoes; o resumo_ls_chuva2.py compara o LS com o MC do mesmo evento (o menor FS nos instantes de T, nas
+# realizacoes do MC que tem esses instantes) e mostra tambem a P_f do MC com todos os instantes do caso.
+#   id    caso   T     N_ls (o teto de linhas)
+ref       ref    24    600

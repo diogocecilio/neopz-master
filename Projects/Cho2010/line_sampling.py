@@ -3,6 +3,7 @@
 
     python3 line_sampling.py <exe> <form.json> <pasta> [n=100] [semente=7] [paralelos=14] [tol=0.01] [K=2000]
                              [cov=0] [nmin=30] [busca=secante|cerca] [passo_cerca=0.25] [folga_cerca=1]
+                             [reuso=0|1] [custos=0|1]
                              [chave=valor das opcoes do programa: nystrom=, metodo=, srm_f0=, contorno=, tfim=, ...]
 
 A direcao e = u*/beta vem do FORM (form_kl.py, M termos por campo: c', phi' no Cho2010; c', phi', k no rebaixamento e na
@@ -13,6 +14,12 @@ agua=, trebaix=, tfim=, dt=, hw=, covc=, covphi=, covk=, s= e alfa= vem do form.
 SlopeDrawdownMonteCarlo). Na chuva (prog=chuva), as opcoes do executavel vem do form.json (a lista "exe") e as
 chave=valor dadas aqui trocam ou acrescentam opcoes nela (ex.: nystrom=<outra base>, pressoes=<outro arquivo>); o fator
 de cada analise e o menor FS dos instantes (form_kl.le_fator).
+A falha na chuva (prog=chuva): g = ln(FS_min), com FS_min o menor FS dos instantes de tempos= (as opcoes do
+executavel no form.json, ou trocadas aqui): a primeira passagem nesses instantes. Um instante sem equilibrio no SRM
+(situacao fator com FS_min = 0) e falha, FS = 0,005 (ln finito); um transiente que parou antes de um instante (situacao
+transiente) tira a linha da conta (perdidas.csv). Com busca=cerca, a raiz e a troca de sinal de FS_min - 1 ao longo da
+linha. A P_f e a do mesmo evento que o Monte Carlo direto com os mesmos tempos= (o menor FS dos instantes abaixo de 1);
+com um instante so (ex.: tempos=24, o fim da chuva no f50), e P(FS(24 h) < 1).
 Cada linha: sorteia z ~ N(0, I) com nc K termos, tira a componente em e (zp = z - (z.e) e) e acha, na reta zp + c e, o
 c_i em que o fator (FS ou Gamma) vale 1. Como zp e c sao independentes, P_f = E[Phi(-c_i)], e cada linha da
 p_i = Phi(-c_i): so a variacao de c_i entre as linhas (a nao linearidade da superficie de falha) entra na variancia. O
@@ -65,6 +72,29 @@ perdidas.csv (linha, rotulo, motivo), nao sao refeitas na retomada (o mesmo Z da
 as de todas as rodadas (perdidas, fracao_perdida, linhas_perdidas). Se elas ficarem nos campos fracos, a P_f sai baixa:
 olhe a fracao (o aviso sai quando passa de 1%).
 
+reuso=1 (so na chuva; padrao 0, o de antes bit a bit): o transiente calculado uma vez por linha. Com a direcao sem
+componente em k (o FORM com gradiente=modal: o fator congela as pressoes e da 0 nos termos de k), o ponto zp + c e tem
+os xi de k iguais aos de z (bit a bit) em toda a linha: so c' e phi' mudam, entao o transiente (as pressoes) e o
+mesmo em todos os pontos dela. A 1a analise da linha i calcula o transiente e o grava (grava_pressoes=<pasta>/
+l<i>_pw.txt); as outras o leem (pressoes=) e so calculam o fator. O arquivo e apagado no fim da linha (e no comeco,
+se sobrou de uma rodada interrompida). O k continua aleatorio ENTRE as linhas (na parte ortogonal zp), e o estimador
+nao muda (o mesmo FS bit a bit: as pressoes vao no arquivo com 17 algarismos). Garantias de que um arquivo so serve ao
+seu campo de k e as suas opcoes do transiente:
+  - a direcao tem de ter os K termos de k exatamente 0 (senao recusa); cada analise confere que os xi de k sao os da
+    1a analise da linha;
+  - o arquivo e da linha (um por linha, numa pasta so com as opcoes do form.json);
+  - o executavel confere a chave do transiente na leitura (ChaveTransiente: geometria, nivel, contornos, solo, chuva,
+    dt, malha, Newton...), que tem de ter tambem o campo de k (campo_k: CoV, lh, lv, M, base e os bits dos xi de k).
+    Isso precisa do patch do campo de k no montecarlo.cpp; sem ele o executavel recusa grava_pressoes= com k
+    aleatorio. Uma analise barata confere antes de tudo (form_kl.sonda_reuso, com tempos=0 fator=tri0 nref=0) e sai
+    com a explicacao.
+  Sem pressoes=, grava_pressoes= e so_transiente= nas opcoes do executavel (com k fixo, o transiente ja vem de um
+  arquivo so). O ls.json ganha "reuso": 1.
+custos=1 (padrao: 1 com reuso=1, 0 sem): custos.csv com uma linha por analise (linha, analise, c, modo, s, s_transiente,
+s_fator): modo calcula (sem reuso), grava (a 1a da linha, com reuso) ou le; s o tempo da analise (s), s_transiente e
+s_fator os do executavel (o transiente ate o ultimo instante e a soma dos fatores dos instantes; s_transiente = 0 na
+leitura).
+
 Na coluna (prog=coluna, form_kl.py): como na chuva (as opcoes do executavel na lista "exe" do form.json, trocadas
 pelas chave=valor dadas aqui), com o fator de form_kl.le_fator (FS_passagem em T, ou t_passagem / T censurado em 2), o
 fator limitado por baixo a GAMMA_ZERO (ln finito) e os arquivos _perfil_, _xi_ e _campo_ tambem apagados.
@@ -83,9 +113,10 @@ import random
 import subprocess
 import sys
 import threading
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from form_kl import REBAIX_PADRAO, ambiente, campos, comando, le_fator  # noqa: E402
+from form_kl import REBAIX_PADRAO, TRANSIENTE_ARQ, ambiente, campos, comando, le_fator, sonda_reuso  # noqa: E402
 
 FIM = (-8., 12.)
 GAMMA_ZERO = 0.005  # Gamma = 0 (sem equilibrio nem com 1% da gravidade): falha, com ln finito para a secante
@@ -112,7 +143,7 @@ def main():
         sys.exit(__doc__)
     exe, arq_form, pasta = os.path.abspath(sys.argv[1]), sys.argv[2], os.path.abspath(sys.argv[3])
     op = {"n": 100, "semente": 7, "paralelos": 14, "tol": 0.01, "K": 2000, "cov": 0., "nmin": 30, "busca": "secante",
-          "passo_cerca": 0.25, "folga_cerca": 1}
+          "passo_cerca": 0.25, "folga_cerca": 1, "reuso": 0, "custos": -1}
     form = json.load(open(arq_form))
     p = dict(form["parametros"])
     p.setdefault("prog", "cho")          # form.json de versoes antigas do form_kl.py (antes de prog=)
@@ -129,6 +160,13 @@ def main():
             p[k] = type(p[k])(v) if k in p and not isinstance(p[k], str) else v
     if op["busca"] not in ("secante", "cerca"):
         sys.exit("busca: secante (padrao) ou cerca")
+    reuso = op["reuso"] != 0
+    custos = (op["custos"] != 0 if op["custos"] >= 0 else reuso) and p["prog"] == "chuva"
+    if reuso and p["prog"] != "chuva":
+        sys.exit("reuso=1: so na chuva (prog=chuva)")
+    if reuso and any(x.startswith(TRANSIENTE_ARQ) for x in p["exe"]):
+        sys.exit("reuso=1: sem pressoes=, grava_pressoes= e so_transiente= nas opcoes do executavel (com k fixo o "
+                 "transiente ja vem de um arquivo so)")
     cerca = op["busca"] == "cerca"
     if cerca and (op["tol"] <= 0. or op["passo_cerca"] <= 0. or op["folga_cerca"] < 0):
         sys.exit("busca=cerca: tol > 0, passo_cerca > 0 e folga_cerca >= 0")
@@ -146,6 +184,11 @@ def main():
     if form.get("beta", 1.) < 0.:  # g(0) < 0 (as medias ja falham): com -e a falha fica do lado de c grande e o ponto
         e = [-x for x in e]        # de projeto em c = beta < 0
         beta = -beta
+    if reuso:  # o transiente so e o mesmo ao longo da linha se a direcao nao tem componente em k (o 3o campo)
+        nk = sum(1 for x in e[2 * K:] if x != 0.)
+        if nk:
+            sys.exit(f"reuso=1: a direcao tem {nk} termos de k nao nulos (o FORM nao e o modal?): o transiente mudaria "
+                     "ao longo da linha; rode sem reuso")
     # a busca da pasta (retomada): o busca.json (so a da cerca o grava), o ls.json (sem a chave: secante) ou, sem os
     # dois, uma pasta ja usada (inclinacao.json, linhas.csv ou analises.csv) e da secante. Outra busca: recusa
     arq_b, arq_s = os.path.join(pasta, "busca.json"), os.path.join(pasta, "inclinacao.json")
@@ -174,17 +217,37 @@ def main():
                 print(f"  AVISO: retomada com {', '.join(f'{k} {antes.get(k)} -> {cfg[k]}' for k in dif)}", flush=True)
         else:
             json.dump(cfg, open(arq_b, "w"), indent=1)
+    if reuso:  # o executavel grava o transiente com k aleatorio e o campo de k na chave? (sai daqui se nao)
+        sonda_reuso(exe, p, pasta)
     trava = threading.Lock()
     limpa_csv(os.path.join(pasta, "analises.csv"), "")
     reg = open(os.path.join(pasta, "analises.csv"), "a")
+    if custos:
+        limpa_csv(os.path.join(pasta, "custos.csv"), "linha,analise,c,modo,s,s_transiente,s_fator\n")
+        reg_c = open(os.path.join(pasta, "custos.csv"), "a")
 
-    def fator(x, rotulo, linha, c):
+    def custo(arq_csv):
+        """s_transiente (o do ultimo instante: o transiente ate ali) e s_fator (a soma dos instantes) do executavel"""
+        with open(arq_csv, newline="") as f:
+            linhas = list(csv.DictReader(f))
+        st = max((float(r.get("s_transiente") or 0.) for r in linhas), default=0.)
+        return st, sum(float(r.get("s_fator") or 0.) for r in linhas)
+
+    def fator(x, rotulo, linha, c, extra=()):
         arq = os.path.join(pasta, rotulo + ".xi")
         with open(arq, "w") as f:
             f.write("\n".join(repr(t) for t in x) + "\n")
-        subprocess.run(comando(exe, p, arq, rotulo), check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                       env=ambiente(p), cwd=pasta)
+        t0 = time.monotonic()
+        subprocess.run(comando(exe, p, arq, rotulo) + list(extra), check=True, stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL, env=ambiente(p), cwd=pasta)
+        s = time.monotonic() - t0
         try:
+            if custos:
+                modo = "calcula" if not extra else "grava" if extra[0].startswith("grava_pressoes=") else "le"
+                st, sf = custo(os.path.join(pasta, rotulo + "_0_0.csv"))
+                with trava:
+                    reg_c.write(f"{linha},{rotulo.rsplit('_', 1)[-1]},{c!r},{modo},{s:.2f},{st:.2f},{sf:.2f}\n")
+                    reg_c.flush()
             if p["prog"] == "chuva":  # o menor FS dos instantes (um instante sem equilibrio e falha)
                 G = le_fator(os.path.join(pasta, rotulo + "_0_0.csv"), p)[0]
             elif p["prog"] == "coluna":  # FS_passagem em T ou t_passagem / T (ln finito)
@@ -211,6 +274,31 @@ def main():
 
     def ponto(zp, c):
         return [a + c * b for a, b in zip(zp, e)]
+
+    # reuso=1: o transiente da linha i no l<i>_pw.txt (gravado pela 1a analise, lido pelas outras) e os xi de k da 1a
+    # analise de cada linha em voo (as outras conferem)
+    kxi = {}
+
+    def arq_pw(i):
+        return os.path.join(pasta, f"l{i}_pw.txt")
+
+    def apaga_pw(i):
+        for suf in ("", ".tmp"):
+            try:
+                os.remove(arq_pw(i) + suf)
+            except FileNotFoundError:
+                pass
+
+    def transiente(i, j, x):
+        """as opcoes do transiente da analise j da linha i no ponto x (vazias sem reuso)"""
+        if not reuso:
+            return ()
+        if j == 0:
+            kxi[i] = x[2 * K:]
+            return (f"grava_pressoes={arq_pw(i)}",)
+        if x[2 * K:] != kxi[i]:
+            raise RuntimeError(f"linha {i}: os xi de k mudaram ao longo da linha (reuso=1)")
+        return (f"pressoes={arq_pw(i)}",)
 
     # a inclinacao de g = ln(fator) ao longo de e, no ponto de projeto (2 analises; so na busca=secante)
     if cerca:
@@ -250,7 +338,9 @@ def main():
     def linha(i, z):
         ze = sum(a * b for a, b in zip(z, e))
         zp = [a - ze * b for a, b in zip(z, e)]
-        g = lambda c, j: math.log(fator(ponto(zp, c), f"l{i}_{j}", i, c))
+        def g(c, j):
+            x = ponto(zp, c)
+            return math.log(fator(x, f"l{i}_{j}", i, c, transiente(i, j, x)))
         # g > 0: seguro; g < 0: falha (a falha fica do lado de c grande). Secante protegida: com a raiz cercada
         # (seg < raiz < fal), o candidato fora do intervalo vira bissecao; sem cerca, o candidato fica em FIM e, se
         # chegar em FIM[1] ainda seguro (ou em FIM[0] ja na falha), a linha toda e segura (p = 0) ou falha (p = 1)
@@ -296,7 +386,8 @@ def main():
         tol, conta = op["tol"], [0]
 
         def g(c):
-            v = math.log(fator(ponto(zp, c), f"l{i}_{conta[0]}", i, c))
+            x = ponto(zp, c)
+            v = math.log(fator(x, f"l{i}_{conta[0]}", i, c, transiente(i, conta[0], x)))
             conta[0] += 1
             return v
 
@@ -356,6 +447,19 @@ def main():
             j += 1
         return i, 0.5 * (a + b), conta[0], a, b
 
+    def roda_linha(i, z):
+        """a busca da linha i; com reuso, o arquivo do transiente dela apagado antes (sobra de uma rodada interrompida) e
+        depois"""
+        busca = linha_cerca if cerca else linha
+        if not reuso:
+            return busca(i, z)
+        apaga_pw(i)
+        try:
+            return busca(i, z)
+        finally:
+            apaga_pw(i)
+            kxi.pop(i, None)
+
     def num(x):
         return "" if x is None else repr(x)
 
@@ -394,6 +498,8 @@ def main():
                               "regra": "para de submeter no 1o N >= nmin com CoV(P_f) <= cov_alvo (cov_alvo = 0: as "
                                        "n_max linhas); as linhas em voo terminam e entram"},
                  "motivo": motivo, "linhas_feitas": sorted(feitas), "semente": op["semente"], "K": K, "parametros": p}
+        if reuso:
+            comum["reuso"] = 1
         if cerca:
             larg = [b - a for a, b in cercas.values() if a is not None and b is not None]
             comum.update({"busca": "cerca", "tol": op["tol"], "passo_cerca": op["passo_cerca"],
@@ -446,7 +552,7 @@ def main():
                 i = next(falta, None)
                 if i is None:
                     return
-                fut = ex.submit(linha_cerca if cerca else linha, i, z_da_linha(i))
+                fut = ex.submit(roda_linha, i, z_da_linha(i))
                 fut.linha = i
                 emvoo.add(fut)
 

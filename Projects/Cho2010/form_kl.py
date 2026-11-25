@@ -42,6 +42,14 @@ iteracoes=, tol_g=, tol_beta=, gradiente= e threads= sao do FORM: todas as outra
 estao (ex.: a geometria, o solo, a chuva, tempos=, nystrom=, rcphi=, pressoes=; os padroes sao os do executavel), e
 ficam no form.json para o line_sampling.py. Um instante sem fator por SRM sem equilibrio (FS_min = 0) e falha (FS =
 0,005); outro problema numa analise (o transiente que parou) e erro.
+  reuso=1 (prog=chuva com gradiente=modal; padrao 0, o de antes): o transiente calculado uma vez so. O gradiente modal
+  da 0 nos termos de k, entao o u do FORM nunca sai de xi_k = 0 e todas as analises tem o mesmo campo de k, logo o mesmo
+  transiente: a 1a analise o grava (grava_pressoes=<pasta>/pressoes_form.txt) e as outras o leem (pressoes=), so com o
+  fator. Precisa de um executavel que aceite grava_pressoes= com k aleatorio e os xi dados e ponha o campo de k na chave
+  do arquivo (o patch do campo_k no montecarlo.cpp): uma analise barata confere isso antes (sonda_reuso, tempos=0
+  fator=tri0 nref=0). Sem pressoes=, grava_pressoes= e so_transiente= nas opcoes (com k fixo o transiente ja vem de um
+  arquivo). O reuso entra no form.json ("reuso": 1); o FS lido e o calculado sao iguais bit a bit (as pressoes vao no
+  arquivo com 17 algarismos).
 prog=coluna: a coluna 1D de Cho (2014) (SlopeRainColumn, Projects/SlopeRandomFieldRefinement/coluna.cpp), com 1
 campo (k: M variaveis) e as opcoes do executavel como na chuva (as outras chave=valor vao para ele; as de cada analise,
 perfis=, grava_xi=, so_campo=, para_na_falha= e localiza=, sao recusadas), so com gradiente=dif, e a falha:
@@ -65,8 +73,12 @@ REBAIX_PADRAO = {"contorno": "reservatorio", "agua": "unsat", "trebaix": 0.1, "t
                  "covc": 0.3, "covphi": 0.1, "covk": 0.6, "s": 1.0, "alfa": 1.0}
 # prog=chuva: as opcoes do FORM (as outras vao para o SlopeRainMonteCarlo) e as que o FORM poe na linha de comando
 CHUVA_FORM = {"M", "h", "paralelos", "iteracoes", "tol_g", "tol_beta", "gradiente", "prog", "threads", "algoritmo",
-              "armijo", "meias"}
+              "armijo", "meias"}  # e o reuso=, tratado a parte (so na chuva)
 CHUVA_RESERVADAS = {"n", "primeira", "xi", "saida", "gradiente", "det", "figuras"}
+# reuso=1 (prog=chuva): as opcoes do executavel que ja tratam do transiente (com elas o reuso nao vale) e o sinal, na
+# chave do arquivo do grava_pressoes=, de que o executavel guarda o campo de k
+TRANSIENTE_ARQ = ("pressoes=", "grava_pressoes=", "so_transiente=")
+CHAVE_CAMPO_K = "campo_k="
 # prog=coluna: as do FORM (as da chuva mais a falha e o T) e as reservadas a mais (as de cada analise)
 COLUNA_FORM = CHUVA_FORM | {"falha", "T"}
 COLUNA_RESERVADAS = {"perfis", "grava_xi", "so_campo", "para_na_falha", "localiza"}
@@ -104,7 +116,9 @@ def parametros(argv):
         p["exe"] = []
         for a in argv:
             k, v = a.split("=", 1)
-            if k in CHUVA_FORM:
+            if k == "reuso":  # so quando dado: o form.json sem ele fica como antes
+                p["reuso"] = int(v)
+            elif k in CHUVA_FORM:
                 p[k] = type(p[k])(v)
             elif k in CHUVA_RESERVADAS:
                 sys.exit(f"prog=chuva: {k}= e do FORM ou da linha de comando que ele monta")
@@ -118,6 +132,12 @@ def parametros(argv):
             sys.exit("metodo: srm ou gim")
         if p["algoritmo"] not in ("hlrf", "ihlrf"):
             sys.exit("algoritmo: hlrf ou ihlrf")
+        if p.get("reuso", 0):
+            if p["gradiente"] != "modal":
+                sys.exit("reuso=1: so com gradiente=modal (nas diferencas centrais os xi de k mudam: outro transiente)")
+            if any(x.startswith(TRANSIENTE_ARQ) for x in p["exe"]):
+                sys.exit("reuso=1: sem pressoes=, grava_pressoes= e so_transiente= (com k fixo o transiente ja vem de um "
+                         "arquivo)")
         return p
     for a in argv:
         k, v = a.split("=", 1)
@@ -203,21 +223,71 @@ def comando(exe, p, arq, rotulo):
         ([f"nystrom={p['nystrom']}"] if p["nystrom"] else [])
 
 
+def sonda_reuso(exe, p, pasta):
+    """reuso=1 (prog=chuva): o executavel aceita grava_pressoes= com k aleatorio e os xi dados (n=1), e a chave do arquivo
+    tem o campo de k (CHAVE_CAMPO_K)? Uma analise barata com as opcoes do caso, M = p["M"]: tempos=0 (so o estado
+    inicial do transiente), o fator na tri0 sem refinamento, xi de c' e phi' nulos e um xi de k nao nulo. Se nao, sai do
+    programa com a explicacao (antes de qualquer analise de verdade)"""
+    os.makedirs(pasta, exist_ok=True)
+    rot, M = "sonda_reuso", int(p["M"])
+    arq_xi, arq_pw = os.path.join(pasta, rot + ".xi"), os.path.join(pasta, rot + "_pw.txt")
+    q = dict(p, exe=[x for x in p["exe"] if not x.startswith(("tempos=", "adapta=", "fator=", "nref="))] +
+             ["tempos=0", "fator=tri0", "nref=0"])
+    with open(arq_xi, "w") as f:
+        f.write("\n".join(["0.0"] * (2 * M) + ["0.5"] + ["0.0"] * (M - 1)) + "\n")
+    r = subprocess.run(comando(exe, q, arq_xi, rot) + [f"grava_pressoes={arq_pw}"], stdout=subprocess.DEVNULL,
+                       stderr=subprocess.PIPE, text=True, env=ambiente(q), cwd=pasta)
+    chave = ""
+    if r.returncode == 0 and os.path.exists(arq_pw):
+        with open(arq_pw) as f:
+            f.readline()  # o comentario
+            chave = f.readline()
+    for suf in (".xi", "_pw.txt", "_pw.txt.tmp", "_0_0.csv", "_mapa_0_0.csv", "_parametros.txt"):
+        try:
+            os.remove(os.path.join(pasta, rot + suf))
+        except FileNotFoundError:
+            pass
+    if r.returncode != 0:
+        sys.exit("reuso=1: o executavel recusou grava_pressoes= com k aleatorio e os xi dados (" +
+                 " ".join(r.stderr.split())[-300:] + "): falta o patch do campo de k (campo_k) no montecarlo.cpp; rode "
+                 "sem reuso")
+    if not chave.startswith("chave ") or CHAVE_CAMPO_K not in chave:
+        sys.exit(f"reuso=1: a chave do arquivo do grava_pressoes= nao tem o campo de k ({CHAVE_CAMPO_K}): um arquivo "
+                 "poderia servir a outro campo de k; rode sem reuso")
+
+
 class Problema:
     def __init__(self, exe, pasta, p):
         self.exe, self.pasta, self.p = exe, pasta, p
         self.n = 0
         os.makedirs(pasta, exist_ok=True)
+        # reuso=1: o transiente do FORM (xi_k = 0 em todas as analises) num arquivo, gravado pela primeira analise
+        self.pw = os.path.join(pasta, "pressoes_form.txt") if p.get("reuso", 0) else None
+        self.pw_pronto = False
+
+    def transiente(self, u):
+        """reuso=1: as opcoes do transiente desta analise (grava na primeira, le nas outras), conferindo xi_k = 0"""
+        if self.pw is None:
+            return []
+        if any(x != 0. for x in u[2 * self.p["M"]:]):
+            raise RuntimeError("reuso=1: xi de k nao nulo no FORM (o gradiente modal da 0 em k): seria outro transiente")
+        return [f"pressoes={self.pw}"] if self.pw_pronto else [f"grava_pressoes={self.pw}"]
+
+    def transiente_feito(self):
+        if self.pw is not None and not self.pw_pronto and os.path.exists(self.pw):
+            self.pw_pronto = True
 
     def fs(self, u, rotulo):
         """o fator do Cho2010 (FS ou Gamma) com os xi u (os M de c' e os M de phi')"""
         arq = os.path.join(self.pasta, rotulo + ".xi")
         with open(arq, "w") as f:
             f.write("\n".join(repr(x) for x in u) + "\n")
-        cmd = comando(self.exe, self.p, arq, rotulo)
+        cmd = comando(self.exe, self.p, arq, rotulo) + self.transiente(u)
         subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=ambiente(self.p),
                        cwd=self.pasta)
-        return le_fator(os.path.join(self.pasta, rotulo + "_0_0.csv"), self.p)[0]
+        fs = le_fator(os.path.join(self.pasta, rotulo + "_0_0.csv"), self.p)[0]
+        self.transiente_feito()
+        return fs
 
     def g_modal(self, u, it):
         """uma analise: o fator e o gradiente pela projecao modal (Cho2010 gradiente=M: limite superior no colapso)"""
@@ -225,9 +295,10 @@ class Problema:
         arq = os.path.join(self.pasta, rotulo + ".xi")
         with open(arq, "w") as f:
             f.write("\n".join(repr(x) for x in u) + "\n")
-        cmd = comando(self.exe, self.p, arq, rotulo) + [f"gradiente={self.p['M']}"]
+        cmd = comando(self.exe, self.p, arq, rotulo) + [f"gradiente={self.p['M']}"] + self.transiente(u)
         subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=ambiente(self.p),
                        cwd=self.pasta)
+        self.transiente_feito()
         # sem o _grad_0.txt: a mensagem clara em vez de FileNotFoundError
         fs, t = le_fator(os.path.join(self.pasta, rotulo + "_0_0.csv"), self.p)
         arq_g = os.path.join(self.pasta, rotulo + "_grad_0.txt")
@@ -284,6 +355,9 @@ def main():
     fator = "FS" if p["prog"] == "coluna" else p["metodo"].upper()
     print(f"FORM do {titulo}, {fator}: KL com M = {M} termos por campo ({nc * M} variaveis), gradiente "
           f"{tipo}, {p['paralelos']} em paralelo", flush=True)
+    if p.get("reuso", 0):  # o executavel tem de aceitar o transiente gravado com k aleatorio (sai daqui se nao)
+        sonda_reuso(exe, p, pasta)
+        print(f"  reuso do transiente: a 1a analise grava {prob.pw}, as outras so calculam o fator", flush=True)
     print(f"  it   g = {'Gamma' if p['metodo'] == 'gim' else 'FS'} - 1    beta     |grad|   maiores alfa^2 (campo, termo)",
           flush=True)
     gAnterior = None
