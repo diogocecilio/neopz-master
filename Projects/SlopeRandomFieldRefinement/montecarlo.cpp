@@ -25,6 +25,10 @@
 //   covc (0.3), covphi (0.1), covk (0.6)   CoV de c', phi' e k_s
 //   s (1)                  escala das distancias de autocorrelacao: 20 s (horizontal) e 2 s (vertical), em m
 //   alfa (1)               anisotropia k_h / k_v (k_v e o do campo)
+//   k_theta (0)            graus: a direcao de k_1 = alfa k_s a partir do eixo x, anti-horario (k_2 = k_s normal a ela); a
+//                          face desce a -45 graus (135 = paralela a face). 0: o tensor diagonal de antes
+//   diag (<arquivo>)       o transiente em cada instante do fator (CSV): passos, iteracoes de Newton, nos na face, p_w e p_a
+//                          (menor e maior, kPa), |u| max (m, acopladas), agua infiltrada acumulada (m3/m) e tempo (s)
 //   transiente (tri2)      malha do transiente: triK, camH ou camqH (camHpD, camqHpD: camadas de H ate D m); uT (2):
 //                          ordem de u no transiente
 //   fator (tri1), nref (4) malha grossa do fator (triK ou camH) e niveis de refinamento
@@ -245,7 +249,7 @@ struct Opcoes {
     int n = 10, primeira = 0;
     bool det = false, gim = false;
     Solo solo = kSolos[1];
-    REAL I = -1., chuva = 24., hw = 5., alfa = 1., s = 1.;
+    REAL I = -1., chuva = 24., hw = 5., alfa = 1., s = 1., kTheta = 0.; // kTheta: graus
     std::vector<REAL> tempos = {0., 24.}, adapta;
     Campos campos;
     std::string malhaT = "tri2", malhaF = "tri1", saida = "mc_chuva";
@@ -280,6 +284,7 @@ struct Opcoes {
     REAL mv = 0.;                          // > 0: m_v do esqueleto no transiente (1/kPa), K_w' = 1/(1/K_w + m_v/n)
     std::vector<REAL> newton;              // tol_p, maxit do Newton do transiente (vazio: os do TPZUnsatAnalysis)
     std::string newtonTrace;               // arquivo do diagnostico do Newton (vazio: sem)
+    std::string diag;                      // arquivo do diagnostico do transiente por instante (vazio: sem)
     REAL faceTol = 0.;                     // folga relativa da volta da face ao fluxo
     bool chuvaAleatoria = false;
     std::array<REAL, 7> gpd = {-0.04, 3.44, 5.13, 0.43, 5.15, 0.30, -2.38};
@@ -326,7 +331,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
         "nu",         "rcphi",      "M",          "nystrom",    "xi",         "desloc_xi", "gradiente", "grava_pressoes",
         "pressoes",   "so_transiente", "fx",       "kfredlund", "psi_r",     "q0",         "q0_cov",    "phib",
         "phib_razao", "dt",         "dt_min",    "newton",         "chuva_aleatoria", "gpd",  "crpc",      "crpc_dmax", "crpc_passo",
-        "vg_tab",     "vg_tab_psi", "newton_trace", "face_tol", "kw", "mv", "variante"};
+        "vg_tab",     "vg_tab_psi", "newton_trace", "face_tol", "kw", "mv", "variante", "k_theta", "diag"};
     std::map<std::string, std::string> kv;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
@@ -490,6 +495,8 @@ Opcoes LeOpcoes(int argc, char *argv[])
     if (tem("s")) op.s = std::stod(kv["s"]);
     op.campos.Lx = 20. * op.s, op.campos.Ly = 2. * op.s;
     if (tem("alfa")) op.alfa = std::stod(kv["alfa"]);
+    if (tem("k_theta")) op.kTheta = std::stod(kv["k_theta"]);
+    if (tem("diag")) op.diag = kv["diag"];
     if (tem("transiente")) op.malhaT = kv["transiente"];
     if (tem("uT")) op.uT = std::stoi(kv["uT"]);
     if (tem("fator")) op.malhaF = kv["fator"];
@@ -762,7 +769,8 @@ TUnsatHP *MaterialChuva(const RainData &r, const Opcoes &op)
     mat->SetBiot(1., 0.);
     mat->SetWaterBulkModulus(r.Kw);
     mat->SetConductivity(r.ks, s.gammaw, 1.e-3 / 1.8e-5);
-    if (op.alfa != 1.) mat->SetAnisotropicConductivity(op.alfa * r.ks, r.ks); // k_x = alfa k_s, k_y = k_s
+    if (op.alfa != 1. || op.kTheta != 0.) // k_1 = alfa k_s na direcao k_theta, k_2 = k_s (k_theta = 0: k_x e k_y)
+        mat->SetAnisotropicConductivity(op.alfa * r.ks, r.ks, op.kTheta * M_PI / 180.);
     mat->SetAir(1.2 * 9.81e-3, 101.325);
     mat->SetUnitWeight(s.gamma);
     mat->SetLumpedStorage(true);
@@ -1132,6 +1140,7 @@ std::string ChaveTransiente(const Opcoes &op, const RainData &r)
       << (op.esqCarga ? "carga" : "fechada") << ";direita=" << (op.dirCarga ? "carga" : "fechada") << ";carga_esq="
       << op.cargaEsq << ";carga_dir=" << op.cargaDir << ";I=" << r.intensity << ";chuva=" << r.duration << ";dt=" << r.dt
       << ";chuva_face=" << (r.rainVertical ? "vertical" : "inclinada") << ";ks=" << r.ks << ";alfa=" << op.alfa;
+    if (op.kTheta != 0.) c << ";k_theta=" << op.kTheta;
     if (op.vg.usa) c << ";vg=" << op.vg.ts << "," << op.vg.tr << "," << op.vg.a << "," << op.vg.n;
     else c << ";fx=" << r.aFX << "," << r.nFX << "," << r.mFX << ";power=" << r.power;
     if (op.vgTab > 0.) c << ";vg_tab=" << op.vgTab << "," << NomeFechoVG(op.vgFecho);
@@ -1213,6 +1222,12 @@ Pressoes CalculaTransiente(UnsatModel<TUnsatHP> &mT, const RainData &r, const Op
                     (long long)chuva.SteadySteps(), dp, Seg(tp));
     }
     double sT = 0.;
+    std::ofstream fdiag;
+    if (!op.diag.empty()) {
+        fdiag.open(op.diag);
+        fdiag << "t_h,passos,newton,nos_face,pw_min,pw_max,pa_min,pa_max,u_max_m,infiltrado_m3m,s_transiente\n"
+              << std::setprecision(10);
+    }
     for (REAL t : op.tempos) {
         const auto tt = Clock::now();
         if (!chuva.AdvanceTo(t)) {
@@ -1226,6 +1241,12 @@ Pressoes CalculaTransiente(UnsatModel<TUnsatHP> &mT, const RainData &r, const Op
         P.face[t] = chuva.FaceNodes();
         P.faixa[t] = chuva.PressureRange();
         P.s[t] = sT;
+        if (fdiag) {
+            const auto ar = chuva.AirPressureRange();
+            fdiag << t << "," << chuva.Steps() << "," << chuva.NewtonIterations() << "," << chuva.FaceNodes() << ","
+                  << P.faixa[t].first << "," << P.faixa[t].second << "," << ar.first << "," << ar.second << ","
+                  << chuva.MaxDisplacement() << "," << chuva.Infiltrated() << "," << sT << std::endl;
+        }
         if (!op.newtonTrace.empty() && !op.Acoplado()) { // newton_trace=: o progresso na tela, instante a instante
             std::printf("  transiente em %g h: %lld passos, %lld iteracoes de Newton, %zu nos na face (%.0f s)\n", t,
                         (long long)chuva.Steps(), (long long)chuva.NewtonIterations(), chuva.FaceNodes(), sT);

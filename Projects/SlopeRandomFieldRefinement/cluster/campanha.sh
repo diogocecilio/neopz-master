@@ -54,4 +54,4 @@ etapa3b_gim) NOME=e3bGim PROG=Cho2010 CASOS_TXT=casos_etapa3b_gim.txt PASTA=etap
 esac
 export CAMPANHA
 # todos os nomes de job que usam build/ e bin/ (o compilar.sh espera todos acabarem: a libpz.so e a mesma)
-NOMES_TODOS=chuvaMC,chuva2,ceronMC,chuvaAI,solosMC,etapa1,etapa3,etapa3b,lsEtapa3b,susCho,e3bGim,lsGim
+NOMES_TODOS=chuvaMC,chuva2,detChuva,ceronMC,chuvaAI,solosMC,etapa1,etapa3,etapa3b,lsEtapa3b,susCho,e3bGim,lsGim
