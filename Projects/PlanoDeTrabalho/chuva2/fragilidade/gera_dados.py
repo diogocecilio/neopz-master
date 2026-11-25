@@ -391,6 +391,107 @@ for solo, Is in (("f10", ["36", "90", "180"]), ("f50", ["9", "36", "90"]), ("f10
     L.append("\\midrule")
 open(os.path.join(TABS, "t1_det.tex"), "w").write("\n".join(L[:-1]) + "\n")
 
+# ---------------------------------------------------------------- 7. testes com dados que ja existem
+import json  # noqa: E402
+
+# 7a. caso A do Hu et al. (2024): 6 cenarios de chuva (I, D) no mesmo talude, MC e LS por cenario; k_s fixo
+HU = os.path.join(RUNS, "fermi_hu2024_ks2e-5")
+hu = {}
+if os.path.exists(os.path.join(HU, "resumo.json")):
+    for r in json.load(open(os.path.join(HU, "resumo.json"))):
+        cid, D = r["id"], r["D"]
+        fsD, fmin = [], {}
+        for arq in glob.glob(os.path.join(HU, cid, "mc", "mc_*.csv")):
+            if "_mapa_" in arq:
+                continue
+            for row in csv.DictReader(open(arq)):
+                n = int(row["real"])
+                if n < 0 or row["situacao"] != "ok":
+                    continue
+                fv = float(row["FS_min"])
+                fmin[n] = min(fmin.get(n, 9.), fv)
+                if abs(float(row["t_h"]) - D) < 1e-9:
+                    fsD.append(fv)
+        if not fsD:
+            continue
+        lnD = np.log(np.array(fsD))
+        pls = float(np.mean(r["ls"]["p"]))
+        hu[cid] = dict(I=r["I"], D=D, F=r["det"]["FS_min"], N=len(fmin), nf=sum(1 for x in fmin.values() if x < 1),
+                       med=float(np.exp(np.median(lnD))), beta=float(np.std(lnD, ddof=1)), sk=float(skew(lnD)), pls=pls,
+                       cvls=float(np.std(r["ls"]["p"], ddof=1) / math.sqrt(len(r["ls"]["p"])) / pls) if pls > 0 else float("nan"))
+if "I30_D24" in hu:
+    cal = hu["I30_D24"]
+    bc, mc = cal["beta"], cal["med"] / cal["F"]
+    N.update(huBeta=v(bc, 4), huM=v(mc, 4))
+    L = []
+    for cid in ("I30_D12", "I20_D24", "I40_D12", "I20_D36", "I30_D24", "I50_D24"):
+        x = hu.get(cid)
+        if not x:
+            continue
+        prev = norm.cdf(-math.log(mc * x["F"]) / bc)
+        sem_m = norm.cdf(-math.log(x["F"]) / bc)
+        pmc = x["nf"] / x["N"]
+
+        def g(p):
+            return (f"{100 * p:.3g}".replace(".", "{,}") + "\\,\\%") if p >= 1e-6 else f"${p * 100:.1e}".replace("e-0", "\\cdot10^{-").replace("e-", "\\cdot10^{-") + "}$\\,\\%"
+        L.append(f"{x['I']:g} & {x['D']:g} & {v(x['F'])} & {v(x['med'] / x['F'], 4)} & {v(x['beta'], 4)} & {v(x['sk'], 2)} & "
+                 f"{x['nf']}/{x['N']} & {g(x['pls'])} ({x['cvls'] * 100:.0f}\\,\\%) & {g(prev)} & {g(sem_m)}"
+                 + (" & calibração" if cid == "I30_D24" else " & ") + "\\\\")
+    open(os.path.join(TABS, "hu.tex"), "w").write("\n".join(L) + "\n")
+
+# 7b. caso B do Liu et al. (2024): cauda (P_f ~ 1e-5), MC e LS
+LIU = os.path.join(RUNS, "fermi_liu2024")
+L = []
+if os.path.exists(os.path.join(LIU, "resumo.json")):
+    RL = json.load(open(os.path.join(LIU, "resumo.json")))
+    RL = RL if isinstance(RL, list) else list(RL.values())
+    for r in RL:
+        cid = r.get("id") or r.get("cen")
+        fsl = [float(row["FS_min"]) for arq in glob.glob(os.path.join(LIU, cid, "mc", "*.csv")) if "mapa" not in arq
+               for row in csv.DictReader(open(arq)) if int(row["real"]) >= 0 and row["situacao"] == "ok"]
+        if not fsl:
+            continue
+        lnl = np.log(fsl)
+        med_l, b_l = float(np.exp(np.median(lnl))), float(np.std(lnl, ddof=1))
+        Fd = r["det"]["FS_min"]
+        pls = float(np.mean(r["ls"]["p"]))
+        cvl = float(np.std(r["ls"]["p"], ddof=1) / math.sqrt(len(r["ls"]["p"])) / pls)
+        e = lambda p: f"${p:.2e}$".replace("e-0", "\\cdot10^{-").replace("e-", "\\cdot10^{-").replace("$", "}$", 1)[::-1].replace("$}", "}$", 1)[::-1]
+        L.append(f"{cid} & {len(fsl)} & {v(Fd)} & {v(med_l / Fd, 4)} & {v(b_l, 4)} & {v(float(skew(lnl)), 2)} & "
+                 f"{pls:.2e} ({cvl * 100:.0f}\\,\\%) & {norm.cdf(-math.log(med_l) / b_l):.2e} & {norm.cdf(-math.log(Fd) / b_l):.2e}\\\\")
+open(os.path.join(TABS, "liu.tex"), "w").write("\n".join(L).replace("e-0", "e$-$").replace("e-", "e$-$") + "\n")
+
+# 7c. a coluna do Cho (2014): FS em 6, 12, 18, 24 h e t_1 por realizacao (o contraexemplo)
+CHO = os.path.join(RUNS, "fermi_cho2014")
+L = []
+for caso in ("c05_l0.5", "c10_l0.5", "c05_l4", "c15_l4", "c05_l16"):
+    arq_det = os.path.join(CHO, caso, "det", "det_0_-1.csv")
+    if not os.path.exists(arq_det):
+        continue
+    detc = {float(r["t_h"]): float(r["FS_min"]) for r in csv.DictReader(open(arq_det))}
+    fsc, t1c = {}, {}
+    for arq in glob.glob(os.path.join(CHO, caso, "mc", "*.csv")):
+        if "mapa" in arq:
+            continue
+        for r in csv.DictReader(open(arq)):
+            if r["situacao"] != "ok":
+                continue
+            n = int(r["real"])
+            fsc.setdefault(float(r["t_h"]), {})[n] = float(r["FS_min"])
+            t1c[n] = float(r["t_passagem"])
+    for t in (18., 24.):
+        if t not in fsc or t not in detc:
+            continue
+        vv = np.array([x for x in fsc[t].values() if x > 0])
+        lnc = np.log(vv)
+        medc, bcc = float(np.exp(np.median(lnc))), float(np.std(lnc, ddof=1))
+        p1 = float(np.mean([1. if 0 <= x <= t + 1e-9 else 0. for x in t1c.values()]))
+        L.append(f"{caso.replace('_', '\\_')} & {t:g} & {v(detc[t])} & {v(medc)} & {v(medc / detc[t], 2)} & {v(bcc, 3)} & "
+                 f"{v(float(skew(lnc)), 2)} & {pct(p1)} & {pct(norm.cdf(-math.log(medc) / bcc))} & "
+                 f"{pct(norm.cdf(-math.log(detc[t]) / bcc))}\\\\")
+    L.append("\\midrule")
+open(os.path.join(TABS, "cho.tex"), "w").write("\n".join(L[:-1]) + "\n")
+
 with open(os.path.join(AQUI, "numeros.tex"), "w") as f:
     f.write("% gerado por gera_dados.py; nao edite\n")
     for k, x in N.items():

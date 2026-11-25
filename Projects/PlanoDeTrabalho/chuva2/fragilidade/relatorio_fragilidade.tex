@@ -36,7 +36,11 @@ do talude de Rahardjo (f50, chuva de 24~h): o FS de 5000 realizações a 31,05~m
 mediana do FS com campo aleatório é $\fatorMediana$ vezes o FS das médias, um efeito pequeno que a esta precisão já
 aparece. As sigmoides determinísticas têm $I_c = \iccinqiii$~mm/h com ar passivo e $\iccinqi$~mm/h com ar ativo, uma
 quina em $I = k_s$ (o alagamento) e patamares que limitam a $\Pf$ (com ar ativo ela satura em $\approx 88\,\%$; no f100
-com 72~h de chuva e ar passivo, em $\approx \pfMaxCemiii\,\%$). A verificação, ponto a ponto, está rodando no fermi
+com 72~h de chuva e ar passivo, em $\approx \pfMaxCemiii\,\%$). Com dados que já existiam, a fórmula calibrada em um cenário prevê os
+outros cinco do caso A de Hu et al.\ (2024) (intensidades e durações diferentes) dentro da incerteza do MC e do line
+sampling, e a cauda ($10^{-5}$) do caso B de Liu et al.\ (2024); mas falha na coluna de Cho (2014), onde o $k_s$
+aleatório controla um limiar (a frente de umedecimento chega ou não à profundidade crítica) e o FS das realizações é
+bimodal. A verificação, ponto a ponto, está rodando no fermi
 (campanha \texttt{frag}): a primeira passagem de 2000 realizações em 7 intensidades (ar passivo) e 5 (ar ativo) no f50 e
 de 1000 realizações em 4 intensidades por variante no f100 com chuva de até 120~h.
 \end{abstract}
@@ -251,6 +255,81 @@ realização & var. & FS 31,05 & $T_1$ por intensidade\\
   \item \textbf{O algoritmo funciona nas duas variantes} (Tabela~\ref{tab:crpc}): $T_1$ cresce quando $I$ cai, como a
     monotonia pede; a realização que não rompe com 45~mm/h não roda as intensidades menores; e o $T_1$ a 31,05~mm/h
     concorda com o FS do MC direto na mesma realização (rompe antes de 24~h quando o FS em 24~h é menor que 1).
+\end{itemize}
+
+\subsection{Testes com dados que já existem}\label{sec:testes}
+Três campanhas antigas permitem testar a fórmula sem rodar nada: o caso A de Hu et al.\ (2024) (talude de 10~m a
+$45^\circ$, $k_s$ fixo, $c'$ e $\varphi'$ lognormais com $r = -0{,}5$; seis cenários de chuva com MC direto e line
+sampling cada), o caso B de Liu et al.\ (2024) (dois cenários na cauda, $P_f \sim 10^{-5}$) e a coluna de Cho (2014)
+(talude infinito, $k_s$ aleatório, FS em 6, 12, 18 e 24~h e $T_1$ em cada realização; 15 casos de 5000).
+
+\begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\caption{Caso A de Hu et al.\ (2024): $\beta$ e $m$ calibrados em um cenário só (30~mm/h por 24~h: $\beta = \huBeta$,
+$m = \huM$) e a $\Pf$ prevista nos outros, contra o LS (com o seu CoV) e o MC direto. $F$: o FS das médias no fim da
+chuva; $m$ e $\beta$ de cada cenário: a mediana do FS no fim da chuva sobre $F$ e o desvio de $\ln$ FS do MC dele.}
+\label{tab:hu}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{cc ccccc ccc l}
+\toprule
+$I$ (mm/h) & $D$ (h) & $F$ & $m$ & $\beta$ & assim. & MC falhas & $\Pf$ LS (CoV) & prevista ($mF$, $\beta_{cal}$) &
+prevista ($F$, $\beta_{cal}$) & \\
+\midrule
+\tabin{tab/hu.tex}
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\begin{table}[H]\centering\small
+\caption{Caso B de Liu et al.\ (2024): a cauda. Prevista com a mediana e o $\beta$ do MC e com o FS das médias ($m = 1$).}
+\label{tab:liu}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccccc}
+\toprule
+cenário & $N$ & $F$ & $m$ & $\beta$ & assim. & $\Pf$ LS (CoV) & prev.\ (mediana) & prev.\ ($F$)\\
+\midrule
+\tabin{tab/liu.tex}
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\begin{table}[H]\centering\small
+\caption{A coluna de Cho (2014) (talude infinito; 5000 realizações por caso): o FS das médias, a mediana do FS das
+realizações, $m$, $\beta$, a assimetria de $\ln$ FS, a $\Pf = P(T_1 \le t)$ do MC (\%) e a prevista com a mediana e
+$\beta$ do próprio MC e com o FS das médias (\%).}\label{tab:cho}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccccccc}
+\toprule
+caso & $t$ (h) & $F$ & mediana & $m$ & $\beta$ & assim. & $\Pf$ MC & prev.\ (mediana) & prev.\ ($F$)\\
+\midrule
+\tabin{tab/cho.tex}
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\begin{itemize}
+  \item \textbf{Hu, caso A: a fórmula funciona em intensidade e duração.} $\beta$ varia pouco entre os seis cenários
+    (0,038 a 0,042) e $m$ também (0,995 a 0,997); $\ln$ FS é simétrico. Calibrando num cenário só, a previsão acerta
+    os outros dentro da incerteza do LS e do MC: 0,25\,\% contra 0,27\,\% (LS, CoV 5\,\%) com 20~mm/h por 36~h;
+    0,11\,\% contra 0,07\,\% (LS) e 0,125\,\% (MC) com 40~mm/h por 12~h; 99,6\,\% contra 99,8\,\% com 50~mm/h. Os
+    cenários diferem também na duração (12, 24 e 36~h): é a extensão $\Pf(I, D) = \Phi(-\ln mF(I,D)/\beta)$ testada.
+    Só nas caudas extremas ($\Pf < 10^{-6}$, a 6--7 desvios) a lognormal se descola do LS, que ali também é impreciso
+    (CoV de 55 e 67\,\%).
+  \item \textbf{Liu, caso B: a cauda em $10^{-5}$.} Com a mediana do MC a lognormal acerta a ordem de grandeza
+    ($6{,}4 \cdot 10^{-6}$ e $1{,}9 \cdot 10^{-5}$ contra $9{,}3 \cdot 10^{-6}$ e $2{,}6 \cdot 10^{-5}$ do LS, dentro do CoV
+    dele); com o FS das médias erra por um fator 4 a 5: na cauda o fator $m$ (0,97--0,98 aqui) é indispensável.
+  \item \textbf{Cho (2014): o contraexemplo.} Na coluna a mediana do FS fica muito acima do FS das médias ($m$ até 3,4
+    em 24~h: o talude médio rompe, FS = 0,367, mas 50 a 75\,\% das realizações não), $\beta$ chega a 0,58 e $\ln$ FS é
+    assimétrico (até $\pm 1$). Nem a lognormal com a mediana e o $\beta$ do próprio MC acerta (9,2\,\% contra 1,5\,\%
+    em 18~h no caso base). O FS de cada realização depende de a frente de umedecimento ter chegado ou não à
+    profundidade crítica, um limiar controlado pelo $k_s$ aleatório: a resposta é bimodal e o FS das médias não
+    representa a mediana. \emph{A fórmula vale quando o FS varia de forma suave e unimodal com as propriedades} (a
+    resistência no Hu e no Liu; o f50 abaixo de $k_s$, onde o $k_s$ não pesa); quando o $k_s$ aleatório controla um
+    limiar, vale só a medida direta da primeira passagem. É o regime que a campanha \texttt{frag} testa no f50 acima de
+    $k_s$ e no f100.
+  \item \textbf{A campanha dos três solos} (\texttt{fermi\_chuva\_solos}, f50 a 36~mm/h, 1000 realizações) não serve: o
+    SRM antigo tinha um buraco logo abaixo de FS = 1 (48 realizações em [1,00; 1,01) contra 22 em [0,99; 1,00)). Mas
+    ela usa os mesmos campos da referência e confirma a monotonia em $I$: o FS a 36~mm/h é menor que a 31,05~mm/h em
+    1000 de 1000 realizações.
 \end{itemize}
 
 \subsection{As curvas de fragilidade previstas}
