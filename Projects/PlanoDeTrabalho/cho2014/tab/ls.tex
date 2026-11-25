@@ -1,0 +1,17 @@
+% gerado por gera_dados.py; nao edite
+\begin{table}[htbp]\centering\footnotesize\setlength{\tabcolsep}{4pt}
+\caption{O line sampling no caso base (CoV 0,5; $l_v$ 0,5~m), $M = 100$, NeoPZ quad ny 80. $z$: contra o MC em Python de 55\,000 ($P_f(18\,\mathrm{h}) = 1{,}45\,\%$). CoV por linha: o desvio de $p$ entre as linhas sobre a média.}\label{tab:ls}
+\begin{tabular}{llrrrrrr}\toprule
+direção & semente & linhas & $P_f$ (\%) & CoV (\%) & CoV por linha & análises/linha & $z$ \\\midrule
+\multicolumn{8}{l}{\emph{18 h}} \\
+piloto p5000, sem truncar & 7 & 200 & 1{,}81 & 11{,}7 & 1{,}65 & 4{,}00 & +1{,}63 \\
+o mesmo, linhas 0--99 & 7 & 100 & 1{,}73 & 14{,}7 & 1{,}47 & 3{,}96 & +1{,}06 \\
+piloto p500 (6 falhas) & 7 & 200 & 1{,}82 & 29{,}0 & 4{,}10 & 5{,}02 & +0{,}69 \\
+T1: p5000 truncado 0--9 & 7 & 100 & 1{,}68 & 10{,}3 & 1{,}03 & 3{,}89 & +1{,}27 \\
+T1: p5000 truncado 0--4 & 7 & 100 & 1{,}71 & 10{,}9 & 1{,}09 & 3{,}79 & +1{,}33 \\
+T2: estágio 2 (direção das linhas) & 9 & 100 & 2{,}18 & 12{,}2 & 1{,}22 & 3{,}75 & +2{,}69 \\
+T1 0--9 + T2 (inverso da variância) & & 200 & 1{,}83 & 7{,}9 & & & +2{,}46 \\
+\multicolumn{8}{l}{\emph{24 h} ($z$ contra o MC em Python de 5000, $37{,}14\,\%$)} \\
+piloto p5000, secante & 7 & 48 & 35{,}75 & 4{,}8 & 0{,}33 & 7{,}92 & \ensuremath{-}0{,}76 \\
+piloto p5000, \texttt{busca=cerca} & 7 & 48 & 34{,}82 & 4{,}7 & 0{,}33 & 9{,}08 & \ensuremath{-}1{,}30 \\
+\bottomrule\end{tabular}\end{table}
