@@ -14,7 +14,8 @@
 #   espera=<a>,<b>   o caso so comeca quando os arquivos existem (ex.: o ponto de projeto que o form.sh grava); com um
 #                    <arquivo>.ERRO (quem o fazia desistiu), o caso fica de fora
 #   ref=<id>, par=<id>  o Monte Carlo direto de referencia e o caso da comparacao pareada (so para o baixar.sh)
-#   cov_alvo=<cv>    parada pelo CoV (amostragem por importancia): antes de pegar um bloco novo do caso, a P_f ponderada
+#   cov_alvo=<cv>    parada pelo CoV (amostragem por importancia ou MC direto, log_peso = 0; com varios instantes, o menor
+#                    FS de cada realizacao): antes de pegar um bloco novo do caso, a P_f ponderada
 #                    sum(I w) / k e o seu CoV sao calculados nas realizacoes 0..k-1 dos blocos ja prontos sem buraco (na
 #                    ordem; I = FS_min < 1, w = exp(log_peso), so as linhas com situacao ok e FS_min > 0, como o
 #                    amostragem_importancia.py; no GIM, Gamma = 0 conta como falha). Com CoV <= cv, k >= cov_n (500) e pelo menos cov_falhas (100) falhas
@@ -133,10 +134,13 @@ atingiu() {
                    next }
         # GIM com Gamma = 0 (situacao fator, sem equilibrio nem com 1% da gravidade): falha de verdade, entra
         { ok = ($cs == "ok" && $cf + 0 > 0) || (cm && $cm == "gim" && $cs == "fator" && $cf ~ /^0(\.0*)?$/) }
+        # uma realizacao por (arquivo, real): com varios instantes (tempos=24,30), o menor FS das linhas ok dela
         $cr + 0 >= 0 && ok {
-            k++
-            if ($cf + 0 < 1) { iw = exp(cw ? $cw + 0 : 0); s1 += iw; s2 += iw * iw; nf++ } }
-        END { pf = (k > 0 ? s1 / k : 0); cv = 9
+            r = FILENAME SUBSEP $cr
+            if (!(r in fs) || $cf + 0 < fs[r]) fs[r] = $cf + 0
+            lw[r] = (cw ? $cw + 0 : 0) }
+        END { for (r in fs) { k++; if (fs[r] < 1) { iw = exp(lw[r]); s1 += iw; s2 += iw * iw; nf++ } }
+              pf = (k > 0 ? s1 / k : 0); cv = 9
               if (k > 1 && pf > 0) { v = (s2 - k * pf * pf) / (k - 1); cv = (v > 0 ? sqrt(v / k) : 0) / pf }
               printf "%d %d %.17g %.17g %.6g %.4f %d\n", k, nf, s1, s2, pf, cv, (k >= nmin && nf >= fmin && cv <= alvo) }' \
         "${novos[@]}")" || return 1

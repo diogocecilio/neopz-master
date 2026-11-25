@@ -5,6 +5,14 @@
 # de 5000 para CoV(P_f) ~5%, com o FS em 24 h (fim da chuva, refinamento do zero) e 30 h (a malha das 24 h; adapta=24). No
 # MC dos 3 solos de 14-15/11 (1 k_s), o menor FS do f50 caiu em 24 h em 993 de 1000 realizacoes. Custo medido no PC:
 # 113 s por realizacao (transiente 66 s, os dois FS 46 s); com o FS tambem em 0 e 18 h seriam 263 s. As familias (CoV, s, alfa, I) e os outros solos entram depois, com o
-# line sampling. Uma linha por caso:
+# line sampling.
+# 25/11 (noite de 24-25/11, job 15279-82, 532c105): ref com 5000, P_f = 5,58% (CoV 5,8%), menor FS em 24 h em 4981.
+# Agora todos param sozinhos no CoV(P_f) = 5% (cov_alvo=0.05 do tarefas.sh, o menor FS de cada realizacao; N e o teto):
+# a ref continua da 5000 (~6800). As referencias do f10 e do f100 tem a chuva escolhida pelas varreduras deterministicas
+# (runs/chuva2_det_solos) para o mesmo FS das medias da ref do f50 (1,124 em 24 h): f10 a 80 mm/h por 24 h (FS 1,172 a
+# 72 e 1,071 a 90 mm/h; o menor no fim da chuva) e f100 a 9,4 mm/h por 72 h (FS 1,146 a 9 mm/h; com 24 h de chuva o f100
+# nao chega perto de 1), o FS no fim da chuva e 6 h depois. Uma linha por caso:
 #   id   fase   N   opcoes do SlopeRainMonteCarlo (alem de n, primeira e saida, que o tarefas.sh poe)
-ref           1  5000  I=IREF tempos=24,30 adapta=24
+ref           1  20000  I=IREF tempos=24,30 adapta=24 cov_alvo=0.05
+f10           1  20000  solo=f10 I=80 chuva=24 tempos=24,30 adapta=24 cov_alvo=0.05
+f100          1  20000  solo=f100 I=9.4 chuva=72 tempos=72,78 adapta=72 cov_alvo=0.05
