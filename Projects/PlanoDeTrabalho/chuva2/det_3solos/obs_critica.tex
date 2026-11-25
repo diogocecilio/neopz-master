@@ -1,0 +1,23 @@
+\begin{itemize}
+  \item \textbf{O que já está bom:} com as hipóteses do artigo, o FS mínimo e a história FS $\times$ $t$ do artigo são
+    reproduzidos dentro da incerteza (Eq.~6 a 0,02; Fig.~5b a 0,03), nos três solos e de chuvas abaixo a acima de
+    $k_s$. O transiente não teve dificuldade numérica (passo constante, 4--5 iterações de Newton).
+  \item \textbf{Concordância não é validação.} Três pontos podem estar compensando um ao outro e precisam da campanha
+    do fermi (T4) antes do estocástico:
+    \begin{enumerate}
+      \item \emph{Malha do transiente:} 319 nós (elementos de $\approx 2{,}5$~m na superfície). A frente de umedecimento
+        do f100 tem 1--2~m. O FS inicial já muda com a malha (2,0933 com \texttt{tri2} e 2,0978 com camadas de
+        0,25~m), porque as pressões do SRM são interpoladas dela.
+      \item \emph{Convenção da chuva:} por metro inclinado (como o ``unit flux'' do SEEP/W, que o artigo usou) põe
+        41\,\% a mais de água na face que a projeção horizontal. Fisicamente, a chuva vertical entrega $I\cos\alpha$
+        por metro inclinado. A convenção que reproduz o artigo pode não ser a física; para o estudo é preciso decidir
+        qual usar e quanto ela muda o FS (T4, \texttt{chuva\_face=vertical}).
+      \item \emph{Malha do fator:} o último nível do refinamento ainda muda o FS em 0,003 a 0,012
+        (Tabela~\ref{tab:niveis}), e a mudança cai mais ou menos à metade por nível: o FS convergido deve ficar
+        $\approx 0{,}01$ abaixo do relatado. A concordância de 0,02 com a Eq.~6 pode, então, ser em parte
+        compensação de erros. Para P$_f$, um deslocamento sistemático de 0,01 perto de FS = 1 importa (T4,
+        \texttt{nref=5}).
+    \end{enumerate}
+  \item \textbf{Próximo:} as variantes (ii) e (i) (rodando no PC) e a campanha determinística do fermi (669 casos,
+    \path{Projects/PlanoDeTrabalho/chuva2/plano_deterministico.md}).
+\end{itemize}

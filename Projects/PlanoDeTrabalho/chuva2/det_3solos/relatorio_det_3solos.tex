@@ -1,0 +1,147 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{graphicx,booktabs,float,geometry,url,array,xcolor,caption}
+\usepackage[hidelinks]{hyperref}
+\geometry{margin=2.2cm}
+\captionsetup{font=small}
+\emergencystretch=2em
+\providecommand{\versao}{sem versão}
+\input{numeros.tex}
+% no relatorio parcial (uma variante) as figuras de um painel ficam mais estreitas
+\newcommand{\largura}{\ifnum\nVar>1 \textwidth\else 0.82\textwidth\fi}
+\newcommand{\larguraCampos}{\ifnum\nVar>1 \textwidth\else 0.55\textwidth\fi}
+\title{Chuva no talude de Rahardjo et al.\ (2007):\\ os três solos, três intensidades e as três variantes do
+transiente\\ \large (validação determinística, rodadas do PC)}
+\author{Diogo Cecílio}
+\date{25/11/2026 --- versão \versao}
+\begin{document}
+\maketitle
+\begin{abstract}
+\input{resumo.tex}
+\end{abstract}
+\tableofcontents
+
+\section{O que foi rodado}\label{sec:rodado}
+\begin{itemize}
+  \item \textbf{O problema:} o talude de Rahardjo et al.\ (2007), Fig.~2 do artigo: $45^\circ$, $H_s = 10$~m, base em
+    $y = 0$, pé em 20~m, crista em 30~m, platôs de 30~m. Nível d'água inicial a $H_w = 5$~m abaixo do pé, subindo
+    $7^\circ$ para dentro do maciço; sucção inicial hidrostática com teto de 75~kPa. Laterais com carga abaixo do nível
+    e impermeáveis acima; base impermeável.
+  \item \textbf{Os solos} (Tabela~1 do artigo): Fredlund--Xing com $n = m = 1$, $\theta_s = 0{,}45$, $k_w = k_s
+    \Theta^4$; f10 ($a = 10$~kPa, $k_s = 10^{-4}$~m/s $= 360$~mm/h), f50 ($a = 50$~kPa, $k_s = 36$~mm/h) e f100
+    ($a = 100$~kPa, $k_s = 3{,}6$~mm/h). Resistência: $c' = 10$~kPa, $\varphi' = \varphi^b = 26^\circ$ ($\chi = 1$),
+    $\gamma = 20$~kN/m$^3$.
+  \item \textbf{As chuvas:} 24~h, três intensidades por solo, abaixo, perto e acima da intensidade-limite da Série~B:
+    f10 com 36, 90 e 180~mm/h; f50 com 9, 36 e 90~mm/h (as da Fig.~5b do artigo); f100 com 3,6, 9 e 36~mm/h. A
+    chuva entra por metro inclinado da superfície (\texttt{chuva\_face=inclinada}, o ``unit flux'' do SEEP/W), com a
+    condição unilateral: o nó vira face de percolação quando $p_w$ chega a 0.
+  \item \textbf{As variantes do transiente:} (iii) desacoplado, esqueleto rígido, ar passivo (as hipóteses do artigo);
+    (ii) acoplado, esqueleto elástico ($E = 20$~MPa, $\nu = 0{,}3$), ar passivo; (i) acoplado, esqueleto elástico, ar
+    ativo ($p_a = 0$ só na superfície).
+  \item \textbf{O fator de segurança:} SRM por elementos finitos de hora em hora de 0 a 48~h, com $p_w$ (e $p_a$)
+    congeladas no instante; malha \texttt{tri1} com 4 níveis de refinamento adaptativo, refeita do zero em cada
+    instante. Transiente na malha \texttt{tri2} (319 nós), passo de 0,1~h.
+  \item \textbf{Código:} \texttt{SlopeRainMonteCarlo} (commit 7d9af5d), \texttt{det=1 n=0} (as médias, sem campos),
+    com \texttt{diag=} (o transiente por instante) e \texttt{grava\_pressoes=} (as pressões nos nós). Rodadas em
+    \path{~/projects/runs/det_pc_3solos} (\texttt{roda.sh}: iii; \texttt{roda\_v.sh}: ii e i). Casos com dados:
+    \nFeitos{} de 27 (faltam: \faltam).
+  \item \textbf{Referências do artigo:} a Eq.~6 (sigmoide do FS mínimo $\times$ $I_r$ ajustada aos resultados do
+    artigo; valores da Tabela B do relatório de outubro, \path{docs/nao_saturado}) e a Fig.~5b (FS $\times$ $t$ do f50,
+    digitalizada, $\pm 0{,}03$). O relatório de outubro (\texttt{biot\_nao\_saturado\_agua\_ar5}) usava outro código
+    (\texttt{SlopeRainfall}), malha de 0,75~m até 2~m de profundidade, chuva na projeção horizontal e o esqueleto
+    elastoplástico no transiente acoplado.
+\end{itemize}
+
+\input{metodo.tex}
+
+\section{FS ao longo do tempo}\label{sec:fst}
+As Figs.~\ref{fig:f10} a \ref{fig:f100} mostram o FS $\times$ $t$ de cada solo com as três intensidades (um painel
+por variante quando há mais de uma). Losangos vazios: a Eq.~6 do artigo (FS mínimo), desenhada em $t = 24$~h; círculos vazios (f50): a
+Fig.~5b do artigo.
+
+\begin{figure}[H]\centering
+\includegraphics[width=\largura]{figs/fs_t_f10.pdf}
+\caption{f10: FS $\times$ $t$.}\label{fig:f10}
+\end{figure}
+\begin{figure}[H]\centering
+\includegraphics[width=\largura]{figs/fs_t_f50.pdf}
+\caption{f50: FS $\times$ $t$; círculos: a Fig.~5b do artigo.}\label{fig:f50}
+\end{figure}
+\begin{figure}[H]\centering
+\includegraphics[width=\largura]{figs/fs_t_f100.pdf}
+\caption{f100: FS $\times$ $t$.}\label{fig:f100}
+\end{figure}
+
+\input{obs_fst.tex}
+
+\ifnum\nVar>1
+\section{As três variantes lado a lado}\label{sec:var}
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/variantes_f10.pdf}\\
+\includegraphics[width=\textwidth]{figs/variantes_f50.pdf}\\
+\includegraphics[width=\textwidth]{figs/variantes_f100.pdf}
+\caption{FS $\times$ $t$ das três variantes em cada solo (linhas) e intensidade (colunas).}\label{fig:var}
+\end{figure}
+
+\input{obs_var.tex}
+\fi
+
+\section{FS mínimo contra o artigo e o relatório de outubro}\label{sec:fsmin}
+\begin{table}[H]\centering\small
+\caption{FS mínimo (entre parênteses, o instante em h), a Eq.~6 do artigo e o relatório de outubro
+(Tabela B; outra malha, chuva na projeção horizontal e, nas acopladas, esqueleto elastoplástico).}\label{tab:fsmin}
+\input{tab/fsmin.tex}
+\end{table}
+
+\begin{table}[H]\centering\small
+\caption{f50: FS em 6, 12, 24 e 48~h, a Fig.~5b do artigo (digitalizada, $\pm0{,}03$), este trabalho e o relatório
+de outubro.}\label{tab:fig5b}
+\input{tab/fig5b.tex}
+\end{table}
+
+\input{obs_fsmin.tex}
+
+\section{O transiente}\label{sec:trans}
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/diag_f10.pdf}
+\caption{f10: água infiltrada líquida acumulada (pontilhado: a chuva aplicada; depois da chuva a água sai pela face de
+percolação), nós da superfície alagados (face de percolação) e, com a variante (i), $p_a$ máxima.}\label{fig:diagf10}
+\end{figure}
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/diag_f50.pdf}
+\caption{f50: o transiente.}\label{fig:diagf50}
+\end{figure}
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/diag_f100.pdf}
+\caption{f100: o transiente.}\label{fig:diagf100}
+\end{figure}
+
+\begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{3.5pt}
+\caption{Resumo por caso: FS em 0, 24 e 48~h; profundidade da banda de ruptura do SRM no instante do FS mínimo (m);
+água infiltrada e nós alagados em 24~h; $p_a$ máxima (kPa); $|u|$ máximo (m); passos e iterações de Newton do
+transiente; tempo do transiente e total (s, PC com 18 processos simultâneos).}\label{tab:diag}
+\input{tab/diag.tex}
+\end{table}
+
+\input{obs_trans.tex}
+
+\section{Campos de pressão}\label{sec:campos}
+\begin{figure}[H]\centering
+\includegraphics[width=\larguraCampos]{figs/campos_f50_I36_t24.pdf}\\
+\includegraphics[width=\larguraCampos]{figs/campos_f50_I90_t24.pdf}\\
+\includegraphics[width=\larguraCampos]{figs/campos_f100_I9_t24.pdf}
+\caption{$p_w$ (e $p_a$ na variante (i), quando rodada) em $t = 24$~h (fim da chuva): f50 com 36 e 90~mm/h e f100
+com 9~mm/h. Linha rosa: $p_w = 0$. Campos interpolados linearmente entre os nós da malha do transiente.}
+\label{fig:campos}
+\end{figure}
+
+\input{obs_campos.tex}
+
+\section{Leitura crítica e próximos passos}\label{sec:critica}
+\input{obs_critica.tex}
+
+\end{document}

@@ -1,0 +1,60 @@
+\section{Método, malhas e custo computacional}\label{sec:metodo}
+
+\subsection{O transiente}
+\begin{itemize}
+  \item \textbf{Material:} \texttt{TPZMatUnsaturatedUPwPa} (formulação $\mathbf u$--$p_w$--$p_a$ de
+    \path{docs/nao_saturado}), deformação plana, $\mathbf u$ quadrático e $p_w$, $p_a$ lineares (Taylor--Hood). Na
+    variante (iii) o acoplamento hidromecânico e a fase de ar estão desligados nas equações de massa (esqueleto rígido,
+    $p_a = 0$): só a equação da água evolui. Armazenamento concentrado nos vértices; $K_w = 2{,}2$~GPa.
+  \item \textbf{Tempo:} Euler implícito com passo fixo de 0,1~h (bissecção do passo só se o Newton falhar, o que não
+    ocorreu), Newton com o jacobiano consistente, solver direto (LU esparsa).
+  \item \textbf{Superfície:} fluxo $I_r$ por metro inclinado com a condição unilateral $p_w \le 0$: o nó em que $p_w$
+    chegaria a 0 passa a face de percolação ($p_w = 0$) e volta ao fluxo quando a vazão pedida fica abaixo de $I_r$.
+  \item \textbf{Malha} (Fig.~\ref{fig:malhas}): \texttt{tri2}, a malha estruturada de triângulos retângulos com catetos
+    de 10~m dividida duas vezes: catetos de 2,5~m, \nTriTrans{} triângulos, 319 nós, 3032 equações (com $\mathbf u$,
+    $p_w$ e $p_a$; a mesma nas três variantes).
+\end{itemize}
+
+\subsection{O fator de segurança: SRM}
+\begin{itemize}
+  \item \textbf{Definição:} o FS é o fator $F$ que leva o talude ao colapso quando a resistência é reduzida para
+    $c'/F$ e $\tan\varphi'/F$ (redução de resistência, SRM). Com $\chi = 1$, a parcela da sucção, $\chi\,s\tan\varphi'$,
+    cai junto: é o $\tan\varphi^b/F$ do Bishop, o mesmo fator do equilíbrio limite do artigo.
+  \item \textbf{Pressões congeladas:} em cada instante, $p_w$ (e $p_a$ na variante i) do transiente é interpolada
+    linearmente da malha do transiente para os nós da malha do fator e fica fixa; o fator resolve só o equilíbrio.
+  \item \textbf{Material do fator:} Mohr--Coulomb associado ($\psi = \varphi'$), retorno analítico e tangente
+    consistente (\texttt{TPZPlasticStepVoigt<TPZYCMohrCoulombPV2>}), $E = 20$~MPa, $\nu = 0{,}3$; $\mathbf u$
+    quadrático. Cada análise parte do estado sem tensões.
+  \item \textbf{Caminho:} (1) o peso é aplicado de 0 a 1 com $F = F_0 = 0{,}8$ (se o talude não ficar em pé, $F_0/2$ e
+    $F_0/4$); (2) $F$ cresce por \emph{arc-length} cilíndrico (Box~4.4 de de Souza Neto et al.\ 2008), com a carga
+    tangente $-\partial R/\partial F$ por diferença finita. O caminho termina num patamar (um passo aceito que sobe
+    $F$ menos que 0,001, medido com o arco pedido) ou em 100 passos. O FS é o maior $F$ do caminho. Sem pontos
+    plásticos a carga tangente é nula: passos de Newton com $F$ 10\,\% maior (metade quando não converge).
+  \item \textbf{Refinamento adaptativo, refeito do zero em cada instante:} malha grossa \texttt{tri1} (catetos de
+    5~m, \nTriFatorZero{} triângulos depois do refinamento do instante 0) e 4 níveis. Em cada nível, os elementos com
+    $\sqrt{J_2(\boldsymbol\varepsilon^p)} \ge 0{,}1$ do maior (a banda de cisalhamento) são divididos (o lado cai à
+    metade, com o fechamento da conformidade), e o SRM é refeito na malha nova. O FS é o do último nível; o menor
+    cateto chega a 0,31~m (Fig.~\ref{fig:malhas}). A Tabela~\ref{tab:niveis} mostra o FS de cada nível em 24~h.
+\end{itemize}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/malhas.pdf}
+\caption{As malhas: a do transiente (a mesma em todos os instantes e casos) e a do fator no instante inicial e em
+24~h em três casos: o refinamento acompanha a banda de ruptura de cada instante.}\label{fig:malhas}
+\end{figure}
+
+\begin{table}[H]\centering\small
+\caption{Convergência do FS com o refinamento adaptativo do fator, em $t = 24$~h: o FS na malha grossa (tri1) e
+depois de cada nível; a última coluna é a mudança do último nível.}\label{tab:niveis}
+\input{tab/niveis.tex}
+\end{table}
+
+\begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{3.5pt}
+\caption{Custo computacional por caso: equações, passos, iterações de Newton (total e por passo) e tempo do
+transiente; faixa de equações e tempo por FS nas 49 análises do fator (média e mínimo--máximo); tempo total. PC com
+Intel i7-10700K (8 núcleos, 16 threads), com 18 processos seriais ao mesmo tempo (os tempos estão inflados pela
+disputa: rodando sozinho, um FS leva $\approx 12$~s).}\label{tab:custo}
+\input{tab/custo.tex}
+\end{table}
+
+\input{obs_metodo.tex}

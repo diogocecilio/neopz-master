@@ -27,6 +27,9 @@
 //   alfa (1)               anisotropia k_h / k_v (k_v e o do campo)
 //   k_theta (0)            graus: a direcao de k_1 = alfa k_s a partir do eixo x, anti-horario (k_2 = k_s normal a ela); a
 //                          face desce a -45 graus (135 = paralela a face). 0: o tensor diagonal de antes
+//   malhas (<prefixo>)     as malhas em CSV (uma linha por elemento: numero de vertices e as coordenadas x y de cada):
+//                          <prefixo>_transiente.csv e, em cada instante adaptativo, <prefixo>_fator_t<t>.csv (a malha
+//                          do ultimo nivel do refinamento do fator)
 //   diag (<arquivo>)       o transiente em cada instante do fator (CSV): passos, iteracoes de Newton, nos na face, p_w e p_a
 //                          (menor e maior, kPa), |u| max (m, acopladas), agua infiltrada acumulada (m3/m) e tempo (s)
 //   transiente (tri2)      malha do transiente: triK, camH ou camqH (camHpD, camqHpD: camadas de H ate D m); uT (2):
@@ -285,6 +288,7 @@ struct Opcoes {
     std::vector<REAL> newton;              // tol_p, maxit do Newton do transiente (vazio: os do TPZUnsatAnalysis)
     std::string newtonTrace;               // arquivo do diagnostico do Newton (vazio: sem)
     std::string diag;                      // arquivo do diagnostico do transiente por instante (vazio: sem)
+    std::string malhas;                    // prefixo dos CSV das malhas (vazio: sem)
     REAL faceTol = 0.;                     // folga relativa da volta da face ao fluxo
     bool chuvaAleatoria = false;
     std::array<REAL, 7> gpd = {-0.04, 3.44, 5.13, 0.43, 5.15, 0.30, -2.38};
@@ -331,7 +335,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
         "nu",         "rcphi",      "M",          "nystrom",    "xi",         "desloc_xi", "gradiente", "grava_pressoes",
         "pressoes",   "so_transiente", "fx",       "kfredlund", "psi_r",     "q0",         "q0_cov",    "phib",
         "phib_razao", "dt",         "dt_min",    "newton",         "chuva_aleatoria", "gpd",  "crpc",      "crpc_dmax", "crpc_passo",
-        "vg_tab",     "vg_tab_psi", "newton_trace", "face_tol", "kw", "mv", "variante", "k_theta", "diag"};
+        "vg_tab",     "vg_tab_psi", "newton_trace", "face_tol", "kw", "mv", "variante", "k_theta", "diag", "malhas"};
     std::map<std::string, std::string> kv;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
@@ -497,6 +501,7 @@ Opcoes LeOpcoes(int argc, char *argv[])
     if (tem("alfa")) op.alfa = std::stod(kv["alfa"]);
     if (tem("k_theta")) op.kTheta = std::stod(kv["k_theta"]);
     if (tem("diag")) op.diag = kv["diag"];
+    if (tem("malhas")) op.malhas = kv["malhas"];
     if (tem("transiente")) op.malhaT = kv["transiente"];
     if (tem("uT")) op.uT = std::stoi(kv["uT"]);
     if (tem("fator")) op.malhaF = kv["fator"];
@@ -822,6 +827,23 @@ void InsertBC(UnsatModel<TUnsatHP> &m)
     m.AddDirichletBC(base, TUnsat::EDirichletU, 0, {0, 1});
     m.AddDirichletBC(left, TUnsat::EDirichletU, 0, {0});
     m.AddDirichletBC(right, TUnsat::EDirichletU, 0, {0});
+}
+
+// a malha em CSV (malhas=): uma linha por elemento 2D folha, o numero de vertices e as coordenadas x y de cada
+void GravaMalha(const std::string &arq, TPZGeoMesh *g)
+{
+    std::ofstream f(arq);
+    f << "# n,x0,y0,x1,y1,...\n" << std::setprecision(10);
+    for (TPZGeoEl *gel : g->ElementVec()) {
+        if (!gel || gel->Dimension() != 2 || gel->HasSubElement()) continue;
+        f << gel->NCornerNodes();
+        for (int k = 0; k < gel->NCornerNodes(); k++) {
+            TPZManVector<REAL, 3> x(3, 0.);
+            gel->NodePtr(k)->GetCoordinates(x);
+            f << "," << x[0] << "," << x[1];
+        }
+        f << "\n";
+    }
 }
 
 // ---- fator de seguranca
@@ -1879,6 +1901,7 @@ int main(int argc, char *argv[])
         // realizacoes, calculado na primeira ou lido do arquivo)
         UnsatModel<TUnsatHP> mT;
         mT.SetGeoMesh(Malha(op.malhaT));
+        if (!op.malhas.empty()) GravaMalha(op.malhas + "_transiente.csv", mT.GeoMesh());
         InsertBC(mT);
         mT.SetMaterial(MaterialTransiente(r, op));
         mT.CreateCompMesh({{2, op.uT}, {1, 1}, {1, 1}});
@@ -1963,6 +1986,11 @@ int main(int argc, char *argv[])
             const REAL fs = FatorAdaptativo(adaptados[t], r, op, cf, loc, P->pw.at(t), niveis, ArDe(*P, t));
             adaptados[t].t = t, malhaDe[t] = t;
             const double s = Seg(tf);
+            if (!op.malhas.empty()) {
+                std::ostringstream nome;
+                nome << op.malhas << "_fator_t" << t << ".csv";
+                GravaMalha(nome.str(), adaptados[t].m->GeoMesh());
+            }
             sF += s;
             registra(t, fs, adaptados[t], niveis, true, s);
         }
