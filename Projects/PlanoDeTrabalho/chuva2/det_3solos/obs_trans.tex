@@ -1,19 +1,16 @@
-\paragraph{Observações (variante iii).}
+\paragraph{Observações.}
 \begin{itemize}
-  \item \textbf{Infiltração:} com $I_r \le k_s$ toda a chuva entra até o fim (f10 com 36~mm/h, f50 com 9~mm/h, f100
-    com 3,6~mm/h), e no f10 com 90~mm/h ($0{,}25k_s$) entram 93\,\%. Acima de $k_s$ a superfície alaga e a infiltração
-    cai: 86\,\% no f50 com 36~mm/h ($= k_s$, alaga a partir de 11~h), 42\,\% no f50 com 90~mm/h (toda a superfície
-    alagada em 4~h), 95\,\% no f100 com 9~mm/h e 29\,\% no f100 com 36~mm/h. No f100 com $2{,}5k_s$ quase tudo ainda
-    entra porque o solo seco absorve acima de $k_s$ no começo (sorção).
-  \item \textbf{Depois da chuva} a água infiltrada líquida diminui devagar (sai pela face de percolação) e os nós
-    alagados voltam a 0--4.
-  \item \textbf{Lençol freático} (Tabela~3 do artigo): em 24~h ele chega à superfície da crista no f50 com 90~mm/h
-    (cota 29,9 em $x = 30$~m, superfície em 30) e quase no f10 com 180~mm/h (29,1): categoria I. No f50 com 36~mm/h ele
-    sobe 6~m e aflora na face (cota 24,9 no meio da face, superfície em 25): categoria II. No f100 ele quase não sobe
-    (0,2~m): a água fica numa zona rasa sobre a sucção (categoria IV). No f10 com 36~mm/h sobe 2,7~m.
-  \item \textbf{Mecanismo:} a banda de ruptura do SRM fica a 4,0--4,6~m de profundidade nos casos perto da ruptura e
-    a 5,2--6,5~m nas chuvas fracas; depois da chuva ela aprofunda (5,6--7,7~m em 48~h).
-  \item \textbf{Numérica:} o transiente usou sempre o passo de 0,1~h (480 passos em 48~h, sem bissecção) com 4,0 a
-    5,0 iterações de Newton por passo, e levou 114--131~s; o tempo total (1800--3000~s com 18 processos no PC) é
-    quase todo dos 49 SRM.
+  \item \textbf{Infiltração:} com $I_r \le k_s$ toda a chuva entra (f10 com 36~mm/h, f50 com 9~mm/h, f100 com
+    3,6~mm/h), e no f10 com 90~mm/h ($0{,}25k_s$) entram 93\,\%. Acima de $k_s$ a superfície alaga e a infiltração
+    cai: na (iii), 86\,\% no f50 com 36~mm/h (alaga a partir de 11~h), 42\,\% no f50 com 90~mm/h (toda a superfície
+    alagada em 4~h), 95\,\% no f100 com 9~mm/h (o solo seco absorve acima de $k_s$ no começo) e 29\,\% com 36~mm/h.
+  \item \textbf{Com ar ativo entra menos água} (o ar a ser expulso resiste): no f50, 41,5 contra 55,4~m$^3$/m com
+    36~mm/h e 43,2 contra 67,1~m$^3$/m com 90~mm/h; no f10 com 180~mm/h, 200,9 contra 230,1. Ainda assim o FS cai
+    mais: o ar comprimido sob a frente chega a 57--59~kPa no f50 (36 e 90~mm/h), 37--40~kPa no f100 e 37~kPa no f10
+    com 180~mm/h, e com $\chi = 1$ quem reduz a resistência é $p_w$, que sobe com $p_a$ (Seção~\ref{sec:campos}).
+  \item \textbf{Lençol freático} (Tabela~3 do artigo, variante iii): em 24~h ele chega à superfície da crista no f50
+    com 90~mm/h e quase no f10 com 180~mm/h (categoria I); no f50 com 36~mm/h aflora na face (categoria II); no f100
+    quase não sobe (0,2~m; categoria IV).
+  \item \textbf{Mecanismo:} a banda de ruptura do SRM fica a 3,7--4,6~m de profundidade nos casos perto da ruptura e a
+    5,0--6,6~m nas chuvas fracas; depois da chuva ela aprofunda.
 \end{itemize}

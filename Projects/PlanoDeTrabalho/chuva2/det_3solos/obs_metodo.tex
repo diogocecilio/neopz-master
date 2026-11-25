@@ -1,9 +1,11 @@
 \paragraph{Observações.}
 \begin{itemize}
-  \item \textbf{O custo é quase todo do fator:} o transiente de 48~h leva 114--131~s (480 passos, 4,0 a 5,0 iterações
-    de Newton por passo, sem nenhum corte de passo), e as 49 análises do fator levam 1700--2900~s (33--58~s por FS com
+  \item \textbf{O custo é quase todo do fator:} o transiente de 48~h leva 114--131~s na (iii) (480 passos, 4,0 a 5,0
+    iterações de Newton por passo, sem nenhum corte de passo), e as 49 análises do fator levam 1700--2900~s (33--58~s por FS com
     o PC sobrecarregado). Os FS altos custam mais (o caminho de $F$ é mais longo): 53--58~s por FS nos casos com chuva
     fraca contra 33--38~s nos que rompem.
+  \item \textbf{As variantes acopladas} usam a mesma malha e os mesmos passos (480, com 4,0--5,2 iterações de Newton
+    por passo); o transiente custa de 10 a 80\,\% a mais (125--232~s), o que pouco muda o total, dominado pelo SRM.
   \item \textbf{O refinamento adaptativo é indispensável e ainda não convergiu.} Na malha grossa o FS fica 0,05 a 0,20
     acima (f50 com 36~mm/h: 1,229 contra 1,034). Cada nível reduz a mudança mais ou menos à metade (no mesmo caso:
     $-0{,}110$, $-0{,}055$, $-0{,}020$, $-0{,}010$), e o último nível ainda muda o FS em 0,003 a 0,012. Se a mudança

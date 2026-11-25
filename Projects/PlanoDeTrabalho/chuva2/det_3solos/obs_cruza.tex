@@ -8,22 +8,24 @@ FS mínimo:
     não tem sentido físico. A falha de uma realização é o evento de primeira passagem, FS$(t) < 1$ para algum $t$, e a
     P$_f$ é a probabilidade dele. Ela é a mesma do critério ``FS mínimo $< 1$'' quando os instantes são os mesmos, mas
     o $t_1$ dá também a \emph{distribuição do instante de ruptura}, que o FS mínimo não dá.
-  \item \textbf{A realização pode parar em $t_1$.} No f10 com 180~mm/h a ruptura ocorre a 10,7~h: parar ali corta 78\,\%
-    do horizonte de 48~h (o transiente e as análises do fator que viriam depois). Nas realizações que não rompem, o
-    cálculo vai até o fim do horizonte de qualquer jeito.
+  \item \textbf{A realização pode parar em $t_1$.} No f10 com 180~mm/h e ar ativo a ruptura ocorre a 5,8~h: parar ali
+    corta 88\,\% do horizonte de 48~h. Nas realizações que não rompem o cálculo vai até o fim de qualquer jeito.
+  \item \textbf{Com chuva constante, $t_1$ dá a P$_f$ de todas as durações}: a realização que rompe em $t_1$ rompe em
+    qualquer chuva da mesma intensidade com duração $D \ge t_1$, então um MC por intensidade dá
+    P$_f(I, D) = P(t_1 \le D)$ (para as rupturas durante a chuva).
   \item \textbf{Precisão de $t_1$.} Com o FS de hora em hora e a interpolação linear, o erro em $t_1$ é de uma fração de
     hora. No Monte Carlo, avaliar o FS de hora em hora custa 49 SRM por realização; a alternativa é avaliar em poucos
     instantes e, no intervalo em que o FS cruza 1, refinar o instante por bissecção (o driver já faz isso para a curva
     crítica de chuva, \texttt{crpc=}).
 \end{itemize}
 
-\begin{table}[H]\centering\small
+\begin{table}[H]\centering\scriptsize
 \caption{Primeira passagem: $t_1$ (o FS cruza 1 descendo), o instante em que volta a ficar acima de 1 e o tempo
 abaixo de 1 (h; interpolação linear entre as horas calculadas).}\label{tab:cruza}
-\input{tab/cruza.tex}
+\resizebox{\ifnum\nVar>1 \textwidth\else 0.6\textwidth\fi}{!}{\input{tab/cruza.tex}}
 \end{table}
 
-\paragraph{Observações (variante iii).} Só dois casos rompem: o f10 com 180~mm/h ($t_1 = 10{,}7$~h, 45\,\% da chuva) e
-o f50 com 90~mm/h ($t_1 = 19{,}3$~h, 80\,\% da chuva). Nos dois a ruptura ocorre \emph{durante} a chuva, bem antes do
-mínimo (24~h), e o FS fica abaixo de 1 por 13--16~h. O f50 com 36~mm/h passa a 0,034 de romper (FS 1,034 em 24~h) e
-não cruza; o f100 não chega perto de 1 com chuvas de 24~h.
+\paragraph{Observações.} Rompem o f10 com 180~mm/h e o f50 com 90~mm/h nas três variantes e o f50 com 36~mm/h só com ar
+ativo. Todas as rupturas ocorrem \emph{durante} a chuva, bem antes do mínimo (24~h). O ar passivo acoplado (ii) atrasa
+$t_1$ em 0,2--1,2~h; o ar ativo (i) o antecipa em 4,9~h no f10 e 8,0~h no f50. O FS fica abaixo de 1 por 11--19~h. O
+f100 não chega a 1 com chuvas de 24~h em nenhuma variante (o menor FS é 1,19, com ar ativo e 36~mm/h).
