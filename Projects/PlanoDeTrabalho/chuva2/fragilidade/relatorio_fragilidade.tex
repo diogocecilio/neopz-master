@@ -21,7 +21,7 @@ primeira passagem\\ \large Formulação, evidências preliminares e a campanha d
 \begin{document}
 \maketitle
 \begin{abstract}
-Rahardjo et al.\ (2007) mostraram que o fator de segurança mínimo de um talude homogêneo sob chuva segue uma sigmoide
+Rahardjo et al.\ (2007)~\cite{rahardjo2007} mostraram que o fator de segurança mínimo de um talude homogêneo sob chuva segue uma sigmoide
 da intensidade, $F(I) = A + B/(1 + e^{-(I-C)/D})$ (a Eq.~6 do artigo). A proposta é levar essa sigmoide para a
 probabilidade de ruptura: com propriedades em campos aleatórios, se o FS de cada intensidade for lognormal com mediana
 $F(I)$ e dispersão $\beta$, a probabilidade de ruptura é $\Pf(I) = \Phi(-\ln F(I)/\beta)$, uma curva de fragilidade
@@ -36,11 +36,13 @@ do talude de Rahardjo (f50, chuva de 24~h): o FS de 5000 realizações a 31,05~m
 mediana do FS com campo aleatório é $\fatorMediana$ vezes o FS das médias, um efeito pequeno que a esta precisão já
 aparece. As sigmoides determinísticas têm $I_c = \iccinqiii$~mm/h com ar passivo e $\iccinqi$~mm/h com ar ativo, uma
 quina em $I = k_s$ (o alagamento) e patamares que limitam a $\Pf$ (com ar ativo ela satura em $\approx 88\,\%$; no f100
-com 72~h de chuva e ar passivo, em $\approx \pfMaxCemiii\,\%$). Com dados que já existiam, a fórmula calibrada em um cenário prevê os
-outros cinco do caso A de Hu et al.\ (2024) (intensidades e durações diferentes) dentro da incerteza do MC e do line
-sampling, e a cauda ($10^{-5}$) do caso B de Liu et al.\ (2024); mas falha na coluna de Cho (2014), onde o $k_s$
-aleatório controla um limiar (a frente de umedecimento chega ou não à profundidade crítica) e o FS das realizações é
-bimodal. A verificação, ponto a ponto, está rodando no fermi
+com 72~h de chuva e ar passivo, em $\approx \pfMaxCemiii\,\%$). Em cinco problemas publicados que recalculamos (Hu et al.\ 2024, Liu et al.\ 2024, Cho 2014, X.\ Liu et al.\ 2025 e
+os 26 casos de Vargas Ceron et al.\ 2025), a fórmula prevê a $\Pf$ dentro de um fator $\approx 1{,}5$ entre 0,1 e
+20\,\% quando o mecanismo não muda entre os cenários (calibrada num cenário só no caso A de Hu, que varia intensidade e
+duração), e fica do lado conservador onde a cauda do FS é mais leve que a lognormal (Ceron); falha quando o $k_s$
+aleatório cria um limiar e o FS fica bimodal (a coluna de Cho e X.\ Liu em 24~h). Em dados de oito outros artigos
+(Yang et al.\ 2026, Tang et al.\ 2018 e outros) ela reproduz a $\Pf$ contra o CoV da resistência e, no talude de
+Rahardjo, $\Pf \approx 50\,\%$ onde o FS determinístico vale 1. A verificação, ponto a ponto, está rodando no fermi
 (campanha \texttt{frag}): a primeira passagem de 2000 realizações em 7 intensidades (ar passivo) e 5 (ar ativo) no f50 e
 de 1000 realizações em 4 intensidades por variante no f100 com chuva de até 120~h.
 \end{abstract}
@@ -48,7 +50,7 @@ de 1000 realizações em 4 intensidades por variante no f100 com chuva de até 1
 
 \section{A ideia}\label{sec:ideia}
 \begin{itemize}
-  \item \textbf{O ponto de partida.} No estudo paramétrico de Rahardjo et al.\ (2007), o FS mínimo de um talude
+  \item \textbf{O ponto de partida.} No estudo paramétrico de Rahardjo et al.\ (2007)~\cite{rahardjo2007}, o FS mínimo de um talude
     homogêneo cai com a intensidade da chuva $I$ segundo uma sigmoide (Fig.~6 e Eq.~6 do artigo): constante nas chuvas
     fracas, caindo depois da intensidade inicial $I_{ini}$ e parando num patamar inferior a partir da intensidade-limite
     $I_{thr}$. É um resultado determinístico: o talude rompe ou não.
@@ -124,7 +126,7 @@ durante a chuva (o que vale nos casos calculados), $\{T_1 \le D\} = \{\mathrm{FS
 (\ref{eq:frag}) se estende para $\Pf(I, D) = \Phi(-\ln m F(I, D)/\beta)$, com $F(I, D)$ o FS das médias no fim de uma
 chuva $(I, D)$.
 
-\textbf{O algoritmo} (opção \texttt{crpc=} do \texttt{SlopeRainMonteCarlo}, a curva crítica de Liu e Wang (2023)
+\textbf{O algoritmo} (opção \texttt{crpc=} do \texttt{SlopeRainMonteCarlo}, a curva crítica de Liu e Wang (2023)~\cite{liuwang2023}
 estendida às variantes acopladas): para cada realização, as intensidades em ordem decrescente; em cada uma, chuva
 constante até $D_{\max}$, o FS em 6, 12, 24, 48, 96~h e $D_{\max}$, e bissecção nas horas guardadas entre o último
 instante com FS $\ge 1$ e o primeiro com FS $< 1$; $T_1$ por interpolação linear. Quem não rompe numa intensidade não
@@ -144,7 +146,7 @@ mapa determinístico $F(I, D)$, barato, vira o mapa de probabilidade com uma con
 Os dados abaixo já existem (25/11/2026; variante (iii): desacoplado, esqueleto rígido, ar passivo, as hipóteses do
 artigo; variante (i): acoplado, esqueleto elástico, ar ativo). Talude de Rahardjo ($45^\circ$, $H_s = 10$~m,
 $H_w = 5$~m), campos de Karhunen--Loève de $c'$, $\varphi'$ e $k_s$ com as estatísticas da Tabela~2 de Vargas Ceron et
-al.\ (2025) (CoV 0,3; 0,1; 0,6; distâncias de autocorrelação de 20 e 2~m), FS pelo SRM.
+al.\ (2025)~\cite{ceron2025} (CoV 0,3; 0,1; 0,6; distâncias de autocorrelação de 20 e 2~m), FS pelo SRM.
 
 \subsection{As sigmoides determinísticas}
 \begin{figure}[H]\centering
@@ -257,107 +259,151 @@ realização & var. & FS 31,05 & $T_1$ por intensidade\\
     concorda com o FS do MC direto na mesma realização (rompe antes de 24~h quando o FS em 24~h é menor que 1).
 \end{itemize}
 
-\subsection{Testes com dados que já existem}\label{sec:testes}
-Três campanhas antigas permitem testar a fórmula sem rodar nada: o caso A de Hu et al.\ (2024) (talude de 10~m a
-$45^\circ$, $k_s$ fixo, $c'$ e $\varphi'$ lognormais com $r = -0{,}5$; seis cenários de chuva com MC direto e line
-sampling cada), o caso B de Liu et al.\ (2024) (dois cenários na cauda, $P_f \sim 10^{-5}$) e a coluna de Cho (2014)
-(talude infinito, $k_s$ aleatório, FS em 6, 12, 18 e 24~h e $T_1$ em cada realização; 15 casos de 5000).
+\subsection{Casos calculados em comum com outros artigos}\label{sec:testes}
+Cinco problemas publicados foram recalculados por nós (os mesmos taludes, propriedades e chuvas, com o MEF do NeoPZ, ou
+em Python no caso de X.\ Liu et al.\ \cite{xliu2025}). As Tabelas~\ref{tab:hu} a \ref{tab:cer} põem lado a lado a
+$\Pf$ do artigo, a nossa (MC direto e line sampling, com o CoV da estimativa) e a da fórmula (\ref{eq:frag}). Nas
+fórmulas, a mediana e $\beta$ vêm de um MC de calibração (dito em cada tabela); ``lida'' indica valor tirado de figura.
+CoV do MC: $\sqrt{(1 - \Pf)/(N\Pf)}$.
 
 \begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{3pt}
-\caption{Caso A de Hu et al.\ (2024): $\beta$ e $m$ calibrados em um cenário só (30~mm/h por 24~h: $\beta = \huBeta$,
-$m = \huM$) e a $\Pf$ prevista nos outros, contra o LS (com o seu CoV) e o MC direto. $F$: o FS das médias no fim da
-chuva; $m$ e $\beta$ de cada cenário: a mediana do FS no fim da chuva sobre $F$ e o desvio de $\ln$ FS do MC dele.}
-\label{tab:hu}
+\caption{Hu et al.\ \cite{hu2024}, caso A (talude de 10~m a $45^\circ$, $k_s$ fixo, $c'$ e $\varphi'$ em campos com
+$r = -0{,}5$): $\Pf$ (\%) por cenário de chuva. Artigo: PDET com 180 realizações. Fórmula: $\beta = \huBeta$ e $m = \huM$
+calibrados no cenário de 30~mm/h por 24~h; $z$: fórmula contra o LS.}\label{tab:hu}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{cc ccccc ccc l}
+\begin{tabular}{cc c c ccc cc cc}
 \toprule
-$I$ (mm/h) & $D$ (h) & $F$ & $m$ & $\beta$ & assim. & MC falhas & $\Pf$ LS (CoV) & prevista ($mF$, $\beta_{cal}$) &
-prevista ($F$, $\beta_{cal}$) & \\
+ & & & artigo & \multicolumn{3}{c}{nosso MC} & \multicolumn{2}{c}{nosso LS} & \multicolumn{2}{c}{fórmula}\\
+\cmidrule(lr){5-7}\cmidrule(lr){8-9}\cmidrule(lr){10-11}
+$I$ (mm/h) & $D$ (h) & $F$ & $\Pf$ & falhas/$N$ & $\Pf$ & CoV (\%) & $\Pf$ & CoV (\%) & $\Pf$ & $z$\\
 \midrule
-\tabin{tab/hu.tex}
+\tabin{tab/comum_hu.tex}
 \bottomrule
 \end{tabular}}
+\end{table}
+
+\begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\caption{Liu et al.\ \cite{liu2024}, caso B, e o mesmo talude em Yang et al.\ \cite{yang2026}: $\Pf$ (\%). $F$: o
+nosso FS das médias (SRM; Bishop dá 1,525--1,527 nos dois artigos). Artigo: Tabela~4 (lognormal ajustada a 2000
+realizações) e Tabela~2 (hipercubo latino, cenário 3); as duas não fecham entre si. Fórmula: com a mediana e o $\beta$
+do nosso MC, e com $F$ no lugar da mediana.}\label{tab:liuB}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{l c ccc c cc cc}
+\toprule
+ & & \multicolumn{2}{c}{artigo} & Yang & nosso MC & \multicolumn{2}{c}{nosso LS} & \multicolumn{2}{c}{fórmula}\\
+\cmidrule(lr){3-4}\cmidrule(lr){7-8}\cmidrule(lr){9-10}
+cenário & $F$ & Tab.~4 & Tab.~2 & (2026) & falhas/$N$ (lim.\ sup.\ 95\,\%) & $\Pf$ & CoV (\%) & mediana & $F$\\
+\midrule
+\tabin{tab/comum_liu.tex}
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\caption{Cho \cite{cho2014} (coluna de talude infinito, $k_s$ em campo, 15 casos de CoV e $l_v$): $\Pf$ (\%) em 18 e 24~h,
+o artigo e o nosso MC do NeoPZ (\texttt{SlopeRainColumn}; o MC em Python dá 1,45 e 36,87\,\% no caso base com 55\,000
+realizações). Fórmula em 24~h: o FS das médias (0,367 em todos) e o $\beta$ do próprio MC.}\label{tab:chocomum}
+\begin{tabular}{lc ccc ccc c}
+\toprule
+ & & \multicolumn{3}{c}{18~h} & \multicolumn{3}{c}{24~h} & fórmula\\
+\cmidrule(lr){3-5}\cmidrule(lr){6-8}
+caso & $N$ & artigo & nosso & CoV (\%) & artigo & nosso & CoV (\%) & 24~h\\
+\midrule
+\tabin{tab/comum_cho.tex}
+\bottomrule
+\end{tabular}
 \end{table}
 
 \begin{table}[H]\centering\small
-\caption{Caso B de Liu et al.\ (2024): a cauda. Prevista com a mediana e o $\beta$ do MC e com o FS das médias ($m = 1$).}
-\label{tab:liu}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{lcccccccc}
+\caption{X.\ Liu et al.\ \cite{xliu2025}, caso 1 (talude infinito, 3~cm/h; $k_s$, $c'$, $\varphi'$ a posteriori e viés de
+modelo): $\Pf$ (\%) no tempo. $F$: rótulos da Fig.~12 (lidos). Nosso: reprodução em Python (0~h com $10^4$; 12 e 24~h,
+MC de 300). Fórmula: $\beta = \betaXL$ e $m = \mXL$ ajustados de 0 a 18~h (4 pontos, 2 parâmetros); 24~h é previsão.}
+\label{tab:xliu}
+\begin{tabular}{cc ccc}
 \toprule
-cenário & $N$ & $F$ & $m$ & $\beta$ & assim. & $\Pf$ LS (CoV) & prev.\ (mediana) & prev.\ ($F$)\\
+$t$ (h) & $F$ & artigo & nosso & fórmula\\
 \midrule
-\tabin{tab/liu.tex}
+\tabin{tab/comum_xliu.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{2.5pt}
+\caption{Vargas Ceron et al.\ \cite{ceron2025} (rebaixamento; $\Gamma$ pelo GIM; os 26 casos das Seções 6.1 a 6.5):
+$\Pf$ (\%) do artigo (com o CoV da estimativa), do nosso LS e do nosso MC pareado de 500. Fórmula A: a lognormal com a
+mediana e o $\beta$ do MC do próprio caso (H1). Fórmula B: $\beta = \ceronBeta$ e $m = \ceronM$ da referência, nas
+famílias que mudam o $\Gamma$ determinístico ($\alpha$ e $h_w/H$, os análogos da intensidade da chuva; H2). $z$:
+contra o LS.}\label{tab:cer}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lc c cc cc c c cc cc}
+\toprule
+ & & & \multicolumn{2}{c}{artigo} & \multicolumn{2}{c}{nosso LS} & MC & & \multicolumn{2}{c}{fórmula A} &
+\multicolumn{2}{c}{fórmula B}\\
+\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){10-11}\cmidrule(lr){12-13}
+caso & seção & $\Gamma_{det}$ & $\Pf$ & CoV & $\Pf$ & CoV & $\Pf$ & $\beta$ & $\Pf$ & $z$ & $\Pf$ & $z$\\
+\midrule
+\tabin{tab/comum_ceron.tex}
 \bottomrule
 \end{tabular}}
 \end{table}
 
-\begin{table}[H]\centering\small
-\caption{A coluna de Cho (2014) (talude infinito; 5000 realizações por caso): o FS das médias, a mediana do FS das
-realizações, $m$, $\beta$, a assimetria de $\ln$ FS, a $\Pf = P(T_1 \le t)$ do MC (\%) e a prevista com a mediana e
-$\beta$ do próprio MC e com o FS das médias (\%).}\label{tab:cho}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{lccccccccc}
-\toprule
-caso & $t$ (h) & $F$ & mediana & $m$ & $\beta$ & assim. & $\Pf$ MC & prev.\ (mediana) & prev.\ ($F$)\\
-\midrule
-\tabin{tab/cho.tex}
-\bottomrule
-\end{tabular}}
-\end{table}
-
+\paragraph{O que os casos em comum mostram.}
 \begin{itemize}
-  \item \textbf{Hu, caso A: a fórmula funciona em intensidade e duração.} $\beta$ varia pouco entre os seis cenários
-    (0,038 a 0,042) e $m$ também (0,995 a 0,997); $\ln$ FS é simétrico. Calibrando num cenário só, a previsão acerta
-    os outros dentro da incerteza do LS e do MC: 0,25\,\% contra 0,27\,\% (LS, CoV 5\,\%) com 20~mm/h por 36~h;
-    0,11\,\% contra 0,07\,\% (LS) e 0,125\,\% (MC) com 40~mm/h por 12~h; 99,6\,\% contra 99,8\,\% com 50~mm/h. Os
-    cenários diferem também na duração (12, 24 e 36~h): é a extensão $\Pf(I, D) = \Phi(-\ln mF(I,D)/\beta)$ testada.
-    Só nas caudas extremas ($\Pf < 10^{-6}$, a 6--7 desvios) a lognormal se descola do LS, que ali também é impreciso
-    (CoV de 55 e 67\,\%).
-  \item \textbf{Liu, caso B: a cauda em $10^{-5}$.} Com a mediana do MC a lognormal acerta a ordem de grandeza
-    ($6{,}4 \cdot 10^{-6}$ e $1{,}9 \cdot 10^{-5}$ contra $9{,}3 \cdot 10^{-6}$ e $2{,}6 \cdot 10^{-5}$ do LS, dentro do CoV
-    dele); com o FS das médias erra por um fator 4 a 5: na cauda o fator $m$ (0,97--0,98 aqui) é indispensável.
-  \item \textbf{Cho (2014): o contraexemplo.} Na coluna a mediana do FS fica muito acima do FS das médias ($m$ até 3,4
-    em 24~h: o talude médio rompe, FS = 0,367, mas 50 a 75\,\% das realizações não), $\beta$ chega a 0,58 e $\ln$ FS é
-    assimétrico (até $\pm 1$). Nem a lognormal com a mediana e o $\beta$ do próprio MC acerta (9,2\,\% contra 1,5\,\%
-    em 18~h no caso base). O FS de cada realização depende de a frente de umedecimento ter chegado ou não à
-    profundidade crítica, um limiar controlado pelo $k_s$ aleatório: a resposta é bimodal e o FS das médias não
-    representa a mediana. \emph{A fórmula vale quando o FS varia de forma suave e unimodal com as propriedades} (a
-    resistência no Hu e no Liu; o f50 abaixo de $k_s$, onde o $k_s$ não pesa); quando o $k_s$ aleatório controla um
-    limiar, vale só a medida direta da primeira passagem. É o regime que a campanha \texttt{frag} testa no f50 acima de
-    $k_s$ e no f100.
-  \item \textbf{A campanha dos três solos} (\texttt{fermi\_chuva\_solos}, f50 a 36~mm/h, 1000 realizações) não serve: o
-    SRM antigo tinha um buraco logo abaixo de FS = 1 (48 realizações em [1,00; 1,01) contra 22 em [0,99; 1,00)). Mas
-    ela usa os mesmos campos da referência e confirma a monotonia em $I$: o FS a 36~mm/h é menor que a 31,05~mm/h em
-    1000 de 1000 realizações.
+  \item \textbf{Hu, caso A (intensidade e duração).} $\beta$ (0,038--0,042) e $m$ (0,995--0,997) quase não mudam entre os
+    seis cenários, e $\ln$ FS é simétrico. Calibrada num cenário, a fórmula acerta o de 20~mm/h por 36~h (0,25 contra
+    0,27\,\% do LS, $z = -1{,}4$); no de 40~mm/h por 12~h fica 1,5 vez acima do LS (0,11 contra 0,072\,\%, $z = +4{,}6$),
+    mas dentro do IC do MC; com 50~mm/h, $1 - \Pf$ fica 2 vezes acima. Nas caudas extremas ($< 10^{-6}$) não vale. A
+    $\Pf$ do artigo não se reproduz (22\,\% contra 7\,\% a 30~mm/h por 24~h): o desvio do FS de Hu passa do limite
+    homogêneo (relatório \texttt{hu2024}).
+  \item \textbf{Liu, caso B (a cauda).} Com a mediana do MC a lognormal fica dentro do CoV do LS ($6{,}4 \cdot 10^{-6}$
+    e $1{,}9 \cdot 10^{-5}$ contra $9{,}3 \cdot 10^{-6}$ e $2{,}6 \cdot 10^{-5}$); com o FS das médias erra por 4 a 5
+    vezes ($m$ = 0,97--0,98). O mesmo talude dá $\Pf = 4{,}0 \cdot 10^{-3}$ no artigo (Tabela~2) e $3{,}75 \cdot
+    10^{-3}$ em Yang et al.\ (Bishop), 150 vezes a nossa: pela fórmula, isso corresponde a $\beta \approx 0{,}16$ contra
+    os nossos 0,10. Na cauda, a $\Pf$ é dominada por $\beta$.
+  \item \textbf{Cho, a coluna (o contraexemplo).} O FS das médias em 24~h é 0,367 em todos os casos, e a fórmula com ele
+    dá 95--99\,\%, contra 19--52\,\% do MC: o $k_s$ aleatório decide se a frente chega à profundidade crítica, e o FS é
+    bimodal. As nossas $\Pf$ ficam abaixo das do artigo (por exemplo, 1,54 contra 5,8\,\% em 18~h e 37,1 contra 43,5\,\%
+    em 24~h no caso base), com o MC em Python de acordo com o NeoPZ (relatório \texttt{cho2014}).
+  \item \textbf{X.\ Liu, no tempo.} A nossa reprodução bate com o artigo (81,5 contra 81,5\,\% em 12~h; 96,5 contra
+    97,5\,\% em 24~h). A fórmula com um par $(\beta, m)$ segue de 0 a 18~h dentro de $\approx 10$ pontos e falha em 24~h
+    (100 contra 97,5\,\%), pelo mesmo limiar do Cho (lençol suspenso em parte das realizações).
+  \item \textbf{Ceron (rebaixamento).} A lognormal do próprio caso (A) superestima a $\Pf$ do LS em 10--20\,\% entre 10 e
+    20\,\% (por exemplo, 13,3 contra 11,5\,\% na referência), 1,3 a 1,6 vez nas caudas da família $\alpha$ e 3,5 vezes
+    com CoV$(c') = 0{,}1$: a cauda de baixo de $\Gamma$ é mais leve que a lognormal, e a fórmula fica do lado
+    conservador. Calibrada só na referência (B), ela acerta $\alpha = 2$ (4,49 contra 4,42\,\%) e subestima nos
+    $\alpha$ maiores, onde $\beta$ cresce (0,248 a 0,263); na família $h_w/H$ fica 15--30\,\% acima.
+  \item \textbf{Conclusão dos casos em comum:} quando o mecanismo não muda entre os cenários, a fórmula prevê a $\Pf$
+    dentro de um fator $\approx 1{,}5$ entre 0,1 e 20\,\% (e melhor perto de 50\,\%), com um MC de calibração e
+    determinísticos. É precisa o bastante para curvas de fragilidade e triagem de risco, e não substitui o MC (ou o LS)
+    num número final. Falha quando o $k_s$ aleatório cria um limiar (FS bimodal) e na cauda profunda.
 \end{itemize}
 
 \subsection{Comparação com a literatura}\label{sec:literatura}
 Uma busca nas 172 referências da pasta \path{Dropbox/UnsaturatedSoil/referencias} e em dois artigos de 2026 (Yang et
-al.; Su et al., \emph{Int.\ J.\ Numer.\ Anal.\ Methods Geomech.}) achou trabalhos anteriores próximos da proposta e
+al.~\cite{yang2026}; Su et al.~\cite{su2026}) achou trabalhos anteriores próximos da proposta e
 dados publicados para testá-la. Nos testes, $m$ e $\beta$ são ajustados por nós aos números dos artigos; os valores
 lidos de figuras têm incerteza de $\pm 0{,}02$ a $\pm 0{,}05$ em $\Pf$.
 
 \paragraph{Trabalhos anteriores.}
 \begin{itemize}
-  \item \textbf{Hu et al.\ (2024)} (\emph{Comput.\ Geotech.} 173, o artigo do nosso caso A): curvas de fragilidade
+  \item \textbf{Hu et al.\ (2024)}~\cite{hu2024} (o artigo do nosso caso A): curvas de fragilidade
     $\Pf(I)$, superfície $\Pf(I, D)$ e fragilidade no tempo de um talude com campos aleatórios, ``não paramétricas''
     (PDET, 180 realizações por cenário), em crítica à fragilidade \emph{lognormal em $I$} (a clássica, $\Phi(\ln(I/\theta)/
     \beta_I)$). A proposta aqui é lognormal \emph{no FS} de cada cenário, com a forma em $I$ herdada da sigmoide
     determinística; nos dados do próprio caso A (Tabela~\ref{tab:hu}) o FS de cada cenário é lognormal e $\beta$ é
     constante.
-  \item \textbf{Cho (2020)} (\emph{Landslides} 17): talude infinito (Green--Ampt); a distribuição do instante de
+  \item \textbf{Cho (2020)}~\cite{cho2020}: talude infinito (Green--Ampt); a distribuição do instante de
     ruptura $\Pf(t) = P(T < t)$, lognormal no tempo com patamar $P_{f\max}$, e limiares intensidade--duração
     probabilísticos tirados dela. É o precedente de $\Pf(I, D) = P(T_1 \le D)$; a diferença é que lá a distribuição é
     ajustada a cada MC, e aqui sai da superfície determinística $F(I, D)$ e de um $\beta$ (os limiares viram curvas de
     nível do FS, Eq.~\ref{eq:limiar}).
-  \item \textbf{Tang et al.\ (2018)} (\emph{Eng.\ Geol.} 245): fragilidade em $I$ para três durações no talude de Rahardjo
+  \item \textbf{Tang et al.\ (2018)}~\cite{tang2018}: fragilidade em $I$ para três durações no talude de Rahardjo
     (SEEP/W e SLOPE/W), com a incerteza no padrão temporal da chuva (cascata aleatória, $\ge 1000$ padrões por cenário) e
     o solo fixo.
-  \item \textbf{Demisa et al.\ (2025)} (\emph{Bull.\ Eng.\ Geol.\ Environ.}): a $\Pf$ de um evento integrada sobre a
+  \item \textbf{Demisa et al.\ (2025)}~\cite{demisa2025}: a $\Pf$ de um evento integrada sobre a
     distribuição conjunta de intensidade e duração (probabilidade anual). Uma $\Pf(I, D)$ fechada torna essa integração
     barata.
-  \item \textbf{Su et al.\ (2026)}: a primeira passagem (FS $< 1$ pela primeira vez, 42~h no determinístico) dispara a
+  \item \textbf{Su et al.\ (2026)}~\cite{su2026}: a primeira passagem (FS $< 1$ pela primeira vez, 42~h no determinístico) dispara a
     análise pós-ruptura por MPM; sem $\Pf$ em função da chuva.
 \end{itemize}
 
@@ -368,27 +414,27 @@ lidos de figuras têm incerteza de $\pm 0{,}02$ a $\pm 0{,}05$ em $\Pf$.
 \toprule
 artigo & incerteza e cenários & teste & resultado\\
 \midrule
-Yang et al.\ (2026) & $c'$, $\varphi'$, $K_s$, $a$, $n$ em campos (cópulas); Bishop; MC de 4000 &
+Yang et al.\ \cite{yang2026} & $c'$, $\varphi'$, $K_s$, $a$, $n$ em campos (cópulas); Bishop; MC de 4000 &
 (a) cópula gaussiana: $\mu_{FS} = 1{,}386$, $\sigma_{FS} = 0{,}147$ $\Rightarrow$ lognormal; (b) $\Pf$ contra o CoV da
 resistência com $\beta \propto$ CoV: $\Pf = \Phi(-a/\mathrm{CoV})$, $a$ no CoV 0,2 & (a) 0,12\,\% contra 0,1\,\%; (b) 25,3
 e 33,9\,\% contra 24,6 e 32,5\,\% (CoV 0,5 e 0,8)\\
-Tang et al.\ (2018) & padrão temporal da chuva aleatório, solo fixo; 3 durações $\times$ $I$; talude de Rahardjo &
+Tang et al.\ \cite{tang2018} & padrão temporal da chuva aleatório, solo fixo; 3 durações $\times$ $I$; talude de Rahardjo &
 um par $(\beta, m)$ para as três durações, $F$ do padrão uniforme & $\beta = 0{,}029$, $m = 1{,}004$, erro rms 0,06 em
 $\Pf$ (máx.\ 0,18); onde o $F$ uniforme vale 1, $\Pf$ = 43--50\,\% (o centro previsto, 50\,\%)\\
-Dou et al.\ (2015) & talude infinito, $K_s$ em campo; $D$ = 6, 12, 18, 24~h &
+Dou et al.\ \cite{dou2015} & talude infinito, $K_s$ em campo; $D$ = 6, 12, 18, 24~h &
 $F$ (texto) 1,152/1,04/0,931/0,266; $\Pf$ lido & 6--18~h: $\beta = 0{,}073$, $m = 1{,}05$ (3 pontos, 2 parâmetros);
 24~h: prevista 1,00 contra 0,84 (lençol suspenso em parte das realizações, FS bimodal)\\
-X.\ Liu et al.\ (2025) & talude infinito, $k_s$, $c'$, $\varphi'$ (posterior bayesiana) e viés de modelo; 0--24~h &
+X.\ Liu et al.\ \cite{xliu2025} & talude infinito, $k_s$, $c'$, $\varphi'$ (posterior bayesiana) e viés de modelo; 0--24~h &
 $F$ 1,253/1,135/0,971/0,889/0,316 & 0--18~h: $\beta = 0{,}12$, $m = 0{,}93$ (0,09/0,31/0,80/0,94 contra 0,07/0,40/0,80/0,93);
 24~h: 1,00 contra 0,975\\
-Qian et al.\ (2025) & porosidade aleatória, SRM; 5 a 10 dias & $P(\mathrm{FS} < c)$ para $c$ = 1,0 a 1,3 em cada tempo
+Qian et al.\ \cite{qian2025} & porosidade aleatória, SRM; 5 a 10 dias & $P(\mathrm{FS} < c)$ para $c$ = 1,0 a 1,3 em cada tempo
 (lido) & FS lognormal em cada tempo, $m$ = 0,95--0,97 estável, mas $\beta$ cai de 0,11 para 0,08; com um par só, 0,26
 contra 0,15 aos 10 dias\\
-Masoudian et al.\ (2019) & HM acoplado (Abaqus); 0,5--5 dias & $\Pf(t)$ lido & $m = 0{,}82$, $\beta = 0{,}16$, erro
+Masoudian et al.\ \cite{masoudian2019} & HM acoplado (Abaqus); 0,5--5 dias & $\Pf(t)$ lido & $m = 0{,}82$, $\beta = 0{,}16$, erro
 $\le 0{,}04$\\
-Pan et al.\ (2024) & campos e viés de modelo; chuva real; Subset & pares $F$/$\Pf$ lidos & nenhum par serve: erro de
+Pan et al.\ \cite{pan2024} & campos e viés de modelo; chuva real; Subset & pares $F$/$\Pf$ lidos & nenhum par serve: erro de
 $\times 10$ na cauda\\
-Le et al.\ (2019) & porosidade aleatória; 5 intensidades & $\mu$ e CoV do FS (lidos) & $\beta$ varia de 0,035 a 0,13 com
+Le et al.\ \cite{le2019} & porosidade aleatória; 5 intensidades & $\mu$ e CoV do FS (lidos) & $\beta$ varia de 0,035 a 0,13 com
 $I$ e $t$\\
 \bottomrule
 \end{tabular}
@@ -508,5 +554,59 @@ f100, (iii) e (i) & 120~h & FS em 72 e 120~h a 9 e a 3,6 & 1000 & $\beta$ e $m$\
   \item Se falhar: o diagnóstico (H1, $m$, $\beta(I)$) e a forma corrigida (por exemplo $\beta$ em dois trechos).
   \item Retomar a validação determinística e refazer os números finais com a malha e a convenção da chuva decididas.
 \end{enumerate}
+
+
+\begin{thebibliography}{99}\small
+\bibitem{rahardjo2007} H.~Rahardjo, T.~H.~Ong, R.~B.~Rezaur, E.~C.~Leong. Factors controlling instability of
+  homogeneous soil slopes under rainfall. \emph{Journal of Geotechnical and Geoenvironmental Engineering}
+  133(12):1532--1543, 2007. \url{https://doi.org/10.1061/(ASCE)1090-0241(2007)133:12(1532)}
+\bibitem{ceron2025} M.~Vargas Ceron, D.~L.~Cecílio, R.~V.~Linn, S.~Maghous. Stability analysis of slope subjected to
+  seepage forces considering spatial variability of soil properties. \emph{International Journal for Numerical and
+  Analytical Methods in Geomechanics}, 2025. \url{https://doi.org/10.1002/nag.3993}
+\bibitem{liuwang2023} X.~Liu, Y.~Wang. Probabilistic hazard analysis of rainfall-induced landslides at a specific slope
+  considering rainfall uncertainty and soil spatial variability. \emph{Computers and Geotechnics} 162:105706, 2023.
+  \url{https://doi.org/10.1016/j.compgeo.2023.105706}
+\bibitem{hu2024} H.~Hu, Y.~Bao, X.~Han, W.~Wang. Non-parametric fragility curves for probabilistic risk assessment of
+  rainfall-triggered landslides. \emph{Computers and Geotechnics} 173:106546, 2024.
+  \url{https://doi.org/10.1016/j.compgeo.2024.106546}
+\bibitem{liu2024} L.-L.~Liu, H.~Han, S.-Y.~Huang, L.~Huang, Y.-M.~Cheng. Combined influence of rotated transverse
+  anisotropy in mechanical parameters and hydraulic conductivity of soils on reliability evaluation of an unsaturated
+  slope under rainfalls. \emph{Computers and Geotechnics} 165:105938, 2024.
+  \url{https://doi.org/10.1016/j.compgeo.2023.105938}
+\bibitem{cho2014} S.~E.~Cho. Probabilistic stability analysis of rainfall-induced landslides considering spatial
+  variability of permeability. \emph{Engineering Geology} 171:11--20, 2014.
+  \url{https://doi.org/10.1016/j.enggeo.2013.12.015}
+\bibitem{cho2020} S.~E.~Cho. Failure distribution analysis of shallow landslides under rainfall infiltration based on
+  fragility curves. \emph{Landslides} 17:79--91, 2020. \url{https://doi.org/10.1007/s10346-019-01257-w}
+\bibitem{xliu2025} X.~Liu, S.-H.~Jiang, J.~Xie, X.~Li. Bayesian inverse analysis with field observation for slope
+  failure mechanism and reliability assessment under rainfall accounting for nonstationary characteristics of soil
+  properties. \emph{Soils and Foundations} 65:101568, 2025. \url{https://doi.org/10.1016/j.sandf.2025.101568}
+\bibitem{tang2018} G.~Tang, J.~Huang, D.~Sheng, S.~W.~Sloan. Stability analysis of unsaturated soil slopes under random
+  rainfall patterns. \emph{Engineering Geology} 245:322--332, 2018. \url{https://doi.org/10.1016/j.enggeo.2018.09.013}
+\bibitem{yang2026} R.~Yang, Y.~Meng, G.~Cai, J.~Huang. A novel framework for reliability analysis of rainfall-induced
+  slopes failure based on site-specific data. \emph{International Journal for Numerical and Analytical Methods in
+  Geomechanics} 50:5213--5229, 2026. \url{https://doi.org/10.1002/nag.70370}
+\bibitem{su2026} C.~Su, A.~Che, H.~Zhou, G.~Yuan, J.~Zhou. Effect of strength spatial variability on the probabilistic
+  post-landslide behavior of heterogeneous slopes under rainfall. \emph{International Journal for Numerical and
+  Analytical Methods in Geomechanics} 50:4633--4652, 2026. \url{https://doi.org/10.1002/nag.70350}
+\bibitem{dou2015} H.-q.~Dou, T.-c.~Han, X.-n.~Gong, Z.-y.~Qiu, Z.-n.~Li. Effects of the spatial variability of
+  permeability on rainfall-induced landslides. \emph{Engineering Geology} 192:92--100, 2015.
+  \url{https://doi.org/10.1016/j.enggeo.2015.03.014}
+\bibitem{qian2025} C.~Qian et al. Temporal stability and risk analysis of soil slopes subject to rainfall: the influence
+  of heterogeneity. \emph{Engineering Geology} 347:107895, 2025. \url{https://doi.org/10.1016/j.enggeo.2024.107895}
+\bibitem{masoudian2019} M.~S.~Masoudian, M.~A.~Hashemi Afrapoli, A.~Tasalloti, A.~M.~Marshall. A general framework for
+  coupled hydro-mechanical modelling of rainfall-induced instability in unsaturated slopes with multivariate random
+  fields. \emph{Computers and Geotechnics} 115:103162, 2019. \url{https://doi.org/10.1016/j.compgeo.2019.103162}
+\bibitem{pan2024} M.~Pan, S.-H.~Jiang, X.~Liu, G.-Q.~Song, J.~Huang. Sequential probabilistic back analyses of
+  spatially varying soil parameters and slope reliability prediction under rainfall. \emph{Engineering Geology}
+  328:107372, 2024. \url{https://doi.org/10.1016/j.enggeo.2023.107372}
+\bibitem{le2019} T.~M.~H.~Le, M.~Sanchez, D.~Gallipoli, S.~Wheeler. Probabilistic study of rainfall-triggered
+  instabilities in randomly heterogeneous unsaturated finite slopes. \emph{Transport in Porous Media} 126:199--222,
+  2019. \url{https://doi.org/10.1007/s11242-018-1140-0}
+\bibitem{demisa2025} M.~G.~Demisa, S.~Wang, Q.~Hou, S.~Wenpan, F.~Dong, B.~Han. A probabilistic framework for
+  rainfall-induced instability in unsaturated slopes using bivariate rainfall and multivariate soil random fields.
+  \emph{Bulletin of Engineering Geology and the Environment} 84:207, 2025.
+  \url{https://doi.org/10.1007/s10064-025-04171-9}
+\end{thebibliography}
 
 \end{document}

@@ -492,6 +492,146 @@ for caso in ("c05_l0.5", "c10_l0.5", "c05_l4", "c15_l4", "c05_l16"):
     L.append("\\midrule")
 open(os.path.join(TABS, "cho.tex"), "w").write("\n".join(L[:-1]) + "\n")
 
+# ---------------------------------------------------------------- 8. casos calculados em comum com outros artigos
+def fp(p, nd=2):
+    """P_f em %, com notacao cientifica abaixo de 0,01 %"""
+    if p is None or (isinstance(p, float) and math.isnan(p)):
+        return "--"
+    if p <= 0:
+        return "0"
+    if 100 * p < 0.01:
+        e = int(math.floor(math.log10(100 * p)))
+        return f"${100 * p / 10 ** e:.1f}\\cdot10^{{{e}}}$".replace(".", "{,}")
+    if 100 * p < 1:
+        return f"{100 * p:.2g}".replace(".", "{,}") if 100 * p >= 0.1 else f"{100 * p:.3f}".replace(".", "{,}")
+    return f"{100 * p:.{nd}f}".replace(".", "{,}")
+
+
+def cv_mc(k, n):
+    return math.sqrt((1 - k / n) / k) if k > 0 else float("nan")
+
+
+def ccv(x):
+    return "--" if x is None or (isinstance(x, float) and math.isnan(x)) else f"{100 * x:.0f}"
+
+
+# 8a. Hu et al. (2024), caso A
+L = []
+if hu:
+    cal = hu["I30_D24"]
+    bc, mcal = cal["beta"], cal["med"] / cal["F"]
+    RH = {r["id"]: r for r in json.load(open(os.path.join(HU, "resumo.json")))}
+    for cid in ("I30_D12", "I20_D24", "I40_D12", "I20_D36", "I30_D24", "I50_D24"):
+        x = hu[cid]
+        prev = norm.cdf(-math.log(mcal * x["F"]) / bc)
+        z = (prev - x["pls"]) / (x["pls"] * x["cvls"]) if x["pls"] > 0 and x["cvls"] == x["cvls"] else float("nan")
+        L.append(f"{x['I']:g} & {x['D']:g} & {v(x['F'])} & {fp(RH[cid]['pf_artigo'])} & {x['nf']}/{x['N']} & "
+                 f"{fp(x['nf'] / x['N'])} & {ccv(cv_mc(x['nf'], x['N']))} & {fp(x['pls'])} & {ccv(x['cvls'])} & "
+                 f"{fp(prev)} & " + ("cal." if cid == "I30_D24" else (f"{z:+.1f}".replace('.', '{,}') if z == z and abs(z) < 99 else "--"))
+                 + "\\\\")
+open(os.path.join(TABS, "comum_hu.tex"), "w").write("\n".join(L) + "\n")
+
+# 8b. Liu et al. (2024), caso B: o artigo (Tabelas 2 e 4), Yang et al. (2026) e nos
+L = []
+if os.path.exists(os.path.join(LIU, "resumo.json")):
+    for r in RL:
+        cid = r.get("id") or r.get("cen")
+        fsl = [float(row["FS_min"]) for arq in glob.glob(os.path.join(LIU, cid, "mc", "*.csv")) if "mapa" not in arq
+               for row in csv.DictReader(open(arq)) if int(row["real"]) >= 0 and row["situacao"] == "ok"]
+        if not fsl:
+            continue
+        lnl = np.log(fsl)
+        med_l, b_l = float(np.exp(np.median(lnl))), float(np.std(lnl, ddof=1))
+        Fd = r["det"]["FS_min"]
+        pls = float(np.mean(r["ls"]["p"]))
+        cvl = float(np.std(r["ls"]["p"], ddof=1) / math.sqrt(len(r["ls"]["p"])) / pls)
+        n_mc = len(fsl)
+        sup = 1 - 0.05 ** (1 / n_mc)  # limite superior de 95 % com 0 falhas
+        tab4 = {"S2": 4.08e-5, "S3": 1.19e-4}.get(cid)
+        tab2 = {"S3": 4.0e-3}.get(cid)
+        yang = {"S3": 3.75e-3}.get(cid)
+        L.append(f"{cid} & {v(Fd)} & {fp(tab4)} & {fp(tab2) if tab2 else '--'} & {fp(yang) if yang else '--'} & "
+                 f"0/{n_mc} ($<${fp(sup)}) & {fp(pls)} & {ccv(cvl)} & {fp(norm.cdf(-math.log(med_l) / b_l))} & "
+                 f"{fp(norm.cdf(-math.log(Fd) / b_l))}\\\\")
+open(os.path.join(TABS, "comum_liu.tex"), "w").write("\n".join(L) + "\n")
+
+# 8c. Cho (2014): os 15 casos (P_f em 18 e 24 h: o artigo e o nosso MC do NeoPZ), e a formula em 24 h
+L = []
+rt = os.path.join(CHO, "resultado.txt")
+if os.path.exists(rt):
+    for linha in open(rt):
+        m_ = re.match(r"^(c\S+)\s*\|\s*([\d.]+)\s*\|\s*(\d+)\s+\d+\s+\d+\s*\|\s*([\d.]+)\s*\[[^\]]*\]\s*([\d.]+)\s*\|"
+                      r"\s*([\d.]+)\s*\[[^\]]*\]\s*([\d.]+)", linha)
+        if not m_:
+            continue
+        caso, n = m_.group(1), int(m_.group(3))
+        p18, c18, p24, c24 = (float(m_.group(i)) for i in (4, 5, 6, 7))
+        # a formula em 24 h com o FS das medias e o beta do proprio MC
+        prev = "--"
+        arq_det = os.path.join(CHO, caso, "det", "det_0_-1.csv")
+        vals = [float(r["FS_min"]) for a_ in glob.glob(os.path.join(CHO, caso, "mc", "*.csv")) if "mapa" not in a_
+                for r in csv.DictReader(open(a_)) if r["situacao"] == "ok" and float(r["t_h"]) == 24. and float(r["FS_min"]) > 0]
+        if vals and os.path.exists(arq_det):
+            Fd = next(float(r["FS_min"]) for r in csv.DictReader(open(arq_det)) if float(r["t_h"]) == 24.)
+            lnc = np.log(vals)
+            prev = fp(norm.cdf(-math.log(Fd) / float(np.std(lnc, ddof=1))), 1)
+        L.append(f"{caso.replace('_', '\\_')} & {n} & {fp(c18, 1)} & {fp(p18, 2)} & {ccv(cv_mc(round(p18 * n), n))} & "
+                 f"{fp(c24, 1)} & {fp(p24, 1)} & {ccv(cv_mc(round(p24 * n), n))} & {prev}\\\\")
+open(os.path.join(TABS, "comum_cho.tex"), "w").write("\n".join(L) + "\n")
+
+# 8d. X. Liu et al. (2025), caso 1: o artigo, a nossa reproducao (Python) e a formula ajustada de 0 a 18 h
+XL_t = [0, 6, 12, 18, 24]
+XL_F = [1.253, 1.135, 0.971, 0.889, 0.316]          # rotulos da Fig. 12 (lidos)
+XL_P = [0.0724, 0.429, 0.815, 0.938, 0.975]          # o artigo (texto e tabela)
+XL_nos = {0: "7,0", 12: "81,5", 24: "96,5"}           # nossa reproducao (0 h: 10^4; 12 e 24 h: MC de 300)
+zz = np.array([norm.ppf(p) for p in XL_P[:4]])
+xx = np.log(np.array(XL_F[:4]))
+bb, aa = np.polyfit(xx, zz, 1)                         # z = aa + bb ln F; bb = -1/beta, aa = -ln m / beta
+beta_xl, m_xl = -1 / bb, math.exp(aa / bb)
+N.update(betaXL=v(beta_xl, 3), mXL=v(m_xl, 3))
+L = []
+for t, F, P in zip(XL_t, XL_F, XL_P):
+    L.append(f"{t} & {v(F)} & {fp(P, 1)} & {XL_nos.get(t, '--')} & {fp(norm.cdf(-math.log(m_xl * F) / beta_xl), 1)}"
+             + (" (ajuste)" if t <= 18 else " (previsão)") + "\\\\")
+open(os.path.join(TABS, "comum_xliu.tex"), "w").write("\n".join(L) + "\n")
+
+# 8e. Vargas Ceron et al. (2025): os 26 casos das Secoes 6.1 a 6.5 (rebaixamento, Gamma pelo GIM)
+CER = os.path.join(RUNS, "fermi_ceron_ls_casos")
+L = []
+if os.path.exists(os.path.join(CER, "resultado.csv")):
+    rows = list(csv.DictReader(open(os.path.join(CER, "resultado.csv"))))
+    est = {}
+    for r in rows:
+        g = [float(x["FS_min"]) for a_ in glob.glob(os.path.join(CER, r["caso"], "mc", "*.csv")) if "mapa" not in a_
+             for x in csv.DictReader(open(a_)) if int(x["real"]) >= 0 and x["situacao"] == "ok" and float(x["FS_min"]) > 0]
+        if g:
+            lg = np.log(g)
+            est[r["caso"]] = (float(np.exp(np.median(lg))), float(np.std(lg, ddof=1)), len(g))
+    if "ref" in est:
+        med0, b0, _ = est["ref"]
+        m0 = med0 / float(next(r for r in rows if r["caso"] == "ref")["Gamma_det"])
+        N.update(ceronBeta=v(b0, 3), ceronM=v(m0, 3))
+    for r in rows:
+        c_ = r["caso"]
+        G = float(r["Gamma_det"])
+        pls, cvl = float(r["Pf_LS"]), float(r["CoV_LS"])
+        pa = float(r["Pf_artigo"]) if r["Pf_artigo"] else float("nan")
+        cva = float(r["CoVPf_artigo"]) if r["CoVPf_artigo"] else float("nan")
+        pmc, nmc = float(r["Pf_MC"]), int(float(r["MC_n"]))
+        if c_ in est:
+            med, bta, _ = est[c_]
+            pA = norm.cdf(-math.log(med) / bta)  # a lognormal do proprio caso (H1)
+            zA = (pA - pls) / (pls * cvl)
+        else:
+            bta, pA, zA = float("nan"), float("nan"), float("nan")
+        fam_carga = c_.startswith("alfa") or c_.startswith("hw") or c_ == "ref"
+        pB = norm.cdf(-math.log(m0 * G) / b0) if fam_carga else None  # beta e m da ref (H2): as familias que mudam Gamma
+        zB = (pB - pls) / (pls * cvl) if pB is not None else None
+        L.append(f"{c_.replace('_', '\\_')} & {r['secao']} & {v(G, 3)} & {fp(pa)} & {ccv(cva)} & {fp(pls)} & {ccv(cvl)} & "
+                 f"{fp(pmc, 1)} & {v(bta, 3)} & {fp(pA)} & {f'{zA:+.1f}'.replace('.', '{,}')} & "
+                 + (f"{fp(pB)} & {f'{zB:+.1f}'.replace('.', '{,}')}" if pB is not None else "-- & --") + "\\\\")
+open(os.path.join(TABS, "comum_ceron.tex"), "w").write("\n".join(L) + "\n")
+
 with open(os.path.join(AQUI, "numeros.tex"), "w") as f:
     f.write("% gerado por gera_dados.py; nao edite\n")
     for k, x in N.items():
