@@ -7,6 +7,8 @@
 #                   (SlopeRainMonteCarlo, casos_chuva_ai.txt; blocos de 1 realizacao)
 #   solos           os tres solos do Rahardjo com I = 1 k_s (a Fig. 5), Monte Carlo direto com o FS de 6 em 6 h ate
 #                   48 h (SlopeRainMonteCarlo, casos_solos.txt; blocos de 5 realizacoes)
+#   chuva2          a "Secao 6 da chuva" (25/11/2026): o analogo das Secoes 6.1 a 6.5 do Ceron no talude de Rahardjo, com
+#                   o codigo e os padroes atuais; comeca pela referencia do f50 (MC direto ate CoV ~5%), casos_chuva2.txt
 #   etapa1          etapas 0 e 1 do plano de trabalho (Projects/PlanoDeTrabalho): o Cho2010 (Monte Carlo direto, AI pela
 #                   banda e pelo ponto de projeto do FORM, que o primeiro job roda antes) e o SRM antigo contra o novo no
 #                   Cho2010 e na chuva (Cho2010 e, com prog=, SlopeRainMonteCarlo; casos_etapa1.txt; blocos de 10)
@@ -35,6 +37,8 @@ chuva_ai) NOME=chuvaAI PROG=SlopeRainMonteCarlo CASOS_TXT=casos_chuva_ai.txt PAS
     BLOCO_PADRAO=1 DESTINO=fermi_chuva_ai ;;
 solos) NOME=solosMC PROG=SlopeRainMonteCarlo CASOS_TXT=casos_solos.txt PASTA=chuva_solos IREF_PADRAO=0
     BLOCO_PADRAO=5 DESTINO=fermi_chuva_solos ;;
+chuva2) NOME=chuva2 PROG=SlopeRainMonteCarlo CASOS_TXT=casos_chuva2.txt PASTA=chuva2 IREF_PADRAO=31.05 BLOCO_PADRAO=20
+    DESTINO=fermi_chuva2 ;;
 etapa1) NOME=etapa1 PROG=Cho2010 CASOS_TXT=casos_etapa1.txt PASTA=etapa1 IREF_PADRAO=0 BLOCO_PADRAO=10
     DESTINO=fermi_etapa1 FORM_PADRAO="10 20" FORM_OPCOES="rcphi=-0.5 h=0.5 iteracoes=10 fator=tri2 nref=4" ;;
 etapa3) NOME=etapa3 PROG=Cho2010 CASOS_TXT=casos_etapa3.txt PASTA=etapa3 IREF_PADRAO=31.05 BLOCO_PADRAO=10
@@ -46,8 +50,8 @@ etapa3b) NOME=etapa3b PROG=Cho2010 CASOS_TXT=casos_etapa3b.txt PASTA=etapa3b IRE
     FORM_LISTA+=";r05_gim20|M=20 rcphi=-0.5 metodo=gim gradiente=modal;r07_gim20|M=20 rcphi=-0.7 metodo=gim gradiente=modal" ;;
 etapa3b_gim) NOME=e3bGim PROG=Cho2010 CASOS_TXT=casos_etapa3b_gim.txt PASTA=etapa3b_gim IREF_PADRAO=0 BLOCO_PADRAO=10
     DESTINO=fermi_etapa3b_gim ;;
-*) echo "CAMPANHA=$CAMPANHA desconhecida: chuva, ceron, chuva_ai, solos, etapa1, etapa3, etapa3b ou etapa3b_gim" >&2; exit 2 ;;
+*) echo "CAMPANHA=$CAMPANHA desconhecida: chuva, chuva2, ceron, chuva_ai, solos, etapa1, etapa3, etapa3b ou etapa3b_gim" >&2; exit 2 ;;
 esac
 export CAMPANHA
 # todos os nomes de job que usam build/ e bin/ (o compilar.sh espera todos acabarem: a libpz.so e a mesma)
-NOMES_TODOS=chuvaMC,ceronMC,chuvaAI,solosMC,etapa1,etapa3,etapa3b,lsEtapa3b,susCho,e3bGim,lsGim
+NOMES_TODOS=chuvaMC,chuva2,ceronMC,chuvaAI,solosMC,etapa1,etapa3,etapa3b,lsEtapa3b,susCho,e3bGim,lsGim

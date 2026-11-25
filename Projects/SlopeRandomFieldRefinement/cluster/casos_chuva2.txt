@@ -1,0 +1,10 @@
+# A "Secao 6 da chuva" (CAMPANHA=chuva2, 25/11/2026): o analogo das Secoes 6.1 a 6.5 de Vargas Ceron et al. (2025) no
+# talude de Rahardjo et al. (2007), com o codigo e os padroes atuais (variante iii: esqueleto rigido, ar passivo, chi = 1
+# com phi^b = 26 graus, FS pelo SRM com as pressoes do instante). Comeca pela referencia do solo f50 (k_s = 1e-5 m/s) a
+# IREF = 31,05 mm/h por 24 h (o Gamma do Ceron, 1,336, pelo GIM; P_f ~6,5% no piloto antigo de 200): Monte Carlo direto
+# de 5000 para CoV(P_f) ~5%, com o FS em 24 h (fim da chuva, refinamento do zero) e 30 h (a malha das 24 h; adapta=24). No
+# MC dos 3 solos de 14-15/11 (1 k_s), o menor FS do f50 caiu em 24 h em 993 de 1000 realizacoes. Custo medido no PC:
+# 113 s por realizacao (transiente 66 s, os dois FS 46 s); com o FS tambem em 0 e 18 h seriam 263 s. As familias (CoV, s, alfa, I) e os outros solos entram depois, com o
+# line sampling. Uma linha por caso:
+#   id   fase   N   opcoes do SlopeRainMonteCarlo (alem de n, primeira e saida, que o tarefas.sh poe)
+ref           1  5000  I=IREF tempos=24,30 adapta=24
