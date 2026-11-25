@@ -122,7 +122,8 @@
 //                          e crpc_dmax h ate o primeiro abaixo de 1 e, entre os dois ultimos, bissecao nos instantes
 //                          guardados de crpc_passo em crpc_passo h; D_C por interpolacao linear do FS. Se uma I nao derruba
 //                          ate crpc_dmax, as menores nao sao feitas; FS(0) < 1: realizacao descartada (nada mais).
-//                          Saida: <saida>_crpc_<faixa>.csv (cluster/crpc_liuwang.py integra P_1)
+//                          Saida: <saida>_crpc_<faixa>.csv (cluster/crpc_liuwang.py integra P_1). Nas tres variantes
+//                          (i: o fator com o p_a de cada instante). D_C e a primeira passagem t_1 da chuva constante
 //   crpc_dmax (200), crpc_passo (1)
 // Os campos:
 //   M (2000)               termos da KL por campo (com nystrom=: os M primeiros da base, M <= os do arquivo)
@@ -553,7 +554,6 @@ Opcoes LeOpcoes(int argc, char *argv[])
     if (!(op.res.E > 0. && op.res.nu >= 0. && op.res.nu < 0.5)) Erro("E > 0 (kPa) e 0 <= nu < 0,5");
     if (op.Acoplado()) {
         if (op.uT < 2) Erro("variante=" + op.variante + ": uT >= 2 (u P2 com p P1, Taylor-Hood)");
-        if (!op.crpc.empty()) Erro("variante=" + op.variante + ": sem crpc (a CRPC so tem o transiente desacoplado)");
         if (op.mv > 0.) Erro("variante=" + op.variante + ": sem mv (o esqueleto ja e deformavel: E= e nu=)");
         if (op.chiPonto) Erro("variante=" + op.variante + ": sem chi=ponto (o chi(x) so entra nas pressoes do fator)");
     }
@@ -1560,9 +1560,9 @@ void CurvaCritica(int n, const Opcoes &op, const RainData &r0, const Campo *cf, 
         UnsatModel<TUnsatHP> mT;
         mT.SetGeoMesh(Malha(op.malhaT));
         InsertBC(mT);
-        mT.SetMaterial(MaterialChuva(r, op));
+        mT.SetMaterial(MaterialTransiente(r, op)); // (iii): o MaterialChuva; (i), (ii): o esqueleto elastico acoplado
         mT.CreateCompMesh({{2, op.uT}, {1, 1}, {1, 1}});
-        if (cf) AplicaCampos(mT, *cf);
+        if (cf) AplicaCamposTransiente(mT, *cf, op); // (iii): c', phi' e k; acopladas: so o k
         TPZUnsatAnalysis aT(mT.CompMesh(), {{base, {true, true}}, {right, {true, false}}, {left, {true, false}}});
         TPZSpStructMatrix<STATE> strmat(mT.CompMesh());
         strmat.SetNumThreads(std::getenv("PZ_THREADS") ? std::atoi(std::getenv("PZ_THREADS")) : 8);
@@ -1577,11 +1577,16 @@ void CurvaCritica(int n, const Opcoes &op, const RainData &r0, const Campo *cf, 
         if (op.dirCarga) laterais.insert(right);
         if (op.esqCarga && !std::isnan(op.cargaEsq)) cargas[left] = op.cargaEsq;
         if (op.dirCarga && !std::isnan(op.cargaDir)) cargas[right] = op.cargaDir;
-        RainTransient chuva(aT, r, op.res.gammaw, laterais, {topleft, face, topright}, cargas);
+        RainTransient chuva(aT, r, op.res.gammaw, laterais, {topleft, face, topright}, cargas, ModeloChuva(op));
         char rotulo[64];
         std::snprintf(rotulo, sizeof rotulo, "realizacao %d, I = %g mm/h", n, I);
         OpcoesTransiente(chuva, op, rotulo);
-        chuva.InitialState();
+        if (!chuva.InitialState()) { // so nas acopladas (o estado geostatico)
+            csv << n << "," << op.q0 << ",-1," << I << ",-1,erro_inicial,0,0,0,0,0,0,0,0,0\n";
+            csv.flush();
+            std::printf("  realizacao %d, I = %g: o estado inicial nao convergiu: %s\n", n, I, chuva.LastFailure().c_str());
+            continue;
+        }
         const auto tt = Clock::now();
         REAL dp = 0.;
         if (op.q0 > 0. && !chuva.SteadyState(op.q0 / 3.6e6, r.dt, 1.e-6, &dp)) {
@@ -1594,13 +1599,15 @@ void CurvaCritica(int n, const Opcoes &op, const RainData &r0, const Campo *cf, 
         double sT = Seg(tt), sF = 0.;
         int nSrm = 0;
         std::map<REAL, std::vector<REAL>> pw; // instante (h) -> p_w nos nos
+        std::map<REAL, std::vector<REAL>> pa; // instante (h) -> p_a nos nos (so na variante i, o ar ativo)
         std::map<REAL, REAL> fs;              // os FS calculados
         pw[0.] = chuva.NodalWaterPressure();
+        if (op.ArAtivo()) pa[0.] = chuva.NodalAirPressure();
         auto fator = [&](REAL t) {
             const auto tf = Clock::now();
             Fator f;
             std::vector<REAL> niveis;
-            const REAL v = FatorAdaptativo(f, r, op, cf, loc, pw.at(t), niveis);
+            const REAL v = FatorAdaptativo(f, r, op, cf, loc, pw.at(t), niveis, op.ArAtivo() ? &pa.at(t) : nullptr);
             sF += Seg(tf), nSrm++;
             return fs[t] = v;
         };
@@ -1633,6 +1640,7 @@ void CurvaCritica(int n, const Opcoes &op, const RainData &r0, const Campo *cf, 
             sT += Seg(ta);
             t = prox;
             pw[t] = chuva.NodalWaterPressure();
+            if (op.ArAtivo()) pa[t] = chuva.NodalAirPressure();
             if (ip < pontos.size() && t >= pontos[ip] - 1e-9) {
                 ip++;
                 if (fator(t) < 1.) {

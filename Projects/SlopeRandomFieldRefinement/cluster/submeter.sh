@@ -29,7 +29,8 @@ export BLOCO="${BLOCO:-$BLOCO_PADRAO}"
 export PARALELO="${PARALELO:-12}"
 FORM_M="${FORM_M-$FORM_PADRAO}"
 [ -n "${ULTIMA:-}" ] && export ULTIMA
-[ -x "bin/$PROG" ] || { echo "compile antes, no no de login: ./compilar.sh" >&2; exit 1; }
+export BIN="${BIN:-bin}" # BIN=: o bin dos jobs (padrao bin/; ex.: BIN=bin_frag, do compilar_frag.sh)
+[ -x "$BIN/$PROG" ] || { echo "compile antes, no no de login: ./compilar.sh (ou o compilar do BIN=$BIN)" >&2; exit 1; }
 
 # os casos pedidos existem?
 if [ "$CASOS" != todos ]; then

@@ -1,0 +1,26 @@
+# casos_frag.txt (CAMPANHA=frag, 25/11/2026): a verificacao da curva de fragilidade P_f(I) = Phi(-ln F(I) / beta) da
+# chuva (PlanoDeTrabalho/chuva2/plano_estocastico.md, "Proposta" e "Campanha frag"). F(I): a sigmoide deterministica (o
+# FS das medias no fim da chuva; runs/sigmoide_f50 e runs/sigmoide_f100_72h); beta: o desvio de ln FS de um MC de
+# calibracao por variante. A verificacao: a P_f de cada intensidade pela primeira passagem.
+#   - crpc=: em cada realizacao e cada intensidade (decrescentes), chuva constante ate crpc_dmax e o primeiro instante com
+#     FS < 1 (D_C = t_1; FS em 6, 12, 24, 48, 96 e crpc_dmax h e bissecao nas horas guardadas); quem nao rompe numa
+#     intensidade nao roda as menores (monotonia em I). P_f(I, D) = P(t_1(I) <= D) para todo D <= crpc_dmax.
+#   - As mesmas realizacoes (0..N-1, semente padrao): os campos da referencia chuva2 (MC direto de 5000 a 31,05 mm/h).
+#   - f50 (fase 1): chuva de 24 h (a do Rahardjo), N = 2000. Previsoes com beta = 0,077 (a referencia): (iii) 27: 0,7 %,
+#     30: 3,6 %, 33: 14 %, 36: 33 %, 40: 51 %, 45: 67 %; (i) (beta ~0,08) 18: 2 %, 20: 13 %, 22: 36 %, 24: 60 %, 36: 85 %
+#     (o patamar do FS da (i), 0,91, limita a P_f a ~88 %).
+#   - f100 (fase 2, so depois do f50: espera= os ultimos blocos dos casos do f50): chuva de ate 120 h (no deterministico
+#     a 72 h a (iii) para num patamar de FS ~1,12 acima de ~10 mm/h e so rompe com mais tempo, ~105 h a 9 mm/h; a (i)
+#     rompe a partir de ~5 mm/h em 72 h), N = 1000. Calibracao de beta em 72 h (e em 120 h), a (iii) a 9 mm/h e a (i) a
+#     3,6 mm/h.
+#   - Conferencias embutidas: o f50_iii em 31,05 contra a referencia chuva2; o f50_i em 20 contra o f50_i_mc20; o
+#     f100_iii em 9 e o f100_i em 3,6 contra os MC de calibracao (P(t_1 <= 72) contra FS(72 h) < 1), nas mesmas
+#     realizacoes.
+#   id            fase  N     opcoes do SlopeRainMonteCarlo (alem de n, primeira e saida, que o tarefas.sh poe)
+f50_iii         1   2000  solo=f50 crpc=45,40,36,33,31.05,30,27 crpc_dmax=24
+f50_i           1   2000  solo=f50 crpc=36,24,22,20,18 crpc_dmax=24 variante=i
+f50_i_mc20      1   2000  solo=f50 I=20 chuva=24 tempos=24 adapta=24 variante=i
+f100_iii        2   1000  solo=f100 crpc=20,9,6,4 crpc_dmax=120 espera=@SAIDA@/f50_iii/mc_mapa_1998_1999.csv,@SAIDA@/f50_i/mc_mapa_1998_1999.csv,@SAIDA@/f50_i_mc20/mc_mapa_1998_1999.csv
+f100_i          2   1000  solo=f100 crpc=20,9,5,3.6 crpc_dmax=120 variante=i espera=@SAIDA@/f50_iii/mc_mapa_1998_1999.csv,@SAIDA@/f50_i/mc_mapa_1998_1999.csv,@SAIDA@/f50_i_mc20/mc_mapa_1998_1999.csv
+f100_iii_mc     2   1000  solo=f100 I=9 chuva=120 tempos=72,120 adapta=72,120 espera=@SAIDA@/f50_iii/mc_mapa_1998_1999.csv,@SAIDA@/f50_i/mc_mapa_1998_1999.csv,@SAIDA@/f50_i_mc20/mc_mapa_1998_1999.csv
+f100_i_mc       2   1000  solo=f100 I=3.6 chuva=120 tempos=72,120 adapta=72,120 variante=i espera=@SAIDA@/f50_iii/mc_mapa_1998_1999.csv,@SAIDA@/f50_i/mc_mapa_1998_1999.csv,@SAIDA@/f50_i_mc20/mc_mapa_1998_1999.csv

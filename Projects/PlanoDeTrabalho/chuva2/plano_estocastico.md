@@ -126,3 +126,17 @@ FS ≤ 1 em função da chuva, ligando as constantes A, B, C, D às incertezas d
    - β vem do MC em 3–5 intensidades (a família 6.5);
    - a validação é a P_f prevista contra um MC novo numa intensidade intermediária.
    - Produto: uma fórmula fechada P_f(I_r) (e P_f(I, D)) para um talude e um material, com 5 constantes.
+
+### Campanha frag (25/11, foco total; o resto do fermi parado)
+
+- **Sigmoides determinísticas** (FS das médias no fim da chuva):
+  - f50 (iii) em runs/sigmoide_f50: FS = 1 em ~39,8 mm/h, com uma quina em I = k_s = 36 mm/h (alagamento);
+  - f50 (i), no mesmo lugar: FS = 1 em ~23 mm/h, com patamar de 0,91 a partir de ~30 mm/h, de modo que a P_f satura em ~85–90 %;
+  - f100 com chuva de 72 h em runs/sigmoide_f100_72h.
+- **Método: primeira passagem t₁ por realização e intensidade** (`crpc=` do SlopeRainMonteCarlo, estendido às variantes acopladas). Em cada intensidade, decrescente, a chuva é constante até crpc_dmax. O FS é avaliado em 6, 12, 24, 48 e dmax h, com bissecção nas horas guardadas. Quem não rompe numa intensidade pula as menores. Isso dá P_f(I, D) = P(t₁(I) ≤ D) para todo D ≤ dmax.
+- **Desenho:** as mesmas realizações 0..1999 (os campos da referência chuva2), N = 2000.
+  - f50: 24 h, intensidades (iii) 45, 40, 36, 33, 31,05, 30, 27 e (i) 36, 27, 24, 22, 20, 18.
+  - f100: 72 h.
+  - β de calibração: (iii) f50 na referência; (i) f50 num MC a 20 mm/h; f100 num MC por variante.
+- **Conferências embutidas:** o crpc a 31,05 (iii) contra a referência, e a 20 (i) contra o MC de calibração, nas mesmas realizações.
+- **Análise:** cluster/resumo_frag.py compara a P_f do MC (IC de Wilson) com Φ(−ln F/β), usando os pontos e a Eq. 6, e dá o z por intensidade e a distribuição de t₁.
