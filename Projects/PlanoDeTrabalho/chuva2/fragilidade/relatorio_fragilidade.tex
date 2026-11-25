@@ -1,0 +1,360 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{graphicx,booktabs,float,geometry,url,array,xcolor,caption}
+\usepackage[hidelinks]{hyperref}
+\geometry{margin=2.2cm}
+\captionsetup{font=small}
+\emergencystretch=2em
+\providecommand{\versao}{sem versão}
+\input{numeros.tex}
+\newcommand{\Pf}{P_f}
+% \input primitivo: funciona dentro de tabular (o \input do LaTeX nao e expansivel)
+\makeatletter\newcommand{\tabin}[1]{\@@input #1 }\makeatother
+\title{Curva de fragilidade de um talude sob chuva:\\ $P_f(I)$ a partir da sigmoide de Rahardjo et al.\ (2007) e da
+primeira passagem\\ \large Formulação, evidências preliminares e a campanha de verificação}
+\author{Diogo Cecílio}
+\date{25/11/2026 --- versão \versao}
+\begin{document}
+\maketitle
+\begin{abstract}
+Rahardjo et al.\ (2007) mostraram que o fator de segurança mínimo de um talude homogêneo sob chuva segue uma sigmoide
+da intensidade, $F(I) = A + B/(1 + e^{-(I-C)/D})$ (a Eq.~6 do artigo). A proposta é levar essa sigmoide para a
+probabilidade de ruptura: com propriedades em campos aleatórios, se o FS de cada intensidade for lognormal com mediana
+$F(I)$ e dispersão $\beta$, a probabilidade de ruptura é $\Pf(I) = \Phi(-\ln F(I)/\beta)$, uma curva de fragilidade
+fechada com cinco constantes: as quatro da sigmoide, de uma varredura determinística barata, e $\beta$, de um único
+Monte Carlo de calibração. A ruptura de cada realização é a primeira passagem $T_1$, o instante em que o FS cruza 1: a
+simulação pode parar nele, e com chuva constante $\Pf(I, D) = P(T_1(I) \le D)$ dá a probabilidade para todas as
+durações de uma vez. Consequência prática: o limiar intensidade--duração de probabilidade $p$ é a curva de nível
+$F(I,D) = e^{\beta\,\Phi^{-1}(1-p)}$ do FS determinístico (FS = \nivelCinco{} para 5\,\%). As evidências até agora vêm
+do talude de Rahardjo (f50, chuva de 24~h): o FS de 5000 realizações a 31,05~mm/h é lognormal (assimetria de $\ln$ FS
+\assRef, $\beta = \betaRef$), e a fórmula com a mediana do MC dá $\prevMed\,\%$ contra $\pfRef\,\%$ do MC direto (IC
+95\,\% de $\icRefLo$ a $\icRefHi\,\%$). Com o FS das médias no lugar da mediana a previsão sobe para $\prevDet\,\%$: a
+mediana do FS com campo aleatório é $\fatorMediana$ vezes o FS das médias, um efeito pequeno que a esta precisão já
+aparece. As sigmoides determinísticas têm $I_c = \iccinqiii$~mm/h com ar passivo e $\iccinqi$~mm/h com ar ativo, uma
+quina em $I = k_s$ (o alagamento) e patamares que limitam a $\Pf$ (com ar ativo ela satura em $\approx 88\,\%$; no f100
+com 72~h de chuva e ar passivo, em $\approx \pfMaxCemiii\,\%$). A verificação, ponto a ponto, está rodando no fermi
+(campanha \texttt{frag}): a primeira passagem de 2000 realizações em 7 intensidades (ar passivo) e 5 (ar ativo) no f50 e
+de 1000 realizações em 4 intensidades por variante no f100 com chuva de até 120~h.
+\end{abstract}
+\tableofcontents
+
+\section{A ideia}\label{sec:ideia}
+\begin{itemize}
+  \item \textbf{O ponto de partida.} No estudo paramétrico de Rahardjo et al.\ (2007), o FS mínimo de um talude
+    homogêneo cai com a intensidade da chuva $I$ segundo uma sigmoide (Fig.~6 e Eq.~6 do artigo): constante nas chuvas
+    fracas, caindo depois da intensidade inicial $I_{ini}$ e parando num patamar inferior a partir da intensidade-limite
+    $I_{thr}$. É um resultado determinístico: o talude rompe ou não.
+  \item \textbf{A pergunta.} Com a variabilidade espacial das propriedades (campos aleatórios de $c'$, $\varphi'$ e
+    $k_s$), qual é a probabilidade de ruptura em função da chuva, $\Pf(I)$? É possível escrevê-la com as constantes da
+    sigmoide, e com poucas simulações?
+  \item \textbf{A proposta.} $\Pf(I) = \Phi(-\ln F(I)/\beta)$: a sigmoide determinística dá a mediana do FS, e uma
+    única dispersão $\beta$ espalha o FS das realizações em torno dela (Seção~\ref{sec:form}). A ruptura é a primeira
+    passagem $T_1$ (o FS cruza 1), que também dá a duração (Seção~\ref{sec:t1}).
+  \item \textbf{O produto.} Uma fórmula fechada $\Pf(I)$, e $\Pf(I, D)$, para um talude e um material, com cinco
+    constantes, e os limiares intensidade--duração de probabilidade dada (Seção~\ref{sec:limiares}).
+\end{itemize}
+
+\section{Formulação}\label{sec:form}
+
+\subsection{A sigmoide determinística e a intensidade crítica}
+Seja $F(I)$ o FS do talude com as propriedades médias no fim de uma chuva de intensidade constante $I$ e duração $D$
+(no f50 com $D = 24$~h, o FS mínimo da história). Rahardjo et al.\ (2007) ajustam
+\begin{equation}
+F(I) = A + \frac{B}{1 + e^{-(I - C)/D_s}},\label{eq:sig}
+\end{equation}
+com $A$ o patamar das chuvas fracas, $A + B$ ($B < 0$) o patamar das fortes, $C$ o centro e $D_s$ a largura
+(escrevemos $D_s$ para não confundir com a duração). O talude rompe com as propriedades médias a partir da
+intensidade crítica
+\begin{equation}
+F(I_c) = 1 \quad\Longleftrightarrow\quad I_c = C - D_s \ln\!\left(\frac{B}{1 - A} - 1\right),\qquad A + B < 1 < A.
+\label{eq:ic}
+\end{equation}
+Se o patamar inferior $A + B$ fica acima de 1, o talude médio não rompe com nenhuma intensidade daquela duração.
+Fisicamente $A$ é o FS sem chuva (o FS inicial, \FSzero{} no talude de Rahardjo), o que fixa uma constante.
+
+\subsection{Do FS aleatório à probabilidade: a curva de fragilidade}
+Com campos aleatórios $\bm\xi$, o FS da realização, $\mathrm{FS}(I;\bm\xi)$, é uma variável aleatória. Duas hipóteses:
+\begin{itemize}
+  \item \textbf{H1 (lognormal):} para cada $I$, $\ln \mathrm{FS}(I;\bm\xi) \sim \mathcal N(\ln \tilde F(I), \beta^2)$.
+  \item \textbf{H2 (parâmetros):} a mediana segue o determinístico, $\tilde F(I) = m\,F(I)$ com $m$ constante (perto de
+    1), e $\beta$ não depende de $I$.
+\end{itemize}
+Então
+\begin{equation}
+\boxed{\;\Pf(I) = P[\mathrm{FS}(I;\bm\xi) < 1] = \Phi\!\left(-\frac{\ln m F(I)}{\beta}\right)\;}\label{eq:frag}
+\end{equation}
+é a curva de fragilidade do talude. Propriedades, com $m = 1$:
+\begin{itemize}
+  \item \textbf{Centro:} $\Pf(I_c) = 50\,\%$: a intensidade crítica determinística é a mediana da intensidade de
+    ruptura.
+  \item \textbf{Largura:} perto de $I_c$, $\Pf(I) \approx \Phi\big((I - I_c)/\sigma_I\big)$ com
+    $\sigma_I = \beta / |{\rm d}\ln F/{\rm d}I|_{I_c}$. A incerteza das propriedades ``borra'' o degrau determinístico
+    em $I_c$ numa rampa de largura $\sigma_I$: quanto mais íngreme a sigmoide em $I_c$, mais estreita a rampa.
+  \item \textbf{Patamares:} $\Pf(0) = \Phi(-\ln A/\beta) \approx 0$ e $\Pf(\infty) = \Phi(-\ln(A+B)/\beta)$. Se o
+    patamar inferior do FS fica perto de 1, a $\Pf$ satura abaixo de 100\,\% (ou acima de 0): a chuva mais forte não
+    rompe mais realizações.
+  \item \textbf{Constantes:} $A, B, C, D_s$ (uma varredura determinística, $\approx 3$~min de PC) e $\beta$ (um MC numa
+    intensidade); $m$, se necessário, do mesmo MC (a razão entre a mediana do MC e $F$).
+\end{itemize}
+A forma (\ref{eq:frag}) é a curva de fragilidade lognormal da engenharia sísmica, com a intensidade da chuva no lugar
+da medida de intensidade do sismo; a diferença é que aqui a mediana não é um parâmetro livre, mas a sigmoide
+determinística do próprio talude.
+
+\subsection{A primeira passagem e a duração}\label{sec:t1}
+A ruptura de uma realização é o primeiro instante em que o FS cruza 1,
+\begin{equation}
+T_1(I;\bm\xi) = \inf\{t \ge 0 : \mathrm{FS}(t; I, \bm\xi) < 1\},
+\end{equation}
+e não o FS mínimo da história: depois de $T_1$ o cálculo usa a geometria intacta e as pressões de um talude que já
+rompeu, sem sentido físico; a simulação pode parar em $T_1$. Com chuva de intensidade constante, a realização que rompe
+em $T_1$ rompe em qualquer chuva da mesma intensidade com duração $D \ge T_1$, logo
+\begin{equation}
+\Pf(I, D) = P[T_1(I) \le D]\label{eq:pfid}
+\end{equation}
+para todas as durações até a simulada, a partir de \emph{uma} simulação por intensidade. Se, além disso, o FS só cai
+durante a chuva (o que vale nos casos calculados), $\{T_1 \le D\} = \{\mathrm{FS}(D) < 1\}$ e a fórmula
+(\ref{eq:frag}) se estende para $\Pf(I, D) = \Phi(-\ln m F(I, D)/\beta)$, com $F(I, D)$ o FS das médias no fim de uma
+chuva $(I, D)$.
+
+\textbf{O algoritmo} (opção \texttt{crpc=} do \texttt{SlopeRainMonteCarlo}, a curva crítica de Liu e Wang (2023)
+estendida às variantes acopladas): para cada realização, as intensidades em ordem decrescente; em cada uma, chuva
+constante até $D_{\max}$, o FS em 6, 12, 24, 48, 96~h e $D_{\max}$, e bissecção nas horas guardadas entre o último
+instante com FS $\ge 1$ e o primeiro com FS $< 1$; $T_1$ por interpolação linear. Quem não rompe numa intensidade não
+roda as menores ($T_1$ cai com $I$: monotonia). A curva de fragilidade empírica é a distribuição de $T_1$ (ou da
+intensidade crítica de cada realização), com os mesmos campos em todas as intensidades.
+
+\subsection{Limiares intensidade--duração de probabilidade dada}\label{sec:limiares}
+De $\Pf(I, D) = p$ vem
+\begin{equation}
+F(I, D) = \frac{1}{m}\,e^{\beta\,\Phi^{-1}(1-p)}:\label{eq:limiar}
+\end{equation}
+o limiar intensidade--duração de probabilidade $p$ é uma \emph{curva de nível do FS determinístico}. Com $\beta =
+\betaRef$ e $m = 1$: $\Pf = 1\,\%$ em FS = \nivelUm, $5\,\%$ em FS = \nivelCinco{} e $50\,\%$ em FS = \nivelCinquenta. O
+mapa determinístico $F(I, D)$, barato, vira o mapa de probabilidade com uma constante.
+
+\section{Evidências preliminares}\label{sec:evid}
+Os dados abaixo já existem (25/11/2026; variante (iii): desacoplado, esqueleto rígido, ar passivo, as hipóteses do
+artigo; variante (i): acoplado, esqueleto elástico, ar ativo). Talude de Rahardjo ($45^\circ$, $H_s = 10$~m,
+$H_w = 5$~m), campos de Karhunen--Loève de $c'$, $\varphi'$ e $k_s$ com as estatísticas da Tabela~2 de Vargas Ceron et
+al.\ (2025) (CoV 0,3; 0,1; 0,6; distâncias de autocorrelação de 20 e 2~m), FS pelo SRM.
+
+\subsection{As sigmoides determinísticas}
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/sigmoides.pdf}
+\caption{FS das médias no fim da chuva contra $I$: f50 com 24~h (18 intensidades) e f100 com 72~h (15), variantes
+(iii) e (i); linhas: a forma adotada da sigmoide (Tabela~\ref{tab:sig}); triângulos: $I_c$.}\label{fig:sig}
+\end{figure}
+
+\begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{3.5pt}
+\caption{As três formas da sigmoide ajustadas: a Eq.~6 com as 4 constantes livres, a Eq.~6 com $A$ = FS inicial e a
+mesma sigmoide em $\ln I$ com $A$ = FS inicial; $\star$ a forma adotada (o menor resíduo perto de FS = 1, entre 0,9 e
+1,25). Resíduos em FS.}\label{tab:sig}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llccccccc}
+\toprule
+caso & forma & $A$ & $B$ & $C$ & $D_s$ & $A + B$ & resíduo rms & resíduo máx. perto de 1\\
+\midrule
+\tabin{tab/sigmoides.tex}
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\begin{itemize}
+  \item \textbf{Intensidade crítica:} no f50, $I_c = \iccinqiii$~mm/h com ar passivo e $\iccinqi$~mm/h com ar ativo;
+    no f100 com 72~h, o talude médio não rompe com ar passivo (o FS para num patamar de \patcemiii{} acima de
+    $\approx 10$~mm/h $\approx 3k_s$) e rompe a partir de $\iccemi$~mm/h com ar ativo.
+  \item \textbf{A quina em $I = k_s$} (f50, iii): abaixo de $k_s$ toda a chuva entra e o FS cai $\approx 0{,}018$ por
+    mm/h; acima a superfície alaga, a infiltração fica limitada e o FS cai \decliveiii{} em $\ln$ por mm/h perto de
+    $I_c$. Nenhuma das três formas suaves a reproduz bem: a Eq.~6 com 4 constantes é a que menos erra perto de FS = 1
+    (resíduo máximo 0,019), à custa de um $A$ sem sentido físico (2,78 contra o FS inicial \FSzero).
+  \item \textbf{Os patamares:} \patcinqiii{} (f50, iii), \patcinqi{} (f50, i), \patcemiii{} (f100, iii, 72~h) e
+    \patcemi{} (f100, i, 72~h). Com ar ativo o patamar do f50 é mais alto que com ar passivo, mas é atingido muito
+    antes ($\approx 30$~mm/h contra $\approx 90$).
+  \item \textbf{A forma depende do caso:} no f100 a Eq.~6 em $I$ degenera (os dados não mostram o patamar superior), e
+    a forma em $\ln I$ com $A$ = FS inicial ajusta com resíduo de 0,003--0,004.
+\end{itemize}
+
+\subsection{A referência: o FS de 5000 realizações é lognormal}
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/referencia.pdf}
+\caption{f50, variante (iii), 31,05~mm/h por 24~h, \nRef{} realizações (MC direto da campanha \texttt{chuva2}): o
+histograma de $\ln$ FS em 24~h com a normal ajustada e o gráfico QQ.}\label{fig:ref}
+\end{figure}
+
+\begin{table}[H]\centering\small
+\caption{A $\Pf$ prevista pela fórmula (\ref{eq:frag}) na referência, contra o MC direto: $\Pf = \pfRef\,\%$
+(\falhasRef{} falhas em \nRef; IC 95\,\% de \icRefLo{} a $\icRefHi\,\%$). $z$: a diferença em erros padrão do MC.}
+\label{tab:ref}
+\begin{tabular}{lcc}
+\toprule
+mediana usada & $\Pf$ prevista & $z$\\
+\midrule
+\tabin{tab/ref.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{itemize}
+  \item \textbf{H1 se sustenta na referência:} $\ln$ FS tem assimetria \assRef{} e curtose em excesso \curtRef; o QQ é
+    reto também na cauda de baixo, que é a que conta. A lognormal ajustada dá $\prevLogn\,\%$ ($z < 1$).
+  \item \textbf{$\beta = \betaRef$:} a dispersão de $\ln$ FS com $c'$, $\varphi'$ e $k_s$ aleatórios. Ela é pequena: um
+    erro de 0,01 no FS mediano desloca a $\Pf$ prevista em $\approx 0{,}13\,\beta$, ou cerca de 1,5 ponto a 6\,\%.
+  \item \textbf{A mediana do FS não é o FS das médias:} \medRef{} contra \fdetRef{} (fator $m = \fatorMediana$). Com a
+    mediana do MC a fórmula acerta ($\prevMed\,\%$, $z \approx 1$); com o FS das médias erra por $z \approx 2{,}6$
+    ($\prevDet\,\%$). O efeito é pequeno (0,3\,\% no FS) e só aparece com 5000 realizações; se $m$ for constante, ele
+    entra como sexta constante, do mesmo MC de calibração. A sigmoide adotada dá $\prevEqSeis\,\%$, mas por compensação
+    (o resíduo do ajuste nesse ponto, $-0{,}005$, tem o mesmo tamanho e o sinal contrário de $m$).
+\end{itemize}
+
+\subsection{A variante com ar ativo em campo aleatório}
+Em \nVi{} realizações da referência (8 das de menor FS, 4 perto de FS = 1 e 4 sorteadas; amostra dirigida, não
+aleatória), a variante (i) baixa $\ln$ FS em 24~h de \dlnMax{} a \dlnMin{} (média \dlnMed, desvio \dlnSd) em relação à
+(iii). O deslocamento varia de realização para realização (depende do campo de $k_s$, que controla o ar aprisionado):
+somado à dispersão da (iii), deve dar $\beta$ maior com ar ativo (da ordem de $\sqrt{0{,}077^2 + 0{,}05^2} \approx
+0{,}09$ se forem independentes). O MC de calibração da campanha mede.
+
+\subsection{A primeira passagem}
+\begin{table}[H]\centering\small
+\caption{Determinístico (as médias), os 3 solos com chuvas de 24~h (relatório \texttt{det\_3solos}): o FS mínimo e
+$T_1$ (h) nas três variantes; -- : não rompe.}\label{tab:t1det}
+\begin{tabular}{ll cc cc cc}
+\toprule
+ & & \multicolumn{2}{c}{(iii)} & \multicolumn{2}{c}{(ii)} & \multicolumn{2}{c}{(i)}\\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(lr){7-8}
+solo & $I$ (mm/h) & FS mín. & $T_1$ & FS mín. & $T_1$ & FS mín. & $T_1$\\
+\midrule
+\tabin{tab/t1_det.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]\centering\small
+\caption{O algoritmo da primeira passagem em realizações da referência (f50, 24~h): $T_1$ (h) por intensidade
+(mm/h). FS 31,05: o FS em 24~h da realização no MC direto da referência.}\label{tab:crpc}
+\begin{tabular}{lcc p{10.5cm}}
+\toprule
+realização & var. & FS 31,05 & $T_1$ por intensidade\\
+\midrule
+\tabin{tab/crpc_teste.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{itemize}
+  \item \textbf{$T_1$ e FS mínimo contam histórias diferentes} (Tabela~\ref{tab:t1det}): com ar ativo o FS mínimo do
+    f10 com 180~mm/h e do f50 com 90~mm/h é \emph{maior} que com ar passivo, mas a ruptura vem 5 e 8~h antes. Para a
+    probabilidade, o evento é $T_1 \le D$.
+  \item \textbf{O algoritmo funciona nas duas variantes} (Tabela~\ref{tab:crpc}): $T_1$ cresce quando $I$ cai, como a
+    monotonia pede; a realização que não rompe com 45~mm/h não roda as intensidades menores; e o $T_1$ a 31,05~mm/h
+    concorda com o FS do MC direto na mesma realização (rompe antes de 24~h quando o FS em 24~h é menor que 1).
+\end{itemize}
+
+\subsection{As curvas de fragilidade previstas}
+\begin{figure}[H]\centering
+\includegraphics[width=0.85\textwidth]{figs/fragilidade_prevista_f50.pdf}
+\caption{f50, chuva de 24~h. Acima: a sigmoide determinística (os pontos interpolados) e a faixa de 5 a 95\,\% do FS
+das realizações, $F e^{\pm 1{,}645\beta}$. Abaixo: a $\Pf$ prevista (\ref{eq:frag}) com $\beta = \betaRef$ e $m = 1$
+(cheia: os pontos; tracejada: a sigmoide adotada; pontilhada: $\beta$ = 0,06 e 0,10) e o MC direto da referência.}
+\label{fig:fragf50}
+\end{figure}
+
+\begin{table}[H]\centering\small
+\caption{As previsões da campanha \texttt{frag} (f50, 24~h, $m = 1$): $F$ nos pontos determinísticos e a $\Pf$ (\%) com
+$\beta = \betaRef$ (pontos e sigmoide adotada) e com $\beta$ = 0,06 e 0,10.}\label{tab:prev}
+\begin{tabular}{lccccccc}
+\toprule
+var. & $I$ (mm/h) & $F$ & $\Pf$, pontos & $\Pf$, sigmoide & $\beta = 0{,}06$ & $\beta = 0{,}10$\\
+\midrule
+\tabin{tab/previsoes.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/fragilidade_prevista_f100.pdf}
+\caption{f100: a $\Pf$ prevista (\ref{eq:frag}) para chuvas de 24, 48 e 72~h (o FS das médias em cada duração,
+$\beta = \betaRef$).}\label{fig:fragf100}
+\end{figure}
+
+\begin{itemize}
+  \item \textbf{A largura da rampa} no f50: $\sigma_I \approx \sigmaIiii$~mm/h com ar passivo e $\sigmaIi$~mm/h com ar
+    ativo. A sigmoide da (i) é mais íngreme em $I_c$ (\declivei{} contra \decliveiii{} em $\ln$ FS por mm/h): com ar
+    ativo a passagem de ``quase nunca'' a ``quase sempre'' rompe é mais brusca.
+  \item \textbf{A quina em $k_s$ aparece na fragilidade} (iii): a $\Pf$ sobe depressa até 36~mm/h e devagar depois.
+    Entre os pontos e a sigmoide suave a diferença chega a 6 pontos (36~mm/h): a forma da sigmoide perto de FS = 1 pesa
+    tanto quanto $\beta$.
+  \item \textbf{Os patamares limitam a $\Pf$:} com ar ativo ela satura em $\approx 88\,\%$ (o FS das médias não desce de
+    0,91); no f100 com 72~h, em $\approx \pfMaxCemiii\,\%$ com ar passivo e $\approx \pfMaxCemi\,\%$ com ar ativo. No
+    f100 é a duração, e não a intensidade, que leva à ruptura (Fig.~\ref{fig:fragf100}): acima de $\approx 3k_s$ a
+    intensidade quase não importa.
+\end{itemize}
+
+\section{A campanha de verificação (\texttt{frag}, fermi)}\label{sec:campanha}
+\begin{table}[H]\centering\small
+\caption{A campanha \texttt{frag} (\texttt{cluster/casos\_frag.txt}): as mesmas realizações (os campos da referência) em
+todos os casos; o f100 só começa depois do f50.}\label{tab:camp}
+\begin{tabular}{llp{6.8cm}cc}
+\toprule
+caso & chuva & intensidades (mm/h) & $N$ & papel\\
+\midrule
+f50, (iii) & 24~h & $T_1$ em 45, 40, 36, 33, 31,05, 30, 27 & 2000 & verificação\\
+f50, (i) & 24~h & $T_1$ em 36, 24, 22, 20, 18 & 2000 & verificação\\
+f50, (i) & 24~h & FS em 24~h a 20 & 2000 & $\beta$ e $m$ da (i)\\
+f100, (iii) & até 120~h & $T_1$ em 20, 9, 6, 4 & 1000 & verificação\\
+f100, (i) & até 120~h & $T_1$ em 20, 9, 5, 3,6 & 1000 & verificação\\
+f100, (iii) e (i) & 120~h & FS em 72 e 120~h a 9 e a 3,6 & 1000 & $\beta$ e $m$\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{itemize}
+  \item \textbf{Calibração e previsão separadas:} $\beta$ (e $m$) vêm de uma intensidade só por variante (a referência
+    de 5000 na (iii) do f50; os MC de calibração nos outros); as outras intensidades são previsão.
+  \item \textbf{Critério:} a fórmula passa se $|z| \le 2$ em todas as intensidades verificadas, com $z = (\Pf^{MC} -
+    \Pf^{prev})/\mathrm{EP}$. Com $N = 2000$ o erro padrão da $\Pf$ é de no máximo 1,1 ponto: dá para ver $\beta$
+    mudando 20\,\% e o erro da sigmoide na quina.
+  \item \textbf{Diagnóstico, se falhar:} (a) H1 --- a lognormal com a mediana e o $\beta$ da própria intensidade
+    reproduz a $\Pf$? (b) H2 --- a mediana segue $mF(I)$? (c) $\beta$ é constante? A primeira passagem dá a $\Pf$ de
+    cada intensidade exata; os MC de calibração dão a distribuição completa do FS onde for preciso.
+  \item \textbf{Conferências embutidas:} a $\Pf$ da primeira passagem tem de reproduzir os MC nas mesmas realizações (a
+    31,05~mm/h contra a referência, a 20~mm/h contra a calibração da (i), no f100 a 9 e 3,6~mm/h).
+  \item \textbf{Custo:} $\approx 21$~h de fermi (4 nós) para o f50 e $\approx 25$~h para o f100; resultado parcial do
+    f50 depois de uma noite. Análise: \path{cluster/resumo_frag.py} (via \path{cluster/baixar_frag.sh}).
+\end{itemize}
+
+\section{Hipóteses e o que pode falhar}\label{sec:riscos}
+\begin{itemize}
+  \item \textbf{$\beta$ pode mudar com $I$.} Abaixo de $k_s$ toda a chuva entra e o $k_s$ não pesa (Spearman de $k_s$
+    com o FS $\approx 0$ na referência); acima, com alagamento, a variabilidade de $k_s$ entra e $\beta$ deve crescer.
+    Se crescer, a fórmula precisa de $\beta(I/k_s)$ (por exemplo, dois valores, abaixo e acima de $k_s$).
+  \item \textbf{A forma da sigmoide.} A quina em $k_s$ não é capturada por nenhuma forma suave; uma sigmoide em dois
+    trechos, $I < k_s$ e $I > k_s$, ou o uso direto dos pontos determinísticos interpolados, resolvem.
+  \item \textbf{A mediana contra o FS das médias} ($m$): constante? A campanha mede $m$ em duas intensidades por
+    variante.
+  \item \textbf{A cauda lognormal} abaixo de 1\,\%: a referência confirma até $\approx 0{,}5\,\%$; abaixo, só com LS ou
+    mais realizações.
+  \item \textbf{As monotonias} (o FS só cai durante a chuva; $T_1$ cai com $I$): valem em todos os casos calculados; a
+    campanha as confere nas conferências embutidas.
+  \item \textbf{A validação determinística} (em pausa; \path{plano_deterministico.md}): a malha do SRM ainda não
+    convergiu ($\approx 0{,}01$ no FS), a malha do transiente é grossa e a chuva entra por metro inclinado. Isso muda
+    os números absolutos, mas não o teste da fórmula: a sigmoide e o MC vêm do mesmo código, e um erro sistemático
+    desloca os dois juntos.
+  \item \textbf{A generalidade.} $\beta$ depende das estatísticas dos campos (CoV, distâncias de autocorrelação,
+    anisotropia): as famílias da Seção~6 de Vargas Ceron et al.\ (2025) mapeariam $\beta$; $A, B, C, D_s$ dependem do
+    talude e do solo (Rahardjo usa $I/k_s$ para comparar solos).
+\end{itemize}
+
+\section{Próximos passos}
+\begin{enumerate}
+  \item Baixar o resultado parcial do f50 (\texttt{baixar\_frag.sh}) e aplicar o critério: a fórmula com $\beta$ e
+    $m$ da calibração contra a $\Pf$ de cada intensidade, nas duas variantes.
+  \item Se passar: o f100 (a duração, $\Pf(I, D)$ e os limiares da Eq.~\ref{eq:limiar}) e os outros solos.
+  \item Se falhar: o diagnóstico (H1, $m$, $\beta(I)$) e a forma corrigida (por exemplo $\beta$ em dois trechos).
+  \item Retomar a validação determinística e refazer os números finais com a malha e a convenção da chuva decididas.
+\end{enumerate}
+
+\end{document}
