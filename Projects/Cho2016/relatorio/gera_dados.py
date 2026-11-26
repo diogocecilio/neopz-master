@@ -69,8 +69,7 @@ def fig_fs(solo, tfim, saida):
         if N:
             ax.plot([float(r["t_h"]) for r in N], [float(r["FS"]) for r in N], color=COR[m], lw=1.8,
                     label=f"{NOME[m]}: NeoPZ, malha média, nref = 2")
-        for pre, ls, rot in (("fina_assoc", (0, (5, 2)), "malha fina do transiente, associado"),
-                             ("fina_psi1e-6", (0, (1, 1.3)), "malha fina do transiente, $\\psi \\approx 0$")):
+        for pre, ls, rot in (("fina_assoc", (0, (5, 2)), "malha fina do transiente"),):
             F = le(os.path.join(P3, f"{pre}_{solo}_{m}_fs.csv"))
             if F:
                 ax.plot([float(r["t_h"]) for r in F], [float(r["FS"]) for r in F], color=COR[m], lw=1.4, ls=ls,
@@ -95,17 +94,19 @@ fig_fs("areia", 30, os.path.join(AQUI, "figs", "fs_areia.pdf"))
 linhas = []
 N = {m: {float(r["t_h"]): float(r["FS"]) for r in le(os.path.join(P2, f"cho_silte_{m}_fs.csv"))} for m in ("sp", "tp")}
 C = {m: {float(r["t_h"]): float(r["FS"]) for r in le(os.path.join(P2, f"conv_silte_{m}_fs.csv"))} for m in ("sp", "tp")}
+Fn = {m: {float(r["t_h"]): float(r["FS"]) for r in le(os.path.join(P3, f"fina_assoc_silte_{m}_fs.csv"))} for m in ("sp", "tp")}
 A = {m: dict(zip(*artigo("silte", m))) for m in ("sp", "tp")}
 with open(os.path.join(AQUI, "tab", "fs_silte.tex"), "w") as f:
-    f.write("\\begin{tabular}{r|cccc|cccc}\n\\toprule\n")
-    f.write(" & \\multicolumn{4}{c|}{sp (só água)} & \\multicolumn{4}{c}{tp (água e ar)}\\\\\n")
-    f.write("$t$ (h) & nref 2 & conv. & Cho & dif. & nref 2 & conv. & Cho & dif.\\\\\n\\midrule\n")
-    for t in sorted(set(N["sp"]) | set(N["tp"]) | set(C["sp"]) | set(C["tp"])):
+    f.write("\\begin{tabular}{r|ccccc|ccccc}\n\\toprule\n")
+    f.write(" & \\multicolumn{5}{c|}{sp (só água)} & \\multicolumn{5}{c}{tp (água e ar)}\\\\\n")
+    f.write("$t$ (h) & nref 2 & conv. & fina & Cho & dif. & nref 2 & conv. & fina & Cho & dif.\\\\\n\\midrule\n")
+    for t in sorted(set(N["sp"]) | set(N["tp"]) | set(C["sp"]) | set(C["tp"]) | set(Fn["sp"]) | set(Fn["tp"])):
         cel = []
         for m in ("sp", "tp"):
-            n, c, a = N[m].get(t), C[m].get(t), A[m].get(t)
-            melhor = c if c is not None else n
-            cel += [v(n) if n is not None else "--", v(c) if c is not None else "--", v2(a) if a is not None else "--",
+            n, c, fi, a = N[m].get(t), C[m].get(t), Fn[m].get(t), A[m].get(t)
+            melhor = fi if fi is not None else (c if c is not None else n)
+            cel += [v(n) if n is not None else "--", v(c) if c is not None else "--",
+                    v(fi) if fi is not None else "--", v2(a) if a is not None else "--",
                     (f"{melhor - a:+.2f}".replace(".", "{,}") if melhor is not None and a is not None else "--")]
         f.write(f"{t:g} & " + " & ".join(cel) + "\\\\\n")
     f.write("\\bottomrule\n\\end{tabular}\n")
@@ -137,7 +138,7 @@ CORH = plt.cm.viridis([i / (len(HORAS) - 1) for i in range(len(HORAS))])
 fig, axs = plt.subplots(1, 2, figsize=(7.4, 4.6), sharey=True)
 for ax, m in zip(axs, ("tp", "sp")):
     eixo(ax)
-    Rm = le(os.path.join(P2, f"cho_silte_{m}_cc.csv"))
+    Rm = le(os.path.join(P3, f"fina_assoc_silte_{m}_cc.csv")) or le(os.path.join(P2, f"cho_silte_{m}_cc.csv"))
     for h, cor in zip(HORAS, CORH):
         P = [r for r in Rm if float(r["t_h"]) == h]
         if P:
@@ -157,14 +158,15 @@ fig.savefig(os.path.join(AQUI, "figs", "perfis_silte.pdf"))
 plt.close(fig)
 
 with open(os.path.join(AQUI, "tab", "frente.tex"), "w") as f:
-    f.write("\\begin{tabular}{r|cc|cc}\n\\toprule\n & \\multicolumn{2}{c|}{sp} & \\multicolumn{2}{c}{tp}\\\\\n")
-    f.write("$t$ (h) & NeoPZ & Cho & NeoPZ & Cho\\\\\n\\midrule\n")
+    f.write("\\begin{tabular}{r|ccc|ccc}\n\\toprule\n & \\multicolumn{3}{c|}{sp} & \\multicolumn{3}{c}{tp}\\\\\n")
+    f.write("$t$ (h) & atual & fina & Cho & atual & fina & Cho\\\\\n\\midrule\n")
     for h in HORAS:
         cel = []
         for m in ("sp", "tp"):
             z = frente_de(le(os.path.join(P2, f"cho_silte_{m}_cc.csv")), h)
+            zf = frente_de(le(os.path.join(P3, f"fina_assoc_silte_{m}_cc.csv")), h)
             a = [float(r["frente_m"]) for r in frente if r["modelo"] == m and float(r["t_h"]) == h]
-            cel += [v2(z) if z is not None else "--", v2(a[0]) if a else "--"]
+            cel += [v2(z) if z is not None else "--", v2(zf) if zf is not None else "--", v2(a[0]) if a else "--"]
         f.write(f"{h} & " + " & ".join(cel) + "\\\\\n")
     f.write("\\bottomrule\n\\end{tabular}\n")
 

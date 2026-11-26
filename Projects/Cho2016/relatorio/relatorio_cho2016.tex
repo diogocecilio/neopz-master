@@ -113,13 +113,13 @@ $\psi = 10^{-6}$ graus separa um problema numérico do zero exato de um problema
 \includegraphics[width=0.9\textwidth]{figs/fs_silte.pdf}
 \caption{Silte: o FS contra o tempo de chuva, NeoPZ contra a Fig.~12b de Cho (2016) (marcadores vazios, lidos a olho,
 $\pm 0{,}01$). Linhas cheias: a malha do transiente atual, o FS na malha média com 2 níveis; triângulos: o FS na malha
-grossa refinada até convergir; tracejadas: a malha fina do transiente (associado e $\psi \approx 0$), quando
-existem.}\label{fig:fssilte}
+grossa refinada até convergir; tracejadas: a malha fina do transiente (colunas de 0,5~m,
+primeira camada com 0,5\,\% da altura).}\label{fig:fssilte}
 \end{figure}
 
-\begin{table}[H]\centering\small
-\caption{Silte: o FS, NeoPZ (nref 2: malha média, 2 níveis; conv.: malha grossa refinada até convergir) e Cho (lido
-da Fig.~12b); dif.: o melhor NeoPZ menos o Cho.}\label{tab:fssilte}
+\begin{table}[H]\centering\scriptsize
+\caption{Silte: o FS, NeoPZ (nref 2: malha média, 2 níveis; conv.: malha grossa refinada até convergir; fina: a malha
+fina do transiente, até 3 níveis) e Cho (lido da Fig.~12b); dif.: a malha fina (ou a melhor disponível) menos o Cho.}\label{tab:fssilte}
 \input{tab/fs_silte.tex}
 \end{table}
 
@@ -134,7 +134,9 @@ O que se reproduz:
 O que não se reproduz: as nossas curvas vão atrasadas, porque a nossa frente de molhamento é mais lenta
 (Seção~\ref{sec:frente}).
 
-No fim (168~h) o sp chega a 1,254 (artigo 1,21) e o tp a 1,40 em 144~h (artigo 1,265). O refinamento até convergir
+No fim (168~h) o sp chega a 1,254 na malha atual e a 1,249 na malha fina (artigo 1,21). O tp para antes do fim: em
+148,6~h na malha atual e em 127,2~h na fina, com o Newton sem fechar quando muitos nós estão na face de percolação
+(61 e 121 nós; o resíduo já é $10^{-9}$). Até lá ele fica 0,08 a 0,12 acima do artigo. O refinamento até convergir
 confirma os 2 níveis da malha média: as diferenças ficam abaixo de 0,005 nos instantes já calculados. O que falta é o
 transiente.
 
@@ -142,19 +144,24 @@ transiente.
 
 \begin{figure}[H]\centering
 \includegraphics[width=0.85\textwidth]{figs/perfis_silte.pdf}
-\caption{Silte: perfis de $p_w$ na seção C--C' (NeoPZ, malha do transiente atual) e o meio da frente na Fig.~8 do
+\caption{Silte: perfis de $p_w$ na seção C--C' (NeoPZ, malha fina do transiente) e o meio da frente na Fig.~8 do
 artigo (losangos, $p_w = -15$~kPa, $\pm 0{,}2$~m).}\label{fig:perfis}
 \end{figure}
 
 \begin{table}[H]\centering\small
-\caption{Silte: profundidade (m) do meio da frente ($p_w = -15$~kPa) em C--C', NeoPZ (malha atual) e Cho
-(Fig.~8).}\label{tab:frente}
+\caption{Silte: profundidade (m) do meio da frente ($p_w = -15$~kPa) em C--C', NeoPZ (malha do transiente atual
+e fina) e Cho (Fig.~8).}\label{tab:frente}
 \input{tab/frente.tex}
 \end{table}
 
 \paragraph{Teste de malha do transiente.} O sp do silte em três malhas (Tab.~\ref{tab:malhat}): a frente desce mais
 rápido quanto mais fina a malha, e ainda não convergiu; a 64~h, 1,5~m na grossa, 2,0~m na atual e 2,5~m na fina,
-contra 2,8~m no artigo. A malha fina já está rodando com o FS (sp e tp, associado e $\psi \approx 0$). A causa é a malha em camadas por fração da altura: em C--C', com
+contra 2,8~m no artigo. Com o FS (Tab.~\ref{tab:frente}), a malha fina (colunas de 0,5~m, primeira camada com
+0,5\,\% da altura) leva a frente do sp mais perto do artigo, mas ainda faltam $\approx 0{,}5$~m: no sp, a diferença é
+de malha e ainda não convergiu. No tp a frente quase não muda com a malha (1,61 e 1,67~m a 96~h) e fica bem atrás do
+artigo (2,30~m): a diferença no tp não é de malha. Suspeitos: a permeabilidade ao ar ($k_{ra}$ de Lenhard--Parker e o
+piso $10^{-4}$) e a condição do ar na superfície (aqui $p_a = 0$ em todos os nós da superfície). \afazer{testar o
+piso de $k_{ra}$ e a condição do ar} A causa é a malha em camadas por fração da altura: em C--C', com
 22~m de solo, a primeira camada da malha atual tem 0,22~m, grossa para uma frente íngreme num solo que parte com
 $S_w \approx 0{,}39$. A correção é usar camadas de espessura fixa (poucos centímetros) até a profundidade que a frente
 alcança ($\approx 8$~m) e crescer só abaixo. \afazer{a malha nova e o silte refeito}
@@ -194,8 +201,9 @@ rampa na chuva, ou continuação na sucção inicial}
 
 \section{Próximos passos}
 \begin{enumerate}
-  \item A malha do transiente com camadas de espessura fixa perto da superfície, até a frente convergir; refazer o
-    silte (sp e tp) e comparar de novo com as Figs.~8 e 12b.
+  \item sp: refinar mais a malha do transiente perto da superfície, até a frente convergir.
+  \item tp: a frente lenta não é de malha; testar a permeabilidade ao ar e a condição do ar na superfície, e fazer o
+    Newton passar quando a face de percolação cresce (o tp para em 127--149~h).
   \item A areia: fazer o transiente passar do início da chuva.
   \item A sucção e $p_a$ nos pontos (Fig.~6) e os perfis de $p_a$ (Fig.~9).
 \end{enumerate}
