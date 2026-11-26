@@ -1,0 +1,84 @@
+% relatorio_kang2020.tex: a reproducao de Kang et al. (2020) no NeoPZ (Projects/Kang2020). Figuras e tabelas copiadas e
+% refeitas por ./gera.sh a partir de ~/projects/runs/kang2020; o corpo (corpo_artigo.tex) e a secao do Kang do esqueleto
+% do artigo (Dropbox/UnsaturatedSoil/ar_ativo_notas/artigo_eq6_ar_ativo).
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern,amsmath,amssymb,booktabs,graphicx,geometry,caption,float,xcolor}
+\usepackage[hidelinks]{hyperref}
+\geometry{margin=2.3cm}
+\captionsetup{font=small}
+\emergencystretch=2em
+\providecommand{\versao}{}
+\newcommand{\afazer}[1]{\textcolor{red}{[A FAZER: #1]}}
+
+\title{Reprodução de Kang et al.\ (2020): talude infinito sob chuva com ar ativo e passivo\\
+\large relatório das simulações (\texttt{Projects/Kang2020})}
+\author{Diogo Cecílio}
+\date{\versao}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Kang, Cho, Kim e Go (2020), \emph{Water} 12(3):812, calculam no FLAC o FS de um talude infinito com 2~m de coluvião sob
+a chuva de 26--27/07/2011 em Umyeon (Seul, 17~h, 381~mm), em cinco zonas do morro, com fluxo só da água (SP, ar
+passivo) e com fluxo de água e ar (TP, ar ativo). Aqui o problema é refeito com o modelo acoplado $u$--$p_w$--$p_a$ do
+NeoPZ em três geometrias: a coluna vertical, a faixa do FLAC (a malha do artigo) e a coluna normal ao talude.
+Resultados: no sul (zonas 3--5) a hora da saturação, o ``serrote'' do FS com ar e o FS final batem com o artigo; no
+norte (zonas 1 e 2) a coluna satura 1--3~h antes, provavelmente por uma inconsistência da curva de retenção do artigo.
+O FS final do artigo é o da coluna sem drenagem (hidrostático); a faixa e a coluna normal drenam ao longo da encosta
+($p_w = \gamma_w z\cos^2\beta$) e dão um FS final 0,15 a 0,25 maior. A coluna normal ao talude reproduz a faixa a um
+custo vinte vezes menor.
+\end{abstract}
+
+\tableofcontents
+
+\section{O problema e os passos}
+O FS é o da Eq.~14 do artigo, o mínimo na profundidade:
+\[
+FS(z) = \frac{[W\cos^2\beta - (S_w p_w + S_a p_a)]\tan\phi' + c'}{W\sin\beta\cos\beta},\qquad
+W = \int_0^z (\gamma_d + n S_w\gamma_w)\,dz,
+\]
+com $z$ vertical. A reprodução foi feita passo a passo (\texttt{Projects/Kang2020/main.cpp}):
+\begin{enumerate}
+  \item Os dados do artigo (\texttt{kang\_dados.h}) e as conferências sem transiente.
+  \item O transiente na coluna vertical, zona a zona, SP.
+  \item As curvas de retenção (Tabela~1 contra Fig.~4a) e o $k_r$ de Mualem tabelado para $n_{VG} < 2$ (o norte), que
+    fazia o Newton ciclar.
+  \item As cinco zonas, SP e TP, na coluna vertical, contra as Figs.~7, 8 e 9 do artigo.
+  \item[6.] A malha do artigo: a faixa do FLAC ($40\times20$ zonas).
+  \item[7.] A coluna normal ao talude (o talude infinito 1D de verdade), contra a faixa.
+\end{enumerate}
+
+\section{Dados, malhas e resultados}
+\input{corpo_artigo.tex}
+
+\section{Perfis na coluna e na faixa}
+\begin{figure}[H]\centering
+\includegraphics[width=0.85\textwidth]{figs/kang_perfis_sp.png}
+\caption{Kang et al.\ (2020), sem ar (SP): perfis de $p_w$ e sucção na coluna (cheias) e na faixa do artigo, na
+vertical do meio (tracejadas); compare com a Fig.~7 do artigo.}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.85\textwidth]{figs/kang_fig7_nosso.png}
+\caption{Kang et al.\ (2020), na coluna, SP: os perfis no formato da Fig.~7 do artigo.}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.85\textwidth]{figs/kang_fig8_nosso.png}
+\caption{Kang et al.\ (2020), na coluna, TP: os perfis no formato da Fig.~8 do artigo.}
+\end{figure}
+
+\section{Conclusões}
+\begin{itemize}
+  \item O modelo acoplado reproduz Kang et al.\ (2020) no sul; no norte a diferença vem da curva de retenção do artigo.
+  \item Os resultados publicados se comportam como a coluna vertical sem drenagem, apesar da malha inclinada do FLAC.
+  \item Para o talude infinito, a coluna normal ao talude é o modelo 1D correto: dá o mesmo FS da faixa (diferença
+    $< 0{,}02$ ao longo das 17~h) por $\approx 45$~s em vez de $\approx 10$~min.
+  \item O ar ativo só pesa onde o ar fica preso (zonas 2, 3 e 5 no TP); nas outras, TP e SP quase coincidem.
+\end{itemize}
+
+\end{document}

@@ -1,0 +1,203 @@
+% relatorio_cho2016.tex: a reproducao de Cho (2016) no NeoPZ (Projects/Cho2016). Figuras e tabelas: gera_dados.py, com
+% os dados de ~/projects/runs/cho2016; ./gera.sh refaz tudo.
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern,amsmath,amssymb,booktabs,graphicx,geometry,caption,float,xcolor}
+\usepackage[hidelinks]{hyperref}
+\geometry{margin=2.3cm}
+\captionsetup{font=small}
+\emergencystretch=2em
+\providecommand{\versao}{}
+\newcommand{\afazer}[1]{\textcolor{red}{[A FAZER: #1]}}
+
+\title{Reprodução de Cho (2016): talude sob chuva com fluxo de água e ar\\
+\large relatório das simulações (\texttt{Projects/Cho2016})}
+\author{Diogo Cecílio}
+\date{\versao}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+S.~E.~Cho (2016), \emph{Stability analysis of unsaturated soil slopes considering water--air flow caused by rainfall
+infiltration} (Engineering Geology 211:184--197), calcula no FLAC um talude 2D sob chuva de $3k_s$ com fluxo só da água
+(sp, ar passivo) e com fluxo de água e ar (tp, ar ativo), em areia e em silte, e o fator de segurança pelo SRM ao longo do
+tempo. Aqui o mesmo problema é calculado com o modelo acoplado $u$--$p_w$--$p_a$ do NeoPZ. Estado: o FS inicial
+converge (silte 1,576, artigo 1,55; areia 1,307, artigo 1,22). No silte os dois modelos rodam até 168~h e têm a
+forma do artigo (tp abaixo do sp no início, a queda forte do sp quando a ruptura fica rasa, o tp acima no fim), mas
+atrasados. O teste de malha mostra a causa principal: a frente de molhamento depende da malha do transiente e ainda não
+convergiu. Na areia, que parte muito seca ($k_r \approx 10^{-6}$), o Newton ainda não passa do início da chuva.
+\end{abstract}
+
+\tableofcontents
+
+\section{O problema}
+O talude da Fig.~1 do artigo (Fig.~\ref{fig:malhas}): A(0,28), B(20,26), C(28,22), D(40,12), E(60,10), F(60,0),
+G(0,0)~m, homogêneo e isotrópico, com o nível d'água horizontal a 6~m. Os dados (Tabelas~1 e 2 do artigo):
+
+\begin{table}[H]\centering\small
+\caption{Cho (2016): os parâmetros. Van Genuchten na forma do artigo, $S_e = [1 + (\psi/P_0)^{1/(1-a)}]^{-a}$ (o $n$
+de van Genuchten é $1/(1-a)$), com $S_r = 0$; $k_{rw}$ de Mualem e $k_{ra}$ de Lenhard--Parker, ambos com $b = 0{,}5$.}
+\begin{tabular}{lcc}
+\toprule
+ & areia & silte\\
+\midrule
+$k_s$ (m/s) & $1\times10^{-5}$ & $3\times10^{-6}$\\
+$P_0$ (kPa); $a$ ($n_{VG}$) & 1,5; 0,445 (1,80) & 4,905; 0,336 (1,51)\\
+porosidade $n$ & 0,35 & 0,5\\
+$c'$ (kPa); $\phi'$ ($^\circ$); dilatância $\psi$ & 3; 35; 0 & 10; 30; 0\\
+chuva ($3k_s$, mm/h); duração da Fig.~12 (h) & 108; 30 & 32,4; 168\\
+\midrule
+comuns & \multicolumn{2}{l}{$K = 33{,}3$~MPa, $G = 11{,}1$~MPa ($E = 30$~MPa, $\nu = 0{,}35$); $\rho_d = 1640$~kg/m$^3$}\\
+ & \multicolumn{2}{l}{$\mu_w/\mu_a = 56$; $K_w = 2$~GPa; $K_a = 100$~kPa; $\rho_a = 1{,}25$~kg/m$^3$}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Contornos e estado inicial (Seção 4 do artigo).}
+\begin{itemize}
+  \item Estado inicial: $p_w = \gamma_w(6 - y)$, limitado a $-30$~kPa acima do nível; $p_a = 0$.
+  \item Fluxo: nível fixo na lateral direita (EF); chuva de $3k_s$ na superfície ABCDE, que vira face de percolação
+    ($p_w = 0$) quando a água não entra mais; no tp, $p_a = 0$ na superfície; as outras fronteiras são impermeáveis à
+    água e ao ar.
+  \item Deslocamentos (para o SRM): AG e EF sem deslocamento normal, FG fixo.
+\end{itemize}
+
+\section{O modelo no NeoPZ}
+\begin{itemize}
+  \item O material $u$--$p_w$--$p_a$ da biblioteca (\texttt{TPZMatUnsaturatedUPwPa}): Bishop com $\chi = S_w$; Biot
+    $\alpha = 1$; peso da mistura $\gamma_d + n S_w \gamma_w$; o ar \textbf{compressível}, gás ideal isotérmico
+    ($\rho_a \propto p_a + p_{atm}$, ou seja, $K_a = p_a + p_{atm} \approx 100$~kPa, o $K_a$ do artigo).
+  \item $n_{VG} < 2$ nos dois solos: a derivada do $k_r$ de Mualem explode na saturação e o Newton diverge. O $k_{rw}$
+    é tabelado até $S_e = 1 - 10^{-3}$ e fechado suavemente (\texttt{MualemTabelado.h}, como no Kang2020).
+  \item O transiente: o \texttt{RainTransient} do SlopeRandomFieldRefinement; sp é o modelo acoplado com o ar passivo
+    ($p_a = 0$), tp o acoplado com o ar ativo. Euler implícito, passo de 0,25~h no silte (0,05~h na areia).
+  \item O FS: o SRM ($c'/F$, $\tan\phi'/F$) com as pressões do transiente congeladas, por arc-length, com refinamento
+    $h$ adaptativo (os elementos com deformação plástica $\geq 10\,\%$ da maior são divididos). Duas variantes: malha
+    inicial média com 2 níveis, e malha inicial grossa refinada até o FS mudar menos de 0,005 (no máximo 6 níveis).
+  \item A dilatância: o artigo usa $\psi = 0$. O Mohr--Coulomb PV2 da biblioteca só aceita fluxo associado; para
+    $\psi \neq \phi'$ o fator usa o Mohr--Coulomb PV (\texttt{TPZPlasticStepPV<TPZYCMohrCoulombPV>}, opção
+    \texttt{psi=}), que reduz $\tan\psi$ junto com $\tan\phi'$ no SRM (Seção~\ref{sec:psi}).
+\end{itemize}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.85\textwidth]{figs/malhas.pdf}
+\caption{As malhas (camadas que seguem a superfície). Tracejado azul: o nível d'água inicial; vermelho: a seção C--C'
+($x = 28$~m).}\label{fig:malhas}
+\end{figure}
+
+\section{Fator de segurança inicial}
+Com a malha grossa refinada até convergir, o FS inicial é 1,678; 1,605; 1,589; 1,578; 1,576 (4 refinamentos): o FS
+convergido é \textbf{1,576} no silte (artigo 1,55, $+1{,}7\,\%$). Na areia, com a malha média e 2 níveis, 1,307
+(artigo 1,22, $+7\,\%$). A diferença maior na areia é coerente com o fluxo associado: com $\phi' = 35^\circ$ o efeito da
+dilatância no SRM é maior que com $30^\circ$.
+
+\section{Dilatância}\label{sec:psi}
+Com $\psi = \phi'$ o PV dá exatamente o FS do PV2 (Tab.~\ref{tab:psi}): a troca de material está certa. Com $\psi = 0$
+o FS não é confiável: no silte ele sobe e desce com o refinamento, e na areia cai até 0,42 num talude que o artigo dá
+como estável. É o comportamento conhecido do SRM com fluxo não associado: o arc-length perde a convergência (a matriz
+tangente fica não simétrica e pode amolecer antes do colapso) e isso é tomado por ruptura. O teste com
+$\psi = 10^{-6}$ graus separa um problema numérico do zero exato de um problema do não associado.
+\afazer{o resultado de $\psi = 10^{-6}$}
+
+\begin{table}[H]\centering\small
+\caption{O FS inicial ($t = 0$) com o fluxo associado e com $\psi \approx 0$.}\label{tab:psi}
+\input{tab/psi.tex}
+\end{table}
+
+\section{Silte: FS ao longo do tempo}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.9\textwidth]{figs/fs_silte.pdf}
+\caption{Silte: o FS contra o tempo de chuva, NeoPZ contra a Fig.~12b de Cho (2016) (marcadores vazios, lidos a olho,
+$\pm 0{,}01$). Linhas cheias: a malha do transiente atual, o FS na malha média com 2 níveis; triângulos: o FS na malha
+grossa refinada até convergir; tracejadas: a malha fina do transiente (associado e $\psi \approx 0$), quando
+existem.}\label{fig:fssilte}
+\end{figure}
+
+\begin{table}[H]\centering\small
+\caption{Silte: o FS, NeoPZ (nref 2: malha média, 2 níveis; conv.: malha grossa refinada até convergir) e Cho (lido
+da Fig.~12b); dif.: o melhor NeoPZ menos o Cho.}\label{tab:fssilte}
+\input{tab/fs_silte.tex}
+\end{table}
+
+O que se reproduz:
+\begin{itemize}
+  \item No início o tp cai mais rápido que o sp: com ar ativo, o ar comprimido sob a frente reduz a sucção antes.
+  \item O sp tem uma queda forte, que no artigo vai de 56 a 96~h e aqui de 72 a 112~h: é a superfície de ruptura que sobe
+    de profunda para rasa quando a frente avança (Seção~4.3 do artigo). Nesses instantes o refinamento demora mais a
+    convergir (Tab.~\ref{tab:niveis}), porque a superfície rasa é estreita.
+  \item No fim o tp fica acima do sp: o ar preso atrasa a frente.
+\end{itemize}
+O que não se reproduz: as nossas curvas vão atrasadas, porque a nossa frente de molhamento é mais lenta
+(Seção~\ref{sec:frente}).
+
+No fim (168~h) o sp chega a 1,254 (artigo 1,21) e o tp a 1,40 em 144~h (artigo 1,265). O refinamento até convergir
+confirma os 2 níveis da malha média: as diferenças ficam abaixo de 0,005 nos instantes já calculados. O que falta é o
+transiente.
+
+\section{Silte: a frente de molhamento}\label{sec:frente}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.85\textwidth]{figs/perfis_silte.pdf}
+\caption{Silte: perfis de $p_w$ na seção C--C' (NeoPZ, malha do transiente atual) e o meio da frente na Fig.~8 do
+artigo (losangos, $p_w = -15$~kPa, $\pm 0{,}2$~m).}\label{fig:perfis}
+\end{figure}
+
+\begin{table}[H]\centering\small
+\caption{Silte: profundidade (m) do meio da frente ($p_w = -15$~kPa) em C--C', NeoPZ (malha atual) e Cho
+(Fig.~8).}\label{tab:frente}
+\input{tab/frente.tex}
+\end{table}
+
+\paragraph{Teste de malha do transiente.} O sp do silte em três malhas (Tab.~\ref{tab:malhat}): a frente desce mais
+rápido quanto mais fina a malha, e ainda não convergiu; a 64~h, 1,5~m na grossa, 2,0~m na atual e 2,5~m na fina,
+contra 2,8~m no artigo. A malha fina já está rodando com o FS (sp e tp, associado e $\psi \approx 0$). A causa é a malha em camadas por fração da altura: em C--C', com
+22~m de solo, a primeira camada da malha atual tem 0,22~m, grossa para uma frente íngreme num solo que parte com
+$S_w \approx 0{,}39$. A correção é usar camadas de espessura fixa (poucos centímetros) até a profundidade que a frente
+alcança ($\approx 8$~m) e crescer só abaixo. \afazer{a malha nova e o silte refeito}
+
+\begin{table}[H]\centering\small
+\caption{Silte, sp: profundidade (m) do meio da frente em C--C' em três malhas do transiente.}\label{tab:malhat}
+\input{tab/malha_transiente.tex}
+\end{table}
+
+\section{Silte: os pontos de monitoramento}
+H, I e J estão na vertical $x = 34$~m da face CD (posições lidas da Fig.~1, $\pm 0{,}2$~m): H $(34; 16{,}1)$,
+I $(34; 15{,}1)$ e J $(34; 12{,}2)$, a $\approx 0{,}9$, 1,9 e 4,8~m abaixo da superfície. O driver grava $p_w$, $p_a$ e
+a sucção neles de hora em hora (\texttt{*\_pontos.csv}).
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/pontos_silte.pdf}
+\caption{Silte: $p_w$ nos pontos H, I e J, NeoPZ com a malha fina do transiente (linhas; tracejada: $p_a$ no tp)
+contra a Fig.~5b de Cho (2016) (marcadores, lidos a olho, $\pm 1$~kPa e $\pm 3$~h).}\label{fig:pontos}
+\end{figure}
+
+\section{Areia}
+O FS inicial converge (1,307), mas o transiente não passa de 0,02--0,15~h: o Newton diverge no início da chuva. A
+$-30$~kPa a areia tem $S_w \approx 0{,}09$ e $k_r \approx 10^{-6}$, e a chuva de $3k_s$ chega a um solo que quase não
+deixa a água entrar; refinar a malha perto da superfície fez parar ainda mais cedo. \afazer{passo inicial menor,
+rampa na chuva, ou continuação na sucção inicial}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.75\textwidth]{figs/fs_areia.pdf}
+\caption{Areia: a Fig.~12a de Cho (2016) (lida); o NeoPZ ainda só tem o FS inicial.}
+\end{figure}
+
+\section{Refinamento adaptativo do FS}
+\begin{table}[H]\centering\scriptsize
+\caption{Silte: o FS em cada nível do refinamento adaptativo.}\label{tab:niveis}
+\input{tab/niveis.tex}
+\end{table}
+
+\section{Próximos passos}
+\begin{enumerate}
+  \item A malha do transiente com camadas de espessura fixa perto da superfície, até a frente convergir; refazer o
+    silte (sp e tp) e comparar de novo com as Figs.~8 e 12b.
+  \item A areia: fazer o transiente passar do início da chuva.
+  \item A sucção e $p_a$ nos pontos (Fig.~6) e os perfis de $p_a$ (Fig.~9).
+\end{enumerate}
+
+\end{document}

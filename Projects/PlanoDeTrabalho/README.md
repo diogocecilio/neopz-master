@@ -291,6 +291,27 @@ núcleo, ou 6 a 7 h em 4 nós. O primeiro nó roda antes os FORM com M = 10 e 20
 ### Etapa 4: a chuva
 
 - **Parada (20/11/2026)** até terminar os casos secos e o saturado do Ceron (ver Prioridade, acima).
+- **Decisões de 22/11/2026** (o foco volta a ser a chuva com ar ativo e acoplamento completo; o FORM modal + line
+  sampling + MEF ou análise limite fica como artigo de método à parte):
+  1. dois modelos nos mesmos campos (pareados): ar passivo desacoplado (a hipótese da literatura) e ar ativo acoplado;
+  2. falha no ar ativo: FS_min ≤ 1,01 com a resistência real (a intensidade crítica do artigo não saturado);
+     `F_TRANS=0.5` como sensibilidade;
+  3. caso base com P_f baixa (como o f100), FS de 6 em 6 h de 0 a 48 h. **Antes do Rahardjo, a verificação num exemplo
+     probabilístico publicado de talude não saturado sob chuva**, como o Ceron foi para o saturado;
+  4. line sampling na direção do FORM modal, com âncoras de MC; os casos ainda serão definidos;
+  5. **nada roda antes de definir o caso de comparação da literatura**;
+  6. **D1 decidido: a chuva é vertical** (projeção horizontal na face, `BoundaryNodes(id, true)`);
+  7. **o primeiro passo é a busca dirigida na literatura** (exemplo probabilístico não saturado com chuva e dados
+     completos; ar ativo com probabilidade; FORM/LS com campos na chuva);
+  8. **só Nyström, em tudo, de agora em diante:** todos os campos aleatórios (chuva, rebaixamento, Cho e os casos de
+     comparação) usam a base de Nyström no domínio do próprio talude, nunca mais a KL analítica no retângulo. Hoje só o
+     `cho2010.cpp` aceita `nystrom=`; falta levar a opção ao `montecarlo.cpp` (chuva) e ao `rebaixamento_mc.cpp`, e
+     generalizar o `Cho2010/nystrom_base.py` (geometria pelos 6 pontos do driver e outros núcleos, como o gaussiano
+     rotacionado). Os resultados já feitos com a KL analítica ficam como estão, documentados como tal;
+  9. **caso de comparação proposto: Hu et al. (2024)** (especificado no relatório
+     `referencias_selecionadas_claude/reports/Exemplos probabilísticos de chuva não saturada.md`; o usuário vai ler
+     antes de aprovar). Na etapa determinística, rodar os dois k_s: 2e-5 m/s (texto) e 5,2e-6 m/s (Fig. 4b);
+  10. **M de 100 a 200 modos por campo, no máximo 200**, na base de Nyström (o Hu usa 150 termos), em vez de 2000.
 - **Decisões pendentes antes das campanhas** (levantamento do código contra o Rahardjo 2007, em
   `contornos_agua/relatorio_contornos.pdf`; o resto do contorno já segue o artigo: geometria, NA a 7°, −75 kPa, laterais
   com carga fixa abaixo do NA, base sem fluxo, SWCC e k):

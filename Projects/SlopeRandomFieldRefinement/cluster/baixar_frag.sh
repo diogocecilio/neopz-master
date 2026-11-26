@@ -8,6 +8,6 @@ DEST="${DEST:-$HOME/projects/runs/fermi_frag}"
 ORIGEM="${ORIGEM:-diogo@fermi.cesup.ufrgs.br:/mnt/data/diogo/frag/}"
 mkdir -p "$DEST"
 if [ -z "${SEM_BAIXAR:-}" ]; then
-    rsync -avz --exclude '*_real-1/' "$ORIGEM" "$DEST/" || { rc=$?; [ "$rc" = 23 ] || [ "$rc" = 24 ] || exit "$rc"; }
+    rsync -avz --exclude '*_real-1/' --exclude .tarefas/ "$ORIGEM" "$DEST/" || { rc=$?; [ "$rc" = 23 ] || [ "$rc" = 24 ] || exit "$rc"; }
 fi
 python3 -I "$AQUI/resumo_frag.py" "$DEST" --json "$DEST/resumo.json" --figs "$DEST/figs" | tee "$DEST/resultado.txt"

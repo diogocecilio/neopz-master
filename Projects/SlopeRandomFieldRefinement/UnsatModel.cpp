@@ -277,6 +277,8 @@ TPZGeoMesh *UnsatModel<TMat>::RefinedGeoMesh(const std::set<int64_t> &marked, st
 // ---- materiais aceitos: uma linha por material. O neopz so compila estes materiais (fim do
 // TPZMatPoroElastoPlasticUP.cpp e do TPZMatUnsaturatedUPwPa.cpp). Todas as linhas compilam o mesmo codigo: se uma
 // funcao usar algo que so um material tem, ela nao compila aqui, e esse pedaco tem que vir do problema (do main)
+#include "Plasticity/TPZPlasticStepPV.h"
+#include "Plasticity/TPZYCMohrCoulombPV.h"
 using TMC = TPZPlasticStepVoigt<TPZYCMohrCoulombPV2, TPZElasticResponse>;
 template class UnsatModel<TPZMatPoroElastoPlasticUP<TMC, TPZElastoPlasticMem>>;                           // u-p, Mohr-Coulomb
 template class UnsatModel<TPZMatPoroElastoPlasticUP<TPZPlasticStepModifiedCamClay, TPZElastoPlasticMem>>; // u-p, Cam Clay
@@ -285,3 +287,5 @@ template class UnsatModel<TPZMatUnsaturatedUPwPa<TMC, TPZUnsaturatedMem>>; // u-
 template class UnsatModel<HPMaterial<TPZMatPoroElastoPlasticUP<TMC, TPZElastoPlasticMem>>>;
 template class UnsatModel<HPMaterial<TPZMatPoroElastoPlasticUP<TPZPlasticStepModifiedCamClay, TPZElastoPlasticMem>>>;
 template class UnsatModel<HPMaterial<TPZMatUnsaturatedUPwPa<TMC, TPZUnsaturatedMem>>>;
+// u-p_w-p_a com o Mohr-Coulomb PV, que aceita dilatancia psi != phi (o PV2 e so associado): Projects/Cho2016
+template class UnsatModel<HPMaterial<TPZMatUnsaturatedUPwPa<TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZUnsaturatedMem>>>;

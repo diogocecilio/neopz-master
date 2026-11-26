@@ -1,0 +1,1120 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{graphicx,booktabs,float,geometry,url,makecell}
+\usepackage{array,longtable,enumitem,multicol}
+\usepackage[round]{natbib}
+\usepackage[hidelinks]{hyperref}
+\geometry{margin=2.2cm}
+\providecommand{\versao}{sem versão}
+\setcounter{tocdepth}{1}
+\setlist{itemsep=1pt,topsep=3pt,parsep=0pt}
+\def\UrlBreaks{\do\.\do\@\do\\\do\/\do\!\do\_\do\|\do\;\do\>\do\]\do\)\do\,\do\?\do\'\do+\do\=\do\#\do\-\do\:\do\(}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\setlength{\LTpre}{6pt}\setlength{\LTpost}{4pt}\setlength{\LTcapwidth}{\textwidth}
+\renewcommand{\bibsection}{}
+\setlength{\bibsep}{0.3pt}
+\newcommand{\doi}[1]{doi:\,\href{https://doi.org/#1}{\nolinkurl{#1}}}
+\newcommand{\sci}[2]{\ensuremath{#1\times10^{#2}}}
+\newcommand{\semdoi}{DOI não levantado na busca}
+\title{Busca de artigos para os dois artigos\\[3pt]
+\large o diferencial, a robustez do line sampling, a chuva, o Ceron (2025)\\ e os resultados publicados que dá para
+verificar com o código}
+\author{Diogo Cecílio}
+\date{20/11/2026 (revisto em 21/11/2026) --- versão \versao}
+\begin{document}
+\maketitle
+\tableofcontents
+
+%======================================================================
+\section{Resumo}\label{sec:resumo}
+Busca de artigos de 20/11/2026 para o artigo~1 (o FORM modal com o gradiente do MEF e o line sampling, nos taludes seco
+e saturado) e o artigo~2 (a chuva). As conclusões:
+\begin{enumerate}
+  \item \textbf{O diferencial do artigo 1 parece livre:} nenhum trabalho achado junta o gradiente do FS pelo MEF com
+    milhares de modos e o line sampling (LS) nessa direção. Os mais próximos são o FORM simplificado de \citet{ji2018}
+    e o FOSM com função de Green de \citet{mesquita2025}. É provisório (a cota do OpenAlex cortou parte da busca, e
+    quase tudo foi visto só pelo resumo).
+  \item \textbf{O risco a defender é o dos vários mecanismos} (71 a 79 no talude do Cho, segundo \citealp{jiang2015}).
+    A resposta empírica: no Cho Ex.~2, o LS numa só direção dá 1,74--1,76\,\% com $r = -0{,}5$ (MC direto:
+    1,700\,\%) e 0,364--0,367\,\% com $r = -0{,}7$ (MC: 0,366\,\%). Falta um caso de $P_f$ baixa (Jiang Ex.~I:
+    \sci{2{,}8}{-4}).
+  \item \textbf{Robustez do LS:} quase todas as técnicas foram testadas com 2 a 40 variáveis, e as que usam krigagem ou
+    processo gaussiano não escalam para as nossas 4000. Servem, e são baratas: a varredura da hipótese de uma raiz por
+    linha, os avisos e a faixa da $P_f$ com as linhas perdidas, o 2.º ponto de projeto com ``lombada'', a análise
+    limite para escolher a direção e como variável de controle, e o ACLS na chuva. O multidomain LS exige componentes
+    lineares: só entra como citação.
+  \item \textbf{Artigo 2:} dos 484 citantes do Rahardjo 2007 que foram baixados (o OpenAlex conta 493 citações), uns 80
+    são probabilísticos, e só 20 a 25 juntam
+    infiltração não saturada transiente, variabilidade espacial e $P_f$. Pelos resumos, nenhum pôs campos aleatórios e
+    $P_f(t)$ no talude dele; conferir nos PDFs de Santoso 2011, Dou 2014 e Dou 2015 antes de afirmar.
+  \item \textbf{Ceron 2025:} 10 citantes de fato (o Semantic Scholar lista 11, mas o Mesquita et al.\ não o cita),
+    quase todos de passagem; ninguém refez o caso. O vizinho mais próximo de
+    outro grupo é \citet{wang2022}; o concorrente a observar, o \citet{hsrlem2026}. O nosso LS do MEF dá
+    11,61\,\% (IC de 95\,\%: 10,49--12,73\,\%), contra 11,50\,\% do artigo; a análise limite em Python dá 10,32\,\%,
+    diferença ainda sem explicação.
+  \item \textbf{Para verificar} (Seção~\ref{sec:verif}): o Cho Ex.~2 já bate; o Cho com $r = 0$ (5,50\,\% no Ceron)
+    roda no fermi; depois, o Cho Ex.~1, o Jiang Ex.~I e, com mais esforço, o Li 2015 Ex.~II.
+  \item \textbf{Correções} (Seção~\ref{sec:correcoes}): o Cho 2010 é do JGGE; o caso Konkan é de Raghuram \& Basha
+    2024; o \texttt{Shui2014.pdf} é de Jiang, Li, Zhang \& Zhou 2014; os 7,9\,\% que o Ceron atribui ao Cho são do
+    método de Jiang 2015; e o Mesquita et al.\ não cita o Ceron (conferido no PDF). Na revisão de 21/11/2026, o
+    Crossref corrigiu 7 anos (vale o do volume) e 2 listas de autores, e deu os autores e os DOIs que faltavam.
+  \item \textbf{Leitura} (Seção~\ref{sec:ler}): os 34 PDFs já estão em \path{referencias_selecionadas_claude}; só falta
+    o de Raghuram \& Basha (2024), que não foi possível baixar.
+\end{enumerate}
+
+%======================================================================
+\section{Como a busca foi feita}\label{sec:busca}
+\textbf{Fontes deste relatório.} Os relatórios da busca de 20/11/2026, em
+\path{~/Dropbox/UnsaturatedSoil/referencias/toclaude}: o resumo conferido (\path{resumo_busca_artigos.txt}), a
+busca geral (\path{busca_bibliografica_geral.txt}), os citantes do Rahardjo 2007 e do Ceron 2025
+(\path{busca_citantes_rahardjo_ceron.txt}) e a busca sobre a robustez do line sampling
+(\path{line_sampling_robusto.txt}, conferida no Crossref); o \path{LEIAME.txt} de
+\path{referencias_selecionadas_claude}; e o estado do projeto em 20/11/2026, que é mais novo que algumas fontes e
+prevalece. Os números antigos do rebaixamento do Ceron que estão nos relatórios anteriores foram superados. Na revisão
+de 21/11/2026, os autores, os anos, as revistas e os DOIs de todas as referências foram conferidos no Crossref (script
+\path{crossref_relatorio_busca.py}, em \path{referencias_selecionadas_claude/propostas/verificacoes}).
+
+\subsection{As cinco buscas}
+\begin{enumerate}
+  \item \textbf{Sementes.} Os artigos das listas do Scopus e alguns clássicos do tema, cerca de 20 no total
+    (Tabela~\ref{tab:sementes}).
+  \item \textbf{Quem cita as sementes.} No OpenAlex, os trabalhos que citam cada semente, em 6 temas e 2 ordenações:
+    os mais citados e os recentes (de 2018 em diante, com pelo menos 20 citações). Só Stefanou 2009 e Spanos \&
+    Ghanem 1989 deram 144 citantes únicos.
+  \item \textbf{Varredura do domínio.} Uma busca direta em taludes com campos aleatórios, rebaixamento e chuva.
+  \item \textbf{Os citantes do Rahardjo 2007 e do Ceron 2025.} Do Rahardjo, o OpenAlex conta 493 citações; o filtro
+    \texttt{cites:} devolveu 484 trabalhos, todos baixados e divididos por palavras-chave do título e do resumo
+    (Seção~\ref{sec:chuva}). Do Ceron, os 11 citantes vieram do Semantic Scholar (um deles, o Mesquita et al., não o
+    cita: Seção~\ref{sec:correcoes}; o Crossref conta 11, mas a lista dele não foi vista); os
+    vizinhos que não o citam, de buscas no Crossref e na web, de 2018 em diante (Seção~\ref{sec:ceron}).
+  \item \textbf{Robustez do line sampling.} Uma busca à parte sobre as fragilidades do LS e as técnicas que as
+    tratam: 23 referências conferidas no Crossref, lidas contra o nosso código (\path{line_sampling.py}, em
+    \path{Projects/Cho2010}, do MEF; \path{ls_la.py}, em \path{Projects/CeronCinematico/cho}, da análise limite) e
+    contra os resultados das rodadas em \path{~/projects/runs} (\path{linhas.csv}, \path{analises.csv},
+    \path{perdidas.csv}, \path{ls.json}) (Seção~\ref{sec:ls}).
+\end{enumerate}
+
+\subsection{Critérios}
+Cada candidato recebeu duas notas de 0 a 10: \textbf{P}, o potencial de contribuir com o trabalho, e \textbf{V}, se dá
+para verificar com o nosso código. O \textbf{impacto} entrou pelas citações e pela revista. Cerca de 100 candidatos
+foram avaliados pelo resumo; 11 foram abertos no texto completo, e 8 confirmados. Nas Seções~\ref{sec:chuva} e
+\ref{sec:ceron}, os destaques vêm com as notas P/V.
+
+\subsection{Limites}
+\begin{itemize}
+  \item \textbf{A cota do OpenAlex.} A cota diária gratuita acabou no meio da busca. Faltaram os temas percolação,
+    chuva, line, importance e subset sampling nas sementes Stefanou 2009 e Spanos \& Ghanem 1989; em Spanos \& Ghanem,
+    também KL em geotecnia, variabilidade espacial e a lista recente de \emph{failure probability}; e os citantes de
+    Bergman 1997. Por isso o ``parece livre'' do artigo~1 é provisório.
+  \item \textbf{Vistos só pelo resumo.} Os citantes do Rahardjo e os vizinhos do Ceron. 189 citantes do Rahardjo nem
+    têm resumo no OpenAlex (as contagens por tema são mínimos), e alguns resumos da Elsevier vieram da web. Na busca do
+    LS, cada referência tem anotado o que foi lido (o resumo, o preprint ou o manuscrito; Seção~\ref{sec:refs}).
+  \item \textbf{Sem texto completo na busca:} o Cho 2014, o FORM simplificado 2018 e a análise limite 2013. Os três já
+    estão na pasta (Seção~\ref{sec:ler}), mas ainda não foram lidos. O multidomain LS foi conferido depois, no PDF local.
+  \item {\raggedright \textbf{Arquivos brutos} numa pasta temporária (copiar se quiser guardar):
+    \path{/tmp/claude-1000/-home-diogo/eb4e7510-cbdb-48fc-a447-40dba9323a32/scratchpad/lit/sg/} e
+    \path{.../scratchpad/lit2/}.\par}
+\end{itemize}
+
+\begin{table}[H]\centering\small\setlength{\tabcolsep}{4pt}
+\caption{As sementes da busca, com as citações no OpenAlex.}\label{tab:sementes}
+\begin{tabular}{L{4.2cm}L{1.5cm}L{2.9cm}L{6.6cm}}
+\toprule
+Referência & Cit. & Revista & Papel na busca \\
+\midrule
+\citet{cho2010} & 516 & JGGE 136(7):975 & problema-base; a revista é o JGGE (Seção~\ref{sec:correcoes}) \\
+\citet{griffiths2004} & 1208 & JGGE & teste não drenado \\
+\citet{griffiths2009} & 659 & JGGE & só um dos dois Griffiths basta \\
+\citet{jiang2015} & 419 & JGGE & os casos do Cho como sistema \\
+\citet{wang2011} & 372 & Can.\ Geotech.\ J. & só para conferir o \path{sus.py} \\
+\citet{vargasceron2025} & 13 & IJNAMG & a referência seguida \\
+\citet{stefanou2009}; \citet{spanos1989} & 1138; 576 & CMAME; J.\ Eng.\ Mech. & não ler: servem para achar citantes \\
+\citet{bergman1997} & 476 & Probab.\ Eng.\ Mech. & não; os citantes não foram buscados (cota) \\
+outras 11 & 6 a 1591 & SIAM J.\ Numer.\ Anal., Water Resour.\ Res., Probab.\ Eng.\ Mech., IJNME, GMD, IJUQ; dois
+  livros & colocação estocástica, KL, hidrologia e confiabilidade estrutural: não ler (um livro só para consulta, um
+  artigo só como contexto de chuva); a lista está na seção 2 de \path{busca_bibliografica_geral.txt} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%======================================================================
+\section{O diferencial do artigo 1 e a concorrência}\label{sec:art1}
+\subsection{O que já existe}
+{\small\setlength{\tabcolsep}{4pt}
+\begin{longtable}{L{2.9cm}L{6.8cm}L{6.0cm}}
+\caption{O que já existe perto do artigo 1.}\label{tab:existe}\\
+\toprule
+Linha de trabalho & Trabalhos & O que importa para nós \\
+\midrule\endfirsthead
+\toprule Linha de trabalho & Trabalhos & O que importa para nós \\ \midrule\endhead
+\bottomrule\endlastfoot
+RFEM e subset simulation (SuS) & \citet{griffiths2004}; \citet{wang2011}; \citet{li2016} (Landslides, 263 cit.); o grupo
+  de Hicks, com RFEM transiente \citep{liu2016} e SuS com RFEM \citep{vandeneijnden2017} &
+  \citet{li2016} é a referência de custo contra a qual defender o LS; \citet{wang2011} confere o \texttt{sus.py}. \\
+Superfícies de resposta e PCE & \citet{li2015} (MRSM, Eng.\ Geol., 556 cit.); \citet{jiang2014} (PCE não intrusivo com
+  KL de 10 termos; o arquivo \texttt{Shui2014.pdf}); \citet{yang2018} (KL de $k_s$ com PCE, em retroanálise) &
+  \citet{li2015} tem números do Cho, inclusive com $r = -0{,}7$. \\
+Aprendizado de máquina & no tema, só o \citet{xgboost2024}, em rebaixamento rápido & Krigagem com aprendizado
+  ativo e redes neurais em taludes não apareceram nas buscas gerais: buscar à parte. As variantes do LS com krigagem
+  não escalam para 4000 variáveis (Seção~\ref{sec:ls}). \\
+Análise limite com campos & FELA \citep{huang2013}; \citet{wang2022} (rebaixamento, FELA superior e inferior + SRM);
+  \citet{rafela2022}; \citet{hsrlem2026}, equilíbrio limite com $k$ aleatório, ligado à Rocscience &
+  Comparar MEF e limite superior. O HS-RLEM cita o Ceron e é concorrente. \\
+Sistema (vários mecanismos) & \citet{jiang2015} (JGGE, 419 cit.) & Os casos do Cho como sistema, com 71 a 79
+  mecanismos: o principal risco teórico do LS numa só direção (Seção~\ref{sec:risco}). \\
+Campos aleatórios & \citet{dyson2026}, o exame crítico da KL & Sustenta os 2000 termos; discute os artefatos de faixas
+  e de tabuleiro. \\
+Revisão & \citet{jiang2022} (Comput.\ Geotech., 249 cit.) & Para a introdução. \\
+\end{longtable}}
+
+\subsection{O que parece livre}
+O gradiente (tipo adjunto) do FS pelo MEF em alta dimensão, com o LS nessa direção: nenhum trabalho achado junta os
+dois. Os mais próximos:
+\begin{itemize}
+  \item \citet{ji2018}, o FORM simplificado (Geosci.\ Front., 151 cit.): variabilidade espacial 2D; mostra o viés do
+    FORM. É o paralelo mais próximo do FORM modal.
+  \item \citet{mesquita2025}, o FOSM com função de Green: gradiente com mais de 10\,000 variáveis aleatórias, paralelo
+    ao gradiente modal. Citar e comparar.
+\end{itemize}
+\textbf{Os nossos números.} O FORM com 2000 modos converge em 5 a 7 análises (o numérico, por diferenças finitas com 20
+modos, gasta 243), e a $P_f$ sai com CoV de 5\,\% em $\approx 250$ a 400 análises (o MC direto do Cho com $r = -0{,}7$
+usou 110\,000).
+
+\textbf{Por que isso pesa.} Na comparação independente de \citet{dang2024} (2 a 15 variáveis), o LS na direção do FORM
+rendeu mais por linha que o CLS (CoV de 2,4 contra 7,4\,\% com 200 linhas, no exemplo 3), mas o FORM por diferenças
+finitas gastou 1511 das 2195 chamadas. Um bom FORM vale mais que a adaptação (que é o plano B quando o FORM falha), e o
+gradiente modal tira o custo do FORM.
+
+\textbf{Justificativas.} O exame crítico da KL \citep{dyson2026} sustenta os 2000 termos. O viés do FORM justifica
+corrigi-lo com o LS: no Cho, o FORM dá 2,40\,\% e 0,689\,\%, contra 1,700\,\% e 0,366\,\% do MC direto. Segundo
+\citet{valdebenito2010}, com muitas variáveis e não linearidade, os métodos baseados no ponto de projeto nem sempre
+servem, e a simulação é mais adequada; isso apoia usar o ponto de projeto só como direção.
+
+\subsection{O risco dos vários mecanismos}\label{sec:risco}
+\citet{jiang2015} tratam os dois exemplos do Cho como sistema, com 71 a 79 mecanismos, e o LS numa só direção pode
+perder um mecanismo longe dela. Por que isso, por si, não invalida o método (conta nossa, para mecanismos quase
+lineares em $\bm\xi$):
+\begin{itemize}
+  \item Ao longo de uma linha de direção $\bm e$, o mecanismo $k$ falha numa semirreta $[c_k, \infty)$ se o seu ponto
+    de projeto tem cosseno positivo com $\bm e$, e em $(-\infty, c_k]$ se o cosseno é negativo.
+  \item O MEF devolve o menor fator, então a falha da linha é a união. Com todos os cossenos positivos, ela continua uma
+    semirreta, $[\min_k c_k, \infty)$: o nosso $\Phi(-c)$ continua exato, e só o CoV por linha sobe.
+  \item O viés só aparece com um mecanismo de cosseno negativo (falha no lado negativo da linha) ou com curvatura forte.
+    O cosseno dá para medir: um 2.º ponto de projeto com ``lombada'' \citep{derkiureghian1998} custa $\approx 5$ a 10
+    análises com o FORM modal (Seção~\ref{sec:codigo}, item 5).
+\end{itemize}
+Dois alertas da literatura:
+\begin{itemize}
+  \item \citet{vandeneijnden2017}, com SuS e RFEM num talude com $c_u$ lognormal (CoV 0,25): as rupturas raras saem
+    mais rasas e menores (volume médio de 34 contra 87\,m$^3$/m). O mecanismo muda com a $P_f$, o que pesa num caso de
+    $P_f$ baixa.
+  \item O multidomain LS \citep{valdebenito2021} trata vários modos, mas só com componentes \textbf{lineares} em série
+    (conferido no PDF local): não serve ao nosso MEF e entra só como citação. O precedente geotécnico mais próximo é a
+    IS em vários pontos de projeto com SRM de \citet{zhao2021}, com os pontos tirados de uma superfície de resposta, que
+    não escala para 4000 variáveis.
+\end{itemize}
+
+\subsection{A resposta empírica, com os nossos números}\label{sec:empirica}
+\begin{table}[H]\centering\small\setlength{\tabcolsep}{4pt}
+\caption{O LS numa só direção contra o MC direto. No Cho, SRM, 100 linhas e a direção do FORM; FORM: $\Phi(-\beta)$.}
+\label{tab:empirica}
+\begin{tabular}{L{3.0cm}L{2.6cm}L{1.5cm}L{4.1cm}L{3.9cm}}
+\toprule
+Caso & MC direto & FORM & LS numa direção & Publicado \\
+\midrule
+Cho Ex.~2, $r = -0{,}5$ & 1,700\,\% (24\,000) & 2,40\,\% & 1,74--1,76\,\% & Cho 1,71\,\%; Li 2015 1,87\,\% \\
+Cho Ex.~2, $r = -0{,}7$ & 0,366\,\% (110\,000) & 0,689\,\% & 0,364--0,367\,\% & Cho 0,39\,\%; Li 2015 0,494\,\%;
+  Jiang 2015 0,49\,\% \\
+Ceron, rebaixamento (água do artigo) & --- & --- & 11,61\,\% (GIM; IC de 95\,\%: 10,49--12,73\,\%) & 11,50\,\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+\begin{itemize}
+  \item \textbf{A direção pesa só no CoV.} As direções M20 e gim2000 dão a mesma $P_f$. O CoV por linha cai com a direção
+    de 2000 modos: 42\,\% contra 50\,\% (M20) no Cho com $r = -0{,}5$; 56 contra 68\,\% com $r = -0{,}7$; no Ceron
+    (com a água antiga), 59\,\% contra 90\,\% (diferenças finitas, M20) e 104\,\% (modal, M20).
+  \item \textbf{SRM $\times$ GIM, pareados} (\path{comparacao_metodos/relatorio_comparacao}, Seção~5, com o GIM
+    parcial de 20/11/2026 às 18:27): as $P_f$ diferem
+    no máximo 2,4\,\% (na ISMC da semente 21, de $-2{,}4$ a $+1{,}5$\,\%; no LS, de $-1{,}7$ a $-0{,}9$\,\%), e só 11 de
+    4885 pares discordam, todos com $|\mathrm{FS} - 1| \le 0{,}0017$. A semente 21 é a mais baixa das 5 em
+    $r = -0{,}5$.
+  \item \textbf{Nos arquivos do MEF:} 0 linhas perdidas, nenhuma linha não monótona, no máximo 7 análises por linha e
+    nenhuma no limite da busca. Mas a hipótese de uma raiz por linha nunca foi testada longe da raiz
+    (Seção~\ref{sec:fragil}).
+  \item \textbf{O que falta:} um caso de $P_f$ baixa, o Ex.~I de \citet{jiang2015} com CoV($c_u$) = 0,15
+    (\sci{2{,}8}{-4} pelo método e \sci{3{,}8}{-4} pelo LHS); depois, com mais esforço, o Ex.~II de \citet{li2015}
+    (\sci{7{,}1}{-4} pelo MRSM e \sci{9{,}5}{-4} pelo LHS).
+\end{itemize}
+
+%======================================================================
+\section{Robustez do line sampling}\label{sec:ls}
+\textbf{Notação.} $\bm e$ é a direção ($\bm\alpha$ nos artigos); $\bm z_\perp$, a parte do $\bm z$ da linha no
+hiperplano ortogonal a $\bm e$; $c$, onde a linha entra na falha ($\nu$ no relatório de comparação); $p_i =
+\Phi(-c_i)$. ``Conta nossa'' e ``adaptação nossa'' marcam o que não está nos artigos.
+
+\textbf{Em poucas linhas.} Há técnica para cada fragilidade do LS, mas quase todas foram testadas com 2 a 40
+variáveis, e as que usam krigagem ou processo gaussiano (GP) não escalam para as nossas 4000 (6000 no rebaixamento, com
+o campo de $k$). As que servem são baratas (Seção~\ref{sec:serve}).
+
+\subsection{As fragilidades e as técnicas}\label{sec:fragil}
+{\small\setlength{\tabcolsep}{4pt}
+\begin{longtable}{L{2.3cm}L{6.6cm}L{6.8cm}}
+\caption{As fragilidades do LS, como estão hoje no nosso código e nos dados, e as técnicas da literatura.}
+\label{tab:fragil}\\
+\toprule
+Fragilidade & Hoje (código e dados) & Técnicas \\
+\midrule\endfirsthead
+\toprule Fragilidade & Hoje (código e dados) & Técnicas \\ \midrule\endhead
+\bottomrule\endlastfoot
+1. Direção ruim ou só aproximada &
+  Com a probabilidade exata em cada linha, a direção não vicia a $P_f$: uma direção ruim só aumenta o CoV (conta nossa;
+  vale se a falha em cada linha for $[c, \infty)$). Nos dados, a direção pesa no CoV por linha
+  (Seção~\ref{sec:empirica}). &
+  ALS \citep{deangelis2015}: troca $\bm e$ pelo ponto do estado limite mais perto da origem; CLS
+  \citep{papaioannou2021}: combina melhor as rodadas do ALS; LS otimizado \citep{zio2010}: algoritmo genético que
+  minimiza a variância; direção pelas amostras de falha \citep{koutsourelakis2004}; PBAL-LS e BAL-LS
+  \citep{dang2023pbal,dang2023bal}; o ponto de projeto só como direção \citep{valdebenito2010}. \\
+2. Vários mecanismos &
+  No Cho, o LS numa direção bate com o MC direto nos dois $r$. Com todos os cossenos positivos, $\Phi(-c)$ continua
+  exato (Seção~\ref{sec:risco}); o cosseno entre pontos de projeto ainda não foi medido. &
+  Lombada \citep{derkiureghian1998}; multidomain LS, só linear \citep{valdebenito2021}; IS em vários pontos de projeto
+  com SRM \citep{zhao2021}; LIS/CE-LIS \citep{zhang2026}; SuS pelo fator de redução \citep{vandeneijnden2017}; no
+  benchmark de \citet{pradlwarter2007}, LS bom em sistemas lineares e SuS com IS no histerético; ACLS no tempo
+  \citep{yuan2024}. \\
+3. Várias raízes ou falha no lado negativo &
+  Os dois scripts supõem a falha do lado de $c$ grande; com mais de uma troca de sinal, $\Phi(-c)$ erra, em geral para
+  baixo. Os pontos avaliados ficam perto da raiz (no Cho, $c$ de $\approx 1{,}3$ a 5,5; um só abaixo de 1, em
+  $-1{,}9$, seguro), e nenhuma linha teve ponto seguro depois de um na falha. &
+  Buscador de várias raízes por krigagem 1-D \citep{cheng2025}: com o de uma raiz só, o SDIS deles ficou ``severamente
+  enviesado'' (\sci{5{,}1}{-6} contra \sci{3{,}7}{-5}). \citet{openturns}: falha como união de intervalos,
+  busca no sentido oposto, passo fixo SafeAndSlow. O pseudocódigo do ALS usa $\Phi(-|c|)$, que erra com $c < 0$. \\
+4. Linhas sem raiz ou perdidas &
+  No \path{line_sampling.py}, a linha só se perde quando uma análise falha; sem raiz em $[-8, 12]$, $p = 0$ ou 1; nas
+  10 análises, aceita o último candidato sem avisar. No \path{ls_la.py}, perde-se também a que não cerca a raiz em 25
+  análises. As perdidas saem da média (aviso acima de 1\,\%). No MEF: 0 perdidas. &
+  Intervalo limitado, com $p \approx 0$ ou 1 na linha sem raiz \citep{cheng2025}; para $P_f$ de $10^{-2}$ a
+  $10^{-3}$, $[-5, 5]$ bastaria. O AGPR-LS \citep{song2021} põe a média das outras linhas: é o mesmo que tirá-las da
+  conta, e só não vicia se as perdidas forem um sorteio ao acaso. \\
+5. Custo por linha &
+  2,3 a 2,9 análises por linha (2 ou 3 em 85 a 100\,\% das linhas): a busca já está no piso; o ganho possível é no
+  número de linhas. &
+  ALS (busca a partir do $c$ da linha anterior); AGPR-LS, PBAL-LS, BAL-LS e o processo log-normal (krigagem ou GP;
+  exemplos de até 40 variáveis); Metamodel LS \citep{depina2016}; substituto num subespaço \citep{ehre2022}; HINT
+  \citep{depina2025}: 1 análise por amostra, no raio do SRM. \\
+6. Estimativa do erro &
+  CoV pela dispersão das $p_i$, IC de 95\,\%, parada com CoV $\le 5\,\%$ depois de 30 linhas e o viés da parada
+  estimado (0,1 a 0,3\,\%). Uma semente por direção (na ISMC, 43 de 43 intervalos contêm o direto). O CoV não vê a
+  hipótese de uma raiz, as perdidas nem um mecanismo que nenhuma linha sorteou. &
+  Parar com o CoV abaixo do alvo duas vezes seguidas (BAL-LS); conferir com outro método em alta dimensão
+  \citep{valdebenito2010,pradlwarter2007}; os pesos $\propto \mathrm{CoV}^{-2}$ do ACLS, estimados com as próprias
+  linhas, podem dar um pequeno viés (observação nossa). \\
+7. Extra: sensibilidade da $P_f$ &
+  --- &
+  Derivada da $P_f$ pelo próprio LS \citep{lu2008,valdebenito2018}. Para nós: em relação à média e ao CoV de $\ln c'$ e
+  $\ln\varphi'$; pede o gradiente de $g$ na raiz, que a direção do FORM aproxima sem custo (dedução nossa). \\
+\end{longtable}}
+
+\subsection{O que serve para nós e o que não serve}\label{sec:serve}
+\textbf{Serve} (barato e escala para 4000 variáveis):
+\begin{itemize}
+  \item \textbf{Conferir a hipótese de uma raiz por linha} com uma varredura grossa, como no buscador de
+    \citet{cheng2025}: primeiro com a análise limite (0 análise de MEF), depois em $\approx 10$ linhas do MEF
+    ($\approx 40$ análises). É o que o CoV não vê.
+  \item \textbf{Avisos no código} e a faixa da $P_f$ com as linhas perdidas, em vez de só tirá-las da conta
+    \citep{cheng2025,song2021}: 0 análise.
+  \item \textbf{O 2.º ponto de projeto com lombada} \citep{derkiureghian1998}, pelo FORM modal (+5 a 10 análises), e um
+    FORM reiniciado de outro ponto \citep{valdebenito2010}: com cosseno positivo, uma direção basta (conta nossa). O
+    raio da lombada em 4000 dimensões tem de ser escolhido e testado.
+  \item \textbf{A análise limite} ($\approx 2$\,s por análise) \textbf{para escolher a direção} pela variância (a ideia de
+    \citealp{zio2010}, sem a rede neural e com poucas candidatas) \textbf{e como variável de controle} do MEF
+    ($\approx 1$\,min) nas mesmas linhas (a estrutura de \citealp{depina2016}; ideia parecida em
+    \citealp{hohenbichler1988}, segundo \citealp{dang2024}). Adaptações nossas; 0 análise de MEF para testar.
+  \item \textbf{Juntar rodadas de direções diferentes}, com pesos $\propto 1/\text{variância}$ (a ideia do CLS e do
+    ACLS): 0 análise.
+  \item \textbf{A média das falhas já guardadas} como direção candidata \citep{koutsourelakis2004}, mas só nos primeiros
+    modos: em 4000 dimensões, com $\approx 400$ falhas, o cosseno com a direção verdadeira fica em $\approx 0{,}67$; nos
+    20 primeiros modos por campo, $\approx 0{,}99$ (conta nossa).
+  \item \textbf{Aprender $c(\bm z_\perp)$ nos primeiros modos} com as raízes já calculadas (adaptação nossa de
+    \citealp{ehre2022} e do BAL-LS).
+  \item \textbf{Na chuva, o ACLS} \citep{yuan2024} e uma direção por mecanismo; e a parada ``duas vezes seguidas'' do
+    BAL-LS ($\approx 1$ linha).
+  \item \textbf{HINT} \citep{depina2025}: teste grátis com os $\bm\xi$ e os FS do MC direto, se guardados (CoV de 6,8
+    contra 9,4\,\% do MC no artigo companheiro, \citealp{depina2025isgsr}); para nós, ganho provavelmente pequeno, pois a
+    redução uniforme espalha o enfraquecimento pelo talude todo (estimativa nossa).
+  \item \textbf{SuS pela análise limite}, classificando o mecanismo das amostras finais \citep{vandeneijnden2017}, só se
+    os testes acima mostrarem problema; e, sem MEF novo, a variância melhorada da SuS \citep{susvar2025} nas cadeias do
+    \path{sus.py}.
+\end{itemize}
+\textbf{Não serve} (e por quê):
+\begin{itemize}
+  \item \textbf{Trocar a direção pelo ponto de menor norma} (ALS, CLS como publicado, PBAL-LS, BAL-LS). Em 4000
+    dimensões, o ponto $\tilde{\bm u} = \bm z_\perp + c\,\bm e$ tem $\lVert\tilde{\bm u}\rVert^2 \approx 3999 + c^2$,
+    isto é, $\lVert\tilde{\bm u}\rVert \approx 63$ em toda linha (77 no rebaixamento), contra $\beta \approx 2$ a 2,5:
+    quem decide a troca é o ruído de $\lVert\bm z_\perp\rVert$, e a nova direção tem cosseno $\approx 0{,}04$ com a
+    normal verdadeira (conta nossa). Num teste de brinquedo (estado limite linear, 4000 variáveis, $\beta = 2{,}5$, 300
+    linhas, 3 sementes), partindo da direção \emph{exata}, a regra trocou a direção 2 ou 3 vezes, e a $P_f$ saiu entre
+    \sci{2}{-5} e \sci{3{,}7}{-3} (exata: \sci{6{,}2}{-3}).
+  \item \textbf{Começar a busca no $c$ da linha vizinha} (ALS): em 4000 dimensões, as linhas ficam a $\approx 89$ umas
+    das outras; a nossa busca já gasta 2,3 a 2,9 análises por linha, perto das $\approx 2{,}1$ do ALS no exemplo dele.
+  \item \textbf{Krigagem ou GP no espaço todo ou no hiperplano} (AGPR-LS, PBAL-LS, BAL-LS, processo log-normal): os
+    autores do BAL-LS os indicam só abaixo de $\approx 20$ dimensões; com 4000 variáveis e 100 a 300 pontos, o GP não
+    aprende $g$.
+    Numa comparação independente (11 variáveis, $P_f \approx \sci{6{,}0}{-6}$), o AGPR-LS deu \sci{6{,}2}{-8}.
+  \item \textbf{O SDIS inteiro} \citep{cheng2025}: perde para a SuS com 100 e 1000 variáveis. \textbf{O algoritmo
+    genético sobre 4000 componentes} \citep{zio2010}: inviável.
+  \item \textbf{O multidomain LS como está} \citep{valdebenito2021}: exige componentes lineares, e os nossos mecanismos
+    não são componentes explícitos. Fica a ideia de um FORM e um LS por mecanismo (raso $\times$ profundo) na chuva.
+  \item \textbf{LIS/CE-LIS} \citep{zhang2026}, por ora: várias rodadas de linhas, mistura gaussiana ruim em
+    $\approx 4000$ dimensões, artigo novo. \textbf{O passo fixo SafeAndSlow em toda linha} \citep{openturns}: $\approx 8$
+    ou mais avaliações por lado; só para a varredura de diagnóstico.
+\end{itemize}
+
+\subsection{O que aplicar no código}\label{sec:codigo}
+Em ordem de custo-benefício. Os testes usam sempre as mesmas linhas: com a mesma semente e o mesmo $K$, a linha $i$ do
+\path{ls_la.py} é a linha $i$ do \path{line_sampling.py}. Referências: o Cho com $r = -0{,}5$ (MC direto de
+24\,000: 1,70\,\%) e $r = -0{,}7$ (110\,000: 0,366\,\%), e o rebaixamento do Ceron.
+{\small\setlength{\tabcolsep}{4pt}
+\begin{longtable}{L{0.25cm}L{8.2cm}L{3.4cm}L{3.5cm}}
+\caption{O que aplicar no \texttt{line\_sampling.py} (MEF) e no \texttt{ls\_la.py} (análise limite, LA).}
+\label{tab:codigo}\\
+\toprule
+& O quê & Custo & Teste \\
+\midrule\endfirsthead
+\toprule & O quê & Custo & Teste \\ \midrule\endhead
+\bottomrule\endlastfoot
+1 & \textbf{Avisos e faixa das perdidas:} \texttt{nao\_monotona} (um ponto seguro com $c$ maior que um na falha) e
+  \texttt{teto} (saiu pelas 10 análises), no \path{linhas.csv} e no \path{ls.json}; a faixa
+  $[\sum p/N_\text{tot}, (\sum p + N_\text{perd})/N_\text{tot}]$; no \path{ls_la.py}, a linha que não cerca a raiz entra
+  com a cota do que já foi avaliado; parada ``duas vezes seguidas''. &
+  0 análise (só código) & Nas pastas atuais, 0 avisos; o ganho é na chuva. \\
+2 & \textbf{Varredura de uma raiz:} no \path{ls_la.py}, 50 a 100 linhas (as do MEF), $\Gamma$ em $c = -5, \dots, 5$;
+  no MEF, $\approx 10$ linhas, $c = -4, -2, 0$ e a raiz $+2$. Começar pelo Ceron (raízes perto de 0) e pelo Cho com
+  $r = -0{,}7$. Se aparecer: o buscador de várias raízes e $p_i = \Phi(-c_1) + \Phi(c_2)$. &
+  $\approx 1100$ da LA ($\approx 40$ min; $\approx 10$ com 4 processos) e $\approx 40$ do MEF &
+  $P_f$ com e sem a correção, contra o MC. Se nada aparecer: uma frase no artigo. \\
+3 & \textbf{Direção melhor:} regressão de $c_i$ em $\bm z_{\perp i}$ nos primeiros modos, com validação cruzada (como no
+  \path{teste_controle.py}), e $\bm e' \propto \bm e - \bm b$ (não testado). Candidatas na LA: gim2000, o FORM da LA
+  (\path{form_la.py}), M20, a média das falhas, $\bm e'$ e o 2.º ponto. &
+  0 MEF para escolher ($\approx 500$ da LA por direção); uma rodada do MEF para provar &
+  Cho com $r = -0{,}7$ (hoje, CoV por linha de 56\,\%). \\
+4 & \textbf{LA como variável de controle:} o \path{ls_la.py} nas linhas atuais do MEF (semente 7; 100 a 270 linhas) e
+  a correlação $\rho$. $\hat P_f$ = média de $[p_i(\text{MEF}) - p_i(\text{LA})]$ nas $N$ linhas do MEF + média de
+  $p_j(\text{LA})$ em $M \gg N$ linhas; a variância cai por $\approx 1 - \rho^2$ ($\rho = 0{,}9$: $\approx 5$ vezes menos
+  linhas de MEF). &
+  0 MEF (menos de 1 h) & 30 linhas do MEF + 1000 da LA, contra o direto; só com $\rho$ alto. \\
+5 & \textbf{2.º ponto de projeto e FORM reiniciado:} $\bm\alpha_1\cdot\bm\alpha_2$ claramente positivo, uma direção
+  basta; negativo, ou quase nulo com $\beta_2 \approx \beta_1$, procurar também a raiz do lado negativo ou fazer um LS
+  em $\bm\alpha_2$ e juntar (item 6). &
+  $\approx 5$ a 10 do MEF cada (0 se feito antes no \path{form_la.py}) & Cho contra o direto; na chuva, raso $\times$
+  profundo. \\
+6 & \textbf{Juntar rodadas de direções diferentes}, com pesos $\propto 1/\text{variância}$ (a direção de cada rodada no
+  \path{ls.json}). & 0 análise & Com sementes diferentes (as atuais são comuns). \\
+7 & \textbf{Mais sementes} (3 a 5, como na ISMC). & $\approx 350$ do MEF por semente (Cho, $r = -0{,}7$) & O CoV
+  estimado contra o observado; serviço para o fermi. \\
+8 & \textbf{Chuva, ACLS:} $c_i(t)$, $c_\text{min}(t)$ e $P_f(t)$ = média de $\Phi(-c_\text{min}(t))$; um transiente por
+  ponto da linha serve a todos os instantes. &
+  O FS por instante e um FORM (5 a 7) por instante escolhido & Quando chegar à chuva. \\
+9 & \textbf{Só se 2 e 5 mostrarem problema:} SuS pela LA (o \path{sus.py} ligado ao avaliador da LA), LIS/CE-LIS ou IS
+  em vários pontos de projeto. & SuS: $\approx 1500$ da LA ($\approx 1$ h); com o MEF, $\approx 1$ dia & --- \\
+\end{longtable}}
+
+\subsection{O que já fazemos (para citar no artigo)}
+\begin{itemize}
+  \item A direção do FORM com gradiente, a que rendeu mais por linha em \citet{dang2024}, sem o custo das diferenças
+    finitas; e o ponto de projeto só como direção, com a simulação corrigindo o FORM \citep{valdebenito2010}
+    (Seção~\ref{sec:art1}).
+  \item O LS em alta dimensão, o caso para o qual o método foi feito \citep{koutsourelakis2004,schueller2004}.
+  \item $p_i = \Phi(-c)$ com o sinal certo para $c < 0$ (o ALS usa $\Phi(-|c|)$; no Ceron houve raízes até $-0{,}66$);
+    e o intervalo de busca limitado, com $p = 0$ ou 1 nas pontas (como em \citealp{cheng2025}).
+  \item A busca de raiz barata e sem vizinhança ($c = \beta$, Newton com a inclinação do ponto de projeto e a secante
+    protegida): 2,3 a 2,9 análises por linha, no nível do ALS.
+  \item A parada pelo CoV com $n_\text{min}$ e o viés da parada estimado (o BAL-LS exige CoV $< 5\,\%$ duas vezes
+    seguidas pelo mesmo motivo); as linhas perdidas contadas, com aviso acima de 1\,\% (0 no MEF até agora).
+  \item A conferência cruzada com o MC direto e a ISMC \citep{pradlwarter2007,valdebenito2010}, e o \path{sus.py} para
+    a SuS \citep{vandeneijnden2017}; e os números aleatórios comuns entre direções e entre SRM e GIM (não vêm das
+    referências, mas deixam baratos os testes da Seção~\ref{sec:codigo}).
+\end{itemize}
+
+%======================================================================
+\section{Artigo 2: a chuva}\label{sec:chuva}
+\subsection{A lacuna em torno do Rahardjo 2007}
+\citet{rahardjo2007} tem 493 citações no OpenAlex, e 484 citantes foram baixados. Divididos por palavras-chave do título
+e do resumo (as categorias se sobrepõem, e 189 trabalhos não têm resumo, então as contagens são mínimas):
+talude infinito, escorregamento raso, TRIGRS, susceptibilidade regional e limiares de chuva, $\approx 110$; ensaios de
+laboratório, centrífuga ou modelo reduzido, campo e monitoramento, $\approx 150$; probabilísticos (campos aleatórios,
+variabilidade espacial, confiabilidade, Monte Carlo, retroanálise bayesiana), $\approx 80$; acoplamento hidromecânico,
+MPM, histerese e análise limite, $\approx 70$; vegetação, barreira capilar e cobertura, $\approx 45$; revisões,
+$\approx 13$; e os estudos paramétricos determinísticos do grupo de Singapura (Rahardjo, Rahimi, Leong). Boa parte é
+recente: 80 trabalhos são de 2026 e 46 de 2024.
+
+Dos $\approx 80$ probabilísticos, só uns 20 a 25 juntam infiltração não saturada transiente, variabilidade espacial e
+$P_f$. A maioria aleatoriza só $k_s$; alguns também $c'$, $\varphi'$ e a SWCC. \textbf{Nenhum citante confirma que pegou
+o talude homogêneo do Rahardjo 2007 (geometria e solos) e pôs nele um campo aleatório com $P_f(t)$.} Os mais próximos
+são três:
+\begin{itemize}
+  \item \citet{santoso2011}: $k_s$ como campo lognormal estacionário, subset simulation e $P_f$ de talude não saturado
+    sob chuva; a geometria não foi verificada.
+  \item \citet{dou2014}: $P_f$ dependente do tempo na infiltração e na redistribuição, mas com $k_s$ como variável
+    aleatória, não campo.
+  \item \citet{dou2015} e \citet{li2023}: campo de $k_s$ com $P_f$ sob chuva.
+\end{itemize}
+Os textos completos não foram lidos, então não dá para garantir que nenhum reaproveita a geometria do Rahardjo 2007.
+Conferir nos PDFs de Santoso 2011, Dou 2014 e Dou 2015, que já estão na pasta. Até lá, o caso planejado para o
+artigo~2 parece livre.
+
+\subsection{As referências probabilísticas}
+{\small\setlength{\tabcolsep}{4pt}
+\begin{longtable}{L{3.3cm}cL{11.6cm}}
+\caption{Referências probabilísticas para o artigo 2 (P/V: as notas da Seção~\ref{sec:busca}).}\label{tab:chuvaprob}\\
+\toprule
+Referência & P/V & O que traz e o que verificar \\
+\midrule\endfirsthead
+\toprule Referência & P/V & O que traz e o que verificar \\ \midrule\endhead
+\bottomrule\endlastfoot
+\citet{cho2014} & --- & O mais próximo do artigo 2: $P_f(t)$, 2D, campo de $k_s$. Conferir a geometria e os números (a
+  busca não o leu). \\
+\citet{santoso2011} & 9/6 & O caso clássico de campo de $k_s$ com $P_f$ em talude não saturado sob chuva, por SuS:
+  referência direta para LS e IS na chuva. Ver se o talude é o do Rahardjo 2007, a correlação, o CoV de $k_s$, a $P_f$
+  e o método de FS. \\
+\citet{dou2014} & 8/6 & $P_f(t)$ na chuva e na redistribuição: o pico pode vir depois do fim da chuva. $k_s$ é
+  variável aleatória. Ver a geometria (pode ser derivada do Rahardjo), a SWCC, $k(\psi)$, a chuva e a tabela de
+  $P_f(t)$. \\
+\citet{dou2015} & 8/5 & A continuação, com $k_s$ como campo. Ver a geometria, as escalas de correlação, o método e a
+  $P_f(t)$. \\
+\citet{li2023} & 7/5 & Campo não estacionário de $k_s$ (tendência com a profundidade), $P_f$ na infiltração e na
+  redistribuição; estende Dou 2014 e 2015. \\
+\citet{liuwang2021} & 7/5 & RFEM hidromecânico sob chuva, com $P_f$ e consequências (o MPM pós-ruptura vai além do
+  escopo). Ver o talude, os campos ($c'$, $\varphi'$, $k_s$), as amostras e a $P_f$. \\
+\citet{raghuram2024} (Konkan) & 7/4 & FORM/SORM no ponto de projeto com campos ($c'$, $\varphi'$, SWCC) e chuva
+  aleatória: o mais parecido com FORM modal + chuva. Ver se é talude infinito ou 2D, os $\beta$, as $P_f$ e a
+  comparação com MC. \\
+\citet{pan2023} & 6/4 & Vários campos num talude 2D não saturado sob chuva (foco em atualização bayesiana); a $P_f$ a
+  priori é o número comparável. \\
+\citet{yang2018} & 6/5 & KL de $k_s$ sob infiltração, com PCE: a mesma representação modal ($\bm\xi$); retroanálise, não
+  $P_f$. \\
+\citet{sharma2020} & 6/4 & Correlação cruzada entre a SWCC e $k_s$ (vine-copula): quais parâmetros hidráulicos
+  aleatorizar. \\
+\citet{liu2016} & 6/4 & RFEM do grupo de Hicks com percolação transiente não saturada e campos hidráulicos: ponte entre
+  o rebaixamento e o não saturado. \\
+\citet{mahmood2012} & 5/5 & Índice $\beta$ de talude não saturado sob chuva antecedente, em função da anisotropia de
+  $k$. \\
+\citet{infiltracao2011} & 4/5 & Dos mesmos autores de \citet{santoso2011} (pelo Crossref). Campo lognormal de $k_s$
+  na profundidade: quando a infiltração 1D falha com variabilidade. \\
+\citet{liu2017} & 4/3 & RFEM hidráulico transiente com atualização por EnKF; a $P_f$ a priori. \\
+\end{longtable}}
+
+\subsection{Validação determinística e o carregamento de chuva}
+{\small\setlength{\tabcolsep}{4pt}
+\begin{longtable}{L{3.3cm}cL{11.6cm}}
+\caption{Referências de validação e de carregamento para o artigo 2.}\label{tab:chuvaval}\\
+\toprule
+Referência & P/V & Para quê \\
+\midrule\endfirsthead
+\toprule Referência & P/V & Para quê \\ \midrule\endhead
+\bottomrule\endlastfoot
+\citet{rahardjo2007} & --- & Já feito: o \path{rahardjo.cpp} refaz as curvas com erro de 1 a 2\,\%
+  (Seção~\ref{sec:verif}); o f10 com 360\,mm/h cai a $\approx 0{,}97$, depois a 0,81, e volta a 1,57 em 48\,h. Usar as
+  figuras: as linhas de 80\,mm/h da Tabela~7 não batem com a Fig.~9. \\
+\citet{rahimi2010} & 5/7 & Estudo paramétrico do mesmo grupo, com solos de alta e baixa condutividade: SWCC, $k(\psi)$ e
+  curvas FS($t$) para validar o transiente (comparar com o \texttt{rahardjo.cpp}). \\
+\citet{rahardjo2010} & 5/7 & Segundo caso determinístico de Singapura: FS($t$) para 9, 22, 36 e 80\,mm/h e três
+  posições do nível freático. \\
+\citet{lugodt2008} & 4/8 & O citante mais citado (521): FS($z$) analítico de talude infinito em regime permanente não
+  saturado. Teste unitário do Richards e da sucção na resistência, numa coluna 1-D. \\
+\citet{huang2018} & 6/7 & Limite superior com sucção e infiltração, e ábacos adimensionais de FS: verifica a análise
+  limite no caso não saturado (contra GIM/SRM). \\
+\citet{tang2018} & 6/5 & Chuva aleatória (padrão temporal) em vez do solo, com $P_f$ condicional e anual: complementa as
+  decisões D1--D7 sobre o carregamento. Talude e solo (podem ser derivados do Rahardjo), FS por equilíbrio limite. \\
+\citet{hu2024} & 5/3 & Curvas de fragilidade ($P_f$ contra a intensidade e a duração da chuva): um formato para
+  apresentar os resultados. \\
+\end{longtable}}
+Para o LS no tempo, o ACLS \citep{yuan2024} trata o problema como sistema em série de estados limite instantâneos, com
+$P_f(t)$ = média de $\Phi(-c_\text{min}(t))$ (Seção~\ref{sec:codigo}, item 8). No exemplo 1 deles, para CoV
+$\le 0{,}2$ em todo o intervalo, o LS de direção única precisou de $\approx 120$ vezes mais linhas que o ACLS (o ALS, de
+$\approx 20$ vezes); mas o método depende da precisão do ponto de projeto, pode subestimar com várias regiões de falha
+no mesmo instante e foi validado só em dimensão e não linearidade moderadas.
+
+%======================================================================
+\section{O Ceron 2025: citantes, vizinhos e concorrentes}\label{sec:ceron}
+\citet{vargasceron2025}, IJNAMG 49(11):2459--2491, publicado em 29/04/2025 e aberto (Wiley e LUME/UFRGS). O Semantic
+Scholar lista 11 citantes, mas um deles, o \citet{mesquita2025}, não cita o Ceron (Seção~\ref{sec:correcoes}): são 10
+de fato. O Crossref também conta 11 (só o número; a lista não foi vista), e o OpenAlex contava 13 na lista de sementes.
+Quase todos citam de passagem, e nenhum refaz o caso, a julgar por títulos e resumos.
+
+\subsection{Quem cita}
+{\small\setlength{\tabcolsep}{4pt}
+\begin{longtable}{L{3.6cm}cL{11.4cm}}
+\caption{Os citantes do Ceron 2025.}\label{tab:ceroncit}\\
+\toprule
+Trabalho & P/V & O que traz e o que verificar \\
+\midrule\endfirsthead
+\toprule Trabalho & P/V & O que traz e o que verificar \\ \midrule\endhead
+\bottomrule\endlastfoot
+\multicolumn{3}{l}{\emph{(a) Confiabilidade com variabilidade espacial ou hidráulica: 3}} \\
+\citet{hsrlem2026} & 5/3 & Equilíbrio limite aleatório com propriedades hidráulicas aleatórias; autores ligados
+  à Rocscience (Javankhoshdel). \textbf{Concorrente direto} em percolação com $k$ variável. Ver se usam o caso do Ceron
+  ou o rebaixamento, que distribuições de $k$ e que $P_f$ publicam, e a comparação LEM $\times$ análise limite $\times$
+  MEF. \\
+\citet{submarino2026} & 4/2 & Campo anisotrópico e ondas (poropressão cíclica): força de percolação
+  transiente com campos. Ler como citam o Ceron, o método de FS e se há $P_f$ reproduzível. \\
+\citet{reforcados2026} & 2/2 & Confiabilidade sísmica dependente do tempo, com degradação por ciclos
+  úmido-seco; provavelmente análise limite cinemática. Utilidade limitada. \\
+\multicolumn{3}{l}{\emph{(b) Análise limite ou yield design do grupo de Maghous (UFRGS): 2}} \\
+\citet{leito2025} & 3/4 & Yield design estático e cinemático com poropressão poromecânica, determinístico:
+  referência para as forças de percolação no mecanismo cinemático. \\
+\citet{rochosos2026} & 1/2 & Tirantes, pseudo-estático, determinístico: só contexto. \\
+\multicolumn{3}{l}{\emph{(c) FOSM com função de Green: 1 (na lista do Semantic Scholar)}} \\
+\citet{mesquita2025} & 4/3 & O PDF mostra que não cita o Ceron (Seção~\ref{sec:correcoes}). Gradiente para FOSM com
+  mais de 10\,000 variáveis: comparar com o gradiente modal do GIM. \\
+\multicolumn{3}{l}{\emph{(d) Fora do tema: 5}} \\
+\multicolumn{3}{L{15.5cm}}{Permafrost; poços de infiltração no SEEP/W; ondas de impulso de deslizamento; juntas de
+  túnel; ruptura de barragem por chuva com FEM e LSTM.} \\
+\end{longtable}}
+
+\subsection{Os vizinhos que não citam}
+{\small\setlength{\tabcolsep}{4pt}
+\begin{longtable}{L{3.6cm}cL{11.4cm}}
+\caption{Os trabalhos próximos do Ceron 2025 que não o citam (buscas no Crossref e na web, de 2018 em diante).}
+\label{tab:ceronviz}\\
+\toprule
+Trabalho & P/V & O que traz e o que verificar \\
+\midrule\endfirsthead
+\toprule Trabalho & P/V & O que traz e o que verificar \\ \midrule\endhead
+\bottomrule\endlastfoot
+\citet{cilamce2025} & 7/7 & Dos mesmos autores: o mesmo problema, determinístico, com solução analítica da
+  percolação. Os FS por parâmetros hidráulicos validam o determinístico do Ceron com SRM/GIM. Há também um trabalho
+  dos mesmos autores no \citet{cilamce2024}, com campos aleatórios no rebaixamento rápido (registro no Crossref); pela
+  web, $c$ domina a $P_f$ e $k$ pouco influi (a conferir). \\
+\citet{wang2022} & 7/7 & O mais próximo de outro grupo: campos lognormais de $c$ e $\varphi$, FELA (limites superior e
+  inferior) e SRM, rebaixamento em 5 níveis, MC com 1000 amostras; compara MEF e análise limite, como no nosso plano.
+  Aberto: refazer com SRM/GIM e a análise limite cinemática (geometria, parâmetros e $P_f$ por nível d'água). \\
+\citet{li2022} & 6/5 & Rebaixamento transiente, campos e degradação; $P_f$ contra a velocidade do rebaixamento: serve de
+  comparação para o Ceron com velocidade variável. \\
+\citet{estratigrafia2024} & 5/4 & Rebaixamento, variabilidade espacial e incerteza
+  estratigráfica. Ver o método de FS e de percolação e se há $P_f$ tabelada reproduzível. \\
+\citet{xgboost2024} & 5/4 & Rebaixamento rápido em talude não saturado, com confiabilidade por substituto: ponte
+  entre o Ceron (saturado) e a chuva (não saturado). \\
+\citet{rafela2022} & 5/4 & Limites superior e inferior adaptativos com campos, em barragens de terra: comparar a
+  análise limite adaptativa com o GIM h-adaptativo. \\
+\citet{rfela2025} & 4/3 & Acelera o MC reaproveitando mecanismos (limite superior estrito sem nova
+  análise): ideia para reusar o mecanismo cinemático. Só não drenado. \\
+\citet{escavados2023} & 3/4 & Limite superior, campo aleatório e MC em argila não drenada, sem
+  percolação: validar a análise limite cinemática no caso seco (Cho). \\
+\citet{naolinear2023} & 3/3 & Provável limite superior com critério não linear e campos; sem
+  percolação, pelo título. \\
+\end{longtable}}
+Na análise limite com campos, \citet{huang2013} (FELA) fica como referência: se o caso for o clássico, o $\Gamma$ da
+espiral logarítmica tende a ficar acima do da FELA.
+
+\subsection{Os nossos números no caso do Ceron}\label{sec:ceronnum}
+\begin{itemize}
+  \item \textbf{O artigo:} $\Gamma$ determinístico de 1,336; $P_f$ = 11,50\,\%; $\Gamma$ médio de 1,353, com CoV de
+    23,54\,\%. Nos exemplos do Cho, 5,50\,\% no Ex.~2 com $r = 0$ (Cho: 6,37\,\%) e 6,5\,\% no Ex.~1.
+  \item \textbf{O nosso LS do MEF} (GIM, água do artigo): 11,61\,\% (IC de 95\,\%: 10,49 a 12,73\,\%).
+  \item \textbf{O nosso MC de 10\,000 realizações pela análise limite em Python:} 10,29\,\% com a busca rápida do
+    mecanismo. Refeitas com a busca exata as 993 realizações com $1{,}0 \le \Gamma < 1{,}10$: em 986, os dois $\Gamma$
+    diferem menos de 0,1\,\%; em 7, a rápida ficou acima (5 acima de 0,5\,\%, a maior 8,3\,\%), e 3 delas passam a
+    falhar. A $P_f$ corrigida é 10,32\,\% ($\pm$ 0,60\,\%). $\Gamma$ determinístico de 1,347 (artigo: 1,336) e médio de
+    1,384 (artigo: 1,353).
+  \item \textbf{A diferença para os 11,50\,\% não tem explicação}, e a busca rápida não a explica. Hipóteses em aberto:
+    a análise limite é um limite superior ($\Gamma_\text{LA} \ge \Gamma$; nos casos do Cho, no piloto, o FS da LA fica
+    $\approx 3\,\%$ acima do FS do MEF, com correlação de 0,998), e o $\Gamma$ da LA depende da resolução do campo
+    (grade mais fina, $\Gamma$ maior, $P_f$ menor). Pelos títulos e resumos, nenhum citante refez esse caso.
+  \item \textbf{No fermi:} a análise limite nos casos do Cho, incluindo $r = 0$ contra os 5,50\,\% do Ceron.
+\end{itemize}
+
+%======================================================================
+\section{Resultados publicados que dá para verificar com o código}\label{sec:verif}
+Em ordem de esforço, com o estado em 20/11/2026.
+{\small\setlength{\tabcolsep}{4pt}
+\begin{longtable}{L{3.0cm}L{4.4cm}L{6.4cm}L{1.6cm}}
+\caption{Resultados publicados e o nosso estado.}\label{tab:verif}\\
+\toprule
+Caso & Publicado & Nosso número / estado & Esforço \\
+\midrule\endfirsthead
+\toprule Caso & Publicado & Nosso número / estado & Esforço \\ \midrule\endhead
+\bottomrule\endlastfoot
+Cho 2010 Ex.~2, $r = -0{,}5$ & Cho 1,71\,\% (média 1,1991, dp 0,1057); Li 2015 1,87\,\% & \textbf{Feito:} MC SRM
+  1,700\,\% (24\,000), LS SRM 1,74--1,76\,\% (100 linhas); SRM $\times$ GIM pareado: diferença de no máximo 2,4\,\% &
+  nenhum \\
+Cho 2010 Ex.~2, $r = -0{,}7$ & Cho 0,39\,\% (Fig.~9); Li 2015 0,494\,\%; Jiang 2015 0,49\,\% & \textbf{Feito:} MC SRM
+  0,366\,\% (110\,000), LS SRM 0,364--0,367\,\%; SRM $\times$ GIM pareado, como acima & nenhum \\
+Ceron 2025: Cho Ex.~2, $r = 0$ & 5,50\,\% (Cho: 6,37\,\%) & \textbf{Rodando no fermi} (análise limite) & pouco \\
+Ceron 2025: rebaixamento & 11,50\,\%; $\Gamma$ 1,336 (det.) e 1,353 (média; CoV 23,54\,\%) & \textbf{Feito:} LS do MEF
+  (GIM) 11,61\,\% (IC 10,49--12,73\,\%); MC da análise limite 10,32\,\% (busca exata): \textbf{diferença sem
+  explicação} (Seção~\ref{sec:ceronnum}) & pouco \\
+Cho 2010 Ex.~1 (não drenado; $c_u$ = 23\,kPa, CoV 0,3) & 7,60\,\% (média 1,2669, dp 0,1991); Ceron: 6,5\,\% &
+  \textbf{A fazer} & pequeno \\
+Jiang 2015 Ex.~I, CoV($c_u$) = 0,15 & \sci{2{,}8}{-4} (método); \sci{3{,}8}{-4} (LHS) & \textbf{A fazer:} o teste de
+  $P_f$ baixa para o LS; usar Nyström com o núcleo exponencial quadrado & pouco \\
+Rahardjo 2007 (determinístico) & F inicial 2,118 ($45^\circ$); mínimo 1,053 (f50, 36\,mm/h) & \textbf{Feito:}
+  \texttt{rahardjo.cpp}, com erro de 1 a 2\,\% & pouco \\
+Griffiths \& Fenton 2004 (não drenado, 2:1, Tresca) & $P_f$ = 0,28 (variável única, $C$ = 0,25, FS 1,47,
+  $V_C$ = 0,5); o resto em curvas & \textbf{A fazer:} digitalizar; eles usam a média local por elemento, nós o valor
+  pontual & pouco a médio \\
+Jiang 2014 (\texttt{Shui2014.pdf}) & Ex.~1 não drenado ($l_h$ = 25\,m, $l_v$ = 2,5\,m): 11,20\,\% (LHS); Ex.~2 c-$\varphi$
+  ($r = 0$): \sci{4{,}32}{-4} ($\beta$ = 3,331), só pelo PCE & Valor limitado: KL de 10 termos, núcleo exponencial
+  quadrado, FS que não vem de SRM, sem MC direto de referência & médio \\
+Li 2015 Ex.~II (3 camadas, água) & \sci{7{,}1}{-4} (MRSM), \sci{9{,}5}{-4} (LHS); com a camada fraca de posição incerta,
+  \sci{1{,}39}{-3} e \sci{1{,}65}{-3} & \textbf{A fazer:} 3 materiais, poropressão no SRM, geometria da Fig.~9 a
+  digitalizar; reler a Tab.~5. Ótimo para testar o LS e a ISMC com $P_f \approx 10^{-3}$ & grande \\
+\end{longtable}}
+\textbf{Notas.}
+\begin{itemize}
+  \item \textbf{Cho 2010 Ex.~2:} $H$ = 10\,m, $45^\circ$, camada até 15\,m abaixo da crista; $c'$ = 10\,kPa (CoV 0,3),
+    $\varphi'$ = $30^\circ$ (CoV 0,2), $\gamma$ = 20\,kN/m$^3$; núcleo exponencial com $l_h$ = 20\,m e $l_v$ = 2\,m. O
+    Cho usa KL com 150 termos, 50\,000 realizações e Bishop com busca da superfície (Tabela~5); com a superfície fixa,
+    1,38\,\%; com $l_h/l_v$ = 20/4, 3,70\,\%; com 40/2, 1,91\,\%.
+  \item \textbf{Li 2015 Ex.~I} é o mesmo talude, com SOF 40/4 (= 20/2) e campos por Cholesky, não KL (média 1,195, dp
+    0,102; SOF 40/8: 3,97\,\%; 80/4: 2,06\,\%).
+  \item \textbf{Jiang 2015} usa ACF exponencial quadrada (comparar com Nyström nesse núcleo). Ex.~II ($r = -0{,}7$):
+    \sci{4{,}9}{-3} pelo método, contra \sci{3{,}9}{-3} do Cho; Ex.~I: \sci{7{,}9}{-2}.
+  \item \textbf{Candidatos ainda sem números conferidos} (os PDFs já estão na pasta): \citet{wang2022} ($P_f$ por nível
+    d'água), \citet{santoso2011}, \citet{dou2014,dou2015}, \citet{cho2014}, \citet{rahimi2010} e \citet{rahardjo2010}
+    (FS($t$)), \citet{lugodt2008} (FS($z$) analítico) e \citet{huang2018} (ábacos de FS); e, fora da pasta, o
+    \citet{cilamce2025}, com FS determinísticos.
+\end{itemize}
+
+%======================================================================
+\section{O que ler}\label{sec:ler}
+\subsection{O que já temos}
+Os 34 PDFs estão em \path{~/Dropbox/UnsaturatedSoil/referencias/referencias_selecionadas_claude}, com o nome
+\texttt{PrimeiroAutor\_ano.pdf}; o \texttt{LEIAME.txt} da pasta tem o DOI e a referência de cada um. A ordem de
+prioridade é a do resumo da busca (1 a 10, depois ``depois''). Fora da pasta, o \texttt{Shui2014.pdf}
+\citep{jiang2014} está em \path{~/Dropbox/slope-reliability/refs}.
+{\small\setlength{\tabcolsep}{4pt}
+\begin{longtable}{L{1.0cm}L{4.1cm}L{10.6cm}}
+\caption{Os PDFs da pasta a ler, por prioridade (os outros 19 vêm logo depois da tabela).}\label{tab:temos}\\
+\toprule
+Prior. & Arquivo & Referência e para quê \\
+\midrule\endfirsthead
+\toprule Prior. & Arquivo & Referência e para quê \\ \midrule\endhead
+\bottomrule\endlastfoot
+\multicolumn{3}{l}{\emph{Ler primeiro}} \\
+1 & \path{Ji_2018.pdf} & \citet{ji2018}: o FORM simplificado, o mais próximo do FORM modal; mostra o viés do FORM. \\
+2 & \path{Mesquita_2024.pdf} & \citet{mesquita2025}: gradiente com mais de 10\,000 variáveis; citar e comparar. \\
+3 & \path{Valdebenito_2021.pdf} & \citet{valdebenito2021} (prioridade baixa): só para a discussão dos vários modos (já conferido:
+  componentes lineares). \\
+4 & \path{Dyson_2025.pdf} & \citet{dyson2026}: justifica os 2000 termos; artefatos de faixas e de tabuleiro. \\
+5 & \path{Li_2016.pdf} & \citet{li2016}: RFEM + SuS, a referência de custo contra a qual defender o LS. \\
+6 & \path{Wang_2022.pdf} & \citet{wang2022}: rebaixamento com FELA e SRM, 5 níveis, MC com 1000; refazer com MEF e
+  análise limite. \\
+7 & \path{Huang_2013.pdf} & \citet{huang2013}: FELA com campos; comparar MEF e limite superior. \\
+8 & \path{Cho_2014.pdf} & \citet{cho2014}: o mais próximo do artigo 2 ($P_f(t)$, 2D, campo de $k_s$). \\
+9 & \path{Santoso_2011.pdf} & \citet{santoso2011}: campo de $k_s$, SuS e $P_f$ sob chuva; o talude é o do Rahardjo
+  2007? \\
+10 & \path{Dou_2014.pdf}, \path{Dou_2015.pdf} & \citet{dou2014,dou2015}: $P_f(t)$ na chuva e na redistribuição; $k_s$
+  variável aleatória em 2014 e campo em 2015. \\
+depois & \path{Rahimi_2010.pdf}, \path{Huang_2018.pdf} & \citet{rahimi2010}: FS($t$) determinísticos;
+  \citet{huang2018}: limite superior não saturado sob chuva (ábacos de FS). \\
+depois & \path{Li_2022.pdf} & \citet{li2022}: rebaixamento com degradação. \\
+depois & \path{Jiang_2022.pdf} & \citet{jiang2022}: a revisão, para a introdução. \\
+\end{longtable}}
+\textbf{Já usados} (problemas-base e casos de verificação): \path{Cho_2010.pdf} \citep{cho2010}, o problema-base
+(Tabela~5 e Fig.~9); \path{VargasCeron_2025.pdf} \citep{vargasceron2025}, a referência seguida (não copiar a Eq.~31
+impressa); \path{Rahardjo_2007.pdf} \citep{rahardjo2007}, a validação da chuva (usar as figuras, não a Tabela~7);
+\path{Li_2015.pdf} \citep{li2015}, os números do Cho (no Ex.~II, reler a Tab.~5 e digitalizar a Fig.~9);
+\path{Jiang_2015.pdf} \citep{jiang2015}, os vários mecanismos e o Ex.~I de $P_f$ baixa; \path{Griffiths_2004.pdf}
+\citep{griffiths2004}, o teste não drenado (digitalizar as curvas).
+
+\textbf{Line sampling e subset simulation, os clássicos:} \path{Koutsourelakis_2004.pdf} (a origem do LS, feito para
+alta dimensão), \path{Schueller_2004.pdf} (a avaliação crítica em alta dimensão), \path{deAngelis_2015.pdf} (o ALS; não
+usar a troca de direção), \path{Papaioannou_2021.pdf} (o CLS; conferir a fórmula dos pesos, que estava bloqueada na
+busca), \path{Au_2001.pdf} (a SuS, \citealp{au2001}), \path{Wang_2011.pdf} (SuS em taludes; conferir o \path{sus.py}) e
+\path{Stefanou_2009.pdf} (a revisão do MEF estocástico).
+
+\textbf{Chuva:} \path{Rahardjo_2010.pdf} (FS($t$) com 9 a 80\,mm/h e três níveis freáticos), \path{Lu_2008.pdf} (FS($z$)
+analítico, teste 1-D do Richards), \path{Li_2023.pdf} ($k_s$ não estacionário), \path{Liu_2021.pdf} (RFEM
+hidromecânico), \path{Tang_2018.pdf} (chuva aleatória, D1--D7) e \path{Hu_2024.pdf} (curvas de fragilidade).
+
+\subsection{O que falta}
+Da lista do \texttt{LEIAME.txt}, só um:
+\begin{itemize}
+  \item \citet{raghuram2024}, o caso Konkan: \doi{10.1061/AJRUA6.RUENG-1112}. Não foi possível baixar. É o mais parecido
+    com FORM modal + chuva (FORM/SORM com campos e chuva aleatória).
+\end{itemize}
+Fora da pasta, citados aqui e ligados a um item do código (Seção~\ref{sec:codigo}) ou à concorrência (sugestão):
+{\raggedright
+\begin{itemize}[itemsep=0pt]
+  \item \citet{cheng2025}, o buscador de várias raízes (item 2): \doi{10.1016/j.strusafe.2025.102574}.
+  \item \citet{derkiureghian1998}, a lombada para o 2.º ponto de projeto (item 5): \doi{10.1016/s0167-4730(97)00026-x}.
+  \item \citet{depina2016}, a estrutura da variável de controle (item 4): \doi{10.1016/j.strusafe.2015.12.005}.
+  \item \citet{yuan2024}, o ACLS para a $P_f(t)$ na chuva (item 8): \doi{10.1016/j.ress.2023.109885}.
+  \item \citet{vandeneijnden2017}, a SuS e o mecanismo das rupturas raras (item 9): \doi{10.1016/j.compgeo.2017.03.010}.
+  \item \citet{dang2024}, a comparação independente (o LS na direção do FORM): \doi{10.1016/j.ress.2024.110053}.
+  \item \citet{valdebenito2010}, o ponto de projeto só como direção: \doi{10.1016/j.strusafe.2009.08.004}.
+  \item \citet{zhao2021}, o precedente geotécnico (IS em vários pontos de projeto): \doi{10.1080/17499518.2020.1780618}.
+  \item O \citet{hsrlem2026}, o concorrente que cita o Ceron: \doi{10.1080/17499518.2026.2760349}.
+  \item O \citet{cilamce2025}, o determinístico do mesmo problema do Ceron: \doi{10.55592/cilamce2025.v5i.14061}.
+\end{itemize}}
+A busca não levantou o DOI destes dois, achados no Crossref na revisão: \citet{susvar2025}, a variância da SuS
+(\doi{10.1016/j.strusafe.2025.102606}), e o trabalho do Ceron no \citet{cilamce2024}
+(\doi{10.55592/cilamce.v6i06.8188}).
+
+%======================================================================
+\section{Correções de citação}\label{sec:correcoes}
+\begin{itemize}
+  \item \textbf{Cho 2010} saiu no \emph{J.\ Geotech.\ Geoenviron.\ Eng.} 136(7):975--984 (JGGE), não no
+    \emph{Computers and Geotechnics}.
+  \item \textbf{O Ceron 2025 atribui 7,9\,\% ao Cho no Ex.~1}, mas o valor do Cho é 7,6\,\%; os 7,9\,\% são do método
+    de Jiang 2015. A Eq.~31 impressa do Ceron tem erros: não copiar a fórmula como está.
+  \item \textbf{O arquivo \texttt{Shui2014.pdf}} é de Jiang, Li, Zhang \& Zhou (2014), Eng.\ Geol.\ 168:120--128
+    (``Shui'' vem do prenome do 1.º autor, Shui-Hua Jiang; o DOI, lido no PDF, é \doi{10.1016/j.enggeo.2013.11.006}). No
+    texto completo: o FS não vem de SRM, o núcleo é exponencial quadrado, a KL tem só 10 termos e o exemplo não é o do
+    Cho.
+  \item \textbf{O caso Konkan} é de Raghuram \& Basha (2024), não de 2023.
+  \item \textbf{O multidomain LS} \citep{valdebenito2021} exige componentes lineares em série. A busca geral dizia que
+    ele ``pode mudar o método padrão''; conferido o PDF, não muda: entra só como citação.
+  \item \textbf{Rahardjo 2007:} as linhas de 80\,mm/h da Tabela~7 não batem com a Fig.~9; usar as figuras.
+  \item \textbf{Mesquita et al.} (conferido hoje no \texttt{Mesquita\_2024.pdf}). O Semantic Scholar o lista como
+    citante do Ceron e o data de 2024, antes do Ceron. O PDF resolve: aceito em 24/09/2024 (on-line em 07/10/2024,
+    pelo Crossref, antes do Ceron, de 29/04/2025), saiu no IJNAMG 2025; 49:5--28, e a lista de referências não traz o
+    Ceron 2025. O vínculo de citação é erro de metadado. Citar como Mesquita, Sotelino \& Peres (2025).
+  \item \textbf{O exame crítico da KL} (conferido hoje no \texttt{Dyson\_2025.pdf}): aceito em 27/11/2025 (on-line em
+    09/12/2025), saiu no IJNAMG 2026; 50(4):1751--1766. Citar como Dyson \& Griffiths (2026); o nome do arquivo e as
+    fontes usam 2025. O título termina em ``\emph{in Geotechnical Analysis}'', e não ``\emph{in Geotechnics}'', como
+    está no \texttt{LEIAME.txt}.
+  \item \textbf{Li et al.\ (RFEM + SuS):} Landslides 13:293--303 (2016), on-line em 2015 (daí o \texttt{s10346-015} no
+    DOI).
+  \item \textbf{Conferência no Crossref (revisão de 21/11/2026).} Os 81 DOIs (os 75 da busca e os 6 achados na
+    revisão) resolvem e batem com o título. Correções:
+    \begin{itemize}
+      \item \emph{O ano é o do volume}, como no Li 2016, e não o do DOI ou do OpenAlex: Liu, Vardon, Hicks \& Arnold é
+        de 2017 (Eng.\ Geol.\ 219); Liu, Vardon \& Hicks, de 2018 (Comput.\ Geotech.\ 95); Mahmood et al., de 2013
+        (Landslides 10); Sharma et al., de 2021 (Comput.\ Geotech.\ 130); Pan et al., de 2024 (Eng.\ Geol.\ 328); o
+        RAFELA, de 2023 (Eng.\ Comput.\ 39); e o RFELA não drenado, de 2026 (Géotech.\ Lett.\ 16). As fontes usam o ano
+        anterior.
+      \item \emph{Autores que faltavam:} Li et al.\ 2023 tem 5 autores (falta Zhang) e Pan et al.\ 2024 também 5
+        (falta Huang). O Infiltração 1D é de Santoso, Phoon \& Quek; o Taludes rochosos, de Saada, Maghous \& Garnier;
+        e o HS-RLEM, de Baninajarian, Sy, Javankhoshdel \& Bashir.
+      \item \emph{DOIs que faltavam:} as sementes Bergman et al.\ 1997, Griffiths, Huang \& Fenton 2009 e Spanos \&
+        Ghanem 1989; a variância da SuS, que é de Miao \& Low (2025); e o CILAMCE 2024 do Ceron. Os trabalhos citados
+        pelo tema ganharam os autores (Seção~\ref{sec:refs}).
+    \end{itemize}
+\end{itemize}
+
+%======================================================================
+\section{Referências}\label{sec:refs}
+Todas as referências citadas, com o DOI. Autores, anos, revistas e DOIs conferidos no Crossref em 21/11/2026; o ano é o
+do volume (quando o on-line ou o DOI é de outro ano, isso vai anotado). Os trabalhos que as fontes listam sem autores
+aparecem pelo tema (por exemplo, ``HS-RLEM'' ou ``Talude submarino''), com os autores do Crossref logo depois. Nas
+referências da busca do LS, entre colchetes, o que foi lido de cada uma.
+\begin{multicols}{2}\footnotesize\raggedright
+\begin{thebibliography}{99}
+
+\bibitem[Au \& Beck(2001)]{au2001} Au \& Beck (2001). Estimation of small failure probabilities in high dimensions by
+subset simulation. \emph{Probab.\ Eng.\ Mech.} 16:263--277. \doi{10.1016/S0266-8920(01)00019-4}.
+
+\bibitem[Bergman et~al.(1997)]{bergman1997} Bergman et al.\ (1997). A state-of-the-art report on computational
+stochastic mechanics. \emph{Probab.\ Eng.\ Mech.} 12(4):197--321. \doi{10.1016/S0266-8920(97)00003-9}. Semente;
+título e DOI achados no Crossref na revisão (lá, o autor registrado é só o editor, Schuëller).
+
+\bibitem[Cheng et~al.(2025)]{cheng2025} Cheng, Papaioannou \& Straub (2025). Enhanced sequential directional importance
+sampling for structural reliability analysis. \emph{Struct.\ Saf.} 114:102574. \doi{10.1016/j.strusafe.2025.102574}.
+[preprint arXiv 2410.21350]
+
+\bibitem[Cho(2010)]{cho2010} Cho (2010). Probabilistic assessment of slope stability that considers the spatial
+variability of soil properties. \emph{J.\ Geotech.\ Geoenviron.\ Eng.} 136(7):975--984.
+\doi{10.1061/(ASCE)GT.1943-5606.0000309}.
+
+\bibitem[Cho(2014)]{cho2014} Cho (2014). Probabilistic stability analysis of rainfall-induced landslides considering
+spatial variability of permeability. \emph{Eng.\ Geol.} 171:11--20. \doi{10.1016/j.enggeo.2013.12.015}.
+
+\bibitem[{CILAMCE}(2024)]{cilamce2024} CILAMCE (2024). Vargas Ceron, Cecílio, Linn \& Maghous. Effect of spatial
+variability of soil properties on slopes stability under rapid water drawdown conditions. Anais do CILAMCE 2024.
+\doi{10.55592/cilamce.v6i06.8188}. [antes, visto só por citação na web; o registro no Crossref foi achado na revisão]
+
+\bibitem[{CILAMCE}(2025)]{cilamce2025} CILAMCE (2025). Vargas Ceron, Cecílio, Linn \& Maghous. Stability analysis of
+slopes subjected to rapid water level drawdown considering analytical solutions to the seepage problem. Anais do CILAMCE
+2025, v.~5 (publicados em 2026). \doi{10.55592/cilamce2025.v5i.14061}.
+
+\bibitem[{Critério não linear}(2023)]{naolinear2023} Critério não linear (2023). Wan, Gao, Wu \& Zhu. Reliability of
+spatially variable soil slope based on nonlinear failure criterion. \emph{Nat.\ Hazards} 117(1):1179--1189.
+\doi{10.1007/s11069-023-05868-4}.
+
+\bibitem[Dang et~al.(2023a)]{dang2023bal} Dang, Valdebenito, Faes, Song, Wei \& Beer (2023a). Structural reliability
+analysis by line sampling: a Bayesian active learning treatment. \emph{Struct.\ Saf.} 104:102351.
+\doi{10.1016/j.strusafe.2023.102351}. [preprint]
+
+\bibitem[Dang et~al.(2023b)]{dang2023pbal} Dang, Valdebenito, Song, Wei \& Beer (2023b). Estimation of small failure
+probabilities by partially Bayesian active learning line sampling: theory and algorithm. \emph{Comput.\ Methods Appl.\
+Mech.\ Eng.} 412:116068. \doi{10.1016/j.cma.2023.116068}. [trecho do resumo; método conferido no preprint do BAL-LS]
+
+\bibitem[Dang et~al.(2024)]{dang2024} Dang, Valdebenito, Wei, Song \& Beer (2024). Bayesian active learning line
+sampling with log-normal process for rare-event probability estimation. \emph{Reliab.\ Eng.\ Syst.\ Saf.} 246:110053.
+\doi{10.1016/j.ress.2024.110053}. [preprint]
+
+\bibitem[de~Angelis et~al.(2015)]{deangelis2015} de Angelis, Patelli \& Beer (2015). Advanced line sampling for
+efficient robust reliability analysis. \emph{Struct.\ Saf.} 52:170--182. \doi{10.1016/j.strusafe.2014.10.002}.
+[preprint]
+
+\bibitem[Depina(2025a)]{depina2025} Depina (2025a). Hyperspheric integral reliability method for efficient reliability
+analysis of geotechnical ultimate limit states. \emph{Comput.\ Geotech.} 177:106861.
+\doi{10.1016/j.compgeo.2024.106861}. [o artigo companheiro do ISGSR 2025; o da revista não foi lido]
+
+\bibitem[Depina(2025b)]{depina2025isgsr} Depina (2025b). Efficient and robust method for reliability analysis of
+geotechnical ultimate limit states. Proc.\ 9th Int.\ Symp.\ Geotech.\ Safety and Risk (ISGSR 2025), pp.\ 1150--1153;
+o artigo companheiro do HINT. \doi{10.3850/GRF-25280825_isgsr-246-P067-cd}. [registro no Crossref e PDF lido]
+
+\bibitem[Depina et~al.(2016)]{depina2016} Depina, Le, Fenton \& Eiksund (2016). Reliability analysis with metamodel line
+sampling. \emph{Struct.\ Saf.} 60:1--15. \doi{10.1016/j.strusafe.2015.12.005}. [resumo]
+
+\bibitem[Der~Kiureghian \& Dakessian(1998)]{derkiureghian1998} Der Kiureghian \& Dakessian (1998). Multiple design
+points in first and second-order reliability. \emph{Struct.\ Saf.} 20(1):37--49.
+\doi{10.1016/s0167-4730(97)00026-x}. [trechos do resumo]
+
+\bibitem[Dou et~al.(2014)]{dou2014} Dou, Han, Gong \& Zhang (2014). Probabilistic slope stability analysis considering
+the variability of hydraulic conductivity under rainfall infiltration--redistribution conditions. \emph{Eng.\ Geol.}
+183:1--13. \doi{10.1016/j.enggeo.2014.09.005}.
+
+\bibitem[Dou et~al.(2015)]{dou2015} Dou, Han, Gong, Qiu \& Li (2015). Effects of the spatial variability of
+permeability on rainfall-induced landslides. \emph{Eng.\ Geol.} 192:92--100. \doi{10.1016/j.enggeo.2015.03.014}.
+
+\bibitem[Dyson \& Griffiths(2026)]{dyson2026} Dyson \& Griffiths (2026). A critical examination of the Karhunen--Loève
+expansion for random field generation in geotechnical analysis. \emph{Int.\ J.\ Numer.\ Anal.\ Methods Geomech.}
+50(4):1751--1766 (on-line em 2025). \doi{10.1002/nag.70195}.
+
+\bibitem[Ehre et~al.(2022)]{ehre2022} Ehre, Papaioannou, Sudret \& Straub (2022). Sequential active learning of
+low-dimensional model representations for reliability analysis. \emph{SIAM J.\ Sci.\ Comput.} 44(3):B558--B584.
+\doi{10.1137/21m1416758}. [resumo]
+
+\bibitem[Griffiths \& Fenton(2004)]{griffiths2004} Griffiths \& Fenton (2004). Probabilistic slope stability analysis by
+finite elements. \emph{J.\ Geotech.\ Geoenviron.\ Eng.} 130(5):507--518. \doi{10.1061/(ASCE)1090-0241(2004)130:5(507)}.
+
+\bibitem[Griffiths et~al.(2009)]{griffiths2009} Griffiths, Huang \& Fenton (2009). Influence of spatial variability on
+slope reliability using 2-D random fields. \emph{J.\ Geotech.\ Geoenviron.\ Eng.} 135(10):1367--1378.
+\doi{10.1061/(ASCE)GT.1943-5606.0000099}. Semente; DOI achado no Crossref na revisão.
+
+\bibitem[Hohenbichler \& Rackwitz(1988)]{hohenbichler1988} Hohenbichler \& Rackwitz (1988). Improvement of second-order
+reliability estimates by importance sampling. \emph{J.\ Eng.\ Mech.} 114(12):2195--2199.
+\doi{10.1061/(ASCE)0733-9399(1988)114:12(2195)}. [só o registro no Crossref; citado por Dang et al.\ 2024]
+
+\bibitem[{HS-RLEM}(2026)]{hsrlem2026} HS-RLEM (2026). Baninajarian, Sy, Javankhoshdel \& Bashir. Introducing Hydraulic
+Statistics Random Limit Equilibrium Method (HS-RLEM) for advanced probabilistic slope stability analysis.
+\emph{Georisk}, on-line em 15/11/2026, ainda sem volume. \doi{10.1080/17499518.2026.2760349}.
+
+\bibitem[Hu et~al.(2024)]{hu2024} Hu, Bao, Han \& Wang (2024). Non-parametric fragility curves for probabilistic risk
+assessment of rainfall-triggered landslides. \emph{Comput.\ Geotech.} 173:106546. \doi{10.1016/j.compgeo.2024.106546}.
+
+\bibitem[Huang et~al.(2013)]{huang2013} Huang, Lyamin, Griffiths, Krabbenhoft \& Sloan (2013). Quantitative risk
+assessment of landslide by limit analysis and random fields. \emph{Comput.\ Geotech.} 53:60--67.
+\doi{10.1016/j.compgeo.2013.04.009}.
+
+\bibitem[Huang et~al.(2018)]{huang2018} Huang, Leong \& Rahardjo (2018). Upper-bound limit analysis of unsaturated soil
+slopes under rainfall. \emph{J.\ Geotech.\ Geoenviron.\ Eng.} 144(9):04018066.
+\doi{10.1061/(ASCE)GT.1943-5606.0001946}.
+
+\bibitem[{Infiltração 1D}(2011)]{infiltracao2011} Infiltração 1D (2011). Santoso, Phoon \& Quek. Effect of 1D
+infiltration assumption on stability of spatially variable slope. GeoRisk 2011 (ASCE, congresso), pp.\ 704--711.
+\doi{10.1061/41183(418)72}.
+
+\bibitem[Ji et~al.(2018)]{ji2018} Ji, Zhang, Gao \& Kodikara (2018). Effect of 2D spatial variability on slope
+reliability: a simplified FORM analysis. \emph{Geosci.\ Front.} 9:1631--1638. \doi{10.1016/j.gsf.2017.08.004}.
+
+\bibitem[Jiang et~al.(2014)]{jiang2014} Jiang, Li, Zhang \& Zhou (2014). Slope reliability analysis considering
+spatially variable shear strength parameters using a non-intrusive stochastic finite element method. \emph{Eng.\ Geol.}
+168:120--128. \doi{10.1016/j.enggeo.2013.11.006} (lido no PDF local, \texttt{Shui2014.pdf}).
+
+\bibitem[Jiang et~al.(2015)]{jiang2015} Jiang, Li, Cao, Zhou \& Phoon (2015). Efficient system reliability analysis of
+slope stability in spatially variable soils using Monte Carlo simulation. \emph{J.\ Geotech.\ Geoenviron.\ Eng.}
+141(2):04014096. \doi{10.1061/(ASCE)GT.1943-5606.0001227}.
+
+\bibitem[Jiang et~al.(2022)]{jiang2022} Jiang, Huang, Griffiths \& Deng (2022). Advances in reliability and risk analyses
+of slopes in spatially variable soils: a state-of-the-art review. \emph{Comput.\ Geotech.} 141:104498.
+\doi{10.1016/j.compgeo.2021.104498}.
+
+\bibitem[Koutsourelakis et~al.(2004)]{koutsourelakis2004} Koutsourelakis, Pradlwarter \& Schuëller (2004). Reliability of
+structures in high dimensions, part I: algorithms and applications. \emph{Probab.\ Eng.\ Mech.} 19(4):409--417.
+\doi{10.1016/j.probengmech.2004.05.001}. [resumo]
+
+\bibitem[{Leito marinho}(2025)]{leito2025} Leito marinho (2025). Quiuqui \& Maghous. A yield design approach to the
+stability analysis of a seabed subjected to wave loading and pseudo-static seismic forces. \emph{Sci.\ Rep.} 16:1816
+(on-line em 2025). \doi{10.1038/s41598-025-31593-y}.
+
+\bibitem[Li et~al.(2015)]{li2015} Li, Jiang, Cao, Zhou, Zhou \& Zhang (2015). A multiple response-surface method for
+slope reliability analysis considering spatial variability of soil properties. \emph{Eng.\ Geol.} 187:60--72.
+\doi{10.1016/j.enggeo.2014.12.003}.
+
+\bibitem[Li et~al.(2016)]{li2016} Li, Xiao, Cao, Zhou \& Zhang (2016). Enhancement of random finite element method in
+reliability analysis and risk assessment of soil slopes using Subset Simulation. \emph{Landslides} 13:293--303 (on-line
+em 2015). \doi{10.1007/s10346-015-0569-2}.
+
+\bibitem[Li et~al.(2022)]{li2022} Li, Li, Cheng, Hu, Lu, Li \& Meng (2022). Reservoir slope reliability analysis under
+water level drawdown considering spatial variability and degradation of soil properties. \emph{Comput.\ Geotech.}
+151:104947. \doi{10.1016/j.compgeo.2022.104947}.
+
+\bibitem[Li et~al.(2023)]{li2023} Li, Liu, Liu, Yang \& Zhang (2023). Probabilistic slope stability analysis
+considering the non-stationary and spatially variable permeability under rainfall infiltration-redistribution.
+\emph{Bull.\ Eng.\ Geol.\ Environ.} 82(9):350. \doi{10.1007/s10064-023-03351-9}.
+
+\bibitem[Liu \& Wang(2021)]{liuwang2021} Liu \& Wang (2021). Probabilistic simulation of entire process of
+rainfall-induced landslides using random finite element and material point methods with hydro-mechanical coupling.
+\emph{Comput.\ Geotech.} 132:103989. \doi{10.1016/j.compgeo.2020.103989}.
+
+\bibitem[Liu et~al.(2017)]{liu2016} Liu, Vardon, Hicks \& Arnold (2017). Combined effect of hysteresis and heterogeneity
+on the stability of an embankment under transient seepage. \emph{Eng.\ Geol.} 219:140--150 (o DOI é de 2016).
+\doi{10.1016/j.enggeo.2016.11.011}.
+
+\bibitem[Liu et~al.(2018)]{liu2017} Liu, Vardon \& Hicks (2018). Sequential reduction of slope stability uncertainty
+based on temporal hydraulic measurements via the ensemble Kalman filter. \emph{Comput.\ Geotech.} 95:147--161 (o DOI é
+de 2017). \doi{10.1016/j.compgeo.2017.09.019}.
+
+\bibitem[Lu \& Godt(2008)]{lugodt2008} Lu \& Godt (2008). Infinite slope stability under steady unsaturated seepage
+conditions. \emph{Water Resour.\ Res.} 44(11):W11404. \doi{10.1029/2008WR006976}.
+
+\bibitem[Lu et~al.(2008)]{lu2008} Lu, Song, Yue \& Wang (2008). Reliability sensitivity method by line sampling.
+\emph{Struct.\ Saf.} 30(6):517--532. \doi{10.1016/j.strusafe.2007.10.001}. [resumo]
+
+\bibitem[Mahmood et~al.(2013)]{mahmood2012} Mahmood, Ryu \& Kim (2013). Effect of anisotropic conductivity on suction and
+reliability index of unsaturated slope exposed to uniform antecedent rainfall. \emph{Landslides} 10(1):15--22 (on-line
+em 2012). \doi{10.1007/s10346-012-0325-9}.
+
+\bibitem[Mesquita et~al.(2025)]{mesquita2025} Mesquita, Sotelino \& Peres (2025). Evaluation of the spatial variability
+of the mechanical properties of rocks using non-iterative Green's function approach and the FOSM method. \emph{Int.\ J.\
+Numer.\ Anal.\ Methods Geomech.} 49(1):5--28 (on-line em 2024). \doi{10.1002/nag.3861}.
+
+\bibitem[Miao \& Low(2025)]{susvar2025} Miao \& Low (2025). Improved variance estimation for subset simulation by
+accounting for the correlation between Markov chains. \emph{Struct.\ Saf.} 116:102606.
+\doi{10.1016/j.strusafe.2025.102606}. [só o registro no Crossref, achado na revisão; as fontes davam só o começo do
+título. Há uma continuação dos mesmos autores, Struct.\ Saf.\ 120:102690 (2026), \doi{10.1016/j.strusafe.2026.102690}]
+
+\bibitem[{OpenTURNS}(s.d.)]{openturns} OpenTURNS (s.d.). Documentação de \texttt{LineSampling} e \texttt{SafeAndSlow},
+versões 1.25--1.26 (módulo experimental). Documentação, não artigo; sem DOI.
+
+\bibitem[Pan et~al.(2024)]{pan2023} Pan, Jiang, Liu, Song \& Huang (2024). Sequential probabilistic back analyses of
+spatially varying soil parameters and slope reliability prediction under rainfall. \emph{Eng.\ Geol.} 328:107372 (o
+DOI é de 2023). \doi{10.1016/j.enggeo.2023.107372}.
+
+\bibitem[Papaioannou \& Straub(2021)]{papaioannou2021} Papaioannou \& Straub (2021). Combination line sampling for
+structural reliability analysis. \emph{Struct.\ Saf.} 88:102025. \doi{10.1016/j.strusafe.2020.102025}. [resumo]
+
+\bibitem[Pradlwarter et~al.(2007)]{pradlwarter2007} Pradlwarter, Schuëller, Koutsourelakis \& Charmpis (2007).
+Application of line sampling simulation method to reliability benchmark problems. \emph{Struct.\ Saf.} 29(3):208--221.
+\doi{10.1016/j.strusafe.2006.07.009}. [resumo]
+
+\bibitem[{RAFELA}(2023)]{rafela2022} RAFELA (2023). Liao, Wu, Miao, Pan \& Beer. Probabilistic risk assessment of earth
+dams with spatially variable soil properties using random adaptive finite element limit analysis. \emph{Eng.\ Comput.}
+39(5):3313--3326 (on-line em 2022). \doi{10.1007/s00366-022-01752-0}.
+
+\bibitem[Raghuram \& Basha(2024)]{raghuram2024} Raghuram \& Basha (2024). Rainfall-induced probability of failure in
+spatially variable soil slopes and a case study of the Konkan railway slope failure. \emph{ASCE-ASME J.\ Risk
+Uncertain.\ Eng.\ Syst.\ A} 10(1):04023046. \doi{10.1061/AJRUA6.RUENG-1112}.
+
+\bibitem[Rahardjo et~al.(2007)]{rahardjo2007} Rahardjo, Ong, Rezaur \& Leong (2007). Factors controlling instability of
+homogeneous soil slopes under rainfall. \emph{J.\ Geotech.\ Geoenviron.\ Eng.} 133(12):1532--1543.
+\doi{10.1061/(ASCE)1090-0241(2007)133:12(1532)}.
+
+\bibitem[Rahardjo et~al.(2010)]{rahardjo2010} Rahardjo, Nio, Leong \& Song (2010). Effects of groundwater table position
+and soil properties on stability of slope during rainfall. \emph{J.\ Geotech.\ Geoenviron.\ Eng.} 136(11):1555--1564.
+\doi{10.1061/(ASCE)GT.1943-5606.0000385}.
+
+\bibitem[Rahimi et~al.(2010)]{rahimi2010} Rahimi, Rahardjo \& Leong (2010). Effect of hydraulic properties of soil on
+rainfall-induced slope failure. \emph{Eng.\ Geol.} 114:135--143. \doi{10.1016/j.enggeo.2010.04.010}.
+
+\bibitem[{Rebaixamento e estratigrafia}(2024)]{estratigrafia2024} Rebaixamento e estratigrafia (2024). Meng, Pei, Ye
+\& He. Stability analysis of reservoir slope under water-level drawdown considering stratigraphic uncertainty and
+spatial variability of soil property. \emph{Comput.\ Geotech.} 169:106199. \doi{10.1016/j.compgeo.2024.106199}.
+
+\bibitem[{RFELA não drenada}(2026)]{rfela2025} RFELA não drenada (2026). Vicente da Silva \& Antão. A new random field
+finite-element limit analysis approach for undrained soils. \emph{Géotech.\ Lett.} 16(1):1--6 (on-line em 2025).
+\doi{10.1680/jgele.25.00023}.
+
+\bibitem[Santoso et~al.(2011)]{santoso2011} Santoso, Phoon \& Quek (2011). Effects of soil spatial variability on
+rainfall-induced landslides. \emph{Comput.\ Struct.} 89(11--12):893--900. \doi{10.1016/j.compstruc.2011.02.016}.
+
+\bibitem[Schuëller et~al.(2004)]{schueller2004} Schuëller, Pradlwarter \& Koutsourelakis (2004). A critical appraisal of
+reliability estimation procedures for high dimensions. \emph{Probab.\ Eng.\ Mech.} 19(4):463--474.
+\doi{10.1016/j.probengmech.2004.05.004}. [resumo]
+
+\bibitem[Sharma et~al.(2021)]{sharma2020} Sharma, Hazra \& Sekharan (2021). Stochastic seepage and slope stability
+analysis using vine-copula based multivariate random field approach: consideration to non-Gaussian spatial and
+cross-dependence structure of hydraulic parameters. \emph{Comput.\ Geotech.} 130:103918 (o DOI é de 2020).
+\doi{10.1016/j.compgeo.2020.103918}.
+
+\bibitem[Song et~al.(2021)]{song2021} Song, Wei, Valdebenito \& Beer (2021). Active learning line sampling for rare
+event analysis. \emph{Mech.\ Syst.\ Signal Process.} 147:107113. \doi{10.1016/j.ymssp.2020.107113}. [manuscrito
+aceito]
+
+\bibitem[Spanos \& Ghanem(1989)]{spanos1989} Spanos \& Ghanem (1989). Stochastic finite element expansion for random
+media. \emph{J.\ Eng.\ Mech.} 115(5):1035--1053. \doi{10.1061/(ASCE)0733-9399(1989)115:5(1035)}. Semente; DOI achado
+no Crossref na revisão.
+
+\bibitem[Stefanou(2009)]{stefanou2009} Stefanou (2009). The stochastic finite element method: past, present and future.
+\emph{Comput.\ Methods Appl.\ Mech.\ Eng.} 198:1031--1051. \doi{10.1016/j.cma.2008.11.007}.
+
+\bibitem[{Talude submarino}(2026)]{submarino2026} Talude submarino (2026). Wang, Zhao, Shen, Yang \& Ji. Probabilistic
+analysis of artificial submarine slope under wave loading and anisotropic soil spatial variability conditions.
+\emph{Comput.\ Geotech.} 195:108107. \doi{10.1016/j.compgeo.2026.108107}.
+
+\bibitem[{Taludes escavados}(2023)]{escavados2023} Taludes escavados (2023). Shu, Ge, Wu \& Zhang. Reliability analysis
+of excavated slopes in undrained clay. \emph{Front.\ Struct.\ Civ.\ Eng.} 17(11):1760--1775.
+\doi{10.1007/s11709-023-0018-6}.
+
+\bibitem[{Taludes reforçados}(2026)]{reforcados2026} Taludes reforçados (2026). Huang \& Wang. Time-dependent seismic
+reliability assessment of reinforced soil slopes under wet-dry-induced soil degradation. \emph{Eur.\ J.\ Environ.\ Civ.\
+Eng.} 30(1):2726512. \doi{10.1080/19648189.2026.2726512}.
+
+\bibitem[{Taludes rochosos}(2026)]{rochosos2026} Taludes rochosos (2026). Saada, Maghous \& Garnier. Pseudo-static
+stability analysis of jointed rock slopes reinforced by passive bolts. \emph{Geotech.\ Geol.\ Eng.} 44(3):151.
+\doi{10.1007/s10706-026-03654-0}.
+
+\bibitem[Tang et~al.(2018)]{tang2018} Tang, Huang, Sheng \& Sloan (2018). Stability analysis of unsaturated soil slopes
+under random rainfall patterns. \emph{Eng.\ Geol.} 245:322--332. \doi{10.1016/j.enggeo.2018.09.013}.
+
+\bibitem[Valdebenito et~al.(2010)]{valdebenito2010} Valdebenito, Pradlwarter \& Schuëller (2010). The role of the design
+point for calculating failure probabilities in view of dimensionality and structural nonlinearities. \emph{Struct.\
+Saf.} 32(2):101--111. \doi{10.1016/j.strusafe.2009.08.004}. [resumo]
+
+\bibitem[Valdebenito et~al.(2018)]{valdebenito2018} Valdebenito, Jensen, Hernández \& Mehrez (2018). Sensitivity
+estimation of failure probability applying line sampling. \emph{Reliab.\ Eng.\ Syst.\ Saf.} 171:99--111.
+\doi{10.1016/j.ress.2017.11.010}. [resumo]
+
+\bibitem[Valdebenito et~al.(2021)]{valdebenito2021} Valdebenito, Wei, Song, Beer \& Broggi (2021). Failure probability
+estimation of a class of series systems by multidomain line sampling. \emph{Reliab.\ Eng.\ Syst.\ Saf.} 213:107673.
+\doi{10.1016/j.ress.2021.107673}. [resumo; depois conferido no PDF local]
+
+\bibitem[van~den Eijnden \& Hicks(2017)]{vandeneijnden2017} van den Eijnden \& Hicks (2017). Efficient subset simulation
+for evaluating the modes of improbable slope failure. \emph{Comput.\ Geotech.} 88:267--280.
+\doi{10.1016/j.compgeo.2017.03.010}. [manuscrito do autor]
+
+\bibitem[Vargas~Ceron et~al.(2025)]{vargasceron2025} Vargas Ceron, Cecílio, Linn \& Maghous (2025). Stability analysis
+of slope subjected to seepage forces considering spatial variability of soil properties. \emph{Int.\ J.\ Numer.\ Anal.\
+Methods Geomech.} 49(11):2459--2491. \doi{10.1002/nag.3993}.
+
+\bibitem[Wang et~al.(2011)]{wang2011} Wang, Cao \& Au (2011). Practical reliability analysis of slope stability by
+advanced Monte Carlo simulations in a spreadsheet. \emph{Can.\ Geotech.\ J.} 48:162--172. \doi{10.1139/T10-044}.
+
+\bibitem[Wang et~al.(2022)]{wang2022} Wang, Xia, Zhang, Gu \& Zhang (2022). Probabilistic risk assessment of soil slope
+stability subjected to water drawdown by finite element limit analysis. \emph{Appl.\ Sci.} 12:10282.
+\doi{10.3390/app122010282}.
+
+\bibitem[{XGBoost}(2024)]{xgboost2024} XGBoost (2024). Zhang, Ran, Gu, Zhang, Zou \& Wang. Efficient reliability
+analysis of unsaturated slope stability under rapid drawdown using XGBoost-based surrogate model. \emph{Soils Found.}
+64(6):101539. \doi{10.1016/j.sandf.2024.101539}.
+
+\bibitem[Yang et~al.(2018)]{yang2018} Yang, Zhang \& Li (2018). Efficient method for probabilistic estimation of
+spatially varied hydraulic properties in a soil slope based on field responses: a Bayesian approach. \emph{Comput.\
+Geotech.} 102:262--272. \doi{10.1016/j.compgeo.2017.11.012}.
+
+\bibitem[Yuan et~al.(2024)]{yuan2024} Yuan, Zheng, Zhao, Valdebenito, Faes \& Dong (2024). Line sampling for
+time-variant failure probability estimation using an adaptive combination approach. \emph{Reliab.\ Eng.\ Syst.\ Saf.}
+243:109885. \doi{10.1016/j.ress.2023.109885}. [preprint]
+
+\bibitem[Zhang(2026)]{zhang2026} Zhang (2026). Line importance sampling for reliability analysis with complex failure
+domain. \emph{Reliab.\ Eng.\ Syst.\ Saf.} 271:112296. \doi{10.1016/j.ress.2026.112296}. [resumo]
+
+\bibitem[Zhao et~al.(2021)]{zhao2021} Zhao, Duan, Ma, Zhang \& Huang (2021). Importance sampling for system reliability
+analysis of soil slopes based on shear strength reduction. \emph{Georisk} 15(4):287--298.
+\doi{10.1080/17499518.2020.1780618}. [resumo]
+
+\bibitem[Zio \& Pedroni(2010)]{zio2010} Zio \& Pedroni (2010). An optimized line sampling method for the estimation of
+the failure probability of nuclear passive systems. \emph{Reliab.\ Eng.\ Syst.\ Saf.} 95(12):1300--1313.
+\doi{10.1016/j.ress.2010.06.007}. [resumo]
+
+\end{thebibliography}
+\end{multicols}
+\end{document}

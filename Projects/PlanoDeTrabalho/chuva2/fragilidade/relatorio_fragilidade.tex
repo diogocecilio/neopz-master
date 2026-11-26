@@ -184,6 +184,47 @@ caso & forma & $A$ & $B$ & $C$ & $D_s$ & $A + B$ & resíduo rms & resíduo máx.
     a forma em $\ln I$ com $A$ = FS inicial ajusta com resíduo de 0,003--0,004.
 \end{itemize}
 
+\subsection{As Figs.~6 e 7 de Rahardjo et al.\ (2007) para os três solos}\label{sec:rahardjo67}
+\providecommand{\rahTangIniCinq}{--}\providecommand{\rahTangThrCinq}{--}
+Rahardjo et al.\ (2007)~\cite{rahardjo2007} varreram a intensidade de uma chuva de 24~h nos três solos (f10, f50 e f100,
+com $k_s$ = 360, 36 e 3,6~mm/h) e ajustaram a Eq.~6 ao $F_{s(min)}$ de cada um (a Fig.~7 do artigo traz as constantes).
+No gráfico semilog, a tangente no ponto mais íngreme da sigmoide corta o patamar de cima em $I_{r(ini)}$, onde o FS
+começa a cair, e o de baixo em $I_{r(thr)}$, a partir de onde chover mais forte não baixa mais o FS. A
+Fig.~\ref{fig:rah6} refaz a Fig.~6 do artigo com as nossas contas, a Fig.~\ref{fig:rah7} refaz a Fig.~7, e a
+Tab.~\ref{tab:rahconst} compara as constantes. Entram as variantes (iii), que é o modelo do artigo (percolação
+desacoplada, ar passivo), e (i).
+\begin{itemize}
+  \item \textbf{O $F_{s(min)}$ é o FS das médias no fim da chuva de 24~h.} Nos três solos o mínimo cai no fim da chuva;
+    no f100 com 72~h de chuva, o mínimo depois dela fica 0,008 abaixo, dentro da resolução do SRM.
+  \item \textbf{O ajuste usa a forma do artigo:} $I$ linear, com $D < 0$, e $A$ é o patamar de baixo. As tangentes são
+    calculadas, enquanto o artigo as traçou à mão. Aplicada às constantes do artigo, a nossa construção dá
+    $I_{r(ini)} = \rahTangIniCinq$ e $I_{r(thr)} = \rahTangThrCinq$~mm/h no f50 (o artigo: 8,5 e 51).
+  \item \textbf{As varreduras:} o f50 tem 18 intensidades de 3,6 a 180~mm/h; o f100 tem 15, de 3,6 a 54~mm/h (o FS de
+    24~h das chuvas de 72~h). O f10 inteiro e os patamares que faltavam (0,36 a 2,7~mm/h no f50 e no f100; 360~mm/h no
+    f50; 90~mm/h no f100) estão na fila do PC (\texttt{runs/rahardjo\_3solos}).
+\end{itemize}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/rahardjo_fig6.pdf}
+\caption{A Fig.~6 de Rahardjo et al.\ (2007) com as nossas contas: o FS das médias no fim de uma chuva de 24~h contra a
+intensidade, nos três solos. Pontos: as nossas análises; linha cheia: a Eq.~6 ajustada a eles; tracejada: a Eq.~6 com as
+constantes do artigo; triângulos: $I_{r(ini)}$ ($\triangledown$) e $I_{r(thr)}$ ($\vartriangle$).}\label{fig:rah6}
+\end{figure}
+
+\begin{table}[H]\centering\small
+\caption{As constantes da Eq.~6 na forma do artigo, $F_{s(min)} = A + B/(1 + e^{-(I_r - C)/D})$ com $I_r$ em mm/h.
+``idem, nossas tangentes'': a nossa construção das tangentes aplicada às constantes do artigo. FS(0): o FS inicial, sem
+chuva. $I_c$: a intensidade em que a Eq.~6 vale 1 (mm/h).}\label{tab:rahconst}
+\resizebox{\textwidth}{!}{\input{tab/rahardjo_const.tex}}
+\end{table}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/rahardjo_fig7.pdf}
+\caption{A Fig.~7 de Rahardjo et al.\ (2007) com as nossas contas: um painel por solo (linhas) e variante (colunas),
+com a Eq.~6 ajustada, as constantes, o $r^2$ e as tangentes; $I_{r(ini)}$ e $I_{r(thr)}$ também como múltiplos de $k_s$ e
+como o volume de chuva $V_r = 24\,I_r$. Tracejada: a Eq.~6 com as constantes do artigo, só na (iii).}\label{fig:rah7}
+\end{figure}
+
 \subsection{A referência: o FS de 5000 realizações é lognormal}
 \begin{figure}[H]\centering
 \includegraphics[width=\textwidth]{figs/referencia.pdf}
@@ -523,6 +564,134 @@ f100, (iii) e (i) & 120~h & FS em 72 e 120~h a 9 e a 3,6 & 1000 & $\beta$ e $m$\
   \item \textbf{Custo:} $\approx 21$~h de fermi (4 nós) para o f50 e $\approx 25$~h para o f100; resultado parcial do
     f50 depois de uma noite. Análise: \path{cluster/resumo_frag.py} (via \path{cluster/baixar_frag.sh}).
 \end{itemize}
+
+\section{Simulação de Monte Carlo (resultados parciais)}\label{sec:mc}
+% macros que so existem com dados (o gera_dados.py/mc_secao.py as escreve no numeros.tex)
+\providecommand{\mcFormBetaA}{--}\providecommand{\mcFormPfA}{--}\providecommand{\mcFormBetaB}{--}
+\providecommand{\mcFormPfB}{--}\providecommand{\mcFragPfA}{--}\providecommand{\mcFragPfB}{--}
+\providecommand{\fragZkiii}{--}\providecommand{\fragZkDentroiii}{--}\providecommand{\fragZmiii}{--}
+\providecommand{\fragPariii}{--}\providecommand{\fragBetaiii}{--}\providecommand{\fragMkiii}{--}
+\providecommand{\fragIcaliii}{--}\providecommand{\fragTopIiii}{--}\providecommand{\fragCensMediii}{--}
+\providecommand{\fragCensMedSeiii}{--}\providecommand{\fragCensBetaiii}{--}\providecommand{\fragCensBetaSeiii}{--}
+\providecommand{\fragPrevMediii}{--}\providecommand{\fragZki}{--}\providecommand{\fragZkDentroi}{--}
+\providecommand{\fragZmi}{--}\providecommand{\fragPari}{--}\providecommand{\fragBetai}{--}\providecommand{\fragMki}{--}
+\providecommand{\fragIcali}{--}\providecommand{\fragTemi}{0}\providecommand{\fragTemiii}{0}
+\providecommand{\fragZmMaxi}{--}\providecommand{\fragZmDentroi}{--}\providecommand{\fragTopIi}{--}
+\providecommand{\fragCensMedi}{--}\providecommand{\fragCensMedSei}{--}\providecommand{\fragCensBetai}{--}
+\providecommand{\fragCensBetaSei}{--}\providecommand{\fragPrevMedi}{--}\providecommand{\fragPrevMedMedioi}{--}
+
+Os números desta seção são de \mcData{} e mudam enquanto as rodadas andam: o \texttt{gera.sh} refaz as figuras e as
+tabelas com os dados do momento. Em todos os casos o alvo é CoV$(\Pf) = 5\,\%$. As estimativas correntes usam as
+realizações (ou as linhas) na ordem do índice, e só o prefixo contínuo das já prontas: as que terminam primeiro são as
+mais baratas, e usá-las enviesaria a $\Pf$.
+
+\subsection{Os casos do PC: f50, chuva de 24~h a 30 e 36~mm/h}\label{sec:mcpc}
+\begin{itemize}
+  \item \textbf{MC direto pela primeira passagem} (a variante (i), com $\Pf$ alta). Cada realização avança de hora em
+    hora e confere o FS em 12 e 24~h; se ele cair abaixo de 1, acha $t_1$ por bissecção nas horas guardadas e para ali.
+    A fila para o caso no primeiro $N$ com CoV $\le 5\,\%$, com no mínimo 100 realizações e 30 falhas. As realizações
+    são as mesmas da campanha \texttt{frag} (a mesma semente).
+  \item \textbf{Line sampling} (a variante (iii)). A direção é a do FORM modal, que só tem $c'$ e $\phi'$: o gradiente
+    modal dá zero nos termos de $k$, que ficam aleatórios de uma linha para outra. Em cada linha, a raiz de
+    FS(24~h)~$= 1$ sai por busca com cerca, com o transiente calculado uma vez por linha. Para na primeira linha com
+    CoV $\le 5\,\%$ (no mínimo 30 linhas). O LS não dá $t_1$: o histograma dessas linhas vem do MC do fermi na mesma
+    intensidade.
+  \item A (iii) a 36~mm/h começou como MC no PC e passou para o LS; o MC dessas realizações segue no fermi.
+\end{itemize}
+
+\begin{table}[H]\centering\small
+\caption{Os casos do PC (\texttt{\textasciitilde/projects/runs/pc\_f50\_ls\_mc}) e, nas linhas sem rótulo, o MC das mesmas condições.
+Fórmula: $\Phi(-\ln(m'F)/\beta)$, com o $F$ do $k_s$ mediano e o $m'$ e o $\beta$ da calibração da variante. CoV do MC:
+$\sqrt{(1-\Pf)/(N\Pf)}$; do LS: o desvio padrão das $p_i$ das linhas dividido por $\sqrt N\,\Pf$. ``min/$N$'':
+minutos de CPU por realização ou por linha. $t_1$: a mediana e, entre colchetes, os quantis de 10 e 90\,\% das
+falhas. O FORM está no texto.}\label{tab:mcpc}
+\resizebox{\textwidth}{!}{\input{tab/mc_pc.tex}}
+\end{table}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/mc_pc.pdf}
+\caption{Os casos do PC, um por linha. Esquerda: a $\Pf$ corrente com o IC de 95\,\% (faixa colorida), a fórmula com o
+$k_s$ mediano (tracejada), o FORM (pontilhada) e, no LS, o MC do fermi nas mesmas condições (faixa cinza). Centro: o
+CoV$(\Pf)$ e o alvo de 5\,\%. Direita: o histograma de $t_1$ das falhas, com a mediana.}\label{fig:mcpc}
+\end{figure}
+
+\begin{itemize}
+  \item \textbf{Conferência PC $\times$ fermi} nas mesmas realizações (falhas diferentes): \mcConf. A primeira passagem
+    conferida só em 12 e 24~h dá o mesmo $t_1$ que conferida em 6, 12 e 24~h, e a monotonia em $I$ que a campanha usa
+    para pular intensidades vale nessas realizações.
+  \item \textbf{O FORM perto da mediana.} A 36~mm/h o FORM dá $\Pf = \mcFormPfB\,\%$ ($\beta = \mcFormBetaB$), contra
+    $\mcFragPfB\,\%$ do MC do fermi. Com a $\Pf$ perto de 50\,\%, linearizar em $c'$ e $\phi'$ com o $k$ fixo no
+    mediano erra muito. O LS não tem viés em nenhuma direção e corrige. A 30~mm/h o FORM ($\mcFormPfA\,\%$,
+    $\beta = \mcFormBetaA$) já fica perto do MC ($\mcFragPfA\,\%$).
+\end{itemize}
+
+\subsection{A campanha \texttt{frag} no fermi}\label{sec:mcfrag}
+O prefixo contínuo de blocos prontos tem \fragNiii{} realizações na (iii) e \fragNi{} na (i). A
+Tab.~\ref{tab:fragiii} compara a $\Pf$ de cada intensidade com a fórmula calibrada só a \fragIcaliii~mm/h
+($\beta = \fragBetaiii$, $m' = \fragMkiii$). Ela usa o $F$ do $k_s$ médio (a proposta original) e o do $k_s$ mediano.
+
+\ifnum\fragTemiii>0
+\begin{table}[H]\centering\small
+\caption{A (iii) no \texttt{frag} (primeira passagem, chuva de 24~h). $z = (\Pf^{MC} - \Pf^{prev})/\sqrt{\Pf^{prev}(1 -
+\Pf^{prev})/N}$. $F$ médio e $F$ mediano: o FS das médias com o $k_s$ médio e com o mediano; prev.: a fórmula com cada um, em \%.
+Pareado: as realizações em que a falha prevista por $\mathrm{FS}_k(I_{cal})\,F(I)/F(I_{cal})$ ($F$ mediano) difere da
+observada. $t_1$: a mediana e os quantis de 10 e 90\,\% das falhas.}\label{tab:fragiii}
+\resizebox{\textwidth}{!}{\input{tab/frag_iii.tex}}
+\end{table}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/frag_iii.pdf}
+\caption{A (iii) no \texttt{frag}. Acima: a $\Pf$ corrente e o CoV de cada intensidade (rótulo: $I$ em mm/h; cor mais
+escura, $I$ maior). Abaixo: o histograma de $t_1$ nas intensidades com falhas (título: $I$ e o número de falhas), com a
+mediana.}\label{fig:fragiii}
+\end{figure}
+
+\begin{itemize}
+  \item \textbf{Até $\approx k_s$ a fórmula acerta; acima dele, não.} Com o $F$ do $k_s$ médio, a fórmula superestima a $\Pf$ acima de $k_s$
+    ($z$ chega a \fragZmiii). Com o $F$ do $k_s$ mediano, $|z| \le \fragZkiii$, e \fragZkDentroiii{} intensidades ficam
+    com $|z| \le 2$. O $k_s$ mediano é a média geométrica, a condutividade efetiva de um campo lognormal em 2D. Nada foi
+    ajustado aos dados do \texttt{frag}: $m'$ e $\beta$ vêm da calibração.
+  \item \textbf{A fórmula vale para a distribuição, não para cada realização.} O teste pareado prevê a falha de cada
+    realização por $\mathrm{FS}_k(I) = \mathrm{FS}_k(I_{cal})\,F(I)/F(I_{cal})$ e conta as divergências com a primeira
+    passagem ($I$: divergências): \fragPariii. Acima do $k_s$ as realizações trocam de ordem: as de $k$ alto passam a
+    ser as mais fracas.
+  \item \textbf{$\beta$ na maior intensidade.} A \fragTopIiii~mm/h todas as realizações rodam. Com o FS de 24~h das
+    sobreviventes e só a contagem das falhas, a lognormal censurada dá mediana \fragCensMediii~$\pm$~\fragCensMedSeiii{}
+    (prevista \fragPrevMediii) e $\beta = \fragCensBetaiii \pm \fragCensBetaSeiii$ (calibrado \fragBetaiii).
+\end{itemize}
+\fi
+
+\ifnum\fragTemi>0
+\begin{table}[H]\centering\small
+\caption{A (i) no \texttt{frag}, como na Tab.~\ref{tab:fragiii}; calibração a \fragIcali~mm/h ($\beta = \fragBetai$,
+$m' = \fragMki$).}\label{tab:fragi}
+\resizebox{\textwidth}{!}{\input{tab/frag_i.tex}}
+\end{table}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/frag_i.pdf}
+\caption{A (i) no \texttt{frag}, como na Fig.~\ref{fig:fragiii}.}\label{fig:fragi}
+\end{figure}
+
+\begin{itemize}
+  \item \textbf{Na (i), o mesmo quadro.} Com o $F$ do $k_s$ mediano,
+    \fragZkDentroi{} intensidades ficam com $|z| \le 2$ ($|z|$ chega a \fragZki); com o do $k_s$ médio,
+    \fragZmDentroi{} ($|z|$ até \fragZmMaxi).
+  \item \textbf{O FS cai mais que $F$ e espalha mais na maior intensidade.} A \fragTopIi~mm/h, a lognormal censurada dá
+    mediana \fragCensMedi~$\pm$~\fragCensMedSei{} (prevista \fragPrevMedMedioi{} com o $k_s$ médio e \fragPrevMedi{}
+    com o mediano) e $\beta = \fragCensBetai \pm \fragCensBetaSei$ (calibrado \fragBetai).
+  \item \textbf{Realização por realização,} como na (iii), a escala só vale perto da intensidade da calibração
+    ($I$: divergências): \fragPari.
+  \item \textbf{A ruptura vem mais cedo com ar ativo:} a mediana de $t_1$ a 36~mm/h é de $\approx 16$~h na (i),
+    contra $\approx 22$~h na (iii) (Tabs.~\ref{tab:fragiii} e \ref{tab:fragi}).
+  \item \textbf{Nas duas variantes, o que foge da fórmula é a maior intensidade, e é o $\beta$ que cresce ali}
+    (\fragBetaiii{} $\to$ \fragCensBetaiii{} na (iii) a \fragTopIiii~mm/h; \fragBetai{} $\to$ \fragCensBetai{} na (i)
+    a \fragTopIi~mm/h). É o $\beta(I)$ acima do $k_s$ que a Seção~\ref{sec:riscos} antecipava: a fórmula com um
+    $\beta$ só vale até $\approx k_s$, e acima dele pede um segundo $\beta$.
+\end{itemize}
+\else
+A (i) ainda não tem bloco pronto no prefixo: o primeiro bloco, com a determinística, ainda roda.
+\fi
 
 \section{Hipóteses e o que pode falhar}\label{sec:riscos}
 \begin{itemize}

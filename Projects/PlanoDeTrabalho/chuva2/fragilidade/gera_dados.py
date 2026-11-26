@@ -6,13 +6,18 @@
   - o MC direto da referencia (f50, iii, 31,05 mm/h, 5000 realizacoes): ~/projects/runs/fermi_chuva2/chuva2/ref;
   - a variante i em 16 realizacoes da referencia: ~/projects/runs/variante_i_campo;
   - os testes da primeira passagem (crpc=): ~/projects/runs/frag_teste;
-  - a primeira passagem deterministica dos 3 solos: ~/projects/runs/det_pc_3solos.
+  - a primeira passagem deterministica dos 3 solos: ~/projects/runs/det_pc_3solos;
+  - a simulacao de Monte Carlo (mc_secao.py): os casos do PC (~/projects/runs/pc_f50_ls_mc) e a campanha frag do fermi
+    (~/projects/runs/fermi_frag), com o F do k_s mediano de ~/projects/runs/sigmoide_f50_kef;
+  - as Figs. 6 e 7 de Rahardjo et al. (2007) para os tres solos (rahardjo_fig.py; a varredura nova em
+    ~/projects/runs/rahardjo_3solos).
 Saidas: figs/*.pdf|png, tab/*.tex, numeros.tex. Uso: python3 gera_dados.py"""
 import csv
 import glob
 import math
 import os
 import re
+import sys
 
 import matplotlib
 
@@ -631,6 +636,16 @@ if os.path.exists(os.path.join(CER, "resultado.csv")):
                  f"{fp(pmc, 1)} & {v(bta, 3)} & {fp(pA)} & {f'{zA:+.1f}'.replace('.', '{,}')} & "
                  + (f"{fp(pB)} & {f'{zB:+.1f}'.replace('.', '{,}')}" if pB is not None else "-- & --") + "\\\\")
 open(os.path.join(TABS, "comum_ceron.tex"), "w").write("\n".join(L) + "\n")
+
+# ---------------------------------------------------------------- 9. a simulacao de Monte Carlo (PC e fermi, parcial)
+sys.path.insert(0, AQUI)  # com python3 -I a pasta do script nao entra no sys.path
+import mc_secao  # noqa: E402
+import rahardjo_fig  # noqa: E402
+
+N.update(rahardjo_fig.gera({"estilo": estilo, "salva": salva, "TINTA": TINTA, "TINTA2": TINTA2, "TABS": TABS}))
+
+N.update(mc_secao.gera({"estilo": estilo, "salva": salva, "COR": COR, "TINTA": TINTA, "TINTA2": TINTA2, "FAIXA": FAIXA,
+                        "TABS": TABS}))
 
 with open(os.path.join(AQUI, "numeros.tex"), "w") as f:
     f.write("% gerado por gera_dados.py; nao edite\n")

@@ -1,0 +1,13 @@
+# Cho (2016), Fig. 8 (silte, secao C-C'): profundidade (m) do meio da frente de molhamento (p_w = -15 kPa), lida a olho
+# (+-0,2 m); abaixo dela p_w = -30 kPa (sp) ou ~-27 kPa (tp)
+modelo,t_h,frente_m
+sp,32,1.6
+sp,64,2.8
+sp,96,3.9
+sp,128,5.0
+sp,160,6.3
+tp,32,1.3
+tp,64,1.9
+tp,96,2.3
+tp,128,2.85
+tp,160,3.15

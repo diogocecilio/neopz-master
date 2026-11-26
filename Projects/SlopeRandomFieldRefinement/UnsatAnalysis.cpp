@@ -789,6 +789,8 @@ void UnsatAnalysis<TMat>::PostProcess(const std::string &nome, const TPZVec<std:
 }
 
 // ---- materiais aceitos: os mesmos do fim do UnsatModel.cpp
+#include "Plasticity/TPZPlasticStepPV.h"
+#include "Plasticity/TPZYCMohrCoulombPV.h"
 using TMC = TPZPlasticStepVoigt<TPZYCMohrCoulombPV2, TPZElasticResponse>;
 template class UnsatAnalysis<TPZMatPoroElastoPlasticUP<TMC, TPZElastoPlasticMem>>;                           // u-p, Mohr-Coulomb
 template class UnsatAnalysis<TPZMatPoroElastoPlasticUP<TPZPlasticStepModifiedCamClay, TPZElastoPlasticMem>>; // u-p, Cam Clay
@@ -797,3 +799,5 @@ template class UnsatAnalysis<TPZMatUnsaturatedUPwPa<TMC, TPZUnsaturatedMem>>; //
 template class UnsatAnalysis<HPMaterial<TPZMatPoroElastoPlasticUP<TMC, TPZElastoPlasticMem>>>;
 template class UnsatAnalysis<HPMaterial<TPZMatPoroElastoPlasticUP<TPZPlasticStepModifiedCamClay, TPZElastoPlasticMem>>>;
 template class UnsatAnalysis<HPMaterial<TPZMatUnsaturatedUPwPa<TMC, TPZUnsaturatedMem>>>;
+// u-p_w-p_a com o Mohr-Coulomb PV, que aceita dilatancia psi != phi (o PV2 e so associado): Projects/Cho2016
+template class UnsatAnalysis<HPMaterial<TPZMatUnsaturatedUPwPa<TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZUnsaturatedMem>>>;

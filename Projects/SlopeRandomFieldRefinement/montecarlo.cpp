@@ -125,6 +125,9 @@
 //                          Saida: <saida>_crpc_<faixa>.csv (cluster/crpc_liuwang.py integra P_1). Nas tres variantes
 //                          (i: o fator com o p_a de cada instante). D_C e a primeira passagem t_1 da chuva constante
 //   crpc_dmax (200), crpc_passo (1)
+//   crpc_checa (6,12,24,48,96,150)  os instantes (h) em que o FS e conferido antes da bissecao (os menores que crpc_dmax,
+//                          e crpc_dmax); ex.: crpc_checa=12 confere em 12 h e no fim (a bissecao da a mesma resolucao)
+//   crpc_fs0 (1)           0: sem o FS de t = 0 (nem o descarte de FS0 < 1); ele so e calculado se a bissecao chegar a 0 h
 // Os campos:
 //   M (2000)               termos da KL por campo (com nystrom=: os M primeiros da base, M <= os do arquivo)
 //   nystrom (<arquivo>)    a base de Karhunen-Loeve de Nystrom do proprio talude (Projects/Cho2010/nystrom_base.py, com a
@@ -295,6 +298,8 @@ struct Opcoes {
     std::array<REAL, 7> gpd = {-0.04, 3.44, 5.13, 0.43, 5.15, 0.30, -2.38};
     std::vector<REAL> crpc;                // intensidades da CRPC (vazio: Monte Carlo)
     REAL crpcDmax = 200., crpcPasso = 1.;
+    std::vector<REAL> crpcChecaLista = {6., 12., 24., 48., 96., 150.}; // crpc_checa
+    bool crpcFs0 = true;                                               // crpc_fs0
     // o modelo do transiente: iii (desacoplado, ar passivo), ii (acoplado, ar passivo) ou i (acoplado, ar ativo)
     std::string variante = "iii";
     bool Acoplado() const { return variante != "iii"; }
@@ -336,7 +341,8 @@ Opcoes LeOpcoes(int argc, char *argv[])
         "nu",         "rcphi",      "M",          "nystrom",    "xi",         "desloc_xi", "gradiente", "grava_pressoes",
         "pressoes",   "so_transiente", "fx",       "kfredlund", "psi_r",     "q0",         "q0_cov",    "phib",
         "phib_razao", "dt",         "dt_min",    "newton",         "chuva_aleatoria", "gpd",  "crpc",      "crpc_dmax", "crpc_passo",
-        "vg_tab",     "vg_tab_psi", "newton_trace", "face_tol", "kw", "mv", "variante", "k_theta", "diag", "malhas"};
+        "vg_tab",     "vg_tab_psi", "newton_trace", "face_tol", "kw", "mv", "variante", "k_theta", "diag", "malhas",
+        "crpc_checa", "crpc_fs0"};
     std::map<std::string, std::string> kv;
     for (int i = 1; i < argc; i++) {
         const std::string a = argv[i];
@@ -470,6 +476,12 @@ Opcoes LeOpcoes(int argc, char *argv[])
     }
     if (tem("crpc_dmax")) op.crpcDmax = std::stod(kv["crpc_dmax"]);
     if (tem("crpc_passo")) op.crpcPasso = std::stod(kv["crpc_passo"]);
+    if (tem("crpc_checa")) {
+        op.crpcChecaLista = Lista(kv["crpc_checa"]);
+        if (op.crpcChecaLista.empty() || !std::is_sorted(op.crpcChecaLista.begin(), op.crpcChecaLista.end()))
+            Erro("crpc_checa: instantes (h) em ordem crescente");
+    }
+    if (tem("crpc_fs0")) op.crpcFs0 = std::stoi(kv["crpc_fs0"]) != 0;
     if (!op.crpc.empty() && (op.chuvaAleatoria || tem("pressoes") || tem("grava_pressoes") || tem("gradiente")))
         Erro("crpc: sem chuva_aleatoria, pressoes, grava_pressoes e gradiente");
     if (op.chuvaAleatoria && (tem("pressoes") || tem("grava_pressoes")))
@@ -1553,7 +1565,7 @@ ChuvaSorteada SorteiaChuva(const Opcoes &op, int64_t n)
 void CurvaCritica(int n, const Opcoes &op, const RainData &r0, const Campo *cf, std::ofstream &csv)
 {
     REAL fs0 = -1.;
-    const std::vector<REAL> checa = {6., 12., 24., 48., 96., 150.};
+    const std::vector<REAL> &checa = op.crpcChecaLista;
     for (REAL I : op.crpc) {
         RainData r = r0;
         r.intensity = I, r.duration = op.crpcDmax;
@@ -1611,7 +1623,7 @@ void CurvaCritica(int n, const Opcoes &op, const RainData &r0, const Campo *cf, 
             sF += Seg(tf), nSrm++;
             return fs[t] = v;
         };
-        if (fs0 < 0.) {
+        if (op.crpcFs0 && fs0 < 0.) {
             fs0 = fator(0.);
             if (!(fs0 >= 1.)) { // descartada (Liu e Wang 2023: as amostras com FS0 < 1 saem da conta)
                 csv << n << "," << op.q0 << "," << fs0 << "," << I << ",0,descartada,0," << fs0 << ",0," << fs0 << ","
@@ -1621,7 +1633,7 @@ void CurvaCritica(int n, const Opcoes &op, const RainData &r0, const Campo *cf, 
                 return;
             }
         }
-        fs[0.] = fs0;
+        if (op.crpcFs0) fs[0.] = fs0;
         // avanca de crpc_passo em crpc_passo h, guardando p_w; o FS nos instantes de checa e em crpc_dmax
         REAL lo = 0., hi = -1., t = 0.;
         bool parou = false;
@@ -1652,7 +1664,8 @@ void CurvaCritica(int n, const Opcoes &op, const RainData &r0, const Campo *cf, 
         }
         if (parou) {
             // t_lo e FS_lo: o ultimo instante com FS calculado (>= 1); t_hi: onde o transiente parou
-            csv << n << "," << op.q0 << "," << fs0 << "," << I << ",-1,erro_transiente," << lo << "," << fs.at(lo) << ","
+            csv << n << "," << op.q0 << "," << fs0 << "," << I << ",-1,erro_transiente," << lo << ","
+                << (fs.count(lo) ? fs.at(lo) : -1.) << ","
                 << chuva.Time() << ",-1," << nSrm << ","
                 << sT << "," << sF << "," << chuva.SteadySteps() << "," << dp << "\n";
             csv.flush();
@@ -1680,6 +1693,7 @@ void CurvaCritica(int n, const Opcoes &op, const RainData &r0, const Campo *cf, 
             if (fator(m) < 1.) hi = m;
             else lo = m;
         }
+        if (!fs.count(lo)) fator(lo); // crpc_fs0=0 e a bissecao chegou a 0 h: o FS de 0 h so agora
         const REAL flo = fs.at(lo), fhi = fs.at(hi);
         const REAL dc = lo + (flo - 1.) / (flo - fhi) * (hi - lo);
         csv << n << "," << op.q0 << "," << fs0 << "," << I << "," << dc << ",sim," << lo << "," << flo << "," << hi << ","

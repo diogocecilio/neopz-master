@@ -118,6 +118,10 @@ public:
     // Agua que entrou pela superficie desde o InitialState (ou o fim do SteadyState), em m3 por metro de espessura: q L dt
     // nos nos com a chuva e R nos da face de percolacao (R < 0: a agua sai), somados nos passos aceitos
     REAL Infiltrated() const { return fInfiltrado; }
+    // A intensidade da chuva daqui em diante (mm/h), para uma chuva que muda no tempo: o driver troca a intensidade e
+    // avanca ate o fim do intervalo com AdvanceTo (o Kang2020 aplica assim a chuva hora a hora da Fig. 2 do artigo).
+    // Os drivers que nao chamam nada daqui ficam como estavam
+    void SetIntensity(REAL mmh) { fRain.intensity = mmh; }
 
 private:
     // Um passo com a chuva media q (m/s): resolve com uma face tentativa e a corrige ate ela se repetir

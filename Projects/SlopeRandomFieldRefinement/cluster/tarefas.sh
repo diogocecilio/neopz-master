@@ -15,7 +15,8 @@
 #                    <arquivo>.ERRO (quem o fazia desistiu), o caso fica de fora
 #   ref=<id>, par=<id>  o Monte Carlo direto de referencia e o caso da comparacao pareada (so para o baixar.sh)
 #   cov_alvo=<cv>    parada pelo CoV (amostragem por importancia ou MC direto, log_peso = 0; com varios instantes, o menor
-#                    FS de cada realizacao): antes de pegar um bloco novo do caso, a P_f ponderada
+#                    FS de cada realizacao; com crpc= (uma intensidade), a falha da primeira passagem do mc_crpc_*.csv):
+#                    antes de pegar um bloco novo do caso, a P_f ponderada
 #                    sum(I w) / k e o seu CoV sao calculados nas realizacoes 0..k-1 dos blocos ja prontos sem buraco (na
 #                    ordem; I = FS_min < 1, w = exp(log_peso), so as linhas com situacao ok e FS_min > 0, como o
 #                    amostragem_importancia.py; no GIM, Gamma = 0 conta como falha). Com CoV <= cv, k >= cov_n (500) e pelo menos cov_falhas (100) falhas
@@ -122,16 +123,25 @@ atingiu() {
     for ((a = ${PREF_A[$i]:-0}; a < n; a += BLOCO)); do
         z=$(((a + BLOCO < n ? a + BLOCO : n) - 1))
         [ -f "$dir/mc_mapa_${a}_${z}.csv" ] || break
-        [ -f "$dir/mc_${a}_${z}.csv" ] && novos+=("$dir/mc_${a}_${z}.csv")
+        if [ -f "$dir/mc_crpc_${a}_${z}.csv" ]; then novos+=("$dir/mc_crpc_${a}_${z}.csv") # primeira passagem (crpc=)
+        elif [ -f "$dir/mc_${a}_${z}.csv" ]; then novos+=("$dir/mc_${a}_${z}.csv"); fi
     done
     ((${#novos[@]})) || return 1 # nenhum bloco novo no prefixo desde a ultima conta
     PREF_A[$i]=$a
     linha="$(awk -F, -v ini="${PREF_S[$i]:-0 0 0 0}" -v alvo="${cvas[$i]}" -v nmin="${cvns[$i]}" -v fmin="${cvfs[$i]}" '
         BEGIN { split(ini, s, " "); k = s[1] + 0; nf = s[2] + 0; s1 = s[3] + 0; s2 = s[4] + 0 }
-        FNR == 1 { for (c = 1; c <= NF; c++) { if ($c == "real") cr = c; if ($c == "FS_min") cf = c
+        FNR == 1 { crp = 0
+                   for (c = 1; c <= NF; c++) { if ($c == "falha") cfa = c; if ($c == "DC_h") crp = 1
+                                                 if ($c == "real") cr = c; if ($c == "FS_min") cf = c
                                                  if ($c == "log_peso") cw = c; if ($c == "situacao") cs = c
                                                  if ($c == "metodo") cm = c }
                    next }
+        # primeira passagem (crpc= com uma intensidade): falha = "sim"; "nao" sobrevive; descartada e erros ficam fora
+        crp { if ($cr + 0 >= 0 && ($cfa == "sim" || $cfa == "nao")) {
+                  r = FILENAME SUBSEP $cr; vv = ($cfa == "sim") ? 0.5 : 2
+                  if (!(r in fs) || vv < fs[r]) fs[r] = vv
+                  lw[r] = 0 }
+              next }
         # GIM com Gamma = 0 (situacao fator, sem equilibrio nem com 1% da gravidade): falha de verdade, entra
         { ok = ($cs == "ok" && $cf + 0 > 0) || (cm && $cm == "gim" && $cs == "fator" && $cf ~ /^0(\.0*)?$/) }
         # uma realizacao por (arquivo, real): com varios instantes (tempos=24,30), o menor FS das linhas ok dela

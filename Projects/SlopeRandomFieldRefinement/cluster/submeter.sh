@@ -54,7 +54,17 @@ fi
 
 fila="$(squeue -h -u "${USER:-$(id -un)}" -n "$NOME" -o %i)" || { echo "o squeue nao respondeu: tente de novo" >&2; exit 1; }
 if [ -z "$fila" ]; then
-    # nenhum job na fila: uma trava sem o mapa e de uma tarefa interrompida (fim do tempo, queda do no): libera
+    # nenhum job na fila: uma pasta .tarefas que nao se lista (erro de E/S do sistema de arquivos: frag/f50_i em
+    # 25/11/2026; criar e ler cada trava ainda funcionava) esconderia do find abaixo as travas das tarefas interrompidas,
+    # que nunca seriam refeitas: vai para o lado (<pasta>_eio_<data>), e a fila cria uma nova; as tarefas sem mapa
+    # serao refeitas (as com mapa a fila ja pula pelo mapa)
+    for d in "$SAIDA"/*/.tarefas; do
+        [ -d "$d" ] || continue
+        ls "$d" > /dev/null 2>&1 && continue
+        mv "$d" "${d}_eio_$(date +%Y%m%d%H%M%S)" &&
+            echo "$d nao se lista (erro de E/S): trocada por uma nova; as tarefas sem mapa serao refeitas"
+    done
+    # uma trava sem o mapa e de uma tarefa interrompida (fim do tempo, queda do no): libera
     n=0
     while IFS= read -r -d '' trava; do
         t="$(basename "$trava")" caso="$(dirname "$(dirname "$trava")")"

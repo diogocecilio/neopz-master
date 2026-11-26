@@ -39,29 +39,55 @@ def wilson(k, n, z=1.96):
     return c - h, c + h
 
 
+def bloco_pronto(arq, tipo):
+    """o bloco do arquivo terminou? (o mapa mc_mapa_<a>_<z>.csv e gravado no fim do bloco; antes disso o csv tem as
+    realizacoes e as intensidades ja feitas, e uma realizacao em curso pareceria ter sobrevivido nas intensidades que
+    ainda nao rodou)"""
+    m = re.search(r"_" + tipo + r"_(\d+)_(\d+)\.csv$", arq) if tipo else re.search(r"mc_(\d+)_(\d+)\.csv$", arq)
+    return bool(m) and os.path.exists(os.path.join(os.path.dirname(arq), f"mc_mapa_{m.group(1)}_{m.group(2)}.csv"))
+
+
+def prefixo(pasta):
+    """o fim do prefixo continuo de blocos terminados (realizacoes 0..k-1 sem buraco): os blocos que terminam primeiro
+    sao os mais baratos (realizacoes que nao rompem rodam uma intensidade so), e usar todos os prontos enviesaria a P_f
+    para baixo; o prefixo e uma amostra sem vies (a fila pega os blocos em ordem)"""
+    feitos = {}
+    for m_ in (re.search(r"mc_mapa_(\d+)_(\d+)\.csv$", a) for a in glob.glob(os.path.join(pasta, "mc_mapa_*.csv"))):
+        if m_:
+            feitos[int(m_.group(1))] = int(m_.group(2))
+    k = 0
+    while k in feitos:
+        k = feitos[k] + 1
+    return k
+
+
 def le_crpc(pasta):
-    """{real: {I: (falha, DC)}}: falha 'sim' (DC = t_1), 'nao', ou erro; as linhas de todos os blocos"""
+    """{real: {I: (falha, DC)}}: falha 'sim' (DC = t_1), 'nao', ou erro; so o prefixo continuo de blocos terminados"""
     r = {}
+    kmax = prefixo(pasta)
     for arq in glob.glob(os.path.join(pasta, "*_crpc_*.csv")):
+        if not bloco_pronto(arq, "crpc"):
+            continue
         with open(arq) as f:
             for row in csv.DictReader(f):
                 n, I = int(row["real"]), float(row["I"])
-                if n < 0:  # a deterministica (det=1 no primeiro bloco): fica de fora da P_f
+                if n < 0 or n >= kmax:  # a deterministica (det=1 no primeiro bloco) e o que passa do prefixo
                     continue
                 r.setdefault(n, {})[I] = (row["falha"], float(row["DC_h"]))
     return r
 
 
 def le_mc(pasta, t):
-    """{real: FS no instante t} de um MC (mc_*.csv, sem os mapas)"""
+    """{real: FS no instante t} de um MC (mc_*.csv, sem os mapas; so o prefixo continuo de blocos terminados)"""
     fs = {}
+    kmax = prefixo(pasta)
     for arq in glob.glob(os.path.join(pasta, "mc_*.csv")):
-        if "_mapa_" in arq or "_crpc_" in arq or "_chuva_" in arq:
+        if "_mapa_" in arq or "_crpc_" in arq or "_chuva_" in arq or not bloco_pronto(arq, ""):
             continue
         with open(arq) as f:
             for row in csv.DictReader(f):
                 n = int(row["real"])
-                if n >= 0 and abs(float(row["t_h"]) - t) < 1e-9 and row["situacao"] == "ok":
+                if 0 <= n < kmax and abs(float(row["t_h"]) - t) < 1e-9 and row["situacao"] == "ok":
                     fs[n] = float(row["FS_min"])
     return fs
 
@@ -112,6 +138,8 @@ def main():
     ap.add_argument("--ref", default=os.path.expanduser("~/projects/runs/fermi_chuva2/chuva2/ref"))
     ap.add_argument("--det50", default=os.path.expanduser("~/projects/runs/sigmoide_f50"))
     ap.add_argument("--det100", default=os.path.expanduser("~/projects/runs/sigmoide_f100_72h"))
+    ap.add_argument("--det50k", default=os.path.expanduser("~/projects/runs/sigmoide_f50_kef"),
+                    help="o F das medias com o k_s mediano (geometrico, 8,57e-6 m/s): pastas [i_]ks8.57e-6_I<I>")
     ap.add_argument("--json")
     ap.add_argument("--figs")
     a = ap.parse_args()
@@ -129,21 +157,28 @@ def main():
         else:
             det = le_det(a.det100, f"{var}_", float(D))
         eq6 = ajusta_eq6(det) if len(det) >= 5 else None
+        # o F com o k_s mediano (a condutividade efetiva do campo lognormal; so o f50 por enquanto)
+        detk = le_det(a.det50k, ("" if var == "iii" else "i_") + "ks8.57e-6_", float(D)) if solo == "f50" else {}
         # beta e a mediana da calibracao
         fcal = le_mc(a.ref if cal == "REF" else os.path.join(a.pasta, cal), tcal)
         lns = [math.log(v) for v in fcal.values() if v > 0]
         beta = (sum((x - sum(lns) / len(lns)) ** 2 for x in lns) / (len(lns) - 1)) ** 0.5 if len(lns) > 10 else None
+        # m' = mediana da calibracao / F(k_s mediano) na intensidade da calibracao (a da conferencia)
+        mk = (math.exp(sum(lns) / len(lns)) / detk[Iconf]) if (beta and Iconf in detk) else None
         Is = sorted({I for r in dados.values() for I in r}, reverse=True)
         # realizacoes validas: sem erro em nenhuma intensidade rodada
         validas = [n for n, r in dados.items() if all(f in ("sim", "nao") for f, _ in r.values())]
         erros = len(dados) - len(validas)
-        res = {"solo": solo, "variante": var, "D": D, "N": len(validas), "erros": erros, "beta": beta,
+        res = {"solo": solo, "variante": var, "D": D, "N": len(validas), "erros": erros, "beta": beta, "m_kmed": None,
                "n_calibracao": len(lns), "eq6": eq6, "intensidades": {}}
         print(f"\n== {caso}: {len(validas)} realizacoes validas ({erros} com erro), chuva de {D} h; beta = "
               + (f"{beta:.4f} ({len(lns)} do MC de calibracao)" if beta else "sem calibracao")
-              + ("; Eq. 6: A={:.4f} B={:.4f} C={:.3f} D={:.3f}".format(*eq6) if eq6 else ""))
+              + ("; Eq. 6: A={:.4f} B={:.4f} C={:.3f} D={:.3f}".format(*eq6) if eq6 else "")
+              + (f"; k_s mediano: m' = {mk:.4f}" if mk else ""))
+        print("  (z = (P_f MC - prev.) / dp binomial da prev.; prev. pontos: F das medias com o k_s medio, m = 1; "
+              "prev. k_s med.: F com o k_s mediano e o m' da calibracao, Phi(-ln(m' F)/beta))")
         print(f"  {'I':>6} {'F det':>7} {'P_f MC':>8} {'IC 95%':>17} {'prev. pontos':>13} {'z':>6} {'prev. Eq.6':>11}"
-              f" {'z':>6}   t_1 (h): mediana [10%, 90%] das falhas")
+              f" {'z':>6} {'prev. k_s med.':>14} {'z':>6}   t_1 (h): mediana [10%, 90%] das falhas")
         for I in Is:
             dc = []
             for n in validas:
@@ -156,22 +191,29 @@ def main():
             k = sum(1 for x in dc if x <= D + 1e-9)
             p = k / N
             lo, hi = wilson(k, N)
-            se = math.sqrt(max(p * (1 - p), 1e-12) / N)
+            # z com o desvio padrao binomial da previsao (o teste da hipotese "a previsao esta certa"); com o da P_f
+            # observada, P_f = 0 dava dp 0 e z absurdo
+            se = (lambda q: math.sqrt(max(q * (1 - q), 1e-12) / N))
             Fd = math.exp(interp_log(det, I)) if det else None
             prev = norm.cdf(-math.log(Fd) / beta) if (beta and Fd) else None
             prev6 = norm.cdf(-math.log(sig(I, *eq6)) / beta) if (beta and eq6) else None
+            Fk = detk.get(I) if detk else None
+            prevk = norm.cdf(-math.log(mk * Fk) / beta) if (mk and Fk) else None
             fal = sorted(x for x in dc if x <= D)
             q = (lambda f: fal[min(len(fal) - 1, int(f * len(fal)))]) if fal else None
-            zp = (p - prev) / se if prev is not None else None
-            z6 = (p - prev6) / se if prev6 is not None else None
+            zp = (p - prev) / se(prev) if prev is not None else None
+            z6 = (p - prev6) / se(prev6) if prev6 is not None else None
+            zk = (p - prevk) / se(prevk) if prevk is not None else None
             durs = {str(d): sum(1 for x in dc if x <= d) / N for d in (6, 12, 18, 24, 36, 48, 60, 72, 96, 120)
                     if d <= max(D, max((x for x in dc if x < math.inf), default=0))}
             print(f"  {I:6g} {Fd if Fd else float('nan'):7.4f} {100 * p:7.2f}% [{100 * lo:6.2f}, {100 * hi:6.2f}]%"
                   f" {100 * prev if prev is not None else float('nan'):12.2f}% {zp if zp is not None else float('nan'):6.2f}"
                   f" {100 * prev6 if prev6 is not None else float('nan'):10.2f}% {z6 if z6 is not None else float('nan'):6.2f}"
+                  f" {100 * prevk if prevk is not None else float('nan'):13.2f}% {zk if zk is not None else float('nan'):6.2f}"
                   + (f"   {q(0.5):.1f} [{q(0.1):.1f}, {q(0.9):.1f}] ({k} falhas)" if fal else ""))
             res["intensidades"][str(I)] = {"N": N, "falhas": k, "Pf": p, "IC": [lo, hi], "F_det": Fd, "Pf_prev": prev,
-                                           "z": zp, "Pf_prev_eq6": prev6, "z_eq6": z6, "Pf_duracao": durs,
+                                           "z": zp, "Pf_prev_eq6": prev6, "z_eq6": z6, "F_kmed": Fk, "Pf_prev_kmed": prevk,
+                                           "z_kmed": zk, "Pf_duracao": durs,
                                            "t1_falhas": fal}
         # conferencia embutida: a referencia (iii, 31,05) ou o MC de calibracao, nas mesmas realizacoes
         if Iconf in Is and fcal:
@@ -184,6 +226,7 @@ def main():
             print(f"  conferencia em {Iconf:g} mm/h contra o MC ({len(comuns)} realizacoes em comum): "
                   f"{difer} com falha diferente")
             res["conferencia"] = {"I": Iconf, "comuns": len(comuns), "diferentes": difer}
+        res["m_kmed"] = mk
         saida[caso] = res
     if a.json:
         with open(a.json, "w") as f:

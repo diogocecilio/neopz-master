@@ -1,0 +1,12 @@
+# Cho (2020): o tempo (h) em que a frente chega a rocha (Fig. 3a; e a queda do FS na Fig. 3b) e o tempo ate a ruptura
+# da Fig. 4 (o mesmo instante), contra p/k_s; lido a olho (+-0,2 h; Fig. 4 em escala log, +-5 %). FS: 1,50 antes e
+# 0,92 depois (Fig. 3b, +-0,01)
+p_ks,t_h,fonte
+0.1,26.0,fig4
+0.2,13.2,texto
+0.3,8.8,fig4
+0.4,6.6,fig3a
+0.6,4.4,fig3a
+0.8,3.3,fig3a
+1.0,2.65,fig3a
+1.2,2.5,fig3a
