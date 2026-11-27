@@ -221,8 +221,16 @@ NeoPZ), o nosso 2D e o artigo.}\label{tab:conv}
     tp 1,28 / 1,81 / 2,29 / 2,70 / 3,13~m contra 1,3 / 1,9 / 2,3 / 2,85 / 3,15. Também os pontos H, I e J do sp (o
     artigo molha H, I e J em $\approx 15$, 41 e 126~h; esse 1D, em 14, 43 e 127~h; o convergido, em 22, 52 e 136~h;
     o nosso 2D, em 21, 51 e 135~h). Refinando, a frente recua: $\approx 0{,}4$~m no sp e $\approx 1$~m no tp a
-    160~h. Que o FLAC use $k_r$ a montante é inferência (o manual do FLAC diria); é o único dos três esquemas que
-    reproduz o artigo.
+    160~h. O manual da Itasca confirma a ponderação a montante: no fluxo não saturado, a mobilidade
+    relativa de cada zona vem da saturação média dos nós por onde o fluxo entra na zona (\emph{inflow nodes}),
+    ``upstream weighting'', para evitar a dispersão numérica no enchimento de um meio seco (FLAC3D 9.0,
+    \emph{FLAC Theory and Background} $\to$ \emph{Fluid-Mechanical Interaction} $\to$ \emph{Numerical
+    Formulation} $\to$ \emph{Saturated/Unsaturated Flow}, item b, docs.itascacg.com). Em 1D é exatamente o nosso
+    esquema a montante: a água que desce usa o nó de cima, o ar que sobe, o de baixo. A ressalva: essa página é do
+    fluxo não saturado simples ($p_a$ constante, sem pressão capilar, $k = s^2(3 - 2s)$); o Cho usou o módulo
+    bifásico (TP-Flow) do FLAC 7.0, cuja formulação numérica não vimos, mas é o único dos três esquemas que
+    reproduz o artigo. O esquema a montante é de primeira ordem: converge para a mesma solução, mas com erro
+    proporcional ao tamanho da zona, e na malha do Cho esse erro adianta a frente.
   \item \textbf{Por que o tp sente mais.} A montante, o ar que sobe usa o $k_{ra}$ do nó de baixo, mais seco: a camada
     quase saturada atrás da frente e a superfície ($S_w = 1$) quase não seguram o ar, e a água entra mais. Na malha
     grossa isso vale $\approx 1$~m a 160~h; no sp, só o $k_{rw}$ da frente, $\approx 0{,}4$~m.
