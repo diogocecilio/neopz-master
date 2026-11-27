@@ -18,7 +18,8 @@
 //
 // Uso: Rahardjo2007 [solo=f10|f50|f100] [I=<mm/h>] [modelo=iii|ii|i] [E=2e4] [nu=0.3] [tempos=artigo|<k>h|t1,...]
 //                   [horas=48] [dt=0.1] [nref=4] [fs0=0.8] [dx=1] [eta0=0.003] [r=1.15] [etamax=0.025] [saida=rah]
-//                   [so_transiente=0|1] [grava_malha=<prefixo>] [campos=t1,t2,...]
+//                   [so_transiente=0|1] [grava_malha=<prefixo>] [campos=t1,t2,...] [chuva=24] [kramin=1e-4]
+//                   [a=<kPa>] [ks=<m/s>]
 //   I: a intensidade (mm/h; padrao 1 k_s do solo); tempos: os instantes do FS (artigo: os da Fig. 5, 0, 1, 2, 3, 6, 12,
 //   24, 28, 32, 40 e 48 h; <k>h: de k em k horas ate horas; ou a lista); dt: o passo do transiente (h); nref: os niveis
 //   do refinamento adaptativo do fator; dx, eta0, r, etamax: a malha do transiente (colunas a cada dx m; camadas em
@@ -29,9 +30,14 @@
 //   fs0: o F com que o SRM aplica o peso antes do caminho de F (SetSRMStart; 0,8 e o padrao da UnsatAnalysis; se o
 //   talude nao fica em pe com ele, a UnsatAnalysis tenta fs0/2). Testado com 0,1: o mesmo FS (0,8260 contra 0,8259 no
 //   patamar saturado do f10 a 900 mm/h em 12 h; 2,0983 contra 2,0980 em 0 h), 15 a 25 % mais caro por FS
+//   chuva: a duracao da chuva (h; o artigo usa 24 h em todas as series); kramin: o piso de k_ra no modelo i (o padrao
+//   da TPZUnsaturatedHydraulics, 1e-4); a, ks: o a de Fredlund-Xing (kPa) e o k_s (m/s) no lugar dos do solo (o nome
+//   vira a<a>_ks<ks>; os outros parametros sao os da Tabela 1, iguais nos tres solos); succao: o limite da succao
+//   inicial (kPa; 75 no artigo; um valor grande tira o limite: hidrostatica ate a superficie)
 // Saidas: <pre>_fs.csv (FS, niveis do refinamento, pressoes, nivel d'agua na crista, no meio da face e no pe, categoria
 //   da Tabela 3, tempos, p_a) e <pre>_nivel.csv (o nivel d'agua de metro em metro em cada instante do FS), com <pre> =
-//   <saida>_<solo>_<I> no modelo iii e <saida>_<modelo>_<solo>_<I> nos outros
+//   <saida>_<solo>_<I> no modelo iii e <saida>_<modelo>_<solo>_<I> nos outros, mais _D<chuva> se a chuva nao e de 24 h
+//   e _kra<kramin> se o piso nao e o padrao
 //
 // As pecas sao as do SlopeRandomFieldRefinement (UnsatModel, UnsatAnalysis, HPMaterial, LayerGMesh, PointLocator,
 // RainTransient) e o material e o fator do rahardjo.cpp de la (o driver deterministico da chuva), sem mudancas.
@@ -114,6 +120,10 @@ struct Opcoes {
     std::string saida = "rah", gravaMalha;
     bool soTransiente = false;
     std::vector<REAL> campos; // instantes em que grava o campo de p_w e a malha final do fator
+    REAL chuva = 24.;         // a duracao da chuva (h)
+    REAL kraMin = 1.e-4;      // o piso de k_ra (o padrao da TPZUnsaturatedHydraulics)
+    REAL aSolo = -1., ksSolo = -1.; // > 0: no lugar do a e do k_s do solo
+    REAL succao = 75.;        // o limite da succao inicial (kPa; o artigo usa 75)
 };
 
 static std::vector<REAL> Lista(const std::string &s) {
@@ -151,11 +161,23 @@ static Opcoes LeOpcoes(int argc, char **argv) {
         else if (k == "grava_malha") op.gravaMalha = v;
         else if (k == "so_transiente") op.soTransiente = std::stoi(v) != 0;
         else if (k == "campos") op.campos = Lista(v);
+        else if (k == "chuva") op.chuva = std::stod(v), ok = op.chuva > 0.;
+        else if (k == "kramin") op.kraMin = std::stod(v), ok = op.kraMin > 0. && op.kraMin < 1.;
+        else if (k == "a") op.aSolo = std::stod(v), ok = op.aSolo > 0.;
+        else if (k == "ks") op.ksSolo = std::stod(v), ok = op.ksSolo > 0.;
+        else if (k == "succao") op.succao = std::stod(v), ok = op.succao > 0.;
         else ok = false;
         if (!ok) {
             std::fprintf(stderr, "opcao invalida: %s\n", argv[i]);
             std::exit(1);
         }
+    }
+    if (op.aSolo > 0. || op.ksSolo > 0.) { // um solo fora da Tabela 1: o a e o k_s dados, o resto igual
+        if (op.aSolo > 0.) op.solo.a = op.aSolo;
+        if (op.ksSolo > 0.) op.solo.ks = op.ksSolo;
+        char nm[64];
+        std::snprintf(nm, sizeof nm, "a%g_ks%g", op.solo.a, op.solo.ks);
+        op.solo.nome = nm;
     }
     if (op.I < 0.) op.I = op.solo.ks * 3.6e6;
     if (op.tempos_txt == "artigo") op.tempos = {0, 1, 2, 3, 6, 12, 24, 28, 32, 40, 48};
@@ -196,7 +218,7 @@ TPZGeoMesh *TriGMesh(const std::vector<std::vector<REAL>> &points, int ref);
 // ---- 2. o material (o MaterialRahardjo do rahardjo.cpp): Mohr-Coulomb associado; Fredlund-Xing com C(psi) = 1, n = m
 // = 1 e theta_s = 0,45; k_w = k_s Theta^4; ar passivo; chi = tan(phi^b)/tan(phi') = 1 (a parcela da succao da Eq. 5 do
 // artigo); sem acoplamento: no transiente so a agua percola (esqueleto parado) e no fator as pressoes ficam congeladas
-static TUnsatHP *Material(const RainData &r) {
+static TUnsatHP *Material(const RainData &r, REAL kraMin = 1.e-4) {
     const SoloComum s;
     TPZElasticResponse ER;
     ER.SetEngineeringData(s.E, s.nu);
@@ -207,7 +229,8 @@ static TUnsatHP *Material(const RainData &r) {
     h.fA = r.aFX, h.fN = r.nFX, h.fM = r.mFX;
     h.fKrw = TPZUnsaturatedHydraulics::EPowerLaw;
     h.fPower = r.power;
-    h.fKra = TPZUnsaturatedHydraulics::EBrooksCorey; // o ar fica passivo (p_a = 0)
+    h.fKra = TPZUnsaturatedHydraulics::EBrooksCorey; // o ar fica passivo (p_a = 0) nos modelos iii e ii
+    h.fKraMin = kraMin;                               // o piso de k_ra (so conta no i)
     mat->SetHydraulics(h);
     mat->SetBishop(TUnsat::EChiConstant, std::tan(r.phib) / std::tan(s.phi));
     mat->SetPorosity(r.n);
@@ -225,7 +248,7 @@ static TUnsatHP *Material(const RainData &r) {
 // acoplados, o acoplamento das equacoes de massa ligado e o esqueleto elastico (o mesmo Mohr-Coulomb com c' = 1e9: a
 // projecao e sempre a elastica)
 static TUnsatHP *MaterialTransiente(const RainData &r, const Opcoes &op) {
-    TUnsatHP *mat = Material(r);
+    TUnsatHP *mat = Material(r, op.kraMin);
     if (!op.Acoplado()) return mat;
     TPZElasticResponse ER;
     ER.SetEngineeringData(op.E, op.nu);
@@ -342,15 +365,17 @@ int main(int argc, char **argv) {
     const Solo &s = op.solo;
     RainData r;
     r.aFX = s.a, r.ks = s.ks;
-    r.intensity = op.I, r.duration = 24.;
+    r.intensity = op.I, r.duration = op.chuva;
+    r.suctionMax = op.succao;
     r.dt = op.dt, r.dtMin = op.dt / 64.;
     r.xToe = xPe, r.yToe = yPe; // nivel 5 m abaixo do pe, subindo 7 graus; succao ate 75 kPa (os padroes do RainData)
-    std::printf("Rahardjo (2007), Serie B: solo %s (a = %g kPa, k_s = %g m/s), I_r = %g mm/h (%.4g k_s) por 24 h, "
+    std::printf("Rahardjo (2007), Serie B: solo %s (a = %g kPa, k_s = %g m/s), I_r = %g mm/h (%.4g k_s) por %g h, "
                 "transiente ate %g h (dt = %g h), modelo (%s)%s\n",
-                s.nome.c_str(), s.a, s.ks, op.I, op.I / (s.ks * 3.6e6), op.horas, op.dt, op.modelo.c_str(),
+                s.nome.c_str(), s.a, s.ks, op.I, op.I / (s.ks * 3.6e6), op.chuva, op.horas, op.dt, op.modelo.c_str(),
                 op.ArAtivo() ? ": acoplado, ar ativo (p_a = 0 so na superficie)"
                 : op.Acoplado() ? ": acoplado, ar passivo" : ": esqueleto rigido, ar passivo");
     if (op.Acoplado()) std::printf("  esqueleto elastico: E = %g kPa, nu = %g\n", op.E, op.nu);
+    if (op.ArAtivo()) std::printf("  ar: piso de k_ra = %g\n", op.kraMin);
     std::printf("  SRM: peso com F = %g, %d niveis adaptativos\n", op.fs0, op.nref);
 
     // transiente: no iii so a agua, com u e p_a presos; nos acoplados u (so os apoios presos) e, no i, p_a (presa so
@@ -378,7 +403,12 @@ int main(int argc, char **argv) {
 
     char sI[32];
     std::snprintf(sI, sizeof sI, "%g", op.I);
-    const std::string pre = op.saida + (op.modelo == "iii" ? "" : "_" + op.modelo) + "_" + s.nome + "_" + sI;
+    char sD[32], sK[32];
+    std::snprintf(sD, sizeof sD, "_D%g", op.chuva);
+    std::snprintf(sK, sizeof sK, "_kra%g", op.kraMin);
+    const std::string pre = op.saida + (op.modelo == "iii" ? "" : "_" + op.modelo) + "_" + s.nome + "_" + sI +
+                            (op.chuva != 24. ? sD : "") + (op.kraMin != 1.e-4 ? sK : "") +
+                            (op.succao != 75. ? "_semlimite" : "");
     std::ofstream ff(pre + "_fs.csv"), fn(pre + "_nivel.csv");
     ff << "t_h,FS,niveis,pw_min,pw_max,nos_face,infiltrado_m3m,nivel_crista,nivel_meio,nivel_pe,categoria,passos,"
           "s_transiente,s_fator,s_total,pa_min,pa_max\n";

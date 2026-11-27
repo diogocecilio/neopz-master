@@ -4,7 +4,7 @@
 # os jobs em curso (as pastas sem o arquivo fim estao incompletas).
 set -euo pipefail
 M="${1:-iii}"
-case "$M" in iii) SUF="" ;; i | ii) SUF="_$M" ;; *) echo "uso: $0 [iii|ii|i]" >&2; exit 2 ;; esac
+case "$M" in iii) SUF="" ;; *[!a-z0-9]*) echo "uso: $0 [iii|ii|i|etapa2]" >&2; exit 2 ;; *) SUF="_$M" ;; esac
 DEST="${DEST:-$HOME/projects/runs/rahardjo2007/fermi$SUF}"
 ORIGEM="${ORIGEM:-diogo@fermi.cesup.ufrgs.br:/mnt/data/diogo/rahardjo2007$SUF/}"
 mkdir -p "$DEST"

@@ -1,0 +1,419 @@
+# casos_etapa2.txt: a etapa 2 do Rahardjo2007, as conferencias e extensoes do modelo (i), na ordem em que rodam (as
+# mais longas primeiro, para os nos terminarem juntos):
+# 1. P, o piso de k_ra: 4 casos do (i) com kramin = 1e-3 e 1e-5 (o padrao e 1e-4)
+# 2. D, a duracao da chuva: os 28 casos nos modelos iii e i com chuvas de 144, 72, 48, 12 e 6 h, FS de hora em hora
+#    ate 24 h depois do fim da chuva (horas = chuva + 24); a de 24 h ja existe (casos.txt e casos_i.txt)
+# 3. S, a e k_s separados: os 6 solos que faltam da grade a = 10, 50, 100 kPa x k_s = 1e-4, 1e-5, 1e-6 m/s (os 3 da
+#    diagonal sao f10, f50 e f100), 10 intensidades por solo (0,025 a 10 k_s), modelos iii e i, chuva de 24 h
+# Uso (no fermi): SAIDA=/mnt/data/diogo/rahardjo2007_etapa2 CASOS_ARQ=$PWD/casos_etapa2.txt ./submeter.sh 4
+# 1. P
+P_kra1e-3_f10_I900  solo=f10 I=900 tempos=1h modelo=i kramin=1e-3
+P_kra1e-3_f50_I18  solo=f50 I=18 tempos=1h modelo=i kramin=1e-3
+P_kra1e-3_f50_I180  solo=f50 I=180 tempos=1h modelo=i kramin=1e-3
+P_kra1e-3_f100_I9  solo=f100 I=9 tempos=1h modelo=i kramin=1e-3
+P_kra1e-5_f10_I900  solo=f10 I=900 tempos=1h modelo=i kramin=1e-5
+P_kra1e-5_f50_I18  solo=f50 I=18 tempos=1h modelo=i kramin=1e-5
+P_kra1e-5_f50_I180  solo=f50 I=180 tempos=1h modelo=i kramin=1e-5
+P_kra1e-5_f100_I9  solo=f100 I=9 tempos=1h modelo=i kramin=1e-5
+# 2. D
+D144_i_f10_I0.9  solo=f10 I=0.9 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f10_I1.8  solo=f10 I=1.8 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f10_I3.6  solo=f10 I=3.6 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f10_I9  solo=f10 I=9 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f10_I18  solo=f10 I=18 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f10_I36  solo=f10 I=36 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f10_I90  solo=f10 I=90 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f10_I180  solo=f10 I=180 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f10_I360  solo=f10 I=360 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f10_I900  solo=f10 I=900 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f50_I0.9  solo=f50 I=0.9 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f50_I1.8  solo=f50 I=1.8 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f50_I3.6  solo=f50 I=3.6 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f50_I9  solo=f50 I=9 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f50_I18  solo=f50 I=18 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f50_I36  solo=f50 I=36 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f50_I45  solo=f50 I=45 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f50_I54  solo=f50 I=54 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f50_I90  solo=f50 I=90 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f50_I180  solo=f50 I=180 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f100_I0.36  solo=f100 I=0.36 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f100_I0.9  solo=f100 I=0.9 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f100_I1.8  solo=f100 I=1.8 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f100_I3.6  solo=f100 I=3.6 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f100_I5.4  solo=f100 I=5.4 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f100_I9  solo=f100 I=9 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f100_I18  solo=f100 I=18 tempos=1h horas=168 chuva=144 modelo=i
+D144_i_f100_I36  solo=f100 I=36 tempos=1h horas=168 chuva=144 modelo=i
+D144_iii_f10_I0.9  solo=f10 I=0.9 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f10_I1.8  solo=f10 I=1.8 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f10_I3.6  solo=f10 I=3.6 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f10_I9  solo=f10 I=9 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f10_I18  solo=f10 I=18 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f10_I36  solo=f10 I=36 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f10_I90  solo=f10 I=90 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f10_I180  solo=f10 I=180 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f10_I360  solo=f10 I=360 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f10_I900  solo=f10 I=900 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f50_I0.9  solo=f50 I=0.9 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f50_I1.8  solo=f50 I=1.8 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f50_I3.6  solo=f50 I=3.6 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f50_I9  solo=f50 I=9 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f50_I18  solo=f50 I=18 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f50_I36  solo=f50 I=36 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f50_I45  solo=f50 I=45 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f50_I54  solo=f50 I=54 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f50_I90  solo=f50 I=90 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f50_I180  solo=f50 I=180 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f100_I0.36  solo=f100 I=0.36 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f100_I0.9  solo=f100 I=0.9 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f100_I1.8  solo=f100 I=1.8 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f100_I3.6  solo=f100 I=3.6 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f100_I5.4  solo=f100 I=5.4 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f100_I9  solo=f100 I=9 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f100_I18  solo=f100 I=18 tempos=1h horas=168 chuva=144 modelo=iii
+D144_iii_f100_I36  solo=f100 I=36 tempos=1h horas=168 chuva=144 modelo=iii
+D72_i_f10_I0.9  solo=f10 I=0.9 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f10_I1.8  solo=f10 I=1.8 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f10_I3.6  solo=f10 I=3.6 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f10_I9  solo=f10 I=9 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f10_I18  solo=f10 I=18 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f10_I36  solo=f10 I=36 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f10_I90  solo=f10 I=90 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f10_I180  solo=f10 I=180 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f10_I360  solo=f10 I=360 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f10_I900  solo=f10 I=900 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f50_I0.9  solo=f50 I=0.9 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f50_I1.8  solo=f50 I=1.8 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f50_I3.6  solo=f50 I=3.6 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f50_I9  solo=f50 I=9 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f50_I18  solo=f50 I=18 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f50_I36  solo=f50 I=36 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f50_I45  solo=f50 I=45 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f50_I54  solo=f50 I=54 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f50_I90  solo=f50 I=90 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f50_I180  solo=f50 I=180 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f100_I0.36  solo=f100 I=0.36 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f100_I0.9  solo=f100 I=0.9 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f100_I1.8  solo=f100 I=1.8 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f100_I3.6  solo=f100 I=3.6 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f100_I5.4  solo=f100 I=5.4 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f100_I9  solo=f100 I=9 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f100_I18  solo=f100 I=18 tempos=1h horas=96 chuva=72 modelo=i
+D72_i_f100_I36  solo=f100 I=36 tempos=1h horas=96 chuva=72 modelo=i
+D72_iii_f10_I0.9  solo=f10 I=0.9 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f10_I1.8  solo=f10 I=1.8 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f10_I3.6  solo=f10 I=3.6 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f10_I9  solo=f10 I=9 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f10_I18  solo=f10 I=18 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f10_I36  solo=f10 I=36 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f10_I90  solo=f10 I=90 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f10_I180  solo=f10 I=180 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f10_I360  solo=f10 I=360 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f10_I900  solo=f10 I=900 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f50_I0.9  solo=f50 I=0.9 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f50_I1.8  solo=f50 I=1.8 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f50_I3.6  solo=f50 I=3.6 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f50_I9  solo=f50 I=9 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f50_I18  solo=f50 I=18 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f50_I36  solo=f50 I=36 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f50_I45  solo=f50 I=45 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f50_I54  solo=f50 I=54 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f50_I90  solo=f50 I=90 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f50_I180  solo=f50 I=180 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f100_I0.36  solo=f100 I=0.36 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f100_I0.9  solo=f100 I=0.9 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f100_I1.8  solo=f100 I=1.8 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f100_I3.6  solo=f100 I=3.6 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f100_I5.4  solo=f100 I=5.4 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f100_I9  solo=f100 I=9 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f100_I18  solo=f100 I=18 tempos=1h horas=96 chuva=72 modelo=iii
+D72_iii_f100_I36  solo=f100 I=36 tempos=1h horas=96 chuva=72 modelo=iii
+D48_i_f10_I0.9  solo=f10 I=0.9 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f10_I1.8  solo=f10 I=1.8 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f10_I3.6  solo=f10 I=3.6 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f10_I9  solo=f10 I=9 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f10_I18  solo=f10 I=18 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f10_I36  solo=f10 I=36 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f10_I90  solo=f10 I=90 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f10_I180  solo=f10 I=180 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f10_I360  solo=f10 I=360 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f10_I900  solo=f10 I=900 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f50_I0.9  solo=f50 I=0.9 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f50_I1.8  solo=f50 I=1.8 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f50_I3.6  solo=f50 I=3.6 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f50_I9  solo=f50 I=9 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f50_I18  solo=f50 I=18 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f50_I36  solo=f50 I=36 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f50_I45  solo=f50 I=45 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f50_I54  solo=f50 I=54 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f50_I90  solo=f50 I=90 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f50_I180  solo=f50 I=180 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f100_I0.36  solo=f100 I=0.36 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f100_I0.9  solo=f100 I=0.9 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f100_I1.8  solo=f100 I=1.8 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f100_I3.6  solo=f100 I=3.6 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f100_I5.4  solo=f100 I=5.4 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f100_I9  solo=f100 I=9 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f100_I18  solo=f100 I=18 tempos=1h horas=72 chuva=48 modelo=i
+D48_i_f100_I36  solo=f100 I=36 tempos=1h horas=72 chuva=48 modelo=i
+D48_iii_f10_I0.9  solo=f10 I=0.9 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f10_I1.8  solo=f10 I=1.8 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f10_I3.6  solo=f10 I=3.6 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f10_I9  solo=f10 I=9 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f10_I18  solo=f10 I=18 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f10_I36  solo=f10 I=36 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f10_I90  solo=f10 I=90 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f10_I180  solo=f10 I=180 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f10_I360  solo=f10 I=360 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f10_I900  solo=f10 I=900 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f50_I0.9  solo=f50 I=0.9 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f50_I1.8  solo=f50 I=1.8 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f50_I3.6  solo=f50 I=3.6 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f50_I9  solo=f50 I=9 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f50_I18  solo=f50 I=18 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f50_I36  solo=f50 I=36 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f50_I45  solo=f50 I=45 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f50_I54  solo=f50 I=54 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f50_I90  solo=f50 I=90 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f50_I180  solo=f50 I=180 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f100_I0.36  solo=f100 I=0.36 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f100_I0.9  solo=f100 I=0.9 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f100_I1.8  solo=f100 I=1.8 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f100_I3.6  solo=f100 I=3.6 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f100_I5.4  solo=f100 I=5.4 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f100_I9  solo=f100 I=9 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f100_I18  solo=f100 I=18 tempos=1h horas=72 chuva=48 modelo=iii
+D48_iii_f100_I36  solo=f100 I=36 tempos=1h horas=72 chuva=48 modelo=iii
+D12_i_f10_I0.9  solo=f10 I=0.9 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f10_I1.8  solo=f10 I=1.8 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f10_I3.6  solo=f10 I=3.6 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f10_I9  solo=f10 I=9 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f10_I18  solo=f10 I=18 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f10_I36  solo=f10 I=36 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f10_I90  solo=f10 I=90 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f10_I180  solo=f10 I=180 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f10_I360  solo=f10 I=360 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f10_I900  solo=f10 I=900 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f50_I0.9  solo=f50 I=0.9 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f50_I1.8  solo=f50 I=1.8 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f50_I3.6  solo=f50 I=3.6 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f50_I9  solo=f50 I=9 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f50_I18  solo=f50 I=18 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f50_I36  solo=f50 I=36 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f50_I45  solo=f50 I=45 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f50_I54  solo=f50 I=54 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f50_I90  solo=f50 I=90 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f50_I180  solo=f50 I=180 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f100_I0.36  solo=f100 I=0.36 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f100_I0.9  solo=f100 I=0.9 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f100_I1.8  solo=f100 I=1.8 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f100_I3.6  solo=f100 I=3.6 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f100_I5.4  solo=f100 I=5.4 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f100_I9  solo=f100 I=9 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f100_I18  solo=f100 I=18 tempos=1h horas=36 chuva=12 modelo=i
+D12_i_f100_I36  solo=f100 I=36 tempos=1h horas=36 chuva=12 modelo=i
+D12_iii_f10_I0.9  solo=f10 I=0.9 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f10_I1.8  solo=f10 I=1.8 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f10_I3.6  solo=f10 I=3.6 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f10_I9  solo=f10 I=9 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f10_I18  solo=f10 I=18 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f10_I36  solo=f10 I=36 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f10_I90  solo=f10 I=90 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f10_I180  solo=f10 I=180 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f10_I360  solo=f10 I=360 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f10_I900  solo=f10 I=900 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f50_I0.9  solo=f50 I=0.9 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f50_I1.8  solo=f50 I=1.8 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f50_I3.6  solo=f50 I=3.6 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f50_I9  solo=f50 I=9 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f50_I18  solo=f50 I=18 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f50_I36  solo=f50 I=36 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f50_I45  solo=f50 I=45 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f50_I54  solo=f50 I=54 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f50_I90  solo=f50 I=90 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f50_I180  solo=f50 I=180 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f100_I0.36  solo=f100 I=0.36 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f100_I0.9  solo=f100 I=0.9 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f100_I1.8  solo=f100 I=1.8 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f100_I3.6  solo=f100 I=3.6 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f100_I5.4  solo=f100 I=5.4 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f100_I9  solo=f100 I=9 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f100_I18  solo=f100 I=18 tempos=1h horas=36 chuva=12 modelo=iii
+D12_iii_f100_I36  solo=f100 I=36 tempos=1h horas=36 chuva=12 modelo=iii
+D6_i_f10_I0.9  solo=f10 I=0.9 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f10_I1.8  solo=f10 I=1.8 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f10_I3.6  solo=f10 I=3.6 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f10_I9  solo=f10 I=9 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f10_I18  solo=f10 I=18 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f10_I36  solo=f10 I=36 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f10_I90  solo=f10 I=90 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f10_I180  solo=f10 I=180 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f10_I360  solo=f10 I=360 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f10_I900  solo=f10 I=900 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f50_I0.9  solo=f50 I=0.9 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f50_I1.8  solo=f50 I=1.8 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f50_I3.6  solo=f50 I=3.6 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f50_I9  solo=f50 I=9 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f50_I18  solo=f50 I=18 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f50_I36  solo=f50 I=36 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f50_I45  solo=f50 I=45 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f50_I54  solo=f50 I=54 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f50_I90  solo=f50 I=90 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f50_I180  solo=f50 I=180 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f100_I0.36  solo=f100 I=0.36 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f100_I0.9  solo=f100 I=0.9 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f100_I1.8  solo=f100 I=1.8 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f100_I3.6  solo=f100 I=3.6 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f100_I5.4  solo=f100 I=5.4 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f100_I9  solo=f100 I=9 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f100_I18  solo=f100 I=18 tempos=1h horas=30 chuva=6 modelo=i
+D6_i_f100_I36  solo=f100 I=36 tempos=1h horas=30 chuva=6 modelo=i
+D6_iii_f10_I0.9  solo=f10 I=0.9 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f10_I1.8  solo=f10 I=1.8 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f10_I3.6  solo=f10 I=3.6 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f10_I9  solo=f10 I=9 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f10_I18  solo=f10 I=18 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f10_I36  solo=f10 I=36 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f10_I90  solo=f10 I=90 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f10_I180  solo=f10 I=180 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f10_I360  solo=f10 I=360 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f10_I900  solo=f10 I=900 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f50_I0.9  solo=f50 I=0.9 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f50_I1.8  solo=f50 I=1.8 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f50_I3.6  solo=f50 I=3.6 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f50_I9  solo=f50 I=9 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f50_I18  solo=f50 I=18 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f50_I36  solo=f50 I=36 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f50_I45  solo=f50 I=45 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f50_I54  solo=f50 I=54 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f50_I90  solo=f50 I=90 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f50_I180  solo=f50 I=180 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f100_I0.36  solo=f100 I=0.36 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f100_I0.9  solo=f100 I=0.9 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f100_I1.8  solo=f100 I=1.8 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f100_I3.6  solo=f100 I=3.6 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f100_I5.4  solo=f100 I=5.4 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f100_I9  solo=f100 I=9 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f100_I18  solo=f100 I=18 tempos=1h horas=30 chuva=6 modelo=iii
+D6_iii_f100_I36  solo=f100 I=36 tempos=1h horas=30 chuva=6 modelo=iii
+# 3. S
+S_i_a10_ks1e-05_I0.9  a=10 ks=1e-05 I=0.9 tempos=1h modelo=i
+S_i_a10_ks1e-05_I1.8  a=10 ks=1e-05 I=1.8 tempos=1h modelo=i
+S_i_a10_ks1e-05_I3.6  a=10 ks=1e-05 I=3.6 tempos=1h modelo=i
+S_i_a10_ks1e-05_I9  a=10 ks=1e-05 I=9 tempos=1h modelo=i
+S_i_a10_ks1e-05_I18  a=10 ks=1e-05 I=18 tempos=1h modelo=i
+S_i_a10_ks1e-05_I36  a=10 ks=1e-05 I=36 tempos=1h modelo=i
+S_i_a10_ks1e-05_I54  a=10 ks=1e-05 I=54 tempos=1h modelo=i
+S_i_a10_ks1e-05_I90  a=10 ks=1e-05 I=90 tempos=1h modelo=i
+S_i_a10_ks1e-05_I180  a=10 ks=1e-05 I=180 tempos=1h modelo=i
+S_i_a10_ks1e-05_I360  a=10 ks=1e-05 I=360 tempos=1h modelo=i
+S_iii_a10_ks1e-05_I0.9  a=10 ks=1e-05 I=0.9 tempos=1h modelo=iii
+S_iii_a10_ks1e-05_I1.8  a=10 ks=1e-05 I=1.8 tempos=1h modelo=iii
+S_iii_a10_ks1e-05_I3.6  a=10 ks=1e-05 I=3.6 tempos=1h modelo=iii
+S_iii_a10_ks1e-05_I9  a=10 ks=1e-05 I=9 tempos=1h modelo=iii
+S_iii_a10_ks1e-05_I18  a=10 ks=1e-05 I=18 tempos=1h modelo=iii
+S_iii_a10_ks1e-05_I36  a=10 ks=1e-05 I=36 tempos=1h modelo=iii
+S_iii_a10_ks1e-05_I54  a=10 ks=1e-05 I=54 tempos=1h modelo=iii
+S_iii_a10_ks1e-05_I90  a=10 ks=1e-05 I=90 tempos=1h modelo=iii
+S_iii_a10_ks1e-05_I180  a=10 ks=1e-05 I=180 tempos=1h modelo=iii
+S_iii_a10_ks1e-05_I360  a=10 ks=1e-05 I=360 tempos=1h modelo=iii
+S_i_a10_ks1e-06_I0.09  a=10 ks=1e-06 I=0.09 tempos=1h modelo=i
+S_i_a10_ks1e-06_I0.18  a=10 ks=1e-06 I=0.18 tempos=1h modelo=i
+S_i_a10_ks1e-06_I0.36  a=10 ks=1e-06 I=0.36 tempos=1h modelo=i
+S_i_a10_ks1e-06_I0.9  a=10 ks=1e-06 I=0.9 tempos=1h modelo=i
+S_i_a10_ks1e-06_I1.8  a=10 ks=1e-06 I=1.8 tempos=1h modelo=i
+S_i_a10_ks1e-06_I3.6  a=10 ks=1e-06 I=3.6 tempos=1h modelo=i
+S_i_a10_ks1e-06_I5.4  a=10 ks=1e-06 I=5.4 tempos=1h modelo=i
+S_i_a10_ks1e-06_I9  a=10 ks=1e-06 I=9 tempos=1h modelo=i
+S_i_a10_ks1e-06_I18  a=10 ks=1e-06 I=18 tempos=1h modelo=i
+S_i_a10_ks1e-06_I36  a=10 ks=1e-06 I=36 tempos=1h modelo=i
+S_iii_a10_ks1e-06_I0.09  a=10 ks=1e-06 I=0.09 tempos=1h modelo=iii
+S_iii_a10_ks1e-06_I0.18  a=10 ks=1e-06 I=0.18 tempos=1h modelo=iii
+S_iii_a10_ks1e-06_I0.36  a=10 ks=1e-06 I=0.36 tempos=1h modelo=iii
+S_iii_a10_ks1e-06_I0.9  a=10 ks=1e-06 I=0.9 tempos=1h modelo=iii
+S_iii_a10_ks1e-06_I1.8  a=10 ks=1e-06 I=1.8 tempos=1h modelo=iii
+S_iii_a10_ks1e-06_I3.6  a=10 ks=1e-06 I=3.6 tempos=1h modelo=iii
+S_iii_a10_ks1e-06_I5.4  a=10 ks=1e-06 I=5.4 tempos=1h modelo=iii
+S_iii_a10_ks1e-06_I9  a=10 ks=1e-06 I=9 tempos=1h modelo=iii
+S_iii_a10_ks1e-06_I18  a=10 ks=1e-06 I=18 tempos=1h modelo=iii
+S_iii_a10_ks1e-06_I36  a=10 ks=1e-06 I=36 tempos=1h modelo=iii
+S_i_a50_ks0.0001_I9  a=50 ks=0.0001 I=9 tempos=1h modelo=i
+S_i_a50_ks0.0001_I18  a=50 ks=0.0001 I=18 tempos=1h modelo=i
+S_i_a50_ks0.0001_I36  a=50 ks=0.0001 I=36 tempos=1h modelo=i
+S_i_a50_ks0.0001_I90  a=50 ks=0.0001 I=90 tempos=1h modelo=i
+S_i_a50_ks0.0001_I180  a=50 ks=0.0001 I=180 tempos=1h modelo=i
+S_i_a50_ks0.0001_I360  a=50 ks=0.0001 I=360 tempos=1h modelo=i
+S_i_a50_ks0.0001_I540  a=50 ks=0.0001 I=540 tempos=1h modelo=i
+S_i_a50_ks0.0001_I900  a=50 ks=0.0001 I=900 tempos=1h modelo=i
+S_i_a50_ks0.0001_I1800  a=50 ks=0.0001 I=1800 tempos=1h modelo=i
+S_i_a50_ks0.0001_I3600  a=50 ks=0.0001 I=3600 tempos=1h modelo=i
+S_iii_a50_ks0.0001_I9  a=50 ks=0.0001 I=9 tempos=1h modelo=iii
+S_iii_a50_ks0.0001_I18  a=50 ks=0.0001 I=18 tempos=1h modelo=iii
+S_iii_a50_ks0.0001_I36  a=50 ks=0.0001 I=36 tempos=1h modelo=iii
+S_iii_a50_ks0.0001_I90  a=50 ks=0.0001 I=90 tempos=1h modelo=iii
+S_iii_a50_ks0.0001_I180  a=50 ks=0.0001 I=180 tempos=1h modelo=iii
+S_iii_a50_ks0.0001_I360  a=50 ks=0.0001 I=360 tempos=1h modelo=iii
+S_iii_a50_ks0.0001_I540  a=50 ks=0.0001 I=540 tempos=1h modelo=iii
+S_iii_a50_ks0.0001_I900  a=50 ks=0.0001 I=900 tempos=1h modelo=iii
+S_iii_a50_ks0.0001_I1800  a=50 ks=0.0001 I=1800 tempos=1h modelo=iii
+S_iii_a50_ks0.0001_I3600  a=50 ks=0.0001 I=3600 tempos=1h modelo=iii
+S_i_a50_ks1e-06_I0.09  a=50 ks=1e-06 I=0.09 tempos=1h modelo=i
+S_i_a50_ks1e-06_I0.18  a=50 ks=1e-06 I=0.18 tempos=1h modelo=i
+S_i_a50_ks1e-06_I0.36  a=50 ks=1e-06 I=0.36 tempos=1h modelo=i
+S_i_a50_ks1e-06_I0.9  a=50 ks=1e-06 I=0.9 tempos=1h modelo=i
+S_i_a50_ks1e-06_I1.8  a=50 ks=1e-06 I=1.8 tempos=1h modelo=i
+S_i_a50_ks1e-06_I3.6  a=50 ks=1e-06 I=3.6 tempos=1h modelo=i
+S_i_a50_ks1e-06_I5.4  a=50 ks=1e-06 I=5.4 tempos=1h modelo=i
+S_i_a50_ks1e-06_I9  a=50 ks=1e-06 I=9 tempos=1h modelo=i
+S_i_a50_ks1e-06_I18  a=50 ks=1e-06 I=18 tempos=1h modelo=i
+S_i_a50_ks1e-06_I36  a=50 ks=1e-06 I=36 tempos=1h modelo=i
+S_iii_a50_ks1e-06_I0.09  a=50 ks=1e-06 I=0.09 tempos=1h modelo=iii
+S_iii_a50_ks1e-06_I0.18  a=50 ks=1e-06 I=0.18 tempos=1h modelo=iii
+S_iii_a50_ks1e-06_I0.36  a=50 ks=1e-06 I=0.36 tempos=1h modelo=iii
+S_iii_a50_ks1e-06_I0.9  a=50 ks=1e-06 I=0.9 tempos=1h modelo=iii
+S_iii_a50_ks1e-06_I1.8  a=50 ks=1e-06 I=1.8 tempos=1h modelo=iii
+S_iii_a50_ks1e-06_I3.6  a=50 ks=1e-06 I=3.6 tempos=1h modelo=iii
+S_iii_a50_ks1e-06_I5.4  a=50 ks=1e-06 I=5.4 tempos=1h modelo=iii
+S_iii_a50_ks1e-06_I9  a=50 ks=1e-06 I=9 tempos=1h modelo=iii
+S_iii_a50_ks1e-06_I18  a=50 ks=1e-06 I=18 tempos=1h modelo=iii
+S_iii_a50_ks1e-06_I36  a=50 ks=1e-06 I=36 tempos=1h modelo=iii
+S_i_a100_ks0.0001_I9  a=100 ks=0.0001 I=9 tempos=1h modelo=i
+S_i_a100_ks0.0001_I18  a=100 ks=0.0001 I=18 tempos=1h modelo=i
+S_i_a100_ks0.0001_I36  a=100 ks=0.0001 I=36 tempos=1h modelo=i
+S_i_a100_ks0.0001_I90  a=100 ks=0.0001 I=90 tempos=1h modelo=i
+S_i_a100_ks0.0001_I180  a=100 ks=0.0001 I=180 tempos=1h modelo=i
+S_i_a100_ks0.0001_I360  a=100 ks=0.0001 I=360 tempos=1h modelo=i
+S_i_a100_ks0.0001_I540  a=100 ks=0.0001 I=540 tempos=1h modelo=i
+S_i_a100_ks0.0001_I900  a=100 ks=0.0001 I=900 tempos=1h modelo=i
+S_i_a100_ks0.0001_I1800  a=100 ks=0.0001 I=1800 tempos=1h modelo=i
+S_i_a100_ks0.0001_I3600  a=100 ks=0.0001 I=3600 tempos=1h modelo=i
+S_iii_a100_ks0.0001_I9  a=100 ks=0.0001 I=9 tempos=1h modelo=iii
+S_iii_a100_ks0.0001_I18  a=100 ks=0.0001 I=18 tempos=1h modelo=iii
+S_iii_a100_ks0.0001_I36  a=100 ks=0.0001 I=36 tempos=1h modelo=iii
+S_iii_a100_ks0.0001_I90  a=100 ks=0.0001 I=90 tempos=1h modelo=iii
+S_iii_a100_ks0.0001_I180  a=100 ks=0.0001 I=180 tempos=1h modelo=iii
+S_iii_a100_ks0.0001_I360  a=100 ks=0.0001 I=360 tempos=1h modelo=iii
+S_iii_a100_ks0.0001_I540  a=100 ks=0.0001 I=540 tempos=1h modelo=iii
+S_iii_a100_ks0.0001_I900  a=100 ks=0.0001 I=900 tempos=1h modelo=iii
+S_iii_a100_ks0.0001_I1800  a=100 ks=0.0001 I=1800 tempos=1h modelo=iii
+S_iii_a100_ks0.0001_I3600  a=100 ks=0.0001 I=3600 tempos=1h modelo=iii
+S_i_a100_ks1e-05_I0.9  a=100 ks=1e-05 I=0.9 tempos=1h modelo=i
+S_i_a100_ks1e-05_I1.8  a=100 ks=1e-05 I=1.8 tempos=1h modelo=i
+S_i_a100_ks1e-05_I3.6  a=100 ks=1e-05 I=3.6 tempos=1h modelo=i
+S_i_a100_ks1e-05_I9  a=100 ks=1e-05 I=9 tempos=1h modelo=i
+S_i_a100_ks1e-05_I18  a=100 ks=1e-05 I=18 tempos=1h modelo=i
+S_i_a100_ks1e-05_I36  a=100 ks=1e-05 I=36 tempos=1h modelo=i
+S_i_a100_ks1e-05_I54  a=100 ks=1e-05 I=54 tempos=1h modelo=i
+S_i_a100_ks1e-05_I90  a=100 ks=1e-05 I=90 tempos=1h modelo=i
+S_i_a100_ks1e-05_I180  a=100 ks=1e-05 I=180 tempos=1h modelo=i
+S_i_a100_ks1e-05_I360  a=100 ks=1e-05 I=360 tempos=1h modelo=i
+S_iii_a100_ks1e-05_I0.9  a=100 ks=1e-05 I=0.9 tempos=1h modelo=iii
+S_iii_a100_ks1e-05_I1.8  a=100 ks=1e-05 I=1.8 tempos=1h modelo=iii
+S_iii_a100_ks1e-05_I3.6  a=100 ks=1e-05 I=3.6 tempos=1h modelo=iii
+S_iii_a100_ks1e-05_I9  a=100 ks=1e-05 I=9 tempos=1h modelo=iii
+S_iii_a100_ks1e-05_I18  a=100 ks=1e-05 I=18 tempos=1h modelo=iii
+S_iii_a100_ks1e-05_I36  a=100 ks=1e-05 I=36 tempos=1h modelo=iii
+S_iii_a100_ks1e-05_I54  a=100 ks=1e-05 I=54 tempos=1h modelo=iii
+S_iii_a100_ks1e-05_I90  a=100 ks=1e-05 I=90 tempos=1h modelo=iii
+S_iii_a100_ks1e-05_I180  a=100 ks=1e-05 I=180 tempos=1h modelo=iii
+S_iii_a100_ks1e-05_I360  a=100 ks=1e-05 I=360 tempos=1h modelo=iii

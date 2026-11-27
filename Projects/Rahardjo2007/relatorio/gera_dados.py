@@ -5,8 +5,10 @@ existem (as rodadas que faltam ficam de fora, sem erro):
   ~/projects/runs/rahardjo2007/pc_malha/<id>_fina/...                          a conferencia de malha (casos_malha.txt)
   ~/projects/runs/rahardjo2007/malhas/m_transiente.csv, m_fator.csv            as malhas (Rahardjo2007 grava_malha=m)
   ../data/fig5_lido.csv, fig6_lido.csv, fig7_eq6.csv, tabela5.csv               o artigo (lido das figuras e tabelas)
+  ~/projects/runs/rahardjo2007/fermi_i/<id>/rah_i_<solo>_<I>_fs.csv e _campo_   o modelo (i), ar ativo (casos_i.txt)
 Saidas: figs/malhas.pdf, figs/fs_tempo.pdf (Fig. 5), figs/fs_min.pdf (Figs. 6 e 7), figs/nivel.pdf (o nivel d'agua no
-FS minimo), tab/fs_min.tex, tab/eq6.tex, tab/malha.tex, tab/niveis.tex e numeros.tex (as macros do texto)."""
+FS minimo), tab/fs_min.tex, tab/eq6.tex, tab/malha.tex, tab/niveis.tex; o modelo (i): figs/fs_tempo_i.pdf,
+figs/fs_min_i.pdf, figs/campos_i.pdf, tab/modelo_i.tex, tab/eq6_i.tex; e numeros.tex (as macros do texto)."""
 import csv
 import math
 import os
@@ -27,6 +29,7 @@ TINTA, TINTA2, GRADE = "#0b0b0b", "#5c5c58", "#e4e3df"
 SOLOS = ["f10", "f50", "f100"]
 NOMES = {"f10": "$f_{10,-4}$", "f50": "$f_{50,-5}$", "f100": "$f_{100,-6}$"}
 KS = {"f10": 360., "f50": 36., "f100": 3.6}  # mm/h
+COR_SOLO = {"f10": "#e34948", "f50": "#2a78d6", "f100": "#3a9a5b"}
 TART = [0, 1, 2, 3, 6, 12, 24, 28, 32, 40, 48]  # os instantes do FS no artigo
 os.makedirs(os.path.join(AQUI, "figs"), exist_ok=True)
 os.makedirs(os.path.join(AQUI, "tab"), exist_ok=True)
@@ -80,8 +83,9 @@ def cat_zona(pts, tol=0.05):
     return "I" if xm <= 30. else "II" if xm <= 35. else "III"
 
 
-def rodada(pasta, solo, I):
-    base = os.path.join(pasta, f"rah_{solo}_{I:g}")
+def rodada(pasta, solo, I, mod=""):
+    """mod: '' no (iii) (rah_<solo>_<I>), 'i' ou 'ii' nos outros (rah_<mod>_<solo>_<I>)"""
+    base = os.path.join(pasta, f"rah_{mod + '_' if mod else ''}{solo}_{I:g}")
     L = le(base + "_fs.csv")
     if not L:
         return None
@@ -97,7 +101,7 @@ def rodada(pasta, solo, I):
             "s": float(L[-1]["s_total"]), "pw_max": [float(r["pw_max"]) for r in L],
             "face": [int(r["nos_face"]) for r in L], "infil": [float(r["infiltrado_m3m"]) for r in L],
             "passos": [int(r["passos"]) for r in L], "s_trans": [float(r["s_transiente"]) for r in L],
-            "s_fator": [float(r["s_fator"]) for r in L],
+            "s_fator": [float(r["s_fator"]) for r in L], "pa_max": np.array([float(r.get("pa_max") or 0.) for r in L]),
             "nc": [float(r["nivel_crista"]) for r in L], "nm": [float(r["nivel_meio"]) for r in L],
             "np": [float(r["nivel_pe"]) for r in L]}
 
@@ -198,6 +202,43 @@ if PT and PF:
     fig.tight_layout()
     fig.savefig(os.path.join(AQUI, "figs", "malhas.pdf"))
     plt.close(fig)
+
+# ---- figura: a curva de retencao (Fredlund-Xing, C = 1, n = m = 1), a permeabilidade a agua (k_s Theta^4) e a
+# permeabilidade relativa ao ar (Brooks-Corey, lambda = 3, piso 1e-4) dos tres solos
+psi = np.logspace(-2, 6, 600)  # o mesmo eixo da Fig. 3 do artigo
+fig, axs = plt.subplots(1, 3, figsize=(7.6, 2.9))
+for s, a_, ks_ in (("f10", 10., 1.e-4), ("f50", 50., 1.e-5), ("f100", 100., 1.e-6)):
+    Sw = 1. / np.log(np.e + psi / a_)
+    axs[0].semilogx(psi, 0.45 * Sw, color=COR_SOLO[s], lw=1.5, label=NOMES[s])
+    axs[1].loglog(psi, ks_ * Sw ** 4, color=COR_SOLO[s], lw=1.5)
+Se = np.linspace(0., 1., 300)
+kra = np.maximum((1. - Se) ** 2 * (1. - Se ** (5. / 3.)), 1.e-4)
+axs[2].semilogy(Se, kra, color=TINTA, lw=1.5, label="$k_{ra}$ (ar)")
+axs[2].semilogy(Se, np.maximum(Se ** 4, 1.e-12), color=TINTA2, lw=1.2, ls=(0, (4, 2)), label="$k_{rw} = S_w^4$ (água)")
+for ax in axs:
+    eixo(ax)
+for ax in axs[:2]:  # a faixa de succao das rodadas: ate 75 kPa (o limite do artigo); 135 kPa sem o limite
+    ax.axvspan(1.e-2, 75., color="#ecebe7", zorder=0)
+    ax.axvline(135., color=TINTA2, lw=0.8, ls=(0, (3, 2)), zorder=1)
+axs[0].text(0.015, 0.03, "faixa das rodadas\n(até 75 kPa)", fontsize=6.5, color=TINTA2)
+axs[0].text(170., 0.465, "135 kPa (sem o limite)", fontsize=6.5, color=TINTA2)
+for s_, a_ in (("f10", 10.), ("f50", 50.), ("f100", 100.)):  # o menor S_w das rodadas (s = 75 kPa)
+    axs[2].axvline(1. / np.log(np.e + 75. / a_), color=COR_SOLO[s_], lw=0.9, ls=(0, (2, 2)))
+axs[0].set_xlabel("sucção $s$ (kPa)", fontsize=8.5, color=TINTA), axs[0].set_ylabel("$\\theta_w$", fontsize=9, color=TINTA)
+axs[0].set_ylim(0., 0.5)
+for ax in axs[:2]:
+    ax.set_xticks([1.e-2, 1., 1.e2, 1.e4, 1.e6])
+axs[1].set_xlabel("sucção $s$ (kPa)", fontsize=8.5, color=TINTA), axs[1].set_ylabel("$k_w$ (m/s)", fontsize=9, color=TINTA)
+axs[2].set_xlabel("$S_w$", fontsize=8.5, color=TINTA), axs[2].set_ylabel("permeabilidade relativa", fontsize=8.5, color=TINTA)
+axs[2].set_ylim(1.e-5, 1.5)
+axs[0].set_title("retenção", fontsize=8.5, loc="left", color=TINTA)
+axs[1].set_title("permeabilidade à água", fontsize=8.5, loc="left", color=TINTA)
+axs[2].set_title("relativas (modelo (i))", fontsize=8.5, loc="left", color=TINTA)
+axs[0].legend(fontsize=7, frameon=False, loc="center right")
+axs[2].legend(fontsize=6.5, frameon=False, loc="lower center")
+fig.tight_layout()
+fig.savefig(os.path.join(AQUI, "figs", "solos.pdf"))
+plt.close(fig)
 
 # ---- figura 2: o FS contra o tempo (Fig. 5)
 fig, axs = plt.subplots(3, 1, figsize=(7.4, 10.4), sharex=True)
@@ -496,6 +537,14 @@ def indicador(fat):
 
 NPW = [-80., -60., -40., -20.]  # isolinhas de p_w (kPa): succao, o nivel d'agua (0) e positivas
 PPW = [50., 100., 150., 200.]
+
+
+def isolinhas_pw(ax, tr, p):
+    """as isolinhas de p_w (as de NPW e PPW finas, p_w = 0 grossa), so as que o campo atravessa"""
+    for lv, lw in ((NPW, 0.45), (PPW, 0.45), ([0.], 1.1)):
+        if p.min() < max(lv) and p.max() > min(lv):
+            cs = ax.tricontour(tr, p, levels=lv, colors=TINTA, linewidths=lw, linestyles="-")
+            ax.clabel(cs, fmt=lambda v: f"{v:.0f}", fontsize=4.5, inline=True, inline_spacing=1)
 prontos = [(s, I) for (s, I) in CC if all(le_campo(s, I, t) is not None for t in TC)]
 if prontos:
     norm = TwoSlopeNorm(vmin=-85., vcenter=0., vmax=225.)
@@ -508,10 +557,7 @@ if prontos:
             p = np.zeros(len(tr.x))
             p[T.ravel()] = tri[:, [2, 5, 8]].ravel()  # p_w e continua: cada no tem um valor so
             pc = ax.tripcolor(tr, p, cmap="RdBu_r", norm=norm, shading="gouraud", rasterized=True)
-            for lv, lw, ls in ((NPW, 0.45, "-"), (PPW, 0.45, "-"), ([0.], 1.1, "-")):
-                if p.min() < max(lv) and p.max() > min(lv):
-                    cs = ax.tricontour(tr, p, levels=lv, colors=TINTA, linewidths=lw, linestyles=ls)
-                    ax.clabel(cs, fmt=lambda v: f"{v:.0f}", fontsize=4.5, inline=True, inline_spacing=1)
+            isolinhas_pw(ax, tr, p)
             ax.plot([0, 30, 40, 70], [30, 30, 20, 20], color=TINTA, lw=0.6)
             ax.set_xlim(10, 60), ax.set_ylim(8, 31), ax.set_aspect("equal")
             ax.set_xticks([]), ax.set_yticks([])
@@ -573,6 +619,481 @@ if os.path.exists(ev):
     hs = [datetime.strptime(lin[:19], "%Y-%m-%d %H:%M:%S") for lin in open(ev) if " inicio em " in lin or " fim em " in lin]
     if hs:
         N["campanha"] = f"{(max(hs) - min(hs)).total_seconds() / 60.:.0f}"
+
+# ======================================================================================================================
+# ---- o modelo (i): o ar ativo, as mesmas 28 rodadas (fermi_i/<id>/rah_i_<solo>_<I>_fs.csv), contra o (iii)
+FERMI_I = os.path.join(R, "fermi_i")
+NOSI = {}
+for (s, I) in CASOS:
+    d = rodada(os.path.join(FERMI_I, f"{s}_I{I:g}"), s, I, "i")
+    if d is not None and d["fim"]:
+        NOSI[(s, I)] = d
+SOLO_TEX = {"f10": "Dez", "f50": "Cinq", "f100": "Cem"}  # nos nomes das macros (sem digitos)
+# o modelo (ii): acoplado (esqueleto elastico) com o ar passivo, as mesmas 28 rodadas (fermi_ii, rah_ii_<solo>_<I>)
+FERMI_II = os.path.join(R, "fermi_ii")
+NOSII = {}
+for (s, I) in CASOS:
+    d = rodada(os.path.join(FERMI_II, f"{s}_I{I:g}"), s, I, "ii")
+    if d is not None and d["fim"]:
+        NOSII[(s, I)] = d
+
+
+def rot_I(s, I):
+    return f"{vI(I).replace('{,}', ',')} mm/h ({I / KS[s]:g} $k_s$)".replace(".", ",")
+
+
+# ---- figura: o FS e a maior p_a contra o tempo, (i) cheia e (iii) tracejada (as 7 intensidades da Fig. 5)
+if NOSI:
+    fig, axs = plt.subplots(3, 2, figsize=(7.6, 10.), sharex=True, gridspec_kw=dict(width_ratios=[1.45, 1.]))
+    for k, s in enumerate(SOLOS):
+        a1, a2 = axs[k]
+        eixo(a1), eixo(a2)
+        Is = sorted(I for (so, I) in F5 if so == s)
+        cores = plt.cm.viridis(np.linspace(0.0, 0.88, len(Is)))
+        for I, c in zip(Is, cores):
+            d3, di = NOS.get((s, I)), NOSI.get((s, I))
+            if d3 is not None:
+                ok = d3["fs"] > 0
+                a1.plot(d3["t"][ok], d3["fs"][ok], color=c, lw=0.9, ls=(0, (2.5, 1.5)), zorder=3)
+            if di is not None:
+                ok = di["fs"] > 0
+                a1.plot(di["t"][ok], di["fs"][ok], color=c, lw=1.6, zorder=4)
+                a2.plot(di["t"], di["pa_max"], color=c, lw=1.6)
+            a1.plot([], [], color=c, lw=1.6, label=rot_I(s, I))
+        for ax in (a1, a2):
+            ax.axvline(24, color=TINTA2, lw=0.8, ls=(0, (4, 3)))
+            ax.set_xlim(0, 48.5), ax.set_xticks(range(0, 49, 6))
+        a1.axhline(1., color=TINTA2, lw=0.6)
+        a1.set_ylim(0.4, 2.25), a2.set_ylim(0., 60.)  # a faixa de 0,4 a 0,8 fica livre para a legenda
+        a1.set_ylabel("FS", fontsize=9, color=TINTA)
+        a2.set_ylabel("maior $p_a$ no domínio (kPa)", fontsize=9, color=TINTA)
+        a1.set_title(f"{NOMES[s]}, $k_s$ = {KS[s]:g} mm/h: o FS".replace(".", ","), fontsize=9, loc="left", color=TINTA)
+        a2.set_title("a pressão do ar, modelo (i)", fontsize=9, loc="left", color=TINTA)
+        a1.legend(fontsize=6.5, frameon=False, loc="lower left", ncol=2)
+    axs[-1][0].set_xlabel("t (h)  (chuva até 24 h)", fontsize=9, color=TINTA)
+    axs[-1][1].set_xlabel("t (h)", fontsize=9, color=TINTA)
+    fig.text(0.99, 0.005, "linhas cheias: modelo (i), ar ativo; tracejadas: modelo (iii); FS de hora em hora",
+             fontsize=7, color=TINTA2, ha="right")
+    fig.tight_layout(rect=(0, 0.01, 1, 1))
+    fig.savefig(os.path.join(AQUI, "figs", "fs_tempo_i.pdf"))
+    plt.close(fig)
+
+# ---- figura: o FS minimo contra I nos dois modelos, cada um com a sua Eq. 6 (no f10, C fixo no do artigo, como no iii)
+AJI = {}
+if NOSI:
+    fig, axs = plt.subplots(1, 3, figsize=(7.6, 3.5), sharey=True)
+    for ax, s in zip(axs, SOLOS):
+        eixo(ax)
+        ax.set_xscale("log")
+        x = np.logspace(-1, 4, 400)
+        Ia = sorted(I for (so, I) in F6 if so == s)
+        pa6 = [float(EQ6[s][k]) for k in "ABCD"]
+        Cf = pa6[2] if pa6[2] < 0. else None
+        I3 = [I for I in Ia if (s, I) in NOS and NOS[(s, I)]["fim"]]
+        ax.plot(I3, [minimo(NOS[(s, I)])[0] for I in I3], MARC[s], ms=5, mfc="none", mec=TINTA2, mew=1.0, zorder=4)
+        if s in AJ:
+            ax.plot(x, sig(x, *AJ[s][0]), color=TINTA2, lw=1.1, ls=(0, (5, 2)), zorder=3)
+        Ii = [I for I in Ia if (s, I) in NOSI]
+        Fi = [minimo(NOSI[(s, I)])[0] for I in Ii]
+        ax.plot(Ii, Fi, MARC[s], ms=5, color=COR[s], zorder=5)
+        if len(Ii) >= 5:
+            p, r2 = ajusta(Ii, Fi, AJ[s][0] if s in AJ else pa6, Cf)
+            if p is not None:
+                AJI[s] = (p, r2, len(Ii), Cf is not None)
+                ax.plot(x, sig(x, *p), color=COR[s], lw=1.5, zorder=4)
+        ax.axvline(KS[s], color=GRADE, lw=1.2, zorder=0)
+        ax.text(KS[s] * 1.15, 0.15, "$k_s$", fontsize=8, color=TINTA2)
+        ax.set_xlim(0.1, 1.e4), ax.set_ylim(0., 2.5)
+        ax.set_title(NOMES[s], fontsize=9, loc="left", color=TINTA)
+        ax.set_xlabel("$I_r$ (mm/h)", fontsize=9, color=TINTA)
+        ax.legend(handles=[Line2D([], [], color=COR[s], lw=1.5, marker=MARC[s], ms=5, label="(i), ar ativo"),
+                           Line2D([], [], color=TINTA2, lw=1.1, ls=(0, (5, 2)), marker=MARC[s], mfc="none", mec=TINTA2,
+                                  ms=5, label="(iii)")], fontsize=7, frameon=False, loc="lower left")
+    axs[0].set_ylabel("FS mínimo (0 a 48 h)", fontsize=9, color=TINTA)
+    fig.text(0.99, 0.01, "pontos: as rodadas; linhas: a Eq. 6 ajustada a cada modelo", fontsize=7, color=TINTA2,
+             ha="right")
+    fig.tight_layout(rect=(0, 0.03, 1, 1))
+    fig.savefig(os.path.join(AQUI, "figs", "fs_min_i.pdf"))
+    plt.close(fig)
+
+# ---- a Eq. 6 ajustada ao (ii), como nos outros dois
+AJII = {}
+for s in SOLOS:
+    Ia = sorted(I for (so, I) in F6 if so == s and (so, I) in NOSII)
+    pa6 = [float(EQ6[s][k]) for k in "ABCD"]
+    if len(Ia) >= 5:
+        p, r2 = ajusta(Ia, [minimo(NOSII[(s, I)])[0] for I in Ia], AJ[s][0] if s in AJ else pa6,
+                       pa6[2] if pa6[2] < 0. else None)
+        if p is not None:
+            AJII[s] = (p, r2, len(Ia), pa6[2] < 0.)
+
+# ---- tabela: a Eq. 6 nos tres modelos (e as macros dos parametros, para o texto)
+with open(os.path.join(AQUI, "tab", "eq6_i.tex"), "w") as f:
+    f.write("\\begin{tabular}{ll|cccc|c|ccc}\n\\toprule\n")
+    f.write("solo & modelo & $A$ & $B$ & $C$ & $D$ & $r^2$ & $I_{r(ini)}$ & $I_{r(thr)}$ & $I_{r(thr)}/k_s$\\\\\n"
+            " & & & & (mm/h) & (mm/h) & & (mm/h) & (mm/h) & \\\\\n\\midrule\n")
+    for s in SOLOS:
+        for nome, mt, aj in (("(iii)", "Tres", AJ), ("(ii)", "Dois", AJII), ("(i)", "Um", AJI)):
+            cab = f"{NOMES[s] if mt == 'Tres' else ''} & {nome}"
+            if s not in aj:
+                f.write(cab + " & \\multicolumn{8}{c}{(rodando)}\\\\\n")
+                continue
+            p, r2, n, fixo = aj[s]
+            ii, it = ini_thr(*p)
+            f.write(cab + f", {n} pontos & {v2(p[0])} & {v2(p[1])} & {vI(p[2]) + '$^\\dagger$' if fixo else v2(p[2])} & "
+                    f"{v2(p[3])} & {v3(r2)} & {v2(ii)} & {v2(it)} & {v2(it / KS[s])}\\\\\n")
+            sx = SOLO_TEX[s]
+            N[f"A{mt}{sx}"], N[f"D{mt}{sx}"] = v2(p[0]), v2(abs(p[3]))
+            N[f"Ini{mt}{sx}"], N[f"Thr{mt}{sx}"], N[f"Thrks{mt}{sx}"] = v2(ii), v2(it), v2(it / KS[s])
+        f.write("\\midrule\n" if s != SOLOS[-1] else "")
+    f.write("\\bottomrule\n\\end{tabular}\n")
+
+# ---- tabela: cada rodada nos dois modelos: o FS minimo, t_1, a maior p_a, a infiltracao e o alagamento
+with open(os.path.join(AQUI, "tab", "modelo_i.tex"), "w") as f:
+    f.write("\\begin{tabular}{lrr|cccc|c|cc|c|cc|cc}\n\\toprule\n")
+    f.write(" & & & \\multicolumn{4}{c|}{FS mínimo (0--48~h)} & instante & \\multicolumn{2}{c|}{$t_1$ (h)} & "
+            "maior $p_a$ & \\multicolumn{2}{c|}{infiltrou até 24~h (\\%)} & \\multicolumn{2}{c}{alaga em (h)}\\\\\n")
+    f.write("solo & $I_r$ & $I_r/k_s$ & (iii) & (ii) & (i) & (i) $-$ (iii) & do mín. (i) & (iii) & (i) & (i), kPa & (iii) & "
+            "(i) & (iii) & (i)\\\\\n\\midrule\n")
+    queda = {}
+    for k, (s, I) in enumerate(CASOS):
+        if k and s != CASOS[k - 1][0]:
+            f.write("\\midrule\n")
+        d3, di = NOS.get((s, I)), NOSI.get((s, I))
+        lin = f"{NOMES[s]} & {vI(I)} & {vI(round(I / KS[s], 4))} & "
+        if d3 is None or not d3["fim"] or di is None:
+            f.write(lin + "\\multicolumn{12}{c}{(rodando)}\\\\\n")
+            continue
+        f3, fi, ti = minimo(d3)[0], *minimo(di)[:2]
+        f2 = minimo(NOSII[(s, I)])[0] if (s, I) in NOSII else None
+        dlt = fi - f3
+        if dlt < queda.get(s, (0., 0.))[0]:
+            queda[s] = (dlt, I)
+        t13, t1i = cruza(d3)[0], cruza(di)[0]
+        chuva = I / 1000. * 24. * LSUP
+        inf = [100. * d["infil"][list(d["t"]).index(24.)] / chuva for d in (d3, di)]
+        al = [next((t for t, n in zip(d["t"], d["face"]) if n > 0), None) for d in (d3, di)]
+        sd = "0{,}00" if abs(dlt) < 0.005 else ("$+$" if dlt > 0 else "$-$") + v2(abs(dlt))
+        f.write(lin + f"{v3(f3)} & {v3(f2) if f2 else '--'} & {v3(fi)} & {sd} & {ti:g} & {v2(t13) if t13 else '--'} & {v2(t1i) if t1i else '--'} & "
+                f"{di['pa_max'].max():.1f} & {inf[0]:.0f} & {inf[1]:.0f} & "
+                f"{'%g' % al[0] if al[0] is not None else '--'} & {'%g' % al[1] if al[1] is not None else '--'}\\\\\n"
+                .replace(".", "{,}"))
+    f.write("\\bottomrule\n\\end{tabular}\n")
+for s, (dq, Iq) in queda.items():
+    N[f"queda{SOLO_TEX[s]}"], N[f"queda{SOLO_TEX[s]}I"] = v2(-dq), vI(Iq)
+# o (ii) contra o (iii) (a deformacao) e o (i) contra o (ii) (o ar)
+DEF = {k: minimo(NOSII[k])[0] - minimo(NOS[k])[0] for k in NOSII if k in NOS and NOS[k]["fim"]}
+AR = {k: minimo(NOSI[k])[0] - minimo(NOSII[k])[0] for k in NOSII if k in NOSI}
+N["iiFeitos"] = str(len(NOSII))
+if DEF:
+    kd = max(DEF, key=DEF.get)
+    N["defMax"], N["defMin"] = v2(max(DEF.values())), v3(min(DEF.values()))
+    N["defMaxSolo"], N["defMaxI"] = NOMES[kd[0]], vI(kd[1])
+if AR:
+    ka, kb = min(AR, key=AR.get), max(AR, key=AR.get)
+    N["arMin"], N["arMinSolo"], N["arMinI"] = v2(-AR[ka]), NOMES[ka[0]], vI(ka[1])
+    N["arMax"], N["arMaxSolo"], N["arMaxI"] = v2(AR[kb]), NOMES[kb[0]], vI(kb[1])
+
+# ---- figura: a diferenca de FS minimo separada em deformacao ((ii) - (iii)) e ar ((i) - (ii)), contra I/k_s
+if DEF and AR:
+    fig, axs = plt.subplots(1, 3, figsize=(7.6, 3.0), sharey=True)
+    for ax, s in zip(axs, SOLOS):
+        eixo(ax)
+        ax.set_xscale("log")
+        Is = sorted(I for (so, I) in DEF if so == s)
+        xs_ = [I / KS[s] for I in Is]
+        ax.axhline(0., color=TINTA2, lw=0.7)
+        ax.plot(xs_, [DEF[(s, I)] for I in Is], "s-", color=TINTA2, ms=4, lw=1.2, mfc="white",
+                label="deformação: (ii) $-$ (iii)")
+        Ia = [I for I in Is if (s, I) in AR]
+        ax.plot([I / KS[s] for I in Ia], [AR[(s, I)] for I in Ia], "o-", color=COR[s], ms=4, lw=1.5,
+                label="ar: (i) $-$ (ii)")
+        ax.set_title(NOMES[s], fontsize=9, loc="left", color=TINTA)
+        ax.set_xlabel("$I_r/k_s$", fontsize=9, color=TINTA)
+        ax.set_xlim(0.015, 15), ax.set_ylim(-0.42, 0.12)
+        ax.legend(fontsize=6.5, frameon=False, loc="lower right" if s == "f50" else "lower left")
+    axs[0].set_ylabel("diferença de FS mínimo", fontsize=9, color=TINTA)
+    fig.tight_layout()
+    fig.savefig(os.path.join(AQUI, "figs", "decomposicao.pdf"))
+    plt.close(fig)
+N["iFeitos"] = str(len(NOSI))
+N["iMinVinte"] = str(sum(1 for d in NOSI.values() if minimo(d)[1] == 24.))  # o FS minimo do (i) no fim da chuva
+N["iPamax"] = f"{max(d['pa_max'].max() for d in NOSI.values()):.0f}" if NOSI else "--"
+
+# ---- figura: os campos em 24 h (o instante do FS minimo do (i)): p_w no (iii), p_w no (i) e p_a no (i). No (i) a
+# linha grossa (p_w = 0) deixa de ser o limite da zona saturada: o limite e s = p_a - p_w = 0 (tracejada)
+
+
+def le_campo_i(s, I, t):
+    base = os.path.join(FERMI_I, f"{s}_I{I:g}", f"rah_i_{s}_{I:g}")
+    C = le(f"{base}_campo_{t:g}h.csv")
+    if not C or "a1" not in C[0]:
+        return None
+    tri = np.array([[float(r[k]) for k in ("x1", "y1", "p1", "x2", "y2", "p2", "x3", "y3", "p3", "a1", "a2", "a3")]
+                    for r in C])
+    fs = {float(r["t_h"]): float(r["FS"]) for r in le(f"{base}_fs.csv")}
+    return tri, fs.get(t)
+
+
+def nodal(tri, cols):
+    """a Triangulation dos nos unicos e o valor de cada no (as colunas cols de cada triangulo, campo continuo)"""
+    tr, T, _ = triangulacao(tri[:, [0, 1, 3, 4, 6, 7]].reshape(-1, 3, 2))
+    v = np.zeros(len(tr.x))
+    v[T.ravel()] = tri[:, cols].ravel()
+    return tr, v
+
+
+CI = [("f10", 90.), ("f10", 900.), ("f50", 36.), ("f100", 9.)]
+TI = 24.
+prontosI = [(s, I) for (s, I) in CI if le_campo(s, I, TI) is not None and le_campo_i(s, I, TI) is not None]
+if prontosI:
+    norm = TwoSlopeNorm(vmin=-85., vcenter=0., vmax=225.)
+    normA = plt.Normalize(0., 60.)
+    PA = [10., 20., 30., 40., 50.]
+    fig, axs = plt.subplots(len(prontosI), 3, figsize=(7.6, 1.6 * len(prontosI) + 0.9), squeeze=False)
+    for i, (s, I) in enumerate(prontosI):
+        tri3, _, fs3 = le_campo(s, I, TI)
+        triI, fsI = le_campo_i(s, I, TI)
+        tr3, p3 = nodal(tri3, [2, 5, 8])
+        trI, pI = nodal(triI, [2, 5, 8])
+        _, aI = nodal(triI, [9, 10, 11])
+        sI = aI - pI  # a succao no (i)
+        amax = aI[sI > 0.].max() if (sI > 0.).any() else 0.  # a maior p_a na zona nao saturada
+        for j, ax in enumerate(axs[i]):
+            if j < 2:
+                tr, p = (tr3, p3) if j == 0 else (trI, pI)
+                pc = ax.tripcolor(tr, p, cmap="RdBu_r", norm=norm, shading="gouraud", rasterized=True)
+                isolinhas_pw(ax, tr, p)
+            else:
+                sat = (sI[trI.triangles] <= 0.).any(axis=1)  # o triangulo toca a zona saturada
+                V = np.stack([trI.x[trI.triangles], trI.y[trI.triangles]], axis=-1)
+                ax.add_collection(PolyCollection(V[sat], facecolor="#dddcd8", edgecolor="none", rasterized=True))
+                trA = Triangulation(trI.x, trI.y, trI.triangles, mask=sat)
+                pcA = ax.tripcolor(trA, aI, cmap="Purples", norm=normA, shading="gouraud", rasterized=True)
+                lv = [v for v in PA if v < amax]
+                if lv:
+                    cs = ax.tricontour(trA, aI, levels=lv, colors=TINTA, linewidths=0.45)
+                    ax.clabel(cs, fmt=lambda v: f"{v:.0f}", fontsize=4.5, inline=True, inline_spacing=1)
+            if j >= 1 and sI.min() < 0. < sI.max():
+                ax.tricontour(trI, sI, levels=[0.], colors=TINTA, linewidths=1.0, linestyles=[(0, (3, 1.5))])
+            ax.plot([0, 30, 40, 70], [30, 30, 20, 20], color=TINTA, lw=0.6)
+            ax.set_xlim(10, 60), ax.set_ylim(8, 31), ax.set_aspect("equal")
+            ax.set_xticks([]), ax.set_yticks([])
+            for sp in ax.spines.values():
+                sp.set_visible(False)
+        cab = f"{NOMES[s]}, {vI(I).replace('{,}', ',')} mm/h, 24 h. "
+        axs[i][0].set_title((cab + f"(iii): $p_w$, FS {fs3:.3f}").replace(".", ","), fontsize=6.5, loc="left",
+                            color=TINTA)
+        axs[i][1].set_title(f"(i): $p_w$, FS {fsI:.3f}".replace(".", ","), fontsize=6.5, loc="left", color=TINTA)
+        axs[i][2].set_title(f"(i): $p_a$, até {amax:.0f} kPa na zona não saturada", fontsize=6.5, loc="left",
+                            color=TINTA)
+    fig.subplots_adjust(left=0.01, right=0.99, top=0.95, bottom=0.13, wspace=0.04, hspace=0.32)
+    c1 = fig.colorbar(pc, cax=fig.add_axes([0.04, 0.075, 0.6, 0.012]), orientation="horizontal", ticks=NPW + [0.] + PPW)
+    c1.set_label("$p_w$ (kPa): isolinhas a cada 20 kPa na sucção e a cada 50 kPa acima de zero; grossa: $p_w$ = 0;\n"
+                 "tracejada: $s = p_a - p_w$ = 0 (no (i), o limite da zona saturada)", fontsize=6.5, color=TINTA)
+    c2 = fig.colorbar(pcA, cax=fig.add_axes([0.7, 0.075, 0.27, 0.012]), orientation="horizontal", ticks=[0] + PA + [60])
+    c2.set_label("$p_a$ (kPa), na zona não saturada\n(cinza: saturada, $s \\leq 0$)", fontsize=6.5, color=TINTA)
+    for c in (c1, c2):
+        c.ax.tick_params(labelsize=6)
+    fig.savefig(os.path.join(AQUI, "figs", "campos_i.pdf"), dpi=300)
+    plt.close(fig)
+N["nCamposI"] = str(len(prontosI))
+
+# ---- figura: linhas de controle, p_w contra a profundidade em duas verticais (sob a crista, x = 20 m, e no meio da
+# face, x = 35 m) em 0, 6, 12, 24 e 48 h, (i) cheia e (iii) tracejada; e a taxa media de variacao de p_w entre os
+# instantes gravados (kPa/h), na mesma vertical
+from matplotlib.tri import LinearTriInterpolator  # noqa: E402
+TP = [0., 6., 12., 24., 48.]
+VERT = [(20., "sob a crista, $x$ = 20 m"), (35., "meio da face, $x$ = 35 m")]
+ZP = np.linspace(0.02, 15., 120)
+CP = [(s, I) for (s, I) in CI if all(le_campo(s, I, t) is not None and le_campo_i(s, I, t) is not None for t in TP)]
+
+
+def perfil(tr, v, x):
+    f = LinearTriInterpolator(tr, v)
+    return np.array([float(f(x, superficie(x) - z)) for z in ZP])
+
+
+if CP:
+    corT = dict(zip(TP, plt.cm.viridis(np.linspace(0., 0.9, len(TP)))))
+    PF, PA = {}, {}
+    for (s, I) in CP:
+        for t in TP:
+            tri3, triI = le_campo(s, I, t)[0], le_campo_i(s, I, t)[0]
+            tr3, p3 = nodal(tri3, [2, 5, 8])
+            trI, pI = nodal(triI, [2, 5, 8])
+            _, aI = nodal(triI, [9, 10, 11])
+            for x, _ in VERT:
+                PF[(s, I, t, x)] = (perfil(tr3, p3, x), perfil(trI, pI, x))
+                PA[(s, I, t, x)] = perfil(trI, aI, x)
+    for nome, taxa in (("perfis_i", False), ("taxa_i", True)):
+        fig, axs = plt.subplots(len(CP), 2, figsize=(7.4, 2.5 * len(CP) + 0.6), sharey=True, squeeze=False)
+        for i, (s, I) in enumerate(CP):
+            for j, (x, tx) in enumerate(VERT):
+                ax = axs[i][j]
+                eixo(ax)
+                ts = TP if not taxa else TP[1:]
+                for k, t in enumerate(ts):
+                    a3, aI = PF[(s, I, t, x)]
+                    if taxa:  # a taxa media no intervalo que termina em t
+                        t0 = TP[TP.index(t) - 1]
+                        b3, bI = PF[(s, I, t0, x)]
+                        a3, aI = (a3 - b3) / (t - t0), (aI - bI) / (t - t0)
+                        rot = f"{t0:g}–{t:g} h"
+                    else:
+                        rot = f"{t:g} h"
+                    ax.plot(a3, ZP, color=corT[t], lw=1.0, ls=(0, (3, 1.5)))
+                    ax.plot(aI, ZP, color=corT[t], lw=1.5, label=rot)
+                ax.axvline(0., color=TINTA2, lw=0.7)
+                ax.set_ylim(15, 0)
+                ax.set_title(f"{NOMES[s]}, {vI(I).replace('{,}', ',')} mm/h, {tx}", fontsize=8, loc="left", color=TINTA)
+                if j == 0:
+                    ax.set_ylabel("profundidade (m)", fontsize=8, color=TINTA)
+                if i == len(CP) - 1:
+                    ax.set_xlabel("taxa de variação de $p_w$ (kPa/h)" if taxa else "$p_w$ (kPa)", fontsize=8,
+                                  color=TINTA)
+            axs[i][0].legend(fontsize=6.5, frameon=False, loc="lower left" if not taxa else "lower right")
+        fig.text(0.99, 0.005, "cheias: modelo (i), ar ativo; tracejadas: modelo (iii)" +
+                 ("; taxa média entre os instantes gravados" if taxa else ""), fontsize=7, color=TINTA2, ha="right")
+        fig.tight_layout(rect=(0, 0.015, 1, 1))
+        fig.savefig(os.path.join(AQUI, "figs", nome + ".pdf"))
+        plt.close(fig)
+
+    # p_a (so no i) e o grau de saturacao (Fredlund-Xing com C = 1, n = m = 1: S = 1/ln(e + s/a), s = p_a - p_w > 0)
+    ASOLO = {"f10": 10., "f50": 50., "f100": 100.}
+
+    def satur(suc, a):
+        return np.where(suc > 0., 1. / np.log(np.e + np.maximum(suc, 0.) / a), 1.)
+
+    fig, axs = plt.subplots(len(CP), 4, figsize=(7.6, 2.5 * len(CP) + 0.6), sharey=True, squeeze=False)
+    for i, (s, I) in enumerate(CP):
+        for j, (x, tx) in enumerate(VERT):
+            aa, ab = axs[i][j], axs[i][2 + j]
+            eixo(aa), eixo(ab)
+            for t in TP:
+                p3, pI = PF[(s, I, t, x)]
+                aI = PA[(s, I, t, x)]
+                aa.plot(aI, ZP, color=corT[t], lw=1.5, label=f"{t:g} h")
+                ab.plot(satur(-p3, ASOLO[s]), ZP, color=corT[t], lw=1.0, ls=(0, (3, 1.5)))
+                ab.plot(satur(aI - pI, ASOLO[s]), ZP, color=corT[t], lw=1.5)
+            aa.set_xlim(-2, 60), ab.set_xlim(0.4, 1.01)
+            aa.set_ylim(15, 0)
+            lado = "crista" if x < 30 else "face"
+            aa.set_title(f"$p_a$ (i), {lado}", fontsize=7.5, loc="left", color=TINTA)
+            ab.set_title(f"$S_w$, {lado}", fontsize=7.5, loc="left", color=TINTA)
+            if i == len(CP) - 1:
+                aa.set_xlabel("$p_a$ (kPa)", fontsize=8, color=TINTA)
+                ab.set_xlabel("grau de saturação", fontsize=8, color=TINTA)
+        axs[i][0].set_ylabel(f"{NOMES[s]}, {vI(I).replace('{,}', ',')} mm/h\nprofundidade (m)", fontsize=8, color=TINTA)
+    axs[0][0].legend(fontsize=6.5, frameon=False, loc="lower right")
+    fig.text(0.99, 0.005, "crista: x = 20 m; face: x = 35 m; S_w: cheias (i), tracejadas (iii)", fontsize=7,
+             color=TINTA2, ha="right")
+    fig.tight_layout(rect=(0, 0.015, 1, 1))
+    fig.savefig(os.path.join(AQUI, "figs", "perfis_ar_i.pdf"))
+    plt.close(fig)
+N["nPerfis"] = str(len(CP))
+
+# ---- a duracao da chuva: o FS no fim de uma chuva de D horas e o FS em t = D da chuva de 24 h (a mesma historia ate
+# D). A Eq. 6 ajustada ao FS(D) contra I, para D = 3, 6, 12 e 24 h, nos dois modelos
+DUR = [3., 6., 12., 24.]
+AJD = {}
+for s in SOLOS:
+    for mt, NN in (("(iii)", NOS), ("(i)", NOSI)):
+        Is = sorted(I for (so, I) in CASOS if so == s and (so, I) in NN and NN[(so, I)]["fim"])
+        for D in DUR:
+            F = [dict(zip(NN[(s, I)]["t"], NN[(s, I)]["fs"]))[D] for I in Is]
+            pa6 = [float(EQ6[s][k]) for k in "ABCD"]
+            if len(Is) >= 5:
+                p, r2 = ajusta(Is, F, AJ[s][0] if s in AJ else pa6, pa6[2] if pa6[2] < 0. else None)
+                if p is not None:
+                    AJD[(s, mt, D)] = (p, r2, Is, F)
+if AJD:
+    fig, axs = plt.subplots(1, 3, figsize=(7.6, 3.6), sharey=True)
+    corD = dict(zip(DUR, plt.cm.viridis(np.linspace(0.85, 0.0, len(DUR)))))
+    x = np.logspace(-1, 4, 400)
+    for ax, s in zip(axs, SOLOS):
+        eixo(ax)
+        ax.set_xscale("log")
+        for D in DUR:
+            for mt, ls, lw, mfc in (("(iii)", (0, (3, 1.5)), 1.0, "none"), ("(i)", "-", 1.5, None)):
+                if (s, mt, D) in AJD:
+                    p, r2, Is, F = AJD[(s, mt, D)]
+                    ax.plot(Is, F, MARC[s], ms=3.5, color=corD[D], mfc=mfc or corD[D], mec=corD[D])
+                    ax.plot(x, sig(x, *p), color=corD[D], lw=lw, ls=ls, label=f"{D:g} h" if mt == "(i)" else None)
+        ax.axvline(KS[s], color=GRADE, lw=1.2, zorder=0)
+        ax.set_xlim(0.1, 1.e4), ax.set_ylim(0., 2.5)
+        ax.set_title(NOMES[s], fontsize=9, loc="left", color=TINTA)
+        ax.set_xlabel("$I_r$ (mm/h)", fontsize=9, color=TINTA)
+    axs[0].set_ylabel("FS no fim da chuva", fontsize=9, color=TINTA)
+    axs[0].legend(title="duração", title_fontsize=7, fontsize=7, frameon=False, loc="lower left")
+    fig.text(0.99, 0.01, "cheias: (i), ar ativo; tracejadas e vazios: (iii); linhas: a Eq. 6 ajustada a cada duração",
+             fontsize=7, color=TINTA2, ha="right")
+    fig.tight_layout(rect=(0, 0.03, 1, 1))
+    fig.savefig(os.path.join(AQUI, "figs", "duracao.pdf"))
+    plt.close(fig)
+    with open(os.path.join(AQUI, "tab", "duracao.tex"), "w") as f:
+        f.write("\\begin{tabular}{l|cc|cc|cc|cc}\n\\toprule\n & \\multicolumn{8}{c}{duração da chuva}\\\\\n"
+                "solo, grandeza & \\multicolumn{2}{c|}{3 h} & \\multicolumn{2}{c|}{6 h} & \\multicolumn{2}{c|}{12 h} & "
+                "\\multicolumn{2}{c}{24 h}\\\\\n & (iii) & (i) & (iii) & (i) & (iii) & (i) & (iii) & (i)\\\\\n\\midrule\n")
+        for s in SOLOS:
+            for nome, fn in (("$A$", lambda p: v2(p[0])), ("$I_{r(thr)}/k_s$", lambda p: v2(ini_thr(*p)[1] / KS[s])),
+                             ("$I_{r(ini)}/k_s$", lambda p: v2(ini_thr(*p)[0] / KS[s]))):
+                f.write(f"{NOMES[s]}, {nome} & " + " & ".join(fn(AJD[(s, mt, D)][0]) if (s, mt, D) in AJD else "--"
+                                                           for D in DUR for mt in ("(iii)", "(i)")) + "\\\\\n")
+            f.write("\\midrule\n" if s != SOLOS[-1] else "")
+        f.write("\\bottomrule\n\\end{tabular}\n")
+    err = [NN[k]["fs"][list(NN[k]["t"]).index(24.)] - minimo(NN[k])[0] for NN in (NOS, NOSI) for k in NN
+           if NN[k]["fim"]]
+    N["durErro"] = v3(max(err))
+
+# ---- o custo do (i) e do (ii): so as rodadas da primeira leva (os jobs que comecaram no primeiro minuto, 7 processos de
+# 3 threads por no). No (i), o f100 a 5,4 mm/h rodou depois, sozinho num no com 12 threads (a trava dele ficou vazia)
+
+
+def leva(pasta):
+    """os casos rodados pelos jobs da primeira leva e a duracao da campanha (min), do eventos.log"""
+    ev = os.path.join(pasta, "eventos.log")
+    if not os.path.exists(ev):
+        return None, None
+    L = [(datetime.strptime(lin[:19], "%Y-%m-%d %H:%M:%S"), lin.split("[")[1].split("]")[0], lin) for lin in open(ev)
+         if "[" in lin]
+    ini = {j: h for h, j, lin in L if " inicio em " in lin}
+    if not ini:
+        return None, None
+    t0 = min(ini.values())
+    jobs = {j for j, h in ini.items() if (h - t0).total_seconds() < 60.}
+    casos = {lin.split("] ")[1].split()[0] for h, j, lin in L if j in jobs and " codigo " in lin}
+    fins = [h for h, j, lin in L if j in jobs and " fim em " in lin]
+    return casos, ((max(fins) - t0).total_seconds() / 60. if fins else None)
+
+
+casos_i, camp_i = leva(FERMI_I)
+DI = [d for (s, I), d in NOSI.items() if casos_i is None or f"{s}_I{I:g}" in casos_i]
+if DI:
+    sti = [d["s"] / 60. for d in DI]
+    tr_i = [d["s_trans"][-1] for d in DI]
+    tr_3 = [d["s_trans"][-1] for d in NOS.values() if d["fim"]]
+    sf_i = [x for d in DI for x, fv in zip(d["s_fator"], d["fs"]) if fv > 0]
+    N["iCustoMin"], N["iCustoMax"], N["iCustoMedio"] = f"{min(sti):.0f}", f"{max(sti):.0f}", f"{np.mean(sti):.0f}"
+    N["iTrans"], N["iiiTrans"] = f"{np.mean(tr_i) / 60.:.0f}", f"{np.mean(tr_3) / 60.:.0f}"
+    N["iTransRazao"] = v2(np.mean(tr_i) / np.mean(tr_3))
+    N["iFator"] = f"{np.mean(sf_i):.0f}"
+    N["iLeva"] = str(len(DI))
+if camp_i:
+    N["iCampanha"] = f"{camp_i:.0f}"
+outros = [d for (s, I), d in NOSI.items() if casos_i is not None and f"{s}_I{I:g}" not in casos_i]
+if outros:
+    N["iRefeita"] = f"{outros[0]['s'] / 60.:.0f}"
+casos_ii, camp_ii = leva(FERMI_II)
+if NOSII:
+    st2 = [d["s"] / 60. for d in NOSII.values()]
+    N["iiCustoMin"], N["iiCustoMax"], N["iiCustoMedio"] = f"{min(st2):.0f}", f"{max(st2):.0f}", f"{np.mean(st2):.0f}"
+    N["iiTrans"] = f"{np.mean([d['s_trans'][-1] for d in NOSII.values()]) / 60.:.0f}"
+ev2 = os.path.join(FERMI_II, "eventos.log")
+if os.path.exists(ev2):
+    hs = [datetime.strptime(lin[:19], "%Y-%m-%d %H:%M:%S") for lin in open(ev2) if " inicio em " in lin or " fim em " in lin]
+    if hs:
+        N["iiCampanha"] = f"{(max(hs) - min(hs)).total_seconds() / 60.:.0f}"
 
 # ---- numeros.tex
 N["nFeitos"] = str(sum(1 for d in NOS.values() if d["fim"]))

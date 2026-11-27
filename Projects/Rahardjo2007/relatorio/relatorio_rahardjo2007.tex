@@ -13,10 +13,11 @@
 \newcommand{\afazer}[1]{\textcolor{red}{[A FAZER: #1]}}
 \IfFileExists{numeros.tex}{\input{numeros.tex}}{}
 \providecommand{\nFeitos}{0}\providecommand{\nTotal}{28}\providecommand{\difMedia}{--}\providecommand{\difMax}{--}
-\providecommand{\nCasos}{0}\providecommand{\nCampos}{0}\providecommand{\nMalhasF}{0}
+\providecommand{\nCasos}{0}\providecommand{\nCampos}{0}\providecommand{\nMalhasF}{0}\providecommand{\iFeitos}{0}
+\providecommand{\nCamposI}{0}\providecommand{\nPerfis}{0}\providecommand{\durErro}{--}
 
-\title{Reprodução de Rahardjo et al.\ (2007), Série B:\\ o FS de um talude homogêneo sob chuva com ar passivo\\
-\large relatório das simulações (\texttt{Projects/Rahardjo2007})}
+\title{Reprodução de Rahardjo et al.\ (2007), Série B:\\ o FS de um talude homogêneo sob chuva,\\ com ar passivo e com
+ar ativo\\ \large relatório das simulações (\texttt{Projects/Rahardjo2007})}
 \author{Diogo Cecílio}
 \date{\versao}
 
@@ -34,8 +35,18 @@ NeoPZ: esqueleto rígido e ar passivo, só a percolação da água, como no SEEP
 As \nFeitos{} rodadas reproduzem o artigo dentro do erro de leitura das figuras: os FS mínimos ficam a até \difMax{}
 dos da Fig.~6; os \cincoN{} pontos da Fig.~5 ficam a até \cincoMax{}, \cincoFrac\,\% deles a até 0,03; as \catTot{}
 categorias de nível d'água da Tabela~5 saem iguais; e a Eq.~6 ajustada aos nossos pontos fica com os parâmetros do
-artigo. Este relatório é a base da próxima etapa: as mesmas 28 rodadas com o ar ativo (modelo (i)), para propor uma
-Eq.~6 corrigida para o FS com ar.
+artigo.
+
+As mesmas rodadas com o ar ativo (modelo (i)) mudam a forma da curva do FS mínimo contra a intensidade. Nas chuvas
+médias, o ar comprimido entre a frente de umedecimento e o nível d'água levanta a poropressão com o solo ainda não
+saturado, e o FS mínimo cai até \quedaCem{} ($f_{100,-6}$ a \quedaCemI~mm/h) e \quedaCinq{} ($f_{50,-5}$ a
+\quedaCinqI~mm/h). Nas chuvas fortes,
+o ar preso não deixa o talude saturar, e o patamar de baixo sobe de 0,83 para \AUmDez{} ($f_{10,-4}$) e \AUmCinq{}
+($f_{50,-5}$); no $f_{100,-6}$, que não satura, ele cai de \ATresCem{} para \AUmCem. A sigmoide da Eq.~6 continua
+valendo, com outros parâmetros: a transição vai para chuvas menores e fica mais abrupta ($I_{r(thr)}$ de \ThrksTresCinq{}
+para \ThrksUmCinq~$k_s$ no $f_{50,-5}$). O modelo (ii), acoplado como o (i) mas com o ar passivo, fica a até \defMax{}
+do (iii): a deformação do esqueleto pesa pouco, e quase toda a diferença vem do ar. É o ponto de partida da Eq.~6
+corrigida para o FS com ar.
 \end{abstract}
 
 \tableofcontents
@@ -54,6 +65,44 @@ $f_{50,-5}$ (50~kPa, $10^{-5}$~m/s $= 36$~mm/h) e $f_{100,-6}$ (100~kPa, $10^{-6
 Fredlund, $\tau = c' + (\sigma_n - u_a)\tan\phi' + (u_a - u_w)\tan\phi^b$ (Eq.~5), com $c' = 10$~kPa, $\phi' = \phi^b =
 26°$ e $\gamma = 20$~kN/m$^3$ acima e abaixo do nível.
 
+\paragraph{Retenção e permeabilidade.} A curva de retenção é a de Fredlund e Xing (1994),
+\begin{equation}
+\theta_w(s) = C(s)\,\frac{\theta_s}{\left\{\ln\left[e + (s/a)^n\right]\right\}^m},
+\qquad C(s) = 1,\quad n = m = 1,\quad \theta_s = 0{,}45,
+\end{equation}
+com $s = u_a - u_w$ a sucção ($s = -p_w$ nos modelos (iii) e (ii), com $p_a = 0$; $s = p_a - p_w$ no (i)) e
+$\theta_w = \theta_s$ para $s \le 0$. Com $\theta_r = 0$, o grau de saturação é $S_w = \Theta = \theta_w/\theta_s =
+1/\ln(e + s/a)$. O parâmetro $a$ (10, 50 e 100~kPa) faz o papel da entrada de ar. A permeabilidade à água é a de
+Leong e Rahardjo (1997), uma potência de $\Theta$,
+\begin{equation}
+k_w(s) = k_s\,\Theta^p,\qquad p = 4,
+\end{equation}
+com o piso $k_{rw} \ge 10^{-12}$ (numérico). No modelo (i) a fase de ar tem a permeabilidade relativa de
+Brooks--Corey (não está no artigo, que não modela o ar),
+\begin{equation}
+k_{ra} = \max\left[(1 - S_e)^2\left(1 - S_e^{(2+\lambda)/\lambda}\right),\ 10^{-4}\right],\qquad
+\lambda = 3,\quad S_e = S_w,
+\end{equation}
+e a mesma permeabilidade intrínseca da água: a condutividade ao ar, em termos de pressão, é $k_s\,(\mu_w/\mu_a)\,k_{ra}/
+\gamma_w$, com $\mu_w/\mu_a = 55{,}6$. A Fig.~\ref{fig:solos} mostra as três curvas.
+
+\paragraph{A cauda da curva de retenção.} Com $C(s) = 1$, como no artigo (seguindo Leong e Rahardjo 1997a), $\theta_w$ só
+vai a zero quando $s \to \infty$: para $S_w = 0{,}2$ a sucção teria de chegar a 1460~kPa no $f_{10,-4}$, 7300~kPa no
+$f_{50,-5}$ e 14\,600~kPa no $f_{100,-6}$, e em $10^6$~kPa ainda sobra $\theta_w \approx 0{,}04$ a 0,05. É a mesma
+curva da Fig.~3(a) do artigo ($\theta_w$ = 0,34, 0,18 e 0,04 em 10, 100 e $10^6$~kPa no $f_{10,-4}$). A correção de
+Fredlund e Xing, $C(s) = 1 - \ln(1 + s/s_r)/\ln(1 + 10^6/s_r)$, levaria $\theta_w$ a zero em $10^6$~kPa. Nas rodadas,
+porém, a sucção fica em até 75~kPa (o limite do estado inicial; 135~kPa sem ele, Seção~\ref{sec:semlimite}), e $S_w$
+nunca desce de 0,43 ($f_{10,-4}$), 0,70 ($f_{50,-5}$) e 0,80 ($f_{100,-6}$). Nessa faixa a correção mudaria $\theta_w$
+em menos de 1\,\% com $s_r \ge 1000$~kPa (6\,\% com $s_r = 100$~kPa), e a cauda acima de 1000~kPa não é usada.
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/solos.pdf}
+\caption{Os três solos: a retenção $\theta_w(s)$ (a sucção inicial é limitada a 75~kPa), a permeabilidade à água
+$k_w = k_s\Theta^4$, e as permeabilidades relativas contra $S_w$: ao ar (Brooks--Corey, $\lambda = 3$, piso
+$10^{-4}$; só no modelo (i)) e à água ($S_w^4$). Cinza: a faixa de sucção das rodadas (até 75~kPa); tracejada: 135~kPa,
+o máximo sem o limite. À direita, as verticais tracejadas são o menor $S_w$ das rodadas em cada solo.}\label{fig:solos}
+\end{figure}
+
 \paragraph{As rodadas.} Sete intensidades por solo (Tabela~2), múltiplos de $k_s$: $f_{10,-4}$ de $k_s/40 = 9$ a $2{,}5\,k_s
 = 900$~mm/h; $f_{50,-5}$ de $k_s/10 = 3{,}6$ a $5\,k_s = 180$~mm/h; $f_{100,-6}$ de $k_s/4 = 0{,}9$ a $10\,k_s = 36$~mm/h.
 As Figs.~6 e 7 têm mais 7 pontos ($f_{10,-4}$ a 0,9, 1,8 e 3,6; $f_{50,-5}$ a 0,9, 1,8 e 45; $f_{100,-6}$ a 0,36~mm/h),
@@ -63,6 +112,85 @@ também calculados aqui. A chuva dura 24~h e o FS vai até 48~h. Os marcadores d
 sobrepõem).
 
 \section{O modelo no NeoPZ}\label{sec:metodo}
+\subsection{As leis de fluxo e os balanços de massa}\label{sec:fluxo}
+As duas fases fluidas seguem a lei de Darcy generalizada, com a mesma permeabilidade intrínseca
+$\kappa = k_s\mu_w/\gamma_w$ e as permeabilidades relativas da Seção~1 ($y$ para cima, $\mathbf g = -g\,\mathbf e_y$):
+\begin{align}
+\text{água:}\quad \mathbf q_w &= -\frac{\kappa\,k_{rw}}{\mu_w}\left(\nabla p_w - \rho_w\mathbf g\right)
+  = -\frac{k_s\,k_{rw}(S_w)}{\gamma_w}\left(\nabla p_w + \gamma_w\,\mathbf e_y\right),\\
+\text{ar:}\quad \mathbf q_a &= -\frac{\kappa\,k_{ra}}{\mu_a}\left(\nabla p_a - \rho_a\mathbf g\right)
+  = -\frac{\mu_w}{\mu_a}\,\frac{k_s\,k_{ra}(S_w)}{\gamma_w}\left(\nabla p_a + \gamma_a\,\mathbf e_y\right),
+\end{align}
+com $\mathbf q_w$ e $\mathbf q_a$ relativos ao esqueleto, $\mu_w/\mu_a = 55{,}6$ e $\gamma_a = 0{,}0118$~kN/m$^3$. A
+água em termos de carga é a forma usual: $\mathbf q_w = -k_w\nabla h$, com $h = y + p_w/\gamma_w$ e $k_w = k_s
+k_{rw}$. A água é pouco compressível ($K_w = 2{,}2$~GPa) e o ar é gás ideal isotérmico ($\rho_a \propto p_a + p_{atm}$).
+Para cada fluido $\pi\in\{w,a\}$, a massa por unidade de volume é $nS_\pi\rho_\pi$, e o seu balanço, em relação ao
+esqueleto, é
+\begin{equation}
+\frac{1}{\rho_\pi}\frac{\mathrm d(nS_\pi\rho_\pi)}{\mathrm dt}+nS_\pi\,\dot\varepsilon_v
++\frac{1}{\rho_\pi}\nabla\!\cdot(\rho_\pi\mathbf q_\pi)=s_\pi,
+\qquad
+\mathbf q_\pi=-\lambda_\pi\big(\nabla p_\pi-\rho_\pi\mathbf g\big),\qquad \lambda_\pi = \frac{\kappa\,k_{r\pi}}{\mu_\pi},
+\label{eq:massa-fase}
+\end{equation}
+com $s_\pi = 0$ aqui (sem fontes). Para chegar à forma que o código resolve:
+\begin{itemize}
+  \item \textbf{porosidade:} com grãos incompressíveis ($\alpha = 1$), $\dot n = (1-n)\,\dot\varepsilon_v$; então
+    $S_\pi\dot n + nS_\pi\dot\varepsilon_v = S_\pi\dot\varepsilon_v$. Nos outros coeficientes $n = n_0 = 0{,}45$;
+  \item \textbf{fluidos:} a água com $\dot\rho_w/\rho_w = \dot p_w/K_w$ ($K_w = 2{,}2$~GPa); o ar ideal isotérmico com
+    $\dot\rho_a/\rho_a = \dot p_a/(p_a + p_{atm})$;
+  \item \textbf{transporte:} $\rho_\pi^{-1}\nabla\!\cdot(\rho_\pi\mathbf q_\pi) = \nabla\!\cdot\mathbf q_\pi +
+    c_\pi\,\mathbf q_\pi\cdot\nabla p_\pi$, com $c_w = 1/K_w$ (desprezado no código) e $c_a = 1/(p_a + p_{atm})$
+    (mantido).
+\end{itemize}
+Assim:
+\begin{align}
+\text{água:}\quad & S_w\,\dot\varepsilon_v + n\,\dot S_w + \frac{n S_w}{K_w}\,\dot p_w + \nabla\!\cdot\mathbf q_w = 0,\\
+\text{ar:}\quad & S_a\,\dot\varepsilon_v + n\,\dot S_a + \frac{n S_a}{p_a + p_{atm}}\,\dot p_a + \nabla\!\cdot\mathbf q_a
+  + \frac{\mathbf q_a\cdot\nabla p_a}{p_a + p_{atm}} = 0,
+\end{align}
+com $S_a = 1 - S_w$ e $\dot S_w = -\Gamma\,(\dot p_a - \dot p_w)$, $\Gamma = -dS_w/ds$ a capacidade de retenção; o
+equilíbrio mecânico está na Seção~\ref{sec:equil}. Os modelos usam essas equações assim:
+\begin{itemize}
+  \item \textbf{(iii)}: só o balanço da água, sem $\dot\varepsilon_v$ (esqueleto rígido) e com $p_a = 0$. É a equação de
+    Richards do SEEP/W: $n\Gamma\,\dot p_w + (nS_w/K_w)\,\dot p_w + \nabla\!\cdot\mathbf q_w = 0$.
+  \item \textbf{(ii)}: o balanço da água com $\dot\varepsilon_v$ e o equilíbrio (esqueleto elástico); $p_a = 0$.
+  \item \textbf{(i)}: as três equações. No ar, $p_a = 0$ só na superfície; nas outras bordas o fluxo de ar é nulo.
+\end{itemize}
+
+\subsection{O equilíbrio mecânico}\label{sec:equil}
+O esqueleto obedece ao equilíbrio quase estático, em deformação plana e pequenas deformações:
+\begin{equation}
+\nabla\!\cdot\boldsymbol\sigma + \rho_b\,\mathbf g = \mathbf 0,\qquad
+\boldsymbol\varepsilon = \tfrac12\left[\nabla\mathbf u + (\nabla\mathbf u)^{\mathsf T}\right],\qquad
+\varepsilon_v = \nabla\!\cdot\mathbf u,
+\end{equation}
+com o peso específico $\rho_b g = \gamma = 20$~kN/m$^3$ constante (acima e abaixo do nível, como no artigo). A tensão
+total se divide pela tensão efetiva de Bishop (tração positiva, pressões positivas em compressão):
+\begin{equation}
+\boldsymbol\sigma = \boldsymbol\sigma' - \alpha\,p_B\,\mathbf I,\qquad
+p_B = p_a - \chi\,(p_a - p_w) = p_a - \chi\,s,\qquad \alpha = 1.
+\end{equation}
+Aqui $\chi = \tan\phi^b/\tan\phi' = 1$, a escolha que reproduz a resistência de Fredlund do artigo (Eq.~5):
+$p_B = p_w$, e a tensão efetiva é $\boldsymbol\sigma' = \boldsymbol\sigma + p_w\mathbf I$. O critério de Mohr--Coulomb em
+$\boldsymbol\sigma'$ dá, num plano com tensão normal $\sigma_n$ (compressão positiva),
+\begin{equation}
+\tau_f = c' + (\sigma_n - p_w)\tan\phi' = c' + (\sigma_n - u_a)\tan\phi' + (u_a - u_w)\tan\phi^b,
+\qquad \phi^b = \phi',
+\end{equation}
+que é a Eq.~5 do artigo. Com $\chi = 1$, $p_a$ sai da resistência: o ar só age através de $p_w$.
+\begin{itemize}
+  \item \textbf{Constitutivo:} $\boldsymbol\sigma'$ sai do Mohr--Coulomb associado ($c' = 10$~kPa, $\phi' = \psi =
+    26°$) com a parte elástica isotrópica ($E = 20$~MPa, $\nu = 0{,}3$), retorno analítico e tangente consistente.
+  \item \textbf{Contornos:} base presa ($u_x = u_y = 0$), laterais com $u_x = 0$, superfície livre.
+  \item \textbf{No transiente:} o (iii) não resolve o equilíbrio (esqueleto rígido). No (ii) e no (i) ele é resolvido
+    junto com os balanços de massa, com $c' = 10^9$ (resposta elástica) e a partir do estado geostático: o peso com as
+    pressões iniciais, depois $\mathbf u = \mathbf 0$ com a tensão mantida. O termo $S_\pi\,\dot\varepsilon_v$ dos
+    balanços de massa (Seção~\ref{sec:fluxo}) é o acoplamento de volta.
+  \item \textbf{No fator de segurança:} as pressões de um instante ficam congeladas e só o equilíbrio é resolvido, com
+    $c'/F$ e $\tan\phi'/F$ (Seção~\ref{sec:metodo}, SRM).
+\end{itemize}
+
 \subsection{O transiente}
 \begin{itemize}
   \item \textbf{Material:} \texttt{TPZMatUnsaturatedUPwPa} (formulação $\mathbf u$--$p_w$--$p_a$), deformação plana,
@@ -323,15 +451,350 @@ análise, 55 a 76\,\% do total, contra 950 a 1440~s para o transiente inteiro (4
 com o talude perto do colapso, porque o caminho de carga até o patamar é mais curto. O transiente sai mais caro nas
 chuvas que alagam a superfície, porque o Newton itera mais com a troca entre fluxo e face de percolação.
 
+\section{O ar ativo: modelo (i)}\label{sec:ar}
+\subsection{O que muda}
+As mesmas 28 rodadas, com as mesmas malhas, o mesmo passo de tempo, os mesmos instantes do FS e o mesmo SRM, mas com o
+transiente completo (as 28 rodadas; a do $f_{100,-6}$ a 5,4~mm/h foi refeita à parte, porque a sua trava ficou vazia na
+primeira leva):
+\begin{itemize}
+  \item \textbf{Acoplamento:} $\mathbf u$, $p_w$ e $p_a$ resolvidos juntos, com o esqueleto elástico ($E = 20$~MPa,
+    $\nu = 0{,}3$, os do \texttt{det\_3solos}; o artigo não dá). No transiente o Mohr--Coulomb tem $c' = 10^9$: ele só
+    dá as pressões e a deformação. O transiente parte do estado geostático (o peso com as pressões iniciais).
+  \item \textbf{O ar:} $p_a$ livre, com $p_a = 0$ só na superfície; na base e nas laterais o fluxo de ar é nulo, e o ar
+    só sai por cima. Permeabilidade relativa ao ar de Brooks--Corey ($\lambda = 3$) com piso de $10^{-4}$;
+    $\mu_w/\mu_a = 55{,}6$ (com o poro livre e o mesmo gradiente de pressão, o ar anda 55,6 vezes mais que a água);
+    ar como gás ideal ($p_{atm} = 101{,}3$~kPa).
+  \item \textbf{O fator:} $p_w$ e $p_a$ congeladas. Com $\chi = 1$ a resistência só depende de $\sigma - p_w$, e o ar
+    entra no FS pela poropressão: $p_w = p_a - s$. Com a mesma sucção (a mesma umidade), mais ar comprimido quer dizer
+    mais $p_w$ e menos resistência.
+  \item \textbf{O estado inicial é o mesmo:} o FS em 0~h sai 2,098 nos dois modelos.
+\end{itemize}
+
+\subsection{O FS no tempo e a pressão do ar}
+\IfFileExists{figs/fs_tempo_i.pdf}{%
+\begin{figure}[H]\centering
+\includegraphics[width=0.92\textwidth]{figs/fs_tempo_i.pdf}
+\caption{O FS (à esquerda) nos modelos (i), linhas cheias, e (iii), tracejadas, e a maior pressão do ar no domínio no
+(i) (à direita), nas 21 rodadas da Fig.~5. Chuva até 24~h. Nas seis rodadas que gravam campos, a maior $p_a$ fica
+sempre na zona não saturada (no $f_{10,-4}$ e no $f_{50,-5}$, logo acima da zona saturada).}\label{fig:fsi}
+\end{figure}}{}
+
+\begin{itemize}
+  \item \textbf{$f_{10,-4}$:} até 36~mm/h ($k_s/10$) o ar escapa pela superfície. A maior $p_a$ fica abaixo de 4~kPa,
+    e o FS é o do (iii) a menos de 0,005. A 90~mm/h, $p_a$ chega a 34~kPa, mas o FS muda só 0,011. De 180~mm/h para
+    cima, $p_a$ fica em 49~kPa e o FS para em 0,89, acima do patamar saturado do (iii) (0,83).
+  \item \textbf{$f_{50,-5}$:} o ar age em todas as intensidades. A maior $p_a$ vai de 10~kPa (3,6~mm/h) a 55 e 56~kPa
+    (36~mm/h ou mais), e o FS cai mais depressa que no (iii). Até 45~mm/h o FS do (i) fica abaixo do (iii); de 54~mm/h para cima, o
+    (i) para em 0,94 e o (iii) desce até 0,83 a 0,89.
+  \item \textbf{$f_{100,-6}$:} a maior $p_a$ chega a 30~kPa a 3,6~mm/h e a 37--38~kPa de 9~mm/h para cima. O FS do (i) fica
+    abaixo do (iii) em todas as intensidades, 0,20 a 0,37 abaixo de 3,6~mm/h para cima, o máximo a 5,4~mm/h
+    ($1{,}5\,k_s$).
+  \item \textbf{O mínimo cai no fim da chuva:} em \iMinVinte{} das \iFeitos{} rodadas do (i), o FS mínimo é o de 24~h
+    (no $f_{100,-6}$ a 0,36 e 0,9~mm/h ele ainda cai devagar até 48 e 34~h). No (iii) o $f_{100,-6}$ até 9~mm/h tinha o
+    mínimo depois da chuva, entre 27 e 35~h, porque a água continuava descendo.
+  \item \textbf{Depois da chuva:} quando a chuva para, a superfície deixa de receber água, o ar sai e $p_a$ cai. O FS
+    do (i) sobe logo: no $f_{10,-4}$ e no $f_{50,-5}$, ele ganha 0,05 a 0,12 na primeira hora. Em 48~h, o $f_{50,-5}$
+    está em 1,51 no (i) e em 1,16 a 1,26 no (iii). No $f_{100,-6}$ o ar sai devagar ($p_a$ ainda de 22 a 32~kPa em 48~h,
+    de 3,6~mm/h para cima), e o FS do (i) continua abaixo do (iii).
+\end{itemize}
+
+\subsection{O FS mínimo e a Eq.~6 com ar}
+\IfFileExists{figs/fs_min_i.pdf}{%
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/fs_min_i.pdf}
+\caption{O FS mínimo (0 a 48~h) contra a intensidade nos modelos (i) (cheios) e (iii) (vazios), cada um com a sua Eq.~6
+ajustada (Tabela~\ref{tab:eq6i}).}\label{fig:fsmini}
+\end{figure}}{}
+
+\begin{table}[H]\centering\small
+\caption{A Eq.~6, $F_{s(min)} = A + B/\{1 + \exp[-(I_r - C)/D]\}$, ajustada a cada modelo (os parâmetros do (iii) são
+os da Tabela~\ref{tab:eq6}). $^\dagger$: $C$ fixo no valor do artigo, nos três modelos. $I_{r(ini)}$ e $I_{r(thr)}$:
+a mesma construção da Tabela~\ref{tab:eq6}.}\label{tab:eq6i}
+\resizebox{\textwidth}{!}{\input{tab/eq6_i.tex}}
+\end{table}
+
+\begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\caption{Cada rodada nos modelos (iii), (ii) e (i): o FS mínimo e a diferença entre (i) e (iii), o instante do mínimo no (i), $t_1$ (o FS cruza 1
+descendo; -- se não cruza), a maior $p_a$ do (i), a fração da chuva até 24~h que infiltrou e a hora em que a
+superfície começa a alagar.}\label{tab:modeloi}
+\resizebox{\textwidth}{!}{\input{tab/modelo_i.tex}}
+\end{table}
+
+\begin{itemize}
+  \item \textbf{A forma da Eq.~6 continua valendo:} a sigmoide ajusta os pontos do (i) tão bem quanto os do (iii)
+    ($r^2 \ge 0{,}999$ nos três solos). O que muda são os parâmetros.
+  \item \textbf{O patamar de baixo, $A$,} sobe onde o (iii) satura o talude: de \ATresDez{} para \AUmDez{} no
+    $f_{10,-4}$ e de \ATresCinq{} para \AUmCinq{} no $f_{50,-5}$. O ar preso não deixa o solo saturar. No $f_{100,-6}$,
+    onde o nível não chega à superfície nem no (iii), $A$ cai de \ATresCem{} para \AUmCem: ali o ar comprimido levanta
+    $p_w$ em toda a zona molhada.
+  \item \textbf{A transição vai para chuvas menores e fica mais abrupta:} $I_{r(thr)}$ cai de \ThrTresDez{} para
+    \ThrUmDez~mm/h no $f_{10,-4}$ (de \ThrksTresDez{} para \ThrksUmDez~$k_s$), de \ThrTresCinq{} para \ThrUmCinq{}
+    (\ThrksTresCinq{} para \ThrksUmCinq~$k_s$) no $f_{50,-5}$ e de \ThrTresCem{} para \ThrUmCem{} (\ThrksTresCem{} para
+    \ThrksUmCem~$k_s$) no $f_{100,-6}$. $I_{r(ini)}$ cai de \IniTresDez{} para \IniUmDez, de \IniTresCinq{} para
+    \IniUmCinq{} e de \IniTresCem{} para \IniUmCem~mm/h. $|D|$, a largura da transição, cai de \DTresDez{} para
+    \DUmDez, de \DTresCinq{} para \DUmCinq{} e de \DTresCem{} para \DUmCem~mm/h.
+  \item \textbf{As curvas se cruzam} no $f_{10,-4}$ (perto de 100~mm/h) e no $f_{50,-5}$ (entre 45 e 54~mm/h). Abaixo
+    do cruzamento o ar baixa o FS mínimo; acima, sobe. No $f_{100,-6}$ elas não se cruzam: o ar baixa o FS mínimo em
+    todas as intensidades.
+  \item \textbf{As maiores quedas} são de \quedaCem{} no $f_{100,-6}$ a \quedaCemI~mm/h ($1{,}5\,k_s$: FS mínimo de
+    1,40 contra 1,77) e de \quedaCinq{} no $f_{50,-5}$ a \quedaCinqI~mm/h ($k_s/2$: 1,14 contra 1,48), as duas logo
+    abaixo da intensidade em que o (iii) começa a alagar a superfície. No $f_{50,-5}$ a 36~mm/h o (i) rompe ($t_1$ =
+    16,3~h) e o (iii) não (FS mínimo de 1,03).
+\end{itemize}
+
+\subsection{A deformação sem o ar: modelo (ii)}\label{sec:modeloii}
+O modelo (ii) é o (iii) com o esqueleto elástico acoplado ($E = 20$~MPa, $\nu = 0{,}3$, o mesmo do (i)), sem a fase de
+ar ($p_a = 0$). As \iiFeitos{} rodadas separam o que o (i) muda em duas partes: a deformação, (ii) $-$ (iii), e o ar,
+(i) $-$ (ii).
+
+\IfFileExists{figs/decomposicao.pdf}{%
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/decomposicao.pdf}
+\caption{A diferença de FS mínimo separada em deformação, (ii) $-$ (iii), e ar, (i) $-$ (ii), contra a intensidade em
+múltiplos de $k_s$.}\label{fig:decomp}
+\end{figure}}{}
+
+\begin{itemize}
+  \item \textbf{O FS em 0~h é o mesmo} (2,098): o estado geostático não muda as pressões.
+  \item \textbf{A deformação pesa pouco:} ela muda o FS mínimo de 0 a $+$\defMax{} (o maior no \defMaxSolo{} a
+    \defMaxI~mm/h). O esqueleto que se deforma guarda um pouco mais de água, e a poropressão sobe um pouco mais devagar.
+    Nas chuvas fortes do $f_{50,-5}$, em 24~h o (ii) ainda não chegou ao patamar saturado (0,86 a 0,88, contra 0,83); no
+    $f_{10,-4}$ a 360 e 900~mm/h ele chega ao mesmo 0,826, só uma a duas horas depois (9 a 10~h, contra 7 a 8~h).
+  \item \textbf{O ar explica quase tudo:} a diferença (i) $-$ (ii) vai de $-$\arMin{} (\arMinSolo{} a \arMinI~mm/h) a
+    $+$\arMax{} (\arMaxSolo{} a \arMaxI~mm/h), praticamente a mesma (i) $-$ (iii) da Tabela~\ref{tab:modeloi}.
+  \item \textbf{Na Eq.~6} (Tabela~\ref{tab:eq6i}) os parâmetros do (ii) ficam perto dos do (iii): $I_{r(thr)}$ de
+    \ThrksDoisDez, \ThrksDoisCinq{} e \ThrksDoisCem~$k_s$, contra \ThrksTresDez, \ThrksTresCinq{} e \ThrksTresCem. O
+    patamar $A$ do $f_{50,-5}$ sobe de \ATresCinq{} para \ADoisCinq{} porque, em 24~h, o (ii) ainda não saturou.
+  \item \textbf{Consequência:} a correção da Eq.~6 é do ar. Para ela, tanto faz tomar como referência o (iii) (o SEEP/W
+    do artigo) ou o (ii).
+\end{itemize}
+
+\subsection{O mecanismo: os campos de pressão}\label{sec:campos_i}
+\ifnum\nCamposI>0
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/campos_i.pdf}
+\caption{Os campos em 24~h, o instante do FS mínimo do (i): $p_w$ no (iii), $p_w$ no (i) e $p_a$ no (i), em quatro das
+seis rodadas que gravam campos. A linha grossa é $p_w = 0$; a tracejada, $s = p_a - p_w = 0$. No (iii) a zona saturada
+é $p_w \ge 0$; no (i) ela é $s \le 0$ (abaixo da tracejada, e em cinza no painel de $p_a$).}\label{fig:camposi}
+\end{figure}
+\fi
+
+Os números abaixo são de uma vertical sob a crista ($x = 20$~m), em 24~h:
+\begin{itemize}
+  \item \textbf{$f_{50,-5}$ a 36~mm/h, o ar levanta $p_w$:} no (i), $p_w > 0$ desde a superfície (0,3~kPa a 5~cm,
+    5~kPa a 2~m, 11~kPa a 5~m), mas o solo ainda tem de 8 a 32~kPa de sucção. É $p_a$, de 8~kPa na superfície a
+    50~kPa a 10~m, que empurra a água. No (iii), $p_w$ fica entre $-7$ e $-18$~kPa nos 8~m de cima. A poropressão sobe de
+    7~kPa (na superfície) a 28~kPa (a 5~m), e o FS cai de 1,03 para 0,94. É o mesmo efeito dos poços em que o nível
+    d'água sobe de repente numa chuva forte (o efeito Lisse): o ar preso entre a frente de umedecimento e o nível d'água
+    é comprimido e empurra a água.
+  \item \textbf{No (i), $p_w = 0$ deixa de marcar a zona saturada.} O limite da zona saturada é $s = 0$ (tracejada). No
+    $f_{50,-5}$ a 36~mm/h, a linha $p_w = 0$ já saiu pela crista em 24~h, mas o solo acima da tracejada ainda não está
+    saturado. Por isso as rodadas do (i) não são classificadas pelas categorias da Tabela~3: pela linha $p_w = 0$, o
+    $f_{50,-5}$ já seria I a 36~mm/h e o $f_{100,-6}$ seria III de 9~mm/h para cima, com o solo ainda com sucção.
+  \item \textbf{$f_{10,-4}$ a 900~mm/h, o ar segura a saturação:} no (iii) o talude está todo saturado, com percolação
+    ($p_w$ = 11~kPa a 2~m e 59~kPa a 10~m). No (i) o ar preso mantém de 2 a 5~kPa de sucção nos 10~m de cima, e $p_w$
+    fica menor (5,6 e 46~kPa). O FS fica em 0,89, contra 0,83. Entra menos água (12\,\% da chuva, contra 17\,\%).
+  \item \textbf{$f_{100,-6}$ a 9~mm/h:} no (i), $p_a$ de 10 a 31~kPa nos 5~m de cima, e $p_w$ de 4 a 20~kPa maior que no
+    (iii) ($-18$ contra $-35$~kPa a 2~m; $-37$ contra $-57$~kPa a 5~m). O FS cai de 1,55 para 1,28.
+  \item \textbf{$f_{10,-4}$ a 90~mm/h, o ar escapa:} $p_a$ fica abaixo de 3,5~kPa nos 6~m de cima, e $p_w$ é a do (iii) a
+    menos de 2~kPa. O FS é praticamente o mesmo (1,062 contra 1,073).
+  \item \textbf{A superfície de ruptura é a mesma:} nas seis rodadas, as malhas do fator em 24~h põem a banda no mesmo
+    lugar nos dois modelos. Ela sai na crista em $x$ = 27,3 a 27,9~m e passa de 2 a 4,5~m abaixo do meio da face. O ar
+    muda o FS pela pressão, não pelo mecanismo.
+\end{itemize}
+
+\subsection{Linhas de controle: $p_w$, a sua taxa de variação, $p_a$ e a saturação}\label{sec:perfis}
+Duas verticais de controle, uma sob a crista ($x = 20$~m) e outra no meio da face ($x = 35$~m), com $p_w$ contra a
+profundidade nos instantes em que as rodadas gravam o campo (0, 6, 12, 24 e 48~h). A taxa de variação é a média entre
+dois desses instantes, $[p_w(t_2) - p_w(t_1)]/(t_2 - t_1)$. Uma série de hora em hora num ponto exigiria gravar $p_w$
+em cada passo, o que as rodadas não fizeram.
+
+\ifnum\nPerfis>0
+\begin{figure}[H]\centering
+\includegraphics[width=0.92\textwidth]{figs/perfis_i.pdf}
+\caption{$p_w$ nas duas verticais de controle, nos modelos (i) (cheias) e (iii) (tracejadas), em 0, 6, 12, 24 e 48~h.}
+\label{fig:perfis}
+\end{figure}
+\begin{figure}[H]\centering
+\includegraphics[width=0.92\textwidth]{figs/taxa_i.pdf}
+\caption{A taxa média de variação de $p_w$ (kPa/h) nas mesmas verticais, entre os instantes gravados: 0--6, 6--12,
+12--24 e 24--48~h.}\label{fig:taxa}
+\end{figure}
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/perfis_ar_i.pdf}
+\caption{Nas mesmas verticais e instantes: a pressão do ar no (i) e o grau de saturação nos dois modelos ((i) cheias,
+(iii) tracejadas). $S_w$ vem da curva de retenção com a sucção $s = p_a - p_w$ ($s = -p_w$ no (iii)):
+$S_w = 1/\ln(e + s/a)$ para $s > 0$ e 1 para $s \le 0$.}\label{fig:perfisar}
+\end{figure}
+\fi
+
+\begin{itemize}
+  \item \textbf{No (iii), $p_w$ só sobe onde a frente chega.} Abaixo dela, a taxa fica perto de zero. No $f_{50,-5}$ a
+    36~mm/h, sob a crista a 10~m, ela é 0,1~kPa/h de 0 a 6~h e 0,6~kPa/h de 6 a 12~h.
+  \item \textbf{No (i), $p_w$ sobe também à frente da frente,} porque o ar comprimido transmite a pressão: no mesmo
+    ponto, 1,5 e 3,8~kPa/h. No $f_{100,-6}$ a 9~mm/h, a 6~m, 0,6 e 0,9~kPa/h contra 0,3 e 0,3. Por isso no (i) toda a
+    coluna perde sucção ao mesmo tempo, e não só a camada molhada.
+  \item \textbf{Perto da superfície,} o (i) sobe mais depressa no começo ($f_{50,-5}$ a 36~mm/h, a 1~m sob a crista:
+    8,0 contra 6,5~kPa/h de 0 a 6~h) e depois quase para (0,4 contra 1,1 de 12 a 24~h). O ar já levou $p_w$ para
+    perto do valor em que a sucção que sobra segura a água.
+  \item \textbf{$f_{10,-4}$ a 900~mm/h:} no (iii) $p_w$ para de mudar depois de 12~h (o regime permanente saturado,
+    taxa zero de 12 a 24~h). No (i) ela continua subindo devagar (1 a 2~kPa/h abaixo de 6~m de 12 a 24~h), porque o
+    ar preso sai aos poucos.
+  \item \textbf{$f_{10,-4}$ a 90~mm/h:} as taxas dos dois modelos ficam a menos de 0,6~kPa/h uma da outra: o ar escapa.
+  \item \textbf{Mais pressão com menos água} (Fig.~\ref{fig:perfisar}, em 24~h): no (i) o solo fica \emph{menos}
+    saturado que no (iii) e, mesmo assim, com $p_w$ maior. No $f_{50,-5}$ a 36~mm/h, sob a crista, $S_w$ é 0,86, 0,83
+    e 0,83 a 1, 3 e 6~m, contra 0,94, 0,91 e 0,89 no (iii), com $p_a$ de 27, 37 e 45~kPa. No meio da face o (iii) já
+    está saturado ($S_w = 1$) até 10~m, e o (i) fica entre 0,87 e 0,90. No $f_{10,-4}$ a 900~mm/h o (iii) está todo
+    saturado, e o (i) fica com $S_w$ de 0,85 a 0,98 nos 10~m de cima. É o ar que ocupa os poros e não deixa a água
+    entrar, e é a sua pressão que empurra $p_w$ para cima.
+  \item \textbf{O perfil de $p_a$} cresce com a profundidade até perto da zona saturada: o ar sai pela superfície e
+    fica preso por baixo. Ele chega a 45--52~kPa a 6--10~m no $f_{50,-5}$ a 36~mm/h. No $f_{100,-6}$ a 9~mm/h o máximo
+    (cerca de 30~kPa) fica a 1--3~m, logo abaixo da frente, e cai mais fundo. No $f_{10,-4}$ a 90~mm/h, $p_a$ fica em
+    0 a 3~kPa nos 6~m de cima.
+  \item \textbf{Depois da chuva (24--48~h)} as taxas ficam negativas na parte de cima nos dois modelos (a drenagem). No
+    (i) a queda é um pouco maior, porque $p_a$ também cai.
+\end{itemize}
+
+\subsection{A duração da chuva}\label{sec:duracao}
+O artigo usa 24~h em todas as séries. Com a chuva constante desde $t = 0$, uma chuva de $D \le 24$~h tem a mesma
+história da de 24~h até $t = D$. Então o FS em $t = D$ das nossas rodadas é o FS no fim de uma chuva de duração $D$.
+Ele é um limite de cima do FS mínimo dessa chuva: o mínimo pode vir depois que ela para. Em 24~h, a diferença entre o
+FS no fim da chuva e o mínimo de 0 a 48~h é no máximo \durErro{} (no $f_{100,-6}$, onde a água continua descendo). No
+(i) o FS sobe logo que a chuva para, e a aproximação deve valer também para chuvas curtas. Para o (iii) e chuvas curtas
+ela ainda precisa de rodadas com $D < 24$~h. Chuvas de mais de 24~h precisam de rodadas novas: a etapa 2 no fermi
+roda os 28 casos nos dois modelos com chuvas de 6, 12, 48, 72 e 144~h, com o FS até 24~h depois do fim de cada uma.
+
+\IfFileExists{figs/duracao.pdf}{%
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/duracao.pdf}
+\caption{O FS no fim de chuvas de 3, 6, 12 e 24~h contra a intensidade (a Fig.~\ref{fig:fsmini} para outras
+durações), nos modelos (i) (cheios) e (iii) (vazios, tracejadas), cada curva com a sua Eq.~6.}\label{fig:duracao}
+\end{figure}}{}
+
+\begin{table}[H]\centering\small
+\caption{Os parâmetros da Eq.~6 ajustada ao FS no fim da chuva, para cada duração: o patamar de baixo $A$ e as
+intensidades de início e de limiar em múltiplos de $k_s$.}\label{tab:duracao}
+\input{tab/duracao.tex}
+\end{table}
+
+\begin{itemize}
+  \item \textbf{Chuva mais curta, curva para a direita e para cima:} é preciso mais intensidade para chegar ao
+    patamar, e o patamar fica mais alto (o talude não tem tempo de saturar).
+  \item \textbf{O efeito do ar aparece em todas as durações:} o limiar do (i) fica de 10 a 55\,\% abaixo do (iii) (Tabela~\ref{tab:duracao}).
+  \item \textbf{O cruzamento das curvas é coisa da chuva longa.} No $f_{50,-5}$, até 12~h o patamar do (i) fica
+    \emph{abaixo} do (iii), porque o (iii) ainda não saturou e o ar só levanta $p_w$. Só em 24~h, com o (iii)
+    saturado, o patamar do (i) passa para cima.
+  \item \textbf{Para a Eq.~6 corrigida,} os parâmetros passam a depender também de $D$: a curva é uma superfície
+    $F_{s}(I_r, D)$, e $A$ e $I_{r(thr)}$ caem com $D$ até o regime permanente.
+\end{itemize}
+
+\subsection{Sem o limite de sucção inicial}\label{sec:semlimite}
+O artigo limita a sucção inicial a 75~kPa. Sem o limite, a sucção é hidrostática até a superfície: uns 50~kPa no pé,
+até 135~kPa no topo do domínio e cerca de 120~kPa sob a crista. Um teste no PC (opção \texttt{succao=}, FS em 0, 6, 12
+e 24~h, mesma malha e passo) em dois casos, nos dois modelos:
+
+\begin{table}[H]\centering\small
+\caption{O FS com e sem o limite de 75~kPa na sucção inicial, e a maior $p_a$ do (i) (kPa).}\label{tab:semlimite}
+\begin{tabular}{ll|cc|cc|cc}
+\toprule
+caso & $t$ (h) & \multicolumn{2}{c|}{(iii)} & \multicolumn{2}{c|}{(i)} & \multicolumn{2}{c}{maior $p_a$ (i)}\\
+ & & com limite & sem & com limite & sem & com limite & sem\\
+\midrule
+$f_{50,-5}$, 36~mm/h & 0 & 2,098 & 2,183 & 2,098 & 2,183 & 0 & 0\\
+ & 6 & 1,722 & 1,821 & 1,418 & 1,578 & 31 & 31\\
+ & 12 & 1,398 & 1,460 & 1,073 & 1,119 & 43 & 43\\
+ & 24 & 1,030 & 1,069 & 0,942 & 0,954 & 55 & 53\\
+\midrule
+$f_{100,-6}$, 9~mm/h & 0 & 2,098 & 2,183 & 2,098 & 2,183 & 0 & 0\\
+ & 6 & 1,976 & 2,065 & 1,833 & 1,950 & 28 & 28\\
+ & 12 & 1,856 & 1,956 & 1,550 & 1,743 & 32 & 32\\
+ & 24 & 1,555 & 1,678 & 1,278 & 1,356 & 37 & 38\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{itemize}
+  \item \textbf{O FS inicial sobe 0,085} (2,098 para 2,183): a resistência ganha $s\tan\phi'$ onde a sucção passa de
+    75~kPa, atrás da crista. Pouco, porque a superfície de ruptura passa perto da face, onde a sucção já era menor.
+  \item \textbf{A chuva age mais devagar:} o solo mais seco é menos permeável ($k_w = k_s\Theta^4$) e guarda mais
+    água antes de perder sucção. Em 24~h o FS sem limite fica 0,04 acima no $f_{50,-5}$ e 0,12 acima no $f_{100,-6}$
+    no (iii); no (i), 0,01 e 0,08.
+  \item \textbf{O efeito do ar fica igual ou maior:} a diferença (i) $-$ (iii) em 24~h vai de $-0{,}09$ para $-0{,}12$
+    no $f_{50,-5}$ e de $-0{,}28$ para $-0{,}32$ no $f_{100,-6}$. A maior $p_a$ praticamente não muda: ela depende do ar
+    que a frente comprime, não da sucção inicial.
+  \item \textbf{Na Eq.~6}, o patamar de cima sobe (o FS inicial) e a transição deve ir para intensidades um pouco
+    maiores. Nas chuvas que saturam o talude o patamar de baixo não muda, porque o regime permanente não depende do
+    estado inicial. Para reproduzir o artigo o limite fica; para a Eq.~6 com ar, o limite de sucção é mais um fator a
+    variar.
+\end{itemize}
+
+\subsection{Infiltração, alagamento e primeira passagem}
+\begin{itemize}
+  \item \textbf{Entra menos água} (Tabela~\ref{tab:modeloi}): o ar nos poros resiste à entrada da água. No $f_{50,-5}$
+    a 36~mm/h infiltram 59\,\% da chuva, contra 87\,\%; no $f_{100,-6}$ a 9~mm/h, 65\,\% contra 95\,\%. A superfície
+    alaga antes: às 4~h em vez de 12~h no $f_{50,-5}$ a 36~mm/h, e às 4~h em vez de 11~h no $f_{100,-6}$ a 9~mm/h. O
+    $f_{50,-5}$ a 18~mm/h e o $f_{100,-6}$ a 3,6~mm/h alagam no (i) e não no (iii).
+  \item \textbf{Mesmo assim, $p_w$ sobe mais:} a linha $p_w = 0$ em 24~h fica mais alta no (i) no $f_{50,-5}$ e no
+    $f_{100,-6}$ (no $f_{100,-6}$ a 9~mm/h ela chega ao pé, 4~m acima do (iii)). É a pressão do ar, não mais água.
+  \item \textbf{$t_1$:} no $f_{50,-5}$, de 45 a 180~mm/h, o ar adianta a ruptura em 4 a 7~h ($t_1$ = 14,2 a 15,2~h,
+    contra 18,1 a 21,9~h), mesmo de 54~mm/h para cima, onde o FS mínimo do (i) é maior. A 36~mm/h o (i) rompe em
+    16,3~h e o (iii) não rompe. No $f_{10,-4}$ o ar adianta a ruptura a 180~mm/h (8,9
+    contra 10,6~h) e a atrasa a 360 e 900~mm/h (8,7 contra 5,3 a 5,8~h).
+  \item \textbf{A volta:} no (i) o FS volta acima de 1 cerca de 1~h depois do fim da chuva (25~h), contra 26,6~h no
+    $f_{10,-4}$ e 29 a 32~h no $f_{50,-5}$ no (iii).
+  \item \textbf{Consequência:} com ar, o FS mínimo e $t_1$ contam histórias diferentes. O FS mínimo pode subir enquanto
+    $t_1$ adianta. A Eq.~6 corrigida precisa escolher o alvo: o FS mínimo, como no artigo, ou $t_1$, que é o que importa
+    para um alerta.
+\end{itemize}
+
+\paragraph{Custo.} Cada rodada do (i) levou de \iCustoMin{} a \iCustoMax~min no fermi (média \iCustoMedio~min). O
+transiente custa \iTransRazao{} vezes o do (iii) (\iTrans{} contra \iiiTrans~min em média, os mesmos 480 passos), e o FS
+\iFator~s por análise. As \iLeva{} rodadas da primeira leva, em 4 nós, levaram \iCampanha~min (os números acima são
+delas); a do $f_{100,-6}$ a 5,4~mm/h rodou depois, sozinha num nó com 12 threads, em \iRefeita~min. Cada rodada do (ii)
+levou de \iiCustoMin{} a \iiCustoMax~min (média \iiCustoMedio~min), com \iiTrans~min de transiente, quase o mesmo do
+(i): o custo a mais vem do acoplamento com o esqueleto, não do ar. As 28 rodadas do (ii) levaram \iiCampanha~min (o
+quarto nó só entrou depois de 27~min, quando o $f_{100,-6}$ a 5,4~mm/h do (i) terminou).
+
+\subsection{Para a Eq.~6 corrigida}\label{sec:eq6ar}
+O que as \iFeitos{} rodadas do (i) dizem para a proposta:
+\begin{enumerate}
+  \item \textbf{A forma fica.} A Eq.~6 corrigida pode manter a sigmoide e mudar os parâmetros.
+  \item \textbf{O ar pesa mais nos solos menos permeáveis e de maior entrada de ar.} Em múltiplos de $k_s$, a transição
+    quase não muda no $f_{10,-4}$ ($I_{r(thr)}$ de \ThrksTresDez{} para \ThrksUmDez~$k_s$), cai à metade no $f_{50,-5}$
+    (de \ThrksTresCinq{} para \ThrksUmCinq) e cerca de 40\,\% no $f_{100,-6}$ (de \ThrksTresCem{} para \ThrksUmCem). No $f_{10,-4}$ ($a = 10$~kPa), a camada de cima seca o bastante para deixar o
+    ar sair. No $f_{100,-6}$ ($a = 100$~kPa), o solo fica quase saturado mesmo com sucção, a permeabilidade ao ar fica
+    baixa, e $p_a$ sobe já com $k_s/10$.
+  \item \textbf{O patamar de baixo muda para lados opostos:} sobe quando o (iii) satura o talude ($f_{10,-4}$ e
+    $f_{50,-5}$: o ar preso limita a saturação) e cai quando não satura ($f_{100,-6}$: o ar levanta $p_w$ na zona
+    molhada).
+  \item \textbf{Os três solos não separam $a$ de $k_s$:} $a$ = 10, 50 e 100~kPa vêm junto com $k_s = 10^{-4}$, $10^{-5}$
+    e $10^{-6}$~m/s. Para escrever os parâmetros da Eq.~6 como funções de $I_r/k_s$ e de $a$, é preciso uma campanha que
+    varie os dois separadamente (por exemplo, 3 valores de $a$ com 3 de $k_s$, com as mesmas 7 a 10 intensidades).
+  \item \textbf{As conferências:}
+    \begin{itemize}
+      \item o modelo (ii), acoplado com o ar passivo, mostrou que a deformação pesa pouco (até \defMax,
+        Seção~\ref{sec:modeloii}): a correção é do ar;
+      \item o piso de $k_{ra}$ ($10^{-4}$) entra onde o solo fica quase saturado, como na camada de cima nas chuvas
+        fortes, e pode mudar quanto ar sai por ali e, com isso, o patamar $A$. Um teste com $10^{-3}$ e $10^{-5}$ em 2 ou
+        3 rodadas mostra quanto.
+    \end{itemize}
+\end{enumerate}
+
 \section{Conclusão e próximos passos}
 O modelo (iii) do NeoPZ reproduz a Série B: a Fig.~5, as Figs.~6 e 7 com a Eq.~6, e a Tabela~5. As diferenças ficam
 no tamanho do erro de leitura das figuras, e as que têm padrão (o FS inicial 0,01 abaixo, o patamar saturado 0,016
-acima) vêm do método do fator (SRM contra Bishop) e da malha do fator, não do transiente. A base para o ar está pronta:
+acima) vêm do método do fator (SRM contra Bishop) e da malha do fator, não do transiente.
+
+O ar ativo (modelo (i)) muda a resposta de duas formas opostas. Nas chuvas médias, o ar comprimido levanta a poropressão
+sem saturar o solo, e o FS mínimo cai até \quedaCem{} (no $f_{100,-6}$ a \quedaCemI~mm/h). Nas fortes, o ar preso
+segura a saturação, e o patamar de baixo sobe. A Eq.~6 continua descrevendo a curva, mas a transição vai para chuvas
+menores e fica mais abrupta, tanto mais quanto menos permeável o solo. O modelo (ii) mostra que essa diferença é do ar:
+a deformação do esqueleto muda o FS mínimo em no máximo \defMax. Os próximos passos, na etapa 2 no fermi:
 \begin{enumerate}
-  \item As mesmas 28 rodadas com o ar ativo (modelo (i): água e ar com o esqueleto elástico, $p_a = 0$ só na
-    superfície), nas mesmas malhas, passo de tempo e instantes do FS.
-  \item A Eq.~6 com e sem o ar: os parâmetros $A$, $B$, $C$ e $D$ e as intensidades $I_{r(ini)}$ e $I_{r(thr)}$ nos dois
-    modelos, e uma Eq.~6 corrigida para o FS com ar.
+  \item O teste do piso de $k_{ra}$.
+  \item As chuvas de 6, 12, 48, 72 e 144~h, para a Eq.~6 em função também da duração.
+  \item Os 6 solos que separam $a$ de $k_s$, para escrever os parâmetros da Eq.~6 como funções de $I_r/k_s$ e $a$; e a
+    escolha do alvo (FS mínimo ou $t_1$).
 \end{enumerate}
 
 \end{document}

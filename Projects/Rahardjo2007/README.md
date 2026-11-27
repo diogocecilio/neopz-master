@@ -48,6 +48,17 @@ ssh diogo@fermi.cesup.ufrgs.br 'tail -n 3 ~/rah_lanca_i.log; squeue -u diogo; cd
 ssh diogo@fermi.cesup.ufrgs.br 'cd ~/neopz-rah/Projects/Rahardjo2007/cluster && sed "s/modelo=i\b/modelo=ii/" casos_i.txt > casos_ii.txt && SAIDA=/mnt/data/diogo/rahardjo2007_i CASOS_ARQ=$PWD/casos_i.txt PARALELO=1 THREADS=12 ./submeter.sh 1 && SAIDA=/mnt/data/diogo/rahardjo2007_ii CASOS_ARQ=$PWD/casos_ii.txt ./submeter.sh 4 && squeue -u diogo'
 ```
 
+Etapa 2 (`cluster/casos_etapa2.txt`, 408 rodadas, ~1 dia em 4 nós): o piso de k_ra (`kramin=`), a duração da chuva
+(`chuva=`, 6, 12, 48, 72 e 144 h, modelos iii e i) e os 6 solos que separam a de k_s (`a=`, `ks=`). Lançada por um processo no nó
+de login que espera não haver mais jobs `rah2007` na fila (o (ii) usa a mesma build), copia, compila e submete:
+
+```bash
+rsync -a ~/projects/neopz-master/Projects/Rahardjo2007 ~/projects/neopz-master/Projects/CMakeLists.txt diogo@fermi.cesup.ufrgs.br:rah_src/
+ssh diogo@fermi.cesup.ufrgs.br 'nohup setsid bash -c "until q=\$(squeue -h -u diogo -n rah2007 -o %i) && [ -z \"\$q\" ]; do sleep 120; done; set -x; cp -a ~/rah_src/Rahardjo2007 ~/rah_src/CMakeLists.txt ~/neopz-rah/Projects/ && cd ~/neopz-rah/Projects/Rahardjo2007/cluster && JOBS=12 ./compilar.sh && SAIDA=/mnt/data/diogo/rahardjo2007_etapa2 CASOS_ARQ=\$PWD/casos_etapa2.txt ./submeter.sh 4" > ~/rah_lanca_etapa2.log 2>&1 < /dev/null & echo lancado'
+```
+
+Download: `cluster/baixar.sh etapa2`.
+
 Trava órfã: no (i), o `.trava` do f100_I5.4 foi criado vazio no instante em que os 28 processos pegavam casos (um soluço do
 sistema de arquivos do fermi), e nenhum processo o rodou. O `resumo` agora mostra esses casos como "trava vazia"; o
 `submeter.sh`, sem job `rah2007` na fila, libera as travas dos casos sem `fim`.
