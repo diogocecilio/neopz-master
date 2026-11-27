@@ -1,0 +1,5 @@
+build/
+bin/
+logs/*
+!logs/.gitkeep
+compilar.log

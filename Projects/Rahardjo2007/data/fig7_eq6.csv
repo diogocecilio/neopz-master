@@ -1,0 +1,6 @@
+# Rahardjo et al. (2007), Fig. 7: a Eq. 6, FS_min = A + B / (1 + exp(-(I_r - C)/D)) (I_r em mm/h), e as intensidades de
+# inicio e de limiar (I_ini, I_thr, mm/h) com os volumes de chuva em 24 h (V_ini, V_thr, mm)
+solo,A,B,C,D,r2,I_ini,V_ini,I_thr,V_thr
+f10,0.81,13.54,-118,-52,0.999,11,264,140,3360
+f50,0.82,1.83,10.7,-13.13,0.997,8.5,204,51,1224
+f100,1.45,0.70,4.75,-2.35,0.998,2.8,67.2,11,264

@@ -1,0 +1,337 @@
+% relatorio_rahardjo2007.tex: a reproducao da Serie B de Rahardjo et al. (2007) no NeoPZ (Projects/Rahardjo2007). Figuras
+% e tabelas: gera_dados.py, com os dados de ~/projects/runs/rahardjo2007; ./gera.sh refaz tudo.
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern,amsmath,amssymb,booktabs,graphicx,geometry,caption,float,xcolor}
+\usepackage[hidelinks]{hyperref}
+\geometry{margin=2.3cm}
+\captionsetup{font=small}
+\emergencystretch=2em
+\providecommand{\versao}{}
+\newcommand{\afazer}[1]{\textcolor{red}{[A FAZER: #1]}}
+\IfFileExists{numeros.tex}{\input{numeros.tex}}{}
+\providecommand{\nFeitos}{0}\providecommand{\nTotal}{28}\providecommand{\difMedia}{--}\providecommand{\difMax}{--}
+\providecommand{\nCasos}{0}\providecommand{\nCampos}{0}\providecommand{\nMalhasF}{0}
+
+\title{Reprodução de Rahardjo et al.\ (2007), Série B:\\ o FS de um talude homogêneo sob chuva com ar passivo\\
+\large relatório das simulações (\texttt{Projects/Rahardjo2007})}
+\author{Diogo Cecílio}
+\date{\versao}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+H.~Rahardjo, T.~H.~Ong, R.~B.~Rezaur e E.~C.~Leong (2007), \emph{Factors controlling instability of homogeneous soil
+slopes under rainfall} (J.\ Geotech.\ Geoenviron.\ Eng.\ 133(12):1532--1543), calculam no SEEP/W e no SLOPE/W o fator de
+segurança de um talude homogêneo de 10~m a 45° sob chuvas de 24~h, em três solos residuais de Singapura. Na Série B a
+intensidade varia de $k_s/40$ a $10\,k_s$; dela saem a Fig.~5 (o FS ao longo de 48~h), as Figs.~6 e 7 (o FS mínimo
+contra a intensidade e a sigmoide da Eq.~6) e a Tabela~5 (onde está o nível d'água no FS mínimo). Aqui a Série B inteira
+(28 rodadas: as 21 da Tabela~2 e os 7 pontos que só aparecem nas Figs.~6 e 7) é calculada com o modelo (iii) do
+NeoPZ: esqueleto rígido e ar passivo, só a percolação da água, como no SEEP/W, e o FS pelo SRM de hora em hora.
+As \nFeitos{} rodadas reproduzem o artigo dentro do erro de leitura das figuras: os FS mínimos ficam a até \difMax{}
+dos da Fig.~6; os \cincoN{} pontos da Fig.~5 ficam a até \cincoMax{}, \cincoFrac\,\% deles a até 0,03; as \catTot{}
+categorias de nível d'água da Tabela~5 saem iguais; e a Eq.~6 ajustada aos nossos pontos fica com os parâmetros do
+artigo. Este relatório é a base da próxima etapa: as mesmas 28 rodadas com o ar ativo (modelo (i)), para propor uma
+Eq.~6 corrigida para o FS com ar.
+\end{abstract}
+
+\tableofcontents
+
+\section{O artigo e a Série B}
+\paragraph{O talude (Fig.~2 do artigo).} Altura $H_s = 10$~m, inclinação $\alpha = 45°$, domínio de 70~m de largura
+(30~m de crista, 10~m de face e 30~m de pé) e 30~m de altura na crista. O nível d'água inicial fica $H_w = 5$~m abaixo do
+pé e sobe 7° para dentro do maciço; a poropressão inicial é hidrostática, limitada a $-75$~kPa. Contornos da
+percolação: fluxo nulo na base e nas laterais acima do nível; carga total igual à inicial nas laterais abaixo dele; na
+superfície, o fluxo $q = I_r$ (o \emph{unit flux} do SEEP/W).
+
+\paragraph{Os solos (Tabela~1).} Retenção de Fredlund e Xing com $C(\psi) = 1$, $n = m = 1$ e $\theta_s = 0{,}45$:
+$\theta_w = \theta_s/\ln(e + \psi/a)$; permeabilidade de Leong e Rahardjo, $k_w = k_s\,\Theta^4$ ($\Theta =
+\theta_w/\theta_s$). Os três solos só diferem em $a$ e $k_s$: $f_{10,-4}$ ($a = 10$~kPa, $k_s = 10^{-4}$~m/s $= 360$~mm/h),
+$f_{50,-5}$ (50~kPa, $10^{-5}$~m/s $= 36$~mm/h) e $f_{100,-6}$ (100~kPa, $10^{-6}$~m/s $= 3{,}6$~mm/h). Resistência de
+Fredlund, $\tau = c' + (\sigma_n - u_a)\tan\phi' + (u_a - u_w)\tan\phi^b$ (Eq.~5), com $c' = 10$~kPa, $\phi' = \phi^b =
+26°$ e $\gamma = 20$~kN/m$^3$ acima e abaixo do nível.
+
+\paragraph{As rodadas.} Sete intensidades por solo (Tabela~2), múltiplos de $k_s$: $f_{10,-4}$ de $k_s/40 = 9$ a $2{,}5\,k_s
+= 900$~mm/h; $f_{50,-5}$ de $k_s/10 = 3{,}6$ a $5\,k_s = 180$~mm/h; $f_{100,-6}$ de $k_s/4 = 0{,}9$ a $10\,k_s = 36$~mm/h.
+As Figs.~6 e 7 têm mais 7 pontos ($f_{10,-4}$ a 0,9, 1,8 e 3,6; $f_{50,-5}$ a 0,9, 1,8 e 45; $f_{100,-6}$ a 0,36~mm/h),
+também calculados aqui. A chuva dura 24~h e o FS vai até 48~h. Os marcadores da Fig.~5 estão em 0, 1, 2, 3, 6, 12, 24,
+28, 32, 40 e 48~h: o FS mínimo do artigo é o menor desses instantes. Os valores do artigo foram lidos das figuras
+(\texttt{data/}; erro de leitura de $\approx 0{,}02$, até $\approx 0{,}04$ entre 1 e 3~h, onde os marcadores se
+sobrepõem).
+
+\section{O modelo no NeoPZ}\label{sec:metodo}
+\subsection{O transiente}
+\begin{itemize}
+  \item \textbf{Material:} \texttt{TPZMatUnsaturatedUPwPa} (formulação $\mathbf u$--$p_w$--$p_a$), deformação plana,
+    $\mathbf u$ quadrático e $p_w$, $p_a$ lineares. No modelo (iii) o acoplamento hidromecânico e a fase de ar estão
+    desligados nas equações de massa (esqueleto rígido, $p_a = 0$): só a equação da água evolui (Richards), com o
+    armazenamento concentrado nos vértices e $K_w = 2{,}2$~GPa.
+  \item \textbf{Tempo:} Euler implícito com passo de 0,1~h (metades só se o Newton não converge), Newton com o
+    jacobiano consistente, solver direto (LU esparsa).
+  \item \textbf{Contornos:} os do artigo (carga nas laterais abaixo do nível inicial, fluxo nulo no resto). Na
+    superfície, o fluxo $I_r$ por metro inclinado (o \emph{unit flux} do SEEP/W) com a condição unilateral $p_w \le 0$:
+    o nó em que $p_w$ chegaria a 0 passa à face de percolação ($p_w = 0$) e volta ao fluxo quando a vazão pedida fica
+    abaixo de $I_r$. O excesso escoa, como o artigo descreve.
+  \item \textbf{Malha} (Fig.~\ref{fig:malhas}): camadas que seguem o terreno, colunas a cada 1~m, a primeira camada com
+    0,3\,\% da altura da coluna (6 a 9~cm) crescendo 15\,\% até 2,5\,\% (0,5 a 0,75~m); 6860 triângulos, 35\,018
+    equações.
+\end{itemize}
+
+\subsection{O fator de segurança: SRM}
+\begin{itemize}
+  \item \textbf{Definição:} o FS é o fator $F$ que leva o talude ao colapso quando a resistência é reduzida para
+    $c'/F$ e $\tan\phi'/F$ (redução de resistência). Com $\chi = \tan\phi^b/\tan\phi' = 1$, a parcela da sucção,
+    $\chi\,s\tan\phi'$, cai junto: é o $\tan\phi^b/F$ do Bishop, o mesmo fator do equilíbrio limite do artigo. A
+    diferença é a superfície: livre no SRM, circular no Bishop simplificado.
+  \item \textbf{Pressões congeladas:} em cada instante, $p_w$ do transiente é interpolada linearmente da malha do
+    transiente para a do fator e fica fixa ($p_a = 0$); o fator resolve só o equilíbrio.
+  \item \textbf{Material do fator:} Mohr--Coulomb associado ($\psi = \phi'$), retorno analítico e tangente consistente
+    (\texttt{TPZPlasticStepVoigt<TPZYCMohrCoulombPV2>}), $E = 20$~MPa, $\nu = 0{,}3$ (não mudam o FS); $\mathbf u$
+    quadrático. Cada análise parte do estado sem tensões.
+  \item \textbf{Caminho:} (1) o peso é aplicado de 0 a 1 com $F = F_0 = 0{,}8$ (se o talude não fica em pé, $F_0/2$);
+    (2) $F$ cresce por \emph{arc-length} cilíndrico, com a carga tangente $-\partial R/\partial F$ por diferença finita,
+    até um patamar. O FS é o maior $F$ do caminho.
+  \item \textbf{Refinamento adaptativo, refeito do zero em cada instante:} a malha inicial (catetos de 5~m) e 4
+    níveis; em cada nível, os triângulos com $\sqrt{J_2(\boldsymbol\varepsilon^p)} \ge 0{,}1$ do maior (a banda de
+    ruptura) são divididos e o SRM é refeito. O FS é o do último nível (Tabela~\ref{tab:niveis}).
+  \item \textbf{Instantes:} de hora em hora, de 0 a 48~h (49 análises por rodada).
+\end{itemize}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.92\textwidth]{figs/malhas.pdf}
+\caption{As malhas. (a) A malha do transiente, a mesma em todas as rodadas (a conferência de malha da
+Tabela~\ref{tab:malha} usa outra, com as colunas e as camadas pela metade: 25\,378 triângulos). (b) O detalhe da
+crista: as camadas finas junto à superfície acompanham a frente de umedecimento. (c) A malha inicial do fator; em cada
+instante ela é refinada 4 vezes na banda de ruptura (Fig.~\ref{fig:malhasF}). Tracejado: o nível d'água
+inicial.}\label{fig:malhas}
+\end{figure}
+
+\paragraph{Conferência de malha.} Nos três casos extremos ($f_{10,-4}$ a 900, $f_{50,-5}$ e $f_{100,-6}$ a 36~mm/h), a
+mesma rodada com a malha do transiente e o passo de tempo pela metade (colunas a cada 0,5~m, camadas de 0,15 a
+1,25\,\%, $\Delta t = 0{,}05$~h; 25\,378 triângulos), nos instantes do artigo:
+
+\begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\caption{O FS nos instantes do artigo com a malha base e com a malha e o passo pela metade (fina).}\label{tab:malha}
+\resizebox{\textwidth}{!}{\input{tab/malha.tex}}
+\end{table}
+
+A malha e o passo pela metade mudam o FS em no máximo 0,008 (no $f_{10,-4}$ a 900~mm/h, em 1 e 6~h, quando a frente de
+umedecimento ainda está nos primeiros metros); nos outros dois casos, em 0,004 e 0,001. O erro do transiente fica bem
+abaixo do erro de leitura das figuras do artigo ($\approx 0{,}02$), e a malha base serve para as 28 rodadas e para o
+modelo (i). (A malha fina tem 125\,978 equações e 960 passos: 55 a 65~min por rodada no PC, com 4 threads.)
+
+\section{O FS ao longo do tempo (Fig.~5)}
+\begin{figure}[H]\centering
+\includegraphics[width=0.9\textwidth]{figs/fs_tempo.pdf}
+\caption{O FS contra o tempo nos três solos: o NeoPZ (modelo (iii), linhas, FS de hora em hora) e a Fig.~5 do artigo
+(círculos). Chuva até 24~h (tracejado).}\label{fig:fs}
+\end{figure}
+
+As curvas do NeoPZ passam pelos marcadores do artigo nos três solos: dos \cincoN{} pontos da Fig.~5, \cincoFrac\,\%
+ficam a até 0,03 e todos a até \cincoMax{} (desvio quadrático médio de \cincoRms). O que sobra tem padrão:
+\begin{itemize}
+  \item \textbf{Em 0~h} o nosso FS é 2,098 e o do artigo $\approx 2{,}11$, nos três solos (o estado inicial é o mesmo:
+    a sucção limitada a 75~kPa não depende do solo). É a diferença entre os métodos: o SRM, com a superfície de
+    ruptura livre, contra o círculo do Bishop simplificado.
+  \item \textbf{Entre 1 e 6~h}, no $f_{50,-5}$ e no $f_{100,-6}$, os nossos pontos ficam até 0,05 abaixo. É onde os
+    marcadores do artigo se sobrepõem e a leitura erra até 0,04.
+  \item \textbf{No patamar saturado} ($f_{10,-4}$ de 180 a 900~mm/h e $f_{50,-5}$ a 90 e 180~mm/h, com o nível d'água
+    na crista) o nosso FS é 0,826 e o do artigo 0,81. O FS do SRM ainda cai $\approx 0{,}01$ do nível 3 para o 4 do
+    refinamento (Tabela~\ref{tab:niveis}): o FS convergido deve ficar perto de 0,815.
+  \item \textbf{Depois da chuva} a recuperação também bate. O $f_{10,-4}$ recupera depressa: FS $\approx 1{,}6$ em
+    48~h em todas as intensidades que saturaram o talude. O $f_{50,-5}$ recupera devagar, e o $f_{100,-6}$ quase nada.
+    No $f_{100,-6}$ até 9~mm/h o FS ainda cai depois que a chuva para (o mínimo fica entre 27 e 35~h), porque a
+    água que entrou continua descendo.
+\end{itemize}
+
+\section{O FS mínimo e a Eq.~6 (Figs.~6 e 7)}
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/fs_min.pdf}
+\caption{O FS mínimo (0 a 48~h) contra a intensidade: o artigo (Fig.~7, vazios) com a sua Eq.~6 (tracejado), e o NeoPZ
+(cheios) com a Eq.~6 ajustada aos nossos pontos.}\label{fig:fsmin}
+\end{figure}
+
+\begin{table}[H]\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\caption{O FS inicial e o FS mínimo, nosso e do artigo (Fig.~6), e a categoria do nível d'água no FS mínimo (Tabela~3
+do artigo: I, o nível chega à crista; II, ao meio da face; III, ao pé; IV, não chega à superfície), nossa e do artigo
+(Tabela~5). A nossa categoria é o ponto mais alto da superfície que o nível toca (Seção~\ref{sec:nivel}). ``Nos
+instantes do artigo'': o nosso mínimo só entre 0, 1, 2, 3, 6, 12, 24, 28, 32, 40 e 48~h.}\label{tab:fsmin}
+\resizebox{\textwidth}{!}{\input{tab/fs_min.tex}}
+\end{table}
+
+\begin{table}[H]\centering\small
+\caption{A Eq.~6, $F_{s(min)} = A + B/\{1 + \exp[-(I_r - C)/D]\}$ ($I_r$ em mm/h): os parâmetros do artigo (Fig.~7) e os
+ajustados aos nossos pontos. $I_{r(ini)}$ e $I_{r(thr)}$: as intensidades em que a tangente ao trecho inclinado da curva
+(no gráfico semilog) cruza o patamar de cima e o de baixo; entre parênteses, a mesma construção aplicada à Eq.~6 do
+artigo (ele traçou as tangentes à mão). $^\dagger$: $C$ fixo no valor do artigo (com $C < 0$ só $B\,e^{C/|D|}$ é
+identificável).}\label{tab:eq6}
+\input{tab/eq6.tex}
+\end{table}
+
+Os \nCasos{} FS mínimos ficam a até \difMax{} dos do artigo (diferença média \difMedia). A sigmoide da Fig.~7 sai
+inteira, com os dois patamares e o trecho inclinado no mesmo lugar. A Eq.~6 ajustada aos nossos pontos
+(Tabela~\ref{tab:eq6}):
+\begin{itemize}
+  \item \textbf{$f_{50,-5}$ e $f_{100,-6}$:} os quatro parâmetros livres ficam a até 3,5\,\% dos do artigo.
+  \item \textbf{$f_{10,-4}$:} o $C$ do artigo é negativo ($-118$~mm/h). Com $C < 0$, para $I_r \ge 0$, a Eq.~6 é
+    praticamente $A + B\,e^{C/|D|}\,e^{-I_r/|D|}$. Só o produto $B\,e^{C/|D|}$ conta, e o ajuste livre vai a
+    $B \approx 2{,}6\times10^4$ e $C \approx -540$ com a mesma curva; o mesmo acontece ajustando os pontos lidos do
+    próprio artigo. Com $C$ fixo em $-118$: $A = 0{,}82$, $B = 13{,}9$ e $D = -51{,}2$ (artigo: 0,81, 13,54 e $-52$).
+  \item \textbf{O patamar de baixo}, $A$, é o FS do talude saturado até a crista: 0,82 a 0,83, contra 0,81 e 0,82 no
+    artigo, igual nos dois solos que saturam. No $f_{100,-6}$ o nível não chega à superfície e o patamar de baixo é
+    outro: 1,45, como no artigo. Ali a chuva só tira a sucção das camadas de cima (Seção~\ref{sec:campos}).
+  \item \textbf{$I_{r(ini)}$ e $I_{r(thr)}$:} 10,2 e 144~mm/h (artigo: 11 e 140), 7,1 e 49 (8,5 e 51) e 2,6 e 11,4
+    (2,8 e 11). Comparando com a mesma construção aplicada à Eq.~6 do artigo (entre parênteses na tabela), as
+    diferenças ficam abaixo de 0,2~mm/h em $I_{r(ini)}$ e de 3\,\% em $I_{r(thr)}$. O resto é o traçado à mão do
+    artigo.
+  \item \textbf{Em múltiplos de $k_s$}, $I_{r(thr)}$ é $0{,}4\,k_s$ no $f_{10,-4}$, $1{,}4\,k_s$ no $f_{50,-5}$ e
+    $3{,}2\,k_s$ no $f_{100,-6}$. Em 24~h de chuva, o solo mais permeável chega ao patamar de baixo com uma fração de
+    $k_s$; o menos permeável precisa de várias vezes $k_s$, e mesmo assim o patamar é só o da perda de sucção.
+\end{itemize}
+
+\section{O nível d'água no FS mínimo (Tabela~5)}\label{sec:nivel}
+\begin{figure}[H]\centering
+\includegraphics[width=0.92\textwidth]{figs/nivel.pdf}
+\caption{O nível d'água (o topo da zona saturada que vem da base) no instante do FS mínimo, e a categoria da Tabela~3:
+nossa e, entre parênteses, a da Tabela~5 do artigo.}\label{fig:nivel}
+\end{figure}
+
+As \catOk{} de \catTot{} categorias da Tabela~5 saem iguais (Tabela~\ref{tab:fsmin}). A regra: a categoria é o ponto
+mais alto da superfície que o nível d'água toca (a menos de 5~cm) no instante do FS mínimo. A crista ($x \le 30$~m) dá
+I, a metade de cima da face ($x \le 35$~m) dá II, o resto da face e o pé dão III, e não tocar dá IV. O programa
+(\texttt{Categoria} em \texttt{main.cpp}) testa só três pontos ($x = 30$, 35 e 40~m) e dá II para o $f_{10,-4}$ a
+180~mm/h. Ali o nível fica 1~m abaixo da quina da crista, porque a água drena para a face, mas já está na superfície
+de $x = 16$ a 28~m (Fig.~\ref{fig:nivel}).
+
+Os solos se separam pelo nível d'água em 24~h (Tabela~\ref{tab:diag}):
+\begin{itemize}
+  \item \textbf{$f_{10,-4}$:} até 36~mm/h ($k_s/10$) o nível sobe até 3~m e não chega à superfície; a 90~mm/h chega
+    ao pé, e de 180~mm/h para cima, à crista.
+  \item \textbf{$f_{50,-5}$:} até 18~mm/h ($k_s/2$) não chega (a 18~mm/h fica 0,7~m abaixo do pé); a 36 e 45~mm/h
+    chega à metade de cima da face; de 54~mm/h para cima, à crista.
+  \item \textbf{$f_{100,-6}$:} o nível mal sai do lugar (sobe no máximo 1,6~m, junto ao pé) e fica na categoria IV em
+    todas as intensidades.
+\end{itemize}
+
+\paragraph{O refinamento do fator.} O FS em cada nível do refinamento adaptativo, no instante do FS mínimo das 21
+rodadas da Fig.~5:
+
+\begin{table}[H]\centering\small
+\caption{O FS em cada nível do refinamento adaptativo do SRM, no instante do FS mínimo.}\label{tab:niveis}
+\input{tab/niveis.tex}
+\end{table}
+
+Do nível 3 para o 4 o FS ainda cai de 0,002 a 0,015, e a queda diminui mais ou menos pela metade a cada nível. Por esse
+critério o FS convergido fica cerca de 0,01 abaixo do último nível. É um viés pequeno e sempre para cima; para comparar
+os modelos (iii) e (i) basta usar o mesmo refinamento nos dois.
+
+\section{O transiente e a primeira passagem}\label{sec:trans}
+\begin{table}[H]\centering\small
+\caption{O transiente: o FS em 0, 24 e 48~h; a fração da chuva até 24~h que infiltrou (a chuva por metro inclinado,
+74,1~m de superfície); a hora em que a superfície começa a alagar (face de percolação); o nível d'água em 24~h na
+crista ($x = 30$~m, superfície em 30~m), no meio da face (25~m) e no pé (20~m).}\label{tab:diag}
+\resizebox{\textwidth}{!}{\input{tab/diag.tex}}
+\end{table}
+
+\paragraph{Primeira passagem.} O instante $t_1$ em que o FS cruza 1 pela primeira vez (interpolado entre as horas
+vizinhas) é a ruptura: o que vem depois no cálculo usa a geometria intacta e as pressões de um talude que já rompeu. Com
+chuva constante, $t_1$ dá a ruptura para todas as durações: a rodada que rompe em $t_1$ rompe em qualquer chuva da
+mesma intensidade com duração $D \ge t_1$.
+
+\begin{table}[H]\centering\small
+\caption{As rodadas que rompem: $t_1$ (o FS cruza 1 descendo), o instante em que volta acima de 1 e o tempo abaixo de
+1.}\label{tab:cruza}
+\input{tab/cruza.tex}
+\end{table}
+
+\begin{itemize}
+  \item \textbf{Infiltração:} a chuva entra inteira até 36~mm/h ($k_s/10$) no $f_{10,-4}$, até 18~mm/h ($k_s/2$) no
+    $f_{50,-5}$ e até 5,4~mm/h ($1{,}5\,k_s$) no $f_{100,-6}$. Acima disso a superfície alaga e o excesso escoa. No
+    $f_{10,-4}$ a 900~mm/h só 17\,\% entra, e a superfície alaga já na primeira hora.
+  \item \textbf{Ruptura:} rompem (FS $< 1$) as três intensidades mais fortes do $f_{10,-4}$ (180, 360 e 900~mm/h,
+    $t_1$ = 10,6, 5,8 e 5,3~h) e as quatro mais fortes do $f_{50,-5}$ (45 a 180~mm/h, $t_1$ = 21,9 a 18,1~h). O
+    $f_{100,-6}$ não rompe. Acima de $I_{r(thr)}$ o $t_1$ quase não muda (de 5,8 para 5,3~h no $f_{10,-4}$, de 18,7
+    para 18,1~h no $f_{50,-5}$), porque o que passa da capacidade de infiltração escoa.
+  \item \textbf{Depois da chuva:} o FS volta acima de 1 em 2,6~h no $f_{10,-4}$ e em 5 a 8,5~h no $f_{50,-5}$.
+  \item \textbf{Duração crítica:} nas rodadas que rompem, o FS começa a subir assim que a chuva para (o mínimo cai em
+    24~h ou no patamar). Então $t_1$ é também, com boa aproximação, a menor duração de chuva que rompe o talude naquela
+    intensidade: 22~h a 45~mm/h no $f_{50,-5}$, 10,6~h a 180~mm/h no $f_{10,-4}$. Cada rodada que rompe dá um ponto da
+    curva intensidade--duração crítica.
+\end{itemize}
+
+\section{Campos de pressão e malhas do fator}\label{sec:campos}
+Seis rodadas no PC (duas intensidades por solo, com o FS em 0, 6, 12, 24 e 48~h) gravam o campo de $p_w$ e a malha
+final do fator em cada instante.
+
+\ifnum\nCampos>0
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/campos.pdf}
+\caption{O campo de $p_w$ em 6, 24 e 48~h. Isolinhas a cada 20~kPa na sucção ($-80$ a $-20$~kPa) e a cada 50~kPa
+acima de zero; a linha grossa é o nível d'água ($p_w = 0$). Onde ela não aparece ($f_{10,-4}$ a 900 e $f_{50,-5}$ a
+180~mm/h em 24~h), o talude está todo saturado.}\label{fig:campos}
+\end{figure}
+\fi
+\ifnum\nMalhasF>0
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/malhas_fator.pdf}
+\caption{A malha final do fator (a malha inicial e 4 níveis adaptativos) em 0 e 24~h, com o indicador plástico
+$\sqrt{J_2(\boldsymbol\varepsilon^p)}$ de cada triângulo, relativo ao maior do instante, em faixas de escala log. O
+critério do refinamento divide os triângulos com 0,1 ou mais (as duas faixas mais escuras).}\label{fig:malhasF}
+\end{figure}
+\fi
+
+Os campos mostram o mecanismo por trás das Tabelas~\ref{tab:diag} e \ref{tab:fsmin} (os números abaixo são de $p_w$ numa
+vertical sob a crista, $x = 20$~m):
+\begin{itemize}
+  \item \textbf{$f_{10,-4}$ a 90~mm/h:} em 24~h a camada de cima fica com sucção uniforme de 14~kPa. É a sucção em que
+    a permeabilidade iguala a chuva ($k_s\Theta^4 = 90$~mm/h dá $\psi \approx 14$~kPa), o regime de gradiente unitário.
+    A sucção não chega a zero e o FS para em 1,07; o nível sobe por baixo até a superfície do pé.
+  \item \textbf{$f_{10,-4}$ a 900~mm/h e $f_{50,-5}$ a 180~mm/h:} em 6~h a sucção do $f_{10,-4}$ já foi a zero até
+    7~m de profundidade, e em 24~h, nos dois, $p_w > 0$ da superfície à base. A superfície de ruptura fica mais rasa.
+    Em 0~h ela sai na crista uns 5~m atrás da quina e passa de 3 a 7~m abaixo do meio da face; em 24~h, no
+    $f_{10,-4}$ a 900~mm/h, sai na quina e passa de 2 a 4~m abaixo da face. A malha final do fator cai de 1397 para
+    746 triângulos, porque a banda é mais curta (Fig.~\ref{fig:malhasF}).
+  \item \textbf{$f_{50,-5}$ a 36~mm/h:} em 24~h a sucção sob a crista cai para 7 a 18~kPa em toda a coluna, e o nível
+    sobe 3~m, até a metade de cima da face. A superfície de ruptura sai na crista 1 a 2~m atrás da quina.
+  \item \textbf{$f_{100,-6}$:} a frente anda devagar. A 36~mm/h, em 24~h a sucção é zero na superfície e 23~kPa a 2~m,
+    mas ainda 51~kPa a 5~m (era 74). O nível não sobe, mas a superfície de ruptura também fica mais rasa: em 24~h ela
+    sai na crista 1 a 2~m atrás da quina (era 5~m) e corta a camada molhada junto à face, onde a sucção caiu.
+  \item \textbf{Em 48~h}, sem evaporação, a parte de cima drena e a sucção volta. No $f_{10,-4}$ ela passa de 75~kPa
+    no topo: é o equilíbrio hidrostático com o nível, sem o limite de 75~kPa do estado inicial. No $f_{100,-6}$ a água
+    que entrou se redistribui e a sucção fica em $\approx 45$~kPa nos 5 primeiros metros.
+  \item \textbf{A malha do fator} acompanha a banda de cada instante: o refinamento refeito do zero põe os triângulos
+    onde a banda está naquele instante, sem herdar a de 0~h.
+  \item \textbf{O indicador plástico} (Fig.~\ref{fig:malhasF}) varia ordens de grandeza. No último nível a deformação
+    se concentra na face, sobretudo junto ao pé: os triângulos com 0,1 do maior ou mais (os que o critério ainda
+    dividiria) ficam entre $x = 30$ e 42~m. A superfície inteira, da crista ao pé, aparece na faixa de 0,01 a 0,1. Em
+    0~h, com a resistência dividida por 2,1, a zona atrás da crista também plastifica, com 1 a 10\,\% do maior.
+\end{itemize}
+
+\section{Custo computacional}\label{sec:custo}
+\begin{table}[H]\centering\small
+\caption{Custo por rodada no fermi (Xeon Silver 4116; 7 rodadas por nó, 3 threads cada): os passos e o tempo do
+transiente de 48~h, as análises do fator, o tempo por FS (média e mínimo--máximo) e o tempo total (s).}\label{tab:custo}
+\resizebox{0.8\textwidth}{!}{\input{tab/custo.tex}}
+\end{table}
+
+Cada rodada (48~h de transiente e 49 FS) levou de \custoMin{} a \custoMax{}~min no fermi (média \custoMedio~min).
+As 28 rodadas, em 4 nós, levaram \campanha~min do início ao fim. O FS custa mais que o transiente: 33 a 62~s por
+análise, 55 a 76\,\% do total, contra 950 a 1440~s para o transiente inteiro (480 passos). O FS sai mais barato
+com o talude perto do colapso, porque o caminho de carga até o patamar é mais curto. O transiente sai mais caro nas
+chuvas que alagam a superfície, porque o Newton itera mais com a troca entre fluxo e face de percolação.
+
+\section{Conclusão e próximos passos}
+O modelo (iii) do NeoPZ reproduz a Série B: a Fig.~5, as Figs.~6 e 7 com a Eq.~6, e a Tabela~5. As diferenças ficam
+no tamanho do erro de leitura das figuras, e as que têm padrão (o FS inicial 0,01 abaixo, o patamar saturado 0,016
+acima) vêm do método do fator (SRM contra Bishop) e da malha do fator, não do transiente. A base para o ar está pronta:
+\begin{enumerate}
+  \item As mesmas 28 rodadas com o ar ativo (modelo (i): água e ar com o esqueleto elástico, $p_a = 0$ só na
+    superfície), nas mesmas malhas, passo de tempo e instantes do FS.
+  \item A Eq.~6 com e sem o ar: os parâmetros $A$, $B$, $C$ e $D$ e as intensidades $I_{r(ini)}$ e $I_{r(thr)}$ nos dois
+    modelos, e uma Eq.~6 corrigida para o FS com ar.
+\end{enumerate}
+
+\end{document}

@@ -1,0 +1,24 @@
+# Rahardjo et al. (2007), Tabela 5: a categoria do nivel d'agua no FS minimo (Tabela 3: I, o nivel chega a crista;
+# II, ao meio da face; III, ao pe; IV, sem elevacao ou elevacao pequena). Na tabela, 0,8 mm/h e o 0,9 do f100
+solo,I_mmh,categoria
+f10,9,IV
+f10,18,IV
+f10,36,IV
+f10,90,III
+f10,180,I
+f10,360,I
+f10,900,I
+f50,3.6,IV
+f50,9,IV
+f50,18,IV
+f50,36,II
+f50,54,I
+f50,90,I
+f50,180,I
+f100,0.9,IV
+f100,1.8,IV
+f100,3.6,IV
+f100,5.4,IV
+f100,9,IV
+f100,18,IV
+f100,36,IV

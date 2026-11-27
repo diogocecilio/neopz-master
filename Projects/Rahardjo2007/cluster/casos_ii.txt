@@ -1,0 +1,34 @@
+# casos_ii.txt: as mesmas 28 rodadas do casos.txt com o modelo (ii): acoplado (esqueleto elastico, E = 20 MPa, nu = 0,3)
+# e com o ar passivo (p_a = 0 em todo o dominio). FS de hora em hora de 0 a 48 h. Os 6 casos das figuras de campo do
+# relatorio (os do casos_campos.txt) gravam tambem o campo de p_w e a malha do fator em 0, 6, 12, 24 e 48 h.
+# Uso (no fermi): SAIDA=/mnt/data/diogo/rahardjo2007_ii CASOS_ARQ=$PWD/casos_ii.txt ./submeter.sh 4
+# 1. a Serie B (Tabela 2 e Fig. 5): 3 solos x 7 intensidades
+f10_I900   solo=f10 I=900 tempos=1h modelo=ii campos=0,6,12,24,48
+f10_I360   solo=f10 I=360 tempos=1h modelo=ii
+f10_I180   solo=f10 I=180 tempos=1h modelo=ii
+f10_I90    solo=f10 I=90 tempos=1h modelo=ii campos=0,6,12,24,48
+f10_I36    solo=f10 I=36 tempos=1h modelo=ii
+f10_I18    solo=f10 I=18 tempos=1h modelo=ii
+f10_I9     solo=f10 I=9 tempos=1h modelo=ii
+f50_I180   solo=f50 I=180 tempos=1h modelo=ii campos=0,6,12,24,48
+f50_I90    solo=f50 I=90 tempos=1h modelo=ii
+f50_I54    solo=f50 I=54 tempos=1h modelo=ii
+f50_I36    solo=f50 I=36 tempos=1h modelo=ii campos=0,6,12,24,48
+f50_I18    solo=f50 I=18 tempos=1h modelo=ii
+f50_I9     solo=f50 I=9 tempos=1h modelo=ii
+f50_I3.6   solo=f50 I=3.6 tempos=1h modelo=ii
+f100_I36   solo=f100 I=36 tempos=1h modelo=ii campos=0,6,12,24,48
+f100_I18   solo=f100 I=18 tempos=1h modelo=ii
+f100_I9    solo=f100 I=9 tempos=1h modelo=ii campos=0,6,12,24,48
+f100_I5.4  solo=f100 I=5.4 tempos=1h modelo=ii
+f100_I3.6  solo=f100 I=3.6 tempos=1h modelo=ii
+f100_I1.8  solo=f100 I=1.8 tempos=1h modelo=ii
+f100_I0.9  solo=f100 I=0.9 tempos=1h modelo=ii
+# 2. os pontos que so aparecem nas Figs. 6 e 7 (FS minimo contra I_r)
+f10_I3.6   solo=f10 I=3.6 tempos=1h modelo=ii
+f10_I1.8   solo=f10 I=1.8 tempos=1h modelo=ii
+f10_I0.9   solo=f10 I=0.9 tempos=1h modelo=ii
+f50_I45    solo=f50 I=45 tempos=1h modelo=ii
+f50_I1.8   solo=f50 I=1.8 tempos=1h modelo=ii
+f50_I0.9   solo=f50 I=0.9 tempos=1h modelo=ii
+f100_I0.36 solo=f100 I=0.36 tempos=1h modelo=ii

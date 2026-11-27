@@ -52,6 +52,7 @@ add_subdirectory(LearningLiakopoulos) # projeto de estudo do autor: dessaturacao
 add_subdirectory(Kang2020)          # Kang et al. 2020: talude infinito sob chuva, ar passivo x ar ativo
 add_subdirectory(Cho2016)           # Cho 2016: talude 2D sob chuva, so agua x agua-ar, FS pelo SRM
 add_subdirectory(Cho2020)           # Cho 2020: talude infinito com rocha rasa, coluna normal (fragilidade)
+add_subdirectory(Rahardjo2007)      # Rahardjo et al. 2007: Serie B (3 solos x 7 chuvas), modelos (iii), (ii) e (i), FS pelo SRM no tempo
 add_subdirectory(SlopeRandomField)    # talude de Rahardjo sob chuva com campos aleatorios (Karhunen-Loeve) e Monte Carlo
 add_subdirectory(KLCilindroMika)      # Karhunen-Loeve de Galerkin: meio cilindro de Mika et al. (2021) e talude de Ceron (2025)
 add_subdirectory(Common)             # biblioteca comum dos taludes (SlopeAnalysis: malhas hp, GIM e SRM) e teste dos metodos

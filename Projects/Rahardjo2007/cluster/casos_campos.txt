@@ -1,0 +1,8 @@
+# casos_campos.txt: os campos de p_w e as malhas refinadas do fator (rodadas no PC): duas intensidades por solo, o FS e
+# os campos em 0, 6, 12, 24 e 48 h
+f10_I900  solo=f10 I=900 tempos=0,6,12,24,48 campos=0,6,12,24,48
+f10_I90   solo=f10 I=90 tempos=0,6,12,24,48 campos=0,6,12,24,48
+f50_I180  solo=f50 I=180 tempos=0,6,12,24,48 campos=0,6,12,24,48
+f50_I36   solo=f50 I=36 tempos=0,6,12,24,48 campos=0,6,12,24,48
+f100_I36  solo=f100 I=36 tempos=0,6,12,24,48 campos=0,6,12,24,48
+f100_I9   solo=f100 I=9 tempos=0,6,12,24,48 campos=0,6,12,24,48
