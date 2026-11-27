@@ -42,9 +42,11 @@ os 26 casos de Vargas Ceron et al.\ 2025), a fórmula prevê a $\Pf$ dentro de u
 duração), e fica do lado conservador onde a cauda do FS é mais leve que a lognormal (Ceron); falha quando o $k_s$
 aleatório cria um limiar e o FS fica bimodal (a coluna de Cho e X.\ Liu em 24~h). Em dados de oito outros artigos
 (Yang et al.\ 2026, Tang et al.\ 2018 e outros) ela reproduz a $\Pf$ contra o CoV da resistência e, no talude de
-Rahardjo, $\Pf \approx 50\,\%$ onde o FS determinístico vale 1. A verificação, ponto a ponto, está rodando no fermi
-(campanha \texttt{frag}): a primeira passagem de 2000 realizações em 7 intensidades (ar passivo) e 5 (ar ativo) no f50 e
-de 1000 realizações em 4 intensidades por variante no f100 com chuva de até 120~h.
+Rahardjo, $\Pf \approx 50\,\%$ onde o FS determinístico vale 1. A verificação ponto a ponto no fermi (campanha
+\texttt{frag}, primeira passagem) responde: no f50 (2000 realizações, completo), com um $\beta$ só, a fórmula acerta
+até $I \approx k_s$ e subestima acima dele, onde o $\beta$ cresce (0,077 $\to$ 0,108 com ar passivo); com ar ativo
+erra também abaixo da calibração. No f100 (parcial, 466 de 1000 realizações, 72~h) a fórmula fica dentro de $|z|
+\le 2{,}6$ em todas as intensidades, e o $\beta$ cresce com a duração.
 \end{abstract}
 \tableofcontents
 
@@ -565,7 +567,7 @@ f100, (iii) e (i) & 120~h & FS em 72 e 120~h a 9 e a 3,6 & 1000 & $\beta$ e $m$\
     f50 depois de uma noite. Análise: \path{cluster/resumo_frag.py} (via \path{cluster/baixar_frag.sh}).
 \end{itemize}
 
-\section{Simulação de Monte Carlo (resultados parciais)}\label{sec:mc}
+\section{Simulação de Monte Carlo}\label{sec:mc}
 % macros que so existem com dados (o gera_dados.py/mc_secao.py as escreve no numeros.tex)
 \providecommand{\mcFormBetaA}{--}\providecommand{\mcFormPfA}{--}\providecommand{\mcFormBetaB}{--}
 \providecommand{\mcFormPfB}{--}\providecommand{\mcFragPfA}{--}\providecommand{\mcFragPfB}{--}
@@ -579,6 +581,7 @@ f100, (iii) e (i) & 120~h & FS em 72 e 120~h a 9 e a 3,6 & 1000 & $\beta$ e $m$\
 \providecommand{\fragZmMaxi}{--}\providecommand{\fragZmDentroi}{--}\providecommand{\fragTopIi}{--}
 \providecommand{\fragCensMedi}{--}\providecommand{\fragCensMedSei}{--}\providecommand{\fragCensBetai}{--}
 \providecommand{\fragCensBetaSei}{--}\providecommand{\fragPrevMedi}{--}\providecommand{\fragPrevMedMedioi}{--}
+\providecommand{\fragCemTem}{0}
 
 Os números desta seção são de \mcData{} e mudam enquanto as rodadas andam: o \texttt{gera.sh} refaz as figuras e as
 tabelas com os dados do momento. Em todos os casos o alvo é CoV$(\Pf) = 5\,\%$. As estimativas correntes usam as
@@ -674,9 +677,11 @@ $m' = \fragMki$).}\label{tab:fragi}
 \end{figure}
 
 \begin{itemize}
-  \item \textbf{Na (i), o mesmo quadro.} Com o $F$ do $k_s$ mediano,
+  \item \textbf{Na (i), quase o mesmo quadro.} Com o $F$ do $k_s$ mediano,
     \fragZkDentroi{} intensidades ficam com $|z| \le 2$ ($|z|$ chega a \fragZki); com o do $k_s$ médio,
-    \fragZmDentroi{} ($|z|$ até \fragZmMaxi).
+    \fragZmDentroi{} ($|z|$ até \fragZmMaxi). A diferença para a (iii) é a menor intensidade, 18~mm/h, abaixo da
+    calibração e do $k_s$: a fórmula dá 3,9\,\% contra 5,7\,\% do MC ($z = 4$). Com ar ativo a cauda abaixo da
+    calibração também foge, e a fórmula ali fica contra a segurança.
   \item \textbf{O FS cai mais que $F$ e espalha mais na maior intensidade.} A \fragTopIi~mm/h, a lognormal censurada dá
     mediana \fragCensMedi~$\pm$~\fragCensMedSei{} (prevista \fragPrevMedMedioi{} com o $k_s$ médio e \fragPrevMedi{}
     com o mediano) e $\beta = \fragCensBetai \pm \fragCensBetaSei$ (calibrado \fragBetai).
@@ -691,6 +696,36 @@ $m' = \fragMki$).}\label{tab:fragi}
 \end{itemize}
 \else
 A (i) ainda não tem bloco pronto no prefixo: o primeiro bloco, com a determinística, ainda roda.
+\fi
+
+\ifnum\fragCemTem>0
+\subsection{O f100 no \texttt{frag} (parcial): a duração}\label{sec:mcf100}
+A chuva vai até 120~h, mas a falha que entra na comparação é a de até 72~h, a duração das sigmoides do f100. A fórmula
+usa o $F$ das médias com o $k_s$ médio (o f100 ainda não tem a sigmoide do $k_s$ mediano), e o $\beta$ e o $m$ vêm do
+MC de calibração, com o FS em 72~h: (iii) a \fragCemIcaliii~mm/h ($\beta = \fragCemBetaiii$, $m = \fragCemMiii$,
+\fragCemNcaliii{} realizações) e (i) a \fragCemIcali~mm/h ($\beta = \fragCemBetai$, $m = \fragCemMi$, \fragCemNcali).
+
+\begin{table}[H]\centering\small
+\caption{O f100 no \texttt{frag}: o prefixo contínuo de \fragCemNiii{} realizações na (iii) e \fragCemNi{} na (i), de
+1000. $F$: o FS das médias em 72~h. $\Pf$: a falha até 72~h, com o IC de 95\,\%; prev.: a fórmula com o $\beta$ e o $m$
+da calibração, e $z$ como na Tab.~\ref{tab:fragiii}. 48, 60 e 96~h: a $\Pf$ (\%) para essas durações, pela mesma
+primeira passagem. $t_1$: a mediana e os quantis de 10 e 90\,\% das falhas até 72~h.}\label{tab:fragf100}
+\resizebox{\textwidth}{!}{\input{tab/frag_f100.tex}}
+\end{table}
+
+\begin{itemize}
+  \item \textbf{A fórmula passa raspando.} Na (iii), 3 das 4 intensidades com $|z| \le 2$; a 6~mm/h ela dá 2,6\,\%
+    contra 0,6\,\% (3 falhas em 466, $z = -2{,}6$), do lado conservador. Na (i), as duas maiores intensidades ficam
+    com $z \approx -2{,}5$: a fórmula dá $\approx 5$ pontos a mais (70 contra 65\,\% a 20~mm/h), também conservadora.
+    Com metade das realizações, o critério $|z| \le 2$ ainda não decide; o resultado completo dirá.
+  \item \textbf{No f100 é a duração que manda.} Com ar passivo, a 20 e a 9~mm/h a $\Pf$ vai de $\approx 1\,\%$ em
+    48~h para 31--39\,\% em 96~h; a intensidade importa pouco acima de $\approx 3k_s$. Com ar ativo a $\Pf$ em 72~h
+    já passa de 40\,\% a 5~mm/h, e o $t_1$ das falhas é mais cedo e mais espalhado (mediana de 49--60~h, contra 62--67~h
+    com ar passivo).
+  \item \textbf{$\beta$ cresce com a duração.} No MC de calibração, de 72 para 120~h, $\beta$ vai de \fragCemBetaiii{}
+    a \fragCemBetaCxxiii{} na (iii) e de \fragCemBetai{} a \fragCemBetaCxxi{} na (i). Para $\Pf(I, D)$ a fórmula
+    precisa de $\beta(D)$, ou de uma calibração por duração.
+\end{itemize}
 \fi
 
 \section{Hipóteses e o que pode falhar}\label{sec:riscos}
@@ -717,10 +752,13 @@ A (i) ainda não tem bloco pronto no prefixo: o primeiro bloco, com a determiní
 
 \section{Próximos passos}
 \begin{enumerate}
-  \item Baixar o resultado parcial do f50 (\texttt{baixar\_frag.sh}) e aplicar o critério: a fórmula com $\beta$ e
-    $m$ da calibração contra a $\Pf$ de cada intensidade, nas duas variantes.
-  \item Se passar: o f100 (a duração, $\Pf(I, D)$ e os limiares da Eq.~\ref{eq:limiar}) e os outros solos.
-  \item Se falhar: o diagnóstico (H1, $m$, $\beta(I)$) e a forma corrigida (por exemplo $\beta$ em dois trechos).
+  \item \textbf{Feito (f50 completo):} com um $\beta$ só o critério $|z| \le 2$ falha acima de $k_s$ (e, com ar ativo,
+    também a 18~mm/h). O diagnóstico aponta para $\beta(I)$: a forma corrigida a testar é $\beta$ em dois trechos
+    ($I < k_s$ e $I > k_s$), com a segunda calibração na maior intensidade, e conferir se ela fecha as intensidades
+    intermediárias.
+  \item O f100 completo (1000 realizações): o critério em 72~h e a $\Pf(I, D)$ com $\beta(D)$; os limiares da
+    Eq.~\ref{eq:limiar}.
+  \item A sigmoide do $k_s$ mediano no f100, como no f50.
   \item Retomar a validação determinística e refazer os números finais com a malha e a convenção da chuva decididas.
 \end{enumerate}
 

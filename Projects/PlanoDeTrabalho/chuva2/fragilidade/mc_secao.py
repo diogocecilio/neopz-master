@@ -540,4 +540,50 @@ def gera(k):
                       "fragPrevMed" + var: num(cv_["mk"] * F_em(cv_["Fk"], Itop), 3)})
             if cv_["m"] and F_em(cv_["Fm"], Itop):
                 M["fragPrevMedMedio" + var] = num(cv_["m"] * F_em(cv_["Fm"], Itop), 3)
+    M.update(f100(TABS))
+    return M
+
+
+def f100(TABS):
+    """o f100 do frag (parcial): chuva de ate 120 h, falha contada ate 72 h (a duracao das sigmoides do f100); beta e m
+    do MC de calibracao (FS em 72 h a 9 mm/h na (iii) e a 3,6 na (i)); a P_f em cada duracao; tab/frag_f100.tex"""
+    M = {"fragCemTem": "0"}
+    rj = os.path.join(FRAG, "resumo.json")
+    if not os.path.exists(rj):
+        return M
+    R = json.load(open(rj))
+    L = []
+    for var, cal, Ical in (("iii", "f100_iii_mc", 9.0), ("i", "f100_i_mc", 3.6)):
+        r = R.get(f"f100_{var}")
+        if not r:
+            continue
+        det = rf.le_det(os.path.join(RUNS, "sigmoide_f100_72h"), f"{var}_", 72.)
+        b = {}
+        for t in (72., 120.):
+            ln_ = np.log([x for x in rf.le_mc(os.path.join(FRAG, cal), t).values() if x > 0])
+            b[t] = (float(np.std(ln_, ddof=1)), float(np.exp(ln_.mean())), len(ln_))
+        beta, med, ncal = b[72.]
+        m = med / det[Ical]
+        M.update({"fragCemN" + var: str(r["N"]), "fragCemBeta" + var: num(beta, 3), "fragCemM" + var: num(m, 3),
+                  "fragCemBetaCxx" + var: num(b[120.][0], 3), "fragCemIcal" + var: num(Ical, 1).replace("{,}0", ""),
+                  "fragCemNcal" + var: str(ncal)})
+        for I, x in sorted(r["intensidades"].items(), key=lambda a: -float(a[0])):
+            N, k_, p, F = x["N"], x["falhas"], x["Pf"], x["F_det"]
+            q = float(norm.cdf(-math.log(m * F) / beta))
+            z = (p - q) / math.sqrt(q * (1 - q) / N)
+            lo, hi = x["IC"]
+            t1 = np.array(x["t1_falhas"])
+            tq = (f"{num(np.median(t1), 1)} [{num(np.quantile(t1, .1), 1)}, {num(np.quantile(t1, .9), 1)}]"
+                  if len(t1) else "--")
+            du = x["Pf_duracao"]
+            L.append(f"{NOMEV[var]} & {num(float(I), 1).replace('{,}0', '')} & {num(F, 3)} & {k_}/{N} & {pcs(p)} & "
+                     f"{pcs(lo)}--{pcs(hi)} & {pcs(q)} ({num(z, 1)}) & {pcs(du.get('48'))} & {pcs(du.get('60'))} & "
+                     f"{pcs(du.get('96'))} & {tq}\\\\")
+        L.append("\\midrule")
+        M["fragCemTem"] = "1"
+    L = L[:-1]
+    with open(os.path.join(TABS, "frag_f100.tex"), "w") as fo:
+        fo.write("\\begin{tabular}{llrrrlllll l}\n\\toprule\nvariante & $I$ & $F$ (72 h) & falhas/$N$ & $\\Pf$ (\\%) & "
+                 "IC 95\\,\\% & prev. ($z$) & 48 h & 60 h & 96 h & $t_1$ (h)\\\\\n\\midrule\n" + "\n".join(L)
+                 + "\n\\bottomrule\n\\end{tabular}\n")
     return M
