@@ -159,12 +159,9 @@ rápido quanto mais fina a malha, e ainda não convergiu; a 64~h, 1,5~m na gross
 contra 2,8~m no artigo. Com o FS (Tab.~\ref{tab:frente}), a malha fina (colunas de 0,5~m, primeira camada com
 0,5\,\% da altura) leva a frente do sp mais perto do artigo, mas ainda faltam $\approx 0{,}5$~m: no sp, a diferença é
 de malha e ainda não convergiu. No tp a frente quase não muda com a malha (1,61 e 1,67~m a 96~h) e fica bem atrás do
-artigo (2,30~m): a diferença no tp não é de malha. Suspeitos: a permeabilidade ao ar ($k_{ra}$ de Lenhard--Parker e o
-piso $10^{-4}$) e a condição do ar na superfície (aqui $p_a = 0$ em todos os nós da superfície). \afazer{testar o
-piso de $k_{ra}$ e a condição do ar} A causa é a malha em camadas por fração da altura: em C--C', com
-22~m de solo, a primeira camada da malha atual tem 0,22~m, grossa para uma frente íngreme num solo que parte com
-$S_w \approx 0{,}39$. A correção é usar camadas de espessura fixa (poucos centímetros) até a profundidade que a frente
-alcança ($\approx 8$~m) e crescer só abaixo. \afazer{a malha nova e o silte refeito}
+artigo (2,30~m). A Seção~\ref{sec:conv} mostra a causa das duas diferenças: com a malha fina, o nosso transiente
+já está perto da solução convergida, e é o artigo que não está convergido (a malha de $\approx 0{,}27$~m do FLAC
+adianta a frente, pouco no sp e muito no tp).
 
 \begin{table}[H]\centering\small
 \caption{Silte, sp: profundidade (m) do meio da frente em C--C' em três malhas do transiente.}\label{tab:malhat}
@@ -181,6 +178,64 @@ a sucção neles de hora em hora (\texttt{*\_pontos.csv}).
 \caption{Silte: $p_w$ nos pontos H, I e J, NeoPZ com a malha fina do transiente (linhas; tracejada: $p_a$ no tp)
 contra a Fig.~5b de Cho (2016) (marcadores, lidos a olho, $\pm 1$~kPa e $\pm 3$~h).}\label{fig:pontos}
 \end{figure}
+
+\section{Por que o artigo difere: a convergência em 1D}\label{sec:conv}
+\paragraph{Pistas no artigo.} A versão final (Eng.\ Geol.\ 211:184--197) tem os mesmos dados e figuras do manuscrito
+aceito (só a Fig.~16 troca os rótulos tp/sp a 32~h). A física do ar bate com a nossa: $p_a$ em C--C' (Fig.~9b) de
+$\approx 1{,}8$, 2,6 e 3,3~kPa a 32, 64 e 96~h (nós: 1,4, 2,1 e 2,8), e a sucção que fica atrás da frente no tp
+(Fig.~6) de $\approx 1{,}5$--2~kPa (nós: 1,1--1,5). As velocidades da frente depois de $\approx 30$~h também batem; a
+diferença é um avanço que o artigo ganha no começo. O FLAC usa diferenças finitas explícitas numa malha grossa: os
+marcadores das Figs.~8 e 11 estão a cada $\approx 0{,}27$~m em C--C', e a frente se espalha por 2 ou 3 nós.
+
+\paragraph{O teste.} Uma coluna vertical do silte, 10~m, $p_w = -30$~kPa inicial e a chuva de $3k_s$ (depois a face
+de percolação), em dois códigos:
+\begin{itemize}
+  \item um Richards 1D independente em Python (\texttt{richards1d/r1d.py}, só água; \texttt{tp1d.py}, água e ar com
+    $p_a = 0$ no topo e a base estanque), volumes finitos nos nós (armazenamento concentrado, como o FD do FLAC) e o
+    $k_r$ entre dois nós de três jeitos: \emph{tipo MEF} (dois pontos de Gauss de $p$ linear), \emph{média} dos
+    dois nós e \emph{a montante} (o $k_r$ do nó de onde vem o fluxo, de cada fase, o usual em fluxo bifásico);
+  \item a coluna do NeoPZ (\texttt{Cho2016Coluna}, \texttt{coluna.cpp}): o mesmo material e o mesmo
+    \texttt{RainTransient} do 2D, numa coluna de camadas.
+\end{itemize}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figs/convergencia.pdf}
+\caption{A frente em C--C' contra o tempo: o artigo (círculos), o 1D com $k_r$ a montante na malha do FLAC
+(0,27~m, tracejado), a coluna do NeoPZ convergida (5~cm) e o nosso 2D com a malha fina (quadrados).}
+\label{fig:conv}
+\end{figure}
+
+\begin{table}[H]\centering\scriptsize
+\caption{A profundidade da frente ($p_w = -15$~kPa, m) no silte: convergência de malha do 1D (Python e coluna do
+NeoPZ), o nosso 2D e o artigo.}\label{tab:conv}
+\input{tab/convergencia.tex}
+\end{table}
+
+\paragraph{Resultado.}
+\begin{enumerate}
+  \item \textbf{O NeoPZ está certo.} A coluna converge para o mesmo resultado do Python independente (sp: 5,77~m
+    contra 5,78~m a 160~h; tp: 2,19~m contra 2,24~m, com o Python ainda descendo). O passo de tempo (0,1 ou
+    0,25~h) e o acoplamento mecânico (modelo ii contra iii) não mudam a frente.
+  \item \textbf{O artigo não está convergido em malha.} O $k_r$ a montante na malha de 0,27~m do FLAC reproduz as duas
+    curvas do artigo quase exatamente: sp 1,59 / 2,75 / 3,87 / 4,99 / 6,12~m contra 1,6 / 2,8 / 3,9 / 5,0 / 6,3, e
+    tp 1,28 / 1,81 / 2,29 / 2,70 / 3,13~m contra 1,3 / 1,9 / 2,3 / 2,85 / 3,15. Também os pontos H, I e J do sp (o
+    artigo molha H, I e J em $\approx 15$, 41 e 126~h; esse 1D, em 14, 43 e 127~h; o convergido, em 22, 52 e 136~h;
+    o nosso 2D, em 21, 51 e 135~h). Refinando, a frente recua: $\approx 0{,}4$~m no sp e $\approx 1$~m no tp a
+    160~h. Que o FLAC use $k_r$ a montante é inferência (o manual do FLAC diria); é o único dos três esquemas que
+    reproduz o artigo.
+  \item \textbf{Por que o tp sente mais.} A montante, o ar que sobe usa o $k_{ra}$ do nó de baixo, mais seco: a camada
+    quase saturada atrás da frente e a superfície ($S_w = 1$) quase não seguram o ar, e a água entra mais. Na malha
+    grossa isso vale $\approx 1$~m a 160~h; no sp, só o $k_{rw}$ da frente, $\approx 0{,}4$~m.
+  \item \textbf{O nosso 2D.} No sp, bate com o 1D convergido até $\approx 2{,}5$~m e atrasa um pouco mais fundo,
+    onde as camadas da malha fina chegam a 0,4--0,6~m (no 1D, $k_r$ tipo MEF com camadas grossas atrasa a frente).
+    No tp fica um pouco à frente do 1D (0,83 contra 0,68~m a 32~h), porque no 2D o ar também sai pela face inclinada.
+\end{enumerate}
+
+\begin{table}[H]\centering\scriptsize
+\caption{Sensibilidade da frente tp (coluna do NeoPZ, camadas de 5~cm) à primeira camada, ao piso de $k_{ra}$ e à
+razão de viscosidades. Só o piso $10^{-2}$ mexe, mas com $p_a$ três vezes o do artigo.}\label{tab:sensib}
+\input{tab/sensib_tp.tex}
+\end{table}
 
 \section{Areia}
 O FS inicial converge (1,307), mas o transiente não passa de 0,02--0,15~h: o Newton diverge no início da chuva. A
@@ -201,9 +256,11 @@ rampa na chuva, ou continuação na sucção inicial}
 
 \section{Próximos passos}
 \begin{enumerate}
-  \item sp: refinar mais a malha do transiente perto da superfície, até a frente convergir.
-  \item tp: a frente lenta não é de malha; testar a permeabilidade ao ar e a condição do ar na superfície, e fazer o
-    Newton passar quando a face de percolação cresce (o tp para em 127--149~h).
+  \item O 2D com camadas de $\approx 0{,}15$~m até o fundo (rodando), para confirmar a convergência no talude.
+  \item Se quisermos reproduzir as curvas do artigo, e não a solução convergida: um esquema com $k_r$ a montante na
+    malha do FLAC (não é o caso do MEF do NeoPZ). Para a comparação sp contra tp, a solução convergida é a que vale:
+    o efeito do ar é maior do que o artigo mostra.
+  \item tp: fazer o Newton passar quando a face de percolação cresce (o tp para em 127--149~h).
   \item A areia: fazer o transiente passar do início da chuva.
   \item A sucção e $p_a$ nos pontos (Fig.~6) e os perfis de $p_a$ (Fig.~9).
 \end{enumerate}

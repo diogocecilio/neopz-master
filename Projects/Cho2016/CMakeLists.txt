@@ -8,3 +8,10 @@ add_pz_target(NAME Cho2016
                       ${SRF}/RainTransient.cpp ${SRF}/RainTransient.h
               REQUIRED PZ_BUILD_PLASTICITY_MATERIALS)
 target_include_directories(Cho2016 PRIVATE ${SRF})
+
+# a coluna vertical 1D (coluna.cpp): convergencia de malha da frente sp e tp, separando a malha da fisica
+add_pz_target(NAME Cho2016Coluna
+              SOURCES coluna.cpp ${SRF}/UnsatModel.cpp ${SRF}/UnsatModel.h ${SRF}/UnsatAnalysis.cpp ${SRF}/UnsatAnalysis.h
+                      ${SRF}/HPMaterial.h ${SRF}/RainTransient.cpp ${SRF}/RainTransient.h
+              REQUIRED PZ_BUILD_PLASTICITY_MATERIALS)
+target_include_directories(Cho2016Coluna PRIVATE ${SRF})

@@ -250,4 +250,101 @@ with open(os.path.join(AQUI, "tab", "psi.tex"), "w") as f:
             niv = "; ".join(v(float(x)) for x in Rr[0]["niveis"].split(";")) if Rr else "(rodando)"
             f.write(f"{so} & {nome} & {niv} & {cho}\\\\\n")
     f.write("\\bottomrule\n\\end{tabular}\n")
+
+# ---- convergencia 1D: por que o artigo difere (coluna do NeoPZ, Cho2016Coluna, e o Richards 1D independente,
+# Projects/Cho2016/richards1d: r1d.py so agua, tp1d.py agua e ar), com o 2D fino do NeoPZ e o artigo
+import re  # noqa: E402
+R1 = os.path.join(R, "richards1d")
+COL = os.path.join(R, "coluna")
+TS = [32, 64, 96, 128, 160]
+
+
+def py1d(arq):
+    """{(dz, media, extra): {t: frente}} das linhas do r1d.py (sp) ou do tp1d.py (tp)"""
+    out = {}
+    if not os.path.exists(arq):
+        return out
+    for lin in open(arq):
+        mm = re.match(r"dz=([\d.]+) (\w+)\s+(kramin=\S+ mu=\S+)?", lin)
+        if not mm:
+            continue
+        fr = {int(t): float(f) for t, f in re.findall(r"(\d+)h:([\d.]+)", lin)}
+        out[(round(float(mm.group(1)), 2), mm.group(2), mm.group(3) or "")] = fr
+    return out
+
+
+SP1, TP1 = py1d(os.path.join(R1, "convergencia_sp.txt")), py1d(os.path.join(R1, "convergencia_tp.txt"))
+BASE = "kramin=0.0001 mu=56"
+
+
+def coluna(nome):
+    Rr = le(os.path.join(COL, f"{nome}_frente.csv"))
+    return {int(float(r["t_h"])): float(r["frente_m"]) for r in Rr}
+
+
+def doisD(m):
+    Rm = le(os.path.join(P3, f"fina_assoc_silte_{m}_cc.csv"))
+    return {t: frente_de(Rm, t) for t in TS if frente_de(Rm, t) is not None}
+
+
+ART = {m: {int(float(r["t_h"])): float(r["frente_m"]) for r in frente if r["modelo"] == m} for m in ("sp", "tp")}
+fig, axs = plt.subplots(1, 2, figsize=(7.6, 3.8), sharey=True)
+for ax, m, P, colf in ((axs[0], "sp", SP1, "sp_h0.05"), (axs[1], "tp", TP1, "tp_h0.05")):
+    eixo(ax)
+    flac = P.get((0.27, "sup", "" if m == "sp" else BASE), {})
+    col = coluna(colf)
+    d2 = doisD(m)
+    ax.plot(sorted(ART[m]), [ART[m][t] for t in sorted(ART[m])], "o", ms=6, mfc="none", mec=TINTA, mew=1.3,
+            label="Cho (2016), Fig. 8")
+    if flac:
+        ax.plot(sorted(flac), [flac[t] for t in sorted(flac)], color="#e34948", lw=1.4, ls=(0, (4, 2)),
+                label="1D, $k_r$ a montante, 0,27 m (FLAC)")
+    if col:
+        tt = [t for t in sorted(col) if t > 0]
+        ax.plot(tt, [col[t] for t in tt], color="#2a78d6", lw=1.8, label="1D NeoPZ convergido (5 cm)")
+    if d2:
+        ax.plot(sorted(d2), [d2[t] for t in sorted(d2)], "s", ms=5, color="#3a9a5b", label="2D NeoPZ (malha fina)")
+    ax.set_title(NOME[m], fontsize=9, loc="left", color=TINTA)
+    ax.set_xlim(0, 170), ax.set_ylim(7, 0)
+    ax.set_xlabel("t (h)", fontsize=9, color=TINTA)
+axs[0].set_ylabel("frente em C–C' ($p_w = -15$ kPa, m)", fontsize=9, color=TINTA)
+axs[0].legend(fontsize=7, frameon=False, loc="lower left")
+fig.tight_layout()
+fig.savefig(os.path.join(AQUI, "figs", "convergencia.pdf"))
+plt.close(fig)
+
+with open(os.path.join(AQUI, "tab", "convergencia.tex"), "w") as f:
+    f.write("\\begin{tabular}{ll|ccccc}\n\\toprule\n")
+    f.write("modelo & malha / $k_r$ entre os nós & 32 h & 64 h & 96 h & 128 h & 160 h\\\\\n\\midrule\n")
+    lin = lambda m, nome, d: f.write(f"{m} & {nome} & " + " & ".join(v2(d[t]) if t in d else "--" for t in TS)
+                                     + "\\\\\n")
+    for m, P, ex in (("sp", SP1, ""), ("tp", TP1, BASE)):
+        lin(m, "\\textbf{Cho (2016)}", ART[m])
+        for dz in (0.5, 0.27, 0.1, 0.05, 0.02, 0.01):
+            if (dz, "sup", ex) in P:
+                lin(m, f"Python, a montante, {v2(dz)} m", P[(dz, "sup", ex)])
+        for dz in (0.27, 0.1):
+            for k, nome in (("gauss", "tipo MEF"), ("arit", "média")):
+                if (dz, k, ex) in P:
+                    lin(m, f"Python, {nome}, {v2(dz)} m", P[(dz, k, ex)])
+        for h in ("0.5", "0.27", "0.1", "0.05", "0.02"):
+            c = coluna(f"{m}_h{h}")
+            if c:
+                lin(m, f"NeoPZ coluna, {h.replace('.', ',')} m", c)
+        lin(m, "NeoPZ 2D (malha fina)", doisD(m))
+        f.write("\\midrule\n" if m == "sp" else "")
+    f.write("\\bottomrule\n\\end{tabular}\n")
+
+with open(os.path.join(AQUI, "tab", "sensib_tp.tex"), "w") as f:
+    f.write("\\begin{tabular}{l|ccccc|c}\n\\toprule\n")
+    f.write("coluna NeoPZ, tp (5 cm) & 32 h & 64 h & 96 h & 128 h & 160 h & $p_a$ máx. 160 h (kPa)\\\\\n\\midrule\n")
+    for nome, arq in (("referência ($k_{ra} \\geq 10^{-4}$, $\\mu_w/\\mu_a = 56$)", "tp_h0.05"),
+                      ("1ª camada 5 mm", "tp_s0.005"), ("1ª camada 1 mm", "tp_s0.001"),
+                      ("$k_{ra} \\geq 10^{-6}$", "tp_kra1e-6"), ("$k_{ra} \\geq 10^{-3}$", "tp_kra1e-3"),
+                      ("$k_{ra} \\geq 10^{-2}$", "tp_kra1e-2"), ("$\\mu_w/\\mu_a = 112$", "tp_mu112")):
+        Rr = {int(float(r["t_h"])): r for r in le(os.path.join(COL, f"{arq}_frente.csv"))}
+        cel = [v2(float(Rr[t]["frente_m"])) if t in Rr else "--" for t in TS]
+        pa = v2(float(Rr[160]["pa_max_kPa"])) if 160 in Rr else "--"
+        f.write(f"{nome} & " + " & ".join(cel) + f" & {pa}\\\\\n")
+    f.write("\\bottomrule\n\\end{tabular}\n")
 print("pronto")
