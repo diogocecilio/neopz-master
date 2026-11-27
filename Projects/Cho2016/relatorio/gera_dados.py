@@ -282,8 +282,8 @@ def coluna(nome):
     return {int(float(r["t_h"])): float(r["frente_m"]) for r in Rr}
 
 
-def doisD(m):
-    Rm = le(os.path.join(P3, f"fina_assoc_silte_{m}_cc.csv"))
+def doisD(m, arq=None):
+    Rm = le(arq or os.path.join(P3, f"fina_assoc_silte_{m}_cc.csv"))
     return {t: frente_de(Rm, t) for t in TS if frente_de(Rm, t) is not None}
 
 
@@ -294,6 +294,7 @@ for ax, m, P, colf in ((axs[0], "sp", SP1, "sp_h0.05"), (axs[1], "tp", TP1, "tp_
     flac = P.get((0.27, "sup", "" if m == "sp" else BASE), {})
     col = coluna(colf)
     d2 = doisD(m)
+    d15 = doisD(m, os.path.join(R, "passo4", f"fina15cm_silte_{m}_cc.csv"))
     ax.plot(sorted(ART[m]), [ART[m][t] for t in sorted(ART[m])], "o", ms=6, mfc="none", mec=TINTA, mew=1.3,
             label="Cho (2016), Fig. 8")
     if flac:
@@ -304,6 +305,9 @@ for ax, m, P, colf in ((axs[0], "sp", SP1, "sp_h0.05"), (axs[1], "tp", TP1, "tp_
         ax.plot(tt, [col[t] for t in tt], color="#2a78d6", lw=1.8, label="1D NeoPZ convergido (5 cm)")
     if d2:
         ax.plot(sorted(d2), [d2[t] for t in sorted(d2)], "s", ms=5, color="#3a9a5b", label="2D NeoPZ (malha fina)")
+    if d15:
+        ax.plot(sorted(d15), [d15[t] for t in sorted(d15)], "^", ms=5, mfc="none", mec="#3a9a5b", mew=1.2,
+                label="2D NeoPZ (camadas 15 cm)")
     ax.set_title(NOME[m], fontsize=9, loc="left", color=TINTA)
     ax.set_xlim(0, 170), ax.set_ylim(7, 0)
     ax.set_xlabel("t (h)", fontsize=9, color=TINTA)
@@ -332,6 +336,7 @@ with open(os.path.join(AQUI, "tab", "convergencia.tex"), "w") as f:
             if c:
                 lin(m, f"NeoPZ coluna, {h.replace('.', ',')} m", c)
         lin(m, "NeoPZ 2D (malha fina)", doisD(m))
+        lin(m, "NeoPZ 2D (camadas 15 cm)", doisD(m, os.path.join(R, "passo4", f"fina15cm_silte_{m}_cc.csv")))
         f.write("\\midrule\n" if m == "sp" else "")
     f.write("\\bottomrule\n\\end{tabular}\n")
 

@@ -201,7 +201,7 @@ de percolação), em dois códigos:
 \begin{figure}[H]\centering
 \includegraphics[width=\textwidth]{figs/convergencia.pdf}
 \caption{A frente em C--C' contra o tempo: o artigo (círculos), o 1D com $k_r$ a montante na malha do FLAC
-(0,27~m, tracejado), a coluna do NeoPZ convergida (5~cm) e o nosso 2D com a malha fina (quadrados).}
+(0,27~m, tracejado), a coluna do NeoPZ convergida (5~cm) e o nosso 2D com a malha fina (quadrados) e com camadas de 15~cm (triângulos).}
 \label{fig:conv}
 \end{figure}
 
@@ -226,9 +226,14 @@ NeoPZ), o nosso 2D e o artigo.}\label{tab:conv}
   \item \textbf{Por que o tp sente mais.} A montante, o ar que sobe usa o $k_{ra}$ do nó de baixo, mais seco: a camada
     quase saturada atrás da frente e a superfície ($S_w = 1$) quase não seguram o ar, e a água entra mais. Na malha
     grossa isso vale $\approx 1$~m a 160~h; no sp, só o $k_{rw}$ da frente, $\approx 0{,}4$~m.
-  \item \textbf{O nosso 2D.} No sp, bate com o 1D convergido até $\approx 2{,}5$~m e atrasa um pouco mais fundo,
-    onde as camadas da malha fina chegam a 0,4--0,6~m (no 1D, $k_r$ tipo MEF com camadas grossas atrasa a frente).
-    No tp fica um pouco à frente do 1D (0,83 contra 0,68~m a 32~h), porque no 2D o ar também sai pela face inclinada.
+  \item \textbf{O nosso 2D.} Com camadas de $\approx 0{,}15$~m até o fundo (153\,886 equações; triângulos), a
+    frente do sp fica em 1,30 / 2,41 / 3,57 / 4,65 / 5,82~m, colada no 1D convergido (1,23 / 2,37 / 3,50 / 4,63 /
+    5,77): o atraso da malha fina anterior abaixo de 2,5~m era das camadas de 0,4--0,6~m. Os pontos H, I e J do sp
+    molham em 21, 49 e 131~h. No tp, 0,82 / 1,26 / 1,65 / 2,03 / 2,41~m, igual à malha fina anterior onde as duas
+    existem e $\approx 0{,}2$~m à frente do 1D, porque no 2D o ar também sai pela face inclinada; o $p_a$ máximo
+    vai a 4,85~kPa a 160~h (artigo, Fig.~9b: $\approx 4{,}6$~kPa). Com essa malha o Newton do tp passa as 168~h
+    (a malha anterior parava em 127--149~h). As duas malhas 2D concordam entre si e com o 1D: o nosso 2D está
+    convergido, e o artigo, não.
 \end{enumerate}
 
 \begin{table}[H]\centering\scriptsize
@@ -256,11 +261,11 @@ rampa na chuva, ou continuação na sucção inicial}
 
 \section{Próximos passos}
 \begin{enumerate}
-  \item O 2D com camadas de $\approx 0{,}15$~m até o fundo (rodando), para confirmar a convergência no talude.
   \item Se quisermos reproduzir as curvas do artigo, e não a solução convergida: um esquema com $k_r$ a montante na
     malha do FLAC (não é o caso do MEF do NeoPZ). Para a comparação sp contra tp, a solução convergida é a que vale:
     o efeito do ar é maior do que o artigo mostra.
-  \item tp: fazer o Newton passar quando a face de percolação cresce (o tp para em 127--149~h).
+  \item tp: o FS por SRM ao longo da chuva com a malha de 15~cm, que passa as 168~h (a anterior parava em
+    127--149~h quando a face de percolação crescia).
   \item A areia: fazer o transiente passar do início da chuva.
   \item A sucção e $p_a$ nos pontos (Fig.~6) e os perfis de $p_a$ (Fig.~9).
 \end{enumerate}
